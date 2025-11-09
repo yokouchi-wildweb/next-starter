@@ -88,7 +88,7 @@ export const FileInput = <
   return (
     <Block space="sm">
       {preview && (
-        <div className="relative flex items-center justify-center rounded bg-muted p-2">
+        <div className="relative flex w-fit max-w-full items-center justify-center rounded bg-muted p-2">
           <Button
             type="button"
             variant="destructive"
@@ -105,7 +105,7 @@ export const FileInput = <
       <label
         htmlFor={inputId}
         className={cn(
-          "flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground transition-colors",
+          "flex min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground transition-colors",
           "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
           disabled && "cursor-not-allowed opacity-60",
           className,
