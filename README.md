@@ -73,7 +73,7 @@ src/
 │       │   ├── client/                 # クライアント環境用のサービス
 │       │   └── server/                 # サーバー側サービス（DBアクセスなど）
 │       │
-│       ├── hooks/                # フック類 CRUDは`src/lib/crud/hooks.ts`をラップして作成
+│       ├── hooks/                # フック類 CRUDは`src/lib/crud/hooks/`配下をラップして作成
 │       └── tests/  # ドメイン固有の単体テスト（必要に応じて追加）
 │
 ├── components/     # 共通UIコンポーネント
