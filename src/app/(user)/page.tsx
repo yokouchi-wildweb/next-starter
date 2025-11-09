@@ -31,7 +31,7 @@ const pageLinks = [
   { href: "/signup", label: "サインアップ" },
   { href: "/login", label: "ログイン" },
   { href: "/demo/form-components/", label: "フォームDEMO" },
-  { href: "/demo/loading-overlay/", label: "ローディングDEMO" },
+  { href: "/demo/overlay/", label: "オーバーレイDEMO" },
   { href: "/demo/check-env/", label: "環境変数チェック" },
 ];
 
