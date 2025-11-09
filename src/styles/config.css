@@ -42,7 +42,7 @@
   --z-layer-ultimate: var(--z-layer-ultimate);
   --z-layer-apex: var(--z-layer-apex);
 
-  --app-header-height: 0px;
+  --app-header-height: var(--app-header-height);
 }
 
 :root {
