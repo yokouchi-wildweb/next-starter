@@ -7,11 +7,10 @@ import * as React from "react";
 import { cn } from "@/lib/cn";
 
 import { Button, type ButtonProps } from "./Button";
-import {
-  TAG_BUTTON_BASE_CLASS,
-  TAG_BUTTON_SELECTED_CLASS,
-  TAG_BUTTON_UNSELECTED_CLASS,
-} from "./TagButton";
+
+const BOOKMARK_TAG_BASE_CLASS = "h-auto px-3 py-1 text-sm border transition-colors rounded-full";
+const BOOKMARK_TAG_SELECTED_CLASS = "bg-primary text-primary-foreground border-primary";
+const BOOKMARK_TAG_UNSELECTED_CLASS = "bg-muted text-muted-foreground border-border hover:bg-muted/80";
 
 export type BookmarkTagProps = ButtonProps & {
   /** 選択状態に応じて配色を切り替える */
@@ -38,8 +37,8 @@ const BookmarkTag = React.forwardRef<HTMLButtonElement, BookmarkTagProps>(
         size={size}
         className={cn(
           "bookmark-tag",
-          TAG_BUTTON_BASE_CLASS,
-          selected ? TAG_BUTTON_SELECTED_CLASS : TAG_BUTTON_UNSELECTED_CLASS,
+          BOOKMARK_TAG_BASE_CLASS,
+          selected ? BOOKMARK_TAG_SELECTED_CLASS : BOOKMARK_TAG_UNSELECTED_CLASS,
           className,
         )}
         {...props}
