@@ -5,33 +5,85 @@ import { cn } from "@/lib/cn";
 import { cva } from "class-variance-authority";
 
 const trackVariants = cva(
-  "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors duration-200 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+  "relative inline-flex shrink-0 items-center rounded-full px-0.5 transition-colors duration-200 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
   {
     variants: {
       checked: {
         false: "bg-muted border border-border shadow-sm",
-        true: "bg-primary shadow-inner",
+        true: "shadow-inner",
       },
       interactive: {
         true: "cursor-pointer",
         false: "cursor-not-allowed",
       },
+      size: {
+        sm: "h-5 w-9",
+        md: "h-6 w-11",
+        lg: "h-7 w-14",
+      },
+      activeColor: {
+        primary: "",
+        secondary: "",
+        accent: "",
+        destructive: "",
+        muted: "",
+        success: "",
+        error: "",
+        warning: "",
+      },
     },
     defaultVariants: {
       interactive: true,
+      size: "md",
+      activeColor: "primary",
     },
+    compoundVariants: [
+      { checked: true, activeColor: "primary", class: "bg-primary" },
+      { checked: true, activeColor: "secondary", class: "bg-secondary" },
+      { checked: true, activeColor: "accent", class: "bg-accent" },
+      { checked: true, activeColor: "destructive", class: "bg-destructive" },
+      { checked: true, activeColor: "muted", class: "bg-muted" },
+      {
+        checked: true,
+        activeColor: "success",
+        class: "bg-emerald-500 dark:bg-emerald-400",
+      },
+      {
+        checked: true,
+        activeColor: "error",
+        class: "bg-red-500 dark:bg-red-400",
+      },
+      {
+        checked: true,
+        activeColor: "warning",
+        class: "bg-orange-500 dark:bg-orange-400",
+      },
+    ],
   },
 );
 
 const indicatorVariants = cva(
-  "inline-block size-5 rounded-full bg-background transition-transform duration-200",
+  "inline-block rounded-full bg-background transition-transform duration-200",
   {
     variants: {
       checked: {
         false: "translate-x-0 border border-border shadow",
-        true: "translate-x-5 border border-transparent shadow",
+        true: "border border-transparent shadow",
+      },
+      size: {
+        sm: "size-4",
+        md: "size-5",
+        lg: "size-6",
       },
     },
+    defaultVariants: {
+      size: "md",
+    },
+    compoundVariants: [
+      { checked: true, size: "sm", class: "translate-x-4" },
+      { checked: true, size: "md", class: "translate-x-5" },
+      { checked: true, size: "lg", class: "translate-x-7" },
+    ],
   },
 );
 
@@ -51,6 +103,22 @@ type SwitchInputProps = {
    * ラベルの下に表示する補足テキスト
    */
   description?: ReactNode;
+  /**
+   * スイッチ全体の大きさ
+   */
+  size?: "sm" | "md" | "lg";
+  /**
+   * スイッチがオンのときの背景色
+   */
+  activeColor?:
+    | "primary"
+    | "secondary"
+    | "accent"
+    | "destructive"
+    | "muted"
+    | "success"
+    | "error"
+    | "warning";
 } & Omit<
   ComponentPropsWithoutRef<"input">,
   "type" | "value" | "defaultValue" | "defaultChecked" | "checked" | "onChange"
@@ -63,6 +131,8 @@ export function SwitchInput(props: SwitchInputProps) {
     description,
     className,
     disabled,
+    size,
+    activeColor,
     name: nameFromProps,
     onChange: onChangeFromProps,
     id: idFromProps,
@@ -97,8 +167,11 @@ export function SwitchInput(props: SwitchInputProps) {
         }}
       />
 
-      <label htmlFor={inputId} className={cn(trackVariants({ checked, interactive: !disabled }))}>
-        <span className={indicatorVariants({ checked })} />
+      <label
+        htmlFor={inputId}
+        className={cn(trackVariants({ checked, interactive: !disabled, size, activeColor }))}
+      >
+        <span className={indicatorVariants({ checked, size })} />
       </label>
 
       {(label || description) && (
