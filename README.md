@@ -29,8 +29,8 @@
 src/
 ├── app/                            # Next.js App Routerのルート
 │   ├── layout.tsx                  # 全体レイアウト
-│   ├── page.tsx                    # 全体トップページ
 │   ├── (user)/                     # 一般ユーザー画面グループ
+│   │   ├── page.tsx                # アプリ共通トップページ
 │   │   ├── login/page.tsx          # 一般ユーザー向けログイン画面
 │   │   ├── signup/page.tsx         # 一般ユーザー向けサインアップ画面
 │   │   └── (protected)/            # 認証済みユーザー専用ルートグループ
