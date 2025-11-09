@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/Shadcn/dialog";
+} from "@/components/Overlays/Dialog";
 import { Button } from "@/components/Form/Button";
 
 export type ConfirmDialogProps = {

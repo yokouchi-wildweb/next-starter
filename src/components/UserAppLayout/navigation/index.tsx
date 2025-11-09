@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { DesktopNavigation } from "./DesktopNavigation";
@@ -9,10 +9,15 @@ import { NavigationBrand } from "./NavigationBrand";
 import { NavigationToggleButton } from "./NavigationToggleButton";
 import { useUserNavItems } from "./useUserNavItems";
 
-export const UserNavigation = () => {
+type UserNavigationProps = {
+  readonly onHeightChange?: (height: number) => void;
+};
+
+export const UserNavigation = ({ onHeightChange }: UserNavigationProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const { navItems } = useUserNavItems();
+  const headerRef = useRef<HTMLElement | null>(null);
 
   const handleClose = useCallback(() => {
     setIsMenuOpen(false);
@@ -25,6 +30,47 @@ export const UserNavigation = () => {
   useEffect(() => {
     handleClose();
   }, [handleClose, pathname]);
+
+  const reportHeight = useCallback(() => {
+    const height = headerRef.current?.offsetHeight;
+    if (height != null) {
+      onHeightChange?.(height);
+    }
+  }, [onHeightChange]);
+
+  useEffect(() => {
+    reportHeight();
+  }, [reportHeight]);
+
+  useEffect(() => {
+    const element = headerRef.current;
+    if (!element) {
+      return;
+    }
+
+    reportHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", reportHeight);
+      return () => {
+        window.removeEventListener("resize", reportHeight);
+      };
+    }
+
+    const observer = new ResizeObserver(() => {
+      reportHeight();
+    });
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [reportHeight]);
+
+  useEffect(() => {
+    reportHeight();
+  }, [isMenuOpen, navItems, reportHeight]);
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -45,7 +91,10 @@ export const UserNavigation = () => {
   }, [handleClose, isMenuOpen]);
 
   return (
-    <header className="border-b border-border bg-card">
+    <header
+      ref={headerRef}
+      className="fixed inset-x-0 top-0 z-[var(--z-layer-header)] border-b border-border bg-card"
+    >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
         <NavigationBrand />
         <NavigationToggleButton isMenuOpen={isMenuOpen} onToggle={handleToggle} />

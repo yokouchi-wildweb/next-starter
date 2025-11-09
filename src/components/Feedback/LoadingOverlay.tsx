@@ -37,7 +37,7 @@ type LoadingOverlayProps = {
 
 const MODE_CLASS: Record<LoadingOverlayMode, string> = {
   local: "absolute inset-0 z-40",
-  fullscreen: "fixed inset-0 z-50",
+  fullscreen: "fixed inset-0 z-[var(--z-layer-overlay)]",
 };
 
 export function LoadingOverlay({

@@ -324,7 +324,7 @@ type CosmicCoasterSceneProps = {
 
 export function CosmicCoasterScene({ className }: CosmicCoasterSceneProps) {
   return (
-    <div className={cn("pointer-events-none fixed inset-0 z-0", className)}>
+    <div className={cn("pointer-events-none absolute inset-0 -z-10", className)}>
       <Canvas camera={{ position: [0, 1.2, 6], fov: 58 }} gl={{ alpha: true, antialias: true }}>
         <color attach="background" args={["#f7f8fb"]} />
         <fog attach="fog" args={["#eff2f7", 28, 220]} />
