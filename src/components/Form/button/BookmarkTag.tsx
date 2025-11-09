@@ -9,8 +9,10 @@ import { cn } from "@/lib/cn";
 import { Button, type ButtonProps } from "./Button";
 
 const BOOKMARK_TAG_BASE_CLASS = "h-auto px-3 py-1 text-sm border transition-colors rounded-full";
-const BOOKMARK_TAG_SELECTED_CLASS = "bg-primary text-primary-foreground border-primary";
-const BOOKMARK_TAG_UNSELECTED_CLASS = "bg-muted text-muted-foreground border-border hover:bg-muted/80";
+const BOOKMARK_TAG_SELECTED_CLASS =
+  "bg-primary text-primary-foreground border-primary hover:bg-primary hover:text-primary-foreground";
+const BOOKMARK_TAG_UNSELECTED_CLASS =
+  "bg-muted text-muted-foreground border-border hover:bg-muted hover:text-muted-foreground";
 
 export type BookmarkTagProps = ButtonProps & {
   /** 選択状態に応じて配色を切り替える */
