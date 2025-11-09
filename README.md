@@ -40,8 +40,9 @@ src/
 │   │   ├── login/page.tsx          # 管理者向けログイン画面
 │   │   └── (protected)/            # 認証済み管理者専用ルートグループ
 │   │       └── [domain]/           # ドメインごとのCRUDなど管理ページ
-│   │           ├── list/page.tsx       # 一覧
-│   │           └── tc...
+│   │           ├── page.tsx            # 一覧ページ
+│   │           ├── new/page.tsx        # 作成ページ
+│   │           └── [id]/edit/page.tsx  # 編集ページ
 │   │
 │   └── api/                        # APIエンドポイント（REST準拠）
 │       ├── [domain]/               # 汎用CRUD API（共通処理）
