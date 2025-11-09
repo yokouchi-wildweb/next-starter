@@ -54,7 +54,7 @@ const INITIAL_OPTIONS: OverlayOptions = {
   messageClassName: "",
 };
 
-export default function LoadingOverlayDemoPage() {
+export default function OverlayDemoPage() {
   const [isVisible, setIsVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -130,16 +130,45 @@ export default function LoadingOverlayDemoPage() {
     <div className="px-6 py-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
         <Section as="header" className="my-0 flex flex-col gap-2">
-          <PageTitle variant="showcase">LoadingOverlay デモ</PageTitle>
+          <PageTitle variant="showcase">Overlay デモ</PageTitle>
           <Para tone="muted" size="sm" className="mt-0">
             コンポーネントのモードやオプションを変更し、どのように表示されるか確認できます。
           </Para>
         </Section>
 
-        <div className="grid gap-6 lg:grid-cols-[360px,1fr]">
+        <Section
+          as="section"
+          className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm"
+        >
+          <div className="flex flex-col gap-2">
+            <SecTitle as="h2">各種オーバーレイの表示</SecTitle>
+            <Para tone="muted" size="sm" className="mt-0">
+              LoadingOverlay と合わせて利用する機会が多いモーダル・確認ダイアログ・トーストの表示挙動を確認できます。
+            </Para>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => setIsModalOpen(true)}>モーダルを開く</Button>
+            <Button variant="outline" onClick={() => setIsConfirmOpen(true)}>
+              確認ダイアログを開く
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button variant="accent" onClick={() => handleShowToast("success")}>成功トースト</Button>
+            <Button variant="secondary" onClick={() => handleShowToast("info")}>
+              インフォトースト
+            </Button>
+            <Button variant="destructive" onClick={() => handleShowToast("error")}>
+              エラートースト
+            </Button>
+          </div>
+        </Section>
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
           <Section
             as="section"
-            className="my-0 flex flex-col gap-6 rounded-lg border bg-background p-6 shadow-sm"
+            className="order-2 my-0 flex flex-col gap-6 rounded-lg border bg-background p-6 shadow-sm lg:order-1"
           >
             <SecTitle as="h2">オプション</SecTitle>
             <div className="flex flex-col gap-4">
@@ -265,7 +294,7 @@ export default function LoadingOverlayDemoPage() {
           <div className="flex flex-col gap-6">
             <Section
               as="section"
-              className="my-0 flex flex-col gap-4 rounded-lg border bg-background p-6 shadow-sm"
+              className="order-1 my-0 flex flex-col gap-4 rounded-lg border bg-background p-6 shadow-sm lg:order-none"
             >
               <div className="flex flex-col gap-3">
                 <SecTitle as="h2">プレビュー</SecTitle>
@@ -281,36 +310,6 @@ export default function LoadingOverlayDemoPage() {
                 {isVisible ? <LoadingOverlay {...overlayProps} /> : null}
               </div>
             </Section>
-
-            <Section
-              as="section"
-              className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm"
-            >
-              <div className="flex flex-col gap-2">
-                <SecTitle as="h2">関連オーバーレイのデモ</SecTitle>
-                <Para tone="muted" size="sm" className="mt-0">
-                  LoadingOverlay と合わせて利用する機会が多いモーダル・確認ダイアログ・トーストの表示挙動を確認できます。
-                </Para>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Button onClick={() => setIsModalOpen(true)}>モーダルを開く</Button>
-                <Button variant="outline" onClick={() => setIsConfirmOpen(true)}>
-                  確認ダイアログを開く
-                </Button>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Button variant="accent" onClick={() => handleShowToast("success")}>成功トースト</Button>
-                <Button variant="secondary" onClick={() => handleShowToast("info")}>
-                  インフォトースト
-                </Button>
-                <Button variant="destructive" onClick={() => handleShowToast("error")}>
-                  エラートースト
-                </Button>
-              </div>
-            </Section>
-
 
           </div>
         </div>
