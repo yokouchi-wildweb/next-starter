@@ -44,7 +44,7 @@ function mapZodType(type) {
     case 'number':
       return 'z.coerce.number().int()';
     case 'boolean':
-      return 'z.boolean()';
+      return 'z.coerce.boolean()';
     case 'date':
       return 'z.string()';
     default:
