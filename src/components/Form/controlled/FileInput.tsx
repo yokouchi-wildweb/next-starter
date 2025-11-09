@@ -21,13 +21,15 @@ export type FileInputProps<
    * true を返したときのみ削除を実行する
    */
   onRemove?: () => boolean | Promise<boolean>;
+  /** ルート要素に適用するクラス名 */
+  containerClassName?: string;
 };
 
 export const FileInput = <
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
 >(props: FileInputProps<TFieldValues, TName>) => {
-  const { field, initialUrl = null, onSelect, onRemove, ...rest } = props;
+  const { field, initialUrl = null, onSelect, onRemove, containerClassName, ...rest } = props;
   const {
     className,
     id,
@@ -86,7 +88,7 @@ export const FileInput = <
   };
 
   return (
-    <Block space="sm">
+    <Block space="sm" className={cn("w-full", containerClassName)}>
       {preview && (
         <div className="relative flex w-fit max-w-full items-center justify-center rounded bg-muted p-2">
           <Button
