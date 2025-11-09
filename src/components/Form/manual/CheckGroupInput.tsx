@@ -3,7 +3,7 @@
 import { useId, type HTMLAttributes } from "react";
 
 import { Options } from "@/types/form";
-import { Button } from "@/components/Form/button/Button";
+import { Button, type ButtonStyleProps } from "@/components/Form/button/Button";
 import { BookmarkTag } from "@/components/Form/button/BookmarkTag";
 import { RoundedButton } from "@/components/Form/button/RoundedButton";
 import { Label } from "@/components/Form/Label";
@@ -25,6 +25,14 @@ type Props = {
    * 表示タイプ（標準ボタン / ブックマークタグ / 丸形 / 従来型チェックボックス）
    */
   displayType?: CheckGroupDisplayType;
+  /** ボタン表示時に利用するバリアント */
+  buttonVariant?: ButtonStyleProps["variant"];
+  /** ボタン表示時に利用するサイズ */
+  buttonSize?: ButtonStyleProps["size"];
+  /** 選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
+  selectedButtonVariant?: ButtonStyleProps["variant"];
+  /** 非選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
+  unselectedButtonVariant?: ButtonStyleProps["variant"];
 } & HTMLAttributes<HTMLDivElement>;
 
 function toggleValue(currentValues: string[] | undefined, nextValue: string) {
@@ -40,6 +48,10 @@ export function CheckGroupInput({
   field,
   options = [],
   displayType = "rounded",
+  buttonVariant,
+  buttonSize,
+  selectedButtonVariant,
+  unselectedButtonVariant,
   ...rest
 }: Props) {
   const groupId = useId();
@@ -77,10 +89,20 @@ export function CheckGroupInput({
     <div className="flex flex-wrap gap-2" {...rest}>
       {options.map((op) => {
         const selected = field.value?.includes(op.value) ?? false;
+        const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
+        const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
 
         if (displayType === "bookmark") {
           return (
-            <BookmarkTag key={op.value} type="button" selected={selected} onClick={() => handleToggle(op.value)}>
+            <BookmarkTag
+              key={op.value}
+              type="button"
+              selected={selected}
+              variant={buttonVariant}
+              size={buttonSize}
+              onClick={() => handleToggle(op.value)}
+              aria-pressed={selected}
+            >
               {op.label}
             </BookmarkTag>
           );
@@ -91,8 +113,10 @@ export function CheckGroupInput({
             <Button
               key={op.value}
               type="button"
-              variant={selected ? "default" : "outline"}
+              variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
+              size={buttonSize}
               onClick={() => handleToggle(op.value)}
+              aria-pressed={selected}
             >
               {op.label}
             </Button>
@@ -100,7 +124,15 @@ export function CheckGroupInput({
         }
 
         return (
-          <RoundedButton key={op.value} type="button" selected={selected} onClick={() => handleToggle(op.value)}>
+          <RoundedButton
+            key={op.value}
+            type="button"
+            selected={selected}
+            variant={buttonVariant}
+            size={buttonSize}
+            onClick={() => handleToggle(op.value)}
+            aria-pressed={selected}
+          >
             {op.label}
           </RoundedButton>
         );
