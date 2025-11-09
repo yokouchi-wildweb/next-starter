@@ -11,14 +11,14 @@
   --z-layer-content: 100;
 
   /* header layer group */
-  --z-layer-below-header: 500;
-  --z-layer-header: 600;
-  --z-layer-above-header: 700;
+  --z-layer-below-header: 330;
+  --z-layer-header: 360;
+  --z-layer-above-header: 390;
 
   /* feedback layer group */
-  --z-layer-modal: 900;
-  --z-layer-overlay: 950;
-  --z-layer-alert: 999;
+  --z-layer-modal: 930;
+  --z-layer-overlay: 960;
+  --z-layer-alert: 990;
 
   /* super layer group */
   --z-layer-super: 6666;
@@ -35,14 +35,19 @@
   --z-layer-content: 100;
 
   /* header layer group */
-  --z-layer-below-header: 500;
-  --z-layer-header: 600;
-  --z-layer-above-header: 700;
+  --z-layer-below-header: 330;
+  --z-layer-header: 360;
+  --z-layer-above-header: 390;
+
+  /* forefront layer group */
+  --z-layer-forefront-low: 530;
+  --z-layer-forefront: 560;
+  --z-layer-forefront-high: 590;
 
   /* feedback layer group */
-  --z-layer-modal: 900;
-  --z-layer-overlay: 950;
-  --z-layer-alert: 999;
+  --z-layer-modal: 930;
+  --z-layer-overlay: 960;
+  --z-layer-alert: 990;
 
   /* super layer group */
   --z-layer-super: 6666;
