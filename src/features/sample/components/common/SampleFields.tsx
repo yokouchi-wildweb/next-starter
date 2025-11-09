@@ -8,7 +8,7 @@ import { NumberInput } from "@/components/Form/controlled";
 import StepperInput from "@/components/Form/manual/StepperInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";
 import { SwitchInput } from "@/components/Form/controlled";
-import { RadioGroupInput } from "@/components/Form/manual";
+import { BooleanRadioGroupInput } from "@/components/Form/manual";
 import { FileUrlInput } from "@/components/Form/controlled";
 import { Textarea } from "@/components/Form/controlled";
 import type { Options } from "@/types/form";
@@ -84,7 +84,7 @@ export function SampleFields<TFieldValues extends FieldValues>({
         control={control}
         name={"radio" as FieldPath<TFieldValues>}
         label="ラジオボタン"
-        renderInput={(field) => <RadioGroupInput field={field} options={[{"value":"true","label":"Yes"},{"value":"false","label":"No"}]} />}
+        renderInput={(field) => <BooleanRadioGroupInput field={field} />}
       />
       <FormFieldItem
         control={control}

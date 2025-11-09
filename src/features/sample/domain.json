@@ -54,12 +54,12 @@
       "required": false,
       "options": [
         {
-          "value": "true",
-          "label": "Yes"
+          "value": true,
+          "label": "はい"
         },
         {
-          "value": "false",
-          "label": "No"
+          "value": false,
+          "label": "いいえ"
         }
       ]
     },

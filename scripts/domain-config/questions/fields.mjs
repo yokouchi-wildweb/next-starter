@@ -118,6 +118,8 @@ async function askSingleField(config) {
   });
   const normalizedInput = toCamelCase(formInput);
 
+  const isBooleanField = fieldType === 'boolean';
+
   let uploadPath;
   let slug;
   if (normalizedInput === 'imageUploader') {
@@ -150,8 +152,16 @@ async function askSingleField(config) {
 
   let options;
   if (['checkbox', 'radio', 'select'].includes(normalizedInput)) {
-    console.log('選択肢を入力してください。空欄で入力終了。値は文字列として扱われます。');
-    options = await askOptions();
+    if (isBooleanField) {
+      console.log('真偽値フィールドのため、選択肢は自動的に「はい」「いいえ」が設定されます。');
+      options = [
+        { value: true, label: 'はい' },
+        { value: false, label: 'いいえ' },
+      ];
+    } else {
+      console.log('選択肢を入力してください。空欄で入力終了。値は文字列として扱われます。');
+      options = await askOptions();
+    }
   }
 
   const field = {
