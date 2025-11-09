@@ -1,9 +1,9 @@
 // src/features/sample/services/server/drizzleBase.ts
 
-import { sampleTable } from "@/features/sample/entities/drizzle";
+import { SampleTable } from "@/features/sample/entities/drizzle";
 import { createCrudService } from "@/lib/crud/drizzle";
 
-export const base = createCrudService(sampleTable, {
+export const base = createCrudService(SampleTable, {
   idType: "uuid",
   useCreatedAt: true,
   useUpdatedAt: true,
