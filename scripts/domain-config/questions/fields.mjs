@@ -4,7 +4,7 @@ const prompt = inquirer.createPromptModule();
 
 const FORM_INPUTS = {
   Firestore: {
-    boolean: ['checkbox', 'select', 'radio', 'switch input', 'none'],
+    boolean: ['checkbox', 'radio', 'switch input', 'none'],
     string: [
       'text input',
       'textarea',
@@ -34,7 +34,7 @@ const FORM_INPUTS = {
       'none',
     ],
     integer: ['number input', 'numeric input', 'none'],
-    boolean: ['checkbox', 'select', 'radio', 'switch input', 'none'],
+    boolean: ['checkbox', 'radio', 'switch input', 'none'],
     enum: ['select', 'radio', 'none'],
     date: ['date input', 'text input', 'none'],
     bigint: ['number input', 'numeric input', 'none'],
@@ -151,7 +151,12 @@ async function askSingleField(config) {
   });
 
   let options;
-  if (['checkbox', 'radio', 'select'].includes(normalizedInput)) {
+  const needsOptions =
+    normalizedInput === 'radio' ||
+    normalizedInput === 'select' ||
+    (normalizedInput === 'checkbox' && !isBooleanField);
+
+  if (needsOptions) {
     if (isBooleanField) {
       console.log('真偽値フィールドのため、選択肢は自動的に「はい」「いいえ」が設定されます。');
       options = [
