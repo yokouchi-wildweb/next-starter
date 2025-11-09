@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
       return SessionUserSchema.parse({
         userId: parsed.data.sub,
         role: parsed.data.role,
+        status: parsed.data.status,
         providerType: parsed.data.providerType,
         providerUid: parsed.data.providerUid,
         displayName: parsed.data.displayName ?? null,
@@ -64,6 +65,7 @@ export async function GET(req: NextRequest) {
     subject: sessionUser.userId,
     claims: {
       role: sessionUser.role,
+      status: sessionUser.status,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
       displayName: sessionUser.displayName,

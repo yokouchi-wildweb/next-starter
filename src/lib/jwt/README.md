@@ -11,6 +11,7 @@ import { SessionUserSchema } from "@/features/auth/entities/session";
 const sessionUser = SessionUserSchema.parse({
   userId: "user_123",
   role: "admin",
+  status: "active",
   providerType: "local",
   providerUid: "user_123",
   displayName: "管理者ユーザー",
@@ -20,6 +21,7 @@ const { token, expiresAt } = await signUserToken({
   subject: sessionUser.userId,
   claims: {
     role: sessionUser.role,
+    status: sessionUser.status,
     providerType: sessionUser.providerType,
     providerUid: sessionUser.providerUid,
     displayName: sessionUser.displayName,
@@ -51,6 +53,7 @@ const result = await verifyUserToken(token, {
     return SessionUserSchema.parse({
       userId: parsed.data.sub,
       role: parsed.data.role,
+      status: parsed.data.status,
       providerType: parsed.data.providerType,
       providerUid: parsed.data.providerUid,
       displayName: parsed.data.displayName ?? null,

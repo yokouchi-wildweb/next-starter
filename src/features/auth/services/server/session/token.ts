@@ -30,6 +30,7 @@ function toSessionUser(payload: TokenPayload): SessionUser | null {
   const parsed = SessionUserSchema.safeParse({
     userId: payload.sub,
     role: payload.role,
+    status: payload.status,
     providerType: payload.providerType,
     providerUid: payload.providerUid,
     displayName: payload.displayName,
@@ -64,6 +65,7 @@ export async function refreshSessionCookie(
     subject: user.userId,
     claims: {
       role: user.role,
+      status: user.status,
       providerType: user.providerType,
       providerUid: user.providerUid,
       displayName: user.displayName,

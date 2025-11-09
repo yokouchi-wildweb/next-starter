@@ -94,6 +94,7 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
   const sessionUser = SessionUserSchema.parse({
     userId: user.id,
     role: user.role,
+    status: user.status,
     providerType: user.providerType,
     providerUid: user.providerUid,
     displayName: user.displayName,
@@ -105,6 +106,7 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
     subject: sessionUser.userId,
     claims: {
       role: sessionUser.role,
+      status: sessionUser.status,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
       displayName: sessionUser.displayName,
