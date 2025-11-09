@@ -65,12 +65,9 @@ export function createCrudService<
   return {
     // レコードを新規作成する
     async create(data: Insert): Promise<Select> {
-      const createPayload = { ...(data as Record<string, any>) };
-      const providedId = createPayload.id;
-      delete createPayload.id;
-      const parsed = parseWithSchema(serviceOptions.schemas?.create, createPayload);
-      const insertData = { ...((parsed ?? createPayload) as Insert) } as Insert &
-        Record<string, any> & { id?: string; createdAt?: Date; updatedAt?: Date };
+      const { id: providedId, ...rest } = data as Record<string, any>;
+      const parsed = parseWithSchema(serviceOptions.schemas?.create, rest);
+      const insertData = { ...(parsed ?? rest) } as Record<string, any>;
       if (providedId !== undefined) {
         insertData.id = providedId;
       }
@@ -109,16 +106,14 @@ export function createCrudService<
 
     // 指定 ID のレコードを更新する
     async update(id: string, data: Partial<Insert>): Promise<Select> {
-      const updatePayload = { ...(data as Record<string, any>) };
-      delete updatePayload.id;
-      const parsed = parseWithSchema(serviceOptions.schemas?.update, updatePayload);
-      const sanitizedSource = (parsed ?? updatePayload) as Partial<Insert>;
-      const sanitized = { ...omitUndefined(sanitizedSource) } as Partial<Insert> &
-        Record<string, any> & { updatedAt?: Date };
+      const { id: _ignored, ...rest } = data as Record<string, any>;
+      void _ignored;
+      const parsed = parseWithSchema(serviceOptions.schemas?.update, rest);
+      const sanitized = { ...omitUndefined(parsed ?? rest) } as Record<string, any>;
       if (serviceOptions.useUpdatedAt && sanitized.updatedAt === undefined) {
         sanitized.updatedAt = new Date();
       }
-      const normalized = normalizeUndefinedToNull(sanitized);
+      const normalized = normalizeUndefinedToNull(sanitized) as Partial<Insert>;
       const rows = await db.update(table).set(normalized).where(eq(idColumn, id)).returning();
       return rows[0] as Select;
     },
@@ -190,47 +185,42 @@ export function createCrudService<
       await db.delete(table).where(inArray(idColumn, ids));
     },
     // レコードが存在すれば更新、存在しなければ作成する
-    async upsert(data: Insert & { id?: string }, upsertOptions?: UpsertOptions<Insert>): Promise<Select> {
-      const upsertPayload = { ...(data as Record<string, any>) };
-      const providedId = upsertPayload.id;
-      delete upsertPayload.id;
-      const parsed = parseWithSchema(
-        serviceOptions.schemas?.upsert ?? serviceOptions.schemas?.create,
-        upsertPayload,
-      );
-      const insertData = { ...((parsed ?? upsertPayload) as Insert) } as Record<string, any> & {
-        id?: string;
-        createdAt?: Date;
-        updatedAt?: Date;
-      };
-      if (providedId !== undefined) {
-        insertData.id = providedId;
-      }
-      if (serviceOptions.useCreatedAt && insertData.createdAt === undefined) {
-        insertData.createdAt = new Date();
-      }
-      if (serviceOptions.useUpdatedAt && insertData.updatedAt === undefined) {
-        insertData.updatedAt = new Date();
-      }
-      if (serviceOptions.idType === "uuid") {
-        insertData.id = uuidv7();
-      } else if (serviceOptions.idType === "db") {
-        delete insertData.id;
-      }
-      const sanitizedInsert = omitUndefined(insertData);
-      const normalized = normalizeUndefinedToNull(sanitizedInsert as Record<string, any>);
-      const updateData = { ...normalized } as PgUpdateSetSource<TTable> &
-        Record<string, any> & { id?: string; updatedAt?: Date };
-      if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
-        updateData.updatedAt = new Date();
-      }
-      delete (updateData as Record<string, unknown>).id;
-      const rows = await db
-        .insert(table)
-        .values(normalized as any)
-        .onConflictDoUpdate({ target: resolveConflictTarget(upsertOptions), set: updateData })
-        .returning();
-      return rows[0] as Select;
+      async upsert(data: Insert & { id?: string }, upsertOptions?: UpsertOptions<Insert>): Promise<Select> {
+        const { id: providedId, ...rest } = data as Record<string, any>;
+        const parsed = parseWithSchema(
+          serviceOptions.schemas?.upsert ?? serviceOptions.schemas?.create,
+          rest,
+        );
+        const insertData = { ...(parsed ?? rest) } as Record<string, any>;
+        if (providedId !== undefined) {
+          insertData.id = providedId;
+        }
+        if (serviceOptions.useCreatedAt && insertData.createdAt === undefined) {
+          insertData.createdAt = new Date();
+        }
+        if (serviceOptions.useUpdatedAt && insertData.updatedAt === undefined) {
+          insertData.updatedAt = new Date();
+        }
+        if (serviceOptions.idType === "uuid") {
+          insertData.id = uuidv7();
+        } else if (serviceOptions.idType === "db") {
+          delete insertData.id;
+        }
+        const normalized = normalizeUndefinedToNull(omitUndefined(insertData)) as Record<string, any>;
+        const updateData = { ...normalized } as Record<string, any>;
+        if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
+          updateData.updatedAt = new Date();
+        }
+        delete updateData.id;
+        const rows = await db
+          .insert(table)
+          .values(normalized as any)
+          .onConflictDoUpdate({
+            target: resolveConflictTarget(upsertOptions),
+            set: updateData as PgUpdateSetSource<TTable>,
+          })
+          .returning();
+        return rows[0] as Select;
     },
   };
 }

@@ -39,12 +39,9 @@ export function createCrudService<
 
   return {
     async create(data: Insert): Promise<Select> {
-      const createPayload = { ...(data as Record<string, any>) };
-      const providedId = createPayload.id;
-      delete createPayload.id;
-      const parsed = parseWithSchema(options.schemas?.create, createPayload);
-      const insertData = { ...((parsed ?? createPayload) as Insert) } as Insert &
-        Record<string, any> & { id?: string; createdAt?: Date; updatedAt?: Date };
+      const { id: providedId, ...rest } = data as Record<string, any>;
+      const parsed = parseWithSchema(options.schemas?.create, rest);
+      const insertData = { ...(parsed ?? rest) } as Record<string, any>;
       if (providedId !== undefined) {
         insertData.id = providedId;
       }
@@ -82,16 +79,14 @@ export function createCrudService<
 
     async update(id: string, data: Partial<Insert>): Promise<Select> {
       const ref = col.doc(id);
-      const updatePayload = { ...(data as Record<string, any>) };
-      delete updatePayload.id;
-      const parsed = parseWithSchema(options.schemas?.update, updatePayload);
-      const sanitizedSource = (parsed ?? updatePayload) as Partial<Insert>;
-      const sanitized = { ...omitUndefined(sanitizedSource) } as Partial<Insert> &
-        Record<string, any> & { updatedAt?: Date };
+      const { id: _ignored, ...rest } = data as Record<string, any>;
+      void _ignored;
+      const parsed = parseWithSchema(options.schemas?.update, rest);
+      const sanitized = { ...omitUndefined(parsed ?? rest) } as Record<string, any>;
       if (options.useUpdatedAt && sanitized.updatedAt === undefined) {
         sanitized.updatedAt = new Date();
       }
-      await ref.set(normalizeUndefinedToNull(sanitized as Record<string, any>), { merge: true });
+      await ref.set(normalizeUndefinedToNull(sanitized), { merge: true });
       const snap = await ref.get();
       return { id: ref.id, ...(snap.data() as T) } as Select;
     },
@@ -129,15 +124,9 @@ export function createCrudService<
 
     async upsert(data: Insert & { id?: string }, upsertOptions?: UpsertOptions<Insert>): Promise<Select> {
       void upsertOptions;
-      const upsertPayload = { ...(data as Record<string, any>) };
-      const providedId = upsertPayload.id;
-      delete upsertPayload.id;
-      const parsed = parseWithSchema(options.schemas?.upsert ?? options.schemas?.create, upsertPayload);
-      const insertData = { ...((parsed ?? upsertPayload) as Insert) } as Record<string, any> & {
-        id?: string;
-        createdAt?: Date;
-        updatedAt?: Date;
-      };
+      const { id: providedId, ...rest } = data as Record<string, any>;
+      const parsed = parseWithSchema(options.schemas?.upsert ?? options.schemas?.create, rest);
+      const insertData = { ...(parsed ?? rest) } as Record<string, any>;
       if (providedId !== undefined) {
         insertData.id = providedId;
       }
@@ -151,7 +140,7 @@ export function createCrudService<
       insertData.id = id;
       const ref = col.doc(String(id));
       const sanitizedInsert = omitUndefined(insertData);
-      await ref.set(normalizeUndefinedToNull(sanitizedInsert as Record<string, any>), { merge: true });
+      await ref.set(normalizeUndefinedToNull(sanitizedInsert), { merge: true });
       const snap = await ref.get();
       return { id: ref.id, ...(snap.data() as T) } as Select;
     },
