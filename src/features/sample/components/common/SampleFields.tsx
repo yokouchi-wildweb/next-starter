@@ -2,15 +2,15 @@
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import {
-  FileUrlInput,
-  NumberInput,
-  SwitchInput,
-  TextInput,
-  Textarea,
-} from "@/components/Form/controlled";
+import { SelectInput } from "@/components/Form/manual";
+import { TextInput } from "@/components/Form/controlled";
+import { NumberInput } from "@/components/Form/controlled";
+import StepperInput from "@/components/Form/manual/StepperInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";
-import { RadioGroupInput, SelectInput, StepperInput } from "@/components/Form/manual";
+import { SwitchInput } from "@/components/Form/controlled";
+import { RadioGroupInput } from "@/components/Form/manual";
+import { FileUrlInput } from "@/components/Form/controlled";
+import { Textarea } from "@/components/Form/controlled";
 import type { Options } from "@/types/form";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {

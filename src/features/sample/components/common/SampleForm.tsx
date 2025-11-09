@@ -34,10 +34,8 @@ export function SampleForm<TFieldValues extends FieldValues>({
     formState: { isSubmitting },
   } = methods;
 
-  const [imagePending, setImagePending] = useState(false);
-
   const isRouting = useRouteTransitionPending();
-  const loading = isSubmitting || isMutating || imagePending || isRouting;
+  const loading = isSubmitting || isMutating || isRouting;
 
   return (
     <Form {...methods}>
