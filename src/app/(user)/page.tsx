@@ -42,8 +42,8 @@ const resourceLinks = [
     icon: { src: "/file.svg", alt: "Docs" },
   },
   {
-    href: "https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app",
-    label: "Templates",
+    href: "https://wildweb.tokyo",
+    label: "Wildweb.tokyo",
     icon: { src: "/window.svg", alt: "Templates" },
   },
   {
