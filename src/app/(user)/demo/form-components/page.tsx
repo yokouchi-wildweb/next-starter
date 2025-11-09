@@ -51,7 +51,10 @@ type DemoFormValues = {
   description: string;
   date: string;
   radio: string;
-  checkbox: string[];
+  checkGroupRounded: string[];
+  checkGroupStandard: string[];
+  checkGroupBookmark: string[];
+  checkGroupCheckbox: string[];
   select: string;
   number: number | "";
   switch: boolean;
@@ -66,7 +69,10 @@ const defaultValues: DemoFormValues = {
   description: "",
   date: "",
   radio: textOptions[0]?.value ?? "",
-  checkbox: [fruitOptions[0]?.value ?? ""],
+  checkGroupRounded: [fruitOptions[0]?.value ?? ""],
+  checkGroupStandard: [fruitOptions[0]?.value ?? ""],
+  checkGroupBookmark: [fruitOptions[0]?.value ?? ""],
+  checkGroupCheckbox: [fruitOptions[0]?.value ?? ""],
   select: "",
   number: 0,
   switch: true,
@@ -228,10 +234,37 @@ export default function FormComponentsDemoPage() {
 
             <FormFieldItem
               control={form.control}
-              name="checkbox"
-              label="CheckGroupInput"
+              name="checkGroupRounded"
+              label="CheckGroupInput（Rounded）"
               renderInput={(field) => (
-                <CheckGroupInput field={field} options={fruitOptions} />
+                <CheckGroupInput field={field} options={fruitOptions} displayType="rounded" />
+              )}
+            />
+
+            <FormFieldItem
+              control={form.control}
+              name="checkGroupStandard"
+              label="CheckGroupInput（Standard Button）"
+              renderInput={(field) => (
+                <CheckGroupInput field={field} options={fruitOptions} displayType="standard" />
+              )}
+            />
+
+            <FormFieldItem
+              control={form.control}
+              name="checkGroupBookmark"
+              label="CheckGroupInput（Bookmark Tag）"
+              renderInput={(field) => (
+                <CheckGroupInput field={field} options={fruitOptions} displayType="bookmark" />
+              )}
+            />
+
+            <FormFieldItem
+              control={form.control}
+              name="checkGroupCheckbox"
+              label="CheckGroupInput（Checkbox）"
+              renderInput={(field) => (
+                <CheckGroupInput field={field} options={fruitOptions} displayType="checkbox" />
               )}
             />
 
