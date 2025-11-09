@@ -5,6 +5,18 @@
  */
 
 @theme inline {
+  /* Breakpoints */
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 96rem;
+
+  /* Layout tokens */
+  --layout-width-narrow-stack: 28rem;
+  --layout-width-content-shell: 72rem;
+  --layout-width-wide-showcase: 96rem;
+
   /* base layer group */
   --z-layer-background: -1000;
   --z-layer-base: 0;
@@ -29,6 +41,18 @@
 }
 
 :root {
+  /* Breakpoints */
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 96rem;
+
+  /* Layout tokens */
+  --layout-width-narrow-stack: 28rem;
+  --layout-width-content-shell: 72rem;
+  --layout-width-wide-showcase: 96rem;
+
   /* base layer group */
   --z-layer-background: -1000;
   --z-layer-base: 0;
