@@ -39,7 +39,7 @@ type Props = {
  * - `width`: 常に `100vw` を指定。幅についてはアドレスバーの影響を受けにくいため
  * - `disableScroll()`: フルスクリーン表示中にスクロールを無効化
  */
-export default function FullScreen({ className, children, layer = "modal" }: Props) {
+export default function FullScreen({ className, children, layer = "aboveHeader" }: Props) {
   const { disableScroll } = useDisableScroll(true);
   const { setSize: setViewportSize } = useViewportSize();
 

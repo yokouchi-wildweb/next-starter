@@ -11,6 +11,7 @@ import { Button } from "@/components/Form/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Main, PageTitle, Para, Section, Span } from "@/components/TextBlocks";
 import { CosmicCoasterScene } from "@/components/Three/CosmicCoasterScene";
+import FullScreen from "@/components/Layout/FullScreen";
 
 
 const quickStartSteps: Array<{ id: string; description: ReactNode }> = [
@@ -53,8 +54,11 @@ const resourceLinks = [
 export default function Home() {
   return (
     <>
-      <CosmicCoasterScene />
-      <Main variant="wideShowcase" className="relative z-10 min-h-screen text-slate-900">
+      <FullScreen layer="belowHeader">
+        <CosmicCoasterScene />
+      </FullScreen>
+
+      <Main variant="wideShowcase" className="relative z-9999 min-h-screen text-slate-900">
         <Flex direction="column" gap="xl" className="py-20">
 
           <Section align="center" className="relative">
