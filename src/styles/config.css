@@ -27,42 +27,6 @@
   --z-layer-header: 360;
   --z-layer-above-header: 390;
 
-  /* feedback layer group */
-  --z-layer-modal: 930;
-  --z-layer-overlay: 960;
-  --z-layer-alert: 990;
-
-  /* super layer group */
-  --z-layer-super: 6666;
-  --z-layer-ultimate: 9000;
-  --z-layer-apex: 9999;
-
-  --app-header-height: 0px;
-}
-
-:root {
-  /* Breakpoints */
-  --breakpoint-sm: 40rem;
-  --breakpoint-md: 48rem;
-  --breakpoint-lg: 64rem;
-  --breakpoint-xl: 80rem;
-  --breakpoint-2xl: 96rem;
-
-  /* Layout tokens */
-  --layout-width-narrow-stack: 28rem;
-  --layout-width-content-shell: 72rem;
-  --layout-width-wide-showcase: 96rem;
-
-  /* base layer group */
-  --z-layer-background: -1000;
-  --z-layer-base: 0;
-  --z-layer-content: 100;
-
-  /* header layer group */
-  --z-layer-below-header: 330;
-  --z-layer-header: 360;
-  --z-layer-above-header: 390;
-
   /* forefront layer group */
   --z-layer-forefront-low: 530;
   --z-layer-forefront: 560;
@@ -79,6 +43,48 @@
   --z-layer-apex: 9999;
 
   --app-header-height: 0px;
+}
+
+:root {
+  /* Tailwind の theme() 関数経由で値を参照し、:root と @theme inline の重複定義を回避します。 */
+  /* Breakpoints */
+  --breakpoint-sm: theme(--breakpoint-sm);
+  --breakpoint-md: theme(--breakpoint-md);
+  --breakpoint-lg: theme(--breakpoint-lg);
+  --breakpoint-xl: theme(--breakpoint-xl);
+  --breakpoint-2xl: theme(--breakpoint-2xl);
+
+  /* Layout tokens */
+  --layout-width-narrow-stack: theme(--layout-width-narrow-stack);
+  --layout-width-content-shell: theme(--layout-width-content-shell);
+  --layout-width-wide-showcase: theme(--layout-width-wide-showcase);
+
+  /* base layer group */
+  --z-layer-background: theme(--z-layer-background);
+  --z-layer-base: theme(--z-layer-base);
+  --z-layer-content: theme(--z-layer-content);
+
+  /* header layer group */
+  --z-layer-below-header: theme(--z-layer-below-header);
+  --z-layer-header: theme(--z-layer-header);
+  --z-layer-above-header: theme(--z-layer-above-header);
+
+  /* forefront layer group */
+  --z-layer-forefront-low: theme(--z-layer-forefront-low);
+  --z-layer-forefront: theme(--z-layer-forefront);
+  --z-layer-forefront-high: theme(--z-layer-forefront-high);
+
+  /* feedback layer group */
+  --z-layer-modal: theme(--z-layer-modal);
+  --z-layer-overlay: theme(--z-layer-overlay);
+  --z-layer-alert: theme(--z-layer-alert);
+
+  /* super layer group */
+  --z-layer-super: theme(--z-layer-super);
+  --z-layer-ultimate: theme(--z-layer-ultimate);
+  --z-layer-apex: theme(--z-layer-apex);
+
+  --app-header-height: theme(--app-header-height);
 }
 
 @layer utilities {
