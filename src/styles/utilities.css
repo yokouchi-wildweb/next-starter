@@ -22,13 +22,13 @@
   }
 
   .bookmark-tag {
-    @apply relative pr-5 text-xs rounded-none;
+    @apply relative pl-5 text-xs rounded-none;
     clip-path: polygon(
-      0 0,
-      calc(100% - 0.75rem) 0,
-      100% 50%,
-      calc(100% - 0.75rem) 100%,
-      0 100%
+      0 50%,
+      0.75rem 0,
+      100% 0,
+      100% 100%,
+      0.75rem 100%
     );
   }
 
@@ -36,12 +36,12 @@
     content: "";
     position: absolute;
     top: 0;
-    right: -1px;
+    left: -1px;
     width: 0.75rem;
     height: 100%;
     background: none;
     border: inherit;
-    border-left: none;
-    clip-path: polygon(0 0, 100% 50%, 0 100%);
+    border-right: none;
+    clip-path: polygon(100% 0, 0 50%, 100% 100%);
   }
 }
