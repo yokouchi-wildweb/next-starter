@@ -80,7 +80,7 @@ function FuturisticNavButton({ href, children, className }: FuturisticNavButtonP
         <Span
           size="sm"
           aria-hidden="true"
-          className="flex size-10 items-center justify-center rounded-full border border-white/50 bg-white/20 text-slate-500 shadow-[inset_0_0_12px_rgba(148,163,184,0.4)] transition-all duration-500 group-hover:border-slate-300/80 group-hover:bg-white/40 group-hover:text-slate-900 group-active:scale-95"
+          className="flex size-10 items-center justify-center rounded-full border border-white/50 bg-white/20 text-slate-500 shadow-[inset_0_0_12px_rgba(148,163,184,0.4)] transition-all duration-500 ease-out origin-center transform-gpu group-hover:scale-[1.35] group-hover:border-slate-300/80 group-hover:bg-white/45 group-hover:text-slate-900 group-hover:shadow-[0_18px_55px_-25px_rgba(30,41,59,0.6)] group-active:scale-95"
         >
           ↗
         </Span>
