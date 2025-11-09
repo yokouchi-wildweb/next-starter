@@ -26,6 +26,7 @@ export const FileUrlInput = <
     pending,
     open,
     dummyField,
+    selectedFileName,
     handleSelect,
     requestDelete,
     handleOpenChange,
@@ -47,6 +48,7 @@ export const FileUrlInput = <
         initialUrl={url ?? undefined}
         onSelect={handleSelect}
         onRemove={requestDelete}
+        selectedFileName={selectedFileName}
       />
       <input type="hidden" {...field} value={url ?? ""} />
       <DeleteConfirmDialog

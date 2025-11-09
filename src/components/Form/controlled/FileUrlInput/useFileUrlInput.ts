@@ -26,6 +26,7 @@ export const useFileUrlInput = <
   const [resolver, setResolver] = useState<((v: boolean) => void) | null>(
     null,
   );
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   useEffect(() => {
     onPendingChange?.(pending);
@@ -36,6 +37,9 @@ export const useFileUrlInput = <
       setUrl((field.value as string) || null);
     } else {
       setUrl(initialUrl ?? null);
+    }
+    if (!field.value && !initialUrl) {
+      setSelectedFileName(null);
     }
   }, [initialUrl, field.value]);
 
@@ -58,6 +62,7 @@ export const useFileUrlInput = <
       const uploaded = await onUpload(file);
       setUrl(uploaded);
       field.onChange(uploaded as unknown as TFieldValues[TName]);
+      setSelectedFileName(file.name);
     } catch (e) {
       console.error(e);
     } finally {
@@ -73,6 +78,7 @@ export const useFileUrlInput = <
       }
       setUrl(null);
       field.onChange("" as unknown as TFieldValues[TName]);
+      setSelectedFileName(null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -107,6 +113,7 @@ export const useFileUrlInput = <
     pending,
     open,
     dummyField,
+    selectedFileName,
     handleSelect,
     requestDelete,
     handleOpenChange,

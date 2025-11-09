@@ -23,13 +23,23 @@ export type FileInputProps<
   onRemove?: () => boolean | Promise<boolean>;
   /** ルート要素に適用するクラス名 */
   containerClassName?: string;
+  /** 表示用のファイル名。未指定時は field.value から算出 */
+  selectedFileName?: string | null;
 };
 
 export const FileInput = <
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
 >(props: FileInputProps<TFieldValues, TName>) => {
-  const { field, initialUrl = null, onSelect, onRemove, containerClassName, ...rest } = props;
+  const {
+    field,
+    initialUrl = null,
+    onSelect,
+    onRemove,
+    containerClassName,
+    selectedFileName: selectedFileNameProp,
+    ...rest
+  } = props;
   const {
     className,
     id,
@@ -43,10 +53,12 @@ export const FileInput = <
   const [inputKey, setInputKey] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputId = useMemo(() => id ?? `${field.name}-file-input`, [field.name, id]);
-  const selectedFileName = useMemo(
-    () => (field.value instanceof File ? field.value.name : null),
-    [field.value],
-  );
+  const selectedFileName = useMemo(() => {
+    if (typeof selectedFileNameProp === "string") {
+      return selectedFileNameProp.length > 0 ? selectedFileNameProp : null;
+    }
+    return field.value instanceof File ? field.value.name : null;
+  }, [field.value, selectedFileNameProp]);
 
   const revokePreviewUrl = useCallback((url: string | null) => {
     if (url && url.startsWith("blob:")) {
@@ -125,9 +137,15 @@ export const FileInput = <
             </div>
           )}
           <div className="flex flex-col items-center gap-1">
-            <span className="font-medium">
-              選択中: {selectedFileName ?? "なし"}
-            </span>
+            {selectedFileName ? (
+              <span className="break-all text-center font-medium">
+                選択中: {selectedFileName}
+              </span>
+            ) : (
+              <span className="text-center font-medium text-muted-foreground">
+                クリックしてファイルを選択
+              </span>
+            )}
           </div>
         </div>
       </label>
