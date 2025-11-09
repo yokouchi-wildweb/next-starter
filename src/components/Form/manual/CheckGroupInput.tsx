@@ -1,14 +1,15 @@
 // src/components/Form/manual/CheckGroupInput.tsx
 
-import { Options } from "@/types/form";
-import { BookmarkTag } from "@/components/Common/BookmarkTag";
-import { Button } from "@/components/Form/Button";
-import { cn } from "@/lib/cn";
+import { useId, type HTMLAttributes } from "react";
 
-const TAG_BUTTON_BASE_CLASS = "h-auto px-3 py-1 text-sm border transition-colors";
-const TAG_BUTTON_PILL_CLASS = "rounded-full";
-const TAG_BUTTON_SELECTED_CLASS = "bg-primary text-primary-foreground border-primary";
-const TAG_BUTTON_UNSELECTED_CLASS = "bg-muted text-muted-foreground border-border hover:bg-muted/80";
+import { Options } from "@/types/form";
+import { Button } from "@/components/Form/button/Button";
+import { BookmarkTag } from "@/components/Form/button/BookmarkTag";
+import { RoundedButton } from "@/components/Form/button/RoundedButton";
+import { Label } from "@/components/Form/Label";
+import { Checkbox } from "@/components/Shadcn/checkbox";
+
+export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "checkbox";
 
 type Props = {
   field: {
@@ -20,48 +21,88 @@ type Props = {
    * even when options haven't loaded yet.
    */
   options?: Options[];
-  /** ブックマーク風の三角形を付ける */
-  bookmark?: boolean;
-};
+  /**
+   * 表示タイプ（標準ボタン / ブックマークタグ / 丸形 / 従来型チェックボックス）
+   */
+  displayType?: CheckGroupDisplayType;
+} & HTMLAttributes<HTMLDivElement>;
 
-export function CheckGroupInput({ field, options = [], bookmark = false, ...rest }: Props) {
-  const toggle = (value: string) => {
-    const values = field.value ?? [];
-    if (values.includes(value)) {
-      field.onChange(values.filter((v) => v !== value));
-    } else {
-      field.onChange([...values, value]);
-    }
+function toggleValue(currentValues: string[] | undefined, nextValue: string) {
+  const values = currentValues ?? [];
+  if (values.includes(nextValue)) {
+    return values.filter((value) => value !== nextValue);
+  }
+
+  return [...values, nextValue];
+}
+
+export function CheckGroupInput({
+  field,
+  options = [],
+  displayType = "rounded",
+  ...rest
+}: Props) {
+  const groupId = useId();
+
+  const handleToggle = (value: string) => {
+    field.onChange(toggleValue(field.value, value));
   };
+
+  if (displayType === "checkbox") {
+    return (
+      <div className="flex flex-col gap-2" {...rest}>
+        {options.map((op) => {
+          const id = `${groupId}-${op.value}`;
+          const selected = field.value?.includes(op.value) ?? false;
+
+          return (
+            <div key={op.value} className="flex items-center gap-2">
+              <Checkbox
+                id={id}
+                checked={selected}
+                onCheckedChange={() => handleToggle(op.value)}
+                aria-checked={selected}
+              />
+              <Label htmlFor={id} className="text-sm font-normal">
+                {op.label}
+              </Label>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-wrap gap-2" {...rest}>
       {options.map((op) => {
-        const selected = field.value?.includes(op.value);
-        const className = cn(
-          TAG_BUTTON_BASE_CLASS,
-          !bookmark && TAG_BUTTON_PILL_CLASS,
-          selected ? TAG_BUTTON_SELECTED_CLASS : TAG_BUTTON_UNSELECTED_CLASS,
-        );
+        const selected = field.value?.includes(op.value) ?? false;
 
-        const button = (
-          <Button
-            type="button"
-            key={op.value}
-            onClick={() => toggle(op.value)}
-            variant="ghost"
-            className={className}
-          >
+        if (displayType === "bookmark") {
+          return (
+            <BookmarkTag key={op.value} type="button" selected={selected} onClick={() => handleToggle(op.value)}>
+              {op.label}
+            </BookmarkTag>
+          );
+        }
+
+        if (displayType === "standard") {
+          return (
+            <Button
+              key={op.value}
+              type="button"
+              variant={selected ? "default" : "outline"}
+              onClick={() => handleToggle(op.value)}
+            >
+              {op.label}
+            </Button>
+          );
+        }
+
+        return (
+          <RoundedButton key={op.value} type="button" selected={selected} onClick={() => handleToggle(op.value)}>
             {op.label}
-          </Button>
-        );
-
-        return bookmark ? (
-          <BookmarkTag asChild key={op.value}>
-            {button}
-          </BookmarkTag>
-        ) : (
-          button
+          </RoundedButton>
         );
       })}
     </div>

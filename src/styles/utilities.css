@@ -22,8 +22,7 @@
   }
 
   .bookmark-tag {
-    @apply inline-block pr-5 py-1 text-xs relative;
-    border: none;
+    @apply relative pr-5 text-xs rounded-none;
     clip-path: polygon(
       0 0,
       calc(100% - 0.75rem) 0,

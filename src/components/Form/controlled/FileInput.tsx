@@ -1,7 +1,9 @@
 // src/components/Form/FileInput.tsx
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
+import { Input } from "@/components/Form/manual";
 import { Block } from "@/components/Layout/Block";
 import { cn } from "@/lib/cn";
 import { XIcon } from "lucide-react";

@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Form } from "@/components/Shadcn/form";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/controlled";
 import { Input } from "@/components/Form/manual";

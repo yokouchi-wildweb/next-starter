@@ -6,7 +6,7 @@ import type {
   EnvSummary,
   KeyValuePair,
 } from "@/app/api/demo/get-env/envSummary";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { Block } from "@/components/Layout/Block";
 import axios from "axios";
 import { useCallback, useState } from "react";

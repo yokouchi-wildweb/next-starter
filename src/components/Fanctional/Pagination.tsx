@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
-import { buttonVariants } from "@/components/Form/Button";
+import { buttonVariants } from "@/components/Form/button/Button";
 
 export type PaginationProps = {
   page: number;

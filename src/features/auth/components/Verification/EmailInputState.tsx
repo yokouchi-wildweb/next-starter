@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { Form } from "@/components/Shadcn/form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/controlled";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 
 type EmailInputFormValues = {
   email: string;

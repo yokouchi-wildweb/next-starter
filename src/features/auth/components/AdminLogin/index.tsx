@@ -5,7 +5,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { Label } from "@/components/Form/Label";
 import { Input } from "@/components/Form/manual";
 import { Block } from "@/components/Layout/Block";

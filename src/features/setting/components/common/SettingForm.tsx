@@ -2,7 +2,7 @@
 
 "use client";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { Form } from "@/components/Shadcn/form";
 import { SettingFields } from "./SettingFields";
 import type { FieldValues, UseFormReturn } from "react-hook-form";

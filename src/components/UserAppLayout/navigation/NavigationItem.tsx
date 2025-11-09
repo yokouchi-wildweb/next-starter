@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 
 import type { NavItem } from "./types";
 

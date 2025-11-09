@@ -10,7 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/Shadcn/form";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import {
   DateInput,
   FileInput,
