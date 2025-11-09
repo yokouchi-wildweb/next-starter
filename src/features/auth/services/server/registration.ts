@@ -104,6 +104,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
   const sessionUser = SessionUserSchema.parse({
     userId: upserted.id,
     role: upserted.role,
+    status: upserted.status,
     providerType: upserted.providerType,
     providerUid: upserted.providerUid,
     displayName: upserted.displayName,
@@ -114,6 +115,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     subject: sessionUser.userId,
     claims: {
       role: sessionUser.role,
+      status: sessionUser.status,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
       displayName: sessionUser.displayName,

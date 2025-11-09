@@ -12,6 +12,7 @@ const SessionUserIdSchema = z
 export const SessionUserSchema = z.object({
   userId: SessionUserIdSchema,
   role: GeneralUserSchema.shape.role,
+  status: GeneralUserSchema.shape.status,
   providerType: GeneralUserSchema.shape.providerType,
   providerUid: GeneralUserSchema.shape.providerUid,
   displayName: GeneralUserSchema.shape.displayName,

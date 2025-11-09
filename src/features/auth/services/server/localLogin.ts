@@ -103,6 +103,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
   const sessionUser = SessionUserSchema.parse({
     userId: user.id,
     role: user.role,
+    status: user.status,
     providerType: user.providerType,
     providerUid: user.providerUid,
     displayName: user.displayName,
@@ -114,6 +115,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     subject: sessionUser.userId,
     claims: {
       role: sessionUser.role,
+      status: sessionUser.status,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
       displayName: sessionUser.displayName,
