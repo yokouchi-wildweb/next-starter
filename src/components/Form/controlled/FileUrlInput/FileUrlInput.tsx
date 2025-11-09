@@ -39,7 +39,7 @@ export const FileUrlInput = <
   });
 
   return (
-    <Block space="sm">
+    <Block space="sm" className="w-full">
       <FileInput
         {...fileInputProps}
         disabled={pending || fileInputProps.disabled}

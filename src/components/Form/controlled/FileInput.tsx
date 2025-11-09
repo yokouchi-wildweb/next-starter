@@ -89,21 +89,6 @@ export const FileInput = <
 
   return (
     <Block space="sm" className={cn("w-full", containerClassName)}>
-      {preview && (
-        <div className="relative flex w-fit max-w-full items-center justify-center rounded bg-muted p-2">
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon"
-            className="absolute right-1 top-1"
-            onClick={handleRemove}
-          >
-            <XIcon className="size-5" />
-            <span className="sr-only">画像を削除</span>
-          </Button>
-          <img src={preview} alt="preview" className="max-h-40 w-auto object-contain" />
-        </div>
-      )}
       <label
         htmlFor={inputId}
         className={cn(
@@ -113,12 +98,37 @@ export const FileInput = <
           className,
         )}
       >
-        <span className="font-medium">
-          {preview ? "別のファイルを選択" : "ファイルを選択"}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          クリックするとファイルピッカーが開きます
-        </span>
+        <div className="flex w-full flex-col items-center gap-3">
+          {preview && (
+            <div className="relative flex max-w-full items-center justify-center">
+              <div className="relative overflow-hidden rounded bg-muted p-2">
+                <img src={preview} alt="preview" className="max-h-40 w-auto object-contain" />
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute right-2 top-2"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void handleRemove();
+                }}
+              >
+                <XIcon className="size-5" />
+                <span className="sr-only">画像を削除</span>
+              </Button>
+            </div>
+          )}
+          <div className="flex flex-col items-center gap-1">
+            <span className="font-medium">
+              {preview ? "別のファイルを選択" : "ファイルを選択"}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              クリックするとファイルピッカーが開きます
+            </span>
+          </div>
+        </div>
       </label>
       {field.value instanceof File && (
         <p className="text-xs text-muted-foreground">選択中: {field.value.name}</p>
