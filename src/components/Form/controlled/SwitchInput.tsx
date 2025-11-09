@@ -8,18 +8,6 @@ import { ControlledInputProps } from "@/types/form";
 import { ReactNode } from "react";
 import { cva } from "class-variance-authority";
 
-const containerVariants = cva("flex items-center gap-3", {
-  variants: {
-    interactive: {
-      true: "cursor-pointer",
-      false: "cursor-not-allowed",
-    },
-  },
-  defaultVariants: {
-    interactive: true,
-  },
-});
-
 const trackVariants = cva(
   "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors duration-200 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
   {
@@ -76,44 +64,57 @@ export const SwitchInput = <
     className,
     disabled,
     onChange: onChangeFromProps,
+    id: idFromProps,
+    ["aria-labelledby"]: ariaLabelledbyFromProps,
+    ["aria-describedby"]: ariaDescribedbyFromProps,
     ...rest
   } = props;
 
   const { ref, value, onChange, ...fieldRest } = field;
   const checked = Boolean(value);
+  const inputId = idFromProps ?? fieldRest.name;
+  const labelId = label ? `${inputId}-label` : undefined;
+  const descriptionId = description ? `${inputId}-description` : undefined;
+  const ariaLabelledby = [ariaLabelledbyFromProps, labelId].filter(Boolean).join(" ") || undefined;
+  const ariaDescribedby = [ariaDescribedbyFromProps, descriptionId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <label
-      className={cn(
-        containerVariants({ interactive: !disabled }),
-        disabled && "opacity-70",
-        className,
-      )}
-    >
+    <div className={cn("flex items-center gap-3", disabled && "opacity-70", className)}>
       <input
         {...fieldRest}
         {...rest}
         ref={ref}
+        id={inputId}
         type="checkbox"
         className="peer sr-only"
         checked={checked}
         disabled={disabled}
+        aria-labelledby={ariaLabelledby}
+        aria-describedby={ariaDescribedby}
         onChange={(event) => {
           onChange(event.target.checked);
           onChangeFromProps?.(event);
         }}
       />
 
-      <span aria-hidden="true" className={cn(trackVariants({ checked, interactive: !disabled }))}>
+      <label htmlFor={inputId} className={cn(trackVariants({ checked, interactive: !disabled }))}>
         <span className={indicatorVariants({ checked })} />
-      </span>
+      </label>
 
       {(label || description) && (
         <span className="flex flex-col gap-0.5">
-          {label ? <span className="text-sm font-medium text-foreground">{label}</span> : null}
-          {description ? <span className="text-xs text-muted-foreground">{description}</span> : null}
+          {label ? (
+            <span id={labelId} className="text-sm font-medium text-foreground">
+              {label}
+            </span>
+          ) : null}
+          {description ? (
+            <span id={descriptionId} className="text-xs text-muted-foreground">
+              {description}
+            </span>
+          ) : null}
         </span>
       )}
-    </label>
+    </div>
   );
 };
