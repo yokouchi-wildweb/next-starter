@@ -1,6 +1,18 @@
 import { getPartial, replacePartialTokens } from "./template.mjs";
 import { toPascalCase } from "../../../../../src/utils/stringCase.mjs";
 
+const BOOLEAN_OPTIONS = [
+  { value: true, label: "はい" },
+  { value: false, label: "いいえ" },
+];
+
+function normalizeBooleanOptions(options) {
+  return (options && options.length ? options : BOOLEAN_OPTIONS).map((option) => ({
+    ...option,
+    value: option.value === true || option.value === "true",
+  }));
+}
+
 function generateFieldsFromConfig(config) {
   if (!config) return null;
 
@@ -99,7 +111,11 @@ function generateFieldsFromConfig(config) {
         break;
       case "select":
         addImport('import { SelectInput } from "@/components/Form/manual";');
-        const opts = f.options && f.options.length ? JSON.stringify(f.options) : "[]";
+        const opts = f.fieldType === "boolean"
+          ? JSON.stringify(normalizeBooleanOptions(f.options))
+          : f.options && f.options.length
+            ? JSON.stringify(f.options)
+            : "[]";
         body.push(
           replacePartialTokens(getPartial("select.tsx"), {
             fieldName: f.name,
@@ -108,9 +124,20 @@ function generateFieldsFromConfig(config) {
           }).trimEnd(),
         );
         break;
-      case "radio":
-        addImport('import { RadioGroupInput } from "@/components/Form/manual";');
-        if (f.options && f.options.length) {
+      case "radio": {
+        if (f.fieldType === "boolean") {
+          addImport('import { BooleanRadioGroupInput } from "@/components/Form/manual";');
+          const normalizedOptions = normalizeBooleanOptions(f.options);
+
+          body.push(
+            replacePartialTokens(getPartial("radioBoolean.tsx"), {
+              fieldName: f.name,
+              label: f.label,
+              options: JSON.stringify(normalizedOptions),
+            }).trimEnd(),
+          );
+        } else if (f.options && f.options.length) {
+          addImport('import { RadioGroupInput } from "@/components/Form/manual";');
           const optsRadio = JSON.stringify(f.options);
           body.push(
             replacePartialTokens(getPartial("radio.tsx"), {
@@ -121,6 +148,7 @@ function generateFieldsFromConfig(config) {
           );
         }
         break;
+      }
       case "checkbox":
         addImport('import { Checkbox } from "@/components/Shadcn/checkbox";');
         body.push(
