@@ -6,8 +6,6 @@ import { Button } from "@/components/Form/button/Button";
 import { Form } from "@/components/Shadcn/form";
 import { SampleFields, type SampleFieldsProps } from "./SampleFields";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
-import { useState } from "react";
-import { useRouteTransitionPending } from "@/hooks/useRouteTransitionPending";
 
 export type SampleFormProps<TFieldValues extends FieldValues> =
   Omit<SampleFieldsProps<TFieldValues>, 'control'> & {
@@ -34,8 +32,7 @@ export function SampleForm<TFieldValues extends FieldValues>({
     formState: { isSubmitting },
   } = methods;
 
-  const isRouting = useRouteTransitionPending();
-  const loading = isSubmitting || isMutating || isRouting;
+  const loading = isSubmitting || isMutating;
 
   return (
     <Form {...methods}>

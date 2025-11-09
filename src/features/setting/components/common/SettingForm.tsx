@@ -6,7 +6,6 @@ import { Button } from "@/components/Form/button/Button";
 import { Form } from "@/components/Shadcn/form";
 import { SettingFields } from "./SettingFields";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
-import { useRouteTransitionPending } from "@/hooks/useRouteTransitionPending";
 
 export type SettingFormProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
@@ -29,8 +28,7 @@ export function SettingForm<TFieldValues extends FieldValues>({
     formState: { isSubmitting },
   } = methods;
 
-  const isRouting = useRouteTransitionPending();
-  const loading = isSubmitting || isMutating || isRouting;
+  const loading = isSubmitting || isMutating;
 
   return (
     <Form {...methods}>
