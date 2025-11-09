@@ -1,0 +1,160 @@
+{
+  "singular": "foo",
+  "plural": "foos",
+  "label": "Neon Testing",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "title",
+      "label": "タイトル",
+      "fieldName": "titleId",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": false,
+      "onDeleteCascade": false
+    },
+    {
+      "domain": "cardRarity",
+      "label": "レアリティ",
+      "fieldName": "rarityId",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": true,
+      "onDeleteCascade": false
+    },
+    {
+      "domain": "cardTag",
+      "label": "カードタグ",
+      "fieldName": "tagIds",
+      "fieldType": "uuid",
+      "relationType": "belongsToMany",
+      "includeRelationTable": false
+    },
+    {
+      "domain": "series",
+      "label": "シリーズ",
+      "fieldName": "seriesIds",
+      "fieldType": "uuid",
+      "relationType": "belongsToMany",
+      "includeRelationTable": false
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "name",
+      "label": "カード名",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": true
+    },
+    {
+      "name": "modelNumber",
+      "label": "型番",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": false
+    },
+    {
+      "name": "marketPrice",
+      "label": "市場価格",
+      "fieldType": "integer",
+      "formInput": "numberInput",
+      "required": false
+    },
+    {
+      "name": "pointValue",
+      "label": "ポイント還元値",
+      "fieldType": "integer",
+      "formInput": "numberInput",
+      "required": false
+    },
+    {
+      "name": "cardType",
+      "label": "種別",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "real",
+          "label": "実在"
+        },
+        {
+          "value": "virtual",
+          "label": "仮想"
+        }
+      ]
+    },
+    {
+      "name": "state",
+      "label": "状態",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "active",
+          "label": "有効"
+        },
+        {
+          "value": "inactive",
+          "label": "無効"
+        }
+      ]
+    },
+    {
+      "name": "description",
+      "label": "説明文",
+      "fieldType": "string",
+      "formInput": "textarea",
+      "required": false
+    },
+    {
+      "name": "mainImageUrl",
+      "label": "画像",
+      "fieldType": "string",
+      "formInput": "imageUploader",
+      "uploadPath": "foo/main",
+      "slug": "main",
+      "required": false
+    }
+  ],
+  "searchFields": [
+    "name",
+    "modelNumber",
+    "description"
+  ],
+  "defaultOrderBy": [
+    [
+      "id",
+      "ASC"
+    ],
+    [
+      "updatedAt",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "mainImageUrl",
+    "name",
+    "state",
+    "modelNumber",
+    "marketPrice",
+    "description"
+  ],
+  "useDetailModal": true,
+  "addToAdminDataMenu": true,
+  "generateFiles": {
+    "entities": true,
+    "components": true,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "adminRoutes": true,
+    "registry": true
+  }
+}
+

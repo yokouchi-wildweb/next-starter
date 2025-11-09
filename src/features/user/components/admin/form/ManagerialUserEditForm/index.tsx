@@ -1,0 +1,89 @@
+// src/features/user/components/admin/form/ManagerialUserEditForm/index.tsx
+
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import { Button } from "@/components/Form/Button";
+import { Form } from "@/components/Shadcn/form";
+import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { TextInput } from "@/components/Form/controlled";
+import { err } from "@/lib/errors";
+import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
+import type { User } from "@/features/user/entities";
+import { useRouteTransitionPending } from "@/hooks/useRouteTransitionPending";
+
+import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
+
+type Props = {
+  user: User;
+  redirectPath?: string;
+};
+
+export default function ManagerialUserEditForm({ user, redirectPath = "/" }: Props) {
+  const methods = useForm<FormValues>({
+    resolver: zodResolver(FormSchema),
+    mode: "onSubmit",
+    shouldUnregister: false,
+    defaultValues: createDefaultValues(user),
+  });
+
+  const router = useRouter();
+  const { trigger, isMutating } = useUpdateUser();
+  const isRouting = useRouteTransitionPending();
+
+  const submit = async (values: FormValues) => {
+    try {
+      await trigger({
+        id: user.id,
+        data: {
+          displayName: values.displayName,
+          email: values.email,
+          role: values.role,
+        },
+      });
+      toast.success("ユーザーを更新しました");
+      router.push(redirectPath);
+    } catch (error) {
+      toast.error(err(error, "ユーザー更新に失敗しました"));
+    }
+  };
+
+  const {
+    handleSubmit,
+    control,
+    formState: { isSubmitting },
+  } = methods;
+
+  const loading = isSubmitting || isMutating || isRouting;
+
+  return (
+    <Form {...methods}>
+      <form onSubmit={handleSubmit(submit)} className="space-y-4">
+        <FormFieldItem
+          control={control}
+          name="displayName"
+          label="表示名"
+          renderInput={(field) => <TextInput field={field} />}
+        />
+        <FormFieldItem
+          control={control}
+          name="email"
+          label="メールアドレス"
+          renderInput={(field) => <TextInput type="email" field={field} />}
+        />
+        <div className="flex gap-2">
+          <Button type="submit" disabled={loading} variant="default">
+            {loading ? "更新中..." : "更新"}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
+            キャンセル
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}

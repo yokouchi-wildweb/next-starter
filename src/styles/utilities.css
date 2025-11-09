@@ -1,0 +1,48 @@
+/*
+ * src/styles/utilities.css
+ * 単体で再利用できる小さなユーティリティクラスを集約します。
+ * 見た目のバリエーションを素早く追加したいときはここに記述し、
+ * Tailwind の utilities レイヤーと競合しない命名を心掛けてください。
+ */
+
+@layer utilities {
+  .bg-rainbow-gradient {
+    background-image: linear-gradient(
+      135deg,
+      #ff6ec4,
+      #7873f5,
+      #4ade80,
+      #facc15,
+      #f87171
+    );
+  }
+
+  .pill-tag {
+    @apply inline-block rounded-full border bg-muted px-2 py-1 text-xs;
+  }
+
+  .bookmark-tag {
+    @apply inline-block pr-5 py-1 text-xs relative;
+    border: none;
+    clip-path: polygon(
+      0 0,
+      calc(100% - 0.75rem) 0,
+      100% 50%,
+      calc(100% - 0.75rem) 100%,
+      0 100%
+    );
+  }
+
+  .bookmark-tag::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -1px;
+    width: 0.75rem;
+    height: 100%;
+    background: none;
+    border: inherit;
+    border-left: none;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+  }
+}

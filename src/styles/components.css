@@ -1,0 +1,21 @@
+/*
+ * src/styles/components.css
+ * 複数ページで使い回す UI コンポーネント向けのスタイルを管理します。
+ * `.badge` などの共通クラスをここで定義し、
+ * 追加時は Tailwind の components レイヤーの責務を意識してください。
+ */
+
+@layer components {
+  /* ここにコンポーネント用のスタイルを追加 */
+
+  .badge {
+    @apply inline-block rounded-full border bg-muted px-2 py-0.5 text-xs;
+  }
+
+  .absolute-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
