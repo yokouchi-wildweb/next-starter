@@ -104,6 +104,14 @@ src/
 │   └── useXxxxx.ts       # ストアと対になるフック相当のラッパーでUIから使用される
 │
 ├── styles/      # グローバルCSSとテーマ定義
+│   ├── admin.css        # 管理画面向けのレイアウト調整
+│   ├── animations.css   # アニメーションとキーフレーム定義
+│   ├── base.css         # @layer base の共通スタイル
+│   ├── components.css   # @layer components の共通スタイル
+│   ├── config.css       # Tailwind設定値の共有トークン
+│   ├── global.css       # Tailwind読み込みと全体の入口
+│   ├── theme.css        # カラーパレットやフォント設定
+│   └── utilities.css    # @layer utilities のユーティリティ
 ├── hooks/       # 再利用可能な汎用フック
 ├── utils/       # 汎関数
 ├── constants/   # 定数群
