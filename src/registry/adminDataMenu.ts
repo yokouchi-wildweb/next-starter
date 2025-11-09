@@ -3,7 +3,6 @@
 export const adminDataMenu = [
 
   // --- AUTO-GENERATED-START ---
-  { title: "カード", href: "/admin/cards" },
   { title: "シリーズ", href: "/admin/series" },
   { title: "レアリティ", href: "/admin/card-rarities" },
   { title: "カードタグ", href: "/admin/card-tags" },

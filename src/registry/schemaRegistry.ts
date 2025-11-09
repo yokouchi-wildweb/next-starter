@@ -7,7 +7,6 @@
 export * from "@/features/user/entities/drizzle";
 export * from "@/features/title/entities/drizzle";
 export * from "@/features/series/entities/drizzle";
-export * from "@/features/card/entities/drizzle";
 export * from "@/features/cardTag/entities/drizzle";
 export * from "@/features/cardRarity/entities/drizzle";
 export * from "@/features/setting/entities/drizzle";
