@@ -148,7 +148,7 @@ src/
 
 ## 🚀 コンポーネントへのスタイル運用
 
-- UI実装は **shadcn/ui** を基点にし、生成したコンポーネントは `components/shadcn/` にまとめます
+- UI実装は **shadcn/ui** を基点にし、生成したコンポーネントは `components/Shadcn/` にまとめます
 - 新しいUIを作るときも `cva()` を用いてTailwindクラスをバリアント化し、`className` へ直接記述しないこと
 - `global.css` には読み込みのみを書き、追加スタイルは `theme.css`、`animations.css`、`base.css`、`components.css`、`utilities.css` に分割して管理します
 - 共通UIのスタイルはバリアントで一元化して、修正時の影響範囲を最小限に抑えましょう
