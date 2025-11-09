@@ -3,7 +3,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
 
-import FullScreen from "@/components/Layout/FullScreen";
+import FullScreen, { type FullScreenLayer } from "@/components/Layout/FullScreen";
 import { cn } from "@/lib/cn";
 
 const layoutVariants = cva("mx-auto w-full", {
@@ -30,12 +30,16 @@ const layoutMaxWidths: Partial<Record<LayoutVariant, CSSProperties["maxWidth"]>>
 };
 
 export type MainProps = ComponentPropsWithoutRef<"main"> &
-  VariantProps<typeof layoutVariants> & { children: ReactNode };
+  VariantProps<typeof layoutVariants> & {
+    children: ReactNode;
+    fullscreenLayer?: FullScreenLayer;
+  };
 
 export function Main({
   variant,
   className,
   children,
+  fullscreenLayer,
   id = "main",
   ...props
 }: MainProps) {
@@ -51,7 +55,7 @@ export function Main({
 
   if (effectiveVariant === "fullscreen") {
     return (
-      <FullScreen>
+      <FullScreen layer={fullscreenLayer}>
         <main id={id} className={className} {...props}>
           {children}
         </main>

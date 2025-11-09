@@ -1,0 +1,53 @@
+/*
+ * src/styles/config.css
+ * アプリ全体で共有するZ-indexなどのユーティリティトークンを定義します。
+ * `@theme inline` で Tailwind 側にも値を渡しつつ、:root にも初期値を設定します。
+ */
+
+@theme inline {
+  /* base layer group */
+  --z-layer-background: -1000;
+  --z-layer-base: 0;
+  --z-layer-content: 100;
+
+  /* header layer group */
+  --z-layer-below-header: 500;
+  --z-layer-header: 600;
+  --z-layer-above-header: 700;
+
+  /* feedback layer group */
+  --z-layer-modal: 900;
+  --z-layer-overlay: 950;
+  --z-layer-alert: 999;
+
+  /* super layer group */
+  --z-layer-super: 6666;
+  --z-layer-ultimate: 9000;
+  --z-layer-apex: 9999;
+
+  --app-header-height: 0px;
+}
+
+:root {
+  /* base layer group */
+  --z-layer-background: -1000;
+  --z-layer-base: 0;
+  --z-layer-content: 100;
+
+  /* header layer group */
+  --z-layer-below-header: 500;
+  --z-layer-header: 600;
+  --z-layer-above-header: 700;
+
+  /* feedback layer group */
+  --z-layer-modal: 900;
+  --z-layer-overlay: 950;
+  --z-layer-alert: 999;
+
+  /* super layer group */
+  --z-layer-super: 6666;
+  --z-layer-ultimate: 9000;
+  --z-layer-apex: 9999;
+
+  --app-header-height: 0px;
+}

@@ -73,7 +73,7 @@ function StarTunnel() {
 
 export default function StarTunnelCanvas() {
   return (
-    <Canvas className="absolute inset-0 z-0">
+    <Canvas className="absolute inset-0 -z-10">
       <StarTunnel />
     </Canvas>
   );

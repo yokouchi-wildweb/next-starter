@@ -8,7 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/Shadcn/dialog";
+} from "@/components/Overlays/Dialog";
 
 export type ModalProps = {
   open: boolean;
