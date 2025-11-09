@@ -1,8 +1,10 @@
 // src/components/Form/manual/BooleanRadioGroupInput.tsx
 
 import type { ComponentProps } from "react";
+import { cn } from "@/lib/cn";
 import { Label } from "@/components/Form/Label";
 import { RadioGroup, RadioGroupItem } from "@/components/Shadcn/radio-group";
+import { cva, type VariantProps } from "class-variance-authority";
 
 type BooleanLike = boolean | "true" | "false";
 
@@ -11,6 +13,21 @@ export type BooleanRadioGroupOption = {
   value: BooleanLike;
 };
 
+const radioItemSizeVariants = cva("", {
+  variants: {
+    size: {
+      sm: "!size-3 [&_[data-slot=radio-group-indicator]>svg]:!size-1.5",
+      md: "!size-4 [&_[data-slot=radio-group-indicator]>svg]:!size-2",
+      lg: "!size-5 [&_[data-slot=radio-group-indicator]>svg]:!size-2.5",
+    },
+  },
+  defaultVariants: {
+    size: "md",
+  },
+});
+
+type RadioItemSizeProps = VariantProps<typeof radioItemSizeVariants>;
+
 type Props = {
   field: {
     value?: boolean | null;
@@ -18,9 +35,13 @@ type Props = {
     onChange: (value: boolean) => void;
   };
   options?: BooleanRadioGroupOption[];
+  /**
+   * ラジオボタンの丸形のサイズ
+   */
+  size?: RadioItemSizeProps["size"];
 } & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange">;
 
-export function BooleanRadioGroupInput({ field, options, ...rest }: Props) {
+export function BooleanRadioGroupInput({ field, options, size, ...rest }: Props) {
   const radioValue = typeof field.value === "boolean" ? String(field.value) : undefined;
   const normalizedOptions = (options && options.length
     ? options
@@ -46,7 +67,11 @@ export function BooleanRadioGroupInput({ field, options, ...rest }: Props) {
 
         return (
           <div key={optionId} className="flex items-center gap-2">
-            <RadioGroupItem id={optionId} value={optionValue} />
+            <RadioGroupItem
+              id={optionId}
+              value={optionValue}
+              className={cn(radioItemSizeVariants({ size }))}
+            />
             <Label htmlFor={optionId} className="cursor-pointer">
               {option.label}
             </Label>
