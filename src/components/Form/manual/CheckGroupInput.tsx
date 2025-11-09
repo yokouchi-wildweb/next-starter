@@ -2,13 +2,7 @@
 
 import { Options } from "@/types/form";
 import { BookmarkTag } from "@/components/Form/button/BookmarkTag";
-import { Button } from "@/components/Form/button/Button";
-import { cn } from "@/lib/cn";
-
-const TAG_BUTTON_BASE_CLASS = "h-auto px-3 py-1 text-sm border transition-colors";
-const TAG_BUTTON_PILL_CLASS = "rounded-full";
-const TAG_BUTTON_SELECTED_CLASS = "bg-primary text-primary-foreground border-primary";
-const TAG_BUTTON_UNSELECTED_CLASS = "bg-muted text-muted-foreground border-border hover:bg-muted/80";
+import { TagButton } from "@/components/Form/button/TagButton";
 
 type Props = {
   field: {
@@ -38,30 +32,28 @@ export function CheckGroupInput({ field, options = [], bookmark = false, ...rest
     <div className="flex flex-wrap gap-2" {...rest}>
       {options.map((op) => {
         const selected = field.value?.includes(op.value);
-        const className = cn(
-          TAG_BUTTON_BASE_CLASS,
-          !bookmark && TAG_BUTTON_PILL_CLASS,
-          selected ? TAG_BUTTON_SELECTED_CLASS : TAG_BUTTON_UNSELECTED_CLASS,
-        );
+        if (bookmark) {
+          return (
+            <BookmarkTag
+              key={op.value}
+              type="button"
+              selected={selected}
+              onClick={() => toggle(op.value)}
+            >
+              {op.label}
+            </BookmarkTag>
+          );
+        }
 
-        const button = (
-          <Button
-            type="button"
+        return (
+          <TagButton
             key={op.value}
+            type="button"
+            selected={selected}
             onClick={() => toggle(op.value)}
-            variant="ghost"
-            className={className}
           >
             {op.label}
-          </Button>
-        );
-
-        return bookmark ? (
-          <BookmarkTag asChild key={op.value}>
-            {button}
-          </BookmarkTag>
-        ) : (
-          button
+          </TagButton>
         );
       })}
     </div>

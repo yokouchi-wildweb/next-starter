@@ -2,20 +2,53 @@
 
 "use client";
 
-import { Slot } from "@radix-ui/react-slot";
+import * as React from "react";
+
 import { cn } from "@/lib/cn";
 
-export type BookmarkTagProps = React.HTMLAttributes<HTMLElement> & {
-  /**
-   * Render the tag as the child element instead of a span.
-   * Useful when you need a different element such as button.
-   */
-  asChild?: boolean;
+import { Button, type ButtonProps } from "./Button";
+import {
+  TAG_BUTTON_BASE_CLASS,
+  TAG_BUTTON_SELECTED_CLASS,
+  TAG_BUTTON_UNSELECTED_CLASS,
+} from "./TagButton";
+
+export type BookmarkTagProps = ButtonProps & {
+  /** 選択状態に応じて配色を切り替える */
+  selected?: boolean;
 };
 
-export function BookmarkTag({ className, asChild = false, ...props }: BookmarkTagProps) {
-  const Comp = asChild ? Slot : "span";
-  return <Comp className={cn("bookmark-tag", className)} {...props} />;
-}
+const BookmarkTag = React.forwardRef<HTMLButtonElement, BookmarkTagProps>(
+  (
+    {
+      selected = false,
+      className,
+      variant = "ghost",
+      size = "default",
+      type = "button",
+      ...props
+    },
+    ref,
+  ) => {
+    return (
+      <Button
+        ref={ref}
+        type={type}
+        variant={variant}
+        size={size}
+        className={cn(
+          "bookmark-tag",
+          TAG_BUTTON_BASE_CLASS,
+          selected ? TAG_BUTTON_SELECTED_CLASS : TAG_BUTTON_UNSELECTED_CLASS,
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);
 
+BookmarkTag.displayName = "BookmarkTag";
+
+export { BookmarkTag };
 export default BookmarkTag;
