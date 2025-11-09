@@ -4,7 +4,7 @@ import { FieldPath, FieldValues } from "react-hook-form";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { ControlledInputProps } from "@/types/form";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 
 export const PasswordInput = <TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>>(
   props: ControlledInputProps<TFieldValues, TName>,

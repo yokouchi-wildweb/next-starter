@@ -1,6 +1,6 @@
 import { Menu, X } from "lucide-react";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 
 export type NavigationToggleButtonProps = {
   readonly isMenuOpen: boolean;

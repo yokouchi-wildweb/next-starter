@@ -4,7 +4,7 @@
 
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { Block } from "@/components/Layout/Block";
 import { SecTitle } from "@/components/TextBlocks";
 import { OAUTH_PROVIDER_IDS } from "@/constants/user";

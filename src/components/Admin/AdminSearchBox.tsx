@@ -3,7 +3,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { Input } from "@/components/Form/manual";
 import { useState } from "react";
 

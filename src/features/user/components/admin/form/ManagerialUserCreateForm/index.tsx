@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { Form } from "@/components/Shadcn/form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/controlled";

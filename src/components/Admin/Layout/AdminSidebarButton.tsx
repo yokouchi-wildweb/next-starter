@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { cn } from "@/lib/cn";
 
 const adminSidebarButtonClassName =

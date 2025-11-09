@@ -1,6 +1,6 @@
 // src/components/Form/FileInput.tsx
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { Input } from "@/components/Form/manual";
 import { Block } from "@/components/Layout/Block";
 import { XIcon } from "lucide-react";

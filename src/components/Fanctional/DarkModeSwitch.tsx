@@ -6,7 +6,7 @@ import { MoonIcon, SunIcon } from "lucide-react";
 import { useMemo } from "react";
 import { HeadPortal } from "@/components/Fanctional/HeadPortal";
 import { useSiteTheme } from "@/stores/useSiteTheme";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 
 const themeBootstrapCode = `
   (function() {

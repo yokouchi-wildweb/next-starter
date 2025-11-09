@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 
 export type EditButtonProps = {
   href: string;

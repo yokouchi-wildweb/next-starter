@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 import { AdminHeader } from "./AdminHeader";
 import { ResizableAdminLayout } from "./ResizableAdminLayout";
 import { MenuIcon } from "lucide-react";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 
 type AdminLayoutClientProps = {
   children: ReactNode;

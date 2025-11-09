@@ -2,7 +2,7 @@
 
 import { Options } from "@/types/form";
 import { BookmarkTag } from "@/components/Form/button/BookmarkTag";
-import { Button } from "@/components/Form/Button";
+import { Button } from "@/components/Form/button/Button";
 import { cn } from "@/lib/cn";
 
 const TAG_BUTTON_BASE_CLASS = "h-auto px-3 py-1 text-sm border transition-colors";
