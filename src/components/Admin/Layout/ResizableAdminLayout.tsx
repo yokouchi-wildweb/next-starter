@@ -56,7 +56,7 @@ export function ResizableAdminLayout({
       </div>
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 overlay-layer bg-black/50 md:hidden"
+          className="fixed inset-0 backdrop-layer bg-black/50 md:hidden"
           onClick={onSidebarClose}
         />
       )}

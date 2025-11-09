@@ -18,11 +18,20 @@ import {
 } from "@/components/Shadcn/dialog";
 import { cn } from "@/lib/cn";
 
-type OverlayLayer = "overlay" | "alert" | "super" | "ultimate" | "apex";
+type OverlayLayer =
+  | "backdrop"
+  | "modal"
+  | "overlay"
+  | "alert"
+  | "super"
+  | "ultimate"
+  | "apex";
 
 type ContentLayer = "modal" | "alert" | "super" | "ultimate" | "apex";
 
 const OVERLAY_LAYER_CLASS: Record<OverlayLayer, string> = {
+  backdrop: "backdrop-layer",
+  modal: "modal-layer",
   overlay: "overlay-layer",
   alert: "alert-layer",
   super: "super-layer",
@@ -55,7 +64,7 @@ type DialogContentProps = Omit<
 };
 
 export function DialogOverlay({
-  layer = "overlay",
+  layer = "modal",
   className,
   layerClassName,
   ...props
@@ -74,7 +83,7 @@ export function DialogContent({
   children,
   showCloseButton = true,
   layer = "modal",
-  overlayLayer = "overlay",
+  overlayLayer = "modal",
   layerClassName,
   overlayLayerClassName,
   ...props

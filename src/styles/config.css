@@ -33,9 +33,10 @@
   --z-layer-forefront-high: var(--z-layer-forefront-high);
 
   /* feedback layer group */
+  --z-layer-backdrop: var(--z-layer-backdrop);
   --z-layer-modal: var(--z-layer-modal);
-  --z-layer-overlay: var(--z-layer-overlay);
   --z-layer-alert: var(--z-layer-alert);
+  --z-layer-overlay: var(--z-layer-overlay);
 
   /* super layer group */
   --z-layer-super: var(--z-layer-super);
@@ -74,9 +75,10 @@
   --z-layer-forefront-high: 590;
 
   /* feedback layer group */
-  --z-layer-overlay: 930;
-  --z-layer-modal: 960;
-  --z-layer-alert: 990;
+  --z-layer-backdrop: 900;
+  --z-layer-modal: 930;
+  --z-layer-alert: 960;
+  --z-layer-overlay: 999;
 
   /* super layer group */
   --z-layer-super: 6666;
@@ -127,6 +129,10 @@
   }
 
   /* feedback layer group */
+  .backdrop-layer {
+    z-index: var(--z-layer-backdrop);
+  }
+
   .modal-layer {
     z-index: var(--z-layer-modal);
   }
