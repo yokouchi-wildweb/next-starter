@@ -43,6 +43,10 @@ export const FileInput = <
   const [inputKey, setInputKey] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputId = useMemo(() => id ?? `${field.name}-file-input`, [field.name, id]);
+  const selectedFileName = useMemo(
+    () => (field.value instanceof File ? field.value.name : null),
+    [field.value],
+  );
 
   const revokePreviewUrl = useCallback((url: string | null) => {
     if (url && url.startsWith("blob:")) {
@@ -122,17 +126,11 @@ export const FileInput = <
           )}
           <div className="flex flex-col items-center gap-1">
             <span className="font-medium">
-              {preview ? "別のファイルを選択" : "ファイルを選択"}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              クリックするとファイルピッカーが開きます
+              選択中: {selectedFileName ?? "なし"}
             </span>
           </div>
         </div>
       </label>
-      {field.value instanceof File && (
-        <p className="text-xs text-muted-foreground">選択中: {field.value.name}</p>
-      )}
       <input
         key={inputKey}
         id={inputId}
