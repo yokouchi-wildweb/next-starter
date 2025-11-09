@@ -27,6 +27,11 @@
   --z-layer-header: 360;
   --z-layer-above-header: 390;
 
+  /* forefront layer group */
+  --z-layer-forefront-low: 530;
+  --z-layer-forefront: 560;
+  --z-layer-forefront-high: 590;
+
   /* feedback layer group */
   --z-layer-modal: 930;
   --z-layer-overlay: 960;
