@@ -2,7 +2,8 @@
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput, Textarea } from "@/components/Form/controlled";
+import { TextInput } from "@/components/Form/controlled";
+import { Textarea } from "@/components/Form/controlled";
 
 export type SampleCategoryFieldsProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;

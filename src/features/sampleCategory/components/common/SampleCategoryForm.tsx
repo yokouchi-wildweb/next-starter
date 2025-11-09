@@ -1,4 +1,4 @@
-// src/features/sampleCategory/components/common/SampleCategoryForm.tsx
+// src/features/undefined/components/common/SampleCategoryForm.tsx
 
 "use client";
 
