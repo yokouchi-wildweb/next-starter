@@ -150,13 +150,23 @@ function generateFieldsFromConfig(config) {
         break;
       }
       case "checkbox":
-        addImport('import { Checkbox } from "@/components/Shadcn/checkbox";');
-        body.push(
-          replacePartialTokens(getPartial("checkbox.tsx"), {
-            fieldName: f.name,
-            label: f.label,
-          }).trimEnd(),
-        );
+        if (f.fieldType === "boolean") {
+          addImport('import { BooleanCheckboxInput } from "@/components/Form/manual";');
+          body.push(
+            replacePartialTokens(getPartial("checkboxBoolean.tsx"), {
+              fieldName: f.name,
+              label: f.label,
+            }).trimEnd(),
+          );
+        } else {
+          addImport('import { Checkbox } from "@/components/Shadcn/checkbox";');
+          body.push(
+            replacePartialTokens(getPartial("checkbox.tsx"), {
+              fieldName: f.name,
+              label: f.label,
+            }).trimEnd(),
+          );
+        }
         break;
       case "switchInput":
         addImport('import { SwitchInput } from "@/components/Form/controlled";');
