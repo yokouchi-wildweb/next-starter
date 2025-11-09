@@ -206,7 +206,7 @@ src/
 | 余白調整などレイアウト用の div    | `src/components/Layout` の要素<br />`src/components/TextBlocks/Para.tsx`          | デフォルトで適度なマージンを保持している。`Block`, `Flex` は子要素の余白調整も可能。                           |
 | エラー、補足などテキストの見た目を変える | `src/components/TextBlocks/Para.tsx`<br />`src/components/TextBlocks/Span.tsx` | バリアントでテキスト色やサイズを変更可能。                                                        |
 | 従来の button 要素の使用箇所   | `src/components/Form/Button.tsx`                                               | 多様なバリアントが用意されている。                                                            |
-| セマンティックな文章構造を作成したい   | `src/components/Form/TextBlocks` の要素                                           | `Section` は adide, articleなど各種セクショニング要素として使用可能。 hx要素に相当する `SecTItle` などを活用する |
+| セマンティックな文章構造を作成したい   | `src/components/TextBlocks` の要素                                                | `Section` は adide, articleなど各種セクショニング要素として使用可能。 hx要素に相当する `SecTItle` などを活用する |
 
 ---
 
