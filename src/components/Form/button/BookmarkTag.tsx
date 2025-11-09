@@ -1,4 +1,4 @@
-// src/components/Display/BookmarkTag.tsx
+// src/components/Form/button/BookmarkTag.tsx
 
 "use client";
 

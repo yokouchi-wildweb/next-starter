@@ -1,7 +1,7 @@
 // src/components/Form/manual/CheckGroupInput.tsx
 
 import { Options } from "@/types/form";
-import { BookmarkTag } from "@/components/Common/BookmarkTag";
+import { BookmarkTag } from "@/components/Form/button/BookmarkTag";
 import { Button } from "@/components/Form/Button";
 import { cn } from "@/lib/cn";
 
