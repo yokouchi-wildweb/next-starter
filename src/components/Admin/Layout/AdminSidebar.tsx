@@ -81,7 +81,7 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
 
   return (
     <aside style={{ width }} className={cn(sidebarContainer(), "flex flex-col")}>
-      <Block space="xs" className="w-full">
+      <Block space="xs" className="w-full mb-0">
         <nav aria-label="管理メニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
             {adminMenu.map((section, i) => {
@@ -150,7 +150,7 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
           </ul>
         </nav>
       </Block>
-      <Block space="xs" className="w-full">
+      <Block space="xs" className="w-full mt-0">
         <div className="group relative w-full">
           <AdminSidebarButton type="button" onClick={handleLogout} disabled={isLoading}>
             ログアウト
