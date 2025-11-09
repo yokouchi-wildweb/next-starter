@@ -59,6 +59,7 @@ const templates = [
   "useSearch__Domain__.ts",
   "useCreate__Domain__.ts",
   "useUpdate__Domain__.ts",
+  "useUpsert__Domain__.ts",
   "useDelete__Domain__.ts",
 ];
 
