@@ -21,7 +21,13 @@ import {
   TextInput,
   Textarea,
 } from "@/components/Form/controlled";
-import { CheckGroupInput, RadioGroupInput, SelectInput, StepperInput } from "@/components/Form/manual";
+import {
+  BooleanCheckboxInput,
+  CheckGroupInput,
+  RadioGroupInput,
+  SelectInput,
+  StepperInput,
+} from "@/components/Form/manual";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { Block } from "@/components/Layout/Block";
 import { Main, PageTitle, Para, Section, SecTitle } from "@/components/TextBlocks";
@@ -49,6 +55,7 @@ type DemoFormValues = {
   select: string;
   number: number | "";
   switch: boolean;
+  booleanCheckbox: boolean;
   file: File | null;
   fileUrl: string;
 };
@@ -63,6 +70,7 @@ const defaultValues: DemoFormValues = {
   select: "",
   number: 0,
   switch: true,
+  booleanCheckbox: false,
   file: null,
   fileUrl: "",
 };
@@ -257,6 +265,20 @@ export default function FormComponentsDemoPage() {
                       label="スイッチラベル"
                       description="チェックボックスのラッパーです"
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="booleanCheckbox"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>BooleanCheckboxInput</FormLabel>
+                  <FormControl>
+                    <BooleanCheckboxInput field={field} label="チェックボックスラベル" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
