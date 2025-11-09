@@ -32,6 +32,7 @@ const pageLinks = [
   { href: "/login", label: "ログイン" },
   { href: "/demo/form-components/", label: "フォームDEMO" },
   { href: "/demo/loading-overlay/", label: "ローディングDEMO" },
+  { href: "/demo/loading-overlay/", label: "ローディングDEMO" },
 ];
 
 const resourceLinks = [
@@ -95,7 +96,7 @@ export default function Home() {
         <CosmicCoasterScene />
       </FullScreen>
 
-      <Main variant="wideShowcase" className="relative forefront-layer min-h-screen text-slate-900">
+      <Main variant="contentShell" className="relative forefront-layer min-h-screen text-slate-900">
         <Flex direction="column" gap="xl" className="py-20">
 
           <Section align="center" className="relative">
