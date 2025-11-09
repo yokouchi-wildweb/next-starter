@@ -30,6 +30,29 @@ function createPluralCandidates(base) {
   return [...candidates];
 }
 
+function createSingularCandidates(base) {
+  if (!base) return [];
+
+  const candidates = new Set();
+  let handled = false;
+
+  if (/ies$/i.test(base) && base.length > 3) {
+    candidates.add(base.slice(0, -3) + 'y');
+    handled = true;
+  }
+
+  if (/(?:[sxz]|[cs]h)es$/i.test(base)) {
+    candidates.add(base.slice(0, -2));
+    handled = true;
+  }
+
+  if (!handled && /s$/i.test(base) && !/(?:ss|us|is)$/i.test(base)) {
+    candidates.add(base.slice(0, -1));
+  }
+
+  return [...candidates];
+}
+
 function uniqueStrings(values) {
   return [...new Set(values.filter(Boolean))];
 }
@@ -94,11 +117,21 @@ export default async function removeDomain(domain) {
   const camel = toCamelCase(domain);
   const singularKebab = toKebabCase(camel || domain);
   const featuresBase = path.join(rootDir, 'src', 'features');
-  const featureCandidateSet = removeEmpty(new Set(uniqueStrings([camel, pascal, singularKebab])));
+  const featureCandidateSet = removeEmpty(new Set(uniqueStrings([domain, camel, pascal, singularKebab])));
+  const singularCandidates = createSingularCandidates(camel);
+  for (const singularCandidate of singularCandidates) {
+    featureCandidateSet.add(singularCandidate);
+    featureCandidateSet.add(toPascalCase(singularCandidate));
+    featureCandidateSet.add(toKebabCase(singularCandidate));
+  }
   const resolvedFeatureDir = resolveDir(featuresBase, ...featureCandidateSet);
-  const featureDir = resolvedFeatureDir ?? path.join(featuresBase, camel);
+  const canonicalSingular =
+    (resolvedFeatureDir && path.basename(resolvedFeatureDir)) ||
+    singularCandidates[0] ||
+    camel;
+  const featureDir = resolvedFeatureDir ?? path.join(featuresBase, canonicalSingular);
   const configPath = path.join(featureDir, 'domain.json');
-  let plural = camel + 's';
+  let plural = canonicalSingular === camel ? camel + 's' : camel;
   if (fs.existsSync(configPath)) {
     const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     plural = cfg.plural || plural;
@@ -110,7 +143,7 @@ export default async function removeDomain(domain) {
     toPascalCase(plural),
     toKebabCase(plural),
   ]));
-  for (const candidate of createPluralCandidates(camel)) {
+  for (const candidate of createPluralCandidates(canonicalSingular)) {
     pluralCandidateSet.add(candidate);
     pluralCandidateSet.add(toCamelCase(candidate));
     pluralCandidateSet.add(toPascalCase(candidate));
