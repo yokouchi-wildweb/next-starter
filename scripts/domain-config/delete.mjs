@@ -3,7 +3,7 @@ import fs from 'fs';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
-import { toKebabCase } from '../../src/utils/stringCase.mjs';
+import { toCamelCase, toKebabCase, toPascalCase } from '../../src/utils/stringCase.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..', '..');
@@ -11,6 +11,36 @@ const prompt = inquirer.createPromptModule();
 
 function normalizeName(name) {
   return name?.toLowerCase().replace(/[-_\s]/g, '') ?? '';
+}
+
+function createPluralCandidates(base) {
+  if (!base) return [];
+  const candidates = new Set();
+
+  candidates.add(`${base}s`);
+
+  if (/(?:[sxz]|[cs]h)$/i.test(base)) {
+    candidates.add(`${base}es`);
+  }
+
+  if (/[bcdfghjklmnpqrstvwxyz]y$/i.test(base)) {
+    candidates.add(`${base.slice(0, -1)}ies`);
+  }
+
+  return [...candidates];
+}
+
+function uniqueStrings(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function removeEmpty(set) {
+  for (const value of set) {
+    if (!value) {
+      set.delete(value);
+    }
+  }
+  return set;
 }
 
 function findDomainDirs(base, names) {
@@ -60,9 +90,12 @@ function removeLineContaining(filePath, keyword) {
 }
 
 export default async function removeDomain(domain) {
-  const camel = domain.charAt(0).toLowerCase() + domain.slice(1);
+  const pascal = toPascalCase(domain);
+  const camel = toCamelCase(domain);
+  const singularKebab = toKebabCase(camel || domain);
   const featuresBase = path.join(rootDir, 'src', 'features');
-  const resolvedFeatureDir = resolveDir(featuresBase, camel);
+  const featureCandidateSet = removeEmpty(new Set(uniqueStrings([camel, pascal, singularKebab])));
+  const resolvedFeatureDir = resolveDir(featuresBase, ...featureCandidateSet);
   const featureDir = resolvedFeatureDir ?? path.join(featuresBase, camel);
   const configPath = path.join(featureDir, 'domain.json');
   let plural = camel + 's';
@@ -71,23 +104,46 @@ export default async function removeDomain(domain) {
     plural = cfg.plural || plural;
   }
 
+  const pluralCandidateSet = removeEmpty(new Set([
+    plural,
+    toCamelCase(plural),
+    toPascalCase(plural),
+    toKebabCase(plural),
+  ]));
+  for (const candidate of createPluralCandidates(camel)) {
+    pluralCandidateSet.add(candidate);
+    pluralCandidateSet.add(toCamelCase(candidate));
+    pluralCandidateSet.add(toPascalCase(candidate));
+    pluralCandidateSet.add(toKebabCase(candidate));
+  }
+  const searchNameSet = removeEmpty(new Set([...featureCandidateSet, ...pluralCandidateSet]));
+
   const { confirm } = await prompt({
     type: 'input',
     name: 'confirm',
-    message: '削除確認のため同じドメイン名（PascalCase）を入力してください:',
+    message: '削除確認のため同じドメイン名（camelCase）を入力してください:',
   });
-  if (confirm !== domain) {
+  if (normalizeName(confirm) !== normalizeName(camel)) {
     console.log('ドメイン名が一致しないため中止しました。');
     return;
   }
 
-  const pluralKebab = toKebabCase(plural);
+  let pluralKebab = toKebabCase(plural);
   const adminBaseDir = path.join(rootDir, 'src', 'app', 'admin');
   const adminProtectedDir = path.join(adminBaseDir, '(protected)');
   const adminDir =
-    resolveDir(adminProtectedDir, pluralKebab, plural, camel) ||
-    resolveDir(adminBaseDir, pluralKebab, plural, camel);
-  const searchDirs = findDomainDirs(path.join(rootDir, 'src', 'app'), [camel, plural, pluralKebab])
+    resolveDir(adminProtectedDir, ...pluralCandidateSet, ...featureCandidateSet) ||
+    resolveDir(adminBaseDir, ...pluralCandidateSet, ...featureCandidateSet);
+  if (adminDir) {
+    const adminFolderName = path.basename(adminDir);
+    pluralKebab = adminFolderName;
+    const adminCamel = toCamelCase(adminFolderName);
+    pluralCandidateSet.add(adminCamel);
+    pluralCandidateSet.add(adminFolderName);
+    searchNameSet.add(adminCamel);
+    searchNameSet.add(adminFolderName);
+  }
+  const searchDirs = findDomainDirs(path.join(rootDir, 'src', 'app'), [...searchNameSet])
     .filter((d) => !adminDir || d !== adminDir);
   let extras = [];
   if (searchDirs.length > 0) {
@@ -149,15 +205,33 @@ export default async function removeDomain(domain) {
   }
 
   const menuPath = path.join(rootDir, 'src', 'registry', 'adminDataMenu.ts');
-  removeLineContaining(menuPath, `/admin/${pluralKebab}`);
-  if (pluralKebab !== plural) {
-    removeLineContaining(menuPath, `/admin/${plural}`);
+  const menuCandidates = new Set([pluralKebab, plural, ...pluralCandidateSet]);
+  const expandedMenuCandidates = new Set();
+  for (const candidate of menuCandidates) {
+    if (!candidate) continue;
+    expandedMenuCandidates.add(candidate);
+    expandedMenuCandidates.add(toKebabCase(candidate));
   }
+  for (const candidate of expandedMenuCandidates) {
+    if (!candidate) continue;
+    removeLineContaining(menuPath, `/admin/${candidate}`);
+  }
+
   const schemaPath = path.join(rootDir, 'src', 'registry', 'schemaRegistry.ts');
-  removeLineContaining(schemaPath, `@/features/${camel}/entities/drizzle`);
+  for (const candidate of featureCandidateSet) {
+    removeLineContaining(schemaPath, `@/features/${candidate}/entities/drizzle`);
+  }
+
   const servicePath = path.join(rootDir, 'src', 'registry', 'serviceRegistry.ts');
-  removeLineContaining(servicePath, `@/features/${camel}/services/server/${camel}Service`);
-  removeLineContaining(servicePath, `${camel}: ${camel}Service`);
+  const serviceNames = new Set();
+  for (const candidate of featureCandidateSet) {
+    const camelCandidate = toCamelCase(candidate);
+    serviceNames.add(camelCandidate);
+    removeLineContaining(servicePath, `@/features/${candidate}/services/server/${camelCandidate}Service`);
+  }
+  for (const serviceName of serviceNames) {
+    removeLineContaining(servicePath, `${serviceName}: ${serviceName}Service`);
+  }
 
   console.log('削除が完了しました。');
 }
