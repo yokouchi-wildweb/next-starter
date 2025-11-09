@@ -82,6 +82,9 @@ export function createCrudService<
     /**
      * Simple equality-based search. `where` is treated as field-value pairs.
      * Only the provided keys are matched. Sorting is limited to a single field.
+     * The query fetches up to `page * limit` documents before slicing, so the
+     * returned `total` represents the number of fetched documents (not the
+     * absolute match count).
      */
     async search(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
       const { page = 1, limit = 100 } = params;
