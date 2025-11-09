@@ -310,6 +310,8 @@ export default function LoadingOverlayDemoPage() {
                 </Button>
               </div>
             </Section>
+
+
           </div>
         </div>
       </div>
@@ -334,7 +336,7 @@ export default function LoadingOverlayDemoPage() {
           setIsConfirmOpen(open);
         }}
         title="重要な操作の確認"
-        description="この操作は取り消せません。本当に実行しますか？"
+        description="重要な操作の前などに意図を再確認することができます。例: 本当に実行しますか？"
         confirmLabel={isConfirmProcessing ? "処理中..." : "実行する"}
         cancelLabel="キャンセル"
         onConfirm={handleConfirm}
