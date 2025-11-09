@@ -58,12 +58,11 @@ export default function Home() {
         <CosmicCoasterScene />
       </FullScreen>
 
-      <Main variant="wideShowcase" className="relative z-9999 min-h-screen text-slate-900">
+      <Main variant="wideShowcase" className="relative forefront-layer min-h-screen text-slate-900">
         <Flex direction="column" gap="xl" className="py-20">
 
           <Section align="center" className="relative">
             <Flex
-              variant=""
               space="none"
               direction="column"
               align="center"
@@ -90,7 +89,6 @@ export default function Home() {
 
           <Section as="nav">
             <Flex
-              variant=""
               space="none"
               wrap="wrap"
               gap="lg"
