@@ -1,8 +1,9 @@
 // src/components/Form/FileInput.tsx
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { Button } from "@/components/Form/Button";
-import { Input } from "@/components/Form/manual";
 import { Block } from "@/components/Layout/Block";
+import { cn } from "@/lib/cn";
 import { XIcon } from "lucide-react";
 import { FieldPath, FieldValues } from "react-hook-form";
 import type { ControlledInputProps } from "@/types/form";
@@ -27,13 +28,35 @@ export const FileInput = <
   TName extends FieldPath<TFieldValues>,
 >(props: FileInputProps<TFieldValues, TName>) => {
   const { field, initialUrl = null, onSelect, onRemove, ...rest } = props;
+  const {
+    className,
+    id,
+    disabled,
+    onChange: onChangeProp,
+    value: _valueIgnored,
+    ...inputProps
+  } = rest;
+  void _valueIgnored;
   const [preview, setPreview] = useState<string | null>(initialUrl);
   const [inputKey, setInputKey] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputId = useMemo(() => id ?? `${field.name}-file-input`, [field.name, id]);
+
+  const revokePreviewUrl = useCallback((url: string | null) => {
+    if (url && url.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
+  }, []);
 
   useEffect(() => {
     setPreview(initialUrl);
   }, [initialUrl]);
+
+  useEffect(() => {
+    return () => {
+      revokePreviewUrl(preview);
+    };
+  }, [preview, revokePreviewUrl]);
 
   const handleRemove = async () => {
     const shouldRemove = onRemove ? await onRemove() : true;
@@ -42,18 +65,22 @@ export const FileInput = <
     if (inputRef.current) {
       inputRef.current.value = "";
     }
+    revokePreviewUrl(preview);
     setPreview(null);
     setInputKey((k) => k + 1);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onChangeProp?.(event);
+    const file = event.target.files?.[0] ?? null;
     field.onChange(file);
     onSelect?.(file);
     if (file) {
+      revokePreviewUrl(preview);
       const url = URL.createObjectURL(file);
       setPreview(url);
     } else {
+      revokePreviewUrl(preview);
       setPreview(null);
     }
   };
@@ -75,14 +102,38 @@ export const FileInput = <
           <img src={preview} alt="preview" className="max-h-40 w-auto object-contain" />
         </div>
       )}
-      <Input
+      <label
+        htmlFor={inputId}
+        className={cn(
+          "flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground transition-colors",
+          "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+          disabled && "cursor-not-allowed opacity-60",
+          className,
+        )}
+      >
+        <span className="font-medium">
+          {preview ? "別のファイルを選択" : "ファイルを選択"}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          クリックするとファイルピッカーが開きます
+        </span>
+      </label>
+      {field.value instanceof File && (
+        <p className="text-xs text-muted-foreground">選択中: {field.value.name}</p>
+      )}
+      <input
         key={inputKey}
+        id={inputId}
         type="file"
+        name={field.name}
         ref={(el) => {
           inputRef.current = el;
           field.ref(el);
         }}
-        {...rest}
+        disabled={disabled}
+        onBlur={field.onBlur}
+        className="sr-only"
+        {...inputProps}
         onChange={handleChange}
       />
     </Block>
