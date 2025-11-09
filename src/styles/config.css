@@ -56,3 +56,70 @@
 
   --app-header-height: 0px;
 }
+
+@layer utilities {
+  /* base layer group */
+  .background-layer {
+    z-index: var(--z-layer-background);
+  }
+
+  .base-layer {
+    z-index: var(--z-layer-base);
+  }
+
+  .content-layer {
+    z-index: var(--z-layer-content);
+  }
+
+  /* header layer group */
+  .below-header-layer {
+    z-index: var(--z-layer-below-header);
+  }
+
+  .header-layer {
+    z-index: var(--z-layer-header);
+  }
+
+  .above-header-layer {
+    z-index: var(--z-layer-above-header);
+  }
+
+  /* forefront layer group */
+  .forefront-low-layer {
+    z-index: var(--z-layer-forefront-low);
+  }
+
+  .forefront-layer {
+    z-index: var(--z-layer-forefront);
+  }
+
+  .forefront-high-layer {
+    z-index: var(--z-layer-forefront-high);
+  }
+
+  /* feedback layer group */
+  .modal-layer {
+    z-index: var(--z-layer-modal);
+  }
+
+  .overlay-layer {
+    z-index: var(--z-layer-overlay);
+  }
+
+  .alert-layer {
+    z-index: var(--z-layer-alert);
+  }
+
+  /* super layer group */
+  .super-layer {
+    z-index: var(--z-layer-super);
+  }
+
+  .ultimate-layer {
+    z-index: var(--z-layer-ultimate);
+  }
+
+  .apex-layer {
+    z-index: var(--z-layer-apex);
+  }
+}

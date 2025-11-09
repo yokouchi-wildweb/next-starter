@@ -8,21 +8,21 @@ import { useViewportSize } from "@/stores/useViewportSize";
 import { cn } from "@/lib/cn";
 
 const LAYER_CLASS_MAP = {
-  background: "z-[var(--z-layer-background)]",
-  base: "z-[var(--z-layer-base)]",
-  content: "z-[var(--z-layer-content)]",
-  belowHeader: "z-[var(--z-layer-below-header)]",
-  header: "z-[var(--z-layer-header)]",
-  aboveHeader: "z-[var(--z-layer-above-header)]",
-  forefrontLow: "z-[var(--z-layer-forefront-low)]",
-  forefront: "z-[var(--z-layer-above-forefront)]",
-  forefrontHigh: "z-[var(--z-layer-above-forefront-high)]",
-  modal: "z-[var(--z-layer-modal)]",
-  overlay: "z-[var(--z-layer-overlay)]",
-  alert: "z-[var(--z-layer-alert)]",
-  super: "z-[var(--z-layer-super)]",
-  ultimate: "z-[var(--z-layer-ultimate)]",
-  apex: "z-[var(--z-layer-apex)]",
+  background: "background-layer",
+  base: "base-layer",
+  content: "content-layer",
+  belowHeader: "below-header-layer",
+  header: "header-layer",
+  aboveHeader: "above-header-layer",
+  forefrontLow: "forefront-low-layer",
+  forefront: "forefront-layer",
+  forefrontHigh: "forefront-high-layer",
+  modal: "modal-layer",
+  overlay: "overlay-layer",
+  alert: "alert-layer",
+  super: "super-layer",
+  ultimate: "ultimate-layer",
+  apex: "apex-layer",
 } as const;
 
 export type FullScreenLayer = keyof typeof LAYER_CLASS_MAP;
