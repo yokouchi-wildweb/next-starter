@@ -150,7 +150,7 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
           </ul>
         </nav>
       </Block>
-      <Block space="xs" className="mt-auto w-full">
+      <Block space="xs" className="w-full">
         <div className="group relative w-full">
           <AdminSidebarButton type="button" onClick={handleLogout} disabled={isLoading}>
             ログアウト
