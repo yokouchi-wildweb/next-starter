@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/Form/button/Button";
+import { Button, type ButtonStyleProps } from "@/components/Form/button/Button";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
@@ -37,6 +37,8 @@ export type StepperInputProps = {
   className?: string;
   value?: number;
   onValueChange?: (value: number) => void;
+  buttonVariant?: ButtonStyleProps["variant"];
+  buttonSize?: ButtonStyleProps["size"];
 };
 
 export default function StepperInput({
@@ -48,6 +50,8 @@ export default function StepperInput({
   className,
   value,
   onValueChange,
+  buttonVariant,
+  buttonSize,
 }: StepperInputProps) {
   const [internalValue, setInternalValue] = useState(initialValue);
   const isControlled = value !== undefined;
@@ -63,6 +67,10 @@ export default function StepperInput({
   const increase = () => updateValue(currentValue + step);
   const decrease = () => updateValue(currentValue - step);
 
+  const resolvedVariant = buttonVariant ?? "ghost";
+  const resolvedSize = buttonSize ?? "icon";
+  const sharedButtonClassName = cn("rounded-none", iconSize[size as NonNullable<Size>]);
+
   return (
     <div className={cn(containerVariants({ size }), className)}>
       <span className="flex items-center bg-gray-700 px-4 text-white whitespace-nowrap">
@@ -70,10 +78,10 @@ export default function StepperInput({
       </span>
       <Button
         type="button"
-        variant="ghost"
-        size="icon"
+        variant={resolvedVariant}
+        size={resolvedSize}
         onClick={decrease}
-        className={cn("rounded-none", iconSize[size as NonNullable<Size>])}
+        className={sharedButtonClassName}
       >
         <MinusIcon className="size-4" />
       </Button>
@@ -83,10 +91,10 @@ export default function StepperInput({
       </span>
       <Button
         type="button"
-        variant="ghost"
-        size="icon"
+        variant={resolvedVariant}
+        size={resolvedSize}
         onClick={increase}
-        className={cn("rounded-none", iconSize[size as NonNullable<Size>])}
+        className={sharedButtonClassName}
       >
         <PlusIcon className="size-4" />
       </Button>
