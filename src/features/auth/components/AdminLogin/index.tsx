@@ -12,17 +12,15 @@ import { Block } from "@/components/Layout/Block";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { localLogin } from "@/features/auth/services/client/localLogin";
 import { err } from "@/lib/errors";
-import { useRouteTransitionPending } from "@/hooks/useRouteTransitionPending";
 
 export function AdminLogin() {
   const router = useRouter();
   const { refreshSession } = useAuthSession();
-  const isRouting = useRouteTransitionPending();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const loading = isSubmitting || isRouting;
+  const loading = isSubmitting;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

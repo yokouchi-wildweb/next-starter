@@ -13,7 +13,6 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/controlled";
 import { err } from "@/lib/errors";
 import { useCreateUser } from "@/features/user/hooks/useCreateUser";
-import { useRouteTransitionPending } from "@/hooks/useRouteTransitionPending";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
@@ -31,7 +30,6 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
 
   const router = useRouter();
   const { trigger, isMutating } = useCreateUser();
-  const isRouting = useRouteTransitionPending();
 
   const submit = async (values: FormValues) => {
     try {
@@ -49,7 +47,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
     formState: { isSubmitting },
   } = methods;
 
-  const loading = isSubmitting || isMutating || isRouting;
+  const loading = isSubmitting || isMutating;
 
   return (
     <Form {...methods}>

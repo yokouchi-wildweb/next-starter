@@ -14,7 +14,6 @@ import { TextInput } from "@/components/Form/controlled";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
 import type { User } from "@/features/user/entities";
-import { useRouteTransitionPending } from "@/hooks/useRouteTransitionPending";
 
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
 
@@ -33,7 +32,6 @@ export default function GeneralUserEditForm({ user, redirectPath = "/" }: Props)
 
   const router = useRouter();
   const { trigger, isMutating } = useUpdateUser();
-  const isRouting = useRouteTransitionPending();
 
   const submit = async (values: FormValues) => {
     try {
@@ -58,7 +56,7 @@ export default function GeneralUserEditForm({ user, redirectPath = "/" }: Props)
     formState: { isSubmitting },
   } = methods;
 
-  const loading = isSubmitting || isMutating || isRouting;
+  const loading = isSubmitting || isMutating;
 
   return (
     <Form {...methods}>
