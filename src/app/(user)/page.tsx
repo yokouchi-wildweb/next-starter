@@ -32,7 +32,7 @@ const pageLinks = [
   { href: "/login", label: "ログイン" },
   { href: "/demo/form-components/", label: "フォームDEMO" },
   { href: "/demo/loading-overlay/", label: "ローディングDEMO" },
-  { href: "/demo/loading-overlay/", label: "ローディングDEMO" },
+  { href: "/demo/check-env/", label: "環境変数チェック" },
 ];
 
 const resourceLinks = [
