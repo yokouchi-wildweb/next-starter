@@ -18,29 +18,29 @@
   --layout-width-wide-showcase: 96rem;
 
   /* base layer group */
-  --z-layer-background: -1000;
-  --z-layer-base: 0;
-  --z-layer-content: 100;
+  --z-layer-background: var(--z-layer-background);
+  --z-layer-base: var(--z-layer-base);
+  --z-layer-content: var(--z-layer-content);
 
   /* header layer group */
-  --z-layer-below-header: 330;
-  --z-layer-header: 360;
-  --z-layer-above-header: 390;
+  --z-layer-below-header: var(--z-layer-below-header);
+  --z-layer-header: var(--z-layer-header);
+  --z-layer-above-header: var(--z-layer-above-header);
 
   /* forefront layer group */
-  --z-layer-forefront-low: 530;
-  --z-layer-forefront: 560;
-  --z-layer-forefront-high: 590;
+  --z-layer-forefront-low: var(--z-layer-forefront-low);
+  --z-layer-forefront: var(--z-layer-forefront);
+  --z-layer-forefront-high: var(--z-layer-forefront-high);
 
   /* feedback layer group */
-  --z-layer-overlay: 930;
-  --z-layer-modal: 960;
-  --z-layer-alert: 990;
+  --z-layer-modal: var(--z-layer-modal);
+  --z-layer-overlay: var(--z-layer-overlay);
+  --z-layer-alert: var(--z-layer-alert);
 
   /* super layer group */
-  --z-layer-super: 6666;
-  --z-layer-ultimate: 9000;
-  --z-layer-apex: 9999;
+  --z-layer-super: var(--z-layer-super);
+  --z-layer-ultimate: var(--z-layer-ultimate);
+  --z-layer-apex: var(--z-layer-apex);
 
   --app-header-height: 0px;
 }
