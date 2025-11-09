@@ -1,5 +1,7 @@
 // src/lib/crud/types.ts
 
+import type { ZodType, ZodTypeDef } from "zod";
+
 export type QueryOp =
   | "eq"
   | "ne"
@@ -101,11 +103,32 @@ type BaseCrudServiceOptions = {
   useUpdatedAt?: boolean;
 };
 
-export type CreateCrudServiceOptions<TData extends Record<string, any> = Record<string, any>> =
-  BaseCrudServiceOptions & {
-    /**
-     * `upsert` を実行する際のデフォルト衝突検知フィールド。
-     * 呼び出し側で `conflictFields` を指定した場合はそちらが優先される。
-     */
-    defaultUpsertConflictFields?: Array<Extract<keyof TData, string>>;
-  };
+type AnyZod = ZodType<unknown, ZodTypeDef, unknown>;
+
+export type CrudInputSchemas = {
+  create?: AnyZod;
+  update?: AnyZod;
+  upsert?: AnyZod;
+};
+
+export type CreateCrudServiceOptions<
+  TData extends Record<string, unknown> = Record<string, unknown>,
+> = BaseCrudServiceOptions & {
+  /**
+   * `upsert` を実行する際のデフォルト衝突検知フィールド。
+   * 呼び出し側で `conflictFields` を指定した場合はそちらが優先される。
+   */
+  defaultUpsertConflictFields?: Array<Extract<keyof TData, string>>;
+  /**
+   * Zod スキーマを指定すると CRUD メソッド実行前に `safeParse` が実行される。
+   */
+  inputSchemas?: CrudInputSchemas;
+  /**
+   * バリデーション失敗時に投げる `DomainError` のメッセージ。
+   */
+  validationErrorMessage?: string;
+  /**
+   * バリデーション失敗時のステータスコード。
+   */
+  validationErrorStatus?: number;
+};

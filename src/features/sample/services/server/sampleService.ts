@@ -2,6 +2,4 @@
 
 import { base } from "./drizzleBase";
 
-export const sampleService = {
-  ...base,
-};
+export const sampleService = base;

@@ -1,6 +1,7 @@
 // src/lib/crud/drizzle/index.ts
 // Drizzle ORM を利用した汎用的な CRUD サービスを提供するモジュール
 
+import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { eq, inArray, SQL, ilike, and, or, sql } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
@@ -10,6 +11,7 @@ import type {
   CreateCrudServiceOptions,
   PaginatedResult,
   UpsertOptions,
+  CrudInputSchemas,
 } from "../types";
 import { normalizeUndefinedToNull, omitUndefined } from "../utils";
 import { uuidv7 } from "uuidv7";
@@ -23,7 +25,7 @@ export type DefaultInsert<TTable extends PgTable> = Omit<
 
 export function createCrudService<
   TTable extends PgTable & { id: AnyPgColumn },
-  TCreate extends Record<string, any> = DefaultInsert<TTable>
+  TCreate extends Record<string, unknown> = DefaultInsert<TTable>,
 >(table: TTable, serviceOptions: CreateCrudServiceOptions<TCreate> = {}) {
   type Select = InferSelectModel<TTable>;
   type Insert = TCreate;
@@ -33,6 +35,21 @@ export function createCrudService<
   const defaultConflictFields = serviceOptions.defaultUpsertConflictFields as
     | Array<Extract<keyof Insert, string>>
     | undefined;
+
+  const validationMessage = serviceOptions.validationErrorMessage ?? "入力内容が正しくありません。";
+  const validationStatus = serviceOptions.validationErrorStatus ?? 400;
+
+  const parseOrThrow = <T>(schema: CrudInputSchemas[keyof CrudInputSchemas] | undefined, input: T): T => {
+    if (!schema) {
+      return input;
+    }
+    const result = schema.safeParse(input);
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? validationMessage;
+      throw new DomainError(message, { status: validationStatus });
+    }
+    return result.data as T;
+  };
 
   const resolveConflictTarget = (options?: UpsertOptions<Insert>) => {
     const conflictFields = options?.conflictFields ?? defaultConflictFields;
@@ -55,7 +72,8 @@ export function createCrudService<
   return {
     // レコードを新規作成する
     async create(data: Insert): Promise<Select> {
-      const insertData = { ...data } as Insert &
+      const parsed = parseOrThrow(serviceOptions.inputSchemas?.create, data) as Insert;
+      const insertData = { ...parsed } as Insert &
         Record<string, any> & { id?: string; createdAt?: Date; updatedAt?: Date };
       if (serviceOptions.useCreatedAt && insertData.createdAt === undefined) {
         insertData.createdAt = new Date();
@@ -92,7 +110,8 @@ export function createCrudService<
 
     // 指定 ID のレコードを更新する
     async update(id: string, data: Partial<Insert>): Promise<Select> {
-      const sanitized = { ...omitUndefined(data) } as Partial<Insert> &
+      const parsed = parseOrThrow(serviceOptions.inputSchemas?.update, data) as Partial<Insert>;
+      const sanitized = { ...omitUndefined(parsed) } as Partial<Insert> &
         Record<string, any> & { updatedAt?: Date };
       if (serviceOptions.useUpdatedAt && sanitized.updatedAt === undefined) {
         sanitized.updatedAt = new Date();
@@ -170,7 +189,8 @@ export function createCrudService<
     },
     // レコードが存在すれば更新、存在しなければ作成する
     async upsert(data: Insert & { id?: string }, upsertOptions?: UpsertOptions<Insert>): Promise<Select> {
-      const insertData = { ...data } as Record<string, any> & {
+      const parsed = parseOrThrow(serviceOptions.inputSchemas?.upsert, data) as Insert & { id?: string };
+      const insertData = { ...parsed } as Record<string, any> & {
         id?: string;
         createdAt?: Date;
         updatedAt?: Date;

@@ -2,6 +2,4 @@
 
 import { base } from "./__serviceBase__";
 
-export const __domain__Service = {
-  ...base,
-};
+export const __domain__Service = base;
