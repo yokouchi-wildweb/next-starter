@@ -5,6 +5,7 @@ import { db } from "@/lib/drizzle";
 import { eq, inArray, SQL, ilike, and, or, sql } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource } from "drizzle-orm/pg-core";
+import type { ZodType } from "zod";
 import type {
   SearchParams,
   CreateCrudServiceOptions,
@@ -14,6 +15,15 @@ import type {
 import { normalizeUndefinedToNull, omitUndefined } from "../utils";
 import { uuidv7 } from "uuidv7";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
+
+const parseWithSchema = <T>(schema: ZodType<T> | undefined, value: unknown): T | undefined => {
+  if (!schema) return undefined;
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    throw result.error;
+  }
+  return result.data;
+};
 
 export type DefaultInsert<TTable extends PgTable> = Omit<
   InferInsertModel<TTable>,
@@ -55,8 +65,15 @@ export function createCrudService<
   return {
     // レコードを新規作成する
     async create(data: Insert): Promise<Select> {
-      const insertData = { ...data } as Insert &
+      const createPayload = { ...(data as Record<string, any>) };
+      const providedId = createPayload.id;
+      delete createPayload.id;
+      const parsed = parseWithSchema(serviceOptions.schemas?.create, createPayload);
+      const insertData = { ...((parsed ?? createPayload) as Insert) } as Insert &
         Record<string, any> & { id?: string; createdAt?: Date; updatedAt?: Date };
+      if (providedId !== undefined) {
+        insertData.id = providedId;
+      }
       if (serviceOptions.useCreatedAt && insertData.createdAt === undefined) {
         insertData.createdAt = new Date();
       }
@@ -92,7 +109,11 @@ export function createCrudService<
 
     // 指定 ID のレコードを更新する
     async update(id: string, data: Partial<Insert>): Promise<Select> {
-      const sanitized = { ...omitUndefined(data) } as Partial<Insert> &
+      const updatePayload = { ...(data as Record<string, any>) };
+      delete updatePayload.id;
+      const parsed = parseWithSchema(serviceOptions.schemas?.update, updatePayload);
+      const sanitizedSource = (parsed ?? updatePayload) as Partial<Insert>;
+      const sanitized = { ...omitUndefined(sanitizedSource) } as Partial<Insert> &
         Record<string, any> & { updatedAt?: Date };
       if (serviceOptions.useUpdatedAt && sanitized.updatedAt === undefined) {
         sanitized.updatedAt = new Date();
@@ -170,11 +191,21 @@ export function createCrudService<
     },
     // レコードが存在すれば更新、存在しなければ作成する
     async upsert(data: Insert & { id?: string }, upsertOptions?: UpsertOptions<Insert>): Promise<Select> {
-      const insertData = { ...data } as Record<string, any> & {
+      const upsertPayload = { ...(data as Record<string, any>) };
+      const providedId = upsertPayload.id;
+      delete upsertPayload.id;
+      const parsed = parseWithSchema(
+        serviceOptions.schemas?.upsert ?? serviceOptions.schemas?.create,
+        upsertPayload,
+      );
+      const insertData = { ...((parsed ?? upsertPayload) as Insert) } as Record<string, any> & {
         id?: string;
         createdAt?: Date;
         updatedAt?: Date;
       };
+      if (providedId !== undefined) {
+        insertData.id = providedId;
+      }
       if (serviceOptions.useCreatedAt && insertData.createdAt === undefined) {
         insertData.createdAt = new Date();
       }

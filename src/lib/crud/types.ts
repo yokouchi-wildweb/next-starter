@@ -1,5 +1,7 @@
 // src/lib/crud/types.ts
 
+import type { ZodType } from "zod";
+
 export type QueryOp =
   | "eq"
   | "ne"
@@ -101,6 +103,12 @@ type BaseCrudServiceOptions = {
   useUpdatedAt?: boolean;
 };
 
+export type CrudSchemaOptions<TData extends Record<string, any>> = {
+  create?: ZodType<TData>;
+  update?: ZodType<Partial<TData>>;
+  upsert?: ZodType<TData>;
+};
+
 export type CreateCrudServiceOptions<TData extends Record<string, any> = Record<string, any>> =
   BaseCrudServiceOptions & {
     /**
@@ -108,4 +116,8 @@ export type CreateCrudServiceOptions<TData extends Record<string, any> = Record<
      * 呼び出し側で `conflictFields` を指定した場合はそちらが優先される。
      */
     defaultUpsertConflictFields?: Array<Extract<keyof TData, string>>;
+    /**
+     * 各 CRUD 操作でバリデーションに利用する Zod スキーマ。
+     */
+    schemas?: CrudSchemaOptions<TData>;
   };

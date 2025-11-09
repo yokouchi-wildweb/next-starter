@@ -1,9 +1,10 @@
 // src/features/sample/services/server/drizzleBase.ts
 
 import { SampleTable } from "@/features/sample/entities/drizzle";
+import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 
-export const base = createCrudService(SampleTable, {
+const options = {
   idType: "uuid",
   useCreatedAt: true,
   useUpdatedAt: true,
@@ -17,4 +18,13 @@ export const base = createCrudService(SampleTable, {
       "DESC"
     ]
   ]
+};
+
+export const base = createCrudService(SampleTable, {
+  ...options,
+  schemas: {
+    create: SampleCreateSchema,
+    update: SampleUpdateSchema,
+    upsert: SampleCreateSchema,
+  },
 });
