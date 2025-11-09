@@ -48,7 +48,7 @@ export function ResizableAdminLayout({
       <div
         style={{ width: sidebarWidth }}
         className={cn(
-          "fixed inset-y-0 left-0 z-[var(--z-layer-above-header)] transition-transform md:hidden",
+          "fixed inset-y-0 left-0 above-header-layer transition-transform md:hidden",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -56,7 +56,7 @@ export function ResizableAdminLayout({
       </div>
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 z-[var(--z-layer-overlay)] bg-black/50 md:hidden"
+          className="fixed inset-0 overlay-layer bg-black/50 md:hidden"
           onClick={onSidebarClose}
         />
       )}

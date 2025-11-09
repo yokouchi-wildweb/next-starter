@@ -93,7 +93,7 @@ export const UserNavigation = ({ onHeightChange }: UserNavigationProps) => {
   return (
     <header
       ref={headerRef}
-      className="fixed inset-x-0 top-0 z-[var(--z-layer-header)] border-b border-border bg-card"
+      className="fixed inset-x-0 top-0 header-layer border-b border-border bg-card"
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
         <NavigationBrand />

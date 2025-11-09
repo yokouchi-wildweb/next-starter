@@ -23,19 +23,19 @@ type OverlayLayer = "overlay" | "alert" | "super" | "ultimate" | "apex";
 type ContentLayer = "modal" | "alert" | "super" | "ultimate" | "apex";
 
 const OVERLAY_LAYER_CLASS: Record<OverlayLayer, string> = {
-  overlay: "z-[var(--z-layer-overlay)]",
-  alert: "z-[var(--z-layer-alert)]",
-  super: "z-[var(--z-layer-super)]",
-  ultimate: "z-[var(--z-layer-ultimate)]",
-  apex: "z-[var(--z-layer-apex)]",
+  overlay: "overlay-layer",
+  alert: "alert-layer",
+  super: "super-layer",
+  ultimate: "ultimate-layer",
+  apex: "apex-layer",
 };
 
 const CONTENT_LAYER_CLASS: Record<ContentLayer, string> = {
-  modal: "z-[var(--z-layer-modal)]",
-  alert: "z-[var(--z-layer-alert)]",
-  super: "z-[var(--z-layer-super)]",
-  ultimate: "z-[var(--z-layer-ultimate)]",
-  apex: "z-[var(--z-layer-apex)]",
+  modal: "modal-layer",
+  alert: "alert-layer",
+  super: "super-layer",
+  ultimate: "ultimate-layer",
+  apex: "apex-layer",
 };
 
 type DialogOverlayProps = ComponentProps<typeof DialogPrimitive.Overlay> & {
