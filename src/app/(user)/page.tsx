@@ -17,11 +17,11 @@ import { cn } from "@/lib/cn";
 
 const quickStartSteps: Array<{ id: string; description: ReactNode }> = [
   {
-    id: 1,
+    id: "1",
     description: <>Get started by editing `src/app/(user)/page.tsx`.</>,
   },
   {
-    id: 2,
+    id: "2",
     description: <>Save and see your changes instantly.</>,
   },
 ];
