@@ -10,7 +10,7 @@ export type AdminMenuItem = {
 
 export type AdminMenuSection = {
   title: string;
-  href?: string;
+  href?: string | null;
   items: AdminMenuItem[];
 };
 

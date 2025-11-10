@@ -86,8 +86,14 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
         <nav aria-label="管理メニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
             {adminMenu.map((section, i) => {
-              const hasSubMenu = section.items.length > 0 && section.href === "#";
+              const hasSubMenu = section.items.length > 0;
+              const hasHref = typeof section.href === "string" && section.href.length > 0;
               const isOpen = openIndex === i;
+
+              const handlePrimaryFocus = () => {
+                if (!hasSubMenu) return;
+                focusIndex(i);
+              };
 
               return (
                 <li
@@ -103,15 +109,35 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                     scheduleClose();
                   }}
                 >
-                  {hasSubMenu ? (
+                  {hasHref ? (
+                    <AdminSidebarButton asChild>
+                      <Link
+                        href={section.href}
+                        onClick={() => {
+                          clearCloseTimeout();
+                          setOpenIndex(null);
+                          onNavigate?.();
+                        }}
+                        onFocus={handlePrimaryFocus}
+                        aria-haspopup={hasSubMenu || undefined}
+                        aria-expanded={hasSubMenu ? isOpen : undefined}
+                      >
+                        {section.title}
+                      </Link>
+                    </AdminSidebarButton>
+                  ) : (
                     <Span
-                      tabIndex={0}
-                      role="menuitem"
-                      aria-haspopup="true"
-                      aria-expanded={isOpen}
-                      onFocus={() => focusIndex(i)}
-                      onClick={() => focusIndex(i)}
+                      tabIndex={hasSubMenu ? 0 : -1}
+                      role={hasSubMenu ? "menuitem" : undefined}
+                      aria-haspopup={hasSubMenu || undefined}
+                      aria-expanded={hasSubMenu ? isOpen : undefined}
+                      onFocus={handlePrimaryFocus}
+                      onClick={() => {
+                        if (!hasSubMenu) return;
+                        focusIndex(i);
+                      }}
                       onKeyDown={(event) => {
+                        if (!hasSubMenu) return;
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           focusIndex(i);
@@ -124,19 +150,6 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                     >
                       {section.title}
                     </Span>
-                  ) : (
-                    <AdminSidebarButton asChild>
-                      <Link
-                        href={section.href ?? "#"}
-                        onClick={() => {
-                          clearCloseTimeout();
-                          setOpenIndex(null);
-                          onNavigate?.();
-                        }}
-                      >
-                        {section.title}
-                      </Link>
-                    </AdminSidebarButton>
                   )}
                   {hasSubMenu && (
                     <ul className={cn(submenuVariants({ open: isOpen }), "list-none m-0")}>

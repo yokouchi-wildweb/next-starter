@@ -12,12 +12,12 @@ export const adminMenu: AdminMenuSection[] = [
   },
   {
     title: "データ管理",
-    href: "#",
+    href: null,
     items: adminDataMenu,
   },
   {
     title: "ユーザー管理",
-    href: "#",
+    href: null,
     items: [
       { title: "登録ユーザー", href: "/admin/users/general" },
       { title: "システム管理者", href: "/admin/users/managerial" },
