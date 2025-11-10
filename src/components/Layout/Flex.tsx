@@ -1,7 +1,6 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
-import {ComponentPropsWithoutRef} from "react";
-import type { JSX } from "react";
+import { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -63,18 +62,12 @@ const flexVariants = cva("flex my-2", {
   },
 });
 
-type FlexElement = keyof JSX.IntrinsicElements;
-
-type BaseFlexProps<T extends FlexElement> = Omit<ComponentPropsWithoutRef<T>, "className"> & {
-  as?: T;
-};
-
-type FlexProps<T extends FlexElement = "div"> = BaseFlexProps<T> & VariantProps<typeof flexVariants> & {
+type FlexProps = Omit<ComponentPropsWithoutRef<"div">, "className"> &
+  VariantProps<typeof flexVariants> & {
     className?: string;
   };
 
-export function Flex<T extends FlexElement = "div">({
-  as,
+export function Flex({
   variant,
   space,
   gap,
@@ -86,10 +79,9 @@ export function Flex<T extends FlexElement = "div">({
   minHeight,
   className,
   ...props
-}: FlexProps<T>) {
-  const Component = (as ?? "div") as FlexElement;
+}: FlexProps) {
   return (
-    <Component
+    <div
       className={cn(
         flexVariants({
           variant,
