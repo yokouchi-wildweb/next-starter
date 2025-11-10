@@ -22,7 +22,7 @@ Neon（PostgreSQL）でテーブル構造を管理する際のマイグレーシ
 
 ## 🔧 実行前の準備
 
-1. **接続情報を確認**：`.env` などに `DATABASE_URL` を設定し、Neon の接続先が正しいかをチェックします。
+1. **接続情報を確認**：`.env.development` や `.env.production` に `DATABASE_URL` を設定し、Neon の接続先が正しいかをチェックします。`npx drizzle-kit ...` を実行する際は `APP_ENV` 環境変数で読み込むファイルを切り替えられます（例：`APP_ENV=.env.production`）。
 2. **TypeScript のスキーマを更新**：テーブル変更が目的なら該当ドメインの `drizzle.ts`（必要に応じて `index.ts` や `schema.ts` も）を修正します。
 3. **`schemaRegistry.ts` を確認**：新しいドメインを追加した場合は `export * from "@/features/<domain>/entities/drizzle";` が差し込まれているか確認します。
 
@@ -39,8 +39,9 @@ Neon（PostgreSQL）でテーブル構造を管理する際のマイグレーシ
 
 2. **Neon に反映する**
    ```bash
-   npx drizzle-kit push
+   APP_ENV=.env.development npx drizzle-kit push
    ```
+   - `APP_ENV` を変更すると、`.env.production` など任意の環境変数ファイルから `DATABASE_URL` を読み込めます。未指定の場合は既定の `.env` が利用されます。
    - 直前に生成した SQL が順番に実行されます。
    - エラーが出た場合は、Neon 側の権限設定や既存データとの整合性を確認してください。
 
