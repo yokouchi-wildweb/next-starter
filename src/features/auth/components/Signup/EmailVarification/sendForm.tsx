@@ -9,10 +9,10 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Form } from "@/components/Shadcn/form";
+import { AppForm } from "@/components/Form/AppForm";
+import { Button } from "@/components/Form/button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/controlled";
-import { Button } from "@/components/Form/button/Button";
 import { Block } from "@/components/Layout/Block";
 import { Para, SecTitle } from "@/components/TextBlocks";
 import { EMAIL_SIGNUP_STORAGE_KEY, getActionCodeSettings } from "@/features/auth/config/authSettings";
@@ -39,7 +39,7 @@ export function VerificationEmailSendForm({
     defaultValues: DefaultValues,
   });
 
-  const onSubmit = form.handleSubmit(async ({ email }) => {
+  const handleSubmit = async ({ email }: FormValues) => {
     form.clearErrors("root");
 
     try {
@@ -62,7 +62,7 @@ export function VerificationEmailSendForm({
       const message = err(error, "メール送信に失敗しました");
       form.setError("root", { type: "server", message });
     }
-  });
+  };
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
   const isLoading = isChecking || isSending;
@@ -75,8 +75,13 @@ export function VerificationEmailSendForm({
       <Para tone="muted" size="sm">
         メールアドレスを入力して仮登録を進めてください。認証用のリンクをメールでお送りします。
       </Para>
-      <Form {...form}>
-        <form className="space-y-4" onSubmit={onSubmit} noValidate>
+      <AppForm
+        methods={form}
+        onSubmit={handleSubmit}
+        pending={isLoading}
+        className="space-y-4"
+        noValidate
+      >
           <FormFieldItem
             control={form.control}
             name="email"
@@ -102,8 +107,7 @@ export function VerificationEmailSendForm({
           <Button type="submit" disabled={isLoading} className="w-full justify-center">
             {isLoading ? "送信中..." : "メールアドレスで登録"}
           </Button>
-        </form>
-      </Form>
+      </AppForm>
     </Block>
   );
 }

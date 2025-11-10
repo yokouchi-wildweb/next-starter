@@ -7,8 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/button/Button";
-import { Form } from "@/components/Shadcn/form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/controlled";
 import { err } from "@/lib/errors";
@@ -51,7 +51,6 @@ export default function GeneralUserEditForm({ user, redirectPath = "/" }: Props)
   };
 
   const {
-    handleSubmit,
     control,
     formState: { isSubmitting },
   } = methods;
@@ -59,29 +58,32 @@ export default function GeneralUserEditForm({ user, redirectPath = "/" }: Props)
   const loading = isSubmitting || isMutating;
 
   return (
-    <Form {...methods}>
-      <form onSubmit={handleSubmit(submit)} className="space-y-4">
-        <FormFieldItem
-          control={control}
-          name="displayName"
-          label="表示名"
-          renderInput={(field) => <TextInput field={field} />}
-        />
-        <FormFieldItem
-          control={control}
-          name="email"
-          label="メールアドレス"
-          renderInput={(field) => <TextInput type="email" field={field} />}
-        />
-        <div className="flex gap-2">
-          <Button type="submit" disabled={loading} variant="default">
-            {loading ? "更新中..." : "更新"}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
-            キャンセル
-          </Button>
-        </div>
-      </form>
-    </Form>
+    <AppForm
+      methods={methods}
+      onSubmit={submit}
+      pending={isMutating}
+      className="space-y-4"
+    >
+      <FormFieldItem
+        control={control}
+        name="displayName"
+        label="表示名"
+        renderInput={(field) => <TextInput field={field} />}
+      />
+      <FormFieldItem
+        control={control}
+        name="email"
+        label="メールアドレス"
+        renderInput={(field) => <TextInput type="email" field={field} />}
+      />
+      <div className="flex gap-2">
+        <Button type="submit" disabled={loading} variant="default">
+          {loading ? "更新中..." : "更新"}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
+          キャンセル
+        </Button>
+      </div>
+    </AppForm>
   );
 }

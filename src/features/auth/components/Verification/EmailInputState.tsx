@@ -2,10 +2,10 @@
 
 import { useForm } from "react-hook-form";
 
-import { Form } from "@/components/Shadcn/form";
+import { AppForm } from "@/components/Form/AppForm";
+import { Button } from "@/components/Form/button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/controlled";
-import { Button } from "@/components/Form/button/Button";
 
 type EmailInputFormValues = {
   email: string;
@@ -22,32 +22,33 @@ export function EmailInputState({ onSubmit }: EmailInputStateProps) {
     },
   });
 
-  const handleSubmit = form.handleSubmit(({ email }) => {
-    onSubmit?.(email);
-  });
-
   return (
-    <Form {...form}>
-      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-        <FormFieldItem
-          control={form.control}
-          name="email"
-          label="メールアドレス"
-          renderInput={(field) => (
-            <TextInput
-              field={field}
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="example@example.com"
-            />
-          )}
-        />
+    <AppForm
+      methods={form}
+      onSubmit={({ email }) => {
+        onSubmit?.(email);
+      }}
+      className="space-y-4"
+      noValidate
+    >
+      <FormFieldItem
+        control={form.control}
+        name="email"
+        label="メールアドレス"
+        renderInput={(field) => (
+          <TextInput
+            field={field}
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="example@example.com"
+          />
+        )}
+      />
 
-        <Button type="submit" variant="default" className="w-full justify-center">
-          メールアドレスを確認
-        </Button>
-      </form>
-    </Form>
+      <Button type="submit" variant="default" className="w-full justify-center">
+        メールアドレスを確認
+      </Button>
+    </AppForm>
   );
 }

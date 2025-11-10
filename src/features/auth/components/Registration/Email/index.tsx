@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Form } from "@/components/Shadcn/form";
+import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/controlled";
@@ -38,45 +38,47 @@ export function EmailRegistrationForm() {
     form.setValue("email", email, { shouldValidate: form.formState.isSubmitted });
   }, [email, form]);
 
-  const onSubmit = form.handleSubmit(
-    useCallback(
-      async ({ email: emailValue, displayName, password }) => {
-        try {
-          const currentUser = auth.currentUser;
+  const handleSubmit = useCallback(
+    async ({ email: emailValue, displayName, password }: FormValues) => {
+      try {
+        const currentUser = auth.currentUser;
 
-          if (!currentUser) {
-            throw new HttpError({
-              message:
-                "認証情報が確認できませんでした。再度メール認証からお試しください。",
-              status: 401,
-            });
-          }
-
-          const idToken = await currentUser.getIdToken();
-
-          await register({
-            providerType: "email",
-            providerUid: currentUser.uid,
-            idToken,
-            email: emailValue,
-            displayName,
-            password,
+        if (!currentUser) {
+          throw new HttpError({
+            message: "認証情報が確認できませんでした。再度メール認証からお試しください。",
+            status: 401,
           });
-          router.push("/signup/complete");
-        } catch (error) {
-          const message = err(error, "本登録の処理に失敗しました");
-          form.setError("root", { type: "server", message });
         }
-      },
-      [form, register, router],
-    ),
+
+        const idToken = await currentUser.getIdToken();
+
+        await register({
+          providerType: "email",
+          providerUid: currentUser.uid,
+          idToken,
+          email: emailValue,
+          displayName,
+          password,
+        });
+        router.push("/signup/complete");
+      } catch (error) {
+        const message = err(error, "本登録の処理に失敗しました");
+        form.setError("root", { type: "server", message });
+      }
+    },
+    [form, register, router],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
 
   return (
-    <Form {...form}>
-      <form className="space-y-4" noValidate onSubmit={onSubmit}>
+    <AppForm
+      methods={form}
+      onSubmit={handleSubmit}
+      pending={isLoading}
+      className="space-y-4"
+      noValidate
+    >
         <FormFieldItem
           control={form.control}
           name="email"
@@ -142,7 +144,6 @@ export function EmailRegistrationForm() {
         <Button type="submit" className="w-full justify-center" disabled={isLoading}>
           {isLoading ? "登録処理中..." : "登録を完了"}
         </Button>
-      </form>
-    </Form>
+    </AppForm>
   );
 }

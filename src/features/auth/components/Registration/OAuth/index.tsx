@@ -7,8 +7,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/button/Button";
-import { Form } from "@/components/Shadcn/form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/controlled";
 import { Para } from "@/components/TextBlocks";
@@ -44,53 +44,56 @@ export function OAuthRegistrationForm() {
     });
   }, [form, isSubmitted, providerProfile.displayName, providerProfile.email]);
 
-  const onSubmit = form.handleSubmit(
-    useCallback(
-      async ({ email, displayName }) => {
-        try {
-          const currentUser = auth.currentUser;
+  const handleSubmit = useCallback(
+    async ({ email, displayName }: FormValues) => {
+      try {
+        const currentUser = auth.currentUser;
 
-          if (!currentUser) {
-            throw new HttpError({
-              message: "認証情報が確認できませんでした。再度OAuth認証からお試しください。",
-              status: 401,
-            });
-          }
-
-          const providerId = currentUser.providerData?.[0]?.providerId ?? null;
-
-          if (!providerId || !USER_PROVIDER_TYPES.includes(providerId as UserProviderType)) {
-            throw new HttpError({
-              message: "サードパーティの認証情報が確認できませんでした。再度OAuth認証からお試しください。",
-              status: 400,
-            });
-          }
-
-          const idToken = await currentUser.getIdToken();
-
-          await register({
-            providerType: providerId as UserProviderType,
-            providerUid: currentUser.uid,
-            idToken,
-            email,
-            displayName,
+        if (!currentUser) {
+          throw new HttpError({
+            message: "認証情報が確認できませんでした。再度OAuth認証からお試しください。",
+            status: 401,
           });
-
-          router.push("/signup/complete");
-        } catch (error) {
-          const message = err(error, "本登録の処理に失敗しました");
-          form.setError("root", { type: "server", message });
         }
-      },
-      [form, register, router],
-    ),
+
+        const providerId = currentUser.providerData?.[0]?.providerId ?? null;
+
+        if (!providerId || !USER_PROVIDER_TYPES.includes(providerId as UserProviderType)) {
+          throw new HttpError({
+            message: "サードパーティの認証情報が確認できませんでした。再度OAuth認証からお試しください。",
+            status: 400,
+          });
+        }
+
+        const idToken = await currentUser.getIdToken();
+
+        await register({
+          providerType: providerId as UserProviderType,
+          providerUid: currentUser.uid,
+          idToken,
+          email,
+          displayName,
+        });
+
+        router.push("/signup/complete");
+      } catch (error) {
+        const message = err(error, "本登録の処理に失敗しました");
+        form.setError("root", { type: "server", message });
+      }
+    },
+    [form, register, router],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
 
   return (
-    <Form {...form}>
-      <form className="space-y-4" noValidate onSubmit={onSubmit}>
+    <AppForm
+      methods={form}
+      onSubmit={handleSubmit}
+      pending={isLoading}
+      className="space-y-4"
+      noValidate
+    >
         <FormFieldItem
           control={form.control}
           name="email"
@@ -129,8 +132,7 @@ export function OAuthRegistrationForm() {
         <Button type="submit" className="w-full justify-center" disabled={isLoading}>
           {isLoading ? "登録処理中..." : "登録を完了"}
         </Button>
-      </form>
-    </Form>
+    </AppForm>
   );
 }
 

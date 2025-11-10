@@ -2,8 +2,8 @@
 
 "use client";
 
+import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/button/Button";
-import { Form } from "@/components/Shadcn/form";
 import { SettingFields } from "./SettingFields";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
@@ -23,7 +23,6 @@ export function SettingForm<TFieldValues extends FieldValues>({
   processingLabel,
 }: SettingFormProps<TFieldValues>) {
   const {
-    handleSubmit,
     control,
     formState: { isSubmitting },
   } = methods;
@@ -31,13 +30,16 @@ export function SettingForm<TFieldValues extends FieldValues>({
   const loading = isSubmitting || isMutating;
 
   return (
-    <Form {...methods}>
-      <form onSubmit={handleSubmit(onSubmitAction)} className="space-y-4">
-        <SettingFields<TFieldValues> control={control} />
-        <Button type="submit" disabled={loading} variant="default">
-          {loading ? processingLabel : submitLabel}
-        </Button>
-      </form>
-    </Form>
+    <AppForm
+      methods={methods}
+      onSubmit={onSubmitAction}
+      pending={isMutating}
+      className="space-y-4"
+    >
+      <SettingFields<TFieldValues> control={control} />
+      <Button type="submit" disabled={loading} variant="default">
+        {loading ? processingLabel : submitLabel}
+      </Button>
+    </AppForm>
   );
 }

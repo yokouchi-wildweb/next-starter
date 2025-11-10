@@ -2,8 +2,8 @@
 
 "use client";
 
+import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "../../../../components/Form/button/Button";
-import { Form } from "@/components/Shadcn/form";
 import { __Domain__Fields, type __Domain__FieldsProps } from "./__Domain__Fields";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
@@ -27,7 +27,6 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
   ...fieldsProps
 }: __Domain__FormProps<TFieldValues>) {
   const {
-    handleSubmit,
     control,
     formState: { isSubmitting },
   } = methods;
@@ -35,24 +34,27 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
   const loading = isSubmitting || isMutating;
 
   return (
-    <Form {...methods}>
-      <form onSubmit={handleSubmit(onSubmitAction)} className="space-y-4">
-        <__Domain__Fields<TFieldValues> {...fieldsProps} control={control} />
-        {onCancel ? (
-          <div className="flex gap-2">
-            <Button type="submit" disabled={loading} variant="default">
-              {loading ? processingLabel : submitLabel}
-            </Button>
-            <Button type="button" variant="outline" onClick={onCancel}>
-              キャンセル
-            </Button>
-          </div>
-        ) : (
+    <AppForm
+      methods={methods}
+      onSubmit={onSubmitAction}
+      pending={isMutating}
+      className="space-y-4"
+    >
+      <__Domain__Fields<TFieldValues> {...fieldsProps} control={control} />
+      {onCancel ? (
+        <div className="flex gap-2">
           <Button type="submit" disabled={loading} variant="default">
             {loading ? processingLabel : submitLabel}
           </Button>
-        )}
-      </form>
-    </Form>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            キャンセル
+          </Button>
+        </div>
+      ) : (
+        <Button type="submit" disabled={loading} variant="default">
+          {loading ? processingLabel : submitLabel}
+        </Button>
+      )}
+    </AppForm>
   );
 }
