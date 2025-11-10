@@ -12,6 +12,7 @@ import { SecTitle, Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import { settingService } from "@/features/setting/services/server/settingService";
 import { userService } from "@/features/user/services/server/userService";
+import type { UserRoleType } from "@/types/user";
 
 export const dynamic = "force-dynamic";
 export default async function AdminHomePage() {
@@ -19,13 +20,18 @@ export default async function AdminHomePage() {
   const now = dayjs();
   const startOfToday = now.startOf("day");
   const startOfTomorrow = startOfToday.add(1, "day");
+  const ROLE_USER: UserRoleType = "user";
 
   const [{ total: totalUserCount }, { total: todayUserCount }] = await Promise.all([
-    userService.search({ limit: 1 }),
+    userService.search({
+      limit: 1,
+      where: { field: "role", op: "eq", value: ROLE_USER },
+    }),
     userService.search({
       limit: 1,
       where: {
         and: [
+          { field: "role", op: "eq", value: ROLE_USER },
           { field: "createdAt", op: "gte", value: startOfToday.toDate() },
           { field: "createdAt", op: "lt", value: startOfTomorrow.toDate() },
         ],

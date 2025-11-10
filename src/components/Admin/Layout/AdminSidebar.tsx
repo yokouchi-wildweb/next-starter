@@ -22,7 +22,7 @@ const sidebarContainer = cva(
 );
 
 const submenuVariants = cva(
-  "absolute left-full -ml-2 top-0 w-48 space-y-1 rounded bg-sidebar shadow-lg transition-all duration-200 z-10",
+  "modal-layer absolute left-full -ml-2 top-0 w-48 space-y-1 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
   {
     variants: {
       open: {
