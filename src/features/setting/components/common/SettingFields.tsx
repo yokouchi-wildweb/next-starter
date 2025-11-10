@@ -41,11 +41,16 @@ export function SettingFields<TFieldValues extends FieldValues>({ control }: Set
         control={control}
         name={"adminFooterText" as FieldPath<TFieldValues>}
         label="管理画面フッターの表記"
+        description={{
+            text: "※ フッター設定は変更後にページ再読み込みが必要です。",
+            tone: 'muted',
+            size: 'sm',
+            placement: 'before',
+        }}
         renderInput={(field) => (
           <TextInput field={field} placeholder={`© ${new Date().getFullYear()} Wildweb.`} />
         )}
       />
-        <Para tone='muted' size='sm'>設定変更後にページ再読み込みが必要です。</Para>
     </>
   );
 }

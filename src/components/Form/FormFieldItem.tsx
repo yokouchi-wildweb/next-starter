@@ -44,14 +44,8 @@ export function FormFieldItem<
   renderInput,
   description,
 }: FormFieldItemProps<TFieldValues, TName>) {
-  const descriptionPlacement = description?.placement ?? "after";
-  const shouldRenderDescriptionBeforeControl = descriptionPlacement === "before";
 
-  const descriptionContent = description ? (
-    <Para tone={description.tone} size={description.size}>
-      {description.text}
-    </Para>
-  ) : null;
+  const descPlacement = description?.placement ?? "after";
 
   return (
     <FormField
@@ -60,9 +54,22 @@ export function FormFieldItem<
       render={({ field }) => (
         <FormItem>
           <FormLabel>{label}</FormLabel>
-          {shouldRenderDescriptionBeforeControl && descriptionContent}
+
+          { descPlacement === 'before' && description &&
+              <Para tone={description.tone} size={description.size} className='mb-0'>
+                {description.text}
+              </Para>
+          }
+
           <FormControl>{renderInput(field)}</FormControl>
-          {!shouldRenderDescriptionBeforeControl && descriptionContent}
+
+          { descPlacement === 'after' && description &&
+              <Para tone={description.tone} size={description.size} className='mt-0'>
+                {description.text}
+              </Para>
+          }
+
+
           <FormMessage />
         </FormItem>
       )}
