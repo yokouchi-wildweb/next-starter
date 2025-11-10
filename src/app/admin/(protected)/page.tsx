@@ -10,6 +10,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { SecTitle, Span, Section } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
+import { APP_FEATURES } from "@/config/app-features.config";
 import { settingService } from "@/features/setting/services/server/settingService";
 import { userService } from "@/features/user/services/server/userService";
 import type { UserRoleType } from "@/types/user";
@@ -21,6 +22,7 @@ export default async function AdminHomePage() {
   const startOfToday = now.startOf("day");
   const startOfTomorrow = startOfToday.add(1, "day");
   const ROLE_USER: UserRoleType = "user";
+  const { showMainMetrics, showAdditionalMetrics } = APP_FEATURES.admin.dashboard.sections;
 
   const [{ total: totalUserCount }, { total: todayUserCount }] = await Promise.all([
     userService.search({
@@ -84,39 +86,39 @@ export default async function AdminHomePage() {
     <AdminPage variant="dashboard">
       <AdminPageTitle>管理ダッシュボード</AdminPageTitle>
 
-      <Section id='main-metrics'>
-        <SecTitle variant="barAccent">サービスの稼働状況</SecTitle>
+      {showMainMetrics && (
+        <Section id='main-metrics'>
+          <SecTitle variant="barAccent">サービスの稼働状況</SecTitle>
 
-        <Grid gap="lg" className="md:grid-cols-2 lg:grid-cols-4">
-
-          {metrics.map((metric) => (
+          <Grid gap="lg" className="md:grid-cols-2 lg:grid-cols-4">
+            {metrics.map((metric) => (
               <Card
-                  key={metric.key}
-                  className={cn(
-                      "relative overflow-hidden border-0 bg-slate-700 text-slate-50",
-                      metric.shadow,
-                  )}
-              >
-            <span
-                aria-hidden
+                key={metric.key}
                 className={cn(
+                  "relative overflow-hidden border-0 bg-slate-700 text-slate-50",
+                  metric.shadow,
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
                     "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80",
                     metric.gradient,
-                )}
-            />
-                <span
-                    aria-hidden
-                    className={cn(
-                        "pointer-events-none absolute -right-16 top-1/2 h-52 w-52 -translate-y-1/2 rounded-full blur-3xl",
-                        metric.glow,
-                    )}
+                  )}
                 />
                 <span
-                    aria-hidden
-                    className={cn(
-                        "pointer-events-none absolute -left-20 top-0 h-32 w-40 -translate-y-1/3 rotate-12 blur-2xl",
-                        metric.beam,
-                    )}
+                  aria-hidden
+                  className={cn(
+                    "pointer-events-none absolute -right-16 top-1/2 h-52 w-52 -translate-y-1/2 rounded-full blur-3xl",
+                    metric.glow,
+                  )}
+                />
+                <span
+                  aria-hidden
+                  className={cn(
+                    "pointer-events-none absolute -left-20 top-0 h-32 w-40 -translate-y-1/3 rotate-12 blur-2xl",
+                    metric.beam,
+                  )}
                 />
                 <CardHeader className="relative z-10">
                   <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-200/90">
@@ -131,28 +133,31 @@ export default async function AdminHomePage() {
                   </Flex>
                 </CardContent>
               </Card>
-          ))}
-        </Grid>
-      </Section>
+            ))}
+          </Grid>
+        </Section>
+      )}
 
-      <Section id='addinl-metrics'>
-        <SecTitle variant="barAccent">追加の指標</SecTitle>
+      {showAdditionalMetrics && (
+        <Section id='addinl-metrics'>
+          <SecTitle variant="barAccent">追加の指標</SecTitle>
 
-        <Grid gap="lg" className="md:grid-cols-1 lg:grid-cols-2">
-          <Card
+          <Grid gap="lg" className="md:grid-cols-1 lg:grid-cols-2">
+            <Card
               className="text-slate-900 bg-gradient-to-br from-zinc-100 via-zinc-300/80 to-zinc-500/70 rounded-xl shadow-lg border border-white/30"
-          >
-            <CardHeader>
-              <CardTitle>グラフ指標サンプル</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Flex justify="center" align="center" width="full">
-                <DeveloperMotivationChart percentage={setting.developerMotivation ?? 0} />
-              </Flex>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Section>
+            >
+              <CardHeader>
+                <CardTitle>グラフ指標サンプル</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Flex justify="center" align="center" width="full">
+                  <DeveloperMotivationChart percentage={setting.developerMotivation ?? 0} />
+                </Flex>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Section>
+      )}
 
 
 

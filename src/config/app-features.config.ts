@@ -19,6 +19,12 @@ export const APP_FEATURES = {
     layout: {
       enableSidebarResizing: true,
     },
+    dashboard: {
+      sections: {
+        showMainMetrics: true,
+        showAdditionalMetrics: true,
+      },
+    },
   },
 } as const;
 
