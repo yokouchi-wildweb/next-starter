@@ -55,7 +55,7 @@ function generateFieldsFromConfig(config) {
   for (const f of fields) {
     switch (f.formInput) {
       case "textInput":
-        addImport('import { TextInput } from "@/components/Form/controlled";');
+        addImport('import { TextInput } from "@/components/Form/Controlled";');
         body.push(
           replacePartialTokens(getPartial("textInput.tsx"), {
             fieldName: f.name,
@@ -64,7 +64,7 @@ function generateFieldsFromConfig(config) {
         );
         break;
       case "numberInput":
-        addImport('import { NumberInput } from "@/components/Form/controlled";');
+        addImport('import { NumberInput } from "@/components/Form/Controlled";');
         body.push(
           replacePartialTokens(getPartial("numberInput.tsx"), {
             fieldName: f.name,
@@ -83,7 +83,7 @@ function generateFieldsFromConfig(config) {
         );
         break;
       case "passwordInput":
-        addImport('import { PasswordInput } from "@/components/Form/controlled";');
+        addImport('import { PasswordInput } from "@/components/Form/Controlled";');
         body.push(
           replacePartialTokens(getPartial("passwordInput.tsx"), {
             fieldName: f.name,
@@ -92,7 +92,7 @@ function generateFieldsFromConfig(config) {
         );
         break;
       case "textarea":
-        addImport('import { Textarea } from "@/components/Form/controlled";');
+        addImport('import { Textarea } from "@/components/Form/Controlled";');
         body.push(
           replacePartialTokens(getPartial("textarea.tsx"), {
             fieldName: f.name,
@@ -101,7 +101,7 @@ function generateFieldsFromConfig(config) {
         );
         break;
       case "dateInput":
-        addImport('import { DateInput } from "@/components/Form/controlled";');
+        addImport('import { DateInput } from "@/components/Form/Controlled";');
         body.push(
           replacePartialTokens(getPartial("dateInput.tsx"), {
             fieldName: f.name,
@@ -169,7 +169,7 @@ function generateFieldsFromConfig(config) {
         }
         break;
       case "switchInput":
-        addImport('import { SwitchInput } from "@/components/Form/controlled";');
+        addImport('import { SwitchInput } from "@/components/Form/Controlled";');
         addImport('import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";');
         body.push(
           replacePartialTokens(getPartial("switchInput.tsx"), {
@@ -179,7 +179,7 @@ function generateFieldsFromConfig(config) {
         );
         break;
       case "imageUploader":
-        addImport('import { FileUrlInput } from "@/components/Form/controlled";');
+        addImport('import { FileUrlInput } from "@/components/Form/Controlled";');
         const baseName = (f.slug || f.name)
           .replace(/ImageUrl$/, "")
           .replace(/Url$/, "")
@@ -209,7 +209,7 @@ function generateFieldsFromConfig(config) {
         );
         break;
       default:
-        addImport('import { TextInput } from "@/components/Form/controlled";');
+        addImport('import { TextInput } from "@/components/Form/Controlled";');
         body.push(
           replacePartialTokens(getPartial("textInput.tsx"), {
             fieldName: f.name,

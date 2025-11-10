@@ -12,7 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput } from "@/components/Form/controlled";
+import { TextInput } from "@/components/Form/Controlled";
 import { Block } from "@/components/Layout/Block";
 import { Para, SecTitle } from "@/components/TextBlocks";
 import { EMAIL_SIGNUP_STORAGE_KEY, getActionCodeSettings } from "@/features/auth/config/authSettings";

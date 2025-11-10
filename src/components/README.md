@@ -37,9 +37,9 @@
 
 - **主な役割**：フォーム入力に関わるコンポーネントをまとめます。送信ボタンや単項目フィールドをはじめ、React Hook Form の Controller 連携向けと手動制御向けのサブカテゴリに分けて入力部品を整理しています。
 - **ディレクトリ構成**
-  - `controlled/`
+  - `Controlled/`
     - `react-hook-form` の `Controller` / `useController` から受け取る `field` オブジェクトを前提とした入力コンポーネント群。
-    - `index.ts` でコンポーネントと型を再エクスポートし、利用側は `@/components/Form/controlled` からまとめて import します。
+    - `index.ts` でコンポーネントと型を再エクスポートし、利用側は `@/components/Form/Controlled` からまとめて import します。
   - `manual/`
     - shadcn/ui などの複合コンポーネントを用いて `field` を手動で橋渡しする入力部品を配置します。
     - `index.ts` で `CheckGroupInput` / `RadioGroupInput` / `SelectInput` を再エクスポートし、`@/components/Form/manual` から利用します。
@@ -52,7 +52,7 @@
   - ファイル系コンポーネントは UI を内包しますが、アップロード通信は呼び出し元で実行し、結果を props 経由で渡してください。
 - **ガイドライン**
   - 入力フィールドやバリデーション関連の UI はここに集約します。
-  - `Controller` を前提としたコンポーネントは必ず `controlled/` 配下へ配置し、`index.ts` にエクスポートを追加します。
+  - `Controller` を前提としたコンポーネントは必ず `Controlled/` 配下へ配置し、`index.ts` にエクスポートを追加します。
   - 手動制御が必要な場合は `manual/` を利用し、共通パターンを整備します。
 
 ## Layout

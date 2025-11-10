@@ -20,7 +20,7 @@ import {
   SwitchInput,
   TextInput,
   Textarea,
-} from "@/components/Form/controlled";
+} from "@/components/Form/Controlled";
 import {
   BooleanCheckboxInput,
   CheckGroupInput,
