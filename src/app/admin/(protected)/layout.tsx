@@ -21,7 +21,7 @@ export default async function AdminLayout({
       >
         {children}
       </AdminLayoutClient>
-      <AdminFooter />
+      <AdminFooter text={setting.adminFooterText} />
     </div>
   );
 }
