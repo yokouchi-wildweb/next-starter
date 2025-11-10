@@ -34,12 +34,14 @@ export function SettingForm<TFieldValues extends FieldValues>({
       methods={methods}
       onSubmit={onSubmitAction}
       pending={isMutating}
-      className="space-y-4"
+      fieldSpace="md"
     >
       <SettingFields<TFieldValues> control={control} />
-      <Button type="submit" disabled={loading} variant="default">
-        {loading ? processingLabel : submitLabel}
-      </Button>
+      <div className="flex justify-center">
+        <Button type="submit" disabled={loading} variant="default">
+          {loading ? processingLabel : submitLabel}
+        </Button>
+      </div>
     </AppForm>
   );
 }

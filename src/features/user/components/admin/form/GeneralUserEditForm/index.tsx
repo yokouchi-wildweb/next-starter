@@ -62,7 +62,7 @@ export default function GeneralUserEditForm({ user, redirectPath = "/" }: Props)
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      className="space-y-4"
+      fieldSpace="md"
     >
       <FormFieldItem
         control={control}
@@ -76,7 +76,7 @@ export default function GeneralUserEditForm({ user, redirectPath = "/" }: Props)
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
       />
-      <div className="flex gap-2">
+      <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "更新中..." : "更新"}
         </Button>

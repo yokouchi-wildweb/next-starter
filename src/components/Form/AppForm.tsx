@@ -11,6 +11,18 @@ import type {
 } from "react-hook-form";
 import { FormProvider } from "react-hook-form";
 
+import { cn } from "@/lib/cn";
+
+const fieldSpaceClassMap = {
+  xs: "space-y-2",
+  sm: "space-y-3",
+  md: "space-y-6",
+  lg: "space-y-8",
+  xl: "space-y-10",
+} as const;
+
+export type AppFormFieldSpace = keyof typeof fieldSpaceClassMap;
+
 type AllowEnterWhen = (event: React.KeyboardEvent<HTMLFormElement>) => boolean;
 
 export type AppFormProps<TFieldValues extends FieldValues = FieldValues> = {
@@ -22,6 +34,7 @@ export type AppFormProps<TFieldValues extends FieldValues = FieldValues> = {
   allowEnterWhen?: AllowEnterWhen;
   pending?: boolean;
   disableWhilePending?: boolean;
+  fieldSpace?: AppFormFieldSpace;
   children: React.ReactNode;
 } & Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit">;
 
@@ -35,6 +48,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     allowEnterWhen,
     pending = false,
     disableWhilePending = true,
+    fieldSpace = "md",
     children,
     className,
     onKeyDown,
@@ -119,6 +133,10 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     [allowEnterSelectors, allowEnterWhen, onKeyDown, preventSubmitOnEnter],
   );
 
+  const spacingClass = fieldSpaceClassMap[fieldSpace] ?? fieldSpaceClassMap.md;
+
+  const fieldsetClassName = cn("contents", spacingClass);
+
   return (
     <FormProvider {...methods}>
       <form
@@ -130,13 +148,12 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
         onKeyDown={handleKeyDown}
         {...formProps}
       >
-        {disableWhilePending ? (
-          <fieldset disabled={isBusy} className="contents space-y-6">
-            {children}
-          </fieldset>
-        ) : (
-          children
-        )}
+        <fieldset
+          disabled={disableWhilePending ? isBusy : undefined}
+          className={fieldsetClassName}
+        >
+          {children}
+        </fieldset>
       </form>
     </FormProvider>
   );
