@@ -60,7 +60,7 @@ __RELATION_SUMMARY_BLOCK__
       [
         {
           label: "サマリー",
-          value: "value",
+          value: "モーダルを使用するには表示個所のロジックを実装してください。",
         },
       ],
     ];

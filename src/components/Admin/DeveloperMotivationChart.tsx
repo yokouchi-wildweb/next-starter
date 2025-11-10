@@ -25,11 +25,11 @@ function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle
 
 function getGradientColors(percentage: number): [string, string] {
   if (percentage < 67) {
-    return ["#7dd3fc", "#38bdf8"]; // 水色 (sky-300, sky-400)
+    return ["#f87171", "#ef4444"]; // 赤 (red-400, red-500)
   } else if (percentage < 134) {
     return ["#fdba74", "#fb923c"]; // オレンジ (orange-300, orange-400)
   } else {
-    return ["#f87171", "#ef4444"]; // 赤 (red-400, red-500)
+    return ["#7dd3fc", "#38bdf8"]; // 水色 (sky-300, sky-400)
   }
 }
 
@@ -82,7 +82,7 @@ export function DeveloperMotivationChart({ percentage }: DeveloperMotivationChar
 
       <span
         className="mt-4 mb-4 text-sm font-medium text-white px-3 py-1 rounded-full shadow-sm"
-        style={{ background: "linear-gradient(to right, #fdba74, #fb923c)" }}
+        style={{ background: endColor }}
       >
         {message}
       </span>
