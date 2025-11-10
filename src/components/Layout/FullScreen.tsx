@@ -44,7 +44,7 @@ type Props = {
  * - `disableScroll()`: フルスクリーン表示中にスクロールを無効化
  */
 export default function FullScreen({ className, children, layer = "aboveHeader" }: Props) {
-  const { disableScroll } = useDisableScroll(true);
+  const { disableScroll, enableScroll } = useDisableScroll(true);
   const { setSize: setViewportSize } = useViewportSize();
 
   // スクロールロックはマウント後に実行
@@ -53,7 +53,11 @@ export default function FullScreen({ className, children, layer = "aboveHeader" 
     const width = window.visualViewport?.width ?? window.innerWidth;
     const height = window.visualViewport?.height ?? window.innerHeight;
     setViewportSize(width, height);
-  }, [disableScroll, setViewportSize]);
+
+    return () => {
+      enableScroll();
+    };
+  }, [disableScroll, enableScroll, setViewportSize]);
 
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
