@@ -176,7 +176,7 @@ export default function FormComponentsDemoPage() {
 
   return (
       <Main variant="wideShowcase">
-        <Section variant="compact">
+        <Section>
           <PageTitle variant="showcase">Form コンポーネント デモ</PageTitle>
           <Para tone="muted" size="sm">
             <code>src/components/Form</code> に用意されているコンポーネントの見た目と挙動を確認できます。
