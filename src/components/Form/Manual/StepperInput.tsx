@@ -1,3 +1,5 @@
+// src/components/Form/Manual/StepperInput.tsx
+
 "use client";
 
 import { useState } from "react";

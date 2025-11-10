@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
-import { Input } from "@/components/Form/manual";
+import { Input } from "src/components/Form/Manual";
 import { Block } from "@/components/Layout/Block";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { localLogin } from "@/features/auth/services/client/localLogin";

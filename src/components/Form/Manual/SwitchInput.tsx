@@ -1,4 +1,4 @@
-// src/components/Form/manual/SwitchInput.tsx
+// src/components/Form/Manual/SwitchInput.tsx
 
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "@/lib/cn";

@@ -1,4 +1,4 @@
-// src/components/Form/manual/Input.tsx
+// src/components/Form/Manual/Input.tsx
 
 import * as React from "react";
 

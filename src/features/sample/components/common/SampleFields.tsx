@@ -2,13 +2,13 @@
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { SelectInput } from "@/components/Form/manual";
+import { SelectInput } from "src/components/Form/Manual";
 import { TextInput } from "@/components/Form/controlled";
 import { NumberInput } from "@/components/Form/controlled";
-import StepperInput from "@/components/Form/manual/StepperInput";
+import StepperInput from "@/components/Form/Manual/StepperInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";
 import { SwitchInput } from "@/components/Form/controlled";
-import { BooleanRadioGroupInput } from "@/components/Form/manual";
+import { BooleanRadioGroupInput } from "src/components/Form/Manual";
 import { FileUrlInput } from "@/components/Form/controlled";
 import { Textarea } from "@/components/Form/controlled";
 import type { Options } from "@/types/form";

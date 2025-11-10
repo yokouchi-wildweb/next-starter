@@ -1,4 +1,4 @@
-// src/components/Form/manual/CheckGroupInput.tsx
+// src/components/Form/Manual/CheckGroupInput.tsx
 
 import { useId, type HTMLAttributes } from "react";
 

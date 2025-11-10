@@ -1,4 +1,4 @@
-// src/components/Form/manual/BooleanRadioGroupInput.tsx
+// src/components/Form/Manual/BooleanRadioGroupInput.tsx
 
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";

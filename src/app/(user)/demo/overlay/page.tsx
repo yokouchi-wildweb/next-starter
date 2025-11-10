@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LoadingOverlay } from "@/components/Feedback/LoadingOverlay";
 import { type SpinnerVariant } from "@/components/Feedback/Spinner";
 import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/manual";
+import { Input } from "src/components/Form/Manual";
 import { Label } from "@/components/Form/Label";
 import Modal from "@/components/Overlays/Modal";
 import { ConfirmDialog } from "@/components/Overlays/ConfirmDialog";

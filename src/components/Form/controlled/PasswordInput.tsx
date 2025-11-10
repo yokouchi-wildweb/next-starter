@@ -1,4 +1,4 @@
-import { Input } from "@/components/Form/manual";
+import { Input } from "src/components/Form/Manual";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { useState } from "react";

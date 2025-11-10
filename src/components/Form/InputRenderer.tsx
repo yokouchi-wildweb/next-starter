@@ -1,7 +1,7 @@
 // src/components/Form/InputRenderer.tsx
 
 import { FieldType, Options } from "@/types/form";
-import { CheckGroupInput, RadioGroupInput, SelectInput } from "@/components/Form/manual";
+import { CheckGroupInput, RadioGroupInput, SelectInput } from "src/components/Form/Manual";
 import { DateInput, TextInput, SwitchInput } from "@/components/Form/controlled";
 import type { ComponentProps, HTMLAttributes } from "react";
 

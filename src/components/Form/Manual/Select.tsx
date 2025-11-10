@@ -1,4 +1,4 @@
-// src/components/Form/manual/Select.tsx
+// src/components/Form/Manual/Select.tsx
 
 import {
   Select as ShadcnSelect,

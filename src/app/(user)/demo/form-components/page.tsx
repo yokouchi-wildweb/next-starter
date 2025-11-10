@@ -27,7 +27,7 @@ import {
   RadioGroupInput,
   SelectInput,
   StepperInput,
-} from "@/components/Form/manual";
+} from "src/components/Form/Manual";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { Block } from "@/components/Layout/Block";
 import { Main, PageTitle, Para, Section, SecTitle } from "@/components/TextBlocks";

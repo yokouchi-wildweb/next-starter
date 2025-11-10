@@ -1,6 +1,6 @@
 // src/components/Form/DateInput.tsx
 
-import { Input } from "@/components/Form/manual";
+import { Input } from "src/components/Form/Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { ControlledInputProps } from "@/types/form";
 import { CalendarIcon } from "lucide-react";

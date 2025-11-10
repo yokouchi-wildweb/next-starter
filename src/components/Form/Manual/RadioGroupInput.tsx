@@ -1,4 +1,4 @@
-// src/components/Form/manual/RadioGroupInput.tsx
+// src/components/Form/Manual/RadioGroupInput.tsx
 
 import type { ComponentProps } from "react";
 
