@@ -3,7 +3,7 @@
 export const UI_BEHAVIOR_CONFIG = [
   {
     routeTransitionOverlay: {
-      message: "ページを読み込み中です",
+      message: "読み込み中です…",
       spinnerVariant: "default",
     },
     adminGlobalMenu: {
