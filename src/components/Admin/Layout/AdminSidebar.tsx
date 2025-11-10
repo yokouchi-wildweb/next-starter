@@ -131,7 +131,7 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                         <li key={`${section.title}-${item.title}`}>
                           <Link
                             href={item.href}
-                            className={cn(itemLink(), "block w-full py-6")}
+                            className={cn(itemLink(), "block w-full py-5")}
                             onClick={() => {
                               clearCloseTimeout();
                               setOpenIndex(null);
