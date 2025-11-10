@@ -37,7 +37,16 @@ export default function DetailModal({
 
   const modalTitle = (
     <span className="flex items-center gap-2 text-2xl">
-      {badgeText && <span className={cn("badge text-white", badgeColorClass)}>{badgeText}</span>}
+      {badgeText && (
+        <span
+          className={cn(
+            "inline-block rounded-full border bg-muted px-2 py-0.5 text-xs text-white",
+            badgeColorClass,
+          )}
+        >
+          {badgeText}
+        </span>
+      )}
       {title ?? ""}
     </span>
   );
