@@ -42,8 +42,10 @@ export function Main({
   fullscreenLayer,
   id = "main",
   ...props
+
 }: MainProps) {
-  const effectiveVariant = variant ?? "basicContainer";
+
+  const effectiveVariant = variant ?? "contentShell";
 
   if (effectiveVariant === "plain") {
     return (
@@ -68,7 +70,7 @@ export function Main({
       <div
         id={`${id}-layout`}
         className={cn(layoutVariants({ variant: effectiveVariant }))}
-        style={layoutMaxWidths[effectiveVariant] ? { maxWidth: layoutMaxWidths[effectiveVariant] } : undefined}
+        style={ layoutMaxWidths[effectiveVariant] ? { maxWidth: layoutMaxWidths[effectiveVariant] } : undefined}
       >
         <main id={id} className={className} {...props}>
           {children}

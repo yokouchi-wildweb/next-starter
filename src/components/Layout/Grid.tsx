@@ -96,19 +96,13 @@ const gridVariants = cva("grid", {
   },
 });
 
-type GridElement = keyof JSX.IntrinsicElements;
+type GridProps =
+    Omit<ComponentPropsWithoutRef<"div">, "className"> &
+    VariantProps<typeof gridVariants> &
+    { className?: string };
 
-type BaseGridProps<T extends GridElement> = Omit<ComponentPropsWithoutRef<T>, "className"> & {
-  as?: T;
-};
 
-type GridProps<T extends GridElement = "div"> = BaseGridProps<T> &
-  VariantProps<typeof gridVariants> & {
-    className?: string;
-  };
-
-export function Grid<T extends GridElement = "div">({
-  as,
+export function Grid({
   variant,
   space,
   gap,
@@ -122,10 +116,10 @@ export function Grid<T extends GridElement = "div">({
   justifyContent,
   className,
   ...props
-}: GridProps<T>) {
-  const Component = (as ?? "div") as GridElement;
+
+}: GridProps) {
   return (
-    <Component
+    <div
       className={cn(
         gridVariants({
           variant,
