@@ -53,7 +53,7 @@ export default function ManagerialUserCreateForm({ redirectPath = "/" }: Props) 
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      className="space-y-4"
+      fieldSpace="md"
     >
       <FormFieldItem
         control={control}
@@ -73,7 +73,7 @@ export default function ManagerialUserCreateForm({ redirectPath = "/" }: Props) 
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />
-      <div className="flex gap-2">
+      <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "登録中..." : "登録"}
         </Button>

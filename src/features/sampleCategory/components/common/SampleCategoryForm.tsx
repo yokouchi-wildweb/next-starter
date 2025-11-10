@@ -38,23 +38,19 @@ export function SampleCategoryForm<TFieldValues extends FieldValues>({
       methods={methods}
       onSubmit={onSubmitAction}
       pending={isMutating}
-      className="space-y-4"
+      fieldSpace="md"
     >
       <SampleCategoryFields<TFieldValues> {...fieldsProps} control={control} />
-      {onCancel ? (
-        <div className="flex gap-2">
-          <Button type="submit" disabled={loading} variant="default">
-            {loading ? processingLabel : submitLabel}
-          </Button>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            キャンセル
-          </Button>
-        </div>
-      ) : (
+      <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? processingLabel : submitLabel}
         </Button>
-      )}
+        {onCancel ? (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            キャンセル
+          </Button>
+        ) : null}
+      </div>
     </AppForm>
   );
 }
