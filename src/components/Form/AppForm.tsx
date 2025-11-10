@@ -15,7 +15,7 @@ import { cn } from "@/lib/cn";
 
 const fieldSpaceClassMap = {
   xs: "space-y-2",
-  sm: "space-y-3",
+  sm: "space-y-4",
   md: "space-y-6",
   lg: "space-y-8",
   xl: "space-y-10",
