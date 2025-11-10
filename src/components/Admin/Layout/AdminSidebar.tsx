@@ -10,10 +10,11 @@ import { toast } from "sonner";
 import { Block } from "@/components/Layout/Block";
 import { adminMenu } from "../../../config/admin-global-menu.config";
 import { UI_BEHAVIOR_CONFIG } from "../../../config/ui-behavior-config";
+import { Span } from "@/components/TextBlocks";
 import { useLogout } from "@/features/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
-import { AdminSidebarButton } from "./AdminSidebarButton";
+import { AdminSidebarButton, adminSidebarButtonClassName } from "./AdminSidebarButton";
 
 const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;
 
@@ -103,15 +104,26 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                   }}
                 >
                   {hasSubMenu ? (
-                    <AdminSidebarButton
-                      type="button"
-                      onClick={() => focusIndex(i)}
+                    <Span
+                      tabIndex={0}
+                      role="menuitem"
                       aria-haspopup="true"
                       aria-expanded={isOpen}
-                      className="cursor-default"
+                      onFocus={() => focusIndex(i)}
+                      onClick={() => focusIndex(i)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          focusIndex(i);
+                        }
+                      }}
+                      className={cn(
+                        adminSidebarButtonClassName,
+                        "cursor-default outline-none focus-visible:bg-sidebar-accent focus-visible:text-sidebar-accent-foreground",
+                      )}
                     >
                       {section.title}
-                    </AdminSidebarButton>
+                    </Span>
                   ) : (
                     <AdminSidebarButton asChild>
                       <Link
