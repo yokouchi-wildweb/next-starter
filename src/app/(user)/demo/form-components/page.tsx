@@ -398,7 +398,7 @@ export default function FormComponentsDemoPage() {
             <SecTitle variant="subtle">
               現在の値
             </SecTitle>
-            <pre className="mt-2 max-h-64 overflow-auto rounded bg-background/80 p-3 text-xs">
+            <pre className="mt-2 max-h-96 overflow-auto rounded bg-background/80 p-3 text-xs">
               {JSON.stringify(currentSnapshot, null, 2)}
             </pre>
           </div>
@@ -406,7 +406,7 @@ export default function FormComponentsDemoPage() {
             <SecTitle variant="subtle">
               送信結果
             </SecTitle>
-            <pre className="mt-2 max-h-64 overflow-auto rounded bg-background/80 p-3 text-xs">
+            <pre className="mt-2 max-h-96 overflow-auto rounded bg-background/80 p-3 text-xs">
               {submitted ? JSON.stringify(submitted, null, 2) : "未送信"}
             </pre>
             {fileUrlPending && (
