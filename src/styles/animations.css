@@ -9,15 +9,15 @@
  */
 
 @theme {
-  --animate-fade-in-scale: fade-in-scale 2.3s ease-out;
-  --animate-card-appears: card-appears 1.2s linear;
-  --animate-flash-transition: flash-transition 0.5s linear;
+
+
   --animate-gradient-x: gradient-x 5s linear infinite;
   --animate-gacha-loading: gacha-loading 1.2s ease-in-out infinite;
   --animate-card-shine: card-shine 1.5s linear infinite;
   --animate-radiant-aura: radiant-aura 0.6s ease-in infinite alternate;
   --animate-radiant-aura-child: radiant-aura-child 0.6s ease-in infinite alternate;
 
+  --animate-fade-in-scale: fade-in-scale 2.3s ease-out;
   @keyframes fade-in-scale {
     from {
       opacity: 0;
@@ -29,29 +29,6 @@
     }
   }
 
-  @keyframes card-appears {
-    0% {
-      opacity: 0;
-      transform: scale(12);
-    }
-    30% {
-      opacity: 0.2;
-      transform: scale(1.8);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes flash-transition {
-    0% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 1;
-    }
-  }
 
   @keyframes gradient-x {
     0%,
