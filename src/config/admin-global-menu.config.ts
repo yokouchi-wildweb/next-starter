@@ -24,7 +24,6 @@ export const adminMenu: AdminMenuSection[] = [
     items: [
       { title: "登録ユーザー", href: "/admin/users/general" },
       { title: "システム管理者", href: "/admin/users/managerial" },
-      { title: "システム管理者", href: "/admin/users/managerial" },
     ],
   },
   {
