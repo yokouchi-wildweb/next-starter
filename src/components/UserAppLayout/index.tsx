@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
+import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 
 import { UserNavigation } from "./navigation";
 
@@ -15,11 +16,7 @@ export type UserAppLayoutProps = {
 };
 
 export const UserAppLayout = ({ children }: UserAppLayoutProps) => {
-  const [headerHeight, setHeaderHeight] = useState(0);
-
-  const handleHeaderHeightChange = useCallback((height: number) => {
-    setHeaderHeight((prev) => (prev === height ? prev : height));
-  }, []);
+  const headerHeight = useHeaderHeight();
 
   const layoutStyle: LayoutStyle = {
     "--app-header-height": `${headerHeight}px`,
@@ -32,7 +29,7 @@ export const UserAppLayout = ({ children }: UserAppLayoutProps) => {
       className="my-0 bg-background text-foreground"
       style={layoutStyle}
     >
-      <UserNavigation onHeightChange={handleHeaderHeightChange} />
+      <UserNavigation />
       <div className="flex-1 pt-[var(--app-header-height,0px)]">{children}</div>
     </Flex>
   );

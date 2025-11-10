@@ -4,9 +4,11 @@
 
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/cn";
-import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import Link from "next/link";
+
+import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import { APP_FEATURES } from "@/config/app-features.config";
+import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
 
 const headerContainer = cva(
   "flex justify-between items-center px-6 py-3 bg-muted text-muted-foreground shadow-sm font-bold text-lg",
@@ -23,7 +25,7 @@ export function AdminHeader({ logoUrl, darkLogoUrl }: AdminHeaderProps) {
   const showDarkModeSwitch = APP_FEATURES.admin.appearance.enableDarkModeSwitch;
 
   return (
-    <header className={cn(headerContainer())}>
+    <header id={APP_HEADER_ELEMENT_ID} className={cn(headerContainer())}>
       <Link href="/admin" className="block p-2">
         <img
           src={lightLogoSrc}

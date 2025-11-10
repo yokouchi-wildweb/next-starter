@@ -1,5 +1,7 @@
 // src/components/Admin/layout/AdminFooter.tsx
 import { cva } from "class-variance-authority";
+
+import { APP_FOOTER_ELEMENT_ID } from "@/constants/layout";
 import { cn } from "@/lib/cn";
 
 const footerContainer = cva(
@@ -18,5 +20,9 @@ export function AdminFooter({ text }: AdminFooterProps) {
     ? sanitizedText.replace(/{{year}}/g, String(year))
     : fallbackText;
 
-  return <footer className={cn(footerContainer())}>{resolvedText}</footer>;
+  return (
+    <footer id={APP_FOOTER_ELEMENT_ID} className={cn(footerContainer())}>
+      {resolvedText}
+    </footer>
+  );
 }

@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 
 import { AdminLayoutClient } from "@/components/Admin/Layout/AdminLayoutClient";
-import { AdminFooter } from "@/components/Admin/Layout/AdminFooter";
 import { authGuard } from "@/features/auth/services/server/authorization";
 import { settingService } from "@/features/setting/services/server/settingService";
 
@@ -14,14 +13,12 @@ export default async function AdminLayout({
   const setting = await settingService.getGlobalSetting();
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <AdminLayoutClient
-        headerLogoUrl={setting.adminHeaderLogoImageUrl ?? undefined}
-        headerLogoDarkUrl={setting.adminHeaderLogoImageDarkUrl ?? undefined}
-      >
-        {children}
-      </AdminLayoutClient>
-      <AdminFooter text={setting.adminFooterText} />
-    </div>
+    <AdminLayoutClient
+      headerLogoUrl={setting.adminHeaderLogoImageUrl ?? undefined}
+      headerLogoDarkUrl={setting.adminHeaderLogoImageDarkUrl ?? undefined}
+      footerText={setting.adminFooterText ?? undefined}
+    >
+      {children}
+    </AdminLayoutClient>
   );
 }

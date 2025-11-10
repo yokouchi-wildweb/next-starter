@@ -1,29 +1,50 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { type CSSProperties, type ReactNode, useMemo, useState } from "react";
+import { MenuIcon } from "lucide-react";
+
+import { Button } from "@/components/Form/Button/Button";
+import { useHeaderHeight } from "@/hooks/useHeaderHeight";
+
+import { AdminFooter } from "./AdminFooter";
 import { AdminHeader } from "./AdminHeader";
 import { ResizableAdminLayout } from "./ResizableAdminLayout";
-import { MenuIcon } from "lucide-react";
-import { Button } from "@/components/Form/Button/Button";
 
 type AdminLayoutClientProps = {
   children: ReactNode;
   headerLogoUrl?: string;
   headerLogoDarkUrl?: string;
+  footerText?: string | null;
 };
 
 export function AdminLayoutClient({
   children,
   headerLogoUrl,
   headerLogoDarkUrl,
+  footerText,
 }: AdminLayoutClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const headerHeight = useHeaderHeight();
+
+  const layoutStyle: CSSProperties = useMemo(
+    () => ({
+      "--app-header-height": `${headerHeight}px`,
+    }),
+    [headerHeight],
+  );
+
   return (
-    <>
+    <div
+      className="relative flex min-h-screen flex-col bg-background text-foreground"
+      style={layoutStyle}
+    >
       <AdminHeader logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
-      <ResizableAdminLayout isSidebarOpen={sidebarOpen} onSidebarClose={() => setSidebarOpen(false)}>
-        {children}
-      </ResizableAdminLayout>
+      <div className="flex flex-1 flex-col min-h-[calc(100vh-var(--app-header-height,0px))]">
+        <ResizableAdminLayout isSidebarOpen={sidebarOpen} onSidebarClose={() => setSidebarOpen(false)}>
+          {children}
+        </ResizableAdminLayout>
+        <AdminFooter text={footerText} />
+      </div>
       <Button
         type="button"
         variant="accent"
@@ -34,6 +55,6 @@ export function AdminLayoutClient({
       >
         <MenuIcon className="size-5" />
       </Button>
-    </>
+    </div>
   );
 }
