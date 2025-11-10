@@ -69,11 +69,8 @@ export function VerificationEmailSendForm({
 
   return (
     <Block>
-      <SecTitle variant="standard" as="h3">
-        メールアドレスで登録
-      </SecTitle>
       <Para tone="muted" size="sm">
-        メールアドレスを入力して仮登録を進めてください。認証用のリンクをメールでお送りします。
+        メールアドレスを入力して認証用のリンクを送付します。
       </Para>
       <AppForm
         methods={form}

@@ -157,10 +157,8 @@ export default function Home() {
               {resourceLinks.map((resource) => (
                 <Button key={resource.href} asChild variant="outline" size="sm">
                   <Link href={resource.href} target="_blank">
-                    <Flex as="span" align="center" gap="sm">
-                      <Image src={resource.icon.src} alt={resource.icon.alt} width={20} height={20} />
-                      <Span size="sm">{resource.label}</Span>
-                    </Flex>
+                    <Image src={resource.icon.src} alt={resource.icon.alt} width={20} height={20} />
+                    <Span size="sm">{resource.label}</Span>
                   </Link>
                 </Button>
               ))}

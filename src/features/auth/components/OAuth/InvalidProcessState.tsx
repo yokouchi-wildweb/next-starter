@@ -10,11 +10,20 @@ export function InvalidProcessState() {
   return (
     <Block space="sm">
       <Para>認証に失敗しました。</Para>
-      <Para>
-        <Link href="/signup">
-          <Button>再登録ページ</Button>
-        </Link>
-      </Para>
+      <Block>
+          <Para>
+              <Link href="/login">
+                  <Button className="w-full">ログインページ</Button>
+              </Link>
+          </Para>
+
+          <Para>
+
+              <Link href="/signup">
+                  <Button className="w-full">会員登録ページ</Button>
+              </Link>
+          </Para>
+      </Block>
     </Block>
   );
 }

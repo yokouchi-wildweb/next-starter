@@ -46,7 +46,7 @@ export function OAuth({ provider }: OAuthProps) {
   return (
     <Section id="signup-oauth" variant="plain" className="relative space-y-4">
       <SecTitle variant="emphasis" as="h2">
-        会員登録
+        ユーザー認証
       </SecTitle>
 
       {phase === "initial" && <LoadingState message="認証を準備しています" />}
