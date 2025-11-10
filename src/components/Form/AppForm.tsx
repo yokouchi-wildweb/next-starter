@@ -131,7 +131,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
         {...formProps}
       >
         {disableWhilePending ? (
-          <fieldset disabled={isBusy} className="contents">
+          <fieldset disabled={isBusy} className="contents space-y-4">
             {children}
           </fieldset>
         ) : (
