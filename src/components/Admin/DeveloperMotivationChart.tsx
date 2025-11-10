@@ -34,14 +34,14 @@ function getGradientColors(percentage: number): [string, string] {
 }
 
 function getMotivationMessage(percentage: number): string {
-  if (percentage < 20) return "……魂が抜けたようです";
-  if (percentage < 40) return "やる気？それは都市伝説です";
-  if (percentage < 60) return "一応動いてはいます（たぶん）";
-  if (percentage < 80) return "気合を入れる準備を始めようとしている段階";
-  if (percentage < 120) return "今のやる気は誤作動です";
-  if (percentage < 150) return "なぜかちょっとはやる気がある";
-  if (percentage < 180) return "キーボードが火を噴いています";
-  return "宇宙の真理をコードで表現しようとしています";
+  if (percentage < 20) return "System Shutdown";
+  if (percentage < 40) return "Existential Slump";
+  if (percentage < 60) return "Lazy Sunday Mode";
+  if (percentage < 80) return "Normal Flow";
+  if (percentage < 120) return "Solid Motivation";
+  if (percentage < 150) return "Productivity Overdrive";
+  if (percentage < 180) return "The Highest Motivation";
+  return "Transcendent Mode";
 }
 
 export function DeveloperMotivationChart({ percentage }: DeveloperMotivationChartProps) {

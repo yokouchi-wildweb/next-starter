@@ -7,7 +7,7 @@ import { Block } from "@/components/Layout/Block";
 
 export function VerificationEmailSent() {
   return (
-    <Section id="verification-email-sent" variant="plain">
+    <Section id="verification-email-sent">
       <SecTitle variant="emphasis" as="h2">
         受信メールをご確認ください
       </SecTitle>

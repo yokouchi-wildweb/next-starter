@@ -54,7 +54,7 @@ export default function UserMyPage({ user }: UserMyPageProps) {
   return (
     <Main variant="contentShell" className="gap-6">
       <PageTitle>マイページ</PageTitle>
-      <Section variant="compact" className="space-y-3">
+      <Section>
         <Para>このページはログイン状態のユーザーのみがアクセスできる想定で設計されているメンバー専用ページです。</Para>
       </Section>
       <Section className="space-y-4">

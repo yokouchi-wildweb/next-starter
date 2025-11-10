@@ -30,7 +30,7 @@ export default function ManagerialUserList({
   searchPlaceholder = DEFAULT_PLACEHOLDER,
 }: Props) {
   return (
-    <Section variant="plain">
+    <Section>
       <UserListHeader
         title={title}
         newHref={newHref}

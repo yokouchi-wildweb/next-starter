@@ -32,7 +32,7 @@ export default async function AdminHomePage() {
       <Grid gap="lg" className="md:grid-cols-1 lg:grid-cols-2">
         <Card className="text-background bg-[length:500%_500%] rounded-xl shadow-lg animate-gradient-x">
           <CardHeader>
-            <CardTitle>開発者のやる気メーター</CardTitle>
+            <CardTitle>グラフ指標サンプル</CardTitle>
           </CardHeader>
           <CardContent>
             <Flex justify="center" align="center" width="full">

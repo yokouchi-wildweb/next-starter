@@ -19,7 +19,7 @@ export default function AdminSampleCategoryList({
   total,
 }: AdminSampleCategoryListProps) {
   return (
-    <Section variant="plain">
+    <Section>
       <Header page={page} perPage={perPage} total={total} />
       <Table sampleCategories={sampleCategories} />
     </Section>

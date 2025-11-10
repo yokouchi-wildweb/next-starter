@@ -14,7 +14,7 @@ type Props = {
 
 export default function AdminSettingEdit({ setting, redirectPath }: Props) {
   return (
-    <Section variant="plain">
+    <Section>
       <DeveloperMotivationChart
         percentage={setting.developerMotivation ?? 0}
       />

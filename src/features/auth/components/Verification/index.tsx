@@ -37,7 +37,7 @@ export function Verification() {
   );
 
   return (
-    <Section id="registration-email-verification" variant="plain" className="relative">
+    <Section id="registration-email-verification" className="relative">
       <SecTitle variant="emphasis" as="h2">
         認証失敗
       </SecTitle>

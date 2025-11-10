@@ -29,7 +29,7 @@ export default function GeneralUserList({
   searchPlaceholder,
 }: Props) {
   return (
-    <Section variant="plain">
+    <Section>
       <UserListHeader
         title={title}
         newHref={newHref}

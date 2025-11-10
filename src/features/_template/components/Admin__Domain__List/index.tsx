@@ -19,7 +19,7 @@ export default function Admin__Domain__List({
   total,
 }: Admin__Domain__ListProps) {
   return (
-    <Section variant="plain">
+    <Section>
       <Header page={page} perPage={perPage} total={total} />
       <Table __domains__={__domains__} />
     </Section>
