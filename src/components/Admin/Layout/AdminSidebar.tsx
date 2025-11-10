@@ -74,9 +74,9 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
     }
   }, [logout, onNavigate]);
 
-  const toggleIndex = (index: number) => {
+  const focusIndex = (index: number) => {
     clearCloseTimeout();
-    setOpenIndex((prev) => (prev === index ? null : index));
+    setOpenIndex(index);
   };
 
   return (
@@ -105,9 +105,10 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                   {hasSubMenu ? (
                     <AdminSidebarButton
                       type="button"
-                      onClick={() => toggleIndex(i)}
+                      onClick={() => focusIndex(i)}
                       aria-haspopup="true"
                       aria-expanded={isOpen}
+                      className="cursor-default"
                     >
                       {section.title}
                     </AdminSidebarButton>
