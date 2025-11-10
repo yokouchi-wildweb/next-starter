@@ -22,7 +22,7 @@ export default async function AdminHomePage() {
               <CardTitle>サンプル指標{String.fromCharCode(65 + index)}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-32 bg-gradient-to-br from-sky-400 to-cyan-600 rounded" />
+              <div className="h-32 rounded bg-gradient-to-br from-gray-200 to-gray-500 " />
             </CardContent>
           </Card>
         ))}
