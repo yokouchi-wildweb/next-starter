@@ -18,18 +18,17 @@ export const UserCoreSchema = z.object({
     .nullish(),
   localPasswordHash: z.string().min(1).nullish(),
   lastAuthenticatedAt: z.coerce.date().nullish(),
+  displayName: z
+    .string()
+    .trim()
+    .nullish(),
 });
-
-const displayName = z
-  .string()
-  .trim()
-  .nullish();
 
 /**
  * 一般ユーザー用に利用するスキーマ。
  */
 export const GeneralUserSchema = UserCoreSchema.extend({
-  displayName: displayName,
+  // ダミーフィールド: z.string()
 });
 
 /**
@@ -45,7 +44,7 @@ export const GeneralUserOptionalSchema = GeneralUserSchema.partial().extend({
  * 管理者ユーザー用に利用するスキーマ。
  */
 export const AdminUserSchema = UserCoreSchema.extend({
-  displayName: displayName,
+  // ダミーフィールド: z.string()
 });
 
 /**
