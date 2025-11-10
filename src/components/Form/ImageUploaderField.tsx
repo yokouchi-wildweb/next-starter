@@ -2,7 +2,7 @@
 
 import { useFormContext, type FieldValues, type FieldPath, type Control, type UseFormReturn } from "react-hook-form";
 import { FormFieldItem } from "./FormFieldItem";
-import { FileUrlInput } from "./controlled";
+import { FileUrlInput } from "./Controlled";
 import { useImageUploaderField } from "@/hooks/useImageUploaderField";
 
 export type ImageUploaderFieldProps<

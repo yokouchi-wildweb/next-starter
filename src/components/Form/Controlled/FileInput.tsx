@@ -59,7 +59,7 @@ export const FileInput = <
     if (typeof selectedFileNameProp === "string") {
       return selectedFileNameProp.length > 0 ? selectedFileNameProp : null;
     }
-    return field.value instanceof File ? field.value.name : null;
+    return (field.value as any) instanceof File ? (field.value as File).name : null;
   }, [field.value, selectedFileNameProp]);
 
   const revokePreviewUrl = useCallback((url: string | null) => {

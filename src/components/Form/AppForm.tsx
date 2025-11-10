@@ -56,7 +56,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
       }
 
       // IME変換確定中のEnterは送信抑止しない
-      if (event.isComposing) {
+      if ((event as unknown as { isComposing?: boolean }).isComposing) {
         return;
       }
 

@@ -72,7 +72,7 @@ function FuturisticNavButton({ href, children, className }: FuturisticNavButtonP
     >
       <Link href={href} className="flex w-full items-center justify-between">
         <Span
-          size="md"
+          size="default"
           className="font-semibold tracking-[0.12em] text-slate-600 transition-colors duration-500 group-hover:text-slate-900"
         >
           {children}
@@ -108,7 +108,7 @@ export default function Home() {
               className="mx-auto text-center"
             >
               <Image src="/next.svg" alt="Next.js" width={400} height={208} priority />
-              <PageTitle variant="prominent">next-starter >>> a Wildweb creation.</PageTitle>
+              <PageTitle variant="prominent">next-starter &gt;&gt;&gt; a Wildweb creation.</PageTitle>
             </Flex>
           </Section>
 

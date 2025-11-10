@@ -13,7 +13,7 @@ export default async function AdminSettingPage() {
   const setting = await settingService.getGlobalSetting();
 
   return (
-    <Main variant="spacedTiles">
+    <Main>
       <PageTitle variant="accent">システム設定</PageTitle>
       <AdminSettingEdit setting={setting} redirectPath="/admin/settings" />
     </Main>
