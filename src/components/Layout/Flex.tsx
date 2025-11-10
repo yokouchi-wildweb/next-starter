@@ -1,6 +1,7 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
-import type { ComponentPropsWithoutRef } from "react";
+import {ComponentPropsWithoutRef} from "react";
+import type { JSX } from "react";
 
 import { cn } from "@/lib/cn";
 
