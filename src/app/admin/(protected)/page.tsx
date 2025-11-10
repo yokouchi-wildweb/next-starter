@@ -30,7 +30,9 @@ export default async function AdminHomePage() {
       <SecTitle variant="barAccent">追加の指標</SecTitle>
 
       <Grid gap="lg" className="md:grid-cols-1 lg:grid-cols-2">
-        <Card className="text-background bg-[length:500%_500%] rounded-xl shadow-lg animate-gradient-x">
+        <Card
+          className="text-slate-900 bg-gradient-to-br from-zinc-100 via-zinc-300/80 to-zinc-500/70 rounded-xl shadow-lg border border-white/30"
+        >
           <CardHeader>
             <CardTitle>グラフ指標サンプル</CardTitle>
           </CardHeader>
