@@ -81,7 +81,7 @@ export default async function AdminHomePage() {
           <Card
             key={metric.key}
             className={cn(
-              "relative overflow-hidden border-0 bg-slate-950/90 text-slate-50",
+              "relative overflow-hidden border-0 bg-slate-950 text-slate-50",
               metric.shadow,
             )}
           >
@@ -113,7 +113,7 @@ export default async function AdminHomePage() {
             </CardHeader>
             <CardContent className="relative z-10">
               <Flex direction="column" gap="sm" className="mt-1">
-                <Span className="text-5xl font-semibold tracking-tight drop-shadow-[0_12px_35px_rgba(15,23,42,0.45)] sm:text-6xl">
+                <Span className="text-4xl font-semibold tracking-tight drop-shadow-[0_12px_35px_rgba(15,23,42,0.45)] sm:text-[2.75rem] lg:text-5xl">
                   {metric.value}
                 </Span>
               </Flex>
