@@ -119,6 +119,7 @@ type SwitchInputProps = {
     | "success"
     | "error"
     | "warning";
+  onChange?: ComponentPropsWithoutRef<"input">["onChange"];
 } & Omit<
   ComponentPropsWithoutRef<"input">,
   "type" | "value" | "defaultValue" | "defaultChecked" | "checked" | "onChange"
