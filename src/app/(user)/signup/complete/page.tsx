@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { Main, PageTitle, Para, Section } from "@/components/TextBlocks";
-import { Button } from "@/components/Form/button/Button";
+import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 
 export default function SignUpCompletePage() {

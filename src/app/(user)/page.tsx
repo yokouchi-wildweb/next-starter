@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Button } from "@/components/Form/button/Button";
+import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Main, PageTitle, Para, Section, Span } from "@/components/TextBlocks";
 import { CosmicCoasterScene } from "@/components/Three/CosmicCoasterScene";

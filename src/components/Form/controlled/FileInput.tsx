@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { Button } from "@/components/Form/button/Button";
+import { Button } from "@/components/Form/Button/Button";
 import { Input } from "@/components/Form/manual";
 import { Block } from "@/components/Layout/Block";
 import { cn } from "@/lib/cn";

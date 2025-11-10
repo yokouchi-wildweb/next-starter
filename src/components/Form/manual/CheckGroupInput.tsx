@@ -3,9 +3,9 @@
 import { useId, type HTMLAttributes } from "react";
 
 import { Options } from "@/types/form";
-import { Button, type ButtonStyleProps } from "@/components/Form/button/Button";
-import { BookmarkTag } from "@/components/Form/button/BookmarkTag";
-import { RoundedButton } from "@/components/Form/button/RoundedButton";
+import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
+import { BookmarkTag } from "@/components/Form/Button/BookmarkTag";
+import { RoundedButton } from "@/components/Form/Button/RoundedButton";
 import { Label } from "@/components/Form/Label";
 import { Checkbox } from "@/components/Shadcn/checkbox";
 

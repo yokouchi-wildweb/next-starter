@@ -1,4 +1,4 @@
-// src/components/Form/button/button-variants.ts
+// src/components/Form/Button/button-variants.ts
 
 import { cva, type VariantProps } from "class-variance-authority";
 

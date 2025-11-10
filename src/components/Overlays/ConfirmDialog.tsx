@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/Overlays/Dialog";
-import { Button } from "@/components/Form/button/Button";
+import { Button } from "@/components/Form/Button/Button";
 
 export type ConfirmDialogProps = {
   open: boolean;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, type ButtonStyleProps } from "@/components/Form/button/Button";
+import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";

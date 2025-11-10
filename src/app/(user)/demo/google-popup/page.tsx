@@ -11,7 +11,7 @@ import {
   type User,
 } from "firebase/auth";
 
-import { Button } from "@/components/Form/button/Button";
+import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { PageTitle, Para, SecTitle, Section } from "@/components/TextBlocks";
 import { auth } from "@/lib/firebase/client/app";

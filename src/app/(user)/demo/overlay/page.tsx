@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingOverlay } from "@/components/Feedback/LoadingOverlay";
 import { type SpinnerVariant } from "@/components/Feedback/Spinner";
-import { Button } from "@/components/Form/button/Button";
+import { Button } from "@/components/Form/Button/Button";
 import { Input } from "@/components/Form/manual";
 import { Label } from "@/components/Form/Label";
 import Modal from "@/components/Overlays/Modal";

@@ -5,7 +5,7 @@
 import Link from "next/link";
 
 import { SecTitle } from "@/components/TextBlocks";
-import { Button } from "@/components/Form/button/Button";
+import { Button } from "@/components/Form/Button/Button";
 
 type Props = {
   title: string;

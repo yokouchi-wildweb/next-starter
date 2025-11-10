@@ -1,4 +1,4 @@
-// src/components/Form/button/RoundedButton.tsx
+// src/components/Form/Button/RoundedButton.tsx
 
 import * as React from "react";
 
