@@ -2,15 +2,9 @@
 
 import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/Shadcn/form";
+import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/button/Button";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/Shadcn/form";
 import {
   DateInput,
   FileInput,
@@ -183,12 +177,12 @@ export default function FormComponentsDemoPage() {
         </Para>
       </Section>
 
-      <Section className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] lg:items-start">
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="grid gap-8 rounded-lg border bg-background p-6 shadow-sm"
-          >
+      <AppForm
+        methods={form}
+        onSubmit={handleSubmit}
+        pending={fileUrlPending}
+        className="grid gap-8 rounded-lg border bg-background p-6 shadow-sm"
+      >
             <div className="grid gap-6 md:grid-cols-2">
               <FormFieldItem
                 control={form.control}
