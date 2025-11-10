@@ -2,7 +2,7 @@
 
 import { FieldType, Options } from "@/types/form";
 import { CheckGroupInput, RadioGroupInput, SelectInput } from "src/components/Form/Manual";
-import { DateInput, TextInput, SwitchInput } from "@/components/Form/controlled";
+import { DateInput, TextInput, SwitchInput } from "@/components/Form/Controlled";
 import type { ComponentProps, HTMLAttributes } from "react";
 
 function InputRenderer(type: FieldType, field: any, options?: Options[], rest?: HTMLAttributes<HTMLElement>) {

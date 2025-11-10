@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput } from "@/components/Form/controlled";
+import { TextInput } from "@/components/Form/Controlled";
 import { Para } from "@/components/TextBlocks";
 import { USER_PROVIDER_TYPES } from "@/constants/user";
 import { useRegistration } from "@/features/auth/hooks/useRegistration";

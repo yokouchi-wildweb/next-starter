@@ -3,14 +3,14 @@
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { SelectInput } from "src/components/Form/Manual";
-import { TextInput } from "@/components/Form/controlled";
-import { NumberInput } from "@/components/Form/controlled";
+import { TextInput } from "@/components/Form/Controlled";
+import { NumberInput } from "@/components/Form/Controlled";
 import StepperInput from "@/components/Form/Manual/StepperInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";
-import { SwitchInput } from "@/components/Form/controlled";
+import { SwitchInput } from "@/components/Form/Controlled";
 import { BooleanRadioGroupInput } from "src/components/Form/Manual";
-import { FileUrlInput } from "@/components/Form/controlled";
-import { Textarea } from "@/components/Form/controlled";
+import { FileUrlInput } from "@/components/Form/Controlled";
+import { Textarea } from "@/components/Form/Controlled";
 import type { Options } from "@/types/form";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
