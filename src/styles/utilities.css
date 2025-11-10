@@ -6,29 +6,17 @@
  */
 
 @layer utilities {
-  .bg-rainbow-gradient {
-    background-image: linear-gradient(
-      135deg,
-      #ff6ec4,
-      #7873f5,
-      #4ade80,
-      #facc15,
-      #f87171
-    );
-  }
-
-  .pill-tag {
-    @apply inline-block rounded-full border bg-muted px-2 py-1 text-xs;
-  }
-
   .bookmark-tag {
-    @apply relative pl-5 text-xs rounded-none;
+    --bookmark-tag-notch-size: 0.75rem;
+    --bookmark-tag-padding-inline-start: calc(var(--bookmark-tag-notch-size) + 0.5rem);
+    position: relative;
+    padding-inline-start: var(--bookmark-tag-padding-inline-start);
     clip-path: polygon(
       0 50%,
-      0.75rem 0,
+      var(--bookmark-tag-notch-size) 0,
       100% 0,
       100% 100%,
-      0.75rem 100%
+      var(--bookmark-tag-notch-size) 100%
     );
   }
 
@@ -37,7 +25,7 @@
     position: absolute;
     top: 0;
     left: -1px;
-    width: 0.75rem;
+    width: var(--bookmark-tag-notch-size);
     height: 100%;
     background: none;
     border: inherit;

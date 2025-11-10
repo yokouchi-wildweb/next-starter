@@ -8,14 +8,5 @@
 @layer components {
   /* ここにコンポーネント用のスタイルを追加 */
 
-  .badge {
-    @apply inline-block rounded-full border bg-muted px-2 py-0.5 text-xs;
-  }
-
-  .absolute-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
+  /* 共通スタイルは必要に応じてここへ追加してください */
 }

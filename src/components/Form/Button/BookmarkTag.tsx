@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 
 import { Button, type ButtonProps } from "./Button";
 
-const BOOKMARK_TAG_BASE_CLASS = "h-auto px-3 py-1 text-sm border transition-colors rounded-full";
+const BOOKMARK_TAG_BASE_CLASS = "h-auto px-3 py-1 text-sm border transition-colors rounded-none";
 const BOOKMARK_TAG_SELECTED_CLASS =
   "bg-primary text-primary-foreground border-primary hover:bg-primary hover:text-primary-foreground";
 const BOOKMARK_TAG_UNSELECTED_CLASS =
