@@ -68,6 +68,7 @@
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.31.4",
+    "dotenv": "^16.4.7",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
     "prettier": "^3.6.1",
