@@ -22,7 +22,7 @@ const sidebarContainer = cva(
 );
 
 const submenuVariants = cva(
-  "absolute left-full -ml-2 top-0 w-48 space-y-1 rounded bg-sidebar shadow-lg transition-all duration-200 z-10",
+  "modal-layer absolute left-full -ml-2 top-0 w-48 space-y-1 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
   {
     variants: {
       open: {
@@ -131,7 +131,7 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                         <li key={`${section.title}-${item.title}`}>
                           <Link
                             href={item.href}
-                            className={cn(itemLink(), "block w-full py-6")}
+                            className={cn(itemLink(), "block w-full py-5")}
                             onClick={() => {
                               clearCloseTimeout();
                               setOpenIndex(null);
