@@ -2,6 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import { toKebabCase } from '../../../../src/utils/stringCase.mjs';
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // 管理画面のメニューに項目を追加する
 export default function updateAdminDataMenu({ rootDir, plural, label }) {
   const menuPath = path.join(rootDir, 'src', 'registry', 'adminDataMenu.ts');
@@ -12,8 +16,9 @@ export default function updateAdminDataMenu({ rootDir, plural, label }) {
   const insertIndex = marker !== -1 ? marker : lines.length - 1;
   const href = `/admin/${toKebabCase(plural)}`;
   const newLine = `  { title: "${label}", href: "${href}" },`;
-  // 既に同じ行が存在する場合は追加しない
-  if (lines.includes(newLine)) {
+  const hrefPattern = new RegExp(`href:\\s*["']${escapeRegExp(href)}["']`);
+  // 既に同じ href が存在する場合は追加しない
+  if (lines.some((line) => hrefPattern.test(line))) {
     console.log(`スキップしました（既に存在）: ${menuPath}`);
     return;
   }
