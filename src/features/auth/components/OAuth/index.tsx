@@ -44,7 +44,7 @@ export function OAuth({ provider }: OAuthProps) {
   }, [phase, router]);
 
   return (
-    <Section id="signup-oauth" variant="plain" className="relative space-y-4">
+    <Section id="signup-oauth" className="relative space-y-4">
       <SecTitle variant="emphasis" as="h2">
         ユーザー認証
       </SecTitle>
