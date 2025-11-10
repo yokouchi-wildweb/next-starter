@@ -35,7 +35,7 @@ export function SettingFields<TFieldValues extends FieldValues>({ control }: Set
         name={"adminFooterText" as FieldPath<TFieldValues>}
         label="管理画面フッターの表記"
         renderInput={(field) => (
-          <TextInput field={field} placeholder={`© ${new Date().getFullYear()} ORIPA DO!`} />
+          <TextInput field={field} placeholder={`© ${new Date().getFullYear()} Wildweb.`} />
         )}
       />
       <FormFieldItem
