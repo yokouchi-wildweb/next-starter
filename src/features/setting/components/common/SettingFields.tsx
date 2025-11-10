@@ -32,6 +32,14 @@ export function SettingFields<TFieldValues extends FieldValues>({ control }: Set
       />
       <FormFieldItem
         control={control}
+        name={"adminFooterText" as FieldPath<TFieldValues>}
+        label="管理画面フッターの表記"
+        renderInput={(field) => (
+          <TextInput field={field} placeholder={`© ${new Date().getFullYear()} ORIPA DO!`} />
+        )}
+      />
+      <FormFieldItem
+        control={control}
         name={"adminListPerPage" as FieldPath<TFieldValues>}
         label="一覧表示件数"
         renderInput={(field) => <TextInput field={field} type="number" min={1} max={500} />}
