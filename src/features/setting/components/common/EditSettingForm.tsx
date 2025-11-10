@@ -28,6 +28,7 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
       adminHeaderLogoImageUrl: setting.adminHeaderLogoImageUrl ?? "",
       adminHeaderLogoImageDarkUrl: setting.adminHeaderLogoImageDarkUrl ?? "",
       adminListPerPage: setting.adminListPerPage ?? 100,
+      adminFooterText: setting.adminFooterText ?? "",
     },
   });
 

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 export type AdminMenuItem = {
   title: string;
-  href: string;
+  href: string | null;
   icon?: ReactNode;
 };
 

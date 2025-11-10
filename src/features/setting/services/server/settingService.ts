@@ -4,20 +4,22 @@ import { base } from "./drizzleBase";
 
 const DEFAULT_ADMIN_LIST_PER_PAGE = 100;
 
-const DEFAULT_SETTING_VALUES = {
+const createDefaultSettingValues = () => ({
   developerMotivation: 100,
   adminHeaderLogoImageUrl: null,
   adminHeaderLogoImageDarkUrl: null,
   adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,
-} as const;
+  adminFooterText: `© ${new Date().getFullYear()} ORIPA DO!`,
+});
 
 async function getGlobalSetting(): Promise<Setting> {
   const existing = (await base.get("global")) as Setting | undefined;
+  const defaultValues = createDefaultSettingValues();
 
   if (!existing) {
     return (await base.upsert({
       id: "global",
-      ...DEFAULT_SETTING_VALUES,
+      ...defaultValues,
     })) as Setting;
   }
 
@@ -25,8 +27,8 @@ async function getGlobalSetting(): Promise<Setting> {
     ...existing,
     adminHeaderLogoImageUrl: existing.adminHeaderLogoImageUrl ?? null,
     adminHeaderLogoImageDarkUrl: existing.adminHeaderLogoImageDarkUrl ?? null,
-    adminListPerPage:
-      existing.adminListPerPage ?? DEFAULT_SETTING_VALUES.adminListPerPage,
+    adminListPerPage: existing.adminListPerPage ?? defaultValues.adminListPerPage,
+    adminFooterText: existing.adminFooterText ?? defaultValues.adminFooterText,
   };
 }
 
