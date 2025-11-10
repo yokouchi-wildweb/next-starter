@@ -66,6 +66,10 @@ function removeEmpty(set) {
   return set;
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function findDomainDirs(base, names) {
   const result = [];
   if (!fs.existsSync(base)) return result;
@@ -108,6 +112,18 @@ function removeLineContaining(filePath, keyword) {
   if (!fs.existsSync(filePath)) return;
   const lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/);
   const filtered = lines.filter((l) => !l.includes(keyword));
+  fs.writeFileSync(filePath, filtered.join('\n'));
+  console.log(`更新しました: ${filePath}`);
+}
+
+function removeLinesByHref(filePath, hrefs) {
+  if (!fs.existsSync(filePath)) return;
+  const hrefSet = new Set(hrefs.filter(Boolean));
+  if (hrefSet.size === 0) return;
+  const patterns = [...hrefSet].map((href) => new RegExp(`href:\\s*["']${escapeRegExp(href)}["']`));
+  const lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/);
+  const filtered = lines.filter((line) => !patterns.some((pattern) => pattern.test(line)));
+  if (filtered.length === lines.length) return;
   fs.writeFileSync(filePath, filtered.join('\n'));
   console.log(`更新しました: ${filePath}`);
 }
@@ -245,10 +261,20 @@ export default async function removeDomain(domain) {
     expandedMenuCandidates.add(candidate);
     expandedMenuCandidates.add(toKebabCase(candidate));
   }
+  const hrefCandidates = [];
   for (const candidate of expandedMenuCandidates) {
     if (!candidate) continue;
-    removeLineContaining(menuPath, `/admin/${candidate}`);
+    if (candidate.startsWith('/')) {
+      hrefCandidates.push(candidate);
+      continue;
+    }
+    if (candidate.startsWith('admin/')) {
+      hrefCandidates.push(`/${candidate}`);
+      continue;
+    }
+    hrefCandidates.push(`/admin/${candidate}`);
   }
+  removeLinesByHref(menuPath, hrefCandidates);
 
   const schemaPath = path.join(rootDir, 'src', 'registry', 'schemaRegistry.ts');
   for (const candidate of featureCandidateSet) {
