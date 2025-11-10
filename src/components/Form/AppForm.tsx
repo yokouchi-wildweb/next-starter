@@ -16,9 +16,9 @@ import { cn } from "@/lib/cn";
 const fieldSpaceClassMap = {
   xs: "space-y-2",
   sm: "space-y-3",
-  md: "space-y-4",
-  lg: "space-y-6",
-  xl: "space-y-8",
+  md: "space-y-6",
+  lg: "space-y-8",
+  xl: "space-y-10",
 } as const;
 
 export type AppFormFieldSpace = keyof typeof fieldSpaceClassMap;
@@ -48,7 +48,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     allowEnterWhen,
     pending = false,
     disableWhilePending = true,
-    fieldSpace = "lg",
+    fieldSpace = "md",
     children,
     className,
     onKeyDown,
@@ -133,7 +133,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     [allowEnterSelectors, allowEnterWhen, onKeyDown, preventSubmitOnEnter],
   );
 
-  const spacingClass = fieldSpaceClassMap[fieldSpace] ?? fieldSpaceClassMap.lg;
+  const spacingClass = fieldSpaceClassMap[fieldSpace] ?? fieldSpaceClassMap.md;
 
   const fieldsetClassName = cn("contents", spacingClass);
 
