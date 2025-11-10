@@ -6,6 +6,10 @@ import { Flex } from "@/components/Layout/Flex";
 
 import { UserNavigation } from "./navigation";
 
+type LayoutStyle = CSSProperties & {
+  "--app-header-height"?: string;
+};
+
 export type UserAppLayoutProps = {
   readonly children: ReactNode;
 };
@@ -17,7 +21,7 @@ export const UserAppLayout = ({ children }: UserAppLayoutProps) => {
     setHeaderHeight((prev) => (prev === height ? prev : height));
   }, []);
 
-  const layoutStyle: CSSProperties = {
+  const layoutStyle: LayoutStyle = {
     "--app-header-height": `${headerHeight}px`,
   };
 
