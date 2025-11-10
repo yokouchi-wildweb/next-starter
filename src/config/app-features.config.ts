@@ -21,8 +21,8 @@ export const APP_FEATURES = {
     },
     dashboard: {
       sections: {
-        showMainMetrics: false,
-        showAdditionalMetrics: false,
+        showMainMetrics: true,
+        showAdditionalMetrics: true,
       },
     },
   },
