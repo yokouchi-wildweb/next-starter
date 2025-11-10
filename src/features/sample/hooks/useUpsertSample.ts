@@ -14,5 +14,9 @@ export const useUpsertSample = () => {
     throw new Error("Sampleのアップサート機能が利用できません");
   }
 
-  return useUpsertDomain<Sample, SampleCreateFields>("samples/upsert", upsert, "samples");
+  return useUpsertDomain<Sample, SampleCreateFields>(
+    "samples/upsert",
+    upsert,
+    "samples",
+  );
 };

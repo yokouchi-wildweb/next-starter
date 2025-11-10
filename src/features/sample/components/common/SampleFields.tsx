@@ -2,13 +2,13 @@
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { SelectInput } from "src/components/Form/Manual";
+import { SelectInput } from "@/components/Form/manual";
 import { TextInput } from "@/components/Form/Controlled";
 import { NumberInput } from "@/components/Form/Controlled";
-import StepperInput from "@/components/Form/Manual/StepperInput";
+import StepperInput from "@/components/Form/manual/StepperInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";
 import { SwitchInput } from "@/components/Form/Controlled";
-import { BooleanRadioGroupInput } from "src/components/Form/Manual";
+import { BooleanRadioGroupInput } from "@/components/Form/manual";
 import { FileUrlInput } from "@/components/Form/Controlled";
 import { Textarea } from "@/components/Form/Controlled";
 import type { Options } from "@/types/form";
@@ -84,7 +84,9 @@ export function SampleFields<TFieldValues extends FieldValues>({
         control={control}
         name={"radio" as FieldPath<TFieldValues>}
         label="ラジオボタン"
-        renderInput={(field) => <BooleanRadioGroupInput field={field} />}
+        renderInput={(field) => (
+          <BooleanRadioGroupInput field={field} options={[{"value":true,"label":"はい"},{"value":false,"label":"いいえ"}]} />
+        )}
       />
       <FormFieldItem
         control={control}

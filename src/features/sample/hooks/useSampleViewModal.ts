@@ -68,7 +68,7 @@ export const useSampleViewModal = (sampleId: string | null) => {
       [
         {
           label: "サマリー",
-          value: "value",
+          value: "モーダルを使用するには表示個所のロジックを実装してください。",
         },
       ],
     ];
