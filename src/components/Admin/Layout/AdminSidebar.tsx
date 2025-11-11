@@ -8,12 +8,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Block } from "@/components/Layout/Block";
-import { adminMenu } from "../../../config/admin-global-menu.config";
-import { UI_BEHAVIOR_CONFIG } from "../../../config/ui-behavior-config";
 import { Span } from "@/components/TextBlocks";
 import { useLogout } from "@/features/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
+
+import { adminMenu } from "../../../config/admin-global-menu.config";
+import { UI_BEHAVIOR_CONFIG } from "../../../config/ui-behavior-config";
 import { AdminSidebarButton, adminSidebarButtonClassName } from "./AdminSidebarButton";
 
 const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;
@@ -21,6 +22,42 @@ const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;
 const sidebarContainer = cva(
   "min-h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg",
 );
+
+const hasHref = (href: string | null | undefined): href is string =>
+  typeof href === "string" && href.length > 0;
+
+type SidebarMenuItem = {
+  title: string;
+  href: string;
+};
+
+type SidebarMenuSection = {
+  title: string;
+  href: string | null;
+  items: SidebarMenuItem[];
+};
+
+const sidebarSections: SidebarMenuSection[] = adminMenu.map((section) => {
+  const primaryHref = hasHref(section.href) ? section.href : null;
+
+  const items = section.items.reduce<SidebarMenuItem[]>((acc, item) => {
+    if (!hasHref(item.href)) {
+      return acc;
+    }
+
+    acc.push({
+      title: item.title,
+      href: item.href,
+    });
+    return acc;
+  }, []);
+
+  return {
+    title: section.title,
+    href: primaryHref,
+    items,
+  };
+});
 
 const submenuVariants = cva(
   "modal-layer absolute left-full -ml-2 top-0 w-48 space-y-1 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
@@ -65,6 +102,11 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
     };
   }, [clearCloseTimeout]);
 
+  const closeSubmenuImmediately = useCallback(() => {
+    clearCloseTimeout();
+    setOpenIndex(null);
+  }, [clearCloseTimeout]);
+
   const handleLogout = useCallback(async () => {
     try {
       await logout();
@@ -85,9 +127,8 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
       <Block space="xs" className="w-full mb-0">
         <nav aria-label="管理メニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
-            {adminMenu.map((section, i) => {
+            {sidebarSections.map((section, i) => {
               const hasSubMenu = section.items.length > 0;
-              const hasHref = typeof section.href === "string" && section.href.length > 0;
               const isOpen = openIndex === i;
 
               const handlePrimaryFocus = () => {
@@ -109,13 +150,12 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                     scheduleClose();
                   }}
                 >
-                  {hasHref ? (
+                  {section.href ? (
                     <AdminSidebarButton asChild>
                       <Link
                         href={section.href}
                         onClick={() => {
-                          clearCloseTimeout();
-                          setOpenIndex(null);
+                          closeSubmenuImmediately();
                           onNavigate?.();
                         }}
                         onFocus={handlePrimaryFocus}
@@ -159,8 +199,7 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                             href={item.href}
                             className={cn(itemLink(), "block w-full py-5")}
                             onClick={() => {
-                              clearCloseTimeout();
-                              setOpenIndex(null);
+                              closeSubmenuImmediately();
                               onNavigate?.();
                             }}
                           >
