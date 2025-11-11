@@ -141,7 +141,7 @@ registry/
   - `search(params)` … ページングや `searchQuery`、`where` 句、`orderBy` を組み合わせた柔軟な検索。ドメインサービスが提供する複雑な検索条件をそのまま利用できます。
   - `bulkDelete(ids)` … ID 配列で一括削除。
   - `upsert(data, options)` … 衝突検知フィールドを切り替えながらの作成＋更新。
-- 具体的な利用例と React Hooks との組み合わせは「[自動生成されるドメインのフック使用方法](../how-to/汎用CRUDのフック使用方法)」を参照してください。
+- 具体的な利用例と React Hooks との組み合わせは「[自動生成されるドメインのフック使用方法](../how-to/implementation/汎用CRUDのフック使用方法.md)」を参照してください。
 
 ### 6.5 React Hooks
 - `hooks/` ディレクトリに `use<Domain>List`, `use<Domain>`, `useCreate<Domain>` などを配置し、`lib/crud/hooks` の汎用フックにクライアントサービスを渡すだけで利用できます。

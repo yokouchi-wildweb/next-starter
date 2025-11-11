@@ -1,6 +1,6 @@
 # Neon Firebaseなど各種バックエンドサービスの設定方法
 
-このドキュメントでは、[クイックスタート: 環境構築からデプロイまでの方法](./クイックスタート_環境構築からデプロイまでの方法.md) の関連として、
+このドキュメントでは、[クイックスタート: 環境構築からデプロイまでの方法](クイックスタート_環境構築からデプロイまでの方法.md) の関連として、
 Firebase コンソールおよび関連する外部サービス（Neon など）の設定手順をまとめます。
 プロジェクト作成直後に行う初期設定をチームで統一し、`.env.*` や `apphosting.yaml` に正しい値を反映できるようにすることが目的です。
 
@@ -13,7 +13,7 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
 - Neon などの PostgreSQL サービスにアクセスできるアカウントを保有していること
 - プロジェクトのオーナー、または設定変更に必要な IAM 権限を付与された Google アカウントで Firebase コンソールへアクセスできること
 
-> Google Cloud 側の IAM 権限詳細は [GoogleCloud 側で必要な IAM ロールと設定方法](./GoogleCloud側で必要なIAMロールと設定方法.md) を参照してください。
+> Google Cloud 側の IAM 権限詳細は [GoogleCloud 側で必要な IAM ロールと設定方法](GoogleCloud側で必要なIAMロールと設定方法.md) を参照してください。
 
 ---
 
@@ -140,7 +140,7 @@ Firebase App Hosting は、従来の Firebase Hosting + Cloud Functions 構成�
 ## 10. Google Cloud IAM の確認
 
 - Firebase プロジェクトは同名の GCP プロジェクトと連動しています。追加のサービス（Cloud Functions、Cloud Run 等）を利用する場合は IAM 権限が必要です。
-- 詳細なロール割り当てやサービスアカウントのベストプラクティスは [GoogleCloud 側で必要な IAM ロールと設定方法](./GoogleCloud側で必要なIAMロールと設定方法.md) を参照し、各メンバーが必要最低限の権限で運用してください。
+- 詳細なロール割り当てやサービスアカウントのベストプラクティスは [GoogleCloud 側で必要な IAM ロールと設定方法](GoogleCloud側で必要なIAMロールと設定方法.md) を参照し、各メンバーが必要最低限の権限で運用してください。
 - Terraform や IaC ツールで管理している場合は、変更後に `docs/how-to` 配下の関連手順も更新し、ドリフトがないようにします。
 
 ---

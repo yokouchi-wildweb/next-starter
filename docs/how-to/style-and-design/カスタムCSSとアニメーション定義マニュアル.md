@@ -29,8 +29,8 @@ src/
 ## 📄 global.css の書き方
 
 ```css
-@import "tailwindcss";
-@import "tw-animate-css";
+@import "../../../node_modules/tailwindcss/dist/lib.d.mts";
+@import "../../../node_modules/tw-animate-css";
 
 @import "./animations.css";
 @import "./theme.css";
