@@ -42,7 +42,7 @@
     - `index.ts` でコンポーネントと型を再エクスポートし、利用側は `@/components/Form/Controlled` からまとめて import します。
   - `manual/`
     - shadcn/ui などの複合コンポーネントを用いて `field` を手動で橋渡しする入力部品を配置します。
-    - `index.ts` で `CheckGroupInput` / `RadioGroupInput` / `SelectInput` を再エクスポートし、`@/components/Form/manual` から利用します。
+    - `index.ts` で `CheckGroupInput` / `RadioGroupInput` / `SelectInput` を再エクスポートし、`@/components/Form/Manual` から利用します。
   - 上記以外
     - ラベルやボタンなど、`field` を直接扱わない補助的なフォーム部品を配置します。
 - **Controlled 入力コンポーネントの利用指針**

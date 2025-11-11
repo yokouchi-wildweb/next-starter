@@ -33,9 +33,9 @@ function generateFieldsFromConfig(config) {
   let needOptionsType = false;
 
   for (const rel of relations) {
-    addImport('import { SelectInput } from "@/components/Form/manual";');
+    addImport('import { SelectInput } from "@/components/Form/Manual";');
     if (rel.relationType === "belongsToMany") {
-      addImport('import { CheckGroupInput } from "@/components/Form/manual";');
+      addImport('import { CheckGroupInput } from "@/components/Form/Manual";');
     }
     needOptionsType = true;
 
@@ -73,7 +73,7 @@ function generateFieldsFromConfig(config) {
         );
         break;
       case "numericInput":
-        addImport('import StepperInput from "@/components/Form/manual/StepperInput";');
+        addImport('import StepperInput from "@/components/Form/Manual/StepperInput";');
         addImport('import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";');
         body.push(
           replacePartialTokens(getPartial("numericInput.tsx"), {
@@ -110,7 +110,7 @@ function generateFieldsFromConfig(config) {
         );
         break;
       case "select":
-        addImport('import { SelectInput } from "@/components/Form/manual";');
+        addImport('import { SelectInput } from "@/components/Form/Manual";');
         const opts = f.fieldType === "boolean"
           ? JSON.stringify(normalizeBooleanOptions(f.options))
           : f.options && f.options.length
@@ -126,7 +126,7 @@ function generateFieldsFromConfig(config) {
         break;
       case "radio": {
         if (f.fieldType === "boolean") {
-          addImport('import { BooleanRadioGroupInput } from "@/components/Form/manual";');
+          addImport('import { BooleanRadioGroupInput } from "@/components/Form/Manual";');
           const normalizedOptions = normalizeBooleanOptions(f.options);
 
           body.push(
@@ -137,7 +137,7 @@ function generateFieldsFromConfig(config) {
             }).trimEnd(),
           );
         } else if (f.options && f.options.length) {
-          addImport('import { RadioGroupInput } from "@/components/Form/manual";');
+          addImport('import { RadioGroupInput } from "@/components/Form/Manual";');
           const optsRadio = JSON.stringify(f.options);
           body.push(
             replacePartialTokens(getPartial("radio.tsx"), {
@@ -151,7 +151,7 @@ function generateFieldsFromConfig(config) {
       }
       case "checkbox":
         if (f.fieldType === "boolean") {
-          addImport('import { BooleanCheckboxInput } from "@/components/Form/manual";');
+          addImport('import { BooleanCheckboxInput } from "@/components/Form/Manual";');
           body.push(
             replacePartialTokens(getPartial("checkboxBoolean.tsx"), {
               fieldName: f.name,
