@@ -111,7 +111,33 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
 
 ---
 
-## 8. Google Cloud IAM の確認
+## 8. Firebase App Hosting の設定
+
+Firebase App Hosting は、従来の Firebase Hosting + Cloud Functions 構成と異なり、Functions を併用せずに Next.js アプリを単独でホストできます。App Hosting が Cloud Run（コンテナ実行環境）上に自動でアプリをデプロイするため、SSR や API Routes をそのまま実行できる点がメリットです。
+
+1. Firebase CLI が最新であることを確認し、`firebase login` / `firebase use` で対象プロジェクトを選択しておきます。
+2. プロジェクトのルートで `firebase init` を実行し、表示されるサービス一覧から **App Hosting (Preview)** を有効化します。従来の Hosting とは別項目になっているので見逃さないよう注意してください。
+3. 対話形式でアプリ種別に「Web フレームワーク（Next.js）」を選択すると、`firebase.json` と `apphosting.yaml` が生成されます。Functions の設定は不要です。
+4. `apphosting.yaml` に環境変数を追記し、ビルドターゲットやリージョンなどを必要に応じて調整します。Web コンソール側での追加設定は不要で、CLI 経由の構成がそのまま反映されます。
+5. 準備が整ったら `firebase deploy --only apphosting` でデプロイをテストし、Next.js アプリが期待通りに動作するか確認してください。
+
+> 既に Firebase Hosting（静的サイト向け）を利用している場合でも、App Hosting を併用することで SSR/ISR 機能を活かした運用へ移行できます。
+
+---
+
+## 9. 独自ドメインでホスティングする場合の追加設定
+
+1. Firebase コンソールの **Hosting** > **カスタムドメイン** から **ドメインを追加** をクリックし、使用したい独自ドメインを入力します。
+2. 表示される DNS 設定ガイドに従い、ドメイン管理サービス（Google Domains や Route53 など）で TXT レコードを追加して所有権を確認します。
+3. 所有権が確認されたら、A レコード（`@`）および必要に応じて `www` サブドメインなどの CNAME レコードを Firebase が指定するエンドポイントへ向けます。App Hosting を利用する場合も Hosting のカスタムドメイン設定で同じレコードを使用します。
+4. DNS 伝播後、Firebase コンソール上でステータスが「接続済み」になると HTTPS 証明書が自動発行されます。証明書発行には数分～1時間ほどかかることがあります。
+5. 認証リダイレクトや OAuth クライアントを利用している場合は、Firebase Authentication や各種外部サービスの許可リダイレクト URI を独自ドメイン版へ更新することを忘れないでください。
+
+> DNS の反映には時間がかかる場合があります。切り替え時は TTL を短く設定しておくとロールバックが容易です。
+
+---
+
+## 10. Google Cloud IAM の確認
 
 - Firebase プロジェクトは同名の GCP プロジェクトと連動しています。追加のサービス（Cloud Functions、Cloud Run 等）を利用する場合は IAM 権限が必要です。
 - 詳細なロール割り当てやサービスアカウントのベストプラクティスは [GoogleCloud 側で必要な IAM ロールと設定方法](./GoogleCloud側で必要なIAMロールと設定方法.md) を参照し、各メンバーが必要最低限の権限で運用してください。
@@ -119,7 +145,7 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
 
 ---
 
-## 9. チームで共有しておくと便利なメモ
+## 11. チームで共有しておくと便利なメモ
 
 - **環境変数シート**: `.env` のキーと値の保管場所を Notion や Spreadsheet で一覧化し、更新履歴を残すと onboarding がスムーズです。
 - **ローテーションスケジュール**: サービスアカウント鍵や OAuth クライアントシークレットのローテーション予定を決めておくと、緊急対応が減ります。
