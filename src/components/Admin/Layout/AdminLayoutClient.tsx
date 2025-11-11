@@ -17,6 +17,10 @@ type AdminLayoutClientProps = {
   footerText?: string | null;
 };
 
+type AdminLayoutCSSVariables = CSSProperties & {
+  "--app-header-height"?: string;
+};
+
 export function AdminLayoutClient({
   children,
   headerLogoUrl,
@@ -26,7 +30,7 @@ export function AdminLayoutClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const headerHeight = useHeaderHeight();
 
-  const layoutStyle: CSSProperties = useMemo(
+  const layoutStyle: AdminLayoutCSSVariables = useMemo(
     () => ({
       "--app-header-height": `${headerHeight}px`,
     }),
