@@ -1,0 +1,122 @@
+/* src/styles/animations.css */
+
+
+/*
+ * src/styles/animations.css
+ * 共通のアニメーションや関連ユーティリティを定義します。
+ * `--animate-*` の変数は `@theme` ブロックで登録し、
+ * 追加のアニメーション用クラスは `@layer utilities` に配置します。
+ */
+
+@theme {
+
+
+  --animate-gradient-x: gradient-x 5s linear infinite;
+  --animate-gacha-loading: gacha-loading 1.2s ease-in-out infinite;
+  --animate-card-shine: card-shine 1.5s linear infinite;
+  --animate-radiant-aura: radiant-aura 0.6s ease-in infinite alternate;
+  --animate-radiant-aura-child: radiant-aura-child 0.6s ease-in infinite alternate;
+
+  --animate-fade-in-scale: fade-in-scale 2.3s ease-out;
+  @keyframes fade-in-scale {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+
+  @keyframes gradient-x {
+    0%,
+    100% {
+      background-position: 0% 50%;
+      background-image: linear-gradient(
+        90deg,
+        #7dd3fc 0%,
+        #7dd3fc 23%,
+        #38bdf8 30%,
+        #22d3ee 40%,
+        #c084fc 50%,
+        #ffe07f 55%,
+        #7dd3fc 60%,
+        #38bdf8 65%,
+        #22d3ee 70%,
+        #7dd3fc 100%
+      );
+    }
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes gacha-loading {
+    0% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.4) rotate(180deg);
+      opacity: 0.6;
+    }
+    100% {
+      transform: scale(1) rotate(360deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes card-shine {
+    from {
+      transform: translateX(-100%) scaleX(0.2);
+      opacity: 0.6;
+    }
+    to {
+      transform: translateX(360%) scaleX(2);
+      opacity: 0;
+    }
+  }
+  @keyframes radiant-aura {
+    from {
+      box-shadow:
+              0 0 0 3px rgba(255, 255, 255, 0.2), /* ring-4 + ring-white/20 */
+              0 10px 15px -3px rgba(255, 255, 255, 0.5) /* shadow-lg + shadow-white/60 */
+    }
+    to {
+      /* 好みに応じてアニメーション後の状態を記述 */
+      box-shadow:
+              0 0 0 6px rgba(255, 220, 200, 0.1),
+              0 12px 60px -2px rgba(255, 200, 180, 1)
+    }
+  }
+  @keyframes radiant-aura-child {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      /* 好みに応じてアニメーション後の状態を記述 */
+      opacity: 1;
+    }
+  }
+}
+
+/*
+ * utilities レイヤー: アニメーション関連のユーティリティクラスを定義します。
+ */
+@layer utilities {
+  .fill-forwards {
+    animation-fill-mode: forwards;
+  }
+  .fill-backwards {
+    animation-fill-mode: backwards;
+  }
+  .fill-both {
+    animation-fill-mode: both;
+  }
+  .fill-none {
+    animation-fill-mode: none;
+  }
+}
