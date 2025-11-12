@@ -73,7 +73,7 @@ function FuturisticNavButton({ href, children, className }: FuturisticNavButtonP
     >
       <Link href={href} className="flex w-full items-center justify-between">
         <Span
-          size="default"
+          size="md"
           className="font-semibold tracking-[0.12em] text-slate-600 transition-colors duration-500 group-hover:text-slate-900"
         >
           {children}
@@ -122,7 +122,7 @@ export default function Home() {
                 className="inline-block w-[72%] rounded-3xl border border-white/60 bg-white/39 p-6 backdrop-blur"
               >
               {quickStartSteps.map((step) => (
-                <Para key={step.id} size="lead" className="text-center text-slate-700">
+                <Para key={step.id} size="lg" className="text-center text-slate-700">
                   {step.id}. {step.description}
                 </Para>
               ))}
