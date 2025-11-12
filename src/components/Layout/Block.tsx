@@ -1,4 +1,3 @@
-
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef } from "react";
 
@@ -13,11 +12,18 @@ const blockVariants = cva("block", {
   defaultVariants: {
     variant: "default",
     space: "md",
+    padding: "none",
+    margin: "none",
   },
 });
 
 type BlockProps = ComponentPropsWithoutRef<"div"> & VariantProps<typeof blockVariants>;
 
-export function Block({ variant, space, className, ...props }: BlockProps) {
-  return <div {...props} className={cn(blockVariants({ variant, space }), className)} />;
+export function Block({ variant, space, padding, margin, className, ...props }: BlockProps) {
+  return (
+    <div
+      {...props}
+      className={cn(blockVariants({ variant, space, padding, margin }), className)}
+    />
+  );
 }

@@ -1,4 +1,3 @@
-
 import { cva, type VariantProps } from "class-variance-authority";
 import { ComponentPropsWithoutRef } from "react";
 
@@ -44,6 +43,8 @@ const flexVariants = cva("flex", {
   defaultVariants: {
     variant: "default",
     space: "none",
+    padding: "none",
+    margin: "none",
     gap: "none",
     direction: "row",
     align: "stretch",
@@ -60,6 +61,8 @@ type FlexProps = Omit<ComponentPropsWithoutRef<"div">, "className"> &
 export function Flex({
   variant,
   space,
+  padding,
+  margin,
   gap,
   direction,
   align,
@@ -74,6 +77,8 @@ export function Flex({
         flexVariants({
           variant,
           space,
+          padding,
+          margin,
           gap,
           direction,
           align,
