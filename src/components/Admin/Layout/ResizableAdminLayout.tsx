@@ -43,7 +43,7 @@ export function ResizableAdminLayout({
   }, [isSidebarResizable]);
 
   return (
-    <div className="flex flex-1 min-h-0 relative">
+    <div className="flex flex-1 min-h-0 relative overflow-hidden">
       {/* mobile sidebar */}
       <div
         style={{ width: sidebarWidth }}
@@ -73,7 +73,7 @@ export function ResizableAdminLayout({
           className="hidden md:block w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"
         />
       ) : null}
-      <main className="flex-1 min-h-0 p-4">{children}</main>
+      <main className="flex-1 min-h-0 overflow-auto p-4">{children}</main>
     </div>
   );
 }
