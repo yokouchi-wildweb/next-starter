@@ -41,6 +41,7 @@ export default function AdminPageTitle({
 }: AdminPageTitleProps) {
   return (
     <PageTitle
+        weight="normal"
       className={cn(
         adminPageTitleVariants({ variant, marginBottom }),
         className,

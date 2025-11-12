@@ -29,6 +29,7 @@ export default function AdminSecTitle({
 }: AdminSecTitleProps) {
   return (
     <SecTitle
+        weight="normal"
       size={size}
       className={cn(adminSecTitleVariants({ variant }), className)}
       {...props}
