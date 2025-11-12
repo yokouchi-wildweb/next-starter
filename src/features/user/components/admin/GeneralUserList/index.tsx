@@ -1,7 +1,7 @@
 // src/features/user/components/admin/GeneralUserList/index.tsx
 
 import type { User } from "@/features/user/entities";
-import { Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
 import UserListHeader from "../UserListHeader";
 import Table from "./Table";
 

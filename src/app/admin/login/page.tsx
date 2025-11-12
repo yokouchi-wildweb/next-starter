@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 
 import { Flex } from "@/components/Layout/Flex";
-import { Main, PageTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle } from "@/components/TextBlocks";
 import { AdminLogin } from "@/features/auth/components/AdminLogin";
 import { authGuard } from "@/features/auth/services/server/authorization";
 import Link from "next/link";

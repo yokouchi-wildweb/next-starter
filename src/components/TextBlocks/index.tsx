@@ -1,9 +1,6 @@
 export { Main } from "../Layout/Main";
 export type { MainProps } from "../Layout/Main";
 
-export { Section } from "./Section";
-export type { SectionProps } from "./Section";
-
 export { PageTitle } from "./PageTitle";
 export type { PageTitleProps } from "./PageTitle";
 

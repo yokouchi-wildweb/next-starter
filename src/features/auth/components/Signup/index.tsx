@@ -7,7 +7,8 @@ import { VerificationEmailSendForm } from "./EmailVarification/sendForm";
 import { ThirdPartySignupOptions } from "./ThirdPartySignupOptions";
 
 import { Block } from "@/components/Layout/Block";
-import { Para, SecTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Para, SecTitle } from "@/components/TextBlocks";
 
 export type SignupProps = {
   urlAfterEmailSent: string;

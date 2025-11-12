@@ -1,6 +1,7 @@
 // src/app/(user)/signup/register/page.tsx
 
-import { Main, PageTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle } from "@/components/TextBlocks";
 import { Registration } from "../../../../features/auth/components/Registration";
 
 type SignUpRegisterPageProps = {

@@ -9,7 +9,8 @@ import Link from "next/link";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
-import { Main, PageTitle, Para, Section, Span } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle, Para, Span } from "@/components/TextBlocks";
 import { CosmicCoasterScene } from "@/components/Three/CosmicCoasterScene";
 import FullScreen from "@/components/Layout/FullScreen";
 import { cn } from "@/lib/cn";

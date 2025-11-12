@@ -1,7 +1,8 @@
 // src/app/(user)/login/page.tsx
 
 import { Flex } from "@/components/Layout/Flex";
-import { Main, PageTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle } from "@/components/TextBlocks";
 import { UserLogin } from "@/features/auth/components/UserLogin";
 
 export default function UserLoginPage() {
