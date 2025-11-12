@@ -1,19 +1,14 @@
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { layoutVariants } from "./commonVariants";
+import { createLayoutVariants } from "./commonVariants";
 
-const blockVariants = cva("block", {
-  variants: {
-    ...layoutVariants,
-  },
+const blockVariants = createLayoutVariants("block", {
   defaultVariants: {
     visualEffect: "default",
     space: "md",
-    padding: "none",
-    margin: "none",
   },
 });
 
@@ -23,14 +18,30 @@ export function Block({
   visualEffect,
   space,
   padding,
+  paddingBlock,
+  paddingInline,
   margin,
+  marginBlock,
+  marginInline,
   className,
   ...props
 }: BlockProps) {
   return (
     <div
       {...props}
-      className={cn(blockVariants({ visualEffect, space, padding, margin }), className)}
+      className={cn(
+        blockVariants({
+          visualEffect,
+          space,
+          padding,
+          paddingBlock,
+          paddingInline,
+          margin,
+          marginBlock,
+          marginInline,
+        }),
+        className,
+      )}
     />
   );
 }
