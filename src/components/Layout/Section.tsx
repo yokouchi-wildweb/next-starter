@@ -1,19 +1,14 @@
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { layoutVariants } from "./commonVariants";
+import { createLayoutVariants } from "./commonVariants";
 
-const sectionVariants = cva("block", {
-  variants: {
-    ...layoutVariants,
-  },
+const sectionVariants = createLayoutVariants("block", {
   defaultVariants: {
     visualEffect: "default",
     space: "md",
-    padding: "none",
-    margin: "none",
   },
 });
 
@@ -32,7 +27,11 @@ export function Section<T extends SectionElement = "section">({
   visualEffect,
   space,
   padding,
+  paddingBlock,
+  paddingInline,
   margin,
+  marginBlock,
+  marginInline,
   className,
   ...props
 }: SectionProps<T>) {
@@ -41,7 +40,19 @@ export function Section<T extends SectionElement = "section">({
   return (
     <Component
       {...props}
-      className={cn(sectionVariants({ visualEffect, space, padding, margin }), className)}
+      className={cn(
+        sectionVariants({
+          visualEffect,
+          space,
+          padding,
+          paddingBlock,
+          paddingInline,
+          margin,
+          marginBlock,
+          marginInline,
+        }),
+        className,
+      )}
     />
   );
 }

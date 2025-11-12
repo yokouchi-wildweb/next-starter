@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   eslint: {
-    ignoreDuringBuilds: true, // ← ESLint のエラーを無視してビルドを通す
+    ignoreDuringBuilds: true,
   },
   webpack: (config) => {
     config.resolve = config.resolve ?? {};
