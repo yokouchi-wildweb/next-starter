@@ -23,6 +23,11 @@
 # Firebase
 /.firebase/
 firebase-service-acount.json
+firestore.indexes.json
+.firebaserc
+firebase.json
+firestore.rules
+storage.rules
 
 # production
 /build
