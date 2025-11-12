@@ -48,7 +48,7 @@ export const UserNavigation = () => {
 
   return (
     <header id={APP_HEADER_ELEMENT_ID} className="fixed inset-x-0 top-0 header-layer border-b border-border bg-card">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-2 sm:py-4">
         <NavigationBrand />
         <NavigationToggleButton isMenuOpen={isMenuOpen} onToggle={handleToggle} />
         <DesktopNavigation items={navItems} />
