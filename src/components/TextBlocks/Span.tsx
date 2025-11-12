@@ -14,12 +14,20 @@ export function Span({
   tone = "default",
   size = "md",
   align,
+  weight = "normal",
+  srOnly = "false",
   className,
   children,
   ...props
 }: SpanProps) {
   return (
-    <span className={cn(spanVariants({ tone, size, align }), className)} {...props}>
+    <span
+      className={cn(
+        spanVariants({ tone, size, align, weight, srOnly }),
+        className,
+      )}
+      {...props}
+    >
       {children}
     </span>
   );

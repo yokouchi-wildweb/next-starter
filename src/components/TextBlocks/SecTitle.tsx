@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 
 import { createTextVariants } from "./textVariants";
 
-const secTitleVariants = createTextVariants("font-semibold");
+const secTitleVariants = createTextVariants("");
 
 type HeadingElement = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
@@ -21,6 +21,8 @@ export function SecTitle({
   tone = "default",
   size = "xl",
   align = "left",
+  weight = "bold",
+  srOnly = "false",
   className,
   children,
   ...props
@@ -28,7 +30,10 @@ export function SecTitle({
   const Component = (as ?? "h2") as HeadingElement;
   return (
     <Component
-      className={cn(secTitleVariants({ tone, size, align }), className)}
+      className={cn(
+        secTitleVariants({ tone, size, align, weight, srOnly }),
+        className,
+      )}
       {...props}
     >
       {children}
