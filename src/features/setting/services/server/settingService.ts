@@ -5,7 +5,6 @@ import { base } from "./drizzleBase";
 const DEFAULT_ADMIN_LIST_PER_PAGE = 100;
 
 const createDefaultSettingValues = () => ({
-  developerMotivation: 100,
   adminHeaderLogoImageUrl: null,
   adminHeaderLogoImageDarkUrl: null,
   adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,

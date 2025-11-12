@@ -11,7 +11,6 @@ import { Grid } from "@/components/Layout/Grid";
 import { SecTitle, Span, Section } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import { APP_FEATURES } from "@/config/app-features.config";
-import { settingService } from "@/features/setting/services/server/settingService";
 import { userService } from "@/features/user/services/server/userService";
 import type { UserRoleType } from "@/types/user";
 
@@ -23,8 +22,7 @@ export default async function AdminHomePage() {
   const startOfTomorrow = startOfToday.add(1, "day");
   const { showMainMetrics, showAdditionalMetrics } = APP_FEATURES.admin.dashboard.sections;
 
-  const [setting, { total: totalUserCount }, { total: todayUserCount }] = await Promise.all([
-    settingService.getGlobalSetting(),
+  const [{ total: totalUserCount }, { total: todayUserCount }] = await Promise.all([
     userService.search({
       limit: 1,
       where: { field: "role", op: "eq", value: ROLE_USER },
@@ -151,7 +149,7 @@ export default async function AdminHomePage() {
               </CardHeader>
               <CardContent>
                 <Flex justify="center" align="center" width="full">
-                  <DeveloperMotivationChart percentage={setting.developerMotivation ?? 0} />
+                  <DeveloperMotivationChart percentage={APP_FEATURES.coffeeLevel ?? 0} />
                 </Flex>
               </CardContent>
             </Card>

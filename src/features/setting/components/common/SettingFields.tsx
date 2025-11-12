@@ -4,7 +4,6 @@ import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/Controlled";
 import { ImageUploaderField } from "@/components/Form/ImageUploaderField";
-import {Para} from "@/components/TextBlocks";
 
 export type SettingFieldsProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
@@ -13,12 +12,6 @@ export type SettingFieldsProps<TFieldValues extends FieldValues> = {
 export function SettingFields<TFieldValues extends FieldValues>({ control }: SettingFieldsProps<TFieldValues>) {
   return (
     <>
-      <FormFieldItem
-        control={control}
-        name={"developerMotivation" as FieldPath<TFieldValues>}
-        label="開発者のやる気 (0-200)"
-        renderInput={(field) => <TextInput field={field} type="number" />}
-      />
       <ImageUploaderField
         control={control}
         name={"adminHeaderLogoImageUrl" as FieldPath<TFieldValues>}
@@ -42,10 +35,10 @@ export function SettingFields<TFieldValues extends FieldValues>({ control }: Set
         name={"adminFooterText" as FieldPath<TFieldValues>}
         label="管理画面フッターの表記"
         description={{
-            text: "※ フッター設定は変更後にページ再読み込みが必要です。",
-            tone: 'muted',
-            size: 'sm',
-            placement: 'before',
+          text: "※ フッター設定は変更後にページ再読み込みが必要です。",
+          tone: "muted",
+          size: "sm",
+          placement: "before",
         }}
         renderInput={(field) => (
           <TextInput field={field} placeholder={`© ${new Date().getFullYear()} Wildweb.`} />
