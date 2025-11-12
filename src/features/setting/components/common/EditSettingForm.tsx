@@ -24,7 +24,6 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
     mode: "onSubmit",
     shouldUnregister: false,
     defaultValues: {
-      developerMotivation: setting.developerMotivation,
       adminHeaderLogoImageUrl: setting.adminHeaderLogoImageUrl ?? "",
       adminHeaderLogoImageDarkUrl: setting.adminHeaderLogoImageDarkUrl ?? "",
       adminListPerPage: setting.adminListPerPage ?? 100,
