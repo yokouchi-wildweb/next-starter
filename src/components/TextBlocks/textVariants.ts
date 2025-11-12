@@ -21,6 +21,8 @@ export const size = {
   md: "text-base",
   lg: "text-lg",
   xl: "text-xl",
+  xxl: "text-2xl",
+  display: "text-3xl md:text-4xl",
 } as const;
 
 export const align = {

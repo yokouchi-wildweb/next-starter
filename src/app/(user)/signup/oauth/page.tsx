@@ -22,7 +22,7 @@ export default async function SignUpOAuthPage({
 
   return (
     <Main containerType="narrowStack">
-      <PageTitle variant="srOnly">OAuth認証</PageTitle>
+      <PageTitle className="sr-only">OAuth認証</PageTitle>
       <OAuth provider={provider} />
     </Main>
   );

@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 
-import { SecTitle } from "@/components/TextBlocks";
+import AdminSecTitle from "@/components/Admin/Layout/AdminSecTitle";
 import { Button } from "@/components/Form/Button/Button";
 
 type Props = {
@@ -16,9 +16,9 @@ type Props = {
 export default function AdminListHeader({ title, newHref, children }: Props) {
   return (
     <div className="flex justify-between items-center gap-2">
-      <SecTitle variant="barAccent" as="h2">
+      <AdminSecTitle>
         {title}
-      </SecTitle>
+      </AdminSecTitle>
       <div className="flex items-center gap-2">
         {children}
         {newHref && (
