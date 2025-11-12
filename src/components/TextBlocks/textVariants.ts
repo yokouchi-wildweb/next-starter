@@ -1,3 +1,5 @@
+// src/components/TextBlocks/textVariants.ts
+
 import { cva } from "class-variance-authority";
 
 const textToneVariants = {
