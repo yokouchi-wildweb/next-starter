@@ -8,10 +8,10 @@ import { PageTitle, type PageTitleProps } from "@/components/TextBlocks";
 
 const marginBottomClassMap = {
   xs: "mb-4",
-  sm: "mb-8",
-  md: "mb-12",
-  lg: "mb-16",
-  xl: "mb-20",
+  sm: "mb-6",
+  md: "mb-8",
+  lg: "mb-10",
+  xl: "mb-12",
 } as const;
 
 const adminPageTitleVariants = cva(
