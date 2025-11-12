@@ -25,6 +25,18 @@ export const size = {
   xxxl: "text-3xl",
 } as const;
 
+export const weight = {
+  thin: "font-thin",
+  extraLight: "font-extralight",
+  light: "font-light",
+  normal: "font-normal",
+  medium: "font-medium",
+  semiBold: "font-semibold",
+  bold: "font-bold",
+  extraBold: "font-extrabold",
+  black: "font-black",
+} as const;
+
 export const align = {
   left: "text-left",
   center: "text-center",
@@ -33,11 +45,18 @@ export const align = {
   centerToStartSm: "text-center sm:text-left",
 } as const;
 
+export const srOnly = {
+  true: "sr-only",
+  false: "",
+} as const;
+
 export const createTextVariants = (baseClass: string) =>
   cva(baseClass, {
     variants: {
       tone,
       size,
+      weight,
       align,
+      srOnly,
     },
   });
