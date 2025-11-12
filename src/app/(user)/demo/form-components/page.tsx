@@ -178,7 +178,9 @@ export default function FormComponentsDemoPage() {
   return (
       <Main containerType="wideShowcase">
         <Section>
-          <PageTitle variant="showcase">Form コンポーネント デモ</PageTitle>
+          <PageTitle size="display" className="font-semibold tracking-tight">
+            Form コンポーネント デモ
+          </PageTitle>
           <Para tone="muted" size="sm">
             <code>src/components/Form</code> に用意されているコンポーネントの見た目と挙動を確認できます。
           </Para>
@@ -396,7 +398,7 @@ export default function FormComponentsDemoPage() {
 
           <div className="flex flex-col gap-4">
             <div className="rounded-lg border bg-muted/40 p-4">
-              <SecTitle variant="subtle">
+              <SecTitle tone="muted" size="sm">
                 現在の値
               </SecTitle>
               <pre className="mt-2 max-h-96 overflow-auto rounded bg-background/80 p-3 text-xs">
@@ -404,7 +406,7 @@ export default function FormComponentsDemoPage() {
             </pre>
             </div>
             <div className="rounded-lg border bg-muted/40 p-4">
-              <SecTitle variant="subtle">
+              <SecTitle tone="muted" size="sm">
                 送信結果
               </SecTitle>
               <pre className="mt-2 max-h-96 overflow-auto rounded bg-background/80 p-3 text-xs">

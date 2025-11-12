@@ -46,7 +46,7 @@ export function OAuth({ provider }: OAuthProps) {
 
   return (
     <Section id="signup-oauth" className="relative space-y-4">
-      <SecTitle variant="emphasis" as="h2">
+      <SecTitle as="h2" size="xxl">
         ユーザー認証
       </SecTitle>
 

@@ -44,7 +44,7 @@ export function ThirdPartySignupOptions() {
 
   return (
     <Block>
-      <SecTitle variant="standard" as="h3">
+      <SecTitle as="h3">
         サードパーティサービスで登録
       </SecTitle>
       <div className="flex flex-col gap-3">

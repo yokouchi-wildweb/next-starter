@@ -1,13 +1,14 @@
 // src/app/admin/setup/page.tsx
 
 import { Section } from "@/components/Layout/Section";
-import { Main, PageTitle, Para } from "@/components/TextBlocks";
+import { Main, Para } from "@/components/TextBlocks";
+import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
 
 export default function AdminSetupPage() {
   return (
     <Main>
       <Section id="admin-setup">
-        <PageTitle>管理コンソールへようこそ！</PageTitle>
+        <AdminPageTitle>管理コンソールへようこそ！</AdminPageTitle>
         <Para>初回セットアップを開始します。</Para>
       </Section>
     </Main>

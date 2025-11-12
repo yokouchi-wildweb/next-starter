@@ -9,7 +9,8 @@ import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
-import { SecTitle, Span } from "@/components/TextBlocks";
+import AdminSecTitle from "@/components/Admin/Layout/AdminSecTitle";
+import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import { APP_FEATURES } from "@/config/app-features.config";
 import { userService } from "@/features/user/services/server/userService";
@@ -87,7 +88,9 @@ export default async function AdminHomePage() {
 
       {showMainMetrics && (
         <Section id='main-metrics'>
-          <SecTitle variant="barAccent">サービスの稼働状況</SecTitle>
+          <AdminSecTitle>
+            サービスの稼働状況
+          </AdminSecTitle>
 
           <Grid gap="lg" className="md:grid-cols-2 lg:grid-cols-4">
             {metrics.map((metric) => (
@@ -139,7 +142,9 @@ export default async function AdminHomePage() {
 
       {showAdditionalMetrics && (
         <Section id='addinl-metrics'>
-          <SecTitle variant="barAccent">追加の指標</SecTitle>
+          <AdminSecTitle>
+            追加の指標
+          </AdminSecTitle>
 
           <Grid gap="lg" className="md:grid-cols-1 lg:grid-cols-2">
             <Card

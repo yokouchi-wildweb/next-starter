@@ -39,7 +39,7 @@ export function Verification() {
 
   return (
     <Section id="registration-email-verification" className="relative">
-      <SecTitle variant="emphasis" as="h2">
+      <SecTitle as="h2" size="xxl">
         認証失敗
       </SecTitle>
 

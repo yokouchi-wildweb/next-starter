@@ -185,7 +185,9 @@ export default function GooglePopupAuthDemoPage() {
   return (
     <Block className="py-8" space="xl">
       <header className="space-y-3">
-        <PageTitle variant="showcase">Google ポップアップ認証デモ</PageTitle>
+        <PageTitle size="display" className="font-semibold tracking-tight">
+          Google ポップアップ認証デモ
+        </PageTitle>
         <Para tone="muted">
           Firebase Authentication の Google プロバイダーをポップアップ方式で呼び出し、戻り先の画面で認証結果をそのまま確認できるデモです。
         </Para>

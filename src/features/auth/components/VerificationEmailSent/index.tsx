@@ -4,12 +4,11 @@
 
 import { Section } from "@/components/Layout/Section";
 import { Para, SecTitle } from "@/components/TextBlocks";
-import { Block } from "@/components/Layout/Block";
 
 export function VerificationEmailSent() {
   return (
     <Section id="verification-email-sent">
-      <SecTitle variant="emphasis" as="h2">
+      <SecTitle as="h2" size="xxl">
         受信メールをご確認ください
       </SecTitle>
       <Para size="sm">
