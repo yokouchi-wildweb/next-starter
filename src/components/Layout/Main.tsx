@@ -67,11 +67,11 @@ export function Main({
   }
 
   return (
-    <div id={`${id}-container`}>
+    <div id={`${id}-container`} className="min-h-full flex flex-col">
       <div
         id={`${id}-layout`}
-        className={cn(layoutVariants({ variant: effectiveVariant }))}
-        style={ layoutMaxWidths[effectiveVariant] ? { maxWidth: layoutMaxWidths[effectiveVariant] } : undefined}
+        className={cn(layoutVariants({ variant: effectiveVariant }), "my-auto")}
+        style={layoutMaxWidths[effectiveVariant] ? { maxWidth: layoutMaxWidths[effectiveVariant] } : undefined}
       >
         <main id={id} className={className} {...props}>
           {children}
