@@ -4,6 +4,7 @@ import "@/styles/global.css";
 import { Toaster } from "sonner";
 
 import { RouteTransitionOverlay } from "@/components/Feedback/RouteTransitionOverlay";
+import { ViewportHeightWatcher } from "@/components/Layout/ViewportHeightWatcher";
 import { AuthSessionProvider } from "@/features/auth/components/AuthSessionProvider";
 
 const geistSans = Geist({
@@ -31,6 +32,7 @@ export default function RootLayout({
       <head />
 
       <body suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ViewportHeightWatcher />
         <AuthSessionProvider>
           <RouteTransitionOverlay />
           {children}
