@@ -26,6 +26,9 @@ export const APP_FEATURES = {
       },
     },
   },
+  // Higher values may increase productivity.
+  coffeeLevel: 180,
+
 } as const;
 
 export type ThirdPartyRegistrationProvider = keyof typeof APP_FEATURES.signup.thirdPartyRegistration;
