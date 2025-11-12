@@ -1,13 +1,12 @@
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { layoutVariants } from "./commonVariants";
+import { createLayoutVariants } from "./commonVariants";
 
-const gridVariants = cva("grid", {
+const gridVariants = createLayoutVariants("grid", {
   variants: {
-    ...layoutVariants,
     gap: {
       none: "gap-0",
       xs: "gap-1",
@@ -85,7 +84,11 @@ const gridVariants = cva("grid", {
     visualEffect: "default",
     space: "none",
     padding: "none",
+    paddingBlock: "none",
+    paddingInline: "none",
     margin: "none",
+    marginBlock: "none",
+    marginInline: "none",
     gap: "none",
     columnGap: "none",
     rowGap: "none",
@@ -108,7 +111,11 @@ export function Grid({
   visualEffect,
   space,
   padding,
+  paddingBlock,
+  paddingInline,
   margin,
+  marginBlock,
+  marginInline,
   gap,
   columnGap,
   rowGap,
@@ -129,7 +136,11 @@ export function Grid({
           visualEffect,
           space,
           padding,
+          paddingBlock,
+          paddingInline,
           margin,
+          marginBlock,
+          marginInline,
           gap,
           columnGap,
           rowGap,

@@ -1,15 +1,15 @@
 // src/components/Layout/Main.tsx
 
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
 
 import FullScreen, { type FullScreenLayer } from "@/components/Layout/FullScreen";
 import { APP_MAIN_ELEMENT_ID } from "@/constants/layout";
 import { cn } from "@/lib/cn";
 
-import { layoutVariants as commonLayoutVariants } from "./commonVariants";
+import { createLayoutVariants } from "./commonVariants";
 
-const mainLayoutVariants = cva("mx-auto w-full", {
+const mainLayoutVariants = createLayoutVariants("mx-auto w-full", {
   variants: {
     containerType: {
       plain: "",
@@ -18,13 +18,10 @@ const mainLayoutVariants = cva("mx-auto w-full", {
       wideShowcase: "",
       fullscreen: "",
     },
-    padding: commonLayoutVariants.padding,
-    margin: commonLayoutVariants.margin,
   },
   defaultVariants: {
     containerType: "contentShell",
     padding: "md",
-    margin: "none",
   },
 });
 
@@ -44,8 +41,14 @@ export type MainProps = ComponentPropsWithoutRef<"main"> &
 
 export function Main({
   containerType,
+  visualEffect,
+  space,
   padding,
+  paddingBlock,
+  paddingInline,
   margin,
+  marginBlock,
+  marginInline,
   className,
   children,
   fullscreenLayer,
@@ -88,7 +91,17 @@ export function Main({
         <main
             id={id}
             className={cn(
-                mainLayoutVariants({ containerType: effectiveContainerType, padding, margin }),
+                mainLayoutVariants({
+                  containerType: effectiveContainerType,
+                  visualEffect,
+                  space,
+                  padding,
+                  paddingBlock,
+                  paddingInline,
+                  margin,
+                  marginBlock,
+                  marginInline,
+                }),
                 className,
             )}
             {...props}>

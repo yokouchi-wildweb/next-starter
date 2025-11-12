@@ -1,19 +1,14 @@
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { layoutVariants } from "./commonVariants";
+import { createLayoutVariants } from "./commonVariants";
 
-const inBlockVariants = cva("inline-block", {
-  variants: {
-    ...layoutVariants,
-  },
+const inBlockVariants = createLayoutVariants("inline-block", {
   defaultVariants: {
     visualEffect: "default",
     space: "none",
-    padding: "none",
-    margin: "none",
   },
 });
 
@@ -23,14 +18,30 @@ export function InBlock({
   visualEffect,
   space,
   padding,
+  paddingBlock,
+  paddingInline,
   margin,
+  marginBlock,
+  marginInline,
   className,
   ...props
 }: InBlockProps) {
   return (
     <span
       {...props}
-      className={cn(inBlockVariants({ visualEffect, space, padding, margin }), className)}
+      className={cn(
+        inBlockVariants({
+          visualEffect,
+          space,
+          padding,
+          paddingBlock,
+          paddingInline,
+          margin,
+          marginBlock,
+          marginInline,
+        }),
+        className,
+      )}
     />
   );
 }

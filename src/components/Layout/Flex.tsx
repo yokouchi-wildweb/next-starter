@@ -1,13 +1,12 @@
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 import { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { layoutVariants } from "./commonVariants";
+import { createLayoutVariants } from "./commonVariants";
 
-const flexVariants = cva("flex", {
+const flexVariants = createLayoutVariants("flex", {
   variants: {
-    ...layoutVariants,
     gap: {
       none: "gap-0",
       xs: "gap-1",
@@ -44,7 +43,11 @@ const flexVariants = cva("flex", {
     visualEffect: "default",
     space: "none",
     padding: "none",
+    paddingBlock: "none",
+    paddingInline: "none",
     margin: "none",
+    marginBlock: "none",
+    marginInline: "none",
     gap: "none",
     direction: "row",
     align: "stretch",
@@ -62,7 +65,11 @@ export function Flex({
   visualEffect,
   space,
   padding,
+  paddingBlock,
+  paddingInline,
   margin,
+  marginBlock,
+  marginInline,
   gap,
   direction,
   align,
@@ -78,7 +85,11 @@ export function Flex({
           visualEffect,
           space,
           padding,
+          paddingBlock,
+          paddingInline,
           margin,
+          marginBlock,
+          marginInline,
           gap,
           direction,
           align,
