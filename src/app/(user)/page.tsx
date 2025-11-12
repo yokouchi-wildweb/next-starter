@@ -112,7 +112,7 @@ export default function Home() {
               className="mx-auto text-center"
             >
               <Image src="/next.svg" alt="Next.js" width={400} height={208} priority />
-              <PageTitle variant="prominent">next-starter &gt;&gt;&gt; a Wildweb creation.</PageTitle>
+              <PageTitle className="text-3xl font-bold">next-starter &gt;&gt;&gt; a Wildweb creation.</PageTitle>
             </Flex>
           </Section>
 

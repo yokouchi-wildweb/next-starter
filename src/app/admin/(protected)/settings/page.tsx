@@ -2,6 +2,7 @@
 import { Main, PageTitle } from "@/components/TextBlocks";
 import AdminSettingEdit from "@/features/setting/components/AdminSettingEdit";
 import { settingService } from "@/features/setting/services/server/settingService";
+import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function AdminSettingPage() {
 
   return (
     <Main>
-      <PageTitle variant="accent">システム設定</PageTitle>
+      <AdminPageTitle>システム設定</AdminPageTitle>
       <AdminSettingEdit setting={setting} redirectPath="/admin/settings" />
     </Main>
   );
