@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 
-import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Main, PageTitle, Section } from "@/components/TextBlocks";
 import { AdminLogin } from "@/features/auth/components/AdminLogin";
@@ -17,13 +16,17 @@ export default async function AdminLoginPage() {
 
   return (
     <Main variant="narrowStack">
-      <Flex direction="column" justify="center" align="center">
-        <Block className="w-full" space="md">
-          <Section as="header">
-            <PageTitle>管理者ログイン</PageTitle>
-          </Section>
-          <AdminLogin />
-        </Block>
+      <Flex
+        direction="column"
+        justify="center"
+        align="center"
+        space="md"
+        className="mx-auto w-full"
+      >
+        <Section as="header" className="w-full">
+          <PageTitle>管理者ログイン</PageTitle>
+        </Section>
+        <AdminLogin />
       </Flex>
     </Main>
   );
