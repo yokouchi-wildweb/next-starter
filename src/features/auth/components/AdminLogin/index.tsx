@@ -73,7 +73,7 @@ export function AdminLogin() {
           />
         </Block>
         {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
-        <Button type="submit" disabled={loading} className="w-full">
+        <Button type="submit" disabled={loading} className="w-full mt-4">
           {loading ? "ログイン中..." : "ログイン"}
         </Button>
       </form>
