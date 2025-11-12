@@ -3,7 +3,7 @@ import { Main, PageTitle, Para } from "@/components/TextBlocks";
 
 export default function ServicesPage() {
   return (
-    <Main variant="contentShell">
+    <Main containerType="contentShell">
       <Section as="header">
         <PageTitle>サービス概要</PageTitle>
       </Section>

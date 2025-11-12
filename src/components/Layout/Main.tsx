@@ -11,7 +11,7 @@ import { layoutVariants as commonLayoutVariants } from "./commonVariants";
 
 const mainLayoutVariants = cva("mx-auto w-full", {
   variants: {
-    variant: {
+    containerType: {
       plain: "",
       narrowStack: "",
       contentShell: "",
@@ -22,15 +22,15 @@ const mainLayoutVariants = cva("mx-auto w-full", {
     margin: commonLayoutVariants.margin,
   },
   defaultVariants: {
-    variant: "contentShell",
+    containerType: "contentShell",
     padding: "md",
     margin: "none",
   },
 });
 
-type LayoutVariant = NonNullable<VariantProps<typeof mainLayoutVariants>["variant"]>;
+type ContainerType = NonNullable<VariantProps<typeof mainLayoutVariants>["containerType"]>;
 
-const layoutMaxWidths: Partial<Record<LayoutVariant, CSSProperties["maxWidth"]>> = {
+const layoutMaxWidths: Partial<Record<ContainerType, CSSProperties["maxWidth"]>> = {
   narrowStack: "var(--layout-width-narrow-stack)",
   contentShell: "var(--layout-width-content-shell)",
   wideShowcase: "var(--layout-width-wide-showcase)",
@@ -43,7 +43,7 @@ export type MainProps = ComponentPropsWithoutRef<"main"> &
   };
 
 export function Main({
-  variant,
+  containerType,
   padding,
   margin,
   className,
@@ -54,9 +54,9 @@ export function Main({
 
 }: MainProps) {
 
-  const effectiveVariant = variant ?? "contentShell";
+  const effectiveContainerType = containerType ?? "contentShell";
 
-  if (effectiveVariant === "plain") {
+  if (effectiveContainerType === "plain") {
     return (
       <main id={id} className={className} {...props}>
         {children}
@@ -64,7 +64,7 @@ export function Main({
     );
   }
 
-  if (effectiveVariant === "fullscreen") {
+  if (effectiveContainerType === "fullscreen") {
     return (
       <FullScreen layer={fullscreenLayer}>
         <main id={id} className={className} {...props}>
@@ -79,12 +79,16 @@ export function Main({
       <div
         id={`${id}-layout`}
         className="my-auto"
-        style={layoutMaxWidths[effectiveVariant] ? { maxWidth: layoutMaxWidths[effectiveVariant] } : undefined}
+        style={
+          layoutMaxWidths[effectiveContainerType]
+            ? { maxWidth: layoutMaxWidths[effectiveContainerType] }
+            : undefined
+        }
       >
         <main
             id={id}
             className={cn(
-                mainLayoutVariants({ variant: effectiveVariant, padding, margin }),
+                mainLayoutVariants({ containerType: effectiveContainerType, padding, margin }),
                 className,
             )}
             {...props}>

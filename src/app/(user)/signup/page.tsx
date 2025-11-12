@@ -9,7 +9,7 @@ export default function SignUpPage() {
   const emailSent = "/signup/email-sent";
 
   return (
-    <Main variant="narrowStack">
+    <Main containerType="narrowStack">
       <Section as="header">
         <PageTitle>ユーザー登録</PageTitle>
       </Section>

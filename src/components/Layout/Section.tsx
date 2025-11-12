@@ -10,7 +10,7 @@ const sectionVariants = cva("block", {
     ...layoutVariants,
   },
   defaultVariants: {
-    variant: "default",
+    visualEffect: "default",
     space: "md",
     padding: "none",
     margin: "none",
@@ -29,7 +29,7 @@ export type SectionProps<T extends SectionElement = "section"> = BaseSectionProp
 
 export function Section<T extends SectionElement = "section">({
   as,
-  variant,
+  visualEffect,
   space,
   padding,
   margin,
@@ -41,7 +41,7 @@ export function Section<T extends SectionElement = "section">({
   return (
     <Component
       {...props}
-      className={cn(sectionVariants({ variant, space, padding, margin }), className)}
+      className={cn(sectionVariants({ visualEffect, space, padding, margin }), className)}
     />
   );
 }

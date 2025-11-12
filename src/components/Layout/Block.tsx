@@ -10,7 +10,7 @@ const blockVariants = cva("block", {
     ...layoutVariants,
   },
   defaultVariants: {
-    variant: "default",
+    visualEffect: "default",
     space: "md",
     padding: "none",
     margin: "none",
@@ -19,11 +19,18 @@ const blockVariants = cva("block", {
 
 type BlockProps = ComponentPropsWithoutRef<"div"> & VariantProps<typeof blockVariants>;
 
-export function Block({ variant, space, padding, margin, className, ...props }: BlockProps) {
+export function Block({
+  visualEffect,
+  space,
+  padding,
+  margin,
+  className,
+  ...props
+}: BlockProps) {
   return (
     <div
       {...props}
-      className={cn(blockVariants({ variant, space, padding, margin }), className)}
+      className={cn(blockVariants({ visualEffect, space, padding, margin }), className)}
     />
   );
 }

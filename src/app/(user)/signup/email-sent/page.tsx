@@ -8,7 +8,7 @@ import { VerificationEmailSent } from "@/features/auth/components/VerificationEm
 
 export default function SignUpEmailSentPage() {
   return (
-    <Main variant="narrowStack">
+    <Main containerType="narrowStack">
       <Section as="header">
         <PageTitle>メール送信完了</PageTitle>
       </Section>

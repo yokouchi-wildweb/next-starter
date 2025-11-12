@@ -13,5 +13,9 @@ export default function AdminPage({ children, variant = "default" }: Props) {
       ? "admin-page admin-page-dashboard"
       : "admin-page admin-page-default";
 
-  return <Main variant="plain" className={className}>{children}</Main>;
+  return (
+    <Main containerType="plain" className={className}>
+      {children}
+    </Main>
+  );
 }

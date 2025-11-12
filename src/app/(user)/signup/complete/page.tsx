@@ -9,7 +9,7 @@ import { Block } from "@/components/Layout/Block";
 
 export default function SignUpCompletePage() {
   return (
-    <Main variant="narrowStack">
+    <Main containerType="narrowStack">
       <Section as="header">
         <PageTitle>本登録が完了しました</PageTitle>
       </Section>

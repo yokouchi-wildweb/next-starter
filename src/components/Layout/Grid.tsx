@@ -82,7 +82,7 @@ const gridVariants = cva("grid", {
     },
   },
   defaultVariants: {
-    variant: "default",
+    visualEffect: "default",
     space: "none",
     padding: "none",
     margin: "none",
@@ -105,7 +105,7 @@ type GridProps =
 
 
 export function Grid({
-  variant,
+  visualEffect,
   space,
   padding,
   margin,
@@ -126,7 +126,7 @@ export function Grid({
     <div
       className={cn(
         gridVariants({
-          variant,
+          visualEffect,
           space,
           padding,
           margin,

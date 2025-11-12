@@ -21,7 +21,7 @@ export default async function SignUpOAuthPage({
       : undefined;
 
   return (
-    <Main variant="narrowStack">
+    <Main containerType="narrowStack">
       <PageTitle variant="srOnly">OAuth認証</PageTitle>
       <OAuth provider={provider} />
     </Main>
