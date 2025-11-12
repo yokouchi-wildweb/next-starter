@@ -4,7 +4,7 @@ import "@/styles/global.css";
 import { Toaster } from "sonner";
 
 import { RouteTransitionOverlay } from "@/components/Feedback/RouteTransitionOverlay";
-import { ViewportHeightWatcher } from "@/components/Layout/ViewportHeightWatcher";
+import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { AuthSessionProvider } from "@/features/auth/components/AuthSessionProvider";
 
 const geistSans = Geist({
