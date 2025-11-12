@@ -39,7 +39,7 @@ export function AdminLayoutClient({
       style={layoutStyle}
     >
       <AdminHeader logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
-      <div className="flex flex-1 flex-col min-h-[calc(100vh-var(--app-header-height,0px))]">
+      <div className="flex flex-1 min-h-0 flex-col">
         <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <AdminFooter text={footerText} />
       </div>
