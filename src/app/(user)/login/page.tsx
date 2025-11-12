@@ -7,13 +7,7 @@ import { UserLogin } from "@/features/auth/components/UserLogin";
 export default function UserLoginPage() {
   return (
     <Main variant="narrowStack">
-      <Flex
-        direction="column"
-        justify="center"
-        align="center"
-        space="md"
-        className="mx-auto w-full"
-      >
+      <Flex direction="column" justify="center" align="center" space="md">
         <Section as="header" className="w-full">
           <PageTitle>ログイン</PageTitle>
         </Section>
