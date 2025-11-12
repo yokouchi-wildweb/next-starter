@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useMemo } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
@@ -20,9 +20,12 @@ export type UserAppLayoutProps = {
 export const UserAppLayout = ({ children, footerText }: UserAppLayoutProps) => {
   const headerHeight = useHeaderHeight();
 
-  const layoutStyle: LayoutStyle = {
-    "--app-header-height": `${headerHeight}px`,
-  };
+  const layoutStyle: LayoutStyle = useMemo(
+    () => ({
+      "--app-header-height": `${headerHeight}px`,
+    }),
+    [headerHeight],
+  );
 
   return (
     <Flex
@@ -31,7 +34,7 @@ export const UserAppLayout = ({ children, footerText }: UserAppLayoutProps) => {
       style={layoutStyle}
     >
       <UserNavigation />
-      <div className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
+      <div className="flex flex-1 min-h-0 flex-col pt-0 md:pt-[var(--app-header-height,0px)]">
         {children}
       </div>
       <UserFooter text={footerText} />
