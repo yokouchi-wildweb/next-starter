@@ -22,7 +22,7 @@ export const size = {
   lg: "text-lg",
   xl: "text-xl",
   xxl: "text-2xl",
-  display: "text-3xl md:text-4xl",
+  xxxl: "text-3xl",
 } as const;
 
 export const align = {

@@ -46,9 +46,7 @@ export function OAuth({ provider }: OAuthProps) {
 
   return (
     <Section id="signup-oauth" className="relative space-y-4">
-      <SecTitle as="h2" size="xxl">
-        ユーザー認証
-      </SecTitle>
+      <SecTitle>ユーザー認証</SecTitle>
 
       {phase === "initial" && <LoadingState message="認証を準備しています" />}
       {phase === "redirecting" && <LoadingState message="認証ページへ移動します" />}

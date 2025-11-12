@@ -39,9 +39,7 @@ export function Verification() {
 
   return (
     <Section id="registration-email-verification" className="relative">
-      <SecTitle as="h2" size="xxl">
-        認証失敗
-      </SecTitle>
+      <SecTitle>認証失敗</SecTitle>
 
       {phase === "initial" && <LoadingOverlay
         mode="local"
