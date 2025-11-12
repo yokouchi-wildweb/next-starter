@@ -8,10 +8,10 @@ type Props = {
 };
 
 export default function AdminPage({ children, variant = "default" }: Props) {
-  const className =
-    variant === "dashboard"
-      ? "admin-page admin-page-dashboard"
-      : "admin-page admin-page-default";
+  const baseClassName = "p-6";
+  const variantClassName =
+    variant === "dashboard" ? "grid gap-6" : "space-y-6";
+  const className = `${baseClassName} ${variantClassName}`;
 
   return (
     <Main containerType="plain" className={className}>

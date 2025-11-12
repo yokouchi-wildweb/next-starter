@@ -8,15 +8,4 @@
  * Tailwind の components レイヤー
  * 管理画面で使われる UI コンポーネント用スタイルをまとめます。
  */
-@layer components {
-  .admin-page {
-    @apply p-6;
-  }
-  .admin-page-default {
-    @apply space-y-6;
-  }
-  .admin-page-dashboard {
-    @apply grid gap-6;
-  }
-
-}
+@layer components {}
