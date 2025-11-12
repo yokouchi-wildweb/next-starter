@@ -25,15 +25,6 @@ export default async function AdminLayout({
   if (adminUserCount === 0) redirect("/admin/setup");
 
   await authGuard({ allowRoles: ["admin"], redirectTo: "/admin/login" });
-  const setting = await settingService.getGlobalSetting();
 
-  return (
-    <AdminLayoutClient
-      headerLogoUrl={setting.adminHeaderLogoImageUrl ?? undefined}
-      headerLogoDarkUrl={setting.adminHeaderLogoImageDarkUrl ?? undefined}
-      footerText={setting.adminFooterText ?? undefined}
-    >
-      {children}
-    </AdminLayoutClient>
-  );
+  return <>{children}</>;
 }
