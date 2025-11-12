@@ -18,11 +18,12 @@ export type AdminLayoutClientProps = {
 type AdminLayoutCSSVariables = CSSProperties & {
   "--app-header-height"?: string;
   "--app-footer-height"?: string;
+  "--app-viewport-height"?: string;
 };
 
 const mainBaseStyle: CSSProperties = {
   minHeight:
-    "max(0px, calc(100vh - var(--app-header-height, 0px) - var(--app-footer-height, 0px)))",
+    "max(0px, calc(var(--app-viewport-height, 100dvh) - var(--app-header-height, 0px) - var(--app-footer-height, 0px)))",
 };
 
 export function AdminLayoutClient({
@@ -38,13 +39,14 @@ export function AdminLayoutClient({
     () => ({
       "--app-header-height": `${headerHeight}px`,
       "--app-footer-height": `${footerHeight}px`,
+      "--app-viewport-height": "100dvh",
     }),
     [footerHeight, headerHeight],
   );
 
   return (
     <div
-      className="relative flex min-h-screen flex-col bg-background text-foreground"
+      className="relative flex min-h-[100dvh] flex-col bg-background text-foreground"
       style={layoutStyle}
     >
       <AdminHeader logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
