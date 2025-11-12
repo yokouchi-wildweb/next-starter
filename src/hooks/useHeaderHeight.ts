@@ -20,8 +20,15 @@ export const useHeaderHeight = (elementId: string = APP_HEADER_ELEMENT_ID) => {
     let cleanupResizeListener: (() => void) | null = null;
 
     const updateHeight = (element: HTMLElement) => {
-      const nextHeight = Math.round(element.getBoundingClientRect().height);
-      setHeight((prev) => (prev === nextHeight ? prev : nextHeight));
+      const nextHeight = element.getBoundingClientRect().height;
+
+      setHeight((prev) => {
+        if (!Number.isFinite(nextHeight)) {
+          return prev;
+        }
+
+        return Math.abs(prev - nextHeight) < 0.5 ? prev : nextHeight;
+      });
     };
 
     const observeElement = (element: HTMLElement) => {
