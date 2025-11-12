@@ -19,7 +19,7 @@ export const layoutVariants = {
   },
   /** コンテナの内側余白 */
   padding: {
-    none: "p-0",
+    none: "",
     sx: "p-1",
     sm: "p-2",
     md: "p-3",
@@ -28,7 +28,7 @@ export const layoutVariants = {
   },
   /** コンテナの外側余白 */
   margin: {
-    none: "m-0",
+    none: "",
     sx: "m-1",
     sm: "m-2",
     md: "m-3",

@@ -66,7 +66,8 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
   return (
     <section id="user-login" className="w-full">
       <Block space="lg">
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-6">
           <Block space="xs">
             <Label htmlFor="user-login-email" className="block text-foreground">
               メールアドレス
@@ -103,6 +104,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
           </Button>
         </form>
         <ThirdPartySignupOptions />
+
       </Block>
     </section>
   );
