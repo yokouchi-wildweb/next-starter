@@ -148,7 +148,7 @@ export default async function AdminHomePage() {
                 <CardTitle>グラフ指標サンプル</CardTitle>
               </CardHeader>
               <CardContent>
-                <Flex justify="center" align="center" width="full">
+                <Flex justify="center" align="center">
                   <DeveloperMotivationChart percentage={APP_FEATURES.coffeeLevel ?? 0} />
                 </Flex>
               </CardContent>
