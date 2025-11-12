@@ -40,14 +40,6 @@ const flexVariants = cva("flex my-2", {
       nowrap: "flex-nowrap",
       wrap: "flex-wrap",
     },
-    width: {
-      auto: "",
-      full: "w-full",
-    },
-    minHeight: {
-      none: "",
-      screen: "min-h-screen",
-    },
   },
   defaultVariants: {
     variant: "default",
@@ -57,8 +49,6 @@ const flexVariants = cva("flex my-2", {
     align: "stretch",
     justify: "start",
     wrap: "nowrap",
-    width: "auto",
-    minHeight: "none",
   },
 });
 
@@ -75,8 +65,6 @@ export function Flex({
   align,
   justify,
   wrap,
-  width,
-  minHeight,
   className,
   ...props
 }: FlexProps) {
@@ -91,8 +79,6 @@ export function Flex({
           align,
           justify,
           wrap,
-          width,
-          minHeight,
         }),
         className,
       )}

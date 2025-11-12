@@ -25,7 +25,6 @@ export const UserAppLayout = ({ children }: UserAppLayoutProps) => {
   return (
     <Flex
       direction="column"
-      minHeight="screen"
       className="my-0 bg-background text-foreground"
       style={layoutStyle}
     >

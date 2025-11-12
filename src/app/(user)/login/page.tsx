@@ -8,7 +8,7 @@ import { UserLogin } from "@/features/auth/components/UserLogin";
 export default function UserLoginPage() {
   return (
     <Main variant="narrowStack">
-      <Flex direction="column" minHeight="screen" justify="center" align="center" width="full">
+      <Flex direction="column" justify="center" align="center">
         <Block className="w-full" space="md">
           <Section as="header">
             <PageTitle>ログイン</PageTitle>
