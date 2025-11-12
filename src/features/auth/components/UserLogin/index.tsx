@@ -64,7 +64,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
   };
 
   return (
-    <section id="user-login" className="w-full max-w-md mx-auto">
+    <section id="user-login" className="w-full">
       <Block space="lg">
         <form onSubmit={handleSubmit} className="space-y-4">
           <Block space="xs">

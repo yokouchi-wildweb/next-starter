@@ -13,7 +13,7 @@
   --breakpoint-2xl: 96rem;
 
   /* Layout tokens */
-  --layout-width-narrow-stack: 28rem;
+  --layout-width-narrow-stack: 448px;
   --layout-width-content-shell: 72rem;
   --layout-width-wide-showcase: 96rem;
 
@@ -55,7 +55,7 @@
   --breakpoint-2xl: 96rem;
 
   /* Layout tokens */
-  --layout-width-narrow-stack: 28rem;
+  --layout-width-narrow-stack: 448px;
   --layout-width-content-shell: 72rem;
   --layout-width-wide-showcase: 96rem;
 
