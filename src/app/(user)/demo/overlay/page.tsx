@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/Shadcn/select";
 import { Textarea } from "@/components/Shadcn/textarea";
-import { PageTitle, Para, Section, SecTitle } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import { toast } from "sonner";
 
 const MODES = [

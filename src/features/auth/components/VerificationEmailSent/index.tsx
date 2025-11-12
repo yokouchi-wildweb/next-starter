@@ -2,7 +2,8 @@
 
 // 認証メール送信完了後に表示するメッセージセクションです。
 
-import { Para, SecTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Para, SecTitle } from "@/components/TextBlocks";
 import { Block } from "@/components/Layout/Block";
 
 export function VerificationEmailSent() {

@@ -6,7 +6,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { LoadingOverlay } from "@/components/Feedback/LoadingOverlay";
-import { SecTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { SecTitle } from "@/components/TextBlocks";
 import { useOAuthPhase } from "@/features/auth/hooks/useOAuthPhase";
 import type { UserProviderType } from "@/types/user";
 import { InvalidProcessState } from "./InvalidProcessState";

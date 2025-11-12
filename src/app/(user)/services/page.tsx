@@ -1,4 +1,5 @@
-import { Main, PageTitle, Para, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle, Para } from "@/components/TextBlocks";
 
 export default function ServicesPage() {
   return (

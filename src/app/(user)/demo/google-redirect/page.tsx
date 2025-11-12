@@ -14,7 +14,8 @@ import {
 
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
-import { PageTitle, Para, SecTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import { auth } from "@/lib/firebase/client/app";
 
 // --------------------------------------------------------------

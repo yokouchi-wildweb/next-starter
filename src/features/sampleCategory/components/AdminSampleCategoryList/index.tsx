@@ -3,7 +3,7 @@
 import type { SampleCategory } from "../../entities";
 import Header from "./Header";
 import Table from "./Table";
-import { Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
 
 export type AdminSampleCategoryListProps = {
   sampleCategories: SampleCategory[];

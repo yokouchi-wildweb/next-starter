@@ -1,6 +1,7 @@
 // src/app/(user)/signup/page.tsx
 
-import { Main, PageTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle } from "@/components/TextBlocks";
 import { Signup } from "@/features/auth/components/Signup";
 
 export default function SignUpPage() {

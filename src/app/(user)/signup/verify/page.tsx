@@ -1,6 +1,7 @@
 // src/app/(user)/signup/verify/page.tsx
 
-import { Main, PageTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle } from "@/components/TextBlocks";
 import { Verification } from "../../../../features/auth/components/Verification";
 
 export default function SignUpVerifyPage() {

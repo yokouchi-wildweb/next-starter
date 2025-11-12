@@ -3,7 +3,7 @@
 import type { __Domain__ } from "../../entities";
 import Header from "./Header";
 import Table from "./Table";
-import { Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
 
 export type Admin__Domain__ListProps = {
   __domains__: __Domain__[];

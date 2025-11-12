@@ -30,7 +30,8 @@ import {
 } from "src/components/Form/Manual";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { Block } from "@/components/Layout/Block";
-import { Main, PageTitle, Para, Section, SecTitle } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import type { Options } from "@/types/form";
 
 const textOptions: Options[] = [

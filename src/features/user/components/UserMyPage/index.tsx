@@ -1,6 +1,7 @@
 // src/features/user/components/UserMyPage/index.tsx
 
-import { Main, PageTitle, Para, Section, SecTitle } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import { USER_ROLE_OPTIONS } from "@/constants/user";
 import type { User } from "@/features/user/entities";
 import type { UserRoleType, UserStatus } from "@/types/user";

@@ -1,0 +1,43 @@
+import { cva, type VariantProps } from "class-variance-authority";
+import type { ComponentPropsWithoutRef } from "react";
+
+import { cn } from "@/lib/cn";
+
+import { layoutVariants } from "./commonVariants";
+
+const sectionVariants = cva("block", {
+  variants: {
+    ...layoutVariants,
+  },
+  defaultVariants: {
+    variant: "default",
+    space: "md",
+  },
+});
+
+type SectionElement = "section" | "article" | "aside" | "nav" | "header" | "footer";
+
+type BaseSectionProps<T extends SectionElement> = Omit<ComponentPropsWithoutRef<T>, "className"> & {
+  as?: T;
+  className?: string;
+};
+
+export type SectionProps<T extends SectionElement = "section"> = BaseSectionProps<T> &
+  VariantProps<typeof sectionVariants>;
+
+export function Section<T extends SectionElement = "section">({
+  as,
+  variant,
+  space,
+  className,
+  ...props
+}: SectionProps<T>) {
+  const Component = (as ?? "section") as SectionElement;
+
+  return (
+    <Component
+      {...props}
+      className={cn(sectionVariants({ variant, space }), className)}
+    />
+  );
+}

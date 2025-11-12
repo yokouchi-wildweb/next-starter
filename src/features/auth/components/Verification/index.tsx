@@ -7,7 +7,8 @@
 import { useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { SecTitle, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { SecTitle } from "@/components/TextBlocks";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/auth/config/authSettings";
 import { useLocalStorage } from "@/lib/localStorage";
 import { useVerificationPhase } from "@/features/auth/hooks/useVerificationPhase";

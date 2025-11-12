@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 
-import { Main, PageTitle, Para, Section } from "@/components/TextBlocks";
+import { Section } from "@/components/Layout/Section";
+import { Main, PageTitle, Para } from "@/components/TextBlocks";
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 
