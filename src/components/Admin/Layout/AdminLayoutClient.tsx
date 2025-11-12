@@ -35,11 +35,11 @@ export function AdminLayoutClient({
 
   return (
     <div
-      className="relative flex min-h-screen flex-col bg-background text-foreground"
+      className="relative flex min-h-[var(--viewport-height,100dvh)] flex-col bg-background text-foreground"
       style={layoutStyle}
     >
       <AdminHeader logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
-      <div className="flex flex-1 flex-col min-h-[calc(100vh-var(--app-header-height,0px))]">
+      <div className="flex flex-1 flex-col min-h-[calc(var(--viewport-height,100dvh)-var(--app-header-height,0px))]">
         <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <AdminFooter text={footerText} />
       </div>
