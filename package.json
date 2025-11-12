@@ -6,7 +6,7 @@
     "domain-config": "./scripts/domain-config/index.mjs"
   },
   "scripts": {
-    "dev": "next dev --no-lint",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
