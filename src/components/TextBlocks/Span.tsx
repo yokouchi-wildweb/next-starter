@@ -1,27 +1,25 @@
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { textToneVariants, textSizeVariants, textVariantDefaults } from "./textVariants";
+import { createTextVariants } from "./textVariants";
 
-const spanVariants = cva("inline-block leading-relaxed", {
-  variants: {
-    tone: textToneVariants,
-    size: textSizeVariants,
-  },
-  defaultVariants: {
-    tone: textVariantDefaults.tone,
-    size: textVariantDefaults.size,
-  },
-});
+const spanVariants = createTextVariants("inline-block leading-relaxed");
 
 export type SpanProps = ComponentPropsWithoutRef<"span"> &
   VariantProps<typeof spanVariants> & { children: ReactNode };
 
-export function Span({ tone, size, className, children, ...props }: SpanProps) {
+export function Span({
+  tone = "default",
+  size = "md",
+  align,
+  className,
+  children,
+  ...props
+}: SpanProps) {
   return (
-    <span className={cn(spanVariants({ tone, size }), className)} {...props}>
+    <span className={cn(spanVariants({ tone, size, align }), className)} {...props}>
       {children}
     </span>
   );
