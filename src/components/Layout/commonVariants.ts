@@ -11,10 +11,10 @@ export const layoutVariants = {
   /** 子要素同士の縦方向スペース */
   space: {
     none: "",
-    xs: "space-y-1",
-    sm: "space-y-2",
-    md: "space-y-4",
-    lg: "space-y-6",
-    xl: "space-y-8",
+    xs: "space-y-2",
+    sm: "space-y-4",
+    md: "space-y-6",
+    lg: "space-y-8",
+    xl: "space-y-10",
   },
 } as const;
