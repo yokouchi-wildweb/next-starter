@@ -16,7 +16,7 @@ export type SignupProps = {
 export function Signup({ urlAfterEmailSent }: SignupProps) {
   return (
     <Section id="signup">
-      <Block space="lg">
+      <Block space="xl">
         <VerificationEmailSendForm urlAfterEmailSent={urlAfterEmailSent} />
         <ThirdPartySignupOptions />
       </Block>

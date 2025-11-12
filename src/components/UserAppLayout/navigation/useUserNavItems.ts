@@ -19,6 +19,7 @@ export const useUserNavItems = () => {
         ? [
             { key: "home", type: "link", label: "ホーム", href: "/" },
             { key: "service", type: "link", label: "サービス", href: "/services" },
+            { key: "mypage", type: "link", label: "マイページ", href: "/mypage" },
             {
               key: "logout",
               type: "action",

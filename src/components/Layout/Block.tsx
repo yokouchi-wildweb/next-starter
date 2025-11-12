@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 
 import { layoutVariants } from "./commonVariants";
 
-const blockVariants = cva("block mx-auto my-2", {
+const blockVariants = cva("block", {
   variants: {
     ...layoutVariants,
   },

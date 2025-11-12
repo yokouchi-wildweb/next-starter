@@ -69,9 +69,6 @@ export function VerificationEmailSendForm({
 
   return (
     <Block>
-      <Para tone="muted" size="sm">
-        メールアドレスを入力して認証用のリンクを送付します。
-      </Para>
       <AppForm
         methods={form}
         onSubmit={handleSubmit}

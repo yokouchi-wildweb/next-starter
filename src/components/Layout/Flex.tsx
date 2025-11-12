@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 
 import { layoutVariants } from "./commonVariants";
 
-const flexVariants = cva("flex my-2", {
+const flexVariants = cva("flex", {
   variants: {
     ...layoutVariants,
     gap: {
