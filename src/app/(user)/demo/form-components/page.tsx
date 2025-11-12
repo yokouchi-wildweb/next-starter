@@ -176,7 +176,7 @@ export default function FormComponentsDemoPage() {
   }, []);
 
   return (
-      <Main variant="wideShowcase">
+      <Main containerType="wideShowcase">
         <Section>
           <PageTitle variant="showcase">Form コンポーネント デモ</PageTitle>
           <Para tone="muted" size="sm">

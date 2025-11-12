@@ -17,7 +17,7 @@ export default async function AdminLoginPage() {
   }
 
   return (
-    <Main variant="narrowStack">
+    <Main containerType="narrowStack">
       <Flex direction="column" justify="center" align="center" space="xl">
         <Section as="header" className="w-full">
           <PageTitle>管理者ログイン</PageTitle>

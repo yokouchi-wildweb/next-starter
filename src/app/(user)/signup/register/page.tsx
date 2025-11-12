@@ -22,7 +22,7 @@ export default async function SignUpRegisterPage({
         : undefined;
 
   return (
-    <Main variant="narrowStack">
+    <Main containerType="narrowStack">
       <Section as="header">
         <PageTitle>本登録</PageTitle>
       </Section>

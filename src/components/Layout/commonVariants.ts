@@ -1,6 +1,6 @@
 export const layoutVariants = {
   /** 見た目のバリエーション */
-  variant: {
+  visualEffect: {
     /** 最もシンプルなブロック */
     default: "",
     /** 囲み枠で少しだけ強調したいとき */

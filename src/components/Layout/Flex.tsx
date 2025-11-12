@@ -41,7 +41,7 @@ const flexVariants = cva("flex", {
     },
   },
   defaultVariants: {
-    variant: "default",
+    visualEffect: "default",
     space: "none",
     padding: "none",
     margin: "none",
@@ -59,7 +59,7 @@ type FlexProps = Omit<ComponentPropsWithoutRef<"div">, "className"> &
   };
 
 export function Flex({
-  variant,
+  visualEffect,
   space,
   padding,
   margin,
@@ -75,7 +75,7 @@ export function Flex({
     <div
       className={cn(
         flexVariants({
-          variant,
+          visualEffect,
           space,
           padding,
           margin,

@@ -10,7 +10,7 @@ const inBlockVariants = cva("inline-block", {
     ...layoutVariants,
   },
   defaultVariants: {
-    variant: "default",
+    visualEffect: "default",
     space: "none",
     padding: "none",
     margin: "none",
@@ -19,11 +19,18 @@ const inBlockVariants = cva("inline-block", {
 
 type InBlockProps = ComponentPropsWithoutRef<"span"> & VariantProps<typeof inBlockVariants>;
 
-export function InBlock({ variant, space, padding, margin, className, ...props }: InBlockProps) {
+export function InBlock({
+  visualEffect,
+  space,
+  padding,
+  margin,
+  className,
+  ...props
+}: InBlockProps) {
   return (
     <span
       {...props}
-      className={cn(inBlockVariants({ variant, space, padding, margin }), className)}
+      className={cn(inBlockVariants({ visualEffect, space, padding, margin }), className)}
     />
   );
 }
