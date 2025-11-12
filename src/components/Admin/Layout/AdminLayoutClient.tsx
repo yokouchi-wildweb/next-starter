@@ -39,7 +39,7 @@ export function AdminLayoutClient({
       style={layoutStyle}
     >
       <AdminHeader logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
-      <main className="flex-1 min-h-0 flex flex-col">{children}</main>
+      <div className="flex-1 min-h-0 flex flex-col">{children}</div>
       <AdminFooter text={footerText} />
     </div>
   );
