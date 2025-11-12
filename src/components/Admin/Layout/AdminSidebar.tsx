@@ -20,7 +20,7 @@ import { AdminSidebarButton, adminSidebarButtonClassName } from "./AdminSidebarB
 const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;
 
 const sidebarContainer = cva(
-  "min-h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg",
+  "h-full min-h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg",
 );
 
 const hasHref = (href: string | null | undefined): href is string =>
