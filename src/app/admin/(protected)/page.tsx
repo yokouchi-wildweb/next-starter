@@ -17,14 +17,14 @@ import type { UserRoleType } from "@/types/user";
 
 export const dynamic = "force-dynamic";
 export default async function AdminHomePage() {
-  const setting = await settingService.getGlobalSetting();
+  const ROLE_USER: UserRoleType = "user";
   const now = dayjs();
   const startOfToday = now.startOf("day");
   const startOfTomorrow = startOfToday.add(1, "day");
-  const ROLE_USER: UserRoleType = "user";
   const { showMainMetrics, showAdditionalMetrics } = APP_FEATURES.admin.dashboard.sections;
 
-  const [{ total: totalUserCount }, { total: todayUserCount }] = await Promise.all([
+  const [setting, { total: totalUserCount }, { total: todayUserCount }] = await Promise.all([
+    settingService.getGlobalSetting(),
     userService.search({
       limit: 1,
       where: { field: "role", op: "eq", value: ROLE_USER },
