@@ -7,11 +7,11 @@ import { cn } from "@/lib/cn";
 import { PageTitle, type PageTitleProps } from "@/components/TextBlocks";
 
 const marginBottomClassMap = {
-  xs: "mb-4",
-  sm: "mb-6",
+  xs: "mb-2",
+  sm: "mb-5",
   md: "mb-8",
   lg: "mb-10",
-  xl: "mb-12",
+  xl: "mb-14",
 } as const;
 
 const adminPageTitleVariants = cva(
