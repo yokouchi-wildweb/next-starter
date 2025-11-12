@@ -14,12 +14,20 @@ export function Para({
   tone = "default",
   size = "md",
   align = "left",
+  weight = "normal",
+  srOnly = "false",
   className,
   children,
   ...props
 }: ParaProps) {
   return (
-    <p className={cn(paraVariants({ tone, size, align }), className)} {...props}>
+    <p
+      className={cn(
+        paraVariants({ tone, size, align, weight, srOnly }),
+        className,
+      )}
+      {...props}
+    >
       {children}
     </p>
   );

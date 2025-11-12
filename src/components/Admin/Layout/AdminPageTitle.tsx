@@ -10,7 +10,7 @@ const adminPageTitleVariants = cva("", {
   variants: {
     variant: {
       default:
-        "relative mb-12 px-4 py-2 text-3xl font-bold bg-gray-100 dark:bg-gray-800/40 after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-gradient-to-r after:from-sky-300 after:to-sky-500 after:content-['']",
+        "relative mb-12 px-4 py-2 text-3xl bg-gray-100 dark:bg-gray-800/40 after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-gradient-to-r after:from-sky-300 after:to-sky-500 after:content-['']",
     },
   },
   defaultVariants: {
