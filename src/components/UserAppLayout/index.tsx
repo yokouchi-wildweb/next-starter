@@ -3,7 +3,7 @@
 import { type CSSProperties, type ReactNode } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
-import { useHeaderHeight } from "@/hooks/useHeaderHeight";
+import { useHeaderHeight } from "@/hooks/useLayoutElementHeight";
 
 import { UserNavigation } from "./navigation";
 

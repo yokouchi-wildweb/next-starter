@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
+import { APP_FOOTER_ELEMENT_ID, APP_HEADER_ELEMENT_ID } from "@/constants/layout";
 
 const FALLBACK_INTERVAL_MS = 250;
 
-export const useHeaderHeight = (elementId: string = APP_HEADER_ELEMENT_ID) => {
+const useElementHeight = (elementId: string) => {
   const [height, setHeight] = useState(0);
 
   useEffect(() => {
@@ -83,3 +83,9 @@ export const useHeaderHeight = (elementId: string = APP_HEADER_ELEMENT_ID) => {
 
   return height;
 };
+
+export const useHeaderHeight = (elementId: string = APP_HEADER_ELEMENT_ID) =>
+  useElementHeight(elementId);
+
+export const useFooterHeight = (elementId: string = APP_FOOTER_ELEMENT_ID) =>
+  useElementHeight(elementId);

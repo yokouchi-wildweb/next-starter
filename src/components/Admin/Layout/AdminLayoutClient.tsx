@@ -2,7 +2,8 @@
 
 import { type CSSProperties, type ReactNode, useMemo } from "react";
 
-import { useHeaderHeight } from "@/hooks/useHeaderHeight";
+import { Main } from "@/components/Layout/Main";
+import { useFooterHeight, useHeaderHeight } from "@/hooks/useLayoutElementHeight";
 
 import { AdminFooter } from "./AdminFooter";
 import { AdminHeader } from "./AdminHeader";
@@ -16,6 +17,12 @@ export type AdminLayoutClientProps = {
 
 type AdminLayoutCSSVariables = CSSProperties & {
   "--app-header-height"?: string;
+  "--app-footer-height"?: string;
+};
+
+const mainBaseStyle: CSSProperties = {
+  minHeight:
+    "max(0px, calc(100vh - var(--app-header-height, 0px) - var(--app-footer-height, 0px)))",
 };
 
 export function AdminLayoutClient({
@@ -25,12 +32,14 @@ export function AdminLayoutClient({
   footerText,
 }: AdminLayoutClientProps) {
   const headerHeight = useHeaderHeight();
+  const footerHeight = useFooterHeight();
 
   const layoutStyle: AdminLayoutCSSVariables = useMemo(
     () => ({
       "--app-header-height": `${headerHeight}px`,
+      "--app-footer-height": `${footerHeight}px`,
     }),
-    [headerHeight],
+    [footerHeight, headerHeight],
   );
 
   return (
@@ -39,10 +48,10 @@ export function AdminLayoutClient({
       style={layoutStyle}
     >
       <AdminHeader logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
-      <div className="flex flex-1 flex-col min-h-[calc(100vh-var(--app-header-height,0px))]">
-        <div className="flex-1 min-h-0 flex flex-col">{children}</div>
-        <AdminFooter text={footerText} />
-      </div>
+      <Main variant="plain" className="flex flex-1 min-h-0 flex-col" style={mainBaseStyle}>
+        {children}
+      </Main>
+      <AdminFooter text={footerText} />
     </div>
   );
 }

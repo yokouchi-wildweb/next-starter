@@ -44,6 +44,7 @@
   --z-layer-apex: var(--z-layer-apex);
 
   --app-header-height: var(--app-header-height);
+  --app-footer-height: var(--app-footer-height);
 }
 
 :root {
@@ -86,6 +87,7 @@
   --z-layer-apex: 9999;
 
   --app-header-height: 0px;
+  --app-footer-height: 0px;
 }
 
 @layer utilities {
