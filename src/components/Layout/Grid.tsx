@@ -84,6 +84,8 @@ const gridVariants = cva("grid", {
   defaultVariants: {
     variant: "default",
     space: "none",
+    padding: "none",
+    margin: "none",
     gap: "none",
     columnGap: "none",
     rowGap: "none",
@@ -105,6 +107,8 @@ type GridProps =
 export function Grid({
   variant,
   space,
+  padding,
+  margin,
   gap,
   columnGap,
   rowGap,
@@ -124,6 +128,8 @@ export function Grid({
         gridVariants({
           variant,
           space,
+          padding,
+          margin,
           gap,
           columnGap,
           rowGap,

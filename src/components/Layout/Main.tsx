@@ -7,22 +7,28 @@ import FullScreen, { type FullScreenLayer } from "@/components/Layout/FullScreen
 import { APP_MAIN_ELEMENT_ID } from "@/constants/layout";
 import { cn } from "@/lib/cn";
 
-const layoutVariants = cva("mx-auto w-full", {
+import { layoutVariants as commonLayoutVariants } from "./commonVariants";
+
+const mainLayoutVariants = cva("mx-auto w-full", {
   variants: {
     variant: {
       plain: "",
-      narrowStack: "px-4 sm:px-6",
-      contentShell: "px-4 sm:px-6 lg:px-8",
-      wideShowcase: "px-4 sm:px-8 lg:px-12",
+      narrowStack: "",
+      contentShell: "",
+      wideShowcase: "",
       fullscreen: "",
     },
+    padding: commonLayoutVariants.padding,
+    margin: commonLayoutVariants.margin,
   },
   defaultVariants: {
     variant: "contentShell",
+    padding: "md",
+    margin: "none",
   },
 });
 
-type LayoutVariant = NonNullable<VariantProps<typeof layoutVariants>["variant"]>;
+type LayoutVariant = NonNullable<VariantProps<typeof mainLayoutVariants>["variant"]>;
 
 const layoutMaxWidths: Partial<Record<LayoutVariant, CSSProperties["maxWidth"]>> = {
   narrowStack: "var(--layout-width-narrow-stack)",
@@ -31,13 +37,15 @@ const layoutMaxWidths: Partial<Record<LayoutVariant, CSSProperties["maxWidth"]>>
 };
 
 export type MainProps = ComponentPropsWithoutRef<"main"> &
-  VariantProps<typeof layoutVariants> & {
+  VariantProps<typeof mainLayoutVariants> & {
     children: ReactNode;
     fullscreenLayer?: FullScreenLayer;
   };
 
 export function Main({
   variant,
+  padding,
+  margin,
   className,
   children,
   fullscreenLayer,
@@ -70,7 +78,10 @@ export function Main({
     <div id={`${id}-container`} className="flex flex-1 flex-col">
       <div
         id={`${id}-layout`}
-        className={cn(layoutVariants({ variant: effectiveVariant }), "my-auto")}
+        className={cn(
+          mainLayoutVariants({ variant: effectiveVariant, padding, margin }),
+          "my-auto",
+        )}
         style={layoutMaxWidths[effectiveVariant] ? { maxWidth: layoutMaxWidths[effectiveVariant] } : undefined}
       >
         <main id={id} className={className} {...props}>

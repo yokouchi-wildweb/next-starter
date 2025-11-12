@@ -1,11 +1,29 @@
-
-import { cn } from "@/lib/cn";
+import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef } from "react";
 
-type InBlockProps = ComponentPropsWithoutRef<"span">;
+import { cn } from "@/lib/cn";
 
-export function InBlock({ className, ...props }: InBlockProps) {
+import { layoutVariants } from "./commonVariants";
+
+const inBlockVariants = cva("inline-block", {
+  variants: {
+    ...layoutVariants,
+  },
+  defaultVariants: {
+    variant: "default",
+    space: "none",
+    padding: "none",
+    margin: "none",
+  },
+});
+
+type InBlockProps = ComponentPropsWithoutRef<"span"> & VariantProps<typeof inBlockVariants>;
+
+export function InBlock({ variant, space, padding, margin, className, ...props }: InBlockProps) {
   return (
-    <span {...props} className={cn("inline-block p-2", className)} />
+    <span
+      {...props}
+      className={cn(inBlockVariants({ variant, space, padding, margin }), className)}
+    />
   );
 }

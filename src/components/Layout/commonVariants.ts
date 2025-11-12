@@ -17,4 +17,22 @@ export const layoutVariants = {
     lg: "space-y-8",
     xl: "space-y-10",
   },
+  /** コンテナの内側余白 */
+  padding: {
+    none: "p-0",
+    sx: "p-1",
+    sm: "p-2",
+    md: "p-3",
+    lg: "p-4",
+    xl: "p-6",
+  },
+  /** コンテナの外側余白 */
+  margin: {
+    none: "m-0",
+    sx: "m-1",
+    sm: "m-2",
+    md: "m-3",
+    lg: "m-4",
+    xl: "m-6",
+  },
 } as const;
