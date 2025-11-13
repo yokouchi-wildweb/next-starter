@@ -16,11 +16,20 @@ import { useCreateUser } from "@/features/user/hooks/useCreateUser";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
-type Props = {
-  redirectPath?: string;
+type CustomSubmit = {
+  handler: (values: FormValues) => Promise<void>;
+  isMutating?: boolean;
 };
 
-export default function ManagerialUserCreateForm({ redirectPath = "/" }: Props) {
+type Props = {
+  redirectPath?: string;
+  customSubmit?: CustomSubmit;
+};
+
+export default function ManagerialUserCreateForm({
+  redirectPath = "/",
+  customSubmit,
+}: Props) {
   const methods = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     mode: "onSubmit",
@@ -32,6 +41,11 @@ export default function ManagerialUserCreateForm({ redirectPath = "/" }: Props) 
   const { trigger, isMutating } = useCreateUser();
 
   const submit = async (values: FormValues) => {
+    if (customSubmit) {
+      await customSubmit.handler(values);
+      return;
+    }
+
     try {
       await trigger(values);
       toast.success("ユーザー登録が完了しました");
@@ -46,13 +60,14 @@ export default function ManagerialUserCreateForm({ redirectPath = "/" }: Props) 
     formState: { isSubmitting },
   } = methods;
 
-  const loading = isSubmitting || isMutating;
+  const pending = customSubmit?.isMutating ?? isMutating;
+  const loading = isSubmitting || pending;
 
   return (
     <AppForm
       methods={methods}
       onSubmit={submit}
-      pending={isMutating}
+      pending={pending}
       fieldSpace="md"
     >
       <FormFieldItem
