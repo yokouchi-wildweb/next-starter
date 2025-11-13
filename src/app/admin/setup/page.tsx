@@ -1,12 +1,21 @@
 // src/app/admin/setup/page.tsx
 
+import { redirect } from "next/navigation";
+
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Main, Para } from "@/components/TextBlocks";
 import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import { authGuard } from "@/features/auth/services/server/authorization";
 import AdminSetupForm from "@/features/setting/components/AdminSetup";
 
-export default function AdminSetupPage() {
+export default async function AdminSetupPage() {
+  const sessionUser = await authGuard({ allowRoles: ["admin"] });
+
+  if (sessionUser) {
+    redirect("/admin");
+  }
+
   return (
     <Main>
       <Section id="admin-setup">
