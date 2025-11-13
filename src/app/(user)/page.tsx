@@ -118,7 +118,7 @@ export default function Home() {
 
             <Section className="text-center">
               <Block
-                visualEffect="raised"
+                appearance="raised"
                 className="inline-block w-[72%] rounded-3xl border border-white/60 bg-white/39 p-6 backdrop-blur"
               >
               {quickStartSteps.map((step) => (

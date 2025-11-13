@@ -52,7 +52,7 @@ type FlexProps = Omit<ComponentPropsWithoutRef<"div">, "className"> &
   };
 
 export function Flex({
-  visualEffect,
+  appearance,
   space,
   padding,
   paddingBlock,
@@ -69,7 +69,7 @@ export function Flex({
   ...props
 }: FlexProps) {
   const variantClasses = flexVariants({
-    visualEffect,
+    appearance,
     space,
     padding,
     paddingBlock,
