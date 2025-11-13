@@ -10,22 +10,17 @@ import { cn } from "@/lib/cn";
 import { createLayoutVariants } from "./commonVariants";
 
 const mainLayoutVariants = createLayoutVariants("mx-auto w-full", {
-  variants: {
-    containerType: {
-      plain: "",
-      narrowStack: "",
-      contentShell: "",
-      wideShowcase: "",
-      fullscreen: "",
-    },
-  },
   defaultVariants: {
-    containerType: "contentShell",
     padding: "md",
   },
 });
 
-type ContainerType = NonNullable<VariantProps<typeof mainLayoutVariants>["containerType"]>;
+type ContainerType =
+  | "plain"
+  | "narrowStack"
+  | "contentShell"
+  | "wideShowcase"
+  | "fullscreen";
 
 const layoutMaxWidths: Partial<Record<ContainerType, CSSProperties["maxWidth"]>> = {
   narrowStack: "var(--layout-width-narrow-stack)",
@@ -36,6 +31,7 @@ const layoutMaxWidths: Partial<Record<ContainerType, CSSProperties["maxWidth"]>>
 export type MainProps = ComponentPropsWithoutRef<"main"> &
   VariantProps<typeof mainLayoutVariants> & {
     children: ReactNode;
+    containerType?: ContainerType;
     fullscreenLayer?: FullScreenLayer;
   };
 
@@ -89,22 +85,22 @@ export function Main({
         }
       >
         <main
-            id={id}
-            className={cn(
-                mainLayoutVariants({
-                  containerType: effectiveContainerType,
-                  visualEffect,
-                  space,
-                  padding,
-                  paddingBlock,
-                  paddingInline,
-                  margin,
-                  marginBlock,
-                  marginInline,
-                }),
-                className,
-            )}
-            {...props}>
+          id={id}
+          className={cn(
+            mainLayoutVariants({
+              visualEffect,
+              space,
+              padding,
+              paddingBlock,
+              paddingInline,
+              margin,
+              marginBlock,
+              marginInline,
+            }),
+            className,
+          )}
+          {...props}
+        >
           {children}
         </main>
       </div>
