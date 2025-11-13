@@ -19,8 +19,8 @@ export type SectionProps<T extends SectionElement = "section"> = BaseSectionProp
 
 export function Section<T extends SectionElement = "section">({
   as,
-  visualEffect = "default",
-  space = "md",
+  visualEffect,
+  space,
   padding,
   paddingBlock,
   paddingInline,

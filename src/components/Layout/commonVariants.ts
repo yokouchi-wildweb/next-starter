@@ -1,8 +1,6 @@
 import { cva } from "class-variance-authority";
 
 export const visualEffect = {
-  /** 最もシンプルなブロック */
-  default: "",
   /** 囲み枠で少しだけ強調したいとき */
   outline: "border border-border",
   /** 影を付けて存在感を出したいとき */
@@ -10,7 +8,7 @@ export const visualEffect = {
 } as const;
 
 export const space = {
-  none: "",
+  none: "space-y-0",
   xs: "space-y-2",
   sm: "space-y-4",
   md: "space-y-6",
@@ -19,7 +17,7 @@ export const space = {
 } as const;
 
 export const padding = {
-  none: "",
+  none: "p-0",
   sx: "p-1",
   sm: "p-2",
   md: "p-3",
@@ -28,7 +26,7 @@ export const padding = {
 } as const;
 
 export const paddingBlock = {
-  none: "",
+  none: "py-0",
   sx: "py-1",
   sm: "py-2",
   md: "py-3",
@@ -37,7 +35,7 @@ export const paddingBlock = {
 } as const;
 
 export const paddingInline = {
-  none: "",
+  none: "px-0",
   sx: "px-1",
   sm: "px-2",
   md: "px-3",
@@ -46,7 +44,7 @@ export const paddingInline = {
 } as const;
 
 export const margin = {
-  none: "",
+  none: "m-0",
   sx: "m-1",
   sm: "m-2",
   md: "m-3",
@@ -55,7 +53,7 @@ export const margin = {
 } as const;
 
 export const marginBlock = {
-  none: "",
+  none: "my-0",
   sx: "my-1",
   sm: "my-2",
   md: "my-3",
@@ -64,7 +62,7 @@ export const marginBlock = {
 } as const;
 
 export const marginInline = {
-  none: "",
+  none: "mx-0",
   sx: "mx-1",
   sm: "mx-2",
   md: "mx-3",

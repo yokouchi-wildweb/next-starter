@@ -10,7 +10,7 @@ const blockVariants = createLayoutVariants("block");
 type BlockProps = ComponentPropsWithoutRef<"div"> & VariantProps<typeof blockVariants>;
 
 export function Block({
-  visualEffect = "default",
+  visualEffect,
   space = "md",
   padding,
   paddingBlock,

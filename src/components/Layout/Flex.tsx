@@ -52,7 +52,7 @@ type FlexProps = Omit<ComponentPropsWithoutRef<"div">, "className"> &
   };
 
 export function Flex({
-  visualEffect = "default",
+  visualEffect,
   space,
   padding,
   paddingBlock,

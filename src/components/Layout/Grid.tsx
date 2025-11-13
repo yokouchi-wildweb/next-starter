@@ -95,7 +95,7 @@ type GridProps =
 
 
 export function Grid({
-  visualEffect = "default",
+  visualEffect,
   space,
   padding,
   paddingBlock,
