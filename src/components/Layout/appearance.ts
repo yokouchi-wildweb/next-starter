@@ -1,7 +1,6 @@
 export const appearance = {
   surface: [
-    "opacity-85",
-    "bg-white",
+    "bg-white/80",
     "text-slate-900",
     "shadow-none",
     "ring-1",
@@ -22,7 +21,7 @@ export const appearance = {
     "dark:shadow-[0_20px_60px_-15px_rgba(96,165,250,0.45)]",
   ].join(" "),
   outlined: [
-    "bg-white/95",
+    "bg-white/30",
     "text-slate-900",
     "ring-1",
     "ring-slate-300",
@@ -33,8 +32,7 @@ export const appearance = {
     "dark:shadow-[0_1px_2px_rgba(15,23,42,0.65)]",
   ].join(" "),
   frosted: [
-    "opacity-85",
-    "bg-slate-100/70",
+    "bg-slate-100/75",
     "text-slate-900",
     "backdrop-blur-2xl",
     "ring-1",
