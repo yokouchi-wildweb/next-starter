@@ -1,6 +1,6 @@
 export const appearance = {
   surface: [
-    "opacity-70",
+    "opacity-85",
     "bg-white",
     "text-slate-900",
     "shadow-none",
@@ -33,8 +33,8 @@ export const appearance = {
     "dark:shadow-[0_1px_2px_rgba(15,23,42,0.65)]",
   ].join(" "),
   frosted: [
-    // "opacity-70",
-    "bg-slate-100/30",
+    "opacity-85",
+    "bg-slate-100/70",
     "text-slate-900",
     "backdrop-blur-2xl",
     "ring-1",

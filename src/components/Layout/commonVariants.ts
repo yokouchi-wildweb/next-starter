@@ -1,5 +1,7 @@
 import { cva } from "class-variance-authority";
 import { appearance } from "./appearance";
+export { appearance } from "./appearance";
+
 
 export const space = {
   none: "space-y-0",
