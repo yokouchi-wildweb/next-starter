@@ -29,7 +29,7 @@ export default function BlockParaDemoPage() {
         <Para tone="muted" size="sm">
           各 appearance の見た目と付与されるユーティリティクラスを確認できます。
         </Para>
-        <Grid columns="1" gap="lg" className="md:grid-cols-2">
+        <Grid columns="one" gap="lg" className="md:grid-cols-2">
           {blockAppearances.map((appearanceKey) => (
             <Block
               key={appearanceKey}
@@ -62,7 +62,7 @@ export default function BlockParaDemoPage() {
         <Para tone="muted" size="sm">
           tone ごとの文字色とスタイルを見比べられるように、それぞれの tone 名と適用されるクラスを表示しています。
         </Para>
-        <Grid columns="1" gap="md" className="md:grid-cols-2">
+        <Grid columns="one" gap="md" className="md:grid-cols-2">
           {paraTones.map((toneKey) => (
             <Block
               key={toneKey}
