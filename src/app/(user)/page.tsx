@@ -101,7 +101,7 @@ export default function Home() {
         containerType="contentShell"
         className="relative forefront-layer min-h-screen text-slate-900"
       >
-        <Flex direction="column" gap="xl" className="py-20">
+        <Flex direction="column" gap="xxl" className="py-20">
 
           <Section className="relative text-center">
             <Flex
@@ -116,7 +116,7 @@ export default function Home() {
             </Flex>
           </Section>
 
-            <Section className="text-center">
+          <Section className="text-center">
               <Block
                 appearance="raised"
                 className="inline-block w-[72%] rounded-3xl border border-white/60 bg-white/39 p-6 backdrop-blur"

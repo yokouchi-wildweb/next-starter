@@ -379,7 +379,7 @@ export default function FormComponentsDemoPage() {
                 </Block>
 
                 <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                  <Para tone="label" size="sm">ImageUploaderField について</Para>
+                  <Para size="sm">ImageUploaderField について</Para>
                   <Para className="mt-1">
                     ImageUploaderField は FileUrlInput を組み合わせたコンポーネントです。
                     Firebase Storage 連携が必要なため、このデモでは FileUrlInput を利用した挙動のみ確認できます。

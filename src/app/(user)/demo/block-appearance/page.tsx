@@ -38,7 +38,7 @@ export default function BlockParaDemoPage() {
               padding="xl"
               className="min-h-[220px]"
             >
-              <Span tone="label" weight="semiBold" className="tracking-wide uppercase">
+              <Span weight="semiBold" className="tracking-wide uppercase">
                 {appearanceKey}
               </Span>
               <Span
@@ -71,7 +71,7 @@ export default function BlockParaDemoPage() {
               padding="lg"
               className="h-full shadow-none ring-1 ring-slate-200/60 dark:ring-slate-700/60"
             >
-              <Span tone="label" weight="semiBold" className="tracking-wide uppercase">
+              <Span weight="semiBold" className="tracking-wide uppercase">
                 {toneKey}
               </Span>
               <Span tone="muted" size="sm" className="font-mono text-xs">
