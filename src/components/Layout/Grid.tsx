@@ -95,7 +95,7 @@ type GridProps =
 
 
 export function Grid({
-  visualEffect,
+  appearance,
   space,
   padding,
   paddingBlock,
@@ -117,7 +117,7 @@ export function Grid({
 
 }: GridProps) {
   const variantClasses = gridVariants({
-    visualEffect,
+    appearance,
     space,
     padding,
     paddingBlock,

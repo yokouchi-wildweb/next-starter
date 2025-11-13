@@ -10,7 +10,7 @@ const inBlockVariants = createLayoutVariants("inline-block");
 type InBlockProps = ComponentPropsWithoutRef<"span"> & VariantProps<typeof inBlockVariants>;
 
 export function InBlock({
-  visualEffect,
+  appearance,
   space = "none",
   padding,
   paddingBlock,
@@ -26,7 +26,7 @@ export function InBlock({
       {...props}
       className={cn(
         inBlockVariants({
-          visualEffect,
+          appearance,
           space,
           padding,
           paddingBlock,

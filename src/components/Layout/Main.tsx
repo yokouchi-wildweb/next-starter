@@ -33,7 +33,7 @@ export type MainProps = ComponentPropsWithoutRef<"main"> &
 
 export function Main({
   containerType,
-  visualEffect,
+  appearance,
   space,
   padding = "md",
   paddingBlock,
@@ -84,7 +84,7 @@ export function Main({
           id={id}
           className={cn(
             mainLayoutVariants({
-              visualEffect,
+              appearance,
               space,
               padding,
               paddingBlock,
