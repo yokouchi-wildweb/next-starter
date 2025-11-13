@@ -5,12 +5,7 @@ import { cn } from "@/lib/cn";
 
 import { createLayoutVariants } from "./commonVariants";
 
-const sectionVariants = createLayoutVariants("block", {
-  defaultVariants: {
-    visualEffect: "default",
-    space: "md",
-  },
-});
+const sectionVariants = createLayoutVariants("block");
 
 type SectionElement = "section" | "article" | "aside" | "nav" | "header" | "footer";
 
@@ -24,8 +19,8 @@ export type SectionProps<T extends SectionElement = "section"> = BaseSectionProp
 
 export function Section<T extends SectionElement = "section">({
   as,
-  visualEffect,
-  space,
+  visualEffect = "default",
+  space = "md",
   padding,
   paddingBlock,
   paddingInline,
