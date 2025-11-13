@@ -3,13 +3,16 @@
 import { cva } from "class-variance-authority";
 
 export const tone = {
-  default: "",
+  default: "text-foreground",
   muted: "text-muted-foreground",
-  destructive: "font-semibold",
+  accent: "text-accent-foreground",
+  primary: "text-primary",
+  secondary: "text-secondary-foreground",
+  destructive: "text-destructive",
   notice: "text-Yellow-400",
   warning: "text-amber-600",
-  error: "text-destructive",
-  danger: "text-destructive",
+  error: "text-red-600",
+  danger: "text-red-800",
   success: "text-emerald-600",
   info: "text-sky-600",
   caution: "text-orange-500",
