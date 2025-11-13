@@ -1,12 +1,9 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/cn";
 
-import {
-  BaseLayoutVariantProps,
-  ComposeLayoutVariantProps,
-  createLayoutVariants,
-} from "./commonVariants";
+import { layoutVariants } from "./commonVariants";
 
 const flexVariantDefinitions = {
   gap: {
@@ -42,33 +39,20 @@ const flexVariantDefinitions = {
   },
 } as const;
 
-const flexVariants = createLayoutVariants("flex", {
-  variants: flexVariantDefinitions,
-  defaultVariants: {
-    visualEffect: "default",
-    space: "none",
-    padding: "none",
-    paddingBlock: "none",
-    paddingInline: "none",
-    margin: "none",
-    marginBlock: "none",
-    marginInline: "none",
-    gap: "none",
-    direction: "row",
-    align: "stretch",
-    justify: "start",
-    wrap: "nowrap",
+const flexVariants = cva("flex", {
+  variants: {
+    ...layoutVariants,
+    ...flexVariantDefinitions,
   },
 });
 
 type FlexProps = Omit<ComponentPropsWithoutRef<"div">, "className"> &
-  BaseLayoutVariantProps &
-  ComposeLayoutVariantProps<typeof flexVariantDefinitions> & {
+  VariantProps<typeof flexVariants> & {
     className?: string;
   };
 
 export function Flex({
-  visualEffect,
+  visualEffect = "default",
   space,
   padding,
   paddingBlock,
@@ -76,31 +60,29 @@ export function Flex({
   margin,
   marginBlock,
   marginInline,
-  gap,
-  direction,
-  align,
-  justify,
-  wrap,
+  gap = "none",
+  direction = "row",
+  align = "stretch",
+  justify = "start",
+  wrap = "nowrap",
   className,
   ...props
 }: FlexProps) {
-  const variantClasses = flexVariants(
-    {
-      visualEffect,
-      space,
-      padding,
-      paddingBlock,
-      paddingInline,
-      margin,
-      marginBlock,
-      marginInline,
-      gap,
-      direction,
-      align,
-      justify,
-      wrap,
-    } as Parameters<typeof flexVariants>[0],
-  );
+  const variantClasses = flexVariants({
+    visualEffect,
+    space,
+    padding,
+    paddingBlock,
+    paddingInline,
+    margin,
+    marginBlock,
+    marginInline,
+    gap,
+    direction,
+    align,
+    justify,
+    wrap,
+  });
 
   return <div className={cn(variantClasses, className)} {...props} />;
 }

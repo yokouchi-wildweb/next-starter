@@ -1,12 +1,9 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/cn";
 
-import {
-  BaseLayoutVariantProps,
-  ComposeLayoutVariantProps,
-  createLayoutVariants,
-} from "./commonVariants";
+import { layoutVariants } from "./commonVariants";
 
 const gridVariantDefinitions = {
   gap: {
@@ -83,39 +80,22 @@ const gridVariantDefinitions = {
   },
 } as const;
 
-const gridVariants = createLayoutVariants("grid", {
-  variants: gridVariantDefinitions,
-  defaultVariants: {
-    visualEffect: "default",
-    space: "none",
-    padding: "none",
-    paddingBlock: "none",
-    paddingInline: "none",
-    margin: "none",
-    marginBlock: "none",
-    marginInline: "none",
-    gap: "none",
-    columnGap: "none",
-    rowGap: "none",
-    columns: "auto",
-    rows: "auto",
-    autoFlow: "row",
-    alignItems: "stretch",
-    justifyItems: "stretch",
-    justifyContent: "start",
+const gridVariants = cva("grid", {
+  variants: {
+    ...layoutVariants,
+    ...gridVariantDefinitions,
   },
 });
 
 type GridProps =
   Omit<ComponentPropsWithoutRef<"div">, "className"> &
-  BaseLayoutVariantProps &
-  ComposeLayoutVariantProps<typeof gridVariantDefinitions> & {
+  VariantProps<typeof gridVariants> & {
     className?: string;
   };
 
 
 export function Grid({
-  visualEffect,
+  visualEffect = "default",
   space,
   padding,
   paddingBlock,
@@ -123,40 +103,38 @@ export function Grid({
   margin,
   marginBlock,
   marginInline,
-  gap,
+  gap = "none",
   columnGap,
   rowGap,
   columns,
   rows,
-  autoFlow,
-  alignItems,
-  justifyItems,
-  justifyContent,
+  autoFlow = "row",
+  alignItems = "stretch",
+  justifyItems = "stretch",
+  justifyContent = "start",
   className,
   ...props
 
 }: GridProps) {
-  const variantClasses = gridVariants(
-    {
-      visualEffect,
-      space,
-      padding,
-      paddingBlock,
-      paddingInline,
-      margin,
-      marginBlock,
-      marginInline,
-      gap,
-      columnGap,
-      rowGap,
-      columns,
-      rows,
-      autoFlow,
-      alignItems,
-      justifyItems,
-      justifyContent,
-    } as Parameters<typeof gridVariants>[0],
-  );
+  const variantClasses = gridVariants({
+    visualEffect,
+    space,
+    padding,
+    paddingBlock,
+    paddingInline,
+    margin,
+    marginBlock,
+    marginInline,
+    gap,
+    columnGap,
+    rowGap,
+    columns,
+    rows,
+    autoFlow,
+    alignItems,
+    justifyItems,
+    justifyContent,
+  });
 
   return <div className={cn(variantClasses, className)} {...props} />;
 }

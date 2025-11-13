@@ -5,18 +5,13 @@ import { cn } from "@/lib/cn";
 
 import { createLayoutVariants } from "./commonVariants";
 
-const inBlockVariants = createLayoutVariants("inline-block", {
-  defaultVariants: {
-    visualEffect: "default",
-    space: "none",
-  },
-});
+const inBlockVariants = createLayoutVariants("inline-block");
 
 type InBlockProps = ComponentPropsWithoutRef<"span"> & VariantProps<typeof inBlockVariants>;
 
 export function InBlock({
-  visualEffect,
-  space,
+  visualEffect = "default",
+  space = "none",
   padding,
   paddingBlock,
   paddingInline,

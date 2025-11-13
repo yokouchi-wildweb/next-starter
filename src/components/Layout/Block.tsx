@@ -5,18 +5,13 @@ import { cn } from "@/lib/cn";
 
 import { createLayoutVariants } from "./commonVariants";
 
-const blockVariants = createLayoutVariants("block", {
-  defaultVariants: {
-    visualEffect: "default",
-    space: "md",
-  },
-});
+const blockVariants = createLayoutVariants("block");
 
 type BlockProps = ComponentPropsWithoutRef<"div"> & VariantProps<typeof blockVariants>;
 
 export function Block({
-  visualEffect,
-  space,
+  visualEffect = "default",
+  space = "md",
   padding,
   paddingBlock,
   paddingInline,

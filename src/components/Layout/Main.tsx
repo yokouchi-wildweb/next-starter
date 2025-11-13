@@ -9,11 +9,7 @@ import { cn } from "@/lib/cn";
 
 import { createLayoutVariants } from "./commonVariants";
 
-const mainLayoutVariants = createLayoutVariants("mx-auto w-full", {
-  defaultVariants: {
-    padding: "md",
-  },
-});
+const mainLayoutVariants = createLayoutVariants("mx-auto w-full");
 
 type ContainerType =
   | "plain"
@@ -39,7 +35,7 @@ export function Main({
   containerType,
   visualEffect,
   space,
-  padding,
+  padding = "md",
   paddingBlock,
   paddingInline,
   margin,
