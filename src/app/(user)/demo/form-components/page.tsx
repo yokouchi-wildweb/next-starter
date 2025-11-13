@@ -178,7 +178,7 @@ export default function FormComponentsDemoPage() {
   return (
       <Main containerType="wideShowcase">
         <Section>
-          <PageTitle size="display" className="font-semibold tracking-tight">
+          <PageTitle size="xxxl" className="font-semibold tracking-tight">
             Form コンポーネント デモ
           </PageTitle>
           <Para tone="muted" size="sm">

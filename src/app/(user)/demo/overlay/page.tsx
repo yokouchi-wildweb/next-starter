@@ -131,7 +131,7 @@ export default function OverlayDemoPage() {
     <div className="px-6 py-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
         <Section as="header" className="my-0 flex flex-col gap-2">
-          <PageTitle size="display" className="font-semibold tracking-tight">
+          <PageTitle size="xxxl" className="font-semibold tracking-tight">
             Overlay デモ
           </PageTitle>
           <Para tone="muted" size="sm" className="mt-0">

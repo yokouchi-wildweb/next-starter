@@ -246,7 +246,7 @@ export default function GoogleRedirectAuthDemoPage() {
   return (
     <Block className="py-8" space="xl">
       <header className="space-y-3">
-        <PageTitle size="display" className="font-semibold tracking-tight">
+        <PageTitle size="xxxl" className="font-semibold tracking-tight">
           Google リダイレクト認証デモ
         </PageTitle>
         <Para tone="muted">
