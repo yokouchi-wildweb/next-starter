@@ -1,10 +1,7 @@
 import { cva } from "class-variance-authority";
 
 export const visualEffect = {
-  /** 囲み枠で少しだけ強調したいとき */
-  outline: "border border-border",
-  /** 影を付けて存在感を出したいとき */
-  raised: "shadow-lg",
+
 } as const;
 
 export const space = {
