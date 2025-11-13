@@ -15,7 +15,7 @@ export function Para({
   size = "md",
   align = "left",
   weight = "normal",
-  srOnly = "false",
+  srOnly = false,
   className,
   children,
   ...props

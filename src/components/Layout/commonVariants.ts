@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
 
-type VariantDefinitions = Record<string, Record<string, string>>;
+export type VariantDefinitions = Record<string, Record<string, string>>;
 
 export const visualEffect = {
   /** 最もシンプルなブロック */
@@ -110,7 +110,7 @@ type CombinedDefaults<
 type CreateLayoutVariantsOptions<AdditionalVariants extends VariantDefinitions | undefined> = {
   variants?: AdditionalVariants;
   defaultVariants?: CombinedDefaults<AdditionalVariants>;
-  compoundVariants?: Parameters<typeof cva>[1]["compoundVariants"];
+  compoundVariants?: NonNullable<Parameters<typeof cva>[1]>["compoundVariants"];
 };
 
 export const createLayoutVariants = <
@@ -135,3 +135,13 @@ export const createLayoutVariants = <
 };
 
 export type LayoutVariants = typeof baseLayoutVariants;
+
+type VariantOptionProps<Definition extends VariantDefinitions> = {
+  [Key in keyof Definition]?: keyof Definition[Key];
+};
+
+export type BaseLayoutVariantProps = VariantOptionProps<LayoutVariants>;
+
+export type ComposeLayoutVariantProps<
+  AdditionalVariants extends VariantDefinitions,
+> = VariantOptionProps<LayoutVariants & AdditionalVariants>;

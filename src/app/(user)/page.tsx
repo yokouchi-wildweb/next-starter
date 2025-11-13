@@ -103,7 +103,7 @@ export default function Home() {
       >
         <Flex direction="column" gap="xl" className="py-20">
 
-          <Section align="center" className="relative">
+          <Section className="relative text-center">
             <Flex
               space="none"
               direction="column"

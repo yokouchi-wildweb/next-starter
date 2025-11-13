@@ -15,7 +15,7 @@ export function PageTitle({
   size = "xxl",
   align = "left",
   weight = "bold",
-  srOnly = "false",
+  srOnly = false,
   className,
   children,
   ...props
