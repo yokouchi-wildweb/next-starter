@@ -33,13 +33,22 @@ export function AdminLayoutClient({
     [headerHeight],
   );
 
+  const contentMinHeightStyle = useMemo(
+    () => ({
+      minHeight: "calc(var(--viewport-height, 100dvh) - var(--app-header-height, 0px))",
+    }),
+    [],
+  );
+
   return (
     <div
       className="relative flex min-h-[var(--viewport-height,100dvh)] flex-col bg-background text-foreground"
       style={layoutStyle}
     >
       <AdminHeader logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
-      <div className="flex-1 min-h-0 flex flex-col">{children}</div>
+      <div className="flex-1 min-h-0 flex flex-col" style={contentMinHeightStyle}>
+        {children}
+      </div>
       <AdminFooter text={footerText} />
     </div>
   );
