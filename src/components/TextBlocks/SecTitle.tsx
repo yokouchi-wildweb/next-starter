@@ -22,7 +22,7 @@ export function SecTitle({
   size = "xl",
   align = "left",
   weight = "bold",
-  srOnly = "false",
+  srOnly = false,
   className,
   children,
   ...props

@@ -15,7 +15,7 @@ export function Span({
   size = "md",
   align,
   weight = "normal",
-  srOnly = "false",
+  srOnly = false,
   className,
   children,
   ...props
