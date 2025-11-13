@@ -5,8 +5,8 @@ import { cva } from "class-variance-authority";
 export const tone = {
   default: "",
   muted: "text-muted-foreground",
-  label: "font-semibold",
-  notice: "text-amber-600",
+  destructive: "font-semibold",
+  notice: "text-Yellow-400",
   warning: "text-amber-600",
   error: "text-destructive",
   danger: "text-destructive",

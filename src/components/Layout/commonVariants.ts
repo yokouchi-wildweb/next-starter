@@ -4,11 +4,11 @@ export const appearance = {
   surface:
     "bg-white text-slate-900 shadow-none ring-1 ring-slate-200/60 dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-700/60",
   raised:
-    "bg-white text-slate-900 shadow-[0_18px_45px_-25px_rgba(15,23,42,0.35)] ring-1 ring-slate-900/5 dark:bg-slate-900 dark:text-slate-100 dark:ring-white/5 dark:shadow-[0_18px_45px_-20px_rgba(15,23,42,0.6)]",
+      "bg-white text-slate-900 shadow-[0_20px_60px_-15px_rgba(30,64,175,0.3)] ring-1 ring-blue-500/10 dark:bg-slate-900 dark:text-slate-100 dark:ring-blue-300/10 dark:shadow-[0_20px_60px_-15px_rgba(96,165,250,0.45)]",
   outlined:
     "bg-white/95 text-slate-900 ring-1 ring-slate-300 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:bg-slate-900/80 dark:text-slate-100 dark:ring-slate-700 dark:shadow-[0_1px_2px_rgba(15,23,42,0.65)]",
   frosted:
-    "bg-white/70 text-slate-900 backdrop-blur-xl ring-1 ring-white/40 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.6)] dark:bg-slate-900/40 dark:text-slate-100 dark:ring-slate-50/10 dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.75)]",
+      "bg-slate-100/70 text-slate-900 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_25px_55px_-20px_rgba(150,180,233,0.35)] dark:bg-slate-800/40 dark:text-slate-100 dark:ring-cyan-200/10 dark:shadow-[0_25px_55px_-20px_rgba(14,165,233,0.5)]",
   soft:
     "bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900 ring-1 ring-slate-200/70 shadow-[0_12px_35px_-20px_rgba(15,23,42,0.35)] dark:from-slate-900 dark:via-slate-900/70 dark:to-slate-900/40 dark:text-slate-100 dark:ring-slate-700/70 dark:shadow-[0_12px_35px_-18px_rgba(15,23,42,0.55)]",
   radiant:
