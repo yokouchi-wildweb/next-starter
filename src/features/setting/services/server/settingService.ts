@@ -1,14 +1,18 @@
 // src/features/setting/services/server/settingService.ts
 import type { Setting } from "@/features/setting/entities";
+import type { User } from "@/features/user/entities";
+import { registerAdminFromConsole } from "@/features/user/services/server/registrations";
+
+import type { AdminSetupInput } from "../types";
 import { base } from "./drizzleBase";
 
-const DEFAULT_ADMIN_LIST_PER_PAGE = 100;
+const DEFAULT_ADMIN_LIST_PER_PAGE = 50;
 
 const createDefaultSettingValues = () => ({
   adminHeaderLogoImageUrl: null,
   adminHeaderLogoImageDarkUrl: null,
   adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,
-  adminFooterText: `© ${new Date().getFullYear()} ORIPA DO!`,
+  adminFooterText: `© ${new Date().getFullYear()} Wildweb Tokyo.`,
 });
 
 async function getGlobalSetting(): Promise<Setting> {
@@ -36,9 +40,21 @@ async function getAdminListPerPage(): Promise<number> {
   return setting.adminListPerPage;
 }
 
+export async function initializeAdminSetup(data: AdminSetupInput): Promise<User> {
+  const user = await registerAdminFromConsole(data);
+
+  await base.upsert({
+    id: "global",
+    ...createDefaultSettingValues(),
+  });
+
+  return user;
+}
+
 export const settingService = {
   ...base,
   getGlobalSetting,
   getAdminListPerPage,
   DEFAULT_ADMIN_LIST_PER_PAGE,
+  initializeAdminSetup,
 };
