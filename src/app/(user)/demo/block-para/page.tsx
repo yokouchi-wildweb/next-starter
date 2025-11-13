@@ -11,12 +11,14 @@ import {
 import { appearance } from "@/components/Layout/commonVariants";
 import { tone } from "@/components/TextBlocks/textVariants";
 
+import styles from "./page.module.css";
+
 const blockAppearances = Object.keys(appearance) as Array<keyof typeof appearance>;
 const paraTones = Object.keys(tone) as Array<keyof typeof tone>;
 
 export default function BlockParaDemoPage() {
   return (
-    <Main space="xl" padding="xl">
+    <Main space="xl" padding="xl" className={styles.pageBackground}>
       <PageTitle>Block と Para のスタイルデモ</PageTitle>
       <Para tone="muted">
         Block コンポーネントの appearance と Para コンポーネントの tone を一覧で比較できます。

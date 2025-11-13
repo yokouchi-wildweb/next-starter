@@ -1,0 +1,24 @@
+.pageBackground {
+  position: relative;
+  isolation: isolate;
+}
+
+.pageBackground::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  background-color: rgba(248, 250, 252, 0.95);
+  background-image:
+    radial-gradient(circle at center, rgba(148, 163, 184, 0.35) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(148, 163, 184, 0.2) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+}
+
+:global(.dark) .pageBackground::before {
+  background-color: rgba(15, 23, 42, 0.92);
+  background-image:
+    radial-gradient(circle at center, rgba(226, 232, 240, 0.35) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(226, 232, 240, 0.15) 1px, transparent 1px);
+}
