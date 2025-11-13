@@ -129,7 +129,7 @@ export default async function AdminHomePage() {
                 </CardHeader>
                 <CardContent className="relative z-10">
                   <Flex direction="column" gap="sm" className="mt-1">
-                    <Span className="text-4xl font-semibold tracking-tight drop-shadow-[0_12px_35px_rgba(15,23,42,0.45)] sm:text-[2.75rem] lg:text-5xl">
+                    <Span className="text-slate-50 text-4xl font-semibold tracking-tight drop-shadow-[0_12px_35px_rgba(15,23,42,0.45)] sm:text-[2.75rem] lg:text-5xl">
                       {metric.value}
                     </Span>
                   </Flex>
