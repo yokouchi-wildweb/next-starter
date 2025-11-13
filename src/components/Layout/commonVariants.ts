@@ -102,14 +102,10 @@ type BaseVariantDefaults = {
 
 type CombinedDefaults<
   AdditionalVariants extends VariantDefinitions | undefined,
-> = Partial<
-  BaseVariantDefaults &
-    (AdditionalVariants extends VariantDefinitions
-      ? {
-          [Key in keyof AdditionalVariants]?: keyof AdditionalVariants[Key];
-        }
-      : Record<string, never>)
->;
+> = Partial<BaseVariantDefaults> &
+  (AdditionalVariants extends VariantDefinitions
+    ? Partial<{ [Key in keyof AdditionalVariants]: keyof AdditionalVariants[Key] }>
+    : Record<never, never>);
 
 type CreateLayoutVariantsOptions<AdditionalVariants extends VariantDefinitions | undefined> = {
   variants?: AdditionalVariants;
