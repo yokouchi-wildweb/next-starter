@@ -3,7 +3,7 @@
 /**
  * ユーザーのテーマ設定を初期化するための関数
  * - localStorageに保存されたテーマがあればそれを使用
- * - なければOSの設定（prefers-color-scheme）を参照
+ * - なければライトモードを使用
  *
  * @returns boolean - ダークモードかどうか（true: dark, false: light）
  */
@@ -21,10 +21,10 @@ export const getInitialTheme = (): boolean => {
   // 保存されたテーマが "light" の場合
   if (stored === "light") return false;
 
-  // 保存がない場合は、現在のDOMやOSの設定を参照
+  // 保存がない場合は、現在のDOMの状態のみを参照し、なければライトモードにする
   if (document.documentElement.classList.contains("dark")) return true;
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return false;
 };
 
 /**

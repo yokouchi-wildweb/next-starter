@@ -24,11 +24,8 @@ const themeBootstrapCode = `
         return;
       }
 
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
+      // 初回アクセス時はライトモードをデフォルトにする
+      root.classList.remove('dark');
     } catch (error) {
       // fail silently, theme will fall back to light
     }
