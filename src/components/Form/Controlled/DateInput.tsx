@@ -15,6 +15,7 @@ export const DateInput = <TFieldValues extends FieldValues, TName extends FieldP
 
   const openPicker = () => {
     const el = inputRef.current as HTMLInputElement | null;
+
     if (el && typeof (el as any).showPicker === "function") {
       (el as any).showPicker();
     }
