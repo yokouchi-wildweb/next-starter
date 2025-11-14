@@ -1,0 +1,9 @@
+// src/features/user/services/client/userClient.ts
+
+import { createApiClient } from "@/lib/crud/apiClientFactory";
+import type { ApiClient } from "@/lib/crud/types";
+import type { User } from "@/features/user/entities";
+import type { CreateUserInput } from "../types";
+
+export const userClient: ApiClient<User, CreateUserInput> =
+  createApiClient<User, CreateUserInput>("/api/user");

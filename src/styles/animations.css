@@ -1,0 +1,39 @@
+/* src/styles/animations.css */
+
+
+/*
+ * src/styles/animations.css
+ * 共通のアニメーションや関連ユーティリティを定義します。
+ * `--animate-*` の変数は `@theme` ブロックで登録し、
+ * 追加のアニメーション用クラスは `@layer utilities` に配置します。
+ */
+
+@theme {
+
+  /* アニメーション定義のサンプル */
+  /*
+    --animate-fade-in-scale: animation-name 2.3s ease-out;
+    @keyframes animation-name {
+      0% { opacity: 0; }
+      100% {opacity: 1; }
+    }
+  */
+}
+
+/*
+ * utilities レイヤー: アニメーション関連のユーティリティクラスを定義します。
+ */
+@layer utilities {
+  .fill-forwards {
+    animation-fill-mode: forwards;
+  }
+  .fill-backwards {
+    animation-fill-mode: backwards;
+  }
+  .fill-both {
+    animation-fill-mode: both;
+  }
+  .fill-none {
+    animation-fill-mode: none;
+  }
+}
