@@ -23,6 +23,17 @@ const nextConfig: NextConfig = {
 
     return config;
   },
+  async rewrites() {
+    return {
+      fallback: [
+        {
+          source: "/__/:path*",
+          destination: "https://oripa-do-d788a.web.app/__/:path*",
+        },
+      ],
+    };
+  },
 };
+
 
 export default nextConfig;

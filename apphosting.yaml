@@ -11,7 +11,7 @@ env:
       - RUNTIME
 
   - variable: NEXT_PUBLIC_LOG_LEVEL
-    value: 0
+    value: 3
     availability:
       - BUILD
       - RUNTIME
