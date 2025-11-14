@@ -9,6 +9,7 @@ import Link from "next/link";
 import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import { APP_FEATURES } from "@/config/app-features.config";
 import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
+import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 
 const headerContainer = cva(
   "flex justify-between items-center px-6 py-3 bg-muted text-muted-foreground shadow-sm font-bold text-lg",
@@ -23,10 +24,11 @@ export function AdminHeader({ logoUrl, darkLogoUrl }: AdminHeaderProps) {
   const lightLogoSrc = logoUrl ?? "/imgs/logos/nextjs.png";
   const darkLogoSrc = darkLogoUrl ?? logoUrl ?? "/imgs/logos/nextjs-dm.png";
   const showDarkModeSwitch = APP_FEATURES.admin.appearance.enableDarkModeSwitch;
+  const { isAuthenticated } = useAuthSession();
 
   return (
     <header id={APP_HEADER_ELEMENT_ID} className={cn(headerContainer())}>
-      <Link href="/admin" className="block p-2">
+      <Link href="/admin" className="block p-2" prefetch={isAuthenticated}>
         <img
           src={lightLogoSrc}
           alt="管理画面ロゴ（ライトモード）"
