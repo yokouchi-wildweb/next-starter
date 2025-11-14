@@ -2,7 +2,7 @@
 
 import { FieldType, Options } from "@/types/form";
 import { CheckGroupInput, RadioGroupInput, SelectInput } from "src/components/Form/Manual";
-import { DateInput, TextInput, SwitchInput } from "@/components/Form/Controlled";
+import { DateInput, TextInput, SwitchInput, TimeInput } from "@/components/Form/Controlled";
 import type { ComponentProps, HTMLAttributes } from "react";
 
 function InputRenderer(type: FieldType, field: any, options?: Options[], rest?: HTMLAttributes<HTMLElement>) {
@@ -27,6 +27,9 @@ function InputRenderer(type: FieldType, field: any, options?: Options[], rest?: 
 
     case "date":
       return <DateInput field={field} {...rest} />;
+
+    case "time":
+      return <TimeInput field={field} {...rest} />;
 
     case "text":
     default:

@@ -45,6 +45,8 @@ function mapType(t) {
       return 'boolean';
     case 'date':
       return 'date';
+    case 'time':
+      return 'time';
     case 'uuid':
       return 'uuid';
     case 'timestamp With Time Zone':

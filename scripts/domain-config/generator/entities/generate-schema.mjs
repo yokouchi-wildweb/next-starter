@@ -46,6 +46,7 @@ function mapZodType(type) {
     case 'boolean':
       return 'z.coerce.boolean()';
     case 'date':
+    case 'time':
       return 'z.string()';
     default:
       return 'z.any()';

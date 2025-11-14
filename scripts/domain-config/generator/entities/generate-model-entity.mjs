@@ -33,6 +33,7 @@ function mapTsType(t) {
     case 'string':
     case 'uuid':
     case 'date':
+    case 'time':
       return 'string';
     case 'integer':
     case 'number':
