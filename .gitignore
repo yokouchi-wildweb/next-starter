@@ -23,6 +23,9 @@
 # Firebase
 /.firebase/
 firebase-service-acount.json
+.firebaserc
+firebase.json
+firestore.indexes.json
 
 # production
 /build
@@ -40,6 +43,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+apphosting.yaml
 
 # vercel
 .vercel
