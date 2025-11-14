@@ -16,7 +16,7 @@ const FORM_INPUTS = {
       'none',
     ],
     number: ['number input', 'numeric input', 'none'],
-    array: ['none'],
+    array: ['checkbox', 'none'],
     timestamp: ['none'],
     geopoint: ['none'],
     reference: ['none'],
@@ -44,7 +44,7 @@ const FORM_INPUTS = {
     Point: ['none'],
     'timestamp With Time Zone': ['none'],
     jsonb: ['none'],
-    array: ['none'],
+    array: ['checkbox', 'none'],
   },
 };
 
@@ -120,6 +120,7 @@ async function askSingleField(config) {
   const normalizedInput = toCamelCase(formInput);
 
   const isBooleanField = fieldType === 'boolean';
+  const isArrayField = fieldType === 'array';
 
   let uploadPath;
   let slug;
@@ -144,12 +145,17 @@ async function askSingleField(config) {
     slug = sl.slug.trim() || baseSlug;
   }
 
-  const { required } = await prompt({
-    type: 'confirm',
-    name: 'required',
-    message: 'このフィールドを必須にしますか?',
-    default: false,
-  });
+  let requiredAnswer = { required: false };
+  if (isArrayField) {
+    console.log('配列フィールドは未選択時に空配列を保存するため、必須設定はスキップします。');
+  } else {
+    requiredAnswer = await prompt({
+      type: 'confirm',
+      name: 'required',
+      message: 'このフィールドを必須にしますか?',
+      default: false,
+    });
+  }
 
   let options;
   const needsOptions =
@@ -165,8 +171,17 @@ async function askSingleField(config) {
         { value: false, label: 'いいえ' },
       ];
     } else {
-      console.log('選択肢を入力してください。空欄で入力終了。値は文字列として扱われます。');
-      options = await askOptions();
+      const guidance =
+        isArrayField && normalizedInput === 'checkbox'
+          ? 'チェックボックスで選択可能な値を入力してください。空欄で入力終了。値は文字列として保存されます。'
+          : '選択肢を入力してください。空欄で入力終了。値は文字列として扱われます。';
+      console.log(guidance);
+      do {
+        options = await askOptions();
+        if (!options.length && isArrayField && normalizedInput === 'checkbox') {
+          console.log('少なくとも1つの選択肢を登録してください。');
+        }
+      } while (!options.length && isArrayField && normalizedInput === 'checkbox');
     }
   }
 
@@ -175,7 +190,7 @@ async function askSingleField(config) {
     label: trimmedLabel,
     fieldType,
     formInput: normalizedInput,
-    required,
+    required: isArrayField ? false : requiredAnswer.required,
     ...(uploadPath ? { uploadPath } : {}),
     ...(slug ? { slug } : {}),
     ...(options && options.length ? { options } : {}),

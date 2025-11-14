@@ -123,6 +123,11 @@ switch (config.idType) {
     const values = f.options ? f.options.map(o => formatValue(o.value)).join(', ') : '';
     enumDefs.push(`export const ${names.constName} = pgEnum("${names.enumName}", [${values}]);`);
     fields.push(`  ${f.name}: ${names.constName}("${toSnakeCase(f.name)}")${f.required ? '.notNull()' : ''},`);
+  } else if (f.fieldType === 'array') {
+    imports.add('text');
+    fields.push(
+      `  ${f.name}: text("${toSnakeCase(f.name)}").array().notNull(),`
+    );
   } else {
     const typeFn = mapType(f.fieldType);
     imports.add(typeFn);

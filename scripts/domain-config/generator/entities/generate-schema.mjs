@@ -45,6 +45,8 @@ function mapZodType(type) {
       return 'z.coerce.number().int()';
     case 'boolean':
       return 'z.coerce.boolean()';
+    case 'array':
+      return 'z.array(z.string())';
     case 'date':
     case 'time':
       return 'z.string()';
@@ -53,11 +55,16 @@ function mapZodType(type) {
   }
 }
 
-function fieldLine(name, label, type, required) {
+function fieldLine({ name, label, type, required, fieldType }) {
+  if (fieldType === 'array') {
+    return `  ${name}: ${type}.default([]),`;
+  }
+
   let line = `  ${name}: ${type}`;
   if (required) {
     if (type.startsWith('z.string()')) {
-      const msgLabel = name.endsWith('Id') ? `${label}ID` : label;
+      const resolvedLabel = label || name;
+      const msgLabel = name.endsWith('Id') ? `${resolvedLabel}ID` : resolvedLabel;
       line += `.min(1, { message: "${msgLabel}は必須です。" })`;
     }
   } else {
@@ -73,14 +80,22 @@ const lines = [];
 (config.relations || []).forEach((rel) => {
   if (rel.relationType !== 'belongsTo') return;
   const type = mapZodType(rel.fieldType || config.idType);
-  lines.push(fieldLine(rel.fieldName, rel.label || rel.fieldName, type, rel.required));
+  lines.push(
+    fieldLine({
+      name: rel.fieldName,
+      label: rel.label || rel.fieldName,
+      type,
+      required: rel.required,
+      fieldType: rel.fieldType || config.idType,
+    }),
+  );
 });
 
 // belongsToMany relations -> arrays of ids
 (config.relations || []).forEach((rel) => {
   if (rel.relationType !== 'belongsToMany') return;
   const elem = mapZodType(rel.fieldType || config.idType);
-  lines.push(`  ${rel.fieldName}: z.array(${elem}).nullish().default([]),`);
+  lines.push(`  ${rel.fieldName}: z.array(${elem}).default([]),`);
 });
 
 // normal fields
@@ -90,7 +105,15 @@ const lines = [];
     lines.push(`  ${f.name}: z.enum([${values}])${f.required ? '' : '.nullish()'},`);
   } else {
     const t = mapZodType(f.fieldType);
-    lines.push(fieldLine(f.name, f.label || f.name, t, f.required));
+    lines.push(
+      fieldLine({
+        name: f.name,
+        label: f.label || f.name,
+        type: t,
+        required: f.required,
+        fieldType: f.fieldType,
+      }),
+    );
   }
 });
 

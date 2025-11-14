@@ -167,6 +167,16 @@ function generateFieldsFromConfig(config) {
               label: f.label,
             }).trimEnd(),
           );
+        } else if (f.fieldType === "array") {
+          addImport('import { CheckGroupInput } from "@/components/Form/Manual";');
+          const optsCheckbox = f.options && f.options.length ? JSON.stringify(f.options) : "[]";
+          body.push(
+            replacePartialTokens(getPartial("checkboxGroup.tsx"), {
+              fieldName: f.name,
+              label: f.label,
+              options: optsCheckbox,
+            }).trimEnd(),
+          );
         } else {
           addImport('import { Checkbox } from "@/components/Shadcn/checkbox";');
           body.push(

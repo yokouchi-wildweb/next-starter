@@ -7,6 +7,8 @@ function defaultValueFor(type) {
       return "false";
     case "enum":
       return "undefined";
+    case "array":
+      return "[]";
     default:
       return '""';
   }

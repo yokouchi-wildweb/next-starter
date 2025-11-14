@@ -42,6 +42,8 @@ function mapTsType(t) {
       return 'number';
     case 'boolean':
       return 'boolean';
+    case 'array':
+      return 'string[]';
     case 'timestamp With Time Zone':
       return 'Date';
     case 'jsonb':
@@ -52,6 +54,11 @@ function mapTsType(t) {
 }
 
 function addField(lines, name, type, required) {
+  if (type.endsWith('[]')) {
+    lines.push(`  ${name}: ${type};`);
+    return;
+  }
+
   const t = required ? type : `${type} | null`;
   lines.push(`  ${name}: ${t};`);
 }
