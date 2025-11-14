@@ -109,6 +109,15 @@ function generateFieldsFromConfig(config) {
           }).trimEnd(),
         );
         break;
+      case "timeInput":
+        addImport('import { TimeInput } from "@/components/Form/Controlled";');
+        body.push(
+          replacePartialTokens(getPartial("timeInput.tsx"), {
+            fieldName: f.name,
+            label: f.label,
+          }).trimEnd(),
+        );
+        break;
       case "select":
         addImport('import { SelectInput } from "@/components/Form/Manual";');
         const opts = f.fieldType === "boolean"

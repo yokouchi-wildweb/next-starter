@@ -37,6 +37,7 @@ const FORM_INPUTS = {
     boolean: ['checkbox', 'radio', 'switch input', 'none'],
     enum: ['select', 'radio', 'none'],
     date: ['date input', 'text input', 'none'],
+    time: ['time input', 'text input', 'none'],
     bigint: ['number input', 'numeric input', 'none'],
     'numeric(10,2)': ['number input', 'numeric input', 'none'],
     uuid: ['text input', 'none'],

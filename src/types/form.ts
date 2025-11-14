@@ -12,6 +12,7 @@ export type Options = {
 export type FieldType =
   | "text"
   | "date"
+  | "time"
   | "textarea"
   | "radio"
   | "checkbox"
