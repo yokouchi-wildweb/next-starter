@@ -7,7 +7,7 @@ import { UserTable } from "@/features/user/entities/drizzle";
 import { GeneralUserSchema } from "@/features/user/entities/schema";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
-import { hashPassword } from "@/utils/password";
+import { createHash } from "@/utils/string";
 
 export type AdminConsoleRegistrationInput = {
   displayName: string;
@@ -43,7 +43,7 @@ export async function registerAdminFromConsole(
 
   await assertLocalProviderAvailability(data.email);
 
-  const localPasswordHash = await hashPassword(data.password);
+  const localPasswordHash = await createHash(data.password);
 
   const values = GeneralUserSchema.parse({
     role: "admin",
