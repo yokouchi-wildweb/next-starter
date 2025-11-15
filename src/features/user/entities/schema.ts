@@ -30,12 +30,16 @@ export const UserCoreSchema = z.object({
     .transform((value) => emptyToNull(value)),
 });
 
+export const userMutableSchema = z.object({
+  // ダミーフィールド: 自己紹介文。実装時は任意の可変フィールドをここに追加してください。
+  introduction: z.string().optional(),
+});
+
 /**
  * 一般ユーザー用に利用するスキーマ。
+ * 管理者ユーザーと一般ユーザーで可変フィールドの構成を変えたい場合は userMutableSchema を自由に調整してください。
  */
-export const GeneralUserSchema = UserCoreSchema.extend({
-  // ダミーフィールド: z.string()
-});
+export const GeneralUserSchema = UserCoreSchema.merge(userMutableSchema);
 
 /**
  * 一般ユーザー更新用に項目をオプショナルにしたスキーマ。
@@ -48,10 +52,9 @@ export const GeneralUserOptionalSchema = GeneralUserSchema.partial().extend({
 
 /**
  * 管理者ユーザー用に利用するスキーマ。
+ * 管理者ユーザーと一般ユーザーで可変フィールドの構成を変えたい場合は userMutableSchema を自由に調整してください。
  */
-export const AdminUserSchema = UserCoreSchema.extend({
-  // ダミーフィールド: z.string()
-});
+export const AdminUserSchema = UserCoreSchema.merge(userMutableSchema);
 
 /**
  * 管理者ユーザー更新用に項目をオプショナルにしたスキーマ。
