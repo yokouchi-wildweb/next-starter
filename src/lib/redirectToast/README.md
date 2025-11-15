@@ -24,19 +24,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ## リダイレクト + トーストを発火する
 
-サーバーアクションや `page.tsx` などサーバー環境で、`redirectWithToast.success(url, message)` を呼び出すだけです。トースト情報は Cookie に保存され、リダイレクト後に自動で表示されます。
+サーバーアクションや `page.tsx` などサーバー環境で、`redirectWithToastSuccess(url, message)` のようなヘルパー関数を呼び出すだけです。トースト情報は Cookie に保存され、リダイレクト後に自動で表示されます。
 
 ```tsx
 // 例: src/app/samples/actions.ts
 "use server";
 
-import { redirectWithToast } from "@/lib/redirectToast";
+import { redirectWithToastSuccess } from "@/lib/redirectToast";
 
 export const handleSubmit = async (formData: FormData) => {
   // ...サーバー処理...
 
-  redirectWithToast.success("/samples", "サンプルを登録しました");
+  redirectWithToastSuccess("/samples", "サンプルを登録しました");
 };
 ```
 
-`redirectWithToast` にはクライアントトーストと同じ種類のメソッド（`success`, `error`, `warning`, `info`, `default`）を用意しています。画面のトーンに合わせて使い分けてください。
+`redirectWithToastSuccess`, `redirectWithToastError`, `redirectWithToastWarning`, `redirectWithToastInfo`, `redirectWithToastDefault` のヘルパーを用意しています。画面のトーンに合わせて使い分けてください。必要に応じて `redirectWithToast({ type, message }, url)` のように直接ペイロードを渡すこともできます。
