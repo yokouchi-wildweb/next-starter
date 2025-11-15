@@ -31,6 +31,8 @@ const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 function mapTsType(t) {
   switch (t) {
     case 'string':
+    case 'email':
+    case 'password':
     case 'uuid':
     case 'date':
     case 'time':

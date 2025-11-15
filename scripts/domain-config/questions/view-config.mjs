@@ -5,7 +5,7 @@ export default async function askViewConfig(config) {
   const result = {};
 
   const searchChoices = (config.fields || [])
-    .filter((f) => f.fieldType === 'string')
+    .filter((f) => ['string', 'email'].includes(f.fieldType))
     .map((f) => ({ name: f.name, value: f.name }));
   if (searchChoices.length > 0) {
     const { searchFields } = await prompt({
@@ -31,7 +31,7 @@ export default async function askViewConfig(config) {
   if (config.useCreatedAt) addField('createdAt');
   if (config.useUpdatedAt) addField('updatedAt');
   for (const f of config.fields || []) {
-    if (['textInput', 'dateInput', 'numberInput'].includes(f.formInput)) {
+    if (['textInput', 'emailInput', 'dateInput', 'numberInput'].includes(f.formInput)) {
       addField(f.name);
     }
   }

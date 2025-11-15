@@ -38,6 +38,8 @@ const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 function mapZodType(type) {
   switch (type) {
     case 'string':
+    case 'email':
+    case 'password':
     case 'uuid':
       return 'z.string()';
     case 'integer':
@@ -56,9 +58,18 @@ function mapZodType(type) {
 }
 
 let usesEmptyToNull = false;
+let usesCreateHashPreservingNullish = false;
 
 function isStringField(fieldType) {
-  return fieldType === 'string';
+  return ['string', 'email', 'password'].includes(fieldType);
+}
+
+function isEmailField(fieldType) {
+  return fieldType === 'email';
+}
+
+function isPasswordField(fieldType) {
+  return fieldType === 'password';
 }
 
 function fieldLine({ name, label, type, required, fieldType }) {
@@ -66,22 +77,40 @@ function fieldLine({ name, label, type, required, fieldType }) {
     return `  ${name}: ${type}.default([]),`;
   }
 
-  let line = `  ${name}: ${type}`;
-  if (required) {
-    if (type.startsWith('z.string()')) {
-      const resolvedLabel = label || name;
-      const msgLabel = name.endsWith('Id') ? `${resolvedLabel}ID` : resolvedLabel;
-      line += `.min(1, { message: "${msgLabel}は必須です。" })`;
-    }
-  } else {
-    line += '.nullish()';
+  const resolvedLabel = label || name;
+  const msgLabel = name.endsWith('Id') ? `${resolvedLabel}ID` : resolvedLabel;
+
+  const segments = [`  ${name}: ${type}`];
+
+  if (required && type.startsWith('z.string()') && isStringField(fieldType)) {
+    segments.push(`.min(1, { message: "${msgLabel}は必須です。" })`);
+  }
+
+  if (isEmailField(fieldType)) {
+    segments.push('.email()');
+  }
+
+  if (!required && isEmailField(fieldType)) {
+    segments.push(`.or(z.literal(''))`);
+  }
+
+  if (!required) {
+    segments.push('.nullish()');
     if (isStringField(fieldType)) {
       usesEmptyToNull = true;
-      line += `\n    .transform((value) => emptyToNull(value))`;
+      segments.push(`\n    .transform((value) => emptyToNull(value))`);
     }
   }
-  line += ',';
-  return line;
+
+  if (isPasswordField(fieldType)) {
+    usesCreateHashPreservingNullish = true;
+    segments.push(
+      `\n    .transform(async (value) => await createHashPreservingNullish(value))`,
+    );
+  }
+
+  segments.push(',');
+  return segments.join('');
 }
 
 const lines = [];
@@ -130,8 +159,15 @@ const lines = [];
 const header = `// src/features/${camel}/entities/schemaRegistry.ts`;
 const importStatements = [];
 
+const stringUtils = [];
 if (usesEmptyToNull) {
-  importStatements.push('import { emptyToNull } from "@/utils/string";');
+  stringUtils.push('emptyToNull');
+}
+if (usesCreateHashPreservingNullish) {
+  stringUtils.push('createHashPreservingNullish');
+}
+if (stringUtils.length) {
+  importStatements.push(`import { ${stringUtils.join(', ')} } from "@/utils/string";`);
 }
 
 importStatements.push('import { z } from "zod";');
