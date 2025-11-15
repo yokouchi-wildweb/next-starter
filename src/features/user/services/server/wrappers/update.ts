@@ -25,34 +25,13 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     );
   }
 
-  const payload: UpdateUserInput = { ...rawData };
-
-  const hasDisplayName = Object.prototype.hasOwnProperty.call(payload, "displayName");
-  const hasEmail = Object.prototype.hasOwnProperty.call(payload, "email");
-  const hasLocalPassword = Object.prototype.hasOwnProperty.call(payload, "localPassword");
-
-  const dataForValidation: Partial<User> & {
-    localPassword?: string | null;
-  } = {
+  const result = await GeneralUserOptionalSchema.safeParseAsync({
     providerType: current.providerType,
     providerUid: current.providerUid,
-  };
-
-  if (hasDisplayName) {
-    dataForValidation.displayName = payload.displayName ?? null;
-  }
-
-  if (current.providerType === "email") {
-    if (hasEmail) {
-      dataForValidation.email = payload.email ?? null;
-    }
-
-    if (hasLocalPassword) {
-      dataForValidation.localPassword = payload.localPassword ?? null;
-    }
-  }
-
-  const result = await GeneralUserOptionalSchema.safeParseAsync(dataForValidation);
+    displayName: rawData.displayName,
+    email: current.providerType === "email" ? rawData.email : undefined,
+    localPassword: current.providerType === "email" ? rawData.localPassword : undefined,
+  });
 
   if (!result.success) {
     const message = result.error.errors[0]?.message ?? "入力値が不正です";
@@ -61,25 +40,23 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
 
   const { displayName, email, localPassword } = result.data;
 
-  const sanitized: Partial<UserUpdateFields> = {};
+  const updatePayload: Partial<UserUpdateFields> = {};
 
-  if (hasDisplayName) {
-    sanitized.displayName =
-      typeof displayName === "string" && displayName.length > 0 ? displayName : null;
+  if (displayName !== undefined) {
+    updatePayload.displayName = displayName;
   }
 
-  if (current.providerType === "email" && hasEmail) {
-    sanitized.email = email ?? null;
+  if (current.providerType === "email" && email !== undefined) {
+    updatePayload.email = email;
   }
 
-  if (current.providerType === "email" && hasLocalPassword && localPassword !== undefined) {
-    sanitized.localPassword =
-      typeof localPassword === "string" && localPassword.length > 0 ? localPassword : null;
+  if (current.providerType === "email" && localPassword !== undefined) {
+    updatePayload.localPassword = localPassword;
   }
 
-  if (Object.keys(sanitized).length === 0) {
+  if (Object.keys(updatePayload).length === 0) {
     return current;
   }
 
-  return base.update(id, sanitized);
+  return base.update(id, updatePayload);
 }
