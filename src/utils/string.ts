@@ -35,6 +35,30 @@ export async function createHashPreservingNullish(
 }
 
 /**
+ * 空文字列を null へ正規化し、文字列はトリムして返す。
+ * nullish 以外の値はそのまま返却する。
+ */
+export function normalizeEmptyString(
+  value: unknown,
+): string | null | undefined {
+  if (value === undefined || value === null) {
+    return value as undefined | null;
+  }
+
+  if (typeof value !== "string") {
+    return value as string | null | undefined;
+  }
+
+  const trimmed = value.trim();
+
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  return trimmed;
+}
+
+/**
  * 日本語テキストを指定した最大文字数でカットし、末尾に任意の文字列を付加する関数
  *
  * @param text - 対象のテキスト
