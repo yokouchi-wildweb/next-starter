@@ -16,7 +16,7 @@ const displayNameSchema = z
   .string({ required_error: "表示名を入力してください" })
   .trim()
   .min(1, { message: "表示名を入力してください" })
-  .pipe(RegistrationSchema.shape.displayName.unwrap().unwrap());
+  .pipe(RegistrationSchema.shape.displayName.innerType().unwrap().unwrap());
 
 const passwordSchema = z
   .string({ required_error: "パスワードは8文字以上で入力してください" })
