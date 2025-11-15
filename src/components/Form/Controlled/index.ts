@@ -6,6 +6,7 @@ export { NumberInput } from "./NumberInput";
 export { PasswordInput } from "./PasswordInput";
 export { SwitchInput } from "./SwitchInput";
 export type { SwitchInputProps } from "./SwitchInput";
+export { EmailInput } from "./EmailInput";
 export { TextInput } from "./TextInput";
 export { Textarea } from "./Textarea";
 export { FileUrlInput } from "./FileUrlInput";
