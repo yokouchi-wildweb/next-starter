@@ -2,7 +2,6 @@
 
 import { getServerFirestore } from "@/lib/firebase/server/app";
 import { uuidv7 } from "uuidv7";
-import { normalizeUndefinedToNull, omitUndefined } from "../utils";
 import type {
   SearchParams,
   CreateCrudServiceOptions,
@@ -10,6 +9,16 @@ import type {
   UpsertOptions,
 } from "../types";
 import { buildSearchQuery } from "./query";
+
+const stripUndefined = <T extends Record<string, any>>(input: T) => {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result as Partial<T>;
+};
 
 export type DefaultInsert<T> = Omit<T, "id" | "createdAt" | "updatedAt">;
 
@@ -29,25 +38,36 @@ export function createCrudService<
 
   return {
     async create(data: Insert): Promise<Select> {
-      const insertData = { ...data } as Insert &
-        Record<string, any> & { id?: string; createdAt?: Date; updatedAt?: Date };
+      const parsedInput = options.parseCreate ? await options.parseCreate(data) : data;
+      const insertData = {
+        ...parsedInput,
+      } as Insert & Record<string, any> & { id?: string; createdAt?: Date; updatedAt?: Date };
+
+      if (options.idType === "uuid") {
+        if (insertData.id === undefined) {
+          insertData.id = uuidv7();
+        }
+      }
+
+      let docRef: FirebaseFirestore.DocumentReference;
+      if (options.idType === "manual" && insertData.id !== undefined) {
+        docRef = col.doc(String(insertData.id));
+      } else if (insertData.id) {
+        docRef = col.doc(String(insertData.id));
+      } else {
+        docRef = col.doc();
+        insertData.id = docRef.id;
+      }
+
       if (options.useCreatedAt && insertData.createdAt === undefined) {
         insertData.createdAt = new Date();
       }
       if (options.useUpdatedAt && insertData.updatedAt === undefined) {
         insertData.updatedAt = new Date();
       }
-      let docRef: FirebaseFirestore.DocumentReference;
-      if (options.idType === "uuid") {
-        insertData.id = uuidv7();
-        docRef = col.doc(insertData.id);
-      } else if (options.idType === "manual") {
-        docRef = col.doc(String((data as any).id));
-      } else {
-        docRef = col.doc();
-        insertData.id = docRef.id;
-      }
-      await docRef.set(normalizeUndefinedToNull(insertData));
+
+      const finalInsert = stripUndefined(insertData);
+      await docRef.set(finalInsert);
       const snap = await docRef.get();
       return { id: docRef.id, ...(snap.data() as T) } as Select;
     },
@@ -65,12 +85,16 @@ export function createCrudService<
 
     async update(id: string, data: Partial<Insert>): Promise<Select> {
       const ref = col.doc(id);
-      const sanitized = { ...omitUndefined(data) } as Partial<Insert> &
-        Record<string, any> & { updatedAt?: Date };
-      if (options.useUpdatedAt && sanitized.updatedAt === undefined) {
-        sanitized.updatedAt = new Date();
+      const parsed = options.parseUpdate ? await options.parseUpdate(data) : data;
+      const updateData = {
+        ...stripUndefined(parsed as Record<string, any>),
+      } as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
+
+      if (options.useUpdatedAt && updateData.updatedAt === undefined) {
+        updateData.updatedAt = new Date();
       }
-      await ref.set(normalizeUndefinedToNull(sanitized as Record<string, any>), { merge: true });
+
+      await ref.set(updateData, { merge: true });
       const snap = await ref.get();
       return { id: ref.id, ...(snap.data() as T) } as Select;
     },
@@ -108,22 +132,31 @@ export function createCrudService<
 
     async upsert(data: Insert & { id?: string }, upsertOptions?: UpsertOptions<Insert>): Promise<Select> {
       void upsertOptions;
-      const insertData = { ...data } as Record<string, any> & {
+      const parsedInput = options.parseUpsert
+        ? await options.parseUpsert(data)
+        : options.parseCreate
+          ? await options.parseCreate(data)
+          : data;
+
+      const insertData = { ...parsedInput } as Record<string, any> & {
         id?: string;
         createdAt?: Date;
         updatedAt?: Date;
       };
+
+      const id = insertData.id ?? uuidv7();
+      insertData.id = id;
+
       if (options.useCreatedAt && insertData.createdAt === undefined) {
         insertData.createdAt = new Date();
       }
       if (options.useUpdatedAt && insertData.updatedAt === undefined) {
         insertData.updatedAt = new Date();
       }
-      const id = insertData.id ?? uuidv7();
-      insertData.id = id;
+
       const ref = col.doc(String(id));
-      const sanitizedInsert = omitUndefined(insertData);
-      await ref.set(normalizeUndefinedToNull(sanitizedInsert as Record<string, any>), { merge: true });
+      const sanitizedInsert = stripUndefined(insertData);
+      await ref.set(sanitizedInsert, { merge: true });
       const snap = await ref.get();
       return { id: ref.id, ...(snap.data() as T) } as Select;
     },

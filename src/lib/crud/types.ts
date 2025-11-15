@@ -101,6 +101,8 @@ type BaseCrudServiceOptions = {
   useUpdatedAt?: boolean;
 };
 
+type MaybePromise<T> = T | Promise<T>;
+
 export type CreateCrudServiceOptions<TData extends Record<string, any> = Record<string, any>> =
   BaseCrudServiceOptions & {
     /**
@@ -108,4 +110,16 @@ export type CreateCrudServiceOptions<TData extends Record<string, any> = Record<
      * 呼び出し側で `conflictFields` を指定した場合はそちらが優先される。
      */
     defaultUpsertConflictFields?: Array<Extract<keyof TData, string>>;
+    /**
+     * 保存前に実行する正規化処理。ドメインスキーマでのパース結果を利用する。
+     */
+    parseCreate?: (data: TData) => MaybePromise<TData>;
+    /**
+     * 更新前に実行する正規化処理。部分更新を想定したパース結果を利用する。
+     */
+    parseUpdate?: (data: Partial<TData>) => MaybePromise<Partial<TData>>;
+    /**
+     * upsert 前に実行する正規化処理。指定が無い場合は `parseCreate` を利用する。
+     */
+    parseUpsert?: (data: TData) => MaybePromise<TData>;
   };
