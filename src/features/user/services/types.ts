@@ -6,9 +6,9 @@ export type CreateUserInput = {
   displayName: string;
   email: string;
   role: User["role"];
-  password: string;
+  localPassword: string;
 };
 
-export type UpdateUserInput = Partial<GeneralUserOptionalFields> & {
-  password?: string | null;
+export type UpdateUserInput = Partial<Omit<GeneralUserOptionalFields, "localPassword">> & {
+  localPassword?: string | null;
 };

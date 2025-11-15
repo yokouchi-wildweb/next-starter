@@ -80,12 +80,12 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
 
   const emailToStore = emailFromRequest ?? null;
 
-  const validatedUserFields = GeneralUserSchema.parse({
+  const validatedUserFields = await GeneralUserSchema.parseAsync({
     role: "user",
     status: "pending",
     providerType,
     providerUid,
-    localPasswordHash: null,
+    localPassword: null,
     email: emailToStore,
     displayName: null,
     lastAuthenticatedAt: now,

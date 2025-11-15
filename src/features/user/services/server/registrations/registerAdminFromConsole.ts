@@ -7,12 +7,11 @@ import { UserTable } from "@/features/user/entities/drizzle";
 import { GeneralUserSchema } from "@/features/user/entities/schema";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
-import { createHash } from "@/utils/string";
 
 export type AdminConsoleRegistrationInput = {
   displayName: string;
   email: string;
-  password: string;
+  localPassword: string;
   [key: string]: unknown;
 };
 
@@ -21,7 +20,7 @@ function validateInput(input: AdminConsoleRegistrationInput): void {
     throw new DomainError("メールアドレスを入力してください");
   }
 
-  if (!input.password) {
+  if (!input.localPassword) {
     throw new DomainError("パスワードを入力してください");
   }
 }
@@ -43,14 +42,12 @@ export async function registerAdminFromConsole(
 
   await assertLocalProviderAvailability(data.email);
 
-  const localPasswordHash = await createHash(data.password);
-
-  const values = GeneralUserSchema.parse({
+  const values = await GeneralUserSchema.parseAsync({
     role: "admin",
     status: "active",
     providerType: "local",
     providerUid: data.email,
-    localPasswordHash,
+    localPassword: data.localPassword,
     email: data.email,
     displayName: data.displayName,
   });

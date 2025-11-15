@@ -9,7 +9,7 @@ export type User = BaseEntity & {
   email: string | null;
   displayName: string | null;
   role: UserRoleType;
-  localPasswordHash: string | null;
+  localPassword: string | null;
   status: UserStatus;
   lastAuthenticatedAt: Date | null;
 };

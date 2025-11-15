@@ -11,7 +11,7 @@ import { db } from "@/lib/drizzle";
 export type GeneralConsoleRegistrationInput = {
   displayName: string;
   email: string;
-  password: string;
+  localPassword: string;
   [key: string]: unknown;
 };
 
@@ -20,7 +20,7 @@ function validateInput(input: GeneralConsoleRegistrationInput): void {
     throw new DomainError("メールアドレスを入力してください");
   }
 
-  if (!input.password) {
+  if (!input.localPassword) {
     throw new DomainError("パスワードを入力してください");
   }
 }
@@ -36,7 +36,7 @@ export async function registerGeneralUserFromConsole(
     try {
       return await auth.createUser({
         email: data.email,
-        password: data.password,
+        password: data.localPassword,
         displayName: data.displayName || undefined,
       });
     } catch (error) {
@@ -47,12 +47,12 @@ export async function registerGeneralUserFromConsole(
     }
   })();
 
-  const values = GeneralUserSchema.parse({
+  const values = await GeneralUserSchema.parseAsync({
     role: "user",
     status: "active",
     providerType: "email",
     providerUid: firebaseUser.uid,
-    localPasswordHash: null,
+    localPassword: null,
     email: data.email,
     displayName: data.displayName,
   });

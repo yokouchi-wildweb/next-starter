@@ -84,7 +84,7 @@ export default function ManagerialUserCreateForm({
       />
       <FormFieldItem
         control={control}
-        name="password"
+        name="localPassword"
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />

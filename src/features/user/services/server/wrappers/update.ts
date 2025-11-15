@@ -3,12 +3,10 @@
 import type { User } from "@/features/user/entities";
 import { GeneralUserOptionalSchema } from "@/features/user/entities";
 import type { UpdateUserInput } from "../../types";
-import { createHash } from "@/utils/string";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
-import { ZodError } from "zod";
 
-type UserUpdateFields = Pick<User, "displayName" | "email" | "localPasswordHash">;
+type UserUpdateFields = Pick<User, "displayName" | "email" | "localPassword">;
 
 export async function update(id: string, rawData?: UpdateUserInput): Promise<User> {
   if (!rawData || typeof rawData !== "object") {
@@ -27,56 +25,56 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     );
   }
 
-  const payload: UpdateUserInput & { localPasswordHash?: string | null } = { ...rawData };
+  const payload: UpdateUserInput = { ...rawData };
 
-  if (typeof payload.displayName === "string") {
-    const trimmedDisplayName = payload.displayName.trim();
-    payload.displayName = trimmedDisplayName.length > 0 ? trimmedDisplayName : null;
+  const hasDisplayName = Object.prototype.hasOwnProperty.call(payload, "displayName");
+  const hasEmail = Object.prototype.hasOwnProperty.call(payload, "email");
+  const hasLocalPassword = Object.prototype.hasOwnProperty.call(payload, "localPassword");
+
+  const dataForValidation: Partial<User> & {
+    localPassword?: string | null;
+  } = {
+    providerType: current.providerType,
+    providerUid: current.providerUid,
+  };
+
+  if (hasDisplayName) {
+    dataForValidation.displayName = payload.displayName ?? null;
   }
 
   if (current.providerType === "email") {
-    if (typeof payload.email === "string") {
-      payload.email = payload.email.trim();
+    if (hasEmail) {
+      dataForValidation.email = payload.email ?? null;
     }
 
-    if (typeof payload.password === "string") {
-      const trimmedPassword = payload.password.trim();
-      if (trimmedPassword.length > 0) {
-        payload.localPasswordHash = await createHash(trimmedPassword);
-      }
+    if (hasLocalPassword) {
+      dataForValidation.localPassword = payload.localPassword ?? null;
     }
-  } else {
-    delete payload.email;
-    delete payload.localPasswordHash;
   }
 
-  delete payload.password;
+  const result = await GeneralUserOptionalSchema.safeParseAsync(dataForValidation);
 
-  try {
-    GeneralUserOptionalSchema.parse({
-      ...current,
-      ...payload,
-    });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      const message = error.errors[0]?.message ?? "入力値が不正です";
-      throw new DomainError(message, { status: 400 });
-    }
-    throw error;
+  if (!result.success) {
+    const message = result.error.errors[0]?.message ?? "入力値が不正です";
+    throw new DomainError(message, { status: 400 });
   }
+
+  const { displayName, email, localPassword } = result.data;
 
   const sanitized: Partial<UserUpdateFields> = {};
 
-  if ("displayName" in payload) {
-    sanitized.displayName = payload.displayName ?? null;
+  if (hasDisplayName) {
+    sanitized.displayName =
+      typeof displayName === "string" && displayName.length > 0 ? displayName : null;
   }
 
-  if ("email" in payload) {
-    sanitized.email = payload.email ?? null;
+  if (current.providerType === "email" && hasEmail) {
+    sanitized.email = email ?? null;
   }
 
-  if ("localPasswordHash" in payload) {
-    sanitized.localPasswordHash = payload.localPasswordHash ?? null;
+  if (current.providerType === "email" && hasLocalPassword && localPassword !== undefined) {
+    sanitized.localPassword =
+      typeof localPassword === "string" && localPassword.length > 0 ? localPassword : null;
   }
 
   if (Object.keys(sanitized).length === 0) {

@@ -69,7 +69,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
       />
       <FormFieldItem
         control={control}
-        name="password"
+        name="localPassword"
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />

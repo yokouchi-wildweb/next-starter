@@ -79,16 +79,14 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     }
   }
 
-  const localPasswordHash: string | null = null;
-
   const now = new Date();
 
-  const validatedUserFields = GeneralUserSchema.parse({
+  const validatedUserFields = await GeneralUserSchema.parseAsync({
     role: "user",
     status: "active",
     providerType,
     providerUid,
-    localPasswordHash,
+    localPassword: null,
     email,
     displayName: displayName ?? null,
     lastAuthenticatedAt: now,

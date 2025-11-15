@@ -44,8 +44,8 @@ export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
     const displayName = values.displayName?.trim() ?? "";
     const resolvedDisplayName = displayName.length > 0 ? displayName : null;
     const email = values.email.trim();
-    const password = values.password?.trim() ?? "";
-    const resolvedPassword = password.length > 0 ? password : undefined;
+    const localPassword = values.localPassword?.trim() ?? "";
+    const resolvedLocalPassword = localPassword.length > 0 ? localPassword : undefined;
 
     try {
       await trigger({
@@ -53,7 +53,7 @@ export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
         data: {
           displayName: resolvedDisplayName,
           email,
-          password: resolvedPassword,
+          localPassword: resolvedLocalPassword,
         },
       });
       toast.success("プロフィールを更新しました");
@@ -81,7 +81,7 @@ export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
       />
       <FormFieldItem
         control={control}
-        name="password"
+        name="localPassword"
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} placeholder="新しいパスワード" />}
       />

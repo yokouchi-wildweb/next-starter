@@ -12,14 +12,18 @@ export const FormSchema = z
       .trim()
       .min(1, { message: "メールアドレスを入力してください" })
       .email({ message: "メールアドレスの形式が不正です" }),
-    password: z.string().optional(),
+    localPassword: z.string().optional(),
   })
   .superRefine((values, ctx) => {
-    if (values.password && values.password.trim().length > 0 && values.password.trim().length < 8) {
+    if (
+      values.localPassword &&
+      values.localPassword.trim().length > 0 &&
+      values.localPassword.trim().length < 8
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "パスワードは8文字以上で入力してください",
-        path: ["password"],
+        path: ["localPassword"],
       });
     }
   });
@@ -30,6 +34,6 @@ export function createDefaultValues(user: User): FormValues {
   return {
     displayName: user.displayName ?? "",
     email: user.email ?? "",
-    password: "",
+    localPassword: "",
   };
 }
