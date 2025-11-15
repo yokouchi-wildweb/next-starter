@@ -6,19 +6,38 @@ import { redirect } from "next/navigation";
 import { REDIRECT_TOAST_COOKIE_NAME, REDIRECT_TOAST_SEARCH_PARAM_NAME } from "./constants";
 import type { RedirectToastPayload, RedirectToastType } from "./types";
 
-const trySetRedirectToastCookie = (payload: RedirectToastPayload) => {
+type WritableCookieStore = {
+  set: (
+    name: string,
+    value: string,
+    options: {
+      httpOnly: boolean;
+      maxAge: number;
+      path: string;
+      sameSite: "lax";
+    },
+  ) => void;
+};
+
+type MaybeWritableCookieStore = Partial<WritableCookieStore>;
+
+const trySetRedirectToastCookie = async (payload: RedirectToastPayload) => {
   try {
-    const cookieStore = cookies();
+    const cookieStore = (await cookies()) as unknown as MaybeWritableCookieStore;
     if (typeof cookieStore.set !== "function") {
       return false;
     }
 
-    cookieStore.set(REDIRECT_TOAST_COOKIE_NAME, encodeURIComponent(JSON.stringify(payload)), {
-      httpOnly: false,
-      maxAge: 60,
-      path: "/",
-      sameSite: "lax",
-    });
+    cookieStore.set(
+      REDIRECT_TOAST_COOKIE_NAME,
+      encodeURIComponent(JSON.stringify(payload)),
+      {
+        httpOnly: false,
+        maxAge: 60,
+        path: "/",
+        sameSite: "lax",
+      },
+    );
 
     return true;
   } catch (error) {
@@ -36,7 +55,7 @@ const buildUrlWithRedirectToastParam = (url: string, payload: RedirectToastPaylo
 };
 
 export async function redirectWithToast(payload: RedirectToastPayload, url: string): Promise<never> {
-  const hasSetCookie = trySetRedirectToastCookie(payload);
+  const hasSetCookie = await trySetRedirectToastCookie(payload);
   const destination = hasSetCookie ? url : buildUrlWithRedirectToastParam(url, payload);
 
   redirect(destination);
