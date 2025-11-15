@@ -81,11 +81,11 @@ function generateFieldsFromConfig(config) {
           }).trimEnd(),
         );
         break;
-      case "numericInput":
+      case "stepperInput":
         addImport('import StepperInput from "@/components/Form/Manual/StepperInput";');
         addImport('import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";');
         body.push(
-          replacePartialTokens(getPartial("numericInput.tsx"), {
+          replacePartialTokens(getPartial("stepperInput.tsx"), {
             fieldName: f.name,
             label: f.label,
           }).trimEnd(),
