@@ -289,6 +289,6 @@ src/
 - [docs/reference/使用ライブラリ一覧.md](docs/reference/使用ライブラリ一覧.md)：主要ライブラリの役割・採用理由・利用時の注意点をカテゴリ別に整理したリファレンス。
 - [docs/concepts/ユーザーセッションの管理方針と実装.md](docs/concepts/ユーザーセッションの管理方針と実装.md)：JWT ベースで管理者・一般ユーザーを統合管理するセッションアーキテクチャを詳細に解説。
 - [docs/concepts/ユーザー登録と認証の方針.md](docs/concepts/ユーザー登録と認証の方針.md)：プロバイダーごとのアカウント運用やデータモデル、登録フローを網羅した設計指針。
-- [docs/reference/NextJS_15からの重要な変更点.md](docs/reference/NextJS_15からの重要な変更点.md)：Next.js 15 系で必ず把握すべき非同期 `params` 対応や Firebase Hosting との連携時の注意点をまとめたアップデートガイド。
+- [docs/reference/NextJS_15からの重要な変更点.md](docs/reference/NextJS_バージョンごとの重要な変更点)：Next.js 15 系で必ず把握すべき非同期 `params` 対応や Firebase Hosting との連携時の注意点をまとめたアップデートガイド。
 
 これらに加え、`docs/!must-read/` 配下のドキュメントは開発前に必読とし、疑問点が生じた場合は必ず原典を参照してください。
