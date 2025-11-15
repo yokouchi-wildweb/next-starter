@@ -11,6 +11,7 @@ import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/Controlled";
+import { Flex } from "@/components/Layout/Flex";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
 import type { User } from "@/features/user/entities";
@@ -85,7 +86,7 @@ export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
         renderInput={(field) => <PasswordInput field={field} placeholder="新しいパスワード" />}
       />
       <MutableUserProfileFields />
-      <div className="flex justify-center gap-3">
+      <Flex justify="center" gap="sm">
         <Button type="submit" disabled={loading}>
           {loading ? "更新中..." : "更新"}
         </Button>
@@ -97,7 +98,7 @@ export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
         >
           キャンセル
         </Button>
-      </div>
+      </Flex>
     </AppForm>
   );
 }

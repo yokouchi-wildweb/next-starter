@@ -1,5 +1,6 @@
 // src/features/user/components/UserProfileEdit/index.tsx
 
+import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import type { User } from "@/features/user/entities";
@@ -29,16 +30,16 @@ function resolveContent(user: User) {
 
 export default function UserProfileEdit({ user }: Props) {
   return (
-    <Main containerType="contentShell" className="gap-6">
+    <Main containerType="contentShell" space="md">
       <PageTitle>プロフィール編集</PageTitle>
       <Section>
         <Para>ユーザーのプロフィール情報を更新できます。</Para>
       </Section>
-      <Section className="space-y-4">
+      <Section space="sm">
         <SecTitle as="h2">プロフィール設定</SecTitle>
-        <div className="rounded-lg border border-border bg-card p-4">
+        <Block appearance="outlined" padding="lg">
           {resolveContent(user)}
-        </div>
+        </Block>
       </Section>
     </Main>
   );
