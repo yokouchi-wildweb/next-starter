@@ -11,9 +11,18 @@ import type {
   PaginatedResult,
   UpsertOptions,
 } from "../types";
-import { normalizeUndefinedToNull, omitUndefined } from "../utils";
 import { uuidv7 } from "uuidv7";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
+
+const stripUndefined = <T extends Record<string, any>>(input: T) => {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result as Partial<T>;
+};
 
 export type DefaultInsert<TTable extends PgTable> = Omit<
   InferInsertModel<TTable>,
@@ -55,21 +64,30 @@ export function createCrudService<
   return {
     // レコードを新規作成する
     async create(data: Insert): Promise<Select> {
-      const insertData = { ...data } as Insert &
-        Record<string, any> & { id?: string; createdAt?: Date; updatedAt?: Date };
+      const parsedInput = serviceOptions.parseCreate
+        ? await serviceOptions.parseCreate(data)
+        : data;
+      const insertData = {
+        ...parsedInput,
+      } as Insert & Record<string, any> & { id?: string; createdAt?: Date; updatedAt?: Date };
+
+      if (serviceOptions.idType === "uuid") {
+        if (insertData.id === undefined) {
+          insertData.id = uuidv7();
+        }
+      } else if (serviceOptions.idType === "db") {
+        delete insertData.id;
+      }
+
       if (serviceOptions.useCreatedAt && insertData.createdAt === undefined) {
         insertData.createdAt = new Date();
       }
       if (serviceOptions.useUpdatedAt && insertData.updatedAt === undefined) {
         insertData.updatedAt = new Date();
       }
-      if (serviceOptions.idType === "uuid") {
-        insertData.id = uuidv7();
-      } else if (serviceOptions.idType === "db") {
-        delete insertData.id;
-      }
-      const normalized = normalizeUndefinedToNull(insertData) as Insert;
-      const rows = await db.insert(table).values(normalized).returning();
+
+      const finalInsert = stripUndefined(insertData) as Insert;
+      const rows = await db.insert(table).values(finalInsert).returning();
       return rows[0] as Select;
     },
 
@@ -92,13 +110,22 @@ export function createCrudService<
 
     // 指定 ID のレコードを更新する
     async update(id: string, data: Partial<Insert>): Promise<Select> {
-      const sanitized = { ...omitUndefined(data) } as Partial<Insert> &
-        Record<string, any> & { updatedAt?: Date };
-      if (serviceOptions.useUpdatedAt && sanitized.updatedAt === undefined) {
-        sanitized.updatedAt = new Date();
+      const parsed = serviceOptions.parseUpdate
+        ? await serviceOptions.parseUpdate(data)
+        : data;
+      const updateData = {
+        ...stripUndefined(parsed as Record<string, any>),
+      } as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
+
+      if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
+        updateData.updatedAt = new Date();
       }
-      const normalized = normalizeUndefinedToNull(sanitized);
-      const rows = await db.update(table).set(normalized).where(eq(idColumn, id)).returning();
+
+      const rows = await db
+        .update(table)
+        .set(updateData as PgUpdateSetSource<TTable>)
+        .where(eq(idColumn, id))
+        .returning();
       return rows[0] as Select;
     },
 
@@ -156,11 +183,11 @@ export function createCrudService<
     },
 
     // 複雑なクエリをページング付きで実行する
-      async query<T>(
-        baseQuery: any,
-        options: { page?: number; limit?: number; orderBy?: SQL[]; where?: SQL } = {},
-        countQuery?: any,
-      ): Promise<PaginatedResult<T>> {
+    async query<T>(
+      baseQuery: any,
+      options: { page?: number; limit?: number; orderBy?: SQL[]; where?: SQL } = {},
+      countQuery?: any,
+    ): Promise<PaginatedResult<T>> {
       return runQuery(table, baseQuery, options, countQuery);
     },
 
@@ -168,35 +195,49 @@ export function createCrudService<
     async bulkDelete(ids: string[]): Promise<void> {
       await db.delete(table).where(inArray(idColumn, ids));
     },
+
     // レコードが存在すれば更新、存在しなければ作成する
     async upsert(data: Insert & { id?: string }, upsertOptions?: UpsertOptions<Insert>): Promise<Select> {
-      const insertData = { ...data } as Record<string, any> & {
+      const parsedInput = serviceOptions.parseUpsert
+        ? await serviceOptions.parseUpsert(data)
+        : serviceOptions.parseCreate
+          ? await serviceOptions.parseCreate(data)
+          : data;
+
+      const insertData = { ...parsedInput } as Record<string, any> & {
         id?: string;
         createdAt?: Date;
         updatedAt?: Date;
       };
+
+      if (serviceOptions.idType === "uuid") {
+        if (insertData.id === undefined) {
+          insertData.id = uuidv7();
+        }
+      } else if (serviceOptions.idType === "db") {
+        delete insertData.id;
+      }
+
       if (serviceOptions.useCreatedAt && insertData.createdAt === undefined) {
         insertData.createdAt = new Date();
       }
       if (serviceOptions.useUpdatedAt && insertData.updatedAt === undefined) {
         insertData.updatedAt = new Date();
       }
-      if (serviceOptions.idType === "uuid") {
-        insertData.id = uuidv7();
-      } else if (serviceOptions.idType === "db") {
-        delete insertData.id;
-      }
-      const sanitizedInsert = omitUndefined(insertData);
-      const normalized = normalizeUndefinedToNull(sanitizedInsert as Record<string, any>);
-      const updateData = { ...normalized } as PgUpdateSetSource<TTable> &
-        Record<string, any> & { id?: string; updatedAt?: Date };
-      if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
-        updateData.updatedAt = new Date();
-      }
+
+      const sanitizedInsert = stripUndefined(insertData) as Insert & {
+        id?: string;
+        createdAt?: Date;
+        updatedAt?: Date;
+      };
+      const updateData = {
+        ...sanitizedInsert,
+      } as PgUpdateSetSource<TTable> & Record<string, any> & { id?: string };
       delete (updateData as Record<string, unknown>).id;
+
       const rows = await db
         .insert(table)
-        .values(normalized as any)
+        .values(sanitizedInsert as any)
         .onConflictDoUpdate({ target: resolveConflictTarget(upsertOptions), set: updateData })
         .returning();
       return rows[0] as Select;
