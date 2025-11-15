@@ -64,6 +64,10 @@ function isStringField(fieldType) {
   return ['string', 'email', 'password'].includes(fieldType);
 }
 
+function shouldTrimField(fieldType) {
+  return ['string', 'email', 'password', 'uuid', 'date', 'time'].includes(fieldType);
+}
+
 function isEmailField(fieldType) {
   return fieldType === 'email';
 }
@@ -81,6 +85,10 @@ function fieldLine({ name, label, type, required, fieldType }) {
   const msgLabel = name.endsWith('Id') ? `${resolvedLabel}ID` : resolvedLabel;
 
   const segments = [`  ${name}: ${type}`];
+
+  if (shouldTrimField(fieldType)) {
+    segments.push('.trim()');
+  }
 
   if (required && type.startsWith('z.string()') && isStringField(fieldType)) {
     segments.push(`.min(1, { message: "${msgLabel}は必須です。" })`);
