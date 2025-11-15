@@ -163,11 +163,14 @@ const stringUtils = [];
 if (usesEmptyToNull) {
   stringUtils.push('emptyToNull');
 }
-if (usesCreateHashPreservingNullish) {
-  stringUtils.push('createHashPreservingNullish');
-}
 if (stringUtils.length) {
   importStatements.push(`import { ${stringUtils.join(', ')} } from "@/utils/string";`);
+}
+
+if (usesCreateHashPreservingNullish) {
+  importStatements.push(
+    'import { createHashPreservingNullish } from "@/utils/hash";',
+  );
 }
 
 importStatements.push('import { z } from "zod";');

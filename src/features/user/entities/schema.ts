@@ -1,7 +1,8 @@
 // src/features/user/entities/schema.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/constants/user";
-import { createHashPreservingNullish, emptyToNull } from "@/utils/string";
+import { createHashPreservingNullish } from "@/utils/hash";
+import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 
 export const UserCoreSchema = z.object({
