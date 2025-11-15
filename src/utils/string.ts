@@ -1,5 +1,16 @@
-// src/utils/string.ts
+import { randomBytes, scrypt as nodeScrypt } from "node:crypto";
+import { promisify } from "node:util";
 
+const scryptAsync = promisify(nodeScrypt);
+
+/**
+ * 任意の文字列を scrypt でハッシュ化し、salt とセットで返す。
+ */
+export async function createHash(value: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const buffer = (await scryptAsync(value, salt, 64)) as Buffer;
+  return `${salt}:${buffer.toString("hex")}`;
+}
 
 /**
  * 日本語テキストを指定した最大文字数でカットし、末尾に任意の文字列を付加する関数
@@ -16,8 +27,7 @@
 export function truncateJapanese(
   text: string,
   maxLength: number = 20,
-  suffix: string = '…'
+  suffix: string = "…",
 ): string {
   return text.length > maxLength ? text.slice(0, maxLength) + suffix : text;
 }
-

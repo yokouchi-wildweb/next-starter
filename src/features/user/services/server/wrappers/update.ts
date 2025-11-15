@@ -3,7 +3,7 @@
 import type { User } from "@/features/user/entities";
 import { GeneralUserOptionalSchema } from "@/features/user/entities";
 import type { UpdateUserInput } from "../../types";
-import { hashPassword } from "@/utils/password";
+import { createHash } from "@/utils/string";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
 import { ZodError } from "zod";
@@ -42,7 +42,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     if (typeof payload.password === "string") {
       const trimmedPassword = payload.password.trim();
       if (trimmedPassword.length > 0) {
-        payload.localPasswordHash = await hashPassword(trimmedPassword);
+        payload.localPasswordHash = await createHash(trimmedPassword);
       }
     }
   } else {
