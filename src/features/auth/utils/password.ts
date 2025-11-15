@@ -1,7 +1,7 @@
 // src/features/auth/utils/password.ts
 
-import { randomBytes, scrypt as nodeScrypt, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
+import { randomBytes, scrypt as nodeScrypt, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 
 const SCRYPT_KEY_LENGTH = 64;
 const SALT_LENGTH = 16;
