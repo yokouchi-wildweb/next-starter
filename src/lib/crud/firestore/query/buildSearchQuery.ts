@@ -1,10 +1,10 @@
 import type { SearchParams, CreateCrudServiceOptions } from "../../types";
 import { applyWhere } from "./applyWhere";
 
-export const buildSearchQuery = (
+export const buildSearchQuery = <TData extends Record<string, any>>(
   col: FirebaseFirestore.CollectionReference,
   params: SearchParams = {},
-  options: CreateCrudServiceOptions = {},
+  options: CreateCrudServiceOptions<TData> = {},
 ): FirebaseFirestore.Query => {
   const {
     page = 1,
