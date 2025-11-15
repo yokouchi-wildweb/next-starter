@@ -38,7 +38,7 @@ export async function createHashPreservingNullish(
  * 空文字列を null へ正規化し、文字列はトリムして返す。
  * nullish 以外の値はそのまま返却する。
  */
-export function normalizeEmptyString(
+export function emptyToNull(
   value: unknown,
 ): string | null | undefined {
   if (value === undefined || value === null) {
