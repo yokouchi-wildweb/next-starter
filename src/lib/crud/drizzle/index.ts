@@ -2,6 +2,7 @@
 // Drizzle ORM を利用した汎用的な CRUD サービスを提供するモジュール
 
 import { db } from "@/lib/drizzle";
+import { omitUndefined } from "@/utils/object";
 import { eq, inArray, SQL, ilike, and, or, sql } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource } from "drizzle-orm/pg-core";
@@ -13,16 +14,6 @@ import type {
 } from "../types";
 import { uuidv7 } from "uuidv7";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
-
-const stripUndefined = <T extends Record<string, any>>(input: T) => {
-  const result: Record<string, any> = {};
-  for (const [key, value] of Object.entries(input)) {
-    if (value !== undefined) {
-      result[key] = value;
-    }
-  }
-  return result as Partial<T>;
-};
 
 export type DefaultInsert<TTable extends PgTable> = Omit<
   InferInsertModel<TTable>,
@@ -86,7 +77,7 @@ export function createCrudService<
         insertData.updatedAt = new Date();
       }
 
-      const finalInsert = stripUndefined(insertData) as Insert;
+      const finalInsert = omitUndefined(insertData) as Insert;
       const rows = await db.insert(table).values(finalInsert).returning();
       return rows[0] as Select;
     },
@@ -114,7 +105,7 @@ export function createCrudService<
         ? await serviceOptions.parseUpdate(data)
         : data;
       const updateData = {
-        ...stripUndefined(parsed as Record<string, any>),
+        ...omitUndefined(parsed as Record<string, any>),
       } as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
 
       if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
@@ -225,7 +216,7 @@ export function createCrudService<
         insertData.updatedAt = new Date();
       }
 
-      const sanitizedInsert = stripUndefined(insertData) as Insert & {
+      const sanitizedInsert = omitUndefined(insertData) as Insert & {
         id?: string;
         createdAt?: Date;
         updatedAt?: Date;

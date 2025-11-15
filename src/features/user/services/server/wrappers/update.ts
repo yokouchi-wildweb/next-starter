@@ -5,6 +5,7 @@ import { userSelfUpdateSchema } from "@/features/user/entities";
 import type { UpdateUserInput } from "../../types";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
+import { omitUndefined } from "@/utils/object";
 
 export async function update(id: string, rawData?: UpdateUserInput): Promise<User> {
   if (!rawData || typeof rawData !== "object") {
@@ -32,9 +33,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
 
   const { localPassword, ...rest } = result.data;
 
-  const updatePayload = Object.fromEntries(
-    Object.entries(rest).filter(([, value]) => value !== undefined),
-  ) as Partial<User>;
+  const updatePayload = omitUndefined(rest) as Partial<User>;
 
   if (current.providerType === "email" && localPassword !== undefined) {
     updatePayload.localPassword = localPassword;

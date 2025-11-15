@@ -1,6 +1,7 @@
 // src/lib/crud/firestore/index.ts
 
 import { getServerFirestore } from "@/lib/firebase/server/app";
+import { omitUndefined } from "@/utils/object";
 import { uuidv7 } from "uuidv7";
 import type {
   SearchParams,
@@ -9,16 +10,6 @@ import type {
   UpsertOptions,
 } from "../types";
 import { buildSearchQuery } from "./query";
-
-const stripUndefined = <T extends Record<string, any>>(input: T) => {
-  const result: Record<string, any> = {};
-  for (const [key, value] of Object.entries(input)) {
-    if (value !== undefined) {
-      result[key] = value;
-    }
-  }
-  return result as Partial<T>;
-};
 
 export type DefaultInsert<T> = Omit<T, "id" | "createdAt" | "updatedAt">;
 
@@ -66,7 +57,7 @@ export function createCrudService<
         insertData.updatedAt = new Date();
       }
 
-      const finalInsert = stripUndefined(insertData);
+      const finalInsert = omitUndefined(insertData);
       await docRef.set(finalInsert);
       const snap = await docRef.get();
       return { id: docRef.id, ...(snap.data() as T) } as Select;
@@ -87,7 +78,7 @@ export function createCrudService<
       const ref = col.doc(id);
       const parsed = options.parseUpdate ? await options.parseUpdate(data) : data;
       const updateData = {
-        ...stripUndefined(parsed as Record<string, any>),
+        ...omitUndefined(parsed as Record<string, any>),
       } as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
 
       if (options.useUpdatedAt && updateData.updatedAt === undefined) {
@@ -155,7 +146,7 @@ export function createCrudService<
       }
 
       const ref = col.doc(String(id));
-      const sanitizedInsert = stripUndefined(insertData);
+      const sanitizedInsert = omitUndefined(insertData);
       await ref.set(sanitizedInsert, { merge: true });
       const snap = await ref.get();
       return { id: ref.id, ...(snap.data() as T) } as Select;
