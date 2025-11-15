@@ -3,11 +3,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { REDIRECT_TOAST_COOKIE_NAME } from "./constants";
+import { REDIRECT_TOAST_COOKIE_NAME, REDIRECT_TOAST_SEARCH_PARAM_NAME } from "./constants";
 import type { RedirectToastPayload, RedirectToastType } from "./types";
 
-const setRedirectToast = (payload: RedirectToastPayload) => {
-  const cookieStore = cookies();
+const setRedirectToastCookie = async (payload: RedirectToastPayload) => {
+  const cookieStore = await cookies();
   cookieStore.set(REDIRECT_TOAST_COOKIE_NAME, encodeURIComponent(JSON.stringify(payload)), {
     httpOnly: false,
     maxAge: 60,
@@ -16,13 +16,26 @@ const setRedirectToast = (payload: RedirectToastPayload) => {
   });
 };
 
-const redirectWithToastInternal = (payload: RedirectToastPayload, url: string) => {
-  setRedirectToast(payload);
-  redirect(url);
+const buildUrlWithRedirectToastParam = (url: string, payload: RedirectToastPayload) => {
+  const encodedPayload = encodeURIComponent(JSON.stringify(payload));
+  const [base, hash = ""] = url.split("#", 2);
+  const separator = base.includes("?") ? "&" : "?";
+  const urlWithParam = `${base}${separator}${REDIRECT_TOAST_SEARCH_PARAM_NAME}=${encodedPayload}`;
+
+  return hash ? `${urlWithParam}#${hash}` : urlWithParam;
+};
+
+const redirectWithToastInternal = async (payload: RedirectToastPayload, url: string) => {
+  try {
+    await setRedirectToastCookie(payload);
+    redirect(url);
+  } catch (error) {
+    redirect(buildUrlWithRedirectToastParam(url, payload));
+  }
 };
 
 export async function redirectWithToast(payload: RedirectToastPayload, url: string): Promise<never> {
-  redirectWithToastInternal(payload, url);
+  await redirectWithToastInternal(payload, url);
 }
 
 type RedirectWithToastHandler = (url: string, message: string) => Promise<never>;
