@@ -101,10 +101,12 @@ export default nextConfig;
 
 ---
 
-## Next.js 15（既存プロジェクトからのアップグレード時の注意）
+## Next.js 16 で継続確認すべき互換ポイント（Next.js 15 で導入済み）
+
+Next.js 15 で導入された変更のうち、Next.js 16 でも引き続き必要となる対応をまとめています。15 以前のプロジェクトを 16 にアップグレードする際は、以下の事項を満たしているかを再確認してください。
 
 ### App Router の `params` 非同期化
-- ルートハンドラー／ページの第2引数が `Promise` 化。`await params` で展開する。
+- ルートハンドラー／ページの第2引数が `Promise` 化。`await params` で展開する（Next.js 16 でも同様）。
 
 ```ts
 // 修正前（Next.js 14 以前）
@@ -112,7 +114,7 @@ export async function POST(req, { params }: { params: { domain: string } }) {
   const { domain } = params;
 }
 
-// 修正後（Next.js 15）
+// 修正後（Next.js 16 / Next.js 15 以降）
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ domain: string }> },
@@ -121,7 +123,7 @@ export async function POST(
 }
 ```
 
-- `searchParams`, `cookies`, `headers` なども同様に非同期オブジェクトになるため、参照前に `await` を挟む。
+- `searchParams`, `cookies`, `headers` なども同様に非同期オブジェクトになるため、参照前に `await` を挟む（Next.js 16 でも同様）。
 
 ### Firebase Hosting × App Router のキャッシュ問題
 - ビルド時に静的化されるページは DB 更新が反映されないことがある。
