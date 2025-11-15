@@ -84,7 +84,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
   assertActiveStatus(user.status);
 
   // ハッシュ化されたパスワードと比較し、誤りがあれば同様に認証失敗。
-  const passwordMatched = await verifyPassword(password, user.localPasswordHash);
+  const passwordMatched = await verifyPassword(password, user.localPassword);
 
   if (!passwordMatched) {
     throw new DomainError("メールアドレスまたはパスワードが正しくありません", { status: 401 });

@@ -1,6 +1,7 @@
 // src/features/user/entities/schema.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/constants/user";
+import { createHashPreservingNullish } from "@/utils/string";
 import { z } from "zod";
 
 export const UserCoreSchema = z.object({
@@ -16,7 +17,11 @@ export const UserCoreSchema = z.object({
     .trim()
     .email({ message: "メールアドレスの形式が不正です" })
     .nullish(),
-  localPasswordHash: z.string().min(1).nullish(),
+  localPassword: z
+    .string()
+    .trim()
+    .nullish()
+    .transform((value) => createHashPreservingNullish(value)),
   lastAuthenticatedAt: z.coerce.date().nullish(),
   displayName: z
     .string()

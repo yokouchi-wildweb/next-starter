@@ -16,7 +16,7 @@ export const UserTable = pgTable(
     email: text("email"),
     displayName: text("display_name"),
     role: UserRoleEnum("role").notNull(),
-    localPasswordHash: text("local_password_hash"),
+    localPassword: text("local_password"),
     status: UserStatusEnum("status").default("pending").notNull(),
     lastAuthenticatedAt: timestamp("last_authenticated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
