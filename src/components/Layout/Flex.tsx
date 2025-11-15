@@ -29,6 +29,7 @@ const flexVariantDefinitions = {
   },
   justify: {
     start: "justify-start",
+    end: "justify-end",
     center: "justify-center",
     between: "justify-between",
     centerToStartSm: "justify-center sm:justify-start",
