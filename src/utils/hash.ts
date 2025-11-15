@@ -1,4 +1,3 @@
-import "server-only";
 
 import { randomBytes, scrypt as nodeScrypt } from "node:crypto";
 import { promisify } from "node:util";

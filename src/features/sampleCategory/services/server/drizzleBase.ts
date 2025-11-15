@@ -1,13 +1,10 @@
 // src/features/sampleCategory/services/server/drizzleBase.ts
 
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
-import {
-  SampleCategoryCreateSchema,
-  SampleCategoryUpdateSchema,
-} from "@/features/sampleCategory/entities/schema";
+import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 
-export const base = createCrudService(SampleCategoryTable, {
+const baseOptions = {
   idType: "uuid",
   useCreatedAt: true,
   useUpdatedAt: true,
@@ -20,8 +17,12 @@ export const base = createCrudService(SampleCategoryTable, {
       "updatedAt",
       "DESC"
     ]
-  ],
+  ]
+};
+
+export const base = createCrudService(SampleCategoryTable, {
+  ...baseOptions,
   parseCreate: (data) => SampleCategoryCreateSchema.parse(data),
   parseUpdate: (data) => SampleCategoryUpdateSchema.parse(data),
-  parseUpsert: (data) => SampleCategoryCreateSchema.parse(data)
+  parseUpsert: (data) => SampleCategoryCreateSchema.parse(data),
 });

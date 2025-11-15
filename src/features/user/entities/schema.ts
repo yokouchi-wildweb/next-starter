@@ -31,8 +31,10 @@ export const UserCoreSchema = z.object({
 });
 
 export const userMutableSchema = z.object({
-  // ダミーフィールド: 自己紹介文。実装時は任意の可変フィールドをここに追加してください。
-  introduction: z.string().optional(),
+  // ダミーフィールド: 自己紹介文。
+  // introduction: z.string().optional(),
+
+  // サービス構築時は任意の可変フィールドをここに追加してください。
 });
 
 /**

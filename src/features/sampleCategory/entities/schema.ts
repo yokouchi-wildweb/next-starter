@@ -4,8 +4,8 @@ import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 
 export const SampleCategoryBaseSchema = z.object({
-  name: z.string().min(1, { message: "カテゴリ名は必須です。" }),
-  description: z.string().nullish()
+  name: z.string().trim().min(1, { message: "カテゴリ名は必須です。" }),
+  description: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
 });
 
