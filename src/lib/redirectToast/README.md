@@ -39,4 +39,4 @@ export const handleSubmit = async (formData: FormData) => {
 };
 ```
 
-> ℹ️ 現状は成功トーストのみを提供しています。必要に応じて `redirectWithToast` にメソッドを追加して拡張できます。
+`redirectWithToast` にはクライアントトーストと同じ種類のメソッド（`success`, `error`, `warning`, `info`, `default`）を用意しています。画面のトーンに合わせて使い分けてください。

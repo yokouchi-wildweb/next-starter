@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { REDIRECT_TOAST_COOKIE_NAME } from "./constants";
-import type { RedirectToastPayload } from "./types";
+import type { RedirectToastPayload, RedirectToastType } from "./types";
 
 const setRedirectToast = (payload: RedirectToastPayload) => {
   const cookieStore = cookies();
@@ -21,13 +21,19 @@ const withToast = (payload: RedirectToastPayload, url: string) => {
   redirect(url);
 };
 
+const createRedirectWithToast = (type: RedirectToastType) => (url: string, message: string) =>
+  withToast(
+    {
+      type,
+      message,
+    },
+    url,
+  );
+
 export const redirectWithToast = {
-  success: (url: string, message: string) =>
-    withToast(
-      {
-        type: "success",
-        message,
-      },
-      url,
-    ),
+  success: createRedirectWithToast("success"),
+  error: createRedirectWithToast("error"),
+  warning: createRedirectWithToast("warning"),
+  info: createRedirectWithToast("info"),
+  default: createRedirectWithToast("default"),
 };
