@@ -3,7 +3,7 @@
 import { createApiClient } from "@/lib/crud/apiClientFactory";
 import type { ApiClient } from "@/lib/crud/types";
 import type { User } from "@/features/user/entities";
-import type { CreateUserInput } from "../types";
+import type { CreateUserInput, UpdateUserInput } from "../types";
 
-export const userClient: ApiClient<User, CreateUserInput> =
-  createApiClient<User, CreateUserInput>("/api/user");
+export const userClient: ApiClient<User, CreateUserInput, UpdateUserInput> =
+  createApiClient<User, CreateUserInput, UpdateUserInput>("/api/user");

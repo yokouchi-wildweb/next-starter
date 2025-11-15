@@ -1,6 +1,8 @@
 // src/app/api/[domain]/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+
 import { serviceRegistry } from "@/registry/serviceRegistry";
+import { isDomainError } from "@/lib/errors";
 import type { DomainIdParams } from "@/types/params";
 
 // 利用可能なドメインごとのサービスを登録
@@ -31,6 +33,14 @@ export async function PUT(req: NextRequest, { params }: DomainIdParams) {
     return NextResponse.json(updated);
   } catch (error) {
     console.error("PUT /api/[domain]/[id] failed:", error);
+    if (isDomainError(error)) {
+      return NextResponse.json({ message: error.message }, { status: error.status });
+    }
+
+    if (error instanceof Error) {
+      return NextResponse.json({ message: error.message }, { status: 500 });
+    }
+
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

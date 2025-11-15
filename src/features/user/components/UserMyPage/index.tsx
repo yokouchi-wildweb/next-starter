@@ -1,7 +1,12 @@
 // src/features/user/components/UserMyPage/index.tsx
 
+import Link from "next/link";
+
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
+import { buttonVariants } from "@/components/Form/Button/Button";
 import { USER_ROLE_OPTIONS } from "@/constants/user";
 import type { User } from "@/features/user/entities";
 import type { UserRoleType, UserStatus } from "@/types/user";
@@ -53,16 +58,21 @@ export default function UserMyPage({ user }: UserMyPageProps) {
   ];
 
   return (
-    <Main containerType="contentShell" className="gap-6">
+    <Main containerType="contentShell" space="md">
       <PageTitle>マイページ</PageTitle>
+      <Flex justify="end">
+        <Link className={buttonVariants({ variant: "outline" })} href="/profile/edit">
+          プロフィールを編集
+        </Link>
+      </Flex>
       <Section>
         <Para>このページはログイン状態のユーザーのみがアクセスできる想定で設計されているメンバー専用ページです。</Para>
       </Section>
-      <Section className="space-y-4">
+      <Section space="sm">
         <SecTitle as="h2">アカウント情報</SecTitle>
-        <div className="rounded-lg border border-border bg-card p-4">
+        <Block appearance="outlined" padding="lg">
           <UserInfoTable rows={rows} />
-        </div>
+        </Block>
       </Section>
     </Main>
   );
