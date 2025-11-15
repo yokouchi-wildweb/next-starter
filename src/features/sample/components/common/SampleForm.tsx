@@ -43,11 +43,7 @@ export function SampleForm<TFieldValues extends FieldValues>({
       pending={isMutating}
       fieldSpace="md"
     >
-      <SampleFields<TFieldValues>
-        {...fieldsProps}
-        control={control}
-        onPendingChange={setImagePending}
-      />
+      <SampleFields<TFieldValues> {...fieldsProps} control={control} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? processingLabel : submitLabel}
