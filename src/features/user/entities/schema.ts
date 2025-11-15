@@ -1,7 +1,7 @@
 // src/features/user/entities/schema.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/constants/user";
-import { createHashPreservingNullish, normalizeEmptyString } from "@/utils/string";
+import { createHashPreservingNullish, emptyToNull } from "@/utils/string";
 import { z } from "zod";
 
 export const UserCoreSchema = z.object({
@@ -16,17 +16,17 @@ export const UserCoreSchema = z.object({
     .string()
     .email()
     .nullish()
-    .transform((value) => normalizeEmptyString(value)),
+    .transform((value) => emptyToNull(value)),
   localPassword: z
     .string()
     .nullish()
-    .transform((value) => normalizeEmptyString(value))
+    .transform((value) => emptyToNull(value))
     .transform(async (value) => await createHashPreservingNullish(value)),
   lastAuthenticatedAt: z.coerce.date().nullish(),
   displayName: z
     .string()
     .nullish()
-    .transform((value) => normalizeEmptyString(value)),
+    .transform((value) => emptyToNull(value)),
 });
 
 /**
