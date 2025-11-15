@@ -2,8 +2,8 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
 import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
+import { useTemporaryUploadCleanup } from "./useTemporaryUploadCleanup";
 
 /**
  * Clean up an uploaded file on page unload unless explicitly marked as deleted.
@@ -22,33 +22,8 @@ export function useBeforeUnloadCleanup<
   remove: (url: string) => Promise<void> | void,
   enabled = true,
 ) {
-  const deletedRef = useRef(false);
-
-  const markDeleted = useCallback(() => {
-    deletedRef.current = true;
-  }, []);
-
-  useEffect(() => {
-    if (!enabled) return;
-    const onBeforeUnload = () => {
-      if (deletedRef.current) return;
-      const url = methods.getValues(field);
-      if (url) {
-        if (navigator.sendBeacon) {
-          const blob = new Blob([JSON.stringify({ pathOrUrl: url })], {
-            type: "application/json",
-          });
-          navigator.sendBeacon("/api/storage/delete", blob);
-        } else {
-          void remove(url);
-        }
-      }
-    };
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", onBeforeUnload);
-    };
-  }, [methods, field, remove, enabled]);
-
-  return { markDeleted } as const;
+  return useTemporaryUploadCleanup(methods, field, remove, {
+    enabled,
+    cleanupOnBeforeUnload: true,
+  });
 }
