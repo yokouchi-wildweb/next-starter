@@ -12,7 +12,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
 import { useImageUploaderField } from "@/hooks/useImageUploaderField";
-import { useRouteChangeEffect } from "@/hooks/useRouteChangeEffect";
 import { err } from "@/lib/errors";
 
 type Props = {
@@ -37,27 +36,12 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
     },
   });
 
-    const { data: sampleCategories = [] } = useSampleCategoryList({ suspense: true });
+  const { data: sampleCategories = [] } = useSampleCategoryList({ suspense: true });
 
   const sampleCategoryOptions = sampleCategories.map((v) => ({ value: v.id, label: v.name }));
 
   const { upload: uploadMain, remove: removeMain, markDeleted: markDeletedMain } =
-    useImageUploaderField(methods, "main_image", "sample/main");
-  useRouteChangeEffect(() => {
-    const url = methods.getValues("main_image");
-    if (!url) return;
-    if (navigator.sendBeacon) {
-      const blob = new Blob([JSON.stringify({ pathOrUrl: url })], {
-        type: "application/json",
-      });
-      navigator.sendBeacon("/api/storage/delete", blob);
-    } else {
-      void removeMain(url);
-    }
-    markDeletedMain();
-  });
-
-
+    useImageUploaderField(methods, "main_image", "sample/main", { cleanupOnRouteChange: true });
 
   const router = useRouter();
 
@@ -67,7 +51,10 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
     try {
       await trigger(data);
       toast.success("登録しました");
-      markDeletedMain();
+      const submittedUrl = methods.getValues("main_image");
+      if (submittedUrl) {
+        markDeletedMain(submittedUrl);
+      }
       methods.setValue("main_image", "");
       router.push(redirectPath);
     } catch (error) {
