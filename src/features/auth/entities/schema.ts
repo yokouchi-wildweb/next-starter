@@ -43,7 +43,7 @@ export const RegistrationSchema = GeneralUserSchema.pick({
   displayName: true,
 }).extend({
   providerUid: GeneralUserSchema.shape.providerUid,
-  email: GeneralUserSchema.shape.email.unwrap().unwrap(),
+  email: GeneralUserSchema.shape.email.innerType().unwrap().unwrap(),
   idToken: IdTokenSchema,
   password: PasswordSchema.optional(),
 });
