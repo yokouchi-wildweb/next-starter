@@ -4,13 +4,13 @@ import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle } from "@/components/TextBlocks";
 import { Signup } from "@/features/auth/components/Signup";
 import { authGuard } from "@/features/auth/services/server/authorization";
-import { redirectWithToast } from "@/lib/redirectToast";
+import { redirectWithToastInfo } from "@/lib/redirectToast";
 
 export default async function SignUpPage() {
   const sessionUser = await authGuard();
 
   if (sessionUser) {
-    redirectWithToast.info(
+    redirectWithToastInfo(
       "/",
       "既にログイン済みです。\n再ログインするにはログアウトしてください。",
     );

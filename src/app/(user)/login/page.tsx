@@ -5,13 +5,13 @@ import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle } from "@/components/TextBlocks";
 import { UserLogin } from "@/features/auth/components/UserLogin";
 import { authGuard } from "@/features/auth/services/server/authorization";
-import { redirectWithToast } from "@/lib/redirectToast";
+import { redirectWithToastInfo } from "@/lib/redirectToast";
 
 export default async function UserLoginPage() {
   const sessionUser = await authGuard();
 
   if (sessionUser) {
-    redirectWithToast.info(
+    redirectWithToastInfo(
       "/",
       "既にログイン済みです。\n再ログインするにはログアウトしてください。",
     );

@@ -16,24 +16,29 @@ const setRedirectToast = (payload: RedirectToastPayload) => {
   });
 };
 
-const withToast = (payload: RedirectToastPayload, url: string) => {
+const redirectWithToastInternal = (payload: RedirectToastPayload, url: string) => {
   setRedirectToast(payload);
   redirect(url);
 };
 
-const createRedirectWithToast = (type: RedirectToastType) => (url: string, message: string) =>
-  withToast(
-    {
-      type,
-      message,
-    },
-    url,
-  );
+export async function redirectWithToast(payload: RedirectToastPayload, url: string): Promise<never> {
+  redirectWithToastInternal(payload, url);
+}
 
-export const redirectWithToast = {
-  success: createRedirectWithToast("success"),
-  error: createRedirectWithToast("error"),
-  warning: createRedirectWithToast("warning"),
-  info: createRedirectWithToast("info"),
-  default: createRedirectWithToast("default"),
-};
+type RedirectWithToastHandler = (url: string, message: string) => Promise<never>;
+
+const createRedirectWithToast = (type: RedirectToastType): RedirectWithToastHandler =>
+  async (url, message) =>
+    redirectWithToast(
+      {
+        type,
+        message,
+      },
+      url,
+    );
+
+export const redirectWithToastSuccess = createRedirectWithToast("success");
+export const redirectWithToastError = createRedirectWithToast("error");
+export const redirectWithToastWarning = createRedirectWithToast("warning");
+export const redirectWithToastInfo = createRedirectWithToast("info");
+export const redirectWithToastDefault = createRedirectWithToast("default");
