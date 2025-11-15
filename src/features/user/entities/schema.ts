@@ -51,6 +51,14 @@ export const GeneralUserOptionalSchema = GeneralUserSchema.partial().extend({
   providerUid: UserCoreSchema.shape.providerUid,
 });
 
+export const userSelfUpdateSchema = GeneralUserOptionalSchema.omit({
+  providerType: true,
+  providerUid: true,
+  role: true,
+  status: true,
+  lastAuthenticatedAt: true,
+});
+
 
 /**
  * 管理者ユーザー用に利用するスキーマ。

@@ -1,12 +1,10 @@
 // src/features/user/services/server/wrappers/update.ts
 
 import type { User } from "@/features/user/entities";
-import { GeneralUserOptionalSchema } from "@/features/user/entities";
+import { userSelfUpdateSchema } from "@/features/user/entities";
 import type { UpdateUserInput } from "../../types";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
-
-type UserUpdateFields = Pick<User, "displayName" | "email" | "localPassword">;
 
 export async function update(id: string, rawData?: UpdateUserInput): Promise<User> {
   if (!rawData || typeof rawData !== "object") {
@@ -25,30 +23,18 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     );
   }
 
-  const result = await GeneralUserOptionalSchema.safeParseAsync({
-    providerType: current.providerType,
-    providerUid: current.providerUid,
-    displayName: rawData.displayName,
-    email: rawData.email,
-    localPassword: current.providerType === "email" ? rawData.localPassword : undefined,
-  });
+  const result = await userSelfUpdateSchema.safeParseAsync(rawData);
 
   if (!result.success) {
     const message = result.error.errors[0]?.message ?? "入力値が不正です";
     throw new DomainError(message, { status: 400 });
   }
 
-  const { displayName, email, localPassword } = result.data;
+  const { localPassword, ...rest } = result.data;
 
-  const updatePayload: Partial<UserUpdateFields> = {};
-
-  if (displayName !== undefined) {
-    updatePayload.displayName = displayName;
-  }
-
-  if (email !== undefined) {
-    updatePayload.email = email;
-  }
+  const updatePayload = Object.fromEntries(
+    Object.entries(rest).filter(([, value]) => value !== undefined),
+  ) as Partial<User>;
 
   if (current.providerType === "email" && localPassword !== undefined) {
     updatePayload.localPassword = localPassword;
