@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import { REDIRECT_TOAST_COOKIE_NAME, REDIRECT_TOAST_SEARCH_PARAM_NAME } from "./constants";
@@ -66,9 +66,21 @@ const resolveEncodedPayload = (): string | null => {
 };
 
 export const RedirectToastProvider = () => {
+  const lastPayloadRef = useRef<string | null>(null);
+
   useEffect(() => {
     const encodedPayload = resolveEncodedPayload();
-    if (!encodedPayload) return;
+
+    if (!encodedPayload) {
+      lastPayloadRef.current = null;
+      return;
+    }
+
+    if (encodedPayload === lastPayloadRef.current) {
+      return;
+    }
+
+    lastPayloadRef.current = encodedPayload;
 
     try {
       const payload: RedirectToastPayload = JSON.parse(decodeURIComponent(encodedPayload));
@@ -82,7 +94,7 @@ export const RedirectToastProvider = () => {
     } catch (error) {
       console.error("Failed to render redirect toast", error);
     }
-  }, []);
+  });
 
   return null;
 };
