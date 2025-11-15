@@ -55,6 +55,12 @@ function mapZodType(type) {
   }
 }
 
+let usesEmptyToNull = false;
+
+function isStringField(fieldType) {
+  return fieldType === 'string';
+}
+
 function fieldLine({ name, label, type, required, fieldType }) {
   if (fieldType === 'array') {
     return `  ${name}: ${type}.default([]),`;
@@ -69,6 +75,10 @@ function fieldLine({ name, label, type, required, fieldType }) {
     }
   } else {
     line += '.nullish()';
+    if (isStringField(fieldType)) {
+      usesEmptyToNull = true;
+      line += `\n    .transform((value) => emptyToNull(value))`;
+    }
   }
   line += ',';
   return line;
@@ -118,7 +128,15 @@ const lines = [];
 });
 
 const header = `// src/features/${camel}/entities/schemaRegistry.ts`;
-let content = `${header}\n\nimport { z } from "zod";\n\n`;
+const importStatements = [];
+
+if (usesEmptyToNull) {
+  importStatements.push('import { emptyToNull } from "@/utils/string";');
+}
+
+importStatements.push('import { z } from "zod";');
+
+let content = `${header}\n\n${importStatements.join('\n')}\n\n`;
 content += `export const ${pascal}BaseSchema = z.object({\n`;
 content += lines.join('\n');
 content += `\n});\n\n`;
