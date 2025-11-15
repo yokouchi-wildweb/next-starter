@@ -35,16 +35,16 @@ const buildUrlWithRedirectToastParam = (url: string, payload: RedirectToastPaylo
   return hash ? `${urlWithParam}#${hash}` : urlWithParam;
 };
 
-export function redirectWithToast(payload: RedirectToastPayload, url: string): never {
+export async function redirectWithToast(payload: RedirectToastPayload, url: string): Promise<never> {
   const hasSetCookie = trySetRedirectToastCookie(payload);
   const destination = hasSetCookie ? url : buildUrlWithRedirectToastParam(url, payload);
 
   redirect(destination);
 }
 
-type RedirectWithToastHandler = (url: string, message: string) => never;
+type RedirectWithToastHandler = (url: string, message: string) => Promise<never>;
 
-const createRedirectWithToast = (type: RedirectToastType): RedirectWithToastHandler => (url, message) =>
+const createRedirectWithToast = (type: RedirectToastType): RedirectWithToastHandler => async (url, message) =>
   redirectWithToast(
     {
       type,
