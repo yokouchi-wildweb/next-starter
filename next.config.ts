@@ -3,8 +3,14 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
+type ExtendedNextConfig = NextConfig & {
+  eslint?: {
+    ignoreDuringBuilds?: boolean;
+  };
+};
+
 /** @type {import('next').NextConfig} */
-const nextConfig: NextConfig = {
+const nextConfig: ExtendedNextConfig = {
   env: {
   },
   output: "standalone",
