@@ -43,12 +43,14 @@ export function OauthUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
   const submit = async (values: FormValues) => {
     const displayName = values.displayName?.trim() ?? "";
     const resolvedDisplayName = displayName.length > 0 ? displayName : null;
+    const email = values.email.trim();
 
     try {
       await trigger({
         id: user.id,
         data: {
           displayName: resolvedDisplayName,
+          email,
         },
       });
       toast.success("プロフィールを更新しました");
@@ -67,6 +69,12 @@ export function OauthUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
         name="displayName"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
+      />
+      <FormFieldItem
+        control={control}
+        name="email"
+        label="メールアドレス"
+        renderInput={(field) => <TextInput type="email" field={field} />}
       />
       <MutableUserProfileFields />
       <Flex justify="center" gap="sm">

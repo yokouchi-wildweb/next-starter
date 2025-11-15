@@ -29,7 +29,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     providerType: current.providerType,
     providerUid: current.providerUid,
     displayName: rawData.displayName,
-    email: current.providerType === "email" ? rawData.email : undefined,
+    email: rawData.email,
     localPassword: current.providerType === "email" ? rawData.localPassword : undefined,
   });
 
@@ -46,7 +46,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     updatePayload.displayName = displayName;
   }
 
-  if (current.providerType === "email" && email !== undefined) {
+  if (email !== undefined) {
     updatePayload.email = email;
   }
 
