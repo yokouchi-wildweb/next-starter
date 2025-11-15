@@ -51,15 +51,6 @@ export const GeneralUserOptionalSchema = GeneralUserSchema.partial().extend({
   providerUid: UserCoreSchema.shape.providerUid,
 });
 
-export const userSelfUpdateSchema = GeneralUserOptionalSchema.omit({
-  providerType: true,
-  providerUid: true,
-  role: true,
-  status: true,
-  lastAuthenticatedAt: true,
-});
-
-
 /**
  * 管理者ユーザー用に利用するスキーマ。
  * 管理者ユーザーと一般ユーザーで可変フィールドの構成を変えたい場合は userMutableSchema を自由に調整してください。
@@ -72,4 +63,16 @@ export const AdminUserSchema = UserCoreSchema.merge(userMutableSchema);
 export const AdminUserOpotionalSchema = AdminUserSchema.partial().extend({
   providerType: UserCoreSchema.shape.providerType,
   providerUid: UserCoreSchema.shape.providerUid,
+});
+
+/**
+ * 一般ユーザーが自身でプロフィール情報を更新する際のスキーマ。
+ * roleなど重要なコアフィールドを除害している。
+ */
+export const userSelfUpdateSchema = GeneralUserOptionalSchema.omit({
+  providerType: true,
+  providerUid: true,
+  role: true,
+  status: true,
+  lastAuthenticatedAt: true,
 });
