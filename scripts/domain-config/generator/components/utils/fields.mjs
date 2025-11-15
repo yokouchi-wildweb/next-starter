@@ -63,6 +63,15 @@ function generateFieldsFromConfig(config) {
           }).trimEnd(),
         );
         break;
+      case "emailInput":
+        addImport('import { EmailInput } from "@/components/Form/Controlled";');
+        body.push(
+          replacePartialTokens(getPartial("emailInput.tsx"), {
+            fieldName: f.name,
+            label: f.label,
+          }).trimEnd(),
+        );
+        break;
       case "numberInput":
         addImport('import { NumberInput } from "@/components/Form/Controlled";');
         body.push(

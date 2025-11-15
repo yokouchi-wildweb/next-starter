@@ -34,6 +34,8 @@ const tableName = toSnakeCase(config.plural || camel);
 function mapType(t) {
   switch (t) {
     case 'string':
+    case 'email':
+    case 'password':
       return 'text';
     case 'integer':
       return 'integer';
