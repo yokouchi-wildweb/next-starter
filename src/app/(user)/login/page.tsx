@@ -11,7 +11,7 @@ export default async function UserLoginPage() {
   const sessionUser = await authGuard();
 
   if (sessionUser) {
-    redirectWithToastInfo(
+    return redirectWithToastInfo(
       "/",
       "既にログイン済みです。\n再ログインするにはログアウトしてください。",
     );

@@ -3,39 +3,55 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { REDIRECT_TOAST_COOKIE_NAME } from "./constants";
+import { REDIRECT_TOAST_COOKIE_NAME, REDIRECT_TOAST_SEARCH_PARAM_NAME } from "./constants";
 import type { RedirectToastPayload, RedirectToastType } from "./types";
 
-const setRedirectToast = (payload: RedirectToastPayload) => {
-  const cookieStore = cookies();
-  cookieStore.set(REDIRECT_TOAST_COOKIE_NAME, encodeURIComponent(JSON.stringify(payload)), {
-    httpOnly: false,
-    maxAge: 60,
-    path: "/",
-    sameSite: "lax",
-  });
+const trySetRedirectToastCookie = (payload: RedirectToastPayload) => {
+  try {
+    const cookieStore = cookies();
+    if (typeof cookieStore.set !== "function") {
+      return false;
+    }
+
+    cookieStore.set(REDIRECT_TOAST_COOKIE_NAME, encodeURIComponent(JSON.stringify(payload)), {
+      httpOnly: false,
+      maxAge: 60,
+      path: "/",
+      sameSite: "lax",
+    });
+
+    return true;
+  } catch (error) {
+    return false;
+  }
 };
 
-const redirectWithToastInternal = (payload: RedirectToastPayload, url: string) => {
-  setRedirectToast(payload);
-  redirect(url);
+const buildUrlWithRedirectToastParam = (url: string, payload: RedirectToastPayload) => {
+  const encodedPayload = encodeURIComponent(JSON.stringify(payload));
+  const [base, hash = ""] = url.split("#", 2);
+  const separator = base.includes("?") ? "&" : "?";
+  const urlWithParam = `${base}${separator}${REDIRECT_TOAST_SEARCH_PARAM_NAME}=${encodedPayload}`;
+
+  return hash ? `${urlWithParam}#${hash}` : urlWithParam;
 };
 
-export async function redirectWithToast(payload: RedirectToastPayload, url: string): Promise<never> {
-  redirectWithToastInternal(payload, url);
+export function redirectWithToast(payload: RedirectToastPayload, url: string): never {
+  const hasSetCookie = trySetRedirectToastCookie(payload);
+  const destination = hasSetCookie ? url : buildUrlWithRedirectToastParam(url, payload);
+
+  redirect(destination);
 }
 
-type RedirectWithToastHandler = (url: string, message: string) => Promise<never>;
+type RedirectWithToastHandler = (url: string, message: string) => never;
 
-const createRedirectWithToast = (type: RedirectToastType): RedirectWithToastHandler =>
-  async (url, message) =>
-    redirectWithToast(
-      {
-        type,
-        message,
-      },
-      url,
-    );
+const createRedirectWithToast = (type: RedirectToastType): RedirectWithToastHandler => (url, message) =>
+  redirectWithToast(
+    {
+      type,
+      message,
+    },
+    url,
+  );
 
 export const redirectWithToastSuccess = createRedirectWithToast("success");
 export const redirectWithToastError = createRedirectWithToast("error");

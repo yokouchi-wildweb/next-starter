@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-import { REDIRECT_TOAST_COOKIE_NAME } from "./constants";
+import { REDIRECT_TOAST_COOKIE_NAME, REDIRECT_TOAST_SEARCH_PARAM_NAME } from "./constants";
 import type { RedirectToastPayload, RedirectToastType } from "./types";
 
 const TOAST_RENDERERS: Record<RedirectToastType, (message: string) => void> = {
@@ -36,12 +36,38 @@ const getCookieValue = (name: string): string | null => {
 };
 
 const clearCookie = (name: string) => {
+  if (typeof document === "undefined") return;
   document.cookie = `${name}=; path=/; max-age=0`;
+};
+
+const resolveEncodedPayload = (): string | null => {
+  const encodedFromCookie = getCookieValue(REDIRECT_TOAST_COOKIE_NAME);
+
+  if (encodedFromCookie) {
+    clearCookie(REDIRECT_TOAST_COOKIE_NAME);
+    return encodedFromCookie;
+  }
+
+  if (typeof window === "undefined") return null;
+
+  const url = new URL(window.location.href);
+  const encodedFromQuery = url.searchParams.get(REDIRECT_TOAST_SEARCH_PARAM_NAME);
+
+  if (!encodedFromQuery) {
+    return null;
+  }
+
+  url.searchParams.delete(REDIRECT_TOAST_SEARCH_PARAM_NAME);
+  const nextSearch = url.searchParams.toString();
+  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+  window.history.replaceState(null, "", nextUrl);
+
+  return encodedFromQuery;
 };
 
 export const RedirectToastProvider = () => {
   useEffect(() => {
-    const encodedPayload = getCookieValue(REDIRECT_TOAST_COOKIE_NAME);
+    const encodedPayload = resolveEncodedPayload();
     if (!encodedPayload) return;
 
     try {
@@ -55,8 +81,6 @@ export const RedirectToastProvider = () => {
       showToast(payload.message);
     } catch (error) {
       console.error("Failed to render redirect toast", error);
-    } finally {
-      clearCookie(REDIRECT_TOAST_COOKIE_NAME);
     }
   }, []);
 
