@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { redirectRules } from "@/config/redirect.config";
+import { redirectRules, type RedirectRule } from "@/config/redirect.config";
+import type { SessionUser } from "@/features/auth/entities/session";
 import { resolveSessionUser } from "@/features/auth/services/server/session/token";
 import { setRedirectToastCookie } from "@/lib/redirectToast/server";
 import { parseSessionCookie } from "@/lib/jwt";
@@ -9,6 +10,39 @@ import type { ProxyHandler } from "./types";
 
 const findRedirectRule = (pathname: string) => {
   return redirectRules.find((rule) => rule.sourcePaths.includes(pathname));
+};
+
+const shouldRedirectForRule = (
+  rule: RedirectRule,
+  sessionUser: SessionUser | null,
+): boolean => {
+  const guestOnly = rule.guestOnly ?? false;
+  const authedOnly = rule.authedOnly ?? true;
+
+  if (guestOnly) {
+    if (!sessionUser) {
+      return false;
+    }
+  } else if (authedOnly && !sessionUser) {
+    return false;
+  }
+
+  if (!sessionUser) {
+    if ((rule.allowRoles?.length ?? 0) > 0 || (rule.excludeRoles?.length ?? 0) > 0) {
+      return false;
+    }
+    return true;
+  }
+
+  if (rule.allowRoles && !rule.allowRoles.includes(sessionUser.role)) {
+    return false;
+  }
+
+  if (rule.excludeRoles && rule.excludeRoles.includes(sessionUser.role)) {
+    return false;
+  }
+
+  return true;
 };
 
 export const redirectProxy: ProxyHandler = async (request) => {
@@ -21,19 +55,17 @@ export const redirectProxy: ProxyHandler = async (request) => {
 
   const token = parseSessionCookie(request.cookies);
 
-  if (!token) {
-    return;
-  }
+  const sessionUser = token ? await resolveSessionUser(token) : null;
 
-  const sessionUser = await resolveSessionUser(token);
-
-  if (!sessionUser) {
+  if (!shouldRedirectForRule(rule, sessionUser)) {
     return;
   }
 
   const response = NextResponse.redirect(new URL(rule.destination, request.url));
 
-  setRedirectToastCookie(response, rule.toast);
+  if (rule.toast) {
+    setRedirectToastCookie(response, rule.toast);
+  }
 
   return response;
 };
