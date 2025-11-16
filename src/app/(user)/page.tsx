@@ -93,7 +93,7 @@ function FuturisticNavButton({ href, children, className }: FuturisticNavButtonP
 export default function Home() {
   return (
     <>
-      <FullScreen layer="belowHeader">
+      <FullScreen layer="belowHeader" disableScroll={false}>
         <CosmicCoasterScene />
       </FullScreen>
 
