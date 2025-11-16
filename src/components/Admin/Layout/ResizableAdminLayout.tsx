@@ -3,7 +3,7 @@
 "use client";
 
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Sidebar } from "../Sections/./Sidebar";
+import { Sidebar } from "../Sections/SIdebar/Sidebar";
 import { cn } from "@/lib/cn";
 import { APP_FEATURES } from "@/config/app-features.config";
 

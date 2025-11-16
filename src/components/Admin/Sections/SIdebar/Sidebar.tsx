@@ -1,4 +1,4 @@
-// src/components/Admin/Sections/Sidebar.tsx
+// src/components/Admin/Sections/Sidebar/Sidebar.tsx
 
 "use client";
 
@@ -13,8 +13,8 @@ import { useLogout } from "@/features/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
 
-import { adminMenu } from "../../../config/admin-global-menu.config";
-import { UI_BEHAVIOR_CONFIG } from "../../../config/ui-behavior-config";
+import { adminMenu } from "../../../../config/admin-global-menu.config";
+import { UI_BEHAVIOR_CONFIG } from "../../../../config/ui-behavior-config";
 import { SidebarButton, adminSidebarButtonClassName } from "./SidebarButton";
 
 const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;

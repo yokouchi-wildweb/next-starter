@@ -1,4 +1,4 @@
-// src/components/Admin/Sections/SidebarButton.tsx
+// src/components/Admin/Sections/Sidebar/SidebarButton.tsx
 
 "use client";
 
