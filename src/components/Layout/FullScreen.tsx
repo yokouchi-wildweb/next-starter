@@ -32,6 +32,12 @@ type Props = {
   className?: string;
   children: React.ReactNode;
   layer?: FullScreenLayer;
+  /**
+   * true の場合は Body のスクロールを抑止します。
+   * 背景演出などで FullScreen を使うケースでは false を指定して
+   * ページ全体のスクロールを維持できます。
+   */
+  disableScroll?: boolean;
 };
 
 /**
@@ -43,12 +49,21 @@ type Props = {
  * - `width`: 常に `100vw` を指定。幅についてはアドレスバーの影響を受けにくいため
  * - `disableScroll()`: フルスクリーン表示中にスクロールを無効化
  */
-export default function FullScreen({ className, children, layer = "aboveHeader" }: Props) {
+export default function FullScreen({
+  className,
+  children,
+  layer = "aboveHeader",
+  disableScroll: shouldDisableScroll = true,
+}: Props) {
   const { disableScroll, enableScroll } = useDisableScroll(true);
   const { setSize: setViewportSize } = useViewportSize();
 
   // スクロールロックはマウント後に実行
   useEffect(() => {
+    if (!shouldDisableScroll) {
+      return;
+    }
+
     disableScroll();
     const width = window.visualViewport?.width ?? window.innerWidth;
     const height = window.visualViewport?.height ?? window.innerHeight;
@@ -57,7 +72,7 @@ export default function FullScreen({ className, children, layer = "aboveHeader" 
     return () => {
       enableScroll();
     };
-  }, [disableScroll, enableScroll, setViewportSize]);
+  }, [disableScroll, enableScroll, setViewportSize, shouldDisableScroll]);
 
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
