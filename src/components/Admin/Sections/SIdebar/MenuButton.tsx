@@ -1,4 +1,4 @@
-// src/components/Admin/Sections/Sidebar/SidebarButton.tsx
+// src/components/Admin/Sections/BaseSidebar/MenuButton.tsx
 
 "use client";
 
@@ -12,7 +12,7 @@ export const adminSidebarButtonClassName =
 
 type AdminSidebarButtonProps = React.ComponentPropsWithoutRef<typeof Button>;
 
-export const SidebarButton = React.forwardRef<HTMLButtonElement, AdminSidebarButtonProps>(
+export const MenuButton = React.forwardRef<HTMLButtonElement, AdminSidebarButtonProps>(
   ({ className, ...props }, ref) => (
     <Button
       ref={ref}
@@ -24,4 +24,4 @@ export const SidebarButton = React.forwardRef<HTMLButtonElement, AdminSidebarBut
   ),
 );
 
-SidebarButton.displayName = "SidebarButton";
+MenuButton.displayName = "MenuButton";
