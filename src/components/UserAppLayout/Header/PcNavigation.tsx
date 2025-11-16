@@ -1,8 +1,8 @@
-import type { NavItem } from "./types";
 import { MenuItem } from "./MenuItem";
+import type { NavigationMenuItem } from "./MenuItem";
 
 export type DesktopNavigationProps = {
-  readonly items: readonly MenuItem[];
+  readonly items: readonly NavigationMenuItem[];
 };
 
 export const PcNavigation = ({ items }: DesktopNavigationProps) => (

@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
 
-import type { NavItem } from "./types";
 import { MenuItem } from "./MenuItem";
+import type { NavigationMenuItem } from "./MenuItem";
 
 export type MobileNavigationProps = {
   readonly isOpen: boolean;
-  readonly items: readonly MenuItem[];
+  readonly items: readonly NavigationMenuItem[];
   readonly onClose: () => void;
   readonly headerOffset: number;
 };
