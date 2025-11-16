@@ -1,4 +1,4 @@
-// src/types/adminMenu.ts
+// src/types/navigationMenu.ts
 
 import type { ReactNode } from "react";
 
