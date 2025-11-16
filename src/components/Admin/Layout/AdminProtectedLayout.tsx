@@ -5,7 +5,7 @@ import { MenuIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 
-import { ResizableAdminLayout } from "./ResizableAdminLayout";
+import { ResizableArea } from "./ResizableArea";
 
 type AdminProtectedLayoutClientProps = {
   children: ReactNode;
@@ -16,12 +16,12 @@ export function AdminProtectedLayout({ children }: AdminProtectedLayoutClientPro
 
   return (
     <>
-      <ResizableAdminLayout
+      <ResizableArea
         isSidebarOpen={sidebarOpen}
         onSidebarClose={() => setSidebarOpen(false)}
       >
         {children}
-      </ResizableAdminLayout>
+      </ResizableArea>
       <Button
         type="button"
         variant="accent"

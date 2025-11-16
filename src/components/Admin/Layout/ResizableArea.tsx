@@ -1,4 +1,4 @@
-// src/components/Admin/layout/ResizableAdminLayout.tsx
+// src/components/Admin/layout/ResizableArea.tsx
 
 "use client";
 
@@ -7,7 +7,7 @@ import { BaseSidebar } from "../Sections/SIdebar/BaseSidebar";
 import { cn } from "@/lib/cn";
 import { APP_FEATURES } from "@/config/app-features.config";
 
-export function ResizableAdminLayout({
+export function ResizableArea({
   children,
   isSidebarOpen = false,
   onSidebarClose,
