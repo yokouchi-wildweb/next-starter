@@ -1,23 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-import { resolveSessionUser } from '@/features/auth/services/server/session/token';
-import { parseSessionCookie } from '@/lib/jwt';
+import { redirectRules } from "@/config/redirect.config";
+import { resolveSessionUser } from "@/features/auth/services/server/session/token";
+import { setRedirectToastCookie } from "@/lib/redirectToast/server";
+import { parseSessionCookie } from "@/lib/jwt";
 
-import type { ProxyHandler } from './types';
+import type { ProxyHandler } from "./types";
 
-const LOGIN_ONLY_PATHS = new Set(['/login', '/signup']);
-const TOAST_COOKIE_NAME = 'app.toast';
-const TOAST_COOKIE_MAX_AGE_SECONDS = 10;
-
-const ALREADY_AUTHENTICATED_TOAST = {
-  message: 'すでにログイン済みです。',
-  variant: 'info' as const,
+const findRedirectRule = (pathname: string) => {
+  return redirectRules.find((rule) => rule.sourcePaths.includes(pathname));
 };
 
 export const redirectProxy: ProxyHandler = async (request) => {
   const pathname = request.nextUrl.pathname;
+  const rule = findRedirectRule(pathname);
 
-  if (!LOGIN_ONLY_PATHS.has(pathname)) {
+  if (!rule) {
     return;
   }
 
@@ -33,14 +31,9 @@ export const redirectProxy: ProxyHandler = async (request) => {
     return;
   }
 
-  const response = NextResponse.redirect(new URL('/', request.url));
+  const response = NextResponse.redirect(new URL(rule.destination, request.url));
 
-  response.cookies.set(TOAST_COOKIE_NAME, JSON.stringify(ALREADY_AUTHENTICATED_TOAST), {
-    path: '/',
-    sameSite: 'lax',
-    httpOnly: false,
-    maxAge: TOAST_COOKIE_MAX_AGE_SECONDS,
-  });
+  setRedirectToastCookie(response, rule.toast);
 
   return response;
 };
