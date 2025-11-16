@@ -1,12 +1,21 @@
 // src/app/admin/setup/page.tsx
 
+import { redirect } from "next/navigation";
+
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Main, Para } from "@/components/TextBlocks";
 import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
 import AdminSetupForm from "@/features/setting/components/AdminSetup";
+import { checkAdminUserExists } from "@/features/user/services/server/checkAdminUserExists";
 
-export default function AdminSetupPage() {
+export default async function AdminSetupPage() {
+  const hasAdmin = await checkAdminUserExists();
+
+  if (hasAdmin) {
+    redirect("/admin");
+  }
+
   return (
     <Main containerType="narrowStack">
       <Section id="admin-setup">

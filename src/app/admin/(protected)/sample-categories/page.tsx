@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 
 import AdminSampleCategoryList from "@/features/sampleCategory/components/AdminSampleCategoryList";
+import AdminPage from "@/components/Admin/Layout/AdminPage";
 import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
-import { Main } from "@/components/TextBlocks";
 import { settingService } from "@/features/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/types/page";
 
@@ -23,9 +23,9 @@ export default async function AdminSampleCategoryListPage({ searchParams }: Prop
   const { results: sampleCategories, total } = await sampleCategoryService.search({ page, limit, searchQuery });
 
   return (
-    <Main containerType="plain">
+    <AdminPage>
       <AdminPageTitle>サンプルカテゴリ管理</AdminPageTitle>
       <AdminSampleCategoryList sampleCategories={sampleCategories} page={page} perPage={limit} total={total} />
-    </Main>
+    </AdminPage>
   );
 }

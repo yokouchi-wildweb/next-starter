@@ -3,8 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import GeneralUserList from "@/features/user/components/admin/GeneralUserList";
+import AdminPage from "@/components/Admin/Layout/AdminPage";
 import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
-import { Main } from "@/components/TextBlocks";
 import { settingService } from "@/features/setting/services/server/settingService";
 import { userService } from "@/features/user/services/server/userService";
 import type { ListPageSearchParams } from "@/types/page";
@@ -33,7 +33,7 @@ export default async function AdminGeneralUserListPage({ searchParams }: Props) 
   });
 
   return (
-    <Main containerType="plain">
+    <AdminPage>
       <AdminPageTitle>登録ユーザー</AdminPageTitle>
       <GeneralUserList
         users={users}
@@ -44,6 +44,6 @@ export default async function AdminGeneralUserListPage({ searchParams }: Props) 
         newHref={`${LIST_PATH}/new`}
         listPath={LIST_PATH}
       />
-    </Main>
+    </AdminPage>
   );
 }
