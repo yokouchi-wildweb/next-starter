@@ -15,11 +15,11 @@ export const MobileNavigation = ({ isOpen, items, onClose, headerOffset }: Mobil
     <AnimatePresence>
       {isOpen ? (
         <motion.div key="mobile-navigation" className="sm:hidden">
-          <div className="fixed inset-x-0 bottom-0 z-40" style={{ top: headerOffset }}>
+          <div className="fixed inset-x-0 bottom-0" style={{ top: headerOffset }}>
             <motion.button
               type="button"
               aria-label="メニューを閉じる"
-              className="absolute inset-0 h-full w-full bg-background/70"
+              className="absolute inset-0 h-full w-full bg-black/50 below-header-layer"
               onClick={onClose}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -27,7 +27,7 @@ export const MobileNavigation = ({ isOpen, items, onClose, headerOffset }: Mobil
               transition={{ duration: 0.2 }}
             />
             <motion.nav
-              className="ml-auto flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-card shadow-2xl"
+              className="modal-layer ml-auto flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-card shadow-2xl"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
