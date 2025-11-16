@@ -20,7 +20,7 @@ export const MobileNavigation = ({ isOpen, items, onClose, headerOffset }: Mobil
     <AnimatePresence>
       {isOpen ? (
         <motion.div key="mobile-navigation" className="sm:hidden">
-          <div className="fixed inset-x-0 bottom-0 flex justify-end" style={{ top: headerOffset }}>
+          <div className="fixed inset-x-0 bottom-0 flex" style={{ top: headerOffset }}>
             <motion.button
               type="button"
               aria-label="メニューを閉じる"
@@ -33,7 +33,7 @@ export const MobileNavigation = ({ isOpen, items, onClose, headerOffset }: Mobil
               style={{ zIndex: "var(--z-layer-below-header)" }}
             />
             <motion.nav
-              className="relative modal-layer flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-card shadow-2xl"
+              className="relative ml-auto modal-layer flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-card shadow-2xl"
               initial="hidden"
               animate="visible"
               exit="hidden"
