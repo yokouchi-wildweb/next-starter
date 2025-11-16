@@ -30,7 +30,12 @@
   /* forefront layer group */
   --z-layer-forefront-low: var(--z-layer-forefront-low);
   --z-layer-forefront: var(--z-layer-forefront);
-  --z-layer-forefront-high: var(--z-layer-forefront-high);
+  --z-layer-forefront-top: var(--z-layer-forefront-top);
+
+  /* UI Surface layer group */
+  --z-layer-ui-surface-low: var(--z-layer-ui-surface-low);
+  --z-layer-ui-surface: var(--z-layer-ui-surface);
+  --z-layer-ui-surface-top: var(--z-layer-ui-surface-top);
 
   /* feedback layer group */
   --z-layer-backdrop: var(--z-layer-backdrop);
@@ -72,7 +77,12 @@
   /* forefront layer group */
   --z-layer-forefront-low: 530;
   --z-layer-forefront: 560;
-  --z-layer-forefront-high: 590;
+  --z-layer-forefront-top: 590;
+
+  /* UI Surface layer group */
+  --z-layer-ui-surface-low: 730;
+  --z-layer-ui-surface: 760;
+  --z-layer-ui-surface-top: 790;
 
   /* feedback layer group */
   --z-layer-backdrop: 900;
@@ -124,8 +134,21 @@
     z-index: var(--z-layer-forefront);
   }
 
-  .forefront-high-layer {
-    z-index: var(--z-layer-forefront-high);
+  .forefront-top-layer {
+    z-index: var(--z-layer-forefront-top);
+  }
+
+  /* UI Surface layer group */
+  .ui-surface-low-layer {
+    z-index: var(--z-layer-ui-surface-low);
+  }
+
+  .ui-surface-layer {
+    z-index: var(--z-layer-ui-surface);
+  }
+
+  .ui-surface-top-layer {
+    z-index: var(--z-layer-ui-surface-top);
   }
 
   /* feedback layer group */

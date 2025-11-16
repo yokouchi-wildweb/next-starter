@@ -16,7 +16,7 @@ const LAYER_CLASS_MAP = {
   aboveHeader: "above-header-layer",
   forefrontLow: "forefront-low-layer",
   forefront: "forefront-layer",
-  forefrontHigh: "forefront-high-layer",
+  forefrontTop: "forefront-top-layer",
   backdrop: "backdrop-layer",
   modal: "modal-layer",
   overlay: "overlay-layer",
