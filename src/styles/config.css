@@ -60,8 +60,8 @@
   --layout-width-wide-showcase: 96rem;
 
   /* base layer group */
-  --z-layer-background: -1000;
-  --z-layer-base: 0;
+  --z-layer-background: 10;
+  --z-layer-base: 50;
   --z-layer-content: 100;
 
   /* header layer group */
