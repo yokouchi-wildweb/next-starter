@@ -2,9 +2,9 @@
 
 "use client";
 
-import AdminListHeader from "@/components/Admin/AdminListHeader";
+import ListTop from "@/components/Admin/Elements/ListTop";
 import Pagination from "../../../../components/Fanctional/Pagination";
-import AdminSearchBox from "@/components/Admin/AdminSearchBox";
+import SearchBox from "@/components/Admin/Elements/SearchBox";
 import { useSearchParams } from "next/navigation";
 import config from "../../domain.json";
 
@@ -18,8 +18,8 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
   return (
-    <AdminListHeader title="登録済みサンプルカテゴリの一覧" newHref="/admin/sample-categories/new">
-      {hasSearch && <AdminSearchBox makeHref={(p) => `/admin/sample-categories?${p.toString()}`} />}
+    <ListTop title="登録済みサンプルカテゴリの一覧" newHref="/admin/sample-categories/new">
+      {hasSearch && <SearchBox makeHref={(p) => `/admin/sample-categories?${p.toString()}`} />}
       <Pagination
         page={page}
         perPage={perPage}
@@ -30,6 +30,6 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
           return `/admin/sample-categories?${search.toString()}`;
         }}
       />
-    </AdminListHeader>
+    </ListTop>
   );
 }

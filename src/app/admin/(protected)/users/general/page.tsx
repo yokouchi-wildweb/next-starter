@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import GeneralUserList from "@/features/user/components/admin/GeneralUserList";
 import AdminPage from "@/components/Admin/Layout/AdminPage";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
 import { settingService } from "@/features/setting/services/server/settingService";
 import { userService } from "@/features/user/services/server/userService";
 import type { ListPageSearchParams } from "@/types/page";
@@ -34,7 +34,7 @@ export default async function AdminGeneralUserListPage({ searchParams }: Props) 
 
   return (
     <AdminPage>
-      <AdminPageTitle>登録ユーザー</AdminPageTitle>
+      <PageTitle>登録ユーザー</PageTitle>
       <GeneralUserList
         users={users}
         page={page}

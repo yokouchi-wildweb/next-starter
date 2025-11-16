@@ -1,3 +1,5 @@
+// src/components/Admin/Sections/SidebarButton.tsx
+
 "use client";
 
 import * as React from "react";
@@ -10,7 +12,7 @@ export const adminSidebarButtonClassName =
 
 type AdminSidebarButtonProps = React.ComponentPropsWithoutRef<typeof Button>;
 
-export const AdminSidebarButton = React.forwardRef<HTMLButtonElement, AdminSidebarButtonProps>(
+export const SidebarButton = React.forwardRef<HTMLButtonElement, AdminSidebarButtonProps>(
   ({ className, ...props }, ref) => (
     <Button
       ref={ref}
@@ -22,4 +24,4 @@ export const AdminSidebarButton = React.forwardRef<HTMLButtonElement, AdminSideb
   ),
 );
 
-AdminSidebarButton.displayName = "AdminSidebarButton";
+SidebarButton.displayName = "SidebarButton";

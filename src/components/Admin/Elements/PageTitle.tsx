@@ -1,4 +1,4 @@
-// src/components/Admin/layout/AdminPageTitle.tsx
+// src/components/Admin/Elements/PageTitle.tsx
 
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -33,7 +33,7 @@ const adminPageTitleVariants = cva(
 export type AdminPageTitleProps = PageTitleProps &
   VariantProps<typeof adminPageTitleVariants>;
 
-export default function AdminPageTitle({
+export default function PageTitle({
   variant,
   marginBottom,
   className,

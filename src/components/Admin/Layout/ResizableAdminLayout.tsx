@@ -3,7 +3,7 @@
 "use client";
 
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { AdminSidebar } from "./AdminSidebar";
+import { Sidebar } from "../Sections/./Sidebar";
 import { cn } from "@/lib/cn";
 import { APP_FEATURES } from "@/config/app-features.config";
 
@@ -52,7 +52,7 @@ export function ResizableAdminLayout({
           isSidebarOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
-        <AdminSidebar width={sidebarWidth} onNavigate={onSidebarClose} />
+        <Sidebar width={sidebarWidth} onNavigate={onSidebarClose} />
       </div>
       {isSidebarOpen && (
         <div
@@ -62,7 +62,7 @@ export function ResizableAdminLayout({
       )}
       {/* desktop sidebar */}
       <div className="hidden md:block" style={{ width: sidebarWidth }}>
-        <AdminSidebar width={sidebarWidth} />
+        <Sidebar width={sidebarWidth} />
       </div>
       {isSidebarResizable ? (
         <div

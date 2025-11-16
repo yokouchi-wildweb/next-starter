@@ -4,7 +4,7 @@ import { sampleCategoryService } from "@/features/sampleCategory/services/server
 
 import AdminSampleCategoryList from "@/features/sampleCategory/components/AdminSampleCategoryList";
 import AdminPage from "@/components/Admin/Layout/AdminPage";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
 import { settingService } from "@/features/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/types/page";
 
@@ -24,7 +24,7 @@ export default async function AdminSampleCategoryListPage({ searchParams }: Prop
 
   return (
     <AdminPage>
-      <AdminPageTitle>サンプルカテゴリ管理</AdminPageTitle>
+      <PageTitle>サンプルカテゴリ管理</PageTitle>
       <AdminSampleCategoryList sampleCategories={sampleCategories} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

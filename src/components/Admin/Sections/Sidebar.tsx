@@ -1,4 +1,4 @@
-// src/components/Admin/layout/AdminSidebar.tsx
+// src/components/Admin/Sections/Sidebar.tsx
 
 "use client";
 
@@ -15,7 +15,7 @@ import { err } from "@/lib/errors";
 
 import { adminMenu } from "../../../config/admin-global-menu.config";
 import { UI_BEHAVIOR_CONFIG } from "../../../config/ui-behavior-config";
-import { AdminSidebarButton, adminSidebarButtonClassName } from "./AdminSidebarButton";
+import { SidebarButton, adminSidebarButtonClassName } from "./SidebarButton";
 
 const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;
 
@@ -76,7 +76,7 @@ const itemLink = cva(
   "block px-4 py-4 text-sm rounded transition-colors duration-200 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
 );
 
-export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNavigate?: () => void }) {
+export function Sidebar({ width = 192, onNavigate }: { width?: number; onNavigate?: () => void }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
@@ -151,7 +151,7 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                   }}
                 >
                   {section.href ? (
-                    <AdminSidebarButton asChild>
+                    <SidebarButton asChild>
                       <Link
                         href={section.href}
                         onClick={() => {
@@ -164,7 +164,7 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
                       >
                         {section.title}
                       </Link>
-                    </AdminSidebarButton>
+                    </SidebarButton>
                   ) : (
                     <Span
                       tabIndex={hasSubMenu ? 0 : -1}
@@ -217,9 +217,9 @@ export function AdminSidebar({ width = 192, onNavigate }: { width?: number; onNa
       </Block>
       <Block space="xs" className="w-full mt-0">
         <div className="group relative w-full">
-          <AdminSidebarButton type="button" onClick={handleLogout} disabled={isLoading}>
+          <SidebarButton type="button" onClick={handleLogout} disabled={isLoading}>
             ログアウト
-          </AdminSidebarButton>
+          </SidebarButton>
         </div>
       </Block>
     </aside>

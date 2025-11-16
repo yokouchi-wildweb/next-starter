@@ -1,4 +1,5 @@
-// src/components/Admin/layout/AdminFooter.tsx
+// src/components/Admin/Sections/Footer.tsx
+
 import { cva } from "class-variance-authority";
 
 import { APP_FOOTER_ELEMENT_ID } from "@/constants/layout";
@@ -12,7 +13,7 @@ type AdminFooterProps = {
   text?: string | null;
 };
 
-export function AdminFooter({ text }: AdminFooterProps) {
+export function Footer({ text }: AdminFooterProps) {
   const year = new Date().getFullYear();
   const fallbackText = `© ${year} ORIPA DO!`;
   const sanitizedText = text?.trim() ? text : undefined;

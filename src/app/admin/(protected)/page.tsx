@@ -3,10 +3,10 @@
 import dayjs from "dayjs";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/Shadcn/card";
-import { DeveloperMotivationChart } from "@/components/Admin/DeveloperMotivationChart";
+import { DeveloperMotivationChart } from "@/components/Admin/Elements/DeveloperMotivationChart";
 import AdminPage from "@/components/Admin/Layout/AdminPage";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
-import AdminSecTitle from "@/components/Admin/Layout/AdminSecTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
+import SecTitle from "@/components/Admin/Elements/SecTitle";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
@@ -84,13 +84,13 @@ export default async function AdminHomePage() {
 
   return (
     <AdminPage>
-      <AdminPageTitle>管理ダッシュボード</AdminPageTitle>
+      <PageTitle>管理ダッシュボード</PageTitle>
 
       {showMainMetrics && (
         <Section id='main-metrics'>
-          <AdminSecTitle>
+          <SecTitle>
             サービスの稼働状況
-          </AdminSecTitle>
+          </SecTitle>
 
           <Grid gap="lg" className="md:grid-cols-2 lg:grid-cols-4">
             {metrics.map((metric) => (
@@ -142,9 +142,9 @@ export default async function AdminHomePage() {
 
       {showAdditionalMetrics && (
         <Section id='addinl-metrics'>
-          <AdminSecTitle>
+          <SecTitle>
             追加の指標
-          </AdminSecTitle>
+          </SecTitle>
 
           <Grid gap="lg" className="md:grid-cols-1 lg:grid-cols-2">
             <Card

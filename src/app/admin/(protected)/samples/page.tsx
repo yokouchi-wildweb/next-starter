@@ -4,7 +4,7 @@ import { sampleService } from "@/features/sample/services/server/sampleService";
 
 import AdminSampleList from "@/features/sample/components/AdminSampleList";
 import AdminPage from "@/components/Admin/Layout/AdminPage";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
 import { settingService } from "@/features/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/types/page";
 
@@ -24,7 +24,7 @@ export default async function AdminSampleListPage({ searchParams }: Props) {
 
   return (
     <AdminPage>
-      <AdminPageTitle>サンプル管理</AdminPageTitle>
+      <PageTitle>サンプル管理</PageTitle>
       <AdminSampleList samples={samples} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

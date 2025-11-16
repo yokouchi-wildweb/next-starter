@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import AdminSampleCreate from "@/features/sample/components/AdminSampleCreate";
 import AdminPage from "@/components/Admin/Layout/AdminPage";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
 import { SWRConfig } from "swr";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 
@@ -22,7 +22,7 @@ export default async function AdminSampleCreatePage() {
       }}
     >
       <AdminPage>
-        <AdminPageTitle>サンプル追加</AdminPageTitle>
+        <PageTitle>サンプル追加</PageTitle>
         <AdminSampleCreate redirectPath="/admin/samples" />
       </AdminPage>
     </SWRConfig>

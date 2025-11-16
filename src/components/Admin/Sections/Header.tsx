@@ -1,4 +1,4 @@
-// src/components/Admin/layout/AdminHeader.tsx
+// src/components/Admin/Sections/Header.tsx
 
 "use client";
 
@@ -20,7 +20,7 @@ type AdminHeaderProps = {
   darkLogoUrl?: string;
 };
 
-export function AdminHeader({ logoUrl, darkLogoUrl }: AdminHeaderProps) {
+export function Header({ logoUrl, darkLogoUrl }: AdminHeaderProps) {
   const lightLogoSrc = logoUrl ?? "/imgs/logos/nextjs.png";
   const darkLogoSrc = darkLogoUrl ?? logoUrl ?? "/imgs/logos/nextjs-dm.png";
   const showDarkModeSwitch = APP_FEATURES.admin.appearance.enableDarkModeSwitch;

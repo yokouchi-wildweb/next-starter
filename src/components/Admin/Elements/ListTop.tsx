@@ -1,10 +1,10 @@
-// src/components/Admin/AdminListHeader.tsx
+// src/components/Admin/Elements/ListTop.tsx
 
 "use client";
 
 import Link from "next/link";
 
-import AdminSecTitle from "@/components/Admin/Layout/AdminSecTitle";
+import SecTitle from "@/components/Admin/Elements/SecTitle";
 import { Button } from "@/components/Form/Button/Button";
 
 type Props = {
@@ -13,12 +13,12 @@ type Props = {
   children?: React.ReactNode;
 };
 
-export default function AdminListHeader({ title, newHref, children }: Props) {
+export default function ListTop({ title, newHref, children }: Props) {
   return (
     <div className="flex justify-between items-center gap-2">
-      <AdminSecTitle>
+      <SecTitle>
         {title}
-      </AdminSecTitle>
+      </SecTitle>
       <div className="flex items-center gap-2">
         {children}
         {newHref && (

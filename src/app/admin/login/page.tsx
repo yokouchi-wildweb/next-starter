@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Main } from "@/components/TextBlocks";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
 import { AdminLogin } from "@/features/auth/components/AdminLogin";
 import { authGuard } from "@/features/auth/services/server/authorization";
 import Link from "next/link";
@@ -21,7 +21,7 @@ export default async function AdminLoginPage() {
     <Main containerType="narrowStack">
       <Flex direction="column" justify="center" align="center" space="xl">
         <Section as="header" className="w-full">
-          <AdminPageTitle marginBottom="xs">管理者ログイン</AdminPageTitle>
+          <PageTitle marginBottom="xs">管理者ログイン</PageTitle>
         </Section>
         <AdminLogin />
         <Link href="/">サービストップへ戻る</Link>

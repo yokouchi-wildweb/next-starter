@@ -1,6 +1,6 @@
 // src/app/admin/settings/page.tsx
 import AdminPage from "@/components/Admin/Layout/AdminPage";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
 import AdminSettingEdit from "@/features/setting/components/AdminSettingEdit";
 import { settingService } from "@/features/setting/services/server/settingService";
 
@@ -15,7 +15,7 @@ export default async function AdminSettingPage() {
 
   return (
     <AdminPage>
-      <AdminPageTitle>システム設定</AdminPageTitle>
+      <PageTitle>システム設定</PageTitle>
       <AdminSettingEdit setting={setting} redirectPath="/admin/settings" />
     </AdminPage>
   );

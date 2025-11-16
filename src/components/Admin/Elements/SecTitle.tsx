@@ -1,4 +1,4 @@
-// src/components/Admin/Layout/AdminSecTitle.tsx
+// src/components/Admin/Elements/SecTitle.tsx
 
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -21,7 +21,7 @@ const adminSecTitleVariants = cva("", {
 export type AdminSecTitleProps = SecTitleProps &
   VariantProps<typeof adminSecTitleVariants>;
 
-export default function AdminSecTitle({
+export default function SecTitle({
   variant,
   className,
   size = "xxl",

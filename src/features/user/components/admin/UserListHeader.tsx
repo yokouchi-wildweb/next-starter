@@ -3,9 +3,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import AdminListHeader from "@/components/Admin/AdminListHeader";
+import ListTop from "@/components/Admin/Elements/ListTop";
 import Pagination from "@/components/Fanctional/Pagination";
-import AdminSearchBox from "@/components/Admin/AdminSearchBox";
+import SearchBox from "@/components/Admin/Elements/SearchBox";
 
 type Props = {
   title?: string;
@@ -37,8 +37,8 @@ export default function UserListHeader({
   const params = useSearchParams();
 
   return (
-    <AdminListHeader title={title} newHref={newHref}>
-      <AdminSearchBox
+    <ListTop title={title} newHref={newHref}>
+      <SearchBox
         makeHref={(searchParams) => createHref(listPath, searchParams)}
         placeholder={searchPlaceholder}
       />
@@ -52,6 +52,6 @@ export default function UserListHeader({
           return createHref(listPath, search);
         }}
       />
-    </AdminListHeader>
+    </ListTop>
   );
 }

@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import AdminSampleEdit from "@/features/sample/components/AdminSampleEdit";
 import AdminPage from "@/components/Admin/Layout/AdminPage";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
 import type { Sample } from "@/features/sample/entities";
 import { SWRConfig } from "swr";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
@@ -31,7 +31,7 @@ export default async function AdminSampleEditPage({ params }: Props) {
       }}
     >
       <AdminPage>
-        <AdminPageTitle>サンプル編集</AdminPageTitle>
+        <PageTitle>サンプル編集</PageTitle>
         <AdminSampleEdit sample={sample as Sample} redirectPath="/admin/samples" />
       </AdminPage>
     </SWRConfig>

@@ -1,4 +1,4 @@
-// src/components/Admin/DeveloperMotivationChart.tsx
+// src/components/Admin/Elements/DeveloperMotivationChart.tsx
 
 // src/components/Admin/DeveloperMotivationChart.tsx
 

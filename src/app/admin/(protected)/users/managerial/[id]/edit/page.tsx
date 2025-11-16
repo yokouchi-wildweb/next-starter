@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { userService } from "@/features/user/services/server/userService";
 import ManagerialUserEdit from "@/features/user/components/admin/ManagerialUserEdit";
 import AdminPage from "@/components/Admin/Layout/AdminPage";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
 import type { User } from "@/features/user/entities";
 
 export const metadata = {
@@ -29,7 +29,7 @@ export default async function AdminManagerialUserEditPage({ params }: Props) {
 
   return (
     <AdminPage>
-      <AdminPageTitle>システム管理者編集</AdminPageTitle>
+      <PageTitle>システム管理者編集</PageTitle>
       <ManagerialUserEdit user={user} redirectPath={REDIRECT_PATH} />
     </AdminPage>
   );

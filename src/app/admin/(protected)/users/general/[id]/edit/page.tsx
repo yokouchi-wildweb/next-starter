@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { userService } from "@/features/user/services/server/userService";
 import GeneralUserEdit from "@/features/user/components/admin/GeneralUserEdit";
 import AdminPage from "@/components/Admin/Layout/AdminPage";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "@/components/Admin/Elements/PageTitle";
 import type { User } from "@/features/user/entities";
 
 export const metadata = {
@@ -29,7 +29,7 @@ export default async function AdminGeneralUserEditPage({ params }: Props) {
 
   return (
     <AdminPage>
-      <AdminPageTitle>一般ユーザー編集</AdminPageTitle>
+      <PageTitle>一般ユーザー編集</PageTitle>
       <GeneralUserEdit user={user} redirectPath={REDIRECT_PATH} />
     </AdminPage>
   );

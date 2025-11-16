@@ -1,10 +1,10 @@
-// src/components/Admin/AdminSearchBox.tsx
+// src/components/Admin/Elements/SearchBox.tsx
 
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
-import { Input } from "src/components/Form/Manual";
+import { Input } from "@/components/Form/Manual";
 import { useState } from "react";
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
   resetLabel?: string;
 };
 
-export default function AdminSearchBox({
+export default function SearchBox({
   searchKey = "searchQuery",
   makeHref,
   placeholder = "検索 (Enterで適用)",

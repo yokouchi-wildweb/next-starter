@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Admin__Domain__Create from "@/features/__domain__/components/Admin__Domain__Create";
-import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import PageTitle from "../../../../../components/Admin/Elements/PageTitle";
 import { Main } from "@/components/TextBlocks";
 __RELATION_IMPORTS__
 
@@ -14,7 +14,7 @@ __LIST_FETCH__
   return (
 __SWR_START__
     <Main containerType="plain">
-      <AdminPageTitle>__DomainLabel__追加</AdminPageTitle>
+      <PageTitle>__DomainLabel__追加</PageTitle>
       <Admin__Domain__Create redirectPath="/admin/__domainsSlug__" />
     </Main>
 __SWR_END__

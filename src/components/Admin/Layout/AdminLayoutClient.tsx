@@ -4,8 +4,8 @@ import { type CSSProperties, type ReactNode, useMemo } from "react";
 
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 
-import { AdminFooter } from "./AdminFooter";
-import { AdminHeader } from "./AdminHeader";
+import { Footer } from "../Sections/Footer";
+import { Header } from "../Sections/Header";
 
 export type AdminLayoutClientProps = {
   children: ReactNode;
@@ -38,9 +38,9 @@ export function AdminLayoutClient({
       className="relative flex min-h-[var(--viewport-height,100dvh)] flex-col bg-background text-foreground"
       style={layoutStyle}
     >
-      <AdminHeader logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
+      <Header logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
       <div className="flex-1 min-h-0 flex flex-col">{children}</div>
-      <AdminFooter text={footerText} />
+      <Footer text={footerText} />
     </div>
   );
 }

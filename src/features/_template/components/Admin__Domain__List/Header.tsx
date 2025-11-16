@@ -2,9 +2,9 @@
 
 "use client";
 
-import AdminListHeader from "@/components/Admin/AdminListHeader";
+import ListTop from "../../../../components/Admin/Elements/ListTop";
 import Pagination from "../../../../components/Fanctional/Pagination";
-import AdminSearchBox from "@/components/Admin/AdminSearchBox";
+import SearchBox from "../../../../components/Admin/Elements/SearchBox";
 import { useSearchParams } from "next/navigation";
 import config from "../../domain.json";
 
@@ -18,8 +18,8 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
   return (
-    <AdminListHeader title="登録済み__DomainLabel__の一覧" newHref="/admin/__domainsSlug__/new">
-      {hasSearch && <AdminSearchBox makeHref={(p) => `/admin/__domainsSlug__?${p.toString()}`} />}
+    <ListTop title="登録済み__DomainLabel__の一覧" newHref="/admin/__domainsSlug__/new">
+      {hasSearch && <SearchBox makeHref={(p) => `/admin/__domainsSlug__?${p.toString()}`} />}
       <Pagination
         page={page}
         perPage={perPage}
@@ -30,6 +30,6 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
           return `/admin/__domainsSlug__?${search.toString()}`;
         }}
       />
-    </AdminListHeader>
+    </ListTop>
   );
 }

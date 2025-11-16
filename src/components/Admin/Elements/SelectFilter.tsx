@@ -1,4 +1,4 @@
-// src/components/Admin/AdminSelectFilter.tsx
+// src/components/Admin/Elements/SelectFilter.tsx
 
 "use client";
 
@@ -17,7 +17,7 @@ export type AdminSelectFilterProps = {
 
 const ALL_VALUE = "__all__";
 
-export default function AdminSelectFilter({
+export default function SelectFilter({
   options,
   selected,
   paramKey,
