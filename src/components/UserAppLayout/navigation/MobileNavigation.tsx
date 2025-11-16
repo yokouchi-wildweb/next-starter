@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 
 import type { NavItem } from "./types";
 import { NavigationItem } from "./NavigationItem";
@@ -10,12 +10,17 @@ export type MobileNavigationProps = {
   readonly headerOffset: number;
 };
 
+const slideInFromRight: Variants = {
+  hidden: { x: "100%" },
+  visible: { x: 0 },
+};
+
 export const MobileNavigation = ({ isOpen, items, onClose, headerOffset }: MobileNavigationProps) => {
   return (
     <AnimatePresence>
       {isOpen ? (
         <motion.div key="mobile-navigation" className="sm:hidden">
-          <div className="fixed inset-x-0 bottom-0" style={{ top: headerOffset }}>
+          <div className="fixed inset-x-0 bottom-0 flex justify-end" style={{ top: headerOffset }}>
             <motion.button
               type="button"
               aria-label="メニューを閉じる"
@@ -25,12 +30,14 @@ export const MobileNavigation = ({ isOpen, items, onClose, headerOffset }: Mobil
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
+              style={{ zIndex: "var(--z-layer-below-header)" }}
             />
             <motion.nav
-              className="relative modal-layer ml-auto flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-card shadow-2xl"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+              className="relative modal-layer flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-card shadow-2xl"
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              variants={slideInFromRight}
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >
               <ul className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6 pt-6 text-base font-medium">
