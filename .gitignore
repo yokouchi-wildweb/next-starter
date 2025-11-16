@@ -53,3 +53,6 @@ next-env.d.ts
 
 # etc
 AGENTS.md
+apphosting.yaml
+storage.rules
+firestore.rules
