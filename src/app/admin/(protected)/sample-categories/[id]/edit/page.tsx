@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import AdminSampleCategoryEdit from "@/features/sampleCategory/components/AdminSampleCategoryEdit";
+import AdminPage from "@/components/Admin/Layout/AdminPage";
 import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
-import { Main } from "@/components/TextBlocks";
 import type { SampleCategory } from "@/features/sampleCategory/entities";
 
 
@@ -21,9 +21,9 @@ export default async function AdminSampleCategoryEditPage({ params }: Props) {
 
 
   return (
-    <Main containerType="plain">
+    <AdminPage>
       <AdminPageTitle>サンプルカテゴリ編集</AdminPageTitle>
       <AdminSampleCategoryEdit sampleCategory={sampleCategory as SampleCategory} redirectPath="/admin/sample-categories" />
-    </Main>
+    </AdminPage>
   );
 }
