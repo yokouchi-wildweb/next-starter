@@ -38,8 +38,8 @@ export default function RootLayout({
           <RouteTransitionOverlay />
           {children}
         </AuthSessionProvider>
-        <RedirectToastProvider />
         <Toaster position="bottom-center" richColors />
+        <RedirectToastProvider />
       </body>
     </html>
   );

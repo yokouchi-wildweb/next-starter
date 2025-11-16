@@ -13,7 +13,11 @@ const parseCookieValue = (rawValue: string | undefined | null): RedirectToastPay
   }
 
   try {
-    const decoded = decodeURIComponent(rawValue);
+    let decoded = decodeURIComponent(rawValue);
+
+    if (decoded.startsWith("\"") && decoded.endsWith("\"")) {
+      decoded = decoded.slice(1, -1);
+    }
     const parsed = JSON.parse(decoded) as RedirectToastPayload;
 
     if (typeof parsed.message !== "string" || !isRedirectToastVariant(parsed.variant)) {
@@ -31,12 +35,17 @@ const getCookieValue = (): string | null => {
     return null;
   }
 
-  return (
-    document.cookie
-      ?.split("; ")
-      .find((cookie) => cookie.startsWith(`${REDIRECT_TOAST_COOKIE_NAME}=`))
-      ?.slice(REDIRECT_TOAST_COOKIE_NAME.length + 1) ?? null
-  );
+  const cookies = document.cookie?.split(";") ?? [];
+
+  for (const cookie of cookies) {
+    const trimmed = cookie.trim();
+
+    if (trimmed.startsWith(`${REDIRECT_TOAST_COOKIE_NAME}=`)) {
+      return trimmed.slice(REDIRECT_TOAST_COOKIE_NAME.length + 1) || null;
+    }
+  }
+
+  return null;
 };
 
 export const readRedirectToastCookie = (): RedirectToastPayload | null => {

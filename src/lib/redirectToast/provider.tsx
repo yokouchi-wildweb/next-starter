@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 
 import { clearRedirectToastCookie, readRedirectToastCookie } from "./cookie";
@@ -14,6 +15,8 @@ const variantToHandler: Record<RedirectToastVariant, (message: string) => void> 
 };
 
 const showToast = ({ message, variant }: RedirectToastPayload) => {
+  // デバッグ用にアラートも出す
+  alert(`redirect toast: ${message}`);
   const handler = variantToHandler[variant];
 
   if (handler) {
@@ -25,16 +28,20 @@ const showToast = ({ message, variant }: RedirectToastPayload) => {
 };
 
 export const RedirectToastProvider = () => {
+  const pathname = usePathname();
+
   useEffect(() => {
     const payload = readRedirectToastCookie();
+    console.log("RedirectToastProvider payload", payload);
 
     if (!payload) {
       return;
     }
 
     showToast(payload);
-    clearRedirectToastCookie();
-  }, []);
+    // デバッグのためクッキー削除は一時的に無効化する
+    // clearRedirectToastCookie();
+  }, [pathname]);
 
   return null;
 };

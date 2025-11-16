@@ -8,7 +8,7 @@ export type RedirectRule = {
 
 export const redirectRules: RedirectRule[] = [
   {
-    sourcePaths: ["/login", "/signup"],
+    sourcePaths: ["/fff", "/signup"],
     destination: "/",
     toast: {
       message: "すでにログイン済みです。",
