@@ -24,14 +24,17 @@ export type AdminSecTitleProps = SecTitleProps &
 export default function SecTitle({
   variant,
   className,
-  size = "xxl",
+  size,
   ...props
 }: AdminSecTitleProps) {
+  const resolvedSize = size ?? "xl";
+  const responsiveSizeClass = size ? undefined : "sm:text-2xl";
+
   return (
     <DefaultSecTitle
-        weight="normal"
-      size={size}
-      className={cn(adminSecTitleVariants({ variant }), className)}
+      weight="normal"
+      size={resolvedSize}
+      className={cn(adminSecTitleVariants({ variant }), responsiveSizeClass, className)}
       {...props}
     />
   );

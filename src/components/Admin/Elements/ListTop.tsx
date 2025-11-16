@@ -15,11 +15,11 @@ type Props = {
 
 export default function ListTop({ title, newHref, children }: Props) {
   return (
-    <div className="flex justify-between items-center gap-2">
+    <div id="admin-list-top" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <SecTitle>
         {title}
       </SecTitle>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 overflow-x-auto">
         {children}
         {newHref && (
           <Button asChild>

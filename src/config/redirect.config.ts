@@ -37,7 +37,7 @@ export const redirectRules: RedirectRule[] = [
   //   excludeRoles: ["guest"],
   // },
   {
-    sourcePaths: ["/login", "/signup", "/fff"],
+    sourcePaths: ["/login", "/signup", "/admin/login"],
     destination: "/",
     toast: {
       message: "すでにログイン済みです。",

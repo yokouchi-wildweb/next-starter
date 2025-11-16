@@ -19,7 +19,7 @@ export default function AdminSampleList({
   total,
 }: AdminSampleListProps) {
   return (
-    <Section>
+    <Section space="sm">
       <Header page={page} perPage={perPage} total={total} />
       <Table samples={samples} />
     </Section>

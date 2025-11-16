@@ -15,7 +15,7 @@ const marginBottomClassMap = {
 } as const;
 
 const adminPageTitleVariants = cva(
-  "relative px-4 py-2 text-3xl bg-gray-100 dark:bg-gray-800/40 after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-gradient-to-r after:from-sky-300 after:to-sky-500 after:content-['']",
+  "relative px-4 py-2 bg-gray-100 dark:bg-gray-800/40 after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-gradient-to-r after:from-sky-300 after:to-sky-500 after:content-['']",
   {
     variants: {
       variant: {
@@ -37,13 +37,19 @@ export default function PageTitle({
   variant,
   marginBottom,
   className,
+  size,
   ...props
 }: AdminPageTitleProps) {
+  const resolvedSize = size ?? "xxl";
+  const responsiveSizeClass = size ? undefined : "sm:text-3xl";
+
   return (
     <DefaultPageTitle
-        weight="normal"
+      weight="normal"
+      size={resolvedSize}
       className={cn(
         adminPageTitleVariants({ variant, marginBottom }),
+        responsiveSizeClass,
         className,
       )}
       {...props}

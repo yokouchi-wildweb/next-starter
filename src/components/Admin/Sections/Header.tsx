@@ -12,7 +12,7 @@ import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 
 const headerContainer = cva(
-  "flex justify-between items-center px-6 py-3 bg-muted text-muted-foreground shadow-sm font-bold text-lg",
+  "flex items-center justify-between gap-3 px-4 py-2 text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:py-3 sm:text-lg",
 );
 
 type AdminHeaderProps = {
@@ -28,16 +28,16 @@ export function Header({ logoUrl, darkLogoUrl }: AdminHeaderProps) {
 
   return (
     <header id={APP_HEADER_ELEMENT_ID} className={cn(headerContainer())}>
-      <Link href="/admin" className="block p-2" prefetch={isAuthenticated}>
+      <Link href="/admin" className="block p-1 sm:p-2" prefetch={isAuthenticated}>
         <img
           src={lightLogoSrc}
           alt="管理画面ロゴ（ライトモード）"
-          className="block h-auto max-w-[300px] dark:hidden"
+          className="block h-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-none sm:max-w-[300px]"
         />
         <img
           src={darkLogoSrc}
           alt="管理画面ロゴ（ダークモード）"
-          className="hidden h-auto max-w-[300px] dark:block"
+          className="hidden h-auto max-h-6 max-w-[120px] dark:block sm:max-h-none sm:max-w-[300px]"
         />
       </Link>
       {showDarkModeSwitch ? <DarkModeSwitch /> : null}

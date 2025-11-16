@@ -36,8 +36,8 @@ export default function Pagination({ page, perPage, total, makeHref }: Paginatio
   const nextHref = makeHref(Math.min(totalPages, currentPage + 1));
   const lastHref = makeHref(totalPages);
   return (
-    <div className="flex items-center gap-1 text-sm">
-      <span className="mr-2">
+    <div className="flex items-center gap-1 text-sm whitespace-nowrap">
+      <span className="mr-2 whitespace-nowrap">
         {start} - {end} （{total}件中）
       </span>
       {showFirst && (

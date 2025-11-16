@@ -3,22 +3,13 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
-type ExtendedNextConfig = NextConfig & {
-  eslint?: {
-    ignoreDuringBuilds?: boolean;
-  };
-};
-
 /** @type {import('next').NextConfig} */
-const nextConfig: ExtendedNextConfig = {
+const nextConfig: NextConfig = {
   env: {
   },
   output: "standalone",
   images: {
     unoptimized: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   turbopack: {
     resolveAlias: {

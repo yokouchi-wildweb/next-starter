@@ -56,6 +56,7 @@ export function Main({
       <main
         id={id}
         className={cn(
+          "max-w-screen overflow-hidden",
           mainLayoutVariants({
             appearance,
             space,
@@ -89,7 +90,7 @@ export function Main({
     <div id={`${id}-container`} className="flex flex-1 flex-col">
       <div
         id={`${id}-layout`}
-        className="my-auto mx-auto w-full"
+        className="my-auto mx-auto w-full max-w-screen overflow-hidden"
         style={
           layoutMaxWidths[effectiveContainerType]
             ? { maxWidth: layoutMaxWidths[effectiveContainerType] }
