@@ -6,7 +6,6 @@ import { Toaster } from "sonner";
 import { RouteTransitionOverlay } from "@/components/Feedback/RouteTransitionOverlay";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { AuthSessionProvider } from "@/features/auth/components/AuthSessionProvider";
-import { RedirectToastProvider } from "@/lib/redirectToast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,7 +37,6 @@ export default function RootLayout({
           <RouteTransitionOverlay />
           {children}
         </AuthSessionProvider>
-        <RedirectToastProvider />
         <Toaster position="bottom-center" richColors />
       </body>
     </html>
