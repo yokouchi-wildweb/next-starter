@@ -53,7 +53,23 @@ export function Main({
 
   if (effectiveContainerType === "plain") {
     return (
-      <main id={id} className={className} {...props}>
+      <main
+        id={id}
+        className={cn(
+          mainLayoutVariants({
+            appearance,
+            space,
+            padding,
+            paddingBlock,
+            paddingInline,
+            margin,
+            marginBlock,
+            marginInline,
+          }),
+          className,
+        )}
+        {...props}
+      >
         {children}
       </main>
     );

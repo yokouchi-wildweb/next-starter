@@ -8,7 +8,7 @@ import AdminSetupForm from "@/features/setting/components/AdminSetup";
 
 export default function AdminSetupPage() {
   return (
-    <Main>
+    <Main containerType="narrowStack">
       <Section id="admin-setup">
         <AdminPageTitle>管理コンソールへようこそ！</AdminPageTitle>
         <Para>最初の管理ユーザーを登録し、管理設定を初期化します。</Para>

@@ -82,7 +82,7 @@ export default async function AdminHomePage() {
   ];
 
   return (
-    <Main containerType="plain" className="p-6 grid gap-6">
+    <Main containerType="plain">
       <AdminPageTitle>管理ダッシュボード</AdminPageTitle>
 
       {showMainMetrics && (

@@ -73,7 +73,7 @@ export function ResizableAdminLayout({
           className="hidden md:block w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"
         />
       ) : null}
-      <main className="flex-1 min-h-0 p-4">{children}</main>
+      <div className="flex-1 min-h-0">{children}</div>
     </div>
   );
 }
