@@ -60,10 +60,12 @@ export function ResizableAdminLayout({
           onClick={onSidebarClose}
         />
       )}
+
       {/* desktop sidebar */}
       <div className="hidden md:block" style={{ width: sidebarWidth }}>
         <Sidebar width={sidebarWidth} />
       </div>
+
       {isSidebarResizable ? (
         <div
           onMouseDown={() => {
@@ -73,6 +75,7 @@ export function ResizableAdminLayout({
           className="hidden md:block w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"
         />
       ) : null}
+
       <div className="flex-1 min-h-0">{children}</div>
     </div>
   );
