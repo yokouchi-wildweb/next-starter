@@ -111,8 +111,8 @@ export default function Home() {
               gap="lg"
               className="mx-auto text-center"
             >
-              <Image src="/next.svg" alt="Next.js" width={400} height={208} priority />
-              <PageTitle className="text-3xl font-bold">next-starter &gt;&gt;&gt; a Wildweb creation.</PageTitle>
+              <Image src="/next.svg" alt="Next.js" className="drop-shadow-[6px_6px_9px_rgba(84,205,233,0.25)]" width={400} height={208} priority />
+              <PageTitle className="text-3xl font-bold text-shadow-[6px_6px_6px_rgba(84,205,233,0.2)]">next-starter &gt;&gt;&gt; a Wildweb creation.</PageTitle>
             </Flex>
           </Section>
 
