@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
-import { MenuIcon } from "lucide-react";
+import { type ReactNode, useCallback, useState } from "react";
+import { MenuIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 
@@ -13,6 +13,9 @@ type AdminProtectedLayoutClientProps = {
 
 export function AdminProtectedLayout({ children }: AdminProtectedLayoutClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => !prev);
+  }, []);
 
   return (
     <>
@@ -26,11 +29,12 @@ export function AdminProtectedLayout({ children }: AdminProtectedLayoutClientPro
         type="button"
         variant="accent"
         size="icon"
-        className="fixed bottom-4 right-4 size-12 rounded-full md:hidden"
-        onClick={() => setSidebarOpen(true)}
-        aria-label="Toggle menu"
+        className="fixed bottom-4 right-4 size-12 rounded-full surface-ui-layer md:hidden"
+        onClick={toggleSidebar}
+        aria-pressed={sidebarOpen}
+        aria-label={sidebarOpen ? "メニューを閉じる" : "メニューを開く"}
       >
-        <MenuIcon className="size-5" />
+        {sidebarOpen ? <XIcon className="size-5" /> : <MenuIcon className="size-5" />}
       </Button>
     </>
   );

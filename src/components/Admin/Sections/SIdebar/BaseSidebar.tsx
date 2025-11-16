@@ -60,7 +60,7 @@ const sidebarSections: SidebarMenuSection[] = adminMenu.map((section) => {
 });
 
 const submenuVariants = cva(
-  "modal-layer absolute top-0 w-48 space-y-1 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
+  "modal-layer absolute top-0 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
   {
     variants: {
       open: {
@@ -71,22 +71,41 @@ const submenuVariants = cva(
         right: "left-full -ml-2",
         left: "right-full -mr-2",
       },
+      size: {
+        default: "w-48 space-y-1",
+        compact: "w-44 space-y-0.5",
+      },
     },
-    defaultVariants: { open: false, placement: "right" },
+    defaultVariants: { open: false, placement: "right", size: "default" },
   },
 );
 
 const itemLink = cva(
-  "block px-4 py-4 text-sm rounded transition-colors duration-200 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
+  "block rounded transition-colors duration-200 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
+  {
+    variants: {
+      size: {
+        default: "px-4 py-4 text-sm",
+        compact: "px-3 py-3.5 text-xs",
+      },
+    },
+    defaultVariants: { size: "default" },
+  },
 );
 
 type BaseSidebarProps = {
   width?: number;
   onNavigate?: () => void;
   submenuPlacement?: "left" | "right";
+  submenuVariant?: "default" | "compact";
 };
 
-export function BaseSidebar({ width = 192, onNavigate, submenuPlacement = "right" }: BaseSidebarProps) {
+export function BaseSidebar({
+  width = 192,
+  onNavigate,
+  submenuPlacement = "right",
+  submenuVariant = "default",
+}: BaseSidebarProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
@@ -204,7 +223,11 @@ export function BaseSidebar({ width = 192, onNavigate, submenuPlacement = "right
                   {hasSubMenu && (
                     <ul
                       className={cn(
-                        submenuVariants({ open: isOpen, placement: submenuPlacement }),
+                        submenuVariants({
+                          open: isOpen,
+                          placement: submenuPlacement,
+                          size: submenuVariant,
+                        }),
                         "list-none m-0",
                       )}
                     >
@@ -212,7 +235,7 @@ export function BaseSidebar({ width = 192, onNavigate, submenuPlacement = "right
                         <li key={`${section.title}-${item.title}`}>
                           <Link
                             href={item.href}
-                            className={cn(itemLink(), "block w-full py-5")}
+                            className={cn(itemLink({ size: submenuVariant }), "w-full")}
                             onClick={() => {
                               closeSubmenuImmediately();
                               onNavigate?.();

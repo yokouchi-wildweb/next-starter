@@ -81,7 +81,7 @@ export function DeveloperMotivationChart({ percentage }: DeveloperMotivationChar
       </svg>
 
       <span
-        className="mt-4 mb-4 text-sm font-medium text-white px-3 py-1 rounded-full shadow-sm"
+        className="mt-4 mb-4 max-sm:my-1 text-sm font-medium text-white px-3 py-1 rounded-full shadow-sm"
         style={{ background: endColor }}
       >
         {message}

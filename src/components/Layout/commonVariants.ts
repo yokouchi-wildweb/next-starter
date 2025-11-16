@@ -16,27 +16,27 @@ export const padding = {
   none: "p-0",
   xs: "p-1",
   sm: "p-2",
-  md: "p-4",
-  lg: "p-6",
-  xl: "p-10",
+  md: "p-3 sm:p-4",
+  lg: "p-4 sm:p-6",
+  xl: "p-6 sm:p-10",
 } as const;
 
 export const paddingBlock = {
   none: "py-0",
   xs: "py-1",
   sm: "py-2",
-  md: "py-4",
-  lg: "py-6",
-  xl: "py-10",
+  md: "py-3 sm:py-4",
+  lg: "py-4 sm:py-6",
+  xl: "py-6 sm:py-10",
 } as const;
 
 export const paddingInline = {
   none: "px-0",
   xs: "px-1",
   sm: "px-2",
-  md: "px-4",
-  lg: "px-6",
-  xl: "px-10",
+  md: "px-3 sm:px-4",
+  lg: "px-4 sm:px-6",
+  xl: "px-6 sm:px-10",
 } as const;
 
 export const margin = {

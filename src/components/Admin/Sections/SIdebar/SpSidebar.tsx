@@ -18,11 +18,11 @@ export function SpSidebar({ width, isOpen, onClose }: SpSidebarProps) {
       <div
         style={{ width }}
         className={cn(
-          "fixed inset-y-0 right-0 modal-layer transition-transform md:hidden",
+          "fixed inset-y-0 right-0 navigation-layer transition-transform md:hidden",
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
-        <BaseSidebar width={width} onNavigate={onClose} submenuPlacement="left" />
+        <BaseSidebar width={width} onNavigate={onClose} submenuPlacement="left" submenuVariant="compact" />
       </div>
       {isOpen ? (
         <div className="fixed inset-0 backdrop-layer bg-black/50 md:hidden" onClick={onClose} />
