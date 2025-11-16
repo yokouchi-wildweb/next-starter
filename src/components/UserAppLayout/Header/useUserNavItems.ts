@@ -3,7 +3,7 @@ import { useCallback, useMemo } from "react";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/auth/hooks/useLogout";
 
-import type { NavItem } from "./types";
+import type { NavigationMenuItem } from "./MenuItem";
 
 export const useUserNavItems = () => {
   const { isAuthenticated } = useAuthSession();
@@ -13,26 +13,25 @@ export const useUserNavItems = () => {
     void logout();
   }, [logout]);
 
-  const navItems = useMemo<NavItem[]>(
+  const navItems = useMemo<NavigationMenuItem[]>(
     () =>
       isAuthenticated
         ? [
-            { key: "home", type: "link", label: "ホーム", href: "/" },
-            { key: "service", type: "link", label: "サービス", href: "/services" },
-            { key: "mypage", type: "link", label: "マイページ", href: "/mypage" },
+            { key: "home", label: "ホーム", href: "/" },
+            { key: "service", label: "サービス", href: "/services" },
+            { key: "mypage", label: "マイページ", href: "/mypage" },
             {
               key: "logout",
-              type: "action",
               label: "ログアウト",
               onClick: handleLogout,
               disabled: isLogoutLoading,
             },
           ]
         : [
-            { key: "home", type: "link", label: "ホーム", href: "/" },
-            { key: "service", type: "link", label: "サービス", href: "/services" },
-            { key: "login", type: "link", label: "ログイン", href: "/login" },
-            { key: "signup", type: "link", label: "会員登録", href: "/signup" },
+            { key: "home", label: "ホーム", href: "/" },
+            { key: "service", label: "サービス", href: "/services" },
+            { key: "login", label: "ログイン", href: "/login" },
+            { key: "signup", label: "会員登録", href: "/signup" },
           ],
     [handleLogout, isAuthenticated, isLogoutLoading],
   );
