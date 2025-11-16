@@ -93,13 +93,13 @@ function FuturisticNavButton({ href, children, className }: FuturisticNavButtonP
 export default function Home() {
   return (
     <>
-      <FullScreen layer="belowHeader" disableScroll={false}>
+      <FullScreen layer="background" disableScroll={false}>
         <CosmicCoasterScene />
       </FullScreen>
 
       <Main
         containerType="contentShell"
-        className="relative forefront-layer min-h-screen text-slate-900"
+        className="relative content-layer min-h-screen text-slate-900"
       >
         <Flex direction="column" gap="xxl" className="py-20">
 

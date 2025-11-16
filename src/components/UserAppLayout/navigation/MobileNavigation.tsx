@@ -27,7 +27,7 @@ export const MobileNavigation = ({ isOpen, items, onClose, headerOffset }: Mobil
               transition={{ duration: 0.2 }}
             />
             <motion.nav
-              className="modal-layer ml-auto flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-card shadow-2xl"
+              className="relative modal-layer ml-auto flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-card shadow-2xl"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
