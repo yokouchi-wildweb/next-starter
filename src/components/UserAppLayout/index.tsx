@@ -6,7 +6,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 
 import { UserFooter } from "./UserFooter";
-import { UserNavigation } from "./navigation";
+import { UserNavigation } from "./Header";
 
 type LayoutStyle = CSSProperties & {
   "--app-header-height"?: string;

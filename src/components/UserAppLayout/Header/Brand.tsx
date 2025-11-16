@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const NavigationBrand = () => (
+export const Brand = () => (
   <Link
     href="/"
     className="flex items-center gap-2.5 text-base font-semibold sm:gap-3 sm:text-lg"

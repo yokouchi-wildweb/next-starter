@@ -7,7 +7,7 @@ export type NavigationToggleButtonProps = {
   readonly onToggle: () => void;
 };
 
-export const NavigationToggleButton = ({ isMenuOpen, onToggle }: NavigationToggleButtonProps) => (
+export const SpNavSwitch = ({ isMenuOpen, onToggle }: NavigationToggleButtonProps) => (
   <Button
     type="button"
     variant="outline"

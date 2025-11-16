@@ -19,4 +19,4 @@ export type NavDummyItem = {
 export type NavItem =
   | (NavLinkItem & { readonly type: "link" })
   | (NavActionItem & { readonly type: "action" })
-  | (NavDummyItem & { readonly type: "dummy" });
+

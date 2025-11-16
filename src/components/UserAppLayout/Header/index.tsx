@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-import { DesktopNavigation } from "./DesktopNavigation";
-import { MobileNavigation } from "./MobileNavigation";
-import { NavigationBrand } from "./NavigationBrand";
-import { NavigationToggleButton } from "./NavigationToggleButton";
+import { PcNavigation } from "./PcNavigation";
+import { SpNavigation } from "./SpNavigation";
+import { Brand } from "./Brand";
+import { SpNavSwitch } from "./SpNavSwitch";
 import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
 
 import { useUserNavItems } from "./useUserNavItems";
@@ -91,11 +91,12 @@ export const UserNavigation = () => {
       className="fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-card"
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-2 sm:py-4">
-        <NavigationBrand />
-        <NavigationToggleButton isMenuOpen={isMenuOpen} onToggle={handleToggle} />
-        <DesktopNavigation items={navItems} />
+        <Brand />
+        <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={handleToggle} />
+        <PcNavigation items={navItems} />
       </div>
-      <MobileNavigation
+
+      <SpNavigation
         isOpen={isMenuOpen}
         items={navItems}
         onClose={handleClose}
