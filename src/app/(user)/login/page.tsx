@@ -9,11 +9,6 @@ import { UserLogin } from "@/features/auth/components/UserLogin";
 import { authGuard } from "@/features/auth/services/server/authorization";
 
 export default async function UserLoginPage() {
-  const sessionUser = await authGuard();
-
-  if (sessionUser) {
-    redirect("/");
-  }
 
   return (
     <Main containerType="narrowStack">

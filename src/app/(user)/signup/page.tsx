@@ -8,11 +8,6 @@ import { Signup } from "@/features/auth/components/Signup";
 import { authGuard } from "@/features/auth/services/server/authorization";
 
 export default async function SignUpPage() {
-  const sessionUser = await authGuard();
-
-  if (sessionUser) {
-    redirect("/");
-  }
 
   const emailSent = "/signup/email-sent";
 
