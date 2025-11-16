@@ -15,7 +15,7 @@
     "generate:client": "node scripts/domain-config/generator/generate-client-service.mjs"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": "20"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
