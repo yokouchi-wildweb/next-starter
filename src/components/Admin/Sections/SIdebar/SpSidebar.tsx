@@ -22,7 +22,7 @@ export function SpSidebar({ width, isOpen, onClose }: SpSidebarProps) {
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
-        <BaseSidebar width={width} onNavigate={onClose} />
+        <BaseSidebar width={width} onNavigate={onClose} submenuPlacement="left" />
       </div>
       {isOpen ? (
         <div className="fixed inset-0 backdrop-layer bg-black/50 md:hidden" onClick={onClose} />
