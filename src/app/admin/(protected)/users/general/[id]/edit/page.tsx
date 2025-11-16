@@ -5,8 +5,8 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { userService } from "@/features/user/services/server/userService";
 import GeneralUserEdit from "@/features/user/components/admin/GeneralUserEdit";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
 import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import { Main } from "@/components/TextBlocks";
 import type { User } from "@/features/user/entities";
 
 export const metadata = {
@@ -28,9 +28,9 @@ export default async function AdminGeneralUserEditPage({ params }: Props) {
   }
 
   return (
-    <AdminPage>
+    <Main containerType="plain" className="p-6 space-y-6">
       <AdminPageTitle>一般ユーザー編集</AdminPageTitle>
       <GeneralUserEdit user={user} redirectPath={REDIRECT_PATH} />
-    </AdminPage>
+    </Main>
   );
 }
