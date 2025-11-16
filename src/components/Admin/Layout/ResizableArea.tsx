@@ -3,9 +3,9 @@
 "use client";
 
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { BaseSidebar } from "../Sections/SIdebar/BaseSidebar";
-import { cn } from "@/lib/cn";
 import { APP_FEATURES } from "@/config/app-features.config";
+import { PcSidebar } from "../Sections/SIdebar/PcSidebar";
+import { SpSidebar } from "../Sections/SIdebar/SpSidebar";
 
 export function ResizableArea({
   children,
@@ -44,27 +44,8 @@ export function ResizableArea({
 
   return (
     <div className="flex flex-1 min-h-0 relative">
-      {/* mobile sidebar */}
-      <div
-        style={{ width: sidebarWidth }}
-        className={cn(
-          "fixed inset-y-0 right-0 modal-layer transition-transform md:hidden",
-          isSidebarOpen ? "translate-x-0" : "translate-x-full",
-        )}
-      >
-        <BaseSidebar width={sidebarWidth} onNavigate={onSidebarClose} />
-      </div>
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 backdrop-layer bg-black/50 md:hidden"
-          onClick={onSidebarClose}
-        />
-      )}
-
-      {/* desktop sidebar */}
-      <div className="hidden md:block" style={{ width: sidebarWidth }}>
-        <BaseSidebar width={sidebarWidth} />
-      </div>
+      <SpSidebar width={sidebarWidth} isOpen={isSidebarOpen} onClose={onSidebarClose} />
+      <PcSidebar width={sidebarWidth} />
 
       {isSidebarResizable ? (
         <div
