@@ -88,7 +88,7 @@ export const UserNavigation = () => {
     <header
       id={APP_HEADER_ELEMENT_ID}
       ref={headerRef}
-      className="fixed inset-x-0 top-0 header-layer border-b border-border bg-card"
+      className="fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-card"
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-2 sm:py-4">
         <NavigationBrand />

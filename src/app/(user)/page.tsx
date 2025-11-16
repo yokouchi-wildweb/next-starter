@@ -99,7 +99,7 @@ export default function Home() {
 
       <Main
         containerType="contentShell"
-        className="relative content-layer min-h-screen text-slate-900"
+        className="relative content-layer text-slate-900"
       >
         <Flex direction="column" gap="xxl" className="py-20">
 
