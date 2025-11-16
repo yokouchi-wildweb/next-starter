@@ -60,15 +60,19 @@ const sidebarSections: SidebarMenuSection[] = adminMenu.map((section) => {
 });
 
 const submenuVariants = cva(
-  "modal-layer absolute left-full -ml-2 top-0 w-48 space-y-1 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
+  "modal-layer absolute top-0 w-48 space-y-1 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
   {
     variants: {
       open: {
         true: "opacity-100 translate-x-0 pointer-events-auto",
         false: "opacity-0 translate-x-2 pointer-events-none",
       },
+      placement: {
+        right: "left-full -ml-2",
+        left: "right-full -mr-2",
+      },
     },
-    defaultVariants: { open: false },
+    defaultVariants: { open: false, placement: "right" },
   },
 );
 
@@ -76,7 +80,13 @@ const itemLink = cva(
   "block px-4 py-4 text-sm rounded transition-colors duration-200 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
 );
 
-export function BaseSidebar({ width = 192, onNavigate }: { width?: number; onNavigate?: () => void }) {
+type BaseSidebarProps = {
+  width?: number;
+  onNavigate?: () => void;
+  submenuPlacement?: "left" | "right";
+};
+
+export function BaseSidebar({ width = 192, onNavigate, submenuPlacement = "right" }: BaseSidebarProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
@@ -192,7 +202,12 @@ export function BaseSidebar({ width = 192, onNavigate }: { width?: number; onNav
                     </Span>
                   )}
                   {hasSubMenu && (
-                    <ul className={cn(submenuVariants({ open: isOpen }), "list-none m-0")}>
+                    <ul
+                      className={cn(
+                        submenuVariants({ open: isOpen, placement: submenuPlacement }),
+                        "list-none m-0",
+                      )}
+                    >
                       {section.items.map((item) => (
                         <li key={`${section.title}-${item.title}`}>
                           <Link
