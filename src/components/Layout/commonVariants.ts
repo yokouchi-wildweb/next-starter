@@ -14,56 +14,56 @@ export const space = {
 
 export const padding = {
   none: "p-0",
-  sx: "p-1",
+  xs: "p-1",
   sm: "p-2",
-  md: "p-3",
-  lg: "p-4",
-  xl: "p-6",
+  md: "p-4",
+  lg: "p-6",
+  xl: "p-10",
 } as const;
 
 export const paddingBlock = {
   none: "py-0",
-  sx: "py-1",
+  xs: "py-1",
   sm: "py-2",
-  md: "py-3",
-  lg: "py-4",
-  xl: "py-6",
+  md: "py-4",
+  lg: "py-6",
+  xl: "py-10",
 } as const;
 
 export const paddingInline = {
   none: "px-0",
-  sx: "px-1",
+  xs: "px-1",
   sm: "px-2",
-  md: "px-3",
-  lg: "px-4",
-  xl: "px-6",
+  md: "px-4",
+  lg: "px-6",
+  xl: "px-10",
 } as const;
 
 export const margin = {
   none: "m-0",
-  sx: "m-1",
+  xs: "m-1",
   sm: "m-2",
-  md: "m-3",
-  lg: "m-4",
-  xl: "m-6",
+  md: "m-4",
+  lg: "m-6",
+  xl: "m-10",
 } as const;
 
 export const marginBlock = {
   none: "my-0",
-  sx: "my-1",
+  xs: "my-1",
   sm: "my-2",
-  md: "my-3",
-  lg: "my-4",
-  xl: "my-6",
+  md: "my-4",
+  lg: "my-6",
+  xl: "my-10",
 } as const;
 
 export const marginInline = {
   none: "mx-0",
-  sx: "mx-1",
+  xs: "mx-1",
   sm: "mx-2",
-  md: "mx-3",
-  lg: "mx-4",
-  xl: "mx-6",
+  md: "mx-4",
+  lg: "mx-6",
+  xl: "mx-10",
 } as const;
 
 export const layoutVariants = {
