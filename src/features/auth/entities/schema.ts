@@ -3,8 +3,6 @@
 import { USER_PROVIDER_TYPES } from "@/constants/user";
 import { z } from "zod";
 
-import { GeneralUserSchema } from "@/features/user/entities/schema";
-
 const IdTokenSchema = z
   .string({ required_error: "認証トークンが不足しています" })
   .trim()
@@ -27,6 +25,11 @@ const EmailSchema = z
 
 const OptionalEmailSchema = EmailSchema.optional();
 
+const DisplayNameSchema = z
+  .string({ required_error: "表示名を入力してください" })
+  .trim()
+  .min(1, { message: "表示名を入力してください" });
+
 // 仮登録用のスキーマ
 export const PreRegistrationSchema = z.object({
   providerType: z.enum(USER_PROVIDER_TYPES),
@@ -36,14 +39,11 @@ export const PreRegistrationSchema = z.object({
 });
 
 // 本登録用のスキーマ
-export const RegistrationSchema = GeneralUserSchema.pick({
-  providerType: true,
-  providerUid: true,
-  email: true,
-  displayName: true,
-}).extend({
-  providerUid: GeneralUserSchema.shape.providerUid,
-  email: GeneralUserSchema.shape.email.innerType().unwrap().unwrap(),
+export const RegistrationSchema = z.object({
+  providerType: z.enum(USER_PROVIDER_TYPES),
+  providerUid: ProviderUidSchema,
+  email: EmailSchema,
+  displayName: DisplayNameSchema,
   idToken: IdTokenSchema,
   password: PasswordSchema.optional(),
 });

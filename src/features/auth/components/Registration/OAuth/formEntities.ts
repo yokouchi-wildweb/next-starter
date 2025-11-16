@@ -1,20 +1,17 @@
 import { z } from "zod";
 
-import { GeneralUserSchema } from "@/features/user/entities";
-
 const emailSchema = z
   .string({
     required_error: "メールアドレスを入力してください",
   })
   .trim()
   .min(1, { message: "メールアドレスを入力してください" })
-  .pipe(GeneralUserSchema.shape.email.innerType().unwrap().unwrap());
+  .email({ message: "メールアドレスの形式が不正です" });
 
 const displayNameSchema = z
   .string({ required_error: "表示名を入力してください" })
   .trim()
-  .min(1, { message: "表示名を入力してください" })
-  .pipe(GeneralUserSchema.shape.displayName.innerType().unwrap().unwrap());
+  .min(1, { message: "表示名を入力してください" });
 
 export const FormSchema = z.object({
   email: emailSchema,
