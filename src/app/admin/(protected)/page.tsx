@@ -4,13 +4,12 @@ import dayjs from "dayjs";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/Shadcn/card";
 import { DeveloperMotivationChart } from "@/components/Admin/DeveloperMotivationChart";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
 import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
 import { Flex } from "@/components/Layout/Flex";
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
 import AdminSecTitle from "@/components/Admin/Layout/AdminSecTitle";
-import { Span } from "@/components/TextBlocks";
+import { Main, Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import { APP_FEATURES } from "@/config/app-features.config";
 import { userService } from "@/features/user/services/server/userService";
@@ -83,7 +82,7 @@ export default async function AdminHomePage() {
   ];
 
   return (
-    <AdminPage variant="dashboard">
+    <Main containerType="plain" className="p-6 grid gap-6">
       <AdminPageTitle>管理ダッシュボード</AdminPageTitle>
 
       {showMainMetrics && (
@@ -162,10 +161,6 @@ export default async function AdminHomePage() {
           </Grid>
         </Section>
       )}
-
-
-
-
-    </AdminPage>
+    </Main>
   );
 }

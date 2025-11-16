@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
 __SQL_IMPORT__
 import Admin__Domain__List from "@/features/__domain__/components/Admin__Domain__List";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
 import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import { Main } from "@/components/TextBlocks";
 import { settingService } from "@/features/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/types/page";
 
@@ -23,9 +23,9 @@ export default async function Admin__Domain__ListPage({ searchParams }: Props) {
   const { results: __domains__, total } = await __domain__Service.__SEARCH_CALL__;
 
   return (
-    <AdminPage>
+    <Main containerType="plain" className="p-6 space-y-6">
       <AdminPageTitle>__DomainLabel__管理</AdminPageTitle>
       <Admin__Domain__List __domains__={__domains__} page={page} perPage={limit} total={total} />
-    </AdminPage>
+    </Main>
   );
 }

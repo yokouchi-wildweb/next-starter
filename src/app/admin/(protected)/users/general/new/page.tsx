@@ -3,8 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import GeneralUserCreate from "@/features/user/components/admin/GeneralUserCreate";
-import AdminPage from "@/components/Admin/Layout/AdminPage";
 import AdminPageTitle from "@/components/Admin/Layout/AdminPageTitle";
+import { Main } from "@/components/TextBlocks";
 
 export const metadata = {
   title: "一般ユーザー追加",
@@ -14,9 +14,9 @@ const REDIRECT_PATH = "/admin/users/general";
 
 export default function AdminGeneralUserCreatePage() {
   return (
-    <AdminPage>
+    <Main containerType="plain" className="p-6 space-y-6">
       <AdminPageTitle>一般ユーザー追加</AdminPageTitle>
       <GeneralUserCreate redirectPath={REDIRECT_PATH} />
-    </AdminPage>
+    </Main>
   );
 }
