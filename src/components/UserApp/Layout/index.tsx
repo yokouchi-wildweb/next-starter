@@ -5,8 +5,8 @@ import { type CSSProperties, type ReactNode } from "react";
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 
-import { UserFooter } from "./UserFooter";
-import { UserNavigation } from "./Header";
+import { Index } from "../Footer";
+import { UserNavigation } from "../Header";
 
 type LayoutStyle = CSSProperties & {
   "--app-header-height"?: string;
@@ -34,7 +34,7 @@ export const UserAppLayout = ({ children, footerText }: UserAppLayoutProps) => {
       <div className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
         {children}
       </div>
-      <UserFooter text={footerText} />
+      <Index text={footerText} />
     </Flex>
   );
 };

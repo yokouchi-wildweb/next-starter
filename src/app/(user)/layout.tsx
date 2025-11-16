@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { UserAppLayout } from "@/components/UserAppLayout";
+import { UserAppLayout } from "@/components/UserApp/Layout";
 import { settingService } from "@/features/setting/services/server/settingService";
 
 export default async function UserLayout({

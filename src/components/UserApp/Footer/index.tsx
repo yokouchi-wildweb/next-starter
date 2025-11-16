@@ -1,4 +1,4 @@
-// src/components/UserAppLayout/UserFooter.tsx
+// src/components/UserAppLayout/index.tsx
 import { cva } from "class-variance-authority";
 
 import { APP_FOOTER_ELEMENT_ID } from "@/constants/layout";
@@ -20,7 +20,7 @@ const resolveFooterText = (text?: string | null) => {
   return sanitized ? sanitized.replace(/{{year}}/g, String(year)) : fallbackText;
 };
 
-export function UserFooter({ text }: UserFooterProps) {
+export function Index({ text }: UserFooterProps) {
   const resolvedText = resolveFooterText(text);
 
   return (

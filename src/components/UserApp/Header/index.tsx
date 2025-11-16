@@ -9,14 +9,14 @@ import { Brand } from "./Brand";
 import { SpNavSwitch } from "./SpNavSwitch";
 import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
 
-import { useUserNavItems } from "./useUserNavItems";
+import { useUserMenuItems } from "./useUserMenuItems";
 
 export const UserNavigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [headerOffset, setHeaderOffset] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
   const pathname = usePathname();
-  const { navItems } = useUserNavItems();
+  const { navItems } = useUserMenuItems();
 
   const handleClose = useCallback(() => {
     setIsMenuOpen(false);

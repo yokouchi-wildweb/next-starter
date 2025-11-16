@@ -5,7 +5,7 @@ import { useLogout } from "@/features/auth/hooks/useLogout";
 
 import type { NavigationMenuItem } from "./MenuItem";
 
-export const useUserNavItems = () => {
+export const useUserMenuItems = () => {
   const { isAuthenticated } = useAuthSession();
   const { logout, isLoading: isLogoutLoading } = useLogout({ redirectTo: "/login" });
 
