@@ -15,9 +15,7 @@ const variantToHandler: Record<RedirectToastVariant, (message: string) => void> 
 };
 
 const showToast = ({ message, variant }: RedirectToastPayload) => {
-  // デバッグ用にアラートも出す
-  alert(`redirect toast: ${message}`);
-  const handler = variantToHandler[variant];
+const handler = variantToHandler[variant];
 
   if (handler) {
     handler(message);
@@ -32,15 +30,13 @@ export const RedirectToastProvider = () => {
 
   useEffect(() => {
     const payload = readRedirectToastCookie();
-    console.log("RedirectToastProvider payload", payload);
 
     if (!payload) {
       return;
     }
 
     showToast(payload);
-    // デバッグのためクッキー削除は一時的に無効化する
-    // clearRedirectToastCookie();
+    clearRedirectToastCookie();
   }, [pathname]);
 
   return null;
