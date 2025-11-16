@@ -32,11 +32,9 @@
 
 ```tree
 src/
-├── proxy.ts                       # Next.js 16 の Node.js ランタイム用 Proxy エントリポイント
-├── proxies/                       # proxy.ts へ読み込む個別ハンドラ群
-│   ├── index.ts                   # ハンドラの一括登録
-│   ├── redirect.ts                # リダイレクトなどのネットワーク境界ロジック
-│   └── types.ts                   # Proxy ハンドラの型定義
+├── proxy.ts      # ランタイム用 Proxy エントリポイント(旧 middleware.ts)
+├── proxies/      # proxy.ts へ読み込む個別ハンドラ群
+│
 ├── app/                            # Next.js App Routerのルート
 │   ├── layout.tsx                  # 全体レイアウト
 │   ├── (user)/                     # 一般ユーザー画面グループ
