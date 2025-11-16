@@ -23,7 +23,7 @@ export default async function AdminSampleCategoryListPage({ searchParams }: Prop
   const { results: sampleCategories, total } = await sampleCategoryService.search({ page, limit, searchQuery });
 
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>サンプルカテゴリ管理</AdminPageTitle>
       <AdminSampleCategoryList sampleCategories={sampleCategories} page={page} perPage={limit} total={total} />
     </Main>

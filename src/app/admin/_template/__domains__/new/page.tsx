@@ -13,7 +13,7 @@ export default __ASYNC__function Admin__Domain__CreatePage() {
 __LIST_FETCH__
   return (
 __SWR_START__
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>__DomainLabel__追加</AdminPageTitle>
       <Admin__Domain__Create redirectPath="/admin/__domainsSlug__" />
     </Main>

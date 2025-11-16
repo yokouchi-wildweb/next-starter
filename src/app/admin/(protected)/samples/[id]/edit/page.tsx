@@ -30,7 +30,7 @@ export default async function AdminSampleEditPage({ params }: Props) {
         fallback: { sampleCategories },
       }}
     >
-      <Main containerType="plain" className="p-6 space-y-6">
+      <Main containerType="plain">
         <AdminPageTitle>サンプル編集</AdminPageTitle>
         <AdminSampleEdit sample={sample as Sample} redirectPath="/admin/samples" />
       </Main>

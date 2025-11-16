@@ -23,7 +23,7 @@ export default async function AdminSampleListPage({ searchParams }: Props) {
   const { results: samples, total } = await sampleService.search({ page, limit, searchQuery });
 
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>サンプル管理</AdminPageTitle>
       <AdminSampleList samples={samples} page={page} perPage={limit} total={total} />
     </Main>

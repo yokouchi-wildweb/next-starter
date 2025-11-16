@@ -14,7 +14,7 @@ const REDIRECT_PATH = "/admin/users/managerial";
 
 export default function AdminManagerialUserCreatePage() {
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>システム管理者追加</AdminPageTitle>
       <ManagerialUserCreate redirectPath={REDIRECT_PATH} />
     </Main>

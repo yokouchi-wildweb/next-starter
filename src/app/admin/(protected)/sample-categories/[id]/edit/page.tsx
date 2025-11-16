@@ -21,7 +21,7 @@ export default async function AdminSampleCategoryEditPage({ params }: Props) {
 
 
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>サンプルカテゴリ編集</AdminPageTitle>
       <AdminSampleCategoryEdit sampleCategory={sampleCategory as SampleCategory} redirectPath="/admin/sample-categories" />
     </Main>

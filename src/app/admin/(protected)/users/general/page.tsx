@@ -33,7 +33,7 @@ export default async function AdminGeneralUserListPage({ searchParams }: Props) 
   });
 
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>登録ユーザー</AdminPageTitle>
       <GeneralUserList
         users={users}

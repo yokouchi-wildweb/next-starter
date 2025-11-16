@@ -21,7 +21,7 @@ export default async function AdminSampleCreatePage() {
         fallback: { sampleCategories },
       }}
     >
-      <Main containerType="plain" className="p-6 space-y-6">
+      <Main containerType="plain">
         <AdminPageTitle>サンプル追加</AdminPageTitle>
         <AdminSampleCreate redirectPath="/admin/samples" />
       </Main>

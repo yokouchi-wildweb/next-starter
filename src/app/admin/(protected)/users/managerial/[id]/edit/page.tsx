@@ -28,7 +28,7 @@ export default async function AdminManagerialUserEditPage({ params }: Props) {
   }
 
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>システム管理者編集</AdminPageTitle>
       <ManagerialUserEdit user={user} redirectPath={REDIRECT_PATH} />
     </Main>

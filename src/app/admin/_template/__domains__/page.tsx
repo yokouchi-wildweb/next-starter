@@ -23,7 +23,7 @@ export default async function Admin__Domain__ListPage({ searchParams }: Props) {
   const { results: __domains__, total } = await __domain__Service.__SEARCH_CALL__;
 
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>__DomainLabel__管理</AdminPageTitle>
       <Admin__Domain__List __domains__={__domains__} page={page} perPage={limit} total={total} />
     </Main>

@@ -33,7 +33,7 @@ export default async function AdminManagerialUserListPage({ searchParams }: Prop
   });
 
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>システム管理者</AdminPageTitle>
       <ManagerialUserList
         users={users}

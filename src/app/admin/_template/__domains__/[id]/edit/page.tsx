@@ -21,7 +21,7 @@ __DOMAIN_AND_LIST_FETCH__
 
   return (
 __SWR_START__
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>__DomainLabel__編集</AdminPageTitle>
       <Admin__Domain__Edit __domain__={__domain__ as __Domain__} redirectPath="/admin/__domainsSlug__" />
     </Main>

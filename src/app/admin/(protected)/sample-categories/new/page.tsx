@@ -12,7 +12,7 @@ export const metadata = {
 export default function AdminSampleCategoryCreatePage() {
 
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>サンプルカテゴリ追加</AdminPageTitle>
       <AdminSampleCategoryCreate redirectPath="/admin/sample-categories" />
     </Main>

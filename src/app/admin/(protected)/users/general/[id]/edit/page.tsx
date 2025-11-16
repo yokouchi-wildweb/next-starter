@@ -28,7 +28,7 @@ export default async function AdminGeneralUserEditPage({ params }: Props) {
   }
 
   return (
-    <Main containerType="plain" className="p-6 space-y-6">
+    <Main containerType="plain">
       <AdminPageTitle>一般ユーザー編集</AdminPageTitle>
       <GeneralUserEdit user={user} redirectPath={REDIRECT_PATH} />
     </Main>
