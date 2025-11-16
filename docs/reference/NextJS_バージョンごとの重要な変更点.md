@@ -58,6 +58,41 @@ export default function proxy(request: NextRequest) {
 }
 ```
 
+#### プロキシハンドラの分割管理
+
+- テンプレートでは `src/proxies/` ディレクトリを用意し、`src/proxy.ts` が複数のハンドラを順番に実行します。
+- 共通の型は `src/proxies/types.ts` にまとめ、`src/proxies/index.ts` から `proxyHandlers` 配列としてエクスポートします。
+
+```ts
+// src/proxy.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { proxyHandlers } from './proxies';
+
+export default async function proxy(request: NextRequest) {
+  for (const handler of proxyHandlers) {
+    const response = await handler(request);
+    if (response) return response;
+  }
+
+  return NextResponse.next();
+}
+
+// src/proxies/redirect.ts（例）
+import type { ProxyHandler } from './types';
+
+export const redirectProxy: ProxyHandler = async (request) => {
+  // 任意の条件を満たした場合のみ NextResponse を返却
+};
+
+// src/proxies/index.ts
+import { redirectProxy } from './redirect';
+import type { ProxyHandler } from './types';
+
+export const proxyHandlers: ProxyHandler[] = [redirectProxy];
+```
+
+- 新しいネットワーク処理を追加する際は `src/proxies/xxx.ts` を作成し、`proxyHandlers` へ登録するだけで全ルートへ適用できます。
+
 ### Turbopack と開発体験の更新
 - Turbopack が開発・本番ともに Stable。新規プロジェクトではデフォルトバンドラー。Webpack を使い続けたい場合は `next dev --webpack` / `next build --webpack` を明示する。
 - ファイルシステムキャッシュ（β）で再起動時のビルドを高速化可能。

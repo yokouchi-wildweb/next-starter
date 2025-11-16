@@ -32,6 +32,11 @@
 
 ```tree
 src/
+├── proxy.ts                       # Next.js 16 の Node.js ランタイム用 Proxy エントリポイント
+├── proxies/                       # proxy.ts へ読み込む個別ハンドラ群
+│   ├── index.ts                   # ハンドラの一括登録
+│   ├── redirect.ts                # リダイレクトなどのネットワーク境界ロジック
+│   └── types.ts                   # Proxy ハンドラの型定義
 ├── app/                            # Next.js App Routerのルート
 │   ├── layout.tsx                  # 全体レイアウト
 │   ├── (user)/                     # 一般ユーザー画面グループ
@@ -114,6 +119,9 @@ src/
 ├── constants/   # 定数群
 └── types/       # グローバルスタイル（Tailwind）
 ```
+
+`src/proxy.ts` は `src/proxies/` 配下のハンドラを順番に実行し、`NextResponse.next()` かハンドラが返すレスポンスを応答します。新しいネットワ
+ーク境界ロジックは `src/proxies/` にファイルを追加し、`src/proxies/index.ts` へ登録することで一元的に適用されます。
 
 より詳細なプロジェクトの構成は、[docs/concepts/ディレクトリ構造の全体図と構成ファイルの説明.md](docs/concepts/ディレクトリ構造の全体図と構成ファイルの説明.md) を参照してください。
 
