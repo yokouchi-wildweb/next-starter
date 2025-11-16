@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { redirect } from "next/navigation";
 
-import { AdminProtectedLayoutClient } from "@/components/Admin/Layout/AdminProtectedLayoutClient";
+import { AdminProtectedLayout } from "@/components/Admin/Layout/AdminProtectedLayout";
 import { authGuard } from "@/features/auth/services/server/authorization";
 import { userService } from "@/features/user/services/server/userService";
 import type { UserRoleType } from "@/types/user";
@@ -25,5 +25,5 @@ export default async function AdminLayout({
 
   await authGuard({ allowRoles: ["admin"], redirectTo: "/admin/login" });
 
-  return <AdminProtectedLayoutClient>{children}</AdminProtectedLayoutClient>;
+  return <AdminProtectedLayout>{children}</AdminProtectedLayout>;
 }

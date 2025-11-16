@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/cn";
 
-import { SecTitle, type SecTitleProps } from "@/components/TextBlocks";
+import { SecTitle as DefaultSecTitle, type SecTitleProps } from "@/components/TextBlocks";
 
 const adminSecTitleVariants = cva("", {
   variants: {
@@ -28,7 +28,7 @@ export default function SecTitle({
   ...props
 }: AdminSecTitleProps) {
   return (
-    <SecTitle
+    <DefaultSecTitle
         weight="normal"
       size={size}
       className={cn(adminSecTitleVariants({ variant }), className)}

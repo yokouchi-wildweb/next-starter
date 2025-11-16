@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/cn";
 
-import { PageTitle, type PageTitleProps } from "@/components/TextBlocks";
+import { PageTitle as DefaultPageTitle, type PageTitleProps } from "@/components/TextBlocks";
 
 const marginBottomClassMap = {
   xs: "mb-2",
@@ -40,7 +40,7 @@ export default function PageTitle({
   ...props
 }: AdminPageTitleProps) {
   return (
-    <PageTitle
+    <DefaultPageTitle
         weight="normal"
       className={cn(
         adminPageTitleVariants({ variant, marginBottom }),

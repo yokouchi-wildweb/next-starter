@@ -1,3 +1,5 @@
+// src/components/Admin/Layout/AdminOuterLayout.tsx
+
 "use client";
 
 import { type CSSProperties, type ReactNode, useMemo } from "react";
@@ -18,7 +20,7 @@ type AdminLayoutCSSVariables = CSSProperties & {
   "--app-header-height"?: string;
 };
 
-export function AdminLayoutClient({
+export function AdminOuterLayout({
   children,
   headerLogoUrl,
   headerLogoDarkUrl,

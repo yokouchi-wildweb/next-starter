@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { AdminLayoutClient } from "@/components/Admin/Layout/AdminLayoutClient";
+import { AdminOuterLayout } from "@/components/Admin/Layout/AdminOuterLayout";
 import { settingService } from "@/features/setting/services/server/settingService";
 
 export default async function AdminLayout({
@@ -12,12 +12,12 @@ export default async function AdminLayout({
   const setting = await settingService.getGlobalSetting();
 
   return (
-    <AdminLayoutClient
+    <AdminOuterLayout
       headerLogoUrl={setting.adminHeaderLogoImageUrl ?? undefined}
       headerLogoDarkUrl={setting.adminHeaderLogoImageDarkUrl ?? undefined}
       footerText={setting.adminFooterText ?? undefined}
     >
       {children}
-    </AdminLayoutClient>
+    </AdminOuterLayout>
   );
 }

@@ -11,7 +11,7 @@ type AdminProtectedLayoutClientProps = {
   children: ReactNode;
 };
 
-export function AdminProtectedLayoutClient({ children }: AdminProtectedLayoutClientProps) {
+export function AdminProtectedLayout({ children }: AdminProtectedLayoutClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
