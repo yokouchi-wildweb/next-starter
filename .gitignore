@@ -26,6 +26,9 @@ firebase-service-acount.json
 .firebaserc
 firebase.json
 firestore.indexes.json
+apphosting.yaml
+storage.rules
+firestore.rules
 
 # production
 /build
@@ -53,6 +56,4 @@ next-env.d.ts
 
 # etc
 AGENTS.md
-apphosting.yaml
-storage.rules
-firestore.rules
+
