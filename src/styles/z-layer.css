@@ -1,0 +1,206 @@
+/*
+ * src/styles/z-layer.css
+ * アプリ全体で共有するZ-indexトークンとユーティリティを定義します。
+ */
+
+@theme inline {
+  /* base layer group */
+  --z-layer-background: var(--z-layer-background);
+  --z-layer-base: var(--z-layer-base);
+  --z-layer-content: var(--z-layer-content);
+
+  /* Backside UI layer group */
+  --z-layer-backside-ui-low: var(--z-layer-backside-ui-low);
+  --z-layer-backside-ui: var(--z-layer-backside-ui);
+  --z-layer-backside-ui-top: var(--z-layer-backside-ui-top);
+
+  /* header layer group */
+  --z-layer-below-header: var(--z-layer-below-header);
+  --z-layer-header: var(--z-layer-header);
+  --z-layer-above-header: var(--z-layer-above-header);
+
+  /* forefront layer group */
+  --z-layer-forefront-low: var(--z-layer-forefront-low);
+  --z-layer-forefront: var(--z-layer-forefront);
+  --z-layer-forefront-top: var(--z-layer-forefront-top);
+
+  /* Middle UI layer group */
+  --z-layer-middle-ui-low: var(--z-layer-middle-ui-low);
+  --z-layer-middle-ui: var(--z-layer-middle-ui);
+  --z-layer-middle-ui-top: var(--z-layer-middle-ui-top);
+
+  /* feedback layer group */
+  --z-layer-backdrop: var(--z-layer-backdrop);
+  --z-layer-navigation: var(--z-layer-navigation);
+  --z-layer-modal: var(--z-layer-modal);
+  --z-layer-alert: var(--z-layer-alert);
+  --z-layer-overlay: var(--z-layer-overlay);
+
+  /* Surface UI layer group */
+  --z-layer-surface-ui-low: var(--z-layer-surface-ui-low);
+  --z-layer-surface-ui: var(--z-layer-surface-ui);
+  --z-layer-surface-ui-top: var(--z-layer-surface-ui-top);
+
+  /* super layer group */
+  --z-layer-super: var(--z-layer-super);
+  --z-layer-ultimate: var(--z-layer-ultimate);
+  --z-layer-apex: var(--z-layer-apex);
+}
+
+:root {
+  /* base layer group */
+  --z-layer-background: 10;
+  --z-layer-base: 50;
+  --z-layer-content: 100;
+
+  /* Backside UI layer group */
+  --z-layer-backside-ui-low: 230;
+  --z-layer-backside-ui: 260;
+  --z-layer-backside-ui-top: 290;
+
+  /* header layer group */
+  --z-layer-below-header: 330;
+  --z-layer-header: 360;
+  --z-layer-above-header: 390;
+
+  /* forefront layer group */
+  --z-layer-forefront-low: 530;
+  --z-layer-forefront: 560;
+  --z-layer-forefront-top: 590;
+
+  /* Middle UI layer group */
+  --z-layer-middle-ui-low: 630;
+  --z-layer-middle-ui: 660;
+  --z-layer-middle-ui-top: 690;
+
+  /* feedback layer group */
+  --z-layer-backdrop: 700;
+  --z-layer-navigation: 720;
+  --z-layer-modal: 730;
+  --z-layer-alert: 760;
+  --z-layer-overlay: 799;
+
+  /* Surface UI layer group */
+  --z-layer-surface-ui-low: 930;
+  --z-layer-surface-ui: 960;
+  --z-layer-surface-ui-top: 990;
+
+  /* super layer group */
+  --z-layer-super: 6666;
+  --z-layer-ultimate: 9000;
+  --z-layer-apex: 9999;
+}
+
+@layer utilities {
+  /* base layer group */
+  .background-layer {
+    z-index: var(--z-layer-background);
+  }
+
+  .base-layer {
+    z-index: var(--z-layer-base);
+  }
+
+  .content-layer {
+    z-index: var(--z-layer-content);
+  }
+
+  /* Backside UI layer group */
+  .backside-ui-low-layer {
+    z-index: var(--z-layer-backside-ui-low);
+  }
+
+  .backside-ui-layer {
+    z-index: var(--z-layer-backside-ui);
+  }
+
+  .backside-ui-top-layer {
+    z-index: var(--z-layer-backside-ui-top);
+  }
+
+  /* header layer group */
+  .below-header-layer {
+    z-index: var(--z-layer-below-header);
+  }
+
+  .header-layer {
+    z-index: var(--z-layer-header);
+  }
+
+  .above-header-layer {
+    z-index: var(--z-layer-above-header);
+  }
+
+  /* forefront layer group */
+  .forefront-low-layer {
+    z-index: var(--z-layer-forefront-low);
+  }
+
+  .forefront-layer {
+    z-index: var(--z-layer-forefront);
+  }
+
+  .forefront-top-layer {
+    z-index: var(--z-layer-forefront-top);
+  }
+
+  /* Middle UI layer group */
+  .middle-ui-low-layer {
+    z-index: var(--z-layer-middle-ui-low);
+  }
+
+  .middle-ui-layer {
+    z-index: var(--z-layer-middle-ui);
+  }
+
+  .middle-ui-top-layer {
+    z-index: var(--z-layer-middle-ui-top);
+  }
+
+  /* Surface UI layer group */
+  .surface-ui-low-layer {
+    z-index: var(--z-layer-surface-ui-low);
+  }
+
+  .surface-ui-layer {
+    z-index: var(--z-layer-surface-ui);
+  }
+
+  .surface-ui-top-layer {
+    z-index: var(--z-layer-surface-ui-top);
+  }
+
+  /* feedback layer group */
+  .backdrop-layer {
+    z-index: var(--z-layer-backdrop);
+  }
+
+  .navigation-layer {
+    z-index: var(--z-layer-navigation);
+  }
+
+  .modal-layer {
+    z-index: var(--z-layer-modal);
+  }
+
+  .overlay-layer {
+    z-index: var(--z-layer-overlay);
+  }
+
+  .alert-layer {
+    z-index: var(--z-layer-alert);
+  }
+
+  /* super layer group */
+  .super-layer {
+    z-index: var(--z-layer-super);
+  }
+
+  .ultimate-layer {
+    z-index: var(--z-layer-ultimate);
+  }
+
+  .apex-layer {
+    z-index: var(--z-layer-apex);
+  }
+}

@@ -1,0 +1,35 @@
+/*
+ * src/styles/utilities.css
+ * 単体で再利用できる小さなユーティリティクラスを集約します。
+ * 見た目のバリエーションを素早く追加したいときはここに記述し、
+ * Tailwind の utilities レイヤーと競合しない命名を心掛けてください。
+ */
+
+@layer utilities {
+  .bookmark-tag {
+    --bookmark-tag-notch-size: 0.75rem;
+    --bookmark-tag-padding-inline-start: calc(var(--bookmark-tag-notch-size) + 0.5rem);
+    position: relative;
+    padding-inline-start: var(--bookmark-tag-padding-inline-start);
+    clip-path: polygon(
+      0 50%,
+      var(--bookmark-tag-notch-size) 0,
+      100% 0,
+      100% 100%,
+      var(--bookmark-tag-notch-size) 100%
+    );
+  }
+
+  .bookmark-tag::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -1px;
+    width: var(--bookmark-tag-notch-size);
+    height: 100%;
+    background: none;
+    border: inherit;
+    border-right: none;
+    clip-path: polygon(100% 0, 0 50%, 100% 100%);
+  }
+}

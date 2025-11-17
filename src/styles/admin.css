@@ -1,0 +1,11 @@
+/*
+ * src/styles/admin.css
+ * 管理画面専用のスタイルをまとめます。
+ * コンポーネント単位のスタイルは `@layer components` に書いてください。
+ */
+
+/*
+ * Tailwind の components レイヤー
+ * 管理画面で使われる UI コンポーネント用スタイルをまとめます。
+ */
+@layer components {}

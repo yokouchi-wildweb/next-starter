@@ -1,0 +1,17 @@
+/*
+ * src/styles/global.css
+ * Tailwind を読み込むための入口となるファイルです。
+ * 他のスタイルシートをここで import するだけにして、
+ * このファイルには追加の CSS を書かないでください。
+ */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./animations.css";
+@import "./theme.css";
+@import "./config.css";
+@import "./z-layer.css";
+@import "./base.css";
+@import "./components.css";
+@import "./utilities.css";
+@import "./admin.css";

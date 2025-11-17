@@ -1,0 +1,37 @@
+/*
+ * src/styles/config.css
+ * アプリ全体で共有するレイアウト系のトークンを定義します。
+ * Zレイヤー関連は z-layer.css へ切り出しています。
+ */
+
+@theme inline {
+  /* Breakpoints */
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 96rem;
+
+  /* Layout tokens */
+  --layout-width-narrow-stack: 448px;
+  --layout-width-content-shell: 72rem;
+  --layout-width-wide-showcase: 96rem;
+
+  --app-header-height: var(--app-header-height);
+}
+
+:root {
+  /* Breakpoints */
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 96rem;
+
+  /* Layout tokens */
+  --layout-width-narrow-stack: 448px;
+  --layout-width-content-shell: 72rem;
+  --layout-width-wide-showcase: 96rem;
+
+  --app-header-height: 0px;
+}

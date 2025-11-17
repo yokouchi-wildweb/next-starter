@@ -1,0 +1,25 @@
+/*
+ * src/styles/base.css
+ * Tailwind の base レイヤーを拡張して、全体に適用する初期化スタイルを管理します。
+ * フォーム要素のリセットや body のデフォルトカラーなど、
+ * アプリケーション全体で共有したい最低限のスタイルをここに記述してください。
+ */
+
+@layer base {
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

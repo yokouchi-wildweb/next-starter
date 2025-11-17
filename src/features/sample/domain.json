@@ -1,0 +1,136 @@
+{
+  "singular": "sample",
+  "plural": "samples",
+  "label": "サンプル",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "sampleCategory",
+      "label": "サンプルカテゴリ",
+      "fieldName": "sample_category_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": true,
+      "onDeleteCascade": false
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "name",
+      "label": "名前",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": true
+    },
+    {
+      "name": "number",
+      "label": "数字",
+      "fieldType": "integer",
+      "formInput": "numberInput",
+      "required": false
+    },
+    {
+      "name": "rich_number",
+      "label": "リッチナンバー",
+      "fieldType": "integer",
+      "formInput": "stepperInput",
+      "required": false
+    },
+    {
+      "name": "switch",
+      "label": "スイッチ",
+      "fieldType": "boolean",
+      "formInput": "switchInput",
+      "required": false
+    },
+    {
+      "name": "radio",
+      "label": "ラジオボタン",
+      "fieldType": "boolean",
+      "formInput": "radio",
+      "required": false,
+      "options": [
+        {
+          "value": true,
+          "label": "はい"
+        },
+        {
+          "value": false,
+          "label": "いいえ"
+        }
+      ]
+    },
+    {
+      "name": "select",
+      "label": "セレクトボックス（Enum）",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": false,
+      "options": [
+        {
+          "value": "apple",
+          "label": "りんご"
+        },
+        {
+          "value": "orange",
+          "label": "オレンジ"
+        },
+        {
+          "value": "berry",
+          "label": "いちご"
+        }
+      ]
+    },
+    {
+      "name": "main_image",
+      "label": "メイン画像",
+      "fieldType": "string",
+      "formInput": "imageUploader",
+      "required": false,
+      "uploadPath": "sample/main",
+      "slug": "main"
+    },
+    {
+      "name": "description",
+      "label": "説明文",
+      "fieldType": "string",
+      "formInput": "textarea",
+      "required": false
+    }
+  ],
+  "searchFields": [
+    "name",
+    "description"
+  ],
+  "defaultOrderBy": [
+    [
+      "updatedAt",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "name",
+    "number",
+    "rich_number",
+    "switch",
+    "radio",
+    "select",
+    "main_image",
+    "description",
+    "updatedAt"
+  ],
+  "useDetailModal": true,
+  "addToAdminDataMenu": true,
+  "generateFiles": {
+    "entities": true,
+    "components": true,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "adminRoutes": true,
+    "registry": true
+  }
+}
