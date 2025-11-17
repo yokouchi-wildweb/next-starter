@@ -53,9 +53,15 @@ function buildLabelMap(config: DomainJsonConfig): {
 }
 
 function renderValue(value: unknown, field: string, inputType: string | undefined, truncateLength: number) {
-  const isDateField = value instanceof Date || field === "createdAt" || field === "updatedAt";
-  if (isDateField) {
-    return formatDateJa(value, { format: "YYYY/MM/DD HH:mm" });
+  const isDatetimeField =
+    field === "createdAt" ||
+    field === "updatedAt" ||
+    inputType === "datetimeInput";
+  const isDateField = inputType === "dateInput";
+
+  if (value instanceof Date || isDatetimeField || isDateField) {
+    const format = isDatetimeField ? "YYYY/MM/DD HH:mm" : "YYYY/MM/DD";
+    return formatDateJa(value, { format });
   }
 
   if (inputType === "numberInput" || inputType === "stepperInput") {

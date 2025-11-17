@@ -14,7 +14,10 @@ export const FORM_INPUTS = {
     password: ['password input', 'none'],
     number: ['number input', 'stepper input', 'none'],
     array: ['checkbox', 'none'],
-    timestamp: ['none'],
+    timestamp: [
+      'datetime input',
+      'none',
+    ],
     geopoint: ['none'],
     reference: ['none'],
     map: ['none'],
@@ -40,7 +43,10 @@ export const FORM_INPUTS = {
     'numeric(10,2)': ['number input', 'stepper input', 'none'],
     uuid: ['text input', 'none'],
     Point: ['none'],
-    'timestamp With Time Zone': ['none'],
+    'timestamp With Time Zone': [
+      'datetime input',
+      'none',
+    ],
     jsonb: ['none'],
     array: ['checkbox', 'none'],
   },

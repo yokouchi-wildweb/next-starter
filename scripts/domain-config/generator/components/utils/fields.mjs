@@ -118,6 +118,15 @@ function generateFieldsFromConfig(config) {
           }).trimEnd(),
         );
         break;
+      case "datetimeInput":
+        addImport('import { DatetimeInput } from "@/components/Form/Controlled";');
+        body.push(
+          replacePartialTokens(getPartial("datetimeInput.tsx"), {
+            fieldName: f.name,
+            label: f.label,
+          }).trimEnd(),
+        );
+        break;
       case "timeInput":
         addImport('import { TimeInput } from "@/components/Form/Controlled";');
         body.push(

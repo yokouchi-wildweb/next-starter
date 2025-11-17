@@ -1,4 +1,5 @@
 export { DateInput } from "./DateInput";
+export { DatetimeInput } from "./DatetimeInput";
 export { TimeInput } from "./TimeInput";
 export { FileInput } from "./FileInput";
 export type { FileInputProps } from "./FileInput";

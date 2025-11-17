@@ -14,7 +14,7 @@ Next.js サーバー側での Firebase Admin SDK 使用時に、GCP プロジェ
 Firebase を用いたアプリ開発で **最初に包括的に付与しておくと良い IAM ロール** は以下の通りです。  
 これらを Firebase Admin SDK 用サービスアカウントに付与することで、Firestore・Storage・Functions・Hosting・Auth など主要な Firebase サービスへのアクセス権限が揃います。
 
-### 1. Service Usage Consumer（roles/serviceusage.serviceUsageConsumer）
+### 1. Service Usage ユーザー（roles/serviceusage.serviceUsageConsumer）
 
 - **必須ロール**。
 - 理由: プロジェクト内の Google API サービスを呼び出す権限。  

@@ -30,8 +30,9 @@ export default async function askViewConfig(config) {
   addField('id');
   if (config.useCreatedAt) addField('createdAt');
   if (config.useUpdatedAt) addField('updatedAt');
+  const orderableInputs = ['textInput', 'emailInput', 'dateInput', 'datetimeInput', 'numberInput'];
   for (const f of config.fields || []) {
-    if (['textInput', 'emailInput', 'dateInput', 'numberInput'].includes(f.formInput)) {
+    if (orderableInputs.includes(f.formInput)) {
       addField(f.name);
     }
   }

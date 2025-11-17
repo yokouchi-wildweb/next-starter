@@ -59,7 +59,7 @@ export const TimeInput = <TFieldValues extends FieldValues, TName extends FieldP
   const formattedValue = useMemo(() => formatTimeValue(value as TimeLike), [value]);
 
   return (
-    <div className="relative">
+    <div className="relative flex h-9 items-center">
       <Input
         ref={(el) => {
           inputRef.current = el;

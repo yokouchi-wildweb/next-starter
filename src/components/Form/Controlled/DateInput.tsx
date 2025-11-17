@@ -24,7 +24,7 @@ export const DateInput = <TFieldValues extends FieldValues, TName extends FieldP
   const { name, onBlur, onChange, value, ref: fieldRef } = field;
 
   return (
-    <div className="relative">
+    <div className="relative flex h-9 items-center">
       <Input
         ref={(el) => {
           inputRef.current = el;

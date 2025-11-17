@@ -20,10 +20,12 @@ async function getGlobalSetting(): Promise<Setting> {
   const defaultValues = createDefaultSettingValues();
 
   if (!existing) {
-    return (await base.upsert({
+    return {
       id: "global",
+      createdAt: null,
+      updatedAt: null,
       ...defaultValues,
-    })) as Setting;
+    };
   }
 
   return {
@@ -42,11 +44,17 @@ async function getAdminListPerPage(): Promise<number> {
 
 export async function initializeAdminSetup(data: AdminSetupInput): Promise<User> {
   const user = await registerAdminFromConsole(data);
+  const defaultValues = createDefaultSettingValues();
+  const existing = await base.get("global");
 
-  await base.upsert({
-    id: "global",
-    ...createDefaultSettingValues(),
-  });
+  if (!existing) {
+    await base.create({
+      id: "global",
+      ...defaultValues,
+    });
+  } else {
+    await base.update("global", defaultValues);
+  }
 
   return user;
 }

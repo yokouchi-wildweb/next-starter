@@ -104,12 +104,19 @@ switch (config.idType) {
 // belongsTo relations
 (config.relations || []).forEach((rel) => {
   if (rel.relationType !== 'belongsTo') return;
-  const colType = mapType(rel.fieldType || config.idType);
-  imports.add(colType);
   const relationDomainCamel = toCamelCase(rel.domain);
   const relationDomainPascal = toPascalCase(rel.domain);
   relationImports.set(relationDomainCamel, relationDomainPascal);
-  let line = `  ${rel.fieldName}: ${colType}("${toSnakeCase(rel.fieldName)}")`;
+  const colType = mapType(rel.fieldType || config.idType);
+  imports.add(colType);
+  const columnName = toSnakeCase(rel.fieldName);
+  let column;
+  if (rel.fieldType === 'timestamp With Time Zone') {
+    column = `timestamp("${columnName}", { withTimezone: true })`;
+  } else {
+    column = `${colType}("${columnName}")`;
+  }
+  let line = `  ${rel.fieldName}: ${column}`;
   if (rel.required) line += '.notNull()';
   const opt = rel.onDeleteCascade ? ', { onDelete: "cascade" }' : '';
   line += `\n    .references(() => ${relationDomainPascal}Table.id${opt})`;
@@ -130,6 +137,11 @@ switch (config.idType) {
     fields.push(
       `  ${f.name}: text("${toSnakeCase(f.name)}").array().notNull(),`
     );
+  } else if (f.fieldType === 'timestamp With Time Zone') {
+    imports.add('timestamp');
+    let column = `timestamp("${toSnakeCase(f.name)}", { withTimezone: true })`;
+    if (f.required) column += '.notNull()';
+    fields.push(`  ${f.name}: ${column},`);
   } else {
     const typeFn = mapType(f.fieldType);
     imports.add(typeFn);

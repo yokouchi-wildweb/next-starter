@@ -35,6 +35,19 @@ if (!fs.existsSync(configPath)) {
 
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
+const DATETIME_TYPE = `z.preprocess(
+  (value) => {
+    if (value == null) return undefined;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return undefined;
+      return trimmed;
+    }
+    return value;
+  },
+  z.coerce.date()
+)`;
+
 function mapZodType(type) {
   switch (type) {
     case 'string':
@@ -52,6 +65,9 @@ function mapZodType(type) {
     case 'date':
     case 'time':
       return 'z.string()';
+    case 'timestamp':
+    case 'timestamp With Time Zone':
+      return DATETIME_TYPE;
     default:
       return 'z.any()';
   }
@@ -59,6 +75,10 @@ function mapZodType(type) {
 
 let usesEmptyToNull = false;
 let usesCreateHashPreservingNullish = false;
+
+function isTimestampField(fieldType) {
+  return fieldType === 'timestamp' || fieldType === 'timestamp With Time Zone';
+}
 
 function isStringField(fieldType) {
   return ['string', 'email', 'password'].includes(fieldType);
@@ -103,6 +123,9 @@ function fieldLine({ name, label, type, required, fieldType }) {
   }
 
   if (!required) {
+    if (isTimestampField(fieldType)) {
+      segments.push(`.or(z.literal("").transform(() => undefined))`);
+    }
     segments.push('.nullish()');
     if (isStringField(fieldType)) {
       usesEmptyToNull = true;

@@ -13,3 +13,9 @@ export const SettingBaseSchema = z.object({
 });
 
 export const SettingUpdateSchema = SettingBaseSchema;
+
+export const SettingCreateSchema = SettingBaseSchema.extend({
+  id: z.string().min(1),
+});
+
+export const SettingUpsertSchema = SettingCreateSchema;

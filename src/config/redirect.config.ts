@@ -36,8 +36,9 @@ export const redirectRules: RedirectRule[] = [
   //   allowRoles: ["admin", "editor"],
   //   excludeRoles: ["guest"],
   // },
+
   {
-    sourcePaths: ["/login", "/signup", "/admin/login"],
+    sourcePaths: ["/login", "/signup"],
     destination: "/",
     toast: {
       message: "すでにログイン済みです。",
@@ -45,13 +46,5 @@ export const redirectRules: RedirectRule[] = [
     },
     guestOnly: true,
   },
-  {
-    sourcePaths: ["/admin/setup"],
-    destination: "/admin",
-    toast: {
-      message: "管理者以外はアクセスできません。",
-      variant: "warning",
-    },
-    allowRoles: ["admin"],
-  },
+
 ];
