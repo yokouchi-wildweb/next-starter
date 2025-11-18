@@ -75,7 +75,7 @@ export function CheckGroupInput({
                 onCheckedChange={() => handleToggle(op.value)}
                 aria-checked={selected}
               />
-              <Label htmlFor={id} className="text-sm font-normal">
+              <Label htmlFor={id} className="text-sm font-normal cursor-pointer">
                 {op.label}
               </Label>
             </div>
@@ -86,7 +86,7 @@ export function CheckGroupInput({
   }
 
   return (
-    <div className="flex flex-wrap gap-2" {...rest}>
+    <div className="flex flex-wrap items-start gap-2" {...rest}>
       {options.map((op) => {
         const selected = field.value?.includes(op.value) ?? false;
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
@@ -109,12 +109,17 @@ export function CheckGroupInput({
         }
 
         if (displayType === "standard") {
+          const standardButtonBorderClass = selected
+            ? "border border-primary"
+            : "border border-border";
+
           return (
             <Button
               key={op.value}
               type="button"
               variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
               size={buttonSize}
+              className={standardButtonBorderClass}
               onClick={() => handleToggle(op.value)}
               aria-pressed={selected}
             >
