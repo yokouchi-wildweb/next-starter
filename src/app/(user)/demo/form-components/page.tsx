@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/Form/Button/Button";
 import {
   DateInput,
+  DatetimeInput,
   TimeInput,
   FileInput,
   FileUrlInput,
@@ -53,6 +54,7 @@ type DemoFormValues = {
   description: string;
   date: string;
   time: string;
+  datetime: string;
   radio: string;
   checkGroupRounded: string[];
   checkGroupStandard: string[];
@@ -72,6 +74,7 @@ const defaultValues: DemoFormValues = {
   description: "",
   date: "",
   time: "",
+  datetime: "",
   radio: textOptions[0]?.value ?? "",
   checkGroupRounded: [fruitOptions[0]?.value ?? ""],
   checkGroupStandard: [fruitOptions[0]?.value ?? ""],
@@ -235,6 +238,13 @@ export default function FormComponentsDemoPage() {
                     name="time"
                     label="TimeInput"
                     renderInput={(field) => <TimeInput field={field} />}
+                />
+
+                <FormFieldItem
+                    control={form.control}
+                    name="datetime"
+                    label="DatetimeInput"
+                    renderInput={(field) => <DatetimeInput field={field} />}
                 />
 
                 <FormFieldItem

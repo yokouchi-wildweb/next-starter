@@ -52,7 +52,7 @@ export const DatetimeInput = <
 
   const handleChange = (rawValue: string) => {
     if (!rawValue) {
-      onChange(undefined);
+      onChange(null);
       return;
     }
 
@@ -62,7 +62,7 @@ export const DatetimeInput = <
       return;
     }
 
-    onChange(undefined);
+    onChange(null);
   };
 
   return (

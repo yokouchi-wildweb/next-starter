@@ -4,6 +4,7 @@ import { userService } from "@/features/user/services/server/userService";
 import { settingService } from "@/features/setting/services/server/settingService";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import { sampleService } from "@/features/sample/services/server/sampleService";
+import { gachaMachineService } from "@/features/gachaMachine/services/server/gachaMachineService";
 
 export const serviceRegistry: Record<string, any> = {
 
@@ -12,6 +13,7 @@ export const serviceRegistry: Record<string, any> = {
   setting: settingService,
   sampleCategory: sampleCategoryService,
   sample: sampleService,
+  gachaMachine: gachaMachineService,
   // --- AUTO-GENERATED-END ---
 
 };
