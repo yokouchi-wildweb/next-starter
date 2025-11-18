@@ -39,12 +39,9 @@ export function Verification() {
 
   return (
     <Section id="registration-email-verification" className="relative">
-      <SecTitle>認証失敗</SecTitle>
-
       {phase === "initial" && <LoadingOverlay
-        mode="local"
-        className="bg-muted"
-        spinnerClassName="h-12 w-12 text-primary"
+        mode="fullscreen"
+        message="認証情報を読み込み中"}
       />}
       {phase === "invalidProcess" && <InvalidProcessState />}
       {phase === "emailInput" && <EmailInputState onSubmit={handleEmailSubmit} />}
