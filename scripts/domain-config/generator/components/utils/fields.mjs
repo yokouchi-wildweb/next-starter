@@ -1,5 +1,5 @@
 import { getPartial, replacePartialTokens } from "./template.mjs";
-import { toPascalCase } from "../../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPascalCase } from "../../../../../src/utils/stringCase.mjs";
 
 const BOOLEAN_OPTIONS = [
   { value: true, label: "はい" },
@@ -16,7 +16,9 @@ function normalizeBooleanOptions(options) {
 function generateFieldsFromConfig(config) {
   if (!config) return null;
 
-  const relations = config.relations || [];
+  const relations = (config.relations || []).filter(
+    (rel) => rel.relationType === "belongsTo" || rel.relationType === "belongsToMany",
+  );
   const fields = config.fields || [];
 
   const imports = new Set([
@@ -33,13 +35,14 @@ function generateFieldsFromConfig(config) {
   let needOptionsType = false;
 
   for (const rel of relations) {
+    const relCamel = toCamelCase(rel.domain) || rel.domain;
     addImport('import { SelectInput } from "@/components/Form/Manual";');
     if (rel.relationType === "belongsToMany") {
       addImport('import { CheckGroupInput } from "@/components/Form/Manual";');
     }
     needOptionsType = true;
 
-    const optName = `${rel.domain}Options`;
+    const optName = `${relCamel}Options`;
     props.push(`  ${optName}?: Options[];`);
     destructure.push(`  ${optName},`);
 

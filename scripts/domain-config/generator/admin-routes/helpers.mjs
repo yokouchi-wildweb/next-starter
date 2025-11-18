@@ -47,7 +47,8 @@ export function buildRelationTokens(relations, tokens) {
   const listCalls = [];
 
   relations.forEach((rel) => {
-    const dom = rel.domain.charAt(0).toLowerCase() + rel.domain.slice(1);
+    const normalizedDomain = toCamelCase(rel.domain) || rel.domain;
+    const dom = normalizedDomain;
     importLines.push(`import { ${dom}Service } from "@/features/${dom}/services/server/${dom}Service";`);
     const plural = toPlural(dom);
     varNames.push(plural);

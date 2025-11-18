@@ -3,6 +3,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { spawnSync } from "child_process";
+import { toCamelCase, toSnakeCase } from "../../src/utils/stringCase.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,22 +18,34 @@ function runGenerator(script, domain, plural, dbEngine) {
 }
 
 export default async function generate(domain) {
-  const camel = domain.charAt(0).toLowerCase() + domain.slice(1);
+  const input = (domain || "").trim();
+  if (!input) {
+    console.error("ドメイン名を指定してください。");
+    return;
+  }
+  const camel = toCamelCase(input) || input;
   const configPath = path.join(rootDir, "src", "features", camel, "domain.json");
   if (!fs.existsSync(configPath)) {
     console.error(`設定ファイルが見つかりません: ${configPath}`);
     return;
   }
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const normalizedDomain = toSnakeCase(config.singular) || toSnakeCase(input) || camel;
+  const normalizedPlural = toSnakeCase(config.plural || "") || "";
   const gen = config.generateFiles || {};
 
-  if (gen.components) runGenerator(path.join("components", "index.mjs"), domain, config.plural, config.dbEngine);
-  if (gen.hooks) runGenerator("generate-hooks.mjs", domain, config.plural, config.dbEngine);
-  if (gen.clientServices) runGenerator("generate-client-service.mjs", domain, config.plural, config.dbEngine);
-  if (gen.serverServices) runGenerator("generate-server-service.mjs", domain, config.plural, config.dbEngine);
-  if (gen.adminRoutes) runGenerator(path.join("admin-routes", "index.mjs"), domain, config.plural, config.dbEngine);
-  if (gen.entities) runGenerator(path.join("entities", "index.mjs"), domain, config.plural, config.dbEngine);
-  if (gen.registry) runGenerator("registry/index.mjs", domain);
+  if (gen.components)
+    runGenerator(path.join("components", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
+  if (gen.hooks) runGenerator("generate-hooks.mjs", normalizedDomain, normalizedPlural, config.dbEngine);
+  if (gen.clientServices)
+    runGenerator("generate-client-service.mjs", normalizedDomain, normalizedPlural, config.dbEngine);
+  if (gen.serverServices)
+    runGenerator("generate-server-service.mjs", normalizedDomain, normalizedPlural, config.dbEngine);
+  if (gen.adminRoutes)
+    runGenerator(path.join("admin-routes", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
+  if (gen.entities)
+    runGenerator(path.join("entities", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
+  if (gen.registry) runGenerator("registry/index.mjs", normalizedDomain);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

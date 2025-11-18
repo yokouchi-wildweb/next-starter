@@ -3,6 +3,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
+import { toCamelCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,6 +14,8 @@ const __dirname = dirname(__filename);
 
 const args = process.argv.slice(2);
 const domain = args[0];
+const normalized = toSnakeCase(domain) || domain;
+const camel = toCamelCase(normalized) || normalized;
 
 let dbEngineArg;
 const dbIndex = args.findIndex((a) => a === "--dbEngine" || a === "-d");
@@ -23,7 +26,6 @@ if (dbIndex !== -1) {
 
 // 引数が無ければドメイン設定から DB エンジンを取得
 if (!dbEngineArg) {
-  const camel = domain.charAt(0).toLowerCase() + domain.slice(1);
   const cfgPath = path.join(process.cwd(), "src", "features", camel, "domain.json");
   if (fs.existsSync(cfgPath)) {
     const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
@@ -40,7 +42,7 @@ if (!domain) {
 // 指定されたスクリプトを子プロセスで実行
 function run(script) {
   const scriptPath = path.join(__dirname, script);
-  const cmdArgs = [scriptPath, domain];
+  const cmdArgs = [scriptPath, normalized];
   if (dbEngineArg) cmdArgs.push("--dbEngine", dbEngineArg);
   spawnSync("node", cmdArgs, { stdio: "inherit" });
 }

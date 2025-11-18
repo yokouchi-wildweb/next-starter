@@ -1,7 +1,8 @@
 import inquirer from 'inquirer';
+import { toSnakeCase, toPascalCase } from '../../../src/utils/stringCase.mjs';
 const prompt = inquirer.createPromptModule();
 
-const guessPlural = (name) => {
+const pluralizeWord = (name) => {
   if (/(s|x|z|ch|sh)$/.test(name)) return name + 'es';
   if (/[^aeiou]y$/.test(name)) return name.slice(0, -1) + 'ies';
   if (/[aeiou]y$/.test(name)) return name + 's';
@@ -13,20 +14,30 @@ const guessPlural = (name) => {
   return name + 's';
 };
 
+const guessPlural = (name) => {
+  const snake = toSnakeCase(name);
+  if (!snake) return '';
+  const segments = snake.split('_');
+  const last = segments.pop() || '';
+  segments.push(pluralizeWord(last));
+  return segments.join('_');
+};
+
 export default async function askName() {
   const { singular } = await prompt({
     type: 'input',
     name: 'singular',
-    message: 'ドメイン名（camelCase または PascalCase、例: cardSet）:',
+    message: 'ドメイン名（snake_case、例: card_set）:',
     validate: (input) => (input.trim() ? true : 'ドメイン名は必須です'),
   });
 
-  const suggested = guessPlural(singular.trim());
+  const normalizedSingular = toSnakeCase(singular.trim());
+  const suggested = guessPlural(normalizedSingular);
 
   const { plural } = await prompt({
     type: 'input',
     name: 'plural',
-    message: `複数形名 [${suggested}]:`,
+    message: `複数形名（snake_case） [${suggested}]:`,
     default: suggested,
   });
 
@@ -36,9 +47,10 @@ export default async function askName() {
     message: '表示名:',
   });
 
-  const trimmedSingular = singular.trim();
-  const trimmedPlural = plural.trim();
-  const trimmedLabel = label.trim() || trimmedSingular;
+  const trimmedSingular = normalizedSingular || toSnakeCase(singular.trim());
+  const trimmedPlural = toSnakeCase(plural.trim()) || suggested;
+  const defaultLabel = toPascalCase(trimmedSingular) || trimmedSingular;
+  const trimmedLabel = label.trim() || defaultLabel;
 
   return { singular: trimmedSingular, plural: trimmedPlural, label: trimmedLabel };
 }

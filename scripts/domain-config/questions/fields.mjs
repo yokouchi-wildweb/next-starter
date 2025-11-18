@@ -80,12 +80,16 @@ async function askSingleField(config) {
   let uploadPath;
   let slug;
   if (normalizedInput === 'imageUploader') {
-    const up = await prompt({
-      type: 'input',
-      name: 'uploadPath',
-      message: '画像の保存パス（例: cards/main）:',
-    });
-    uploadPath = up.uploadPath.trim();
+    while (true) {
+      const up = await prompt({
+        type: 'input',
+        name: 'uploadPath',
+        message: '画像の保存パス（例: cards/main）:',
+      });
+      uploadPath = up.uploadPath.trim();
+      if (uploadPath) break;
+      console.log('画像の保存パスは必須です。空で続行することはできません。');
+    }
     const camelName = toCamelCase(trimmedName);
     const baseSlug = camelName
       .replace(/ImageUrl$/, '')

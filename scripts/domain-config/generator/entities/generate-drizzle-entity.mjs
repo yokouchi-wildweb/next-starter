@@ -15,8 +15,9 @@ if (!domain) {
   process.exit(1);
 }
 
-const camel = toCamelCase(domain);
-const pascal = toPascalCase(domain);
+const normalized = toSnakeCase(domain) || domain;
+const camel = toCamelCase(normalized) || normalized;
+const pascal = toPascalCase(normalized) || normalized;
 
 const configPath = path.join(process.cwd(), 'src', 'features', camel, 'domain.json');
 const outputDir = path.join(process.cwd(), 'src', 'features', camel, 'entities');
@@ -29,7 +30,7 @@ if (!fs.existsSync(configPath)) {
 
 
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-const tableName = toSnakeCase(config.plural || camel);
+const tableName = toSnakeCase(config.plural || normalized);
 
 function mapType(t) {
   switch (t) {

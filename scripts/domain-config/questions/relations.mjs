@@ -1,6 +1,6 @@
 // Questions for domain relations
 import inquirer from 'inquirer';
-import { toSnakeCase } from '../../../src/utils/stringCase.mjs';
+import { toSnakeCase, toPascalCase } from '../../../src/utils/stringCase.mjs';
 const prompt = inquirer.createPromptModule();
 
 async function askSingleRelation(config, domain, label, relationType) {
@@ -78,9 +78,10 @@ async function askSingleRelation(config, domain, label, relationType) {
     includeRelationTable = res.includeRelationTable;
   }
 
+  const defaultLabel = toPascalCase(domain) || domain;
   return {
-    domain: domain.trim(),
-    label: label.trim() || domain.trim(),
+    domain,
+    label: label.trim() || defaultLabel,
     fieldName: fieldName.trim(),
     fieldType,
     relationType,
@@ -98,11 +99,13 @@ export default async function askRelations(config) {
       name: 'domain',
       message:
         relations.length === 0
-          ? '関連ドメイン名（camelCase、例: cardRarity。空でスキップ）:'
-          : '関連ドメイン名（camelCase。空で終了）:',
+          ? '関連ドメイン名（snake_case、例: card_rarity。空でスキップ）:'
+          : '関連ドメイン名（snake_case。空で終了）:',
     });
 
-    if (!domain.trim()) break;
+    const trimmedDomain = domain.trim();
+    if (!trimmedDomain) break;
+    const normalizedDomain = toSnakeCase(trimmedDomain);
 
     const { relationType } = await prompt({
       type: 'list',
@@ -122,7 +125,7 @@ export default async function askRelations(config) {
       message: 'このリレーションの表示名:',
     });
 
-    const relation = await askSingleRelation(config, domain, label, relationType);
+    const relation = await askSingleRelation(config, normalizedDomain, label, relationType);
     relations.push(relation);
     console.log('\nリレーションを追加しました:', relation, '\n');
   }

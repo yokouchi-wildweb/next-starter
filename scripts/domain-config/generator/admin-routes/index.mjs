@@ -45,8 +45,8 @@ if (!domain) {
   process.exit(1);
 }
 
-const camel = domain.charAt(0).toLowerCase() + domain.slice(1);
-const pascal = domain.charAt(0).toUpperCase() + domain.slice(1);
+const camel = toCamelCase(domain) || domain;
+const pascal = toPascalCase(domain) || domain;
 
 
 const camelPlural = pluralArg ? toCamelCase(pluralArg) : toPlural(camel);
@@ -130,4 +130,3 @@ for (const file of templates) {
   fs.writeFileSync(outputFile, content);
   console.log(`管理画面ルートを生成しました: ${outputFile}`);
 }
-

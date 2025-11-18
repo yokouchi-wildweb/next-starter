@@ -5,6 +5,7 @@ import {
   toPlural,
   toCamelCase,
   toPascalCase,
+  toSnakeCase,
 } from "../../../src/utils/stringCase.mjs";
 
 //
@@ -40,8 +41,9 @@ if (!domain) {
   process.exit(1);
 }
 
-const camel = domain.charAt(0).toLowerCase() + domain.slice(1);
-const pascal = domain.charAt(0).toUpperCase() + domain.slice(1);
+const normalized = toSnakeCase(domain) || domain;
+const camel = toCamelCase(normalized) || normalized;
+const pascal = toPascalCase(normalized) || normalized;
 
 
 const camelPlural = pluralArg ? toCamelCase(pluralArg) : toPlural(camel);

@@ -1,0 +1,35 @@
+{
+  "singular": "aaaa",
+  "plural": "aaaaa",
+  "label": "aaa",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "aaa",
+      "label": "aa",
+      "fieldType": "imageUploader",
+      "formInput": "imageUploader",
+      "required": false,
+      "uploadPath": "aaaaa",
+      "slug": "aaaa"
+    }
+  ],
+  "searchFields": [],
+  "defaultOrderBy": [],
+  "tableFields": [],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "generateFiles": {
+    "entities": false,
+    "components": false,
+    "hooks": false,
+    "clientServices": false,
+    "serverServices": false,
+    "adminRoutes": false,
+    "registry": false
+  }
+}

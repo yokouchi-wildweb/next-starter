@@ -1,6 +1,6 @@
 {
-  "singular": "sampleCategory",
-  "plural": "sampleCategories",
+  "singular": "sample_category",
+  "plural": "sample_categories",
   "label": "サンプルカテゴリ",
   "dbEngine": "Neon",
   "idType": "uuid",

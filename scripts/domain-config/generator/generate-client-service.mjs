@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
+import { toCamelCase, toPascalCase, toSnakeCase } from '../../../src/utils/stringCase.mjs';
 
 //
 // Client service generator
@@ -8,7 +9,7 @@ import path from 'path';
 // Usage:
 //   node scripts/domain-generator/generate-client-service.mjs <domain>
 //
-// <domain> should be the domain name in camelCase or PascalCase.
+// <domain> can be snake_case/camelCase/PascalCase.
 // The script creates src/features/<domain>/services/client/<domain>Client.ts
 // from the template located at src/features/_template/services/client/__domain__Client.ts.
 
@@ -21,8 +22,9 @@ if (!domain) {
   process.exit(1);
 }
 
-const camel = domain.charAt(0).toLowerCase() + domain.slice(1);
-const pascal = domain.charAt(0).toUpperCase() + domain.slice(1);
+const normalized = toSnakeCase(domain) || domain;
+const camel = toCamelCase(normalized) || normalized;
+const pascal = toPascalCase(normalized) || normalized;
 
 const templatePath = path.join(
   process.cwd(),

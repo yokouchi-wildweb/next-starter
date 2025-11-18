@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import updateAdminDataMenu from './updateAdminDataMenu.mjs';
 import updateSchemaRegistry from './updateSchemaRegistry.mjs';
 import updateServiceRegistry from './updateServiceRegistry.mjs';
-import { toCamelCase, toPlural } from '../../../../src/utils/stringCase.mjs';
+import { toCamelCase, toPascalCase, toPlural } from '../../../../src/utils/stringCase.mjs';
 
 const args = process.argv.slice(2);
 const domain = args[0];
@@ -16,8 +16,8 @@ if (!domain) {
   process.exit(1);
 }
 
-const camel = domain.charAt(0).toLowerCase() + domain.slice(1);
-const pascal = domain.charAt(0).toUpperCase() + domain.slice(1);
+const camel = toCamelCase(domain) || domain;
+const pascal = toPascalCase(domain) || domain;
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -43,4 +43,3 @@ if (fs.existsSync(configPath)) {
 updateAdminDataMenu({ rootDir, plural, label });
 updateSchemaRegistry({ rootDir, camel, dbEngine });
 updateServiceRegistry({ rootDir, camel });
-

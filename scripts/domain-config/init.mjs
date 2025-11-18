@@ -9,6 +9,7 @@ import askBaseFields from "./questions/base-fields.mjs";
 import askFields from "./questions/fields.mjs";
 import askViewConfig from "./questions/view-config.mjs";
 import askGenerateFiles from "./questions/generate-files.mjs";
+import { toCamelCase } from "../../src/utils/stringCase.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -29,7 +30,8 @@ export default async function init() {
   Object.assign(config, await askGenerateFiles());
 
   const rootDir = path.resolve(__dirname, "..", "..");
-  const dir = path.join(rootDir, "src", "features", config.singular);
+  const featureDir = toCamelCase(config.singular) || config.singular;
+  const dir = path.join(rootDir, "src", "features", featureDir);
   ensureDir(dir);
   const file = path.join(dir, "domain.json");
   fs.writeFileSync(file, JSON.stringify(config, null, 2));

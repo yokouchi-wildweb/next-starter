@@ -3,7 +3,7 @@ import fs from 'fs';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
-import { toCamelCase, toKebabCase, toPascalCase } from '../../src/utils/stringCase.mjs';
+import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from '../../src/utils/stringCase.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..', '..');
@@ -129,9 +129,10 @@ function removeLinesByHref(filePath, hrefs) {
 }
 
 export default async function removeDomain(domain) {
-  const pascal = toPascalCase(domain);
-  const camel = toCamelCase(domain);
-  const singularKebab = toKebabCase(camel || domain);
+  const normalizedSnake = toSnakeCase(domain) || domain;
+  const pascal = toPascalCase(normalizedSnake);
+  const camel = toCamelCase(normalizedSnake);
+  const singularKebab = toKebabCase(camel || normalizedSnake);
   const featuresBase = path.join(rootDir, 'src', 'features');
   const featureCandidateSet = removeEmpty(new Set(uniqueStrings([domain, camel, pascal, singularKebab])));
   const singularCandidates = createSingularCandidates(camel);
@@ -170,9 +171,9 @@ export default async function removeDomain(domain) {
   const { confirm } = await prompt({
     type: 'input',
     name: 'confirm',
-    message: '削除確認のため同じドメイン名（camelCase）を入力してください:',
+    message: '削除確認のため同じドメイン名（snake_case）を入力してください:',
   });
-  if (normalizeName(confirm) !== normalizeName(camel)) {
+  if (confirm.trim() !== normalizedSnake) {
     console.log('ドメイン名が一致しないため中止しました。');
     return;
   }

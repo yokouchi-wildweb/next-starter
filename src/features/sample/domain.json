@@ -6,7 +6,7 @@
   "idType": "uuid",
   "relations": [
     {
-      "domain": "sampleCategory",
+      "domain": "sample_category",
       "label": "サンプルカテゴリ",
       "fieldName": "sample_category_id",
       "fieldType": "uuid",
