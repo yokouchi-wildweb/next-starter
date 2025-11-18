@@ -8,9 +8,9 @@
 @layer utilities {
   .bookmark-tag {
     --bookmark-tag-notch-size: 0.75rem;
-    --bookmark-tag-padding-inline-start: calc(var(--bookmark-tag-notch-size) + 0.5rem);
+    --bookmark-tag-padding-inline-start: calc(var(--bookmark-tag-notch-size) + 0.6rem);
     position: relative;
-    padding-inline-start: var(--bookmark-tag-padding-inline-start);
+    padding-inline-start: var(--bookmark-tag-padding-inline-start) !important;
     clip-path: polygon(
       0 50%,
       var(--bookmark-tag-notch-size) 0,
