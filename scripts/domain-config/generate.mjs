@@ -88,6 +88,18 @@ export default async function generate(domain) {
   const normalizedDomain = toSnakeCase(config.singular) || toSnakeCase(input) || camel;
   const normalizedPlural = toSnakeCase(config.plural || "") || "";
   const gen = await resolveGenerateTargets(config, configPath);
+
+  const { shouldGenerate } = await prompt({
+    type: "confirm",
+    name: "shouldGenerate",
+    message: "既存の関係ファイルはすべて上書きされます。生成を実行しますか？",
+    default: false,
+  });
+  if (!shouldGenerate) {
+    console.log("ファイル生成をスキップしました。");
+    return;
+  }
+
   const hasEnumFields = (config.fields || []).some(
     (field) => field.fieldType === "enum" && Array.isArray(field.options) && field.options.length > 0,
   );

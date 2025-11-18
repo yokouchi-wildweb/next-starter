@@ -63,16 +63,6 @@ async function main() {
         console.error("--generate にはドメイン名が必要です");
         process.exit(1);
       }
-      const { shouldGenerate } = await prompt({
-        type: "confirm",
-        name: "shouldGenerate",
-        message: "既存の関係ファイルはすべて上書きされます。生成を実行しますか？",
-        default: false,
-      });
-      if (!shouldGenerate) {
-        console.log("ファイル生成をスキップしました。");
-        return;
-      }
       await generate(domain);
       return;
     }
