@@ -67,6 +67,7 @@ CLI からドメインを自動生成した場合も、最終的なマイグレ�
    ```
    - `generate-drizzle-entity.mjs` などのスクリプトが呼び出され、`drizzle.ts` を含む各種ファイルが自動で作成されます。
    - 同時に `updateSchemaRegistry.mjs` が走り、`schemaRegistry.ts` にドメインのエクスポートが追加されます。
+   - 実行時は最初に「domain.json の設定通り / 手動で選択 / すべて生成」から生成モードを選びます。手動モードでは `Enum 定数/型` を含む各カテゴリを再選択でき、必要に応じて `domain.json` に保存し直せます。
 
 3. **マイグレーションを実行**
    - 生成直後の状態でも DB にはテーブルが存在しないため、必ず前述の `npx drizzle-kit generate` → `npx drizzle-kit push` を実行して Neon に反映します。

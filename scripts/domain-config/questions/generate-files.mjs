@@ -12,6 +12,7 @@ export default async function askGenerateFiles() {
       { name: 'フック', value: 'hooks' },
       { name: 'クライアントサービス', value: 'clientServices' },
       { name: 'サーバーサービス', value: 'serverServices' },
+      { name: 'Enum 定数/型', value: 'fieldConstants' },
       { name: '管理画面ルート', value: 'adminRoutes' },
       { name: 'ドメインレジストリに追加', value: 'registry' },
     ],
@@ -23,6 +24,7 @@ export default async function askGenerateFiles() {
     hooks: files.includes('hooks'),
     clientServices: files.includes('clientServices'),
     serverServices: files.includes('serverServices'),
+    fieldConstants: files.includes('fieldConstants'),
     adminRoutes: files.includes('adminRoutes'),
     registry: files.includes('registry'),
   };

@@ -18,6 +18,7 @@ const ALL_GENERATE_OPTIONS = {
   hooks: true,
   clientServices: true,
   serverServices: true,
+  fieldConstants: true,
   adminRoutes: true,
   registry: true,
 };
@@ -100,8 +101,8 @@ export default async function generate(domain) {
     return;
   }
 
-  const hasEnumFields = (config.fields || []).some(
-    (field) => field.fieldType === "enum" && Array.isArray(field.options) && field.options.length > 0,
+  const hasOptionFields = (config.fields || []).some(
+    (field) => Array.isArray(field.options) && field.options.length > 0,
   );
 
   if (gen.components)
@@ -111,13 +112,13 @@ export default async function generate(domain) {
     runGenerator("generate-client-service.mjs", normalizedDomain, normalizedPlural, config.dbEngine);
   if (gen.serverServices)
     runGenerator("generate-server-service.mjs", normalizedDomain, normalizedPlural, config.dbEngine);
+  if (gen.fieldConstants && hasOptionFields)
+    runGenerator(path.join("fields", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
   if (gen.adminRoutes)
     runGenerator(path.join("admin-routes", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
   if (gen.entities)
     runGenerator(path.join("entities", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
   if (gen.registry) runGenerator("registry/index.mjs", normalizedDomain);
-  if (hasEnumFields)
-    runGenerator(path.join("fields", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

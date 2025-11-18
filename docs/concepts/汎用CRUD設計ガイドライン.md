@@ -51,6 +51,8 @@ src/
     <domain>/    
       domain.json         ← ドメイン定義（スクリプトが生成・更新）
       entities/           ← サーバー用スキーマと `z.infer` 型（UI専用のスキーマは含めない）
+      constants/          ← ドメイン共通の定数置き場（選択肢など自動生成物もここ）
+      types/              ← 上記定数やモデルをもとにした型
       services/
         server/           ← サーバーサービス（Drizzle or Firestore ベース）
         client/           ← クライアントサービス（HTTP クライアント）
@@ -132,7 +134,12 @@ registry/
    - 例: JOIN を伴う検索や、関連テーブルの更新、外部ストレージの連携などをラップします。
    - `base.query()` や `base.create()` など共通メソッドを呼びつつ前後に処理を追加すると、既存コードとの一貫性を保てます。
 
-### 6.4 クライアントサービス
+### 6.4 ドメイン定数と型
+- `constants/`: ドメイン全体で共有する定数をまとめます。`domain-config` スクリプトは、選択肢（`options` プロパティ）を持つフィールドが存在する場合に `constants/field.ts` を自動生成し、フォーム用の候補値をここへ出力します。
+- `types/`: `constants/` に定義した配列や値から導出した型、もしくはドメイン専用の補助型を配置します。自動生成対象では `types/field.ts` に `value` / `label` の型が書き出されます。
+- 自動生成は `generateFiles.fieldConstants` オプションで制御できます。スキップした後でも `npx domain-config --generate <Domain>` を再実行し、カテゴリ選択で「Enum 定数/型」を有効にすれば作成可能です（Enum 以外でも `options` を持つフィールドが対象）。
+
+### 6.5 クライアントサービス
 - `services/client/<domain>Client.ts` で `createApiClient` を呼び出し、`ApiClient` 型としてエクスポートします。
 - 作成・更新時に利用する型は `entities/form.ts` で公開される `z.infer` 型をそのまま渡します。
 - 生成したクライアントは下記のメソッドを備えており、REST API を直接意識せずに CRUD 操作を呼び出せます。
@@ -143,11 +150,11 @@ registry/
   - `upsert(data, options)` … 衝突検知フィールドを切り替えながらの作成＋更新。
 - 具体的な利用例と React Hooks との組み合わせは「[自動生成されるドメインのフック使用方法](../how-to/implementation/汎用CRUDのフック使用方法.md)」を参照してください。
 
-### 6.5 React Hooks
+### 6.6 React Hooks
 - `hooks/` ディレクトリに `use<Domain>List`, `use<Domain>`, `useCreate<Domain>` などを配置し、`lib/crud/hooks` の汎用フックにクライアントサービスを渡すだけで利用できます。
 - フックは 1 ファイル 1 機能を維持し、複数のフックを 1 ファイルにまとめない方針です。
 
-### 6.6 レジストリ登録
+### 6.7 レジストリ登録
 - ドメインサービスを `serviceRegistry` に登録すると API から呼び出せます。登録漏れがあると 404 が返るので注意してください。
 
 ---

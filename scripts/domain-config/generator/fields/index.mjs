@@ -24,15 +24,15 @@ if (!fs.existsSync(configPath)) {
 }
 
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-const enumFields = (config.fields || []).filter((field) =>
-  field.fieldType === "enum" && Array.isArray(field.options) && field.options.length > 0,
+const optionFields = (config.fields || []).filter(
+  (field) => Array.isArray(field.options) && field.options.length > 0,
 );
 
-if (!enumFields.length) {
+if (!optionFields.length) {
   process.exit(0);
 }
 
-const fieldMeta = enumFields.map((field) => {
+const fieldMeta = optionFields.map((field) => {
   const pascalField = toPascalCase(field.name) || field.name;
   return {
     name: field.name,
@@ -48,12 +48,12 @@ const fieldMeta = enumFields.map((field) => {
 });
 
 const featureDir = path.join(process.cwd(), "src", "features", camel);
-const constantDir = path.join(featureDir, "constant");
-const typeDir = path.join(featureDir, "type");
+const constantDir = path.join(featureDir, "constants");
+const typeDir = path.join(featureDir, "types");
 const constantPath = path.join(constantDir, "field.ts");
 const typePath = path.join(typeDir, "field.ts");
-const constantRelPath = path.posix.join("src", "features", camel, "constant", "field.ts");
-const typeRelPath = path.posix.join("src", "features", camel, "type", "field.ts");
+const constantRelPath = path.posix.join("src", "features", camel, "constants", "field.ts");
+const typeRelPath = path.posix.join("src", "features", camel, "types", "field.ts");
 
 fs.mkdirSync(constantDir, { recursive: true });
 fs.mkdirSync(typeDir, { recursive: true });
