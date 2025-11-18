@@ -13,11 +13,15 @@ import type { User } from "@/features/user/entities";
 import { useDeleteUser } from "@/features/user/hooks/useDeleteUser";
 import { formatDateJa } from "@/utils/date";
 import type { UserRoleType, UserStatus } from "@/types/user";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 
 type Props = {
   users: User[];
   editBasePath: string;
 };
+
+const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
+const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const USER_ROLE_LABELS: Record<UserRoleType, string> = {
   admin: "管理者",
@@ -31,19 +35,19 @@ const USER_STATUS_LABELS: Record<UserStatus, string> = {
   locked: "ロック中",
 };
 
-const formatDateOrPlaceholder = (date: Date | string | null | undefined, fallback: string) => {
-  const formatted = formatDateJa(date);
-  return formatted || fallback;
+const formatDateCell = (date: Date | string | null | undefined) => {
+  const formatted = formatDateJa(date, { fallback: null });
+  return formatted;
 };
 
 const createColumns = (editBasePath: string): DataTableColumn<User>[] => [
   {
     header: "表示名",
-    render: (user) => user.displayName ?? "未設定",
+    render: (user) => user.displayName ?? adminDataTableFallback,
   },
   {
     header: "メールアドレス",
-    render: (user) => user.email ?? "未設定",
+    render: (user) => user.email ?? adminDataTableFallback,
   },
   {
     header: "権限",
@@ -55,7 +59,7 @@ const createColumns = (editBasePath: string): DataTableColumn<User>[] => [
   },
   {
     header: "最終ログイン",
-    render: (user) => formatDateOrPlaceholder(user.lastAuthenticatedAt, "未ログイン"),
+    render: (user) => formatDateCell(user.lastAuthenticatedAt),
   },
   {
     header: "操作",
@@ -71,5 +75,12 @@ const createColumns = (editBasePath: string): DataTableColumn<User>[] => [
 export default function ManagerialUserListTable({ users, editBasePath }: Props) {
   const columns = useMemo(() => createColumns(editBasePath), [editBasePath]);
 
-  return <DataTable items={users} columns={columns} getKey={(user) => user.id} />;
+  return (
+    <DataTable
+      items={users}
+      columns={columns}
+      getKey={(user) => user.id}
+      emptyValueFallback={adminDataTableFallback}
+    />
+  );
 }

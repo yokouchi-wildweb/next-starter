@@ -9,5 +9,9 @@ export const UI_BEHAVIOR_CONFIG = [
     adminGlobalMenu: {
       submenuHideDelayMs: 639,
     },
+    adminDataTable: {
+      emptyFieldFallback: "(未設定)",
+    },
   },
 ] as const;
+

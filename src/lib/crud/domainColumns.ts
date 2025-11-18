@@ -94,7 +94,7 @@ function renderValue({
 
   if (value instanceof Date || isDatetimeField || isDateField) {
     const format = isDatetimeField ? "YYYY/MM/DD HH:mm" : "YYYY/MM/DD";
-    return formatDateJa(value, { format });
+    return formatDateJa(value, { format, fallback: null });
   }
 
   if (inputType === "numberInput" || inputType === "stepperInput") {

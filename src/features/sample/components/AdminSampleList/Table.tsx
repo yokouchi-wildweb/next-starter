@@ -11,6 +11,7 @@ import config from "../../domain.json";
 import { useState } from "react";
 import SampleDetailModal from "../common/SampleDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 
 export type AdminSampleListTableProps = {
   /**
@@ -19,6 +20,9 @@ export type AdminSampleListTableProps = {
    */
   samples?: Sample[];
 };
+
+const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
+const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
   config,
@@ -46,6 +50,7 @@ export default function AdminSampleListTable({ samples }: AdminSampleListTablePr
         getKey={(d) => d.id}
         rowClassName="cursor-pointer"
         onRowClick={(d) => setSelectedId(String(d.id))}
+        emptyValueFallback={adminDataTableFallback}
       />
       <SampleDetailModal
         sampleId={selectedId}

@@ -11,6 +11,7 @@ import config from "../../domain.json";
 import { useState } from "react";
 import GachaMachineDetailModal from "../common/GachaMachineDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 
 export type AdminGachaMachineListTableProps = {
   /**
@@ -19,6 +20,9 @@ export type AdminGachaMachineListTableProps = {
    */
   gachaMachines?: GachaMachine[];
 };
+
+const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
+const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<GachaMachine>[] = buildDomainColumns<GachaMachine>({
   config,
@@ -46,6 +50,7 @@ export default function AdminGachaMachineListTable({ gachaMachines }: AdminGacha
         getKey={(d) => d.id}
         rowClassName="cursor-pointer"
         onRowClick={(d) => setSelectedId(String(d.id))}
+        emptyValueFallback={adminDataTableFallback}
       />
       <GachaMachineDetailModal
         gachaMachineId={selectedId}

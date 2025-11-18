@@ -11,6 +11,7 @@ import config from "../../domain.json";
 import { useState } from "react";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
 import { buildDomainColumns } from "@/lib/crud";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 
 export type Admin__Domain__ListTableProps = {
   /**
@@ -19,6 +20,9 @@ export type Admin__Domain__ListTableProps = {
    */
   __domains__?: __Domain__[];
 };
+
+const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
+const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
   config,
@@ -46,6 +50,7 @@ export default function Admin__Domain__ListTable({ __domains__ }: Admin__Domain_
         getKey={(d) => d.id}
         rowClassName="cursor-pointer"
         onRowClick={(d) => setSelectedId(String(d.id))}
+        emptyValueFallback={adminDataTableFallback}
       />
       <__Domain__DetailModal
         __domain__Id={selectedId}

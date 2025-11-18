@@ -9,6 +9,7 @@ import DeleteButton from "../../../../components/Fanctional/DeleteButton";
 import { useDelete__Domain__ } from "@/features/__domain__/hooks/useDelete__Domain__";
 import config from "../../domain.json";
 import { buildDomainColumns } from "@/lib/crud";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 
 export type Admin__Domain__ListTableProps = {
   /**
@@ -17,6 +18,9 @@ export type Admin__Domain__ListTableProps = {
    */
   __domains__?: __Domain__[];
 };
+
+const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
+const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
   config,
@@ -36,5 +40,6 @@ export default function Admin__Domain__ListTable({ __domains__ }: Admin__Domain_
     items={__domains__ ?? []}
     columns={columns}
     getKey={(d) => d.id}
+    emptyValueFallback={adminDataTableFallback}
   />;
 }

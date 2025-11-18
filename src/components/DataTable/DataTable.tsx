@@ -28,6 +28,7 @@ export type DataTableProps<T> = {
   getKey?: (item: T, index: number) => React.Key;
   rowClassName?: string;
   onRowClick?: (item: T) => void;
+  emptyValueFallback?: string;
 };
 
 export default function DataTable<T>({
@@ -36,7 +37,18 @@ export default function DataTable<T>({
   getKey = (_, i) => i,
   rowClassName,
   onRowClick,
+  emptyValueFallback,
 }: DataTableProps<T>) {
+  const resolvedFallback = emptyValueFallback ?? "(未設定)";
+  const renderCellContent = (content: React.ReactNode) => {
+    if (content) {
+      return content;
+    }
+    return (
+      <span className="text-muted-foreground text-xs font-medium">{resolvedFallback}</span>
+    );
+  };
+
   return (
     <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
       <Table variant="list">
@@ -55,7 +67,7 @@ export default function DataTable<T>({
               onClick={onRowClick ? () => onRowClick(item) : undefined}
             >
               {columns.map((col, idx) => (
-                <TableCell key={idx}>{col.render(item)}</TableCell>
+                <TableCell key={idx}>{renderCellContent(col.render(item))}</TableCell>
               ))}
             </TableRow>
           ))}

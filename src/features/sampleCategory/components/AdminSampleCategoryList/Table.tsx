@@ -9,6 +9,7 @@ import DeleteButton from "../../../../components/Fanctional/DeleteButton";
 import { useDeleteSampleCategory } from "@/features/sampleCategory/hooks/useDeleteSampleCategory";
 import config from "../../domain.json";
 import { buildDomainColumns } from "@/lib/crud";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 
 export type AdminSampleCategoryListTableProps = {
   /**
@@ -17,6 +18,9 @@ export type AdminSampleCategoryListTableProps = {
    */
   sampleCategories?: SampleCategory[];
 };
+
+const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
+const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
 const columns: DataTableColumn<SampleCategory>[] = buildDomainColumns<SampleCategory>({
   config,
@@ -36,5 +40,6 @@ export default function AdminSampleCategoryListTable({ sampleCategories }: Admin
     items={sampleCategories ?? []}
     columns={columns}
     getKey={(d) => d.id}
+    emptyValueFallback={adminDataTableFallback}
   />;
 }
