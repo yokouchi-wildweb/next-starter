@@ -1,0 +1,364 @@
+.page {
+  padding: 0;
+  background: #f4f4f4;
+  display: flex;
+  justify-content: center;
+}
+
+.canvas {
+  width: 100%;
+  max-width: 1920px;
+  min-height: 1330px;
+  background: #ffffff;
+  box-shadow: 0 50px 100px rgba(15, 15, 15, 0.08);
+  overflow: hidden;
+  position: relative;
+}
+
+.header {
+  height: 130px;
+  padding: 0 80px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  border-bottom: 10px solid #e12639;
+  background: #ffffff;
+  position: relative;
+  z-index: 3;
+}
+
+.logoImage {
+  height: 110px;
+  width: auto;
+  display: block;
+}
+
+.tagline {
+  flex: 1;
+  text-align: center;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: #484b50;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.actionButton {
+  width: 90px;
+  height: 90px;
+  border: none;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.actionButtonGreen {
+  background: linear-gradient(180deg, #44e48f 0%, #25c56d 100%);
+}
+
+.actionButtonRed {
+  background: linear-gradient(180deg, #ff6177 0%, #e12639 100%);
+}
+
+.actionButton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), transparent 60%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.actionIcon {
+  width: 48px;
+  height: auto;
+  display: block;
+}
+
+.actionButton:focus-visible,
+.actionButton:hover {
+  transform: translateY(-4px);
+}
+
+.menuButton {
+  width: 90px;
+  height: 90px;
+  border-radius: 10px;
+  border: 5px solid #484b50;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.menuButton span {
+  width: 50px;
+  height: 5px;
+  border-radius: 999px;
+  background: #484b50;
+  display: block;
+}
+
+.hero {
+  position: relative;
+  height: 900px;
+  overflow: hidden;
+  background: #f8f8f8;
+}
+
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.heroBackdropImage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.heroBackdropImage :global(img) {
+  object-fit: cover;
+  transform: scale(1.02);
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(248, 248, 248, 0.8) 55%, rgba(248, 248, 248, 1) 100%);
+}
+
+.heroMessage {
+  position: absolute;
+  top: 220px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: 0.35em;
+  color: #e12639;
+  padding: 26px 120px;
+  border-radius: 80px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 25px 50px rgba(225, 38, 57, 0.25);
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.9), 0 0 12px rgba(225, 38, 57, 0.45);
+}
+
+.heroSearchBar {
+  position: absolute;
+  top: 440px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 730px;
+  height: 80px;
+  border: 3px solid #484b50;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 0 32px;
+  background: #ffffff;
+  box-shadow: 0 30px 50px rgba(0, 0, 0, 0.15);
+}
+
+.heroSearchBar span {
+  font-size: 28px;
+  color: #000000;
+  font-weight: 500;
+}
+
+.heroSearchBar button {
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #44e48f 0%, #25c56d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 28px rgba(30, 165, 101, 0.5);
+  cursor: pointer;
+}
+
+.heroSearchIcon {
+  width: 34px;
+  height: auto;
+  display: block;
+}
+
+.heroDots {
+  position: absolute;
+  bottom: 240px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 18px;
+}
+
+.heroDot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.heroDotActive {
+  background: #ffffff;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.9);
+}
+
+.heroWave {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1920px;
+  max-width: none;
+  pointer-events: none;
+}
+
+.searchArea {
+  position: relative;
+  margin-top: -80px;
+  padding: 140px 140px 200px;
+  background: #e12639;
+  border-top-left-radius: 120px;
+  border-top-right-radius: 120px;
+  color: #ffffff;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.searchArea::after {
+  content: "";
+  position: absolute;
+  bottom: -40px;
+  left: 0;
+  width: 100%;
+  height: 220px;
+  background-image: radial-gradient(#ffffff 28%, rgba(255, 255, 255, 0) 30%);
+  background-size: 24px 24px;
+  opacity: 0.85;
+}
+
+.searchArea > * {
+  position: relative;
+  z-index: 1;
+}
+
+.searchHeadline p {
+  font-size: 56px;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.08em;
+  margin-bottom: 60px;
+  text-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.cardRow {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.searchCard {
+  width: 740px;
+  background: #ffffff;
+  border: 5px solid #e12639;
+  border-radius: 10px;
+  padding: 42px 48px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 36px;
+}
+
+.cardIcon {
+  width: 49px;
+  height: auto;
+  display: block;
+}
+
+.cardTitle h3 {
+  font-size: 40px;
+  font-weight: 900;
+  color: #e12639;
+}
+
+.cardControls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.cardSelect {
+  flex: 0 0 185px;
+  height: 70px;
+  border: 5px solid #e12639;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: 24px;
+  font-weight: 500;
+  color: #000000;
+  background: #ffffff;
+}
+
+.cardSelect::after {
+  content: "";
+  position: absolute;
+  right: 20px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 14px solid #e12639;
+}
+
+.cardSelect span {
+  padding-right: 26px;
+}
+
+.cardSubmit {
+  flex: 1;
+  min-width: 240px;
+  height: 70px;
+  border: 5px solid #ffffff;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #44e48f 0%, #25c56d 100%);
+  color: #ffffff;
+  font-size: 25px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 15px 30px rgba(20, 137, 87, 0.45);
+}
+
+.cardSubmit small {
+  font-size: 20px;
+  font-weight: 700;
+}
