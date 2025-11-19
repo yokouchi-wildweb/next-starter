@@ -111,6 +111,25 @@ export function RadioGroupInput({
           );
         }
 
+        if (displayType === "standard") {
+          const standardButtonBorderClass = selected ? "border border-primary" : "border border-border";
+
+          return (
+            <Button
+              key={op.value}
+              type="button"
+              variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
+              size={buttonSize}
+              className={standardButtonBorderClass}
+              onClick={() => field.onChange(op.value)}
+              role="radio"
+              aria-checked={selected}
+            >
+              {op.label}
+            </Button>
+          );
+        }
+
         return (
           <Button
             key={op.value}

@@ -56,6 +56,7 @@ type DemoFormValues = {
   time: string;
   datetime: string;
   radio: string;
+  radioStandard: string;
   checkGroupRounded: string[];
   checkGroupStandard: string[];
   checkGroupBookmark: string[];
@@ -76,6 +77,7 @@ const defaultValues: DemoFormValues = {
   time: "",
   datetime: "",
   radio: textOptions[0]?.value ?? "",
+  radioStandard: textOptions[0]?.value ?? "",
   checkGroupRounded: [fruitOptions[0]?.value ?? ""],
   checkGroupStandard: [fruitOptions[0]?.value ?? ""],
   checkGroupBookmark: [fruitOptions[0]?.value ?? ""],
@@ -254,6 +256,19 @@ export default function FormComponentsDemoPage() {
                     label="RadioGroupInput"
                     renderInput={(field) => (
                         <RadioGroupInput field={field} options={textOptions} className="space-y-2" />
+                    )}
+                />
+
+                <FormFieldItem
+                    control={form.control}
+                    name="radioStandard"
+                    label="RadioGroupInput（Standard Button）"
+                    renderInput={(field) => (
+                        <RadioGroupInput
+                            field={field}
+                            options={textOptions}
+                            displayType="standard"
+                        />
                     )}
                 />
 

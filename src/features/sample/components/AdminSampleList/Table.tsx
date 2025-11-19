@@ -3,7 +3,7 @@
 "use client";
 
 import type { Sample } from "../../entities";
-import DataTable, { AdminListActionCell, DataTableColumn } from "@/components/DataTable";
+import DataTable, { TableCellAction, DataTableColumn } from "@/components/DataTable";
 import EditButton from "../../../../components/Fanctional/EditButton";
 import DeleteButton from "../../../../components/Fanctional/DeleteButton";
 import { useDeleteSample } from "@/features/sample/hooks/useDeleteSample";
@@ -29,12 +29,12 @@ const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
   actionColumn: {
     header: "操作",
     render: (d: Sample) => (
-      <AdminListActionCell>
+      <TableCellAction>
         <EditButton href={`/admin/samples/${d.id}/edit`} stopPropagation />
         <span onClick={(e) => e.stopPropagation()}>
           <DeleteButton id={d.id} useDelete={useDeleteSample} title="サンプル削除" />
         </span>
-      </AdminListActionCell>
+      </TableCellAction>
     ),
   },
 });

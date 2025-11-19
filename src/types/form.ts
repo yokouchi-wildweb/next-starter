@@ -1,11 +1,11 @@
 // src/types/form.ts
 
 import { FieldValues, ControllerRenderProps, Path, FieldPath } from "react-hook-form";
-import { ComponentProps, InputHTMLAttributes } from "react";
+import { ComponentProps, InputHTMLAttributes, type ReactNode } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/Shadcn/radio-group";
 
 export type Options = {
-  label: string;
+  label: ReactNode;
   value: string;
 };
 

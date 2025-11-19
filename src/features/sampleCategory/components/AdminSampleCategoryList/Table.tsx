@@ -3,7 +3,7 @@
 "use client";
 
 import type { SampleCategory } from "../../entities";
-import DataTable, { AdminListActionCell, DataTableColumn } from "@/components/DataTable";
+import DataTable, { TableCellAction, DataTableColumn } from "@/components/DataTable";
 import EditButton from "../../../../components/Fanctional/EditButton";
 import DeleteButton from "../../../../components/Fanctional/DeleteButton";
 import { useDeleteSampleCategory } from "@/features/sampleCategory/hooks/useDeleteSampleCategory";
@@ -27,10 +27,10 @@ const columns: DataTableColumn<SampleCategory>[] = buildDomainColumns<SampleCate
   actionColumn: {
     header: "操作",
     render: (d: SampleCategory) => (
-      <AdminListActionCell>
+      <TableCellAction>
         <EditButton href={`/admin/sample-categories/${d.id}/edit`} />
         <DeleteButton id={d.id} useDelete={useDeleteSampleCategory} title="サンプルカテゴリ削除" />
-      </AdminListActionCell>
+      </TableCellAction>
     ),
   },
 });

@@ -3,7 +3,7 @@
 "use client";
 
 import type { __Domain__ } from "../../entities";
-import DataTable, { AdminListActionCell, DataTableColumn } from "@/components/DataTable";
+import DataTable, { TableCellAction, DataTableColumn } from "@/components/DataTable";
 import EditButton from "../../../../components/Fanctional/EditButton";
 import DeleteButton from "../../../../components/Fanctional/DeleteButton";
 import { useDelete__Domain__ } from "@/features/__domain__/hooks/useDelete__Domain__";
@@ -29,12 +29,12 @@ const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
   actionColumn: {
     header: "操作",
     render: (d: __Domain__) => (
-      <AdminListActionCell>
+      <TableCellAction>
         <EditButton href={`/admin/__domainsSlug__/${d.id}/edit`} stopPropagation />
         <span onClick={(e) => e.stopPropagation()}>
           <DeleteButton id={d.id} useDelete={useDelete__Domain__} title="__DomainLabel__削除" />
         </span>
-      </AdminListActionCell>
+      </TableCellAction>
     ),
   },
 });

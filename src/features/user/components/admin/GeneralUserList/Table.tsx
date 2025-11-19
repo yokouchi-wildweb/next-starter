@@ -4,7 +4,7 @@
 
 import { useMemo } from "react";
 import DataTable, {
-  AdminListActionCell,
+  TableCellAction,
   type DataTableColumn,
 } from "@/components/DataTable";
 import DeleteButton from "@/components/Fanctional/DeleteButton";
@@ -59,10 +59,10 @@ const createColumns = (editBasePath: string): DataTableColumn<User>[] => [
   {
     header: "操作",
     render: (user) => (
-      <AdminListActionCell>
+      <TableCellAction>
         <EditButton href={`${editBasePath}/${user.id}/edit`} />
         <DeleteButton id={user.id} useDelete={useDeleteUser} title="ユーザー削除" />
-      </AdminListActionCell>
+      </TableCellAction>
     ),
   },
 ];

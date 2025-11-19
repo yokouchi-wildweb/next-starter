@@ -143,7 +143,7 @@ export const FileInput = <
                   type="button"
                   variant="destructive"
                   size="icon"
-                  className="absolute right-2 top-2"
+                  className="absolute right-2 top-2 z-10"
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
