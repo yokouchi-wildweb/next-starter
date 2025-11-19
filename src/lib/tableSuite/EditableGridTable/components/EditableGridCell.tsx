@@ -46,6 +46,7 @@ export function EditableGridCell<T>({
   const [isEditing, setIsEditing] = React.useState(false);
   const [isActive, setIsActive] = React.useState(false);
   const cellRef = React.useRef<HTMLTableCellElement | null>(null);
+  const [selectOpen, setSelectOpen] = React.useState(false);
 
   const inputValue = draftValue ?? baseValue ?? "";
 
@@ -78,6 +79,7 @@ export function EditableGridCell<T>({
       setError(null);
       setDraftValue(null);
       setIsEditing(false);
+      setSelectOpen(false);
       onValidChange?.(normalized);
     },
     [column, inputValue, onValidChange, row],
@@ -87,6 +89,7 @@ export function EditableGridCell<T>({
     setDraftValue(null);
     setError(null);
     setIsEditing(false);
+    setSelectOpen(false);
   };
 
   const sharedInputProps = {
@@ -121,16 +124,22 @@ export function EditableGridCell<T>({
       case "number":
         return <Input type="number" inputMode="decimal" {...sharedInputProps} />;
       case "select":
-        const EMPTY_VALUE = "__EMPTY__";
-        const selectValue = inputValue === "" ? EMPTY_VALUE : inputValue;
+        const selectValue = inputValue === "" ? undefined : inputValue;
 
         return (
           <Select
+            open={selectOpen}
+            onOpenChange={(open) => {
+              if (!isEditing) {
+                setSelectOpen(false);
+                return;
+              }
+              setSelectOpen(open);
+            }}
             value={selectValue}
             onValueChange={(value) => {
-              const resolvedValue = value === EMPTY_VALUE ? "" : value;
-              setDraftValue(resolvedValue);
-              handleCommit(resolvedValue);
+              setDraftValue(value);
+              handleCommit(value);
             }}
           >
             <SelectTrigger
@@ -142,9 +151,6 @@ export function EditableGridCell<T>({
               <SelectValue placeholder={fallbackPlaceholder} />
             </SelectTrigger>
             <SelectContent {...{ [POPUP_ATTR]: cellKey }}>
-              <SelectItem value={EMPTY_VALUE}>
-                {column.placeholder ?? fallbackPlaceholder}
-              </SelectItem>
               {(column.options ?? []).map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -205,6 +211,9 @@ export function EditableGridCell<T>({
   const handleDoubleClick = () => {
     setIsActive(true);
     setIsEditing(true);
+    if (column.editorType === "select") {
+      setSelectOpen(true);
+    }
   };
 
   React.useEffect(() => {
@@ -222,6 +231,7 @@ export function EditableGridCell<T>({
         }
         setIsActive(false);
         setIsEditing(false);
+        setSelectOpen(false);
       }
     };
 
