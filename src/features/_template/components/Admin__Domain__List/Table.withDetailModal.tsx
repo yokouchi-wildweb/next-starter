@@ -3,7 +3,7 @@
 "use client";
 
 import type { __Domain__ } from "../../entities";
-import DataTable, { TableCellAction, DataTableColumn } from "@/components/DataTable";
+import DataTable, { TableCellAction, type DataTableColumn } from "@/components/Tables/DataTable";
 import EditButton from "../../../../components/Fanctional/EditButton";
 import DeleteButton from "../../../../components/Fanctional/DeleteButton";
 import { useDelete__Domain__ } from "@/features/__domain__/hooks/useDelete__Domain__";

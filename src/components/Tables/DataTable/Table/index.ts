@@ -1,4 +1,4 @@
-// src/components/DataTable/Table/index.ts
+// src/components/Tables/DataTable/Table/index.ts
 
 export * from "./Table";
 export * from "./TableHeader";

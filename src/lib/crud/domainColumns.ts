@@ -1,5 +1,5 @@
 import React from "react";
-import type { DataTableColumn } from "@/components/DataTable";
+import type { DataTableColumn } from "@/components/Tables/DataTable";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";
 

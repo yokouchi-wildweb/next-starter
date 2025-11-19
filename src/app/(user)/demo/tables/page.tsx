@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 
-import { RecordSelectionTable, type DataTableColumn, type RecordSelectionTableProps } from "@/components/DataTable";
+import type { DataTableColumn } from "@/components/Tables/DataTable";
+import RecordSelectionTable, {
+  type RecordSelectionTableProps,
+} from "@/components/Tables/RecordSelectionTable";
 import { Button } from "@/components/Form/Button/Button";
 import { RadioGroupInput } from "@/components/Form/Manual/RadioGroupInput";
 import { Block } from "@/components/Layout/Block";
