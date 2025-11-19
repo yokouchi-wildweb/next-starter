@@ -23,10 +23,11 @@ export default function EditableGridTable<T>({
   className,
   onCellChange,
   emptyValueFallback = "(未設定)",
+  tableLayout = "auto",
 }: EditableGridTableProps<T>) {
   return (
     <div className={cn("overflow-x-auto overflow-y-auto max-h-[70vh]", className)}>
-      <Table variant="list">
+      <Table variant="list" tableLayout={tableLayout}>
         <TableHeader>
           <TableRow>
             {columns.map((column) => (

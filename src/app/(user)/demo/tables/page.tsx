@@ -388,6 +388,7 @@ export default function TablesDemoPage() {
               getKey={(row) => row.id}
               onCellChange={handleEditableCellChange}
               emptyValueFallback="-"
+              tableLayout="fixed"
             />
             {(isSampleLoading || isPending) && (
               <Para size="xs" tone="muted">

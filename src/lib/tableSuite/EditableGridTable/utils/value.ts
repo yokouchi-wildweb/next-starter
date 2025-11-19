@@ -34,18 +34,9 @@ const formatByType = (type: EditableGridEditorType, value: unknown) => {
     return String(value);
   }
 
-  if (type === "date") {
-    const formatted = formatDateValue(value, "YYYY-MM-DD");
-    return formatted ?? "";
-  }
-
-  if (type === "time") {
-    const formatted = formatDateValue(value, "HH:mm");
-    return formatted ?? "";
-  }
-
-  if (type === "datetime") {
-    const formatted = formatDateValue(value, "YYYY-MM-DDTHH:mm");
+  if (type === "date" || type === "time" || type === "datetime") {
+    const format = type === "date" ? "YYYY/MM/DD" : type === "time" ? "HH:mm" : "YYYY/MM/DD HH:mm";
+    const formatted = formatDateValue(value, format);
     return formatted ?? "";
   }
 

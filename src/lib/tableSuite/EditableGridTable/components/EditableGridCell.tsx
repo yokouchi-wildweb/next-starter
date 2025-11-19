@@ -25,7 +25,11 @@ type EditableGridCellProps<T> = {
 };
 
 const inputBaseClassName =
-  "h-full w-full rounded-none border-0 bg-transparent px-2.5 py-1 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0";
+  "h-9 w-full rounded-none border-0 bg-transparent px-2.5 py-1 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 truncate";
+const displayBaseClassName =
+  "h-9 w-full px-2.5 py-1 text-sm flex items-center text-foreground truncate";
+
+const POPUP_ATTR = "data-editable-grid-popup";
 
 export function EditableGridCell<T>({
   row,
@@ -34,10 +38,14 @@ export function EditableGridCell<T>({
   fallbackPlaceholder,
   onValidChange,
 }: EditableGridCellProps<T>) {
-  const baseValue = React.useMemo(() => formatCellValue(row, column), [row, column]);
+  const rawValue = React.useMemo(() => readCellValue(row, column), [column, row]);
+  const baseValue = React.useMemo(() => formatCellValue(row, column), [column, row]);
   const [draftValue, setDraftValue] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [isActive, setIsActive] = React.useState(false);
+  const cellRef = React.useRef<HTMLTableCellElement | null>(null);
 
   const inputValue = draftValue ?? baseValue ?? "";
 
@@ -47,24 +55,38 @@ export function EditableGridCell<T>({
     }
   }, [baseValue, draftValue]);
 
-  const handleCommit = (next?: string) => {
-    const pendingValue = next ?? inputValue;
-    const normalized = parseCellValue(pendingValue, row, column);
-    const errorMessage = column.validator ? column.validator(normalized, row) : null;
-
-    if (errorMessage) {
-      setError(errorMessage);
-      return;
+  React.useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select?.();
     }
+  }, [isEditing]);
 
-    setError(null);
-    setDraftValue(null);
-    onValidChange?.(normalized);
-  };
+  const cellKey = `${String(rowKey)}-${column.field}`;
+
+  const handleCommit = React.useCallback(
+    (next?: string) => {
+      const pendingValue = next ?? inputValue;
+      const normalized = parseCellValue(pendingValue, row, column);
+      const errorMessage = column.validator ? column.validator(normalized, row) : null;
+
+      if (errorMessage) {
+        setError(errorMessage);
+        return;
+      }
+
+      setError(null);
+      setDraftValue(null);
+      setIsEditing(false);
+      onValidChange?.(normalized);
+    },
+    [column, inputValue, onValidChange, row],
+  );
 
   const handleCancel = () => {
     setDraftValue(null);
     setError(null);
+    setIsEditing(false);
   };
 
   const sharedInputProps = {
@@ -119,7 +141,7 @@ export function EditableGridCell<T>({
             >
               <SelectValue placeholder={fallbackPlaceholder} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent {...{ [POPUP_ATTR]: cellKey }}>
               <SelectItem value={EMPTY_VALUE}>
                 {column.placeholder ?? fallbackPlaceholder}
               </SelectItem>
@@ -162,19 +184,76 @@ export function EditableGridCell<T>({
     }
   };
 
-  const cellKey = `${String(rowKey)}-${column.field}`;
   const hasError = Boolean(error);
+  const displayValue = React.useMemo(() => {
+    if (column.renderDisplay) {
+      return column.renderDisplay(rawValue, row);
+    }
+    if (column.editorType === "select" && column.options) {
+      const option = column.options.find((op) => op.value === String(rawValue));
+      if (option) {
+        return option.label;
+      }
+    }
+    return baseValue || fallbackPlaceholder;
+  }, [baseValue, column, fallbackPlaceholder, rawValue, row]);
+
+  const handleSingleClick = () => {
+    setIsActive(true);
+  };
+
+  const handleDoubleClick = () => {
+    setIsActive(true);
+    setIsEditing(true);
+  };
+
+  React.useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!cellRef.current) {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(`[${POPUP_ATTR}="${cellKey}"]`)) {
+        return;
+      }
+      if (!cellRef.current.contains(target as Node)) {
+        if (isEditing) {
+          handleCommit();
+        }
+        setIsActive(false);
+        setIsEditing(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [handleCommit, isEditing]);
+
   return (
     <TableCell
       key={cellKey}
       className={cn(
-        "relative p-0 text-sm cursor-default border border-border/70",
+        "relative p-0 text-sm cursor-default border border-border/70 rounded",
         hasError && "bg-destructive/10 ring-1 ring-inset ring-destructive/50",
       )}
       style={column.width ? { width: column.width } : undefined}
+      onClick={handleSingleClick}
+      onDoubleClick={handleDoubleClick}
+      ref={cellRef}
     >
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 z-10 rounded border-2 border-transparent",
+          isActive && !isEditing && "border-primary/70",
+          isEditing && "border-accent",
+        )}
+      />
       <div className={cn("group relative flex h-full items-center")}>
-        {renderEditor()}
+        {isEditing ? (
+          renderEditor()
+        ) : (
+          <div className={displayBaseClassName}>{displayValue}</div>
+        )}
         {hasError ? <CellErrorIndicator message={error ?? ""} /> : null}
       </div>
     </TableCell>

@@ -15,6 +15,7 @@ export type EditableGridColumn<T> = {
   formatValue?: (value: unknown, row: T) => string;
   parseValue?: (value: string, row: T) => unknown;
   validator?: (value: unknown, row: T) => string | null;
+  renderDisplay?: (value: unknown, row: T) => React.ReactNode;
 };
 
 export type EditableGridCellChangeEvent<T> = {
@@ -31,4 +32,5 @@ export type EditableGridTableProps<T> = {
   className?: string;
   onCellChange?: (event: EditableGridCellChangeEvent<T>) => void;
   emptyValueFallback?: string;
+  tableLayout?: "auto" | "fixed";
 };

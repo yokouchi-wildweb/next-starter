@@ -11,12 +11,19 @@ import type { VariantProps } from "class-variance-authority";
 export function Table({
   variant = "default",
   className,
+  tableLayout,
   ...props
-}: React.ComponentProps<"table"> & VariantProps<typeof tableVariants>) {
+}: React.ComponentProps<"table"> &
+  VariantProps<typeof tableVariants> & { tableLayout?: "auto" | "fixed" }) {
   return (
     <TableContext.Provider value={{ variant }}>
       <div data-slot="table-container" className="relative w-full overflow-x-auto">
-        <BaseTable data-slot="table" className={cn(tableVariants({ variant, className }))} {...props} />
+        <BaseTable
+          data-slot="table"
+          className={cn(tableVariants({ variant, className }), tableLayout && "w-full")}
+          style={tableLayout ? { tableLayout } : undefined}
+          {...props}
+        />
       </div>
     </TableContext.Provider>
   );
