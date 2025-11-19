@@ -11,9 +11,7 @@ export function CellErrorIndicator({ message }: CellErrorIndicatorProps) {
     <div className="pointer-events-none absolute inset-0" aria-live="assertive">
       <AlertCircle
         className="absolute right-1 top-1 size-4 text-destructive"
-        aria-label="入力エラー"
-        title={message}
-        focusable={false}
+        aria-label={`入力エラー: ${message}`}
       />
       <span
         className={cn(

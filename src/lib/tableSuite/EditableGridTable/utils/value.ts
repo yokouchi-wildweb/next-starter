@@ -1,6 +1,6 @@
 "use client";
 
-import dayjs from "dayjs";
+import dayjs, { isDayjs } from "dayjs";
 
 import type { EditableGridColumn, EditableGridEditorType } from "../types";
 
@@ -65,6 +65,14 @@ const parseByType = (type: EditableGridEditorType, value: string) => {
 
 const formatDateValue = (value: unknown, format: string) => {
   if (value == null) {
+    return null;
+  }
+  if (
+    typeof value !== "string" &&
+    typeof value !== "number" &&
+    !(value instanceof Date) &&
+    !isDayjs(value)
+  ) {
     return null;
   }
   const date = dayjs(value);

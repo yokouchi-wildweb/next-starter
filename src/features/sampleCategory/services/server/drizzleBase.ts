@@ -2,9 +2,10 @@
 
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
-import { createCrudService } from "@/lib/crud/drizzle";
+import { createCrudService, type DefaultInsert } from "@/lib/crud/drizzle";
+import type { CreateCrudServiceOptions } from "@/lib/crud/types";
 
-const baseOptions = {
+const baseOptions: CreateCrudServiceOptions<DefaultInsert<typeof SampleCategoryTable>> = {
   idType: "uuid",
   useCreatedAt: true,
   useUpdatedAt: true,
@@ -12,12 +13,7 @@ const baseOptions = {
     "name",
     "description"
   ],
-  defaultOrderBy: [
-    [
-      "updatedAt",
-      "DESC"
-    ]
-  ]
+  defaultOrderBy: [["updatedAt", "DESC" as const]],
 };
 
 export const base = createCrudService(SampleCategoryTable, {

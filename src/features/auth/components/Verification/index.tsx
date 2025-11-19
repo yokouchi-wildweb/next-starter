@@ -39,10 +39,9 @@ export function Verification() {
 
   return (
     <Section id="registration-email-verification" className="relative">
-      {phase === "initial" && <LoadingOverlay
-        mode="fullscreen"
-        message="認証情報を読み込み中"}
-      />}
+      {phase === "initial" && (
+        <LoadingOverlay mode="fullscreen" message="認証情報を読み込み中" />
+      )}
       {phase === "invalidProcess" && <InvalidProcessState />}
       {phase === "emailInput" && <EmailInputState onSubmit={handleEmailSubmit} />}
       {phase === "verifying" && <VerifyingState />}

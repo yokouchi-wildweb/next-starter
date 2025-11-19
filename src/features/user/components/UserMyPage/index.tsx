@@ -43,7 +43,7 @@ function formatLastAuthenticatedAt(date: User["lastAuthenticatedAt"]): string {
   return formatDateJa(date, {
     format: "YYYY/MM/DD HH:mm",
     fallback: "未認証",
-  });
+  }) ?? "未認証";
 }
 
 export default function UserMyPage({ user }: UserMyPageProps) {

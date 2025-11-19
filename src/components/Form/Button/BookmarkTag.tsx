@@ -26,7 +26,7 @@ const BookmarkTag = React.forwardRef<HTMLButtonElement, BookmarkTagProps>(
       selected = false,
       className,
       variant = "ghost",
-      size = "default",
+      size = "md",
       type = "button",
       ...props
     },

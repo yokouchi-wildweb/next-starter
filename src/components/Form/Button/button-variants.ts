@@ -24,19 +24,27 @@ export const buttonVariants = cva("", {
       mutedIcon: "text-muted-foreground hover:text-foreground",
     },
     size: {
-      // 標準サイズ。
-      default: "h-9 px-4 py-2 has-[>svg]:px-3",
+      // 最小のテキストボタン用サイズ。
+      xs: "h-7 rounded-md gap-1 px-2.5 has-[>svg]:px-2",
       // 少し小さめのコンパクトサイズ。
       sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+      // 標準的に使うミディアムサイズ。
+      md: "h-9 px-4 py-2 has-[>svg]:px-3",
       // 余裕を持たせた大きめサイズ。
       lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
+      // さらに強調する幅広ボタン。
+      xl: "h-11 rounded-md px-8 has-[>svg]:px-5",
+      // ヒーローアクションなどで使う特大サイズ。
+      xxl: "h-12 rounded-md px-10 has-[>svg]:px-6",
+      // 極端に広い横幅を確保したい時の最大サイズ。
+      xxxl: "h-14 rounded-md px-12 has-[>svg]:px-8",
       // アイコンのみで使う正方形サイズ。
       icon: "size-9",
     },
   },
   defaultVariants: {
     variant: "default",
-    size: "default",
+    size: "md",
   },
 });
 
