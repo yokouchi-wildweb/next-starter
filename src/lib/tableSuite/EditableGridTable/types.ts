@@ -25,6 +25,11 @@ export type EditableGridCellChangeEvent<T> = {
   row: T;
 };
 
+export type EditableGridOrderRule<T> = {
+  field: EditableGridColumn<T>["field"];
+  direction?: "asc" | "desc";
+};
+
 export type EditableGridTableProps<T> = {
   rows: T[];
   columns: EditableGridColumn<T>[];
@@ -33,4 +38,12 @@ export type EditableGridTableProps<T> = {
   onCellChange?: (event: EditableGridCellChangeEvent<T>) => void;
   emptyValueFallback?: string;
   tableLayout?: "auto" | "fixed";
+  /**
+   * true の場合、order で指定された条件に基づいて rows を並び替えて表示する。
+   */
+  autoSort?: boolean;
+  /**
+   * autoSort 時に適用する並び替え条件。配列の先頭ほど優先順位が高い。
+   */
+  order?: EditableGridOrderRule<T>[];
 };

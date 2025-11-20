@@ -387,6 +387,11 @@ export default function TablesDemoPage() {
               columns={editableColumns}
               getKey={(row) => row.id}
               onCellChange={handleEditableCellChange}
+              autoSort
+              order={[
+                { field: "number", direction: "desc" },
+                { field: "id", direction: "asc" },
+              ]}
               emptyValueFallback="-"
               tableLayout="fixed"
             />
