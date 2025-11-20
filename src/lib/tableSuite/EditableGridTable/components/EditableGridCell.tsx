@@ -289,14 +289,20 @@ export function EditableGridCell<T>({
           !isReadOnly && isEditing && "border-accent",
         )}
       />
-      <div className={cn("group relative flex h-full items-center")}>
+      <div
+        className={cn(
+          "group relative flex h-full items-center",
+          isSwitchEditor && "justify-center",
+        )}
+      >
         {shouldRenderEditor && !isReadOnly ? (
           renderEditor()
         ) : (
           <div
             className={cn(
               displayBaseClassName,
-              isReadOnly && "bg-muted/50 text-muted-foreground"
+              isReadOnly && "bg-muted/50 text-muted-foreground",
+              isSwitchEditor && "justify-center",
             )}
           >
             {displayValue}
