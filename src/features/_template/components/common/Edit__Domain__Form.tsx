@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
 import type { __Domain__UpdateFields } from "@/features/__domain__/entities/form";
 import type { __Domain__ } from "@/features/__domain__/entities";
-import { useUpdate__Domain__ } from "@/features/_template/hooks/useUpdate__Domain__";
+import { useUpdate__Domain__ } from "@/features/__domain__/hooks/useUpdate__Domain__";
 import { __Domain__Form } from "./__Domain__Form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

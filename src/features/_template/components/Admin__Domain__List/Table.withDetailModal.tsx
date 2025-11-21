@@ -2,12 +2,12 @@
 
 "use client";
 
-import type { __Domain__ } from "@/features/_template/entities";
+import type { __Domain__ } from "@/features/__domain__/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import EditButton from "@/components/Fanctional/EditButton";
 import DeleteButton from "@/components/Fanctional/DeleteButton";
 import { useDelete__Domain__ } from "@/features/__domain__/hooks/useDelete__Domain__";
-import config from "@/features/_template/domain.json";
+import config from "@/features/__domain__/domain.json";
 import { useState } from "react";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
 import { buildDomainColumns } from "@/lib/crud";
