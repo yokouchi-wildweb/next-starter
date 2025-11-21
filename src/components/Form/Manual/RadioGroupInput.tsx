@@ -8,11 +8,11 @@ import { RoundedButton } from "@/components/Form/Button/RoundedButton";
 import { Label } from "@/components/Form/Label";
 import { RadioGroup, RadioGroupItem } from "@/components/_shadcn/radio-group";
 import { cn } from "@/lib/cn";
-import { Options } from "@/types/form";
+import { type Options } from "@/types/form";
 
 export type RadioGroupDisplayType = "radio" | "standard" | "bookmark" | "rounded";
 
-type OptionPrimitive = Options[number]["value"];
+type OptionPrimitive = Options["value"];
 
 type Props = {
   field: {
@@ -98,10 +98,12 @@ export function RadioGroupInput({
 
         const handleSelect = () => field.onChange(op.value);
 
+        const key = optionSerialized || String(op.label ?? op.value);
+
         if (displayType === "bookmark") {
           return (
             <BookmarkTag
-              key={op.value}
+              key={key}
               type="button"
               selected={selected}
               variant={buttonVariant}
@@ -118,7 +120,7 @@ export function RadioGroupInput({
         if (displayType === "rounded") {
           return (
             <RoundedButton
-              key={op.value}
+              key={key}
               type="button"
               selected={selected}
               variant={buttonVariant}
@@ -137,7 +139,7 @@ export function RadioGroupInput({
 
           return (
             <Button
-              key={op.value}
+              key={key}
               type="button"
               variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
               size={buttonSize}
@@ -153,7 +155,7 @@ export function RadioGroupInput({
 
         return (
           <Button
-            key={op.value}
+            key={key}
             type="button"
             variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
             size={buttonSize}

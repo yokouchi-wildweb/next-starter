@@ -264,7 +264,7 @@ function generateFieldsFromConfig(config) {
   }
 
   if (needOptionsType) {
-    addImport('import type { Options } from "@/components/Form/types";');
+    addImport('import type { Options } from "@/types/form";');
   }
 
   const importLines = Array.from(imports).join("\n");

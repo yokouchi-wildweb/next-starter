@@ -2,7 +2,7 @@
 
 import { useId, type HTMLAttributes } from "react";
 
-import { Options } from "@/types/form";
+import { type Options } from "@/types/form";
 import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { BookmarkTag } from "@/components/Form/Button/BookmarkTag";
 import { RoundedButton } from "@/components/Form/Button/RoundedButton";
@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/_shadcn/checkbox";
 
 export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "checkbox";
 
-type OptionPrimitive = Options[number]["value"];
+type OptionPrimitive = Options["value"];
 
 type Props = {
   field: {

@@ -10,6 +10,7 @@ import EditableGridTable, {
 import RecordSelectionTable, {
   type RecordSelectionTableProps,
 } from "@/lib/tableSuite/RecordSelectionTable";
+import type { OptionValue } from "@/types/form";
 import { Button } from "@/components/Form/Button/Button";
 import { RadioGroupInput } from "@/components/Form/Manual/RadioGroupInput";
 import { Block } from "@/components/Layout/Block";
@@ -249,9 +250,12 @@ export default function TablesDemoPage() {
     selectedRows.length === 0
       ? "まだレコードが選択されていません"
       : `${selectedRows.length} 件を選択中 (${selectedRows.map((row) => row.name).join(" / ")})`;
-  const selectionBehaviorField = {
+  const selectionBehaviorField: {
+    value: OptionValue;
+    onChange: (value: OptionValue) => void;
+  } = {
     value: selectionBehavior,
-    onChange: (value: string) => setSelectionBehavior(value as SelectionBehavior),
+    onChange: (value) => setSelectionBehavior(value as SelectionBehavior),
   };
   const selectionBehaviorRadioOptions = selectionBehaviorOptions.map((option) => ({
     label: option.label,

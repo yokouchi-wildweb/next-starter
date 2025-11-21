@@ -167,11 +167,19 @@ export function EditableGridCell<T>({
               <SelectValue placeholder={fallbackPlaceholder} />
             </SelectTrigger>
             <SelectContent {...{ [POPUP_ATTR]: cellKey }}>
-              {(column.options ?? []).map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
+              {(column.options ?? []).map((option, index) => {
+                const key = option.value === null || option.value === undefined
+                  ? `option-${index}`
+                  : String(option.value);
+                const serializedValue = option.value === null || option.value === undefined
+                  ? ""
+                  : String(option.value);
+                return (
+                  <SelectItem key={key} value={serializedValue}>
+                    {option.label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         );

@@ -11,7 +11,7 @@ import { SwitchInput } from "@/components/Form/Controlled";
 import { BooleanRadioGroupInput } from "@/components/Form/Manual";
 import { FileUrlInput } from "@/components/Form/Controlled";
 import { Textarea } from "@/components/Form/Controlled";
-import type { Options } from "@/components/Form/types";
+import type { Options } from "@/types/form";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;

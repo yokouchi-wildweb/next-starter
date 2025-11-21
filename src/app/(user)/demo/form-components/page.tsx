@@ -34,7 +34,7 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
-import type { Options } from "@/types/form";
+import type { Options, OptionValue } from "@/types/form";
 
 const textOptions: Options[] = [
   { label: "オプション A", value: "A" },
@@ -55,13 +55,13 @@ type DemoFormValues = {
   date: string;
   time: string;
   datetime: string;
-  radio: string;
-  radioStandard: string;
-  checkGroupRounded: string[];
-  checkGroupStandard: string[];
-  checkGroupBookmark: string[];
-  checkGroupCheckbox: string[];
-  select: string;
+  radio: OptionValue;
+  radioStandard: OptionValue;
+  checkGroupRounded: OptionValue[];
+  checkGroupStandard: OptionValue[];
+  checkGroupBookmark: OptionValue[];
+  checkGroupCheckbox: OptionValue[];
+  select: OptionValue;
   number: number | "";
   switch: boolean;
   booleanCheckbox: boolean;

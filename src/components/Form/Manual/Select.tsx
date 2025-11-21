@@ -7,9 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/_shadcn/select";
-import { Options } from "@/types/form";
+import { type Options } from "@/types/form";
 
-type OptionPrimitive = Options[number]["value"];
+type OptionPrimitive = Options["value"];
 
 type Props = {
   field: {
