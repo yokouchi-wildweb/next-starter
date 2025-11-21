@@ -3,18 +3,38 @@ import { FORM_INPUTS } from '../form-inputs.mjs';
 import { toCamelCase, toSnakeCase } from '../../../src/utils/stringCase.mjs';
 const prompt = inquirer.createPromptModule();
 
-function parseOptionValue(input) {
+const NUMERIC_FIELD_TYPES = new Set(['number', 'integer', 'bigint', 'numeric(10,2)']);
+
+function parseOptionValue(input, parseValue) {
   const trimmed = input.trim();
+  let normalized = trimmed;
   if (
     (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
     (trimmed.startsWith("'") && trimmed.endsWith("'"))
   ) {
-    return trimmed.slice(1, -1);
+    normalized = trimmed.slice(1, -1);
   }
-  return trimmed;
+  if (parseValue) {
+    return parseValue(normalized);
+  }
+  return normalized;
 }
 
-async function askOptions() {
+function isNumericFieldType(fieldType) {
+  return NUMERIC_FIELD_TYPES.has(fieldType);
+}
+
+function createNumericOptionParser() {
+  return (value) => {
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) {
+      throw new Error('数値フィールドでは選択肢に数値を入力してください。例: 1, 2, 10.5');
+    }
+    return numericValue;
+  };
+}
+
+async function askOptions(parseValue) {
   const options = [];
   while (true) {
     const { value } = await prompt({
@@ -26,13 +46,21 @@ async function askOptions() {
           : '次の選択肢として保存する値（例: apple。空で終了）:',
     });
     if (!value.trim()) break;
+    let parsedValue;
+    try {
+      parsedValue = parseOptionValue(value, parseValue);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '選択肢の値が不正です。';
+      console.log(message);
+      continue;
+    }
     const { label } = await prompt({
       type: 'input',
       name: 'label',
       message: `値 ${value} が画面に表示されるラベル（例: りんご）:`,
     });
     const trimmedLabel = label.trim() || value.trim();
-    options.push({ value: parseOptionValue(value), label: trimmedLabel });
+    options.push({ value: parsedValue, label: trimmedLabel });
   }
   return options;
 }
@@ -77,6 +105,7 @@ async function askSingleField(config) {
   const isBooleanField = fieldType === 'boolean';
   const isArrayField = fieldType === 'array';
   const isEnumField = fieldType === 'enum';
+  const isNumericField = isNumericFieldType(fieldType);
 
   let uploadPath;
   let slug;
@@ -136,13 +165,16 @@ async function askSingleField(config) {
         { value: false, label: 'いいえ' },
       ];
     } else {
+      const optionValueParser = isNumericField ? createNumericOptionParser() : undefined;
       const guidance =
         isArrayField
           ? '配列フィールドで選択可能な値を入力してください。空欄で入力終了。値は文字列として保存されます。'
-          : '選択肢を入力してください。空欄で入力終了。値は文字列として扱われます。';
+          : isNumericField
+              ? '選択肢を入力してください。空欄で入力終了。値は数値として扱われます。'
+              : '選択肢を入力してください。空欄で入力終了。値は文字列として扱われます。';
       console.log(guidance);
       do {
-        options = await askOptions();
+        options = await askOptions(optionValueParser);
         if (!options.length && isArrayField) {
           console.log('配列フィールドには少なくとも1つの選択肢が必要です。');
         }

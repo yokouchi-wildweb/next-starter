@@ -139,6 +139,13 @@ registry/
 - `types/`: `constants/` に定義した配列や値から導出した型、もしくはドメイン専用の補助型を配置します。自動生成対象では `types/field.ts` に `value` / `label` の型が書き出されます。
 - 自動生成は `generateFiles.fieldConstants` オプションで制御できます。スキップした後でも `npx domain-config --generate <Domain>` を再実行し、カテゴリ選択で「Enum 定数/型」を有効にすれば作成可能です（Enum 以外でも `options` を持つフィールドが対象）。
 
+#### 数値フィールドで Enum 的な体験を得るには
+
+- `fieldType` に数値系（例: Firestore の `number`, Neon の `integer` / `bigint` / `numeric(10,2)`）を選び、`formInput` で `select` もしくは `radio` を選択します。
+- 選択肢入力では **数値をそのまま入力** してください。`domain-config` が `constants/field.ts` と `types/field.ts` を生成し、`value` 型が `1 | 2 | ...` のようなリテラル型になります。
+- DB カラムは数値として保存され、UI 側は `as const` の定数と型を参照できるため、実質的に「数値 Enum」と同等の入力体験を提供できます。
+- 追加で Enum を定義する必要はなく、CRUD の検索やバリデーションでは通常の数値フィールドとして扱えます。
+
 ### 6.5 クライアントサービス
 - `services/client/<domain>Client.ts` で `createApiClient` を呼び出し、`ApiClient` 型としてエクスポートします。
 - 作成・更新時に利用する型は `entities/form.ts` で公開される `z.infer` 型をそのまま渡します。
