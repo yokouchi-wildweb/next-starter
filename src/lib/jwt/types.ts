@@ -1,4 +1,4 @@
-// src/lib/jwt/types.ts
+// src/lib/jwt/form.ts
 
 /**
  * JWT ペイロードに含めるクレームのベース型。

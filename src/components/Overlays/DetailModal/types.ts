@@ -1,4 +1,4 @@
-// src/components/Overlays/DetailModal/types.ts
+// src/components/Overlays/DetailModal/form.ts
 
 import { ReactNode } from "react";
 

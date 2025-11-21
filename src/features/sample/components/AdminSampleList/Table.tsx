@@ -3,7 +3,7 @@
 "use client";
 
 import type { Sample } from "../../entities";
-import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import DataTable, { TableCellAction, type DataTableColumn } from "../../../../lib/tableSuite/DataTable";
 import EditButton from "../../../../components/Fanctional/EditButton";
 import DeleteButton from "../../../../components/Fanctional/DeleteButton";
 import { useDeleteSample } from "@/features/sample/hooks/useDeleteSample";

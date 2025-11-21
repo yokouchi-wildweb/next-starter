@@ -1,0 +1,13 @@
+{
+  "name": "@next-starter/domain-config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "domain-config": "./index.mjs",
+    "dc": "./index.mjs"
+  },
+  "dependencies": {
+    "inquirer": "^12.8.2"
+  }
+}

@@ -90,7 +90,7 @@ function generateFieldsFromConfig(config) {
         break;
       case "stepperInput":
         addImport('import StepperInput from "@/components/Form/Manual/StepperInput";');
-        addImport('import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";');
+        addImport('import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";');
         body.push(
           replacePartialTokens(getPartial("stepperInput.tsx"), {
             fieldName: f.name,
@@ -214,7 +214,7 @@ function generateFieldsFromConfig(config) {
         break;
       case "switchInput":
         addImport('import { SwitchInput } from "@/components/Form/Controlled";');
-        addImport('import { FormField, FormItem, FormControl, FormMessage } from "@/components/Shadcn/form";');
+        addImport('import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";');
         body.push(
           replacePartialTokens(getPartial("switchInput.tsx"), {
             fieldName: f.name,
@@ -264,7 +264,7 @@ function generateFieldsFromConfig(config) {
   }
 
   if (needOptionsType) {
-    addImport('import type { Options } from "@/types/form";');
+    addImport('import type { Options } from "@/components/Form/types";');
   }
 
   const importLines = Array.from(imports).join("\n");

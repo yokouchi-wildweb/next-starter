@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import AdminSampleEdit from "@/features/sample/components/AdminSampleEdit";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import PageTitle from "../../../../../../components/AppFrames/Admin/Elements/PageTitle";
 import { Main } from "@/components/TextBlocks";
 import type { Sample } from "@/features/sample/entities";
 import { SWRConfig } from "swr";

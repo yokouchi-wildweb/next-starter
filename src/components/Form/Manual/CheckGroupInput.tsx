@@ -11,10 +11,12 @@ import { Checkbox } from "@/components/_shadcn/checkbox";
 
 export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "checkbox";
 
+type OptionPrimitive = Options[number]["value"];
+
 type Props = {
   field: {
-    value?: string[];
-    onChange: (value: string[]) => void;
+    value?: OptionPrimitive[];
+    onChange: (value: OptionPrimitive[]) => void;
   };
   /**
    * Options to choose from. Optional so the component can render
@@ -35,13 +37,27 @@ type Props = {
   unselectedButtonVariant?: ButtonStyleProps["variant"];
 } & HTMLAttributes<HTMLDivElement>;
 
-function toggleValue(currentValues: string[] | undefined, nextValue: string) {
-  const values = currentValues ?? [];
-  if (values.includes(nextValue)) {
-    return values.filter((value) => value !== nextValue);
+const serializeValue = (value: OptionPrimitive | undefined) =>
+  value === undefined || value === null ? "" : String(value);
+
+function includesValue(values: OptionPrimitive[] | undefined, target: OptionPrimitive) {
+  if (!values || values.length === 0) return false;
+  const targetSerialized = serializeValue(target);
+  return values.some((value) => serializeValue(value) === targetSerialized);
+}
+
+function toggleValue(currentValues: OptionPrimitive[] | undefined, nextValue: OptionPrimitive) {
+  const targetSerialized = serializeValue(nextValue);
+  if (!currentValues || currentValues.length === 0) {
+    return [nextValue];
   }
 
-  return [...values, nextValue];
+  const exists = currentValues.some((value) => serializeValue(value) === targetSerialized);
+  if (exists) {
+    return currentValues.filter((value) => serializeValue(value) !== targetSerialized);
+  }
+
+  return [...currentValues, nextValue];
 }
 
 export function CheckGroupInput({
@@ -56,7 +72,7 @@ export function CheckGroupInput({
 }: Props) {
   const groupId = useId();
 
-  const handleToggle = (value: string) => {
+  const handleToggle = (value: OptionPrimitive) => {
     field.onChange(toggleValue(field.value, value));
   };
 
@@ -64,11 +80,12 @@ export function CheckGroupInput({
     return (
       <div className="flex flex-col gap-2" {...rest}>
         {options.map((op) => {
-          const id = `${groupId}-${op.value}`;
-          const selected = field.value?.includes(op.value) ?? false;
+          const serialized = serializeValue(op.value);
+          const id = `${groupId}-${serialized}`;
+          const selected = includesValue(field.value, op.value);
 
           return (
-            <div key={op.value} className="flex items-center gap-2">
+            <div key={serialized} className="flex items-center gap-2">
               <Checkbox
                 id={id}
                 checked={selected}
@@ -88,19 +105,21 @@ export function CheckGroupInput({
   return (
     <div className="flex flex-wrap items-start gap-2" {...rest}>
       {options.map((op) => {
-        const selected = field.value?.includes(op.value) ?? false;
+        const selected = includesValue(field.value, op.value);
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
         const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
+        const serialized = serializeValue(op.value);
+        const handleSelect = () => handleToggle(op.value);
 
         if (displayType === "bookmark") {
           return (
             <BookmarkTag
-              key={op.value}
+              key={serialized}
               type="button"
               selected={selected}
               variant={buttonVariant}
               size={buttonSize}
-              onClick={() => handleToggle(op.value)}
+              onClick={handleSelect}
               aria-pressed={selected}
             >
               {op.label}
@@ -115,12 +134,12 @@ export function CheckGroupInput({
 
           return (
             <Button
-              key={op.value}
+              key={serialized}
               type="button"
               variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
               size={buttonSize}
               className={standardButtonBorderClass}
-              onClick={() => handleToggle(op.value)}
+              onClick={handleSelect}
               aria-pressed={selected}
             >
               {op.label}
@@ -130,12 +149,12 @@ export function CheckGroupInput({
 
         return (
           <RoundedButton
-            key={op.value}
+            key={serialized}
             type="button"
             selected={selected}
             variant={buttonVariant}
             size={buttonSize}
-            onClick={() => handleToggle(op.value)}
+            onClick={handleSelect}
             aria-pressed={selected}
           >
             {op.label}

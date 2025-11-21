@@ -41,7 +41,7 @@ src/
       firestore/          ← Firestore 向けの汎用サービス
       apiClientFactory.ts ← Axios ベースの API クライアント生成
       hooks/              ← React Hooks の薄いラッパー
-      types.ts            ← 共通で使う型定義
+      form.ts            ← 共通で使う型定義
       events.ts           ← CRUD 成功/失敗イベントの通知
   app/api/[domain]/...    ← 共通化された API ルート
   

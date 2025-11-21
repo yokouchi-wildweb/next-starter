@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { sampleService } from "@/features/sample/services/server/sampleService";
 
 import AdminSampleList from "@/features/sample/components/AdminSampleList";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import PageTitle from "../../../../components/AppFrames/Admin/Elements/PageTitle";
 import { Main } from "@/components/TextBlocks";
 import { settingService } from "@/features/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/types/page";

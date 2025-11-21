@@ -12,10 +12,12 @@ import { Options } from "@/types/form";
 
 export type RadioGroupDisplayType = "radio" | "standard" | "bookmark" | "rounded";
 
+type OptionPrimitive = Options[number]["value"];
+
 type Props = {
   field: {
-    value?: string;
-    onChange: (value: string) => void;
+    value?: OptionPrimitive | null;
+    onChange: (value: OptionPrimitive) => void;
   };
   /**
    * Options to choose from. Optional so the component can render
@@ -44,15 +46,31 @@ export function RadioGroupInput({
   unselectedButtonVariant,
   ...rest
 }: Props) {
+  const serializedValue =
+    field.value === null || typeof field.value === "undefined" ? undefined : String(field.value);
+
+  const mapOptionValue = (value: OptionPrimitive) => String(value);
+
+  const resolveOriginalValue = (value: string): OptionPrimitive | string => {
+    const matched = options.find((op) => mapOptionValue(op.value) === value);
+    return (matched?.value ?? value) as OptionPrimitive;
+  };
+
   if (displayType === "radio") {
     return (
-      <RadioGroup onValueChange={field.onChange} value={field.value} defaultValue={field.value} {...rest}>
+      <RadioGroup
+        onValueChange={(value) => field.onChange(resolveOriginalValue(value) as OptionPrimitive)}
+        value={serializedValue}
+        defaultValue={serializedValue}
+        {...rest}
+      >
         {options.map((op, index) => {
-          const optionId = `${rest.name ?? "radio"}-${op.value}-${index}`;
+          const serialized = mapOptionValue(op.value);
+          const optionId = `${rest.name ?? "radio"}-${serialized}-${index}`;
 
           return (
             <div key={optionId} className="flex items-center gap-2">
-              <RadioGroupItem id={optionId} value={op.value} />
+              <RadioGroupItem id={optionId} value={serialized} />
               <Label htmlFor={optionId} className="cursor-pointer">
                 {op.label}
               </Label>
@@ -73,9 +91,12 @@ export function RadioGroupInput({
       {...(restDivProps as ComponentProps<"div">)}
     >
       {options.map((op) => {
-        const selected = field.value === op.value;
+        const optionSerialized = mapOptionValue(op.value);
+        const selected = serializedValue === optionSerialized;
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
         const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
+
+        const handleSelect = () => field.onChange(op.value);
 
         if (displayType === "bookmark") {
           return (
@@ -85,7 +106,7 @@ export function RadioGroupInput({
               selected={selected}
               variant={buttonVariant}
               size={buttonSize}
-              onClick={() => field.onChange(op.value)}
+              onClick={handleSelect}
               role="radio"
               aria-checked={selected}
             >
@@ -102,7 +123,7 @@ export function RadioGroupInput({
               selected={selected}
               variant={buttonVariant}
               size={buttonSize}
-              onClick={() => field.onChange(op.value)}
+              onClick={handleSelect}
               role="radio"
               aria-checked={selected}
             >
@@ -121,7 +142,7 @@ export function RadioGroupInput({
               variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
               size={buttonSize}
               className={standardButtonBorderClass}
-              onClick={() => field.onChange(op.value)}
+              onClick={handleSelect}
               role="radio"
               aria-checked={selected}
             >
@@ -136,7 +157,7 @@ export function RadioGroupInput({
             type="button"
             variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
             size={buttonSize}
-            onClick={() => field.onChange(op.value)}
+            onClick={handleSelect}
             role="radio"
             aria-checked={selected}
           >

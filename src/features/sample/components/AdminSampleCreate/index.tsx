@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import CreateSampleForm from "../common/CreateSampleForm";
-import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
+import { FormSkeleton } from "../../../../components/Skeleton/FormSkeleton";
 
 export type AdminSampleCreateProps = {
   redirectPath?: string;

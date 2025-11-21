@@ -1,4 +1,4 @@
-// src/lib/crud/types.ts
+// src/lib/crud/form.ts
 
 export type QueryOp =
   | "eq"

@@ -1,4 +1,4 @@
-// src/features/setting/services/types.ts
+// src/features/setting/services/form.ts
 
 import type { AdminConsoleRegistrationInput } from "@/features/user/services/server/registrations";
 
