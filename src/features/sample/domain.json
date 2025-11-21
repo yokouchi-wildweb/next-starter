@@ -117,6 +117,7 @@
     "clientServices": true,
     "serverServices": true,
     "adminRoutes": true,
-    "registry": true
+    "registry": true,
+    "fieldConstants": true
   }
 }
