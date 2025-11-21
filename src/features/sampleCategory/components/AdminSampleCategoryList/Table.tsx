@@ -2,12 +2,12 @@
 
 "use client";
 
-import type { SampleCategory } from "../../entities";
+import type { SampleCategory } from "@/features/sampleCategory/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import EditButton from "../../../../components/Fanctional/EditButton";
-import DeleteButton from "../../../../components/Fanctional/DeleteButton";
+import EditButton from "@/components/Fanctional/EditButton";
+import DeleteButton from "@/components/Fanctional/DeleteButton";
 import { useDeleteSampleCategory } from "@/features/sampleCategory/hooks/useDeleteSampleCategory";
-import config from "../../domain.json";
+import config from "@/features/sampleCategory/domain.json";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 

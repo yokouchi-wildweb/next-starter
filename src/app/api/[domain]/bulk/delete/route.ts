@@ -1,7 +1,7 @@
 // src/app/api/[domain]/bulk/delete/route.ts
 import type { NextRequest } from "next/server";
 
-import { withDomainService } from "../../utils/withDomainService";
+import { withDomainService } from "@/app/api/[domain]/utils/withDomainService";
 import type { DomainParams } from "@/types/params";
 
 // POST /api/[domain]/bulk/delete : 複数IDをまとめて削除

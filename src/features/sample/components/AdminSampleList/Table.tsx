@@ -2,12 +2,12 @@
 
 "use client";
 
-import type { Sample } from "../../entities";
-import DataTable, { TableCellAction, type DataTableColumn } from "../../../../lib/tableSuite/DataTable";
-import EditButton from "../../../../components/Fanctional/EditButton";
-import DeleteButton from "../../../../components/Fanctional/DeleteButton";
+import type { Sample } from "@/features/sample/entities";
+import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import EditButton from "@/components/Fanctional/EditButton";
+import DeleteButton from "@/components/Fanctional/DeleteButton";
 import { useDeleteSample } from "@/features/sample/hooks/useDeleteSample";
-import config from "../../domain.json";
+import config from "@/features/sample/domain.json";
 import { useState } from "react";
 import SampleDetailModal from "../common/SampleDetailModal";
 import { buildDomainColumns } from "@/lib/crud";

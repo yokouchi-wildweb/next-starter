@@ -1,6 +1,6 @@
 import { asc, desc, SQL } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
-import type { OrderBySpec } from "../../types";
+import type { OrderBySpec } from "@/lib/crud/types";
 
 export const buildOrderBy = (table: PgTable, spec?: OrderBySpec): SQL[] => {
   if (!spec || spec.length === 0) return [];

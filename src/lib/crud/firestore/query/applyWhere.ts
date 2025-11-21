@@ -1,4 +1,4 @@
-import type { WhereExpr } from "../../types";
+import type { WhereExpr } from "@/lib/crud/types";
 
 export const applyWhere = (
   q: FirebaseFirestore.Query,

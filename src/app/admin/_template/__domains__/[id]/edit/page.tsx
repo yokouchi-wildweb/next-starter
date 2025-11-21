@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
 import Admin__Domain__Edit from "@/features/__domain__/components/Admin__Domain__Edit";
-import PageTitle from "../../../../../../components/AppFrames/Admin/Elements/PageTitle";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { Main } from "@/components/TextBlocks";
 import type { __Domain__ } from "@/features/__domain__/entities";
 __RELATION_IMPORTS__

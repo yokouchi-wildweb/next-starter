@@ -4,8 +4,8 @@
 
 import Modal from "@/components/Overlays/Modal";
 import DetailModal from "@/components/Overlays/DetailModal";
-import DetailModalSkeleton from "../../../../components/Skeleton/DetailModalSkeleton";
-import { useSampleViewModal } from "../../hooks/useSampleViewModal";
+import DetailModalSkeleton from "@/components/Skeleton/DetailModalSkeleton";
+import { useSampleViewModal } from "@/features/sample/hooks/useSampleViewModal";
 
 const PLACEHOLDER_MESSAGE = "詳細モーダルの機能を使用するには表示ロジックを実装してください。";
 

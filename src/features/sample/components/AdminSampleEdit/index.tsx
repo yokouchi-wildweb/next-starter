@@ -2,8 +2,8 @@
 
 import { Suspense } from "react";
 import EditSampleForm from "../common/EditSampleForm";
-import type { Sample } from "../../entities";
-import { FormSkeleton } from "../../../../components/Skeleton/FormSkeleton";
+import type { Sample } from "@/features/sample/entities";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 
 export type AdminSampleEditProps = {
   sample: Sample;

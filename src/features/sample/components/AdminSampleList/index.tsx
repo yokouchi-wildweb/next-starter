@@ -1,6 +1,6 @@
 // src/features/sample/components/AdminSampleList/index.tsx
 
-import type { Sample } from "../../entities";
+import type { Sample } from "@/features/sample/entities";
 import Header from "./Header";
 import Table from "./Table";
 import { Section } from "@/components/Layout/Section";

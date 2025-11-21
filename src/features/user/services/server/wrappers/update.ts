@@ -2,7 +2,7 @@
 
 import type { User } from "@/features/user/entities";
 import { userSelfUpdateSchema } from "@/features/user/entities";
-import type { UpdateUserInput } from "../../types";
+import type { UpdateUserInput } from "@/features/user/services/types";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
 import { omitUndefined } from "@/utils/object";

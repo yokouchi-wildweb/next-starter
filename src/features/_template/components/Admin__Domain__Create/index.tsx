@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import Create__Domain__Form from "../common/Create__Domain__Form";
-import { FormSkeleton } from "../../../../components/Skeleton/FormSkeleton";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 
 export type Admin__Domain__CreateProps = {
   redirectPath?: string;

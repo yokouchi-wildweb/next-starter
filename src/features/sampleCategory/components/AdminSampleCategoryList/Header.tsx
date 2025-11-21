@@ -3,10 +3,10 @@
 "use client";
 
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
-import Pagination from "../../../../components/Fanctional/Pagination";
+import Pagination from "@/components/Fanctional/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { useSearchParams } from "next/navigation";
-import config from "../../domain.json";
+import config from "@/features/sampleCategory/domain.json";
 
 export type AdminSampleCategoryListHeaderProps = {
   page: number;

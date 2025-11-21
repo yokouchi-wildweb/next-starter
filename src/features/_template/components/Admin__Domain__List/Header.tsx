@@ -2,11 +2,11 @@
 
 "use client";
 
-import ListTop from "../../../../components/AppFrames/Admin/Elements/ListTop";
-import Pagination from "../../../../components/Fanctional/Pagination";
-import SearchBox from "../../../../components/AppFrames/Admin/Elements/SearchBox";
+import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
+import Pagination from "@/components/Fanctional/Pagination";
+import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { useSearchParams } from "next/navigation";
-import config from "../../domain.json";
+import config from "@/features/_template/domain.json";
 
 export type Admin__Domain__ListHeaderProps = {
   page: number;

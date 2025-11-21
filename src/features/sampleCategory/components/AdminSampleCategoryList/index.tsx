@@ -1,6 +1,6 @@
 // src/features/sampleCategory/components/AdminSampleCategoryList/index.tsx
 
-import type { SampleCategory } from "../../entities";
+import type { SampleCategory } from "@/features/sampleCategory/entities";
 import Header from "./Header";
 import Table from "./Table";
 import { Section } from "@/components/Layout/Section";

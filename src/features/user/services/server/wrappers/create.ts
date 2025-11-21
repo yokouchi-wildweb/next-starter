@@ -4,7 +4,7 @@ import {
   registerAdminFromConsole,
   registerGeneralUserFromConsole,
 } from "../registrations";
-import type { CreateUserInput } from "../../types";
+import type { CreateUserInput } from "@/features/user/services/types";
 
 export function create(data: CreateUserInput): Promise<User> {
   if (data.role === "admin") {

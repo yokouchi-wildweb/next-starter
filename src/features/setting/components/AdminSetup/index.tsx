@@ -9,7 +9,7 @@ import { err } from "@/lib/errors";
 import ManagerialUserCreateForm from "@/features/user/components/admin/form/ManagerialUserCreateForm";
 import type { FormValues } from "@/features/user/components/admin/form/ManagerialUserCreateForm/formEntities";
 
-import { useAdminSetup } from "../../hooks/useAdminSetup";
+import { useAdminSetup } from "@/features/setting/hooks/useAdminSetup";
 
 const REDIRECT_PATH = "/admin";
 

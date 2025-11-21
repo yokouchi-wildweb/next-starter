@@ -12,7 +12,7 @@ import {
 } from "@/components/_shadcn/select";
 import { cn } from "@/lib/cn";
 
-import { TableCell } from "../../DataTable/components";
+import { TableCell } from "@/lib/tableSuite/DataTable/components";
 import type { EditableGridColumn } from "../types";
 import { formatCellValue, parseCellValue, readCellValue } from "../utils/value";
 import { CellErrorIndicator } from "./CellErrorIndicator";

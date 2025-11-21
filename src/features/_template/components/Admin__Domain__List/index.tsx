@@ -1,6 +1,6 @@
 // src/features/__domain__/components/Admin__Domain__List/index.tsx
 
-import type { __Domain__ } from "../../entities";
+import type { __Domain__ } from "@/features/_template/entities";
 import Header from "./Header";
 import Table from "./Table";
 import { Section } from "@/components/Layout/Section";

@@ -3,7 +3,7 @@
 "use client";
 
 import { AppForm } from "@/components/Form/AppForm";
-import { Button } from "../../../../components/Form/Button/Button";
+import { Button } from "@/components/Form/Button/Button";
 import { SampleCategoryFields, type SampleCategoryFieldsProps } from "./SampleCategoryFields";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 

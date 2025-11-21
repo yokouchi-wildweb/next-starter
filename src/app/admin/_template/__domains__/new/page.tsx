@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Admin__Domain__Create from "@/features/__domain__/components/Admin__Domain__Create";
-import PageTitle from "../../../../../components/AppFrames/Admin/Elements/PageTitle";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { Main } from "@/components/TextBlocks";
 __RELATION_IMPORTS__
 

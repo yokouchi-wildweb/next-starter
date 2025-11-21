@@ -1,6 +1,6 @@
 import { and, eq, ne, lt, lte, gt, gte, ilike, or, SQL, sql } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
-import type { WhereExpr } from "../../types";
+import type { WhereExpr } from "@/lib/crud/types";
 
 export const buildWhere = (table: PgTable, expr?: WhereExpr): SQL => {
   if (!expr) return sql`TRUE`;

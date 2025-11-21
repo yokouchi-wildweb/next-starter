@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SettingUpdateSchema } from "@/features/setting/entities/schema";
 import { SettingUpdateFields } from "@/features/setting/entities/form";
 import type { Setting } from "@/features/setting/entities";
-import { useUpdateSetting } from "../../hooks/useUpdateSetting";
+import { useUpdateSetting } from "@/features/setting/hooks/useUpdateSetting";
 import { SettingForm } from "./SettingForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SampleUpdateSchema } from "@/features/sample/entities/schema";
 import type { SampleUpdateFields } from "@/features/sample/entities/form";
 import type { Sample } from "@/features/sample/entities";
-import { useUpdateSample } from "../../hooks/useUpdateSample";
+import { useUpdateSample } from "@/features/sample/hooks/useUpdateSample";
 import { SampleForm } from "./SampleForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

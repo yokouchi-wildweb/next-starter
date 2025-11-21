@@ -6,7 +6,7 @@ import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SampleCategoryCreateSchema } from "@/features/sampleCategory/entities/schema";
 import { SampleCategoryCreateFields } from "@/features/sampleCategory/entities/form";
-import { useCreateSampleCategory } from "../../hooks/useCreateSampleCategory";
+import { useCreateSampleCategory } from "@/features/sampleCategory/hooks/useCreateSampleCategory";
 import { SampleCategoryForm } from "./SampleCategoryForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

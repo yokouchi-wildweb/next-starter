@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
 import type { SampleCategoryUpdateFields } from "@/features/sampleCategory/entities/form";
 import type { SampleCategory } from "@/features/sampleCategory/entities";
-import { useUpdateSampleCategory } from "../../hooks/useUpdateSampleCategory";
+import { useUpdateSampleCategory } from "@/features/sampleCategory/hooks/useUpdateSampleCategory";
 import { SampleCategoryForm } from "./SampleCategoryForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

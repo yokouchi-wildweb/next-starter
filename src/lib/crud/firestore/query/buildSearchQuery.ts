@@ -1,4 +1,4 @@
-import type { SearchParams, CreateCrudServiceOptions } from "../../types";
+import type { SearchParams, CreateCrudServiceOptions } from "@/lib/crud/types";
 import { applyWhere } from "./applyWhere";
 
 export const buildSearchQuery = <TData extends Record<string, any>>(

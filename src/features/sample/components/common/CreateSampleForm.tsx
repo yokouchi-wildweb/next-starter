@@ -6,7 +6,7 @@ import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SampleCreateSchema } from "@/features/sample/entities/schema";
 import { SampleCreateFields } from "@/features/sample/entities/form";
-import { useCreateSample } from "../../hooks/useCreateSample";
+import { useCreateSample } from "@/features/sample/hooks/useCreateSample";
 import { SampleForm } from "./SampleForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
