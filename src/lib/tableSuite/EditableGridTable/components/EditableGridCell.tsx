@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/cn";
 
 import { TableCell } from "@/lib/tableSuite/DataTable/components";
+import { resolveColumnFlexAlignClass, resolveColumnTextAlignClass } from "../../types";
 import type { EditableGridColumn } from "../types";
 import { formatCellValue, parseCellValue, readCellValue } from "../utils/value";
 import { CellErrorIndicator } from "./CellErrorIndicator";
@@ -60,6 +61,8 @@ export function EditableGridCell<T>({
   const isReadOnly = column.editorType === "readonly";
   const isSwitchEditor = column.editorType === "switch";
   const switchPreviousValue = React.useMemo(() => Boolean(rawValue), [rawValue]);
+  const textAlignClass = resolveColumnTextAlignClass(column.align);
+  const flexAlignClass = resolveColumnFlexAlignClass(column.align);
 
   const inputValue = draftValue ?? baseValue ?? "";
 
@@ -112,6 +115,7 @@ export function EditableGridCell<T>({
       inputBaseClassName,
       error && "aria-invalid:border-destructive aria-invalid:ring-destructive/30",
       paddingClass,
+      textAlignClass,
     ),
     value: inputValue,
     placeholder: fallbackPlaceholder,
@@ -162,6 +166,7 @@ export function EditableGridCell<T>({
               className={cn(
                 "h-full w-full rounded-none border-0 bg-transparent px-2 py-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
                 error && "border border-destructive",
+                textAlignClass,
               )}
             >
               <SelectValue placeholder={fallbackPlaceholder} />
@@ -326,6 +331,7 @@ export function EditableGridCell<T>({
       className={cn(
         "relative p-0 text-sm cursor-default border border-border/70 rounded",
         hasError && "bg-destructive/10 ring-1 ring-inset ring-destructive/50",
+        textAlignClass,
       )}
       style={column.width ? { width: column.width } : undefined}
       onClick={isReadOnly || isSwitchEditor ? undefined : handleSingleClick}
@@ -343,7 +349,8 @@ export function EditableGridCell<T>({
       <div
         className={cn(
           "group relative flex h-full items-center",
-          isSwitchEditor && "justify-center",
+          flexAlignClass,
+          !flexAlignClass && isSwitchEditor && "justify-center",
         )}
       >
         {shouldRenderEditor && !isReadOnly ? (
@@ -353,7 +360,8 @@ export function EditableGridCell<T>({
             className={cn(
               displayBaseClassName,
               isReadOnly && "bg-muted/50 text-muted-foreground",
-              isSwitchEditor && "justify-center",
+              flexAlignClass,
+              !flexAlignClass && isSwitchEditor && "justify-center",
               paddingClass,
             )}
           >

@@ -12,12 +12,13 @@ import {
   TableCell,
 } from "./components";
 import { cn } from "@/lib/cn";
-import type { TableStylingProps } from "../types";
-import { resolveRowClassName } from "../types";
+import type { TableColumnAlignment, TableStylingProps } from "../types";
+import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
 
 export type DataTableColumn<T> = {
   header: string;
   render: (item: T) => React.ReactNode;
+  align?: TableColumnAlignment;
 };
 
 export type DataTableProps<T> = TableStylingProps<T> & {
@@ -57,7 +58,9 @@ export default function DataTable<T>({
         <TableHeader>
           <TableRow>
             {columns.map((col, idx) => (
-              <TableHead key={idx}>{col.header}</TableHead>
+              <TableHead key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                {col.header}
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -69,7 +72,9 @@ export default function DataTable<T>({
               onClick={onRowClick ? () => onRowClick(item) : undefined}
             >
               {columns.map((col, idx) => (
-                <TableCell key={idx}>{renderCellContent(col.render(item))}</TableCell>
+                <TableCell key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                  {renderCellContent(col.render(item))}
+                </TableCell>
               ))}
             </TableRow>
           ))}

@@ -15,7 +15,7 @@ import {
   TableCell,
 } from "../DataTable/components";
 import type { DataTableProps } from "../DataTable";
-import { resolveRowClassName } from "../types";
+import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
 import { SelectionCell } from "./components/SelectionCell";
 import { SelectionHeaderCell } from "./components/SelectionHeaderCell";
 import { useRecordSelectionState } from "./hooks/useRecordSelectionState";
@@ -95,7 +95,9 @@ export default function RecordSelectionTable<T>({
               onRequestToggle={() => updateAllSelection(!isAllSelected)}
             />
             {columns.map((col, idx) => (
-              <TableHead key={idx}>{col.header}</TableHead>
+              <TableHead key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                {col.header}
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -129,7 +131,9 @@ export default function RecordSelectionTable<T>({
                   onToggle={(checked) => updateKeySelection(key, checked)}
                 />
                 {columns.map((col, idx) => (
-                  <TableCell key={idx}>{renderCellContent(col.render(item))}</TableCell>
+                  <TableCell key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                    {renderCellContent(col.render(item))}
+                  </TableCell>
                 ))}
               </TableRow>
             );

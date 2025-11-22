@@ -1,7 +1,7 @@
 import type React from "react";
 
 import type { Options } from "@/types/form";
-import type { TableStylingProps } from "../types";
+import type { TableColumnAlignment, TableStylingProps } from "../types";
 
 export type EditableGridEditorType =
   | "text"
@@ -26,6 +26,7 @@ export type EditableGridColumn<T> = {
   validator?: (value: unknown, row: T) => string | null;
   renderDisplay?: (value: unknown, row: T) => React.ReactNode;
   onToggleRequest?: (event: EditableGridSwitchToggleEvent<T>) => boolean | Promise<boolean>;
+  align?: TableColumnAlignment;
 };
 
 export type EditableGridCellChangeEvent<T> = {

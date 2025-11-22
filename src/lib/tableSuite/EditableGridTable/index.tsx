@@ -13,7 +13,7 @@ import {
   TableHead,
   TableRow,
 } from "../DataTable/components";
-import { resolveRowClassName } from "../types";
+import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
 import type { EditableGridColumn, EditableGridTableProps } from "./types";
 import { EditableGridCell } from "./components/EditableGridCell";
 import { normalizeOrderRules, compareRows } from "./utils/sort";
@@ -78,6 +78,7 @@ export default function EditableGridTable<T>({
               <TableHead
                 key={column.field}
                 style={column.width ? { width: column.width } : undefined}
+                className={resolveColumnTextAlignClass(column.align)}
               >
                 <div className="flex items-center gap-1">
                   <span>{column.header}</span>

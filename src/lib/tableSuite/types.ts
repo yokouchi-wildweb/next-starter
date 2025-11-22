@@ -24,6 +24,20 @@ export type TableStylingProps<T> = {
   rowClassName?: RowClassNameResolver<T>;
 };
 
+export type TableColumnAlignment = "left" | "center" | "right";
+
+const columnTextAlignClassMap: Record<TableColumnAlignment, string> = {
+  left: "text-left",
+  center: "text-center",
+  right: "text-right",
+};
+
+const columnFlexAlignClassMap: Record<TableColumnAlignment, string> = {
+  left: "justify-start text-left",
+  center: "justify-center text-center",
+  right: "justify-end text-right",
+};
+
 export const resolveRowClassName = <T,>(
   rowClassName: RowClassNameResolver<T> | undefined,
   item: T,
@@ -36,4 +50,18 @@ export const resolveRowClassName = <T,>(
     return rowClassName(item, context) ?? undefined;
   }
   return rowClassName;
+};
+
+export const resolveColumnTextAlignClass = (align?: TableColumnAlignment) => {
+  if (!align) {
+    return undefined;
+  }
+  return columnTextAlignClassMap[align];
+};
+
+export const resolveColumnFlexAlignClass = (align?: TableColumnAlignment) => {
+  if (!align) {
+    return undefined;
+  }
+  return columnFlexAlignClassMap[align];
 };
