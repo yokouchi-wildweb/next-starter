@@ -12,12 +12,43 @@ type CursorStackEntry = {
 
 const cursorStack: CursorStackEntry[] = []
 let baseCursor: string | null = null
+const CURSOR_STYLE_ELEMENT_ID = "global-cursor-style"
+let cursorStyleElement: HTMLStyleElement | null = null
 
 const isBrowser = typeof document !== 'undefined'
+
+const ensureCursorStyleElement = () => {
+  if (!isBrowser) return null
+  if (cursorStyleElement && cursorStyleElement.isConnected) {
+    return cursorStyleElement
+  }
+  const existing = document.getElementById(CURSOR_STYLE_ELEMENT_ID) as HTMLStyleElement | null
+  if (existing) {
+    cursorStyleElement = existing
+    return cursorStyleElement
+  }
+
+  const styleEl = document.createElement('style')
+  styleEl.id = CURSOR_STYLE_ELEMENT_ID
+  styleEl.setAttribute('data-generated-by', 'useGlobalCursor')
+  document.head.appendChild(styleEl)
+  cursorStyleElement = styleEl
+  return cursorStyleElement
+}
 
 const ensureBaseCursor = () => {
   if (!isBrowser || baseCursor !== null) return
   baseCursor = document.body.style.cursor
+}
+
+const updateCursorStyles = (cursor: CursorValue | null) => {
+  if (!isBrowser) return
+  const styleElement = ensureCursorStyleElement()
+  if (!styleElement) return
+
+  styleElement.textContent = cursor
+    ? `body, body * { cursor: ${cursor} !important; }`
+    : ''
 }
 
 const applyCursor = () => {
@@ -27,8 +58,10 @@ const applyCursor = () => {
 
   if (current) {
     document.body.style.cursor = current.cursor
+    updateCursorStyles(current.cursor)
   } else {
     document.body.style.cursor = baseCursor ?? ''
+    updateCursorStyles(null)
   }
 }
 
