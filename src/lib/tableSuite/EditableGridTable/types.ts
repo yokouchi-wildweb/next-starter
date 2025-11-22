@@ -1,6 +1,7 @@
 import type React from "react";
 
 import type { Options } from "@/types/form";
+import type { TableStylingProps } from "../types";
 
 export type EditableGridEditorType =
   | "text"
@@ -47,11 +48,13 @@ export type EditableGridOrderRule<T> = {
   direction?: "asc" | "desc";
 };
 
-export type EditableGridTableProps<T> = {
-  rows: T[];
+export type EditableGridTableProps<T> = TableStylingProps<T> & {
+  /**
+   * DataTable/RecordSelectionTable と同じ API を採用。未指定時は空配列扱い。
+   */
+  items?: T[];
   columns: EditableGridColumn<T>[];
   getKey?: (row: T, index: number) => React.Key;
-  className?: string;
   onCellChange?: (event: EditableGridCellChangeEvent<T>) => void;
   emptyValueFallback?: string;
   tableLayout?: "auto" | "fixed";

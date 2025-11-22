@@ -388,7 +388,7 @@ export default function TablesDemoPage() {
             </Block>
 
             <EditableGridTable
-              rows={editableRows}
+              items={editableRows}
               columns={editableColumns}
               getKey={(row) => row.id}
               onCellChange={handleEditableCellChange}

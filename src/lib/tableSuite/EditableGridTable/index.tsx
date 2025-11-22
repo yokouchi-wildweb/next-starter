@@ -13,6 +13,7 @@ import {
   TableHead,
   TableRow,
 } from "../DataTable/components";
+import { resolveRowClassName } from "../types";
 import type { EditableGridColumn, EditableGridTableProps } from "./types";
 import { EditableGridCell } from "./components/EditableGridCell";
 import { normalizeOrderRules, compareRows } from "./utils/sort";
@@ -24,10 +25,11 @@ type KeyedRow<T> = {
 };
 
 export default function EditableGridTable<T>({
-  rows,
+  items = [],
   columns,
   getKey = (_, index) => index,
   className,
+  rowClassName,
   onCellChange,
   emptyValueFallback = "(未設定)",
   tableLayout = "auto",
@@ -43,12 +45,12 @@ export default function EditableGridTable<T>({
 
   const keyedRows = React.useMemo<KeyedRow<T>[]>(
     () =>
-      rows.map((row, rowIndex) => ({
+      items.map((row, rowIndex) => ({
         row,
         rowIndex,
         rowKey: getKey(row, rowIndex),
       })),
-    [getKey, rows],
+    [getKey, items],
   );
 
   const sortedRows = React.useMemo(() => {
@@ -94,8 +96,14 @@ export default function EditableGridTable<T>({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedRows.map(({ row, rowKey }) => (
-            <TableRow key={rowKey}>
+          {sortedRows.map(({ row, rowKey }, displayIndex) => (
+            <TableRow
+              key={rowKey}
+              className={cn(
+                "group",
+                resolveRowClassName(rowClassName, row, { index: displayIndex }),
+              )}
+            >
               {columns.map((column) => (
                 <EditableGridCell
                   key={`${String(rowKey)}-${column.field}`}

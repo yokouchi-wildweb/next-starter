@@ -12,13 +12,15 @@ import {
   TableCell,
 } from "./components";
 import { cn } from "@/lib/cn";
+import type { TableStylingProps } from "../types";
+import { resolveRowClassName } from "../types";
 
 export type DataTableColumn<T> = {
   header: string;
   render: (item: T) => React.ReactNode;
 };
 
-export type DataTableProps<T> = {
+export type DataTableProps<T> = TableStylingProps<T> & {
   /**
    * Data rows to render. Optional to allow callers to omit until data is loaded
    * without causing runtime errors.
@@ -26,7 +28,6 @@ export type DataTableProps<T> = {
   items?: T[];
   columns: DataTableColumn<T>[];
   getKey?: (item: T, index: number) => React.Key;
-  rowClassName?: string;
   onRowClick?: (item: T) => void;
   emptyValueFallback?: string;
 };
@@ -35,6 +36,7 @@ export default function DataTable<T>({
   items = [],
   columns,
   getKey = (_, i) => i,
+  className,
   rowClassName,
   onRowClick,
   emptyValueFallback,
@@ -50,7 +52,7 @@ export default function DataTable<T>({
   };
 
   return (
-    <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+    <div className={cn("overflow-x-auto overflow-y-auto max-h-[70vh]", className)}>
       <Table variant="list">
         <TableHeader>
           <TableRow>
@@ -63,7 +65,7 @@ export default function DataTable<T>({
           {items.map((item, index) => (
             <TableRow
               key={getKey(item, index)}
-              className={cn("group", rowClassName)}
+              className={cn("group", resolveRowClassName(rowClassName, item, { index }))}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
             >
               {columns.map((col, idx) => (

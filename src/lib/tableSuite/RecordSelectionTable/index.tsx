@@ -15,18 +15,14 @@ import {
   TableCell,
 } from "../DataTable/components";
 import type { DataTableProps } from "../DataTable";
+import { resolveRowClassName } from "../types";
 import { SelectionCell } from "./components/SelectionCell";
 import { SelectionHeaderCell } from "./components/SelectionHeaderCell";
 import { useRecordSelectionState } from "./hooks/useRecordSelectionState";
 
 type SelectionBehavior = "row" | "checkbox";
 
-export type RecordSelectionTableProps<T> = Omit<
-  DataTableProps<T>,
-  "rowClassName" | "onRowClick"
-> & {
-  rowClassName?: string | ((item: T, options: { selected: boolean }) => string);
-  onRowClick?: (item: T) => void;
+export type RecordSelectionTableProps<T> = DataTableProps<T> & {
   selectedKeys?: React.Key[];
   defaultSelectedKeys?: React.Key[];
   onSelectionChange?: (keys: React.Key[], rows: T[]) => void;
@@ -38,6 +34,7 @@ export default function RecordSelectionTable<T>({
   items = [],
   columns,
   getKey = (_, index) => index,
+  className,
   rowClassName,
   onRowClick,
   emptyValueFallback,
@@ -72,13 +69,6 @@ export default function RecordSelectionTable<T>({
     onSelectionChange,
   });
 
-  const resolveRowClassName = (item: T, selected: boolean) => {
-    if (typeof rowClassName === "function") {
-      return rowClassName(item, { selected });
-    }
-    return rowClassName;
-  };
-
   const shouldHandleRowSelection = selectionBehavior === "row";
   const isCheckboxSelection = selectionBehavior === "checkbox";
 
@@ -92,7 +82,7 @@ export default function RecordSelectionTable<T>({
   const resolvedSelectColumnLabel = selectColumnLabel || "選択";
 
   return (
-    <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+    <div className={cn("overflow-x-auto overflow-y-auto max-h-[70vh]", className)}>
       <Table variant="list">
         <TableHeader>
           <TableRow>
@@ -112,7 +102,10 @@ export default function RecordSelectionTable<T>({
         <TableBody>
           {keyedItems.map(({ item, key }, itemIndex) => {
             const isSelected = selectedKeySet.has(key);
-            const resolvedRowClass = resolveRowClassName(item, isSelected);
+            const resolvedRowClass = resolveRowClassName(rowClassName, item, {
+              index: itemIndex,
+              selected: isSelected,
+            });
             const isClickableRow = shouldHandleRowSelection || Boolean(onRowClick);
 
             return (
