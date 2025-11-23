@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/_shadcn/select";
+import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 import { TableCell } from "@/lib/tableSuite/DataTable/components";
@@ -60,9 +61,11 @@ export function EditableGridCell<T>({
   const [selectOpen, setSelectOpen] = React.useState(false);
   const isReadOnly = column.editorType === "readonly";
   const isSwitchEditor = column.editorType === "switch";
+  const isSelectEditor = column.editorType === "select";
   const switchPreviousValue = React.useMemo(() => Boolean(rawValue), [rawValue]);
   const textAlignClass = resolveColumnTextAlignClass(column.align);
   const flexAlignClass = resolveColumnFlexAlignClass(column.align);
+  const shouldShowSelectIndicator = isSelectEditor && !isEditing && !isReadOnly;
 
   const inputValue = draftValue ?? baseValue ?? "";
 
@@ -167,6 +170,7 @@ export function EditableGridCell<T>({
                 "h-full w-full rounded-none border-0 bg-transparent px-2 py-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
                 error && "border border-destructive",
                 textAlignClass,
+                shouldShowSelectIndicator && "pr-8",
               )}
             >
               <SelectValue placeholder={fallbackPlaceholder} />
@@ -247,22 +251,34 @@ export function EditableGridCell<T>({
     return baseValue || fallbackPlaceholder;
   }, [baseValue, column, fallbackPlaceholder, rawValue, row]);
 
+  const activateCell = React.useCallback(
+    ({ enterEditMode, openSelect }: { enterEditMode?: boolean; openSelect?: boolean } = {}) => {
+      if (isReadOnly || isSwitchEditor) {
+        return;
+      }
+
+      setIsActive(true);
+
+      if (!enterEditMode) {
+        return;
+      }
+
+      setIsEditing(true);
+      if (column.editorType === "select") {
+        setSelectOpen(Boolean(openSelect ?? true));
+      } else {
+        setSelectOpen(false);
+      }
+    },
+    [column.editorType, isReadOnly, isSwitchEditor],
+  );
+
   const handleSingleClick = () => {
-    if (isReadOnly || isSwitchEditor) {
-      return;
-    }
-    setIsActive(true);
+    activateCell({ enterEditMode: column.editorType === "select", openSelect: true });
   };
 
   const handleDoubleClick = () => {
-    if (isReadOnly || isSwitchEditor) {
-      return;
-    }
-    setIsActive(true);
-    setIsEditing(true);
-    if (column.editorType === "select") {
-      setSelectOpen(true);
-    }
+    activateCell({ enterEditMode: true, openSelect: column.editorType === "select" });
   };
 
   const handleSwitchToggle = React.useCallback(
@@ -363,12 +379,18 @@ export function EditableGridCell<T>({
               flexAlignClass,
               !flexAlignClass && isSwitchEditor && "justify-center",
               paddingClass,
+              shouldShowSelectIndicator && "pr-8",
             )}
           >
             {displayValue}
           </div>
         )}
         {hasError ? <CellErrorIndicator message={error ?? ""} /> : null}
+        {shouldShowSelectIndicator ? (
+          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-primary">
+            <ChevronDownIcon className="size-4" aria-hidden />
+          </div>
+        ) : null}
       </div>
     </TableCell>
   );
