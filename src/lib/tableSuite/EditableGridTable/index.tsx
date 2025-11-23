@@ -82,7 +82,10 @@ export default function EditableGridTable<T>({
         return null;
       }
 
-      if (headerIconMode === "readonly" && column.editorType === "readonly") {
+      const shouldShowReadonlyIcon = headerIconMode === "readonly" || headerIconMode === "both";
+      const shouldShowEditableIcon = headerIconMode === "editable" || headerIconMode === "both";
+
+      if (shouldShowReadonlyIcon && column.editorType === "readonly") {
         return (
           <span
             aria-label="閲覧のみ"
@@ -94,7 +97,7 @@ export default function EditableGridTable<T>({
         );
       }
 
-      if (headerIconMode === "editable" && column.editorType !== "readonly") {
+      if (shouldShowEditableIcon && column.editorType !== "readonly") {
         return (
           <span
             aria-label="編集可能"
