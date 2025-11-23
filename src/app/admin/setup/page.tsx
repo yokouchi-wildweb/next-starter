@@ -13,7 +13,7 @@ export default async function AdminSetupPage() {
   const hasAdmin = await checkAdminUserExists();
 
   if (hasAdmin) {
-    redirect("/admin");
+    redirect("/admin/login");
   }
 
   return (

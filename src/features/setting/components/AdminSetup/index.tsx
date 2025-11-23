@@ -11,7 +11,7 @@ import type { FormValues } from "@/features/user/components/admin/form/Manageria
 
 import { useAdminSetup } from "@/features/setting/hooks/useAdminSetup";
 
-const REDIRECT_PATH = "/admin";
+const REDIRECT_PATH = "/admin/login";
 
 export default function AdminSetupForm() {
   const router = useRouter();
