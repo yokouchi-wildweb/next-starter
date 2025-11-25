@@ -8,6 +8,11 @@ import { BookmarkTag } from "@/components/Form/Button/BookmarkTag";
 import { RoundedButton } from "@/components/Form/Button/RoundedButton";
 import { Label } from "@/components/Form/Label";
 import { Checkbox } from "@/components/_shadcn/checkbox";
+import {
+  includesOptionValue,
+  serializeOptionValue,
+  toggleOptionValue,
+} from "@/components/Form/utils";
 
 export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "checkbox";
 
@@ -37,29 +42,6 @@ type Props = {
   unselectedButtonVariant?: ButtonStyleProps["variant"];
 } & HTMLAttributes<HTMLDivElement>;
 
-const serializeValue = (value: OptionPrimitive | undefined) =>
-  value === undefined || value === null ? "" : String(value);
-
-function includesValue(values: OptionPrimitive[] | undefined, target: OptionPrimitive) {
-  if (!values || values.length === 0) return false;
-  const targetSerialized = serializeValue(target);
-  return values.some((value) => serializeValue(value) === targetSerialized);
-}
-
-function toggleValue(currentValues: OptionPrimitive[] | undefined, nextValue: OptionPrimitive) {
-  const targetSerialized = serializeValue(nextValue);
-  if (!currentValues || currentValues.length === 0) {
-    return [nextValue];
-  }
-
-  const exists = currentValues.some((value) => serializeValue(value) === targetSerialized);
-  if (exists) {
-    return currentValues.filter((value) => serializeValue(value) !== targetSerialized);
-  }
-
-  return [...currentValues, nextValue];
-}
-
 export function CheckGroupInput({
   field,
   options = [],
@@ -73,16 +55,16 @@ export function CheckGroupInput({
   const groupId = useId();
 
   const handleToggle = (value: OptionPrimitive) => {
-    field.onChange(toggleValue(field.value, value));
+    field.onChange(toggleOptionValue(field.value, value));
   };
 
   if (displayType === "checkbox") {
     return (
       <div className="flex flex-col gap-2" {...rest}>
         {options.map((op) => {
-          const serialized = serializeValue(op.value);
+          const serialized = serializeOptionValue(op.value);
           const id = `${groupId}-${serialized}`;
-          const selected = includesValue(field.value, op.value);
+          const selected = includesOptionValue(field.value, op.value);
 
           return (
             <div key={serialized} className="flex items-center gap-2">
@@ -105,10 +87,10 @@ export function CheckGroupInput({
   return (
     <div className="flex flex-wrap items-start gap-2" {...rest}>
       {options.map((op) => {
-        const selected = includesValue(field.value, op.value);
+        const selected = includesOptionValue(field.value, op.value);
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
         const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
-        const serialized = serializeValue(op.value);
+        const serialized = serializeOptionValue(op.value);
         const handleSelect = () => handleToggle(op.value);
 
         if (displayType === "bookmark") {

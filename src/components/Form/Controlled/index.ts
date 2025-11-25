@@ -16,3 +16,5 @@ export type {
   FileUrlOptions,
   OmittedFileInputProps,
 } from "./FileUrlInput";
+export { MultiSelectInput } from "./MultiSelectInput";
+export type { ControlledMultiSelectInputProps } from "./MultiSelectInput";

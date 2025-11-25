@@ -33,6 +33,7 @@ export type FieldType =
   | "radio"
   | "checkbox"
   | "select"
+  | "multi-select"
   | "switch";
 
 /**

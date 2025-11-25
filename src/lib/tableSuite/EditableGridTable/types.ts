@@ -7,6 +7,7 @@ export type EditableGridEditorType =
   | "text"
   | "number"
   | "select"
+  | "multi-select"
   | "date"
   | "time"
   | "datetime"
@@ -23,7 +24,7 @@ export type EditableGridColumn<T> = {
   options?: Options[];
   getValue?: (row: T) => unknown;
   formatValue?: (value: unknown, row: T) => string;
-  parseValue?: (value: string, row: T) => unknown;
+  parseValue?: (value: unknown, row: T) => unknown;
   validator?: (value: unknown, row: T) => string | null;
   renderDisplay?: (value: unknown, row: T) => React.ReactNode;
   /** action タイプで使用する操作部品のレンダラー */

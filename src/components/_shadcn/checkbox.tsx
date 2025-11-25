@@ -17,15 +17,15 @@ function Checkbox({ className, ...props }: React.ComponentProps<typeof CheckboxP
         className,
       )}
       {...props}
-    >
-      <CheckboxPrimitive.Indicator
-        data-slot="checkbox-indicator"
-        className="flex items-center justify-center text-current transition-none"
       >
-        <CheckIcon className="size-3.5" />
-      </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
-  );
-}
+        <CheckboxPrimitive.Indicator
+          data-slot="checkbox-indicator"
+          className="flex items-center justify-center text-current transition-none"
+        >
+          <CheckIcon className="size-3.5 text-primary-foreground" strokeWidth={2} />
+        </CheckboxPrimitive.Indicator>
+      </CheckboxPrimitive.Root>
+    );
+  }
 
 export { Checkbox };

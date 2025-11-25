@@ -19,7 +19,7 @@ export const formatCellValue = <T,>(row: T, column: EditableGridColumn<T>) => {
   return formatByType(column.editorType, value);
 };
 
-export const parseCellValue = <T,>(inputValue: string, row: T, column: EditableGridColumn<T>) => {
+export const parseCellValue = <T,>(inputValue: unknown, row: T, column: EditableGridColumn<T>) => {
   if (column.parseValue) {
     return column.parseValue(inputValue, row);
   }
@@ -32,6 +32,13 @@ const formatByType = (type: EditableGridEditorType, value: unknown) => {
       return "";
     }
     return String(value);
+  }
+
+  if (type === "multi-select") {
+    if (!Array.isArray(value) || value.length === 0) {
+      return "";
+    }
+    return value.map((entry) => String(entry)).join(", ");
   }
 
   if (type === "date" || type === "time" || type === "datetime") {
@@ -47,13 +54,23 @@ const formatByType = (type: EditableGridEditorType, value: unknown) => {
   return String(value);
 };
 
-const parseByType = (type: EditableGridEditorType, value: string) => {
+const parseByType = (type: EditableGridEditorType, value: unknown) => {
   if (type === "number") {
     if (value === "") {
       return null;
     }
     const parsed = Number(value);
     return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  if (type === "multi-select") {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (value == null || value === "") {
+      return [];
+    }
+    return Array.isArray(value) ? value : [];
   }
 
   if (type === "date" || type === "time" || type === "datetime") {

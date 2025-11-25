@@ -26,6 +26,7 @@ import {
 import {
   BooleanCheckboxInput,
   CheckGroupInput,
+  MultiSelectInput,
   RadioGroupInput,
   SelectInput,
   StepperInput,
@@ -62,6 +63,7 @@ type DemoFormValues = {
   checkGroupBookmark: OptionValue[];
   checkGroupCheckbox: OptionValue[];
   select: OptionValue;
+  multiSelect: OptionValue[];
   number: number | "";
   switch: boolean;
   booleanCheckbox: boolean;
@@ -83,6 +85,7 @@ const defaultValues: DemoFormValues = {
   checkGroupBookmark: [fruitOptions[0]?.value ?? ""],
   checkGroupCheckbox: [fruitOptions[0]?.value ?? ""],
   select: "",
+  multiSelect: [],
   number: 0,
   switch: true,
   booleanCheckbox: false,
@@ -314,6 +317,19 @@ export default function FormComponentsDemoPage() {
                     label="SelectInput"
                     renderInput={(field) => (
                         <SelectInput field={field} options={textOptions} placeholder="選択してください" />
+                    )}
+                />
+
+                <FormFieldItem
+                    control={form.control}
+                    name="multiSelect"
+                    label="MultiSelectInput"
+                    renderInput={(field) => (
+                        <MultiSelectInput
+                            field={field}
+                            options={textOptions}
+                            placeholder="複数選択してください"
+                        />
                     )}
                 />
 

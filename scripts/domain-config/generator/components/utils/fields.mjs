@@ -158,6 +158,18 @@ function generateFieldsFromConfig(config) {
           }).trimEnd(),
         );
         break;
+      case "multiSelect": {
+        addImport('import { MultiSelectInput } from "@/components/Form/Manual";');
+        const multiSelectOptions = f.options && f.options.length ? JSON.stringify(f.options) : "[]";
+        body.push(
+          replacePartialTokens(getPartial("multiSelect.tsx"), {
+            fieldName: f.name,
+            label: f.label,
+            options: multiSelectOptions,
+          }).trimEnd(),
+        );
+        break;
+      }
       case "radio": {
         if (f.fieldType === "boolean") {
           addImport('import { BooleanRadioGroupInput } from "@/components/Form/Manual";');

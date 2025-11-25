@@ -2,6 +2,8 @@
 
 import React from "react";
 import { Input } from "@/components/Form/Manual";
+import { MultiSelectInput } from "@/components/Form/Manual/MultiSelectInput";
+import type { MultiSelectInputProps } from "@/components/Form/Manual/MultiSelectInput";
 import { SwitchInput as ManualSwitchInput } from "@/components/Form/Manual/SwitchInput";
 import {
   Select,
@@ -12,6 +14,11 @@ import {
 } from "@/components/_shadcn/select";
 import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
+import {
+  normalizeOptionValues,
+  serializeOptionValue,
+  type OptionPrimitive,
+} from "@/components/Form/utils";
 
 import { TableCell, TableCellAction } from "@/lib/tableSuite/DataTable/components";
 import { resolveColumnFlexAlignClass, resolveColumnTextAlignClass } from "../../types";
@@ -53,28 +60,45 @@ export function EditableGridCell<T>({
   const rawValue = React.useMemo(() => readCellValue(row, column), [column, row]);
   const baseValue = React.useMemo(() => formatCellValue(row, column), [column, row]);
   const [draftValue, setDraftValue] = React.useState<string | null>(null);
+  const [multiDraftValue, setMultiDraftValue] = React.useState<OptionPrimitive[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isActive, setIsActive] = React.useState(false);
   const cellRef = React.useRef<HTMLTableCellElement | null>(null);
-  const [selectOpen, setSelectOpen] = React.useState(false);
+  const [popupOpen, setPopupOpen] = React.useState(false);
   const isActionEditor = column.editorType === "action";
   const isReadOnly = column.editorType === "readonly" || isActionEditor;
   const isSwitchEditor = column.editorType === "switch";
   const isSelectEditor = column.editorType === "select";
+  const isMultiSelectEditor = column.editorType === "multi-select";
   const switchPreviousValue = React.useMemo(() => Boolean(rawValue), [rawValue]);
   const textAlignClass = resolveColumnTextAlignClass(column.align);
   const flexAlignClass = resolveColumnFlexAlignClass(column.align);
   const shouldShowSelectIndicator = isSelectEditor && !isEditing && !isReadOnly;
 
   const inputValue = draftValue ?? baseValue ?? "";
+  const normalizedMultiValue = React.useMemo(() => {
+    if (!isMultiSelectEditor) {
+      return [];
+    }
+    if (multiDraftValue) {
+      return multiDraftValue;
+    }
+    return normalizeOptionValues((rawValue as OptionPrimitive[] | null) ?? null);
+  }, [isMultiSelectEditor, multiDraftValue, rawValue]);
 
   React.useEffect(() => {
     if (draftValue === null) {
       setError(null);
     }
   }, [baseValue, draftValue]);
+
+  React.useEffect(() => {
+    if (!isEditing || !isMultiSelectEditor) {
+      setMultiDraftValue(null);
+    }
+  }, [isEditing, isMultiSelectEditor]);
 
   React.useEffect(() => {
     if (isEditing) {
@@ -86,8 +110,8 @@ export function EditableGridCell<T>({
   const cellKey = `${String(rowKey)}-${column.field}`;
 
   const handleCommit = React.useCallback(
-    (next?: string) => {
-      const pendingValue = next ?? inputValue;
+    (next?: unknown, options?: { keepEditing?: boolean; skipDraftReset?: boolean }) => {
+      const pendingValue = typeof next === "undefined" ? inputValue : next;
       const normalized = parseCellValue(pendingValue, row, column);
       const errorMessage = column.validator ? column.validator(normalized, row) : null;
 
@@ -97,9 +121,13 @@ export function EditableGridCell<T>({
       }
 
       setError(null);
-      setDraftValue(null);
-      setIsEditing(false);
-      setSelectOpen(false);
+      if (!options?.skipDraftReset) {
+        setDraftValue(null);
+      }
+      if (!options?.keepEditing) {
+        setIsEditing(false);
+        setPopupOpen(false);
+      }
       onValidChange?.(normalized);
     },
     [column, inputValue, onValidChange, row],
@@ -107,9 +135,10 @@ export function EditableGridCell<T>({
 
   const handleCancel = () => {
     setDraftValue(null);
+    setMultiDraftValue(null);
     setError(null);
     setIsEditing(false);
-    setSelectOpen(false);
+    setPopupOpen(false);
   };
 
   const paddingClass = rowHeightToPadding[rowHeight] ?? rowHeightToPadding.md;
@@ -141,6 +170,14 @@ export function EditableGridCell<T>({
     },
   };
 
+  const handleMultiSelectChange = React.useCallback(
+    (values: OptionPrimitive[]) => {
+      setMultiDraftValue(values);
+      handleCommit(values, { keepEditing: true, skipDraftReset: true });
+    },
+    [handleCommit],
+  );
+
   const renderEditor = () => {
     switch (column.editorType) {
       case "text":
@@ -152,13 +189,13 @@ export function EditableGridCell<T>({
 
         return (
           <Select
-            open={selectOpen}
+            open={popupOpen}
             onOpenChange={(open) => {
               if (!isEditing) {
-                setSelectOpen(false);
+                setPopupOpen(false);
                 return;
               }
-              setSelectOpen(open);
+              setPopupOpen(open);
             }}
             value={selectValue}
             onValueChange={(value) => {
@@ -193,6 +230,36 @@ export function EditableGridCell<T>({
             </SelectContent>
           </Select>
         );
+      case "multi-select": {
+        const fieldName = `${String(rowKey)}-${column.field}`;
+        return (
+          <div className="w-full px-2 py-1">
+            <MultiSelectInput
+              field={{
+                value: normalizedMultiValue,
+                name: fieldName,
+                onChange: handleMultiSelectChange,
+              }}
+              options={column.options ?? []}
+              placeholder={fallbackPlaceholder}
+              open={popupOpen}
+              onOpenChange={(nextOpen) => {
+                if (!isEditing) {
+                  setPopupOpen(false);
+                  return;
+                }
+                setPopupOpen(nextOpen);
+              }}
+              popoverContentProps={
+                {
+                  [POPUP_ATTR]: cellKey,
+                } as MultiSelectInputProps["popoverContentProps"]
+              }
+              className="w-full"
+            />
+          </div>
+        );
+      }
       case "date":
         return (
           <Input
@@ -244,10 +311,30 @@ export function EditableGridCell<T>({
       return column.renderDisplay(rawValue, row);
     }
     if (column.editorType === "select" && column.options) {
-      const option = column.options.find((op) => op.value === String(rawValue));
+      const serializedRaw = serializeOptionValue(rawValue as OptionPrimitive | null | undefined);
+      const option = column.options.find(
+        (op) => serializeOptionValue(op.value as OptionPrimitive) === serializedRaw,
+      );
       if (option) {
         return option.label;
       }
+    }
+    if (column.editorType === "multi-select" && column.options) {
+      const values = Array.isArray(rawValue) ? (rawValue as OptionPrimitive[]) : [];
+      if (values.length === 0) {
+        return fallbackPlaceholder;
+      }
+      const labels = values.map((entry) => {
+        const serializedValue = serializeOptionValue(entry);
+        const match = column.options?.find(
+          (op) => serializeOptionValue(op.value as OptionPrimitive) === serializedValue,
+        );
+        return match?.label ?? serializedValue;
+      });
+      return labels.join(", ");
+    }
+    if (column.editorType === "multi-select" && Array.isArray(rawValue)) {
+      return rawValue.map((entry) => String(entry)).join(", ") || fallbackPlaceholder;
     }
     return baseValue || fallbackPlaceholder;
   }, [baseValue, column, fallbackPlaceholder, rawValue, row]);
@@ -265,21 +352,26 @@ export function EditableGridCell<T>({
       }
 
       setIsEditing(true);
-      if (column.editorType === "select") {
-        setSelectOpen(Boolean(openSelect ?? true));
+      if (column.editorType === "select" || column.editorType === "multi-select") {
+        setPopupOpen(Boolean(openSelect ?? true));
       } else {
-        setSelectOpen(false);
+        setPopupOpen(false);
       }
     },
     [column.editorType, isReadOnly, isSwitchEditor],
   );
 
   const handleSingleClick = () => {
-    activateCell({ enterEditMode: column.editorType === "select", openSelect: true });
+    const isPopupEditor = column.editorType === "select" || column.editorType === "multi-select";
+    activateCell({
+      enterEditMode: isPopupEditor,
+      openSelect: isPopupEditor,
+    });
   };
 
   const handleDoubleClick = () => {
-    activateCell({ enterEditMode: true, openSelect: column.editorType === "select" });
+    const isPopupEditor = column.editorType === "select" || column.editorType === "multi-select";
+    activateCell({ enterEditMode: true, openSelect: isPopupEditor });
   };
 
   const handleSwitchToggle = React.useCallback(
@@ -305,7 +397,7 @@ export function EditableGridCell<T>({
           }
           setIsActive(true);
           setIsEditing(false);
-          setSelectOpen(false);
+          setPopupOpen(false);
           onValidChange?.(nextValue);
         })
         .catch((error) => {
@@ -328,17 +420,21 @@ export function EditableGridCell<T>({
       }
       if (!cellRef.current.contains(target as Node)) {
         if (isEditing) {
-          handleCommit();
+          if (isMultiSelectEditor) {
+            handleCommit(normalizedMultiValue);
+          } else {
+            handleCommit();
+          }
         }
         setIsActive(false);
         setIsEditing(false);
-        setSelectOpen(false);
+        setPopupOpen(false);
       }
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [handleCommit, isEditing]);
+  }, [handleCommit, isEditing, isMultiSelectEditor, normalizedMultiValue]);
 
   const shouldRenderEditor = (isEditing || isSwitchEditor) && !isActionEditor;
 
