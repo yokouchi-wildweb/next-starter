@@ -74,7 +74,20 @@ const parseByType = (type: EditableGridEditorType, value: unknown) => {
   }
 
   if (type === "date" || type === "time" || type === "datetime") {
-    return value === "" ? null : value;
+    if (value === "" || value === null || value === undefined) {
+      return null;
+    }
+    if (value instanceof Date) {
+      return value;
+    }
+    if (isDayjs(value)) {
+      return value.toDate();
+    }
+    if (typeof value === "string" || typeof value === "number") {
+      const parsed = dayjs(value);
+      return parsed.isValid() ? parsed.toDate() : null;
+    }
+    return null;
   }
 
   return value;

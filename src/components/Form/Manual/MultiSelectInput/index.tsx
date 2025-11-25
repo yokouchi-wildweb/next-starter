@@ -78,7 +78,7 @@ export function MultiSelectInput({
           <MultiSelectTrigger
             placeholder={placeholder}
             selectedCount={selectedCount}
-            open={open}
+            open={resolvedOpen}
             disabled={disabled}
           />
         </PopoverTrigger>

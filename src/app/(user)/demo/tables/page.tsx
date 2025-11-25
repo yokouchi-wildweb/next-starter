@@ -236,7 +236,6 @@ export default function TablesDemoPage() {
         header: "最終更新日時",
         editorType: "datetime",
         placeholder: "日時を選択",
-        parseValue: (value) => (value ? new Date(value) : null),
       },
       {
         field: "action",
