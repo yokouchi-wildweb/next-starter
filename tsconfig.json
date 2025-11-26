@@ -40,6 +40,7 @@
     "node_modules",
     "src/_stash",
     "src/features/_template",
-    "src/app/admin/_template"
+    "src/app/admin/_template",
+    "TODO.ts"
   ]
 }
