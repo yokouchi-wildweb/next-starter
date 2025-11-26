@@ -107,16 +107,21 @@ export default async function askRelations(config) {
     if (!trimmedDomain) break;
     const normalizedDomain = toSnakeCase(trimmedDomain);
 
+    const relationChoices = [
+      { name: '参照（belongsTo）', value: 'belongsTo' },
+      { name: '子リスト（hasMany）', value: 'hasMany' },
+      { name: '1対1（hasOne）', value: 'hasOne' },
+    ];
+
+    if (config?.dbEngine === 'Neon') {
+      relationChoices.splice(2, 0, { name: '多対多（belongsToMany）', value: 'belongsToMany' });
+    }
+
     const { relationType } = await prompt({
       type: 'list',
       name: 'relationType',
       message: 'リレーション種別を選択:',
-      choices: [
-        { name: '参照（belongsTo）', value: 'belongsTo' },
-        { name: '子リスト（hasMany）', value: 'hasMany' },
-        { name: '多対多（belongsToMany）', value: 'belongsToMany' },
-        { name: '1対1（hasOne）', value: 'hasOne' },
-      ],
+      choices: relationChoices,
     });
 
     const { label } = await prompt({
