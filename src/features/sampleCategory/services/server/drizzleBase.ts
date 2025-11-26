@@ -3,7 +3,7 @@
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
-import type { CreateCrudServiceOptions } from "@/lib/crud/types";
+import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 
 const baseOptions = {
   idType: "uuid",
@@ -19,7 +19,7 @@ const baseOptions = {
       "DESC"
     ]
   ]
-} satisfies CreateCrudServiceOptions;
+} satisfies DrizzleCrudServiceOptions;
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
