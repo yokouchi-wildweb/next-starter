@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
+import { resolveFeatureTemplatePath } from "../../utils/pathHelpers.mjs";
 
-const templateDir = path.join(process.cwd(), "src", "features", "_template", "components");
+const templateDir = resolveFeatureTemplatePath("components");
 const partialDir = path.join(templateDir, "_partial");
 
 const partialCache = {};

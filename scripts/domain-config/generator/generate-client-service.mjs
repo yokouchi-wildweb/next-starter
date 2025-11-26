@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { toCamelCase, toPascalCase, toSnakeCase } from '../../../src/utils/stringCase.mjs';
+import { resolveFeaturePath, resolveFeatureTemplatePath } from './utils/pathHelpers.mjs';
 
 //
 // Client service generator
@@ -26,16 +27,8 @@ const normalized = toSnakeCase(domain) || domain;
 const camel = toCamelCase(normalized) || normalized;
 const pascal = toPascalCase(normalized) || normalized;
 
-const templatePath = path.join(
-  process.cwd(),
-  'src',
-  'features',
-  '_template',
-  'services',
-  'client',
-  '__domain__Client.ts'
-);
-const outputDir = path.join(process.cwd(), 'src', 'features', camel, 'services', 'client');
+const templatePath = resolveFeatureTemplatePath('services', 'client', '__domain__Client.ts');
+const outputDir = path.join(resolveFeaturePath(camel), 'services', 'client');
 const outputFile = path.join(outputDir, `${camel}Client.ts`);
 
 // テンプレートファイルが存在するかを確認し、無ければエラー終了

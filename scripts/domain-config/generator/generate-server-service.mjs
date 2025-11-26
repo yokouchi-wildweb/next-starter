@@ -7,6 +7,7 @@ import {
   toPascalCase,
   toSnakeCase,
 } from "../../../src/utils/stringCase.mjs";
+import { resolveFeaturePath, resolveFeatureTemplatePath } from "./utils/pathHelpers.mjs";
 
 //
 // サーバーサービス生成スクリプト
@@ -49,35 +50,22 @@ const pascal = toPascalCase(normalized) || normalized;
 const camelPlural = pluralArg ? toCamelCase(pluralArg) : toPlural(camel);
 const pascalPlural = pluralArg ? toPascalCase(pluralArg) : toPlural(pascal);
 
-const baseTemplateDir = path.join(process.cwd(), "src", "features", "_template", "services", "server");
+const baseTemplateDir = resolveFeatureTemplatePath("services", "server");
 
-const camelDir = path.join(process.cwd(), "src", "features", camel);
+const camelDir = resolveFeaturePath(camel);
 const configPath = path.join(camelDir, "domain.json");
 let dbEngine = "";
 let serviceOptions = {};
 if (fs.existsSync(configPath)) {
   const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
   dbEngine = cfg.dbEngine || "";
-  if (cfg.idType) serviceOptions.idType = cfg.idType;
-  if (cfg.useCreatedAt) serviceOptions.useCreatedAt = true;
-  if (cfg.useUpdatedAt) serviceOptions.useUpdatedAt = true;
-  if (Array.isArray(cfg.searchFields) && cfg.searchFields.length)
-    serviceOptions.defaultSearchFields = cfg.searchFields;
-  if (Array.isArray(cfg.defaultOrderBy) && cfg.defaultOrderBy.length)
-    serviceOptions.defaultOrderBy = cfg.defaultOrderBy;
+  serviceOptions = collectServiceOptions(cfg);
 }
 // コマンドラインで指定された場合は設定より優先
 if (dbEngineArg) dbEngine = dbEngineArg;
 
 const templateDir = baseTemplateDir;
-const outputDir = path.join(
-  process.cwd(),
-  "src",
-  "features",
-  camel,
-  "services",
-  "server"
-);
+const outputDir = path.join(camelDir, "services", "server");
 const wrapperDir = path.join(outputDir, "wrappers");
 
 const baseFile = dbEngine === "Firestore" ? "firestoreBase.ts" : "drizzleBase.ts";
@@ -90,6 +78,21 @@ function optionsToString(obj) {
 }
 
 const optionsString = optionsToString(serviceOptions);
+
+function collectServiceOptions(config) {
+  if (!config) return {};
+  const options = {};
+  if (config.idType) options.idType = config.idType;
+  if (config.useCreatedAt) options.useCreatedAt = true;
+  if (config.useUpdatedAt) options.useUpdatedAt = true;
+  if (Array.isArray(config.searchFields) && config.searchFields.length) {
+    options.defaultSearchFields = config.searchFields;
+  }
+  if (Array.isArray(config.defaultOrderBy) && config.defaultOrderBy.length) {
+    options.defaultOrderBy = config.defaultOrderBy;
+  }
+  return options;
+}
 
 // テンプレート文字列内のトークンを置換
 function replaceTokens(content) {
