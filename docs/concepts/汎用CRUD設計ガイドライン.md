@@ -66,17 +66,14 @@ registry/
 ## 4. 共通 CRUD 基盤（src/lib/crud）
 
 ### 4.1 Drizzle 用サービス
-- `createCrudService` は Drizzle のテーブルを受け取り 
-`create / list / get / update / remove / search / query / bulkDeleteByIds / bulkDeleteByQuery / upsert` をまとめて提供します。
-- ID の採番方法（UUID・DB 自動採番など）、既定の並び順、検索対象カラムなどはオプションで指定できます。
-- `search` では `searchQuery` と `searchFields` を組み合わせたあいまい検索、`where` 句での詳細な条件、`orderBy` やページングの指定が可能です。
-- `query` を使うと、ドメイン固有の JOIN や複雑な集計を行いつつ、共通のページング処理だけを流用できます。
-- `update` や `upsert` では、`null` を渡したフィールドは空値で上書きし、`undefined` を渡したフィールドは既存値を保持します。
+- `createCrudService` は Drizzle のテーブルとオプションを受け取り、`create / list / get / update / remove / search / query / bulkDeleteByIds / bulkDeleteByQuery / upsert` をまとめて提供します。
+- ID の採番方法（UUID・DB 自動採番など）、既定の並び順、検索対象カラム、`searchPriorityFields` などの挙動は `DrizzleCrudServiceOptions` で制御します。
+- `belongsToManyRelations` を指定すると、中間テーブルの insert/delete を自動同期し、取得系メソッドでも関連 ID 配列を水和します。domain-config で多対多リレーションを定義したドメインは、生成直後からこの機能が有効です。
+- `search` では `searchQuery` と `searchFields` を組み合わせたあいまい検索、`where` 句での詳細な条件、`orderBy` や優先度付けが可能です。`query` を使うと、ドメイン固有の JOIN や複雑な集計を行いつつ、共通のページング処理だけを流用できます。
 
 ### 4.2 Firestore 用サービス
-- Firestore 向けにも同じインターフェースの `createCrudService` を用意しています。
-- ドキュメント ID の採番方法（UUID・Firestore の自動 ID・任意 ID）を選べます。
-- 検索は単純な一致検索＋並び替えに限定されます。複雑なフィルターが必要な場合は Firestore 特有の制約を踏まえて個別実装を検討してください。
+- Firestore 向けにも同じインターフェースの `createCrudService` を用意しています。ドキュメント ID の採番方法（UUID・Firestore の自動 ID・任意 ID）を選べます。
+- ただし検索は単純な一致検索＋単一列の並び替えに限定され、`where` の `or` や多対多リレーションの自動同期はサポートしていません。ドメイン設定時に Firestore を選んだ場合は `belongsToMany` の選択肢自体が表示されないため、複雑なリレーションが必要な場合は Drizzle を利用してください。
 
 ### 4.3 共通ユーティリティ
 - `apiClientFactory.ts`: Axios を使った `createApiClient` を提供し、HTTP リクエスト時に CRUD 成功/失敗イベントを発火します。
@@ -125,7 +122,7 @@ registry/
 
 ### 6.3 サーバーサービス
 1. **ベースサービスを選ぶ**
-   - SQL（Neon/PostgreSQL）の場合は `services/server/base.ts` もしくは `services/server/drizzleBase.ts` で `createCrudService`（Drizzle 版）を呼び出します。
+   - SQL（Neon/PostgreSQL）の場合は `services/server/base.ts` もしくは `services/server/drizzleBase.ts` で `createCrudService`（Drizzle 版）を呼び出します。domain-config で多対多リレーションを選択した場合は、自動的に `belongsToManyRelations` の設定と中間テーブル import が埋め込まれます。
    - Firestore の場合は `services/server/firestoreBase.ts` で Firestore 版を呼び出します。
    - 生成済みのドメインではこれらのファイルが用意されているので、ID の採番方法や検索対象カラム、デフォルトの並び順などをここで調整します。
 2. **サービス公開ファイル**
@@ -176,7 +173,7 @@ registry/
 - ID は UUID か自動採番のどちらかで問題ない
 - 一覧画面の並び順や検索条件が単純（単一テーブルのカラムのみ）
 - 関連テーブルの更新や外部サービス連携が不要
-- Firestore なら単純なフィールド一致検索だけで足りる
+- Firestore で構築しており、単純な一致検索と AND 条件だけで要件を満たせる
 
 ---
 
@@ -187,7 +184,7 @@ registry/
 - **複数テーブルを結合したい**: `base.query()` に独自の SELECT を渡してページングだけ共通化します。
 - **関連テーブルも同時に更新したい**: 作成・更新処理をラップし、関連テーブルへの INSERT/DELETE を明示的に書きます。
 - **外部ストレージや別サービスと連携したい**: 削除時にファイルを削除するなど、ベースサービスの後に追加処理を挟みます。
-- **Firestore で高度な検索が必要**: Firestore の制約で対応できない場合は Cloud Functions など別手段を検討するか、Drizzle への移行を検討します。
+- **Firestore で高度な検索や多対多が必要**: 現状の汎用 CRUD では対応できないため、Drizzle への移行や個別実装を検討します。
 
 ---
 
@@ -204,6 +201,7 @@ registry/
 
 - 並び替えとフィルターの組み合わせには Firestore の制約があるため、`search` メソッドでは単純な一致検索＋ 1 フィールドでの orderBy のみサポートしています。
 - ページングはクエリ結果をクライアント側で分割する方式です。大量データを扱う場合は、カーソルを使った実装に切り替えるなどの改善を検討してください。
+- 多対多リレーションの自動同期には対応していません。domain-config でも Firestore を選ぶと `belongsToMany` の選択肢が表示されないため、複雑なリレーションが必要な場合は Drizzle を利用してください。
 
 ---
 
