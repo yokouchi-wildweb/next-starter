@@ -214,7 +214,7 @@ export function BaseSidebar({
                       }}
                       className={cn(
                         adminSidebarButtonClassName,
-                        "cursor-default outline-none focus-visible:bg-sidebar-accent focus-visible:text-sidebar-accent-foreground",
+                        "cursor-default outline-none focus-visible:bg-sidebar-primary focus-visible:text-sidebar-primary-foreground",
                       )}
                     >
                       {section.title}

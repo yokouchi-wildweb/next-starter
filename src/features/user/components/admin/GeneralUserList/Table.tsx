@@ -12,8 +12,8 @@ import EditButton from "@/components/Fanctional/EditButton";
 import { useDeleteUser } from "@/features/user/hooks/useDeleteUser";
 import type { User } from "@/features/user/entities";
 import { formatDateJa } from "@/utils/date";
-import type { UserStatus } from "@/types/user";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
+import { formatUserStatusLabel } from "@/features/user/constants/status";
 
 type Props = {
   users: User[];
@@ -23,13 +23,6 @@ type Props = {
 const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
-const USER_STATUS_LABELS: Record<UserStatus, string> = {
-  pending: "仮登録",
-  active: "有効",
-  inactive: "停止中",
-  locked: "ロック中",
-};
-
 const formatDateCell = (date: Date | string | null | undefined) => {
   const formatted = formatDateJa(date, { fallback: null });
   return formatted;
@@ -38,7 +31,7 @@ const formatDateCell = (date: Date | string | null | undefined) => {
 const createColumns = (editBasePath: string): DataTableColumn<User>[] => [
   {
     header: "ステータス",
-    render: (user) => USER_STATUS_LABELS[user.status] ?? user.status,
+    render: (user) => formatUserStatusLabel(user.status, user.status),
   },
   {
     header: "表示名",

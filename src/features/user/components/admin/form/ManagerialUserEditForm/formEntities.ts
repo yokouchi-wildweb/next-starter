@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { User } from "@/features/user/entities";
+import { USER_STATUSES } from "@/constants/user";
 
 const displayNameSchema = z.string();
 
@@ -14,6 +15,7 @@ export const FormSchema = z.object({
   displayName: displayNameSchema,
   email: emailSchema,
   role: z.literal("admin"),
+  status: z.enum(USER_STATUSES),
 });
 
 export type FormValues = z.infer<typeof FormSchema>;
@@ -22,4 +24,5 @@ export const createDefaultValues = (user: User): FormValues => ({
   displayName: user.displayName ?? "",
   email: user.email ?? "",
   role: "admin",
+  status: user.status,
 });

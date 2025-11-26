@@ -9,8 +9,9 @@ import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import { buttonVariants } from "@/components/Form/Button/Button";
 import { USER_ROLE_OPTIONS } from "@/constants/user";
 import type { User } from "@/features/user/entities";
-import type { UserRoleType, UserStatus } from "@/types/user";
+import type { UserRoleType } from "@/types/user";
 import { formatDateJa } from "@/utils/date";
+import { formatUserStatusLabel } from "@/features/user/constants/status";
 
 import { UserInfoTable, type UserInfoRow } from "./UserInfoTable";
 
@@ -18,21 +19,10 @@ type UserMyPageProps = {
   user: User;
 };
 
-const USER_STATUS_LABELS: Record<UserStatus, string> = {
-  pending: "仮登録",
-  active: "有効",
-  inactive: "停止中",
-  locked: "ロック中",
-};
-
 const roleLabelMap = new Map<UserRoleType, string>(USER_ROLE_OPTIONS.map((option) => [option.id, option.name]));
 
 function resolveRoleLabel(role: UserRoleType): string {
   return roleLabelMap.get(role) ?? role;
-}
-
-function resolveStatusLabel(status: UserStatus): string {
-  return USER_STATUS_LABELS[status] ?? status;
 }
 
 function formatLastAuthenticatedAt(date: User["lastAuthenticatedAt"]): string {
@@ -51,7 +41,7 @@ export default function UserMyPage({ user }: UserMyPageProps) {
     { label: "ユーザーID", value: user.id },
     { label: "表示名", value: user.displayName ?? "未設定" },
     { label: "権限", value: resolveRoleLabel(user.role) },
-    { label: "ステータス", value: resolveStatusLabel(user.status) },
+    { label: "ステータス", value: formatUserStatusLabel(user.status, user.status ?? "未設定") },
     { label: "プロバイダータイプ", value: user.providerType },
     { label: "メールアドレス", value: user.email ?? "未設定" },
     { label: "最終認証日時", value: formatLastAuthenticatedAt(user.lastAuthenticatedAt) },
