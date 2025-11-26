@@ -10,6 +10,7 @@ import type {
 } from "@/components/Overlays/DetailModal";
 import { useSample } from "./useSample";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
+import { useSampleTagList } from "@/features/sampleTag/hooks/useSampleTagList";
 
 
 export type SampleViewModal = {
@@ -23,6 +24,7 @@ export type SampleViewModal = {
 export const useSampleViewModal = (sampleId: string | null) => {
   const { data: sample, isLoading } = useSample(sampleId);
   const { data: sampleCategories = [] } = useSampleCategoryList();
+  const { data: sampleTags = [] } = useSampleTagList();
 
 
   const viewModel = useMemo<SampleViewModal | null>(() => {
@@ -32,6 +34,7 @@ export const useSampleViewModal = (sampleId: string | null) => {
 
     const relationSummary = Object.entries({
       sampleCategories,
+      sampleTags,
     })
       .map(([key, items]) => `${key}: ${Array.isArray(items) ? items.length : 0}件`)
       .join(" / ");
@@ -86,6 +89,7 @@ export const useSampleViewModal = (sampleId: string | null) => {
   }, [
     sample,
     sampleCategories,
+    sampleTags,
   ]);
 
   return {

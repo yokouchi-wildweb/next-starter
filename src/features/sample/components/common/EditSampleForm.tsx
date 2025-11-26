@@ -12,6 +12,7 @@ import { SampleForm } from "./SampleForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
+import { useSampleTagList } from "@/features/sampleTag/hooks/useSampleTagList";
 import { useImageUploaderField } from "@/hooks/useImageUploaderField";
 import { err } from "@/lib/errors";
 
@@ -27,6 +28,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
     shouldUnregister: false,
     defaultValues: {
       sample_category_id: sample.sample_category_id ?? "",
+      sample_tag_ids: sample.sample_tag_ids ?? [],
       name: sample.name ?? "",
       number: sample.number ?? undefined,
       rich_number: sample.rich_number ?? undefined,
@@ -40,8 +42,10 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   });
 
     const { data: sampleCategories = [] } = useSampleCategoryList({ suspense: true });
+  const { data: sampleTags = [] } = useSampleTagList({ suspense: true });
 
   const sampleCategoryOptions = sampleCategories.map((v) => ({ value: v.id, label: v.name }));
+  const sampleTagOptions = sampleTags.map((v) => ({ value: v.id, label: v.name }));
 
   const { upload: uploadMain, remove: removeMain } = useImageUploaderField(methods, "main_image", "sample/main", false);
 
@@ -65,6 +69,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
       onSubmitAction={submit}
       isMutating={isMutating}
       sampleCategoryOptions={sampleCategoryOptions}
+      sampleTagOptions={sampleTagOptions}
       onUploadMain={uploadMain}
       onDeleteMain={removeMain}
       submitLabel="更新"

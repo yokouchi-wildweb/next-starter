@@ -7,6 +7,7 @@ import { Main } from "@/components/TextBlocks";
 import type { Sample } from "@/features/sample/entities";
 import { SWRConfig } from "swr";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
+import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 
 export const metadata = {
   title: "サンプル編集",
@@ -18,16 +19,17 @@ type Props = {
 
 export default async function AdminSampleEditPage({ params }: Props) {
   const { id } = await params;
-  const [sample, sampleCategories ] = await Promise.all([
+  const [sample, sampleCategories, sampleTags ] = await Promise.all([
     sampleService.get(id),
-    sampleCategoryService.list()
+    sampleCategoryService.list(),
+    sampleTagService.list()
   ]);
 
 
   return (
   <SWRConfig
     value={{
-      fallback: { sampleCategories },
+      fallback: { sampleCategories, sampleTags },
   }}
   >
 

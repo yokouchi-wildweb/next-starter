@@ -76,6 +76,8 @@ async function askSingleRelation(config, domain, label, relationType) {
       default: true,
     });
     includeRelationTable = res.includeRelationTable;
+    required = false;
+    onDeleteCascade = false;
   }
 
   const defaultLabel = toPascalCase(domain) || domain;

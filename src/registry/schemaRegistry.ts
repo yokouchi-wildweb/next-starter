@@ -8,6 +8,7 @@ export * from "@/features/user/entities/drizzle";
 export * from "@/features/setting/entities/drizzle";
 export * from "@/features/sampleCategory/entities/drizzle";
 export * from "@/features/sample/entities/drizzle";
+export * from "@/features/sampleTag/entities/drizzle";
 // --- AUTO-GENERATED-END ---
 
 export {};

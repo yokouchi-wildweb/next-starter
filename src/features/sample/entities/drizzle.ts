@@ -1,7 +1,8 @@
 // src/features/sample/entities/drizzle.ts
 
-import { boolean, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
+import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 
 export const SampleSelectEnum = pgEnum("sample_select_enum", ["apple", "orange", "berry"]);
 
@@ -21,3 +22,18 @@ export const SampleTable = pgTable("samples", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
+
+export const SampleToSampleTagTable = pgTable(
+  "sample_to_sample_tag",
+  {
+    sampleId: uuid("sample_id")
+      .notNull()
+      .references(() => SampleTable.id, { onDelete: "cascade" }),
+    sampleTagId: uuid("sample_tag_id")
+      .notNull()
+      .references(() => SampleTagTable.id, { onDelete: "cascade" }),
+  },
+  (table) => {
+    return { pk: primaryKey({ columns: [table.sampleId, table.sampleTagId] }) };
+  },
+);

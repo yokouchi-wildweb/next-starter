@@ -1,6 +1,6 @@
 // src/features/sample/services/server/drizzleBase.ts
 
-import { SampleTable } from "@/features/sample/entities/drizzle";
+import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/drizzle";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
@@ -18,7 +18,17 @@ const baseOptions = {
       "updatedAt",
       "DESC"
     ]
-  ]
+  ],
+  belongsToManyRelations: [
+  {
+    fieldName: "sample_tag_ids",
+    throughTable: SampleToSampleTagTable,
+    sourceColumn: SampleToSampleTagTable.sampleId,
+    targetColumn: SampleToSampleTagTable.sampleTagId,
+    sourceProperty: "sampleId",
+    targetProperty: "sampleTagId",
+  }
+  ],
 } satisfies DrizzleCrudServiceOptions;
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。

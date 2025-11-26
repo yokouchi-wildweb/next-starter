@@ -18,7 +18,7 @@ const baseOptions = {
       "updatedAt",
       "DESC"
     ]
-  ]
+  ],
 } satisfies DrizzleCrudServiceOptions;
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。

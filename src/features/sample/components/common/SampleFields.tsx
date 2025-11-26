@@ -3,6 +3,7 @@
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { SelectInput } from "@/components/Form/Manual";
+import { CheckGroupInput } from "@/components/Form/Manual";
 import { TextInput } from "@/components/Form/Controlled";
 import { NumberInput } from "@/components/Form/Controlled";
 import StepperInput from "@/components/Form/Manual/StepperInput";
@@ -17,6 +18,7 @@ import type { Options } from "@/types/form";
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
   sampleCategoryOptions?: Options[];
+  sampleTagOptions?: Options[];
   /** 既存のメイン画像 URL (編集時のプレビュー用) */
   main_image?: string | null;
   onPendingChange?: (pending: boolean) => void;
@@ -27,6 +29,7 @@ export type SampleFieldsProps<TFieldValues extends FieldValues> = {
 export function SampleFields<TFieldValues extends FieldValues>({
   control,
   sampleCategoryOptions,
+  sampleTagOptions,
   onPendingChange,
   main_image,
   onUploadMain,
@@ -39,6 +42,12 @@ export function SampleFields<TFieldValues extends FieldValues>({
         name={"sample_category_id" as FieldPath<TFieldValues>}
         label="サンプルカテゴリ"
         renderInput={(field) => <SelectInput field={field} options={sampleCategoryOptions} />}
+      />
+      <FormFieldItem
+        control={control}
+        name={"sample_tag_ids" as FieldPath<TFieldValues>}
+        label="サンプルタグ"
+        renderInput={(field) => <CheckGroupInput field={field as any} options={sampleTagOptions} />}
       />
       <FormFieldItem
         control={control}
