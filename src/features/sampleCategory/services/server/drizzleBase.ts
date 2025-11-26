@@ -20,7 +20,9 @@ const baseOptions = {
       "DESC"
     ]
   ],
-} satisfies DrizzleCrudServiceOptions<z.infer<typeof SampleCategoryCreateSchema>>;
+} satisfies DrizzleCrudServiceOptions<
+  z.infer<typeof SampleCategoryCreateSchema>
+>;
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は

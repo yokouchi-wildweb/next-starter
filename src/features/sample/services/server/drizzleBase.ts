@@ -30,7 +30,9 @@ const baseOptions = {
     targetProperty: "sampleTagId",
   }
   ],
-} satisfies DrizzleCrudServiceOptions<z.infer<typeof SampleCreateSchema>>;
+} satisfies DrizzleCrudServiceOptions<
+  z.infer<typeof SampleCreateSchema>
+>;
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
