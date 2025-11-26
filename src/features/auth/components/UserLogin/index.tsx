@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
-import { Input } from "src/components/Form/Manual";
+import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { Block } from "@/components/Layout/Block";
 import { Para } from "@/components/TextBlocks/Para";
 
@@ -72,7 +72,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
             <Label htmlFor="user-login-email" className="block text-foreground">
               メールアドレス
             </Label>
-            <Input
+            <TextInput
               id="user-login-email"
               type="email"
               autoComplete="email"
@@ -85,9 +85,8 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
             <Label htmlFor="user-login-password" className="block text-foreground">
               パスワード
             </Label>
-            <Input
+            <PasswordInput
               id="user-login-password"
-              type="password"
               autoComplete="current-password"
               required
               value={password}

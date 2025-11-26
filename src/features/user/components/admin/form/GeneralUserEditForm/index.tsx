@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput } from "@/components/Form/Controlled";
+import { TextInput, PasswordInput } from "@/components/Form/Controlled";
 import { SelectInput } from "@/components/Form/Manual";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
@@ -36,6 +36,8 @@ export default function GeneralUserEditForm({ user, redirectPath = "/" }: Props)
   const { trigger, isMutating } = useUpdateUser();
 
   const submit = async (values: FormValues) => {
+    const trimmedPassword = values.newPassword.trim();
+    const resolvedNewPassword = trimmedPassword.length > 0 ? trimmedPassword : undefined;
     try {
       await trigger({
         id: user.id,
@@ -44,6 +46,7 @@ export default function GeneralUserEditForm({ user, redirectPath = "/" }: Props)
           email: values.email,
           role: values.role,
           status: values.status,
+          newPassword: resolvedNewPassword,
         },
       });
       toast.success("ユーザーを更新しました");
@@ -85,6 +88,14 @@ export default function GeneralUserEditForm({ user, redirectPath = "/" }: Props)
         label="ステータス"
         renderInput={(field) => (
           <SelectInput field={field} options={USER_STATUS_OPTIONS} placeholder="ステータスを選択" />
+        )}
+      />
+      <FormFieldItem
+        control={control}
+        name="newPassword"
+        label="パスワード"
+        renderInput={(field) => (
+          <PasswordInput field={field} placeholder="新しいパスワード" />
         )}
       />
       <div className="flex justify-center gap-3">

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput } from "@/components/Form/Controlled";
+import { TextInput, PasswordInput } from "@/components/Form/Controlled";
 import { SelectInput } from "@/components/Form/Manual";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
@@ -36,6 +36,8 @@ export default function ManagerialUserEditForm({ user, redirectPath = "/" }: Pro
   const { trigger, isMutating } = useUpdateUser();
 
   const submit = async (values: FormValues) => {
+    const trimmedPassword = values.newPassword.trim();
+    const resolvedLocalPassword = trimmedPassword.length > 0 ? trimmedPassword : undefined;
     try {
       await trigger({
         id: user.id,
@@ -44,6 +46,7 @@ export default function ManagerialUserEditForm({ user, redirectPath = "/" }: Pro
           email: values.email,
           role: values.role,
           status: values.status,
+          localPassword: resolvedLocalPassword,
         },
       });
       toast.success("ユーザーを更新しました");
@@ -78,6 +81,14 @@ export default function ManagerialUserEditForm({ user, redirectPath = "/" }: Pro
         name="email"
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
+      />
+      <FormFieldItem
+        control={control}
+        name="newPassword"
+        label="パスワード"
+        renderInput={(field) => (
+          <PasswordInput field={field} placeholder="新しいパスワード" />
+        )}
       />
       <FormFieldItem
         control={control}

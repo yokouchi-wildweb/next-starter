@@ -71,7 +71,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
 
   // ローカル認証ユーザーをメールアドレスで検索する。
   const user = await db.query.UserTable.findFirst({
-    where: and(eq(UserTable.providerType, "local"), eq(UserTable.providerUid, normalizedEmail)),
+    where: and(eq(UserTable.providerType, "local"), eq(UserTable.email, normalizedEmail)),
   });
 
   // 該当ユーザーが存在しなければ認証失敗とする。

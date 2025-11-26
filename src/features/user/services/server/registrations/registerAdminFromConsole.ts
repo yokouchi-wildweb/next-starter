@@ -1,12 +1,13 @@
 // src/features/user/services/server/registrations/registerAdminFromConsole.ts
 
-import { and, eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 import type { User } from "@/features/user/entities";
 import { UserTable } from "@/features/user/entities/drizzle";
 import { GeneralUserSchema } from "@/features/user/entities/schema";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
+import { assertEmailAvailability } from "@/features/user/services/server/helpers/assertEmailAvailability";
 
 export type AdminConsoleRegistrationInput = {
   displayName: string;
@@ -25,30 +26,24 @@ function validateInput(input: AdminConsoleRegistrationInput): void {
   }
 }
 
-async function assertLocalProviderAvailability(providerUid: string): Promise<void> {
-  const existing = await db.query.UserTable.findFirst({
-    where: and(eq(UserTable.providerType, "local"), eq(UserTable.providerUid, providerUid)),
-  });
-
-  if (existing) {
-    throw new DomainError("同じ認証情報のユーザーが既に存在します", { status: 409 });
-  }
-}
-
 export async function registerAdminFromConsole(
   data: AdminConsoleRegistrationInput,
 ): Promise<User> {
   validateInput(data);
 
-  await assertLocalProviderAvailability(data.email);
+  const normalizedEmail = await assertEmailAvailability({
+    providerType: "local",
+    email: data.email,
+    errorMessage: "同じメールアドレスの管理者が既に存在します",
+  });
 
   const values = await GeneralUserSchema.parseAsync({
     role: "admin",
     status: "active",
     providerType: "local",
-    providerUid: data.email,
+    providerUid: randomUUID(),
     localPassword: data.localPassword,
-    email: data.email,
+    email: normalizedEmail,
     displayName: data.displayName,
   });
 

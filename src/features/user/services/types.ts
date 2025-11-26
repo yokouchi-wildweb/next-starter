@@ -11,4 +11,5 @@ export type CreateUserInput = {
 
 export type UpdateUserInput = Partial<Omit<GeneralUserOptionalFields, "localPassword">> & {
   localPassword?: string | null;
+  newPassword?: string | null;
 };

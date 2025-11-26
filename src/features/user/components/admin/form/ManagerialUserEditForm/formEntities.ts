@@ -11,11 +11,18 @@ const emailSchema = z
   .min(1, { message: "メールアドレスを入力してください" })
   .email({ message: "メールアドレスの形式が不正です" });
 
+const newPasswordSchema = z
+  .string()
+  .refine((value) => value.length === 0 || value.length >= 8, {
+    message: "パスワードは8文字以上で入力してください",
+  });
+
 export const FormSchema = z.object({
   displayName: displayNameSchema,
   email: emailSchema,
   role: z.literal("admin"),
   status: z.enum(USER_STATUSES),
+  newPassword: newPasswordSchema,
 });
 
 export type FormValues = z.infer<typeof FormSchema>;
@@ -25,4 +32,5 @@ export const createDefaultValues = (user: User): FormValues => ({
   email: user.email ?? "",
   role: "admin",
   status: user.status,
+  newPassword: "",
 });

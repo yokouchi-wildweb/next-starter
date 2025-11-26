@@ -10,6 +10,8 @@ import { cookies } from "next/headers";
 import { parseSessionCookie } from "@/lib/jwt";
 import { resolveSessionUser } from "@/features/auth/services/server/session/token";
 import type { SessionUser } from "@/features/auth/entities/session";
+import { getServerAuth } from "@/lib/firebase/server/app";
+import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 
 const adminUpdateSchema = AdminUserOpotionalSchema.omit({
   providerType: true,
@@ -17,6 +19,27 @@ const adminUpdateSchema = AdminUserOpotionalSchema.omit({
   lastAuthenticatedAt: true,
   role: true,
 });
+
+async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
+  const auth = getServerAuth();
+  try {
+    await auth.updateUser(uid, { email });
+  } catch (error) {
+    if (hasFirebaseErrorCode(error, "auth/email-already-exists")) {
+      throw new DomainError("同じメールアドレスのユーザーが既に存在します", { status: 409 });
+    }
+    throw new DomainError("メールアドレスの更新に失敗しました", { status: 500 });
+  }
+}
+
+async function updateFirebasePassword(uid: string, password: string): Promise<void> {
+  const auth = getServerAuth();
+  try {
+    await auth.updateUser(uid, { password });
+  } catch {
+    throw new DomainError("パスワードの更新に失敗しました", { status: 500 });
+  }
+}
 
 async function getSessionUser(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
@@ -31,6 +54,10 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
   if (!rawData || typeof rawData !== "object") {
     throw new DomainError("更新データが不正です", { status: 400 });
   }
+
+  const { newPassword, ...restRawData } = rawData;
+  const normalizedNewPassword =
+    typeof newPassword === "string" ? newPassword.trim() : undefined;
 
   const sessionUser = await getSessionUser();
 
@@ -58,7 +85,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
   }
 
   const schema = isAdmin ? adminUpdateSchema : userSelfUpdateSchema;
-  const result = await schema.safeParseAsync(rawData);
+  const result = await schema.safeParseAsync(restRawData);
 
   if (!result.success) {
     const message = result.error.errors[0]?.message ?? "入力値が不正です";
@@ -67,9 +94,28 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
 
   const { localPassword, ...rest } = result.data;
 
+  const shouldSyncFirebaseEmail =
+    current.providerType === "email" &&
+    typeof rest.email === "string" &&
+    rest.email.length > 0 &&
+    rest.email !== current.email;
+
+  if (shouldSyncFirebaseEmail) {
+    await updateFirebaseEmail(current.providerUid, rest.email);
+  }
+
+  const shouldSyncFirebasePassword =
+    current.providerType === "email" &&
+    typeof normalizedNewPassword === "string" &&
+    normalizedNewPassword.length > 0;
+
+  if (shouldSyncFirebasePassword) {
+    await updateFirebasePassword(current.providerUid, normalizedNewPassword);
+  }
+
   const updatePayload = omitUndefined(rest) as Partial<User>;
 
-  if (current.providerType === "email" && localPassword !== undefined) {
+  if (current.providerType === "local" && localPassword !== undefined) {
     updatePayload.localPassword = localPassword;
   }
 
