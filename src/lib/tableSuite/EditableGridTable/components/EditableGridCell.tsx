@@ -339,6 +339,9 @@ export function EditableGridCell<T>({
     return baseValue || fallbackPlaceholder;
   }, [baseValue, column, fallbackPlaceholder, rawValue, row]);
 
+  const isEventFromPopup = (target: EventTarget | null) =>
+    target instanceof HTMLElement && Boolean(target.closest(`[${POPUP_ATTR}="${cellKey}"]`));
+
   const activateCell = React.useCallback(
     ({ enterEditMode, openSelect }: { enterEditMode?: boolean; openSelect?: boolean } = {}) => {
       if (isReadOnly || isSwitchEditor) {
@@ -361,7 +364,10 @@ export function EditableGridCell<T>({
     [column.editorType, isReadOnly, isSwitchEditor],
   );
 
-  const handleSingleClick = () => {
+  const handleSingleClick = (event: React.MouseEvent) => {
+    if (isEventFromPopup(event.target)) {
+      return;
+    }
     const isPopupEditor = column.editorType === "select" || column.editorType === "multi-select";
     activateCell({
       enterEditMode: isPopupEditor,
@@ -369,7 +375,10 @@ export function EditableGridCell<T>({
     });
   };
 
-  const handleDoubleClick = () => {
+  const handleDoubleClick = (event: React.MouseEvent) => {
+    if (isEventFromPopup(event.target)) {
+      return;
+    }
     const isPopupEditor = column.editorType === "select" || column.editorType === "multi-select";
     activateCell({ enterEditMode: true, openSelect: isPopupEditor });
   };
