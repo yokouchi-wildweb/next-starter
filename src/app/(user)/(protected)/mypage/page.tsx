@@ -2,22 +2,11 @@
 
 import { notFound } from "next/navigation";
 
-import { authGuard } from "@/features/auth/services/server/authorization";
 import UserMyPageView from "@/features/user/components/UserMyPage";
-import { userService } from "@/features/user/services/server/userService";
+import { requireCurrentUser } from "@/features/user/services/server/requireCurrentUser";
 
 export default async function UserMyPagePage() {
-  const sessionUser = await authGuard({ allowRoles: ["admin", "user"] });
-
-  if (!sessionUser) {
-    notFound();
-  }
-
-  const user = await userService.get(sessionUser.userId);
-
-  if (!user) {
-    notFound();
-  }
+  const user = await requireCurrentUser();
 
   return <UserMyPageView user={user} />;
 }
