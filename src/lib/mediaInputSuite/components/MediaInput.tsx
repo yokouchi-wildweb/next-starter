@@ -135,9 +135,8 @@ export const MediaInput = ({
   return (
     <div className="relative">
       {hasContainerOverlay ? (
-        <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center">
-          <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-border bg-background/85" />
-          <div className="relative z-10 flex w-full justify-center px-4">{containerOverlay}</div>
+        <div className="absolute inset-0 z-40 flex items-center justify-center rounded border-2 border-dashed border-border bg-background/80">
+          {containerOverlay}
         </div>
       ) : null}
       <div className={cn("space-y-2", hasContainerOverlay && "pointer-events-none opacity-70")} aria-busy={hasContainerOverlay}>

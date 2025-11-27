@@ -7,6 +7,7 @@ import type { FileValidationError, FileValidationRule, SelectedMediaMetadata } f
 import { clientUploader, type UploadProgress } from "@/lib/storage/client/clientUploader";
 import { directStorageClient, getPathFromStorageUrl } from "@/lib/storage/client/directStorageClient";
 import { Para } from "@/components/TextBlocks";
+import { Button } from "@/components/Form/Button/Button";
 
 export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "previewUrl" | "statusOverlay" | "clearButtonDisabled"> & {
   uploadPath: string;
@@ -110,9 +111,24 @@ export const MediaUploader = ({
         <div className="h-1.5 w-full overflow-hidden rounded bg-muted">
           <div className="h-full bg-primary" style={{ width: `${progress.percent}%`, transition: "width 120ms linear" }} />
         </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-xs text-muted-foreground"
+          onClick={(event) => {
+            event.preventDefault();
+            uploadHandleRef.current?.cancel();
+            uploadHandleRef.current = null;
+            setProgress(null);
+            void removeUploadedFile();
+          }}
+        >
+          キャンセル
+        </Button>
       </div>
     );
-  }, [progress]);
+  }, [progress, removeUploadedFile]);
 
   return (
     <div className="space-y-2">
