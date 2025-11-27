@@ -21,6 +21,7 @@ export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "preview
   onUrlChange?: (url: string | null) => void;
   validationRule?: FileValidationRule;
   onValidationError?: (error: FileValidationError) => void;
+  onUploadingChange?: (isUploading: boolean) => void;
 };
 
 export const MediaUploader = ({
@@ -31,6 +32,7 @@ export const MediaUploader = ({
   validationRule,
   onValidationError,
   helperText,
+  onUploadingChange,
   ...inputProps
 }: MediaUploaderProps) => {
   const [currentUrl, setCurrentUrl] = useState<string | null>(initialUrl);
@@ -53,11 +55,18 @@ export const MediaUploader = ({
     [onUrlChange],
   );
 
-  const removeUploadedFile = useCallback(async () => {
+  const removeUploadedFile = useCallback(async (options?: { notify?: boolean }) => {
     const path = uploadedPathRef.current;
     if (!path) {
       updateUrl(null);
+      if (options?.notify ?? true) {
+        onUploadingChange?.(false);
+      }
       return;
+    }
+    const shouldNotify = options?.notify ?? true;
+    if (shouldNotify) {
+      onUploadingChange?.(true);
     }
     try {
       await directStorageClient.remove(path);
@@ -66,8 +75,11 @@ export const MediaUploader = ({
     } finally {
       uploadedPathRef.current = null;
       updateUrl(null);
+      if (shouldNotify) {
+        onUploadingChange?.(false);
+      }
     }
-  }, [updateUrl]);
+  }, [updateUrl, onUploadingChange]);
 
   const beginUpload = useCallback(
     (file: File) => {
@@ -75,7 +87,8 @@ export const MediaUploader = ({
       uploadHandleRef.current = null;
       setProgress(null);
       setError(null);
-      void removeUploadedFile();
+      onUploadingChange?.(true);
+      void removeUploadedFile({ notify: false });
       uploadHandleRef.current = clientUploader.upload(file, {
         basePath: uploadPath,
         onProgress: (p) => setProgress(p),
@@ -83,6 +96,7 @@ export const MediaUploader = ({
           uploadHandleRef.current = null;
           uploadedPathRef.current = path;
           setProgress(null);
+          onUploadingChange?.(false);
           updateUrl(url);
         },
         onError: (err) => {
@@ -93,10 +107,11 @@ export const MediaUploader = ({
           } else {
             setError(err.message);
           }
+          onUploadingChange?.(false);
         },
       });
     },
-    [removeUploadedFile, updateUrl, uploadPath],
+    [removeUploadedFile, updateUrl, uploadPath, onUploadingChange],
   );
 
   const cancelUpload = useCallback((options?: { notify?: boolean }) => {
@@ -109,12 +124,13 @@ export const MediaUploader = ({
       setError(null);
     }
     setInputResetSignal((value) => value + 1);
-    void removeUploadedFile();
-  }, [removeUploadedFile]);
+    void removeUploadedFile({ notify: true });
+  }, [removeUploadedFile, onUploadingChange]);
 
   const handleFileChange = useCallback(
     (file: File | null) => {
       if (!file) {
+        onUploadingChange?.(true);
         cancelUpload({ notify: Boolean(progress) });
         return;
       }

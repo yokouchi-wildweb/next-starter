@@ -23,6 +23,7 @@ export const ControlledMediaUploader = <
   field,
   defaultUrl = null,
   onUrlChange,
+  onUploadingChange,
   ...uploaderProps
 }: ControlledMediaUploaderProps<TFieldValues, TName>) => {
   const fieldValue = (field.value as string | null | undefined) ?? null;
@@ -37,5 +38,12 @@ export const ControlledMediaUploader = <
     [field, onUrlChange],
   );
 
-  return <MediaUploader {...uploaderProps} initialUrl={resolvedInitialUrl} onUrlChange={handleUrlChange} />;
+  return (
+    <MediaUploader
+      {...uploaderProps}
+      initialUrl={resolvedInitialUrl}
+      onUrlChange={handleUrlChange}
+      onUploadingChange={onUploadingChange}
+    />
+  );
 };

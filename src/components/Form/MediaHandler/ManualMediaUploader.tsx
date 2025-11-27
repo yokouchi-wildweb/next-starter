@@ -11,6 +11,7 @@ export type ManualMediaUploaderProps = BaseProps & {
   defaultUrl?: string | null;
   onValueChange?: (url: string | null) => void;
   onUrlChange?: (url: string | null) => void;
+  onUploadingChange?: (isUploading: boolean) => void;
 };
 
 export const ManualMediaUploader = ({
@@ -18,6 +19,7 @@ export const ManualMediaUploader = ({
   defaultUrl = null,
   onValueChange,
   onUrlChange,
+  onUploadingChange,
   ...uploaderProps
 }: ManualMediaUploaderProps) => {
   const resolvedInitialUrl = value ?? defaultUrl ?? null;
@@ -30,5 +32,12 @@ export const ManualMediaUploader = ({
     [onUrlChange, onValueChange],
   );
 
-  return <MediaUploader {...uploaderProps} initialUrl={resolvedInitialUrl} onUrlChange={handleUrlChange} />;
+  return (
+    <MediaUploader
+      {...uploaderProps}
+      initialUrl={resolvedInitialUrl}
+      onUrlChange={handleUrlChange}
+      onUploadingChange={onUploadingChange}
+    />
+  );
 };
