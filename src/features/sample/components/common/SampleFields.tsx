@@ -12,30 +12,21 @@ import { SwitchInput } from "@/components/Form/Controlled";
 import { BooleanRadioGroupInput } from "@/components/Form/Manual";
 import { MultiSelectInput } from "@/components/Form/Manual";
 import { Textarea } from "@/components/Form/Controlled";
-import { ControlledMediaUploader } from "@/components/Form/MediaHandler";
+import type { MediaUploaderFieldRenderer } from "@/lib/mediaInputSuite";
 import type { Options } from "@/types/form";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
   sampleCategoryOptions?: Options[];
   sampleTagOptions?: Options[];
-  /** 既存のメイン画像 URL (編集時のプレビュー用) */
-  defaultMainImageUrl?: string | null;
-  uploadPath: string;
-  onUploadingChange?: (uploading: boolean) => void;
-  onUrlChange?: (url: string | null) => void;
-  onRegisterPendingDelete?: (url: string | null) => void;
+  mainImageFieldRender: MediaUploaderFieldRenderer<TFieldValues, FieldPath<TFieldValues>>;
 };
 
 export function SampleFields<TFieldValues extends FieldValues>({
   control,
   sampleCategoryOptions,
   sampleTagOptions,
-  defaultMainImageUrl,
-  uploadPath,
-  onUploadingChange,
-  onUrlChange,
-  onRegisterPendingDelete,
+  mainImageFieldRender,
 }: SampleFieldsProps<TFieldValues>) {
   return (
     <>
@@ -122,18 +113,7 @@ export function SampleFields<TFieldValues extends FieldValues>({
         control={control}
         name={"main_image" as FieldPath<TFieldValues>}
         label="メイン画像"
-        renderInput={(field) => (
-          <ControlledMediaUploader
-            field={field}
-            uploadPath={uploadPath}
-            accept="image/*"
-            helperText="1枚の画像をアップロードできます"
-            defaultUrl={defaultMainImageUrl ?? null}
-            onUploadingChange={onUploadingChange}
-            onUrlChange={onUrlChange}
-            onRegisterPendingDelete={onRegisterPendingDelete}
-          />
-        )}
+        renderInput={mainImageFieldRender}
       />
       <FormFieldItem
         control={control}

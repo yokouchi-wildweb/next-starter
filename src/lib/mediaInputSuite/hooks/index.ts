@@ -2,5 +2,6 @@ export * from "./useImageMetadata";
 export * from "./useVideoMetadata";
 export * from "./useDragAndDrop";
 export * from "./useMockUploader";
+export * from "./useMediaUploaderField";
 export * from "./usePendingMediaUploads";
 export * from "./usePendingMediaDeletion";

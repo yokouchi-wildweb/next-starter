@@ -5,18 +5,20 @@
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { SampleFields, type SampleFieldsProps } from "./SampleFields";
-import type { FieldValues, UseFormReturn } from "react-hook-form";
-import { useCallback, useRef, useState } from "react";
-import { usePendingMediaUploads, usePendingMediaDeletion } from "@/lib/mediaInputSuite";
+import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
+import { useCallback, useMemo } from "react";
+import { useMediaUploaderField } from "@/lib/mediaInputSuite";
 
 export type SampleFormProps<TFieldValues extends FieldValues> =
-  Omit<SampleFieldsProps<TFieldValues>, 'control'> & {
+  Omit<SampleFieldsProps<TFieldValues>, "control" | "mainImageFieldRender"> & {
     methods: UseFormReturn<TFieldValues>;
     onSubmitAction: (data: TFieldValues) => Promise<void>;
     isMutating?: boolean;
     submitLabel: string;
     processingLabel: string;
     onCancel?: () => void;
+    uploadPath: string;
+    defaultMainImageUrl?: string | null;
   };
 
 export function SampleForm<TFieldValues extends FieldValues>({
@@ -26,6 +28,8 @@ export function SampleForm<TFieldValues extends FieldValues>({
   submitLabel,
   processingLabel,
   onCancel,
+  uploadPath,
+  defaultMainImageUrl = null,
   ...fieldsProps
 }: SampleFormProps<TFieldValues>) {
   const {
@@ -33,49 +37,37 @@ export function SampleForm<TFieldValues extends FieldValues>({
     formState: { isSubmitting },
   } = methods;
 
-  const loading = isSubmitting || isMutating;
-  const [isUploading, setUploading] = useState(false);
-  const disabled = loading || isUploading;
-  const originalUrlRef = useRef(fieldsProps.defaultMainImageUrl ?? null);
-  const {
-    register: registerPendingUpload,
-    commit: commitPendingUpload,
-    cleanup: cleanupPendingUploads,
-  } = usePendingMediaUploads({ cleanupOnUnmount: true });
-  const { markDelete, commit: commitDeletion, revert: revertDeletion } = usePendingMediaDeletion();
-
-  const handleMediaUrlChange = useCallback(
-    (url: string | null) => {
-      if (!url) {
-        revertDeletion();
-        return;
-      }
-      if (url === originalUrlRef.current) {
-        commitPendingUpload(url);
-        return;
-      }
-      registerPendingUpload(url);
-    },
-    [commitPendingUpload, registerPendingUpload, revertDeletion],
+  const baseUploaderProps = useMemo(
+    () => ({
+      uploadPath,
+      accept: "image/*",
+      helperText: "1枚の画像をアップロードできます",
+    }),
+    [uploadPath],
   );
+
+  const mainImageField = useMediaUploaderField<TFieldValues, FieldPath<TFieldValues>>({
+    methods,
+    name: "main_image" as FieldPath<TFieldValues>,
+    defaultValue: defaultMainImageUrl ?? null,
+    uploaderProps: baseUploaderProps,
+  });
+
+  const loading = isSubmitting || isMutating;
+  const disabled = loading || mainImageField.isUploading;
 
   const handleSubmit = useCallback(
     async (data: TFieldValues) => {
       await onSubmitAction(data);
-      const currentUrl = (data as { [key: string]: unknown })["main_image"] as string | null;
-      commitPendingUpload(currentUrl ?? null);
-      await commitDeletion();
-      originalUrlRef.current = currentUrl ?? null;
+      await mainImageField.commit();
     },
-    [commitDeletion, commitPendingUpload, onSubmitAction],
+    [mainImageField, onSubmitAction],
   );
 
-  const handleCancelClick = useCallback(() => {
-    void cleanupPendingUploads();
-    revertDeletion();
-    methods.setValue("main_image" as keyof TFieldValues, originalUrlRef.current as any);
+  const handleCancelClick = useCallback(async () => {
+    await mainImageField.reset();
     onCancel?.();
-  }, [cleanupPendingUploads, methods, onCancel, revertDeletion]);
+  }, [mainImageField, onCancel]);
 
   return (
     <AppForm
@@ -84,13 +76,7 @@ export function SampleForm<TFieldValues extends FieldValues>({
       pending={disabled}
       fieldSpace="md"
     >
-      <SampleFields<TFieldValues>
-        {...fieldsProps}
-        control={control}
-        onUploadingChange={setUploading}
-        onUrlChange={handleMediaUrlChange}
-        onRegisterPendingDelete={markDelete}
-      />
+      <SampleFields<TFieldValues> {...fieldsProps} control={control} mainImageFieldRender={mainImageField.render} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={disabled} variant="default">
           {disabled ? processingLabel : submitLabel}
