@@ -103,11 +103,11 @@ export const MediaUploader = ({
   const overlay = useMemo(() => {
     if (!progress) return null;
     return (
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-background/80">
+      <div className="flex w-full max-w-xs flex-col items-center justify-center gap-2 rounded border border-border bg-background px-4 py-3 text-center shadow-sm">
         <Para tone="muted" size="sm">
           アップロード中... {progress.percent}%
         </Para>
-        <div className="mt-2 h-1.5 w-32 overflow-hidden rounded bg-muted">
+        <div className="h-1.5 w-full overflow-hidden rounded bg-muted">
           <div className="h-full bg-primary" style={{ width: `${progress.percent}%`, transition: "width 120ms linear" }} />
         </div>
       </div>
@@ -124,7 +124,7 @@ export const MediaUploader = ({
         onMetadataChange={onMetadataChange}
         onFileChange={handleFileChange}
         previewUrl={currentUrl}
-        statusOverlay={overlay}
+        containerOverlay={overlay}
         clearButtonDisabled={Boolean(progress)}
       />
       {error ? <p className="text-xs text-destructive">{error}</p> : null}

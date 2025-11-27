@@ -32,6 +32,7 @@ export type MediaInputProps = {
   onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
   previewUrl?: string | null;
   statusOverlay?: ReactNode;
+  containerOverlay?: ReactNode;
   clearButtonDisabled?: boolean;
 };
 
@@ -48,6 +49,7 @@ export const MediaInput = ({
   onMetadataChange,
   previewUrl,
   statusOverlay,
+  containerOverlay,
   clearButtonDisabled = false,
 }: MediaInputProps) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -128,73 +130,84 @@ export const MediaInput = ({
     [],
   );
 
+  const hasContainerOverlay = Boolean(containerOverlay);
+
   return (
-    <div className="space-y-2">
-      <div
-        role="button"
-        tabIndex={0}
-        aria-disabled={disabled}
-        onKeyDown={handleKeyDown}
-        onClick={() => inputRef.current?.click()}
-        className={cn(
-          "flex min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed px-3 py-3 text-sm transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          disabled ? "cursor-not-allowed opacity-60" : "hover:border-primary/70 hover:bg-muted/40",
-          isDragging ? "border-primary bg-primary/5" : "border-border bg-background",
-        )}
-        {...eventHandlers}
-      >
-        {selectedFile || previewUrl ? (
-          <div className="flex w-full flex-col items-center gap-2">
-            <div className="relative flex h-40 w-full max-w-[320px] items-center justify-center overflow-hidden rounded p-2">
-              <MediaPreview
-                file={selectedFile ?? undefined}
-                src={!selectedFile ? previewUrl ?? undefined : undefined}
-                className="h-full w-full"
-                imageProps={{ onLoad: handleImageLoad, ...previewProps?.imageProps }}
-                videoProps={{ onLoadedMetadata: handleVideoMetadata, ...previewProps?.videoProps }}
-                unsupportedProps={previewProps?.unsupportedProps}
-              />
-              {statusOverlay}
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute right-2 top-2 z-10"
-                disabled={clearButtonDisabled}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  handleClear();
-                }}
-              >
-                <XIcon className="size-5" />
-                <span className="sr-only">{clearButtonLabel}</span>
-              </Button>
-            </div>
-            <span className="break-all text-center font-medium text-foreground">
-              {selectedFile ? `選択中: ${selectedFile.name}` : previewUrl ? "アップロード済み" : ""}
-            </span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-center font-medium text-muted-foreground">{dropLabel}</span>
-            {helperText ? <p className="text-center text-xs text-muted-foreground">{helperText}</p> : null}
-          </div>
-        )}
-      </div>
-      {validationError ? (
-        <p className="text-xs text-destructive">{formatValidationError(validationError)}</p>
+    <div className="relative">
+      {hasContainerOverlay ? (
+        <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center">
+          <div className="pointer-events-none absolute inset-0 rounded border-2 border-dashed border-border bg-background/85" />
+          <div className="relative z-10 flex w-full justify-center px-4">{containerOverlay}</div>
+        </div>
       ) : null}
-      <input
-        ref={inputRef}
-        id={inputId}
-        type="file"
-        className="sr-only"
-        disabled={disabled}
-        accept={accept}
-        onChange={handleFileChange}
-      />
+      <div className={cn("space-y-2", hasContainerOverlay && "pointer-events-none opacity-70")} aria-busy={hasContainerOverlay}>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-disabled={disabled}
+          onKeyDown={handleKeyDown}
+          onClick={() => inputRef.current?.click()}
+          className={cn(
+            "relative flex min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed px-3 py-3 text-sm transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            disabled ? "cursor-not-allowed opacity-60" : "hover:border-primary/70 hover:bg-muted/40",
+            isDragging ? "border-primary bg-primary/5" : "border-border bg-background",
+            hasContainerOverlay && "z-10",
+          )}
+          {...eventHandlers}
+        >
+          {selectedFile || previewUrl ? (
+            <div className="flex w-full flex-col items-center gap-2">
+              <div className="relative flex h-40 w-full max-w-[320px] items-center justify-center overflow-hidden rounded p-2">
+                <MediaPreview
+                  file={selectedFile ?? undefined}
+                  src={!selectedFile ? previewUrl ?? undefined : undefined}
+                  className="h-full w-full"
+                  imageProps={{ onLoad: handleImageLoad, ...previewProps?.imageProps }}
+                  videoProps={{ onLoadedMetadata: handleVideoMetadata, ...previewProps?.videoProps }}
+                  unsupportedProps={previewProps?.unsupportedProps}
+                />
+                {statusOverlay}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute right-2 top-2 z-10"
+                  disabled={clearButtonDisabled}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    handleClear();
+                  }}
+                >
+                  <XIcon className="size-5" />
+                  <span className="sr-only">{clearButtonLabel}</span>
+                </Button>
+              </div>
+              <span className="break-all text-center font-medium text-foreground">
+                {selectedFile ? `選択中: ${selectedFile.name}` : previewUrl ? "アップロード済み" : ""}
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-center font-medium text-muted-foreground">{dropLabel}</span>
+              {helperText ? <p className="text-center text-xs text-muted-foreground">{helperText}</p> : null}
+            </div>
+          )}
+        </div>
+        {validationError ? (
+          <p className="text-xs text-destructive">{formatValidationError(validationError)}</p>
+        ) : null}
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="file"
+          className="sr-only"
+          disabled={disabled}
+          accept={accept}
+          onChange={handleFileChange}
+        />
+      </div>
     </div>
   );
 };
