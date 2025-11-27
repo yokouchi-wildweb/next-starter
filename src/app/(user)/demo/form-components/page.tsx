@@ -15,8 +15,6 @@ import {
   DateInput,
   DatetimeInput,
   TimeInput,
-  FileInput,
-  FileUrlInput,
   NumberInput,
   PasswordInput,
   SwitchInput,
@@ -67,8 +65,6 @@ type DemoFormValues = {
   number: number | "";
   switch: boolean;
   booleanCheckbox: boolean;
-  file: File | null;
-  fileUrl: string;
 };
 
 const defaultValues: DemoFormValues = {
@@ -89,16 +85,6 @@ const defaultValues: DemoFormValues = {
   number: 0,
   switch: true,
   booleanCheckbox: false,
-  file: null,
-  fileUrl: "",
-};
-
-type SerializableFormValues = Omit<DemoFormValues, "file"> & {
-  file: null | {
-    name: string;
-    size: number;
-    type: string;
-  };
 };
 
 type StepperInputValues = {
@@ -107,7 +93,7 @@ type StepperInputValues = {
   large: number;
 };
 
-type DemoSnapshot = SerializableFormValues & {
+type DemoSnapshot = DemoFormValues & {
   stepperInput: StepperInputValues;
 };
 
@@ -117,40 +103,16 @@ const createStepperDefaults = (): StepperInputValues => ({
   large: 20,
 });
 
-function serializeValues(values: DemoFormValues): SerializableFormValues {
-  return {
-    ...values,
-    file: values.file
-        ? {
-          name: values.file.name,
-          size: values.file.size,
-          type: values.file.type,
-        }
-        : null,
-  };
-}
-
-async function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = (event) => reject(event?.target?.error ?? new Error("Failed to read file"));
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function FormComponentsDemoPage() {
   const form = useForm<DemoFormValues>({
     defaultValues,
   });
   const [submitted, setSubmitted] = useState<DemoSnapshot | null>(null);
-  const [fileUrlPending, setFileUrlPending] = useState(false);
   const [stepperValues, setStepperValues] = useState<StepperInputValues>(createStepperDefaults);
 
   const currentValues = form.watch();
-  const serializedCurrent = serializeValues(currentValues);
   const currentSnapshot: DemoSnapshot = {
-    ...serializedCurrent,
+    ...currentValues,
     stepperInput: stepperValues,
   };
 
@@ -162,10 +124,7 @@ export default function FormComponentsDemoPage() {
 
   const handleSubmit = useCallback(
       (values: DemoFormValues) => {
-        setSubmitted({
-          ...serializeValues(values),
-          stepperInput: stepperValues,
-        });
+        setSubmitted({ ...values, stepperInput: stepperValues });
       },
       [stepperValues],
   );
@@ -176,15 +135,6 @@ export default function FormComponentsDemoPage() {
       },
       [],
   );
-
-  const handleUpload = useCallback(async (file: File) => {
-    const url = await readFileAsDataUrl(file);
-    return url;
-  }, []);
-
-  const handleDelete = useCallback(async (url: string) => {
-    console.info("Delete request", url);
-  }, []);
 
   return (
       <Main containerType="wideShowcase">
@@ -376,30 +326,6 @@ export default function FormComponentsDemoPage() {
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
-                <FormFieldItem
-                    control={form.control}
-                    name="file"
-                    label="FileInput"
-                    renderInput={(field) => (
-                        <FileInput field={field} accept="image/*" />
-                    )}
-                />
-
-                <FormFieldItem
-                    control={form.control}
-                    name="fileUrl"
-                    label="FileUrlInput"
-                    renderInput={(field) => (
-                        <FileUrlInput
-                            field={field}
-                            accept="image/*"
-                            onUpload={handleUpload}
-                            onDelete={handleDelete}
-                            onPendingChange={setFileUrlPending}
-                        />
-                    )}
-                />
-
                 <Block space="sm">
                   <FormLabel className="text-sm font-medium">StepperInput</FormLabel>
                   <Para tone="muted" size="xs">
@@ -430,13 +356,6 @@ export default function FormComponentsDemoPage() {
                   </div>
                 </Block>
 
-                <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                  <Para size="sm">ImageUploaderField について</Para>
-                  <Para className="mt-1">
-                    ImageUploaderField は FileUrlInput を組み合わせたコンポーネントです。
-                    Firebase Storage 連携が必要なため、このデモでは FileUrlInput を利用した挙動のみ確認できます。
-                  </Para>
-                </div>
               </div>
 
               <div className="flex flex-wrap items-center justify-end gap-3">
@@ -464,11 +383,6 @@ export default function FormComponentsDemoPage() {
               <pre className="mt-2 max-h-96 overflow-auto rounded bg-background/80 p-3 text-xs">
               {submitted ? JSON.stringify(submitted, null, 2) : "未送信"}
             </pre>
-              {fileUrlPending && (
-                  <Para tone="notice" size="xs" className="mt-3">
-                    FileUrlInput のアップロード/削除処理を実行中です…
-                  </Para>
-              )}
             </div>
           </div>
         </Section>

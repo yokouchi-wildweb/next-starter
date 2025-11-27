@@ -1,38 +1,56 @@
-// src/components/Form/Controlled/FileInput.tsx
+"use client";
 
-import { FileInput as ManualFileInput } from "@/components/Form/Manual";
-import { FieldPath, FieldValues } from "react-hook-form";
-import type { ControlledInputProps } from "@/types/form";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
+import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
+
+import {
+  FileInput as ManualFileInput,
+  type FileInputProps as ManualFileInputProps,
+} from "@/components/Form/Manual";
 
 export type FileInputProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
-> = Omit<ControlledInputProps<TFieldValues, TName>, "onSelect"> & {
-  initialUrl?: string | null;
-  onFileSelect?: (file: File | null) => void;
-  onRemove?: () => boolean | Promise<boolean>;
-  containerClassName?: string;
-  selectedFileName?: string | null;
+> = Omit<ManualFileInputProps, "resetKey" | "onChange"> & {
+  field: ControllerRenderProps<TFieldValues, TName>;
+  resetKey?: number;
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
 export const FileInput = <
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
->({
-  field,
-  ...rest
-}: FileInputProps<TFieldValues, TName>) => {
-  const { ref: fieldRef, onChange, value, ...fieldRest } = field;
-  const { onFileSelect, ...restProps } = rest;
+>({ field, resetKey = 0, onChange, ...rest }: FileInputProps<TFieldValues, TName>) => {
+  const [internalResetKey, setInternalResetKey] = useState(0);
+  const previousValueRef = useRef<File | null | undefined>(field.value as File | null | undefined);
+
+  useEffect(() => {
+    const currentValue = field.value as File | null | undefined;
+    const previousValue = previousValueRef.current;
+    if (previousValue && !currentValue) {
+      setInternalResetKey((key) => key + 1);
+    }
+    previousValueRef.current = currentValue ?? null;
+  }, [field.value]);
+
+  const handleChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      onChange?.(event);
+      const file = event.target.files?.[0] ?? null;
+      field.onChange(file);
+      field.onBlur();
+    },
+    [field, onChange],
+  );
 
   return (
     <ManualFileInput
-      {...restProps}
-      {...fieldRest}
-      ref={fieldRef}
-      value={(value as File | null) ?? null}
-      onValueChange={(file) => onChange(file)}
-      onFileSelect={onFileSelect}
+      {...rest}
+      name={field.name}
+      resetKey={resetKey + internalResetKey}
+      ref={field.ref}
+      onBlur={field.onBlur}
+      onChange={handleChange}
     />
   );
 };
