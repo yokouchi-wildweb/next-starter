@@ -14,6 +14,8 @@ export type ControlledMediaUploaderProps<
   field: ControllerRenderProps<TFieldValues, TName>;
   defaultUrl?: string | null;
   onUrlChange?: (url: string | null) => void;
+  onRegisterPendingUpload?: (url: string | null) => void;
+  onRegisterPendingDelete?: (url: string | null) => void;
 };
 
 export const ControlledMediaUploader = <
@@ -24,6 +26,8 @@ export const ControlledMediaUploader = <
   defaultUrl = null,
   onUrlChange,
   onUploadingChange,
+  onRegisterPendingUpload,
+  onRegisterPendingDelete,
   ...uploaderProps
 }: ControlledMediaUploaderProps<TFieldValues, TName>) => {
   const fieldValue = (field.value as string | null | undefined) ?? null;
@@ -44,6 +48,8 @@ export const ControlledMediaUploader = <
       initialUrl={resolvedInitialUrl}
       onUrlChange={handleUrlChange}
       onUploadingChange={onUploadingChange}
+      onRegisterPendingUpload={onRegisterPendingUpload}
+      onRegisterPendingDelete={onRegisterPendingDelete}
     />
   );
 };

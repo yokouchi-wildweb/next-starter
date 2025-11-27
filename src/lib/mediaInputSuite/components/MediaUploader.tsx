@@ -22,6 +22,8 @@ export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "preview
   validationRule?: FileValidationRule;
   onValidationError?: (error: FileValidationError) => void;
   onUploadingChange?: (isUploading: boolean) => void;
+  onRegisterPendingUpload?: (url: string | null) => void;
+  onRegisterPendingDelete?: (url: string | null) => void;
 };
 
 export const MediaUploader = ({
@@ -33,6 +35,8 @@ export const MediaUploader = ({
   onValidationError,
   helperText,
   onUploadingChange,
+  onRegisterPendingUpload,
+  onRegisterPendingDelete,
   ...inputProps
 }: MediaUploaderProps) => {
   const [currentUrl, setCurrentUrl] = useState<string | null>(initialUrl);
@@ -55,31 +59,10 @@ export const MediaUploader = ({
     [onUrlChange],
   );
 
-  const removeUploadedFile = useCallback(async (options?: { notify?: boolean }) => {
-    const path = uploadedPathRef.current;
-    if (!path) {
-      updateUrl(null);
-      if (options?.notify ?? true) {
-        onUploadingChange?.(false);
-      }
-      return;
-    }
-    const shouldNotify = options?.notify ?? true;
-    if (shouldNotify) {
-      onUploadingChange?.(true);
-    }
-    try {
-      await directStorageClient.remove(path);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      uploadedPathRef.current = null;
-      updateUrl(null);
-      if (shouldNotify) {
-        onUploadingChange?.(false);
-      }
-    }
-  }, [updateUrl, onUploadingChange]);
+  const removeUploadedFile = useCallback(async () => {
+    uploadedPathRef.current = null;
+    updateUrl(null);
+  }, [updateUrl]);
 
   const beginUpload = useCallback(
     (file: File) => {
@@ -88,7 +71,7 @@ export const MediaUploader = ({
       setProgress(null);
       setError(null);
       onUploadingChange?.(true);
-      void removeUploadedFile({ notify: false });
+      void removeUploadedFile();
       uploadHandleRef.current = clientUploader.upload(file, {
         basePath: uploadPath,
         onProgress: (p) => setProgress(p),
@@ -97,6 +80,7 @@ export const MediaUploader = ({
           uploadedPathRef.current = path;
           setProgress(null);
           onUploadingChange?.(false);
+          onRegisterPendingUpload?.(url);
           updateUrl(url);
         },
         onError: (err) => {
@@ -111,7 +95,7 @@ export const MediaUploader = ({
         },
       });
     },
-    [removeUploadedFile, updateUrl, uploadPath, onUploadingChange],
+    [removeUploadedFile, updateUrl, uploadPath, onUploadingChange, onRegisterPendingUpload],
   );
 
   const cancelUpload = useCallback((options?: { notify?: boolean }) => {
@@ -124,19 +108,24 @@ export const MediaUploader = ({
       setError(null);
     }
     setInputResetSignal((value) => value + 1);
-    void removeUploadedFile({ notify: true });
+    void removeUploadedFile();
+    onUploadingChange?.(false);
   }, [removeUploadedFile, onUploadingChange]);
 
   const handleFileChange = useCallback(
     (file: File | null) => {
       if (!file) {
         onUploadingChange?.(true);
+        const previousUrl = uploadedPathRef.current ? currentUrl : initialUrl;
+        if (previousUrl) {
+          onRegisterPendingDelete?.(previousUrl);
+        }
         cancelUpload({ notify: Boolean(progress) });
         return;
       }
       beginUpload(file);
     },
-    [beginUpload, cancelUpload, progress],
+    [beginUpload, cancelUpload, progress, currentUrl, initialUrl, onRegisterPendingDelete],
   );
 
   const overlay = useMemo(() => {

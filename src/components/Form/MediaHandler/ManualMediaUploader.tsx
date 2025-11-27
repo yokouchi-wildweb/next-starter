@@ -12,6 +12,8 @@ export type ManualMediaUploaderProps = BaseProps & {
   onValueChange?: (url: string | null) => void;
   onUrlChange?: (url: string | null) => void;
   onUploadingChange?: (isUploading: boolean) => void;
+  onRegisterPendingUpload?: (url: string | null) => void;
+  onRegisterPendingDelete?: (url: string | null) => void;
 };
 
 export const ManualMediaUploader = ({
@@ -20,6 +22,8 @@ export const ManualMediaUploader = ({
   onValueChange,
   onUrlChange,
   onUploadingChange,
+  onRegisterPendingUpload,
+  onRegisterPendingDelete,
   ...uploaderProps
 }: ManualMediaUploaderProps) => {
   const resolvedInitialUrl = value ?? defaultUrl ?? null;
@@ -38,6 +42,8 @@ export const ManualMediaUploader = ({
       initialUrl={resolvedInitialUrl}
       onUrlChange={handleUrlChange}
       onUploadingChange={onUploadingChange}
+      onRegisterPendingUpload={onRegisterPendingUpload}
+      onRegisterPendingDelete={onRegisterPendingDelete}
     />
   );
 };
