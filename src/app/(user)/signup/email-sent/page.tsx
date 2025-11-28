@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para } from "@/components/TextBlocks";
-import { VerificationEmailSent } from "@/features/auth/components/VerificationEmailSent";
+import { VerificationEmailSent } from "@/features/core/auth/components/VerificationEmailSent";
 
 export default function SignUpEmailSentPage() {
   return (

@@ -2,7 +2,7 @@
 
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle } from "@/components/TextBlocks";
-import { Registration } from "@/features/auth/components/Registration";
+import { Registration } from "@/features/core/auth/components/Registration";
 
 type SignUpRegisterPageProps = {
   searchParams?: Promise<{

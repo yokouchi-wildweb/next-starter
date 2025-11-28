@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { Block } from "@/components/Layout/Block";
 import { Span } from "@/components/TextBlocks";
-import { useLogout } from "@/features/auth/hooks/useLogout";
+import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
 

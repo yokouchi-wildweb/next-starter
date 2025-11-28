@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { redirectRules, type RedirectRule } from "@/config/redirect.config";
-import type { SessionUser } from "@/features/auth/entities/session";
-import { resolveSessionUser } from "@/features/auth/services/server/session/token";
+import type { SessionUser } from "@/features/core/auth/entities/session";
+import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
 import { setRedirectToastCookie } from "@/lib/redirectToast/server";
 import { parseSessionCookie } from "@/lib/jwt";
 

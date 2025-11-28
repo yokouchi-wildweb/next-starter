@@ -5,7 +5,7 @@ import { sampleCategoryService } from "@/features/sampleCategory/services/server
 import AdminSampleCategoryList from "@/features/sampleCategory/components/AdminSampleCategoryList";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { Main } from "@/components/TextBlocks";
-import { settingService } from "@/features/setting/services/server/settingService";
+import { settingService } from "@/features/core/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/types/page";
 
 export const metadata = {

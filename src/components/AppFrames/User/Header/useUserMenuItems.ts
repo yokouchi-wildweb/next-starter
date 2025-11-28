@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 
-import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
-import { useLogout } from "@/features/auth/hooks/useLogout";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { useLogout } from "@/features/core/auth/hooks/useLogout";
 
 import type { NavigationMenuItem } from "./MenuItem";
 

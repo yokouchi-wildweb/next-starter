@@ -2,7 +2,7 @@
 
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle } from "@/components/TextBlocks";
-import { Verification } from "@/features/auth/components/Verification";
+import { Verification } from "@/features/core/auth/components/Verification";
 
 export default function SignUpVerifyPage() {
   return (

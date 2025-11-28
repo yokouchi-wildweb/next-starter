@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle } from "@/components/TextBlocks";
-import { UserLogin } from "@/features/auth/components/UserLogin";
-import { authGuard } from "@/features/auth/services/server/authorization";
+import { UserLogin } from "@/features/core/auth/components/UserLogin";
+import { authGuard } from "@/features/core/auth/services/server/authorization";
 
 export default async function UserLoginPage() {
 

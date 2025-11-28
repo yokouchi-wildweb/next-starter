@@ -6,8 +6,8 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Main } from "@/components/TextBlocks";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { AdminLogin } from "@/features/auth/components/AdminLogin";
-import { authGuard } from "@/features/auth/services/server/authorization";
+import { AdminLogin } from "@/features/core/auth/components/AdminLogin";
+import { authGuard } from "@/features/core/auth/services/server/authorization";
 import Link from "next/link";
 
 export default async function AdminLoginPage() {

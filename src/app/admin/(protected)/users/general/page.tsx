@@ -2,11 +2,11 @@
 
 export const dynamic = "force-dynamic";
 
-import GeneralUserList from "@/features/user/components/admin/GeneralUserList";
+import GeneralUserList from "@/features/core/user/components/admin/GeneralUserList";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { settingService } from "@/features/setting/services/server/settingService";
-import { userService } from "@/features/user/services/server/userService";
+import { settingService } from "@/features/core/setting/services/server/settingService";
+import { userService } from "@/features/core/user/services/server/userService";
 import type { ListPageSearchParams } from "@/types/page";
 import type { WhereExpr } from "@/lib/crud";
 

@@ -4,7 +4,7 @@ import { Toaster } from "sonner";
 
 import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
-import { AuthSessionProvider } from "@/features/auth/components/AuthSessionProvider";
+import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { RedirectToastProvider } from "@/lib/redirectToast";
 
 export const metadata: Metadata = {

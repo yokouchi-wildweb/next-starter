@@ -3,11 +3,11 @@
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
-import { userService } from "@/features/user/services/server/userService";
-import ManagerialUserEdit from "@/features/user/components/admin/ManagerialUserEdit";
+import { userService } from "@/features/core/user/services/server/userService";
+import ManagerialUserEdit from "@/features/core/user/components/admin/ManagerialUserEdit";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import type { User } from "@/features/user/entities";
+import type { User } from "@/features/core/user/entities";
 
 export const metadata = {
   title: "システム管理者編集",

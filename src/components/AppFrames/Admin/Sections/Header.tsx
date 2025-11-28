@@ -9,7 +9,7 @@ import Link from "next/link";
 import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import { APP_FEATURES } from "@/config/app-features.config";
 import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
-import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 
 const headerContainer = cva(
   "flex items-center justify-between gap-3 px-4 py-2 text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:py-3 sm:text-lg",

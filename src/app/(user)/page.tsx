@@ -11,7 +11,7 @@ import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para, Span } from "@/components/TextBlocks";
 import { CosmicCoasterScene } from "@/components/Three/CosmicCoasterScene";
 import FullScreen from "@/components/Layout/FullScreen";
-import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { cn } from "@/lib/cn";
 import { Block } from "@/components/Layout/Block";
 

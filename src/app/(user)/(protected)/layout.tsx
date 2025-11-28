@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { authGuard } from "@/features/auth/services/server/authorization";
+import { authGuard } from "@/features/core/auth/services/server/authorization";
 
 export default async function UserProtectedLayout({
   children,

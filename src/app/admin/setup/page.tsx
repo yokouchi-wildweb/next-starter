@@ -6,8 +6,8 @@ import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Main, Para } from "@/components/TextBlocks";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import AdminSetupForm from "@/features/setting/components/AdminSetup";
-import { checkAdminUserExists } from "@/features/user/services/server/checkAdminUserExists";
+import AdminSetupForm from "@/features/core/setting/components/AdminSetup";
+import { checkAdminUserExists } from "@/features/core/user/services/server/checkAdminUserExists";
 
 export default async function AdminSetupPage() {
   const hasAdmin = await checkAdminUserExists();

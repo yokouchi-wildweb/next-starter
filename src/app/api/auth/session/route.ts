@@ -2,9 +2,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { SessionUserSchema, TokenPayloadSchema } from "@/features/auth/entities/session";
-import { issueSessionCookie } from "@/features/auth/services/server/session/issueSessionCookie";
-import { clearSessionCookie } from "@/features/auth/services/server/session/clearSessionCookie";
+import { SessionUserSchema, TokenPayloadSchema } from "@/features/core/auth/entities/session";
+import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
+import { clearSessionCookie } from "@/features/core/auth/services/server/session/clearSessionCookie";
 import {
   parseSessionCookie,
   signUserToken,

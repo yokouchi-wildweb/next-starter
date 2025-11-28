@@ -2,8 +2,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { preRegister } from "@/features/auth/services/server/preRegistration";
-import { issueSessionCookie } from "@/features/auth/services/server/session/issueSessionCookie";
+import { preRegister } from "@/features/core/auth/services/server/preRegistration";
+import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
 import { isDomainError } from "@/lib/errors";
 
 export async function POST(req: NextRequest) {

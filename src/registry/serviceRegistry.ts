@@ -1,7 +1,7 @@
 // src/config/serviceRegistry.ts
 
-import { userService } from "@/features/user/services/server/userService";
-import { settingService } from "@/features/setting/services/server/settingService";
+import { userService } from "@/features/core/user/services/server/userService";
+import { settingService } from "@/features/core/setting/services/server/settingService";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";

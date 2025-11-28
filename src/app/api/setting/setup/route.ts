@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isDomainError } from "@/lib/errors";
-import { initializeAdminSetup } from "@/features/setting/services/server/settingService";
+import { initializeAdminSetup } from "@/features/core/setting/services/server/settingService";
 
 export async function POST(req: NextRequest) {
   try {

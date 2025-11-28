@@ -5,7 +5,7 @@ __SQL_IMPORT__
 import Admin__Domain__List from "@/features/__domain__/components/Admin__Domain__List";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { Main } from "@/components/TextBlocks";
-import { settingService } from "@/features/setting/services/server/settingService";
+import { settingService } from "../../../../features/core/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/types/page";
 
 export const metadata = {

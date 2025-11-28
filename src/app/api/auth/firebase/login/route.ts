@@ -2,8 +2,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { createFirebaseSession } from "@/features/auth/services/server/firebaseSession";
-import { issueSessionCookie } from "@/features/auth/services/server/session/issueSessionCookie";
+import { createFirebaseSession } from "@/features/core/auth/services/server/firebaseSession";
+import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
 import { isDomainError } from "@/lib/errors";
 
 export async function POST(req: NextRequest) {

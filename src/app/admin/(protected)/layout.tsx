@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { AdminProtectedLayout } from "@/components/AppFrames/Admin/Layout/AdminProtectedLayout";
-import { authGuard } from "@/features/auth/services/server/authorization";
-import { userService } from "@/features/user/services/server/userService";
+import { authGuard } from "@/features/core/auth/services/server/authorization";
+import { userService } from "@/features/core/user/services/server/userService";
 import type { UserRoleType } from "@/types/user";
 
 export default async function AdminLayout({

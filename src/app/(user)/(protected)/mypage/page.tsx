@@ -2,8 +2,8 @@
 
 import { notFound } from "next/navigation";
 
-import UserMyPageView from "@/features/user/components/UserMyPage";
-import { requireCurrentUser } from "@/features/user/services/server/requireCurrentUser";
+import UserMyPageView from "@/features/core/user/components/UserMyPage";
+import { requireCurrentUser } from "@/features/core/user/services/server/requireCurrentUser";
 
 export default async function UserMyPagePage() {
   const user = await requireCurrentUser();

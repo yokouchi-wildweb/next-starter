@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { clearSessionCookie } from "@/features/auth/services/server/session/clearSessionCookie";
+import { clearSessionCookie } from "@/features/core/auth/services/server/session/clearSessionCookie";
 
 export async function POST() {
   // レスポンスを先に生成し、フロントエンドへログアウト完了を通知する。

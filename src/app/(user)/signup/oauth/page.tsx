@@ -2,7 +2,7 @@
 
 import { Main, PageTitle } from "@/components/TextBlocks";
 import { USER_PROVIDER_TYPES } from "@/constants/user";
-import { OAuth } from "@/features/auth/components/OAuth";
+import { OAuth } from "@/features/core/auth/components/OAuth";
 import type { UserProviderType } from "@/types/user";
 
 type SignUpOAuthPageProps = {

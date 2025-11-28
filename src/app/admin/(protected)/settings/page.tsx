@@ -1,8 +1,8 @@
 // src/app/admin/settings/page.tsx
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import AdminSettingEdit from "@/features/setting/components/AdminSettingEdit";
-import { settingService } from "@/features/setting/services/server/settingService";
+import AdminSettingEdit from "@/features/core/setting/components/AdminSettingEdit";
+import { settingService } from "@/features/core/setting/services/server/settingService";
 
 export const dynamic = "force-dynamic";
 

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 import { AdminOuterLayout } from "@/components/AppFrames/Admin/Layout/AdminOuterLayout";
-import { settingService } from "@/features/setting/services/server/settingService";
+import { settingService } from "@/features/core/setting/services/server/settingService";
 
 export default async function AdminLayout({
   children,
