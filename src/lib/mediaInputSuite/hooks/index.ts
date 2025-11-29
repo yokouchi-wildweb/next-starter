@@ -5,3 +5,4 @@ export * from "./useMockUploader";
 export * from "./useMediaUploaderField";
 export * from "./usePendingMediaUploads";
 export * from "./usePendingMediaDeletion";
+export * from "./useMediaMetadataBinding";
