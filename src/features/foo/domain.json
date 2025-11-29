@@ -1,0 +1,65 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "foo",
+  "plural": "fooes",
+  "label": "foo",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "name",
+      "label": "name",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "readonly": false,
+      "required": true
+    },
+    {
+      "name": "filesize",
+      "label": "filesize",
+      "fieldType": "integer",
+      "formInput": "hidden",
+      "required": false
+    },
+    {
+      "name": "media",
+      "label": "media",
+      "fieldType": "mediaUploader",
+      "formInput": "mediaUploader",
+      "required": false,
+      "uploadPath": "foo/main",
+      "slug": "media",
+      "mediaTypePreset": "imagesAndVideos",
+      "accept": "image/*,video/*",
+      "validationRule": {
+        "maxSizeBytes": 31457280000
+      }
+    }
+  ],
+  "searchFields": [
+    "name"
+  ],
+  "defaultOrderBy": [
+
+  ],
+  "tableFields": [
+    "name"
+  ],
+  "useDetailModal": false,
+  "addToAdminDataMenu": true,
+  "generateFiles": {
+    "entities": true,
+    "components": true,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "fieldConstants": true,
+    "adminRoutes": true,
+    "registry": true
+  }
+}
