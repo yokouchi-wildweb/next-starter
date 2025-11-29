@@ -62,6 +62,13 @@ function mapType(t) {
   }
 }
 
+function buildColumn(typeFn, columnName) {
+  if (typeFn === 'bigint') {
+    return `bigint("${columnName}", { mode: "number" })`;
+  }
+  return `${typeFn}("${columnName}")`;
+}
+
 function enumNames(fieldName) {
   const domainPrefix = camel.toLowerCase();
   let base = fieldName;
@@ -116,7 +123,7 @@ switch (config.idType) {
   if (rel.fieldType === 'timestamp With Time Zone') {
     column = `timestamp("${columnName}", { withTimezone: true })`;
   } else {
-    column = `${colType}("${columnName}")`;
+    column = buildColumn(colType, columnName);
   }
   let line = `  ${rel.fieldName}: ${column}`;
   if (rel.required) line += '.notNull()';
@@ -147,7 +154,9 @@ switch (config.idType) {
   } else {
     const typeFn = mapType(f.fieldType);
     imports.add(typeFn);
-    fields.push(`  ${f.name}: ${typeFn}("${toSnakeCase(f.name)}")${f.required ? '.notNull()' : ''},`);
+    const columnName = toSnakeCase(f.name);
+    const column = buildColumn(typeFn, columnName);
+    fields.push(`  ${f.name}: ${column}${f.required ? '.notNull()' : ''},`);
   }
 });
 
@@ -195,7 +204,11 @@ content += `export const ${pascal}Table = pgTable("${tableName}", {\n`;
 content += fields.join('\n');
 content += `\n});\n`;
 relationTables.forEach((t) => {
-  content += `\nexport const ${t.tableVar} = pgTable(\n  "${t.tableName}",\n  {\n    ${camel}Id: ${t.typeFn}("${toSnakeCase(camel)}_id")\n      .notNull()\n      .references(() => ${pascal}Table.id, { onDelete: "cascade" }),\n    ${t.domainCamel}Id: ${t.typeFn}("${toSnakeCase(t.domainCamel)}_id")\n      .notNull()\n      .references(() => ${t.domainPascal}Table.id, { onDelete: "cascade" }),\n  },\n  (table) => {\n    return { pk: primaryKey({ columns: [table.${camel}Id, table.${t.domainCamel}Id] }) };\n  },\n);\n`;
+  const baseColumnName = `${toSnakeCase(camel)}_id`;
+  const relationColumnName = `${toSnakeCase(t.domainCamel)}_id`;
+  const baseColumn = buildColumn(t.typeFn, baseColumnName);
+  const relationColumn = buildColumn(t.typeFn, relationColumnName);
+  content += `\nexport const ${t.tableVar} = pgTable(\n  "${t.tableName}",\n  {\n    ${camel}Id: ${baseColumn}\n      .notNull()\n      .references(() => ${pascal}Table.id, { onDelete: "cascade" }),\n    ${t.domainCamel}Id: ${relationColumn}\n      .notNull()\n      .references(() => ${t.domainPascal}Table.id, { onDelete: "cascade" }),\n  },\n  (table) => {\n    return { pk: primaryKey({ columns: [table.${camel}Id, table.${t.domainCamel}Id] }) };\n  },\n);\n`;
 });
 
 if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
