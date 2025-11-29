@@ -2,11 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 
-import AdminSampleTagList from "@/features/sampleTag/components/AdminSampleTagList";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Main } from "@/components/TextBlocks";
-import { settingService } from "@/features/core/setting/services/server/settingService";
+import { settingService } from "../../../../features/core/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/types/page";
+import AdminSampleTagList from "@/features/sampleTag/components/AdminSampleTagList";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 
 export const metadata = {
   title: "サンプルタグ一覧",
@@ -23,9 +23,9 @@ export default async function AdminSampleTagListPage({ searchParams }: Props) {
   const { results: sampleTags, total } = await sampleTagService.search({ page, limit, searchQuery });
 
   return (
-    <Main containerType="plain">
+    <AdminPage>
       <PageTitle>サンプルタグ管理</PageTitle>
       <AdminSampleTagList sampleTags={sampleTags} page={page} perPage={limit} total={total} />
-    </Main>
+    </AdminPage>
   );
 }

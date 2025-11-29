@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 
-import AdminSampleTagCreate from "@/features/sampleTag/components/AdminSampleTagCreate";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Main } from "@/components/TextBlocks";
 import { SWRConfig } from "swr";
 import { sampleService } from "@/features/sample/services/server/sampleService";
+import AdminSampleTagCreate from "@/features/sampleTag/components/AdminSampleTagCreate";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 
 export const metadata = {
   title: "サンプルタグ追加",
@@ -22,10 +22,10 @@ export default async function AdminSampleTagCreatePage() {
   }}
   >
 
-    <Main containerType="plain">
+    <AdminPage>
       <PageTitle>サンプルタグ追加</PageTitle>
       <AdminSampleTagCreate redirectPath="/admin/sample-tags" />
-    </Main>
+    </AdminPage>
   </SWRConfig>
   );
 }

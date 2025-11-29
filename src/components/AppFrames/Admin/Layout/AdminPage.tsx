@@ -6,7 +6,7 @@ import { Main } from "@/components/TextBlocks";
 
 export default function AdminPage({ children }: PropsWithChildren) {
   return (
-    <Main containerType="plain" padding="lg">
+    <Main containerType="plain" padding="lg" paddingBlock="xl">
       {children}
     </Main>
   );

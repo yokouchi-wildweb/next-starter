@@ -2,11 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { sampleService } from "@/features/sample/services/server/sampleService";
 
-import AdminSampleList from "@/features/sample/components/AdminSampleList";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Main } from "@/components/TextBlocks";
-import { settingService } from "@/features/core/setting/services/server/settingService";
+import { settingService } from "../../../../features/core/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/types/page";
+import AdminSampleList from "@/features/sample/components/AdminSampleList";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 
 export const metadata = {
   title: "サンプル一覧",
@@ -23,9 +23,9 @@ export default async function AdminSampleListPage({ searchParams }: Props) {
   const { results: samples, total } = await sampleService.search({ page, limit, searchQuery });
 
   return (
-    <Main containerType="plain">
+    <AdminPage>
       <PageTitle>サンプル管理</PageTitle>
       <AdminSampleList samples={samples} page={page} perPage={limit} total={total} />
-    </Main>
+    </AdminPage>
   );
 }

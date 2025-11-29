@@ -1,12 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
-import AdminSampleTagEdit from "@/features/sampleTag/components/AdminSampleTagEdit";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Main } from "@/components/TextBlocks";
-import type { SampleTag } from "@/features/sampleTag/entities";
 import { SWRConfig } from "swr";
 import { sampleService } from "@/features/sample/services/server/sampleService";
+import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
+import AdminSampleTagEdit from "@/features/sampleTag/components/AdminSampleTagEdit";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import type { SampleTag } from "@/features/sampleTag/entities";
 
 export const metadata = {
   title: "サンプルタグ編集",
@@ -31,10 +31,10 @@ export default async function AdminSampleTagEditPage({ params }: Props) {
   }}
   >
 
-    <Main containerType="plain">
+    <AdminPage>
       <PageTitle>サンプルタグ編集</PageTitle>
       <AdminSampleTagEdit sampleTag={sampleTag as SampleTag} redirectPath="/admin/sample-tags" />
-    </Main>
+    </AdminPage>
   </SWRConfig>
   );
 }
