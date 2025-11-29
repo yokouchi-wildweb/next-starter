@@ -40,6 +40,7 @@
       "name": "number",
       "label": "数字",
       "fieldType": "integer",
+      "readonly": false,
       "formInput": "numberInput",
       "required": false
     },
@@ -120,6 +121,7 @@
       "name": "description",
       "label": "説明文",
       "fieldType": "string",
+      "readonly": false,
       "formInput": "textarea",
       "required": false
     }
