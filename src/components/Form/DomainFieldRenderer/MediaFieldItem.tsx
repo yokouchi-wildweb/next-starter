@@ -44,6 +44,7 @@ export function MediaFieldItem<
       accept: config.accept,
       helperText: config.helperText,
       validationRule: config.validationRule,
+      onMetadataChange: config.onMetadataChange,
     },
   });
 

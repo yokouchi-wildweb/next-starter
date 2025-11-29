@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { FieldPath, FieldValues } from "react-hook-form";
 import type { Options } from "@/types/form";
-import type { FileValidationRule } from "@/lib/mediaInputSuite";
+import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { FormFieldItemDescription } from "@/components/Form/FormFieldItem";
 
 type BaseFieldConfig<
@@ -93,6 +93,7 @@ export type MediaUploaderFieldConfig<
   accept?: string;
   helperText?: string;
   validationRule?: FileValidationRule;
+  onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
 };
 
 export type DomainFieldRenderConfig<
