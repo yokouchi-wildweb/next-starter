@@ -15,7 +15,7 @@ const marginBottomClassMap = {
 } as const;
 
 const adminPageTitleVariants = cva(
-  "relative px-4 py-2 bg-secondary text-secondary-foreground dark:bg-secondary/80 after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-['']",
+  "relative px-4 py-2 text-foreground bg-gradient-to-tr from-secondary/15 via-secondary/5 to-transparent dark:from-secondary/30 dark:via-secondary/15 dark:to-transparent after:absolute after:left-4 after:-bottom-1 after:h-1 after:w-12 after:rounded-full after:bg-primary after:content-['']",
   {
     variants: {
       variant: {

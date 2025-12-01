@@ -6,7 +6,7 @@ import { APP_FOOTER_ELEMENT_ID } from "@/constants/layout";
 import { cn } from "@/lib/cn";
 
 const footerContainer = cva(
-  "h-12 flex items-center justify-center px-6 bg-secondary text-secondary-foreground shadow-inner text-sm",
+  "h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm",
 );
 
 type AdminFooterProps = {
