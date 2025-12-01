@@ -41,7 +41,7 @@ p, h2 の代替えなど文章構成用
 
 ■ システムコア
 - src/lib 以下すべて
-- src/features/auth 以下すべて
+- src/features/core 以下すべて
 - src/components 以下すべて
 - scripts/domain-config 以下すべて
 - src/styles/config.css
