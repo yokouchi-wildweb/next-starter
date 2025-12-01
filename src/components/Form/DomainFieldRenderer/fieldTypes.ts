@@ -12,6 +12,7 @@ type BaseFieldConfig<
   label: ReactNode;
   description?: FormFieldItemDescription;
   readOnly?: boolean;
+  domainFieldIndex?: number;
 };
 
 export type TextFieldConfig<

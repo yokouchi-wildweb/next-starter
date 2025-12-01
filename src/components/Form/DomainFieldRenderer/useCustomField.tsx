@@ -21,21 +21,37 @@ export const useCustomField = <TFieldValues extends FieldValues>({
   buildFieldConfig,
   baseFields = [],
 }: UseCustomFieldOptions<TFieldValues>) => {
-  const fields = domainFields ?? [];
+  const domainFieldsWithIndex = useMemo(() => {
+    const sourceFields = domainFields ?? [];
+    return sourceFields.map((field, index) => {
+      if (typeof field.domainFieldIndex === "number") {
+        return field;
+      }
+      return {
+        ...field,
+        domainFieldIndex: index,
+      };
+    });
+  }, [domainFields]);
 
   const filteredDomainJsonFields = useMemo(
-    () => fields.filter((field) => field.name !== targetFieldName),
-    [fields, targetFieldName],
+    () => domainFieldsWithIndex.filter((field) => field.name !== targetFieldName),
+    [domainFieldsWithIndex, targetFieldName],
   );
 
   const customFields = useMemo(() => {
-    const target = fields.find((field) => field.name === targetFieldName);
+    const target = domainFieldsWithIndex.find((field) => field.name === targetFieldName);
     if (!target) {
       return baseFields;
     }
-    return [...baseFields, buildFieldConfig(target)];
-  }, [baseFields, buildFieldConfig, fields, targetFieldName]);
+    const domainFieldIndex = target.domainFieldIndex;
+    const builtField = buildFieldConfig(target);
+    const normalizedField =
+      typeof domainFieldIndex === "number"
+        ? { ...builtField, domainFieldIndex }
+        : builtField;
+    return [...baseFields, normalizedField];
+  }, [baseFields, buildFieldConfig, domainFieldsWithIndex, targetFieldName]);
 
   return { customFields, filteredDomainJsonFields };
 };
-

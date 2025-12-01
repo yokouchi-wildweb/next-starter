@@ -14,6 +14,7 @@ export type DomainJsonField = {
   placeholder?: string;
   validationRule?: FileValidationRule;
   readonly?: boolean;
+  domainFieldIndex?: number;
 };
 
 export const mapDomainFieldToRenderConfig = (
@@ -23,6 +24,7 @@ export const mapDomainFieldToRenderConfig = (
     name: field.name,
     label: field.label,
     readOnly: field.readonly ?? false,
+    domainFieldIndex: field.domainFieldIndex,
   };
   switch (field.formInput) {
     case "hidden":
@@ -71,12 +73,15 @@ export function buildFieldConfigsFromDomainJson<TFieldValues extends FieldValues
   fields: DomainJsonField[],
 ): DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[] {
   return fields
-    .map((field) => {
+    .map((field, index) => {
+      const domainFieldIndex =
+        typeof field.domainFieldIndex === "number" ? field.domainFieldIndex : index;
       const config = mapDomainFieldToRenderConfig(field);
       if (!config) return null;
       return {
         ...config,
         name: field.name as FieldPath<TFieldValues>,
+        domainFieldIndex,
       } as DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>;
     })
     .filter(

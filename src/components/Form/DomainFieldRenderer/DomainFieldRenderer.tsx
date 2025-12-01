@@ -255,7 +255,42 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
 
   const combinedFields = useMemo(() => {
     const jsonFields = buildFieldConfigsFromDomainJson<TFieldValues>(domainJsonFields);
-    return [...fields, ...jsonFields];
+    const standaloneFields: DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[] = [];
+    const overrideFields = new Map<
+      number,
+      DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>
+    >();
+
+    fields.forEach((field) => {
+      if (typeof field.domainFieldIndex === "number") {
+        overrideFields.set(field.domainFieldIndex, field);
+      } else {
+        standaloneFields.push(field);
+      }
+    });
+
+    const domainFieldMap = new Map<
+      number,
+      DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>
+    >();
+    jsonFields.forEach((config, index) => {
+      const domainFieldIndex = typeof config.domainFieldIndex === "number" ? config.domainFieldIndex : index;
+      domainFieldMap.set(domainFieldIndex, { ...config, domainFieldIndex });
+    });
+
+    const sortedIndexes = Array.from(
+      new Set([...domainFieldMap.keys(), ...overrideFields.keys()]),
+    ).sort((a, b) => a - b);
+
+    const orderedDomainFields = sortedIndexes
+      .map((domainIndex) => overrideFields.get(domainIndex) ?? domainFieldMap.get(domainIndex))
+      .filter(
+        (
+          config,
+        ): config is DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>> => Boolean(config),
+      );
+
+    return [...standaloneFields, ...orderedDomainFields];
   }, [domainJsonFields, fields]);
 
   const renderedFields = combinedFields.map((fieldConfig, index) => {

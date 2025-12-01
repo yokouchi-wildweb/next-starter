@@ -5,6 +5,7 @@ import { settingService } from "@/features/core/setting/services/server/settingS
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
+import { fooService } from "@/features/foo/services/server/fooService";
 
 export const serviceRegistry: Record<string, any> = {
 
@@ -14,6 +15,7 @@ export const serviceRegistry: Record<string, any> = {
   sampleCategory: sampleCategoryService,
   sample: sampleService,
   sampleTag: sampleTagService,
+  foo: fooService,
   // --- AUTO-GENERATED-END ---
 
 };
