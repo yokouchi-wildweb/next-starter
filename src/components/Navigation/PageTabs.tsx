@@ -28,8 +28,8 @@ import { cn } from "@/lib/cn"
  *
  * - `tabs`: label / href / matcher 等を設定するだけで URL 遷移付きタブを描画。
  * - `size`: xs~xl の高さバリアント。デフォルトは md。
- * - `listAppearanceClassName`: リスト全体の背景・文字色などを上書き（デフォルトは muted 背景）。
- * - `activeTriggerClassName` / `activeLabelClassName`: 選択中タブの背景・枠線・文字色を上書き。
+ * - `listAppearanceClassName`: リスト全体の背景・文字色などを上書き（デフォルトは muted 背景＋外枠）。
+ * - `activeTriggerClassName` / `activeLabelClassName`: 選択中/未選択タブの背景・枠線・文字色を上書き。
  * - クリック時は Next.js の `Link` を発火するだけなので、フォーム送信や離脱ガードは利用側で制御する。
  */
 
@@ -75,8 +75,9 @@ export function PageTabs({
   listClassName,
   ariaLabel = "ページ内タブ",
   size = "md",
-  listAppearanceClassName = "bg-muted text-muted-foreground",
-  activeTriggerClassName = "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary",
+  listAppearanceClassName = "bg-muted text-muted-foreground rounded-md border border-border/70 shadow-xs",
+  activeTriggerClassName =
+    "rounded-none first:rounded-l-md last:rounded-r-md border border-border/70 -ml-px first:ml-0 data-[state=inactive]:bg-muted/60 data-[state=inactive]:text-muted-foreground/80 data-[state=inactive]:border-border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-sm data-[state=active]:z-[1]",
   activeLabelClassName = "text-primary-foreground",
 }: PageTabsProps) {
   const pathname = usePathname()
