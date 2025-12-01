@@ -3,7 +3,7 @@ import { FORM_INPUTS } from '../form-inputs.mjs';
 import { toCamelCase, toSnakeCase } from '../../../src/utils/stringCase.mjs';
 const prompt = inquirer.createPromptModule();
 
-const NUMERIC_FIELD_TYPES = new Set(['number', 'integer', 'bigint', 'numeric(10,2)']);
+const NUMERIC_FIELD_TYPES = new Set(['number', 'integer', 'float', 'bigint', 'numeric(10,2)']);
 const MEDIA_ACCEPT_PRESETS = [
   { value: 'images', label: '画像のみ (image/*)', accept: 'image/*' },
   { value: 'videos', label: '動画のみ (video/*)', accept: 'video/*' },

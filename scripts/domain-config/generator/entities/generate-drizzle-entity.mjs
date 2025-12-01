@@ -41,6 +41,8 @@ function mapType(t) {
       return 'text';
     case 'integer':
       return 'integer';
+    case 'float':
+      return 'doublePrecision';
     case 'bigint':
       return 'bigint';
     case 'numeric(10,2)':

@@ -61,6 +61,8 @@ function mapZodType(type) {
     case 'integer':
     case 'number':
       return 'z.coerce.number().int()';
+    case 'float':
+      return 'z.coerce.number()';
     case 'boolean':
       return 'z.coerce.boolean()';
     case 'array':

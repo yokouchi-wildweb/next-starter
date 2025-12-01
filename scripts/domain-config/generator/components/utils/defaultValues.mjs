@@ -11,6 +11,7 @@ function defaultValueFor(field) {
     case "integer":
     case "number":
     case "bigint":
+    case "float":
     case "numeric(10,2)":
       return "undefined";
     case "boolean":
