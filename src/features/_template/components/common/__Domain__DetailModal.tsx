@@ -40,7 +40,7 @@ export default function __Domain__DetailModal({ __domain__Id, open, onOpenChange
       onOpenChange={onOpenChange}
       title={viewModel.title}
       badge={viewModel.badge}
-      image={viewModel.image}
+      media={viewModel.media}
       rows={viewModel.rows}
       footer={viewModel.footer}
     />

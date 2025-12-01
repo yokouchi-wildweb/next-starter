@@ -40,7 +40,7 @@ export default function SampleDetailModal({ sampleId, open, onOpenChange }: Samp
       onOpenChange={onOpenChange}
       title={viewModel.title}
       badge={viewModel.badge}
-      image={viewModel.image}
+      media={viewModel.media}
       rows={viewModel.rows}
       footer={viewModel.footer}
     />

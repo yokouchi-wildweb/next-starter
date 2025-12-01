@@ -14,9 +14,11 @@ export type DetailModalBadge = {
   colorClass?: string;
 };
 
-export type DetailModalImage = {
+export type DetailModalMedia = {
+  type?: "image" | "video";
   url: string;
   alt?: string;
+  poster?: string;
 };
 
 export type DetailModalProps = {
@@ -24,9 +26,8 @@ export type DetailModalProps = {
   onOpenChange: (open: boolean) => void;
   title?: string;
   badge?: DetailModalBadge;
-  image?: DetailModalImage;
+  media?: DetailModalMedia;
   rows?: DetailModalRow[];
   footer?: ReactNode;
   className?: string;
 };
-

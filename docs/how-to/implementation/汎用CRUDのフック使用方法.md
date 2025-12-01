@@ -33,6 +33,8 @@ export const SampleTable = () => {
 };
 ```
 
+`viewModel.media` の `type` は省略時に `"image"` として扱われ、必要に応じて `"video"` と `poster` を指定すると動画プレビューを描画できます。
+
 ---
 
 ## 2. 詳細取得: `useSample`
@@ -60,6 +62,8 @@ export const SampleDetail = ({ sampleId }: { sampleId: string | null }) => {
   );
 };
 ```
+
+`viewModel.media` の `type` は指定しない場合 `"image"` として扱われ、`poster` を渡すと動画サムネイルも表示できます。
 
 ---
 
@@ -304,7 +308,14 @@ export const SampleDetailModal = ({ sampleId }: { sampleId: string | null }) => 
     <dialog open>
       <h2>{viewModel.title}</h2>
       {viewModel.badge && <span className={`badge ${viewModel.badge.colorClass}`}>{viewModel.badge.text}</span>}
-      {viewModel.image && <img src={viewModel.image.url} alt={viewModel.image.alt} />}
+      {viewModel.media &&
+        (viewModel.media.type === "video" ? (
+          <video controls poster={viewModel.media.poster} aria-label={viewModel.media.alt}>
+            <source src={viewModel.media.url} />
+          </video>
+        ) : (
+          <img src={viewModel.media.url} alt={viewModel.media.alt} />
+        ))}
       <table>
         <tbody>
           {viewModel.rows.map((row, rowIndex) => (
@@ -324,6 +335,8 @@ export const SampleDetailModal = ({ sampleId }: { sampleId: string | null }) => 
   );
 };
 ```
+
+`viewModel.media` の `type` は省略時に `"image"` が使われ、`poster` を渡すと動画サムネイルも表示できます。
 
 ---
 

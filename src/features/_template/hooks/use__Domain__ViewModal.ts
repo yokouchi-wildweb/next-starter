@@ -5,7 +5,7 @@
 import { useMemo, type ReactNode } from "react";
 import type {
   DetailModalBadge,
-  DetailModalImage,
+  DetailModalMedia,
   DetailModalRow,
 } from "@/components/Overlays/DetailModal";
 import { use__Domain__ } from "./use__Domain__";
@@ -14,7 +14,7 @@ __RELATION_IMPORTS__
 export type __Domain__ViewModal = {
   title: string;
   badge?: DetailModalBadge;
-  image?: DetailModalImage;
+  media?: DetailModalMedia;
   rows: DetailModalRow[];
   footer: ReactNode;
 };
@@ -40,7 +40,8 @@ __RELATION_SUMMARY_BLOCK__
     };
 
     // ----- 画像情報の組み立て -----
-    const image: DetailModalImage = {
+    const media: DetailModalMedia = {
+      type: "image",
       url: "https://placehold.co/600x400?text=Detail+Image",
       alt: "image alt",
     };
@@ -71,7 +72,7 @@ __RELATION_SUMMARY_BLOCK__
     return {
       title,
       badge,
-      image,
+      media,
       rows,
       footer,
     };

@@ -3,5 +3,5 @@ export type {
   DetailModalRow,
   DetailModalProps,
   DetailModalBadge,
-  DetailModalImage,
+  DetailModalMedia,
 } from "./types";
