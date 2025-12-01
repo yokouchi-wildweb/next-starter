@@ -31,8 +31,28 @@ export const useMediaMetadataBinding = <TFieldValues extends FieldValues>({
   binding,
   setValueOptions,
 }: UseMediaMetadataBindingOptions<TFieldValues>) => {
+  const shouldDirty = setValueOptions?.shouldDirty ?? true;
+  const shouldValidate = setValueOptions?.shouldValidate ?? false;
+
   return useCallback(
     (metadata: SelectedMediaMetadata) => {
+      const shouldReset = metadata.image === null && metadata.video === null;
+      if (shouldReset) {
+        (
+          Object.entries(binding) as [
+            keyof MediaMetadataBinding<TFieldValues>,
+            FieldPath<TFieldValues> | undefined,
+          ][]
+        ).forEach(([, fieldName]) => {
+          if (!fieldName) return;
+          methods.setValue(fieldName, null as any, {
+            shouldDirty,
+            shouldValidate,
+          });
+        });
+        return;
+      }
+
       const target = metadata.video ?? metadata.image;
       if (!target) {
         return;
@@ -56,11 +76,11 @@ export const useMediaMetadataBinding = <TFieldValues extends FieldValues>({
         const fieldName = binding[key];
         if (!fieldName) return;
         methods.setValue(fieldName, (value ?? null) as any, {
-          shouldDirty: setValueOptions?.shouldDirty ?? true,
-          shouldValidate: setValueOptions?.shouldValidate ?? false,
+          shouldDirty,
+          shouldValidate,
         });
       });
     },
-    [binding, methods, setValueOptions?.shouldDirty, setValueOptions?.shouldValidate],
+    [binding, methods, shouldDirty, shouldValidate],
   );
 };
