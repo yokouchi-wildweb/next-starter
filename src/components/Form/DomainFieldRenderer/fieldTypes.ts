@@ -51,6 +51,7 @@ export type CheckGroupFieldConfig<
 > = BaseFieldConfig<TFieldValues, TName> & {
   type: "checkGroup";
   options?: Options[];
+  displayType?: import("@/components/Form/Manual/CheckGroupInput").CheckGroupDisplayType;
 };
 
 export type MultiSelectFieldConfig<
@@ -111,11 +112,59 @@ export type DomainFieldRenderConfig<
   | StepperFieldConfig<TFieldValues, TName>
   | SwitchFieldConfig<TFieldValues, TName>
   | MediaUploaderFieldConfig<TFieldValues, TName>
-  | HiddenFieldConfig<TFieldValues, TName>;
+  | HiddenFieldConfig<TFieldValues, TName>
+  | DateFieldConfig<TFieldValues, TName>
+  | TimeFieldConfig<TFieldValues, TName>
+  | DatetimeFieldConfig<TFieldValues, TName>
+  | EmailFieldConfig<TFieldValues, TName>
+  | PasswordFieldConfig<TFieldValues, TName>
+  | BooleanCheckboxFieldConfig<TFieldValues, TName>;
 
 export type HiddenFieldConfig<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 > = BaseFieldConfig<TFieldValues, TName> & {
   type: "hidden";
+};
+
+export type DateFieldConfig<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>
+> = BaseFieldConfig<TFieldValues, TName> & {
+  type: "date";
+};
+
+export type TimeFieldConfig<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>
+> = BaseFieldConfig<TFieldValues, TName> & {
+  type: "time";
+};
+
+export type DatetimeFieldConfig<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>
+> = BaseFieldConfig<TFieldValues, TName> & {
+  type: "datetime";
+};
+
+export type EmailFieldConfig<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>
+> = BaseFieldConfig<TFieldValues, TName> & {
+  type: "email";
+};
+
+export type PasswordFieldConfig<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>
+> = BaseFieldConfig<TFieldValues, TName> & {
+  type: "password";
+};
+
+export type BooleanCheckboxFieldConfig<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>
+> = BaseFieldConfig<TFieldValues, TName> & {
+  type: "booleanCheckbox";
 };

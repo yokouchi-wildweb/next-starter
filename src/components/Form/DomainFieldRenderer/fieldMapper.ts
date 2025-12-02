@@ -7,6 +7,7 @@ export type DomainJsonField = {
   name: string;
   label: string;
   formInput: string;
+  fieldType?: string;
   uploadPath?: string;
   options?: { value: string | number | boolean; label: string }[];
   helperText?: string;
@@ -39,12 +40,33 @@ export const mapDomainFieldToRenderConfig = (
       return { ...base, type: "stepper" };
     case "switchInput":
       return { ...base, type: "switch" };
+    case "dateInput":
+      return { ...base, type: "date" };
+    case "timeInput":
+      return { ...base, type: "time" };
+    case "datetimeInput":
+      return { ...base, type: "datetime" };
+    case "emailInput":
+      return { ...base, type: "email" };
+    case "passwordInput":
+      return { ...base, type: "password" };
     case "radio": {
       const options = (field.options ?? []).map((option) => ({
         value: option.value === true || option.value === "true",
         label: option.label,
       }));
       return { ...base, type: "radioBoolean", options };
+    }
+    case "checkbox": {
+      if (field.fieldType === "array") {
+        return {
+          ...base,
+          type: "checkGroup",
+          options: field.options ?? [],
+          displayType: "checkbox",
+        };
+      }
+      return { ...base, type: "booleanCheckbox" };
     }
     case "select":
       return { ...base, type: "select", options: field.options ?? [] };

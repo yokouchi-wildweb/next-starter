@@ -4,13 +4,23 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import type { Control, ControllerRenderProps, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput, NumberInput, Textarea } from "@/components/Form/Controlled";
+import {
+  DateInput,
+  DatetimeInput,
+  EmailInput,
+  NumberInput,
+  PasswordInput,
+  TextInput,
+  Textarea,
+  TimeInput,
+} from "@/components/Form/Controlled";
 import { SelectInput } from "@/components/Form/Manual";
 import { CheckGroupInput } from "@/components/Form/Manual";
 import { MultiSelectInput } from "@/components/Form/Manual";
 import StepperInput from "@/components/Form/Manual/StepperInput";
 import { BooleanRadioGroupInput } from "@/components/Form/Manual";
 import { SwitchInput } from "@/components/Form/Controlled";
+import { BooleanCheckboxInput } from "@/components/Form/Manual/BooleanCheckboxInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
 import type { Options } from "@/types/form";
 
@@ -28,6 +38,12 @@ import type {
   SwitchFieldConfig,
   MediaUploaderFieldConfig,
   HiddenFieldConfig,
+  DateFieldConfig,
+  TimeFieldConfig,
+  DatetimeFieldConfig,
+  EmailFieldConfig,
+  PasswordFieldConfig,
+  BooleanCheckboxFieldConfig,
 } from "./fieldTypes";
 import { MediaFieldItem } from "./MediaFieldItem";
 
@@ -157,6 +173,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
         <CheckGroupInput
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           options={fieldConfig.options}
+          displayType={fieldConfig.displayType}
         />
       )}
     />
@@ -253,6 +270,92 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
     />
   );
 
+  const renderDateField = (
+    fieldConfig: DateFieldConfig<TFieldValues, FieldPath<TFieldValues>>
+  ) => (
+    <FormFieldItem
+      key={fieldConfig.name}
+      control={control}
+      name={fieldConfig.name}
+      label={fieldConfig.label}
+      description={fieldConfig.description}
+      renderInput={(field) => <DateInput field={field} readOnly={fieldConfig.readOnly} />}
+    />
+  );
+
+  const renderTimeField = (
+    fieldConfig: TimeFieldConfig<TFieldValues, FieldPath<TFieldValues>>
+  ) => (
+    <FormFieldItem
+      key={fieldConfig.name}
+      control={control}
+      name={fieldConfig.name}
+      label={fieldConfig.label}
+      description={fieldConfig.description}
+      renderInput={(field) => <TimeInput field={field} readOnly={fieldConfig.readOnly} />}
+    />
+  );
+
+  const renderDatetimeField = (
+    fieldConfig: DatetimeFieldConfig<TFieldValues, FieldPath<TFieldValues>>
+  ) => (
+    <FormFieldItem
+      key={fieldConfig.name}
+      control={control}
+      name={fieldConfig.name}
+      label={fieldConfig.label}
+      description={fieldConfig.description}
+      renderInput={(field) => <DatetimeInput field={field} readOnly={fieldConfig.readOnly} />}
+    />
+  );
+
+  const renderEmailField = (
+    fieldConfig: EmailFieldConfig<TFieldValues, FieldPath<TFieldValues>>
+  ) => (
+    <FormFieldItem
+      key={fieldConfig.name}
+      control={control}
+      name={fieldConfig.name}
+      label={fieldConfig.label}
+      description={fieldConfig.description}
+      renderInput={(field) => <EmailInput field={field} readOnly={fieldConfig.readOnly} />}
+    />
+  );
+
+  const renderPasswordField = (
+    fieldConfig: PasswordFieldConfig<TFieldValues, FieldPath<TFieldValues>>
+  ) => (
+    <FormFieldItem
+      key={fieldConfig.name}
+      control={control}
+      name={fieldConfig.name}
+      label={fieldConfig.label}
+      description={fieldConfig.description}
+      renderInput={(field) => <PasswordInput field={field} readOnly={fieldConfig.readOnly} />}
+    />
+  );
+
+  const renderBooleanCheckboxField = (
+    fieldConfig: BooleanCheckboxFieldConfig<TFieldValues, FieldPath<TFieldValues>>
+  ) => (
+    <FormField
+      key={fieldConfig.name}
+      control={control}
+      name={fieldConfig.name}
+      render={({ field }) => (
+        <FormItem>
+          <FormControl>
+            <BooleanCheckboxInput
+              field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
+              label={fieldConfig.label}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+
   const combinedFields = useMemo(() => {
     const jsonFields = buildFieldConfigsFromDomainJson<TFieldValues>(domainJsonFields);
     const standaloneFields: DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[] = [];
@@ -325,6 +428,18 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
         );
       case "hidden":
         return renderHiddenField(fieldConfig);
+      case "date":
+        return renderDateField(fieldConfig);
+      case "time":
+        return renderTimeField(fieldConfig);
+      case "datetime":
+        return renderDatetimeField(fieldConfig);
+      case "email":
+        return renderEmailField(fieldConfig);
+      case "password":
+        return renderPasswordField(fieldConfig);
+      case "booleanCheckbox":
+        return renderBooleanCheckboxField(fieldConfig);
       default:
         return <Fragment key={index} />;
     }
