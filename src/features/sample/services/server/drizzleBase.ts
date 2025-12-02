@@ -5,16 +5,17 @@ import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
+import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { z } from "zod";
 
 const conf = getDomainConfig("sample");
 
 const baseOptions = {
-  idType: conf.idType,
+  idType: conf.idType as IdType,
   useCreatedAt: conf.useCreatedAt,
   useUpdatedAt: conf.useUpdatedAt,
   defaultSearchFields: conf.searchFields,
-  defaultOrderBy: conf.defaultOrderBy,
+  defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
   belongsToManyRelations: [
     {
       fieldName: "sample_tag_ids",
