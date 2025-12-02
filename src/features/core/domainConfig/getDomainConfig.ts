@@ -4,6 +4,7 @@
 import sampleConfig from "@/features/sample/domain.json";
 import sampleCategoryConfig from "@/features/sampleCategory/domain.json";
 import sampleTagConfig from "@/features/sampleTag/domain.json";
+import { toSnakeCase } from "@/utils/stringCase.mjs";
 
 const domainConfigMap = {
   sample: sampleConfig,
@@ -14,10 +15,21 @@ const domainConfigMap = {
 export type DomainKey = keyof typeof domainConfigMap;
 export type DomainConfig = (typeof domainConfigMap)[DomainKey];
 
-export function getDomainConfig<T extends DomainKey>(domain: T): (typeof domainConfigMap)[T] {
-  const config = domainConfigMap[domain];
-  if (!config) {
+const normalizeDomainKey = (domain: string) => {
+  const snake = toSnakeCase(domain);
+  if (snake && snake in domainConfigMap) {
+    return snake as DomainKey;
+  }
+  if (domain in domainConfigMap) {
+    return domain as DomainKey;
+  }
+  return undefined;
+};
+
+export function getDomainConfig(domain: string): DomainConfig {
+  const key = normalizeDomainKey(domain);
+  if (!key) {
     throw new Error(`Domain config not found: ${domain}`);
   }
-  return config;
+  return domainConfigMap[key];
 }

@@ -124,6 +124,16 @@ function buildBelongsToManySnippets(config) {
           `    targetProperty: "${targetProperty}",`,
           "  }",
         ].join("\n"),
+        lines: [
+          "{",
+          `fieldName: "${relation.fieldName}",`,
+          `throughTable: ${relationTableVar},`,
+          `sourceColumn: ${relationTableVar}.${sourceProperty},`,
+          `targetColumn: ${relationTableVar}.${targetProperty},`,
+          `sourceProperty: "${sourceProperty}",`,
+          `targetProperty: "${targetProperty}",`,
+          "}",
+        ],
       };
     });
 }
@@ -145,8 +155,20 @@ function formatOptionsLiteral(baseOptions, belongsToMany) {
 
 function formatBelongsToManyLiteral(belongsToMany) {
   if (!belongsToMany.length) return "";
-  const literal = belongsToMany.map((item) => `    ${item.literal}`).join(",\n");
+  const literal = belongsToMany
+    .map((item) => formatBelongsToManyBlock(item.lines))
+    .join(",\n");
   return `  belongsToManyRelations: [\n${literal}\n  ],\n`;
+}
+
+function formatBelongsToManyBlock(lines = []) {
+  return lines
+    .map((line, index) => {
+      const isEdge = index === 0 || index === lines.length - 1;
+      const indent = isEdge ? "    " : "      ";
+      return `${indent}${line}`;
+    })
+    .join("\n");
 }
 
 function buildEntityImports() {

@@ -23,12 +23,17 @@ export function SampleTagFields<TFieldValues extends FieldValues>({
     [],
   );
 
+
+
+  const customFields = relationFieldConfigs;
+  const filteredDomainJsonFields = domainConfig.fields ?? [];
+
   return (
     <DomainFieldRenderer
       control={methods.control}
       methods={methods}
-      fields={relationFieldConfigs}
-      domainJsonFields={domainConfig.fields ?? []}
+      fields={customFields}
+      domainJsonFields={filteredDomainJsonFields}
       onMediaStateChange={onMediaStateChange}
     />
   );

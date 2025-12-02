@@ -8,7 +8,7 @@ import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { z } from "zod";
 
-const conf = getDomainConfig("sample_category");
+const conf = getDomainConfig("sampleCategory");
 
 const baseOptions = {
   idType: conf.idType as IdType,
@@ -16,6 +16,7 @@ const baseOptions = {
   useUpdatedAt: conf.useUpdatedAt,
   defaultSearchFields: conf.searchFields,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
+
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof SampleCategoryCreateSchema>
 >;
