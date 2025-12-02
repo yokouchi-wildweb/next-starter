@@ -7,19 +7,17 @@ import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { z } from "zod";
 
-const domainConfig = getDomainConfig("sample");
+const conf = getDomainConfig("sample");
 
 const baseOptions = {
-  idType: domainConfig.idType,
-  useCreatedAt: domainConfig.useCreatedAt,
-  useUpdatedAt: domainConfig.useUpdatedAt,
-  defaultSearchFields: domainConfig.searchFields,
-  defaultOrderBy: domainConfig.defaultOrderBy,
+  idType: conf.idType,
+  useCreatedAt: conf.useCreatedAt,
+  useUpdatedAt: conf.useUpdatedAt,
+  defaultSearchFields: conf.searchFields,
+  defaultOrderBy: conf.defaultOrderBy,
   belongsToManyRelations: [
     {
-      fieldName: domainConfig.relations?.find(
-        (relation) => relation.domain === "sample_tag" && relation.relationType === "belongsToMany",
-      )?.fieldName as string,
+      fieldName: "sample_tag_ids",
       throughTable: SampleToSampleTagTable,
       sourceColumn: SampleToSampleTagTable.sampleId,
       targetColumn: SampleToSampleTagTable.sampleTagId,
@@ -27,9 +25,7 @@ const baseOptions = {
       targetProperty: "sampleTagId",
     },
   ],
-} satisfies DrizzleCrudServiceOptions<
-  z.infer<typeof SampleCreateSchema>
->;
+} satisfies DrizzleCrudServiceOptions<z.infer<typeof SampleCreateSchema>>;
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
