@@ -2,6 +2,8 @@ import type { FieldPath, FieldValues } from "react-hook-form";
 
 import type { DomainFieldRenderConfig } from "./fieldTypes";
 import type { FileValidationRule } from "@/lib/mediaInputSuite";
+import type { RadioGroupDisplayType } from "@/components/Form/Manual/RadioGroupInput";
+import type { CheckGroupDisplayType } from "@/components/Form/Manual/CheckGroupInput";
 
 export type DomainJsonField = {
   name: string;
@@ -68,7 +70,7 @@ export const mapDomainFieldToRenderConfig = (
         ...base,
         type: "radio",
         options,
-        displayType: field.displayType ?? "standard",
+        displayType: (field.displayType as RadioGroupDisplayType | undefined) ?? "standard",
       };
     }
     case "checkbox": {
@@ -77,7 +79,7 @@ export const mapDomainFieldToRenderConfig = (
           ...base,
           type: "checkGroup",
           options: field.options ?? [],
-          displayType: field.displayType ?? "standard",
+          displayType: (field.displayType as CheckGroupDisplayType | undefined) ?? "standard",
         };
       }
       return { ...base, type: "booleanCheckbox" };
