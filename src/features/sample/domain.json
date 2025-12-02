@@ -125,7 +125,9 @@
       "slug": "main",
       "mediaTypePreset": "imagesAndVideos",
       "accept": "image/*,video/*",
-      "validationRule": { "maxSizeBytes": 104857600 }
+      "validationRule": {
+        "maxSizeBytes": 104857600
+      }
     },
     {
       "name": "sub_image",
@@ -137,7 +139,9 @@
       "slug": "sub",
       "mediaTypePreset": "imagesAndVideos",
       "accept": "image/*,video/*",
-      "validationRule": { "maxSizeBytes": 104857600 }
+      "validationRule": {
+        "maxSizeBytes": 104857600
+      }
     },
     {
       "name": "description",
