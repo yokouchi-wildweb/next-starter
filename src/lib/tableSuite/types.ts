@@ -26,6 +26,16 @@ export type TableStylingProps<T> = {
    * 行単位で適用するクラス名。関数を渡すと行ごとに計算できる。
    */
   rowClassName?: RowClassNameResolver<T>;
+  /**
+   * スクロール領域のラッパー div を外部から参照したい場合に指定する。
+   * IntersectionObserver の root 指定などで利用する。
+   */
+  scrollContainerRef?: React.Ref<HTMLDivElement>;
+  /**
+   * スクロール領域の最下部に sentinel を配置したい場合に指定する。
+   * 無限スクロールなどで IntersectionObserver の target に利用できる。
+   */
+  bottomSentinelRef?: React.Ref<HTMLDivElement>;
 };
 
 export type TableColumnAlignment = "left" | "center" | "right";

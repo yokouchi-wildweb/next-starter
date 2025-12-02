@@ -42,6 +42,8 @@ export default function DataTable<T>({
   rowClassName,
   onRowClick,
   emptyValueFallback,
+  scrollContainerRef,
+  bottomSentinelRef,
 }: DataTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -59,6 +61,7 @@ export default function DataTable<T>({
     <div
       className={cn("overflow-x-auto overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
+      ref={scrollContainerRef}
     >
       <Table variant="list">
         <TableHeader>
@@ -86,6 +89,9 @@ export default function DataTable<T>({
           ))}
         </TableBody>
       </Table>
+      {bottomSentinelRef ? (
+        <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
+      ) : null}
     </div>
   );
 }

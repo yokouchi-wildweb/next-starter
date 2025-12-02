@@ -44,6 +44,8 @@ export default function RecordSelectionTable<T>({
   onSelectionChange,
   selectionBehavior = "row",
   selectColumnLabel = "選択",
+  bottomSentinelRef,
+  scrollContainerRef,
 }: RecordSelectionTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -88,6 +90,7 @@ export default function RecordSelectionTable<T>({
     <div
       className={cn("overflow-x-auto overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
+      ref={scrollContainerRef}
     >
       <Table variant="list">
         <TableHeader>
@@ -146,6 +149,9 @@ export default function RecordSelectionTable<T>({
           })}
         </TableBody>
       </Table>
+      {bottomSentinelRef ? (
+        <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
+      ) : null}
     </div>
   );
 }

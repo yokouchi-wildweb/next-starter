@@ -40,6 +40,8 @@ export default function EditableGridTable<T>({
   order,
   rowHeight = "md",
   headerIconMode = "readonly",
+  scrollContainerRef,
+  bottomSentinelRef,
 }: EditableGridTableProps<T>) {
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production" && autoSort && (!order || order.length === 0)) {
@@ -121,6 +123,7 @@ export default function EditableGridTable<T>({
     <div
       className={cn("overflow-x-auto overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
+      ref={scrollContainerRef}
     >
       <Table variant="list" tableLayout={tableLayout}>
         <TableHeader>
@@ -170,6 +173,9 @@ export default function EditableGridTable<T>({
           ))}
         </TableBody>
       </Table>
+      {bottomSentinelRef ? (
+        <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
+      ) : null}
     </div>
   );
 }
