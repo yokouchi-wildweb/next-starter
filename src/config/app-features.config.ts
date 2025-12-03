@@ -27,7 +27,7 @@ export const APP_FEATURES = {
     },
   },
   wallet: {
-    enableUserAdjustButton: false,
+    enableUserAdjustButton: true,
   },
   // Higher values may increase productivity.
   coffeeLevel: 180,
