@@ -14,6 +14,7 @@ export type TabbedModalTab = {
   label: ReactNode;
   content: ReactNode;
   disabled?: boolean;
+  forceMount?: boolean;
   triggerClassName?: string;
   contentClassName?: string;
 };
@@ -122,7 +123,13 @@ export default function TabbedModal({
           <TabsContent
             key={tab.value}
             value={tab.value}
-            className={cn("w-full", tabContentClassName, tab.contentClassName)}
+            forceMount={tab.forceMount}
+            className={cn(
+              "w-full",
+              tabContentClassName,
+              tab.contentClassName,
+              tab.forceMount && "data-[state=inactive]:hidden",
+            )}
           >
             {tab.content}
           </TabsContent>

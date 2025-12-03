@@ -241,6 +241,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
           value: "history",
           label: "操作履歴",
           content: <WalletHistoryTabContent userId={user.id} />,
+          forceMount: true,
         },
       ]}
     />
