@@ -127,7 +127,7 @@ export default function EditableGridTable<T>({
     >
       <Table variant="list" tableLayout={tableLayout}>
         <TableHeader>
-          <TableRow>
+          <TableRow disableHover>
             {columns.map((column) => (
               <TableHead
                 key={column.field}

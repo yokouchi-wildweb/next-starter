@@ -65,7 +65,7 @@ export default function DataTable<T>({
     >
       <Table variant="list">
         <TableHeader>
-          <TableRow>
+          <TableRow disableHover>
             {columns.map((col, idx) => (
               <TableHead key={idx} className={resolveColumnTextAlignClass(col.align)}>
                 {col.header}

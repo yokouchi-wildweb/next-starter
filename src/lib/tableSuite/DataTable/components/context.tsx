@@ -25,14 +25,18 @@ export const headerVariants = cva("[&_tr]:border-b", {
   defaultVariants: { variant: "default" },
 });
 
-export const rowVariants = cva("border-b transition-colors hover:bg-cyan-200/30 data-[state=selected]:bg-muted", {
+export const rowVariants = cva("border-b transition-colors data-[state=selected]:bg-muted", {
   variants: {
     variant: {
       default: "",
       list: "even:bg-muted/50",
     },
+    hoverEffect: {
+      enabled: "hover:!bg-accent/20",
+      disabled: "hover:!bg-transparent",
+    },
   },
-  defaultVariants: { variant: "default" },
+  defaultVariants: { variant: "default", hoverEffect: "enabled" },
 });
 
 export const headVariants = cva(

@@ -94,7 +94,7 @@ export default function RecordSelectionTable<T>({
     >
       <Table variant="list">
         <TableHeader>
-          <TableRow>
+          <TableRow disableHover>
             <SelectionHeaderCell
               label={resolvedSelectColumnLabel}
               isCheckboxSelection={isCheckboxSelection}
