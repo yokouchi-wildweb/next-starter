@@ -18,6 +18,7 @@ export const walletMetaFieldDefinitions = [
     label: "商品ID",
     formInput: "textInput",
     placeholder: "例: ITEM-001",
+    description: "対象の商品・アイテムなどがあれば入力してください。",
   },
   {
     name: "orderId",
