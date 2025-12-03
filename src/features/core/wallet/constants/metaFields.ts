@@ -8,6 +8,7 @@ type WalletMetaFieldConfig = {
   formInput: WalletMetaFieldInputType;
   placeholder?: string;
   description?: string;
+  maxLength?: number;
   rows?: number;
 };
 

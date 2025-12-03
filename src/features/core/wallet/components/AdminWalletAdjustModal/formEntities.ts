@@ -1,6 +1,16 @@
 // src/features/wallet/components/AdminWalletAdjustModal/formEntities.ts
 
 import { z } from "zod";
+import { walletMetaFieldDefinitions, type WalletMetaFieldName } from "@/features/core/wallet/constants/metaFields";
+
+const metaFieldsSchemaShape = walletMetaFieldDefinitions.reduce((shape, field) => {
+  const schema = z
+    .string()
+    .trim()
+    .max(field.maxLength ?? 200)
+    .optional();
+  return { ...shape, [field.name]: schema };
+}, {} as Record<WalletMetaFieldName, z.ZodType<string | undefined>>);
 
 export const WalletAdjustFormSchema = z
   .object({
@@ -12,10 +22,7 @@ export const WalletAdjustFormSchema = z
       .trim()
       .max(200, { message: "理由は200文字以内で入力してください。" })
       .optional(),
-    productId: z.string().trim().optional(),
-    orderId: z.string().trim().optional(),
-    gachaId: z.string().trim().optional(),
-    notes: z.string().trim().optional(),
+    ...metaFieldsSchemaShape,
   })
   .superRefine((value, ctx) => {
     if (value.changeMethod !== "SET" && (value.amount ?? 0) <= 0) {
