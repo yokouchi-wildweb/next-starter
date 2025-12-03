@@ -9,6 +9,8 @@ export * from "@/features/core/setting/entities/drizzle";
 export * from "@/features/sampleCategory/entities/drizzle";
 export * from "@/features/sample/entities/drizzle";
 export * from "@/features/sampleTag/entities/drizzle";
+export * from "@/features/core/wallet/entities/drizzle";
+export * from "@/features/core/walletHistory/entities/drizzle";
 // --- AUTO-GENERATED-END ---
 
 export {};
