@@ -64,6 +64,7 @@ type DialogContentProps = Omit<
   maxWidth?: number | string;
   minHeight?: number | string;
   maxHeight?: number | string;
+  height?: number | string;
 };
 
 export function DialogOverlay({
@@ -91,17 +92,23 @@ export function DialogContent({
   overlayLayerClassName,
   maxWidth,
   minHeight,
+  maxHeight,
+  height,
   style,
   ...props
 }: DialogContentProps) {
   const resolvedMaxWidth = typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth;
   const resolvedMinHeight = typeof minHeight === "number" ? `${minHeight}px` : minHeight;
+  const resolvedMaxHeight = typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight;
+  const resolvedHeight = typeof height === "number" ? `${height}px` : height;
   const contentStyle: CSSProperties | undefined =
-    resolvedMaxWidth || resolvedMinHeight
+    resolvedMaxWidth || resolvedMinHeight || resolvedMaxHeight || resolvedHeight
       ? {
           ...style,
           ...(resolvedMaxWidth ? { maxWidth: resolvedMaxWidth } : {}),
           ...(resolvedMinHeight ? { minHeight: resolvedMinHeight } : {}),
+          ...(resolvedMaxHeight ? { maxHeight: resolvedMaxHeight } : {}),
+          ...(resolvedHeight ? { height: resolvedHeight } : {}),
         }
       : style;
 

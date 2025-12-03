@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
-import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
 import { Button } from "@/components/Form/Button/Button";
 import { Input } from "src/components/Form/Manual";
 import { Label } from "@/components/Form/Label";
+import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
+import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
+import TabbedModal, { type TabbedModalTab } from "@/components/Overlays/TabbedModal";
 import { ConfirmDialog } from "@/components/Overlays/ConfirmDialog";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import {
@@ -32,6 +33,13 @@ const SPINNER_VARIANTS = [
   { value: "ring", label: "ring" },
   { value: "circle", label: "circle" },
 ] as const satisfies ReadonlyArray<{ value: SpinnerVariant; label: string }>;
+
+const TABBED_MODAL_DEFAULT_TAB = "details" as const;
+
+const TAB_DETAILS_PARAGRAPHS = Array.from({ length: 10 }, (_, index) => {
+  const paragraphNumber = index + 1;
+  return `(${paragraphNumber}/10) デモ用の長文コンテンツです。プロジェクト背景や意思決定の経緯、共有したい指針などを詳細に記述する想定でテキスト量を増やしています。スクロールで全体を読みながらタブを切り替え、UI の挙動を確認してください。`;
+});
 
 type LoadingOverlayMode = "local" | "fullscreen";
 
@@ -58,9 +66,110 @@ const INITIAL_OPTIONS: OverlayOptions = {
 export default function OverlayDemoPage() {
   const [isVisible, setIsVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTabbedModalOpen, setIsTabbedModalOpen] = useState(false);
+  const [activeTabbedModalTab, setActiveTabbedModalTab] = useState<string>(
+    TABBED_MODAL_DEFAULT_TAB,
+  );
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isConfirmProcessing, setIsConfirmProcessing] = useState(false);
   const [options, setOptions] = useState<OverlayOptions>(INITIAL_OPTIONS);
+
+  const closeTabbedModal = useCallback(() => {
+    setIsTabbedModalOpen(false);
+    setActiveTabbedModalTab(TABBED_MODAL_DEFAULT_TAB);
+  }, []);
+
+  const handleTabbedModalOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        closeTabbedModal();
+        return;
+      }
+      setIsTabbedModalOpen(true);
+    },
+    [closeTabbedModal],
+  );
+
+  const tabbedModalTabs: TabbedModalTab[] = [
+    {
+      value: "details",
+      label: "概要",
+      content: (
+        <div className="flex flex-col gap-3">
+          <SecTitle as="h3" className="mt-0 text-base font-semibold">
+            タブでセクションを整理
+          </SecTitle>
+          <Para size="sm" tone="muted" className="mt-0">
+            モーダル内でも複数のレイアウトをまとめて表示できます。タブの切り替えは Radix Tabs を利用しており、
+            固定ヘッダーのすぐ下に表示されます。
+          </Para>
+          <Para size="sm" className="mt-0">
+            ここにはガイドテキストや操作の説明、ちょっとした統計カードなど自由に配置できます。必要に応じて
+            Layout コンポーネントを組み合わせて UI を構成してください。
+          </Para>
+          {TAB_DETAILS_PARAGRAPHS.map((text) => (
+            <Para key={text} size="sm" className="mt-0">
+              {text}
+            </Para>
+          ))}
+        </div>
+      ),
+    },
+    {
+      value: "memo",
+      label: "共有メモ",
+      content: (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="tabbed-modal-title">メモタイトル</Label>
+            <Input
+              id="tabbed-modal-title"
+              placeholder="例: 次のリリース計画"
+              defaultValue="次のリリース計画"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="tabbed-modal-description">詳細メモ</Label>
+            <Textarea
+              id="tabbed-modal-description"
+              rows={4}
+              placeholder="モーダル内で共有したいメモをここに書きます。"
+              defaultValue="最優先で確認したいトピックを簡潔にまとめておくことで、参加者全員の認識を合わせられます。"
+            />
+          </div>
+          <Button
+            variant="secondary"
+            className="self-start"
+            onClick={() => setActiveTabbedModalTab("actions")}
+          >
+            次のタブへ進む
+          </Button>
+        </div>
+      ),
+    },
+    {
+      value: "actions",
+      label: "アクション",
+      content: (
+        <div className="flex flex-col gap-4">
+          <Para size="sm" tone="muted" className="mt-0">
+            タブごとに異なるアクションボタンを配置できます。ここでは、メモの確認完了や閉じる操作を想定しています。
+          </Para>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={() => setActiveTabbedModalTab("memo")}>
+              メモを編集する
+            </Button>
+            <Button variant="accent" onClick={() => toast("メモを共有しました。")}>
+              メモを共有
+            </Button>
+            <Button variant="secondary" onClick={closeTabbedModal}>
+              完了して閉じる
+            </Button>
+          </div>
+        </div>
+      ),
+    },
+  ];
 
   useEffect(() => {
     if (!isVisible) {
@@ -154,6 +263,9 @@ export default function OverlayDemoPage() {
             <Button onClick={() => setIsModalOpen(true)}>モーダルを開く</Button>
             <Button variant="outline" onClick={() => setIsConfirmOpen(true)}>
               確認ダイアログを開く
+            </Button>
+            <Button variant="secondary" onClick={() => setIsTabbedModalOpen(true)}>
+              タブ付きモーダルを開く
             </Button>
           </div>
 
@@ -328,6 +440,17 @@ export default function OverlayDemoPage() {
           </Button>
         </div>
       </Modal>
+
+      <TabbedModal
+        open={isTabbedModalOpen}
+        onOpenChange={handleTabbedModalOpenChange}
+        title="タブ付きモーダル"
+        tabs={tabbedModalTabs}
+        value={activeTabbedModalTab}
+        onValueChange={setActiveTabbedModalTab}
+        maxWidth={720}
+        height="50vh"
+      />
 
       <ConfirmDialog
         open={isConfirmOpen}
