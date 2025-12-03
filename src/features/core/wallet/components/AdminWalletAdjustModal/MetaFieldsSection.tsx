@@ -7,7 +7,7 @@ import type { Control } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput, Textarea } from "@/components/Form/Controlled";
 
-import { walletMetaFieldDefinitions } from "@/features/core/wallet/constants/metaFields";
+import { walletMetaFieldDefinitions, type WalletMetaFieldDefinition } from "@/features/core/wallet/constants/metaFields";
 import type { WalletAdjustFormValues } from "./formEntities";
 
 type MetaFieldsSectionProps = {
@@ -21,15 +21,7 @@ export function MetaFieldsSection({ control }: MetaFieldsSectionProps) {
       control={control}
       name={field.name}
       label={field.label}
-      description={
-        field.description
-          ? {
-              text: field.description,
-              tone: "muted",
-              size: "xs",
-            }
-          : undefined
-      }
+      description={resolveDescription(field)}
       renderInput={(controllerField) =>
         field.formInput === "textarea" ? (
           <Textarea
@@ -46,4 +38,15 @@ export function MetaFieldsSection({ control }: MetaFieldsSectionProps) {
       }
     />
   ));
+}
+
+function resolveDescription(field: WalletMetaFieldDefinition) {
+  if (!("description" in field) || !field.description) {
+    return undefined;
+  }
+  return {
+    text: field.description,
+    tone: "muted" as const,
+    size: "xs" as const,
+  };
 }

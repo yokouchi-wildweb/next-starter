@@ -7,7 +7,7 @@ const metaFieldsSchemaShape = walletMetaFieldDefinitions.reduce((shape, field) =
   const schema = z
     .string()
     .trim()
-    .max(field.maxLength ?? 200)
+    .max("maxLength" in field && typeof field.maxLength === "number" ? field.maxLength : 200)
     .optional();
   return { ...shape, [field.name]: schema };
 }, {} as Record<WalletMetaFieldName, z.ZodType<string | undefined>>);
@@ -35,13 +35,18 @@ export const WalletAdjustFormSchema = z
   });
 export type WalletAdjustFormValues = z.infer<typeof WalletAdjustFormSchema>;
 
+const metaFieldsDefaults = walletMetaFieldDefinitions.reduce(
+  (defaults, field) => ({
+    ...defaults,
+    [field.name]: "",
+  }),
+  {} as Record<WalletMetaFieldName, string>,
+);
+
 export const WalletAdjustDefaultValues: WalletAdjustFormValues = {
   walletType: "regular_point",
   changeMethod: "INCREMENT",
   amount: undefined,
   reason: "",
-  productId: "",
-  orderId: "",
-  gachaId: "",
-  notes: "",
+  ...metaFieldsDefaults,
 };
