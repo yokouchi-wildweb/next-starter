@@ -123,7 +123,7 @@ export default function TabbedModal({
           <TabsContent
             key={tab.value}
             value={tab.value}
-            forceMount={tab.forceMount}
+            forceMount={tab.forceMount ? true : undefined}
             className={cn(
               "w-full",
               tabContentClassName,

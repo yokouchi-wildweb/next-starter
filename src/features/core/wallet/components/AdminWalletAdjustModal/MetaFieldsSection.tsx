@@ -44,7 +44,7 @@ export function MetaFieldsSection({ control }: MetaFieldsSectionProps) {
 }
 
 function resolveDescription(field: WalletMetaFieldDefinition) {
-  if (!field.description) {
+  if (!("description" in field) || !field.description) {
     return undefined;
   }
   return {

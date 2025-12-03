@@ -54,7 +54,7 @@ export async function POST(
       const errorMessage = parsed.error.errors[0]?.message ?? "入力値が不正です。";
       return NextResponse.json({ message: errorMessage }, { status: 400 });
     }
-    payload = parsed.data;
+    payload = parsed.data as WalletAdjustRequestPayload;
   } catch {
     return NextResponse.json({ message: "リクエストボディの解析に失敗しました。" }, { status: 400 });
   }

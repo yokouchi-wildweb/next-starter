@@ -6,10 +6,13 @@ export const WalletAdjustFormSchema = z
   .object({
     walletType: z.enum(["regular_point", "temporary_point"]),
   changeMethod: z.enum(["INCREMENT", "DECREMENT", "SET"]),
-  amount: z.preprocess(
-    (value) => (value === "" || value === null ? undefined : value),
-    z.coerce.number().int().min(0),
-  ),
+    amount: z
+      .preprocess(
+        (value) => (value === "" || value === null ? undefined : value),
+        z.coerce.number().int().min(0),
+      )
+      .nullable()
+      .transform((value) => value ?? undefined),
     reason: z
       .string()
       .trim()
