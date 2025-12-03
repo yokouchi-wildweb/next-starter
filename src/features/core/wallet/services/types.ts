@@ -39,3 +39,12 @@ export type ConsumeReservationParams = {
   reason?: string | null;
   meta?: WalletHistoryMetaInput;
 };
+
+export type WalletAdjustRequestPayload = {
+  walletType: WalletTypeValue;
+  changeMethod: WalletHistoryChangeMethodValue;
+  amount: number;
+  requestBatchId?: string | null;
+  reason?: string | null;
+  meta?: WalletHistoryMetaInput;
+};

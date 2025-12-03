@@ -3,7 +3,7 @@
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 
-const WalletHistoryMetaSchema = z
+export const WalletHistoryMetaSchema = z
   .object({
     productId: z.string().trim().nullish().transform(emptyToNull).optional(),
     orderId: z.string().trim().nullish().transform(emptyToNull).optional(),
