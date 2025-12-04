@@ -12,10 +12,8 @@ import EditButton from "@/components/Fanctional/EditButton";
 import { Button } from "@/components/Form/Button/Button";
 import type { User } from "@/features/core/user/entities";
 import { useDeleteUser } from "@/features/core/user/hooks/useDeleteUser";
-import { formatDateJa } from "@/utils/date";
-import type { UserRoleType } from "@/types/user";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
-import { formatUserStatusLabel } from "@/features/core/user/constants/status";
+import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 
 type Props = {
@@ -26,39 +24,54 @@ type Props = {
 const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
-const USER_ROLE_LABELS: Record<UserRoleType, string> = {
-  admin: "管理者",
-  user: "一般",
-};
-
-const formatDateCell = (date: Date | string | null | undefined) => {
-  const formatted = formatDateJa(date, { fallback: null });
-  return formatted;
-};
-
 const createColumns = (
   editBasePath: string,
   onAdjust: (user: User) => void,
 ): DataTableColumn<User>[] => [
   {
     header: "表示名",
-    render: (user) => user.displayName ?? adminDataTableFallback,
+    render: (user) =>
+      presenters.displayName({
+        value: user.displayName,
+        field: "displayName",
+        record: user,
+      }),
   },
   {
     header: "メールアドレス",
-    render: (user) => user.email ?? adminDataTableFallback,
+    render: (user) =>
+      presenters.email({
+        value: user.email,
+        field: "email",
+        record: user,
+      }),
   },
   {
     header: "権限",
-    render: (user) => USER_ROLE_LABELS[user.role] ?? user.role,
+    render: (user) =>
+      presenters.role({
+        value: user.role,
+        field: "role",
+        record: user,
+      }),
   },
   {
     header: "状態",
-    render: (user) => formatUserStatusLabel(user.status, user.status),
+    render: (user) =>
+      presenters.status({
+        value: user.status,
+        field: "status",
+        record: user,
+      }),
   },
   {
     header: "最終ログイン",
-    render: (user) => formatDateCell(user.lastAuthenticatedAt),
+    render: (user) =>
+      presenters.lastAuthenticatedAt({
+        value: user.lastAuthenticatedAt,
+        field: "lastAuthenticatedAt",
+        record: user,
+      }),
   },
   {
     header: "操作",

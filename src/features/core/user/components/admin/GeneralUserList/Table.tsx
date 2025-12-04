@@ -13,9 +13,8 @@ import EditButton from "@/components/Fanctional/EditButton";
 import { Button } from "@/components/Form/Button/Button";
 import { useDeleteUser } from "@/features/core/user/hooks/useDeleteUser";
 import type { User } from "@/features/core/user/entities";
-import { formatDateJa } from "@/utils/date";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
-import { formatUserStatusLabel } from "@/features/core/user/constants/status";
+import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import { APP_FEATURES } from "@/config/app-features.config";
 
@@ -27,11 +26,6 @@ type Props = {
 const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
-const formatDateCell = (date: Date | string | null | undefined) => {
-  const formatted = formatDateJa(date, { fallback: null });
-  return formatted;
-};
-
 const createColumns = (
   editBasePath: string,
   onAdjust: (user: User) => void,
@@ -40,23 +34,48 @@ const createColumns = (
   const columns: DataTableColumn<User>[] = [
     {
       header: "ステータス",
-      render: (user) => formatUserStatusLabel(user.status, user.status),
+      render: (user) =>
+        presenters.status({
+          value: user.status,
+          field: "status",
+          record: user,
+        }),
     },
     {
       header: "表示名",
-      render: (user) => user.displayName ?? adminDataTableFallback,
+      render: (user) =>
+        presenters.displayName({
+          value: user.displayName,
+          field: "displayName",
+          record: user,
+        }),
     },
     {
       header: "認証方法",
-      render: (user) => user.providerType ?? "-",
+      render: (user) =>
+        presenters.providerType({
+          value: user.providerType,
+          field: "providerType",
+          record: user,
+        }),
     },
     {
       header: "メールアドレス",
-      render: (user) => user.email ?? adminDataTableFallback,
+      render: (user) =>
+        presenters.email({
+          value: user.email,
+          field: "email",
+          record: user,
+        }),
     },
     {
       header: "登録日",
-      render: (user) => formatDateCell(user.createdAt),
+      render: (user) =>
+        presenters.createdAt({
+          value: user.createdAt,
+          field: "createdAt",
+          record: user,
+        }),
     },
   ];
 
