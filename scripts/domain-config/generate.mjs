@@ -23,6 +23,7 @@ const ALL_GENERATE_OPTIONS = {
   fieldConstants: true,
   adminRoutes: true,
   registry: true,
+  presenters: true,
 };
 
 function runGenerator(script, domain, plural, dbEngine) {
@@ -156,6 +157,8 @@ export default async function generate(domain, options = {}) {
   if (gen.entities)
     runGenerator(path.join("entities", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
   if (gen.registry) runGenerator("registry/index.mjs", normalizedDomain);
+  if (gen.presenters)
+    runGenerator(path.join("components", "presenters.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

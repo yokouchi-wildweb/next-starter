@@ -8,6 +8,7 @@ import EditButton from "@/components/Fanctional/EditButton";
 import DeleteButton from "@/components/Fanctional/DeleteButton";
 import { useDelete__Domain__ } from "@/features/__domain__/hooks/useDelete__Domain__";
 import config from "@/features/__domain__/domain.json";
+import presenters from "@/features/__domain__/presenters";
 import { useState } from "react";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
 import { buildDomainColumns } from "@/lib/crud";
@@ -26,6 +27,7 @@ const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定
 
 const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
   config,
+  presenters,
   actionColumn: {
     header: "操作",
     render: (d: __Domain__) => (

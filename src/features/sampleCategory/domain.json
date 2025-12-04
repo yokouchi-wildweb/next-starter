@@ -51,6 +51,7 @@
     "serverServices": true,
     "adminRoutes": true,
     "registry": true,
-    "fieldConstants": true
+    "fieldConstants": true,
+    "presenters": true
   }
 }

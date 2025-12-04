@@ -60,6 +60,7 @@
     "serverServices": true,
     "fieldConstants": true,
     "adminRoutes": true,
-    "registry": true
+    "registry": true,
+    "presenters": true
   }
 }

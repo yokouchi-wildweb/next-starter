@@ -8,7 +8,7 @@ import EditButton from "@/components/Fanctional/EditButton";
 import DeleteButton from "@/components/Fanctional/DeleteButton";
 import { useDeleteSample } from "@/features/sample/hooks/useDeleteSample";
 import config from "@/features/sample/domain.json";
-import presenters from "@/features/sample/components/presenters";
+import presenters from "@/features/sample/presenters";
 import { useState } from "react";
 import SampleDetailModal from "../common/SampleDetailModal";
 import { buildDomainColumns } from "@/lib/crud";

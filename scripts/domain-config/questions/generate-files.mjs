@@ -15,6 +15,7 @@ export default async function askGenerateFiles() {
       'fieldConstants',
       'adminRoutes',
       'registry',
+      'presenters',
     ],
     choices: [
       { name: 'エンティティ', value: 'entities' },
@@ -25,6 +26,7 @@ export default async function askGenerateFiles() {
       { name: 'Enum 定数/型', value: 'fieldConstants' },
       { name: '管理画面ルート', value: 'adminRoutes' },
       { name: 'ドメインレジストリに追加', value: 'registry' },
+      { name: 'プレゼンター', value: 'presenters' },
     ],
   });
 
@@ -37,6 +39,7 @@ export default async function askGenerateFiles() {
     fieldConstants: files.includes('fieldConstants'),
     adminRoutes: files.includes('adminRoutes'),
     registry: files.includes('registry'),
+    presenters: files.includes('presenters'),
   };
 
   return { generateFiles };

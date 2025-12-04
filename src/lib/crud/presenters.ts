@@ -20,11 +20,24 @@ export const formatBoolean = (
   return value ? truthyLabel : falsyLabel;
 };
 
-export const formatNumber = (value: unknown, suffix = "", fallback = "―") => {
+export const formatNumber = (
+  value: unknown,
+  { prefix = "", suffix = "" }: { prefix?: string; suffix?: string } = {},
+  fallback = "―",
+) => {
   if (value === null || value === undefined) return fallback;
   const num = Number(value);
   if (Number.isNaN(num)) return fallback;
-  return `${num.toLocaleString()}${suffix}`;
+  return `${prefix}${num.toLocaleString()}${suffix}`;
+};
+
+export const formatString = (
+  value: unknown,
+  { prefix = "", suffix = "" }: { prefix?: string; suffix?: string } = {},
+  fallback = "―",
+) => {
+  if (value === null || value === undefined || value === "") return fallback;
+  return `${prefix}${String(value)}${suffix}`;
 };
 
 export const formatStringArray = (

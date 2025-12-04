@@ -8,6 +8,7 @@ import EditButton from "@/components/Fanctional/EditButton";
 import DeleteButton from "@/components/Fanctional/DeleteButton";
 import { useDeleteSampleTag } from "@/features/sampleTag/hooks/useDeleteSampleTag";
 import config from "@/features/sampleTag/domain.json";
+import presenters from "@/features/sampleTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
 
@@ -24,6 +25,7 @@ const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定
 
 const columns: DataTableColumn<SampleTag>[] = buildDomainColumns<SampleTag>({
   config,
+  presenters,
   actionColumn: {
     header: "操作",
     render: (d: SampleTag) => (
