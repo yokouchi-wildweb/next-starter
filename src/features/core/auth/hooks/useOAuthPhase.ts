@@ -14,7 +14,7 @@ import { useOAuthRedirect } from "./oauth/useOAuthRedirect";
 import { useOAuthCredential } from "./oauth/useOAuthCredential";
 import { useOAuthRegistration } from "./oauth/useOAuthRegistration";
 import { clearRedirectAttempt } from "./oauth/utils";
-import type { UseOAuthPhaseParams, OAuthPhase } from "./oauth/types";
+import type { UseOAuthPhaseParams, OAuthPhase, OAuthCredentialInfo } from "./oauth/types";
 
 // 型のエクスポート（後方互換性のため）
 export type { OAuthPhase } from "./oauth/types";
@@ -36,17 +36,17 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
   const isActiveRef = useRef(true);
 
   // ステートマシン
-  const { phase, credentialInfo, setPhase, setCredential, setError } = useOAuthStateMachine();
+  const { phase, setPhase, setCredential, setError } = useOAuthStateMachine();
 
-  // サブフック
-  const redirect = useOAuthRedirect({ sessionStorage, provider });
-  const credential = useOAuthCredential({ provider });
-  const registration = useOAuthRegistration({ provider });
+  // サブフック（関数を個別に取得）
+  const { getResult, executeRedirect, checkAttempted } = useOAuthRedirect({ sessionStorage, provider });
+  const { extract, checkUser } = useOAuthCredential({ provider });
+  const { registerNewUser, createSessionForExistingUser } = useOAuthRegistration({ provider });
 
   useEffect(() => {
     log(3, "[useOAuthPhase] effect start", {
       provider,
-      sessionHasRedirectAttempt: redirect.checkAttempted(),
+      sessionHasRedirectAttempt: checkAttempted(),
     });
 
     // プロバイダーのバリデーション
@@ -65,9 +65,10 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
 
     // メインフロー
     const run = async () => {
+      let extractedCredential: OAuthCredentialInfo | null = null;
       try {
         // 1. リダイレクト結果の取得
-        const redirectResult = await redirect.getResult();
+        const redirectResult = await getResult();
         if (!isActiveRef.current) return;
 
         // 2. リダイレクト結果がない場合
@@ -81,12 +82,12 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
         clearRedirectAttempt(sessionStorage, provider);
 
         // 4. 認証情報の抽出
-        const extractedCredential = await credential.extract(redirectResult);
+        extractedCredential = await extract(redirectResult);
         if (!isActiveRef.current) return;
         setCredential(extractedCredential);
 
         // 5. ユーザー存在チェック
-        const { isRegistered: userIsRegistered } = await credential.checkUser(
+        const { isRegistered: userIsRegistered } = await checkUser(
           extractedCredential,
         );
         if (!isActiveRef.current) return;
@@ -98,13 +99,13 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
         }
 
         // 7. 新規ユーザーの仮登録
-        await registration.registerNewUser(extractedCredential);
+        await registerNewUser(extractedCredential);
         if (!isActiveRef.current) return;
 
         setPhase("completed");
         log(3, "[useOAuthPhase] authentication flow completed successfully");
       } catch (error) {
-        handleError(error);
+        handleError(error, extractedCredential);
       }
     };
 
@@ -114,11 +115,11 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
     async function handleMissingRedirectResult() {
       log(3, "[useOAuthPhase] redirect result absent", {
         provider,
-        sessionHasRedirectAttempt: redirect.checkAttempted(),
+        sessionHasRedirectAttempt: checkAttempted(),
       });
 
       // リダイレクト試行済みなのに結果がない場合はエラー
-      if (redirect.checkAttempted()) {
+      if (checkAttempted()) {
         log(3, "[useOAuthPhase] redirect attempt detected but result missing. Mark invalid.");
         markInvalidProcess();
         return;
@@ -126,20 +127,20 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
 
       // リダイレクト実行
       setPhase("redirecting");
-      await redirect.executeRedirect(authProvider!);
+      await executeRedirect(authProvider!);
     }
 
     /**
      * 既存ユーザーのログイン処理
      */
-    async function handleAlreadyRegistered(cred: typeof credentialInfo) {
+    async function handleAlreadyRegistered(cred: OAuthCredentialInfo | null) {
       if (!cred) {
         log(3, "[useOAuthPhase] credential info missing for registered user", { provider });
         markInvalidProcess();
         return;
       }
 
-      await registration.createSessionForExistingUser(cred);
+      await createSessionForExistingUser(cred);
       if (!isActiveRef.current) return;
 
       clearRedirectAttempt(sessionStorage, provider);
@@ -149,17 +150,17 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
     /**
      * エラーハンドリング
      */
-    function handleError(error: unknown) {
+    function handleError(error: unknown, currentCredential: OAuthCredentialInfo | null) {
       console.error("[useOAuthPhase] OAuth signup process failed", {
         error,
         provider,
-        sessionHasRedirectAttempt: redirect.checkAttempted(),
+        sessionHasRedirectAttempt: checkAttempted(),
       });
 
       // 409エラーは既存ユーザー
-      if (isHttpError(error) && error.status === 409 && credentialInfo) {
+      if (isHttpError(error) && error.status === 409 && currentCredential) {
         log(3, "[useOAuthPhase] handled 409 error as already registered", { provider });
-        void handleAlreadyRegistered(credentialInfo);
+        void handleAlreadyRegistered(currentCredential);
         return;
       }
 
@@ -193,13 +194,16 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
   }, [
     provider,
     sessionStorage,
-    redirect,
-    credential,
-    registration,
+    getResult,
+    executeRedirect,
+    checkAttempted,
+    extract,
+    checkUser,
+    registerNewUser,
+    createSessionForExistingUser,
     setPhase,
     setCredential,
     setError,
-    credentialInfo,
   ]);
 
   return {
