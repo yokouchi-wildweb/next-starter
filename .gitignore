@@ -56,5 +56,6 @@ next-env.d.ts
 
 # etc
 AGENTS.md
+CLAUDE.md
 TODO.ts
 
