@@ -2,56 +2,55 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { getRedirectResult, signInWithRedirect } from "firebase/auth";
+import { useEffect, useRef } from "react";
 
-import { usePreRegistration } from "@/features/core/auth/hooks/usePreRegistration";
-import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { createOAuthProvider } from "@/features/core/auth/utils/createOAuthProvider";
-import { useExists } from "@/features/core/user/hooks/useExists";
-import { useStatusChecker } from "@/features/core/user/hooks/useStatusChecker";
-import { extractOAuthCredential } from "@/features/core/auth/utils/extractOAuthCredential";
 import { useSessionStorage } from "@/hooks/useSessionStorage";
 import { log } from "@/utils/log";
-import { auth } from "@/lib/firebase/client/app";
 import { isHttpError } from "@/lib/errors";
-import { createFirebaseSession } from "@/features/core/auth/services/client/firebaseSession";
-import type { UserProviderType } from "@/types/user";
 
-const REDIRECT_ATTEMPT_STORAGE_KEY = "auth.oauth.redirectAttempted";
+import { useOAuthStateMachine } from "./oauth/useOAuthStateMachine";
+import { useOAuthRedirect } from "./oauth/useOAuthRedirect";
+import { useOAuthCredential } from "./oauth/useOAuthCredential";
+import { useOAuthRegistration } from "./oauth/useOAuthRegistration";
+import { clearRedirectAttempt } from "./oauth/utils";
+import type { UseOAuthPhaseParams, OAuthPhase } from "./oauth/types";
 
-export type OAuthPhase =
-  | "initial" // 認証フローの開始に向けて前処理を行っている状態
-  | "redirecting" // 認証プロバイダーのページへ遷移中の状態
-  | "processing" // リダイレクトから戻り認証情報を検証している状態
-  | "completed" // 認証と仮登録が完了し次の画面へ進める状態
-  | "alreadyRegistered" // 対象アカウントがすでに登録済みである状態
-  | "invalidProcess"; // 必要な情報が不足するなど手続きが成立しない状態
+// 型のエクスポート（後方互換性のため）
+export type { OAuthPhase } from "./oauth/types";
 
-type UseOAuthPhaseParams = {
-  provider?: UserProviderType;
-};
-
-type OAuthCredentialInfo = Awaited<ReturnType<typeof extractOAuthCredential>>;
-
+/**
+ * OAuth認証フローを管理するフック
+ *
+ * @description
+ * OAuth認証のフローを6つのフェーズで管理します：
+ * - initial: 認証フローの開始準備
+ * - redirecting: 認証プロバイダーへのリダイレクト中
+ * - processing: 認証情報の検証中
+ * - completed: 新規ユーザー登録完了
+ * - alreadyRegistered: 既存ユーザーのログイン完了
+ * - invalidProcess: エラーまたは無効な状態
+ */
 export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
-  // 現在のフローの進行段階。UIはこの値に基づいて表示を切り替える。
-  const [phase, setPhase] = useState<OAuthPhase>("initial");
-
-  const { preRegister } = usePreRegistration();
-  const { refreshSession } = useAuthSession();
-  const { check: checkUserExistence } = useExists();
-  const { isRegistered } = useStatusChecker();
   const sessionStorage = useSessionStorage();
+  const isActiveRef = useRef(true);
+
+  // ステートマシン
+  const { phase, credentialInfo, setPhase, setCredential, setError } = useOAuthStateMachine();
+
+  // サブフック
+  const redirect = useOAuthRedirect({ sessionStorage, provider });
+  const credential = useOAuthCredential({ provider });
+  const registration = useOAuthRegistration({ provider });
 
   useEffect(() => {
     log(3, "[useOAuthPhase] effect start", {
       provider,
-      sessionHasRedirectAttempt: sessionStorage.exists(REDIRECT_ATTEMPT_STORAGE_KEY),
+      sessionHasRedirectAttempt: redirect.checkAttempted(),
     });
 
+    // プロバイダーのバリデーション
     if (!provider) {
-      // プロバイダーが取得できない場合はフローを進められない。
       log(3, "[useOAuthPhase] provider missing. Abort flow");
       setPhase("invalidProcess");
       return;
@@ -59,192 +58,148 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
 
     const authProvider = createOAuthProvider(provider);
     if (!authProvider) {
-      // 想定外のプロバイダーが指定された場合は手続き自体を無効化する。
       log(3, "[useOAuthPhase] invalid provider detected", { provider });
       setPhase("invalidProcess");
       return;
     }
 
-    let isActive = true;
-    let credentialInfo: OAuthCredentialInfo | null = null;
-
-    const clearRedirectAttempt = () => {
-      if (!sessionStorage.exists(REDIRECT_ATTEMPT_STORAGE_KEY)) {
-        return;
-      }
-
-      sessionStorage.removeItem(REDIRECT_ATTEMPT_STORAGE_KEY);
-      log(3, "[useOAuthPhase] redirect attempt flag removed", { provider });
-    };
-
-    const setPhaseSafely = (nextPhase: OAuthPhase) => {
-      if (!isActive) {
-        log(3, "[useOAuthPhase] skip phase update because effect is inactive", {
-          nextPhase,
-          provider,
-        });
-        return false;
-      }
-      setPhase(nextPhase);
-      return true;
-    };
-
-    const markInvalidProcess = () => {
-      clearRedirectAttempt();
-      log(3, "[useOAuthPhase] mark flow as invalid process", { provider });
-      setPhaseSafely("invalidProcess");
-    };
-
-    const handleAlreadyRegistered = async () => {
-      if (!credentialInfo) {
-        log(3, "[useOAuthPhase] credential info missing for registered user", { provider });
-        markInvalidProcess();
-        return;
-      }
-
-      log(3, "[useOAuthPhase] proceed as already registered", {
-        providerType: provider,
-        providerUid: credentialInfo.firebaseUid,
-      });
-
-      await createFirebaseSession({
-        providerType: provider,
-        providerUid: credentialInfo.firebaseUid,
-        idToken: credentialInfo.idToken,
-      });
-      log(3, "[useOAuthPhase] firebase session issued for registered user", {
-        providerType: provider,
-        providerUid: credentialInfo.firebaseUid,
-      });
-
-      await refreshSession();
-      log(3, "[useOAuthPhase] session refreshed for registered user");
-
-      clearRedirectAttempt();
-      setPhaseSafely("alreadyRegistered");
-    };
-
-    const handleMissingRedirectResult = async () => {
-      log(3, "[useOAuthPhase] redirect result absent", {
-        provider,
-        sessionHasRedirectAttempt: sessionStorage.exists(REDIRECT_ATTEMPT_STORAGE_KEY),
-      });
-
-      if (sessionStorage.exists(REDIRECT_ATTEMPT_STORAGE_KEY)) {
-        log(3, "[useOAuthPhase] redirect attempt detected but result missing. Mark invalid.");
-        markInvalidProcess();
-        return;
-      }
-
-      if (!setPhaseSafely("redirecting")) {
-        return;
-      }
-
-      sessionStorage.setItem(REDIRECT_ATTEMPT_STORAGE_KEY, "1");
-      log(3, "[useOAuthPhase] redirect attempt flag saved. Executing signInWithRedirect.");
-      await signInWithRedirect(auth, authProvider);
-    };
-
+    // メインフロー
     const run = async () => {
       try {
-        log(3, "[useOAuthPhase] fetching redirect result", { provider });
-        const redirectResult = await getRedirectResult(auth);
-        log(3, "[useOAuthPhase] redirect result received", {
-          redirectResultExists: Boolean(redirectResult),
-          redirectResultKeys: redirectResult ? Object.keys(redirectResult) : null,
-        });
-        if (!isActive) return;
+        // 1. リダイレクト結果の取得
+        const redirectResult = await redirect.getResult();
+        if (!isActiveRef.current) return;
 
+        // 2. リダイレクト結果がない場合
         if (!redirectResult) {
           await handleMissingRedirectResult();
           return;
         }
 
-        if (!setPhaseSafely("processing")) {
+        // 3. リダイレクト結果がある場合の処理
+        setPhase("processing");
+        clearRedirectAttempt(sessionStorage, provider);
+
+        // 4. 認証情報の抽出
+        const extractedCredential = await credential.extract(redirectResult);
+        if (!isActiveRef.current) return;
+        setCredential(extractedCredential);
+
+        // 5. ユーザー存在チェック
+        const { isRegistered: userIsRegistered } = await credential.checkUser(
+          extractedCredential,
+        );
+        if (!isActiveRef.current) return;
+
+        // 6. 既存ユーザーの場合
+        if (userIsRegistered) {
+          await handleAlreadyRegistered(extractedCredential);
           return;
         }
 
-        clearRedirectAttempt();
+        // 7. 新規ユーザーの仮登録
+        await registration.registerNewUser(extractedCredential);
+        if (!isActiveRef.current) return;
 
-        log(3, "[useOAuthPhase] extracting credential info", { provider });
-        credentialInfo = await extractOAuthCredential(redirectResult);
-        log(3, "[useOAuthPhase] credential info extracted", credentialInfo);
-        if (!isActive) return;
-
-        const { user: existingUser } = await checkUserExistence(provider, credentialInfo.firebaseUid);
-        log(3, "[useOAuthPhase] user existence checked", {
-          provider,
-          firebaseUid: credentialInfo.firebaseUid,
-          existingUserExists: Boolean(existingUser),
-          existingUser,
-        });
-        if (!isActive) return;
-
-        if (existingUser && isRegistered(existingUser)) {
-          await handleAlreadyRegistered();
-          return;
-        }
-
-        log(3, "[useOAuthPhase] executing preRegister", {
-          providerType: provider,
-          providerUid: credentialInfo.firebaseUid,
-          hasIdToken: Boolean(credentialInfo.idToken),
-          email: credentialInfo.email ?? null,
-        });
-        await preRegister({
-          providerType: provider,
-          providerUid: credentialInfo.firebaseUid,
-          idToken: credentialInfo.idToken,
-          email: credentialInfo.email ?? undefined,
-        });
-        log(3, "[useOAuthPhase] preRegister completed");
-
-        await refreshSession();
-        log(3, "[useOAuthPhase] session refreshed after preRegister");
-
-        if (!setPhaseSafely("completed")) {
-          return;
-        }
-
+        setPhase("completed");
         log(3, "[useOAuthPhase] authentication flow completed successfully");
       } catch (error) {
-        console.error("[useOAuthPhase] OAuth signup process failed", {
-          error,
-          provider,
-          sessionHasRedirectAttempt: sessionStorage.exists(REDIRECT_ATTEMPT_STORAGE_KEY),
-        });
-
-        if (isHttpError(error) && error.status === 409) {
-          log(3, "[useOAuthPhase] handled 409 error as already registered", { provider });
-          await handleAlreadyRegistered();
-          return;
-        }
-
-        if (!isActive) {
-          log(3, "[useOAuthPhase] effect no longer active. Abort error handling.");
-          return;
-        }
-
-        log(3, "[useOAuthPhase] fallback to invalid process due to error", { provider });
-        markInvalidProcess();
+        handleError(error);
       }
     };
+
+    /**
+     * リダイレクト結果がない場合の処理
+     */
+    async function handleMissingRedirectResult() {
+      log(3, "[useOAuthPhase] redirect result absent", {
+        provider,
+        sessionHasRedirectAttempt: redirect.checkAttempted(),
+      });
+
+      // リダイレクト試行済みなのに結果がない場合はエラー
+      if (redirect.checkAttempted()) {
+        log(3, "[useOAuthPhase] redirect attempt detected but result missing. Mark invalid.");
+        markInvalidProcess();
+        return;
+      }
+
+      // リダイレクト実行
+      setPhase("redirecting");
+      await redirect.executeRedirect(authProvider!);
+    }
+
+    /**
+     * 既存ユーザーのログイン処理
+     */
+    async function handleAlreadyRegistered(cred: typeof credentialInfo) {
+      if (!cred) {
+        log(3, "[useOAuthPhase] credential info missing for registered user", { provider });
+        markInvalidProcess();
+        return;
+      }
+
+      await registration.createSessionForExistingUser(cred);
+      if (!isActiveRef.current) return;
+
+      clearRedirectAttempt(sessionStorage, provider);
+      setPhase("alreadyRegistered");
+    }
+
+    /**
+     * エラーハンドリング
+     */
+    function handleError(error: unknown) {
+      console.error("[useOAuthPhase] OAuth signup process failed", {
+        error,
+        provider,
+        sessionHasRedirectAttempt: redirect.checkAttempted(),
+      });
+
+      // 409エラーは既存ユーザー
+      if (isHttpError(error) && error.status === 409 && credentialInfo) {
+        log(3, "[useOAuthPhase] handled 409 error as already registered", { provider });
+        void handleAlreadyRegistered(credentialInfo);
+        return;
+      }
+
+      if (!isActiveRef.current) {
+        log(3, "[useOAuthPhase] effect no longer active. Abort error handling.");
+        return;
+      }
+
+      log(3, "[useOAuthPhase] fallback to invalid process due to error", { provider });
+      markInvalidProcess();
+      if (error instanceof Error) {
+        setError(error);
+      }
+    }
+
+    /**
+     * フローを無効化
+     */
+    function markInvalidProcess() {
+      clearRedirectAttempt(sessionStorage, provider);
+      log(3, "[useOAuthPhase] mark flow as invalid process", { provider });
+      setPhase("invalidProcess");
+    }
 
     void run();
 
     return () => {
-      log(3, "[useOAuthPhase] effect cleanup", {
-        provider,
-      });
-      isActive = false;
+      log(3, "[useOAuthPhase] effect cleanup", { provider });
+      isActiveRef.current = false;
     };
   }, [
-    checkUserExistence,
-    isRegistered,
-    preRegister,
     provider,
-    refreshSession,
     sessionStorage,
+    redirect,
+    credential,
+    registration,
+    setPhase,
+    setCredential,
+    setError,
+    credentialInfo,
   ]);
 
   return {
