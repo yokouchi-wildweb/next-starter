@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 
+import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Section } from "@/components/Layout/Section";
-import { Main, PageTitle, Para } from "@/components/TextBlocks";
+import { PageTitle, Para } from "@/components/TextBlocks";
 import { VerificationEmailSent } from "@/features/core/auth/components/VerificationEmailSent";
 
 export default function SignUpEmailSentPage() {
   return (
-    <Main containerType="narrowStack">
+    <UserPage containerType="narrowStack">
       <Section as="header">
         <PageTitle>メール送信完了</PageTitle>
       </Section>
@@ -16,6 +17,6 @@ export default function SignUpEmailSentPage() {
       <Para size="sm">
         <Link href="/signup">メールを受け取れていない場合は戻って再送信してください</Link>
       </Para>
-    </Main>
+    </UserPage>
   );
 }

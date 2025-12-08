@@ -8,7 +8,8 @@ import Link from "next/link";
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
-import { Main, PageTitle, Para, Span } from "@/components/TextBlocks";
+import { PageTitle, Para, Span } from "@/components/TextBlocks";
+import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { CosmicCoasterScene } from "@/components/Three/CosmicCoasterScene";
 import FullScreen from "@/components/Layout/FullScreen";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
@@ -120,7 +121,7 @@ export default function Home() {
         <CosmicCoasterScene />
       </FullScreen>
 
-      <Main
+      <UserPage
         containerType="contentShell"
         className="relative content-layer text-slate-900"
       >
@@ -193,7 +194,7 @@ export default function Home() {
             </Flex>
           </Section>
         </Flex>
-      </Main>
+      </UserPage>
     </>
   );
 }

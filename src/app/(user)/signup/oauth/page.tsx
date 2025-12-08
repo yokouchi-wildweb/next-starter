@@ -1,6 +1,7 @@
 // src/app/(user)/signup/oauth/page.tsx
 
-import { Main, PageTitle } from "@/components/TextBlocks";
+import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { PageTitle } from "@/components/TextBlocks";
 import { USER_PROVIDER_TYPES } from "@/constants/user";
 import { OAuth } from "@/features/core/auth/components/OAuth";
 import type { UserProviderType } from "@/types/user";
@@ -21,9 +22,9 @@ export default async function SignUpOAuthPage({
       : undefined;
 
   return (
-    <Main containerType="narrowStack">
+    <UserPage containerType="narrowStack">
       <PageTitle className="sr-only">OAuth認証</PageTitle>
       <OAuth provider={provider} />
-    </Main>
+    </UserPage>
   );
 }

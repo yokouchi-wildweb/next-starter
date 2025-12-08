@@ -1,7 +1,8 @@
 // src/app/(user)/signup/register/page.tsx
 
+import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Section } from "@/components/Layout/Section";
-import { Main, PageTitle } from "@/components/TextBlocks";
+import { PageTitle } from "@/components/TextBlocks";
 import { Registration } from "@/features/core/auth/components/Registration";
 
 type SignUpRegisterPageProps = {
@@ -22,11 +23,11 @@ export default async function SignUpRegisterPage({
         : undefined;
 
   return (
-    <Main containerType="narrowStack">
+    <UserPage containerType="narrowStack">
       <Section as="header">
         <PageTitle>本登録</PageTitle>
       </Section>
       <Registration method={method} />
-    </Main>
+    </UserPage>
   );
 }
