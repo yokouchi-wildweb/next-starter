@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
-import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
+import { Para, SecTitle } from "@/components/TextBlocks";
 import { buttonVariants } from "@/components/Form/Button/Button";
 import { USER_ROLE_OPTIONS } from "@/constants/user";
 import type { User } from "@/features/core/user/entities";
@@ -48,11 +48,13 @@ export default function UserMyPage({ user }: UserMyPageProps) {
   ];
 
   return (
-    <Main containerType="contentShell" space="md">
-      <PageTitle>マイページ</PageTitle>
-      <Flex justify="end">
+    <>
+      <Flex justify="end" gap="sm">
         <Link className={buttonVariants({ variant: "outline" })} href="/profile/edit">
           プロフィールを編集
+        </Link>
+        <Link className={buttonVariants({ variant: "outline" })} href="/coins">
+          コイン管理
         </Link>
       </Flex>
       <Section>
@@ -64,6 +66,6 @@ export default function UserMyPage({ user }: UserMyPageProps) {
           <UserInfoTable rows={rows} />
         </Block>
       </Section>
-    </Main>
+    </>
   );
 }

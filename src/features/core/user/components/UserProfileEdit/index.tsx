@@ -2,7 +2,7 @@
 
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
-import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
+import { Para, SecTitle } from "@/components/TextBlocks";
 import type { User } from "@/features/core/user/entities";
 
 import { EmailUserProfileForm } from "../common/EmailUserProfileForm";
@@ -30,8 +30,7 @@ function resolveContent(user: User) {
 
 export default function UserProfileEdit({ user }: Props) {
   return (
-    <Main containerType="contentShell" space="md">
-      <PageTitle>プロフィール編集</PageTitle>
+    <>
       <Section>
         <Para>ユーザーのプロフィール情報を更新できます。</Para>
       </Section>
@@ -41,6 +40,6 @@ export default function UserProfileEdit({ user }: Props) {
           {resolveContent(user)}
         </Block>
       </Section>
-    </Main>
+    </>
   );
 }
