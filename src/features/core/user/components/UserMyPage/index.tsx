@@ -1,12 +1,10 @@
 // src/features/user/components/UserMyPage/index.tsx
 
-import Link from "next/link";
-
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Para, SecTitle } from "@/components/TextBlocks";
-import { buttonVariants } from "@/components/Form/Button/Button";
+import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { USER_ROLE_OPTIONS } from "@/constants/user";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/types/user";
@@ -50,12 +48,12 @@ export default function UserMyPage({ user }: UserMyPageProps) {
   return (
     <>
       <Flex justify="end" gap="sm">
-        <Link className={buttonVariants({ variant: "outline" })} href="/profile/edit">
+        <LinkButton variant="outline" href="/profile/edit">
           プロフィールを編集
-        </Link>
-        <Link className={buttonVariants({ variant: "outline" })} href="/coins">
+        </LinkButton>
+        <LinkButton variant="outline" href="/coins">
           コイン管理
-        </Link>
+        </LinkButton>
       </Flex>
       <Section>
         <Para>このページはログイン状態のユーザーのみがアクセスできる想定で設計されているメンバー専用ページです。</Para>

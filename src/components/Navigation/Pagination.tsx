@@ -1,9 +1,9 @@
 // src/components/Common/Pagination.tsx
 "use client";
 
-import Link from "next/link";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
-import { buttonVariants } from "@/components/Form/Button/Button";
+
+import { LinkButton } from "@/components/Form/Button/LinkButton";
 
 export type PaginationProps = {
   page: number;
@@ -41,14 +41,14 @@ export default function Pagination({ page, perPage, total, makeHref }: Paginatio
         {start} - {end} （{total}件中）
       </span>
       {showFirst && (
-        <Link href={firstHref} className={buttonVariants({ size: "sm", variant: "ghost" })} aria-label="First page">
+        <LinkButton href={firstHref} size="sm" variant="ghost" aria-label="First page">
           <ChevronsLeft className="size-4" />
-        </Link>
+        </LinkButton>
       )}
       {showPrev && (
-        <Link href={prevHref} className={buttonVariants({ size: "sm", variant: "ghost" })} aria-label="Previous page">
+        <LinkButton href={prevHref} size="sm" variant="ghost" aria-label="Previous page">
           <ChevronLeft className="size-4" />
-        </Link>
+        </LinkButton>
       )}
       {pages.map((p) =>
         p === currentPage ? (
@@ -56,20 +56,20 @@ export default function Pagination({ page, perPage, total, makeHref }: Paginatio
             {p}
           </span>
         ) : (
-          <Link key={p} href={makeHref(p)} className={buttonVariants({ size: "sm", variant: "outline" })}>
+          <LinkButton key={p} href={makeHref(p)} size="sm" variant="outline">
             {p}
-          </Link>
+          </LinkButton>
         ),
       )}
       {showNext && (
-        <Link href={nextHref} className={buttonVariants({ size: "sm", variant: "ghost" })} aria-label="Next page">
+        <LinkButton href={nextHref} size="sm" variant="ghost" aria-label="Next page">
           <ChevronRight className="size-4" />
-        </Link>
+        </LinkButton>
       )}
       {showLast && (
-        <Link href={lastHref} className={buttonVariants({ size: "sm", variant: "ghost" })} aria-label="Last page">
+        <LinkButton href={lastHref} size="sm" variant="ghost" aria-label="Last page">
           <ChevronsRight className="size-4" />
-        </Link>
+        </LinkButton>
       )}
     </div>
   );
