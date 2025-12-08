@@ -2,9 +2,8 @@
 
 import { redirect } from "next/navigation";
 
+import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { Section } from "@/components/Layout/Section";
-import { PageTitle } from "@/components/TextBlocks";
 import { Signup } from "@/features/core/auth/components/Signup";
 import { authGuard } from "@/features/core/auth/services/server/authorization";
 
@@ -14,9 +13,7 @@ export default async function SignUpPage() {
 
   return (
     <UserPage containerType="narrowStack">
-      <Section as="header">
-        <PageTitle>ユーザー登録</PageTitle>
-      </Section>
+      <UserPageTitle>ユーザー登録</UserPageTitle>
       <Signup urlAfterEmailSent={emailSent} />
     </UserPage>
   );

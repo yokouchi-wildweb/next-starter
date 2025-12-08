@@ -2,17 +2,15 @@
 
 import Link from "next/link";
 
+import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { Section } from "@/components/Layout/Section";
-import { PageTitle, Para } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks";
 import { VerificationEmailSent } from "@/features/core/auth/components/VerificationEmailSent";
 
 export default function SignUpEmailSentPage() {
   return (
     <UserPage containerType="narrowStack">
-      <Section as="header">
-        <PageTitle>メール送信完了</PageTitle>
-      </Section>
+      <UserPageTitle>メール送信完了</UserPageTitle>
       <VerificationEmailSent />
       <Para size="sm">
         <Link href="/signup">メールを受け取れていない場合は戻って再送信してください</Link>

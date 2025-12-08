@@ -1,12 +1,12 @@
 // src/app/(user)/(protected)/coins/page.tsx
 
+import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { PageTitle } from "@/components/TextBlocks";
 
 export default function CoinsPage() {
   return (
     <UserPage containerType="contentShell" space="md">
-      <PageTitle>コイン管理</PageTitle>
+      <UserPageTitle>コイン管理</UserPageTitle>
     </UserPage>
   );
 }
