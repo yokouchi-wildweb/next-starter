@@ -41,6 +41,6 @@
     "src/_stash",
     "src/features/_template",
     "src/app/admin/_template",
-    "TODO.ts"
+    "TODO.md"
   ]
 }
