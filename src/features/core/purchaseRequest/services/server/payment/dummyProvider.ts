@@ -24,7 +24,13 @@ export class DummyPaymentProvider implements PaymentProvider {
 
     // ダミー決済確認ページにリダイレクト
     // このページでユーザーが「支払いを完了する」ボタンを押すとWebhookが発火する
-    const redirectUrl = `/coins/purchase/dummy-payment?session_id=${sessionId}&amount=${params.amount}&request_id=${params.purchaseRequestId}`;
+    const queryParams = new URLSearchParams({
+      session_id: sessionId,
+      amount: String(params.amount),
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+    });
+    const redirectUrl = `/dummy-payment?${queryParams.toString()}`;
 
     return {
       sessionId,

@@ -54,6 +54,18 @@ export type FailPurchaseParams = {
   errorMessage?: string;
 };
 
+export type HandleWebhookParams = {
+  request: Request;
+  providerName?: PaymentProviderName;
+};
+
+export type HandleWebhookResult = {
+  success: boolean;
+  requestId: string;
+  walletHistoryId?: string;
+  message: string;
+};
+
 // ============================================================================
 // 購入開始
 // ============================================================================
@@ -268,6 +280,52 @@ export async function failPurchase(params: FailPurchaseParams): Promise<Purchase
   } as any) as PurchaseRequest;
 
   return result;
+}
+
+// ============================================================================
+// Webhook処理
+// ============================================================================
+
+/**
+ * Webhookを処理する
+ * プロバイダ選択、検証、結果に応じた処理を一括で行う
+ */
+export async function handleWebhook(
+  params: HandleWebhookParams
+): Promise<HandleWebhookResult> {
+  const { request, providerName = getDefaultProviderName() } = params;
+
+  // 1. プロバイダでWebhookを検証・パース
+  const provider = getPaymentProvider(providerName);
+  const paymentResult = await provider.verifyWebhook(request);
+
+  // 2. 決済結果に応じて処理
+  if (paymentResult.success) {
+    // 決済成功 → 購入完了処理
+    const result = await completePurchase({
+      sessionId: paymentResult.sessionId,
+    });
+
+    return {
+      success: true,
+      requestId: result.purchaseRequest.id,
+      walletHistoryId: result.walletHistoryId,
+      message: "購入が完了しました。",
+    };
+  } else {
+    // 決済失敗 → 失敗処理
+    const result = await failPurchase({
+      sessionId: paymentResult.sessionId,
+      errorCode: paymentResult.errorCode,
+      errorMessage: paymentResult.errorMessage,
+    });
+
+    return {
+      success: true, // Webhook処理自体は成功
+      requestId: result.id,
+      message: "決済失敗を記録しました。",
+    };
+  }
 }
 
 // ============================================================================
