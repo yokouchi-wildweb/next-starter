@@ -7,6 +7,7 @@ import { sampleService } from "@/features/sample/services/server/sampleService";
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import { walletHistoryService } from "@/features/core/walletHistory/services/server/walletHistoryService";
+import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 
 export const serviceRegistry: Record<string, any> = {
 
@@ -18,6 +19,7 @@ export const serviceRegistry: Record<string, any> = {
   sampleTag: sampleTagService,
   wallet: walletService,
   walletHistory: walletHistoryService,
+  purchaseRequest: purchaseRequestService,
   // --- AUTO-GENERATED-END ---
 
 };
