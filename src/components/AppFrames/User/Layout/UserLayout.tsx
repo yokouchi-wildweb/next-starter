@@ -5,8 +5,8 @@ import { type CSSProperties, type ReactNode } from "react";
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 
-import { Index } from "../Footer";
-import { UserNavigation } from "../Header";
+import { Index } from "../Sections/Footer";
+import { UserNavigation } from "../Sections/Header";
 
 type LayoutStyle = CSSProperties & {
   "--app-header-height"?: string;
