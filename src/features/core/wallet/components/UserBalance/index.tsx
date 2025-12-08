@@ -12,7 +12,7 @@ import { PurchaseList } from "./PurchaseList";
 type UserBalanceProps = {
   balance?: number;
   label?: string;
-  onPurchase?: (amount: number) => void;
+  onPurchase?: () => void;
 };
 
 export function UserBalance({

@@ -76,9 +76,20 @@ export async function POST(req: NextRequest) {
     if (isDomainError(error)) {
       return NextResponse.json({ message: error.message }, { status: error.status });
     }
-    console.error("POST /api/wallet/purchase/initiate failed:", error);
+    // 詳細なエラーログを出力
+    const errorName = error instanceof Error ? error.name : "Unknown";
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("POST /api/wallet/purchase/initiate failed:");
+    console.error("Error name:", errorName);
+    console.error("Error message:", errorMessage);
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
+
+    // 開発環境では詳細なエラーを返す
+    const isDev = process.env.NODE_ENV === "development";
     return NextResponse.json(
-      { message: "購入処理の開始に失敗しました。" },
+      {
+        message: isDev ? `${errorName}: ${errorMessage}` : "購入処理の開始に失敗しました。"
+      },
       { status: 500 }
     );
   }

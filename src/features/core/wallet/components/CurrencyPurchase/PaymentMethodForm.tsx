@@ -8,7 +8,9 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle, Span } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
+import { Spinner } from "@/components/Overlays/Loading/Spinner";
 
 const PAYMENT_METHODS = [
   { id: "credit_card", label: "クレジットカード" },
@@ -20,19 +22,20 @@ const PAYMENT_METHODS = [
 type PaymentMethodId = (typeof PAYMENT_METHODS)[number]["id"];
 
 type PaymentMethodFormProps = {
-  onPurchase?: (methodId: PaymentMethodId) => void;
+  onPurchase: (methodId: string) => Promise<void>;
+  isLoading?: boolean;
+  error?: string | null;
 };
 
-export function PaymentMethodForm({ onPurchase }: PaymentMethodFormProps) {
+export function PaymentMethodForm({
+  onPurchase,
+  isLoading = false,
+  error = null,
+}: PaymentMethodFormProps) {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>("credit_card");
 
-  const handlePurchase = () => {
-    if (onPurchase) {
-      onPurchase(selectedMethod);
-    } else {
-      // ダミー: 実際の購入処理は後で実装
-      console.log(`購入処理: ${selectedMethod}`);
-    }
+  const handlePurchase = async () => {
+    await onPurchase(selectedMethod);
   };
 
   return (
@@ -52,20 +55,36 @@ export function PaymentMethodForm({ onPurchase }: PaymentMethodFormProps) {
               value={method.id}
               checked={selectedMethod === method.id}
               onChange={() => setSelectedMethod(method.id)}
+              disabled={isLoading}
               className="size-5 accent-primary"
             />
             <Span weight="medium">{method.label}</Span>
           </label>
         ))}
       </Block>
+
+      {error && (
+        <Para tone="danger" size="sm" align="center">
+          {error}
+        </Para>
+      )}
+
       <Flex justify="center" className="mt-6">
         <Button
           variant="default"
           size="lg"
           className="w-full max-w-xs"
           onClick={handlePurchase}
+          disabled={isLoading}
         >
-          購入する
+          {isLoading ? (
+            <Flex align="center" gap="xs">
+              <Spinner className="h-4 w-4" />
+              <span>処理中...</span>
+            </Flex>
+          ) : (
+            "購入する"
+          )}
         </Button>
       </Flex>
     </Section>

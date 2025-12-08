@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
-import { purchaseRequestService } from "../purchaseRequestService";
+import { base } from "../drizzleBase";
 import {
   getPaymentProvider,
   getDefaultProviderName,
@@ -98,8 +98,7 @@ export async function initiatePurchase(
   }
 
   // 2. purchase_request を作成（status: pending）
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const purchaseRequest = await purchaseRequestService.create({
+  const createData = {
     user_id: userId,
     idempotency_key: idempotencyKey,
     wallet_type: walletType,
@@ -107,9 +106,13 @@ export async function initiatePurchase(
     payment_amount: paymentAmount,
     payment_method: paymentMethod,
     payment_provider: paymentProvider,
-    status: "pending",
+    status: "pending" as const,
     expires_at: new Date(Date.now() + 30 * 60 * 1000), // 30分後
-  } as any) as PurchaseRequest;
+  };
+  console.log("Creating purchase request with data:", JSON.stringify(createData, null, 2));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const purchaseRequest = await base.create(createData as any) as PurchaseRequest;
+  console.log("Purchase request created:", purchaseRequest.id);
 
   // 3. 決済プロバイダでセッション作成
   const provider = getPaymentProvider(paymentProvider);
@@ -123,7 +126,7 @@ export async function initiatePurchase(
 
   // 4. セッション情報を記録（status: processing）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updated = await purchaseRequestService.update(purchaseRequest.id, {
+  const updated = await base.update(purchaseRequest.id, {
     status: "processing",
     payment_session_id: session.sessionId,
     redirect_url: session.redirectUrl,
@@ -143,7 +146,7 @@ export async function initiatePurchase(
  * 購入リクエストのステータスを取得
  */
 export async function getPurchaseStatus(requestId: string): Promise<PurchaseRequest | null> {
-  const result = await purchaseRequestService.get(requestId);
+  const result = await base.get(requestId);
   return result as PurchaseRequest | null;
 }
 
@@ -154,7 +157,7 @@ export async function getPurchaseStatusForUser(
   requestId: string,
   userId: string
 ): Promise<PurchaseRequest | null> {
-  const request = await purchaseRequestService.get(requestId) as PurchaseRequest | null;
+  const request = await base.get(requestId) as PurchaseRequest | null;
   if (!request || request.user_id !== userId) {
     return null;
   }
@@ -273,7 +276,7 @@ export async function failPurchase(params: FailPurchaseParams): Promise<Purchase
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await purchaseRequestService.update(purchaseRequest.id, {
+  const result = await base.update(purchaseRequest.id, {
     status: "failed",
     error_code: errorCode ?? "PAYMENT_FAILED",
     error_message: errorMessage ?? "決済に失敗しました",

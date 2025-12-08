@@ -6,6 +6,7 @@ import sampleCategoryConfig from "@/features/sampleCategory/domain.json";
 import sampleTagConfig from "@/features/sampleTag/domain.json";
 import walletConfig from "@/features/core/wallet/domain.json";
 import walletHistoryConfig from "@/features/core/walletHistory/domain.json";
+import purchaseRequestConfig from "@/features/core/purchaseRequest/domain.json";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
 
 const domainConfigMap = {
@@ -14,6 +15,7 @@ const domainConfigMap = {
   sample_tag: sampleTagConfig,
   wallet: walletConfig,
   wallet_history: walletHistoryConfig,
+  purchase_request: purchaseRequestConfig,
 } as const;
 
 export type DomainKey = keyof typeof domainConfigMap;

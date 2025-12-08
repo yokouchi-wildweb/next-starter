@@ -2,13 +2,13 @@
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { CurrencyPurchase } from "@/features/core/wallet/components/CurrencyPurchase";
+import { CoinPurchasePage } from "@/features/core/wallet/components/CoinPurchasePage";
 
-export default function CoinPurchasePage() {
+export default function CoinPurchasePageRoute() {
   return (
     <UserPage containerType="narrowStack" space="md">
       <UserPageTitle>コインのご購入</UserPageTitle>
-      <CurrencyPurchase purchaseAmount={100} currentBalance={1000} label="コイン" />
+      <CoinPurchasePage />
     </UserPage>
   );
 }

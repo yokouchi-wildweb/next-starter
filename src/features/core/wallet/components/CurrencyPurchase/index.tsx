@@ -1,24 +1,38 @@
 // src/features/core/wallet/components/CurrencyPurchase/index.tsx
 
+"use client";
+
 import { Block } from "@/components/Layout/Block";
+import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
 
 import { PaymentMethodForm } from "./PaymentMethodForm";
 import { PurchaseSummaryCard } from "./PurchaseSummaryCard";
 
 type CurrencyPurchaseProps = {
-  purchaseAmount?: number;
-  currentBalance?: number;
+  /** 購入するコイン数 */
+  purchaseAmount: number;
+  /** 支払い金額（円） */
+  paymentAmount: number;
+  /** 現在の残高 */
+  currentBalance: number;
+  /** ラベル（コイン等） */
   label?: string;
-  priceRate?: number;
+  /** ウォレット種別 */
+  walletType?: string;
 };
 
 export function CurrencyPurchase({
-  purchaseAmount = 100,
-  currentBalance = 1000,
+  purchaseAmount,
+  paymentAmount,
+  currentBalance,
   label = "コイン",
-  priceRate = 10,
+  walletType = "regular_coin",
 }: CurrencyPurchaseProps) {
-  const paymentAmount = purchaseAmount * priceRate;
+  const { purchase, isLoading, error } = useCoinPurchase({
+    walletType,
+    amount: purchaseAmount,
+    paymentAmount,
+  });
 
   return (
     <Block space="md">
@@ -28,7 +42,11 @@ export function CurrencyPurchase({
         currentBalance={currentBalance}
         label={label}
       />
-      <PaymentMethodForm />
+      <PaymentMethodForm
+        onPurchase={purchase}
+        isLoading={isLoading}
+        error={error}
+      />
     </Block>
   );
 }
