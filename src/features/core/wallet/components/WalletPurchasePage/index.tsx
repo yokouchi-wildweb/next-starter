@@ -101,6 +101,11 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
 
   return (
     <Block space="md">
+      <Flex justify="end">
+        <LinkButton href={backUrl} variant="outline" size="sm">
+          {config.label}管理に戻る
+        </LinkButton>
+      </Flex>
       <CurrencyPurchase
         purchaseAmount={purchaseAmount}
         paymentAmount={paymentAmount}

@@ -27,6 +27,8 @@ export const APP_FEATURES = {
     },
   },
   wallet: {
+    /** ユーザー側のウォレット管理・購入機能を有効にする */
+    enableUserWallet: true,
     enableUserAdjustButton: true,
   },
   // Higher values may increase productivity.

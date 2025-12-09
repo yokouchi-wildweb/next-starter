@@ -94,9 +94,9 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
 
   return (
     <Block space="md">
-      <Flex justify="start">
+      <Flex justify="end">
         <LinkButton href={`/wallet/${slug}`} variant="outline" size="sm">
-          ← {config.label}管理に戻る
+          {config.label}管理に戻る
         </LinkButton>
       </Flex>
 
