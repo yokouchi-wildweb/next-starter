@@ -47,12 +47,9 @@ export default function UserMyPage({ user }: UserMyPageProps) {
 
   return (
     <>
-      <Flex justify="end" gap="sm">
+      <Flex justify="end">
         <LinkButton variant="outline" href="/profile/edit">
           プロフィールを編集
-        </LinkButton>
-        <LinkButton variant="outline" href="/coins">
-          コイン管理
         </LinkButton>
       </Flex>
       <Section>
