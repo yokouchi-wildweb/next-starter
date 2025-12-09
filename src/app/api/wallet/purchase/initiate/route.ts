@@ -97,9 +97,14 @@ export async function POST(req: NextRequest) {
 
 /**
  * リクエストからベースURLを取得
+ * Firebase App Hosting では Cloud Run 経由でリクエストが来るため、
+ * x-forwarded-host に元のホスト名が含まれる
  */
 function getBaseUrl(req: NextRequest): string {
-  const host = req.headers.get("host") ?? "localhost:3000";
-  const protocol = req.headers.get("x-forwarded-proto") ?? "http";
+  const host =
+    req.headers.get("x-forwarded-host") ??
+    req.headers.get("host") ??
+    "localhost:3000";
+  const protocol = req.headers.get("x-forwarded-proto") ?? "https";
   return `${protocol}://${host}`;
 }
