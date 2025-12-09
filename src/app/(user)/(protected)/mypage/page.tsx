@@ -6,7 +6,8 @@ import UserMyPageView from "@/features/core/user/components/UserMyPage";
 import { requireCurrentUser } from "@/features/core/user/services/server/requireCurrentUser";
 
 export default async function UserMyPagePage() {
-  const user = await requireCurrentUser();
+
+  const user = await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" });
 
   return (
     <UserPage containerType="contentShell" space="md">
