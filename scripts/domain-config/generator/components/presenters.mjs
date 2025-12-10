@@ -77,14 +77,24 @@ const buildFormatter = (field) => {
   if (formInput === "dateInput") {
     return `formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
   }
+  // mediaUploader / fileUploader は renderValue のフォールバック処理で画像表示するため除外
+  if (formInput === "mediaUploader" || formInput === "fileUploader") {
+    return null;
+  }
 
   return `formatString(value)`;
 };
 
-const presenterEntries = (config.fields ?? []).map((field) => {
-  const formatter = buildFormatter(field);
-  return `  ${field.name}: ({ value, field, record }) => ${formatter},`;
-});
+const presenterEntries = (config.fields ?? [])
+  .map((field) => {
+    const formatter = buildFormatter(field);
+    // formatter が null の場合は除外（renderValue にフォールバックさせる）
+    if (formatter === null) {
+      return null;
+    }
+    return `  ${field.name}: ({ value, field, record }) => ${formatter},`;
+  })
+  .filter((entry) => entry !== null);
 
 if (config.useCreatedAt) {
   presenterEntries.push(

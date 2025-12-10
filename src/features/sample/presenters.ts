@@ -25,8 +25,6 @@ export const presenters: Record<string, SampleFieldPresenter> = {
   sale_start_at: ({ value, field, record }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   date: ({ value, field, record }) => formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   time: ({ value, field, record }) => formatString(value),
-  main_image: ({ value, field, record }) => formatString(value),
-  sub_image: ({ value, field, record }) => formatString(value),
   description: ({ value, field, record }) => formatString(value),
   createdAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   updatedAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
