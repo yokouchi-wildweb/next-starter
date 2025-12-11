@@ -42,7 +42,8 @@
       "fieldType": "integer",
       "readonly": false,
       "formInput": "numberInput",
-      "required": false
+      "required": false,
+      "defaultValue": 999
     },
     {
       "name": "rich_number",
@@ -76,6 +77,7 @@
       "fieldType": "enum",
       "formInput": "select",
       "required": false,
+      "defaultValue": "orange",
       "options": [
         { "value": "apple", "label": "りんご" },
         { "value": "orange", "label": "オレンジ" },

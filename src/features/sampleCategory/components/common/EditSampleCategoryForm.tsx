@@ -12,6 +12,8 @@ import { SampleCategoryForm } from "./SampleCategoryForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { err } from "@/lib/errors";
+import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import domainConfig from "@/features/sampleCategory/domain.json";
 
 type Props = {
   sampleCategory: SampleCategory;
@@ -23,10 +25,7 @@ export default function EditSampleCategoryForm({ sampleCategory, redirectPath = 
     resolver: zodResolver(SampleCategoryUpdateSchema) as Resolver<SampleCategoryUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: {
-      name: sampleCategory.name ?? "",
-      description: sampleCategory.description ?? "",
-    },
+    defaultValues: buildFormDefaultValues(domainConfig, sampleCategory) as SampleCategoryUpdateFields,
   });
 
   const router = useRouter();

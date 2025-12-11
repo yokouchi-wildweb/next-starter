@@ -11,11 +11,11 @@ export const SampleTable = pgTable("samples", {
   sample_category_id: uuid("sample_category_id").notNull()
     .references(() => SampleCategoryTable.id),
   name: text("name").notNull(),
-  number: integer("number"),
+  number: integer("number").default(999),
   rich_number: integer("rich_number"),
   switch: boolean("switch"),
   radio: boolean("radio"),
-  select: SampleSelectEnum("select"),
+  select: SampleSelectEnum("select").default("orange"),
   multi_select: text("multi_select").array().notNull(),
   sale_start_at: timestamp("sale_start_at", { withTimezone: true }),
   date: date("date"),

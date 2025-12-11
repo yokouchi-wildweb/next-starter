@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
 import { useSampleTagList } from "@/features/sampleTag/hooks/useSampleTagList";
 import { err } from "@/lib/errors";
+import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import domainConfig from "@/features/sample/domain.json";
 
 type Props = {
   sample: Sample;
@@ -25,23 +27,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
     resolver: zodResolver(SampleUpdateSchema) as Resolver<SampleUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: {
-      sample_category_id: sample.sample_category_id ?? "",
-      sample_tag_ids: sample.sample_tag_ids ?? [],
-      name: sample.name ?? "",
-      number: sample.number ?? undefined,
-      rich_number: sample.rich_number ?? undefined,
-      switch: sample.switch ?? false,
-      radio: sample.radio ?? undefined,
-      select: sample.select ?? undefined,
-      multi_select: sample.multi_select ?? [],
-      sale_start_at: sample.sale_start_at ? new Date(sample.sale_start_at) : undefined,
-      date: sample.date ?? "",
-      time: sample.time ?? "",
-      main_image: sample.main_image ?? "",
-      sub_image: sample.sub_image ?? "",
-      description: sample.description ?? "",
-    },
+    defaultValues: buildFormDefaultValues(domainConfig, sample) as SampleUpdateFields,
   });
 
     const { data: sampleCategories = [] } = useSampleCategoryList({ suspense: true });

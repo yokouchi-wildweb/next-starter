@@ -12,6 +12,8 @@ import { __Domain__Form } from "./__Domain__Form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { err } from "@/lib/errors";
+import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import domainConfig from "@/features/__domain__/domain.json";
 
 type Props = {
   __domain__: __Domain__;
@@ -23,9 +25,7 @@ export default function Edit__Domain__Form({ __domain__, redirectPath = "/" }: P
     resolver: zodResolver(__Domain__UpdateSchema) as Resolver<__Domain__UpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: {
-      // TODO: 初期値を設定してください
-    },
+    defaultValues: buildFormDefaultValues(domainConfig, __domain__) as __Domain__UpdateFields,
   });
 
   const router = useRouter();

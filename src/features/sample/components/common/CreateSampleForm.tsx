@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
 import { useSampleTagList } from "@/features/sampleTag/hooks/useSampleTagList";
 import { err } from "@/lib/errors";
+import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import domainConfig from "@/features/sample/domain.json";
 
 type Props = {
   redirectPath?: string;
@@ -23,23 +25,7 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
     resolver: zodResolver(SampleCreateSchema) as Resolver<SampleCreateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: {
-      sample_category_id: "",
-      sample_tag_ids: [],
-      name: "",
-      number: undefined,
-      rich_number: undefined,
-      switch: false,
-      radio: undefined,
-      select: undefined,
-      multi_select: [],
-      sale_start_at: undefined,
-      date: "",
-      time: "",
-      main_image: "",
-      sub_image: "",
-      description: "",
-    },
+    defaultValues: buildFormDefaultValues(domainConfig) as SampleCreateFields,
   });
 
     const { data: sampleCategories = [] } = useSampleCategoryList({ suspense: true });

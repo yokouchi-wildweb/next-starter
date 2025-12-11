@@ -12,6 +12,8 @@ import { SampleTagForm } from "./SampleTagForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { err } from "@/lib/errors";
+import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import domainConfig from "@/features/sampleTag/domain.json";
 
 type Props = {
   sampleTag: SampleTag;
@@ -23,10 +25,7 @@ export default function EditSampleTagForm({ sampleTag, redirectPath = "/" }: Pro
     resolver: zodResolver(SampleTagUpdateSchema) as Resolver<SampleTagUpdateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: {
-      name: sampleTag.name ?? "",
-      description: sampleTag.description ?? "",
-    },
+    defaultValues: buildFormDefaultValues(domainConfig, sampleTag) as SampleTagUpdateFields,
   });
 
   const router = useRouter();

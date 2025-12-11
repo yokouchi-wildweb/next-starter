@@ -11,6 +11,8 @@ import { __Domain__Form } from "./__Domain__Form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { err } from "@/lib/errors";
+import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import domainConfig from "@/features/__domain__/domain.json";
 
 type Props = {
   redirectPath?: string;
@@ -21,8 +23,7 @@ export default function Create__Domain__Form({ redirectPath = "/" }: Props) {
     resolver: zodResolver(__Domain__CreateSchema) as Resolver<__Domain__CreateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: {
-    },
+    defaultValues: buildFormDefaultValues(domainConfig) as __Domain__CreateFields,
   });
 
   const router = useRouter();

@@ -11,6 +11,8 @@ import { SampleCategoryForm } from "./SampleCategoryForm";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { err } from "@/lib/errors";
+import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import domainConfig from "@/features/sampleCategory/domain.json";
 
 type Props = {
   redirectPath?: string;
@@ -21,10 +23,7 @@ export default function CreateSampleCategoryForm({ redirectPath = "/" }: Props) 
     resolver: zodResolver(SampleCategoryCreateSchema) as Resolver<SampleCategoryCreateFields>,
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: {
-      name: "",
-      description: "",
-    },
+    defaultValues: buildFormDefaultValues(domainConfig) as SampleCategoryCreateFields,
   });
 
   const router = useRouter();

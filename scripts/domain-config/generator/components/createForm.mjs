@@ -1,7 +1,6 @@
 import fs from "fs";
 import path from "path";
 import { templateDir, replaceTokens } from "./utils/template.mjs";
-import { buildDefaultValues } from "./utils/defaultValues.mjs";
 import { toPlural, toPascalCase } from "../../../../src/utils/stringCase.mjs";
 
 export default function generate(tokens) {
@@ -76,8 +75,6 @@ export default function generate(tokens) {
   let content = replaceTokens(template, tokens);
 
   const extras = buildRelationExtras();
-  // 設定から取得したデフォルト値のコード行を生成
-  const defaultLines = buildDefaultValues(domainConfig, { mode: "create" });
   // 追加の import があればテンプレートに挿入
   if (extras.imports) {
     content = content.replace(
@@ -96,15 +93,6 @@ export default function generate(tokens) {
       lines.push(extras.optionLines);
     }
     content = content.replace("const router = useRouter();", `${lines.join("\n")}\n\n  const router = useRouter();`);
-  }
-  // デフォルト値をテンプレートへ挿入
-  if (defaultLines) {
-    const block = `defaultValues: {\n${defaultLines}\n    },`;
-    if (content.includes("defaultValues: {")) {
-      content = content.replace(/defaultValues: \{[\s\S]*?\n\s*\},/, block);
-    } else {
-      content = content.replace("shouldUnregister: false,", `shouldUnregister: false,\n    ${block}`);
-    }
   }
   // 追加のプロパティを埋め込む
   if (extras.props) {

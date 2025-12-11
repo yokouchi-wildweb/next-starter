@@ -1,7 +1,6 @@
 import fs from "fs";
 import path from "path";
 import { templateDir, replaceTokens } from "./utils/template.mjs";
-import { buildDefaultValues } from "./utils/defaultValues.mjs";
 import { toPlural, toPascalCase } from "../../../../src/utils/stringCase.mjs";
 
 export default function generate(tokens) {
@@ -75,11 +74,6 @@ export default function generate(tokens) {
   let content = replaceTokens(template, tokens);
 
   const extras = buildRelationExtras();
-  // デフォルト値のコードを生成
-  const defaultLines = buildDefaultValues(domainConfig, {
-    mode: "edit",
-    entityVar: camel,
-  });
   // 追加の import を挿入
   if (extras.imports) {
     content = content.replace(
@@ -98,19 +92,6 @@ export default function generate(tokens) {
       lines.push(extras.optionLines);
     }
     content = content.replace("const router = useRouter();", `${lines.join("\n")}\n\n  const router = useRouter();`);
-  }
-  // デフォルト値があればテンプレートへ差し込む
-  if (defaultLines) {
-    const block = `defaultValues: {\n${defaultLines}\n    },`;
-    if (/defaultValues: \{\n\s*\/\/ TODO: 初期値を設定してください\n\s*\},/.test(content)) {
-      content = content.replace(/defaultValues: \{\n\s*\/\/ TODO: 初期値を設定してください\n\s*\},/, block);
-    } else if (content.includes("defaultValues: {")) {
-      content = content.replace(/defaultValues: \{[\s\S]*?\n\s*\},/, block);
-    } else {
-      content = content.replace("shouldUnregister: false,", `shouldUnregister: false,\n    ${block}`);
-    }
-    // remove any remaining TODO defaults that might appear after insertion
-    content = content.replace(/\n\s*defaultValues: \{\n\s*\/\/ TODO: 初期値を設定してください\n\s*\},/, "");
   }
   // 生成した props を差し込む
   if (extras.props) {
