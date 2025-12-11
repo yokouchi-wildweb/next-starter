@@ -137,12 +137,16 @@ switch (config.idType) {
 
 // normal fields
 (config.fields || []).forEach((f) => {
+  const hasDefaultValue = f.defaultValue !== undefined;
+  const defaultSuffix = hasDefaultValue ? `.default(${formatValue(f.defaultValue)})` : '';
+
   if (f.fieldType === 'enum') {
     imports.add('pgEnum');
     const names = enumNames(f.name);
     const values = f.options ? f.options.map(o => formatValue(o.value)).join(', ') : '';
     enumDefs.push(`export const ${names.constName} = pgEnum("${names.enumName}", [${values}]);`);
-    fields.push(`  ${f.name}: ${names.constName}("${toSnakeCase(f.name)}")${f.required ? '.notNull()' : ''},`);
+    const notNull = f.required ? '.notNull()' : '';
+    fields.push(`  ${f.name}: ${names.constName}("${toSnakeCase(f.name)}")${notNull}${defaultSuffix},`);
   } else if (f.fieldType === 'array') {
     imports.add('text');
     fields.push(
@@ -158,7 +162,8 @@ switch (config.idType) {
     imports.add(typeFn);
     const columnName = toSnakeCase(f.name);
     const column = buildColumn(typeFn, columnName);
-    fields.push(`  ${f.name}: ${column}${f.required ? '.notNull()' : ''},`);
+    const notNull = f.required ? '.notNull()' : '';
+    fields.push(`  ${f.name}: ${column}${notNull}${defaultSuffix},`);
   }
 });
 

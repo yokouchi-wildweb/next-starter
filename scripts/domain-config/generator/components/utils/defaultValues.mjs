@@ -2,7 +2,25 @@ function isTimestampType(type) {
   return type === "timestamp" || type === "timestamp With Time Zone";
 }
 
+function formatDefaultValue(value) {
+  if (typeof value === "string") {
+    return `"${value}"`;
+  }
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+  if (typeof value === "number") {
+    return String(value);
+  }
+  return "undefined";
+}
+
 function defaultValueFor(field) {
+  // field.defaultValue がある場合は優先
+  if (field?.defaultValue !== undefined) {
+    return formatDefaultValue(field.defaultValue);
+  }
+
   const type = field?.fieldType;
   const formInput = field?.formInput;
   const hasOptions = Array.isArray(field?.options) && field.options.length > 0;

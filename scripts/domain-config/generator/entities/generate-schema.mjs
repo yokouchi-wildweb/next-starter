@@ -175,6 +175,9 @@ const lines = [];
 
 // normal fields
 (config.fields || []).forEach((f) => {
+  // formInput: "none" のフィールドはZodスキーマから除外
+  if (f.formInput === 'none') return;
+
   if (f.fieldType === 'enum') {
     const values = (f.options || []).map((o) => `"${o.value}"`).join(', ');
     lines.push(`  ${f.name}: z.enum([${values}])${f.required ? '' : '.nullish()'},`);
