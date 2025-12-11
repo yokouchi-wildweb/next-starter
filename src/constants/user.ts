@@ -34,7 +34,7 @@ export const USER_ROLE_OPTIONS = [
 
 export const USER_STATUSES = ["pending", "active", "inactive", "locked"] as const;
 
-export const USER_AVAILABLE_STATUSES: readonly UserStatus[] = ["active", "inactive"];
+export const USER_AVAILABLE_STATUSES: readonly UserStatus[] = ["active",];
 
 export const USER_REGISTERED_STATUSES: readonly UserStatus[] = [
   "active",
