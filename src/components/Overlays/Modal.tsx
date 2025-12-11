@@ -63,12 +63,14 @@ export default function Modal({
         className={className}
         maxWidth={maxWidth}
       >
-        {(title || headerContent) && (
+        {title && titleSrOnly && !headerContent ? (
+          <DialogTitle srOnly>{title}</DialogTitle>
+        ) : (title || headerContent) ? (
           <DialogHeader>
             {title ? <DialogTitle srOnly={titleSrOnly}>{title}</DialogTitle> : null}
             {headerContent}
           </DialogHeader>
-        )}
+        ) : null}
         {shouldWrapScrollable ? (
           <div className="overflow-y-auto" style={scrollableStyle}>
             {children}
