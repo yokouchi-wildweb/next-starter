@@ -90,7 +90,7 @@ export function Main({
     <div id={`${id}-container`} className="flex flex-1 flex-col">
       <div
         id={`${id}-layout`}
-        className="my-auto mx-auto w-full max-w-screen overflow-hidden"
+        className="my-auto mx-auto w-full max-w-screen overflow-x-hidden"
         style={
           layoutMaxWidths[effectiveContainerType]
             ? { maxWidth: layoutMaxWidths[effectiveContainerType] }
