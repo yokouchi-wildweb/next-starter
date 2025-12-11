@@ -13,6 +13,7 @@
     "dc:init": "node scripts/domain-config/index.mjs --init",
     "dc:generate": "node scripts/domain-config/index.mjs --generate",
     "dc:generate:all": "node scripts/domain-config/index.mjs --generate --all",
+    "dc:generate:component": "node scripts/domain-config/generate-component.mjs",
     "dc:delete": "node scripts/domain-config/index.mjs --delete",
     "dc:add": "node scripts/domain-config/add-field.mjs"
   },
