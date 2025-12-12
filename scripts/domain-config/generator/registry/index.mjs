@@ -3,6 +3,7 @@ import fs from 'fs';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import updateAdminDataMenu from './updateAdminDataMenu.mjs';
+import updateDomainConfigRegistry from './updateDomainConfigRegistry.mjs';
 import updateSchemaRegistry from './updateSchemaRegistry.mjs';
 import updateServiceRegistry from './updateServiceRegistry.mjs';
 import { toCamelCase, toPascalCase, toPlural } from '../../../../src/utils/stringCase.mjs';
@@ -45,5 +46,6 @@ if (fs.existsSync(configPath)) {
 if (addToAdminDataMenu) {
   updateAdminDataMenu({ rootDir, plural, label });
 }
+updateDomainConfigRegistry({ rootDir, camel });
 updateSchemaRegistry({ rootDir, camel, dbEngine });
 updateServiceRegistry({ rootDir, camel });

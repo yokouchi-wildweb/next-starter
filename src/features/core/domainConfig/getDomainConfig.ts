@@ -1,25 +1,8 @@
 // src/features/core/domainConfig/getDomainConfig.ts
 // ドメイン設定 (domain.json) を取得するユーティリティ。
 
-import sampleConfig from "@/features/sample/domain.json";
-import sampleCategoryConfig from "@/features/sampleCategory/domain.json";
-import sampleTagConfig from "@/features/sampleTag/domain.json";
-import walletConfig from "@/features/core/wallet/domain.json";
-import walletHistoryConfig from "@/features/core/walletHistory/domain.json";
-import purchaseRequestConfig from "@/features/core/purchaseRequest/domain.json";
+import { domainConfigMap, type DomainConfig, type DomainKey } from "@/registry/domainConfigRegistry";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
-
-const domainConfigMap = {
-  sample: sampleConfig,
-  sample_category: sampleCategoryConfig,
-  sample_tag: sampleTagConfig,
-  wallet: walletConfig,
-  wallet_history: walletHistoryConfig,
-  purchase_request: purchaseRequestConfig,
-} as const;
-
-export type DomainKey = keyof typeof domainConfigMap;
-export type DomainConfig = (typeof domainConfigMap)[DomainKey];
 
 const normalizeDomainKey = (domain: string) => {
   const snake = toSnakeCase(domain);
