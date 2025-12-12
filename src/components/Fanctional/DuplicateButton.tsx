@@ -69,6 +69,7 @@ export default function DuplicateButton({
           cancelLabel="キャンセル"
           onConfirm={handleDuplicate}
           confirmDisabled={isMutating}
+          confirmVariant="secondary"
         />
       )}
     </>
