@@ -1,4 +1,4 @@
-// src/features/sample/entities/drizzle.ts
+ // src/features/sample/entities/drizzle.ts
 
 import { boolean, date, integer, pgEnum, pgTable, primaryKey, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
