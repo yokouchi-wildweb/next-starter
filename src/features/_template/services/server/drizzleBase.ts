@@ -10,7 +10,7 @@ import type { z } from "zod";
 
 const conf = getDomainConfig("__domain__");
 
-const baseOptions = {
+export const baseOptions = {
   idType: conf.idType as IdType,
   useCreatedAt: conf.useCreatedAt,
   useUpdatedAt: conf.useUpdatedAt,
@@ -20,6 +20,9 @@ __belongsToManyRelations__
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof __Domain__CreateSchema>
 >;
+
+// 互換性のためエイリアスもエクスポート
+export const __domain__ServiceOptions = baseOptions;
 
 // NOTE: drizzleBase ではスキーマの parse/validation のみに責務を限定すること。
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
