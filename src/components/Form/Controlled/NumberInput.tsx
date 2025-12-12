@@ -14,7 +14,7 @@ export const NumberInput = <
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
     const nextValue = event.target.value;
-    const parsedValue = nextValue === "" ? undefined : Number(nextValue);
+    const parsedValue = nextValue === "" ? null : Number(nextValue);
     fieldOnChange(parsedValue);
     onChange?.(event);
   };
