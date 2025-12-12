@@ -178,7 +178,12 @@ export function createCrudService<
         ...rest
       } = record as Select & { id: unknown; createdAt?: unknown; updatedAt?: unknown };
 
-      return this.create(rest as unknown as Insert);
+      const newData = rest as Record<string, unknown>;
+      if (typeof newData.name === "string") {
+        newData.name = `${newData.name}_コピー`;
+      }
+
+      return this.create(newData as unknown as Insert);
     },
   };
 }

@@ -46,10 +46,25 @@ export function ConfirmDialog({
           </DialogHeader>
         )}
         <DialogFooter className="mt-4">
-          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenChange(false);
+            }}
+          >
             {cancelLabel}
           </Button>
-          <Button size="sm" variant="destructive" onClick={onConfirm} disabled={confirmDisabled}>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirm();
+            }}
+            disabled={confirmDisabled}
+          >
             {confirmLabel}
           </Button>
         </DialogFooter>

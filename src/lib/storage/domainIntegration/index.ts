@@ -1,6 +1,7 @@
 // src/lib/storage/domainIntegration/index.ts
 
-export { extractStorageFields } from "./extractStorageFields";
+export { extractStorageFields, extractStorageFieldsWithPath } from "./extractStorageFields";
+export type { StorageFieldInfo } from "./extractStorageFields";
 export { cleanupStorageFiles } from "./cleanupFiles";
 export { duplicateStorageFiles } from "./duplicateFiles";
 export {

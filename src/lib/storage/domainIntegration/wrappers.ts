@@ -1,7 +1,7 @@
 // src/lib/storage/domainIntegration/wrappers.ts
 
 import { getDomainConfig } from "@/features/core/domainConfig/getDomainConfig";
-import { extractStorageFields } from "./extractStorageFields";
+import { extractStorageFields, extractStorageFieldsWithPath } from "./extractStorageFields";
 import { cleanupStorageFiles } from "./cleanupFiles";
 import { duplicateStorageFiles } from "./duplicateFiles";
 
@@ -80,7 +80,7 @@ export function createStorageAwareDuplicate<T extends BaseService>(
   base: T,
   domainKey: string
 ): (id: string) => Promise<Record<string, unknown>> {
-  const storageFields = extractStorageFields(getDomainConfig(domainKey));
+  const storageFieldsInfo = extractStorageFieldsWithPath(getDomainConfig(domainKey));
 
   return async (id: string): Promise<Record<string, unknown>> => {
     const record = await base.get(id);
@@ -95,11 +95,16 @@ export function createStorageAwareDuplicate<T extends BaseService>(
       ...rest
     } = record;
 
-    let newData = rest;
+    let newData: Record<string, unknown> = { ...rest };
 
-    if (storageFields.length) {
-      const newUrls = await duplicateStorageFiles(record, storageFields);
-      newData = { ...rest, ...newUrls };
+    // nameフィールドがあれば「_コピー」を追加
+    if (typeof newData.name === "string") {
+      newData.name = `${newData.name}_コピー`;
+    }
+
+    if (storageFieldsInfo.length) {
+      const newUrls = await duplicateStorageFiles(record, storageFieldsInfo);
+      newData = { ...newData, ...newUrls };
     }
 
     return base.create(newData);

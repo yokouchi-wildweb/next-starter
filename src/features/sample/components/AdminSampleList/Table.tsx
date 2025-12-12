@@ -6,7 +6,9 @@ import type { Sample } from "@/features/sample/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import EditButton from "@/components/Fanctional/EditButton";
 import DeleteButton from "@/components/Fanctional/DeleteButton";
+import DuplicateButton from "@/components/Fanctional/DuplicateButton";
 import { useDeleteSample } from "@/features/sample/hooks/useDeleteSample";
+import { useDuplicateSample } from "@/features/sample/hooks/useDuplicateSample";
 import config from "@/features/sample/domain.json";
 import presenters from "@/features/sample/presenters";
 import { useState } from "react";
@@ -33,6 +35,7 @@ const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
     render: (d: Sample) => (
       <TableCellAction>
         <EditButton href={`/admin/samples/${d.id}/edit`} stopPropagation />
+        <DuplicateButton id={d.id} useDuplicate={useDuplicateSample} stopPropagation />
         <span onClick={(e) => e.stopPropagation()}>
           <DeleteButton id={d.id} useDelete={useDeleteSample} title="サンプル削除" />
         </span>
