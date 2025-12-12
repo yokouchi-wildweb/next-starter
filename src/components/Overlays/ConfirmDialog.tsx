@@ -12,6 +12,7 @@ import {
   DialogDescription,
 } from "@/components/Overlays/Dialog";
 import { Button } from "@/components/Form/Button/Button";
+import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
 
 export type ConfirmDialogProps = {
   open: boolean;
@@ -23,6 +24,8 @@ export type ConfirmDialogProps = {
   cancelLabel?: string;
   onConfirm: () => void | Promise<void>;
   confirmDisabled?: boolean;
+  confirmVariant?: ButtonStyleProps["variant"];
+  cancelVariant?: ButtonStyleProps["variant"];
 };
 
 export function ConfirmDialog({
@@ -35,6 +38,8 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   onConfirm,
   confirmDisabled,
+  confirmVariant = "destructive",
+  cancelVariant = "outline",
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -48,7 +53,7 @@ export function ConfirmDialog({
         <DialogFooter className="mt-4">
           <Button
             size="sm"
-            variant="outline"
+            variant={cancelVariant}
             onClick={(e) => {
               e.stopPropagation();
               onOpenChange(false);
@@ -58,7 +63,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             size="sm"
-            variant="destructive"
+            variant={confirmVariant}
             onClick={(e) => {
               e.stopPropagation();
               onConfirm();
