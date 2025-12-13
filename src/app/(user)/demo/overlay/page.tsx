@@ -11,6 +11,8 @@ import Modal from "@/components/Overlays/Modal";
 import TabbedModal, { type TabbedModalTab } from "@/components/Overlays/TabbedModal";
 import { ConfirmDialog } from "@/components/Overlays/ConfirmDialog";
 import { ImageViewerProvider, ZoomableImage } from "@/components/Overlays/ImageViewer";
+import { useLoadingToast } from "@/hooks/useLoadingToast";
+import { type LoadingToastPosition, type LoadingToastSize } from "@/stores/useLoadingToastStore";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import {
   Select,
@@ -34,6 +36,21 @@ const SPINNER_VARIANTS = [
   { value: "ring", label: "ring" },
   { value: "circle", label: "circle" },
 ] as const satisfies ReadonlyArray<{ value: SpinnerVariant; label: string }>;
+
+const LOADING_TOAST_POSITIONS = [
+  { value: "top-left", label: "左上" },
+  { value: "top-center", label: "上中央" },
+  { value: "top-right", label: "右上" },
+  { value: "bottom-left", label: "左下" },
+  { value: "bottom-center", label: "下中央" },
+  { value: "bottom-right", label: "右下" },
+] as const satisfies ReadonlyArray<{ value: LoadingToastPosition; label: string }>;
+
+const LOADING_TOAST_SIZES = [
+  { value: "sm", label: "小" },
+  { value: "md", label: "中" },
+  { value: "lg", label: "大" },
+] as const satisfies ReadonlyArray<{ value: LoadingToastSize; label: string }>;
 
 const TABBED_MODAL_DEFAULT_TAB = "details" as const;
 
@@ -64,6 +81,20 @@ const INITIAL_OPTIONS: OverlayOptions = {
   messageClassName: "",
 };
 
+type LoadingToastDemoOptions = {
+  position: LoadingToastPosition;
+  spinnerVariant: SpinnerVariant;
+  size: LoadingToastSize;
+  message: string;
+};
+
+const INITIAL_LOADING_TOAST_OPTIONS: LoadingToastDemoOptions = {
+  position: "bottom-center",
+  spinnerVariant: "default",
+  size: "md",
+  message: "変更を処理中です…",
+};
+
 export default function OverlayDemoPage() {
   const [isVisible, setIsVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,6 +105,12 @@ export default function OverlayDemoPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isConfirmProcessing, setIsConfirmProcessing] = useState(false);
   const [options, setOptions] = useState<OverlayOptions>(INITIAL_OPTIONS);
+  const [loadingToastOptions, setLoadingToastOptions] = useState<LoadingToastDemoOptions>(
+    INITIAL_LOADING_TOAST_OPTIONS,
+  );
+  const [isLoadingToastVisible, setIsLoadingToastVisible] = useState(false);
+
+  const { showLoadingToast, hideLoadingToast } = useLoadingToast();
 
   const closeTabbedModal = useCallback(() => {
     setIsTabbedModalOpen(false);
@@ -237,6 +274,21 @@ export default function OverlayDemoPage() {
     toast.error(messageMap.error);
   }, []);
 
+  const handleShowLoadingToast = useCallback(() => {
+    showLoadingToast({
+      message: loadingToastOptions.message,
+      spinnerVariant: loadingToastOptions.spinnerVariant,
+      position: loadingToastOptions.position,
+      size: loadingToastOptions.size,
+    });
+    setIsLoadingToastVisible(true);
+
+    window.setTimeout(() => {
+      hideLoadingToast();
+      setIsLoadingToastVisible(false);
+    }, 3000);
+  }, [showLoadingToast, hideLoadingToast, loadingToastOptions]);
+
   return (
     <ImageViewerProvider>
     <div className="px-6 py-10">
@@ -304,6 +356,104 @@ export default function OverlayDemoPage() {
               className="h-32 w-32 rounded border object-contain p-2"
             />
           </div>
+        </Section>
+
+        <Section
+          as="section"
+          className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm"
+        >
+          <div className="flex flex-col gap-2">
+            <SecTitle as="h2">ローディングトースト</SecTitle>
+            <Para tone="muted" size="sm" className="mt-0">
+              画面の四隅または上下中央に小さなローディング通知を表示します。
+              グローバルローダー（画面全体を覆う）とは異なり、ユーザーの操作を妨げません。
+            </Para>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="loading-toast-position">位置</Label>
+              <Select
+                value={loadingToastOptions.position}
+                onValueChange={(value: LoadingToastPosition) =>
+                  setLoadingToastOptions((prev) => ({ ...prev, position: value }))
+                }
+              >
+                <SelectTrigger id="loading-toast-position" className="w-full justify-between">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOADING_TOAST_POSITIONS.map((pos) => (
+                    <SelectItem key={pos.value} value={pos.value}>
+                      {pos.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="loading-toast-size">サイズ</Label>
+              <Select
+                value={loadingToastOptions.size}
+                onValueChange={(value: LoadingToastSize) =>
+                  setLoadingToastOptions((prev) => ({ ...prev, size: value }))
+                }
+              >
+                <SelectTrigger id="loading-toast-size" className="w-full justify-between">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOADING_TOAST_SIZES.map((size) => (
+                    <SelectItem key={size.value} value={size.value}>
+                      {size.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="loading-toast-spinner">スピナー</Label>
+              <Select
+                value={loadingToastOptions.spinnerVariant}
+                onValueChange={(value: SpinnerVariant) =>
+                  setLoadingToastOptions((prev) => ({ ...prev, spinnerVariant: value }))
+                }
+              >
+                <SelectTrigger id="loading-toast-spinner" className="w-full justify-between">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SPINNER_VARIANTS.map((variant) => (
+                    <SelectItem key={variant.value} value={variant.value}>
+                      {variant.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="loading-toast-message">メッセージ</Label>
+              <Input
+                id="loading-toast-message"
+                placeholder="例: 処理中..."
+                value={loadingToastOptions.message}
+                onChange={(event) =>
+                  setLoadingToastOptions((prev) => ({ ...prev, message: event.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={handleShowLoadingToast}
+            disabled={isLoadingToastVisible}
+            className="self-start"
+          >
+            {isLoadingToastVisible ? "表示中..." : "ローディングトーストを表示 (3 秒間)"}
+          </Button>
         </Section>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
