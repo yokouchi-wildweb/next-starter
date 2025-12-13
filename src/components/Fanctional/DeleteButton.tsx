@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
 import ConfirmDialog from "@/components/Overlays/ConfirmDialog";
+import { useLoadingToast } from "@/hooks/useLoadingToast";
 import { toast } from "sonner";
 
 export type DeleteButtonProps = {
@@ -20,12 +21,18 @@ export default function DeleteButton({ id, useDelete, title }: DeleteButtonProps
   const { trigger, isMutating } = useDelete();
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { showLoadingToast, hideLoadingToast } = useLoadingToast();
 
   const handleDelete = async () => {
     setOpen(false);
-    await trigger(id);
-    toast.success("削除が完了しました。");
-    router.refresh();
+    showLoadingToast("削除を実行中です…");
+    try {
+      await trigger(id);
+      toast.success("削除が完了しました。");
+      router.refresh();
+    } finally {
+      hideLoadingToast();
+    }
   };
 
   return (
