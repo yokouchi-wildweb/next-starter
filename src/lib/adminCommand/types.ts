@@ -1,26 +1,15 @@
 // src/lib/adminCommand/types.ts
 
+/**
+ * ========================================
+ * definitions 用の型定義
+ * ========================================
+ *
+ * カテゴリ実装で使用する型をここに定義
+ * コア用の型は core/types.ts を参照
+ */
+
 import type { ReactNode } from "react";
-import type { SessionUser } from "@/features/core/auth/entities/session";
-
-/**
- * カテゴリレンダラーが受け取る共通Props
- */
-export type CategoryRendererProps = {
-  /** パレットを閉じる */
-  onClose: () => void;
-  /** 第1メニュー（ルート）に戻る */
-  onBack: () => void;
-  /** 現在のユーザー情報 */
-  user: SessionUser;
-};
-
-/**
- * パレットの表示状態
- */
-export type PaletteView =
-  | { type: "root" }
-  | { type: "category"; categoryId: string };
 
 /**
  * ナビゲーション項目の定義

@@ -17,7 +17,8 @@ import {
 import { useSetting } from "@/features/core/setting/hooks/useSetting";
 import { useUpdateSetting } from "@/features/core/setting/hooks/useUpdateSetting";
 import type { Setting } from "@/features/core/setting/entities";
-import type { CategoryRendererProps, SettingFieldConfig } from "../../types";
+import type { CategoryRendererProps } from "../../core/types";
+import type { SettingFieldConfig } from "../../types";
 import { filterSearchInput } from "../../utils";
 import { settingFields } from "./items";
 

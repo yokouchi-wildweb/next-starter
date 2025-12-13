@@ -14,7 +14,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/_shadcn/command";
-import type { CategoryRendererProps } from "../../types";
+import type { CategoryRendererProps } from "../../core/types";
 import { filterSearchInput } from "../../utils";
 import { navigationItems } from "./items";
 

@@ -1,4 +1,4 @@
-// src/lib/adminCommand/components/AdminCommandPalette.tsx
+// src/lib/adminCommand/core/AdminCommandPalette.tsx
 
 "use client";
 
@@ -15,9 +15,9 @@ import {
 } from "@/components/_shadcn/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/Overlays/Dialog";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { categories } from "../categories";
-import type { PaletteView } from "../types";
+import { categories } from "../config/categories";
 import { filterSearchInput } from "../utils";
+import type { PaletteView } from "./types";
 
 type AdminCommandPaletteProps = {
   open: boolean;

@@ -33,25 +33,42 @@
 
 ```
 src/lib/adminCommand/
-├── README.md                 # このファイル
+├── README.md
 ├── index.ts                  # 公開エクスポート
-├── types.ts                  # 型定義
-├── categories.ts             # カテゴリ一覧（第1メニュー）
+├── types.ts                  # definitions用の型定義
 ├── utils.ts                  # ユーティリティ関数
-├── components/
-│   ├── AdminCommandProvider.tsx  # Provider（ショートカット監視）
-│   └── AdminCommandPalette.tsx   # パレット本体
-└── definitions/              # カテゴリ定義
+│
+├── core/                     # 🔒 コア（編集禁止）
+│   ├── index.ts
+│   ├── types.ts              # コア型定義
+│   ├── context.ts            # Context定義
+│   ├── AdminCommandProvider.tsx
+│   └── AdminCommandPalette.tsx
+│
+├── config/                   # ✏️ 設定ファイル（編集可能）
+│   ├── index.ts
+│   ├── categories.ts         # カテゴリ登録
+│   └── plugins.ts            # プラグイン登録
+│
+└── definitions/              # ✏️ カテゴリ実装（編集可能）
     ├── index.ts
-    ├── navigation/           # ナビゲーションカテゴリ
+    ├── navigation/
     │   ├── index.ts
-    │   ├── items.ts          # ナビゲーション先の定義
+    │   ├── items.ts
     │   └── NavigationRenderer.tsx
-    └── settings/             # 設定変更カテゴリ
+    └── settings/
         ├── index.ts
-        ├── items.ts          # 設定項目の定義
+        ├── items.ts
         └── SettingsRenderer.tsx
 ```
+
+### 編集ルール
+
+| ディレクトリ | 編集可否 | 用途 |
+|-------------|---------|------|
+| `core/` | ❌ 禁止 | コア機能（変更するとライブラリが壊れる可能性） |
+| `config/` | ✅ 可能 | カテゴリ登録、プラグイン登録 |
+| `definitions/` | ✅ 可能 | カテゴリの実装 |
 
 ---
 
@@ -86,7 +103,6 @@ export default function RootLayout({ children }) {
 
 ```tsx
 // definitions/navigation/items.ts
-import { LayoutDashboardIcon, UsersIcon } from "lucide-react";
 import type { NavigationItem } from "../../types";
 
 export const navigationItems: NavigationItem[] = [
@@ -94,30 +110,12 @@ export const navigationItems: NavigationItem[] = [
     id: "dashboard",
     label: "ダッシュボード (dashboard)",
     description: "管理画面トップ",
-    icon: <LayoutDashboardIcon className="size-4" />,
     href: "/admin",
-    keywords: ["home", "top", "管理"],  // 検索用キーワード（任意）
-  },
-  {
-    id: "users",
-    label: "ユーザー管理 (users)",
-    href: "/admin/users",
-    icon: <UsersIcon className="size-4" />,
+    keywords: ["home", "top"],
   },
   // 新しいナビゲーション先を追加...
 ];
 ```
-
-**NavigationItem の型:**
-
-| プロパティ | 型 | 必須 | 説明 |
-|-----------|-----|------|------|
-| `id` | `string` | ✓ | 一意のID |
-| `label` | `string` | ✓ | 表示ラベル（英数字キーワード推奨） |
-| `href` | `string` | ✓ | 遷移先パス |
-| `description` | `string` | - | 補足説明 |
-| `icon` | `ReactNode` | - | アイコン |
-| `keywords` | `string[]` | - | 検索用の追加キーワード |
 
 ---
 
@@ -131,52 +129,18 @@ import type { SettingFieldConfig } from "../../types";
 
 export const settingFields: SettingFieldConfig[] = [
   {
-    key: "adminListPerPage",        // Setting エンティティのキー
+    key: "adminListPerPage",
     label: "一覧表示件数 (perpage)",
-    description: "管理画面の一覧で1ページに表示する件数",
     type: "number",
-    placeholder: "例: 20",
-    validation: {
-      min: 1,
-      max: 100,
-    },
-  },
-  {
-    key: "adminFooterText",
-    label: "フッターテキスト (footer)",
-    type: "text",
-    placeholder: "フッターに表示するテキスト",
-    validation: {
-      maxLength: 200,
-    },
+    validation: { min: 1, max: 100 },
   },
   // 新しい設定項目を追加...
 ];
 ```
 
-**SettingFieldConfig の型:**
-
-| プロパティ | 型 | 必須 | 説明 |
-|-----------|-----|------|------|
-| `key` | `string` | ✓ | Setting エンティティのプロパティ名 |
-| `label` | `string` | ✓ | 表示ラベル |
-| `type` | `"text"` \| `"number"` | ✓ | 入力タイプ |
-| `description` | `string` | - | 補足説明 |
-| `placeholder` | `string` | - | プレースホルダー |
-| `validation` | `object` | - | バリデーション設定 |
-
-**validation オプション:**
-
-- `min`: 最小値（number のみ）
-- `max`: 最大値（number のみ）
-- `minLength`: 最小文字数（text のみ）
-- `maxLength`: 最大文字数（text のみ）
-
 ---
 
 ### 3. 新しいカテゴリを追加する
-
-より高度なカスタマイズとして、独自のカテゴリを追加できます。
 
 #### Step 1: カテゴリ用フォルダを作成
 
@@ -203,7 +167,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/_shadcn/command";
-import type { CategoryRendererProps } from "../../types";
+import type { CategoryRendererProps } from "../../core/types";
 import { filterSearchInput } from "../../utils";
 
 export function MyCategoryRenderer({ onClose, onBack }: CategoryRendererProps) {
@@ -223,19 +187,10 @@ export function MyCategoryRenderer({ onClose, onBack }: CategoryRendererProps) {
     [searchValue, onBack]
   );
 
-  const handleAction = useCallback(() => {
-    // アクションを実行
-    onClose();
-  }, [onClose]);
-
   return (
     <Command key="my-category">
       <div className="flex items-center gap-2 border-b">
-        <button
-          type="button"
-          onClick={onBack}
-          className="p-1 ml-2 hover:bg-accent rounded"
-        >
+        <button type="button" onClick={onBack} className="p-1 ml-2 hover:bg-accent rounded">
           <ArrowLeftIcon className="size-4" />
         </button>
         <CommandInput
@@ -250,7 +205,7 @@ export function MyCategoryRenderer({ onClose, onBack }: CategoryRendererProps) {
       <CommandList>
         <CommandEmpty>項目が見つかりません</CommandEmpty>
         <CommandGroup heading="マイカテゴリ">
-          <CommandItem onSelect={handleAction}>
+          <CommandItem onSelect={() => { /* 処理 */ onClose(); }}>
             アクション1
           </CommandItem>
         </CommandGroup>
@@ -267,18 +222,11 @@ export function MyCategoryRenderer({ onClose, onBack }: CategoryRendererProps) {
 export { MyCategoryRenderer } from "./MyCategoryRenderer";
 ```
 
-```tsx
-// definitions/index.ts
-export { NavigationRenderer, navigationItems } from "./navigation";
-export { SettingsRenderer, settingFields } from "./settings";
-export { MyCategoryRenderer } from "./my-category";  // 追加
-```
-
 #### Step 4: カテゴリを登録
 
 ```tsx
-// categories.ts
-import { MyCategoryRenderer } from "./definitions/my-category";
+// config/categories.ts
+import { MyCategoryRenderer } from "../definitions/my-category";
 
 export const categories: CategoryConfig[] = [
   // 既存のカテゴリ...
@@ -289,6 +237,92 @@ export const categories: CategoryConfig[] = [
     Renderer: MyCategoryRenderer,
   },
 ];
+```
+
+---
+
+## プラグインシステム
+
+カテゴリに **Provider**（状態管理）や **GlobalComponent**（パレット外UI）が必要な場合、プラグインとして登録します。
+
+### プラグインの登録
+
+```tsx
+// config/plugins.ts
+import type { AdminCommandPlugin } from "../core/types";
+import { StatusChangeProvider, StatusChangeDialog } from "../definitions/status-change";
+
+export const plugins: AdminCommandPlugin[] = [
+  {
+    id: "status-change",
+    Provider: StatusChangeProvider,       // カテゴリ固有の状態管理
+    GlobalComponent: StatusChangeDialog,  // パレット外で常時表示するUI
+  },
+];
+```
+
+### AdminCommandPlugin の型
+
+| プロパティ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| `id` | `string` | ✓ | プラグインID（カテゴリIDと一致させることを推奨） |
+| `Provider` | `ComponentType<{ children: ReactNode }>` | - | カテゴリ固有のProvider |
+| `GlobalComponent` | `ComponentType` | - | パレット外で常時表示するコンポーネント |
+
+### 使用例: ステータス変更機能
+
+```
+definitions/
+└── status-change/
+    ├── index.ts
+    ├── StatusChangeRenderer.tsx    # パレット内UI
+    ├── StatusChangeProvider.tsx    # 状態管理（Context）
+    ├── StatusChangeDialog.tsx      # 確認ダイアログ（パレット外）
+    └── useStatusChange.ts          # カスタムフック
+```
+
+**Provider の実装例:**
+
+```tsx
+// definitions/status-change/StatusChangeProvider.tsx
+"use client";
+
+import { createContext, useContext, useState, type ReactNode } from "react";
+
+type StatusChangeContextValue = {
+  targetId: string | null;
+  setTargetId: (id: string | null) => void;
+  isDialogOpen: boolean;
+  openDialog: () => void;
+  closeDialog: () => void;
+};
+
+const StatusChangeContext = createContext<StatusChangeContextValue | null>(null);
+
+export function useStatusChange() {
+  const ctx = useContext(StatusChangeContext);
+  if (!ctx) throw new Error("useStatusChange must be used within StatusChangeProvider");
+  return ctx;
+}
+
+export function StatusChangeProvider({ children }: { children: ReactNode }) {
+  const [targetId, setTargetId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  return (
+    <StatusChangeContext.Provider
+      value={{
+        targetId,
+        setTargetId,
+        isDialogOpen,
+        openDialog: () => setIsDialogOpen(true),
+        closeDialog: () => setIsDialogOpen(false),
+      }}
+    >
+      {children}
+    </StatusChangeContext.Provider>
+  );
+}
 ```
 
 ---
@@ -319,10 +353,6 @@ const handleSearchChange = (value: string) => {
 };
 ```
 
-- 全角英数字を半角に変換（`ａｂｃ` → `abc`）
-- 日本語文字を除去
-- スペースは保持
-
 ---
 
 ## プログラムからパレットを開く
@@ -350,3 +380,4 @@ function MyComponent() {
 - このパレットは `role: "admin"` のユーザーにのみ表示されます
 - ショートカットキーは他のアプリケーションと競合する可能性があります
 - 設定変更は即座にデータベースに保存されます
+- **`core/` ディレクトリ内のファイルは編集しないでください**

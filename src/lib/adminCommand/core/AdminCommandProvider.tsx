@@ -1,36 +1,15 @@
-// src/lib/adminCommand/components/AdminCommandProvider.tsx
+// src/lib/adminCommand/core/AdminCommandProvider.tsx
 
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { plugins } from "../config/plugins";
+import { AdminCommandContext } from "./context";
 import { AdminCommandPalette } from "./AdminCommandPalette";
-
-type AdminCommandContextValue = {
-  /** パレットを開く */
-  openPalette: () => void;
-  /** パレットを閉じる */
-  closePalette: () => void;
-  /** パレットの開閉状態を切り替える */
-  togglePalette: () => void;
-  /** パレットが開いているかどうか */
-  isOpen: boolean;
-};
-
-const AdminCommandContext = createContext<AdminCommandContextValue | null>(null);
-
-/**
- * 管理者コマンドの Context を利用するフック
- */
-export function useAdminCommand(): AdminCommandContextValue {
-  const context = useContext(AdminCommandContext);
-  if (!context) {
-    throw new Error("useAdminCommand must be used within AdminCommandProvider");
-  }
-  return context;
-}
+import type { AdminCommandContextValue } from "./types";
 
 type AdminCommandProviderProps = {
   children: React.ReactNode;
@@ -40,7 +19,7 @@ type AdminCommandProviderProps = {
  * 管理者コマンドパレットの Provider
  * - ショートカットキー監視
  * - パレット表示制御
- * - コマンド登録の初期化
+ * - プラグインの自動適用
  */
 export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
   const { user } = useAuthSession();
@@ -88,10 +67,34 @@ export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
     [openPalette, closePalette, togglePalette, isOpen]
   );
 
-  return (
-    <AdminCommandContext.Provider value={contextValue}>
+  // コンテンツ: パレット + GlobalComponents
+  const content = (
+    <>
       {children}
       {isAdmin && <AdminCommandPalette open={isOpen} onOpenChange={setIsOpen} />}
+      {/* プラグインの GlobalComponent を描画 */}
+      {isAdmin &&
+        plugins.map(
+          (plugin) =>
+            plugin.GlobalComponent && <plugin.GlobalComponent key={plugin.id} />
+        )}
+    </>
+  );
+
+  // プラグインの Provider でラップ
+  const wrappedContent = plugins
+    .filter((plugin) => plugin.Provider)
+    .reduceRight(
+      (acc, plugin) => {
+        const PluginProvider = plugin.Provider!;
+        return <PluginProvider key={plugin.id}>{acc}</PluginProvider>;
+      },
+      content
+    );
+
+  return (
+    <AdminCommandContext.Provider value={contextValue}>
+      {wrappedContent}
     </AdminCommandContext.Provider>
   );
 }
