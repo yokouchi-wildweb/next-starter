@@ -293,6 +293,14 @@ export default async function removeDomain(domain) {
     removeLineContaining(servicePath, `${serviceName}: ${serviceName}Service`);
   }
 
+  const domainConfigPath = path.join(rootDir, 'src', 'registry', 'domainConfigRegistry.ts');
+  for (const candidate of featureCandidateSet) {
+    // import行の削除
+    removeLineContaining(domainConfigPath, `@/features/${candidate}/domain.json`);
+  }
+  // マップエントリの削除（snake_case形式）
+  removeLineContaining(domainConfigPath, `${normalizedSnake}:`);
+
   console.log('削除が完了しました。');
 }
 
