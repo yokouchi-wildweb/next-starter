@@ -22,6 +22,8 @@ const SERVICE_CHOICES = [
   { name: "xxxClient.ts（クライアントサービス）", value: "clientService" },
   { name: "xxxService.ts（サーバーサービス）", value: "serverService" },
   { name: "drizzleBase.ts / firestoreBase.ts（ベースサービス）", value: "baseService" },
+  { name: "wrappers/duplicate.ts（複製ラッパー）", value: "duplicateWrapper" },
+  { name: "wrappers/remove.ts（削除ラッパー）", value: "removeWrapper" },
 ];
 
 // domain.json を持つディレクトリを検索（core配下は除外）
@@ -299,6 +301,39 @@ function generateBaseService(tokens) {
   console.log(`  生成: ${outputFile}`);
 }
 
+// ラッパー生成
+function generateWrapper(tokens, wrapperName) {
+  const { domainPath, camel, pascal, dbEngine } = tokens;
+  const templatePath = path.join(templateDir, "server", "wrappers", `${wrapperName}.ts`);
+  const outputDir = path.join(featuresDir, domainPath, "services", "server", "wrappers");
+  const outputFile = path.join(outputDir, `${wrapperName}.ts`);
+
+  if (!fs.existsSync(templatePath)) {
+    console.error(`  テンプレートが見つかりません: ${templatePath}`);
+    return;
+  }
+
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const baseFile = dbEngine === "Firestore" ? "firestoreBase" : "drizzleBase";
+  const template = fs.readFileSync(templatePath, "utf8");
+  const content = template
+    .replace(/__domain__/g, camel)
+    .replace(/__Domain__/g, pascal)
+    .replace(/__serviceBase__/g, baseFile);
+
+  fs.writeFileSync(outputFile, content);
+  console.log(`  生成: ${outputFile}`);
+
+  // .gitkeep があれば削除
+  const keepFile = path.join(outputDir, ".gitkeep");
+  if (fs.existsSync(keepFile)) {
+    fs.unlinkSync(keepFile);
+  }
+}
+
 // 選択されたサービスを生成
 function generateServices(domainPath, selectedServices) {
   const tokens = buildTokens(domainPath);
@@ -307,6 +342,8 @@ function generateServices(domainPath, selectedServices) {
     clientService: () => generateClientService(tokens),
     serverService: () => generateServerService(tokens),
     baseService: () => generateBaseService(tokens),
+    duplicateWrapper: () => generateWrapper(tokens, "duplicate"),
+    removeWrapper: () => generateWrapper(tokens, "remove"),
   };
 
   selectedServices.forEach((serviceKey) => {
