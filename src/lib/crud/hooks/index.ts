@@ -8,3 +8,5 @@ export * from "./useBulkDeleteByIdsDomain";
 export * from "./useBulkDeleteByQueryDomain";
 export * from "./useUpsertDomain";
 export * from "./useDuplicateDomain";
+export * from "./useRestoreDomain";
+export * from "./useHardDeleteDomain";

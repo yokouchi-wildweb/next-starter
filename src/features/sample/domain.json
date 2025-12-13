@@ -28,7 +28,7 @@
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
-  "useSoftDelete": true,
+  "useSoftDelete": false,
   "fields": [
     {
       "name": "name",

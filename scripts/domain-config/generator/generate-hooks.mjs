@@ -73,6 +73,11 @@ if (domainConfig?.useDuplicateButton) {
   templates.push("useDuplicate__Domain__.ts");
 }
 
+if (domainConfig?.useSoftDelete) {
+  templates.push("useRestore__Domain__.ts");
+  templates.push("useHardDelete__Domain__.ts");
+}
+
 // テンプレート文字列のトークンをドメイン名で置換
 function replaceTokens(content) {
   return content

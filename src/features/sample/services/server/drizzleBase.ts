@@ -14,6 +14,7 @@ export const baseOptions = {
   idType: conf.idType as IdType,
   useCreatedAt: conf.useCreatedAt,
   useUpdatedAt: conf.useUpdatedAt,
+  useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
   belongsToManyRelations: [

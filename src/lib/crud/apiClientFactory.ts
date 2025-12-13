@@ -84,5 +84,15 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         "duplicate",
         async () => (await axios.post<T>(`${baseUrl}/${id}/duplicate`)).data,
       ),
+    restore: (id: string) =>
+      handleRequest(
+        "restore",
+        async () => (await axios.post<T>(`${baseUrl}/${id}/restore`)).data,
+      ),
+    hardDelete: (id: string) =>
+      handleRequest("hardDelete", async () => {
+        await axios.delete(`${baseUrl}/${id}/hard-delete`);
+        return undefined;
+      }),
   };
 }
