@@ -12,7 +12,7 @@ export const SettingBaseSchema = z.object({
     .max(200, "フッターの文言は200文字以内で入力してください"),
 });
 
-export const SettingUpdateSchema = SettingBaseSchema;
+export const SettingUpdateSchema = SettingBaseSchema.partial();
 
 export const SettingCreateSchema = SettingBaseSchema.extend({
   id: z.string().min(1),
