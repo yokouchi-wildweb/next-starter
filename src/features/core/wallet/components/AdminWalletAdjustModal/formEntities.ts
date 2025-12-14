@@ -47,7 +47,7 @@ const metaFieldsDefaults = walletMetaFieldDefinitions.reduce(
 );
 
 export const WalletAdjustDefaultValues: WalletAdjustFormValues = {
-  walletType: "regular_point",
+  walletType: "regular_coin",
   changeMethod: "INCREMENT",
   amount: undefined,
   reason: "",
