@@ -236,11 +236,11 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
           handleRequestClose();
         }
       }}
-      title="ポイント操作"
+      title="所持通貨を操作"
       maxWidth={810}
       height="60vh"
       tabs={[
-        { value: "adjust", label: "ポイント操作", content: adjustTabContent },
+        { value: "adjust", label: "保有量更新", content: adjustTabContent },
         {
           value: "history",
           label: "操作履歴",
