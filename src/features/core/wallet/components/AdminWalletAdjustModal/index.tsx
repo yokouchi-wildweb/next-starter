@@ -19,6 +19,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { err } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";
 import { WalletTypeOptions } from "@/features/core/wallet/constants/field";
+import { CURRENCY_CONFIG } from "@/features/core/wallet/currencyConfig";
 import { WalletHistoryChangeMethodOptions } from "@/features/core/walletHistory/constants/field";
 import { useAdjustWallet } from "@/features/core/wallet/hooks/useAdjustWallet";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
@@ -106,12 +107,14 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
       meta: createMeta(values),
     };
 
+    const currencyLabel = CURRENCY_CONFIG[values.walletType].label;
+
     try {
       await trigger({ userId: user.id, payload });
-      toast.success("ポイントを更新しました");
+      toast.success(`${currencyLabel}を更新しました`);
       handleRequestClose();
     } catch (error) {
-      toast.error(err(error, "ポイント操作に失敗しました"));
+      toast.error(err(error, `${currencyLabel}の操作に失敗しました`));
     }
   };
 
