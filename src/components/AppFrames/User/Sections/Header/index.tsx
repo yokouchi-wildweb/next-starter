@@ -9,6 +9,7 @@ import { Brand } from "./Brand";
 import { SpNavSwitch } from "./SpNavSwitch";
 import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
 
+import { useHeaderVisibility } from "../../contexts/HeaderVisibilityContext";
 import { useUserMenuItems } from "./useUserMenuItems";
 
 export const UserNavigation = () => {
@@ -17,6 +18,15 @@ export const UserNavigation = () => {
   const headerRef = useRef<HTMLElement | null>(null);
   const pathname = usePathname();
   const { navItems } = useUserMenuItems();
+  const { visibility } = useHeaderVisibility();
+
+  // 表示/非表示のクラスを決定
+  const visibilityClass = (() => {
+    if (!visibility.sp && !visibility.pc) return "hidden";
+    if (!visibility.sp && visibility.pc) return "hidden sm:block";
+    if (visibility.sp && !visibility.pc) return "block sm:hidden";
+    return "";
+  })();
 
   const handleClose = useCallback(() => {
     setIsMenuOpen(false);
@@ -88,7 +98,7 @@ export const UserNavigation = () => {
     <header
       id={APP_HEADER_ELEMENT_ID}
       ref={headerRef}
-      className="fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-card"
+      className={`fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-card ${visibilityClass}`}
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-2 sm:py-4">
         <Brand />
