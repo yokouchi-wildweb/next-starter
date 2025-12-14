@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { walletMetaFieldDefinitions, type WalletMetaFieldName } from "@/features/core/wallet/constants/metaFields";
+import { CURRENCY_CONFIG, type WalletType } from "@/features/core/wallet/currencyConfig";
 
 const metaFieldsSchemaShape = walletMetaFieldDefinitions.reduce((shape, field) => {
   const schema = z
@@ -12,9 +13,11 @@ const metaFieldsSchemaShape = walletMetaFieldDefinitions.reduce((shape, field) =
   return { ...shape, [field.name]: schema };
 }, {} as Record<WalletMetaFieldName, z.ZodType<string | undefined>>);
 
+const walletTypeValues = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+
 export const WalletAdjustFormSchema = z
   .object({
-    walletType: z.enum(["regular_point", "temporary_point"]),
+    walletType: z.enum(walletTypeValues),
     changeMethod: z.enum(["INCREMENT", "DECREMENT", "SET"]),
     amount: z.number().int().min(0).optional(),
     reason: z
