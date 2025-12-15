@@ -36,7 +36,7 @@ export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
       const isMac = /mac/i.test(navigator.userAgent);
       const modifierKey = isMac ? e.metaKey : e.ctrlKey;
 
-      if (modifierKey && e.shiftKey && e.altKey && e.key.toLowerCase() === "a") {
+      if (modifierKey && e.shiftKey && e.altKey && e.code === "KeyA") {
         e.preventDefault();
 
         if (isAdmin) {
