@@ -1,5 +1,7 @@
 // src/features/core/wallet/components/CurrencyDisplay/index.tsx
+"use client";
 
+import CountUp from "react-countup";
 import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import {
@@ -70,6 +72,12 @@ type CurrencyDisplayProps = {
   showUnit?: boolean;
   /** 太字にするか */
   bold?: boolean;
+  /** カウントアップアニメーションを有効にするか */
+  animate?: boolean;
+  /** アニメーション時間（秒） */
+  animationDuration?: number;
+  /** 値変更時に前の値から開始するか */
+  preserveValue?: boolean;
 };
 
 /**
@@ -87,6 +95,9 @@ export function CurrencyDisplay({
   showLabel = false,
   showUnit = false,
   bold = false,
+  animate = false,
+  animationDuration = 2,
+  preserveValue = true,
 }: CurrencyDisplayProps) {
   const config = getCurrencyConfig(walletType);
   const Icon = config.icon;
@@ -111,7 +122,16 @@ export function CurrencyDisplay({
         weight={bold ? "bold" : "medium"}
         style={{ color: config.color }}
       >
-        {amount.toLocaleString()}
+        {animate ? (
+          <CountUp
+            end={amount}
+            duration={animationDuration}
+            preserveValue={preserveValue}
+            separator=","
+          />
+        ) : (
+          amount.toLocaleString()
+        )}
         {suffix && ` ${suffix}`}
       </Span>
     </span>
