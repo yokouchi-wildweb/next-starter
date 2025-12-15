@@ -11,7 +11,7 @@ import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/currencyConfig";
 
-import { BalanceCard } from "../UserBalance/BalanceCard";
+import { BalanceCard } from "./BalanceCard";
 import { PurchaseList } from "./PurchaseList";
 
 type WalletBalancePageProps = {

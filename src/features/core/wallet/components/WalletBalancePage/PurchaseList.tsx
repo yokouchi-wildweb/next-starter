@@ -8,7 +8,7 @@ import { Section } from "@/components/Layout/Section";
 import { SecTitle, Span } from "@/components/TextBlocks";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import type { CurrencyConfig, WalletType } from "@/features/core/wallet/currencyConfig";
-import { CurrencyDisplay } from "../CurrencyDisplay";
+import { CurrencyDisplay } from "../common/CurrencyDisplay";
 
 type PurchaseListProps = {
   /** URLスラッグ */

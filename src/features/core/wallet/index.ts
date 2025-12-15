@@ -2,7 +2,7 @@
 // Barrel export for wallet feature
 
 // コンポーネント
-export { CurrencyDisplay } from './components/CurrencyDisplay';
+export { CurrencyDisplay } from './components/common/CurrencyDisplay';
 
 // 型
 export type { WalletType, CurrencyConfig } from './currencyConfig';

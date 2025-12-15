@@ -1,4 +1,4 @@
-// src/features/core/wallet/components/CurrencyPurchase/index.tsx
+// src/features/core/wallet/components/WalletPurchasePage/CurrencyPurchase.tsx
 
 "use client";
 

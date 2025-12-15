@@ -5,7 +5,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Span } from "@/components/TextBlocks";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
 import type { WalletType } from "@/features/core/wallet/currencyConfig";
-import { CurrencyDisplay } from "../CurrencyDisplay";
+import { CurrencyDisplay } from "../common/CurrencyDisplay";
 import { formatDate } from "@/features/core/wallet/utils/formatters";
 import { extractReasons } from "@/features/core/wallet/utils/historyDisplay";
 
