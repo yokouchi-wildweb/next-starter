@@ -16,7 +16,10 @@
     "dc:generate:component": "node scripts/domain-config/generate-component.mjs",
     "dc:generate:service": "node scripts/domain-config/generate-service.mjs",
     "dc:delete": "node scripts/domain-config/index.mjs --delete",
-    "dc:add": "node scripts/domain-config/add-field.mjs"
+    "dc:add": "node scripts/domain-config/add-field.mjs",
+    "generate:mail-colors": "npx tsx scripts/generate-mail-colors.ts",
+    "predev": "npm run generate:mail-colors",
+    "prebuild": "npm run generate:mail-colors"
   },
   "engines": {
     "node": "20"
@@ -35,6 +38,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-email/components": "^0.5.7",
     "@react-three/drei": "10.4.4",
     "@react-three/fiber": "^9.2.0",
     "@tailwindcss/postcss": "^4",
@@ -61,6 +65,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.58.1",
     "react-icons": "^5.5.0",
+    "resend": "^6.6.0",
     "sass": "^1.89.2",
     "sonner": "^2.0.5",
     "swr": "^2.3.3",
@@ -77,11 +82,13 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.57.0",
+    "@types/culori": "^4.0.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
     "cross-env": "^10.1.0",
+    "culori": "^4.0.2",
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.31.4",
     "eslint": "^9",

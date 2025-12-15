@@ -15,7 +15,7 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/Controlled";
 import { Block } from "@/components/Layout/Block";
 import { Para, SecTitle } from "@/components/TextBlocks";
-import { EMAIL_SIGNUP_STORAGE_KEY, getActionCodeSettings } from "@/features/core/auth/config/authSettings";
+import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/config/authSettings";
 import { useVerificationEmail } from "@/features/core/auth/hooks/useVerificationEmail";
 import { useEmailUserExists } from "@/features/core/user/hooks/useEmailUserExists";
 import { err } from "@/lib/errors";
@@ -55,8 +55,7 @@ export function VerificationEmailSendForm({
       }
 
       saveEmail(normalizedEmail);
-      const actionCodeSettings = getActionCodeSettings();
-      await sendVerificationEmail(normalizedEmail, actionCodeSettings);
+      await sendVerificationEmail(normalizedEmail);
       router.push(urlAfterEmailSent);
     } catch (error) {
       const message = err(error, "メール送信に失敗しました");
