@@ -1,7 +1,7 @@
 // src/features/core/wallet/components/CurrencyDisplay/index.tsx
 "use client";
 
-import CountUp from "react-countup";
+import { CountUp } from "@/components/Animation";
 import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import {
