@@ -1,8 +1,8 @@
-// scripts/generate-mail-colors.ts
+// scripts/mail/generate-colors.ts
 // theme.cssからテーマカラーを抽出し、メール用の定数ファイルを生成するスクリプト
 //
 // 使い方:
-//   npx tsx scripts/generate-mail-colors.ts
+//   npm run mail:generate-colors
 //
 // 出力先:
 //   src/features/core/mail/constants/colors.ts
@@ -85,7 +85,7 @@ function generateColorsFile(colors: Map<string, string>): string {
     "// src/features/core/mail/constants/colors.ts",
     "// このファイルは自動生成されます。直接編集しないでください。",
     "// 生成元: src/styles/theme.css",
-    "// 生成コマンド: npx tsx scripts/generate-mail-colors.ts",
+    "// 生成コマンド: npm run mail:generate-colors",
     "",
     "export const MAIL_THEME_COLORS = {",
   ];

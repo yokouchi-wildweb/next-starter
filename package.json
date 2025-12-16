@@ -17,7 +17,8 @@
     "dc:generate:service": "node scripts/domain-config/generate-service.mjs",
     "dc:delete": "node scripts/domain-config/index.mjs --delete",
     "dc:add": "node scripts/domain-config/add-field.mjs",
-    "generate:mail-colors": "npx tsx scripts/generate-mail-colors.ts"
+    "mail:test": "npx tsx scripts/mail/test-send.ts",
+    "mail:generate-colors": "npx tsx scripts/mail/generate-colors.ts"
   },
   "engines": {
     "node": "20"
@@ -37,6 +38,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-email/components": "^0.5.7",
+    "@react-email/render": "^1.4.0",
     "@react-three/drei": "10.4.4",
     "@react-three/fiber": "^9.2.0",
     "@tailwindcss/postcss": "^4",

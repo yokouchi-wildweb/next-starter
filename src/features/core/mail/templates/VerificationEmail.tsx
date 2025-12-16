@@ -123,3 +123,13 @@ const styles = {
 } as const;
 
 export default VerificationEmail;
+
+// テスト送信用の設定
+export const testProps: VerificationEmailProps = {
+  verificationUrl: "https://example.com/verify?token=test-token-12345",
+  email: "test@example.com",
+};
+
+export const testSubject = "【テスト】メールアドレスの確認";
+
+export const testDescription = "メールアドレス認証用テンプレート";
