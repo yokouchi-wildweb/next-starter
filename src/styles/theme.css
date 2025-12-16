@@ -2,6 +2,10 @@
  * src/styles/theme.css
  * アプリ全体で利用する色やフォントなどのデザイントークンを定義します。
  * :root と .dark で値を設定し、`@theme inline` で Tailwind に渡します。
+ *
+ * ⚠️ テーマカラーを変更した場合は、以下のコマンドを実行してください:
+ *    npm run generate:mail-colors
+ *    （メール用カラー定数を再生成し、コミットが必要です）
  */
 
 @custom-variant dark (&:is(.dark *));

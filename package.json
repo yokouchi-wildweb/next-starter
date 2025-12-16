@@ -17,9 +17,7 @@
     "dc:generate:service": "node scripts/domain-config/generate-service.mjs",
     "dc:delete": "node scripts/domain-config/index.mjs --delete",
     "dc:add": "node scripts/domain-config/add-field.mjs",
-    "generate:mail-colors": "npx tsx scripts/generate-mail-colors.ts",
-    "predev": "npm run generate:mail-colors",
-    "prebuild": "npm run generate:mail-colors"
+    "generate:mail-colors": "npx tsx scripts/generate-mail-colors.ts"
   },
   "engines": {
     "node": "20"

@@ -50,7 +50,7 @@ src/features/core/mail/
 
 ```
 src/styles/theme.css (Single Source of Truth)
-    ↓ ビルド時に自動変換
+    ↓ 手動で変換コマンドを実行
 src/features/core/mail/constants/colors.ts (自動生成)
     ↓ 参照
 メールテンプレート
@@ -58,7 +58,20 @@ src/features/core/mail/constants/colors.ts (自動生成)
 
 - `theme.css` の `:root` セクションから oklch 値を抽出
 - hex 形式に変換して `colors.ts` を自動生成
-- `npm run build` 時に自動実行（prebuild）
+- **テーマカラー変更時は手動でコマンド実行が必要**
+
+> ⚠️ **重要**: Firebase App Hostingの特殊なパス構造では`npx tsx`が動作しないため、
+> ビルド時の自動生成は無効化されています。テーマカラーを変更した場合は、
+> 必ず以下のコマンドを実行し、生成されたファイルをコミットしてください。
+
+### テーマカラー変更時の手順
+
+1. `src/styles/theme.css` を編集
+2. 以下のコマンドを実行:
+   ```bash
+   npm run generate:mail-colors
+   ```
+3. 生成された `src/features/core/mail/constants/colors.ts` をコミット
 
 ### 使い方
 
