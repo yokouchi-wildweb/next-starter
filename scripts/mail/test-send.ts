@@ -7,9 +7,9 @@
 // テンプレートの追加方法:
 //   src/features/core/mail/templates/ に .tsx ファイルを作成し、
 //   以下をエクスポートしてください:
+//   - subject: メールの件名
 //   - default: テンプレートコンポーネント
 //   - testProps: テスト用のprops
-//   - testSubject: テスト用の件名
 //   - testDescription: テンプレートの説明（任意）
 
 import { config } from "dotenv";
@@ -91,8 +91,8 @@ async function getTemplateConfigs(): Promise<TemplateConfig[]> {
 
       // 必須エクスポートの確認
       const Component = templateModule.default;
+      const subject = templateModule.subject;
       const testProps = templateModule.testProps;
-      const testSubject = templateModule.testSubject;
       const testDescription = templateModule.testDescription;
 
       if (!Component) {
@@ -100,9 +100,9 @@ async function getTemplateConfigs(): Promise<TemplateConfig[]> {
         continue;
       }
 
-      if (!testProps || !testSubject) {
+      if (!subject || !testProps) {
         console.warn(
-          `警告: ${file} に testProps または testSubject がありません。スキップします。`
+          `警告: ${file} に subject または testProps がありません。スキップします。`
         );
         continue;
       }
@@ -112,7 +112,7 @@ async function getTemplateConfigs(): Promise<TemplateConfig[]> {
         description: testDescription || templateName,
         render: async () => {
           const html = await render(createElement(Component, testProps));
-          return { html, subject: testSubject };
+          return { html, subject };
         },
       });
     } catch (err) {
