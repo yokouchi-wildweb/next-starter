@@ -4,6 +4,8 @@
 
 import type { ComponentType } from "react";
 
+import { APP_FEATURES } from "@/config/app-features.config";
+
 import { OAuthRegistrationForm } from "./OAuth"
 import { EmailRegistrationForm } from "./Email";
 import { UnknownRegistrationForm } from "./UnknownRegistrationForm";
@@ -23,6 +25,7 @@ const registrationComponentMap: Record<RegistrationMethod, ComponentType> = {
 export function Registration({ method = "email" }: RegistrationFormProps) {
 
   const Component = registrationComponentMap[method] ?? UnknownRegistrationForm;
+  const showSteps = APP_FEATURES.signup.showRegistrationSteps;
 
   // メール認証: 3番目のステップ（基本情報設定）
   // OAuth: 2番目のステップ（プロフィール入力）
@@ -30,7 +33,7 @@ export function Registration({ method = "email" }: RegistrationFormProps) {
 
   return (
     <div className="space-y-8 pb-8">
-      <RegistrationSteps method={method} currentStep={currentStep} />
+      {showSteps && <RegistrationSteps method={method} currentStep={currentStep} />}
       <Component />
     </div>
   );

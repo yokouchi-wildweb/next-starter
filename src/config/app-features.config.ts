@@ -11,6 +11,8 @@ export const APP_FEATURES = {
       facebook: true,
       twitter: true,
     },
+    /** 本登録ページに進捗インディケーターを表示する */
+    showRegistrationSteps: true,
   },
   admin: {
     appearance: {
