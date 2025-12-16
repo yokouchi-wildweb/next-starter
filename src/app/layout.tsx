@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import "@/styles/global.css";
 import { Toaster } from "sonner";
+import { Suspense } from "react";
 
 import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
 import { GlobalAppToast } from "@/components/Overlays/AppToast";
 import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
 import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
+import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { AdminCommandProvider } from "src/features/core/adminCommand";
 import { RedirectToastProvider } from "@/lib/redirectToast";
@@ -26,6 +28,9 @@ export default function RootLayout({
       <head />
 
       <body suppressHydrationWarning className="antialiased font-sans">
+        <Suspense fallback={null}>
+          <FirebaseAnalytics />
+        </Suspense>
         <ViewportHeightWatcher />
         <GlobalScreenLoader />
         <GlobalAppToast />
