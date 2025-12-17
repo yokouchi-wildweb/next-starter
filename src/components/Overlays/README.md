@@ -83,6 +83,7 @@ import { Dialog } from "@/components/Overlays/Dialog";
 | `confirmDisabled` | `boolean` | - | 確認ボタンの無効化 |
 | `confirmVariant` | `ButtonVariant` | `"primary"` | 確認ボタンのスタイル |
 | `cancelVariant` | `ButtonVariant` | `"outline"` | キャンセルボタンのスタイル |
+| `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 
 **型定義:**
 
@@ -123,6 +124,26 @@ import Modal from "@/components/Overlays/Modal";
 | `maxWidth` | `number \| string` | `640` | 最大幅 |
 | `minHeight` | `number \| string` | - | 最小高さ |
 | `maxHeight` | `number \| string` | - | 最大高さ（スクロール対応） |
+| `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
+
+**onCloseAutoFocus の使用例:**
+
+```tsx
+// 閉じた後に特定の入力欄にフォーカスを移す
+const searchInputRef = useRef<HTMLInputElement>(null);
+
+<Modal
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  title="検索フィルター"
+  onCloseAutoFocus={(e) => {
+    e.preventDefault(); // デフォルトのフォーカス動作を無効化
+    searchInputRef.current?.focus();
+  }}
+>
+  {/* コンテンツ */}
+</Modal>
+```
 
 ---
 

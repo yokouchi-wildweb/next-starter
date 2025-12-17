@@ -23,6 +23,7 @@ export type ModalProps = {
   minHeight?: number | string;
   maxHeight?: number | string;
   height?: number | string;
+  onCloseAutoFocus?: (event: Event) => void;
 };
 
 export default function Modal({
@@ -38,6 +39,7 @@ export default function Modal({
   minHeight,
   maxHeight,
   height,
+  onCloseAutoFocus,
 }: ModalProps) {
   const resolvedScrollableMinHeight =
     minHeight !== undefined ? (typeof minHeight === "number" ? `${minHeight}px` : minHeight) : undefined;
@@ -62,6 +64,7 @@ export default function Modal({
         showCloseButton={showCloseButton}
         className={className}
         maxWidth={maxWidth}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
         {title && titleSrOnly && !headerContent ? (
           <DialogTitle srOnly>{title}</DialogTitle>

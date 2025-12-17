@@ -50,6 +50,7 @@ export type DialogProps = {
   confirmDisabled?: boolean;
   confirmVariant?: ButtonStyleProps["variant"];
   cancelVariant?: ButtonStyleProps["variant"];
+  onCloseAutoFocus?: (event: Event) => void;
 };
 
 export function Dialog({
@@ -70,6 +71,7 @@ export function Dialog({
   confirmDisabled,
   confirmVariant = "primary",
   cancelVariant = "outline",
+  onCloseAutoFocus,
 }: DialogProps) {
   const footerAlignClass =
     footerAlign === "left"
@@ -82,7 +84,7 @@ export function Dialog({
 
   return (
     <DialogPrimitives open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false}>
+      <DialogContent showCloseButton={false} onCloseAutoFocus={onCloseAutoFocus}>
         {(title || description) && (
           <DialogHeader>
             {title && (
