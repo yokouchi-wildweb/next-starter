@@ -4,11 +4,11 @@
 
 import { type CSSProperties, ReactNode } from "react";
 import {
-  Dialog,
+  DialogPrimitives,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/Overlays/Dialog";
+} from "@/components/Overlays/DialogPrimitives";
 
 export type ModalProps = {
   open: boolean;
@@ -57,7 +57,7 @@ export default function Modal({
     : undefined;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitives open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={showCloseButton}
         className={className}
@@ -79,6 +79,6 @@ export default function Modal({
           children
         )}
       </DialogContent>
-    </Dialog>
+    </DialogPrimitives>
   );
 }

@@ -13,7 +13,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/_shadcn/command";
-import { Dialog, DialogContent, DialogTitle } from "@/components/Overlays/Dialog";
+import { DialogPrimitives, DialogContent, DialogTitle } from "@/components/Overlays/DialogPrimitives";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { categories } from "../config/categories";
 import { filterSearchInput } from "../utils";
@@ -65,7 +65,7 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitives open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="overflow-hidden p-0"
         showCloseButton={false}
@@ -123,6 +123,6 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
           />
         )}
       </DialogContent>
-    </Dialog>
+    </DialogPrimitives>
   );
 }

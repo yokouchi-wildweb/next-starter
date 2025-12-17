@@ -4,7 +4,7 @@
 
 import { useState, useCallback, useMemo, type ReactNode } from "react";
 import { XIcon } from "lucide-react";
-import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/Overlays/Dialog";
+import { DialogPrimitives, DialogClose, DialogContent, DialogTitle } from "@/components/Overlays/DialogPrimitives";
 import { ImageViewerContext, type ImageViewerContextValue } from "./context";
 
 type ImageViewerProviderProps = {
@@ -30,7 +30,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
   return (
     <ImageViewerContext.Provider value={contextValue}>
       {children}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogPrimitives open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent
           className="bg-transparent border-none shadow-none p-0 max-w-[90vw] max-h-[90vh]"
           overlayLayer="super"
@@ -55,7 +55,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
             </div>
           )}
         </DialogContent>
-      </Dialog>
+      </DialogPrimitives>
     </ImageViewerContext.Provider>
   );
 }

@@ -9,7 +9,7 @@ import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
 import Modal from "@/components/Overlays/Modal";
 import TabbedModal, { type TabbedModalTab } from "@/components/Overlays/TabbedModal";
-import { ConfirmDialog } from "@/components/Overlays/ConfirmDialog";
+import { Dialog } from "@/components/Overlays/Dialog";
 import { ImageViewerProvider, ZoomableImage } from "@/components/Overlays/ImageViewer";
 import { useAppToast } from "@/hooks/useAppToast";
 import {
@@ -824,7 +824,7 @@ export default function OverlayDemoPage() {
         height="50vh"
       />
 
-      <ConfirmDialog
+      <Dialog
         open={isConfirmOpen}
         onOpenChange={(open) => {
           if (!open) {

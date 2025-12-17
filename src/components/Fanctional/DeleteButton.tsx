@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
-import ConfirmDialog from "@/components/Overlays/ConfirmDialog";
+import Dialog from "@/components/Overlays/Dialog";
 import { useAppToast } from "@/hooks/useAppToast";
 import { toast } from "sonner";
 
@@ -45,7 +45,7 @@ export default function DeleteButton({ id, useDelete, title }: DeleteButtonProps
       >
         {isMutating ? "削除中..." : "削除"}
       </Button>
-      <ConfirmDialog
+      <Dialog
         open={open}
         onOpenChange={setOpen}
         title={title}
