@@ -14,6 +14,7 @@
 import type { CategoryConfig } from "@/features/core/adminCommand/base/types";
 import { NavigationRenderer } from "../definitions/navigation/NavigationRenderer";
 import { SettingsRenderer } from "../definitions/settings/SettingsRenderer";
+import { LogoutRenderer } from "../definitions/logout/LogoutRenderer";
 
 /**
  * 第1メニューに表示するカテゴリ一覧
@@ -30,5 +31,11 @@ export const categories: CategoryConfig[] = [
     label: "アプリ設定の変更 (config)",
     description: "設定値を変更",
     Renderer: SettingsRenderer,
+  },
+  {
+    id: "logout",
+    label: "ログアウト (logout)",
+    description: "ログアウトしてトップページへ",
+    Renderer: LogoutRenderer,
   },
 ];
