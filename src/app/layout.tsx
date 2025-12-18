@@ -9,6 +9,7 @@ import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTrans
 import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
+import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { AdminCommandProvider } from "src/features/core/adminCommand";
 import { RedirectToastProvider } from "@/lib/redirectToast";
@@ -30,6 +31,9 @@ export default function RootLayout({
       <body suppressHydrationWarning className="antialiased font-sans">
         <Suspense fallback={null}>
           <FirebaseAnalytics />
+        </Suspense>
+        <Suspense fallback={null}>
+          <MicrosoftClarity />
         </Suspense>
         <ViewportHeightWatcher />
         <GlobalScreenLoader />
