@@ -127,7 +127,7 @@ export function DialogContent({
     >
       {children}
       {showCloseButton && (
-        <BaseDialogClose className="absolute top-0 right-0 translate-x-[calc(50%-6px)] sm:translate-x-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white hover:bg-black/90 transition-colors cursor-pointer">
+        <BaseDialogClose className="absolute top-0 right-0 translate-x-[calc(50%-6px)] sm:translate-x-1/2 -translate-y-1/2 rounded-full bg-black p-2 text-white hover:bg-gray-800 transition-colors cursor-pointer">
           <XIcon className="size-6" />
           <span className="sr-only">閉じる</span>
         </BaseDialogClose>
