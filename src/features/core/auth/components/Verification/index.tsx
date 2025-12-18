@@ -4,11 +4,10 @@
 
 // 認証メール内のリンクを踏んだユーザーに対する案内セクションです。
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { Section } from "@/components/Layout/Section";
-import { SecTitle } from "@/components/TextBlocks";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/config/authSettings";
 import { useLocalStorage } from "@/lib/localStorage";
 import { useVerificationPhase } from "@/features/core/auth/hooks/useVerificationPhase";
@@ -27,6 +26,14 @@ export function Verification() {
   const [savedEmail, setSavedEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
   // URLパラメータのメールアドレスを優先、なければローカルストレージから取得
   const email = emailFromUrl || savedEmail;
+
+  // URLパラメータにメールアドレスがあればローカルストレージにも保存（本登録画面で使用）
+  useEffect(() => {
+    if (emailFromUrl && emailFromUrl !== savedEmail) {
+      setSavedEmail(emailFromUrl);
+    }
+  }, [emailFromUrl, savedEmail, setSavedEmail]);
+
   const { phase, setPhase } = useVerificationPhase({
     oobCode,
     savedEmail: email,

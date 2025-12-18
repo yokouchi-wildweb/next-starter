@@ -25,6 +25,7 @@ import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./form
 export function EmailRegistrationForm() {
   const router = useRouter();
   const [savedEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
+  // ローカルストレージのメールアドレスを優先（認証時に保存された正しい値）
   const email = useMemo(() => savedEmail.trim(), [savedEmail]);
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
