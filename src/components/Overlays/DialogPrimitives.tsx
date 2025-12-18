@@ -97,7 +97,10 @@ export function DialogContent({
   style,
   ...props
 }: DialogContentProps) {
-  const resolvedMaxWidth = typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth;
+  const resolvedMaxWidth =
+    maxWidth !== undefined
+      ? `min(${typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth}, calc(100% - 2rem))`
+      : undefined;
   const resolvedMinHeight = typeof minHeight === "number" ? `${minHeight}px` : minHeight;
   const resolvedMaxHeight = typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight;
   const resolvedHeight = typeof height === "number" ? `${height}px` : height;
