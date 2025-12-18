@@ -6,5 +6,6 @@ export { NavigationRenderer, navigationItems } from "./navigation";
 // Settings
 export { SettingsRenderer, settingFields } from "./settings";
 
-// Logout
-export { LogoutRenderer } from "./logout";
+// Session
+export { SessionRenderer, sessionItems } from "./session";
+export type { SessionItem } from "./session";

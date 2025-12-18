@@ -14,7 +14,7 @@
 import type { CategoryConfig } from "@/features/core/adminCommand/base/types";
 import { NavigationRenderer } from "../definitions/navigation/NavigationRenderer";
 import { SettingsRenderer } from "../definitions/settings/SettingsRenderer";
-import { LogoutRenderer } from "../definitions/logout/LogoutRenderer";
+import { SessionRenderer } from "../definitions/session/SessionRenderer";
 
 /**
  * 第1メニューに表示するカテゴリ一覧
@@ -33,9 +33,9 @@ export const categories: CategoryConfig[] = [
     Renderer: SettingsRenderer,
   },
   {
-    id: "logout",
-    label: "ログアウト (logout)",
-    description: "ログアウトしてトップページへ",
-    Renderer: LogoutRenderer,
+    id: "session",
+    label: "セッション管理 (session)",
+    description: "ログアウト・セッションリフレッシュ",
+    Renderer: SessionRenderer,
   },
 ];
