@@ -12,22 +12,11 @@ import { userService } from "@/features/core/user/services/server/userService";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
-import {
-  SessionUserSchema,
-  type SessionUser,
-} from "@/features/core/auth/entities/session";
-import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 
 export type PreRegistrationInput = z.infer<typeof PreRegistrationSchema>;
 
 export type PreRegistrationResult = {
   user: User;
-  sessionUser: SessionUser;
-  session: {
-    token: string;
-    expiresAt: Date;
-    maxAge: number;
-  };
 };
 
 export async function preRegister(input: unknown): Promise<PreRegistrationResult> {
@@ -98,35 +87,7 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
     { conflictFields: ["providerType", "providerUid"] },
   )) as User;
 
-  const sessionUser = SessionUserSchema.parse({
-    userId: upserted.id,
-    role: upserted.role,
-    status: upserted.status,
-    providerType: upserted.providerType,
-    providerUid: upserted.providerUid,
-    displayName: upserted.displayName,
-  });
-
-  const maxAge = SESSION_DEFAULT_MAX_AGE_SECONDS;
-  const { token, expiresAt } = await signUserToken({
-    subject: sessionUser.userId,
-    claims: {
-      role: sessionUser.role,
-      status: sessionUser.status,
-      providerType: sessionUser.providerType,
-      providerUid: sessionUser.providerUid,
-      displayName: sessionUser.displayName,
-    },
-    options: { maxAge },
-  });
-
   return {
     user: upserted,
-    sessionUser,
-    session: {
-      token,
-      expiresAt,
-      maxAge,
-    },
   };
 }
