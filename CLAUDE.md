@@ -123,6 +123,9 @@ use wrappers instead of raw HTML:
 - p,h2 -> TextBlocks/{Para,SecTitle}
 - skeleton -> Skeleton/BaseSkeleton (not shadcn)
 
+page-level layout control:
+- AppFrames/User/controls: header/footer/bottomMenu visibility per page
+
 ref: src/components/README.md
 
 ## ERROR_HANDLING
