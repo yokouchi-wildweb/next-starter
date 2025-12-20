@@ -1,0 +1,3 @@
+# term-aliases
+
+ヒグマ -> Figma
