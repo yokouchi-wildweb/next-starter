@@ -54,7 +54,7 @@ constants/, types/, domain.json
 lib/: crud, errors, drizzle, firebase, storage, mail, jwt, mediaInputSuite, tableSuite, localStorage, redirectToast, cn
 config/: admin-global-menu, app-features, maintenance, redirect, user-header, user-bottom-menu
 stores/: useAppToastStore, useGlobalLoaderStore, useSiteTheme, useViewportSize
-hooks/: useAppToast, useGlobalLoader, useInfiniteScrollQuery, useFieldGuard, useRouteTransitionPending
+hooks/: useAppToast (primary toast), useGlobalLoader, useInfiniteScrollQuery, useFieldGuard, useRouteTransitionPending
 components/: Form/, Layout/, TextBlocks/, Skeleton/, _shadcn/
 registry/: schemaRegistry, serviceRegistry, adminDataMenu
 proxies/: middleware handlers
