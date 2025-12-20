@@ -8,7 +8,8 @@ import {
   type CarouselApi,
 } from "@/components/_shadcn/carousel"
 import { cn } from "@/lib/cn"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { SliderArrow } from "./SliderArrow"
+import { SliderDots } from "./SliderDots"
 
 function getPeekMaskStyle(canScrollPrev: boolean, canScrollNext: boolean) {
   if (canScrollPrev && canScrollNext) {
@@ -111,18 +112,11 @@ export function Slider<T>({
     >
       <div className="relative">
         {showArrows && canScrollPrev && (
-          <button
-            type="button"
+          <SliderArrow
+            direction="prev"
             onClick={() => api?.scrollPrev()}
-            className={cn(
-              "absolute left-0 top-1/2 -translate-y-1/2 z-10 size-8 flex items-center justify-center rounded-full border backdrop-blur-sm shadow-md",
-              arrowVariant === "light" && "bg-background/50 hover:bg-background/70 text-foreground",
-              arrowVariant === "dark" && "bg-foreground/50 hover:bg-foreground/70 text-background border-foreground/20"
-            )}
-            aria-label="前へ"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
+            variant={arrowVariant}
+          />
         )}
 
         <div
@@ -164,38 +158,20 @@ export function Slider<T>({
         </div>
 
         {showArrows && canScrollNext && (
-          <button
-            type="button"
+          <SliderArrow
+            direction="next"
             onClick={() => api?.scrollNext()}
-            className={cn(
-              "absolute right-0 top-1/2 -translate-y-1/2 z-10 size-8 flex items-center justify-center rounded-full border backdrop-blur-sm shadow-md",
-              arrowVariant === "light" && "bg-background/50 hover:bg-background/70 text-foreground",
-              arrowVariant === "dark" && "bg-foreground/50 hover:bg-foreground/70 text-background border-foreground/20"
-            )}
-            aria-label="次へ"
-          >
-            <ChevronRight className="size-5" />
-          </button>
+            variant={arrowVariant}
+          />
         )}
       </div>
 
-      {showDots && count > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          {Array.from({ length: count }).map((_, index) => (
-            <button
-              key={index}
-              type="button"
-              onClick={() => handleDotClick(index)}
-              className={cn(
-                "size-2 rounded-full transition-colors",
-                current === index
-                  ? "bg-primary"
-                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-              )}
-              aria-label={`スライド ${index + 1} へ移動`}
-            />
-          ))}
-        </div>
+      {showDots && (
+        <SliderDots
+          count={count}
+          current={current}
+          onDotClick={handleDotClick}
+        />
       )}
     </div>
   )
