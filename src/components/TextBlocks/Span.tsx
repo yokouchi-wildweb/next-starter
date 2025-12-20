@@ -11,7 +11,7 @@ export type SpanProps = ComponentPropsWithoutRef<"span"> &
   VariantProps<typeof spanVariants> & { children: ReactNode };
 
 export function Span({
-  tone = "default",
+  tone = "inherit",
   size = "md",
   align,
   weight = "normal",

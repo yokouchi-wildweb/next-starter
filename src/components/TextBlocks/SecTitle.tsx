@@ -18,7 +18,7 @@ export type SecTitleProps = BaseHeadingProps &
 
 export function SecTitle({
   as,
-  tone = "default",
+  tone = "inherit",
   size = "xl",
   align = "left",
   weight = "bold",

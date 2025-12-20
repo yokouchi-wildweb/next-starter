@@ -11,7 +11,7 @@ export type PageTitleProps = ComponentPropsWithoutRef<"h1"> &
   VariantProps<typeof pageTitleVariants>;
 
 export function PageTitle({
-  tone = "default",
+  tone = "inherit",
   size = "xxl",
   align = "left",
   weight = "bold",

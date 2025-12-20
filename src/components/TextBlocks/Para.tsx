@@ -11,7 +11,7 @@ export type ParaProps = ComponentPropsWithoutRef<"p"> &
   VariantProps<typeof paraVariants> & { children: ReactNode };
 
 export function Para({
-  tone = "default",
+  tone = "inherit",
   size = "md",
   align = "left",
   weight = "normal",
