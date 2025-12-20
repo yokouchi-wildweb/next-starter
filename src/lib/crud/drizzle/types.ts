@@ -2,6 +2,18 @@
 
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
 import type { CreateCrudServiceOptions } from "@/lib/crud/types";
+import type { db } from "@/lib/drizzle";
+
+/**
+ * Drizzle トランザクション型。
+ * db.transaction() のコールバック引数から推論。
+ */
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * db または tx のどちらでも使える実行コンテキスト型。
+ */
+export type DbExecutor = typeof db | DbTransaction;
 
 export type BelongsToManyRelationConfig<TData extends Record<string, any>> = {
   /**

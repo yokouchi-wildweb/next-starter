@@ -4,4 +4,9 @@
 export { createCrudService } from "./service";
 export type { DefaultInsert } from "./service";
 export * from "./query";
-export type { DrizzleCrudServiceOptions, BelongsToManyRelationConfig } from "./types";
+export type {
+  DrizzleCrudServiceOptions,
+  BelongsToManyRelationConfig,
+  DbTransaction,
+  DbExecutor,
+} from "./types";

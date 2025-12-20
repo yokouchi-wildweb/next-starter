@@ -8,7 +8,7 @@ import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from 
 import type { SearchParams, PaginatedResult, UpsertOptions, WhereExpr } from "../types";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
 import { applyInsertDefaults, resolveConflictTarget } from "./utils";
-import type { DrizzleCrudServiceOptions } from "./types";
+import type { DrizzleCrudServiceOptions, DbTransaction } from "./types";
 import {
   assignLocalRelationValues,
   hydrateBelongsToManyRelations,
@@ -49,7 +49,7 @@ export function createCrudService<
   };
 
   return {
-    async create(data: Insert): Promise<Select> {
+    async create(data: Insert, tx?: DbTransaction): Promise<Select> {
       const parsedInput = serviceOptions.parseCreate
         ? await serviceOptions.parseCreate(data)
         : data;
@@ -59,18 +59,34 @@ export function createCrudService<
       );
       const finalInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert;
 
+      // belongsToMany がない場合
       if (!belongsToManyRelations.length) {
-        const rows = await db.insert(table).values(finalInsert).returning();
+        const executor = tx ?? db;
+        const rows = await executor.insert(table).values(finalInsert).returning();
         return rows[0] as Select;
       }
 
-      return db.transaction(async (tx) => {
+      // belongsToMany があり、外部トランザクションが渡された場合
+      if (tx) {
         const rows = await tx.insert(table).values(finalInsert).returning();
         const created = rows[0] as Select;
         if (!created) return created;
         const relationRecordId = resolveRecordId(created.id as unknown);
         if (relationRecordId !== undefined) {
           await syncBelongsToManyRelations(tx, belongsToManyRelations, relationRecordId, relationValues);
+        }
+        assignLocalRelationValues(created, belongsToManyRelations, relationValues);
+        return created;
+      }
+
+      // belongsToMany があり、外部トランザクションがない場合は内部トランザクション
+      return db.transaction(async (innerTx) => {
+        const rows = await innerTx.insert(table).values(finalInsert).returning();
+        const created = rows[0] as Select;
+        if (!created) return created;
+        const relationRecordId = resolveRecordId(created.id as unknown);
+        if (relationRecordId !== undefined) {
+          await syncBelongsToManyRelations(innerTx, belongsToManyRelations, relationRecordId, relationValues);
         }
         assignLocalRelationValues(created, belongsToManyRelations, relationValues);
         return created;
@@ -123,7 +139,7 @@ export function createCrudService<
       return record;
     },
 
-    async update(id: string, data: Partial<Insert>): Promise<Select> {
+    async update(id: string, data: Partial<Insert>, tx?: DbTransaction): Promise<Select> {
       const parsed = serviceOptions.parseUpdate
         ? await serviceOptions.parseUpdate(data)
         : data;
@@ -138,8 +154,10 @@ export function createCrudService<
 
       const shouldSyncRelations = belongsToManyRelations.length > 0 && relationValues.size > 0;
 
+      // リレーション同期が不要な場合
       if (!shouldSyncRelations) {
-        const rows = await db
+        const executor = tx ?? db;
+        const rows = await executor
           .update(table)
           .set(updateData as PgUpdateSetSource<TTable>)
           .where(eq(idColumn, id))
@@ -147,7 +165,8 @@ export function createCrudService<
         return rows[0] as Select;
       }
 
-      return db.transaction(async (tx) => {
+      // リレーション同期が必要で、外部トランザクションが渡された場合
+      if (tx) {
         const rows = await tx
           .update(table)
           .set(updateData as PgUpdateSetSource<TTable>)
@@ -158,27 +177,43 @@ export function createCrudService<
         await syncBelongsToManyRelations(tx, belongsToManyRelations, id, relationValues);
         assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
         return updated;
+      }
+
+      // リレーション同期が必要で、外部トランザクションがない場合は内部トランザクション
+      return db.transaction(async (innerTx) => {
+        const rows = await innerTx
+          .update(table)
+          .set(updateData as PgUpdateSetSource<TTable>)
+          .where(eq(idColumn, id))
+          .returning();
+        const updated = rows[0] as Select;
+        if (!updated) return updated;
+        await syncBelongsToManyRelations(innerTx, belongsToManyRelations, id, relationValues);
+        assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
+        return updated;
       });
     },
 
-    async remove(id: string): Promise<void> {
+    async remove(id: string, tx?: DbTransaction): Promise<void> {
+      const executor = tx ?? db;
       if (deletedAtColumn) {
         // ソフトデリート: deletedAt を現在時刻に設定
-        await db
+        await executor
           .update(table)
           .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
           .where(eq(idColumn, id));
       } else {
         // 物理削除
-        await db.delete(table).where(eq(idColumn, id));
+        await executor.delete(table).where(eq(idColumn, id));
       }
     },
 
-    async restore(id: string): Promise<Select> {
+    async restore(id: string, tx?: DbTransaction): Promise<Select> {
       if (!deletedAtColumn) {
         throw new Error("restore() is only available when useSoftDelete is enabled.");
       }
-      const rows = await db
+      const executor = tx ?? db;
+      const rows = await executor
         .update(table)
         .set({ deletedAt: null } as PgUpdateSetSource<TTable>)
         .where(eq(idColumn, id))
@@ -193,8 +228,9 @@ export function createCrudService<
       return record;
     },
 
-    async hardDelete(id: string): Promise<void> {
-      await db.delete(table).where(eq(idColumn, id));
+    async hardDelete(id: string, tx?: DbTransaction): Promise<void> {
+      const executor = tx ?? db;
+      await executor.delete(table).where(eq(idColumn, id));
     },
 
     async search(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
@@ -324,39 +360,46 @@ export function createCrudService<
       return result;
     },
 
-    async bulkDeleteByIds(ids: string[]): Promise<void> {
+    async bulkDeleteByIds(ids: string[], tx?: DbTransaction): Promise<void> {
+      const executor = tx ?? db;
       if (deletedAtColumn) {
         // ソフトデリート
-        await db
+        await executor
           .update(table)
           .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
           .where(inArray(idColumn, ids));
       } else {
-        await db.delete(table).where(inArray(idColumn, ids));
+        await executor.delete(table).where(inArray(idColumn, ids));
       }
     },
 
-    async bulkDeleteByQuery(where: WhereExpr): Promise<void> {
+    async bulkDeleteByQuery(where: WhereExpr, tx?: DbTransaction): Promise<void> {
       if (!where) {
         throw new Error("bulkDeleteByQuery requires a where condition.");
       }
+      const executor = tx ?? db;
       const condition = buildWhere(table, where);
       if (deletedAtColumn) {
         // ソフトデリート
-        await db
+        await executor
           .update(table)
           .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
           .where(condition);
       } else {
-        await db.delete(table).where(condition);
+        await executor.delete(table).where(condition);
       }
     },
 
-    async bulkHardDeleteByIds(ids: string[]): Promise<void> {
-      await db.delete(table).where(inArray(idColumn, ids));
+    async bulkHardDeleteByIds(ids: string[], tx?: DbTransaction): Promise<void> {
+      const executor = tx ?? db;
+      await executor.delete(table).where(inArray(idColumn, ids));
     },
 
-    async upsert(data: Insert & { id?: string }, upsertOptions?: UpsertOptions<Insert>): Promise<Select> {
+    async upsert(
+      data: Insert & { id?: string },
+      upsertOptions?: UpsertOptions<Insert>,
+      tx?: DbTransaction,
+    ): Promise<Select> {
       const parsedInput = serviceOptions.parseUpsert
         ? await serviceOptions.parseUpsert(data)
         : serviceOptions.parseCreate
@@ -378,8 +421,10 @@ export function createCrudService<
       } as PgUpdateSetSource<TTable> & Record<string, any> & { id?: string };
       delete (updateData as Record<string, unknown>).id;
 
+      // belongsToMany がない場合
       if (!belongsToManyRelations.length) {
-        const rows = await db
+        const executor = tx ?? db;
+        const rows = await executor
           .insert(table)
           .values(sanitizedInsert as any)
           .onConflictDoUpdate({
@@ -390,7 +435,8 @@ export function createCrudService<
         return rows[0] as Select;
       }
 
-      return db.transaction(async (tx) => {
+      // belongsToMany があり、外部トランザクションが渡された場合
+      if (tx) {
         const rows = await tx
           .insert(table)
           .values(sanitizedInsert as any)
@@ -407,10 +453,30 @@ export function createCrudService<
         }
         assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
         return upserted;
+      }
+
+      // belongsToMany があり、外部トランザクションがない場合は内部トランザクション
+      return db.transaction(async (innerTx) => {
+        const rows = await innerTx
+          .insert(table)
+          .values(sanitizedInsert as any)
+          .onConflictDoUpdate({
+            target: resolveConflictTarget(table, serviceOptions, upsertOptions),
+            set: updateData,
+          })
+          .returning();
+        const upserted = rows[0] as Select;
+        if (!upserted) return upserted;
+        const relationRecordId = resolveRecordId(upserted.id as unknown);
+        if (relationRecordId !== undefined) {
+          await syncBelongsToManyRelations(innerTx, belongsToManyRelations, relationRecordId, relationValues);
+        }
+        assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
+        return upserted;
       });
     },
 
-    async duplicate(id: string): Promise<Select> {
+    async duplicate(id: string, tx?: DbTransaction): Promise<Select> {
       const record = await this.get(id);
       if (!record) {
         throw new Error(`Record not found: ${id}`);
@@ -429,7 +495,7 @@ export function createCrudService<
         newData.name = `${newData.name}_コピー`;
       }
 
-      return this.create(newData as unknown as Insert);
+      return this.create(newData as unknown as Insert, tx);
     },
   };
 }
