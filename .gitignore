@@ -59,7 +59,5 @@ next-env.d.ts
 AGENTS.md
 CLAUDE.md
 GEMINI.md
-.claude
-!.claude/commands/
 TODO.md
 .input-image
