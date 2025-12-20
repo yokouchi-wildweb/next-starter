@@ -14,7 +14,7 @@ const sampleItems = [
 
 function SampleCard({ title, description }: { title: ReactNode; description: ReactNode }) {
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm h-full">
+    <div className="rounded-lg border-2 border-primary bg-primary/10 p-6 shadow-sm h-full">
       <h3 className="text-lg font-semibold">{title}</h3>
       <div className="mt-2 text-muted-foreground">{description}</div>
     </div>
@@ -23,7 +23,7 @@ function SampleCard({ title, description }: { title: ReactNode; description: Rea
 
 type PeekOption = "none" | "left" | "right" | "both"
 type GapOption = "sm" | "md" | "lg"
-type ArrowStyleOption = "outside" | "overlay"
+type ArrowVariantOption = "light" | "dark"
 
 export default function DemoPage() {
   const [showArrows, setShowArrows] = useState(true)
@@ -32,7 +32,7 @@ export default function DemoPage() {
   const [peek, setPeek] = useState<PeekOption>("none")
   const [gap, setGap] = useState<GapOption>("md")
   const [containerWidth, setContainerWidth] = useState<string>("")
-  const [arrowStyle, setArrowStyle] = useState<ArrowStyleOption>("overlay")
+  const [arrowVariant, setArrowVariant] = useState<ArrowVariantOption>("light")
 
   const peekValue = peek === "none" ? undefined : peek
   const containerWidthValue = containerWidth ? (isNaN(Number(containerWidth)) ? containerWidth : Number(containerWidth)) : undefined
@@ -115,14 +115,14 @@ export default function DemoPage() {
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-sm">arrowStyle</span>
+              <span className="text-sm">arrowVariant</span>
               <select
-                value={arrowStyle}
-                onChange={(e) => setArrowStyle(e.target.value as ArrowStyleOption)}
+                value={arrowVariant}
+                onChange={(e) => setArrowVariant(e.target.value as ArrowVariantOption)}
                 className="rounded border px-2 py-1 text-sm bg-background"
               >
-                <option value="overlay">overlay</option>
-                <option value="outside">outside</option>
+                <option value="light">light</option>
+                <option value="dark">dark</option>
               </select>
             </label>
           </div>
@@ -139,7 +139,7 @@ export default function DemoPage() {
           peek={peekValue}
           gap={gap}
           containerWidth={containerWidthValue}
-          arrowStyle={arrowStyle}
+          arrowVariant={arrowVariant}
         />
       </Block>
     </Main>

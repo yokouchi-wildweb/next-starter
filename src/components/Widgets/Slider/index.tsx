@@ -5,11 +5,25 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
   type CarouselApi,
 } from "@/components/_shadcn/carousel"
 import { cn } from "@/lib/cn"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
+function getPeekMaskStyle(canScrollPrev: boolean, canScrollNext: boolean) {
+  if (canScrollPrev && canScrollNext) {
+    // 両側フェード
+    return "linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)"
+  } else if (!canScrollPrev && canScrollNext) {
+    // 右のみフェード
+    return "linear-gradient(to right, black 0%, black 90%, transparent 100%)"
+  } else if (canScrollPrev && !canScrollNext) {
+    // 左のみフェード
+    return "linear-gradient(to right, transparent 0%, black 10%, black 100%)"
+  }
+  // フェードなし
+  return undefined
+}
 
 const gapStyles = {
   sm: "pl-2",
@@ -32,7 +46,8 @@ type SliderProps<T> = {
   peek?: "left" | "right" | "both" | false
   gap?: "sm" | "md" | "lg"
   containerWidth?: number | string
-  arrowStyle?: "outside" | "overlay"
+  onActiveClick?: (item: T, index: number) => void
+  arrowVariant?: "light" | "dark"
 }
 
 const peekAlign = {
@@ -50,7 +65,8 @@ export function Slider<T>({
   peek,
   gap = "md",
   containerWidth,
-  arrowStyle = "overlay",
+  onActiveClick,
+  arrowVariant = "light",
 }: SliderProps<T>) {
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
@@ -91,61 +107,77 @@ export function Slider<T>({
 
   return (
     <div
-      className="relative"
       style={containerWidth ? { width: containerWidth, marginLeft: "auto", marginRight: "auto" } : undefined}
     >
-      <Carousel
-        setApi={setApi}
-        opts={{
-          loop,
-          align: peek ? peekAlign[peek] : "center",
-        }}
-        className={cn(
-          showArrows && arrowStyle === "outside" && "px-8",
-          showArrows && arrowStyle === "overlay" && "px-4"
+      <div className="relative">
+        {showArrows && canScrollPrev && (
+          <button
+            type="button"
+            onClick={() => api?.scrollPrev()}
+            className={cn(
+              "absolute left-0 top-1/2 -translate-y-1/2 z-10 size-8 flex items-center justify-center rounded-full border backdrop-blur-sm shadow-md",
+              arrowVariant === "light" && "bg-background/50 hover:bg-background/70 text-foreground",
+              arrowVariant === "dark" && "bg-foreground/50 hover:bg-foreground/70 text-background border-foreground/20"
+            )}
+            aria-label="前へ"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
         )}
-      >
-        <CarouselContent className={gapNegativeMargin[gap]}>
-          {items.map((item, index) => (
-            <CarouselItem
-              key={index}
-              className={cn(
-                gapStyles[gap],
-                peek && "basis-[85%]",
-                index !== current && "cursor-pointer"
-              )}
-              onClick={() => {
-                if (index !== current) {
-                  api?.scrollTo(index)
-                }
-              }}
-            >
-              {renderItem(item, index)}
-            </CarouselItem>
-          ))}
-        </CarouselContent>
 
-        {showArrows && (
-          <>
-            {canScrollPrev && (
-              <CarouselPrevious
-                className={cn(
-                  "size-10 left-0",
-                  arrowStyle === "overlay" && "bg-background/80 backdrop-blur-sm shadow-md hover:bg-background"
-                )}
-              />
+        <div
+          style={peek ? {
+            overflow: "hidden",
+            maskImage: getPeekMaskStyle(canScrollPrev, canScrollNext),
+            WebkitMaskImage: getPeekMaskStyle(canScrollPrev, canScrollNext),
+          } : undefined}
+        >
+          <Carousel
+            setApi={setApi}
+            opts={{
+              loop,
+              align: peek ? peekAlign[peek] : "center",
+            }}
+          >
+            <CarouselContent className={gapNegativeMargin[gap]}>
+              {items.map((item, index) => (
+                <CarouselItem
+                  key={index}
+                  className={cn(
+                    gapStyles[gap],
+                    peek && "basis-[85%]",
+                    index !== current && "cursor-pointer"
+                  )}
+                  onClick={() => {
+                    if (index !== current) {
+                      api?.scrollTo(index)
+                    } else {
+                      onActiveClick?.(item, index)
+                    }
+                  }}
+                >
+                  {renderItem(item, index)}
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        </div>
+
+        {showArrows && canScrollNext && (
+          <button
+            type="button"
+            onClick={() => api?.scrollNext()}
+            className={cn(
+              "absolute right-0 top-1/2 -translate-y-1/2 z-10 size-8 flex items-center justify-center rounded-full border backdrop-blur-sm shadow-md",
+              arrowVariant === "light" && "bg-background/50 hover:bg-background/70 text-foreground",
+              arrowVariant === "dark" && "bg-foreground/50 hover:bg-foreground/70 text-background border-foreground/20"
             )}
-            {canScrollNext && (
-              <CarouselNext
-                className={cn(
-                  "size-10 right-0",
-                  arrowStyle === "overlay" && "bg-background/80 backdrop-blur-sm shadow-md hover:bg-background"
-                )}
-              />
-            )}
-          </>
+            aria-label="次へ"
+          >
+            <ChevronRight className="size-5" />
+          </button>
         )}
-      </Carousel>
+      </div>
 
       {showDots && count > 1 && (
         <div className="flex justify-center gap-2 mt-4">
