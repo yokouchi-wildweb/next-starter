@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   env: {
   },
   output: "standalone",
+  serverExternalPackages: ["firebase-admin"],
   images: {
     unoptimized: true,
   },
