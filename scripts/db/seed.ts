@@ -10,9 +10,19 @@ async function main() {
   console.log("");
 
   // 環境変数読み込み後に動的import
-  const { seedDemoUser } = await import("./seeds");
+  const { seedDemoUser, seedSampleTags, seedSampleCategories, seedSamples } = await import("./seeds");
 
+  // 1. デモユーザー
   await seedDemoUser();
+
+  // 2. サンプルタグ（先に作成）
+  const tags = await seedSampleTags();
+
+  // 3. サンプルカテゴリ（先に作成）
+  const categories = await seedSampleCategories();
+
+  // 4. サンプル（タグ・カテゴリを参照）
+  await seedSamples({ categories, tags });
 
   console.log("");
   console.log("✅ 初期データの投入が完了しました");
