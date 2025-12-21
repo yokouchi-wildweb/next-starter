@@ -1,22 +1,27 @@
-// scripts/db/seeds/samples.ts
+// scripts/db/seed/data/samples.ts
 
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import type { SeedSampleCategories } from "./sampleCategories";
 import type { SeedSampleTags } from "./sampleTags";
 
 type SeedSamplesParams = {
-  categories: SeedSampleCategories;
-  tags: SeedSampleTags;
+  categories?: SeedSampleCategories;
+  tags?: SeedSampleTags;
 };
 
-export async function seedSamples({ categories, tags }: SeedSamplesParams): Promise<void> {
+export async function seedSamples({ categories, tags }: SeedSamplesParams = {}): Promise<void> {
   console.log("  → サンプルデータを作成中...");
+
+  // 依存関係が選択されていない場合のデフォルト値
+  const getCategoryId = (key: keyof SeedSampleCategories) => categories?.[key]?.id ?? null;
+  const getTagIds = (keys: (keyof SeedSampleTags)[]) =>
+    tags ? keys.map((key) => tags[key]?.id).filter((id): id is string => !!id) : [];
 
   const samples = [
     {
       name: "季節限定ジャム",
-      sample_category_id: categories.categoryA.id,
-      sample_tag_ids: [tags.tagA.id, tags.tagB.id],
+      sample_category_id: getCategoryId("categoryA"),
+      sample_tag_ids: getTagIds(["tagA", "tagB"]),
       number: 24,
       rich_number: 48,
       select: "apple" as const,
@@ -25,8 +30,8 @@ export async function seedSamples({ categories, tags }: SeedSamplesParams): Prom
     },
     {
       name: "クラフトドリンク",
-      sample_category_id: categories.categoryB.id,
-      sample_tag_ids: [tags.tagB.id],
+      sample_category_id: getCategoryId("categoryB"),
+      sample_tag_ids: getTagIds(["tagB"]),
       number: 120,
       rich_number: 180,
       select: "orange" as const,
@@ -35,8 +40,8 @@ export async function seedSamples({ categories, tags }: SeedSamplesParams): Prom
     },
     {
       name: "フリーズドライベリー",
-      sample_category_id: categories.categoryC.id,
-      sample_tag_ids: [tags.tagC.id],
+      sample_category_id: getCategoryId("categoryC"),
+      sample_tag_ids: getTagIds(["tagC"]),
       number: 45,
       rich_number: 60,
       select: "berry" as const,
@@ -45,8 +50,8 @@ export async function seedSamples({ categories, tags }: SeedSamplesParams): Prom
     },
     {
       name: "スパイスティーセット",
-      sample_category_id: categories.categoryA.id,
-      sample_tag_ids: [tags.tagA.id, tags.tagC.id],
+      sample_category_id: getCategoryId("categoryA"),
+      sample_tag_ids: getTagIds(["tagA", "tagC"]),
       number: 80,
       rich_number: 100,
       select: "apple" as const,

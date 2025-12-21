@@ -1,4 +1,4 @@
-// scripts/db/seeds/sampleCategories.ts
+// scripts/db/seed/data/sampleCategories.ts
 
 import { db } from "@/lib/drizzle";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";

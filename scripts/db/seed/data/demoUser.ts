@@ -1,4 +1,4 @@
-// scripts/db/seeds/demoUser.ts
+// scripts/db/seed/data/demoUser.ts
 
 import { db } from "@/lib/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";

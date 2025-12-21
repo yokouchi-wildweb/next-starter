@@ -1,4 +1,4 @@
-// scripts/db/seeds/sampleTags.ts
+// scripts/db/seed/data/sampleTags.ts
 
 import { db } from "@/lib/drizzle";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";

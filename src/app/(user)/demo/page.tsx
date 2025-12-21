@@ -20,7 +20,7 @@ export default function DemoStartPage() {
 
   return (
     <Main space="xl" padding="xl">
-      <Flex direction="col" align="center" justify="center" className="min-h-[60vh]">
+      <Flex direction="column" align="center" justify="center" className="min-h-[60vh]">
         <Block appearance="surface" padding="xl" className="max-w-md w-full text-center">
           <PageTitle>デモモード</PageTitle>
           <Para tone="muted" className="mt-4">
@@ -32,7 +32,7 @@ export default function DemoStartPage() {
 
           {error && (
             <Para tone="danger" size="sm" className="mt-4">
-              {err(error)}
+              {err(error, "デモログインに失敗しました")}
             </Para>
           )}
 
