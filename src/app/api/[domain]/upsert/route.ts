@@ -1,20 +1,18 @@
 // src/app/api/[domain]/upsert/route.ts
-import type { NextRequest } from "next/server";
 
-import { withDomainService } from "../utils/withDomainService";
-import type { DomainParams } from "@/types/params";
+import { createDomainRoute } from "src/lib/routeFactory";
+
+type DomainParams = { domain: string };
 
 // PUT /api/[domain]/upsert : 既存データを更新、なければ新規作成
-export async function PUT(req: NextRequest, { params }: DomainParams) {
-  return withDomainService(
-    params,
-    async (service) => {
-      const { data, options } = await req.json();
-      return service.upsert(data, options);
-    },
-    {
-      operation: "PUT /api/[domain]/upsert",
-      supports: "upsert",
-    },
-  );
-}
+export const PUT = createDomainRoute<any, DomainParams>(
+  {
+    operation: "PUT /api/[domain]/upsert",
+    operationType: "write",
+    supports: "upsert",
+  },
+  async (req, { service }) => {
+    const { data, options } = await req.json();
+    return service.upsert(data, options);
+  },
+);

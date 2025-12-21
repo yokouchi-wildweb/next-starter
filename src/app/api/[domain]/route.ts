@@ -1,26 +1,28 @@
 // src/app/api/[domain]/route.ts
-import type { NextRequest } from "next/server";
 
-import { withDomainService } from "./utils/withDomainService";
-import type { DomainParams } from "@/types/params";
+import { createDomainRoute } from "src/lib/routeFactory";
+
+type DomainParams = { domain: string };
 
 // GET /api/[domain] : 指定ドメインの一覧を取得
-export async function GET(_: NextRequest, { params }: DomainParams) {
-  return withDomainService(params, (service) => service.list(), {
+export const GET = createDomainRoute<any, DomainParams>(
+  {
     operation: "GET /api/[domain]",
-  });
-}
+    operationType: "read",
+  },
+  async (_req, { service }) => {
+    return service.list();
+  },
+);
 
 // POST /api/[domain] : 指定ドメインの新規データを作成
-export async function POST(req: NextRequest, { params }: DomainParams) {
-  return withDomainService(
-    params,
-    async (service) => {
-      const { data } = await req.json();
-      return service.create(data);
-    },
-    {
-      operation: "POST /api/[domain]",
-    },
-  );
-}
+export const POST = createDomainRoute<any, DomainParams>(
+  {
+    operation: "POST /api/[domain]",
+    operationType: "write",
+  },
+  async (req, { service }) => {
+    const { data } = await req.json();
+    return service.create(data);
+  },
+);

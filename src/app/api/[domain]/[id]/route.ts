@@ -1,44 +1,38 @@
 // src/app/api/[domain]/[id]/route.ts
-import type { NextRequest } from "next/server";
 
-import { withDomainService } from "../utils/withDomainService";
-import type { DomainIdParams } from "@/types/params";
+import { createDomainIdRoute } from "src/lib/routeFactory";
 
 // GET /api/[domain]/[id] : IDで単一データを取得
-export async function GET(_: NextRequest, { params }: DomainIdParams) {
-  return withDomainService(
-    params,
-    (service, { params: resolvedParams }) => service.get(resolvedParams.id),
-    {
-      operation: "GET /api/[domain]/[id]",
-    },
-  );
-}
+export const GET = createDomainIdRoute(
+  {
+    operation: "GET /api/[domain]/[id]",
+    operationType: "read",
+  },
+  async (_req, { service, params }) => {
+    return service.get(params.id);
+  },
+);
 
 // PUT /api/[domain]/[id] : 指定IDのデータを更新
-export async function PUT(req: NextRequest, { params }: DomainIdParams) {
-  return withDomainService(
-    params,
-    async (service, { params: resolvedParams }) => {
-      const { data } = await req.json();
-      return service.update(resolvedParams.id, data);
-    },
-    {
-      operation: "PUT /api/[domain]/[id]",
-    },
-  );
-}
+export const PUT = createDomainIdRoute(
+  {
+    operation: "PUT /api/[domain]/[id]",
+    operationType: "write",
+  },
+  async (req, { service, params }) => {
+    const { data } = await req.json();
+    return service.update(params.id, data);
+  },
+);
 
 // DELETE /api/[domain]/[id] : 指定IDのデータを削除
-export async function DELETE(_: NextRequest, { params }: DomainIdParams) {
-  return withDomainService(
-    params,
-    async (service, { params: resolvedParams }) => {
-      await service.remove(resolvedParams.id);
-      return { success: true };
-    },
-    {
-      operation: "DELETE /api/[domain]/[id]",
-    },
-  );
-}
+export const DELETE = createDomainIdRoute(
+  {
+    operation: "DELETE /api/[domain]/[id]",
+    operationType: "write",
+  },
+  async (_req, { service, params }) => {
+    await service.remove(params.id);
+    return { success: true };
+  },
+);

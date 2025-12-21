@@ -1,17 +1,15 @@
 // src/app/api/[domain]/[id]/restore/route.ts
-import type { NextRequest } from "next/server";
 
-import { withDomainService } from "../../utils/withDomainService";
-import type { DomainIdParams } from "@/types/params";
+import { createDomainIdRoute } from "src/lib/routeFactory";
 
 // POST /api/[domain]/[id]/restore : ソフトデリートしたデータを復旧
-export async function POST(_: NextRequest, { params }: DomainIdParams) {
-  return withDomainService(
-    params,
-    (service, { params: resolvedParams }) => service.restore(resolvedParams.id),
-    {
-      supports: "restore",
-      operation: "POST /api/[domain]/[id]/restore",
-    },
-  );
-}
+export const POST = createDomainIdRoute(
+  {
+    operation: "POST /api/[domain]/[id]/restore",
+    operationType: "write",
+    supports: "restore",
+  },
+  async (_req, { service, params }) => {
+    return service.restore(params.id);
+  },
+);
