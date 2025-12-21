@@ -12,11 +12,15 @@ import { isHttpError } from "@/lib/errors";
 
 type UseLogoutOptions = {
   redirectTo?: string;
+  skipRedirect?: boolean;
 };
 
 const DEFAULT_REDIRECT_PATH = "/login";
 
-export function useLogout({ redirectTo = DEFAULT_REDIRECT_PATH }: UseLogoutOptions = {}) {
+export function useLogout({
+  redirectTo = DEFAULT_REDIRECT_PATH,
+  skipRedirect = false,
+}: UseLogoutOptions = {}) {
   const router = useRouter();
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
@@ -36,8 +40,10 @@ export function useLogout({ redirectTo = DEFAULT_REDIRECT_PATH }: UseLogoutOptio
         // その際にも Context 内のユーザー情報は null へ更新されるため握り潰す。
       }
 
-      router.replace(redirectTo);
-      router.refresh();
+      if (!skipRedirect) {
+        router.replace(redirectTo);
+        router.refresh();
+      }
     } catch (unknownError) {
       if (isHttpError(unknownError)) {
         setError(unknownError);
@@ -48,7 +54,7 @@ export function useLogout({ redirectTo = DEFAULT_REDIRECT_PATH }: UseLogoutOptio
     } finally {
       setIsLoading(false);
     }
-  }, [redirectTo, refreshSession, router]);
+  }, [redirectTo, refreshSession, router, skipRedirect]);
 
   return {
     logout: handleLogout,
