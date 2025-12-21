@@ -1,6 +1,5 @@
 // scripts/db/seeds/sampleCategories.ts
 
-import { eq } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 
@@ -28,24 +27,10 @@ export async function seedSampleCategories(): Promise<SeedSampleCategories> {
         name: category.name,
         description: category.description,
       })
-      .onConflictDoNothing()
       .returning();
 
-    if (created) {
-      result[category.key] = created;
-      console.log(`    ✓ ${category.name}`);
-    } else {
-      // 既存の場合は取得
-      const [existing] = await db
-        .select()
-        .from(SampleCategoryTable)
-        .where(eq(SampleCategoryTable.name, category.name))
-        .limit(1);
-      if (existing) {
-        result[category.key] = existing;
-        console.log(`    ✓ ${category.name} (既存)`);
-      }
-    }
+    result[category.key] = created;
+    console.log(`    ✓ ${category.name}`);
   }
 
   return result as SeedSampleCategories;

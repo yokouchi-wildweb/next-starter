@@ -1,6 +1,5 @@
 // scripts/db/seeds/sampleTags.ts
 
-import { eq } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 
@@ -28,24 +27,10 @@ export async function seedSampleTags(): Promise<SeedSampleTags> {
         name: tag.name,
         description: tag.description,
       })
-      .onConflictDoNothing()
       .returning();
 
-    if (created) {
-      result[tag.key] = created;
-      console.log(`    ✓ ${tag.name}`);
-    } else {
-      // 既存の場合は取得
-      const [existing] = await db
-        .select()
-        .from(SampleTagTable)
-        .where(eq(SampleTagTable.name, tag.name))
-        .limit(1);
-      if (existing) {
-        result[tag.key] = existing;
-        console.log(`    ✓ ${tag.name} (既存)`);
-      }
-    }
+    result[tag.key] = created;
+    console.log(`    ✓ ${tag.name}`);
   }
 
   return result as SeedSampleTags;

@@ -1,8 +1,5 @@
 // scripts/db/seeds/samples.ts
 
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/drizzle";
-import { SampleTable } from "@/features/sample/entities/drizzle";
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import type { SeedSampleCategories } from "./sampleCategories";
 import type { SeedSampleTags } from "./sampleTags";
@@ -59,18 +56,6 @@ export async function seedSamples({ categories, tags }: SeedSamplesParams): Prom
   ];
 
   for (const sample of samples) {
-    // 既存チェック
-    const [existing] = await db
-      .select()
-      .from(SampleTable)
-      .where(eq(SampleTable.name, sample.name))
-      .limit(1);
-
-    if (existing) {
-      console.log(`    ✓ ${sample.name} (既存)`);
-      continue;
-    }
-
     // sampleServiceを使ってbelongsToManyを自動同期
     await sampleService.create(sample);
     console.log(`    ✓ ${sample.name}`);
