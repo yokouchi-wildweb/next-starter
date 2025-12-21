@@ -31,6 +31,7 @@ function toSessionUser(payload: TokenPayload): SessionUser | null {
     userId: payload.sub,
     role: payload.role,
     status: payload.status,
+    isDemo: payload.isDemo,
     providerType: payload.providerType,
     providerUid: payload.providerUid,
     displayName: payload.displayName,
@@ -66,6 +67,7 @@ export async function refreshSessionCookie(
     claims: {
       role: user.role,
       status: user.status,
+      isDemo: user.isDemo,
       providerType: user.providerType,
       providerUid: user.providerUid,
       displayName: user.displayName,
