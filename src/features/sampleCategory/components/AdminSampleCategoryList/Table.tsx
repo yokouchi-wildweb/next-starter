@@ -10,7 +10,7 @@ import { useDeleteSampleCategory } from "@/features/sampleCategory/hooks/useDele
 import config from "@/features/sampleCategory/domain.json";
 import presenters from "@/features/sampleCategory/presenters";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 
 export type AdminSampleCategoryListTableProps = {
   /**

@@ -1,7 +1,7 @@
 // src/utils/date.ts
 
 import dayjs, { isDayjs, type ConfigType } from "dayjs";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 
 export type FormatDateJaOptions = {
   /** Day.js へ渡す format 文字列。 */

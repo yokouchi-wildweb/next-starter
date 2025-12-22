@@ -1,7 +1,7 @@
 // src/proxies/featureGate.ts
 
 import { NextResponse } from "next/server";
-import { APP_FEATURES } from "@/config/app-features.config";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { ProxyHandler } from "./types";
 
 /**

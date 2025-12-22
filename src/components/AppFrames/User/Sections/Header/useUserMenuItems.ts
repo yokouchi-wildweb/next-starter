@@ -13,7 +13,7 @@ import {
   LOGOUT_LABEL,
   LOGOUT_REDIRECT_TO,
   SHOW_LOGOUT_BUTTON,
-} from "@/config/user-header.config";
+} from "@/config/ui/user-header.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 

@@ -8,7 +8,7 @@ import { SpNavigation } from "./SpNavigation";
 import { Brand } from "./Brand";
 import { SpNavSwitch } from "./SpNavSwitch";
 import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
-import { HEADER_ENABLED } from "@/config/user-header.config";
+import { HEADER_ENABLED } from "@/config/ui/user-header.config";
 
 import { useHeaderVisibility } from "../../contexts/HeaderVisibilityContext";
 import { useUserMenuItems } from "./useUserMenuItems";

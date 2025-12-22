@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { demoModeConfig } from "@/config/demo-mode.config";
+import { demoModeConfig } from "@/config/app/demo-mode.config";
 import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
 import { parseSessionCookie } from "@/lib/jwt";
 

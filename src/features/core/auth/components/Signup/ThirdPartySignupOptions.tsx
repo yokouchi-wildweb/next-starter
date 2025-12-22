@@ -8,7 +8,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import { SecTitle } from "@/components/TextBlocks";
 import { OAUTH_PROVIDER_IDS } from "@/constants/user";
-import { APP_FEATURES } from "@/config/app-features.config";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 
 export function ThirdPartySignupOptions() {
   const router = useRouter();

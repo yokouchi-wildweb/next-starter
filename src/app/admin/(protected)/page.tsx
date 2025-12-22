@@ -12,7 +12,7 @@ import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
 import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
-import { APP_FEATURES } from "@/config/app-features.config";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { userService } from "@/features/core/user/services/server/userService";
 import type { UserRoleType } from "@/types/user";
 import { Block } from "@/components/Layout/Block";

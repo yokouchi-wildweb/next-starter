@@ -12,7 +12,7 @@ import EditButton from "@/components/Fanctional/EditButton";
 import { Button } from "@/components/Form/Button/Button";
 import type { User } from "@/features/core/user/entities";
 import { useDeleteUser } from "@/features/core/user/hooks/useDeleteUser";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 

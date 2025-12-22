@@ -11,7 +11,7 @@ import {
   BOTTOM_NAV_ENABLED,
   BOTTOM_NAV_HEIGHT,
   GUEST_MENU_ITEMS,
-} from "@/config/user-bottom-menu.config";
+} from "@/config/ui/user-bottom-menu.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 
 export const useBottomNavItems = () => {

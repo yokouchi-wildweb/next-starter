@@ -7,7 +7,7 @@ import {
   HEADER_LOGO,
   HEADER_LOGO_LINK,
   HEADER_TEXT_LOGO,
-} from "@/config/user-header.config";
+} from "@/config/ui/user-header.config";
 
 /**
  * ロゴ画像のURLを取得（フォールバック対応）

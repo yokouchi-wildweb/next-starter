@@ -4,7 +4,7 @@
 
 import type { ComponentType } from "react";
 
-import { APP_FEATURES } from "@/config/app-features.config";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 
 import { OAuthRegistrationForm } from "./OAuth"
 import { EmailRegistrationForm } from "./Email";

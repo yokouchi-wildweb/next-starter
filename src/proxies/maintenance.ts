@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { maintenanceConfig } from "@/config/maintenance.config";
+import { maintenanceConfig } from "@/config/app/maintenance.config";
 import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
 import { parseSessionCookie } from "@/lib/jwt";
 

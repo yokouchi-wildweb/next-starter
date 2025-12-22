@@ -10,7 +10,7 @@ import { useDeleteSampleTag } from "@/features/sampleTag/hooks/useDeleteSampleTa
 import config from "@/features/sampleTag/domain.json";
 import presenters from "@/features/sampleTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 
 export type AdminSampleTagListTableProps = {
   /**

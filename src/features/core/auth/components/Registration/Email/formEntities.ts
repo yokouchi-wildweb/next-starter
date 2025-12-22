@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { APP_FEATURES } from "@/config/app-features.config";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 
 const emailSchema = z

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { ACTIVE_COLOR_TYPE } from "@/config/user-bottom-menu.config";
+import { ACTIVE_COLOR_TYPE } from "@/config/ui/user-bottom-menu.config";
 import { cn } from "@/lib/cn";
 
 import type { BottomNavItem as BottomNavItemType } from "./types";

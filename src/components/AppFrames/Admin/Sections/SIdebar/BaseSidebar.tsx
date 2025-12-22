@@ -13,8 +13,8 @@ import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
 
-import { adminMenu } from "@/config/admin-global-menu.config";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
+import { adminMenu } from "@/config/ui/admin-global-menu.config";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import { MenuButton, adminSidebarButtonClassName } from "./MenuButton";
 
 const [{ adminGlobalMenu }] = UI_BEHAVIOR_CONFIG;
