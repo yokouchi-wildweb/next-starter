@@ -169,6 +169,9 @@ constants: UPPER_SNAKE_CASE
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css
 
+## TOOLS
+playwright-mcp: use for CSS/UI verification, dynamic content, when WebSearch/WebFetch fails
+
 ## DOCS
 !must-read/: architecture, component design, error handling
 concepts/: design decisions
