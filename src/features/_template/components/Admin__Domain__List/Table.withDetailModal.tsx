@@ -12,7 +12,7 @@ import presenters from "@/features/__domain__/presenters";
 import { useState } from "react";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 
 export type Admin__Domain__ListTableProps = {
   /**

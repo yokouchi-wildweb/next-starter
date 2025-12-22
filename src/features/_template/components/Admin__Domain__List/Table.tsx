@@ -10,7 +10,7 @@ __DUPLICATE_IMPORT__import { useDelete__Domain__ } from "@/features/__domain__/h
 __DUPLICATE_HOOK_IMPORT__import config from "@/features/__domain__/domain.json";
 import presenters from "@/features/__domain__/presenters";
 import { buildDomainColumns } from "@/lib/crud";
-import { UI_BEHAVIOR_CONFIG } from "@/config/ui-behavior-config";
+import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 
 export type Admin__Domain__ListTableProps = {
   /**
