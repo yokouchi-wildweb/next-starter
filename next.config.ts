@@ -27,11 +27,13 @@ const nextConfig: NextConfig = {
     return config;
   },
   async rewrites() {
+    const firebaseProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     return {
       fallback: [
         {
+          // Firebase Auth handler をプロキシ
           source: "/__/:path*",
-          destination: "https://oripa-do-d788a.web.app/__/:path*",
+          destination: `https://${firebaseProjectId}.web.app/__/:path*`,
         },
       ],
     };
