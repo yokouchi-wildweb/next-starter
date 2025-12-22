@@ -8,7 +8,6 @@ import { purchaseRequestService } from "@/features/core/purchaseRequest/services
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
-import { fooService } from "@/features/foo/services/server/fooService";
 
 export const serviceRegistry: Record<string, any> = {
 
@@ -21,7 +20,6 @@ export const serviceRegistry: Record<string, any> = {
   sample: sampleService,
   sampleCategory: sampleCategoryService,
   sampleTag: sampleTagService,
-  foo: fooService,
   // --- AUTO-GENERATED-END ---
 
 };
