@@ -12,7 +12,12 @@
 export const HEADER_ENABLED = true;
 
 /** ヘッダーのナビゲーションメニューを表示するか（falseでもヘッダー自体は表示される） */
-export const HEADER_NAV_ENABLED = true;
+export const HEADER_NAV_ENABLED = {
+  /** スマホ版（640px未満）で表示するか */
+  sp: true,
+  /** PC版（640px以上）で表示するか */
+  pc: true,
+} as const;
 
 // ============================================
 // ロゴ設定

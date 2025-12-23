@@ -108,15 +108,13 @@ export const UserNavigation = () => {
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-2 sm:py-4">
         <Brand />
-        {menuEnabled && (
-          <>
-            <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={handleToggle} />
-            <PcNavigation items={navItems} />
-          </>
+        {menuEnabled.sp && (
+          <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={handleToggle} />
         )}
+        {menuEnabled.pc && <PcNavigation items={navItems} />}
       </div>
 
-      {menuEnabled && (
+      {menuEnabled.sp && (
         <SpNavigation
           isOpen={isMenuOpen}
           items={navItems}
