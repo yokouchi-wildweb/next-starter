@@ -6,7 +6,7 @@
  */
 export const demoModeConfig = {
   // デモモードの有効/無効
-  enabled: false,
+  enabled: true,
 
   // デモモード中もアクセス許可するパス（完全一致）
   allowedPaths: [
@@ -17,6 +17,7 @@ export const demoModeConfig = {
   allowedPrefixes: [
     '/_next',
     '/api/auth',
+    '/admin',
     '/assets',
   ],
 
