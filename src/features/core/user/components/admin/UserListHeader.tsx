@@ -9,7 +9,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 
 type Props = {
   title?: string;
-  newHref: string;
+  newHref?: string;
   listPath: string;
   page: number;
   perPage: number;
