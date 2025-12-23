@@ -31,9 +31,10 @@ const isAllowedPath = (pathname: string): boolean => {
 export const demoModeProxy: ProxyHandler = async (request) => {
   const pathname = request.nextUrl.pathname;
 
-  // デモモードが無効の場合、/demo へのアクセスは404
+  // デモモードが無効の場合、/demo（直下のみ）へのアクセスは404
+  // /demo/form-components などのサブルートは許可
   if (!demoModeConfig.enabled) {
-    if (pathname === '/demo' || pathname.startsWith('/demo/')) {
+    if (pathname === '/demo') {
       return new NextResponse(null, { status: 404 });
     }
     return;

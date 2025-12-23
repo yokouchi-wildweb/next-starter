@@ -1,4 +1,4 @@
-// src/config/demo-mode.config.ts
+// src/config/app/demo-mode.config.ts
 
 /**
  * デモモードの設定

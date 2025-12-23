@@ -215,6 +215,13 @@ export function useEditableCell<T>({
             const rawValue = column.getValue ? column.getValue(row) : (row as Record<string, unknown>)[column.field];
             const normalizedMultiValue = normalizeOptionValues((rawValue as OptionPrimitive[] | null) ?? null);
             handleCommit(multiDraftValue ?? normalizedMultiValue);
+          } else if (column.editorType === "select") {
+            // selectエディターの場合、draftValueが未設定なら値を変更せずキャンセル
+            if (draftValue === null) {
+              handleCancel();
+            } else {
+              handleCommit();
+            }
           } else {
             handleCommit();
           }
@@ -227,7 +234,7 @@ export function useEditableCell<T>({
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [cellKey, column, handleCommit, isEditing, isMultiSelectEditor, multiDraftValue, row]);
+  }, [cellKey, column, draftValue, handleCancel, handleCommit, isEditing, isMultiSelectEditor, multiDraftValue, row]);
 
   const state: EditableCellState = {
     draftValue,
