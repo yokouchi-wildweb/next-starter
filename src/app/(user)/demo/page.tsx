@@ -6,6 +6,8 @@ import { Main, PageTitle, Para } from "@/components/TextBlocks";
 import { Button } from "@/components/Form/Button/Button";
 import { useDemoLogin } from "@/features/core/auth/hooks/useDemoLogin";
 import { err } from "@/lib/errors";
+import { HideFooter } from "@/components/AppFrames/User/controls/FooterControl";
+import { HideBottomNav } from "@/components/AppFrames/User/controls/BottomNavControl";
 
 export default function DemoStartPage() {
   const { demoLogin, isLoading, error } = useDemoLogin({ redirectTo: "/" });
@@ -19,7 +21,10 @@ export default function DemoStartPage() {
   };
 
   return (
-    <Main space="xl" padding="xl">
+    <>
+      <HideFooter />
+      <HideBottomNav />
+      <Main space="xl" padding="xl">
       <Flex direction="column" align="center" justify="center" className="min-h-[60vh]">
         <Block appearance="surface" padding="xl" className="max-w-md w-full text-center">
           <PageTitle>デモモード</PageTitle>
@@ -48,5 +53,6 @@ export default function DemoStartPage() {
         </Block>
       </Flex>
     </Main>
+    </>
   );
 }
