@@ -14,6 +14,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/_shadcn/command";
+import { cn } from "@/lib/cn";
 import type { CategoryRendererProps } from "@/features/core/adminCommand/base/types";
 import { filterSearchInput } from "../../utils";
 import { navigationItems } from "./items";
@@ -77,7 +78,7 @@ export function NavigationRenderer({ onClose, onBack }: CategoryRendererProps) {
           {navigationItems.map((item) => (
             <CommandItem
               key={item.id}
-              className="group"
+              className={cn("group", item.className)}
               value={`${item.label} ${item.description ?? ""} ${item.keywords?.join(" ") ?? ""}`}
               onSelect={() => handleNavigate(item.href)}
             >

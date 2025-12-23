@@ -48,5 +48,6 @@ export const navigationItems: NavigationItem[] = [
     description: "特権的な管理機能",
     href: "/admin/insane",
     keywords: ["insane", "インセイン", "特権", "裏メニュー"],
+    className: "opacity-30 hover:opacity-100 hover:bg-destructive hover:text-white data-[selected=true]:opacity-100 data-[selected=true]:bg-destructive data-[selected=true]:text-white",
   },
 ];

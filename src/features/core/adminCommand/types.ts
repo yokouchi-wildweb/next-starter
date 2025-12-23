@@ -27,6 +27,8 @@ export type NavigationItem = {
   href: string;
   /** キーワード（検索用） */
   keywords?: string[];
+  /** 追加のクラス名 */
+  className?: string;
 };
 
 /**
