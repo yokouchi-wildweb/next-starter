@@ -383,12 +383,12 @@ export default function OverlayDemoPage() {
           </div>
           <div className="flex flex-wrap gap-4">
             <ZoomableImage
-              src="/imgs/logos/nextjs.png"
+              src="/assets/imgs/logos/nextjs.png"
               alt="Next.js ロゴ"
               className="h-24 w-24 rounded border object-contain p-2"
             />
             <ZoomableImage
-              src="/imgs/logos/nextjs.png"
+              src="/assets/imgs/logos/nextjs.png"
               alt="Next.js ロゴ (大)"
               className="h-32 w-32 rounded border object-contain p-2"
             />
