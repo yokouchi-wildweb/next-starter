@@ -9,26 +9,9 @@ import { parseSessionCookie } from "@/lib/jwt";
 import type { ProxyHandler } from "./types";
 
 /**
- * 静的ファイルの拡張子パターン
- */
-const STATIC_FILE_EXTENSIONS = /\.(png|jpg|jpeg|gif|svg|ico|webp|avif|woff|woff2|ttf|otf|eot|css|js|json|xml|txt|pdf|mp4|webm|mp3|wav)$/i;
-
-/**
- * 静的ファイルかどうかを判定
- */
-const isStaticFile = (pathname: string): boolean => {
-  return STATIC_FILE_EXTENSIONS.test(pathname);
-};
-
-/**
  * パスが許可リストに含まれるかチェック
  */
 const isAllowedPath = (pathname: string): boolean => {
-  // 静的ファイルは常に許可
-  if (isStaticFile(pathname)) {
-    return true;
-  }
-
   // 完全一致チェック
   if (demoModeConfig.allowedPaths.includes(pathname)) {
     return true;
