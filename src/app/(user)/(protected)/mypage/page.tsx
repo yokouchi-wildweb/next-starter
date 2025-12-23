@@ -17,7 +17,7 @@ export default async function UserMyPagePage() {
       <UserPage containerType="contentShell" space="md">
         <UserPageTitle>マイページ</UserPageTitle>
         <Block appearance="outlined" padding="lg">
-          <Flex direction="col" align="center" gap="md">
+          <Flex direction="column" align="center" gap="md">
             <Para>ユーザー情報が参照できません</Para>
             <Para tone="muted" size="sm">
               不具合を解消するにはログアウト後、再ログインしてください。
