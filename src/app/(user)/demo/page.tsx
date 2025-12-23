@@ -6,9 +6,6 @@ import { Main, PageTitle, Para } from "@/components/TextBlocks";
 import { Button } from "@/components/Form/Button/Button";
 import { useDemoLogin } from "@/features/core/auth/hooks/useDemoLogin";
 import { err } from "@/lib/errors";
-import { demoModeConfig } from "@/config/app/demo-mode.config";
-
-const { text } = demoModeConfig;
 
 export default function DemoStartPage() {
   const { demoLogin, isLoading, error } = useDemoLogin({ redirectTo: "/" });
@@ -25,18 +22,13 @@ export default function DemoStartPage() {
     <Main space="xl" padding="xl">
       <Flex direction="column" align="center" justify="center" className="min-h-[60vh]">
         <Block appearance="surface" padding="xl" className="max-w-md w-full text-center">
-          <PageTitle>{text.title}</PageTitle>
-          <Para
-            tone="muted"
-            className="mt-4"
-            dangerouslySetInnerHTML={{ __html: text.description }}
-          />
-          <Para
-            tone="muted"
-            size="sm"
-            className="mt-2"
-            dangerouslySetInnerHTML={{ __html: text.note }}
-          />
+          <PageTitle>デモモード</PageTitle>
+          <Para tone="muted" className="mt-4">
+            デモユーザーとしてログインし、アプリケーションの機能をお試しいただけます。
+          </Para>
+          <Para tone="muted" size="sm" className="mt-2">
+            デモモードでは、データベースへの書き込みはスキップされます。
+          </Para>
 
           {error && (
             <Para tone="danger" size="sm" className="mt-4">
@@ -51,7 +43,7 @@ export default function DemoStartPage() {
             onClick={handleClick}
             disabled={isLoading}
           >
-            {isLoading ? text.loadingLabel : text.buttonLabel}
+            {isLoading ? "ログイン中..." : "デモを開始"}
           </Button>
         </Block>
       </Flex>
