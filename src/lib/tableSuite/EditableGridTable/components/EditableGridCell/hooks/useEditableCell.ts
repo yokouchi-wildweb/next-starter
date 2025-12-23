@@ -41,6 +41,17 @@ export function useEditableCell<T>({
   // コミット処理
   const handleCommit = React.useCallback(
     (next?: unknown, options?: CommitOptions) => {
+      // 値の変更がない場合（引数なし＆draftValueがnull）は、編集モードを終了するのみ
+      // onValidChangeは呼ばず、元の値を維持する
+      if (typeof next === "undefined" && draftValue === null) {
+        setError(null);
+        if (!options?.keepEditing) {
+          setIsEditing(false);
+          setPopupOpen(false);
+        }
+        return;
+      }
+
       const pendingValue = typeof next === "undefined" ? draftValue : next;
       const normalized = parseCellValue(pendingValue, row, column);
       const errorMessage = column.validator ? column.validator(normalized, row) : null;
@@ -215,14 +226,8 @@ export function useEditableCell<T>({
             const rawValue = column.getValue ? column.getValue(row) : (row as Record<string, unknown>)[column.field];
             const normalizedMultiValue = normalizeOptionValues((rawValue as OptionPrimitive[] | null) ?? null);
             handleCommit(multiDraftValue ?? normalizedMultiValue);
-          } else if (column.editorType === "select") {
-            // selectエディターの場合、draftValueが未設定なら値を変更せずキャンセル
-            if (draftValue === null) {
-              handleCancel();
-            } else {
-              handleCommit();
-            }
           } else {
+            // handleCommit内でdraftValue===nullの場合は値を変更せず編集終了のみ
             handleCommit();
           }
         }
@@ -234,7 +239,7 @@ export function useEditableCell<T>({
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [cellKey, column, draftValue, handleCancel, handleCommit, isEditing, isMultiSelectEditor, multiDraftValue, row]);
+  }, [cellKey, column, handleCommit, isEditing, isMultiSelectEditor, multiDraftValue, row]);
 
   const state: EditableCellState = {
     draftValue,
