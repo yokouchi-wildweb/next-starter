@@ -3,6 +3,7 @@
 import { db } from "@/lib/drizzle";
 import { omitUndefined } from "@/utils/object";
 import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc } from "drizzle-orm";
+import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
 import type { SearchParams, PaginatedResult, UpsertOptions, WhereExpr } from "../types";
@@ -21,6 +22,25 @@ const resolveRecordId = (value: unknown): string | number | undefined => {
     return value;
   }
   return undefined;
+};
+
+/**
+ * 外部キー制約違反エラーを検出してDomainErrorに変換する
+ * PostgreSQL エラーコード 23503 = foreign_key_violation
+ */
+const handleForeignKeyError = (error: unknown): never => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "23503"
+  ) {
+    throw new DomainError(
+      "このレコードは他のデータから参照されているため削除できません",
+      { status: 409 }
+    );
+  }
+  throw error;
 };
 
 export type DefaultInsert<TTable extends PgTable> = Omit<
@@ -204,7 +224,11 @@ export function createCrudService<
           .where(eq(idColumn, id));
       } else {
         // 物理削除
-        await executor.delete(table).where(eq(idColumn, id));
+        try {
+          await executor.delete(table).where(eq(idColumn, id));
+        } catch (error) {
+          handleForeignKeyError(error);
+        }
       }
     },
 
@@ -230,7 +254,11 @@ export function createCrudService<
 
     async hardDelete(id: string, tx?: DbTransaction): Promise<void> {
       const executor = tx ?? db;
-      await executor.delete(table).where(eq(idColumn, id));
+      try {
+        await executor.delete(table).where(eq(idColumn, id));
+      } catch (error) {
+        handleForeignKeyError(error);
+      }
     },
 
     async search(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
@@ -369,7 +397,11 @@ export function createCrudService<
           .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
           .where(inArray(idColumn, ids));
       } else {
-        await executor.delete(table).where(inArray(idColumn, ids));
+        try {
+          await executor.delete(table).where(inArray(idColumn, ids));
+        } catch (error) {
+          handleForeignKeyError(error);
+        }
       }
     },
 
@@ -386,13 +418,21 @@ export function createCrudService<
           .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
           .where(condition);
       } else {
-        await executor.delete(table).where(condition);
+        try {
+          await executor.delete(table).where(condition);
+        } catch (error) {
+          handleForeignKeyError(error);
+        }
       }
     },
 
     async bulkHardDeleteByIds(ids: string[], tx?: DbTransaction): Promise<void> {
       const executor = tx ?? db;
-      await executor.delete(table).where(inArray(idColumn, ids));
+      try {
+        await executor.delete(table).where(inArray(idColumn, ids));
+      } catch (error) {
+        handleForeignKeyError(error);
+      }
     },
 
     async upsert(
