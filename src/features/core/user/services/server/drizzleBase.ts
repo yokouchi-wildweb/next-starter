@@ -14,6 +14,7 @@ const baseOptions = {
   idType: "uuid",
   defaultOrderBy: [["updatedAt", "DESC"]],
   defaultSearchFields: ["displayName", "email"],
+  useSoftDelete: true,
 } satisfies DrizzleCrudServiceOptions<z.infer<typeof AdminUserSchema>>;
 
 export const base = createCrudService(UserTable, baseOptions);
