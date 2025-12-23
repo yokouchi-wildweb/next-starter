@@ -12,7 +12,7 @@ export const WalletHistoryTable = pgTable("wallet_histories", {
   id: uuid("id").defaultRandom().primaryKey(),
   user_id: uuid("user_id")
     .notNull()
-    .references(() => UserTable.id),
+    .references(() => UserTable.id, { onDelete: "cascade" }),
   type: WalletTypeEnum("type").notNull(),
   change_method: WalletHistoryChangeMethodEnum("change_method").notNull(),
   points_delta: integer("points_delta").notNull(),

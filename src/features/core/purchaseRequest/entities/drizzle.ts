@@ -10,9 +10,9 @@ export const PurchaseRequestStatusEnum = pgEnum("purchaseRequest_status_enum", [
 export const PurchaseRequestTable = pgTable("purchase_requests", {
   id: uuid("id").defaultRandom().primaryKey(),
   user_id: uuid("user_id").notNull()
-    .references(() => UserTable.id),
+    .references(() => UserTable.id, { onDelete: "cascade" }),
   wallet_history_id: uuid("wallet_history_id")
-    .references(() => WalletHistoryTable.id),
+    .references(() => WalletHistoryTable.id, { onDelete: "cascade" }),
   idempotency_key: uuid("idempotency_key").notNull().unique(),
   wallet_type: PurchaseRequestWalletTypeEnum("wallet_type").notNull(),
   amount: integer("amount").notNull(),

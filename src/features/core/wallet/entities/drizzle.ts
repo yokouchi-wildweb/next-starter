@@ -11,7 +11,7 @@ export const WalletTable = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     user_id: uuid("user_id")
       .notNull()
-      .references(() => UserTable.id),
+      .references(() => UserTable.id, { onDelete: "cascade" }),
     type: WalletTypeEnum("type").notNull(),
     balance: integer("balance").notNull().default(0),
     locked_balance: integer("locked_balance").notNull().default(0),
