@@ -25,6 +25,7 @@
  */
 import init from "./init.mjs";
 import list from "./list.mjs";
+import generate from "./generate.mjs";
 
 function printUsage() {
   console.log(`
@@ -94,10 +95,9 @@ async function main() {
       return;
     }
 
-    // generate コマンド（Phase 2 で実装）
+    // generate コマンド
     if (hasGenerate) {
-      console.log("\x1b[33mgenerate コマンドは Phase 2 で実装予定です\x1b[0m");
-      console.log("現在は sc:init と sc:list のみ使用可能です");
+      await generate();
       return;
     }
 
