@@ -130,6 +130,7 @@ use wrappers instead of raw HTML:
 
 page-level layout control:
 - AppFrames/User/controls: header/footer/bottomMenu visibility per page
+- must be placed in page.tsx, not in child components
 
 ref: src/components/README.md
 
@@ -165,6 +166,8 @@ constants: UPPER_SNAKE_CASE
 - re-implement CRUD when base suffices
 - edit generated files without wrappers
 - direct API route handlers (use routeFactory: createApiRoute / createDomainRoute)
+- direct asset paths (use utils/assets: assetPath, imgPath, videoPath)
+- main tag in user app routes (use components/AppFrames/User/Layout/UserPage)
 
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css
