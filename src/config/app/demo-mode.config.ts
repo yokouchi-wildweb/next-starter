@@ -19,7 +19,7 @@ export const demoModeConfig = {
   // 前方一致で許可するパス
   allowedPrefixes: [
     '/_next',
-    '/api/auth',
+    '/api',
     '/admin',
     '/assets',
   ],
