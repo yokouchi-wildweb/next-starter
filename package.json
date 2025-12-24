@@ -22,6 +22,11 @@
     "dc:generate:service": "node scripts/domain-config/generate-service.mjs",
     "dc:delete": "node scripts/domain-config/index.mjs --delete",
     "dc:add": "node scripts/domain-config/add-field.mjs",
+    "sc:init": "node scripts/setting-config/index.mjs --init",
+    "sc:generate": "node scripts/setting-config/index.mjs --generate",
+    "sc:list": "node scripts/setting-config/index.mjs --list",
+    "sc:add": "node scripts/setting-config/index.mjs --add",
+    "sc:remove": "node scripts/setting-config/index.mjs --remove",
     "mail:test": "npx tsx scripts/mail/test-send.ts",
     "mail:generate-colors": "npx tsx scripts/mail/generate-colors.ts"
   },
