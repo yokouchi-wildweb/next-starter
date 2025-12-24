@@ -135,13 +135,7 @@ function generateFieldJsx(field) {
  */
 export default function generateFieldsExtended() {
   const config = readSettingFields();
-
-  if (!config || !config.fields || config.fields.length === 0) {
-    console.log("拡張フィールドがないため、ExtendedSettingFields.tsx の生成をスキップします");
-    return false;
-  }
-
-  const fields = config.fields;
+  const fields = config?.fields ?? [];
   const { controlledImports, manualImports, hasMediaUploader } = collectImports(fields);
   const optionsConstants = generateOptionsConstants(fields);
   const fieldJsxList = fields.map(generateFieldJsx).join("\n");

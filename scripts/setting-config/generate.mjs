@@ -31,9 +31,7 @@ export default async function generate() {
   console.log(`拡張フィールド数: ${fieldCount}件`);
 
   if (fieldCount === 0) {
-    console.log("\n\x1b[33m拡張フィールドが定義されていないため、生成をスキップします\x1b[0m");
-    console.log("setting-fields.json の fields 配列にフィールドを追加してください");
-    return false;
+    console.log("\n\x1b[33m拡張フィールドが0件です。空の状態で再生成します\x1b[0m");
   }
 
   console.log("\n--- エンティティファイル生成 ---\n");

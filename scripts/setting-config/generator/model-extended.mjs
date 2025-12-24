@@ -32,14 +32,10 @@ function generateFieldLine(field) {
  */
 export default function generateModelExtended() {
   const config = readSettingFields();
-
-  if (!config || !config.fields || config.fields.length === 0) {
-    console.log("拡張フィールドがないため、model.extended.ts の生成をスキップします");
-    return false;
-  }
-
-  const fields = config.fields;
-  const fieldLines = fields.map(generateFieldLine).join("\n");
+  const fields = config?.fields ?? [];
+  const fieldLines = fields.length > 0
+    ? fields.map(generateFieldLine).join("\n")
+    : "  // 拡張フィールドなし";
 
   const content = `// src/features/core/setting/entities/model.extended.ts
 // [GENERATED] このファイルは自動生成されます。直接編集しないでください。

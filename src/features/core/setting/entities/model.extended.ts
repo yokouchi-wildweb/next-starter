@@ -7,8 +7,5 @@
  * 拡張設定項目の型定義
  */
 export type SettingExtended = {
-  siteTitle: string | null;
-  maintenanceMode: boolean | null;
-  themeColor: "blue" | "green" | "red" | null;
-  ogImageUrl: string | null;
+  // 拡張フィールドなし
 };

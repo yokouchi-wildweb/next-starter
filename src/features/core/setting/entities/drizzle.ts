@@ -2,8 +2,6 @@
 
 import { pgTable, text, integer, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
 
-export const settingThemeColorEnum = pgEnum("setting_theme_color_enum", ["blue", "green", "red"]);
-
 export const settingTable = pgTable("settings", {
   id: text("id").primaryKey(),
   adminHeaderLogoImageUrl: text("admin_header_logo_image_url"),
@@ -13,10 +11,4 @@ export const settingTable = pgTable("settings", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 
-  // === 拡張カラム（自動生成）===
-  siteTitle: text("site_title").default(""),
-  maintenanceMode: boolean("maintenance_mode").default(false),
-  themeColor: settingThemeColorEnum("theme_color").default("blue"),
-  ogImageUrl: text("og_image_url"),
-  // === 拡張カラム終了 ===
 });

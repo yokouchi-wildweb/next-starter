@@ -73,14 +73,10 @@ function generateDefaultLine(field) {
  */
 export default function generateDefaultsExtended() {
   const config = readSettingFields();
-
-  if (!config || !config.fields || config.fields.length === 0) {
-    console.log("拡張フィールドがないため、settingDefaults.extended.ts の生成をスキップします");
-    return false;
-  }
-
-  const fields = config.fields;
-  const defaultLines = fields.map(generateDefaultLine).join("\n");
+  const fields = config?.fields ?? [];
+  const defaultLines = fields.length > 0
+    ? fields.map(generateDefaultLine).join("\n")
+    : "  // 拡張フィールドなし";
 
   const content = `// src/features/core/setting/services/server/settingDefaults.extended.ts
 // [GENERATED] このファイルは自動生成されます。直接編集しないでください。

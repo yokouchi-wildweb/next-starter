@@ -21,13 +21,6 @@ function getOutputPath() {
  * form.extended.ts を生成
  */
 export default function generateFormExtended() {
-  const config = readSettingFields();
-
-  if (!config || !config.fields || config.fields.length === 0) {
-    console.log("拡張フィールドがないため、form.extended.ts の生成をスキップします");
-    return false;
-  }
-
   const content = `// src/features/core/setting/entities/form.extended.ts
 // [GENERATED] このファイルは自動生成されます。直接編集しないでください。
 // 生成元: setting-fields.json

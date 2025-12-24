@@ -9,10 +9,7 @@ import { z } from "zod";
  * 拡張設定項目のベーススキーマ
  */
 export const SettingExtendedBaseSchema = z.object({
-  siteTitle: z.string().trim().nullish(),
-  maintenanceMode: z.coerce.boolean().nullish(),
-  themeColor: z.enum(["blue", "green", "red"]).nullish(),
-  ogImageUrl: z.string().trim().nullish(),
+  // 拡張フィールドなし
 });
 
 /**

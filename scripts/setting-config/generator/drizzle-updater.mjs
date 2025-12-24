@@ -81,19 +81,33 @@ export default function updateDrizzle() {
 
   // 拡張フィールドがない場合
   if (!config || !config.fields || config.fields.length === 0) {
+    let updated = false;
+
+    // 既存のEnum定義を削除
+    const enumRegex = /export const setting\w+Enum = pgEnum\([^)]+\);\n*/g;
+    const newContent = content.replace(enumRegex, "");
+    if (newContent !== content) {
+      content = newContent;
+      updated = true;
+    }
+
     // 既存の拡張セクションがあれば削除
     if (content.includes(EXTENDED_START_MARKER)) {
       const startIndex = content.indexOf(EXTENDED_START_MARKER);
       const endIndex = content.indexOf(EXTENDED_END_MARKER);
       if (endIndex !== -1) {
         content = content.slice(0, startIndex) + content.slice(endIndex + EXTENDED_END_MARKER.length + 1);
+        updated = true;
       }
+    }
+
+    if (updated) {
       fs.writeFileSync(drizzlePath, content, "utf-8");
-      console.log(`拡張カラムを削除しました: ${drizzlePath}`);
+      console.log(`拡張カラムとEnum定義を削除しました: ${drizzlePath}`);
     } else {
       console.log("拡張フィールドがないため、drizzle.ts の更新をスキップします");
     }
-    return false;
+    return true;
   }
 
   const fields = config.fields;

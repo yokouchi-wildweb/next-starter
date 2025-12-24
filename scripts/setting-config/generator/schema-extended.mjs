@@ -41,14 +41,11 @@ function generateFieldLine(field) {
  */
 export default function generateSchemaExtended() {
   const config = readSettingFields();
-
-  if (!config || !config.fields || config.fields.length === 0) {
-    console.log("拡張フィールドがないため、schema.extended.ts の生成をスキップします");
-    return false;
-  }
-
-  const fields = config.fields;
-  const fieldLines = fields.map(generateFieldLine).join(",\n");
+  const fields = config?.fields ?? [];
+  const hasFields = fields.length > 0;
+  const fieldLines = hasFields
+    ? fields.map(generateFieldLine).join(",\n") + ","
+    : "  // 拡張フィールドなし";
 
   const content = `// src/features/core/setting/entities/schema.extended.ts
 // [GENERATED] このファイルは自動生成されます。直接編集しないでください。
@@ -61,7 +58,7 @@ import { z } from "zod";
  * 拡張設定項目のベーススキーマ
  */
 export const SettingExtendedBaseSchema = z.object({
-${fieldLines},
+${fieldLines}
 });
 
 /**

@@ -1,45 +1,4 @@
 {
   "settingConfigVersion": "1.0",
-  "fields": [
-    {
-      "name": "siteTitle",
-      "label": "サイトタイトル",
-      "fieldType": "string",
-      "formInput": "textInput",
-      "required": false,
-      "defaultValue": "",
-      "description": "サイトのタイトルを設定します"
-    },
-    {
-      "name": "maintenanceMode",
-      "label": "メンテナンスモード",
-      "fieldType": "boolean",
-      "formInput": "switchInput",
-      "required": false,
-      "defaultValue": false,
-      "description": "メンテナンスモードを有効にするとサイトが一時停止します"
-    },
-    {
-      "name": "themeColor",
-      "label": "テーマカラー",
-      "fieldType": "enum",
-      "formInput": "select",
-      "required": false,
-      "defaultValue": "blue",
-      "options": [
-        { "value": "blue", "label": "ブルー" },
-        { "value": "green", "label": "グリーン" },
-        { "value": "red", "label": "レッド" }
-      ]
-    },
-    {
-      "name": "ogImageUrl",
-      "label": "OGP画像",
-      "fieldType": "mediaUploader",
-      "formInput": "mediaUploader",
-      "required": false,
-      "uploadPath": "setting/og",
-      "accept": "image/*"
-    }
-  ]
+  "fields": []
 }

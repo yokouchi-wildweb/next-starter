@@ -12,16 +12,28 @@ import { usePendingMediaUploads, usePendingMediaDeletion } from "@/lib/mediaInpu
 import settingFieldsJson from "../../setting-fields.json";
 import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/fieldMapper";
 
+// setting-fields.json のフィールド型定義
+type SettingJsonField = {
+  name: string;
+  label: string;
+  formInput: string;
+  fieldType: string;
+  options?: Array<{ value: string; label: string }>;
+  uploadPath?: string;
+  accept?: string;
+  description?: string;
+};
+
 // setting-fields.json を DomainJsonField[] 形式に変換
-const extendedFields: DomainJsonField[] = settingFieldsJson.fields.map((field) => ({
+const extendedFields: DomainJsonField[] = (settingFieldsJson.fields as SettingJsonField[]).map((field) => ({
   name: field.name,
   label: field.label,
   formInput: field.formInput,
   fieldType: field.fieldType,
   options: field.options,
-  uploadPath: "uploadPath" in field ? field.uploadPath : undefined,
-  accept: "accept" in field ? field.accept : undefined,
-  helperText: "description" in field ? field.description : undefined,
+  uploadPath: field.uploadPath,
+  accept: field.accept,
+  helperText: field.description,
 }));
 
 export type SettingFormProps<TFieldValues extends FieldValues> = {

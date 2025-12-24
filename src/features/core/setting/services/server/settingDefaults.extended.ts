@@ -8,8 +8,5 @@
  * settingService.ts の createDefaultSettingValues() で使用
  */
 export const extendedDefaultSettingValues = {
-  siteTitle: "",
-  maintenanceMode: false,
-  themeColor: "blue",
-  ogImageUrl: null,
+  // 拡張フィールドなし
 };
