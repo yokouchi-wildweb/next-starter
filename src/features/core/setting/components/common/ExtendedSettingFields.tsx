@@ -7,7 +7,8 @@
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput, Switch, Select } from "@/components/Form/Controlled";
+import { TextInput, SwitchInput } from "@/components/Form/Controlled";
+import { SelectInput } from "@/components/Form/Manual";
 import { ControlledMediaUploader } from "@/components/Form/MediaHandler";
 
 const THEMECOLOR_OPTIONS = [
@@ -48,7 +49,7 @@ export function ExtendedSettingFields<TFieldValues extends FieldValues>({
           size: "sm",
         }}
         renderInput={(field) => (
-          <Switch field={field} />
+          <SwitchInput field={field} />
         )}
       />
       <FormFieldItem
@@ -56,7 +57,7 @@ export function ExtendedSettingFields<TFieldValues extends FieldValues>({
         name={"themeColor" as FieldPath<TFieldValues>}
         label="テーマカラー"
         renderInput={(field) => (
-          <Select field={field} options={THEMECOLOR_OPTIONS} />
+          <SelectInput field={field} options={THEMECOLOR_OPTIONS} />
         )}
       />
       <FormFieldItem

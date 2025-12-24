@@ -4,9 +4,11 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SettingUpdateSchema } from "@/features/core/setting/entities/schema";
-import { SettingUpdateFields } from "@/features/core/setting/entities/form";
+import { SettingCombinedUpdateSchema } from "@/features/core/setting/entities";
+import type { SettingUpdateFields } from "@/features/core/setting/entities/form";
+import type { SettingExtendedUpdateFields } from "@/features/core/setting/entities/form.extended";
 import type { Setting } from "@/features/core/setting/entities";
+
 import { useUpdateSetting } from "@/features/core/setting/hooks/useUpdateSetting";
 import { SettingForm } from "./SettingForm";
 import { useRouter } from "next/navigation";
@@ -14,21 +16,30 @@ import { toast } from "sonner";
 import { useAppToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
 
+// 統合されたフォーム型
+type CombinedSettingUpdateFields = SettingUpdateFields & SettingExtendedUpdateFields;
+
 type Props = {
   setting: Setting;
   redirectPath?: string;
 };
 
 export default function EditSettingForm({ setting, redirectPath = "/" }: Props) {
-  const methods = useForm<SettingUpdateFields>({
-    resolver: zodResolver(SettingUpdateSchema),
+  const methods = useForm<CombinedSettingUpdateFields>({
+    resolver: zodResolver(SettingCombinedUpdateSchema),
     mode: "onSubmit",
     shouldUnregister: false,
     defaultValues: {
+      // 基本設定項目
       adminHeaderLogoImageUrl: setting.adminHeaderLogoImageUrl ?? "",
       adminHeaderLogoImageDarkUrl: setting.adminHeaderLogoImageDarkUrl ?? "",
       adminListPerPage: setting.adminListPerPage ?? 100,
       adminFooterText: setting.adminFooterText ?? "",
+      // 拡張設定項目
+      siteTitle: (setting as any).siteTitle ?? "",
+      maintenanceMode: (setting as any).maintenanceMode ?? false,
+      themeColor: (setting as any).themeColor ?? null,
+      ogImageUrl: (setting as any).ogImageUrl ?? "",
     },
   });
 
@@ -36,7 +47,7 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
   const { showAppToast, hideAppToast } = useAppToast();
   const { trigger, isMutating } = useUpdateSetting();
 
-  const submit = async (data: SettingUpdateFields) => {
+  const submit = async (data: CombinedSettingUpdateFields) => {
     showAppToast({ message: "更新中です…", mode: "persistent" });
     try {
       await trigger({ id: setting.id, data });

@@ -215,12 +215,12 @@ export function mapFormComponent(field) {
       imports.add("TextInput");
       break;
     case "switchInput":
-      component = "Switch";
-      imports.add("Switch");
+      component = "SwitchInput";
+      imports.add("SwitchInput");
       break;
     case "select":
-      component = "Select";
-      imports.add("Select");
+      component = "SelectInput";
+      imports.add("SelectInput");
       break;
     case "radio":
       component = "RadioGroup";

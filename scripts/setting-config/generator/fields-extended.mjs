@@ -23,18 +23,26 @@ function getOutputPath() {
  */
 function collectImports(fields) {
   const controlledImports = new Set();
+  const manualImports = new Set();
   let hasMediaUploader = false;
 
   for (const field of fields) {
     const { component } = mapFormComponent(field);
     if (component === "ControlledMediaUploader") {
       hasMediaUploader = true;
+    } else if (component === "SelectInput") {
+      // SelectInput は Manual からインポート
+      manualImports.add(component);
     } else {
       controlledImports.add(component);
     }
   }
 
-  return { controlledImports: Array.from(controlledImports), hasMediaUploader };
+  return {
+    controlledImports: Array.from(controlledImports),
+    manualImports: Array.from(manualImports),
+    hasMediaUploader,
+  };
 }
 
 /**
@@ -82,11 +90,11 @@ function generateFieldJsx(field) {
       renderInput = `<TextInput field={field} type="number" />`;
       break;
     case "switchInput":
-      renderInput = `<Switch field={field} />`;
+      renderInput = `<SwitchInput field={field} />`;
       break;
     case "select":
       const optionsConst = `${name.toUpperCase()}_OPTIONS`;
-      renderInput = `<Select field={field} options={${optionsConst}} />`;
+      renderInput = `<SelectInput field={field} options={${optionsConst}} />`;
       break;
     case "radio":
       const radioOptionsConst = `${name.toUpperCase()}_OPTIONS`;
@@ -134,7 +142,7 @@ export default function generateFieldsExtended() {
   }
 
   const fields = config.fields;
-  const { controlledImports, hasMediaUploader } = collectImports(fields);
+  const { controlledImports, manualImports, hasMediaUploader } = collectImports(fields);
   const optionsConstants = generateOptionsConstants(fields);
   const fieldJsxList = fields.map(generateFieldJsx).join("\n");
 
@@ -142,6 +150,11 @@ export default function generateFieldsExtended() {
   let controlledImportLine = "";
   if (controlledImports.length > 0) {
     controlledImportLine = `import { ${controlledImports.join(", ")} } from "@/components/Form/Controlled";`;
+  }
+
+  let manualImportLine = "";
+  if (manualImports.length > 0) {
+    manualImportLine = `import { ${manualImports.join(", ")} } from "@/components/Form/Manual";`;
   }
 
   let mediaUploaderImportLine = "";
@@ -159,6 +172,7 @@ export default function generateFieldsExtended() {
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 ${controlledImportLine}
+${manualImportLine}
 ${mediaUploaderImportLine}
 
 ${optionsConstants}

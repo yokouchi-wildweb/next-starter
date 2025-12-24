@@ -5,6 +5,7 @@
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { SettingFields } from "./SettingFields";
+import { ExtendedSettingFields } from "./ExtendedSettingFields";
 import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 import { useCallback, useRef, useState } from "react";
 import { usePendingMediaUploads, usePendingMediaDeletion } from "@/lib/mediaInputSuite";
@@ -117,6 +118,8 @@ export function SettingForm<TFieldValues extends FieldValues>({
           if (url === darkUrlRef.current) markDeleteDark(url);
         }}
       />
+      {/* 拡張設定フィールド */}
+      <ExtendedSettingFields<TFieldValues> control={control} />
       <div className="flex justify-center">
         <Button type="submit" disabled={disabled} variant="default">
           {disabled ? processingLabel : submitLabel}
