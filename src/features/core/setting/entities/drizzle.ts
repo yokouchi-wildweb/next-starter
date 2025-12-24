@@ -1,6 +1,6 @@
 // src/features/setting/entities/drizzle.ts
 
-import { pgTable, text, integer, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
 
 export const settingTable = pgTable("settings", {
   id: text("id").primaryKey(),
@@ -10,5 +10,4 @@ export const settingTable = pgTable("settings", {
   adminFooterText: text("admin_footer_text"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-
 });
