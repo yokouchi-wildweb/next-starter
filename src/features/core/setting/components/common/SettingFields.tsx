@@ -68,20 +68,6 @@ export function SettingFields<TFieldValues extends FieldValues>({
         label="一覧表示件数"
         renderInput={(field) => <TextInput field={field} type="number" min={1} max={500} />}
       />
-      <FormFieldItem
-        control={control}
-        name={"adminFooterText" as FieldPath<TFieldValues>}
-        label="管理画面フッターの表記"
-        description={{
-          text: "※ フッター設定は変更後にページ再読み込みが必要です。",
-          tone: "muted",
-          size: "sm",
-          placement: "before",
-        }}
-        renderInput={(field) => (
-          <TextInput field={field} placeholder={`© ${new Date().getFullYear()} Wildweb.`} />
-        )}
-      />
     </>
   );
 }

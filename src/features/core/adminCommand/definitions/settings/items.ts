@@ -21,15 +21,4 @@ export const settingFields: SettingFieldConfig[] = [
       max: 500,
     },
   },
-  {
-    key: "adminFooterText",
-    label: "フッター文言",
-    description: "管理画面フッターに表示するテキスト",
-    type: "text",
-    placeholder: "フッターに表示する文言を入力",
-    validation: {
-      minLength: 1,
-      maxLength: 200,
-    },
-  },
 ];

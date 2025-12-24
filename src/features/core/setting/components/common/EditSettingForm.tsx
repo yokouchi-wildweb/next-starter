@@ -42,7 +42,6 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
       adminHeaderLogoImageUrl: setting.adminHeaderLogoImageUrl ?? "",
       adminHeaderLogoImageDarkUrl: setting.adminHeaderLogoImageDarkUrl ?? "",
       adminListPerPage: setting.adminListPerPage ?? 100,
-      adminFooterText: setting.adminFooterText ?? "",
       // 拡張設定項目（setting-fields.json から動的に構築）
       ...extendedDefaults,
     } as CombinedSettingUpdateFields,

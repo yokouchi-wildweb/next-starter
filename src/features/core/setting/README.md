@@ -59,9 +59,10 @@ src/features/core/setting/
 | `adminHeaderLogoImageUrl` | `admin_header_logo_image_url` | text | 管理画面ロゴ（ライトモード） |
 | `adminHeaderLogoImageDarkUrl` | `admin_header_logo_image_dark_url` | text | 管理画面ロゴ（ダークモード） |
 | `adminListPerPage` | `admin_list_per_page` | integer | 一覧表示件数（デフォルト: 50） |
-| `adminFooterText` | `admin_footer_text` | text | 管理画面フッターテキスト |
 
 これらの項目は `entities/schema.ts` と `entities/drizzle.ts` で直接定義されており、変更する場合は手動編集が必要。
+
+> **Note**: フッターテキストは `src/config/business.config.ts` の `serviceName` を使用。
 
 ---
 
@@ -241,7 +242,7 @@ function MyComponent() {
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error</div>;
 
-  return <div>{setting.adminFooterText}</div>;
+  return <div>{setting.adminListPerPage}</div>;
 }
 ```
 
@@ -297,7 +298,6 @@ const createDefaultSettingValues = () => ({
   adminHeaderLogoImageUrl: null,
   adminHeaderLogoImageDarkUrl: null,
   adminListPerPage: 50,
-  adminFooterText: `© ${new Date().getFullYear()} Company Name`,
   // 拡張設定項目（自動生成）
   ...extendedDefaultSettingValues,
 });

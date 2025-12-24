@@ -14,7 +14,6 @@ const createDefaultSettingValues = () => ({
   adminHeaderLogoImageUrl: null,
   adminHeaderLogoImageDarkUrl: null,
   adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,
-  adminFooterText: `© ${new Date().getFullYear()} Wildweb Tokyo.`,
   // 拡張設定項目（setting-fields.json から生成）
   ...extendedDefaultSettingValues,
 });
@@ -37,7 +36,6 @@ async function getGlobalSetting(): Promise<Setting> {
     adminHeaderLogoImageUrl: existing.adminHeaderLogoImageUrl ?? null,
     adminHeaderLogoImageDarkUrl: existing.adminHeaderLogoImageDarkUrl ?? null,
     adminListPerPage: existing.adminListPerPage ?? defaultValues.adminListPerPage,
-    adminFooterText: existing.adminFooterText ?? defaultValues.adminFooterText,
   };
 }
 

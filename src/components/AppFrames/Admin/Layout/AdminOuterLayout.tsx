@@ -15,7 +15,6 @@ export type AdminLayoutClientProps = {
   children: ReactNode;
   headerLogoUrl?: string;
   headerLogoDarkUrl?: string;
-  footerText?: string | null;
   /** 追加のクラス名（invert等のスタイル制御用） */
   className?: string;
 };
@@ -28,7 +27,6 @@ export function AdminOuterLayout({
   children,
   headerLogoUrl,
   headerLogoDarkUrl,
-  footerText,
   className,
 }: AdminLayoutClientProps) {
   const headerHeight = useHeaderHeight();
@@ -52,7 +50,7 @@ export function AdminOuterLayout({
     >
       <Header logoUrl={headerLogoUrl} darkLogoUrl={headerLogoDarkUrl} />
       <div className="flex-1 min-h-0 flex flex-col">{children}</div>
-      <Footer text={footerText} />
+      <Footer />
     </div>
   );
 }

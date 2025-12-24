@@ -20,7 +20,6 @@ type LayoutStyle = CSSProperties & {
 
 export type UserAppLayoutProps = {
   readonly children: ReactNode;
-  readonly footerText?: string;
   /** 背景画像のURL */
   readonly backgroundImageUrl?: string;
   /** オーバーレイの色（任意のCSS色形式: "#000", "black", "rgb(0,0,0)"など） */
@@ -31,7 +30,6 @@ export type UserAppLayoutProps = {
 
 export const UserAppLayout = ({
   children,
-  footerText,
   backgroundImageUrl,
   overlayColor,
   overlayOpacity,
@@ -60,7 +58,7 @@ export const UserAppLayout = ({
             <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
               {children}
             </div>
-            <UserFooter text={footerText} />
+            <UserFooter />
             <BottomNavSpacer />
             <UserBottomNav />
           </Flex>

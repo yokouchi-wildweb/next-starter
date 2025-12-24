@@ -15,7 +15,6 @@ export default async function AdminLayout({
     <AdminOuterLayout
       headerLogoUrl={setting.adminHeaderLogoImageUrl ?? undefined}
       headerLogoDarkUrl={setting.adminHeaderLogoImageDarkUrl ?? undefined}
-      footerText={setting.adminFooterText ?? undefined}
     >
       {children}
     </AdminOuterLayout>

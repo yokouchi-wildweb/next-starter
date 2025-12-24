@@ -6,6 +6,5 @@ export type Setting = BaseEntity & {
   adminHeaderLogoImageUrl: string | null;
   adminHeaderLogoImageDarkUrl: string | null;
   adminListPerPage: number;
-  adminFooterText: string;
 };
 

@@ -16,7 +16,6 @@ export default async function UserLayout({
 
   return (
     <UserAppLayout
-      footerText={setting.adminFooterText ?? undefined}
       backgroundImageUrl={backgroundImageUrl || undefined}
       overlayColor={overlayColor}
       overlayOpacity={overlayOpacity}
