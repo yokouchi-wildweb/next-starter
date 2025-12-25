@@ -33,6 +33,17 @@
   "engines": {
     "node": "24"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@firebase/util",
+      "@parcel/watcher",
+      "esbuild",
+      "msw",
+      "protobufjs",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@hookform/resolvers": "^5.1.1",
