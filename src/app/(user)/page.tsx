@@ -15,6 +15,7 @@ import FullScreen from "@/components/Layout/FullScreen";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { cn } from "@/lib/cn";
 import { Block } from "@/components/Layout/Block";
+import { assetPath } from "@/utils/assets";
 
 export const dynamic = "force-dynamic";
 
@@ -43,17 +44,17 @@ const resourceLinks = [
   {
     href: "https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app",
     label: "Docs",
-    icon: { src: "/file.svg", alt: "Docs" },
+    icon: { src: assetPath("file.svg"), alt: "Docs" },
   },
   {
     href: "https://wildweb.tokyo",
     label: "Wildweb.tokyo",
-    icon: { src: "/window.svg", alt: "Templates" },
+    icon: { src: assetPath("window.svg"), alt: "Templates" },
   },
   {
     href: "https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app",
     label: "Next.js",
-    icon: { src: "/globe.svg", alt: "Next.js" },
+    icon: { src: assetPath("globe.svg"), alt: "Next.js" },
   },
 ];
 
@@ -135,7 +136,7 @@ export default function Home() {
               gap="lg"
               className="mx-auto text-center"
             >
-              <Image src="/next.svg" alt="Next.js" className="drop-shadow-[6px_6px_9px_rgba(84,205,233,0.25)]" width={400} height={208} priority />
+              <Image src={assetPath("next.svg")} alt="Next.js" className="drop-shadow-[6px_6px_9px_rgba(84,205,233,0.25)]" width={400} height={208} priority />
               <PageTitle className="text-3xl font-bold text-shadow-[6px_6px_6px_rgba(84,205,233,0.2)]">next-starter &gt;&gt;&gt; a Wildweb creation.</PageTitle>
             </Flex>
           </Section>
