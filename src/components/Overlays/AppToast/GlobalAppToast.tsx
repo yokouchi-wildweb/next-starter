@@ -10,7 +10,7 @@ import {
   type AppToastPosition,
   type AppToastLayer,
   type AppToastItem as ToastData,
-} from "@/stores/useAppToastStore";
+} from "@/stores/appToast";
 import { cn } from "@/lib/cn";
 import { AppToastItem } from "./AppToastItem";
 
@@ -68,8 +68,7 @@ const LAYER_CLASSES: Record<AppToastLayer, string> = {
  * showAppToast("エラー", "error", "top-center");
  */
 export function GlobalAppToast() {
-  const storeToast = useAppToastStore((s) => s.toast);
-  const storeHide = useAppToastStore((s) => s.hide);
+  const { toast: storeToast, hide: storeHide } = useAppToastStore();
   const [mounted, setMounted] = useState(false);
   const [displayedToast, setDisplayedToast] = useState<ToastData | null>(null);
   const [isExiting, setIsExiting] = useState(false);

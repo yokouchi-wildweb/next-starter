@@ -19,7 +19,7 @@ import type {
   AppToastVariant,
   AppToastSize,
   AppToastIconPreset,
-} from "@/stores/useAppToastStore";
+} from "@/stores/appToast";
 
 type Props = {
   toast: ToastData;

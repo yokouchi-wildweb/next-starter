@@ -33,6 +33,23 @@ stores/
 | `internalStore.ts` | Zustand ストア定義（状態 + アクション） | ✗ 禁止 |
 | `useStore.ts` | ストアへの基本アクセスフック | ○ |
 | `index.ts` | 公開する要素の re-export | - |
+| `types.ts` | 型定義（任意、複雑なストア向け） | - |
+
+### 型定義の分離（任意）
+
+型定義が多い場合や外部から多用される場合は、`types.ts` に分離してもよい。
+
+```
+stores/appToast/
+  index.ts
+  types.ts           ← 型定義（任意）
+  internalStore.ts   ← types.ts を import
+  useStore.ts
+```
+
+**分離の目安:**
+- 型定義が5個以上
+- 型を外部コンポーネントから多用する
 
 ### 階層
 

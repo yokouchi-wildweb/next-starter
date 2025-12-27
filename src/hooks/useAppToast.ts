@@ -8,7 +8,7 @@ import {
   type AppToastOptions,
   type AppToastVariant,
   type AppToastPosition,
-} from "@/stores/useAppToastStore";
+} from "@/stores/appToast";
 
 /**
  * アプリ用トーストを制御するフック。
@@ -52,8 +52,7 @@ import {
  * hideAppToast();
  */
 export function useAppToast() {
-  const show = useAppToastStore((s) => s.show);
-  const hide = useAppToastStore((s) => s.hide);
+  const { show, hide } = useAppToastStore();
 
   const showAppToast = useCallback(
     (
@@ -103,8 +102,7 @@ export function useLoadingToast(
   flag: boolean,
   messageOrOptions: string | Omit<AppToastOptions, "mode">,
 ) {
-  const show = useAppToastStore((s) => s.show);
-  const hideById = useAppToastStore((s) => s.hideById);
+  const { show, hideById } = useAppToastStore();
   const toastIdRef = useRef<string | null>(null);
 
   useEffect(() => {

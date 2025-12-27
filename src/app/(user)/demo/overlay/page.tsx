@@ -19,7 +19,7 @@ import {
   type AppToastMode,
   type AppToastSize,
   type AppToastIconPreset,
-} from "@/stores/useAppToastStore";
+} from "@/stores/appToast";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import {
   Select,
