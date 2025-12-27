@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { useDisableScroll } from "@/hooks/useDisableScroll";
-import { useViewportSize } from "@/stores/useViewportSize";
+import { useViewportSizeStore } from "@/stores/viewportSize";
 import { cn } from "@/lib/cn";
 
 const LAYER_CLASS_MAP = {
@@ -56,7 +56,7 @@ export default function FullScreen({
   disableScroll: shouldDisableScroll = true,
 }: Props) {
   const { disableScroll, enableScroll } = useDisableScroll(true);
-  const { setSize: setViewportSize } = useViewportSize();
+  const { setSize: setViewportSize } = useViewportSizeStore();
 
   // スクロールロックはマウント後に実行
   useEffect(() => {

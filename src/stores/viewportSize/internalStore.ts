@@ -1,4 +1,4 @@
-// src/stores/useViewportSizeStore.ts
+// stores/viewportSize/internalStore.ts
 
 "use client";
 
@@ -10,9 +10,8 @@ export type ViewportSizeState = {
   setSize: (width: number, height: number) => void;
 };
 
-export const useViewportSizeStore = create<ViewportSizeState>((set) => ({
+export const internalStore = create<ViewportSizeState>((set) => ({
   width: 0,
   height: 0,
   setSize: (width, height) => set({ width, height }),
 }));
-

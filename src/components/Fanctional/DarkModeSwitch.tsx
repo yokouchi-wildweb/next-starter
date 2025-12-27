@@ -5,7 +5,7 @@
 import { MoonIcon, SunIcon } from "lucide-react";
 import { useMemo } from "react";
 import { HeadPortal } from "@/components/Fanctional/HeadPortal";
-import { useSiteTheme } from "@/stores/useSiteTheme";
+import { useSiteThemeStore } from "@/stores/siteTheme";
 import { Button } from "@/components/Form/Button/Button";
 
 const themeBootstrapCode = `
@@ -41,7 +41,7 @@ function ThemeInitializer() {
 }
 
 export function DarkModeSwitch({ className }: { className?: string }) {
-  const { isDark, toggle } = useSiteTheme();
+  const { isDark, toggle } = useSiteThemeStore();
 
   const label = useMemo(
     () => (isDark ? "Switch to light mode" : "Switch to dark mode"),

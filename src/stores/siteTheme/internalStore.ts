@@ -1,4 +1,4 @@
-// src/stores/useSiteThemeStore.ts
+// stores/siteTheme/internalStore.ts
 
 "use client";
 
@@ -11,8 +11,7 @@ type ThemeState = {
   toggleDark: () => void;
 };
 
-export const useSiteThemeStore = create<ThemeState>((set) => ({
-  // read the persisted or system preference on the client
+export const internalStore = create<ThemeState>((set) => ({
   isDark: getInitialTheme(),
   setDark: (d) => set({ isDark: d }),
   toggleDark: () => set((state) => ({ isDark: !state.isDark })),

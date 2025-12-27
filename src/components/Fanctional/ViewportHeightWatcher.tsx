@@ -4,7 +4,7 @@
 
 import { useEffect } from "react";
 
-import { useViewportSize } from "@/stores/useViewportSize";
+import { useViewportSizeStore } from "@/stores/viewportSize";
 
 /**
  * ビューポートの幅・高さを監視して CSS 変数 `--viewport-height` に反映する
@@ -12,7 +12,7 @@ import { useViewportSize } from "@/stores/useViewportSize";
  * 各レイアウトで利用できるようにする。
  */
 export function ViewportHeightWatcher() {
-  const { setSize } = useViewportSize();
+  const { setSize } = useViewportSizeStore();
 
   useEffect(() => {
     if (typeof window === "undefined") {

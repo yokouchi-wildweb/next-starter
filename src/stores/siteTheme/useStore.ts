@@ -1,15 +1,15 @@
-// src/stores/useSiteTheme.ts
+// stores/siteTheme/useStore.ts
 
 "use client";
 
 import { useEffect } from "react";
-import { useSiteThemeStore } from "@/stores/useSiteThemeStore";
+import { internalStore } from "./internalStore";
 import { applyTheme, getInitialTheme } from "@/utils/siteTheme";
 
-export function useSiteTheme() {
-  const isDark = useSiteThemeStore((s) => s.isDark);
-  const setDark = useSiteThemeStore((s) => s.setDark);
-  const toggleDark = useSiteThemeStore((s) => s.toggleDark);
+export function useSiteThemeStore() {
+  const isDark = internalStore((s) => s.isDark);
+  const setDark = internalStore((s) => s.setDark);
+  const toggleDark = internalStore((s) => s.toggleDark);
 
   useEffect(() => {
     const initial = getInitialTheme();
