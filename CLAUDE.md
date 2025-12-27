@@ -54,12 +54,32 @@ constants/, types/, domain.json
 ```
 lib/: crud, errors, drizzle, firebase, storage, mail, jwt, routeFactory, mediaInputSuite, tableSuite, localStorage, redirectToast, cn
 config/: admin-global-menu, app-features, maintenance, redirect, user-header, user-bottom-menu
-stores/: useAppToastStore, useGlobalLoaderStore, useSiteTheme, useViewportSize
+stores/: appToast/, globalLoader/, siteTheme/, viewportSize/, adminLayout/
 hooks/: useAppToast (primary toast), useGlobalLoader, useInfiniteScrollQuery, useFieldGuard, useRouteTransitionPending
 components/: Form/, Layout/, TextBlocks/, Skeleton/, _shadcn/
 registry/: schemaRegistry, serviceRegistry, adminDataMenu
 proxies/: middleware handlers
 ```
+
+## STORES (zustand)
+
+structure: always use subdirectory
+```
+stores/<name>/
+  index.ts           <- re-export (public interface)
+  internalStore.ts   <- zustand store (internal, never use directly)
+  useStore.ts        <- base hook
+```
+
+hierarchy: internalStore -> useStore -> hooks/useXxx (optional extension)
+
+rules:
+- state-only: no business logic (use services/)
+- UI side-effects: handle in useStore via useEffect
+- internalStore: only accessed from useStore.ts
+- hooks/useXxx: use useStore, never internalStore
+
+ref: src/stores/README.md
 
 ## DOMAINS
 
