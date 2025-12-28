@@ -17,7 +17,7 @@ export const maintenanceConfig = {
   // 前方一致で許可するパス
   allowedPrefixes: [
     '/_next',
-    '/api/auth',
+    '/api',
     '/assets',
   ],
 
