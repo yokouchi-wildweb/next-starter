@@ -18,6 +18,7 @@ export const maintenanceConfig = {
   allowedPrefixes: [
     '/_next',
     '/api/auth',
+    '/assets',
   ],
 
   // バイパスできるロール（これらのロールを持つユーザーは制限を受けない）

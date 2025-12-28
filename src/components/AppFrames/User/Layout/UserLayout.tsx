@@ -9,6 +9,7 @@ import { BottomNavVisibilityProvider } from "../contexts/BottomNavVisibilityCont
 import { BackgroundLayer } from "./BackgroundLayer";
 import { FooterVisibilityProvider } from "../contexts/FooterVisibilityContext";
 import { HeaderVisibilityProvider } from "../contexts/HeaderVisibilityContext";
+import { HeaderNavVisibilityProvider } from "../contexts/HeaderNavVisibilityContext";
 import { UserBottomNav } from "../Sections/BottomNav";
 import { BottomNavSpacer } from "../Sections/BottomNav/BottomNavSpacer";
 import { UserFooter } from "../Sections/Footer";
@@ -42,28 +43,30 @@ export const UserAppLayout = ({
 
   return (
     <HeaderVisibilityProvider>
-      <FooterVisibilityProvider>
-        <BottomNavVisibilityProvider>
-          <BackgroundLayer
-            imageUrl={backgroundImageUrl}
-            overlayColor={overlayColor}
-            overlayOpacity={overlayOpacity}
-          />
-          <Flex
-            direction="column"
-            className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
-            style={layoutStyle}
-          >
-            <UserNavigation />
-            <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
-              {children}
-            </div>
-            <UserFooter />
-            <BottomNavSpacer />
-            <UserBottomNav />
-          </Flex>
-        </BottomNavVisibilityProvider>
-      </FooterVisibilityProvider>
+      <HeaderNavVisibilityProvider>
+        <FooterVisibilityProvider>
+          <BottomNavVisibilityProvider>
+            <BackgroundLayer
+              imageUrl={backgroundImageUrl}
+              overlayColor={overlayColor}
+              overlayOpacity={overlayOpacity}
+            />
+            <Flex
+              direction="column"
+              className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
+              style={layoutStyle}
+            >
+              <UserNavigation />
+              <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
+                {children}
+              </div>
+              <UserFooter />
+              <BottomNavSpacer />
+              <UserBottomNav />
+            </Flex>
+          </BottomNavVisibilityProvider>
+        </FooterVisibilityProvider>
+      </HeaderNavVisibilityProvider>
     </HeaderVisibilityProvider>
   );
 };
