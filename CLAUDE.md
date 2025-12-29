@@ -9,7 +9,8 @@
 - language_for_comments_and_docs: japanese
 - cross_domain_awareness: before implementing, check if other domains need changes. proactively propose changes in the correct domain rather than placing logic in the wrong domain for convenience
 - avoid_piped_commands: run commands without pipes to avoid permission prompts. use file arguments instead (e.g. grep pattern file.txt, not cat file.txt | grep pattern)
-- never_commit_without_explicit_instruction: true. 明示的にコミットする指示がない限り絶対にコミットしない
+- avoid_brace_expansion: never use shell brace expansion {A,B} syntax. permission system evaluates raw string before expansion. use separate paths or multiple commands instead (e.g. mkdir -p dir/A dir/B, not mkdir -p dir/{A,B})
+- never_commit_without_explicit_instruction: true. never commit unless explicitly requested
 
 ## STACK
 next: 16 (react 19, app router)
