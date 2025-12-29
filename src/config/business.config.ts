@@ -6,13 +6,16 @@ export const businessConfig = {
   // === サービス基本情報 ===
 
   /** サービス名（正式名称） */
-  serviceName: "Wildweb Tokyo",
+  serviceName: "next-stater",
 
   /** サービス名（略称・ロゴ横やタイトルで使用） */
-  serviceNameShort: "略称",
+  serviceNameShort: "next-stater",
 
   /** サービスの説明文（meta descriptionなどで使用） */
-  description: "サービスの説明文",
+  description: "next-starter is a Wildweb creation.",
+
+  /** 短い説明文（titleなどで使用） */
+  descriptionShort: "a Wildweb creation.",
 
   /** ドメイン名（プロトコルなし） */
   domain: "example.com",
