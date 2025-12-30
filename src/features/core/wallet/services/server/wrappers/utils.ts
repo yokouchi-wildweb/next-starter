@@ -5,6 +5,7 @@ import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { WalletHistoryMeta, WalletHistoryMetaInput } from "@/features/core/walletHistory/types/meta";
 import { DomainError } from "@/lib/errors/domainError";
+import { isPgUniqueViolation, handleConstraintError } from "@/lib/crud/drizzle/service";
 import { db } from "@/lib/drizzle";
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -27,27 +28,41 @@ export async function getOrCreateWallet(
   walletType: WalletTypeValue,
   options?: { lock?: boolean },
 ): Promise<Wallet> {
-  const query = tx
-    .select()
-    .from(WalletTable)
-    .where(and(eq(WalletTable.user_id, userId), eq(WalletTable.type, walletType)))
-    .limit(1);
-  const rows = options?.lock ? await query.for("update") : await query;
-  const existing = rows[0] as Wallet | undefined;
+  const selectWallet = async () => {
+    const query = tx
+      .select()
+      .from(WalletTable)
+      .where(and(eq(WalletTable.user_id, userId), eq(WalletTable.type, walletType)))
+      .limit(1);
+    const rows = options?.lock ? await query.for("update") : await query;
+    return rows[0] as Wallet | undefined;
+  };
+
+  const existing = await selectWallet();
   if (existing) return existing;
 
-  const inserted = await tx
-    .insert(WalletTable)
-    .values({
-      user_id: userId,
-      type: walletType,
-    })
-    .returning();
-  const created = inserted[0] as Wallet | undefined;
-  if (!created) {
-    throw new DomainError("ウォレットの初期化に失敗しました。", { status: 500 });
+  try {
+    const inserted = await tx
+      .insert(WalletTable)
+      .values({
+        user_id: userId,
+        type: walletType,
+      })
+      .returning();
+    const created = inserted[0] as Wallet | undefined;
+    if (!created) {
+      throw new DomainError("ウォレットの初期化に失敗しました。", { status: 500 });
+    }
+    return created;
+  } catch (error) {
+    // レースコンディション: 他のリクエストが先に作成した場合
+    if (isPgUniqueViolation(error)) {
+      const retried = await selectWallet();
+      if (retried) return retried;
+    }
+    // その他の制約エラーはDomainErrorに変換
+    throw handleConstraintError(error);
   }
-  return created;
 }
 
 export async function getWallet(

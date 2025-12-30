@@ -28,7 +28,7 @@ const resolveRecordId = (value: unknown): string | number | undefined => {
  * エラーオブジェクトからPostgreSQLエラーコードを抽出する
  * Drizzleはエラーをラップするため、直接またはcause経由で確認
  */
-const extractPgErrorCode = (error: unknown): string | undefined => {
+export const extractPgErrorCode = (error: unknown): string | undefined => {
   if (!error || typeof error !== "object") return undefined;
 
   // 直接codeを持つ場合
@@ -48,13 +48,20 @@ const extractPgErrorCode = (error: unknown): string | undefined => {
 };
 
 /**
+ * ユニーク制約違反かどうかを判定する
+ */
+export const isPgUniqueViolation = (error: unknown): boolean => {
+  return extractPgErrorCode(error) === "23505";
+};
+
+/**
  * 制約違反エラーを検出してDomainErrorに変換する
  * PostgreSQL エラーコード:
  * - 23503 = foreign_key_violation（RESTRICT違反）
  * - 23502 = not_null_violation（SET_NULL + NOT NULL制約違反）
  * - 23505 = unique_violation（ユニーク制約違反）
  */
-const handleConstraintError = (error: unknown): never => {
+export const handleConstraintError = (error: unknown): never => {
   const pgCode = extractPgErrorCode(error);
   if (pgCode === "23503") {
     throw new DomainError(
