@@ -126,6 +126,8 @@ service file organization:
 
 ## CODE_GENERATION
 
+ref: src/features/README.md (domain.json schema, read when creating new domain)
+
 ### commands
 dc:init -> create domain.json template
 dc:generate -- <Domain> -> generate files
