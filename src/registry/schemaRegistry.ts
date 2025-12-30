@@ -14,6 +14,7 @@ export * from "@/features/core/purchaseRequest/entities/drizzle";
 export * from "@/features/sample/entities/drizzle";
 export * from "@/features/sampleCategory/entities/drizzle";
 export * from "@/features/sampleTag/entities/drizzle";
+export * from "@/features/foo/entities/drizzle";
 // --- AUTO-GENERATED-END ---
 
 export {};

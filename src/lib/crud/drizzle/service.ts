@@ -48,12 +48,13 @@ const extractPgErrorCode = (error: unknown): string | undefined => {
 };
 
 /**
- * 外部キー制約違反エラーを検出してDomainErrorに変換する
+ * 制約違反エラーを検出してDomainErrorに変換する
  * PostgreSQL エラーコード:
  * - 23503 = foreign_key_violation（RESTRICT違反）
  * - 23502 = not_null_violation（SET_NULL + NOT NULL制約違反）
+ * - 23505 = unique_violation（ユニーク制約違反）
  */
-const handleForeignKeyError = (error: unknown): never => {
+const handleConstraintError = (error: unknown): never => {
   const pgCode = extractPgErrorCode(error);
   if (pgCode === "23503") {
     throw new DomainError(
@@ -67,7 +68,49 @@ const handleForeignKeyError = (error: unknown): never => {
       { status: 409 }
     );
   }
+  if (pgCode === "23505") {
+    throw new DomainError("この値は既に使用されています", { status: 409 });
+  }
   throw error;
+};
+
+/**
+ * CRUDミドルウェアの型定義
+ * 各ミドルウェアは関数をラップして共通処理を追加する
+ */
+type CrudMiddleware = <T>(fn: () => Promise<T>) => Promise<T>;
+
+/**
+ * 制約エラーハンドリングミドルウェア
+ * PostgreSQLの制約違反エラーをDomainErrorに変換する
+ */
+const withConstraintHandling: CrudMiddleware = async <T>(fn: () => Promise<T>): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error) {
+    // handleConstraintErrorは常にthrowするため、ここには到達しない
+    throw handleConstraintError(error);
+  }
+};
+
+/**
+ * CRUDミドルウェア配列
+ * 新しいミドルウェアはここに追加する
+ */
+const crudMiddlewares: CrudMiddleware[] = [
+  withConstraintHandling,
+  // 将来追加: withLogging, withRetry, etc.
+];
+
+/**
+ * 全CRUDミドルウェアを適用するラッパー
+ * create/update/upsert等の操作で使用する
+ */
+const withCrudEnhancements = <T>(fn: () => Promise<T>): Promise<T> => {
+  return crudMiddlewares.reduce<() => Promise<T>>(
+    (wrapped, middleware) => () => middleware(wrapped),
+    fn
+  )();
 };
 
 export type DefaultInsert<TTable extends PgTable> = Omit<
@@ -97,46 +140,48 @@ export function createCrudService<
 
   return {
     async create(data: Insert, tx?: DbTransaction): Promise<Select> {
-      const parsedInput = serviceOptions.parseCreate
-        ? await serviceOptions.parseCreate(data)
-        : data;
-      const { sanitizedData, relationValues } = separateBelongsToManyInput(
-        parsedInput,
-        belongsToManyRelations,
-      );
-      const finalInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert;
+      return withCrudEnhancements(async () => {
+        const parsedInput = serviceOptions.parseCreate
+          ? await serviceOptions.parseCreate(data)
+          : data;
+        const { sanitizedData, relationValues } = separateBelongsToManyInput(
+          parsedInput,
+          belongsToManyRelations,
+        );
+        const finalInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert;
 
-      // belongsToMany がない場合
-      if (!belongsToManyRelations.length) {
-        const executor = tx ?? db;
-        const rows = await executor.insert(table).values(finalInsert).returning();
-        return rows[0] as Select;
-      }
-
-      // belongsToMany があり、外部トランザクションが渡された場合
-      if (tx) {
-        const rows = await tx.insert(table).values(finalInsert).returning();
-        const created = rows[0] as Select;
-        if (!created) return created;
-        const relationRecordId = resolveRecordId(created.id as unknown);
-        if (relationRecordId !== undefined) {
-          await syncBelongsToManyRelations(tx, belongsToManyRelations, relationRecordId, relationValues);
+        // belongsToMany がない場合
+        if (!belongsToManyRelations.length) {
+          const executor = tx ?? db;
+          const rows = await executor.insert(table).values(finalInsert).returning();
+          return rows[0] as Select;
         }
-        assignLocalRelationValues(created, belongsToManyRelations, relationValues);
-        return created;
-      }
 
-      // belongsToMany があり、外部トランザクションがない場合は内部トランザクション
-      return db.transaction(async (innerTx) => {
-        const rows = await innerTx.insert(table).values(finalInsert).returning();
-        const created = rows[0] as Select;
-        if (!created) return created;
-        const relationRecordId = resolveRecordId(created.id as unknown);
-        if (relationRecordId !== undefined) {
-          await syncBelongsToManyRelations(innerTx, belongsToManyRelations, relationRecordId, relationValues);
+        // belongsToMany があり、外部トランザクションが渡された場合
+        if (tx) {
+          const rows = await tx.insert(table).values(finalInsert).returning();
+          const created = rows[0] as Select;
+          if (!created) return created;
+          const relationRecordId = resolveRecordId(created.id as unknown);
+          if (relationRecordId !== undefined) {
+            await syncBelongsToManyRelations(tx, belongsToManyRelations, relationRecordId, relationValues);
+          }
+          assignLocalRelationValues(created, belongsToManyRelations, relationValues);
+          return created;
         }
-        assignLocalRelationValues(created, belongsToManyRelations, relationValues);
-        return created;
+
+        // belongsToMany があり、外部トランザクションがない場合は内部トランザクション
+        return db.transaction(async (innerTx) => {
+          const rows = await innerTx.insert(table).values(finalInsert).returning();
+          const created = rows[0] as Select;
+          if (!created) return created;
+          const relationRecordId = resolveRecordId(created.id as unknown);
+          if (relationRecordId !== undefined) {
+            await syncBelongsToManyRelations(innerTx, belongsToManyRelations, relationRecordId, relationValues);
+          }
+          assignLocalRelationValues(created, belongsToManyRelations, relationValues);
+          return created;
+        });
       });
     },
 
@@ -187,57 +232,59 @@ export function createCrudService<
     },
 
     async update(id: string, data: Partial<Insert>, tx?: DbTransaction): Promise<Select> {
-      const parsed = serviceOptions.parseUpdate
-        ? await serviceOptions.parseUpdate(data)
-        : data;
-      const { sanitizedData, relationValues } = separateBelongsToManyInput(parsed, belongsToManyRelations);
-      const updateData = {
-        ...omitUndefined(sanitizedData as Record<string, any>),
-      } as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
+      return withCrudEnhancements(async () => {
+        const parsed = serviceOptions.parseUpdate
+          ? await serviceOptions.parseUpdate(data)
+          : data;
+        const { sanitizedData, relationValues } = separateBelongsToManyInput(parsed, belongsToManyRelations);
+        const updateData = {
+          ...omitUndefined(sanitizedData as Record<string, any>),
+        } as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
 
-      if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
-        updateData.updatedAt = new Date();
-      }
+        if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
+          updateData.updatedAt = new Date();
+        }
 
-      const shouldSyncRelations = belongsToManyRelations.length > 0 && relationValues.size > 0;
+        const shouldSyncRelations = belongsToManyRelations.length > 0 && relationValues.size > 0;
 
-      // リレーション同期が不要な場合
-      if (!shouldSyncRelations) {
-        const executor = tx ?? db;
-        const rows = await executor
-          .update(table)
-          .set(updateData as PgUpdateSetSource<TTable>)
-          .where(eq(idColumn, id))
-          .returning();
-        return rows[0] as Select;
-      }
+        // リレーション同期が不要な場合
+        if (!shouldSyncRelations) {
+          const executor = tx ?? db;
+          const rows = await executor
+            .update(table)
+            .set(updateData as PgUpdateSetSource<TTable>)
+            .where(eq(idColumn, id))
+            .returning();
+          return rows[0] as Select;
+        }
 
-      // リレーション同期が必要で、外部トランザクションが渡された場合
-      if (tx) {
-        const rows = await tx
-          .update(table)
-          .set(updateData as PgUpdateSetSource<TTable>)
-          .where(eq(idColumn, id))
-          .returning();
-        const updated = rows[0] as Select;
-        if (!updated) return updated;
-        await syncBelongsToManyRelations(tx, belongsToManyRelations, id, relationValues);
-        assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
-        return updated;
-      }
+        // リレーション同期が必要で、外部トランザクションが渡された場合
+        if (tx) {
+          const rows = await tx
+            .update(table)
+            .set(updateData as PgUpdateSetSource<TTable>)
+            .where(eq(idColumn, id))
+            .returning();
+          const updated = rows[0] as Select;
+          if (!updated) return updated;
+          await syncBelongsToManyRelations(tx, belongsToManyRelations, id, relationValues);
+          assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
+          return updated;
+        }
 
-      // リレーション同期が必要で、外部トランザクションがない場合は内部トランザクション
-      return db.transaction(async (innerTx) => {
-        const rows = await innerTx
-          .update(table)
-          .set(updateData as PgUpdateSetSource<TTable>)
-          .where(eq(idColumn, id))
-          .returning();
-        const updated = rows[0] as Select;
-        if (!updated) return updated;
-        await syncBelongsToManyRelations(innerTx, belongsToManyRelations, id, relationValues);
-        assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
-        return updated;
+        // リレーション同期が必要で、外部トランザクションがない場合は内部トランザクション
+        return db.transaction(async (innerTx) => {
+          const rows = await innerTx
+            .update(table)
+            .set(updateData as PgUpdateSetSource<TTable>)
+            .where(eq(idColumn, id))
+            .returning();
+          const updated = rows[0] as Select;
+          if (!updated) return updated;
+          await syncBelongsToManyRelations(innerTx, belongsToManyRelations, id, relationValues);
+          assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
+          return updated;
+        });
       });
     },
 
@@ -254,7 +301,7 @@ export function createCrudService<
         try {
           await executor.delete(table).where(eq(idColumn, id));
         } catch (error) {
-          handleForeignKeyError(error);
+          handleConstraintError(error);
         }
       }
     },
@@ -284,7 +331,7 @@ export function createCrudService<
       try {
         await executor.delete(table).where(eq(idColumn, id));
       } catch (error) {
-        handleForeignKeyError(error);
+        handleConstraintError(error);
       }
     },
 
@@ -427,7 +474,7 @@ export function createCrudService<
         try {
           await executor.delete(table).where(inArray(idColumn, ids));
         } catch (error) {
-          handleForeignKeyError(error);
+          handleConstraintError(error);
         }
       }
     },
@@ -448,7 +495,7 @@ export function createCrudService<
         try {
           await executor.delete(table).where(condition);
         } catch (error) {
-          handleForeignKeyError(error);
+          handleConstraintError(error);
         }
       }
     },
@@ -458,7 +505,7 @@ export function createCrudService<
       try {
         await executor.delete(table).where(inArray(idColumn, ids));
       } catch (error) {
-        handleForeignKeyError(error);
+        handleConstraintError(error);
       }
     },
 
@@ -467,79 +514,81 @@ export function createCrudService<
       upsertOptions?: UpsertOptions<Insert>,
       tx?: DbTransaction,
     ): Promise<Select> {
-      const parsedInput = serviceOptions.parseUpsert
-        ? await serviceOptions.parseUpsert(data)
-        : serviceOptions.parseCreate
-          ? await serviceOptions.parseCreate(data)
-          : data;
-      const { sanitizedData, relationValues } = separateBelongsToManyInput(
-        parsedInput,
-        belongsToManyRelations,
-      );
+      return withCrudEnhancements(async () => {
+        const parsedInput = serviceOptions.parseUpsert
+          ? await serviceOptions.parseUpsert(data)
+          : serviceOptions.parseCreate
+            ? await serviceOptions.parseCreate(data)
+            : data;
+        const { sanitizedData, relationValues } = separateBelongsToManyInput(
+          parsedInput,
+          belongsToManyRelations,
+        );
 
-      const sanitizedInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert & {
-        id?: string;
-        createdAt?: Date;
-        updatedAt?: Date;
-      };
+        const sanitizedInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert & {
+          id?: string;
+          createdAt?: Date;
+          updatedAt?: Date;
+        };
 
-      const updateData = {
-        ...sanitizedInsert,
-      } as PgUpdateSetSource<TTable> & Record<string, any> & { id?: string };
-      delete (updateData as Record<string, unknown>).id;
+        const updateData = {
+          ...sanitizedInsert,
+        } as PgUpdateSetSource<TTable> & Record<string, any> & { id?: string };
+        delete (updateData as Record<string, unknown>).id;
 
-      // belongsToMany がない場合
-      if (!belongsToManyRelations.length) {
-        const executor = tx ?? db;
-        const rows = await executor
-          .insert(table)
-          .values(sanitizedInsert as any)
-          .onConflictDoUpdate({
-            target: resolveConflictTarget(table, serviceOptions, upsertOptions),
-            set: updateData,
-          })
-          .returning();
-        return rows[0] as Select;
-      }
-
-      // belongsToMany があり、外部トランザクションが渡された場合
-      if (tx) {
-        const rows = await tx
-          .insert(table)
-          .values(sanitizedInsert as any)
-          .onConflictDoUpdate({
-            target: resolveConflictTarget(table, serviceOptions, upsertOptions),
-            set: updateData,
-          })
-          .returning();
-        const upserted = rows[0] as Select;
-        if (!upserted) return upserted;
-        const relationRecordId = resolveRecordId(upserted.id as unknown);
-        if (relationRecordId !== undefined) {
-          await syncBelongsToManyRelations(tx, belongsToManyRelations, relationRecordId, relationValues);
+        // belongsToMany がない場合
+        if (!belongsToManyRelations.length) {
+          const executor = tx ?? db;
+          const rows = await executor
+            .insert(table)
+            .values(sanitizedInsert as any)
+            .onConflictDoUpdate({
+              target: resolveConflictTarget(table, serviceOptions, upsertOptions),
+              set: updateData,
+            })
+            .returning();
+          return rows[0] as Select;
         }
-        assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
-        return upserted;
-      }
 
-      // belongsToMany があり、外部トランザクションがない場合は内部トランザクション
-      return db.transaction(async (innerTx) => {
-        const rows = await innerTx
-          .insert(table)
-          .values(sanitizedInsert as any)
-          .onConflictDoUpdate({
-            target: resolveConflictTarget(table, serviceOptions, upsertOptions),
-            set: updateData,
-          })
-          .returning();
-        const upserted = rows[0] as Select;
-        if (!upserted) return upserted;
-        const relationRecordId = resolveRecordId(upserted.id as unknown);
-        if (relationRecordId !== undefined) {
-          await syncBelongsToManyRelations(innerTx, belongsToManyRelations, relationRecordId, relationValues);
+        // belongsToMany があり、外部トランザクションが渡された場合
+        if (tx) {
+          const rows = await tx
+            .insert(table)
+            .values(sanitizedInsert as any)
+            .onConflictDoUpdate({
+              target: resolveConflictTarget(table, serviceOptions, upsertOptions),
+              set: updateData,
+            })
+            .returning();
+          const upserted = rows[0] as Select;
+          if (!upserted) return upserted;
+          const relationRecordId = resolveRecordId(upserted.id as unknown);
+          if (relationRecordId !== undefined) {
+            await syncBelongsToManyRelations(tx, belongsToManyRelations, relationRecordId, relationValues);
+          }
+          assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
+          return upserted;
         }
-        assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
-        return upserted;
+
+        // belongsToMany があり、外部トランザクションがない場合は内部トランザクション
+        return db.transaction(async (innerTx) => {
+          const rows = await innerTx
+            .insert(table)
+            .values(sanitizedInsert as any)
+            .onConflictDoUpdate({
+              target: resolveConflictTarget(table, serviceOptions, upsertOptions),
+              set: updateData,
+            })
+            .returning();
+          const upserted = rows[0] as Select;
+          if (!upserted) return upserted;
+          const relationRecordId = resolveRecordId(upserted.id as unknown);
+          if (relationRecordId !== undefined) {
+            await syncBelongsToManyRelations(innerTx, belongsToManyRelations, relationRecordId, relationValues);
+          }
+          assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
+          return upserted;
+        });
       });
     },
 

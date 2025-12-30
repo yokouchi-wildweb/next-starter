@@ -1,0 +1,79 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "foo",
+  "plural": "fooes",
+  "label": "foo",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "sample_category",
+      "label": "category",
+      "fieldName": "sample_category_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": true,
+      "onDelete": "CASCADE",
+      "includeRelationTable": false
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "useSoftDelete": false,
+  "fields": [
+    {
+      "name": "name",
+      "label": "name",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "readonly": false,
+      "required": true
+    },
+    {
+      "name": "type",
+      "label": "type",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": true,
+      "options": [
+        { "value": "apple", "label": "apple" },
+        { "value": "orange", "label": "orange" }
+      ]
+    },
+    {
+      "name": "num",
+      "label": "num",
+      "fieldType": "integer",
+      "formInput": "numberInput",
+      "readonly": false,
+      "required": false
+    }
+  ],
+  "compositeUniques": [
+    ["name", "type", "sample_category_id"]
+  ],
+  "searchFields": [
+    "name"
+  ],
+  "defaultOrderBy": [
+
+  ],
+  "tableFields": [
+    "id",
+    "name"
+  ],
+  "useDetailModal": false,
+  "useDuplicateButton": false,
+  "addToAdminDataMenu": true,
+  "generateFiles": {
+    "entities": true,
+    "components": true,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "fieldConstants": true,
+    "adminRoutes": true,
+    "registry": true,
+    "presenters": true
+  }
+}
