@@ -73,6 +73,8 @@ function mapZodType(type) {
     case 'timestamp':
     case 'timestamp With Time Zone':
       return DATETIME_TYPE;
+    case 'jsonb':
+      return 'z.unknown()';
     default:
       return 'z.any()';
   }
@@ -117,6 +119,11 @@ function fieldLine({ name, label, type, required, fieldType }) {
 
   if (required && type.startsWith('z.string()') && isStringField(fieldType)) {
     segments.push(`.min(1, { message: "${msgLabel}は必須です。" })`);
+  }
+
+  // jsonb の required チェック（z.unknown() は undefined を許容するため refine で制御）
+  if (required && fieldType === 'jsonb') {
+    segments.push(`.refine((v) => v != null, { message: "${msgLabel}は必須です。" })`);
   }
 
   if (isEmailField(fieldType)) {
