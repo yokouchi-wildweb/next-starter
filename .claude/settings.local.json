@@ -124,7 +124,8 @@
       "WebFetch(domain:oripaone.jp)",
       "Skill(brainstorm)",
       "Bash(ss -tlnp:*)",
-      "Bash(cross-env APP_ENV=.env.development npx drizzle-kit push:*)"
+      "Bash(cross-env APP_ENV=.env.development npx drizzle-kit push:*)",
+      "Bash(yes:*)"
     ],
     "deny": [
       "Bash(sudo:*)",
