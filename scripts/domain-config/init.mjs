@@ -7,6 +7,7 @@ import askBasics from "./questions/basics.mjs";
 import askRelations from "./questions/relations.mjs";
 import askBaseFields from "./questions/base-fields.mjs";
 import askFields from "./questions/fields.mjs";
+import askCompositeUniques from "./questions/composite-uniques.mjs";
 import askViewConfig from "./questions/view-config.mjs";
 import askGenerateFiles from "./questions/generate-files.mjs";
 import { toCamelCase } from "../../src/utils/stringCase.mjs";
@@ -29,6 +30,7 @@ export default async function init() {
   Object.assign(config, await askRelations(config));
   Object.assign(config, await askBaseFields());
   Object.assign(config, await askFields(config));
+  Object.assign(config, await askCompositeUniques(config));
   Object.assign(config, await askViewConfig(config));
   Object.assign(config, await askGenerateFiles());
 
