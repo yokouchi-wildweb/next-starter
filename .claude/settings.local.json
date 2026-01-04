@@ -125,7 +125,8 @@
       "Skill(brainstorm)",
       "Bash(ss -tlnp:*)",
       "Bash(cross-env APP_ENV=.env.development npx drizzle-kit push:*)",
-      "Bash(yes:*)"
+      "Bash(yes:*)",
+      "WebFetch(domain:vket.com)"
     ],
     "deny": [
       "Bash(sudo:*)",

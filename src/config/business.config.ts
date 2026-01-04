@@ -65,6 +65,22 @@ export const businessConfig = {
     methods: "クレジット決済、銀行振込、コンビニ払い",
   },
 
+  // === ロゴ設定 ===
+
+  logo: {
+    /** ロゴバリアント別パス（imgPath からの相対パス） */
+    variants: {
+      default: 'logo/default.png',
+      light: 'logo/light.png',        // 白系（暗い背景用）
+      dark: 'logo/dark.png',          // 黒系（明るい背景用）
+      primary: 'logo/primary.png',    // プライマリカラー
+      secondary: 'logo/secondary.png', // セカンダリカラー
+      mono: 'logo/mono.png',          // モノクロ
+    },
+    /** デフォルトで使用するバリアント */
+    defaultVariant: 'default' as const,
+  },
+
   // === SNS・外部リンク（任意） ===
 
   social: {
