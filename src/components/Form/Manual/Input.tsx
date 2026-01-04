@@ -11,7 +11,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
   const { className, readOnly, ...rest } = props;
   const readOnlyStyles = readOnly
     ? "bg-muted/50 text-muted-foreground cursor-not-allowed focus-visible:ring-0 focus-visible:border-border"
-    : undefined;
+    : "bg-background";
   return <ShadcnInput ref={ref} readOnly={readOnly} className={cn(readOnlyStyles, className)} {...rest} />;
 });
 
