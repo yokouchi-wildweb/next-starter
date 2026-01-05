@@ -36,12 +36,6 @@ mail: {
 
   /** デフォルト送信者名 */
   defaultFromName: "サービス名",
-
-  /** 用途別の送信元アドレス */
-  addresses: {
-    noreply: "noreply@example.com",
-    support: "support@example.com",
-  },
 },
 ```
 
@@ -72,7 +66,6 @@ src/lib/mail/
 
 import { Html, Text, Button } from "@react-email/components";
 import { createMailTemplate } from "@/lib/mail";
-import { businessConfig } from "@/config/business.config";
 import { MAIL_THEME_COLORS } from "../constants/colors";
 
 type Props = {
@@ -98,7 +91,7 @@ export const WelcomeEmail = createMailTemplate({
   },
   testDescription: "新規ユーザー向けウェルカムメール",
   // 送信元を指定（省略時は businessConfig.mail.defaultFrom）
-  from: businessConfig.mail.addresses.support,
+  from: "support@example.com",
   fromName: "サポートチーム",
 });
 ```

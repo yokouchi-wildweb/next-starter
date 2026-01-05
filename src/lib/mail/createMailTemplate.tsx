@@ -54,13 +54,12 @@ export type MailTemplate<TProps extends object> = {
  * @example
  * ```tsx
  * import { createMailTemplate } from "@/lib/mail";
- * import { businessConfig } from "@/config/business.config";
  *
  * export const SupportEmail = createMailTemplate({
  *   subject: "お問い合わせありがとうございます",
  *   component: SupportEmailComponent,
  *   testProps: { ... },
- *   from: businessConfig.mail.addresses.support,
+ *   from: "support@example.com",
  *   fromName: "サポートチーム",
  * });
  *

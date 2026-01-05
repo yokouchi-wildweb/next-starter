@@ -89,14 +89,6 @@ export const businessConfig = {
 
     /** デフォルト送信者名 */
     defaultFromName: "next-starter",
-
-    /** 用途別の送信元アドレス */
-    addresses: {
-      /** 通知・認証メール用（返信不可） */
-      noreply: "noreply@example.com",
-      /** サポート・お問い合わせ用 */
-      support: "support@example.com",
-    },
   },
 
   // === SNS・外部リンク（任意） ===
