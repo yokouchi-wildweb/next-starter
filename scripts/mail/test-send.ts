@@ -6,11 +6,15 @@
 //
 // テンプレートの追加方法:
 //   src/features/core/mail/templates/ に .tsx ファイルを作成し、
-//   以下をエクスポートしてください:
-//   - subject: メールの件名
-//   - default: テンプレートコンポーネント
-//   - testProps: テスト用のprops
-//   - testDescription: テンプレートの説明（任意）
+//   createMailTemplate() で作成したオブジェクトをエクスポートしてください。
+//
+// 例:
+//   export const WelcomeMail = createMailTemplate({
+//     subject: "ようこそ！",
+//     component: WelcomeComponent,
+//     testProps: { username: "テスト" },
+//     testDescription: "ウェルカムメール",
+//   });
 
 import { config } from "dotenv";
 import { Resend } from "resend";
@@ -20,11 +24,16 @@ import * as fs from "fs";
 import * as path from "path";
 import { createElement } from "react";
 
-// .env.development を読み込む
+import { businessConfig } from "../../src/config/business.config";
+
+// .env.development を読み込む（RESEND_API_KEY 用）
 config({ path: ".env.development" });
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const MAIL_FROM_ADDRESS = process.env.MAIL_FROM_ADDRESS;
+
+// businessConfig からメール設定を取得
+const MAIL_FROM_ADDRESS = businessConfig.mail.defaultFrom;
+const MAIL_FROM_NAME = businessConfig.mail.defaultFromName;
 
 // テンプレートディレクトリ
 const TEMPLATES_DIR = "src/features/core/mail/templates";
@@ -35,6 +44,26 @@ type TemplateConfig = {
   description: string;
   render: () => Promise<{ html: string; subject: string }>;
 };
+
+// MailTemplate の型チェック用
+type MailTemplateShape = {
+  subject: string;
+  component: React.ComponentType<unknown>;
+  testProps: unknown;
+  testDescription?: string;
+};
+
+function isMailTemplate(obj: unknown): obj is MailTemplateShape {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "subject" in obj &&
+    "component" in obj &&
+    "testProps" in obj &&
+    typeof (obj as MailTemplateShape).subject === "string" &&
+    typeof (obj as MailTemplateShape).component === "function"
+  );
+}
 
 /**
  * シンプルテストメール（接続確認用）
@@ -89,38 +118,42 @@ async function getTemplateConfigs(): Promise<TemplateConfig[]> {
       // テンプレートを動的インポート
       const templateModule = await import(templatePath);
 
-      // 必須エクスポートの確認
-      const Component = templateModule.default;
-      const subject = templateModule.subject;
-      const testProps = templateModule.testProps;
-      const testDescription = templateModule.testDescription;
+      // createMailTemplate で作成されたオブジェクトを探す
+      for (const [exportName, exportValue] of Object.entries(templateModule)) {
+        if (!isMailTemplate(exportValue)) {
+          continue;
+        }
 
-      if (!Component) {
-        console.warn(`警告: ${file} に default export がありません。スキップします。`);
-        continue;
+        const mailTemplate = exportValue;
+        const displayName = exportName !== "default" ? exportName : templateName;
+
+        templates.push({
+          name: displayName,
+          description: mailTemplate.testDescription || displayName,
+          render: async () => {
+            const html = await render(
+              createElement(mailTemplate.component, mailTemplate.testProps as object),
+            );
+            return { html, subject: mailTemplate.subject };
+          },
+        });
       }
-
-      if (!subject || !testProps) {
-        console.warn(
-          `警告: ${file} に subject または testProps がありません。スキップします。`
-        );
-        continue;
-      }
-
-      templates.push({
-        name: templateName,
-        description: testDescription || templateName,
-        render: async () => {
-          const html = await render(createElement(Component, testProps));
-          return { html, subject };
-        },
-      });
     } catch (err) {
       console.warn(`警告: ${file} の読み込みに失敗しました:`, err);
     }
   }
 
   return templates;
+}
+
+/**
+ * 送信元アドレスをフォーマット
+ */
+function formatFromAddress(): string {
+  if (MAIL_FROM_NAME) {
+    return `${MAIL_FROM_NAME} <${MAIL_FROM_ADDRESS}>`;
+  }
+  return MAIL_FROM_ADDRESS;
 }
 
 async function main() {
@@ -131,11 +164,6 @@ async function main() {
   // 環境変数チェック
   if (!RESEND_API_KEY) {
     console.error("エラー: RESEND_API_KEY が設定されていません");
-    process.exit(1);
-  }
-
-  if (!MAIL_FROM_ADDRESS) {
-    console.error("エラー: MAIL_FROM_ADDRESS が設定されていません");
     process.exit(1);
   }
 
@@ -173,10 +201,11 @@ async function main() {
   ]);
 
   const selectedTemplate = templates[templateIndex];
+  const fromAddress = formatFromAddress();
 
   console.log("");
   console.log("=== 送信情報 ===");
-  console.log(`送信元: ${MAIL_FROM_ADDRESS}`);
+  console.log(`送信元: ${fromAddress}`);
   console.log(`送信先: ${toEmail}`);
   console.log(`テンプレート: ${selectedTemplate.name}`);
   console.log("");
@@ -207,7 +236,7 @@ async function main() {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: MAIL_FROM_ADDRESS,
+      from: fromAddress,
       to: toEmail,
       subject,
       html,

@@ -1,8 +1,5 @@
 // src/features/core/mail/templates/VerificationEmail.tsx
 
-/** メールの件名 */
-export const subject = "メールアドレスの確認";
-
 import {
   Body,
   Button,
@@ -16,6 +13,8 @@ import {
   Text,
 } from "@react-email/components";
 
+import { createMailTemplate } from "@/lib/mail";
+
 import { MAIL_THEME_COLORS } from "../constants/colors";
 
 export type VerificationEmailProps = {
@@ -27,10 +26,8 @@ export type VerificationEmailProps = {
 
 /**
  * メールアドレス認証用のメールテンプレート
- *
- * TODO: 文言やデザインは後で調整してください
  */
-export function VerificationEmail({
+function VerificationEmailComponent({
   verificationUrl,
   email,
 }: VerificationEmailProps) {
@@ -125,12 +122,23 @@ const styles = {
   },
 } as const;
 
-export default VerificationEmail;
-
-// テスト送信用の設定
-export const testProps: VerificationEmailProps = {
-  verificationUrl: "https://example.com/verify?token=test-token-12345",
-  email: "test@example.com",
-};
-
-export const testDescription = "メールアドレス認証用テンプレート";
+/**
+ * メールアドレス認証用メールテンプレート
+ *
+ * @example
+ * ```ts
+ * await VerificationEmail.send("user@example.com", {
+ *   verificationUrl: "https://example.com/verify?token=xxx",
+ *   email: "user@example.com",
+ * });
+ * ```
+ */
+export const VerificationEmail = createMailTemplate({
+  subject: "メールアドレスの確認",
+  component: VerificationEmailComponent,
+  testProps: {
+    verificationUrl: "https://example.com/verify?token=test-token-12345",
+    email: "test@example.com",
+  },
+  testDescription: "メールアドレス認証用テンプレート",
+});

@@ -15,17 +15,35 @@ Resendを使用したメール送信機能です。
 2. 表示されるDNSレコード（DKIM、SPF等）をドメインのDNS設定に追加
 3. Resendコンソールで「Verify」をクリックして認証を完了
 
-### 3. 環境変数の設定
+### 3. 設定
 
-`.env.development` および `.env.production` に以下を追加:
+#### 環境変数（.env.development / .env.production）
 
 ```env
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-MAIL_FROM_ADDRESS=noreply@yourdomain.com
 ```
 
-- `RESEND_API_KEY`: Resendで発行したAPIキー
-- `MAIL_FROM_ADDRESS`: 送信元メールアドレス（認証済みドメインを使用）
+APIキーのみ環境変数で管理します。
+
+#### ビジネス設定（src/config/business.config.ts）
+
+送信元アドレスと送信者名は `businessConfig` で管理します：
+
+```ts
+mail: {
+  /** デフォルト送信元アドレス */
+  defaultFrom: "noreply@example.com",
+
+  /** デフォルト送信者名 */
+  defaultFromName: "サービス名",
+
+  /** 用途別の送信元アドレス */
+  addresses: {
+    noreply: "noreply@example.com",
+    support: "support@example.com",
+  },
+},
+```
 
 ## ディレクトリ構成
 
@@ -34,11 +52,13 @@ src/features/core/mail/
 ├── README.md           # このファイル
 ├── constants/
 │   └── colors.ts       # テーマカラー定数（自動生成）
-├── templates/
-│   └── VerificationEmail.tsx  # メールテンプレート（React Email）
-└── services/
-    └── server/
-        └── sendVerificationEmail.tsx  # メール送信サービス
+└── templates/
+    └── VerificationEmail.tsx  # メールテンプレート
+
+src/lib/mail/
+├── index.ts               # send() 関数
+├── createMailTemplate.tsx # ファクトリー関数
+└── resend.ts              # Resendクライアント
 ```
 
 ## テンプレートの追加方法
@@ -50,81 +70,77 @@ src/features/core/mail/
 ```tsx
 // templates/WelcomeEmail.tsx
 
-/** メールの件名 */
-export const subject = "ようこそ！";
+import { Html, Text, Button } from "@react-email/components";
+import { createMailTemplate } from "@/lib/mail";
+import { businessConfig } from "@/config/business.config";
+import { MAIL_THEME_COLORS } from "../constants/colors";
 
-import { Html, Text } from "@react-email/components";
-
-export type WelcomeEmailProps = {
+type Props = {
   username: string;
+  dashboardUrl: string;
 };
 
-export function WelcomeEmail({ username }: WelcomeEmailProps) {
+function WelcomeEmailComponent({ username, dashboardUrl }: Props) {
   return (
     <Html>
       <Text>ようこそ、{username}さん！</Text>
+      <Button href={dashboardUrl}>ダッシュボードへ</Button>
     </Html>
   );
 }
 
-export default WelcomeEmail;
-
-// テスト送信用の設定（npm run mail:test で使用）
-export const testProps: WelcomeEmailProps = {
-  username: "テストユーザー",
-};
-
-export const testDescription = "新規ユーザー向けウェルカムメール";
+export const WelcomeEmail = createMailTemplate({
+  subject: "ようこそ！",
+  component: WelcomeEmailComponent,
+  testProps: {
+    username: "テストユーザー",
+    dashboardUrl: "https://example.com/dashboard",
+  },
+  testDescription: "新規ユーザー向けウェルカムメール",
+  // 送信元を指定（省略時は businessConfig.mail.defaultFrom）
+  from: businessConfig.mail.addresses.support,
+  fromName: "サポートチーム",
+});
 ```
 
-#### エクスポート一覧
+### 2. 送信する
 
-| エクスポート | 必須 | 説明 |
-|-------------|------|------|
-| `subject` | ✅ | メールの件名 |
-| `default` | ✅ | テンプレートコンポーネント |
-| `testProps` | ✅ | テスト送信時に使用するprops |
-| `testDescription` | - | テンプレート選択画面に表示する説明 |
+```ts
+import { WelcomeEmail } from "@/features/core/mail/templates/WelcomeEmail";
 
-> **Note**: 件名（`subject`）はテンプレートファイルの上部で定義します。テンプレートと件名を同じファイルで管理することで、対応関係が明確になります。
+// 基本的な送信
+await WelcomeEmail.send("user@example.com", {
+  username: "田中太郎",
+  dashboardUrl: "https://example.com/dashboard",
+});
 
-### 2. 送信サービスを作成
-
-`services/server/` に送信サービスを追加:
-
-```tsx
-// services/server/sendWelcomeEmail.tsx
-import { send } from "@/lib/mail";
-
-import { subject, WelcomeEmail } from "../../templates/WelcomeEmail";
-
-export async function sendWelcomeEmail(to: string, username: string) {
-  await send({
-    to,
-    subject,
-    react: <WelcomeEmail username={username} />,
-    fromName: "サービス名",  // 任意: 送信者名
-  });
-}
+// 送信元を上書きする場合
+await WelcomeEmail.send(
+  "user@example.com",
+  { username: "田中太郎", dashboardUrl: "..." },
+  {
+    from: "special@example.com",
+    fromName: "特別キャンペーン",
+  },
+);
 ```
 
-#### send関数のオプション
+### createMailTemplate のオプション
 
 | オプション | 必須 | 説明 |
 |-----------|------|------|
-| `to` | ✅ | 宛先メールアドレス |
-| `subject` | ✅ | 件名 |
-| `react` | ✅ | React Emailコンポーネント |
-| `from` | - | 送信元アドレス（省略時は環境変数 `MAIL_FROM_ADDRESS`） |
-| `fromName` | - | 送信者名（指定すると `"名前 <アドレス>"` 形式で送信） |
+| `subject` | ✅ | メールの件名 |
+| `component` | ✅ | テンプレートコンポーネント |
+| `testProps` | ✅ | テスト送信時に使用するprops |
+| `testDescription` | - | テンプレート選択画面に表示する説明 |
+| `from` | - | 送信元アドレス（省略時は `businessConfig.mail.defaultFrom`） |
+| `fromName` | - | 送信者名（省略時は `businessConfig.mail.defaultFromName`） |
 
-### 3. 必要に応じてAPIルートから呼び出す
+### 送信元の優先順位
 
-```ts
-import { sendWelcomeEmail } from "@/features/core/mail/services/server/sendWelcomeEmail";
-
-await sendWelcomeEmail("user@example.com", "田中太郎");
-```
+1. `send()` の第3引数（最優先）
+2. `createMailTemplate()` の設定
+3. `businessConfig.mail.defaultFrom` / `defaultFromName`（フォールバック）
 
 ## テスト送信
 
@@ -151,7 +167,7 @@ npm run mail:test
   VerificationEmail - メールアドレス認証用テンプレート
 
 === 送信情報 ===
-送信元: noreply@yourdomain.com
+送信元: サービス名 <noreply@example.com>
 送信先: admin@example.com
 テンプレート: VerificationEmail
 
@@ -164,11 +180,7 @@ npm run mail:test
 ### テンプレートの自動検出
 
 `templates/` ディレクトリ内の `.tsx` ファイルが自動的に検出されます。
-テンプレートが選択肢に表示されるには、以下のエクスポートが必要です:
-
-- `subject` - メールの件名
-- `default` - テンプレートコンポーネント
-- `testProps` - テスト用のprops
+`createMailTemplate()` で作成されたオブジェクトがエクスポートされていれば、テスト送信の選択肢に表示されます。
 
 ## テーマカラー
 
@@ -267,5 +279,5 @@ const styles = {
 
 ### 環境変数が読み込まれない
 
-- Next.js開発サーバー: `.env.development` が自動で読み込まれる
-- スクリプト直接実行: `dotenv` で明示的に読み込む必要がある（test-mail.tsを参照）
+- `RESEND_API_KEY` のみ環境変数で管理
+- 送信元アドレス等は `businessConfig` で設定

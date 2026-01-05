@@ -2,7 +2,16 @@
 
 import type { ReactElement } from "react";
 
+import { businessConfig } from "@/config/business.config";
+
 import { getResendClient } from "./resend";
+
+export { createMailTemplate } from "./createMailTemplate";
+export type {
+  MailSendOptions,
+  MailTemplate,
+  MailTemplateConfig,
+} from "./createMailTemplate";
 
 export type SendMailOptions = {
   /** 宛先メールアドレス */
@@ -11,21 +20,11 @@ export type SendMailOptions = {
   subject: string;
   /** React Emailコンポーネント */
   react: ReactElement;
-  /** 送信元メールアドレス（省略時は環境変数から取得） */
+  /** 送信元メールアドレス（省略時は businessConfig.mail.defaultFrom） */
   from?: string;
-  /** 送信者名（省略時は名前なし） */
+  /** 送信者名（省略時は businessConfig.mail.defaultFromName） */
   fromName?: string;
 };
-
-function getDefaultFromAddress(): string {
-  const fromAddress = process.env.MAIL_FROM_ADDRESS;
-  if (!fromAddress) {
-    throw new Error(
-      "MAIL_FROM_ADDRESS が設定されていません。環境変数を確認してください。",
-    );
-  }
-  return fromAddress;
-}
 
 /**
  * メールを送信します。
@@ -44,8 +43,11 @@ function getDefaultFromAddress(): string {
  */
 export async function send(options: SendMailOptions): Promise<void> {
   const { to, subject, react, from, fromName } = options;
-  const fromAddress = from ?? getDefaultFromAddress();
-  const fromField = fromName ? `${fromName} <${fromAddress}>` : fromAddress;
+
+  const fromAddress = from ?? businessConfig.mail.defaultFrom;
+  const senderName = fromName ?? businessConfig.mail.defaultFromName;
+  const fromField = senderName ? `${senderName} <${fromAddress}>` : fromAddress;
+
   const resend = getResendClient();
 
   const { error } = await resend.emails.send({

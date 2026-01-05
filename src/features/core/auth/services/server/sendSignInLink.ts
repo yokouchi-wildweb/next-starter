@@ -3,7 +3,7 @@
 import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server/app";
-import { sendVerificationEmail } from "@/features/core/mail/services/server/sendVerificationEmail";
+import { VerificationEmail } from "@/features/core/mail/templates/VerificationEmail";
 import { AUTH_CONTINUE_URL } from "@/features/core/auth/config/authSettings";
 import { DomainError } from "@/lib/errors";
 
@@ -46,9 +46,9 @@ export async function sendSignInLink({
   }
 
   try {
-    await sendVerificationEmail({
-      to: email,
+    await VerificationEmail.send(email, {
       verificationUrl,
+      email,
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
