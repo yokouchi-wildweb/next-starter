@@ -9,7 +9,7 @@ User/
 ├── Layout/          # レイアウトコンポーネント
 │   ├── UserLayout.tsx   # アプリ全体のレイアウト（Header + Footer + BottomNav + Provider）
 │   └── UserPage.tsx     # ページコンテナ
-├── Sections/        # レイアウトセクション
+├── Sections/        # セクション
 │   ├── Header/          # ヘッダーナビゲーション
 │   ├── Footer/          # フッター（スクロール内）
 │   └── BottomNav/       # ボトムナビゲーション（スマホ固定）

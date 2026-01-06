@@ -158,6 +158,10 @@ use wrappers instead of raw HTML:
 - skeleton -> Skeleton/BaseSkeleton (not shadcn)
 - page title in user app routes -> AppFrames/User/Elements/PageTitle
 
+user app shared components:
+- element (small, reusable) -> AppFrames/User/Elements/
+- section (larger, composite) -> AppFrames/User/Sections/
+
 page-level layout control:
 - AppFrames/User/controls: header/footer/bottomMenu visibility per page
 - must be placed in page.tsx, not in child components
