@@ -5,7 +5,7 @@ import type {
   EnvApiResponse,
   EnvSummary,
   KeyValuePair,
-} from "@/app/api/demo/get-env/envSummary";
+} from "./api/envSummary";
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
 import axios from "axios";
@@ -20,7 +20,7 @@ export const ClientApiResultSection = () => {
     setIsLoading(true);
     setClientError(null);
     try {
-      const response = await axios.get<EnvApiResponse>("/api/demo/get-env");
+      const response = await axios.get<EnvApiResponse>("/demo/check-env/api");
       setResult(response.data);
     } catch (error) {
       setClientError(error instanceof Error ? error.message : String(error));
@@ -34,7 +34,7 @@ export const ClientApiResultSection = () => {
       <Block space="sm">
         <h2 className="text-2xl font-semibold">API での再取得</h2>
         <p className="text-sm text-muted-foreground">
-          「情報を取得」ボタンを押すと API (`/api/demo/get-env`) から同様の情報を取得し、結果とエラーを表示します。
+          「情報を取得」ボタンを押すと API (`/demo/check-env/api`) から同様の情報を取得し、結果とエラーを表示します。
         </p>
       </Block>
       <div className="flex flex-wrap items-center gap-3">

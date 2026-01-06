@@ -1,4 +1,4 @@
-// src/app/api/auth/demo/login/route.ts
+// src/app/api/auth/guest-login/route.ts
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -13,7 +13,7 @@ const DemoLoginRequestSchema = z.object({
 
 export const POST = createApiRoute(
   {
-    operation: "POST /api/auth/demo/login",
+    operation: "POST /api/auth/guest-login",
     operationType: "write",
     skipForDemo: false,
   },

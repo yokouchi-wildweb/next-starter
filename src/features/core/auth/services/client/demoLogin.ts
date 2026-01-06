@@ -7,7 +7,7 @@ import axios from "axios";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { normalizeHttpError } from "@/lib/errors";
 
-const ENDPOINT = "/api/auth/demo/login";
+const ENDPOINT = "/api/auth/guest-login";
 
 export type DemoLoginInput = {
   demoUserId?: string | null;

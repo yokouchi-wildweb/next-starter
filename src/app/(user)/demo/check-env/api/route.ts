@@ -1,4 +1,4 @@
-// src/app/api/demo/get-env/route.ts
+// src/app/(user)/demo/check-env/api/route.ts
 
 import { NextResponse } from "next/server";
 
@@ -7,7 +7,7 @@ import { buildEnvSummary, createEmptySummary } from "./envSummary";
 
 export const GET = createApiRoute(
   {
-    operation: "GET /api/demo/get-env",
+    operation: "GET /demo/check-env/api",
     operationType: "read",
   },
   async () => {

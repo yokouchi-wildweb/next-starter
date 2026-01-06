@@ -30,7 +30,7 @@ export class DummyPaymentProvider implements PaymentProvider {
       success_url: params.successUrl,
       cancel_url: params.cancelUrl,
     });
-    const redirectUrl = `/dummy-payment?${queryParams.toString()}`;
+    const redirectUrl = `/demo/dummy-payment?${queryParams.toString()}`;
 
     return {
       sessionId,
