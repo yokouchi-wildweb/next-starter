@@ -1,8 +1,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import type { EnvApiError, EnvSummary, KeyValuePair } from "@/app/api/demo/get-env/envSummary";
-import { buildEnvSummary } from "@/app/api/demo/get-env/envSummary";
+import type { EnvApiError, EnvSummary, KeyValuePair } from "./api/envSummary";
+import { buildEnvSummary } from "./api/envSummary";
 import { Block } from "@/components/Layout/Block";
 import { ClientApiResultSection } from "./ClientApiResult";
 
