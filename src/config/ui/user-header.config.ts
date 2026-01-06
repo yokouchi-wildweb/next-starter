@@ -26,28 +26,6 @@ export const HEADER_NAV_ENABLED = {
 /** ロゴクリック時の遷移先 */
 export const HEADER_LOGO_LINK = "/";
 
-/**
- * ロゴ画像のURL設定
- * - 未設定（null）の場合、もう一方のモードの画像をフォールバックとして使用
- * - 両方未設定の場合はテキストロゴを表示
- */
-export const HEADER_LOGO = {
-  /** ライトモード用のロゴ画像URL */
-  light: null as string | null,
-  /** ダークモード用のロゴ画像URL */
-  dark: null as string | null,
-} as const;
-
-/**
- * テキストロゴ設定（画像ロゴが未設定の場合に使用）
- */
-export const HEADER_TEXT_LOGO = {
-  /** ロゴの短縮テキスト（アイコン部分） */
-  short: "UX",
-  /** ブランド名 */
-  name: "Experience Demo",
-} as const;
-
 // ============================================
 // メニューアイテム設定
 // ============================================
