@@ -22,8 +22,8 @@ export type MailTemplateConfig<TProps extends object> = {
   subject: string;
   /** テンプレートコンポーネント */
   component: React.ComponentType<TProps>;
-  /** テスト送信用のprops */
-  testProps: TProps;
+  /** テスト送信用のprops（型推論は component から行われる） */
+  testProps: NoInfer<TProps>;
   /** テンプレートの説明（テスト送信時に表示） */
   testDescription?: string;
   /** デフォルトの送信元アドレス */
