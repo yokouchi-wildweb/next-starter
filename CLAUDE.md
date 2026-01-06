@@ -216,7 +216,7 @@ index.ts: re-export only (no implementation logic)
 - re-implement CRUD when base suffices
 - edit generated files without wrappers
 - direct API route handlers (use routeFactory: createApiRoute / createDomainRoute)
-- direct asset paths (use utils/assets: assetPath, imgPath, videoPath)
+- direct asset paths (use utils/assets: assetPath, imgPath, videoPath, logoPath)
 - main tag in user app routes (use components/AppFrames/User/Layout/UserPage)
 
 ## CORE_FILES (approval required)

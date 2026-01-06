@@ -10,7 +10,7 @@ import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { imgPath } from "@/utils/assets";
+import { logoPath } from "@/utils/assets";
 
 const headerContainer = cva(
   "flex items-center justify-between gap-3 px-4 py-2 text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:py-3 sm:text-lg",
@@ -24,8 +24,8 @@ type AdminHeaderProps = {
 export function Header({ logoUrl, darkLogoUrl }: AdminHeaderProps) {
   const normalizedLightLogo = logoUrl && logoUrl.trim() !== "" ? logoUrl : null;
   const normalizedDarkLogo = darkLogoUrl && darkLogoUrl.trim() !== "" ? darkLogoUrl : null;
-  const lightLogoSrc = normalizedLightLogo ?? imgPath("logos/nextjs.png");
-  const darkLogoSrc = normalizedDarkLogo ?? normalizedLightLogo ?? imgPath("logos/nextjs-dm.png");
+  const lightLogoSrc = normalizedLightLogo ?? logoPath("dark");
+  const darkLogoSrc = normalizedDarkLogo ?? normalizedLightLogo ?? logoPath("light");
   const showDarkModeSwitch = APP_FEATURES.admin.appearance.enableDarkModeSwitch;
   const { isAuthenticated } = useAuthSession();
 

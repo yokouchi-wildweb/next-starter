@@ -5,11 +5,10 @@ import Link from "next/link";
 
 import { businessConfig } from "@/config/business.config";
 import { HEADER_LOGO_LINK } from "@/config/ui/user-header.config";
-import { imgPath } from "@/utils/assets";
+import { logoPath } from "@/utils/assets";
 
 export const Brand = () => {
-  const logoPath = businessConfig.logo.variants.default;
-  const hasLogo = (logoPath as string) !== "";
+  const hasLogo = (businessConfig.logo.variants.default as string) !== "";
 
   return (
     <Link
@@ -18,7 +17,7 @@ export const Brand = () => {
     >
       {hasLogo ? (
         <Image
-          src={imgPath(logoPath)}
+          src={logoPath()}
           alt={businessConfig.serviceNameShort}
           width={160}
           height={40}
