@@ -27,7 +27,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
+      <head>
+        {/* FOUC対策: Tailwind CSSロード完了まで非表示 */}
+        <style dangerouslySetInnerHTML={{ __html: "body{opacity:0}" }} />
+      </head>
 
       <body suppressHydrationWarning className="antialiased font-sans">
         <Suspense fallback={null}>

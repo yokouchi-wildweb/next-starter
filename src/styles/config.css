@@ -35,3 +35,8 @@
 
   --app-header-height: 0px;
 }
+
+/* FOUC対策: Tailwind CSSロード完了時に表示 */
+body {
+  opacity: 1;
+}
