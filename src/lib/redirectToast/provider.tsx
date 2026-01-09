@@ -2,31 +2,22 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { toast } from "sonner";
 
+import { useAppToast } from "@/hooks/useAppToast";
 import { clearRedirectToastCookie, readRedirectToastCookie } from "./cookie";
-import type { RedirectToastPayload, RedirectToastVariant } from "./types";
+import type { RedirectToastVariant } from "./types";
+import type { AppToastVariant } from "@/stores/appToast";
 
-const variantToHandler: Record<RedirectToastVariant, (message: string) => void> = {
-  success: toast.success,
-  info: toast.info,
-  warning: toast.warning,
-  error: toast.error,
-};
-
-const showToast = ({ message, variant }: RedirectToastPayload) => {
-const handler = variantToHandler[variant];
-
-  if (handler) {
-    handler(message);
-    return;
-  }
-
-  toast(message);
+const variantMap: Record<RedirectToastVariant, AppToastVariant> = {
+  success: "success",
+  info: "info",
+  warning: "warning",
+  error: "error",
 };
 
 export const RedirectToastProvider = () => {
   const pathname = usePathname();
+  const { showAppToast } = useAppToast();
 
   useEffect(() => {
     const payload = readRedirectToastCookie();
@@ -35,9 +26,10 @@ export const RedirectToastProvider = () => {
       return;
     }
 
-    showToast(payload);
+    const variant = variantMap[payload.variant] ?? "info";
+    showAppToast(payload.message, variant);
     clearRedirectToastCookie();
-  }, [pathname]);
+  }, [pathname, showAppToast]);
 
   return null;
 };

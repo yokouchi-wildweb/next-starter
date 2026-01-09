@@ -5,13 +5,13 @@
 import Link from "next/link";
 import { cva } from "class-variance-authority";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 
 import { Block } from "@/components/Layout/Block";
 import { Span } from "@/components/TextBlocks";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
+import { useAppToast } from "@/hooks/useAppToast";
 
 import { insaneMenu } from "@/config/ui/admin-insane-menu.config";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
@@ -109,6 +109,7 @@ export function InsaneSidebar({
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
+  const { showAppToast } = useAppToast();
 
   const clearCloseTimeout = useCallback(() => {
     if (closeTimeoutRef.current) {
@@ -140,11 +141,11 @@ export function InsaneSidebar({
     try {
       await logout();
       onNavigate?.();
-      toast.success("ログアウトしました");
+      showAppToast("ログアウトしました", "success");
     } catch (error) {
-      toast.error(err(error, "ログアウトに失敗しました"));
+      showAppToast(err(error, "ログアウトに失敗しました"), "error");
     }
-  }, [logout, onNavigate]);
+  }, [logout, onNavigate, showAppToast]);
 
   const focusIndex = (index: number) => {
     clearCloseTimeout();

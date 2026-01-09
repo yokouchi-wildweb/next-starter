@@ -3,8 +3,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
+import { useAppToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
 import ManagerialUserCreateForm from "@/features/core/user/components/admin/form/ManagerialUserCreateForm";
 import type { FormValues } from "@/features/core/user/components/admin/form/ManagerialUserCreateForm/formEntities";
@@ -15,15 +15,16 @@ const REDIRECT_PATH = "/admin/login";
 
 export default function AdminSetupForm() {
   const router = useRouter();
+  const { showAppToast } = useAppToast();
   const { trigger, isMutating } = useAdminSetup();
 
   const handleSubmit = async (values: FormValues) => {
     try {
       await trigger(values);
-      toast.success("初回セットアップが完了しました");
+      showAppToast("初回セットアップが完了しました", "success");
       router.push(REDIRECT_PATH);
     } catch (error) {
-      toast.error(err(error, "初回セットアップに失敗しました"));
+      showAppToast(err(error, "初回セットアップに失敗しました"), "error");
     }
   };
 

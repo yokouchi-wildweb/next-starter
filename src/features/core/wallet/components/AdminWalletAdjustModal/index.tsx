@@ -5,7 +5,8 @@
 import { useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+
+import { useAppToast } from "@/hooks/useAppToast";
 
 import TabbedModal from "@/components/Overlays/TabbedModal";
 import { Block } from "@/components/Layout/Block";
@@ -67,6 +68,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
     formState: { isSubmitting },
   } = methods;
 
+  const { showAppToast } = useAppToast();
   const { trigger, isMutating } = useAdjustWallet({ revalidateKeys: ["wallets"] });
   const { data: walletBalances } = useWalletBalances(user?.id);
   const changeMethod = useWatch({
@@ -111,10 +113,10 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
 
     try {
       await trigger({ userId: user.id, payload });
-      toast.success(`${currencyLabel}を更新しました`);
+      showAppToast(`${currencyLabel}を更新しました`, "success");
       handleRequestClose();
     } catch (error) {
-      toast.error(err(error, `${currencyLabel}の操作に失敗しました`));
+      showAppToast(err(error, `${currencyLabel}の操作に失敗しました`), "error");
     }
   };
 

@@ -172,12 +172,13 @@ Mutation 系フックは `trigger` 関数を通じて操作を行います。`tr
 ### 作成: `useCreateSample`
 
 ```tsx
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/useAppToast";
 import { useCreateSample } from "@/features/sample/hooks/useCreateSample";
 import type { SampleCreateFields } from "@/features/sample/entities/form";
 import { err } from "@/lib/errors";
 
 export const SampleCreateButton = () => {
+  const { showAppToast } = useAppToast();
   const { trigger, isLoading } = useCreateSample();
 
   const handleClick = async () => {
@@ -188,9 +189,9 @@ export const SampleCreateButton = () => {
 
     try {
       await trigger(payload);
-      toast.success("サンプルを登録しました");
+      showAppToast("サンプルを登録しました", "success");
     } catch (error) {
-      toast.error(err(error, "サンプルの登録に失敗しました"));
+      showAppToast(err(error, "サンプルの登録に失敗しました"), "error");
     }
   };
 
@@ -205,19 +206,20 @@ export const SampleCreateButton = () => {
 ### 更新: `useUpdateSample`
 
 ```tsx
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
 import { useUpdateSample } from "@/features/sample/hooks/useUpdateSample";
 
 export const SampleUpdateButton = ({ id }: { id: string }) => {
+  const { showAppToast } = useAppToast();
   const { trigger, isLoading } = useUpdateSample();
 
   const handleUpdate = async () => {
     try {
       await trigger({ id, data: { status: "published" } });
-      toast.success("更新しました");
+      showAppToast("更新しました", "success");
     } catch (error) {
-      toast.error(err(error, "更新に失敗しました"));
+      showAppToast(err(error, "更新に失敗しました"), "error");
     }
   };
 
@@ -232,11 +234,12 @@ export const SampleUpdateButton = ({ id }: { id: string }) => {
 ### 削除: `useDeleteSample`
 
 ```tsx
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
 import { useDeleteSample } from "@/features/sample/hooks/useDeleteSample";
 
 export const SampleDeleteButton = ({ id }: { id: string }) => {
+  const { showAppToast } = useAppToast();
   const { trigger, isLoading } = useDeleteSample();
 
   const handleDelete = async () => {
@@ -244,9 +247,9 @@ export const SampleDeleteButton = ({ id }: { id: string }) => {
 
     try {
       await trigger(id);
-      toast.success("削除しました");
+      showAppToast("削除しました", "success");
     } catch (error) {
-      toast.error(err(error, "削除に失敗しました"));
+      showAppToast(err(error, "削除に失敗しました"), "error");
     }
   };
 
@@ -263,20 +266,21 @@ export const SampleDeleteButton = ({ id }: { id: string }) => {
 アップサートフックは有効なドメインのみ生成されます。`trigger(data, options?)` の形で呼び出し、`options.conflictFields` を渡すと衝突検知対象を切り替えられます。
 
 ```tsx
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
 import { useUpsertSample } from "@/features/sample/hooks/useUpsertSample";
 import type { SampleCreateFields } from "@/features/sample/entities/form";
 
 export const SampleSyncButton = ({ payload }: { payload: SampleCreateFields }) => {
+  const { showAppToast } = useAppToast();
   const { trigger, isLoading } = useUpsertSample();
 
   const handleSync = async () => {
     try {
       await trigger(payload, { conflictFields: ["externalId"] });
-      toast.success("同期しました");
+      showAppToast("同期しました", "success");
     } catch (error) {
-      toast.error(err(error, "同期に失敗しました"));
+      showAppToast(err(error, "同期に失敗しました"), "error");
     }
   };
 

@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
 import { useAppToast } from "@/hooks/useAppToast";
-import { toast } from "sonner";
 
 export type DuplicateButtonProps = {
   id: string;
@@ -38,10 +37,10 @@ export default function DuplicateButton({
     showAppToast({ message: "複製を実行中です…", mode: "persistent" });
     try {
       await trigger(id);
-      toast.success("複製が完了しました。");
+      showAppToast("複製が完了しました。", "success");
       router.refresh();
-    } finally {
-      hideAppToast();
+    } catch {
+      showAppToast("複製に失敗しました", "error");
     }
   };
 

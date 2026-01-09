@@ -31,7 +31,6 @@ import {
 import { Textarea } from "@/components/_shadcn/textarea";
 import { Section } from "@/components/Layout/Section";
 import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
-import { toast } from "sonner";
 
 const MODES = [
   { value: "local", label: "local (親要素内に表示)" },
@@ -237,7 +236,7 @@ export default function OverlayDemoPage() {
             <Button variant="outline" onClick={() => setActiveTabbedModalTab("memo")}>
               メモを編集する
             </Button>
-            <Button variant="accent" onClick={() => toast("メモを共有しました。")}>
+            <Button variant="accent" onClick={() => showAppToast("メモを共有しました。", "info")}>
               メモを共有
             </Button>
             <Button variant="secondary" onClick={closeTabbedModal}>
@@ -291,8 +290,8 @@ export default function OverlayDemoPage() {
 
     setIsConfirmProcessing(false);
     setIsConfirmOpen(false);
-    toast.success("確認ダイアログで確定しました。");
-  }, []);
+    showAppToast("確認ダイアログで確定しました。", "success");
+  }, [showAppToast]);
 
   const handleShowToast = useCallback((variant: "success" | "info" | "error") => {
     const messageMap = {
@@ -301,18 +300,8 @@ export default function OverlayDemoPage() {
       error: "エラーが発生しました。再度お試しください。",
     } as const satisfies Record<"success" | "info" | "error", string>;
 
-    if (variant === "success") {
-      toast.success(messageMap.success);
-      return;
-    }
-
-    if (variant === "info") {
-      toast(messageMap.info);
-      return;
-    }
-
-    toast.error(messageMap.error);
-  }, []);
+    showAppToast(messageMap[variant], variant);
+  }, [showAppToast]);
 
   const handleShowAppToast = useCallback(() => {
     showAppToast({

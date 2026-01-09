@@ -12,7 +12,6 @@ import type { Setting } from "@/features/core/setting/entities";
 import { useUpdateSetting } from "@/features/core/setting/hooks/useUpdateSetting";
 import { SettingForm } from "./SettingForm";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { useAppToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
@@ -55,12 +54,10 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
     showAppToast({ message: "更新中です…", mode: "persistent" });
     try {
       await trigger({ id: setting.id, data });
-      hideAppToast();
-      toast.success("設定を更新しました");
+      showAppToast("設定を更新しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      hideAppToast();
-      toast.error(err(error, "更新に失敗しました"));
+      showAppToast(err(error, "更新に失敗しました"), "error");
     }
   };
 

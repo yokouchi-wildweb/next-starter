@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
 import { useAppToast } from "@/hooks/useAppToast";
-import { toast } from "sonner";
 import { err } from "@/lib/errors";
 
 export type HardDeleteButtonProps = {
@@ -57,12 +56,10 @@ export default function HardDeleteButton({
     showAppToast({ message: toastMessage, mode: "persistent" });
     try {
       await trigger(id);
-      toast.success(successMessage);
+      showAppToast(successMessage, "success");
       router.refresh();
     } catch (error) {
-      toast.error(err(error, errorMessage));
-    } finally {
-      hideAppToast();
+      showAppToast(err(error, errorMessage), "error");
     }
   };
 
