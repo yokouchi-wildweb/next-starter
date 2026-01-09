@@ -1,16 +1,20 @@
-// src/features/user/components/UserMyPage/index.tsx
+// src/features/core/user/components/UserMyPage/index.tsx
+
+"use client";
+
+import { useCallback } from "react";
+import { UserPenIcon, LogOutIcon, PauseCircleIcon, UserXIcon } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";
-import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Para, SecTitle } from "@/components/TextBlocks";
-import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { USER_ROLE_OPTIONS, formatUserStatusLabel } from "@/features/core/user/constants";
-import { LogoutButton } from "@/features/core/auth/components/common/LogoutButton";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
 import { formatDateJa } from "@/utils/date";
 
+import { ActionMenuCard } from "./ActionMenuCard";
 import { UserInfoTable, type UserInfoRow } from "./UserInfoTable";
 
 type UserMyPageProps = {
@@ -35,6 +39,12 @@ function formatLastAuthenticatedAt(date: User["lastAuthenticatedAt"]): string {
 }
 
 export default function UserMyPage({ user }: UserMyPageProps) {
+  const { logout, isLoading: isLoggingOut } = useLogout();
+
+  const handleLogout = useCallback(async () => {
+    await logout();
+  }, [logout]);
+
   const rows: UserInfoRow[] = [
     { label: "ユーザーID", value: user.id },
     { label: "表示名", value: user.displayName ?? "未設定" },
@@ -47,14 +57,37 @@ export default function UserMyPage({ user }: UserMyPageProps) {
 
   return (
     <>
-      <Flex justify="end" gap="sm">
-        <LinkButton variant="outline" href="/profile/edit">
-          プロフィールを編集
-        </LinkButton>
-        <LogoutButton />
-      </Flex>
-      <Section>
-        <Para>このページはログイン状態のユーザーのみがアクセスできる想定で設計されているメンバー専用ページです。</Para>
+      <Section space="sm">
+        <SecTitle as="h2">メニュー</SecTitle>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <ActionMenuCard
+            icon={UserPenIcon}
+            title="プロフィールを編集"
+            description="表示名やメールアドレスを変更"
+            href="/profile/edit"
+          />
+          <ActionMenuCard
+            icon={LogOutIcon}
+            title={isLoggingOut ? "ログアウト中..." : "ログアウト"}
+            description="このアカウントからログアウト"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          />
+          <ActionMenuCard
+            icon={PauseCircleIcon}
+            title="休会する"
+            description="一時的にアカウントを休止"
+            href="/settings/pause"
+            variant="muted"
+          />
+          <ActionMenuCard
+            icon={UserXIcon}
+            title="退会する"
+            description="アカウントを削除"
+            href="/settings/withdraw"
+            variant="destructive"
+          />
+        </div>
       </Section>
       <Section space="sm">
         <SecTitle as="h2">アカウント情報</SecTitle>
