@@ -1,18 +1,12 @@
 // src/features/core/auth/services/server/demoLogin.ts
 
-import { v4 as uuidv4 } from "uuid";
-
 import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { userService } from "@/features/core/user/services/server/userService";
-import { UserTable } from "@/features/core/user/entities/drizzle";
-import { GeneralUserSchema } from "@/features/core/user/entities/schema";
+import { createGuestDemoUser } from "@/features/core/user/services/server/creation/createGuestDemoUser";
 import { demoModeConfig } from "@/config/app/demo-mode.config";
 import { DEMO_SESSION_MAX_AGE_SECONDS } from "@/constants/session";
-import { db } from "@/lib/drizzle";
 import { signUserToken } from "@/lib/jwt";
-
-const DEMO_USER_PROVIDER_TYPE = "custom";
 
 export type DemoLoginInput = {
   demoUserId?: string | null;
@@ -28,28 +22,6 @@ export type DemoLoginResult = {
     maxAge: number;
   };
 };
-
-/**
- * 新しいデモユーザーを作成する。
- */
-async function createDemoUser() {
-  const providerUid = `demo-user-${uuidv4()}`;
-
-  const values = await GeneralUserSchema.parseAsync({
-    role: "user",
-    status: "active",
-    providerType: DEMO_USER_PROVIDER_TYPE,
-    providerUid,
-    isDemo: true,
-    email: null,
-    localPassword: null,
-    displayName: "デモユーザー",
-  });
-
-  const [user] = await db.insert(UserTable).values(values).returning();
-
-  return user;
-}
 
 /**
  * デモユーザーでのログイン処理。
@@ -73,7 +45,7 @@ export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginRe
 
   // ユーザーが取得できなかった場合は新規作成
   if (!user) {
-    user = await createDemoUser();
+    user = await createGuestDemoUser();
     isNewUser = true;
 
     // 拡張ポイント：関連レコードの挿入
