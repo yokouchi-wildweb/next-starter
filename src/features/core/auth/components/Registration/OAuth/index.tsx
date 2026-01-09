@@ -12,12 +12,12 @@ import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/Controlled";
 import { Para } from "@/components/TextBlocks";
-import { USER_PROVIDER_TYPES } from "@/constants/user";
+import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 

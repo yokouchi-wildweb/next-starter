@@ -8,7 +8,7 @@ import { usePreRegistration } from "@/features/core/auth/hooks/usePreRegistratio
 import { signInWithEmailLinkClient } from "@/lib/firebase/client/signInWithEmailLinkClient";
 import { isHttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 
 const EMAIL_PROVIDER: UserProviderType = "email";
 

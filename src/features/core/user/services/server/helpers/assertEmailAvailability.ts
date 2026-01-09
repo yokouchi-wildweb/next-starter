@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 
 export type AssertEmailAvailabilityParams = {
   providerType: UserProviderType;

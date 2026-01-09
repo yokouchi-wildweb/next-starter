@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { User } from "@/features/core/user/entities";
-import { USER_STATUSES } from "@/constants/user";
+import { USER_STATUSES } from "@/features/core/user/constants";
 
 const displayNameSchema = z.string();
 

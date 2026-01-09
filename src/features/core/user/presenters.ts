@@ -1,8 +1,7 @@
 // src/features/core/user/presenters.ts
 
-import { USER_ROLE_OPTIONS } from "@/constants/user";
+import { USER_ROLE_OPTIONS, formatUserStatusLabel } from "@/features/core/user/constants";
 import type { User } from "@/features/core/user/entities";
-import { formatUserStatusLabel } from "@/features/core/user/constants/status";
 import type { FieldPresenter } from "@/lib/crud/presenters";
 import {
   formatDateValue,

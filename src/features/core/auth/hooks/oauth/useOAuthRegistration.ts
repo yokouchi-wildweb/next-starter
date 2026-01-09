@@ -7,7 +7,7 @@ import { usePreRegistration } from "@/features/core/auth/hooks/usePreRegistratio
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { createFirebaseSession } from "@/features/core/auth/services/client/firebaseSession";
 import { log } from "@/utils/log";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 import type { OAuthCredentialInfo } from "./types";
 
 type UseOAuthRegistrationParams = {

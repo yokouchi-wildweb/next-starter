@@ -8,7 +8,7 @@ import { extractOAuthCredential } from "@/features/core/auth/utils/extractOAuthC
 import { useExists } from "@/features/core/user/hooks/useExists";
 import { useStatusChecker } from "@/features/core/user/hooks/useStatusChecker";
 import { log } from "@/utils/log";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 import type { OAuthCredentialInfo } from "./types";
 
 type UseOAuthCredentialParams = {

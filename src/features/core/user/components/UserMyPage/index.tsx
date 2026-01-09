@@ -5,12 +5,11 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Para, SecTitle } from "@/components/TextBlocks";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import { USER_ROLE_OPTIONS } from "@/constants/user";
+import { USER_ROLE_OPTIONS, formatUserStatusLabel } from "@/features/core/user/constants";
 import { LogoutButton } from "@/features/core/auth/components/common/LogoutButton";
 import type { User } from "@/features/core/user/entities";
-import type { UserRoleType } from "@/types/user";
+import type { UserRoleType } from "@/features/core/user/types";
 import { formatDateJa } from "@/utils/date";
-import { formatUserStatusLabel } from "@/features/core/user/constants/status";
 
 import { UserInfoTable, type UserInfoRow } from "./UserInfoTable";
 

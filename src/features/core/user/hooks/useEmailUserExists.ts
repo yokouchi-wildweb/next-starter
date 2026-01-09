@@ -4,7 +4,7 @@
 
 import { useCallback, useState } from "react";
 import { normalizeHttpError, type HttpError } from "@/lib/errors/httpError";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 import type { User } from "../entities";
 import { userClient } from "../services/client/userClient";
 import { useStatusChecker } from "./useStatusChecker";

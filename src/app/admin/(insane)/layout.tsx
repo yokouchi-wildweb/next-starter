@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { InsaneProtectedLayout } from "@/components/AppFrames/Admin/Insane";
 import { authGuard } from "@/features/core/auth/services/server/authorization";
 import { userService } from "@/features/core/user/services/server/userService";
-import type { UserRoleType } from "@/types/user";
+import type { UserRoleType } from "@/features/core/user/types";
 
 export default async function InsaneLayout({
   children,

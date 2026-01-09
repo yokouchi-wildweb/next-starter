@@ -1,6 +1,6 @@
 // src/features/user/entities/drizzle.ts
 
-import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/constants/user";
+import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
 import { boolean, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const UserRoleEnum = pgEnum("user_role", [...USER_ROLES]);

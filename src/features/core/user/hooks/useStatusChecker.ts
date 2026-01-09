@@ -7,8 +7,8 @@ import { useMemo } from "react";
 import {
   USER_AVAILABLE_STATUSES,
   USER_REGISTERED_STATUSES,
-} from "@/constants/user";
-import type { UserStatus } from "@/types/user";
+} from "@/features/core/user/constants";
+import type { UserStatus } from "@/features/core/user/types";
 import {
   createUserStatusChecker,
   isUserStatusAvailable,

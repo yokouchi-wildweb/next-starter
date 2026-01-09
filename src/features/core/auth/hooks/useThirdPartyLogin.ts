@@ -15,7 +15,7 @@ import { createFirebaseSession } from "@/features/core/auth/services/client/fire
 import { auth } from "@/lib/firebase/client/app";
 import { createHttpError, normalizeHttpError } from "@/lib/errors";
 import { log } from "@/utils/log";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 
 const PROVIDER_TYPE_STORAGE_KEY = "auth:third-party-login-provider-type";
 

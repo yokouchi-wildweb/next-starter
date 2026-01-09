@@ -1,7 +1,7 @@
 // src/features/user/entities/model.ts
 
 import type { BaseEntity } from "@/types/entity";
-import type { UserProviderType, UserRoleType, UserStatus } from "@/types/user";
+import type { UserProviderType, UserRoleType, UserStatus } from "@/features/core/user/types";
 
 export type User = BaseEntity & {
   providerType: UserProviderType;

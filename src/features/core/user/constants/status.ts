@@ -1,8 +1,18 @@
-// src/features/user/constants/status.ts
+// src/features/core/user/constants/status.ts
 
-import { USER_STATUSES } from "@/constants/user";
 import type { Options } from "@/types/form";
-import type { UserStatus } from "@/types/user";
+
+export const USER_STATUSES = [
+  "pending",
+  "active",
+  "inactive",
+  "suspended",
+  "banned",
+  "security_locked",
+  "withdrawn",
+] as const;
+
+type UserStatus = (typeof USER_STATUSES)[number];
 
 export const USER_STATUS_LABELS: Record<UserStatus, string> = {
   pending: "仮登録",
@@ -28,3 +38,15 @@ export const formatUserStatusLabel = (
   }
   return USER_STATUS_LABELS[status as UserStatus] ?? status;
 };
+
+// 利用可能なステータス（ログイン可能）
+export const USER_AVAILABLE_STATUSES: readonly UserStatus[] = ["active"];
+
+// 本登録済みステータス（再登録不可）
+export const USER_REGISTERED_STATUSES: readonly UserStatus[] = [
+  "active",
+  "inactive",
+  "suspended",
+  "banned",
+  "security_locked",
+];

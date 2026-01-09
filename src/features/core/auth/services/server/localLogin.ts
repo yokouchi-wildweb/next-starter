@@ -8,7 +8,7 @@ import { verifyPassword } from "@/features/core/auth/utils/password";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
-import type { UserRoleType, UserStatus } from "@/types/user";
+import type { UserRoleType, UserStatus } from "@/features/core/user/types";
 
 export type LocalLoginInput = z.infer<typeof LocalLoginSchema>;
 

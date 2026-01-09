@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 import { userClient } from "../services/client/userClient";
 import type { User } from "../entities";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 import { normalizeHttpError, type HttpError } from "@/lib/errors/httpError";
 
 type CheckResult = {

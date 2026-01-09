@@ -5,7 +5,7 @@
 import axios from "axios";
 
 import type { User } from "@/features/core/user/entities";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 import { normalizeHttpError } from "@/lib/errors";
 
 const ENDPOINT = "/api/auth/pre-register";

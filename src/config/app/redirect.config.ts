@@ -1,5 +1,5 @@
 import type { RedirectToastPayload } from "@/lib/redirectToast/types";
-import type { UserRoleType } from "@/types/user";
+import type { UserRoleType } from "@/features/core/user/types";
 
 export type RedirectRule = {
   sourcePaths: string[];

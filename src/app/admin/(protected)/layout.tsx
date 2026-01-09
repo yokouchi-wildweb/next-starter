@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { AdminProtectedLayout } from "@/components/AppFrames/Admin/Layout/AdminProtectedLayout";
 import { authGuard } from "@/features/core/auth/services/server/authorization";
 import { userService } from "@/features/core/user/services/server/userService";
-import type { UserRoleType } from "@/types/user";
+import type { UserRoleType } from "@/features/core/user/types";
 
 export default async function AdminLayout({
   children,

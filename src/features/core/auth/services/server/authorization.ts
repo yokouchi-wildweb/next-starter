@@ -6,8 +6,8 @@ import { cookies } from "next/headers";
 import { parseSessionCookie } from "@/lib/jwt";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
-import { USER_AVAILABLE_STATUSES } from "@/constants/user";
-import type { UserRoleType, UserStatus } from "@/types/user";
+import { USER_AVAILABLE_STATUSES } from "@/features/core/user/constants";
+import type { UserRoleType, UserStatus } from "@/features/core/user/types";
 
 type AuthGuardOptions = {
   allowRoles?: UserRoleType[];

@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { db } from "@/lib/drizzle";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 
 /**
  * プロバイダー情報でユーザーを検索する。

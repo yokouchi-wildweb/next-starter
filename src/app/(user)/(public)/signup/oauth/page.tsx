@@ -2,9 +2,9 @@
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { USER_PROVIDER_TYPES } from "@/constants/user";
+import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import { OAuth } from "@/features/core/auth/components/OAuth";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 
 type SignUpOAuthPageProps = {
   searchParams?: Promise<{

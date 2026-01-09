@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 
 import { preRegister as preRegisterService } from "@/features/core/auth/services/client/preRegistration";
 import type { User } from "@/features/core/user/entities";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 import { isHttpError, type HttpError } from "@/lib/errors";
 
 export type PreRegistrationInput = {

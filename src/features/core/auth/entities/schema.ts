@@ -1,6 +1,6 @@
 // src/features/auth/entities/schema.ts
 
-import { USER_PROVIDER_TYPES } from "@/constants/user";
+import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import { z } from "zod";
 
 const IdTokenSchema = z

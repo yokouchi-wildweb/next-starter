@@ -8,8 +8,8 @@ import {
   type AuthProvider,
 } from "firebase/auth";
 
-import { OAUTH_PROVIDER_IDS } from "@/constants/user";
-import type { UserProviderType } from "@/types/user";
+import { OAUTH_PROVIDER_IDS } from "@/features/core/user/constants";
+import type { UserProviderType } from "@/features/core/user/types";
 
 export function createOAuthProvider(provider: UserProviderType): AuthProvider | null {
   switch (provider) {

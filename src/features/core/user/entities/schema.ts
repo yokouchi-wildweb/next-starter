@@ -1,6 +1,6 @@
 // src/features/user/entities/schema.ts
 
-import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/constants/user";
+import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
 import { createHashPreservingNullish } from "@/utils/hash";
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";

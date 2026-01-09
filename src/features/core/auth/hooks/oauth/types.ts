@@ -3,7 +3,7 @@
  */
 
 import type { extractOAuthCredential } from "@/features/core/auth/utils/extractOAuthCredential";
-import type { UserProviderType } from "@/types/user";
+import type { UserProviderType } from "@/features/core/user/types";
 
 /**
  * OAuthフローの進行段階

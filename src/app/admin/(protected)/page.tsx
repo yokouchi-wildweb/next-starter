@@ -14,7 +14,7 @@ import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { userService } from "@/features/core/user/services/server/userService";
-import type { UserRoleType } from "@/types/user";
+import type { UserRoleType } from "@/features/core/user/types";
 import { Block } from "@/components/Layout/Block";
 
 export const dynamic = "force-dynamic";

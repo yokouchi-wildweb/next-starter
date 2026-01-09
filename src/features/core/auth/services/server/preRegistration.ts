@@ -2,7 +2,7 @@
 
 import type { z } from "zod";
 
-import { USER_REGISTERED_STATUSES } from "@/constants/user";
+import { USER_REGISTERED_STATUSES } from "@/features/core/user/constants";
 import { PreRegistrationSchema } from "@/features/core/auth/entities/schema";
 import type { User } from "@/features/core/user/entities";
 import { GeneralUserSchema } from "@/features/core/user/entities/schema";
