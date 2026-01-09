@@ -13,7 +13,7 @@ export type CreateDemoUserInput = {
   displayName: string;
   email: string;
   role: User["role"];
-  localPassword?: string; // admin の場合のみ必須
+  localPassword: string;
 };
 
 export type UpdateUserInput = Partial<Omit<GeneralUserOptionalFields, "localPassword">> & {

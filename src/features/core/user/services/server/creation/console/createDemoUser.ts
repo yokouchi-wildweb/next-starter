@@ -57,16 +57,17 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
 }
 
 async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
-  const auth = getServerAuth();
+  if (!data.localPassword || data.localPassword.length < 8) {
+    throw new DomainError("パスワードは8文字以上で入力してください");
+  }
 
-  // デモユーザー用の一時パスワードを生成
-  const tempPassword = randomUUID();
+  const auth = getServerAuth();
 
   const firebaseUser = await (async () => {
     try {
       return await auth.createUser({
         email: data.email,
-        password: tempPassword,
+        password: data.localPassword,
         displayName: data.displayName || undefined,
       });
     } catch (error) {

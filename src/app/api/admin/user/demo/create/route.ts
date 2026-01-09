@@ -15,7 +15,7 @@ const CreateDemoUserPayloadSchema = z.object({
     .min(1, { message: "メールアドレスを入力してください" })
     .email({ message: "メールアドレスの形式が不正です" }),
   role: z.enum(USER_ROLES),
-  localPassword: z.string().optional(),
+  localPassword: z.string().min(8, { message: "パスワードは8文字以上で入力してください" }),
 });
 
 export const POST = createApiRoute(

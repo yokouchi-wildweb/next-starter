@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -33,16 +33,13 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
   const router = useRouter();
   const { trigger, isMutating } = useCreateDemoUser();
 
-  const role = useWatch({ control: methods.control, name: "role" });
-  const isAdmin = role === "admin";
-
   const submit = async (values: FormValues) => {
     try {
       await trigger({
         displayName: values.displayName,
         email: values.email,
         role: values.role,
-        localPassword: isAdmin ? values.localPassword : undefined,
+        localPassword: values.localPassword,
       });
       toast.success("デモユーザーを作成しました");
       router.push(redirectPath);
@@ -69,7 +66,6 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         control={control}
         name="role"
         label="権限"
-        description={{ text: "管理者はローカル認証、一般ユーザーはメール認証になります" }}
         renderInput={(field) => (
           <SelectInput
             field={field}
@@ -90,15 +86,12 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
       />
-      {isAdmin && (
-        <FormFieldItem
-          control={control}
-          name="localPassword"
-          label="パスワード"
-          description={{ text: "管理者用のローカル認証パスワード（8文字以上）" }}
-          renderInput={(field) => <PasswordInput field={field} />}
-        />
-      )}
+      <FormFieldItem
+        control={control}
+        name="localPassword"
+        label="パスワード"
+        renderInput={(field) => <PasswordInput field={field} />}
+      />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "作成中..." : "作成"}

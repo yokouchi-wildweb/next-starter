@@ -10,28 +10,16 @@ const emailSchema = z
   .min(1, { message: "メールアドレスを入力してください" })
   .email({ message: "メールアドレスの形式が不正です" });
 
-const localPasswordSchema = z.string();
+const localPasswordSchema = z
+  .string({ required_error: "パスワードを入力してください" })
+  .min(8, { message: "パスワードは8文字以上で入力してください" });
 
-export const FormSchema = z
-  .object({
-    displayName: displayNameSchema,
-    email: emailSchema,
-    role: z.enum(USER_ROLES),
-    localPassword: localPasswordSchema,
-  })
-  .refine(
-    (data) => {
-      // 管理者の場合はパスワード必須（8文字以上）
-      if (data.role === "admin") {
-        return data.localPassword.length >= 8;
-      }
-      return true;
-    },
-    {
-      message: "パスワードは8文字以上で入力してください",
-      path: ["localPassword"],
-    }
-  );
+export const FormSchema = z.object({
+  displayName: displayNameSchema,
+  email: emailSchema,
+  role: z.enum(USER_ROLES),
+  localPassword: localPasswordSchema,
+});
 
 export type FormValues = z.infer<typeof FormSchema>;
 
