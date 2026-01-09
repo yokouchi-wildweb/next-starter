@@ -31,6 +31,11 @@ type Props = {
    * @default true
    */
   showPlaceholderOption?: boolean;
+  /**
+   * SelectContent に適用するクラス名（z-index調整などに使用）。
+   * モーダル内で使用する場合は "surface-ui-layer" などを指定。
+   */
+  contentClassName?: string;
 };
 
 const CLEAR_VALUE = "__EMPTY__";
@@ -49,6 +54,7 @@ export function SelectInput({
   includeNullOption = false,
   nullOptionLabel = "未選択（null）",
   showPlaceholderOption = true,
+  contentClassName,
   ...rest
 }: Props) {
   const handleChange = (value: string) => {
@@ -78,7 +84,7 @@ export function SelectInput({
       <SelectTrigger>
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className={contentClassName}>
         {includeNullOption ? (
           <SelectItem value={CLEAR_VALUE}>{nullOptionLabel}</SelectItem>
         ) : showPlaceholderOption ? (

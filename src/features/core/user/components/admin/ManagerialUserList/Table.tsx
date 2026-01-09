@@ -7,14 +7,13 @@ import DataTable, {
   TableCellAction,
   type DataTableColumn,
 } from "@/lib/tableSuite/DataTable";
-import DeleteButton from "@/components/Fanctional/DeleteButton";
 import EditButton from "@/components/Fanctional/EditButton";
 import { Button } from "@/components/Form/Button/Button";
 import type { User } from "@/features/core/user/entities";
-import { useDeleteUser } from "@/features/core/user/hooks/useDeleteUser";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
+import AdminUserManageModal from "@/features/core/user/components/admin/AdminUserManageModal";
 
 type Props = {
   users: User[];
@@ -27,6 +26,7 @@ const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定
 const createColumns = (
   editBasePath: string,
   onAdjust: (user: User) => void,
+  onManage: (user: User) => void,
 ): DataTableColumn<User>[] => [
   {
     header: "表示名",
@@ -85,8 +85,15 @@ const createColumns = (
         >
           ポイント操作
         </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => onManage(user)}
+        >
+          管理
+        </Button>
         <EditButton href={`${editBasePath}/${user.id}/edit`} />
-        <DeleteButton id={user.id} useDelete={useDeleteUser} title="ユーザー削除" />
       </TableCellAction>
     ),
   },
@@ -94,9 +101,18 @@ const createColumns = (
 
 export default function ManagerialUserListTable({ users, editBasePath }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
+  const [manageTarget, setManageTarget] = useState<User | null>(null);
+
   const handleOpenAdjust = useCallback((user: User) => setAdjustTarget(user), []);
   const handleCloseAdjust = useCallback(() => setAdjustTarget(null), []);
-  const columns = useMemo(() => createColumns(editBasePath, handleOpenAdjust), [editBasePath, handleOpenAdjust]);
+
+  const handleOpenManage = useCallback((user: User) => setManageTarget(user), []);
+  const handleCloseManage = useCallback(() => setManageTarget(null), []);
+
+  const columns = useMemo(
+    () => createColumns(editBasePath, handleOpenAdjust, handleOpenManage),
+    [editBasePath, handleOpenAdjust, handleOpenManage],
+  );
 
   return (
     <>
@@ -107,6 +123,7 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
         emptyValueFallback={adminDataTableFallback}
       />
       <AdminWalletAdjustModal open={Boolean(adjustTarget)} user={adjustTarget} onClose={handleCloseAdjust} />
+      <AdminUserManageModal open={Boolean(manageTarget)} user={manageTarget} onClose={handleCloseManage} />
     </>
   );
 }

@@ -16,6 +16,7 @@ import { hardDelete } from "./wrappers/hardDelete";
 import { remove } from "./wrappers/remove";
 import { update } from "./wrappers/update";
 import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
+import { changeStatus } from "./wrappers/changeStatus";
 
 export { requireCurrentUser } from "./resolvers/requireCurrentUser";
 export type { RequireCurrentUserOptions } from "./resolvers/requireCurrentUser";
@@ -32,6 +33,7 @@ export const userService = {
   checkAdminUserExists,
   // wrappers
   updateLastAuthenticated,
+  changeStatus,
   // creation (console)
   createAdmin,
   createGeneralUser,

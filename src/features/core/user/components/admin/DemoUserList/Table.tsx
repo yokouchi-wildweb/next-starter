@@ -72,7 +72,7 @@ const createColumns = (): DataTableColumn<User>[] => {
       header: "操作",
       render: (user) => (
         <TableCellAction>
-          <HardDeleteButton id={user.id} useHardDelete={useHardDeleteUser} title="デモユーザー削除" />
+          <HardDeleteButton id={user.id} useHardDelete={useHardDeleteUser} title="デモユーザー削除" label="削除" description="デモユーザーを削除します。よろしいですか？" confirmLabel="削除する" />
         </TableCellAction>
       ),
     },
