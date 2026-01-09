@@ -26,6 +26,8 @@ export const APP_FEATURES = {
     showRegistrationSteps: true,
     /** パスワード入力モード: "single"=確認なし, "double"=確認あり */
     passwordInputMode: "single" as "single" | "double",
+    /** 休会機能を有効にする */
+    pauseEnabled: true,
   },
   adminConsole: {
     enableDarkModeSwitch: true,
@@ -38,7 +40,8 @@ export const APP_FEATURES = {
     },
   },
   wallet: {
-    enableUserAdjustButton: true,
+    /** 管理者による残高調整ボタンを有効にする */
+    enableAdminBalanceAdjust: true,
   },
 } as const;
 

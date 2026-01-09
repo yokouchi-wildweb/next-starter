@@ -104,7 +104,7 @@ const createColumns = (
 
 export default function GeneralUserListTable({ users, editBasePath }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
-  const enableWalletAdjust = APP_FEATURES.wallet.enableUserAdjustButton;
+  const enableWalletAdjust = APP_FEATURES.wallet.enableAdminBalanceAdjust;
 
   const handleOpenAdjust = useCallback((user: User) => {
     setAdjustTarget(user);

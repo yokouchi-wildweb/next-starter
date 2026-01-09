@@ -7,7 +7,8 @@ import { UserPenIcon, LogOutIcon, PauseCircleIcon, UserXIcon } from "lucide-reac
 
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
-import { Para, SecTitle } from "@/components/TextBlocks";
+import { SecTitle } from "@/components/TextBlocks";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { USER_ROLE_OPTIONS, formatUserStatusLabel } from "@/features/core/user/constants";
 import type { User } from "@/features/core/user/entities";
@@ -73,13 +74,15 @@ export default function UserMyPage({ user }: UserMyPageProps) {
             onClick={handleLogout}
             disabled={isLoggingOut}
           />
-          <ActionMenuCard
-            icon={PauseCircleIcon}
-            title="休会する"
-            description="一時的にアカウントを休止"
-            href="/settings/pause"
-            variant="muted"
-          />
+          {APP_FEATURES.user.pauseEnabled && (
+            <ActionMenuCard
+              icon={PauseCircleIcon}
+              title="休会する"
+              description="一時的にアカウントを休止"
+              href="/settings/pause"
+              variant="muted"
+            />
+          )}
           <ActionMenuCard
             icon={UserXIcon}
             title="退会する"

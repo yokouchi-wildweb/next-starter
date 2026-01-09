@@ -1,14 +1,20 @@
 // src/app/(user)/(public)/reactivate/page.tsx
 
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { Reactivate } from "@/features/core/user/components/Reactivate";
 
 export default async function ReactivatePage() {
+  // 休会機能が無効の場合は404
+  if (!APP_FEATURES.user.pauseEnabled) {
+    notFound();
+  }
+
   const sessionUser = await getSessionUser();
 
   // 未ログインの場合はログインページへ
