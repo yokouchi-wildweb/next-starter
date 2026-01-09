@@ -24,6 +24,11 @@ type ThirdPartyLoginParams = {
   providerType: UserProviderType;
 };
 
+type HandleRedirectResultReturn = {
+  credential: UserCredential;
+  requiresReactivation: boolean;
+} | null;
+
 export function useThirdPartyLogin() {
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +65,7 @@ export function useThirdPartyLogin() {
     [],
   );
 
-  const handleRedirectResult = useCallback(async (): Promise<UserCredential | null> => {
+  const handleRedirectResult = useCallback(async (): Promise<HandleRedirectResultReturn> => {
     setIsLoading(true);
     // リダイレクト復帰時の処理開始を記録
     log(3, "[useThirdPartyLogin] handleRedirectResult: begin");
@@ -111,7 +116,7 @@ export function useThirdPartyLogin() {
         storedProviderType,
       });
 
-      await createFirebaseSession({
+      const { requiresReactivation } = await createFirebaseSession({
         providerType: storedProviderType,
         providerUid: credential.user.uid,
         idToken,
@@ -120,6 +125,7 @@ export function useThirdPartyLogin() {
       log(3, "[useThirdPartyLogin] handleRedirectResult: firebase session created", {
         storedProviderType,
         providerUid: credential.user.uid,
+        requiresReactivation,
       });
 
       sessionStorage.removeItem(PROVIDER_TYPE_STORAGE_KEY);
@@ -130,7 +136,7 @@ export function useThirdPartyLogin() {
       // アプリ側セッションの更新完了を記録
       log(3, "[useThirdPartyLogin] handleRedirectResult: session refreshed");
 
-      return credential;
+      return { credential, requiresReactivation };
     } catch (unknownError) {
       // リダイレクト復帰処理で発生した例外内容を記録
       log(3, "[useThirdPartyLogin] handleRedirectResult: error", {

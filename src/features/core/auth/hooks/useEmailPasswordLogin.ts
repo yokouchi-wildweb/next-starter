@@ -19,11 +19,16 @@ type SignInParams = {
   password: string;
 };
 
+type SignInResult = {
+  credential: UserCredential;
+  requiresReactivation: boolean;
+};
+
 export function useEmailPasswordLogin() {
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
   const signIn = useCallback(
-    async ({ email, password }: SignInParams): Promise<UserCredential> => {
+    async ({ email, password }: SignInParams): Promise<SignInResult> => {
       setIsLoading(true);
       // メールアドレス認証の開始を記録
       log(3, "[useEmailPasswordLogin] signIn: begin", {
@@ -44,7 +49,7 @@ export function useEmailPasswordLogin() {
           idTokenPreview: `${idToken.slice(0, 10)}...`,
         });
 
-        await createFirebaseSession({
+        const { requiresReactivation } = await createFirebaseSession({
           providerType: EMAIL_PROVIDER,
           providerUid: credential.user.uid,
           idToken,
@@ -53,6 +58,7 @@ export function useEmailPasswordLogin() {
         log(3, "[useEmailPasswordLogin] signIn: firebase session created", {
           email,
           providerUid: credential.user.uid,
+          requiresReactivation,
         });
 
         await refreshSession();
@@ -61,7 +67,7 @@ export function useEmailPasswordLogin() {
           email,
         });
 
-        return credential;
+        return { credential, requiresReactivation };
       } catch (unknownError) {
         // メールアドレス認証処理で発生した例外内容を記録
         log(3, "[useEmailPasswordLogin] signIn: error", {

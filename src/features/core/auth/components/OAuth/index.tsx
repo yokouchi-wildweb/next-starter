@@ -30,7 +30,7 @@ function LoadingState({ message }: { message: string }) {
 
 export function OAuth({ provider }: OAuthProps) {
   const router = useRouter();
-  const { phase } = useOAuthPhase({ provider });
+  const { phase, requiresReactivation } = useOAuthPhase({ provider });
 
   useEffect(() => {
     if (phase === "completed") {
@@ -39,10 +39,16 @@ export function OAuth({ provider }: OAuthProps) {
     }
 
     if (phase === "alreadyRegistered") {
+      // 休会中ユーザーの場合は復帰画面へリダイレクト
+      if (requiresReactivation) {
+        router.replace("/reactivate");
+        return;
+      }
+
       toast.success("登録済みユーザーでログインしました");
       router.replace("/");
     }
-  }, [phase, router]);
+  }, [phase, requiresReactivation, router]);
 
   return (
     <Section id="signup-oauth" className="relative space-y-4">

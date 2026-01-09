@@ -11,6 +11,7 @@
 - avoid_piped_commands: run commands without pipes to avoid permission prompts. use file arguments instead (e.g. grep pattern file.txt, not cat file.txt | grep pattern)
 - avoid_brace_expansion: never use shell brace expansion {A,B} syntax. permission system evaluates raw string before expansion. use separate paths or multiple commands instead (e.g. mkdir -p dir/A dir/B, not mkdir -p dir/{A,B})
 - never_commit_without_explicit_instruction: true. never commit unless explicitly requested
+- never_push_db_without_explicit_instruction: true. never run db push/migrate commands (e.g. drizzle-kit push, drizzle-kit migrate). always ask user to run manually
 
 ## STACK
 next: 16 (react 19, app router)

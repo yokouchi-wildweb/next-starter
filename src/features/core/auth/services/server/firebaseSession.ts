@@ -28,6 +28,7 @@ export type FirebaseSessionResult = {
     expiresAt: Date;
     maxAge: number;
   };
+  requiresReactivation: boolean;
 };
 
 /**
@@ -76,10 +77,13 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
     throw new DomainError("ユーザー情報が見つかりません", { status: 404 });
   }
 
-  // 退会や停止状態のユーザーを拒否し、利用不可を明示する。
-  if (user.status !== "active") {
+  // 休会中（inactive）は復帰可能なのでセッション発行を許可する。
+  // それ以外の非アクティブステータスは利用不可として拒否する。
+  if (user.status !== "active" && user.status !== "inactive") {
     throw new DomainError("このアカウントは利用できません", { status: 403 });
   }
+
+  const requiresReactivation = user.status === "inactive";
 
   // 認証成功時点を記録し、利用履歴を更新する。
   const now = new Date();
@@ -124,5 +128,6 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
       expiresAt,
       maxAge,
     },
+    requiresReactivation,
   };
 }

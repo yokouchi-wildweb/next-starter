@@ -36,7 +36,7 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
   const isActiveRef = useRef(true);
 
   // ステートマシン
-  const { phase, setPhase, setCredential, setError } = useOAuthStateMachine();
+  const { phase, requiresReactivation, setPhase, setCredential, setError, setRequiresReactivation } = useOAuthStateMachine();
 
   // サブフック（関数を個別に取得）
   const { getResult, executeRedirect, checkAttempted } = useOAuthRedirect({ sessionStorage, provider });
@@ -140,9 +140,10 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
         return;
       }
 
-      await createSessionForExistingUser(cred);
+      const { requiresReactivation: needsReactivation } = await createSessionForExistingUser(cred);
       if (!isActiveRef.current) return;
 
+      setRequiresReactivation(needsReactivation);
       clearRedirectAttempt(sessionStorage, provider);
       setPhase("alreadyRegistered");
     }
@@ -204,9 +205,11 @@ export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
     setPhase,
     setCredential,
     setError,
+    setRequiresReactivation,
   ]);
 
   return {
     phase,
+    requiresReactivation,
   } as const;
 }

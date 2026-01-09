@@ -21,6 +21,7 @@ export type FirebaseSessionResponse = {
   session: {
     expiresAt: string;
   };
+  requiresReactivation: boolean;
 };
 
 export async function createFirebaseSession(

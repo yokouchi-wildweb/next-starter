@@ -45,7 +45,18 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
       redirectTo,
     });
     try {
-      await signIn({ email, password });
+      const { requiresReactivation } = await signIn({ email, password });
+
+      // 休会中ユーザーの場合は復帰画面へリダイレクト
+      if (requiresReactivation) {
+        log(3, "[UserLogin] handleSubmit: requires reactivation, redirecting", {
+          email,
+        });
+        router.push("/reactivate");
+        router.refresh();
+        return;
+      }
+
       router.push(redirectTo);
       router.refresh();
       // メールアドレスでのログイン成功を記録

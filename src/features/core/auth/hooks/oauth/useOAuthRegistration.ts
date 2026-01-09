@@ -51,9 +51,10 @@ export function useOAuthRegistration({ provider }: UseOAuthRegistrationParams) {
 
   /**
    * 既存ユーザーのFirebaseセッションを作成
+   * @returns requiresReactivation - 休会中ユーザーの場合 true
    */
   const createSessionForExistingUser = useCallback(
-    async (credentialInfo: OAuthCredentialInfo) => {
+    async (credentialInfo: OAuthCredentialInfo): Promise<{ requiresReactivation: boolean }> => {
       if (!provider) {
         throw new Error("Provider is required for session creation");
       }
@@ -63,7 +64,7 @@ export function useOAuthRegistration({ provider }: UseOAuthRegistrationParams) {
         providerUid: credentialInfo.firebaseUid,
       });
 
-      await createFirebaseSession({
+      const { requiresReactivation } = await createFirebaseSession({
         providerType: provider,
         providerUid: credentialInfo.firebaseUid,
         idToken: credentialInfo.idToken,
@@ -72,10 +73,13 @@ export function useOAuthRegistration({ provider }: UseOAuthRegistrationParams) {
       log(3, "[useOAuthRegistration] firebase session issued for registered user", {
         providerType: provider,
         providerUid: credentialInfo.firebaseUid,
+        requiresReactivation,
       });
 
       await refreshSession();
       log(3, "[useOAuthRegistration] session refreshed for registered user");
+
+      return { requiresReactivation };
     },
     [provider, refreshSession],
   );
