@@ -18,7 +18,7 @@ export function ResizableArea({
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(192); // default 192px
   const dragging = useRef(false);
-  const isSidebarResizable = APP_FEATURES.admin.layout.enableSidebarResizing;
+  const isSidebarResizable = APP_FEATURES.adminConsole.enableSidebarResizing;
 
   useEffect(() => {
     if (!isSidebarResizable) {

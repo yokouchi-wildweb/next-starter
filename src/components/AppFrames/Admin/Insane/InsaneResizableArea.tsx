@@ -18,7 +18,7 @@ export function InsaneResizableArea({
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(192);
   const dragging = useRef(false);
-  const isSidebarResizable = APP_FEATURES.admin.layout.enableSidebarResizing;
+  const isSidebarResizable = APP_FEATURES.adminConsole.enableSidebarResizing;
 
   useEffect(() => {
     if (!isSidebarResizable) {

@@ -50,7 +50,7 @@ const FormSchemaSingle = z.object({
   password: passwordSchema,
 });
 
-export const isDoubleMode = APP_FEATURES.signup.passwordInputMode === "double";
+export const isDoubleMode = APP_FEATURES.user.passwordInputMode === "double";
 
 export const FormSchema = isDoubleMode ? FormSchemaDouble : FormSchemaSingle;
 

@@ -1,7 +1,7 @@
 // src/proxies/featureGate.ts
 
 import { NextResponse } from "next/server";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { DOMAIN_LOCKS } from "@/config/app/app-features.config";
 import type { ProxyHandler } from "./types";
 
 /**
@@ -11,8 +11,8 @@ import type { ProxyHandler } from "./types";
 export const featureGateProxy: ProxyHandler = (request) => {
   const pathname = request.nextUrl.pathname;
 
-  // domainLocks に定義されたドメインを自動でチェック
-  for (const [domain, locked] of Object.entries(APP_FEATURES.domainLocks)) {
+  // DOMAIN_LOCKS に定義されたドメインを自動でチェック
+  for (const [domain, locked] of Object.entries(DOMAIN_LOCKS)) {
     if (locked && pathname.startsWith(`/${domain}`)) {
       return NextResponse.rewrite(new URL("/404", request.url));
     }

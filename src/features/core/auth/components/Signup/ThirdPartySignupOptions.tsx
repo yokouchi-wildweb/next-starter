@@ -13,7 +13,7 @@ import { APP_FEATURES } from "@/config/app/app-features.config";
 export function ThirdPartySignupOptions() {
   const router = useRouter();
 
-  const thirdPartyConfig = APP_FEATURES.signup.thirdPartyRegistration;
+  const thirdPartyConfig = APP_FEATURES.auth.thirdPartyProviders;
 
   const options = [
     {

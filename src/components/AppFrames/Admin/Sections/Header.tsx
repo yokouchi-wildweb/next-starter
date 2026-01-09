@@ -26,7 +26,7 @@ export function Header({ logoUrl, darkLogoUrl }: AdminHeaderProps) {
   const normalizedDarkLogo = darkLogoUrl && darkLogoUrl.trim() !== "" ? darkLogoUrl : null;
   const lightLogoSrc = normalizedLightLogo ?? logoPath("dark");
   const darkLogoSrc = normalizedDarkLogo ?? normalizedLightLogo ?? logoPath("light");
-  const showDarkModeSwitch = APP_FEATURES.admin.appearance.enableDarkModeSwitch;
+  const showDarkModeSwitch = APP_FEATURES.adminConsole.enableDarkModeSwitch;
   const { isAuthenticated } = useAuthSession();
 
   return (
