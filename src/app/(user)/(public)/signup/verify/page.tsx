@@ -6,7 +6,7 @@ import { Verification } from "@/features/core/auth/components/Verification";
 
 export default function SignUpVerifyPage() {
   return (
-    <UserPage containerType="narrowStack">
+    <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>メール認証</UserPageTitle>
       <Verification />
     </UserPage>

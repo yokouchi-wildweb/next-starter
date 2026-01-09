@@ -9,7 +9,7 @@ import { VerificationEmailSent } from "@/features/core/auth/components/Verificat
 
 export default function SignUpEmailSentPage() {
   return (
-    <UserPage containerType="narrowStack">
+    <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>メール送信完了</UserPageTitle>
       <VerificationEmailSent />
       <Para size="sm">

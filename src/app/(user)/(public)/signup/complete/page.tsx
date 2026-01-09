@@ -10,7 +10,7 @@ import { Block } from "@/components/Layout/Block";
 
 export default function SignUpCompletePage() {
   return (
-    <UserPage containerType="narrowStack">
+    <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>本登録が完了しました</UserPageTitle>
       <Para>ご登録ありがとうございます。引き続きアプリをお楽しみください。</Para>
 
