@@ -1,4 +1,4 @@
-// src/app/(user)/(public)/reactivate/complete/page.tsx
+// src/app/(user)/(auth)/reactivate/complete/page.tsx
 
 import Link from "next/link";
 

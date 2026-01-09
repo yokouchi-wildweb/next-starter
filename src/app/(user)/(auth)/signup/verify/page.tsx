@@ -1,4 +1,4 @@
-// src/app/(user)/signup/verify/page.tsx
+// src/app/(user)/(auth)/signup/verify/page.tsx
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";

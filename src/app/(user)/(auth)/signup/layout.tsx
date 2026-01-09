@@ -1,4 +1,4 @@
-// src/app/(user)/(public)/signup/layout.tsx
+// src/app/(user)/(auth)/signup/layout.tsx
 
 import { HideBottomNav } from "@/components/AppFrames/User/controls/BottomNavControl";
 import { HideFooter } from "@/components/AppFrames/User/controls/FooterControl";

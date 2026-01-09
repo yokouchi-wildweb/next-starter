@@ -1,4 +1,4 @@
-// src/app/(user)/signup/email-sent/page.tsx
+// src/app/(user)/(auth)/signup/email-sent/page.tsx
 
 import Link from "next/link";
 

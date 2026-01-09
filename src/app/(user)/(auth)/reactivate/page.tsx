@@ -1,4 +1,4 @@
-// src/app/(user)/(public)/reactivate/page.tsx
+// src/app/(user)/(auth)/reactivate/page.tsx
 
 import { notFound, redirect } from "next/navigation";
 

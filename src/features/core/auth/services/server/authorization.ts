@@ -13,6 +13,8 @@ type AuthGuardOptions = {
   allowRoles?: UserRoleType[];
   allowStatuses?: readonly UserStatus[];
   redirectTo?: string;
+  /** ステータス別のリダイレクト先（redirectTo より優先） */
+  statusRedirects?: Partial<Record<UserStatus, string>>;
 };
 
 export async function authGuard(options: AuthGuardOptions = {}): Promise<SessionUser | null> {
@@ -49,6 +51,11 @@ export async function authGuard(options: AuthGuardOptions = {}): Promise<Session
   const allowedStatuses = options.allowStatuses ?? USER_AVAILABLE_STATUSES;
 
   if (!allowedStatuses.includes(sessionUser.status)) {
+    // ステータス別のリダイレクト先が指定されている場合はそちらを優先
+    const statusRedirect = options.statusRedirects?.[sessionUser.status];
+    if (statusRedirect) {
+      redirect(statusRedirect);
+    }
     if (options.redirectTo) {
       redirect(options.redirectTo);
     }
