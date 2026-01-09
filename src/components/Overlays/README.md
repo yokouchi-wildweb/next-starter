@@ -74,6 +74,9 @@ import { Dialog } from "@/components/Overlays/Dialog";
 | `description` | `ReactNode` | - | 説明文 |
 | `descriptionVariant` | `TextVariant` | `"default"` | 説明文のスタイル |
 | `descriptionAlign` | `TextAlign` | `"left"` | 説明文の配置 |
+| `children` | `ReactNode` | - | 複雑なコンテンツ用。指定時は `description` より優先される。 |
+| `layer` | `DialogContentLayer` | `"modal"` | コンテンツのレイヤー（`modal`/`alert`/`super`/`ultimate`/`apex`） |
+| `overlayLayer` | `DialogOverlayLayer` | `"modal"` | オーバーレイのレイヤー（`backdrop`/`modal`/`overlay`/`alert`/`super`/`ultimate`/`apex`） |
 | `footerAlign` | `TextAlign` | `"right"` | フッター（ボタン）の配置 |
 | `showCancelButton` | `boolean` | `true` | キャンセルボタンの表示 |
 | `showConfirmButton` | `boolean` | `true` | 確認ボタンの表示 |
@@ -81,8 +84,8 @@ import { Dialog } from "@/components/Overlays/Dialog";
 | `cancelLabel` | `string` | `"Cancel"` | キャンセルボタンのラベル |
 | `onConfirm` | `() => void \| Promise<void>` | - | 確認時のコールバック |
 | `confirmDisabled` | `boolean` | - | 確認ボタンの無効化 |
-| `confirmVariant` | `ButtonVariant` | `"primary"` | 確認ボタンのスタイル |
-| `cancelVariant` | `ButtonVariant` | `"outline"` | キャンセルボタンのスタイル |
+| `confirmVariant` | `ButtonStyleProps["variant"]` | `"primary"` | 確認ボタンのスタイル |
+| `cancelVariant` | `ButtonStyleProps["variant"]` | `"outline"` | キャンセルボタンのスタイル |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 
 **型定義:**
@@ -122,9 +125,13 @@ import Modal from "@/components/Overlays/Modal";
 | `children` | `ReactNode` | - | モーダル本体のコンテンツ |
 | `showCloseButton` | `boolean` | `true` | 閉じるボタンの表示 |
 | `maxWidth` | `number \| string` | `640` | 最大幅 |
-| `minHeight` | `number \| string` | - | 最小高さ |
-| `maxHeight` | `number \| string` | - | 最大高さ（スクロール対応） |
+| `className` | `string` | - | コンテナに付与するクラス |
+| `minHeight` | `number \| string` | - | 最小高さ（指定すると内部がスクロール領域でラップされる） |
+| `maxHeight` | `number \| string` | - | 最大高さ（指定すると内部がスクロール領域でラップされる） |
+| `height` | `number \| string` | - | 高さ（指定すると内部がスクロール領域でラップされる） |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
+
+`minHeight` / `maxHeight` / `height` のいずれかを指定すると、コンテンツは自動的にスクロール可能なラッパーで包まれる。
 
 **onCloseAutoFocus の使用例:**
 
@@ -165,6 +172,23 @@ import TabbedModal from "@/components/Overlays/TabbedModal";
 />
 ```
 
+**Props（Modal の props も継承）:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `tabs` | `TabbedModalTab[]` | - | `{ value, label, content, disabled?, forceMount?, triggerClassName?, contentClassName? }` の配列 |
+| `ariaLabel` | `string` | `"モーダル内のタブ"` | タブリストを囲う nav の aria-label |
+| `value` | `string` | - | 制御用の現在タブ |
+| `defaultValue` | `string` | `tabs[0].value` | 非制御時の初期タブ |
+| `onValueChange` | `(value: string) => void` | - | 制御／非制御共通の変更通知 |
+| `tabsClassName` | `string` | - | Tabs.Root に付与するクラス |
+| `tabListClassName` | `string` | - | TabsList に付与するクラス |
+| `tabTriggerClassName` | `string` | - | 各 TabsTrigger に共通で付与するクラス |
+| `tabContentClassName` | `string` | - | TabsContent に共通で付与するクラス |
+| `minHeight` | `number \| string` | `360` | コンテンツ部の最小高さ（Modal 経由で適用） |
+
+各タブの `forceMount` を `true` にすると非表示時も DOM を保持し、内部状態がリセットされない。
+
 ---
 
 ### DetailModal
@@ -187,6 +211,22 @@ import DetailModal from "@/components/Overlays/DetailModal";
   footer={<Button>編集</Button>}
 />
 ```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `open` | `boolean` | - | 表示状態 |
+| `onOpenChange` | `(open: boolean) => void` | - | 状態変更コールバック |
+| `title` | `string` | - | タイトル |
+| `titleSrOnly` | `boolean` | - | タイトルをスクリーンリーダー専用にする |
+| `badge` | `{ text: string; colorClass?: string }` | `colorClass: "bg-green-500"` | タイトル横に表示するバッジ |
+| `media` | `{ type?: "image" \| "video"; url: string; alt?: string; poster?: string }` | `type: "image"` | メディアプレビュー |
+| `rows` | `DetailModalRow[]` | - | `{ label, value }` の配列、または `ReactNode[]` によるカスタム行 |
+| `footer` | `ReactNode` | - | テーブル下に任意のフッターを配置 |
+| `className` | `string` | - | 追加クラス |
+
+`rows` へ `ReactNode[]` を渡すと、列幅を柔軟に変えたカスタム行を作成できる。
 
 ---
 
@@ -219,11 +259,12 @@ import {
 
 **レイヤー管理（z-index）:**
 `DialogContent` の `layer` / `overlayLayer` で z-index 階層を制御可能。
-- `modal` (デフォルト)
-- `alert`
-- `super`
-- `ultimate`
-- `apex`
+- `layer`: `modal` (デフォルト) / `alert` / `super` / `ultimate` / `apex`
+- `overlayLayer`: `backdrop` / `modal` / `overlay` / `alert` / `super` / `ultimate` / `apex`
+
+**DialogContent の主な追加 props**
+- `showCloseButton`（デフォルト `true`）: 右上の Close ボタンの表示有無
+- `maxWidth` / `minHeight` / `maxHeight` / `height`: サイズ調整。数値は `px` として解釈。
 
 ---
 
@@ -236,10 +277,18 @@ import {
 ```tsx
 import { ImageViewerProvider, ZoomableImage, useImageViewer } from "@/components/Overlays/ImageViewer";
 
-// Provider でラップ
-<ImageViewerProvider>
-  <ZoomableImage src="/image.jpg" alt="サンプル" />
-</ImageViewerProvider>
+function Example() {
+  const { openImage } = useImageViewer();
+
+  return (
+    <ImageViewerProvider>
+      <ZoomableImage src="/image.jpg" alt="サンプル" />
+      <button onClick={() => openImage("/another.jpg", "別の画像")}>
+        別の画像を開く
+      </button>
+    </ImageViewerProvider>
+  );
+}
 ```
 
 ---
@@ -250,10 +299,32 @@ import { ImageViewerProvider, ZoomableImage, useImageViewer } from "@/components
 
 ```tsx
 import { GlobalAppToast } from "@/components/Overlays/AppToast";
+import { useAppToast } from "@/hooks/useAppToast";
 
-// layout.tsx などでグローバルに配置
+// layout.tsx などでグローバルに配置（1 つだけ）
 <GlobalAppToast />
+
+// 任意のコンポーネントで呼び出し
+const { showAppToast, hideAppToast } = useAppToast();
+showAppToast("保存しました", "success");
+showAppToast({
+  message: "同期中…",
+  variant: "loading",
+  mode: "persistent",
+  position: "top-center",
+});
+hideAppToast();
 ```
+
+**主なオプション（省略時のデフォルト値）**
+- `variant`: `info`（`mode: "persistent"` の場合は `loading`）
+- `mode`: `"notification"`（自動消去） / `"persistent"`（手動消去）
+- `position`: `"bottom-center"`
+- `duration`: `3000` ms（persistent では無視）
+- `size`: `"md"`
+- `spinning`: `variant === "loading"` または `mode === "persistent"` のとき自動で `true`
+- `icon`: プリセット文字列（`success` など）または `ReactNode`
+- `layer`: `"alert"`（必要に応じて `super` などへ引き上げる）
 
 ---
 
@@ -266,7 +337,7 @@ import { GlobalAppToast } from "@/components/Overlays/AppToast";
 | `Spinner` | スピナーアイコン |
 | `ScreenLoader` | 画面全体またはローカル領域のローディング |
 | `GlobalScreenLoader` | グローバルなローディング表示 |
-| `RouteTransition` | ルート遷移時のローディング |
+| `RouteTransitionOverlay` | ルート遷移時のローディング |
 
 ```tsx
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
