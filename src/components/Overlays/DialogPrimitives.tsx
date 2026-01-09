@@ -19,7 +19,7 @@ import {
 } from "@/components/_shadcn/dialog";
 import { cn } from "@/lib/cn";
 
-type OverlayLayer =
+export type DialogOverlayLayer =
   | "backdrop"
   | "modal"
   | "overlay"
@@ -28,9 +28,9 @@ type OverlayLayer =
   | "ultimate"
   | "apex";
 
-type ContentLayer = "modal" | "alert" | "super" | "ultimate" | "apex";
+export type DialogContentLayer = "modal" | "alert" | "super" | "ultimate" | "apex";
 
-const OVERLAY_LAYER_CLASS: Record<OverlayLayer, string> = {
+const OVERLAY_LAYER_CLASS: Record<DialogOverlayLayer, string> = {
   backdrop: "backdrop-layer",
   modal: "modal-layer",
   overlay: "overlay-layer",
@@ -40,7 +40,7 @@ const OVERLAY_LAYER_CLASS: Record<OverlayLayer, string> = {
   apex: "apex-layer",
 };
 
-const CONTENT_LAYER_CLASS: Record<ContentLayer, string> = {
+const CONTENT_LAYER_CLASS: Record<DialogContentLayer, string> = {
   modal: "modal-layer",
   alert: "alert-layer",
   super: "super-layer",
@@ -49,7 +49,7 @@ const CONTENT_LAYER_CLASS: Record<ContentLayer, string> = {
 };
 
 type DialogOverlayProps = Omit<ComponentProps<typeof BaseDialogOverlay>, "layerClassName"> & {
-  layer?: OverlayLayer;
+  layer?: DialogOverlayLayer;
   layerClassName?: string;
 };
 
@@ -57,8 +57,8 @@ type DialogContentProps = Omit<
   ComponentProps<typeof BaseDialogContent>,
   "layerClassName" | "overlayLayerClassName"
 > & {
-  layer?: ContentLayer;
-  overlayLayer?: OverlayLayer;
+  layer?: DialogContentLayer;
+  overlayLayer?: DialogOverlayLayer;
   showCloseButton?: boolean;
   layerClassName?: string;
   overlayLayerClassName?: string;

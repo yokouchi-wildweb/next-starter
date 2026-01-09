@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  type DialogContentLayer,
+  type DialogOverlayLayer,
 } from "@/components/Overlays/DialogPrimitives";
 import { Button } from "@/components/Form/Button/Button";
 import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
@@ -50,6 +52,17 @@ export type DialogProps = {
    * description と排他的。指定された場合は description より優先される。
    */
   children?: ReactNode;
+  /**
+   * ダイアログのz-indexレイヤー。
+   * モーダルの上に表示する確認ダイアログなどは "alert" を指定する。
+   * @default "modal"
+   */
+  layer?: DialogContentLayer;
+  /**
+   * オーバーレイ（背景）のz-indexレイヤー。
+   * @default "modal"
+   */
+  overlayLayer?: DialogOverlayLayer;
   footerAlign?: TextAlign;
   showCancelButton?: boolean;
   showConfirmButton?: boolean;
@@ -72,6 +85,8 @@ export function Dialog({
   descriptionVariant = "default",
   descriptionAlign = "left",
   children,
+  layer,
+  overlayLayer,
   footerAlign = "right",
   showCancelButton = true,
   showConfirmButton = true,
@@ -94,7 +109,7 @@ export function Dialog({
 
   return (
     <DialogPrimitives open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} onCloseAutoFocus={onCloseAutoFocus}>
+      <DialogContent showCloseButton={false} layer={layer} overlayLayer={overlayLayer} onCloseAutoFocus={onCloseAutoFocus}>
         {(title || (!children && description)) && (
           <DialogHeader>
             {title && (

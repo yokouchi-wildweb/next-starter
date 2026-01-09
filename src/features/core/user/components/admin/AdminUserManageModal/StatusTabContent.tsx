@@ -153,6 +153,8 @@ export function StatusTabContent({ user, onClose }: Props) {
         cancelLabel="キャンセル"
         onConfirm={handleConfirm}
         confirmDisabled={isMutating}
+        layer="alert"
+        overlayLayer="alert"
       >
         {confirmContent}
       </Dialog>
