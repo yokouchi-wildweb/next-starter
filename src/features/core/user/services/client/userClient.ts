@@ -20,7 +20,16 @@ async function changeStatus(userId: string, data: ChangeStatusInput): Promise<Us
   return response.data;
 }
 
+export type SoftDeleteInput = {
+  reason?: string;
+};
+
+async function softDelete(userId: string, data?: SoftDeleteInput): Promise<void> {
+  await axios.post(`/api/admin/user/${userId}/delete`, data ?? {});
+}
+
 export const userClient = {
   ...baseClient,
   changeStatus,
+  softDelete,
 };

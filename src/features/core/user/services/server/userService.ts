@@ -17,6 +17,7 @@ import { remove } from "./wrappers/remove";
 import { update } from "./wrappers/update";
 import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
 import { changeStatus } from "./wrappers/changeStatus";
+import { softDelete } from "./wrappers/softDelete";
 
 export { requireCurrentUser } from "./resolvers/requireCurrentUser";
 export type { RequireCurrentUserOptions } from "./resolvers/requireCurrentUser";
@@ -34,6 +35,7 @@ export const userService = {
   // wrappers
   updateLastAuthenticated,
   changeStatus,
+  softDelete,
   // creation (console)
   createAdmin,
   createGeneralUser,
