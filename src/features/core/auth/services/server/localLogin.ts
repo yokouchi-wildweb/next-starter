@@ -31,6 +31,7 @@ export type LocalLoginResult = {
     expiresAt: Date;
     maxAge: number;
   };
+  requiresReactivation: boolean;
 };
 
 // 管理者アカウントであることを確認し、一般ユーザーのログインを遮断する。
@@ -40,11 +41,18 @@ function assertAdminRole(role: UserRoleType): void {
   }
 }
 
-// 利用ステータスが有効であることを検証し、停止済みアカウントの利用を防ぐ。
-function assertActiveStatus(status: UserStatus): void {
-  if (status !== "active") {
+// 利用ステータスを検証し、ログイン可否を判定する。
+function assertLoginableStatus(status: UserStatus): void {
+  // security_locked はログイン自体をブロック
+  if (status === "security_locked") {
+    throw new DomainError("アカウントがロックされています。", { status: 403 });
+  }
+  // pending, withdrawn は利用不可
+  if (status === "pending" || status === "withdrawn") {
     throw new DomainError("このアカウントは利用できません", { status: 403 });
   }
+  // active, inactive, suspended, banned はログイン許可
+  // （inactive は復帰ページへ、suspended/banned は制限ページへ誘導）
 }
 
 /**
@@ -71,7 +79,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
 
   // 権限・ステータスのチェックを先に行い、以降の処理を早期に中断する。
   assertAdminRole(user.role);
-  assertActiveStatus(user.status);
+  assertLoginableStatus(user.status);
 
   // ハッシュ化されたパスワードと比較し、誤りがあれば同様に認証失敗。
   const passwordMatched = await verifyPassword(password, user.localPassword);
@@ -93,6 +101,9 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     providerUid: user.providerUid,
     displayName: user.displayName,
   });
+
+  // inactive の場合は復帰フラグを立てる
+  const requiresReactivation = user.status === "inactive";
 
   // JWT の存続期間を定義し、トークンを署名する。
   const maxAge = SESSION_DEFAULT_MAX_AGE_SECONDS;
@@ -117,5 +128,6 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
       expiresAt,
       maxAge,
     },
+    requiresReactivation,
   };
 }

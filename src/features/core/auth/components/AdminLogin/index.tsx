@@ -33,9 +33,14 @@ export function AdminLogin() {
     setErrorMessage(null);
 
     try {
-      await localLogin({ email, password });
+      const result = await localLogin({ email, password });
       await refreshSession();
-      router.push("/admin");
+      // inactive の場合は復帰ページへ
+      if (result.requiresReactivation) {
+        router.push("/reactivate");
+      } else {
+        router.push("/admin");
+      }
     } catch (error) {
       setErrorMessage(err(error, "ログインに失敗しました"));
     } finally {

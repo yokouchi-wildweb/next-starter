@@ -77,12 +77,18 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
     throw new DomainError("ユーザー情報が見つかりません", { status: 404 });
   }
 
-  // 休会中（inactive）は復帰可能なのでセッション発行を許可する。
-  // それ以外の非アクティブステータスは利用不可として拒否する。
-  if (user.status !== "active" && user.status !== "inactive") {
+  // security_locked はログイン自体をブロックする（不正試行対策）
+  if (user.status === "security_locked") {
+    throw new DomainError("アカウントがロックされています。", { status: 403 });
+  }
+
+  // pending, withdrawn は利用不可
+  if (user.status === "pending" || user.status === "withdrawn") {
     throw new DomainError("このアカウントは利用できません", { status: 403 });
   }
 
+  // inactive は復帰フラグを立ててセッション発行
+  // suspended, banned はセッション発行後に /restricted へ誘導
   const requiresReactivation = user.status === "inactive";
 
   // 認証成功時点を記録し、利用履歴を更新する。

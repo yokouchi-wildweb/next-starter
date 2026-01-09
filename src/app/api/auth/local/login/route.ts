@@ -14,13 +14,14 @@ export const POST = createApiRoute(
   },
   async (req) => {
     const body = await req.json();
-    const { user, session } = await localLogin(body);
+    const { user, session, requiresReactivation } = await localLogin(body);
 
     const response = NextResponse.json({
       user,
       session: {
         expiresAt: session.expiresAt.toISOString(),
       },
+      requiresReactivation,
     });
 
     issueSessionCookie({

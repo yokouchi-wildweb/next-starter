@@ -19,6 +19,7 @@ export type LocalLoginResponse = {
   session: {
     expiresAt: string;
   };
+  requiresReactivation: boolean;
 };
 
 export async function localLogin(payload: LocalLoginPayload): Promise<LocalLoginResponse> {
