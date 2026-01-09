@@ -48,5 +48,6 @@ export const USER_REGISTERED_STATUSES: readonly UserStatus[] = [
   "active",
   "inactive",
   "suspended",
+  "banned",
   "security_locked",
 ];
