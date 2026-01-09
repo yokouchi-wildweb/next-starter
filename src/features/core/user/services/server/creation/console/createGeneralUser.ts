@@ -1,6 +1,4 @@
-
-
-コンソールからの登録用サービスしかないみたいなんだけど、ユーザーが自分で登録した場合のサービスはどこにあるのかな。// src/features/user/services/server/registrations/registerGeneralUserFromConsole.ts
+// src/features/core/user/services/server/creation/console/createGeneralUser.ts
 
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
@@ -10,14 +8,14 @@ import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { db } from "@/lib/drizzle";
 
-export type GeneralConsoleRegistrationInput = {
+export type CreateGeneralUserInput = {
   displayName: string;
   email: string;
   localPassword: string;
   [key: string]: unknown;
 };
 
-function validateInput(input: GeneralConsoleRegistrationInput): void {
+function validateInput(input: CreateGeneralUserInput): void {
   if (!input.email) {
     throw new DomainError("メールアドレスを入力してください");
   }
@@ -27,9 +25,7 @@ function validateInput(input: GeneralConsoleRegistrationInput): void {
   }
 }
 
-export async function registerGeneralUserFromConsole(
-  data: GeneralConsoleRegistrationInput,
-): Promise<User> {
+export async function createGeneralUser(data: CreateGeneralUserInput): Promise<User> {
   validateInput(data);
 
   const auth = getServerAuth();

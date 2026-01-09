@@ -1,4 +1,4 @@
-// src/features/user/services/server/registrations/registerAdminFromConsole.ts
+// src/features/core/user/services/server/creation/console/createAdmin.ts
 
 import { randomUUID } from "crypto";
 
@@ -9,14 +9,14 @@ import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
 
-export type AdminConsoleRegistrationInput = {
+export type CreateAdminInput = {
   displayName: string;
   email: string;
   localPassword: string;
   [key: string]: unknown;
 };
 
-function validateInput(input: AdminConsoleRegistrationInput): void {
+function validateInput(input: CreateAdminInput): void {
   if (!input.email) {
     throw new DomainError("メールアドレスを入力してください");
   }
@@ -26,9 +26,7 @@ function validateInput(input: AdminConsoleRegistrationInput): void {
   }
 }
 
-export async function registerAdminFromConsole(
-  data: AdminConsoleRegistrationInput,
-): Promise<User> {
+export async function createAdmin(data: CreateAdminInput): Promise<User> {
   validateInput(data);
 
   const normalizedEmail = await assertEmailAvailability({

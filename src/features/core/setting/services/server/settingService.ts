@@ -1,7 +1,7 @@
 // src/features/setting/services/server/settingService.ts
 import type { Setting } from "@/features/core/setting/entities";
 import type { User } from "@/features/core/user/entities";
-import { registerAdminFromConsole } from "@/features/core/user/services/server/registrations";
+import { createAdmin } from "@/features/core/user/services/server/creation/console";
 
 import type { AdminSetupInput } from "../types";
 import { base } from "./drizzleBase";
@@ -45,7 +45,7 @@ async function getAdminListPerPage(): Promise<number> {
 }
 
 export async function initializeAdminSetup(data: AdminSetupInput): Promise<User> {
-  const user = await registerAdminFromConsole(data);
+  const user = await createAdmin(data);
   const defaultValues = createDefaultSettingValues();
   const existing = await base.get("global");
 

@@ -1,4 +1,4 @@
-// src/features/user/services/server/registrations/registerDemoUserFromConsole.ts
+// src/features/core/user/services/server/creation/console/createDemoUser.ts
 
 import { randomUUID } from "crypto";
 
@@ -10,26 +10,26 @@ import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
-import type { CreateDemoUserInput } from "../../types";
+import type { CreateDemoUserInput } from "../../../types";
 
 /**
  * デモユーザーを登録する。
  * - admin: ローカル認証（providerType: "local"）
  * - user: Firebase メール認証（providerType: "email"）
  */
-export async function registerDemoUserFromConsole(data: CreateDemoUserInput): Promise<User> {
+export async function createDemoUser(data: CreateDemoUserInput): Promise<User> {
   if (!data.email) {
     throw new DomainError("メールアドレスを入力してください");
   }
 
   if (data.role === "admin") {
-    return registerDemoAdmin(data);
+    return createDemoAdmin(data);
   }
 
-  return registerDemoGeneralUser(data);
+  return createDemoGeneralUser(data);
 }
 
-async function registerDemoAdmin(data: CreateDemoUserInput): Promise<User> {
+async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
   if (!data.localPassword || data.localPassword.length < 8) {
     throw new DomainError("パスワードは8文字以上で入力してください");
   }
@@ -56,7 +56,7 @@ async function registerDemoAdmin(data: CreateDemoUserInput): Promise<User> {
   return user;
 }
 
-async function registerDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
+async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
   const auth = getServerAuth();
 
   // デモユーザー用の一時パスワードを生成

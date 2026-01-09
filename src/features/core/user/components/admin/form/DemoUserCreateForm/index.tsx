@@ -69,9 +69,13 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         control={control}
         name="role"
         label="権限"
-        description="管理者はローカル認証、一般ユーザーはメール認証になります"
+        description={{ text: "管理者はローカル認証、一般ユーザーはメール認証になります" }}
         renderInput={(field) => (
-          <SelectInput field={field} options={USER_ROLE_OPTIONS} placeholder="権限を選択" />
+          <SelectInput
+            field={field}
+            options={USER_ROLE_OPTIONS.map((o) => ({ value: o.id, label: o.name }))}
+            placeholder="権限を選択"
+          />
         )}
       />
       <FormFieldItem
@@ -91,7 +95,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
           control={control}
           name="localPassword"
           label="パスワード"
-          description="管理者用のローカル認証パスワード（8文字以上）"
+          description={{ text: "管理者用のローカル認証パスワード（8文字以上）" }}
           renderInput={(field) => <PasswordInput field={field} />}
         />
       )}

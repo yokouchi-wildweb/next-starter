@@ -1,13 +1,10 @@
-// src/features/user/services/server/userService.ts
+// src/features/core/user/services/server/userService.ts
 
 import { base } from "./drizzleBase";
 import { checkAdminUserExists } from "./finders/checkAdminUserExists";
 import { findByLocalEmail } from "./finders/findByLocalEmail";
 import { findByProvider } from "./finders/findByProvider";
-import {
-  registerAdminFromConsole,
-  registerGeneralUserFromConsole,
-} from "./registrations";
+import { createAdmin, createGeneralUser, createDemoUser } from "./creation/console";
 import { create } from "./wrappers/create";
 import { hardDelete } from "./wrappers/hardDelete";
 import { remove } from "./wrappers/remove";
@@ -29,7 +26,8 @@ export const userService = {
   checkAdminUserExists,
   // wrappers
   updateLastAuthenticated,
-  // registrations
-  registerAdminFromConsole,
-  registerGeneralUserFromConsole,
+  // creation
+  createAdmin,
+  createGeneralUser,
+  createDemoUser,
 };

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
-import { registerDemoUserFromConsole } from "@/features/core/user/services/server/registrations/registerDemoUserFromConsole";
+import { createDemoUser } from "@/features/core/user/services/server/creation/console";
 import { USER_ROLES } from "@/features/core/user/constants";
 
 const CreateDemoUserPayloadSchema = z.object({
@@ -37,7 +37,7 @@ export const POST = createApiRoute(
       return NextResponse.json({ message: errorMessage }, { status: 400 });
     }
 
-    const user = await registerDemoUserFromConsole(parsed.data);
+    const user = await createDemoUser(parsed.data);
 
     return NextResponse.json(user);
   },
