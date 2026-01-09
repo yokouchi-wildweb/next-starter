@@ -85,7 +85,7 @@ export const businessConfig = {
 
   mail: {
     /** デフォルト送信元アドレス */
-    defaultFrom: "noreply@example.com",
+    defaultFrom: "noreply@oripa-do.jp",
 
     /** デフォルト送信者名 */
     defaultFromName: "next-starter",

@@ -13,7 +13,7 @@ export default function SignUpEmailSentPage() {
       <UserPageTitle>メール送信完了</UserPageTitle>
       <VerificationEmailSent />
       <Para size="sm">
-        <Link href="/signup">メールを受け取れていない場合は戻って再送信してください</Link>
+        <Link href="/signup">新規登録ページへ戻る »</Link>
       </Para>
     </UserPage>
   );
