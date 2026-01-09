@@ -7,6 +7,7 @@ import { PreRegistrationSchema } from "@/features/core/auth/entities/schema";
 import type { User } from "@/features/core/user/entities";
 import { GeneralUserSchema } from "@/features/core/user/entities/schema";
 import { userService } from "@/features/core/user/services/server/userService";
+import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 
@@ -68,6 +69,11 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
     throw new DomainError("このアカウントはすでに登録済みです", { status: 409 });
   }
 
+  // 再入会かどうかを判定（withdrawn ステータスからの復帰）
+  const isRejoin = existingUser?.status === "withdrawn";
+  // 新規登録かどうかを判定（既存ユーザーがいない、または pending からの再実行でない）
+  const isNewRegistration = !existingUser;
+
   const now = new Date();
 
   const emailToStore = emailFromRequest ?? null;
@@ -89,6 +95,40 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
     },
     { conflictFields: ["providerType", "providerUid"] },
   )) as User;
+
+  // ユーザーアクションログを記録（新規登録または再入会の場合のみ）
+  if (isRejoin) {
+    // 再入会ログ
+    await userActionLogService.create({
+      targetUserId: upserted.id,
+      actorId: upserted.id,
+      actorType: "user",
+      actionType: "user_rejoin",
+      beforeValue: { status: existingUser.status },
+      afterValue: {
+        status: upserted.status,
+        email: upserted.email,
+        providerType: upserted.providerType,
+      },
+      reason: null,
+    });
+  } else if (isNewRegistration) {
+    // 仮登録ログ
+    await userActionLogService.create({
+      targetUserId: upserted.id,
+      actorId: upserted.id,
+      actorType: "user",
+      actionType: "user_preregister",
+      beforeValue: null,
+      afterValue: {
+        status: upserted.status,
+        email: upserted.email,
+        providerType: upserted.providerType,
+      },
+      reason: null,
+    });
+  }
+  // pending からの再実行の場合はログ不要
 
   return {
     user: upserted,

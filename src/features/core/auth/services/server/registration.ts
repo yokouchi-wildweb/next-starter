@@ -11,6 +11,7 @@ import {
 import type { User } from "@/features/core/user/entities";
 import { GeneralUserSchema } from "@/features/core/user/entities/schema";
 import { userService } from "@/features/core/user/services/server/userService";
+import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
@@ -95,12 +96,68 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     lastAuthenticatedAt: now,
   });
 
+  // 状態遷移の判定
+  const isFromPending = existingUser?.status === "pending";
+  const isRejoin = existingUser?.status === "withdrawn";
+  const isNewRegistration = !existingUser;
+
   const upserted = (await userService.upsert(
     {
       ...validatedUserFields,
     },
     { conflictFields: ["providerType", "providerUid"] },
   )) as User;
+
+  // ユーザーアクションログを記録
+  if (isFromPending) {
+    // 本登録ログ（pending → active）
+    await userActionLogService.create({
+      targetUserId: upserted.id,
+      actorId: upserted.id,
+      actorType: "user",
+      actionType: "user_register",
+      beforeValue: { status: existingUser.status },
+      afterValue: {
+        status: upserted.status,
+        email: upserted.email,
+        displayName: upserted.displayName,
+        providerType: upserted.providerType,
+      },
+      reason: null,
+    });
+  } else if (isRejoin) {
+    // 再入会ログ（preRegistration を経由しない直接登録の場合）
+    await userActionLogService.create({
+      targetUserId: upserted.id,
+      actorId: upserted.id,
+      actorType: "user",
+      actionType: "user_rejoin",
+      beforeValue: { status: existingUser.status },
+      afterValue: {
+        status: upserted.status,
+        email: upserted.email,
+        displayName: upserted.displayName,
+        providerType: upserted.providerType,
+      },
+      reason: null,
+    });
+  } else if (isNewRegistration) {
+    // 新規登録ログ（preRegistration を経由しない直接登録の場合）
+    await userActionLogService.create({
+      targetUserId: upserted.id,
+      actorId: upserted.id,
+      actorType: "user",
+      actionType: "user_register",
+      beforeValue: null,
+      afterValue: {
+        status: upserted.status,
+        email: upserted.email,
+        displayName: upserted.displayName,
+        providerType: upserted.providerType,
+      },
+      reason: null,
+    });
+  }
 
   const sessionUser = SessionUserSchema.parse({
     userId: upserted.id,
