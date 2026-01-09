@@ -1,6 +1,7 @@
 // src/features/core/userActionLog/constants/index.ts
 
 export const USER_ACTION_TYPES = [
+  "admin_create_user",
   "admin_status_change",
   "admin_profile_update",
   "admin_soft_delete",
@@ -17,6 +18,7 @@ export const USER_ACTION_TYPES = [
 export type UserActionType = (typeof USER_ACTION_TYPES)[number];
 
 export const USER_ACTION_TYPE_LABELS: Record<UserActionType, string> = {
+  admin_create_user: "ユーザー作成",
   admin_status_change: "ステータス変更",
   admin_profile_update: "プロフィール更新",
   admin_soft_delete: "論理削除",
