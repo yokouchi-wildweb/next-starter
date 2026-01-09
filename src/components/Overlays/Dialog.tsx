@@ -38,9 +38,18 @@ export type DialogProps = {
   title?: ReactNode;
   titleVariant?: TextVariant;
   titleAlign?: TextAlign;
+  /**
+   * シンプルなテキスト用。DialogDescription（<p>タグ）でラップされる。
+   * children と排他的。children が指定された場合は無視される。
+   */
   description?: ReactNode;
   descriptionVariant?: TextVariant;
   descriptionAlign?: TextAlign;
+  /**
+   * 複雑なコンテンツ用。そのまま出力されるため、ブロック要素も使用可能。
+   * description と排他的。指定された場合は description より優先される。
+   */
+  children?: ReactNode;
   footerAlign?: TextAlign;
   showCancelButton?: boolean;
   showConfirmButton?: boolean;
@@ -62,6 +71,7 @@ export function Dialog({
   description,
   descriptionVariant = "default",
   descriptionAlign = "left",
+  children,
   footerAlign = "right",
   showCancelButton = true,
   showConfirmButton = true,
@@ -85,7 +95,7 @@ export function Dialog({
   return (
     <DialogPrimitives open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} onCloseAutoFocus={onCloseAutoFocus}>
-        {(title || description) && (
+        {(title || (!children && description)) && (
           <DialogHeader>
             {title && (
               <DialogTitle
@@ -97,7 +107,7 @@ export function Dialog({
                 {title}
               </DialogTitle>
             )}
-            {description && (
+            {!children && description && (
               <DialogDescription
                 className={cn(
                   TEXT_VARIANT_CLASS[descriptionVariant],
@@ -109,6 +119,7 @@ export function Dialog({
             )}
           </DialogHeader>
         )}
+        {children}
         {showFooter && (
           <DialogFooter className={cn("mt-4", footerAlignClass)}>
             {showCancelButton && (
