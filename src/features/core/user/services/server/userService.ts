@@ -4,7 +4,13 @@ import { base } from "./drizzleBase";
 import { checkAdminUserExists } from "./finders/checkAdminUserExists";
 import { findByLocalEmail } from "./finders/findByLocalEmail";
 import { findByProvider } from "./finders/findByProvider";
-import { createAdmin, createGeneralUser, createDemoUser } from "./creation/console";
+import {
+  createAdmin,
+  createGeneralUser,
+  createDemoUser,
+  createFromRegistration,
+  createGuestDemoUser,
+} from "./creation";
 import { create } from "./wrappers/create";
 import { hardDelete } from "./wrappers/hardDelete";
 import { remove } from "./wrappers/remove";
@@ -26,8 +32,11 @@ export const userService = {
   checkAdminUserExists,
   // wrappers
   updateLastAuthenticated,
-  // creation
+  // creation (console)
   createAdmin,
   createGeneralUser,
   createDemoUser,
+  // creation (auth)
+  createFromRegistration,
+  createGuestDemoUser,
 };
