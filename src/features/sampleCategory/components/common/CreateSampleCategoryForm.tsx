@@ -9,7 +9,7 @@ import { SampleCategoryCreateFields } from "@/features/sampleCategory/entities/f
 import { useCreateSampleCategory } from "@/features/sampleCategory/hooks/useCreateSampleCategory";
 import { SampleCategoryForm } from "./SampleCategoryForm";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
 import domainConfig from "@/features/sampleCategory/domain.json";
@@ -27,16 +27,17 @@ export default function CreateSampleCategoryForm({ redirectPath = "/" }: Props) 
   });
 
   const router = useRouter();
-
+  const { showAppToast } = useAppToast();
   const { trigger, isMutating } = useCreateSampleCategory();
+  useLoadingToast(isMutating, "登録中です…");
 
   const submit = async (data: SampleCategoryCreateFields) => {
     try {
       await trigger(data);
-      toast.success("登録しました");
+      showAppToast("登録しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      toast.error(err(error, "登録に失敗しました"));
+      showAppToast(err(error, "登録に失敗しました"), "error");
     }
   };
 
