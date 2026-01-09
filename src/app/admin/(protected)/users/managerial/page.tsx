@@ -24,7 +24,12 @@ export default async function AdminManagerialUserListPage({ searchParams }: Prop
   const { page: pageStr, searchQuery } = await searchParams;
   const page = Number(pageStr ?? "1");
   const perPage = await settingService.getAdminListPerPage();
-  const where: WhereExpr = { field: "role", op: "eq", value: "admin" };
+  const where: WhereExpr = {
+    and: [
+      { field: "role", op: "eq", value: "admin" },
+      { field: "isDemo", op: "eq", value: false },
+    ],
+  };
   const { results: users, total } = await userService.search({
     page,
     limit: perPage,

@@ -1,4 +1,6 @@
-// src/features/user/services/server/registrations/registerGeneralUserFromConsole.ts
+
+
+コンソールからの登録用サービスしかないみたいなんだけど、ユーザーが自分で登録した場合のサービスはどこにあるのかな。// src/features/user/services/server/registrations/registerGeneralUserFromConsole.ts
 
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";

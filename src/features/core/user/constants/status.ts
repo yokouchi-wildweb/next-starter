@@ -17,8 +17,8 @@ type UserStatus = (typeof USER_STATUSES)[number];
 export const USER_STATUS_LABELS: Record<UserStatus, string> = {
   pending: "仮登録",
   active: "有効",
-  inactive: "休止中",
-  suspended: "一時停止",
+  inactive: "休会中",
+  suspended: "処分保留",
   banned: "永久追放",
   security_locked: "セキュリティロック",
   withdrawn: "退会済み",

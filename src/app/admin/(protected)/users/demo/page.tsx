@@ -41,6 +41,7 @@ export default async function AdminDemoUserListPage({ searchParams }: Props) {
         perPage={perPage}
         total={total}
         title="登録済みデモユーザーの一覧"
+        newHref={`${LIST_PATH}/new`}
         listPath={LIST_PATH}
       />
     </AdminPage>

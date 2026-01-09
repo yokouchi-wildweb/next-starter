@@ -8,6 +8,7 @@ import Table from "./Table";
 type Props = {
   users: User[];
   title?: string;
+  newHref?: string;
   listPath: string;
   page: number;
   perPage: number;
@@ -20,6 +21,7 @@ const DEFAULT_TITLE = "登録済みデモユーザーの一覧";
 export default function DemoUserList({
   users,
   title = DEFAULT_TITLE,
+  newHref,
   listPath,
   page,
   perPage,
@@ -30,6 +32,7 @@ export default function DemoUserList({
     <Section>
       <UserListHeader
         title={title}
+        newHref={newHref}
         listPath={listPath}
         page={page}
         perPage={perPage}
