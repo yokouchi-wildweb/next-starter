@@ -52,6 +52,7 @@ export async function createFromRegistration(
   const user = (await userService.upsert(
     {
       ...validatedUserFields,
+      deletedAt: null,
     },
     { conflictFields: ["providerType", "providerUid"] },
   )) as User;

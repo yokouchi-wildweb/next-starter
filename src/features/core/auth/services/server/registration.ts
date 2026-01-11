@@ -57,14 +57,6 @@ export async function register(input: unknown): Promise<RegistrationResult> {
 
   const existingUser = await userService.findByProvider(providerType, providerUid);
 
-  // ソフトデリート済みの場合は再登録不可
-  if (existingUser?.deletedAt) {
-    throw new DomainError(
-      "このアカウントは登録できません。サービス管理者にお問い合わせください。",
-      { status: 409 },
-    );
-  }
-
   if (existingUser && USER_REGISTERED_STATUSES.includes(existingUser.status)) {
     throw new DomainError("このアカウントはすでに本登録が完了しています", { status: 409 });
   }
