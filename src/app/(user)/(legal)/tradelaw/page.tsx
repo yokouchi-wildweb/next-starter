@@ -12,7 +12,7 @@ const ADDRESS = businessConfig.company.address;
 const PHONE_NUMBER = businessConfig.company.phone;
 const EMAIL = businessConfig.company.email;
 const PAYMENT_METHODS = businessConfig.payment.methods;
-const ANTIQUE_LICENSE = businessConfig.legal.antiqueLicense;
+const LICENSES = businessConfig.legal.licenses;
 
 export default function TradelawPage() {
   return (
@@ -117,20 +117,29 @@ export default function TradelawPage() {
         </Para>
       </Section>
 
-      {/* 9. 古物商許可（該当する場合のみ表示） */}
-      {ANTIQUE_LICENSE && (
-        <Section id="antique-license" space="sm" marginBlock="lg">
+      {/* 9. 許認可情報（該当する場合のみ表示） */}
+      {LICENSES.length > 0 && (
+        <Section id="licenses" space="sm" marginBlock="lg">
           <SecTitle as="h2" size="lg">
-            9. 古物商許可
+            9. 関連法令に基づく許認可
           </SecTitle>
-          <Para>{ANTIQUE_LICENSE}</Para>
+          {LICENSES.map((license, index) => (
+            <div key={license.type} className={index > 0 ? "mt-4" : ""}>
+              <Para weight="bold">{license.label}</Para>
+              {license.details.map((detail, detailIndex) => (
+                <Para key={detailIndex} size="sm">
+                  {detail.key ? `${detail.key}: ${detail.value}` : detail.value}
+                </Para>
+              ))}
+            </div>
+          ))}
         </Section>
       )}
 
       {/* 10. 事業者の名称・住所・連絡先 */}
       <Section id="business-info" space="sm" marginBlock="lg">
         <SecTitle as="h2" size="lg">
-          {ANTIQUE_LICENSE ? "10" : "9"}. 事業者の名称・住所・連絡先
+          {LICENSES.length > 0 ? "10" : "9"}. 事業者の名称・住所・連絡先
         </SecTitle>
         <Para>{POSTAL_CODE}</Para>
         <Para>{ADDRESS}</Para>
