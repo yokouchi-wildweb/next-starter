@@ -1,6 +1,9 @@
 // src/registry/userCleanupRegistry.ts
 
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
+import { setStatusWithdrawn } from "@/features/core/user/services/server/setStatusWithdrawn";
+import { clearBalance as clearWalletBalance } from "@/features/core/wallet/services/server/clearBalance";
+import { cancelPending as cancelPendingPurchaseRequests } from "@/features/core/purchaseRequest/services/server/cancelPending";
 
 /**
  * ユーザーソフトデリート時に実行されるクリーンナップハンドラの型
@@ -11,36 +14,18 @@ export type UserCleanupHandler = (userId: string, tx: DbTransaction) => Promise<
  * 必須ハンドラ: 失敗した場合は全体をロールバック
  * 記載順に実行される
  */
-const requiredHandlers: UserCleanupHandler[] = [
-  // 例: userCleanupService.setStatusWithdrawn,
-  // 例: walletCleanupService.clearBalance,
+export const requiredHandlers: UserCleanupHandler[] = [
+  // ユーザーステータスを「退会済み（withdrawn）」に変更
+  setStatusWithdrawn,
+  // 全ウォレットの残高（balance / locked_balance）を0にクリア + 履歴記録
+  clearWalletBalance,
 ];
 
 /**
  * 任意ハンドラ: 失敗してもログを記録して続行
  * 記載順に実行される（必須ハンドラの後に実行）
  */
-const optionalHandlers: UserCleanupHandler[] = [
-  // 例: purchaseRequestCleanupService.cancelPending,
+export const optionalHandlers: UserCleanupHandler[] = [
+  // 未処理の購入リクエスト（pending / processing）を expired にキャンセル
+  cancelPendingPurchaseRequests,
 ];
-
-/**
- * 全てのクリーンナップハンドラを実行する
- * - requiredHandlers: 失敗時はエラーをスローし、トランザクション全体をロールバック
- * - optionalHandlers: 失敗時はログを記録して続行
- */
-export async function executeUserCleanup(userId: string, tx: DbTransaction): Promise<void> {
-  // 必須ハンドラを順次実行（失敗時はそのままスロー）
-  for (const handler of requiredHandlers) {
-    await handler(userId, tx);
-  }
-
-  // 任意ハンドラを順次実行（失敗時はログを記録して続行）
-  for (const handler of optionalHandlers) {
-    try {
-      await handler(userId, tx);
-    } catch (error) {
-      console.error(`[userCleanup] Optional cleanup failed for user ${userId}:`, error);
-    }
-  }
-}

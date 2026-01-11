@@ -2,7 +2,7 @@
 
 import { DomainError } from "@/lib/errors";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
-import { executeUserCleanup } from "@/registry/userCleanupRegistry";
+import { executeCleanup } from "@/features/core/user/services/server/executeCleanup";
 import { db } from "@/lib/drizzle";
 import { base } from "../drizzleBase";
 
@@ -37,7 +37,7 @@ export async function softDelete(input: SoftDeleteInput): Promise<void> {
     await base.remove(userId, tx);
 
     // クリーンナップ処理を実行
-    await executeUserCleanup(userId, tx);
+    await executeCleanup(userId, tx);
   });
 
   // アクションログを記録（トランザクション外）
