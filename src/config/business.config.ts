@@ -56,6 +56,8 @@ export const businessConfig = {
 
     /** 古物商許可番号（不要な場合は空文字） */
     antiqueLicense: "",
+    antiqueLicenseAuthority: "",
+    antiqueLicenseIssuedAt: "",
   },
 
   // === 決済情報 ===

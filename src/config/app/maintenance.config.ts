@@ -11,7 +11,18 @@ export const maintenanceConfig = {
   // メンテナンス中もアクセス許可するパス（完全一致）
   allowedPaths: [
     '/maintenance',
-    '/pre-register', // ダミー（下流プロジェクトで実際のパスに変更）
+    '/entry',
+    '/login',
+    '/admin/login',
+    '/signup',
+    '/signup/oauth',
+    '/signup/email-sent',
+    '/signup/verify',
+    '/signup/register',
+    '/signup/complete',
+    '/privacy-policy',
+    '/terms',
+    '/tradelaw',
   ],
 
   // 前方一致で許可するパス
