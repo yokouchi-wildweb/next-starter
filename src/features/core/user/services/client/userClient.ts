@@ -28,8 +28,17 @@ async function softDelete(userId: string, data?: SoftDeleteInput): Promise<void>
   await axios.post(`/api/admin/user/${userId}/delete`, data ?? {});
 }
 
+export type HardDeleteInput = {
+  reason?: string;
+};
+
+async function hardDelete(userId: string, data?: HardDeleteInput): Promise<void> {
+  await axios.delete(`/api/admin/user/${userId}/hard-delete`, { data: data ?? {} });
+}
+
 export const userClient = {
   ...baseClient,
   changeStatus,
   softDelete,
+  hardDelete,
 };

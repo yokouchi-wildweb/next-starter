@@ -2,6 +2,8 @@
 
 import { DomainError } from "@/lib/errors";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { executeUserCleanup } from "@/registry/userCleanupRegistry";
+import { db } from "@/lib/drizzle";
 import { base } from "../drizzleBase";
 
 export type SoftDeleteInput = {
@@ -11,7 +13,9 @@ export type SoftDeleteInput = {
 };
 
 /**
- * ユーザーを論理削除し、アクションログを記録する
+ * ユーザーを論理削除し、クリーンナップ処理を実行する
+ * - 論理削除とクリーンナップは同一トランザクション内で実行
+ * - 必須クリーンナップが失敗した場合は全体がロールバック
  */
 export async function softDelete(input: SoftDeleteInput): Promise<void> {
   const { userId, actorId, reason } = input;
@@ -27,10 +31,16 @@ export async function softDelete(input: SoftDeleteInput): Promise<void> {
     throw new DomainError("このユーザーは既に削除されています", { status: 400 });
   }
 
-  // 論理削除を実行
-  await base.remove(userId);
+  // トランザクション内で論理削除とクリーンナップを実行
+  await db.transaction(async (tx) => {
+    // 論理削除を実行
+    await base.remove(userId, tx);
 
-  // アクションログを記録
+    // クリーンナップ処理を実行
+    await executeUserCleanup(userId, tx);
+  });
+
+  // アクションログを記録（トランザクション外）
   await userActionLogService.create({
     targetUserId: userId,
     actorId,

@@ -1,7 +1,6 @@
 // src/features/walletHistory/entities/drizzle.ts
 
 import { integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { UserTable } from "@/features/core/user/entities/drizzle";
 import { WalletTypeEnum } from "@/features/core/wallet/entities/drizzle";
 import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta";
 
@@ -10,9 +9,8 @@ export const WalletHistorySourceTypeEnum = pgEnum("wallet_history_source_type", 
 
 export const WalletHistoryTable = pgTable("wallet_histories", {
   id: uuid("id").defaultRandom().primaryKey(),
-  user_id: uuid("user_id")
-    .notNull()
-    .references(() => UserTable.id, { onDelete: "cascade" }),
+  // 外部キー制約なし: ユーザー削除後も履歴を監査用に保持するため
+  user_id: uuid("user_id").notNull(),
   type: WalletTypeEnum("type").notNull(),
   change_method: WalletHistoryChangeMethodEnum("change_method").notNull(),
   points_delta: integer("points_delta").notNull(),
