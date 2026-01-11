@@ -1,0 +1,9 @@
+# カスタムヘッダーコンポーネント用ディレクトリ
+#
+# このディレクトリにカスタムヘッダーを実装してください。
+# 使用方法：
+#   1. index.tsx を作成し、UserNavigation をexport
+#   2. src/config/ui/user-header.config.ts のコメントを切り替え
+#
+# フォーク先では .gitignore に以下を追加することを推奨：
+#   src/components/AppFrames/User/Sections/HeaderCustom/

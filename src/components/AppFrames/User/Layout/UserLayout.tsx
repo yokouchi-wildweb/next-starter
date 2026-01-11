@@ -12,8 +12,8 @@ import { HeaderVisibilityProvider } from "../contexts/HeaderVisibilityContext";
 import { HeaderNavVisibilityProvider } from "../contexts/HeaderNavVisibilityContext";
 import { UserBottomNav } from "../Sections/BottomNav";
 import { BottomNavSpacer } from "../Sections/BottomNav/BottomNavSpacer";
-import { UserFooter } from "../Sections/Footer";
-import { UserNavigation } from "../Sections/Header";
+import { UserFooter } from "@/config/ui/user-footer.config";
+import { UserNavigation } from "@/config/ui/user-header.config";
 
 type LayoutStyle = CSSProperties & {
   "--app-header-height"?: string;

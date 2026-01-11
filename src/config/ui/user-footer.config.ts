@@ -8,6 +8,18 @@ import type { IconType } from "react-icons";
 import { FaFacebook, FaInstagram, FaTiktok, FaXTwitter } from "react-icons/fa6";
 
 // ============================================
+// コンポーネント設定
+// ============================================
+
+/**
+ * フッターコンポーネント
+ * カスタム版を使用する場合は以下のようにコメントを切り替えてください：
+ *
+ * export { UserFooter } from "@/components/AppFrames/User/Sections/FooterCustom";
+ */
+export { UserFooter } from "@/components/AppFrames/User/Sections/Footer";
+
+// ============================================
 // 基本設定
 // ============================================
 

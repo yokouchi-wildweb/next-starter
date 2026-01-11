@@ -11,17 +11,19 @@ User/
 │   └── UserPage.tsx     # ページコンテナ
 ├── Sections/        # セクション
 │   ├── Header/          # ヘッダーナビゲーション
-│   ├── Footer/          # フッター（スクロール内）
+│   ├── HeaderCustom/    # カスタムヘッダー（プロジェクト固有）
+│   ├── Footer/          # フッター
+│   ├── FooterCustom/    # カスタムフッター（プロジェクト固有）
 │   └── BottomNav/       # ボトムナビゲーション（スマホ固定）
 │       ├── index.tsx            # BottomNav本体
 │       ├── BottomNavItem.tsx    # 個別アイテムコンポーネント
 │       ├── BottomNavSpacer.tsx  # スペーサー（表示時のみ高さを確保）
-│       ├── useBottomNavItems.ts # ★メニュー・高さ設定（編集ポイント）
 │       └── types.ts             # 型定義
 ├── Elements/        # 共通UI要素
 │   └── PageTitle.tsx    # ページタイトル
 ├── contexts/        # 状態管理Context
 │   ├── HeaderVisibilityContext.tsx
+│   ├── HeaderNavVisibilityContext.tsx
 │   ├── FooterVisibilityContext.tsx
 │   └── BottomNavVisibilityContext.tsx
 └── controls/        # ページ単位のレイアウト制御コンポーネント
@@ -33,88 +35,120 @@ User/
 
 ---
 
-## controls - レイアウト制御コンポーネント
+## 設定ファイル
 
-ページ単位でヘッダー・フッターの表示/非表示を制御できる。
-スマホ（sp）とPC（pc）で個別に指定可能。
+各セクションの設定は `src/config/ui/` にあります。
 
-### インポート
+| ファイル | 説明 |
+|----------|------|
+| `user-header.config.ts` | ヘッダーの設定・コンポーネント切り替え |
+| `user-footer.config.ts` | フッターの設定・コンポーネント切り替え |
+| `user-bottom-menu.config.ts` | ボトムナビの設定 |
+
+---
+
+## Header - ヘッダーナビゲーション
+
+### 設定ファイル
+
+**`src/config/ui/user-header.config.ts`**
 
 ```tsx
-import { HideHeader, HideFooter } from "@/components/AppFrames/User/controls";
+// コンポーネント切り替え
+export { UserNavigation } from "@/components/AppFrames/User/Sections/Header";
+// カスタム版を使う場合：
+// export { UserNavigation } from "@/components/AppFrames/User/Sections/HeaderCustom";
+
+// 表示設定
+export const HEADER_ENABLED = true;
+export const HEADER_NAV_ENABLED = { sp: true, pc: true };
+
+// メニュー設定
+export const AUTHENTICATED_MENU_ITEMS: HeaderMenuItem[] = [...];
+export const GUEST_MENU_ITEMS: HeaderMenuItem[] = [...];
 ```
 
-### HideHeader
+### 設定項目
 
-ヘッダーを非表示にする。
+| 項目 | 説明 |
+|------|------|
+| `HEADER_ENABLED` | `false`でヘッダー全体を非表示 |
+| `HEADER_NAV_ENABLED` | SP/PC別にナビメニューの表示制御 |
+| `HEADER_LOGO_LINK` | ロゴクリック時の遷移先 |
+| `AUTHENTICATED_MENU_ITEMS` | ログイン中ユーザー用メニュー |
+| `GUEST_MENU_ITEMS` | 未ログインユーザー用メニュー |
+| `SHOW_LOGOUT_BUTTON` | ログアウトボタンの表示 |
+
+---
+
+## Footer - フッター
+
+### 設定ファイル
+
+**`src/config/ui/user-footer.config.ts`**
 
 ```tsx
-// 両方非表示
-<HideHeader sp pc />
+// コンポーネント切り替え
+export { UserFooter } from "@/components/AppFrames/User/Sections/Footer";
+// カスタム版を使う場合：
+// export { UserFooter } from "@/components/AppFrames/User/Sections/FooterCustom";
 
-// スマホのみ非表示
-<HideHeader sp />
+// 表示設定
+export const FOOTER_ENABLED = true;
+export const FOOTER_VISIBILITY = { sp: true, pc: true };
 
-// PCのみ非表示
-<HideHeader pc />
+// SNSリンク設定
+export const SNS_ENABLED = true;
+export const SOCIAL_LINKS: SocialLinkItem[] = [...];
+
+// フッターリンク設定
+export const FOOTER_LINKS_ENABLED = true;
+export const FOOTER_LINKS: FooterLinkItem[] = [...];
+
+// コピーライト設定
+export const COPYRIGHT_ENABLED = true;
+export const COPYRIGHT_YEAR = "2025";
+export const COPYRIGHT_FORMAT = "simple";
 ```
 
-### HideFooter
+### 設定項目
 
-フッターを非表示にする。
+| 項目 | 説明 |
+|------|------|
+| `FOOTER_ENABLED` | `false`でフッター全体を非表示 |
+| `FOOTER_VISIBILITY` | SP/PC別の表示制御 |
+| `SNS_ENABLED` | SNSリンクの表示 |
+| `SOCIAL_LINKS` | SNSリンク一覧（react-iconsを使用） |
+| `FOOTER_LINKS_ENABLED` | フッターリンクの表示 |
+| `FOOTER_LINKS` | リンク一覧（利用規約等） |
+| `COPYRIGHT_FORMAT` | `simple` / `allRights` / `full` / `custom` |
+
+---
+
+## カスタムコンポーネント
+
+プロジェクト固有のデザインにカスタマイズしたい場合、`HeaderCustom/` または `FooterCustom/` にコンポーネントを作成し、設定ファイルで切り替えます。
+
+### 手順
+
+1. `Sections/HeaderCustom/index.tsx` を作成し `UserNavigation` をexport
+2. `src/config/ui/user-header.config.ts` のexportを切り替え
 
 ```tsx
-// 両方非表示
-<HideFooter sp pc />
+// Before
+export { UserNavigation } from "@/components/AppFrames/User/Sections/Header";
 
-// スマホのみ非表示
-<HideFooter sp />
-
-// PCのみ非表示
-<HideFooter pc />
+// After
+export { UserNavigation } from "@/components/AppFrames/User/Sections/HeaderCustom";
 ```
 
-### 使用例
+### フォーク先での運用
 
-```tsx
-// src/app/(user)/onboarding/page.tsx
-import { HideHeader, HideFooter } from "@/components/AppFrames/User/controls";
+カスタムコンポーネントをアップストリームのマージ対象外にするため、`.gitignore` に追加を推奨：
 
-export default function OnboardingPage() {
-  return (
-    <>
-      <HideHeader />
-      <HideFooter />
-      <div>オンボーディングコンテンツ...</div>
-    </>
-  );
-}
-```
-
-### 動作仕様
-
-| 記述 | SP（スマホ） | PC |
-|------|-------------|-----|
-| `<HideHeader />` | 非表示 | 非表示 |
-| `<HideHeader sp />` | 非表示 | 表示 |
-| `<HideHeader pc />` | 表示 | 非表示 |
-| `<HideHeader sp pc />` | 非表示 | 非表示 |
-
-- **props未指定で両方非表示**（`<HideHeader />`で両方非表示）
-- ページ遷移時に自動リセット（アンマウント時にデフォルトに戻る）
-- ブレークポイント: `sm`（640px）を境界としてSP/PCを判定
-
-### HideBottomNav
-
-ボトムナビゲーションを非表示にする。
-**デフォルト**: スマホのみ表示（PCは非表示）
-
-```tsx
-// 両方非表示（props未指定で両方非表示）
-<HideBottomNav />
-
-// スマホのみ非表示（デフォルトがスマホ表示なので、これで完全非表示になる）
-<HideBottomNav sp />
+```gitignore
+src/components/AppFrames/User/Sections/HeaderCustom/
+src/components/AppFrames/User/Sections/FooterCustom/
 ```
 
 ---
@@ -127,38 +161,24 @@ export default function OnboardingPage() {
 
 - スマホのみ表示（デフォルト）
 - 画面下部に固定（`fixed bottom-0`）
-- カレントページは色が変わる（`text-primary`）
+- カレントページは色が変わる
 - Lucide-reactアイコンを使用
 
 ### 設定ファイル
 
-**`src/config/user-bottom-menu.config.ts`** を編集してカスタマイズ：
+**`src/config/ui/user-bottom-menu.config.ts`**
 
 ```tsx
-import { Home, LogIn, User } from "lucide-react";
-import type { BottomNavItem } from "@/components/AppFrames/User/Sections/BottomNav/types";
-
-// ============================================
 // 基本設定
-// ============================================
-
-/** ボトムナビゲーションを有効にするか */
 export const BOTTOM_NAV_ENABLED = true;
-
-/** ボトムナビの高さ（px） */
 export const BOTTOM_NAV_HEIGHT = 64;
 
-// ============================================
-// メニューアイテム設定
-// ============================================
-
-/** 認証済みユーザー用メニュー */
+// メニュー設定
 export const AUTHENTICATED_MENU_ITEMS: BottomNavItem[] = [
   { key: "home", label: "ホーム", href: "/", icon: Home },
   { key: "mypage", label: "マイページ", href: "/mypage", icon: User },
 ];
 
-/** 未認証ユーザー用メニュー */
 export const GUEST_MENU_ITEMS: BottomNavItem[] = [
   { key: "home", label: "ホーム", href: "/", icon: Home },
   { key: "login", label: "ログイン", href: "/login", icon: LogIn },
@@ -196,3 +216,72 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 - BottomNavが**表示されている時だけ**高さを持つ
 - `HideBottomNav`で非表示にした場合、スペーサーも自動で0になる
 - SP/PCそれぞれの表示状態に連動
+
+---
+
+## controls - レイアウト制御コンポーネント
+
+ページ単位でヘッダー・フッターの表示/非表示を制御できる。
+スマホ（sp）とPC（pc）で個別に指定可能。
+
+### インポート
+
+```tsx
+import { HideHeader, HideFooter, HideBottomNav } from "@/components/AppFrames/User/controls";
+```
+
+### HideHeader / HideFooter
+
+```tsx
+// 両方非表示
+<HideHeader sp pc />
+
+// スマホのみ非表示
+<HideHeader sp />
+
+// PCのみ非表示
+<HideHeader pc />
+```
+
+### HideBottomNav
+
+ボトムナビゲーションを非表示にする。
+**デフォルト**: スマホのみ表示（PCは非表示）
+
+```tsx
+// 両方非表示（props未指定で両方非表示）
+<HideBottomNav />
+
+// スマホのみ非表示
+<HideBottomNav sp />
+```
+
+### 使用例
+
+```tsx
+// src/app/(user)/onboarding/page.tsx
+import { HideHeader, HideFooter } from "@/components/AppFrames/User/controls";
+
+export default function OnboardingPage() {
+  return (
+    <>
+      <HideHeader />
+      <HideFooter />
+      <div>オンボーディングコンテンツ...</div>
+    </>
+  );
+}
+```
+
+### 動作仕様
+
+| 記述 | SP（スマホ） | PC |
+|------|-------------|-----|
+| `<HideHeader />` | 非表示 | 非表示 |
+| `<HideHeader sp />` | 非表示 | 表示 |
+| `<HideHeader pc />` | 表示 | 非表示 |
+| `<HideHeader sp pc />` | 非表示 | 非表示 |
+
+- **props未指定で両方非表示**（`<HideHeader />`で両方非表示）
+- ページ遷移時に自動リセット（アンマウント時にデフォルトに戻る）
+- ブレークポイント: `sm`（640px）を境界としてSP/PCを判定
