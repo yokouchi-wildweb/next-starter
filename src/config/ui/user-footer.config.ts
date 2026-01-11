@@ -94,8 +94,8 @@ export type FooterLinkItem = {
 /** フッターリンク一覧 */
 export const FOOTER_LINKS: FooterLinkItem[] = [
   { key: "terms", label: "利用規約", href: "/terms" },
-  { key: "privacy", label: "プライバシーポリシー", href: "/privacy" },
-  { key: "commerce", label: "特商法表記", href: "/commerce" },
+  { key: "privacy", label: "プライバシーポリシー", href: "/privacy-policy" },
+  { key: "commerce", label: "特商法表記", href: "/tradelaw" },
 ];
 
 /** フッターリンクのセパレーター */
