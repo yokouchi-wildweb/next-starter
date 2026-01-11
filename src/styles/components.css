@@ -8,5 +8,25 @@
 @layer components {
   /* ここにコンポーネント用のスタイルを追加 */
 
+  /* 番号付きセクション（CSSカウンターによる自動採番） */
+  .numbered-sections {
+    counter-reset: section;
+  }
+
+  .numbered-sections h2::before {
+    counter-increment: section;
+    content: counter(section) ". ";
+  }
+
+  /* 条番号付きセクション（利用規約等向け：第1条、第2条...） */
+  .numbered-articles {
+    counter-reset: article;
+  }
+
+  .numbered-articles h2::before {
+    counter-increment: article;
+    content: "第" counter(article) "条 ";
+  }
+
   /* 共通スタイルは必要に応じてここへ追加してください */
 }
