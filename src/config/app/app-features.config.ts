@@ -46,7 +46,7 @@ export const APP_FEATURES = {
      * 選択可能なロール（userカテゴリのロールから選択）
      * 空配列の場合は全userカテゴリロールが選択可能
      */
-    selectableRoles: ['user', "admin", "contributor"] as string[],
+    selectableRoles: ['user', "contributor"] as string[],
   },
   adminConsole: {
     enableDarkModeSwitch: true,

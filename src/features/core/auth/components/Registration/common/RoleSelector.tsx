@@ -50,7 +50,7 @@ export function RoleSelector<TFieldValues extends FieldValues>({
     }));
   }, [selectableRoles]);
 
-  if (!showRoleSelection || roleOptions.length <= 1) {
+  if (!showRoleSelection) {
     return null;
   }
 
