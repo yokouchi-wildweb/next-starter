@@ -4,7 +4,7 @@
 import { CountUp } from "@/components/Animation";
 import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
-import type { WalletType } from "@/features/core/wallet/currencyConfig";
+import type { WalletType } from "@/config/app/currency.config";
 import { getCurrencyConfig } from "@/features/core/wallet/utils/currency";
 
 /** テキストサイズ */

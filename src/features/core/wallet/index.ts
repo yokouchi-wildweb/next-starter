@@ -5,7 +5,7 @@
 export { CurrencyDisplay } from './components/common/CurrencyDisplay';
 
 // 型
-export type { WalletType } from './currencyConfig';
+export type { WalletType } from '@/config/app/currency.config';
 export type { CurrencyConfig, CurrencyMetaFieldConfig } from './types/currency';
 export type {
   WalletAdjustmentResult,
@@ -22,7 +22,7 @@ export type {
 export type { TransactionClient } from './services/server/wrappers/utils';
 
 // 設定
-export { CURRENCY_CONFIG } from './currencyConfig';
+export { CURRENCY_CONFIG } from '@/config/app/currency.config';
 
 // 派生定数
 export { WalletTypeOptions } from './constants/currency';

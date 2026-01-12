@@ -1,10 +1,10 @@
-// src/features/core/wallet/currencyConfig.ts
+// src/config/app/currency.config.ts
 // ウォレット通貨の設定ファイル
 // ※ユーザー編集対象：ウォレット種別の追加・変更はこのファイルで行う
 
 import { CircleDollarSign, Coins, Gift } from "lucide-react";
 
-import type { CurrencyConfig } from "./types/currency";
+import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
 
 /**
  * 通貨設定マップ

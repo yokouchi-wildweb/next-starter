@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Span } from "@/components/TextBlocks";
-import { CURRENCY_CONFIG, type WalletType } from "@/features/core/wallet/currencyConfig";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 
 export function WalletIndexPage() {
   const walletTypes = Object.keys(CURRENCY_CONFIG) as WalletType[];

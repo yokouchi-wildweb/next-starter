@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
-import { CURRENCY_CONFIG, type WalletType } from "@/features/core/wallet/currencyConfig";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
 import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";

@@ -14,7 +14,7 @@
 | **通貨種別** | `regular_point`、`temporary_point`、`regular_coin` |
 | **残高管理** | `balance`（総残高）- `locked_balance`（予約済み）= 利用可能残高 |
 | **ウォレット作成** | 遅延作成（初回操作時に自動作成） |
-| **設定ファイル** | `currencyConfig.ts`（通貨の追加・変更はここで行う） |
+| **設定ファイル** | `src/config/app/currency.config.ts`（通貨の追加・変更はここで行う） |
 
 ### 基本操作
 
@@ -338,10 +338,10 @@ async function playGacha(userId: string, cost: number) {
 
 ### 設定ファイル
 
-**`currencyConfig.ts`** で通貨の追加・変更を行う。
+**`src/config/app/currency.config.ts`** で通貨の追加・変更を行う。
 
 ```typescript
-// currencyConfig.ts
+// src/config/app/currency.config.ts
 export const CURRENCY_CONFIG = {
   regular_coin: {
     slug: "coin",           // URLパス用（/wallet/coin）
@@ -530,7 +530,6 @@ import { AdminWalletAdjustModal } from "@/features/core/wallet/components/AdminW
 src/features/core/wallet/
 ├── README.md                 # このファイル
 ├── index.ts                  # barrel export
-├── currencyConfig.ts         # 通貨設定
 ├── domain.json               # ドメイン生成設定
 │
 ├── entities/

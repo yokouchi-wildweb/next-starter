@@ -4,7 +4,7 @@
 
 import { Block } from "@/components/Layout/Block";
 import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
-import type { WalletType } from "@/features/core/wallet/currencyConfig";
+import type { WalletType } from "@/config/app/currency.config";
 
 import { PaymentMethodForm } from "./PaymentMethodForm";
 import { PurchaseSummaryCard } from "./PurchaseSummaryCard";

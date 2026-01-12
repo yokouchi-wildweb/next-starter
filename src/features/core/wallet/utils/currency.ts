@@ -1,7 +1,7 @@
 // src/features/core/wallet/utils/currency.ts
 // 通貨設定に関するユーティリティ関数
 
-import { CURRENCY_CONFIG, type WalletType } from "../currencyConfig";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import type { CurrencyConfig, CurrencyMetaFieldConfig } from "../types/currency";
 
 /**

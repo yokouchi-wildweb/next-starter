@@ -7,7 +7,7 @@ import type { Control } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput, Textarea } from "@/components/Form/Controlled";
 
-import type { WalletType } from "@/features/core/wallet/currencyConfig";
+import type { WalletType } from "@/config/app/currency.config";
 import type { CurrencyMetaFieldConfig } from "@/features/core/wallet/types/currency";
 import { getMetaFieldsByWalletType } from "@/features/core/wallet/utils/currency";
 import type { WalletAdjustFormValues } from "./formEntities";

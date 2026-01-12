@@ -1,7 +1,7 @@
 // src/features/wallet/components/AdminWalletAdjustModal/formEntities.ts
 
 import { z } from "zod";
-import { CURRENCY_CONFIG, type WalletType } from "@/features/core/wallet/currencyConfig";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { getAllMetaFields } from "@/features/core/wallet/utils/currency";
 
 // 全ウォレット種別のメタフィールドを取得（フォームスキーマは全フィールドを含む）
