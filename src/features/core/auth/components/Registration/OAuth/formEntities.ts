@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import { APP_FEATURES } from "@/config/app/app-features.config";
+
+const { defaultRole } = APP_FEATURES.registration;
+
 const emailSchema = z
   .string({
     required_error: "メールアドレスを入力してください",
@@ -16,11 +20,20 @@ const displayNameSchema = z
 export const FormSchema = z.object({
   email: emailSchema,
   displayName: displayNameSchema,
+  role: z.string(),
+  profileData: z.record(z.unknown()).optional(),
 });
 
-export type FormValues = z.infer<typeof FormSchema>;
+export type FormValues = {
+  email: string;
+  displayName: string;
+  role: string;
+  profileData?: Record<string, unknown>;
+};
 
 export const DefaultValues: FormValues = {
   email: "",
   displayName: "",
+  role: defaultRole,
+  profileData: {},
 };

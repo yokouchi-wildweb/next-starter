@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { AppForm } from "@/components/Form/AppForm";
@@ -19,6 +19,7 @@ import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
 import type { UserProviderType } from "@/features/core/user/types";
 
+import { RoleSelector, ProfileFields } from "../common";
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
 export function OAuthRegistrationForm() {
@@ -29,6 +30,9 @@ export function OAuthRegistrationForm() {
   });
   const { register, isLoading } = useRegistration();
   const { refreshSession } = useAuthSession();
+
+  // ロール選択を監視してプロフィールフィールドを動的に更新
+  const selectedRole = useWatch({ control: form.control, name: "role" });
 
   const currentUser = auth.currentUser;
   const providerProfile = {
@@ -47,7 +51,7 @@ export function OAuthRegistrationForm() {
   }, [form, isSubmitted, providerProfile.displayName, providerProfile.email]);
 
   const handleSubmit = useCallback(
-    async ({ email, displayName }: FormValues) => {
+    async ({ email, displayName, role, profileData }: FormValues) => {
       try {
         const currentUser = auth.currentUser;
 
@@ -75,6 +79,8 @@ export function OAuthRegistrationForm() {
           idToken,
           email,
           displayName,
+          role,
+          profileData,
         });
 
         await refreshSession();
@@ -97,6 +103,8 @@ export function OAuthRegistrationForm() {
       className="space-y-4"
       noValidate
     >
+        <RoleSelector control={form.control} name="role" />
+
         <FormFieldItem
           control={form.control}
           name="email"
@@ -125,6 +133,8 @@ export function OAuthRegistrationForm() {
             />
           )}
         />
+
+        <ProfileFields methods={form} role={selectedRole} />
 
         {rootErrorMessage ? (
           <Para tone="error" size="sm">

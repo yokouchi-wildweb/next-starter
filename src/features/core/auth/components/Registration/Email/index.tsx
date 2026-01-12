@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { AppForm } from "@/components/Form/AppForm";
@@ -20,6 +20,7 @@ import { useLocalStorage } from "@/lib/localStorage";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
 
+import { RoleSelector, ProfileFields } from "../common";
 import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./formEntities";
 
 export function EmailRegistrationForm() {
@@ -37,12 +38,15 @@ export function EmailRegistrationForm() {
   const { register, isLoading } = useRegistration();
   const { refreshSession } = useAuthSession();
 
+  // ロール選択を監視してプロフィールフィールドを動的に更新
+  const selectedRole = useWatch({ control: form.control, name: "role" });
+
   useEffect(() => {
     form.setValue("email", email, { shouldValidate: form.formState.isSubmitted });
   }, [email, form]);
 
   const handleSubmit = useCallback(
-    async ({ email: emailValue, displayName, password }: FormValues) => {
+    async ({ email: emailValue, displayName, password, role, profileData }: FormValues) => {
       try {
         const currentUser = auth.currentUser;
 
@@ -62,6 +66,8 @@ export function EmailRegistrationForm() {
           email: emailValue,
           displayName,
           password,
+          role,
+          profileData,
         });
         await refreshSession();
         router.push("/signup/complete");
@@ -83,6 +89,8 @@ export function EmailRegistrationForm() {
       className="space-y-4"
       noValidate
     >
+        <RoleSelector control={form.control} name="role" />
+
         <FormFieldItem
           control={form.control}
           name="email"
@@ -140,6 +148,8 @@ export function EmailRegistrationForm() {
             )}
           />
         )}
+
+        <ProfileFields methods={form} role={selectedRole} />
 
         {rootErrorMessage ? (
           <Para tone="error" size="sm">

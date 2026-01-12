@@ -1,5 +1,6 @@
 // src/features/core/user/services/server/creation/createFromRegistration.ts
 
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { User } from "@/features/core/user/entities";
 import type { UserProviderType } from "@/features/core/user/types";
 import { GeneralUserSchema } from "@/features/core/user/entities/schema";
@@ -12,6 +13,8 @@ export type CreateFromRegistrationInput = {
   email: string;
   displayName?: string | null;
   existingUser?: User | null;
+  /** ロール（指定がない場合は APP_FEATURES.registration.defaultRole） */
+  role?: string;
 };
 
 export type CreateFromRegistrationResult = {
@@ -29,12 +32,19 @@ export type CreateFromRegistrationResult = {
 export async function createFromRegistration(
   input: CreateFromRegistrationInput,
 ): Promise<CreateFromRegistrationResult> {
-  const { providerType, providerUid, email, displayName, existingUser } = input;
+  const {
+    providerType,
+    providerUid,
+    email,
+    displayName,
+    existingUser,
+    role = APP_FEATURES.registration.defaultRole,
+  } = input;
 
   const now = new Date();
 
   const validatedUserFields = await GeneralUserSchema.parseAsync({
-    role: "user",
+    role,
     status: "active",
     providerType,
     providerUid,

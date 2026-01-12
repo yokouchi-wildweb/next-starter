@@ -39,14 +39,14 @@ export const APP_FEATURES = {
   },
   registration: {
     /** 本登録画面でロール選択を表示するか */
-    showRoleSelection: false,
+    showRoleSelection: true,
     /** ロール選択を表示しない場合のデフォルトロール */
     defaultRole: "user" as string,
     /**
      * 選択可能なロール（userカテゴリのロールから選択）
      * 空配列の場合は全userカテゴリロールが選択可能
      */
-    selectableRoles: [] as string[],
+    selectableRoles: ['user', "admin", "contributor"] as string[],
   },
   adminConsole: {
     enableDarkModeSwitch: true,

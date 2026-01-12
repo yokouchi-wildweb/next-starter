@@ -5,6 +5,8 @@ import { z } from "zod";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 
+const { defaultRole } = APP_FEATURES.registration;
+
 const emailSchema = z
   .string({
     required_error: "メールアドレスを入力してください",
@@ -23,12 +25,19 @@ const passwordSchema = z
   .string({ required_error: "パスワードは8文字以上で入力してください" })
   .pipe(RegistrationSchema.shape.password.unwrap());
 
+/** 共通フィールド */
+const baseFields = {
+  email: emailSchema,
+  displayName: displayNameSchema,
+  password: passwordSchema,
+  role: z.string(),
+  profileData: z.record(z.unknown()).optional(),
+};
+
 /** パスワード確認ありスキーマ（double mode） */
 const FormSchemaDouble = z
   .object({
-    email: emailSchema,
-    displayName: displayNameSchema,
-    password: passwordSchema,
+    ...baseFields,
     passwordConfirmation: z
       .string({ required_error: "確認用のパスワードを入力してください" })
       .min(1, { message: "確認用のパスワードを入力してください" }),
@@ -45,9 +54,7 @@ const FormSchemaDouble = z
 
 /** パスワード確認なしスキーマ（single mode） */
 const FormSchemaSingle = z.object({
-  email: emailSchema,
-  displayName: displayNameSchema,
-  password: passwordSchema,
+  ...baseFields,
 });
 
 export const isDoubleMode = APP_FEATURES.user.passwordInputMode === "double";
@@ -59,11 +66,15 @@ export type FormValues = {
   displayName: string;
   password: string;
   passwordConfirmation?: string;
+  role: string;
+  profileData?: Record<string, unknown>;
 };
 
 export const DefaultValues: FormValues = {
   email: "",
   displayName: "",
   password: "",
+  role: defaultRole,
+  profileData: {},
   ...(isDoubleMode ? { passwordConfirmation: "" } : {}),
 };

@@ -126,7 +126,7 @@ export const ADDITIONAL_ROLES: readonly AdditionalRoleConfig[] = [
         label: "自己紹介",
         formInput: "textarea",
         required: false,
-        showOnRegistration: false,
+        showOnRegistration: true,
         placeholder: "活動内容などを入力してください",
       },
       // 管理者用フィールド（承認ワークフロー）

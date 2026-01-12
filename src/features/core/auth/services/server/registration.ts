@@ -2,7 +2,9 @@
 
 import type { z } from "zod";
 
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { USER_REGISTERED_STATUSES } from "@/features/core/user/constants";
+import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants/role";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 import {
   SessionUserSchema,
@@ -11,6 +13,7 @@ import {
 import type { User } from "@/features/core/user/entities";
 import { userService } from "@/features/core/user/services/server/userService";
 import { createFromRegistration } from "@/features/core/user/services/server/creation/createFromRegistration";
+import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
@@ -34,8 +37,19 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     throw new DomainError("本登録の入力内容が不正です。", { status: 400 });
   }
 
-  const { providerType, providerUid, idToken, email, displayName, password } =
-    parsedResult.data;
+  const {
+    providerType,
+    providerUid,
+    idToken,
+    email,
+    displayName,
+    password,
+    role: requestedRole,
+    profileData,
+  } = parsedResult.data;
+
+  // ロールの決定（指定がない場合は設定のデフォルトを使用）
+  const role = requestedRole ?? APP_FEATURES.registration.defaultRole;
 
   const auth = getServerAuth();
 
@@ -81,7 +95,13 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     email,
     displayName,
     existingUser,
+    role,
   });
+
+  // プロフィールを持つロールの場合、プロフィールデータを保存
+  if (hasRoleProfile(role as UserRoleType) && profileData) {
+    await userProfileService.upsertProfile(user.id, role as UserRoleType, profileData);
+  }
 
   const sessionUser = SessionUserSchema.parse({
     userId: user.id,
