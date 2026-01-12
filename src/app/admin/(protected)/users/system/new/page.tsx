@@ -1,4 +1,4 @@
-// src/app/admin/users/managerial/new/page.tsx
+// src/app/admin/users/system/new/page.tsx
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +10,9 @@ export const metadata = {
   title: "システム管理者追加",
 };
 
-const REDIRECT_PATH = "/admin/users/managerial";
+const REDIRECT_PATH = "/admin/users/system";
 
-export default function AdminManagerialUserCreatePage() {
+export default function AdminSystemUserCreatePage() {
   return (
     <AdminPage>
       <PageTitle>システム管理者追加</PageTitle>

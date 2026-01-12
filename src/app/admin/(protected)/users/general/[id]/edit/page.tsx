@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { userService } from "@/features/core/user/services/server/userService";
+import { getRoleCategory } from "@/features/core/user/constants";
 import GeneralUserEdit from "@/features/core/user/components/admin/GeneralUserEdit";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
@@ -23,8 +24,9 @@ export default async function AdminGeneralUserEditPage({ params }: Props) {
   const { id } = await params;
   const user = (await userService.get(id)) as User;
 
-  if (user.role === "admin") {
-    redirect(`/admin/users/managerial/${id}/edit`);
+  // admin系カテゴリのロールの場合は system にリダイレクト
+  if (getRoleCategory(user.role) === "admin") {
+    redirect(`/admin/users/system/${id}/edit`);
   }
 
   return (
