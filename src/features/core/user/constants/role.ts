@@ -1,19 +1,52 @@
 // src/features/core/user/constants/role.ts
 
-import { ADDITIONAL_ROLES } from "@/config/app/roles.config";
+import {
+  ADDITIONAL_ROLES,
+  type AdditionalRoleConfig,
+  type RoleCategory,
+} from "@/config/app/roles.config";
+
+// 型の re-export
+export type { RoleCategory, AdditionalRoleConfig } from "@/config/app/roles.config";
+
+/**
+ * ロール定義の型（コア + 追加で共通）
+ */
+export type RoleConfig = {
+  readonly id: string;
+  readonly label: string;
+  readonly category: RoleCategory;
+  readonly hasProfile: boolean;
+  readonly description?: string;
+};
 
 /**
  * コアロール定義（システム必須、削除不可）
  */
-const CORE_ROLES = [
-  { id: "admin", label: "管理者", description: "システム全体を管理できる" },
-  { id: "user", label: "一般", description: "一般ユーザー" },
-] as const;
+const CORE_ROLES: readonly RoleConfig[] = [
+  {
+    id: "admin",
+    label: "管理者",
+    category: "admin",
+    hasProfile: false,
+    description: "システム全体を管理できる",
+  },
+  {
+    id: "user",
+    label: "一般",
+    category: "user",
+    hasProfile: false,
+    description: "一般ユーザー",
+  },
+];
 
 /**
  * 全ロール定義（コア + 追加）
  */
-const ALL_ROLES = [...CORE_ROLES, ...ADDITIONAL_ROLES];
+export const ALL_ROLES: readonly RoleConfig[] = [
+  ...CORE_ROLES,
+  ...ADDITIONAL_ROLES,
+];
 
 /**
  * ロールID配列（DBスキーマ、バリデーション用）
@@ -55,6 +88,54 @@ export const USER_ROLE_DESCRIPTIONS: Record<UserRoleType, string | undefined> =
   >;
 
 /**
+ * ロールのカテゴリマッピング
+ */
+export const USER_ROLE_CATEGORIES: Record<UserRoleType, RoleCategory> =
+  Object.fromEntries(ALL_ROLES.map((r) => [r.id, r.category])) as Record<
+    UserRoleType,
+    RoleCategory
+  >;
+
+/**
+ * ロールがプロフィールを持つかのマッピング
+ */
+export const USER_ROLE_HAS_PROFILE: Record<UserRoleType, boolean> =
+  Object.fromEntries(ALL_ROLES.map((r) => [r.id, r.hasProfile])) as Record<
+    UserRoleType,
+    boolean
+  >;
+
+/**
+ * カテゴリ別のロールID配列を取得
+ */
+export const getRolesByCategory = (category: RoleCategory): UserRoleType[] => {
+  return ALL_ROLES.filter((r) => r.category === category).map(
+    (r) => r.id,
+  ) as UserRoleType[];
+};
+
+/**
+ * カテゴリ別のロールオプションを取得（セレクトボックス用）
+ */
+export const getRoleOptionsByCategory = (
+  category: RoleCategory,
+): readonly { id: UserRoleType; name: string }[] => {
+  return ALL_ROLES.filter((r) => r.category === category).map((r) => ({
+    id: r.id as UserRoleType,
+    name: r.label,
+  }));
+};
+
+/**
+ * プロフィールを持つロールのID配列を取得
+ */
+export const getRolesWithProfile = (): UserRoleType[] => {
+  return ALL_ROLES.filter((r) => r.hasProfile).map(
+    (r) => r.id,
+  ) as UserRoleType[];
+};
+
+/**
  * ロールラベルのフォーマッタ
  */
 export const formatUserRoleLabel = (
@@ -65,4 +146,18 @@ export const formatUserRoleLabel = (
     return fallback;
   }
   return USER_ROLE_LABELS[role as UserRoleType] ?? role;
+};
+
+/**
+ * ロールのカテゴリを取得
+ */
+export const getRoleCategory = (role: UserRoleType): RoleCategory => {
+  return USER_ROLE_CATEGORIES[role];
+};
+
+/**
+ * ロールがプロフィールを持つか判定
+ */
+export const hasRoleProfile = (role: UserRoleType): boolean => {
+  return USER_ROLE_HAS_PROFILE[role];
 };
