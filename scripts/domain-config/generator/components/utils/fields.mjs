@@ -62,7 +62,7 @@ ${relationEntries.map((entry) => entry.config).join(",\n")}
     .map((entry) => `  ${entry.propName},`)
     .join("\n");
 
-  const optionImports = relationEntries.length ? '\nimport type { Options } from "@/types/form";' : "";
+  const optionImports = relationEntries.length ? '\nimport type { Options } from "@/components/Form/types";' : "";
 
   const importItems = [
     "DomainFieldRenderer",
