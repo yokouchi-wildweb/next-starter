@@ -1,0 +1,8 @@
+// src/features/core/userProfile/services/server/operations/index.ts
+
+export { getProfile } from "./getProfile";
+export { upsertProfile, type ProfileUpsertData } from "./upsertProfile";
+export { updateProfile, type ProfileUpdateData } from "./updateProfile";
+export { deleteProfile } from "./deleteProfile";
+export { setApprovalStatus } from "./setApprovalStatus";
+export { hasProfile } from "./hasProfile";

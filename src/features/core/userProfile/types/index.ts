@@ -5,7 +5,7 @@
 // re-export（利便性のため）
 export type {
   ProfileFieldConfig,
-  ProfileFieldInputType,
+  ProfileFormInputType,
 } from "@/config/app/roles.config";
 
 /**

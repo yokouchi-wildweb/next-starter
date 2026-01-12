@@ -12,7 +12,7 @@ export type {
   RoleCategory,
   AdditionalRoleConfig,
   ProfileFieldConfig,
-  ProfileFieldInputType,
+  ProfileFormInputType,
 } from "@/config/app/roles.config";
 
 /**

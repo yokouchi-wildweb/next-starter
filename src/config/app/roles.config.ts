@@ -13,41 +13,58 @@
 export type RoleCategory = "admin" | "user";
 
 /**
- * プロフィールフィールドの入力タイプ
+ * プロフィールフィールドの入力タイプ（domain.json の formInput と互換）
+ * @see src/components/Form/DomainFieldRenderer/fieldMapper.ts
  */
-export type ProfileFieldInputType =
-  | "text"
+export type ProfileFormInputType =
+  | "textInput"
+  | "numberInput"
   | "textarea"
-  | "number"
-  | "email"
-  | "tel"
-  | "url"
   | "select"
   | "multiSelect"
+  | "radio"
   | "checkbox"
-  | "date"
-  | "datetime";
+  | "stepperInput"
+  | "switchInput"
+  | "dateInput"
+  | "timeInput"
+  | "datetimeInput"
+  | "emailInput"
+  | "passwordInput"
+  | "mediaUploader"
+  | "hidden";
 
 /**
- * プロフィールフィールドの設定
+ * プロフィールフィールドの設定（domain.json の fields と互換性あり）
+ * @see src/components/Form/DomainFieldRenderer/fieldMapper.ts DomainJsonField
  */
 export type ProfileFieldConfig = {
   /** フィールド名（DBカラム名） */
   name: string;
   /** 表示ラベル */
   label: string;
-  /** 入力タイプ */
-  type: ProfileFieldInputType;
+  /** 入力タイプ（domain.json の formInput と同じ値） */
+  formInput: ProfileFormInputType;
+  /** フィールドの型（checkbox で array/boolean を区別する場合等） */
+  fieldType?: "string" | "number" | "boolean" | "array" | "date";
   /** 必須かどうか */
   required: boolean;
-  /** 本登録画面で入力させるか */
+  /** 本登録画面で入力させるか（profile固有） */
   showOnRegistration: boolean;
   /** プレースホルダー */
   placeholder?: string;
-  /** 説明文 */
+  /** 説明文（フィールド下に表示） */
   description?: string;
-  /** セレクト用のオプション */
-  options?: readonly { value: string; label: string }[];
+  /** セレクト/ラジオ/チェックボックス用のオプション */
+  options?: readonly { value: string | number | boolean; label: string }[];
+  /** メディアアップローダー用のパス */
+  uploadPath?: string;
+  /** メディアアップローダー用のヘルパーテキスト */
+  helperText?: string;
+  /** メディアアップローダー用のaccept属性 */
+  accept?: string;
+  /** 読み取り専用 */
+  readonly?: boolean;
 };
 
 /**
@@ -61,7 +78,10 @@ export type AdditionalRoleConfig = {
   readonly description?: string;
   /**
    * プロフィールフィールド設定（hasProfile: true の場合に定義）
-   * 定義後は src/features/core/userProfile/entities/tables/ にテーブルを作成してください。
+   * 全フィールドを定義（ユーザー編集可能 / 管理者のみ / フラグ 等）
+   * - formInput: 入力タイプ（hidden で非表示、switchInput でトグル等）
+   * - showOnRegistration: 登録時に表示するか
+   * @see src/components/Form/DomainFieldRenderer - フォーム描画に使用
    */
   readonly profileFields?: readonly ProfileFieldConfig[];
 };
@@ -77,29 +97,62 @@ export const ADDITIONAL_ROLES: readonly AdditionalRoleConfig[] = [
     hasProfile: false,
     description: "一部の設定を操作できる",
   },
-  // 例: イベントの投稿者
-  // {
-  //   id: "organizer",
-  //   label: "主催者",
-  //   category: "user",
-  //   hasProfile: true,
-  //   description: "イベントを作成・管理できる",
-  //   profileFields: [
-  //     {
-  //       name: "companyName",
-  //       label: "会社名",
-  //       type: "text",
-  //       required: true,
-  //       showOnRegistration: true,
-  //       placeholder: "株式会社〇〇",
-  //     },
-  //     {
-  //       name: "contactPhone",
-  //       label: "連絡先電話番号",
-  //       type: "tel",
-  //       required: false,
-  //       showOnRegistration: true,
-  //     },
-  //   ],
-  // },
+  {
+    id: "contributor",
+    label: "投稿者",
+    category: "user",
+    hasProfile: true,
+    description: "コンテンツを投稿できる",
+    profileFields: [
+      // ユーザー編集可能フィールド
+      {
+        name: "organizationName",
+        label: "組織名",
+        formInput: "textInput",
+        required: true,
+        showOnRegistration: true,
+        placeholder: "株式会社〇〇",
+      },
+      {
+        name: "contactPhone",
+        label: "連絡先電話番号",
+        formInput: "textInput",
+        required: false,
+        showOnRegistration: false,
+        placeholder: "090-0000-0000",
+      },
+      {
+        name: "bio",
+        label: "自己紹介",
+        formInput: "textarea",
+        required: false,
+        showOnRegistration: false,
+        placeholder: "活動内容などを入力してください",
+      },
+      // 管理者用フィールド（承認ワークフロー）
+      {
+        name: "isApproved",
+        label: "承認状態",
+        formInput: "hidden",
+        fieldType: "boolean",
+        required: false,
+        showOnRegistration: false,
+      },
+      {
+        name: "approvedAt",
+        label: "承認日時",
+        formInput: "hidden",
+        fieldType: "date",
+        required: false,
+        showOnRegistration: false,
+      },
+      {
+        name: "approvalNote",
+        label: "承認メモ",
+        formInput: "hidden",
+        required: false,
+        showOnRegistration: false,
+      },
+    ],
+  },
 ];

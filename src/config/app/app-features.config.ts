@@ -37,6 +37,17 @@ export const APP_FEATURES = {
     /** 休会機能を有効にする */
     pauseEnabled: true,
   },
+  registration: {
+    /** 本登録画面でロール選択を表示するか */
+    showRoleSelection: false,
+    /** ロール選択を表示しない場合のデフォルトロール */
+    defaultRole: "user" as string,
+    /**
+     * 選択可能なロール（userカテゴリのロールから選択）
+     * 空配列の場合は全userカテゴリロールが選択可能
+     */
+    selectableRoles: [] as string[],
+  },
   adminConsole: {
     enableDarkModeSwitch: true,
     enableSidebarResizing: true,

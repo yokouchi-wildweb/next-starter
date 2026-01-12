@@ -28,7 +28,8 @@ export type {
   RoleConfig,
   AdditionalRoleConfig,
   ProfileFieldConfig,
-  ProfileFieldInputType,
+  ProfileFormInputType,
+  UserRoleType,
 } from "./role";
 
 export {
