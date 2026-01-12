@@ -1,11 +1,12 @@
 // src/features/walletHistory/entities/model.ts
 
 import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta";
+import type { WalletType } from "@/config/app/currency.config";
 
 export type WalletHistory = {
   id: string;
   user_id: string;
-  type: "regular_point" | "temporary_point" | "regular_coin";
+  type: WalletType;
   change_method: "INCREMENT" | "DECREMENT" | "SET";
   points_delta: number;
   balance_before: number;

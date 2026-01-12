@@ -2,6 +2,10 @@
 
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+
+// CURRENCY_CONFIG から動的に walletType の値を取得
+const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
 
 export const WalletHistoryMetaSchema = z
   .object({
@@ -17,7 +21,7 @@ export const WalletHistoryMetaSchema = z
 
 export const WalletHistoryBaseSchema = z.object({
   user_id: z.string().trim().min(1, { message: "ユーザーは必須です。" }),
-  type: z.enum(["regular_point", "temporary_point", "regular_coin"]),
+  type: z.enum(walletTypes),
   change_method: z.enum(["INCREMENT", "DECREMENT", "SET"]),
   points_delta: z.coerce.number().int().nonnegative(),
   balance_before: z.coerce.number().int(),

@@ -49,8 +49,11 @@ const metaFieldsDefaults = allMetaFields.reduce(
   {} as Record<string, string>,
 );
 
+// CURRENCY_CONFIG の最初のキーをデフォルト値として使用
+const defaultWalletType = Object.keys(CURRENCY_CONFIG)[0] as WalletType;
+
 export const WalletAdjustDefaultValues: WalletAdjustFormValues = {
-  walletType: "regular_coin",
+  walletType: defaultWalletType,
   changeMethod: "INCREMENT",
   amount: undefined,
   reason: "",

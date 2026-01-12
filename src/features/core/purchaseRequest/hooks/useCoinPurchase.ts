@@ -6,9 +6,13 @@ import { useState, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { initiatePurchase } from "../services/client/purchaseRequestClient";
 import { err } from "@/lib/errors/httpError";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+
+// CURRENCY_CONFIG の最初のキーをデフォルト値として使用
+const defaultWalletType = Object.keys(CURRENCY_CONFIG)[0] as WalletType;
 
 type UseCoinPurchaseParams = {
-  walletType?: string;
+  walletType?: WalletType;
   amount: number;
   paymentAmount: number;
 };
@@ -27,7 +31,7 @@ type UseCoinPurchaseResult = {
  * 決済ページへのリダイレクトまでを処理
  */
 export function useCoinPurchase({
-  walletType = "regular_coin",
+  walletType = defaultWalletType,
   amount,
   paymentAmount,
 }: UseCoinPurchaseParams): UseCoinPurchaseResult {
