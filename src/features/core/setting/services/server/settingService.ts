@@ -11,8 +11,6 @@ const DEFAULT_ADMIN_LIST_PER_PAGE = 50;
 
 const createDefaultSettingValues = () => ({
   // 基本設定項目
-  adminHeaderLogoImageUrl: null,
-  adminHeaderLogoImageDarkUrl: null,
   adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,
   // 拡張設定項目（setting-fields.json から生成）
   ...extendedDefaultSettingValues,
@@ -33,8 +31,6 @@ async function getGlobalSetting(): Promise<Setting> {
 
   return {
     ...existing,
-    adminHeaderLogoImageUrl: existing.adminHeaderLogoImageUrl ?? null,
-    adminHeaderLogoImageDarkUrl: existing.adminHeaderLogoImageDarkUrl ?? null,
     adminListPerPage: existing.adminListPerPage ?? defaultValues.adminListPerPage,
   };
 }

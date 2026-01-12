@@ -3,8 +3,6 @@
 import { z } from "zod";
 
 export const SettingBaseSchema = z.object({
-  adminHeaderLogoImageUrl: z.string().nullish(),
-  adminHeaderLogoImageDarkUrl: z.string().nullish(),
   adminListPerPage: z.coerce.number().int().min(1).max(500),
 });
 
