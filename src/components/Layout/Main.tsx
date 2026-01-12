@@ -4,7 +4,6 @@ import { type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from "react";
 
 import FullScreen, { type FullScreenLayer } from "@/components/Layout/FullScreen";
-import { APP_MAIN_ELEMENT_ID } from "@/constants/layout";
 import { cn } from "@/lib/cn";
 
 import { createLayoutVariants } from "./commonVariants";
@@ -44,7 +43,7 @@ export function Main({
   className,
   children,
   fullscreenLayer,
-  id = APP_MAIN_ELEMENT_ID,
+  id = "main",
   ...props
 
 }: MainProps) {

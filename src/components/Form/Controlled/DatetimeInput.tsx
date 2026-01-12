@@ -2,7 +2,7 @@
 
 import { DatetimeInput as ManualDatetimeInput } from "@/components/Form/Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
-import { ControlledInputProps } from "@/types/form";
+import { ControlledInputProps } from "@/components/Form/types";
 import dayjs from "dayjs";
 
 export const DatetimeInput = <

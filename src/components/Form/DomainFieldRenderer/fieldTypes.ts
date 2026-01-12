@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { FieldPath, FieldValues } from "react-hook-form";
-import type { Options } from "@/types/form";
+import type { Options } from "@/components/Form/types";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { FormFieldItemDescription } from "@/components/Form/FormFieldItem";
 import type { CheckGroupDisplayType } from "@/components/Form/Manual/CheckGroupInput";

@@ -3,7 +3,7 @@
 import type { ChangeEventHandler } from "react";
 import { Input } from "src/components/Form/Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
-import { ControlledInputProps } from "@/types/form";
+import { ControlledInputProps } from "@/components/Form/types";
 
 export const NumberInput = <
   TFieldValues extends FieldValues,

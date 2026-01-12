@@ -4,7 +4,7 @@ import { FieldPath, FieldValues } from "react-hook-form";
 
 import { Input } from "src/components/Form/Manual";
 
-import type { ControlledInputProps } from "@/types/form";
+import type { ControlledInputProps } from "@/components/Form/types";
 
 export const EmailInput = <
   TFieldValues extends FieldValues,

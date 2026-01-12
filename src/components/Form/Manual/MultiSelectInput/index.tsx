@@ -15,7 +15,7 @@ import {
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { cn } from "@/lib/cn";
-import { type Options } from "@/types/form";
+import { type Options } from "@/components/Form/types";
 
 import { MultiSelectOptionList } from "./MultiSelectOptionList";
 import { MultiSelectSearchSection } from "./MultiSelectSearchSection";

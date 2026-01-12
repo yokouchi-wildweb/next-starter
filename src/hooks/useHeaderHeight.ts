@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
+import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
 
 const FALLBACK_INTERVAL_MS = 250;
 

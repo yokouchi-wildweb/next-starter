@@ -34,7 +34,7 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
-import type { Options, OptionValue } from "@/types/form";
+import type { Options, OptionValue } from "@/components/Form/types";
 
 const textOptions: Options[] = [
   { label: "オプション A", value: "A" },

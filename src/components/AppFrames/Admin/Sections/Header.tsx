@@ -8,7 +8,7 @@ import Link from "next/link";
 
 import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { APP_HEADER_ELEMENT_ID } from "@/constants/layout";
+import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { logoPath } from "@/utils/assets";
 

@@ -10,7 +10,7 @@ import EditableGridTable, {
 import RecordSelectionTable, {
   type RecordSelectionTableProps,
 } from "@/lib/tableSuite/RecordSelectionTable";
-import type { OptionValue } from "@/types/form";
+import type { OptionValue } from "@/components/Form/types";
 import { Button } from "@/components/Form/Button/Button";
 import { RadioGroupInput } from "@/components/Form/Manual/RadioGroupInput";
 import { Block } from "@/components/Layout/Block";

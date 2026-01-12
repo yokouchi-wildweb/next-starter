@@ -1,6 +1,6 @@
 import type React from "react";
 
-import type { Options } from "@/types/form";
+import type { Options } from "@/components/Form/types";
 import type { TableColumnAlignment, TableStylingProps } from "../types";
 
 export type EditableGridEditorType =

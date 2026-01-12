@@ -2,7 +2,7 @@
 
 import { useId, type HTMLAttributes } from "react";
 
-import { type Options } from "@/types/form";
+import { type Options } from "@/components/Form/types";
 import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { BookmarkTag } from "@/components/Form/Button/BookmarkTag";
 import { RoundedButton } from "@/components/Form/Button/RoundedButton";

@@ -2,7 +2,7 @@
 
 import { Textarea as ManualTextarea } from "@/components/Form/Manual/Textarea";
 import { FieldPath, FieldValues } from "react-hook-form";
-import { ControlledTextareaProps } from "@/types/form";
+import { ControlledTextareaProps } from "@/components/Form/types";
 
 export const Textarea = <TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>>(
   props: ControlledTextareaProps<TFieldValues, TName>,

@@ -2,7 +2,7 @@
 
 import { TimeInput as ManualTimeInput } from "@/components/Form/Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
-import { ControlledInputProps } from "@/types/form";
+import { ControlledInputProps } from "@/components/Form/types";
 
 export const TimeInput = <TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>>({
   field,

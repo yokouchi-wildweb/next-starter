@@ -2,7 +2,7 @@
 
 import { DateInput as ManualDateInput } from "@/components/Form/Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
-import { ControlledInputProps } from "@/types/form";
+import { ControlledInputProps } from "@/components/Form/types";
 
 export const DateInput = <TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>>({
   field,

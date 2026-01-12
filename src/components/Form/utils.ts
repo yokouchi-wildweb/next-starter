@@ -1,6 +1,6 @@
 // src/components/Form/utils.ts
 
-import { type Options } from "@/types/form";
+import { type Options } from "@/components/Form/types";
 
 /**
  * Manual系のフォーム部品で共有する選択肢のプリミティブ値。

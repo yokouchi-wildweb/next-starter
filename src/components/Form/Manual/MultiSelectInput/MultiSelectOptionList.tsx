@@ -8,7 +8,7 @@ import {
   serializeOptionValue,
   type OptionPrimitive,
 } from "@/components/Form/utils";
-import { type Options } from "@/types/form";
+import { type Options } from "@/components/Form/types";
 
 type Props = {
   options: Options[];

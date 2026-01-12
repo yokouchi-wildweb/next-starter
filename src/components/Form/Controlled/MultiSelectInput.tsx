@@ -6,7 +6,7 @@ import {
   MultiSelectInput as ManualMultiSelectInput,
   type MultiSelectInputProps as ManualMultiSelectInputProps,
 } from "@/components/Form/Manual/MultiSelectInput";
-import { type ControlledInputProps } from "@/types/form";
+import { type ControlledInputProps } from "@/components/Form/types";
 
 export type ControlledMultiSelectInputProps<
   TFieldValues extends FieldValues,

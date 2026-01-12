@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { APP_FOOTER_ELEMENT_ID } from "@/constants/layout";
+import { APP_FOOTER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { cn } from "@/lib/cn";
 import { businessConfig } from "@/config/business.config";
 import {

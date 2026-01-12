@@ -1,9 +1,8 @@
 // src/config/admin-global-menu.config.ts
 
 import { adminDataMenu } from "@/registry/adminDataMenu";
-import type { AdminMenuSection } from "@/types/navigationMenu";
 
-export const adminMenu: AdminMenuSection[] = [
+export const adminMenu = [
 
   {
     title: "ダッシュボード",

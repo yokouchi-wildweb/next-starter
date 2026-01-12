@@ -4,7 +4,7 @@
 
 import { cn } from "@/lib/cn";
 import { FieldPath, FieldValues } from "react-hook-form";
-import { ControlledInputProps } from "@/types/form";
+import { ControlledInputProps } from "@/components/Form/types";
 import { ReactNode } from "react";
 import { cva } from "class-variance-authority";
 

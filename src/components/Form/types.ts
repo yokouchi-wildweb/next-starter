@@ -1,4 +1,4 @@
-// src/components/Form/form.ts
+// src/components/Form/types.ts
 
 import {
   type FieldValues,

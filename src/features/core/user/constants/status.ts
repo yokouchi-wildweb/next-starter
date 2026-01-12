@@ -1,6 +1,6 @@
 // src/features/core/user/constants/status.ts
 
-import type { Options } from "@/types/form";
+import type { Options } from "@/components/Form/types";
 
 export const USER_STATUSES = [
   "pending",

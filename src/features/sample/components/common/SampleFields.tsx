@@ -7,7 +7,7 @@ import {
   type DomainFieldRenderConfig,
   type DomainMediaState,
 } from "@/components/Form/DomainFieldRenderer";
-import type { Options } from "@/types/form";
+import type { Options } from "@/components/Form/types";
 import domainConfig from "@/features/sample/domain.json";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {

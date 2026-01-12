@@ -1,12 +1,10 @@
 // src/config/ui/admin-insane-menu.config.ts
 
-import type { AdminMenuSection } from "@/types/navigationMenu";
-
 /**
  * インセインモード用メニュー設定
  * 特権的な管理機能をまとめた裏メニュー
  */
-export const insaneMenu: AdminMenuSection[] = [
+export const insaneMenu = [
   {
     title: "インセインモード",
     href: "/admin/insane",
