@@ -13,7 +13,7 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { Input } from "@/components/Form/Manual";
 import { Para } from "@/components/TextBlocks";
-import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/config/authSettings";
+import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { useLocalStorage } from "@/lib/localStorage";

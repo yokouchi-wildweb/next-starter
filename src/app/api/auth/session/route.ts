@@ -12,7 +12,7 @@ import {
   verifyUserToken,
   SESSION_DEFAULT_MAX_AGE_SECONDS,
 } from "@/lib/jwt";
-import { DEMO_SESSION_MAX_AGE_SECONDS } from "@/constants/session";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 
 export const GET = createApiRoute(
   {
@@ -69,7 +69,7 @@ export const GET = createApiRoute(
     const sessionUser = verification.claims;
     // デモユーザーは短いセッション時間を維持
     const maxAge = sessionUser.isDemo
-      ? DEMO_SESSION_MAX_AGE_SECONDS
+      ? APP_FEATURES.auth.session.demoMaxAgeSeconds
       : SESSION_DEFAULT_MAX_AGE_SECONDS;
     const { token: newToken, expiresAt } = await signUserToken({
       subject: sessionUser.userId,

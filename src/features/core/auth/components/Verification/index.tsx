@@ -8,7 +8,7 @@ import { useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { Section } from "@/components/Layout/Section";
-import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/config/authSettings";
+import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
 import { useLocalStorage } from "@/lib/localStorage";
 import { useVerificationPhase } from "@/features/core/auth/hooks/useVerificationPhase";
 

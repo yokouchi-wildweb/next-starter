@@ -15,7 +15,7 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/Controlled";
 import { Block } from "@/components/Layout/Block";
 import { Para, SecTitle } from "@/components/TextBlocks";
-import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/config/authSettings";
+import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
 import { useVerificationEmail } from "@/features/core/auth/hooks/useVerificationEmail";
 import { useEmailUserExists } from "@/features/core/user/hooks/useEmailUserExists";
 import { err } from "@/lib/errors";

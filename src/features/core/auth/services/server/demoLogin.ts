@@ -5,7 +5,7 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
 import { userService } from "@/features/core/user/services/server/userService";
 import { createGuestDemoUser } from "@/features/core/user/services/server/creation/createGuestDemoUser";
 import { demoModeConfig } from "@/config/app/demo-mode.config";
-import { DEMO_SESSION_MAX_AGE_SECONDS } from "@/constants/session";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { signUserToken } from "@/lib/jwt";
 
 export type DemoLoginInput = {
@@ -67,7 +67,7 @@ export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginRe
   });
 
   // JWT の存続期間を定義し、トークンを署名（デモユーザーは短いセッション時間）
-  const maxAge = DEMO_SESSION_MAX_AGE_SECONDS;
+  const maxAge = APP_FEATURES.auth.session.demoMaxAgeSeconds;
   const { token, expiresAt } = await signUserToken({
     subject: sessionUser.userId,
     claims: {

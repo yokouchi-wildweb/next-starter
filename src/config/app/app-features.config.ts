@@ -20,6 +20,14 @@ export const APP_FEATURES = {
       facebook: true,
       twitter: true,
     },
+    session: {
+      /** JWT セッション Cookie の名前 */
+      cookieName: "__session",
+      /** セッションの有効期限（秒）: 7日間 */
+      defaultMaxAgeSeconds: 60 * 60 * 24 * 7,
+      /** デモユーザー用セッションの有効期限（秒）: 10分 */
+      demoMaxAgeSeconds: 60 * 10,
+    },
   },
   user: {
     /** 本登録ページに進捗インディケーターを表示する */
