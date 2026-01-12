@@ -3,11 +3,17 @@
 import {
   ADDITIONAL_ROLES,
   type AdditionalRoleConfig,
+  type ProfileFieldConfig,
   type RoleCategory,
 } from "@/config/app/roles.config";
 
 // 型の re-export
-export type { RoleCategory, AdditionalRoleConfig } from "@/config/app/roles.config";
+export type {
+  RoleCategory,
+  AdditionalRoleConfig,
+  ProfileFieldConfig,
+  ProfileFieldInputType,
+} from "@/config/app/roles.config";
 
 /**
  * ロール定義の型（コア + 追加で共通）
@@ -18,6 +24,7 @@ export type RoleConfig = {
   readonly category: RoleCategory;
   readonly hasProfile: boolean;
   readonly description?: string;
+  readonly profileFields?: readonly ProfileFieldConfig[];
 };
 
 /**
@@ -160,4 +167,27 @@ export const getRoleCategory = (role: UserRoleType): RoleCategory => {
  */
 export const hasRoleProfile = (role: UserRoleType): boolean => {
   return USER_ROLE_HAS_PROFILE[role];
+};
+
+/**
+ * ロールのプロフィールフィールド設定を取得
+ */
+export const getProfileFields = (
+  role: UserRoleType,
+): readonly ProfileFieldConfig[] => {
+  const roleConfig = ALL_ROLES.find((r) => r.id === role);
+  return roleConfig?.profileFields ?? [];
+};
+
+/**
+ * 本登録画面で表示するフィールドを取得
+ */
+export const getRegistrationFields = (
+  role: UserRoleType,
+): ProfileFieldConfig[] => {
+  if (!hasRoleProfile(role)) {
+    return [];
+  }
+  const fields = getProfileFields(role);
+  return fields.filter((field) => field.showOnRegistration);
 };

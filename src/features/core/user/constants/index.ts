@@ -9,7 +9,26 @@ export {
   USER_ROLES,
   USER_ROLE_OPTIONS,
   USER_ROLE_LABELS,
+  USER_ROLE_CATEGORIES,
+  USER_ROLE_DESCRIPTIONS,
+  USER_ROLE_HAS_PROFILE,
+  ALL_ROLES,
   formatUserRoleLabel,
+  getRolesByCategory,
+  getRoleOptionsByCategory,
+  getRolesWithProfile,
+  getRoleCategory,
+  hasRoleProfile,
+  getProfileFields,
+  getRegistrationFields,
+} from "./role";
+
+export type {
+  RoleCategory,
+  RoleConfig,
+  AdditionalRoleConfig,
+  ProfileFieldConfig,
+  ProfileFieldInputType,
 } from "./role";
 
 export {
