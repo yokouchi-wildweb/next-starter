@@ -530,7 +530,6 @@ import { AdminWalletAdjustModal } from "@/features/core/wallet/components/AdminW
 src/features/core/wallet/
 ├── README.md                 # このファイル
 ├── index.ts                  # barrel export
-├── domain.json               # ドメイン生成設定
 │
 ├── entities/
 │   ├── index.ts

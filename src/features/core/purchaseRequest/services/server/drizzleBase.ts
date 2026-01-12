@@ -1,22 +1,17 @@
 // src/features/purchaseRequest/services/server/drizzleBase.ts
 
-import { getDomainConfig } from "@/features/core/domainConfig/getDomainConfig";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import { PurchaseRequestCreateSchema, PurchaseRequestUpdateSchema } from "@/features/core/purchaseRequest/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { z } from "zod";
 
-const conf = getDomainConfig("purchaseRequest");
-
 const baseOptions = {
-  idType: conf.idType as IdType,
-  useCreatedAt: conf.useCreatedAt,
-  useUpdatedAt: conf.useUpdatedAt,
-  defaultSearchFields: conf.searchFields,
-  defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
-
+  idType: "uuid",
+  useCreatedAt: true,
+  useUpdatedAt: true,
+  defaultSearchFields: ["user_id", "idempotency_key", "status", "payment_session_id"],
+  defaultOrderBy: [["createdAt", "DESC"]],
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof PurchaseRequestCreateSchema>
 >;

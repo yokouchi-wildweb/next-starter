@@ -1,22 +1,17 @@
 // src/features/wallet/services/server/drizzleBase.ts
 
-import { getDomainConfig } from "@/features/core/domainConfig/getDomainConfig";
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { WalletCreateSchema, WalletUpdateSchema } from "@/features/core/wallet/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { z } from "zod";
 
-const conf = getDomainConfig("wallet");
-
 const baseOptions = {
-  idType: conf.idType as IdType,
-  useCreatedAt: conf.useCreatedAt,
-  useUpdatedAt: conf.useUpdatedAt,
-  defaultSearchFields: conf.searchFields,
-  defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
-
+  idType: "uuid",
+  useCreatedAt: false,
+  useUpdatedAt: true,
+  defaultSearchFields: ["type"],
+  defaultOrderBy: [["updatedAt", "DESC"]],
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof WalletCreateSchema>
 >;
