@@ -8,7 +8,7 @@ import { purchaseRequestService } from "@/features/core/purchaseRequest/services
 
 const InitiatePurchaseSchema = z.object({
   idempotencyKey: z.string().uuid({ message: "冪等キーはUUID形式で指定してください。" }),
-  walletType: z.enum(["regular_point", "temporary_point", "regular_coin"], {
+  walletType: z.enum(["regular_point", "regular_coin"], {
     errorMap: () => ({ message: "無効なウォレット種別です。" }),
   }),
   amount: z.coerce

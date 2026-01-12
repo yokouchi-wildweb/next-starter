@@ -50,10 +50,7 @@ export async function createFromRegistration(
   const isNewRegistration = !existingUser;
 
   const user = (await userService.upsert(
-    {
-      ...validatedUserFields,
-      deletedAt: null,
-    },
+    validatedUserFields,
     { conflictFields: ["providerType", "providerUid"] },
   )) as User;
 
