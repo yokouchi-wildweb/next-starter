@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { demoLogin as demoLoginService } from "@/features/core/auth/services/client/demoLogin";
-import { DEMO_USER_ID_KEY } from "@/constants/localStorage";
+import { DEMO_USER_ID_KEY } from "@/features/core/auth/constants/localStorage";
 import {
   loadFromLocalStorage,
   saveToLocalStorage,
