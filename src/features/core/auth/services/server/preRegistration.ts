@@ -82,7 +82,10 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
   });
 
   const upserted = (await userService.upsert(
-    validatedUserFields,
+    {
+      ...validatedUserFields,
+      deletedAt: null,
+    } as typeof validatedUserFields & { deletedAt: Date | null },
     { conflictFields: ["providerType", "providerUid"] },
   )) as User;
 
