@@ -21,6 +21,10 @@ User/
 │       └── types.ts             # 型定義
 ├── Elements/        # 共通UI要素
 │   └── PageTitle.tsx    # ページタイトル
+├── hooks/           # 共通フック（カスタムコンポーネント用）
+│   ├── index.ts             # re-export
+│   ├── useHeaderData.ts     # ヘッダー用データ・状態
+│   └── useFooterData.ts     # フッター用データ
 ├── contexts/        # 状態管理Context
 │   ├── HeaderVisibilityContext.tsx
 │   ├── HeaderNavVisibilityContext.tsx
@@ -44,6 +48,57 @@ User/
 | `user-header.config.ts` | ヘッダーの設定・コンポーネント切り替え |
 | `user-footer.config.ts` | フッターの設定・コンポーネント切り替え |
 | `user-bottom-menu.config.ts` | ボトムナビの設定 |
+
+---
+
+## hooks - 共通フック
+
+カスタムヘッダー・フッター作成時に使用するフックを提供します。
+
+### useHeaderData
+
+ヘッダーに必要なデータ・状態を全て提供します。
+
+```tsx
+import { useHeaderData } from "@/components/AppFrames/User/hooks";
+
+const {
+  enabled,          // ヘッダー機能が有効か
+  navItems,         // メニュー項目（認証状態反映済み）
+  navEnabled,       // ナビメニューの有効設定（SP/PC）
+  visibility,       // ヘッダーの表示状態（SP/PC）
+  navVisibility,    // ナビメニューの表示状態（SP/PC）
+  logoLink,         // ロゴのリンク先
+  isMenuOpen,       // メニューの開閉状態
+  openMenu,         // メニューを開く
+  closeMenu,        // メニューを閉じる
+  toggleMenu,       // メニューの開閉をトグル
+  headerRef,        // ヘッダー要素のref（高さ計算用）
+  headerOffset,     // ヘッダーの高さ（px）
+  visibilityClass,  // SP/PC両方の表示クラス
+} = useHeaderData();
+```
+
+### useFooterData
+
+フッターに必要なデータを全て提供します。
+
+```tsx
+import { useFooterData } from "@/components/AppFrames/User/hooks";
+
+const {
+  enabled,          // フッター機能が有効か
+  visibility,       // フッターの表示状態（SP/PC）
+  snsEnabled,       // SNSリンクが有効か
+  socialLinks,      // SNSリンク一覧
+  linksEnabled,     // フッターリンクが有効か
+  footerLinks,      // フッターリンク一覧
+  linkSeparator,    // フッターリンクのセパレーター
+  copyrightEnabled, // コピーライトが有効か
+  copyrightText,    // 生成済みコピーライトテキスト
+  visibilityClass,  // SP/PC両方の表示クラス
+} = useFooterData();
+```
 
 ---
 
@@ -127,11 +182,15 @@ export const COPYRIGHT_FORMAT = "simple";
 
 ## カスタムコンポーネント
 
-プロジェクト固有のデザインにカスタマイズしたい場合、`HeaderCustom/` または `FooterCustom/` にコンポーネントを作成し、設定ファイルで切り替えます。
+プロジェクト固有のデザインにカスタマイズしたい場合、`HeaderCustom/` または `FooterCustom/` のスケルトンテンプレートを編集し、設定ファイルで切り替えます。
+
+### スケルトンテンプレート
+
+`HeaderCustom/index.tsx` と `FooterCustom/index.tsx` には、共通フックを使用したスケルトンテンプレートが用意されています。デザインのみをカスタマイズすれば、設定ファイルとの連携やロジックは自動的に機能します。
 
 ### 手順
 
-1. `Sections/HeaderCustom/index.tsx` を作成し `UserNavigation` をexport
+1. `Sections/HeaderCustom/index.tsx` を編集してデザインをカスタマイズ
 2. `src/config/ui/user-header.config.ts` のexportを切り替え
 
 ```tsx
@@ -140,15 +199,6 @@ export { UserNavigation } from "@/components/AppFrames/User/Sections/Header";
 
 // After
 export { UserNavigation } from "@/components/AppFrames/User/Sections/HeaderCustom";
-```
-
-### フォーク先での運用
-
-カスタムコンポーネントをアップストリームのマージ対象外にするため、`.gitignore` に追加を推奨：
-
-```gitignore
-src/components/AppFrames/User/Sections/HeaderCustom/
-src/components/AppFrames/User/Sections/FooterCustom/
 ```
 
 ---

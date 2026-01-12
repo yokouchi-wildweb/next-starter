@@ -1,3 +1,15 @@
+/**
+ * カスタムフッター スケルトンテンプレート
+ *
+ * このファイルを編集してプロジェクト固有のフッターを作成してください。
+ * useFooterData フックにより、設定ファイルからのデータ取得は全て提供されます。
+ *
+ * 使用方法:
+ * 1. このファイルを編集してデザインをカスタマイズ
+ * 2. src/config/ui/user-footer.config.ts の export を切り替え:
+ *    export { UserFooter } from "@/components/AppFrames/User/Sections/FooterCustom";
+ */
+
 "use client";
 
 import Link from "next/link";
@@ -28,7 +40,7 @@ export function UserFooter() {
     <footer
       id={APP_FOOTER_ELEMENT_ID}
       className={cn(
-        "flex-col items-center justify-center gap-4 bg-background px-6 py-6 text-foreground shadow-inner",
+        "flex-col items-center justify-center gap-4 bg-background px-6 py-8",
         visibilityClass
       )}
     >
