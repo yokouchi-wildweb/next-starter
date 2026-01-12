@@ -1,11 +1,13 @@
 // src/features/purchaseRequest/entities/model.ts
 
+import type { WalletType } from "@/config/app/currency.config";
+
 export type PurchaseRequest = {
   id: string;
   user_id: string;
   wallet_history_id: string | null;
   idempotency_key: string;
-  wallet_type: 'regular_point' | 'temporary_point' | 'regular_coin';
+  wallet_type: WalletType;
   amount: number;
   payment_amount: number;
   payment_method: string;

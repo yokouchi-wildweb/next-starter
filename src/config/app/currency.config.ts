@@ -2,6 +2,8 @@
 // ウォレット通貨の設定ファイル
 // ※ユーザー編集対象：ウォレット種別の追加・変更はこのファイルで行う
 
+// [!!]通貨設定の変更後は必ずマイグレーションが必要です
+
 import { CircleDollarSign, Coins, Gift } from "lucide-react";
 
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";

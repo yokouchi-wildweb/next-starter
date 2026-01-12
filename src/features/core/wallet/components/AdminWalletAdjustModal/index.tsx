@@ -125,10 +125,14 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
   };
 
   const isProcessing = isSubmitting || isMutating;
-  const regularBalance =
-    walletBalances?.wallets.find((wallet) => wallet.type === "regular_point")?.balance ?? null;
-  const temporaryBalance =
-    walletBalances?.wallets.find((wallet) => wallet.type === "temporary_point")?.balance ?? null;
+
+  // 全通貨の残高を動的に取得・表示
+  const balanceDisplay = Object.entries(CURRENCY_CONFIG)
+    .map(([type, config]) => {
+      const balance = walletBalances?.wallets.find((w) => w.type === type)?.balance ?? null;
+      return `${config.label}: ${formatBalance(balance)}`;
+    })
+    .join(" / ");
 
   const adjustTabContent = (
     <Block space="sm" padding="md">
@@ -149,10 +153,10 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             </div>
             <div className="text-right">
               <Para size="xs" tone="muted">
-                現在のポイント
+                現在の残高
               </Para>
               <Para size="sm">
-                通常: {formatBalance(regularBalance)} / 期間限定: {formatBalance(temporaryBalance)}
+                {balanceDisplay}
               </Para>
             </div>
           </Flex>

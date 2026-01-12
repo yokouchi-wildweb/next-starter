@@ -2,13 +2,17 @@
 
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+
+// CURRENCY_CONFIG から動的に walletType の値を取得
+const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
 
 export const PurchaseRequestBaseSchema = z.object({
   user_id: z.string().trim().min(1, { message: "ユーザーは必須です。" }),
   wallet_history_id: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   idempotency_key: z.string().trim().min(1, { message: "冪等キーは必須です。" }),
-  wallet_type: z.enum(["regular_point", "temporary_point", "regular_coin"]),
+  wallet_type: z.enum(walletTypes),
   amount: z.coerce.number().int(),
   payment_amount: z.coerce.number().int(),
   payment_method: z.string().trim().min(1, { message: "支払い方法は必須です。" }),

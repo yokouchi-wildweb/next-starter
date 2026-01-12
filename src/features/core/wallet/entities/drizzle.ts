@@ -2,8 +2,12 @@
 
 import { integer, pgEnum, pgTable, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { UserTable } from "@/features/core/user/entities/drizzle";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 
-export const WalletTypeEnum = pgEnum("wallet_type_enum", ["regular_point", "temporary_point", "regular_coin"]);
+// CURRENCY_CONFIG から動的に walletType の値を取得
+const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+
+export const WalletTypeEnum = pgEnum("wallet_type_enum", walletTypes);
 
 export const WalletTable = pgTable(
   "wallets",

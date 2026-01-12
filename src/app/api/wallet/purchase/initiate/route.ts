@@ -5,10 +5,14 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+
+// currency.config.ts から動的に walletType の値を取得（型安全）
+const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
 
 const InitiatePurchaseSchema = z.object({
   idempotencyKey: z.string().uuid({ message: "冪等キーはUUID形式で指定してください。" }),
-  walletType: z.enum(["regular_point", "regular_coin"], {
+  walletType: z.enum(walletTypes, {
     errorMap: () => ({ message: "無効なウォレット種別です。" }),
   }),
   amount: z.coerce

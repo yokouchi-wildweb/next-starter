@@ -3,11 +3,8 @@
 // このファイルは domain-config スクリプトによって自動生成されています。
 // 手動での編集は変更が上書きされる可能性があるため推奨されません。
 
-export const WalletHistoryTypeOptions = [
-  { value: "regular_point", label: "通常ポイント" },
-  { value: "temporary_point", label: "期間限定ポイント" },
-  { value: "regular_coin", label: "通常コイン" }
-] as const;
+// WalletTypeOptions は wallet ドメインから再利用
+export { WalletTypeOptions as WalletHistoryTypeOptions } from "@/features/core/wallet/constants/field";
 
 export const WalletHistoryChangeMethodOptions = [
   { value: "INCREMENT", label: "増加" },
