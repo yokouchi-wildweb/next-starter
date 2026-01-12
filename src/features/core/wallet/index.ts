@@ -5,7 +5,8 @@
 export { CurrencyDisplay } from './components/common/CurrencyDisplay';
 
 // 型
-export type { WalletType, CurrencyConfig } from './currencyConfig';
+export type { WalletType } from './currencyConfig';
+export type { CurrencyConfig, CurrencyMetaFieldConfig } from './types/currency';
 export type {
   WalletAdjustmentResult,
   AdjustWalletParams,
@@ -20,13 +21,20 @@ export type {
 // トランザクション関連の型
 export type { TransactionClient } from './services/server/wrappers/utils';
 
-// 設定・ユーティリティ
+// 設定
+export { CURRENCY_CONFIG } from './currencyConfig';
+
+// 派生定数
+export { WalletTypeOptions } from './constants/currency';
+
+// ユーティリティ
 export {
-  CURRENCY_CONFIG,
-  WalletTypeOptions,
   getCurrencyConfig,
   getCurrencyConfigBySlug,
   getWalletTypeBySlug,
   getSlugByWalletType,
   isValidSlug,
-} from './currencyConfig';
+  getMetaFieldsByWalletType,
+  getAllMetaFields,
+  getMetaFieldLabelMap,
+} from './utils/currency';

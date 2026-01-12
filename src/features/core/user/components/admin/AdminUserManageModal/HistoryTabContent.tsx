@@ -6,7 +6,10 @@ import { useCallback, useMemo, useState } from "react";
 
 import { Block } from "@/components/Layout/Block";
 import { Para } from "@/components/TextBlocks/Para";
-import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import { Button } from "@/components/Form/Button/Button";
+import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
+import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import { userActionLogClient } from "@/features/core/userActionLog/services/client/userActionLogClient";
 import type { UserActionLog } from "@/features/core/userActionLog/entities";
@@ -57,6 +60,7 @@ export function HistoryTabContent({ user }: Props) {
   );
 
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
+  const [detailLog, setDetailLog] = useState<UserActionLog | null>(null);
   const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
     setScrollContainer(node);
   }, []);
@@ -103,12 +107,65 @@ export function HistoryTabContent({ user }: Props) {
       header: "理由",
       render: (log) => log.reason ?? "-",
     },
+    {
+      header: "詳細",
+      render: (log) => (
+        <TableCellAction className="justify-start">
+          <Button
+            type="button"
+            size="xs"
+            variant="secondary"
+            onClick={() => setDetailLog(log)}
+          >
+            詳細
+          </Button>
+        </TableCellAction>
+      ),
+    },
   ];
 
   const hasLogs = logs.length > 0;
   const errorMessage = error ? "履歴の取得に失敗しました" : null;
 
+  const detailRows = useMemo<DetailModalRow[]>(() => {
+    if (!detailLog) {
+      return [];
+    }
+    const rows: DetailModalRow[] = [
+      [{ label: "日時", value: formatDate(detailLog.createdAt) }],
+      [{ label: "操作種別", value: formatActionType(detailLog.actionType) }],
+      [{ label: "実行者タイプ", value: formatActorType(detailLog.actorType) }],
+      [{ label: "実行者ID", value: detailLog.actorId ?? "なし" }],
+      [{ label: "理由", value: detailLog.reason ?? "理由は入力されていません" }],
+    ];
+
+    // beforeValue / afterValue がある場合のみ追加
+    if (detailLog.beforeValue !== null && detailLog.beforeValue !== undefined) {
+      rows.push([{
+        label: "変更前の値",
+        value: (
+          <pre className="max-h-40 overflow-auto rounded bg-muted p-2 text-xs">
+            {JSON.stringify(detailLog.beforeValue, null, 2)}
+          </pre>
+        ),
+      }]);
+    }
+    if (detailLog.afterValue !== null && detailLog.afterValue !== undefined) {
+      rows.push([{
+        label: "変更後の値",
+        value: (
+          <pre className="max-h-40 overflow-auto rounded bg-muted p-2 text-xs">
+            {JSON.stringify(detailLog.afterValue, null, 2)}
+          </pre>
+        ),
+      }]);
+    }
+
+    return rows;
+  }, [detailLog]);
+
   return (
+    <>
     <Block space="sm" padding="md">
       <UserInfoHeader user={user} />
       <Block space="md" className="mt-4">
@@ -158,5 +215,16 @@ export function HistoryTabContent({ user }: Props) {
         )}
       </Block>
     </Block>
+    <DetailModal
+      open={Boolean(detailLog)}
+      onOpenChange={(open) => {
+        if (!open) {
+          setDetailLog(null);
+        }
+      }}
+      title="操作履歴の詳細"
+      rows={detailRows}
+    />
+    </>
   );
 }

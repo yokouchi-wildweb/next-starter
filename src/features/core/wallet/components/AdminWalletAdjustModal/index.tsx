@@ -20,12 +20,12 @@ import { Button } from "@/components/Form/Button/Button";
 import { err } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";
 import { WalletTypeOptions } from "@/features/core/wallet/constants/field";
-import { CURRENCY_CONFIG } from "@/features/core/wallet/currencyConfig";
+import { CURRENCY_CONFIG, type WalletType } from "@/features/core/wallet/currencyConfig";
 import { WalletHistoryChangeMethodOptions } from "@/features/core/walletHistory/constants/field";
 import { useAdjustWallet } from "@/features/core/wallet/hooks/useAdjustWallet";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
-import { walletMetaFieldDefinitions, type WalletMetaFieldName } from "@/features/core/wallet/constants/metaFields";
+import { getMetaFieldsByWalletType } from "@/features/core/wallet/utils/currency";
 import { formatBalance } from "@/features/core/wallet/utils/formatters";
 
 import {
@@ -71,6 +71,10 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
   const { showAppToast } = useAppToast();
   const { trigger, isMutating } = useAdjustWallet({ revalidateKeys: ["wallets"] });
   const { data: walletBalances } = useWalletBalances(user?.id);
+  const walletType = useWatch({
+    control,
+    name: "walletType",
+  }) as WalletType;
   const changeMethod = useWatch({
     control,
     name: "changeMethod",
@@ -217,7 +221,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             />
           )}
         />
-        <MetaFieldsSection control={control} />
+        <MetaFieldsSection control={control} walletType={walletType} />
         <Flex gap="sm" justify="end">
           <Button type="button" variant="outline" onClick={handleRequestClose}>
             キャンセル
@@ -255,11 +259,11 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
 }
 
 function createMeta(values: WalletAdjustFormValues) {
-  const metaSource: Pick<WalletAdjustFormValues, WalletMetaFieldName> = values;
+  const metaFields = getMetaFieldsByWalletType(values.walletType);
   const metaEntries: Record<string, string> = {};
 
-  walletMetaFieldDefinitions.forEach(({ name }) => {
-    const rawValue = metaSource[name];
+  metaFields.forEach(({ name }) => {
+    const rawValue = values[name as keyof WalletAdjustFormValues];
     if (typeof rawValue === "string") {
       const trimmed = rawValue.trim();
       if (trimmed.length > 0) {

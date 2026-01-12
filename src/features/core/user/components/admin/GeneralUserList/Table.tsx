@@ -96,7 +96,7 @@ const createColumns = (
         <Button
           type="button"
           size="sm"
-          variant="secondary"
+          variant="primary"
           onClick={() => onManage(user)}
         >
           管理

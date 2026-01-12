@@ -11,10 +11,8 @@ import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import { walletHistoryBatchClient } from "@/features/core/walletHistory/services/client/walletHistoryBatchClient";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
-import {
-  getCurrencyConfigBySlug,
-  type WalletType,
-} from "@/features/core/wallet/currencyConfig";
+import type { WalletType } from "@/features/core/wallet/currencyConfig";
+import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { HistoryListItem } from "./HistoryListItem";
 
 type WalletHistoryPageProps = {

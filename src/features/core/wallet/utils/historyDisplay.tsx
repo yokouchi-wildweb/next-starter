@@ -10,7 +10,7 @@ import {
   WalletHistoryChangeMethodOptions,
   WalletHistorySourceTypeOptions,
 } from "@/features/core/walletHistory/constants/field";
-import { walletMetaFieldDefinitions, type WalletMetaFieldName } from "@/features/core/wallet/constants/metaFields";
+import { getMetaFieldLabelMap } from "@/features/core/wallet/utils/currency";
 import { formatNumber, formatMetaValue } from "./formatters";
 
 // ラベルマップの作成
@@ -20,9 +20,7 @@ const methodLabelMap = new Map(
 const sourceLabelMap = new Map(
   WalletHistorySourceTypeOptions.map((option) => [option.value, option.label]),
 );
-const metaFieldLabelMap = new Map(
-  walletMetaFieldDefinitions.map((field) => [field.name, field.label]),
-);
+const metaFieldLabelMap = getMetaFieldLabelMap();
 
 /**
  * バッチ処理の差分サマリーをフォーマット
@@ -114,7 +112,7 @@ export function extractMetaRows(history: WalletHistoryBatchSummarySerialized): D
 
   return Array.from(metaMap.entries()).map(([key, values]) => [
     {
-      label: metaFieldLabelMap.get(key as WalletMetaFieldName) ?? key,
+      label: metaFieldLabelMap.get(key) ?? key,
       value: renderValueList(Array.from(values)),
     },
   ]);

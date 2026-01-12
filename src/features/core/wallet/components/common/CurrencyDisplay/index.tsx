@@ -4,10 +4,8 @@
 import { CountUp } from "@/components/Animation";
 import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
-import {
-  getCurrencyConfig,
-  type WalletType,
-} from "@/features/core/wallet/currencyConfig";
+import type { WalletType } from "@/features/core/wallet/currencyConfig";
+import { getCurrencyConfig } from "@/features/core/wallet/utils/currency";
 
 /** テキストサイズ */
 const TEXT_SIZE_CONFIG = {

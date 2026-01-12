@@ -1,17 +1,20 @@
 // src/features/wallet/components/AdminWalletAdjustModal/formEntities.ts
 
 import { z } from "zod";
-import { walletMetaFieldDefinitions, type WalletMetaFieldName } from "@/features/core/wallet/constants/metaFields";
 import { CURRENCY_CONFIG, type WalletType } from "@/features/core/wallet/currencyConfig";
+import { getAllMetaFields } from "@/features/core/wallet/utils/currency";
 
-const metaFieldsSchemaShape = walletMetaFieldDefinitions.reduce((shape, field) => {
+// 全ウォレット種別のメタフィールドを取得（フォームスキーマは全フィールドを含む）
+const allMetaFields = getAllMetaFields();
+
+const metaFieldsSchemaShape = allMetaFields.reduce((shape, field) => {
   const schema = z
     .string()
     .trim()
-    .max("maxLength" in field && typeof field.maxLength === "number" ? field.maxLength : 200)
+    .max(field.maxLength ?? 200)
     .optional();
   return { ...shape, [field.name]: schema };
-}, {} as Record<WalletMetaFieldName, z.ZodType<string | undefined>>);
+}, {} as Record<string, z.ZodType<string | undefined>>);
 
 const walletTypeValues = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
 
@@ -38,12 +41,12 @@ export const WalletAdjustFormSchema = z
   });
 export type WalletAdjustFormValues = z.infer<typeof WalletAdjustFormSchema>;
 
-const metaFieldsDefaults = walletMetaFieldDefinitions.reduce(
+const metaFieldsDefaults = allMetaFields.reduce(
   (defaults, field) => ({
     ...defaults,
     [field.name]: "",
   }),
-  {} as Record<WalletMetaFieldName, string>,
+  {} as Record<string, string>,
 );
 
 export const WalletAdjustDefaultValues: WalletAdjustFormValues = {

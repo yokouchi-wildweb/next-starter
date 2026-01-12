@@ -14,6 +14,7 @@ import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import AdminUserManageModal from "@/features/core/user/components/admin/AdminUserManageModal";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 
 type Props = {
   users: User[];
@@ -27,6 +28,7 @@ const createColumns = (
   editBasePath: string,
   onAdjust: (user: User) => void,
   onManage: (user: User) => void,
+  enableWalletAdjust: boolean,
 ): DataTableColumn<User>[] => [
   {
     header: "表示名",
@@ -77,18 +79,20 @@ const createColumns = (
     header: "操作",
     render: (user) => (
       <TableCellAction>
+        {enableWalletAdjust ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => onAdjust(user)}
+          >
+            ポイント操作
+          </Button>
+        ) : null}
         <Button
           type="button"
           size="sm"
-          variant="secondary"
-          onClick={() => onAdjust(user)}
-        >
-          ポイント操作
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
+          variant="primary"
           onClick={() => onManage(user)}
         >
           管理
@@ -102,6 +106,7 @@ const createColumns = (
 export default function ManagerialUserListTable({ users, editBasePath }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
   const [manageTarget, setManageTarget] = useState<User | null>(null);
+  const enableWalletAdjust = APP_FEATURES.wallet.enableAdminBalanceAdjust;
 
   const handleOpenAdjust = useCallback((user: User) => setAdjustTarget(user), []);
   const handleCloseAdjust = useCallback(() => setAdjustTarget(null), []);
@@ -110,8 +115,8 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
   const handleCloseManage = useCallback(() => setManageTarget(null), []);
 
   const columns = useMemo(
-    () => createColumns(editBasePath, handleOpenAdjust, handleOpenManage),
-    [editBasePath, handleOpenAdjust, handleOpenManage],
+    () => createColumns(editBasePath, handleOpenAdjust, handleOpenManage, enableWalletAdjust),
+    [editBasePath, handleOpenAdjust, handleOpenManage, enableWalletAdjust],
   );
 
   return (
@@ -122,7 +127,9 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
         getKey={(user) => user.id}
         emptyValueFallback={adminDataTableFallback}
       />
-      <AdminWalletAdjustModal open={Boolean(adjustTarget)} user={adjustTarget} onClose={handleCloseAdjust} />
+      {enableWalletAdjust ? (
+        <AdminWalletAdjustModal open={Boolean(adjustTarget)} user={adjustTarget} onClose={handleCloseAdjust} />
+      ) : null}
       <AdminUserManageModal open={Boolean(manageTarget)} user={manageTarget} onClose={handleCloseManage} />
     </>
   );

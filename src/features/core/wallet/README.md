@@ -14,6 +14,7 @@
 | **通貨種別** | `regular_point`、`temporary_point`、`regular_coin` |
 | **残高管理** | `balance`（総残高）- `locked_balance`（予約済み）= 利用可能残高 |
 | **ウォレット作成** | 遅延作成（初回操作時に自動作成） |
+| **設定ファイル** | `currencyConfig.ts`（通貨の追加・変更はここで行う） |
 
 ### 基本操作
 
@@ -335,36 +336,83 @@ async function playGacha(userId: string, cost: number) {
 
 ## 通貨設定
 
-### CURRENCY_CONFIG
+### 設定ファイル
 
-`currencyConfig.ts` で各通貨の表示設定を管理。
+**`currencyConfig.ts`** で通貨の追加・変更を行う。
 
 ```typescript
-import { CURRENCY_CONFIG, getCurrencyConfig } from "@/features/core/wallet";
-
-// 設定取得
-const config = getCurrencyConfig("regular_point");
-// { slug: "point", label: "ポイント", unit: "pt", color: "#3B82F6", ... }
+// currencyConfig.ts
+export const CURRENCY_CONFIG = {
+  regular_coin: {
+    slug: "coin",           // URLパス用（/wallet/coin）
+    label: "コイン",         // 表示名
+    unit: "コイン",          // 単位
+    color: "#F59E0B",       // テーマカラー
+    icon: CircleDollarSign, // アイコン（lucide-react）
+    packages: [             // 購入パッケージ
+      { amount: 500, price: 500 },
+      { amount: 1000, price: 1000 },
+    ],
+    metaFields: [           // 管理画面の補足入力フィールド
+      { name: "productId", label: "商品ID", formInput: "textInput" },
+      { name: "notes", label: "メモ", formInput: "textarea", rows: 2 },
+    ],
+  },
+  // 新しい通貨を追加する場合はここにエントリを追加
+};
 ```
 
-| 通貨種別 | slug | label | unit |
-|---------|------|-------|------|
-| `regular_coin` | `coin` | コイン | コイン |
-| `regular_point` | `point` | ポイント | pt |
-| `temporary_point` | `temporary-point` | 期間限定ポイント | pt |
+### 設定項目
+
+| 項目 | 必須 | 説明 |
+|------|------|------|
+| `slug` | ✓ | URLパス用識別子 |
+| `label` | ✓ | UI表示名 |
+| `unit` | ✓ | 数値の単位（"pt", "コイン"など） |
+| `color` | ✓ | テーマカラー（HEX） |
+| `icon` | ✓ | lucide-reactアイコン |
+| `packages` | ✓ | 購入パッケージ配列 |
+| `metaFields` | ✓ | 管理画面用の補足フィールド（空配列可） |
+
+### metaFields
+
+管理画面でのポイント調整時に入力できる補足フィールド。
+
+```typescript
+metaFields: [
+  {
+    name: "productId",        // フィールド名（meta.productIdとして保存）
+    label: "商品ID",          // 表示ラベル
+    formInput: "textInput",   // "textInput" | "textarea"
+    placeholder: "例: ITEM-001",  // プレースホルダー（任意）
+    description: "説明文",        // フィールド説明（任意）
+    rows: 2,                      // textarea時の行数（任意）
+  },
+]
+```
 
 ### ユーティリティ関数
 
 ```typescript
+import {
+  getCurrencyConfig,
+  getCurrencyConfigBySlug,
+  getWalletTypeBySlug,
+  getSlugByWalletType,
+  getMetaFieldsByWalletType,
+  isValidSlug,
+} from "@/features/core/wallet/utils/currency";
+
+// walletType から設定取得
+getCurrencyConfig("regular_point");
+
 // slug ↔ walletType 変換
-getWalletTypeBySlug("point");      // → "regular_point"
+getWalletTypeBySlug("point");         // → "regular_point"
 getSlugByWalletType("regular_point"); // → "point"
 
-// slug からフル設定取得
-getCurrencyConfigBySlug("point");
-
-// slug 検証
-isValidSlug("point"); // → true
+// metaFields 取得
+getMetaFieldsByWalletType("regular_coin");
+// → [{ name: "productId", ... }, { name: "notes", ... }]
 ```
 
 ---
@@ -517,10 +565,15 @@ src/features/core/wallet/
 │   └── AdminWalletAdjustModal/
 │
 ├── types/
-│   └── field.ts              # フィールド型（自動生成）
+│   ├── field.ts              # フィールド型（自動生成）
+│   └── currency.ts           # 通貨設定の型定義
+│
+├── utils/
+│   └── currency.ts           # 通貨設定ユーティリティ関数
 │
 └── constants/
-    └── field.ts              # 定数定義
+    ├── field.ts              # 定数定義
+    └── currency.ts           # 通貨設定から派生した定数
 ```
 
 ---

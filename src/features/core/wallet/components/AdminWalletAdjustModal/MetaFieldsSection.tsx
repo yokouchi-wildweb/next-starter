@@ -7,19 +7,24 @@ import type { Control } from "react-hook-form";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput, Textarea } from "@/components/Form/Controlled";
 
-import { walletMetaFieldDefinitions, type WalletMetaFieldDefinition } from "@/features/core/wallet/constants/metaFields";
+import type { WalletType } from "@/features/core/wallet/currencyConfig";
+import type { CurrencyMetaFieldConfig } from "@/features/core/wallet/types/currency";
+import { getMetaFieldsByWalletType } from "@/features/core/wallet/utils/currency";
 import type { WalletAdjustFormValues } from "./formEntities";
 
 type MetaFieldsSectionProps = {
   control: Control<WalletAdjustFormValues>;
+  walletType: WalletType;
 };
 
-export function MetaFieldsSection({ control }: MetaFieldsSectionProps) {
-  return walletMetaFieldDefinitions.map((field) => (
+export function MetaFieldsSection({ control, walletType }: MetaFieldsSectionProps) {
+  const metaFields = getMetaFieldsByWalletType(walletType);
+
+  return metaFields.map((field) => (
     <FormFieldItem
       key={field.name}
       control={control}
-      name={field.name}
+      name={field.name as keyof WalletAdjustFormValues}
       label={field.label}
       description={resolveDescription(field)}
       renderInput={(controllerField) =>
@@ -40,8 +45,8 @@ export function MetaFieldsSection({ control }: MetaFieldsSectionProps) {
   ));
 }
 
-function resolveDescription(field: WalletMetaFieldDefinition) {
-  if (!("description" in field) || typeof field.description !== "string" || field.description.trim().length === 0) {
+function resolveDescription(field: CurrencyMetaFieldConfig) {
+  if (!field.description || field.description.trim().length === 0) {
     return undefined;
   }
   return {
