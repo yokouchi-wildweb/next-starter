@@ -2,8 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
 __SQL_IMPORT__
-import { settingService } from "../../../../features/core/setting/services/server/settingService";
-import type { ListPageSearchParams } from "@/types/page";
+import { settingService } from "../../../../features/core/setting/services/server/settingService";mport type { ListPageSearchParams } from "@/lib/crud";
 import Admin__Domain__List from "@/features/__domain__/components/Admin__Domain__List";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";

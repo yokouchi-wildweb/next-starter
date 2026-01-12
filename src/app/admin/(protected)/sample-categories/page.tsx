@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 
 import { settingService } from "../../../../features/core/setting/services/server/settingService";
-import type { ListPageSearchParams } from "@/types/page";
+import type { ListPageSearchParams } from "@/lib/crud";
 import AdminSampleCategoryList from "@/features/sampleCategory/components/AdminSampleCategoryList";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";

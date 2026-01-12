@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 
 import { settingService } from "../../../../features/core/setting/services/server/settingService";
-import type { ListPageSearchParams } from "@/types/page";
+import type { ListPageSearchParams } from "@/lib/crud";
 import AdminSampleTagList from "@/features/sampleTag/components/AdminSampleTagList";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
