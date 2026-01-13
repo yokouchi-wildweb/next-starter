@@ -1,0 +1,45 @@
+{
+  "roleId": "debuger",
+  "fields": [
+    {
+      "name": "name",
+      "label": "name",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "placeholder": "your name?",
+      "tags": [
+        "registration",
+        "mypage",
+        "admin"
+      ]
+    },
+    {
+      "name": "appoved_at",
+      "label": "承認日",
+      "fieldType": "boolean",
+      "formInput": "switchInput",
+      "options": [
+        { "value": true, "label": "はい" },
+        { "value": false, "label": "いいえ" }
+      ],
+      "tags": [
+        "admin"
+      ]
+    },
+    {
+      "name": "type",
+      "label": "type",
+      "fieldType": "enum",
+      "formInput": "select",
+      "options": [
+        { "value": "apple", "label": "りんご" },
+        { "value": "orange", "label": "オレンジ" }
+      ],
+      "tags": [
+        "registration",
+        "mypage",
+        "admin"
+      ]
+    }
+  ]
+}

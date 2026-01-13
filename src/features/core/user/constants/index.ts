@@ -41,8 +41,5 @@ export {
 } from "./status";
 
 // 型定義（types からの再エクスポート）
-export type {
-  RoleCategory,
-  RoleConfig,
-  ProfileFieldConfig,
-} from "../types";
+export type { RoleCategory, RoleConfig } from "../types";
+export type { ProfileFieldConfig } from "@/features/core/userProfile/types";

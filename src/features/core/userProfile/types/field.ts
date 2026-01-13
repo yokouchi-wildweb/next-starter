@@ -1,25 +1,17 @@
-// src/features/core/user/types/profileField.ts
-// プロフィールフィールド関連の型定義（システム基盤）
+// src/features/core/userProfile/types/field.ts
+// プロフィールフィールド関連の型定義
 
 import type {
   DomainJsonField,
   DomainFieldType,
 } from "@/components/Form/DomainFieldRenderer/types";
-
-/**
- * システム必須のコアタグ（変更不可）
- * - admin: 管理画面でのみ表示
- * - registration: 本登録画面で表示
- * - mypage: マイページのプロフィール編集で表示
- */
-export const CORE_PROFILE_FIELD_TAGS = ["admin", "registration", "mypage"] as const;
-export type CoreProfileFieldTag = (typeof CORE_PROFILE_FIELD_TAGS)[number];
+import type { ProfileFieldTag } from "./fieldTag";
 
 /**
  * プロフィールフィールドの設定（DomainJsonField + profile固有拡張）
  * @see src/components/Form/DomainFieldRenderer/types.ts - DomainJsonField
  */
-export type ProfileFieldConfig<TTag extends string = string> = DomainJsonField & {
+export type ProfileFieldConfig<TTag extends string = ProfileFieldTag> = DomainJsonField & {
   /** データ型（Drizzle スキーマ生成に必須） */
   fieldType: DomainFieldType;
   // === profile固有の拡張フィールド ===

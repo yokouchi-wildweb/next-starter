@@ -1,7 +1,7 @@
 // src/features/core/userProfile/profiles/index.ts
 // プロフィール設定の読み込みとエクスポート
 
-import type { ProfileFieldConfig } from "@/features/core/user/types";
+import type { ProfileFieldConfig } from "../types";
 
 // JSON プロフィール設定の読み込み
 import contributorProfile from "./contributor.profile.json";

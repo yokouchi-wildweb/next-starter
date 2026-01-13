@@ -1,7 +1,7 @@
 // src/features/core/user/types/role.ts
 // ロール関連の型定義（システム基盤）
 
-import type { ProfileFieldConfig } from "./profileField";
+import type { ProfileFieldConfig } from "@/features/core/userProfile/types";
 
 /**
  * ロールカテゴリ

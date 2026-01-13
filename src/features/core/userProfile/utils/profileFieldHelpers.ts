@@ -1,15 +1,9 @@
 // src/features/core/userProfile/utils/profileFieldHelpers.ts
 // プロフィールフィールド関連ヘルパー関数
 
-import type { ProfileFieldConfig } from "@/features/core/user/types";
+import type { ProfileFieldConfig, ProfileFieldTag } from "../types";
 import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
 import { getProfileFieldsForRole } from "../profiles";
-
-/**
- * プロフィールフィールドタグ型
- * コアタグ + カスタムタグ
- */
-export type ProfileFieldTag = "admin" | "registration" | "mypage" | "notification";
 
 /**
  * ロールのプロフィールフィールド設定を取得

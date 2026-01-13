@@ -1,0 +1,8 @@
+{
+  "id": "debuger",
+  "label": "デバッガー",
+  "category": "user",
+  "description": "デバッグする",
+  "hasProfile": true,
+  "isCore": false
+}

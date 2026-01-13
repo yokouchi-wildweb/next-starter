@@ -13,12 +13,13 @@ export type UserRoleType = (typeof USER_ROLES)[number];
 export type UserStatus = (typeof USER_STATUSES)[number];
 export type UserRoleOption = (typeof USER_ROLE_OPTIONS)[number];
 
-// プロフィールフィールド関連の型
+// プロフィールフィールド関連の型（userProfile からの再エクスポート）
 export {
   CORE_PROFILE_FIELD_TAGS,
   type CoreProfileFieldTag,
   type ProfileFieldConfig,
-} from "./profileField";
+  type ProfileFieldTag,
+} from "@/features/core/userProfile";
 
 // ロール関連の型
 export { type RoleCategory, type RoleConfig } from "./role";
