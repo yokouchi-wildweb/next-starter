@@ -42,6 +42,17 @@ export const UserOptionalSchema = UserCoreSchema.partial().extend({
 });
 
 /**
+ * 管理者がユーザー情報を更新する際のスキーマ。
+ * providerType, providerUid, lastAuthenticatedAt, role は変更不可。
+ */
+export const AdminUpdateSchema = UserOptionalSchema.omit({
+  providerType: true,
+  providerUid: true,
+  lastAuthenticatedAt: true,
+  role: true,
+});
+
+/**
  * 一般ユーザーが自身でプロフィール情報を更新する際のスキーマ。
  * role など重要なコアフィールドを除外している。
  */
