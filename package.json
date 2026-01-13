@@ -23,6 +23,7 @@
     "dc:delete": "node scripts/domain-config/index.mjs --delete",
     "dc:add": "node scripts/domain-config/add-field.mjs",
     "role:add": "node scripts/role-config/index.mjs init",
+    "role:generate": "node scripts/role-config/generate.mjs",
     "sc:init": "node scripts/setting-config/index.mjs --init",
     "sc:generate": "node scripts/setting-config/index.mjs --generate",
     "sc:list": "node scripts/setting-config/index.mjs --list",
