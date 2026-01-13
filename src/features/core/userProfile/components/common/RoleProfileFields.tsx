@@ -7,16 +7,9 @@ import type { FieldValues, UseFormReturn } from "react-hook-form";
 
 import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/types";
-import {
-  hasRoleProfile,
-  type UserRoleType,
-} from "@/features/core/user/constants";
-import {
-  getFieldsByTag,
-  getAdminFields,
-  type ProfileFieldTag,
-} from "../../utils";
 import type { ProfileFieldConfig } from "../../types";
+import type { ProfileConfig } from "../../profiles";
+import { pickFieldsByTag } from "../../utils/profileSchemaHelpers";
 
 /**
  * snake_case を camelCase に変換
@@ -29,12 +22,14 @@ export type RoleProfileFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   /** ロール */
   role: string;
+  /** ロール別プロフィール設定のマッピング */
+  profiles: Record<string, ProfileConfig>;
   /**
    * 表示するタグ
    * - 指定した場合: 指定タグに属するフィールドを表示
    * - 指定しない場合: hidden 以外の全フィールドを表示（管理画面向け）
    */
-  tag?: ProfileFieldTag;
+  tag?: string;
   /** フィールド名のプレフィックス（デフォルト: "profileData"） */
   fieldPrefix?: string;
   /** hidden フィールドを除外するか（デフォルト: true） */
@@ -48,18 +43,16 @@ export type RoleProfileFieldsProps<TFieldValues extends FieldValues> = {
  *
  * @example
  * // 登録画面（registration タグのフィールドのみ）
+ * import userProfile from ".../profiles/user.profile.json";
+ * import contributorProfile from ".../profiles/contributor.profile.json";
+ *
+ * const profiles = { user: userProfile, contributor: contributorProfile };
+ *
  * <RoleProfileFields
  *   methods={methods}
  *   role={selectedRole}
+ *   profiles={profiles}
  *   tag="registration"
- * />
- *
- * @example
- * // マイページ（mypage タグのフィールドのみ）
- * <RoleProfileFields
- *   methods={methods}
- *   role={user.role}
- *   tag="mypage"
  * />
  *
  * @example
@@ -67,33 +60,34 @@ export type RoleProfileFieldsProps<TFieldValues extends FieldValues> = {
  * <RoleProfileFields
  *   methods={methods}
  *   role={selectedRole}
- * />
- *
- * @example
- * // 通知設定画面
- * <RoleProfileFields
- *   methods={methods}
- *   role={user.role}
- *   tag="notification"
+ *   profiles={profiles}
  * />
  */
 export function RoleProfileFields<TFieldValues extends FieldValues>({
   methods,
   role,
+  profiles,
   tag,
   fieldPrefix = "profileData",
   excludeHidden = true,
   wrapperClassName,
 }: RoleProfileFieldsProps<TFieldValues>) {
   const fields = useMemo(() => {
-    if (!hasRoleProfile(role as UserRoleType)) {
+    const profileConfig = profiles[role];
+    if (!profileConfig) {
       return [];
     }
 
-    // tag が指定されていない場合は管理画面向け（hidden 以外の全フィールド）
+    // tag が指定されていない場合は全フィールド（hidden 以外）
     const profileFields = tag
-      ? getFieldsByTag(role as UserRoleType, tag, excludeHidden)
-      : getAdminFields(role as UserRoleType);
+      ? pickFieldsByTag(
+          profileConfig.fields as ProfileFieldConfig[],
+          profileConfig.tags?.[tag],
+          excludeHidden
+        )
+      : (profileConfig.fields as ProfileFieldConfig[]).filter(
+          (field) => !excludeHidden || field.formInput !== "hidden"
+        );
 
     // ProfileFieldConfig を DomainJsonField に変換（snake_case → camelCase）
     return profileFields.map(
@@ -117,9 +111,9 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
           accept: field.accept,
           validationRule: field.validationRule,
           metadataBinding: field.metadataBinding,
-        }) as DomainJsonField,
+        }) as DomainJsonField
     );
-  }, [role, tag, fieldPrefix, excludeHidden]);
+  }, [role, profiles, tag, fieldPrefix, excludeHidden]);
 
   if (fields.length === 0) {
     return null;

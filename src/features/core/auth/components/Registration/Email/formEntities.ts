@@ -4,8 +4,21 @@ import { z } from "zod";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RegistrationSchema } from "@/features/core/auth/entities";
+import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+import type { ProfileConfig } from "@/features/core/userProfile/profiles";
+import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
+import contributorProfile from "@/features/core/userProfile/profiles/contributor.profile.json";
 
 const { defaultRole } = APP_FEATURES.registration;
+
+// 登録画面で使用するプロフィール設定
+const REGISTRATION_PROFILES: Record<string, ProfileConfig> = {
+  user: userProfile as ProfileConfig,
+  contributor: contributorProfile as ProfileConfig,
+};
+
+// profileData バリデーション関数
+const validateProfileData = createProfileDataValidator(REGISTRATION_PROFILES, "registration");
 
 const emailSchema = z
   .string({
@@ -43,6 +56,7 @@ const FormSchemaDouble = z
       .min(1, { message: "確認用のパスワードを入力してください" }),
   })
   .superRefine((value, ctx) => {
+    // パスワード確認
     if (value.password !== value.passwordConfirmation) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -50,12 +64,19 @@ const FormSchemaDouble = z
         path: ["passwordConfirmation"],
       });
     }
+    // profileData バリデーション
+    validateProfileData(value, ctx);
   });
 
 /** パスワード確認なしスキーマ（single mode） */
-const FormSchemaSingle = z.object({
-  ...baseFields,
-});
+const FormSchemaSingle = z
+  .object({
+    ...baseFields,
+  })
+  .superRefine((value, ctx) => {
+    // profileData バリデーション
+    validateProfileData(value, ctx);
+  });
 
 export const isDoubleMode = APP_FEATURES.user.passwordInputMode === "double";
 

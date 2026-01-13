@@ -5,10 +5,9 @@
 // ProfileFieldTag は types から直接インポートを推奨
 export { type ProfileFieldTag } from "../types";
 
+// スキーマ・フィールド関連ヘルパー
 export {
-  getProfileFields,
-  getFieldsByTag,
-  getRegistrationFields,
-  getMyPageFields,
-  getAdminFields,
-} from "./profileFieldHelpers";
+  getProfileSchema,
+  pickSchemaByTag,
+  pickFieldsByTag,
+} from "./profileSchemaHelpers";

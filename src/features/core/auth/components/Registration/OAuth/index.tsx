@@ -24,8 +24,17 @@ import {
   RoleSelector,
   RoleProfileFields,
 } from "@/features/core/userProfile/components/common";
+import type { ProfileConfig } from "@/features/core/userProfile/profiles";
+import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
+import contributorProfile from "@/features/core/userProfile/profiles/contributor.profile.json";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
+
+// 登録画面で使用するプロフィール設定
+const REGISTRATION_PROFILES: Record<string, ProfileConfig> = {
+  user: userProfile as ProfileConfig,
+  contributor: contributorProfile as ProfileConfig,
+};
 
 export function OAuthRegistrationForm() {
   const router = useRouter();
@@ -155,6 +164,7 @@ export function OAuthRegistrationForm() {
         <RoleProfileFields
           methods={form}
           role={selectedRole}
+          profiles={REGISTRATION_PROFILES}
           tag="registration"
           wrapperClassName="space-y-4"
         />

@@ -18,8 +18,15 @@ import {
   RoleSelector,
   RoleProfileFields,
 } from "@/features/core/userProfile/components/common";
+import type { ProfileConfig } from "@/features/core/userProfile/profiles";
+import adminProfile from "@/features/core/userProfile/profiles/admin.profile.json";
 
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
+
+// 管理者用プロフィール設定
+const ADMIN_USER_PROFILES: Record<string, ProfileConfig> = {
+  admin: adminProfile as ProfileConfig,
+};
 
 type Props = {
   user: User;
@@ -106,7 +113,7 @@ export default function ManagerialUserEditForm({
           <PasswordInput field={field} placeholder="新しいパスワード" />
         )}
       />
-      <RoleProfileFields methods={methods} role={selectedRole} />
+      <RoleProfileFields methods={methods} role={selectedRole} profiles={ADMIN_USER_PROFILES} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "更新中..." : "更新"}

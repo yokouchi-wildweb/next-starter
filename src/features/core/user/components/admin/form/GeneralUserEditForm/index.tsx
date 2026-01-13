@@ -18,8 +18,17 @@ import {
   RoleSelector,
   RoleProfileFields,
 } from "@/features/core/userProfile/components/common";
+import type { ProfileConfig } from "@/features/core/userProfile/profiles";
+import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
+import contributorProfile from "@/features/core/userProfile/profiles/contributor.profile.json";
 
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
+
+// 一般ユーザー用プロフィール設定
+const GENERAL_USER_PROFILES: Record<string, ProfileConfig> = {
+  user: userProfile as ProfileConfig,
+  contributor: contributorProfile as ProfileConfig,
+};
 
 type Props = {
   user: User;
@@ -106,7 +115,7 @@ export default function GeneralUserEditForm({
           <PasswordInput field={field} placeholder="新しいパスワード" />
         )}
       />
-      <RoleProfileFields methods={methods} role={selectedRole} />
+      <RoleProfileFields methods={methods} role={selectedRole} profiles={GENERAL_USER_PROFILES} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "更新中..." : "更新"}
