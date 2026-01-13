@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 import type { User } from "@/features/core/user/entities";
-import { getRolesByCategory } from "@/features/core/user/constants";
-import { UserProfileSchema } from "@/features/core/userProfile/generated/user";
-import { ContributorProfileSchema } from "@/features/core/userProfile/generated/contributor";
+import { GENERAL_USER_DEFAULT_ROLE } from "@/features/core/user/constants/generalUserAdmin";
+import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+import { GENERAL_USER_PROFILES } from "../generalUserProfiles";
 
 const displayNameSchema = z.string();
 
@@ -19,48 +19,38 @@ const newPasswordSchema = z
     message: "パスワードは8文字以上で入力してください",
   });
 
-// user カテゴリのロールを取得
-const userRoles = getRolesByCategory("user");
-const defaultRole = userRoles[0] ?? "user";
+// profileData バリデーション関数（admin タグでフィルタリング）
+const validateProfileData = createProfileDataValidator(GENERAL_USER_PROFILES, "admin");
 
-// ロール別プロフィールスキーマの discriminatedUnion
-const profileDataByRole = z.discriminatedUnion("role", [
-  z.object({ role: z.literal("user"), profileData: UserProfileSchema }),
-  z.object({ role: z.literal("contributor"), profileData: ContributorProfileSchema }),
-]);
+export const FormSchema = z
+  .object({
+    displayName: displayNameSchema,
+    email: emailSchema,
+    newPassword: newPasswordSchema,
+    role: z.string(),
+    profileData: z.record(z.unknown()).optional(),
+  })
+  .superRefine((value, ctx) => {
+    validateProfileData(value, ctx);
+  });
 
-// ベーススキーマ（role と profileData 以外）
-const baseSchema = z.object({
-  displayName: displayNameSchema,
-  email: emailSchema,
-  newPassword: newPasswordSchema,
-});
-
-export const FormSchema = baseSchema.and(profileDataByRole);
-
-export type FormValues = z.infer<typeof FormSchema>;
+export type FormValues = {
+  displayName: string;
+  email: string;
+  newPassword: string;
+  role: string;
+  profileData?: Record<string, unknown>;
+};
 
 export const createDefaultValues = (
   user: User,
   profileData?: Record<string, unknown>,
 ): FormValues => {
-  const role = (user.role ?? defaultRole) as "user" | "contributor";
-
-  if (role === "contributor") {
-    return {
-      displayName: user.displayName ?? "",
-      email: user.email ?? "",
-      role: "contributor",
-      newPassword: "",
-      profileData: (profileData ?? {}) as z.infer<typeof ContributorProfileSchema>,
-    };
-  }
-
   return {
     displayName: user.displayName ?? "",
     email: user.email ?? "",
-    role: "user",
+    role: user.role ?? GENERAL_USER_DEFAULT_ROLE,
     newPassword: "",
-    profileData: (profileData ?? {}) as z.infer<typeof UserProfileSchema>,
+    profileData: profileData ?? {},
   };
 };

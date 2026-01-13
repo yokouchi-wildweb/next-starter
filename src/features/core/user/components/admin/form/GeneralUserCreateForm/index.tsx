@@ -13,21 +13,14 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
 import { useCreateUser } from "@/features/core/user/hooks/useCreateUser";
+import { GENERAL_USER_ROLES } from "@/features/core/user/constants/generalUserAdmin";
 import {
   RoleSelector,
   RoleProfileFields,
 } from "@/features/core/userProfile/components/common";
-import type { ProfileConfig } from "@/features/core/userProfile/profiles";
-import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
-import contributorProfile from "@/features/core/userProfile/profiles/contributor.profile.json";
+import { GENERAL_USER_PROFILES } from "../generalUserProfiles";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
-
-// 一般ユーザー用プロフィール設定
-const GENERAL_USER_PROFILES: Record<string, ProfileConfig> = {
-  user: userProfile as ProfileConfig,
-  contributor: contributorProfile as ProfileConfig,
-};
 
 type Props = {
   redirectPath?: string;
@@ -75,6 +68,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
         control={control}
         name="role"
         categories={["user"]}
+        selectableRoles={GENERAL_USER_ROLES}
         inputType="select"
       />
       <FormFieldItem

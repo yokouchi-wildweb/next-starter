@@ -4,7 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { userService } from "@/features/core/user/services/server/userService";
-import { getRoleCategory } from "@/features/core/user/constants";
+import { getRoleCategory, type UserRoleType } from "@/features/core/user/constants";
+import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import ManagerialUserEdit from "@/features/core/user/components/admin/ManagerialUserEdit";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
@@ -29,10 +30,13 @@ export default async function AdminSystemUserEditPage({ params }: Props) {
     redirect(`/admin/users/general/${id}/edit`);
   }
 
+  // プロフィールデータを取得
+  const profileData = await userProfileService.getProfile(id, user.role as UserRoleType);
+
   return (
     <AdminPage>
       <PageTitle>システム管理者編集</PageTitle>
-      <ManagerialUserEdit user={user} redirectPath={REDIRECT_PATH} />
+      <ManagerialUserEdit user={user} profileData={profileData ?? undefined} redirectPath={REDIRECT_PATH} />
     </AdminPage>
   );
 }

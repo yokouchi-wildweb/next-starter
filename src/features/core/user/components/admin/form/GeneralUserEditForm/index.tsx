@@ -14,21 +14,14 @@ import { TextInput, PasswordInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
 import type { User } from "@/features/core/user/entities";
+import { GENERAL_USER_ROLES } from "@/features/core/user/constants/generalUserAdmin";
 import {
   RoleSelector,
   RoleProfileFields,
 } from "@/features/core/userProfile/components/common";
-import type { ProfileConfig } from "@/features/core/userProfile/profiles";
-import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
-import contributorProfile from "@/features/core/userProfile/profiles/contributor.profile.json";
+import { GENERAL_USER_PROFILES } from "../generalUserProfiles";
 
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
-
-// 一般ユーザー用プロフィール設定
-const GENERAL_USER_PROFILES: Record<string, ProfileConfig> = {
-  user: userProfile as ProfileConfig,
-  contributor: contributorProfile as ProfileConfig,
-};
 
 type Props = {
   user: User;
@@ -93,6 +86,7 @@ export default function GeneralUserEditForm({
         control={control}
         name="role"
         categories={["user"]}
+        selectableRoles={GENERAL_USER_ROLES}
         inputType="select"
       />
       <FormFieldItem

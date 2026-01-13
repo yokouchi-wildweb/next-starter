@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-import { getRolesByCategory } from "@/features/core/user/constants";
-import { UserProfileSchema } from "@/features/core/userProfile/generated/user";
-import { ContributorProfileSchema } from "@/features/core/userProfile/generated/contributor";
+import { GENERAL_USER_DEFAULT_ROLE } from "@/features/core/user/constants/generalUserAdmin";
+import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+import { GENERAL_USER_PROFILES } from "../generalUserProfiles";
 
 const displayNameSchema = z.string();
 
@@ -16,32 +16,33 @@ const localPasswordSchema = z
   .string({ required_error: "パスワードを入力してください" })
   .min(8, { message: "パスワードは8文字以上で入力してください" });
 
-// user カテゴリのロールを取得
-const userRoles = getRolesByCategory("user");
-const defaultRole = userRoles[0] ?? "user";
+// profileData バリデーション関数（admin タグでフィルタリング）
+const validateProfileData = createProfileDataValidator(GENERAL_USER_PROFILES, "admin");
 
-// ロール別プロフィールスキーマの discriminatedUnion
-const profileDataByRole = z.discriminatedUnion("role", [
-  z.object({ role: z.literal("user"), profileData: UserProfileSchema }),
-  z.object({ role: z.literal("contributor"), profileData: ContributorProfileSchema }),
-]);
+export const FormSchema = z
+  .object({
+    displayName: displayNameSchema,
+    email: emailSchema,
+    localPassword: localPasswordSchema,
+    role: z.string(),
+    profileData: z.record(z.unknown()).optional(),
+  })
+  .superRefine((value, ctx) => {
+    validateProfileData(value, ctx);
+  });
 
-// ベーススキーマ（role と profileData 以外）
-const baseSchema = z.object({
-  displayName: displayNameSchema,
-  email: emailSchema,
-  localPassword: localPasswordSchema,
-});
+export type FormValues = {
+  displayName: string;
+  email: string;
+  localPassword: string;
+  role: string;
+  profileData?: Record<string, unknown>;
+};
 
-export const FormSchema = baseSchema.and(profileDataByRole);
-
-export type FormValues = z.infer<typeof FormSchema>;
-
-// デフォルト値（新規作成時は user ロールで開始）
 export const DefaultValues: FormValues = {
   displayName: "",
   email: "",
-  role: "user",
+  role: GENERAL_USER_DEFAULT_ROLE,
   localPassword: "",
   profileData: {},
 };

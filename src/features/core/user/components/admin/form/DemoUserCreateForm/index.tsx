@@ -14,21 +14,12 @@ import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { SelectInput } from "@/components/Form/Manual";
 import { err } from "@/lib/errors";
 import { useCreateDemoUser } from "@/features/core/user/hooks/useCreateDemoUser";
-import { USER_ROLE_OPTIONS } from "@/features/core/user/constants";
+import { DEMO_USER_ROLES } from "@/features/core/user/constants/demoUserAdmin";
+import { USER_ROLE_LABELS } from "@/features/core/user/constants";
 import { RoleProfileFields } from "@/features/core/userProfile/components/common";
-import type { ProfileConfig } from "@/features/core/userProfile/profiles";
-import adminProfile from "@/features/core/userProfile/profiles/admin.profile.json";
-import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
-import contributorProfile from "@/features/core/userProfile/profiles/contributor.profile.json";
+import { DEMO_USER_PROFILES } from "../demoUserProfiles";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
-
-// 全ロール用プロフィール設定
-const ALL_USER_PROFILES: Record<string, ProfileConfig> = {
-  admin: adminProfile as ProfileConfig,
-  user: userProfile as ProfileConfig,
-  contributor: contributorProfile as ProfileConfig,
-};
 
 type Props = {
   redirectPath?: string;
@@ -79,7 +70,10 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         renderInput={(field) => (
           <SelectInput
             field={field}
-            options={USER_ROLE_OPTIONS.map((o) => ({ value: o.id, label: o.name }))}
+            options={DEMO_USER_ROLES.map((roleId) => ({
+              value: roleId,
+              label: USER_ROLE_LABELS[roleId as keyof typeof USER_ROLE_LABELS] ?? roleId,
+            }))}
             placeholder="権限を選択"
           />
         )}
@@ -102,7 +96,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />
-      <RoleProfileFields methods={methods} role={selectedRole} profiles={ALL_USER_PROFILES} />
+      <RoleProfileFields methods={methods} role={selectedRole} profiles={DEMO_USER_PROFILES} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "作成中..." : "作成"}

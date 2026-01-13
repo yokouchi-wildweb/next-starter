@@ -43,7 +43,7 @@ export const APP_FEATURES = {
      * 選択可能なロールを変更する場合:
      * @see src/features/core/auth/components/Registration/registrationProfiles.ts
      */
-    showRoleSelection: true,
+    showRoleSelection: false,
   },
   adminConsole: {
     enableDarkModeSwitch: true,
