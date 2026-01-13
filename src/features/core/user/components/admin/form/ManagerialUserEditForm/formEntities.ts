@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import type { User } from "@/features/core/user/entities";
 import { getRolesByCategory } from "@/features/core/user/constants";
+import { AdminProfileSchema } from "@/features/core/userProfile/generated/admin";
 
 const displayNameSchema = z.string();
 
@@ -26,7 +27,7 @@ export const FormSchema = z.object({
   email: emailSchema,
   role: z.string(),
   newPassword: newPasswordSchema,
-  profileData: z.record(z.unknown()).optional(),
+  profileData: AdminProfileSchema,
 });
 
 export type FormValues = z.infer<typeof FormSchema>;
@@ -39,5 +40,5 @@ export const createDefaultValues = (
   email: user.email ?? "",
   role: user.role ?? defaultRole,
   newPassword: "",
-  profileData: profileData ?? {},
+  profileData: (profileData ?? {}) as z.infer<typeof AdminProfileSchema>,
 });
