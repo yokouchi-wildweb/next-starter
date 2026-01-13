@@ -20,7 +20,10 @@ export {
   getRoleCategory,
   hasRoleProfile,
   getProfileFields,
+  getFieldsByTags,
   getRegistrationFields,
+  getMyPageFields,
+  getAdminFields,
 } from "./role";
 
 export type {
@@ -28,8 +31,13 @@ export type {
   RoleConfig,
   AdditionalRoleConfig,
   ProfileFieldConfig,
-  ProfileFormInputType,
+  ProfileFieldTag,
+  CoreProfileFieldTag,
   UserRoleType,
+  // domain.json 共通型（DomainFieldRenderer から）
+  DomainFormInput,
+  DomainFieldType,
+  DomainJsonField,
 } from "./role";
 
 export {

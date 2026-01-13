@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { SelectInput } from "@/components/Form/Manual";
 import { err } from "@/lib/errors";
 import { useCreateDemoUser } from "@/features/core/user/hooks/useCreateDemoUser";
 import { USER_ROLE_OPTIONS } from "@/features/core/user/constants";
+import { AdminProfileFields } from "../../common";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
@@ -33,14 +34,12 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
   const router = useRouter();
   const { trigger, isMutating } = useCreateDemoUser();
 
+  // ロール選択を監視してプロフィールフィールドを動的に更新
+  const selectedRole = useWatch({ control: methods.control, name: "role" });
+
   const submit = async (values: FormValues) => {
     try {
-      await trigger({
-        displayName: values.displayName,
-        email: values.email,
-        role: values.role,
-        localPassword: values.localPassword,
-      });
+      await trigger(values);
       toast.success("デモユーザーを作成しました");
       router.push(redirectPath);
     } catch (error) {
@@ -92,6 +91,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />
+      <AdminProfileFields methods={methods} role={selectedRole} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "作成中..." : "作成"}

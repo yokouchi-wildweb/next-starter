@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
 import { useCreateUser } from "@/features/core/user/hooks/useCreateUser";
+import { AdminRoleSelector, AdminProfileFields } from "../../common";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
@@ -39,6 +40,9 @@ export default function ManagerialUserCreateForm({
 
   const router = useRouter();
   const { trigger, isMutating } = useCreateUser();
+
+  // ロール選択を監視してプロフィールフィールドを動的に更新
+  const selectedRole = useWatch({ control: methods.control, name: "role" });
 
   const submit = async (values: FormValues) => {
     if (customSubmit) {
@@ -70,6 +74,7 @@ export default function ManagerialUserCreateForm({
       pending={pending}
       fieldSpace="md"
     >
+      <AdminRoleSelector control={control} name="role" category="admin" />
       <FormFieldItem
         control={control}
         name="displayName"
@@ -88,6 +93,7 @@ export default function ManagerialUserCreateForm({
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />
+      <AdminProfileFields methods={methods} role={selectedRole} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "登録中..." : "登録"}

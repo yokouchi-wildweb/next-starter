@@ -2,35 +2,38 @@
 
 import {
   ADDITIONAL_ROLES,
-  type AdditionalRoleConfig,
-  type ProfileFieldConfig,
-  type RoleCategory,
+  type ProfileFieldTag,
 } from "@/config/app/roles.config";
-
-// 型の re-export
-export type {
+import type {
   RoleCategory,
+  RoleConfig,
   AdditionalRoleConfig,
   ProfileFieldConfig,
-  ProfileFormInputType,
-} from "@/config/app/roles.config";
+  CoreProfileFieldTag,
+} from "@/features/core/user/types";
 
-/**
- * ロール定義の型（コア + 追加で共通）
- */
-export type RoleConfig = {
-  readonly id: string;
-  readonly label: string;
-  readonly category: RoleCategory;
-  readonly hasProfile: boolean;
-  readonly description?: string;
-  readonly profileFields?: readonly ProfileFieldConfig[];
-};
+// 型の re-export（後方互換性のため）
+export type {
+  RoleCategory,
+  RoleConfig,
+  AdditionalRoleConfig,
+  ProfileFieldConfig,
+  CoreProfileFieldTag,
+} from "@/features/core/user/types";
+
+export type { ProfileFieldTag } from "@/config/app/roles.config";
+
+// domain.json 共通型の re-export
+export type {
+  DomainFormInput,
+  DomainFieldType,
+  DomainJsonField,
+} from "@/components/Form/DomainFieldRenderer/types";
 
 /**
  * コアロール定義（システム必須、削除不可）
  */
-const CORE_ROLES: readonly RoleConfig[] = [
+const CORE_ROLES: readonly RoleConfig<ProfileFieldTag>[] = [
   {
     id: "admin",
     label: "管理者",
@@ -50,7 +53,7 @@ const CORE_ROLES: readonly RoleConfig[] = [
 /**
  * 全ロール定義（コア + 追加）
  */
-export const ALL_ROLES: readonly RoleConfig[] = [
+export const ALL_ROLES: readonly RoleConfig<ProfileFieldTag>[] = [
   ...CORE_ROLES,
   ...ADDITIONAL_ROLES,
 ];
@@ -180,14 +183,55 @@ export const getProfileFields = (
 };
 
 /**
+ * 指定タグを持つフィールドを取得（汎用フィルタ）
+ * @param role ロール
+ * @param includeTags 含めるタグ（いずれかにマッチ）
+ * @param excludeHidden hidden フィールドを除外するか（デフォルト: true）
+ */
+export const getFieldsByTags = (
+  role: UserRoleType,
+  includeTags: ProfileFieldTag[],
+  excludeHidden = true,
+): ProfileFieldConfig[] => {
+  if (!hasRoleProfile(role)) {
+    return [];
+  }
+  const fields = getProfileFields(role);
+  return fields.filter((field) => {
+    if (excludeHidden && field.formInput === "hidden") {
+      return false;
+    }
+    return field.tags.some((tag) => includeTags.includes(tag as ProfileFieldTag));
+  }) as ProfileFieldConfig[];
+};
+
+/**
  * 本登録画面で表示するフィールドを取得
  */
 export const getRegistrationFields = (
+  role: UserRoleType,
+): ProfileFieldConfig[] => {
+  return getFieldsByTags(role, ["registration"]);
+};
+
+/**
+ * マイページで表示するフィールドを取得
+ */
+export const getMyPageFields = (
+  role: UserRoleType,
+): ProfileFieldConfig[] => {
+  return getFieldsByTags(role, ["mypage"]);
+};
+
+/**
+ * 管理画面で表示するフィールドを取得（hidden 除く全て）
+ */
+export const getAdminFields = (
   role: UserRoleType,
 ): ProfileFieldConfig[] => {
   if (!hasRoleProfile(role)) {
     return [];
   }
   const fields = getProfileFields(role);
-  return fields.filter((field) => field.showOnRegistration);
+  return fields.filter((field) => field.formInput !== "hidden") as ProfileFieldConfig[];
 };

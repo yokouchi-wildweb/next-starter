@@ -19,6 +19,7 @@ export const FormSchema = z.object({
   email: emailSchema,
   role: z.enum(USER_ROLES),
   localPassword: localPasswordSchema,
+  profileData: z.record(z.unknown()).optional(),
 });
 
 export type FormValues = z.infer<typeof FormSchema>;
@@ -28,4 +29,5 @@ export const DefaultValues: FormValues = {
   email: "",
   role: "user",
   localPassword: "",
+  profileData: {},
 };

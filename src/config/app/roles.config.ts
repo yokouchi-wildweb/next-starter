@@ -5,91 +5,35 @@
 // 注意: コアロール（admin, user）はシステムで保護されており、
 // このファイルでは追加ロールのみを定義します。
 
-/**
- * ロールカテゴリ
- * - admin: システム管理権限を持つロール（管理画面のsystem一覧に表示）
- * - user: 一般利用者ロール（管理画面のgeneral一覧に表示）
- */
-export type RoleCategory = "admin" | "user";
+import type {
+  AdditionalRoleConfig,
+  CoreProfileFieldTag,
+} from "@/features/core/user/types";
+
+// ============================================================
+// ユーザー拡張可能なプロフィールフィールドタグ
+// ============================================================
+// notification 以外のカスタムタグを追加できます。
+// コアタグ（admin, registration, mypage）はシステムで保護されています。
+
+export const ADDITIONAL_PROFILE_FIELD_TAGS = [
+  // 例 通知設定用のフィールド
+  "notification",
+
+] as const;
+export type AdditionalProfileFieldTag = (typeof ADDITIONAL_PROFILE_FIELD_TAGS)[number];
 
 /**
- * プロフィールフィールドの入力タイプ（domain.json の formInput と互換）
- * @see src/components/Form/DomainFieldRenderer/fieldMapper.ts
+ * 全てのプロフィールフィールドタグ（コア + 追加）
  */
-export type ProfileFormInputType =
-  | "textInput"
-  | "numberInput"
-  | "textarea"
-  | "select"
-  | "multiSelect"
-  | "radio"
-  | "checkbox"
-  | "stepperInput"
-  | "switchInput"
-  | "dateInput"
-  | "timeInput"
-  | "datetimeInput"
-  | "emailInput"
-  | "passwordInput"
-  | "mediaUploader"
-  | "hidden";
+export type ProfileFieldTag = CoreProfileFieldTag | AdditionalProfileFieldTag;
 
-/**
- * プロフィールフィールドの設定（domain.json の fields と互換性あり）
- * @see src/components/Form/DomainFieldRenderer/fieldMapper.ts DomainJsonField
- */
-export type ProfileFieldConfig = {
-  /** フィールド名（DBカラム名） */
-  name: string;
-  /** 表示ラベル */
-  label: string;
-  /** 入力タイプ（domain.json の formInput と同じ値） */
-  formInput: ProfileFormInputType;
-  /** フィールドの型（checkbox で array/boolean を区別する場合等） */
-  fieldType?: "string" | "number" | "boolean" | "array" | "date";
-  /** 必須かどうか */
-  required: boolean;
-  /** 本登録画面で入力させるか（profile固有） */
-  showOnRegistration: boolean;
-  /** プレースホルダー */
-  placeholder?: string;
-  /** 説明文（フィールド下に表示） */
-  description?: string;
-  /** セレクト/ラジオ/チェックボックス用のオプション */
-  options?: readonly { value: string | number | boolean; label: string }[];
-  /** メディアアップローダー用のパス */
-  uploadPath?: string;
-  /** メディアアップローダー用のヘルパーテキスト */
-  helperText?: string;
-  /** メディアアップローダー用のaccept属性 */
-  accept?: string;
-  /** 読み取り専用 */
-  readonly?: boolean;
-};
+// ============================================================
+// 追加ロールの定義
+// ============================================================
+// コアロール（admin, user）以外のロールをここで定義します。
 
-/**
- * 追加ロールの定義型
- */
-export type AdditionalRoleConfig = {
-  readonly id: string;
-  readonly label: string;
-  readonly category: RoleCategory;
-  readonly hasProfile: boolean;
-  readonly description?: string;
-  /**
-   * プロフィールフィールド設定（hasProfile: true の場合に定義）
-   * 全フィールドを定義（ユーザー編集可能 / 管理者のみ / フラグ 等）
-   * - formInput: 入力タイプ（hidden で非表示、switchInput でトグル等）
-   * - showOnRegistration: 登録時に表示するか
-   * @see src/components/Form/DomainFieldRenderer - フォーム描画に使用
-   */
-  readonly profileFields?: readonly ProfileFieldConfig[];
-};
-
-/**
- * 追加ロールの定義
- */
-export const ADDITIONAL_ROLES: readonly AdditionalRoleConfig[] = [
+export const ADDITIONAL_ROLES: readonly AdditionalRoleConfig<ProfileFieldTag>[] = [
   {
     id: "editor",
     label: "編集者",
@@ -106,52 +50,51 @@ export const ADDITIONAL_ROLES: readonly AdditionalRoleConfig[] = [
     profileFields: [
       // ユーザー編集可能フィールド
       {
-        name: "organizationName",
+        name: "organization_name",
         label: "組織名",
+        fieldType: "string",
         formInput: "textInput",
         required: true,
-        showOnRegistration: true,
+        tags: ["registration", "mypage"],
         placeholder: "株式会社〇〇",
       },
       {
-        name: "contactPhone",
+        name: "contact_phone",
         label: "連絡先電話番号",
+        fieldType: "string",
         formInput: "textInput",
-        required: false,
-        showOnRegistration: false,
+        tags: ["mypage"],
         placeholder: "090-0000-0000",
       },
       {
         name: "bio",
         label: "自己紹介",
+        fieldType: "string",
         formInput: "textarea",
-        required: false,
-        showOnRegistration: true,
+        tags: ["registration", "mypage"],
         placeholder: "活動内容などを入力してください",
       },
       // 管理者用フィールド（承認ワークフロー）
       {
-        name: "isApproved",
+        name: "is_approved",
         label: "承認状態",
-        formInput: "hidden",
         fieldType: "boolean",
-        required: false,
-        showOnRegistration: false,
+        formInput: "hidden",
+        tags: ["admin"],
       },
       {
-        name: "approvedAt",
+        name: "approved_at",
         label: "承認日時",
+        fieldType: "timestamp With Time Zone",
         formInput: "hidden",
-        fieldType: "date",
-        required: false,
-        showOnRegistration: false,
+        tags: ["admin"],
       },
       {
-        name: "approvalNote",
+        name: "approval_note",
         label: "承認メモ",
-        formInput: "hidden",
-        required: false,
-        showOnRegistration: false,
+        fieldType: "string",
+        formInput: "textarea",
+        tags: ["admin"],
       },
     ],
   },

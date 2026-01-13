@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { User } from "@/features/core/user/entities";
-import { USER_STATUSES } from "@/features/core/user/constants";
+import { getRolesByCategory } from "@/features/core/user/constants/role";
 
 const displayNameSchema = z.string();
 
@@ -17,20 +17,27 @@ const newPasswordSchema = z
     message: "パスワードは8文字以上で入力してください",
   });
 
+// user カテゴリのロールを取得
+const userRoles = getRolesByCategory("user");
+const defaultRole = userRoles[0] ?? "user";
+
 export const FormSchema = z.object({
   displayName: displayNameSchema,
   email: emailSchema,
-  role: z.literal("user"),
-  status: z.enum(USER_STATUSES),
+  role: z.string(),
   newPassword: newPasswordSchema,
+  profileData: z.record(z.unknown()).optional(),
 });
 
 export type FormValues = z.infer<typeof FormSchema>;
 
-export const createDefaultValues = (user: User): FormValues => ({
+export const createDefaultValues = (
+  user: User,
+  profileData?: Record<string, unknown>,
+): FormValues => ({
   displayName: user.displayName ?? "",
   email: user.email ?? "",
-  role: "user",
-  status: user.status,
+  role: user.role ?? defaultRole,
   newPassword: "",
+  profileData: profileData ?? {},
 });

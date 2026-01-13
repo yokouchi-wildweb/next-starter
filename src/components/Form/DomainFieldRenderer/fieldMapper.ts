@@ -1,25 +1,12 @@
 import type { FieldPath, FieldValues } from "react-hook-form";
 
 import type { DomainFieldRenderConfig } from "./fieldTypes";
-import type { FileValidationRule } from "@/lib/mediaInputSuite";
+import type { DomainJsonField } from "./types";
 import type { RadioGroupDisplayType } from "@/components/Form/Manual/RadioGroupInput";
 import type { CheckGroupDisplayType } from "@/components/Form/Manual/CheckGroupInput";
 
-export type DomainJsonField = {
-  name: string;
-  label: string;
-  formInput: string;
-  fieldType?: string;
-  displayType?: string;
-  uploadPath?: string;
-  options?: { value: string | number | boolean; label: string }[];
-  helperText?: string;
-  accept?: string;
-  placeholder?: string;
-  validationRule?: FileValidationRule;
-  readonly?: boolean;
-  domainFieldIndex?: number;
-};
+// 型の re-export
+export type { DomainJsonField, DomainFormInput, DomainFieldType } from "./types";
 
 export const mapDomainFieldToRenderConfig = (
   field: DomainJsonField,
@@ -78,19 +65,19 @@ export const mapDomainFieldToRenderConfig = (
         return {
           ...base,
           type: "checkGroup",
-          options: field.options ?? [],
+          options: [...(field.options ?? [])],
           displayType: (field.displayType as CheckGroupDisplayType | undefined) ?? "standard",
         };
       }
       return { ...base, type: "booleanCheckbox" };
     }
     case "select":
-      return { ...base, type: "select", options: field.options ?? [] };
+      return { ...base, type: "select", options: [...(field.options ?? [])] };
     case "multiSelect":
       return {
         ...base,
         type: "multiSelect",
-        options: field.options ?? [],
+        options: [...(field.options ?? [])],
         placeholder: field.placeholder,
       };
     case "mediaUploader":

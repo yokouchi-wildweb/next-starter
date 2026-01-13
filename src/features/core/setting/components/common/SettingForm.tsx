@@ -24,7 +24,7 @@ type SettingJsonField = {
 };
 
 // setting-fields.json を DomainJsonField[] 形式に変換
-const extendedFields: DomainJsonField[] = (settingFieldsJson.fields as SettingJsonField[]).map((field) => ({
+const extendedFields = (settingFieldsJson.fields as SettingJsonField[]).map((field) => ({
   name: field.name,
   label: field.label,
   formInput: field.formInput,
@@ -33,7 +33,7 @@ const extendedFields: DomainJsonField[] = (settingFieldsJson.fields as SettingJs
   uploadPath: field.uploadPath,
   accept: field.accept,
   helperText: field.description,
-}));
+})) as DomainJsonField[];
 
 export type SettingFormProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { getRolesByCategory } from "@/features/core/user/constants/role";
+
 const displayNameSchema = z.string();
 
 const emailSchema = z
@@ -12,11 +14,16 @@ const localPasswordSchema = z
   .string({ required_error: "パスワードを入力してください" })
   .min(8, { message: "パスワードは8文字以上で入力してください" });
 
+// admin カテゴリのロールを取得
+const adminRoles = getRolesByCategory("admin");
+const defaultRole = adminRoles[0] ?? "admin";
+
 export const FormSchema = z.object({
   displayName: displayNameSchema,
   email: emailSchema,
-  role: z.literal("admin"),
+  role: z.string(),
   localPassword: localPasswordSchema,
+  profileData: z.record(z.unknown()).optional(),
 });
 
 export type FormValues = z.infer<typeof FormSchema>;
@@ -24,6 +31,7 @@ export type FormValues = z.infer<typeof FormSchema>;
 export const DefaultValues: FormValues = {
   displayName: "",
   email: "",
-  role: "admin",
+  role: defaultRole,
   localPassword: "",
+  profileData: {},
 };

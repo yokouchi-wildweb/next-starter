@@ -1,4 +1,4 @@
-// src/features/core/auth/components/Registration/common/ProfileFields.tsx
+// src/features/core/user/components/admin/common/AdminProfileFields.tsx
 
 "use client";
 
@@ -8,7 +8,7 @@ import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/fieldMapper";
 import {
-  getRegistrationFields,
+  getAdminFields,
   hasRoleProfile,
   type UserRoleType,
 } from "@/features/core/user/constants/role";
@@ -20,7 +20,7 @@ import {
 const snakeToCamel = (str: string): string =>
   str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
 
-export type ProfileFieldsProps<TFieldValues extends FieldValues> = {
+export type AdminProfileFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   role: string;
   /** フィールド名のプレフィックス（例: "profileData"） */
@@ -28,23 +28,24 @@ export type ProfileFieldsProps<TFieldValues extends FieldValues> = {
 };
 
 /**
- * ロール別プロフィールフィールドを動的に表示
- * getRegistrationFields で取得した tags: ["registration"] を含むフィールドのみ表示
+ * 管理画面用ロール別プロフィールフィールド
+ * 管理者操作では hidden 以外のすべてのフィールドを表示
  */
-export function ProfileFields<TFieldValues extends FieldValues>({
+export function AdminProfileFields<TFieldValues extends FieldValues>({
   methods,
   role,
   fieldPrefix = "profileData",
-}: ProfileFieldsProps<TFieldValues>) {
+}: AdminProfileFieldsProps<TFieldValues>) {
   const fields = useMemo(() => {
     if (!hasRoleProfile(role as UserRoleType)) {
       return [];
     }
 
-    const profileFields = getRegistrationFields(role as UserRoleType);
+    // hidden 以外のすべてのフィールドを取得
+    const visibleFields = getAdminFields(role as UserRoleType);
 
     // ProfileFieldConfig を DomainJsonField に変換（snake_case → camelCase）
-    return profileFields.map(
+    return visibleFields.map(
       (field) =>
         ({
           name: `${fieldPrefix}.${snakeToCamel(field.name)}`,
@@ -63,12 +64,10 @@ export function ProfileFields<TFieldValues extends FieldValues>({
   }
 
   return (
-    <div className="space-y-4">
-      <DomainFieldRenderer
-        control={methods.control}
-        methods={methods}
-        domainJsonFields={fields}
-      />
-    </div>
+    <DomainFieldRenderer
+      control={methods.control}
+      methods={methods}
+      domainJsonFields={fields}
+    />
   );
 }
