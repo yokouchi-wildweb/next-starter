@@ -91,6 +91,21 @@ function cleanupProfileTableRegistry(roleId) {
 }
 
 /**
+ * profileSchemaRegistry.ts からエントリを削除
+ */
+function cleanupProfileSchemaRegistry(roleId) {
+  const filePath = path.join(ROOT_DIR, "src/registry/profileSchemaRegistry.ts");
+
+  const schemaName = `${toPascalCase(roleId)}ProfileSchema`;
+  const patterns = [
+    `import { ${schemaName} }`,
+    `${roleId}: ${schemaName}`,
+  ];
+
+  return removeLines(filePath, patterns);
+}
+
+/**
  * generated/{roleId}/ フォルダを削除
  */
 function cleanupGeneratedFolder(roleId) {
@@ -125,6 +140,7 @@ export function cleanupProfile(roleId, options = {}) {
     profilesIndex: cleanupProfilesIndex(roleId),
     profileBaseRegistry: cleanupProfileBaseRegistry(roleId),
     profileTableRegistry: cleanupProfileTableRegistry(roleId),
+    profileSchemaRegistry: cleanupProfileSchemaRegistry(roleId),
     generatedFolder: deleteEntity ? cleanupGeneratedFolder(roleId) : false,
   };
 
@@ -137,6 +153,7 @@ export function cleanupProfile(roleId, options = {}) {
     if (results.profilesIndex) log("  ✓ profiles/index.ts を更新");
     if (results.profileBaseRegistry) log("  ✓ profileBaseRegistry.ts を更新");
     if (results.profileTableRegistry) log("  ✓ profileTableRegistry.ts を更新");
+    if (results.profileSchemaRegistry) log("  ✓ profileSchemaRegistry.ts を更新");
     if (results.generatedFolder) log("  ✓ generated/ フォルダを削除");
 
     const anyModified = Object.values(results).some(Boolean);

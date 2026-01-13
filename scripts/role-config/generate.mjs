@@ -65,6 +65,46 @@ function loadProfileConfig(roleId) {
 }
 
 /**
+ * tagsマッピングからフィールドにtagsを付与
+ * 新形式: { fields: [...], tags: { registration: ["field1"], ... } }
+ * 旧形式: { fields: [{ ..., tags: ["registration"] }] }
+ * @param {Object} profileConfig - プロフィール設定
+ * @returns {Object} tagsが各フィールドに付与されたプロフィール設定
+ */
+function resolveTagsMapping(profileConfig) {
+  const { fields, tags } = profileConfig;
+
+  // 旧形式（フィールドに直接tagsがある場合）はそのまま返す
+  if (!tags || fields.some((f) => Array.isArray(f.tags))) {
+    return profileConfig;
+  }
+
+  // 新形式: tagsマッピングからフィールドにtagsを付与
+  const fieldTagsMap = new Map();
+
+  // タグマッピングを反転してフィールド -> タグの配列に変換
+  for (const [tagName, fieldNames] of Object.entries(tags)) {
+    for (const fieldName of fieldNames) {
+      if (!fieldTagsMap.has(fieldName)) {
+        fieldTagsMap.set(fieldName, []);
+      }
+      fieldTagsMap.get(fieldName).push(tagName);
+    }
+  }
+
+  // フィールドにtagsを付与
+  const resolvedFields = fields.map((field) => ({
+    ...field,
+    tags: fieldTagsMap.get(field.name) || [],
+  }));
+
+  return {
+    ...profileConfig,
+    fields: resolvedFields,
+  };
+}
+
+/**
  * メイン処理
  * @param {string} roleId - ロールID
  * @param {Object} options - オプション
@@ -97,12 +137,15 @@ export default async function generate(roleId, options = {}) {
   // hasProfile: true の場合のみプロフィール関連を生成
   if (roleConfig.hasProfile) {
     // プロフィール設定を読み込み
-    const profileConfig = loadProfileConfig(roleId);
-    if (!profileConfig) {
+    const rawProfileConfig = loadProfileConfig(roleId);
+    if (!rawProfileConfig) {
       console.log(`\n⚠ プロフィール設定が見つかりません: ${roleId}.profile.json`);
       console.log("hasProfile: true ですが、プロフィール設定がないためスキップします。\n");
       return;
     }
+
+    // tagsマッピングを解決（新形式 -> 旧形式互換）
+    const profileConfig = resolveTagsMapping(rawProfileConfig);
 
     // profileOnly モードの場合のみクリーンアップ（フルモードは cleanupRole で実行済み）
     if (profileOnly) {

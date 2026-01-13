@@ -49,8 +49,11 @@ function saveRoleConfig(roleConfig) {
 
 /**
  * プロフィール設定を保存
+ * @param {string} roleId - ロールID
+ * @param {Array} fields - フィールド定義
+ * @param {Object} tags - タグマッピング
  */
-function saveProfileConfig(roleId, fields) {
+function saveProfileConfig(roleId, fields, tags) {
   const rootDir = path.resolve(__dirname, "..", "..");
   const profilesDir = path.join(rootDir, "src", "features", "core", "userProfile", "profiles");
   ensureDir(profilesDir);
@@ -58,6 +61,7 @@ function saveProfileConfig(roleId, fields) {
   const profileConfig = {
     roleId,
     fields,
+    tags,
   };
 
   const fileName = `${roleId}.profile.json`;
@@ -114,10 +118,10 @@ export default async function init() {
 
   // プロフィールフィールドの収集（hasProfile: true の場合）
   if (roleConfig.hasProfile) {
-    const { fields } = await askProfileFields();
+    const { fields, tags } = await askProfileFields();
 
     if (fields.length > 0) {
-      saveProfileConfig(roleConfig.id, fields);
+      saveProfileConfig(roleConfig.id, fields, tags);
     } else {
       console.log("\nプロフィールフィールドが空のため、プロフィール設定はスキップしました。");
     }

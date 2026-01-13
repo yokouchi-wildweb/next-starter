@@ -22,6 +22,14 @@ const formatArray = (value, depth, parentKey) => {
   return `[\n${items.join(",\n")}\n${indent(depth)}]`;
 };
 
+const formatTagsObject = (value, depth) => {
+  const lineIndent = indent(depth + 1);
+  const lines = Object.entries(value).map(
+    ([key, val]) => `${lineIndent}"${key}": ${JSON.stringify(val)}`,
+  );
+  return `{\n${lines.join(",\n")}\n${indent(depth)}}`;
+};
+
 const formatObject = (value, depth) => {
   const lineIndent = indent(depth + 1);
   const entries = Object.entries(value);
@@ -45,6 +53,10 @@ function formatValue(value, depth, parentKey) {
       return formatArray(value, depth, parentKey);
     }
     return JSON.stringify(value);
+  }
+  // tagsオブジェクトは配列を1行で出力
+  if (parentKey === "tags") {
+    return formatTagsObject(value, depth);
   }
   return formatObject(value, depth);
 }

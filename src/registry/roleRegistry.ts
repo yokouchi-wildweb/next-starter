@@ -22,11 +22,9 @@ import adminRole from "@/features/core/user/roles/_admin.role.json";
  */
 export const ALL_ROLES: readonly RoleConfig[] = [
   // === AUTO-GENERATED ENTRIES START ===
-  // コアロール
-  // 追加ロール
-  editorRole as RoleConfig,
-  userRole as RoleConfig,
-  contributorRole as RoleConfig,
   adminRole as RoleConfig,
+  userRole as RoleConfig,
+  editorRole as RoleConfig,
+  contributorRole as RoleConfig,
   // === AUTO-GENERATED ENTRIES END ===
 ];

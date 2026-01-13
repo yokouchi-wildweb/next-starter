@@ -4,6 +4,7 @@
 import inquirer from "inquirer";
 import { toCamelCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
 import { PROFILE_FORM_INPUTS, PROFILE_FIELD_TAGS } from "../form-inputs.mjs";
+import chalk from "chalk";
 
 const prompt = inquirer.createPromptModule();
 
@@ -159,16 +160,7 @@ async function askSingleField(fieldIndex) {
     }
   }
 
-  // タグの選択
-  const { tags } = await prompt({
-    type: "checkbox",
-    name: "tags",
-    message: "表示箇所を選択（スペースで選択、エンターで確定）:",
-    choices: PROFILE_FIELD_TAGS,
-    validate: (input) => (input.length > 0 ? true : "少なくとも1つ選択してください"),
-  });
-
-  // フィールドオブジェクト構築
+  // フィールドオブジェクト構築（tagsは後で別途収集）
   const field = {
     name: trimmedName,
     label: trimmedLabel,
@@ -177,7 +169,6 @@ async function askSingleField(fieldIndex) {
     ...(required ? { required: true } : {}),
     ...(placeholder ? { placeholder } : {}),
     ...(options && options.length ? { options } : {}),
-    tags,
   };
 
   // displayType の設定（radio/checkbox）
@@ -192,8 +183,68 @@ async function askSingleField(fieldIndex) {
 }
 
 /**
+ * タグごとにフィールドを選択
+ * @param {Array} fields - 収集済みフィールド
+ * @returns {Promise<Object>} タグマッピング
+ */
+async function askTagMappings(fields) {
+  console.log("\n=== タグマッピングの設定 ===\n");
+  console.log("各タグに紐づけるフィールドを選択してください。\n");
+
+  // hidden以外のフィールドを選択肢として提供
+  const selectableFields = fields.filter((f) => f.formInput !== "hidden");
+  const hiddenFields = fields.filter((f) => f.formInput === "hidden");
+
+  if (selectableFields.length === 0) {
+    console.log("選択可能なフィールドがありません（全てhidden）。");
+    // hiddenフィールドはadminタグに自動割り当て
+    const tags = {};
+    if (hiddenFields.length > 0) {
+      tags.admin = hiddenFields.map((f) => f.name);
+    }
+    return tags;
+  }
+
+  const fieldChoices = selectableFields.map((f) => ({
+    name: `${f.label} (${f.name})`,
+    value: f.name,
+  }));
+
+  const tags = {};
+
+  for (const tagConfig of PROFILE_FIELD_TAGS) {
+    const tagValue = tagConfig.value;
+    const tagLabel = tagConfig.name || tagConfig.label;
+
+    const { selectedFields } = await prompt({
+      type: "checkbox",
+      name: "selectedFields",
+      message: `${chalk.cyan(tagLabel)} に表示するフィールド:`,
+      choices: fieldChoices,
+    });
+
+    if (selectedFields.length > 0) {
+      tags[tagValue] = selectedFields;
+    }
+  }
+
+  // hiddenフィールドは自動的にadminタグに追加
+  if (hiddenFields.length > 0) {
+    const hiddenNames = hiddenFields.map((f) => f.name);
+    if (tags.admin) {
+      // 重複を除いて追加
+      tags.admin = [...new Set([...tags.admin, ...hiddenNames])];
+    } else {
+      tags.admin = hiddenNames;
+    }
+  }
+
+  return tags;
+}
+
+/**
  * プロフィールフィールドを収集
- * @returns {Promise<{fields: Array}>}
+ * @returns {Promise<{fields: Array, tags: Object}>}
  */
 export default async function askProfileFields() {
   console.log("\n=== プロフィールフィールドの設定 ===\n");
@@ -208,5 +259,12 @@ export default async function askProfileFields() {
     fieldIndex += 1;
   }
 
-  return { fields };
+  if (fields.length === 0) {
+    return { fields, tags: {} };
+  }
+
+  // タグマッピングを収集
+  const tags = await askTagMappings(fields);
+
+  return { fields, tags };
 }
