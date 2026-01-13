@@ -1,14 +1,23 @@
 // src/features/core/user/utils/roleHelpers.ts
 // ロール関連ヘルパー関数
 
-import { ALL_ROLES } from "../roles";
+import { ALL_ROLES } from "@/registry/roleRegistry";
 import {
+  CORE_ROLE_IDS,
   USER_ROLE_LABELS,
   USER_ROLE_CATEGORIES,
   USER_ROLE_HAS_PROFILE,
+  type CoreRoleId,
   type UserRoleType,
 } from "../constants/role";
 import type { RoleCategory } from "../types";
+
+/**
+ * ロールIDがコアロールか判定
+ */
+export function isCoreRole(roleId: string): roleId is CoreRoleId {
+  return CORE_ROLE_IDS.includes(roleId as CoreRoleId);
+}
 
 /**
  * カテゴリ別のロールID配列を取得

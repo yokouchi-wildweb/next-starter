@@ -1,8 +1,14 @@
 // src/features/core/user/constants/role.ts
 // ロール派生定数
 
-import { ALL_ROLES } from "../roles";
+import { ALL_ROLES } from "@/registry/roleRegistry";
 import type { RoleCategory } from "../types";
+
+/**
+ * コアロールID（システム保護、削除不可）
+ */
+export const CORE_ROLE_IDS = ["admin", "user"] as const;
+export type CoreRoleId = (typeof CORE_ROLE_IDS)[number];
 
 /**
  * ロールID配列（DBスキーマ、バリデーション用）

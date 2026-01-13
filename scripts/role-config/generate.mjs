@@ -5,7 +5,7 @@
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { updateRolesIndex } from "./generator/updateRolesIndex.mjs";
+import { updateRoleRegistry } from "./generator/updateRoleRegistry.mjs";
 import { updateProfilesIndex } from "./generator/updateProfilesIndex.mjs";
 import { generateProfileEntity } from "./generator/generateProfileEntity.mjs";
 import { updateProfileRegistry } from "./generator/updateProfileRegistry.mjs";
@@ -48,14 +48,11 @@ function loadProfileConfig(roleId) {
 }
 
 /**
- * ロールがすでにindex.tsに登録されているか確認
+ * ロールがすでに roleRegistry.ts に登録されているか確認
  */
 function isRoleRegistered(roleId) {
-  const indexPath = path.join(
-    ROOT_DIR,
-    "src/features/core/user/roles/index.ts"
-  );
-  const content = fs.readFileSync(indexPath, "utf-8");
+  const registryPath = path.join(ROOT_DIR, "src/registry/roleRegistry.ts");
+  const content = fs.readFileSync(registryPath, "utf-8");
   return content.includes(`${roleId}Role`);
 }
 
@@ -76,10 +73,10 @@ export default async function generate(roleId) {
     return;
   }
 
-  // 1. roles/index.ts を更新
-  console.log("\n[1/4] roles/index.ts を更新中...");
-  updateRolesIndex(roleConfig);
-  console.log("✓ roles/index.ts を更新しました");
+  // 1. roleRegistry.ts を更新
+  console.log("\n[1/4] roleRegistry.ts を更新中...");
+  updateRoleRegistry(roleConfig);
+  console.log("✓ roleRegistry.ts を更新しました");
 
   // hasProfile: true の場合のみプロフィール関連を生成
   if (roleConfig.hasProfile) {

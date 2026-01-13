@@ -1,5 +1,5 @@
 // scripts/role-config/generator/updateProfileRegistry.mjs
-// registry/profileTables.ts と profileBases.ts の更新
+// src/registry/profileTableRegistry.ts と profileBaseRegistry.ts の更新
 
 import fs from "fs";
 import path, { dirname } from "path";
@@ -8,22 +8,19 @@ import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
-const REGISTRY_DIR = path.join(
-  ROOT_DIR,
-  "src/features/core/userProfile/registry"
-);
+const REGISTRY_DIR = path.join(ROOT_DIR, "src/registry");
 
 /**
- * profileTables.ts を更新
+ * profileTableRegistry.ts を更新
  * アンカーコメント間に export 文を追加
  */
 function updateProfileTables(roleConfig) {
-  const filePath = path.join(REGISTRY_DIR, "profileTables.ts");
+  const filePath = path.join(REGISTRY_DIR, "profileTableRegistry.ts");
   let content = fs.readFileSync(filePath, "utf-8");
 
   const roleId = roleConfig.id;
   const entityFileName = `${toCamelCase(roleId)}Profile`;
-  const exportLine = `export * from "../entities/${entityFileName}";`;
+  const exportLine = `export * from "@/features/core/userProfile/entities/${entityFileName}";`;
 
   // アンカーコメント間に追加
   const anchorStart = "// === AUTO-GENERATED EXPORTS START ===";
@@ -33,7 +30,7 @@ function updateProfileTables(roleConfig) {
   const endIndex = content.indexOf(anchorEnd);
 
   if (startIndex === -1 || endIndex === -1) {
-    throw new Error("profileTables.ts にアンカーコメントが見つかりません");
+    throw new Error("profileTableRegistry.ts にアンカーコメントが見つかりません");
   }
 
   // 既存のエクスポートを取得
@@ -54,11 +51,11 @@ function updateProfileTables(roleConfig) {
 }
 
 /**
- * profileBases.ts を更新
+ * profileBaseRegistry.ts を更新
  * アンカーコメント間に import 文とエントリを追加
  */
 function updateProfileBases(roleConfig) {
-  const filePath = path.join(REGISTRY_DIR, "profileBases.ts");
+  const filePath = path.join(REGISTRY_DIR, "profileBaseRegistry.ts");
   let content = fs.readFileSync(filePath, "utf-8");
 
   const roleId = roleConfig.id;
@@ -66,7 +63,7 @@ function updateProfileBases(roleConfig) {
   const tableVar = `${toPascalCase(roleId)}ProfileTable`;
 
   // import 文を追加
-  const importLine = `import { ${tableVar} } from "../entities/${entityFileName}";`;
+  const importLine = `import { ${tableVar} } from "@/features/core/userProfile/entities/${entityFileName}";`;
   const importStart = "// === AUTO-GENERATED IMPORTS START ===";
   const importEnd = "// === AUTO-GENERATED IMPORTS END ===";
 
@@ -74,7 +71,7 @@ function updateProfileBases(roleConfig) {
   let importEndIndex = content.indexOf(importEnd);
 
   if (importStartIndex === -1 || importEndIndex === -1) {
-    throw new Error("profileBases.ts に import アンカーコメントが見つかりません");
+    throw new Error("profileBaseRegistry.ts に import アンカーコメントが見つかりません");
   }
 
   const existingImports = content.slice(
@@ -98,7 +95,7 @@ function updateProfileBases(roleConfig) {
   const entryEndIndex = content.indexOf(entryEnd);
 
   if (entryStartIndex === -1 || entryEndIndex === -1) {
-    throw new Error("profileBases.ts に entry アンカーコメントが見つかりません");
+    throw new Error("profileBaseRegistry.ts に entry アンカーコメントが見つかりません");
   }
 
   const existingEntries = content.slice(

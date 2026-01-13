@@ -6,8 +6,9 @@ export {
 } from "./provider";
 
 // ロール設定
-export { ALL_ROLES, CORE_ROLE_IDS, isCoreRole } from "../roles";
-export type { CoreRoleId } from "../roles";
+export { ALL_ROLES } from "@/registry/roleRegistry";
+export { CORE_ROLE_IDS, type CoreRoleId } from "./role";
+export { isCoreRole } from "../utils/roleHelpers";
 
 // ロール派生定数
 export {
