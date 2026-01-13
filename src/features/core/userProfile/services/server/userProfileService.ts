@@ -6,7 +6,6 @@ import {
   upsertProfile,
   updateProfile,
   deleteProfile,
-  setApprovalStatus,
   hasProfile,
 } from "./operations";
 
@@ -17,6 +16,5 @@ export const userProfileService = {
   upsertProfile,
   updateProfile,
   deleteProfile,
-  setApprovalStatus,
   hasProfile,
 };

@@ -1,8 +1,8 @@
-// src/features/core/userProfile/entities/tables/contributorProfile.ts
+// src/features/core/userProfile/entities/contributorProfile.ts
 // 投稿者（contributor）ロール用のプロフィールテーブル
 //
 // 元情報: src/config/app/roles.config.ts > contributor.profileFields
-// 将来的には roles.config.ts から自動生成される予定
+// このファイルは roles.config.ts から自動生成されます
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";

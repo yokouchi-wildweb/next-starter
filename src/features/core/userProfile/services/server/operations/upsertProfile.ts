@@ -1,7 +1,7 @@
 // src/features/core/userProfile/services/server/operations/upsertProfile.ts
 
 import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
-import { getProfileBase } from "../registry";
+import { getProfileBase } from "../../../utils";
 
 /**
  * プロフィール作成/更新用データ型

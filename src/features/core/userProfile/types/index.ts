@@ -1,12 +1,7 @@
 // src/features/core/userProfile/types/index.ts
 // プロフィール関連の型定義
 
-// re-export（利便性のため）
-export type { ProfileFieldConfig } from "@/features/core/user/types";
-export type {
-  DomainFormInput,
-  DomainFieldType,
-} from "@/components/Form/DomainFieldRenderer/types";
+export type { ProfileBase } from "./profileBase";
 
 /**
  * プロフィールデータの基本型

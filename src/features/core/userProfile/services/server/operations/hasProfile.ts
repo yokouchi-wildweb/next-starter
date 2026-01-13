@@ -1,7 +1,7 @@
 // src/features/core/userProfile/services/server/operations/hasProfile.ts
 
 import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
-import { getProfileBase } from "../registry";
+import { getProfileBase } from "../../../utils";
 
 /**
  * プロフィールが存在するか確認
