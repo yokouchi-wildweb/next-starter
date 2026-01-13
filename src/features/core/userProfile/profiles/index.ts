@@ -4,10 +4,9 @@
 import type { ProfileFieldConfig } from "../types";
 
 // JSON プロフィール設定の読み込み
-import contributorProfile from "./contributor.profile.json";
-import debugerProfile from "./debuger.profile.json";
-import userProfile from "./user.profile.json";
 import adminProfile from "./admin.profile.json";
+import userProfile from "./user.profile.json";
+import contributorProfile from "./contributor.profile.json";
 
 /**
  * プロフィール設定の型
@@ -21,10 +20,9 @@ export type ProfileConfig = {
  * 全プロフィール設定
  */
 export const ALL_PROFILES: readonly ProfileConfig[] = [
-  contributorProfile as ProfileConfig,
-  debugerProfile as ProfileConfig,
-  userProfile as ProfileConfig,
   adminProfile as ProfileConfig,
+  userProfile as ProfileConfig,
+  contributorProfile as ProfileConfig,
 ];
 
 /**

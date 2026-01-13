@@ -4,3 +4,5 @@
 // このファイルは role:generate スクリプトによって自動生成されました
 
 export * from "./admin";
+export * from "./contributor";
+export * from "./user";

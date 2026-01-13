@@ -1,18 +1,18 @@
-// src/features/core/userProfile/entities/debugerProfile.ts
-// デバッガー（debuger）ロール用のプロフィールテーブル
+// src/features/core/userProfile/generated/contributor/drizzle.ts
+// 投稿者（contributor）ロール用のプロフィールテーブル
 //
-// 元情報: src/features/core/userProfile/profiles/debuger.profile.json
+// 元情報: src/features/core/userProfile/profiles/contributor.profile.json
 // このファイルは role:generate スクリプトによって自動生成されました
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { uuid, timestamp, text, boolean, pgTable } from "drizzle-orm/pg-core";
 
 /**
- * デバッガープロフィールテーブル
+ * 投稿者プロフィールテーブル
  *
- * @source debuger.profile.json
+ * @source contributor.profile.json
  */
-export const DebugerProfileTable = pgTable("debuger_profiles", {
+export const ContributorProfileTable = pgTable("contributor_profiles", {
   // ==========================================================================
   // システムフィールド（全プロフィールテーブル共通）
   // ==========================================================================
@@ -26,14 +26,20 @@ export const DebugerProfileTable = pgTable("debuger_profiles", {
 
   // ==========================================================================
   // プロフィールフィールド
-  // @source debuger.profile.json
+  // @source contributor.profile.json
   // ==========================================================================
-  /** name */
-  name: text("name"),
-  /** 承認日 */
-  appovedAt: boolean("appoved_at"),
-  /** type */
-  type: text("type"),
+  /** 組織名 */
+  organizationName: text("organization_name"),
+  /** 連絡先電話番号 */
+  contactPhone: text("contact_phone"),
+  /** 自己紹介 */
+  bio: text("bio"),
+  /** 承認状態 */
+  isApproved: boolean("is_approved"),
+  /** 承認日時 */
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  /** 承認メモ */
+  approvalNote: text("approval_note"),
 
   // ==========================================================================
   // タイムスタンプ（全プロフィールテーブル共通）
@@ -43,7 +49,7 @@ export const DebugerProfileTable = pgTable("debuger_profiles", {
 });
 
 /**
- * デバッガープロフィールの型
+ * 投稿者プロフィールの型
  */
-export type DebugerProfile = typeof DebugerProfileTable.$inferSelect;
-export type DebugerProfileInsert = typeof DebugerProfileTable.$inferInsert;
+export type ContributorProfile = typeof ContributorProfileTable.$inferSelect;
+export type ContributorProfileInsert = typeof ContributorProfileTable.$inferInsert;
