@@ -94,7 +94,7 @@ export default async function deleteProfile(roleIdArg) {
   const { deleteEntity } = await prompt({
     type: "confirm",
     name: "deleteEntity",
-    message: "エンティティファイル（entities/{role}Profile.ts）も削除しますか？",
+    message: "生成フォルダ（generated/{roleId}/）も削除しますか？",
     default: true,
   });
 

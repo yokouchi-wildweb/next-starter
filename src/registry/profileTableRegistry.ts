@@ -9,4 +9,5 @@ export * from "@/features/core/userProfile/entities/contributorProfile";
 export * from "@/features/core/userProfile/entities/debugerProfile";
 export * from "@/features/core/userProfile/entities/userProfile";
 export * from "@/features/core/userProfile/entities/adminProfile";
+export * from "@/features/core/userProfile/generated/admin";
 // === AUTO-GENERATED EXPORTS END ===

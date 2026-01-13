@@ -11,7 +11,7 @@ import type { ProfileBase } from "@/features/core/userProfile/types";
 import { ContributorProfileTable } from "@/features/core/userProfile/entities/contributorProfile";
 import { DebugerProfileTable } from "@/features/core/userProfile/entities/debugerProfile";
 import { UserProfileTable } from "@/features/core/userProfile/entities/userProfile";
-import { AdminProfileTable } from "@/features/core/userProfile/entities/adminProfile";
+import { AdminProfileTable } from "@/features/core/userProfile/generated/admin";
 // === AUTO-GENERATED IMPORTS END ===
 
 /**

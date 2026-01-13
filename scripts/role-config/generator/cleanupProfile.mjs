@@ -5,6 +5,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
+import { updateGeneratedIndex } from "./updateGeneratedIndex.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
@@ -82,27 +83,25 @@ function cleanupProfileBaseRegistry(roleId) {
 function cleanupProfileTableRegistry(roleId) {
   const filePath = path.join(ROOT_DIR, "src/registry/profileTableRegistry.ts");
 
-  const entityFileName = `${toCamelCase(roleId)}Profile`;
   const patterns = [
-    `export * from "@/features/core/userProfile/entities/${entityFileName}"`,
+    `export * from "@/features/core/userProfile/generated/${roleId}"`,
   ];
 
   return removeLines(filePath, patterns);
 }
 
 /**
- * エンティティファイルを削除
+ * generated/{roleId}/ フォルダを削除
  */
-function cleanupEntityFile(roleId) {
-  const entityFileName = `${toCamelCase(roleId)}Profile.ts`;
-  const filePath = path.join(
+function cleanupGeneratedFolder(roleId) {
+  const folderPath = path.join(
     ROOT_DIR,
-    "src/features/core/userProfile/entities",
-    entityFileName
+    "src/features/core/userProfile/generated",
+    roleId
   );
 
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
+  if (fs.existsSync(folderPath)) {
+    fs.rmSync(folderPath, { recursive: true });
     return true;
   }
   return false;
@@ -112,7 +111,7 @@ function cleanupEntityFile(roleId) {
  * プロフィール関連のレジストリエントリをクリーンアップ
  * @param {string} roleId - ロールID
  * @param {Object} options - オプション
- * @param {boolean} options.deleteEntity - エンティティファイルも削除するか（デフォルト: true）
+ * @param {boolean} options.deleteEntity - 生成フォルダも削除するか（デフォルト: true）
  * @param {boolean} options.silent - ログ出力を抑制するか（デフォルト: false）
  */
 export function cleanupProfile(roleId, options = {}) {
@@ -126,14 +125,19 @@ export function cleanupProfile(roleId, options = {}) {
     profilesIndex: cleanupProfilesIndex(roleId),
     profileBaseRegistry: cleanupProfileBaseRegistry(roleId),
     profileTableRegistry: cleanupProfileTableRegistry(roleId),
-    entityFile: deleteEntity ? cleanupEntityFile(roleId) : false,
+    generatedFolder: deleteEntity ? cleanupGeneratedFolder(roleId) : false,
   };
+
+  // generated/index.ts を更新（フォルダ削除後）
+  if (results.generatedFolder) {
+    updateGeneratedIndex();
+  }
 
   if (!silent) {
     if (results.profilesIndex) log("  ✓ profiles/index.ts を更新");
     if (results.profileBaseRegistry) log("  ✓ profileBaseRegistry.ts を更新");
     if (results.profileTableRegistry) log("  ✓ profileTableRegistry.ts を更新");
-    if (results.entityFile) log("  ✓ エンティティファイルを削除");
+    if (results.generatedFolder) log("  ✓ generated/ フォルダを削除");
 
     const anyModified = Object.values(results).some(Boolean);
     if (!anyModified) {

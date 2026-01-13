@@ -4,7 +4,7 @@
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
+import { toPascalCase } from "../../../src/utils/stringCase.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
@@ -19,8 +19,7 @@ function updateProfileTables(roleConfig) {
   let content = fs.readFileSync(filePath, "utf-8");
 
   const roleId = roleConfig.id;
-  const entityFileName = `${toCamelCase(roleId)}Profile`;
-  const exportLine = `export * from "@/features/core/userProfile/entities/${entityFileName}";`;
+  const exportLine = `export * from "@/features/core/userProfile/generated/${roleId}";`;
 
   // アンカーコメント間に追加
   const anchorStart = "// === AUTO-GENERATED EXPORTS START ===";
@@ -59,11 +58,10 @@ function updateProfileBases(roleConfig) {
   let content = fs.readFileSync(filePath, "utf-8");
 
   const roleId = roleConfig.id;
-  const entityFileName = `${toCamelCase(roleId)}Profile`;
   const tableVar = `${toPascalCase(roleId)}ProfileTable`;
 
   // import 文を追加
-  const importLine = `import { ${tableVar} } from "@/features/core/userProfile/entities/${entityFileName}";`;
+  const importLine = `import { ${tableVar} } from "@/features/core/userProfile/generated/${roleId}";`;
   const importStart = "// === AUTO-GENERATED IMPORTS START ===";
   const importEnd = "// === AUTO-GENERATED IMPORTS END ===";
 

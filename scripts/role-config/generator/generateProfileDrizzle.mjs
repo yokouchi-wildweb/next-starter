@@ -1,5 +1,5 @@
-// scripts/role-config/generator/generateProfileEntity.mjs
-// entities/{role}Profile.ts の生成
+// scripts/role-config/generator/generateProfileDrizzle.mjs
+// generated/{roleId}/drizzle.ts の生成
 
 import fs from "fs";
 import path, { dirname } from "path";
@@ -8,9 +8,9 @@ import { toCamelCase, toPascalCase, toSnakeCase } from "../../../src/utils/strin
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
-const ENTITIES_DIR = path.join(
+const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/entities"
+  "src/features/core/userProfile/generated"
 );
 
 /**
@@ -37,14 +37,12 @@ function getDrizzleColumnType(field) {
       }
       break;
     case "enum":
-      // enum は text として保存（または pgEnum を使用）
       columnDef = `text("${columnName}")`;
       break;
     case "timestamp With Time Zone":
       columnDef = `timestamp("${columnName}", { withTimezone: true })`;
       break;
     case "array":
-      // array は jsonb として保存
       columnDef = `jsonb("${columnName}").$type<string[]>().default([])`;
       break;
     default:
@@ -64,14 +62,12 @@ function generateFieldDefinitions(fields) {
   for (const field of fields) {
     const { camelName, columnDef } = getDrizzleColumnType(field);
 
-    // 必要な import を収集
     if (columnDef.includes("text(")) imports.add("text");
     if (columnDef.includes("integer(")) imports.add("integer");
     if (columnDef.includes("boolean(")) imports.add("boolean");
     if (columnDef.includes("jsonb(")) imports.add("jsonb");
     if (columnDef.includes("varchar(")) imports.add("varchar");
 
-    // フィールド定義を追加
     lines.push(`  /** ${field.label} */`);
     lines.push(`  ${camelName}: ${columnDef},`);
   }
@@ -80,9 +76,9 @@ function generateFieldDefinitions(fields) {
 }
 
 /**
- * entities/{role}Profile.ts を生成
+ * generated/{roleId}/drizzle.ts を生成
  */
-export function generateProfileEntity(roleConfig, profileConfig) {
+export function generateProfileDrizzle(roleConfig, profileConfig) {
   const roleId = roleConfig.id;
   const rolePascal = toPascalCase(roleId);
   const tableVar = `${rolePascal}ProfileTable`;
@@ -90,7 +86,7 @@ export function generateProfileEntity(roleConfig, profileConfig) {
 
   const { lines: fieldLines, imports } = generateFieldDefinitions(profileConfig.fields);
 
-  const content = `// src/features/core/userProfile/entities/${toCamelCase(roleId)}Profile.ts
+  const content = `// src/features/core/userProfile/generated/${roleId}/drizzle.ts
 // ${roleConfig.label}（${roleId}）ロール用のプロフィールテーブル
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json
@@ -136,6 +132,12 @@ export type ${rolePascal}Profile = typeof ${tableVar}.$inferSelect;
 export type ${rolePascal}ProfileInsert = typeof ${tableVar}.$inferInsert;
 `;
 
-  const filePath = path.join(ENTITIES_DIR, `${toCamelCase(roleId)}Profile.ts`);
+  // generated/{roleId}/ フォルダを作成
+  const roleDir = path.join(GENERATED_DIR, roleId);
+  if (!fs.existsSync(roleDir)) {
+    fs.mkdirSync(roleDir, { recursive: true });
+  }
+
+  const filePath = path.join(roleDir, "drizzle.ts");
   fs.writeFileSync(filePath, content);
 }
