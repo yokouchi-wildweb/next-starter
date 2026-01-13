@@ -55,24 +55,24 @@ export const ADDITIONAL_ROLES: readonly AdditionalRoleConfig<ProfileFieldTag>[] 
         fieldType: "string",
         formInput: "textInput",
         required: true,
-        tags: ["registration", "mypage"],
         placeholder: "株式会社〇〇",
+        tags: ["registration", "mypage"],
       },
       {
         name: "contact_phone",
         label: "連絡先電話番号",
         fieldType: "string",
         formInput: "textInput",
-        tags: ["mypage"],
         placeholder: "090-0000-0000",
+        tags: ["mypage"],
       },
       {
         name: "bio",
         label: "自己紹介",
         fieldType: "string",
         formInput: "textarea",
-        tags: ["registration", "mypage"],
         placeholder: "活動内容などを入力してください",
+        tags: ["registration", "mypage"],
       },
       // 管理者用フィールド（承認ワークフロー）
       {

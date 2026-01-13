@@ -14,7 +14,7 @@ import {
   toggleOptionValue,
 } from "@/components/Form/utils";
 
-export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "checkbox";
+export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "classic";
 
 type OptionPrimitive = Options["value"];
 
@@ -29,7 +29,7 @@ type Props = {
    */
   options?: Options[];
   /**
-   * 表示タイプ（標準ボタン / ブックマークタグ / 丸形 / 従来型チェックボックス）
+   * 表示タイプ（標準ボタン / ブックマークタグ / 丸形 / クラシック）
    */
   displayType?: CheckGroupDisplayType;
   /** ボタン表示時に利用するバリアント */
@@ -45,7 +45,7 @@ type Props = {
 export function CheckGroupInput({
   field,
   options = [],
-  displayType = "rounded",
+  displayType = "standard",
   buttonVariant,
   buttonSize,
   selectedButtonVariant,
@@ -58,7 +58,7 @@ export function CheckGroupInput({
     field.onChange(toggleOptionValue(field.value, value));
   };
 
-  if (displayType === "checkbox") {
+  if (displayType === "classic") {
     return (
       <div className="flex flex-col gap-2" {...rest}>
         {options.map((op) => {

@@ -276,7 +276,7 @@ export default function FormComponentsDemoPage() {
                     name="checkGroupCheckbox"
                     label="CheckGroupInput（Checkbox）"
                     renderInput={(field) => (
-                        <CheckGroupInput field={field} options={fruitOptions} displayType="checkbox" />
+                        <CheckGroupInput field={field} options={fruitOptions} displayType="classic" />
                     )}
                 />
 

@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/_shadcn/radio-group";
 import { cn } from "@/lib/cn";
 import { type Options } from "@/components/Form/types";
 
-export type RadioGroupDisplayType = "radio" | "standard" | "bookmark" | "rounded";
+export type RadioGroupDisplayType = "classic" | "standard" | "bookmark" | "rounded";
 
 type OptionPrimitive = Options["value"];
 
@@ -24,7 +24,7 @@ type Props = {
    * even when options haven't loaded yet.
    */
   options?: Options[];
-  /** 表示タイプ（従来型 / 標準ボタン / ブックマークタグ / 丸形） */
+  /** 表示タイプ（クラシック / 標準ボタン / ブックマークタグ / 丸形） */
   displayType?: RadioGroupDisplayType;
   /** ボタン表示時に利用するバリアント */
   buttonVariant?: ButtonStyleProps["variant"];
@@ -39,7 +39,7 @@ type Props = {
 export function RadioGroupInput({
   field,
   options = [],
-  displayType = "radio",
+  displayType = "standard",
   buttonVariant,
   buttonSize,
   selectedButtonVariant,
@@ -56,7 +56,7 @@ export function RadioGroupInput({
     return (matched?.value ?? value) as OptionPrimitive;
   };
 
-  if (displayType === "radio") {
+  if (displayType === "classic") {
     return (
       <RadioGroup
         onValueChange={(value) => field.onChange(resolveOriginalValue(value) as OptionPrimitive)}
