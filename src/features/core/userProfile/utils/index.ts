@@ -10,4 +10,7 @@ export {
   getProfileSchema,
   pickSchemaByTag,
   pickFieldsByTag,
+  createProfileDataValidator,
+  getProfilesByCategory,
+  getProfileConfig,
 } from "./profileSchemaHelpers";

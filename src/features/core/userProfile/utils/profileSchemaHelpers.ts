@@ -3,6 +3,8 @@
 
 import { z } from "zod";
 import { PROFILE_SCHEMA_REGISTRY } from "@/registry/profileSchemaRegistry";
+import { PROFILE_CONFIG_REGISTRY } from "@/registry/profileConfigRegistry";
+import { getRolesByCategory, type RoleCategory } from "@/features/core/user/constants";
 import type { ProfileFieldConfig } from "../types";
 import type { ProfileConfig } from "../profiles";
 
@@ -99,4 +101,35 @@ export function createProfileDataValidator(
       });
     }
   };
+}
+
+/**
+ * ロールカテゴリに属するプロフィール設定を取得
+ *
+ * @param category - ロールカテゴリ（"user" | "admin"）
+ * @returns ロール → ProfileConfig のマッピング
+ *
+ * @example
+ * const profiles = getProfilesByCategory("user");
+ * // => { user: {...}, contributor: {...} }
+ */
+export function getProfilesByCategory(
+  category: RoleCategory
+): Record<string, ProfileConfig> {
+  const roles = getRolesByCategory(category);
+  return Object.fromEntries(
+    roles
+      .filter((roleId) => PROFILE_CONFIG_REGISTRY[roleId])
+      .map((roleId) => [roleId, PROFILE_CONFIG_REGISTRY[roleId]])
+  );
+}
+
+/**
+ * 指定ロールのプロフィール設定を取得
+ *
+ * @param role - ロールID
+ * @returns ProfileConfig または undefined
+ */
+export function getProfileConfig(role: string): ProfileConfig | undefined {
+  return PROFILE_CONFIG_REGISTRY[role];
 }

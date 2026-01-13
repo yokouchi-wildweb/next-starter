@@ -1,7 +1,8 @@
 import { z } from "zod";
 
-import { getRolesByCategory } from "@/features/core/user/constants";
-import { AdminProfileSchema } from "@/features/core/userProfile/generated/admin";
+import { MANAGERIAL_USER_DEFAULT_ROLE } from "@/features/core/user/constants/managerialUserAdmin";
+import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+import { MANAGERIAL_USER_PROFILES } from "../managerialUserProfiles";
 
 const displayNameSchema = z.string();
 
@@ -15,24 +16,33 @@ const localPasswordSchema = z
   .string({ required_error: "パスワードを入力してください" })
   .min(8, { message: "パスワードは8文字以上で入力してください" });
 
-// admin カテゴリのロールを取得
-const adminRoles = getRolesByCategory("admin");
-const defaultRole = adminRoles[0] ?? "admin";
+// profileData バリデーション関数（admin タグでフィルタリング）
+const validateProfileData = createProfileDataValidator(MANAGERIAL_USER_PROFILES, "admin");
 
-export const FormSchema = z.object({
-  displayName: displayNameSchema,
-  email: emailSchema,
-  role: z.string(),
-  localPassword: localPasswordSchema,
-  profileData: AdminProfileSchema,
-});
+export const FormSchema = z
+  .object({
+    displayName: displayNameSchema,
+    email: emailSchema,
+    localPassword: localPasswordSchema,
+    role: z.string(),
+    profileData: z.record(z.unknown()).optional(),
+  })
+  .superRefine((value, ctx) => {
+    validateProfileData(value, ctx);
+  });
 
-export type FormValues = z.infer<typeof FormSchema>;
+export type FormValues = {
+  displayName: string;
+  email: string;
+  localPassword: string;
+  role: string;
+  profileData?: Record<string, unknown>;
+};
 
 export const DefaultValues: FormValues = {
   displayName: "",
   email: "",
-  role: defaultRole,
+  role: MANAGERIAL_USER_DEFAULT_ROLE,
   localPassword: "",
-  profileData: {} as z.infer<typeof AdminProfileSchema>,
+  profileData: {},
 };

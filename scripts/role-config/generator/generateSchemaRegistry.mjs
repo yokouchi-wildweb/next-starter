@@ -88,9 +88,69 @@ ${entries}
 }
 
 /**
+ * src/registry/profileConfigRegistry.ts を生成
+ */
+function generateProfileConfigRegistry(profiles) {
+  if (profiles.length === 0) {
+    const content = `// src/registry/profileConfigRegistry.ts
+// プロフィール設定のレジストリ（自動生成）
+//
+// このファイルは role:generate スクリプトによって自動生成されます
+
+import type { ProfileConfig } from "@/features/core/userProfile/profiles";
+
+/**
+ * ロール → プロフィール設定のマッピング
+ */
+export const PROFILE_CONFIG_REGISTRY: Record<string, ProfileConfig> = {};
+`;
+    fs.writeFileSync(path.join(REGISTRY_DIR, "profileConfigRegistry.ts"), content);
+    return;
+  }
+
+  // import 文を生成
+  const imports = profiles
+    .map(({ roleId }) => {
+      return `import ${roleId}Profile from "@/features/core/userProfile/profiles/${roleId}.profile.json";`;
+    })
+    .join("\n");
+
+  // レジストリエントリを生成
+  const entries = profiles
+    .map(({ roleId }) => {
+      return `  ${roleId}: ${roleId}Profile as ProfileConfig,`;
+    })
+    .join("\n");
+
+  const content = `// src/registry/profileConfigRegistry.ts
+// プロフィール設定のレジストリ（自動生成）
+//
+// このファイルは role:generate スクリプトによって自動生成されます
+
+import type { ProfileConfig } from "@/features/core/userProfile/profiles";
+
+// === AUTO-GENERATED IMPORTS START ===
+${imports}
+// === AUTO-GENERATED IMPORTS END ===
+
+/**
+ * ロール → プロフィール設定のマッピング
+ */
+export const PROFILE_CONFIG_REGISTRY: Record<string, ProfileConfig> = {
+  // === AUTO-GENERATED ENTRIES START ===
+${entries}
+  // === AUTO-GENERATED ENTRIES END ===
+};
+`;
+
+  fs.writeFileSync(path.join(REGISTRY_DIR, "profileConfigRegistry.ts"), content);
+}
+
+/**
  * スキーマレジストリを生成
  */
 export function generateSchemaRegistry() {
   const profiles = getAllProfiles();
   generateProfileSchemaRegistry(profiles);
+  generateProfileConfigRegistry(profiles);
 }

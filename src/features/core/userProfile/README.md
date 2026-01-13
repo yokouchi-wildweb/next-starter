@@ -17,33 +17,52 @@ src/features/core/userProfile/
 │   ├── RoleSelector.tsx        # ロール選択（汎用）
 │   ├── RoleProfileFields.tsx   # プロフィールフィールド（汎用）
 │   └── index.ts
-├── entities/                   # Drizzle テーブル定義 [自動生成]
-│   └── {role}Profile.ts
-├── profiles/                   # プロフィールフィールド設定 JSON [自動生成]
-│   ├── index.ts                # 設定読み込み・エクスポート
+├── constants/                  # 定数
+│   └── fieldTag.ts             # フィールドタグ定義
+├── generated/                  # 自動生成ファイル [DO NOT EDIT]
+│   ├── {role}/
+│   │   ├── drizzle.ts          # Drizzle テーブル定義
+│   │   ├── schema.ts           # Zod スキーマ
+│   │   ├── form.ts             # フォーム型定義
+│   │   ├── model.ts            # モデル型定義
+│   │   ├── presenters.ts       # プレゼンター
+│   │   └── index.ts
+│   └── index.ts                # 全ロール再エクスポート
+├── profiles/                   # プロフィールフィールド設定 JSON
+│   ├── index.ts                # 型定義エクスポート
 │   └── {role}.profile.json     # hasProfile: true のロールのみ
-├── registry/                   # レジストリ [自動生成]
-│   ├── index.ts                # 再エクスポートのみ
-│   ├── profileTables.ts        # テーブル再エクスポート
-│   └── profileBases.ts         # ロール → ProfileBase マッピング
 ├── types/                      # 型定義
 │   ├── index.ts
+│   ├── field.ts                # ProfileFieldConfig
+│   ├── fieldTag.ts             # ProfileFieldTag
 │   └── profileBase.ts          # ProfileBase インターフェース
 ├── utils/                      # ユーティリティ
 │   ├── index.ts                # クライアント安全なエクスポートのみ
 │   ├── createProfileBase.ts    # ProfileBase ファクトリ [サーバー専用]
 │   ├── profileBaseHelpers.ts   # レジストリヘルパー [サーバー専用]
-│   └── profileFieldHelpers.ts  # フィールドヘルパー [クライアント/サーバー共通]
-└── services/server/            # サーバーサービス
-    ├── operations/             # 各操作の実装
-    │   ├── index.ts
-    │   ├── getProfile.ts
-    │   ├── upsertProfile.ts
-    │   ├── updateProfile.ts
-    │   ├── deleteProfile.ts
-    │   └── hasProfile.ts
-    └── userProfileService.ts   # 公開インターフェース
+│   └── profileSchemaHelpers.ts # スキーマ・フィールドヘルパー [共通]
+├── services/server/            # サーバーサービス
+│   ├── operations/             # 各操作の実装
+│   │   ├── index.ts
+│   │   ├── getProfile.ts
+│   │   ├── upsertProfile.ts
+│   │   ├── updateProfile.ts
+│   │   ├── deleteProfile.ts
+│   │   └── hasProfile.ts
+│   └── userProfileService.ts   # 公開インターフェース
+└── index.ts                    # ドメイン公開 API
 ```
+
+## レジストリ（src/registry/）
+
+プロフィール関連のレジストリは `src/registry/` に配置され、自動生成される。
+
+| ファイル | 用途 | 環境 |
+|---------|------|------|
+| `profileConfigRegistry.ts` | role → ProfileConfig (UI用設定) | 共通 |
+| `profileSchemaRegistry.ts` | role → Zod スキーマ | 共通 |
+| `profileBaseRegistry.ts` | role → ProfileBase (CRUD) | サーバー |
+| `profileTableRegistry.ts` | role → Drizzle テーブル | サーバー |
 
 ## 設定ファイル
 
@@ -53,7 +72,6 @@ src/features/core/userProfile/
 
 ```
 roles/
-├── index.ts                # 設定読み込み・ALL_ROLES エクスポート
 ├── _admin.role.json        # コアロール（_ プレフィックス）
 ├── _user.role.json         # コアロール
 ├── editor.role.json        # 追加ロール
@@ -76,12 +94,6 @@ roles/
 
 `hasProfile: true` のロールのみ、対応する設定ファイルを配置。
 
-```
-profiles/
-├── index.ts
-└── contributor.profile.json
-```
-
 **{role}.profile.json の構造:**
 ```json
 {
@@ -93,57 +105,56 @@ profiles/
       "fieldType": "string",
       "formInput": "textInput",
       "required": true,
-      "placeholder": "株式会社〇〇",
-      "tags": ["registration", "mypage"]
+      "placeholder": "株式会社〇〇"
+    },
+    {
+      "name": "bio",
+      "label": "自己紹介",
+      "fieldType": "string",
+      "formInput": "textarea"
     }
-  ]
+  ],
+  "tags": {
+    "registration": ["organization_name"],
+    "mypage": ["organization_name", "bio"],
+    "admin": ["organization_name", "bio"]
+  }
 }
 ```
 
+**tags の構造:**
+- トップレベルにオブジェクトとして定義
+- キー: タグ名（`registration`, `mypage`, `admin`, `notification`）
+- 値: そのタグに属するフィールド名の配列
+
 ## 自動生成ファイル
 
-設定 JSON から以下が自動生成される。
+設定 JSON から以下が自動生成される（`role:generate` スクリプト）。
 
-### entities/{role}Profile.ts
+### generated/{role}/drizzle.ts
 
 各ロールのプロフィールテーブル定義。
 
 ```typescript
-// 例: entities/contributorProfile.ts
-export const ContributorProfileTable = pgTable("contributor_profiles", {
+export const contributorProfiles = pgTable("contributor_profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().unique(),
   organizationName: varchar("organization_name", { length: 255 }),
-  // ... profile.json の fields から生成
+  bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 ```
 
-### registry/profileTables.ts
+### generated/{role}/schema.ts
 
-テーブル定義の再エクスポート。アンカーコメント間が自動更新される。
-
-```typescript
-// === AUTO-GENERATED EXPORTS START ===
-export * from "../entities/contributorProfile";
-// === AUTO-GENERATED EXPORTS END ===
-```
-
-### registry/profileBases.ts
-
-ロール → ProfileBase のマッピング。アンカーコメント間が自動更新される。
+Zod バリデーションスキーマ。
 
 ```typescript
-// === AUTO-GENERATED IMPORTS START ===
-import { ContributorProfileTable } from "../entities/contributorProfile";
-// === AUTO-GENERATED IMPORTS END ===
-
-export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {
-  // === AUTO-GENERATED ENTRIES START ===
-  contributor: createProfileBase(ContributorProfileTable),
-  // === AUTO-GENERATED ENTRIES END ===
-};
+export const ContributorProfileSchema = z.object({
+  organizationName: z.string().trim().min(1, {...}),
+  bio: z.string().trim().nullish(),
+});
 ```
 
 ## ユーティリティ
@@ -153,7 +164,7 @@ export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {
 | ファイル | 環境 | 用途 |
 |---------|------|------|
 | `utils/index.ts` | 共通 | クライアント安全なエクスポートのみ |
-| `profileFieldHelpers.ts` | 共通 | フィールド取得・フィルタリング |
+| `profileSchemaHelpers.ts` | 共通 | スキーマ・フィールド操作 |
 | `createProfileBase.ts` | サーバー専用 | ProfileBase ファクトリ |
 | `profileBaseHelpers.ts` | サーバー専用 | レジストリアクセス |
 
@@ -167,25 +178,26 @@ import { getProfileBase } from "../utils";
 import { getProfileBase } from "../utils/profileBaseHelpers";
 ```
 
-### profileFieldHelpers.ts（クライアント/サーバー共通）
+### profileSchemaHelpers.ts（クライアント/サーバー共通）
 
 ```typescript
-type ProfileFieldTag = "admin" | "registration" | "mypage" | "notification";
+// ロールに対応するプロフィールスキーマを取得
+getProfileSchema(role: string): z.ZodType | null
 
-// ロールのプロフィールフィールドを取得
-getProfileFields(role: UserRoleType): ProfileFieldConfig[]
+// スキーマから指定フィールドのみを抽出
+pickSchemaByTag(schema: z.ZodObject, tagFields: string[]): z.ZodObject | null
 
-// 指定タグを持つフィールドを取得
-getFieldsByTags(role: UserRoleType, tags: ProfileFieldTag[], excludeHidden?: boolean): ProfileFieldConfig[]
+// フィールド配列から指定タグに属するフィールドを抽出
+pickFieldsByTag(fields: ProfileFieldConfig[], tagFields: string[], excludeHidden?: boolean): ProfileFieldConfig[]
 
-// 本登録画面用フィールド
-getRegistrationFields(role: UserRoleType): ProfileFieldConfig[]
+// profileData のロール別・タグ別バリデーション関数を生成（superRefine用）
+createProfileDataValidator(profiles: Record<string, ProfileConfig>, tag: string): ValidatorFn
 
-// マイページ用フィールド
-getMyPageFields(role: UserRoleType): ProfileFieldConfig[]
+// ロールカテゴリに属するプロフィール設定を取得
+getProfilesByCategory(category: RoleCategory): Record<string, ProfileConfig>
 
-// 管理画面用フィールド（hidden 除く）
-getAdminFields(role: UserRoleType): ProfileFieldConfig[]
+// 指定ロールのプロフィール設定を取得
+getProfileConfig(role: string): ProfileConfig | undefined
 ```
 
 ### profileBaseHelpers.ts（サーバー専用）
@@ -199,6 +211,43 @@ hasProfileBase(role: string): boolean
 
 // ロールに対応する ProfileBase を取得
 getProfileBase(role: string): ProfileBase | null
+```
+
+## フォームでの使用パターン
+
+### 動的バリデーション（superRefine）
+
+```typescript
+// formEntities.ts
+import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+import { getProfilesByCategory } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+
+// カテゴリからプロフィール設定を動的取得
+const profiles = getProfilesByCategory("user");
+
+// バリデーション関数生成
+const validateProfileData = createProfileDataValidator(profiles, "admin");
+
+export const FormSchema = z
+  .object({
+    role: z.string(),
+    profileData: z.record(z.unknown()).optional(),
+    // ...
+  })
+  .superRefine((value, ctx) => {
+    validateProfileData(value, ctx);
+  });
+```
+
+### プロフィール設定ファイル
+
+各フォームは `getProfilesByCategory()` を使用して動的にプロフィール設定を取得。
+
+```typescript
+// src/features/core/user/components/admin/form/generalUserProfiles.ts
+import { getProfilesByCategory } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+
+export const GENERAL_USER_PROFILES = getProfilesByCategory("user");
 ```
 
 ## ProfileBase インターフェース
@@ -254,6 +303,7 @@ hasProfile(userId: string, role: UserRoleType): Promise<boolean>
   control={control}
   name="role"
   categories={["user"]}           // ロールカテゴリ
+  selectableRoles={roles}         // 選択可能なロールを制限（オプション）
   inputType="radio"               // "select" | "radio"
   radioDisplayType="standard"     // ラジオの表示タイプ
   showDescription                 // 説明文表示
@@ -268,7 +318,8 @@ hasProfile(userId: string, role: UserRoleType): Promise<boolean>
 <RoleProfileFields
   methods={methods}
   role={selectedRole}
-  tags={["registration"]}         // 表示するタグ（未指定で全フィールド）
+  profiles={profiles}             // ProfileConfig のマッピング
+  tag="admin"                     // 表示するタグ
   fieldPrefix="profileData"       // フィールド名プレフィックス
 />
 ```
@@ -279,12 +330,25 @@ hasProfile(userId: string, role: UserRoleType): Promise<boolean>
 |---------|------|
 | `src/features/core/user/roles/` | ロール設定 JSON |
 | `src/features/core/user/constants/role.ts` | ロール派生定数 |
-| `src/features/core/user/utils/roleHelpers.ts` | ロールヘルパー関数 |
-| `src/features/core/user/types/role.ts` | ロール関連型定義 |
-| `src/registry/schemaRegistry.ts` | Drizzle スキーマ登録 |
+| `src/registry/profileConfigRegistry.ts` | ProfileConfig レジストリ |
+| `src/registry/profileSchemaRegistry.ts` | Zod スキーマレジストリ |
+| `src/registry/profileBaseRegistry.ts` | ProfileBase レジストリ |
+| `src/registry/profileTableRegistry.ts` | Drizzle テーブルレジストリ |
 
-## 対話型スクリプトの流れ（予定）
+## スクリプト
 
-1. ロール基本設定収集 → `user/roles/{role}.role.json` 作成
-2. `hasProfile: true` なら → フィールド収集 → `userProfile/profiles/{role}.profile.json` 作成
-3. 自動生成実行 → entities/, registry/ 更新
+### role:generate
+
+ロールとプロフィールの自動生成。
+
+```bash
+pnpm role:generate -- <roleId>
+```
+
+実行内容:
+1. roleRegistry.ts 更新
+2. generated/{roleId}/ 配下のファイル生成
+3. profileSchemaRegistry.ts 更新
+4. profileConfigRegistry.ts 更新
+5. profileBaseRegistry.ts 更新
+6. profileTableRegistry.ts 更新

@@ -2,18 +2,12 @@
 /**
  * デモユーザー管理画面で使用するプロフィール設定
  *
- * ロールを追加/削除する場合:
- * 1. profile.json をインポート
- * 2. DEMO_USER_PROFILES に追加/削除
+ * 全カテゴリのロールを動的に取得
  */
 
-import type { ProfileConfig } from "@/features/core/userProfile/profiles";
-import adminProfile from "@/features/core/userProfile/profiles/admin.profile.json";
-import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
-import contributorProfile from "@/features/core/userProfile/profiles/contributor.profile.json";
+import { getProfilesByCategory } from "@/features/core/userProfile/utils/profileSchemaHelpers";
 
-export const DEMO_USER_PROFILES: Record<string, ProfileConfig> = {
-  admin: adminProfile as ProfileConfig,
-  user: userProfile as ProfileConfig,
-  contributor: contributorProfile as ProfileConfig,
+export const DEMO_USER_PROFILES = {
+  ...getProfilesByCategory("admin"),
+  ...getProfilesByCategory("user"),
 };
