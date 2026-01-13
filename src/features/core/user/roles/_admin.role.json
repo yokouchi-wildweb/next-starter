@@ -1,0 +1,8 @@
+{
+  "id": "admin",
+  "label": "管理者",
+  "category": "admin",
+  "description": "システム全体を管理できる",
+  "hasProfile": false,
+  "isCore": true
+}

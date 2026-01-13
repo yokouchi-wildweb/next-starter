@@ -5,6 +5,11 @@ export {
   OAUTH_PROVIDER_IDS,
 } from "./provider";
 
+// ロール設定
+export { ALL_ROLES, CORE_ROLE_IDS, isCoreRole } from "../roles";
+export type { CoreRoleId } from "../roles";
+
+// ロール派生定数
 export {
   USER_ROLES,
   USER_ROLE_OPTIONS,
@@ -12,34 +17,20 @@ export {
   USER_ROLE_CATEGORIES,
   USER_ROLE_DESCRIPTIONS,
   USER_ROLE_HAS_PROFILE,
-  ALL_ROLES,
+  type UserRoleType,
+} from "./role";
+
+// ロールヘルパー関数
+export {
   formatUserRoleLabel,
   getRolesByCategory,
   getRoleOptionsByCategory,
   getRolesWithProfile,
   getRoleCategory,
   hasRoleProfile,
-  getProfileFields,
-  getFieldsByTags,
-  getRegistrationFields,
-  getMyPageFields,
-  getAdminFields,
-} from "./role";
+} from "../utils/roleHelpers";
 
-export type {
-  RoleCategory,
-  RoleConfig,
-  AdditionalRoleConfig,
-  ProfileFieldConfig,
-  ProfileFieldTag,
-  CoreProfileFieldTag,
-  UserRoleType,
-  // domain.json 共通型（DomainFieldRenderer から）
-  DomainFormInput,
-  DomainFieldType,
-  DomainJsonField,
-} from "./role";
-
+// ステータス
 export {
   USER_STATUSES,
   USER_STATUS_LABELS,
@@ -48,3 +39,10 @@ export {
   USER_AVAILABLE_STATUSES,
   USER_REGISTERED_STATUSES,
 } from "./status";
+
+// 型定義（types からの再エクスポート）
+export type {
+  RoleCategory,
+  RoleConfig,
+  ProfileFieldConfig,
+} from "../types";

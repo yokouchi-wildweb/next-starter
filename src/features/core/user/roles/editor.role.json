@@ -1,0 +1,8 @@
+{
+  "id": "editor",
+  "label": "編集者",
+  "category": "admin",
+  "description": "一部の設定を操作できる",
+  "hasProfile": false,
+  "isCore": false
+}

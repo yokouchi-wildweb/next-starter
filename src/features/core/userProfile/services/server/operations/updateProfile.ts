@@ -1,7 +1,7 @@
 // src/features/core/userProfile/services/server/operations/updateProfile.ts
 
 import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
-import { getProfileBase } from "../../../utils";
+import { getProfileBase } from "../../../utils/profileBaseHelpers";
 
 /**
  * プロフィール更新用データ型

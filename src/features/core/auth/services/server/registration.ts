@@ -3,8 +3,11 @@
 import type { z } from "zod";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { USER_REGISTERED_STATUSES } from "@/features/core/user/constants";
-import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants/role";
+import {
+  USER_REGISTERED_STATUSES,
+  hasRoleProfile,
+  type UserRoleType,
+} from "@/features/core/user/constants";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 import {
   SessionUserSchema,

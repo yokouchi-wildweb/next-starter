@@ -21,10 +21,4 @@ export {
 } from "./profileField";
 
 // ロール関連の型
-export {
-  type RoleCategory,
-  type RoleConfig,
-  type AdditionalRoleConfig,
-  type CoreRoleId,
-  type CoreRoleExtension,
-} from "./role";
+export { type RoleCategory, type RoleConfig } from "./role";

@@ -1,8 +1,12 @@
 // src/features/core/userProfile/utils/index.ts
+// クライアント/サーバー共通のユーティリティのみエクスポート
+// サーバー専用: createProfileBase, profileBaseHelpers は直接 import すること
 
-export { createProfileBase } from "./createProfileBase";
 export {
-  PROFILE_ROLES,
-  hasProfileBase,
-  getProfileBase,
-} from "./profileBaseHelpers";
+  type ProfileFieldTag,
+  getProfileFields,
+  getFieldsByTags,
+  getRegistrationFields,
+  getMyPageFields,
+  getAdminFields,
+} from "./profileFieldHelpers";

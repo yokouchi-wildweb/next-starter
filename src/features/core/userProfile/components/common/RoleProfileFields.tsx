@@ -8,12 +8,14 @@ import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/types";
 import {
-  getFieldsByTags,
-  getAdminFields,
   hasRoleProfile,
-  type ProfileFieldTag,
   type UserRoleType,
 } from "@/features/core/user/constants";
+import {
+  getFieldsByTags,
+  getAdminFields,
+  type ProfileFieldTag,
+} from "../../utils";
 
 /**
  * snake_case を camelCase に変換

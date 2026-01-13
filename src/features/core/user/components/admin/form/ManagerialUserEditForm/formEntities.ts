@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { User } from "@/features/core/user/entities";
-import { getRolesByCategory } from "@/features/core/user/constants/role";
+import { getRolesByCategory } from "@/features/core/user/constants";
 
 const displayNameSchema = z.string();
 

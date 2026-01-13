@@ -9,7 +9,7 @@ import {
   getRoleCategory,
   hasRoleProfile,
   type UserRoleType,
-} from "@/features/core/user/constants/role";
+} from "@/features/core/user/constants";
 import { DomainError } from "@/lib/errors";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";

@@ -7,7 +7,7 @@
 
 - **役割**: ロール別プロフィールの統一管理
 - **パターン**: Registry + Factory パターン
-- **自動生成**: `roles.config.ts` から一部ファイルを自動生成
+- **設定ファイル**: JSON 形式（1ロール1ファイル）
 
 ## ディレクトリ構造
 
@@ -19,6 +19,9 @@ src/features/core/userProfile/
 │   └── index.ts
 ├── entities/                   # Drizzle テーブル定義 [自動生成]
 │   └── {role}Profile.ts
+├── profiles/                   # プロフィールフィールド設定 JSON [自動生成]
+│   ├── index.ts                # 設定読み込み・エクスポート
+│   └── {role}.profile.json     # hasProfile: true のロールのみ
 ├── registry/                   # レジストリ [自動生成]
 │   ├── index.ts                # 再エクスポートのみ
 │   ├── profileTables.ts        # テーブル再エクスポート
@@ -27,9 +30,10 @@ src/features/core/userProfile/
 │   ├── index.ts
 │   └── profileBase.ts          # ProfileBase インターフェース
 ├── utils/                      # ユーティリティ
-│   ├── index.ts
-│   ├── createProfileBase.ts    # ProfileBase ファクトリ
-│   └── profileBaseHelpers.ts   # ヘルパー関数
+│   ├── index.ts                # クライアント安全なエクスポートのみ
+│   ├── createProfileBase.ts    # ProfileBase ファクトリ [サーバー専用]
+│   ├── profileBaseHelpers.ts   # レジストリヘルパー [サーバー専用]
+│   └── profileFieldHelpers.ts  # フィールドヘルパー [クライアント/サーバー共通]
 └── services/server/            # サーバーサービス
     ├── operations/             # 各操作の実装
     │   ├── index.ts
@@ -41,9 +45,64 @@ src/features/core/userProfile/
     └── userProfileService.ts   # 公開インターフェース
 ```
 
+## 設定ファイル
+
+### ロール設定（user ドメイン）
+
+`src/features/core/user/roles/` にロール定義を配置。
+
+```
+roles/
+├── index.ts                # 設定読み込み・ALL_ROLES エクスポート
+├── _admin.role.json        # コアロール（_ プレフィックス）
+├── _user.role.json         # コアロール
+├── editor.role.json        # 追加ロール
+└── contributor.role.json   # 追加ロール（hasProfile: true）
+```
+
+**{role}.role.json の構造:**
+```json
+{
+  "id": "contributor",
+  "label": "投稿者",
+  "category": "user",
+  "description": "コンテンツを投稿できる",
+  "hasProfile": true,
+  "isCore": false
+}
+```
+
+### プロフィールフィールド設定（userProfile ドメイン）
+
+`hasProfile: true` のロールのみ、対応する設定ファイルを配置。
+
+```
+profiles/
+├── index.ts
+└── contributor.profile.json
+```
+
+**{role}.profile.json の構造:**
+```json
+{
+  "roleId": "contributor",
+  "fields": [
+    {
+      "name": "organization_name",
+      "label": "組織名",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": true,
+      "placeholder": "株式会社〇〇",
+      "tags": ["registration", "mypage"]
+    }
+  ]
+}
+```
+
 ## 自動生成ファイル
 
-`roles.config.ts` の `CUSTOM_ROLES` 定義から以下が自動生成される。
+設定 JSON から以下が自動生成される。
 
 ### entities/{role}Profile.ts
 
@@ -54,8 +113,8 @@ src/features/core/userProfile/
 export const ContributorProfileTable = pgTable("contributor_profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().unique(),
-  displayName: varchar("display_name", { length: 255 }),
-  // ... roles.config.ts の profileFields から生成
+  organizationName: varchar("organization_name", { length: 255 }),
+  // ... profile.json の fields から生成
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -87,6 +146,61 @@ export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {
 };
 ```
 
+## ユーティリティ
+
+### クライアント/サーバー分離
+
+| ファイル | 環境 | 用途 |
+|---------|------|------|
+| `utils/index.ts` | 共通 | クライアント安全なエクスポートのみ |
+| `profileFieldHelpers.ts` | 共通 | フィールド取得・フィルタリング |
+| `createProfileBase.ts` | サーバー専用 | ProfileBase ファクトリ |
+| `profileBaseHelpers.ts` | サーバー専用 | レジストリアクセス |
+
+**重要**: サーバー専用ファイルは直接パスで import すること。
+
+```typescript
+// ❌ NG: クライアントコンポーネントでエラー
+import { getProfileBase } from "../utils";
+
+// ✅ OK: サーバーコンポーネント/サービスで直接 import
+import { getProfileBase } from "../utils/profileBaseHelpers";
+```
+
+### profileFieldHelpers.ts（クライアント/サーバー共通）
+
+```typescript
+type ProfileFieldTag = "admin" | "registration" | "mypage" | "notification";
+
+// ロールのプロフィールフィールドを取得
+getProfileFields(role: UserRoleType): ProfileFieldConfig[]
+
+// 指定タグを持つフィールドを取得
+getFieldsByTags(role: UserRoleType, tags: ProfileFieldTag[], excludeHidden?: boolean): ProfileFieldConfig[]
+
+// 本登録画面用フィールド
+getRegistrationFields(role: UserRoleType): ProfileFieldConfig[]
+
+// マイページ用フィールド
+getMyPageFields(role: UserRoleType): ProfileFieldConfig[]
+
+// 管理画面用フィールド（hidden 除く）
+getAdminFields(role: UserRoleType): ProfileFieldConfig[]
+```
+
+### profileBaseHelpers.ts（サーバー専用）
+
+```typescript
+// プロフィールを持つロールの一覧
+PROFILE_ROLES: string[]
+
+// ロールがプロフィールを持つか確認
+hasProfileBase(role: string): boolean
+
+// ロールに対応する ProfileBase を取得
+getProfileBase(role: string): ProfileBase | null
+```
+
 ## ProfileBase インターフェース
 
 全ロールのプロフィールに対して統一的な CRUD 操作を提供。
@@ -106,21 +220,6 @@ type ProfileBase = {
   updateByUserId: (userId: string, data: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
   removeByUserId: (userId: string) => Promise<boolean>;
 };
-```
-
-## ユーティリティ関数
-
-### utils/profileBaseHelpers.ts
-
-```typescript
-// プロフィールを持つロールの一覧
-PROFILE_ROLES: string[]
-
-// ロールがプロフィールを持つか確認
-hasProfileBase(role: string): boolean
-
-// ロールに対応する ProfileBase を取得
-getProfileBase(role: string): ProfileBase | null
 ```
 
 ## サービス操作
@@ -174,33 +273,18 @@ hasProfile(userId: string, role: UserRoleType): Promise<boolean>
 />
 ```
 
-## 設定ファイルとの連携
-
-### src/config/app/roles.config.ts
-
-```typescript
-export const CUSTOM_ROLES: CustomRoleConfig<ProfileFieldTag>[] = [
-  {
-    id: "contributor",
-    name: "コントリビューター",
-    category: "user",
-    profileFields: [
-      {
-        name: "display_name",
-        label: "表示名",
-        fieldType: "string",
-        formInput: "textInput",
-        tags: ["registration", "mypage", "admin"],
-      },
-      // ...
-    ],
-  },
-];
-```
-
 ## 関連ファイル
 
-- `src/config/app/roles.config.ts` - ロール設定（自動生成の元）
-- `src/features/core/user/constants/role.ts` - ロール定数・ヘルパー関数
-- `src/features/core/user/types/role.ts` - ロール関連型定義
-- `src/registry/schemaRegistry.ts` - Drizzle スキーマ登録
+| ファイル | 役割 |
+|---------|------|
+| `src/features/core/user/roles/` | ロール設定 JSON |
+| `src/features/core/user/constants/role.ts` | ロール派生定数 |
+| `src/features/core/user/utils/roleHelpers.ts` | ロールヘルパー関数 |
+| `src/features/core/user/types/role.ts` | ロール関連型定義 |
+| `src/registry/schemaRegistry.ts` | Drizzle スキーマ登録 |
+
+## 対話型スクリプトの流れ（予定）
+
+1. ロール基本設定収集 → `user/roles/{role}.role.json` 作成
+2. `hasProfile: true` なら → フィールド収集 → `userProfile/profiles/{role}.profile.json` 作成
+3. 自動生成実行 → entities/, registry/ 更新

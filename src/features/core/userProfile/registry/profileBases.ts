@@ -5,7 +5,7 @@
 // アンカーコメント間のコードは自動生成スクリプトによって更新されます。
 // ユーティリティ関数は index.ts に配置してください。
 
-import { createProfileBase } from "../utils";
+import { createProfileBase } from "../utils/createProfileBase";
 import type { ProfileBase } from "../types";
 
 // === AUTO-GENERATED IMPORTS START ===
