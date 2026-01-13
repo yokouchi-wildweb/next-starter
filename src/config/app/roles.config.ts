@@ -8,6 +8,8 @@
 import type {
   AdditionalRoleConfig,
   CoreProfileFieldTag,
+  CoreRoleId,
+  CoreRoleExtension,
 } from "@/features/core/user/types";
 
 // ============================================================
@@ -27,6 +29,32 @@ export type AdditionalProfileFieldTag = (typeof ADDITIONAL_PROFILE_FIELD_TAGS)[n
  * 全てのプロフィールフィールドタグ（コア + 追加）
  */
 export type ProfileFieldTag = CoreProfileFieldTag | AdditionalProfileFieldTag;
+
+// ============================================================
+// コアロールの拡張設定
+// ============================================================
+// コアロール（admin, user）にプロフィールフィールドを追加する場合はここで定義します。
+// hasProfile: true を設定するとプロフィールテーブルが有効になります。
+
+export const CORE_ROLE_EXTENSIONS: Record<
+  CoreRoleId,
+  CoreRoleExtension<ProfileFieldTag>
+> = {
+  admin: {
+    // 管理者ロールにプロフィールを追加する場合
+    // hasProfile: true,
+    // profileFields: [
+    //   { name: "department", label: "部署", fieldType: "string", formInput: "textInput", tags: ["admin"] },
+    // ],
+  },
+  user: {
+    // 一般ユーザーロールにプロフィールを追加する場合
+    // hasProfile: true,
+    // profileFields: [
+    //   { name: "nickname", label: "ニックネーム", fieldType: "string", formInput: "textInput", tags: ["registration", "mypage"] },
+    // ],
+  },
+};
 
 // ============================================================
 // 追加ロールの定義

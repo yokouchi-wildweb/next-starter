@@ -25,4 +25,6 @@ export {
   type RoleCategory,
   type RoleConfig,
   type AdditionalRoleConfig,
+  type CoreRoleId,
+  type CoreRoleExtension,
 } from "./role";

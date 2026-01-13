@@ -2,6 +2,7 @@
 
 import {
   ADDITIONAL_ROLES,
+  CORE_ROLE_EXTENSIONS,
   type ProfileFieldTag,
 } from "@/config/app/roles.config";
 import type {
@@ -31,22 +32,36 @@ export type {
 } from "@/components/Form/DomainFieldRenderer/types";
 
 /**
- * コアロール定義（システム必須、削除不可）
+ * コアロールの基本定義（システム必須、削除不可）
+ */
+const CORE_ROLE_BASE = {
+  admin: {
+    id: "admin",
+    label: "管理者",
+    category: "admin" as const,
+    description: "システム全体を管理できる",
+  },
+  user: {
+    id: "user",
+    label: "一般",
+    category: "user" as const,
+    description: "一般ユーザー",
+  },
+} as const;
+
+/**
+ * コアロール定義（基本 + 拡張をマージ）
  */
 const CORE_ROLES: readonly RoleConfig<ProfileFieldTag>[] = [
   {
-    id: "admin",
-    label: "管理者",
-    category: "admin",
-    hasProfile: false,
-    description: "システム全体を管理できる",
+    ...CORE_ROLE_BASE.admin,
+    hasProfile: CORE_ROLE_EXTENSIONS.admin?.hasProfile ?? false,
+    profileFields: CORE_ROLE_EXTENSIONS.admin?.profileFields,
   },
   {
-    id: "user",
-    label: "一般",
-    category: "user",
-    hasProfile: false,
-    description: "一般ユーザー",
+    ...CORE_ROLE_BASE.user,
+    hasProfile: CORE_ROLE_EXTENSIONS.user?.hasProfile ?? false,
+    profileFields: CORE_ROLE_EXTENSIONS.user?.profileFields,
   },
 ];
 

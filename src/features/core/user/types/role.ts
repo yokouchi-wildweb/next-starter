@@ -40,3 +40,19 @@ export type AdditionalRoleConfig<TTag extends string = string> = {
    */
   readonly profileFields?: readonly ProfileFieldConfig<TTag>[];
 };
+
+/**
+ * コアロールID（システム保護）
+ */
+export type CoreRoleId = "admin" | "user";
+
+/**
+ * コアロール拡張設定
+ * roles.config.ts でコアロール（admin, user）にプロフィールフィールドを追加する際に使用
+ */
+export type CoreRoleExtension<TTag extends string = string> = {
+  /** プロフィールを有効にするか（デフォルト: false） */
+  readonly hasProfile?: boolean;
+  /** プロフィールフィールド設定 */
+  readonly profileFields?: readonly ProfileFieldConfig<TTag>[];
+};
