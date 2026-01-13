@@ -6,10 +6,10 @@
       "label": "foo",
       "fieldType": "string",
       "formInput": "textInput",
-      "placeholder": "your name?",
-      "tags": [
-        "admin"
-      ]
+      "placeholder": "your name?"
     }
-  ]
+  ],
+  "tags": {
+    "admin": ["foo"]
+  }
 }

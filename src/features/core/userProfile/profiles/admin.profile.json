@@ -11,9 +11,6 @@
         { "value": "apple", "label": "apple" },
         { "value": "orange", "label": "orange" }
       ],
-      "tags": [
-        "admin"
-      ],
       "displayType": "standard"
     },
     {
@@ -22,10 +19,10 @@
       "fieldType": "string",
       "formInput": "textInput",
       "placeholder": "your name?",
-      "required": true,
-      "tags": [
-        "admin"
-      ]
+      "required": true
     }
-  ]
+  ],
+  "tags": {
+    "admin": ["bar", "foo"]
+  }
 }
