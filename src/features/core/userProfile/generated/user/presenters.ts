@@ -11,12 +11,12 @@ import {
   formatNumber,
   formatString,
   formatStringArray,
-} from "@/lib/presenters/formatters";
+} from "@/lib/crud/presenters";
 import { formatDateJa } from "@/utils/date";
 
 /**
  * 一般プロフィールのプレゼンター
  */
 export const userProfilePresenters = {
-  foo: ({ value }) => formatString(value),
+  foo: ({ value }: { value: unknown }) => formatString(value),
 };

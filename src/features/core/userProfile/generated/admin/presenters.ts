@@ -11,12 +11,12 @@ import {
   formatNumber,
   formatString,
   formatStringArray,
-} from "@/lib/presenters/formatters";
+} from "@/lib/crud/presenters";
 import { formatDateJa } from "@/utils/date";
 
 /**
  * 管理者プロフィールのプレゼンター
  */
 export const adminProfilePresenters = {
-  bar: ({ value }) => formatEnumLabel(value, { "apple": "apple", "orange": "orange" }),
+  bar: ({ value }: { value: unknown }) => formatEnumLabel(value, { "apple": "apple", "orange": "orange" }),
 };

@@ -11,17 +11,17 @@ import {
   formatNumber,
   formatString,
   formatStringArray,
-} from "@/lib/presenters/formatters";
+} from "@/lib/crud/presenters";
 import { formatDateJa } from "@/utils/date";
 
 /**
  * 投稿者プロフィールのプレゼンター
  */
 export const contributorProfilePresenters = {
-  organizationName: ({ value }) => formatString(value),
-  contactPhone: ({ value }) => formatString(value),
-  bio: ({ value }) => formatString(value),
-  isApproved: ({ value }) => formatBoolean(value, "はい", "いいえ"),
-  approvedAt: ({ value }) => formatString(value),
-  approvalNote: ({ value }) => formatString(value),
+  organizationName: ({ value }: { value: unknown }) => formatString(value),
+  contactPhone: ({ value }: { value: unknown }) => formatString(value),
+  bio: ({ value }: { value: unknown }) => formatString(value),
+  isApproved: ({ value }: { value: unknown }) => formatBoolean(value, "はい", "いいえ"),
+  approvedAt: ({ value }: { value: unknown }) => formatString(value),
+  approvalNote: ({ value }: { value: unknown }) => formatString(value),
 };

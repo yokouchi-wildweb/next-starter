@@ -72,7 +72,7 @@ export function generateProfilePresenters(roleConfig, profileConfig) {
         return null;
       }
       const camelName = toCamelCase(field.name);
-      return `  ${camelName}: ({ value }) => ${formatter},`;
+      return `  ${camelName}: ({ value }: { value: unknown }) => ${formatter},`;
     })
     .filter((entry) => entry !== null);
 
@@ -93,7 +93,7 @@ import {
   formatNumber,
   formatString,
   formatStringArray,
-} from "@/lib/presenters/formatters";
+} from "@/lib/crud/presenters";
 import { formatDateJa } from "@/utils/date";
 
 /**
