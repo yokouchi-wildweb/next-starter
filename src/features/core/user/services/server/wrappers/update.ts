@@ -9,6 +9,8 @@ import { omitUndefined } from "@/utils/object";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
+import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
+import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -36,7 +38,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     throw new DomainError("更新データが不正です", { status: 400 });
   }
 
-  const { newPassword, ...restRawData } = rawData;
+  const { newPassword, profileData, ...restRawData } = rawData;
   const normalizedNewPassword =
     typeof newPassword === "string" ? newPassword.trim() : undefined;
 
@@ -102,9 +104,17 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     updatePayload.localPassword = localPassword;
   }
 
-  if (Object.keys(updatePayload).length === 0) {
-    return current;
+  // ユーザー情報の更新
+  const updatedUser =
+    Object.keys(updatePayload).length === 0
+      ? current
+      : await base.update(id, updatePayload);
+
+  // プロフィールデータの更新
+  const effectiveRole = (updatePayload.role ?? current.role) as UserRoleType;
+  if (profileData && hasRoleProfile(effectiveRole)) {
+    await userProfileService.upsertProfile(id, effectiveRole, profileData);
   }
 
-  return base.update(id, updatePayload);
+  return updatedUser;
 }

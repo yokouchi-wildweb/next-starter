@@ -19,6 +19,7 @@ import { generateProfileFieldConstants } from "./generator/generateProfileFieldC
 import { generateProfilePresenters } from "./generator/generateProfilePresenters.mjs";
 import { generateProfileIndex } from "./generator/generateProfileIndex.mjs";
 import { updateGeneratedIndex } from "./generator/updateGeneratedIndex.mjs";
+import { generateSchemaRegistry } from "./generator/generateSchemaRegistry.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
@@ -81,16 +82,16 @@ export default async function generate(roleId, options = {}) {
   // ロール登録（profileOnly でない場合のみ）
   if (!profileOnly) {
     // クリーンアップ（冪等性のため、既存エントリを削除してから追加）
-    console.log("\n[1/7] 既存エントリをクリーンアップ中...");
+    console.log("\n[1/8] 既存エントリをクリーンアップ中...");
     cleanupRole(roleId, { includeProfile: true, deleteEntity: true, silent: true });
     console.log("✓ クリーンアップ完了");
 
     // 2. roleRegistry.ts を更新
-    console.log("\n[2/7] roleRegistry.ts を更新中...");
+    console.log("\n[2/8] roleRegistry.ts を更新中...");
     updateRoleRegistry(roleConfig);
     console.log("✓ roleRegistry.ts を更新しました");
   } else {
-    console.log("\n[1/7] roleRegistry.ts の更新をスキップ（プロフィールのみモード）");
+    console.log("\n[1/8] roleRegistry.ts の更新をスキップ（プロフィールのみモード）");
   }
 
   // hasProfile: true の場合のみプロフィール関連を生成
@@ -105,18 +106,18 @@ export default async function generate(roleId, options = {}) {
 
     // profileOnly モードの場合のみクリーンアップ（フルモードは cleanupRole で実行済み）
     if (profileOnly) {
-      console.log("\n[2/7] 既存エントリをクリーンアップ中...");
+      console.log("\n[2/8] 既存エントリをクリーンアップ中...");
       cleanupProfile(roleId, { deleteEntity: true, silent: true });
       console.log("✓ クリーンアップ完了");
     }
 
     // profiles/index.ts を更新
-    console.log("\n[3/7] profiles/index.ts を更新中...");
+    console.log("\n[3/8] profiles/index.ts を更新中...");
     updateProfilesIndex(roleConfig);
     console.log("✓ profiles/index.ts を更新しました");
 
     // generated/{roleId}/ 配下のファイルを生成
-    console.log("\n[4/7] generated/{roleId}/ を生成中...");
+    console.log("\n[4/8] generated/{roleId}/ を生成中...");
     generateProfileDrizzle(roleConfig, profileConfig);
     console.log("  ✓ drizzle.ts");
     generateProfileSchema(roleConfig, profileConfig);
@@ -137,16 +138,21 @@ export default async function generate(roleId, options = {}) {
     console.log("  ✓ index.ts");
 
     // generated/index.ts を更新
-    console.log("\n[5/7] generated/index.ts を更新中...");
+    console.log("\n[5/8] generated/index.ts を更新中...");
     updateGeneratedIndex();
     console.log("✓ generated/index.ts を更新しました");
 
+    // schemaRegistry.ts を更新
+    console.log("\n[6/8] schemaRegistry.ts を更新中...");
+    generateSchemaRegistry();
+    console.log("✓ schemaRegistry.ts を更新しました");
+
     // registry を更新
-    console.log("\n[6/7] registry を更新中...");
+    console.log("\n[7/8] registry を更新中...");
     updateProfileRegistry(roleConfig);
     console.log("✓ registry を更新しました");
 
-    console.log("\n[7/7] 完了");
+    console.log("\n[8/8] 完了");
   } else {
     console.log("\n[3-7] hasProfile: false のためプロフィール関連はスキップ");
   }
