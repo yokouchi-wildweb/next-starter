@@ -14,6 +14,7 @@ import adminProfile from "./admin.profile.json";
 export type ProfileConfig = {
   roleId: string;
   fields: ProfileFieldConfig[];
+  tags?: Record<string, string[]>;
 };
 
 /**

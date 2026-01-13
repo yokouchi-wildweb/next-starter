@@ -7,7 +7,7 @@ export { type ProfileFieldTag } from "../types";
 
 export {
   getProfileFields,
-  getFieldsByTags,
+  getFieldsByTag,
   getRegistrationFields,
   getMyPageFields,
   getAdminFields,

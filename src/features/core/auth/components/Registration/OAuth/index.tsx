@@ -155,7 +155,7 @@ export function OAuthRegistrationForm() {
         <RoleProfileFields
           methods={form}
           role={selectedRole}
-          tags={["registration"]}
+          tag="registration"
           wrapperClassName="space-y-4"
         />
 

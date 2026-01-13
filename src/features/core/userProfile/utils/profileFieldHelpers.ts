@@ -3,7 +3,14 @@
 
 import type { ProfileFieldConfig, ProfileFieldTag } from "../types";
 import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
-import { getProfileFieldsForRole } from "../profiles";
+import { ALL_PROFILES, getProfileFieldsForRole } from "../profiles";
+
+/**
+ * ロールのプロフィール設定を取得
+ */
+function getProfileConfig(role: UserRoleType) {
+  return ALL_PROFILES.find((p) => p.roleId === role);
+}
 
 /**
  * ロールのプロフィールフィールド設定を取得
@@ -15,25 +22,28 @@ export function getProfileFields(
 }
 
 /**
- * 指定タグを持つフィールドを取得（汎用フィルタ）
+ * 指定タグに属するフィールドを取得
  * @param role ロール
- * @param includeTags 含めるタグ（いずれかにマッチ）
+ * @param tag タグ名
  * @param excludeHidden hidden フィールドを除外するか（デフォルト: true）
  */
-export function getFieldsByTags(
+export function getFieldsByTag(
   role: UserRoleType,
-  includeTags: ProfileFieldTag[],
+  tag: ProfileFieldTag,
   excludeHidden = true,
 ): ProfileFieldConfig[] {
   if (!hasRoleProfile(role)) {
     return [];
   }
-  const fields = getProfileFields(role);
-  return fields.filter((field) => {
+  const config = getProfileConfig(role);
+  const tagFields = config?.tags?.[tag] ?? [];
+  const allFields = getProfileFields(role);
+
+  return allFields.filter((field) => {
     if (excludeHidden && field.formInput === "hidden") {
       return false;
     }
-    return field.tags.some((tag) => includeTags.includes(tag as ProfileFieldTag));
+    return tagFields.includes(field.name);
   }) as ProfileFieldConfig[];
 }
 
@@ -43,7 +53,7 @@ export function getFieldsByTags(
 export function getRegistrationFields(
   role: UserRoleType,
 ): ProfileFieldConfig[] {
-  return getFieldsByTags(role, ["registration"]);
+  return getFieldsByTag(role, "registration");
 }
 
 /**
@@ -52,7 +62,7 @@ export function getRegistrationFields(
 export function getMyPageFields(
   role: UserRoleType,
 ): ProfileFieldConfig[] {
-  return getFieldsByTags(role, ["mypage"]);
+  return getFieldsByTag(role, "mypage");
 }
 
 /**

@@ -12,10 +12,11 @@ import {
   type UserRoleType,
 } from "@/features/core/user/constants";
 import {
-  getFieldsByTags,
+  getFieldsByTag,
   getAdminFields,
   type ProfileFieldTag,
 } from "../../utils";
+import type { ProfileFieldConfig } from "../../types";
 
 /**
  * snake_case を camelCase に変換
@@ -30,10 +31,10 @@ export type RoleProfileFieldsProps<TFieldValues extends FieldValues> = {
   role: string;
   /**
    * 表示するタグ
-   * - 指定した場合: 指定タグのいずれかを持つフィールドを表示
+   * - 指定した場合: 指定タグに属するフィールドを表示
    * - 指定しない場合: hidden 以外の全フィールドを表示（管理画面向け）
    */
-  tags?: ProfileFieldTag[];
+  tag?: ProfileFieldTag;
   /** フィールド名のプレフィックス（デフォルト: "profileData"） */
   fieldPrefix?: string;
   /** hidden フィールドを除外するか（デフォルト: true） */
@@ -50,7 +51,7 @@ export type RoleProfileFieldsProps<TFieldValues extends FieldValues> = {
  * <RoleProfileFields
  *   methods={methods}
  *   role={selectedRole}
- *   tags={["registration"]}
+ *   tag="registration"
  * />
  *
  * @example
@@ -58,7 +59,7 @@ export type RoleProfileFieldsProps<TFieldValues extends FieldValues> = {
  * <RoleProfileFields
  *   methods={methods}
  *   role={user.role}
- *   tags={["mypage"]}
+ *   tag="mypage"
  * />
  *
  * @example
@@ -73,13 +74,13 @@ export type RoleProfileFieldsProps<TFieldValues extends FieldValues> = {
  * <RoleProfileFields
  *   methods={methods}
  *   role={user.role}
- *   tags={["notification"]}
+ *   tag="notification"
  * />
  */
 export function RoleProfileFields<TFieldValues extends FieldValues>({
   methods,
   role,
-  tags,
+  tag,
   fieldPrefix = "profileData",
   excludeHidden = true,
   wrapperClassName,
@@ -89,14 +90,14 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
       return [];
     }
 
-    // tags が指定されていない場合は管理画面向け（hidden 以外の全フィールド）
-    const profileFields = tags
-      ? getFieldsByTags(role as UserRoleType, tags, excludeHidden)
+    // tag が指定されていない場合は管理画面向け（hidden 以外の全フィールド）
+    const profileFields = tag
+      ? getFieldsByTag(role as UserRoleType, tag, excludeHidden)
       : getAdminFields(role as UserRoleType);
 
     // ProfileFieldConfig を DomainJsonField に変換（snake_case → camelCase）
     return profileFields.map(
-      (field) =>
+      (field: ProfileFieldConfig) =>
         ({
           name: `${fieldPrefix}.${snakeToCamel(field.name)}`,
           label: field.label,
@@ -118,7 +119,7 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
           metadataBinding: field.metadataBinding,
         }) as DomainJsonField,
     );
-  }, [role, tags, fieldPrefix, excludeHidden]);
+  }, [role, tag, fieldPrefix, excludeHidden]);
 
   if (fields.length === 0) {
     return null;

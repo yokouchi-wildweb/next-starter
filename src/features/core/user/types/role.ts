@@ -13,12 +13,12 @@ export type RoleCategory = "admin" | "user";
 /**
  * ロール定義の型（コア + 追加で共通）
  */
-export type RoleConfig<TTag extends string = string> = {
+export type RoleConfig = {
   readonly id: string;
   readonly label: string;
   readonly category: RoleCategory;
   readonly hasProfile: boolean;
   readonly description?: string;
-  readonly profileFields?: readonly ProfileFieldConfig<TTag>[];
+  readonly profileFields?: readonly ProfileFieldConfig[];
 };
 

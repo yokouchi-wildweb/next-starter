@@ -223,9 +223,7 @@ async function askTagMappings(fields) {
       choices: fieldChoices,
     });
 
-    if (selectedFields.length > 0) {
-      tags[tagValue] = selectedFields;
-    }
+    tags[tagValue] = selectedFields;
   }
 
   // hiddenフィールドは自動的にadminタグに追加
