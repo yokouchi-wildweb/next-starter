@@ -3,6 +3,6 @@
   "label": "一般",
   "category": "user",
   "description": "一般ユーザー",
-  "hasProfile": false,
+  "hasProfile": true,
   "isCore": true
 }

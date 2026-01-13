@@ -105,6 +105,17 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
           options: field.options,
           placeholder: field.placeholder,
           readonly: field.readonly,
+          required: field.required,
+          defaultValue: field.defaultValue,
+          displayType: field.displayType,
+          helperText: field.helperText,
+          // MediaUploader 関連
+          uploadPath: field.uploadPath,
+          slug: field.slug,
+          mediaTypePreset: field.mediaTypePreset,
+          accept: field.accept,
+          validationRule: field.validationRule,
+          metadataBinding: field.metadataBinding,
         }) as DomainJsonField,
     );
   }, [role, tags, fieldPrefix, excludeHidden]);

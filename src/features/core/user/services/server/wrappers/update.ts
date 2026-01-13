@@ -58,7 +58,9 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     throw new DomainError("この操作を実行する権限がありません", { status: 403 });
   }
 
-  if (isSelfUpdate && current.providerType === "local") {
+  // 非管理者が自分自身をローカル認証で更新しようとした場合はエラー
+  // Admin が管理画面から自分自身を編集する場合は許可
+  if (!isAdmin && isSelfUpdate && current.providerType === "local") {
     throw new DomainError(
       "現在、ローカル認証ユーザーでログイン中です。このユーザーにはプロフィール編集画面が提供されていません。",
       { status: 400 },

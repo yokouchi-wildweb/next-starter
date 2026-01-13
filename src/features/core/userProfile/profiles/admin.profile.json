@@ -1,0 +1,20 @@
+{
+  "roleId": "admin",
+  "fields": [
+    {
+      "name": "bar",
+      "label": "bar",
+      "fieldType": "enum",
+      "formInput": "radio",
+      "required": true,
+      "options": [
+        { "value": "apple", "label": "apple" },
+        { "value": "orange", "label": "orange" }
+      ],
+      "tags": [
+        "admin"
+      ],
+      "displayType": "standard"
+    }
+  ]
+}

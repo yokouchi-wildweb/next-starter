@@ -5,9 +5,13 @@
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
+import inquirer from "inquirer";
 import askRoleBasics from "./questions/role-basics.mjs";
 import askProfileFields from "./questions/profile-fields.mjs";
 import formatDomainConfig from "../domain-config/utils/formatConfig.mjs";
+import generate from "./generate.mjs";
+
+const prompt = inquirer.createPromptModule();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -72,25 +76,28 @@ function saveProfileConfig(roleId, fields) {
 }
 
 /**
- * 次のステップを表示
+ * generate を実行するか確認
  */
-function showNextSteps(roleConfig, profileCreated) {
-  console.log("\n=== 次のステップ ===\n");
-  console.log("1. roles/index.ts にロールを追加:");
-  console.log(`   import ${roleConfig.id}Role from "./${roleConfig.id}.role.json";`);
-  console.log(`   // ALL_ROLES 配列に ${roleConfig.id}Role を追加\n`);
+async function confirmAndGenerate(roleId) {
+  const { runGenerate } = await prompt({
+    type: "confirm",
+    name: "runGenerate",
+    message: "続けて role:generate を実行しますか？",
+    default: true,
+  });
 
-  if (profileCreated) {
-    console.log("2. profiles/index.ts にプロフィールを追加:");
-    console.log(`   import ${roleConfig.id}Profile from "./${roleConfig.id}.profile.json";`);
-    console.log(`   // ALL_PROFILES 配列に ${roleConfig.id}Profile を追加\n`);
-
-    console.log("3. プロフィールテーブルを生成:");
-    console.log("   （自動生成スクリプトを実行）\n");
+  if (runGenerate) {
+    await generate(roleId);
+    console.log("\n=== 次のステップ ===\n");
+    console.log("データベースに反映:");
+    console.log("  pnpm drizzle-kit push\n");
+  } else {
+    console.log("\n=== 次のステップ ===\n");
+    console.log("1. ジェネレータースクリプトを実行:");
+    console.log(`   pnpm role:generate ${roleId}\n`);
+    console.log("2. データベースに反映:");
+    console.log("   pnpm drizzle-kit push\n");
   }
-
-  console.log(`${profileCreated ? "4" : "2"}. データベースに反映:`);
-  console.log("   pnpm drizzle-kit push\n");
 }
 
 /**
@@ -106,20 +113,18 @@ export default async function init() {
   saveRoleConfig(roleConfig);
 
   // プロフィールフィールドの収集（hasProfile: true の場合）
-  let profileCreated = false;
   if (roleConfig.hasProfile) {
     const { fields } = await askProfileFields();
 
     if (fields.length > 0) {
       saveProfileConfig(roleConfig.id, fields);
-      profileCreated = true;
     } else {
       console.log("\nプロフィールフィールドが空のため、プロフィール設定はスキップしました。");
     }
   }
 
-  // 次のステップを表示
-  showNextSteps(roleConfig, profileCreated);
+  // generate を実行するか確認
+  await confirmAndGenerate(roleConfig.id);
 
   return roleConfig.id;
 }

@@ -9,22 +9,30 @@ import { updateRoleRegistry } from "./generator/updateRoleRegistry.mjs";
 import { updateProfilesIndex } from "./generator/updateProfilesIndex.mjs";
 import { generateProfileEntity } from "./generator/generateProfileEntity.mjs";
 import { updateProfileRegistry } from "./generator/updateProfileRegistry.mjs";
+import { cleanupProfile } from "./generator/cleanupProfile.mjs";
+import { cleanupRole } from "./generator/cleanupRole.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
 
 /**
  * ロール設定JSONを読み込む
+ * コアロールは _admin.role.json, _user.role.json のように _ プレフィックスがつく
  */
 function loadRoleConfig(roleId) {
-  const rolePath = path.join(
-    ROOT_DIR,
-    "src/features/core/user/roles",
-    `${roleId}.role.json`
-  );
+  const rolesDir = path.join(ROOT_DIR, "src/features/core/user/roles");
 
+  // 通常のパスを試す
+  let rolePath = path.join(rolesDir, `${roleId}.role.json`);
+
+  // 存在しなければ _ プレフィックス付きを試す（コアロール）
   if (!fs.existsSync(rolePath)) {
-    throw new Error(`ロール設定が見つかりません: ${rolePath}`);
+    const coreRolePath = path.join(rolesDir, `_${roleId}.role.json`);
+    if (fs.existsSync(coreRolePath)) {
+      rolePath = coreRolePath;
+    } else {
+      throw new Error(`ロール設定が見つかりません: ${rolePath}`);
+    }
   }
 
   return JSON.parse(fs.readFileSync(rolePath, "utf-8"));
@@ -58,25 +66,33 @@ function isRoleRegistered(roleId) {
 
 /**
  * メイン処理
+ * @param {string} roleId - ロールID
+ * @param {Object} options - オプション
+ * @param {boolean} options.profileOnly - プロフィール生成のみ行う（ロール登録はスキップ）
  */
-export default async function generate(roleId) {
+export default async function generate(roleId, options = {}) {
+  const { profileOnly = false } = options;
+
   console.log(`\n=== ロール "${roleId}" の生成を開始 ===\n`);
 
   // ロール設定を読み込み
   const roleConfig = loadRoleConfig(roleId);
   console.log(`ロール設定を読み込みました: ${roleConfig.label} (${roleConfig.id})`);
 
-  // すでに登録済みかチェック
-  if (isRoleRegistered(roleId)) {
-    console.log(`\n⚠ ロール "${roleId}" はすでに登録されています。`);
-    console.log("再生成する場合は、先に既存の登録を削除してください。\n");
-    return;
-  }
+  // ロール登録（profileOnly でない場合のみ）
+  if (!profileOnly) {
+    // クリーンアップ（冪等性のため、既存エントリを削除してから追加）
+    console.log("\n[1/5] 既存エントリをクリーンアップ中...");
+    cleanupRole(roleId, { includeProfile: true, deleteEntity: true, silent: true });
+    console.log("✓ クリーンアップ完了");
 
-  // 1. roleRegistry.ts を更新
-  console.log("\n[1/4] roleRegistry.ts を更新中...");
-  updateRoleRegistry(roleConfig);
-  console.log("✓ roleRegistry.ts を更新しました");
+    // 2. roleRegistry.ts を更新
+    console.log("\n[2/5] roleRegistry.ts を更新中...");
+    updateRoleRegistry(roleConfig);
+    console.log("✓ roleRegistry.ts を更新しました");
+  } else {
+    console.log("\n[1/5] roleRegistry.ts の更新をスキップ（プロフィールのみモード）");
+  }
 
   // hasProfile: true の場合のみプロフィール関連を生成
   if (roleConfig.hasProfile) {
@@ -88,22 +104,29 @@ export default async function generate(roleId) {
       return;
     }
 
-    // 2. profiles/index.ts を更新
-    console.log("\n[2/4] profiles/index.ts を更新中...");
+    // profileOnly モードの場合のみクリーンアップ（フルモードは cleanupRole で実行済み）
+    if (profileOnly) {
+      console.log("\n[2/5] 既存エントリをクリーンアップ中...");
+      cleanupProfile(roleId, { deleteEntity: true, silent: true });
+      console.log("✓ クリーンアップ完了");
+    }
+
+    // profiles/index.ts を更新
+    console.log("\n[3/5] profiles/index.ts を更新中...");
     updateProfilesIndex(roleConfig);
     console.log("✓ profiles/index.ts を更新しました");
 
-    // 3. entities/{role}Profile.ts を生成
-    console.log("\n[3/4] entities/{role}Profile.ts を生成中...");
+    // entities/{role}Profile.ts を生成
+    console.log("\n[4/5] entities/{role}Profile.ts を生成中...");
     generateProfileEntity(roleConfig, profileConfig);
     console.log("✓ entities/{role}Profile.ts を生成しました");
 
-    // 4. registry を更新
-    console.log("\n[4/4] registry を更新中...");
+    // registry を更新
+    console.log("\n[5/5] registry を更新中...");
     updateProfileRegistry(roleConfig);
     console.log("✓ registry を更新しました");
   } else {
-    console.log("\n[2-4] hasProfile: false のためプロフィール関連はスキップ");
+    console.log("\n[3-5] hasProfile: false のためプロフィール関連はスキップ");
   }
 
   console.log(`\n=== 生成完了 ===\n`);

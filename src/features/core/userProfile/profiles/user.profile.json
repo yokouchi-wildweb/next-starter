@@ -1,0 +1,15 @@
+{
+  "roleId": "user",
+  "fields": [
+    {
+      "name": "foo",
+      "label": "foo",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "placeholder": "your name?",
+      "tags": [
+        "admin"
+      ]
+    }
+  ]
+}

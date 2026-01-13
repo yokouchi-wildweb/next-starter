@@ -22,8 +22,11 @@ export function updateRoleRegistry(roleConfig) {
   const roleId = roleConfig.id;
   const varName = `${toCamelCase(roleId)}Role`;
 
+  // コアロールは _ プレフィックス付き
+  const fileName = roleConfig.isCore ? `_${roleId}.role.json` : `${roleId}.role.json`;
+
   // 1. import 文を追加
-  const importLine = `import ${varName} from "@/features/core/user/roles/${roleId}.role.json";`;
+  const importLine = `import ${varName} from "@/features/core/user/roles/${fileName}";`;
   const importStart = "// === AUTO-GENERATED IMPORTS START ===";
   const importEnd = "// === AUTO-GENERATED IMPORTS END ===";
 

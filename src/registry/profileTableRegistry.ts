@@ -7,4 +7,6 @@
 // === AUTO-GENERATED EXPORTS START ===
 export * from "@/features/core/userProfile/entities/contributorProfile";
 export * from "@/features/core/userProfile/entities/debugerProfile";
+export * from "@/features/core/userProfile/entities/userProfile";
+export * from "@/features/core/userProfile/entities/adminProfile";
 // === AUTO-GENERATED EXPORTS END ===
