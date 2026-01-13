@@ -13,6 +13,7 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { TextInput } from "@/components/Form/Controlled";
 import { Para } from "@/components/TextBlocks";
 import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
+import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { err, HttpError } from "@/lib/errors";
@@ -24,17 +25,9 @@ import {
   RoleSelector,
   RoleProfileFields,
 } from "@/features/core/userProfile/components/common";
-import type { ProfileConfig } from "@/features/core/userProfile/profiles";
-import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
-import contributorProfile from "@/features/core/userProfile/profiles/contributor.profile.json";
+import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
-
-// 登録画面で使用するプロフィール設定
-const REGISTRATION_PROFILES: Record<string, ProfileConfig> = {
-  user: userProfile as ProfileConfig,
-  contributor: contributorProfile as ProfileConfig,
-};
 
 export function OAuthRegistrationForm() {
   const router = useRouter();
@@ -122,11 +115,7 @@ export function OAuthRegistrationForm() {
             control={form.control}
             name="role"
             categories={["user"]}
-            selectableRoles={
-              APP_FEATURES.registration.selectableRoles.length > 0
-                ? APP_FEATURES.registration.selectableRoles
-                : undefined
-            }
+            selectableRoles={REGISTRATION_ROLES}
             showDescription
             label="アカウントタイプ"
           />

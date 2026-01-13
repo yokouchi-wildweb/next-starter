@@ -4,18 +4,9 @@ import { z } from "zod";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RegistrationSchema } from "@/features/core/auth/entities";
+import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
 import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
-import type { ProfileConfig } from "@/features/core/userProfile/profiles";
-import userProfile from "@/features/core/userProfile/profiles/user.profile.json";
-import contributorProfile from "@/features/core/userProfile/profiles/contributor.profile.json";
-
-const { defaultRole } = APP_FEATURES.registration;
-
-// 登録画面で使用するプロフィール設定
-const REGISTRATION_PROFILES: Record<string, ProfileConfig> = {
-  user: userProfile as ProfileConfig,
-  contributor: contributorProfile as ProfileConfig,
-};
+import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
 // profileData バリデーション関数
 const validateProfileData = createProfileDataValidator(REGISTRATION_PROFILES, "registration");
@@ -95,7 +86,7 @@ export const DefaultValues: FormValues = {
   email: "",
   displayName: "",
   password: "",
-  role: defaultRole,
+  role: REGISTRATION_DEFAULT_ROLE,
   profileData: {},
   ...(isDoubleMode ? { passwordConfirmation: "" } : {}),
 };

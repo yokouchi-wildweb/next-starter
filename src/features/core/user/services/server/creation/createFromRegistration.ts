@@ -1,6 +1,6 @@
 // src/features/core/user/services/server/creation/createFromRegistration.ts
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
 import type { User } from "@/features/core/user/entities";
 import type { UserProviderType } from "@/features/core/user/types";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
@@ -13,7 +13,7 @@ export type CreateFromRegistrationInput = {
   email: string;
   displayName?: string | null;
   existingUser?: User | null;
-  /** ロール（指定がない場合は APP_FEATURES.registration.defaultRole） */
+  /** ロール（指定がない場合は REGISTRATION_DEFAULT_ROLE） */
   role?: string;
 };
 
@@ -38,7 +38,7 @@ export async function createFromRegistration(
     email,
     displayName,
     existingUser,
-    role = APP_FEATURES.registration.defaultRole,
+    role = REGISTRATION_DEFAULT_ROLE,
   } = input;
 
   const now = new Date();

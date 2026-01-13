@@ -2,7 +2,7 @@
 
 import type { z } from "zod";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
 import {
   USER_REGISTERED_STATUSES,
   hasRoleProfile,
@@ -51,8 +51,8 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     profileData,
   } = parsedResult.data;
 
-  // ロールの決定（指定がない場合は設定のデフォルトを使用）
-  const role = requestedRole ?? APP_FEATURES.registration.defaultRole;
+  // ロールの決定（指定がない場合はデフォルトを使用）
+  const role = requestedRole ?? REGISTRATION_DEFAULT_ROLE;
 
   const auth = getServerAuth();
 
