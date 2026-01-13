@@ -19,7 +19,12 @@ import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
 import type { UserProviderType } from "@/features/core/user/types";
 
-import { RoleSelector, ProfileFields } from "../common";
+import { APP_FEATURES } from "@/config/app/app-features.config";
+import {
+  RoleSelector,
+  RoleProfileFields,
+} from "@/features/core/userProfile/components/common";
+
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
 export function OAuthRegistrationForm() {
@@ -103,7 +108,20 @@ export function OAuthRegistrationForm() {
       className="space-y-4"
       noValidate
     >
-        <RoleSelector control={form.control} name="role" />
+        {APP_FEATURES.registration.showRoleSelection && (
+          <RoleSelector
+            control={form.control}
+            name="role"
+            categories={["user"]}
+            selectableRoles={
+              APP_FEATURES.registration.selectableRoles.length > 0
+                ? APP_FEATURES.registration.selectableRoles
+                : undefined
+            }
+            showDescription
+            label="アカウントタイプ"
+          />
+        )}
 
         <FormFieldItem
           control={form.control}
@@ -134,7 +152,12 @@ export function OAuthRegistrationForm() {
           )}
         />
 
-        <ProfileFields methods={form} role={selectedRole} />
+        <RoleProfileFields
+          methods={form}
+          role={selectedRole}
+          tags={["registration"]}
+          wrapperClassName="space-y-4"
+        />
 
         {rootErrorMessage ? (
           <Para tone="error" size="sm">

@@ -20,7 +20,12 @@ import { useLocalStorage } from "@/lib/localStorage";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
 
-import { RoleSelector, ProfileFields } from "../common";
+import { APP_FEATURES } from "@/config/app/app-features.config";
+import {
+  RoleSelector,
+  RoleProfileFields,
+} from "@/features/core/userProfile/components/common";
+
 import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./formEntities";
 
 export function EmailRegistrationForm() {
@@ -89,7 +94,20 @@ export function EmailRegistrationForm() {
       className="space-y-4"
       noValidate
     >
-        <RoleSelector control={form.control} name="role" />
+        {APP_FEATURES.registration.showRoleSelection && (
+          <RoleSelector
+            control={form.control}
+            name="role"
+            categories={["user"]}
+            selectableRoles={
+              APP_FEATURES.registration.selectableRoles.length > 0
+                ? APP_FEATURES.registration.selectableRoles
+                : undefined
+            }
+            showDescription
+            label="アカウントタイプ"
+          />
+        )}
 
         <FormFieldItem
           control={form.control}
@@ -149,7 +167,12 @@ export function EmailRegistrationForm() {
           />
         )}
 
-        <ProfileFields methods={form} role={selectedRole} />
+        <RoleProfileFields
+          methods={form}
+          role={selectedRole}
+          tags={["registration"]}
+          wrapperClassName="space-y-4"
+        />
 
         {rootErrorMessage ? (
           <Para tone="error" size="sm">

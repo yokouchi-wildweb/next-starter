@@ -15,7 +15,7 @@ import { SelectInput } from "@/components/Form/Manual";
 import { err } from "@/lib/errors";
 import { useCreateDemoUser } from "@/features/core/user/hooks/useCreateDemoUser";
 import { USER_ROLE_OPTIONS } from "@/features/core/user/constants";
-import { AdminProfileFields } from "../../common";
+import { RoleProfileFields } from "@/features/core/userProfile/components/common";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
@@ -91,7 +91,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />
-      <AdminProfileFields methods={methods} role={selectedRole} />
+      <RoleProfileFields methods={methods} role={selectedRole} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "作成中..." : "作成"}

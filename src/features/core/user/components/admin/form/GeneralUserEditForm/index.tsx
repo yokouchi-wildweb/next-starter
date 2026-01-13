@@ -14,7 +14,10 @@ import { TextInput, PasswordInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
 import type { User } from "@/features/core/user/entities";
-import { AdminRoleSelector, AdminProfileFields } from "../../common";
+import {
+  RoleSelector,
+  RoleProfileFields,
+} from "@/features/core/userProfile/components/common";
 
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
 
@@ -77,7 +80,12 @@ export default function GeneralUserEditForm({
       pending={isMutating}
       fieldSpace="md"
     >
-      <AdminRoleSelector control={control} name="role" category="user" />
+      <RoleSelector
+        control={control}
+        name="role"
+        categories={["user"]}
+        inputType="select"
+      />
       <FormFieldItem
         control={control}
         name="displayName"
@@ -98,7 +106,7 @@ export default function GeneralUserEditForm({
           <PasswordInput field={field} placeholder="新しいパスワード" />
         )}
       />
-      <AdminProfileFields methods={methods} role={selectedRole} />
+      <RoleProfileFields methods={methods} role={selectedRole} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "更新中..." : "更新"}
