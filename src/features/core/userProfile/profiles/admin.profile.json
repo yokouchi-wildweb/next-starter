@@ -22,6 +22,7 @@
       "fieldType": "string",
       "formInput": "textInput",
       "placeholder": "your name?",
+      "required": true,
       "tags": [
         "admin"
       ]

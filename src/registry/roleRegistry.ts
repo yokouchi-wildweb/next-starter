@@ -11,9 +11,9 @@ import type { RoleConfig } from "@/features/core/user/types";
 // コアロール（_ プレフィックス）
 // 追加ロール
 import editorRole from "@/features/core/user/roles/editor.role.json";
-import adminRole from "@/features/core/user/roles/_admin.role.json";
 import userRole from "@/features/core/user/roles/_user.role.json";
 import contributorRole from "@/features/core/user/roles/contributor.role.json";
+import adminRole from "@/features/core/user/roles/_admin.role.json";
 // === AUTO-GENERATED IMPORTS END ===
 
 /**
@@ -25,8 +25,8 @@ export const ALL_ROLES: readonly RoleConfig[] = [
   // コアロール
   // 追加ロール
   editorRole as RoleConfig,
-  adminRole as RoleConfig,
   userRole as RoleConfig,
   contributorRole as RoleConfig,
+  adminRole as RoleConfig,
   // === AUTO-GENERATED ENTRIES END ===
 ];

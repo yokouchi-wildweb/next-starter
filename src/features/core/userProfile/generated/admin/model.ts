@@ -13,6 +13,7 @@ export type AdminProfileModel = {
   /** ユーザーID */
   userId: string;
   bar: "apple" | "orange";
+  foo: string;
   /** 作成日時 */
   createdAt: Date | null;
   /** 更新日時 */

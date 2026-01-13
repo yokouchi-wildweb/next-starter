@@ -19,4 +19,5 @@ import { formatDateJa } from "@/utils/date";
  */
 export const adminProfilePresenters = {
   bar: ({ value }: { value: unknown }) => formatEnumLabel(value, { "apple": "apple", "orange": "orange" }),
+  foo: ({ value }: { value: unknown }) => formatString(value),
 };

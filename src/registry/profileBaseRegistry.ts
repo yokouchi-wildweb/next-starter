@@ -10,9 +10,9 @@ import { createProfileBase } from "@/features/core/userProfile/utils/createProfi
 import type { ProfileBase } from "@/features/core/userProfile/types";
 
 // === AUTO-GENERATED IMPORTS START ===
-import { AdminProfileTable } from "@/features/core/userProfile/generated/admin";
 import { UserProfileTable } from "@/features/core/userProfile/generated/user";
 import { ContributorProfileTable } from "@/features/core/userProfile/generated/contributor";
+import { AdminProfileTable } from "@/features/core/userProfile/generated/admin";
 // === AUTO-GENERATED IMPORTS END ===
 
 /**
@@ -20,8 +20,8 @@ import { ContributorProfileTable } from "@/features/core/userProfile/generated/c
  */
 export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {
   // === AUTO-GENERATED ENTRIES START ===
-  admin: createProfileBase(AdminProfileTable),
   user: createProfileBase(UserProfileTable),
   contributor: createProfileBase(ContributorProfileTable),
+  admin: createProfileBase(AdminProfileTable),
   // === AUTO-GENERATED ENTRIES END ===
 };

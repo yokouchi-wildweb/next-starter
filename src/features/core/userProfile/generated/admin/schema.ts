@@ -11,6 +11,7 @@ import { z } from "zod";
  */
 export const AdminProfileSchema = z.object({
   bar: z.enum(["apple", "orange"]),
+  foo: z.string().trim().min(1, { message: "fooは必須です。" }),
 });
 
 export type AdminProfileData = z.infer<typeof AdminProfileSchema>;
