@@ -3,7 +3,7 @@
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { User } from "@/features/core/user/entities";
 import type { UserProviderType } from "@/features/core/user/types";
-import { GeneralUserSchema } from "@/features/core/user/entities/schema";
+import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { userService } from "@/features/core/user/services/server/userService";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 
@@ -43,7 +43,7 @@ export async function createFromRegistration(
 
   const now = new Date();
 
-  const validatedUserFields = await GeneralUserSchema.parseAsync({
+  const validatedUserFields = await UserCoreSchema.parseAsync({
     role,
     status: "active",
     providerType,

@@ -5,7 +5,7 @@ import type { z } from "zod";
 import { USER_REGISTERED_STATUSES } from "@/features/core/user/constants";
 import { PreRegistrationSchema } from "@/features/core/auth/entities/schema";
 import type { User } from "@/features/core/user/entities";
-import { GeneralUserSchema } from "@/features/core/user/entities/schema";
+import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { userService } from "@/features/core/user/services/server/userService";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { DomainError } from "@/lib/errors";
@@ -70,7 +70,7 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
 
   const emailToStore = emailFromRequest ?? null;
 
-  const validatedUserFields = await GeneralUserSchema.parseAsync({
+  const validatedUserFields = await UserCoreSchema.parseAsync({
     role: "user",
     status: "pending",
     providerType,

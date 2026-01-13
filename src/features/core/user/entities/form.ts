@@ -1,18 +1,9 @@
 // src/features/user/entities/form.ts
 
 import { z } from "zod";
-import {
-  AdminUserOpotionalSchema,
-  AdminUserSchema,
-  GeneralUserOptionalSchema,
-  GeneralUserSchema,
-} from "./schema";
+import { UserCoreSchema, UserOptionalSchema } from "./schema";
 
-export type GeneralUserFields = z.infer<typeof GeneralUserSchema>;
+export type UserFields = z.infer<typeof UserCoreSchema>;
 
-export type GeneralUserOptionalFields = z.infer<typeof GeneralUserOptionalSchema>;
-
-export type AdminUserFields = z.infer<typeof AdminUserSchema>;
-
-export type AdminUserOptionalFields = z.infer<typeof AdminUserOpotionalSchema>;
+export type UserOptionalFields = z.infer<typeof UserOptionalSchema>;
 

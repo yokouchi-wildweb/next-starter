@@ -1,7 +1,7 @@
 // src/features/user/services/server/wrappers/update.ts
 
 import type { User } from "@/features/core/user/entities";
-import { AdminUserOpotionalSchema, userSelfUpdateSchema } from "@/features/core/user/entities";
+import { UserOptionalSchema, UserSelfUpdateSchema } from "@/features/core/user/entities";
 import type { UpdateUserInput } from "@/features/core/user/services/types";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
@@ -10,7 +10,7 @@ import { getServerAuth } from "@/lib/firebase/server/app";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 
-const adminUpdateSchema = AdminUserOpotionalSchema.omit({
+const adminUpdateSchema = UserOptionalSchema.omit({
   providerType: true,
   providerUid: true,
   lastAuthenticatedAt: true,
@@ -72,7 +72,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     );
   }
 
-  const schema = isAdmin ? adminUpdateSchema : userSelfUpdateSchema;
+  const schema = isAdmin ? adminUpdateSchema : UserSelfUpdateSchema;
   const result = await schema.safeParseAsync(restRawData);
 
   if (!result.success) {

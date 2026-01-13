@@ -32,46 +32,20 @@ export const UserCoreSchema = z.object({
     .transform((value) => emptyToNull(value)),
 });
 
-export const userMutableSchema = z.object({
-  // ダミーフィールド: 自己紹介文。
-  // introduction: z.string().optional(),
-
-  // サービス構築時は任意の可変フィールドをここに追加してください。
-});
-
 /**
- * 一般ユーザー用に利用するスキーマ。
- * 管理者ユーザーと一般ユーザーで可変フィールドの構成を変えたい場合は userMutableSchema を自由に調整してください。
+ * ユーザー更新用に項目をオプショナルにしたスキーマ。
+ * providerType と providerUid は必須のまま維持。
  */
-export const GeneralUserSchema = UserCoreSchema.merge(userMutableSchema);
-
-/**
- * 一般ユーザー更新用に項目をオプショナルにしたスキーマ。
- */
-export const GeneralUserOptionalSchema = GeneralUserSchema.partial().extend({
-  providerType: UserCoreSchema.shape.providerType,
-  providerUid: UserCoreSchema.shape.providerUid,
-});
-
-/**
- * 管理者ユーザー用に利用するスキーマ。
- * 管理者ユーザーと一般ユーザーで可変フィールドの構成を変えたい場合は userMutableSchema を自由に調整してください。
- */
-export const AdminUserSchema = UserCoreSchema.merge(userMutableSchema);
-
-/**
- * 管理者ユーザー更新用に項目をオプショナルにしたスキーマ。
- */
-export const AdminUserOpotionalSchema = AdminUserSchema.partial().extend({
+export const UserOptionalSchema = UserCoreSchema.partial().extend({
   providerType: UserCoreSchema.shape.providerType,
   providerUid: UserCoreSchema.shape.providerUid,
 });
 
 /**
  * 一般ユーザーが自身でプロフィール情報を更新する際のスキーマ。
- * roleなど重要なコアフィールドを除害している。
+ * role など重要なコアフィールドを除外している。
  */
-export const userSelfUpdateSchema = GeneralUserOptionalSchema.omit({
+export const UserSelfUpdateSchema = UserOptionalSchema.omit({
   providerType: true,
   providerUid: true,
   role: true,
@@ -79,3 +53,4 @@ export const userSelfUpdateSchema = GeneralUserOptionalSchema.omit({
   lastAuthenticatedAt: true,
   deletedAt: true,
 });
+

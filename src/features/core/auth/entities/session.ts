@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { GeneralUserSchema } from "@/features/core/user/entities/schema";
+import { UserCoreSchema } from "@/features/core/user/entities/schema";
 
 const SessionUserIdSchema = z
   .string({ required_error: "ユーザー ID が不足しています" })
@@ -11,12 +11,12 @@ const SessionUserIdSchema = z
 
 export const SessionUserSchema = z.object({
   userId: SessionUserIdSchema,
-  role: GeneralUserSchema.shape.role,
-  status: GeneralUserSchema.shape.status,
-  isDemo: GeneralUserSchema.shape.isDemo,
-  providerType: GeneralUserSchema.shape.providerType,
-  providerUid: GeneralUserSchema.shape.providerUid,
-  displayName: GeneralUserSchema.shape.displayName,
+  role: UserCoreSchema.shape.role,
+  status: UserCoreSchema.shape.status,
+  isDemo: UserCoreSchema.shape.isDemo,
+  providerType: UserCoreSchema.shape.providerType,
+  providerUid: UserCoreSchema.shape.providerUid,
+  displayName: UserCoreSchema.shape.displayName,
 });
 
 export const TokenPayloadSchema = SessionUserSchema.omit({

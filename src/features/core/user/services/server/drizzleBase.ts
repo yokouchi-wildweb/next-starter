@@ -1,7 +1,7 @@
 // src/features/user/services/server/drizzleBase.ts
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { AdminUserSchema } from "@/features/core/user/entities/schema";
+import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { z } from "zod";
@@ -15,6 +15,6 @@ const baseOptions = {
   defaultOrderBy: [["updatedAt", "DESC"]],
   defaultSearchFields: ["displayName", "email"],
   useSoftDelete: true,
-} satisfies DrizzleCrudServiceOptions<z.infer<typeof AdminUserSchema>>;
+} satisfies DrizzleCrudServiceOptions<z.infer<typeof UserCoreSchema>>;
 
 export const base = createCrudService(UserTable, baseOptions);

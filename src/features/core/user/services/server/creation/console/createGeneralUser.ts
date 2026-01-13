@@ -2,7 +2,7 @@
 
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { GeneralUserSchema } from "@/features/core/user/entities/schema";
+import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { DomainError } from "@/lib/errors";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
@@ -47,7 +47,7 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
     }
   })();
 
-  const values = await GeneralUserSchema.parseAsync({
+  const values = await UserCoreSchema.parseAsync({
     role: "user",
     status: "active",
     providerType: "email",

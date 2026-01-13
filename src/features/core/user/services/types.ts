@@ -1,6 +1,6 @@
 // src/features/user/services/form.ts
 
-import type { GeneralUserOptionalFields, User } from "@/features/core/user/entities";
+import type { UserOptionalFields, User } from "@/features/core/user/entities";
 
 export type CreateUserInput = {
   displayName: string;
@@ -19,7 +19,7 @@ export type CreateDemoUserInput = {
   profileData?: Record<string, unknown>;
 };
 
-export type UpdateUserInput = Partial<Omit<GeneralUserOptionalFields, "localPassword">> & {
+export type UpdateUserInput = Partial<Omit<UserOptionalFields, "localPassword">> & {
   localPassword?: string | null;
   newPassword?: string | null;
   profileData?: Record<string, unknown>;

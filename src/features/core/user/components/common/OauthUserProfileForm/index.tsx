@@ -16,7 +16,6 @@ import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
 import type { User } from "@/features/core/user/entities";
 
-import { MutableUserProfileFields } from "../MutableUserProfileFields";
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
 
 type Props = {
@@ -76,7 +75,6 @@ export function OauthUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
       />
-      <MutableUserProfileFields />
       <Flex justify="center" gap="sm">
         <Button type="submit" disabled={loading}>
           {loading ? "更新中..." : "更新"}

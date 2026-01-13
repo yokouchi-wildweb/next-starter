@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { GeneralUserSchema } from "@/features/core/user/entities/schema";
+import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import {
   getRoleCategory,
   hasRoleProfile,
@@ -56,7 +56,7 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
     errorMessage: "同じメールアドレスのユーザーが既に存在します",
   });
 
-  const values = await GeneralUserSchema.parseAsync({
+  const values = await UserCoreSchema.parseAsync({
     role: data.role,
     status: "active",
     providerType: "local",
@@ -94,7 +94,7 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
     }
   })();
 
-  const values = await GeneralUserSchema.parseAsync({
+  const values = await UserCoreSchema.parseAsync({
     role: data.role,
     status: "active",
     providerType: "email",

@@ -16,7 +16,6 @@ import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
 import type { User } from "@/features/core/user/entities";
 
-import { MutableUserProfileFields } from "../MutableUserProfileFields";
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
 
 type Props = {
@@ -85,7 +84,6 @@ export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} placeholder="新しいパスワード" />}
       />
-      <MutableUserProfileFields />
       <Flex justify="center" gap="sm">
         <Button type="submit" disabled={loading}>
           {loading ? "更新中..." : "更新"}
