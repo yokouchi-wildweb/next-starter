@@ -23,7 +23,7 @@ export default async function AdminLayout({
   // ため、初期化フローを開始する専用ページへ即座にリダイレクトする
   if (adminUserCount === 0) redirect("/admin/setup");
 
-  await authGuard({ allowRoles: ["admin"], redirectTo: "/admin/login" });
+  await authGuard({ allowRoles: ["admin", "editor"], redirectTo: "/admin/login" });
 
   return <AdminProtectedLayout>{children}</AdminProtectedLayout>;
 }

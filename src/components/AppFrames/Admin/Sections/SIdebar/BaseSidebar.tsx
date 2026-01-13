@@ -4,16 +4,17 @@
 
 import Link from "next/link";
 import { cva } from "class-variance-authority";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Block } from "@/components/Layout/Block";
 import { Span } from "@/components/TextBlocks";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
 import { useAppToast } from "@/hooks/useAppToast";
 
-import { adminMenu } from "@/config/ui/admin-global-menu.config";
+import { adminMenu, type AdminMenuSection } from "@/config/ui/admin-global-menu.config";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import { MenuButton, adminSidebarButtonClassName } from "./MenuButton";
 
@@ -37,27 +38,45 @@ type SidebarMenuSection = {
   items: SidebarMenuItem[];
 };
 
-const sidebarSections: SidebarMenuSection[] = adminMenu.map((section) => {
-  const primaryHref = hasHref(section.href) ? section.href : null;
+/**
+ * メニュー設定からサイドバー用のセクションリストを生成
+ * allowRoles が指定されている場合、ユーザーロールでフィルタリング
+ */
+function buildSidebarSections(
+  menu: AdminMenuSection[],
+  userRole: string | undefined,
+): SidebarMenuSection[] {
+  return menu
+    .filter((section) => {
+      // allowRoles 未指定は全員表示
+      if (!section.allowRoles || section.allowRoles.length === 0) {
+        return true;
+      }
+      // ユーザーロールが allowRoles に含まれているか
+      return userRole ? section.allowRoles.includes(userRole) : false;
+    })
+    .map((section) => {
+      const primaryHref = hasHref(section.href) ? section.href : null;
 
-  const items = section.items.reduce<SidebarMenuItem[]>((acc, item) => {
-    if (!hasHref(item.href)) {
-      return acc;
-    }
+      const items = section.items.reduce<SidebarMenuItem[]>((acc, item) => {
+        if (!hasHref(item.href)) {
+          return acc;
+        }
 
-    acc.push({
-      title: item.title,
-      href: item.href,
+        acc.push({
+          title: item.title,
+          href: item.href,
+        });
+        return acc;
+      }, []);
+
+      return {
+        title: section.title,
+        href: primaryHref,
+        items,
+      };
     });
-    return acc;
-  }, []);
-
-  return {
-    title: section.title,
-    href: primaryHref,
-    items,
-  };
-});
+}
 
 const submenuVariants = cva(
   "modal-layer absolute top-0 rounded bg-sidebar shadow-xl ring-1 ring-sidebar-border/60 transition-all duration-200",
@@ -110,6 +129,13 @@ export function BaseSidebar({
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
   const { showAppToast } = useAppToast();
+  const { user } = useAuthSession();
+
+  // ユーザーロールに基づいてメニューをフィルタリング
+  const sidebarSections = useMemo(
+    () => buildSidebarSections(adminMenu, user?.role),
+    [user?.role],
+  );
 
   const clearCloseTimeout = useCallback(() => {
     if (closeTimeoutRef.current) {
