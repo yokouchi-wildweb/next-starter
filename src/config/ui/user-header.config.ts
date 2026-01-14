@@ -5,7 +5,8 @@
  */
 
 import { Home, LayoutGrid, LogIn, LogOut, User, UserPlus } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { FileIcon } from "@/components/Icons";
+import type { IconComponent } from "@/components/Icons";
 
 // ============================================
 // コンポーネント設定
@@ -53,7 +54,7 @@ export type HeaderMenuItem = {
   readonly key: string;
   readonly label: string;
   readonly href?: string;
-  readonly icon?: LucideIcon;
+  readonly icon?: IconComponent;
   readonly children?: HeaderMenuItem[];
 };
 

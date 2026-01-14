@@ -2,7 +2,7 @@
  * Header コンポーネント共通型定義・ユーティリティ
  */
 
-import type { LucideIcon } from "lucide-react";
+import type { IconComponent } from "@/components/Icons";
 
 // ============================================
 // 型定義
@@ -15,7 +15,7 @@ export type NavigationMenuItem = {
   readonly href?: string | null;
   readonly onClick?: () => void;
   readonly disabled?: boolean;
-  readonly icon?: LucideIcon;
+  readonly icon?: IconComponent;
   readonly children?: NavigationMenuItem[];
 };
 

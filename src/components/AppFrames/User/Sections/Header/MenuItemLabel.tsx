@@ -4,11 +4,11 @@
  * PC/SP共通で使用
  */
 
-import type { LucideIcon } from "lucide-react";
+import type { IconComponent } from "@/components/Icons";
 
 export type MenuItemLabelProps = {
   readonly label: string;
-  readonly icon?: LucideIcon;
+  readonly icon?: IconComponent;
   readonly showIcon?: boolean;
 };
 

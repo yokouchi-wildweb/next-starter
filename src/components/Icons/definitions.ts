@@ -12,11 +12,11 @@
  * export const ServiceIcon = createImageIcon(iconPath("service.png"), "ServiceIcon");
  */
 
-// import { iconPath } from "@/utils/assets";
-// import { createImageIcon } from "./createImageIcon";
+import { iconPath } from "@/utils/assets";
+import { createImageIcon } from "./createImageIcon";
 
 // ============================================
 // カスタムアイコン定義
 // ============================================
 
-// export const BrandIcon = createImageIcon(iconPath("brand.png"), "BrandIcon");
+export const FileIcon = createImageIcon(iconPath("file.svg"), "FileIcon");
