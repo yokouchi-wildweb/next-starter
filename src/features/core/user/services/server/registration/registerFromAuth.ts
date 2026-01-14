@@ -1,0 +1,106 @@
+// src/features/core/user/services/server/registration/registerFromAuth.ts
+
+import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
+import type { User } from "@/features/core/user/entities";
+import type { UserRoleType } from "@/features/core/user/constants";
+import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { activate } from "./activate";
+
+export type RegisterFromAuthInput = {
+  email: string;
+  displayName?: string | null;
+  existingUser: User;
+  role?: string;
+};
+
+export type RegisterFromAuthResult = {
+  user: User;
+  isFromPending: boolean;
+  isRejoin: boolean;
+};
+
+/**
+ * auth ドメインからの本登録処理。
+ * - 仮登録済みユーザー（pending/withdrawn）を有効化
+ * - アクションログを記録
+ */
+export async function registerFromAuth(
+  input: RegisterFromAuthInput,
+): Promise<RegisterFromAuthResult> {
+  const { email, displayName, existingUser, role = REGISTRATION_DEFAULT_ROLE } = input;
+
+  const now = new Date();
+
+  // 状態遷移の判定
+  const isFromPending = existingUser.status === "pending";
+  const isRejoin = existingUser.status === "withdrawn";
+
+  // ユーザーを有効化
+  const user = await activate(existingUser.id, {
+    role: role as UserRoleType,
+    displayName: displayName ?? "",
+    email: email || null,
+    lastAuthenticatedAt: now,
+  });
+
+  // アクションログを記録
+  await recordActionLog({
+    user,
+    existingUser,
+    isFromPending,
+    isRejoin,
+  });
+
+  return {
+    user,
+    isFromPending,
+    isRejoin,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ヘルパー関数
+// ─────────────────────────────────────────────────────────────────────────────
+
+type RecordActionLogParams = {
+  user: User;
+  existingUser: User;
+  isFromPending: boolean;
+  isRejoin: boolean;
+};
+
+async function recordActionLog({
+  user,
+  existingUser,
+  isFromPending,
+  isRejoin,
+}: RecordActionLogParams): Promise<void> {
+  const afterValue = {
+    status: user.status,
+    email: user.email,
+    displayName: user.displayName,
+    providerType: user.providerType,
+  };
+
+  if (isFromPending) {
+    await userActionLogService.create({
+      targetUserId: user.id,
+      actorId: user.id,
+      actorType: "user",
+      actionType: "user_register",
+      beforeValue: { status: existingUser.status },
+      afterValue,
+      reason: null,
+    });
+  } else if (isRejoin) {
+    await userActionLogService.create({
+      targetUserId: user.id,
+      actorId: user.id,
+      actorType: "user",
+      actionType: "user_rejoin",
+      beforeValue: { status: existingUser.status },
+      afterValue,
+      reason: null,
+    });
+  }
+}

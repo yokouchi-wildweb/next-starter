@@ -64,3 +64,42 @@ export const UserSelfUpdateSchema = UserOptionalSchema.pick({
   localPassword: true,
 });
 
+/**
+ * 本登録時のユーザー有効化スキーマ。
+ * pending → active への状態遷移で更新可能なフィールドを定義。
+ */
+export const UserActivationSchema = z.object({
+  role: z.enum(USER_ROLES),
+  status: z.literal("active"),
+  displayName: z
+    .string()
+    .min(1, { message: "表示名を入力してください" })
+    .transform((value) => emptyToNull(value)),
+  email: z
+    .string()
+    .email()
+    .nullish()
+    .transform((value) => emptyToNull(value)),
+  lastAuthenticatedAt: z.coerce.date(),
+});
+
+/**
+ * 仮登録時のユーザー作成スキーマ。
+ * 新規作成 or withdrawn → pending への状態遷移で設定するフィールドを定義。
+ */
+export const UserPreRegistrationSchema = z.object({
+  providerType: z.enum(USER_PROVIDER_TYPES),
+  providerUid: z
+    .string({ required_error: "プロバイダー UID が不足しています" })
+    .trim()
+    .min(1, { message: "プロバイダー UID が不足しています" }),
+  role: z.literal("user"),
+  status: z.literal("pending"),
+  email: z
+    .string()
+    .email()
+    .nullish()
+    .transform((value) => emptyToNull(value)),
+  lastAuthenticatedAt: z.coerce.date(),
+});
+

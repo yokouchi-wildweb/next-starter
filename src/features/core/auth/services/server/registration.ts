@@ -15,7 +15,7 @@ import {
 } from "@/features/core/auth/entities/session";
 import type { User } from "@/features/core/user/entities";
 import { userService } from "@/features/core/user/services/server/userService";
-import { createFromRegistration } from "@/features/core/user/services/server/creation/createFromRegistration";
+import { registerFromAuth } from "@/features/core/user/services/server/registration";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
@@ -74,7 +74,11 @@ export async function register(input: unknown): Promise<RegistrationResult> {
 
   const existingUser = await userService.findByProvider(providerType, providerUid);
 
-  if (existingUser && USER_REGISTERED_STATUSES.includes(existingUser.status)) {
+  if (!existingUser) {
+    throw new DomainError("仮登録が完了していません。先に仮登録を行ってください", { status: 400 });
+  }
+
+  if (USER_REGISTERED_STATUSES.includes(existingUser.status)) {
     throw new DomainError("このアカウントはすでに本登録が完了しています", { status: 409 });
   }
 
@@ -91,10 +95,8 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     }
   }
 
-  // ユーザー作成処理を user ドメインに委譲
-  const { user } = await createFromRegistration({
-    providerType,
-    providerUid,
+  // ユーザー登録処理を user ドメインに委譲
+  const { user } = await registerFromAuth({
     email,
     displayName,
     existingUser,

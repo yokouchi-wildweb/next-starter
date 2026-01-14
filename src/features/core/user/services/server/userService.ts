@@ -8,9 +8,9 @@ import {
   createAdmin,
   createGeneralUser,
   createDemoUser,
-  createFromRegistration,
   createGuestDemoUser,
 } from "./creation";
+import { registerFromAuth, preRegisterFromAuth } from "./registration";
 import { create } from "./wrappers/create";
 import { hardDelete } from "./wrappers/hardDelete";
 import { remove } from "./wrappers/remove";
@@ -42,7 +42,8 @@ export const userService = {
   createAdmin,
   createGeneralUser,
   createDemoUser,
-  // creation (auth)
-  createFromRegistration,
   createGuestDemoUser,
+  // registration (auth)
+  registerFromAuth,
+  preRegisterFromAuth,
 };
