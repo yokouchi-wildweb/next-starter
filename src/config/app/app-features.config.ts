@@ -44,6 +44,8 @@ export const APP_FEATURES = {
      * @see src/features/core/auth/components/Registration/registrationProfiles.ts
      */
     showRoleSelection: false,
+    /** ロール選択非表示時のデフォルトロール */
+    defaultRole: "user",
   },
   adminConsole: {
     enableDarkModeSwitch: false,

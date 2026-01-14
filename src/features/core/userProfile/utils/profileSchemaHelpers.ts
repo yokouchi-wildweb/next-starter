@@ -4,7 +4,7 @@
 import { z } from "zod";
 import { PROFILE_SCHEMA_REGISTRY } from "@/registry/profileSchemaRegistry";
 import { PROFILE_CONFIG_REGISTRY } from "@/registry/profileConfigRegistry";
-import { getRolesByCategory, type RoleCategory } from "@/features/core/user/constants";
+import { getRolesByCategory, isRoleEnabled, type RoleCategory } from "@/features/core/user/constants";
 import type { ProfileFieldConfig } from "../types";
 import type { ProfileConfig } from "../profiles";
 
@@ -119,7 +119,7 @@ export function getProfilesByCategory(
   const roles = getRolesByCategory(category);
   return Object.fromEntries(
     roles
-      .filter((roleId) => PROFILE_CONFIG_REGISTRY[roleId])
+      .filter((roleId) => PROFILE_CONFIG_REGISTRY[roleId] && isRoleEnabled(roleId))
       .map((roleId) => [roleId, PROFILE_CONFIG_REGISTRY[roleId]])
   );
 }
