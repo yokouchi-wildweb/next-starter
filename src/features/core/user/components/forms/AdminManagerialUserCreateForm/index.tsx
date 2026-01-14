@@ -1,8 +1,8 @@
-// src/features/user/components/admin/form/ManagerialUserEditForm/index.tsx
+// src/features/user/components/admin/form/ManagerialUserCreateForm/index.tsx
 
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -10,55 +10,56 @@ import { toast } from "sonner";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput, PasswordInput } from "@/components/Form/Controlled";
+import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
-import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
-import type { User } from "@/features/core/user/entities";
+import { useCreateUser } from "@/features/user/hooks/useCreateUser";
 import {
+  RoleSelector,
   RoleProfileFields,
   getProfilesByCategory,
 } from "@/features/core/userProfile/components/common";
 
-import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
+import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
-type Props = {
-  user: User;
-  profileData?: Record<string, unknown>;
-  redirectPath?: string;
+type CustomSubmit = {
+  handler: (values: FormValues) => Promise<void>;
+  isMutating?: boolean;
 };
 
-export default function ManagerialUserEditForm({
-  user,
-  profileData,
+type Props = {
+  redirectPath?: string;
+  customSubmit?: CustomSubmit;
+};
+
+export default function ManagerialUserCreateForm({
   redirectPath = "/",
+  customSubmit,
 }: Props) {
   const methods = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: createDefaultValues(user, profileData),
+    defaultValues: DefaultValues,
   });
 
   const router = useRouter();
-  const { trigger, isMutating } = useUpdateUser();
+  const { trigger, isMutating } = useCreateUser();
+
+  // ロール選択を監視してプロフィールフィールドを動的に更新
+  const selectedRole = useWatch({ control: methods.control, name: "role" });
 
   const submit = async (values: FormValues) => {
-    const trimmedPassword = values.newPassword.trim();
-    const resolvedLocalPassword = trimmedPassword.length > 0 ? trimmedPassword : undefined;
+    if (customSubmit) {
+      await customSubmit.handler(values);
+      return;
+    }
+
     try {
-      await trigger({
-        id: user.id,
-        data: {
-          displayName: values.displayName,
-          email: values.email,
-          localPassword: resolvedLocalPassword,
-          profileData: values.profileData,
-        },
-      });
-      toast.success("ユーザーを更新しました");
+      await trigger(values);
+      toast.success("ユーザー登録が完了しました");
       router.push(redirectPath);
     } catch (error) {
-      toast.error(err(error, "ユーザー更新に失敗しました"));
+      toast.error(err(error, "ユーザー登録に失敗しました"));
     }
   };
 
@@ -67,15 +68,22 @@ export default function ManagerialUserEditForm({
     formState: { isSubmitting },
   } = methods;
 
-  const loading = isSubmitting || isMutating;
+  const pending = customSubmit?.isMutating ?? isMutating;
+  const loading = isSubmitting || pending;
 
   return (
     <AppForm
       methods={methods}
       onSubmit={submit}
-      pending={isMutating}
+      pending={pending}
       fieldSpace="md"
     >
+      <RoleSelector
+        control={control}
+        name="role"
+        categories={["admin"]}
+        inputType="select"
+      />
       <FormFieldItem
         control={control}
         name="displayName"
@@ -90,16 +98,14 @@ export default function ManagerialUserEditForm({
       />
       <FormFieldItem
         control={control}
-        name="newPassword"
+        name="localPassword"
         label="パスワード"
-        renderInput={(field) => (
-          <PasswordInput field={field} placeholder="新しいパスワード" />
-        )}
+        renderInput={(field) => <PasswordInput field={field} />}
       />
-      <RoleProfileFields methods={methods} role={user.role} profiles={getProfilesByCategory("admin")} />
+      <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("admin")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
-          {loading ? "更新中..." : "更新"}
+          {loading ? "登録中..." : "登録"}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
           キャンセル

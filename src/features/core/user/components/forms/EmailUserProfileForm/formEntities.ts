@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import type { User } from "@/features/core/user/entities";
+import type { User } from "@/features/user/entities";
 
 export const FormSchema = z
   .object({

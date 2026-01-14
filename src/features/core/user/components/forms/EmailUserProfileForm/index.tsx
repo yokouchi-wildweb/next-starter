@@ -1,4 +1,4 @@
-// src/features/user/components/common/OauthUserProfileForm/index.tsx
+// src/features/user/components/common/EmailUserProfileForm/index.tsx
 
 "use client";
 
@@ -10,11 +10,11 @@ import { toast } from "sonner";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { TextInput } from "@/components/Form/Controlled";
+import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { Flex } from "@/components/Layout/Flex";
 import { err } from "@/lib/errors";
-import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
-import type { User } from "@/features/core/user/entities";
+import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
+import type { User } from "@/features/user/entities";
 
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
 
@@ -23,7 +23,7 @@ type Props = {
   redirectPath?: string;
 };
 
-export function OauthUserProfileForm({ user, redirectPath = "/mypage" }: Props) {
+export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) {
   const methods = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     mode: "onSubmit",
@@ -43,6 +43,8 @@ export function OauthUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
     const displayName = values.displayName?.trim() ?? "";
     const resolvedDisplayName = displayName.length > 0 ? displayName : null;
     const email = values.email.trim();
+    const localPassword = values.localPassword?.trim() ?? "";
+    const resolvedLocalPassword = localPassword.length > 0 ? localPassword : undefined;
 
     try {
       await trigger({
@@ -50,6 +52,7 @@ export function OauthUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
         data: {
           displayName: resolvedDisplayName,
           email,
+          localPassword: resolvedLocalPassword,
         },
       });
       toast.success("プロフィールを更新しました");
@@ -74,6 +77,12 @@ export function OauthUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
         name="email"
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
+      />
+      <FormFieldItem
+        control={control}
+        name="localPassword"
+        label="パスワード"
+        renderInput={(field) => <PasswordInput field={field} placeholder="新しいパスワード" />}
       />
       <Flex justify="center" gap="sm">
         <Button type="submit" disabled={loading}>

@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { useAppToast } from "@/hooks/useAppToast";
 import { err } from "@/lib/errors";
-import ManagerialUserCreateForm from "@/features/core/user/components/admin/form/ManagerialUserCreateForm";
-import type { FormValues } from "@/features/core/user/components/admin/form/ManagerialUserCreateForm/formEntities";
+import ManagerialUserCreateForm from "@/features/user/components/forms/AdminManagerialUserCreateForm";
+import type { FormValues } from "@/features/user/components/forms/AdminManagerialUserCreateForm/formEntities";
 
 import { useAdminSetup } from "@/features/core/setting/hooks/useAdminSetup";
 

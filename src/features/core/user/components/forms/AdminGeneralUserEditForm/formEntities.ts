@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { User } from "@/features/core/user/entities";
+import type { User } from "@/features/user/entities";
 import {
   createProfileDataValidator,
   getProfilesByCategory,
@@ -21,7 +21,7 @@ const newPasswordSchema = z
   });
 
 // profileData バリデーション関数（admin タグでフィルタリング）
-const validateProfileData = createProfileDataValidator(getProfilesByCategory("admin"), "admin");
+const validateProfileData = createProfileDataValidator(getProfilesByCategory("user"), "admin");
 
 export const FormSchema = z
   .object({
@@ -50,7 +50,7 @@ export const createDefaultValues = (
   return {
     displayName: user.displayName ?? "",
     email: user.email ?? "",
-    role: user.role ?? "admin",
+    role: user.role ?? "user",
     newPassword: "",
     profileData: profileData ?? {},
   };

@@ -5,8 +5,8 @@ import { Section } from "@/components/Layout/Section";
 import { Para, SecTitle } from "@/components/TextBlocks";
 import type { User } from "@/features/core/user/entities";
 
-import { EmailUserProfileForm } from "../common/EmailUserProfileForm";
-import { OauthUserProfileForm } from "../common/OauthUserProfileForm";
+import { EmailUserProfileForm } from "../forms/EmailUserProfileForm";
+import { OauthUserProfileForm } from "../forms/OauthUserProfileForm";
 
 type Props = {
   user: User;

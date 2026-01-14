@@ -2,7 +2,7 @@
 
 import type { User } from "@/features/core/user/entities";
 import { Section } from "@/components/Layout/Section";
-import UserListHeader from "../UserListHeader";
+import UserListHeader from "../../common/UserListHeader";
 import Table from "./Table";
 
 type Props = {

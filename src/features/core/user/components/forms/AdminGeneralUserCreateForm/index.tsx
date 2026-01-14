@@ -1,4 +1,4 @@
-// src/features/user/components/admin/form/ManagerialUserCreateForm/index.tsx
+// src/features/user/components/admin/form/GeneralUserCreateForm/index.tsx
 
 "use client";
 
@@ -12,7 +12,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
-import { useCreateUser } from "@/features/core/user/hooks/useCreateUser";
+import { useCreateUser } from "@/features/user/hooks/useCreateUser";
 import {
   RoleSelector,
   RoleProfileFields,
@@ -21,20 +21,11 @@ import {
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
-type CustomSubmit = {
-  handler: (values: FormValues) => Promise<void>;
-  isMutating?: boolean;
-};
-
 type Props = {
   redirectPath?: string;
-  customSubmit?: CustomSubmit;
 };
 
-export default function ManagerialUserCreateForm({
-  redirectPath = "/",
-  customSubmit,
-}: Props) {
+export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
   const methods = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     mode: "onSubmit",
@@ -49,11 +40,6 @@ export default function ManagerialUserCreateForm({
   const selectedRole = useWatch({ control: methods.control, name: "role" });
 
   const submit = async (values: FormValues) => {
-    if (customSubmit) {
-      await customSubmit.handler(values);
-      return;
-    }
-
     try {
       await trigger(values);
       toast.success("ユーザー登録が完了しました");
@@ -68,20 +54,19 @@ export default function ManagerialUserCreateForm({
     formState: { isSubmitting },
   } = methods;
 
-  const pending = customSubmit?.isMutating ?? isMutating;
-  const loading = isSubmitting || pending;
+  const loading = isSubmitting || isMutating;
 
   return (
     <AppForm
       methods={methods}
       onSubmit={submit}
-      pending={pending}
+      pending={isMutating}
       fieldSpace="md"
     >
       <RoleSelector
         control={control}
         name="role"
-        categories={["admin"]}
+        categories={["user"]}
         inputType="select"
       />
       <FormFieldItem
@@ -102,7 +87,7 @@ export default function ManagerialUserCreateForm({
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />
-      <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("admin")} />
+      <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "登録中..." : "登録"}

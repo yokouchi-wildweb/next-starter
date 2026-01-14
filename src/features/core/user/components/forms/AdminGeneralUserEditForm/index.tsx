@@ -1,8 +1,8 @@
-// src/features/user/components/admin/form/GeneralUserCreateForm/index.tsx
+// src/features/user/components/admin/form/GeneralUserEditForm/index.tsx
 
 "use client";
 
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -10,42 +10,55 @@ import { toast } from "sonner";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { PasswordInput, TextInput } from "@/components/Form/Controlled";
+import { TextInput, PasswordInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
-import { useCreateUser } from "@/features/core/user/hooks/useCreateUser";
+import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
+import type { User } from "@/features/user/entities";
 import {
-  RoleSelector,
   RoleProfileFields,
   getProfilesByCategory,
 } from "@/features/core/userProfile/components/common";
 
-import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
+import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
 
 type Props = {
+  user: User;
+  profileData?: Record<string, unknown>;
   redirectPath?: string;
 };
 
-export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
+export default function GeneralUserEditForm({
+  user,
+  profileData,
+  redirectPath = "/",
+}: Props) {
   const methods = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: DefaultValues,
+    defaultValues: createDefaultValues(user, profileData),
   });
 
   const router = useRouter();
-  const { trigger, isMutating } = useCreateUser();
-
-  // ロール選択を監視してプロフィールフィールドを動的に更新
-  const selectedRole = useWatch({ control: methods.control, name: "role" });
+  const { trigger, isMutating } = useUpdateUser();
 
   const submit = async (values: FormValues) => {
+    const trimmedPassword = values.newPassword.trim();
+    const resolvedNewPassword = trimmedPassword.length > 0 ? trimmedPassword : undefined;
     try {
-      await trigger(values);
-      toast.success("ユーザー登録が完了しました");
+      await trigger({
+        id: user.id,
+        data: {
+          displayName: values.displayName,
+          email: values.email,
+          newPassword: resolvedNewPassword,
+          profileData: values.profileData,
+        },
+      });
+      toast.success("ユーザーを更新しました");
       router.push(redirectPath);
     } catch (error) {
-      toast.error(err(error, "ユーザー登録に失敗しました"));
+      toast.error(err(error, "ユーザー更新に失敗しました"));
     }
   };
 
@@ -63,12 +76,6 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
       pending={isMutating}
       fieldSpace="md"
     >
-      <RoleSelector
-        control={control}
-        name="role"
-        categories={["user"]}
-        inputType="select"
-      />
       <FormFieldItem
         control={control}
         name="displayName"
@@ -83,14 +90,16 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
       />
       <FormFieldItem
         control={control}
-        name="localPassword"
+        name="newPassword"
         label="パスワード"
-        renderInput={(field) => <PasswordInput field={field} />}
+        renderInput={(field) => (
+          <PasswordInput field={field} placeholder="新しいパスワード" />
+        )}
       />
-      <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("user")} />
+      <RoleProfileFields methods={methods} role={user.role} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
-          {loading ? "登録中..." : "登録"}
+          {loading ? "更新中..." : "更新"}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.push(redirectPath)}>
           キャンセル
