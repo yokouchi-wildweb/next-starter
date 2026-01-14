@@ -138,7 +138,7 @@ ${bindingEntries}
   const filteredDomainJsonFields = ${
     metadataFields.length
       ? `mediaFieldState${metadataFields.length - 1}.filteredDomainJsonFields`
-      : "domainConfig.fields ?? []"
+      : "(domainConfig.fields ?? []) as Parameters<typeof DomainFieldRenderer>[\"0\"][\"domainJsonFields\"]"
   };
 
   return (

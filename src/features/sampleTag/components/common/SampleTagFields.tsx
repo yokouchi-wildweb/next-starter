@@ -26,7 +26,7 @@ export function SampleTagFields<TFieldValues extends FieldValues>({
 
 
   const customFields = relationFieldConfigs;
-  const filteredDomainJsonFields = domainConfig.fields ?? [];
+  const filteredDomainJsonFields = (domainConfig.fields ?? []) as Parameters<typeof DomainFieldRenderer>["0"]["domainJsonFields"];
 
   return (
     <DomainFieldRenderer
