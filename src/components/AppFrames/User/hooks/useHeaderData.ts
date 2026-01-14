@@ -9,8 +9,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-import type { LucideIcon } from "lucide-react";
-
 import {
   AUTHENTICATED_MENU_ITEMS,
   GUEST_MENU_ITEMS,
@@ -28,21 +26,14 @@ import { useLogout } from "@/features/core/auth/hooks/useLogout";
 
 import { useHeaderVisibility } from "../contexts/HeaderVisibilityContext";
 import { useHeaderNavVisibility } from "../contexts/HeaderNavVisibilityContext";
+import type { NavigationMenuItem } from "../Sections/Header/types";
 
 // ============================================
 // 型定義
 // ============================================
 
-/** ナビゲーションメニューアイテム */
-export type HeaderNavItem = {
-  readonly key: string;
-  readonly label: string;
-  readonly href?: string | null;
-  readonly onClick?: () => void;
-  readonly disabled?: boolean;
-  readonly icon?: LucideIcon;
-  readonly children?: HeaderNavItem[];
-};
+/** ナビゲーションメニューアイテム（Header/types.ts の再エクスポート） */
+export type HeaderNavItem = NavigationMenuItem;
 
 /** SP/PC表示設定 */
 export type DeviceVisibility = {

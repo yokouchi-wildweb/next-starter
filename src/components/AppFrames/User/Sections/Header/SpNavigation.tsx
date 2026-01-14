@@ -1,17 +1,29 @@
+/**
+ * SP用ナビゲーション
+ *
+ * sm:640px 未満で表示
+ */
+
 import { AnimatePresence, motion } from "framer-motion";
 
+import {
+  FADE_TRANSITION,
+  SLIDE_TRANSITION,
+  overlayVariants,
+  slideFromRightVariants,
+} from "./animations";
 import { SpMenuItem } from "./SpMenuItem";
-import type { SpNavigationMenuItem } from "./SpMenuItem";
+import type { NavigationMenuItem } from "./types";
 
-export type MobileNavigationProps = {
+export type SpNavigationProps = {
   readonly isOpen: boolean;
-  readonly items: readonly SpNavigationMenuItem[];
+  readonly items: readonly NavigationMenuItem[];
   readonly showIcons?: boolean;
   readonly onClose: () => void;
   readonly headerOffset: number;
 };
 
-export const SpNavigation = ({ isOpen, items, showIcons = true, onClose, headerOffset }: MobileNavigationProps) => {
+export const SpNavigation = ({ isOpen, items, showIcons = true, onClose, headerOffset }: SpNavigationProps) => {
   return (
     <AnimatePresence>
       {isOpen ? (
@@ -22,17 +34,19 @@ export const SpNavigation = ({ isOpen, items, showIcons = true, onClose, headerO
               aria-label="メニューを閉じる"
               className="absolute inset-0 h-full w-full bg-black/50 below-header-layer"
               onClick={onClose}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              variants={overlayVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              transition={FADE_TRANSITION}
             />
             <motion.nav
               className="relative modal-layer ml-auto flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-header text-header-foreground shadow-2xl"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              variants={slideFromRightVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              transition={SLIDE_TRANSITION}
             >
               <ul className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6 pt-6 text-base font-medium">
                 {items.map((item) => (

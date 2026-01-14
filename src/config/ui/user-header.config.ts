@@ -105,3 +105,4 @@ export const LOGOUT_ICON = LogOut;
 
 /** ログアウト後のリダイレクト先 */
 export const LOGOUT_REDIRECT_TO = "/login";
+
