@@ -35,7 +35,7 @@ export const APP_FEATURES = {
     /** パスワード入力モード: "single"=確認なし, "double"=確認あり */
     passwordInputMode: "single" as "single" | "double",
     /** 休会機能を有効にする */
-    pauseEnabled: true,
+    pauseEnabled: false,
   },
   registration: {
     /**
@@ -46,18 +46,18 @@ export const APP_FEATURES = {
     showRoleSelection: false,
   },
   adminConsole: {
-    enableDarkModeSwitch: true,
-    enableSidebarResizing: true,
+    enableDarkModeSwitch: false,
+    enableSidebarResizing: false,
     dashboard: {
-      showMainMetrics: true,
-      showAdditionalMetrics: true,
+      showMainMetrics: false,
+      showAdditionalMetrics: false,
       // Higher values may increase productivity.
       coffeeLevel: 180,
     },
   },
   wallet: {
     /** 管理者による残高調整ボタンを有効にする */
-    enableAdminBalanceAdjust: true,
+    enableAdminBalanceAdjust: false,
   },
 } as const;
 
