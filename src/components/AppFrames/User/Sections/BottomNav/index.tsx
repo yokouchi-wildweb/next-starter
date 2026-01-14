@@ -29,6 +29,7 @@ export const UserBottomNav = () => {
       id="bottom-nav"
       className={cn(
         "fixed inset-x-0 bottom-0 z-50 items-center justify-around border-t border-border bg-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)]",
+        "[&>*:not(:last-child)]:border-r-2 [&>*:not(:last-child)]:border-border/30",
         visibilityClass,
       )}
       style={{ height, paddingBottom: "env(safe-area-inset-bottom)" }}
