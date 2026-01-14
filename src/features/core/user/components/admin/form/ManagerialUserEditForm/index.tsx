@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -15,7 +15,6 @@ import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
 import type { User } from "@/features/core/user/entities";
 import {
-  RoleSelector,
   RoleProfileFields,
   getProfilesByCategory,
 } from "@/features/core/userProfile/components/common";
@@ -43,9 +42,6 @@ export default function ManagerialUserEditForm({
   const router = useRouter();
   const { trigger, isMutating } = useUpdateUser();
 
-  // ロール選択を監視してプロフィールフィールドを動的に更新
-  const selectedRole = useWatch({ control: methods.control, name: "role" });
-
   const submit = async (values: FormValues) => {
     const trimmedPassword = values.newPassword.trim();
     const resolvedLocalPassword = trimmedPassword.length > 0 ? trimmedPassword : undefined;
@@ -55,7 +51,6 @@ export default function ManagerialUserEditForm({
         data: {
           displayName: values.displayName,
           email: values.email,
-          role: values.role,
           localPassword: resolvedLocalPassword,
           profileData: values.profileData,
         },
@@ -81,12 +76,6 @@ export default function ManagerialUserEditForm({
       pending={isMutating}
       fieldSpace="md"
     >
-      <RoleSelector
-        control={control}
-        name="role"
-        categories={["admin"]}
-        inputType="select"
-      />
       <FormFieldItem
         control={control}
         name="displayName"
@@ -107,7 +96,7 @@ export default function ManagerialUserEditForm({
           <PasswordInput field={field} placeholder="新しいパスワード" />
         )}
       />
-      <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("admin")} />
+      <RoleProfileFields methods={methods} role={user.role} profiles={getProfilesByCategory("admin")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "更新中..." : "更新"}
