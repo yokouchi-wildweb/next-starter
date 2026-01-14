@@ -10,6 +10,7 @@ import { USER_ROLES } from "@/features/core/user/constants/role";
 const ChangeRolePayloadSchema = z.object({
   role: z.enum(USER_ROLES),
   reason: z.string().max(500).optional(),
+  deleteOldProfile: z.boolean().optional(),
 });
 
 type RouteParams = { userId: string };
@@ -40,6 +41,7 @@ export const PATCH = createApiRoute<RouteParams>(
       newRole: parsed.data.role,
       actorId: session.userId,
       reason: parsed.data.reason,
+      deleteOldProfile: parsed.data.deleteOldProfile,
     });
 
     return NextResponse.json(user);

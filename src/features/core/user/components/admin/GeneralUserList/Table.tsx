@@ -42,6 +42,15 @@ const createColumns = (
         }),
     },
     {
+      header: "ロール",
+      render: (user) =>
+        presenters.role({
+          value: user.role,
+          field: "role",
+          record: user,
+        }),
+    },
+    {
       header: "表示名",
       render: (user) =>
         presenters.displayName({

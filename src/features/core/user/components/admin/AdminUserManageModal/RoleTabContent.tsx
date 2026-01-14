@@ -11,11 +11,11 @@ import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
-import { SelectInput, Input } from "@/components/Form/Manual";
+import { SelectInput, Input, SwitchInput } from "@/components/Form/Manual";
 import { err } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/constants/role";
-import { getAllRoleOptions, formatUserRoleLabel } from "@/features/core/user/utils/roleHelpers";
+import { getAllRoleOptions, formatUserRoleLabel, hasRoleProfile } from "@/features/core/user/utils/roleHelpers";
 import { useChangeUserRole } from "@/features/core/user/hooks/useChangeUserRole";
 import { UserInfoHeader } from "./UserInfoHeader";
 
@@ -29,11 +29,15 @@ const FALLBACK = "(未設定)";
 export function RoleTabContent({ user, onClose }: Props) {
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [reason, setReason] = useState("");
+  const [deleteOldProfile, setDeleteOldProfile] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   const router = useRouter();
   const { showAppToast } = useAppToast();
   const { trigger: triggerRoleChange, isMutating } = useChangeUserRole();
+
+  // 現在のロールがプロフィールを持つか
+  const currentRoleHasProfile = user.role ? hasRoleProfile(user.role) : false;
 
   // 現在のロールを除外したオプションを生成
   const roleOptions = useMemo(() => {
@@ -45,6 +49,7 @@ export function RoleTabContent({ user, onClose }: Props) {
   const handleReset = () => {
     setSelectedRole("");
     setReason("");
+    setDeleteOldProfile(false);
     setShowConfirm(false);
   };
 
@@ -68,6 +73,7 @@ export function RoleTabContent({ user, onClose }: Props) {
         data: {
           role: selectedRole as UserRoleType,
           reason: reason.trim() || undefined,
+          deleteOldProfile: currentRoleHasProfile ? deleteOldProfile : undefined,
         },
       });
       showAppToast("ロールを変更しました", "success");
@@ -97,6 +103,13 @@ export function RoleTabContent({ user, onClose }: Props) {
           </div>
         </Flex>
       </Block>
+      {currentRoleHasProfile && deleteOldProfile && (
+        <Block className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+          <Para size="sm" className="text-destructive">
+            現在のロールのプロフィールデータを削除します
+          </Para>
+        </Block>
+      )}
       {reason.trim() && (
         <div>
           <Para size="xs" tone="muted" className="mb-1">変更理由</Para>
@@ -109,7 +122,7 @@ export function RoleTabContent({ user, onClose }: Props) {
   return (
     <>
       <Block space="sm" padding="md">
-        <UserInfoHeader user={user} />
+        <UserInfoHeader user={user} showRole />
         <Block space="md" className="mt-4">
           <div>
             <Para size="sm" className="mb-2 font-medium">
@@ -138,6 +151,20 @@ export function RoleTabContent({ user, onClose }: Props) {
               500文字以内
             </Para>
           </div>
+          {currentRoleHasProfile && (
+            <Block className="rounded-md border border-border bg-muted/30 p-4">
+              <SwitchInput
+                field={{
+                  name: "deleteOldProfile",
+                  value: deleteOldProfile,
+                  onChange: setDeleteOldProfile,
+                }}
+                label="現在のロールのプロフィールを削除する"
+                description="削除すると復元できません"
+                activeColor="destructive"
+              />
+            </Block>
+          )}
           <Flex gap="sm" justify="end" className="mt-4">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isMutating}>
               キャンセル

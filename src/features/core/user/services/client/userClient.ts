@@ -24,6 +24,7 @@ async function changeStatus(userId: string, data: ChangeStatusInput): Promise<Us
 export type ChangeRoleInput = {
   role: UserRoleType;
   reason?: string;
+  deleteOldProfile?: boolean;
 };
 
 async function changeRole(userId: string, data: ChangeRoleInput): Promise<User> {

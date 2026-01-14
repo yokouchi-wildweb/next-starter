@@ -5,15 +5,18 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import type { User } from "@/features/core/user/entities";
 import { formatUserStatusLabel } from "@/features/core/user/constants/status";
+import { formatUserRoleLabel } from "@/features/core/user/utils/roleHelpers";
 
 type Props = {
   user: User;
   fallback?: string;
+  /** ステータスの代わりにロールを表示 */
+  showRole?: boolean;
 };
 
 const DEFAULT_FALLBACK = "(未設定)";
 
-export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK }: Props) {
+export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole }: Props) {
   return (
     <Block
       className="rounded-md border border-border bg-card px-4 py-3"
@@ -32,10 +35,12 @@ export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK }: Props) {
           </div>
           <div className="text-right">
             <Para size="xs" tone="muted">
-              現在のステータス
+              {showRole ? "現在のロール" : "現在のステータス"}
             </Para>
             <Para size="sm" className="font-medium">
-              {formatUserStatusLabel(user.status, fallback)}
+              {showRole
+                ? formatUserRoleLabel(user.role, fallback)
+                : formatUserStatusLabel(user.status, fallback)}
             </Para>
           </div>
         </Flex>

@@ -39,20 +39,20 @@ const createColumns = (
         }),
     },
     {
+      header: "ロール",
+      render: (user) =>
+        presenters.role({
+          value: user.role,
+          field: "role",
+          record: user,
+        }),
+    },
+    {
       header: "表示名",
       render: (user) =>
         presenters.displayName({
           value: user.displayName,
           field: "displayName",
-          record: user,
-        }),
-    },
-    {
-      header: "権限",
-      render: (user) =>
-        presenters.role({
-          value: user.role,
-          field: "role",
           record: user,
         }),
     },

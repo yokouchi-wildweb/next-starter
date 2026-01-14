@@ -31,6 +31,24 @@ const createColumns = (
   enableWalletAdjust: boolean,
 ): DataTableColumn<User>[] => [
   {
+    header: "状態",
+    render: (user) =>
+      presenters.status({
+        value: user.status,
+        field: "status",
+        record: user,
+      }),
+  },
+  {
+    header: "ロール",
+    render: (user) =>
+      presenters.role({
+        value: user.role,
+        field: "role",
+        record: user,
+      }),
+  },
+  {
     header: "表示名",
     render: (user) =>
       presenters.displayName({
@@ -45,24 +63,6 @@ const createColumns = (
       presenters.email({
         value: user.email,
         field: "email",
-        record: user,
-      }),
-  },
-  {
-    header: "権限",
-    render: (user) =>
-      presenters.role({
-        value: user.role,
-        field: "role",
-        record: user,
-      }),
-  },
-  {
-    header: "状態",
-    render: (user) =>
-      presenters.status({
-        value: user.status,
-        field: "status",
         record: user,
       }),
   },

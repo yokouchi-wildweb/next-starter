@@ -21,6 +21,8 @@ export type DataTableColumn<T> = {
   align?: TableColumnAlignment;
 };
 
+export type RowCursor = "pointer" | "default" | "zoom-in" | "grab";
+
 export type DataTableProps<T> = TableStylingProps<T> & {
   /**
    * Data rows to render. Optional to allow callers to omit until data is loaded
@@ -30,7 +32,19 @@ export type DataTableProps<T> = TableStylingProps<T> & {
   columns: DataTableColumn<T>[];
   getKey?: (item: T, index: number) => React.Key;
   onRowClick?: (item: T) => void;
+  /**
+   * onRowClick が設定されている場合のホバー時カーソル
+   * @default "pointer"
+   */
+  rowCursor?: RowCursor;
   emptyValueFallback?: string;
+};
+
+const ROW_CURSOR_CLASS: Record<RowCursor, string> = {
+  pointer: "cursor-pointer",
+  default: "cursor-default",
+  "zoom-in": "cursor-zoom-in",
+  grab: "cursor-grab",
 };
 
 export default function DataTable<T>({
@@ -41,6 +55,7 @@ export default function DataTable<T>({
   maxHeight,
   rowClassName,
   onRowClick,
+  rowCursor = "pointer",
   emptyValueFallback,
   scrollContainerRef,
   bottomSentinelRef,
@@ -77,7 +92,11 @@ export default function DataTable<T>({
           {items.map((item, index) => (
             <TableRow
               key={getKey(item, index)}
-              className={cn("group", resolveRowClassName(rowClassName, item, { index }))}
+              className={cn(
+                "group",
+                onRowClick && ROW_CURSOR_CLASS[rowCursor],
+                resolveRowClassName(rowClassName, item, { index }),
+              )}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
             >
               {columns.map((col, idx) => (

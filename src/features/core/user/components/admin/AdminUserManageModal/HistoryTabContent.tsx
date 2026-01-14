@@ -5,9 +5,9 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import { Button } from "@/components/Form/Button/Button";
-import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
@@ -45,6 +45,104 @@ function formatActionType(actionType: string): string {
 
 function formatActorType(actorType: string): string {
   return USER_ACTION_ACTOR_TYPE_LABELS[actorType as UserActionActorType] ?? actorType;
+}
+
+// 差分の種類
+type DiffType = "added" | "removed" | "changed";
+
+type DiffItem = {
+  key: string;
+  type: DiffType;
+  before: unknown;
+  after: unknown;
+};
+
+// オブジェクトの差分を計算
+function computeDiff(
+  before: Record<string, unknown> | null | undefined,
+  after: Record<string, unknown> | null | undefined,
+): DiffItem[] {
+  const beforeObj = before ?? {};
+  const afterObj = after ?? {};
+  const allKeys = new Set([...Object.keys(beforeObj), ...Object.keys(afterObj)]);
+  const diffs: DiffItem[] = [];
+
+  for (const key of allKeys) {
+    const hasBefore = key in beforeObj;
+    const hasAfter = key in afterObj;
+    const beforeVal = beforeObj[key];
+    const afterVal = afterObj[key];
+
+    if (!hasBefore && hasAfter) {
+      diffs.push({ key, type: "added", before: null, after: afterVal });
+    } else if (hasBefore && !hasAfter) {
+      diffs.push({ key, type: "removed", before: beforeVal, after: null });
+    } else if (JSON.stringify(beforeVal) !== JSON.stringify(afterVal)) {
+      diffs.push({ key, type: "changed", before: beforeVal, after: afterVal });
+    }
+    // unchanged は表示しない
+  }
+
+  return diffs;
+}
+
+// 値をフォーマット
+function formatValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value, null, 2);
+  }
+  return String(value);
+}
+
+// 差分表示コンポーネント
+function DiffView({ before, after }: { before: unknown; after: unknown }) {
+  const diffs = computeDiff(
+    before as Record<string, unknown> | null,
+    after as Record<string, unknown> | null,
+  );
+
+  if (diffs.length === 0) {
+    return <Para size="sm" tone="muted">変更なし</Para>;
+  }
+
+  return (
+    <div className="divide-y divide-border rounded border border-border overflow-hidden">
+      {diffs.map((diff) => (
+        <Flex
+          key={diff.key}
+          gap="sm"
+          align="center"
+          className="px-2 py-1.5 bg-card text-xs"
+        >
+          <span className="shrink-0 font-medium w-28 truncate" title={diff.key}>
+            {diff.key}
+          </span>
+          <div className="flex-1 min-w-0 truncate">
+            {diff.type === "added" ? (
+              <span className="text-muted-foreground italic">（なし）</span>
+            ) : (
+              <code className="rounded bg-muted/50 px-1.5 py-0.5 border border-border">
+                {formatValue(diff.before)}
+              </code>
+            )}
+          </div>
+          <span className="shrink-0 text-muted-foreground">→</span>
+          <div className="flex-1 min-w-0 truncate">
+            {diff.type === "removed" ? (
+              <span className="text-destructive italic">（削除）</span>
+            ) : (
+              <code className="rounded bg-muted/50 px-1.5 py-0.5 border border-border">
+                {formatValue(diff.after)}
+              </code>
+            )}
+          </div>
+        </Flex>
+      ))}
+    </div>
+  );
 }
 
 export function HistoryTabContent({ user }: Props) {
@@ -107,21 +205,6 @@ export function HistoryTabContent({ user }: Props) {
       header: "理由",
       render: (log) => log.reason ?? "-",
     },
-    {
-      header: "詳細",
-      render: (log) => (
-        <TableCellAction className="justify-start">
-          <Button
-            type="button"
-            size="xs"
-            variant="secondary"
-            onClick={() => setDetailLog(log)}
-          >
-            詳細
-          </Button>
-        </TableCellAction>
-      ),
-    },
   ];
 
   const hasLogs = logs.length > 0;
@@ -139,25 +222,14 @@ export function HistoryTabContent({ user }: Props) {
       [{ label: "理由", value: detailLog.reason ?? "理由は入力されていません" }],
     ];
 
-    // beforeValue / afterValue がある場合のみ追加
-    if (detailLog.beforeValue !== null && detailLog.beforeValue !== undefined) {
+    // beforeValue / afterValue がある場合は差分表示
+    const hasBefore = detailLog.beforeValue !== null && detailLog.beforeValue !== undefined;
+    const hasAfter = detailLog.afterValue !== null && detailLog.afterValue !== undefined;
+
+    if (hasBefore || hasAfter) {
       rows.push([{
-        label: "変更前の値",
-        value: (
-          <pre className="max-h-40 overflow-auto rounded bg-muted p-2 text-xs">
-            {JSON.stringify(detailLog.beforeValue, null, 2)}
-          </pre>
-        ),
-      }]);
-    }
-    if (detailLog.afterValue !== null && detailLog.afterValue !== undefined) {
-      rows.push([{
-        label: "変更後の値",
-        value: (
-          <pre className="max-h-40 overflow-auto rounded bg-muted p-2 text-xs">
-            {JSON.stringify(detailLog.afterValue, null, 2)}
-          </pre>
-        ),
+        label: "変更内容",
+        value: <DiffView before={detailLog.beforeValue} after={detailLog.afterValue} />,
       }]);
     }
 
@@ -189,6 +261,7 @@ export function HistoryTabContent({ user }: Props) {
               maxHeight="none"
               getKey={(item) => item.id}
               emptyValueFallback="-"
+              onRowClick={setDetailLog}
               scrollContainerRef={handleScrollContainerRef}
               bottomSentinelRef={handleBottomSentinelRef}
             />

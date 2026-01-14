@@ -2,9 +2,10 @@
 
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/constants/role";
-import { getRoleConfig } from "@/features/core/user/utils/roleHelpers";
+import { getRoleConfig, hasRoleProfile } from "@/features/core/user/utils/roleHelpers";
 import { DomainError } from "@/lib/errors";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { deleteProfile } from "@/features/core/userProfile/services/server/operations/deleteProfile";
 import { base } from "../drizzleBase";
 
 export type ChangeRoleInput = {
@@ -12,13 +13,14 @@ export type ChangeRoleInput = {
   newRole: UserRoleType;
   actorId: string;
   reason?: string;
+  deleteOldProfile?: boolean;
 };
 
 /**
  * ユーザーのロールを変更し、アクションログを記録する
  */
 export async function changeRole(input: ChangeRoleInput): Promise<User> {
-  const { userId, newRole, actorId, reason } = input;
+  const { userId, newRole, actorId, reason, deleteOldProfile } = input;
 
   // ロールの存在チェック
   const roleConfig = getRoleConfig(newRole);
@@ -39,6 +41,11 @@ export async function changeRole(input: ChangeRoleInput): Promise<User> {
     throw new DomainError("現在と同じロールには変更できません", { status: 400 });
   }
 
+  // 旧ロールのプロフィールを削除（オプション）
+  if (deleteOldProfile && beforeRole && hasRoleProfile(beforeRole)) {
+    await deleteProfile(userId, beforeRole);
+  }
+
   // ロールを更新
   const updatePayload = { role: newRole } as Partial<User>;
   const updatedUser = await base.update(userId, updatePayload);
@@ -50,7 +57,7 @@ export async function changeRole(input: ChangeRoleInput): Promise<User> {
     actorType: "admin",
     actionType: "admin_role_change",
     beforeValue: { role: beforeRole },
-    afterValue: { role: newRole },
+    afterValue: { role: newRole, profileDeleted: deleteOldProfile ?? false },
     reason: reason ?? null,
   });
 
