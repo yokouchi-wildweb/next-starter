@@ -14,11 +14,11 @@ import { ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 
-import { ACCORDION_TRANSITION, accordionVariants } from "./animations";
-import { MenuItemLabel } from "./MenuItemLabel";
-import { MenuItemLink } from "./MenuItemLink";
-import { hasChildren, isActionItem, hasValidHref } from "./types";
-import type { NavigationMenuItem } from "./types";
+import { ACCORDION_TRANSITION, accordionVariants } from "../animations";
+import { MenuItemLabel } from "../MenuItemLabel";
+import { MenuItemLink } from "../MenuItemLink";
+import { hasChildren, isActionItem, hasValidHref } from "../types";
+import type { NavigationMenuItem } from "../types";
 
 export type SpMenuItemProps = {
   readonly item: NavigationMenuItem;

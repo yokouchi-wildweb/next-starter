@@ -11,7 +11,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { SpNavOverlay } from "./SpNavOverlay";
 import { SpNavPanel } from "./SpNavPanel";
-import type { NavigationMenuItem } from "./types";
+import type { NavigationMenuItem } from "../types";
 
 export type SpNavigationProps = {
   readonly isOpen: boolean;

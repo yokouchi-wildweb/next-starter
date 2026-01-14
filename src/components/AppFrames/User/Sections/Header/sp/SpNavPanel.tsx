@@ -6,9 +6,9 @@ import type { ReactNode } from "react";
 
 import { motion } from "framer-motion";
 
-import { SLIDE_TRANSITION, slideFromRightVariants } from "./animations";
+import { SLIDE_TRANSITION, slideFromRightVariants } from "../animations";
 import { SpMenuItem } from "./SpMenuItem";
-import type { NavigationMenuItem } from "./types";
+import type { NavigationMenuItem } from "../types";
 
 export type SpNavPanelProps = {
   readonly items: readonly NavigationMenuItem[];

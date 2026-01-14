@@ -6,7 +6,7 @@
 
 import { motion } from "framer-motion";
 
-import { FADE_TRANSITION, overlayVariants } from "./animations";
+import { FADE_TRANSITION, overlayVariants } from "../animations";
 
 export type SpNavOverlayProps = {
   readonly onClose: () => void;

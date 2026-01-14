@@ -6,9 +6,9 @@ import { Button } from "@/components/Form/Button/Button";
 import { useHeaderData } from "../../hooks";
 import { Brand } from "./Brand";
 import { HeaderShell } from "./HeaderShell";
-import { PcNavigation } from "./PcNavigation";
-import { SpNavigation } from "./SpNavigation";
-import { SpNavSwitch } from "./SpNavSwitch";
+import { PcNavigation } from "./pc/PcNavigation";
+import { SpNavigation } from "./sp/SpNavigation";
+import { SpNavSwitch } from "./sp/SpNavSwitch";
 
 export const UserNavigation = () => {
   const {

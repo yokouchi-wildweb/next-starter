@@ -6,10 +6,10 @@
 
 import { ChevronDown } from "lucide-react";
 
-import { MenuItemLabel } from "./MenuItemLabel";
-import { MenuItemLink } from "./MenuItemLink";
-import { hasChildren, isActionItem } from "./types";
-import type { NavigationMenuItem } from "./types";
+import { MenuItemLabel } from "../MenuItemLabel";
+import { MenuItemLink } from "../MenuItemLink";
+import { hasChildren, isActionItem } from "../types";
+import type { NavigationMenuItem } from "../types";
 
 export type PcMenuItemProps = {
   readonly item: NavigationMenuItem;

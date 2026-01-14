@@ -5,7 +5,7 @@
  */
 
 import { PcMenuItem } from "./PcMenuItem";
-import type { NavigationMenuItem } from "./types";
+import type { NavigationMenuItem } from "../types";
 
 export type PcNavigationProps = {
   readonly items: readonly NavigationMenuItem[];
