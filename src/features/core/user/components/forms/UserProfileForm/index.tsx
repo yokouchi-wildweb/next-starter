@@ -1,4 +1,4 @@
-// src/features/user/components/common/EmailUserProfileForm/index.tsx
+// src/features/core/user/components/forms/UserProfileForm/index.tsx
 
 "use client";
 
@@ -10,25 +10,34 @@ import { toast } from "sonner";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
-import { PasswordInput, TextInput } from "@/components/Form/Controlled";
+import { TextInput } from "@/components/Form/Controlled";
 import { Flex } from "@/components/Layout/Flex";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
 import type { User } from "@/features/user/entities";
+import {
+  RoleProfileFields,
+  getProfilesByCategory,
+} from "@/features/core/userProfile/components/common";
 
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
 
 type Props = {
   user: User;
+  profileData?: Record<string, unknown>;
   redirectPath?: string;
 };
 
-export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) {
+export function UserProfileForm({
+  user,
+  profileData,
+  redirectPath = "/mypage",
+}: Props) {
   const methods = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     mode: "onSubmit",
     shouldUnregister: false,
-    defaultValues: createDefaultValues(user),
+    defaultValues: createDefaultValues(user, profileData),
   });
 
   const {
@@ -42,17 +51,13 @@ export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
   const submit = async (values: FormValues) => {
     const displayName = values.displayName?.trim() ?? "";
     const resolvedDisplayName = displayName.length > 0 ? displayName : null;
-    const email = values.email.trim();
-    const localPassword = values.localPassword?.trim() ?? "";
-    const resolvedLocalPassword = localPassword.length > 0 ? localPassword : undefined;
 
     try {
       await trigger({
         id: user.id,
         data: {
           displayName: resolvedDisplayName,
-          email,
-          localPassword: resolvedLocalPassword,
+          profileData: values.profileData,
         },
       });
       toast.success("プロフィールを更新しました");
@@ -72,17 +77,11 @@ export function EmailUserProfileForm({ user, redirectPath = "/mypage" }: Props) 
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />
-      <FormFieldItem
-        control={control}
-        name="email"
-        label="メールアドレス"
-        renderInput={(field) => <TextInput type="email" field={field} />}
-      />
-      <FormFieldItem
-        control={control}
-        name="localPassword"
-        label="パスワード"
-        renderInput={(field) => <PasswordInput field={field} placeholder="新しいパスワード" />}
+      <RoleProfileFields
+        methods={methods}
+        role={user.role}
+        profiles={getProfilesByCategory("user")}
+        tag="selfEdit"
       />
       <Flex justify="center" gap="sm">
         <Button type="submit" disabled={loading}>

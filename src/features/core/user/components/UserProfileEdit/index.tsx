@@ -5,30 +5,14 @@ import { Section } from "@/components/Layout/Section";
 import { Para, SecTitle } from "@/components/TextBlocks";
 import type { User } from "@/features/core/user/entities";
 
-import { EmailUserProfileForm } from "../forms/EmailUserProfileForm";
-import { OauthUserProfileForm } from "../forms/OauthUserProfileForm";
+import { UserProfileForm } from "../forms/UserProfileForm";
 
 type Props = {
   user: User;
+  profileData?: Record<string, unknown>;
 };
 
-function resolveContent(user: User) {
-  if (user.providerType === "local") {
-    return (
-      <Para>
-        現在、ローカル認証ユーザーでログイン中です。このユーザーにはプロフィール編集画面が提供されていません。
-      </Para>
-    );
-  }
-
-  if (user.providerType === "email") {
-    return <EmailUserProfileForm user={user} />;
-  }
-
-  return <OauthUserProfileForm user={user} />;
-}
-
-export default function UserProfileEdit({ user }: Props) {
+export default function UserProfileEdit({ user, profileData }: Props) {
   return (
     <>
       <Section>
@@ -37,7 +21,7 @@ export default function UserProfileEdit({ user }: Props) {
       <Section space="sm">
         <SecTitle as="h2">プロフィール設定</SecTitle>
         <Block appearance="outlined" padding="lg">
-          {resolveContent(user)}
+          <UserProfileForm user={user} profileData={profileData} />
         </Block>
       </Section>
     </>
