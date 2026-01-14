@@ -12,22 +12,23 @@ export type MenuItemLinkProps = {
   readonly className: string;
   readonly onClick?: (e: React.MouseEvent) => void;
   readonly children: React.ReactNode;
+  readonly id?: string;
 };
 
-export const MenuItemLink = ({ href, className, onClick, children }: MenuItemLinkProps) => {
+export const MenuItemLink = ({ href, className, onClick, children, id }: MenuItemLinkProps) => {
   const normalizedHref = href ?? undefined;
   const hasLink = normalizedHref != null && normalizedHref !== "";
 
   if (hasLink) {
     return (
-      <Link href={normalizedHref} onClick={onClick} className={className}>
+      <Link id={id} href={normalizedHref} onClick={onClick} className={className}>
         {children}
       </Link>
     );
   }
 
   return (
-    <span className={className} onClick={onClick}>
+    <span id={id} className={className} onClick={onClick}>
       {children}
     </span>
   );

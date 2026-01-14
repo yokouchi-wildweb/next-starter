@@ -31,6 +31,7 @@ export const BottomNavSpacer = () => {
       {/* スマホ用スペーサー */}
       {spHeight > 0 && (
         <div
+          id="bottom-nav-spacer-sp"
           className="block sm:hidden"
           style={{ height: spHeight }}
           aria-hidden="true"
@@ -39,6 +40,7 @@ export const BottomNavSpacer = () => {
       {/* PC用スペーサー */}
       {pcHeight > 0 && (
         <div
+          id="bottom-nav-spacer-pc"
           className="hidden sm:block"
           style={{ height: pcHeight }}
           aria-hidden="true"

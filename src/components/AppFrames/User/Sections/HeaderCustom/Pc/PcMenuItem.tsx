@@ -33,7 +33,7 @@ export const PcMenuItem = ({
   // 子メニューありの場合はドロップダウン
   if (hasChildren(item)) {
     return (
-      <div className="group relative flex items-stretch">
+      <div id={`header-custom-pc-menu-${item.key}`} className="group relative flex items-stretch">
         <PcMenuItemContent
           item={item}
           className={styles.trigger}
@@ -41,10 +41,10 @@ export const PcMenuItem = ({
           showChevron
           onNavigate={onNavigate}
         />
-        <div className="invisible absolute left-0 top-full z-50 min-w-40 pt-2 opacity-0 transition-all group-hover:visible group-hover:opacity-100">
-          <ul className="rounded-md border border-border bg-popover py-1 shadow-lg">
+        <div id={`header-custom-pc-dropdown-${item.key}`} className="invisible absolute left-0 top-full z-50 min-w-40 pt-2 opacity-0 transition-all group-hover:visible group-hover:opacity-100">
+          <ul id={`header-custom-pc-dropdown-list-${item.key}`} className="rounded-md border border-border bg-popover py-1 shadow-lg">
             {item.children?.map((child) => (
-              <li key={child.key}>
+              <li key={child.key} id={`header-custom-pc-dropdown-item-${child.key}`}>
                 <PcMenuItem
                   item={child}
                   showIcon={showIcon}
@@ -68,6 +68,7 @@ export const PcMenuItem = ({
 
     return (
       <button
+        id={`header-custom-pc-action-${item.key}`}
         type="button"
         onClick={handleClick}
         disabled={item.disabled}
@@ -80,6 +81,7 @@ export const PcMenuItem = ({
 
   // ドロップダウン内の子アイテムか通常アイテムかでクラスを切り替え
   const linkClassName = isDropdownChild ? styles.dropdownItem : styles.link;
+  const itemId = isDropdownChild ? `header-custom-pc-dropdown-link-${item.key}` : `header-custom-pc-link-${item.key}`;
 
   return (
     <PcMenuItemContent
@@ -87,6 +89,7 @@ export const PcMenuItem = ({
       className={linkClassName}
       showIcon={showIcon}
       onNavigate={onNavigate}
+      id={itemId}
     />
   );
 };
@@ -98,6 +101,7 @@ type PcMenuItemContentProps = {
   readonly showIcon?: boolean;
   readonly showChevron?: boolean;
   readonly onNavigate?: () => void;
+  readonly id?: string;
 };
 
 const PcMenuItemContent = ({
@@ -106,6 +110,7 @@ const PcMenuItemContent = ({
   showIcon = true,
   showChevron = false,
   onNavigate,
+  id,
 }: PcMenuItemContentProps) => {
   const content = (
     <>
@@ -115,7 +120,7 @@ const PcMenuItemContent = ({
   );
 
   return (
-    <MenuItemLink href={item.href} className={className} onClick={onNavigate}>
+    <MenuItemLink href={item.href} className={className} onClick={onNavigate} id={id}>
       {content}
     </MenuItemLink>
   );

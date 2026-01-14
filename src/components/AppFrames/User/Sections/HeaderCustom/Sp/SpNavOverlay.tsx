@@ -14,6 +14,7 @@ export type SpNavOverlayProps = {
 
 export const SpNavOverlay = ({ onClose }: SpNavOverlayProps) => (
   <motion.button
+    id="header-custom-sp-nav-overlay"
     type="button"
     aria-label="メニューを閉じる"
     className="absolute inset-0 h-full w-full bg-black/50 below-header-layer"

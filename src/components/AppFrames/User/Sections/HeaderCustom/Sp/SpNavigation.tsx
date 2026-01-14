@@ -34,8 +34,8 @@ export const SpNavigation = ({
   return (
     <AnimatePresence>
       {isOpen ? (
-        <motion.div key="mobile-navigation" className="sm:hidden">
-          <div className="fixed inset-x-0 bottom-0" style={{ top: headerOffset }}>
+        <motion.div id="header-custom-sp-nav" key="mobile-navigation" className="sm:hidden">
+          <div id="header-custom-sp-nav-container" className="fixed inset-x-0 bottom-0" style={{ top: headerOffset }}>
             <SpNavOverlay onClose={onClose} />
             <SpNavPanel items={items} showIcons={showIcons} onNavigate={onClose} footer={footer} />
           </div>

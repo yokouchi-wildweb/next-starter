@@ -13,7 +13,7 @@ export type PcNavigationProps = {
 };
 
 export const PcNavigation = ({ items, showIcons = true }: PcNavigationProps) => (
-  <nav className="hidden items-stretch text-sm font-medium sm:flex">
+  <nav id="header-pc-nav" className="hidden items-stretch text-sm font-medium sm:flex">
     {items.map((item) => (
       <PcMenuItem key={item.key} item={item} showIcon={showIcons} />
     ))}

@@ -34,9 +34,10 @@ export function UserFooter() {
     >
       {/* SNSリンク */}
       {snsEnabled && socialLinks.length > 0 && (
-        <div className="flex items-center justify-center gap-4">
+        <div id="footer-custom-sns-links" className="flex items-center justify-center gap-4">
           {socialLinks.map((item) => (
             <Link
+              id={`footer-custom-sns-link-${item.key}`}
               key={item.key}
               href={item.href}
               target="_blank"
@@ -52,17 +53,18 @@ export function UserFooter() {
 
       {/* フッターリンク */}
       {linksEnabled && footerLinks.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
+        <div id="footer-custom-links" className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
           {footerLinks.map((item, index) => (
-            <span key={item.key} className="flex items-center gap-2">
+            <span key={item.key} id={`footer-custom-link-wrapper-${item.key}`} className="flex items-center gap-2">
               <Link
+                id={`footer-custom-link-${item.key}`}
                 href={item.href}
                 className="text-muted-foreground transition-colors hover:text-foreground hover:underline"
               >
                 {item.label}
               </Link>
               {index < footerLinks.length - 1 && (
-                <span className="text-muted-foreground/50">{linkSeparator}</span>
+                <span id={`footer-custom-link-separator-${index}`} className="text-muted-foreground/50">{linkSeparator}</span>
               )}
             </span>
           ))}
@@ -71,7 +73,7 @@ export function UserFooter() {
 
       {/* コピーライト */}
       {copyrightEnabled && (
-        <p className="text-center text-xs text-muted-foreground">
+        <p id="footer-custom-copyright" className="text-center text-xs text-muted-foreground">
           {copyrightText}
         </p>
       )}

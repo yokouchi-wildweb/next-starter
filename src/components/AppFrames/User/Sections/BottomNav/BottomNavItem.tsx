@@ -41,14 +41,15 @@ export const BottomNavItem = ({ item }: BottomNavItemProps) => {
 
   return (
     <Link
+      id={`bottom-nav-item-${item.key}`}
       href={item.href}
       className={cn(
         "flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors",
         isActive ? activeColorClass : "text-muted-foreground",
       )}
     >
-      <Icon className="size-6" />
-      <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+      <Icon id={`bottom-nav-icon-${item.key}`} className="size-6" />
+      <span id={`bottom-nav-label-${item.key}`} className="text-[10px] font-medium leading-tight">{item.label}</span>
     </Link>
   );
 };

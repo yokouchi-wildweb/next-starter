@@ -26,6 +26,7 @@ export const UserBottomNav = () => {
 
   return (
     <nav
+      id="bottom-nav"
       className={cn(
         "fixed inset-x-0 bottom-0 z-50 items-center justify-around border-t border-border bg-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)]",
         visibilityClass,

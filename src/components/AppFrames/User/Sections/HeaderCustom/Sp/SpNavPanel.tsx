@@ -20,6 +20,7 @@ export type SpNavPanelProps = {
 
 export const SpNavPanel = ({ items, showIcons = true, onNavigate, footer }: SpNavPanelProps) => (
   <motion.nav
+    id="header-custom-sp-nav-panel"
     className="relative modal-layer ml-auto flex h-full w-3/4 max-w-sm flex-col border-l border-border bg-header text-header-foreground shadow-2xl"
     variants={slideFromRightVariants}
     initial="hidden"
@@ -27,9 +28,9 @@ export const SpNavPanel = ({ items, showIcons = true, onNavigate, footer }: SpNa
     exit="hidden"
     transition={SLIDE_TRANSITION}
   >
-    <ul className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6 pt-6 text-base font-medium">
+    <ul id="header-custom-sp-nav-list" className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6 pt-6 text-base font-medium">
       {items.map((item) => (
-        <li key={item.key}>
+        <li key={item.key} id={`header-custom-sp-nav-item-${item.key}`}>
           <SpMenuItem item={item} showIcon={showIcons} onNavigate={onNavigate} />
         </li>
       ))}
@@ -37,7 +38,7 @@ export const SpNavPanel = ({ items, showIcons = true, onNavigate, footer }: SpNa
 
     {/* フッター領域（CTAボタンなど） */}
     {footer && (
-      <div className="border-t border-border px-4 py-4">
+      <div id="header-custom-sp-nav-footer" className="border-t border-border px-4 py-4">
         {footer}
       </div>
     )}

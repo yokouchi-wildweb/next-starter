@@ -46,10 +46,11 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
     };
 
     return (
-      <div>
-        <div className={styles.trigger} onClick={handleToggle}>
+      <div id={`header-sp-accordion-${item.key}`}>
+        <div id={`header-sp-accordion-trigger-${item.key}`} className={styles.trigger} onClick={handleToggle}>
           {hasValidHref(item.href) ? (
             <Link
+              id={`header-sp-accordion-link-${item.key}`}
               href={item.href}
               onClick={(e) => {
                 e.stopPropagation();
@@ -60,7 +61,7 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
               <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
             </Link>
           ) : (
-            <span className="flex-1">
+            <span id={`header-sp-accordion-label-${item.key}`} className="flex-1">
               <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
             </span>
           )}
@@ -72,6 +73,7 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
         <AnimatePresence>
           {isExpanded && (
             <motion.ul
+              id={`header-sp-accordion-children-${item.key}`}
               variants={accordionVariants}
               initial="hidden"
               animate="visible"
@@ -80,7 +82,7 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
               className="overflow-hidden"
             >
               {item.children?.map((child) => (
-                <li key={child.key}>
+                <li key={child.key} id={`header-sp-accordion-child-${child.key}`}>
                   <SpMenuItemChild item={child} showIcon={showIcon} onNavigate={onNavigate} />
                 </li>
               ))}
@@ -100,6 +102,7 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
 
     return (
       <Button
+        id={`header-sp-action-${item.key}`}
         type="button"
         onClick={handleClick}
         disabled={item.disabled}
@@ -113,7 +116,7 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
 
   // 通常のリンク/非リンクアイテム
   return (
-    <MenuItemLink href={item.href} className={styles.link} onClick={onNavigate}>
+    <MenuItemLink id={`header-sp-link-${item.key}`} href={item.href} className={styles.link} onClick={onNavigate}>
       <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
     </MenuItemLink>
   );
@@ -127,7 +130,7 @@ type SpMenuItemChildProps = {
 };
 
 const SpMenuItemChild = ({ item, showIcon = true, onNavigate }: SpMenuItemChildProps) => (
-  <MenuItemLink href={item.href} className={styles.childLink} onClick={onNavigate}>
+  <MenuItemLink id={`header-sp-child-link-${item.key}`} href={item.href} className={styles.childLink} onClick={onNavigate}>
     <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
   </MenuItemLink>
 );
