@@ -1,9 +1,10 @@
 import { z } from "zod";
 
 import type { User } from "@/features/core/user/entities";
-import { MANAGERIAL_USER_DEFAULT_ROLE } from "@/features/core/user/constants/managerialUserAdmin";
-import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
-import { MANAGERIAL_USER_PROFILES } from "../managerialUserProfiles";
+import {
+  createProfileDataValidator,
+  getProfilesByCategory,
+} from "@/features/core/userProfile/utils/profileSchemaHelpers";
 
 const displayNameSchema = z.string();
 
@@ -20,7 +21,7 @@ const newPasswordSchema = z
   });
 
 // profileData バリデーション関数（admin タグでフィルタリング）
-const validateProfileData = createProfileDataValidator(MANAGERIAL_USER_PROFILES, "admin");
+const validateProfileData = createProfileDataValidator(getProfilesByCategory("admin"), "admin");
 
 export const FormSchema = z
   .object({
@@ -49,7 +50,7 @@ export const createDefaultValues = (
   return {
     displayName: user.displayName ?? "",
     email: user.email ?? "",
-    role: user.role ?? MANAGERIAL_USER_DEFAULT_ROLE,
+    role: user.role ?? "admin",
     newPassword: "",
     profileData: profileData ?? {},
   };

@@ -10,7 +10,7 @@ import { Section } from "@/components/Layout/Section";
 import { SecTitle } from "@/components/TextBlocks";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
-import { USER_ROLE_OPTIONS, formatUserStatusLabel } from "@/features/core/user/constants";
+import { formatUserRoleLabel, formatUserStatusLabel } from "@/features/core/user/constants";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
 import { formatDateJa } from "@/utils/date";
@@ -21,12 +21,6 @@ import { UserInfoTable, type UserInfoRow } from "./UserInfoTable";
 type UserMyPageProps = {
   user: User;
 };
-
-const roleLabelMap = new Map<UserRoleType, string>(USER_ROLE_OPTIONS.map((option) => [option.id, option.name]));
-
-function resolveRoleLabel(role: UserRoleType): string {
-  return roleLabelMap.get(role) ?? role;
-}
 
 function formatLastAuthenticatedAt(date: User["lastAuthenticatedAt"]): string {
   if (!date) {
@@ -49,7 +43,7 @@ export default function UserMyPage({ user }: UserMyPageProps) {
   const rows: UserInfoRow[] = [
     { label: "ユーザーID", value: user.id },
     { label: "表示名", value: user.displayName ?? "未設定" },
-    { label: "権限", value: resolveRoleLabel(user.role) },
+    { label: "権限", value: formatUserRoleLabel(user.role, user.role) },
     { label: "ステータス", value: formatUserStatusLabel(user.status, user.status ?? "未設定") },
     { label: "プロバイダータイプ", value: user.providerType },
     { label: "メールアドレス", value: user.email ?? "未設定" },

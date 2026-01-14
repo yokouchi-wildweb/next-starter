@@ -14,12 +14,11 @@ import { TextInput, PasswordInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/core/user/hooks/useUpdateUser";
 import type { User } from "@/features/core/user/entities";
-import { MANAGERIAL_USER_ROLES } from "@/features/core/user/constants/managerialUserAdmin";
 import {
   RoleSelector,
   RoleProfileFields,
+  getProfilesByCategory,
 } from "@/features/core/userProfile/components/common";
-import { MANAGERIAL_USER_PROFILES } from "../managerialUserProfiles";
 
 import { FormSchema, type FormValues, createDefaultValues } from "./formEntities";
 
@@ -86,7 +85,6 @@ export default function ManagerialUserEditForm({
         control={control}
         name="role"
         categories={["admin"]}
-        selectableRoles={MANAGERIAL_USER_ROLES}
         inputType="select"
       />
       <FormFieldItem
@@ -109,7 +107,7 @@ export default function ManagerialUserEditForm({
           <PasswordInput field={field} placeholder="新しいパスワード" />
         )}
       />
-      <RoleProfileFields methods={methods} role={selectedRole} profiles={MANAGERIAL_USER_PROFILES} />
+      <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("admin")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "更新中..." : "更新"}

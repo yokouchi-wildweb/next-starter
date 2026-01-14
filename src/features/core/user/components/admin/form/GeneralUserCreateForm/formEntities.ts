@@ -1,8 +1,9 @@
 import { z } from "zod";
 
-import { GENERAL_USER_DEFAULT_ROLE } from "@/features/core/user/constants/generalUserAdmin";
-import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
-import { GENERAL_USER_PROFILES } from "../generalUserProfiles";
+import {
+  createProfileDataValidator,
+  getProfilesByCategory,
+} from "@/features/core/userProfile/utils/profileSchemaHelpers";
 
 const displayNameSchema = z.string();
 
@@ -17,7 +18,7 @@ const localPasswordSchema = z
   .min(8, { message: "パスワードは8文字以上で入力してください" });
 
 // profileData バリデーション関数（admin タグでフィルタリング）
-const validateProfileData = createProfileDataValidator(GENERAL_USER_PROFILES, "admin");
+const validateProfileData = createProfileDataValidator(getProfilesByCategory("user"), "admin");
 
 export const FormSchema = z
   .object({
@@ -42,7 +43,7 @@ export type FormValues = {
 export const DefaultValues: FormValues = {
   displayName: "",
   email: "",
-  role: GENERAL_USER_DEFAULT_ROLE,
+  role: "user",
   localPassword: "",
   profileData: {},
 };

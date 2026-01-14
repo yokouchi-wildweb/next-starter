@@ -13,12 +13,11 @@ import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
 import { useCreateUser } from "@/features/core/user/hooks/useCreateUser";
-import { GENERAL_USER_ROLES } from "@/features/core/user/constants/generalUserAdmin";
 import {
   RoleSelector,
   RoleProfileFields,
+  getProfilesByCategory,
 } from "@/features/core/userProfile/components/common";
-import { GENERAL_USER_PROFILES } from "../generalUserProfiles";
 
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
@@ -68,7 +67,6 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
         control={control}
         name="role"
         categories={["user"]}
-        selectableRoles={GENERAL_USER_ROLES}
         inputType="select"
       />
       <FormFieldItem
@@ -89,7 +87,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />
-      <RoleProfileFields methods={methods} role={selectedRole} profiles={GENERAL_USER_PROFILES} />
+      <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
           {loading ? "登録中..." : "登録"}

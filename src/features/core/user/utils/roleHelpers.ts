@@ -2,21 +2,15 @@
 // ロール関連ヘルパー関数
 
 import { ALL_ROLES } from "@/registry/roleRegistry";
-import {
-  CORE_ROLE_IDS,
-  USER_ROLE_LABELS,
-  USER_ROLE_CATEGORIES,
-  USER_ROLE_HAS_PROFILE,
-  type CoreRoleId,
-  type UserRoleType,
-} from "../constants/role";
+import type { RoleConfig } from "@/features/core/user/types";
+import type { UserRoleType } from "../constants/role";
 import type { RoleCategory } from "../types";
 
 /**
- * ロールIDがコアロールか判定
+ * ロール設定を取得
  */
-export function isCoreRole(roleId: string): roleId is CoreRoleId {
-  return CORE_ROLE_IDS.includes(roleId as CoreRoleId);
+export function getRoleConfig(role: string): RoleConfig | undefined {
+  return ALL_ROLES.find((r) => r.id === role);
 }
 
 /**
@@ -41,6 +35,16 @@ export function getRoleOptionsByCategory(
 }
 
 /**
+ * 全ロールオプションを取得（セレクトボックス用）
+ */
+export function getAllRoleOptions(): readonly { id: UserRoleType; name: string }[] {
+  return ALL_ROLES.map((r) => ({
+    id: r.id as UserRoleType,
+    name: r.label,
+  }));
+}
+
+/**
  * プロフィールを持つロールのID配列を取得
  */
 export function getRolesWithProfile(): UserRoleType[] {
@@ -59,19 +63,26 @@ export function formatUserRoleLabel(
   if (!role) {
     return fallback;
   }
-  return USER_ROLE_LABELS[role as UserRoleType] ?? role;
+  return getRoleConfig(role)?.label ?? role;
 }
 
 /**
  * ロールのカテゴリを取得
  */
-export function getRoleCategory(role: UserRoleType): RoleCategory {
-  return USER_ROLE_CATEGORIES[role];
+export function getRoleCategory(role: string): RoleCategory | undefined {
+  return getRoleConfig(role)?.category;
 }
 
 /**
  * ロールがプロフィールを持つか判定
  */
-export function hasRoleProfile(role: UserRoleType): boolean {
-  return USER_ROLE_HAS_PROFILE[role];
+export function hasRoleProfile(role: string): boolean {
+  return getRoleConfig(role)?.hasProfile ?? false;
+}
+
+/**
+ * ロールの説明を取得
+ */
+export function getRoleDescription(role: string): string | undefined {
+  return getRoleConfig(role)?.description;
 }

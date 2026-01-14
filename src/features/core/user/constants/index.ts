@@ -7,27 +7,23 @@ export {
 
 // ロール設定
 export { ALL_ROLES } from "@/registry/roleRegistry";
-export { CORE_ROLE_IDS, type CoreRoleId } from "./role";
-export { isCoreRole } from "../utils/roleHelpers";
 
 // ロール派生定数
 export {
   USER_ROLES,
-  USER_ROLE_OPTIONS,
-  USER_ROLE_LABELS,
-  USER_ROLE_CATEGORIES,
-  USER_ROLE_DESCRIPTIONS,
-  USER_ROLE_HAS_PROFILE,
   type UserRoleType,
 } from "./role";
 
 // ロールヘルパー関数
 export {
+  getRoleConfig,
   formatUserRoleLabel,
   getRolesByCategory,
   getRoleOptionsByCategory,
+  getAllRoleOptions,
   getRolesWithProfile,
   getRoleCategory,
+  getRoleDescription,
   hasRoleProfile,
 } from "../utils/roleHelpers";
 

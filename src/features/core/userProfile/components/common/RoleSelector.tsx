@@ -10,9 +10,8 @@ import { RadioGroupInput, type RadioGroupDisplayType } from "@/components/Form/M
 import { SelectInput } from "@/components/Form/Manual/Select";
 import {
   getRoleOptionsByCategory,
-  USER_ROLE_DESCRIPTIONS,
+  getRoleDescription,
   type RoleCategory,
-  type UserRoleType,
 } from "@/features/core/user/constants";
 
 /**
@@ -96,7 +95,7 @@ export function RoleSelector<TFieldValues extends FieldValues>({
       value: r.id,
       label: r.name,
       ...(showDescription && {
-        description: USER_ROLE_DESCRIPTIONS[r.id as UserRoleType],
+        description: getRoleDescription(r.id),
       }),
     }));
   }, [categories, selectableRoles, showDescription]);
