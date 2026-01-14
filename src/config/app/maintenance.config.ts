@@ -6,7 +6,7 @@
  */
 export const maintenanceConfig = {
   // メンテナンスモードの有効/無効
-  enabled: false,
+  enabled: true,
 
   // メンテナンス中もアクセス許可するパス（完全一致）
   allowedPaths: [
@@ -33,7 +33,7 @@ export const maintenanceConfig = {
   ],
 
   // バイパスできるロール（これらのロールを持つユーザーは制限を受けない）
-  bypassRoles: ['admin'] as const,
+  bypassRoles: ['admin', 'debugger'] as const,
 
   // リダイレクト先
   redirectTo: '/maintenance',
