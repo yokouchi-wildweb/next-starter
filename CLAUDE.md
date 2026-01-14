@@ -204,6 +204,10 @@ index.ts: re-export only (no implementation logic)
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css
 
+### src/config/ (conditional)
+- value changes: allowed without approval
+- structure changes: approval required (adding/removing keys, changing types, renaming)
+
 ## TOOLS
 playwright-mcp: use for CSS/UI verification, dynamic content, when WebSearch/WebFetch fails
 
