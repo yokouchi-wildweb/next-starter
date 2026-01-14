@@ -13,6 +13,7 @@ export type CreateGeneralUserInput = {
   displayName: string;
   email: string;
   localPassword: string;
+  role?: string;
   actorId?: string;
   [key: string]: unknown;
 };
@@ -48,7 +49,7 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
   })();
 
   const values = await UserCoreSchema.parseAsync({
-    role: "user",
+    role: data.role ?? "user",
     status: "active",
     providerType: "email",
     providerUid: firebaseUser.uid,

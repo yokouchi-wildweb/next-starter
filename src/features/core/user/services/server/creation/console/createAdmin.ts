@@ -14,6 +14,7 @@ export type CreateAdminInput = {
   displayName: string;
   email: string;
   localPassword: string;
+  role?: string;
   actorId?: string;
   [key: string]: unknown;
 };
@@ -38,7 +39,7 @@ export async function createAdmin(data: CreateAdminInput): Promise<User> {
   });
 
   const values = await UserCoreSchema.parseAsync({
-    role: "admin",
+    role: data.role ?? "admin",
     status: "active",
     providerType: "local",
     providerUid: randomUUID(),
