@@ -83,7 +83,7 @@ async function askHasProfile() {
 
 /**
  * ロール基本設定を収集
- * @returns {Promise<{id: string, label: string, category: string, description: string, hasProfile: boolean, isCore: false}>}
+ * @returns {Promise<{id: string, label: string, category: string, description: string, hasProfile: boolean, isCore: false, enabled: true}>}
  */
 export default async function askRoleBasics() {
   const id = await askRoleId();
@@ -99,5 +99,6 @@ export default async function askRoleBasics() {
     description,
     hasProfile,
     isCore: false,
+    enabled: true,
   };
 }

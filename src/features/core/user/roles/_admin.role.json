@@ -4,5 +4,6 @@
   "category": "admin",
   "description": "システム全体を管理できる",
   "hasProfile": false,
-  "isCore": true
+  "isCore": true,
+  "enabled": true
 }

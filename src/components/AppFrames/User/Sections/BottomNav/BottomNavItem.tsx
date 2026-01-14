@@ -48,7 +48,7 @@ export const BottomNavItem = ({ item }: BottomNavItemProps) => {
         isActive ? activeColorClass : "text-muted-foreground",
       )}
     >
-      <Icon id={`bottom-nav-icon-${item.key}`} className="size-6" />
+      <Icon className="size-6" />
       <span id={`bottom-nav-label-${item.key}`} className="text-[10px] font-medium leading-tight">{item.label}</span>
     </Link>
   );

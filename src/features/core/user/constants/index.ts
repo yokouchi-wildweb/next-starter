@@ -17,6 +17,8 @@ export {
 // ロールヘルパー関数
 export {
   getRoleConfig,
+  isRoleEnabled,
+  assertRoleEnabled,
   formatUserRoleLabel,
   getRolesByCategory,
   getRoleOptionsByCategory,

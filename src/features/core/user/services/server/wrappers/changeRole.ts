@@ -2,7 +2,7 @@
 
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/constants/role";
-import { getRoleConfig, hasRoleProfile } from "@/features/core/user/utils/roleHelpers";
+import { assertRoleEnabled, hasRoleProfile } from "@/features/core/user/utils/roleHelpers";
 import { DomainError } from "@/lib/errors";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { deleteProfile } from "@/features/core/userProfile/services/server/operations/deleteProfile";
@@ -22,11 +22,8 @@ export type ChangeRoleInput = {
 export async function changeRole(input: ChangeRoleInput): Promise<User> {
   const { userId, newRole, actorId, reason, deleteOldProfile } = input;
 
-  // ロールの存在チェック
-  const roleConfig = getRoleConfig(newRole);
-  if (!roleConfig) {
-    throw new DomainError("指定されたロールが存在しません", { status: 400 });
-  }
+  // ロールの存在・有効性チェック
+  assertRoleEnabled(newRole);
 
   // 現在のユーザー情報を取得
   const currentUser = await base.get(userId);

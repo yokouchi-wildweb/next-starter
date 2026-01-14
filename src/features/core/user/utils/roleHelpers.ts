@@ -5,12 +5,36 @@ import { ALL_ROLES } from "@/registry/roleRegistry";
 import type { RoleConfig } from "@/features/core/user/types";
 import type { UserRoleType } from "../constants/role";
 import type { RoleCategory } from "../types";
+import { DomainError } from "@/lib/errors";
 
 /**
  * ロール設定を取得
  */
 export function getRoleConfig(role: string): RoleConfig | undefined {
   return ALL_ROLES.find((r) => r.id === role);
+}
+
+/**
+ * ロールが有効かどうかを判定
+ * enabled が未定義の場合は true として扱う
+ */
+export function isRoleEnabled(role: string): boolean {
+  const config = getRoleConfig(role);
+  if (!config) return false;
+  return config.enabled !== false;
+}
+
+/**
+ * ロールの存在と有効性を検証し、無効な場合はエラーをスロー
+ */
+export function assertRoleEnabled(role: string): void {
+  const config = getRoleConfig(role);
+  if (!config) {
+    throw new DomainError("指定されたロールが存在しません", { status: 400 });
+  }
+  if (config.enabled === false) {
+    throw new DomainError("このロールは現在使用できません", { status: 400 });
+  }
 }
 
 /**
@@ -24,11 +48,12 @@ export function getRolesByCategory(category: RoleCategory): UserRoleType[] {
 
 /**
  * カテゴリ別のロールオプションを取得（セレクトボックス用）
+ * enabled === false のロールは除外される
  */
 export function getRoleOptionsByCategory(
   category: RoleCategory,
 ): readonly { id: UserRoleType; name: string }[] {
-  return ALL_ROLES.filter((r) => r.category === category).map((r) => ({
+  return ALL_ROLES.filter((r) => r.category === category && r.enabled !== false).map((r) => ({
     id: r.id as UserRoleType,
     name: r.label,
   }));
@@ -36,9 +61,10 @@ export function getRoleOptionsByCategory(
 
 /**
  * 全ロールオプションを取得（セレクトボックス用）
+ * enabled === false のロールは除外される
  */
 export function getAllRoleOptions(): readonly { id: UserRoleType; name: string }[] {
-  return ALL_ROLES.map((r) => ({
+  return ALL_ROLES.filter((r) => r.enabled !== false).map((r) => ({
     id: r.id as UserRoleType,
     name: r.label,
   }));

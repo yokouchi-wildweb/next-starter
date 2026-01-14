@@ -17,6 +17,7 @@ import type { User } from "@/features/core/user/entities";
 import { userService } from "@/features/core/user/services/server/userService";
 import { registerFromAuth } from "@/features/core/user/services/server/registration";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
+import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
@@ -53,6 +54,9 @@ export async function register(input: unknown): Promise<RegistrationResult> {
 
   // ロールの決定（指定がない場合はデフォルトを使用）
   const role = requestedRole ?? REGISTRATION_DEFAULT_ROLE;
+
+  // ロールの有効性チェック
+  assertRoleEnabled(role);
 
   const auth = getServerAuth();
 

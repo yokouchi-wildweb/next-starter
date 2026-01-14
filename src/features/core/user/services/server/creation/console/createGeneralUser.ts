@@ -8,6 +8,7 @@ import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { db } from "@/lib/drizzle";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 
 export type CreateGeneralUserInput = {
   displayName: string;
@@ -31,6 +32,10 @@ function validateInput(input: CreateGeneralUserInput): void {
 export async function createGeneralUser(data: CreateGeneralUserInput): Promise<User> {
   validateInput(data);
 
+  // ロールの有効性チェック
+  const role = data.role ?? "user";
+  assertRoleEnabled(role);
+
   const auth = getServerAuth();
 
   const firebaseUser = await (async () => {
@@ -49,7 +54,7 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
   })();
 
   const values = await UserCoreSchema.parseAsync({
-    role: data.role ?? "user",
+    role,
     status: "active",
     providerType: "email",
     providerUid: firebaseUser.uid,

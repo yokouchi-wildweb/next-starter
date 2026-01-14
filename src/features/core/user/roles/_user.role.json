@@ -4,5 +4,6 @@
   "category": "user",
   "description": "一般ユーザー",
   "hasProfile": false,
-  "isCore": true
+  "isCore": true,
+  "enabled": true
 }

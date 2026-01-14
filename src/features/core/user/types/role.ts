@@ -20,5 +20,9 @@ export type RoleConfig = {
   readonly hasProfile: boolean;
   readonly description?: string;
   readonly profileFields?: readonly ProfileFieldConfig[];
+  /** ロールが有効か（未定義は true 扱い） */
+  readonly enabled?: boolean;
+  /** コアロールか（削除不可） */
+  readonly isCore?: boolean;
 };
 
