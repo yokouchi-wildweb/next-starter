@@ -6,7 +6,7 @@ import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc } from "drizzle-orm"
 import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
-import type { SearchParams, PaginatedResult, UpsertOptions, WhereExpr } from "../types";
+import type { SearchParams, PaginatedResult, UpsertOptions, BulkUpsertOptions, BulkUpsertResult, WhereExpr } from "../types";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
 import { applyInsertDefaults, resolveConflictTarget } from "./utils";
 import type { DrizzleCrudServiceOptions, DbTransaction } from "./types";
@@ -596,6 +596,79 @@ export function createCrudService<
           assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
           return upserted;
         });
+      });
+    },
+
+    /**
+     * 複数レコードを一括でupsertする。
+     * belongsToMany リレーションには対応していない。
+     */
+    async bulkUpsert(
+      records: (Insert & { id?: string })[],
+      bulkUpsertOptions?: BulkUpsertOptions<Insert>,
+      tx?: DbTransaction,
+    ): Promise<BulkUpsertResult<Select>> {
+      if (records.length === 0) {
+        return { results: [], count: 0 };
+      }
+
+      // belongsToMany がある場合は警告（対応していない）
+      if (belongsToManyRelations.length > 0) {
+        console.warn(
+          "bulkUpsert does not support belongsToMany relations. Use upsert() individually for relation sync.",
+        );
+      }
+
+      return withCrudEnhancements(async () => {
+        // 各レコードをパースしてデフォルト値を適用
+        const parsedRecords = await Promise.all(
+          records.map(async (data) => {
+            const parsedInput = serviceOptions.parseUpsert
+              ? await serviceOptions.parseUpsert(data)
+              : serviceOptions.parseCreate
+                ? await serviceOptions.parseCreate(data)
+                : data;
+            return applyInsertDefaults(parsedInput as Insert, serviceOptions) as Insert & {
+              id?: string;
+              createdAt?: Date;
+              updatedAt?: Date;
+            };
+          }),
+        );
+
+        // 更新用のデータを構築（idを除外）
+        const firstRecord = parsedRecords[0];
+        const updateColumns = Object.keys(firstRecord).filter((key) => key !== "id") as Array<
+          keyof typeof firstRecord
+        >;
+        const updateData = Object.fromEntries(
+          updateColumns.map((col) => [col, sql.raw(`excluded.${String(col)}`)]),
+        ) as PgUpdateSetSource<TTable>;
+
+        const executor = tx ?? db;
+        const conflictTarget = resolveConflictTarget(table, serviceOptions, bulkUpsertOptions);
+
+        let rows: Select[];
+        if (bulkUpsertOptions?.skipDuplicates) {
+          // 重複時はスキップ（更新しない）
+          rows = (await executor
+            .insert(table)
+            .values(parsedRecords as any[])
+            .onConflictDoNothing({ target: conflictTarget })
+            .returning()) as Select[];
+        } else {
+          // 重複時は更新
+          rows = (await executor
+            .insert(table)
+            .values(parsedRecords as any[])
+            .onConflictDoUpdate({
+              target: conflictTarget,
+              set: updateData,
+            })
+            .returning()) as Select[];
+        }
+
+        return { results: rows, count: rows.length };
       });
     },
 

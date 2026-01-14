@@ -9,6 +9,8 @@ import type {
   CreateCrudServiceOptions,
   PaginatedResult,
   UpsertOptions,
+  BulkUpsertOptions,
+  BulkUpsertResult,
   WhereExpr,
 } from "../types";
 import { buildSearchQuery, applyWhere } from "./query";
@@ -255,6 +257,71 @@ export function createCrudService<
       await ref.set(sanitizedInsert, { merge: true });
       const snap = await ref.get();
       return convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select);
+    },
+
+    /**
+     * 複数レコードを一括でupsertする。
+     * Firestoreのバッチ処理を使用（500件制限あり）。
+     */
+    async bulkUpsert(
+      records: (Insert & { id?: string })[],
+      bulkUpsertOptions?: BulkUpsertOptions<Insert>,
+    ): Promise<BulkUpsertResult<Select>> {
+      // Firestore では conflictFields は使用しない（ID ベースの upsert のみ）
+      void bulkUpsertOptions;
+
+      if (records.length === 0) {
+        return { results: [], count: 0 };
+      }
+
+      // Firestore のバッチは 500 件制限
+      const BATCH_SIZE = 500;
+      const results: Select[] = [];
+
+      for (let i = 0; i < records.length; i += BATCH_SIZE) {
+        const chunk = records.slice(i, i + BATCH_SIZE);
+        const batch = firestore.batch();
+        const refs: FirebaseFirestore.DocumentReference[] = [];
+
+        for (const data of chunk) {
+          const parsedInput = options.parseUpsert
+            ? await options.parseUpsert(data)
+            : options.parseCreate
+              ? await options.parseCreate(data)
+              : data;
+
+          const insertData = { ...parsedInput } as Record<string, any> & {
+            id?: string;
+            createdAt?: Date;
+            updatedAt?: Date;
+          };
+
+          const id = insertData.id ?? uuidv7();
+          insertData.id = id;
+
+          if (options.useCreatedAt && insertData.createdAt === undefined) {
+            insertData.createdAt = new Date();
+          }
+          if (options.useUpdatedAt && insertData.updatedAt === undefined) {
+            insertData.updatedAt = new Date();
+          }
+
+          const ref = col.doc(String(id));
+          const sanitizedInsert = omitUndefined(insertData);
+          batch.set(ref, sanitizedInsert, { merge: true });
+          refs.push(ref);
+        }
+
+        await batch.commit();
+
+        // 結果を取得
+        for (const ref of refs) {
+          const snap = await ref.get();
+          results.push(convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select));
+        }
+      }
+
+      return { results, count: results.length };
     },
 
     async duplicate(id: string): Promise<Select> {

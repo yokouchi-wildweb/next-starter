@@ -6,6 +6,8 @@ import type {
   SearchParams,
   PaginatedResult,
   UpsertOptions,
+  BulkUpsertOptions,
+  BulkUpsertResult,
   WhereExpr,
 } from "./types";
 import type { CrudAction } from "./events";
@@ -80,6 +82,12 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
       handleRequest(
         "upsert",
         async () => (await axios.put<T>(`${baseUrl}/upsert`, { data, options })).data,
+      ),
+    bulkUpsert: (records: CreateData[], options?: BulkUpsertOptions<CreateData>) =>
+      handleRequest(
+        "bulkUpsert",
+        async () =>
+          (await axios.post<BulkUpsertResult<T>>(`${baseUrl}/bulk/upsert`, { records, options })).data,
       ),
     duplicate: (id: string) =>
       handleRequest(

@@ -71,6 +71,25 @@ export type UpsertOptions<TData> = {
   conflictFields?: Array<Extract<keyof TData, string>>;
 };
 
+export type BulkUpsertOptions<TData> = {
+  /**
+   * 指定されたフィールドを衝突検知の対象にする。
+   * 省略した場合は `id` カラムを利用する。
+   */
+  conflictFields?: Array<Extract<keyof TData, string>>;
+  /**
+   * true の場合、衝突時にレコードを更新せずスキップする。
+   */
+  skipDuplicates?: boolean;
+};
+
+export type BulkUpsertResult<T> = {
+  /** upsertされたレコード一覧 */
+  results: T[];
+  /** 処理されたレコード数 */
+  count: number;
+};
+
 export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   getAll(): Promise<T[]>;
   getById(id: string): Promise<T>;
@@ -81,6 +100,7 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   bulkDeleteByIds?(ids: string[]): Promise<void>;
   bulkDeleteByQuery?(where: WhereExpr): Promise<void>;
   upsert?(data: CreateData, options?: UpsertOptions<CreateData>): Promise<T>;
+  bulkUpsert?(records: CreateData[], options?: BulkUpsertOptions<CreateData>): Promise<BulkUpsertResult<T>>;
   duplicate?(id: string): Promise<T>;
   // ソフトデリート用メソッド
   restore?(id: string): Promise<T>;

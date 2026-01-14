@@ -12,6 +12,7 @@ export type CrudAction =
   | "bulkDeleteByIds"
   | "bulkDeleteByQuery"
   | "upsert"
+  | "bulkUpsert"
   | "duplicate"
   | "restore"
   | "hardDelete";
