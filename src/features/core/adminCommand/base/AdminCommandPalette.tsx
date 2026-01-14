@@ -54,6 +54,15 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
     setView({ type: "category", categoryId });
   }, []);
 
+  // ArrowRight で選択中の項目を実行（Enterと同じ動作）
+  const handleRootKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const selected = document.querySelector<HTMLElement>("[cmdk-item][data-selected='true']");
+      selected?.click();
+    }
+  }, []);
+
   // 現在選択中のカテゴリを取得
   const selectedCategory = useMemo(() => {
     if (view.type !== "category") return null;
@@ -85,6 +94,7 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
                 placeholder="コマンドを検索..."
                 value={searchValue}
                 onValueChange={handleSearchChange}
+                onKeyDown={handleRootKeyDown}
                 inputMode="email"
                 autoFocus
               />

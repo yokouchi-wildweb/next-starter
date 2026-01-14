@@ -42,11 +42,20 @@ export function SessionRenderer({ onClose, onBack }: CategoryRendererProps) {
     setSearchValue(filterSearchInput(value));
   }, []);
 
+  // キーボード操作
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Backspace" && searchValue === "") {
+      // 検索入力が空の時に Backspace または ArrowLeft で戻る
+      if ((e.key === "Backspace" || e.key === "ArrowLeft") && searchValue === "") {
         e.preventDefault();
         onBack();
+        return;
+      }
+      // ArrowRight で選択中の項目を実行（Enterと同じ動作）
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const selected = document.querySelector<HTMLElement>("[cmdk-item][data-selected='true']");
+        selected?.click();
       }
     },
     [searchValue, onBack]
