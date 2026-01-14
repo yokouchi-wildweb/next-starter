@@ -22,7 +22,7 @@
   ],
   "tags": {
     "registration": [],
-    "mypage": [],
-    "admin": ["is_approved", "approved_at", "approval_note"]
+    "selfEdit": [],
+    "adminEdit": ["is_approved", "approved_at", "approval_note"]
   }
 }

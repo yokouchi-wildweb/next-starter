@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
@@ -14,6 +15,7 @@ import { Para, SecTitle } from "@/components/TextBlocks";
 import { useWithdraw } from "@/features/core/auth/hooks/useWithdraw";
 
 export function Withdraw() {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAgreed, setIsAgreed] = useState(false);
   const { withdraw, isLoading, error } = useWithdraw();
@@ -50,6 +52,12 @@ export function Withdraw() {
             onClick={handleOpenModal}
           >
             退会する
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+          >
+            キャンセル
           </Button>
         </Flex>
       </Block>

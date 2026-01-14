@@ -20,8 +20,8 @@ const newPasswordSchema = z
     message: "パスワードは8文字以上で入力してください",
   });
 
-// profileData バリデーション関数（admin タグでフィルタリング）
-const validateProfileData = createProfileDataValidator(getProfilesByCategory("user"), "admin");
+// profileData バリデーション関数（adminEdit タグでフィルタリング）
+const validateProfileData = createProfileDataValidator(getProfilesByCategory("user"), "adminEdit");
 
 export const FormSchema = z
   .object({

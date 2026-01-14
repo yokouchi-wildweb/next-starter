@@ -17,9 +17,9 @@ const localPasswordSchema = z
   .string({ required_error: "パスワードを入力してください" })
   .min(8, { message: "パスワードは8文字以上で入力してください" });
 
-// profileData バリデーション関数（admin タグでフィルタリング）
+// profileData バリデーション関数（adminEdit タグでフィルタリング）
 const allProfiles = { ...getProfilesByCategory("admin"), ...getProfilesByCategory("user") };
-const validateProfileData = createProfileDataValidator(allProfiles, "admin");
+const validateProfileData = createProfileDataValidator(allProfiles, "adminEdit");
 
 export const FormSchema = z
   .object({

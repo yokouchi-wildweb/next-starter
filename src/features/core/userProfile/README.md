@@ -116,15 +116,15 @@ roles/
   ],
   "tags": {
     "registration": ["organization_name"],
-    "mypage": ["organization_name", "bio"],
-    "admin": ["organization_name", "bio"]
+    "selfEdit": ["organization_name", "bio"],
+    "adminEdit": ["organization_name", "bio"]
   }
 }
 ```
 
 **tags の構造:**
 - トップレベルにオブジェクトとして定義
-- キー: タグ名（`registration`, `mypage`, `admin`, `notification`）
+- キー: タグ名（`registration`, `selfEdit`, `adminEdit`, `notification`）
 - 値: そのタグに属するフィールド名の配列
 
 ## 自動生成ファイル
@@ -226,7 +226,7 @@ import { getProfilesByCategory } from "@/features/core/userProfile/utils/profile
 const profiles = getProfilesByCategory("user");
 
 // バリデーション関数生成
-const validateProfileData = createProfileDataValidator(profiles, "admin");
+const validateProfileData = createProfileDataValidator(profiles, "adminEdit");
 
 export const FormSchema = z
   .object({
@@ -319,7 +319,7 @@ hasProfile(userId: string, role: UserRoleType): Promise<boolean>
   methods={methods}
   role={selectedRole}
   profiles={profiles}             // ProfileConfig のマッピング
-  tag="admin"                     // 表示するタグ
+  tag="adminEdit"                  // 表示するタグ
   fieldPrefix="profileData"       // フィールド名プレフィックス
 />
 ```

@@ -3,11 +3,11 @@
 
 /**
  * コアタグ（システム必須、削除不可）
- * - admin: 管理画面でのみ表示
+ * - adminEdit: 管理者がプロフィールを編集
  * - registration: 本登録画面で表示
- * - mypage: マイページのプロフィール編集で表示
+ * - selfEdit: ユーザー自身がプロフィールを編集
  */
-export const CORE_PROFILE_FIELD_TAGS = ["admin", "registration", "mypage"] as const;
+export const CORE_PROFILE_FIELD_TAGS = ["adminEdit", "registration", "selfEdit"] as const;
 
 /**
  * 追加タグ（プロジェクト固有、削除可能）

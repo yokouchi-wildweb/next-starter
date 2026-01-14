@@ -245,7 +245,7 @@ export default function TablesDemoPage() {
         editorType: "action",
         align: "center",
         renderAction: () => (
-          <Button type="button" size="xs" variant="outline">
+          <Button type="button" size="sm" variant="outline">
             ボタン
           </Button>
         ),

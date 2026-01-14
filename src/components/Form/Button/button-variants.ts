@@ -26,20 +26,24 @@ export const buttonVariants = cva("", {
       mutedIcon: "text-muted-foreground hover:text-foreground",
     },
     size: {
+      // インラインUIなど極小サイズ。
+      xxxs: "h-6 rounded gap-0.5 px-1.5 min-w-10 text-xs has-[>svg]:px-1",
+      // 密集したUI向けの超小サイズ。
+      xxs: "h-7 rounded gap-0.5 px-2 min-w-12 text-xs has-[>svg]:px-1.5",
       // 最小のテキストボタン用サイズ。
-      xs: "h-8 sm:h-7 rounded-md gap-1 px-2.5 min-w-14 has-[>svg]:px-2",
+      xs: "h-8 rounded-md gap-1 px-2.5 min-w-14 has-[>svg]:px-2",
       // 少し小さめのコンパクトサイズ。
-      sm: "h-9 sm:h-8 rounded-md gap-1.5 px-3 min-w-16 has-[>svg]:px-2.5",
+      sm: "h-9 rounded-md gap-1.5 px-3 min-w-16 has-[>svg]:px-2.5",
       // 標準的に使うミディアムサイズ。
-      md: "h-10 sm:h-9 px-4 py-2 min-w-20 has-[>svg]:px-3",
+      md: "h-10 px-4 py-2 min-w-20 has-[>svg]:px-3",
       // 余裕を持たせた大きめサイズ。
-      lg: "h-11 sm:h-10 rounded-md px-6 min-w-24 has-[>svg]:px-4",
+      lg: "h-11 rounded-md px-6 min-w-24 has-[>svg]:px-4",
       // さらに強調する幅広ボタン。
-      xl: "h-12 sm:h-11 rounded-md px-8 min-w-28 has-[>svg]:px-5",
+      xl: "h-12 rounded-md px-8 min-w-28 has-[>svg]:px-5",
       // ヒーローアクションなどで使う特大サイズ。
-      xxl: "h-14 sm:h-12 rounded-md px-10 min-w-32 has-[>svg]:px-6",
+      xxl: "h-14 rounded-md px-10 min-w-32 has-[>svg]:px-6",
       // 極端に広い横幅を確保したい時の最大サイズ。
-      xxxl: "h-16 sm:h-14 rounded-md px-12 min-w-36 has-[>svg]:px-8",
+      xxxl: "h-16 rounded-md px-12 min-w-36 has-[>svg]:px-8",
       // アイコンのみで使う正方形サイズ。
       icon: "size-9",
     },
