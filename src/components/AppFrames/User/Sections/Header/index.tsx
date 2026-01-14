@@ -1,11 +1,14 @@
 "use client";
 
+import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
+import { Button } from "@/components/Form/Button/Button";
+
+import { useHeaderData } from "../../hooks";
+import { Brand } from "./Brand";
+import { HeaderShell } from "./HeaderShell";
 import { PcNavigation } from "./PcNavigation";
 import { SpNavigation } from "./SpNavigation";
-import { Brand } from "./Brand";
 import { SpNavSwitch } from "./SpNavSwitch";
-import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
-import { useHeaderData } from "../../hooks";
 
 export const UserNavigation = () => {
   const {
@@ -27,27 +30,44 @@ export const UserNavigation = () => {
     return null;
   }
 
+  // SP表示可否
+  const showSpNav = navEnabled.sp && navVisibility.sp;
+  // PC表示可否
+  const showPcNav = navEnabled.pc && navVisibility.pc;
+
   return (
     <header
       id={APP_HEADER_ELEMENT_ID}
       ref={headerRef}
       className={`fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-header text-header-foreground ${visibilityClass}`}
     >
-      <div className="mx-auto flex w-full max-w-6xl items-stretch justify-between px-4 py-2 sm:py-4">
-        <Brand />
-        {navEnabled.sp && navVisibility.sp && (
-          <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />
-        )}
-        {navEnabled.pc && navVisibility.pc && <PcNavigation items={navItems} showIcons={showIcons} />}
-      </div>
+      <HeaderShell
+        left={<Brand />}
+        center={showPcNav && <PcNavigation items={navItems} showIcons={showIcons} />}
+        right={
+          <>
+            {/* PC版: ヘッダー右側にCTAボタン */}
+            <Button variant="default" size="sm" className="hidden sm:inline-flex">
+              お問い合わせ
+            </Button>
+            {showSpNav && <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />}
+          </>
+        }
+      />
 
-      {navEnabled.sp && navVisibility.sp && (
+      {showSpNav && (
         <SpNavigation
           isOpen={isMenuOpen}
           items={navItems}
           showIcons={showIcons}
           onClose={closeMenu}
           headerOffset={headerOffset}
+          footer={
+            /* SP版: メニュー下部にCTAボタン */
+            <Button variant="default" className="w-full">
+              お問い合わせ
+            </Button>
+          }
         />
       )}
     </header>

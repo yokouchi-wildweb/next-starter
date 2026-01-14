@@ -47,7 +47,7 @@ export const HEADER_LOGO_LINK = "/";
 // ============================================
 
 /** メニューにアイコンを表示するか */
-export const HEADER_MENU_ICONS_ENABLED = true;
+export const HEADER_MENU_ICONS_ENABLED = false;
 
 /** メニューアイテムの型 */
 export type HeaderMenuItem = {
