@@ -3,6 +3,7 @@
 export const USER_ACTION_TYPES = [
   "admin_create_user",
   "admin_status_change",
+  "admin_role_change",
   "admin_profile_update",
   "admin_soft_delete",
   "admin_hard_delete",
@@ -20,6 +21,7 @@ export type UserActionType = (typeof USER_ACTION_TYPES)[number];
 export const USER_ACTION_TYPE_LABELS: Record<UserActionType, string> = {
   admin_create_user: "ユーザー作成",
   admin_status_change: "ステータス変更",
+  admin_role_change: "ロール変更",
   admin_profile_update: "プロフィール更新",
   admin_soft_delete: "論理削除",
   admin_hard_delete: "物理削除",

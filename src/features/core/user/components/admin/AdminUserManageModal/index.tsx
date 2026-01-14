@@ -5,6 +5,7 @@
 import TabbedModal from "@/components/Overlays/TabbedModal";
 import type { User } from "@/features/core/user/entities";
 import { StatusTabContent } from "./StatusTabContent";
+import { RoleTabContent } from "./RoleTabContent";
 import { DeleteTabContent } from "./DeleteTabContent";
 import { HistoryTabContent } from "./HistoryTabContent";
 
@@ -35,6 +36,11 @@ export default function AdminUserManageModal({ open, user, onClose }: Props) {
           value: "status",
           label: "ステータス変更",
           content: <StatusTabContent user={user} onClose={onClose} />,
+        },
+        {
+          value: "role",
+          label: "ロール変更",
+          content: <RoleTabContent user={user} onClose={onClose} />,
         },
         {
           value: "delete",

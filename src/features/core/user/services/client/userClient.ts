@@ -4,6 +4,7 @@ import { createApiClient } from "@/lib/crud/apiClientFactory";
 import type { ApiClient } from "@/lib/crud/types";
 import type { User } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";
+import type { UserRoleType } from "@/features/core/user/constants/role";
 import type { CreateUserInput, UpdateUserInput } from "../types";
 import axios from "axios";
 
@@ -17,6 +18,16 @@ export type ChangeStatusInput = {
 
 async function changeStatus(userId: string, data: ChangeStatusInput): Promise<User> {
   const response = await axios.patch<User>(`/api/admin/user/${userId}/status`, data);
+  return response.data;
+}
+
+export type ChangeRoleInput = {
+  role: UserRoleType;
+  reason?: string;
+};
+
+async function changeRole(userId: string, data: ChangeRoleInput): Promise<User> {
+  const response = await axios.patch<User>(`/api/admin/user/${userId}/role`, data);
   return response.data;
 }
 
@@ -39,6 +50,7 @@ async function hardDelete(userId: string, data?: HardDeleteInput): Promise<void>
 export const userClient = {
   ...baseClient,
   changeStatus,
+  changeRole,
   softDelete,
   hardDelete,
 };
