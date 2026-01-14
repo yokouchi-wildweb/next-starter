@@ -2,38 +2,16 @@
   "roleId": "contributor",
   "fields": [
     {
-      "name": "organization_name",
-      "label": "組織名",
-      "fieldType": "string",
-      "formInput": "textInput",
-      "required": true,
-      "placeholder": "株式会社〇〇"
-    },
-    {
-      "name": "contact_phone",
-      "label": "連絡先電話番号",
-      "fieldType": "string",
-      "formInput": "textInput",
-      "placeholder": "090-0000-0000"
-    },
-    {
-      "name": "bio",
-      "label": "自己紹介",
-      "fieldType": "string",
-      "formInput": "textarea",
-      "placeholder": "活動内容などを入力してください"
-    },
-    {
       "name": "is_approved",
       "label": "承認状態",
       "fieldType": "boolean",
-      "formInput": "hidden"
+      "formInput": "switchInput"
     },
     {
       "name": "approved_at",
       "label": "承認日時",
       "fieldType": "timestamp With Time Zone",
-      "formInput": "hidden"
+      "formInput": "datetimeInput"
     },
     {
       "name": "approval_note",
@@ -43,8 +21,8 @@
     }
   ],
   "tags": {
-    "registration": ["organization_name", "bio"],
-    "mypage": ["organization_name", "contact_phone", "bio"],
+    "registration": [],
+    "mypage": [],
     "admin": ["is_approved", "approved_at", "approval_note"]
   }
 }

@@ -3,6 +3,6 @@
   "label": "投稿者",
   "category": "user",
   "description": "コンテンツを投稿できる",
-  "hasProfile": true,
+  "hasProfile": false,
   "isCore": false
 }

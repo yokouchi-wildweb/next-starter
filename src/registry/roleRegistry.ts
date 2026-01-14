@@ -14,6 +14,7 @@ import editorRole from "@/features/core/user/roles/editor.role.json";
 import userRole from "@/features/core/user/roles/_user.role.json";
 import contributorRole from "@/features/core/user/roles/contributor.role.json";
 import adminRole from "@/features/core/user/roles/_admin.role.json";
+import debuggerRole from "@/features/core/user/roles/debugger.role.json";
 // === AUTO-GENERATED IMPORTS END ===
 
 /**
@@ -26,5 +27,6 @@ export const ALL_ROLES: readonly RoleConfig[] = [
   userRole as RoleConfig,
   editorRole as RoleConfig,
   contributorRole as RoleConfig,
+  debuggerRole as RoleConfig,
   // === AUTO-GENERATED ENTRIES END ===
 ];

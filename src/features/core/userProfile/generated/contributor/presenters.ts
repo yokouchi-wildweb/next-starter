@@ -18,10 +18,7 @@ import { formatDateJa } from "@/utils/date";
  * 投稿者プロフィールのプレゼンター
  */
 export const contributorProfilePresenters = {
-  organizationName: ({ value }: { value: unknown }) => formatString(value),
-  contactPhone: ({ value }: { value: unknown }) => formatString(value),
-  bio: ({ value }: { value: unknown }) => formatString(value),
   isApproved: ({ value }: { value: unknown }) => formatBoolean(value, "はい", "いいえ"),
-  approvedAt: ({ value }: { value: unknown }) => formatString(value),
+  approvedAt: ({ value }: { value: unknown }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   approvalNote: ({ value }: { value: unknown }) => formatString(value),
 };

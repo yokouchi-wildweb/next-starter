@@ -9,6 +9,7 @@ import { updateGeneratedIndex } from "./updateGeneratedIndex.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
+const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 
 /**
  * ファイルから特定パターンの行を削除
@@ -123,6 +124,31 @@ function cleanupGeneratedFolder(roleId) {
 }
 
 /**
+ * ロール設定ファイルの hasProfile を false に更新
+ */
+function updateRoleHasProfile(roleId) {
+  // 通常のロールファイルとコアロールファイルの両方をチェック
+  const rolePath = path.join(ROLES_DIR, `${roleId}.role.json`);
+  const coreRolePath = path.join(ROLES_DIR, `_${roleId}.role.json`);
+
+  let targetPath = null;
+  if (fs.existsSync(rolePath)) {
+    targetPath = rolePath;
+  } else if (fs.existsSync(coreRolePath)) {
+    targetPath = coreRolePath;
+  }
+
+  if (!targetPath) return false;
+
+  const config = JSON.parse(fs.readFileSync(targetPath, "utf-8"));
+  if (config.hasProfile === false) return false;
+
+  config.hasProfile = false;
+  fs.writeFileSync(targetPath, JSON.stringify(config, null, 2) + "\n");
+  return true;
+}
+
+/**
  * プロフィール関連のレジストリエントリをクリーンアップ
  * @param {string} roleId - ロールID
  * @param {Object} options - オプション
@@ -142,6 +168,7 @@ export function cleanupProfile(roleId, options = {}) {
     profileTableRegistry: cleanupProfileTableRegistry(roleId),
     profileSchemaRegistry: cleanupProfileSchemaRegistry(roleId),
     generatedFolder: deleteEntity ? cleanupGeneratedFolder(roleId) : false,
+    roleHasProfile: updateRoleHasProfile(roleId),
   };
 
   // generated/index.ts を更新（フォルダ削除後）
@@ -155,6 +182,7 @@ export function cleanupProfile(roleId, options = {}) {
     if (results.profileTableRegistry) log("  ✓ profileTableRegistry.ts を更新");
     if (results.profileSchemaRegistry) log("  ✓ profileSchemaRegistry.ts を更新");
     if (results.generatedFolder) log("  ✓ generated/ フォルダを削除");
+    if (results.roleHasProfile) log("  ✓ ロール設定の hasProfile を false に更新");
 
     const anyModified = Object.values(results).some(Boolean);
     if (!anyModified) {

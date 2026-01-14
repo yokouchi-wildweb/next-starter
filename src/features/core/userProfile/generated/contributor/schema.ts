@@ -11,11 +11,19 @@ import { z } from "zod";
  * 投稿者プロフィールスキーマ
  */
 export const ContributorProfileSchema = z.object({
-  organizationName: z.string().trim().min(1, { message: "組織名は必須です。" }),
-  contactPhone: z.string().trim().nullish()
-    .transform((value) => emptyToNull(value)),
-  bio: z.string().trim().nullish()
-    .transform((value) => emptyToNull(value)),
+  isApproved: z.coerce.boolean().nullish(),
+  approvedAt: z.preprocess(
+  (value) => {
+    if (value == null) return undefined;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return undefined;
+      return trimmed;
+    }
+    return value;
+  },
+  z.coerce.date()
+).or(z.literal("").transform(() => undefined)).nullish(),
   approvalNote: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
 });

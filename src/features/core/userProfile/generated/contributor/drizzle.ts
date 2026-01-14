@@ -5,7 +5,7 @@
 // このファイルは role:generate スクリプトによって自動生成されました
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { uuid, timestamp, text, boolean, pgTable } from "drizzle-orm/pg-core";
+import { uuid, timestamp, boolean, text, pgTable } from "drizzle-orm/pg-core";
 
 /**
  * 投稿者プロフィールテーブル
@@ -28,12 +28,6 @@ export const ContributorProfileTable = pgTable("contributor_profiles", {
   // プロフィールフィールド
   // @source contributor.profile.json
   // ==========================================================================
-  /** 組織名 */
-  organizationName: text("organization_name"),
-  /** 連絡先電話番号 */
-  contactPhone: text("contact_phone"),
-  /** 自己紹介 */
-  bio: text("bio"),
   /** 承認状態 */
   isApproved: boolean("is_approved"),
   /** 承認日時 */

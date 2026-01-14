@@ -12,9 +12,6 @@ export type ContributorProfileModel = {
   id: string;
   /** ユーザーID */
   userId: string;
-  organizationName: string;
-  contactPhone: string | null;
-  bio: string | null;
   isApproved: boolean | null;
   approvedAt: Date | null;
   approvalNote: string | null;
