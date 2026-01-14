@@ -189,7 +189,7 @@ pending, active, paused, withdrawn
 |---------|------|
 | `UserCoreSchema` | 全フィールドの基本スキーマ |
 | `UserOptionalSchema` | 更新用（フィールドをオプショナル化） |
-| `AdminUpdateSchema` | 管理者による更新用 |
+| `UserUpdateByAdminSchema` | 管理者による更新用 |
 | `UserSelfUpdateSchema` | ユーザー自身による更新用 |
 
 ## ロール追加の手順

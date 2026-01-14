@@ -43,25 +43,24 @@ export const UserOptionalSchema = UserCoreSchema.partial().extend({
 
 /**
  * 管理者がユーザー情報を更新する際のスキーマ。
- * providerType, providerUid, lastAuthenticatedAt, role は変更不可。
+ * 許可するフィールドをホワイトリストで明示的に指定。
  */
-export const AdminUpdateSchema = UserOptionalSchema.omit({
-  providerType: true,
-  providerUid: true,
-  lastAuthenticatedAt: true,
+export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
+  displayName: true,
+  email: true,
+  localPassword: true,
+  status: true,
   role: true,
+  isDemo: true,
 });
 
 /**
  * 一般ユーザーが自身でプロフィール情報を更新する際のスキーマ。
- * role など重要なコアフィールドを除外している。
+ * 許可するフィールドをホワイトリストで明示的に指定。
  */
-export const UserSelfUpdateSchema = UserOptionalSchema.omit({
-  providerType: true,
-  providerUid: true,
-  role: true,
-  status: true,
-  lastAuthenticatedAt: true,
-  deletedAt: true,
+export const UserSelfUpdateSchema = UserOptionalSchema.pick({
+  displayName: true,
+  email: true,
+  localPassword: true,
 });
 

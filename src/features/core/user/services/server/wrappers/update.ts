@@ -1,7 +1,7 @@
 // src/features/user/services/server/wrappers/update.ts
 
 import type { User } from "@/features/core/user/entities";
-import { AdminUpdateSchema, UserSelfUpdateSchema } from "@/features/core/user/entities";
+import { UserUpdateByAdminSchema, UserSelfUpdateSchema } from "@/features/core/user/entities";
 import type { UpdateUserInput } from "@/features/core/user/services/types";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
@@ -69,7 +69,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     );
   }
 
-  const schema = isAdmin ? AdminUpdateSchema : UserSelfUpdateSchema;
+  const schema = isAdmin ? UserUpdateByAdminSchema : UserSelfUpdateSchema;
   const result = await schema.safeParseAsync(restRawData);
 
   if (!result.success) {
