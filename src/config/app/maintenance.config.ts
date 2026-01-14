@@ -6,7 +6,7 @@
  */
 export const maintenanceConfig = {
   // メンテナンスモードの有効/無効
-  enabled: true,
+  enabled: false,
 
   // メンテナンス中もアクセス許可するパス（完全一致）
   allowedPaths: [

@@ -3,12 +3,13 @@ import type { NavigationMenuItem } from "./MenuItem";
 
 export type DesktopNavigationProps = {
   readonly items: readonly NavigationMenuItem[];
+  readonly showIcons?: boolean;
 };
 
-export const PcNavigation = ({ items }: DesktopNavigationProps) => (
-  <nav className="hidden items-center gap-6 text-sm font-medium sm:flex">
+export const PcNavigation = ({ items, showIcons = true }: DesktopNavigationProps) => (
+  <nav className="hidden items-stretch text-sm font-medium sm:flex">
     {items.map((item) => (
-      <MenuItem key={item.key} item={item} variant="desktop" />
+      <MenuItem key={item.key} item={item} variant="desktop" showIcon={showIcons} />
     ))}
   </nav>
 );

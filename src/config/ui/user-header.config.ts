@@ -4,6 +4,9 @@
  * ★ プロジェクトごとにこのファイルを編集してカスタマイズしてください
  */
 
+import { Home, LayoutGrid, LogIn, LogOut, User, UserPlus } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
 // ============================================
 // コンポーネント設定
 // ============================================
@@ -42,26 +45,49 @@ export const HEADER_LOGO_LINK = "/";
 // メニューアイテム設定
 // ============================================
 
-/** メニューアイテムの型（リンク用） */
+/** メニューにアイコンを表示するか */
+export const HEADER_MENU_ICONS_ENABLED = false;
+
+/** メニューアイテムの型 */
 export type HeaderMenuItem = {
   readonly key: string;
   readonly label: string;
-  readonly href: string;
+  readonly href?: string;
+  readonly icon?: LucideIcon;
+  readonly children?: HeaderMenuItem[];
 };
 
 /** 認証済みユーザー用メニュー（ログアウト以外） */
 export const AUTHENTICATED_MENU_ITEMS: HeaderMenuItem[] = [
-  { key: "home", label: "ホーム", href: "/" },
-  { key: "service", label: "サービス", href: "/services" },
-  { key: "mypage", label: "マイページ", href: "/mypage" },
+  { key: "home", label: "ホーム", href: "/", icon: Home },
+  {
+    key: "service",
+    label: "サービス",
+    icon: LayoutGrid,
+    // href なし: クリックでリンク遷移しない（ドロップダウンのみ）
+    children: [
+      { key: "service-a", label: "サービスA", href: "/services/a" },
+      { key: "service-b", label: "サービスB", href: "/services/b" },
+    ],
+  },
+  { key: "mypage", label: "マイページ", href: "/mypage", icon: User },
 ];
 
 /** 未認証ユーザー用メニュー */
 export const GUEST_MENU_ITEMS: HeaderMenuItem[] = [
-  { key: "home", label: "ホーム", href: "/" },
-  { key: "service", label: "サービス", href: "/services" },
-  { key: "login", label: "ログイン", href: "/login" },
-  { key: "signup", label: "会員登録", href: "/signup" },
+  { key: "home", label: "ホーム", href: "/", icon: Home },
+  {
+    key: "service",
+    label: "サービス",
+    href: "/services",  // href あり: クリックでリンク遷移も可能
+    icon: LayoutGrid,
+    children: [
+      { key: "service-a", label: "サービスA", href: "/services/a" },
+      { key: "service-b", label: "サービスB", href: "/services/b" },
+    ],
+  },
+  { key: "login", label: "ログイン", href: "/login", icon: LogIn },
+  { key: "signup", label: "会員登録", href: "/signup", icon: UserPlus },
 ];
 
 // ============================================
@@ -73,6 +99,9 @@ export const SHOW_LOGOUT_BUTTON = true;
 
 /** ログアウトボタンのラベル */
 export const LOGOUT_LABEL = "ログアウト";
+
+/** ログアウトボタンのアイコン */
+export const LOGOUT_ICON = LogOut;
 
 /** ログアウト後のリダイレクト先 */
 export const LOGOUT_REDIRECT_TO = "/login";

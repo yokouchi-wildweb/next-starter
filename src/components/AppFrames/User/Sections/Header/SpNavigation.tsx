@@ -1,16 +1,17 @@
 import { AnimatePresence, motion } from "framer-motion";
 
-import { MenuItem } from "./MenuItem";
-import type { NavigationMenuItem } from "./MenuItem";
+import { SpMenuItem } from "./SpMenuItem";
+import type { SpNavigationMenuItem } from "./SpMenuItem";
 
 export type MobileNavigationProps = {
   readonly isOpen: boolean;
-  readonly items: readonly NavigationMenuItem[];
+  readonly items: readonly SpNavigationMenuItem[];
+  readonly showIcons?: boolean;
   readonly onClose: () => void;
   readonly headerOffset: number;
 };
 
-export const SpNavigation = ({ isOpen, items, onClose, headerOffset }: MobileNavigationProps) => {
+export const SpNavigation = ({ isOpen, items, showIcons = true, onClose, headerOffset }: MobileNavigationProps) => {
   return (
     <AnimatePresence>
       {isOpen ? (
@@ -36,7 +37,7 @@ export const SpNavigation = ({ isOpen, items, onClose, headerOffset }: MobileNav
               <ul className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6 pt-6 text-base font-medium">
                 {items.map((item) => (
                   <li key={item.key}>
-                    <MenuItem item={item} variant="mobile" onNavigate={onClose} />
+                    <SpMenuItem item={item} showIcon={showIcons} onNavigate={onClose} />
                   </li>
                 ))}
               </ul>

@@ -9,12 +9,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
+import type { LucideIcon } from "lucide-react";
+
 import {
   AUTHENTICATED_MENU_ITEMS,
   GUEST_MENU_ITEMS,
   HEADER_ENABLED,
   HEADER_LOGO_LINK,
+  HEADER_MENU_ICONS_ENABLED,
   HEADER_NAV_ENABLED,
+  LOGOUT_ICON,
   LOGOUT_LABEL,
   LOGOUT_REDIRECT_TO,
   SHOW_LOGOUT_BUTTON,
@@ -36,6 +40,8 @@ export type HeaderNavItem = {
   readonly href?: string | null;
   readonly onClick?: () => void;
   readonly disabled?: boolean;
+  readonly icon?: LucideIcon;
+  readonly children?: HeaderNavItem[];
 };
 
 /** SP/PC表示設定 */
@@ -58,6 +64,8 @@ export type UseHeaderDataReturn = {
   navVisibility: DeviceVisibility;
   /** ロゴのリンク先 */
   logoLink: string;
+  /** メニューにアイコンを表示するか */
+  showIcons: boolean;
   /** メニューの開閉状態 */
   isMenuOpen: boolean;
   /** メニューを開く */
@@ -185,6 +193,7 @@ export const useHeaderData = (): UseHeaderDataReturn => {
         label: LOGOUT_LABEL,
         onClick: () => void logout(),
         disabled: isLogoutLoading,
+        icon: LOGOUT_ICON,
       });
     }
 
@@ -206,6 +215,7 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     visibility,
     navVisibility,
     logoLink: HEADER_LOGO_LINK,
+    showIcons: HEADER_MENU_ICONS_ENABLED,
     isMenuOpen,
     openMenu,
     closeMenu,
