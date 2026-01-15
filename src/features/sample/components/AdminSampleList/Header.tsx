@@ -44,9 +44,11 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
     <>
       <ListTop title="登録済みサンプルの一覧" newHref="/admin/samples/new">
         {hasSearch && <SearchBox makeHref={(p) => `/admin/samples?${p.toString()}`} />}
-        <Button variant="outline" onClick={() => setIsDataMigrationModalOpen(true)}>
-          ファイル入出力
-        </Button>
+        {config.useImportExport && (
+          <Button variant="outline" onClick={() => setIsDataMigrationModalOpen(true)}>
+            ファイル入出力
+          </Button>
+        )}
         <Pagination
           page={page}
           perPage={perPage}
@@ -59,16 +61,18 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
         />
       </ListTop>
 
-      <DataMigrationModal
-        open={isDataMigrationModalOpen}
-        onOpenChange={setIsDataMigrationModalOpen}
-        domain={config.singular}
-        fields={exportFields}
-        domainLabel={config.label}
-        searchParams={params.toString()}
-        onImportSuccess={handleImportSuccess}
-        hasRelations={hasRelations}
-      />
+      {config.useImportExport && (
+        <DataMigrationModal
+          open={isDataMigrationModalOpen}
+          onOpenChange={setIsDataMigrationModalOpen}
+          domain={config.singular}
+          fields={exportFields}
+          domainLabel={config.label}
+          searchParams={params.toString()}
+          onImportSuccess={handleImportSuccess}
+          hasRelations={hasRelations}
+        />
+      )}
     </>
   );
 }
