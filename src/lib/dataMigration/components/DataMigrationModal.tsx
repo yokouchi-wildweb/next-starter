@@ -2,8 +2,9 @@
 
 "use client";
 
-import { useState, useCallback, useRef, type DragEvent, type ChangeEvent } from "react";
+import { useState, useCallback, useRef, useEffect, type DragEvent, type ChangeEvent } from "react";
 import axios from "axios";
+import JSZip from "jszip";
 import TabbedModal from "@/components/Overlays/TabbedModal";
 import { Button } from "@/components/Form/Button/Button";
 import { Checkbox } from "@/components/_shadcn/checkbox";
@@ -11,16 +12,24 @@ import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import type { ExportField } from "./ExportSettingsModal";
 
+type ChunkResult = {
+  chunkName: string;
+  success: boolean;
+  recordCount: number;
+  error?: string;
+};
+
 type ImportResultData = {
   totalRecords: number;
   successfulChunks: number;
   failedChunks: number;
-  chunkResults: {
-    chunkName: string;
-    success: boolean;
-    recordCount: number;
-    error?: string;
-  }[];
+  chunkResults: ChunkResult[];
+};
+
+type ImportProgress = {
+  currentChunk: number;
+  totalChunks: number;
+  currentChunkName: string;
 };
 
 export type DataMigrationModalProps = {
@@ -34,6 +43,8 @@ export type DataMigrationModalProps = {
   domainLabel: string;
   /** 検索パラメータ（URL クエリ文字列形式） */
   searchParams?: string;
+  /** インポート成功時のコールバック */
+  onImportSuccess?: () => void;
 };
 
 /**
@@ -223,18 +234,35 @@ function ImportTabContent({
   imageFields,
   fields,
   onOpenChange,
+  onImportSuccess,
 }: {
   domain: string;
   imageFields: string[];
   fields: ExportField[];
   onOpenChange: (open: boolean) => void;
+  onImportSuccess?: () => void;
 }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResultData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // インポート中の画面遷移警告
+  useEffect(() => {
+    if (!isImporting) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "インポート処理中です。ページを離れると処理が中断されます。";
+      return e.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isImporting]);
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -291,40 +319,134 @@ function ImportTabContent({
     setIsImporting(true);
     setError(null);
     setResult(null);
+    setProgress(null);
 
     try {
-      // フィールド型情報を準備（name と fieldType のみ）
+      // ZIP をブラウザ上で解凍
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const zip = await JSZip.loadAsync(arrayBuffer);
+
+      // manifest.json を読み込み
+      const manifestFile = zip.file("manifest.json");
+      if (!manifestFile) {
+        throw new Error("manifest.json が見つかりません");
+      }
+      const manifestText = await manifestFile.async("string");
+      const manifest = JSON.parse(manifestText) as {
+        domain: string;
+        totalRecords: number;
+        chunkCount: number;
+      };
+
+      // ドメイン検証
+      if (manifest.domain !== domain) {
+        throw new Error(`ドメインが一致しません: ${manifest.domain} !== ${domain}`);
+      }
+
+      // フィールド型情報を準備
       const fieldTypeInfo = fields.map((f) => ({
         name: f.name,
         fieldType: f.fieldType,
       }));
 
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("domain", domain);
-      formData.append("imageFields", JSON.stringify(imageFields));
-      formData.append("updateImages", "true");
-      formData.append("fields", JSON.stringify(fieldTypeInfo));
+      // チャンクを順番に処理
+      const chunkResults: ChunkResult[] = [];
+      let totalRecords = 0;
+      let successfulChunks = 0;
+      let failedChunks = 0;
 
-      const response = await axios.post("/api/data-migration/import", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      for (let i = 0; i < manifest.chunkCount; i++) {
+        const chunkName = `chunk_${String(i + 1).padStart(3, "0")}`;
+        setProgress({
+          currentChunk: i + 1,
+          totalChunks: manifest.chunkCount,
+          currentChunkName: chunkName,
+        });
+
+        // CSV ファイルを取得
+        const csvFile = zip.file(`${chunkName}/data.csv`);
+        if (!csvFile) {
+          chunkResults.push({
+            chunkName,
+            success: false,
+            recordCount: 0,
+            error: "data.csv が見つかりません",
+          });
+          failedChunks++;
+          continue;
+        }
+        const csvContent = await csvFile.async("string");
+
+        // FormData を作成
+        const formData = new FormData();
+        formData.append("domain", domain);
+        formData.append("chunkName", chunkName);
+        formData.append("csvContent", csvContent);
+        formData.append("imageFields", JSON.stringify(imageFields));
+        formData.append("updateImages", "true");
+        formData.append("fields", JSON.stringify(fieldTypeInfo));
+
+        // アセットファイルを追加
+        const assetsFolder = zip.folder(`${chunkName}/assets`);
+        if (assetsFolder) {
+          const assetFiles = assetsFolder.filter(() => true);
+          for (const assetFile of assetFiles) {
+            if (assetFile.dir) continue;
+            const assetBuffer = await assetFile.async("arraybuffer");
+            // パスから chunk_xxx/assets/ を除去
+            const assetPath = assetFile.name.replace(`${chunkName}/assets/`, "");
+            const blob = new Blob([assetBuffer]);
+            formData.append(`asset:${assetPath}`, blob, assetPath.split("/").pop());
+          }
+        }
+
+        // チャンクを送信
+        try {
+          const response = await axios.post("/api/data-migration/import-chunk", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+
+          const data = response.data as { chunkName: string; recordCount: number };
+          chunkResults.push({
+            chunkName: data.chunkName,
+            success: true,
+            recordCount: data.recordCount,
+          });
+          totalRecords += data.recordCount;
+          successfulChunks++;
+        } catch (err) {
+          const errorMsg = axios.isAxiosError(err) && err.response?.data?.error
+            ? err.response.data.error
+            : "Unknown error";
+          chunkResults.push({
+            chunkName,
+            success: false,
+            recordCount: 0,
+            error: errorMsg,
+          });
+          failedChunks++;
+        }
+      }
+
+      setResult({
+        totalRecords,
+        successfulChunks,
+        failedChunks,
+        chunkResults,
       });
 
-      setResult(response.data as ImportResultData);
+      // インポート成功時にコールバック
+      if (successfulChunks > 0 && onImportSuccess) {
+        onImportSuccess();
+      }
     } catch (err) {
       console.error("Import failed:", err);
-      if (axios.isAxiosError(err) && err.response?.data) {
-        const data = err.response.data;
-        setError(data.error || "インポートに失敗しました");
-      } else {
-        setError("インポートに失敗しました");
-      }
+      setError(err instanceof Error ? err.message : "インポートに失敗しました");
     } finally {
       setIsImporting(false);
+      setProgress(null);
     }
-  }, [selectedFile, domain, imageFields, fields]);
+  }, [selectedFile, domain, imageFields, fields, onImportSuccess]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -335,7 +457,7 @@ function ImportTabContent({
   return (
     <Block className="p-4">
       {/* ファイル選択エリア */}
-      {!selectedFile && !result && (
+      {!selectedFile && !result && !isImporting && (
         <Block
           className={`mb-4 p-8 border-2 border-dashed rounded-lg text-center transition-colors ${
             isDragging ? "border-primary bg-primary/5" : "border-border"
@@ -360,17 +482,46 @@ function ImportTabContent({
       )}
 
       {/* 選択されたファイル表示 */}
-      {selectedFile && !result && (
+      {selectedFile && !result && !isImporting && (
         <Block className="mb-4 p-4 bg-muted/30 rounded-lg">
           <Flex justify="between" align="center">
             <Block>
               <p className="text-sm font-medium">{selectedFile.name}</p>
               <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
             </Block>
-            <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isImporting}>
+            <Button variant="ghost" size="sm" onClick={handleClearFile}>
               取り消し
             </Button>
           </Flex>
+        </Block>
+      )}
+
+      {/* インポート進捗 */}
+      {isImporting && progress && (
+        <Block className="mb-4">
+          <Block className="p-4 bg-primary/5 rounded-lg">
+            <Flex justify="between" align="center" className="mb-2">
+              <p className="text-sm font-medium">インポート中...</p>
+              <p className="text-sm text-muted-foreground">
+                {progress.currentChunk} / {progress.totalChunks}
+              </p>
+            </Flex>
+            {/* 進捗バー */}
+            <Block className="h-2 bg-muted rounded-full overflow-hidden">
+              <Block
+                className="h-full bg-primary transition-all duration-300"
+                style={{
+                  width: `${(progress.currentChunk / progress.totalChunks) * 100}%`,
+                }}
+              />
+            </Block>
+            <p className="text-xs text-muted-foreground mt-2">
+              処理中: {progress.currentChunkName}
+            </p>
+          </Block>
+          <Block className="mt-3 p-3 bg-amber-500/10 rounded text-sm text-amber-700">
+            インポート中はページを閉じないでください
+          </Block>
         </Block>
       )}
 
@@ -422,9 +573,9 @@ function ImportTabContent({
         <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isImporting}>
           {result ? "閉じる" : "キャンセル"}
         </Button>
-        {!result && (
-          <Button onClick={handleImport} disabled={!selectedFile || isImporting}>
-            {isImporting ? "インポート中..." : "インポート"}
+        {!result && !isImporting && (
+          <Button onClick={handleImport} disabled={!selectedFile}>
+            インポート
           </Button>
         )}
         {result && (
@@ -455,6 +606,7 @@ export function DataMigrationModal({
   fields,
   domainLabel,
   searchParams,
+  onImportSuccess,
 }: DataMigrationModalProps) {
   // 画像フィールドを抽出
   const imageFieldNames = fields.filter((f) => f.isImageField).map((f) => f.name);
@@ -481,6 +633,7 @@ export function DataMigrationModal({
           imageFields={imageFieldNames}
           fields={fields}
           onOpenChange={onOpenChange}
+          onImportSuccess={onImportSuccess}
         />
       ),
     },

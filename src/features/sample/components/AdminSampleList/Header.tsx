@@ -2,7 +2,8 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import Pagination from "../../../../components/Navigation/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
@@ -28,7 +29,13 @@ const exportFields: ExportField[] = config.fields.map((field) => ({
 export default function AdminSampleListHeader({ page, perPage, total }: AdminSampleListHeaderProps) {
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
+  const router = useRouter();
   const [isDataMigrationModalOpen, setIsDataMigrationModalOpen] = useState(false);
+
+  const handleImportSuccess = useCallback(() => {
+    // インポート成功時に一覧を再取得
+    router.refresh();
+  }, [router]);
 
   return (
     <>
@@ -56,6 +63,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
         fields={exportFields}
         domainLabel={config.label}
         searchParams={params.toString()}
+        onImportSuccess={handleImportSuccess}
       />
     </>
   );
