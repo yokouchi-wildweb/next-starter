@@ -5,6 +5,7 @@ import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 import {
   DomainFieldRenderer,
   type DomainFieldRenderConfig,
+  type DomainFieldGroup,
   type DomainMediaState,
 } from "@/components/Form/DomainFieldRenderer";
 import type { Options } from "@/components/Form/types";
@@ -45,6 +46,7 @@ export function SampleFields<TFieldValues extends FieldValues>({
 
   const customFields = relationFieldConfigs;
   const filteredDomainJsonFields = (domainConfig.fields ?? []) as Parameters<typeof DomainFieldRenderer>["0"]["domainJsonFields"];
+  const fieldGroups = (domainConfig.fieldGroups ?? []) as DomainFieldGroup[];
 
   return (
     <DomainFieldRenderer
@@ -52,6 +54,7 @@ export function SampleFields<TFieldValues extends FieldValues>({
       methods={methods}
       fields={customFields}
       domainJsonFields={filteredDomainJsonFields}
+      fieldGroups={fieldGroups}
       onMediaStateChange={onMediaStateChange}
     />
   );

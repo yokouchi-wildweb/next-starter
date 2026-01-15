@@ -154,6 +154,41 @@
       "required": false
     }
   ],
+  "fieldGroups": [
+    {
+      "key": "basic",
+      "label": "基本情報",
+      "fields": ["name", "description"],
+      "bgColor": "#f0f7ff"
+    },
+    {
+      "key": "numbers",
+      "label": "数値設定",
+      "fields": ["number", "rich_number"],
+      "bgColor": "#fff7e6"
+    },
+    {
+      "key": "selections",
+      "label": "選択項目",
+      "collapsible": true,
+      "fields": ["switch", "radio", "select", "multi_select"],
+      "bgColor": "#f6ffed"
+    },
+    {
+      "key": "datetime",
+      "label": "日時設定",
+      "collapsible": true,
+      "defaultCollapsed": true,
+      "fields": ["sale_start_at", "date", "time"],
+      "bgColor": "#fff0f6"
+    },
+    {
+      "key": "media",
+      "label": "メディア",
+      "fields": ["main_image", "sub_image"],
+      "bgColor": "#f5f5f5"
+    }
+  ],
   "searchFields": [
     "name",
     "description"

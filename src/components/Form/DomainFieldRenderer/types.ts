@@ -81,6 +81,25 @@ export type DomainFieldOption = {
 export type DomainMediaValidationRule = FileValidationRule;
 
 /**
+ * フィールドグループ定義
+ * @see src/features/README.md - FieldGroup（フィールドグループ）
+ */
+export type DomainFieldGroup = {
+  /** グループキー（一意識別子） */
+  key: string;
+  /** 表示ラベル */
+  label: string;
+  /** グループに含むフィールド名の配列 */
+  fields: string[];
+  /** 折りたたみ可能か（デフォルト: false） */
+  collapsible?: boolean;
+  /** 初期状態で折りたたむか（デフォルト: false） */
+  defaultCollapsed?: boolean;
+  /** 背景色（CSSカラーコード形式、例: "#f5f5f5", "rgba(0,0,0,0.05)"） */
+  bgColor?: string;
+};
+
+/**
  * domain.json フィールド定義（domain.json の Field と完全互換）
  * @see src/features/README.md - Field（フィールド定義）
  */
