@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
-
+import { SWRConfig } from "swr";
+import { sampleService } from "@/features/sample/services/server/sampleService";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import AdminSampleCategoryEdit from "@/features/sampleCategory/components/AdminSampleCategoryEdit";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
@@ -17,15 +18,23 @@ type Props = {
 
 export default async function AdminSampleCategoryEditPage({ params }: Props) {
   const { id } = await params;
-  const sampleCategory = (await sampleCategoryService.get(id)) as SampleCategory;
+  const [sampleCategory, samples ] = await Promise.all([
+    sampleCategoryService.get(id),
+    sampleService.list()
+  ]);
 
 
   return (
+  <SWRConfig
+    value={{
+      fallback: { samples },
+  }}
+  >
 
     <AdminPage>
       <PageTitle>サンプルカテゴリ編集</PageTitle>
       <AdminSampleCategoryEdit sampleCategory={sampleCategory as SampleCategory} redirectPath="/admin/sample-categories" />
     </AdminPage>
-
+  </SWRConfig>
   );
 }

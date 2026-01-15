@@ -29,6 +29,11 @@ const exportFields: ExportField[] = config.fields.map((field) => ({
 // リレーションが存在するかどうか
 const hasRelations = Array.isArray(config.relations) && config.relations.length > 0;
 
+// hasMany リレーションを抽出（子データの選択用）
+const hasManyDomains = (config.relations || [])
+  .filter((r: any) => r.relationType === "hasMany")
+  .map((r: any) => ({ domain: r.domain.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, ""), label: r.label }));
+
 export default function AdminSampleListHeader({ page, perPage, total }: AdminSampleListHeaderProps) {
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
@@ -71,6 +76,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
           searchParams={params.toString()}
           onImportSuccess={handleImportSuccess}
           hasRelations={hasRelations}
+          hasManyDomains={hasManyDomains}
         />
       )}
     </>
