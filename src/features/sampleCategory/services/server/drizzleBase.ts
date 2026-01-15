@@ -1,6 +1,6 @@
 // src/features/sampleCategory/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/features/core/domainConfig/getDomainConfig";
+import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";

@@ -2,7 +2,7 @@
 
 import "server-only";
 import { v7 as uuidv7 } from "uuid";
-import { getServiceOrThrow } from "@/lib/crud/utils";
+import { getServiceOrThrow } from "@/lib/domain";
 import { uploadFileServer } from "@/lib/firebase/server/storage";
 import { parseCsv } from "./parseCsv";
 import type { FieldTypeInfo } from "./index";

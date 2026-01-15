@@ -1,4 +1,4 @@
-// src/features/core/domainConfig/getDomainConfig.ts
+// src/lib/domain/getDomainConfig.ts
 // ドメイン設定 (domain.json) を取得するユーティリティ。
 
 import { domainConfigMap, type DomainConfig, type DomainKey } from "@/registry/domainConfigRegistry";

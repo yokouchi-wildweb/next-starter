@@ -1,7 +1,7 @@
 // src/lib/dataMigration/export/index.ts
 
 import "server-only";
-import { getServiceOrThrow } from "@/lib/crud/utils";
+import { getServiceOrThrow } from "@/lib/domain";
 import { getDataMigrationConfig, CHUNK_SIZE } from "../config";
 import { generateCsv, csvToBuffer } from "./generateCsv";
 import { createZip, downloadImage, extractFilename, type ZipEntry } from "./createZip";

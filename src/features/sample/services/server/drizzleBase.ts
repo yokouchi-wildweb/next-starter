@@ -1,6 +1,6 @@
 // src/features/sample/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/features/core/domainConfig/getDomainConfig";
+import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/drizzle";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";

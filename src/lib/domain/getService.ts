@@ -1,4 +1,4 @@
-// src/lib/crud/utils/getService.ts
+// src/lib/domain/getService.ts
 
 import "server-only";
 import { serviceRegistry } from "@/registry/serviceRegistry";
