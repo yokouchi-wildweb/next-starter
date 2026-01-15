@@ -42,6 +42,8 @@
     "updatedAt"
   ],
   "useDetailModal": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
   "addToAdminDataMenu": true,
   "generateFiles": {
     "entities": true,

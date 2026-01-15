@@ -100,6 +100,14 @@ export default async function askViewConfig(config) {
   });
   result.useDuplicateButton = useDuplicateButton;
 
+  const { useImportExport } = await prompt({
+    type: 'confirm',
+    name: 'useImportExport',
+    message: 'インポート・エクスポート機能を利用しますか?',
+    default: false,
+  });
+  result.useImportExport = useImportExport;
+
   const { addToAdminDataMenu } = await prompt({
     type: 'confirm',
     name: 'addToAdminDataMenu',
