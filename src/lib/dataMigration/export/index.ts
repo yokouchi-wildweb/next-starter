@@ -102,58 +102,80 @@ export async function exportData(
   }
 
   try {
-    // レコードを取得（削除済み含む）
-    let records: Record<string, unknown>[];
-
     const parsedParams = parseSearchParams(searchParams);
-
-    if (hasSearchWithDeleted) {
-      // searchWithDeleted を使用（検索条件対応）
-      const searchQuery = parsedParams.searchQuery;
-      // 全件取得のため limit を大きく設定
-      const result = await service.searchWithDeleted({
-        searchQuery,
-        limit: config.maxRecordLimit + 1, // 制限超過チェック用に +1
-        page: 1,
-      });
-      records = result.results || [];
-    } else {
-      // listWithDeleted を使用（全件取得）
-      records = await service.listWithDeleted();
-    }
-
-    // レコード数チェック
-    if (records.length > config.maxRecordLimit) {
-      return {
-        success: false,
-        error: `Record count exceeds limit`,
-        code: "TOO_MANY_RECORDS",
-        details: {
-          recordCount: records.length,
-          limit: config.maxRecordLimit,
-        },
-      };
-    }
+    const searchQuery = parsedParams.searchQuery;
 
     // フィールドを順序通りに並べる
     const orderedFields = orderFields(selectedFields);
 
-    // CSV を生成
-    const csv = generateCsv(records, { fields: orderedFields });
-    const csvBuffer = csvToBuffer(csv);
-
     // ZIP エントリを作成
-    const zipEntries: ZipEntry[] = [
-      { path: "data.csv", content: csvBuffer },
-    ];
+    const zipEntries: ZipEntry[] = [];
 
-    // 画像を含める場合
-    if (includeImages && imageFields.length > 0) {
-      // チャンクごとに処理
-      for (let i = 0; i < records.length; i += CHUNK_SIZE) {
-        const chunk = records.slice(i, i + CHUNK_SIZE);
+    // レコードをチャンクごとに取得・処理（削除済み含む）
+    let page = 1;
+    let chunkIndex = 1;
+    let totalRecordCount = 0;
+    let hasMore = true;
 
-        for (const record of chunk) {
+    console.log(`[Export] Starting chunked export for domain: ${domain}, chunkSize: ${CHUNK_SIZE}`);
+
+    while (hasMore) {
+      let chunkRecords: Record<string, unknown>[];
+
+      if (hasSearchWithDeleted) {
+        // searchWithDeleted を使用（検索条件対応）
+        const result = await service.searchWithDeleted({
+          searchQuery,
+          limit: CHUNK_SIZE,
+          page,
+        });
+        chunkRecords = result.results || [];
+      } else {
+        // listWithDeleted を使用（全件取得、ページネーションなし）
+        const allRecords = await service.listWithDeleted();
+        // listWithDeleted の場合は手動でチャンク分割
+        const start = (page - 1) * CHUNK_SIZE;
+        chunkRecords = allRecords.slice(start, start + CHUNK_SIZE);
+        hasMore = start + CHUNK_SIZE < allRecords.length;
+      }
+
+      // レコードがない場合は終了
+      if (chunkRecords.length === 0) {
+        break;
+      }
+
+      totalRecordCount += chunkRecords.length;
+
+      // 最大件数チェック（超過したら即座にエラー）
+      if (totalRecordCount > config.maxRecordLimit) {
+        return {
+          success: false,
+          error: `Record count exceeds limit`,
+          code: "TOO_MANY_RECORDS",
+          details: {
+            recordCount: totalRecordCount,
+            limit: config.maxRecordLimit,
+          },
+        };
+      }
+
+      // チャンクフォルダ名（3桁ゼロパディング）
+      const chunkFolderName = `chunk_${String(chunkIndex).padStart(3, "0")}`;
+
+      console.log(`[Export] Processing ${chunkFolderName}: ${chunkRecords.length} records`);
+
+      // このチャンクの CSV を生成
+      const csv = generateCsv(chunkRecords, { fields: orderedFields });
+      const csvBuffer = csvToBuffer(csv);
+
+      zipEntries.push({
+        path: `${chunkFolderName}/data.csv`,
+        content: csvBuffer,
+      });
+
+      // 画像を含める場合
+      if (includeImages && imageFields.length > 0) {
+        for (const record of chunkRecords) {
           const recordId = String(record.id || "unknown");
 
           for (const imageField of imageFields) {
@@ -163,7 +185,7 @@ export async function exportData(
               if (imageBuffer) {
                 const filename = extractFilename(imageUrl, recordId);
                 zipEntries.push({
-                  path: `assets/${imageField}/${filename}`,
+                  path: `${chunkFolderName}/assets/${imageField}/${filename}`,
                   content: imageBuffer,
                 });
               }
@@ -171,6 +193,27 @@ export async function exportData(
           }
         }
       }
+
+      // 次のチャンクがあるかどうか
+      if (hasSearchWithDeleted) {
+        hasMore = chunkRecords.length === CHUNK_SIZE;
+      }
+
+      page++;
+      chunkIndex++;
+    }
+
+    console.log(`[Export] Total records: ${totalRecordCount}, chunks: ${chunkIndex - 1}`);
+
+    // レコードが0件の場合
+    if (totalRecordCount === 0) {
+      // 空のチャンクを作成（構造を維持）
+      const csv = generateCsv([], { fields: orderedFields });
+      const csvBuffer = csvToBuffer(csv);
+      zipEntries.push({
+        path: "chunk_001/data.csv",
+        content: csvBuffer,
+      });
     }
 
     // ZIP を作成
@@ -180,11 +223,13 @@ export async function exportData(
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     const filename = `${domain}_${timestamp}.zip`;
 
+    console.log(`[Export] Completed: ${totalRecordCount} records, filename: ${filename}`);
+
     return {
       success: true,
       zipBuffer,
       filename,
-      recordCount: records.length,
+      recordCount: totalRecordCount,
     };
   } catch (error) {
     console.error("Export error:", error);

@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import axios from "axios";
 import Modal from "@/components/Overlays/Modal";
 import { Button } from "@/components/Form/Button/Button";
 import { Checkbox } from "@/components/_shadcn/checkbox";
@@ -12,22 +13,30 @@ import { Block } from "@/components/Layout/Block";
 export type ExportField = {
   name: string;
   label: string;
+  /** 画像フィールドかどうか（formInput: "mediaUploader"） */
+  isImageField?: boolean;
 };
 
 export type ExportSettingsModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** ドメイン名（API 呼び出し用） */
+  domain: string;
+  /** フィールド情報 */
   fields: ExportField[];
+  /** ドメインの表示名 */
   domainLabel: string;
-  onExport?: (selectedFields: string[], includeImages: boolean) => void;
+  /** 検索パラメータ（URL クエリ文字列形式） */
+  searchParams?: string;
 };
 
 export function ExportSettingsModal({
   open,
   onOpenChange,
+  domain,
   fields,
   domainLabel,
-  onExport,
+  searchParams,
 }: ExportSettingsModalProps) {
   // システムフィールド
   const systemFields: ExportField[] = [
@@ -40,8 +49,13 @@ export function ExportSettingsModal({
   const allFields = [...systemFields.slice(0, 1), ...fields, ...systemFields.slice(1)];
   const allFieldNames = allFields.map((f) => f.name);
 
+  // 画像フィールドを抽出
+  const imageFieldNames = fields.filter((f) => f.isImageField).map((f) => f.name);
+
   const [selectedFields, setSelectedFields] = useState<string[]>(allFieldNames);
   const [includeImages, setIncludeImages] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isAllSelected = selectedFields.length === allFieldNames.length;
   const isNoneSelected = selectedFields.length === 0;
@@ -62,18 +76,66 @@ export function ExportSettingsModal({
     );
   }, []);
 
-  const handleExport = useCallback(() => {
-    if (onExport) {
-      onExport(selectedFields, includeImages);
-    } else {
-      // ダミー実装
-      console.log("Export settings:", {
-        selectedFields,
-        includeImages,
-      });
+  const handleExport = useCallback(async () => {
+    setIsExporting(true);
+    setError(null);
+
+    try {
+      const response = await axios.post(
+        "/api/data-migration/export",
+        {
+          domain,
+          selectedFields,
+          includeImages,
+          searchParams,
+          imageFields: includeImages ? imageFieldNames : [],
+        },
+        {
+          responseType: "blob",
+        }
+      );
+
+      // ファイル名をヘッダーから取得
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = `${domain}_export.zip`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match) {
+          filename = match[1];
+        }
+      }
+
+      // Blob をダウンロード
+      const blob = new Blob([response.data], { type: "application/zip" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      onOpenChange(false);
+    } catch (err) {
+      console.error("Export failed:", err);
+      if (axios.isAxiosError(err) && err.response?.data) {
+        // Blob を JSON に変換してエラーメッセージを取得
+        const blob = err.response.data as Blob;
+        try {
+          const text = await blob.text();
+          const json = JSON.parse(text);
+          setError(json.error || "エクスポートに失敗しました");
+        } catch {
+          setError("エクスポートに失敗しました");
+        }
+      } else {
+        setError("エクスポートに失敗しました");
+      }
+    } finally {
+      setIsExporting(false);
     }
-    onOpenChange(false);
-  }, [selectedFields, includeImages, onExport, onOpenChange]);
+  }, [domain, selectedFields, includeImages, searchParams, imageFieldNames, onOpenChange]);
 
   return (
     <Modal
@@ -138,13 +200,20 @@ export function ExportSettingsModal({
           </Block>
         </Block>
 
+        {/* エラー表示 */}
+        {error && (
+          <Block className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded">
+            {error}
+          </Block>
+        )}
+
         {/* フッター */}
         <Flex justify="end" gap="sm" className="pt-4 border-t border-border">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isExporting}>
             キャンセル
           </Button>
-          <Button onClick={handleExport} disabled={isNoneSelected}>
-            エクスポート
+          <Button onClick={handleExport} disabled={isNoneSelected || isExporting}>
+            {isExporting ? "エクスポート中..." : "エクスポート"}
           </Button>
         </Flex>
       </Block>

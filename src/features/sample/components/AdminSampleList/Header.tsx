@@ -17,26 +17,17 @@ export type AdminSampleListHeaderProps = {
   total: number;
 };
 
-// domain.json からフィールド情報を抽出
+// domain.json からフィールド情報を抽出（画像フィールドかどうかも判定）
 const exportFields: ExportField[] = config.fields.map((field) => ({
   name: field.name,
   label: field.label,
+  isImageField: field.formInput === "mediaUploader",
 }));
 
 export default function AdminSampleListHeader({ page, perPage, total }: AdminSampleListHeaderProps) {
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-
-  const handleExport = (selectedFields: string[], includeImages: boolean) => {
-    // TODO: 実際のエクスポート処理を実装
-    console.log("Export requested:", {
-      domain: config.singular,
-      selectedFields,
-      includeImages,
-      searchParams: params.toString(),
-    });
-  };
 
   return (
     <>
@@ -60,9 +51,10 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
       <ExportSettingsModal
         open={isExportModalOpen}
         onOpenChange={setIsExportModalOpen}
+        domain={config.singular}
         fields={exportFields}
         domainLabel={config.label}
-        onExport={handleExport}
+        searchParams={params.toString()}
       />
     </>
   );
