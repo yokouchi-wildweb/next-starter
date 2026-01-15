@@ -1,7 +1,7 @@
 // src/features/purchaseRequest/services/client/purchaseRequestClient.ts
 
 import axios from "axios";
-import { createApiClient } from "@/lib/crud/apiClientFactory";
+import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud/types";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities";
 import type {

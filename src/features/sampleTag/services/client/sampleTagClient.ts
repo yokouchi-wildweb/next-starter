@@ -1,6 +1,6 @@
 // src/features/sampleTag/services/client/sampleTagClient.ts
 
-import { createApiClient } from "@/lib/crud/apiClientFactory";
+import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud/types";
 import type { SampleTag } from "@/features/sampleTag/entities";
 import type {

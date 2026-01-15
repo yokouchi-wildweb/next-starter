@@ -2,7 +2,7 @@ import React from "react";
 import type { DataTableColumn } from "@/lib/tableSuite/DataTable";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";
-import type { FieldPresenter } from "./presenters";
+import type { FieldPresenter } from "./formatters";
 
 type FieldOption = {
   value: string | number | boolean;

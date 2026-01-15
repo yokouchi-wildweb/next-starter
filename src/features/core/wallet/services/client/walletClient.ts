@@ -2,7 +2,7 @@
 
 import axios from "axios";
 
-import { createApiClient } from "@/lib/crud/apiClientFactory";
+import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud/types";
 import { normalizeHttpError } from "@/lib/errors";
 import type { Wallet } from "@/features/core/wallet/entities";

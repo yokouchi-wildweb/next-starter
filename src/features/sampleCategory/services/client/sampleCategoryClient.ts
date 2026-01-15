@@ -1,6 +1,6 @@
 // src/features/sampleCategory/services/client/sampleCategoryClient.ts
 
-import { createApiClient } from "@/lib/crud/apiClientFactory";
+import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud/types";
 import type { SampleCategory } from "@/features/sampleCategory/entities";
 import type {

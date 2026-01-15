@@ -1,6 +1,6 @@
 // src/features/sample/services/client/sampleClient.ts
 
-import { createApiClient } from "@/lib/crud/apiClientFactory";
+import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud/types";
 import type { Sample } from "@/features/sample/entities";
 import type {

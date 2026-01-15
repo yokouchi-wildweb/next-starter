@@ -9,7 +9,7 @@ import type {
   BulkUpsertOptions,
   BulkUpsertResult,
   WhereExpr,
-} from "./types";
+} from "../types";
 import type { CrudAction } from "./events";
 import { emitCrudEvent } from "./events";
 import { normalizeHttpError, type HttpError } from "@/lib/errors";

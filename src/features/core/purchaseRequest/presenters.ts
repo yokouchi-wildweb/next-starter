@@ -1,7 +1,7 @@
 // src/features/purchaseRequest/presenters.ts
 
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities";
-import type { FieldPresenter } from "@/lib/crud/presenters";
+import type { FieldPresenter } from "@/lib/crud";
 import {
   formatBoolean,
   formatNumber,
@@ -9,7 +9,7 @@ import {
   formatStringArray,
   formatEnumLabel,
   formatDateValue,
-} from "@/lib/crud/presenters";
+} from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 

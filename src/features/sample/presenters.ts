@@ -1,7 +1,7 @@
 // src/features/sample/presenters.ts
 
 import type { Sample } from "@/features/sample/entities";
-import type { FieldPresenter } from "@/lib/crud/presenters";
+import type { FieldPresenter } from "@/lib/crud";
 import {
   formatBoolean,
   formatNumber,
@@ -9,7 +9,7 @@ import {
   formatStringArray,
   formatEnumLabel,
   formatDateValue,
-} from "@/lib/crud/presenters";
+} from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";
 
 export type SampleFieldPresenter = FieldPresenter<Sample>;

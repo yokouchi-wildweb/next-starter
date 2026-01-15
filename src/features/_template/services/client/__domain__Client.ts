@@ -1,6 +1,6 @@
 // src/features/__domain__/services/client/__domain__Client.ts
 
-import { createApiClient } from "@/lib/crud/apiClientFactory";
+import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud/types";
 import type { __Domain__ } from "@/features/__domain__/entities";
 import type {

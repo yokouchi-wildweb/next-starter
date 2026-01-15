@@ -1,6 +1,6 @@
 // src/features/user/services/client/userClient.ts
 
-import { createApiClient } from "@/lib/crud/apiClientFactory";
+import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud/types";
 import type { User } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";

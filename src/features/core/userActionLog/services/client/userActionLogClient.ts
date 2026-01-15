@@ -1,6 +1,6 @@
 // src/features/core/userActionLog/services/client/userActionLogClient.ts
 
-import { createApiClient } from "@/lib/crud/apiClientFactory";
+import { createApiClient } from "@/lib/crud";
 import type { ApiClient } from "@/lib/crud/types";
 import type { UserActionLog } from "@/features/core/userActionLog/entities";
 
