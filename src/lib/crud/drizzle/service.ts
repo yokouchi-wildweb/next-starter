@@ -623,12 +623,18 @@ export function createCrudService<
         // 各レコードをパースしてデフォルト値を適用
         const parsedRecords = await Promise.all(
           records.map(async (data) => {
+            // parse 前に id を保存（parse で削除される可能性があるため）
+            const originalId = data.id;
             const parsedInput = serviceOptions.parseUpsert
               ? await serviceOptions.parseUpsert(data)
               : serviceOptions.parseCreate
                 ? await serviceOptions.parseCreate(data)
                 : data;
-            return applyInsertDefaults(parsedInput as Insert, serviceOptions) as Insert & {
+            // parse 後に id を復元
+            const withId = originalId !== undefined
+              ? { ...parsedInput, id: originalId }
+              : parsedInput;
+            return applyInsertDefaults(withId as Insert, serviceOptions) as Insert & {
               id?: string;
               createdAt?: Date;
               updatedAt?: Date;
@@ -642,7 +648,12 @@ export function createCrudService<
           keyof typeof firstRecord
         >;
         const updateData = Object.fromEntries(
-          updateColumns.map((col) => [col, sql.raw(`excluded.${String(col)}`)]),
+          updateColumns.map((col) => {
+            // テーブル定義からカラム情報を取得し、実際のカラム名（snake_case）を使用
+            const column = (table as any)[col];
+            const columnName = column?.name ?? String(col);
+            return [col, sql.raw(`excluded."${columnName}"`)];
+          }),
         ) as PgUpdateSetSource<TTable>;
 
         const executor = tx ?? db;

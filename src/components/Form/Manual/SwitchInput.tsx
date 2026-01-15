@@ -9,7 +9,7 @@ const trackVariants = cva(
   {
     variants: {
       checked: {
-        false: "bg-muted border border-border shadow-sm",
+        false: "border border-border shadow-sm",
         true: "shadow-inner",
       },
       interactive: {
@@ -31,13 +31,25 @@ const trackVariants = cva(
         error: "",
         warning: "",
       },
+      inactiveColor: {
+        primary: "",
+        secondary: "",
+        accent: "",
+        destructive: "",
+        muted: "",
+        success: "",
+        error: "",
+        warning: "",
+      },
     },
     defaultVariants: {
       interactive: true,
       size: "md",
       activeColor: "primary",
+      inactiveColor: "muted",
     },
     compoundVariants: [
+      // activeColor (checked: true)
       { checked: true, activeColor: "primary", class: "bg-primary" },
       { checked: true, activeColor: "secondary", class: "bg-secondary" },
       { checked: true, activeColor: "accent", class: "bg-accent" },
@@ -56,6 +68,27 @@ const trackVariants = cva(
       {
         checked: true,
         activeColor: "warning",
+        class: "bg-orange-500 dark:bg-orange-400",
+      },
+      // inactiveColor (checked: false)
+      { checked: false, inactiveColor: "primary", class: "bg-primary" },
+      { checked: false, inactiveColor: "secondary", class: "bg-secondary" },
+      { checked: false, inactiveColor: "accent", class: "bg-accent" },
+      { checked: false, inactiveColor: "destructive", class: "bg-destructive" },
+      { checked: false, inactiveColor: "muted", class: "bg-muted" },
+      {
+        checked: false,
+        inactiveColor: "success",
+        class: "bg-emerald-500 dark:bg-emerald-400",
+      },
+      {
+        checked: false,
+        inactiveColor: "error",
+        class: "bg-red-500 dark:bg-red-400",
+      },
+      {
+        checked: false,
+        inactiveColor: "warning",
         class: "bg-orange-500 dark:bg-orange-400",
       },
     ],
@@ -119,6 +152,18 @@ type SwitchInputProps = {
     | "success"
     | "error"
     | "warning";
+  /**
+   * スイッチがオフのときの背景色
+   */
+  inactiveColor?:
+    | "primary"
+    | "secondary"
+    | "accent"
+    | "destructive"
+    | "muted"
+    | "success"
+    | "error"
+    | "warning";
   onChange?: ComponentPropsWithoutRef<"input">["onChange"];
 } & Omit<
   ComponentPropsWithoutRef<"input">,
@@ -135,6 +180,7 @@ export function SwitchInput(props: SwitchInputProps) {
     disabled,
     size,
     activeColor,
+    inactiveColor,
     name: nameFromProps,
     onChange: onChangeFromProps,
     id: idFromProps,
@@ -171,7 +217,7 @@ export function SwitchInput(props: SwitchInputProps) {
 
       <label
         htmlFor={inputId}
-        className={cn(trackVariants({ checked, interactive: !disabled, size, activeColor }))}
+        className={cn(trackVariants({ checked, interactive: !disabled, size, activeColor, inactiveColor }))}
       >
         <span className={indicatorVariants({ checked, size })} />
       </label>
