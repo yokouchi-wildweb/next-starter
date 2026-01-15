@@ -77,7 +77,7 @@ const generators = [
   generateAdminCreate,
   generateAdminEdit,
   generateAdminListIndex,
-  generateAdminListHeader,
+  (opts) => generateAdminListHeader({ ...opts, config: domainConfig }),
   (opts) => generateAdminListTable({ ...opts, config: domainConfig }),
   generateCreateForm,
   generateEditForm,
