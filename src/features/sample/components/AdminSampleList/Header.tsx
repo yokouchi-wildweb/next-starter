@@ -7,7 +7,7 @@ import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import Pagination from "../../../../components/Navigation/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { Button } from "@/components/Form/Button/Button";
-import { ExportSettingsModal, type ExportField } from "@/lib/dataMigration";
+import { DataMigrationModal, type ExportField } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/sample/domain.json";
 
@@ -27,14 +27,14 @@ const exportFields: ExportField[] = config.fields.map((field) => ({
 export default function AdminSampleListHeader({ page, perPage, total }: AdminSampleListHeaderProps) {
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isDataMigrationModalOpen, setIsDataMigrationModalOpen] = useState(false);
 
   return (
     <>
       <ListTop title="登録済みサンプルの一覧" newHref="/admin/samples/new">
         {hasSearch && <SearchBox makeHref={(p) => `/admin/samples?${p.toString()}`} />}
-        <Button variant="outline" onClick={() => setIsExportModalOpen(true)}>
-          エクスポート
+        <Button variant="outline" onClick={() => setIsDataMigrationModalOpen(true)}>
+          ファイル入出力
         </Button>
         <Pagination
           page={page}
@@ -48,9 +48,9 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
         />
       </ListTop>
 
-      <ExportSettingsModal
-        open={isExportModalOpen}
-        onOpenChange={setIsExportModalOpen}
+      <DataMigrationModal
+        open={isDataMigrationModalOpen}
+        onOpenChange={setIsDataMigrationModalOpen}
         domain={config.singular}
         fields={exportFields}
         domainLabel={config.label}
