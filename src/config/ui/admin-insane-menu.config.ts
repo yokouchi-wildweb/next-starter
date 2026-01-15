@@ -13,5 +13,11 @@ export const insaneMenu = [
       { title: "通常管理画面へ戻る", href: "/admin" },
     ],
   },
-  // TODO: 特権メニュー項目を追加
+  {
+    title: "データ管理",
+    href: "/admin/insane/truncate",
+    items: [
+      { title: "ドメイン全削除", href: "/admin/insane/truncate" },
+    ],
+  },
 ];

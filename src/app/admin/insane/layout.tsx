@@ -1,4 +1,4 @@
-// src/app/admin/(insane)/layout.tsx
+// src/app/admin/insane/layout.tsx
 
 import type { ReactNode } from "react";
 
