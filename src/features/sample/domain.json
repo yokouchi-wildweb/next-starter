@@ -213,7 +213,7 @@
   "useDetailModal": true,
   "addToAdminDataMenu": true,
   "useDuplicateButton": true,
-  "useImportExport": false,
+  "useImportExport": true,
   "generateFiles": {
     "entities": true,
     "components": true,

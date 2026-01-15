@@ -27,6 +27,7 @@
 | useDetailModal | boolean | ⚪ No | 詳細モーダルの有無 |
 | addToAdminDataMenu | boolean | ⚪ No | adminDataMenu への自動追加 |
 | useDuplicateButton | boolean | ⚪ No | 複製ボタンの有無 |
+| useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式） |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
 
