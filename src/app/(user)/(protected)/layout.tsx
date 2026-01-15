@@ -8,7 +8,7 @@ export default async function UserProtectedLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   await authGuard({
-    allowRoles: ["admin", "user"],
+    allowRoles: ["admin", "user", "debugger"],
     redirectTo: "/login",
     statusRedirects: {
       inactive: "/reactivate",
