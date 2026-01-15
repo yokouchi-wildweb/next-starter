@@ -1,6 +1,6 @@
 // src/features/__domain__/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/lib/domain";
+import { getDomainConfig, type DomainConfig } from "@/lib/domain/getDomainConfig";
 import { __DrizzleEntityImports__ } from "@/features/__domain__/entities/drizzle";
 import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";

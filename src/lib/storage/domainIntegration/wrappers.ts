@@ -1,6 +1,6 @@
 // src/lib/storage/domainIntegration/wrappers.ts
 
-import { getDomainConfig } from "@/lib/domain";
+import { getDomainConfig } from "@/lib/domain/getDomainConfig";
 import { extractStorageFields, extractStorageFieldsWithPath } from "./extractStorageFields";
 import { cleanupStorageFiles } from "./cleanupFiles";
 import { duplicateStorageFiles } from "./duplicateFiles";
