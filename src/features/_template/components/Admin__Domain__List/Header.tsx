@@ -10,6 +10,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { Button } from "@/components/Form/Button/Button";
 import { DataMigrationModal, type ExportField } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
+import { toSnakeCase } from "@/utils/stringCase.mjs";
 import config from "@/features/__domain__/domain.json";
 
 export type Admin__Domain__ListHeaderProps = {
@@ -32,7 +33,7 @@ const hasRelations = Array.isArray(config.relations) && config.relations.length 
 // hasMany リレーションを抽出（子データの選択用）
 const hasManyDomains = (config.relations || [])
   .filter((r: any) => r.relationType === "hasMany")
-  .map((r: any) => ({ domain: r.domain.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, ""), label: r.label }));
+  .map((r: any) => ({ domain: toSnakeCase(r.domain), label: r.label }));
 
 export default function Admin__Domain__ListHeader({ page, perPage, total }: Admin__Domain__ListHeaderProps) {
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;

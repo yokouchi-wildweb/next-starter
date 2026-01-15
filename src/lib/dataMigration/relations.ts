@@ -213,9 +213,8 @@ export function collectExportDomains(
 
   // 3. hasMany ドメイン（選択されたもののみ）
   for (const hasManyRelation of hasManyRelations) {
-    // selectedHasManyDomains が指定されていない場合は全て含める
-    // 指定されている場合は選択されたもののみ
-    if (!selectedHasManyDomains || selectedHasManyDomains.includes(hasManyRelation.domain)) {
+    // selectedHasManyDomains が指定されていて、かつそのドメインが含まれている場合のみ追加
+    if (selectedHasManyDomains && selectedHasManyDomains.includes(hasManyRelation.domain)) {
       const childConfig = getDomainConfig(hasManyRelation.domain);
       domains.push({
         domain: hasManyRelation.domain,
