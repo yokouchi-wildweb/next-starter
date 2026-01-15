@@ -2,9 +2,11 @@
 
 import "server-only";
 import { v7 as uuidv7 } from "uuid";
-import { getServiceOrThrow } from "@/lib/domain";
+import { getServiceOrThrow, getJunctionTable } from "@/lib/domain";
 import { uploadFileServer } from "@/lib/firebase/server/storage";
+import { toCamelCase } from "@/utils/stringCase.mjs";
 import { parseCsv } from "./parseCsv";
+import { db } from "@/lib/drizzle";
 import type { FieldTypeInfo } from "./index";
 
 export type ImportChunkOptions = {
@@ -22,6 +24,8 @@ export type ImportChunkOptions = {
   updateImages?: boolean;
   /** フィールド型情報（型変換用） */
   fields?: FieldTypeInfo[];
+  /** ドメインタイプ（main/related/junction） */
+  domainType?: "main" | "related" | "junction";
 };
 
 export type ImportChunkResult =
@@ -190,6 +194,70 @@ function convertRecordTypes(
 }
 
 /**
+ * 中間テーブル用のインポート処理
+ * サービスを使わず直接 Drizzle で挿入
+ */
+async function importJunctionChunk(options: {
+  domain: string;
+  chunkName: string;
+  csvContent: string;
+}): Promise<ImportChunkResult> {
+  const { domain, chunkName, csvContent } = options;
+
+  // 中間テーブルを取得
+  const junctionTable = getJunctionTable(domain);
+  if (!junctionTable) {
+    return {
+      success: false,
+      chunkName,
+      error: `Junction table not found: ${domain}`,
+    };
+  }
+
+  try {
+    // CSV パース
+    const csvResult = parseCsv(csvContent);
+    if (!csvResult.success) {
+      return {
+        success: false,
+        chunkName,
+        error: `CSV parse error: ${csvResult.error}`,
+      };
+    }
+
+    const { records } = csvResult;
+
+    if (records.length === 0) {
+      return {
+        success: true,
+        chunkName,
+        recordCount: 0,
+      };
+    }
+
+    // 既存レコードを削除してから挿入（upsert の代わりに置換）
+    // 中間テーブルは複合主キーで upsert が複雑なため、onConflictDoNothing を使用
+    await db
+      .insert(junctionTable as any)
+      .values(records as any[])
+      .onConflictDoNothing();
+
+    return {
+      success: true,
+      chunkName,
+      recordCount: records.length,
+    };
+  } catch (error) {
+    console.error(`[Import] Junction chunk ${chunkName} failed:`, error);
+    return {
+      success: false,
+      chunkName,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
  * チャンク単位でデータをインポート
  */
 export async function importChunk(
@@ -203,12 +271,19 @@ export async function importChunk(
     imageFields = [],
     updateImages = true,
     fields = [],
+    domainType,
   } = options;
 
-  // サービスを取得
+  // 中間テーブルの場合は直接 DB 挿入
+  if (domainType === "junction") {
+    return importJunctionChunk({ domain, chunkName, csvContent });
+  }
+
+  // サービスを取得（serviceRegistry は camelCase キーのため変換）
+  const serviceDomainKey = toCamelCase(domain);
   let service: any;
   try {
-    service = getServiceOrThrow(domain);
+    service = getServiceOrThrow(serviceDomainKey);
   } catch {
     return {
       success: false,
@@ -271,8 +346,11 @@ export async function importChunk(
     const upsertedRecords = upsertResult.results as Record<string, unknown>[];
 
     // 画像アップロードと URL 更新
+    console.log(`[Import] Image processing: updateImages=${updateImages}, imageFields=${JSON.stringify(imageFields)}, assets.size=${assets.size}`);
     if (updateImages && imageFields.length > 0 && assets.size > 0) {
       const urlUpdates: { id: string; updates: Record<string, string> }[] = [];
+      const assetKeys = Array.from(assets.keys());
+      console.log(`[Import] Asset keys: ${JSON.stringify(assetKeys)}`);
 
       for (let i = 0; i < records.length; i++) {
         const originalRecord = records[i];
@@ -284,16 +362,19 @@ export async function importChunk(
 
         for (const imageField of imageFields) {
           const csvValue = originalRecord[imageField];
+          console.log(`[Import] Record ${recordId}, field ${imageField}: csvValue=${csvValue}`);
           // CSV に assets/ パスが記載されている場合
           if (typeof csvValue === "string" && csvValue.startsWith("assets/")) {
             // assets/main_image/uuid.jpg -> main_image/uuid.jpg
             const assetPath = csvValue.replace(/^assets\//, "");
             const assetBuffer = assets.get(assetPath);
+            console.log(`[Import] Looking for asset: ${assetPath}, found: ${!!assetBuffer}`);
 
             if (assetBuffer) {
               const filename = assetPath.split("/").pop() || "image";
               const newUrl = await uploadImage(domain, imageField, filename, assetBuffer);
               updates[imageField] = newUrl;
+              console.log(`[Import] Uploaded ${imageField}: ${newUrl}`);
             }
           }
         }

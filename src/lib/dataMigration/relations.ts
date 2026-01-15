@@ -1,11 +1,47 @@
 // src/lib/dataMigration/relations.ts
-// リレーション情報を収集するユーティリティ
+// データマイグレーション用のリレーション情報収集ユーティリティ
+// 基本機能は @/lib/domain から再エクスポート
 
 import { getDomainConfig, type DomainConfig } from "@/lib/domain/getDomainConfig";
-import { toCamelCase, toSnakeCase } from "@/utils/stringCase.mjs";
+import {
+  getRelations as getRelationsBase,
+  type RelationType,
+  type RelationInfo,
+} from "@/lib/domain/getRelations";
+import {
+  getJunctionTableInfo as getJunctionTableInfoBase,
+  resolveJunctionTableName,
+  resolveJunctionFieldName,
+  type JunctionTableInfo,
+} from "@/lib/domain/junctionUtils";
+import { toSnakeCase } from "@/utils/stringCase.mjs";
 
-/** リレーションタイプ */
-export type RelationType = "belongsTo" | "belongsToMany";
+// ドメインライブラリから再エクスポート
+export {
+  resolveJunctionTableName,
+  resolveJunctionFieldName,
+  type RelationType,
+  type RelationInfo,
+  type JunctionTableInfo,
+};
+
+// getRelations をラップして互換性を維持
+export const getRelations = getRelationsBase;
+
+// getJunctionTableInfo をラップして互換性を維持（tableConstName を除外）
+export function getJunctionTableInfo(
+  sourceDomain: string,
+  targetDomain: string
+): Omit<JunctionTableInfo, "tableConstName"> {
+  const info = getJunctionTableInfoBase(sourceDomain, targetDomain);
+  return {
+    tableName: info.tableName,
+    sourceDomain: info.sourceDomain,
+    targetDomain: info.targetDomain,
+    sourceField: info.sourceField,
+    targetField: info.targetField,
+  };
+}
 
 /** ドメインフィールド情報 */
 export type DomainFieldInfo = {
@@ -13,34 +49,6 @@ export type DomainFieldInfo = {
   label: string;
   fieldType: string;
   formInput?: string;
-};
-
-/** リレーション情報 */
-export type RelationInfo = {
-  /** 関連先ドメイン名（snake_case） */
-  domain: string;
-  /** ラベル */
-  label: string;
-  /** フィールド名（外部キー or 配列フィールド） */
-  fieldName: string;
-  /** リレーションタイプ */
-  relationType: RelationType;
-  /** 必須フラグ */
-  required: boolean;
-};
-
-/** belongsToMany の中間テーブル情報 */
-export type JunctionTableInfo = {
-  /** 中間テーブル名（snake_case） */
-  tableName: string;
-  /** ソースドメイン名 */
-  sourceDomain: string;
-  /** ターゲットドメイン名 */
-  targetDomain: string;
-  /** ソースフィールド名（camelCase: sampleId） */
-  sourceField: string;
-  /** ターゲットフィールド名（camelCase: sampleTagId） */
-  targetField: string;
 };
 
 /** エクスポート対象ドメイン情報 */
@@ -117,63 +125,6 @@ function extractImageFields(config: DomainConfig): string[] {
   return config.fields
     .filter((field) => field.formInput === "mediaUploader")
     .map((field) => field.name);
-}
-
-/**
- * belongsToMany の中間テーブル名を解決
- * 命名規則: {sourceDomain}_to_{targetDomain}
- */
-export function resolveJunctionTableName(
-  sourceDomain: string,
-  targetDomain: string
-): string {
-  return `${toSnakeCase(sourceDomain)}_to_${toSnakeCase(targetDomain)}`;
-}
-
-/**
- * 中間テーブルのフィールド名を解決
- * 命名規則: {domain}Id (camelCase)
- */
-export function resolveJunctionFieldName(domain: string): string {
-  return `${toCamelCase(domain)}Id`;
-}
-
-/**
- * ドメインのリレーション情報を取得
- */
-export function getRelations(domain: string): RelationInfo[] {
-  const config = getDomainConfig(domain);
-  const relations: RelationInfo[] = [];
-
-  for (const relation of config.relations || []) {
-    if (relation.relationType === "belongsTo" || relation.relationType === "belongsToMany") {
-      relations.push({
-        domain: toSnakeCase(relation.domain),
-        label: relation.label,
-        fieldName: relation.fieldName,
-        relationType: relation.relationType as RelationType,
-        required: relation.required || false,
-      });
-    }
-  }
-
-  return relations;
-}
-
-/**
- * belongsToMany の中間テーブル情報を取得
- */
-export function getJunctionTableInfo(
-  sourceDomain: string,
-  targetDomain: string
-): JunctionTableInfo {
-  return {
-    tableName: resolveJunctionTableName(sourceDomain, targetDomain),
-    sourceDomain: toSnakeCase(sourceDomain),
-    targetDomain: toSnakeCase(targetDomain),
-    sourceField: resolveJunctionFieldName(sourceDomain),
-    targetField: resolveJunctionFieldName(targetDomain),
-  };
 }
 
 /**

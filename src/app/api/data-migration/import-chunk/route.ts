@@ -19,6 +19,7 @@ export const POST = createApiRoute(
     const imageFieldsRaw = formData.get("imageFields") as string | null;
     const updateImagesRaw = formData.get("updateImages") as string | null;
     const fieldsRaw = formData.get("fields") as string | null;
+    const domainType = formData.get("domainType") as "main" | "related" | "junction" | null;
 
     // バリデーション
     if (!domain || typeof domain !== "string") {
@@ -50,12 +51,15 @@ export const POST = createApiRoute(
     // アセットファイルを取得（画像など）
     const assets = new Map<string, Buffer>();
     for (const [key, value] of formData.entries()) {
-      if (key.startsWith("asset:") && value instanceof File) {
+      // File は Blob を継承しているので Blob チェックで両方対応
+      if (key.startsWith("asset:") && value instanceof Blob) {
         const assetPath = key.replace("asset:", "");
         const arrayBuffer = await value.arrayBuffer();
         assets.set(assetPath, Buffer.from(arrayBuffer));
       }
     }
+
+    console.log(`[Import] Assets received: ${assets.size} files, imageFields: ${JSON.stringify(imageFields)}`);
 
     // チャンクをインポート
     const result = await importChunk({
@@ -66,6 +70,7 @@ export const POST = createApiRoute(
       imageFields,
       updateImages,
       fields,
+      domainType: domainType || undefined,
     });
 
     if (!result.success) {

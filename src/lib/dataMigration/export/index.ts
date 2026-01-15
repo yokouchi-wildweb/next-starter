@@ -1,7 +1,7 @@
 // src/lib/dataMigration/export/index.ts
 
 import "server-only";
-import { getServiceOrThrow } from "@/lib/domain";
+import { getServiceOrThrow, getJunctionTable } from "@/lib/domain";
 import { getDataMigrationConfig, CHUNK_SIZE } from "../config";
 import { generateCsv, csvToBuffer } from "./generateCsv";
 import { createZip, downloadImage, extractFilename, type ZipEntry } from "./createZip";
@@ -10,8 +10,7 @@ import {
   type ExportDomainInfo,
 } from "../relations";
 import { db } from "@/lib/drizzle";
-import * as schema from "@/registry/schemaRegistry";
-import { toPascalCase } from "@/utils/stringCase.mjs";
+import { toCamelCase } from "@/utils/stringCase.mjs";
 
 export type ExportOptions = {
   /** ドメイン名 */
@@ -223,18 +222,11 @@ export async function exportData(
 
       console.log(`[Export] Processing ${chunkFolderName}: ${chunkRecords.length} records`);
 
-      // このチャンクの CSV を生成
-      const csv = generateCsv(chunkRecords, { fields: orderedFields });
-      const csvBuffer = csvToBuffer(csv);
-
-      zipEntries.push({
-        path: `${chunkFolderName}/data.csv`,
-        content: csvBuffer,
-      });
-
-      // 画像を含める場合
+      // 画像を含める場合、先にダウンロードして CSV のパスを置き換える
+      const recordsForCsv = [...chunkRecords];
       if (includeImages && imageFields.length > 0) {
-        for (const record of chunkRecords) {
+        for (let i = 0; i < recordsForCsv.length; i++) {
+          const record = recordsForCsv[i];
           const recordId = String(record.id || "unknown");
 
           for (const imageField of imageFields) {
@@ -243,15 +235,30 @@ export async function exportData(
               const imageBuffer = await downloadImage(imageUrl);
               if (imageBuffer) {
                 const filename = extractFilename(imageUrl, recordId);
+                const assetPath = `assets/${imageField}/${filename}`;
+
+                // ZIP にアセットを追加
                 zipEntries.push({
-                  path: `${chunkFolderName}/assets/${imageField}/${filename}`,
+                  path: `${chunkFolderName}/${assetPath}`,
                   content: imageBuffer,
                 });
+
+                // CSV 用にパスを置き換え
+                recordsForCsv[i] = { ...recordsForCsv[i], [imageField]: assetPath };
               }
             }
           }
         }
       }
+
+      // このチャンクの CSV を生成（画像パスは assets/... に置換済み）
+      const csv = generateCsv(recordsForCsv, { fields: orderedFields });
+      const csvBuffer = csvToBuffer(csv);
+
+      zipEntries.push({
+        path: `${chunkFolderName}/data.csv`,
+        content: csvBuffer,
+      });
 
       // 次のチャンクがあるかどうか
       if (hasSearchWithDeleted) {
@@ -318,15 +325,6 @@ export async function exportData(
       code: "EXPORT_ERROR",
     };
   }
-}
-
-/**
- * 中間テーブル名からDrizzleテーブルを取得
- */
-function getJunctionTable(tableName: string): unknown {
-  // sample_to_sample_tag -> SampleToSampleTagTable
-  const tableConstName = `${toPascalCase(tableName)}Table`;
-  return (schema as Record<string, unknown>)[tableConstName];
 }
 
 /**
@@ -414,9 +412,11 @@ async function exportDomainRecords(
   }
 
   // 通常ドメインの場合
+  // serviceRegistry は camelCase キーなので変換
+  const serviceDomainKey = toCamelCase(domain);
   let service: any;
   try {
-    service = getServiceOrThrow(domain);
+    service = getServiceOrThrow(serviceDomainKey);
   } catch {
     return {
       success: false,
@@ -478,17 +478,12 @@ async function exportDomainRecords(
     }
 
     const chunkFolderName = `chunk_${String(chunkIndex).padStart(3, "0")}`;
-    const csv = generateCsv(chunkRecords, { fields: orderedFields });
-    const csvBuffer = csvToBuffer(csv);
 
-    zipEntries.push({
-      path: `${domain}/${chunkFolderName}/data.csv`,
-      content: csvBuffer,
-    });
-
-    // 画像を含める場合
+    // 画像を含める場合、先にダウンロードして CSV のパスを置き換える
+    const recordsForCsv = [...chunkRecords];
     if (includeImages && imageFields.length > 0) {
-      for (const record of chunkRecords) {
+      for (let i = 0; i < recordsForCsv.length; i++) {
+        const record = recordsForCsv[i];
         const recordId = String(record.id || "unknown");
 
         for (const imageField of imageFields) {
@@ -497,15 +492,30 @@ async function exportDomainRecords(
             const imageBuffer = await downloadImage(imageUrl);
             if (imageBuffer) {
               const filename = extractFilename(imageUrl, recordId);
+              const assetPath = `assets/${imageField}/${filename}`;
+
+              // ZIP にアセットを追加
               zipEntries.push({
-                path: `${domain}/${chunkFolderName}/assets/${imageField}/${filename}`,
+                path: `${domain}/${chunkFolderName}/${assetPath}`,
                 content: imageBuffer,
               });
+
+              // CSV 用にパスを置き換え
+              recordsForCsv[i] = { ...recordsForCsv[i], [imageField]: assetPath };
             }
           }
         }
       }
     }
+
+    // このチャンクの CSV を生成（画像パスは assets/... に置換済み）
+    const csv = generateCsv(recordsForCsv, { fields: orderedFields });
+    const csvBuffer = csvToBuffer(csv);
+
+    zipEntries.push({
+      path: `${domain}/${chunkFolderName}/data.csv`,
+      content: csvBuffer,
+    });
 
     if (hasSearchWithDeleted) {
       hasMore = chunkRecords.length === CHUNK_SIZE;

@@ -373,7 +373,8 @@ function ImportTabContent({
     chunkCount: number,
     chunkPrefix: string,
     domainIndex?: number,
-    totalDomains?: number
+    totalDomains?: number,
+    domainType?: "main" | "related" | "junction"
   ): Promise<{ records: number; successful: number; failed: number; results: ChunkResult[] }> => {
     const results: ChunkResult[] = [];
     let records = 0;
@@ -425,16 +426,24 @@ function ImportTabContent({
       formData.append("updateImages", "true");
       // メインドメインのみフィールド型情報を送る
       formData.append("fields", JSON.stringify(domainName === domain ? fieldTypeInfo : []));
+      // ドメインタイプを送る（junction の場合、直接 DB 挿入される）
+      if (domainType) {
+        formData.append("domainType", domainType);
+      }
 
       // アセットファイルを追加
       const assetsFolder = zip.folder(`${chunkPath}/assets`);
+      console.log(`[Import Client] Looking for assets in: ${chunkPath}/assets`);
       if (assetsFolder) {
         const assetFiles = assetsFolder.filter(() => true);
+        console.log(`[Import Client] Found ${assetFiles.length} asset files`);
         for (const assetFile of assetFiles) {
           if (assetFile.dir) continue;
+          console.log(`[Import Client] Processing asset: ${assetFile.name}`);
           const assetBuffer = await assetFile.async("arraybuffer");
           // パスから {domain}/chunk_xxx/assets/ を除去
           const assetPath = assetFile.name.replace(`${chunkPath}/assets/`, "");
+          console.log(`[Import Client] Asset path after strip: ${assetPath}`);
           const blob = new Blob([assetBuffer]);
           formData.append(`asset:${assetPath}`, blob, assetPath.split("/").pop());
         }
@@ -524,7 +533,8 @@ function ImportTabContent({
             domainInfo.chunkCount,
             domainInfo.name, // v1.1 では {domain}/chunk_xxx 構造
             domainIndex + 1,
-            sortedDomains.length
+            sortedDomains.length,
+            domainInfo.type // ドメインタイプを渡す（junction の場合は直接 DB 挿入）
           );
 
           chunkResults.push(...result.results);
@@ -569,7 +579,10 @@ function ImportTabContent({
         zip,
         domain,
         manifest.chunkCount,
-        "" // v1.0 では chunk_xxx 直接
+        "", // v1.0 では chunk_xxx 直接
+        undefined,
+        undefined,
+        "main" // v1.0 は常にメインドメイン
       );
 
       setResult({
