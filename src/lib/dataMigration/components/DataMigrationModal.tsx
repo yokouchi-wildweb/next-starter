@@ -14,9 +14,17 @@ import type { ExportField } from "./ExportSettingsModal";
 
 type ChunkResult = {
   chunkName: string;
+  domain: string;
   success: boolean;
   recordCount: number;
   error?: string;
+};
+
+type DomainImportResult = {
+  domain: string;
+  totalRecords: number;
+  successfulChunks: number;
+  failedChunks: number;
 };
 
 type ImportResultData = {
@@ -24,12 +32,40 @@ type ImportResultData = {
   successfulChunks: number;
   failedChunks: number;
   chunkResults: ChunkResult[];
+  domainResults?: DomainImportResult[];
+  isMultiDomain?: boolean;
 };
 
 type ImportProgress = {
+  currentDomain?: string;
+  currentDomainIndex?: number;
+  totalDomains?: number;
   currentChunk: number;
   totalChunks: number;
   currentChunkName: string;
+};
+
+// マニフェスト v1.0（単一ドメイン）
+type ManifestV1 = {
+  version: "1.0";
+  domain: string;
+  totalRecords: number;
+  chunkCount: number;
+};
+
+// マニフェストのドメイン情報（v1.1）
+type ManifestDomainInfo = {
+  name: string;
+  type: "main" | "related" | "junction";
+  totalRecords: number;
+  chunkCount: number;
+};
+
+// マニフェスト v1.1（複数ドメイン）
+type ManifestV1_1 = {
+  version: "1.1";
+  mainDomain: string;
+  domains: ManifestDomainInfo[];
 };
 
 export type DataMigrationModalProps = {
@@ -45,6 +81,8 @@ export type DataMigrationModalProps = {
   searchParams?: string;
   /** インポート成功時のコールバック */
   onImportSuccess?: () => void;
+  /** リレーションが存在するか（エクスポート時に「リレーションを含める」オプションを表示） */
+  hasRelations?: boolean;
 };
 
 /**
@@ -55,11 +93,13 @@ function ExportTabContent({
   fields,
   searchParams,
   onOpenChange,
+  hasRelations = false,
 }: {
   domain: string;
   fields: ExportField[];
   searchParams?: string;
   onOpenChange: (open: boolean) => void;
+  hasRelations?: boolean;
 }) {
   // システムフィールド
   const systemFields: ExportField[] = [
@@ -77,6 +117,7 @@ function ExportTabContent({
 
   const [selectedFields, setSelectedFields] = useState<string[]>(allFieldNames);
   const [includeImages, setIncludeImages] = useState(true);
+  const [includeRelations, setIncludeRelations] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,6 +151,7 @@ function ExportTabContent({
           includeImages,
           searchParams,
           imageFields: includeImages ? imageFieldNames : [],
+          includeRelations,
         },
         {
           responseType: "blob",
@@ -156,12 +198,12 @@ function ExportTabContent({
     } finally {
       setIsExporting(false);
     }
-  }, [domain, selectedFields, includeImages, searchParams, imageFieldNames, onOpenChange]);
+  }, [domain, selectedFields, includeImages, searchParams, imageFieldNames, onOpenChange, includeRelations]);
 
   return (
     <Block className="p-4">
-      {/* 画像オプション */}
-      <Block className="mb-4 pb-4 border-b border-border">
+      {/* エクスポートオプション */}
+      <Block className="mb-4 pb-4 border-b border-border space-y-3">
         <label className="flex items-center gap-2 cursor-pointer">
           <Checkbox
             checked={includeImages}
@@ -169,6 +211,15 @@ function ExportTabContent({
           />
           <span className="text-sm">画像を含める（ZIP形式でダウンロード）</span>
         </label>
+        {hasRelations && (
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox
+              checked={includeRelations}
+              onCheckedChange={(checked) => setIncludeRelations(checked === true)}
+            />
+            <span className="text-sm">リレーションを含める（関連データも一緒にエクスポート）</span>
+          </label>
+        )}
       </Block>
 
       {/* カラム選択 */}
@@ -313,6 +364,115 @@ function ImportTabContent({
     }
   }, []);
 
+  /**
+   * 単一ドメインのチャンクを処理（v1.0 互換）
+   */
+  const processChunksForDomain = useCallback(async (
+    zip: JSZip,
+    domainName: string,
+    chunkCount: number,
+    chunkPrefix: string,
+    domainIndex?: number,
+    totalDomains?: number
+  ): Promise<{ records: number; successful: number; failed: number; results: ChunkResult[] }> => {
+    const results: ChunkResult[] = [];
+    let records = 0;
+    let successful = 0;
+    let failed = 0;
+
+    // フィールド型情報を準備（メインドメイン用）
+    const fieldTypeInfo = fields.map((f) => ({
+      name: f.name,
+      fieldType: f.fieldType,
+    }));
+
+    for (let i = 0; i < chunkCount; i++) {
+      const chunkName = `chunk_${String(i + 1).padStart(3, "0")}`;
+      const chunkPath = chunkPrefix ? `${chunkPrefix}/${chunkName}` : chunkName;
+
+      setProgress({
+        currentDomain: domainName,
+        currentDomainIndex: domainIndex,
+        totalDomains: totalDomains,
+        currentChunk: i + 1,
+        totalChunks: chunkCount,
+        currentChunkName: chunkName,
+      });
+
+      // CSV ファイルを取得
+      const csvFile = zip.file(`${chunkPath}/data.csv`);
+      if (!csvFile) {
+        results.push({
+          chunkName,
+          domain: domainName,
+          success: false,
+          recordCount: 0,
+          error: "data.csv が見つかりません",
+        });
+        failed++;
+        continue;
+      }
+      const csvContent = await csvFile.async("string");
+
+      // FormData を作成
+      const formData = new FormData();
+      formData.append("domain", domainName);
+      formData.append("chunkName", chunkName);
+      formData.append("csvContent", csvContent);
+      // メインドメイン以外は画像フィールドを空にする（単純化のため）
+      const domainImageFields = domainName === domain ? imageFields : [];
+      formData.append("imageFields", JSON.stringify(domainImageFields));
+      formData.append("updateImages", "true");
+      // メインドメインのみフィールド型情報を送る
+      formData.append("fields", JSON.stringify(domainName === domain ? fieldTypeInfo : []));
+
+      // アセットファイルを追加
+      const assetsFolder = zip.folder(`${chunkPath}/assets`);
+      if (assetsFolder) {
+        const assetFiles = assetsFolder.filter(() => true);
+        for (const assetFile of assetFiles) {
+          if (assetFile.dir) continue;
+          const assetBuffer = await assetFile.async("arraybuffer");
+          // パスから {domain}/chunk_xxx/assets/ を除去
+          const assetPath = assetFile.name.replace(`${chunkPath}/assets/`, "");
+          const blob = new Blob([assetBuffer]);
+          formData.append(`asset:${assetPath}`, blob, assetPath.split("/").pop());
+        }
+      }
+
+      // チャンクを送信
+      try {
+        const response = await axios.post("/api/data-migration/import-chunk", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        const data = response.data as { chunkName: string; recordCount: number };
+        results.push({
+          chunkName: data.chunkName,
+          domain: domainName,
+          success: true,
+          recordCount: data.recordCount,
+        });
+        records += data.recordCount;
+        successful++;
+      } catch (err) {
+        const errorMsg = axios.isAxiosError(err) && err.response?.data?.error
+          ? err.response.data.error
+          : "Unknown error";
+        results.push({
+          chunkName,
+          domain: domainName,
+          success: false,
+          recordCount: 0,
+          error: errorMsg,
+        });
+        failed++;
+      }
+    }
+
+    return { records, successful, failed, results };
+  }, [domain, fields, imageFields]);
+
   const handleImport = useCallback(async () => {
     if (!selectedFile) return;
 
@@ -332,111 +492,95 @@ function ImportTabContent({
         throw new Error("manifest.json が見つかりません");
       }
       const manifestText = await manifestFile.async("string");
-      const manifest = JSON.parse(manifestText) as {
-        domain: string;
-        totalRecords: number;
-        chunkCount: number;
-      };
+      const rawManifest = JSON.parse(manifestText);
+
+      // v1.1（複数ドメイン）の処理
+      if (rawManifest.version === "1.1") {
+        const manifest = rawManifest as ManifestV1_1;
+
+        // ドメイン検証（メインドメインのみ）
+        if (manifest.mainDomain !== domain) {
+          throw new Error(`ドメインが一致しません: ${manifest.mainDomain} !== ${domain}`);
+        }
+
+        // インポート順序に従ってソート（related → main → junction）
+        const typeOrder: Record<string, number> = { related: 1, main: 2, junction: 3 };
+        const sortedDomains = [...manifest.domains].sort(
+          (a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99)
+        );
+
+        const chunkResults: ChunkResult[] = [];
+        const domainResults: DomainImportResult[] = [];
+        let totalRecords = 0;
+        let successfulChunks = 0;
+        let failedChunks = 0;
+
+        // 各ドメインを順番に処理
+        for (let domainIndex = 0; domainIndex < sortedDomains.length; domainIndex++) {
+          const domainInfo = sortedDomains[domainIndex];
+          const result = await processChunksForDomain(
+            zip,
+            domainInfo.name,
+            domainInfo.chunkCount,
+            domainInfo.name, // v1.1 では {domain}/chunk_xxx 構造
+            domainIndex + 1,
+            sortedDomains.length
+          );
+
+          chunkResults.push(...result.results);
+          totalRecords += result.records;
+          successfulChunks += result.successful;
+          failedChunks += result.failed;
+
+          domainResults.push({
+            domain: domainInfo.name,
+            totalRecords: result.records,
+            successfulChunks: result.successful,
+            failedChunks: result.failed,
+          });
+        }
+
+        setResult({
+          totalRecords,
+          successfulChunks,
+          failedChunks,
+          chunkResults,
+          domainResults,
+          isMultiDomain: true,
+        });
+
+        // インポート成功時にコールバック
+        if (successfulChunks > 0 && onImportSuccess) {
+          onImportSuccess();
+        }
+        return;
+      }
+
+      // v1.0（単一ドメイン）の処理
+      const manifest = rawManifest as ManifestV1;
 
       // ドメイン検証
       if (manifest.domain !== domain) {
         throw new Error(`ドメインが一致しません: ${manifest.domain} !== ${domain}`);
       }
 
-      // フィールド型情報を準備
-      const fieldTypeInfo = fields.map((f) => ({
-        name: f.name,
-        fieldType: f.fieldType,
-      }));
-
-      // チャンクを順番に処理
-      const chunkResults: ChunkResult[] = [];
-      let totalRecords = 0;
-      let successfulChunks = 0;
-      let failedChunks = 0;
-
-      for (let i = 0; i < manifest.chunkCount; i++) {
-        const chunkName = `chunk_${String(i + 1).padStart(3, "0")}`;
-        setProgress({
-          currentChunk: i + 1,
-          totalChunks: manifest.chunkCount,
-          currentChunkName: chunkName,
-        });
-
-        // CSV ファイルを取得
-        const csvFile = zip.file(`${chunkName}/data.csv`);
-        if (!csvFile) {
-          chunkResults.push({
-            chunkName,
-            success: false,
-            recordCount: 0,
-            error: "data.csv が見つかりません",
-          });
-          failedChunks++;
-          continue;
-        }
-        const csvContent = await csvFile.async("string");
-
-        // FormData を作成
-        const formData = new FormData();
-        formData.append("domain", domain);
-        formData.append("chunkName", chunkName);
-        formData.append("csvContent", csvContent);
-        formData.append("imageFields", JSON.stringify(imageFields));
-        formData.append("updateImages", "true");
-        formData.append("fields", JSON.stringify(fieldTypeInfo));
-
-        // アセットファイルを追加
-        const assetsFolder = zip.folder(`${chunkName}/assets`);
-        if (assetsFolder) {
-          const assetFiles = assetsFolder.filter(() => true);
-          for (const assetFile of assetFiles) {
-            if (assetFile.dir) continue;
-            const assetBuffer = await assetFile.async("arraybuffer");
-            // パスから chunk_xxx/assets/ を除去
-            const assetPath = assetFile.name.replace(`${chunkName}/assets/`, "");
-            const blob = new Blob([assetBuffer]);
-            formData.append(`asset:${assetPath}`, blob, assetPath.split("/").pop());
-          }
-        }
-
-        // チャンクを送信
-        try {
-          const response = await axios.post("/api/data-migration/import-chunk", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-
-          const data = response.data as { chunkName: string; recordCount: number };
-          chunkResults.push({
-            chunkName: data.chunkName,
-            success: true,
-            recordCount: data.recordCount,
-          });
-          totalRecords += data.recordCount;
-          successfulChunks++;
-        } catch (err) {
-          const errorMsg = axios.isAxiosError(err) && err.response?.data?.error
-            ? err.response.data.error
-            : "Unknown error";
-          chunkResults.push({
-            chunkName,
-            success: false,
-            recordCount: 0,
-            error: errorMsg,
-          });
-          failedChunks++;
-        }
-      }
+      // 単一ドメインの処理
+      const result = await processChunksForDomain(
+        zip,
+        domain,
+        manifest.chunkCount,
+        "" // v1.0 では chunk_xxx 直接
+      );
 
       setResult({
-        totalRecords,
-        successfulChunks,
-        failedChunks,
-        chunkResults,
+        totalRecords: result.records,
+        successfulChunks: result.successful,
+        failedChunks: result.failed,
+        chunkResults: result.results,
       });
 
       // インポート成功時にコールバック
-      if (successfulChunks > 0 && onImportSuccess) {
+      if (result.successful > 0 && onImportSuccess) {
         onImportSuccess();
       }
     } catch (err) {
@@ -446,7 +590,7 @@ function ImportTabContent({
       setIsImporting(false);
       setProgress(null);
     }
-  }, [selectedFile, domain, imageFields, fields, onImportSuccess]);
+  }, [selectedFile, domain, onImportSuccess, processChunksForDomain]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -500,13 +644,35 @@ function ImportTabContent({
       {isImporting && progress && (
         <Block className="mb-4">
           <Block className="p-4 bg-primary/5 rounded-lg">
+            {/* 複数ドメインの場合はドメイン進捗を表示 */}
+            {progress.totalDomains && progress.totalDomains > 1 && (
+              <Block className="mb-3 pb-3 border-b border-border">
+                <Flex justify="between" align="center" className="mb-1">
+                  <p className="text-xs text-muted-foreground">ドメイン進捗</p>
+                  <p className="text-xs text-muted-foreground">
+                    {progress.currentDomainIndex} / {progress.totalDomains}
+                  </p>
+                </Flex>
+                <Block className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <Block
+                    className="h-full bg-primary/60 transition-all duration-300"
+                    style={{
+                      width: `${((progress.currentDomainIndex || 1) / progress.totalDomains) * 100}%`,
+                    }}
+                  />
+                </Block>
+                <p className="text-xs text-muted-foreground mt-1">
+                  現在: {progress.currentDomain}
+                </p>
+              </Block>
+            )}
             <Flex justify="between" align="center" className="mb-2">
               <p className="text-sm font-medium">インポート中...</p>
               <p className="text-sm text-muted-foreground">
-                {progress.currentChunk} / {progress.totalChunks}
+                チャンク {progress.currentChunk} / {progress.totalChunks}
               </p>
             </Flex>
-            {/* 進捗バー */}
+            {/* チャンク進捗バー */}
             <Block className="h-2 bg-muted rounded-full overflow-hidden">
               <Block
                 className="h-full bg-primary transition-all duration-300"
@@ -543,6 +709,28 @@ function ImportTabContent({
                 <p className="text-destructive">失敗したチャンク: {result.failedChunks}</p>
               )}
             </Block>
+
+            {/* 複数ドメインの場合はドメイン別結果を表示 */}
+            {result.isMultiDomain && result.domainResults && (
+              <Block className="mt-3 pt-3 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">ドメイン別結果:</p>
+                <Block className="space-y-1 text-xs">
+                  {result.domainResults.map((dr) => (
+                    <Flex key={dr.domain} justify="between" className="text-muted-foreground">
+                      <span>{dr.domain}</span>
+                      <span>
+                        {dr.totalRecords}件
+                        {dr.failedChunks > 0 && (
+                          <span className="text-destructive ml-1">
+                            (エラー: {dr.failedChunks}チャンク)
+                          </span>
+                        )}
+                      </span>
+                    </Flex>
+                  ))}
+                </Block>
+              </Block>
+            )}
           </Block>
 
           {/* 失敗したチャンクの詳細 */}
@@ -552,8 +740,8 @@ function ImportTabContent({
               {result.chunkResults
                 .filter((c) => !c.success)
                 .map((c) => (
-                  <p key={c.chunkName} className="text-destructive">
-                    {c.chunkName}: {c.error}
+                  <p key={`${c.domain}-${c.chunkName}`} className="text-destructive">
+                    {result.isMultiDomain ? `[${c.domain}] ` : ""}{c.chunkName}: {c.error}
                   </p>
                 ))}
             </Block>
@@ -607,6 +795,7 @@ export function DataMigrationModal({
   domainLabel,
   searchParams,
   onImportSuccess,
+  hasRelations = false,
 }: DataMigrationModalProps) {
   // 画像フィールドを抽出
   const imageFieldNames = fields.filter((f) => f.isImageField).map((f) => f.name);
@@ -621,6 +810,7 @@ export function DataMigrationModal({
           fields={fields}
           searchParams={searchParams}
           onOpenChange={onOpenChange}
+          hasRelations={hasRelations}
         />
       ),
     },

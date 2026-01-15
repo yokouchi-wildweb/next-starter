@@ -1,8 +1,10 @@
 // src/lib/dataMigration/import/parseZip.ts
+// NOTE: このファイルはレガシーインポート用（サーバー側全ZIP処理）
+// v1.0 マニフェスト（単一ドメイン）のみをサポート
 
 import "server-only";
 import AdmZip from "adm-zip";
-import type { ExportManifest } from "../export";
+import type { ExportManifestV1 } from "../export";
 
 export type ParsedChunk = {
   chunkName: string;
@@ -12,24 +14,24 @@ export type ParsedChunk = {
 
 export type ParseZipResult = {
   success: true;
-  manifest: ExportManifest;
+  manifest: ExportManifestV1;
   chunks: ParsedChunk[];
 };
 
 export type ParseZipError = {
   success: false;
   error: string;
-  code: "INVALID_ZIP" | "MISSING_MANIFEST" | "INVALID_MANIFEST" | "DOMAIN_MISMATCH" | "NO_CHUNKS";
+  code: "INVALID_ZIP" | "MISSING_MANIFEST" | "INVALID_MANIFEST" | "DOMAIN_MISMATCH" | "NO_CHUNKS" | "UNSUPPORTED_VERSION";
 };
 
 /**
- * マニフェストを検証
+ * マニフェストを検証（v1.0 形式のみ）
  */
-function validateManifest(data: unknown): data is ExportManifest {
+function validateManifestV1(data: unknown): data is ExportManifestV1 {
   if (typeof data !== "object" || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
-    typeof obj.version === "string" &&
+    obj.version === "1.0" &&
     typeof obj.domain === "string" &&
     typeof obj.exportedAt === "string" &&
     typeof obj.totalRecords === "number" &&
@@ -67,11 +69,21 @@ export function parseZip(
     };
   }
 
-  let manifest: ExportManifest;
+  let manifest: ExportManifestV1;
   try {
     const manifestContent = manifestEntry.getData().toString("utf-8");
     const parsed = JSON.parse(manifestContent);
-    if (!validateManifest(parsed)) {
+
+    // v1.1 形式の場合はエラー（Phase 3 で対応予定）
+    if (parsed.version === "1.1") {
+      return {
+        success: false,
+        error: "Multi-domain import (v1.1) is not supported in legacy import. Use chunked import.",
+        code: "UNSUPPORTED_VERSION",
+      };
+    }
+
+    if (!validateManifestV1(parsed)) {
       return {
         success: false,
         error: "Invalid manifest.json structure",

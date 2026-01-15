@@ -52,7 +52,8 @@ export type ImportError = {
     | "NO_CHUNKS"
     | "TOO_MANY_RECORDS"
     | "INVALID_DOMAIN"
-    | "IMPORT_ERROR";
+    | "IMPORT_ERROR"
+    | "UNSUPPORTED_VERSION";
   details?: {
     recordCount?: number;
     limit?: number;

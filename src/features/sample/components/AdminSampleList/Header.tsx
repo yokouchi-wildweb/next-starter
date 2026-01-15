@@ -26,6 +26,9 @@ const exportFields: ExportField[] = config.fields.map((field) => ({
   fieldType: field.fieldType,
 }));
 
+// リレーションが存在するかどうか
+const hasRelations = Array.isArray(config.relations) && config.relations.length > 0;
+
 export default function AdminSampleListHeader({ page, perPage, total }: AdminSampleListHeaderProps) {
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
@@ -64,6 +67,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
         domainLabel={config.label}
         searchParams={params.toString()}
         onImportSuccess={handleImportSuccess}
+        hasRelations={hasRelations}
       />
     </>
   );
