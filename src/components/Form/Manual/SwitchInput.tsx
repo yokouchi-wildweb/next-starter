@@ -1,6 +1,6 @@
 // src/components/Form/Manual/SwitchInput.tsx
 
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { useId, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { cva } from "class-variance-authority";
 
@@ -126,6 +126,7 @@ type SwitchInputProps = {
 >;
 
 export function SwitchInput(props: SwitchInputProps) {
+  const fallbackId = useId();
   const {
     field,
     label,
@@ -143,7 +144,7 @@ export function SwitchInput(props: SwitchInputProps) {
   } = props;
 
   const checked = Boolean(field.value);
-  const inputId = idFromProps ?? field.name ?? undefined;
+  const inputId = idFromProps ?? field.name ?? fallbackId;
   const inputName = nameFromProps ?? field.name ?? undefined;
   const labelId = label ? `${inputId}-label` : undefined;
   const descriptionId = description ? `${inputId}-description` : undefined;
