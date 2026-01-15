@@ -15,6 +15,8 @@ export type ExportField = {
   label: string;
   /** 画像フィールドかどうか（formInput: "mediaUploader"） */
   isImageField?: boolean;
+  /** フィールドのデータ型（型変換用） */
+  fieldType?: string;
 };
 
 export type ExportSettingsModalProps = {

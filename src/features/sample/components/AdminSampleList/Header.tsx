@@ -17,11 +17,12 @@ export type AdminSampleListHeaderProps = {
   total: number;
 };
 
-// domain.json からフィールド情報を抽出（画像フィールドかどうかも判定）
+// domain.json からフィールド情報を抽出（画像フィールドかどうかも判定、fieldType も含める）
 const exportFields: ExportField[] = config.fields.map((field) => ({
   name: field.name,
   label: field.label,
   isImageField: field.formInput === "mediaUploader",
+  fieldType: field.fieldType,
 }));
 
 export default function AdminSampleListHeader({ page, perPage, total }: AdminSampleListHeaderProps) {

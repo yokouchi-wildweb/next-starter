@@ -8,6 +8,11 @@ import { getDataMigrationConfig } from "../config";
 import { parseZip, type ParsedChunk } from "./parseZip";
 import { parseCsv } from "./parseCsv";
 
+export type FieldTypeInfo = {
+  name: string;
+  fieldType?: string;
+};
+
 export type ImportOptions = {
   /** ドメイン名 */
   domain: string;
@@ -17,6 +22,8 @@ export type ImportOptions = {
   imageFields?: string[];
   /** 画像を更新するか（default: true） */
   updateImages?: boolean;
+  /** フィールド型情報（型変換用） */
+  fields?: FieldTypeInfo[];
 };
 
 export type ChunkResult = {
@@ -85,6 +92,126 @@ async function uploadImage(
 }
 
 /**
+ * fieldType に基づいてフィールドタイプを判定
+ */
+function getFieldTypes(fields: FieldTypeInfo[]): {
+  arrayFields: Set<string>;
+  dateFields: Set<string>;
+  numberFields: Set<string>;
+} {
+  const arrayFields = new Set<string>();
+  const dateFields = new Set<string>();
+  const numberFields = new Set<string>();
+
+  for (const field of fields) {
+    const { name, fieldType } = field;
+    const normalizedType = fieldType?.toLowerCase() || "";
+
+    // 配列型
+    if (normalizedType === "array") {
+      arrayFields.add(name);
+      continue;
+    }
+
+    // 日付/時間型
+    if (
+      normalizedType === "date" ||
+      normalizedType === "time" ||
+      normalizedType.includes("timestamp")
+    ) {
+      dateFields.add(name);
+      continue;
+    }
+
+    // 数値型
+    if (
+      normalizedType === "integer" ||
+      normalizedType === "number" ||
+      normalizedType === "float" ||
+      normalizedType === "decimal" ||
+      normalizedType === "bigint"
+    ) {
+      numberFields.add(name);
+      continue;
+    }
+  }
+
+  return { arrayFields, dateFields, numberFields };
+}
+
+/**
+ * システムフィールドのキー名変換マップ（camelCase → snake_case）
+ */
+const SYSTEM_FIELD_KEY_MAP: Record<string, string> = {
+  createdAt: "created_at",
+  updatedAt: "updated_at",
+  deletedAt: "deleted_at",
+};
+
+/**
+ * レコードのフィールド値を適切な型に変換
+ */
+function convertRecordTypes(
+  record: Record<string, unknown>,
+  arrayFields: Set<string>,
+  dateFields: Set<string>,
+  numberFields: Set<string>
+): Record<string, unknown> {
+  const converted: Record<string, unknown> = {};
+
+  for (const [originalKey, value] of Object.entries(record)) {
+    // システムフィールドのキー名を変換
+    const key = SYSTEM_FIELD_KEY_MAP[originalKey] || originalKey;
+    // 配列フィールドの変換
+    if (arrayFields.has(key)) {
+      if (value === null || value === undefined || value === "") {
+        converted[key] = [];
+      } else if (typeof value === "string") {
+        // カンマ区切り文字列を配列に変換
+        converted[key] = value.split(",").map((v) => v.trim()).filter((v) => v !== "");
+      } else if (Array.isArray(value)) {
+        converted[key] = value;
+      } else {
+        converted[key] = [value];
+      }
+      continue;
+    }
+
+    // 日付フィールドの変換
+    if (dateFields.has(key)) {
+      if (value === null || value === undefined || value === "") {
+        converted[key] = null;
+      } else if (typeof value === "string") {
+        // ISO 8601 文字列はそのまま（Zodが検証）、ただし不正な値は null
+        const date = new Date(value);
+        converted[key] = isNaN(date.getTime()) ? null : value;
+      } else {
+        converted[key] = value;
+      }
+      continue;
+    }
+
+    // 数値フィールドの変換
+    if (numberFields.has(key)) {
+      if (value === null || value === undefined || value === "") {
+        converted[key] = null;
+      } else if (typeof value === "string") {
+        const num = Number(value);
+        converted[key] = isNaN(num) ? null : num;
+      } else {
+        converted[key] = value;
+      }
+      continue;
+    }
+
+    // その他のフィールドはそのまま
+    converted[key] = value;
+  }
+
+  return converted;
+}
+
+/**
  * チャンクを処理
  */
 async function processChunk(
@@ -92,7 +219,10 @@ async function processChunk(
   domain: string,
   service: any,
   imageFields: string[],
-  updateImages: boolean
+  updateImages: boolean,
+  arrayFields: Set<string>,
+  dateFields: Set<string>,
+  numberFields: Set<string>
 ): Promise<ChunkResult> {
   const { chunkName, csvContent, assets } = chunk;
 
@@ -118,10 +248,13 @@ async function processChunk(
       };
     }
 
-    // 画像フィールドを一旦除外してレコードを準備
+    // 画像フィールドを一旦除外し、型変換を適用してレコードを準備
     const recordsForUpsert = records.map((record) => {
+      // まず型変換を適用
+      const typedRecord = convertRecordTypes(record, arrayFields, dateFields, numberFields);
+
       const cleanRecord: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(record)) {
+      for (const [key, value] of Object.entries(typedRecord)) {
         // 画像フィールドは後で処理するので除外（updateImages が true の場合）
         if (updateImages && imageFields.includes(key)) {
           continue;
@@ -196,7 +329,7 @@ async function processChunk(
 export async function importData(
   options: ImportOptions
 ): Promise<ImportResult | ImportError> {
-  const { domain, zipBuffer, imageFields = [], updateImages = true } = options;
+  const { domain, zipBuffer, imageFields = [], updateImages = true, fields = [] } = options;
   const config = getDataMigrationConfig();
 
   // サービスを取得
@@ -249,6 +382,9 @@ export async function importData(
     };
   }
 
+  // フィールド型情報を取得
+  const { arrayFields, dateFields, numberFields } = getFieldTypes(fields);
+
   // 各チャンクを処理
   const chunkResults: ChunkResult[] = [];
   let totalRecords = 0;
@@ -258,7 +394,16 @@ export async function importData(
   for (const chunk of chunks) {
     console.log(`[Import] Processing ${chunk.chunkName}...`);
 
-    const result = await processChunk(chunk, domain, service, imageFields, updateImages);
+    const result = await processChunk(
+      chunk,
+      domain,
+      service,
+      imageFields,
+      updateImages,
+      arrayFields,
+      dateFields,
+      numberFields
+    );
     chunkResults.push(result);
 
     if (result.success) {

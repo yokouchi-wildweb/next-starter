@@ -17,6 +17,7 @@ export const POST = createApiRoute(
     const domain = formData.get("domain") as string | null;
     const imageFieldsRaw = formData.get("imageFields") as string | null;
     const updateImagesRaw = formData.get("updateImages") as string | null;
+    const fieldsRaw = formData.get("fields") as string | null;
 
     // バリデーション
     if (!file) {
@@ -40,6 +41,7 @@ export const POST = createApiRoute(
     // オプションをパース
     const imageFields = imageFieldsRaw ? JSON.parse(imageFieldsRaw) : [];
     const updateImages = updateImagesRaw !== "false";
+    const fields = fieldsRaw ? JSON.parse(fieldsRaw) : [];
 
     // インポート実行
     const result = await importData({
@@ -47,6 +49,7 @@ export const POST = createApiRoute(
       zipBuffer,
       imageFields,
       updateImages,
+      fields,
     });
 
     if (!result.success) {

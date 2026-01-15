@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, type DragEvent, type ChangeEvent } from "react";
 import axios from "axios";
 import TabbedModal from "@/components/Overlays/TabbedModal";
 import { Button } from "@/components/Form/Button/Button";
@@ -10,6 +10,18 @@ import { Checkbox } from "@/components/_shadcn/checkbox";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import type { ExportField } from "./ExportSettingsModal";
+
+type ImportResultData = {
+  totalRecords: number;
+  successfulChunks: number;
+  failedChunks: number;
+  chunkResults: {
+    chunkName: string;
+    success: boolean;
+    recordCount: number;
+    error?: string;
+  }[];
+};
 
 export type DataMigrationModalProps = {
   open: boolean;
@@ -204,29 +216,230 @@ function ExportTabContent({
 }
 
 /**
- * インポートタブのコンテンツ（ダミー）
+ * インポートタブのコンテンツ
  */
-function ImportTabContent({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
+function ImportTabContent({
+  domain,
+  imageFields,
+  fields,
+  onOpenChange,
+}: {
+  domain: string;
+  imageFields: string[];
+  fields: ExportField[];
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ImportResultData | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    setError(null);
+    setResult(null);
+
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith(".zip")) {
+      setSelectedFile(file);
+    } else {
+      setError("ZIPファイルを選択してください");
+    }
+  }, []);
+
+  const handleFileSelect = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setError(null);
+    setResult(null);
+
+    const file = e.target.files?.[0];
+    if (file && file.name.endsWith(".zip")) {
+      setSelectedFile(file);
+    } else if (file) {
+      setError("ZIPファイルを選択してください");
+    }
+  }, []);
+
+  const handleClickSelectFile = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleClearFile = useCallback(() => {
+    setSelectedFile(null);
+    setError(null);
+    setResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const handleImport = useCallback(async () => {
+    if (!selectedFile) return;
+
+    setIsImporting(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      // フィールド型情報を準備（name と fieldType のみ）
+      const fieldTypeInfo = fields.map((f) => ({
+        name: f.name,
+        fieldType: f.fieldType,
+      }));
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("domain", domain);
+      formData.append("imageFields", JSON.stringify(imageFields));
+      formData.append("updateImages", "true");
+      formData.append("fields", JSON.stringify(fieldTypeInfo));
+
+      const response = await axios.post("/api/data-migration/import", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setResult(response.data as ImportResultData);
+    } catch (err) {
+      console.error("Import failed:", err);
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data;
+        setError(data.error || "インポートに失敗しました");
+      } else {
+        setError("インポートに失敗しました");
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  }, [selectedFile, domain, imageFields, fields]);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
     <Block className="p-4">
-      <Block className="mb-4 p-8 border-2 border-dashed border-border rounded-lg text-center">
-        <p className="text-muted-foreground mb-2">ZIPファイルをドラッグ＆ドロップ</p>
-        <p className="text-muted-foreground text-sm">または</p>
-        <Button variant="outline" className="mt-2" disabled>
-          ファイルを選択
-        </Button>
-      </Block>
+      {/* ファイル選択エリア */}
+      {!selectedFile && !result && (
+        <Block
+          className={`mb-4 p-8 border-2 border-dashed rounded-lg text-center transition-colors ${
+            isDragging ? "border-primary bg-primary/5" : "border-border"
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <p className="text-muted-foreground mb-2">ZIPファイルをドラッグ＆ドロップ</p>
+          <p className="text-muted-foreground text-sm">または</p>
+          <Button variant="outline" className="mt-2" onClick={handleClickSelectFile}>
+            ファイルを選択
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+        </Block>
+      )}
 
-      <Block className="mb-4 p-3 bg-muted/50 text-muted-foreground text-sm rounded">
-        ※ インポート機能は現在開発中です
-      </Block>
+      {/* 選択されたファイル表示 */}
+      {selectedFile && !result && (
+        <Block className="mb-4 p-4 bg-muted/30 rounded-lg">
+          <Flex justify="between" align="center">
+            <Block>
+              <p className="text-sm font-medium">{selectedFile.name}</p>
+              <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+            </Block>
+            <Button variant="ghost" size="sm" onClick={handleClearFile} disabled={isImporting}>
+              取り消し
+            </Button>
+          </Flex>
+        </Block>
+      )}
+
+      {/* インポート結果 */}
+      {result && (
+        <Block className="mb-4">
+          <Block
+            className={`p-4 rounded-lg ${
+              result.failedChunks === 0 ? "bg-emerald-500/10" : "bg-amber-500/10"
+            }`}
+          >
+            <p className="font-medium mb-2">
+              {result.failedChunks === 0 ? "インポート完了" : "インポート完了（一部エラー）"}
+            </p>
+            <Block className="text-sm space-y-1">
+              <p>インポートされたレコード: {result.totalRecords}件</p>
+              <p>成功したチャンク: {result.successfulChunks}</p>
+              {result.failedChunks > 0 && (
+                <p className="text-destructive">失敗したチャンク: {result.failedChunks}</p>
+              )}
+            </Block>
+          </Block>
+
+          {/* 失敗したチャンクの詳細 */}
+          {result.chunkResults.some((c) => !c.success) && (
+            <Block className="mt-3 p-3 bg-destructive/10 rounded text-sm">
+              <p className="font-medium mb-1">エラー詳細:</p>
+              {result.chunkResults
+                .filter((c) => !c.success)
+                .map((c) => (
+                  <p key={c.chunkName} className="text-destructive">
+                    {c.chunkName}: {c.error}
+                  </p>
+                ))}
+            </Block>
+          )}
+        </Block>
+      )}
+
+      {/* エラー表示 */}
+      {error && (
+        <Block className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded">
+          {error}
+        </Block>
+      )}
 
       {/* フッター */}
       <Flex justify="end" gap="sm" className="pt-4 border-t border-border">
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
-          キャンセル
+        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isImporting}>
+          {result ? "閉じる" : "キャンセル"}
         </Button>
-        <Button disabled>インポート</Button>
+        {!result && (
+          <Button onClick={handleImport} disabled={!selectedFile || isImporting}>
+            {isImporting ? "インポート中..." : "インポート"}
+          </Button>
+        )}
+        {result && (
+          <Button
+            onClick={() => {
+              setResult(null);
+              setSelectedFile(null);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+              }
+            }}
+          >
+            別のファイルをインポート
+          </Button>
+        )}
       </Flex>
     </Block>
   );
@@ -243,6 +456,9 @@ export function DataMigrationModal({
   domainLabel,
   searchParams,
 }: DataMigrationModalProps) {
+  // 画像フィールドを抽出
+  const imageFieldNames = fields.filter((f) => f.isImageField).map((f) => f.name);
+
   const tabs = [
     {
       value: "export",
@@ -259,7 +475,14 @@ export function DataMigrationModal({
     {
       value: "import",
       label: "インポート",
-      content: <ImportTabContent onOpenChange={onOpenChange} />,
+      content: (
+        <ImportTabContent
+          domain={domain}
+          imageFields={imageFieldNames}
+          fields={fields}
+          onOpenChange={onOpenChange}
+        />
+      ),
     },
   ];
 
