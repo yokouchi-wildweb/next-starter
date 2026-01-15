@@ -13,6 +13,7 @@ export const maintenanceConfig = {
     '/maintenance',
     '/entry',
     '/login',
+    '/logout',
     '/admin/login',
     '/signup',
     '/signup/oauth',
