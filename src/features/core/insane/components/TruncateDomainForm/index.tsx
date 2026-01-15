@@ -11,11 +11,13 @@ import { Checkbox } from "@/components/_shadcn/checkbox";
 import { Dialog } from "@/components/Overlays/Dialog";
 import { Input } from "@/components/Form/Manual/Input";
 import { useAppToast } from "@/hooks/useAppToast";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useFetchDomains } from "@/lib/domain/hooks/useFetchDomains";
 import { useTruncateDomains } from "@/lib/domain/hooks/useTruncateDomains";
 
 export function TruncateDomainForm() {
   const { showAppToast } = useAppToast();
+  const { user } = useAuthSession();
 
   // ドメイン一覧（フック使用）
   const {
@@ -265,7 +267,13 @@ export function TruncateDomainForm() {
           <div className="pt-2 space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <LockIcon className="size-4 text-muted-foreground" />
-              <span>確認のためパスワードを入力してください</span>
+              <span>
+                確認のため
+                <span className="font-medium text-foreground mx-1">
+                  {user?.displayName ?? "ユーザー"}
+                </span>
+                のパスワードを入力してください
+              </span>
             </div>
             <Input
               type="password"

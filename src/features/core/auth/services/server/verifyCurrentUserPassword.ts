@@ -17,11 +17,16 @@ export async function verifyCurrentUserPassword(
   userId: string,
   password: string,
 ): Promise<boolean> {
-  // ユーザーを取得
-  const user = await userService.get(userId);
+  // ユーザーを取得（論理削除されたユーザーも含む）
+  const user = await userService.getWithDeleted(userId);
 
   if (!user) {
-    throw new DomainError("ユーザーが見つかりません", { status: 404 });
+    throw new DomainError(`ユーザーが見つかりません (ID: ${userId})`, { status: 404 });
+  }
+
+  // 論理削除されている場合はエラー
+  if (user.deletedAt) {
+    throw new DomainError("このユーザーは削除されています", { status: 403 });
   }
 
   // ローカル認証ユーザーでない場合はエラー
