@@ -24,6 +24,19 @@ export type ExportResult = {
   zipBuffer: Buffer;
   filename: string;
   recordCount: number;
+  chunkCount: number;
+};
+
+/**
+ * マニフェストファイルの型
+ */
+export type ExportManifest = {
+  version: string;
+  domain: string;
+  exportedAt: string;
+  totalRecords: number;
+  chunkCount: number;
+  fields: string[];
 };
 
 export type ExportError = {
@@ -203,7 +216,10 @@ export async function exportData(
       chunkIndex++;
     }
 
-    console.log(`[Export] Total records: ${totalRecordCount}, chunks: ${chunkIndex - 1}`);
+    // 実際のチャンク数（chunkIndex は次のチャンク番号なので -1）
+    const actualChunkCount = chunkIndex - 1;
+
+    console.log(`[Export] Total records: ${totalRecordCount}, chunks: ${actualChunkCount}`);
 
     // レコードが0件の場合
     if (totalRecordCount === 0) {
@@ -215,6 +231,22 @@ export async function exportData(
         content: csvBuffer,
       });
     }
+
+    // マニフェストファイルを作成
+    const finalChunkCount = totalRecordCount === 0 ? 1 : actualChunkCount;
+    const manifest: ExportManifest = {
+      version: "1.0",
+      domain,
+      exportedAt: new Date().toISOString(),
+      totalRecords: totalRecordCount,
+      chunkCount: finalChunkCount,
+      fields: orderedFields,
+    };
+
+    zipEntries.unshift({
+      path: "manifest.json",
+      content: Buffer.from(JSON.stringify(manifest, null, 2), "utf-8"),
+    });
 
     // ZIP を作成
     const zipBuffer = await createZip(zipEntries);
@@ -230,6 +262,7 @@ export async function exportData(
       zipBuffer,
       filename,
       recordCount: totalRecordCount,
+      chunkCount: finalChunkCount,
     };
   } catch (error) {
     console.error("Export error:", error);
