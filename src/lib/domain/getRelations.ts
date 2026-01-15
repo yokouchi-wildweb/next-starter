@@ -38,14 +38,17 @@ export function getRelations(domain: string): RelationInfo[] {
   const relations: RelationInfo[] = [];
 
   for (const relation of config.relations || []) {
-    if (relation.relationType === "belongsTo" || relation.relationType === "belongsToMany") {
+    if (
+      (relation.relationType === "belongsTo" || relation.relationType === "belongsToMany") &&
+      "fieldType" in relation
+    ) {
       relations.push({
         domain: toSnakeCase(relation.domain),
         label: relation.label,
         fieldName: relation.fieldName,
         fieldType: relation.fieldType,
         relationType: relation.relationType as RelationType,
-        required: relation.required || false,
+        required: "required" in relation ? relation.required || false : false,
       });
     }
   }

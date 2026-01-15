@@ -28,6 +28,37 @@ export {
 // getRelations をラップして互換性を維持
 export const getRelations = getRelationsBase;
 
+/** hasMany リレーション情報 */
+export type HasManyRelationInfo = {
+  /** 子ドメイン名（snake_case） */
+  domain: string;
+  /** ラベル */
+  label: string;
+  /** 子ドメイン側の外部キーフィールド名 */
+  fieldName: string;
+};
+
+/**
+ * ドメインの hasMany リレーション情報を取得
+ * domain.json の relations で relationType: "hasMany" と定義されたものを取得
+ */
+export function getHasManyRelations(domain: string): HasManyRelationInfo[] {
+  const config = getDomainConfig(domain);
+  const relations: HasManyRelationInfo[] = [];
+
+  for (const relation of config.relations || []) {
+    if (relation.relationType === "hasMany") {
+      relations.push({
+        domain: toSnakeCase(relation.domain),
+        label: relation.label,
+        fieldName: relation.fieldName,
+      });
+    }
+  }
+
+  return relations;
+}
+
 // getJunctionTableInfo をラップして互換性を維持（tableConstName を除外）
 export function getJunctionTableInfo(
   sourceDomain: string,
@@ -57,11 +88,11 @@ export type ExportDomainInfo = {
   domain: string;
   /** ラベル */
   label: string;
-  /** ドメインタイプ: main/related/junction */
-  type: "main" | "related" | "junction";
-  /** リレーションタイプ（related の場合） */
+  /** ドメインタイプ: main/related/junction/hasMany */
+  type: "main" | "related" | "junction" | "hasMany";
+  /** リレーションタイプ（related/hasMany の場合） */
   relationType?: RelationType;
-  /** リレーションフィールド名（related の場合: sample_category_id, sample_tag_ids） */
+  /** リレーションフィールド名（related の場合: sample_category_id, sample_tag_ids、hasMany の場合: 子側の外部キー） */
   relationField?: string;
   /** ソースフィールド名（junction の場合） */
   sourceField?: string;
@@ -94,7 +125,7 @@ function extractFields(config: DomainConfig): DomainFieldInfo[] {
 
   // リレーションフィールド（belongsTo の外部キー）
   for (const relation of config.relations || []) {
-    if (relation.relationType === "belongsTo") {
+    if (relation.relationType === "belongsTo" && "fieldType" in relation) {
       fields.push({
         name: relation.fieldName,
         label: relation.label,
@@ -130,10 +161,12 @@ function extractImageFields(config: DomainConfig): string[] {
 /**
  * エクスポート対象ドメイン情報を収集
  * includeRelations: true の場合、関連ドメイン・中間テーブルも含める
+ * selectedHasManyDomains: hasMany ドメインの選択リスト（指定された場合のみ hasMany をエクスポート）
  */
 export function collectExportDomains(
   mainDomain: string,
-  includeRelations: boolean = false
+  includeRelations: boolean = false,
+  selectedHasManyDomains?: string[]
 ): ExportDomainInfo[] {
   const domains: ExportDomainInfo[] = [];
   const mainConfig = getDomainConfig(mainDomain);
@@ -153,6 +186,7 @@ export function collectExportDomains(
 
   // リレーション含むモード
   const relations = getRelations(mainDomain);
+  const hasManyRelations = getHasManyRelations(mainDomain);
 
   // 1. related ドメイン（belongsTo, belongsToMany の参照先）
   for (const relation of relations) {
@@ -177,7 +211,25 @@ export function collectExportDomains(
     imageFields: extractImageFields(mainConfig),
   });
 
-  // 3. junction テーブル（belongsToMany の中間テーブル）
+  // 3. hasMany ドメイン（選択されたもののみ）
+  for (const hasManyRelation of hasManyRelations) {
+    // selectedHasManyDomains が指定されていない場合は全て含める
+    // 指定されている場合は選択されたもののみ
+    if (!selectedHasManyDomains || selectedHasManyDomains.includes(hasManyRelation.domain)) {
+      const childConfig = getDomainConfig(hasManyRelation.domain);
+      domains.push({
+        domain: hasManyRelation.domain,
+        label: childConfig.label,
+        type: "hasMany",
+        relationType: "hasMany" as any, // 型を拡張
+        relationField: hasManyRelation.fieldName,
+        fields: extractFields(childConfig),
+        imageFields: extractImageFields(childConfig),
+      });
+    }
+  }
+
+  // 4. junction テーブル（belongsToMany の中間テーブル）
   for (const relation of relations) {
     if (relation.relationType === "belongsToMany") {
       const junctionInfo = getJunctionTableInfo(mainDomainSnake, relation.domain);
@@ -202,13 +254,14 @@ export function collectExportDomains(
 
 /**
  * インポート順序を決定
- * related → main → junction の順でソート
+ * related → main → hasMany → junction の順でソート
  */
 export function sortDomainsForImport(domains: ExportDomainInfo[]): ExportDomainInfo[] {
   const typeOrder: Record<ExportDomainInfo["type"], number> = {
     related: 1,
     main: 2,
-    junction: 3,
+    hasMany: 3,
+    junction: 4,
   };
 
   return [...domains].sort((a, b) => typeOrder[a.type] - typeOrder[b.type]);

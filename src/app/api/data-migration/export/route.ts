@@ -11,6 +11,7 @@ type ExportRequestBody = {
   searchParams?: string;
   imageFields?: string[];
   includeRelations?: boolean;
+  selectedHasManyDomains?: string[];
 };
 
 export const POST = createApiRoute(
@@ -21,7 +22,7 @@ export const POST = createApiRoute(
   async (req: NextRequest) => {
     const body = (await req.json()) as ExportRequestBody;
 
-    const { domain, selectedFields, includeImages, searchParams, imageFields, includeRelations } = body;
+    const { domain, selectedFields, includeImages, searchParams, imageFields, includeRelations, selectedHasManyDomains } = body;
 
     // バリデーション
     if (!domain || typeof domain !== "string") {
@@ -46,6 +47,7 @@ export const POST = createApiRoute(
       searchParams,
       imageFields: imageFields ?? [],
       includeRelations: includeRelations ?? false,
+      selectedHasManyDomains: selectedHasManyDomains ?? [],
     });
 
     if (!result.success) {

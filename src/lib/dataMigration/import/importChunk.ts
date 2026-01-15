@@ -24,8 +24,8 @@ export type ImportChunkOptions = {
   updateImages?: boolean;
   /** フィールド型情報（型変換用） */
   fields?: FieldTypeInfo[];
-  /** ドメインタイプ（main/related/junction） */
-  domainType?: "main" | "related" | "junction";
+  /** ドメインタイプ（main/related/junction/hasMany） */
+  domainType?: "main" | "related" | "junction" | "hasMany";
 };
 
 export type ImportChunkResult =

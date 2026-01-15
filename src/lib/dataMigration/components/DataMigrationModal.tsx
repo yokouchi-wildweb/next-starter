@@ -56,7 +56,7 @@ type ManifestV1 = {
 // マニフェストのドメイン情報（v1.1）
 type ManifestDomainInfo = {
   name: string;
-  type: "main" | "related" | "junction";
+  type: "main" | "related" | "junction" | "hasMany";
   totalRecords: number;
   chunkCount: number;
 };
@@ -66,6 +66,14 @@ type ManifestV1_1 = {
   version: "1.1";
   mainDomain: string;
   domains: ManifestDomainInfo[];
+};
+
+/** hasMany ドメイン情報 */
+export type HasManyDomainInfo = {
+  /** ドメイン名（snake_case） */
+  domain: string;
+  /** ラベル */
+  label: string;
 };
 
 export type DataMigrationModalProps = {
@@ -83,6 +91,8 @@ export type DataMigrationModalProps = {
   onImportSuccess?: () => void;
   /** リレーションが存在するか（エクスポート時に「リレーションを含める」オプションを表示） */
   hasRelations?: boolean;
+  /** hasMany ドメイン情報（エクスポート時に選択可能） */
+  hasManyDomains?: HasManyDomainInfo[];
 };
 
 /**
@@ -94,12 +104,14 @@ function ExportTabContent({
   searchParams,
   onOpenChange,
   hasRelations = false,
+  hasManyDomains = [],
 }: {
   domain: string;
   fields: ExportField[];
   searchParams?: string;
   onOpenChange: (open: boolean) => void;
   hasRelations?: boolean;
+  hasManyDomains?: HasManyDomainInfo[];
 }) {
   // システムフィールド
   const systemFields: ExportField[] = [
@@ -118,6 +130,7 @@ function ExportTabContent({
   const [selectedFields, setSelectedFields] = useState<string[]>(allFieldNames);
   const [includeImages, setIncludeImages] = useState(true);
   const [includeRelations, setIncludeRelations] = useState(false);
+  const [selectedHasManyDomains, setSelectedHasManyDomains] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -138,6 +151,12 @@ function ExportTabContent({
     );
   }, []);
 
+  const handleToggleHasManyDomain = useCallback((domainName: string) => {
+    setSelectedHasManyDomains((prev) =>
+      prev.includes(domainName) ? prev.filter((d) => d !== domainName) : [...prev, domainName]
+    );
+  }, []);
+
   const handleExport = useCallback(async () => {
     setIsExporting(true);
     setError(null);
@@ -152,6 +171,7 @@ function ExportTabContent({
           searchParams,
           imageFields: includeImages ? imageFieldNames : [],
           includeRelations,
+          selectedHasManyDomains: includeRelations ? selectedHasManyDomains : [],
         },
         {
           responseType: "blob",
@@ -198,7 +218,7 @@ function ExportTabContent({
     } finally {
       setIsExporting(false);
     }
-  }, [domain, selectedFields, includeImages, searchParams, imageFieldNames, onOpenChange, includeRelations]);
+  }, [domain, selectedFields, includeImages, searchParams, imageFieldNames, onOpenChange, includeRelations, selectedHasManyDomains]);
 
   return (
     <Block className="p-4">
@@ -219,6 +239,21 @@ function ExportTabContent({
             />
             <span className="text-sm">リレーションを含める（関連データも一緒にエクスポート）</span>
           </label>
+        )}
+        {/* hasMany ドメイン選択（リレーションを含める場合のみ表示） */}
+        {includeRelations && hasManyDomains.length > 0 && (
+          <Block className="ml-6 mt-2 space-y-2">
+            <span className="text-xs text-muted-foreground">子データの選択:</span>
+            {hasManyDomains.map((hm) => (
+              <label key={hm.domain} className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={selectedHasManyDomains.includes(hm.domain)}
+                  onCheckedChange={() => handleToggleHasManyDomain(hm.domain)}
+                />
+                <span className="text-sm">{hm.label}</span>
+              </label>
+            ))}
+          </Block>
         )}
       </Block>
 
@@ -374,7 +409,7 @@ function ImportTabContent({
     chunkPrefix: string,
     domainIndex?: number,
     totalDomains?: number,
-    domainType?: "main" | "related" | "junction"
+    domainType?: "main" | "related" | "junction" | "hasMany"
   ): Promise<{ records: number; successful: number; failed: number; results: ChunkResult[] }> => {
     const results: ChunkResult[] = [];
     let records = 0;
@@ -512,8 +547,8 @@ function ImportTabContent({
           throw new Error(`ドメインが一致しません: ${manifest.mainDomain} !== ${domain}`);
         }
 
-        // インポート順序に従ってソート（related → main → junction）
-        const typeOrder: Record<string, number> = { related: 1, main: 2, junction: 3 };
+        // インポート順序に従ってソート（related → main → hasMany → junction）
+        const typeOrder: Record<string, number> = { related: 1, main: 2, hasMany: 3, junction: 4 };
         const sortedDomains = [...manifest.domains].sort(
           (a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99)
         );
@@ -809,6 +844,7 @@ export function DataMigrationModal({
   searchParams,
   onImportSuccess,
   hasRelations = false,
+  hasManyDomains = [],
 }: DataMigrationModalProps) {
   // 画像フィールドを抽出
   const imageFieldNames = fields.filter((f) => f.isImageField).map((f) => f.name);
@@ -824,6 +860,7 @@ export function DataMigrationModal({
           searchParams={searchParams}
           onOpenChange={onOpenChange}
           hasRelations={hasRelations}
+          hasManyDomains={hasManyDomains}
         />
       ),
     },

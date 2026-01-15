@@ -25,6 +25,8 @@ export type ExportOptions = {
   imageFields?: string[];
   /** リレーションを含めるか（default: false） */
   includeRelations?: boolean;
+  /** エクスポートする hasMany ドメインのリスト（snake_case） */
+  selectedHasManyDomains?: string[];
 };
 
 export type ExportResult = {
@@ -52,8 +54,8 @@ export type ExportManifestV1 = {
  */
 export type ManifestDomainInfo = {
   name: string;
-  type: "main" | "related" | "junction";
-  relationType?: "belongsTo" | "belongsToMany";
+  type: "main" | "related" | "junction" | "hasMany";
+  relationType?: "belongsTo" | "belongsToMany" | "hasMany";
   relationField?: string;
   sourceField?: string;
   targetField?: string;
@@ -545,12 +547,12 @@ async function exportDomainRecords(
 export async function exportDataWithRelations(
   options: ExportOptions
 ): Promise<ExportResult | ExportError> {
-  const { domain, includeImages, searchParams } = options;
+  const { domain, includeImages, searchParams, selectedHasManyDomains } = options;
   const config = getDataMigrationConfig();
 
   try {
-    // エクスポート対象ドメイン情報を収集
-    const domainInfos = collectExportDomains(domain, true);
+    // エクスポート対象ドメイン情報を収集（hasMany ドメインの選択を反映）
+    const domainInfos = collectExportDomains(domain, true, selectedHasManyDomains);
 
     console.log(`[Export] Starting multi-domain export for: ${domain}`);
     console.log(`[Export] Domains: ${domainInfos.map((d) => d.domain).join(", ")}`);

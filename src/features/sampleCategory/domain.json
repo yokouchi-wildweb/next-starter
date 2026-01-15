@@ -6,7 +6,12 @@
   "dbEngine": "Neon",
   "idType": "uuid",
   "relations": [
-
+    {
+      "domain": "sample",
+      "label": "サンプル",
+      "fieldName": "sample_category_id",
+      "relationType": "hasMany"
+    }
   ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
@@ -43,7 +48,7 @@
   ],
   "useDetailModal": false,
   "useDuplicateButton": false,
-  "useImportExport": false,
+  "useImportExport": true,
   "addToAdminDataMenu": true,
   "generateFiles": {
     "entities": true,
