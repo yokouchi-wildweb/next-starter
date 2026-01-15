@@ -1,4 +1,4 @@
-// src/lib/storage/domainIntegration/duplicateFiles.ts
+// src/lib/crud/storageIntegration/duplicateFiles.ts
 
 import { copyFileServer, getPathFromStorageUrl } from "@/lib/firebase/server/storage";
 import { uuidv7 } from "uuidv7";

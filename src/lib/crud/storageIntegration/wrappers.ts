@@ -1,4 +1,4 @@
-// src/lib/storage/domainIntegration/wrappers.ts
+// src/lib/crud/storageIntegration/wrappers.ts
 
 import { getDomainConfig } from "@/lib/domain/getDomainConfig";
 import { extractStorageFields, extractStorageFieldsWithPath } from "./extractStorageFields";
@@ -11,6 +11,9 @@ type BaseService = {
   remove: (id: string) => Promise<void>;
   duplicate?: (id: string) => Promise<Record<string, unknown>>;
   bulkDeleteByIds?: (ids: string[]) => Promise<void>;
+  hardDelete?: (id: string) => Promise<void>;
+  bulkDeleteByQuery?: (where: any) => Promise<void>;
+  search?: (params: any) => Promise<{ results: Record<string, unknown>[] }>;
 };
 
 /**
@@ -18,7 +21,7 @@ type BaseService = {
  *
  * @example
  * // wrappers/remove.ts
- * import { createStorageAwareRemove } from "@/lib/storage/domainIntegration";
+ * import { createStorageAwareRemove } from "@/lib/crud/storageIntegration";
  * import { base } from "../drizzleBase";
  * export const remove = createStorageAwareRemove(base, "sample");
  */
@@ -44,7 +47,7 @@ export function createStorageAwareRemove<T extends BaseService>(
  *
  * @example
  * // wrappers/bulkDeleteByIds.ts
- * import { createStorageAwareBulkDeleteByIds } from "@/lib/storage/domainIntegration";
+ * import { createStorageAwareBulkDeleteByIds } from "@/lib/crud/storageIntegration";
  * import { base } from "../drizzleBase";
  * export const bulkDeleteByIds = createStorageAwareBulkDeleteByIds(base, "sample");
  */
@@ -72,7 +75,7 @@ export function createStorageAwareBulkDeleteByIds<T extends BaseService>(
  *
  * @example
  * // wrappers/duplicate.ts
- * import { createStorageAwareDuplicate } from "@/lib/storage/domainIntegration";
+ * import { createStorageAwareDuplicate } from "@/lib/crud/storageIntegration";
  * import { base } from "../drizzleBase";
  * export const duplicate = createStorageAwareDuplicate(base, "sample");
  */
@@ -108,5 +111,59 @@ export function createStorageAwareDuplicate<T extends BaseService>(
     }
 
     return base.create(newData);
+  };
+}
+
+/**
+ * ストレージ連携対応のhardDeleteを作成
+ *
+ * @example
+ * // wrappers/hardDelete.ts
+ * import { createStorageAwareHardDelete } from "@/lib/crud/storageIntegration";
+ * import { base } from "../drizzleBase";
+ * export const hardDelete = createStorageAwareHardDelete(base, "sample");
+ */
+export function createStorageAwareHardDelete<T extends BaseService>(
+  base: T,
+  domainKey: string
+): (id: string) => Promise<void> {
+  const storageFields = extractStorageFields(getDomainConfig(domainKey));
+
+  return async (id: string): Promise<void> => {
+    if (storageFields.length) {
+      const record = await base.get(id);
+      if (record) {
+        await cleanupStorageFiles(record, storageFields);
+      }
+    }
+    await base.hardDelete?.(id);
+  };
+}
+
+/**
+ * ストレージ連携対応のbulkDeleteByQueryを作成
+ *
+ * @example
+ * // wrappers/bulkDeleteByQuery.ts
+ * import { createStorageAwareBulkDeleteByQuery } from "@/lib/crud/storageIntegration";
+ * import { base } from "../drizzleBase";
+ * export const bulkDeleteByQuery = createStorageAwareBulkDeleteByQuery(base, "sample");
+ */
+export function createStorageAwareBulkDeleteByQuery<T extends BaseService>(
+  base: T,
+  domainKey: string
+): (where: any) => Promise<void> {
+  const storageFields = extractStorageFields(getDomainConfig(domainKey));
+
+  return async (where: any): Promise<void> => {
+    if (storageFields.length) {
+      // searchを使って削除対象レコードを取得
+      const result = await base.search?.({ where, limit: 10000 });
+      const records = result?.results ?? [];
+      await Promise.all(
+        records.map((r) => cleanupStorageFiles(r, storageFields))
+      );
+    }
+    await base.bulkDeleteByQuery?.(where);
   };
 }

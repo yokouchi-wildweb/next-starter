@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import { AlertTriangleIcon, TrashIcon, LockIcon, RefreshCwIcon } from "lucide-react";
+import { AlertTriangleIcon, TrashIcon, LockIcon, RefreshCwIcon, CloudIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout";
@@ -264,6 +264,15 @@ export function TruncateDomainForm() {
               );
             })}
           </ul>
+          <div className="p-3 rounded-md bg-muted/50 border border-border">
+            <div className="flex items-start gap-2 text-sm">
+              <CloudIcon className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-muted-foreground">
+                ストレージ上のファイル（画像等）はこの操作では削除されません。
+                必要に応じてストレージコンソールから手動で削除してください。
+              </p>
+            </div>
+          </div>
           <div className="pt-2 space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <LockIcon className="size-4 text-muted-foreground" />

@@ -1,4 +1,4 @@
-// src/lib/storage/domainIntegration/index.ts
+// src/lib/crud/storageIntegration/index.ts
 
 export { extractStorageFields, extractStorageFieldsWithPath } from "./extractStorageFields";
 export type { StorageFieldInfo } from "./extractStorageFields";
@@ -8,4 +8,6 @@ export {
   createStorageAwareRemove,
   createStorageAwareBulkDeleteByIds,
   createStorageAwareDuplicate,
+  createStorageAwareHardDelete,
+  createStorageAwareBulkDeleteByQuery,
 } from "./wrappers";

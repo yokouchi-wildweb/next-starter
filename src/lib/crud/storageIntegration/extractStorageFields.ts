@@ -1,4 +1,4 @@
-// src/lib/storage/domainIntegration/extractStorageFields.ts
+// src/lib/crud/storageIntegration/extractStorageFields.ts
 
 type DomainFieldConfig = {
   name: string;

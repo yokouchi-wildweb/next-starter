@@ -1,4 +1,4 @@
-// src/lib/storage/domainIntegration/cleanupFiles.ts
+// src/lib/crud/storageIntegration/cleanupFiles.ts
 
 import { remove as removeFile } from "@/lib/storage/server/wrappers/remove";
 
