@@ -2,7 +2,7 @@
 
 import React from "react";
 import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/utils";
-import { parseCellValue } from "../../../utils/value";
+import { parseCellValue, readCellValue } from "../../../utils/value";
 import { POPUP_ATTR } from "../constants";
 import type {
   UseEditableCellProps,
@@ -226,8 +226,23 @@ export function useEditableCell<T>({
             const rawValue = column.getValue ? column.getValue(row) : (row as Record<string, unknown>)[column.field];
             const normalizedMultiValue = normalizeOptionValues((rawValue as OptionPrimitive[] | null) ?? null);
             handleCommit(multiDraftValue ?? normalizedMultiValue);
+          } else if (draftValue !== null) {
+            // draftValueがある場合、バリデーションを実行
+            const normalized = parseCellValue(draftValue, row, column);
+            const draftError = column.validator?.(normalized, row) ?? null;
+
+            if (draftError) {
+              // draftValueでエラー → 元の値で再バリデーション
+              const rawValue = readCellValue(row, column);
+              const originalError = column.validator?.(rawValue, row) ?? null;
+              setError(originalError);
+              setDraftValue(null);
+            } else {
+              // draftValueでOK → 通常コミット
+              handleCommit(draftValue);
+            }
           } else {
-            // handleCommit内でdraftValue===nullの場合は値を変更せず編集終了のみ
+            // draftValueがnull → 編集終了のみ
             handleCommit();
           }
         }
@@ -239,7 +254,7 @@ export function useEditableCell<T>({
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [cellKey, column, handleCommit, isEditing, isMultiSelectEditor, multiDraftValue, row]);
+  }, [cellKey, column, draftValue, handleCommit, isEditing, isMultiSelectEditor, multiDraftValue, row]);
 
   const state: EditableCellState = {
     draftValue,

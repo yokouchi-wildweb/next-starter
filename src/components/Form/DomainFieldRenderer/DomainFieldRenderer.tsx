@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Control, ControllerRenderProps, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
@@ -58,6 +58,14 @@ export type DomainFieldRendererProps<TFieldValues extends FieldValues> = {
   fields?: DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[];
   domainJsonFields?: DomainJsonField[];
   onMediaStateChange?: (state: DomainMediaState | null) => void;
+  /** 全フィールドの前に挿入するUI */
+  beforeAll?: ReactNode;
+  /** 全フィールドの後に挿入するUI */
+  afterAll?: ReactNode;
+  /** 特定フィールドの前に挿入するUI（キー: フィールド名） */
+  beforeField?: Partial<Record<FieldPath<TFieldValues>, ReactNode>>;
+  /** 特定フィールドの後に挿入するUI（キー: フィールド名） */
+  afterField?: Partial<Record<FieldPath<TFieldValues>, ReactNode>>;
 };
 
 export function DomainFieldRenderer<TFieldValues extends FieldValues>({
@@ -66,6 +74,10 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   fields = [],
   domainJsonFields = [],
   onMediaStateChange,
+  beforeAll,
+  afterAll,
+  beforeField,
+  afterField,
 }: DomainFieldRendererProps<TFieldValues>) {
   const mediaEntriesRef = useRef<
     Map<
@@ -397,27 +409,37 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   }, [domainJsonFields, fields]);
 
   const renderedFields = combinedFields.map((fieldConfig, index) => {
+    let fieldElement: React.ReactNode;
     switch (fieldConfig.type) {
       case "text":
-        return renderTextField(fieldConfig);
+        fieldElement = renderTextField(fieldConfig);
+        break;
       case "number":
-        return renderNumberField(fieldConfig);
+        fieldElement = renderNumberField(fieldConfig);
+        break;
       case "textarea":
-        return renderTextareaField(fieldConfig);
+        fieldElement = renderTextareaField(fieldConfig);
+        break;
       case "select":
-        return renderSelectField(fieldConfig);
+        fieldElement = renderSelectField(fieldConfig);
+        break;
       case "checkGroup":
-        return renderCheckGroupField(fieldConfig);
+        fieldElement = renderCheckGroupField(fieldConfig);
+        break;
       case "multiSelect":
-        return renderMultiSelectField(fieldConfig);
+        fieldElement = renderMultiSelectField(fieldConfig);
+        break;
       case "radio":
-        return renderRadioField(fieldConfig);
+        fieldElement = renderRadioField(fieldConfig);
+        break;
       case "stepper":
-        return renderStepperField(fieldConfig);
+        fieldElement = renderStepperField(fieldConfig);
+        break;
       case "switch":
-        return renderSwitchField(fieldConfig);
+        fieldElement = renderSwitchField(fieldConfig);
+        break;
       case "mediaUploader":
-        return (
+        fieldElement = (
           <MediaFieldItem
             key={fieldConfig.name}
             control={control}
@@ -426,23 +448,43 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
             onHandleChange={handleMediaHandleChange}
           />
         );
+        break;
       case "hidden":
-        return renderHiddenField(fieldConfig);
+        fieldElement = renderHiddenField(fieldConfig);
+        break;
       case "date":
-        return renderDateField(fieldConfig);
+        fieldElement = renderDateField(fieldConfig);
+        break;
       case "time":
-        return renderTimeField(fieldConfig);
+        fieldElement = renderTimeField(fieldConfig);
+        break;
       case "datetime":
-        return renderDatetimeField(fieldConfig);
+        fieldElement = renderDatetimeField(fieldConfig);
+        break;
       case "email":
-        return renderEmailField(fieldConfig);
+        fieldElement = renderEmailField(fieldConfig);
+        break;
       case "password":
-        return renderPasswordField(fieldConfig);
+        fieldElement = renderPasswordField(fieldConfig);
+        break;
       case "booleanCheckbox":
-        return renderBooleanCheckboxField(fieldConfig);
+        fieldElement = renderBooleanCheckboxField(fieldConfig);
+        break;
       default:
-        return <Fragment key={index} />;
+        fieldElement = null;
     }
+
+    const fieldName = fieldConfig.name as FieldPath<TFieldValues>;
+    const beforeContent = beforeField?.[fieldName];
+    const afterContent = afterField?.[fieldName];
+
+    return (
+      <Fragment key={fieldConfig.name ?? index}>
+        {beforeContent}
+        {fieldElement}
+        {afterContent}
+      </Fragment>
+    );
   });
 
   useEffect(() => {
@@ -464,5 +506,11 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
     });
   }, [onMediaStateChange, mediaVersion]);
 
-  return <>{renderedFields}</>;
+  return (
+    <>
+      {beforeAll}
+      {renderedFields}
+      {afterAll}
+    </>
+  );
 }
