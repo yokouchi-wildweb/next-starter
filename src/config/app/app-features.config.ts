@@ -61,6 +61,10 @@ export const APP_FEATURES = {
     /** 管理者による残高調整ボタンを有効にする */
     enableAdminBalanceAdjust: false,
   },
+  dataMigration: {
+    /** 最大レコード数制限（デフォルト: 1000） */
+    maxRecordLimit: 1000,
+  },
 } as const;
 
 export type ThirdPartyProvider = keyof typeof APP_FEATURES.auth.thirdPartyProviders;
