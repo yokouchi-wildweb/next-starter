@@ -1,34 +1,40 @@
-// src/app/admin/insane/truncate/TruncateDomainForm.tsx
+// src/features/core/insane/components/TruncateDomainForm/index.tsx
 
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import { AlertTriangleIcon, TrashIcon, LockIcon } from "lucide-react";
+import { AlertTriangleIcon, TrashIcon, LockIcon, RefreshCwIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import { Dialog } from "@/components/Overlays/Dialog";
 import { Input } from "@/components/Form/Manual/Input";
-
-// TODO: APIから取得するように変更
-const DUMMY_DOMAINS = [
-  { key: "user", label: "ユーザー", isCore: true },
-  { key: "setting", label: "設定", isCore: true },
-  { key: "wallet", label: "ウォレット", isCore: true },
-  { key: "walletHistory", label: "ウォレット履歴", isCore: true },
-  { key: "purchaseRequest", label: "購入リクエスト", isCore: true },
-  { key: "sample", label: "サンプル", isCore: false },
-  { key: "sampleCategory", label: "サンプルカテゴリ", isCore: false },
-  { key: "sampleTag", label: "サンプルタグ", isCore: false },
-];
+import { useAppToast } from "@/hooks/useAppToast";
+import { useFetchDomains } from "@/lib/domain/hooks/useFetchDomains";
+import { useTruncateDomains } from "@/lib/domain/hooks/useTruncateDomains";
 
 export function TruncateDomainForm() {
+  const { showAppToast } = useAppToast();
+
+  // ドメイン一覧（フック使用）
+  const {
+    domains,
+    isLoading,
+    error: loadError,
+    refetch,
+  } = useFetchDomains();
+
+  // truncate処理（フック使用）
+  const { truncate, isProcessing } = useTruncateDomains();
+
+  // 選択状態
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+
+  // ダイアログ状態
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleToggle = (domainKey: string) => {
     setSelectedDomains((prev) =>
@@ -39,10 +45,10 @@ export function TruncateDomainForm() {
   };
 
   const handleSelectAll = () => {
-    if (selectedDomains.length === DUMMY_DOMAINS.length) {
+    if (selectedDomains.length === domains.length) {
       setSelectedDomains([]);
     } else {
-      setSelectedDomains(DUMMY_DOMAINS.map((d) => d.key));
+      setSelectedDomains(domains.map((d) => d.key));
     }
   };
 
@@ -52,37 +58,44 @@ export function TruncateDomainForm() {
       return;
     }
 
-    setIsProcessing(true);
     setPasswordError("");
 
     try {
-      // TODO: パスワード検証APIを呼び出し
-      // const isValid = await verifyPasswordApi(password);
-      // if (!isValid) {
-      //   setPasswordError("パスワードが正しくありません");
-      //   setIsProcessing(false);
-      //   return;
-      // }
+      const response = await truncate({
+        domains: selectedDomains,
+        password,
+      });
 
-      // ダミー検証（password === "admin" で通過）
-      if (password !== "admin") {
-        setPasswordError("パスワードが正しくありません");
-        setIsProcessing(false);
-        return;
+      if (!response) return;
+
+      // 結果を確認
+      const failedResults = response.results.filter((r) => !r.success);
+
+      if (failedResults.length === 0) {
+        showAppToast(response.message, "success");
+      } else {
+        showAppToast(
+          `${response.message} 失敗: ${failedResults.map((r) => r.domain).join(", ")}`,
+          "warning"
+        );
       }
 
-      // TODO: 実際のtruncate API呼び出し
-      console.log("Truncating domains:", selectedDomains);
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // ダミー遅延
-      alert(`${selectedDomains.length}件のドメインを削除しました（ダミー）`);
       setSelectedDomains([]);
       setIsConfirmOpen(false);
       setPassword("");
+
+      // ドメイン一覧を再取得（レコード数更新）
+      await refetch();
     } catch (error) {
-      console.error("Truncate failed:", error);
-      alert("削除に失敗しました");
-    } finally {
-      setIsProcessing(false);
+      const message =
+        error instanceof Error ? error.message : "削除に失敗しました";
+
+      // パスワードエラーの場合
+      if (message.includes("パスワード")) {
+        setPasswordError(message);
+      } else {
+        showAppToast(message, "error");
+      }
     }
   };
 
@@ -95,31 +108,63 @@ export function TruncateDomainForm() {
   };
 
   const selectedCoreDomains = selectedDomains.filter((key) =>
-    DUMMY_DOMAINS.find((d) => d.key === key)?.isCore
+    domains.find((d) => d.key === key)?.isCore
   );
+
+  // ローディング中
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCwIcon className="size-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">読み込み中...</span>
+      </div>
+    );
+  }
+
+  // エラー時
+  if (loadError) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-destructive mb-4">{loadError.message}</p>
+        <Button variant="outline" onClick={() => refetch()}>
+          <RefreshCwIcon className="size-4 mr-2" />
+          再読み込み
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* 選択ヘッダー */}
       <Flex justify="between" align="center">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleSelectAll}
-        >
-          {selectedDomains.length === DUMMY_DOMAINS.length
-            ? "全解除"
-            : "全選択"}
-        </Button>
+        <Flex gap="sm">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAll}
+          >
+            {selectedDomains.length === domains.length ? "全解除" : "全選択"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            <RefreshCwIcon className="size-4" />
+          </Button>
+        </Flex>
         <span className="text-sm text-muted-foreground">
-          {selectedDomains.length} / {DUMMY_DOMAINS.length} 選択中
+          {selectedDomains.length} / {domains.length} 選択中
         </span>
       </Flex>
 
       {/* ドメイン一覧 */}
       <div className="grid gap-2">
-        {DUMMY_DOMAINS.map((domain) => (
+        {domains.map((domain) => (
           <label
             key={domain.key}
             className={`
@@ -139,6 +184,9 @@ export function TruncateDomainForm() {
                 ({domain.key})
               </span>
             </div>
+            <span className="text-sm text-muted-foreground">
+              {domain.recordCount.toLocaleString()} 件
+            </span>
             {domain.isCore && (
               <span className="text-xs text-destructive flex items-center gap-1">
                 <AlertTriangleIcon className="size-3" />
@@ -203,10 +251,10 @@ export function TruncateDomainForm() {
           </p>
           <ul className="list-disc list-inside text-sm space-y-1 max-h-40 overflow-y-auto">
             {selectedDomains.map((key) => {
-              const domain = DUMMY_DOMAINS.find((d) => d.key === key);
+              const domain = domains.find((d) => d.key === key);
               return (
                 <li key={key}>
-                  {domain?.label} ({key})
+                  {domain?.label} ({key}) - {domain?.recordCount.toLocaleString()} 件
                   {domain?.isCore && (
                     <span className="text-destructive ml-1">※コア</span>
                   )}

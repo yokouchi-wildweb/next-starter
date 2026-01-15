@@ -2,8 +2,7 @@
 
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import { SecTitle } from "@/components/TextBlocks";
-
-import { TruncateDomainForm } from "./TruncateDomainForm";
+import { TruncateDomainForm } from "@/features/core/insane/components/TruncateDomainForm";
 
 export default function TruncatePage() {
   return (
