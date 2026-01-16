@@ -105,7 +105,7 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
         : {};
 
     return (
-      <div className={cn("relative flex h-9 items-center", containerClassName)}>
+      <div className={cn("relative flex h-fit items-center", containerClassName)}>
         <Input
         {...rest}
         ref={assignRef}

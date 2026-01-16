@@ -2,16 +2,26 @@
 
 import { DatetimeInput as ManualDatetimeInput } from "@/components/Form/Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
+import { type ReactNode } from "react";
 import { ControlledInputProps } from "@/components/Form/types";
 import dayjs from "dayjs";
+
+type DatetimeInputProps<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>,
+> = ControlledInputProps<TFieldValues, TName> & {
+  /** 左側に表示するアイコン */
+  leftIcon?: ReactNode;
+};
 
 export const DatetimeInput = <
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
 >({
   field,
+  leftIcon,
   ...rest
-}: ControlledInputProps<TFieldValues, TName>) => {
+}: DatetimeInputProps<TFieldValues, TName>) => {
   const { ref: fieldRef, onChange, value, ...fieldRest } = field;
   const { defaultValue: _defaultValueIgnored, ...restProps } = rest;
 
@@ -37,6 +47,7 @@ export const DatetimeInput = <
       ref={fieldRef}
       value={value as any}
       onValueChange={handleValueChange}
+      leftIcon={leftIcon}
     />
   );
 };

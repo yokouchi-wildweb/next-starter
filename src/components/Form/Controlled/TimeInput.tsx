@@ -2,12 +2,22 @@
 
 import { TimeInput as ManualTimeInput } from "@/components/Form/Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
+import { type ReactNode } from "react";
 import { ControlledInputProps } from "@/components/Form/types";
+
+type TimeInputProps<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>,
+> = ControlledInputProps<TFieldValues, TName> & {
+  /** 左側に表示するアイコン */
+  leftIcon?: ReactNode;
+};
 
 export const TimeInput = <TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>>({
   field,
+  leftIcon,
   ...rest
-}: ControlledInputProps<TFieldValues, TName>) => {
+}: TimeInputProps<TFieldValues, TName>) => {
   const { ref: fieldRef, onChange, value, ...fieldRest } = field;
   const { defaultValue: _defaultValueIgnored, ...restProps } = rest;
 
@@ -18,6 +28,7 @@ export const TimeInput = <TFieldValues extends FieldValues, TName extends FieldP
       ref={fieldRef}
       value={value as any}
       onValueChange={(newValue) => onChange(newValue)}
+      leftIcon={leftIcon}
     />
   );
 };

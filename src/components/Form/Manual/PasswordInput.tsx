@@ -20,8 +20,9 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>((p
   const toggle = () => setVisible((prev) => !prev);
 
   // leftIconがある場合はInputのleftIconを使用せず、自前でレンダリング
+  // h-fitでGridレイアウト内でも高さがinputに合うようにする
   return (
-    <div className="relative h-9">
+    <div className="relative h-fit">
       {leftIcon && (
         <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground">
           {leftIcon}

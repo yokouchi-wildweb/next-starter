@@ -1,15 +1,23 @@
 // src/components/Form/NumberInput.tsx
 
-import type { ChangeEventHandler } from "react";
+import type { ChangeEventHandler, ReactNode } from "react";
 import { Input } from "src/components/Form/Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { ControlledInputProps } from "@/components/Form/types";
 
+type NumberInputProps<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>,
+> = ControlledInputProps<TFieldValues, TName> & {
+  /** 左側に表示するアイコン */
+  leftIcon?: ReactNode;
+};
+
 export const NumberInput = <
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
->(props: ControlledInputProps<TFieldValues, TName>) => {
-  const { field, value: propValue, onChange, ...rest } = props;
+>(props: NumberInputProps<TFieldValues, TName>) => {
+  const { field, value: propValue, onChange, leftIcon, ...rest } = props;
   const { value: fieldValue, onChange: fieldOnChange, ...fieldRest } = field;
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -29,6 +37,7 @@ export const NumberInput = <
       {...rest}
       value={inputValue}
       onChange={handleChange}
+      leftIcon={leftIcon}
     />
   );
 };
