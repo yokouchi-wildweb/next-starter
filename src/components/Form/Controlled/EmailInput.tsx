@@ -1,20 +1,30 @@
 // src/components/Form/Controlled/EmailInput.tsx
 
 import { FieldPath, FieldValues } from "react-hook-form";
+import { type ReactNode } from "react";
 
 import { Input } from "src/components/Form/Manual";
 
 import type { ControlledInputProps } from "@/components/Form/types";
 
+type EmailInputProps<
+  TFieldValues extends FieldValues,
+  TName extends FieldPath<TFieldValues>,
+> = ControlledInputProps<TFieldValues, TName> & {
+  /** 左側に表示するアイコン */
+  leftIcon?: ReactNode;
+};
+
 export const EmailInput = <
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
->(props: ControlledInputProps<TFieldValues, TName>) => {
+>(props: EmailInputProps<TFieldValues, TName>) => {
   const {
     field,
     type = "email",
     inputMode = "email",
     autoComplete,
+    leftIcon,
     ...rest
   } = props;
   const { value, ...fieldRest } = field;
@@ -30,6 +40,7 @@ export const EmailInput = <
       inputMode={inputMode}
       autoComplete={autoComplete ?? "email"}
       value={inputValue as string}
+      leftIcon={leftIcon}
     />
   );
 };

@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Lock, Mail } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -14,6 +15,7 @@ import { Button } from "@/components/Form/Button/Button";
 import {
   DateInput,
   DatetimeInput,
+  EmailInput,
   FileInput,
   TimeInput,
   NumberInput,
@@ -50,6 +52,7 @@ const fruitOptions: Options[] = [
 
 type DemoFormValues = {
   text: string;
+  email: string;
   password: string;
   description: string;
   date: string;
@@ -71,6 +74,7 @@ type DemoFormValues = {
 
 const defaultValues: DemoFormValues = {
   text: "",
+  email: "",
   password: "",
   description: "",
   date: "",
@@ -184,10 +188,27 @@ export default function FormComponentsDemoPage() {
 
                 <FormFieldItem
                     control={form.control}
-                    name="password"
-                    label="PasswordInput"
+                    name="email"
+                    label="EmailInput（leftIcon付き）"
                     renderInput={(field) => (
-                        <PasswordInput field={field} placeholder="パスワード" />
+                        <EmailInput
+                            field={field}
+                            placeholder="例）namae@mail.com"
+                            leftIcon={<Mail className="size-4" />}
+                        />
+                    )}
+                />
+
+                <FormFieldItem
+                    control={form.control}
+                    name="password"
+                    label="PasswordInput（leftIcon付き）"
+                    renderInput={(field) => (
+                        <PasswordInput
+                            field={field}
+                            placeholder="ご登録のパスワード"
+                            leftIcon={<Lock className="size-4" />}
+                        />
                     )}
                 />
 
