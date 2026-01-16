@@ -1,7 +1,7 @@
 // src/lib/dataMigration/export/index.ts
 
 import "server-only";
-import { getServiceOrThrow, getJunctionTable } from "@/lib/domain";
+import { getServiceOrThrow, getJunctionTable } from "@/lib/domain/server";
 import { getDataMigrationConfig, CHUNK_SIZE } from "../config";
 import { generateCsv, csvToBuffer } from "./generateCsv";
 import { createZip, downloadImage, extractFilename, type ZipEntry } from "./createZip";

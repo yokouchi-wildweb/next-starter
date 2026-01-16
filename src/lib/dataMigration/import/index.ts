@@ -2,7 +2,7 @@
 
 import "server-only";
 import { v7 as uuidv7 } from "uuid";
-import { getServiceOrThrow } from "@/lib/domain";
+import { getServiceOrThrow } from "@/lib/domain/server";
 import { uploadFileServer } from "@/lib/firebase/server/storage";
 import { getDataMigrationConfig } from "../config";
 import { parseZip, type ParsedChunk } from "./parseZip";

@@ -29,9 +29,4 @@ export {
 // ============================================
 // Server Only
 // ============================================
-
-// junction: 中間テーブル取得（server-only）
-export { getJunctionTable, getJunctionTableOrThrow } from "./junction/getTable";
-
-// service/server: サービス取得・ドメイン一覧
-export * from "./service/server";
+// サーバー専用コードは @/lib/domain/server からインポートしてください

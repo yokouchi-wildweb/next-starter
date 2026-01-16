@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
 import { verifyCurrentUserPassword } from "@/features/core/auth/services/server/verifyCurrentUserPassword";
-import { getServiceOrThrow, getInvalidDomainKeys } from "@/lib/domain";
+import { getServiceOrThrow, getInvalidDomainKeys } from "@/lib/domain/server";
 
 const TruncatePayloadSchema = z.object({
   domains: z.array(z.string()).min(1, "削除するドメインを選択してください"),

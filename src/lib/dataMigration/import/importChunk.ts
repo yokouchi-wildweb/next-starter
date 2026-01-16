@@ -2,7 +2,7 @@
 
 import "server-only";
 import { v7 as uuidv7 } from "uuid";
-import { getServiceOrThrow, getJunctionTable } from "@/lib/domain";
+import { getServiceOrThrow, getJunctionTable } from "@/lib/domain/server";
 import { uploadFileServer } from "@/lib/firebase/server/storage";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { parseCsv } from "./parseCsv";

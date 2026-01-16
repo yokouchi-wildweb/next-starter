@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
-import { getDomainListWithCount } from "@/lib/domain";
+import { getDomainListWithCount } from "@/lib/domain/server";
 
 /**
  * ドメイン一覧を取得する
