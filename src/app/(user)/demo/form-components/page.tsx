@@ -193,7 +193,7 @@ export default function FormComponentsDemoPage() {
                     renderInput={(field) => (
                         <EmailInput
                             field={field}
-                            placeholder="例）namae@mail.com"
+                            placeholder="例）maile@example.com"
                             leftIcon={<Mail className="size-4" />}
                         />
                     )}

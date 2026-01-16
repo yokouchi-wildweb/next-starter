@@ -13,11 +13,19 @@ import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { AdminCommandProvider } from "src/features/core/adminCommand";
 import { RedirectToastProvider } from "@/lib/redirectToast";
-import { businessConfig } from "@/config/business.config";
+import { seoConfig } from "@/config/seo.config";
 
 export const metadata: Metadata = {
-  title: `${businessConfig.serviceNameShort} ${businessConfig.descriptionShort}`,
-  description: businessConfig.description,
+  metadataBase: new URL(seoConfig.siteUrl),
+  title: {
+    default: seoConfig.siteName,
+    template: `%s | ${seoConfig.siteName}`,
+  },
+  description: seoConfig.defaultDescription,
+  openGraph: {
+    siteName: seoConfig.siteName,
+    locale: seoConfig.locale,
+  },
 };
 
 export default function RootLayout({
