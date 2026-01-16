@@ -66,7 +66,7 @@ export function SingleCardCheckbox({
   field,
   label,
   uncheckedVariant = "muted",
-  checkedVariant = "success",
+  checkedVariant = "secondary",
   size = "md",
   fullWidth = true,
   centered = true,
