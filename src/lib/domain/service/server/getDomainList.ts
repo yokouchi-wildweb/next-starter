@@ -3,28 +3,9 @@
 import "server-only";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 import { domainConfigMap } from "@/registry/domainConfigRegistry";
+import type { DomainInfo, DomainInfoWithCount } from "../../types";
 
-/**
- * ドメイン情報の型定義
- */
-export type DomainInfo = {
-  /** ドメインキー（serviceRegistryのキー） */
-  key: string;
-  /** 表示用ラベル（domain.jsonのlabelまたはキー） */
-  label: string;
-  /** テーブル名 */
-  tableName: string;
-  /** コアドメインかどうか（domain.jsonが存在しないドメイン） */
-  isCore: boolean;
-};
-
-/**
- * ドメイン情報（レコード数付き）の型定義
- */
-export type DomainInfoWithCount = DomainInfo & {
-  /** 現在のレコード数 */
-  recordCount: number;
-};
+export type { DomainInfo, DomainInfoWithCount };
 
 /**
  * snake_case を camelCase に変換

@@ -2,14 +2,9 @@
 // ドメイン設定からフィールド情報を抽出するユーティリティ
 
 import type { DomainConfig } from "../config";
+import type { DomainFieldInfo } from "../types";
 
-/** ドメインフィールド情報 */
-export type DomainFieldInfo = {
-  name: string;
-  label: string;
-  fieldType: string;
-  formInput?: string;
-};
+export type { DomainFieldInfo };
 
 /**
  * ドメイン設定からフィールド情報を抽出

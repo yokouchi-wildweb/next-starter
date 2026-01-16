@@ -3,16 +3,9 @@
 
 import { getDomainConfig } from "../config";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
+import type { HasManyRelationInfo } from "../types";
 
-/** hasMany リレーション情報 */
-export type HasManyRelationInfo = {
-  /** 子ドメイン名（snake_case） */
-  domain: string;
-  /** ラベル */
-  label: string;
-  /** 子ドメイン側の外部キーフィールド名 */
-  fieldName: string;
-};
+export type { HasManyRelationInfo };
 
 /**
  * ドメインの hasMany リレーション情報を取得

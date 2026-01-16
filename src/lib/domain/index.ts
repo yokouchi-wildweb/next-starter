@@ -5,6 +5,9 @@
 // Client/Server 共用（server-only なし）
 // ============================================
 
+// types: 型定義
+export * from "./types";
+
 // config: ドメイン設定
 export * from "./config";
 
@@ -16,7 +19,6 @@ export * from "./fields";
 
 // junction: 中間テーブルユーティリティ（utils のみ、getTable は server-only）
 export {
-  type JunctionTableInfo,
   resolveJunctionTableName,
   resolveJunctionFieldName,
   getJunctionTableInfo,

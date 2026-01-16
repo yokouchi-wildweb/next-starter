@@ -2,22 +2,9 @@
 // 中間テーブル（junction table）に関するユーティリティ
 
 import { toCamelCase, toSnakeCase } from "@/utils/stringCase.mjs";
+import type { JunctionTableInfo } from "../types";
 
-/** belongsToMany の中間テーブル情報 */
-export type JunctionTableInfo = {
-  /** 中間テーブル名（snake_case: sample_to_sample_tag） */
-  tableName: string;
-  /** Drizzle テーブル定数名（PascalCase: SampleToSampleTagTable） */
-  tableConstName: string;
-  /** ソースドメイン名（snake_case） */
-  sourceDomain: string;
-  /** ターゲットドメイン名（snake_case） */
-  targetDomain: string;
-  /** ソースフィールド名（camelCase: sampleId） */
-  sourceField: string;
-  /** ターゲットフィールド名（camelCase: sampleTagId） */
-  targetField: string;
-};
+export type { JunctionTableInfo };
 
 /**
  * 中間テーブル名を解決

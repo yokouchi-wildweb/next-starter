@@ -5,6 +5,7 @@
 import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
+import type { DomainInfoWithCount } from "../../types";
 
 // エンドポイント
 const ENDPOINTS = {
@@ -12,17 +13,8 @@ const ENDPOINTS = {
   truncate: "/api/admin/domains/truncate",
 } as const;
 
-// 型定義
-export type DomainInfo = {
-  key: string;
-  label: string;
-  tableName: string;
-  isCore: boolean;
-  recordCount: number;
-};
-
 export type FetchDomainsResponse = {
-  domains: DomainInfo[];
+  domains: DomainInfoWithCount[];
 };
 
 export type TruncatePayload = {
@@ -45,7 +37,7 @@ export type TruncateResponse = {
 /**
  * ドメイン一覧を取得する
  */
-export async function fetchDomains(): Promise<DomainInfo[]> {
+export async function fetchDomains(): Promise<DomainInfoWithCount[]> {
   try {
     const response = await axios.get<FetchDomainsResponse>(ENDPOINTS.domains);
     return response.data.domains;

@@ -1,30 +1,14 @@
-// src/lib/domain/relations/getRelations.ts
-// ドメインのリレーション情報を取得するユーティリティ
+// src/lib/domain/relations/utils.ts
+// リレーション汎用ユーティリティ
 
 import { getDomainConfig } from "../config";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
+import type { RelationType, RelationInfo } from "../types";
 
-/** リレーションタイプ */
-export type RelationType = "belongsTo" | "belongsToMany";
-
-/** リレーション情報 */
-export type RelationInfo = {
-  /** 関連先ドメイン名（snake_case） */
-  domain: string;
-  /** ラベル */
-  label: string;
-  /** フィールド名（belongsTo: 外部キー, belongsToMany: 配列フィールド） */
-  fieldName: string;
-  /** フィールドタイプ */
-  fieldType: string;
-  /** リレーションタイプ */
-  relationType: RelationType;
-  /** 必須フラグ */
-  required: boolean;
-};
+export type { RelationType, RelationInfo };
 
 /**
- * ドメインのリレーション情報を取得
+ * ドメインのリレーション情報を取得（belongsTo, belongsToMany）
  *
  * @example
  * getRelations("sample")
@@ -71,18 +55,4 @@ export function hasRelationType(domain: string, type: RelationType): boolean {
  */
 export function hasRelations(domain: string): boolean {
   return getRelations(domain).length > 0;
-}
-
-/**
- * belongsTo リレーションのみを取得
- */
-export function getBelongsToRelations(domain: string): RelationInfo[] {
-  return getRelations(domain).filter((r) => r.relationType === "belongsTo");
-}
-
-/**
- * belongsToMany リレーションのみを取得
- */
-export function getBelongsToManyRelations(domain: string): RelationInfo[] {
-  return getRelations(domain).filter((r) => r.relationType === "belongsToMany");
 }
