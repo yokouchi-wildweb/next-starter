@@ -1,4 +1,4 @@
-// src/lib/domain/client/domainClient.ts
+// src/lib/domain/service/client/domainClient.ts
 
 "use client";
 

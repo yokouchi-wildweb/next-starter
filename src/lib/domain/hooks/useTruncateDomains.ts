@@ -8,7 +8,7 @@ import {
   domainClient,
   type TruncatePayload,
   type TruncateResponse,
-} from "../client/domainClient";
+} from "../service/client/domainClient";
 
 /**
  * ドメイン削除を実行するフック

@@ -1,6 +1,6 @@
 // src/features/sampleTag/services/server/drizzleBase.ts
 
-import { getDomainConfig, type DomainConfig } from "@/lib/domain/getDomainConfig";
+import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 import { SampleTagCreateSchema, SampleTagUpdateSchema } from "@/features/sampleTag/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";

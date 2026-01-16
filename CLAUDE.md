@@ -95,6 +95,9 @@ ref: src/stores/README.md
 | core | src/features/core/ | no | manual | auth, user, wallet, setting, mail |
 | business | src/features/ | yes | dc:generate | sample, sampleCategory, sampleTag |
 
+### domain utilities (src/lib/domain/)
+config/, relations/, fields/, junction/, service/client|server/, hooks/
+
 ### code generation
 
 commands: dc:init, dc:generate -- \<Domain\>, dc:generate:all, dc:delete -- \<Domain\>

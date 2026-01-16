@@ -1,4 +1,4 @@
-// src/lib/domain/getJunctionTable.ts
+// src/lib/domain/junction/getTable.ts
 // 中間テーブルの Drizzle テーブルを取得するユーティリティ（server-only）
 
 import "server-only";

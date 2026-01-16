@@ -1,7 +1,7 @@
-// src/lib/domain/getRelations.ts
+// src/lib/domain/relations/getRelations.ts
 // ドメインのリレーション情報を取得するユーティリティ
 
-import { getDomainConfig, type DomainConfig } from "./getDomainConfig";
+import { getDomainConfig } from "../config";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
 
 /** リレーションタイプ */

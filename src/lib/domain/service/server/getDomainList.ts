@@ -1,4 +1,4 @@
-// src/lib/domain/getDomainList.ts
+// src/lib/domain/service/server/getDomainList.ts
 
 import "server-only";
 import { serviceRegistry } from "@/registry/serviceRegistry";

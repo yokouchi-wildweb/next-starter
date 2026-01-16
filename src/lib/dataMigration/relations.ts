@@ -1,85 +1,35 @@
 // src/lib/dataMigration/relations.ts
 // データマイグレーション用のリレーション情報収集ユーティリティ
-// 基本機能は @/lib/domain から再エクスポート
 
-import { getDomainConfig, type DomainConfig } from "@/lib/domain/getDomainConfig";
 import {
-  getRelations as getRelationsBase,
+  getDomainConfig,
+  type DomainConfig,
+  getRelations,
+  getHasManyRelations,
   type RelationType,
   type RelationInfo,
-} from "@/lib/domain/getRelations";
-import {
-  getJunctionTableInfo as getJunctionTableInfoBase,
+  type HasManyRelationInfo,
+  getJunctionTableInfo,
+  type JunctionTableInfo,
   resolveJunctionTableName,
   resolveJunctionFieldName,
-  type JunctionTableInfo,
-} from "@/lib/domain/junctionUtils";
+  extractFields,
+  extractImageFields,
+  type DomainFieldInfo,
+} from "@/lib/domain";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
 
-// ドメインライブラリから再エクスポート
+// ドメインライブラリから再エクスポート（後方互換性のため）
 export {
+  getRelations,
+  getHasManyRelations,
   resolveJunctionTableName,
   resolveJunctionFieldName,
   type RelationType,
   type RelationInfo,
+  type HasManyRelationInfo,
   type JunctionTableInfo,
-};
-
-// getRelations をラップして互換性を維持
-export const getRelations = getRelationsBase;
-
-/** hasMany リレーション情報 */
-export type HasManyRelationInfo = {
-  /** 子ドメイン名（snake_case） */
-  domain: string;
-  /** ラベル */
-  label: string;
-  /** 子ドメイン側の外部キーフィールド名 */
-  fieldName: string;
-};
-
-/**
- * ドメインの hasMany リレーション情報を取得
- * domain.json の relations で relationType: "hasMany" と定義されたものを取得
- */
-export function getHasManyRelations(domain: string): HasManyRelationInfo[] {
-  const config = getDomainConfig(domain);
-  const relations: HasManyRelationInfo[] = [];
-
-  for (const relation of config.relations || []) {
-    if (relation.relationType === "hasMany") {
-      relations.push({
-        domain: toSnakeCase(relation.domain),
-        label: relation.label,
-        fieldName: relation.fieldName,
-      });
-    }
-  }
-
-  return relations;
-}
-
-// getJunctionTableInfo をラップして互換性を維持（tableConstName を除外）
-export function getJunctionTableInfo(
-  sourceDomain: string,
-  targetDomain: string
-): Omit<JunctionTableInfo, "tableConstName"> {
-  const info = getJunctionTableInfoBase(sourceDomain, targetDomain);
-  return {
-    tableName: info.tableName,
-    sourceDomain: info.sourceDomain,
-    targetDomain: info.targetDomain,
-    sourceField: info.sourceField,
-    targetField: info.targetField,
-  };
-}
-
-/** ドメインフィールド情報 */
-export type DomainFieldInfo = {
-  name: string;
-  label: string;
-  fieldType: string;
-  formInput?: string;
+  type DomainFieldInfo,
 };
 
 /** エクスポート対象ドメイン情報 */
@@ -91,7 +41,7 @@ export type ExportDomainInfo = {
   /** ドメインタイプ: main/related/junction/hasMany */
   type: "main" | "related" | "junction" | "hasMany";
   /** リレーションタイプ（related/hasMany の場合） */
-  relationType?: RelationType;
+  relationType?: RelationType | "hasMany";
   /** リレーションフィールド名（related の場合: sample_category_id, sample_tag_ids、hasMany の場合: 子側の外部キー） */
   relationField?: string;
   /** ソースフィールド名（junction の場合） */
@@ -103,60 +53,6 @@ export type ExportDomainInfo = {
   /** 画像フィールド名リスト */
   imageFields: string[];
 };
-
-/**
- * ドメイン設定からフィールド情報を抽出
- */
-function extractFields(config: DomainConfig): DomainFieldInfo[] {
-  const fields: DomainFieldInfo[] = [];
-
-  // システムフィールド: id
-  fields.push({ name: "id", label: "ID", fieldType: "uuid" });
-
-  // ドメインフィールド
-  for (const field of config.fields) {
-    fields.push({
-      name: field.name,
-      label: field.label,
-      fieldType: field.fieldType,
-      formInput: field.formInput,
-    });
-  }
-
-  // リレーションフィールド（belongsTo の外部キー）
-  for (const relation of config.relations || []) {
-    if (relation.relationType === "belongsTo" && "fieldType" in relation) {
-      fields.push({
-        name: relation.fieldName,
-        label: relation.label,
-        fieldType: relation.fieldType,
-      });
-    }
-  }
-
-  // システムフィールド: createdAt, updatedAt, deletedAt
-  if (config.useCreatedAt) {
-    fields.push({ name: "createdAt", label: "作成日時", fieldType: "timestamp" });
-  }
-  if (config.useUpdatedAt) {
-    fields.push({ name: "updatedAt", label: "更新日時", fieldType: "timestamp" });
-  }
-  // useSoftDelete はオプショナルなので in 演算子でチェック
-  if ("useSoftDelete" in config && config.useSoftDelete) {
-    fields.push({ name: "deletedAt", label: "削除日時", fieldType: "timestamp" });
-  }
-
-  return fields;
-}
-
-/**
- * ドメイン設定から画像フィールド名を抽出
- */
-function extractImageFields(config: DomainConfig): string[] {
-  return config.fields
-    .filter((field) => field.formInput === "mediaUploader")
-    .map((field) => field.name);
-}
 
 /**
  * エクスポート対象ドメイン情報を収集
@@ -220,7 +116,7 @@ export function collectExportDomains(
         domain: hasManyRelation.domain,
         label: childConfig.label,
         type: "hasMany",
-        relationType: "hasMany" as any, // 型を拡張
+        relationType: "hasMany",
         relationField: hasManyRelation.fieldName,
         fields: extractFields(childConfig),
         imageFields: extractImageFields(childConfig),

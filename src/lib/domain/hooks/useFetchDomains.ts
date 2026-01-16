@@ -4,7 +4,7 @@
 
 import useSWR from "swr";
 
-import { domainClient, type DomainInfo } from "../client/domainClient";
+import { domainClient, type DomainInfo } from "../service/client/domainClient";
 
 const DOMAINS_KEY = "admin/domains";
 
