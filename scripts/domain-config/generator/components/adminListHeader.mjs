@@ -6,13 +6,9 @@ import { templateDir, replaceTokens } from "./utils/template.mjs";
 
 export default function generate({ config, ...tokens }) {
   const { camel } = tokens;
-  // useImportExport が true の場合はフル版、それ以外はシンプル版を使用
-  const useImportExport = config?.useImportExport === true;
-  const templateFile = useImportExport ? "Header.tsx" : "HeaderSimple.tsx";
-  const rel = path.join("Admin__Domain__List", templateFile);
+  const rel = path.join("Admin__Domain__List", "Header.tsx");
   const templatePath = path.join(templateDir, rel);
-  // 出力ファイル名は常に Header.tsx
-  const outputRel = path.join("Admin__Domain__List", "Header.tsx");
+  const outputRel = rel;
   const outputFile = path.join(process.cwd(), "src", "features", camel, "components", replaceTokens(outputRel, tokens));
   const outputDir = path.dirname(outputFile);
 
