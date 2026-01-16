@@ -25,7 +25,7 @@ const registrationComponentMap: Record<RegistrationMethod, ComponentType> = {
 export function Registration({ method = "email" }: RegistrationFormProps) {
 
   const Component = registrationComponentMap[method] ?? UnknownRegistrationForm;
-  const showSteps = APP_FEATURES.user.showRegistrationSteps;
+  const showSteps = APP_FEATURES.auth.signup.showRegistrationSteps;
 
   // メール認証: 3番目のステップ（基本情報設定）
   // OAuth: 2番目のステップ（プロフィール入力）

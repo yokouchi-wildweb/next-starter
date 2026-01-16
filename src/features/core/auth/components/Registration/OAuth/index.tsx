@@ -112,7 +112,7 @@ export function OAuthRegistrationForm() {
       className="space-y-4"
       noValidate
     >
-        {APP_FEATURES.registration.showRoleSelection && (
+        {APP_FEATURES.auth.signup.showRoleSelection && (
           <RoleSelector
             control={form.control}
             name="role"

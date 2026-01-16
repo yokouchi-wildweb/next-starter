@@ -28,24 +28,26 @@ export const APP_FEATURES = {
       /** デモユーザー用セッションの有効期限（秒）: 10分 */
       demoMaxAgeSeconds: 60 * 10,
     },
+    signup: {
+      /** 本登録ページに進捗インディケーターを表示する */
+      showRegistrationSteps: true,
+      /** パスワード入力モード: "single"=確認なし, "double"=確認あり */
+      passwordInputMode: "single" as "single" | "double",
+      /**
+       * 本登録画面でロール選択を表示するか
+       * 選択可能なロールを変更する場合:
+       * @see src/features/core/auth/components/Registration/registrationProfiles.ts
+       */
+      showRoleSelection: false,
+      /** ロール選択非表示時のデフォルトロール */
+      defaultRole: "user",
+      /** メール認証完了後の動作: "manual"=ボタン表示, "auto"=自動遷移 */
+      emailVerificationRedirect: "auto" as "manual" | "auto",
+    },
   },
   user: {
-    /** 本登録ページに進捗インディケーターを表示する */
-    showRegistrationSteps: true,
-    /** パスワード入力モード: "single"=確認なし, "double"=確認あり */
-    passwordInputMode: "single" as "single" | "double",
     /** 休会機能を有効にする */
     pauseEnabled: false,
-  },
-  registration: {
-    /**
-     * 本登録画面でロール選択を表示するか
-     * 選択可能なロールを変更する場合:
-     * @see src/features/core/auth/components/Registration/registrationProfiles.ts
-     */
-    showRoleSelection: false,
-    /** ロール選択非表示時のデフォルトロール */
-    defaultRole: "user",
   },
   adminConsole: {
     enableDarkModeSwitch: false,

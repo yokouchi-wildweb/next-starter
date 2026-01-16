@@ -74,7 +74,7 @@ const FormSchemaSingle = z
     validateProfileData(value, ctx);
   });
 
-export const isDoubleMode = APP_FEATURES.user.passwordInputMode === "double";
+export const isDoubleMode = APP_FEATURES.auth.signup.passwordInputMode === "double";
 
 export const FormSchema = isDoubleMode ? FormSchemaDouble : FormSchemaSingle;
 

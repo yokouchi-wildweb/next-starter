@@ -8,4 +8,4 @@ import { REGISTRATION_PROFILES } from "../components/Registration/registrationPr
 export const REGISTRATION_ROLES = Object.keys(REGISTRATION_PROFILES);
 
 /** 本登録画面のデフォルトロール */
-export const REGISTRATION_DEFAULT_ROLE = APP_FEATURES.registration.defaultRole;
+export const REGISTRATION_DEFAULT_ROLE = APP_FEATURES.auth.signup.defaultRole;
