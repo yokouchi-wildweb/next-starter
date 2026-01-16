@@ -4,6 +4,8 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Mail, LockKeyhole } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
@@ -90,6 +92,8 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              leftIcon={<Mail className="size-4" />}
+              placeholder="例）maile@example.com"
             />
           </Block>
           <Block space="xs">
@@ -102,7 +106,14 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              leftIcon={<LockKeyhole className="size-4" />}
+              placeholder="ご登録のパスワード"
             />
+            <div className="text-right">
+              <Link href="/" className="text-sm text-primary hover:underline">
+                パスワードをお忘れですか？ ▶
+              </Link>
+            </div>
           </Block>
           {errorMessage && (
             <Para tone="error" size="sm">
@@ -110,11 +121,18 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
             </Para>
           )}
           <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? "ログイン処理中..." : "ログイン"}
+            {isLoading ? "ログイン処理中..." : "メールアドレスでログイン"}
           </Button>
         </form>
         <ThirdPartySignupOptions />
 
+        <div className="mt-8">
+          <Button variant="outline" asChild className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+            <Link href="/signup">
+              新規での会員登録はこちら <span className="ml-1 text-xs">▶</span>
+            </Link>
+          </Button>
+        </div>
       </Block>
     </section>
   );

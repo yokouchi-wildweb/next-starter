@@ -8,6 +8,7 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail } from "lucide-react";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
@@ -86,6 +87,7 @@ export function VerificationEmailSendForm({
                 required
                 autoComplete="email"
                 placeholder="example@example.com"
+                leftIcon={<Mail className="size-4" />}
               />
             )}
           />
