@@ -15,6 +15,11 @@ import generateEditForm from "./generator/components/editForm.mjs";
 import generateDomainForm from "./generator/components/domainForm.mjs";
 import generateDomainFields from "./generator/components/domainFields.mjs";
 import generateDetailModal from "./generator/components/detailModal.mjs";
+import generateAdminCreate from "./generator/components/adminCreate.mjs";
+import generateAdminEdit from "./generator/components/adminEdit.mjs";
+import generateAdminListIndex from "./generator/components/adminListIndex.mjs";
+import generateAdminListHeader from "./generator/components/adminListHeader.mjs";
+import generateAdminListTable from "./generator/components/adminListTable.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,6 +34,11 @@ const COMPONENT_CHOICES = [
   { name: "XxxForm.tsx（共通フォーム）", value: "domainForm" },
   { name: "XxxFields.tsx（フィールド定義）", value: "domainFields" },
   { name: "XxxDetailModal.tsx（詳細モーダル）", value: "detailModal" },
+  { name: "AdminXxxCreate/index.tsx（管理画面：作成ページ）", value: "adminCreate" },
+  { name: "AdminXxxEdit/index.tsx（管理画面：編集ページ）", value: "adminEdit" },
+  { name: "AdminXxxList/index.tsx（管理画面：一覧ページ）", value: "adminListIndex" },
+  { name: "AdminXxxList/Header.tsx（管理画面：一覧ヘッダー）", value: "adminListHeader" },
+  { name: "AdminXxxList/Table.tsx（管理画面：一覧テーブル）", value: "adminListTable" },
 ];
 
 // domain.json を持つディレクトリを検索
@@ -79,6 +89,11 @@ function generateComponents(domain, selectedComponents) {
     domainForm: () => generateDomainForm({ ...tokens, config }),
     domainFields: () => generateDomainFields({ ...tokens, config }),
     detailModal: () => generateDetailModal({ ...tokens, config }),
+    adminCreate: () => generateAdminCreate(tokens),
+    adminEdit: () => generateAdminEdit(tokens),
+    adminListIndex: () => generateAdminListIndex(tokens),
+    adminListHeader: () => generateAdminListHeader({ ...tokens, config }),
+    adminListTable: () => generateAdminListTable({ ...tokens, config }),
   };
 
   selectedComponents.forEach((componentKey) => {
