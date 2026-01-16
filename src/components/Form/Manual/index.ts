@@ -2,6 +2,7 @@ export { CheckGroupInput } from "./CheckGroupInput";
 export { RadioGroupInput } from "./RadioGroupInput";
 export { BooleanRadioGroupInput } from "./BooleanRadioGroupInput";
 export { BooleanCheckboxInput } from "./BooleanCheckboxInput";
+export { SingleCardCheckbox } from "./SingleCardCheckbox";
 export { SwitchInput } from "./SwitchInput";
 export { SelectInput } from "./Select";
 export { MultiSelectInput } from "./MultiSelectInput";

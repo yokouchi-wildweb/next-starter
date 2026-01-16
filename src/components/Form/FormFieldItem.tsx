@@ -29,9 +29,16 @@ export type FormFieldItemProps<
 > = {
   control: Control<TFieldValues, any, TFieldValues>;
   name: TName;
-  label: ReactNode;
+  /** ラベル（省略可能） */
+  label?: ReactNode;
   renderInput: (field: ControllerRenderProps<TFieldValues, TName>) => ReactNode;
   description?: FormFieldItemDescription;
+  /** FormItem全体に適用するクラス名 */
+  className?: string;
+  /** ラベルを視覚的に非表示にする（スクリーンリーダー用に残す） */
+  hideLabel?: boolean;
+  /** エラーメッセージを非表示にする */
+  hideError?: boolean;
 };
 
 export function FormFieldItem<
@@ -43,6 +50,9 @@ export function FormFieldItem<
   label,
   renderInput,
   description,
+  className,
+  hideLabel = false,
+  hideError = false,
 }: FormFieldItemProps<TFieldValues, TName>) {
 
   const descPlacement = description?.placement ?? "after";
@@ -52,8 +62,12 @@ export function FormFieldItem<
       control={control}
       name={name}
       render={({ field }) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
+        <FormItem className={className}>
+          {label && (
+            <FormLabel className={hideLabel ? "sr-only" : undefined}>
+              {label}
+            </FormLabel>
+          )}
 
           { descPlacement === 'before' && description &&
               <Para tone={description.tone} size={description.size} className='mb-0'>
@@ -69,8 +83,7 @@ export function FormFieldItem<
               </Para>
           }
 
-
-          <FormMessage />
+          {!hideError && <FormMessage />}
         </FormItem>
       )}
     />

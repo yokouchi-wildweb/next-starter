@@ -29,6 +29,10 @@ const passwordSchema = z
   .string({ required_error: "パスワードは8文字以上で入力してください" })
   .pipe(RegistrationSchema.shape.password.unwrap());
 
+const agreeToTermsSchema = z.literal(true, {
+  errorMap: () => ({ message: "利用規約への同意が必要です" }),
+});
+
 /** 共通フィールド */
 const baseFields = {
   email: emailSchema,
@@ -36,6 +40,7 @@ const baseFields = {
   password: passwordSchema,
   role: z.string(),
   profileData: z.record(z.unknown()).optional(),
+  agreeToTerms: agreeToTermsSchema,
 };
 
 /** パスワード確認ありスキーマ（double mode） */
@@ -80,6 +85,7 @@ export type FormValues = {
   passwordConfirmation?: string;
   role: string;
   profileData?: Record<string, unknown>;
+  agreeToTerms: boolean;
 };
 
 export const DefaultValues: FormValues = {
@@ -88,5 +94,6 @@ export const DefaultValues: FormValues = {
   password: "",
   role: REGISTRATION_DEFAULT_ROLE,
   profileData: {},
+  agreeToTerms: false,
   ...(isDoubleMode ? { passwordConfirmation: "" } : {}),
 };

@@ -7,11 +7,13 @@ import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import Link from "next/link";
+
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { PasswordInput, TextInput } from "@/components/Form/Controlled";
-import { Input } from "@/components/Form/Manual";
+import { Input, SingleCardCheckbox } from "@/components/Form/Manual";
 import { Para } from "@/components/TextBlocks";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
@@ -53,7 +55,7 @@ export function EmailRegistrationForm() {
   }, [email, form]);
 
   const handleSubmit = useCallback(
-    async ({ email: emailValue, displayName, password, role, profileData }: FormValues) => {
+    async ({ email: emailValue, displayName, password, role, profileData, agreeToTerms: _ }: FormValues) => {
       try {
         const currentUser = auth.currentUser;
 
@@ -171,6 +173,24 @@ export function EmailRegistrationForm() {
           profiles={REGISTRATION_PROFILES}
           tag="registration"
           wrapperClassName="space-y-4"
+        />
+
+        <FormFieldItem
+          control={form.control}
+          name="agreeToTerms"
+          renderInput={(field) => (
+            <SingleCardCheckbox
+              field={field}
+              label={
+                <>
+                  <Link href="/terms" className="text-primary hover:underline" target="_blank">利用規約</Link>
+                  と
+                  <Link href="/privacy-policy" className="text-primary hover:underline" target="_blank">プライバシーポリシー</Link>
+                  に同意する
+                </>
+              }
+            />
+          )}
         />
 
         {rootErrorMessage ? (

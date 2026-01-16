@@ -20,12 +20,17 @@ const displayNameSchema = z
   .trim()
   .min(1, { message: "表示名を入力してください" });
 
+const agreeToTermsSchema = z.literal(true, {
+  errorMap: () => ({ message: "利用規約への同意が必要です" }),
+});
+
 export const FormSchema = z
   .object({
     email: emailSchema,
     displayName: displayNameSchema,
     role: z.string(),
     profileData: z.record(z.unknown()).optional(),
+    agreeToTerms: agreeToTermsSchema,
   })
   .superRefine((value, ctx) => {
     // profileData バリデーション
@@ -37,6 +42,7 @@ export type FormValues = {
   displayName: string;
   role: string;
   profileData?: Record<string, unknown>;
+  agreeToTerms: boolean;
 };
 
 export const DefaultValues: FormValues = {
@@ -44,4 +50,5 @@ export const DefaultValues: FormValues = {
   displayName: "",
   role: REGISTRATION_DEFAULT_ROLE,
   profileData: {},
+  agreeToTerms: false,
 };
