@@ -5,6 +5,7 @@
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import Pagination from "../../../../components/Navigation/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
+import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/sampleTag/domain.json";
 
@@ -17,9 +18,13 @@ export type AdminSampleTagListHeaderProps = {
 export default function AdminSampleTagListHeader({ page, perPage, total }: AdminSampleTagListHeaderProps) {
   const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
+
   return (
     <ListTop title="登録済みサンプルタグの一覧" newHref="/admin/sample-tags/new">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/sample-tags?${p.toString()}`} />}
+      {config.useImportExport && (
+        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
+      )}
       <Pagination
         page={page}
         perPage={perPage}
