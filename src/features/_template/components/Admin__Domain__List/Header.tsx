@@ -22,7 +22,7 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
   return (
     <ListTop title="登録済み__DomainLabel__の一覧" newHref="/admin/__domainsSlug__/new">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/__domainsSlug__?${p.toString()}`} />}
-      {config.useImportExport && (
+      {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
       )}
       <Pagination
