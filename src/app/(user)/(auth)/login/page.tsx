@@ -12,7 +12,7 @@ export default async function UserLoginPage() {
 
   return (
     <UserPage containerType="narrowStack">
-      <Flex direction="column" justify="center" align="center" space="md">
+      <Flex direction="column" justify="center" align="center" gap="md">
         <UserPageTitle>ログイン</UserPageTitle>
         <UserLogin />
       </Flex>

@@ -29,7 +29,7 @@ export default async function ReactivatePage() {
 
   return (
     <UserPage containerType="narrowStack">
-      <Flex direction="column" justify="center" align="center" space="md">
+      <Flex direction="column" justify="center" align="center" gap="md">
         <UserPageTitle>アカウントの復帰</UserPageTitle>
         <Reactivate />
       </Flex>

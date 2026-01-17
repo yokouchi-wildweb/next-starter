@@ -27,7 +27,7 @@ export default function LogoutPage() {
 
   return (
     <UserPage containerType="narrowStack">
-      <Flex direction="column" justify="center" align="center" space="md">
+      <Flex direction="column" justify="center" align="center" gap="md">
         {error ? (
           <>
             <p>ログアウトに失敗しました</p>

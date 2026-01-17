@@ -130,7 +130,6 @@ export default function Home() {
 
           <Section className="relative text-center">
             <Flex
-              space="none"
               direction="column"
               align="center"
               gap="lg"
@@ -156,7 +155,6 @@ export default function Home() {
 
           <Section as="nav">
             <Flex
-              space="none"
               wrap="wrap"
               gap="lg"
               justify="center"
