@@ -10,6 +10,39 @@ auth: firebase-auth + jwt
 storage: firebase-storage
 http_client: axios (client-side only, never fetch)
 
+## DESIGN_PHILOSOPHY
+
+### 3-tier structure
+| tier | description | location |
+|------|-------------|----------|
+| domain | independent business concept | features/ |
+| library | multi-file generic functionality | lib/\<name\>/ |
+| unit | single-file standalone | UI: components/, logic: hooks/ |
+
+### placement decision flow
+```
+1. business domain? -> features/ (core or business)
+2. multi-file generic? -> lib/<name>/
+3. single-file unit -> UI: components/, logic: hooks/, pure fn: utils/
+```
+
+### ownership principle
+- everything belongs to domain, lib, or unit location
+- no global src/types/, src/constants/ (use domain/lib instead)
+- src/utils/ allowed (pure functions only)
+- page-specific components -> app/<route>/_components/
+
+### cross-domain dependencies
+- UI: use hooks provided by target domain (never create own)
+- server: free to reference services (no circular deps)
+
+### new feature request
+use `/feature-builder` agent for proper placement and design
+
+ref: docs/!must-read/設計思想とアーキテクチャ.md
+
+---
+
 ## ARCHITECTURE (8-layer, strict)
 ```
 1. Page (app/**/page.tsx) -> SSR/SSG
