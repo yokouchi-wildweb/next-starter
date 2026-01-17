@@ -152,7 +152,7 @@ export const MediaInput = ({
           {containerOverlay}
         </div>
       ) : null}
-      <div className={cn("space-y-2", hasContainerOverlay && "pointer-events-none opacity-70")} aria-busy={hasContainerOverlay}>
+      <div className={cn("flex flex-col gap-2", hasContainerOverlay && "pointer-events-none opacity-70")} aria-busy={hasContainerOverlay}>
         <div
           role="button"
           tabIndex={0}

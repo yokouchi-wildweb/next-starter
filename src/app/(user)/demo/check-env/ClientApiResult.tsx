@@ -30,7 +30,7 @@ export const ClientApiResultSection = () => {
   }, []);
 
   return (
-    <section className="space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm">
+    <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6 shadow-sm">
       <Block space="sm">
         <h2 className="text-2xl font-semibold">API での再取得</h2>
         <p className="text-sm text-muted-foreground">
@@ -139,7 +139,7 @@ const ErrorList = ({ errors, emptyMessage }: { errors: EnvApiError[]; emptyMessa
   <Block space="sm">
     <h3 className="text-xl font-semibold">API から返却されたエラー</h3>
     {errors.length > 0 ? (
-      <ul className="list-disc space-y-1 pl-5 text-sm text-destructive">
+      <ul className="list-disc flex flex-col gap-1 pl-5 text-sm text-destructive">
         {errors.map((error, index) => (
           <li key={`${error.section}-${index}`}>
             <span className="font-semibold">[{error.section}]</span> {error.message}

@@ -43,7 +43,7 @@ export function Registration({ method = "email" }: RegistrationFormProps) {
   }
 
   return (
-    <div className="space-y-8 pb-8">
+    <div className="flex flex-col gap-8 pb-8">
       {showSteps && <RegistrationSteps method={method} currentStep={currentStep} />}
       <Component />
     </div>

@@ -14,11 +14,11 @@ import { FormProvider } from "react-hook-form";
 import { cn } from "@/lib/cn";
 
 const fieldSpaceClassMap = {
-  xs: "space-y-2",
-  sm: "space-y-4",
-  md: "space-y-6",
-  lg: "space-y-8",
-  xl: "space-y-10",
+  xs: "flex flex-col gap-2",
+  sm: "flex flex-col gap-4",
+  md: "flex flex-col gap-6",
+  lg: "flex flex-col gap-8",
+  xl: "flex flex-col gap-10",
 } as const;
 
 export type AppFormFieldSpace = keyof typeof fieldSpaceClassMap;

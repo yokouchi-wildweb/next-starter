@@ -137,7 +137,7 @@ export function TruncateDomainForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* 選択ヘッダー */}
       <Flex justify="between" align="center">
         <Flex gap="sm">
@@ -247,11 +247,11 @@ export function TruncateDomainForm() {
         confirmVariant="destructive"
         layer="alert"
       >
-        <div className="space-y-4 py-2">
+        <div className="flex flex-col gap-4 py-2">
           <p className="text-sm text-muted-foreground">
             以下のドメインの全データが物理削除されます：
           </p>
-          <ul className="list-disc list-inside text-sm space-y-1 max-h-40 overflow-y-auto">
+          <ul className="list-disc list-inside text-sm flex flex-col gap-1 max-h-40 overflow-y-auto">
             {selectedDomains.map((key) => {
               const domain = domains.find((d) => d.key === key);
               return (
@@ -273,7 +273,7 @@ export function TruncateDomainForm() {
               </p>
             </div>
           </div>
-          <div className="pt-2 space-y-2">
+          <div className="pt-2 flex flex-col gap-2">
             <div className="flex items-center gap-2 text-sm">
               <LockIcon className="size-4 text-muted-foreground" />
               <span>

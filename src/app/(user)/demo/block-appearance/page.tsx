@@ -24,7 +24,7 @@ export default function BlockParaDemoPage() {
         Block コンポーネントの appearance と Para コンポーネントの tone を一覧で比較できます。
       </Para>
 
-      <Section space="lg" className="space-y-6">
+      <Section space="lg" className="flex flex-col gap-6">
         <SecTitle>Block appearance 一覧</SecTitle>
         <Para tone="muted" size="sm">
           各 appearance の見た目と付与されるユーティリティクラスを確認できます。
@@ -57,7 +57,7 @@ export default function BlockParaDemoPage() {
         </Grid>
       </Section>
 
-      <Section space="lg" className="space-y-6">
+      <Section space="lg" className="flex flex-col gap-6">
         <SecTitle>Para tone 一覧</SecTitle>
         <Para tone="muted" size="sm">
           tone ごとの文字色とスタイルを見比べられるように、それぞれの tone 名と適用されるクラスを表示しています。

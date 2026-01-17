@@ -7,7 +7,7 @@ export type UserPageTitleProps = PageTitleProps;
 
 export function UserPageTitle({ children, srOnly, ...props }: UserPageTitleProps) {
   // srOnly時はSectionをレンダリングせず、h1のみを返す
-  // これにより、親のspace-y-*による余白が発生しなくなる
+  // これにより、親のgap-*による余白が発生しなくなる
   if (srOnly) {
     return (
       <BasePageTitle srOnly {...props}>{children}</BasePageTitle>

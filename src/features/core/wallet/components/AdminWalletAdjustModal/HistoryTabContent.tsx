@@ -205,7 +205,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
       rows={detailRows}
       footer={
         detailHistory ? (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <Para size="sm" weight="medium">
               関連するバッチ処理
             </Para>

@@ -80,7 +80,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
     <section id="user-login" className="w-full">
       <Block space="lg">
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Block space="xs">
             <Label htmlFor="user-login-email" className="block text-foreground">
               メールアドレス

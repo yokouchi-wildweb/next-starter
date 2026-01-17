@@ -56,7 +56,7 @@ export function OAuth({ provider }: OAuthProps) {
   }, [phase, requiresReactivation, router, guardedPush]);
 
   return (
-    <Section id="signup-oauth" className="relative space-y-4">
+    <Section id="signup-oauth" className="relative flex flex-col gap-4">
       <SecTitle>ユーザー認証</SecTitle>
 
       {phase === "initial" && <LoadingState message="認証を準備しています" />}

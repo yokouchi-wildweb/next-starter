@@ -24,7 +24,7 @@ export function MultiSelectOptionList({
   emptyMessage,
 }: Props) {
   return (
-    <CommandList className="max-h-60 space-y-1 p-1">
+    <CommandList className="max-h-60 flex flex-col gap-1 p-1">
       <CommandEmpty>{emptyMessage ?? "該当する項目がありません"}</CommandEmpty>
       {options.map((option, index) => {
         const serialized = serializeOptionValue(option.value);

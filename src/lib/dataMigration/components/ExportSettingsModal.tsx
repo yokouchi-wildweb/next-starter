@@ -183,7 +183,7 @@ export function ExportSettingsModal({
             </Flex>
           </Flex>
 
-          <Block className="space-y-2 max-h-64 overflow-y-auto">
+          <Block className="flex flex-col gap-2 max-h-64 overflow-y-auto">
             {allFields.map((field) => (
               <label
                 key={field.name}

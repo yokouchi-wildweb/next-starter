@@ -248,7 +248,7 @@ export default function FormComponentsDemoPage() {
                     name="radio"
                     label="RadioGroupInput"
                     renderInput={(field) => (
-                        <RadioGroupInput field={field} options={textOptions} className="space-y-2" />
+                        <RadioGroupInput field={field} options={textOptions} className="flex flex-col gap-2" />
                     )}
                 />
 

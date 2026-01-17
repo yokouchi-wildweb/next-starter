@@ -75,7 +75,7 @@ export const MediaPreviewDemo = () => {
   const previewAvailable = Boolean(file || resolvedUrl);
 
   return (
-    <Block space="md" padding="xl" className="space-y-4">
+    <Block space="md" padding="xl" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={handleOpenFileDialog}>ファイルを選択</Button>
         <Button variant="ghost" size="sm" onClick={handleClear}>
@@ -92,7 +92,7 @@ export const MediaPreviewDemo = () => {
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Para tone="muted" size="sm">
           直接 URL を入力するとリモートファイルのプレビューを確認できます。
         </Para>
@@ -181,7 +181,7 @@ type MetadataItem = {
 
 const MetadataList = ({ items }: { items: MetadataItem[] }) => {
   return (
-    <dl className="mt-3 space-y-2 text-sm text-muted-foreground">
+    <dl className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
       {items.map((item) => (
         <div key={item.label} className="flex items-center justify-between gap-2">
           <dt>{item.label}</dt>

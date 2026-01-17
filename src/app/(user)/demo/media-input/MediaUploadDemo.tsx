@@ -11,7 +11,7 @@ export const MediaUploadDemo = () => {
   const [url, setUrl] = useState<string | null>(null);
 
   return (
-    <Block space="md" padding="xl" className="space-y-4">
+    <Block space="md" padding="xl" className="flex flex-col gap-4">
       <MediaUploader
         onMetadataChange={(info) => setMetadata(info)}
         onUrlChange={(url) => {
@@ -20,7 +20,7 @@ export const MediaUploadDemo = () => {
         uploadPath="uploads/demo"
         helperText="アップロード先: uploads/demo"
       />
-      <div className="space-y-2 text-sm">
+      <div className="flex flex-col gap-2 text-sm">
         <Span tone="muted">状態: {url ? "アップロード済み" : "未選択"}</Span>
         {url ? (
           <Para tone="muted" size="sm">

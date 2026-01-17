@@ -73,7 +73,7 @@ export function VerificationEmailSendForm({
         methods={form}
         onSubmit={handleSubmit}
         pending={isLoading}
-        className="space-y-4"
+        className="flex flex-col gap-4"
         noValidate
       >
           <FormFieldItem

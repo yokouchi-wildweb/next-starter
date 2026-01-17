@@ -50,7 +50,7 @@ export function AdminLogin() {
 
   return (
     <section id="admin-login" className="w-full">
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <Block space="xs">
           <Label htmlFor="admin-login-email" className="block text-foreground">
             メールアドレス

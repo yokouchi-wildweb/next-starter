@@ -28,7 +28,7 @@ export function EmailInputState({ onSubmit }: EmailInputStateProps) {
       onSubmit={({ email }) => {
         onSubmit?.(email);
       }}
-      className="space-y-4"
+      className="flex flex-col gap-4"
       noValidate
     >
       <FormFieldItem

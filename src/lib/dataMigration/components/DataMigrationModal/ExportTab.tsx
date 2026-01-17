@@ -132,7 +132,7 @@ export function ExportTab({
   return (
     <Block className="p-4">
       {/* エクスポートオプション */}
-      <Block className="mb-4 pb-4 border-b border-border space-y-3">
+      <Block className="mb-4 pb-4 border-b border-border flex flex-col gap-3">
         <label className="flex items-center gap-2 cursor-pointer">
           <Checkbox
             checked={includeImages}
@@ -151,7 +151,7 @@ export function ExportTab({
         )}
         {/* hasMany ドメイン選択（リレーションを含める場合のみ表示） */}
         {includeRelations && hasManyDomains.length > 0 && (
-          <Block className="ml-6 mt-2 space-y-2">
+          <Block className="ml-6 mt-2 flex flex-col gap-2">
             <span className="text-xs text-muted-foreground">子データの選択:</span>
             {hasManyDomains.map((hm) => (
               <label key={hm.domain} className="flex items-center gap-2 cursor-pointer">
@@ -185,7 +185,7 @@ export function ExportTab({
           </Flex>
         </Flex>
 
-        <Block className="space-y-2 max-h-64 overflow-y-auto">
+        <Block className="flex flex-col gap-2 max-h-64 overflow-y-auto">
           {allFields.map((field) => (
             <label key={field.name} className="flex items-center gap-2 cursor-pointer py-1">
               <Checkbox

@@ -72,8 +72,8 @@ const submenuVariants = cva(
         left: "right-full -mr-2",
       },
       size: {
-        default: "w-48 space-y-1",
-        compact: "w-44 space-y-0.5",
+        default: "w-48 flex flex-col gap-1",
+        compact: "w-44 flex flex-col gap-0.5",
       },
     },
     defaultVariants: { open: false, placement: "right", size: "default" },

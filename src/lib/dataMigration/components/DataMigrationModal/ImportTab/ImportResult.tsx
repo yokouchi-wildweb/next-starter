@@ -26,7 +26,7 @@ export function ImportResult({ result }: ImportResultProps) {
         <p className="font-medium mb-2">
           {result.failedChunks === 0 ? "インポート完了" : "インポート完了（一部エラー）"}
         </p>
-        <Block className="text-sm space-y-1">
+        <Block className="text-sm flex flex-col gap-1">
           <p>インポートされたレコード: {result.totalRecords}件</p>
           <p>成功したチャンク: {result.successfulChunks}</p>
           {result.failedChunks > 0 && (
@@ -38,7 +38,7 @@ export function ImportResult({ result }: ImportResultProps) {
         {result.isMultiDomain && result.domainResults && (
           <Block className="mt-3 pt-3 border-t border-border">
             <p className="text-xs text-muted-foreground mb-2">ドメイン別結果:</p>
-            <Block className="space-y-1 text-xs">
+            <Block className="flex flex-col gap-1 text-xs">
               {result.domainResults.map((dr) => (
                 <Flex key={dr.domain} justify="between" className="text-muted-foreground">
                   <span>{dr.domain}</span>

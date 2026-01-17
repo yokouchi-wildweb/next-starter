@@ -128,7 +128,7 @@ export default function TablesDemoPage() {
       {
         header: "サンプル名 / 説明",
         render: (record) => (
-          <Block className="space-y-1">
+          <Block className="flex flex-col gap-1">
             <Span weight="medium" className="text-foreground">
               {record.name}
             </Span>
@@ -158,7 +158,7 @@ export default function TablesDemoPage() {
       {
         header: "更新日時 / 数量",
         render: (record) => (
-          <Block className="space-y-1">
+          <Block className="flex flex-col gap-1">
             <Para size="sm" tone="default" className="font-medium">
               最終更新: {record.updatedAt ? formatDisplayValue(new Date(record.updatedAt)) : "未設定"}
             </Para>
@@ -268,7 +268,7 @@ export default function TablesDemoPage() {
         header: "プロジェクト名",
         align: "left",
         render: (record) => (
-          <Block className="space-y-1">
+          <Block className="flex flex-col gap-1">
             <Span weight="medium" className="text-foreground">
               {record.project}
             </Span>
@@ -358,7 +358,7 @@ export default function TablesDemoPage() {
     selectionBehaviorOptions.find((option) => option.value === selectionBehavior)?.description ?? "";
 
   return (
-    <Main containerType="wideShowcase" className="space-y-10 py-12">
+    <Main containerType="wideShowcase" className="flex flex-col gap-10 py-12">
       <Section space="lg">
         <PageTitle size="xxl" className="font-semibold">
           RecordSelectionTable デモ
@@ -370,8 +370,8 @@ export default function TablesDemoPage() {
 
       <Section space="lg">
         <Flex direction="columnToRowSm" gap="xl" align="start">
-          <Block className="w-full flex-1 space-y-6 rounded-2xl border bg-card p-6 shadow-sm">
-            <Block className="space-y-2">
+          <Block className="w-full flex-1 flex flex-col gap-6 rounded-2xl border bg-card p-6 shadow-sm">
+            <Block className="flex flex-col gap-2">
               <SecTitle size="lg" className="font-semibold">
                 インタラクティブな選択テーブル
               </SecTitle>
@@ -380,7 +380,7 @@ export default function TablesDemoPage() {
               </Para>
             </Block>
 
-            <Block className="space-y-3 rounded-xl border bg-background/70 p-4">
+            <Block className="flex flex-col gap-3 rounded-xl border bg-background/70 p-4">
               <Span size="sm" tone="muted" className="font-semibold">
                 選択方法
               </Span>
@@ -440,7 +440,7 @@ export default function TablesDemoPage() {
             )}
           </Block>
 
-          <Block className="w-full max-w-md space-y-4 rounded-2xl border bg-muted/20 p-6">
+          <Block className="w-full max-w-md flex flex-col gap-4 rounded-2xl border bg-muted/20 p-6">
             <SecTitle size="md" className="font-semibold">
               選択状態プレビュー
             </SecTitle>
@@ -448,7 +448,7 @@ export default function TablesDemoPage() {
               {selectedSummary}
             </Para>
             {selectedRows.length > 0 && (
-              <ul className="space-y-3">
+              <ul className="flex flex-col gap-3">
                 {selectedRows.map((row) => (
                   <li
                     key={row.id}
@@ -470,8 +470,8 @@ export default function TablesDemoPage() {
 
       <Section space="lg">
         <Flex direction="columnToRowSm" gap="xl" align="start">
-          <Block className="w-full flex-1 space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
-            <Block className="space-y-2">
+          <Block className="w-full flex-1 flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
+            <Block className="flex flex-col gap-2">
               <SecTitle size="lg" className="font-semibold">
                 EditableGridTable デモ
               </SecTitle>
@@ -501,7 +501,7 @@ export default function TablesDemoPage() {
             )}
           </Block>
 
-          <Block className="w-full max-w-md space-y-4 rounded-2xl border bg-muted/20 p-6">
+          <Block className="w-full max-w-md flex flex-col gap-4 rounded-2xl border bg-muted/20 p-6">
             <SecTitle size="md" className="font-semibold">
               更新ログ
             </SecTitle>
@@ -511,11 +511,11 @@ export default function TablesDemoPage() {
             <Button type="button" variant="outline" size="sm" onClick={handleResetEditableRows}>
               編集内容をリセット
             </Button>
-            <Block className="space-y-2">
+            <Block className="flex flex-col gap-2">
               <Span size="sm" weight="medium">
                 現在のデータ
               </Span>
-              <ul className="max-h-64 space-y-2 overflow-auto">
+              <ul className="max-h-64 flex flex-col gap-2 overflow-auto">
                 {editableRows.map((row) => (
                   <li key={row.id} className="rounded-lg border border-dashed bg-background/70 p-3">
                     <Span weight="medium" className="text-foreground">
@@ -535,7 +535,7 @@ export default function TablesDemoPage() {
       </Section>
 
       <Section space="lg">
-        <Block className="space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
+        <Block className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
           <SecTitle size="lg" className="font-semibold">
             DataTable デモ
           </SecTitle>

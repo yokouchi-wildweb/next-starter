@@ -245,7 +245,7 @@ export default function GoogleRedirectAuthDemoPage() {
 
   return (
     <Block className="py-8" space="xl">
-      <header className="space-y-3">
+      <header className="flex flex-col gap-3">
         <PageTitle size="xxxl" className="font-semibold tracking-tight">
           Google リダイレクト認証デモ
         </PageTitle>
@@ -254,7 +254,7 @@ export default function GoogleRedirectAuthDemoPage() {
         </Para>
       </header>
 
-      <Section className="space-y-4">
+      <Section className="flex flex-col gap-4">
         <SecTitle as="h2">操作</SecTitle>
         <Para size="sm">
           「Google でサインイン」を押すとリダイレクトで認証が行われ、完了するとこの画面に認証情報が表示されます。
@@ -281,7 +281,7 @@ export default function GoogleRedirectAuthDemoPage() {
         ) : null}
       </Section>
 
-      <Section className="space-y-4">
+      <Section className="flex flex-col gap-4">
         <SecTitle as="h2">Firebase ユーザー情報</SecTitle>
         {userSnapshot ? (
           <Block>
@@ -338,7 +338,7 @@ export default function GoogleRedirectAuthDemoPage() {
         )}
       </Section>
 
-      <Section className="space-y-4">
+      <Section className="flex flex-col gap-4">
         <SecTitle as="h2">リダイレクトで取得した OAuth 認証情報</SecTitle>
         {oauthCredential ? (
           <div className="overflow-hidden rounded-lg border border-border bg-muted/40">

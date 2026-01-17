@@ -95,7 +95,7 @@ export function EmailRegistrationForm() {
       methods={form}
       onSubmit={handleSubmit}
       pending={isLoading}
-      className="space-y-4"
+      className="flex flex-col gap-4"
       noValidate
     >
         {APP_FEATURES.auth.signup.showRoleSelection && (
@@ -172,7 +172,7 @@ export function EmailRegistrationForm() {
           role={selectedRole}
           profiles={REGISTRATION_PROFILES}
           tag="registration"
-          wrapperClassName="space-y-4"
+          wrapperClassName="flex flex-col gap-4"
         />
 
         <FormFieldItem
