@@ -2,6 +2,7 @@
 
 import { notFound } from "next/navigation";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { Stack } from "@/components/Layout/Stack";
 import { PurchaseCallback } from "@/features/core/purchaseRequest/components/PurchaseCallback";
 import { isValidSlug } from "@/features/core/wallet";
 
@@ -17,8 +18,10 @@ export default async function WalletPurchaseCallbackPageRoute({ params }: PagePr
   }
 
   return (
-    <UserPage containerType="narrowStack" space="md">
-      <PurchaseCallback slug={slug} />
+    <UserPage containerType="narrowStack">
+      <Stack space={6}>
+        <PurchaseCallback slug={slug} />
+      </Stack>
     </UserPage>
   );
 }

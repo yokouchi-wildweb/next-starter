@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation";
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { Stack } from "@/components/Layout/Stack";
 import { PurchaseFailed } from "@/features/core/purchaseRequest/components/PurchaseFailed";
 import { isValidSlug } from "@/features/core/wallet";
 
@@ -18,9 +19,11 @@ export default async function WalletPurchaseFailedPageRoute({ params }: PageProp
   }
 
   return (
-    <UserPage containerType="narrowStack" space="md">
-      <UserPageTitle>購入エラー</UserPageTitle>
-      <PurchaseFailed slug={slug} />
+    <UserPage containerType="narrowStack">
+      <Stack space={6}>
+        <UserPageTitle>購入エラー</UserPageTitle>
+        <PurchaseFailed slug={slug} />
+      </Stack>
     </UserPage>
   );
 }

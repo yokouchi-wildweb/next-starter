@@ -2,6 +2,7 @@
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { Stack } from "@/components/Layout/Stack";
 import { Withdraw } from "@/features/core/user/components/Withdraw";
 import { requireCurrentUser } from "@/features/core/user/services/server/userService";
 
@@ -10,9 +11,11 @@ export default async function WithdrawPage() {
   await requireCurrentUser({ behavior: "notFound" });
 
   return (
-    <UserPage containerType="narrowStack" space="md">
-      <UserPageTitle>退会</UserPageTitle>
-      <Withdraw />
+    <UserPage containerType="narrowStack">
+      <Stack space={6}>
+        <UserPageTitle>退会</UserPageTitle>
+        <Withdraw />
+      </Stack>
     </UserPage>
   );
 }

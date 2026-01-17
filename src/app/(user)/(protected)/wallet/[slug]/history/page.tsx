@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation";
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { Stack } from "@/components/Layout/Stack";
 import { WalletHistoryPage } from "@/features/core/wallet/components/WalletHistoryPage";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet";
 
@@ -19,9 +20,11 @@ export default async function WalletHistoryPageRoute({ params }: PageProps) {
   }
 
   return (
-    <UserPage containerType="narrowStack" space="md">
-      <UserPageTitle>{config.label}履歴</UserPageTitle>
-      <WalletHistoryPage slug={slug} />
+    <UserPage containerType="narrowStack">
+      <Stack space={6}>
+        <UserPageTitle>{config.label}履歴</UserPageTitle>
+        <WalletHistoryPage slug={slug} />
+      </Stack>
     </UserPage>
   );
 }

@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation";
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { Stack } from "@/components/Layout/Stack";
 import { WalletBalancePage } from "@/features/core/wallet/components/WalletBalancePage";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet";
 
@@ -19,9 +20,11 @@ export default async function WalletPageRoute({ params }: PageProps) {
   }
 
   return (
-    <UserPage containerType="narrowStack" space="md">
-      <UserPageTitle>{config.label}管理</UserPageTitle>
-      <WalletBalancePage slug={slug} />
+    <UserPage containerType="narrowStack">
+      <Stack space={6}>
+        <UserPageTitle>{config.label}管理</UserPageTitle>
+        <WalletBalancePage slug={slug} />
+      </Stack>
     </UserPage>
   );
 }

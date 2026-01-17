@@ -4,6 +4,7 @@ import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";
 import { LogoutButton } from "@/features/core/auth/components/common/LogoutButton";
 import UserMyPageView from "@/features/core/user/components/UserMyPage";
@@ -14,25 +15,29 @@ export default async function UserMyPagePage() {
 
   if (!user) {
     return (
-      <UserPage containerType="contentShell" space="md">
-        <UserPageTitle>マイページ</UserPageTitle>
-        <Block appearance="outlined" padding="lg">
-          <Flex direction="column" align="center" gap="md">
-            <Para>ユーザー情報が参照できません</Para>
-            <Para tone="muted" size="sm">
-              不具合を解消するにはログアウト後、再ログインしてください。
-            </Para>
-            <LogoutButton redirectTo="/" />
-          </Flex>
-        </Block>
+      <UserPage containerType="contentShell">
+        <Stack space={6}>
+          <UserPageTitle>マイページ</UserPageTitle>
+          <Block appearance="outlined" padding="lg">
+            <Flex direction="column" align="center" gap="md">
+              <Para>ユーザー情報が参照できません</Para>
+              <Para tone="muted" size="sm">
+                不具合を解消するにはログアウト後、再ログインしてください。
+              </Para>
+              <LogoutButton redirectTo="/" />
+            </Flex>
+          </Block>
+        </Stack>
       </UserPage>
     );
   }
 
   return (
-    <UserPage containerType="contentShell" space="md">
-      <UserPageTitle>マイページ</UserPageTitle>
-      <UserMyPageView user={user} />
+    <UserPage containerType="contentShell">
+      <Stack space={6}>
+        <UserPageTitle>マイページ</UserPageTitle>
+        <UserMyPageView user={user} />
+      </Stack>
     </UserPage>
   );
 }
