@@ -16,14 +16,14 @@ import {
 import { cn } from "@/lib/cn";
 import { TOAST_SWIPE_THRESHOLD } from "../constants";
 import type {
-  ToastItem as ToastData,
+  Toast,
   ToastVariant,
   ToastSize,
   ToastIconPreset,
 } from "../types";
 
 type Props = {
-  toast: ToastData;
+  toast: Toast;
   onClose: () => void;
 };
 

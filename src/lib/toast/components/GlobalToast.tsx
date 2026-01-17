@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { useToastStore } from "../stores";
 import { TOAST_EXIT_ANIMATION_DURATION } from "../constants";
-import type { ToastPosition, ToastLayer, ToastItem as ToastData } from "../types";
+import type { ToastPosition, ToastLayer, Toast } from "../types";
 import { ToastItem } from "./ToastItem";
 
 const POSITION_CLASSES: Record<ToastPosition, string> = {
@@ -65,7 +65,7 @@ const LAYER_CLASSES: Record<ToastLayer, string> = {
 export function GlobalToast() {
   const { toast: storeToast, hide: storeHide } = useToastStore();
   const [mounted, setMounted] = useState(false);
-  const [displayedToast, setDisplayedToast] = useState<ToastData | null>(null);
+  const [displayedToast, setDisplayedToast] = useState<Toast | null>(null);
   const [isExiting, setIsExiting] = useState(false);
   const exitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -21,7 +21,7 @@ export type {
   ToastPosition,
   ToastSize,
   ToastLayer,
-  ToastItem,
+  Toast,
   ToastOptions,
 } from "./types";
 

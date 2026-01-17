@@ -3,11 +3,11 @@
 "use client";
 
 import { create } from "zustand";
-import type { ToastItem, ToastOptions } from "../types";
+import type { Toast, ToastOptions } from "../types";
 import { TOAST_DEFAULT_DURATION } from "../constants";
 
 type ToastState = {
-  toast: ToastItem | null;
+  toast: Toast | null;
   show: (options: ToastOptions) => string;
   hide: () => void;
   hideById: (id: string) => void;

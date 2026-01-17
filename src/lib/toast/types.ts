@@ -29,7 +29,7 @@ export type ToastSize = "sm" | "md" | "lg";
 
 export type ToastLayer = "alert" | "super" | "ultimate" | "apex";
 
-export type ToastItem = {
+export type Toast = {
   id: string;
   message: string;
   variant: ToastVariant;

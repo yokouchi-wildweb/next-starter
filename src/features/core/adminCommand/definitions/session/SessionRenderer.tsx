@@ -68,11 +68,11 @@ export function SessionRenderer({ onClose, onBack }: CategoryRendererProps) {
         try {
           await refresh();
           onClose();
-          showToast("セッションをリフレッシュしました", "success");
+          showToast({ message: "セッションをリフレッシュしました", variant: "success", position: "center" });
           router.refresh();
         } catch {
           onClose();
-          showToast("セッションのリフレッシュに失敗しました", "error");
+          showToast({ message: "セッションのリフレッシュに失敗しました", variant: "error", position: "center" });
         }
       } else if (itemId === "session-logout") {
         setProcessing({ type: "logout", message: "ログアウト中..." });

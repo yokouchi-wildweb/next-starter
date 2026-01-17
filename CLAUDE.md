@@ -1,240 +1,120 @@
 # CLAUDE.md
 
+> **FORMAT_RULE**: AI agent optimized. No tables, no verbose prose. Use key:value, inline separators (|, ,), bullet points. Keep additions in this style.
+
 ## STACK
-next: 16 (react 19, app router)
-db: drizzle (neon/postgresql) | firestore
-state: zustand, swr
-forms: react-hook-form + zod
-ui: tailwind 4, shadcn, radix
-auth: firebase-auth + jwt
-storage: firebase-storage
-http_client: axios (client-side only, never fetch)
+next: 16 (react 19, app router) | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
 
-## DESIGN_PHILOSOPHY
+## CODE_PLACEMENT (3-tier)
+domain: src/features/, all including entities
+library: src/lib/\<name\>/, all except entities
+unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
 
-### 3-tier structure
-| tier | description | location | can contain |
-|------|-------------|----------|-------------|
-| domain | independent business concept | features/ | all (including entities) |
-| library | multi-file feature group | lib/\<name\>/ | all except entities |
-| unit | too small for library | components/, hooks/, utils/ | single component/hook/fn |
-
-### placement decision flow
-```
-1. business domain? -> features/ (DB/CRUD not required)
-2. multi-file feature group? -> lib/<name>/ (if entities needed -> domain)
-3. unit: UI -> components/, hook -> hooks/, pure fn -> utils/
-```
-
-### rules
-- everything belongs to domain, lib, or unit (no orphans)
-- no global src/types/, src/constants/, src/stores/
-- lib deps: lib-to-lib OK, lib-to-features PROHIBITED
-- cross-domain UI: use target domain's hooks (never create own)
-- cross-domain server: direct service calls OK (no circular deps)
-- page-specific components -> app/<route>/_components/
-
-### new feature request
-use `/feature-builder` agent for proper placement and design
-
+decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only→app/\<route\>/_components/
+deps: lib→lib OK | lib→features NG | features→features(UI): use target hooks (no self-create) | features→features(server): direct OK (no circular)
 ref: docs/!must-read/設計思想とアーキテクチャ.md
 
----
+## ARCHITECTURE (8-layer)
+1.Page(app/**/page.tsx): SSR/SSG entry
+2.Component(features/*/components): UI
+3.Hook(features/*/hooks): state, client only
+4.ClientService(services/client): HTTP via axios
+5.APIRoute(app/api/**): HTTP interface
+6.ServerService(services/server): business logic + DB
+7.Entity(features/*/entities): schema, types, drizzle
+8.Database: PostgreSQL | Firestore
 
-## ARCHITECTURE (8-layer, strict)
-```
-1. Page (app/**/page.tsx) -> SSR/SSG
-2. Component (features/*/components) -> UI
-3. Hook (features/*/hooks) -> state (client only)
-4. ClientService (features/*/services/client) -> axios
-5. APIRoute (app/api/**) -> HTTP interface
-6. ServerService (features/*/services/server) -> business logic + DB
-7. Entity (features/*/entities) -> schema, types, drizzle/firestore
-8. Database -> PostgreSQL | Firestore
-```
-
-client/server boundary:
-- Hook/ClientService -> HTTP -> APIRoute -> ServerService (indirect only)
-- Page (SSR) -> ServerService (direct call allowed)
-- Hook -> ServerService: PROHIBITED (client cannot call server directly)
-
-rules:
-- client-side: axios only (no fetch)
-- db access: only via ServerService (never in API routes directly)
+boundary: Hook/ClientService → HTTP → APIRoute → ServerService | Page(SSR) → ServerService direct OK | Hook → ServerService NG
+rules: client axios only | server fetch OK | DB access via ServerService only
 
 ## DIRECTORY_STRUCTURE
+all paths under src/
 
-### features/<domain>/
-```
-components/
-  Admin{List,Create,Edit}/  <- generated
-  common/                   <- domain-specific shared
-entities/{schema,form,model,drizzle}.ts
-services/client/, server/{drizzleBase,wrappers/,*Service}.ts
-hooks/use{Create,Update,Search,Delete}*.ts
-constants/, types/, presenters.ts, domain.json
-```
+features/\<domain\>/:
+- components/Admin{List,Create,Edit}/ (generated), common/
+- entities/: schema.ts(XxxBaseSchema,XxxCreateSchema,XxxUpdateSchema), form.ts(z.infer types), model.ts(TS types), drizzle.ts(DB table)
+- services/client/, services/server/{drizzleBase(generated), wrappers/, xxxService.ts}
+- hooks/use{Create,Update,Search,Delete}*.ts (generated)
+- constants/, types/, presenters.ts, domain.json
 
-### shared (approval required to modify)
-```
-lib/: crud, errors, drizzle, firebase, storage, mail, jwt, routeFactory, toast, etc.
-components/: Form/, Layout/, TextBlocks/, Skeleton/, _shadcn/
-stores/: globalLoader/, siteTheme/, viewportSize/, adminLayout/
-hooks/: useGlobalLoader, useInfiniteScrollQuery, etc.
-config/: admin-global-menu, app-features, maintenance, redirect, etc.
-registry/: schemaRegistry, serviceRegistry, adminDataMenu
-proxies/: middleware handlers
-```
+code_generation:
+- generated(no edit): entities/, services/drizzleBase, hooks/, Admin*/, registry/
+- customizable: wrappers/, components/**/formEntities.ts, constants/, presenters.ts
+
+shared_src: components(AppFrames/Form/Layout/TextBlocks/Skeleton/_shadcn), hooks, utils, stores, lib, config, registry, proxies
 
 ## STORES (zustand)
-
-structure: always use subdirectory
-```
-stores/<name>/
-  index.ts           <- re-export (public interface)
-  internalStore.ts   <- zustand store (internal, never use directly)
-  useStore.ts        <- base hook
-```
-
-hierarchy: internalStore -> useStore -> hooks/useXxx (optional extension)
-
-rules:
-- state-only: no business logic (use services/)
-- UI side-effects: handle in useStore via useEffect
-- internalStore: only accessed from useStore.ts
-
+placement: src/stores/ = app-wide only | domain-specific → features/\<domain\>/stores/
+structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts}
+hierarchy: internalStore → useStore → hooks/useXxx(optional)
+rules: state-only (logic in services) | UI side-effects in useStore useEffect | internalStore accessed only from useStore.ts
 ref: src/stores/README.md
 
 ## DOMAINS
+core: src/features/core/, no domain.json, manual. examples: auth, user, wallet, setting, mail
+business: src/features/, has domain.json, dc:generate. examples: sample, sampleCategory, sampleTag
 
-| type | location | domain.json | generation | examples |
-|------|----------|-------------|------------|----------|
-| core | src/features/core/ | no | manual | auth, user, wallet, setting, mail |
-| business | src/features/ | yes | dc:generate | sample, sampleCategory, sampleTag |
-
-### domain utilities (src/lib/domain/)
-config/, relations/, fields/, junction/, service/client|server/, hooks/
-
-### code generation
-
-commands: dc:init, dc:generate -- \<Domain\>, dc:generate:all, dc:delete -- \<Domain\>
-
-generated (DO NOT EDIT): entities/, services/, hooks/, components/Admin*/, registry/
-customizable (safe to edit): wrappers/, components/common/formEntities.ts, constants/, presenters.ts
-
-ref: src/features/README.md (domain.json schema)
-
-### entity schema
-schema.ts: XxxBaseSchema, XxxCreateSchema, XxxUpdateSchema (server validation)
-form.ts: z.infer types only
-formEntities.ts: FormSchema, FormValues, DefaultValues (component-level)
-drizzle.ts: DB table definition
+commands: dc:init | dc:generate -- \<Domain\> | dc:generate:all | dc:delete -- \<Domain\> | dc:add -- \<Domain\>
+ref: src/features/README.md
 
 ## API_ROUTES
-
-**MANDATORY: all routes must use routeFactory (createApiRoute / createDomainRoute)**
-
-generic (app/api/[domain]/):
-GET|POST / (list|create), GET|PATCH|DELETE /[id] (get|update|soft-delete)
-POST /search, /upsert, /bulk/delete-by-ids, /[id]/duplicate, /[id]/restore
-DELETE /[id]/hard-delete
-
+required: routeFactory (createApiRoute / createDomainRoute)
+generic: GET|POST / (list|create) | GET|PATCH|DELETE /[id] (get|update|soft-delete) | POST /search, /upsert, /bulk/delete-by-ids, /[id]/duplicate, /[id]/restore | DELETE /[id]/hard-delete
 domain-specific: auth/, admin/, wallet/, webhook/, storage/
-
 ref: src/lib/routeFactory/README.md
 
 ## CRUD_SERVICE (createCrudService)
-
-operations: create, list, get, update, remove, search, query, upsert, bulkDeleteByIds, bulkDeleteByQuery
-drizzle-only: belongsToMany (auto-sync m2m)
-
-extension_priority: check base methods -> base.query()/wrappers -> custom service
-
-service file organization:
-- xxxService.ts: import only, never add implementations directly
-- wrappers/: base CRUD method overrides only
-- other subfolders: domain-specific services (non-CRUD)
-
-firestore_limits: no or condition, single orderBy, no belongsToMany
+operations: create, list, get, update, remove, search, query, upsert, bulkDeleteByIds, bulkDeleteByQuery | drizzle-only: belongsToMany
+extension: 1.check base methods → 2.base.query()+wrappers → 3.custom service
+files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
+firestore_limits: no or | single orderBy | no belongsToMany
 
 ## COMPONENTS
+placement: multi-domain→src/components/ or AppFrames/ | single-domain→features/\<domain\>/components/common/ | page-only→app/\<route\>/_components/
 
-### placement
-```
-src/components/                      <- app-wide (Admin + User)
-AppFrames/User/Elements/             <- user app shared (small)
-AppFrames/User/Sections/             <- user app shared (larger)
-features/<domain>/components/common/ <- domain-specific only
-```
+wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton
 
-decision: use in other domains? -> src/components/ or AppFrames/
-          only this domain? -> features/<domain>/components/common/
+UserPage: Main alias, wraps \<main\> with containerType, h1 not included
 
-### wrappers (use instead of raw HTML)
-div -> Layout/{Block,Flex,Grid}, button -> Form/Button, input -> Form/Input
-p,h2 -> TextBlocks/{Para,SecTitle}, skeleton -> Skeleton/BaseSkeleton
-main -> AppFrames/User/Layout/UserPage (user app routes only)
+ui_layers:
+- page: SSR entry, minimal tags, no hooks
+- section_container: \<section\> wrap, call hooks here
+- unit_item: display only, no hooks
+- interaction_parts: "use client", self-contained, minimal hooks OK
+  rule: call hooks at upper layer, pass handlers via props
 
-### page-level controls
-AppFrames/User/controls: header/footer/bottomMenu visibility (must be in page.tsx)
-
-### ui_layers (4-tier)
-page: SSR, minimal tags (main + h1 + section_container)
-section_container: PascalCase/index.tsx, wrap with <section>, call hooks here
-unit_item: display only, no hooks
-interaction_parts: "use client", minimal hooks if self-contained
-
-rules: call hooks at upper layer, pass handlers via props, import only index.tsx
-
-### domain field renderer
-domain.json.fields[].formInput -> DomainFieldRenderer -> Input components
-types: textInput, numberInput, textarea, select, multiSelect, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden
-
+page_controls: AppFrames/User/controls/ (header/footer/bottomMenu visibility, use in page.tsx)
+DomainFieldRenderer_types: textInput, numberInput, textarea, select, multiSelect, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden, none
 ref: src/components/README.md
 
 ## ERROR_HANDLING
-ServerService: throw DomainError(status, message)
-APIRoute: convert to JSON {status, message}
-ClientService: normalizeHttpError(error, fallback) -> HttpError
-Hook: pass through HttpError
-UI: err(error, fallback) for display
+flow: ServerService throw DomainError → APIRoute JSON{status,message} → ClientService normalizeHttpError → Hook pass → UI err(error,fallback)
 
 ## NAMING
-components: PascalCase or dir/index.tsx
-hooks: useCamelCase.ts
-services: camelCase.ts
-entities: lowercase files, PascalCase types
-routes: kebab-case or (group)
-constants: UPPER_SNAKE_CASE
-index.ts: re-export only (no implementation logic)
+components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only
 
 ## PROHIBITED
-- fetch on client-side (use axios)
+- client fetch (use axios)
 - direct DB in API routes (use ServerService)
-- raw HTML when wrappers exist
+- raw HTML when wrapper exists
 - form schemas in entities/schema.ts (use formEntities.ts)
-- hooks calling ServerService
+- Hook calling ServerService
 - skip normalizeHttpError in ClientService
-- manual m2m sync when belongsToMany available
-- re-implement CRUD when base suffices
-- edit generated files without wrappers
-- direct API route handlers (use routeFactory)
+- manual m2m when belongsToMany available
+- re-implement when base CRUD suffices
+- edit generated files (use wrappers)
+- API routes without routeFactory
 - direct asset paths (use utils/assets: assetPath, imgPath, videoPath, logoPath)
 
 ## CORE_FILES (approval required)
-src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css
-
-### src/config/ (conditional)
-- value changes: allowed without approval
-- structure changes: approval required (adding/removing keys, changing types, renaming)
+src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
+src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
 
 ## TOOLS
-playwright-mcp: use for CSS/UI verification, dynamic content, when WebSearch/WebFetch fails
+playwright-mcp: CSS/UI verification, dynamic content, WebSearch/WebFetch fallback
 
 ## SCRIPTS
-ref: scripts/README.md
-claude:test -> Claude API connection check (requires ANTHROPIC_API_KEY)
+ref: scripts/README.md | claude:test: API connection check (requires ANTHROPIC_API_KEY)
 
-## DOCS (on-demand reference)
-location: docs/
-structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/
+## DOCS
+location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/
