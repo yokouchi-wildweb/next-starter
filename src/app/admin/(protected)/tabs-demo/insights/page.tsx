@@ -2,7 +2,7 @@ import { ActivityIcon, LayoutDashboardIcon, Settings2Icon } from "lucide-react";
 
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { SolidTabs, UnderlineTabs, type PageTabItem } from "@/components/Navigation/PageTab";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
@@ -44,14 +44,14 @@ export default function AdminTabsDemoInsightsPage() {
         </Para>
         <SolidTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ" />
         <UnderlineTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ（下線型）" />
-        <Block appearance="surface" padding="lg" space="sm">
+        <Stack appearance="surface" padding="lg" space={4}>
           <Para>
             ここではダッシュボードやメトリクスの概要など、メイン領域で集約したい情報を掲示するケースを想定しています。タブを切り替えることでページごとに関心の異なる利用者に対応できます。
           </Para>
           <Para>
             データ取得やチャート描画などの実装は各ページに委譲されているため、タブ自体はレイアウトやアクセシビリティを統一する役割だけに集中しています。
           </Para>
-        </Block>
+        </Stack>
       </Section>
     </AdminPage>
   );

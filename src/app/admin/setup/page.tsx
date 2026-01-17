@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { Main, Para } from "@/components/TextBlocks";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
@@ -21,9 +21,9 @@ export default async function AdminSetupPage() {
       <Section id="admin-setup">
         <PageTitle>管理コンソールへようこそ！</PageTitle>
         <Para>最初の管理ユーザーを登録し、管理設定を初期化します。</Para>
-        <Block marginBlock="lg" space="none" padding="none">
+        <Stack marginBlock="lg" space={0} padding="none">
           <AdminSetupForm />
-        </Block>
+        </Stack>
       </Section>
     </Main>
   );

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Dialog from "@/components/Overlays/Dialog";
 import { useToast } from "@/lib/toast";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
@@ -101,9 +102,9 @@ export function StatusTabContent({ user, onClose }: Props) {
 
   return (
     <>
-      <Block space="sm" padding="md">
+      <Stack space={4} padding="md">
         <UserInfoHeader user={user} />
-        <Block space="md" className="mt-4">
+        <Stack space={6} className="mt-4">
           <div>
             <Para size="sm" className="mb-2 font-medium">
               変更先ステータス
@@ -143,8 +144,8 @@ export function StatusTabContent({ user, onClose }: Props) {
               {isMutating ? "変更中..." : "ステータスを変更"}
             </Button>
           </Flex>
-        </Block>
-      </Block>
+        </Stack>
+      </Stack>
       <Dialog
         open={showConfirm}
         onOpenChange={setShowConfirm}

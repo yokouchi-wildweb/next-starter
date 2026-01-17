@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from "react"
 import { Slider } from "@/components/Widgets"
-import { Block, Main } from "@/components/Layout"
+import { Stack, Main } from "@/components/Layout"
 import { SecTitle } from "@/components/TextBlocks"
 
 const sampleItems = [
@@ -39,7 +39,7 @@ export default function DemoPage() {
 
   return (
     <Main>
-      <Block space="lg" className="py-8">
+      <Stack space={8} className="py-8">
         <SecTitle>CardSlider デモ</SecTitle>
 
         <div className="rounded-lg border bg-muted/50 p-4 mb-8">
@@ -141,7 +141,7 @@ export default function DemoPage() {
           containerWidth={containerWidthValue}
           arrowVariant={arrowVariant}
         />
-      </Block>
+      </Stack>
     </Main>
   )
 }

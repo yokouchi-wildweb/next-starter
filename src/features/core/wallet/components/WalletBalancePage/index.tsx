@@ -3,6 +3,7 @@
 "use client";
 
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
@@ -60,7 +61,7 @@ export function WalletBalancePage({ slug }: WalletBalancePageProps) {
   const currentBalance = wallet?.balance ?? 0;
 
   return (
-    <Block space="md">
+    <Stack space={6}>
       <Flex justify="end">
         <LinkButton href={`/wallet/${slug}/history`} variant="outline" size="sm">
           履歴
@@ -68,6 +69,6 @@ export function WalletBalancePage({ slug }: WalletBalancePageProps) {
       </Flex>
       <BalanceCard balance={currentBalance} config={config} />
       <PurchaseList slug={slug} config={config} />
-    </Block>
+    </Stack>
   );
 }

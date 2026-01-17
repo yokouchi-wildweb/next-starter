@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Dialog from "@/components/Overlays/Dialog";
 import { useToast } from "@/lib/toast";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
@@ -83,9 +84,9 @@ export function DeleteTabContent({ user, onClose }: Props) {
 
   return (
     <>
-      <Block space="sm" padding="md">
+      <Stack space={4} padding="md">
         <UserInfoHeader user={user} />
-        <Block space="md" className="mt-4">
+        <Stack space={6} className="mt-4">
           <Block className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
             <Para size="sm" className="font-medium text-destructive">
               ユーザーを削除
@@ -120,8 +121,8 @@ export function DeleteTabContent({ user, onClose }: Props) {
               {isMutating ? "削除中..." : "削除する"}
             </Button>
           </Flex>
-        </Block>
-      </Block>
+        </Stack>
+      </Stack>
       <Dialog
         open={showConfirm}
         onOpenChange={setShowConfirm}

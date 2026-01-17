@@ -1,6 +1,6 @@
 // src/features/core/user/components/admin/AdminUserManageModal/UserInfoHeader.tsx
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import type { User } from "@/features/core/user/entities";
@@ -18,9 +18,9 @@ const DEFAULT_FALLBACK = "(未設定)";
 
 export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole }: Props) {
   return (
-    <Block
+    <Stack
       className="rounded-md border border-border bg-card px-4 py-3"
-      space="xs"
+      space={2}
     >
       <Flex direction="column" gap="xs">
         <Flex justify="between" align="center" gap="lg" wrap="wrap">
@@ -45,6 +45,6 @@ export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole }: 
           </div>
         </Flex>
       </Flex>
-    </Block>
+    </Stack>
   );
 }

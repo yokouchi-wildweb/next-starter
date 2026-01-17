@@ -1,5 +1,6 @@
 // src/components/Feedback/Skeleton/FormSkeleton.tsx
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { BaseSkeleton } from "./BaseSkeleton";
 
 type FormSkeletonProps = {
@@ -11,16 +12,16 @@ type FormSkeletonProps = {
 export function FormSkeleton({
   fields = 12,
   includeButtons = true,
-  className,
+      className,
 }: FormSkeletonProps) {
   const placeholders = Array.from({ length: fields });
   return (
     <Block className={className}>
       {placeholders.map((_, i) => (
-        <Block key={i} space="sm">
+        <Stack key={i} space={4}>
           <BaseSkeleton className="h-4 w-20" />
           <BaseSkeleton className="h-10 w-full" />
-        </Block>
+        </Stack>
       ))}
       {includeButtons && (
         <div className="flex gap-2">

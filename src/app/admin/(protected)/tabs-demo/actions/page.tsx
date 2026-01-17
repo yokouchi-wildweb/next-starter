@@ -2,7 +2,7 @@ import { ActivityIcon, LayoutDashboardIcon, Settings2Icon } from "lucide-react";
 
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { SolidTabs, UnderlineTabs, type PageTabItem } from "@/components/Navigation/PageTab";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
@@ -44,14 +44,14 @@ export default function AdminTabsDemoActionsPage() {
         </Para>
         <SolidTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ" />
         <UnderlineTabs tabs={ADMIN_TABS_DEMO_ITEMS} ariaLabel="タブUIデモ（下線型）" />
-        <Block appearance="surface" padding="lg" space="sm">
+        <Stack appearance="surface" padding="lg" space={4}>
           <Para>
             実際には複雑なフォームやテーブル操作を配置できますが、タブコンポーネント自体はナビゲーションだけに集中させています。ページ側で状態管理や離脱ガードを持つことで責務を分離できます。
           </Para>
           <Para>
             既存画面に導入する際もこのパターンを踏襲すれば、UI の統一感を保ちながら機能追加できます。
           </Para>
-        </Block>
+        </Stack>
       </Section>
     </AdminPage>
   );

@@ -4,7 +4,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
@@ -238,9 +238,9 @@ export function HistoryTabContent({ user }: Props) {
 
   return (
     <>
-    <Block space="sm" padding="md">
+    <Stack space={4} padding="md">
       <UserInfoHeader user={user} />
-      <Block space="md" className="mt-4">
+      <Stack space={6} className="mt-4">
         <Para size="xs" tone="muted">
           {total ? `合計 ${total} 件` : "履歴 0 件"}
         </Para>
@@ -286,8 +286,8 @@ export function HistoryTabContent({ user }: Props) {
             <Para tone="muted">操作履歴はまだありません</Para>
           </div>
         )}
-      </Block>
-    </Block>
+      </Stack>
+    </Stack>
     <DetailModal
       open={Boolean(detailLog)}
       onOpenChange={(open) => {

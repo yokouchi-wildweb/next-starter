@@ -2,7 +2,7 @@
 
 "use client";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
 import type { WalletType } from "@/config/app/currency.config";
 
@@ -33,7 +33,7 @@ export function CurrencyPurchase({
   });
 
   return (
-    <Block space="md">
+    <Stack space={6}>
       <PurchaseSummaryCard
         purchaseAmount={purchaseAmount}
         paymentAmount={paymentAmount}
@@ -45,6 +45,6 @@ export function CurrencyPurchase({
         isLoading={isLoading}
         error={error}
       />
-    </Block>
+    </Stack>
   );
 }

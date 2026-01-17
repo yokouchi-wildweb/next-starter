@@ -12,8 +12,8 @@ import {
   toggleOptionValue,
   type OptionPrimitive,
 } from "@/components/Form/utils";
-import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
+import { Stack } from "@/components/Layout/Stack";
 import { cn } from "@/lib/cn";
 import { type Options } from "@/components/Form/types";
 
@@ -95,7 +95,7 @@ export function MultiSelectInput({
           {...popoverContentProps}
           className={cn("w-[min(320px,90vw)] p-0", popoverContentProps?.className)}
         >
-          <Block space="none" padding="none">
+          <Stack space={0} padding="none">
             <Command>
               {enableSearch && <MultiSelectSearchSection placeholder={searchPlaceholder} />}
               <MultiSelectOptionList
@@ -122,7 +122,7 @@ export function MultiSelectInput({
                 選択を確定
               </Button>
             </Flex>
-          </Block>
+          </Stack>
         </PopoverContent>
       </Popover>
     </div>

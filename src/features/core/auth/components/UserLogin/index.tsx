@@ -10,7 +10,7 @@ import { Mail, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
 import { Input, PasswordInput } from "@/components/Form/Manual";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { useEmailPasswordLogin } from "@/features/core/auth/hooks/useEmailPasswordLogin";
@@ -78,10 +78,10 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
 
   return (
     <section id="user-login" className="w-full">
-      <Block space="lg">
+      <Stack space={8}>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <Block space="xs">
+          <Stack space={2}>
             <Label htmlFor="user-login-email" className="block text-foreground">
               メールアドレス
             </Label>
@@ -95,8 +95,8 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
               leftIcon={<Mail className="size-4" />}
               placeholder="例）maile@example.com"
             />
-          </Block>
-          <Block space="xs">
+          </Stack>
+          <Stack space={2}>
             <Label htmlFor="user-login-password" className="block text-foreground">
               パスワード
             </Label>
@@ -114,7 +114,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
                 パスワードをお忘れですか？ ▶
               </Link>
             </div>
-          </Block>
+          </Stack>
           {errorMessage && (
             <Para tone="error" size="sm">
               {errorMessage}
@@ -133,7 +133,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
             </Link>
           </Button>
         </div>
-      </Block>
+      </Stack>
     </section>
   );
 }

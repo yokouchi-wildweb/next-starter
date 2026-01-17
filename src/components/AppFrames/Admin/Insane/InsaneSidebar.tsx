@@ -6,7 +6,7 @@ import Link from "next/link";
 import { cva } from "class-variance-authority";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
@@ -155,12 +155,12 @@ export function InsaneSidebar({
   return (
     <aside style={{ width }} className={cn(sidebarContainer(), "flex flex-col")}>
       {/* インセインモード表示バッジ */}
-      <Block space="xs" className="w-full mb-0 border-b border-destructive/30">
+      <Stack space={2} className="w-full mb-0 border-b border-destructive/30">
         <div className="px-4 py-2 bg-destructive/10 text-destructive text-xs font-bold text-center">
           INSANE MODE
         </div>
-      </Block>
-      <Block space="xs" className="w-full mb-0">
+      </Stack>
+      <Stack space={2} className="w-full mb-0">
         <nav aria-label="インセインメニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
             {sidebarSections.map((section, i) => {
@@ -259,14 +259,14 @@ export function InsaneSidebar({
             })}
           </ul>
         </nav>
-      </Block>
-      <Block space="xs" className="w-full mt-0">
+      </Stack>
+      <Stack space={2} className="w-full mt-0">
         <div className="group relative w-full">
           <MenuButton type="button" onClick={handleLogout} disabled={isLoading}>
             ログアウト
           </MenuButton>
         </div>
-      </Block>
+      </Stack>
     </aside>
   );
 }

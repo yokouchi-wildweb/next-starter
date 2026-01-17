@@ -4,6 +4,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
@@ -91,7 +92,7 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
   const errorMessage = error ? "履歴の取得に失敗しました" : null;
 
   return (
-    <Block space="md">
+    <Stack space={6}>
       <Flex justify="end">
         <LinkButton href={`/wallet/${slug}`} variant="outline" size="sm">
           {config.label}管理に戻る
@@ -110,7 +111,7 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
         </Flex>
       ) : hasHistories ? (
         <div ref={handleScrollContainerRef}>
-          <Block space="none">
+          <Stack space={0}>
             {histories.map((history) => (
               <HistoryListItem
                 key={history.batchId}
@@ -119,7 +120,7 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
               />
             ))}
             <div ref={handleBottomSentinelRef} />
-          </Block>
+          </Stack>
 
           <Flex justify="center" padding="sm">
             {isLoading ? (
@@ -144,6 +145,6 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
           </Para>
         </Block>
       )}
-    </Block>
+    </Stack>
   );
 }

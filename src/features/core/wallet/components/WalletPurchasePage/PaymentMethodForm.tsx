@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle, Span } from "@/components/TextBlocks";
@@ -43,7 +43,7 @@ export function PaymentMethodForm({
       <SecTitle as="h2" size="lg">
         お支払い方法
       </SecTitle>
-      <Block space="sm">
+      <Stack space={4}>
         {PAYMENT_METHODS.map((method) => (
           <label
             key={method.id}
@@ -61,7 +61,7 @@ export function PaymentMethodForm({
             <Span weight="medium">{method.label}</Span>
           </label>
         ))}
-      </Block>
+      </Stack>
 
       {error && (
         <Para tone="danger" size="sm" align="center">

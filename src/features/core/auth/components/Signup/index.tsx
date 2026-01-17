@@ -9,7 +9,7 @@ import { VerificationEmailSendForm } from "./EmailVarification/sendForm";
 import { ThirdPartySignupOptions } from "./ThirdPartySignupOptions";
 
 import { Button } from "@/components/Form/Button/Button";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 
 export type SignupProps = {
@@ -19,7 +19,7 @@ export type SignupProps = {
 export function Signup({ urlAfterEmailSent }: SignupProps) {
   return (
     <Section id="signup">
-      <Block space="md">
+      <Stack space={6}>
         <VerificationEmailSendForm urlAfterEmailSent={urlAfterEmailSent} />
         <ThirdPartySignupOptions />
 
@@ -39,7 +39,7 @@ export function Signup({ urlAfterEmailSent }: SignupProps) {
             </Link>
           </Button>
         </div>
-      </Block>
+      </Stack>
     </Section>
   );
 }

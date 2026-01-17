@@ -6,7 +6,7 @@ import Link from "next/link";
 import { cva } from "class-variance-authority";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
@@ -180,7 +180,7 @@ export function BaseSidebar({
 
   return (
     <aside style={{ width }} className={cn(sidebarContainer(), "flex flex-col")}>
-      <Block space="xs" className="w-full mb-0">
+      <Stack space={2} className="w-full mb-0">
         <nav aria-label="管理メニュー" className="w-full">
           <ul className="flex w-full flex-col p-0 list-none m-0">
             {sidebarSections.map((section, i) => {
@@ -279,14 +279,14 @@ export function BaseSidebar({
             })}
           </ul>
         </nav>
-      </Block>
-      <Block space="xs" className="w-full mt-0">
+      </Stack>
+      <Stack space={2} className="w-full mt-0">
         <div className="group relative w-full">
           <MenuButton type="button" onClick={handleLogout} disabled={isLoading}>
             ログアウト
           </MenuButton>
         </div>
-      </Block>
+      </Stack>
     </aside>
   );
 }

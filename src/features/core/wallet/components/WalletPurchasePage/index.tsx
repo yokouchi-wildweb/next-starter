@@ -4,6 +4,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
@@ -43,7 +44,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
   // パラメータ不足チェック
   if (!amountParam || !priceParam) {
     return (
-      <Block space="lg">
+      <Stack space={8}>
         <Para tone="danger" align="center">
           購入情報が指定されていません。
         </Para>
@@ -52,7 +53,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
             {config.label}管理へ戻る
           </LinkButton>
         </Flex>
-      </Block>
+      </Stack>
     );
   }
 
@@ -62,7 +63,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
   // 数値バリデーション
   if (isNaN(purchaseAmount) || isNaN(paymentAmount) || purchaseAmount <= 0 || paymentAmount <= 0) {
     return (
-      <Block space="lg">
+      <Stack space={8}>
         <Para tone="danger" align="center">
           無効な購入情報です。
         </Para>
@@ -71,7 +72,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
             {config.label}管理へ戻る
           </LinkButton>
         </Flex>
-      </Block>
+      </Stack>
     );
   }
 
@@ -100,7 +101,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
   const currentBalance = wallet?.balance ?? 0;
 
   return (
-    <Block space="md">
+    <Stack space={6}>
       <Flex justify="end">
         <LinkButton href={backUrl} variant="outline" size="sm">
           {config.label}管理に戻る
@@ -112,6 +113,6 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
         currentBalance={currentBalance}
         walletType={config.walletType}
       />
-    </Block>
+    </Stack>
   );
 }

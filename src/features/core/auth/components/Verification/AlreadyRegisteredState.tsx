@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";
 
 export function AlreadyRegisteredState() {
   return (
-    <Block space="sm">
+    <Stack space={4}>
       <Para>このメールアドレスはすでに登録済みです。</Para>
       <Para>
         ログインする場合は
@@ -16,6 +16,6 @@ export function AlreadyRegisteredState() {
         {" "}
         からサインインしてください。
       </Para>
-    </Block>
+    </Stack>
   );
 }

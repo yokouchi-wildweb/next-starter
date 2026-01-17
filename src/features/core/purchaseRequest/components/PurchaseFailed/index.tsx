@@ -4,7 +4,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { XCircle } from "lucide-react";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
@@ -57,7 +57,7 @@ export function PurchaseFailed({ slug }: PurchaseFailedProps) {
   const errorMessage = getErrorMessage(reason, errorCode);
 
   return (
-    <Block space="lg">
+    <Stack space={8}>
       <Flex direction="column" align="center" gap="md">
         <XCircle className="h-16 w-16 text-red-500" />
 
@@ -81,6 +81,6 @@ export function PurchaseFailed({ slug }: PurchaseFailedProps) {
           </LinkButton>
         </Flex>
       </Flex>
-    </Block>
+    </Stack>
   );
 }

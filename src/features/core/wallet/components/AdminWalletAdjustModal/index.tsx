@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/lib/toast";
 
 import TabbedModal from "@/components/Overlays/TabbedModal";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { AppForm } from "@/components/Form/AppForm";
@@ -135,10 +135,10 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
     .join(" / ");
 
   const adjustTabContent = (
-    <Block space="sm" padding="md">
-      <Block
+    <Stack space={4} padding="md">
+      <Stack
         className="rounded-md border border-border bg-card px-4 py-3"
-        space="xs"
+        space={2}
       >
         <Flex direction="column" gap="xs">
           <Flex justify="between" align="center" gap="lg" wrap="wrap">
@@ -161,7 +161,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             </div>
           </Flex>
         </Flex>
-      </Block>
+      </Stack>
       <AppForm methods={methods} onSubmit={submit} pending={isProcessing} fieldSpace="md">
         <FormFieldItem
           control={control}
@@ -235,7 +235,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
           </Button>
         </Flex>
       </AppForm>
-    </Block>
+    </Stack>
   );
 
   return (

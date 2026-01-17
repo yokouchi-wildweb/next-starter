@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle } from "lucide-react";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
@@ -62,7 +62,7 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
 
   if (error) {
     return (
-      <Block space="lg">
+      <Stack space={8}>
         <Para tone="danger" align="center">
           {error}
         </Para>
@@ -71,12 +71,12 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
             {currencyConfig?.label ?? "ウォレット"}管理ページへ戻る
           </LinkButton>
         </Flex>
-      </Block>
+      </Stack>
     );
   }
 
   return (
-    <Block space="lg">
+    <Stack space={8}>
       <Flex direction="column" align="center" gap="md">
         <CheckCircle className="h-16 w-16 text-green-500" />
 
@@ -85,7 +85,7 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
         </Para>
 
         {purchaseInfo && (
-          <Block appearance="surface" padding="md" space="sm" className="rounded-lg">
+          <Stack appearance="surface" padding="md" space={4} className="rounded-lg">
             <Flex direction="column" gap="xs">
               <Flex justify="between" gap="md" align="center">
                 <Para tone="muted" size="sm">購入数量</Para>
@@ -106,7 +106,7 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
                 </Para>
               </Flex>
             </Flex>
-          </Block>
+          </Stack>
         )}
 
         <Para align="center" tone="muted" size="sm">
@@ -119,6 +119,6 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
           </LinkButton>
         </Flex>
       </Flex>
-    </Block>
+    </Stack>
   );
 }

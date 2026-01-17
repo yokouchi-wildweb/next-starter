@@ -4,11 +4,12 @@ import Link from "next/link";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";
 
 export function InvalidProcessState() {
   return (
-    <Block space="sm">
+    <Stack space={4}>
       <Para>認証に失敗しました。</Para>
       <Block>
           <Para>
@@ -24,6 +25,6 @@ export function InvalidProcessState() {
               </Link>
           </Para>
       </Block>
-    </Block>
+    </Stack>
   );
 }

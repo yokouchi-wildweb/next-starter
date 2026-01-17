@@ -1,7 +1,7 @@
 import { HideHeaderNav, HideFooter, HideBottomNav } from "@/components/AppFrames/User/controls";
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";
 
 export default function MaintenancePage() {
@@ -10,7 +10,7 @@ export default function MaintenancePage() {
       <HideHeaderNav />
       <HideFooter />
       <HideBottomNav />
-      <Block space="lg" className="text-center py-12">
+      <Stack space={8} className="text-center py-12">
         <UserPageTitle>ただいま準備中です</UserPageTitle>
         <Para tone="muted">
           現在サイトを準備しております。
@@ -18,7 +18,7 @@ export default function MaintenancePage() {
         <Para tone="muted">
           サービス開始までしばらくお待ちください。
         </Para>
-      </Block>
+      </Stack>
     </UserPage>
   );
 }

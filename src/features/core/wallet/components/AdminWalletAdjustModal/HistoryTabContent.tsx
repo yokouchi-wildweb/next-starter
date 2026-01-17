@@ -4,7 +4,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
@@ -147,7 +147,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
 
   return (
     <>
-    <Block space="md" padding="md">
+    <Stack space={6} padding="md">
       <Para size="xs" tone="muted">
         {total ? `合計 ${total} 件` : "履歴 0 件"}
       </Para>
@@ -193,7 +193,7 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
           <Para tone="muted">履歴はまだありません</Para>
         </div>
       )}
-    </Block>
+    </Stack>
     <DetailModal
       open={Boolean(detailHistory)}
       onOpenChange={(open) => {

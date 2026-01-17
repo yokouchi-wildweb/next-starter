@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Span } from "@/components/TextBlocks";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
@@ -11,7 +11,7 @@ export function WalletIndexPage() {
   const walletTypes = Object.keys(CURRENCY_CONFIG) as WalletType[];
 
   return (
-    <Block space="none">
+    <Stack space={0}>
       {walletTypes.map((walletType) => {
         const config = CURRENCY_CONFIG[walletType];
         const Icon = config.icon;
@@ -42,6 +42,6 @@ export function WalletIndexPage() {
           </Link>
         );
       })}
-    </Block>
+    </Stack>
   );
 }

@@ -1,6 +1,6 @@
 // src/features/core/wallet/components/WalletPurchasePage/PurchaseSummaryCard.tsx
 
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Span } from "@/components/TextBlocks";
@@ -26,7 +26,7 @@ export function PurchaseSummaryCard({
 
   return (
     <Section className="-mx-4 bg-gray-100 px-4 py-4">
-      <Block className="rounded-lg bg-white" padding="lg" space="sm">
+      <Stack className="rounded-lg bg-white" padding="lg" space={4}>
         <Flex justify="between" align="center" className="py-2">
           <Span tone="muted">ご購入{config.label}</Span>
           <CurrencyDisplay
@@ -53,7 +53,7 @@ export function PurchaseSummaryCard({
             bold
           />
         </Flex>
-      </Block>
+      </Stack>
     </Section>
   );
 }

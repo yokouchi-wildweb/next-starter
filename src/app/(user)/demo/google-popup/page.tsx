@@ -13,6 +13,7 @@ import {
 
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import { auth } from "@/lib/firebase/client/app";
@@ -183,7 +184,7 @@ export default function GooglePopupAuthDemoPage() {
   }, []);
 
   return (
-    <Block className="py-8" space="xl">
+    <Stack className="py-8" space={10}>
       <header className="flex flex-col gap-3">
         <PageTitle size="xxxl" className="font-semibold tracking-tight">
           Google ポップアップ認証デモ
@@ -308,6 +309,6 @@ export default function GooglePopupAuthDemoPage() {
           </Para>
         )}
       </Section>
-    </Block>
+    </Stack>
   );
 }

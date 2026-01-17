@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
 import { Input, PasswordInput } from "@/components/Form/Manual";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { localLogin } from "@/features/core/auth/services/client/localLogin";
 import { err } from "@/lib/errors";
@@ -51,7 +51,7 @@ export function AdminLogin() {
   return (
     <section id="admin-login" className="w-full">
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <Block space="xs">
+        <Stack space={2}>
           <Label htmlFor="admin-login-email" className="block text-foreground">
             メールアドレス
           </Label>
@@ -63,8 +63,8 @@ export function AdminLogin() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
-        </Block>
-        <Block space="xs">
+        </Stack>
+        <Stack space={2}>
           <Label htmlFor="admin-login-password" className="block text-foreground">
             パスワード
           </Label>
@@ -75,7 +75,7 @@ export function AdminLogin() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
-        </Block>
+        </Stack>
         {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
         <Button type="submit" disabled={loading} className="w-full mt-4">
           {loading ? "ログイン中..." : "ログイン"}

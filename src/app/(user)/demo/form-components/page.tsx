@@ -34,6 +34,7 @@ import {
 } from "src/components/Form/Manual";
 import { FormFieldItem } from "@/components/Form/FormFieldItem";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { Main, PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 import type { Options, OptionValue } from "@/components/Form/types";
@@ -383,7 +384,7 @@ export default function FormComponentsDemoPage() {
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
-                <Block space="sm">
+                <Stack space={4}>
                   <FormLabel className="text-sm font-medium">StepperInput</FormLabel>
                   <Para tone="muted" size="xs">
                     サイズ違いのバリエーションをまとめて確認できます。
@@ -411,7 +412,7 @@ export default function FormComponentsDemoPage() {
                         onValueChange={(value) => handleStepperValueChange("large", value)}
                     />
                   </div>
-                </Block>
+                </Stack>
 
               </div>
 

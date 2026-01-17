@@ -3,7 +3,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
@@ -23,7 +23,7 @@ export function PurchaseCallback({ slug }: PurchaseCallbackProps) {
 
   if (error) {
     return (
-      <Block space="lg">
+      <Stack space={8}>
         <Para tone="danger" align="center">
           {error}
         </Para>
@@ -32,12 +32,12 @@ export function PurchaseCallback({ slug }: PurchaseCallbackProps) {
             戻る
           </LinkButton>
         </Flex>
-      </Block>
+      </Stack>
     );
   }
 
   return (
-    <Block space="lg">
+    <Stack space={8}>
       <Flex direction="column" align="center" gap="md">
         <Spinner className="h-12 w-12 text-blue-600" />
         <Para align="center" size="lg">
@@ -47,6 +47,6 @@ export function PurchaseCallback({ slug }: PurchaseCallbackProps) {
           しばらくお待ちください
         </Para>
       </Flex>
-    </Block>
+    </Stack>
   );
 }

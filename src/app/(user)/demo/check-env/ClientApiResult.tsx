@@ -7,7 +7,7 @@ import type {
   KeyValuePair,
 } from "./api/envSummary";
 import { Button } from "@/components/Form/Button/Button";
-import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import axios from "axios";
 import { useCallback, useState } from "react";
 
@@ -31,12 +31,12 @@ export const ClientApiResultSection = () => {
 
   return (
     <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6 shadow-sm">
-      <Block space="sm">
+      <Stack space={4}>
         <h2 className="text-2xl font-semibold">API での再取得</h2>
         <p className="text-sm text-muted-foreground">
           「情報を取得」ボタンを押すと API (`/demo/check-env/api`) から同様の情報を取得し、結果とエラーを表示します。
         </p>
-      </Block>
+      </Stack>
       <div className="flex flex-wrap items-center gap-3">
         <Button
           type="button"
@@ -51,7 +51,7 @@ export const ClientApiResultSection = () => {
         ) : null}
       </div>
       {result ? (
-        <Block space="lg">
+        <Stack space={8}>
           <ServiceAccountSection summary={result.data.serviceAccount} />
           <EnvVariableSection
             title="Firebase 関連の環境変数"
@@ -64,7 +64,7 @@ export const ClientApiResultSection = () => {
             entries={result.data.otherEnvVars}
           />
           <ErrorList errors={result.errors} emptyMessage="API レスポンスにエラーは含まれていませんでした。" />
-        </Block>
+        </Stack>
       ) : (
         <p className="text-sm text-muted-foreground">まだ API から情報を取得していません。</p>
       )}
@@ -73,7 +73,7 @@ export const ClientApiResultSection = () => {
 };
 
 const ServiceAccountSection = ({ summary }: { summary: EnvSummary["serviceAccount"] }) => (
-  <Block space="md">
+  <Stack space={6}>
     <h3 className="text-xl font-semibold">MY_SERVICE_ACCOUNT_KEY の値</h3>
     {summary.raw ? (
       <pre className="whitespace-pre-wrap break-all rounded-md border border-border bg-muted/40 p-4 text-sm">
@@ -82,14 +82,14 @@ const ServiceAccountSection = ({ summary }: { summary: EnvSummary["serviceAccoun
     ) : (
       <p className="text-sm text-muted-foreground">値が存在しません。</p>
     )}
-    <Block space="sm">
+    <Stack space={4}>
       <h4 className="text-lg font-semibold">詳細</h4>
       <KeyValueTable entries={summary.parsed ?? []} emptyLabel="詳細情報は存在しません。" />
       {summary.parseError ? (
         <p className="text-sm text-destructive">解析エラー: {summary.parseError}</p>
       ) : null}
-    </Block>
-  </Block>
+    </Stack>
+  </Stack>
 );
 
 const EnvVariableSection = ({
@@ -101,11 +101,11 @@ const EnvVariableSection = ({
   description: string;
   entries: KeyValuePair[];
 }) => (
-  <Block space="md">
+  <Stack space={6}>
     <h3 className="text-xl font-semibold">{title}</h3>
     <p className="text-sm text-muted-foreground">{description}</p>
     <KeyValueTable entries={entries} emptyLabel="該当する環境変数は見つかりませんでした。" />
-  </Block>
+  </Stack>
 );
 
 const KeyValueTable = ({ entries, emptyLabel }: { entries: KeyValuePair[]; emptyLabel: string }) => (
@@ -136,7 +136,7 @@ const KeyValueTable = ({ entries, emptyLabel }: { entries: KeyValuePair[]; empty
 );
 
 const ErrorList = ({ errors, emptyMessage }: { errors: EnvApiError[]; emptyMessage: string }) => (
-  <Block space="sm">
+  <Stack space={4}>
     <h3 className="text-xl font-semibold">API から返却されたエラー</h3>
     {errors.length > 0 ? (
       <ul className="list-disc flex flex-col gap-1 pl-5 text-sm text-destructive">
@@ -150,5 +150,5 @@ const ErrorList = ({ errors, emptyMessage }: { errors: EnvApiError[]; emptyMessa
     ) : (
       <p className="text-sm text-muted-foreground">{emptyMessage}</p>
     )}
-  </Block>
+  </Stack>
 );

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import type { EnvApiError, EnvSummary, KeyValuePair } from "./api/envSummary";
 import { buildEnvSummary } from "./api/envSummary";
 import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
 import { ClientApiResultSection } from "./ClientApiResult";
 
 const Page = async () => {
@@ -78,11 +79,11 @@ const EnvVariableSection = ({
   description: string;
   entries: KeyValuePair[];
 }) => (
-  <Block space="md">
+  <Stack space={6}>
     <h3 className="text-xl font-semibold">{title}</h3>
     <p className="text-sm text-muted-foreground">{description}</p>
     <KeyValueTable entries={entries} emptyLabel="該当する環境変数は見つかりませんでした。" />
-  </Block>
+  </Stack>
 );
 
 const KeyValueTable = ({ entries, emptyLabel }: { entries: KeyValuePair[]; emptyLabel: string }) => (
@@ -113,7 +114,7 @@ const KeyValueTable = ({ entries, emptyLabel }: { entries: KeyValuePair[]; empty
 );
 
 const ErrorList = ({ errors, emptyMessage }: { errors: EnvApiError[]; emptyMessage: string }) => (
-  <Block space="sm">
+  <Stack space={4}>
     <h3 className="text-xl font-semibold">検出されたエラー</h3>
     {errors.length > 0 ? (
       <ul className="list-disc flex flex-col gap-1 pl-5 text-sm text-destructive">
@@ -127,5 +128,5 @@ const ErrorList = ({ errors, emptyMessage }: { errors: EnvApiError[]; emptyMessa
     ) : (
       <p className="text-sm text-muted-foreground">{emptyMessage}</p>
     )}
-  </Block>
+  </Stack>
 );
