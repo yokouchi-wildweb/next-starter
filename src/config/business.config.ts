@@ -41,6 +41,9 @@ export const businessConfig = {
   /** サイトURL（プロトコル付き） */
   url: "https://example.com",
 
+  /** サイト開設日（法的文書の制定日のデフォルト値として使用） */
+  launchedAt: "20XX年X月X日",
+
   // === 運営会社情報 ===
 
   company: {
@@ -61,35 +64,6 @@ export const businessConfig = {
 
     /** メールアドレス（サポート・お問い合わせ用） */
     email: "support@example.com",
-  },
-
-  // === 法的ページ用情報 ===
-
-  legal: {
-    /** 規約等の制定日 */
-    enactedAt: "20XX年X月X日",
-
-    /** 規約等の最終更新日 */
-    lastUpdatedAt: "20XX年X月X日",
-
-    /**
-     * 許認可・法的情報のリスト
-     * - type: 識別子（必須）
-     * - label: 表示名（必須）
-     * - details: キーバリュー配列（keyは省略可、省略時はvalueのみ表示）
-     */
-    licenses: [
-      // 例: 古物商許可
-      // {
-      //   type: "antique",
-      //   label: "古物商許可",
-      //   details: [
-      //     { key: "許可番号", value: "第000000000号" },
-      //     { key: "交付", value: "東京都公安委員会" },
-      //     { value: "20XX年X月X日" },
-      //   ],
-      // },
-    ] as License[],
   },
 
   // === 決済情報 ===
@@ -136,6 +110,43 @@ export const businessConfig = {
 
     /** LINE公式アカウントのURL */
     line: "",
+  },
+
+  // === 法的ページ用情報 ===
+
+  legal: {
+    /**
+     * 文書ごとの日付設定（すべて省略可）
+     * - enactedAt: 制定日（省略時は launchedAt を使用）
+     * - lastUpdatedAt: 最終更新日（省略時は非表示）
+     */
+    terms: {
+      // enactedAt: "20XX年X月X日",
+      // lastUpdatedAt: "20XX年X月X日",
+    },
+    privacy: {
+      // enactedAt: "20XX年X月X日",
+      // lastUpdatedAt: "20XX年X月X日",
+    },
+
+    /**
+     * 許認可・法的情報のリスト
+     * - type: 識別子（必須）
+     * - label: 表示名（必須）
+     * - details: キーバリュー配列（keyは省略可、省略時はvalueのみ表示）
+     */
+    licenses: [
+      // 例: 古物商許可
+      // {
+      //   type: "antique",
+      //   label: "古物商許可",
+      //   details: [
+      //     { key: "許可番号", value: "第000000000号" },
+      //     { key: "交付", value: "東京都公安委員会" },
+      //     { value: "20XX年X月X日" },
+      //   ],
+      // },
+    ] as License[],
   },
 } as const;
 

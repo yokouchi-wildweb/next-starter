@@ -6,7 +6,8 @@ import type { LegalDocument } from "@/lib/structuredDocument/legal";
  */
 export const termsConfig: LegalDocument = {
   title: "利用規約",
-  enactedAt: businessConfig.legal.enactedAt,
+  enactedAt: businessConfig.legal.terms?.enactedAt ?? businessConfig.launchedAt,
+  lastUpdatedAt: businessConfig.legal.terms?.lastUpdatedAt,
   sectionNumbering: "article",
   sections: [
     // 前文

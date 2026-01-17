@@ -53,10 +53,14 @@ export function LegalDocumentRenderer({
         />
       )}
 
-      {/* 制定日 */}
-      {showEnactedAt && document.enactedAt && (
+      {/* 制定日・最終更新日 */}
+      {showEnactedAt && (document.enactedAt || document.lastUpdatedAt) && (
         <Para tone="muted" size="sm">
-          【{document.enactedAt}制定】
+          {document.enactedAt && document.lastUpdatedAt
+            ? `制定日：${document.enactedAt} / 最終改定日：${document.lastUpdatedAt}`
+            : document.enactedAt
+              ? `【${document.enactedAt}制定】`
+              : `最終改定日：${document.lastUpdatedAt}`}
         </Para>
       )}
     </>
