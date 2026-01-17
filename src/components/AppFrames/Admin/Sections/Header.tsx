@@ -26,12 +26,12 @@ export function Header() {
         <img
           src={logoPath("dark")}
           alt="管理画面ロゴ（ライトモード）"
-          className="block h-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-none sm:max-w-[300px]"
+          className="block h-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"
         />
         <img
           src={logoPath("light")}
           alt="管理画面ロゴ（ダークモード）"
-          className="hidden h-auto max-h-6 max-w-[120px] dark:block sm:max-h-none sm:max-w-[300px]"
+          className="hidden h-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"
         />
       </Link>
       {showDarkModeSwitch ? <DarkModeSwitch /> : null}
