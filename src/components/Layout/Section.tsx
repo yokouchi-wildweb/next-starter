@@ -20,7 +20,6 @@ export type SectionProps<T extends SectionElement = "section"> = BaseSectionProp
 export function Section<T extends SectionElement = "section">({
   as,
   appearance,
-  space,
   padding,
   paddingBlock,
   paddingInline,
@@ -38,7 +37,6 @@ export function Section<T extends SectionElement = "section">({
       className={cn(
         sectionVariants({
           appearance,
-          space,
           padding,
           paddingBlock,
           paddingInline,

@@ -3,7 +3,15 @@ import { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { layoutVariants } from "./commonVariants";
+import {
+  appearance,
+  padding,
+  paddingBlock,
+  paddingInline,
+  margin,
+  marginBlock,
+  marginInline,
+} from "./commonVariants";
 
 const flexVariantDefinitions = {
   gap: {
@@ -40,9 +48,20 @@ const flexVariantDefinitions = {
   },
 } as const;
 
+/** Flex用のレイアウトバリアント（spaceを除外） */
+const flexLayoutVariants = {
+  appearance,
+  padding,
+  paddingBlock,
+  paddingInline,
+  margin,
+  marginBlock,
+  marginInline,
+} as const;
+
 const flexVariants = cva("flex", {
   variants: {
-    ...layoutVariants,
+    ...flexLayoutVariants,
     ...flexVariantDefinitions,
   },
 });
@@ -54,7 +73,6 @@ type FlexProps = Omit<ComponentPropsWithoutRef<"div">, "className"> &
 
 export function Flex({
   appearance,
-  space,
   padding,
   paddingBlock,
   paddingInline,
@@ -71,7 +89,6 @@ export function Flex({
 }: FlexProps) {
   const variantClasses = flexVariants({
     appearance,
-    space,
     padding,
     paddingBlock,
     paddingInline,

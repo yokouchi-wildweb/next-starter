@@ -33,7 +33,6 @@ export type MainProps = ComponentPropsWithoutRef<"main"> &
 export function Main({
   containerType,
   appearance,
-  space,
   padding = "md",
   paddingBlock,
   paddingInline,
@@ -58,7 +57,6 @@ export function Main({
           "max-w-screen overflow-hidden",
           mainLayoutVariants({
             appearance,
-            space,
             padding,
             paddingBlock,
             paddingInline,
@@ -101,7 +99,6 @@ export function Main({
           className={cn(
             mainLayoutVariants({
               appearance,
-              space,
               padding,
               paddingBlock,
               paddingInline,

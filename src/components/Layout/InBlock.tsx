@@ -11,7 +11,6 @@ type InBlockProps = ComponentPropsWithoutRef<"span"> & VariantProps<typeof inBlo
 
 export function InBlock({
   appearance,
-  space = "none",
   padding,
   paddingBlock,
   paddingInline,
@@ -27,7 +26,6 @@ export function InBlock({
       className={cn(
         inBlockVariants({
           appearance,
-          space,
           padding,
           paddingBlock,
           paddingInline,
