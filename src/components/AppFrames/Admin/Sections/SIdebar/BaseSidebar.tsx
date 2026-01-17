@@ -12,7 +12,7 @@ import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 
 import { adminMenu, type AdminMenuSection } from "@/config/ui/admin-global-menu.config";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
@@ -128,7 +128,7 @@ export function BaseSidebar({
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { user } = useAuthSession();
 
   // ユーザーロールに基づいてメニューをフィルタリング
@@ -167,11 +167,11 @@ export function BaseSidebar({
     try {
       await logout();
       onNavigate?.();
-      showAppToast("ログアウトしました", "success");
+      showToast("ログアウトしました", "success");
     } catch (error) {
-      showAppToast(err(error, "ログアウトに失敗しました"), "error");
+      showToast(err(error, "ログアウトに失敗しました"), "error");
     }
-  }, [logout, onNavigate, showAppToast]);
+  }, [logout, onNavigate, showToast]);
 
   const focusIndex = (index: number) => {
     clearCloseTimeout();

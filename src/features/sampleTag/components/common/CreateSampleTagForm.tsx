@@ -9,7 +9,7 @@ import { SampleTagCreateFields } from "@/features/sampleTag/entities/form";
 import { useCreateSampleTag } from "@/features/sampleTag/hooks/useCreateSampleTag";
 import { SampleTagForm } from "./SampleTagForm";
 import { useRouter } from "next/navigation";
-import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";
+import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
 import domainConfig from "@/features/sampleTag/domain.json";
@@ -27,17 +27,17 @@ export default function CreateSampleTagForm({ redirectPath = "/" }: Props) {
   });
 
   const router = useRouter();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useCreateSampleTag();
   useLoadingToast(isMutating, "登録中です…");
 
   const submit = async (data: SampleTagCreateFields) => {
     try {
       await trigger(data);
-      showAppToast("登録しました", "success");
+      showToast("登録しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      showAppToast(err(error, "登録に失敗しました"), "error");
+      showToast(err(error, "登録に失敗しました"), "error");
     }
   };
 

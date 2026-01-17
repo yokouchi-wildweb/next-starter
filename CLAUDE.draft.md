@@ -20,7 +20,7 @@ http: axios (client), fetch (server)
 |---|---|---|---|
 | domain | ビジネス概念として独立 | src/features/ | 全て（entities含む） |
 | library | 複数ファイルで構成される機能群 | src/lib/\<name\>/ | entities以外の全て |
-| unit | 単体の小機能 | src/components/, hooks/, utils/ | 単一ファイル |
+| unit | 単体の小機能 | src/components/, hooks/, utils/ | 小規模（複数ファイル可） |
 
 ### 判断フロー
 ```
@@ -100,7 +100,7 @@ constants/, types/, presenters.ts, domain.json
 | 区分 | ファイル | 編集 |
 |---|---|---|
 | generated | entities/, services/(drizzleBase), hooks/, Admin*/, registry/ | 禁止 |
-| customizable | wrappers/, common/formEntities.ts, constants/, presenters.ts | 可 |
+| customizable | wrappers/, components/**/formEntities.ts, constants/, presenters.ts | 可 |
 
 ### src/（共有）
 ```
@@ -165,6 +165,7 @@ ref: src/stores/README.md
 - `dc:generate -- <Domain>` - 単一ドメイン生成
 - `dc:generate:all` - 全ドメイン再生成
 - `dc:delete -- <Domain>` - ドメイン削除
+- `dc:add -- <Domain>` - フィールド追加
 
 ref: src/features/README.md
 
@@ -268,7 +269,7 @@ AppFrames/User/controls/: header/footer/bottomMenu の表示制御（page.tsx内
 
 ### DomainFieldRenderer
 domain.json.fields[].formInput -> DomainFieldRenderer -> 各Input
-types: textInput, numberInput, textarea, select, multiSelect, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden
+types: textInput, numberInput, textarea, select, multiSelect, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden, none
 
 ref: src/components/README.md
 
@@ -327,6 +328,7 @@ UI: err(error, fallback) for display
 - src/components/
 - scripts/domain-config/
 - src/styles/config.css
+- src/styles/z-layer.css
 
 ### src/config/
 - 値の変更: 承認不要
@@ -350,4 +352,4 @@ claude:test -> Claude API接続確認（ANTHROPIC_API_KEY必要）
 ## DOCS
 
 location: docs/
-structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/
+structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/

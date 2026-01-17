@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 
 export type DeleteButtonProps = {
@@ -49,17 +49,17 @@ export default function DeleteButton({
   const { trigger, isMutating } = useDelete();
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const { showAppToast, hideAppToast } = useAppToast();
+  const { showToast, hideToast } = useToast();
 
   const handleDelete = async () => {
     setOpen(false);
-    showAppToast({ message: toastMessage, mode: "persistent" });
+    showToast({ message: toastMessage, mode: "persistent" });
     try {
       await trigger(id);
-      showAppToast(successMessage, "success");
+      showToast(successMessage, "success");
       router.refresh();
     } catch (error) {
-      showAppToast(err(error, errorMessage), "error");
+      showToast(err(error, errorMessage), "error");
     }
   };
 

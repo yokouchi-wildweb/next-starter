@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import Dialog from "@/components/Overlays/Dialog";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
@@ -27,7 +27,7 @@ export function DeleteTabContent({ user, onClose }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const router = useRouter();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger: triggerDelete, isMutating } = useSoftDeleteUser();
 
   const handleReset = () => {
@@ -54,11 +54,11 @@ export function DeleteTabContent({ user, onClose }: Props) {
           reason: reason.trim() || undefined,
         },
       });
-      showAppToast("ユーザーを削除しました", "success");
+      showToast("ユーザーを削除しました", "success");
       handleClose();
       router.refresh();
     } catch (error) {
-      showAppToast(err(error, "ユーザーの削除に失敗しました"), "error");
+      showToast(err(error, "ユーザーの削除に失敗しました"), "error");
     }
   };
 

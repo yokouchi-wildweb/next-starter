@@ -4,7 +4,7 @@
 
 import { useCallback, useState } from "react";
 import { ArrowLeftIcon, ChevronRightIcon, Loader2Icon } from "lucide-react";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 
 import {
   Command,
@@ -30,7 +30,7 @@ type ViewState =
  * 設定変更カテゴリのレンダラー
  */
 export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { data: setting, mutate: mutateSetting } = useSetting();
   const { trigger: updateSetting, isMutating } = useUpdateSetting();
 
@@ -82,24 +82,24 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
     if (field.type === "number") {
       const numValue = Number(trimmedValue);
       if (Number.isNaN(numValue)) {
-        showAppToast({ message: "数値を入力してください", variant: "error", position: "center", layer: "apex" });
+        showToast({ message: "数値を入力してください", variant: "error", position: "center", layer: "apex" });
         return;
       }
       if (field.validation?.min !== undefined && numValue < field.validation.min) {
-        showAppToast({ message: `${field.validation.min}以上の値を入力してください`, variant: "error", position: "center", layer: "apex" });
+        showToast({ message: `${field.validation.min}以上の値を入力してください`, variant: "error", position: "center", layer: "apex" });
         return;
       }
       if (field.validation?.max !== undefined && numValue > field.validation.max) {
-        showAppToast({ message: `${field.validation.max}以下の値を入力してください`, variant: "error", position: "center", layer: "apex" });
+        showToast({ message: `${field.validation.max}以下の値を入力してください`, variant: "error", position: "center", layer: "apex" });
         return;
       }
     } else {
       if (field.validation?.minLength !== undefined && trimmedValue.length < field.validation.minLength) {
-        showAppToast({ message: `${field.validation.minLength}文字以上入力してください`, variant: "error", position: "center", layer: "apex" });
+        showToast({ message: `${field.validation.minLength}文字以上入力してください`, variant: "error", position: "center", layer: "apex" });
         return;
       }
       if (field.validation?.maxLength !== undefined && trimmedValue.length > field.validation.maxLength) {
-        showAppToast({ message: `${field.validation.maxLength}文字以内で入力してください`, variant: "error", position: "center", layer: "apex" });
+        showToast({ message: `${field.validation.maxLength}文字以内で入力してください`, variant: "error", position: "center", layer: "apex" });
         return;
       }
     }
@@ -112,13 +112,13 @@ export function SettingsRenderer({ onClose, onBack }: CategoryRendererProps) {
           [field.key]: updateValue,
         } as Parameters<typeof updateSetting>[0]["data"],
       });
-      showAppToast({ message: `${field.label}を更新しました`, variant: "success", position: "center", layer: "apex" });
+      showToast({ message: `${field.label}を更新しました`, variant: "success", position: "center", layer: "apex" });
       onClose();
       mutateSetting();
     } catch {
-      showAppToast({ message: "設定の更新に失敗しました", variant: "error", position: "center", layer: "apex" });
+      showToast({ message: "設定の更新に失敗しました", variant: "error", position: "center", layer: "apex" });
     }
-  }, [view, inputValue, setting, updateSetting, mutateSetting, onClose, showAppToast]);
+  }, [view, inputValue, setting, updateSetting, mutateSetting, onClose, showToast]);
 
   // 入力モードでのキーハンドリング
   const handleInputKeyDown = useCallback(

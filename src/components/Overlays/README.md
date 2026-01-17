@@ -293,27 +293,26 @@ function Example() {
 
 ---
 
-### AppToast
+### Toast
 
-トースト通知の表示。
+トースト通知の表示。`@/lib/toast` ライブラリで提供される。
 
 ```tsx
-import { GlobalAppToast } from "@/components/Overlays/AppToast";
-import { useAppToast } from "@/hooks/useAppToast";
+import { GlobalToast, useToast } from "@/lib/toast";
 
 // layout.tsx などでグローバルに配置（1 つだけ）
-<GlobalAppToast />
+<GlobalToast />
 
 // 任意のコンポーネントで呼び出し
-const { showAppToast, hideAppToast } = useAppToast();
-showAppToast("保存しました", "success");
-showAppToast({
+const { showToast, hideToast } = useToast();
+showToast("保存しました", "success");
+showToast({
   message: "同期中…",
   variant: "loading",
   mode: "persistent",
   position: "top-center",
 });
-hideAppToast();
+hideToast();
 ```
 
 **主なオプション（省略時のデフォルト値）**

@@ -17,7 +17,7 @@ import {
 import type { CategoryRendererProps } from "@/features/core/adminCommand/base/types";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { useSessionRefresh } from "@/features/core/auth/hooks/useSessionRefresh";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 import { filterSearchInput } from "../../utils";
 import { sessionItems } from "./items";
 
@@ -36,7 +36,7 @@ export function SessionRenderer({ onClose, onBack }: CategoryRendererProps) {
 
   const { logout } = useLogout({ redirectTo: "/" });
   const { refresh } = useSessionRefresh();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchValue(filterSearchInput(value));
@@ -68,11 +68,11 @@ export function SessionRenderer({ onClose, onBack }: CategoryRendererProps) {
         try {
           await refresh();
           onClose();
-          showAppToast("セッションをリフレッシュしました", "success");
+          showToast("セッションをリフレッシュしました", "success");
           router.refresh();
         } catch {
           onClose();
-          showAppToast("セッションのリフレッシュに失敗しました", "error");
+          showToast("セッションのリフレッシュに失敗しました", "error");
         }
       } else if (itemId === "session-logout") {
         setProcessing({ type: "logout", message: "ログアウト中..." });
@@ -84,7 +84,7 @@ export function SessionRenderer({ onClose, onBack }: CategoryRendererProps) {
         }
       }
     },
-    [refresh, logout, onClose, router, showAppToast]
+    [refresh, logout, onClose, router, showToast]
   );
 
   // 処理中はローディング表示

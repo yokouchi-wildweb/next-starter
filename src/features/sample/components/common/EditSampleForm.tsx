@@ -10,7 +10,7 @@ import type { Sample } from "@/features/sample/entities";
 import { useUpdateSample } from "@/features/sample/hooks/useUpdateSample";
 import { SampleForm } from "./SampleForm";
 import { useRouter } from "next/navigation";
-import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";
+import { useToast, useLoadingToast } from "@/lib/toast";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
 import { useSampleTagList } from "@/features/sampleTag/hooks/useSampleTagList";
 import { err } from "@/lib/errors";
@@ -37,17 +37,17 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   const sampleTagOptions = sampleTags.map((v) => ({ value: v.id, label: v.name }));
 
   const router = useRouter();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateSample();
   useLoadingToast(isMutating, "更新中です…");
 
   const submit = async (data: SampleUpdateFields) => {
     try {
       await trigger({ id: sample.id, data });
-      showAppToast("更新しました", "success");
+      showToast("更新しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      showAppToast(err(error, "更新に失敗しました"), "error");
+      showToast(err(error, "更新に失敗しました"), "error");
     }
   };
 

@@ -6,7 +6,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 import Dialog from "@/components/Overlays/Dialog";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
@@ -33,7 +33,7 @@ export function RoleTabContent({ user, onClose }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const router = useRouter();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger: triggerRoleChange, isMutating } = useChangeUserRole();
 
   // 現在のロールがプロフィールを持つか
@@ -76,11 +76,11 @@ export function RoleTabContent({ user, onClose }: Props) {
           deleteOldProfile: currentRoleHasProfile ? deleteOldProfile : undefined,
         },
       });
-      showAppToast("ロールを変更しました", "success");
+      showToast("ロールを変更しました", "success");
       handleClose();
       router.refresh();
     } catch (error) {
-      showAppToast(err(error, "ロールの変更に失敗しました"), "error");
+      showToast(err(error, "ロールの変更に失敗しました"), "error");
     }
   };
 

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import Dialog from "@/components/Overlays/Dialog";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
@@ -32,7 +32,7 @@ export function StatusTabContent({ user, onClose }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const router = useRouter();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger: triggerStatusChange, isMutating } = useChangeUserStatus();
 
   const handleReset = () => {
@@ -63,11 +63,11 @@ export function StatusTabContent({ user, onClose }: Props) {
           reason: reason.trim() || undefined,
         },
       });
-      showAppToast("ステータスを変更しました", "success");
+      showToast("ステータスを変更しました", "success");
       handleClose();
       router.refresh();
     } catch (error) {
-      showAppToast(err(error, "ステータスの変更に失敗しました"), "error");
+      showToast(err(error, "ステータスの変更に失敗しました"), "error");
     }
   };
 

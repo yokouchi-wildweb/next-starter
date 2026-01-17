@@ -77,10 +77,10 @@ constants/, types/, presenters.ts, domain.json
 
 ### shared (approval required to modify)
 ```
-lib/: crud, errors, drizzle, firebase, storage, mail, jwt, routeFactory, etc.
+lib/: crud, errors, drizzle, firebase, storage, mail, jwt, routeFactory, toast, etc.
 components/: Form/, Layout/, TextBlocks/, Skeleton/, _shadcn/
-stores/: appToast/, globalLoader/, siteTheme/, viewportSize/, adminLayout/
-hooks/: useAppToast, useGlobalLoader, useInfiniteScrollQuery, etc.
+stores/: globalLoader/, siteTheme/, viewportSize/, adminLayout/
+hooks/: useGlobalLoader, useInfiniteScrollQuery, etc.
 config/: admin-global-menu, app-features, maintenance, redirect, etc.
 registry/: schemaRegistry, serviceRegistry, adminDataMenu
 proxies/: middleware handlers

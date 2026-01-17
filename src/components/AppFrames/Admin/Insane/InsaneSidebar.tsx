@@ -11,7 +11,7 @@ import { Span } from "@/components/TextBlocks";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 
 import { insaneMenu } from "@/config/ui/admin-insane-menu.config";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
@@ -109,7 +109,7 @@ export function InsaneSidebar({
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { logout, isLoading } = useLogout({ redirectTo: "/admin/login" });
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
 
   const clearCloseTimeout = useCallback(() => {
     if (closeTimeoutRef.current) {
@@ -141,11 +141,11 @@ export function InsaneSidebar({
     try {
       await logout();
       onNavigate?.();
-      showAppToast("ログアウトしました", "success");
+      showToast("ログアウトしました", "success");
     } catch (error) {
-      showAppToast(err(error, "ログアウトに失敗しました"), "error");
+      showToast(err(error, "ログアウトに失敗しました"), "error");
     }
-  }, [logout, onNavigate, showAppToast]);
+  }, [logout, onNavigate, showToast]);
 
   const focusIndex = (index: number) => {
     clearCloseTimeout();

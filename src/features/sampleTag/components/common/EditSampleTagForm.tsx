@@ -10,7 +10,7 @@ import type { SampleTag } from "@/features/sampleTag/entities";
 import { useUpdateSampleTag } from "@/features/sampleTag/hooks/useUpdateSampleTag";
 import { SampleTagForm } from "./SampleTagForm";
 import { useRouter } from "next/navigation";
-import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";
+import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
 import domainConfig from "@/features/sampleTag/domain.json";
@@ -29,17 +29,17 @@ export default function EditSampleTagForm({ sampleTag, redirectPath = "/" }: Pro
   });
 
   const router = useRouter();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateSampleTag();
   useLoadingToast(isMutating, "更新中です…");
 
   const submit = async (data: SampleTagUpdateFields) => {
     try {
       await trigger({ id: sampleTag.id, data });
-      showAppToast("更新しました", "success");
+      showToast("更新しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      showAppToast(err(error, "更新に失敗しました"), "error");
+      showToast(err(error, "更新に失敗しました"), "error");
     }
   };
 

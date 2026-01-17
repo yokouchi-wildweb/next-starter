@@ -1,4 +1,4 @@
-import type { RedirectToastPayload } from "@/lib/redirectToast/types";
+import type { RedirectToastPayload } from "@/lib/toast";
 import type { UserRoleType } from "@/features/core/user/types";
 
 export type RedirectRule = {

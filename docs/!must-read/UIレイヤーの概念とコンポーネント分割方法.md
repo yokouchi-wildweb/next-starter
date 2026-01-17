@@ -147,22 +147,22 @@ page.tsxの関数名と合わせる
 ```ts
 export const useDeleteSample = () => async (id: string) => {
    await axios.delete(`/api/samples/${id}`);
-   showAppToast("削除しました", "success"); // ❌ UI責務が混在
+   showToast("削除しました", "success"); // ❌ UI責務が混在
 };
 ```
 
 ### ✅ OKパターン（呼び出し元で通知）
 
 ```ts
-const { showAppToast } = useAppToast();
+const { showToast } = useToast();
 const { deleteSample } = useDeleteSample();
 
 const handleDelete = async () => {
    try {
       await deleteSample(id);
-      showAppToast("削除しました", "success");
+      showToast("削除しました", "success");
    } catch {
-      showAppToast("削除に失敗しました", "error");
+      showToast("削除に失敗しました", "error");
    }
 };
 ```

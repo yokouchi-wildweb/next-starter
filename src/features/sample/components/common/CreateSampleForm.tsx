@@ -9,7 +9,7 @@ import { SampleCreateFields } from "@/features/sample/entities/form";
 import { useCreateSample } from "@/features/sample/hooks/useCreateSample";
 import { SampleForm } from "./SampleForm";
 import { useRouter } from "next/navigation";
-import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";
+import { useToast, useLoadingToast } from "@/lib/toast";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
 import { useSampleTagList } from "@/features/sampleTag/hooks/useSampleTagList";
 import { err } from "@/lib/errors";
@@ -35,17 +35,17 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
   const sampleTagOptions = sampleTags.map((v) => ({ value: v.id, label: v.name }));
 
   const router = useRouter();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useCreateSample();
   useLoadingToast(isMutating, "登録中です…");
 
   const submit = async (data: SampleCreateFields) => {
     try {
       await trigger(data);
-      showAppToast("登録しました", "success");
+      showToast("登録しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      showAppToast(err(error, "登録に失敗しました"), "error");
+      showToast(err(error, "登録に失敗しました"), "error");
     }
   };
 

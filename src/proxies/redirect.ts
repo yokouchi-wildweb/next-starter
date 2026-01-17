@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { redirectRules, type RedirectRule } from "@/config/app/redirect.config";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
-import { setRedirectToastCookie } from "@/lib/redirectToast/server";
+import { setRedirectToastCookie } from "@/lib/toast";
 import { parseSessionCookie } from "@/lib/jwt";
 
 import type { ProxyHandler } from "./types";

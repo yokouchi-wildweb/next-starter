@@ -11,15 +11,8 @@ import Modal from "@/components/Overlays/Modal";
 import TabbedModal, { type TabbedModalTab } from "@/components/Overlays/TabbedModal";
 import { Dialog } from "@/components/Overlays/Dialog";
 import { ImageViewerProvider, ZoomableImage } from "@/components/Overlays/ImageViewer";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast, type ToastVariant, type ToastPosition, type ToastMode, type ToastSize, type ToastIconPreset } from "@/lib/toast";
 import { logoPath } from "@/utils/assets";
-import {
-  type AppToastVariant,
-  type AppToastPosition,
-  type AppToastMode,
-  type AppToastSize,
-  type AppToastIconPreset,
-} from "@/stores/appToast";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import {
   Select,
@@ -52,7 +45,7 @@ const APP_TOAST_VARIANTS = [
   { value: "primary", label: "プライマリ" },
   { value: "secondary", label: "セカンダリ" },
   { value: "accent", label: "アクセント" },
-] as const satisfies ReadonlyArray<{ value: AppToastVariant; label: string }>;
+] as const satisfies ReadonlyArray<{ value: ToastVariant; label: string }>;
 
 const APP_TOAST_ICON_PRESETS = [
   { value: "default", label: "デフォルト（variantに従う）" },
@@ -61,7 +54,7 @@ const APP_TOAST_ICON_PRESETS = [
   { value: "warning", label: "警告 (⚠)" },
   { value: "info", label: "情報 (ℹ)" },
   { value: "loading", label: "ローディング (⟳)" },
-] as const satisfies ReadonlyArray<{ value: "default" | AppToastIconPreset; label: string }>;
+] as const satisfies ReadonlyArray<{ value: "default" | ToastIconPreset; label: string }>;
 
 const APP_TOAST_POSITIONS = [
   { value: "center", label: "中央" },
@@ -71,18 +64,18 @@ const APP_TOAST_POSITIONS = [
   { value: "bottom-left", label: "左下" },
   { value: "bottom-center", label: "下中央" },
   { value: "bottom-right", label: "右下" },
-] as const satisfies ReadonlyArray<{ value: AppToastPosition; label: string }>;
+] as const satisfies ReadonlyArray<{ value: ToastPosition; label: string }>;
 
 const APP_TOAST_MODES = [
   { value: "notification", label: "通知（自動消去）" },
   { value: "persistent", label: "永続（手動消去）" },
-] as const satisfies ReadonlyArray<{ value: AppToastMode; label: string }>;
+] as const satisfies ReadonlyArray<{ value: ToastMode; label: string }>;
 
 const APP_TOAST_SIZES = [
   { value: "sm", label: "小" },
   { value: "md", label: "中" },
   { value: "lg", label: "大" },
-] as const satisfies ReadonlyArray<{ value: AppToastSize; label: string }>;
+] as const satisfies ReadonlyArray<{ value: ToastSize; label: string }>;
 
 const TABBED_MODAL_DEFAULT_TAB = "details" as const;
 
@@ -114,14 +107,14 @@ const INITIAL_OPTIONS: OverlayOptions = {
 };
 
 type AppToastDemoOptions = {
-  variant: AppToastVariant;
-  position: AppToastPosition;
-  mode: AppToastMode;
-  size: AppToastSize;
+  variant: ToastVariant;
+  position: ToastPosition;
+  mode: ToastMode;
+  size: ToastSize;
   duration: number;
   spinning: boolean;
   message: string;
-  iconPreset: "default" | AppToastIconPreset;
+  iconPreset: "default" | ToastIconPreset;
 };
 
 const INITIAL_APP_TOAST_OPTIONS: AppToastDemoOptions = {
@@ -149,7 +142,7 @@ export default function OverlayDemoPage() {
     INITIAL_APP_TOAST_OPTIONS,
   );
 
-  const { showAppToast, hideAppToast } = useAppToast();
+  const { showToast, hideToast } = useToast();
 
   const closeTabbedModal = useCallback(() => {
     setIsTabbedModalOpen(false);
@@ -236,7 +229,7 @@ export default function OverlayDemoPage() {
             <Button variant="outline" onClick={() => setActiveTabbedModalTab("memo")}>
               メモを編集する
             </Button>
-            <Button variant="accent" onClick={() => showAppToast("メモを共有しました。", "info")}>
+            <Button variant="accent" onClick={() => showToast("メモを共有しました。", "info")}>
               メモを共有
             </Button>
             <Button variant="secondary" onClick={closeTabbedModal}>
@@ -290,8 +283,8 @@ export default function OverlayDemoPage() {
 
     setIsConfirmProcessing(false);
     setIsConfirmOpen(false);
-    showAppToast("確認ダイアログで確定しました。", "success");
-  }, [showAppToast]);
+    showToast("確認ダイアログで確定しました。", "success");
+  }, [showToast]);
 
   const handleShowToast = useCallback((variant: "success" | "info" | "error") => {
     const messageMap = {
@@ -300,11 +293,11 @@ export default function OverlayDemoPage() {
       error: "エラーが発生しました。再度お試しください。",
     } as const satisfies Record<"success" | "info" | "error", string>;
 
-    showAppToast(messageMap[variant], variant);
-  }, [showAppToast]);
+    showToast(messageMap[variant], variant);
+  }, [showToast]);
 
   const handleShowAppToast = useCallback(() => {
-    showAppToast({
+    showToast({
       message: appToastOptions.message,
       variant: appToastOptions.variant,
       position: appToastOptions.position,
@@ -314,7 +307,7 @@ export default function OverlayDemoPage() {
       spinning: appToastOptions.spinning,
       icon: appToastOptions.iconPreset === "default" ? undefined : appToastOptions.iconPreset,
     });
-  }, [showAppToast, appToastOptions]);
+  }, [showToast, appToastOptions]);
 
   return (
     <ImageViewerProvider>
@@ -402,7 +395,7 @@ export default function OverlayDemoPage() {
               <Label htmlFor="app-toast-variant">バリアント</Label>
               <Select
                 value={appToastOptions.variant}
-                onValueChange={(value: AppToastVariant) =>
+                onValueChange={(value: ToastVariant) =>
                   setAppToastOptions((prev) => ({ ...prev, variant: value }))
                 }
               >
@@ -423,7 +416,7 @@ export default function OverlayDemoPage() {
               <Label htmlFor="app-toast-position">位置</Label>
               <Select
                 value={appToastOptions.position}
-                onValueChange={(value: AppToastPosition) =>
+                onValueChange={(value: ToastPosition) =>
                   setAppToastOptions((prev) => ({ ...prev, position: value }))
                 }
               >
@@ -444,7 +437,7 @@ export default function OverlayDemoPage() {
               <Label htmlFor="app-toast-mode">モード</Label>
               <Select
                 value={appToastOptions.mode}
-                onValueChange={(value: AppToastMode) =>
+                onValueChange={(value: ToastMode) =>
                   setAppToastOptions((prev) => ({ ...prev, mode: value }))
                 }
               >
@@ -465,7 +458,7 @@ export default function OverlayDemoPage() {
               <Label htmlFor="app-toast-size">サイズ</Label>
               <Select
                 value={appToastOptions.size}
-                onValueChange={(value: AppToastSize) =>
+                onValueChange={(value: ToastSize) =>
                   setAppToastOptions((prev) => ({ ...prev, size: value }))
                 }
               >
@@ -486,7 +479,7 @@ export default function OverlayDemoPage() {
               <Label htmlFor="app-toast-icon">アイコン</Label>
               <Select
                 value={appToastOptions.iconPreset}
-                onValueChange={(value: "default" | AppToastIconPreset) =>
+                onValueChange={(value: "default" | ToastIconPreset) =>
                   setAppToastOptions((prev) => ({ ...prev, iconPreset: value }))
                 }
               >
@@ -555,7 +548,7 @@ export default function OverlayDemoPage() {
               AppToast を表示
             </Button>
             {appToastOptions.mode === "persistent" && (
-              <Button variant="outline" onClick={hideAppToast}>
+              <Button variant="outline" onClick={hideToast}>
                 非表示にする
               </Button>
             )}
@@ -565,28 +558,28 @@ export default function OverlayDemoPage() {
             <Button
               variant="accent"
               size="sm"
-              onClick={() => showAppToast("保存しました", "success")}
+              onClick={() => showToast("保存しました", "success")}
             >
               成功
             </Button>
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => showAppToast("エラーが発生しました", "error")}
+              onClick={() => showToast("エラーが発生しました", "error")}
             >
               エラー
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => showAppToast("注意してください", "warning")}
+              onClick={() => showToast("注意してください", "warning")}
             >
               警告
             </Button>
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => showAppToast("お知らせです", "info")}
+              onClick={() => showToast("お知らせです", "info")}
             >
               情報
             </Button>
@@ -594,12 +587,12 @@ export default function OverlayDemoPage() {
               variant="ghost"
               size="sm"
               onClick={() => {
-                showAppToast({
+                showToast({
                   message: "処理中...",
                   variant: "loading",
                   mode: "persistent",
                 });
-                setTimeout(() => hideAppToast(), 3000);
+                setTimeout(() => hideToast(), 3000);
               }}
             >
               ローディング
@@ -609,28 +602,28 @@ export default function OverlayDemoPage() {
           <div className="flex flex-wrap gap-3">
             <Button
               size="sm"
-              onClick={() => showAppToast("プライマリカラーの通知", "primary")}
+              onClick={() => showToast("プライマリカラーの通知", "primary")}
             >
               Primary
             </Button>
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => showAppToast("セカンダリカラーの通知", "secondary")}
+              onClick={() => showToast("セカンダリカラーの通知", "secondary")}
             >
               Secondary
             </Button>
             <Button
               variant="accent"
               size="sm"
-              onClick={() => showAppToast("アクセントカラーの通知", "accent")}
+              onClick={() => showToast("アクセントカラーの通知", "accent")}
             >
               Accent
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => showAppToast({
+              onClick={() => showToast({
                 message: "プライマリ色 + ローディングアイコン",
                 variant: "primary",
                 icon: "loading",

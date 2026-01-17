@@ -10,7 +10,7 @@ import type { SampleCategory } from "@/features/sampleCategory/entities";
 import { useUpdateSampleCategory } from "@/features/sampleCategory/hooks/useUpdateSampleCategory";
 import { SampleCategoryForm } from "./SampleCategoryForm";
 import { useRouter } from "next/navigation";
-import { useAppToast, useLoadingToast } from "@/hooks/useAppToast";
+import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
 import domainConfig from "@/features/sampleCategory/domain.json";
@@ -29,17 +29,17 @@ export default function EditSampleCategoryForm({ sampleCategory, redirectPath = 
   });
 
   const router = useRouter();
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateSampleCategory();
   useLoadingToast(isMutating, "更新中です…");
 
   const submit = async (data: SampleCategoryUpdateFields) => {
     try {
       await trigger({ id: sampleCategory.id, data });
-      showAppToast("更新しました", "success");
+      showToast("更新しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      showAppToast(err(error, "更新に失敗しました"), "error");
+      showToast(err(error, "更新に失敗しました"), "error");
     }
   };
 

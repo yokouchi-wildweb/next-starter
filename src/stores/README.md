@@ -16,15 +16,13 @@ Zustand を使用した状態管理ストアの配置場所。
 
 ```
 stores/
-  appToast/
+  siteTheme/
     index.ts           ← re-export（公開インターフェース）
     internalStore.ts   ← ストア本体（直接使用禁止）
     useStore.ts        ← 基本フック
-  siteTheme/
-    index.ts
-    internalStore.ts
-    useStore.ts
 ```
+
+> 💡 トースト機能は `lib/toast/` ライブラリに移行済み。以下の実装例は一般的なパターンを示す。
 
 ### ファイルの役割
 
@@ -68,82 +66,47 @@ hooks/useXxx（機能拡張フック）
 ### internalStore.ts
 
 ```typescript
-// stores/appToast/internalStore.ts
+// stores/siteTheme/internalStore.ts
 "use client";
 
 import { create } from "zustand";
 
-export type AppToastVariant = "success" | "error" | "warning" | "info";
+export type Theme = "light" | "dark" | "system";
 
-export type AppToastOptions = {
-  message: string;
-  variant?: AppToastVariant;
+type SiteThemeState = {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 };
 
-type AppToastState = {
-  toast: AppToastOptions | null;
-  show: (options: AppToastOptions) => void;
-  hide: () => void;
-};
-
-export const internalStore = create<AppToastState>((set) => ({
-  toast: null,
-  show: (options) => set({ toast: options }),
-  hide: () => set({ toast: null }),
+export const internalStore = create<SiteThemeState>((set) => ({
+  theme: "system",
+  setTheme: (theme) => set({ theme }),
 }));
 ```
 
 ### useStore.ts
 
 ```typescript
-// stores/appToast/useStore.ts
+// stores/siteTheme/useStore.ts
 "use client";
 
 import { internalStore } from "./internalStore";
 
-export function useAppToastStore() {
-  const toast = internalStore((s) => s.toast);
-  const show = internalStore((s) => s.show);
-  const hide = internalStore((s) => s.hide);
+export function useSiteThemeStore() {
+  const theme = internalStore((s) => s.theme);
+  const setTheme = internalStore((s) => s.setTheme);
 
-  return { toast, show, hide };
+  return { theme, setTheme };
 }
 ```
 
 ### index.ts
 
 ```typescript
-// stores/appToast/index.ts
-export { useAppToastStore } from "./useStore";
-export type { AppToastOptions, AppToastVariant } from "./internalStore";
+// stores/siteTheme/index.ts
+export { useSiteThemeStore } from "./useStore";
+export type { Theme } from "./internalStore";
 // internalStore 自体は export しない
-```
-
-### 機能拡張フック（hooks/ に配置）
-
-```typescript
-// hooks/useAppToast.ts
-"use client";
-
-import { useCallback } from "react";
-import { useAppToastStore } from "@/stores/appToast";
-
-export function useAppToast() {
-  const { show, hide } = useAppToastStore();
-
-  // ショートハンド提供
-  const showSuccess = useCallback(
-    (message: string) => show({ message, variant: "success" }),
-    [show]
-  );
-
-  const showError = useCallback(
-    (message: string) => show({ message, variant: "error" }),
-    [show]
-  );
-
-  return { showSuccess, showError, hide };
-}
 ```
 
 ---

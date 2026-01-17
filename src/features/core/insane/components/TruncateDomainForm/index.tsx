@@ -10,13 +10,13 @@ import { Flex } from "@/components/Layout";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import { Dialog } from "@/components/Overlays/Dialog";
 import { Input } from "@/components/Form/Manual/Input";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useFetchDomains } from "@/lib/domain/hooks/useFetchDomains";
 import { useTruncateDomains } from "@/lib/domain/hooks/useTruncateDomains";
 
 export function TruncateDomainForm() {
-  const { showAppToast } = useAppToast();
+  const { showToast } = useToast();
   const { user } = useAuthSession();
 
   // ドメイン一覧（フック使用）
@@ -74,9 +74,9 @@ export function TruncateDomainForm() {
       const failedResults = response.results.filter((r) => !r.success);
 
       if (failedResults.length === 0) {
-        showAppToast(response.message, "success");
+        showToast(response.message, "success");
       } else {
-        showAppToast(
+        showToast(
           `${response.message} 失敗: ${failedResults.map((r) => r.domain).join(", ")}`,
           "warning"
         );
@@ -96,7 +96,7 @@ export function TruncateDomainForm() {
       if (message.includes("パスワード")) {
         setPasswordError(message);
       } else {
-        showAppToast(message, "error");
+        showToast(message, "error");
       }
     }
   };

@@ -4,7 +4,7 @@ import { Toaster } from "sonner";
 import { Suspense } from "react";
 
 import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
-import { GlobalAppToast } from "@/components/Overlays/AppToast";
+import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
 import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
@@ -12,7 +12,6 @@ import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { AdminCommandProvider } from "src/features/core/adminCommand";
-import { RedirectToastProvider } from "@/lib/redirectToast";
 import { seoConfig } from "@/config/seo.config";
 
 export const metadata: Metadata = {
@@ -46,7 +45,7 @@ export default function RootLayout({
         </Suspense>
         <ViewportHeightWatcher />
         <GlobalScreenLoader />
-        <GlobalAppToast />
+        <GlobalToast />
         <AuthSessionProvider>
           <AdminCommandProvider>
             <ImageViewerProvider>

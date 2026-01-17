@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
-import { useAppToast } from "@/hooks/useAppToast";
+import { useToast } from "@/lib/toast";
 
 export type DuplicateButtonProps = {
   id: string;
@@ -30,17 +30,17 @@ export default function DuplicateButton({
   const { trigger, isMutating } = useDuplicate();
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const { showAppToast, hideAppToast } = useAppToast();
+  const { showToast } = useToast();
 
   const handleDuplicate = async () => {
     setOpen(false);
-    showAppToast({ message: "複製を実行中です…", mode: "persistent" });
+    showToast({ message: "複製を実行中です…", mode: "persistent" });
     try {
       await trigger(id);
-      showAppToast("複製が完了しました。", "success");
+      showToast("複製が完了しました。", "success");
       router.refresh();
     } catch {
-      showAppToast("複製に失敗しました", "error");
+      showToast("複製に失敗しました", "error");
     }
   };
 
