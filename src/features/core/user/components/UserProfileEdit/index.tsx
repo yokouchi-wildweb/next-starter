@@ -2,6 +2,7 @@
 
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
 import { Para, SecTitle } from "@/components/TextBlocks";
 import type { User } from "@/features/core/user/entities";
 
@@ -18,11 +19,13 @@ export default function UserProfileEdit({ user, profileData }: Props) {
       <Section>
         <Para>ユーザーのプロフィール情報を更新できます。</Para>
       </Section>
-      <Section space="sm">
-        <SecTitle as="h2">プロフィール設定</SecTitle>
-        <Block appearance="outlined" padding="lg">
-          <UserProfileForm user={user} profileData={profileData} />
-        </Block>
+      <Section>
+        <Stack space={4}>
+          <SecTitle as="h2">プロフィール設定</SecTitle>
+          <Block appearance="outlined" padding="lg">
+            <UserProfileForm user={user} profileData={profileData} />
+          </Block>
+        </Stack>
       </Section>
     </>
   );

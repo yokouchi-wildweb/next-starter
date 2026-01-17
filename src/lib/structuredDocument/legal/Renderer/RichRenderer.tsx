@@ -3,6 +3,7 @@
 import ReactMarkdown from "react-markdown";
 
 import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
 import { Para, SecTitle } from "@/components/TextBlocks";
 
 import type { VariableMap } from "../../shared";
@@ -32,51 +33,53 @@ function RenderSection({
   const headingLevel = Math.min(depth + 2, 6) as 2 | 3 | 4 | 5 | 6;
 
   return (
-    <Section id={section.id} space="sm" marginBlock="lg">
-      {section.title && (
-        <SecTitle as={`h${headingLevel}`} size={depth === 0 ? "lg" : "md"}>
-          {replaceVariables(section.title, variables)}
-        </SecTitle>
-      )}
+    <Section id={section.id} marginBlock="lg">
+      <Stack space={4}>
+        {section.title && (
+          <SecTitle as={`h${headingLevel}`} size={depth === 0 ? "lg" : "md"}>
+            {replaceVariables(section.title, variables)}
+          </SecTitle>
+        )}
 
-      {section.content?.map((text, index) => (
-        <Para key={index}>
-          <ReactMarkdown
-            allowedElements={["p", "a", "strong", "em", "del"]}
-            unwrapDisallowed
-            components={{
-              // p タグは Para 内で不要なので中身だけ返す
-              p: ({ children }) => <>{children}</>,
-              // リンクは新しいタブで開く（外部リンクの場合）
-              a: ({ href, children }) => {
-                const isExternal = href?.startsWith("http");
-                return (
-                  <a
-                    href={href}
-                    {...(isExternal && {
-                      target: "_blank",
-                      rel: "noopener noreferrer",
-                    })}
-                  >
-                    {children}
-                  </a>
-                );
-              },
-            }}
-          >
-            {replaceVariables(text, variables)}
-          </ReactMarkdown>
-        </Para>
-      ))}
+        {section.content?.map((text, index) => (
+          <Para key={index}>
+            <ReactMarkdown
+              allowedElements={["p", "a", "strong", "em", "del"]}
+              unwrapDisallowed
+              components={{
+                // p タグは Para 内で不要なので中身だけ返す
+                p: ({ children }) => <>{children}</>,
+                // リンクは新しいタブで開く（外部リンクの場合）
+                a: ({ href, children }) => {
+                  const isExternal = href?.startsWith("http");
+                  return (
+                    <a
+                      href={href}
+                      {...(isExternal && {
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                      })}
+                    >
+                      {children}
+                    </a>
+                  );
+                },
+              }}
+            >
+              {replaceVariables(text, variables)}
+            </ReactMarkdown>
+          </Para>
+        ))}
 
-      {section.children?.map((child, index) => (
-        <RenderSection
-          key={child.id ?? index}
-          section={child}
-          variables={variables}
-          depth={depth + 1}
-        />
-      ))}
+        {section.children?.map((child, index) => (
+          <RenderSection
+            key={child.id ?? index}
+            section={child}
+            variables={variables}
+            depth={depth + 1}
+          />
+        ))}
+      </Stack>
     </Section>
   );
 }

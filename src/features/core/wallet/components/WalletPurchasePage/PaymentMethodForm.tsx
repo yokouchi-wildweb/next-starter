@@ -39,54 +39,56 @@ export function PaymentMethodForm({
   };
 
   return (
-    <Section space="sm">
-      <SecTitle as="h2" size="lg">
-        お支払い方法
-      </SecTitle>
+    <Section>
       <Stack space={4}>
-        {PAYMENT_METHODS.map((method) => (
-          <label
-            key={method.id}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+        <SecTitle as="h2" size="lg">
+          お支払い方法
+        </SecTitle>
+        <Stack space={4}>
+          {PAYMENT_METHODS.map((method) => (
+            <label
+              key={method.id}
+              className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+            >
+              <input
+                type="radio"
+                name="paymentMethod"
+                value={method.id}
+                checked={selectedMethod === method.id}
+                onChange={() => setSelectedMethod(method.id)}
+                disabled={isLoading}
+                className="size-5 accent-primary"
+              />
+              <Span weight="medium">{method.label}</Span>
+            </label>
+          ))}
+        </Stack>
+
+        {error && (
+          <Para tone="danger" size="sm" align="center">
+            {error}
+          </Para>
+        )}
+
+        <Flex justify="center" className="mt-6">
+          <Button
+            variant="default"
+            size="lg"
+            className="w-full max-w-xs"
+            onClick={handlePurchase}
+            disabled={isLoading}
           >
-            <input
-              type="radio"
-              name="paymentMethod"
-              value={method.id}
-              checked={selectedMethod === method.id}
-              onChange={() => setSelectedMethod(method.id)}
-              disabled={isLoading}
-              className="size-5 accent-primary"
-            />
-            <Span weight="medium">{method.label}</Span>
-          </label>
-        ))}
+            {isLoading ? (
+              <Flex align="center" gap="xs">
+                <Spinner className="h-4 w-4" />
+                <span>処理中...</span>
+              </Flex>
+            ) : (
+              "購入する"
+            )}
+          </Button>
+        </Flex>
       </Stack>
-
-      {error && (
-        <Para tone="danger" size="sm" align="center">
-          {error}
-        </Para>
-      )}
-
-      <Flex justify="center" className="mt-6">
-        <Button
-          variant="default"
-          size="lg"
-          className="w-full max-w-xs"
-          onClick={handlePurchase}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <Flex align="center" gap="xs">
-              <Spinner className="h-4 w-4" />
-              <span>処理中...</span>
-            </Flex>
-          ) : (
-            "購入する"
-          )}
-        </Button>
-      </Flex>
     </Section>
   );
 }

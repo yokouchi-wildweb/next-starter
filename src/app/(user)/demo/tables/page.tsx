@@ -16,6 +16,7 @@ import { RadioGroupInput } from "@/components/Form/Manual/RadioGroupInput";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
 import { Main, PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import type { Sample } from "@/features/sample/entities";
@@ -359,16 +360,18 @@ export default function TablesDemoPage() {
 
   return (
     <Main containerType="wideShowcase" className="flex flex-col gap-10 py-12">
-      <Section space="lg">
-        <PageTitle size="xxl" className="font-semibold">
-          RecordSelectionTable デモ
-        </PageTitle>
-        <Para tone="muted" size="sm">
-          実データベース上の「サンプル」レコードを読み込み、行クリック / チェックボックスによる複数選択を切り替えられるサンプルです。
-        </Para>
+      <Section>
+        <Stack space={8}>
+          <PageTitle size="xxl" className="font-semibold">
+            RecordSelectionTable デモ
+          </PageTitle>
+          <Para tone="muted" size="sm">
+            実データベース上の「サンプル」レコードを読み込み、行クリック / チェックボックスによる複数選択を切り替えられるサンプルです。
+          </Para>
+        </Stack>
       </Section>
 
-      <Section space="lg">
+      <Section>
         <Flex direction="columnToRowSm" gap="xl" align="start">
           <Block className="w-full flex-1 flex flex-col gap-6 rounded-2xl border bg-card p-6 shadow-sm">
             <Block className="flex flex-col gap-2">
@@ -468,7 +471,7 @@ export default function TablesDemoPage() {
         </Flex>
       </Section>
 
-      <Section space="lg">
+      <Section>
         <Flex direction="columnToRowSm" gap="xl" align="start">
           <Block className="w-full flex-1 flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
             <Block className="flex flex-col gap-2">
@@ -534,7 +537,7 @@ export default function TablesDemoPage() {
         </Flex>
       </Section>
 
-      <Section space="lg">
+      <Section>
         <Block className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
           <SecTitle size="lg" className="font-semibold">
             DataTable デモ

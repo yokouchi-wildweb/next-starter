@@ -20,11 +20,12 @@ type PurchaseListProps = {
 
 export function PurchaseList({ slug, config }: PurchaseListProps) {
   return (
-    <Section space="sm">
-      <SecTitle as="h2" size="lg">
-        {config.label}購入
-      </SecTitle>
-      <Stack space={0}>
+    <Section>
+      <Stack space={4}>
+        <SecTitle as="h2" size="lg">
+          {config.label}購入
+        </SecTitle>
+        <Stack space={0}>
         {config.packages.map((pkg) => (
           <Flex
             key={pkg.amount}
@@ -55,6 +56,7 @@ export function PurchaseList({ slug, config }: PurchaseListProps) {
             </LinkButton>
           </Flex>
         ))}
+        </Stack>
       </Stack>
     </Section>
   );

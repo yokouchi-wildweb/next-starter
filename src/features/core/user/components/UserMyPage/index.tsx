@@ -7,6 +7,7 @@ import { UserPenIcon, LogOutIcon, PauseCircleIcon, UserXIcon } from "lucide-reac
 
 import { Block } from "@/components/Layout/Block";
 import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
 import { SecTitle } from "@/components/TextBlocks";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
@@ -52,45 +53,49 @@ export default function UserMyPage({ user }: UserMyPageProps) {
 
   return (
     <>
-      <Section space="sm">
-        <SecTitle as="h2">メニュー</SecTitle>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <ActionMenuCard
-            icon={UserPenIcon}
-            title="プロフィールを編集"
-            description="表示名やメールアドレスを変更"
-            href="/profile/edit"
-          />
-          <ActionMenuCard
-            icon={LogOutIcon}
-            title={isLoggingOut ? "ログアウト中..." : "ログアウト"}
-            description="このアカウントからログアウト"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-          />
-          {APP_FEATURES.user.pauseEnabled && (
+      <Section>
+        <Stack space={4}>
+          <SecTitle as="h2">メニュー</SecTitle>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <ActionMenuCard
-              icon={PauseCircleIcon}
-              title="休会する"
-              description="一時的にアカウントを休止"
-              href="/settings/pause"
-              variant="muted"
+              icon={UserPenIcon}
+              title="プロフィールを編集"
+              description="表示名やメールアドレスを変更"
+              href="/profile/edit"
             />
-          )}
-          <ActionMenuCard
-            icon={UserXIcon}
-            title="退会する"
-            description="アカウントを削除"
-            href="/settings/withdraw"
-            variant="destructive"
-          />
-        </div>
+            <ActionMenuCard
+              icon={LogOutIcon}
+              title={isLoggingOut ? "ログアウト中..." : "ログアウト"}
+              description="このアカウントからログアウト"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            />
+            {APP_FEATURES.user.pauseEnabled && (
+              <ActionMenuCard
+                icon={PauseCircleIcon}
+                title="休会する"
+                description="一時的にアカウントを休止"
+                href="/settings/pause"
+                variant="muted"
+              />
+            )}
+            <ActionMenuCard
+              icon={UserXIcon}
+              title="退会する"
+              description="アカウントを削除"
+              href="/settings/withdraw"
+              variant="destructive"
+            />
+          </div>
+        </Stack>
       </Section>
-      <Section space="sm">
-        <SecTitle as="h2">アカウント情報</SecTitle>
-        <Block appearance="outlined" padding="lg">
-          <UserInfoTable rows={rows} />
-        </Block>
+      <Section>
+        <Stack space={4}>
+          <SecTitle as="h2">アカウント情報</SecTitle>
+          <Block appearance="outlined" padding="lg">
+            <UserInfoTable rows={rows} />
+          </Block>
+        </Stack>
       </Section>
     </>
   );

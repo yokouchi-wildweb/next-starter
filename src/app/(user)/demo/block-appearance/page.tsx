@@ -1,6 +1,7 @@
 import { Block } from "@/components/Layout/Block";
 import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
 import {
   Main,
   PageTitle,
@@ -24,12 +25,13 @@ export default function BlockParaDemoPage() {
         Block コンポーネントの appearance と Para コンポーネントの tone を一覧で比較できます。
       </Para>
 
-      <Section space="lg" className="flex flex-col gap-6">
-        <SecTitle>Block appearance 一覧</SecTitle>
-        <Para tone="muted" size="sm">
-          各 appearance の見た目と付与されるユーティリティクラスを確認できます。
-        </Para>
-        <Grid columns="one" gap="lg" className="md:grid-cols-2">
+      <Section>
+        <Stack space={6}>
+          <SecTitle>Block appearance 一覧</SecTitle>
+          <Para tone="muted" size="sm">
+            各 appearance の見た目と付与されるユーティリティクラスを確認できます。
+          </Para>
+          <Grid columns="one" gap="lg" className="md:grid-cols-2">
           {blockAppearances.map((appearanceKey) => (
             <Block
               key={appearanceKey}
@@ -54,35 +56,38 @@ export default function BlockParaDemoPage() {
               </Para>
             </Block>
           ))}
-        </Grid>
+          </Grid>
+        </Stack>
       </Section>
 
-      <Section space="lg" className="flex flex-col gap-6">
-        <SecTitle>Para tone 一覧</SecTitle>
-        <Para tone="muted" size="sm">
-          tone ごとの文字色とスタイルを見比べられるように、それぞれの tone 名と適用されるクラスを表示しています。
-        </Para>
-        <Grid columns="one" gap="md" className="md:grid-cols-2">
-          {paraTones.map((toneKey) => (
-            <Block
-              key={toneKey}
-              appearance="surface"
-              space="xs"
-              padding="lg"
-              className="h-full shadow-none ring-1 ring-slate-200/60 dark:ring-slate-700/60"
-            >
-              <Span weight="semiBold" className="tracking-wide uppercase">
-                {toneKey}
-              </Span>
-              <Span tone="muted" size="sm" className="font-mono text-xs">
-                {tone[toneKey] || "(追加クラスなし)"}
-              </Span>
-              <Para tone={toneKey}>
-                このテキストは tone プロップに {toneKey} を渡した Para コンポーネントです。
-              </Para>
-            </Block>
-          ))}
-        </Grid>
+      <Section>
+        <Stack space={6}>
+          <SecTitle>Para tone 一覧</SecTitle>
+          <Para tone="muted" size="sm">
+            tone ごとの文字色とスタイルを見比べられるように、それぞれの tone 名と適用されるクラスを表示しています。
+          </Para>
+          <Grid columns="one" gap="md" className="md:grid-cols-2">
+            {paraTones.map((toneKey) => (
+              <Block
+                key={toneKey}
+                appearance="surface"
+                space="xs"
+                padding="lg"
+                className="h-full shadow-none ring-1 ring-slate-200/60 dark:ring-slate-700/60"
+              >
+                <Span weight="semiBold" className="tracking-wide uppercase">
+                  {toneKey}
+                </Span>
+                <Span tone="muted" size="sm" className="font-mono text-xs">
+                  {tone[toneKey] || "(追加クラスなし)"}
+                </Span>
+                <Para tone={toneKey}>
+                  このテキストは tone プロップに {toneKey} を渡した Para コンポーネントです。
+                </Para>
+              </Block>
+            ))}
+          </Grid>
+        </Stack>
       </Section>
     </Main>
   );
