@@ -10,6 +10,7 @@ import { Section } from "@/components/Layout/Section";
 import { SecTitle } from "@/components/TextBlocks";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useOAuthPhase } from "@/features/core/auth/hooks/useOAuthPhase";
+import { useGuardedNavigation } from "@/lib/transitionGuard";
 import type { UserProviderType } from "@/features/core/user/types";
 import { InvalidProcessState } from "./InvalidProcessState";
 import { toast } from "sonner";
@@ -33,11 +34,12 @@ function LoadingState({ message }: { message: string }) {
 
 export function OAuth({ provider }: OAuthProps) {
   const router = useRouter();
+  const { guardedPush } = useGuardedNavigation();
   const { phase, requiresReactivation } = useOAuthPhase({ provider });
 
   useEffect(() => {
     if (phase === "completed") {
-      router.push(`${afterVerificationPath}?method=thirdParty`);
+      guardedPush(`${afterVerificationPath}?method=thirdParty`);
       return;
     }
 
@@ -51,7 +53,7 @@ export function OAuth({ provider }: OAuthProps) {
       toast.success("登録済みユーザーでログインしました");
       router.replace("/");
     }
-  }, [phase, requiresReactivation, router]);
+  }, [phase, requiresReactivation, router, guardedPush]);
 
   return (
     <Section id="signup-oauth" className="relative space-y-4">

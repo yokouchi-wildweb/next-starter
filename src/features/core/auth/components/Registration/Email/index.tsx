@@ -3,7 +3,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -22,6 +21,7 @@ import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { useLocalStorage } from "@/lib/localStorage";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
+import { useGuardedNavigation } from "@/lib/transitionGuard";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import {
@@ -33,7 +33,7 @@ import { REGISTRATION_PROFILES } from "../registrationProfiles";
 import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./formEntities";
 
 export function EmailRegistrationForm() {
-  const router = useRouter();
+  const { guardedPush } = useGuardedNavigation();
   const [savedEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
   // ローカルストレージのメールアドレスを優先（認証時に保存された正しい値）
   const email = useMemo(() => savedEmail.trim(), [savedEmail]);
@@ -79,13 +79,13 @@ export function EmailRegistrationForm() {
           profileData,
         });
         await refreshSession();
-        router.push("/signup/complete");
+        guardedPush("/signup/complete");
       } catch (error) {
         const message = err(error, "本登録の処理に失敗しました");
         form.setError("root", { type: "server", message });
       }
     },
-    [form, refreshSession, register, router],
+    [form, refreshSession, register, guardedPush],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;

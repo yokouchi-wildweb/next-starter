@@ -4,7 +4,9 @@
 
 import type { ComponentType } from "react";
 
+import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+import { useTransitionGuard } from "@/lib/transitionGuard";
 
 import { OAuthRegistrationForm } from "./OAuth"
 import { EmailRegistrationForm } from "./Email";
@@ -23,6 +25,11 @@ const registrationComponentMap: Record<RegistrationMethod, ComponentType> = {
 };
 
 export function Registration({ method = "email" }: RegistrationFormProps) {
+  // 遷移ガード: verify または oauth からのトークン付き遷移のみ許可
+  const { isChecking } = useTransitionGuard({
+    allowedReferers: ["/signup/verify", "/signup/oauth"],
+    onFail: { action: "error" },
+  });
 
   const Component = registrationComponentMap[method] ?? UnknownRegistrationForm;
   const showSteps = APP_FEATURES.auth.signup.showRegistrationSteps;
@@ -30,6 +37,10 @@ export function Registration({ method = "email" }: RegistrationFormProps) {
   // メール認証: 3番目のステップ（基本情報設定）
   // OAuth: 2番目のステップ（プロフィール入力）
   const currentStep = method === "email" ? 2 : 1;
+
+  if (isChecking) {
+    return <ScreenLoader mode="local" className="min-h-[300px]" />;
+  }
 
   return (
     <div className="space-y-8 pb-8">

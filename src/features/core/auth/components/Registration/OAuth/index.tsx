@@ -3,7 +3,6 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -20,6 +19,7 @@ import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
+import { useGuardedNavigation } from "@/lib/transitionGuard";
 import type { UserProviderType } from "@/features/core/user/types";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
@@ -32,7 +32,7 @@ import { REGISTRATION_PROFILES } from "../registrationProfiles";
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
 export function OAuthRegistrationForm() {
-  const router = useRouter();
+  const { guardedPush } = useGuardedNavigation();
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: DefaultValues,
@@ -93,13 +93,13 @@ export function OAuthRegistrationForm() {
         });
 
         await refreshSession();
-        router.push("/signup/complete");
+        guardedPush("/signup/complete");
       } catch (error) {
         const message = err(error, "本登録の処理に失敗しました");
         form.setError("root", { type: "server", message });
       }
     },
-    [form, refreshSession, register, router],
+    [form, refreshSession, register, guardedPush],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
