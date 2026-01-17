@@ -4,12 +4,12 @@ export { appearance } from "./appearance";
 
 
 export const space = {
-  none: "space-y-0",
-  xs: "space-y-2",
-  sm: "space-y-4",
-  md: "space-y-6",
-  lg: "space-y-8",
-  xl: "space-y-10",
+  none: "flex flex-col gap-0",
+  xs: "flex flex-col gap-2",
+  sm: "flex flex-col gap-4",
+  md: "flex flex-col gap-6",
+  lg: "flex flex-col gap-8",
+  xl: "flex flex-col gap-10",
 } as const;
 
 export const padding = {
