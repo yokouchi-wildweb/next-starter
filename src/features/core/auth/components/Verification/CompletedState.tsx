@@ -11,16 +11,16 @@ import { Block } from "@/components/Layout/Block";
 import { Para } from "@/components/TextBlocks";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 
-const REGISTER_PATH = "/signup/register";
+const { afterVerificationPath, emailVerificationRedirect } =
+  APP_FEATURES.auth.signup;
 
 export function CompletedState() {
   const router = useRouter();
-  const isAutoRedirect =
-    APP_FEATURES.auth.signup.emailVerificationRedirect === "auto";
+  const isAutoRedirect = emailVerificationRedirect === "auto";
 
   useEffect(() => {
     if (isAutoRedirect) {
-      router.push(REGISTER_PATH);
+      router.push(afterVerificationPath);
     }
   }, [isAutoRedirect, router]);
 
@@ -36,7 +36,7 @@ export function CompletedState() {
     <Block>
       <Para>メール認証が完了しました。</Para>
       <Button asChild className="w-full justify-center">
-        <Link href={REGISTER_PATH}>本登録へ進む</Link>
+        <Link href={afterVerificationPath}>本登録へ進む</Link>
       </Button>
     </Block>
   );

@@ -8,10 +8,13 @@ import { useRouter } from "next/navigation";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { Section } from "@/components/Layout/Section";
 import { SecTitle } from "@/components/TextBlocks";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useOAuthPhase } from "@/features/core/auth/hooks/useOAuthPhase";
 import type { UserProviderType } from "@/features/core/user/types";
 import { InvalidProcessState } from "./InvalidProcessState";
 import { toast } from "sonner";
+
+const { afterVerificationPath } = APP_FEATURES.auth.signup;
 
 export type OAuthProps = {
   provider?: UserProviderType;
@@ -34,7 +37,7 @@ export function OAuth({ provider }: OAuthProps) {
 
   useEffect(() => {
     if (phase === "completed") {
-      router.push("/signup/register?method=thirdParty");
+      router.push(`${afterVerificationPath}?method=thirdParty`);
       return;
     }
 
