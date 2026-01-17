@@ -6,12 +6,12 @@ import { useCallback } from "react";
 import { getRedirectResult, signInWithRedirect, type AuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/app";
 import { log } from "@/utils/log";
-import type { SessionStorageHandler } from "@/hooks/useSessionStorage";
+import type { StorageClient } from "@/lib/browserStorage";
 import { markRedirectAttempted, hasRedirectAttempt } from "./utils";
 import type { UserProviderType } from "@/features/core/user/types";
 
 type UseOAuthRedirectParams = {
-  sessionStorage: SessionStorageHandler;
+  sessionStorage: StorageClient;
   provider?: UserProviderType;
 };
 

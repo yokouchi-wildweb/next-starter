@@ -20,7 +20,7 @@ import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localSt
 import { useVerificationEmail } from "@/features/core/auth/hooks/useVerificationEmail";
 import { useEmailUserExists } from "@/features/core/user/hooks/useEmailUserExists";
 import { err } from "@/lib/errors";
-import { useLocalStorage } from "@/lib/localStorage";
+import { useLocalStorage } from "@/lib/browserStorage";
 
 import { FormSchema, type FormValues, DefaultValues } from "./formEntities";
 

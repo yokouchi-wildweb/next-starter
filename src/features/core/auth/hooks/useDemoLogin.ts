@@ -11,7 +11,7 @@ import { DEMO_USER_ID_KEY } from "@/features/core/auth/constants/localStorage";
 import {
   loadFromLocalStorage,
   saveToLocalStorage,
-} from "@/lib/localStorage/clientService";
+} from "@/lib/browserStorage";
 import type { HttpError } from "@/lib/errors";
 import { isHttpError } from "@/lib/errors";
 

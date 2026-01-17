@@ -18,7 +18,7 @@ import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localSt
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
-import { useLocalStorage } from "@/lib/localStorage";
+import { useLocalStorage } from "@/lib/browserStorage";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
 import { useGuardedNavigation } from "@/lib/transitionGuard";

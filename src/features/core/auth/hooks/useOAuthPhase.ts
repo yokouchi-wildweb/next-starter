@@ -5,7 +5,7 @@
 import { useEffect, useRef } from "react";
 
 import { createOAuthProvider } from "@/features/core/auth/utils/createOAuthProvider";
-import { useSessionStorage } from "@/hooks/useSessionStorage";
+import { sessionStorageClient } from "@/lib/browserStorage";
 import { log } from "@/utils/log";
 import { isHttpError } from "@/lib/errors";
 
@@ -32,7 +32,7 @@ export type { OAuthPhase } from "./oauth/types";
  * - invalidProcess: エラーまたは無効な状態
  */
 export function useOAuthPhase({ provider }: UseOAuthPhaseParams) {
-  const sessionStorage = useSessionStorage();
+  const sessionStorage = sessionStorageClient;
   const isActiveRef = useRef(true);
 
   // ステートマシン

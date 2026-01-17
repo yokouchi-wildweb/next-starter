@@ -4,7 +4,7 @@ import {
   saveToSessionStorage,
   loadFromSessionStorage,
   removeFromSessionStorage,
-} from "@/lib/sessionStorage";
+} from "@/lib/browserStorage";
 
 import { TRANSITION_TOKEN_STORAGE_KEY } from "./constants";
 import type { TransitionToken } from "./types";

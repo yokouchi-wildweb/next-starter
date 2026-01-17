@@ -13,6 +13,7 @@ import {
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { createFirebaseSession } from "@/features/core/auth/services/client/firebaseSession";
 import { auth } from "@/lib/firebase/client/app";
+import { sessionStorageClient } from "@/lib/browserStorage";
 import { createHttpError, normalizeHttpError } from "@/lib/errors";
 import { log } from "@/utils/log";
 import type { UserProviderType } from "@/features/core/user/types";
@@ -41,7 +42,7 @@ export function useThirdPartyLogin() {
         log(3, "[useThirdPartyLogin] startLogin: begin", {
           providerType,
         });
-        sessionStorage.setItem(PROVIDER_TYPE_STORAGE_KEY, providerType);
+        sessionStorageClient.save(PROVIDER_TYPE_STORAGE_KEY, providerType);
         // リダイレクト復帰用にプロバイダー種別を保存したことを記録
         log(3, "[useThirdPartyLogin] startLogin: provider type stored", {
           providerType,
@@ -57,7 +58,7 @@ export function useThirdPartyLogin() {
           providerType,
           error: unknownError,
         });
-        sessionStorage.removeItem(PROVIDER_TYPE_STORAGE_KEY);
+        sessionStorageClient.remove(PROVIDER_TYPE_STORAGE_KEY);
         setIsLoading(false);
         throw normalizeHttpError(unknownError, "サードパーティ認証に失敗しました");
       }
@@ -72,7 +73,7 @@ export function useThirdPartyLogin() {
 
     try {
       const credential = await getRedirectResult(auth);
-      const storedProviderType = sessionStorage.getItem(PROVIDER_TYPE_STORAGE_KEY) as
+      const storedProviderType = sessionStorageClient.load(PROVIDER_TYPE_STORAGE_KEY) as
         | UserProviderType
         | null;
       // リダイレクト結果の取得内容を記録
@@ -128,7 +129,7 @@ export function useThirdPartyLogin() {
         requiresReactivation,
       });
 
-      sessionStorage.removeItem(PROVIDER_TYPE_STORAGE_KEY);
+      sessionStorageClient.remove(PROVIDER_TYPE_STORAGE_KEY);
       // 復帰後に保存情報を削除したことを記録
       log(3, "[useThirdPartyLogin] handleRedirectResult: provider type cleared");
 
@@ -144,7 +145,7 @@ export function useThirdPartyLogin() {
       });
       throw normalizeHttpError(unknownError, "サードパーティ認証に失敗しました");
     } finally {
-      sessionStorage.removeItem(PROVIDER_TYPE_STORAGE_KEY);
+      sessionStorageClient.remove(PROVIDER_TYPE_STORAGE_KEY);
       // 後処理で保存情報を必ず削除したことを記録
       log(3, "[useThirdPartyLogin] handleRedirectResult: cleanup");
       setIsLoading(false);

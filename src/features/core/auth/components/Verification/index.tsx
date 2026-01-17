@@ -9,7 +9,7 @@ import { useSearchParams } from "next/navigation";
 
 import { Section } from "@/components/Layout/Section";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
-import { useLocalStorage } from "@/lib/localStorage";
+import { useLocalStorage } from "@/lib/browserStorage";
 import { useVerificationPhase } from "@/features/core/auth/hooks/useVerificationPhase";
 
 import { AlreadyRegisteredState } from "./AlreadyRegisteredState";
