@@ -11,7 +11,6 @@ type BlockProps = ComponentPropsWithoutRef<"div"> & VariantProps<typeof blockVar
 
 export function Block({
   appearance,
-  space = "md",
   padding,
   paddingBlock,
   paddingInline,
@@ -27,7 +26,6 @@ export function Block({
       className={cn(
         blockVariants({
           appearance,
-          space,
           padding,
           paddingBlock,
           paddingInline,

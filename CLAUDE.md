@@ -72,7 +72,7 @@ firestore_limits: no or | single orderBy | no belongsToMany
 ## COMPONENTS
 placement: multi-domain→src/components/ or AppFrames/ | single-domain→features/\<domain\>/components/common/ | page-only→app/\<route\>/_components/
 
-wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton
+wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid,Stack} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton
 
 UserPage: Main alias, wraps \<main\> with containerType, h1 not included
 
@@ -105,7 +105,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 - edit generated files (use wrappers)
 - API routes without routeFactory
 - direct asset paths (use utils/assets: assetPath, imgPath, videoPath, logoPath)
-- space-y/space-x classes (use flex + gap instead)
+- space-y/space-x classes (use Layout/Stack instead. Stack: flex flex-col with gap, space prop accepts Tailwind spacing scale numbers)
 
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
