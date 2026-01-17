@@ -13,28 +13,26 @@ http_client: axios (client-side only, never fetch)
 ## DESIGN_PHILOSOPHY
 
 ### 3-tier structure
-| tier | description | location |
-|------|-------------|----------|
-| domain | independent business concept | features/ |
-| library | multi-file generic functionality | lib/\<name\>/ |
-| unit | single-file standalone | UI: components/, logic: hooks/ |
+| tier | description | location | can contain |
+|------|-------------|----------|-------------|
+| domain | independent business concept | features/ | all (including entities) |
+| library | multi-file feature group | lib/\<name\>/ | all except entities |
+| unit | too small for library | components/, hooks/, utils/ | single component/hook/fn |
 
 ### placement decision flow
 ```
-1. business domain? -> features/ (core or business)
-2. multi-file generic? -> lib/<name>/
-3. single-file unit -> UI: components/, logic: hooks/, pure fn: utils/
+1. business domain? -> features/ (DB/CRUD not required)
+2. multi-file feature group? -> lib/<name>/ (if entities needed -> domain)
+3. unit: UI -> components/, hook -> hooks/, pure fn -> utils/
 ```
 
-### ownership principle
-- everything belongs to domain, lib, or unit location
-- no global src/types/, src/constants/ (use domain/lib instead)
-- src/utils/ allowed (pure functions only)
+### rules
+- everything belongs to domain, lib, or unit (no orphans)
+- no global src/types/, src/constants/, src/stores/
+- lib deps: lib-to-lib OK, lib-to-features PROHIBITED
+- cross-domain UI: use target domain's hooks (never create own)
+- cross-domain server: direct service calls OK (no circular deps)
 - page-specific components -> app/<route>/_components/
-
-### cross-domain dependencies
-- UI: use hooks provided by target domain (never create own)
-- server: free to reference services (no circular deps)
 
 ### new feature request
 use `/feature-builder` agent for proper placement and design
