@@ -29,8 +29,8 @@ const passwordSchema = z
   .string({ required_error: "パスワードは8文字以上で入力してください" })
   .pipe(RegistrationSchema.shape.password.unwrap());
 
-const agreeToTermsSchema = z.literal(true, {
-  errorMap: () => ({ message: "利用規約への同意が必要です" }),
+const agreeToTermsSchema = z.boolean().refine((val) => val === true, {
+  message: "利用規約への同意が必要です",
 });
 
 /** 共通フィールド */

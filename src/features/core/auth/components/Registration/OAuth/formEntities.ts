@@ -20,8 +20,8 @@ const displayNameSchema = z
   .trim()
   .min(1, { message: "表示名を入力してください" });
 
-const agreeToTermsSchema = z.literal(true, {
-  errorMap: () => ({ message: "利用規約への同意が必要です" }),
+const agreeToTermsSchema = z.boolean().refine((val) => val === true, {
+  message: "利用規約への同意が必要です",
 });
 
 export const FormSchema = z

@@ -1,3 +1,5 @@
+import type { LegalDocumentDates } from "@/lib/structuredDocument/legal";
+
 /**
  * 許認可情報の詳細項目
  * keyを省略した場合はvalueのみ表示
@@ -123,11 +125,11 @@ export const businessConfig = {
     terms: {
       // enactedAt: "20XX年X月X日",
       // lastUpdatedAt: "20XX年X月X日",
-    },
+    } as LegalDocumentDates,
     privacy: {
       // enactedAt: "20XX年X月X日",
       // lastUpdatedAt: "20XX年X月X日",
-    },
+    } as LegalDocumentDates,
 
     /**
      * 許認可・法的情報のリスト

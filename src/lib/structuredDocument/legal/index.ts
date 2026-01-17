@@ -28,6 +28,7 @@
 // 構造定義
 export type {
   LegalDocument,
+  LegalDocumentDates,
   LegalDocumentRendererProps,
   LegalRenderMode,
   LegalSection,

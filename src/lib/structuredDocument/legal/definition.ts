@@ -30,20 +30,26 @@ export type LegalSection = {
 export type LegalSectionNumbering = "article" | "numeric" | "none";
 
 /**
+ * 法的文書の日付設定
+ */
+export type LegalDocumentDates = {
+  /** 制定日 */
+  enactedAt?: string;
+  /** 最終更新日 */
+  lastUpdatedAt?: string;
+};
+
+/**
  * リーガルドキュメント
  */
 export type LegalDocument = {
   /** 文書タイトル */
   title: string;
-  /** 制定日 */
-  enactedAt?: string;
-  /** 最終更新日 */
-  lastUpdatedAt?: string;
   /** セクション一覧 */
   sections: LegalSection[];
   /** トップレベルセクションの番号スタイル */
   sectionNumbering?: LegalSectionNumbering;
-};
+} & LegalDocumentDates;
 
 /**
  * レンダラーのモード
