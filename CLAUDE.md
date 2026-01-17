@@ -105,6 +105,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 - edit generated files (use wrappers)
 - API routes without routeFactory
 - direct asset paths (use utils/assets: assetPath, imgPath, videoPath, logoPath)
+- space-y/space-x classes (use flex + gap instead)
 
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
