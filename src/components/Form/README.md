@@ -1,92 +1,99 @@
 # Form コンポーネント
 
-## 概要
+## 目的
 
-このプロジェクトでは、フォームの構築方法が **3種類** あり、それぞれに **Controlled（react-hook-form使用）** と **Manual（useState等）** の2パターンが存在する。
+このプロジェクトでは、フォームは **3つの方法** で構築できる。  
+各方法は **Controlled（react-hook-form）** と **Manual（useState 等）** の2系統がある。  
+本ドキュメントは「どの場面でどのコンポーネントを使うか」を即判断できることを目的とする。
 
 ---
 
 ## フォーム構築の3つの方法
 
-| 方法 | 自由度 | 手間 | 用途 |
-|---|---|---|---|
-| **Input を使う** | ◎ 高い | 多い | カスタムUI、特殊なレイアウト |
-| **Field を使う** | ○ 中程度 | 中程度 | 一般的なフォーム、ラベル・エラー表示が必要 |
-| **Renderer を使う** | △ 低い | 少ない | 管理画面のCRUDフォーム自動生成 |
+| 方法 | 特徴 | 主な用途 |
+|---|---|---|
+| **Input を組み合わせる** | 自由度が最も高い | 変則レイアウト / 独自UI |
+| **Field を使う** | 標準的で安定 | 一般的なフォーム |
+| **Renderer を使う** | 自動生成 | 管理画面のCRUDフォーム |
 
 ---
 
-## Controlled vs Manual
+## Controlled / Manual の対応
 
 | 項目 | Controlled | Manual |
 |---|---|---|
-| 状態管理 | react-hook-form | useState / useReducer 等 |
+| 状態管理 | react-hook-form | useState / useReducer |
 | バリデーション | zod + react-hook-form | 自前実装 |
 | コンテナ | `AppForm` | `<form>` |
 | Input | `Form/Input/Controlled/*` | `Form/Input/Manual/*` |
 
-### 依存関係
-
-```
-Controlled Input
-    ↓ 内部で使用
-Manual Input（実際のUI実装）
-```
-
-Controlled は Manual をラップして、`field` prop を `value/onChange` に変換している。
+Controlled Input は Manual Input を内部でラップして、`field` を `value/onChange` へ変換する。
 
 ---
 
-## 1. Input を使う（自由度高）
+## フィールド種別（必ず意識する）
 
-最も自由度が高い方法。レイアウトを完全にコントロールできる。
+フォームの入力は **単一フィールド** と **インライングループ** に分かれる。  
+どちらを選ぶかで使うコンポーネントが変わる。
 
-### Controlled の場合
+| 種別 | 説明 | Controlled | Manual | 典型例 |
+|---|---|---|---|---|
+| 単一フィールド | 1入力を1ラベルで扱う | `FieldItem` | `ManualFieldItem` | メール、名前 |
+| インライングループ | 複数入力を1ラベルで横並び表示 | `FieldItemGroup` | `ManualFieldItemGroup` | 生年月日、郵便番号+住所 |
 
-`FieldController` で field を取得し、Controlled Input に渡す。
+インライングループは **1つのフィールドとして扱う** ため、  
+ラベル・説明・エラー表示はグループ単位でまとめて扱う。
+
+---
+
+## 1. Input を使う（自由度が最も高い）
+
+### Controlled
 
 ```tsx
+import { AppForm } from "@/components/Form";
 import { FieldController } from "@/components/Form/Field";
 import { SwitchInput } from "@/components/Form/Input/Controlled";
+import { Stack } from "@/components/Layout";
+import { Para } from "@/components/TextBlocks/Para";
 
 <AppForm methods={form} onSubmit={handleSubmit}>
   <FieldController control={control} name="notify">
     {(field) => (
-      <div className="自由なレイアウト">
+      <Stack space={2}>
         <SwitchInput field={field} label="通知設定" />
-        <span>補足テキスト</span>
-      </div>
+        <Para tone="muted" size="xs">補足テキスト</Para>
+      </Stack>
     )}
   </FieldController>
 </AppForm>
 ```
 
-### Manual の場合
-
-Input を直接使用する。ラッパー不要。
+### Manual
 
 ```tsx
 import { SwitchInput } from "@/components/Form/Input/Manual";
+import { Stack } from "@/components/Layout";
+import { Para } from "@/components/TextBlocks/Para";
 
 const [notify, setNotify] = useState(false);
 
 <form onSubmit={handleSubmit}>
-  <div className="自由なレイアウト">
+  <Stack space={2}>
     <SwitchInput value={notify} onChange={setNotify} label="通知設定" />
-    <span>補足テキスト</span>
-  </div>
+    <Para tone="muted" size="xs">補足テキスト</Para>
+  </Stack>
 </form>
 ```
 
 ---
 
-## 2. Field を使う（簡単に組み立て）
+## 2. Field を使う（標準的なフォーム）
 
-ラベル・説明・エラーメッセージを自動的に付与する。一般的なフォームに最適。
-
-### Controlled の場合
+### 単一フィールド（Controlled）
 
 ```tsx
+import { AppForm } from "@/components/Form";
 import { FieldItem } from "@/components/Form/Field";
 import { EmailInput } from "@/components/Form/Input/Controlled";
 
@@ -102,7 +109,26 @@ import { EmailInput } from "@/components/Form/Input/Controlled";
 </AppForm>
 ```
 
-### Manual の場合
+### インライングループ（Controlled）
+
+```tsx
+import { FieldItemGroup } from "@/components/Form/Field";
+import { SelectInput } from "@/components/Form/Input/Controlled";
+
+<FieldItemGroup
+  control={control}
+  names={["birth_year", "birth_month", "birth_day"] as const}
+  label="生年月日"
+  required
+  renderInputs={(fields) => [
+    <SelectInput key="year" field={fields[0]} options={yearOptions} />,
+    <SelectInput key="month" field={fields[1]} options={monthOptions} />,
+    <SelectInput key="day" field={fields[2]} options={dayOptions} />,
+  ]}
+/>
+```
+
+### 単一フィールド（Manual）
 
 ```tsx
 import { ManualFieldItem } from "@/components/Form/Field";
@@ -112,11 +138,7 @@ const [email, setEmail] = useState("");
 const [error, setError] = useState<string>();
 
 <form onSubmit={handleSubmit}>
-  <ManualFieldItem
-    label="メールアドレス"
-    error={error}
-    required
-  >
+  <ManualFieldItem label="メールアドレス" error={error} required>
     <Input
       type="email"
       value={email}
@@ -126,13 +148,40 @@ const [error, setError] = useState<string>();
 </form>
 ```
 
----
-
-## 3. Renderer を使う（全自動）
-
-ドメインJSONからフォームを自動生成。管理画面のCRUD操作に最適。
+### インライングループ（Manual）
 
 ```tsx
+import { ManualFieldItemGroup } from "@/components/Form/Field";
+import { SelectInput } from "@/components/Form/Input/Manual";
+
+const [year, setYear] = useState("");
+const [month, setMonth] = useState("");
+const [day, setDay] = useState("");
+const [yearError, setYearError] = useState<string>();
+const [monthError, setMonthError] = useState<string>();
+const [dayError, setDayError] = useState<string>();
+
+<ManualFieldItemGroup
+  label="生年月日"
+  required
+  errors={[yearError, monthError, dayError].filter(Boolean)}
+>
+  {[
+    <SelectInput key="year" value={year} onChange={setYear} options={yearOptions} />,
+    <SelectInput key="month" value={month} onChange={setMonth} options={monthOptions} />,
+    <SelectInput key="day" value={day} onChange={setDay} options={dayOptions} />,
+  ]}
+</ManualFieldItemGroup>
+```
+
+---
+
+## 3. Renderer を使う（管理画面向け）
+
+domain.json からフォームを自動生成する。**Controlled のみ対応**。
+
+```tsx
+import { AppForm } from "@/components/Form";
 import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 
 <AppForm methods={form} onSubmit={handleSubmit}>
@@ -150,48 +199,31 @@ import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 </AppForm>
 ```
 
-※ DomainFieldRenderer は Controlled のみ対応
+`inlineGroups` は **インライングループ用の定義**。  
+単一フィールドは `domainJsonFields` にそのまま定義する。
 
 ---
 
-## コンテナ
+## コンテナ（フォーム全体）
 
 | react-hook-form | コンテナ |
 |---|---|
 | 使う | `AppForm` |
 | 使わない | `<form>` |
 
-### AppForm の機能
-
-- `FormProvider`（react-hook-form の Context）
-- `handleSubmit` のラップ
-- Enter キー送信抑止（IME対応）
-- `pending` 状態での fieldset 無効化
-- `fieldSpace` でフィールド間隔の統一
+`AppForm` は `fieldSpace` で縦方向の間隔を統一できる。
 
 ---
 
-## ディレクトリ構造
+## どれを使うべきか（早見表）
 
-```
-src/components/Form/
-├── AppForm.tsx              # フォームコンテナ（react-hook-form用）
-├── Controlled/              # Controlled Input の再エクスポート
-├── Manual/                  # Manual Input の再エクスポート
-├── Field/
-│   ├── FieldItem.tsx        # Controlled用フィールド（ラベル・エラー付き）
-│   ├── FieldItemGroup.tsx   # 複数フィールド横並び（Controlled）
-│   ├── FieldController.tsx  # field を渡すだけの薄いラッパー
-│   ├── ManualFieldItem.tsx  # Manual用フィールド
-│   └── ManualFieldItemGroup.tsx
-├── Input/
-│   ├── Controlled/          # react-hook-form 用 Input
-│   └── Manual/              # value/onChange パターンの Input
-├── DomainFieldRenderer/     # ドメインJSONからフォーム自動生成
-├── Button/                  # ボタン類
-├── MediaHandler/            # メディアアップロード
-└── Label.tsx
-```
+| 目的 | 推奨 |
+|---|---|
+| 一般的なフォーム | `FieldItem` / `FieldItemGroup` |
+| 独自レイアウト | `FieldController` + Controlled Input |
+| 管理画面CRUD | `DomainFieldRenderer` |
+| 単一入力 | `FieldItem` / `ManualFieldItem` |
+| 横並び入力 | `FieldItemGroup` / `ManualFieldItemGroup` |
 
 ---
 
@@ -202,7 +234,7 @@ src/components/Form/
 | `Input` / `TextInput` | テキスト入力 |
 | `NumberInput` | 数値入力 |
 | `Textarea` | 複数行テキスト |
-| `Select` / `SelectInput` | 単一選択 |
+| `SelectInput` | 単一選択 |
 | `MultiSelectInput` | 複数選択 |
 | `RadioGroupInput` | ラジオボタン |
 | `CheckGroupInput` | チェックボックスグループ |
@@ -220,11 +252,22 @@ src/components/Form/
 
 ---
 
-## まとめ表
+## ディレクトリ構造
 
-| 方法 | Controlled | Manual |
-|---|---|---|
-| Input を使う | `FieldWrapper` + Controlled Input | Manual Input を直接 |
-| Field を使う | `FieldItem` | `ManualFieldItem` |
-| Renderer | `DomainFieldRenderer` | - |
-| コンテナ | `AppForm` | `<form>` |
+```
+src/components/Form/
+├── AppForm.tsx
+├── Field/
+│   ├── FieldItem.tsx
+│   ├── FieldItemGroup.tsx
+│   ├── FieldController.tsx
+│   ├── ManualFieldItem.tsx
+│   └── ManualFieldItemGroup.tsx
+├── Input/
+│   ├── Controlled/
+│   └── Manual/
+├── DomainFieldRenderer/
+├── Button/
+├── MediaHandler/
+└── Label.tsx
+```
