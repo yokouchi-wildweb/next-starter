@@ -1,7 +1,7 @@
 // src/components/Form/NumberInput.tsx
 
 import type { ChangeEventHandler, ReactNode } from "react";
-import { Input } from "src/components/Form/Manual";
+import { Input } from "@/components/Form/Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { ControlledInputProps } from "@/components/Form/types";
 
