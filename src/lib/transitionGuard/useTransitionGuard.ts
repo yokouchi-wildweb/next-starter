@@ -60,10 +60,16 @@ export function useTransitionGuard(
   const router = useRouter();
   const pathname = usePathname();
   const [status, setStatus] = useState<"checking" | "passed" | "failed">(
-    "checking"
+    config.disabled ? "passed" : "checking"
   );
 
   useEffect(() => {
+    // disabled時は検証をスキップ
+    if (config.disabled) {
+      setStatus("passed");
+      return;
+    }
+
     const result = validateGuard(pathname, config);
 
     if (result.passed) {

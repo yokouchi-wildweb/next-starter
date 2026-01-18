@@ -37,6 +37,8 @@ export type TransitionGuardConfig = {
   tokenKey?: string;
   /** ガード失敗時の挙動 */
   onFail: GuardFailAction;
+  /** ガードを無効にする（開発時のデバッグ用） */
+  disabled?: boolean;
 };
 
 /** ガード失敗理由 */

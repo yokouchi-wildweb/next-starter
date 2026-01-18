@@ -126,7 +126,8 @@ export function EmailRegistrationForm() {
         <FormFieldItem
           control={form.control}
           name="displayName"
-          label={<span className="text-sm font-medium">表示名</span>}
+          label="表示名"
+          required
           renderInput={(field) => (
             <TextInput
               field={field}
@@ -140,7 +141,8 @@ export function EmailRegistrationForm() {
         <FormFieldItem
           control={form.control}
           name="password"
-          label={<span className="text-sm font-medium">パスワード</span>}
+          label="パスワード"
+          required
           renderInput={(field) => (
             <PasswordInput
               field={field}
@@ -155,7 +157,8 @@ export function EmailRegistrationForm() {
           <FormFieldItem
             control={form.control}
             name="passwordConfirmation"
-            label={<span className="text-sm font-medium">パスワード（確認）</span>}
+            label="パスワード（確認）"
+            required
             renderInput={(field) => (
               <PasswordInput
                 field={field}

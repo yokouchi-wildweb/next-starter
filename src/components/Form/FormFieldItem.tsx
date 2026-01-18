@@ -39,7 +39,21 @@ export type FormFieldItemProps<
   hideLabel?: boolean;
   /** エラーメッセージを非表示にする */
   hideError?: boolean;
+  /** フィールドが必須かどうか */
+  required?: boolean;
+  /** カスタム必須マーク（省略時はデフォルトの赤い * を表示） */
+  requiredMark?: ReactNode;
+  /** 必須マークの位置（デフォルト: "after"） */
+  requiredMarkPosition?: "before" | "after";
 };
+
+/** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
+const DefaultRequiredMarkAfter = (
+  <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
+);
+const DefaultRequiredMarkBefore = (
+  <span className="text-destructive mr-0.5" aria-hidden="true">*</span>
+);
 
 export function FormFieldItem<
   TFieldValues extends FieldValues,
@@ -53,9 +67,14 @@ export function FormFieldItem<
   className,
   hideLabel = false,
   hideError = false,
+  required = false,
+  requiredMark,
+  requiredMarkPosition = "after",
 }: FormFieldItemProps<TFieldValues, TName>) {
 
   const descPlacement = description?.placement ?? "after";
+  const defaultMark = requiredMarkPosition === "before" ? DefaultRequiredMarkBefore : DefaultRequiredMarkAfter;
+  const resolvedRequiredMark = required ? (requiredMark ?? defaultMark) : null;
 
   return (
     <FormField
@@ -65,7 +84,9 @@ export function FormFieldItem<
         <FormItem className={className}>
           {label && (
             <FormLabel className={hideLabel ? "sr-only" : undefined}>
+              {requiredMarkPosition === "before" && resolvedRequiredMark}
               {label}
+              {requiredMarkPosition === "after" && resolvedRequiredMark}
             </FormLabel>
           )}
 

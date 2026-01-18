@@ -126,7 +126,8 @@ export function OAuthRegistrationForm() {
         <FormFieldItem
           control={form.control}
           name="email"
-          label={<span className="text-sm font-medium">メールアドレス</span>}
+          label="メールアドレス"
+          required
           renderInput={(field) => (
             <TextInput
               field={field}
@@ -141,7 +142,8 @@ export function OAuthRegistrationForm() {
         <FormFieldItem
           control={form.control}
           name="displayName"
-          label={<span className="text-sm font-medium">表示名</span>}
+          label="表示名"
+          required
           renderInput={(field) => (
             <TextInput
               field={field}
