@@ -6,10 +6,10 @@ import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-
 import { ConfiguredField } from "@/components/Form/Field/ConfiguredField";
 import { ConfiguredFieldGroup } from "@/components/Form/Field/ConfiguredFieldGroup";
 import { ConfiguredMediaField } from "@/components/Form/Field/ConfiguredMediaField";
-import { FieldGroup } from "./FieldGroup";
-import type { DomainJsonField, DomainFieldGroup, DomainInlineGroup } from "./types";
+import { FieldGroupSection } from "./FieldGroupSection";
+import type { FieldConfig, FieldGroup, InlineFieldGroup } from "./types";
 
-export type DomainMediaState = {
+export type MediaState = {
   isUploading: boolean;
   commitAll: () => Promise<void>;
   resetAll: () => Promise<void>;
@@ -21,36 +21,47 @@ export type MediaHandleEntry = {
   reset: () => Promise<void>;
 };
 
-export type DomainFieldRendererProps<TFieldValues extends FieldValues> = {
+export type FieldRendererProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
   methods: UseFormReturn<TFieldValues>;
-  /** ドメインJSONフィールド定義 */
-  domainJsonFields?: DomainJsonField[];
+
+  /** ベースとなるフィールド定義 */
+  baseFields?: FieldConfig[];
+
   /**
-   * カスタムフィールド定義（関連フィールドなど）
-   * domainJsonFields の後に追加される
+   * フィールドのパッチ（上書き・追加）
+   * - 同名フィールド: 位置を維持して上書き
+   * - 新規フィールド: 末尾に追加
    */
-  customFields?: DomainJsonField[];
-  /** フィールドグループ定義（指定時はグループ化表示） */
-  fieldGroups?: DomainFieldGroup[];
+  fieldPatches?: FieldConfig[];
+
+  /** フィールドグループ定義（セクション分け） */
+  fieldGroups?: FieldGroup[];
+
   /** インラインフィールドグループ定義（横並び表示） */
-  inlineGroups?: DomainInlineGroup[];
-  onMediaStateChange?: (state: DomainMediaState | null) => void;
+  inlineGroups?: InlineFieldGroup[];
+
+  /** メディアアップロード状態の変更通知 */
+  onMediaStateChange?: (state: MediaState | null) => void;
+
   /** 全フィールドの前に挿入するUI */
   beforeAll?: ReactNode;
+
   /** 全フィールドの後に挿入するUI */
   afterAll?: ReactNode;
+
   /** 特定フィールドの前に挿入するUI（キー: フィールド名） */
   beforeField?: Partial<Record<FieldPath<TFieldValues>, ReactNode>>;
+
   /** 特定フィールドの後に挿入するUI（キー: フィールド名） */
   afterField?: Partial<Record<FieldPath<TFieldValues>, ReactNode>>;
 };
 
-export function DomainFieldRenderer<TFieldValues extends FieldValues>({
+export function FieldRenderer<TFieldValues extends FieldValues>({
   control,
   methods,
-  domainJsonFields = [],
-  customFields = [],
+  baseFields = [],
+  fieldPatches = [],
   fieldGroups,
   inlineGroups,
   onMediaStateChange,
@@ -58,7 +69,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   afterAll,
   beforeField,
   afterField,
-}: DomainFieldRendererProps<TFieldValues>) {
+}: FieldRendererProps<TFieldValues>) {
   // メディアアップロード状態管理
   const mediaEntriesRef = useRef<Map<string, MediaHandleEntry>>(new Map());
   const [mediaVersion, setMediaVersion] = useState(0);
@@ -76,29 +87,31 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
     [],
   );
 
-  // ドメインフィールドとカスタムフィールドを統合
+  // baseFields と fieldPatches を統合
+  // - 同名フィールド: 位置を維持して上書き
+  // - 新規フィールド: 末尾に追加
   const combinedFields = useMemo(() => {
-    // domainFieldIndex を付与
-    const indexedDomainFields = domainJsonFields.map((field, index) => ({
-      ...field,
-      domainFieldIndex: field.domainFieldIndex ?? index,
-    }));
+    const patchMap = new Map(fieldPatches.map((f) => [f.name, f]));
 
-    // カスタムフィールドで上書きするフィールド名のセット
-    const customFieldNames = new Set(customFields.map((f) => f.name));
+    // baseFields を走査し、同名があれば置き換え（位置維持）
+    const mergedFields = baseFields.map((field) => {
+      const patch = patchMap.get(field.name);
+      if (patch) {
+        patchMap.delete(field.name); // 使用済み
+        return patch; // 上書き（位置維持）
+      }
+      return field;
+    });
 
-    // ドメインフィールドからカスタムフィールドと同名のものを除外
-    const filteredDomainFields = indexedDomainFields.filter(
-      (field) => !customFieldNames.has(field.name)
-    );
+    // 残り（新規追加分）を末尾に追加
+    const remainingPatches = Array.from(patchMap.values());
 
-    // 統合（ドメインフィールド + カスタムフィールド）
-    return [...filteredDomainFields, ...customFields];
-  }, [domainJsonFields, customFields]);
+    return [...mergedFields, ...remainingPatches];
+  }, [baseFields, fieldPatches]);
 
   // フィールド名からconfigを取得するマップ
   const fieldConfigMap = useMemo(() => {
-    const map = new Map<string, { config: DomainJsonField; index: number }>();
+    const map = new Map<string, { config: FieldConfig; index: number }>();
     combinedFields.forEach((config, index) => {
       map.set(config.name, { config, index });
     });
@@ -116,7 +129,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
 
   // インライングループの先頭フィールド名 → グループ定義 のマップ
   const inlineGroupByFirstField = useMemo(() => {
-    const map = new Map<string, DomainInlineGroup>();
+    const map = new Map<string, InlineFieldGroup>();
     inlineGroups?.forEach((group) => {
       if (group.fields.length > 0) {
         map.set(group.fields[0], group);
@@ -127,7 +140,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
 
   // 単一フィールドをレンダリングする関数
   const renderSingleField = useCallback(
-    (fieldConfig: DomainJsonField, index: number) => {
+    (fieldConfig: FieldConfig, index: number) => {
       // none は何も表示しない
       if (fieldConfig.formInput === "none") {
         return null;
@@ -174,7 +187,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
 
   // インライングループをレンダリングする関数
   const renderInlineGroup = useCallback(
-    (group: DomainInlineGroup) => {
+    (group: InlineFieldGroup) => {
       const groupFieldConfigs = group.fields
         .map((fieldName) => fieldConfigMap.get(fieldName))
         .filter((entry): entry is NonNullable<typeof entry> => entry != null)
@@ -199,7 +212,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
 
   // インライングループ対応でフィールドをレンダリング
   const renderFieldsWithInlineSupport = useCallback(
-    (fieldEntries: { config: DomainJsonField; index: number }[]) => {
+    (fieldEntries: { config: FieldConfig; index: number }[]) => {
       const elements: ReactNode[] = [];
       const processedInlineGroups = new Set<string>();
 
@@ -246,7 +259,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
       if (groupFields.length === 0) return null;
 
       return (
-        <FieldGroup
+        <FieldGroupSection
           key={group.key}
           label={group.label}
           collapsible={group.collapsible}
@@ -254,7 +267,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
           bgColor={group.bgColor}
         >
           {renderFieldsWithInlineSupport(groupFields)}
-        </FieldGroup>
+        </FieldGroupSection>
       );
     });
 

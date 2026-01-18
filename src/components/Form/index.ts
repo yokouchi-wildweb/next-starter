@@ -12,7 +12,9 @@ export * from "./utils";
 
 // サブディレクトリ
 export * from "./Button";
-export * from "./DomainFieldRenderer";
+// FieldRenderer（FieldType/FieldGroup と衝突するため、直接インポートを推奨）
+export { FieldRenderer } from "./FieldRenderer";
+export type { FieldRendererProps, MediaState } from "./FieldRenderer";
 export * from "./Field";
 export * from "./MediaHandler";
 

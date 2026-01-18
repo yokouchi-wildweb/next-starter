@@ -1,4 +1,4 @@
-// src/components/Form/DomainFieldRenderer/defaultValueBuilder.ts
+// src/components/Form/FieldRenderer/defaultValueBuilder.ts
 
 type DomainField = {
   name: string;

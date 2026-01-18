@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-export type FieldGroupProps = {
+export type FieldGroupSectionProps = {
   /** グループラベル */
   label: string;
   /** 子要素（フィールド群） */
@@ -20,17 +20,17 @@ export type FieldGroupProps = {
 };
 
 /**
- * フィールドグループコンポーネント
+ * フィールドグループセクションコンポーネント
  * フォームフィールドを視覚的にグループ化して表示する
  */
-export function FieldGroup({
+export function FieldGroupSection({
   label,
   children,
   collapsible = false,
   defaultCollapsed = false,
   bgColor,
   className,
-}: FieldGroupProps) {
+}: FieldGroupSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   const handleToggle = () => {
