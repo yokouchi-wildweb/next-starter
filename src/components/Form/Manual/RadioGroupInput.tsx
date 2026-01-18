@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { type Options } from "@/components/Form/types";
 
 export type RadioGroupDisplayType = "classic" | "standard" | "bookmark" | "rounded";
+export type RadioGroupOrientation = "horizontal" | "vertical";
 
 type OptionPrimitive = Options["value"];
 
@@ -26,6 +27,8 @@ type Props = {
   options?: Options[];
   /** 表示タイプ（クラシック / 標準ボタン / ブックマークタグ / 丸形） */
   displayType?: RadioGroupDisplayType;
+  /** 選択肢の並び方向（デフォルト: horizontal） */
+  orientation?: RadioGroupOrientation;
   /** ボタン表示時に利用するバリアント */
   buttonVariant?: ButtonStyleProps["variant"];
   /** ボタン表示時に利用するサイズ */
@@ -34,12 +37,13 @@ type Props = {
   selectedButtonVariant?: ButtonStyleProps["variant"];
   /** 非選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
   unselectedButtonVariant?: ButtonStyleProps["variant"];
-} & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange">;
+} & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange" | "orientation">;
 
 export function RadioGroupInput({
   field,
   options = [],
   displayType = "standard",
+  orientation = "horizontal",
   buttonVariant,
   buttonSize,
   selectedButtonVariant,
@@ -56,13 +60,17 @@ export function RadioGroupInput({
     return (matched?.value ?? value) as OptionPrimitive;
   };
 
+  const isVertical = orientation === "vertical";
+  const layoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+
   if (displayType === "classic") {
     return (
       <RadioGroup
         onValueChange={(value) => field.onChange(resolveOriginalValue(value) as OptionPrimitive)}
         value={serializedValue}
         defaultValue={serializedValue}
-        {...rest}
+        className={cn(layoutClass, rest.className)}
+        aria-orientation={orientation}
       >
         {options.map((op, index) => {
           const serialized = mapOptionValue(op.value);
@@ -81,11 +89,11 @@ export function RadioGroupInput({
     );
   }
 
-  const { className, orientation, ...restDivProps } = rest;
+  const { className, ...restDivProps } = rest;
 
   return (
     <div
-      className={cn("flex flex-wrap gap-2", className)}
+      className={cn(layoutClass, className)}
       role="radiogroup"
       aria-orientation={orientation}
       {...(restDivProps as ComponentProps<"div">)}

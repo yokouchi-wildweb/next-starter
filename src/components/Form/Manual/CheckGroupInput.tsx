@@ -15,6 +15,7 @@ import {
 } from "@/components/Form/utils";
 
 export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "classic";
+export type CheckGroupOrientation = "horizontal" | "vertical";
 
 type OptionPrimitive = Options["value"];
 
@@ -32,6 +33,8 @@ type Props = {
    * 表示タイプ（標準ボタン / ブックマークタグ / 丸形 / クラシック）
    */
   displayType?: CheckGroupDisplayType;
+  /** 選択肢の並び方向（デフォルト: classicはvertical、それ以外はhorizontal） */
+  orientation?: CheckGroupOrientation;
   /** ボタン表示時に利用するバリアント */
   buttonVariant?: ButtonStyleProps["variant"];
   /** ボタン表示時に利用するサイズ */
@@ -46,6 +49,7 @@ export function CheckGroupInput({
   field,
   options = [],
   displayType = "standard",
+  orientation,
   buttonVariant,
   buttonSize,
   selectedButtonVariant,
@@ -58,9 +62,14 @@ export function CheckGroupInput({
     field.onChange(toggleOptionValue(field.value, value));
   };
 
+  // classicのデフォルトはvertical、それ以外はhorizontal
+  const resolvedOrientation = orientation ?? (displayType === "classic" ? "vertical" : "horizontal");
+  const isVertical = resolvedOrientation === "vertical";
+  const layoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+
   if (displayType === "classic") {
     return (
-      <div className="flex flex-col gap-2" {...rest}>
+      <div className={layoutClass} {...rest}>
         {options.map((op) => {
           const serialized = serializeOptionValue(op.value);
           const id = `${groupId}-${serialized}`;
@@ -85,7 +94,7 @@ export function CheckGroupInput({
   }
 
   return (
-    <div className="flex flex-wrap items-start gap-2" {...rest}>
+    <div className={layoutClass} {...rest}>
       {options.map((op) => {
         const selected = includesOptionValue(field.value, op.value);
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
