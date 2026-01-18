@@ -46,6 +46,20 @@ Controlled Input は Manual Input を内部でラップして、`field` を `val
 
 ---
 
+## フィールドレベルの分類（早見表）
+
+フォームの粒度・設定情報の多さで使うコンポーネントが変わる。
+
+| レベル | 目的 | 代表コンポーネント | 向いている場面 | 備考 |
+|---|---|---|---|---|
+| **Manual** | 自前状態で制御 | `ManualFieldItem` / `ManualFieldItemGroup` | useState 前提、簡易フォーム | エラーは手動で渡す |
+| **Controlled** | RHF 連携の標準形 | `FieldItem` / `FieldItemGroup` / `FieldController` | 一般的なフォーム | エラー自動取得 |
+| **Configured** | 設定駆動で描画 | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` | domain.json を使う運用 | `DomainJsonField` を渡す |
+| **Media** | メディアアップロード | `MediaFieldItem` / `ConfiguredMediaField` | 画像/動画のアップロード | `useMediaUploaderField` を利用 |
+| **Renderer** | まとめて自動生成 | `DomainFieldRenderer` | 管理画面CRUD | `mediaUploader` も扱える |
+
+---
+
 ## 1. Input を使う（自由度が最も高い）
 
 ### Controlled
@@ -176,6 +190,28 @@ const [dayError, setDayError] = useState<string>();
 
 ---
 
+## 設定駆動フィールドの使い分け
+
+`DomainJsonField` を渡して描画する高レベルコンポーネント。  
+表示順・一括描画・インライン化の用途で使い分ける。
+
+| 目的 | コンポーネント | 入力 | 使いどころ | 注意点 |
+|---|---|---|---|---|
+| 単一フィールド | `ConfiguredField` | `fieldConfig` | 1項目だけ差し込みたいとき | `mediaUploader` は非対応 |
+| 横並びグループ | `ConfiguredFieldGroup` | `fieldConfigs[]` | 生年月日/住所など | ラベルは先頭の `label` を利用可 |
+| 縦並び一括 | `ConfiguredFields` | `fieldConfigs[]` / `names[]` | まとめて描画したいとき | `Stack` で縦間隔制御 |
+
+---
+
+## メディアフィールドの使い分け
+
+| 目的 | コンポーネント | 入力 | 使いどころ | 注意点 |
+|---|---|---|---|---|
+| 単独配置 | `MediaFieldItem` | `uploadPath` など | 単体フォームに手動で配置 | RHF の `methods` が必要 |
+| 設定駆動 | `ConfiguredMediaField` | `MediaUploaderFieldConfig` | `DomainFieldRenderer` 内部 | 直接使うより Renderer 推奨 |
+
+---
+
 ## 3. Renderer を使う（管理画面向け）
 
 domain.json からフォームを自動生成する。**Controlled のみ対応**。
@@ -222,6 +258,8 @@ import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 | 一般的なフォーム | `FieldItem` / `FieldItemGroup` |
 | 独自レイアウト | `FieldController` + Controlled Input |
 | 管理画面CRUD | `DomainFieldRenderer` |
+| 設定駆動フォーム | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` |
+| メディアアップロード | `MediaFieldItem` / `ConfiguredMediaField` |
 | 単一入力 | `FieldItem` / `ManualFieldItem` |
 | 横並び入力 | `FieldItemGroup` / `ManualFieldItemGroup` |
 
@@ -261,8 +299,12 @@ src/components/Form/
 │   ├── FieldItem.tsx
 │   ├── FieldItemGroup.tsx
 │   ├── FieldController.tsx
+│   ├── ConfiguredField.tsx
+│   ├── ConfiguredFieldGroup.tsx
+│   ├── ConfiguredFields.tsx
 │   ├── ManualFieldItem.tsx
 │   └── ManualFieldItemGroup.tsx
+│   └── MediaFieldItem.tsx
 ├── Input/
 │   ├── Controlled/
 │   └── Manual/

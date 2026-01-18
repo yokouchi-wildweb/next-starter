@@ -9,7 +9,7 @@ import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { useCallback } from "react";
 import settingFieldsJson from "../../setting-fields.json";
-import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/fieldMapper";
+import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/types";
 
 // setting-fields.json のフィールド型定義
 type SettingJsonField = {

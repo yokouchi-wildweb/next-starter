@@ -1,10 +1,10 @@
 // src/features/__domain__/components/common/__Domain__Fields.tsx
 
 import { useMemo } from "react";
-import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
+import type { FieldValues, UseFormReturn } from "react-hook-form";
 import {
   DomainFieldRenderer,
-  type DomainFieldRenderConfig,
+  type DomainJsonField,
   type DomainMediaState,
 } from "@/components/Form/DomainFieldRenderer";
 import domainConfig from "@/features/__domain__/domain.json";
@@ -18,7 +18,7 @@ export function __Domain__Fields<TFieldValues extends FieldValues>({
   methods,
   onMediaStateChange,
 }: __Domain__FieldsProps<TFieldValues>) {
-  const relationFieldConfigs = useMemo<DomainFieldRenderConfig<TFieldValues, FieldPath<TFieldValues>>[]>(
+  const customFields = useMemo<DomainJsonField[]>(
     () => [],
     [],
   );
@@ -27,7 +27,7 @@ export function __Domain__Fields<TFieldValues extends FieldValues>({
     <DomainFieldRenderer
       control={methods.control}
       methods={methods}
-      fields={relationFieldConfigs}
+      customFields={customFields}
       domainJsonFields={domainConfig.fields ?? []}
       onMediaStateChange={onMediaStateChange}
     />
