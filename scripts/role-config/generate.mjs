@@ -16,6 +16,7 @@ import { generateProfileSchema } from "./generator/generateProfileSchema.mjs";
 import { generateProfileForm } from "./generator/generateProfileForm.mjs";
 import { generateProfileModel } from "./generator/generateProfileModel.mjs";
 import { generateProfileFieldConstants } from "./generator/generateProfileFieldConstants.mjs";
+import { generateProfileFieldTypes } from "./generator/generateProfileFieldTypes.mjs";
 import { generateProfilePresenters } from "./generator/generateProfilePresenters.mjs";
 import { generateProfileIndex } from "./generator/generateProfileIndex.mjs";
 import { updateGeneratedIndex } from "./generator/updateGeneratedIndex.mjs";
@@ -177,7 +178,12 @@ export default async function generate(roleId, options = {}) {
       console.log("  ✓ fieldConstants.ts");
     }
 
-    generateProfileIndex(roleConfig, profileConfig, hasFieldConstants);
+    const hasFieldTypes = generateProfileFieldTypes(roleConfig, profileConfig);
+    if (hasFieldTypes) {
+      console.log("  ✓ fieldTypes.ts");
+    }
+
+    generateProfileIndex(roleConfig, profileConfig, hasFieldConstants, hasFieldTypes);
     console.log("  ✓ index.ts");
 
     // generated/index.ts を更新

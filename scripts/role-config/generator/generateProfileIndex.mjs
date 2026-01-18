@@ -16,7 +16,7 @@ const GENERATED_DIR = path.join(
 /**
  * generated/{roleId}/index.ts を生成
  */
-export function generateProfileIndex(roleConfig, profileConfig, hasFieldConstants = false) {
+export function generateProfileIndex(roleConfig, profileConfig, hasFieldConstants = false, hasFieldTypes = false) {
   const roleId = roleConfig.id;
   const rolePascal = toPascalCase(roleId);
 
@@ -30,6 +30,10 @@ export function generateProfileIndex(roleConfig, profileConfig, hasFieldConstant
 
   if (hasFieldConstants) {
     exports.push(`export * from "./fieldConstants";`);
+  }
+
+  if (hasFieldTypes) {
+    exports.push(`export * from "./fieldTypes";`);
   }
 
   const content = `// src/features/core/userProfile/generated/${roleId}/index.ts
