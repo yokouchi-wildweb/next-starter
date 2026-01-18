@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Control, ControllerRenderProps, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FormFieldItem } from "@/components/Form/Field/FormFieldItem";
+import { FieldItem } from "@/components/Form/Field/FieldItem";
 import {
   BooleanCheckboxInput,
   CheckGroupInput,
@@ -25,7 +25,7 @@ import { FormField, FormItem, FormControl, FormMessage } from "@/components/_sha
 
 import { buildFieldConfigsFromDomainJson, type DomainJsonField } from "./fieldMapper";
 import { FieldGroup } from "./FieldGroup";
-import { FormFieldItemGroup } from "@/components/Form/Field/FormFieldItemGroup";
+import { FieldItemGroup } from "@/components/Form/Field/FieldItemGroup";
 import type { DomainFieldGroup, DomainInlineGroup } from "./types";
 import type {
   DomainFieldRenderConfig,
@@ -125,7 +125,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderTextField = (
     fieldConfig: TextFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -138,7 +138,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderNumberField = (
     fieldConfig: NumberFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -151,7 +151,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderTextareaField = (
     fieldConfig: TextareaFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -170,7 +170,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderSelectField = (
     fieldConfig: SelectFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -183,7 +183,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderCheckGroupField = (
     fieldConfig: CheckGroupFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -202,7 +202,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderMultiSelectField = (
     fieldConfig: MultiSelectFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -221,7 +221,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderRadioField = (
     fieldConfig: RadioFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -294,7 +294,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderDateField = (
     fieldConfig: DateFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -307,7 +307,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderTimeField = (
     fieldConfig: TimeFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -320,7 +320,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderDatetimeField = (
     fieldConfig: DatetimeFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -333,7 +333,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderEmailField = (
     fieldConfig: EmailFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -346,7 +346,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
   const renderPasswordField = (
     fieldConfig: PasswordFieldConfig<TFieldValues, FieldPath<TFieldValues>>
   ) => (
-    <FormFieldItem
+    <FieldItem
       key={fieldConfig.name}
       control={control}
       name={fieldConfig.name}
@@ -585,7 +585,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
       const names = groupFieldConfigs.map(({ config }) => config.name) as readonly FieldPath<TFieldValues>[];
 
       return (
-        <FormFieldItemGroup
+        <FieldItemGroup
           key={group.key}
           control={control}
           names={names}

@@ -1,4 +1,4 @@
-// src/components/Form/Field/FormFieldItem.tsx
+// src/components/Form/Field/FieldItem.tsx
 
 import { ReactNode } from "react";
 import {
@@ -16,14 +16,14 @@ import {
   type ControllerRenderProps,
 } from "react-hook-form";
 
-export type FormFieldItemDescription = {
+export type FieldItemDescription = {
   text: ReactNode;
   tone?: ParaProps["tone"];
   size?: ParaProps["size"];
   placement?: "before" | "after";
 };
 
-export type FormFieldItemProps<
+export type FieldItemProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 > = {
@@ -32,7 +32,7 @@ export type FormFieldItemProps<
   /** ラベル（省略可能） */
   label?: ReactNode;
   renderInput: (field: ControllerRenderProps<TFieldValues, TName>) => ReactNode;
-  description?: FormFieldItemDescription;
+  description?: FieldItemDescription;
   /** FormItem全体に適用するクラス名 */
   className?: string;
   /** ラベルを視覚的に非表示にする（スクリーンリーダー用に残す） */
@@ -55,7 +55,7 @@ const DefaultRequiredMarkBefore = (
   <span className="text-destructive mr-0.5" aria-hidden="true">*</span>
 );
 
-export function FormFieldItem<
+export function FieldItem<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 >({
@@ -70,7 +70,7 @@ export function FormFieldItem<
   required = false,
   requiredMark,
   requiredMarkPosition = "after",
-}: FormFieldItemProps<TFieldValues, TName>) {
+}: FieldItemProps<TFieldValues, TName>) {
 
   const descPlacement = description?.placement ?? "after";
   const defaultMark = requiredMarkPosition === "before" ? DefaultRequiredMarkBefore : DefaultRequiredMarkAfter;

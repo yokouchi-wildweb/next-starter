@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useWatch } from "react-hook-form";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FormFieldItem } from "@/components/Form";
+import { FieldItem } from "@/components/Form";
 import { useMediaUploaderField } from "@/lib/mediaInputSuite";
 
 import type { MediaUploaderFieldConfig } from "./fieldTypes";
@@ -85,7 +85,7 @@ export function MediaFieldItem<
   }, [handleMetadataChange, watchedValue]);
 
   return (
-    <FormFieldItem
+    <FieldItem
       control={control}
       name={config.name}
       label={config.label}

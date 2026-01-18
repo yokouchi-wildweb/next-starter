@@ -9,7 +9,7 @@ import Link from "next/link";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form";
+import { FieldItem } from "@/components/Form";
 import { SingleCardCheckbox, TextInput } from "@/components/Form/Controlled";
 import { Para } from "@/components/TextBlocks";
 import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
@@ -122,7 +122,7 @@ export function OAuthRegistrationForm() {
           />
         )}
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="email"
           label="メールアドレス"
@@ -138,7 +138,7 @@ export function OAuthRegistrationForm() {
           )}
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="displayName"
           label="表示名"
@@ -161,7 +161,7 @@ export function OAuthRegistrationForm() {
           wrapperClassName="flex flex-col gap-4"
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="agreeToTerms"
           renderInput={(field) => (

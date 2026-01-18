@@ -6,7 +6,7 @@
 "use client";
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
-import { FormFieldItem } from "@/components/Form";
+import { FieldItem } from "@/components/Form";
 
 
 

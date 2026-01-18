@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { FieldPath, FieldValues } from "react-hook-form";
 import type { Options } from "@/components/Form/types";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
-import type { FormFieldItemDescription } from "@/components/Form";
+import type { FieldItemDescription } from "@/components/Form";
 import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/CheckGroupInput";
 import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
 
@@ -12,7 +12,7 @@ type BaseFieldConfig<
 > = {
   name: TName;
   label: ReactNode;
-  description?: FormFieldItemDescription;
+  description?: FieldItemDescription;
   readOnly?: boolean;
   domainFieldIndex?: number;
 };

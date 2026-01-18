@@ -10,7 +10,7 @@ import Link from "next/link";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form";
+import { FieldItem } from "@/components/Form";
 import { PasswordInput, SingleCardCheckbox, TextInput } from "@/components/Form/Controlled";
 import { Input } from "@/components/Form/Manual";
 import { Para } from "@/components/TextBlocks";
@@ -109,7 +109,7 @@ export function EmailRegistrationForm() {
           />
         )}
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="email"
           label={<span className="text-sm font-medium">メールアドレス</span>}
@@ -123,7 +123,7 @@ export function EmailRegistrationForm() {
           )}
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="displayName"
           label="表示名"
@@ -138,7 +138,7 @@ export function EmailRegistrationForm() {
           )}
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="password"
           label="パスワード"
@@ -154,7 +154,7 @@ export function EmailRegistrationForm() {
         />
 
         {isDoubleMode && (
-          <FormFieldItem
+          <FieldItem
             control={form.control}
             name="passwordConfirmation"
             label="パスワード（確認）"
@@ -178,7 +178,7 @@ export function EmailRegistrationForm() {
           wrapperClassName="flex flex-col gap-4"
         />
 
-        <FormFieldItem
+        <FieldItem
           control={form.control}
           name="agreeToTerms"
           renderInput={(field) => (

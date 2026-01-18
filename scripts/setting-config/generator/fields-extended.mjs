@@ -120,7 +120,7 @@ function generateFieldJsx(field) {
       renderInput = `<TextInput field={field} />`;
   }
 
-  return `      <FormFieldItem
+  return `      <FieldItem
         control={control}
         name={"${name}" as FieldPath<TFieldValues>}
         label="${label}"${descriptionProp}
@@ -164,7 +164,7 @@ export default function generateFieldsExtended() {
 "use client";
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FieldItem } from "@/components/Form";
 ${controlledImportLine}
 ${manualImportLine}
 ${mediaUploaderImportLine}

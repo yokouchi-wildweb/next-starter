@@ -106,7 +106,7 @@ export type DomainFieldGroup = {
 export type DomainInlineGroup = {
   /** グループキー（一意識別子） */
   key: string;
-  /** グループラベル（FormFieldItemのラベルと同じ見た目） */
+  /** グループラベル（FieldItemのラベルと同じ見た目） */
   label: string;
   /** グループに含むフィールド名の配列（順序通りに横並び表示） */
   fields: string[];

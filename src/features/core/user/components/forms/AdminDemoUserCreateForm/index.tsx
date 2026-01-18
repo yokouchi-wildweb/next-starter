@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form";
+import { FieldItem } from "@/components/Form";
 import { PasswordInput, SelectInput, TextInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
 import { useCreateDemoUser } from "@/features/user/hooks/useCreateDemoUser";
@@ -63,7 +63,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
       pending={isMutating}
       fieldSpace="md"
     >
-      <FormFieldItem
+      <FieldItem
         control={control}
         name="role"
         label="権限"
@@ -78,19 +78,19 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
           />
         )}
       />
-      <FormFieldItem
+      <FieldItem
         control={control}
         name="displayName"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />
-      <FormFieldItem
+      <FieldItem
         control={control}
         name="email"
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
       />
-      <FormFieldItem
+      <FieldItem
         control={control}
         name="localPassword"
         label="パスワード"

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form";
+import { FieldItem } from "@/components/Form";
 import { TextInput, PasswordInput } from "@/components/Form/Controlled";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
@@ -76,19 +76,19 @@ export default function ManagerialUserEditForm({
       pending={isMutating}
       fieldSpace="md"
     >
-      <FormFieldItem
+      <FieldItem
         control={control}
         name="displayName"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />
-      <FormFieldItem
+      <FieldItem
         control={control}
         name="email"
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
       />
-      <FormFieldItem
+      <FieldItem
         control={control}
         name="newPassword"
         label="パスワード"

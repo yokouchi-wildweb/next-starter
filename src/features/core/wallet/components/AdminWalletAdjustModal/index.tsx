@@ -13,7 +13,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { AppForm } from "@/components/Form/AppForm";
-import { FormFieldItem } from "@/components/Form";
+import { FieldItem } from "@/components/Form";
 import { NumberInput, RadioGroupInput, TextInput } from "@/components/Form/Controlled";
 import { Button } from "@/components/Form/Button/Button";
 import { err } from "@/lib/errors";
@@ -162,7 +162,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
         </Flex>
       </Stack>
       <AppForm methods={methods} onSubmit={submit} pending={isProcessing} fieldSpace="md">
-        <FormFieldItem
+        <FieldItem
           control={control}
           name="walletType"
           label="ウォレット種別"
@@ -176,7 +176,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             />
           )}
         />
-        <FormFieldItem
+        <FieldItem
           control={control}
           name="changeMethod"
           label="操作方法"
@@ -195,7 +195,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             />
           )}
         />
-        <FormFieldItem
+        <FieldItem
           control={control}
           name="amount"
           label="金額"
@@ -208,7 +208,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
             />
           )}
         />
-        <FormFieldItem
+        <FieldItem
           control={control}
           name="reason"
           label="理由"

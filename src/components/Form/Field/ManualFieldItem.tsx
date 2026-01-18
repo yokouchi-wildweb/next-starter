@@ -48,7 +48,7 @@ const DefaultRequiredMarkBefore = (
 /**
  * フィールドアイテム（低レベルコンポーネント）
  * 単一フィールドのラベル・入力・エラー表示を提供
- * FormFieldItem の低レベル版（手動でエラーを渡す）
+ * FieldItem の低レベル版（手動でエラーを渡す）
  *
  * @example
  * ```tsx

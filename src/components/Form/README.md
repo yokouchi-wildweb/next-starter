@@ -12,7 +12,7 @@ MediaInputSuite の詳細は別ドキュメントに移動しています。
 | レイヤー | 役割 | 代表ファイル |
 | --- | --- | --- |
 | フォームラッパー | `FormProvider` + `<form>` を統合 | `src/components/Form/AppForm.tsx` |
-| 入力アイテム | ラベル/入力/エラー表示を統合 | `src/components/Form/FormFieldItem.tsx` |
+| 入力アイテム | ラベル/入力/エラー表示を統合 | `src/components/Form/Field/FieldItem.tsx` |
 | 入力コンポーネント | Controlled/Manual の入力群 | `src/components/Form/Controlled/*`, `src/components/Form/Manual/*` |
 | ドメイン統合 | `domain.json` からフォームを構築 | `src/components/Form/DomainFieldRenderer/*` |
 | メディア連携 | RHF/手動の Media 入力ラッパー | `src/components/Form/MediaHandler/*` |
@@ -23,7 +23,7 @@ MediaInputSuite の詳細は別ドキュメントに移動しています。
 
 1. `useForm` で `UseFormReturn<T>` を作成し、`AppForm` に渡す。
 2. `__Domain__Fields` のようなフィールド集合コンポーネントを作成し、`DomainFieldRenderer` を呼ぶ。
-3. `DomainFieldRenderer` が `domainJsonFields` と `fields` を統合して `FormFieldItem` を描画する。
+3. `DomainFieldRenderer` が `domainJsonFields` と `fields` を統合して `FieldItem` を描画する。
 4. メディアフィールドがある場合、`onMediaStateChange` で `DomainMediaState` を受け取り、送信/キャンセル時に `commitAll` / `resetAll` を呼ぶ。
 
 > 旧構成（`ImageUploaderField` + `_partial`）は廃止済みです。`DomainFieldRenderer` + `MediaHandler` を利用してください。
@@ -101,5 +101,5 @@ const handleCancel = async () => {
 ## 5. Tips
 
 - `fields` で `domainFieldIndex` を指定すると、`domain.json` 側の並びを上書きできます。
-- `DomainFieldRenderer` の前後に `FormFieldItem` を足す構成も可能です。
+- `DomainFieldRenderer` の前後に `FieldItem` を足す構成も可能です。
 - 送信中の無効化は `AppForm` の `pending` / `disableWhilePending` を活用してください。

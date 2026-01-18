@@ -1,4 +1,4 @@
-// src/components/Form/Field/FormFieldItemGroup.tsx
+// src/components/Form/Field/FieldItemGroup.tsx
 
 "use client";
 
@@ -13,7 +13,7 @@ import {
 } from "react-hook-form";
 import { ManualFieldItemGroup, type ManualFieldItemGroupDescription } from "./ManualFieldItemGroup";
 
-export type FormFieldItemGroupProps<
+export type FieldItemGroupProps<
   TFieldValues extends FieldValues,
   TNames extends readonly FieldPath<TFieldValues>[]
 > = {
@@ -43,12 +43,12 @@ export type FormFieldItemGroupProps<
 };
 
 /**
- * FormFieldItem のグループ版（高レベルコンポーネント）
+ * FieldItem のグループ版（高レベルコンポーネント）
  * 複数フィールドを横並びで表示し、エラーメッセージを自動収集する
  *
  * @example
  * ```tsx
- * <FormFieldItemGroup
+ * <FieldItemGroup
  *   control={form.control}
  *   names={["birth_year", "birth_month", "birth_day"] as const}
  *   label="生年月日"
@@ -61,7 +61,7 @@ export type FormFieldItemGroupProps<
  * />
  * ```
  */
-export function FormFieldItemGroup<
+export function FieldItemGroup<
   TFieldValues extends FieldValues,
   TNames extends readonly FieldPath<TFieldValues>[]
 >({
@@ -76,7 +76,7 @@ export function FormFieldItemGroup<
   requiredMark,
   requiredMarkPosition = "after",
   gap,
-}: FormFieldItemGroupProps<TFieldValues, TNames>) {
+}: FieldItemGroupProps<TFieldValues, TNames>) {
   // 各フィールドの controller を取得
   const controllers = names.map((name) =>
     // eslint-disable-next-line react-hooks/rules-of-hooks
