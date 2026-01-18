@@ -32,9 +32,9 @@ export const PROFILE_FORM_INPUTS = {
  * @see src/features/core/userProfile/constants/fieldTag.ts - CORE_PROFILE_FIELD_TAGS
  */
 export const CORE_PROFILE_FIELD_TAGS = [
-  { value: "admin", label: "管理画面のみ" },
+  { value: "adminEdit", label: "管理者がプロフィールを編集" },
   { value: "registration", label: "本登録画面" },
-  { value: "mypage", label: "マイページ" },
+  { value: "selfEdit", label: "ユーザー自身がプロフィールを編集" },
 ];
 
 /**
