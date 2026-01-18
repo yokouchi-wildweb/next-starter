@@ -1,14 +1,14 @@
-// src/components/Form/Field/ConfiguredFieldGroup.tsx
+// src/components/Form/Field/Configured/ConfiguredFieldGroup.tsx
 
 "use client";
 
 import type { ReactNode } from "react";
 import type { Control, FieldPath, FieldValues, ControllerRenderProps } from "react-hook-form";
 
-import { FieldItemGroup } from "./FieldItemGroup";
-import type { ManualFieldItemGroupDescription } from "./ManualFieldItemGroup";
-import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/types";
-import { renderInputByFormType } from "./_inputRenderer";
+import { FieldItemGroup } from "../Controlled";
+import type { ManualFieldItemGroupDescription } from "../Manual";
+import type { FieldConfig } from "../types";
+import { renderInputByFormType } from "./inputResolver";
 
 export type ConfiguredFieldGroupProps<
   TFieldValues extends FieldValues,
@@ -16,8 +16,8 @@ export type ConfiguredFieldGroupProps<
 > = {
   /** react-hook-form の control */
   control: Control<TFieldValues, any, TFieldValues>;
-  /** フィールド設定の配列（DomainJsonField[]）- 順序通りに横並び表示 */
-  fieldConfigs: DomainJsonField[];
+  /** フィールド設定の配列（FieldConfig[]）- 順序通りに横並び表示 */
+  fieldConfigs: FieldConfig[];
   /** グループラベル（省略時は最初のフィールドの label を使用） */
   label?: ReactNode;
   /** フィールドが必須かどうか */
@@ -39,7 +39,7 @@ export type ConfiguredFieldGroupProps<
 /**
  * 設定ベースのインラインフィールドグループコンポーネント
  *
- * 複数の DomainJsonField を受け取り、横並びで描画する。
+ * 複数の FieldConfig を受け取り、横並びで描画する。
  * 内部で FieldItemGroup を使用し、各フィールドの入力コンポーネントは
  * fieldConfig.formInput に基づいて自動選択される。
  *

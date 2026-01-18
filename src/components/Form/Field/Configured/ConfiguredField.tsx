@@ -1,18 +1,18 @@
-// src/components/Form/Field/ConfiguredField.tsx
+// src/components/Form/Field/Configured/ConfiguredField.tsx
 
 "use client";
 
 import type { ReactNode } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
-import { FieldItem, type FieldItemDescription } from "./FieldItem";
+import { FieldItem, type FieldItemDescription } from "../Controlled";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
-import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/types";
+import type { FieldConfig } from "../types";
 import {
   renderInputByFormType,
   shouldUseFieldItem,
   hasVisibleInput,
-} from "./_inputRenderer";
+} from "./inputResolver";
 
 export type ConfiguredFieldProps<
   TFieldValues extends FieldValues,
@@ -20,8 +20,8 @@ export type ConfiguredFieldProps<
 > = {
   /** react-hook-form の control */
   control: Control<TFieldValues, any, TFieldValues>;
-  /** フィールド設定（DomainJsonField） */
-  fieldConfig: DomainJsonField;
+  /** フィールド設定（FieldConfig） */
+  fieldConfig: FieldConfig;
   /** フィールド名（省略時は fieldConfig.name） */
   name?: TName;
   /** ラベル（省略時は fieldConfig.label） */

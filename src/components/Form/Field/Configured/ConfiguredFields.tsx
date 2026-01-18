@@ -1,18 +1,18 @@
-// src/components/Form/Field/ConfiguredFields.tsx
+// src/components/Form/Field/Configured/ConfiguredFields.tsx
 
 "use client";
 
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
 import { Stack, type StackSpace } from "@/components/Layout";
-import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/types";
+import type { FieldConfig } from "../types";
 import { ConfiguredField } from "./ConfiguredField";
 
 export type ConfiguredFieldsProps<TFieldValues extends FieldValues> = {
   /** react-hook-form の control */
   control: Control<TFieldValues, any, TFieldValues>;
-  /** フィールド設定の配列（DomainJsonField[]） */
-  fieldConfigs: DomainJsonField[];
+  /** フィールド設定の配列（FieldConfig[]） */
+  fieldConfigs: FieldConfig[];
   /** 描画するフィールド名の配列（省略時は fieldConfigs の順序） */
   names?: string[];
   /** コンテナに適用するクラス名 */
@@ -24,7 +24,7 @@ export type ConfiguredFieldsProps<TFieldValues extends FieldValues> = {
 /**
  * 複数フィールドを縦並びで描画するコンポーネント
  *
- * DomainJsonField の配列を受け取り、ConfiguredField を使って各フィールドを描画する。
+ * FieldConfig の配列を受け取り、ConfiguredField を使って各フィールドを描画する。
  * names を指定することで描画順序やフィルタリングが可能。
  *
  * @example
@@ -58,16 +58,16 @@ export function ConfiguredFields<TFieldValues extends FieldValues>({
   space = 4,
 }: ConfiguredFieldsProps<TFieldValues>) {
   // フィールド名をキーにした Map を作成
-  const fieldConfigMap = new Map<string, DomainJsonField>();
+  const fieldConfigMap = new Map<string, FieldConfig>();
   fieldConfigs.forEach((config) => {
     fieldConfigMap.set(config.name, config);
   });
 
   // 描画するフィールドを決定
-  const fieldsToRender: DomainJsonField[] = names
+  const fieldsToRender: FieldConfig[] = names
     ? names
         .map((name) => fieldConfigMap.get(name))
-        .filter((config): config is DomainJsonField => config !== undefined)
+        .filter((config): config is FieldConfig => config !== undefined)
     : fieldConfigs;
 
   if (fieldsToRender.length === 0) {

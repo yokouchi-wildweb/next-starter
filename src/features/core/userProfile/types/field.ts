@@ -2,17 +2,17 @@
 // プロフィールフィールド関連の型定義
 
 import type {
-  DomainJsonField,
-  DomainFieldType,
-} from "@/components/Form/DomainFieldRenderer/types";
+  FieldConfig,
+  FieldDataType,
+} from "@/components/Form/Field";
 
 /**
- * プロフィールフィールドの設定（DomainJsonField + profile固有拡張）
- * @see src/components/Form/DomainFieldRenderer/types.ts - DomainJsonField
+ * プロフィールフィールドの設定（FieldConfig + profile固有拡張）
+ * @see src/components/Form/FieldRenderer/types.ts - FieldConfig
  */
-export type ProfileFieldConfig = DomainJsonField & {
+export type ProfileFieldConfig = FieldConfig & {
   /** データ型（Drizzle スキーマ生成に必須） */
-  fieldType: DomainFieldType;
+  fieldType: FieldDataType;
   /** 説明文（フィールド下に表示） */
   description?: string;
 };

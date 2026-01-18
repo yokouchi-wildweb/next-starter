@@ -5,8 +5,8 @@
 import { useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
-import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
-import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/types";
+import { FieldRenderer } from "@/components/Form/FieldRenderer";
+import type { FieldConfig } from "@/components/Form/Field";
 import type { ProfileFieldConfig } from "../../types";
 import type { ProfileConfig } from "../../profiles";
 import { pickFieldsByTag } from "../../utils/profileSchemaHelpers";
@@ -89,7 +89,7 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
           (field) => !excludeHidden || field.formInput !== "hidden"
         );
 
-    // ProfileFieldConfig を DomainJsonField に変換（snake_case → camelCase）
+    // ProfileFieldConfig を FieldConfig に変換（snake_case → camelCase）
     return profileFields.map(
       (field: ProfileFieldConfig) =>
         ({
@@ -111,7 +111,7 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
           accept: field.accept,
           validationRule: field.validationRule,
           metadataBinding: field.metadataBinding,
-        }) as DomainJsonField
+        }) as FieldConfig
     );
   }, [role, profiles, tag, fieldPrefix, excludeHidden]);
 
@@ -120,10 +120,10 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
   }
 
   const renderer = (
-    <DomainFieldRenderer
+    <FieldRenderer
       control={methods.control}
       methods={methods}
-      domainJsonFields={fields}
+      baseFields={fields}
     />
   );
 

@@ -1,4 +1,4 @@
-// src/components/Form/Field/_inputRenderer.tsx
+// src/components/Form/Field/Configured/inputResolver.tsx
 
 import type { ReactNode } from "react";
 import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
@@ -20,7 +20,7 @@ import {
   Textarea,
   TimeInput,
 } from "@/components/Form/Input/Controlled";
-import type { DomainJsonField, DomainFormInput } from "@/components/Form/DomainFieldRenderer/types";
+import type { FieldConfig, FormInputType } from "../types";
 import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
 import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/CheckGroupInput";
 
@@ -29,7 +29,7 @@ import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/Check
  *
  * @param formInput - フォーム入力種別
  * @param field - react-hook-form の ControllerRenderProps
- * @param fieldConfig - フィールド設定（DomainJsonField）
+ * @param fieldConfig - フィールド設定（FieldConfig）
  * @returns ReactNode（入力コンポーネント）
  *
  * @example
@@ -46,9 +46,9 @@ export function renderInputByFormType<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 >(
-  formInput: DomainFormInput,
+  formInput: FormInputType,
   field: ControllerRenderProps<TFieldValues, TName>,
-  fieldConfig: DomainJsonField
+  fieldConfig: FieldConfig
 ): ReactNode {
   const readOnly = fieldConfig.readonly ?? false;
 
@@ -155,7 +155,7 @@ export function renderInputByFormType<
       // mediaUploader は特殊な処理が必要なため、ConfiguredField では未サポート
       // DomainFieldRenderer を使用してください
       console.warn(
-        `[ConfiguredField] formInput="mediaUploader" is not supported. Use DomainFieldRenderer instead. Field: ${fieldConfig.name}`
+        `[ConfiguredField] formInput="mediaUploader" is not supported. Use FieldRenderer instead. Field: ${fieldConfig.name}`
       );
       return null;
 
@@ -205,7 +205,7 @@ function normalizeRadioOptions(
  * formInput が入力コンポーネントを持つかどうかを判定
  * hidden と none は入力コンポーネントを持たない（または非表示）
  */
-export function hasVisibleInput(formInput: DomainFormInput): boolean {
+export function hasVisibleInput(formInput: FormInputType): boolean {
   return formInput !== "hidden" && formInput !== "none";
 }
 
@@ -213,9 +213,9 @@ export function hasVisibleInput(formInput: DomainFormInput): boolean {
  * formInput が FieldItem でラップすべきかどうかを判定
  * 一部のコンポーネント（switch, stepper, booleanCheckbox）は独自のレイアウトを持つ
  */
-export function shouldUseFieldItem(formInput: DomainFormInput): boolean {
+export function shouldUseFieldItem(formInput: FormInputType): boolean {
   // 以下は FieldItem ではなく独自レイアウトを使用
-  const noFieldItemTypes: DomainFormInput[] = [
+  const noFieldItemTypes: FormInputType[] = [
     "switchInput",
     "stepperInput",
     "hidden",
@@ -228,6 +228,6 @@ export function shouldUseFieldItem(formInput: DomainFormInput): boolean {
 /**
  * checkbox の formInput が配列型かどうかを判定
  */
-export function isCheckboxArray(fieldConfig: DomainJsonField): boolean {
+export function isCheckboxArray(fieldConfig: FieldConfig): boolean {
   return fieldConfig.formInput === "checkbox" && fieldConfig.fieldType === "array";
 }

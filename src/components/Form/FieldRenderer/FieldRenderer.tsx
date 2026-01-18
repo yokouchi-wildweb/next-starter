@@ -3,11 +3,14 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { ConfiguredField } from "@/components/Form/Field/ConfiguredField";
-import { ConfiguredFieldGroup } from "@/components/Form/Field/ConfiguredFieldGroup";
-import { ConfiguredMediaField } from "@/components/Form/Field/ConfiguredMediaField";
+import {
+  ConfiguredField,
+  ConfiguredFieldGroup,
+  ConfiguredMediaField,
+  type FieldConfig,
+} from "@/components/Form/Field";
 import { FieldGroupSection } from "./FieldGroupSection";
-import type { FieldConfig, FieldGroup, InlineFieldGroup } from "./types";
+import type { FieldGroup, InlineFieldGroup } from "./types";
 
 export type MediaState = {
   isUploading: boolean;

@@ -11,7 +11,7 @@ import { __Domain__Form } from "./__Domain__Form";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import domainConfig from "@/features/__domain__/domain.json";
 
 type Props = {

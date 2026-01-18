@@ -11,7 +11,7 @@ import { SampleTagForm } from "./SampleTagForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import domainConfig from "@/features/sampleTag/domain.json";
 
 type Props = {

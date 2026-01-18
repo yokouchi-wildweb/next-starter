@@ -12,7 +12,7 @@ import { SampleCategoryForm } from "./SampleCategoryForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import domainConfig from "@/features/sampleCategory/domain.json";
 
 type Props = {

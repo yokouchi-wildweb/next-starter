@@ -14,7 +14,7 @@ import { SettingForm } from "./SettingForm";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import settingFieldsJson from "../../setting-fields.json";
 
 // 統合されたフォーム型

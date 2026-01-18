@@ -2,17 +2,14 @@
 
 import { useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
-import {
-  DomainFieldRenderer,
-  type DomainJsonField,
-  type DomainMediaState,
-} from "@/components/Form/DomainFieldRenderer";
+import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
+import type { FieldConfig } from "@/components/Form/Field";
 import type { Options } from "@/components/Form/types";
 import domainConfig from "@/features/sample/domain.json";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
-  onMediaStateChange?: (state: DomainMediaState | null) => void;
+  onMediaStateChange?: (state: MediaState | null) => void;
   sampleCategoryOptions?: Options[];
   sampleTagOptions?: Options[];
 };
@@ -23,31 +20,31 @@ export function SampleFields<TFieldValues extends FieldValues>({
   sampleCategoryOptions,
   sampleTagOptions,
 }: SampleFieldsProps<TFieldValues>) {
-  const customFields = useMemo<DomainJsonField[]>(
+  const fieldPatches = useMemo<FieldConfig[]>(
     () => [
       {
         name: "sample_category_id",
         label: "サンプルカテゴリ",
         formInput: "select",
-        options: sampleCategoryOptions as DomainJsonField["options"],
+        options: sampleCategoryOptions as FieldConfig["options"],
       },
       {
         name: "sample_tag_ids",
         label: "サンプルタグ",
         formInput: "checkbox",
         fieldType: "array",
-        options: sampleTagOptions as DomainJsonField["options"],
+        options: sampleTagOptions as FieldConfig["options"],
       }
     ],
     [sampleCategoryOptions, sampleTagOptions],
   );
 
   return (
-    <DomainFieldRenderer
+    <FieldRenderer
       control={methods.control}
       methods={methods}
-      customFields={customFields}
-      domainJsonFields={(domainConfig.fields ?? []) as DomainJsonField[]}
+      fieldPatches={fieldPatches}
+      baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
       onMediaStateChange={onMediaStateChange}
     />
   );

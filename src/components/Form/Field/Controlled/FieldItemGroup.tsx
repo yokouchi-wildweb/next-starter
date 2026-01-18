@@ -11,7 +11,7 @@ import {
   useController,
   useFormState,
 } from "react-hook-form";
-import { ManualFieldItemGroup, type ManualFieldItemGroupDescription } from "./ManualFieldItemGroup";
+import { ManualFieldItemGroup, type ManualFieldItemGroupDescription } from "../Manual";
 
 export type FieldItemGroupProps<
   TFieldValues extends FieldValues,

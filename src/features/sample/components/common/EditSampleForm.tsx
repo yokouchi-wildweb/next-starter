@@ -14,7 +14,7 @@ import { useToast, useLoadingToast } from "@/lib/toast";
 import { useSampleCategoryList } from "@/features/sampleCategory/hooks/useSampleCategoryList";
 import { useSampleTagList } from "@/features/sampleTag/hooks/useSampleTagList";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/DomainFieldRenderer";
+import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import domainConfig from "@/features/sample/domain.json";
 
 type Props = {

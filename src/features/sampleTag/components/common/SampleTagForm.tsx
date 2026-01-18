@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { SampleTagFields, type SampleTagFieldsProps } from "./SampleTagFields";
-import type { DomainMediaState } from "@/components/Form/DomainFieldRenderer";
+import type { MediaState } from "@/components/Form/FieldRenderer";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
 export type SampleTagFormProps<TFieldValues extends FieldValues> =
@@ -32,7 +32,7 @@ export function SampleTagForm<TFieldValues extends FieldValues>({
     formState: { isSubmitting },
   } = methods;
 
-  const [mediaState, setMediaState] = useState<DomainMediaState | null>(null);
+  const [mediaState, setMediaState] = useState<MediaState | null>(null);
 
   const loading = isSubmitting || isMutating;
   const disabled = loading || Boolean(mediaState?.isUploading);

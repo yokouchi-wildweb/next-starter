@@ -1,5 +1,5 @@
-// src/components/Form/Field/ConfiguredMediaField.tsx
-// config経由のメディアフィールドコンポーネント（DomainFieldRenderer用）
+// src/components/Form/Field/Configured/ConfiguredMediaField.tsx
+// config経由のメディアフィールドコンポーネント（FieldRenderer用）
 
 "use client";
 
@@ -7,9 +7,9 @@ import { useEffect, useRef } from "react";
 import { useWatch } from "react-hook-form";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FieldItem } from "./FieldItem";
+import { FieldItem } from "../Controlled";
 import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
-import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/types";
+import type { FieldConfig } from "../types";
 import type { SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 
 export type MediaHandleEntry = {
@@ -20,9 +20,9 @@ export type MediaHandleEntry = {
 
 /**
  * メディアフィールド用の拡張設定
- * DomainJsonField に onMetadataChange を追加
+ * FieldConfig に onMetadataChange を追加
  */
-export type MediaFieldConfig = DomainJsonField & {
+export type MediaFieldConfig = FieldConfig & {
   onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
 };
 
