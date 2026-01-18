@@ -61,12 +61,13 @@ function profileExists(roleId) {
 /**
  * プロフィール設定を保存
  */
-function saveProfileConfig(roleId, fields) {
+function saveProfileConfig(roleId, fields, tags) {
   ensureDir(PROFILES_DIR);
 
   const profileConfig = {
     roleId,
     fields,
+    ...(tags && Object.keys(tags).length > 0 ? { tags } : {}),
   };
 
   const fileName = `${roleId}.profile.json`;
@@ -131,7 +132,7 @@ export default async function addProfile() {
   }
 
   // プロフィールフィールドの収集
-  const { fields } = await askProfileFields();
+  const { fields, tags } = await askProfileFields();
 
   if (fields.length === 0) {
     console.log("\nフィールドが定義されていないため、プロフィール設定は作成されませんでした。");
@@ -139,7 +140,7 @@ export default async function addProfile() {
   }
 
   // プロフィール設定を保存
-  saveProfileConfig(selectedRoleId, fields);
+  saveProfileConfig(selectedRoleId, fields, tags);
 
   // hasProfile の更新確認
   if (!selectedRole.hasProfile) {
