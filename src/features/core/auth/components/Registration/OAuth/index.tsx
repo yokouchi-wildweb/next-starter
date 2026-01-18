@@ -9,7 +9,7 @@ import Link from "next/link";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FormFieldItem } from "@/components/Form";
 import { TextInput } from "@/components/Form/Controlled";
 import { SingleCardCheckbox } from "@/components/Form/Manual";
 import { Para } from "@/components/TextBlocks";

@@ -1,7 +1,7 @@
 // src/features/setting/components/common/SettingFields.tsx
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FormFieldItem } from "@/components/Form";
 import { TextInput } from "@/components/Form/Controlled";
 
 export type SettingFieldsProps<TFieldValues extends FieldValues> = {

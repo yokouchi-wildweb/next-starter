@@ -4,7 +4,7 @@
 
 import type { Control } from "react-hook-form";
 
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FormFieldItem } from "@/components/Form";
 import { TextInput, Textarea } from "@/components/Form/Controlled";
 
 import type { WalletType } from "@/config/app/currency.config";

@@ -81,7 +81,7 @@ export type DomainFieldOption = {
 export type DomainMediaValidationRule = FileValidationRule;
 
 /**
- * フィールドグループ定義
+ * フィールドグループ定義（セクション分け用）
  * @see src/features/README.md - FieldGroup（フィールドグループ）
  */
 export type DomainFieldGroup = {
@@ -97,6 +97,30 @@ export type DomainFieldGroup = {
   defaultCollapsed?: boolean;
   /** 背景色（CSSカラーコード形式、例: "#f5f5f5", "rgba(0,0,0,0.05)"） */
   bgColor?: string;
+};
+
+/**
+ * インラインフィールドグループ定義（横並び表示用）
+ * 複数フィールドを1つのフィールドのように横並びで表示する
+ */
+export type DomainInlineGroup = {
+  /** グループキー（一意識別子） */
+  key: string;
+  /** グループラベル（FormFieldItemのラベルと同じ見た目） */
+  label: string;
+  /** グループに含むフィールド名の配列（順序通りに横並び表示） */
+  fields: string[];
+  /** 各フィールドの幅（Tailwindクラス、例: ["w-24", "w-20", "w-20"]）省略時は均等 */
+  fieldWidths?: string[];
+  /** フィールドが必須かどうか */
+  required?: boolean;
+  /** 説明テキスト */
+  description?: {
+    text: string;
+    tone?: "muted" | "danger" | "warning" | "success";
+    size?: "sm" | "xs";
+    placement?: "before" | "after";
+  };
 };
 
 /**

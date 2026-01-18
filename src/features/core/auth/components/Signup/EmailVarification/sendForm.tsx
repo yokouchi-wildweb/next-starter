@@ -12,7 +12,7 @@ import { Mail } from "lucide-react";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FormFieldItem } from "@/components/Form";
 import { TextInput } from "@/components/Form/Controlled";
 import { Block } from "@/components/Layout/Block";
 import { Para, SecTitle } from "@/components/TextBlocks";

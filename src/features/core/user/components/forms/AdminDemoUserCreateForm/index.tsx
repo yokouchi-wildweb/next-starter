@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FormFieldItem } from "@/components/Form";
 import { PasswordInput, TextInput } from "@/components/Form/Controlled";
 import { SelectInput } from "@/components/Form/Manual";
 import { err } from "@/lib/errors";

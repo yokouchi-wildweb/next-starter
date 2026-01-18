@@ -32,7 +32,7 @@ import {
   SelectInput,
   StepperInput,
 } from "src/components/Form/Manual";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FormFieldItem } from "@/components/Form";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";

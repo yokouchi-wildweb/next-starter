@@ -13,7 +13,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { AppForm } from "@/components/Form/AppForm";
-import { FormFieldItem } from "@/components/Form/FormFieldItem";
+import { FormFieldItem } from "@/components/Form";
 import { NumberInput, TextInput } from "@/components/Form/Controlled";
 import { RadioGroupInput } from "@/components/Form/Manual";
 import { Button } from "@/components/Form/Button/Button";
