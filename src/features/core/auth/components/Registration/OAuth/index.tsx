@@ -10,7 +10,7 @@ import Link from "next/link";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FieldItem } from "@/components/Form";
-import { SingleCardCheckbox, TextInput } from "@/components/Form/Controlled";
+import { SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
 import { Para } from "@/components/TextBlocks";
 import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";

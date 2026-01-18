@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
-import { Input } from "src/components/Form/Manual";
+import { Input } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";

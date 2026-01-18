@@ -12,7 +12,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button/Button";
-import { SelectInput, Input } from "@/components/Form/Manual";
+import { SelectInput, Input } from "@/components/Form/Input/Manual";
 import { err } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";

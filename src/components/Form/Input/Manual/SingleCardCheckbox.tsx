@@ -1,4 +1,4 @@
-// src/components/Form/Manual/SingleCardCheckbox.tsx
+// @/components/Form/Input/Manual/SingleCardCheckbox.tsx
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";

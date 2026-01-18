@@ -1,4 +1,4 @@
-// src/components/Form/Controlled/Textarea.tsx
+// @/components/Form/Input/Controlled/Textarea.tsx
 
 import { Textarea as ManualTextarea } from "@/components/Form/Input/Manual/Textarea";
 import { FieldPath, FieldValues } from "react-hook-form";

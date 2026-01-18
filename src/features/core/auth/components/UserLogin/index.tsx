@@ -9,7 +9,7 @@ import { Mail, LockKeyhole } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
-import { Input, PasswordInput } from "@/components/Form/Manual";
+import { Input, PasswordInput } from "@/components/Form/Input/Manual";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 

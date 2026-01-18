@@ -143,12 +143,12 @@ export default function generateFieldsExtended() {
   // インポート文を構築
   let controlledImportLine = "";
   if (controlledImports.length > 0) {
-    controlledImportLine = `import { ${controlledImports.join(", ")} } from "@/components/Form/Controlled";`;
+    controlledImportLine = `import { ${controlledImports.join(", ")} } from "@/components/Form/Input/Controlled";`;
   }
 
   let manualImportLine = "";
   if (manualImports.length > 0) {
-    manualImportLine = `import { ${manualImports.join(", ")} } from "@/components/Form/Manual";`;
+    manualImportLine = `import { ${manualImports.join(", ")} } from "@/components/Form/Input/Manual";`;
   }
 
   let mediaUploaderImportLine = "";

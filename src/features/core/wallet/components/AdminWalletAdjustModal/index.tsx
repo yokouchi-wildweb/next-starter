@@ -14,7 +14,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { AppForm } from "@/components/Form/AppForm";
 import { FieldItem } from "@/components/Form";
-import { NumberInput, RadioGroupInput, TextInput } from "@/components/Form/Controlled";
+import { NumberInput, RadioGroupInput, TextInput } from "@/components/Form/Input/Controlled";
 import { Button } from "@/components/Form/Button/Button";
 import { err } from "@/lib/errors";
 import type { User } from "@/features/core/user/entities";

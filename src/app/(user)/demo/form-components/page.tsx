@@ -28,8 +28,8 @@ import {
   TextInput,
   Textarea,
   TimeInput,
-} from "@/components/Form/Controlled";
-import { StepperInput } from "src/components/Form/Manual";
+} from "@/components/Form/Input/Controlled";
+import { StepperInput } from "@/components/Form/Input/Manual";
 import { FieldItem } from "@/components/Form";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";

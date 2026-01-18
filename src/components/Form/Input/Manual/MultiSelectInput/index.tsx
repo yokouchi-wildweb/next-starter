@@ -1,6 +1,6 @@
 "use client";
 
-// src/components/Form/Manual/MultiSelectInput/index.tsx
+// @/components/Form/Input/Manual/MultiSelectInput/index.tsx
 
 import { type ComponentProps, type HTMLAttributes, type MouseEvent, useState } from "react";
 

@@ -23,7 +23,7 @@
 | 状態管理 | react-hook-form | useState / useReducer 等 |
 | バリデーション | zod + react-hook-form | 自前実装 |
 | コンテナ | `AppForm` | `<form>` |
-| Input | `Form/Controlled/*` | `Form/Manual/*` |
+| Input | `Form/Input/Controlled/*` | `Form/Input/Manual/*` |
 
 ### 依存関係
 
@@ -47,7 +47,7 @@ Controlled は Manual をラップして、`field` prop を `value/onChange` に
 
 ```tsx
 import { FieldWrapper } from "@/components/Form/Field";
-import { SwitchInput } from "@/components/Form/Controlled";
+import { SwitchInput } from "@/components/Form/Input/Controlled";
 
 <AppForm methods={form} onSubmit={handleSubmit}>
   <FieldWrapper control={control} name="notify">
@@ -66,7 +66,7 @@ import { SwitchInput } from "@/components/Form/Controlled";
 Input を直接使用する。ラッパー不要。
 
 ```tsx
-import { SwitchInput } from "@/components/Form/Manual";
+import { SwitchInput } from "@/components/Form/Input/Manual";
 
 const [notify, setNotify] = useState(false);
 
@@ -88,7 +88,7 @@ const [notify, setNotify] = useState(false);
 
 ```tsx
 import { FieldItem } from "@/components/Form/Field";
-import { EmailInput } from "@/components/Form/Controlled";
+import { EmailInput } from "@/components/Form/Input/Controlled";
 
 <AppForm methods={form} onSubmit={handleSubmit}>
   <FieldItem
@@ -106,7 +106,7 @@ import { EmailInput } from "@/components/Form/Controlled";
 
 ```tsx
 import { ManualFieldItem } from "@/components/Form/Field";
-import { Input } from "@/components/Form/Manual";
+import { Input } from "@/components/Form/Input/Manual";
 
 const [email, setEmail] = useState("");
 const [error, setError] = useState<string>();

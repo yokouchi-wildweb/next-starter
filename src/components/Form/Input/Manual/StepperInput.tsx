@@ -1,4 +1,4 @@
-// src/components/Form/Manual/StepperInput.tsx
+// @/components/Form/Input/Manual/StepperInput.tsx
 
 "use client";
 

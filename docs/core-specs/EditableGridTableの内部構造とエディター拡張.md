@@ -119,7 +119,7 @@ export type EditableGridEditorType =
 "use client";
 
 import React from "react";
-import { Input } from "@/components/Form/Manual";
+import { Input } from "@/components/Form/Input/Manual";
 import type { BaseEditorProps } from "../types";
 
 export function ColorEditor<T>({

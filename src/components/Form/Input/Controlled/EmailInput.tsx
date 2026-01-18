@@ -1,4 +1,4 @@
-// src/components/Form/Controlled/EmailInput.tsx
+// @/components/Form/Input/Controlled/EmailInput.tsx
 
 import { FieldPath, FieldValues } from "react-hook-form";
 import { type ReactNode } from "react";

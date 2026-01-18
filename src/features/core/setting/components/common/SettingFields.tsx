@@ -2,7 +2,7 @@
 
 import { FieldValues, type Control, type FieldPath } from "react-hook-form";
 import { FieldItem } from "@/components/Form";
-import { TextInput } from "@/components/Form/Controlled";
+import { TextInput } from "@/components/Form/Input/Controlled";
 
 export type SettingFieldsProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;

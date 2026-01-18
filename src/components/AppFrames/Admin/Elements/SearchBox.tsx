@@ -4,7 +4,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/Manual";
+import { Input } from "@/components/Form/Input/Manual";
 import { useState } from "react";
 
 type Props = {

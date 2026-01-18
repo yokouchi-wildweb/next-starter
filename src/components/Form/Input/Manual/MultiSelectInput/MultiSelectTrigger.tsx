@@ -1,4 +1,4 @@
-// src/components/Form/Manual/MultiSelectInput/MultiSelectTrigger.tsx
+// @/components/Form/Input/Manual/MultiSelectInput/MultiSelectTrigger.tsx
 
 import { forwardRef, type ComponentPropsWithoutRef } from "react";
 

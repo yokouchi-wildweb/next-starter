@@ -1,4 +1,4 @@
-// src/components/Form/Manual/BooleanCheckboxInput.tsx
+// @/components/Form/Input/Manual/BooleanCheckboxInput.tsx
 
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/cn";

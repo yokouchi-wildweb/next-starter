@@ -19,7 +19,7 @@ import {
   TextInput,
   Textarea,
   TimeInput,
-} from "@/components/Form/Controlled";
+} from "@/components/Form/Input/Controlled";
 import StepperInput from "@/components/Form/Input/Manual/StepperInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
 

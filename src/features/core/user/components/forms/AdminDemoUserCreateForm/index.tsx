@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FieldItem } from "@/components/Form";
-import { PasswordInput, SelectInput, TextInput } from "@/components/Form/Controlled";
+import { PasswordInput, SelectInput, TextInput } from "@/components/Form/Input/Controlled";
 import { err } from "@/lib/errors";
 import { useCreateDemoUser } from "@/features/user/hooks/useCreateDemoUser";
 import { getAllRoleOptions } from "@/features/user/constants";

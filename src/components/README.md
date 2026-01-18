@@ -23,10 +23,10 @@
 - **ディレクトリ構成**
   - `Controlled/`
     - `react-hook-form` の `Controller` / `useController` から受け取る `field` オブジェクトを前提とした入力コンポーネント群。
-    - `index.ts` でコンポーネントと型を再エクスポートし、利用側は `@/components/Form/Controlled` からまとめて import します。
+    - `index.ts` でコンポーネントと型を再エクスポートし、利用側は `@/components/Form/Input/Controlled` からまとめて import します。
   - `Manual/`
     - shadcn/ui などの複合コンポーネントを用いて `field` を手動で橋渡しする入力部品を配置します。
-    - `index.ts` で `CheckGroupInput` / `RadioGroupInput` / `SelectInput` を再エクスポートし、`@/components/Form/Manual` から利用します。
+    - `index.ts` で `CheckGroupInput` / `RadioGroupInput` / `SelectInput` を再エクスポートし、`@/components/Form/Input/Manual` から利用します。
   - `Button/`
     - ボタン系コンポーネントを配置します。`Button`、`LinkButton`、`PseudoButton`、`RoundedButton` など、用途に応じたボタンバリエーションと共通スタイル（`button-variants.ts`）を提供します。
   - `DomainFieldRenderer/`

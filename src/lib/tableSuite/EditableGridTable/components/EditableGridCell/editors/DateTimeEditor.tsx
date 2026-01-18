@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Input } from "@/components/Form/Manual";
+import { Input } from "@/components/Form/Input/Manual";
 import type { BaseEditorProps } from "../types";
 
 type DateTimeEditorProps<T> = BaseEditorProps<T> & {

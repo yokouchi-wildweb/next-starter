@@ -1,4 +1,4 @@
-// src/components/Form/Manual/MultiSelectInput/MultiSelectSearchSection.tsx
+// @/components/Form/Input/Manual/MultiSelectInput/MultiSelectSearchSection.tsx
 
 import { CommandInput } from "@/components/_shadcn/command";
 

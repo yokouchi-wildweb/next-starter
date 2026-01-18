@@ -1,4 +1,4 @@
-// src/components/Form/Controlled/MultiSelectInput.tsx
+// @/components/Form/Input/Controlled/MultiSelectInput.tsx
 
 import type { FieldPath, FieldValues, ControllerRenderProps } from "react-hook-form";
 
