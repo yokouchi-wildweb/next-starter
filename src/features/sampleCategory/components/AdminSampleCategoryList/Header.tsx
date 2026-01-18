@@ -22,7 +22,7 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
   return (
     <ListTop title="登録済みサンプルカテゴリの一覧" newHref="/admin/sample-categories/new">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/sample-categories?${p.toString()}`} />}
-      {config.useImportExport && (
+      {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
       )}
       <Pagination
