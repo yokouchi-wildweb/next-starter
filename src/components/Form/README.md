@@ -1,105 +1,230 @@
-# 汎用コンポーネントで構築するフォーム実装ガイド
+# Form コンポーネント
 
-このドキュメントは `src/components/Form` の汎用フォーム部品を使って、ドメイン固有のフォームを効率よく組み立てるための指針をまとめたものです。`domain-config` の生成テンプレート（`DomainFieldRenderer` 前提）にも合わせています。
+## 概要
 
-MediaInputSuite の詳細は別ドキュメントに移動しています。
-- `src/lib/mediaInputSuite/README.md`
-
----
-
-## 1. 主要コンポーネントの役割
-
-| レイヤー | 役割 | 代表ファイル |
-| --- | --- | --- |
-| フォームラッパー | `FormProvider` + `<form>` を統合 | `src/components/Form/AppForm.tsx` |
-| 入力アイテム | ラベル/入力/エラー表示を統合 | `src/components/Form/Field/FieldItem.tsx` |
-| 入力コンポーネント | Controlled/Manual の入力群 | `src/components/Form/Controlled/*`, `src/components/Form/Manual/*` |
-| ドメイン統合 | `domain.json` からフォームを構築 | `src/components/Form/DomainFieldRenderer/*` |
-| メディア連携 | RHF/手動の Media 入力ラッパー | `src/components/Form/MediaHandler/*` |
+このプロジェクトでは、フォームの構築方法が **3種類** あり、それぞれに **Controlled（react-hook-form使用）** と **Manual（useState等）** の2パターンが存在する。
 
 ---
 
-## 2. フォーム全体のパターン
+## フォーム構築の3つの方法
 
-1. `useForm` で `UseFormReturn<T>` を作成し、`AppForm` に渡す。
-2. `__Domain__Fields` のようなフィールド集合コンポーネントを作成し、`DomainFieldRenderer` を呼ぶ。
-3. `DomainFieldRenderer` が `domainJsonFields` と `fields` を統合して `FieldItem` を描画する。
-4. メディアフィールドがある場合、`onMediaStateChange` で `DomainMediaState` を受け取り、送信/キャンセル時に `commitAll` / `resetAll` を呼ぶ。
-
-> 旧構成（`ImageUploaderField` + `_partial`）は廃止済みです。`DomainFieldRenderer` + `MediaHandler` を利用してください。
+| 方法 | 自由度 | 手間 | 用途 |
+|---|---|---|---|
+| **Input を使う** | ◎ 高い | 多い | カスタムUI、特殊なレイアウト |
+| **Field を使う** | ○ 中程度 | 中程度 | 一般的なフォーム、ラベル・エラー表示が必要 |
+| **Renderer を使う** | △ 低い | 少ない | 管理画面のCRUDフォーム自動生成 |
 
 ---
 
-## 3. DomainFieldRenderer の使い方
+## Controlled vs Manual
 
-### 主な props
+| 項目 | Controlled | Manual |
+|---|---|---|
+| 状態管理 | react-hook-form | useState / useReducer 等 |
+| バリデーション | zod + react-hook-form | 自前実装 |
+| コンテナ | `AppForm` | `<form>` |
+| Input | `Form/Controlled/*` | `Form/Manual/*` |
 
-- `methods`: `useForm` の戻り値
-- `control`: `methods.control`（省略可）
-- `domainJsonFields`: `domain.json` の `fields` 配列
-- `fields`: 追加/上書きする `DomainFieldRenderConfig[]`
-- `onMediaStateChange`: メディアアップロードの状態通知
+### 依存関係
 
-### 追加フィールドの例
-
-```tsx
-const relationFieldConfigs = useMemo<DomainFieldRenderConfig<FormValues, FieldPath<FormValues>>[]>(
-  () => [
-    {
-      type: "select",
-      name: "category_id" as FieldPath<FormValues>,
-      label: "カテゴリ",
-      options: categoryOptions,
-    },
-    {
-      type: "checkGroup",
-      name: "tag_ids" as FieldPath<FormValues>,
-      label: "タグ",
-      options: tagOptions,
-    },
-  ],
-  [categoryOptions, tagOptions],
-);
+```
+Controlled Input
+    ↓ 内部で使用
+Manual Input（実際のUI実装）
 ```
 
-### Media 状態の制御例
+Controlled は Manual をラップして、`field` prop を `value/onChange` に変換している。
+
+---
+
+## 1. Input を使う（自由度高）
+
+最も自由度が高い方法。レイアウトを完全にコントロールできる。
+
+### Controlled の場合
+
+`FieldWrapper` で field を取得し、Controlled Input に渡す。
 
 ```tsx
-const [mediaState, setMediaState] = useState<DomainMediaState | null>(null);
+import { FieldWrapper } from "@/components/Form/Field";
+import { SwitchInput } from "@/components/Form/Controlled";
 
-const handleSubmit = async (data: FormValues) => {
-  await onSubmitAction(data);
-  await mediaState?.commitAll();
-};
+<AppForm methods={form} onSubmit={handleSubmit}>
+  <FieldWrapper control={control} name="notify">
+    {(field) => (
+      <div className="自由なレイアウト">
+        <SwitchInput field={field} label="通知設定" />
+        <span>補足テキスト</span>
+      </div>
+    )}
+  </FieldWrapper>
+</AppForm>
+```
 
-const handleCancel = async () => {
-  await mediaState?.resetAll();
-  onCancel?.();
-};
+### Manual の場合
 
-<DomainFieldRenderer
-  methods={methods}
-  fields={relationFieldConfigs}
-  domainJsonFields={domainConfig.fields ?? []}
-  onMediaStateChange={setMediaState}
-/>
+Input を直接使用する。ラッパー不要。
+
+```tsx
+import { SwitchInput } from "@/components/Form/Manual";
+
+const [notify, setNotify] = useState(false);
+
+<form onSubmit={handleSubmit}>
+  <div className="自由なレイアウト">
+    <SwitchInput value={notify} onChange={setNotify} label="通知設定" />
+    <span>補足テキスト</span>
+  </div>
+</form>
 ```
 
 ---
 
-## 4. MediaInputSuite との関係
+## 2. Field を使う（簡単に組み立て）
 
-- `DomainFieldRenderer` の `mediaUploader` フィールドは内部で `useMediaUploaderField` を利用します。
-- RHF 連携したい場合は `MediaHandler` の `ControlledMediaUploader` / `ControlledMediaInput` を利用します。
-- 手動で状態管理する場合は `ManualMediaUploader` / `ManualMediaInput` を利用します。
+ラベル・説明・エラーメッセージを自動的に付与する。一般的なフォームに最適。
 
-詳細は以下を参照してください。
-- `src/lib/mediaInputSuite/README.md`
+### Controlled の場合
+
+```tsx
+import { FieldItem } from "@/components/Form/Field";
+import { EmailInput } from "@/components/Form/Controlled";
+
+<AppForm methods={form} onSubmit={handleSubmit}>
+  <FieldItem
+    control={control}
+    name="email"
+    label="メールアドレス"
+    required
+    description={{ text: "確認メールを送信します" }}
+    renderInput={(field) => <EmailInput field={field} />}
+  />
+</AppForm>
+```
+
+### Manual の場合
+
+```tsx
+import { ManualFieldItem } from "@/components/Form/Field";
+import { Input } from "@/components/Form/Manual";
+
+const [email, setEmail] = useState("");
+const [error, setError] = useState<string>();
+
+<form onSubmit={handleSubmit}>
+  <ManualFieldItem
+    label="メールアドレス"
+    error={error}
+    required
+  >
+    <Input
+      type="email"
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+    />
+  </ManualFieldItem>
+</form>
+```
 
 ---
 
-## 5. Tips
+## 3. Renderer を使う（全自動）
 
-- `fields` で `domainFieldIndex` を指定すると、`domain.json` 側の並びを上書きできます。
-- `DomainFieldRenderer` の前後に `FieldItem` を足す構成も可能です。
-- 送信中の無効化は `AppForm` の `pending` / `disableWhilePending` を活用してください。
+ドメインJSONからフォームを自動生成。管理画面のCRUD操作に最適。
+
+```tsx
+import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
+
+<AppForm methods={form} onSubmit={handleSubmit}>
+  <DomainFieldRenderer
+    control={control}
+    methods={form}
+    domainJsonFields={domainJson.fields}
+    fieldGroups={[
+      { key: "basic", label: "基本情報", fields: ["name", "email"] },
+    ]}
+    inlineGroups={[
+      { key: "period", label: "期間", fields: ["startDate", "endDate"] },
+    ]}
+  />
+</AppForm>
+```
+
+※ DomainFieldRenderer は Controlled のみ対応
+
+---
+
+## コンテナ
+
+| react-hook-form | コンテナ |
+|---|---|
+| 使う | `AppForm` |
+| 使わない | `<form>` |
+
+### AppForm の機能
+
+- `FormProvider`（react-hook-form の Context）
+- `handleSubmit` のラップ
+- Enter キー送信抑止（IME対応）
+- `pending` 状態での fieldset 無効化
+- `fieldSpace` でフィールド間隔の統一
+
+---
+
+## ディレクトリ構造
+
+```
+src/components/Form/
+├── AppForm.tsx              # フォームコンテナ（react-hook-form用）
+├── Controlled/              # Controlled Input の再エクスポート
+├── Manual/                  # Manual Input の再エクスポート
+├── Field/
+│   ├── FieldItem.tsx        # Controlled用フィールド（ラベル・エラー付き）
+│   ├── FieldItemGroup.tsx   # 複数フィールド横並び（Controlled）
+│   ├── FieldWrapper.tsx     # field を渡すだけの薄いラッパー（※作成予定）
+│   ├── ManualFieldItem.tsx  # Manual用フィールド
+│   └── ManualFieldItemGroup.tsx
+├── Input/
+│   ├── Controlled/          # react-hook-form 用 Input
+│   └── Manual/              # value/onChange パターンの Input
+├── DomainFieldRenderer/     # ドメインJSONからフォーム自動生成
+├── Button/                  # ボタン類
+├── MediaHandler/            # メディアアップロード
+└── Label.tsx
+```
+
+---
+
+## Input コンポーネント一覧
+
+| コンポーネント | 用途 |
+|---|---|
+| `Input` / `TextInput` | テキスト入力 |
+| `NumberInput` | 数値入力 |
+| `Textarea` | 複数行テキスト |
+| `Select` / `SelectInput` | 単一選択 |
+| `MultiSelectInput` | 複数選択 |
+| `RadioGroupInput` | ラジオボタン |
+| `CheckGroupInput` | チェックボックスグループ |
+| `BooleanCheckboxInput` | 単一チェックボックス |
+| `BooleanRadioGroupInput` | はい/いいえ ラジオ |
+| `SingleCardCheckbox` | カード型チェックボックス |
+| `SwitchInput` | トグルスイッチ |
+| `DateInput` | 日付 |
+| `TimeInput` | 時刻 |
+| `DatetimeInput` | 日時 |
+| `EmailInput` | メールアドレス |
+| `PasswordInput` | パスワード |
+| `StepperInput` | 数値ステッパー |
+| `FileInput` | ファイル選択 |
+
+---
+
+## まとめ表
+
+| 方法 | Controlled | Manual |
+|---|---|---|
+| Input を使う | `FieldWrapper` + Controlled Input | Manual Input を直接 |
+| Field を使う | `FieldItem` | `ManualFieldItem` |
+| Renderer | `DomainFieldRenderer` | - |
+| コンテナ | `AppForm` | `<form>` |
