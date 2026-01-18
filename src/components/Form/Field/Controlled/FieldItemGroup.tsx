@@ -11,12 +11,13 @@ import {
   useController,
   useFormState,
 } from "react-hook-form";
-import { ManualFieldItemGroup, type ManualFieldItemGroupDescription } from "../Manual";
+import { ManualFieldItemGroup } from "../Manual";
+import type { FieldItemDescription, RequiredMarkOptions } from "../types";
 
 export type FieldItemGroupProps<
   TFieldValues extends FieldValues,
   TNames extends readonly FieldPath<TFieldValues>[]
-> = {
+> = RequiredMarkOptions & {
   control: Control<TFieldValues, any, TFieldValues>;
   /** フィールド名の配列（順序通りに横並び表示） */
   names: TNames;
@@ -27,17 +28,11 @@ export type FieldItemGroupProps<
     fields: { [K in keyof TNames]: ControllerRenderProps<TFieldValues, TNames[K]> }
   ) => ReactNode[];
   /** 説明テキスト */
-  description?: ManualFieldItemGroupDescription;
+  description?: FieldItemDescription;
   /** 各フィールドの幅（Tailwindクラス）、省略時は均等 */
   fieldWidths?: string[];
   /** グループ全体のクラス名 */
   className?: string;
-  /** フィールドが必須かどうか */
-  required?: boolean;
-  /** カスタム必須マーク */
-  requiredMark?: ReactNode;
-  /** 必須マークの位置（デフォルト: "after"） */
-  requiredMarkPosition?: "before" | "after";
   /** フィールド間のギャップ（Tailwindクラス、デフォルト: "gap-2"） */
   gap?: string;
 };

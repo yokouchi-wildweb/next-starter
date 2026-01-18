@@ -24,11 +24,11 @@ export {
 } from "./Controlled";
 export type {
   FieldItemProps,
-  FieldItemDescription,
   FieldControllerProps,
   FieldItemGroupProps,
   MediaFieldItemProps,
 } from "./Controlled";
+// FieldItemDescription は types.ts からエクスポート済み
 
 // Configured: 設定ベースのコンポーネント（FieldConfig から自動生成）
 export {

@@ -6,34 +6,27 @@ import type { ReactNode } from "react";
 import type { Control, FieldPath, FieldValues, ControllerRenderProps } from "react-hook-form";
 
 import { FieldItemGroup } from "../Controlled";
-import type { ManualFieldItemGroupDescription } from "../Manual";
-import type { FieldConfig } from "../types";
+import type { FieldConfig, FieldItemDescription, RequiredMarkOptions } from "../types";
 import { renderInputByFormType } from "./inputResolver";
 
 export type ConfiguredFieldGroupProps<
   TFieldValues extends FieldValues,
   TNames extends readonly FieldPath<TFieldValues>[]
-> = {
+> = RequiredMarkOptions & {
   /** react-hook-form の control */
   control: Control<TFieldValues, any, TFieldValues>;
   /** フィールド設定の配列（FieldConfig[]）- 順序通りに横並び表示 */
   fieldConfigs: FieldConfig[];
   /** グループラベル（省略時は最初のフィールドの label を使用） */
   label?: ReactNode;
-  /** フィールドが必須かどうか */
-  required?: boolean;
   /** 説明テキスト */
-  description?: ManualFieldItemGroupDescription;
+  description?: FieldItemDescription;
   /** 各フィールドの幅（Tailwindクラス）、省略時は均等 */
   fieldWidths?: string[];
   /** フィールド間のギャップ（Tailwindクラス、デフォルト: "gap-2"） */
   gap?: string;
   /** グループ全体のクラス名 */
   className?: string;
-  /** カスタム必須マーク */
-  requiredMark?: ReactNode;
-  /** 必須マークの位置（デフォルト: "after"） */
-  requiredMarkPosition?: "before" | "after";
 };
 
 /**

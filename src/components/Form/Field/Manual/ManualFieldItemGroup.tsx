@@ -4,17 +4,14 @@
 
 import { ReactNode, useId } from "react";
 import { Label } from "@/components/Form/Label";
-import { Para, type ParaProps } from "@/components/TextBlocks/Para";
+import { Para } from "@/components/TextBlocks/Para";
 import { cn } from "@/lib/cn";
+import type { FieldItemDescription, RequiredMarkOptions } from "../types";
 
-export type ManualFieldItemGroupDescription = {
-  text: ReactNode;
-  tone?: ParaProps["tone"];
-  size?: ParaProps["size"];
-  placement?: "before" | "after";
-};
+/** @deprecated FieldItemDescription を使用してください */
+export type ManualFieldItemGroupDescription = FieldItemDescription;
 
-export type ManualFieldItemGroupProps = {
+export type ManualFieldItemGroupProps = RequiredMarkOptions & {
   /** グループラベル */
   label?: ReactNode;
   /** 横並びで表示する入力要素 */
@@ -24,15 +21,9 @@ export type ManualFieldItemGroupProps = {
   /** エラーメッセージの配列 */
   errors?: string[];
   /** 説明テキスト */
-  description?: ManualFieldItemGroupDescription;
+  description?: FieldItemDescription;
   /** グループ全体のクラス名 */
   className?: string;
-  /** フィールドが必須かどうか */
-  required?: boolean;
-  /** カスタム必須マーク（省略時はデフォルトの赤い * を表示） */
-  requiredMark?: ReactNode;
-  /** 必須マークの位置（デフォルト: "after"） */
-  requiredMarkPosition?: "before" | "after";
   /** フィールド間のギャップ（Tailwindクラス、デフォルト: "gap-2"） */
   gap?: string;
 };

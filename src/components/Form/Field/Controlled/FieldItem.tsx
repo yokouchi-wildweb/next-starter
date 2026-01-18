@@ -8,43 +8,24 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/_shadcn/form";
-import { Para, type ParaProps } from "@/components/TextBlocks/Para";
+import { Para } from "@/components/TextBlocks/Para";
 import {
   type Control,
   type FieldPath,
   type FieldValues,
   type ControllerRenderProps,
 } from "react-hook-form";
-
-export type FieldItemDescription = {
-  text: ReactNode;
-  tone?: ParaProps["tone"];
-  size?: ParaProps["size"];
-  placement?: "before" | "after";
-};
+import type { FieldCommonProps } from "../types";
 
 export type FieldItemProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
-> = {
+> = FieldCommonProps & {
   control: Control<TFieldValues, any, TFieldValues>;
   name: TName;
   /** ラベル（省略可能） */
   label?: ReactNode;
   renderInput: (field: ControllerRenderProps<TFieldValues, TName>) => ReactNode;
-  description?: FieldItemDescription;
-  /** FormItem全体に適用するクラス名 */
-  className?: string;
-  /** ラベルを視覚的に非表示にする（スクリーンリーダー用に残す） */
-  hideLabel?: boolean;
-  /** エラーメッセージを非表示にする */
-  hideError?: boolean;
-  /** フィールドが必須かどうか */
-  required?: boolean;
-  /** カスタム必須マーク（省略時はデフォルトの赤い * を表示） */
-  requiredMark?: ReactNode;
-  /** 必須マークの位置（デフォルト: "after"） */
-  requiredMarkPosition?: "before" | "after";
 };
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */

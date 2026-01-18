@@ -9,7 +9,7 @@ import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-
 
 import { FieldItem } from "../Controlled";
 import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
-import type { FieldConfig } from "../types";
+import type { FieldConfig, FieldCommonProps } from "../types";
 import type { SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 
 export type MediaHandleEntry = {
@@ -29,7 +29,7 @@ export type MediaFieldConfig = FieldConfig & {
 export type ConfiguredMediaFieldProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
-> = {
+> = FieldCommonProps & {
   control: Control<TFieldValues, any, TFieldValues>;
   methods: UseFormReturn<TFieldValues>;
   config: MediaFieldConfig;
@@ -59,8 +59,16 @@ export function ConfiguredMediaField<
   methods,
   config,
   onHandleChange,
+  description,
+  className,
+  hideLabel = false,
+  hideError = false,
+  required,
+  requiredMark,
+  requiredMarkPosition,
 }: ConfiguredMediaFieldProps<TFieldValues, TName>) {
   const fieldName = config.name as TName;
+  const resolvedRequired = required ?? config.required ?? false;
 
   const mediaHandle = useMediaUploaderField({
     methods,
@@ -114,7 +122,13 @@ export function ConfiguredMediaField<
       control={control}
       name={fieldName}
       label={config.label}
-      required={config.required}
+      description={description}
+      className={className}
+      hideLabel={hideLabel}
+      hideError={hideError}
+      required={resolvedRequired}
+      requiredMark={requiredMark}
+      requiredMarkPosition={requiredMarkPosition}
       renderInput={mediaHandle.render}
     />
   );

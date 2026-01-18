@@ -27,7 +27,7 @@ export type RadioGroupInputProps = {
   options?: Options[];
   /** 表示タイプ（クラシック / 標準ボタン / ブックマークタグ / 丸形） */
   displayType?: RadioGroupDisplayType;
-  /** 選択肢の並び方向（デフォルト: horizontal） */
+  /** 選択肢の並び方向（デフォルト: classicはvertical、それ以外はhorizontal） */
   orientation?: RadioGroupOrientation;
   /** ボタン表示時に利用するバリアント */
   buttonVariant?: ButtonStyleProps["variant"];
@@ -44,7 +44,7 @@ export function RadioGroupInput({
   onChange,
   options = [],
   displayType = "standard",
-  orientation = "horizontal",
+  orientation,
   buttonVariant,
   buttonSize,
   selectedButtonVariant,
@@ -61,7 +61,9 @@ export function RadioGroupInput({
     return (matched?.value ?? value) as OptionPrimitive;
   };
 
-  const isVertical = orientation === "vertical";
+  // classicのデフォルトはvertical、それ以外はhorizontal
+  const resolvedOrientation = orientation ?? (displayType === "classic" ? "vertical" : "horizontal");
+  const isVertical = resolvedOrientation === "vertical";
   const layoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
 
   if (displayType === "classic") {
@@ -71,7 +73,7 @@ export function RadioGroupInput({
         value={serializedValue}
         defaultValue={serializedValue}
         className={cn(layoutClass, rest.className)}
-        aria-orientation={orientation}
+        aria-orientation={resolvedOrientation}
       >
         {options.map((op, index) => {
           const serialized = mapOptionValue(op.value);
@@ -96,7 +98,7 @@ export function RadioGroupInput({
     <div
       className={cn(layoutClass, className)}
       role="radiogroup"
-      aria-orientation={orientation}
+      aria-orientation={resolvedOrientation}
       {...(restDivProps as ComponentProps<"div">)}
     >
       {options.map((op) => {

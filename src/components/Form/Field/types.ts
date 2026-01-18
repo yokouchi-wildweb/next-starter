@@ -1,7 +1,9 @@
 // src/components/Form/Field/types.ts
 // フィールド設定の型定義
 
+import type { ReactNode } from "react";
 import type { FileValidationRule } from "@/lib/mediaInputSuite";
+import type { ParaProps } from "@/components/TextBlocks/Para";
 
 /**
  * フォーム入力種別（domain.json formInput）
@@ -121,4 +123,55 @@ export type FieldConfig = {
   helperText?: string;
   /** メタデータを別フィールドに保存 */
   metadataBinding?: Record<string, string>;
+};
+
+// ============================================
+// フィールドコンポーネント共通Props
+// ============================================
+
+/**
+ * 説明テキストの設定
+ */
+export type FieldItemDescription = {
+  /** 説明テキスト */
+  text: ReactNode;
+  /** テキストのトーン */
+  tone?: ParaProps["tone"];
+  /** テキストのサイズ */
+  size?: ParaProps["size"];
+  /** 表示位置（入力の前 or 後） */
+  placement?: "before" | "after";
+};
+
+/**
+ * フィールド表示の共通オプション
+ */
+export type FieldDisplayOptions = {
+  /** FormItem全体に適用するクラス名 */
+  className?: string;
+  /** ラベルを視覚的に非表示にする */
+  hideLabel?: boolean;
+  /** エラーメッセージを非表示にする */
+  hideError?: boolean;
+};
+
+/**
+ * 必須マーク関連の共通オプション
+ */
+export type RequiredMarkOptions = {
+  /** フィールドが必須かどうか */
+  required?: boolean;
+  /** カスタム必須マーク（省略時はデフォルトの赤い * を表示） */
+  requiredMark?: ReactNode;
+  /** 必須マークの位置（デフォルト: "after"） */
+  requiredMarkPosition?: "before" | "after";
+};
+
+/**
+ * フィールド共通Props（表示 + 必須マーク + 説明）
+ * FieldItem, MediaFieldItem, ConfiguredField 等で共通使用
+ */
+export type FieldCommonProps = FieldDisplayOptions & RequiredMarkOptions & {
+  /** 説明テキスト */
+  description?: FieldItemDescription;
 };

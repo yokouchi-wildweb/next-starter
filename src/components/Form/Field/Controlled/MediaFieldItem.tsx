@@ -6,32 +6,24 @@
 import type { ReactNode } from "react";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FieldItem, type FieldItemDescription } from "./FieldItem";
+import { FieldItem } from "./FieldItem";
 import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
+import type { FieldCommonProps } from "../types";
 
 export type MediaFieldItemProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
-> = {
+> = FieldCommonProps & {
   control: Control<TFieldValues, any, TFieldValues>;
   methods: UseFormReturn<TFieldValues>;
   name: TName;
   label?: ReactNode;
-  description?: FieldItemDescription;
   uploadPath: string;
   accept?: string;
   helperText?: string;
   validationRule?: FileValidationRule;
   onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
-  /** FormItem全体に適用するクラス名 */
-  className?: string;
-  /** ラベルを視覚的に非表示にする */
-  hideLabel?: boolean;
-  /** エラーメッセージを非表示にする */
-  hideError?: boolean;
-  /** フィールドが必須かどうか */
-  required?: boolean;
 };
 
 /**
@@ -69,6 +61,8 @@ export function MediaFieldItem<
   hideLabel = false,
   hideError = false,
   required = false,
+  requiredMark,
+  requiredMarkPosition,
 }: MediaFieldItemProps<TFieldValues, TName>) {
   const mediaHandle = useMediaUploaderField({
     methods,
@@ -92,6 +86,8 @@ export function MediaFieldItem<
       hideLabel={hideLabel}
       hideError={hideError}
       required={required}
+      requiredMark={requiredMark}
+      requiredMarkPosition={requiredMarkPosition}
       renderInput={mediaHandle.render}
     />
   );

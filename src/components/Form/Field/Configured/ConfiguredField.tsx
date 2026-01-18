@@ -5,9 +5,9 @@
 import type { ReactNode } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
-import { FieldItem, type FieldItemDescription } from "../Controlled";
+import { FieldItem } from "../Controlled";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
-import type { FieldConfig } from "../types";
+import type { FieldConfig, FieldCommonProps } from "../types";
 import {
   renderInputByFormType,
   shouldUseFieldItem,
@@ -17,7 +17,7 @@ import {
 export type ConfiguredFieldProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
-> = {
+> = FieldCommonProps & {
   /** react-hook-form の control */
   control: Control<TFieldValues, any, TFieldValues>;
   /** フィールド設定（FieldConfig） */
@@ -26,16 +26,6 @@ export type ConfiguredFieldProps<
   name?: TName;
   /** ラベル（省略時は fieldConfig.label） */
   label?: ReactNode;
-  /** 必須かどうか（省略時は fieldConfig.required） */
-  required?: boolean;
-  /** 説明テキスト */
-  description?: FieldItemDescription;
-  /** FormItem 全体に適用するクラス名 */
-  className?: string;
-  /** ラベルを視覚的に非表示にする */
-  hideLabel?: boolean;
-  /** エラーメッセージを非表示にする */
-  hideError?: boolean;
 };
 
 /**
@@ -74,6 +64,8 @@ export function ConfiguredField<
   className,
   hideLabel = false,
   hideError = false,
+  requiredMark,
+  requiredMarkPosition,
 }: ConfiguredFieldProps<TFieldValues, TName>) {
   const resolvedName = (name ?? fieldConfig.name) as TName;
   const resolvedLabel = label ?? fieldConfig.label;
@@ -121,6 +113,8 @@ export function ConfiguredField<
       name={resolvedName}
       label={resolvedLabel}
       required={resolvedRequired}
+      requiredMark={requiredMark}
+      requiredMarkPosition={requiredMarkPosition}
       description={description}
       className={className}
       hideLabel={hideLabel}
