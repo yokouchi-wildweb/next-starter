@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import type { ControllerRenderProps, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import type { ControlledMediaUploaderProps } from "@/components/Form/MediaHandler/ControlledMediaUploader";
-import { ControlledMediaUploader } from "@/components/Form/MediaHandler/ControlledMediaUploader";
-import { usePendingMediaUploads } from "./usePendingMediaUploads";
-import { usePendingMediaDeletion } from "./usePendingMediaDeletion";
+import { ControlledMediaUploader, type ControlledMediaUploaderProps } from "./ControlledMediaUploader";
+import { usePendingMediaUploads, usePendingMediaDeletion } from "@/lib/mediaInputSuite";
 
 type ControlledMediaUploaderExternalProps<
   TFieldValues extends FieldValues,

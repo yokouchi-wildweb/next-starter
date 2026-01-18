@@ -47,7 +47,7 @@ import type {
   PasswordFieldConfig,
   BooleanCheckboxFieldConfig,
 } from "./fieldTypes";
-import { MediaFieldItem } from "./MediaFieldItem";
+import { ConfiguredMediaField } from "@/components/Form/Field/ConfiguredMediaField";
 
 export type DomainMediaState = {
   isUploading: boolean;
@@ -451,7 +451,7 @@ export function DomainFieldRenderer<TFieldValues extends FieldValues>({
           break;
         case "mediaUploader":
           fieldElement = (
-            <MediaFieldItem
+            <ConfiguredMediaField
               key={fieldConfig.name}
               control={control}
               methods={methods}

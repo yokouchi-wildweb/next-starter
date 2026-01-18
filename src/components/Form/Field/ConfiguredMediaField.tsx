@@ -1,34 +1,48 @@
+// src/components/Form/Field/ConfiguredMediaField.tsx
+// config経由のメディアフィールドコンポーネント（DomainFieldRenderer用）
+
 "use client";
 
 import { useEffect, useRef } from "react";
 import { useWatch } from "react-hook-form";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FieldItem } from "@/components/Form";
-import { useMediaUploaderField } from "@/lib/mediaInputSuite";
+import { FieldItem } from "./FieldItem";
+import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
+import type { MediaUploaderFieldConfig } from "@/components/Form/DomainFieldRenderer/fieldTypes";
 
-import type { MediaUploaderFieldConfig } from "./fieldTypes";
+export type MediaHandleEntry = {
+  isUploading: boolean;
+  commit: (finalUrl?: string | null) => Promise<void>;
+  reset: () => Promise<void>;
+};
 
-type MediaFieldItemProps<
+export type ConfiguredMediaFieldProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 > = {
   control: Control<TFieldValues, any, TFieldValues>;
   methods: UseFormReturn<TFieldValues>;
   config: MediaUploaderFieldConfig<TFieldValues, TName>;
-  onHandleChange: (
-    name: TName,
-    entry:
-      | {
-          isUploading: boolean;
-          commit: (finalUrl?: string | null) => Promise<void>;
-          reset: () => Promise<void>;
-        }
-      | null,
-  ) => void;
+  onHandleChange: (name: TName, entry: MediaHandleEntry | null) => void;
 };
 
-export function MediaFieldItem<
+/**
+ * config経由のメディアアップロードフィールド
+ *
+ * DomainFieldRenderer から使用される。メディア状態を親に通知する機能を持つ。
+ *
+ * @example
+ * ```tsx
+ * <ConfiguredMediaField
+ *   control={control}
+ *   methods={methods}
+ *   config={mediaFieldConfig}
+ *   onHandleChange={handleMediaHandleChange}
+ * />
+ * ```
+ */
+export function ConfiguredMediaField<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 >({
@@ -36,7 +50,7 @@ export function MediaFieldItem<
   methods,
   config,
   onHandleChange,
-}: MediaFieldItemProps<TFieldValues, TName>) {
+}: ConfiguredMediaFieldProps<TFieldValues, TName>) {
   const mediaHandle = useMediaUploaderField({
     methods,
     name: config.name,
