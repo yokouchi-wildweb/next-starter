@@ -27,6 +27,8 @@ const buildFormatter = (field) => {
     case "integer":
     case "number":
     case "float":
+    case "bigint":
+    case "numeric(10,2)":
       return `formatNumber(value)`;
     case "array":
       return `formatStringArray(value)`;
@@ -50,6 +52,9 @@ const buildFormatter = (field) => {
   }
   if (formInput === "dateInput") {
     return `formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
+  }
+  if (formInput === "timeInput") {
+    return `formatString(value)`;
   }
   if (formInput === "mediaUploader" || formInput === "fileUploader") {
     return null;

@@ -4,15 +4,27 @@
 
 /**
  * プロフィールフィールドで利用可能な fieldType と formInput の組み合わせ
- * ドメインJSON の FORM_INPUTS をベースに、プロフィールで必要なもののみ抽出
+ * ドメインJSON の FORM_INPUTS.Neon と同期
+ * @see scripts/domain-config/form-inputs.mjs
  */
 export const PROFILE_FORM_INPUTS = {
-  string: ["text input", "textarea", "select", "hidden"],
-  integer: ["number input", "stepper input", "select", "hidden"],
-  boolean: ["checkbox", "radio", "switch input", "hidden"],
-  enum: ["select", "radio", "hidden"],
-  "timestamp With Time Zone": ["datetime input", "hidden"],
-  array: ["checkbox", "multi select", "hidden"],
+  string: ["text input", "textarea", "date input", "number input", "select", "hidden", "none"],
+  integer: ["number input", "stepper input", "select", "radio", "hidden", "none"],
+  float: ["number input", "stepper input", "select", "radio", "hidden", "none"],
+  boolean: ["checkbox", "radio", "switch input", "hidden", "none"],
+  enum: ["select", "radio", "hidden", "none"],
+  mediaUploader: ["media uploader", "hidden", "none"],
+  date: ["date input", "text input", "hidden", "none"],
+  time: ["time input", "text input", "hidden", "none"],
+  "timestamp With Time Zone": ["datetime input", "hidden", "none"],
+  email: ["email input", "text input", "hidden", "none"],
+  password: ["password input", "hidden", "none"],
+  bigint: ["number input", "stepper input", "select", "radio", "hidden", "none"],
+  "numeric(10,2)": ["number input", "stepper input", "select", "radio", "hidden", "none"],
+  uuid: ["text input", "hidden", "none"],
+  Point: ["hidden", "none"],
+  jsonb: ["hidden", "none"],
+  array: ["checkbox", "multi select", "hidden", "none"],
 };
 
 /**

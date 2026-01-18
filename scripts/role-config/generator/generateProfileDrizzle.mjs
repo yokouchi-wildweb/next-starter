@@ -14,39 +14,71 @@ const GENERATED_DIR = path.join(
 );
 
 /**
+ * 値をフォーマット（文字列は引用符で囲む）
+ */
+function formatValue(v) {
+  return typeof v === "string" ? `"${v}"` : v;
+}
+
+/**
  * fieldType から Drizzle のカラム型を生成
  */
 function getDrizzleColumnType(field) {
-  const { name, fieldType, required } = field;
+  const { name, fieldType, required, defaultValue } = field;
   const columnName = toSnakeCase(name);
   const camelName = toCamelCase(name);
 
   let columnDef = "";
+  const hasDefaultValue = defaultValue !== undefined;
+  const defaultSuffix = hasDefaultValue ? `.default(${formatValue(defaultValue)})` : "";
 
   switch (fieldType) {
     case "string":
-      columnDef = `text("${columnName}")`;
+    case "email":
+    case "password":
+    case "mediaUploader":
+      columnDef = `text("${columnName}")${defaultSuffix}`;
       break;
     case "integer":
-      columnDef = `integer("${columnName}")`;
+      columnDef = `integer("${columnName}")${defaultSuffix}`;
+      break;
+    case "float":
+      columnDef = `doublePrecision("${columnName}")${defaultSuffix}`;
+      break;
+    case "bigint":
+      columnDef = `bigint("${columnName}", { mode: "number" })${defaultSuffix}`;
+      break;
+    case "numeric(10,2)":
+      columnDef = `numeric("${columnName}")${defaultSuffix}`;
       break;
     case "boolean":
       columnDef = `boolean("${columnName}")`;
       if (required) {
-        columnDef += `.default(false).notNull()`;
+        columnDef += `.default(${hasDefaultValue ? defaultValue : false}).notNull()`;
+      } else if (hasDefaultValue) {
+        columnDef += `.default(${defaultValue})`;
       }
       break;
     case "enum":
-      columnDef = `text("${columnName}")`;
+      columnDef = `text("${columnName}")${defaultSuffix}`;
+      break;
+    case "date":
+      columnDef = `date("${columnName}")${defaultSuffix}`;
+      break;
+    case "time":
+      columnDef = `time("${columnName}")${defaultSuffix}`;
       break;
     case "timestamp With Time Zone":
       columnDef = `timestamp("${columnName}", { withTimezone: true })`;
+      break;
+    case "uuid":
+      columnDef = `uuid("${columnName}")${defaultSuffix}`;
       break;
     case "array":
       columnDef = `jsonb("${columnName}").$type<string[]>().default([])`;
       break;
     default:
-      columnDef = `text("${columnName}")`;
+      columnDef = `text("${columnName}")${defaultSuffix}`;
   }
 
   return { camelName, columnDef };
@@ -67,6 +99,11 @@ function generateFieldDefinitions(fields) {
     if (columnDef.includes("boolean(")) imports.add("boolean");
     if (columnDef.includes("jsonb(")) imports.add("jsonb");
     if (columnDef.includes("varchar(")) imports.add("varchar");
+    if (columnDef.includes("doublePrecision(")) imports.add("doublePrecision");
+    if (columnDef.includes("bigint(")) imports.add("bigint");
+    if (columnDef.includes("numeric(")) imports.add("numeric");
+    if (columnDef.includes("date(")) imports.add("date");
+    if (columnDef.includes("time(")) imports.add("time");
 
     lines.push(`  /** ${field.label} */`);
     lines.push(`  ${camelName}: ${columnDef},`);

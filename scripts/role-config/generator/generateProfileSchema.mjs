@@ -38,7 +38,10 @@ function mapZodType(type) {
     case "number":
       return "z.coerce.number().int()";
     case "float":
+    case "numeric(10,2)":
       return "z.coerce.number()";
+    case "bigint":
+      return "z.coerce.number().int()";
     case "boolean":
       return "z.coerce.boolean()";
     case "array":
