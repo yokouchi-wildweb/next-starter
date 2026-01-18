@@ -5,22 +5,22 @@ import type { Control, ControllerRenderProps, FieldPath, FieldValues, UseFormRet
 
 import { FormFieldItem } from "@/components/Form/Field/FormFieldItem";
 import {
+  BooleanCheckboxInput,
+  CheckGroupInput,
   DateInput,
   DatetimeInput,
   EmailInput,
+  MultiSelectInput,
   NumberInput,
   PasswordInput,
+  RadioGroupInput,
   SelectInput,
+  SwitchInput,
   TextInput,
   Textarea,
   TimeInput,
 } from "@/components/Form/Controlled";
-import { CheckGroupInput } from "@/components/Form/Manual";
-import { MultiSelectInput } from "@/components/Form/Manual";
 import StepperInput from "@/components/Form/Input/Manual/StepperInput";
-import { RadioGroupInput } from "@/components/Form/Manual";
-import { SwitchInput } from "@/components/Form/Controlled";
-import { BooleanCheckboxInput } from "@/components/Form/Input/Manual/BooleanCheckboxInput";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
 
 import { buildFieldConfigsFromDomainJson, type DomainJsonField } from "./fieldMapper";

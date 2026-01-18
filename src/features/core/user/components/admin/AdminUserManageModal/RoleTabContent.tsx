@@ -153,11 +153,9 @@ export function RoleTabContent({ user, onClose }: Props) {
           {currentRoleHasProfile && (
             <Block className="rounded-md border border-border bg-muted/30 p-4">
               <SwitchInput
-                field={{
-                  name: "deleteOldProfile",
-                  value: deleteOldProfile,
-                  onChange: setDeleteOldProfile,
-                }}
+                value={deleteOldProfile}
+                name="deleteOldProfile"
+                onChange={setDeleteOldProfile}
                 label="現在のロールのプロフィールを削除する"
                 description="削除すると復元できません"
                 activeColor="destructive"

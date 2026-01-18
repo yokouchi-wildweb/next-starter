@@ -6,7 +6,7 @@ export type { FileInputProps } from "./FileInput";
 export { NumberInput } from "./NumberInput";
 export { PasswordInput } from "./PasswordInput";
 export { SwitchInput } from "./SwitchInput";
-export type { SwitchInputProps } from "./SwitchInput";
+export type { ControlledSwitchInputProps } from "./SwitchInput";
 export { EmailInput } from "./EmailInput";
 export { TextInput } from "./TextInput";
 export { Textarea } from "./Textarea";

@@ -6,8 +6,8 @@ import { useMemo } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
 import { FormFieldItem } from "@/components/Form";
-import { SelectInput } from "@/components/Form/Controlled";
-import { RadioGroupInput, type RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
+import { RadioGroupInput, SelectInput } from "@/components/Form/Controlled";
+import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
 import {
   getRoleOptionsByCategory,
   getRoleDescription,

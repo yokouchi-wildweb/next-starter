@@ -120,14 +120,13 @@ const indicatorVariants = cva(
   },
 );
 
-type Field = {
+export type SwitchInputProps = {
+  /** 現在の値 */
   value?: boolean | null;
+  /** フィールド名 */
   name?: string;
+  /** 値が変更されたときのコールバック */
   onChange: (value: boolean) => void;
-};
-
-type SwitchInputProps = {
-  field: Field;
   /**
    * スイッチの右側に表示するラベル
    */
@@ -164,16 +163,17 @@ type SwitchInputProps = {
     | "success"
     | "error"
     | "warning";
-  onChange?: ComponentPropsWithoutRef<"input">["onChange"];
 } & Omit<
   ComponentPropsWithoutRef<"input">,
-  "type" | "value" | "defaultValue" | "defaultChecked" | "checked" | "onChange"
+  "type" | "value" | "defaultValue" | "defaultChecked" | "checked" | "onChange" | "name"
 >;
 
 export function SwitchInput(props: SwitchInputProps) {
   const fallbackId = useId();
   const {
-    field,
+    value,
+    name,
+    onChange,
     label,
     description,
     className,
@@ -181,17 +181,15 @@ export function SwitchInput(props: SwitchInputProps) {
     size,
     activeColor,
     inactiveColor,
-    name: nameFromProps,
-    onChange: onChangeFromProps,
     id: idFromProps,
     ["aria-labelledby"]: ariaLabelledbyFromProps,
     ["aria-describedby"]: ariaDescribedbyFromProps,
     ...rest
   } = props;
 
-  const checked = Boolean(field.value);
-  const inputId = idFromProps ?? field.name ?? fallbackId;
-  const inputName = nameFromProps ?? field.name ?? undefined;
+  const checked = Boolean(value);
+  const inputId = idFromProps ?? name ?? fallbackId;
+  const inputName = name ?? undefined;
   const labelId = label ? `${inputId}-label` : undefined;
   const descriptionId = description ? `${inputId}-description` : undefined;
   const ariaLabelledby = [ariaLabelledbyFromProps, labelId].filter(Boolean).join(" ") || undefined;
@@ -210,8 +208,7 @@ export function SwitchInput(props: SwitchInputProps) {
         aria-labelledby={ariaLabelledby}
         aria-describedby={ariaDescribedby}
         onChange={(event) => {
-          field.onChange(event.target.checked);
-          onChangeFromProps?.(event);
+          onChange(event.target.checked);
         }}
       />
 

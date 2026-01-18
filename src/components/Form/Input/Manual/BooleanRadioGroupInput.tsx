@@ -28,21 +28,22 @@ const radioItemSizeVariants = cva("", {
 
 type RadioItemSizeProps = VariantProps<typeof radioItemSizeVariants>;
 
-type Props = {
-  field: {
-    value?: boolean | null;
-    name?: string;
-    onChange: (value: boolean) => void;
-  };
+export type BooleanRadioGroupInputProps = {
+  /** 現在の値 */
+  value?: boolean | null;
+  /** フィールド名（id生成に使用） */
+  name?: string;
+  /** 値が変更されたときのコールバック */
+  onChange: (value: boolean) => void;
   options?: BooleanRadioGroupOption[];
   /**
    * ラジオボタンの丸形のサイズ
    */
   size?: RadioItemSizeProps["size"];
-} & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange">;
+} & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange" | "name">;
 
-export function BooleanRadioGroupInput({ field, options, size, ...rest }: Props) {
-  const radioValue = typeof field.value === "boolean" ? String(field.value) : undefined;
+export function BooleanRadioGroupInput({ value, name, onChange, options, size, ...rest }: BooleanRadioGroupInputProps) {
+  const radioValue = typeof value === "boolean" ? String(value) : undefined;
   const normalizedOptions = (options && options.length
     ? options
     : [
@@ -58,12 +59,12 @@ export function BooleanRadioGroupInput({ field, options, size, ...rest }: Props)
     <RadioGroup
       value={radioValue}
       defaultValue={radioValue}
-      onValueChange={(value) => field.onChange(value === "true")}
+      onValueChange={(val) => onChange(val === "true")}
       {...rest}
     >
       {normalizedOptions.map((option, index) => {
         const optionValue = String(option.value);
-        const optionId = `${field.name ?? rest.name ?? "boolean-radio"}-${optionValue}-${index}`;
+        const optionId = `${name ?? "boolean-radio"}-${optionValue}-${index}`;
 
         return (
           <div key={optionId} className="flex items-center gap-2">

@@ -33,11 +33,9 @@ export function MultiSelectEditor<T>({
   return (
     <div className="w-full px-2 py-1">
       <MultiSelectInput
-        field={{
-          value: normalizedMultiValue,
-          name: fieldName,
-          onChange: handleMultiSelectChange,
-        }}
+        value={normalizedMultiValue}
+        name={fieldName}
+        onChange={handleMultiSelectChange}
         options={column.options ?? []}
         placeholder={placeholder}
         open={popupOpen}

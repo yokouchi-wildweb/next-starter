@@ -21,14 +21,13 @@ import { MultiSelectOptionList } from "./MultiSelectOptionList";
 import { MultiSelectSearchSection } from "./MultiSelectSearchSection";
 import { MultiSelectTrigger } from "./MultiSelectTrigger";
 
-type FieldProp = {
-  value?: OptionPrimitive[] | null;
-  onChange: (value: OptionPrimitive[]) => void;
-  name?: string;
-};
-
 export type MultiSelectInputProps = {
-  field: FieldProp;
+  /** 現在の値（選択されている値の配列） */
+  value?: OptionPrimitive[] | null;
+  /** フィールド名 */
+  name?: string;
+  /** 値が変更されたときのコールバック */
+  onChange: (value: OptionPrimitive[]) => void;
   options?: Options[];
   placeholder?: string;
   emptyMessage?: string;
@@ -41,7 +40,9 @@ export type MultiSelectInputProps = {
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
 export function MultiSelectInput({
-  field,
+  value,
+  name,
+  onChange,
   options = [],
   placeholder = "選択してください",
   emptyMessage = "該当する項目がありません",
@@ -58,7 +59,7 @@ export function MultiSelectInput({
   const isControlled = typeof open === "boolean";
   const resolvedOpen = isControlled ? open : internalOpen;
 
-  const selectedValues = normalizeOptionValues(field.value);
+  const selectedValues = normalizeOptionValues(value);
   const selectedCount = selectedValues.length;
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -71,8 +72,8 @@ export function MultiSelectInput({
     onOpenChange?.(nextOpen);
   };
 
-  const handleToggle = (value: OptionPrimitive) => {
-    field.onChange(toggleOptionValue(selectedValues, value));
+  const handleToggle = (optionValue: OptionPrimitive) => {
+    onChange(toggleOptionValue(selectedValues, optionValue));
   };
 
   const handleClosePicker = () => {

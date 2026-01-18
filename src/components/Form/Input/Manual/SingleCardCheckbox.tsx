@@ -38,12 +38,13 @@ const sizeVariants = cva("", {
 
 type SizeVariant = VariantProps<typeof sizeVariants>["size"];
 
-type Props = {
-  field: {
-    value?: boolean | null;
-    name?: string;
-    onChange: (value: boolean) => void;
-  };
+export type SingleCardCheckboxProps = {
+  /** 現在の値 */
+  value?: boolean | null;
+  /** フィールド名 */
+  name?: string;
+  /** 値が変更されたときのコールバック */
+  onChange: (value: boolean) => void;
   /** ラベル（ReactNode） */
   label: ReactNode;
   /** 未チェック時のカラーバリアント */
@@ -63,7 +64,9 @@ type Props = {
 };
 
 export function SingleCardCheckbox({
-  field,
+  value,
+  name,
+  onChange,
   label,
   uncheckedVariant = "muted",
   checkedVariant = "secondary",
@@ -72,8 +75,8 @@ export function SingleCardCheckbox({
   centered = true,
   disabled = false,
   className,
-}: Props) {
-  const isChecked = Boolean(field.value);
+}: SingleCardCheckboxProps) {
+  const isChecked = Boolean(value);
   const currentVariant = isChecked ? checkedVariant : uncheckedVariant;
 
   return (
@@ -90,9 +93,9 @@ export function SingleCardCheckbox({
     >
       <Checkbox
         checked={isChecked}
-        onCheckedChange={(value) => {
+        onCheckedChange={(checked) => {
           if (!disabled) {
-            field.onChange(value === true);
+            onChange(checked === true);
           }
         }}
         disabled={disabled}

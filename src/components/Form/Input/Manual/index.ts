@@ -3,13 +3,17 @@ export type { CheckGroupInputProps, CheckGroupDisplayType, CheckGroupOrientation
 export { RadioGroupInput } from "./RadioGroupInput";
 export type { RadioGroupInputProps, RadioGroupDisplayType, RadioGroupOrientation } from "./RadioGroupInput";
 export { BooleanRadioGroupInput } from "./BooleanRadioGroupInput";
+export type { BooleanRadioGroupInputProps, BooleanRadioGroupOption } from "./BooleanRadioGroupInput";
 export { BooleanCheckboxInput } from "./BooleanCheckboxInput";
 export type { BooleanCheckboxInputProps } from "./BooleanCheckboxInput";
 export { SingleCardCheckbox } from "./SingleCardCheckbox";
+export type { SingleCardCheckboxProps } from "./SingleCardCheckbox";
 export { SwitchInput } from "./SwitchInput";
+export type { SwitchInputProps } from "./SwitchInput";
 export { SelectInput } from "./Select";
 export type { SelectInputProps } from "./Select";
 export { MultiSelectInput } from "./MultiSelectInput";
+export type { MultiSelectInputProps } from "./MultiSelectInput";
 export { Input } from "./Input";
 export { default as StepperInput } from "./StepperInput";
 export { DateInput } from "./DateInput";
