@@ -6,7 +6,7 @@ import type { User } from "@/features/user/entities";
 import {
   createProfileDataValidator,
   getProfilesByCategory,
-} from "@/features/core/userProfile/utils/profileSchemaHelpers";
+} from "@/features/core/userProfile/utils";
 
 const displayNameSchema = z.string().trim();
 

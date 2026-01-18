@@ -6,17 +6,8 @@ import { useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
 import { FieldRenderer } from "@/components/Form/FieldRenderer";
-import type { FieldConfig } from "@/components/Form/Field";
-import type { ProfileFieldConfig } from "../../types";
 import type { ProfileConfig } from "../../profiles";
-import { pickFieldsByTag } from "../../utils/profileSchemaHelpers";
-
-/**
- * snake_case を camelCase に変換
- * domain.json では snake_case、TypeScript では camelCase を使用するため
- */
-const snakeToCamel = (str: string): string =>
-  str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+import { getFieldConfigsForFormAsArray } from "../../utils";
 
 export type RoleProfileFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
@@ -72,48 +63,10 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
   excludeHidden = true,
   wrapperClassName,
 }: RoleProfileFieldsProps<TFieldValues>) {
-  const fields = useMemo(() => {
-    const profileConfig = profiles[role];
-    if (!profileConfig) {
-      return [];
-    }
-
-    // tag が指定されていない場合は全フィールド（hidden 以外）
-    const profileFields = tag
-      ? pickFieldsByTag(
-          profileConfig.fields as ProfileFieldConfig[],
-          profileConfig.tags?.[tag],
-          excludeHidden
-        )
-      : (profileConfig.fields as ProfileFieldConfig[]).filter(
-          (field) => !excludeHidden || field.formInput !== "hidden"
-        );
-
-    // ProfileFieldConfig を FieldConfig に変換（snake_case → camelCase）
-    return profileFields.map(
-      (field: ProfileFieldConfig) =>
-        ({
-          name: `${fieldPrefix}.${snakeToCamel(field.name)}`,
-          label: field.label,
-          formInput: field.formInput,
-          fieldType: field.fieldType,
-          options: field.options,
-          placeholder: field.placeholder,
-          readonly: field.readonly,
-          required: field.required,
-          defaultValue: field.defaultValue,
-          displayType: field.displayType,
-          helperText: field.helperText,
-          // MediaUploader 関連
-          uploadPath: field.uploadPath,
-          slug: field.slug,
-          mediaTypePreset: field.mediaTypePreset,
-          accept: field.accept,
-          validationRule: field.validationRule,
-          metadataBinding: field.metadataBinding,
-        }) as FieldConfig
-    );
-  }, [role, profiles, tag, fieldPrefix, excludeHidden]);
+  const fields = useMemo(
+    () => getFieldConfigsForFormAsArray(profiles, role, { tag, fieldPrefix, excludeHidden }),
+    [role, profiles, tag, fieldPrefix, excludeHidden]
+  );
 
   if (fields.length === 0) {
     return null;

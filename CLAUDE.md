@@ -11,6 +11,7 @@ library: src/lib/\<name\>/, all except entities
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
 
 decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only→app/\<route\>/_components/
+reuse_check: new utility/feature → confirm no equivalent in existing domains/features before create
 deps: lib→lib OK | lib→features NG | features→features(UI): use target hooks (no self-create) | features→features(server): direct OK (no circular)
 ref: docs/!must-read/設計思想とアーキテクチャ.md
 

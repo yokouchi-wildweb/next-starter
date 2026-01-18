@@ -5,7 +5,7 @@ import { z } from "zod";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RegistrationSchema } from "@/features/core/auth/entities";
 import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
-import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+import { createProfileDataValidator } from "@/features/core/userProfile/utils";
 import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
 // profileData バリデーション関数

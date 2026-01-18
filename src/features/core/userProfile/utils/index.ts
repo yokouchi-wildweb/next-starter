@@ -1,16 +1,27 @@
 // src/features/core/userProfile/utils/index.ts
-// クライアント/サーバー共通のユーティリティのみエクスポート
+// クライアント/サーバー共通のユーティリティ
 // サーバー専用: createProfileBase, profileBaseHelpers は直接 import すること
 
-// ProfileFieldTag は types から直接インポートを推奨
+// 型
 export { type ProfileFieldTag } from "../types";
 
-// スキーマ・フィールド関連ヘルパー
+// スキーマ関連（Zodスキーマ操作 + バリデーション）
 export {
   getProfileSchema,
   pickSchemaByTag,
-  pickFieldsByTag,
   createProfileDataValidator,
+} from "./schemaHelpers";
+
+// フィールド関連（フィールド配列操作）
+export {
+  pickFieldsByTag,
+  getFieldConfigsForForm,
+  getFieldConfigsForFormAsArray,
+  type GetFieldConfigsForFormOptions,
+} from "./fieldHelpers";
+
+// 設定取得関連
+export {
   getProfilesByCategory,
   getProfileConfig,
-} from "./profileSchemaHelpers";
+} from "./configHelpers";

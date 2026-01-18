@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   createProfileDataValidator,
   getProfilesByCategory,
-} from "@/features/core/userProfile/utils/profileSchemaHelpers";
+} from "@/features/core/userProfile/utils";
 
 const displayNameSchema = z.string();
 
