@@ -1,6 +1,6 @@
 // src/components/Form/Controlled/DatetimeInput.tsx
 
-import { DatetimeInput as ManualDatetimeInput } from "@/components/Form/Manual";
+import { DatetimeInput as ManualDatetimeInput } from "../Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { type ReactNode } from "react";
 import { ControlledInputProps } from "@/components/Form/types";

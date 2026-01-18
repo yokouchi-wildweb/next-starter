@@ -6,7 +6,7 @@ import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-f
 import {
   FileInput as ManualFileInput,
   type FileInputProps as ManualFileInputProps,
-} from "@/components/Form/Manual";
+} from "../Manual";
 
 export type FileInputProps<
   TFieldValues extends FieldValues,

@@ -1,4 +1,4 @@
-// src/components/Form/Manual/Select.tsx
+// src/components/Form/Input/Manual/Select.tsx
 
 import {
   Select as ShadcnSelect,
@@ -11,11 +11,11 @@ import { type Options } from "@/components/Form/types";
 
 type OptionPrimitive = Options["value"];
 
-type Props = {
-  field: {
-    value?: OptionPrimitive | "" | null;
-    onChange: (value: OptionPrimitive | "" | null) => void;
-  };
+export type SelectInputProps = {
+  /** 現在の値 */
+  value?: OptionPrimitive | "" | null;
+  /** 値が変更されたときのコールバック */
+  onChange: (value: OptionPrimitive | "" | null) => void;
   /**
    * Selectable options. If omitted, an empty list is used so the component can
    * safely render before options load.
@@ -48,7 +48,8 @@ const serializeValue = (value: OptionPrimitive | "" | null | undefined) => {
 };
 
 export function SelectInput({
-  field,
+  value,
+  onChange,
   options = [],
   placeholder,
   includeNullOption = false,
@@ -56,20 +57,20 @@ export function SelectInput({
   showPlaceholderOption = true,
   contentClassName,
   ...rest
-}: Props) {
-  const handleChange = (value: string) => {
-    if (value === CLEAR_VALUE) {
-      field.onChange(includeNullOption ? null : "");
+}: SelectInputProps) {
+  const handleChange = (selectedValue: string) => {
+    if (selectedValue === CLEAR_VALUE) {
+      onChange(includeNullOption ? null : "");
       return;
     }
-    const matchedOption = options.find((op) => serializeValue(op.value) === value);
-    field.onChange((matchedOption?.value ?? value) as OptionPrimitive);
+    const matchedOption = options.find((op) => serializeValue(op.value) === selectedValue);
+    onChange((matchedOption?.value ?? selectedValue) as OptionPrimitive);
   };
 
-  const hasValue = !(field.value === "" || field.value === null || typeof field.value === "undefined");
+  const hasValue = !(value === "" || value === null || typeof value === "undefined");
   // showPlaceholderOption: false の場合、空値時は空文字列を使用して Radix の placeholder 機能を利用
   const currentValue = hasValue
-    ? serializeValue(field.value as OptionPrimitive)
+    ? serializeValue(value as OptionPrimitive)
     : showPlaceholderOption
       ? CLEAR_VALUE
       : "";

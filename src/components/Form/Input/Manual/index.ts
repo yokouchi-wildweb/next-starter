@@ -5,6 +5,7 @@ export { BooleanCheckboxInput } from "./BooleanCheckboxInput";
 export { SingleCardCheckbox } from "./SingleCardCheckbox";
 export { SwitchInput } from "./SwitchInput";
 export { SelectInput } from "./Select";
+export type { SelectInputProps } from "./Select";
 export { MultiSelectInput } from "./MultiSelectInput";
 export { Input } from "./Input";
 export { default as StepperInput } from "./StepperInput";

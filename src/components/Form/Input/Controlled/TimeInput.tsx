@@ -1,6 +1,6 @@
 // src/components/Form/Controlled/TimeInput.tsx
 
-import { TimeInput as ManualTimeInput } from "@/components/Form/Manual";
+import { TimeInput as ManualTimeInput } from "../Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { type ReactNode } from "react";
 import { ControlledInputProps } from "@/components/Form/types";

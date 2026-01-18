@@ -1,6 +1,6 @@
 // src/components/Form/TextInput.tsx
 
-import { Input } from "@/components/Form/Manual";
+import { Input } from "../Manual";
 import { FieldPath, FieldValues } from "react-hook-form";
 import { type ReactNode } from "react";
 import { ControlledInputProps } from "@/components/Form/types";
