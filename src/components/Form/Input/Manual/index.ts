@@ -1,7 +1,10 @@
 export { CheckGroupInput } from "./CheckGroupInput";
+export type { CheckGroupInputProps, CheckGroupDisplayType, CheckGroupOrientation } from "./CheckGroupInput";
 export { RadioGroupInput } from "./RadioGroupInput";
+export type { RadioGroupInputProps, RadioGroupDisplayType, RadioGroupOrientation } from "./RadioGroupInput";
 export { BooleanRadioGroupInput } from "./BooleanRadioGroupInput";
 export { BooleanCheckboxInput } from "./BooleanCheckboxInput";
+export type { BooleanCheckboxInputProps } from "./BooleanCheckboxInput";
 export { SingleCardCheckbox } from "./SingleCardCheckbox";
 export { SwitchInput } from "./SwitchInput";
 export { SelectInput } from "./Select";

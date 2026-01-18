@@ -21,27 +21,28 @@ const checkboxSizeVariants = cva("", {
 
 type CheckboxSizeProps = VariantProps<typeof checkboxSizeVariants>;
 
-type Props = {
-  field: {
-    value?: boolean | null;
-    name?: string;
-    onChange: (value: boolean) => void;
-  };
+export type BooleanCheckboxInputProps = {
+  /** 現在の値 */
+  value?: boolean | null;
+  /** フィールド名（id のフォールバックに使用） */
+  name?: string;
+  /** 値が変更されたときのコールバック */
+  onChange: (value: boolean) => void;
   label?: ReactNode;
   /**
    * チェックボックス本体のサイズ
    */
   size?: CheckboxSizeProps["size"];
-} & Omit<ComponentProps<typeof Checkbox>, "checked" | "defaultChecked" | "onCheckedChange" | "value">;
+} & Omit<ComponentProps<typeof Checkbox>, "checked" | "defaultChecked" | "onCheckedChange" | "value" | "name">;
 
-export function BooleanCheckboxInput({ field, label, id, className, size, ...rest }: Props) {
-  const checkboxId = id ?? field.name ?? undefined;
+export function BooleanCheckboxInput({ value, name, onChange, label, id, className, size, ...rest }: BooleanCheckboxInputProps) {
+  const checkboxId = id ?? name ?? undefined;
   const checkbox = (
     <Checkbox
       id={checkboxId}
       className={cn(checkboxSizeVariants({ size }), className)}
-      checked={Boolean(field.value)}
-      onCheckedChange={(value) => field.onChange(value === true)}
+      checked={Boolean(value)}
+      onCheckedChange={(checked) => onChange(checked === true)}
       {...rest}
     />
   );

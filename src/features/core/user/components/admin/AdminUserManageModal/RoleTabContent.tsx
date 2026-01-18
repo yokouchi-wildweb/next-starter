@@ -130,10 +130,8 @@ export function RoleTabContent({ user, onClose }: Props) {
               変更先ロール
             </Para>
             <SelectInput
-              field={{
-                value: selectedRole,
-                onChange: (value) => setSelectedRole(String(value ?? "")),
-              }}
+              value={selectedRole}
+              onChange={(value) => setSelectedRole(String(value ?? ""))}
               options={roleOptions}
               placeholder="ロールを選択"
               contentClassName="surface-ui-layer"

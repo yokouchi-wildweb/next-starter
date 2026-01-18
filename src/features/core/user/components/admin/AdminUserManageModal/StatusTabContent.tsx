@@ -110,10 +110,8 @@ export function StatusTabContent({ user, onClose }: Props) {
               変更先ステータス
             </Para>
             <SelectInput
-              field={{
-                value: selectedStatus,
-                onChange: (value) => setSelectedStatus(String(value ?? "")),
-              }}
+              value={selectedStatus}
+              onChange={(value) => setSelectedStatus(String(value ?? ""))}
               options={USER_STATUS_OPTIONS.filter((opt) => opt.value !== user.status)}
               placeholder="ステータスを選択"
               contentClassName="surface-ui-layer"

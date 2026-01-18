@@ -19,11 +19,11 @@ export type CheckGroupOrientation = "horizontal" | "vertical";
 
 type OptionPrimitive = Options["value"];
 
-type Props = {
-  field: {
-    value?: OptionPrimitive[];
-    onChange: (value: OptionPrimitive[]) => void;
-  };
+export type CheckGroupInputProps = {
+  /** 現在の値（選択されているオプションの配列） */
+  value?: OptionPrimitive[];
+  /** 値が変更されたときのコールバック */
+  onChange: (value: OptionPrimitive[]) => void;
   /**
    * Options to choose from. Optional so the component can render
    * even when options haven't loaded yet.
@@ -46,7 +46,8 @@ type Props = {
 } & HTMLAttributes<HTMLDivElement>;
 
 export function CheckGroupInput({
-  field,
+  value,
+  onChange,
   options = [],
   displayType = "standard",
   orientation,
@@ -55,11 +56,11 @@ export function CheckGroupInput({
   selectedButtonVariant,
   unselectedButtonVariant,
   ...rest
-}: Props) {
+}: CheckGroupInputProps) {
   const groupId = useId();
 
-  const handleToggle = (value: OptionPrimitive) => {
-    field.onChange(toggleOptionValue(field.value, value));
+  const handleToggle = (optionValue: OptionPrimitive) => {
+    onChange(toggleOptionValue(value, optionValue));
   };
 
   // classicのデフォルトはvertical、それ以外はhorizontal
@@ -73,7 +74,7 @@ export function CheckGroupInput({
         {options.map((op) => {
           const serialized = serializeOptionValue(op.value);
           const id = `${groupId}-${serialized}`;
-          const selected = includesOptionValue(field.value, op.value);
+          const selected = includesOptionValue(value, op.value);
 
           return (
             <div key={serialized} className="flex items-center gap-2">
@@ -96,7 +97,7 @@ export function CheckGroupInput({
   return (
     <div className={layoutClass} {...rest}>
       {options.map((op) => {
-        const selected = includesOptionValue(field.value, op.value);
+        const selected = includesOptionValue(value, op.value);
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
         const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
         const serialized = serializeOptionValue(op.value);

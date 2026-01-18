@@ -10,11 +10,11 @@ import {
   EmailInput,
   NumberInput,
   PasswordInput,
+  SelectInput,
   TextInput,
   Textarea,
   TimeInput,
 } from "@/components/Form/Controlled";
-import { SelectInput } from "@/components/Form/Manual";
 import { CheckGroupInput } from "@/components/Form/Manual";
 import { MultiSelectInput } from "@/components/Form/Manual";
 import StepperInput from "@/components/Form/Input/Manual/StepperInput";

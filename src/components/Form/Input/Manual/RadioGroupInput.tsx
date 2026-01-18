@@ -15,11 +15,11 @@ export type RadioGroupOrientation = "horizontal" | "vertical";
 
 type OptionPrimitive = Options["value"];
 
-type Props = {
-  field: {
-    value?: OptionPrimitive | null;
-    onChange: (value: OptionPrimitive) => void;
-  };
+export type RadioGroupInputProps = {
+  /** 現在の値 */
+  value?: OptionPrimitive | null;
+  /** 値が変更されたときのコールバック */
+  onChange: (value: OptionPrimitive) => void;
   /**
    * Options to choose from. Optional so the component can render
    * even when options haven't loaded yet.
@@ -40,7 +40,8 @@ type Props = {
 } & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange" | "orientation">;
 
 export function RadioGroupInput({
-  field,
+  value,
+  onChange,
   options = [],
   displayType = "standard",
   orientation = "horizontal",
@@ -49,9 +50,9 @@ export function RadioGroupInput({
   selectedButtonVariant,
   unselectedButtonVariant,
   ...rest
-}: Props) {
+}: RadioGroupInputProps) {
   const serializedValue =
-    field.value === null || typeof field.value === "undefined" ? undefined : String(field.value);
+    value === null || typeof value === "undefined" ? undefined : String(value);
 
   const mapOptionValue = (value: OptionPrimitive) => String(value);
 
@@ -66,7 +67,7 @@ export function RadioGroupInput({
   if (displayType === "classic") {
     return (
       <RadioGroup
-        onValueChange={(value) => field.onChange(resolveOriginalValue(value) as OptionPrimitive)}
+        onValueChange={(value) => onChange(resolveOriginalValue(value) as OptionPrimitive)}
         value={serializedValue}
         defaultValue={serializedValue}
         className={cn(layoutClass, rest.className)}
@@ -104,7 +105,7 @@ export function RadioGroupInput({
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
         const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
 
-        const handleSelect = () => field.onChange(op.value);
+        const handleSelect = () => onChange(op.value);
 
         const key = optionSerialized || String(op.label ?? op.value);
 

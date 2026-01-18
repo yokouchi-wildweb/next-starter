@@ -23,13 +23,13 @@ import {
   SwitchInput,
   TextInput,
   Textarea,
+  SelectInput,
 } from "@/components/Form/Controlled";
 import {
   BooleanCheckboxInput,
   CheckGroupInput,
   MultiSelectInput,
   RadioGroupInput,
-  SelectInput,
   StepperInput,
 } from "src/components/Form/Manual";
 import { FormFieldItem } from "@/components/Form";
