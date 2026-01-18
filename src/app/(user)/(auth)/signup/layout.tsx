@@ -11,7 +11,7 @@ export default function SignupLayout({ children }: SignupLayoutProps) {
   return (
     <>
       <HideBottomNav />
-      <HideFooter />
+      <HideFooter sp />
       {children}
     </>
   );
