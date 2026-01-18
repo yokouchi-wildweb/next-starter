@@ -29,7 +29,7 @@ export const MultiSelectTrigger = forwardRef<HTMLButtonElement, Props>(
         aria-expanded={open}
         disabled={disabled}
         className={cn(
-          "w-full justify-between",
+          "h-auto w-full justify-between border-muted-foreground/50 py-3",
           selectedCount === 0 ? "text-muted-foreground" : "text-foreground",
           className,
         )}

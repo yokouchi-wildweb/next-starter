@@ -82,7 +82,7 @@ export function SelectInput({
       defaultValue={currentValue}
       {...rest}
     >
-      <SelectTrigger>
+      <SelectTrigger className="!h-auto border-muted-foreground/50 py-3">
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>
       <SelectContent className={contentClassName}>
