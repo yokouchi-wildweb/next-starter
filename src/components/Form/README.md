@@ -43,21 +43,21 @@ Controlled は Manual をラップして、`field` prop を `value/onChange` に
 
 ### Controlled の場合
 
-`FieldWrapper` で field を取得し、Controlled Input に渡す。
+`FieldController` で field を取得し、Controlled Input に渡す。
 
 ```tsx
-import { FieldWrapper } from "@/components/Form/Field";
+import { FieldController } from "@/components/Form/Field";
 import { SwitchInput } from "@/components/Form/Input/Controlled";
 
 <AppForm methods={form} onSubmit={handleSubmit}>
-  <FieldWrapper control={control} name="notify">
+  <FieldController control={control} name="notify">
     {(field) => (
       <div className="自由なレイアウト">
         <SwitchInput field={field} label="通知設定" />
         <span>補足テキスト</span>
       </div>
     )}
-  </FieldWrapper>
+  </FieldController>
 </AppForm>
 ```
 
@@ -181,7 +181,7 @@ src/components/Form/
 ├── Field/
 │   ├── FieldItem.tsx        # Controlled用フィールド（ラベル・エラー付き）
 │   ├── FieldItemGroup.tsx   # 複数フィールド横並び（Controlled）
-│   ├── FieldWrapper.tsx     # field を渡すだけの薄いラッパー（※作成予定）
+│   ├── FieldController.tsx  # field を渡すだけの薄いラッパー
 │   ├── ManualFieldItem.tsx  # Manual用フィールド
 │   └── ManualFieldItemGroup.tsx
 ├── Input/
