@@ -12,7 +12,7 @@ import {
   renderInputByFormType,
   shouldUseFieldItem,
   hasVisibleInput,
-} from "./configuredFieldUtils";
+} from "./_inputRenderer";
 
 export type ConfiguredFieldProps<
   TFieldValues extends FieldValues,

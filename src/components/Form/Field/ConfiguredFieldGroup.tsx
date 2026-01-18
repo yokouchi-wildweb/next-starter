@@ -8,7 +8,7 @@ import type { Control, FieldPath, FieldValues, ControllerRenderProps } from "rea
 import { FieldItemGroup } from "./FieldItemGroup";
 import type { ManualFieldItemGroupDescription } from "./ManualFieldItemGroup";
 import type { DomainJsonField } from "@/components/Form/DomainFieldRenderer/types";
-import { renderInputByFormType } from "./configuredFieldUtils";
+import { renderInputByFormType } from "./_inputRenderer";
 
 export type ConfiguredFieldGroupProps<
   TFieldValues extends FieldValues,
