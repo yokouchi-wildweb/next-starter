@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { SwitchInput as ManualSwitchInput } from "@/components/Form/Manual/SwitchInput";
+import { SwitchInput as ManualSwitchInput } from "@/components/Form/Input/Manual/SwitchInput";
 import type { SwitchEditorProps } from "../types";
 
 export function SwitchEditor<T>({

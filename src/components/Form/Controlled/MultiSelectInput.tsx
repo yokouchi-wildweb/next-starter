@@ -5,7 +5,7 @@ import { type FieldPath, type FieldValues } from "react-hook-form";
 import {
   MultiSelectInput as ManualMultiSelectInput,
   type MultiSelectInputProps as ManualMultiSelectInputProps,
-} from "@/components/Form/Manual/MultiSelectInput";
+} from "@/components/Form/Input/Manual/MultiSelectInput";
 import { type ControlledInputProps } from "@/components/Form/types";
 
 export type ControlledMultiSelectInputProps<

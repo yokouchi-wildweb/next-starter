@@ -9,7 +9,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import { Dialog } from "@/components/Overlays/Dialog";
-import { Input } from "@/components/Form/Manual/Input";
+import { Input } from "@/components/Form/Input/Manual/Input";
 import { useToast } from "@/lib/toast";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useFetchDomains } from "@/lib/domain/hooks/useFetchDomains";

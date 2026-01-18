@@ -2,8 +2,8 @@ import type { FieldPath, FieldValues } from "react-hook-form";
 
 import type { DomainFieldRenderConfig } from "./fieldTypes";
 import type { DomainJsonField } from "./types";
-import type { RadioGroupDisplayType } from "@/components/Form/Manual/RadioGroupInput";
-import type { CheckGroupDisplayType } from "@/components/Form/Manual/CheckGroupInput";
+import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
+import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/CheckGroupInput";
 
 // 型の re-export
 export type { DomainJsonField, DomainFormInput, DomainFieldType } from "./types";

@@ -12,7 +12,7 @@ import RecordSelectionTable, {
 } from "@/lib/tableSuite/RecordSelectionTable";
 import type { OptionValue } from "@/components/Form/types";
 import { Button } from "@/components/Form/Button/Button";
-import { RadioGroupInput } from "@/components/Form/Manual/RadioGroupInput";
+import { RadioGroupInput } from "@/components/Form/Input/Manual/RadioGroupInput";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";

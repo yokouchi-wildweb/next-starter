@@ -3,7 +3,7 @@
 import { useCallback, useId, useMemo, useRef, useState, type ChangeEvent } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/Manual/Input";
+import { Input } from "@/components/Form/Input/Manual/Input";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { MediaPreview, detectMediaType } from "@/lib/mediaInputSuite";
