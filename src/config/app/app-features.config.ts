@@ -37,11 +37,15 @@ export const APP_FEATURES = {
       passwordInputMode: "single" as "single" | "double",
       /**
        * 本登録画面でロール選択を表示するか
-       * 選択可能なロールを変更する場合:
-       * @see src/features/core/auth/components/Registration/registrationProfiles.ts
        */
       showRoleSelection: false,
-      /** ロール選択非表示時のデフォルトロール */
+      /**
+       * 本登録画面で選択可能なロール
+       * user カテゴリかつ enabled: true のロールのみ指定可能
+       * @see src/features/core/user/roles/
+       */
+      allowedRoles: ["user"] as const,
+      /** ロール選択非表示時のデフォルトロール（allowedRoles に含まれている必要あり） */
       defaultRole: "user",
       /** メール認証完了後の動作: "manual"=ボタン表示, "auto"=自動遷移 */
       emailVerificationRedirect: "auto" as "manual" | "auto",
