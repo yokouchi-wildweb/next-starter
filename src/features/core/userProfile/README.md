@@ -38,9 +38,11 @@ src/features/core/userProfile/
 │   └── profileBase.ts          # ProfileBase インターフェース
 ├── utils/                      # ユーティリティ
 │   ├── index.ts                # クライアント安全なエクスポートのみ
+│   ├── schemaHelpers.ts        # Zodスキーマ操作 + バリデーション [共通]
+│   ├── fieldHelpers.ts         # フィールド配列操作 [共通]
+│   ├── configHelpers.ts        # プロフィール設定取得 [共通]
 │   ├── createProfileBase.ts    # ProfileBase ファクトリ [サーバー専用]
-│   ├── profileBaseHelpers.ts   # レジストリヘルパー [サーバー専用]
-│   └── profileSchemaHelpers.ts # スキーマ・フィールドヘルパー [共通]
+│   └── profileBaseHelpers.ts   # レジストリヘルパー [サーバー専用]
 ├── services/server/            # サーバーサービス
 │   ├── operations/             # 各操作の実装
 │   │   ├── index.ts
@@ -164,7 +166,9 @@ export const ContributorProfileSchema = z.object({
 | ファイル | 環境 | 用途 |
 |---------|------|------|
 | `utils/index.ts` | 共通 | クライアント安全なエクスポートのみ |
-| `profileSchemaHelpers.ts` | 共通 | スキーマ・フィールド操作 |
+| `schemaHelpers.ts` | 共通 | Zodスキーマ操作 + バリデーション |
+| `fieldHelpers.ts` | 共通 | フィールド配列操作（pickFieldsByTag, getFieldConfigsForForm） |
+| `configHelpers.ts` | 共通 | プロフィール設定取得（getProfilesByCategory, getProfileConfig） |
 | `createProfileBase.ts` | サーバー専用 | ProfileBase ファクトリ |
 | `profileBaseHelpers.ts` | サーバー専用 | レジストリアクセス |
 
@@ -178,7 +182,7 @@ import { getProfileBase } from "../utils";
 import { getProfileBase } from "../utils/profileBaseHelpers";
 ```
 
-### profileSchemaHelpers.ts（クライアント/サーバー共通）
+### schemaHelpers.ts（Zodスキーマ操作 + バリデーション）
 
 ```typescript
 // ロールに対応するプロフィールスキーマを取得
@@ -187,12 +191,28 @@ getProfileSchema(role: string): z.ZodType | null
 // スキーマから指定フィールドのみを抽出
 pickSchemaByTag(schema: z.ZodObject, tagFields: string[]): z.ZodObject | null
 
+// profileData のロール別・タグ別バリデーション関数を生成（superRefine用）
+createProfileDataValidator(profiles: Record<string, ProfileConfig>, tag: string): ValidatorFn
+```
+
+### fieldHelpers.ts（フィールド配列操作）
+
+```typescript
 // フィールド配列から指定タグに属するフィールドを抽出
 pickFieldsByTag(fields: ProfileFieldConfig[], tagFields: string[], excludeHidden?: boolean): ProfileFieldConfig[]
 
-// profileData のロール別・タグ別バリデーション関数を生成（superRefine用）
-createProfileDataValidator(profiles: Record<string, ProfileConfig>, tag: string): ValidatorFn
+// プロフィールフィールドをフォーム用 FieldConfig に変換（Map形式）
+// - プレフィックス追加: prefecture → profileData.prefecture
+// - snake_case → camelCase 変換
+getFieldConfigsForForm(profiles: Record<string, ProfileConfig>, role: string, options?: GetFieldConfigsForFormOptions): Map<string, FieldConfig>
 
+// getFieldConfigsForForm の結果を配列で取得
+getFieldConfigsForFormAsArray(profiles: Record<string, ProfileConfig>, role: string, options?: GetFieldConfigsForFormOptions): FieldConfig[]
+```
+
+### configHelpers.ts（プロフィール設定取得）
+
+```typescript
 // ロールカテゴリに属するプロフィール設定を取得
 getProfilesByCategory(category: RoleCategory): Record<string, ProfileConfig>
 
@@ -219,8 +239,7 @@ getProfileBase(role: string): ProfileBase | null
 
 ```typescript
 // formEntities.ts
-import { createProfileDataValidator } from "@/features/core/userProfile/utils/profileSchemaHelpers";
-import { getProfilesByCategory } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+import { createProfileDataValidator, getProfilesByCategory } from "@/features/core/userProfile/utils";
 
 // カテゴリからプロフィール設定を動的取得
 const profiles = getProfilesByCategory("user");
@@ -245,7 +264,7 @@ export const FormSchema = z
 
 ```typescript
 // src/features/core/user/components/admin/form/generalUserProfiles.ts
-import { getProfilesByCategory } from "@/features/core/userProfile/utils/profileSchemaHelpers";
+import { getProfilesByCategory } from "@/features/core/userProfile/utils";
 
 export const GENERAL_USER_PROFILES = getProfilesByCategory("user");
 ```
