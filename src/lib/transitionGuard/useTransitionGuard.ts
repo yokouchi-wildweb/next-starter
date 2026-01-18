@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { GUARD_FAIL_MESSAGES } from "./constants";
 import type {
@@ -62,6 +62,9 @@ export function useTransitionGuard(
   const [status, setStatus] = useState<"checking" | "passed" | "failed">(
     config.disabled ? "passed" : "checking"
   );
+  // StrictMode での二重実行を防ぐためのフラグ
+  // consumeToken() がトークンを消費（削除）するため、2回目の実行で no_token エラーになる
+  const hasValidatedRef = useRef(false);
 
   useEffect(() => {
     // disabled時は検証をスキップ
@@ -69,6 +72,12 @@ export function useTransitionGuard(
       setStatus("passed");
       return;
     }
+
+    // 既に検証済みの場合はスキップ（StrictMode対策）
+    if (hasValidatedRef.current) {
+      return;
+    }
+    hasValidatedRef.current = true;
 
     const result = validateGuard(pathname, config);
 
