@@ -37,7 +37,7 @@ export type MediaFieldItemProps<
 /**
  * スタンドアロン版メディアアップロードフィールド
  *
- * DomainFieldRenderer を使わずに単独で配置できる。
+ * FieldRenderer を使わずに単独で配置できる。
  *
  * @example
  * ```tsx

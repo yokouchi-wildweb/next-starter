@@ -41,7 +41,7 @@ export type ConfiguredFieldProps<
 /**
  * 設定ベースのフィールドコンポーネント
  *
- * DomainJsonField の設定を受け取り、適切な入力コンポーネントを自動選択して描画する。
+ * FieldConfig の設定を受け取り、適切な入力コンポーネントを自動選択して描画する。
  * label, required などは Props で上書き可能。
  *
  * @example

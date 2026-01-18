@@ -153,7 +153,7 @@ export function renderInputByFormType<
 
     case "mediaUploader":
       // mediaUploader は特殊な処理が必要なため、ConfiguredField では未サポート
-      // DomainFieldRenderer を使用してください
+      // FieldRenderer を使用してください
       console.warn(
         `[ConfiguredField] formInput="mediaUploader" is not supported. Use FieldRenderer instead. Field: ${fieldConfig.name}`
       );

@@ -29,7 +29,7 @@
     - `index.ts` で `CheckGroupInput` / `RadioGroupInput` / `SelectInput` を再エクスポートし、`@/components/Form/Input/Manual` から利用します。
   - `Button/`
     - ボタン系コンポーネントを配置します。`Button`、`LinkButton`、`PseudoButton`、`RoundedButton` など、用途に応じたボタンバリエーションと共通スタイル（`button-variants.ts`）を提供します。
-  - `DomainFieldRenderer/`
+  - `FieldRenderer/`
     - ドメイン設定に基づいてフォームフィールドを動的に描画するレンダラー。フィールドタイプの定義やマッピング、メディアフィールドの処理を含みます。
   - `MediaHandler/`
     - 画像や動画などのメディア入力に特化したコンポーネント群。Controlled / Manual の両パターンに対応した `MediaInput` と `MediaUploader` を提供します。

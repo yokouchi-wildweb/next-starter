@@ -39,7 +39,7 @@ export type ConfiguredMediaFieldProps<
 /**
  * config経由のメディアアップロードフィールド
  *
- * DomainFieldRenderer から使用される。メディア状態を親に通知する機能を持つ。
+ * FieldRenderer から使用される。メディア状態を親に通知する機能を持つ。
  *
  * @example
  * ```tsx

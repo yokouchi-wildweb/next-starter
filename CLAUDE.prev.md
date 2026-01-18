@@ -187,8 +187,9 @@ interaction_parts: "use client", minimal hooks if self-contained
 rules: call hooks at upper layer, pass handlers via props, import only index.tsx
 
 ### domain field renderer
-domain.json.fields[].formInput -> DomainFieldRenderer -> Input components
-types: textInput, numberInput, textarea, select, multiSelect, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden
+domain.json.fields[].formInput -> FieldRenderer -> Input components
+props: baseFields(domain.json), fieldPatches(override/add), fieldGroups, inlineGroups, onMediaStateChange(MediaState)
+types: textInput, numberInput, textarea, select, multiSelect, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, mediaUploader, hidden, none
 
 ref: src/components/README.md
 

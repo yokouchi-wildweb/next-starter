@@ -54,9 +54,9 @@ Controlled Input は Manual Input を内部でラップして、`field` を `val
 |---|---|---|---|---|
 | **Manual** | 自前状態で制御 | `ManualFieldItem` / `ManualFieldItemGroup` | useState 前提、簡易フォーム | エラーは手動で渡す |
 | **Controlled** | RHF 連携の標準形 | `FieldItem` / `FieldItemGroup` / `FieldController` | 一般的なフォーム | エラー自動取得 |
-| **Configured** | 設定駆動で描画 | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` | domain.json を使う運用 | `DomainJsonField` を渡す |
+| **Configured** | 設定駆動で描画 | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` | domain.json を使う運用 | `FieldConfig` を渡す |
 | **Media** | メディアアップロード | `MediaFieldItem` / `ConfiguredMediaField` | 画像/動画のアップロード | `useMediaUploaderField` を利用 |
-| **Renderer** | まとめて自動生成 | `DomainFieldRenderer` | 管理画面CRUD | `mediaUploader` も扱える |
+| **Renderer** | まとめて自動生成 | `FieldRenderer` | 管理画面CRUD | `mediaUploader` も扱える |
 
 ---
 
@@ -192,7 +192,7 @@ const [dayError, setDayError] = useState<string>();
 
 ## 設定駆動フィールドの使い分け
 
-`DomainJsonField` を渡して描画する高レベルコンポーネント。  
+`FieldConfig` を渡して描画する高レベルコンポーネント。  
 表示順・一括描画・インライン化の用途で使い分ける。
 
 | 目的 | コンポーネント | 入力 | 使いどころ | 注意点 |
@@ -208,7 +208,7 @@ const [dayError, setDayError] = useState<string>();
 | 目的 | コンポーネント | 入力 | 使いどころ | 注意点 |
 |---|---|---|---|---|
 | 単独配置 | `MediaFieldItem` | `uploadPath` など | 単体フォームに手動で配置 | RHF の `methods` が必要 |
-| 設定駆動 | `ConfiguredMediaField` | `MediaUploaderFieldConfig` | `DomainFieldRenderer` 内部 | 直接使うより Renderer 推奨 |
+| 設定駆動 | `ConfiguredMediaField` | `MediaUploaderFieldConfig` | `FieldRenderer` 内部 | 直接使うより Renderer 推奨 |
 
 ---
 
@@ -218,13 +218,13 @@ domain.json からフォームを自動生成する。**Controlled のみ対応*
 
 ```tsx
 import { AppForm } from "@/components/Form";
-import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
+import { FieldRenderer } from "@/components/Form/FieldRenderer";
 
 <AppForm methods={form} onSubmit={handleSubmit}>
-  <DomainFieldRenderer
+  <FieldRenderer
     control={control}
     methods={form}
-    domainJsonFields={domainJson.fields}
+    baseFields={domainJson.fields}
     fieldGroups={[
       { key: "basic", label: "基本情報", fields: ["name", "email"] },
     ]}
@@ -236,7 +236,7 @@ import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 ```
 
 `inlineGroups` は **インライングループ用の定義**。  
-単一フィールドは `domainJsonFields` にそのまま定義する。
+単一フィールドは `baseFields` にそのまま定義する。
 
 ---
 
@@ -257,7 +257,7 @@ import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 |---|---|
 | 一般的なフォーム | `FieldItem` / `FieldItemGroup` |
 | 独自レイアウト | `FieldController` + Controlled Input |
-| 管理画面CRUD | `DomainFieldRenderer` |
+| 管理画面CRUD | `FieldRenderer` |
 | 設定駆動フォーム | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` |
 | メディアアップロード | `MediaFieldItem` / `ConfiguredMediaField` |
 | 単一入力 | `FieldItem` / `ManualFieldItem` |
@@ -296,19 +296,25 @@ import { DomainFieldRenderer } from "@/components/Form/DomainFieldRenderer";
 src/components/Form/
 ├── AppForm.tsx
 ├── Field/
-│   ├── FieldItem.tsx
-│   ├── FieldItemGroup.tsx
-│   ├── FieldController.tsx
-│   ├── ConfiguredField.tsx
-│   ├── ConfiguredFieldGroup.tsx
-│   ├── ConfiguredFields.tsx
-│   ├── ManualFieldItem.tsx
-│   └── ManualFieldItemGroup.tsx
-│   └── MediaFieldItem.tsx
+│   ├── types.ts                    # 共通型定義（FieldConfig, FormInputType 等）
+│   ├── Manual/                     # 低レベル（手動でエラーを渡す）
+│   │   ├── ManualFieldItem.tsx
+│   │   └── ManualFieldItemGroup.tsx
+│   ├── Controlled/                 # React Hook Form 統合
+│   │   ├── FieldItem.tsx
+│   │   ├── FieldController.tsx
+│   │   ├── FieldItemGroup.tsx
+│   │   └── MediaFieldItem.tsx
+│   └── Configured/                 # 設定ベース（FieldConfig から自動生成）
+│       ├── ConfiguredField.tsx
+│       ├── ConfiguredFieldGroup.tsx
+│       ├── ConfiguredFields.tsx
+│       ├── ConfiguredMediaField.tsx
+│       └── inputResolver.tsx
 ├── Input/
 │   ├── Controlled/
 │   └── Manual/
-├── DomainFieldRenderer/
+├── FieldRenderer/
 ├── Button/
 ├── MediaHandler/
 └── Label.tsx

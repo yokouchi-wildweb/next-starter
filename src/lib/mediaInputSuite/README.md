@@ -2,7 +2,7 @@
 
 本ドキュメントは `src/lib/mediaInputSuite` のコンポーネント/フックの役割と、フォーム連携時の使い分けをまとめたものです。**メタデータ取得 → プレビュー → Firebase Storage へのアップロード** を一貫して扱うためのリファレンスとして活用してください。
 
-> このフォルダはライブラリ本体です。RHF 連携のラッパー (`src/components/Form/MediaHandler`) や DomainFieldRenderer 連携 (`src/components/Form/DomainFieldRenderer`) は別フォルダにあります。
+> このフォルダはライブラリ本体です。RHF 連携のラッパー (`src/components/Form/MediaHandler`) や FieldRenderer 連携 (`src/components/Form/FieldRenderer`) は別フォルダにあります。
 
 ---
 
@@ -83,35 +83,44 @@ src/lib/mediaInputSuite
 - `src/components/Form/MediaHandler`
   - `ControlledMediaUploader` / `ControlledMediaInput`（RHF 連携）
   - `ManualMediaUploader` / `ManualMediaInput`（手動 state 連携）
-- `src/components/Form/DomainFieldRenderer`
-  - `useMediaFieldHandler` で `media` フィールドに `onMetadataChange` を注入
+- `src/components/Form/FieldRenderer`
+  - `FieldRenderer` が `mediaUploader` タイプのフィールドを自動処理
 
-### 4.1 DomainFieldRenderer でメタデータを紐づける例
+### 4.1 FieldRenderer でメディアフィールドを扱う例
 
 ```tsx
-import { useMediaFieldHandler } from "@/components/Form/DomainFieldRenderer";
+import type { FieldPath } from "react-hook-form";
+import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
+import type { FieldConfig, MediaFieldConfig } from "@/components/Form/Field";
 import { useMediaMetadataBinding } from "@/lib/mediaInputSuite";
+import domainConfig from "@/features/foo/domain.json";
 
-const handleMetadata = useMediaMetadataBinding({
-  methods,
-  binding: { sizeBytes: "filesize" as FieldPath<FooCreateFields> },
-});
+export function FooFields({ methods, onMediaStateChange }) {
+  const baseFields = (domainConfig.fields ?? []) as FieldConfig[];
+  const handleMetadata = useMediaMetadataBinding({
+    methods,
+    binding: { sizeBytes: "filesize" as FieldPath<FooCreateFields> },
+  });
 
-const { customFields, filteredDomainJsonFields } = useMediaFieldHandler({
-  domainFields: domainConfig.fields,
-  targetFieldName: "media",
-  baseFields: relationFieldConfigs,
-  onMetadataChange: handleMetadata,
-});
+  const mediaTarget = baseFields.find((field) => field.name === "media");
+  const fieldPatches: MediaFieldConfig[] = mediaTarget
+    ? [{ ...mediaTarget, onMetadataChange: handleMetadata }]
+    : [];
 
-return (
-  <DomainFieldRenderer
-    methods={methods}
-    fields={customFields}
-    domainJsonFields={filteredDomainJsonFields}
-  />
-);
+  return (
+    <FieldRenderer
+      control={methods.control}
+      methods={methods}
+      baseFields={baseFields}
+      fieldPatches={fieldPatches}
+      onMediaStateChange={onMediaStateChange}
+    />
+  );
+}
 ```
+
+メタデータを別フィールドへ反映したい場合は、`useMediaMetadataBinding` でハンドラを作成し、
+`fieldPatches` で対象の `mediaUploader` フィールドに `onMetadataChange` を付与します。
 
 ---
 
@@ -125,8 +134,8 @@ return (
    - `MediaUploader`（素の state 管理）
    - RHF なら `ControlledMediaUploader` or `useMediaUploaderField`
 
-3. **DomainFieldRenderer で自動生成フォーム**
-   - `useMediaFieldHandler` + `useMediaMetadataBinding`（or `useMediaMetadataActions`）
+3. **FieldRenderer で自動生成フォーム**
+   - `FieldRenderer` + `baseFields`（domain.json から読み込み）
 
 ---
 
