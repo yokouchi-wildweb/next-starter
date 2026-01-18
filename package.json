@@ -26,6 +26,7 @@
     "role:generate": "node scripts/role-config/generate.mjs",
     "role:delete": "node scripts/role-config/deleteRole.mjs",
     "role:list": "node scripts/role-config/listRoles.mjs",
+    "role:toggle": "node scripts/role-config/index.mjs toggle",
     "prof:add": "node scripts/role-config/addProfile.mjs",
     "prof:generate": "node scripts/role-config/generateProfile.mjs",
     "prof:delete": "node scripts/role-config/deleteProfile.mjs",
