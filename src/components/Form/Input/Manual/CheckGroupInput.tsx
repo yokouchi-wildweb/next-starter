@@ -13,6 +13,7 @@ import {
   serializeOptionValue,
   toggleOptionValue,
 } from "@/components/Form/utils";
+import { cn } from "@/lib/cn";
 
 export type CheckGroupDisplayType = "standard" | "bookmark" | "rounded" | "classic";
 export type CheckGroupOrientation = "horizontal" | "vertical";
@@ -70,9 +71,16 @@ export function CheckGroupInput({
   const defaultLayoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
   const layoutClass = displayType === "classic" ? classicLayoutClass : defaultLayoutClass;
 
+  const { className, ...restDivProps } = rest;
+
   if (displayType === "classic") {
     return (
-      <div className={layoutClass} {...rest}>
+      <div
+        className={cn(layoutClass, className)}
+        role="group"
+        aria-orientation={resolvedOrientation}
+        {...restDivProps}
+      >
         {options.map((op) => {
           const serialized = serializeOptionValue(op.value);
           const id = `${groupId}-${serialized}`;
@@ -97,7 +105,12 @@ export function CheckGroupInput({
   }
 
   return (
-    <div className={layoutClass} {...rest}>
+    <div
+      className={cn(layoutClass, className)}
+      role="group"
+      aria-orientation={resolvedOrientation}
+      {...restDivProps}
+    >
       {options.map((op) => {
         const selected = includesOptionValue(value, op.value);
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";

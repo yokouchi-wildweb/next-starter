@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/_shadcn/select";
 import { type Options } from "@/components/Form/types";
+import { cn } from "@/lib/cn";
 
 type OptionPrimitive = Options["value"];
 
@@ -32,6 +33,10 @@ export type SelectInputProps = {
    */
   showPlaceholderOption?: boolean;
   /**
+   * SelectTrigger に適用するクラス名。
+   */
+  className?: string;
+  /**
    * SelectContent に適用するクラス名（z-index調整などに使用）。
    * モーダル内で使用する場合は "surface-ui-layer" などを指定。
    */
@@ -55,6 +60,7 @@ export function SelectInput({
   includeNullOption = false,
   nullOptionLabel = "未選択（null）",
   showPlaceholderOption = true,
+  className,
   contentClassName,
   ...rest
 }: SelectInputProps) {
@@ -82,7 +88,7 @@ export function SelectInput({
       defaultValue={currentValue}
       {...rest}
     >
-      <SelectTrigger className="!h-auto border-muted-foreground/50 py-3">
+      <SelectTrigger className={cn("!h-auto border-muted-foreground/50 py-3", className)}>
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>
       <SelectContent className={contentClassName}>

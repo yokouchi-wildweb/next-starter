@@ -103,7 +103,7 @@ export function ManualFieldItemGroup({
       {/* 横並びの入力フィールド群 */}
       <div
         id={`${id}-field-group`}
-        className={cn("flex", gap)}
+        className={cn("flex min-w-0", gap)}
         role="group"
         aria-labelledby={`${id}-label`}
       >
