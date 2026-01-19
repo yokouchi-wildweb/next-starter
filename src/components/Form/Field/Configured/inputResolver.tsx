@@ -56,10 +56,10 @@ export function renderInputByFormType<
 
   switch (formInput) {
     case "textInput":
-      return <TextInput field={field} readOnly={readOnly} className={inputClassName} />;
+      return <TextInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} className={inputClassName} />;
 
     case "numberInput":
-      return <NumberInput field={field} readOnly={readOnly} className={inputClassName} />;
+      return <NumberInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} className={inputClassName} />;
 
     case "textarea":
       return (
@@ -76,6 +76,7 @@ export function renderInputByFormType<
         <SelectInput
           field={field}
           options={normalizeOptions(fieldConfig.options)}
+          placeholder={fieldConfig.placeholder}
           className={inputClassName}
         />
       );
@@ -150,10 +151,10 @@ export function renderInputByFormType<
       return <DatetimeInput field={field} readOnly={readOnly} className={inputClassName} />;
 
     case "emailInput":
-      return <EmailInput field={field} readOnly={readOnly} className={inputClassName} />;
+      return <EmailInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} className={inputClassName} />;
 
     case "passwordInput":
-      return <PasswordInput field={field} readOnly={readOnly} className={inputClassName} />;
+      return <PasswordInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} className={inputClassName} />;
 
     case "hidden":
       return <input type="hidden" {...field} />;

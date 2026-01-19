@@ -71,6 +71,7 @@
 | defaultValue | any | ⚪ No | デフォルト値 |
 | options | Option[] | ⚪ No | 選択肢（select, radio, checkbox, multiSelect で使用） |
 | displayType | `"standard"` \| `"bookmark"` | ⚪ No | radio/checkbox の表示スタイル |
+| placeholder | string | ⚪ No | プレースホルダー（textInput, numberInput, textarea, select, multiSelect, emailInput, passwordInput で使用） |
 
 #### FieldType（Neon）
 
@@ -154,6 +155,7 @@
 | accept | string | 🟢 Yes | accept 属性値（例: `image/*,video/*`） |
 | validationRule | object | ⚪ No | バリデーション設定 |
 | validationRule.maxSizeBytes | number | ⚪ No | 最大ファイルサイズ（バイト） |
+| helperText | string | ⚪ No | ヘルパーテキスト（アップロード欄に表示される説明文） |
 | metadataBinding | object | ⚪ No | メタデータを別フィールドに保存 |
 
 #### metadataBinding キー
