@@ -2,6 +2,7 @@
 
 import { adminDataMenu } from "@/registry/adminDataMenu";
 import type { UserRoleType } from "@/features/core/user/types";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 
 export type AdminMenuItem = {
   title: string;
@@ -37,7 +38,9 @@ export const adminMenu: AdminMenuSection[] = [
     items: [
       { title: "登録ユーザー", href: "/admin/users/general" },
       { title: "システム管理者", href: "/admin/users/system" },
-      { title: "デモユーザー", href: "/admin/users/demo" },
+      ...(APP_FEATURES.adminConsole.enableDemoUser
+        ? [{ title: "デモユーザー", href: "/admin/users/demo" }]
+        : []),
     ],
     allowRoles: ["admin"],
   },

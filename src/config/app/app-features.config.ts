@@ -58,6 +58,10 @@ export const APP_FEATURES = {
   adminConsole: {
     enableDarkModeSwitch: false,
     enableSidebarResizing: false,
+    /** ユーザー管理モーダルを有効にする（false の場合は削除ボタンのみ表示） */
+    enableUserManagement: true,
+    /** デモユーザー機能を有効にする（false の場合はメニュー非表示・ページ 404） */
+    enableDemoUser: true,
     dashboard: {
       showMainMetrics: false,
       showAdditionalMetrics: false,
