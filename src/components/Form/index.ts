@@ -2,7 +2,7 @@
 
 // 直接ファイル
 export { AppForm } from "./AppForm";
-export type { AppFormProps, AppFormFieldSpace } from "./AppForm";
+export type { AppFormProps } from "./AppForm";
 
 export { Label } from "./Label";
 export type { LabelProps } from "./Label";
