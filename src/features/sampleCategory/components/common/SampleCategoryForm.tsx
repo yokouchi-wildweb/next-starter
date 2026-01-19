@@ -55,7 +55,7 @@ export function SampleCategoryForm<TFieldValues extends FieldValues>({
       methods={methods}
       onSubmit={handleSubmit}
       pending={disabled}
-      fieldSpace="md"
+      fieldSpace={6}
     >
       <SampleCategoryFields<TFieldValues>
         {...fieldsProps}

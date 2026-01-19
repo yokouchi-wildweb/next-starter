@@ -5,5 +5,5 @@ import type { ComponentPropsWithoutRef } from "react";
 type HiddenProps = ComponentPropsWithoutRef<"div">;
 
 export function Hidden({ className, ...props }: HiddenProps) {
-  return <div {...props} className={cn("hidden", className)} />;
+  return <div data-component="Hidden" {...props} className={cn("hidden", className)} />;
 }

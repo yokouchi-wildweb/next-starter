@@ -96,6 +96,7 @@ export default function FullScreen({
 
   return (
     <div
+      data-component="FullScreen"
       className={cn(
         "fixed inset-0",
         LAYER_CLASS_MAP[layer],

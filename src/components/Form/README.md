@@ -247,7 +247,7 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | 使う | `AppForm` |
 | 使わない | `<form>` |
 
-`AppForm` は `fieldSpace` で縦方向の間隔を統一できる。
+`AppForm` は `fieldSpace` で縦方向の間隔を統一できる。`fieldSpace` は `StackSpace` 型（Tailwind spacing scale: 0, 0.5, 1, 1.5, 2, ... 96）を受け取り、デフォルトは `6`。
 
 ---
 

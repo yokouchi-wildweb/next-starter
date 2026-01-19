@@ -161,7 +161,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
           </Flex>
         </Flex>
       </Stack>
-      <AppForm methods={methods} onSubmit={submit} pending={isProcessing} fieldSpace="md">
+      <AppForm methods={methods} onSubmit={submit} pending={isProcessing} fieldSpace={6}>
         <FieldItem
           control={control}
           name="walletType"

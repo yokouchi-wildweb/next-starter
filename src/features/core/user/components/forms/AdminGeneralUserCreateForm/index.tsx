@@ -61,7 +61,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      fieldSpace="md"
+      fieldSpace={6}
     >
       <RoleSelector
         control={control}

@@ -134,5 +134,5 @@ export function Grid({
     justifyContent,
   });
 
-  return <div className={cn(variantClasses, className)} {...props} />;
+  return <div data-component="Grid" className={cn(variantClasses, className)} {...props} />;
 }

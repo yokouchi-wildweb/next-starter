@@ -74,7 +74,7 @@ export default function GeneralUserEditForm({
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      fieldSpace="md"
+      fieldSpace={6}
     >
       <FieldItem
         control={control}

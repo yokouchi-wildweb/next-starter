@@ -11,17 +11,7 @@ import type {
 } from "react-hook-form";
 import { FormProvider } from "react-hook-form";
 
-import { cn } from "@/lib/cn";
-
-const fieldSpaceClassMap = {
-  xs: "flex flex-col gap-2",
-  sm: "flex flex-col gap-4",
-  md: "flex flex-col gap-6",
-  lg: "flex flex-col gap-8",
-  xl: "flex flex-col gap-10",
-} as const;
-
-export type AppFormFieldSpace = keyof typeof fieldSpaceClassMap;
+import { Stack, type StackSpace } from "@/components/Layout/Stack";
 
 type AllowEnterWhen = (event: React.KeyboardEvent<HTMLFormElement>) => boolean;
 
@@ -34,7 +24,7 @@ export type AppFormProps<TFieldValues extends FieldValues = FieldValues> = {
   allowEnterWhen?: AllowEnterWhen;
   pending?: boolean;
   disableWhilePending?: boolean;
-  fieldSpace?: AppFormFieldSpace;
+  fieldSpace?: StackSpace;
   children: React.ReactNode;
 } & Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit">;
 
@@ -48,7 +38,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     allowEnterWhen,
     pending = false,
     disableWhilePending = true,
-    fieldSpace = "md",
+    fieldSpace = 6,
     children,
     className,
     onKeyDown,
@@ -133,10 +123,6 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     [allowEnterSelectors, allowEnterWhen, onKeyDown, preventSubmitOnEnter],
   );
 
-  const spacingClass = fieldSpaceClassMap[fieldSpace] ?? fieldSpaceClassMap.md;
-
-  const fieldsetClassName = cn("contents", spacingClass);
-
   return (
     <FormProvider {...methods}>
       <form
@@ -150,9 +136,9 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
       >
         <fieldset
           disabled={disableWhilePending ? isBusy : undefined}
-          className={fieldsetClassName}
+          className="contents"
         >
-          {children}
+          <Stack space={fieldSpace}>{children}</Stack>
         </fieldset>
       </form>
     </FormProvider>

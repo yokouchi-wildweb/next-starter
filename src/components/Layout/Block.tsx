@@ -44,6 +44,7 @@ export function Block({
 }: BlockProps) {
   return (
     <div
+      data-component="Block"
       {...props}
       className={cn(
         blockVariants({

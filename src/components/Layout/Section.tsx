@@ -33,6 +33,7 @@ export function Section<T extends SectionElement = "section">({
 
   return (
     <Component
+      data-component={`Section:${Component}`}
       {...props}
       className={cn(
         sectionVariants({

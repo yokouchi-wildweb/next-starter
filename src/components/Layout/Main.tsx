@@ -55,6 +55,7 @@ export function Main({
   if (effectiveContainerType === "plain") {
     return (
       <main
+        data-component="Main"
         id={id}
         className={cn(
           "max-w-screen overflow-hidden",
@@ -79,7 +80,7 @@ export function Main({
   if (effectiveContainerType === "fullscreen") {
     return (
       <FullScreen layer={fullscreenLayer}>
-        <main id={id} className={className} {...props}>
+        <main data-component="Main" id={id} className={className} {...props}>
           {children}
         </main>
       </FullScreen>
@@ -88,8 +89,9 @@ export function Main({
 
   if (effectiveContainerType === "surfaceDisplay") {
     return (
-      <div id={`${id}-container`} className="flex flex-1 flex-col">
+      <div data-component="Main:container" id={`${id}-container`} className="flex flex-1 flex-col">
         <div
+          data-component="Main:layout"
           id={`${id}-layout`}
           className={cn(
             "my-auto mx-auto w-full max-w-screen overflow-clip bg-surface",
@@ -107,6 +109,7 @@ export function Main({
           style={{ maxWidth: layoutMaxWidths.contentShell }}
         >
           <main
+            data-component="Main"
             id={id}
             className={cn("mx-auto w-full", innerClassName)}
             style={{ maxWidth: layoutMaxWidths.narrowStack }}
@@ -120,8 +123,9 @@ export function Main({
   }
 
   return (
-    <div id={`${id}-container`} className="flex flex-1 flex-col">
+    <div data-component="Main:container" id={`${id}-container`} className="flex flex-1 flex-col">
       <div
+        data-component="Main:layout"
         id={`${id}-layout`}
         className="my-auto mx-auto w-full max-w-screen overflow-clip"
         style={
@@ -131,6 +135,7 @@ export function Main({
         }
       >
         <main
+          data-component="Main"
           id={id}
           className={cn(
             mainLayoutVariants({

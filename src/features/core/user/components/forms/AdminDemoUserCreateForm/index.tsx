@@ -61,7 +61,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
       methods={methods}
       onSubmit={submit}
       pending={isMutating}
-      fieldSpace="md"
+      fieldSpace={6}
     >
       <FieldItem
         control={control}

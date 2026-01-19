@@ -55,7 +55,7 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
       methods={methods}
       onSubmit={handleSubmit}
       pending={disabled}
-      fieldSpace="md"
+      fieldSpace={6}
     >
       <__Domain__Fields<TFieldValues>
         {...fieldsProps}

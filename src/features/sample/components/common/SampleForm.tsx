@@ -55,7 +55,7 @@ export function SampleForm<TFieldValues extends FieldValues>({
       methods={methods}
       onSubmit={handleSubmit}
       pending={disabled}
-      fieldSpace="md"
+      fieldSpace={6}
     >
       <SampleFields<TFieldValues>
         {...fieldsProps}

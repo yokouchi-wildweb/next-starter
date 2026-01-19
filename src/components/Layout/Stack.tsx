@@ -92,6 +92,7 @@ export function Stack({
 
   return (
     <div
+      data-component="Stack"
       {...props}
       className={cn(
         stackVariants({

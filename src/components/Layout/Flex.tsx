@@ -123,5 +123,5 @@ export function Flex({
     wrap,
   });
 
-  return <div className={cn(variantClasses, className)} {...props} />;
+  return <div data-component="Flex" className={cn(variantClasses, className)} {...props} />;
 }

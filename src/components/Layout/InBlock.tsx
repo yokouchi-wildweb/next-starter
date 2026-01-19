@@ -22,6 +22,7 @@ export function InBlock({
 }: InBlockProps) {
   return (
     <span
+      data-component="InBlock"
       {...props}
       className={cn(
         inBlockVariants({

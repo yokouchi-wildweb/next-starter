@@ -73,7 +73,7 @@ export function SettingForm<TFieldValues extends FieldValues>({
       methods={methods}
       onSubmit={handleSubmit}
       pending={loading}
-      fieldSpace="md"
+      fieldSpace={6}
     >
       <SettingFields<TFieldValues> control={control} />
       {/* 拡張設定フィールド（setting-fields.json から動的レンダリング） */}

@@ -70,7 +70,7 @@ export function UserProfileForm({
   const loading = isSubmitting || isMutating;
 
   return (
-    <AppForm methods={methods} onSubmit={submit} pending={isMutating} fieldSpace="md">
+    <AppForm methods={methods} onSubmit={submit} pending={isMutating} fieldSpace={6}>
       <FieldItem
         control={control}
         name="displayName"
