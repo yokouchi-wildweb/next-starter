@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { Control, FieldPath, FieldValues, ControllerRenderProps } from "react-hook-form";
 
-import { FieldItemGroup } from "../Controlled";
+import { FieldItemGroup, type InputConfig } from "../Controlled";
 import type { FieldConfig, FieldItemDescription, RequiredMarkOptions } from "../types";
 import { renderInputByFormType } from "./inputResolver";
 
@@ -29,6 +29,18 @@ export type ConfiguredFieldGroupProps<
   className?: string;
   /** 内部のInputコンポーネントに適用するクラス名（全Inputに同じクラスを適用） */
   inputClassName?: string;
+  /** ラベルを視覚的に非表示にする */
+  hideLabel?: boolean;
+  /** エラーメッセージを非表示にする */
+  hideError?: boolean;
+  /** レイアウト方向（デフォルト: "vertical"） */
+  layout?: "vertical" | "horizontal";
+  /** ラベルに適用するクラス名（例: "w-[120px]", "text-lg font-bold"） */
+  labelClass?: string;
+  /** インプット同士の配置（未指定時: layout="vertical"→横並び, layout="horizontal"→縦並び） */
+  inputLayout?: "vertical" | "horizontal";
+  /** 各インプットの設定（prefix/suffix） */
+  inputConfigs?: InputConfig[];
 };
 
 /**
@@ -70,8 +82,14 @@ export function ConfiguredFieldGroup<
   gap,
   className,
   inputClassName,
+  hideLabel = false,
+  hideError = false,
   requiredMark,
   requiredMarkPosition = "after",
+  layout,
+  labelClass,
+  inputLayout,
+  inputConfigs,
 }: ConfiguredFieldGroupProps<TFieldValues, TNames>) {
   if (fieldConfigs.length === 0) {
     return null;
@@ -96,8 +114,14 @@ export function ConfiguredFieldGroup<
       gap={gap}
       className={className}
       inputClassName={inputClassName}
+      hideLabel={hideLabel}
+      hideError={hideError}
       requiredMark={requiredMark}
       requiredMarkPosition={requiredMarkPosition}
+      layout={layout}
+      labelClass={labelClass}
+      inputLayout={inputLayout}
+      inputConfigs={inputConfigs}
       renderInputs={(fields, inputClassName) =>
         fields.map((field, index) => {
           const fieldConfig = fieldConfigs[index];

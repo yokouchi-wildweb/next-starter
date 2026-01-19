@@ -11,7 +11,7 @@ import {
   useController,
   useFormState,
 } from "react-hook-form";
-import { ManualFieldItemGroup } from "../Manual";
+import { ManualFieldItemGroup, type InputConfig } from "../Manual";
 import type { FieldItemDescription, RequiredMarkOptions } from "../types";
 
 export type FieldItemGroupProps<
@@ -36,8 +36,20 @@ export type FieldItemGroupProps<
   className?: string;
   /** 内部のInputコンポーネントに適用するクラス名（全Inputに同じクラスを適用） */
   inputClassName?: string;
+  /** ラベルを視覚的に非表示にする */
+  hideLabel?: boolean;
+  /** エラーメッセージを非表示にする */
+  hideError?: boolean;
   /** フィールド間のギャップ（Tailwindクラス、デフォルト: "gap-2"） */
   gap?: string;
+  /** レイアウト方向（デフォルト: "vertical"） */
+  layout?: "vertical" | "horizontal";
+  /** ラベルに適用するクラス名（例: "w-[120px]", "text-lg font-bold"） */
+  labelClass?: string;
+  /** インプット同士の配置（未指定時: layout="vertical"→横並び, layout="horizontal"→縦並び） */
+  inputLayout?: "vertical" | "horizontal";
+  /** 各インプットの設定（prefix/suffix） */
+  inputConfigs?: InputConfig[];
 };
 
 /**
@@ -71,10 +83,16 @@ export function FieldItemGroup<
   fieldWidths,
   className,
   inputClassName,
+  hideLabel = false,
+  hideError = false,
   required = false,
   requiredMark,
   requiredMarkPosition = "after",
   gap,
+  layout,
+  labelClass,
+  inputLayout,
+  inputConfigs,
 }: FieldItemGroupProps<TFieldValues, TNames>) {
   // 各フィールドの controller を取得
   const controllers = names.map((name) =>
@@ -109,10 +127,16 @@ export function FieldItemGroup<
       errors={errorMessages}
       description={description}
       className={className}
+      hideLabel={hideLabel}
+      hideError={hideError}
       required={required}
       requiredMark={requiredMark}
       requiredMarkPosition={requiredMarkPosition}
       gap={gap}
+      layout={layout}
+      labelClass={labelClass}
+      inputLayout={inputLayout}
+      inputConfigs={inputConfigs}
     >
       {inputElements}
     </ManualFieldItemGroup>

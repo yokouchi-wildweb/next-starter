@@ -37,8 +37,8 @@ export type ManualFieldItemProps = {
   requiredMarkPosition?: "before" | "after";
   /** レイアウト方向（デフォルト: "vertical"） */
   layout?: "vertical" | "horizontal";
-  /** 横並び時のラベル幅（例: "120px", "8rem"） */
-  labelWidth?: string;
+  /** ラベルに適用するクラス名（例: "w-[120px]", "text-lg font-bold"） */
+  labelClass?: string;
 };
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
@@ -77,7 +77,7 @@ export function ManualFieldItem({
   requiredMark,
   requiredMarkPosition = "after",
   layout = "vertical",
-  labelWidth,
+  labelClass,
 }: ManualFieldItemProps) {
   const id = useId();
   const descPlacement = description?.placement ?? "after";
@@ -97,10 +97,10 @@ export function ManualFieldItem({
       className={cn(
         hideLabel && "sr-only",
         hasError && "text-destructive",
-        isHorizontal && "pt-2" // 横並び時、入力フィールドと上端を揃える
+        isHorizontal && "pt-2 shrink-0", // 横並び時、入力フィールドと上端を揃える
+        labelClass
       )}
       htmlFor={`${id}-field`}
-      style={isHorizontal && labelWidth ? { width: labelWidth, flexShrink: 0 } : undefined}
     >
       {requiredMarkPosition === "before" && resolvedRequiredMark}
       {label}

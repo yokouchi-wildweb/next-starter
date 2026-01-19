@@ -8,6 +8,7 @@ export type { FieldControllerProps } from "./FieldController";
 
 export { FieldItemGroup } from "./FieldItemGroup";
 export type { FieldItemGroupProps } from "./FieldItemGroup";
+export type { InputConfig } from "../Manual";
 
 export { MediaFieldItem } from "./MediaFieldItem";
 export type { MediaFieldItemProps } from "./MediaFieldItem";

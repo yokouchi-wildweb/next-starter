@@ -55,7 +55,7 @@ export function FieldItem<
   requiredMark,
   requiredMarkPosition = "after",
   layout = "vertical",
-  labelWidth,
+  labelClass,
 }: FieldItemProps<TFieldValues, TName>) {
 
   const descPlacement = description?.placement ?? "after";
@@ -74,9 +74,9 @@ export function FieldItem<
           <FormLabel
             className={cn(
               hideLabel && "sr-only",
-              isHorizontal && "pt-2" // 横並び時、入力フィールドと上端を揃える
+              isHorizontal && "pt-2 shrink-0", // 横並び時、入力フィールドと上端を揃える
+              labelClass
             )}
-            style={isHorizontal && labelWidth ? { width: labelWidth, flexShrink: 0 } : undefined}
           >
             {requiredMarkPosition === "before" && resolvedRequiredMark}
             {label}
