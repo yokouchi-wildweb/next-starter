@@ -84,7 +84,8 @@ export function RadioGroupInput({
           return (
             <div key={optionId} className="flex items-center gap-2">
               <RadioGroupItem id={optionId} value={serialized} />
-              <Label htmlFor={optionId} className="cursor-pointer">
+              <Label htmlFor={optionId} className="text-sm font-normal cursor-pointer">
+
                 {op.label}
               </Label>
             </div>
