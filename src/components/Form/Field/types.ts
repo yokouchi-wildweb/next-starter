@@ -144,9 +144,19 @@ export type FieldItemDescription = {
 };
 
 /**
+ * フィールドレイアウトの設定
+ */
+export type FieldLayoutOptions = {
+  /** レイアウト方向（デフォルト: "vertical"） */
+  layout?: "vertical" | "horizontal";
+  /** 横並び時のラベル幅（例: "120px", "8rem"） */
+  labelWidth?: string;
+};
+
+/**
  * フィールド表示の共通オプション
  */
-export type FieldDisplayOptions = {
+export type FieldDisplayOptions = FieldLayoutOptions & {
   /** FormItem全体に適用するクラス名 */
   className?: string;
   /** 内部のInputコンポーネントに適用するクラス名 */

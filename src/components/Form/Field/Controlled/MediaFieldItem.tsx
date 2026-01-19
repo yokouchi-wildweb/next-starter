@@ -64,6 +64,8 @@ export function MediaFieldItem<
   requiredMark,
   requiredMarkPosition,
   inputClassName,
+  layout,
+  labelWidth,
 }: MediaFieldItemProps<TFieldValues, TName>) {
   const mediaHandle = useMediaUploaderField({
     methods,
@@ -90,6 +92,8 @@ export function MediaFieldItem<
       required={required}
       requiredMark={requiredMark}
       requiredMarkPosition={requiredMarkPosition}
+      layout={layout}
+      labelWidth={labelWidth}
       renderInput={mediaHandle.render}
     />
   );

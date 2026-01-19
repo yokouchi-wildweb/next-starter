@@ -9,6 +9,7 @@ import {
   FormMessage,
 } from "@/components/_shadcn/form";
 import { Para } from "@/components/TextBlocks/Para";
+import { cn } from "@/lib/cn";
 import {
   type Control,
   type FieldPath,
@@ -53,43 +54,82 @@ export function FieldItem<
   required = false,
   requiredMark,
   requiredMarkPosition = "after",
+  layout = "vertical",
+  labelWidth,
 }: FieldItemProps<TFieldValues, TName>) {
 
   const descPlacement = description?.placement ?? "after";
   const defaultMark = requiredMarkPosition === "before" ? DefaultRequiredMarkBefore : DefaultRequiredMarkAfter;
   const resolvedRequiredMark = required ? (requiredMark ?? defaultMark) : null;
 
+  const isHorizontal = layout === "horizontal";
+
   return (
     <FormField
       control={control}
       name={name}
-      render={({ field }) => (
-        <FormItem className={className}>
-          {label && (
-            <FormLabel className={hideLabel ? "sr-only" : undefined}>
-              {requiredMarkPosition === "before" && resolvedRequiredMark}
-              {label}
-              {requiredMarkPosition === "after" && resolvedRequiredMark}
-            </FormLabel>
-          )}
+      render={({ field }) => {
+        // ラベル要素
+        const labelElement = label && (
+          <FormLabel
+            className={cn(
+              hideLabel && "sr-only",
+              isHorizontal && "pt-2" // 横並び時、入力フィールドと上端を揃える
+            )}
+            style={isHorizontal && labelWidth ? { width: labelWidth, flexShrink: 0 } : undefined}
+          >
+            {requiredMarkPosition === "before" && resolvedRequiredMark}
+            {label}
+            {requiredMarkPosition === "after" && resolvedRequiredMark}
+          </FormLabel>
+        );
 
-          { descPlacement === 'before' && description &&
-              <Para tone={description.tone} size={description.size} className='mb-0'>
-                {description.text}
-              </Para>
-          }
+        // 説明テキスト（before）
+        const descBefore = descPlacement === "before" && description && (
+          <Para tone={description.tone} size={description.size} className="mb-0">
+            {description.text}
+          </Para>
+        );
 
-          <FormControl>{renderInput(field, inputClassName)}</FormControl>
+        // 説明テキスト（after）
+        const descAfter = descPlacement === "after" && description && (
+          <Para tone={description.tone} size={description.size} className="mt-0">
+            {description.text}
+          </Para>
+        );
 
-          { descPlacement === 'after' && description &&
-              <Para tone={description.tone} size={description.size} className='mt-0'>
-                {description.text}
-              </Para>
-          }
+        // エラーメッセージ
+        const errorElement = !hideError && <FormMessage />;
 
-          {!hideError && <FormMessage />}
-        </FormItem>
-      )}
+        // 入力コンポーネント
+        const inputElement = <FormControl>{renderInput(field, inputClassName)}</FormControl>;
+
+        // 横並びレイアウト
+        if (isHorizontal) {
+          return (
+            <FormItem className={cn("flex items-start gap-4 [&>*]:!mt-0", className)}>
+              {labelElement}
+              <div className="flex-1 grid gap-2">
+                {descBefore}
+                {inputElement}
+                {descAfter}
+                {errorElement}
+              </div>
+            </FormItem>
+          );
+        }
+
+        // 縦並びレイアウト（デフォルト）
+        return (
+          <FormItem className={className}>
+            {labelElement}
+            {descBefore}
+            {inputElement}
+            {descAfter}
+            {errorElement}
+          </FormItem>
+        );
+      }}
     />
   );
 }

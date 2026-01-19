@@ -67,6 +67,8 @@ export function ConfiguredField<
   hideError = false,
   requiredMark,
   requiredMarkPosition,
+  layout,
+  labelWidth,
 }: ConfiguredFieldProps<TFieldValues, TName>) {
   const resolvedName = (name ?? fieldConfig.name) as TName;
   const resolvedLabel = label ?? fieldConfig.label;
@@ -121,6 +123,8 @@ export function ConfiguredField<
       inputClassName={inputClassName}
       hideLabel={hideLabel}
       hideError={hideError}
+      layout={layout}
+      labelWidth={labelWidth}
       renderInput={(field, inputClassName) => renderInputByFormType(formInput, field, fieldConfig, inputClassName)}
     />
   );

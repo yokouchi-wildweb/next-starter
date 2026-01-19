@@ -35,6 +35,10 @@ export type ManualFieldItemProps = {
   requiredMark?: ReactNode;
   /** 必須マークの位置（デフォルト: "after"） */
   requiredMarkPosition?: "before" | "after";
+  /** レイアウト方向（デフォルト: "vertical"） */
+  layout?: "vertical" | "horizontal";
+  /** 横並び時のラベル幅（例: "120px", "8rem"） */
+  labelWidth?: string;
 };
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
@@ -72,6 +76,8 @@ export function ManualFieldItem({
   required = false,
   requiredMark,
   requiredMarkPosition = "after",
+  layout = "vertical",
+  labelWidth,
 }: ManualFieldItemProps) {
   const id = useId();
   const descPlacement = description?.placement ?? "after";
@@ -81,50 +87,78 @@ export function ManualFieldItem({
   // エラーがあるかどうか
   const hasError = Boolean(error);
 
+  const isHorizontal = layout === "horizontal";
+
+  // ラベル要素
+  const labelElement = label && (
+    <Label
+      data-slot="form-label"
+      data-error={hasError}
+      className={cn(
+        hideLabel && "sr-only",
+        hasError && "text-destructive",
+        isHorizontal && "pt-2" // 横並び時、入力フィールドと上端を揃える
+      )}
+      htmlFor={`${id}-field`}
+      style={isHorizontal && labelWidth ? { width: labelWidth, flexShrink: 0 } : undefined}
+    >
+      {requiredMarkPosition === "before" && resolvedRequiredMark}
+      {label}
+      {requiredMarkPosition === "after" && resolvedRequiredMark}
+    </Label>
+  );
+
+  // 説明テキスト（before）
+  const descBefore = descPlacement === "before" && description && (
+    <Para tone={description.tone} size={description.size} className="mb-0">
+      {description.text}
+    </Para>
+  );
+
+  // 説明テキスト（after）
+  const descAfter = descPlacement === "after" && description && (
+    <Para tone={description.tone} size={description.size} className="mt-0">
+      {description.text}
+    </Para>
+  );
+
+  // エラーメッセージ
+  const errorElement = !hideError && hasError && (
+    <p data-slot="form-message" className="text-destructive text-sm">
+      {error}
+    </p>
+  );
+
+  // 入力コンポーネント
+  const inputElement = (
+    <div id={`${id}-field`}>
+      {children}
+    </div>
+  );
+
+  // 横並びレイアウト
+  if (isHorizontal) {
+    return (
+      <div data-slot="form-item" className={cn("flex items-start gap-4", className)}>
+        {labelElement}
+        <div className="flex-1 grid gap-2">
+          {descBefore}
+          {inputElement}
+          {descAfter}
+          {errorElement}
+        </div>
+      </div>
+    );
+  }
+
+  // 縦並びレイアウト（デフォルト）
   return (
     <div data-slot="form-item" className={cn("grid gap-2", className)}>
-      {/* ラベル */}
-      {label && (
-        <Label
-          data-slot="form-label"
-          data-error={hasError}
-          className={cn(
-            hideLabel && "sr-only",
-            hasError && "text-destructive"
-          )}
-          htmlFor={`${id}-field`}
-        >
-          {requiredMarkPosition === "before" && resolvedRequiredMark}
-          {label}
-          {requiredMarkPosition === "after" && resolvedRequiredMark}
-        </Label>
-      )}
-
-      {/* 説明（before） */}
-      {descPlacement === "before" && description && (
-        <Para tone={description.tone} size={description.size} className="mb-0">
-          {description.text}
-        </Para>
-      )}
-
-      {/* 入力コンポーネント */}
-      <div id={`${id}-field`}>
-        {children}
-      </div>
-
-      {/* 説明（after） */}
-      {descPlacement === "after" && description && (
-        <Para tone={description.tone} size={description.size} className="mt-0">
-          {description.text}
-        </Para>
-      )}
-
-      {/* エラーメッセージ */}
-      {!hideError && hasError && (
-        <p data-slot="form-message" className="text-destructive text-sm">
-          {error}
-        </p>
-      )}
+      {labelElement}
+      {descBefore}
+      {inputElement}
+      {descAfter}
+      {errorElement}
     </div>
   );
 }
