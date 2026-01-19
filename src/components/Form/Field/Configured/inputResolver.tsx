@@ -30,6 +30,7 @@ import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/Check
  * @param formInput - フォーム入力種別
  * @param field - react-hook-form の ControllerRenderProps
  * @param fieldConfig - フィールド設定（FieldConfig）
+ * @param inputClassName - Inputコンポーネントに適用するクラス名
  * @returns ReactNode（入力コンポーネント）
  *
  * @example
@@ -38,7 +39,7 @@ import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/Check
  *   control={control}
  *   name={fieldConfig.name}
  *   label={fieldConfig.label}
- *   renderInput={(field) => renderInputByFormType(fieldConfig.formInput, field, fieldConfig)}
+ *   renderInput={(field, inputClassName) => renderInputByFormType(fieldConfig.formInput, field, fieldConfig, inputClassName)}
  * />
  * ```
  */
@@ -48,16 +49,17 @@ export function renderInputByFormType<
 >(
   formInput: FormInputType,
   field: ControllerRenderProps<TFieldValues, TName>,
-  fieldConfig: FieldConfig
+  fieldConfig: FieldConfig,
+  inputClassName?: string
 ): ReactNode {
   const readOnly = fieldConfig.readonly ?? false;
 
   switch (formInput) {
     case "textInput":
-      return <TextInput field={field} readOnly={readOnly} />;
+      return <TextInput field={field} readOnly={readOnly} className={inputClassName} />;
 
     case "numberInput":
-      return <NumberInput field={field} readOnly={readOnly} />;
+      return <NumberInput field={field} readOnly={readOnly} className={inputClassName} />;
 
     case "textarea":
       return (
@@ -65,6 +67,7 @@ export function renderInputByFormType<
           field={field}
           placeholder={fieldConfig.placeholder}
           readOnly={readOnly}
+          className={inputClassName}
         />
       );
 
@@ -73,6 +76,7 @@ export function renderInputByFormType<
         <SelectInput
           field={field}
           options={normalizeOptions(fieldConfig.options)}
+          className={inputClassName}
         />
       );
 
@@ -82,6 +86,7 @@ export function renderInputByFormType<
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
+          className={inputClassName}
         />
       );
 
@@ -92,6 +97,7 @@ export function renderInputByFormType<
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           options={options}
           displayType={(fieldConfig.displayType as RadioGroupDisplayType | undefined) ?? "standard"}
+          className={inputClassName}
         />
       );
     }
@@ -104,6 +110,7 @@ export function renderInputByFormType<
             field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
             options={normalizeOptions(fieldConfig.options)}
             displayType={(fieldConfig.displayType as CheckGroupDisplayType | undefined) ?? "standard"}
+            className={inputClassName}
           />
         );
       }
@@ -111,6 +118,7 @@ export function renderInputByFormType<
         <BooleanCheckboxInput
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           label={fieldConfig.label}
+          className={inputClassName}
         />
       );
     }
@@ -119,6 +127,7 @@ export function renderInputByFormType<
       return (
         <StepperInput
           field={field}
+          className={inputClassName}
         />
       );
 
@@ -127,23 +136,24 @@ export function renderInputByFormType<
         <SwitchInput
           field={field}
           label={fieldConfig.label}
+          className={inputClassName}
         />
       );
 
     case "dateInput":
-      return <DateInput field={field} readOnly={readOnly} />;
+      return <DateInput field={field} readOnly={readOnly} className={inputClassName} />;
 
     case "timeInput":
-      return <TimeInput field={field} readOnly={readOnly} />;
+      return <TimeInput field={field} readOnly={readOnly} className={inputClassName} />;
 
     case "datetimeInput":
-      return <DatetimeInput field={field} readOnly={readOnly} />;
+      return <DatetimeInput field={field} readOnly={readOnly} className={inputClassName} />;
 
     case "emailInput":
-      return <EmailInput field={field} readOnly={readOnly} />;
+      return <EmailInput field={field} readOnly={readOnly} className={inputClassName} />;
 
     case "passwordInput":
-      return <PasswordInput field={field} readOnly={readOnly} />;
+      return <PasswordInput field={field} readOnly={readOnly} className={inputClassName} />;
 
     case "hidden":
       return <input type="hidden" {...field} />;

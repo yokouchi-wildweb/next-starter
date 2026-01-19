@@ -149,6 +149,8 @@ export type FieldItemDescription = {
 export type FieldDisplayOptions = {
   /** FormItem全体に適用するクラス名 */
   className?: string;
+  /** 内部のInputコンポーネントに適用するクラス名 */
+  inputClassName?: string;
   /** ラベルを視覚的に非表示にする */
   hideLabel?: boolean;
   /** エラーメッセージを非表示にする */

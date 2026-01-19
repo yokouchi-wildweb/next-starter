@@ -66,6 +66,7 @@ export function ConfiguredMediaField<
   required,
   requiredMark,
   requiredMarkPosition,
+  inputClassName,
 }: ConfiguredMediaFieldProps<TFieldValues, TName>) {
   const fieldName = config.name as TName;
   const resolvedRequired = required ?? config.required ?? false;
@@ -124,6 +125,7 @@ export function ConfiguredMediaField<
       label={config.label}
       description={description}
       className={className}
+      inputClassName={inputClassName}
       hideLabel={hideLabel}
       hideError={hideError}
       required={resolvedRequired}

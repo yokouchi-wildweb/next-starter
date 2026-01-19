@@ -62,6 +62,7 @@ export function ConfiguredField<
   required,
   description,
   className,
+  inputClassName,
   hideLabel = false,
   hideError = false,
   requiredMark,
@@ -97,7 +98,7 @@ export function ConfiguredField<
         render={({ field }) => (
           <FormItem className={className}>
             <FormControl>
-              {renderInputByFormType(formInput, field, fieldConfig)}
+              {renderInputByFormType(formInput, field, fieldConfig, inputClassName)}
             </FormControl>
             {!hideError && <FormMessage />}
           </FormItem>
@@ -117,9 +118,10 @@ export function ConfiguredField<
       requiredMarkPosition={requiredMarkPosition}
       description={description}
       className={className}
+      inputClassName={inputClassName}
       hideLabel={hideLabel}
       hideError={hideError}
-      renderInput={(field) => renderInputByFormType(formInput, field, fieldConfig)}
+      renderInput={(field, inputClassName) => renderInputByFormType(formInput, field, fieldConfig, inputClassName)}
     />
   );
 }

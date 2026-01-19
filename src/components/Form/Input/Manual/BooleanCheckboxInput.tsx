@@ -40,7 +40,7 @@ export function BooleanCheckboxInput({ value, name, onChange, label, id, classNa
   const checkbox = (
     <Checkbox
       id={checkboxId}
-      className={cn(checkboxSizeVariants({ size }), className)}
+      className={cn("border-muted-foreground", checkboxSizeVariants({ size }), className)}
       checked={Boolean(value)}
       onCheckedChange={(checked) => onChange(checked === true)}
       {...rest}

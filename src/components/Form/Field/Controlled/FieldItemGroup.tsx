@@ -25,7 +25,8 @@ export type FieldItemGroupProps<
   label?: ReactNode;
   /** 入力コンポーネントをレンダリングする関数 */
   renderInputs: (
-    fields: { [K in keyof TNames]: ControllerRenderProps<TFieldValues, TNames[K]> }
+    fields: { [K in keyof TNames]: ControllerRenderProps<TFieldValues, TNames[K]> },
+    inputClassName?: string
   ) => ReactNode[];
   /** 説明テキスト */
   description?: FieldItemDescription;
@@ -33,6 +34,8 @@ export type FieldItemGroupProps<
   fieldWidths?: string[];
   /** グループ全体のクラス名 */
   className?: string;
+  /** 内部のInputコンポーネントに適用するクラス名（全Inputに同じクラスを適用） */
+  inputClassName?: string;
   /** フィールド間のギャップ（Tailwindクラス、デフォルト: "gap-2"） */
   gap?: string;
 };
@@ -67,6 +70,7 @@ export function FieldItemGroup<
   description,
   fieldWidths,
   className,
+  inputClassName,
   required = false,
   requiredMark,
   requiredMarkPosition = "after",
@@ -96,7 +100,7 @@ export function FieldItemGroup<
   });
 
   // 入力コンポーネントをレンダリング
-  const inputElements = renderInputs(fields);
+  const inputElements = renderInputs(fields, inputClassName);
 
   return (
     <ManualFieldItemGroup

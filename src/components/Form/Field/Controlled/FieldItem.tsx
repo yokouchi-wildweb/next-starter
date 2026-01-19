@@ -25,7 +25,8 @@ export type FieldItemProps<
   name: TName;
   /** ラベル（省略可能） */
   label?: ReactNode;
-  renderInput: (field: ControllerRenderProps<TFieldValues, TName>) => ReactNode;
+  /** 入力コンポーネントをレンダリングする関数 */
+  renderInput: (field: ControllerRenderProps<TFieldValues, TName>, inputClassName?: string) => ReactNode;
 };
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
@@ -46,6 +47,7 @@ export function FieldItem<
   renderInput,
   description,
   className,
+  inputClassName,
   hideLabel = false,
   hideError = false,
   required = false,
@@ -77,7 +79,7 @@ export function FieldItem<
               </Para>
           }
 
-          <FormControl>{renderInput(field)}</FormControl>
+          <FormControl>{renderInput(field, inputClassName)}</FormControl>
 
           { descPlacement === 'after' && description &&
               <Para tone={description.tone} size={description.size} className='mt-0'>

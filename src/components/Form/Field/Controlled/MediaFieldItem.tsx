@@ -63,6 +63,7 @@ export function MediaFieldItem<
   required = false,
   requiredMark,
   requiredMarkPosition,
+  inputClassName,
 }: MediaFieldItemProps<TFieldValues, TName>) {
   const mediaHandle = useMediaUploaderField({
     methods,
@@ -83,6 +84,7 @@ export function MediaFieldItem<
       label={label}
       description={description}
       className={className}
+      inputClassName={inputClassName}
       hideLabel={hideLabel}
       hideError={hideError}
       required={required}

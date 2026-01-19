@@ -27,6 +27,8 @@ export type ConfiguredFieldGroupProps<
   gap?: string;
   /** グループ全体のクラス名 */
   className?: string;
+  /** 内部のInputコンポーネントに適用するクラス名（全Inputに同じクラスを適用） */
+  inputClassName?: string;
 };
 
 /**
@@ -67,6 +69,7 @@ export function ConfiguredFieldGroup<
   fieldWidths,
   gap,
   className,
+  inputClassName,
   requiredMark,
   requiredMarkPosition = "after",
 }: ConfiguredFieldGroupProps<TFieldValues, TNames>) {
@@ -92,16 +95,18 @@ export function ConfiguredFieldGroup<
       fieldWidths={fieldWidths}
       gap={gap}
       className={className}
+      inputClassName={inputClassName}
       requiredMark={requiredMark}
       requiredMarkPosition={requiredMarkPosition}
-      renderInputs={(fields) =>
+      renderInputs={(fields, inputClassName) =>
         fields.map((field, index) => {
           const fieldConfig = fieldConfigs[index];
           if (!fieldConfig) return null;
           return renderInputByFormType(
             fieldConfig.formInput,
             field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>,
-            fieldConfig
+            fieldConfig,
+            inputClassName
           );
         }).filter((el): el is ReactNode => el !== null)
       }

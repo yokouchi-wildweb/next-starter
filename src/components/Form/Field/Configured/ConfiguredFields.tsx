@@ -17,6 +17,8 @@ export type ConfiguredFieldsProps<TFieldValues extends FieldValues> = {
   names?: string[];
   /** コンテナに適用するクラス名 */
   className?: string;
+  /** 内部のInputコンポーネントに適用するクラス名（全Inputに同じクラスを適用） */
+  inputClassName?: string;
   /** フィールド間のギャップ（Tailwind spacing scale、デフォルト: 4） */
   space?: StackSpace;
 };
@@ -55,6 +57,7 @@ export function ConfiguredFields<TFieldValues extends FieldValues>({
   fieldConfigs,
   names,
   className,
+  inputClassName,
   space = 4,
 }: ConfiguredFieldsProps<TFieldValues>) {
   // フィールド名をキーにした Map を作成
@@ -82,6 +85,7 @@ export function ConfiguredFields<TFieldValues extends FieldValues>({
           control={control}
           name={fieldConfig.name as FieldPath<TFieldValues>}
           fieldConfig={fieldConfig}
+          inputClassName={inputClassName}
         />
       ))}
     </Stack>
