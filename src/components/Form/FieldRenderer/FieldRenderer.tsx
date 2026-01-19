@@ -158,7 +158,7 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
             key={fieldConfig.name}
             control={control}
             methods={methods}
-            config={fieldConfig}
+            fieldConfig={fieldConfig}
             onHandleChange={handleMediaHandleChange}
           />
         );

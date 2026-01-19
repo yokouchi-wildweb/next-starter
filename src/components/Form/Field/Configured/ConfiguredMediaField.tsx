@@ -3,6 +3,7 @@
 
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { useWatch } from "react-hook-form";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
@@ -30,9 +31,17 @@ export type ConfiguredMediaFieldProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 > = FieldCommonProps & {
+  /** react-hook-form の control */
   control: Control<TFieldValues, any, TFieldValues>;
+  /** react-hook-form の methods */
   methods: UseFormReturn<TFieldValues>;
-  config: MediaFieldConfig;
+  /** フィールド設定（MediaFieldConfig） */
+  fieldConfig: MediaFieldConfig;
+  /** フィールド名（省略時は fieldConfig.name） */
+  name?: TName;
+  /** ラベル（省略時は fieldConfig.label） */
+  label?: ReactNode;
+  /** メディアハンドル変更時のコールバック */
   onHandleChange: (name: TName, entry: MediaHandleEntry | null) => void;
 };
 
@@ -57,7 +66,9 @@ export function ConfiguredMediaField<
 >({
   control,
   methods,
-  config,
+  fieldConfig,
+  name,
+  label,
   onHandleChange,
   description,
   className,
@@ -67,19 +78,22 @@ export function ConfiguredMediaField<
   requiredMark,
   requiredMarkPosition,
   inputClassName,
+  layout,
+  labelClass,
 }: ConfiguredMediaFieldProps<TFieldValues, TName>) {
-  const fieldName = config.name as TName;
-  const resolvedRequired = required ?? config.required ?? false;
+  const fieldName = (name ?? fieldConfig.name) as TName;
+  const resolvedLabel = label ?? fieldConfig.label;
+  const resolvedRequired = required ?? fieldConfig.required ?? false;
 
   const mediaHandle = useMediaUploaderField({
     methods,
     name: fieldName,
     uploaderProps: {
-      uploadPath: config.uploadPath ?? "",
-      accept: config.accept,
-      helperText: config.helperText,
-      validationRule: config.validationRule,
-      onMetadataChange: config.onMetadataChange,
+      uploadPath: fieldConfig.uploadPath ?? "",
+      accept: fieldConfig.accept,
+      helperText: fieldConfig.helperText,
+      validationRule: fieldConfig.validationRule,
+      onMetadataChange: fieldConfig.onMetadataChange,
     },
   });
 
@@ -101,7 +115,7 @@ export function ConfiguredMediaField<
   const previousValueRef = useRef<string | null>(
     typeof watchedValue === "string" && watchedValue.length > 0 ? watchedValue : null,
   );
-  const handleMetadataChange = config.onMetadataChange;
+  const handleMetadataChange = fieldConfig.onMetadataChange;
   useEffect(() => {
     const normalizedValue =
       typeof watchedValue === "string" && watchedValue.trim().length > 0 ? watchedValue : null;
@@ -122,7 +136,7 @@ export function ConfiguredMediaField<
     <FieldItem
       control={control}
       name={fieldName}
-      label={config.label}
+      label={resolvedLabel}
       description={description}
       className={className}
       inputClassName={inputClassName}
@@ -131,6 +145,8 @@ export function ConfiguredMediaField<
       required={resolvedRequired}
       requiredMark={requiredMark}
       requiredMarkPosition={requiredMarkPosition}
+      layout={layout}
+      labelClass={labelClass}
       renderInput={mediaHandle.render}
     />
   );
