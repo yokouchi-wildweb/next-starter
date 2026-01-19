@@ -64,7 +64,9 @@ export function RadioGroupInput({
   // classicのデフォルトはvertical、それ以外はhorizontal
   const resolvedOrientation = orientation ?? (displayType === "classic" ? "vertical" : "horizontal");
   const isVertical = resolvedOrientation === "vertical";
-  const layoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+  const classicLayoutClass = isVertical ? "mt-3 flex flex-col gap-4" : "mt-3 flex flex-wrap gap-4";
+  const defaultLayoutClass = isVertical ? "flex flex-col gap-2" : "flex flex-wrap gap-2";
+  const layoutClass = displayType === "classic" ? classicLayoutClass : defaultLayoutClass;
 
   if (displayType === "classic") {
     return (

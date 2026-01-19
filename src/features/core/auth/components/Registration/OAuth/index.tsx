@@ -5,7 +5,6 @@
 import { useCallback, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
@@ -169,9 +168,9 @@ export function OAuthRegistrationForm() {
               field={field}
               label={
                 <>
-                  <Link href="/terms" className="text-primary hover:underline" target="_blank">利用規約</Link>
+                  <span className="text-primary">利用規約</span>
                   と
-                  <Link href="/privacy-policy" className="text-primary hover:underline" target="_blank">プライバシーポリシー</Link>
+                  <span className="text-primary">プライバシーポリシー</span>
                   に同意する
                 </>
               }
