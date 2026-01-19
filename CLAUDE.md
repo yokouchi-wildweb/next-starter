@@ -99,6 +99,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 - client fetch (use axios)
 - direct DB in API routes (use ServerService)
 - raw HTML when wrapper exists
+- direct _shadcn imports (use wrappers: button→Form/Button, input→Form/Input/*, skeleton→Skeleton/BaseSkeleton, etc. | no wrapper? → propose creating one)
 - form schemas in entities/schema.ts (use formEntities.ts)
 - Hook calling ServerService
 - skip normalizeHttpError in ClientService
