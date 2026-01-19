@@ -92,7 +92,7 @@ export function Main({
         <div
           id={`${id}-layout`}
           className={cn(
-            "my-auto mx-auto w-full max-w-screen overflow-clip bg-surface",
+            "my-auto mx-auto w-full max-w-screen overflow-clip bg-background md:bg-surface",
             mainLayoutVariants({
               appearance,
               padding,
