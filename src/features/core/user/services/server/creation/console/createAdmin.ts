@@ -8,8 +8,10 @@ import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
+import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
+import { restoreSoftDeletedUser } from "./restore";
 
 export type CreateAdminInput = {
   displayName: string;
@@ -36,6 +38,23 @@ export async function createAdmin(data: CreateAdminInput): Promise<User> {
   // ロールの有効性チェック
   const role = data.role ?? "admin";
   assertRoleEnabled(role);
+
+  // ソフトデリート済みユーザーを検索
+  const softDeletedUser = await findSoftDeletedUser({
+    providerType: "local",
+    email: data.email,
+  });
+
+  // ソフトデリート済みユーザーが存在する場合は復元処理
+  if (softDeletedUser) {
+    return restoreSoftDeletedUser({
+      existingUser: softDeletedUser,
+      displayName: data.displayName,
+      localPassword: data.localPassword,
+      role,
+      actorId: data.actorId,
+    });
+  }
 
   const normalizedEmail = await assertEmailAvailability({
     providerType: "local",
