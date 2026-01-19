@@ -28,7 +28,7 @@ export function UserFooter() {
     <footer
       id={APP_FOOTER_ELEMENT_ID}
       className={cn(
-        "flex-col items-center justify-center gap-4 bg-background px-6 py-6 text-foreground shadow-inner",
+        "flex-col items-center justify-center gap-4 bg-footer px-6 py-6 text-footer-foreground shadow-inner",
         visibilityClass
       )}
     >
