@@ -52,6 +52,7 @@ export const UserAppLayout = ({
               overlayOpacity={overlayOpacity}
             />
             <Flex
+              id="user-app-container"
               direction="column"
               className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
               style={layoutStyle}

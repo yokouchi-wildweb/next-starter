@@ -15,6 +15,7 @@ type ContainerType =
   | "narrowStack"
   | "contentShell"
   | "wideShowcase"
+  | "surfaceDisplay"
   | "fullscreen";
 
 const layoutMaxWidths: Partial<Record<ContainerType, CSSProperties["maxWidth"]>> = {
@@ -28,6 +29,8 @@ export type MainProps = ComponentPropsWithoutRef<"main"> &
     children: ReactNode;
     containerType?: ContainerType;
     fullscreenLayer?: FullScreenLayer;
+    /** 二重コンテナ構造時の内側コンテナのクラス名 */
+    innerClassName?: string;
   };
 
 export function Main({
@@ -42,9 +45,9 @@ export function Main({
   className,
   children,
   fullscreenLayer,
+  innerClassName,
   id = "main",
   ...props
-
 }: MainProps) {
 
   const effectiveContainerType = containerType ?? "contentShell";
@@ -80,6 +83,39 @@ export function Main({
           {children}
         </main>
       </FullScreen>
+    );
+  }
+
+  if (effectiveContainerType === "surfaceDisplay") {
+    return (
+      <div id={`${id}-container`} className="flex flex-1 flex-col">
+        <div
+          id={`${id}-layout`}
+          className={cn(
+            "my-auto mx-auto w-full max-w-screen overflow-clip bg-surface",
+            mainLayoutVariants({
+              appearance,
+              padding,
+              paddingBlock,
+              paddingInline,
+              margin,
+              marginBlock,
+              marginInline,
+            }),
+            className,
+          )}
+          style={{ maxWidth: layoutMaxWidths.contentShell }}
+        >
+          <main
+            id={id}
+            className={cn("mx-auto w-full", innerClassName)}
+            style={{ maxWidth: layoutMaxWidths.narrowStack }}
+            {...props}
+          >
+            {children}
+          </main>
+        </div>
+      </div>
     );
   }
 
