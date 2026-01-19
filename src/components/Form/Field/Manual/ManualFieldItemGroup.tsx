@@ -41,11 +41,11 @@ export type ManualFieldItemGroupProps = RequiredMarkOptions & {
   /** フィールド間のギャップ（Tailwindクラス、デフォルト: "gap-2"） */
   gap?: string;
   /** レイアウト方向（デフォルト: "vertical"） */
-  layout?: "vertical" | "horizontal";
+  layout?: "vertical" | "horizontal" | "responsive";
   /** ラベルに適用するクラス名（例: "w-[120px]", "text-lg font-bold"） */
   labelClass?: string;
   /** インプット同士の配置（未指定時: layout="vertical"→横並び, layout="horizontal"→縦並び） */
-  inputLayout?: "vertical" | "horizontal";
+  inputLayout?: "vertical" | "horizontal" | "responsive";
   /** 各インプットの設定（prefix/suffix） */
   inputConfigs?: InputConfig[];
 };
@@ -106,9 +106,28 @@ export function ManualFieldItemGroup({
   const uniqueErrors = errors ? [...new Set(errors.filter(Boolean))] : [];
 
   const isHorizontal = layout === "horizontal";
-  // inputLayout未指定時のデフォルト: layout="vertical"→横並び, layout="horizontal"→縦並び
-  const resolvedInputLayout = inputLayout ?? (isHorizontal ? "vertical" : "horizontal");
-  const isInputsHorizontal = resolvedInputLayout === "horizontal";
+  const isResponsiveLayout = layout === "responsive";
+  // inputLayout未指定時のデフォルト:
+  // - layout="vertical" → 横並び
+  // - layout="horizontal" → 縦並び
+  // - layout="responsive" → レスポンシブ
+  const resolvedInputLayout = inputLayout ?? (
+    isResponsiveLayout ? "responsive" :
+    isHorizontal ? "vertical" : "horizontal"
+  );
+
+  // inputLayout に応じたクラス名を生成
+  const inputLayoutClass = (() => {
+    switch (resolvedInputLayout) {
+      case "horizontal":
+        return "items-center";
+      case "vertical":
+        return "flex-col";
+      case "responsive":
+        return "flex-col md:flex-row md:items-center";
+    }
+  })();
+  const isInputsHorizontal = resolvedInputLayout === "horizontal" || resolvedInputLayout === "responsive";
 
   // ラベル要素
   const labelElement = label && (
@@ -119,6 +138,7 @@ export function ManualFieldItemGroup({
         hideLabel && "sr-only",
         hasErrors && "text-destructive",
         isHorizontal && "pt-2 shrink-0", // 横並び時、入力フィールドと上端を揃える
+        isResponsiveLayout && "md:pt-2 md:shrink-0", // レスポンシブ時、PC のみ横並びスタイル
         labelClass
       )}
       htmlFor={`${id}-field-group`}
@@ -158,15 +178,24 @@ export function ManualFieldItemGroup({
       id={`${id}-field-group`}
       className={cn(
         "flex min-w-0",
-        isInputsHorizontal ? "items-center" : "flex-col",
+        inputLayoutClass,
         gap
       )}
       role="group"
       aria-labelledby={`${id}-label`}
     >
       {children.map((child, index) => {
-        // 横並び時は fieldWidths または flex-1、縦並び時は w-full
-        const widthClass = isInputsHorizontal ? (fieldWidths?.[index] ?? "flex-1") : "w-full";
+        // 幅クラスの決定
+        // - vertical: w-full
+        // - horizontal: fieldWidths または flex-1
+        // - responsive: w-full（モバイル）→ fieldWidths または flex-1（PC）
+        const widthClass = (() => {
+          if (resolvedInputLayout === "responsive") {
+            // fieldWidths 指定時はユーザー指定を優先、未指定時はレスポンシブ幅
+            return fieldWidths?.[index] ?? "w-full md:w-auto md:flex-1";
+          }
+          return isInputsHorizontal ? (fieldWidths?.[index] ?? "flex-1") : "w-full";
+        })();
         const config = inputConfigs?.[index];
         const prefix = config?.prefix;
         const suffix = config?.suffix;
@@ -193,6 +222,21 @@ export function ManualFieldItemGroup({
   if (isHorizontal) {
     return (
       <div data-slot="form-item" className={cn("flex items-start gap-4", className)}>
+        {labelElement}
+        <div className="flex-1 grid gap-2">
+          {descBefore}
+          {inputsElement}
+          {descAfter}
+          {errorElement}
+        </div>
+      </div>
+    );
+  }
+
+  // レスポンシブレイアウト（スマホ: 縦、PC: 横）
+  if (isResponsiveLayout) {
+    return (
+      <div data-slot="form-item" className={cn("flex flex-col gap-2 md:flex-row md:items-start md:gap-4", className)}>
         {labelElement}
         <div className="flex-1 grid gap-2">
           {descBefore}

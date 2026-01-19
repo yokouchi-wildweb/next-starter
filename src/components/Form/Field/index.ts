@@ -3,28 +3,28 @@
 // 型定義
 export * from "./types";
 
-// Manual: 低レベルコンポーネント（手動でエラーを渡す）
+// Manual: 低レベルコンポーネント（手動でエラーを渡す、自由なレイアウト向け）
 export {
   ManualFieldItem,
   ManualFieldItemGroup,
+  FieldController,
 } from "./Manual";
 export type {
   ManualFieldItemProps,
   ManualFieldItemDescription,
   ManualFieldItemGroupProps,
   ManualFieldItemGroupDescription,
+  FieldControllerProps,
 } from "./Manual";
 
 // Controlled: 高レベルコンポーネント（React Hook Form 統合、エラー自動取得）
 export {
   FieldItem,
-  FieldController,
   FieldItemGroup,
   MediaFieldItem,
 } from "./Controlled";
 export type {
   FieldItemProps,
-  FieldControllerProps,
   FieldItemGroupProps,
   MediaFieldItemProps,
 } from "./Controlled";

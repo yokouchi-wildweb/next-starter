@@ -143,6 +143,64 @@ export default function FieldLayoutDemoPage() {
         </Form>
       </Section>
 
+      {/* レスポンシブレイアウト */}
+      <Section>
+        <SecTitle>レスポンシブレイアウト</SecTitle>
+        <Form {...form}>
+          <form className="mt-4 rounded-lg border bg-background p-6">
+            <Stack space={6}>
+              <FieldItem
+                control={form.control}
+                name="title"
+                label="タイトル"
+                layout="responsive"
+                labelClass={LABEL_CLASS}
+                required
+                renderInput={(field) => (
+                  <TextInput field={field} placeholder="イベント名を入力" />
+                )}
+              />
+
+              <FieldItem
+                control={form.control}
+                name="email"
+                label="メール"
+                layout="responsive"
+                labelClass={LABEL_CLASS}
+                required
+                description={{ text: "連絡先として使用します", tone: "muted", size: "xs" }}
+                renderInput={(field) => (
+                  <EmailInput field={field} placeholder="example@mail.com" />
+                )}
+              />
+
+              <FieldItem
+                control={form.control}
+                name="category"
+                label="カテゴリ"
+                layout="responsive"
+                labelClass={LABEL_CLASS}
+                renderInput={(field) => (
+                  <SelectInput field={field} options={categoryOptions} placeholder="選択してください" />
+                )}
+              />
+
+              <FieldItem
+                control={form.control}
+                name="description"
+                label="詳細"
+                layout="responsive"
+                labelClass={LABEL_CLASS}
+                description={{ text: "イベントの詳細を記載してください", tone: "muted", size: "xs" }}
+                renderInput={(field) => (
+                  <Textarea field={field} rows={3} placeholder="自由入力" />
+                )}
+              />
+            </Stack>
+          </form>
+        </Form>
+      </Section>
+
       {/* FieldItemGroup（横並びレイアウト） */}
       <Section>
         <SecTitle>FieldItemGroup（横並びレイアウト）</SecTitle>
@@ -191,6 +249,47 @@ export default function FieldLayoutDemoPage() {
                 layout="horizontal"
                 labelClass={LABEL_CLASS}
                 inputLayout="horizontal"
+                required
+                renderInputs={(fields) => [
+                  <SelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
+                  <SelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
+                  <SelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
+                ]}
+              />
+
+              {/* 3個パターン（レスポンシブ：スマホ縦、PC横） */}
+              <FieldItemGroup
+                control={form.control}
+                names={["birthYear", "birthMonth", "birthDay"] as const}
+                label="生年月日（レスポンシブ）"
+                layout="horizontal"
+                labelClass={LABEL_CLASS}
+                inputLayout="responsive"
+                required
+                renderInputs={(fields) => [
+                  <SelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,
+                  <SelectInput key="month" field={fields[1]} options={monthOptions} placeholder="月" />,
+                  <SelectInput key="day" field={fields[2]} options={dayOptions} placeholder="日" />,
+                ]}
+              />
+            </Stack>
+          </form>
+        </Form>
+      </Section>
+
+      {/* FieldItemGroup（レスポンシブレイアウト） */}
+      <Section>
+        <SecTitle>FieldItemGroup（レスポンシブレイアウト）</SecTitle>
+        <Form {...form}>
+          <form className="mt-4 rounded-lg border bg-background p-6">
+            <Stack space={6}>
+              {/* layout="responsive" のみ指定（inputLayout は自動で responsive） */}
+              <FieldItemGroup
+                control={form.control}
+                names={["birthYear", "birthMonth", "birthDay"] as const}
+                label="生年月日"
+                layout="responsive"
+                labelClass={LABEL_CLASS}
                 required
                 renderInputs={(fields) => [
                   <SelectInput key="year" field={fields[0]} options={yearOptions} placeholder="年" />,

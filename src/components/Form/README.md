@@ -52,8 +52,8 @@ Controlled Input は Manual Input を内部でラップして、`field` を `val
 
 | レベル | 目的 | 代表コンポーネント | 向いている場面 | 備考 |
 |---|---|---|---|---|
-| **Manual** | 自前状態で制御 | `ManualFieldItem` / `ManualFieldItemGroup` | useState 前提、簡易フォーム | エラーは手動で渡す |
-| **Controlled** | RHF 連携の標準形 | `FieldItem` / `FieldItemGroup` / `FieldController` | 一般的なフォーム | エラー自動取得 |
+| **Manual** | 低レベル / 自由レイアウト | `ManualFieldItem` / `ManualFieldItemGroup` / `FieldController` | useState 前提、または RHF で自由配置したい場合 | FieldController は RHF 専用 |
+| **Controlled** | RHF 連携の標準形 | `FieldItem` / `FieldItemGroup` | 一般的なフォーム | エラー自動取得 |
 | **Configured** | 設定駆動で描画 | `ConfiguredField` / `ConfiguredFieldGroup` / `ConfiguredFields` | domain.json を使う運用 | `FieldConfig` を渡す |
 | **Media** | メディアアップロード | `MediaFieldItem` / `ConfiguredMediaField` | 画像/動画のアップロード | `useMediaUploaderField` を利用 |
 | **Renderer** | まとめて自動生成 | `FieldRenderer` | 管理画面CRUD | `mediaUploader` も扱える |
@@ -63,6 +63,8 @@ Controlled Input は Manual Input を内部でラップして、`field` を `val
 ## 1. Input を使う（自由度が最も高い）
 
 ### Controlled
+
+FieldController は Manual 配下の自由レイアウト用コンテナとして整理しています。
 
 ```tsx
 import { AppForm } from "@/components/Form";
@@ -190,6 +192,34 @@ const [dayError, setDayError] = useState<string>();
 
 ---
 
+## レイアウトプロパティ（layout / inputLayout）
+
+FieldItem / ManualFieldItem / FieldItemGroup / ManualFieldItemGroup / ConfiguredFieldGroup で使用可能。
+
+### layout（ラベルと入力の配置）
+
+- `"vertical"`: 縦並び（デフォルト）
+- `"horizontal"`: 横並び
+- `"responsive"`: モバイルは縦、`md` 以上で横並び
+
+### inputLayout（グループ内の入力配置）
+
+FieldItemGroup / ManualFieldItemGroup / ConfiguredFieldGroup のみ。
+
+- `"vertical"`: 入力を縦並び
+- `"horizontal"`: 入力を横並び
+- `"responsive"`: モバイルは縦、`md` 以上で横並び
+
+inputLayout 未指定時のデフォルトは `layout` に連動します。
+
+- `layout="vertical"` → `inputLayout="horizontal"`
+- `layout="horizontal"` → `inputLayout="vertical"`
+- `layout="responsive"` → `inputLayout="responsive"`
+
+`inputLayout="responsive"` かつ `fieldWidths` 未指定の場合、モバイルは `w-full`、`md` 以上は `flex-1` を採用します。
+
+---
+
 ## 設定駆動フィールドの使い分け
 
 `FieldConfig` を渡して描画する高レベルコンポーネント。  
@@ -297,12 +327,12 @@ src/components/Form/
 ├── AppForm.tsx
 ├── Field/
 │   ├── types.ts                    # 共通型定義（FieldConfig, FormInputType 等）
-│   ├── Manual/                     # 低レベル（手動でエラーを渡す）
+│   ├── Manual/                     # 低レベル（手動でエラーを渡す/自由レイアウト）
 │   │   ├── ManualFieldItem.tsx
-│   │   └── ManualFieldItemGroup.tsx
+│   │   ├── ManualFieldItemGroup.tsx
+│   │   └── FieldController.tsx
 │   ├── Controlled/                 # React Hook Form 統合
 │   │   ├── FieldItem.tsx
-│   │   ├── FieldController.tsx
 │   │   ├── FieldItemGroup.tsx
 │   │   └── MediaFieldItem.tsx
 │   └── Configured/                 # 設定ベース（FieldConfig から自動生成）

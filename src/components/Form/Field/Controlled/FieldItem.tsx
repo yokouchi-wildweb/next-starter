@@ -63,6 +63,7 @@ export function FieldItem<
   const resolvedRequiredMark = required ? (requiredMark ?? defaultMark) : null;
 
   const isHorizontal = layout === "horizontal";
+  const isResponsiveLayout = layout === "responsive";
 
   return (
     <FormField
@@ -75,6 +76,7 @@ export function FieldItem<
             className={cn(
               hideLabel && "sr-only",
               isHorizontal && "pt-2 shrink-0", // 横並び時、入力フィールドと上端を揃える
+              isResponsiveLayout && "md:pt-2 md:shrink-0", // レスポンシブ時、PC のみ横並びスタイル
               labelClass
             )}
           >
@@ -108,6 +110,21 @@ export function FieldItem<
         if (isHorizontal) {
           return (
             <FormItem className={cn("flex items-start gap-4 [&>*]:!mt-0", className)}>
+              {labelElement}
+              <div className="flex-1 grid gap-2">
+                {descBefore}
+                {inputElement}
+                {descAfter}
+                {errorElement}
+              </div>
+            </FormItem>
+          );
+        }
+
+        // レスポンシブレイアウト（スマホ: 縦、PC: 横）
+        if (isResponsiveLayout) {
+          return (
+            <FormItem className={cn("flex flex-col gap-2 md:flex-row md:items-start md:gap-4 [&>*]:!mt-0", className)}>
               {labelElement}
               <div className="flex-1 grid gap-2">
                 {descBefore}

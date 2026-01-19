@@ -3,9 +3,6 @@
 export { FieldItem } from "./FieldItem";
 export type { FieldItemProps } from "./FieldItem";
 
-export { FieldController } from "./FieldController";
-export type { FieldControllerProps } from "./FieldController";
-
 export { FieldItemGroup } from "./FieldItemGroup";
 export type { FieldItemGroupProps } from "./FieldItemGroup";
 export type { InputConfig } from "../Manual";

@@ -36,7 +36,7 @@ export type ManualFieldItemProps = {
   /** 必須マークの位置（デフォルト: "after"） */
   requiredMarkPosition?: "before" | "after";
   /** レイアウト方向（デフォルト: "vertical"） */
-  layout?: "vertical" | "horizontal";
+  layout?: "vertical" | "horizontal" | "responsive";
   /** ラベルに適用するクラス名（例: "w-[120px]", "text-lg font-bold"） */
   labelClass?: string;
 };
@@ -88,6 +88,7 @@ export function ManualFieldItem({
   const hasError = Boolean(error);
 
   const isHorizontal = layout === "horizontal";
+  const isResponsiveLayout = layout === "responsive";
 
   // ラベル要素
   const labelElement = label && (
@@ -98,6 +99,7 @@ export function ManualFieldItem({
         hideLabel && "sr-only",
         hasError && "text-destructive",
         isHorizontal && "pt-2 shrink-0", // 横並び時、入力フィールドと上端を揃える
+        isResponsiveLayout && "md:pt-2 md:shrink-0", // レスポンシブ時、PC のみ横並びスタイル
         labelClass
       )}
       htmlFor={`${id}-field`}
@@ -140,6 +142,21 @@ export function ManualFieldItem({
   if (isHorizontal) {
     return (
       <div data-slot="form-item" className={cn("flex items-start gap-4", className)}>
+        {labelElement}
+        <div className="flex-1 grid gap-2">
+          {descBefore}
+          {inputElement}
+          {descAfter}
+          {errorElement}
+        </div>
+      </div>
+    );
+  }
+
+  // レスポンシブレイアウト（スマホ: 縦、PC: 横）
+  if (isResponsiveLayout) {
+    return (
+      <div data-slot="form-item" className={cn("flex flex-col gap-2 md:flex-row md:items-start md:gap-4", className)}>
         {labelElement}
         <div className="flex-1 grid gap-2">
           {descBefore}

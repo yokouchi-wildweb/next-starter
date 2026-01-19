@@ -34,11 +34,11 @@ export type ConfiguredFieldGroupProps<
   /** エラーメッセージを非表示にする */
   hideError?: boolean;
   /** レイアウト方向（デフォルト: "vertical"） */
-  layout?: "vertical" | "horizontal";
+  layout?: "vertical" | "horizontal" | "responsive";
   /** ラベルに適用するクラス名（例: "w-[120px]", "text-lg font-bold"） */
   labelClass?: string;
   /** インプット同士の配置（未指定時: layout="vertical"→横並び, layout="horizontal"→縦並び） */
-  inputLayout?: "vertical" | "horizontal";
+  inputLayout?: "vertical" | "horizontal" | "responsive";
   /** 各インプットの設定（prefix/suffix） */
   inputConfigs?: InputConfig[];
 };

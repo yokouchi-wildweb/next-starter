@@ -5,3 +5,6 @@ export type { ManualFieldItemProps, ManualFieldItemDescription } from "./ManualF
 
 export { ManualFieldItemGroup } from "./ManualFieldItemGroup";
 export type { ManualFieldItemGroupProps, ManualFieldItemGroupDescription, InputConfig } from "./ManualFieldItemGroup";
+
+export { FieldController } from "./FieldController";
+export type { FieldControllerProps } from "./FieldController";

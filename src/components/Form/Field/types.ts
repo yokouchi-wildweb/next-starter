@@ -148,7 +148,7 @@ export type FieldItemDescription = {
  */
 export type FieldLayoutOptions = {
   /** レイアウト方向（デフォルト: "vertical"） */
-  layout?: "vertical" | "horizontal";
+  layout?: "vertical" | "horizontal" | "responsive";
   /** ラベルに適用するクラス名（例: "w-[120px]", "text-lg font-bold"） */
   labelClass?: string;
 };
