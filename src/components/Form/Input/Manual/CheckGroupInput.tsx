@@ -93,6 +93,7 @@ export function CheckGroupInput({
                 checked={selected}
                 onCheckedChange={() => handleToggle(op.value)}
                 aria-checked={selected}
+                className="border-muted-foreground"
               />
               <Label htmlFor={id} className="text-sm font-normal cursor-pointer">
                 {op.label}
