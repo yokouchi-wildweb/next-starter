@@ -198,10 +198,10 @@ switch (config.idType) {
     fields.push(`  ${f.name}: ${names.constName}("${toSnakeCase(f.name)}")${notNull}${defaultSuffix},`);
   } else if (f.fieldType === 'array') {
     imports.add('text');
-    const notNull = f.required ? '.notNull()' : '';
+    // 配列型は常にnotNull（nullではなく空配列を使う）
     const defaultVal = f.required ? '' : '.default([])';
     fields.push(
-      `  ${f.name}: text("${toSnakeCase(f.name)}").array()${notNull}${defaultVal},`
+      `  ${f.name}: text("${toSnakeCase(f.name)}").array()${defaultVal}.notNull(),`
     );
   } else if (f.fieldType === 'timestamp With Time Zone') {
     imports.add('timestamp');
