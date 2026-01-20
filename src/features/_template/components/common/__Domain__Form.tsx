@@ -2,11 +2,9 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { __Domain__Fields, type __Domain__FieldsProps } from "./__Domain__Fields";
-import type { MediaState } from "@/components/Form/FieldRenderer";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
 export type __Domain__FormProps<TFieldValues extends FieldValues> =
@@ -15,7 +13,6 @@ export type __Domain__FormProps<TFieldValues extends FieldValues> =
     onSubmitAction: (data: TFieldValues) => Promise<void>;
     isMutating?: boolean;
     submitLabel: string;
-    processingLabel: string;
     onCancel?: () => void;
   };
 
@@ -24,50 +21,23 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
   onSubmitAction,
   isMutating = false,
   submitLabel,
-  processingLabel,
   onCancel,
   ...fieldsProps
 }: __Domain__FormProps<TFieldValues>) {
-  const {
-    formState: { isSubmitting },
-  } = methods;
-
-  const [mediaState, setMediaState] = useState<MediaState | null>(null);
-
-  const loading = isSubmitting || isMutating;
-  const disabled = loading || Boolean(mediaState?.isUploading);
-
-  const handleSubmit = useCallback(
-    async (data: TFieldValues) => {
-      await onSubmitAction(data);
-      await mediaState?.commitAll();
-    },
-    [mediaState, onSubmitAction],
-  );
-
-  const handleCancel = useCallback(async () => {
-    await mediaState?.resetAll();
-    onCancel?.();
-  }, [mediaState, onCancel]);
-
   return (
     <AppForm
       methods={methods}
-      onSubmit={handleSubmit}
-      pending={disabled}
+      onSubmit={onSubmitAction}
+      pending={isMutating}
       fieldSpace={6}
     >
-      <__Domain__Fields<TFieldValues>
-        {...fieldsProps}
-        methods={methods}
-        onMediaStateChange={setMediaState}
-      />
+      <__Domain__Fields<TFieldValues> {...fieldsProps} methods={methods} />
       <div className="flex justify-center gap-3">
-        <Button type="submit" disabled={disabled} variant="default">
-          {disabled ? processingLabel : submitLabel}
+        <Button type="submit" variant="default">
+          {submitLabel}
         </Button>
         {onCancel ? (
-          <Button type="button" variant="outline" onClick={handleCancel}>
+          <Button type="button" variant="outline" onClick={onCancel}>
             キャンセル
           </Button>
         ) : null}

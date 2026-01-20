@@ -15,7 +15,6 @@ export type SampleCategoryFormProps<TFieldValues extends FieldValues> =
     onSubmitAction: (data: TFieldValues) => Promise<void>;
     isMutating?: boolean;
     submitLabel: string;
-    processingLabel: string;
     onCancel?: () => void;
   };
 
@@ -24,7 +23,6 @@ export function SampleCategoryForm<TFieldValues extends FieldValues>({
   onSubmitAction,
   isMutating = false,
   submitLabel,
-  processingLabel,
   onCancel,
   ...fieldsProps
 }: SampleCategoryFormProps<TFieldValues>) {
@@ -64,7 +62,6 @@ export function SampleCategoryForm<TFieldValues extends FieldValues>({
       />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={disabled} variant="default">
-          {disabled ? processingLabel : submitLabel}
         </Button>
         {onCancel ? (
           <Button type="button" variant="outline" onClick={handleCancel}>

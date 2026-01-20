@@ -9,20 +9,12 @@ import {
   ConfiguredMediaField,
   type FieldConfig,
 } from "@/components/Form/Field";
+import { useAppFormMedia } from "@/components/Form/AppForm";
 import { FieldGroupSection } from "./FieldGroupSection";
-import type { FieldGroup, InlineFieldGroup } from "./types";
+import type { FieldGroup, InlineFieldGroup, MediaState, MediaHandleEntry } from "./types";
 
-export type MediaState = {
-  isUploading: boolean;
-  commitAll: () => Promise<void>;
-  resetAll: () => Promise<void>;
-};
-
-export type MediaHandleEntry = {
-  isUploading: boolean;
-  commit: (finalUrl?: string | null) => Promise<void>;
-  reset: () => Promise<void>;
-};
+// 型を re-export（後方互換性のため）
+export type { MediaState, MediaHandleEntry } from "./types";
 
 export type FieldRendererProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
@@ -73,6 +65,9 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
   beforeField,
   afterField,
 }: FieldRendererProps<TFieldValues>) {
+  // AppFormのContextを取得（存在する場合）
+  const appFormMedia = useAppFormMedia();
+
   // メディアアップロード状態管理
   const mediaEntriesRef = useRef<Map<string, MediaHandleEntry>>(new Map());
   const [mediaVersion, setMediaVersion] = useState(0);
@@ -319,15 +314,18 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
   }, [fieldGroups, combinedFields, renderSingleField, inlineGroupFieldsSet, inlineGroupByFirstField, renderInlineGroup]);
 
   // メディア状態の通知
+  // AppFormのContextが存在する場合は、それを優先して使用
+  const effectiveOnMediaStateChange = onMediaStateChange ?? appFormMedia?.setMediaState;
+
   useEffect(() => {
-    if (!onMediaStateChange) return;
+    if (!effectiveOnMediaStateChange) return;
     const entries = Array.from(mediaEntriesRef.current.values());
     if (entries.length === 0) {
-      onMediaStateChange(null);
+      effectiveOnMediaStateChange(null);
       return;
     }
     const isUploading = entries.some((entry) => entry.isUploading);
-    onMediaStateChange({
+    effectiveOnMediaStateChange({
       isUploading,
       commitAll: async () => {
         await Promise.all(entries.map((entry) => entry.commit()));
@@ -336,7 +334,7 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
         await Promise.all(entries.map((entry) => entry.reset()));
       },
     });
-  }, [onMediaStateChange, mediaVersion]);
+  }, [effectiveOnMediaStateChange, mediaVersion]);
 
   return (
     <>

@@ -13,8 +13,10 @@ export { ConfiguredMediaField } from "./ConfiguredMediaField";
 export type {
   ConfiguredMediaFieldProps,
   MediaFieldConfig,
-  MediaHandleEntry,
 } from "./ConfiguredMediaField";
+
+// MediaHandleEntry は FieldRenderer/types.ts から再エクスポート
+export type { MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
 
 export {
   renderInputByFormType,

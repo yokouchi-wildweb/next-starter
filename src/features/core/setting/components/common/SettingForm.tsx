@@ -40,7 +40,6 @@ export type SettingFormProps<TFieldValues extends FieldValues> = {
   onSubmitAction: (data: TFieldValues) => Promise<void>;
   isMutating?: boolean;
   submitLabel: string;
-  processingLabel: string;
 };
 
 export function SettingForm<TFieldValues extends FieldValues>({
@@ -48,7 +47,6 @@ export function SettingForm<TFieldValues extends FieldValues>({
   onSubmitAction,
   isMutating = false,
   submitLabel,
-  processingLabel,
 }: SettingFormProps<TFieldValues>) {
   const {
     control,
@@ -84,7 +82,6 @@ export function SettingForm<TFieldValues extends FieldValues>({
       />
       <div className="flex justify-center">
         <Button type="submit" disabled={loading} variant="default">
-          {loading ? processingLabel : submitLabel}
         </Button>
         <Button type="button" variant="outline" onClick={handleCancel} className="ml-4">
           キャンセル

@@ -12,6 +12,30 @@ import type {
 import { FormProvider } from "react-hook-form";
 
 import { Stack, type StackSpace } from "@/components/Layout/Stack";
+import type { MediaState, MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
+
+// MediaState管理用のContext
+type AppFormMediaContextValue = {
+  /** FieldRenderer用: MediaState全体を設定（後方互換性のため残存） */
+  setMediaState: (state: MediaState | null) => void;
+  /** 個別メディアフィールド用: ハンドルを登録 */
+  registerMediaHandle: (name: string, entry: MediaHandleEntry) => void;
+  /** 個別メディアフィールド用: ハンドルを解除 */
+  unregisterMediaHandle: (name: string) => void;
+  /** メディアアップロード中かどうか */
+  isMediaUploading: boolean;
+};
+
+const AppFormMediaContext = React.createContext<AppFormMediaContextValue | null>(null);
+
+/**
+ * AppForm内でMediaStateを設定するためのフック
+ * ConfiguredMediaField, MediaFieldItem, FieldRenderer から使用
+ */
+export function useAppFormMedia() {
+  const context = React.useContext(AppFormMediaContext);
+  return context;
+}
 
 type AllowEnterWhen = (event: React.KeyboardEvent<HTMLFormElement>) => boolean;
 
@@ -26,6 +50,21 @@ export type AppFormProps<TFieldValues extends FieldValues = FieldValues> = {
   disableWhilePending?: boolean;
   fieldSpace?: StackSpace;
   children: React.ReactNode;
+  /**
+   * メディアアップロード状態（外部から渡す場合）
+   * 通常は内部で自動管理されるため不要
+   */
+  mediaState?: MediaState | null;
+  /**
+   * メディアアップロード状態の変更コールバック
+   * FieldRendererのonMediaStateChangeに渡す用（通常は不要、内部で自動連携）
+   */
+  onMediaStateChange?: (state: MediaState | null) => void;
+  /**
+   * メディアの自動コミットを無効化するかどうか
+   * デフォルト: false（自動コミット有効）
+   */
+  disableAutoCommitMedia?: boolean;
 } & Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit">;
 
 const AppFormComponent = <TFieldValues extends FieldValues>(
@@ -42,13 +81,74 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     children,
     className,
     onKeyDown,
+    mediaState: externalMediaState,
+    onMediaStateChange,
+    disableAutoCommitMedia = false,
     ...formProps
   }: AppFormProps<TFieldValues>,
   ref: React.ForwardedRef<HTMLFormElement>,
 ) => {
   const { handleSubmit, formState } = methods;
   const isSubmitting = formState.isSubmitting;
-  const isBusy = pending || isSubmitting;
+
+  // 個別メディアフィールドのハンドル管理
+  const mediaHandlesRef = React.useRef<Map<string, MediaHandleEntry>>(new Map());
+  const [mediaHandlesVersion, setMediaHandlesVersion] = React.useState(0);
+
+  const registerMediaHandle = React.useCallback((name: string, entry: MediaHandleEntry) => {
+    mediaHandlesRef.current.set(name, entry);
+    setMediaHandlesVersion((v) => v + 1);
+  }, []);
+
+  const unregisterMediaHandle = React.useCallback((name: string) => {
+    mediaHandlesRef.current.delete(name);
+    setMediaHandlesVersion((v) => v + 1);
+  }, []);
+
+  // FieldRenderer用: MediaState全体を管理（後方互換性）
+  const [fieldRendererMediaState, setFieldRendererMediaState] = React.useState<MediaState | null>(null);
+  const handleMediaStateChange = React.useCallback(
+    (state: MediaState | null) => {
+      setFieldRendererMediaState(state);
+      onMediaStateChange?.(state);
+    },
+    [onMediaStateChange],
+  );
+
+  // 外部から渡された mediaState を優先
+  const effectiveFieldRendererState = externalMediaState ?? fieldRendererMediaState;
+
+  // 個別登録されたメディアのアップロード状態を計算
+  const individualMediaUploading = React.useMemo(() => {
+    const entries = Array.from(mediaHandlesRef.current.values());
+    return entries.some((entry) => entry.isUploading);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mediaHandlesVersion]);
+
+  // メディアアップロード中はフォームを無効化（両方を考慮）
+  const isMediaUploading = (effectiveFieldRendererState?.isUploading ?? false) || individualMediaUploading;
+  const isBusy = pending || isSubmitting || isMediaUploading;
+
+  // 送信成功時にメディアをコミット
+  const handleSubmitWithMediaCommit: SubmitHandler<TFieldValues> = React.useCallback(
+    async (data, event) => {
+      await onSubmit(data, event);
+
+      if (disableAutoCommitMedia) return;
+
+      // FieldRenderer経由のメディアをコミット
+      if (effectiveFieldRendererState) {
+        await effectiveFieldRendererState.commitAll();
+      }
+
+      // 個別登録されたメディアをコミット
+      const individualEntries = Array.from(mediaHandlesRef.current.values());
+      if (individualEntries.length > 0) {
+        await Promise.all(individualEntries.map((entry) => entry.commit()));
+      }
+    },
+    [onSubmit, disableAutoCommitMedia, effectiveFieldRendererState],
+  );
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLFormElement>) => {
@@ -123,24 +223,37 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     [allowEnterSelectors, allowEnterWhen, onKeyDown, preventSubmitOnEnter],
   );
 
+  // Context用の値
+  const mediaContextValue = React.useMemo<AppFormMediaContextValue>(
+    () => ({
+      setMediaState: handleMediaStateChange,
+      registerMediaHandle,
+      unregisterMediaHandle,
+      isMediaUploading,
+    }),
+    [handleMediaStateChange, registerMediaHandle, unregisterMediaHandle, isMediaUploading],
+  );
+
   return (
     <FormProvider {...methods}>
-      <form
-        ref={ref}
-        className={className}
-        data-submitting={isBusy ? "true" : "false"}
-        aria-busy={isBusy}
-        onSubmit={handleSubmit(onSubmit, onSubmitError)}
-        onKeyDown={handleKeyDown}
-        {...formProps}
-      >
-        <fieldset
-          disabled={disableWhilePending ? isBusy : undefined}
-          className="contents"
+      <AppFormMediaContext.Provider value={mediaContextValue}>
+        <form
+          ref={ref}
+          className={className}
+          data-submitting={isBusy ? "true" : "false"}
+          aria-busy={isBusy}
+          onSubmit={handleSubmit(handleSubmitWithMediaCommit, onSubmitError)}
+          onKeyDown={handleKeyDown}
+          {...formProps}
         >
-          <Stack space={fieldSpace}>{children}</Stack>
-        </fieldset>
-      </form>
+          <fieldset
+            disabled={disableWhilePending ? isBusy : undefined}
+            className="contents"
+          >
+            <Stack space={fieldSpace}>{children}</Stack>
+          </fieldset>
+        </form>
+      </AppFormMediaContext.Provider>
     </FormProvider>
   );
 };

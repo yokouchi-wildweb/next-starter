@@ -1,5 +1,5 @@
 // src/components/Form/Field/Configured/ConfiguredMediaField.tsx
-// config経由のメディアフィールドコンポーネント（FieldRenderer用）
+// config経由のメディアフィールドコンポーネント
 
 "use client";
 
@@ -10,14 +10,10 @@ import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-
 
 import { FieldItem } from "../Controlled";
 import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
+import { useAppFormMedia } from "@/components/Form/AppForm";
 import type { FieldConfig, FieldCommonProps } from "../types";
 import type { SelectedMediaMetadata } from "@/lib/mediaInputSuite";
-
-export type MediaHandleEntry = {
-  isUploading: boolean;
-  commit: (finalUrl?: string | null) => Promise<void>;
-  reset: () => Promise<void>;
-};
+import type { MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
 
 /**
  * メディアフィールド用の拡張設定
@@ -41,21 +37,35 @@ export type ConfiguredMediaFieldProps<
   name?: TName;
   /** ラベル（省略時は fieldConfig.label） */
   label?: ReactNode;
-  /** メディアハンドル変更時のコールバック */
-  onHandleChange: (name: TName, entry: MediaHandleEntry | null) => void;
+  /**
+   * メディアハンドル変更時のコールバック
+   * 省略時は AppForm の Context に自動登録される
+   */
+  onHandleChange?: (name: TName, entry: MediaHandleEntry | null) => void;
 };
 
 /**
  * config経由のメディアアップロードフィールド
  *
- * FieldRenderer から使用される。メディア状態を親に通知する機能を持つ。
+ * AppForm 内で使用すると、自動的にメディア状態が管理され、
+ * フォーム送信成功時に自動でコミットされる。
  *
  * @example
  * ```tsx
+ * // AppForm 内で使用（自動登録）
+ * <AppForm methods={methods} onSubmit={handleSubmit}>
+ *   <ConfiguredMediaField
+ *     control={control}
+ *     methods={methods}
+ *     fieldConfig={mediaFieldConfig}
+ *   />
+ * </AppForm>
+ *
+ * // FieldRenderer 経由（onHandleChange を渡す）
  * <ConfiguredMediaField
  *   control={control}
  *   methods={methods}
- *   config={mediaFieldConfig}
+ *   fieldConfig={mediaFieldConfig}
  *   onHandleChange={handleMediaHandleChange}
  * />
  * ```
@@ -85,6 +95,9 @@ export function ConfiguredMediaField<
   const resolvedLabel = label ?? fieldConfig.label;
   const resolvedRequired = required ?? fieldConfig.required ?? false;
 
+  // AppForm の Context を取得
+  const appFormMedia = useAppFormMedia();
+
   const mediaHandle = useMediaUploaderField({
     methods,
     name: fieldName,
@@ -97,16 +110,29 @@ export function ConfiguredMediaField<
     },
   });
 
+  // onHandleChange が渡されている場合はそちらを使用（FieldRenderer 経由）
+  // そうでない場合は AppForm の Context に登録
   useEffect(() => {
-    onHandleChange(fieldName, {
+    const entry: MediaHandleEntry = {
       isUploading: mediaHandle.isUploading,
       commit: mediaHandle.commit,
       reset: mediaHandle.reset,
-    });
-    return () => {
-      onHandleChange(fieldName, null);
     };
-  }, [fieldName, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, onHandleChange]);
+
+    if (onHandleChange) {
+      // FieldRenderer 経由の場合
+      onHandleChange(fieldName, entry);
+      return () => {
+        onHandleChange(fieldName, null);
+      };
+    } else if (appFormMedia) {
+      // AppForm の Context に直接登録
+      appFormMedia.registerMediaHandle(String(fieldName), entry);
+      return () => {
+        appFormMedia.unregisterMediaHandle(String(fieldName));
+      };
+    }
+  }, [fieldName, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, onHandleChange, appFormMedia]);
 
   const watchedValue = useWatch({
     control,

@@ -4,10 +4,12 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
 import { FieldItem } from "./FieldItem";
 import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
+import { useAppFormMedia } from "@/components/Form/AppForm";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { FieldCommonProps } from "../types";
 
@@ -29,18 +31,21 @@ export type MediaFieldItemProps<
 /**
  * スタンドアロン版メディアアップロードフィールド
  *
- * FieldRenderer を使わずに単独で配置できる。
+ * AppForm 内で使用すると、自動的にメディア状態が管理され、
+ * フォーム送信成功時に自動でコミットされる。
  *
  * @example
  * ```tsx
- * <MediaFieldItem
- *   control={control}
- *   methods={methods}
- *   name="imageUrl"
- *   label="画像"
- *   uploadPath="images"
- *   accept="image/*"
- * />
+ * <AppForm methods={methods} onSubmit={handleSubmit}>
+ *   <MediaFieldItem
+ *     control={control}
+ *     methods={methods}
+ *     name="imageUrl"
+ *     label="画像"
+ *     uploadPath="images"
+ *     accept="image/*"
+ *   />
+ * </AppForm>
  * ```
  */
 export function MediaFieldItem<
@@ -67,6 +72,9 @@ export function MediaFieldItem<
   layout,
   labelClass,
 }: MediaFieldItemProps<TFieldValues, TName>) {
+  // AppForm の Context を取得
+  const appFormMedia = useAppFormMedia();
+
   const mediaHandle = useMediaUploaderField({
     methods,
     name,
@@ -78,6 +86,21 @@ export function MediaFieldItem<
       onMetadataChange,
     },
   });
+
+  // AppForm の Context に自動登録
+  useEffect(() => {
+    if (!appFormMedia) return;
+
+    appFormMedia.registerMediaHandle(String(name), {
+      isUploading: mediaHandle.isUploading,
+      commit: mediaHandle.commit,
+      reset: mediaHandle.reset,
+    });
+
+    return () => {
+      appFormMedia.unregisterMediaHandle(String(name));
+    };
+  }, [name, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, appFormMedia]);
 
   return (
     <FieldItem

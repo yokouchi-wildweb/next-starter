@@ -47,7 +47,6 @@ export default function CreateSampleTagForm({ redirectPath = "/" }: Props) {
       onSubmitAction={submit}
       isMutating={isMutating}
       submitLabel="登録"
-      processingLabel="処理中..."
       onCancel={() => router.push(redirectPath)}
     />
   );

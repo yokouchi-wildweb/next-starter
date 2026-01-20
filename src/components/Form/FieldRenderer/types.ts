@@ -12,6 +12,32 @@ export type {
 } from "@/components/Form/Field/types";
 
 /**
+ * メディアアップロード状態（集約版）
+ * 複数のメディアフィールドの状態を集約して管理
+ */
+export type MediaState = {
+  /** いずれかのメディアがアップロード中か */
+  isUploading: boolean;
+  /** すべてのメディアをコミット */
+  commitAll: () => Promise<void>;
+  /** すべてのメディアをリセット */
+  resetAll: () => Promise<void>;
+};
+
+/**
+ * 単一メディアフィールドのハンドル
+ * ConfiguredMediaField から親に通知される
+ */
+export type MediaHandleEntry = {
+  /** アップロード中か */
+  isUploading: boolean;
+  /** メディアをコミット（アップロード確定、古いメディア削除） */
+  commit: (finalUrl?: string | null) => Promise<void>;
+  /** メディアをリセット（アップロードキャンセル） */
+  reset: () => Promise<void>;
+};
+
+/**
  * フィールドグループ定義（セクション分け用）
  * @see src/features/README.md - FieldGroup（フィールドグループ）
  */

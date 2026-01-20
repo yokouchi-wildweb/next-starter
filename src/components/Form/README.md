@@ -238,7 +238,59 @@ inputLayout 未指定時のデフォルトは `layout` に連動します。
 | 目的 | コンポーネント | 入力 | 使いどころ | 注意点 |
 |---|---|---|---|---|
 | 単独配置 | `MediaFieldItem` | `uploadPath` など | 単体フォームに手動で配置 | RHF の `methods` が必要 |
-| 設定駆動 | `ConfiguredMediaField` | `MediaUploaderFieldConfig` | `FieldRenderer` 内部 | 直接使うより Renderer 推奨 |
+| 設定駆動 | `ConfiguredMediaField` | `MediaUploaderFieldConfig` | 設定ベースで配置 | `fieldConfig` を渡す |
+
+---
+
+## メディアの自動コミット / クリーンアップ
+
+`AppForm` 内でメディアフィールドを使用すると、**自動的にコミットとクリーンアップが行われる**。
+
+### 自動化される動作
+
+| イベント | 動作 | 仕組み |
+|---------|------|--------|
+| フォーム送信成功 | 全メディアを自動コミット | `AppForm` が `commitAll()` を呼び出し |
+| ページ離脱 / アンマウント | 未コミットのメディアを自動削除 | `cleanupOnUnmount` による |
+| アップロード中 | 送信ボタン自動無効化 | `AppForm` の `fieldset disabled` |
+
+### 対応コンポーネント
+
+| コンポーネント | AppForm 内での自動コミット |
+|---------------|--------------------------|
+| `FieldRenderer`（メディアフィールド含む） | ✓ 自動 |
+| `ConfiguredMediaField` | ✓ 自動 |
+| `MediaFieldItem` | ✓ 自動 |
+| `AppForm` 外で使用 | 手動で `commit()` を呼ぶ必要あり |
+
+### 使用例
+
+```tsx
+// 複数のメディアフィールドがあっても、commit を意識する必要なし
+<AppForm methods={methods} onSubmit={handleSubmit}>
+  <MediaFieldItem
+    control={control}
+    methods={methods}
+    name="mainImage"
+    label="メイン画像"
+    uploadPath="images/main"
+  />
+  <MediaFieldItem
+    control={control}
+    methods={methods}
+    name="subImage"
+    label="サブ画像"
+    uploadPath="images/sub"
+  />
+  <Button type="submit">送信</Button>
+</AppForm>
+```
+
+### 注意事項
+
+- `AppForm` 外でメディアフィールドを使う場合は、手動で `commit()` を呼ぶ必要がある
+- キャンセルボタンで `resetAll()` を呼ぶ必要はない（ページ離脱時に自動クリーンアップ）
+- `disableAutoCommitMedia` prop で自動コミットを無効化可能
 
 ---
 

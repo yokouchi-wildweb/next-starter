@@ -57,7 +57,6 @@ export default function CreateSampleForm({ redirectPath = "/" }: Props) {
       sampleCategoryOptions={sampleCategoryOptions}
       sampleTagOptions={sampleTagOptions}
       submitLabel="登録"
-      processingLabel="処理中..."
       onCancel={() => router.push(redirectPath)}
     />
   );
