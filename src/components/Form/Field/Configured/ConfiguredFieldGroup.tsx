@@ -76,7 +76,7 @@ export function ConfiguredFieldGroup<
   control,
   fieldConfigs,
   label,
-  required = false,
+  required,
   description,
   fieldWidths,
   gap,
@@ -103,12 +103,15 @@ export function ConfiguredFieldGroup<
   // ラベルは Props で指定されていなければ最初のフィールドの label を使用
   const resolvedLabel = label ?? fieldConfigs[0].label;
 
+  // required は Props で指定されていなければ fieldConfigs のいずれかが required なら true
+  const resolvedRequired = required ?? fieldConfigs.some((config) => config.required) ?? false;
+
   return (
     <FieldItemGroup
       control={control}
       names={names}
       label={resolvedLabel}
-      required={required}
+      required={resolvedRequired}
       description={description}
       fieldWidths={fieldWidths}
       gap={gap}
