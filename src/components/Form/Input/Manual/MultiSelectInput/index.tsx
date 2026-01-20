@@ -37,6 +37,8 @@ export type MultiSelectInputProps = {
   popoverContentProps?: ComponentProps<typeof PopoverContent>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** トリガーボタンに適用するクラス名 */
+  triggerClassName?: string;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
 export function MultiSelectInput({
@@ -53,6 +55,7 @@ export function MultiSelectInput({
   popoverContentProps,
   open,
   onOpenChange,
+  triggerClassName,
   ...rest
 }: MultiSelectInputProps) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -89,6 +92,7 @@ export function MultiSelectInput({
             selectedCount={selectedCount}
             open={resolvedOpen}
             disabled={disabled}
+            className={triggerClassName}
           />
         </PopoverTrigger>
         <PopoverContent
