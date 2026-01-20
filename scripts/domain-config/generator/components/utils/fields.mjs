@@ -66,10 +66,12 @@ ${relationEntries.map((entry) => entry.config).join(",\n")}
 
   const useMemoImport = hasRelations ? "import { useMemo } from \"react\";\n" : "";
   const fieldPatchesBlock = hasRelations
-    ? `  const fieldPatches = useMemo<FieldConfig[]>(
+    ? `
+  const fieldPatches = useMemo<FieldConfig[]>(
     () => ${relationArray},
     ${dependencyArray},
-  );`
+  );
+`
     : "";
 
   const fieldPatchesProp = hasRelations ? "\n      fieldPatches={fieldPatches}" : "";
@@ -89,9 +91,7 @@ export type __Domain__FieldsProps<TFieldValues extends FieldValues> = {
 export function __Domain__Fields<TFieldValues extends FieldValues>({
   methods,
   onMediaStateChange,${destructureBlock}
-}: __Domain__FieldsProps<TFieldValues>) {
-${fieldPatchesBlock}
-
+}: __Domain__FieldsProps<TFieldValues>) {${fieldPatchesBlock}
   return (
     <FieldRenderer
       control={methods.control}
@@ -100,7 +100,8 @@ ${fieldPatchesBlock}
       onMediaStateChange={onMediaStateChange}
     />
   );
-}`;
+}
+`;
 }
 
 export { generateFieldsFromConfig };

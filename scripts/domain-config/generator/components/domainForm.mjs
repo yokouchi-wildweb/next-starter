@@ -3,8 +3,8 @@ import path from "path";
 import { templateDir, replaceTokens } from "./utils/template.mjs";
 // ドメイン共通フォームコンポーネントを生成する
 
-export default function generate(options) {
-  const { camel, ...tokens } = options;
+export default function generate({ config, ...tokens }) {
+  const { camel } = tokens;
   const rel = path.join("common", "__Domain__Form.tsx");
   const templatePath = path.join(templateDir, rel);
   const outputFile = path.join(
