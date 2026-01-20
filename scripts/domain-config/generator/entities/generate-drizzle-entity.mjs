@@ -198,8 +198,10 @@ switch (config.idType) {
     fields.push(`  ${f.name}: ${names.constName}("${toSnakeCase(f.name)}")${notNull}${defaultSuffix},`);
   } else if (f.fieldType === 'array') {
     imports.add('text');
+    const notNull = f.required ? '.notNull()' : '';
+    const defaultVal = f.required ? '' : '.default([])';
     fields.push(
-      `  ${f.name}: text("${toSnakeCase(f.name)}").array().notNull(),`
+      `  ${f.name}: text("${toSnakeCase(f.name)}").array()${notNull}${defaultVal},`
     );
   } else if (f.fieldType === 'timestamp With Time Zone') {
     imports.add('timestamp');

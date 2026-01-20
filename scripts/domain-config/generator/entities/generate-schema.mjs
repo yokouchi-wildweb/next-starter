@@ -183,6 +183,7 @@ const lines = [];
 // normal fields
 (config.fields || []).forEach((f) => {
   // formInput: "none" のフィールドはZodスキーマから除外
+  // formInput: "custom" はUIのみカスタムでスキーマには含める
   if (f.formInput === 'none') return;
 
   if (f.fieldType === 'enum') {
