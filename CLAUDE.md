@@ -56,6 +56,7 @@ core: src/features/core/, no domain.json, manual. examples: auth, user, wallet, 
 business: src/features/, has domain.json, dc:generate. examples: sample, sampleCategory, sampleTag
 
 commands: dc:init | dc:generate -- \<Domain\> | dc:generate:all | dc:delete -- \<Domain\> | dc:add -- \<Domain\>
+config_utils: src/lib/domain/ | getDomainConfig(domain), extractFields(config), getRelations(domain) | client: index.ts, server: server.ts
 ref: src/features/README.md
 
 ## API_ROUTES
