@@ -3,7 +3,7 @@
 import { db } from "@/lib/drizzle";
 import { omitUndefined } from "@/utils/object";
 import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, getTableName, gt } from "drizzle-orm";
-import { generateSortKey, generateFirstSortKey } from "@/lib/fractionalSort";
+import { generateSortKey, generateFirstSortKey } from "./fractionalSort";
 import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";

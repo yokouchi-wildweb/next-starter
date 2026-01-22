@@ -28,6 +28,7 @@
   "useCreatedAt": true,
   "useUpdatedAt": true,
   "useSoftDelete": true,
+  "sortOrderField": "sort_order",
   "fields": [
     {
       "name": "name",
@@ -151,6 +152,13 @@
       "fieldType": "string",
       "readonly": false,
       "formInput": "textarea",
+      "required": false
+    },
+    {
+      "name": "sort_order",
+      "label": "並び順",
+      "fieldType": "string",
+      "formInput": "hidden",
       "required": false
     }
   ],

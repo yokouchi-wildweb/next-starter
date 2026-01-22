@@ -31,7 +31,7 @@ export const __domain__ServiceOptions = baseOptions;
 
 export const base = createCrudService(__Domain__Table, {
   ...baseOptions,
-  parseCreate: (data) => __Domain__CreateSchema.parse(data),
+__sortOrderColumn__  parseCreate: (data) => __Domain__CreateSchema.parse(data),
   parseUpdate: (data) => __Domain__UpdateSchema.parse(data),
   parseUpsert: (data) => __Domain__CreateSchema.parse(data),
 });

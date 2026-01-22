@@ -27,5 +27,6 @@ export default async function askBaseFields() {
     useCreatedAt,
     useUpdatedAt,
     useSoftDelete,
+    sortOrderField: null,
   };
 }
