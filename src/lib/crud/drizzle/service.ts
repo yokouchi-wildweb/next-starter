@@ -6,7 +6,15 @@ import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, getTableName } from
 import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
-import type { SearchParams, PaginatedResult, UpsertOptions, BulkUpsertOptions, BulkUpsertResult, WhereExpr } from "../types";
+import type {
+  SearchParams,
+  PaginatedResult,
+  UpsertOptions,
+  BulkUpsertOptions,
+  BulkUpsertResult,
+  WhereExpr,
+  WithOptions,
+} from "../types";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
 import { applyInsertDefaults, resolveConflictTarget } from "./utils";
 import type { DrizzleCrudServiceOptions, DbTransaction } from "./types";
@@ -16,6 +24,7 @@ import {
   separateBelongsToManyInput,
   syncBelongsToManyRelations,
 } from "./belongsToMany";
+import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateCount } from "./relations";
 
 const resolveRecordId = (value: unknown): string | number | undefined => {
   if (typeof value === "string" || typeof value === "number") {
@@ -134,6 +143,11 @@ export function createCrudService<
   const idColumn = table.id;
   const belongsToManyRelations = serviceOptions.belongsToManyRelations ?? [];
   const useSoftDelete = serviceOptions.useSoftDelete ?? false;
+
+  // withRelations / withCount 用のリレーション設定
+  const belongsToRelations = serviceOptions.belongsToRelations ?? [];
+  const belongsToManyObjectRelations = serviceOptions.belongsToManyObjectRelations ?? [];
+  const countableRelations = serviceOptions.countableRelations ?? [];
   // ソフトデリート用カラム（テーブルに deletedAt がある場合のみ）
   const deletedAtColumn = useSoftDelete
     ? ((table as any).deletedAt as AnyPgColumn | undefined)
@@ -192,27 +206,71 @@ export function createCrudService<
       });
     },
 
-    async list(): Promise<Select[]> {
+    async list(options?: WithOptions): Promise<Select[]> {
       let query: any = db.select().from(table as any);
       const softDeleteFilter = buildSoftDeleteFilter();
       if (softDeleteFilter) query = query.where(softDeleteFilter);
       const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
       if (orderClauses.length) query = query.orderBy(...orderClauses);
       const results = (await query) as Select[];
-      if (!belongsToManyRelations.length) return results;
-      return hydrateBelongsToManyRelations(results, belongsToManyRelations);
+
+      // 既存の belongsToMany ID配列の hydrate
+      if (belongsToManyRelations.length) {
+        await hydrateBelongsToManyRelations(results, belongsToManyRelations);
+      }
+
+      // withRelations: リレーション先オブジェクトを展開
+      if (options?.withRelations) {
+        if (belongsToRelations.length) {
+          await hydrateBelongsTo(results, belongsToRelations);
+        }
+        if (belongsToManyObjectRelations.length) {
+          await hydrateBelongsToManyObjects(results, belongsToManyObjectRelations);
+        }
+      }
+
+      // withCount: リレーション先のレコード数を取得
+      if (options?.withCount) {
+        if (countableRelations.length) {
+          await hydrateCount(results, countableRelations);
+        }
+      }
+
+      return results;
     },
 
-    async listWithDeleted(): Promise<Select[]> {
+    async listWithDeleted(options?: WithOptions): Promise<Select[]> {
       let query: any = db.select().from(table as any);
       const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
       if (orderClauses.length) query = query.orderBy(...orderClauses);
       const results = (await query) as Select[];
-      if (!belongsToManyRelations.length) return results;
-      return hydrateBelongsToManyRelations(results, belongsToManyRelations);
+
+      // 既存の belongsToMany ID配列の hydrate
+      if (belongsToManyRelations.length) {
+        await hydrateBelongsToManyRelations(results, belongsToManyRelations);
+      }
+
+      // withRelations: リレーション先オブジェクトを展開
+      if (options?.withRelations) {
+        if (belongsToRelations.length) {
+          await hydrateBelongsTo(results, belongsToRelations);
+        }
+        if (belongsToManyObjectRelations.length) {
+          await hydrateBelongsToManyObjects(results, belongsToManyObjectRelations);
+        }
+      }
+
+      // withCount: リレーション先のレコード数を取得
+      if (options?.withCount) {
+        if (countableRelations.length) {
+          await hydrateCount(results, countableRelations);
+        }
+      }
+
+      return results;
     },
 
-    async get(id: string): Promise<Select | undefined> {
+    async get(id: string, options?: WithOptions): Promise<Select | undefined> {
       const softDeleteFilter = buildSoftDeleteFilter();
       const whereCondition = softDeleteFilter
         ? and(eq(idColumn, id), softDeleteFilter)
@@ -222,19 +280,63 @@ export function createCrudService<
         .from(table as any)
         .where(whereCondition)) as Select[];
       const record = rows[0] as Select | undefined;
-      if (!record || !belongsToManyRelations.length) return record;
-      await hydrateBelongsToManyRelations([record], belongsToManyRelations);
+      if (!record) return record;
+
+      // 既存の belongsToMany ID配列の hydrate
+      if (belongsToManyRelations.length) {
+        await hydrateBelongsToManyRelations([record], belongsToManyRelations);
+      }
+
+      // withRelations: リレーション先オブジェクトを展開
+      if (options?.withRelations) {
+        if (belongsToRelations.length) {
+          await hydrateBelongsTo([record], belongsToRelations);
+        }
+        if (belongsToManyObjectRelations.length) {
+          await hydrateBelongsToManyObjects([record], belongsToManyObjectRelations);
+        }
+      }
+
+      // withCount: リレーション先のレコード数を取得
+      if (options?.withCount) {
+        if (countableRelations.length) {
+          await hydrateCount([record], countableRelations);
+        }
+      }
+
       return record;
     },
 
-    async getWithDeleted(id: string): Promise<Select | undefined> {
+    async getWithDeleted(id: string, options?: WithOptions): Promise<Select | undefined> {
       const rows = (await db
         .select()
         .from(table as any)
         .where(eq(idColumn, id))) as Select[];
       const record = rows[0] as Select | undefined;
-      if (!record || !belongsToManyRelations.length) return record;
-      await hydrateBelongsToManyRelations([record], belongsToManyRelations);
+      if (!record) return record;
+
+      // 既存の belongsToMany ID配列の hydrate
+      if (belongsToManyRelations.length) {
+        await hydrateBelongsToManyRelations([record], belongsToManyRelations);
+      }
+
+      // withRelations: リレーション先オブジェクトを展開
+      if (options?.withRelations) {
+        if (belongsToRelations.length) {
+          await hydrateBelongsTo([record], belongsToRelations);
+        }
+        if (belongsToManyObjectRelations.length) {
+          await hydrateBelongsToManyObjects([record], belongsToManyObjectRelations);
+        }
+      }
+
+      // withCount: リレーション先のレコード数を取得
+      if (options?.withCount) {
+        if (countableRelations.length) {
+          await hydrateCount([record], countableRelations);
+        }
+      }
+
       return record;
     },
 
@@ -342,7 +444,7 @@ export function createCrudService<
       }
     },
 
-    async search(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
+    async search(params: SearchParams & WithOptions = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
         limit = 100,
@@ -350,6 +452,8 @@ export function createCrudService<
         searchQuery,
         searchFields = serviceOptions.defaultSearchFields,
         where,
+        withRelations,
+        withCount,
       } = params;
 
       const searchPriorityFields = params.searchPriorityFields ?? serviceOptions.defaultSearchPriorityFields;
@@ -398,12 +502,33 @@ export function createCrudService<
         orderBy: orderClauses,
         where: finalWhere,
       });
-      if (!belongsToManyRelations.length) return result;
-      await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
+
+      // 既存の belongsToMany ID配列の hydrate
+      if (belongsToManyRelations.length) {
+        await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
+      }
+
+      // withRelations: リレーション先オブジェクトを展開
+      if (withRelations) {
+        if (belongsToRelations.length) {
+          await hydrateBelongsTo(result.results, belongsToRelations);
+        }
+        if (belongsToManyObjectRelations.length) {
+          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations);
+        }
+      }
+
+      // withCount: リレーション先のレコード数を取得
+      if (withCount) {
+        if (countableRelations.length) {
+          await hydrateCount(result.results, countableRelations);
+        }
+      }
+
       return result;
     },
 
-    async searchWithDeleted(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
+    async searchWithDeleted(params: SearchParams & WithOptions = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
         limit = 100,
@@ -411,6 +536,8 @@ export function createCrudService<
         searchQuery,
         searchFields = serviceOptions.defaultSearchFields,
         where,
+        withRelations,
+        withCount,
       } = params;
 
       const searchPriorityFields = params.searchPriorityFields ?? serviceOptions.defaultSearchPriorityFields;
@@ -453,19 +580,62 @@ export function createCrudService<
         orderBy: orderClauses,
         where: finalWhere,
       });
-      if (!belongsToManyRelations.length) return result;
-      await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
+
+      // 既存の belongsToMany ID配列の hydrate
+      if (belongsToManyRelations.length) {
+        await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
+      }
+
+      // withRelations: リレーション先オブジェクトを展開
+      if (withRelations) {
+        if (belongsToRelations.length) {
+          await hydrateBelongsTo(result.results, belongsToRelations);
+        }
+        if (belongsToManyObjectRelations.length) {
+          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations);
+        }
+      }
+
+      // withCount: リレーション先のレコード数を取得
+      if (withCount) {
+        if (countableRelations.length) {
+          await hydrateCount(result.results, countableRelations);
+        }
+      }
+
       return result;
     },
 
     async query<TSelect extends Record<string, any> = Select>(
       baseQuery: any,
-      options: { page?: number; limit?: number; orderBy?: SQL[]; where?: SQL } = {},
+      options: { page?: number; limit?: number; orderBy?: SQL[]; where?: SQL } & WithOptions = {},
       countQuery?: any,
     ): Promise<PaginatedResult<TSelect>> {
-      const result = await runQuery<TSelect>(table, baseQuery, options, countQuery);
-      if (!belongsToManyRelations.length) return result;
-      await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
+      const { withRelations, withCount, ...queryOptions } = options;
+      const result = await runQuery<TSelect>(table, baseQuery, queryOptions, countQuery);
+
+      // 既存の belongsToMany ID配列の hydrate
+      if (belongsToManyRelations.length) {
+        await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
+      }
+
+      // withRelations: リレーション先オブジェクトを展開
+      if (withRelations) {
+        if (belongsToRelations.length) {
+          await hydrateBelongsTo(result.results, belongsToRelations);
+        }
+        if (belongsToManyObjectRelations.length) {
+          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations);
+        }
+      }
+
+      // withCount: リレーション先のレコード数を取得
+      if (withCount) {
+        if (countableRelations.length) {
+          await hydrateCount(result.results, countableRelations);
+        }
+      }
+
       return result;
     },
 

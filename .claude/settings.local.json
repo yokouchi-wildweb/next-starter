@@ -126,7 +126,8 @@
       "Bash(ss -tlnp:*)",
       "Bash(cross-env APP_ENV=.env.development npx drizzle-kit push:*)",
       "Bash(yes:*)",
-      "WebFetch(domain:vket.com)"
+      "WebFetch(domain:vket.com)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [
       "Bash(sudo:*)",

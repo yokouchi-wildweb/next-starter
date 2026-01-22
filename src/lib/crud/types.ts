@@ -180,3 +180,81 @@ export type CreateCrudServiceOptions<TData extends Record<string, any> = Record<
      */
     parseUpsert?: (data: TData) => MaybePromise<TData>;
   };
+
+// ============================================================
+// withRelations / withCount オプション
+// ============================================================
+
+/**
+ * GET系メソッド（get, list, search）で使用するオプション。
+ * リレーション展開やカウント取得を制御する。
+ */
+export type WithOptions = {
+  /**
+   * true の場合、リレーション先のオブジェクトを展開して返す。
+   * - belongsTo: 外部キー → オブジェクト（例: sample_category_id → sample_category）
+   * - belongsToMany: ID配列 → オブジェクト配列（例: sample_tag_ids → sample_tags）
+   */
+  withRelations?: boolean;
+  /**
+   * true の場合、リレーション先のレコード数を _count に含めて返す。
+   * 例: _count: { sample_tags: 5 }
+   */
+  withCount?: boolean;
+};
+
+// ============================================================
+// リレーション設定型（createCrudService に渡す）
+// ============================================================
+
+/**
+ * belongsTo リレーション設定。
+ * 外部キーからリレーション先のオブジェクトを取得する。
+ */
+export type BelongsToRelation<TTable = any> = {
+  /** 展開後のフィールド名（例: "sample_category"） */
+  field: string;
+  /** 外部キーのフィールド名（例: "sample_category_id"） */
+  foreignKey: string;
+  /** リレーション先のテーブル（例: SampleCategoryTable） */
+  table: TTable;
+  /** 取得するカラム名（省略時は全カラム） */
+  targetFields?: string[];
+};
+
+/**
+ * belongsToMany リレーションのオブジェクト展開設定。
+ * 中間テーブルを経由してリレーション先のオブジェクト配列を取得する。
+ */
+export type BelongsToManyObjectRelation<
+  TTargetTable = any,
+  TThroughTable = any,
+  TSourceColumn = any,
+  TTargetColumn = any,
+> = {
+  /** 展開後のフィールド名（例: "sample_tags"） */
+  field: string;
+  /** リレーション先のテーブル（例: SampleTagTable） */
+  targetTable: TTargetTable;
+  /** 中間テーブル（例: SampleToSampleTagTable） */
+  throughTable: TThroughTable;
+  /** 中間テーブルの source 側カラム（例: SampleToSampleTagTable.sampleId） */
+  sourceColumn: TSourceColumn;
+  /** 中間テーブルの target 側カラム（例: SampleToSampleTagTable.sampleTagId） */
+  targetColumn: TTargetColumn;
+  /** 取得するカラム名（省略時は全カラム） */
+  targetFields?: string[];
+};
+
+/**
+ * belongsToMany リレーションのカウント設定。
+ * 中間テーブルを経由してリレーション先のレコード数を取得する。
+ */
+export type CountableRelation<TThroughTable = any> = {
+  /** カウントフィールド名（例: "sample_tags"） */
+  field: string;
+  /** 中間テーブル（例: SampleToSampleTagTable） */
+  throughTable: TThroughTable;
+  /** 中間テーブルの source 側外部キー名（例: "sampleId"） */
+  foreignKey: string;
+};
