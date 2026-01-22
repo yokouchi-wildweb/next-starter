@@ -58,6 +58,7 @@ let dbEngine = "";
 let serviceOptionsLiteral = "{}";
 let relationImports = [];
 let belongsToManyLiteral = "";
+let relationDomainImports = [];
 let hasMediaUploader = false;
 if (fs.existsSync(configPath)) {
   const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -66,6 +67,7 @@ if (fs.existsSync(configPath)) {
   serviceOptionsLiteral = composed.optionsLiteral;
   relationImports = composed.relationTableImports;
   belongsToManyLiteral = composed.belongsToManyLiteral;
+  relationDomainImports = composed.relationDomainImports || [];
   // mediaUploaderフィールドの有無を判定
   hasMediaUploader = Array.isArray(cfg.fields) && cfg.fields.some((f) => f.fieldType === "mediaUploader");
 }
@@ -100,10 +102,48 @@ function collectBaseServiceOptions(config) {
 function composeServiceOptions(config) {
   const baseOptions = collectBaseServiceOptions(config);
   const belongsToMany = buildBelongsToManySnippets(config);
-  const optionsLiteral = formatOptionsLiteral(baseOptions, belongsToMany);
-  const relationTableImports = belongsToMany.map((item) => item.tableVar);
-  const belongsToManyLiteral = formatBelongsToManyLiteral(belongsToMany);
-  return { optionsLiteral, relationTableImports, belongsToManyLiteral };
+
+  // withRelations / withCount 用の設定を構築
+  const belongsToRelations = buildBelongsToRelationsSnippets(config);
+  const belongsToManyObjectRelations = buildBelongsToManyObjectRelationsSnippets(config);
+  const countableRelations = buildCountableRelationsSnippets(config);
+
+  const optionsLiteral = formatOptionsLiteral(
+    baseOptions,
+    belongsToMany,
+    belongsToRelations,
+    belongsToManyObjectRelations,
+    countableRelations
+  );
+
+  // 関連テーブルのインポートを収集
+  // throughテーブル（SampleToSampleTagTable等）はドメイン内のdrizzleからインポート
+  // 対象テーブル（SampleCategoryTable等）は各ドメインから別途インポート
+  const relationTableImports = [
+    ...belongsToMany.map((item) => item.tableVar),
+  ].filter((v, i, a) => a.indexOf(v) === i); // 重複除去
+
+  // リレーション先ドメインのインポート情報を収集
+  const relationDomainImports = [
+    ...belongsToRelations.map((item) => ({
+      domain: item.relationDomain,
+      tableImport: item.tableImport,
+    })),
+    ...belongsToManyObjectRelations.map((item) => ({
+      domain: item.relationDomain,
+      tableImport: item.targetTableImport,
+    })),
+  ];
+
+  // すべてのリレーション設定をまとめたリテラルを生成
+  const belongsToManyLiteral = formatAllRelationsLiteral(
+    belongsToMany,
+    belongsToRelations,
+    belongsToManyObjectRelations,
+    countableRelations
+  );
+
+  return { optionsLiteral, relationTableImports, belongsToManyLiteral, relationDomainImports };
 }
 
 function buildBelongsToManySnippets(config) {
@@ -144,15 +184,130 @@ function buildBelongsToManySnippets(config) {
     });
 }
 
-function formatOptionsLiteral(baseOptions, belongsToMany) {
+/**
+ * withRelations 用: belongsTo リレーション設定を生成
+ */
+function buildBelongsToRelationsSnippets(config) {
+  if (!Array.isArray(config.relations)) return [];
+  if (config.dbEngine !== "Neon") return [];
+
+  return config.relations
+    .filter((relation) => relation.relationType === "belongsTo")
+    .map((relation) => {
+      const relationPascal = toPascalCase(relation.domain);
+      const relationSnake = toSnakeCase(relation.domain);
+      const tableImport = `${relationPascal}Table`;
+      // field名: sample_category_id → sample_category
+      const field = relation.fieldName.replace(/_id$/, "");
+      return {
+        tableImport,
+        relationDomain: relation.domain,
+        literal: [
+          "    {",
+          `      field: "${field}",`,
+          `      foreignKey: "${relation.fieldName}",`,
+          `      table: ${tableImport},`,
+          "    }",
+        ].join("\n"),
+      };
+    });
+}
+
+/**
+ * withRelations 用: belongsToMany のオブジェクト展開設定を生成
+ */
+function buildBelongsToManyObjectRelationsSnippets(config) {
+  if (!Array.isArray(config.relations)) return [];
+  if (config.dbEngine !== "Neon") return [];
+
+  return config.relations
+    .filter((relation) => relation.relationType === "belongsToMany" && relation.includeRelationTable !== false)
+    .map((relation) => {
+      const relationPascal = toPascalCase(relation.domain);
+      const relationCamel = toCamelCase(relation.domain);
+      const targetTableImport = `${relationPascal}Table`;
+      const throughTableVar = `${pascal}To${relationPascal}Table`;
+      const sourceProperty = `${camel}Id`;
+      const targetProperty = `${relationCamel}Id`;
+      // field名: sample_tag_ids → sample_tags (複数形)
+      const field = toPlural(relation.domain.replace(/_/g, "_"));
+      return {
+        targetTableImport,
+        relationDomain: relation.domain,
+        literal: [
+          "    {",
+          `      field: "${field}",`,
+          `      targetTable: ${targetTableImport},`,
+          `      throughTable: ${throughTableVar},`,
+          `      sourceColumn: ${throughTableVar}.${sourceProperty},`,
+          `      targetColumn: ${throughTableVar}.${targetProperty},`,
+          "    }",
+        ].join("\n"),
+      };
+    });
+}
+
+/**
+ * withCount 用: カウント取得対象のリレーション設定を生成
+ */
+function buildCountableRelationsSnippets(config) {
+  if (!Array.isArray(config.relations)) return [];
+  if (config.dbEngine !== "Neon") return [];
+
+  return config.relations
+    .filter((relation) => relation.relationType === "belongsToMany" && relation.includeRelationTable !== false)
+    .map((relation) => {
+      const relationPascal = toPascalCase(relation.domain);
+      const throughTableVar = `${pascal}To${relationPascal}Table`;
+      const sourceProperty = `${camel}Id`;
+      // field名: sample_tag_ids → sample_tags (複数形)
+      const field = toPlural(relation.domain.replace(/_/g, "_"));
+      return {
+        literal: [
+          "    {",
+          `      field: "${field}",`,
+          `      throughTable: ${throughTableVar},`,
+          `      foreignKey: "${sourceProperty}",`,
+          "    }",
+        ].join("\n"),
+      };
+    });
+}
+
+function formatOptionsLiteral(
+  baseOptions,
+  belongsToMany,
+  belongsToRelations = [],
+  belongsToManyObjectRelations = [],
+  countableRelations = []
+) {
   const entries = Object.entries(baseOptions).map(([key, value]) => {
     const formatted = JSON.stringify(value, null, 2).replace(/\n/g, "\n  ");
     return `  ${key}: ${formatted},`;
   });
 
+  // 既存: belongsToMany の ID配列 hydrate 用
   if (belongsToMany.length) {
     const literal = belongsToMany.map((item) => `  ${item.literal}`).join(",\n");
     entries.push(`  belongsToManyRelations: [\n${literal}\n  ],`);
+  }
+
+  // withRelations 用: belongsTo リレーション設定
+  if (belongsToRelations.length) {
+    const literal = belongsToRelations.map((item) => item.literal).join(",\n");
+    entries.push(`  belongsToRelations: [\n${literal}\n  ],`);
+  }
+
+  // withRelations 用: belongsToMany のオブジェクト展開設定
+  if (belongsToManyObjectRelations.length) {
+    const literal = belongsToManyObjectRelations.map((item) => item.literal).join(",\n");
+    entries.push(`  belongsToManyObjectRelations: [\n${literal}\n  ],`);
+  }
+
+  // withCount 用: カウント取得対象のリレーション設定
+  if (countableRelations.length) {
+    const literal = countableRelations.map((item) => item.literal).join(",\n");
+    entries.push(`  countableRelations: [\n${literal}\n  ],`);
   }
 
   if (!entries.length) return "{}";
@@ -165,6 +320,48 @@ function formatBelongsToManyLiteral(belongsToMany) {
     .map((item) => formatBelongsToManyBlock(item.lines))
     .join(",\n");
   return `  belongsToManyRelations: [\n${literal}\n  ],\n`;
+}
+
+/**
+ * すべてのリレーション設定をまとめたリテラルを生成
+ * テンプレートの __belongsToManyRelations__ トークンに挿入される
+ */
+function formatAllRelationsLiteral(
+  belongsToMany,
+  belongsToRelations,
+  belongsToManyObjectRelations,
+  countableRelations
+) {
+  const sections = [];
+
+  // 既存: belongsToMany の ID配列 hydrate 用
+  if (belongsToMany.length) {
+    const literal = belongsToMany
+      .map((item) => formatBelongsToManyBlock(item.lines))
+      .join(",\n");
+    sections.push(`  belongsToManyRelations: [\n${literal}\n  ],`);
+  }
+
+  // withRelations 用: belongsTo リレーション設定
+  if (belongsToRelations.length) {
+    const literal = belongsToRelations.map((item) => item.literal).join(",\n");
+    sections.push(`  belongsToRelations: [\n${literal}\n  ],`);
+  }
+
+  // withRelations 用: belongsToMany のオブジェクト展開設定
+  if (belongsToManyObjectRelations.length) {
+    const literal = belongsToManyObjectRelations.map((item) => item.literal).join(",\n");
+    sections.push(`  belongsToManyObjectRelations: [\n${literal}\n  ],`);
+  }
+
+  // withCount 用: カウント取得対象のリレーション設定
+  if (countableRelations.length) {
+    const literal = countableRelations.map((item) => item.literal).join(",\n");
+    sections.push(`  countableRelations: [\n${literal}\n  ],`);
+  }
+
+  if (!sections.length) return "";
+  return sections.join("\n") + "\n";
 }
 
 function formatBelongsToManyBlock(lines = []) {
@@ -187,7 +384,38 @@ function buildEntityImports() {
   return imports.join(", ");
 }
 
+/**
+ * リレーション先テーブルのインポート文を生成
+ * 例: import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
+ */
+function buildRelationTableImports() {
+  if (!relationDomainImports.length) return "";
+
+  // ドメインごとにグループ化
+  const byDomain = new Map();
+  relationDomainImports.forEach(({ domain, tableImport }) => {
+    const domainCamel = toCamelCase(domain);
+    if (!byDomain.has(domainCamel)) {
+      byDomain.set(domainCamel, []);
+    }
+    const imports = byDomain.get(domainCamel);
+    if (!imports.includes(tableImport)) {
+      imports.push(tableImport);
+    }
+  });
+
+  // インポート文を生成
+  const lines = [];
+  byDomain.forEach((imports, domainCamel) => {
+    lines.push(`import { ${imports.join(", ")} } from "@/features/${domainCamel}/entities/drizzle";`);
+  });
+
+  // インポート文がある場合は末尾に改行を追加（テンプレートの次の行と接続するため）
+  return lines.length ? lines.join("\n") + "\n" : "";
+}
+
 const drizzleEntityImports = buildEntityImports();
+const relationTableImportsText = buildRelationTableImports();
 
 // テンプレート文字列内のトークンを置換
 function replaceTokens(content) {
@@ -199,7 +427,8 @@ function replaceTokens(content) {
     .replace(/__serviceBase__/g, baseFile.replace(/\.ts$/, ""))
     .replace(/__serviceOptions__/g, serviceOptionsLiteral)
     .replace(/__DrizzleEntityImports__/g, drizzleEntityImports)
-    .replace(/__belongsToManyRelations__/g, belongsToManyLiteral);
+    .replace(/__belongsToManyRelations__/g, belongsToManyLiteral)
+    .replace(/__RelationTableImports__/g, relationTableImportsText);
 }
 
 // 出力先ディレクトリが無ければ作成

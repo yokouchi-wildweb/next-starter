@@ -19,7 +19,6 @@ export const baseOptions = {
   useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
-  // 既存: belongsToMany の ID配列 hydrate 用
   belongsToManyRelations: [
     {
       fieldName: "sample_tag_ids",
@@ -30,17 +29,13 @@ export const baseOptions = {
       targetProperty: "sampleTagId",
     }
   ],
-
-  // withRelations 用: belongsTo リレーション設定
   belongsToRelations: [
     {
       field: "sample_category",
       foreignKey: "sample_category_id",
       table: SampleCategoryTable,
-    },
+    }
   ],
-
-  // withRelations 用: belongsToMany のオブジェクト展開設定
   belongsToManyObjectRelations: [
     {
       field: "sample_tags",
@@ -48,16 +43,14 @@ export const baseOptions = {
       throughTable: SampleToSampleTagTable,
       sourceColumn: SampleToSampleTagTable.sampleId,
       targetColumn: SampleToSampleTagTable.sampleTagId,
-    },
+    }
   ],
-
-  // withCount 用: カウント取得対象のリレーション設定
   countableRelations: [
     {
       field: "sample_tags",
       throughTable: SampleToSampleTagTable,
       foreignKey: "sampleId",
-    },
+    }
   ],
 
 } satisfies DrizzleCrudServiceOptions<

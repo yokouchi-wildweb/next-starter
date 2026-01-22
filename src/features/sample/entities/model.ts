@@ -31,7 +31,7 @@ export type Sample = {
 export type SampleWithRelations = Sample & {
   /** belongsTo: サンプルカテゴリ */
   sample_category?: SampleCategory | null;
-  /** belongsToMany: サンプルタグ配列 */
+  /** belongsToMany: サンプルタグ */
   sample_tags?: SampleTag[];
 };
 

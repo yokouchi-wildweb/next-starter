@@ -2,7 +2,7 @@
 
 import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { __DrizzleEntityImports__ } from "@/features/__domain__/entities/drizzle";
-import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
+__RelationTableImports__import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
