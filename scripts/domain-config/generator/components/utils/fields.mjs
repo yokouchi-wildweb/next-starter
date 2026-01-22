@@ -15,15 +15,22 @@ function generateFieldsFromConfig(config) {
       (rel.relationType === "belongsToMany" && rel.includeRelationTable !== false)
   );
 
-  // リレーションがある場合は useRelationOptions を使用
+  // リレーションがある場合の import
   const useRelationImport = hasRelations
-    ? 'import { useRelationOptions } from "@/lib/domain/hooks";\n'
+    ? `import { useRelationOptions } from "@/lib/domain/hooks";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
+`
     : "";
 
+  // リレーションがある場合のフック呼び出しとローディング処理
   const useRelationBlock = hasRelations
     ? `
   // リレーション先のデータを自動取得し、insertBefore 形式で返す
-  const { insertBefore } = useRelationOptions(domainConfig, { suspense: true });
+  const { insertBefore, isLoading } = useRelationOptions(domainConfig);
+
+  if (isLoading) {
+    return <FormSkeleton />;
+  }
 `
     : "";
 

@@ -108,7 +108,6 @@ export type UseRelationOptionsResult = {
  * FieldRenderer の insertBefore 形式で返すフック
  *
  * @param domainConfig - domain.json の内容
- * @param options - SWR オプション
  * @returns InsertFieldsMap 形式のフィールド設定
  *
  * @example
@@ -118,7 +117,7 @@ export type UseRelationOptionsResult = {
  * function SampleFields({ methods }) {
  *   const { insertBefore, isLoading } = useRelationOptions(domainConfig);
  *
- *   if (isLoading) return <Skeleton />;
+ *   if (isLoading) return <FormSkeleton />;
  *
  *   return (
  *     <FieldRenderer
@@ -131,8 +130,7 @@ export type UseRelationOptionsResult = {
  * ```
  */
 export function useRelationOptions(
-  domainConfig: DomainConfig,
-  options?: { suspense?: boolean }
+  domainConfig: DomainConfig
 ): UseRelationOptionsResult {
   const relations = domainConfig.relations ?? [];
 
@@ -149,7 +147,6 @@ export function useRelationOptions(
     () => fetchRelationData(relations),
     {
       revalidateOnFocus: false,
-      suspense: options?.suspense ?? false,
     }
   );
 

@@ -6,6 +6,7 @@ import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
 import type { FieldConfig } from "@/components/Form/Field";
 import { useRelationOptions } from "@/lib/domain/hooks";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import domainConfig from "@/features/sample/domain.json";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
@@ -18,7 +19,11 @@ export function SampleFields<TFieldValues extends FieldValues>({
   onMediaStateChange,
 }: SampleFieldsProps<TFieldValues>) {
   // リレーション先のデータを自動取得し、insertBefore 形式で返す
-  const { insertBefore } = useRelationOptions(domainConfig, { suspense: true });
+  const { insertBefore, isLoading } = useRelationOptions(domainConfig);
+
+  if (isLoading) {
+    return <FormSkeleton />;
+  }
 
   return (
     <FieldRenderer
