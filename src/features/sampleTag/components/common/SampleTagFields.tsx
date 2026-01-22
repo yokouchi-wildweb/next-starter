@@ -1,5 +1,7 @@
 // src/features/sampleTag/components/common/SampleTagFields.tsx
 
+"use client";
+
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
 import type { FieldConfig } from "@/components/Form/Field";

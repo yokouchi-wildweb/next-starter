@@ -4,17 +4,16 @@
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { SampleTagFields, type SampleTagFieldsProps } from "./SampleTagFields";
+import { SampleTagFields } from "./SampleTagFields";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
-export type SampleTagFormProps<TFieldValues extends FieldValues> =
-  Omit<SampleTagFieldsProps<TFieldValues>, "methods" | "onMediaStateChange"> & {
-    methods: UseFormReturn<TFieldValues>;
-    onSubmitAction: (data: TFieldValues) => Promise<void>;
-    isMutating?: boolean;
-    submitLabel: string;
-    onCancel?: () => void;
-  };
+export type SampleTagFormProps<TFieldValues extends FieldValues> = {
+  methods: UseFormReturn<TFieldValues>;
+  onSubmitAction: (data: TFieldValues) => Promise<void>;
+  isMutating?: boolean;
+  submitLabel: string;
+  onCancel?: () => void;
+};
 
 export function SampleTagForm<TFieldValues extends FieldValues>({
   methods,
@@ -22,7 +21,6 @@ export function SampleTagForm<TFieldValues extends FieldValues>({
   isMutating = false,
   submitLabel,
   onCancel,
-  ...fieldsProps
 }: SampleTagFormProps<TFieldValues>) {
   return (
     <AppForm
@@ -31,7 +29,7 @@ export function SampleTagForm<TFieldValues extends FieldValues>({
       pending={isMutating}
       fieldSpace={6}
     >
-      <SampleTagFields<TFieldValues> {...fieldsProps} methods={methods} />
+      <SampleTagFields<TFieldValues> methods={methods} />
       <div className="flex justify-center gap-3">
         <Button type="submit" variant="default">
           {submitLabel}

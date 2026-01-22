@@ -4,17 +4,16 @@
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { SampleCategoryFields, type SampleCategoryFieldsProps } from "./SampleCategoryFields";
+import { SampleCategoryFields } from "./SampleCategoryFields";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
-export type SampleCategoryFormProps<TFieldValues extends FieldValues> =
-  Omit<SampleCategoryFieldsProps<TFieldValues>, "methods" | "onMediaStateChange"> & {
-    methods: UseFormReturn<TFieldValues>;
-    onSubmitAction: (data: TFieldValues) => Promise<void>;
-    isMutating?: boolean;
-    submitLabel: string;
-    onCancel?: () => void;
-  };
+export type SampleCategoryFormProps<TFieldValues extends FieldValues> = {
+  methods: UseFormReturn<TFieldValues>;
+  onSubmitAction: (data: TFieldValues) => Promise<void>;
+  isMutating?: boolean;
+  submitLabel: string;
+  onCancel?: () => void;
+};
 
 export function SampleCategoryForm<TFieldValues extends FieldValues>({
   methods,
@@ -22,7 +21,6 @@ export function SampleCategoryForm<TFieldValues extends FieldValues>({
   isMutating = false,
   submitLabel,
   onCancel,
-  ...fieldsProps
 }: SampleCategoryFormProps<TFieldValues>) {
   return (
     <AppForm
@@ -31,7 +29,7 @@ export function SampleCategoryForm<TFieldValues extends FieldValues>({
       pending={isMutating}
       fieldSpace={6}
     >
-      <SampleCategoryFields<TFieldValues> {...fieldsProps} methods={methods} />
+      <SampleCategoryFields<TFieldValues> methods={methods} />
       <div className="flex justify-center gap-3">
         <Button type="submit" variant="default">
           {submitLabel}
