@@ -132,9 +132,17 @@ export type UseRelationOptionsResult = {
 export function useRelationOptions(
   domainConfig: DomainConfig
 ): UseRelationOptionsResult {
-  const relations = domainConfig.relations ?? [];
+  // belongsTo と belongsToMany のみを対象（hasMany は除外）
+  const relations = (domainConfig.relations ?? []).filter((rel) => {
+    if (rel.relationType === "belongsTo") return true;
+    if (rel.relationType === "belongsToMany") {
+      // includeRelationTable が false の場合は除外
+      return (rel as RelationConfig & { includeRelationTable?: boolean }).includeRelationTable !== false;
+    }
+    return false;
+  });
 
-  // リレーションがない場合は空を返す
+  // 対象リレーションがない場合は空を返す
   const hasRelations = relations.length > 0;
 
   // SWR キーを生成（リレーションドメインのリスト）
