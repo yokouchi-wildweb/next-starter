@@ -145,7 +145,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
               <Para size="xs" tone="muted">
                 対象ユーザー
               </Para>
-              <Para>{user.displayName ?? adminFallback}</Para>
+              <Para>{user.name ?? adminFallback}</Para>
               <Para tone="muted" size="sm">
                 {user.email ?? adminFallback}
               </Para>

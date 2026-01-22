@@ -50,9 +50,9 @@ const createColumns = (
     {
       header: "表示名",
       render: (user) =>
-        presenters.displayName({
-          value: user.displayName,
-          field: "displayName",
+        presenters.name({
+          value: user.name,
+          field: "name",
           record: user,
         }),
     },

@@ -52,7 +52,7 @@ export const GET = createApiRoute(
           isDemo: parsed.data.isDemo,
           providerType: parsed.data.providerType,
           providerUid: parsed.data.providerUid,
-          displayName: parsed.data.displayName ?? null,
+          name: parsed.data.name ?? null,
         });
       },
     });
@@ -79,7 +79,7 @@ export const GET = createApiRoute(
         isDemo: sessionUser.isDemo,
         providerType: sessionUser.providerType,
         providerUid: sessionUser.providerUid,
-        displayName: sessionUser.displayName,
+        name: sessionUser.name,
       },
       options: { maxAge },
     });

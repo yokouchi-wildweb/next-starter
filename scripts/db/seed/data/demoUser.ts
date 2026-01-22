@@ -34,7 +34,7 @@ export async function seedDemoUser() {
       providerType: DEMO_USER_PROVIDER_TYPE,
       providerUid: DEMO_USER_PROVIDER_UID,
       email: "demo@example.com",
-      displayName: "デモユーザー",
+      name: "デモユーザー",
       role: "user",
       status: "active",
       isDemo: true,

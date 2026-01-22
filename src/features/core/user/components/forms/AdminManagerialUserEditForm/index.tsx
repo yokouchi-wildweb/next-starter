@@ -49,7 +49,7 @@ export default function ManagerialUserEditForm({
       await trigger({
         id: user.id,
         data: {
-          displayName: values.displayName,
+          name: values.name,
           email: values.email,
           localPassword: resolvedLocalPassword,
           profileData: values.profileData,
@@ -78,7 +78,7 @@ export default function ManagerialUserEditForm({
     >
       <FieldItem
         control={control}
-        name="displayName"
+        name="name"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />

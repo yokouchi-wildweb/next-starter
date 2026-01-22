@@ -8,7 +8,7 @@ import { createDemoUser } from "@/features/core/user/services/server/creation/co
 import { USER_ROLES } from "@/features/core/user/constants";
 
 const CreateDemoUserPayloadSchema = z.object({
-  displayName: z.string(),
+  name: z.string(),
   email: z
     .string()
     .trim()

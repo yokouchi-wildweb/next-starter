@@ -53,7 +53,7 @@ export function EmailRegistrationForm() {
   }, [email, form]);
 
   const handleSubmit = useCallback(
-    async ({ email: emailValue, displayName, password, role, profileData, agreeToTerms: _ }: FormValues) => {
+    async ({ email: emailValue, name, password, role, profileData, agreeToTerms: _ }: FormValues) => {
       try {
         const currentUser = auth.currentUser;
 
@@ -71,7 +71,7 @@ export function EmailRegistrationForm() {
           providerUid: currentUser.uid,
           idToken,
           email: emailValue,
-          displayName,
+          name,
           password,
           role,
           profileData,
@@ -123,7 +123,7 @@ export function EmailRegistrationForm() {
 
         <FieldItem
           control={form.control}
-          name="displayName"
+          name="name"
           label="表示名"
           required
           renderInput={(field) => (

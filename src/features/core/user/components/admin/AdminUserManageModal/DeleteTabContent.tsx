@@ -67,7 +67,7 @@ export function DeleteTabContent({ user, onClose }: Props) {
     <Flex direction="column" gap="md" className="mt-2">
       <Block className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
         <Para size="sm" className="text-destructive">
-          <strong>{user.displayName ?? user.email}</strong> を削除します。
+          <strong>{user.name ?? user.email}</strong> を削除します。
         </Para>
         <Para size="xs" tone="muted" className="mt-2">
           削除されたユーザーはログインできなくなります。

@@ -5,7 +5,7 @@ import {
   getProfilesByCategory,
 } from "@/features/core/userProfile/utils";
 
-const displayNameSchema = z.string();
+const nameSchema = z.string();
 
 const emailSchema = z
   .string({ required_error: "メールアドレスを入力してください" })
@@ -22,7 +22,7 @@ const validateProfileData = createProfileDataValidator(getProfilesByCategory("us
 
 export const FormSchema = z
   .object({
-    displayName: displayNameSchema,
+    name: nameSchema,
     email: emailSchema,
     localPassword: localPasswordSchema,
     role: z.string(),
@@ -33,7 +33,7 @@ export const FormSchema = z
   });
 
 export type FormValues = {
-  displayName: string;
+  name: string;
   email: string;
   localPassword: string;
   role: string;
@@ -41,7 +41,7 @@ export type FormValues = {
 };
 
 export const DefaultValues: FormValues = {
-  displayName: "",
+  name: "",
   email: "",
   role: "user",
   localPassword: "",

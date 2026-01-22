@@ -44,7 +44,7 @@ export function OAuthRegistrationForm() {
   const currentUser = auth.currentUser;
   const providerProfile = {
     email: currentUser?.email ?? "",
-    displayName: currentUser?.displayName ?? "",
+    name: currentUser?.displayName ?? "",
   };
   const isSubmitted = form.formState.isSubmitted;
 
@@ -52,13 +52,13 @@ export function OAuthRegistrationForm() {
     form.setValue("email", providerProfile.email, {
       shouldValidate: isSubmitted,
     });
-    form.setValue("displayName", providerProfile.displayName, {
+    form.setValue("name", providerProfile.name, {
       shouldValidate: isSubmitted,
     });
-  }, [form, isSubmitted, providerProfile.displayName, providerProfile.email]);
+  }, [form, isSubmitted, providerProfile.name, providerProfile.email]);
 
   const handleSubmit = useCallback(
-    async ({ email, displayName, role, profileData, agreeToTerms: _ }: FormValues) => {
+    async ({ email, name, role, profileData, agreeToTerms: _ }: FormValues) => {
       try {
         const currentUser = auth.currentUser;
 
@@ -85,7 +85,7 @@ export function OAuthRegistrationForm() {
           providerUid: currentUser.uid,
           idToken,
           email,
-          displayName,
+          name,
           role,
           profileData,
         });
@@ -139,7 +139,7 @@ export function OAuthRegistrationForm() {
 
         <FieldItem
           control={form.control}
-          name="displayName"
+          name="name"
           label="表示名"
           required
           renderInput={(field) => (

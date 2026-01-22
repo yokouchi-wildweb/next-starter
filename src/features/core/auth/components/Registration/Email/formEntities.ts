@@ -19,11 +19,11 @@ const emailSchema = z
   .min(1, { message: "メールアドレスを入力してください" })
   .pipe(RegistrationSchema.shape.email);
 
-const displayNameSchema = z
+const nameSchema = z
   .string({ required_error: "表示名を入力してください" })
   .trim()
   .min(1, { message: "表示名を入力してください" })
-  .pipe(RegistrationSchema.shape.displayName);
+  .pipe(RegistrationSchema.shape.name);
 
 const passwordSchema = z
   .string({ required_error: "パスワードは8文字以上で入力してください" })
@@ -36,7 +36,7 @@ const agreeToTermsSchema = z.boolean().refine((val) => val === true, {
 /** 共通フィールド */
 const baseFields = {
   email: emailSchema,
-  displayName: displayNameSchema,
+  name: nameSchema,
   password: passwordSchema,
   role: z.string(),
   profileData: z.record(z.unknown()).optional(),
@@ -80,7 +80,7 @@ export const FormSchema = isDoubleMode ? FormSchemaDouble : FormSchemaSingle;
 
 export type FormValues = {
   email: string;
-  displayName: string;
+  name: string;
   password: string;
   passwordConfirmation?: string;
   role: string;
@@ -90,7 +90,7 @@ export type FormValues = {
 
 export const DefaultValues: FormValues = {
   email: "",
-  displayName: "",
+  name: "",
   password: "",
   role: REGISTRATION_DEFAULT_ROLE,
   profileData: {},

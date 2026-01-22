@@ -60,9 +60,9 @@ const createColumns = (
   {
     header: "表示名",
     render: (user) =>
-      presenters.displayName({
-        value: user.displayName,
-        field: "displayName",
+      presenters.name({
+        value: user.name,
+        field: "name",
         record: user,
       }),
   },
@@ -189,7 +189,7 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
           open={Boolean(deleteTarget)}
           onOpenChange={(open) => !open && handleCloseDelete()}
           title="ユーザー削除"
-          description={`${deleteTarget?.displayName ?? deleteTarget?.email ?? "このユーザー"} を削除します。削除されたユーザーはログインできなくなります。`}
+          description={`${deleteTarget?.name ?? deleteTarget?.email ?? "このユーザー"} を削除します。削除されたユーザーはログインできなくなります。`}
           confirmLabel="削除する"
           cancelLabel="キャンセル"
           onConfirm={handleConfirmDelete}

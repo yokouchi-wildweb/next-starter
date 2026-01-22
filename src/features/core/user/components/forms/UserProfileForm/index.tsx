@@ -49,14 +49,14 @@ export function UserProfileForm({
   const { trigger, isMutating } = useUpdateUser();
 
   const submit = async (values: FormValues) => {
-    const displayName = values.displayName?.trim() ?? "";
-    const resolvedDisplayName = displayName.length > 0 ? displayName : null;
+    const name = values.name?.trim() ?? "";
+    const resolvedDisplayName = name.length > 0 ? name : null;
 
     try {
       await trigger({
         id: user.id,
         data: {
-          displayName: resolvedDisplayName,
+          name: resolvedDisplayName,
           profileData: values.profileData,
         },
       });
@@ -73,7 +73,7 @@ export function UserProfileForm({
     <AppForm methods={methods} onSubmit={submit} pending={isMutating} fieldSpace={6}>
       <FieldItem
         control={control}
-        name="displayName"
+        name="name"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />

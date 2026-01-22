@@ -49,7 +49,7 @@ export default function GeneralUserEditForm({
       await trigger({
         id: user.id,
         data: {
-          displayName: values.displayName,
+          name: values.name,
           email: values.email,
           newPassword: resolvedNewPassword,
           profileData: values.profileData,
@@ -78,7 +78,7 @@ export default function GeneralUserEditForm({
     >
       <FieldItem
         control={control}
-        name="displayName"
+        name="name"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />

@@ -8,7 +8,7 @@ import {
   getProfilesByCategory,
 } from "@/features/core/userProfile/utils";
 
-const displayNameSchema = z.string().trim();
+const nameSchema = z.string().trim();
 
 // profileData バリデーション関数（selfEdit タグでフィルタリング）
 const validateProfileData = createProfileDataValidator(
@@ -18,7 +18,7 @@ const validateProfileData = createProfileDataValidator(
 
 export const FormSchema = z
   .object({
-    displayName: displayNameSchema,
+    name: nameSchema,
     role: z.string(),
     profileData: z.record(z.unknown()).optional(),
   })
@@ -27,7 +27,7 @@ export const FormSchema = z
   });
 
 export type FormValues = {
-  displayName: string;
+  name: string;
   role: string;
   profileData?: Record<string, unknown>;
 };
@@ -37,7 +37,7 @@ export const createDefaultValues = (
   profileData?: Record<string, unknown>
 ): FormValues => {
   return {
-    displayName: user.displayName ?? "",
+    name: user.name ?? "",
     role: user.role,
     profileData: profileData ?? {},
   };

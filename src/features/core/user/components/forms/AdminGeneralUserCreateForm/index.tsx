@@ -71,7 +71,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
       />
       <FieldItem
         control={control}
-        name="displayName"
+        name="name"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />

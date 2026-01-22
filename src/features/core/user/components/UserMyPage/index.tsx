@@ -43,7 +43,7 @@ export default function UserMyPage({ user }: UserMyPageProps) {
 
   const rows: UserInfoRow[] = [
     { label: "ユーザーID", value: user.id },
-    { label: "表示名", value: user.displayName ?? "未設定" },
+    { label: "表示名", value: user.name ?? "未設定" },
     { label: "権限", value: formatUserRoleLabel(user.role, user.role) },
     { label: "ステータス", value: formatUserStatusLabel(user.status, user.status ?? "未設定") },
     { label: "プロバイダータイプ", value: user.providerType },

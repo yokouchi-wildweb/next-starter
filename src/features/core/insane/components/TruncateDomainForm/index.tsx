@@ -279,7 +279,7 @@ export function TruncateDomainForm() {
               <span>
                 確認のため
                 <span className="font-medium text-foreground mx-1">
-                  {user?.displayName ?? "ユーザー"}
+                  {user?.name ?? "ユーザー"}
                 </span>
                 のパスワードを入力してください
               </span>

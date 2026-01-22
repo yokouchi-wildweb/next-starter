@@ -32,7 +32,7 @@ export const POST = createApiRoute(
       isDemo: user.isDemo,
       providerType: user.providerType,
       providerUid: user.providerUid,
-      displayName: user.displayName,
+      name: user.name,
     });
 
     return response;

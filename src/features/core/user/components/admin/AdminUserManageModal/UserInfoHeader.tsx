@@ -28,7 +28,7 @@ export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole }: 
             <Para size="xs" tone="muted">
               対象ユーザー
             </Para>
-            <Para>{user.displayName ?? fallback}</Para>
+            <Para>{user.name ?? fallback}</Para>
             <Para tone="muted" size="sm">
               {user.email ?? fallback}
             </Para>
