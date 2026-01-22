@@ -11,7 +11,7 @@ import {
 } from "@/components/Form/Field";
 import { useAppFormMedia } from "@/components/Form/AppForm";
 import { FieldGroupSection } from "./FieldGroupSection";
-import type { FieldGroup, InlineFieldGroup, MediaState, MediaHandleEntry } from "./types";
+import type { FieldGroup, InlineFieldGroup, MediaState, MediaHandleEntry, InsertFieldsMap } from "./types";
 
 // 型を re-export（後方互換性のため）
 export type { MediaState, MediaHandleEntry } from "./types";
@@ -29,6 +29,20 @@ export type FieldRendererProps<TFieldValues extends FieldValues> = {
    * - 新規フィールド: 末尾に追加
    */
   fieldPatches?: FieldConfig[];
+
+  /**
+   * フィールド挿入（指定フィールドの前に追加）
+   * - キー: 挿入先フィールド名 または "__first__"（先頭に挿入）
+   * - 値: 挿入するフィールド設定の配列
+   */
+  insertBefore?: InsertFieldsMap;
+
+  /**
+   * フィールド挿入（指定フィールドの後に追加）
+   * - キー: 挿入先フィールド名 または "__last__"（末尾に挿入）
+   * - 値: 挿入するフィールド設定の配列
+   */
+  insertAfter?: InsertFieldsMap;
 
   /** フィールドグループ定義（セクション分け） */
   fieldGroups?: FieldGroup[];
@@ -57,6 +71,8 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
   methods,
   baseFields = [],
   fieldPatches = [],
+  insertBefore = {},
+  insertAfter = {},
   fieldGroups,
   inlineGroups,
   onMediaStateChange,
@@ -85,27 +101,51 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
     [],
   );
 
-  // baseFields と fieldPatches を統合
-  // - 同名フィールド: 位置を維持して上書き
-  // - 新規フィールド: 末尾に追加
+  // baseFields, fieldPatches, insertBefore, insertAfter を統合
+  // 処理順序:
+  // 1. insertBefore["__first__"] を先頭に配置
+  // 2. baseFields を処理（fieldPatches で上書き）
+  // 3. 各フィールドの前後に insertBefore/insertAfter で指定されたフィールドを挿入
+  // 4. fieldPatches の新規フィールドを末尾に追加
+  // 5. insertAfter["__last__"] を最後に配置
   const combinedFields = useMemo(() => {
     const patchMap = new Map(fieldPatches.map((f) => [f.name, f]));
+    const result: FieldConfig[] = [];
 
-    // baseFields を走査し、同名があれば置き換え（位置維持）
-    const mergedFields = baseFields.map((field) => {
+    // 1. 先頭に挿入（insertBefore["__first__"]）
+    const firstFields = insertBefore["__first__"] ?? [];
+    result.push(...firstFields);
+
+    // 2. baseFields を処理（fieldPatches で上書き + insertBefore/insertAfter で挿入）
+    baseFields.forEach((field) => {
+      // このフィールドの前に挿入
+      const beforeFields = insertBefore[field.name] ?? [];
+      result.push(...beforeFields);
+
+      // フィールド本体（patch があれば上書き）
       const patch = patchMap.get(field.name);
       if (patch) {
         patchMap.delete(field.name); // 使用済み
-        return patch; // 上書き（位置維持）
+        result.push(patch); // 上書き（位置維持）
+      } else {
+        result.push(field);
       }
-      return field;
+
+      // このフィールドの後に挿入
+      const afterFields = insertAfter[field.name] ?? [];
+      result.push(...afterFields);
     });
 
-    // 残り（新規追加分）を末尾に追加
+    // 3. 残り（新規追加分）を末尾に追加
     const remainingPatches = Array.from(patchMap.values());
+    result.push(...remainingPatches);
 
-    return [...mergedFields, ...remainingPatches];
-  }, [baseFields, fieldPatches]);
+    // 4. 末尾に挿入（insertAfter["__last__"]）
+    const lastFields = insertAfter["__last__"] ?? [];
+    result.push(...lastFields);
+
+    return result;
+  }, [baseFields, fieldPatches, insertBefore, insertAfter]);
 
   // フィールド名からconfigを取得するマップ
   const fieldConfigMap = useMemo(() => {

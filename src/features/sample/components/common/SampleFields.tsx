@@ -1,50 +1,31 @@
 // src/features/sample/components/common/SampleFields.tsx
 
-import { useMemo } from "react";
+"use client";
+
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer";
 import type { FieldConfig } from "@/components/Form/Field";
-import type { Options } from "@/components/Form/types";
+import { useRelationOptions } from "@/lib/domain/hooks";
 import domainConfig from "@/features/sample/domain.json";
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   onMediaStateChange?: (state: MediaState | null) => void;
-  sampleCategoryOptions?: Options[];
-  sampleTagOptions?: Options[];
 };
 
 export function SampleFields<TFieldValues extends FieldValues>({
   methods,
   onMediaStateChange,
-  sampleCategoryOptions,
-  sampleTagOptions,
 }: SampleFieldsProps<TFieldValues>) {
-  const fieldPatches = useMemo<FieldConfig[]>(
-    () => [
-      {
-        name: "sample_category_id",
-        label: "サンプルカテゴリ",
-        formInput: "select",
-        options: sampleCategoryOptions as FieldConfig["options"],
-      },
-      {
-        name: "sample_tag_ids",
-        label: "サンプルタグ",
-        formInput: "checkbox",
-        fieldType: "array",
-        options: sampleTagOptions as FieldConfig["options"],
-      }
-    ],
-    [sampleCategoryOptions, sampleTagOptions],
-  );
+  // リレーション先のデータを自動取得し、insertBefore 形式で返す
+  const { insertBefore } = useRelationOptions(domainConfig, { suspense: true });
 
   return (
     <FieldRenderer
       control={methods.control}
       methods={methods}
       baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
-      fieldPatches={fieldPatches}
+      insertBefore={insertBefore}
       onMediaStateChange={onMediaStateChange}
     />
   );

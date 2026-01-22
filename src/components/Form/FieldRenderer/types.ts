@@ -1,6 +1,8 @@
 // src/components/Form/FieldRenderer/types.ts
 // FieldRenderer 固有の型定義
 
+import type { FieldConfig as FieldConfigType } from "@/components/Form/Field/types";
+
 // Field/types.ts から共通型を re-export
 export type {
   FormInputType,
@@ -10,6 +12,9 @@ export type {
   MediaValidationRule,
   FieldConfig,
 } from "@/components/Form/Field/types";
+
+// ファイル内で使用するための型エイリアス
+type FieldConfig = FieldConfigType;
 
 /**
  * メディアアップロード状態（集約版）
@@ -79,3 +84,17 @@ export type InlineFieldGroup = {
     placement?: "before" | "after";
   };
 };
+
+/**
+ * フィールド挿入位置指定マップ
+ * キー: 挿入先フィールド名 または "__first__" / "__last__"
+ * 値: 挿入するフィールド設定の配列
+ *
+ * @example
+ * // 先頭に挿入
+ * { __first__: [{ name: "category_id", ... }] }
+ *
+ * // 特定フィールドの前/後に挿入
+ * { name: [{ name: "name_kana", ... }] }
+ */
+export type InsertFieldsMap = Partial<Record<string, FieldConfig[]>>;
