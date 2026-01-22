@@ -60,7 +60,6 @@ let relationImports = [];
 let belongsToManyLiteral = "";
 let relationDomainImports = [];
 let hasMediaUploader = false;
-let sortOrderField = "";
 if (fs.existsSync(configPath)) {
   const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
   dbEngine = cfg.dbEngine || "";
@@ -71,8 +70,6 @@ if (fs.existsSync(configPath)) {
   relationDomainImports = composed.relationDomainImports || [];
   // mediaUploaderフィールドの有無を判定
   hasMediaUploader = Array.isArray(cfg.fields) && cfg.fields.some((f) => f.fieldType === "mediaUploader");
-  // sortOrderField の読み取り
-  sortOrderField = cfg.sortOrderField || "";
 }
 // コマンドラインで指定された場合は設定より優先
 if (dbEngineArg) dbEngine = dbEngineArg;
@@ -420,18 +417,6 @@ function buildRelationTableImports() {
 const drizzleEntityImports = buildEntityImports();
 const relationTableImportsText = buildRelationTableImports();
 
-/**
- * sortOrderColumn のリテラルを生成
- * sortOrderField が設定されている場合のみ生成
- */
-function buildSortOrderColumnLiteral() {
-  if (!sortOrderField) return "";
-  const fieldCamel = toCamelCase(sortOrderField);
-  return `  sortOrderColumn: ${pascal}Table.${fieldCamel},\n`;
-}
-
-const sortOrderColumnLiteral = buildSortOrderColumnLiteral();
-
 // テンプレート文字列内のトークンを置換
 function replaceTokens(content) {
   return content
@@ -443,8 +428,7 @@ function replaceTokens(content) {
     .replace(/__serviceOptions__/g, serviceOptionsLiteral)
     .replace(/__DrizzleEntityImports__/g, drizzleEntityImports)
     .replace(/__belongsToManyRelations__/g, belongsToManyLiteral)
-    .replace(/__RelationTableImports__/g, relationTableImportsText)
-    .replace(/__sortOrderColumn__/g, sortOrderColumnLiteral);
+    .replace(/__RelationTableImports__/g, relationTableImportsText);
 }
 
 // 出力先ディレクトリが無ければ作成

@@ -26,6 +26,7 @@ export const presenters: Record<string, SampleFieldPresenter> = {
   date: ({ value, field, record }) => formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   time: ({ value, field, record }) => formatString(value),
   description: ({ value, field, record }) => formatString(value),
+  sort_order: ({ value, field, record }) => formatString(value),
   createdAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   updatedAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
 };

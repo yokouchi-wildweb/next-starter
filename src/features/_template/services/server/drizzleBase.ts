@@ -8,7 +8,15 @@ import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { z } from "zod";
 
-const conf = getDomainConfig("__domain__") as DomainConfig & { useSoftDelete?: boolean };
+const conf = getDomainConfig("__domain__") as DomainConfig & {
+  useSoftDelete?: boolean;
+  sortOrderField?: string | null;
+};
+
+// sortOrderField が設定されている場合、対応するカラムを取得
+const sortOrderColumn = conf.sortOrderField
+  ? (__Domain__Table as Record<string, unknown>)[conf.sortOrderField]
+  : undefined;
 
 export const baseOptions = {
   idType: conf.idType as IdType,
@@ -31,7 +39,8 @@ export const __domain__ServiceOptions = baseOptions;
 
 export const base = createCrudService(__Domain__Table, {
   ...baseOptions,
-__sortOrderColumn__  parseCreate: (data) => __Domain__CreateSchema.parse(data),
+  sortOrderColumn,
+  parseCreate: (data) => __Domain__CreateSchema.parse(data),
   parseUpdate: (data) => __Domain__UpdateSchema.parse(data),
   parseUpsert: (data) => __Domain__CreateSchema.parse(data),
 });

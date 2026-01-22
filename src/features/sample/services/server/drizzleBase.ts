@@ -66,6 +66,7 @@ export const sampleServiceOptions = baseOptions;
 
 export const base = createCrudService(SampleTable, {
   ...baseOptions,
+  sortOrderColumn: SampleTable.sortOrder,
   parseCreate: (data) => SampleCreateSchema.parse(data),
   parseUpdate: (data) => SampleUpdateSchema.parse(data),
   parseUpsert: (data) => SampleCreateSchema.parse(data),

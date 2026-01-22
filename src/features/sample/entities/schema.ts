@@ -36,6 +36,8 @@ export const SampleBaseSchema = z.object({
     .transform((value) => emptyToNull(value)),
   description: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
+  sort_order: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
   deletedAt: z.date().nullish(),
 });
 
