@@ -104,5 +104,9 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         await axios.delete(`${baseUrl}/${id}/hard-delete`);
         return undefined;
       }),
+    reorder: (id: string, afterItemId: string | null) =>
+      handleRequest("reorder", async () => (await axios.post<T>(`${baseUrl}/${id}/reorder`, { afterItemId })).data),
+    searchForSorting: (params: SearchParams) =>
+      handleRequest("searchForSorting", async () => (await axios.post<PaginatedResult<T>>(`${baseUrl}/search-for-sorting`, params)).data),
   };
 }

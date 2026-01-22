@@ -15,7 +15,9 @@ export type CrudAction =
   | "bulkUpsert"
   | "duplicate"
   | "restore"
-  | "hardDelete";
+  | "hardDelete"
+  | "reorder"
+  | "searchForSorting";
 
 export type CrudEvent = {
   action: CrudAction;

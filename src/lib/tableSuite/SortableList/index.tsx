@@ -2,6 +2,7 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -24,6 +25,18 @@ import type {
   ReorderResult,
 } from "./types";
 import { resolveRowClassName } from "../types";
+
+/**
+ * @dnd-kit はサーバーとクライアントで異なる aria-describedby ID を生成するため、
+ * ハイドレーションエラーを防ぐためにマウント後にのみ DndContext をレンダリングする
+ */
+function useMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  return mounted;
+}
 
 /**
  * ドラッグ&ドロップで並び替え可能なリストコンポーネント
@@ -55,6 +68,7 @@ export default function SortableList<T extends SortableItemType>({
   isLoading,
   disabled,
 }: SortableListProps<T>) {
+  const mounted = useMounted();
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -104,13 +118,14 @@ export default function SortableList<T extends SortableItemType>({
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
 
-  if (isLoading) {
+  // ローディング中またはマウント前はスケルトンを表示
+  if (isLoading || !mounted) {
     return (
       <div
         className={cn("flex flex-col gap-2", className)}
         style={{ maxHeight: resolvedMaxHeight }}
       >
-        {[...Array(3)].map((_, i) => (
+        {(items.length > 0 ? items : [...Array(3)]).map((_, i) => (
           <div
             key={i}
             className="h-14 animate-pulse rounded-lg border bg-muted/50"

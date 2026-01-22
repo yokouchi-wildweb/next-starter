@@ -1,4 +1,4 @@
-// src/app/admin/(protected)/samples/sort-order/_components/SampleSortableList.tsx
+// src/app/(user)/demo/sortable-list/_components/SampleSortableList.tsx
 
 "use client";
 
@@ -7,6 +7,7 @@ import SortableList, { type ReorderResult } from "@/lib/tableSuite/SortableList"
 import type { Sample } from "@/features/sample/entities/model";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
+import { sampleClient } from "@/features/sample/services/client/sampleClient";
 
 type Props = {
   initialSamples: Sample[];
@@ -16,24 +17,51 @@ type Props = {
  * サンプルドメインの並び替えデモ
  */
 export function SampleSortableList({ initialSamples }: Props) {
-  // ローカル状態で並び替えを管理（デモ用）
   const [samples, setSamples] = useState(initialSamples);
   const [lastReorderResult, setLastReorderResult] = useState<ReorderResult | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleReorder = (result: ReorderResult) => {
+  const handleReorder = async (result: ReorderResult) => {
     setLastReorderResult(result);
+    setError(null);
 
-    // ローカルで並び替えを反映（実際はサーバーに送信）
+    // 楽観的更新: UIを即座に更新
+    const previousSamples = samples;
     setSamples((prev) => {
       const newItems = [...prev];
       const [movedItem] = newItems.splice(result.oldIndex, 1);
       newItems.splice(result.newIndex, 0, movedItem);
       return newItems;
     });
+
+    // サーバーに並び替えを送信
+    setIsReordering(true);
+    try {
+      await sampleClient.reorder?.(result.itemId, result.afterItemId);
+    } catch (err) {
+      // エラー時は元の状態に戻す
+      setSamples(previousSamples);
+      setError(err instanceof Error ? err.message : "並び替えに失敗しました");
+    } finally {
+      setIsReordering(false);
+    }
   };
 
   return (
     <Stack space={6}>
+      {/* エラー表示 */}
+      {error && (
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* 保存中インジケーター */}
+      {isReordering && (
+        <div className="text-sm text-muted-foreground">保存中...</div>
+      )}
+
       <SortableList<Sample>
         items={samples}
         columns={[
@@ -65,11 +93,16 @@ export function SampleSortableList({ initialSamples }: Props) {
           },
           {
             render: (item) => (
-              <span className="text-xs text-muted-foreground">
-                ID: {item.id.slice(0, 8)}...
-              </span>
+              <Flex gap="sm" align="center" justify="end" className="text-xs text-muted-foreground">
+                <span>ID: {item.id.slice(0, 8)}...</span>
+                {item.sort_order && (
+                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono">
+                    {item.sort_order.slice(0, 6)}
+                  </span>
+                )}
+              </Flex>
             ),
-            width: "w-28",
+            width: "w-40",
             align: "right",
           },
         ]}

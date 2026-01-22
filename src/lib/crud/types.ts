@@ -37,8 +37,13 @@ export type WhereExpr =
   | { and: WhereExpr[] }
   | { or: WhereExpr[] };
 
-/** Tuple array specifying field name and sort direction. */
-export type OrderBySpec = Array<[string, "ASC" | "DESC"]>;
+/**
+ * Tuple array specifying field name, sort direction, and optional nulls handling.
+ * - [field, direction] or [field, direction, nulls]
+ * - direction: "ASC" | "DESC"
+ * - nulls: "FIRST" | "LAST" (optional)
+ */
+export type OrderBySpec = Array<[string, "ASC" | "DESC", ("FIRST" | "LAST")?]>;
 
 export type SearchParams = {
   page?: number;
@@ -108,6 +113,12 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   getAllWithDeleted?(): Promise<T[]>;
   getByIdWithDeleted?(id: string): Promise<T>;
   searchWithDeleted?(params: SearchParams): Promise<PaginatedResult<T>>;
+  // 並び替え用メソッド
+  reorder?(id: string, afterItemId: string | null): Promise<T>;
+  /**
+   * ソート画面用検索。sort_order が NULL のレコードを自動初期化する。
+   */
+  searchForSorting?(params: SearchParams): Promise<PaginatedResult<T>>;
 };
 
 export type IdType = "uuid" | "db" | "manual";

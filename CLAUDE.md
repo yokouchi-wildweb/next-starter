@@ -66,7 +66,7 @@ domain-specific: auth/, admin/, wallet/, webhook/, storage/
 ref: src/lib/routeFactory/README.md
 
 ## CRUD_SERVICE (createCrudService)
-operations: create, list, get, update, remove, search, query, upsert, bulkDeleteByIds, bulkDeleteByQuery | drizzle-only: belongsToMany
+operations: create, list, get, update, remove, search, query, upsert, bulkDeleteByIds, bulkDeleteByQuery | drizzle-only: belongsToMany, reorder(id,afterId), searchForSorting(auto-init NULL sort_order) | sorting requires: sortOrderColumn option
 extension: 1.check base methods → 2.base.query()+wrappers → 3.custom service
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 firestore_limits: no or | single orderBy | no belongsToMany

@@ -48,6 +48,7 @@
 - `belongsToManyRelations` を指定するだけで、中間テーブルの insert/delete を `create/update/upsert` で自動同期。
 - `list/get/search/query` の結果には関連 ID 配列をハイドレーションして返却（UI 側でそのまま利用可能）。
 - `searchPriorityFields` と `prioritizeSearchHits` で ILIKE 検索のヒット行を `CASE WHEN` 順位で持ち上げられる。
+- **並び替え機能**: `sortOrderColumn` を設定すると `reorder` / `searchForSorting` が利用可能。Fractional Indexing による効率的な並び替えを提供。
 
 ### クライアント層
 - `services/client/<domain>Client.ts` は `createApiClient` で REST API をラップし、`normalizeHttpError` を通した例外を返す。
@@ -107,6 +108,69 @@
 
 ---
 
+## 6-3. 並び替え機能（Fractional Indexing）の使い方
+
+ドラッグ＆ドロップによる並び替えを実現するため、Fractional Indexing を採用しています。レコードの並び順を文字列で管理し、2 つのレコード間に無限に新しい順序値を挿入できます。
+
+### 有効化方法
+
+1. `domain.json` で `sortOrderField` を設定（domain-config で生成時に指定）
+2. drizzle.ts に `sort_order` カラムが追加される
+3. `drizzleBase.ts` に `sortOrderColumn` が設定され、`reorder` / `searchForSorting` / `initializeSortOrder` が利用可能になる
+
+### サーバー側での使用（ページコンポーネント）
+
+並び替え画面では `search` ではなく `searchForSorting` を使用します。`searchForSorting` は検索結果に `sort_order` が NULL のレコードがあれば自動的に初期化してから返却するため、途中から並び替えを有効化したドメインでも安全に使用できます。
+
+```typescript
+// page.tsx
+const { results } = await domainService.searchForSorting({
+  page: 1,
+  limit: 20,
+  orderBy: [["sort_order", "ASC", "LAST"]], // LAST: NULLは最後に表示
+});
+```
+
+`orderBy` の第 3 要素に `"FIRST"` または `"LAST"` を指定すると、NULL 値の表示位置を制御できます（PostgreSQL の `NULLS FIRST` / `NULLS LAST` に対応）。
+- `searchForSorting` は `sort_order` が未設定の行を **defaultOrderBy（未指定時は `createdAt DESC`）の順で初期化** したうえで結果を返します。初回だけ副作用を伴うため API ルートは `POST /api/[domain]/search-for-sorting`（operationType: `write`）に分離されています。
+- デモ: `src/app/(user)/demo/sortable-list`。`searchForSorting` で初期化した結果を `SortableList` に渡し、並び替え後は `reorder` を叩く実装例です。
+
+### クライアント側での使用（SortableList）
+
+`SortableList` コンポーネントと `reorder` API を組み合わせて使用します。
+
+```typescript
+// _components/DomainSortableList.tsx
+const handleReorder = async (result: ReorderResult) => {
+  // 楽観的更新: UIを即座に更新
+  const previousItems = items;
+  setItems((prev) => {
+    const newItems = [...prev];
+    const [movedItem] = newItems.splice(result.oldIndex, 1);
+    newItems.splice(result.newIndex, 0, movedItem);
+    return newItems;
+  });
+
+  // サーバーに並び替えを送信
+  try {
+    await domainClient.reorder?.(result.itemId, result.afterItemId);
+  } catch (err) {
+    // エラー時は元の状態に戻す
+    setItems(previousItems);
+  }
+};
+```
+
+### 新規レコードの sort_order
+
+新規レコード作成時は自動的に `sort_order` が設定され、**リストの先頭**に配置されます。
+
+### 参考実装
+
+デモ画面: `src/app/(user)/demo/sortable-list/`
+
+---
+
 ## 7. domain-config との連携ポイント
 
 - `domain.json` が単一のソースとなり、`entities/schema.ts` `entities/drizzle.ts` `services/server/drizzleBase.ts` などが再生成されます。
@@ -147,6 +211,8 @@
 | **Firestore で多対多を使いたい** | 現行の汎用 CRUD では非対応。個別実装でコレクションやサブコレクションを設計するか、Drizzle へ移行する。 |
 | **検索順位を調整したい** | Drizzle 版の `searchPriorityFields` / `prioritizeSearchHits` を利用。Firestore 版では UI 側で制御。 |
 | **API レスポンスに追加情報を含めたい** | サービス層で必要なデータを返却するメソッドを追加し、API ルートでシリアライズする。共通 CRUD の戻り値型を崩さない。 |
+| **ドラッグ＆ドロップで並び替えしたい** | `domain.json` で `sortOrderField` を有効化し、`searchForSorting` + `SortableList` + `reorder` API を組み合わせる。詳細は 6-3 節を参照。 |
+| **既存ドメインに並び替えを追加したい** | `sortOrderField` を有効化して再生成後、`sort_order` カラムを DB に追加。既存レコードは `searchForSorting` が自動初期化するため、手動でのデータ移行は不要。 |
 
 **追加ドキュメント**
 - `docs/core-specs/DB種別の違いによる機能の差異.md`

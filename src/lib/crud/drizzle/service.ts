@@ -2,8 +2,8 @@
 
 import { db } from "@/lib/drizzle";
 import { omitUndefined } from "@/utils/object";
-import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, getTableName, gt } from "drizzle-orm";
-import { generateSortKey, generateFirstSortKey } from "./fractionalSort";
+import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, desc, getTableName, gt } from "drizzle-orm";
+import { generateSortKey, generateFirstSortKey, generateLastSortKey } from "./fractionalSort";
 import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
@@ -172,7 +172,23 @@ export function createCrudService<
           parsedInput,
           belongsToManyRelations,
         );
-        const finalInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert;
+        let finalInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert;
+
+        // sortOrderColumn が設定されている場合、sort_order を自動生成（先頭に追加）
+        if (sortOrderColumn) {
+          const sortOrderFieldName = (sortOrderColumn as any).name as string;
+          if ((finalInsert as Record<string, any>)[sortOrderFieldName] === undefined) {
+            const executor = tx ?? db;
+            // 現在の最小 sortOrder を取得
+            const firstResults = await executor
+              .select({ sortOrder: sortOrderColumn })
+              .from(table as any)
+              .orderBy(asc(sortOrderColumn))
+              .limit(1) as { sortOrder: string | null }[];
+            const firstSortOrder = firstResults[0]?.sortOrder ?? null;
+            (finalInsert as Record<string, any>)[sortOrderFieldName] = generateFirstSortKey(firstSortOrder);
+          }
+        }
 
         // belongsToMany がない場合
         if (!belongsToManyRelations.length) {
@@ -1018,7 +1034,9 @@ export function createCrudService<
       }
 
       // sortOrder を更新
-      const updateData = { sortOrder: newSortOrder } as Record<string, any>;
+      // sortOrderColumn.name でDBカラム名を取得（snake_case）
+      const sortOrderFieldName = (sortOrderColumn as any).name as string;
+      const updateData = { [sortOrderFieldName]: newSortOrder } as Record<string, any>;
       if (serviceOptions.useUpdatedAt) {
         updateData.updatedAt = new Date();
       }
@@ -1040,6 +1058,95 @@ export function createCrudService<
       }
 
       return record;
+    },
+
+    /**
+     * 指定されたIDのレコードに sort_order を初期化する。
+     * 渡された順序を維持し、既存の最大 sort_order の後に配置する。
+     *
+     * @param ids - 初期化対象のレコードID配列（この順序で sort_order を付与）
+     * @param tx - オプションのトランザクション
+     */
+    async initializeSortOrder(ids: string[], tx?: DbTransaction): Promise<void> {
+      if (!sortOrderColumn || ids.length === 0) return;
+
+      const sortOrderFieldName = (sortOrderColumn as any).name as string;
+      const executor = tx ?? db;
+
+      // 現在の最大 sortOrder を取得
+      const maxResults = await executor
+        .select({ sortOrder: sortOrderColumn })
+        .from(table as any)
+        .where(sql`${sortOrderColumn} IS NOT NULL`)
+        .orderBy(desc(sortOrderColumn))
+        .limit(1) as { sortOrder: string | null }[];
+
+      let prevKey = maxResults[0]?.sortOrder ?? null;
+
+      // 各IDに対して順番に sort_order を付与
+      for (const id of ids) {
+        const newKey = generateLastSortKey(prevKey);
+        const updateData = { [sortOrderFieldName]: newKey } as Record<string, any>;
+        if (serviceOptions.useUpdatedAt) {
+          updateData.updatedAt = new Date();
+        }
+        await executor
+          .update(table)
+          .set(updateData)
+          .where(eq(idColumn, id));
+        prevKey = newKey;
+      }
+    },
+
+    /**
+     * ソート画面用の検索メソッド。
+     * 結果に sort_order が NULL のレコードがあれば自動的に初期化する。
+     * 初期化順序は defaultOrderBy（未設定時は createdAt DESC）に従う。
+     *
+     * @param params - 検索パラメータ
+     * @returns 検索結果（NULL が初期化済み）
+     */
+    async searchForSorting(params: SearchParams): Promise<PaginatedResult<Select>> {
+      if (!sortOrderColumn) {
+        throw new DomainError(
+          "searchForSorting() requires sortOrderColumn to be configured in service options.",
+          { status: 500 }
+        );
+      }
+
+      const sortOrderFieldName = (sortOrderColumn as any).name as string;
+
+      // まず通常の検索を実行
+      const results = await this.search(params);
+
+      // sort_order が NULL のアイテムを抽出
+      const nullItems = results.results.filter(
+        (item: any) => item[sortOrderFieldName] === null || item[sortOrderFieldName] === undefined
+      );
+
+      if (nullItems.length === 0) {
+        return results;
+      }
+
+      // NULL アイテムのIDを取得
+      const nullIds = nullItems.map((item: any) => item.id as string);
+
+      // defaultOrderBy に従って NULL アイテムの順序を決定
+      // 未設定の場合は createdAt DESC をフォールバック
+      const initOrderBy = serviceOptions.defaultOrderBy ?? [["createdAt", "DESC"]];
+      const orderedNullItems = await db
+        .select({ id: idColumn })
+        .from(table as any)
+        .where(inArray(idColumn, nullIds))
+        .orderBy(...buildOrderBy(table, initOrderBy)) as { id: string }[];
+
+      const orderedNullIds = orderedNullItems.map((item) => String(item.id));
+
+      // sort_order を初期化
+      await this.initializeSortOrder(orderedNullIds);
+
+      // 更新後のデータを再取得
+      return this.search(params);
     },
   };
 }
