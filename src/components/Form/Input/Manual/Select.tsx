@@ -91,7 +91,7 @@ export function SelectInput({
       <SelectTrigger className={cn("!h-auto border-muted-foreground/50 py-3", className)}>
         <SelectValue placeholder={placeholder ?? "選択してください"} />
       </SelectTrigger>
-      <SelectContent className={contentClassName}>
+      <SelectContent className={cn("surface-ui-layer", contentClassName)}>
         {includeNullOption ? (
           <SelectItem value={CLEAR_VALUE}>{nullOptionLabel}</SelectItem>
         ) : showPlaceholderOption ? (

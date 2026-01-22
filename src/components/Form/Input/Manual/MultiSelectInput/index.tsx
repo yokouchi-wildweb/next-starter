@@ -98,7 +98,10 @@ export function MultiSelectInput({
         <PopoverContent
           align="start"
           {...popoverContentProps}
-          className={cn("w-[min(320px,90vw)] p-0", popoverContentProps?.className)}
+          className={cn(
+            "surface-ui-layer w-[min(320px,90vw)] p-0",
+            popoverContentProps?.className
+          )}
         >
           <Stack space={0} padding="none">
             <Command>
