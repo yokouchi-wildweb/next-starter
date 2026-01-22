@@ -12,7 +12,7 @@ const rootDir = path.resolve(__dirname, "..", "..");
 const featuresDir = path.join(rootDir, "src", "features");
 const prompt = inquirer.createPromptModule();
 
-function findDomainDirectories() {
+export function findDomainDirectories() {
   const dirents = fs.readdirSync(featuresDir, { withFileTypes: true });
   return dirents
     .filter((dirent) => dirent.isDirectory())

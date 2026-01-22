@@ -22,7 +22,7 @@
  */
 import init from "./init.mjs";
 import generate from "./generate.mjs";
-import generateAll from "./generate-all.mjs";
+import generateAll, { findDomainDirectories } from "./generate-all.mjs";
 import removeDomain from "./delete.mjs";
 import inquirer from "inquirer";
 
@@ -64,10 +64,21 @@ async function main() {
         await generateAll();
         return;
       }
-      const domain = args[generateIndex + 1];
+      let domain = args[generateIndex + 1];
       if (!domain) {
-        console.error("--generate にはドメイン名が必要です");
-        process.exit(1);
+        const domains = findDomainDirectories();
+        if (domains.length === 0) {
+          console.error("domain.json を含むドメインが存在しません。");
+          process.exit(1);
+        }
+        const { selectedDomain } = await prompt({
+          type: "list",
+          name: "selectedDomain",
+          message: "生成するドメインを選択してください:",
+          choices: domains.map((d) => ({ name: d, value: d })),
+          loop: false,
+        });
+        domain = selectedDomain;
       }
       await generate(domain);
       return;

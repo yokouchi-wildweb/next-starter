@@ -8,6 +8,7 @@ import askGenerateFiles from "./questions/generate-files.mjs";
 import { toCamelCase, toSnakeCase } from "../../src/utils/stringCase.mjs";
 import formatDomainConfig from "./utils/formatConfig.mjs";
 import { DOMAIN_CONFIG_VERSION } from "./version.mjs";
+import { findDomainDirectories } from "./generate-all.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -162,10 +163,21 @@ export default async function generate(domain, options = {}) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const domain = process.argv[2];
+  let domain = process.argv[2];
   if (!domain) {
-    console.error("使い方: node scripts/domain-config/generate.mjs <Domain>");
-    process.exit(1);
+    const domains = findDomainDirectories();
+    if (domains.length === 0) {
+      console.error("domain.json を含むドメインが存在しません。");
+      process.exit(1);
+    }
+    const { selectedDomain } = await prompt({
+      type: "list",
+      name: "selectedDomain",
+      message: "生成するドメインを選択してください:",
+      choices: domains.map((d) => ({ name: d, value: d })),
+      loop: false,
+    });
+    domain = selectedDomain;
   }
   try {
     await generate(domain);
