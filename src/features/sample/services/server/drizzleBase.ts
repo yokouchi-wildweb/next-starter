@@ -2,6 +2,8 @@
 
 import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/drizzle";
+import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
+import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
@@ -17,6 +19,7 @@ export const baseOptions = {
   useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
+  // 既存: belongsToMany の ID配列 hydrate 用
   belongsToManyRelations: [
     {
       fieldName: "sample_tag_ids",
@@ -26,6 +29,35 @@ export const baseOptions = {
       sourceProperty: "sampleId",
       targetProperty: "sampleTagId",
     }
+  ],
+
+  // withRelations 用: belongsTo リレーション設定
+  belongsToRelations: [
+    {
+      field: "sample_category",
+      foreignKey: "sample_category_id",
+      table: SampleCategoryTable,
+    },
+  ],
+
+  // withRelations 用: belongsToMany のオブジェクト展開設定
+  belongsToManyObjectRelations: [
+    {
+      field: "sample_tags",
+      targetTable: SampleTagTable,
+      throughTable: SampleToSampleTagTable,
+      sourceColumn: SampleToSampleTagTable.sampleId,
+      targetColumn: SampleToSampleTagTable.sampleTagId,
+    },
+  ],
+
+  // withCount 用: カウント取得対象のリレーション設定
+  countableRelations: [
+    {
+      field: "sample_tags",
+      throughTable: SampleToSampleTagTable,
+      foreignKey: "sampleId",
+    },
   ],
 
 } satisfies DrizzleCrudServiceOptions<
