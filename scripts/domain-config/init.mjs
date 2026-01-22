@@ -6,6 +6,7 @@ import askName from "./questions/name.mjs";
 import askBasics from "./questions/basics.mjs";
 import askRelations from "./questions/relations.mjs";
 import askBaseFields from "./questions/base-fields.mjs";
+import askNameField from "./questions/name-field.mjs";
 import askFields from "./questions/fields.mjs";
 import askCompositeUniques from "./questions/composite-uniques.mjs";
 import askViewConfig from "./questions/view-config.mjs";
@@ -29,7 +30,9 @@ export default async function init() {
   Object.assign(config, await askBasics());
   Object.assign(config, await askRelations(config));
   Object.assign(config, await askBaseFields());
-  Object.assign(config, await askFields(config));
+  const { nameFieldEntry } = await askNameField(config);
+  const { fields } = await askFields(config);
+  config.fields = nameFieldEntry ? [nameFieldEntry, ...fields] : fields;
   Object.assign(config, await askCompositeUniques(config));
   Object.assign(config, await askViewConfig(config));
   Object.assign(config, await askGenerateFiles());
