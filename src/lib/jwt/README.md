@@ -14,7 +14,7 @@ const sessionUser = SessionUserSchema.parse({
   status: "active",
   providerType: "local",
   providerUid: "user_123",
-  displayName: "管理者ユーザー",
+  name: "管理者ユーザー",
 });
 
 const { token, expiresAt } = await signUserToken({
@@ -24,7 +24,7 @@ const { token, expiresAt } = await signUserToken({
     status: sessionUser.status,
     providerType: sessionUser.providerType,
     providerUid: sessionUser.providerUid,
-    displayName: sessionUser.displayName,
+    name: sessionUser.name,
   },
 });
 ```
@@ -56,7 +56,7 @@ const result = await verifyUserToken(token, {
       status: parsed.data.status,
       providerType: parsed.data.providerType,
       providerUid: parsed.data.providerUid,
-      displayName: parsed.data.displayName ?? null,
+      name: parsed.data.name ?? null,
     });
   },
 });

@@ -154,7 +154,7 @@ pnpm drizzle-kit push
 | `providerType` | Enum | 認証プロバイダ種別 |
 | `providerUid` | Text | プロバイダ側の UID |
 | `email` | Text | メールアドレス |
-| `displayName` | Text | 表示名 |
+| `name` | Text | 表示名 |
 | `role` | Enum | ロール |
 | `localPassword` | Text | ローカル認証用パスワードハッシュ |
 | `status` | Enum | ステータス |
