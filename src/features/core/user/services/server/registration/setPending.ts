@@ -49,7 +49,7 @@ export async function setPending(
     {
       ...result.data,
       localPassword: null,
-      displayName: null,
+      name: null,
       deletedAt: null,
     } as Parameters<typeof base.upsert>[0],
     { conflictFields: ["providerType", "providerUid"] },

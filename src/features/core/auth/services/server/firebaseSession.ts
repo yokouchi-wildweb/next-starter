@@ -108,7 +108,7 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
     isDemo: user.isDemo,
     providerType: user.providerType,
     providerUid: user.providerUid,
-    displayName: user.displayName,
+    name: user.name,
   });
 
   // JWT の期限を設定してトークンを署名する。
@@ -121,7 +121,7 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
       isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
-      displayName: sessionUser.displayName,
+      name: sessionUser.name,
     },
     options: { maxAge },
   });

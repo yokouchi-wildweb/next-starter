@@ -43,7 +43,7 @@ export const RegistrationSchema = z.object({
   providerType: z.enum(USER_PROVIDER_TYPES),
   providerUid: ProviderUidSchema,
   email: EmailSchema,
-  displayName: DisplayNameSchema,
+  name: DisplayNameSchema,
   idToken: IdTokenSchema,
   password: PasswordSchema.optional(),
   /** ロール（指定がない場合は app-features.config の defaultRole を使用） */

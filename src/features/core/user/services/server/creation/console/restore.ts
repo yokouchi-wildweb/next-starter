@@ -8,7 +8,7 @@ import { base } from "../../drizzleBase";
 
 export type RestoreSoftDeletedUserInput = {
   existingUser: User;
-  displayName: string;
+  name: string;
   localPassword: string;
   role: string;
   actorId?: string;
@@ -19,11 +19,11 @@ export type RestoreSoftDeletedUserInput = {
  * ソフトデリート済みユーザーを復元し、新しい情報で更新する。
  * - deletedAtをnullに戻す（restore）
  * - statusをactiveに変更
- * - displayName、パスワード、roleを更新
+ * - name、パスワード、roleを更新
  * - アクションログに「管理者からの再登録」として記録
  */
 export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput): Promise<User> {
-  const { existingUser, displayName, localPassword, role, actorId, isDemo } = data;
+  const { existingUser, name, localPassword, role, actorId, isDemo } = data;
 
   // ソフトデリート済みでなければエラー
   if (!existingUser.deletedAt) {
@@ -35,7 +35,7 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
     role: existingUser.role,
     status: existingUser.status,
     email: existingUser.email,
-    displayName: existingUser.displayName,
+    name: existingUser.name,
     providerType: existingUser.providerType,
     deletedAt: existingUser.deletedAt,
   };
@@ -46,7 +46,7 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
     try {
       await auth.updateUser(existingUser.providerUid, {
         password: localPassword,
-        displayName: displayName || undefined,
+        displayName: name || undefined,
       });
     } catch {
       throw new DomainError("Firebase認証情報の更新に失敗しました", { status: 500 });
@@ -59,7 +59,7 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
   // ユーザー情報を更新
   const updatePayload: Partial<User> = {
     status: "active",
-    displayName,
+    name,
     role,
   };
 
@@ -87,7 +87,7 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
         role: updatedUser.role,
         status: updatedUser.status,
         email: updatedUser.email,
-        displayName: updatedUser.displayName,
+        name: updatedUser.name,
         providerType: updatedUser.providerType,
         deletedAt: null,
       },

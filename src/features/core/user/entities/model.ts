@@ -7,7 +7,7 @@ export type User = BaseEntity & {
   providerType: UserProviderType;
   providerUid: string;
   email: string | null;
-  displayName: string | null;
+  name: string | null;
   role: UserRoleType;
   localPassword: string | null;
   status: UserStatus;

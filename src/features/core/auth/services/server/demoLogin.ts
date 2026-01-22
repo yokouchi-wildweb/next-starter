@@ -63,7 +63,7 @@ export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginRe
     isDemo: user.isDemo,
     providerType: user.providerType,
     providerUid: user.providerUid,
-    displayName: user.displayName,
+    name: user.name,
   });
 
   // JWT の存続期間を定義し、トークンを署名（デモユーザーは短いセッション時間）
@@ -76,7 +76,7 @@ export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginRe
       isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
-      displayName: sessionUser.displayName,
+      name: sessionUser.name,
     },
     options: { maxAge },
   });

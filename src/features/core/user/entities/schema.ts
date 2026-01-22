@@ -26,7 +26,7 @@ export const UserCoreSchema = z.object({
     .transform(async (value) => await createHashPreservingNullish(value)),
   lastAuthenticatedAt: z.coerce.date().nullish(),
   deletedAt: z.coerce.date().nullish(),
-  displayName: z
+  name: z
     .string()
     .nullish()
     .transform((value) => emptyToNull(value)),
@@ -46,7 +46,7 @@ export const UserOptionalSchema = UserCoreSchema.partial().extend({
  * 許可するフィールドをホワイトリストで明示的に指定。
  */
 export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
-  displayName: true,
+  name: true,
   email: true,
   localPassword: true,
   status: true,
@@ -59,7 +59,7 @@ export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
  * 許可するフィールドをホワイトリストで明示的に指定。
  */
 export const UserSelfUpdateSchema = UserOptionalSchema.pick({
-  displayName: true,
+  name: true,
   email: true,
   localPassword: true,
 });
@@ -71,7 +71,7 @@ export const UserSelfUpdateSchema = UserOptionalSchema.pick({
 export const UserActivationSchema = z.object({
   role: z.enum(USER_ROLES),
   status: z.literal("active"),
-  displayName: z
+  name: z
     .string()
     .min(1, { message: "表示名を入力してください" })
     .transform((value) => emptyToNull(value)),

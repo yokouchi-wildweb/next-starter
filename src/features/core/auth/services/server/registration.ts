@@ -46,7 +46,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     providerUid,
     idToken,
     email,
-    displayName,
+    name,
     password,
     role: requestedRole,
     profileData,
@@ -102,7 +102,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
   // ユーザー登録処理を user ドメインに委譲
   const { user } = await registerFromAuth({
     email,
-    displayName,
+    name,
     existingUser,
     role,
   });
@@ -119,7 +119,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     isDemo: user.isDemo,
     providerType: user.providerType,
     providerUid: user.providerUid,
-    displayName: user.displayName,
+    name: user.name,
   });
 
   const maxAge = SESSION_DEFAULT_MAX_AGE_SECONDS;
@@ -131,7 +131,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
       isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
-      displayName: sessionUser.displayName,
+      name: sessionUser.name,
     },
     options: { maxAge },
   });

@@ -3,7 +3,7 @@
 import type { UserOptionalFields, User } from "@/features/core/user/entities";
 
 export type CreateUserInput = {
-  displayName: string;
+  name: string;
   email: string;
   role: User["role"];
   localPassword: string;
@@ -12,7 +12,7 @@ export type CreateUserInput = {
 };
 
 export type CreateDemoUserInput = {
-  displayName: string;
+  name: string;
   email: string;
   role: User["role"];
   localPassword: string;

@@ -62,7 +62,7 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
   if (softDeletedUser) {
     return restoreSoftDeletedUser({
       existingUser: softDeletedUser,
-      displayName: data.displayName,
+      name: data.name,
       localPassword: data.localPassword,
       role: data.role,
       isDemo: true,
@@ -82,7 +82,7 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
     providerUid: randomUUID(),
     localPassword: data.localPassword,
     email: normalizedEmail,
-    displayName: data.displayName,
+    name: data.name,
     isDemo: true,
   });
 
@@ -106,7 +106,7 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
   if (softDeletedUser) {
     return restoreSoftDeletedUser({
       existingUser: softDeletedUser,
-      displayName: data.displayName,
+      name: data.name,
       localPassword: data.localPassword,
       role: data.role,
       isDemo: true,
@@ -120,7 +120,7 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
       return await auth.createUser({
         email: data.email,
         password: data.localPassword,
-        displayName: data.displayName || undefined,
+        displayName: data.name || undefined,
       });
     } catch (error) {
       if (hasFirebaseErrorCode(error, "auth/email-already-exists")) {
@@ -137,7 +137,7 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
     providerUid: firebaseUser.uid,
     localPassword: null,
     email: data.email,
-    displayName: data.displayName,
+    name: data.name,
     isDemo: true,
   });
 

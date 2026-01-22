@@ -26,7 +26,7 @@ export async function createGuestDemoUser(): Promise<User> {
     isDemo: true,
     email: null,
     localPassword: null,
-    displayName: "デモユーザー",
+    name: "デモユーザー",
   });
 
   const [user] = await db.insert(UserTable).values(values).returning();

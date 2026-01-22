@@ -99,7 +99,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     isDemo: user.isDemo,
     providerType: user.providerType,
     providerUid: user.providerUid,
-    displayName: user.displayName,
+    name: user.name,
   });
 
   // inactive の場合は復帰フラグを立てる
@@ -115,7 +115,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
       isDemo: sessionUser.isDemo,
       providerType: sessionUser.providerType,
       providerUid: sessionUser.providerUid,
-      displayName: sessionUser.displayName,
+      name: sessionUser.name,
     },
     options: { maxAge },
   });

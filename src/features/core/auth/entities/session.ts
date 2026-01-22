@@ -16,7 +16,7 @@ export const SessionUserSchema = z.object({
   isDemo: UserCoreSchema.shape.isDemo,
   providerType: UserCoreSchema.shape.providerType,
   providerUid: UserCoreSchema.shape.providerUid,
-  displayName: UserCoreSchema.shape.displayName,
+  name: UserCoreSchema.shape.name,
 });
 
 export const TokenPayloadSchema = SessionUserSchema.omit({

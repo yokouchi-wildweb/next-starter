@@ -7,7 +7,7 @@ export type ExtractedOAuthCredential = {
   idToken: string;
   providerId: string | null;
   email: string | null;
-  displayName: string | null;
+  name: string | null;
 };
 
 export async function extractOAuthCredential(
@@ -22,6 +22,6 @@ export async function extractOAuthCredential(
     idToken,
     providerId,
     email: user.email ?? null,
-    displayName: user.displayName ?? null,
+    name: user.displayName ?? null,
   };
 }

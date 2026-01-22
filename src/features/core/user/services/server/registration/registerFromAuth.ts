@@ -8,7 +8,7 @@ import { activate } from "./activate";
 
 export type RegisterFromAuthInput = {
   email: string;
-  displayName?: string | null;
+  name?: string | null;
   existingUser: User;
   role?: string;
 };
@@ -27,7 +27,7 @@ export type RegisterFromAuthResult = {
 export async function registerFromAuth(
   input: RegisterFromAuthInput,
 ): Promise<RegisterFromAuthResult> {
-  const { email, displayName, existingUser, role = REGISTRATION_DEFAULT_ROLE } = input;
+  const { email, name, existingUser, role = REGISTRATION_DEFAULT_ROLE } = input;
 
   const now = new Date();
 
@@ -38,7 +38,7 @@ export async function registerFromAuth(
   // ユーザーを有効化
   const user = await activate(existingUser.id, {
     role: role as UserRoleType,
-    displayName: displayName ?? "",
+    name: name ?? "",
     email: email || null,
     lastAuthenticatedAt: now,
   });
@@ -78,7 +78,7 @@ async function recordActionLog({
   const afterValue = {
     status: user.status,
     email: user.email,
-    displayName: user.displayName,
+    name: user.name,
     providerType: user.providerType,
   };
 

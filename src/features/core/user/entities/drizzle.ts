@@ -14,7 +14,7 @@ export const UserTable = pgTable(
     providerType: UserProviderTypeEnum("provider_type").notNull(),
     providerUid: text("provider_uid").notNull(),
     email: text("email"),
-    displayName: text("display_name"),
+    name: text("name"),
     role: UserRoleEnum("role").notNull(),
     localPassword: text("local_password"),
     status: UserStatusEnum("status").default("pending").notNull(),

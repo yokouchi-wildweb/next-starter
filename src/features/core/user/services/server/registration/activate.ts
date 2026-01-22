@@ -11,7 +11,7 @@ const ACTIVATABLE_STATUSES = ["pending", "withdrawn"] as const;
 
 export type ActivateInput = {
   role: UserRoleType;
-  displayName: string;
+  name: string;
   email: string | null;
   lastAuthenticatedAt: Date;
 };

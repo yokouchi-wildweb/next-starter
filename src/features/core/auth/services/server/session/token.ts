@@ -34,7 +34,7 @@ function toSessionUser(payload: TokenPayload): SessionUser | null {
     isDemo: payload.isDemo,
     providerType: payload.providerType,
     providerUid: payload.providerUid,
-    displayName: payload.displayName,
+    name: payload.name,
   });
 
   if (!parsed.success) {
@@ -70,7 +70,7 @@ export async function refreshSessionCookie(
       isDemo: user.isDemo,
       providerType: user.providerType,
       providerUid: user.providerUid,
-      displayName: user.displayName,
+      name: user.name,
     },
   });
 
