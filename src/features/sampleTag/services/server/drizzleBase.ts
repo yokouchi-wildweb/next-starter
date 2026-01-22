@@ -6,9 +6,18 @@ import { SampleTagCreateSchema, SampleTagUpdateSchema } from "@/features/sampleT
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("sampleTag") as DomainConfig & { useSoftDelete?: boolean };
+const conf = getDomainConfig("sampleTag") as DomainConfig & {
+  useSoftDelete?: boolean;
+  sortOrderField?: string | null;
+};
+
+// sortOrderField が設定されている場合、対応するカラムを取得
+const sortOrderColumn = conf.sortOrderField
+  ? ((SampleTagTable as unknown as Record<string, unknown>)[conf.sortOrderField] as AnyPgColumn)
+  : undefined;
 
 export const baseOptions = {
   idType: conf.idType as IdType,
@@ -31,6 +40,7 @@ export const sampleTagServiceOptions = baseOptions;
 
 export const base = createCrudService(SampleTagTable, {
   ...baseOptions,
+  sortOrderColumn,
   parseCreate: (data) => SampleTagCreateSchema.parse(data),
   parseUpdate: (data) => SampleTagUpdateSchema.parse(data),
   parseUpsert: (data) => SampleTagCreateSchema.parse(data),
