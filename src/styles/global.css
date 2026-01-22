@@ -5,6 +5,20 @@
  * このファイルには追加の CSS を書かないでください。
  */
 
+/*
+ * レイヤー順序を明示的に宣言
+ * Next.js の CSS 読み込み順序の不定性（Issue #64921）に対応するため、
+ * ファイルの読み込み順序に関係なく、常にこの優先順位が維持される
+ * 後に宣言されたレイヤーほど優先度が高い（utilities が最優先）
+ *
+ * properties: Tailwind v4 内部レイヤー（--tw-* 変数の初期化）
+ * theme: @theme / @theme inline で定義されたデザイントークン
+ * base: グローバルリセット、HTML要素のデフォルトスタイル
+ * components: 再利用可能なコンポーネントスタイル
+ * utilities: ユーティリティクラス（最優先）
+ */
+@layer properties, theme, base, components, utilities;
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./animations.css";
