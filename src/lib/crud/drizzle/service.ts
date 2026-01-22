@@ -2,7 +2,8 @@
 
 import { db } from "@/lib/drizzle";
 import { omitUndefined } from "@/utils/object";
-import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, getTableName } from "drizzle-orm";
+import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, getTableName, gt } from "drizzle-orm";
+import { generateSortKey, generateFirstSortKey } from "@/lib/fractionalSort";
 import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
@@ -148,6 +149,8 @@ export function createCrudService<
   const belongsToRelations = serviceOptions.belongsToRelations ?? [];
   const belongsToManyObjectRelations = serviceOptions.belongsToManyObjectRelations ?? [];
   const countableRelations = serviceOptions.countableRelations ?? [];
+  // reorder 用の sortOrder カラム
+  const sortOrderColumn = serviceOptions.sortOrderColumn;
   // ソフトデリート用カラム（テーブルに deletedAt がある場合のみ）
   const deletedAtColumn = useSoftDelete
     ? ((table as any).deletedAt as AnyPgColumn | undefined)
@@ -946,6 +949,97 @@ export function createCrudService<
      */
     getTableName(): string {
       return getTableName(table);
+    },
+
+    /**
+     * レコードの並び順を変更する（Fractional Indexing）
+     *
+     * @param id - 移動するレコードのID
+     * @param afterItemId - 移動先の直前のレコードID（nullで先頭に移動）
+     * @returns 更新されたレコード
+     * @throws sortOrderColumn が設定されていない場合
+     *
+     * @example
+     * ```ts
+     * // レコードDをレコードAの直後に移動
+     * await service.reorder("D", "A");
+     *
+     * // レコードを先頭に移動
+     * await service.reorder("D", null);
+     * ```
+     */
+    async reorder(id: string, afterItemId: string | null, tx?: DbTransaction): Promise<Select> {
+      if (!sortOrderColumn) {
+        throw new Error(
+          "reorder() requires sortOrderColumn to be configured in service options."
+        );
+      }
+
+      const executor = tx ?? db;
+
+      // 新しい sortOrder を計算
+      let newSortOrder: string;
+
+      if (!afterItemId) {
+        // 先頭に移動: 最も小さい sortOrder を持つレコードを取得
+        const firstResults = await executor
+          .select({ sortOrder: sortOrderColumn })
+          .from(table as any)
+          .orderBy(asc(sortOrderColumn))
+          .limit(1) as { sortOrder: string | null }[];
+
+        const firstSortOrder = firstResults[0]?.sortOrder ?? null;
+        newSortOrder = generateFirstSortKey(firstSortOrder);
+      } else {
+        // afterItem の sortOrder を取得
+        const afterResults = await executor
+          .select({ sortOrder: sortOrderColumn })
+          .from(table as any)
+          .where(eq(idColumn, afterItemId))
+          .limit(1) as { sortOrder: string | null }[];
+
+        const afterSortOrder = afterResults[0]?.sortOrder ?? null;
+
+        if (!afterSortOrder) {
+          // afterItem が見つからない場合は先頭に配置
+          newSortOrder = generateFirstSortKey(null);
+        } else {
+          // afterItem より大きい sortOrder を持つ最初のレコードを取得
+          const nextResults = await executor
+            .select({ sortOrder: sortOrderColumn })
+            .from(table as any)
+            .where(gt(sortOrderColumn, afterSortOrder))
+            .orderBy(asc(sortOrderColumn))
+            .limit(1) as { sortOrder: string | null }[];
+
+          const nextSortOrder = nextResults[0]?.sortOrder ?? null;
+          newSortOrder = generateSortKey(afterSortOrder, nextSortOrder);
+        }
+      }
+
+      // sortOrder を更新
+      const updateData = { sortOrder: newSortOrder } as Record<string, any>;
+      if (serviceOptions.useUpdatedAt) {
+        updateData.updatedAt = new Date();
+      }
+
+      const rows = await executor
+        .update(table)
+        .set(updateData)
+        .where(eq(idColumn, id))
+        .returning();
+
+      const record = rows[0] as Select;
+      if (!record) {
+        throw new DomainError(`レコードが見つかりません: ${id}`, { status: 404 });
+      }
+
+      // belongsToMany の hydrate
+      if (belongsToManyRelations.length) {
+        await hydrateBelongsToManyRelations([record], belongsToManyRelations);
+      }
+
+      return record;
     },
   };
 }

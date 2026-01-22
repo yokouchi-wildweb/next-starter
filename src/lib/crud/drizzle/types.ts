@@ -64,4 +64,10 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    * withCount オプション用: カウント取得対象のリレーション設定。
    */
   countableRelations?: CountableRelation[];
+  /**
+   * reorder メソッド用: sortOrder カラム。
+   * 設定するとドラッグ&ドロップでの並び替えが可能になる。
+   * Fractional Indexing（文字列ベース）を使用。
+   */
+  sortOrderColumn?: AnyPgColumn;
 };
