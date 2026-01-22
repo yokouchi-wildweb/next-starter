@@ -4,17 +4,16 @@
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { __Domain__Fields, type __Domain__FieldsProps } from "./__Domain__Fields";
+import { __Domain__Fields } from "./__Domain__Fields";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
-export type __Domain__FormProps<TFieldValues extends FieldValues> =
-  Omit<__Domain__FieldsProps<TFieldValues>, "methods" | "onMediaStateChange"> & {
-    methods: UseFormReturn<TFieldValues>;
-    onSubmitAction: (data: TFieldValues) => Promise<void>;
-    isMutating?: boolean;
-    submitLabel: string;
-    onCancel?: () => void;
-  };
+export type __Domain__FormProps<TFieldValues extends FieldValues> = {
+  methods: UseFormReturn<TFieldValues>;
+  onSubmitAction: (data: TFieldValues) => Promise<void>;
+  isMutating?: boolean;
+  submitLabel: string;
+  onCancel?: () => void;
+};
 
 export function __Domain__Form<TFieldValues extends FieldValues>({
   methods,
@@ -22,7 +21,6 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
   isMutating = false,
   submitLabel,
   onCancel,
-  ...fieldsProps
 }: __Domain__FormProps<TFieldValues>) {
   return (
     <AppForm
@@ -31,7 +29,7 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
       pending={isMutating}
       fieldSpace={6}
     >
-      <__Domain__Fields<TFieldValues> {...fieldsProps} methods={methods} />
+      <__Domain__Fields<TFieldValues> methods={methods} />
       <div className="flex justify-center gap-3">
         <Button type="submit" variant="default">
           {submitLabel}
