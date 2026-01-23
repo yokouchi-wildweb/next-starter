@@ -2,15 +2,7 @@
 
 // アプリ全体で利用する機能トグルを定義します。
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
-
-/**
- * ドメインロック設定
- * true にすると該当ルート全体が404になる（middlewareで制御）
- */
-export const DOMAIN_LOCKS = {
-  wallet: false,
-  // shop: false,
-} as const;
+// ルートのブロックは featureGate (src/proxies/featureGate.ts) で自動制御されます。
 
 export const APP_FEATURES = {
   auth: {
@@ -70,12 +62,22 @@ export const APP_FEATURES = {
     },
   },
   wallet: {
+    /** ウォレット機能を有効にする */
+    enabled: false,
     /** 管理者による残高調整ボタンを有効にする */
     enableAdminBalanceAdjust: false,
   },
   dataMigration: {
     /** 最大レコード数制限（デフォルト: 1000） */
     maxRecordLimit: 1000,
+  },
+  marketing: {
+    /** 管理画面のメニューにマーケティングカテゴリーを表示する */
+    showInAdminMenu: true,
+    coupon: {
+      /** クーポン機能を有効にする */
+      enabled: false,
+    },
   },
 } as const;
 

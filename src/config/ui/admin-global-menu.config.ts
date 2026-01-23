@@ -58,14 +58,20 @@ export const adminMenu: AdminMenuSection[] = [
       { title: "管理画面トップ", href: "/admin", icon: Home },
     ],
   },
-  {
-    title: "マーケティング",
-    href: null,
-    icon: Megaphone,
-    items: [
-      { title: "クーポン", href: "/admin/coupons/official", icon: Ticket },
-    ],
-  },
+  ...(APP_FEATURES.marketing.showInAdminMenu
+    ? [
+        {
+          title: "マーケティング",
+          href: null,
+          icon: Megaphone,
+          items: [
+            ...(APP_FEATURES.marketing.coupon.enabled
+              ? [{ title: "クーポン", href: "/admin/coupons/official", icon: Ticket }]
+              : []),
+          ],
+        },
+      ]
+    : []),
   {
     title: "データ管理",
     href: null,
