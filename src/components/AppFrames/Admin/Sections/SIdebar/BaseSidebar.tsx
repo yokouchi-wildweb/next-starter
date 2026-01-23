@@ -14,7 +14,13 @@ import { cn } from "@/lib/cn";
 import { err } from "@/lib/errors";
 import { useToast } from "@/lib/toast";
 
-import { adminMenu, type AdminMenuSection } from "@/config/ui/admin-global-menu.config";
+import {
+  adminMenu,
+  ADMIN_MENU_ICONS_ENABLED,
+  ADMIN_LOGOUT_ICON,
+  type AdminMenuSection,
+} from "@/config/ui/admin-global-menu.config";
+import type { IconComponent } from "@/components/Icons";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import { MenuButton, adminSidebarButtonClassName } from "./MenuButton";
 
@@ -30,12 +36,14 @@ const hasHref = (href: string | null | undefined): href is string =>
 type SidebarMenuItem = {
   title: string;
   href: string;
+  icon?: IconComponent;
 };
 
 type SidebarMenuSection = {
   title: string;
   href: string | null;
   items: SidebarMenuItem[];
+  icon?: IconComponent;
 };
 
 /**
@@ -66,6 +74,7 @@ function buildSidebarSections(
         acc.push({
           title: item.title,
           href: item.href,
+          icon: item.icon,
         });
         return acc;
       }, []);
@@ -74,6 +83,7 @@ function buildSidebarSections(
         title: section.title,
         href: primaryHref,
         items,
+        icon: section.icon,
       };
     });
 }
@@ -218,6 +228,9 @@ export function BaseSidebar({
                         aria-haspopup={hasSubMenu || undefined}
                         aria-expanded={hasSubMenu ? isOpen : undefined}
                       >
+                        {ADMIN_MENU_ICONS_ENABLED && section.icon && (
+                          <section.icon className="size-4 shrink-0" />
+                        )}
                         {section.title}
                       </Link>
                     </MenuButton>
@@ -244,6 +257,9 @@ export function BaseSidebar({
                         "cursor-default outline-none focus-visible:bg-sidebar-primary focus-visible:text-sidebar-primary-foreground",
                       )}
                     >
+                      {ADMIN_MENU_ICONS_ENABLED && section.icon && (
+                        <section.icon className="size-4 shrink-0" />
+                      )}
                       {section.title}
                     </Span>
                   )}
@@ -262,12 +278,18 @@ export function BaseSidebar({
                         <li key={`${section.title}-${item.title}`}>
                           <Link
                             href={item.href}
-                            className={cn(itemLink({ size: submenuVariant }), "w-full")}
+                            className={cn(
+                              itemLink({ size: submenuVariant }),
+                              "w-full flex items-center gap-2",
+                            )}
                             onClick={() => {
                               closeSubmenuImmediately();
                               onNavigate?.();
                             }}
                           >
+                            {ADMIN_MENU_ICONS_ENABLED && item.icon && (
+                              <item.icon className="size-4 shrink-0" />
+                            )}
                             {item.title}
                           </Link>
                         </li>
@@ -283,6 +305,9 @@ export function BaseSidebar({
       <Stack space={2} className="w-full mt-0">
         <div className="group relative w-full">
           <MenuButton type="button" onClick={handleLogout} disabled={isLoading}>
+            {ADMIN_MENU_ICONS_ENABLED && ADMIN_LOGOUT_ICON && (
+              <ADMIN_LOGOUT_ICON className="size-4 shrink-0" />
+            )}
             ログアウト
           </MenuButton>
         </div>
