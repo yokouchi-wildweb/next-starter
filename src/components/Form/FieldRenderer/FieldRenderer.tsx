@@ -114,15 +114,27 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
     );
     const result: FieldConfig[] = [];
 
-    // 1. 先頭に挿入（insertBefore["__first__"]）
+    // 挿入フィールドにもパッチを適用するヘルパー関数
+    const applyPatchesToFields = (fields: FieldConfig[]): FieldConfig[] => {
+      return fields.map((field) => {
+        const patch = patchMap.get(field.name);
+        if (patch) {
+          patchMap.delete(field.name); // 使用済み
+          return { ...field, ...patch } as FieldConfig;
+        }
+        return field;
+      });
+    };
+
+    // 1. 先頭に挿入（insertBefore["__first__"]、パッチ適用）
     const firstFields = insertBefore["__first__"] ?? [];
-    result.push(...firstFields);
+    result.push(...applyPatchesToFields(firstFields));
 
     // 2. baseFields を処理（fieldPatches で上書き + insertBefore/insertAfter で挿入）
     baseFields.forEach((field) => {
-      // このフィールドの前に挿入
+      // このフィールドの前に挿入（パッチ適用）
       const beforeFields = insertBefore[field.name] ?? [];
-      result.push(...beforeFields);
+      result.push(...applyPatchesToFields(beforeFields));
 
       // フィールド本体（patch があれば部分的に上書き）
       const patch = patchMap.get(field.name);
@@ -133,9 +145,9 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
         result.push(field);
       }
 
-      // このフィールドの後に挿入
+      // このフィールドの後に挿入（パッチ適用）
       const afterFields = insertAfter[field.name] ?? [];
-      result.push(...afterFields);
+      result.push(...applyPatchesToFields(afterFields));
     });
 
     // 3. 残り（新規追加分）を末尾に追加
@@ -143,9 +155,9 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
     const remainingPatches = Array.from(patchMap.values()) as FieldConfig[];
     result.push(...remainingPatches);
 
-    // 4. 末尾に挿入（insertAfter["__last__"]）
+    // 4. 末尾に挿入（insertAfter["__last__"]、パッチ適用）
     const lastFields = insertAfter["__last__"] ?? [];
-    result.push(...lastFields);
+    result.push(...applyPatchesToFields(lastFields));
 
     return result;
   }, [baseFields, fieldPatches, insertBefore, insertAfter]);
