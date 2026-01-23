@@ -20,7 +20,7 @@ export type CouponFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   onMediaStateChange?: (state: MediaState | null) => void;
   /** フィールドのパッチ（上書き・追加） */
-  fieldPatches?: FieldConfig[];
+  fieldPatches?: (Partial<FieldConfig> & { name: string })[];
   /** フィールド挿入（指定フィールドの前に追加） */
   insertBefore?: InsertFieldsMap;
   /** フィールド挿入（指定フィールドの後に追加） */
@@ -54,7 +54,7 @@ export function CouponFields<TFieldValues extends FieldValues>({
 }: CouponFieldsProps<TFieldValues>) {
   const handleGenerateCode = () => {
     const code = generateCouponCode();
-    methods.setValue("code" as any, code);
+    methods.setValue("code" as any, code as any);
   };
 
   // デフォルトの自動生成ボタン
@@ -86,13 +86,13 @@ export function CouponFields<TFieldValues extends FieldValues>({
       fieldPatches={fieldPatches}
       insertBefore={insertBeforeProp}
       insertAfter={insertAfter}
-      fieldGroups={fieldGroups ?? (domainConfig.fieldGroups as FieldGroup[] | undefined)}
+      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
       inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
       beforeAll={beforeAll}
       afterAll={afterAll}
       beforeField={beforeField}
-      afterField={mergedAfterField}
+      afterField={mergedAfterField as any}
     />
   );
 }

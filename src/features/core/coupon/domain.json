@@ -157,6 +157,7 @@
   "useDetailModal": true,
   "addToAdminDataMenu": true,
   "useDuplicateButton": true,
+  "useImportExport": false,
   "generateFiles": {
     "entities": true,
     "components": true,

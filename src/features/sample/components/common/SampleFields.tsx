@@ -19,7 +19,7 @@ export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   onMediaStateChange?: (state: MediaState | null) => void;
   /** フィールドのパッチ（上書き・追加） */
-  fieldPatches?: FieldConfig[];
+  fieldPatches?: (Partial<FieldConfig> & { name: string })[];
   /** フィールド挿入（指定フィールドの前に追加） */
   insertBefore?: InsertFieldsMap;
   /** フィールド挿入（指定フィールドの後に追加） */
@@ -72,7 +72,7 @@ export function SampleFields<TFieldValues extends FieldValues>({
       fieldPatches={fieldPatches}
       insertBefore={mergedInsertBefore}
       insertAfter={insertAfter}
-      fieldGroups={fieldGroups ?? (domainConfig.fieldGroups as FieldGroup[] | undefined)}
+      fieldGroups={fieldGroups ?? ((domainConfig as any).fieldGroups as FieldGroup[] | undefined)}
       inlineGroups={inlineGroups}
       onMediaStateChange={onMediaStateChange}
       beforeAll={beforeAll}

@@ -21,7 +21,7 @@ export type SampleFormProps<TFieldValues extends FieldValues> = {
   submitLabel: string;
   onCancel?: () => void;
   /** フィールドのパッチ（上書き・追加） */
-  fieldPatches?: FieldConfig[];
+  fieldPatches?: (Partial<FieldConfig> & { name: string })[];
   /** フィールド挿入（指定フィールドの前に追加） */
   insertBefore?: InsertFieldsMap;
   /** フィールド挿入（指定フィールドの後に追加） */
