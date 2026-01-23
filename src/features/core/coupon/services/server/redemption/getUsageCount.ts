@@ -3,15 +3,18 @@
 import { db } from "@/lib/drizzle";
 import { CouponHistoryTable } from "@/features/core/couponHistory/entities/drizzle";
 import { and, eq, count } from "drizzle-orm";
+import type { TransactionClient } from "./utils";
 
 /**
  * 特定ユーザーの特定クーポンの使用回数を取得
  */
 export async function getUsageCount(
   couponId: string,
-  redeemerId: string
+  redeemerId: string,
+  tx?: TransactionClient
 ): Promise<number> {
-  const result = await db
+  const executor = tx ?? db;
+  const result = await executor
     .select({ count: count() })
     .from(CouponHistoryTable)
     .where(

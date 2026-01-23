@@ -4,6 +4,7 @@ import { db } from "@/lib/drizzle";
 import { CouponHistoryTable } from "../../entities/drizzle";
 import type { CouponHistory } from "../../entities/model";
 import type { CouponSnapshot, CouponUsageMetadata } from "../../types/metadata";
+import type { TransactionClient } from "@/lib/drizzle/transaction";
 
 type RecordUsageParams = {
   couponId: string;
@@ -16,20 +17,26 @@ type RecordUsageParams = {
 /**
  * クーポン使用履歴を記録する
  */
-export async function recordUsage({
-  couponId,
-  redeemerUserId,
-  snapshot,
-  currentTotalUsesAfter,
-  additionalMetadata,
-}: RecordUsageParams): Promise<CouponHistory> {
+export async function recordUsage(
+  params: RecordUsageParams,
+  tx?: TransactionClient
+): Promise<CouponHistory> {
+  const {
+    couponId,
+    redeemerUserId,
+    snapshot,
+    currentTotalUsesAfter,
+    additionalMetadata,
+  } = params;
+
   const metadata: CouponUsageMetadata = {
     ...snapshot,
     current_total_uses_after: currentTotalUsesAfter,
     ...additionalMetadata,
   };
 
-  const [history] = await db
+  const executor = tx ?? db;
+  const [history] = await executor
     .insert(CouponHistoryTable)
     .values({
       coupon_id: couponId,

@@ -6,6 +6,11 @@ import { duplicate } from "./wrappers/duplicate";
 import { redeem } from "./redemption/redeem";
 import { isUsable } from "./redemption/isUsable";
 import { getUsageCount } from "./redemption/getUsageCount";
+import {
+  getCouponByCode,
+  getCouponById,
+  validateCouponStatically,
+} from "./redemption/utils";
 
 export const couponService = {
   ...base,
@@ -15,4 +20,8 @@ export const couponService = {
   redeem,
   isUsable,
   getUsageCount,
+  // トランザクション対応ユーティリティ
+  getCouponByCode,
+  getCouponById,
+  validateCouponStatically,
 };
