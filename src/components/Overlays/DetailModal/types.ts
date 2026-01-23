@@ -28,6 +28,8 @@ export type DetailModalProps = {
   titleSrOnly?: boolean;
   badge?: DetailModalBadge;
   media?: DetailModalMedia;
+  /** カスタムメディアノード。指定時はmediaより優先して表示 */
+  mediaNode?: ReactNode;
   rows?: DetailModalRow[];
   footer?: ReactNode;
   className?: string;

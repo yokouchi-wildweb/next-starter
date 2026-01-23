@@ -28,6 +28,7 @@ export default function DetailModal({
   titleSrOnly,
   badge,
   media,
+  mediaNode,
   rows,
   footer,
   className,
@@ -54,8 +55,9 @@ export default function DetailModal({
 
 
 
+  // mediaNodeが渡された場合はそれを優先、なければmediaから生成
   const mediaType = media?.type ?? "image";
-  const mediaNode =
+  const generatedMediaNode =
     media &&
     (mediaType === "video" ? (
       <video
@@ -74,6 +76,7 @@ export default function DetailModal({
         className="mx-auto w-full max-w-md max-h-80 rounded-md object-contain shadow"
       />
     ));
+  const resolvedMediaNode = mediaNode ?? generatedMediaNode;
 
   return (
     <Modal
@@ -84,7 +87,7 @@ export default function DetailModal({
       className={cn("animate-[fade-in-scale] fill-both", className)}
     >
       <Block>
-        {mediaNode}
+        {resolvedMediaNode}
         {rows && rows.length > 0 && <DetailTable rows={rows} />}
         {footer && <div className="pt-4">{footer}</div>}
       </Block>
