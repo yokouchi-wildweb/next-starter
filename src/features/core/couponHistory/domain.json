@@ -18,7 +18,7 @@
       "required": true
     },
     {
-      "name": "redeemer_id",
+      "name": "redeemer_user_id",
       "label": "使用者ID",
       "fieldType": "uuid",
       "formInput": "none",
@@ -32,9 +32,9 @@
       "required": true
     }
   ],
-  "searchFields": ["coupon_id", "redeemer_id"],
+  "searchFields": ["coupon_id", "redeemer_user_id"],
   "defaultOrderBy": [["createdAt", "DESC"]],
-  "tableFields": ["coupon_id", "redeemer_id", "createdAt"],
+  "tableFields": ["coupon_id", "redeemer_user_id", "createdAt"],
   "useDetailModal": false,
   "addToAdminDataMenu": false,
   "useDuplicateButton": false,
