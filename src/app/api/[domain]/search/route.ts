@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createDomainRoute } from "src/lib/routeFactory";
-import type { SearchParams } from "@/lib/crud";
+import type { SearchParams, WithOptions } from "@/lib/crud";
 
 import {
   BadRequestError,
@@ -43,8 +43,12 @@ export const GET = createDomainRoute<any, DomainParams>(
 
       const searchQuery = query.get("searchQuery") ?? undefined;
 
+      // WithOptions のパース
+      const withRelations = parseBooleanFlag(query.get("withRelations"), "withRelations");
+      const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
+
       // サービスへ渡す SearchParams を組み立て
-      const searchParams: SearchParams = {};
+      const searchParams: SearchParams & WithOptions = {};
       if (typeof page === "number") searchParams.page = page;
       if (typeof limit === "number") searchParams.limit = limit;
       if (orderBy) searchParams.orderBy = orderBy;
@@ -54,6 +58,8 @@ export const GET = createDomainRoute<any, DomainParams>(
       if (searchPriorityFields) searchParams.searchPriorityFields = searchPriorityFields;
       if (typeof prioritizeSearchHits === "boolean")
         searchParams.prioritizeSearchHits = prioritizeSearchHits;
+      if (withRelations) searchParams.withRelations = withRelations;
+      if (withCount) searchParams.withCount = withCount;
 
       // ドメインサービスの search を実行し結果を JSON で返却
       return service.search(searchParams);

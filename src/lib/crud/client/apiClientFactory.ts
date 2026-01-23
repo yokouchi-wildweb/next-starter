@@ -9,6 +9,7 @@ import type {
   BulkUpsertOptions,
   BulkUpsertResult,
   WhereExpr,
+  WithOptions,
 } from "../types";
 import type { CrudAction } from "./events";
 import { emitCrudEvent } from "./events";
@@ -41,12 +42,26 @@ async function handleRequest<R>(action: CrudAction, fn: () => Promise<R>): Promi
   }
 }
 
+/**
+ * WithOptionsをクエリパラメータ文字列に変換
+ */
+function buildWithOptionsParams(options?: WithOptions): string {
+  if (!options) return "";
+  const params = new URLSearchParams();
+  if (options.withRelations) params.set("withRelations", "true");
+  if (options.withCount) params.set("withCount", "true");
+  const str = params.toString();
+  return str ? `?${str}` : "";
+}
+
 export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>>(
   baseUrl: string,
 ): ApiClient<T, CreateData, UpdateData> {
   return {
-    getAll: () => handleRequest("getAll", async () => (await axios.get<T[]>(baseUrl)).data),
-    getById: (id) => handleRequest("getById", async () => (await axios.get<T>(`${baseUrl}/${id}`)).data),
+    getAll: (options?: WithOptions) =>
+      handleRequest("getAll", async () => (await axios.get<T[]>(`${baseUrl}${buildWithOptionsParams(options)}`)).data),
+    getById: (id, options?: WithOptions) =>
+      handleRequest("getById", async () => (await axios.get<T>(`${baseUrl}/${id}${buildWithOptionsParams(options)}`)).data),
     create: (data: CreateData) =>
       handleRequest("create", async () => (await axios.post<T>(baseUrl, { data })).data),
     update: (id, data: UpdateData) =>
@@ -56,7 +71,7 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         await axios.delete(`${baseUrl}/${id}`);
         return undefined;
       }),
-    search: (params: SearchParams) =>
+    search: (params: SearchParams & WithOptions) =>
       handleRequest("search", async () => {
         const queryParams: Record<string, unknown> = { ...params };
 

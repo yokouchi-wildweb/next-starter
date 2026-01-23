@@ -96,12 +96,12 @@ export type BulkUpsertResult<T> = {
 };
 
 export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
-  getAll(): Promise<T[]>;
-  getById(id: string): Promise<T>;
+  getAll(options?: WithOptions): Promise<T[]>;
+  getById(id: string, options?: WithOptions): Promise<T>;
   create(data: CreateData): Promise<T>;
   update(id: string, data: UpdateData): Promise<T>;
   delete(id: string): Promise<void>;
-  search?(params: SearchParams): Promise<PaginatedResult<T>>;
+  search?(params: SearchParams & WithOptions): Promise<PaginatedResult<T>>;
   bulkDeleteByIds?(ids: string[]): Promise<void>;
   bulkDeleteByQuery?(where: WhereExpr): Promise<void>;
   upsert?(data: CreateData, options?: UpsertOptions<CreateData>): Promise<T>;
@@ -110,9 +110,9 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   // ソフトデリート用メソッド
   restore?(id: string): Promise<T>;
   hardDelete?(id: string): Promise<void>;
-  getAllWithDeleted?(): Promise<T[]>;
-  getByIdWithDeleted?(id: string): Promise<T>;
-  searchWithDeleted?(params: SearchParams): Promise<PaginatedResult<T>>;
+  getAllWithDeleted?(options?: WithOptions): Promise<T[]>;
+  getByIdWithDeleted?(id: string, options?: WithOptions): Promise<T>;
+  searchWithDeleted?(params: SearchParams & WithOptions): Promise<PaginatedResult<T>>;
   // 並び替え用メソッド
   reorder?(id: string, afterItemId: string | null): Promise<T>;
   /**
