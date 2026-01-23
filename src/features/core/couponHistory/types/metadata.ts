@@ -7,7 +7,7 @@ export type CouponSnapshot = {
   code: string;
   type: string;
   name: string;
-  owner_id: string | null;
+  attribution_user_id: string | null;
   current_total_uses_after: number;
 };
 

@@ -119,8 +119,8 @@
       "defaultValue": 0
     },
     {
-      "name": "owner_id",
-      "label": "所有者ID",
+      "name": "attribution_user_id",
+      "label": "帰属ユーザーID",
       "fieldType": "uuid",
       "formInput": "none",
       "required": false

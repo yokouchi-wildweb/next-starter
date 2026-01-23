@@ -77,7 +77,7 @@ export async function redeem(
           code: lockedCoupon.code,
           type: lockedCoupon.type,
           name: lockedCoupon.name,
-          owner_id: lockedCoupon.owner_id,
+          attribution_user_id: lockedCoupon.attribution_user_id,
         },
         currentTotalUsesAfter: newTotalUses,
         additionalMetadata,

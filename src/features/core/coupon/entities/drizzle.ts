@@ -21,7 +21,7 @@ export const CouponTable = pgTable("coupons", {
   max_total_uses: integer("max_total_uses"),
   max_uses_per_redeemer: integer("max_uses_per_redeemer"),
   current_total_uses: integer("current_total_uses").notNull().default(0),
-  owner_id: uuid("owner_id"),
+  attribution_user_id: uuid("attribution_user_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),

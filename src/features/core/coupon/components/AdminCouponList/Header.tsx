@@ -20,7 +20,7 @@ export default function AdminCouponListHeader({ page, perPage, total }: AdminCou
   const params = useSearchParams();
 
   return (
-    <ListTop title="登録済みクーポンの一覧" newHref="/admin/coupons/new">
+    <ListTop title="発行済の公式クーポン" newHref="/admin/coupons/new">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/coupons?${p.toString()}`} />}
       {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />

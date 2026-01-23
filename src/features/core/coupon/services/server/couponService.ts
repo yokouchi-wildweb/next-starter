@@ -11,6 +11,9 @@ import {
   getCouponById,
   validateCouponStatically,
 } from "./redemption/utils";
+import { issueCodeForOwner } from "./ownership/issueCodeForOwner";
+import { getCodesByOwner } from "./ownership/getCodesByOwner";
+import { getInviteCode, getOrCreateInviteCode } from "./ownership/inviteCode";
 
 export const couponService = {
   ...base,
@@ -24,4 +27,9 @@ export const couponService = {
   getCouponByCode,
   getCouponById,
   validateCouponStatically,
+  // オーナーシップ（コード発行・取得）
+  issueCodeForOwner,
+  getCodesByOwner,
+  getInviteCode,
+  getOrCreateInviteCode,
 };

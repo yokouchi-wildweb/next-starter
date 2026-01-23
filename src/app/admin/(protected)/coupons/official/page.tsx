@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 
-import { settingService } from "../../../../features/core/setting/services/server/settingService";
+import { settingService } from "@/features/core/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/lib/crud";
 import AdminCouponList from "@/features/core/coupon/components/AdminCouponList";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";

@@ -6,7 +6,6 @@ export const adminDataMenu = [
   { title: "サンプル", href: "/admin/samples" },
   { title: "サンプルカテゴリ", href: "/admin/sample-categories" },
   { title: "サンプルタグ", href: "/admin/sample-tags" },
-  { title: "クーポン", href: "/admin/coupons" },
   // --- AUTO-GENERATED-END ---
 
 ]

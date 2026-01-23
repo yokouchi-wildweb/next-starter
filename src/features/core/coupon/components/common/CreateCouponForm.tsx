@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CouponCreateSchema } from "@/features/core/coupon/entities/schema";
 import { CouponCreateFields } from "@/features/core/coupon/entities/form";
 import { useCreateCoupon } from "@/features/core/coupon/hooks/useCreateCoupon";
+import { CouponTypeOptions } from "@/features/core/coupon/constants/field";
 import { CouponForm } from "./CouponForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
@@ -17,6 +18,9 @@ import domainConfig from "@/features/core/coupon/domain.json";
 type Props = {
   redirectPath?: string;
 };
+
+// 管理画面では公式プロモーションのみ選択可能
+const officialOnlyOptions = CouponTypeOptions.filter(opt => opt.value === "official");
 
 export default function CreateCouponForm({ redirectPath = "/" }: Props) {
   const methods = useForm<CouponCreateFields>({
@@ -48,6 +52,9 @@ export default function CreateCouponForm({ redirectPath = "/" }: Props) {
       isMutating={isMutating}
       submitLabel="登録"
       onCancel={() => router.push(redirectPath)}
+      fieldPatches={[
+        { name: "type", options: officialOnlyOptions },
+      ]}
     />
   );
 }

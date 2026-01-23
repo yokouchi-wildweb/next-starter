@@ -8,6 +8,7 @@ import { CouponUpdateSchema } from "@/features/core/coupon/entities/schema";
 import type { CouponUpdateFields } from "@/features/core/coupon/entities/form";
 import type { Coupon } from "@/features/core/coupon/entities";
 import { useUpdateCoupon } from "@/features/core/coupon/hooks/useUpdateCoupon";
+import { CouponTypeOptions } from "@/features/core/coupon/constants/field";
 import { CouponForm } from "./CouponForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
@@ -19,6 +20,9 @@ type Props = {
   coupon: Coupon;
   redirectPath?: string;
 };
+
+// 管理画面では公式プロモーションのみ選択可能
+const officialOnlyOptions = CouponTypeOptions.filter(opt => opt.value === "official");
 
 export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
   const methods = useForm<CouponUpdateFields>({
@@ -52,7 +56,7 @@ export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
       onCancel={() => router.push(redirectPath)}
       fieldPatches={[
         { name: "code", disabled: true },
-        { name: "type", disabled: true },
+        { name: "type", disabled: true, options: officialOnlyOptions },
       ]}
       afterField={{ code: null }}
     />

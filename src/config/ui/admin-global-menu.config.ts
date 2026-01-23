@@ -12,6 +12,8 @@ import {
   Settings,
   ExternalLink,
   LogOut,
+  Megaphone,
+  Ticket,
 } from "lucide-react";
 
 // ============================================
@@ -54,6 +56,14 @@ export const adminMenu: AdminMenuSection[] = [
     items: [
       { title: "アプリトップ", href: "/", icon: ExternalLink },
       { title: "管理画面トップ", href: "/admin", icon: Home },
+    ],
+  },
+  {
+    title: "マーケティング",
+    href: null,
+    icon: Megaphone,
+    items: [
+      { title: "クーポン", href: "/admin/coupons/official", icon: Ticket },
     ],
   },
   {
