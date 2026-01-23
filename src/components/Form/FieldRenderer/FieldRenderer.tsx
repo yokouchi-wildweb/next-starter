@@ -24,11 +24,11 @@ export type FieldRendererProps<TFieldValues extends FieldValues> = {
   baseFields?: FieldConfig[];
 
   /**
-   * フィールドのパッチ（上書き・追加）
-   * - 同名フィールド: 位置を維持して上書き
+   * フィールドのパッチ（部分的に上書き・追加）
+   * - 同名フィールド: 位置を維持してベースフィールドにマージ
    * - 新規フィールド: 末尾に追加
    */
-  fieldPatches?: FieldConfig[];
+  fieldPatches?: Partial<FieldConfig>[];
 
   /**
    * フィールド挿入（指定フィールドの前に追加）
@@ -104,12 +104,14 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
   // baseFields, fieldPatches, insertBefore, insertAfter を統合
   // 処理順序:
   // 1. insertBefore["__first__"] を先頭に配置
-  // 2. baseFields を処理（fieldPatches で上書き）
+  // 2. baseFields を処理（fieldPatches で部分的に上書き・マージ）
   // 3. 各フィールドの前後に insertBefore/insertAfter で指定されたフィールドを挿入
   // 4. fieldPatches の新規フィールドを末尾に追加
   // 5. insertAfter["__last__"] を最後に配置
   const combinedFields = useMemo(() => {
-    const patchMap = new Map(fieldPatches.map((f) => [f.name, f]));
+    const patchMap = new Map(
+      fieldPatches.filter((f) => f.name).map((f) => [f.name, f])
+    );
     const result: FieldConfig[] = [];
 
     // 1. 先頭に挿入（insertBefore["__first__"]）
@@ -122,11 +124,11 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
       const beforeFields = insertBefore[field.name] ?? [];
       result.push(...beforeFields);
 
-      // フィールド本体（patch があれば上書き）
+      // フィールド本体（patch があれば部分的に上書き）
       const patch = patchMap.get(field.name);
       if (patch) {
         patchMap.delete(field.name); // 使用済み
-        result.push(patch); // 上書き（位置維持）
+        result.push({ ...field, ...patch } as FieldConfig); // マージ（位置維持）
       } else {
         result.push(field);
       }
@@ -137,7 +139,8 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
     });
 
     // 3. 残り（新規追加分）を末尾に追加
-    const remainingPatches = Array.from(patchMap.values());
+    // 注: 新規フィールドの場合は完全なFieldConfig定義が必要
+    const remainingPatches = Array.from(patchMap.values()) as FieldConfig[];
     result.push(...remainingPatches);
 
     // 4. 末尾に挿入（insertAfter["__last__"]）

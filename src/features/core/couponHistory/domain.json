@@ -1,0 +1,52 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "couponHistory",
+  "plural": "couponHistories",
+  "label": "クーポン使用履歴",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [],
+  "useCreatedAt": true,
+  "useUpdatedAt": false,
+  "useSoftDelete": false,
+  "fields": [
+    {
+      "name": "coupon_id",
+      "label": "クーポンID",
+      "fieldType": "uuid",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "redeemer_id",
+      "label": "使用者ID",
+      "fieldType": "uuid",
+      "formInput": "none",
+      "required": false
+    },
+    {
+      "name": "metadata",
+      "label": "メタデータ",
+      "fieldType": "jsonb",
+      "formInput": "none",
+      "required": true
+    }
+  ],
+  "searchFields": ["coupon_id", "redeemer_id"],
+  "defaultOrderBy": [["createdAt", "DESC"]],
+  "tableFields": ["coupon_id", "redeemer_id", "createdAt"],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "useDuplicateButton": false,
+  "generateFiles": {
+    "entities": true,
+    "components": false,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "adminRoutes": false,
+    "registry": true,
+    "fieldConstants": true,
+    "presenters": true
+  }
+}

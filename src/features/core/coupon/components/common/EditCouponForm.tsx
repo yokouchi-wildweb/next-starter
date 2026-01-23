@@ -51,27 +51,8 @@ export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
       submitLabel="更新"
       onCancel={() => router.push(redirectPath)}
       fieldPatches={[
-        {
-          name: "code",
-          label: "クーポンコード",
-          fieldType: "string",
-          formInput: "textInput",
-          required: true,
-          disabled: true,
-        },
-        {
-          name: "type",
-          label: "種別",
-          fieldType: "string",
-          formInput: "select",
-          required: true,
-          disabled: true,
-          options: [
-            { value: "official", label: "公式" },
-            { value: "affiliate", label: "アフィリエイト" },
-            { value: "invite", label: "ユーザー招待" },
-          ],
-        },
+        { name: "code", disabled: true },
+        { name: "type", disabled: true },
       ]}
       afterField={{ code: null }}
     />

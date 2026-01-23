@@ -10,6 +10,7 @@ import { sampleService } from "@/features/sample/services/server/sampleService";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { couponHistoryService } from "@/features/core/couponHistory/services/server/couponHistoryService";
 
 export const serviceRegistry: Record<string, any> = {
   userActionLog: userActionLogService,
@@ -24,6 +25,7 @@ export const serviceRegistry: Record<string, any> = {
   sampleCategory: sampleCategoryService,
   sampleTag: sampleTagService,
   coupon: couponService,
+  couponHistory: couponHistoryService,
   // --- AUTO-GENERATED-END ---
 
 };
