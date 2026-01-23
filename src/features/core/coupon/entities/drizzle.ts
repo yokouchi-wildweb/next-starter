@@ -3,13 +3,13 @@
 import { integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-export const CouponTypeEnum = pgEnum("coupon_type_enum", ["invite", "affiliate", "official"]);
+export const CouponTypeEnum = pgEnum("coupon_type_enum", ["official", "affiliate", "invite"]);
 export const CouponStatusEnum = pgEnum("coupon_status_enum", ["active", "inactive"]);
 
 export const CouponTable = pgTable("coupons", {
   id: uuid("id").defaultRandom().primaryKey(),
   code: text("code").notNull(),
-  type: CouponTypeEnum("type").notNull(),
+  type: CouponTypeEnum("type").notNull().default("official"),
   status: CouponStatusEnum("status").notNull().default("active"),
   name: text("name").notNull(),
   description: text("description"),

@@ -16,11 +16,10 @@ export type CouponFieldPresenter = FieldPresenter<Coupon>;
 
 export const presenters: Record<string, CouponFieldPresenter> = {
   code: ({ value, field, record }) => formatString(value),
-  type: ({ value, field, record }) => formatEnumLabel(value, { "invite": "ユーザー招待", "affiliate": "アフィリエイト", "official": "公式プロモーション" }),
+  type: ({ value, field, record }) => formatEnumLabel(value, { "official": "公式プロモーション", "affiliate": "アフィリエイト", "invite": "ユーザー招待" }),
   status: ({ value, field, record }) => formatEnumLabel(value, { "active": "有効", "inactive": "無効" }),
   name: ({ value, field, record }) => formatString(value),
   description: ({ value, field, record }) => formatString(value),
-  image_url: ({ value, field, record }) => formatString(value),
   admin_label: ({ value, field, record }) => formatString(value),
   admin_note: ({ value, field, record }) => formatString(value),
   valid_from: ({ value, field, record }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),

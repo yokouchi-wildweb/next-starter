@@ -6,7 +6,7 @@
 export const CouponTypeOptions = [
   { value: "official", label: "公式プロモーション" },
   { value: "affiliate", label: "アフィリエイト" },
-  { value: "invite", label: "ユーザー招待" },
+  { value: "invite", label: "ユーザー招待" }
 ] as const;
 
 export const CouponStatusOptions = [

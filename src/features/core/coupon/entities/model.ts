@@ -3,7 +3,7 @@
 export type Coupon = {
   id: string;
   code: string;
-  type: 'invite' | 'affiliate' | 'official';
+  type: 'official' | 'affiliate' | 'invite';
   status: 'active' | 'inactive';
   name: string;
   description: string | null;

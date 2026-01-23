@@ -5,7 +5,7 @@ import { z } from "zod";
 
 export const CouponBaseSchema = z.object({
   code: z.string().trim().min(1, { message: "クーポンコードは必須です。" }),
-  type: z.enum(["invite", "affiliate", "official"]),
+  type: z.enum(["official", "affiliate", "invite"]),
   status: z.enum(["active", "inactive"]),
   name: z.string().trim().min(1, { message: "クーポン名は必須です。" }),
   description: z.string().trim().nullish()
