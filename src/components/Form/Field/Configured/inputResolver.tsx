@@ -56,10 +56,10 @@ export function renderInputByFormType<
 
   switch (formInput) {
     case "textInput":
-      return <TextInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} className={inputClassName} />;
+      return <TextInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "numberInput":
-      return <NumberInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} className={inputClassName} />;
+      return <NumberInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "textarea":
       return (
@@ -67,6 +67,7 @@ export function renderInputByFormType<
           field={field}
           placeholder={fieldConfig.placeholder}
           readOnly={readOnly}
+          disabled={fieldConfig.disabled}
           className={inputClassName}
         />
       );
@@ -77,6 +78,7 @@ export function renderInputByFormType<
           field={field}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
+          disabled={fieldConfig.disabled}
           className={inputClassName}
         />
       );
@@ -87,6 +89,7 @@ export function renderInputByFormType<
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
+          disabled={fieldConfig.disabled}
           className={inputClassName}
         />
       );
@@ -98,6 +101,7 @@ export function renderInputByFormType<
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           options={options}
           displayType={(fieldConfig.displayType as RadioGroupDisplayType | undefined) ?? "standard"}
+          disabled={fieldConfig.disabled}
           className={inputClassName}
         />
       );
@@ -111,6 +115,7 @@ export function renderInputByFormType<
             field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
             options={normalizeOptions(fieldConfig.options)}
             displayType={(fieldConfig.displayType as CheckGroupDisplayType | undefined) ?? "standard"}
+            disabled={fieldConfig.disabled}
             className={inputClassName}
           />
         );
@@ -119,6 +124,7 @@ export function renderInputByFormType<
         <BooleanCheckboxInput
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           label={fieldConfig.label}
+          disabled={fieldConfig.disabled}
           className={inputClassName}
         />
       );
@@ -128,6 +134,7 @@ export function renderInputByFormType<
       return (
         <StepperInput
           field={field}
+          disabled={fieldConfig.disabled}
           className={inputClassName}
         />
       );
@@ -137,24 +144,25 @@ export function renderInputByFormType<
         <SwitchInput
           field={field}
           label={fieldConfig.label}
+          disabled={fieldConfig.disabled}
           className={inputClassName}
         />
       );
 
     case "dateInput":
-      return <DateInput field={field} readOnly={readOnly} className={inputClassName} />;
+      return <DateInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "timeInput":
-      return <TimeInput field={field} readOnly={readOnly} className={inputClassName} />;
+      return <TimeInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "datetimeInput":
-      return <DatetimeInput field={field} readOnly={readOnly} className={inputClassName} />;
+      return <DatetimeInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "emailInput":
-      return <EmailInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} className={inputClassName} />;
+      return <EmailInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "passwordInput":
-      return <PasswordInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} className={inputClassName} />;
+      return <PasswordInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "hidden":
       return <input type="hidden" {...field} />;

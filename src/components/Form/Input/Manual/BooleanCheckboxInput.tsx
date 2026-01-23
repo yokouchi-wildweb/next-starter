@@ -33,9 +33,11 @@ export type BooleanCheckboxInputProps = {
    * チェックボックス本体のサイズ
    */
   size?: CheckboxSizeProps["size"];
-} & Omit<ComponentProps<typeof Checkbox>, "checked" | "defaultChecked" | "onCheckedChange" | "value" | "name">;
+  /** 無効化 */
+  disabled?: boolean;
+} & Omit<ComponentProps<typeof Checkbox>, "checked" | "defaultChecked" | "onCheckedChange" | "value" | "name" | "disabled">;
 
-export function BooleanCheckboxInput({ value, name, onChange, label, id, className, size, ...rest }: BooleanCheckboxInputProps) {
+export function BooleanCheckboxInput({ value, name, onChange, label, id, className, size, disabled, ...rest }: BooleanCheckboxInputProps) {
   const checkboxId = id ?? name ?? undefined;
   const checkbox = (
     <Checkbox
@@ -43,6 +45,7 @@ export function BooleanCheckboxInput({ value, name, onChange, label, id, classNa
       className={cn("border-muted-foreground", checkboxSizeVariants({ size }), className)}
       checked={Boolean(value)}
       onCheckedChange={(checked) => onChange(checked === true)}
+      disabled={disabled}
       {...rest}
     />
   );
@@ -54,7 +57,13 @@ export function BooleanCheckboxInput({ value, name, onChange, label, id, classNa
   return (
     <div className="flex items-center gap-2">
       {checkbox}
-      <Label htmlFor={checkboxId} className={checkboxId ? "cursor-pointer" : undefined}>
+      <Label
+        htmlFor={checkboxId}
+        className={cn(
+          checkboxId ? "cursor-pointer" : undefined,
+          disabled && "cursor-not-allowed opacity-50"
+        )}
+      >
         {label}
       </Label>
     </div>

@@ -37,7 +37,9 @@ export type RadioGroupInputProps = {
   selectedButtonVariant?: ButtonStyleProps["variant"];
   /** 非選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
   unselectedButtonVariant?: ButtonStyleProps["variant"];
-} & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange" | "orientation">;
+  /** 無効化 */
+  disabled?: boolean;
+} & Omit<ComponentProps<typeof RadioGroup>, "value" | "defaultValue" | "onValueChange" | "orientation" | "disabled">;
 
 export function RadioGroupInput({
   value,
@@ -49,6 +51,7 @@ export function RadioGroupInput({
   buttonSize,
   selectedButtonVariant,
   unselectedButtonVariant,
+  disabled,
   ...rest
 }: RadioGroupInputProps) {
   const serializedValue =
@@ -74,6 +77,7 @@ export function RadioGroupInput({
         onValueChange={(value) => onChange(resolveOriginalValue(value) as OptionPrimitive)}
         value={serializedValue}
         defaultValue={serializedValue}
+        disabled={disabled}
         className={cn(layoutClass, rest.className)}
         aria-orientation={resolvedOrientation}
       >
@@ -84,8 +88,13 @@ export function RadioGroupInput({
           return (
             <div key={optionId} className="flex items-center gap-2">
               <RadioGroupItem id={optionId} value={serialized} className="border-muted-foreground" />
-              <Label htmlFor={optionId} className="text-sm font-normal cursor-pointer">
-
+              <Label
+                htmlFor={optionId}
+                className={cn(
+                  "text-sm font-normal cursor-pointer",
+                  disabled && "cursor-not-allowed opacity-50"
+                )}
+              >
                 {op.label}
               </Label>
             </div>
@@ -99,9 +108,10 @@ export function RadioGroupInput({
 
   return (
     <div
-      className={cn(layoutClass, className)}
+      className={cn(layoutClass, className, disabled && "opacity-70")}
       role="radiogroup"
       aria-orientation={resolvedOrientation}
+      aria-disabled={disabled}
       {...(restDivProps as ComponentProps<"div">)}
     >
       {options.map((op) => {
@@ -123,6 +133,7 @@ export function RadioGroupInput({
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}
+              disabled={disabled}
               role="radio"
               aria-checked={selected}
             >
@@ -140,6 +151,7 @@ export function RadioGroupInput({
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}
+              disabled={disabled}
               role="radio"
               aria-checked={selected}
             >
@@ -159,6 +171,7 @@ export function RadioGroupInput({
               size={buttonSize}
               className={standardButtonBorderClass}
               onClick={handleSelect}
+              disabled={disabled}
               role="radio"
               aria-checked={selected}
             >
@@ -174,6 +187,7 @@ export function RadioGroupInput({
             variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
             size={buttonSize}
             onClick={handleSelect}
+            disabled={disabled}
             role="radio"
             aria-checked={selected}
           >

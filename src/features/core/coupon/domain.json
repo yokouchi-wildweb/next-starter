@@ -130,12 +130,12 @@
     {
       "key": "code",
       "label": "",
-      "fields": ["code"]
+      "fields": ["type", "code"]
     },
     {
       "key": "basic",
       "label": "基本設定",
-      "fields": ["name", "type", "status", "description", "image_url"],
+      "fields": ["name", "status", "description", "image_url"],
       "bgColor": "#f0f7ff"
     },
     {

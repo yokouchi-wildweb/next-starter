@@ -100,6 +100,8 @@ export type FieldConfig = {
   required?: boolean;
   /** 読み取り専用（textInput, numberInput, textarea のみ） */
   readonly?: boolean;
+  /** 無効化（select, radio, checkbox 等で使用） */
+  disabled?: boolean;
   /** デフォルト値 */
   defaultValue?: unknown;
   /** 選択肢（select, radio, checkbox, multiSelect で使用） */

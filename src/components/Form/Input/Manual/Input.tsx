@@ -11,18 +11,20 @@ export type InputProps = React.ComponentProps<typeof ShadcnInput> & {
 };
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
-  const { className, readOnly, leftIcon, ...rest } = props;
+  const { className, readOnly, disabled, leftIcon, ...rest } = props;
 
   // 共通の基本スタイル
   const baseStyles = "h-auto py-3 border-muted-foreground/50";
 
-  const readOnlyStyles = readOnly
-    ? "bg-muted/50 text-muted-foreground cursor-not-allowed focus-visible:ring-0 focus-visible:border-border"
-    : "bg-background";
+  // readOnly または disabled 時のスタイル
+  const inactiveStyles =
+    readOnly || disabled
+      ? "bg-muted/50 text-muted-foreground cursor-not-allowed focus-visible:ring-0 focus-visible:border-border"
+      : "bg-background";
 
   // アイコンがない場合はシンプルにinputを返す
   if (!leftIcon) {
-    return <ShadcnInput ref={ref} readOnly={readOnly} className={cn(baseStyles, readOnlyStyles, className)} {...rest} />;
+    return <ShadcnInput ref={ref} readOnly={readOnly} disabled={disabled} className={cn(baseStyles, inactiveStyles, className)} {...rest} />;
   }
 
   // アイコンがある場合はラッパーで囲む
@@ -32,7 +34,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>((props, ref) => {
       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
         {leftIcon}
       </span>
-      <ShadcnInput ref={ref} readOnly={readOnly} className={cn("pl-10", baseStyles, readOnlyStyles, className)} {...rest} />
+      <ShadcnInput ref={ref} readOnly={readOnly} disabled={disabled} className={cn("pl-10", baseStyles, inactiveStyles, className)} {...rest} />
     </div>
   );
 });

@@ -44,7 +44,9 @@ export type CheckGroupInputProps = {
   selectedButtonVariant?: ButtonStyleProps["variant"];
   /** 非選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
   unselectedButtonVariant?: ButtonStyleProps["variant"];
-} & HTMLAttributes<HTMLDivElement>;
+  /** 無効化 */
+  disabled?: boolean;
+} & Omit<HTMLAttributes<HTMLDivElement>, "disabled">;
 
 export function CheckGroupInput({
   value,
@@ -56,6 +58,7 @@ export function CheckGroupInput({
   buttonSize,
   selectedButtonVariant,
   unselectedButtonVariant,
+  disabled,
   ...rest
 }: CheckGroupInputProps) {
   const groupId = useId();
@@ -79,6 +82,7 @@ export function CheckGroupInput({
         className={cn(layoutClass, className)}
         role="group"
         aria-orientation={resolvedOrientation}
+        aria-disabled={disabled}
         {...restDivProps}
       >
         {options.map((op) => {
@@ -92,10 +96,17 @@ export function CheckGroupInput({
                 id={id}
                 checked={selected}
                 onCheckedChange={() => handleToggle(op.value)}
+                disabled={disabled}
                 aria-checked={selected}
                 className="border-muted-foreground"
               />
-              <Label htmlFor={id} className="text-sm font-normal cursor-pointer">
+              <Label
+                htmlFor={id}
+                className={cn(
+                  "text-sm font-normal cursor-pointer",
+                  disabled && "cursor-not-allowed opacity-50"
+                )}
+              >
                 {op.label}
               </Label>
             </div>
@@ -107,9 +118,10 @@ export function CheckGroupInput({
 
   return (
     <div
-      className={cn(layoutClass, className)}
+      className={cn(layoutClass, className, disabled && "opacity-70")}
       role="group"
       aria-orientation={resolvedOrientation}
+      aria-disabled={disabled}
       {...restDivProps}
     >
       {options.map((op) => {
@@ -128,6 +140,7 @@ export function CheckGroupInput({
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}
+              disabled={disabled}
               aria-pressed={selected}
             >
               {op.label}
@@ -148,6 +161,7 @@ export function CheckGroupInput({
               size={buttonSize}
               className={standardButtonBorderClass}
               onClick={handleSelect}
+              disabled={disabled}
               aria-pressed={selected}
             >
               {op.label}
@@ -163,6 +177,7 @@ export function CheckGroupInput({
             variant={buttonVariant}
             size={buttonSize}
             onClick={handleSelect}
+            disabled={disabled}
             aria-pressed={selected}
           >
             {op.label}

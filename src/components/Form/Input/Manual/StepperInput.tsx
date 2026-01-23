@@ -43,6 +43,8 @@ export type StepperInputProps = {
   buttonSize?: ButtonStyleProps["size"];
   /** 中央の値を直接入力できるようにするか */
   manualInputEnabled?: boolean;
+  /** 無効化 */
+  disabled?: boolean;
 };
 
 export default function StepperInput({
@@ -57,6 +59,7 @@ export default function StepperInput({
   buttonVariant,
   buttonSize,
   manualInputEnabled = true,
+  disabled,
 }: StepperInputProps) {
   const [internalValue, setInternalValue] = useState(initialValue);
   const [manualInputValue, setManualInputValue] = useState(String(initialValue));
@@ -104,7 +107,7 @@ export default function StepperInput({
   };
 
   return (
-    <div className={cn(containerVariants({ size }), className)}>
+    <div className={cn(containerVariants({ size }), className, disabled && "opacity-70")}>
       <span className="flex items-center bg-gray-700 px-4 text-white whitespace-nowrap">
         {label}
       </span>
@@ -113,6 +116,7 @@ export default function StepperInput({
         variant={resolvedVariant}
         size={resolvedSize}
         onClick={decrease}
+        disabled={disabled}
         className={sharedButtonClassName}
       >
         <MinusIcon className="size-4" />
@@ -125,7 +129,11 @@ export default function StepperInput({
             value={manualInputValue}
             onChange={handleManualInputChange}
             onBlur={handleManualInputBlur}
-            className="w-[3rem] bg-transparent text-center text-base outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            disabled={disabled}
+            className={cn(
+              "w-[3rem] bg-transparent text-center text-base outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+              disabled && "cursor-not-allowed"
+            )}
           />
         ) : (
           <span>{currentValue}</span>
@@ -137,6 +145,7 @@ export default function StepperInput({
         variant={resolvedVariant}
         size={resolvedSize}
         onClick={increase}
+        disabled={disabled}
         className={sharedButtonClassName}
       >
         <PlusIcon className="size-4" />

@@ -41,6 +41,8 @@ export type SelectInputProps = {
    * モーダル内で使用する場合は "surface-ui-layer" などを指定。
    */
   contentClassName?: string;
+  /** 無効化 */
+  disabled?: boolean;
 };
 
 const CLEAR_VALUE = "__EMPTY__";
@@ -62,6 +64,7 @@ export function SelectInput({
   showPlaceholderOption = true,
   className,
   contentClassName,
+  disabled,
   ...rest
 }: SelectInputProps) {
   const handleChange = (selectedValue: string) => {
@@ -86,6 +89,7 @@ export function SelectInput({
       onValueChange={handleChange}
       value={currentValue}
       defaultValue={currentValue}
+      disabled={disabled}
       {...rest}
     >
       <SelectTrigger className={cn("!h-auto border-muted-foreground/50 py-3", className)}>
