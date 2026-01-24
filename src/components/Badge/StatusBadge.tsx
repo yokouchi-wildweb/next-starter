@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
+import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 
@@ -13,6 +14,8 @@ import {
 export type StatusBadgeProps = React.ComponentPropsWithoutRef<"span"> &
   StatusBadgeVariantProps & {
     asChild?: boolean;
+    /** アイコンコンポーネント（Lucideアイコンなど） */
+    icon?: LucideIcon;
   };
 
 /**
@@ -20,11 +23,12 @@ export type StatusBadgeProps = React.ComponentPropsWithoutRef<"span"> &
  *
  * @example
  * <StatusBadge variant="success">有効</StatusBadge>
+ * <StatusBadge variant="success" icon={Check}>有効</StatusBadge>
  * <StatusBadge variant="destructive">エラー</StatusBadge>
  * <StatusBadge variant="muted" size="sm">下書き</StatusBadge>
  */
 export const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, icon: Icon, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "span";
 
     return (
@@ -33,7 +37,10 @@ export const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
         data-slot="status-badge"
         className={cn(statusBadgeVariants({ variant, size }), className)}
         {...props}
-      />
+      >
+        {Icon && <Icon />}
+        {children}
+      </Comp>
     );
   }
 );

@@ -68,21 +68,11 @@ export default function StatusBadgeDemoPage() {
           </Stack>
 
           <div className="flex flex-wrap gap-3">
-            <StatusBadge variant="success">
-              <Check /> 完了
-            </StatusBadge>
-            <StatusBadge variant="destructive">
-              <X /> エラー
-            </StatusBadge>
-            <StatusBadge variant="accent">
-              <AlertTriangle /> 警告
-            </StatusBadge>
-            <StatusBadge variant="secondary">
-              <Clock /> 処理中
-            </StatusBadge>
-            <StatusBadge variant="muted">
-              <Star /> 下書き
-            </StatusBadge>
+            <StatusBadge variant="success" icon={Check}>完了</StatusBadge>
+            <StatusBadge variant="destructive" icon={X}>エラー</StatusBadge>
+            <StatusBadge variant="accent" icon={AlertTriangle}>警告</StatusBadge>
+            <StatusBadge variant="secondary" icon={Clock}>処理中</StatusBadge>
+            <StatusBadge variant="muted" icon={Star}>下書き</StatusBadge>
           </div>
         </Section>
 
