@@ -617,7 +617,7 @@ export default function PopoverDemoPage() {
                 {
                   header: "操作",
                   render: (item) => (
-                    <Flex gap={1}>
+                    <Flex className="gap-1">
                       <BelongsToFieldButton
                         domain="sample"
                         id={item.id}
