@@ -19,6 +19,7 @@ export function ZoomableImage({
   const { openImage } = useImageViewer();
 
   const handleClick = (e: MouseEvent<HTMLImageElement>) => {
+    e.stopPropagation();
     openImage(src, alt);
     onClick?.(e);
   };
