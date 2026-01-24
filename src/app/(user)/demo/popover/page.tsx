@@ -18,6 +18,7 @@ import {
   PromptPopover,
   ActionPopover,
   InfoPopover,
+  ChecklistPopover,
 } from "@/components/Overlays/Popover";
 import { Tooltip } from "@/components/Overlays/Tooltip";
 import { HoverCard } from "@/components/Overlays/HoverCard";
@@ -29,9 +30,33 @@ const DEMO_SHIPMENTS = [
   { id: 3, orderId: "ORD-003", status: "pending", trackingNumber: "" },
 ];
 
+const DEMO_TAGS = [
+  { value: "urgent", label: "緊急" },
+  { value: "important", label: "重要" },
+  { value: "review", label: "レビュー待ち" },
+  { value: "wip", label: "作業中" },
+  { value: "pending", label: "保留" },
+  { value: "approved", label: "承認済み" },
+];
+
+const DEMO_CATEGORIES = [
+  { value: "electronics", label: "電子機器", description: "スマートフォン、PC、タブレットなど" },
+  { value: "clothing", label: "衣類", description: "Tシャツ、パンツ、アウターなど" },
+  { value: "food", label: "食品", description: "生鮮食品、加工食品、飲料など" },
+  { value: "furniture", label: "家具", description: "テーブル、椅子、ソファなど" },
+  { value: "books", label: "書籍", description: "小説、ビジネス書、技術書など" },
+  { value: "sports", label: "スポーツ", description: "ウェア、シューズ、用具など" },
+  { value: "toys", label: "おもちゃ", description: "ゲーム、フィギュア、知育玩具など" },
+  { value: "beauty", label: "美容", description: "化粧品、スキンケア、ヘアケアなど" },
+  { value: "automotive", label: "自動車", description: "カー用品、パーツ、アクセサリーなど" },
+  { value: "garden", label: "ガーデン", description: "植物、ガーデニング用品など" },
+];
+
 export default function PopoverDemoPage() {
   const { showToast } = useToast();
   const [shipments, setShipments] = useState(DEMO_SHIPMENTS);
+  const [selectedTags, setSelectedTags] = useState<string[]>(["urgent"]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const handleUpdateTracking = useCallback(
     async (id: number, trackingNumber: string) => {
@@ -361,6 +386,72 @@ export default function PopoverDemoPage() {
               >
                 カスタムトリガーを使用した例です。任意の要素をトリガーにできます。
               </InfoPopover>
+            </div>
+          </div>
+        </Section>
+
+        {/* ChecklistPopover */}
+        <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
+          <Stack space={2}>
+            <SecTitle as="h2">ChecklistPopover</SecTitle>
+            <Para tone="muted" size="sm" className="mt-0">
+              チェックリスト選択用ポップオーバー。タグ選択、カテゴリ割り当てなどに使用。
+            </Para>
+          </Stack>
+
+          <div className="flex flex-wrap items-start gap-4">
+            <div className="flex flex-col gap-2">
+              <ChecklistPopover
+                trigger={<Button variant="outline">タグを選択</Button>}
+                title="タグを選択"
+                options={DEMO_TAGS}
+                value={selectedTags}
+                onConfirm={async (values) => {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  setSelectedTags(values);
+                  showToast(`${values.length}件のタグを適用しました`, "success");
+                }}
+              />
+              <div className="text-xs text-muted-foreground">
+                選択中: {selectedTags.join(", ") || "なし"}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <ChecklistPopover
+                trigger={<Button variant="outline">カテゴリ（検索付き）</Button>}
+                title="カテゴリを選択"
+                description="商品に適用するカテゴリを選択してください"
+                options={DEMO_CATEGORIES}
+                value={selectedCategories}
+                searchable
+                showSelectAll
+                maxListHeight={200}
+                onConfirm={async (values) => {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  setSelectedCategories(values);
+                  showToast(`${values.length}件のカテゴリを適用しました`, "success");
+                }}
+              />
+              <div className="text-xs text-muted-foreground">
+                選択中: {selectedCategories.length}件
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <ChecklistPopover
+                trigger={<Button variant="outline">最大3件まで</Button>}
+                title="優先タグ（最大3件）"
+                options={DEMO_TAGS}
+                value={[]}
+                maxSelections={3}
+                onConfirm={(values) => {
+                  showToast(`選択: ${values.join(", ")}`, "info");
+                }}
+              />
+              <div className="text-xs text-muted-foreground">
+                最大選択数の制限
+              </div>
             </div>
           </div>
         </Section>

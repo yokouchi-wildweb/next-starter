@@ -510,6 +510,69 @@ type SeparatorItem = { type: "separator" };
 
 ---
 
+### ChecklistPopover
+
+チェックリスト選択用ポップオーバー。タグ選択、カテゴリ割り当てなどに使用。
+
+```tsx
+import { ChecklistPopover } from "@/components/Overlays/Popover";
+
+// 基本使用
+<ChecklistPopover
+  trigger={<Button>タグを選択</Button>}
+  title="タグを選択"
+  options={[
+    { value: "urgent", label: "緊急" },
+    { value: "important", label: "重要" },
+    { value: "review", label: "レビュー待ち" },
+  ]}
+  value={selectedTags}
+  onConfirm={async (values) => {
+    await updateTags(recordId, values);
+  }}
+/>
+
+// 検索機能と全選択ボタン付き
+<ChecklistPopover
+  trigger={<Button>カテゴリ</Button>}
+  title="カテゴリを選択"
+  options={categories}
+  value={selectedCategories}
+  searchable
+  showSelectAll
+  maxListHeight={240}
+  onConfirm={handleUpdate}
+/>
+```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `trigger` | `ReactNode` | - | トリガー要素 |
+| `title` | `ReactNode` | - | タイトル |
+| `description` | `ReactNode` | - | 説明文 |
+| `options` | `ChecklistOption[]` | - | 選択肢リスト |
+| `value` | `string[]` | `[]` | 現在の選択値 |
+| `onConfirm` | `(values: string[]) => void \| Promise<void>` | - | 適用時のコールバック |
+| `searchable` | `boolean` | `false` | 検索機能を有効にする |
+| `showSelectAll` | `boolean` | `false` | 全選択/解除ボタンを表示 |
+| `maxSelections` | `number` | - | 最大選択数 |
+| `maxListHeight` | `number \| string` | `280` | リストの最大高さ（スクロール） |
+
+**ChecklistOption:**
+
+```ts
+type ChecklistOption = {
+  value: string;      // 値（一意）
+  label: string;      // 表示ラベル
+  disabled?: boolean; // 無効化
+  description?: string; // 説明文
+};
+```
+
+---
+
 ### InfoPopover
 
 情報・ヘルプ表示用ポップオーバー。
