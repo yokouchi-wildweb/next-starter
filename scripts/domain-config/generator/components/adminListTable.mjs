@@ -5,27 +5,22 @@ import { templateDir, replaceTokens } from "./utils/template.mjs";
 // 一覧テーブルコンポーネントを生成する
 
 // 複製ボタン関連のプレースホルダーを置換
-function replaceDuplicatePlaceholders(content, config, tokens) {
+function replaceDuplicatePlaceholders(content, config) {
   const useDuplicate = config?.useDuplicateButton ?? false;
-  const useDetailModal = config?.useDetailModal ?? false;
 
   if (useDuplicate) {
-    // DuplicateButtonのimport
-    const duplicateImport = `import { DuplicateButton } from "@/components/Fanctional";\n`;
-    // useDuplicateフックのimport
-    const duplicateHookImport = `import { useDuplicate${tokens.pascal} } from "@/features/${tokens.camel}/hooks/useDuplicate${tokens.pascal}";\n`;
+    // DuplicateButtonを含むimport文に変更
+    const duplicateImport = `import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud";\n`;
     // DuplicateButtonコンポーネント
-    const duplicateButton = `<DuplicateButton id={d.id} useDuplicate={useDuplicate${tokens.pascal}} />\n        `;
+    const duplicateButton = `<DuplicateButton domain="__domain__" id={d.id} />\n        `;
 
     return content
-      .replace(/__DUPLICATE_IMPORT__/g, duplicateImport)
-      .replace(/__DUPLICATE_HOOK_IMPORT__/g, duplicateHookImport)
+      .replace(/import { EditButton, DeleteButton } from "@\/lib\/crud";\n__DUPLICATE_IMPORT__/g, duplicateImport)
       .replace(/__DUPLICATE_BUTTON__/g, duplicateButton);
   } else {
     // 複製ボタン不要の場合はプレースホルダーを空文字で置換
     return content
       .replace(/__DUPLICATE_IMPORT__/g, "")
-      .replace(/__DUPLICATE_HOOK_IMPORT__/g, "")
       .replace(/__DUPLICATE_BUTTON__/g, "");
   }
 }
@@ -58,7 +53,7 @@ export default function generate({ config, ...tokens }) {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
   const template = fs.readFileSync(templatePath, "utf8");
   // まず複製ボタン関連のプレースホルダーを置換
-  const withDuplicate = replaceDuplicatePlaceholders(template, config, tokens);
+  const withDuplicate = replaceDuplicatePlaceholders(template, config);
   // 次に標準のトークンを置換
   const content = replaceTokens(withDuplicate, tokens);
   fs.writeFileSync(outputFile, content);

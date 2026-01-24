@@ -8,7 +8,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/sampleTag/domain.json";
-import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
+import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/crud/utils";
 
 const paths = getAdminPaths("sample-tags");
@@ -39,7 +39,7 @@ export default function AdminSampleTagListHeader({ page, perPage, total }: Admin
           return `${paths.list}?${search.toString()}`;
         }}
       />
-      <CreateButton href={paths.new} />
+      <CreateButton domain="sampleTag" />
     </ListTop>
   );
 }

@@ -4,17 +4,13 @@
 
 import type { Sample } from "@/features/sample/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import { EditButton, DeleteButton } from "@/components/Fanctional";
-import { DuplicateButton } from "@/components/Fanctional";
-import { useDeleteSample } from "@/features/sample/hooks/useDeleteSample";
-import { useDuplicateSample } from "@/features/sample/hooks/useDuplicateSample";
+import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud";
 import config from "@/features/sample/domain.json";
 import presenters from "@/features/sample/presenters";
 import { useState } from "react";
 import SampleDetailModal from "../common/SampleDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
-import { getAdminPaths } from "@/lib/crud/utils";
 
 export type AdminSampleListTableProps = {
   /**
@@ -24,7 +20,6 @@ export type AdminSampleListTableProps = {
   samples?: Sample[];
 };
 
-const paths = getAdminPaths("samples");
 const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
@@ -35,9 +30,9 @@ const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
     header: "操作",
     render: (d: Sample) => (
       <TableCellAction>
-        <EditButton href={paths.edit(d.id)} />
-        <DuplicateButton id={d.id} useDuplicate={useDuplicateSample} />
-        <DeleteButton id={d.id} useDelete={useDeleteSample} title="サンプル削除" />
+        <EditButton domain="sample" id={d.id} />
+        <DuplicateButton domain="sample" id={d.id} />
+        <DeleteButton domain="sample" id={d.id} />
       </TableCellAction>
     ),
   },

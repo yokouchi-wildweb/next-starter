@@ -8,7 +8,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/__domain__/domain.json";
-import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
+import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/crud/utils";
 
 const paths = getAdminPaths("__domainsSlug__");
@@ -39,7 +39,7 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
           return `${paths.list}?${search.toString()}`;
         }}
       />
-      <CreateButton href={paths.new} />
+      <CreateButton domain="__domain__" />
     </ListTop>
   );
 }
