@@ -25,3 +25,4 @@ export { PromptPopover, type PromptPopoverProps } from "./PromptPopover";
 export { ActionPopover, type ActionPopoverItem, type ActionPopoverProps } from "./ActionPopover";
 export { InfoPopover, type InfoPopoverProps } from "./InfoPopover";
 export { ChecklistPopover, type ChecklistPopoverProps, type ChecklistOption } from "./ChecklistPopover";
+export { SelectPopover, type SelectPopoverProps, type SelectOption } from "./SelectPopover";

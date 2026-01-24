@@ -3,7 +3,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Copy } from "lucide-react";
+import { Copy, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
@@ -24,6 +24,8 @@ export type DuplicateButtonProps = {
   title?: string;
   /** ボタンラベル @default "複製" */
   label?: string;
+  /** ボタンアイコン @default Copy */
+  icon?: LucideIcon;
   /** ローディング中のボタンラベル @default "複製中..." */
   loadingLabel?: string;
   /** ポップオーバーの説明文 @default "このレコードを複製しますか？" */
@@ -48,6 +50,7 @@ export function DuplicateButton({
   showConfirm = true,
   title,
   label = "複製",
+  icon: Icon = Copy,
   loadingLabel = "複製中...",
   description = "このレコードを複製しますか？",
   confirmLabel = "複製する",
@@ -91,7 +94,7 @@ export function DuplicateButton({
       disabled={disabled || isMutating}
       onClick={showConfirm ? undefined : handleDuplicate}
     >
-      <Copy className="h-4 w-4" />
+      <Icon className="h-4 w-4" />
       {isMutating ? loadingLabel : label}
     </Button>
   );

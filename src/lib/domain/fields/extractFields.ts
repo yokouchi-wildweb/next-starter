@@ -6,6 +6,56 @@ import type { DomainFieldInfo } from "../types";
 
 export type { DomainFieldInfo };
 
+/** フィールドオプションの型 */
+export type FieldOption = {
+  value: string | number | boolean;
+  label: string;
+};
+
+/**
+ * ドメイン設定から指定フィールドを取得
+ *
+ * @example
+ * const config = getDomainConfig("sample");
+ * const field = getField(config, "select");
+ * // { name: "select", label: "セレクトボックス", fieldType: "enum", options: [...] }
+ */
+export function getField(config: DomainConfig, fieldName: string) {
+  return config.fields.find((f) => f.name === fieldName);
+}
+
+/**
+ * ドメイン設定から指定フィールドのオプションを取得
+ * enumやselect/multiSelectフィールドの選択肢を取得する
+ *
+ * @example
+ * const config = getDomainConfig("sample");
+ * const options = getFieldOptions(config, "select");
+ * // [{ value: "apple", label: "りんご" }, ...]
+ */
+export function getFieldOptions(
+  config: DomainConfig,
+  fieldName: string
+): FieldOption[] {
+  const field = getField(config, fieldName);
+  if (!field) return [];
+
+  // optionsプロパティがある場合はそれを返す
+  if ("options" in field && Array.isArray(field.options)) {
+    return field.options as FieldOption[];
+  }
+
+  return [];
+}
+
+/**
+ * ドメイン設定から指定フィールドのラベルを取得
+ */
+export function getFieldLabel(config: DomainConfig, fieldName: string): string {
+  const field = getField(config, fieldName);
+  return field?.label ?? fieldName;
+}
+
 /**
  * ドメイン設定からフィールド情報を抽出
  * システムフィールド（id, createdAt, updatedAt, deletedAt）も含む

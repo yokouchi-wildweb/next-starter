@@ -3,7 +3,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Trash2, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
@@ -22,6 +22,8 @@ export type DeleteButtonProps = {
   title?: string;
   /** ボタンラベル @default "削除" */
   label?: string;
+  /** ボタンアイコン @default Trash2 */
+  icon?: LucideIcon;
   /** ローディング中のボタンラベル @default "削除中..." */
   loadingLabel?: string;
   /** ポップオーバーの説明文 @default "本当に削除しますか？" */
@@ -45,6 +47,7 @@ export function DeleteButton({
   id,
   title,
   label = "削除",
+  icon: Icon = Trash2,
   loadingLabel = "削除中...",
   description = "本当に削除しますか？",
   confirmLabel = "削除する",
@@ -89,7 +92,7 @@ export function DeleteButton({
           variant="destructive"
           disabled={disabled || isMutating}
         >
-          <Trash2 className="h-4 w-4" />
+          <Icon className="h-4 w-4" />
           {isMutating ? loadingLabel : label}
         </Button>
       }

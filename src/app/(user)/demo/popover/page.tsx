@@ -19,7 +19,12 @@ import {
   ActionPopover,
   InfoPopover,
   ChecklistPopover,
+  SelectPopover,
 } from "@/components/Overlays/Popover";
+import DataTable from "@/lib/tableSuite/DataTable";
+import { EnumFieldButton, BelongsToFieldButton } from "@/lib/crud/components/Buttons";
+import { useSampleList } from "@/features/sample/hooks/useSampleList";
+import type { Sample } from "@/features/sample/entities";
 import { Tooltip } from "@/components/Overlays/Tooltip";
 import { HoverCard } from "@/components/Overlays/HoverCard";
 
@@ -52,11 +57,24 @@ const DEMO_CATEGORIES = [
   { value: "garden", label: "ガーデン", description: "植物、ガーデニング用品など" },
 ];
 
+// SelectPopover用のデモオプション
+const DEMO_PRIORITIES = [
+  { value: "low", label: "低", description: "通常のタスク" },
+  { value: "medium", label: "中", description: "やや重要なタスク" },
+  { value: "high", label: "高", description: "重要なタスク" },
+  { value: "urgent", label: "緊急", description: "すぐに対応が必要" },
+];
+
+
 export default function PopoverDemoPage() {
   const { showToast } = useToast();
   const [shipments, setShipments] = useState(DEMO_SHIPMENTS);
   const [selectedTags, setSelectedTags] = useState<string[]>(["urgent"]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedPriority, setSelectedPriority] = useState("medium");
+
+  // サンプルデータ取得（EnumFieldButtonデモ用）
+  const { data: samples = [], isLoading: isLoadingSamples } = useSampleList();
 
   const handleUpdateTracking = useCallback(
     async (id: number, trackingNumber: string) => {
@@ -454,6 +472,114 @@ export default function PopoverDemoPage() {
               </div>
             </div>
           </div>
+        </Section>
+
+        {/* SelectPopover */}
+        <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
+          <Stack space={2}>
+            <SecTitle as="h2">SelectPopover</SecTitle>
+            <Para tone="muted" size="sm" className="mt-0">
+              単一選択用ポップオーバー。enumフィールドの変更、ステータス変更などに使用。
+            </Para>
+          </Stack>
+
+          <div className="flex flex-wrap items-start gap-4">
+            <div className="flex flex-col gap-2">
+              <SelectPopover
+                trigger={<Button variant="outline">優先度を選択（確認ボタン付き）</Button>}
+                title="優先度を選択"
+                description="タスクの優先度を設定してください"
+                options={DEMO_PRIORITIES}
+                value={selectedPriority}
+                onConfirm={async (value) => {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  setSelectedPriority(value);
+                  const label = DEMO_PRIORITIES.find((p) => p.value === value)?.label;
+                  showToast(`優先度を「${label}」に変更しました`, "success");
+                }}
+              />
+              <div className="text-xs text-muted-foreground">
+                選択中: {DEMO_PRIORITIES.find((p) => p.value === selectedPriority)?.label}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <SelectPopover
+                trigger={<Button variant="outline">検索付き</Button>}
+                title="カテゴリを選択"
+                options={DEMO_CATEGORIES}
+                value="electronics"
+                searchable
+                maxListHeight={200}
+                onConfirm={(value) => {
+                  const label = DEMO_CATEGORIES.find((c) => c.value === value)?.label;
+                  showToast(`カテゴリを「${label}」に変更しました`, "success");
+                }}
+              />
+              <div className="text-xs text-muted-foreground">
+                searchable: 検索機能付き
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* EnumFieldButton with DataTable */}
+        <Section className="my-0 flex flex-col gap-5 rounded-lg border bg-background p-6 shadow-sm">
+          <Stack space={2}>
+            <SecTitle as="h2">EnumFieldButton + DataTable</SecTitle>
+            <Para tone="muted" size="sm" className="mt-0">
+              サンプルドメインのデータを表示。カテゴリ（BelongsTo）とselectフィールド（Enum）を変更可能。
+            </Para>
+          </Stack>
+
+          {isLoadingSamples ? (
+            <div className="py-8 text-center text-muted-foreground">読み込み中...</div>
+          ) : samples.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              サンプルデータがありません。管理画面からデータを追加してください。
+            </div>
+          ) : (
+            <DataTable<Sample>
+              items={samples.slice(0, 5)}
+              getKey={(item) => item.id}
+              maxHeight="400px"
+              columns={[
+                {
+                  header: "名前",
+                  render: (item) => item.name,
+                },
+                {
+                  header: "カテゴリ",
+                  render: (item) => (
+                    <BelongsToFieldButton
+                      domain="sample"
+                      id={item.id}
+                      relation="sampleCategory"
+                      currentValue={item.sample_category_id}
+                    />
+                  ),
+                },
+                {
+                  header: "Select（果物）",
+                  render: (item) => (
+                    <EnumFieldButton
+                      domain="sample"
+                      id={item.id}
+                      field="select"
+                      currentValue={item.select ?? ""}
+                    />
+                  ),
+                },
+                {
+                  header: "作成日",
+                  render: (item) =>
+                    item.createdAt
+                      ? new Date(item.createdAt).toLocaleDateString("ja-JP")
+                      : "-",
+                },
+              ]}
+            />
+          )}
         </Section>
 
         {/* HoverCard */}
