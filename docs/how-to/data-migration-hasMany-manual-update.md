@@ -104,6 +104,7 @@ import { DataMigrationModal, type ExportField } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
 import config from "@/features/{domain}/domain.json";
+import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
 
 export type Admin{Domain}ListHeaderProps = {
   page: number;
@@ -139,7 +140,7 @@ export default function Admin{Domain}ListHeader({ page, perPage, total }: Admin{
 
   return (
     <>
-      <ListTop title="登録済み{DomainLabel}の一覧" newHref="/admin/{domainsSlug}/new">
+      <ListTop title="登録済み{DomainLabel}の一覧">
         {hasSearch && <SearchBox makeHref={(p) => `/admin/{domainsSlug}?${p.toString()}`} />}
         {config.useImportExport && (
           <Button variant="outline" onClick={() => setIsDataMigrationModalOpen(true)}>
@@ -156,6 +157,7 @@ export default function Admin{Domain}ListHeader({ page, perPage, total }: Admin{
             return `/admin/{domainsSlug}?${search.toString()}`;
           }}
         />
+        <CreateButton href="/admin/{domainsSlug}/new" />
       </ListTop>
 
       {config.useImportExport && (

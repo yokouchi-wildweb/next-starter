@@ -8,6 +8,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/core/coupon/domain.json";
+import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
 
 export type AdminCouponListHeaderProps = {
   page: number;
@@ -20,7 +21,7 @@ export default function AdminCouponListHeader({ page, perPage, total }: AdminCou
   const params = useSearchParams();
 
   return (
-    <ListTop title="発行済の公式クーポン" newHref="/admin/coupons/new">
+    <ListTop title="発行済の公式クーポン">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/coupons/official?${p.toString()}`} />}
       {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
@@ -35,6 +36,7 @@ export default function AdminCouponListHeader({ page, perPage, total }: AdminCou
           return `/admin/coupons/official?${search.toString()}`;
         }}
       />
+      <CreateButton href="/admin/coupons/new" />
     </ListTop>
   );
 }

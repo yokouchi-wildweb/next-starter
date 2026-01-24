@@ -55,7 +55,6 @@ export default async function AdminSystemUserListPage({ searchParams }: Props) {
         perPage={perPage}
         total={total}
         title="登録済みシステム管理者の一覧"
-        newHref={`${LIST_PATH}/new`}
         listPath={LIST_PATH}
         searchPlaceholder="管理者名またはメールアドレスで検索"
       />

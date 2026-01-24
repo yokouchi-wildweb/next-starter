@@ -8,7 +8,6 @@ import Table from "./Table";
 type Props = {
   users: User[];
   title?: string;
-  newHref: string;
   listPath: string;
   page: number;
   perPage: number;
@@ -22,7 +21,6 @@ const DEFAULT_PLACEHOLDER = "管理者名またはメールアドレスで検索
 export default function ManagerialUserList({
   users,
   title = DEFAULT_TITLE,
-  newHref,
   listPath,
   page,
   perPage,
@@ -33,7 +31,6 @@ export default function ManagerialUserList({
     <Section>
       <UserListHeader
         title={title}
-        newHref={newHref}
         listPath={listPath}
         page={page}
         perPage={perPage}

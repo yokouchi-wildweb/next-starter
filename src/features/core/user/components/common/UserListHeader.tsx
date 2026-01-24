@@ -6,10 +6,10 @@ import { useSearchParams } from "next/navigation";
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import Pagination from "@/components/Navigation/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
+import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
 
 type Props = {
   title?: string;
-  newHref?: string;
   listPath: string;
   page: number;
   perPage: number;
@@ -27,7 +27,6 @@ const createHref = (basePath: string, search: URLSearchParams) => {
 
 export default function UserListHeader({
   title = DEFAULT_TITLE,
-  newHref,
   listPath,
   page,
   perPage,
@@ -37,7 +36,7 @@ export default function UserListHeader({
   const params = useSearchParams();
 
   return (
-    <ListTop title={title} newHref={newHref}>
+    <ListTop title={title}>
       <SearchBox
         makeHref={(searchParams) => createHref(listPath, searchParams)}
         placeholder={searchPlaceholder}
@@ -52,6 +51,7 @@ export default function UserListHeader({
           return createHref(listPath, search);
         }}
       />
+      <CreateButton href={`${listPath}/new`} />
     </ListTop>
   );
 }

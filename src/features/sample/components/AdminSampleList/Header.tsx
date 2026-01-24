@@ -9,6 +9,10 @@ import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/sample/domain.json";
 import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
+import { getAdminPaths } from "@/lib/crud/utils";
+
+const paths = getAdminPaths("samples");
+const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
 
 export type AdminSampleListHeaderProps = {
   page: number;
@@ -17,12 +21,11 @@ export type AdminSampleListHeaderProps = {
 };
 
 export default function AdminSampleListHeader({ page, perPage, total }: AdminSampleListHeaderProps) {
-  const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
 
   return (
     <ListTop title="登録済みサンプルの一覧">
-      {hasSearch && <SearchBox makeHref={(p) => `/admin/samples?${p.toString()}`} />}
+      {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
       {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
       )}
@@ -33,10 +36,10 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
         makeHref={(p) => {
           const search = new URLSearchParams(params.toString());
           search.set("page", String(p));
-          return `/admin/samples?${search.toString()}`;
+          return `${paths.list}?${search.toString()}`;
         }}
       />
-      <CreateButton href="/admin/samples/new" />
+      <CreateButton href={paths.new} />
     </ListTop>
   );
 }

@@ -14,6 +14,7 @@ import { useState } from "react";
 import SampleDetailModal from "../common/SampleDetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { getAdminPaths } from "@/lib/crud/utils";
 
 export type AdminSampleListTableProps = {
   /**
@@ -23,6 +24,7 @@ export type AdminSampleListTableProps = {
   samples?: Sample[];
 };
 
+const paths = getAdminPaths("samples");
 const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
@@ -33,7 +35,7 @@ const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
     header: "操作",
     render: (d: Sample) => (
       <TableCellAction>
-        <EditButton href={`/admin/samples/${d.id}/edit`} />
+        <EditButton href={paths.edit(d.id)} />
         <DuplicateButton id={d.id} useDuplicate={useDuplicateSample} />
         <DeleteButton id={d.id} useDelete={useDeleteSample} title="サンプル削除" />
       </TableCellAction>

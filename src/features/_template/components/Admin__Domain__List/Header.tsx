@@ -9,6 +9,10 @@ import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/__domain__/domain.json";
 import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
+import { getAdminPaths } from "@/lib/crud/utils";
+
+const paths = getAdminPaths("__domainsSlug__");
+const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
 
 export type Admin__Domain__ListHeaderProps = {
   page: number;
@@ -17,12 +21,11 @@ export type Admin__Domain__ListHeaderProps = {
 };
 
 export default function Admin__Domain__ListHeader({ page, perPage, total }: Admin__Domain__ListHeaderProps) {
-  const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
   const params = useSearchParams();
 
   return (
     <ListTop title="登録済み__DomainLabel__の一覧">
-      {hasSearch && <SearchBox makeHref={(p) => `/admin/__domainsSlug__?${p.toString()}`} />}
+      {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
       {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
       )}
@@ -33,10 +36,10 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
         makeHref={(p) => {
           const search = new URLSearchParams(params.toString());
           search.set("page", String(p));
-          return `/admin/__domainsSlug__?${search.toString()}`;
+          return `${paths.list}?${search.toString()}`;
         }}
       />
-      <CreateButton href="/admin/__domainsSlug__/new" />
+      <CreateButton href={paths.new} />
     </ListTop>
   );
 }

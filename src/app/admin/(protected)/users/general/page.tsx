@@ -55,7 +55,6 @@ export default async function AdminGeneralUserListPage({ searchParams }: Props) 
         perPage={perPage}
         total={total}
         title="登録済み一般ユーザーの一覧"
-        newHref={`${LIST_PATH}/new`}
         listPath={LIST_PATH}
       />
     </AdminPage>
