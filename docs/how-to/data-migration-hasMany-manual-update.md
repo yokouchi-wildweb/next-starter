@@ -104,7 +104,7 @@ import { DataMigrationModal, type ExportField } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
 import config from "@/features/{domain}/domain.json";
-import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
+import { CreateButton } from "@/lib/crud/components/Buttons";
 
 export type Admin{Domain}ListHeaderProps = {
   page: number;

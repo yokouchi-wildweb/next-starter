@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import Pagination from "@/components/Navigation/Pagination";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
-import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
+import { CreateButton } from "@/lib/crud/components/Buttons";
 
 type Props = {
   title?: string;

@@ -16,14 +16,16 @@ import {
 } from "../DataTable/components";
 import type { DataTableProps } from "../DataTable";
 import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
-import { BulkActionBar, type BulkActionSelection } from "./components/BulkActionBar";
+import { BulkActionBar, type BulkActionSelection, type BulkActionBarSpacing } from "./components/BulkActionBar";
 import { SelectionCell } from "./components/SelectionCell";
 import { SelectionHeaderCell } from "./components/SelectionHeaderCell";
 import { useRecordSelectionState } from "./hooks/useRecordSelectionState";
 
-export type { BulkActionSelection } from "./components/BulkActionBar";
+export type { BulkActionSelection, BulkActionBarSpacing } from "./components/BulkActionBar";
 
 type SelectionBehavior = "row" | "checkbox";
+
+const EMPTY_KEYS: React.Key[] = [];
 
 export type RecordSelectionTableProps<T> = DataTableProps<T> & {
   selectedKeys?: React.Key[];
@@ -37,6 +39,8 @@ export type RecordSelectionTableProps<T> = DataTableProps<T> & {
    * 左側の「N件選択中」と「選択解除」ボタンは自動で表示される。
    */
   bulkActions?: (selection: BulkActionSelection<T>) => React.ReactNode;
+  /** 一括操作バーとテーブルの余白 @default "md" */
+  bulkActionsSpacing?: BulkActionBarSpacing;
 };
 
 export default function RecordSelectionTable<T>({
@@ -49,13 +53,14 @@ export default function RecordSelectionTable<T>({
   onRowClick,
   emptyValueFallback,
   selectedKeys,
-  defaultSelectedKeys = [],
+  defaultSelectedKeys = EMPTY_KEYS,
   onSelectionChange,
   selectionBehavior = "row",
   selectColumnLabel = "選択",
   bottomSentinelRef,
   scrollContainerRef,
   bulkActions,
+  bulkActionsSpacing,
 }: RecordSelectionTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -115,7 +120,7 @@ export default function RecordSelectionTable<T>({
   return (
     <>
       {bulkActions && (
-        <BulkActionBar selection={bulkActionSelection} bulkActions={bulkActions} />
+        <BulkActionBar selection={bulkActionSelection} bulkActions={bulkActions} spacing={bulkActionsSpacing} />
       )}
       <div
         className={cn("overflow-x-auto overflow-y-auto", className)}

@@ -908,47 +908,83 @@ export function createCrudService<
         return { results: [], count: 0, notFoundIds: [] };
       }
 
-      const executor = tx ?? db;
       const ids = records.map((r) => r.id);
 
-      // 存在するレコードを確認
-      const existingRows = await executor
-        .select({ id: idColumn })
-        .from(table as any)
-        .where(inArray(idColumn, ids)) as unknown as { id: string }[];
-      const existingIds = new Set(existingRows.map((r) => r.id));
-      const notFoundIds = ids.filter((id) => !existingIds.has(id));
+      // belongsToMany リレーションがあるかチェック
+      const hasBelongsToMany = belongsToManyRelations.length > 0;
 
-      // 存在するレコードのみ更新
-      const validRecords = records.filter((r) => existingIds.has(r.id));
-      if (validRecords.length === 0) {
-        return { results: [], count: 0, notFoundIds };
-      }
+      // 内部処理関数
+      const performBulkUpdate = async (executor: DbTransaction | typeof db): Promise<BulkUpdateResult<Select>> => {
+        // 存在するレコードを確認
+        const existingRows = await executor
+          .select({ id: idColumn })
+          .from(table as any)
+          .where(inArray(idColumn, ids)) as unknown as { id: string }[];
+        const existingIds = new Set(existingRows.map((r) => r.id));
+        const notFoundIds = ids.filter((id) => !existingIds.has(id));
 
-      const results: Select[] = [];
-
-      for (const record of validRecords) {
-        const parsedInput = serviceOptions.parseUpdate
-          ? await serviceOptions.parseUpdate(record.data)
-          : record.data;
-
-        const updateData = omitUndefined({
-          ...parsedInput,
-          ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
-        }) as PgUpdateSetSource<TTable>;
-
-        const [updated] = (await executor
-          .update(table)
-          .set(updateData)
-          .where(eq(idColumn, record.id))
-          .returning()) as Select[];
-
-        if (updated) {
-          results.push(updated);
+        // 存在するレコードのみ更新
+        const validRecords = records.filter((r) => existingIds.has(r.id));
+        if (validRecords.length === 0) {
+          return { results: [], count: 0, notFoundIds };
         }
+
+        const results: Select[] = [];
+
+        for (const record of validRecords) {
+          const parsedInput = serviceOptions.parseUpdate
+            ? await serviceOptions.parseUpdate(record.data)
+            : record.data;
+
+          // belongsToMany フィールドを分離
+          const { sanitizedData, relationValues } = separateBelongsToManyInput(
+            parsedInput,
+            belongsToManyRelations
+          );
+
+          const updateData = omitUndefined({
+            ...sanitizedData,
+            ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
+          }) as PgUpdateSetSource<TTable>;
+
+          const [updated] = (await executor
+            .update(table)
+            .set(updateData)
+            .where(eq(idColumn, record.id))
+            .returning()) as Select[];
+
+          if (updated) {
+            // belongsToMany リレーションを同期
+            if (relationValues.size > 0) {
+              await syncBelongsToManyRelations(
+                executor as DbTransaction,
+                belongsToManyRelations,
+                record.id,
+                relationValues
+              );
+              assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
+            }
+            results.push(updated);
+          }
+        }
+
+        return { results, count: results.length, notFoundIds };
+      };
+
+      // 外部トランザクションが渡された場合はそれを使用
+      if (tx) {
+        return performBulkUpdate(tx);
       }
 
-      return { results, count: results.length, notFoundIds };
+      // belongsToMany がある場合はトランザクション内で実行
+      if (hasBelongsToMany) {
+        return db.transaction(async (innerTx) => {
+          return performBulkUpdate(innerTx);
+        });
+      }
+
+      // belongsToMany がなければトランザクションなしで実行
+      return performBulkUpdate(db);
     },
 
     async duplicate(id: string, tx?: DbTransaction): Promise<Select> {

@@ -1,4 +1,4 @@
-// src/lib/crud/components/Buttons/BelongsToFieldButton.tsx
+// src/lib/crud/components/Buttons/BelongsToManyFieldButton.tsx
 
 "use client";
 
@@ -6,17 +6,17 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import axios from "axios";
-import { Tag, type LucideIcon } from "lucide-react";
+import { Tags, type LucideIcon } from "lucide-react";
 
 import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import {
-  SelectPopover,
-  type SelectOption,
+  ChecklistPopover,
+  type ChecklistOption,
 } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { getDomainConfig } from "@/lib/domain";
-import { getBelongsToRelations } from "@/lib/domain/relations/getBelongsToRelations";
+import { getBelongsToManyRelations } from "@/lib/domain/relations/getBelongsToManyRelations";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { createApiClient } from "@/lib/crud/client";
 import { useUpdateDomain } from "@/lib/crud/hooks";
@@ -27,31 +27,31 @@ type RelationData = {
   name: string;
 };
 
-export type BelongsToFieldButtonProps = ButtonStyleProps & {
+export type BelongsToManyFieldButtonProps = ButtonStyleProps & {
   /** ドメイン名（singular形式） */
   domain: string;
   /** 更新対象のID */
   id: string;
-  /** リレーション先ドメイン名（camelCase: "sampleCategory"） */
+  /** リレーション先ドメイン名（camelCase: "sampleTag"） */
   relation: string;
   /** 選択肢リスト（省略時はリレーション先ドメインから自動取得） */
-  options?: SelectOption[];
-  /** 現在の値 */
-  currentValue: string | null;
+  options?: ChecklistOption[];
+  /** 現在の値（ID配列） */
+  currentValue: string[];
   /** ポップオーバーのタイトル（省略時はフィールドラベルから生成） */
   title?: string;
   /** ボタンラベル @default "{リレーションラベル}" */
   label?: string;
-  /** ボタンアイコン @default Tag */
+  /** ボタンアイコン @default Tags */
   icon?: LucideIcon;
   /** ローディング中のボタンラベル @default "更新中..." */
   loadingLabel?: string;
   /** 検索機能を有効にする @default false */
   searchable?: boolean;
-  /** 「なし」オプションを表示するか @default true */
-  showNoneOption?: boolean;
-  /** 「なし」オプションのラベル @default "なし" */
-  noneOptionLabel?: string;
+  /** 全選択/解除ボタンを表示する @default false */
+  showSelectAll?: boolean;
+  /** 最大選択数 */
+  maxSelections?: number;
   /** 更新中のトーストメッセージ @default "更新を実行中です…" */
   toastMessage?: string;
   /** 成功時のトーストメッセージ @default "更新が完了しました。" */
@@ -65,31 +65,31 @@ export type BelongsToFieldButtonProps = ButtonStyleProps & {
 };
 
 /**
- * BelongsToリレーションを変更するボタンコンポーネント
- * カテゴリ変更、親レコード変更などに使用
+ * BelongsToManyリレーションを変更するボタンコンポーネント
+ * タグ選択、複数カテゴリ割り当てなどに使用
  *
  * optionsを省略するとリレーション先ドメインのAPIからデータを自動取得します。
  *
  * @example
  * // 基本使用（optionsを自動取得）
- * <BelongsToFieldButton
+ * <BelongsToManyFieldButton
  *   domain="sample"
  *   id={sample.id}
- *   relation="sampleCategory"
- *   currentValue={sample.sampleCategoryId}
+ *   relation="sampleTag"
+ *   currentValue={sample.sample_tag_ids ?? []}
  * />
  *
  * @example
  * // optionsを明示的に指定
- * <BelongsToFieldButton
+ * <BelongsToManyFieldButton
  *   domain="sample"
  *   id={sample.id}
- *   relation="sampleCategory"
- *   options={categories.map(c => ({ value: c.id, label: c.name }))}
- *   currentValue={sample.sampleCategoryId}
+ *   relation="sampleTag"
+ *   options={tags.map(t => ({ value: t.id, label: t.name }))}
+ *   currentValue={sample.sample_tag_ids ?? []}
  * />
  */
-export function BelongsToFieldButton({
+export function BelongsToManyFieldButton({
   domain,
   id,
   relation,
@@ -97,19 +97,19 @@ export function BelongsToFieldButton({
   currentValue,
   title,
   label,
-  icon: Icon = Tag,
+  icon: Icon = Tags,
   loadingLabel = "更新中...",
   size = "sm",
   variant = "outline",
   searchable = false,
-  showNoneOption = true,
-  noneOptionLabel = "なし",
+  showSelectAll = false,
+  maxSelections,
   toastMessage = "更新を実行中です…",
   successMessage = "更新が完了しました。",
   errorMessage = "更新に失敗しました",
   onSuccess,
   disabled = false,
-}: BelongsToFieldButtonProps) {
+}: BelongsToManyFieldButtonProps) {
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
@@ -124,7 +124,7 @@ export function BelongsToFieldButton({
 
   // リレーション情報を取得（relationからドメイン名で検索）
   const relationInfo = useMemo(() => {
-    const relations = getBelongsToRelations(domain);
+    const relations = getBelongsToManyRelations(domain);
     // relation（camelCase）をsnake_caseに変換して比較
     const targetDomainSnake = relation.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, "");
     return relations.find((r) => r.domain === targetDomainSnake);
@@ -133,7 +133,7 @@ export function BelongsToFieldButton({
   // リレーション先ドメイン
   const targetDomain = relationInfo?.domain;
 
-  // 外部キーフィールド名
+  // フィールド名（配列フィールド）
   const fieldName = relationInfo?.fieldName;
 
   // リレーション先ドメインのAPI path
@@ -152,24 +152,18 @@ export function BelongsToFieldButton({
   );
 
   // 選択肢を生成
-  const resolvedOptions = useMemo<SelectOption[]>(() => {
+  const resolvedOptions = useMemo<ChecklistOption[]>(() => {
     // propsでoptionsが指定されていればそれを使用
     if (optionsProp) {
-      return showNoneOption
-        ? [{ value: "", label: noneOptionLabel }, ...optionsProp]
-        : optionsProp;
+      return optionsProp;
     }
 
     // リレーション先データから生成
-    const dataOptions: SelectOption[] = (relationData ?? []).map((item) => ({
+    return (relationData ?? []).map((item) => ({
       value: item.id,
       label: item.name,
     }));
-
-    return showNoneOption
-      ? [{ value: "", label: noneOptionLabel }, ...dataOptions]
-      : dataOptions;
-  }, [optionsProp, relationData, showNoneOption, noneOptionLabel]);
+  }, [optionsProp, relationData]);
 
   // リレーションラベル
   const relationLabel = relationInfo?.label ?? relation;
@@ -177,18 +171,23 @@ export function BelongsToFieldButton({
   // ボタンラベル
   const displayLabel = label ?? relationLabel;
 
-  const handleConfirm = async (value: string) => {
+  // 配列の比較
+  const arraysEqual = (a: string[], b: string[]): boolean => {
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].sort();
+    const sortedB = [...b].sort();
+    return sortedA.every((v, i) => v === sortedB[i]);
+  };
+
+  const handleConfirm = async (values: string[]) => {
     if (!fieldName) return;
 
-    // 空文字列はnullに変換
-    const newValue = value === "" ? null : value;
-
     // 変更がなければ何もしない
-    if (newValue === currentValue) return;
+    if (arraysEqual(values, currentValue)) return;
 
     showToast({ message: toastMessage, mode: "persistent" });
     try {
-      await trigger({ id, data: { [fieldName]: newValue } });
+      await trigger({ id, data: { [fieldName]: values } });
       showToast(successMessage, "success");
       router.refresh();
       onSuccess?.();
@@ -202,7 +201,7 @@ export function BelongsToFieldButton({
   // リレーション設定が見つからない場合はエラー表示
   if (!relationInfo) {
     console.warn(
-      `BelongsToFieldButton: リレーション情報が見つかりません。domain=${domain}, relation=${relation}`
+      `BelongsToManyFieldButton: リレーション情報が見つかりません。domain=${domain}, relation=${relation}`
     );
     return (
       <Button type="button" size={size} variant={variant} disabled>
@@ -212,11 +211,8 @@ export function BelongsToFieldButton({
     );
   }
 
-  // 現在の値を文字列に変換（nullの場合は空文字列）
-  const currentValueStr = currentValue ?? "";
-
   return (
-    <SelectPopover
+    <ChecklistPopover
       trigger={
         <Button
           type="button"
@@ -230,11 +226,13 @@ export function BelongsToFieldButton({
       }
       title={resolvedTitle}
       options={resolvedOptions}
-      value={currentValueStr}
+      value={currentValue}
       searchable={searchable}
+      showSelectAll={showSelectAll}
+      maxSelections={maxSelections}
       onConfirm={handleConfirm}
     />
   );
 }
 
-export default BelongsToFieldButton;
+export default BelongsToManyFieldButton;

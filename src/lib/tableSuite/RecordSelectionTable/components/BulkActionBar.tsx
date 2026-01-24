@@ -17,19 +17,30 @@ export type BulkActionSelection<T> = {
   clear: () => void;
 };
 
+export type BulkActionBarSpacing = "sm" | "md" | "lg";
+
+const SPACING_CLASSES: Record<BulkActionBarSpacing, string> = {
+  sm: "mb-1",
+  md: "mb-2",
+  lg: "mb-3",
+};
+
 type BulkActionBarProps<T> = {
   selection: BulkActionSelection<T>;
   bulkActions: (selection: BulkActionSelection<T>) => React.ReactNode;
+  /** テーブルとの余白 @default "md" */
+  spacing?: BulkActionBarSpacing;
 };
 
-export function BulkActionBar<T>({ selection, bulkActions }: BulkActionBarProps<T>) {
+export function BulkActionBar<T>({ selection, bulkActions, spacing = "md" }: BulkActionBarProps<T>) {
   const isVisible = selection.count > 0;
+  const spacingClass = SPACING_CLASSES[spacing];
 
   return (
     <div
       className={cn(
-        "overflow-hidden transition-all duration-300 ease-out",
-        isVisible ? "mb-4 max-h-20 opacity-100" : "mb-0 max-h-0 opacity-0"
+        "overflow-hidden transition-all duration-[600ms] ease-out",
+        isVisible ? `${spacingClass} max-h-20 opacity-100` : "mb-0 max-h-0 opacity-0"
       )}
     >
       <div className="flex items-center gap-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">

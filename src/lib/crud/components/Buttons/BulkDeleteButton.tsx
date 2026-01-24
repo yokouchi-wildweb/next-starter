@@ -5,7 +5,7 @@
 import { useRouter } from "next/navigation";
 import { Trash2, type LucideIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
@@ -13,7 +13,7 @@ import { getDomainConfig } from "@/lib/domain";
 import { createApiClient } from "@/lib/crud/client";
 import { useBulkDeleteByIdsDomain } from "@/lib/crud/hooks";
 
-export type BulkDeleteButtonProps = {
+export type BulkDeleteButtonProps = ButtonStyleProps & {
   /** ドメイン名（singular形式） */
   domain: string;
   /** 削除対象のID配列 */
@@ -75,6 +75,8 @@ export function BulkDeleteButton({
   errorMessage = "削除に失敗しました",
   onSuccess,
   disabled = false,
+  size = "sm",
+  variant = "destructive",
 }: BulkDeleteButtonProps) {
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
@@ -108,8 +110,8 @@ export function BulkDeleteButton({
       trigger={
         <Button
           type="button"
-          size="sm"
-          variant="destructive"
+          size={size}
+          variant={variant}
           disabled={disabled || isMutating || count === 0}
         >
           <Icon className="h-4 w-4" />

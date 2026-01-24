@@ -21,10 +21,12 @@ import {
   ChecklistPopover,
   SelectPopover,
 } from "@/components/Overlays/Popover";
-import DataTable from "@/lib/tableSuite/DataTable";
-import { EnumFieldButton, BelongsToFieldButton } from "@/lib/crud/components/Buttons";
-import { useSampleList } from "@/features/sample/hooks/useSampleList";
-import type { Sample } from "@/features/sample/entities";
+import RecordSelectionTable from "@/lib/tableSuite/RecordSelectionTable";
+import { EnumFieldButton, BelongsToFieldButton, BelongsToManyFieldButton, BulkDeleteButton, BulkEnumFieldButton, BulkBelongsToFieldButton, BulkBelongsToManyFieldButton } from "@/lib/crud/components/Buttons";
+import useSWR from "swr";
+import { sampleClient } from "@/features/sample/services/client/sampleClient";
+import type { SampleWithRelations } from "@/features/sample/entities/model";
+import { Flex } from "@/components/Layout/Flex";
 import { Tooltip } from "@/components/Overlays/Tooltip";
 import { HoverCard } from "@/components/Overlays/HoverCard";
 
@@ -73,8 +75,11 @@ export default function PopoverDemoPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedPriority, setSelectedPriority] = useState("medium");
 
-  // サンプルデータ取得（EnumFieldButtonデモ用）
-  const { data: samples = [], isLoading: isLoadingSamples } = useSampleList();
+  // サンプルデータ取得（リレーション展開済み）
+  const { data: samples = [], isLoading: isLoadingSamples, mutate: mutateSamples } = useSWR(
+    "samples-with-relations",
+    () => sampleClient.getAll({ withRelations: true }) as Promise<SampleWithRelations[]>,
+  );
 
   const handleUpdateTracking = useCallback(
     async (id: number, trackingNumber: string) => {
@@ -539,10 +544,49 @@ export default function PopoverDemoPage() {
               サンプルデータがありません。管理画面からデータを追加してください。
             </div>
           ) : (
-            <DataTable<Sample>
+            <RecordSelectionTable<SampleWithRelations>
               items={samples.slice(0, 5)}
               getKey={(item) => item.id}
               maxHeight="400px"
+              bulkActions={(selection) => (
+                <>
+                  <BulkBelongsToFieldButton
+                    domain="sample"
+                    ids={selection.selectedIds}
+                    relation="sampleCategory"
+                    onSuccess={() => {
+                      mutateSamples();
+                      selection.clear();
+                    }}
+                  />
+                  <BulkBelongsToManyFieldButton
+                    domain="sample"
+                    ids={selection.selectedIds}
+                    relation="sampleTag"
+                    onSuccess={() => {
+                      mutateSamples();
+                      selection.clear();
+                    }}
+                  />
+                  <BulkEnumFieldButton
+                    domain="sample"
+                    ids={selection.selectedIds}
+                    field="select"
+                    onSuccess={() => {
+                      mutateSamples();
+                      selection.clear();
+                    }}
+                  />
+                  <BulkDeleteButton
+                    domain="sample"
+                    ids={selection.selectedIds}
+                    onSuccess={() => {
+                      mutateSamples();
+                      selection.clear();
+                    }}
+                  />
+                </>
+              )}
               columns={[
                 {
                   header: "名前",
@@ -550,25 +594,18 @@ export default function PopoverDemoPage() {
                 },
                 {
                   header: "カテゴリ",
-                  render: (item) => (
-                    <BelongsToFieldButton
-                      domain="sample"
-                      id={item.id}
-                      relation="sampleCategory"
-                      currentValue={item.sample_category_id}
-                    />
-                  ),
+                  render: (item) => item.sample_category?.name ?? "-",
+                },
+                {
+                  header: "タグ",
+                  render: (item) =>
+                    item.sample_tags && item.sample_tags.length > 0
+                      ? item.sample_tags.map((t) => t.name).join(", ")
+                      : "-",
                 },
                 {
                   header: "Select（果物）",
-                  render: (item) => (
-                    <EnumFieldButton
-                      domain="sample"
-                      id={item.id}
-                      field="select"
-                      currentValue={item.select ?? ""}
-                    />
-                  ),
+                  render: (item) => item.select ?? "-",
                 },
                 {
                   header: "作成日",
@@ -576,6 +613,34 @@ export default function PopoverDemoPage() {
                     item.createdAt
                       ? new Date(item.createdAt).toLocaleDateString("ja-JP")
                       : "-",
+                },
+                {
+                  header: "操作",
+                  render: (item) => (
+                    <Flex gap={1}>
+                      <BelongsToFieldButton
+                        domain="sample"
+                        id={item.id}
+                        relation="sampleCategory"
+                        currentValue={item.sample_category_id}
+                        onSuccess={() => mutateSamples()}
+                      />
+                      <BelongsToManyFieldButton
+                        domain="sample"
+                        id={item.id}
+                        relation="sampleTag"
+                        currentValue={item.sample_tag_ids ?? []}
+                        onSuccess={() => mutateSamples()}
+                      />
+                      <EnumFieldButton
+                        domain="sample"
+                        id={item.id}
+                        field="select"
+                        currentValue={item.select ?? ""}
+                        onSuccess={() => mutateSamples()}
+                      />
+                    </Flex>
+                  ),
                 },
               ]}
             />

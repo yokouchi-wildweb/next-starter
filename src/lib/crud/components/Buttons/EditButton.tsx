@@ -5,11 +5,11 @@
 import Link from "next/link";
 import { Pencil, type LucideIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { getDomainConfig } from "@/lib/domain";
 import { getAdminPaths } from "@/lib/crud/utils";
 
-export type EditButtonProps = {
+export type EditButtonProps = ButtonStyleProps & {
   /** ドメイン名（singular形式） */
   domain: string;
   /** 編集対象のID */
@@ -28,13 +28,15 @@ export function EditButton({
   label = "編集",
   icon: Icon = Pencil,
   href,
+  size = "sm",
+  variant = "outline",
 }: EditButtonProps) {
   const config = getDomainConfig(domain);
   const paths = getAdminPaths(config.plural);
   const resolvedHref = href ?? paths.edit(id);
 
   return (
-    <Button asChild size="sm" variant="outline">
+    <Button asChild size={size} variant={variant}>
       <Link href={resolvedHref}>
         <Icon className="h-4 w-4" />
         {label}

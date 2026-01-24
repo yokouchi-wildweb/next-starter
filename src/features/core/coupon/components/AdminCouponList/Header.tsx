@@ -8,7 +8,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/core/coupon/domain.json";
-import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
+import { CreateButton } from "@/lib/crud/components/Buttons";
 
 export type AdminCouponListHeaderProps = {
   page: number;

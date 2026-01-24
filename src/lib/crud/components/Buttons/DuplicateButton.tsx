@@ -5,7 +5,7 @@
 import { useRouter } from "next/navigation";
 import { Copy, type LucideIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
@@ -13,7 +13,7 @@ import { getDomainConfig } from "@/lib/domain";
 import { createApiClient } from "@/lib/crud/client";
 import { useDuplicateDomain } from "@/lib/crud/hooks";
 
-export type DuplicateButtonProps = {
+export type DuplicateButtonProps = ButtonStyleProps & {
   /** ドメイン名（singular形式） */
   domain: string;
   /** 複製対象のID */
@@ -59,6 +59,8 @@ export function DuplicateButton({
   errorMessage = "複製に失敗しました",
   onSuccess,
   disabled = false,
+  size = "sm",
+  variant = "secondary",
 }: DuplicateButtonProps) {
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
@@ -89,8 +91,8 @@ export function DuplicateButton({
   const button = (
     <Button
       type="button"
-      size="sm"
-      variant="secondary"
+      size={size}
+      variant={variant}
       disabled={disabled || isMutating}
       onClick={showConfirm ? undefined : handleDuplicate}
     >

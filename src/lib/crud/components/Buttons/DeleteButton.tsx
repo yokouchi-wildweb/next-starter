@@ -5,7 +5,7 @@
 import { useRouter } from "next/navigation";
 import { Trash2, type LucideIcon } from "lucide-react";
 
-import { Button } from "@/components/Form/Button/Button";
+import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
@@ -13,7 +13,7 @@ import { getDomainConfig } from "@/lib/domain";
 import { createApiClient } from "@/lib/crud/client";
 import { useDeleteDomain } from "@/lib/crud/hooks";
 
-export type DeleteButtonProps = {
+export type DeleteButtonProps = ButtonStyleProps & {
   /** ドメイン名（singular形式） */
   domain: string;
   /** 削除対象のID */
@@ -56,6 +56,8 @@ export function DeleteButton({
   errorMessage = "削除に失敗しました",
   onSuccess,
   disabled = false,
+  size = "sm",
+  variant = "destructive",
 }: DeleteButtonProps) {
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
@@ -88,8 +90,8 @@ export function DeleteButton({
       trigger={
         <Button
           type="button"
-          size="sm"
-          variant="destructive"
+          size={size}
+          variant={variant}
           disabled={disabled || isMutating}
         >
           <Icon className="h-4 w-4" />

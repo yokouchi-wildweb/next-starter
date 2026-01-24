@@ -1,4 +1,4 @@
-// src/lib/crud/components/Buttons/BelongsToFieldButton.tsx
+// src/lib/crud/components/Buttons/BulkBelongsToFieldButton.tsx
 
 "use client";
 
@@ -19,7 +19,7 @@ import { getDomainConfig } from "@/lib/domain";
 import { getBelongsToRelations } from "@/lib/domain/relations/getBelongsToRelations";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { createApiClient } from "@/lib/crud/client";
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useBulkUpdateDomain } from "@/lib/crud/hooks";
 
 /** リレーション先データの型 */
 type RelationData = {
@@ -27,18 +27,16 @@ type RelationData = {
   name: string;
 };
 
-export type BelongsToFieldButtonProps = ButtonStyleProps & {
+export type BulkBelongsToFieldButtonProps = ButtonStyleProps & {
   /** ドメイン名（singular形式） */
   domain: string;
-  /** 更新対象のID */
-  id: string;
+  /** 更新対象のID配列 */
+  ids: string[];
   /** リレーション先ドメイン名（camelCase: "sampleCategory"） */
   relation: string;
   /** 選択肢リスト（省略時はリレーション先ドメインから自動取得） */
   options?: SelectOption[];
-  /** 現在の値 */
-  currentValue: string | null;
-  /** ポップオーバーのタイトル（省略時はフィールドラベルから生成） */
+  /** ポップオーバーのタイトル（省略時はリレーションラベルから生成） */
   title?: string;
   /** ボタンラベル @default "{リレーションラベル}" */
   label?: string;
@@ -52,49 +50,57 @@ export type BelongsToFieldButtonProps = ButtonStyleProps & {
   showNoneOption?: boolean;
   /** 「なし」オプションのラベル @default "なし" */
   noneOptionLabel?: string;
-  /** 更新中のトーストメッセージ @default "更新を実行中です…" */
+  /**
+   * 更新中のトーストメッセージ。
+   * `{count}` プレースホルダー対応。
+   * @default "{count}件を更新中..."
+   */
   toastMessage?: string;
-  /** 成功時のトーストメッセージ @default "更新が完了しました。" */
+  /**
+   * 成功時のトーストメッセージ。
+   * `{count}` プレースホルダー対応。
+   * @default "{count}件を更新しました"
+   */
   successMessage?: string;
   /** エラー時のトーストメッセージ @default "更新に失敗しました" */
   errorMessage?: string;
-  /** 更新成功時のコールバック */
+  /** 更新成功時のコールバック（選択解除など） */
   onSuccess?: () => void;
   /** ボタンを無効化するかどうか @default false */
   disabled?: boolean;
 };
 
 /**
- * BelongsToリレーションを変更するボタンコンポーネント
- * カテゴリ変更、親レコード変更などに使用
+ * メッセージ内の {count} プレースホルダーを件数に置換
+ */
+const formatMessage = (message: string, count: number): string => {
+  return message.replace(/\{count\}/g, String(count));
+};
+
+/**
+ * 複数レコードのBelongsToリレーションを一括変更するボタンコンポーネント
+ * カテゴリ一括変更、親レコード一括変更などに使用
  *
  * optionsを省略するとリレーション先ドメインのAPIからデータを自動取得します。
  *
  * @example
- * // 基本使用（optionsを自動取得）
- * <BelongsToFieldButton
- *   domain="sample"
- *   id={sample.id}
- *   relation="sampleCategory"
- *   currentValue={sample.sampleCategoryId}
- * />
- *
- * @example
- * // optionsを明示的に指定
- * <BelongsToFieldButton
- *   domain="sample"
- *   id={sample.id}
- *   relation="sampleCategory"
- *   options={categories.map(c => ({ value: c.id, label: c.name }))}
- *   currentValue={sample.sampleCategoryId}
+ * // bulkActionsで使用
+ * <RecordSelectionTable
+ *   bulkActions={(selection) => (
+ *     <BulkBelongsToFieldButton
+ *       domain="sample"
+ *       ids={selection.selectedIds}
+ *       relation="sampleCategory"
+ *       onSuccess={selection.clear}
+ *     />
+ *   )}
  * />
  */
-export function BelongsToFieldButton({
+export function BulkBelongsToFieldButton({
   domain,
-  id,
+  ids,
   relation,
   options: optionsProp,
-  currentValue,
   title,
   label,
   icon: Icon = Tag,
@@ -104,29 +110,34 @@ export function BelongsToFieldButton({
   searchable = false,
   showNoneOption = true,
   noneOptionLabel = "なし",
-  toastMessage = "更新を実行中です…",
-  successMessage = "更新が完了しました。",
+  toastMessage = "{count}件を更新中...",
+  successMessage = "{count}件を更新しました",
   errorMessage = "更新に失敗しました",
   onSuccess,
   disabled = false,
-}: BelongsToFieldButtonProps) {
+}: BulkBelongsToFieldButtonProps) {
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
-  const { trigger, isMutating } = useUpdateDomain(
-    `${config.plural}/update/${id}`,
-    client.update,
+  const { trigger, isMutating } = useBulkUpdateDomain(
+    `${config.plural}/bulkUpdate`,
+    client.bulkUpdate!,
     config.plural
   );
 
   const router = useRouter();
   const { showToast } = useToast();
 
+  const count = ids.length;
+
   // リレーション情報を取得（relationからドメイン名で検索）
   const relationInfo = useMemo(() => {
     const relations = getBelongsToRelations(domain);
     // relation（camelCase）をsnake_caseに変換して比較
-    const targetDomainSnake = relation.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, "");
+    const targetDomainSnake = relation
+      .replace(/([A-Z])/g, "_$1")
+      .toLowerCase()
+      .replace(/^_/, "");
     return relations.find((r) => r.domain === targetDomainSnake);
   }, [domain, relation]);
 
@@ -137,10 +148,14 @@ export function BelongsToFieldButton({
   const fieldName = relationInfo?.fieldName;
 
   // リレーション先ドメインのAPI path
-  const targetApiPath = targetDomain ? `/api/${toCamelCase(targetDomain)}` : null;
+  const targetApiPath = targetDomain
+    ? `/api/${toCamelCase(targetDomain)}`
+    : null;
 
   // リレーション先データを取得
-  const { data: relationData, isLoading: isLoadingRelation } = useSWR<RelationData[]>(
+  const { data: relationData, isLoading: isLoadingRelation } = useSWR<
+    RelationData[]
+  >(
     optionsProp ? null : targetApiPath,
     async (url: string) => {
       const response = await axios.get<RelationData[]>(url);
@@ -183,13 +198,19 @@ export function BelongsToFieldButton({
     // 空文字列はnullに変換
     const newValue = value === "" ? null : value;
 
-    // 変更がなければ何もしない
-    if (newValue === currentValue) return;
+    // 全てのIDに同じ値を設定するレコード配列を作成
+    const records = ids.map((id) => ({
+      id,
+      data: { [fieldName]: newValue },
+    }));
 
-    showToast({ message: toastMessage, mode: "persistent" });
+    showToast({
+      message: formatMessage(toastMessage, count),
+      mode: "persistent",
+    });
     try {
-      await trigger({ id, data: { [fieldName]: newValue } });
-      showToast(successMessage, "success");
+      await trigger(records);
+      showToast(formatMessage(successMessage, count), "success");
       router.refresh();
       onSuccess?.();
     } catch (error) {
@@ -202,7 +223,7 @@ export function BelongsToFieldButton({
   // リレーション設定が見つからない場合はエラー表示
   if (!relationInfo) {
     console.warn(
-      `BelongsToFieldButton: リレーション情報が見つかりません。domain=${domain}, relation=${relation}`
+      `BulkBelongsToFieldButton: リレーション情報が見つかりません。domain=${domain}, relation=${relation}`
     );
     return (
       <Button type="button" size={size} variant={variant} disabled>
@@ -212,9 +233,6 @@ export function BelongsToFieldButton({
     );
   }
 
-  // 現在の値を文字列に変換（nullの場合は空文字列）
-  const currentValueStr = currentValue ?? "";
-
   return (
     <SelectPopover
       trigger={
@@ -222,19 +240,24 @@ export function BelongsToFieldButton({
           type="button"
           size={size}
           variant={variant}
-          disabled={disabled || isMutating || isLoadingRelation}
+          disabled={disabled || isMutating || isLoadingRelation || count === 0}
         >
           <Icon className="h-4 w-4" />
-          {isMutating ? loadingLabel : isLoadingRelation ? "読込中..." : displayLabel}
+          {isMutating
+            ? loadingLabel
+            : isLoadingRelation
+              ? "読込中..."
+              : displayLabel}
         </Button>
       }
       title={resolvedTitle}
+      description={`${count}件のアイテムを更新します`}
       options={resolvedOptions}
-      value={currentValueStr}
+      value=""
       searchable={searchable}
       onConfirm={handleConfirm}
     />
   );
 }
 
-export default BelongsToFieldButton;
+export default BulkBelongsToFieldButton;

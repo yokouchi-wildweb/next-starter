@@ -1,4 +1,4 @@
-// src/lib/crud/components/Buttons/EnumFieldButton.tsx
+// src/lib/crud/components/Buttons/BulkEnumFieldButton.tsx
 
 "use client";
 
@@ -15,19 +15,17 @@ import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { getDomainConfig, getFieldOptions, getFieldLabel } from "@/lib/domain";
 import { createApiClient } from "@/lib/crud/client";
-import { useUpdateDomain } from "@/lib/crud/hooks";
+import { useBulkUpdateDomain } from "@/lib/crud/hooks";
 
-export type EnumFieldButtonProps = ButtonStyleProps & {
+export type BulkEnumFieldButtonProps = ButtonStyleProps & {
   /** ドメイン名（singular形式） */
   domain: string;
-  /** 更新対象のID */
-  id: string;
+  /** 更新対象のID配列 */
+  ids: string[];
   /** 更新対象のフィールド名 */
   field: string;
   /** 選択肢リスト（省略時はドメイン設定から自動取得） */
   options?: SelectOption[];
-  /** 現在の値 */
-  currentValue: string;
   /** ポップオーバーのタイトル（省略時はフィールドラベルから生成） */
   title?: string;
   /** ボタンラベル @default "{フィールドラベル}を変更" */
@@ -38,52 +36,57 @@ export type EnumFieldButtonProps = ButtonStyleProps & {
   loadingLabel?: string;
   /** 検索機能を有効にする @default false */
   searchable?: boolean;
-  /** 更新中のトーストメッセージ @default "更新を実行中です…" */
+  /**
+   * 更新中のトーストメッセージ。
+   * `{count}` プレースホルダー対応。
+   * @default "{count}件を更新中..."
+   */
   toastMessage?: string;
-  /** 成功時のトーストメッセージ @default "更新が完了しました。" */
+  /**
+   * 成功時のトーストメッセージ。
+   * `{count}` プレースホルダー対応。
+   * @default "{count}件を更新しました"
+   */
   successMessage?: string;
   /** エラー時のトーストメッセージ @default "更新に失敗しました" */
   errorMessage?: string;
-  /** 更新成功時のコールバック */
+  /** 更新成功時のコールバック（選択解除など） */
   onSuccess?: () => void;
   /** ボタンを無効化するかどうか @default false */
   disabled?: boolean;
 };
 
 /**
- * enumフィールドを変更するボタンコンポーネント
- * ステータス変更、優先度変更などに使用
+ * メッセージ内の {count} プレースホルダーを件数に置換
+ */
+const formatMessage = (message: string, count: number): string => {
+  return message.replace(/\{count\}/g, String(count));
+};
+
+/**
+ * 複数レコードのenumフィールドを一括変更するボタンコンポーネント
+ * ステータス一括変更、優先度一括変更などに使用
  *
  * optionsを省略するとドメイン設定（domain.json）から自動取得します。
  *
  * @example
- * // 基本使用（optionsを自動取得）
- * <EnumFieldButton
- *   domain="sample"
- *   id={sample.id}
- *   field="select"
- *   currentValue={sample.select}
- * />
- *
- * @example
- * // optionsを明示的に指定（上書き）
- * <EnumFieldButton
- *   domain="sample"
- *   id={sample.id}
- *   field="status"
- *   options={[
- *     { value: "draft", label: "下書き" },
- *     { value: "published", label: "公開中" },
- *   ]}
- *   currentValue={sample.status}
+ * // bulkActionsで使用
+ * <RecordSelectionTable
+ *   bulkActions={(selection) => (
+ *     <BulkEnumFieldButton
+ *       domain="sample"
+ *       ids={selection.selectedIds}
+ *       field="select"
+ *       onSuccess={selection.clear}
+ *     />
+ *   )}
  * />
  */
-export function EnumFieldButton({
+export function BulkEnumFieldButton({
   domain,
-  id,
+  ids,
   field,
   options: optionsProp,
-  currentValue,
   title,
   label,
   icon: Icon = RefreshCw,
@@ -91,23 +94,25 @@ export function EnumFieldButton({
   size = "sm",
   variant = "outline",
   searchable = false,
-  toastMessage = "更新を実行中です…",
-  successMessage = "更新が完了しました。",
+  toastMessage = "{count}件を更新中...",
+  successMessage = "{count}件を更新しました",
   errorMessage = "更新に失敗しました",
   onSuccess,
   disabled = false,
-}: EnumFieldButtonProps) {
+}: BulkEnumFieldButtonProps) {
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
-  const { trigger, isMutating } = useUpdateDomain(
-    `${config.plural}/update/${id}`,
-    client.update,
-    config.plural
+  const { trigger, isMutating } = useBulkUpdateDomain(
+    `${config.plural}/bulkUpdate`,
+    client.bulkUpdate!,
+    config.plural,
   );
 
   const router = useRouter();
   const { showToast } = useToast();
+
+  const count = ids.length;
 
   // optionsが渡されない場合はドメイン設定から取得
   const resolvedOptions = useMemo<SelectOption[]>(() => {
@@ -128,12 +133,16 @@ export function EnumFieldButton({
   const displayLabel = label ?? `${fieldLabel}を変更`;
 
   const handleConfirm = async (value: string) => {
-    if (value === currentValue) return;
+    // 全てのIDに同じ値を設定するレコード配列を作成
+    const records = ids.map((id) => ({
+      id,
+      data: { [field]: value },
+    }));
 
-    showToast({ message: toastMessage, mode: "persistent" });
+    showToast({ message: formatMessage(toastMessage, count), mode: "persistent" });
     try {
-      await trigger({ id, data: { [field]: value } });
-      showToast(successMessage, "success");
+      await trigger(records);
+      showToast(formatMessage(successMessage, count), "success");
       router.refresh();
       onSuccess?.();
     } catch (error) {
@@ -150,19 +159,20 @@ export function EnumFieldButton({
           type="button"
           size={size}
           variant={variant}
-          disabled={disabled || isMutating}
+          disabled={disabled || isMutating || count === 0}
         >
           <Icon className="h-4 w-4" />
           {isMutating ? loadingLabel : displayLabel}
         </Button>
       }
       title={resolvedTitle}
+      description={`${count}件のアイテムを更新します`}
       options={resolvedOptions}
-      value={currentValue}
+      value=""
       searchable={searchable}
       onConfirm={handleConfirm}
     />
   );
 }
 
-export default EnumFieldButton;
+export default BulkEnumFieldButton;
