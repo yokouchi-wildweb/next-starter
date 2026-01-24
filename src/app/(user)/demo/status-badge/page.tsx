@@ -31,7 +31,7 @@ export default function StatusBadgeDemoPage() {
           </Stack>
 
           <div className="flex flex-wrap gap-3">
-            <StatusBadge variant="default">default</StatusBadge>
+            <StatusBadge variant="primary">primary</StatusBadge>
             <StatusBadge variant="secondary">secondary</StatusBadge>
             <StatusBadge variant="destructive">destructive</StatusBadge>
             <StatusBadge variant="success">success</StatusBadge>

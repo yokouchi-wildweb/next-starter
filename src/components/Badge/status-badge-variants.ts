@@ -8,41 +8,41 @@ export const statusBadgeVariants = cva(
     variants: {
       variant: {
         // 標準のプライマリバッジ
-        default:
-          "border-transparent bg-primary text-primary-foreground",
+        primary:
+          "bg-primary/10 border-primary text-primary",
         // 補助情報向けのセカンダリバッジ
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground",
+          "bg-secondary/10 border-secondary text-secondary",
         // エラーや削除など警告を示すバッジ
         destructive:
-          "border-transparent bg-destructive text-white dark:bg-destructive/60",
+          "bg-destructive/10 border-destructive text-destructive",
         // 成功・完了・有効を示すバッジ
         success:
-          "border-transparent bg-success text-success-foreground",
+          "bg-success/10 border-success text-success",
         // 強調・注目を引くアクセントバッジ
         accent:
-          "border-transparent bg-accent text-accent-foreground",
+          "bg-accent/10 border-accent text-accent",
         // 非アクティブ・下書きなど控えめな状態を示すバッジ
         muted:
-          "border-transparent bg-muted text-muted-foreground",
+          "bg-muted border-muted-foreground/30 text-muted-foreground",
         // 枠線のみのシンプルなバッジ
         outline:
-          "text-foreground border-border",
+          "bg-transparent border-border text-foreground",
         // 透明背景のゴーストバッジ
         ghost:
-          "border-transparent text-foreground",
+          "bg-transparent border-transparent text-foreground",
       },
       size: {
         // コンパクトUI向けの小サイズ
-        sm: "px-2 py-0.5 text-xs gap-1 [&>svg]:size-3",
+        sm: "px-2.5 py-1 text-xs gap-1 [&>svg]:size-3",
         // 標準サイズ
-        md: "px-3 py-1 text-xs gap-1.5 [&>svg]:size-3.5",
+        md: "px-3 py-1 text-sm gap-1.5 [&>svg]:size-4",
         // 強調表示向けの大サイズ
-        lg: "px-4 py-1.5 text-sm gap-2 [&>svg]:size-4",
+        lg: "px-4 py-1.5 text-base gap-2 [&>svg]:size-5",
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "primary",
       size: "md",
     },
   }
