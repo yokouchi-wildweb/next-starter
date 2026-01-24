@@ -31,6 +31,16 @@ const FEATURE_GATE_RULES: FeatureGateRule[] = [
     pathPatterns: ["/admin/coupons"],
     isEnabled: () => APP_FEATURES.marketing.coupon.enabled,
   },
+  // デモページ
+  {
+    pathPatterns: ["/demo"],
+    isEnabled: () => APP_FEATURES.demo.samplePages,
+  },
+  // デモログイン
+  {
+    pathPatterns: ["/demo-login"],
+    isEnabled: () => APP_FEATURES.demo.login,
+  },
 ];
 
 /**

@@ -79,6 +79,12 @@ export const APP_FEATURES = {
       enabled: false,
     },
   },
+  demo: {
+    /** デモページ（/demo配下）を有効にする */
+    samplePages: true,
+    /** デモログイン機能を有効にする */
+    login: true,
+  },
 } as const;
 
 export type ThirdPartyProvider = keyof typeof APP_FEATURES.auth.thirdPartyProviders;
