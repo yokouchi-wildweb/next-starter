@@ -63,7 +63,7 @@ export const APP_FEATURES = {
   },
   wallet: {
     /** ウォレット機能を有効にする */
-    enabled: false,
+    enabled: true,
     /** 管理者による残高調整ボタンを有効にする */
     enableAdminBalanceAdjust: false,
   },

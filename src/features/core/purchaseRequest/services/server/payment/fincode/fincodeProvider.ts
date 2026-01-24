@@ -104,6 +104,8 @@ export class FincodePaymentProvider implements PaymentProvider {
       success_url: params.successUrl,
       cancel_url: params.cancelUrl,
       order_id: params.purchaseRequestId,
+      // お支払い画面案内メール送信フラグ: 0 = 送信しない
+      send_mail_flag: "0",
       transaction: {
         // 対応する支払い方法（設定で有効なもの全て）
         pay_type: ["Card", "Konbini", "Paypay", "Virtualaccount"],

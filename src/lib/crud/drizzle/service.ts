@@ -65,19 +65,38 @@ export const isPgUniqueViolation = (error: unknown): boolean => {
 };
 
 /**
+ * CRUD操作タイプ
+ */
+type CrudOperationType = "write" | "delete";
+
+/**
  * 制約違反エラーを検出してDomainErrorに変換する
  * PostgreSQL エラーコード:
  * - 23503 = foreign_key_violation（RESTRICT違反）
  * - 23502 = not_null_violation（SET_NULL + NOT NULL制約違反）
  * - 23505 = unique_violation（ユニーク制約違反）
+ *
+ * @param error - キャッチしたエラー
+ * @param operationType - 操作タイプ（write: INSERT/UPDATE, delete: DELETE）
  */
-export const handleConstraintError = (error: unknown): never => {
+export const handleConstraintError = (
+  error: unknown,
+  operationType: CrudOperationType = "delete"
+): never => {
   const pgCode = extractPgErrorCode(error);
   if (pgCode === "23503") {
-    throw new DomainError(
-      "このレコードは他のデータから参照されているため削除できません",
-      { status: 409 }
-    );
+    // 外部キー制約違反は操作タイプによってメッセージを分ける
+    if (operationType === "write") {
+      throw new DomainError(
+        "参照先のレコードが存在しません",
+        { status: 409 }
+      );
+    } else {
+      throw new DomainError(
+        "このレコードは他のデータから参照されているため削除できません",
+        { status: 409 }
+      );
+    }
   }
   if (pgCode === "23502") {
     throw new DomainError(
@@ -95,18 +114,21 @@ export const handleConstraintError = (error: unknown): never => {
  * CRUDミドルウェアの型定義
  * 各ミドルウェアは関数をラップして共通処理を追加する
  */
-type CrudMiddleware = <T>(fn: () => Promise<T>) => Promise<T>;
+type CrudMiddleware = <T>(fn: () => Promise<T>, operationType: CrudOperationType) => Promise<T>;
 
 /**
  * 制約エラーハンドリングミドルウェア
  * PostgreSQLの制約違反エラーをDomainErrorに変換する
  */
-const withConstraintHandling: CrudMiddleware = async <T>(fn: () => Promise<T>): Promise<T> => {
+const withConstraintHandling: CrudMiddleware = async <T>(
+  fn: () => Promise<T>,
+  operationType: CrudOperationType
+): Promise<T> => {
   try {
     return await fn();
   } catch (error) {
     // handleConstraintErrorは常にthrowするため、ここには到達しない
-    throw handleConstraintError(error);
+    throw handleConstraintError(error, operationType);
   }
 };
 
@@ -121,11 +143,11 @@ const crudMiddlewares: CrudMiddleware[] = [
 
 /**
  * 全CRUDミドルウェアを適用するラッパー
- * create/update/upsert等の操作で使用する
+ * create/update/upsert等の書き込み操作で使用する
  */
 const withCrudEnhancements = <T>(fn: () => Promise<T>): Promise<T> => {
   return crudMiddlewares.reduce<() => Promise<T>>(
-    (wrapped, middleware) => () => middleware(wrapped),
+    (wrapped, middleware) => () => middleware(wrapped, "write"),
     fn
   )();
 };
