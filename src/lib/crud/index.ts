@@ -1,4 +1,5 @@
 export * from "./client";
+export * from "./components";
 export * from "./presenters";
 export * from "./types";
 export * from "./hooks";
