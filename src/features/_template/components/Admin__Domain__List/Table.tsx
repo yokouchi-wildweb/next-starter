@@ -4,8 +4,7 @@
 
 import type { __Domain__ } from "@/features/__domain__/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import EditButton from "@/components/Fanctional/EditButton";
-import DeleteButton from "@/components/Fanctional/DeleteButton";
+import { EditButton, DeleteButton } from "@/components/Fanctional";
 __DUPLICATE_IMPORT__import { useDelete__Domain__ } from "@/features/__domain__/hooks/useDelete__Domain__";
 __DUPLICATE_HOOK_IMPORT__import config from "@/features/__domain__/domain.json";
 import presenters from "@/features/__domain__/presenters";

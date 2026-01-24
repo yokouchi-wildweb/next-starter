@@ -9,7 +9,7 @@ import DataTable, {
   TableCellAction,
   type DataTableColumn,
 } from "@/lib/tableSuite/DataTable";
-import EditButton from "@/components/Fanctional/EditButton";
+import { EditButton } from "@/components/Fanctional";
 import { Button } from "@/components/Form/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
 import type { User } from "@/features/core/user/entities";

@@ -11,7 +11,7 @@ function replaceDuplicatePlaceholders(content, config, tokens) {
 
   if (useDuplicate) {
     // DuplicateButtonのimport
-    const duplicateImport = `import DuplicateButton from "@/components/Fanctional/DuplicateButton";\n`;
+    const duplicateImport = `import { DuplicateButton } from "@/components/Fanctional";\n`;
     // useDuplicateフックのimport
     const duplicateHookImport = `import { useDuplicate${tokens.pascal} } from "@/features/${tokens.camel}/hooks/useDuplicate${tokens.pascal}";\n`;
     // DuplicateButtonコンポーネント（詳細モーダル使用時はstopPropagation付き）

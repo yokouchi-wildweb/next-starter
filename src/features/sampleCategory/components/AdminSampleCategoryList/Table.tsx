@@ -4,8 +4,7 @@
 
 import type { SampleCategory } from "@/features/sampleCategory/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import EditButton from "@/components/Fanctional/EditButton";
-import DeleteButton from "@/components/Fanctional/DeleteButton";
+import { EditButton, DeleteButton } from "@/components/Fanctional";
 import { useDeleteSampleCategory } from "@/features/sampleCategory/hooks/useDeleteSampleCategory";
 import config from "@/features/sampleCategory/domain.json";
 import presenters from "@/features/sampleCategory/presenters";

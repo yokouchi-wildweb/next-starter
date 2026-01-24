@@ -4,9 +4,7 @@
 
 import type { Coupon } from "@/features/core/coupon/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import EditButton from "@/components/Fanctional/EditButton";
-import DeleteButton from "@/components/Fanctional/DeleteButton";
-import DuplicateButton from "@/components/Fanctional/DuplicateButton";
+import { EditButton, DeleteButton, DuplicateButton } from "@/components/Fanctional";
 import { useDeleteCoupon } from "@/features/core/coupon/hooks/useDeleteCoupon";
 import { useDuplicateCoupon } from "@/features/core/coupon/hooks/useDuplicateCoupon";
 import config from "@/features/core/coupon/domain.json";

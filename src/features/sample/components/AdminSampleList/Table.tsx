@@ -4,9 +4,7 @@
 
 import type { Sample } from "@/features/sample/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import EditButton from "@/components/Fanctional/EditButton";
-import DeleteButton from "@/components/Fanctional/DeleteButton";
-import DuplicateButton from "@/components/Fanctional/DuplicateButton";
+import { EditButton, DeleteButton, DuplicateButton } from "@/components/Fanctional";
 import { useDeleteSample } from "@/features/sample/hooks/useDeleteSample";
 import { useDuplicateSample } from "@/features/sample/hooks/useDuplicateSample";
 import config from "@/features/sample/domain.json";

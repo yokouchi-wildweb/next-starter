@@ -8,7 +8,7 @@ import DataTable, {
   TableCellAction,
   type DataTableColumn,
 } from "@/lib/tableSuite/DataTable";
-import HardDeleteButton from "@/components/Fanctional/HardDeleteButton";
+import { HardDeleteButton } from "@/components/Fanctional";
 import { Button } from "@/components/Form/Button/Button";
 import { useHardDeleteUser } from "@/features/core/user/hooks/useHardDeleteUser";
 import type { User } from "@/features/core/user/entities";
