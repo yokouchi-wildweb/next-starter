@@ -15,7 +15,7 @@ export default function AdminCouponCreatePage() {
 
     <AdminPage>
       <PageTitle>クーポン追加</PageTitle>
-      <AdminCouponCreate redirectPath="/admin/coupons" />
+      <AdminCouponCreate redirectPath="/admin/coupons/official" />
     </AdminPage>
 
   );
