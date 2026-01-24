@@ -48,6 +48,8 @@ export type CompletePurchaseParams = {
   paidAt?: Date;
   /** Webhook署名（デバッグ用） */
   webhookSignature?: string;
+  /** 決済プロバイダ名（識別子解決に使用） */
+  providerName?: PaymentProviderName;
 };
 
 export type CompletePurchaseResult = {
@@ -59,6 +61,8 @@ export type FailPurchaseParams = {
   sessionId: string;
   errorCode?: string;
   errorMessage?: string;
+  /** 決済プロバイダ名（識別子解決に使用） */
+  providerName?: PaymentProviderName;
 };
 
 export type HandleWebhookParams = {
@@ -130,8 +134,8 @@ export async function initiatePurchase(
     purchaseRequestId: purchaseRequest.id,
     amount: paymentAmount,
     userId,
-    successUrl: `${baseUrl}/wallet/${slug}/purchase/callback?request_id=${purchaseRequest.id}`,
-    cancelUrl: `${baseUrl}/wallet/${slug}/purchase/failed?request_id=${purchaseRequest.id}&reason=cancelled`,
+    successUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}`,
+    cancelUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}&reason=cancelled`,
   });
 
   // 4. セッション情報を記録（status: processing）
@@ -162,6 +166,7 @@ export async function getPurchaseStatus(requestId: string): Promise<PurchaseRequ
 
 /**
  * ユーザーIDとリクエストIDで購入リクエストを取得（認可チェック用）
+ * processingステータスの場合、決済プロバイダーにステータスを確認してDBを更新
  */
 export async function getPurchaseStatusForUser(
   requestId: string,
@@ -171,6 +176,40 @@ export async function getPurchaseStatusForUser(
   if (!request || request.user_id !== userId) {
     return null;
   }
+
+  // processingの場合、プロバイダーにステータスを確認
+  if (request.status === "processing" && request.payment_session_id && request.payment_provider) {
+    const providerName = request.payment_provider as PaymentProviderName;
+    try {
+      const provider = getPaymentProvider(providerName);
+      const providerStatus = await provider.getPaymentStatus(request.payment_session_id);
+
+      if (providerStatus.status === "completed") {
+        // 決済完了 → DB更新
+        const result = await completePurchase({
+          sessionId: request.payment_session_id,
+          transactionId: providerStatus.transactionId,
+          paidAt: providerStatus.paidAt,
+          providerName,
+        });
+        return result.purchaseRequest;
+      } else if (providerStatus.status === "failed" || providerStatus.status === "expired") {
+        // 決済失敗/期限切れ → DB更新
+        const result = await failPurchase({
+          sessionId: request.payment_session_id,
+          errorCode: providerStatus.errorCode,
+          errorMessage: providerStatus.errorMessage,
+          providerName,
+        });
+        return result;
+      }
+      // pending/processing の場合はそのまま返す
+    } catch (error) {
+      console.error("[getPurchaseStatusForUser] Provider status check failed:", error);
+      // エラー時は現在のステータスをそのまま返す
+    }
+  }
+
   return request;
 }
 
@@ -185,10 +224,10 @@ export async function getPurchaseStatusForUser(
 export async function completePurchase(
   params: CompletePurchaseParams
 ): Promise<CompletePurchaseResult> {
-  const { sessionId, transactionId, paidAt, webhookSignature } = params;
+  const { sessionId, transactionId, paidAt, webhookSignature, providerName } = params;
 
-  // 1. セッションIDで購入リクエストを検索
-  const purchaseRequest = await findByPaymentSessionId(sessionId);
+  // 1. Webhook識別子で購入リクエストを検索
+  const purchaseRequest = await findByWebhookIdentifier(sessionId, providerName);
   if (!purchaseRequest) {
     throw new DomainError("購入リクエストが見つかりません", { status: 404 });
   }
@@ -274,9 +313,9 @@ export async function completePurchase(
  * 購入を失敗としてマーク
  */
 export async function failPurchase(params: FailPurchaseParams): Promise<PurchaseRequest> {
-  const { sessionId, errorCode, errorMessage } = params;
+  const { sessionId, errorCode, errorMessage, providerName } = params;
 
-  const purchaseRequest = await findByPaymentSessionId(sessionId);
+  const purchaseRequest = await findByWebhookIdentifier(sessionId, providerName);
   if (!purchaseRequest) {
     throw new DomainError("購入リクエストが見つかりません", { status: 404 });
   }
@@ -326,6 +365,7 @@ export async function handleWebhook(
       transactionId: paymentResult.transactionId,
       paidAt: paymentResult.paidAt,
       webhookSignature,
+      providerName,
     });
 
     return {
@@ -340,6 +380,7 @@ export async function handleWebhook(
       sessionId: paymentResult.sessionId,
       errorCode: paymentResult.errorCode,
       errorMessage: paymentResult.errorMessage,
+      providerName,
     });
 
     return {
@@ -395,19 +436,98 @@ async function findByIdempotencyKey(
   return (results[0] as PurchaseRequest) ?? null;
 }
 
+// ============================================================================
+// Webhook識別子リゾルバー（プロバイダ別）
+// ============================================================================
+
 /**
- * 決済セッションIDで購入リクエストを検索
+ * プロバイダ固有のWebhook識別子から購入リクエストを検索するリゾルバー
+ * 新しいプロバイダを追加する場合は、ここにリゾルバーを追加する
  */
-async function findByPaymentSessionId(
-  sessionId: string
+type WebhookIdentifierResolver = (
+  identifier: string
+) => Promise<PurchaseRequest | null>;
+
+/**
+ * Fincode用リゾルバー
+ * Fincodeは order_id（purchase_request.id のハイフン除去・30文字切り詰め）を送信する
+ */
+async function resolveFincodeIdentifier(
+  identifier: string
 ): Promise<PurchaseRequest | null> {
-  const results = await db
+  // order_id 形式（30文字のハイフン除去されたID）の場合のみ処理
+  if (identifier.length !== 30 || identifier.includes("-")) {
+    return null;
+  }
+
+  // processing または completed ステータスのリクエストから検索（冪等性のため）
+  const candidates = await db
     .select()
     .from(PurchaseRequestTable)
-    .where(eq(PurchaseRequestTable.payment_session_id, sessionId))
+    .where(
+      eq(PurchaseRequestTable.status, "processing")
+    );
+
+  // completedも検索（Webhookの再送対応）
+  const completedCandidates = await db
+    .select()
+    .from(PurchaseRequestTable)
+    .where(
+      eq(PurchaseRequestTable.status, "completed")
+    );
+
+  const allCandidates = [...candidates, ...completedCandidates];
+
+  const matched = allCandidates.find((r) => {
+    const orderIdFromId = r.id.replace(/-/g, "").slice(0, 30);
+    return orderIdFromId === identifier;
+  });
+
+  return (matched as PurchaseRequest) ?? null;
+}
+
+/**
+ * プロバイダ別のWebhook識別子リゾルバーマップ
+ * 汎用検索（payment_session_id）で見つからない場合のフォールバック
+ */
+const webhookIdentifierResolvers: Partial<
+  Record<PaymentProviderName, WebhookIdentifierResolver>
+> = {
+  fincode: resolveFincodeIdentifier,
+  // 他のプロバイダを追加する場合はここに追加
+  // stripe: resolveStripeIdentifier,
+  // komoju: resolveKomojuIdentifier,
+};
+
+/**
+ * Webhook識別子から購入リクエストを検索
+ * 1. まず汎用的な payment_session_id で検索
+ * 2. 見つからない場合、プロバイダ固有のリゾルバーを使用
+ */
+async function findByWebhookIdentifier(
+  identifier: string,
+  providerName?: PaymentProviderName
+): Promise<PurchaseRequest | null> {
+  // 1. 汎用: payment_session_id で検索
+  const bySessionId = await db
+    .select()
+    .from(PurchaseRequestTable)
+    .where(eq(PurchaseRequestTable.payment_session_id, identifier))
     .limit(1);
 
-  return (results[0] as PurchaseRequest) ?? null;
+  if (bySessionId[0]) {
+    return bySessionId[0] as PurchaseRequest;
+  }
+
+  // 2. プロバイダ固有のフォールバック
+  if (providerName) {
+    const resolver = webhookIdentifierResolvers[providerName];
+    if (resolver) {
+      return resolver(identifier);
+    }
+  }
+
+  return null;
 }
 
 /**

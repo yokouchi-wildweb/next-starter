@@ -49,6 +49,7 @@ export const FINCODE_ERROR_MAP: ProviderErrorMapping = {
 export const FINCODE_WEBHOOK_EVENTS = {
   // カード決済
   CARD_COMPLETE: "payments.card.complete",
+  CARD_SECURE: "payments.card.secure", // 3Dセキュア認証後の決済完了
   CARD_FAILED: "payments.card.failed",
 
   // コンビニ決済
@@ -71,16 +72,18 @@ export const FINCODE_WEBHOOK_EVENTS = {
 
 /**
  * Webhookイベントが成功イベントかどうかを判定
+ * .complete: 通常の決済完了
+ * .secure: 3Dセキュア認証後の決済完了
  */
 export function isSuccessEvent(eventType: string): boolean {
-  return eventType.endsWith(".complete");
+  return eventType.endsWith(".complete") || eventType.endsWith(".secure");
 }
 
 /**
  * イベントタイプから支払い方法を抽出
  */
 export function extractPaymentMethod(eventType: string): string {
-  if (eventType.includes("card")) return "credit_card";
+  if (eventType.includes("card") || eventType.includes("secure")) return "credit_card";
   if (eventType.includes("konbini")) return "convenience_store";
   if (eventType.includes("paypay")) return "paypay";
   if (eventType.includes("virtualaccount")) return "bank_transfer";
