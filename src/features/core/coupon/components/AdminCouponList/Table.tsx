@@ -4,9 +4,7 @@
 
 import type { Coupon } from "@/features/core/coupon/entities";
 import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import { EditButton, DeleteButton, DuplicateButton } from "@/components/Fanctional";
-import { useDeleteCoupon } from "@/features/core/coupon/hooks/useDeleteCoupon";
-import { useDuplicateCoupon } from "@/features/core/coupon/hooks/useDuplicateCoupon";
+import { EditButton, DeleteButton, DuplicateButton } from "@/lib/crud/components/Buttons";
 import config from "@/features/core/coupon/domain.json";
 import presenters from "@/features/core/coupon/presenters";
 import { useState } from "react";
@@ -32,9 +30,9 @@ const columns: DataTableColumn<Coupon>[] = buildDomainColumns<Coupon>({
     header: "操作",
     render: (d: Coupon) => (
       <TableCellAction>
-        <EditButton href={`/admin/coupons/${d.id}/edit`} />
-        <DuplicateButton id={d.id} useDuplicate={useDuplicateCoupon} />
-        <DeleteButton id={d.id} useDelete={useDeleteCoupon} title="クーポン削除" />
+        <EditButton domain="coupon" id={d.id} />
+        <DuplicateButton domain="coupon" id={d.id} />
+        <DeleteButton domain="coupon" id={d.id} />
       </TableCellAction>
     ),
   },

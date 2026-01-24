@@ -9,7 +9,7 @@ import DataTable, {
   TableCellAction,
   type DataTableColumn,
 } from "@/lib/tableSuite/DataTable";
-import { EditButton } from "@/components/Fanctional";
+import { EditButton } from "@/lib/crud/components/Buttons";
 import { Button } from "@/components/Form/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
 import type { User } from "@/features/core/user/entities";
@@ -118,7 +118,7 @@ const createColumns = (
             {isMutating ? "削除中..." : "削除"}
           </Button>
         )}
-        <EditButton href={`${editBasePath}/${user.id}/edit`} />
+        <EditButton domain="user" id={user.id} href={`${editBasePath}/${user.id}/edit`} />
       </TableCellAction>
     ),
   },
