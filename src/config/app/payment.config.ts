@@ -45,14 +45,14 @@ export const paymentConfig = {
       enabled: true,
       supportedMethods: ["credit_card", "convenience_store", "bank_transfer"],
     },
+    fincode: {
+      enabled: true,
+      supportedMethods: ["credit_card", "convenience_store", "paypay", "bank_transfer"],
+    },
     // 以下はダウンストリームで追加
     // stripe: {
     //   enabled: true,
     //   supportedMethods: ["credit_card"],
-    // },
-    // fincode: {
-    //   enabled: true,
-    //   supportedMethods: ["credit_card", "convenience_store", "paypay"],
     // },
   } as Record<string, ProviderConfig>,
 
@@ -66,8 +66,8 @@ export const paymentConfig = {
      */
     signatureHeaders: {
       dummy: null,
+      fincode: "Fincode-Signature",
       // stripe: "Stripe-Signature",
-      // fincode: "Fincode-Signature",
       // komoju: "X-Komoju-Signature",
     } as Record<string, string | null>,
   },
