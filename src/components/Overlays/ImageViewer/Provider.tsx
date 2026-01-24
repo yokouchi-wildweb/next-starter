@@ -32,7 +32,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
       {children}
       <DialogPrimitives open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent
-          className="bg-transparent border-none shadow-none p-0 max-w-[90vw] max-h-[90vh]"
+          className="bg-transparent border-none shadow-none p-0 w-fit max-w-[90vw] sm:max-w-[90vw] max-h-[90vh]"
           overlayLayer="super"
           layer="super"
           showCloseButton={false}
