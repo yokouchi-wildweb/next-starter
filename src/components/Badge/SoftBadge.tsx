@@ -32,15 +32,18 @@ export const SoftBadge = React.forwardRef<HTMLSpanElement, SoftBadgeProps>(
     const Comp = asChild ? Slot : "span";
 
     return (
-      <Comp
-        ref={ref}
-        data-slot="soft-badge"
-        className={cn(softBadgeVariants({ variant, size }), className)}
-        {...props}
-      >
-        {Icon && <Icon />}
-        {children}
-      </Comp>
+      <span ref={ref} data-slot="soft-badge" className="relative inline-flex w-fit">
+        {/* 下層: 不透明な背景 */}
+        <span className="absolute inset-0 bg-background rounded-full" />
+        {/* 上層: 透過色背景 + コンテンツ */}
+        <Comp
+          className={cn(softBadgeVariants({ variant, size }), className)}
+          {...props}
+        >
+          {Icon && <Icon />}
+          {children}
+        </Comp>
+      </span>
     );
   }
 );
