@@ -38,6 +38,32 @@ export type PaymentResult = {
   success: boolean;
   /** 決済サービス側のセッションID */
   sessionId: string;
+  /** プロバイダ側の取引ID（問い合わせ・追跡用） */
+  transactionId?: string;
+  /** 実際に使用された支払い方法 */
+  paymentMethod?: string;
+  /** 支払い完了日時 */
+  paidAt?: Date;
+  /** プロバイダ固有データ（デバッグ用） */
+  rawResponse?: unknown;
+  /** エラーコード */
+  errorCode?: string;
+  /** エラーメッセージ */
+  errorMessage?: string;
+};
+
+/**
+ * 決済ステータス照会結果（ポーリング用）
+ */
+export type PaymentStatusResult = {
+  /** 決済ステータス */
+  status: "pending" | "processing" | "completed" | "failed" | "expired";
+  /** 決済サービス側のセッションID */
+  sessionId: string;
+  /** プロバイダ側の取引ID */
+  transactionId?: string;
+  /** 支払い完了日時 */
+  paidAt?: Date;
   /** エラーコード */
   errorCode?: string;
   /** エラーメッセージ */
@@ -65,4 +91,19 @@ export interface PaymentProvider {
    * @returns 決済結果
    */
   verifyWebhook(request: Request): Promise<PaymentResult>;
+
+  /**
+   * Webhook署名を検証（本文解析前の検証）
+   * @param request HTTPリクエスト（clone済み）
+   * @param signature 署名ヘッダーの値
+   * @returns 署名が有効かどうか
+   */
+  verifyWebhookSignature?(request: Request, signature: string): Promise<boolean>;
+
+  /**
+   * 決済ステータスを照会（Webhook未着時のフォールバック用）
+   * @param sessionId 決済セッションID
+   * @returns 決済ステータス
+   */
+  getPaymentStatus?(sessionId: string): Promise<PaymentStatusResult>;
 }
