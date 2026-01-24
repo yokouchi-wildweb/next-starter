@@ -139,7 +139,21 @@ export function renderInputByFormType<
         />
       );
 
-    case "switchInput":
+    case "switchInput": {
+      const options = fieldConfig.options;
+      // options が2つある場合は、最初をonValue、2番目をoffValueとして扱う
+      if (options && options.length === 2) {
+        return (
+          <SwitchInput
+            field={field}
+            onValue={options[0].value}
+            offValue={options[1].value}
+            label={fieldConfig.label}
+            disabled={fieldConfig.disabled}
+            className={inputClassName}
+          />
+        );
+      }
       return (
         <SwitchInput
           field={field}
@@ -148,6 +162,7 @@ export function renderInputByFormType<
           className={inputClassName}
         />
       );
+    }
 
     case "dateInput":
       return <DateInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;

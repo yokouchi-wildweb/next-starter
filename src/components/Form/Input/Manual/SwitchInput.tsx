@@ -120,13 +120,17 @@ const indicatorVariants = cva(
   },
 );
 
-export type SwitchInputProps = {
+export type SwitchInputProps<T = boolean> = {
   /** 現在の値 */
-  value?: boolean | null;
+  value?: T | null;
   /** フィールド名 */
   name?: string;
   /** 値が変更されたときのコールバック */
-  onChange: (value: boolean) => void;
+  onChange: (value: T) => void;
+  /** ONのときの値（デフォルト: true） */
+  onValue?: T;
+  /** OFFのときの値（デフォルト: false） */
+  offValue?: T;
   /**
    * スイッチの右側に表示するラベル
    */
@@ -168,12 +172,14 @@ export type SwitchInputProps = {
   "type" | "value" | "defaultValue" | "defaultChecked" | "checked" | "onChange" | "name"
 >;
 
-export function SwitchInput(props: SwitchInputProps) {
+export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {
   const fallbackId = useId();
   const {
     value,
     name,
     onChange,
+    onValue,
+    offValue,
     label,
     description,
     className,
@@ -187,7 +193,12 @@ export function SwitchInput(props: SwitchInputProps) {
     ...rest
   } = props;
 
-  const checked = Boolean(value);
+  // デフォルト値を設定（boolean用）
+  const resolvedOnValue = (onValue ?? true) as T;
+  const resolvedOffValue = (offValue ?? false) as T;
+
+  // onValue/offValue が指定されている場合は厳密比較、そうでなければ Boolean 変換
+  const checked = onValue !== undefined ? value === resolvedOnValue : Boolean(value);
   const inputId = idFromProps ?? name ?? fallbackId;
   const inputName = name ?? undefined;
   const labelId = label ? `${inputId}-label` : undefined;
@@ -208,7 +219,7 @@ export function SwitchInput(props: SwitchInputProps) {
         aria-labelledby={ariaLabelledby}
         aria-describedby={ariaDescribedby}
         onChange={(event) => {
-          onChange(event.target.checked);
+          onChange(event.target.checked ? resolvedOnValue : resolvedOffValue);
         }}
       />
 

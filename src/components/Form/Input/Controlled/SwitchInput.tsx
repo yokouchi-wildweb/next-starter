@@ -9,17 +9,19 @@ import {
 export type ControlledSwitchInputProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
+  T = boolean,
 > = {
   field: ControllerRenderProps<TFieldValues, TName>;
-} & Omit<ManualSwitchInputProps, "value" | "name" | "onChange">;
+} & Omit<ManualSwitchInputProps<T>, "value" | "name" | "onChange">;
 
 export function SwitchInput<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
->({ field, ...rest }: ControlledSwitchInputProps<TFieldValues, TName>) {
+  T = boolean,
+>({ field, ...rest }: ControlledSwitchInputProps<TFieldValues, TName, T>) {
   return (
-    <ManualSwitchInput
-      value={field.value}
+    <ManualSwitchInput<T>
+      value={field.value as T | null | undefined}
       name={field.name}
       onChange={field.onChange}
       {...rest}
