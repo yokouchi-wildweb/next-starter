@@ -12,6 +12,7 @@ import { useState } from "react";
 import __Domain__DetailModal from "../common/__Domain__DetailModal";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { getAdminPaths } from "@/lib/crud/utils";
 
 export type Admin__Domain__ListTableProps = {
   /**
@@ -21,6 +22,7 @@ export type Admin__Domain__ListTableProps = {
   __domains__?: __Domain__[];
 };
 
+const paths = getAdminPaths("__domainsSlug__");
 const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
@@ -31,7 +33,7 @@ const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
     header: "操作",
     render: (d: __Domain__) => (
       <TableCellAction>
-        <EditButton href={`/admin/__domainsSlug__/${d.id}/edit`} />
+        <EditButton href={paths.edit(d.id)} />
         __DUPLICATE_BUTTON__<DeleteButton id={d.id} useDelete={useDelete__Domain__} title="__DomainLabel__削除" />
       </TableCellAction>
     ),

@@ -10,6 +10,7 @@ import config from "@/features/sampleTag/domain.json";
 import presenters from "@/features/sampleTag/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import { getAdminPaths } from "@/lib/crud/utils";
 
 export type AdminSampleTagListTableProps = {
   /**
@@ -19,6 +20,7 @@ export type AdminSampleTagListTableProps = {
   sampleTags?: SampleTag[];
 };
 
+const paths = getAdminPaths("sample-tags");
 const [{ adminDataTable }] = UI_BEHAVIOR_CONFIG;
 const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定)";
 
@@ -29,7 +31,7 @@ const columns: DataTableColumn<SampleTag>[] = buildDomainColumns<SampleTag>({
     header: "操作",
     render: (d: SampleTag) => (
       <TableCellAction>
-        <EditButton href={`/admin/sample-tags/${d.id}/edit`} />
+        <EditButton href={paths.edit(d.id)} />
         <DeleteButton id={d.id} useDelete={useDeleteSampleTag} title="サンプルタグ削除" />
       </TableCellAction>
     ),
