@@ -31,10 +31,8 @@ const columns: DataTableColumn<__Domain__>[] = buildDomainColumns<__Domain__>({
     header: "操作",
     render: (d: __Domain__) => (
       <TableCellAction>
-        <EditButton href={`/admin/__domainsSlug__/${d.id}/edit`} stopPropagation />
-        __DUPLICATE_BUTTON__<span onClick={(e) => e.stopPropagation()}>
-          <DeleteButton id={d.id} useDelete={useDelete__Domain__} title="__DomainLabel__削除" />
-        </span>
+        <EditButton href={`/admin/__domainsSlug__/${d.id}/edit`} />
+        __DUPLICATE_BUTTON__<DeleteButton id={d.id} useDelete={useDelete__Domain__} title="__DomainLabel__削除" />
       </TableCellAction>
     ),
   },

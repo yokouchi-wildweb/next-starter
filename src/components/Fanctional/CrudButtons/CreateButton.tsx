@@ -16,7 +16,7 @@ export type CreateButtonProps = {
 export default function CreateButton({ href, label = "新規作成" }: CreateButtonProps) {
   return (
     <Button asChild>
-      <Link href={href}>
+      <Link href={href} style={{ gap: "0.15rem" }}>
         <Plus className="h-4 w-4" />
         {label}
       </Link>
