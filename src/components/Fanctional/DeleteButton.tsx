@@ -1,36 +1,39 @@
-// src/components/Common/DeleteButton.tsx
+// src/components/Fanctional/DeleteButton.tsx
 
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+
 import { Button } from "@/components/Form/Button/Button";
-import Dialog from "@/components/Overlays/Dialog";
+import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 
 export type DeleteButtonProps = {
   id: string;
-  /** Hook that provides delete mutation */
+  /** 削除ミューテーションを提供するHook */
   useDelete: () => { trigger: (id: string) => Promise<void>; isMutating: boolean };
-  /** Dialog title */
+  /** ポップオーバーのタイトル */
   title: string;
-  /** Button label */
+  /** ボタンラベル @default "削除" */
   label?: string;
-  /** Button label while loading */
+  /** ローディング中のボタンラベル @default "削除中..." */
   loadingLabel?: string;
-  /** Dialog description */
+  /** ポップオーバーの説明文 @default "本当に削除しますか？" */
   description?: string;
-  /** Dialog confirm button label */
+  /** 確認ボタンのラベル @default "削除する" */
   confirmLabel?: string;
-  /** Dialog cancel button label */
-  cancelLabel?: string;
-  /** Toast message while deleting */
+  /** 削除中のトーストメッセージ @default "削除を実行中です…" */
   toastMessage?: string;
-  /** Toast message on success */
+  /** 成功時のトーストメッセージ @default "削除が完了しました。" */
   successMessage?: string;
-  /** Toast message on error */
+  /** エラー時のトーストメッセージ @default "削除に失敗しました" */
   errorMessage?: string;
+  /** 削除成功時のコールバック */
+  onSuccess?: () => void;
+  /** ボタンを無効化するかどうか @default false */
+  disabled?: boolean;
 };
 
 export default function DeleteButton({
@@ -41,48 +44,46 @@ export default function DeleteButton({
   loadingLabel = "削除中...",
   description = "本当に削除しますか？",
   confirmLabel = "削除する",
-  cancelLabel = "キャンセル",
   toastMessage = "削除を実行中です…",
   successMessage = "削除が完了しました。",
   errorMessage = "削除に失敗しました",
+  onSuccess,
+  disabled = false,
 }: DeleteButtonProps) {
   const { trigger, isMutating } = useDelete();
-  const [open, setOpen] = useState(false);
   const router = useRouter();
-  const { showToast, hideToast } = useToast();
+  const { showToast } = useToast();
 
   const handleDelete = async () => {
-    setOpen(false);
     showToast({ message: toastMessage, mode: "persistent" });
     try {
       await trigger(id);
       showToast(successMessage, "success");
       router.refresh();
+      onSuccess?.();
     } catch (error) {
       showToast(err(error, errorMessage), "error");
     }
   };
 
   return (
-    <>
-      <Button
-        size="sm"
-        variant="destructive"
-        onClick={() => setOpen(true)}
-        disabled={isMutating}
-      >
-        {isMutating ? loadingLabel : label}
-      </Button>
-      <Dialog
-        open={open}
-        onOpenChange={setOpen}
-        title={title}
-        description={description}
-        confirmLabel={confirmLabel}
-        cancelLabel={cancelLabel}
-        onConfirm={handleDelete}
-        confirmDisabled={isMutating}
-      />
-    </>
+    <ConfirmPopover
+      trigger={
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          disabled={disabled || isMutating}
+        >
+          <Trash2 className="h-4 w-4" />
+          {isMutating ? loadingLabel : label}
+        </Button>
+      }
+      title={title}
+      description={description}
+      confirmLabel={confirmLabel}
+      confirmVariant="destructive"
+      onConfirm={handleDelete}
+    />
   );
 }

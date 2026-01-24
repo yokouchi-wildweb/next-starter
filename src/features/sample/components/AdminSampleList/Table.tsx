@@ -34,11 +34,9 @@ const columns: DataTableColumn<Sample>[] = buildDomainColumns<Sample>({
     header: "操作",
     render: (d: Sample) => (
       <TableCellAction>
-        <EditButton href={`/admin/samples/${d.id}/edit`} stopPropagation />
-        <DuplicateButton id={d.id} useDuplicate={useDuplicateSample} stopPropagation />
-        <span onClick={(e) => e.stopPropagation()}>
-          <DeleteButton id={d.id} useDelete={useDeleteSample} title="サンプル削除" />
-        </span>
+        <EditButton href={`/admin/samples/${d.id}/edit`} />
+        <DuplicateButton id={d.id} useDuplicate={useDuplicateSample} />
+        <DeleteButton id={d.id} useDelete={useDeleteSample} title="サンプル削除" />
       </TableCellAction>
     ),
   },

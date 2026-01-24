@@ -16,9 +16,12 @@ import {
 } from "../DataTable/components";
 import type { DataTableProps } from "../DataTable";
 import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
+import { BulkActionBar, type BulkActionSelection } from "./components/BulkActionBar";
 import { SelectionCell } from "./components/SelectionCell";
 import { SelectionHeaderCell } from "./components/SelectionHeaderCell";
 import { useRecordSelectionState } from "./hooks/useRecordSelectionState";
+
+export type { BulkActionSelection } from "./components/BulkActionBar";
 
 type SelectionBehavior = "row" | "checkbox";
 
@@ -28,6 +31,12 @@ export type RecordSelectionTableProps<T> = DataTableProps<T> & {
   onSelectionChange?: (keys: React.Key[], rows: T[]) => void;
   selectionBehavior?: SelectionBehavior;
   selectColumnLabel?: string;
+  /**
+   * 一括操作バーのアクション部分をレンダリングする関数。
+   * 指定すると、1件以上選択時に一括操作バーが表示される。
+   * 左側の「N件選択中」と「選択解除」ボタンは自動で表示される。
+   */
+  bulkActions?: (selection: BulkActionSelection<T>) => React.ReactNode;
 };
 
 export default function RecordSelectionTable<T>({
@@ -46,6 +55,7 @@ export default function RecordSelectionTable<T>({
   selectColumnLabel = "選択",
   bottomSentinelRef,
   scrollContainerRef,
+  bulkActions,
 }: RecordSelectionTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -86,72 +96,93 @@ export default function RecordSelectionTable<T>({
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
 
-  return (
-    <div
-      className={cn("overflow-x-auto overflow-y-auto", className)}
-      style={{ maxHeight: resolvedMaxHeight }}
-      ref={scrollContainerRef}
-    >
-      <Table variant="list">
-        <TableHeader>
-          <TableRow disableHover>
-            <SelectionHeaderCell
-              label={resolvedSelectColumnLabel}
-              isCheckboxSelection={isCheckboxSelection}
-              checked={isAllSelected}
-              indeterminate={isPartialSelection}
-              onToggle={(checked) => updateAllSelection(checked)}
-              onRequestToggle={() => updateAllSelection(!isAllSelected)}
-            />
-            {columns.map((col, idx) => (
-              <TableHead key={idx} className={resolveColumnTextAlignClass(col.align)}>
-                {col.header}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {keyedItems.map(({ item, key }, itemIndex) => {
-            const isSelected = selectedKeySet.has(key);
-            const resolvedRowClass = resolveRowClassName(rowClassName, item, {
-              index: itemIndex,
-              selected: isSelected,
-            });
-            const isClickableRow = shouldHandleRowSelection || Boolean(onRowClick);
+  // 一括操作バー用のselectionオブジェクトを作成
+  const bulkActionSelection = React.useMemo<BulkActionSelection<T>>(() => {
+    const selectedKeysArray = Array.from(selectedKeySet);
+    const selectedRows = keyedItems
+      .filter(({ key }) => selectedKeySet.has(key))
+      .map(({ item }) => item);
 
-            return (
-              <TableRow
-                key={key}
-                className={cn(
-                  "group",
-                  isClickableRow && "cursor-pointer",
-                  isSelected && "bg-muted/60",
-                  resolvedRowClass,
-                )}
-                onClick={isClickableRow ? () => handleRowClick(item, key) : undefined}
-                aria-selected={isSelected}
-                data-selected={isSelected ? "true" : undefined}
-              >
-                <SelectionCell
-                  label={resolvedSelectColumnLabel}
-                  rowIndex={itemIndex}
-                  isCheckboxSelection={isCheckboxSelection}
-                  isSelected={isSelected}
-                  onToggle={(checked) => updateKeySelection(key, checked)}
-                />
-                {columns.map((col, idx) => (
-                  <TableCell key={idx} className={resolveColumnTextAlignClass(col.align)}>
-                    {renderCellContent(col.render(item))}
-                  </TableCell>
-                ))}
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-      {bottomSentinelRef ? (
-        <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
-      ) : null}
-    </div>
+    return {
+      selectedKeys: selectedKeysArray,
+      selectedRows,
+      selectedIds: selectedKeysArray.map((key) => String(key)),
+      count: selectedKeysArray.length,
+      clear: () => updateAllSelection(false),
+    };
+  }, [keyedItems, selectedKeySet, updateAllSelection]);
+
+  return (
+    <>
+      {bulkActions && (
+        <BulkActionBar selection={bulkActionSelection} bulkActions={bulkActions} />
+      )}
+      <div
+        className={cn("overflow-x-auto overflow-y-auto", className)}
+        style={{ maxHeight: resolvedMaxHeight }}
+        ref={scrollContainerRef}
+      >
+        <Table variant="list">
+          <TableHeader>
+            <TableRow disableHover>
+              <SelectionHeaderCell
+                label={resolvedSelectColumnLabel}
+                isCheckboxSelection={isCheckboxSelection}
+                checked={isAllSelected}
+                indeterminate={isPartialSelection}
+                onToggle={(checked) => updateAllSelection(checked)}
+                onRequestToggle={() => updateAllSelection(!isAllSelected)}
+              />
+              {columns.map((col, idx) => (
+                <TableHead key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                  {col.header}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {keyedItems.map(({ item, key }, itemIndex) => {
+              const isSelected = selectedKeySet.has(key);
+              const resolvedRowClass = resolveRowClassName(rowClassName, item, {
+                index: itemIndex,
+                selected: isSelected,
+              });
+              const isClickableRow = shouldHandleRowSelection || Boolean(onRowClick);
+
+              return (
+                <TableRow
+                  key={key}
+                  className={cn(
+                    "group",
+                    isClickableRow && "cursor-pointer",
+                    isSelected && "bg-muted/60",
+                    resolvedRowClass,
+                  )}
+                  onClick={isClickableRow ? () => handleRowClick(item, key) : undefined}
+                  aria-selected={isSelected}
+                  data-selected={isSelected ? "true" : undefined}
+                >
+                  <SelectionCell
+                    label={resolvedSelectColumnLabel}
+                    rowIndex={itemIndex}
+                    isCheckboxSelection={isCheckboxSelection}
+                    isSelected={isSelected}
+                    onToggle={(checked) => updateKeySelection(key, checked)}
+                  />
+                  {columns.map((col, idx) => (
+                    <TableCell key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                      {renderCellContent(col.render(item))}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+        {bottomSentinelRef ? (
+          <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
+        ) : null}
+      </div>
+    </>
   );
 }

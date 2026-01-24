@@ -2,22 +2,40 @@
 
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Copy } from "lucide-react";
+
 import { Button } from "@/components/Form/Button/Button";
-import Dialog from "@/components/Overlays/Dialog";
+import { ConfirmPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
+import { err } from "@/lib/errors";
 
 export type DuplicateButtonProps = {
   id: string;
-  /** Hook that provides duplicate mutation */
+  /** 複製ミューテーションを提供するHook */
   useDuplicate: () => { trigger: (id: string) => Promise<unknown>; isMutating: boolean };
-  /** Show confirmation dialog before duplicating (default: true) */
+  /** 確認ポップオーバーを表示するか @default true */
   showConfirm?: boolean;
-  /** Dialog title */
+  /** ポップオーバーのタイトル @default "レコードの複製" */
   title?: string;
-  /** Stop event propagation on click */
-  stopPropagation?: boolean;
+  /** ボタンラベル @default "複製" */
+  label?: string;
+  /** ローディング中のボタンラベル @default "複製中..." */
+  loadingLabel?: string;
+  /** ポップオーバーの説明文 @default "このレコードを複製しますか？" */
+  description?: string;
+  /** 確認ボタンのラベル @default "複製する" */
+  confirmLabel?: string;
+  /** 複製中のトーストメッセージ @default "複製を実行中です…" */
+  toastMessage?: string;
+  /** 成功時のトーストメッセージ @default "複製が完了しました。" */
+  successMessage?: string;
+  /** エラー時のトーストメッセージ @default "複製に失敗しました" */
+  errorMessage?: string;
+  /** 複製成功時のコールバック */
+  onSuccess?: () => void;
+  /** ボタンを無効化するかどうか @default false */
+  disabled?: boolean;
 };
 
 export default function DuplicateButton({
@@ -25,59 +43,57 @@ export default function DuplicateButton({
   useDuplicate,
   showConfirm = true,
   title = "レコードの複製",
-  stopPropagation,
+  label = "複製",
+  loadingLabel = "複製中...",
+  description = "このレコードを複製しますか？",
+  confirmLabel = "複製する",
+  toastMessage = "複製を実行中です…",
+  successMessage = "複製が完了しました。",
+  errorMessage = "複製に失敗しました",
+  onSuccess,
+  disabled = false,
 }: DuplicateButtonProps) {
   const { trigger, isMutating } = useDuplicate();
-  const [open, setOpen] = useState(false);
   const router = useRouter();
   const { showToast } = useToast();
 
   const handleDuplicate = async () => {
-    setOpen(false);
-    showToast({ message: "複製を実行中です…", mode: "persistent" });
+    showToast({ message: toastMessage, mode: "persistent" });
     try {
       await trigger(id);
-      showToast("複製が完了しました。", "success");
+      showToast(successMessage, "success");
       router.refresh();
-    } catch {
-      showToast("複製に失敗しました", "error");
+      onSuccess?.();
+    } catch (error) {
+      showToast(err(error, errorMessage), "error");
     }
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    if (stopPropagation) {
-      e.stopPropagation();
-    }
-    if (showConfirm) {
-      setOpen(true);
-    } else {
-      handleDuplicate();
-    }
-  };
+  const button = (
+    <Button
+      type="button"
+      size="sm"
+      variant="secondary"
+      disabled={disabled || isMutating}
+      onClick={showConfirm ? undefined : handleDuplicate}
+    >
+      <Copy className="h-4 w-4" />
+      {isMutating ? loadingLabel : label}
+    </Button>
+  );
+
+  if (!showConfirm) {
+    return button;
+  }
 
   return (
-    <>
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={handleClick}
-        disabled={isMutating}
-      >
-        {isMutating ? "複製中..." : "複製"}
-      </Button>
-      {showConfirm && (
-        <Dialog
-          open={open}
-          onOpenChange={setOpen}
-          title={title}
-          description="このレコードを複製しますか？"
-          confirmLabel="複製する"
-          cancelLabel="キャンセル"
-          onConfirm={handleDuplicate}
-          confirmDisabled={isMutating}
-          confirmVariant="secondary"
-        />
-      )}
-    </>
+    <ConfirmPopover
+      trigger={button}
+      title={title}
+      description={description}
+      confirmLabel={confirmLabel}
+      confirmVariant="secondary"
+      onConfirm={handleDuplicate}
+    />
   );
 }

@@ -34,11 +34,9 @@ const columns: DataTableColumn<Coupon>[] = buildDomainColumns<Coupon>({
     header: "操作",
     render: (d: Coupon) => (
       <TableCellAction>
-        <EditButton href={`/admin/coupons/${d.id}/edit`} stopPropagation />
-        <DuplicateButton id={d.id} useDuplicate={useDuplicateCoupon} stopPropagation />
-        <span onClick={(e) => e.stopPropagation()}>
-          <DeleteButton id={d.id} useDelete={useDeleteCoupon} title="クーポン削除" />
-        </span>
+        <EditButton href={`/admin/coupons/${d.id}/edit`} />
+        <DuplicateButton id={d.id} useDuplicate={useDuplicateCoupon} />
+        <DeleteButton id={d.id} useDelete={useDeleteCoupon} title="クーポン削除" />
       </TableCellAction>
     ),
   },
