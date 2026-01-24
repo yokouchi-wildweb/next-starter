@@ -95,6 +95,24 @@ export type BulkUpsertResult<T> = {
   count: number;
 };
 
+/**
+ * バルクアップデート用のレコード型。
+ * idと更新データをセットで渡す。
+ */
+export type BulkUpdateRecord<UpdateData> = {
+  id: string;
+  data: UpdateData;
+};
+
+export type BulkUpdateResult<T> = {
+  /** 更新されたレコード一覧 */
+  results: T[];
+  /** 更新されたレコード数 */
+  count: number;
+  /** 存在しなかったID一覧 */
+  notFoundIds: string[];
+};
+
 export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   getAll(options?: WithOptions): Promise<T[]>;
   getById(id: string, options?: WithOptions): Promise<T>;
@@ -106,6 +124,7 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   bulkDeleteByQuery?(where: WhereExpr): Promise<void>;
   upsert?(data: CreateData, options?: UpsertOptions<CreateData>): Promise<T>;
   bulkUpsert?(records: CreateData[], options?: BulkUpsertOptions<CreateData>): Promise<BulkUpsertResult<T>>;
+  bulkUpdate?(records: BulkUpdateRecord<UpdateData>[]): Promise<BulkUpdateResult<T>>;
   duplicate?(id: string): Promise<T>;
   // ソフトデリート用メソッド
   restore?(id: string): Promise<T>;

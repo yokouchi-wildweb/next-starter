@@ -13,6 +13,8 @@ import type {
   UpsertOptions,
   BulkUpsertOptions,
   BulkUpsertResult,
+  BulkUpdateRecord,
+  BulkUpdateResult,
   WhereExpr,
   WithOptions,
 } from "../types";
@@ -892,6 +894,61 @@ export function createCrudService<
 
         return { results: rows, count: rows.length };
       });
+    },
+
+    /**
+     * 複数レコードを一括で更新する。
+     * 存在しないIDはスキップされ、notFoundIdsに含まれる。
+     */
+    async bulkUpdate(
+      records: BulkUpdateRecord<Partial<Insert>>[],
+      tx?: DbTransaction,
+    ): Promise<BulkUpdateResult<Select>> {
+      if (records.length === 0) {
+        return { results: [], count: 0, notFoundIds: [] };
+      }
+
+      const executor = tx ?? db;
+      const ids = records.map((r) => r.id);
+
+      // 存在するレコードを確認
+      const existingRows = await executor
+        .select({ id: idColumn })
+        .from(table as any)
+        .where(inArray(idColumn, ids)) as unknown as { id: string }[];
+      const existingIds = new Set(existingRows.map((r) => r.id));
+      const notFoundIds = ids.filter((id) => !existingIds.has(id));
+
+      // 存在するレコードのみ更新
+      const validRecords = records.filter((r) => existingIds.has(r.id));
+      if (validRecords.length === 0) {
+        return { results: [], count: 0, notFoundIds };
+      }
+
+      const results: Select[] = [];
+
+      for (const record of validRecords) {
+        const parsedInput = serviceOptions.parseUpdate
+          ? await serviceOptions.parseUpdate(record.data)
+          : record.data;
+
+        const updateData = omitUndefined({
+          ...parsedInput,
+          ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
+        }) as PgUpdateSetSource<TTable>;
+
+        const [updated] = (await executor
+          .update(table)
+          .set(updateData)
+          .where(eq(idColumn, record.id))
+          .returning()) as Select[];
+
+        if (updated) {
+          results.push(updated);
+        }
+      }
+
+      return { results, count: results.length, notFoundIds };
     },
 
     async duplicate(id: string, tx?: DbTransaction): Promise<Select> {

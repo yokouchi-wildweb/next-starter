@@ -11,6 +11,8 @@ import type {
   UpsertOptions,
   BulkUpsertOptions,
   BulkUpsertResult,
+  BulkUpdateRecord,
+  BulkUpdateResult,
   WhereExpr,
 } from "../types";
 import { buildSearchQuery, applyWhere } from "./query";
@@ -322,6 +324,68 @@ export function createCrudService<
       }
 
       return { results, count: results.length };
+    },
+
+    /**
+     * 複数レコードを一括で更新する。
+     * 存在しないIDはスキップされ、notFoundIdsに含まれる。
+     */
+    async bulkUpdate(
+      records: BulkUpdateRecord<Partial<Insert>>[],
+    ): Promise<BulkUpdateResult<Select>> {
+      if (records.length === 0) {
+        return { results: [], count: 0, notFoundIds: [] };
+      }
+
+      const ids = records.map((r) => r.id);
+
+      // 存在するレコードを確認
+      const existingDocs = await Promise.all(ids.map((id) => col.doc(id).get()));
+      const existingIds = new Set(
+        existingDocs.filter((doc) => doc.exists).map((doc) => doc.id)
+      );
+      const notFoundIds = ids.filter((id) => !existingIds.has(id));
+
+      // 存在するレコードのみ更新
+      const validRecords = records.filter((r) => existingIds.has(r.id));
+      if (validRecords.length === 0) {
+        return { results: [], count: 0, notFoundIds };
+      }
+
+      // Firestoreのバッチは500件制限
+      const BATCH_SIZE = 500;
+      const results: Select[] = [];
+
+      for (let i = 0; i < validRecords.length; i += BATCH_SIZE) {
+        const chunk = validRecords.slice(i, i + BATCH_SIZE);
+        const batch = firestore.batch();
+        const refs: FirebaseFirestore.DocumentReference[] = [];
+
+        for (const record of chunk) {
+          const parsedInput = options.parseUpdate
+            ? await options.parseUpdate(record.data)
+            : record.data;
+
+          const updateData = omitUndefined({
+            ...parsedInput,
+            ...(options.useUpdatedAt && { updatedAt: new Date() }),
+          }) as FirebaseFirestore.UpdateData<T>;
+
+          const ref = col.doc(record.id);
+          batch.update(ref, updateData);
+          refs.push(ref);
+        }
+
+        await batch.commit();
+
+        // 結果を取得
+        for (const ref of refs) {
+          const snap = await ref.get();
+          results.push(convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select));
+        }
+      }
+
+      return { results, count: results.length, notFoundIds };
     },
 
     async duplicate(id: string): Promise<Select> {

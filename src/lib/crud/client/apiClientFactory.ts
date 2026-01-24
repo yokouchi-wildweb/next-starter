@@ -8,6 +8,8 @@ import type {
   UpsertOptions,
   BulkUpsertOptions,
   BulkUpsertResult,
+  BulkUpdateRecord,
+  BulkUpdateResult,
   WhereExpr,
   WithOptions,
 } from "../types";
@@ -103,6 +105,12 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         "bulkUpsert",
         async () =>
           (await axios.post<BulkUpsertResult<T>>(`${baseUrl}/bulk/upsert`, { records, options })).data,
+      ),
+    bulkUpdate: (records: BulkUpdateRecord<UpdateData>[]) =>
+      handleRequest(
+        "bulkUpdate",
+        async () =>
+          (await axios.post<BulkUpdateResult<T>>(`${baseUrl}/bulk/update`, { records })).data,
       ),
     duplicate: (id: string) =>
       handleRequest(
