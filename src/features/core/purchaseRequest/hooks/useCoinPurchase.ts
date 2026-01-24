@@ -18,8 +18,8 @@ type UseCoinPurchaseParams = {
 };
 
 type UseCoinPurchaseResult = {
-  /** 購入処理を開始 */
-  purchase: (paymentMethod: string) => Promise<void>;
+  /** 購入処理を開始（決済方法はリダイレクト先で選択） */
+  purchase: () => Promise<void>;
   /** 処理中かどうか */
   isLoading: boolean;
   /** エラーメッセージ */
@@ -39,7 +39,7 @@ export function useCoinPurchase({
   const [error, setError] = useState<string | null>(null);
 
   const purchase = useCallback(
-    async (paymentMethod: string) => {
+    async () => {
       setIsLoading(true);
       setError(null);
 
@@ -48,12 +48,14 @@ export function useCoinPurchase({
         const idempotencyKey = uuidv4();
 
         // 購入開始APIを呼び出し
+        // paymentMethod は決済プロバイダ側で選択されるため、初期値として "redirect" を設定
+        // 実際の決済方法はWebhook受信時に上書きされる
         const result = await initiatePurchase({
           idempotencyKey,
           walletType,
           amount,
           paymentAmount,
-          paymentMethod,
+          paymentMethod: "redirect",
         });
 
         // 決済ページへリダイレクト

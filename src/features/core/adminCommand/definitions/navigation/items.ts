@@ -8,13 +8,6 @@ import type { NavigationItem } from "../../types";
  */
 export const navigationItems: NavigationItem[] = [
   {
-    id: "nav-app-home",
-    label: "アプリトップ (home)",
-    description: "アプリのトップページに移動",
-    href: "/",
-    keywords: ["top", "トップ", "ホーム"],
-  },
-  {
     id: "nav-admin-home",
     label: "管理画面トップ (admin)",
     description: "管理画面のトップページに移動",
@@ -27,13 +20,6 @@ export const navigationItems: NavigationItem[] = [
     description: "一般ユーザーの管理",
     href: "/admin/users/general",
     keywords: ["user", "general", "一般"],
-  },
-  {
-    id: "nav-admin-users-managerial",
-    label: "管理者一覧 (managers)",
-    description: "管理者ユーザーの管理",
-    href: "/admin/users/managerial",
-    keywords: ["manager", "managerial", "admin"],
   },
   {
     id: "nav-admin-settings",

@@ -6,7 +6,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
 import type { WalletType } from "@/config/app/currency.config";
 
-import { PaymentMethodForm } from "./PaymentMethodForm";
+import { PurchaseButton } from "./PurchaseButton";
 import { PurchaseSummaryCard } from "./PurchaseSummaryCard";
 
 type CurrencyPurchaseProps = {
@@ -40,7 +40,7 @@ export function CurrencyPurchase({
         currentBalance={currentBalance}
         walletType={walletType}
       />
-      <PaymentMethodForm
+      <PurchaseButton
         onPurchase={purchase}
         isLoading={isLoading}
         error={error}

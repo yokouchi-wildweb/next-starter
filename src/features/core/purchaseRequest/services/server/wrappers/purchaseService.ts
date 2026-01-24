@@ -44,6 +44,8 @@ export type CompletePurchaseParams = {
   sessionId: string;
   /** プロバイダ側の取引ID */
   transactionId?: string;
+  /** 実際に使用された決済方法（Webhookから取得） */
+  paymentMethod?: string;
   /** 支払い完了日時 */
   paidAt?: Date;
   /** Webhook署名（デバッグ用） */
@@ -224,7 +226,7 @@ export async function getPurchaseStatusForUser(
 export async function completePurchase(
   params: CompletePurchaseParams
 ): Promise<CompletePurchaseResult> {
-  const { sessionId, transactionId, paidAt, webhookSignature, providerName } = params;
+  const { sessionId, transactionId, paymentMethod, paidAt, webhookSignature, providerName } = params;
 
   // 1. Webhook識別子で購入リクエストを検索
   const purchaseRequest = await findByWebhookIdentifier(sessionId, providerName);
@@ -257,6 +259,8 @@ export async function completePurchase(
         status: "completed",
         completed_at: new Date(),
         transaction_id: transactionId,
+        // Webhookから取得した実際の決済方法で上書き（未指定の場合は既存値を維持）
+        ...(paymentMethod && { payment_method: paymentMethod }),
         paid_at: paidAt ?? new Date(),
         webhook_signature: webhookSignature,
         updatedAt: new Date(),
@@ -363,6 +367,7 @@ export async function handleWebhook(
     const result = await completePurchase({
       sessionId: paymentResult.sessionId,
       transactionId: paymentResult.transactionId,
+      paymentMethod: paymentResult.paymentMethod,
       paidAt: paymentResult.paidAt,
       webhookSignature,
       providerName,
