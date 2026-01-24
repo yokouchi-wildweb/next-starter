@@ -1,8 +1,8 @@
-// src/components/Badge/status-badge-variants.ts
+// src/components/Badge/soft-badge-variants.ts
 
 import { cva, type VariantProps } from "class-variance-authority";
 
-export const statusBadgeVariants = cva(
+export const softBadgeVariants = cva(
   "inline-flex items-center justify-center rounded-full border font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:pointer-events-none transition-[color,box-shadow] overflow-hidden relative before:absolute before:inset-0 before:bg-background before:-z-10 before:rounded-full",
   {
     variants: {
@@ -48,4 +48,4 @@ export const statusBadgeVariants = cva(
   }
 );
 
-export type StatusBadgeVariantProps = VariantProps<typeof statusBadgeVariants>;
+export type SoftBadgeVariantProps = VariantProps<typeof softBadgeVariants>;

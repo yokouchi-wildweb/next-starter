@@ -1,7 +1,13 @@
 // src/components/Badge/index.ts
 
-export { StatusBadge, type StatusBadgeProps } from "./StatusBadge";
+export { SoftBadge, type SoftBadgeProps } from "./SoftBadge";
 export {
-  statusBadgeVariants,
-  type StatusBadgeVariantProps,
-} from "./status-badge-variants";
+  softBadgeVariants,
+  type SoftBadgeVariantProps,
+} from "./soft-badge-variants";
+
+export { SolidBadge, type SolidBadgeProps } from "./SolidBadge";
+export {
+  solidBadgeVariants,
+  type SolidBadgeVariantProps,
+} from "./solid-badge-variants";
