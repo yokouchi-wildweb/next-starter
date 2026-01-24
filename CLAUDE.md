@@ -120,6 +120,7 @@ playwright-mcp: CSS/UI verification, dynamic content, WebSearch/WebFetch fallbac
 
 ## SCRIPTS
 ref: scripts/README.md | claude:test: API connection check (requires ANTHROPIC_API_KEY)
+db:query "SQL": execute SQL | db:tables: list tables | db:describe \<table\>: show structure | db:count [table]: row counts
 
 ## DOCS
 location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/
