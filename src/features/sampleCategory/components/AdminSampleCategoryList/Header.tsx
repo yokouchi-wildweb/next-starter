@@ -8,6 +8,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/sampleCategory/domain.json";
+import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
 
 export type AdminSampleCategoryListHeaderProps = {
   page: number;
@@ -20,7 +21,7 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
   const params = useSearchParams();
 
   return (
-    <ListTop title="登録済みサンプルカテゴリの一覧" newHref="/admin/sample-categories/new">
+    <ListTop title="登録済みサンプルカテゴリの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/sample-categories?${p.toString()}`} />}
       {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
@@ -35,6 +36,7 @@ export default function AdminSampleCategoryListHeader({ page, perPage, total }: 
           return `/admin/sample-categories?${search.toString()}`;
         }}
       />
+      <CreateButton href="/admin/sample-categories/new" />
     </ListTop>
   );
 }

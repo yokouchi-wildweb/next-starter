@@ -8,6 +8,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/sample/domain.json";
+import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
 
 export type AdminSampleListHeaderProps = {
   page: number;
@@ -20,7 +21,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
   const params = useSearchParams();
 
   return (
-    <ListTop title="登録済みサンプルの一覧" newHref="/admin/samples/new">
+    <ListTop title="登録済みサンプルの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/samples?${p.toString()}`} />}
       {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
@@ -35,6 +36,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
           return `/admin/samples?${search.toString()}`;
         }}
       />
+      <CreateButton href="/admin/samples/new" />
     </ListTop>
   );
 }

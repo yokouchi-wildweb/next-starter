@@ -8,6 +8,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/sampleTag/domain.json";
+import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
 
 export type AdminSampleTagListHeaderProps = {
   page: number;
@@ -20,7 +21,7 @@ export default function AdminSampleTagListHeader({ page, perPage, total }: Admin
   const params = useSearchParams();
 
   return (
-    <ListTop title="登録済みサンプルタグの一覧" newHref="/admin/sample-tags/new">
+    <ListTop title="登録済みサンプルタグの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/sample-tags?${p.toString()}`} />}
       {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
@@ -35,6 +36,7 @@ export default function AdminSampleTagListHeader({ page, perPage, total }: Admin
           return `/admin/sample-tags?${search.toString()}`;
         }}
       />
+      <CreateButton href="/admin/sample-tags/new" />
     </ListTop>
   );
 }

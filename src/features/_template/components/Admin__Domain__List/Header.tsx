@@ -8,6 +8,7 @@ import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/__domain__/domain.json";
+import CreateButton from "@/components/Fanctional/CrudButtons/CreateButton";
 
 export type Admin__Domain__ListHeaderProps = {
   page: number;
@@ -20,7 +21,7 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
   const params = useSearchParams();
 
   return (
-    <ListTop title="登録済み__DomainLabel__の一覧" newHref="/admin/__domainsSlug__/new">
+    <ListTop title="登録済み__DomainLabel__の一覧">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/__domainsSlug__?${p.toString()}`} />}
       {config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
@@ -35,6 +36,7 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
           return `/admin/__domainsSlug__?${search.toString()}`;
         }}
       />
+      <CreateButton href="/admin/__domainsSlug__/new" />
     </ListTop>
   );
 }
