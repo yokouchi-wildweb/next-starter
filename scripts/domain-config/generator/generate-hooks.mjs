@@ -63,6 +63,9 @@ const templates = [
   "useUpdate__Domain__.ts",
   "useUpsert__Domain__.ts",
   "useDelete__Domain__.ts",
+  "useBulkDeleteByIds__Domain__.ts",
+  "useBulkDeleteByQuery__Domain__.ts",
+  "useBulkUpsert__Domain__.ts",
 ];
 
 if (domainConfig?.useDetailModal) {
@@ -76,6 +79,11 @@ if (domainConfig?.useDuplicateButton) {
 if (domainConfig?.useSoftDelete) {
   templates.push("useRestore__Domain__.ts");
   templates.push("useHardDelete__Domain__.ts");
+}
+
+if (domainConfig?.sortOrderField) {
+  templates.push("useReorder__Domain__.ts");
+  templates.push("useSearchForSorting__Domain__.ts");
 }
 
 // テンプレート文字列のトークンをドメイン名で置換

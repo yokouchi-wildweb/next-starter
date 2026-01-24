@@ -11,3 +11,5 @@ export * from "./useBulkUpsertDomain";
 export * from "./useDuplicateDomain";
 export * from "./useRestoreDomain";
 export * from "./useHardDeleteDomain";
+export * from "./useReorderDomain";
+export * from "./useSearchForSortingDomain";
