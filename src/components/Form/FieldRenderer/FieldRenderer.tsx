@@ -106,58 +106,78 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
   // 1. insertBefore["__first__"] を先頭に配置
   // 2. baseFields を処理（fieldPatches で部分的に上書き・マージ）
   // 3. 各フィールドの前後に insertBefore/insertAfter で指定されたフィールドを挿入
+  //    （挿入されたフィールドに対しても再帰的に insertBefore/insertAfter を適用）
   // 4. fieldPatches の新規フィールドを末尾に追加
   // 5. insertAfter["__last__"] を最後に配置
   const combinedFields = useMemo(() => {
     const patchMap = new Map(
       fieldPatches.filter((f) => f.name).map((f) => [f.name, f])
     );
-    const result: FieldConfig[] = [];
 
-    // 挿入フィールドにもパッチを適用するヘルパー関数
-    const applyPatchesToFields = (fields: FieldConfig[]): FieldConfig[] => {
-      return fields.map((field) => {
-        const patch = patchMap.get(field.name);
-        if (patch) {
-          patchMap.delete(field.name); // 使用済み
-          return { ...field, ...patch } as FieldConfig;
-        }
-        return field;
-      });
-    };
-
-    // 1. 先頭に挿入（insertBefore["__first__"]、パッチ適用）
-    const firstFields = insertBefore["__first__"] ?? [];
-    result.push(...applyPatchesToFields(firstFields));
-
-    // 2. baseFields を処理（fieldPatches で上書き + insertBefore/insertAfter で挿入）
-    baseFields.forEach((field) => {
-      // このフィールドの前に挿入（パッチ適用）
-      const beforeFields = insertBefore[field.name] ?? [];
-      result.push(...applyPatchesToFields(beforeFields));
-
-      // フィールド本体（patch があれば部分的に上書き）
+    // フィールドにパッチを適用するヘルパー関数
+    const applyPatch = (field: FieldConfig): FieldConfig => {
       const patch = patchMap.get(field.name);
       if (patch) {
         patchMap.delete(field.name); // 使用済み
-        result.push({ ...field, ...patch } as FieldConfig); // マージ（位置維持）
-      } else {
-        result.push(field);
+        return { ...field, ...patch } as FieldConfig;
+      }
+      return field;
+    };
+
+    // 使用済みの insertBefore/insertAfter キーを追跡（無限ループ防止）
+    const usedInsertKeys = new Set<string>();
+
+    /**
+     * フィールドとその前後挿入を再帰的に処理するヘルパー関数
+     * これにより、insertBefore.__first__ で挿入されたリレーションフィールドなどに対しても
+     * insertBefore/insertAfter でフィールドを挟み込める
+     * @param field パッチ適用済みのフィールド
+     * @param output 結果を格納する配列
+     */
+    const processFieldWithInserts = (field: FieldConfig, output: FieldConfig[]) => {
+      const fieldName = field.name;
+
+      // このフィールドの前に挿入（未処理の場合のみ）
+      const beforeKey = `before:${fieldName}`;
+      if (!usedInsertKeys.has(beforeKey)) {
+        usedInsertKeys.add(beforeKey);
+        const beforeFields = insertBefore[fieldName];
+        if (beforeFields) {
+          beforeFields.forEach((bf) => processFieldWithInserts(applyPatch(bf), output));
+        }
       }
 
-      // このフィールドの後に挿入（パッチ適用）
-      const afterFields = insertAfter[field.name] ?? [];
-      result.push(...applyPatchesToFields(afterFields));
-    });
+      // フィールド本体
+      output.push(field);
+
+      // このフィールドの後に挿入（未処理の場合のみ）
+      const afterKey = `after:${fieldName}`;
+      if (!usedInsertKeys.has(afterKey)) {
+        usedInsertKeys.add(afterKey);
+        const afterFields = insertAfter[fieldName];
+        if (afterFields) {
+          afterFields.forEach((af) => processFieldWithInserts(applyPatch(af), output));
+        }
+      }
+    };
+
+    const result: FieldConfig[] = [];
+
+    // 1. 先頭に挿入（insertBefore["__first__"]）
+    const firstFields = insertBefore["__first__"] ?? [];
+    firstFields.forEach((f) => processFieldWithInserts(applyPatch(f), result));
+
+    // 2. baseFields を処理
+    baseFields.forEach((f) => processFieldWithInserts(applyPatch(f), result));
 
     // 3. 残り（新規追加分）を末尾に追加
     // 注: 新規フィールドの場合は完全なFieldConfig定義が必要
     const remainingPatches = Array.from(patchMap.values()) as FieldConfig[];
     result.push(...remainingPatches);
 
-    // 4. 末尾に挿入（insertAfter["__last__"]、パッチ適用）
+    // 4. 末尾に挿入（insertAfter["__last__"]）
     const lastFields = insertAfter["__last__"] ?? [];
-    result.push(...applyPatchesToFields(lastFields));
+    lastFields.forEach((f) => processFieldWithInserts(applyPatch(f), result));
 
     return result;
   }, [baseFields, fieldPatches, insertBefore, insertAfter]);
