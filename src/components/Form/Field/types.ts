@@ -2,7 +2,7 @@
 // フィールド設定の型定義
 
 import type { ReactNode } from "react";
-import type { FileValidationRule } from "@/lib/mediaInputSuite";
+import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { ParaProps } from "@/components/TextBlocks/Para";
 
 /**
@@ -125,6 +125,8 @@ export type FieldConfig = {
   helperText?: string;
   /** メタデータを別フィールドに保存 */
   metadataBinding?: Record<string, string>;
+  /** メタデータ変更時のコールバック（mediaUploader用） */
+  onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
 };
 
 // ============================================
