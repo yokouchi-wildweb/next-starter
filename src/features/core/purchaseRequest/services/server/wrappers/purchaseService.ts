@@ -184,6 +184,10 @@ export async function getPurchaseStatusForUser(
     const providerName = request.payment_provider as PaymentProviderName;
     try {
       const provider = getPaymentProvider(providerName);
+      // getPaymentStatusはオプショナルなので、未実装の場合はスキップ
+      if (!provider.getPaymentStatus) {
+        return request;
+      }
       const providerStatus = await provider.getPaymentStatus(request.payment_session_id);
 
       if (providerStatus.status === "completed") {
