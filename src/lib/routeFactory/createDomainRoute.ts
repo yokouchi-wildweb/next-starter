@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createApiRoute, type OperationType, type ApiRouteContext } from "./createApiRoute";
 import { serviceRegistry } from "@/registry/serviceRegistry";
+import { toCamelCase } from "@/utils/stringCase.mjs";
 
 /**
  * ドメインルートの設定
@@ -83,7 +84,9 @@ export function createDomainRoute<
     },
     async (req, ctx) => {
       const { domain } = ctx.params;
-      const service = services[domain] as TService | undefined;
+      // ドメイン名を正規化（snake_case → camelCase）
+      const normalizedDomain = toCamelCase(domain);
+      const service = services[normalizedDomain] as TService | undefined;
 
       if (!service) {
         return new NextResponse("Not Found", { status: 404 });
