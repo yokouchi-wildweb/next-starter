@@ -1,5 +1,7 @@
 // src/lib/crud/utils/paths.ts
 
+import { toKebabCase } from "@/utils/stringCase.mjs";
+
 /**
  * CRUDパス生成ユーティリティ
  *
@@ -53,5 +55,5 @@ export function getCrudPaths(basePath: string): CrudPaths {
  * paths.edit("1")   // "/admin/samples/1/edit"
  */
 export function getAdminPaths(slugPlural: string): CrudPaths {
-  return getCrudPaths(`/admin/${slugPlural}`);
+  return getCrudPaths(`/admin/${toKebabCase(slugPlural)}`);
 }

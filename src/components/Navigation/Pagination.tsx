@@ -41,12 +41,12 @@ export default function Pagination({ page, perPage, total, makeHref }: Paginatio
         {start} - {end} （{total}件中）
       </span>
       {showFirst && (
-        <LinkButton href={firstHref} size="sm" variant="ghost" aria-label="First page">
+        <LinkButton href={firstHref} size="sm" variant="ghost" className="px-1" aria-label="First page">
           <ChevronsLeft className="size-4" />
         </LinkButton>
       )}
       {showPrev && (
-        <LinkButton href={prevHref} size="sm" variant="ghost" aria-label="Previous page">
+        <LinkButton href={prevHref} size="sm" variant="ghost" className="px-1" aria-label="Previous page">
           <ChevronLeft className="size-4" />
         </LinkButton>
       )}
@@ -56,18 +56,18 @@ export default function Pagination({ page, perPage, total, makeHref }: Paginatio
             {p}
           </span>
         ) : (
-          <LinkButton key={p} href={makeHref(p)} size="sm" variant="outline">
+          <LinkButton key={p} href={makeHref(p)} size="sm" variant="outline" className="px-1">
             {p}
           </LinkButton>
         ),
       )}
       {showNext && (
-        <LinkButton href={nextHref} size="sm" variant="ghost" aria-label="Next page">
+        <LinkButton href={nextHref} size="sm" variant="ghost" className="px-1" aria-label="Next page">
           <ChevronRight className="size-4" />
         </LinkButton>
       )}
       {showLast && (
-        <LinkButton href={lastHref} size="sm" variant="ghost" aria-label="Last page">
+        <LinkButton href={lastHref} size="sm" variant="ghost" className="px-1" aria-label="Last page">
           <ChevronsRight className="size-4" />
         </LinkButton>
       )}
