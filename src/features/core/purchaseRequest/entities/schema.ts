@@ -20,13 +20,29 @@ export const PurchaseRequestBaseSchema = z.object({
   payment_provider: z.string().trim().min(1, { message: "決済プロバイダは必須です。" }),
   payment_session_id: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
+  transaction_id: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
   redirect_url: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   error_code: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   error_message: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
+  webhook_signature: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
   completed_at: z.preprocess(
+  (value) => {
+    if (value == null) return undefined;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return undefined;
+      return trimmed;
+    }
+    return value;
+  },
+  z.coerce.date()
+).or(z.literal("").transform(() => undefined)).nullish(),
+  paid_at: z.preprocess(
   (value) => {
     if (value == null) return undefined;
     if (typeof value === "string") {
