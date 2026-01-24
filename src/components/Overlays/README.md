@@ -347,3 +347,256 @@ import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 // ローカル（親要素は position: relative が必要）
 <ScreenLoader mode="local" />
 ```
+
+---
+
+## Popover コンポーネント群
+
+ポップオーバー系のコンポーネント群。モーダルより軽量なオーバーレイUI。
+
+### Popover（基本）
+
+汎用ポップオーバー。他のPopover系コンポーネントの基盤。
+
+```tsx
+import { Popover } from "@/components/Overlays/Popover";
+
+<Popover
+  trigger={<Button>開く</Button>}
+  title="設定"
+  description="表示設定を変更します"
+  showArrow
+  showClose
+>
+  <p>コンテンツ...</p>
+</Popover>
+```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `trigger` | `ReactNode` | - | トリガー要素 |
+| `title` | `ReactNode` | - | タイトル |
+| `description` | `ReactNode` | - | 説明文 |
+| `children` | `ReactNode` | - | コンテンツ |
+| `footer` | `ReactNode` | - | フッター |
+| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "auto"` | `"md"` | サイズ |
+| `showArrow` | `boolean` | `false` | 矢印表示 |
+| `showClose` | `boolean` | `false` | 閉じるボタン表示 |
+| `open` | `boolean` | - | 制御モード: 開閉状態 |
+| `onOpenChange` | `(open: boolean) => void` | - | 開閉状態変更コールバック |
+
+---
+
+### ConfirmPopover
+
+確認用ポップオーバー。削除確認などに使用。
+
+```tsx
+import { ConfirmPopover } from "@/components/Overlays/Popover";
+
+<ConfirmPopover
+  trigger={<Button variant="destructive">削除</Button>}
+  title="削除しますか？"
+  description="この操作は取り消せません"
+  onConfirm={handleDelete}
+  confirmVariant="destructive"
+/>
+```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `trigger` | `ReactNode` | - | トリガー要素 |
+| `title` | `ReactNode` | `"確認"` | タイトル |
+| `description` | `ReactNode` | - | 説明文 |
+| `confirmLabel` | `string` | `"確認"` | 確認ボタンラベル |
+| `cancelLabel` | `string` | `"キャンセル"` | キャンセルボタンラベル |
+| `onConfirm` | `() => void \| Promise<void>` | - | 確認コールバック（Promiseで自動ローディング） |
+| `confirmVariant` | `ButtonVariant` | `"primary"` | 確認ボタンスタイル |
+
+---
+
+### PromptPopover
+
+入力用ポップオーバー。追跡番号入力などに使用。
+
+```tsx
+import { PromptPopover } from "@/components/Overlays/Popover";
+
+// 単一行入力
+<PromptPopover
+  trigger={<Button>追跡番号</Button>}
+  title="追跡番号を入力"
+  description="配送業者から通知された追跡番号を入力してください"
+  placeholder="例: 1234-5678-9012"
+  onConfirm={async (value) => {
+    await updateTrackingNumber(id, value);
+  }}
+/>
+
+// 複数行入力
+<PromptPopover
+  trigger={<Button>メモ</Button>}
+  title="メモを追加"
+  multiline
+  rows={4}
+  validation={(v) => v.length > 0 ? null : "入力してください"}
+  onConfirm={handleSave}
+/>
+```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `trigger` | `ReactNode` | - | トリガー要素 |
+| `title` | `ReactNode` | - | タイトル |
+| `description` | `ReactNode` | - | 説明文 |
+| `placeholder` | `string` | - | プレースホルダー |
+| `defaultValue` | `string` | `""` | 初期値 |
+| `multiline` | `boolean` | `false` | 複数行入力（textarea） |
+| `rows` | `number` | `3` | textareaの行数 |
+| `inputType` | `"text" \| "number" \| "email" \| "tel" \| "url"` | `"text"` | 入力タイプ |
+| `validation` | `(value: string) => string \| null` | - | バリデーション関数 |
+| `onConfirm` | `(value: string) => void \| Promise<void>` | - | 確認コールバック |
+
+---
+
+### ActionPopover
+
+アクションメニュー用ポップオーバー。
+
+```tsx
+import { ActionPopover } from "@/components/Overlays/Popover";
+import { Edit, Copy, Trash } from "lucide-react";
+
+<ActionPopover
+  trigger={<IconButton icon={MoreVertical} />}
+  actions={[
+    { label: "編集", icon: Edit, onClick: handleEdit },
+    { label: "複製", icon: Copy, onClick: handleDuplicate },
+    { type: "separator" },
+    { label: "削除", icon: Trash, onClick: handleDelete, variant: "destructive" },
+  ]}
+/>
+```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `trigger` | `ReactNode` | - | トリガー要素 |
+| `title` | `ReactNode` | - | タイトル（省略可） |
+| `actions` | `ActionPopoverItem[]` | - | アクションリスト |
+| `closeOnAction` | `boolean` | `true` | アクション後に自動で閉じる |
+
+**ActionPopoverItem:**
+
+```ts
+type ActionItem = {
+  type?: "action";
+  label: string;
+  icon?: LucideIcon;
+  onClick?: () => void | Promise<void>;
+  disabled?: boolean;
+  variant?: "default" | "destructive";
+};
+
+type SeparatorItem = { type: "separator" };
+```
+
+---
+
+### InfoPopover
+
+情報・ヘルプ表示用ポップオーバー。
+
+```tsx
+import { InfoPopover } from "@/components/Overlays/Popover";
+
+// ?アイコン（デフォルト）
+<InfoPopover title="税込価格について">
+  消費税10%を含んだ価格です。
+  軽減税率対象商品は8%で計算されます。
+</InfoPopover>
+
+// infoアイコン
+<InfoPopover iconType="info" title="ヒント">
+  キーボードショートカット: Cmd + S で保存できます
+</InfoPopover>
+```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `title` | `ReactNode` | - | タイトル |
+| `children` | `ReactNode` | - | コンテンツ |
+| `iconType` | `"help" \| "info"` | `"help"` | アイコン種類 |
+| `iconSize` | `"sm" \| "md" \| "lg"` | `"md"` | アイコンサイズ |
+| `trigger` | `ReactNode` | - | カスタムトリガー |
+
+---
+
+## Tooltip
+
+シンプルなツールチップ。ホバーで短いテキストを表示。
+
+```tsx
+import { Tooltip } from "@/components/Overlays/Tooltip";
+
+<Tooltip content="設定を開く">
+  <IconButton icon={Settings} />
+</Tooltip>
+
+// カスタマイズ
+<Tooltip
+  content="この操作は取り消せません"
+  side="right"
+  delayDuration={500}
+>
+  <Button variant="destructive">削除</Button>
+</Tooltip>
+```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `content` | `ReactNode` | - | ツールチップの内容 |
+| `children` | `ReactNode` | - | トリガー要素 |
+| `side` | `"top" \| "right" \| "bottom" \| "left"` | `"top"` | 表示位置 |
+| `delayDuration` | `number` | `200` | 表示までの遅延（ms） |
+| `showArrow` | `boolean` | `true` | 矢印表示 |
+
+---
+
+## HoverCard
+
+ホバープレビュー。リンクやユーザー名にホバーで詳細を表示。
+
+```tsx
+import { HoverCard } from "@/components/Overlays/HoverCard";
+
+<HoverCard
+  trigger={<Link href="/users/1">@username</Link>}
+  openDelay={300}
+>
+  <UserPreviewCard user={user} />
+</HoverCard>
+```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `trigger` | `ReactNode` | - | ホバー対象の要素 |
+| `children` | `ReactNode` | - | カードのコンテンツ |
+| `side` | `"top" \| "right" \| "bottom" \| "left"` | `"bottom"` | 表示位置 |
+| `size` | `"sm" \| "md" \| "lg" \| "xl" \| "auto"` | `"md"` | サイズ |
+| `openDelay` | `number` | `300` | 表示までの遅延（ms） |
+| `closeDelay` | `number` | `200` | 非表示までの遅延（ms） |
+| `showArrow` | `boolean` | `false` | 矢印表示 |
