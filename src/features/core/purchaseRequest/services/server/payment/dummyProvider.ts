@@ -5,6 +5,7 @@ import type {
   CreatePaymentSessionParams,
   PaymentSession,
   PaymentResult,
+  PaymentStatusResult,
 } from "@/features/core/purchaseRequest/types/payment";
 
 /**
@@ -53,6 +54,12 @@ export class DummyPaymentProvider implements PaymentProvider {
       return {
         success: isSuccess,
         sessionId: body.session_id,
+        // 新規フィールド
+        transactionId: isSuccess ? `dummy_txn_${Date.now()}` : undefined,
+        paymentMethod: body.payment_method ?? "credit_card",
+        paidAt: isSuccess ? new Date() : undefined,
+        rawResponse: body,
+        // エラー情報
         errorCode: isSuccess ? undefined : body.error_code,
         errorMessage: isSuccess ? undefined : body.error_message,
       };
@@ -64,6 +71,29 @@ export class DummyPaymentProvider implements PaymentProvider {
         errorMessage: "Webhookペイロードの解析に失敗しました",
       };
     }
+  }
+
+  /**
+   * Webhook署名を検証
+   * ダミープロバイダでは常に true を返す（開発用）
+   */
+  async verifyWebhookSignature(_request: Request, _signature: string): Promise<boolean> {
+    // ダミーでは署名検証をスキップ
+    return true;
+  }
+
+  /**
+   * 決済ステータスを照会
+   * ダミープロバイダではセッションIDから疑似ステータスを返す
+   */
+  async getPaymentStatus(sessionId: string): Promise<PaymentStatusResult> {
+    // ダミーでは常に completed を返す（実際のプロバイダではAPIを呼び出す）
+    return {
+      status: "completed",
+      sessionId,
+      transactionId: `dummy_txn_${sessionId}`,
+      paidAt: new Date(),
+    };
   }
 }
 

@@ -42,6 +42,12 @@ export type InitiatePurchaseResult = {
 
 export type CompletePurchaseParams = {
   sessionId: string;
+  /** プロバイダ側の取引ID */
+  transactionId?: string;
+  /** 支払い完了日時 */
+  paidAt?: Date;
+  /** Webhook署名（デバッグ用） */
+  webhookSignature?: string;
 };
 
 export type CompletePurchaseResult = {
@@ -58,6 +64,8 @@ export type FailPurchaseParams = {
 export type HandleWebhookParams = {
   request: Request;
   providerName?: PaymentProviderName;
+  /** Webhook署名（デバッグ用に記録） */
+  webhookSignature?: string;
 };
 
 export type HandleWebhookResult = {
@@ -177,7 +185,7 @@ export async function getPurchaseStatusForUser(
 export async function completePurchase(
   params: CompletePurchaseParams
 ): Promise<CompletePurchaseResult> {
-  const { sessionId } = params;
+  const { sessionId, transactionId, paidAt, webhookSignature } = params;
 
   // 1. セッションIDで購入リクエストを検索
   const purchaseRequest = await findByPaymentSessionId(sessionId);
@@ -209,6 +217,9 @@ export async function completePurchase(
       .set({
         status: "completed",
         completed_at: new Date(),
+        transaction_id: transactionId,
+        paid_at: paidAt ?? new Date(),
+        webhook_signature: webhookSignature,
         updatedAt: new Date(),
       })
       .where(eq(PurchaseRequestTable.id, purchaseRequest.id))
@@ -301,7 +312,7 @@ export async function failPurchase(params: FailPurchaseParams): Promise<Purchase
 export async function handleWebhook(
   params: HandleWebhookParams
 ): Promise<HandleWebhookResult> {
-  const { request, providerName = getDefaultProviderName() } = params;
+  const { request, providerName = getDefaultProviderName(), webhookSignature } = params;
 
   // 1. プロバイダでWebhookを検証・パース
   const provider = getPaymentProvider(providerName);
@@ -312,6 +323,9 @@ export async function handleWebhook(
     // 決済成功 → 購入完了処理
     const result = await completePurchase({
       sessionId: paymentResult.sessionId,
+      transactionId: paymentResult.transactionId,
+      paidAt: paymentResult.paidAt,
+      webhookSignature,
     });
 
     return {
