@@ -66,6 +66,7 @@ const templates = [
   "useBulkDeleteByIds__Domain__.ts",
   "useBulkDeleteByQuery__Domain__.ts",
   "useBulkUpsert__Domain__.ts",
+  "useBulkUpdate__Domain__.ts",
 ];
 
 if (domainConfig?.useDetailModal) {
