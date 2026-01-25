@@ -54,7 +54,14 @@ export function BulkActionBar<T>({
         isVisible ? `${spacingClass} max-h-20 opacity-100` : "mb-0 max-h-0 opacity-0"
       )}
     >
-      <div className="flex items-center gap-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+      <div
+        className={cn(
+          "flex items-center gap-4 rounded-lg border px-4 py-3 transition-colors",
+          hasSelection
+            ? "border-primary/20 bg-primary/5"
+            : "border-muted-foreground/20 bg-muted/50"
+        )}
+      >
         {/* 左側: 共通部分 */}
         <div className="flex flex-1 items-center gap-2">
           {hasSelection ? (
