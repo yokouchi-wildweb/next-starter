@@ -15,7 +15,10 @@ import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
+import { getAdminPaths } from "@/lib/crud/utils/paths";
 import domainConfig from "@/features/sample/domain.json";
+
+const adminPaths = getAdminPaths(domainConfig.plural);
 
 type Props = {
   sample: Sample;
@@ -38,7 +41,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   const { navigator, isSwitching } = useItemNavigator({
     items,
     currentItem: sample,
-    getPath: (id) => `/admin/samples/${id}/edit`,
+    getPath: adminPaths.edit,
     methods,
     updateTrigger: trigger,
     isMutating,
