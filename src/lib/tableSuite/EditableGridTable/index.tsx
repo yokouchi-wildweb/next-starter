@@ -124,7 +124,7 @@ export default function EditableGridTable<T>({
 
   return (
     <div
-      className={cn("overflow-x-auto overflow-y-auto", className)}
+      className={cn("w-full max-w-full overflow-x-auto overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
       ref={scrollContainerRef}
     >

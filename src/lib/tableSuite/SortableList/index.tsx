@@ -125,7 +125,7 @@ export default function SortableList<T extends SortableItemType>({
   if (isLoading || !mounted) {
     return (
       <div
-        className={cn("flex flex-col gap-2", className)}
+        className={cn("w-full max-w-full flex flex-col gap-2", className)}
         style={{ maxHeight: resolvedMaxHeight }}
       >
         {(items.length > 0 ? items : [...Array(3)]).map((_, i) => (
@@ -142,7 +142,7 @@ export default function SortableList<T extends SortableItemType>({
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded-lg border border-dashed p-8",
+          "w-full max-w-full flex items-center justify-center rounded-lg border border-dashed p-8",
           "text-muted-foreground",
           className
         )}
@@ -154,7 +154,7 @@ export default function SortableList<T extends SortableItemType>({
 
   return (
     <div
-      className={cn("overflow-y-auto", className)}
+      className={cn("w-full max-w-full overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
     >
       <DndContext

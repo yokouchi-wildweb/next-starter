@@ -190,7 +190,8 @@ export function EditableGridCell<T>({
       <div
         data-cell-content
         className={cn(
-          "group absolute inset-0 flex items-center",
+          "group flex items-center",
+          !flags.isReadOnly && "absolute inset-0",
           flexAlignClass,
           !flexAlignClass && flags.isSwitchEditor && "justify-center",
         )}
