@@ -37,18 +37,7 @@ if (!fs.existsSync(configPath)) {
 
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
-const DATETIME_TYPE = `z.preprocess(
-  (value) => {
-    if (value == null) return undefined;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      return trimmed;
-    }
-    return value;
-  },
-  z.coerce.date()
-)`;
+const DATETIME_TYPE = 'nullableDatetime';
 
 function mapZodType(type) {
   switch (type) {
@@ -82,6 +71,7 @@ function mapZodType(type) {
 
 let usesEmptyToNull = false;
 let usesCreateHashPreservingNullish = false;
+let usesNullableDatetime = false;
 
 function isTimestampField(fieldType) {
   return fieldType === 'timestamp' || fieldType === 'timestamp With Time Zone';
@@ -106,6 +96,10 @@ function isPasswordField(fieldType) {
 function fieldLine({ name, label, type, required, fieldType }) {
   if (fieldType === 'array') {
     return `  ${name}: ${type}.default([]),`;
+  }
+
+  if (isTimestampField(fieldType)) {
+    usesNullableDatetime = true;
   }
 
   const resolvedLabel = label || name;
@@ -135,9 +129,6 @@ function fieldLine({ name, label, type, required, fieldType }) {
   }
 
   if (!required) {
-    if (isTimestampField(fieldType)) {
-      segments.push(`.or(z.literal("").transform(() => undefined))`);
-    }
     segments.push('.nullish()');
     if (isStringField(fieldType)) {
       usesEmptyToNull = true;
@@ -218,6 +209,10 @@ if (usesCreateHashPreservingNullish) {
   importStatements.push(
     'import { createHashPreservingNullish } from "@/utils/hash";',
   );
+}
+
+if (usesNullableDatetime) {
+  importStatements.push('import { nullableDatetime } from "@/lib/crud/utils";');
 }
 
 importStatements.push('import { z } from "zod";');

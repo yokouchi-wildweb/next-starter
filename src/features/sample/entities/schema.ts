@@ -1,6 +1,7 @@
 // src/features/sample/entities/schemaRegistry.ts
 
 import { emptyToNull } from "@/utils/string";
+import { nullableDatetime } from "@/lib/crud/utils";
 import { z } from "zod";
 
 export const SampleBaseSchema = z.object({
@@ -14,18 +15,7 @@ export const SampleBaseSchema = z.object({
   radio: z.coerce.boolean().nullish(),
   select: z.enum(["apple", "orange", "berry"]).nullish(),
   multi_select: z.array(z.string()).default([]),
-  sale_start_at: z.preprocess(
-  (value) => {
-    if (value == null) return undefined;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      return trimmed;
-    }
-    return value;
-  },
-  z.coerce.date()
-).or(z.literal("").transform(() => undefined)).nullish(),
+  sale_start_at: nullableDatetime.nullish(),
   date: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   time: z.string().trim().nullish()
