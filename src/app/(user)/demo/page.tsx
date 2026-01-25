@@ -23,7 +23,7 @@ const DEMO_PAGES = [
 
 export default function DemoIndexPage() {
   return (
-    <Main containerType="narrow">
+    <Main containerType="wide">
       <Section>
         <Stack space={6}>
           <PageTitle size="xxl" className="font-semibold">
@@ -36,22 +36,22 @@ export default function DemoIndexPage() {
       </Section>
 
       <Section>
-        <Stack space={3}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {DEMO_PAGES.map((page) => (
             <Link
               key={page.path}
               href={`/demo/${page.path}`}
-              className="block rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-accent"
+              className="group block rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-accent"
             >
-              <Para weight="medium" className="text-foreground">
+              <Para weight="medium" className="text-foreground group-hover:text-accent-foreground">
                 {page.label}
               </Para>
-              <Para size="sm" tone="muted">
+              <Para size="sm" tone="muted" className="group-hover:text-accent-foreground">
                 {page.description}
               </Para>
             </Link>
           ))}
-        </Stack>
+        </div>
       </Section>
     </Main>
   );
