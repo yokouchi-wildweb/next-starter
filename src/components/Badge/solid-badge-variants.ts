@@ -19,6 +19,9 @@ export const solidBadgeVariants = cva(
         // 成功・完了・有効を示すバッジ
         success:
           "bg-success text-success-foreground",
+        // 情報・通知を示す青系バッジ
+        info:
+          "bg-info text-info-foreground",
         // 強調・注目を引くアクセントバッジ
         accent:
           "bg-accent text-accent-foreground",

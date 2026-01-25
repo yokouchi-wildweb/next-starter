@@ -1,6 +1,6 @@
 // src/app/(user)/demo/status-badge/page.tsx
 
-import { Check, X, AlertTriangle, Clock, Star } from "lucide-react";
+import { Check, X, AlertTriangle, Clock, Star, Info } from "lucide-react";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
@@ -35,6 +35,7 @@ export default function BadgeDemoPage() {
             <SoftBadge variant="secondary">secondary</SoftBadge>
             <SoftBadge variant="destructive">destructive</SoftBadge>
             <SoftBadge variant="success">success</SoftBadge>
+            <SoftBadge variant="info">info</SoftBadge>
             <SoftBadge variant="accent">accent</SoftBadge>
             <SoftBadge variant="muted">muted</SoftBadge>
             <SoftBadge variant="outline">outline</SoftBadge>
@@ -56,6 +57,7 @@ export default function BadgeDemoPage() {
             <SolidBadge variant="secondary">secondary</SolidBadge>
             <SolidBadge variant="destructive">destructive</SolidBadge>
             <SolidBadge variant="success">success</SolidBadge>
+            <SolidBadge variant="info">info</SolidBadge>
             <SolidBadge variant="accent">accent</SolidBadge>
             <SolidBadge variant="muted">muted</SolidBadge>
           </div>
@@ -99,6 +101,7 @@ export default function BadgeDemoPage() {
             <div className="flex flex-wrap gap-3">
               <SoftBadge variant="success" icon={Check}>完了</SoftBadge>
               <SoftBadge variant="destructive" icon={X}>エラー</SoftBadge>
+              <SoftBadge variant="info" icon={Info}>お知らせ</SoftBadge>
               <SoftBadge variant="accent" icon={AlertTriangle}>警告</SoftBadge>
               <SoftBadge variant="secondary" icon={Clock}>処理中</SoftBadge>
               <SoftBadge variant="muted" icon={Star}>下書き</SoftBadge>
@@ -106,6 +109,7 @@ export default function BadgeDemoPage() {
             <div className="flex flex-wrap gap-3">
               <SolidBadge variant="success" icon={Check}>完了</SolidBadge>
               <SolidBadge variant="destructive" icon={X}>エラー</SolidBadge>
+              <SolidBadge variant="info" icon={Info}>お知らせ</SolidBadge>
               <SolidBadge variant="accent" icon={AlertTriangle}>警告</SolidBadge>
               <SolidBadge variant="secondary" icon={Clock}>処理中</SolidBadge>
               <SolidBadge variant="muted" icon={Star}>下書き</SolidBadge>

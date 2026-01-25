@@ -19,6 +19,9 @@ export const softBadgeVariants = cva(
         // 成功・完了・有効を示すバッジ
         success:
           "bg-success/10 border-success text-success",
+        // 情報・通知を示す青系バッジ
+        info:
+          "bg-info/10 border-info text-info",
         // 強調・注目を引くアクセントバッジ
         accent:
           "bg-accent/10 border-accent text-accent",
