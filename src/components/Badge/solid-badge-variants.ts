@@ -22,6 +22,9 @@ export const solidBadgeVariants = cva(
         // 情報・通知を示す青系バッジ
         info:
           "bg-info text-info-foreground",
+        // 注意・警告を示すアンバー系バッジ
+        warning:
+          "bg-warning text-warning-foreground",
         // 強調・注目を引くアクセントバッジ
         accent:
           "bg-accent text-accent-foreground",

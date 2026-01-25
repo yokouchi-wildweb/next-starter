@@ -22,6 +22,9 @@ export const softBadgeVariants = cva(
         // 情報・通知を示す青系バッジ
         info:
           "bg-info/10 border-info text-info",
+        // 注意・警告を示すアンバー系バッジ
+        warning:
+          "bg-warning/10 border-warning text-warning",
         // 強調・注目を引くアクセントバッジ
         accent:
           "bg-accent/10 border-accent text-accent",

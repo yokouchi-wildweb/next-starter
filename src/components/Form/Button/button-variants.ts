@@ -12,6 +12,15 @@ export const buttonVariants = cva("", {
       // 削除など取り消せない重要な操作向けの強調ボタン。
       destructive:
         "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+      // 成功・完了・確定などポジティブなアクション向けボタン。
+      success:
+        "bg-success text-success-foreground shadow-xs hover:bg-success/90 focus-visible:ring-success/20 dark:focus-visible:ring-success/40",
+      // 情報提供・詳細表示など補足的アクション向けボタン。
+      info:
+        "bg-info text-info-foreground shadow-xs hover:bg-info/90 focus-visible:ring-info/20 dark:focus-visible:ring-info/40",
+      // 注意喚起・確認が必要なアクション向けボタン。
+      warning:
+        "bg-warning text-warning-foreground shadow-xs hover:bg-warning/90 focus-visible:ring-warning/20 dark:focus-visible:ring-warning/40",
       // 低い強調度で背景になじむ枠線付きのボタン。
       outline:
         "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
