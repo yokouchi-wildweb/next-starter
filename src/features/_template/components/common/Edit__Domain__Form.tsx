@@ -8,12 +8,17 @@ import { __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
 import type { __Domain__UpdateFields } from "@/features/__domain__/entities/form";
 import type { __Domain__ } from "@/features/__domain__/entities";
 import { useUpdate__Domain__ } from "@/features/__domain__/hooks/useUpdate__Domain__";
+import { useSearch__Domain__ } from "@/features/__domain__/hooks/useSearch__Domain__";
 import { __Domain__Form } from "./__Domain__Form";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
+import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
+import { getAdminPaths } from "@/lib/crud/utils/paths";
 import domainConfig from "@/features/__domain__/domain.json";
+
+const adminPaths = getAdminPaths(domainConfig.plural);
 
 type Props = {
   __domain__: __Domain__;
@@ -31,7 +36,18 @@ export default function Edit__Domain__Form({ __domain__, redirectPath = "/" }: P
   const router = useRouter();
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdate__Domain__();
-  useLoadingToast(isMutating, "更新中です…");
+  const { data: items } = useSearch__Domain__({ limit: 10 });
+
+  const { navigator, isSwitching } = useItemNavigator({
+    items,
+    currentItem: __domain__,
+    getPath: adminPaths.edit,
+    methods,
+    updateTrigger: trigger,
+    isMutating,
+  });
+
+  useLoadingToast(isMutating, isSwitching ? "アイテムを切り替え中" : "更新中です…");
 
   const submit = async (data: __Domain__UpdateFields) => {
     try {
@@ -44,12 +60,15 @@ export default function Edit__Domain__Form({ __domain__, redirectPath = "/" }: P
   };
 
   return (
-    <__Domain__Form
-      methods={methods}
-      onSubmitAction={submit}
-      isMutating={isMutating}
-      submitLabel="更新"
-      onCancel={() => router.push(redirectPath)}
-    />
+    <>
+      {navigator}
+      <__Domain__Form
+        methods={methods}
+        onSubmitAction={submit}
+        isMutating={isMutating}
+        submitLabel="更新"
+        onCancel={() => router.push(redirectPath)}
+      />
+    </>
   );
 }
