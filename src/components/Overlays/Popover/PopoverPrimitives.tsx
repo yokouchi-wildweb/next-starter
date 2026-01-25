@@ -191,9 +191,9 @@ function PopoverTitle({
 function PopoverDescription({
   className,
   ...props
-}: React.HTMLAttributes<HTMLParagraphElement>) {
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <p
+    <div
       data-slot="popover-description"
       className={cn("text-sm text-muted-foreground", className)}
       {...props}
