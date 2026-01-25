@@ -30,10 +30,21 @@ type BulkActionBarProps<T> = {
   bulkActions: (selection: BulkActionSelection<T>) => React.ReactNode;
   /** テーブルとの余白 @default "md" */
   spacing?: BulkActionBarSpacing;
+  /** 常に表示するかどうか @default false */
+  alwaysVisible?: boolean;
+  /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
+  emptyMessage?: string;
 };
 
-export function BulkActionBar<T>({ selection, bulkActions, spacing = "md" }: BulkActionBarProps<T>) {
-  const isVisible = selection.count > 0;
+export function BulkActionBar<T>({
+  selection,
+  bulkActions,
+  spacing = "md",
+  alwaysVisible = false,
+  emptyMessage = "行を選択して一括処理を実行",
+}: BulkActionBarProps<T>) {
+  const hasSelection = selection.count > 0;
+  const isVisible = alwaysVisible || hasSelection;
   const spacingClass = SPACING_CLASSES[spacing];
 
   return (
@@ -46,17 +57,23 @@ export function BulkActionBar<T>({ selection, bulkActions, spacing = "md" }: Bul
       <div className="flex items-center gap-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
         {/* 左側: 共通部分 */}
         <div className="flex flex-1 items-center gap-2">
-          <span className="font-medium text-primary">{selection.count}件選択中</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={selection.clear}
-            className="text-muted-foreground"
-          >
-            <X className="h-4 w-4" />
-            選択解除
-          </Button>
+          {hasSelection ? (
+            <>
+              <span className="font-medium text-primary">{selection.count}件選択中</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={selection.clear}
+                className="text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+                選択解除
+              </Button>
+            </>
+          ) : (
+            <span className="text-muted-foreground">{emptyMessage}</span>
+          )}
         </div>
 
         {/* 右側: カスタムアクション */}

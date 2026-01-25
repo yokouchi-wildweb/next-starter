@@ -46,6 +46,10 @@ export type RecordSelectionTableProps<T> = DataTableProps<T> & {
   bulkActions?: (selection: BulkActionSelection<T>) => React.ReactNode;
   /** 一括操作バーとテーブルの余白 @default "md" */
   bulkActionsSpacing?: BulkActionBarSpacing;
+  /** 一括操作バーを常に表示するかどうか @default false */
+  bulkActionsAlwaysVisible?: boolean;
+  /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
+  bulkActionsEmptyMessage?: string;
 };
 
 export default function RecordSelectionTable<T>({
@@ -66,6 +70,8 @@ export default function RecordSelectionTable<T>({
   scrollContainerRef,
   bulkActions,
   bulkActionsSpacing,
+  bulkActionsAlwaysVisible,
+  bulkActionsEmptyMessage,
   rowHeight = "md",
   cellPaddingX = "sm",
   cellPaddingY = "none",
@@ -129,7 +135,13 @@ export default function RecordSelectionTable<T>({
   return (
     <>
       {bulkActions && (
-        <BulkActionBar selection={bulkActionSelection} bulkActions={bulkActions} spacing={bulkActionsSpacing} />
+        <BulkActionBar
+          selection={bulkActionSelection}
+          bulkActions={bulkActions}
+          spacing={bulkActionsSpacing}
+          alwaysVisible={bulkActionsAlwaysVisible}
+          emptyMessage={bulkActionsEmptyMessage}
+        />
       )}
       <div
         className={cn("w-full max-w-full overflow-x-auto overflow-y-auto", className)}
