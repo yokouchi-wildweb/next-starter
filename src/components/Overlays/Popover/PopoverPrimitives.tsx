@@ -110,6 +110,8 @@ export type PopoverContentProps = React.ComponentProps<
   showClose?: boolean;
   /** ポータルを使用するか（デフォルト: true） */
   usePortal?: boolean;
+  /** 上位レイヤー（ダイアログ/モーダル等）との操作で閉じないようにするか（デフォルト: true） */
+  preventLayerDismiss?: boolean;
 };
 
 function PopoverContent({
@@ -121,14 +123,43 @@ function PopoverContent({
   showArrow = false,
   showClose = false,
   usePortal = true,
+  preventLayerDismiss = true,
+  onInteractOutside,
   children,
   ...props
 }: PopoverContentProps) {
+  // 上位レイヤー（ダイアログ/モーダル等）との操作を検出して閉じないようにする
+  type InteractOutsideEvent = Parameters<
+    NonNullable<React.ComponentProps<typeof PopoverPrimitive.Content>["onInteractOutside"]>
+  >[0];
+
+  const handleInteractOutside = React.useCallback(
+    (event: InteractOutsideEvent) => {
+      if (preventLayerDismiss) {
+        const target = event.target as HTMLElement | null;
+        // ダイアログ/モーダル関連の要素をクリックした場合は閉じない
+        if (
+          target?.closest('[data-slot="dialog-overlay"]') ||
+          target?.closest('[data-slot="dialog-content"]') ||
+          target?.closest('[data-slot="dialog-close"]') ||
+          target?.closest('[role="dialog"]') ||
+          target?.closest('[role="alertdialog"]')
+        ) {
+          event.preventDefault();
+          return;
+        }
+      }
+      onInteractOutside?.(event);
+    },
+    [preventLayerDismiss, onInteractOutside]
+  );
+
   const content = (
     <PopoverPrimitive.Content
       data-slot="popover-content"
       align={align}
       sideOffset={sideOffset}
+      onInteractOutside={handleInteractOutside}
       className={cn(
         "bg-popover text-popover-foreground",
         "origin-(--radix-popover-content-transform-origin)",
