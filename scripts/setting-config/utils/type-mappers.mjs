@@ -42,7 +42,7 @@ export function mapZodType(field) {
       break;
     case "timestamp":
     case "timestamp With Time Zone":
-      zodType = "z.preprocess((val) => (val === '' ? null : val), z.coerce.date())";
+      zodType = "nullableDatetime";
       break;
     default:
       zodType = "z.string()";

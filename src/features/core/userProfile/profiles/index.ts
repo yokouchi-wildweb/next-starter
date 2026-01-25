@@ -9,6 +9,8 @@ import type { ProfileFieldConfig } from "../types";
 // JSON プロフィール設定の読み込み
 import contributorProfile from "./contributor.profile.json";
 
+// JSON プロフィール設定の読み込み
+
 /**
  * プロフィール設定の型
  */

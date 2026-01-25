@@ -47,12 +47,23 @@ export default function generateSchemaExtended() {
     ? fields.map(generateFieldLine).join(",\n") + ","
     : "  // 拡張フィールドなし";
 
+  // timestamp フィールドがあるか判定
+  const hasTimestamp = fields.some(
+    (f) => f.fieldType === "timestamp" || f.fieldType === "timestamp With Time Zone"
+  );
+
+  const importStatements = [];
+  if (hasTimestamp) {
+    importStatements.push(`import { nullableDatetime } from "@/lib/crud/utils";`);
+  }
+  importStatements.push(`import { z } from "zod";`);
+
   const content = `// src/features/core/setting/entities/schema.extended.ts
 // [GENERATED] このファイルは自動生成されます。直接編集しないでください。
 // 生成元: setting-fields.json
 // 生成コマンド: pnpm sc:generate
 
-import { z } from "zod";
+${importStatements.join("\n")}
 
 /**
  * 拡張設定項目のベーススキーマ

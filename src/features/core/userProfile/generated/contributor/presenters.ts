@@ -11,7 +11,7 @@ import {
   formatNumber,
   formatString,
   formatStringArray,
-} from "@/lib/crud";
+} from "@/lib/crud/presenters";
 import { formatDateJa } from "@/utils/date";
 
 /**

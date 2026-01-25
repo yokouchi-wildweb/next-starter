@@ -6,4 +6,5 @@
 
 // === AUTO-GENERATED EXPORTS START ===
 export * from "@/features/core/userProfile/generated/contributor/drizzle";
+export * from "@/features/core/userProfile/generated/contributor";
 // === AUTO-GENERATED EXPORTS END ===
