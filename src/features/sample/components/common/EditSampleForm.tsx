@@ -8,11 +8,13 @@ import { SampleUpdateSchema } from "@/features/sample/entities/schema";
 import type { SampleUpdateFields } from "@/features/sample/entities/form";
 import type { Sample } from "@/features/sample/entities";
 import { useUpdateSample } from "@/features/sample/hooks/useUpdateSample";
+import { useSearchSample } from "@/features/sample/hooks/useSearchSample";
 import { SampleForm } from "./SampleForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
+import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import domainConfig from "@/features/sample/domain.json";
 
 type Props = {
@@ -31,7 +33,18 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   const router = useRouter();
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateSample();
-  useLoadingToast(isMutating, "更新中です…");
+  const { data: items } = useSearchSample({ limit: 10 });
+
+  const { navigator, isSwitching } = useItemNavigator({
+    items,
+    currentItem: sample,
+    getPath: (id) => `/admin/samples/${id}/edit`,
+    methods,
+    updateTrigger: trigger,
+    isMutating,
+  });
+
+  useLoadingToast(isMutating, isSwitching ? "アイテムを切り替え中" : "更新中です…");
 
   const submit = async (data: SampleUpdateFields) => {
     try {
@@ -44,12 +57,15 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   };
 
   return (
-    <SampleForm
-      methods={methods}
-      onSubmitAction={submit}
-      isMutating={isMutating}
-      submitLabel="更新"
-      onCancel={() => router.push(redirectPath)}
-    />
+    <>
+      {navigator}
+      <SampleForm
+        methods={methods}
+        onSubmitAction={submit}
+        isMutating={isMutating}
+        submitLabel="更新"
+        onCancel={() => router.push(redirectPath)}
+      />
+    </>
   );
 }
