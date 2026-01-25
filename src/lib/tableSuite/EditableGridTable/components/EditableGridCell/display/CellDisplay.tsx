@@ -77,8 +77,10 @@ export function CellDisplay<T>({
 
   return (
     <div
+      data-cell-display
+      data-readonly={isReadOnly || undefined}
       className={cn(
-        "w-full px-2.5 text-sm flex items-center text-foreground truncate",
+        "w-full h-full text-sm flex items-center text-foreground truncate",
         isReadOnly && "bg-muted/50 text-muted-foreground",
         flexAlignClass,
         paddingClass,

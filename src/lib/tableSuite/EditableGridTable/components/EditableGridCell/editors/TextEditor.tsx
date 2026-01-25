@@ -23,6 +23,8 @@ export function TextEditor<T>({
 }: TextEditorProps<T>) {
   return (
     <Input
+      data-cell-editor
+      data-editor-type={type === "number" ? "number" : "text"}
       type={type}
       inputMode={inputMode}
       className={className}

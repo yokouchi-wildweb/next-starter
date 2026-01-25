@@ -12,33 +12,52 @@ import {
   TableCell,
 } from "./components";
 import { cn } from "@/lib/cn";
-import type { TableColumnAlignment, TableStylingProps } from "../types";
-import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
+import type {
+  TableColumnAlignment,
+  TableStylingProps,
+  TableCellStyleProps,
+  PaddingSize,
+} from "../types";
+import {
+  resolveColumnTextAlignClass,
+  resolveRowClassName,
+  ROW_HEIGHT_CLASS,
+  resolvePaddingClass,
+} from "../types";
 
 export type DataTableColumn<T> = {
   header: string;
   render: (item: T) => React.ReactNode;
   align?: TableColumnAlignment;
+  /**
+   * このカラムの水平パディングを上書き
+   */
+  paddingX?: PaddingSize;
+  /**
+   * このカラムの垂直パディングを上書き
+   */
+  paddingY?: PaddingSize;
 };
 
 export type RowCursor = "pointer" | "default" | "zoom-in" | "grab";
 
-export type DataTableProps<T> = TableStylingProps<T> & {
-  /**
-   * Data rows to render. Optional to allow callers to omit until data is loaded
-   * without causing runtime errors.
-   */
-  items?: T[];
-  columns: DataTableColumn<T>[];
-  getKey?: (item: T, index: number) => React.Key;
-  onRowClick?: (item: T) => void;
-  /**
-   * onRowClick が設定されている場合のホバー時カーソル
-   * @default "pointer"
-   */
-  rowCursor?: RowCursor;
-  emptyValueFallback?: string;
-};
+export type DataTableProps<T> = TableStylingProps<T> &
+  TableCellStyleProps & {
+    /**
+     * Data rows to render. Optional to allow callers to omit until data is loaded
+     * without causing runtime errors.
+     */
+    items?: T[];
+    columns: DataTableColumn<T>[];
+    getKey?: (item: T, index: number) => React.Key;
+    onRowClick?: (item: T) => void;
+    /**
+     * onRowClick が設定されている場合のホバー時カーソル
+     * @default "pointer"
+     */
+    rowCursor?: RowCursor;
+    emptyValueFallback?: string;
+  };
 
 const ROW_CURSOR_CLASS: Record<RowCursor, string> = {
   pointer: "cursor-pointer",
@@ -59,6 +78,9 @@ export default function DataTable<T>({
   emptyValueFallback,
   scrollContainerRef,
   bottomSentinelRef,
+  rowHeight = "md",
+  cellPaddingX = "sm",
+  cellPaddingY = "none",
 }: DataTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -71,6 +93,7 @@ export default function DataTable<T>({
   };
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
+  const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
 
   return (
     <div
@@ -94,13 +117,20 @@ export default function DataTable<T>({
               key={getKey(item, index)}
               className={cn(
                 "group",
+                rowHeightClass,
                 onRowClick && ROW_CURSOR_CLASS[rowCursor],
                 resolveRowClassName(rowClassName, item, { index }),
               )}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
             >
               {columns.map((col, idx) => (
-                <TableCell key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                <TableCell
+                  key={idx}
+                  className={cn(
+                    resolveColumnTextAlignClass(col.align),
+                    resolvePaddingClass(col.paddingX ?? cellPaddingX, col.paddingY ?? cellPaddingY),
+                  )}
+                >
                   {renderCellContent(col.render(item))}
                 </TableCell>
               ))}

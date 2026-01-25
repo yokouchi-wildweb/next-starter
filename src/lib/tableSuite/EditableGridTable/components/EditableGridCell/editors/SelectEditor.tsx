@@ -18,6 +18,7 @@ export function SelectEditor<T>({
   column,
   placeholder,
   error,
+  paddingClass,
   textAlignClass,
   popupOpen,
   cellKey,
@@ -48,9 +49,12 @@ export function SelectEditor<T>({
       }}
     >
       <SelectTrigger
+        data-cell-editor
+        data-editor-type="select"
         className={cn(
-          "h-full w-full rounded-none border-0 bg-transparent px-2 py-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
+          "h-full w-full rounded-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
           error && "border border-destructive",
+          paddingClass,
           textAlignClass,
         )}
       >

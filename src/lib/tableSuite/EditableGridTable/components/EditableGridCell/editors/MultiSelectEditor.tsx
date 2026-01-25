@@ -4,6 +4,7 @@ import React from "react";
 import { MultiSelectInput } from "@/components/Form/Input/Manual/MultiSelectInput";
 import type { MultiSelectInputProps } from "@/components/Form/Input/Manual/MultiSelectInput";
 import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/utils";
+import { cn } from "@/lib/cn";
 import { POPUP_ATTR } from "../constants";
 import type { SelectEditorProps } from "../types";
 
@@ -12,6 +13,7 @@ export function MultiSelectEditor<T>({
   rowKey,
   column,
   placeholder,
+  paddingClass,
   popupOpen,
   cellKey,
   onPopupOpenChange,
@@ -31,22 +33,26 @@ export function MultiSelectEditor<T>({
   const fieldName = `${String(rowKey)}-${column.field}`;
 
   return (
-    <div className="w-full px-2 py-1">
-      <MultiSelectInput
-        value={normalizedMultiValue}
-        name={fieldName}
-        onChange={handleMultiSelectChange}
-        options={column.options ?? []}
-        placeholder={placeholder}
-        open={popupOpen}
-        onOpenChange={onPopupOpenChange}
-        popoverContentProps={
-          {
-            [POPUP_ATTR]: cellKey,
-          } as MultiSelectInputProps["popoverContentProps"]
-        }
-        className="w-full"
-      />
-    </div>
+    <MultiSelectInput
+      data-cell-editor
+      data-editor-type="multi-select"
+      value={normalizedMultiValue}
+      name={fieldName}
+      onChange={handleMultiSelectChange}
+      options={column.options ?? []}
+      placeholder={placeholder}
+      open={popupOpen}
+      onOpenChange={onPopupOpenChange}
+      popoverContentProps={
+        {
+          [POPUP_ATTR]: cellKey,
+        } as MultiSelectInputProps["popoverContentProps"]
+      }
+      className="h-full w-full"
+      triggerClassName={cn(
+        "h-full w-full rounded-none border-0 bg-transparent text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
+        paddingClass,
+      )}
+    />
   );
 }

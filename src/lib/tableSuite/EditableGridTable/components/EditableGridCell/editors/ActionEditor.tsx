@@ -15,8 +15,10 @@ export function ActionEditor<T>({
   if (!column.renderAction) {
     return (
       <div
+        data-cell-editor
+        data-editor-type="action"
         className={cn(
-          "w-full px-2.5 text-sm flex items-center text-foreground truncate text-muted-foreground",
+          "w-full h-full text-sm flex items-center text-foreground truncate text-muted-foreground",
           flexAlignClass,
           paddingClass,
         )}
@@ -27,7 +29,7 @@ export function ActionEditor<T>({
   }
 
   return (
-    <TableCellAction className={cn("w-full px-2", flexAlignClass, paddingClass)}>
+    <TableCellAction data-cell-editor data-editor-type="action" className={cn("w-full h-full", flexAlignClass, paddingClass)}>
       {column.renderAction(row)}
     </TableCellAction>
   );

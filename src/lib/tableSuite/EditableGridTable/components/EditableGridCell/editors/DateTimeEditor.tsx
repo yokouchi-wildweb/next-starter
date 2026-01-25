@@ -24,6 +24,8 @@ export function DateTimeEditor<T>({
 
   return (
     <Input
+      data-cell-editor
+      data-editor-type={type}
       type={inputType}
       className={className}
       value={value}

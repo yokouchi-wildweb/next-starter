@@ -6,7 +6,12 @@ import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 import { TableCell } from "@/lib/tableSuite/DataTable/components";
-import { resolveColumnFlexAlignClass, resolveColumnTextAlignClass } from "../../../types";
+import {
+  resolveColumnFlexAlignClass,
+  resolveColumnTextAlignClass,
+  resolvePaddingClass,
+  type PaddingSize,
+} from "../../../types";
 import type { EditableGridColumn } from "../../types";
 import { formatCellValue, readCellValue } from "../../utils/value";
 import { CellErrorIndicator } from "../CellErrorIndicator";
@@ -19,14 +24,15 @@ import { DateTimeEditor } from "./editors/DateTimeEditor";
 import { SwitchEditor } from "./editors/SwitchEditor";
 import { ActionEditor } from "./editors/ActionEditor";
 import { CellDisplay } from "./display/CellDisplay";
-import { ROW_HEIGHT_TO_PADDING, INPUT_BASE_CLASS } from "./constants";
+import { INPUT_BASE_CLASS } from "./constants";
 
 type EditableGridCellProps<T> = {
   row: T;
   rowKey: React.Key;
   column: EditableGridColumn<T>;
   fallbackPlaceholder: string;
-  rowHeight: "xs" | "sm" | "md" | "lg" | "xl";
+  cellPaddingX: PaddingSize;
+  cellPaddingY: PaddingSize;
   onValidChange?: (value: unknown) => void;
 };
 
@@ -35,7 +41,8 @@ export function EditableGridCell<T>({
   rowKey,
   column,
   fallbackPlaceholder,
-  rowHeight,
+  cellPaddingX,
+  cellPaddingY,
   onValidChange,
 }: EditableGridCellProps<T>) {
   // カスタムフックでステート管理
@@ -64,7 +71,7 @@ export function EditableGridCell<T>({
   // スタイリング
   const textAlignClass = resolveColumnTextAlignClass(column.align) ?? "";
   const flexAlignClass = resolveColumnFlexAlignClass(column.align);
-  const paddingClass = ROW_HEIGHT_TO_PADDING[rowHeight] ?? ROW_HEIGHT_TO_PADDING.md;
+  const paddingClass = resolvePaddingClass(cellPaddingX, cellPaddingY);
   const shouldShowSelectIndicator =
     column.editorType === "select" && !state.isEditing && !flags.isReadOnly;
 
@@ -150,6 +157,12 @@ export function EditableGridCell<T>({
   return (
     <TableCell
       key={cellKey}
+      data-editable-cell
+      data-field={column.field}
+      data-editor-type={column.editorType}
+      data-readonly={flags.isReadOnly || undefined}
+      data-editing={state.isEditing || undefined}
+      data-active={state.isActive || undefined}
       className={cn(
         "relative p-0 text-sm cursor-default border border-border/70 rounded",
         hasError && "bg-destructive/10 ring-1 ring-inset ring-destructive/50",
@@ -165,6 +178,7 @@ export function EditableGridCell<T>({
     >
       {/* アクティブ/編集中の枠線 */}
       <div
+        data-cell-border
         className={cn(
           "pointer-events-none absolute inset-0 z-10 rounded border-2 border-transparent",
           !flags.isReadOnly && state.isActive && !state.isEditing && "border-primary/70",
@@ -174,8 +188,9 @@ export function EditableGridCell<T>({
 
       {/* コンテンツ */}
       <div
+        data-cell-content
         className={cn(
-          "group relative flex h-full items-center",
+          "group absolute inset-0 flex items-center",
           flexAlignClass,
           !flexAlignClass && flags.isSwitchEditor && "justify-center",
         )}
@@ -209,7 +224,7 @@ export function EditableGridCell<T>({
 
         {/* セレクトインジケーター */}
         {shouldShowSelectIndicator ? (
-          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-primary">
+          <div data-select-indicator className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-primary">
             <ChevronDownIcon className="size-4" aria-hidden />
           </div>
         ) : null}

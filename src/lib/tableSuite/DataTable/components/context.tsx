@@ -57,8 +57,8 @@ export const cellVariants = cva(
   {
     variants: {
       variant: {
-        default: "p-2",
-        list: "px-2 py-2 border-b",
+        default: "",
+        list: "border-b",
       },
     },
     defaultVariants: { variant: "default" },

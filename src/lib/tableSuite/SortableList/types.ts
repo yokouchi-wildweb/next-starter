@@ -1,6 +1,11 @@
 // src/lib/tableSuite/SortableList/types.ts
 
-import type { TableColumnAlignment, TableStylingProps } from "../types";
+import type {
+  TableColumnAlignment,
+  TableStylingProps,
+  RowHeight,
+  PaddingSize,
+} from "../types";
 
 /**
  * ソート可能なアイテムの基本インターフェース
@@ -32,6 +37,14 @@ export type SortableListColumn<T> = {
    * 例: "w-20", "80px", "auto"
    */
   width?: string;
+  /**
+   * このカラムの水平パディングを上書き
+   */
+  paddingX?: PaddingSize;
+  /**
+   * このカラムの垂直パディングを上書き
+   */
+  paddingY?: PaddingSize;
 };
 
 /**
@@ -104,6 +117,18 @@ export type SortableListProps<T extends SortableItem> = Omit<
    * ドラッグ無効化
    */
   disabled?: boolean;
+  /**
+   * アイテムの高さ。デフォルト: "md"
+   */
+  itemHeight?: RowHeight;
+  /**
+   * アイテムの水平パディング。デフォルト: "sm" (px-2)
+   */
+  itemPaddingX?: PaddingSize;
+  /**
+   * アイテムの垂直パディング。デフォルト: "none"
+   */
+  itemPaddingY?: PaddingSize;
 };
 
 /**
@@ -116,4 +141,7 @@ export type SortableItemProps<T extends SortableItem> = {
   draggingClassName?: string;
   rowClassName?: string;
   disabled?: boolean;
+  itemHeight: RowHeight;
+  itemPaddingX: PaddingSize;
+  itemPaddingY: PaddingSize;
 };

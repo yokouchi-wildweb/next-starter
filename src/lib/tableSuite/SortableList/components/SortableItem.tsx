@@ -7,7 +7,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/cn";
 import { DragHandle } from "./DragHandle";
 import type { SortableItem as SortableItemType, SortableItemProps } from "../types";
-import { resolveColumnFlexAlignClass } from "../../types";
+import {
+  resolveColumnFlexAlignClass,
+  ROW_HEIGHT_CLASS,
+  resolvePaddingClass,
+} from "../../types";
 
 /**
  * ソート可能な個別アイテムコンポーネント
@@ -20,6 +24,9 @@ export function SortableItem<T extends SortableItemType>({
   draggingClassName,
   rowClassName,
   disabled,
+  itemHeight,
+  itemPaddingX,
+  itemPaddingY,
 }: SortableItemProps<T>) {
   const {
     attributes,
@@ -38,12 +45,17 @@ export function SortableItem<T extends SortableItemType>({
     transition,
   };
 
+  const heightClass = ROW_HEIGHT_CLASS[itemHeight];
+  const paddingClass = resolvePaddingClass(itemPaddingX, itemPaddingY);
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex items-center gap-2 rounded-lg border bg-background p-3",
+        "group flex items-center gap-2 rounded-lg border bg-background",
+        heightClass,
+        paddingClass,
         "transition-shadow hover:shadow-sm",
         isDragging && "z-50 shadow-lg ring-2 ring-primary/20",
         isDragging && draggingClassName,
@@ -64,6 +76,7 @@ export function SortableItem<T extends SortableItemType>({
             className={cn(
               "flex items-center",
               resolveColumnFlexAlignClass(col.align),
+              resolvePaddingClass(col.paddingX ?? itemPaddingX, col.paddingY ?? itemPaddingY),
               col.width
             )}
             style={

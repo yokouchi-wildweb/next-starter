@@ -15,7 +15,7 @@ import {
   TableHead,
   TableRow,
 } from "../DataTable/components";
-import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
+import { resolveColumnTextAlignClass, resolveRowClassName, ROW_HEIGHT_CLASS } from "../types";
 import type { EditableGridColumn, EditableGridTableProps } from "./types";
 import { EditableGridCell } from "./components/EditableGridCell";
 import { normalizeOrderRules, compareRows } from "./utils/sort";
@@ -39,6 +39,8 @@ export default function EditableGridTable<T>({
   autoSort = false,
   order,
   rowHeight = "md",
+  cellPaddingX = "sm",
+  cellPaddingY = "none",
   headerIconMode = "readonly",
   scrollContainerRef,
   bottomSentinelRef,
@@ -118,6 +120,7 @@ export default function EditableGridTable<T>({
   );
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
+  const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
 
   return (
     <div
@@ -148,6 +151,7 @@ export default function EditableGridTable<T>({
               key={rowKey}
               className={cn(
                 "group",
+                rowHeightClass,
                 resolveRowClassName(rowClassName, row, { index: displayIndex }),
               )}
             >
@@ -158,7 +162,8 @@ export default function EditableGridTable<T>({
                   row={row}
                   column={column}
                   fallbackPlaceholder={column.placeholder ?? emptyValueFallback}
-                  rowHeight={rowHeight}
+                  cellPaddingX={column.paddingX ?? cellPaddingX}
+                  cellPaddingY={column.paddingY ?? cellPaddingY}
                   onValidChange={(value) =>
                     onCellChange?.({
                       rowKey,

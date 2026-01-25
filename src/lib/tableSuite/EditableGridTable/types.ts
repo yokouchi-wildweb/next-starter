@@ -1,7 +1,12 @@
 import type React from "react";
 
 import type { Options } from "@/components/Form/types";
-import type { TableColumnAlignment, TableStylingProps } from "../types";
+import type {
+  TableColumnAlignment,
+  TableStylingProps,
+  TableCellStyleProps,
+  PaddingSize,
+} from "../types";
 
 export type EditableGridEditorType =
   | "text"
@@ -33,6 +38,14 @@ export type EditableGridColumn<T> = {
   renderAction?: (row: T) => React.ReactNode;
   onToggleRequest?: (event: EditableGridSwitchToggleEvent<T>) => boolean | Promise<boolean>;
   align?: TableColumnAlignment;
+  /**
+   * このカラムの水平パディングを上書き
+   */
+  paddingX?: PaddingSize;
+  /**
+   * このカラムの垂直パディングを上書き
+   */
+  paddingY?: PaddingSize;
 };
 
 export type EditableGridHeaderIconMode = "readonly" | "editable" | "both" | "none";
@@ -57,34 +70,31 @@ export type EditableGridOrderRule<T> = {
   direction?: "asc" | "desc";
 };
 
-export type EditableGridTableProps<T> = TableStylingProps<T> & {
-  /**
-   * DataTable/RecordSelectionTable と同じ API を採用。未指定時は空配列扱い。
-   */
-  items?: T[];
-  columns: EditableGridColumn<T>[];
-  getKey?: (row: T, index: number) => React.Key;
-  onCellChange?: (event: EditableGridCellChangeEvent<T>) => void;
-  emptyValueFallback?: string;
-  tableLayout?: "auto" | "fixed";
-  /**
-   * true の場合、order で指定された条件に基づいて rows を並び替えて表示する。
-   */
-  autoSort?: boolean;
-  /**
-   * autoSort 時に適用する並び替え条件。配列の先頭ほど優先順位が高い。
-   */
-  order?: EditableGridOrderRule<T>[];
-  /**
-   * 行の高さ（セル上下の余白）
-   */
-  rowHeight?: "xs" | "sm" | "md" | "lg" | "xl";
-  /**
-   * ヘッダーへ表示するアイコンのモード。
-   * - readonly: Readonly列のみ表示（デフォルト）
-   * - editable: 編集可能列のみ表示
-   * - both: 両方の列に表示
-   * - none: アイコンを表示しない
-   */
-  headerIconMode?: EditableGridHeaderIconMode;
-};
+export type EditableGridTableProps<T> = TableStylingProps<T> &
+  TableCellStyleProps & {
+    /**
+     * DataTable/RecordSelectionTable と同じ API を採用。未指定時は空配列扱い。
+     */
+    items?: T[];
+    columns: EditableGridColumn<T>[];
+    getKey?: (row: T, index: number) => React.Key;
+    onCellChange?: (event: EditableGridCellChangeEvent<T>) => void;
+    emptyValueFallback?: string;
+    tableLayout?: "auto" | "fixed";
+    /**
+     * true の場合、order で指定された条件に基づいて rows を並び替えて表示する。
+     */
+    autoSort?: boolean;
+    /**
+     * autoSort 時に適用する並び替え条件。配列の先頭ほど優先順位が高い。
+     */
+    order?: EditableGridOrderRule<T>[];
+    /**
+     * ヘッダーへ表示するアイコンのモード。
+     * - readonly: Readonly列のみ表示（デフォルト）
+     * - editable: 編集可能列のみ表示
+     * - both: 両方の列に表示
+     * - none: アイコンを表示しない
+     */
+    headerIconMode?: EditableGridHeaderIconMode;
+  };

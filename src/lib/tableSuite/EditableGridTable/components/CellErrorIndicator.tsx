@@ -8,7 +8,7 @@ type CellErrorIndicatorProps = {
 
 export function CellErrorIndicator({ message }: CellErrorIndicatorProps) {
   return (
-    <div className="pointer-events-none absolute inset-0" aria-live="assertive">
+    <div data-cell-error className="pointer-events-none absolute inset-0" aria-live="assertive">
       <AlertCircle
         className="absolute right-1 top-1 size-4 text-destructive"
         aria-label={`入力エラー: ${message}`}

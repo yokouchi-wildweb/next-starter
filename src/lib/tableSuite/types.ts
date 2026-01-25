@@ -1,5 +1,41 @@
 // src/lib/tableSuite/types.ts
 
+// バリアント定義を再エクスポート
+export {
+  type RowHeight,
+  ROW_HEIGHT_CLASS,
+  type PaddingSize,
+  PADDING_X_CLASS,
+  PADDING_Y_CLASS,
+  resolvePaddingClass,
+  type TableColumnAlignment,
+  resolveColumnTextAlignClass,
+  resolveColumnFlexAlignClass,
+} from "./table-variants";
+
+import type { RowHeight, PaddingSize } from "./table-variants";
+
+// ============================================================
+// 共通Props
+// ============================================================
+export type TableCellStyleProps = {
+  /**
+   * 行の高さ。デフォルト: "md"
+   */
+  rowHeight?: RowHeight;
+  /**
+   * セルの水平パディング。デフォルト: "sm" (px-2)
+   */
+  cellPaddingX?: PaddingSize;
+  /**
+   * セルの垂直パディング。デフォルト: "none"
+   */
+  cellPaddingY?: PaddingSize;
+};
+
+// ============================================================
+// 行クラス解決
+// ============================================================
 export type TableRowClassContext = {
   index: number;
   /**
@@ -38,20 +74,6 @@ export type TableStylingProps<T> = {
   bottomSentinelRef?: React.Ref<HTMLDivElement>;
 };
 
-export type TableColumnAlignment = "left" | "center" | "right";
-
-const columnTextAlignClassMap: Record<TableColumnAlignment, string> = {
-  left: "text-left",
-  center: "text-center",
-  right: "text-right",
-};
-
-const columnFlexAlignClassMap: Record<TableColumnAlignment, string> = {
-  left: "justify-start text-left",
-  center: "justify-center text-center",
-  right: "justify-end text-right",
-};
-
 export const resolveRowClassName = <T,>(
   rowClassName: RowClassNameResolver<T> | undefined,
   item: T,
@@ -64,18 +86,4 @@ export const resolveRowClassName = <T,>(
     return rowClassName(item, context) ?? undefined;
   }
   return rowClassName;
-};
-
-export const resolveColumnTextAlignClass = (align?: TableColumnAlignment) => {
-  if (!align) {
-    return undefined;
-  }
-  return columnTextAlignClassMap[align];
-};
-
-export const resolveColumnFlexAlignClass = (align?: TableColumnAlignment) => {
-  if (!align) {
-    return undefined;
-  }
-  return columnFlexAlignClassMap[align];
 };

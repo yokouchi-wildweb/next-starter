@@ -15,7 +15,12 @@ import {
   TableCell,
 } from "../DataTable/components";
 import type { DataTableProps } from "../DataTable";
-import { resolveColumnTextAlignClass, resolveRowClassName } from "../types";
+import {
+  resolveColumnTextAlignClass,
+  resolveRowClassName,
+  ROW_HEIGHT_CLASS,
+  resolvePaddingClass,
+} from "../types";
 import { BulkActionBar, type BulkActionSelection, type BulkActionBarSpacing } from "./components/BulkActionBar";
 import { SelectionCell } from "./components/SelectionCell";
 import { SelectionHeaderCell } from "./components/SelectionHeaderCell";
@@ -61,6 +66,9 @@ export default function RecordSelectionTable<T>({
   scrollContainerRef,
   bulkActions,
   bulkActionsSpacing,
+  rowHeight = "md",
+  cellPaddingX = "sm",
+  cellPaddingY = "none",
 }: RecordSelectionTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -100,6 +108,7 @@ export default function RecordSelectionTable<T>({
   const resolvedSelectColumnLabel = selectColumnLabel || "選択";
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
+  const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
 
   // 一括操作バー用のselectionオブジェクトを作成
   const bulkActionSelection = React.useMemo<BulkActionSelection<T>>(() => {
@@ -159,6 +168,7 @@ export default function RecordSelectionTable<T>({
                   key={key}
                   className={cn(
                     "group",
+                    rowHeightClass,
                     isClickableRow && "cursor-pointer",
                     isSelected && "bg-muted/60",
                     resolvedRowClass,
@@ -175,7 +185,13 @@ export default function RecordSelectionTable<T>({
                     onToggle={(checked) => updateKeySelection(key, checked)}
                   />
                   {columns.map((col, idx) => (
-                    <TableCell key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                    <TableCell
+                      key={idx}
+                      className={cn(
+                        resolveColumnTextAlignClass(col.align),
+                        resolvePaddingClass(col.paddingX ?? cellPaddingX, col.paddingY ?? cellPaddingY),
+                      )}
+                    >
                       {renderCellContent(col.render(item))}
                     </TableCell>
                   ))}

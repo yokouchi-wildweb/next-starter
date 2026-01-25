@@ -67,6 +67,9 @@ export default function SortableList<T extends SortableItemType>({
   emptyMessage = "アイテムがありません",
   isLoading,
   disabled,
+  itemHeight = "md",
+  itemPaddingX = "sm",
+  itemPaddingY = "none",
 }: SortableListProps<T>) {
   const mounted = useMounted();
   const sensors = useSensors(
@@ -173,6 +176,9 @@ export default function SortableList<T extends SortableItemType>({
                 draggingClassName={draggingClassName}
                 rowClassName={resolveRowClassName(rowClassName, item, { index })}
                 disabled={disabled}
+                itemHeight={itemHeight}
+                itemPaddingX={itemPaddingX}
+                itemPaddingY={itemPaddingY}
               />
             ))}
           </div>
