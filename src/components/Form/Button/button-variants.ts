@@ -2,7 +2,7 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
 
-export const buttonVariants = cva("", {
+export const buttonVariants = cva("disabled:pointer-events-auto disabled:cursor-not-allowed", {
   variants: {
     variant: {
       // 画面で主なアクションに使う標準のプライマリボタン。
