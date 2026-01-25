@@ -167,7 +167,7 @@ function PopoverHeader({
   return (
     <div
       data-slot="popover-header"
-      className={cn("mb-3 space-y-1", className)}
+      className={cn("mb-3 flex flex-col gap-1", className)}
       {...props}
     />
   );
