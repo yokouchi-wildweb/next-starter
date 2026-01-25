@@ -37,6 +37,18 @@ const resolveRecordId = (value: unknown): string | number | undefined => {
 };
 
 /**
+ * withRelations オプションから展開する深さを解決する。
+ * - false/undefined: 0（展開しない）
+ * - true/1: 1階層
+ * - 2: 2階層（リレーション先のリレーションも展開）
+ */
+const resolveRelationDepth = (withRelations?: boolean | number): number => {
+  if (withRelations === true) return 1;
+  if (typeof withRelations === "number" && withRelations > 0) return withRelations;
+  return 0;
+};
+
+/**
  * エラーオブジェクトからPostgreSQLエラーコードを抽出する
  * Drizzleはエラーをラップするため、直接またはcause経由で確認
  */
@@ -265,12 +277,22 @@ export function createCrudService<
       }
 
       // withRelations: リレーション先オブジェクトを展開
-      if (options?.withRelations) {
+      const depth = resolveRelationDepth(options?.withRelations);
+      if (depth > 0) {
+        // belongsToMany展開関数をラップ（再帰呼び出し用）
+        const wrappedHydrateBelongsToMany = async (
+          recs: Record<string, any>[],
+          rels: typeof belongsToManyObjectRelations,
+          d: number,
+        ) => {
+          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
+        };
+
         if (belongsToRelations.length) {
-          await hydrateBelongsTo(results, belongsToRelations);
+          await hydrateBelongsTo(results, belongsToRelations, depth, wrappedHydrateBelongsToMany);
         }
         if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(results, belongsToManyObjectRelations);
+          await hydrateBelongsToManyObjects(results, belongsToManyObjectRelations, depth, hydrateBelongsTo);
         }
       }
 
@@ -296,12 +318,21 @@ export function createCrudService<
       }
 
       // withRelations: リレーション先オブジェクトを展開
-      if (options?.withRelations) {
+      const depth = resolveRelationDepth(options?.withRelations);
+      if (depth > 0) {
+        const wrappedHydrateBelongsToMany = async (
+          recs: Record<string, any>[],
+          rels: typeof belongsToManyObjectRelations,
+          d: number,
+        ) => {
+          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
+        };
+
         if (belongsToRelations.length) {
-          await hydrateBelongsTo(results, belongsToRelations);
+          await hydrateBelongsTo(results, belongsToRelations, depth, wrappedHydrateBelongsToMany);
         }
         if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(results, belongsToManyObjectRelations);
+          await hydrateBelongsToManyObjects(results, belongsToManyObjectRelations, depth, hydrateBelongsTo);
         }
       }
 
@@ -333,12 +364,21 @@ export function createCrudService<
       }
 
       // withRelations: リレーション先オブジェクトを展開
-      if (options?.withRelations) {
+      const depth = resolveRelationDepth(options?.withRelations);
+      if (depth > 0) {
+        const wrappedHydrateBelongsToMany = async (
+          recs: Record<string, any>[],
+          rels: typeof belongsToManyObjectRelations,
+          d: number,
+        ) => {
+          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
+        };
+
         if (belongsToRelations.length) {
-          await hydrateBelongsTo([record], belongsToRelations);
+          await hydrateBelongsTo([record], belongsToRelations, depth, wrappedHydrateBelongsToMany);
         }
         if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects([record], belongsToManyObjectRelations);
+          await hydrateBelongsToManyObjects([record], belongsToManyObjectRelations, depth, hydrateBelongsTo);
         }
       }
 
@@ -366,12 +406,21 @@ export function createCrudService<
       }
 
       // withRelations: リレーション先オブジェクトを展開
-      if (options?.withRelations) {
+      const depthWithDeleted = resolveRelationDepth(options?.withRelations);
+      if (depthWithDeleted > 0) {
+        const wrappedHydrateBelongsToMany = async (
+          recs: Record<string, any>[],
+          rels: typeof belongsToManyObjectRelations,
+          d: number,
+        ) => {
+          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
+        };
+
         if (belongsToRelations.length) {
-          await hydrateBelongsTo([record], belongsToRelations);
+          await hydrateBelongsTo([record], belongsToRelations, depthWithDeleted, wrappedHydrateBelongsToMany);
         }
         if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects([record], belongsToManyObjectRelations);
+          await hydrateBelongsToManyObjects([record], belongsToManyObjectRelations, depthWithDeleted, hydrateBelongsTo);
         }
       }
 
@@ -554,12 +603,21 @@ export function createCrudService<
       }
 
       // withRelations: リレーション先オブジェクトを展開
-      if (withRelations) {
+      const depth = resolveRelationDepth(withRelations);
+      if (depth > 0) {
+        const wrappedHydrateBelongsToMany = async (
+          recs: Record<string, any>[],
+          rels: typeof belongsToManyObjectRelations,
+          d: number,
+        ) => {
+          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
+        };
+
         if (belongsToRelations.length) {
-          await hydrateBelongsTo(result.results, belongsToRelations);
+          await hydrateBelongsTo(result.results, belongsToRelations, depth, wrappedHydrateBelongsToMany);
         }
         if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations);
+          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations, depth, hydrateBelongsTo);
         }
       }
 
@@ -632,12 +690,21 @@ export function createCrudService<
       }
 
       // withRelations: リレーション先オブジェクトを展開
-      if (withRelations) {
+      const depthSearchWithDeleted = resolveRelationDepth(withRelations);
+      if (depthSearchWithDeleted > 0) {
+        const wrappedHydrateBelongsToMany = async (
+          recs: Record<string, any>[],
+          rels: typeof belongsToManyObjectRelations,
+          d: number,
+        ) => {
+          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
+        };
+
         if (belongsToRelations.length) {
-          await hydrateBelongsTo(result.results, belongsToRelations);
+          await hydrateBelongsTo(result.results, belongsToRelations, depthSearchWithDeleted, wrappedHydrateBelongsToMany);
         }
         if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations);
+          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations, depthSearchWithDeleted, hydrateBelongsTo);
         }
       }
 
@@ -665,12 +732,21 @@ export function createCrudService<
       }
 
       // withRelations: リレーション先オブジェクトを展開
-      if (withRelations) {
+      const depthQuery = resolveRelationDepth(withRelations);
+      if (depthQuery > 0) {
+        const wrappedHydrateBelongsToMany = async (
+          recs: Record<string, any>[],
+          rels: typeof belongsToManyObjectRelations,
+          d: number,
+        ) => {
+          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
+        };
+
         if (belongsToRelations.length) {
-          await hydrateBelongsTo(result.results, belongsToRelations);
+          await hydrateBelongsTo(result.results, belongsToRelations, depthQuery, wrappedHydrateBelongsToMany);
         }
         if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations);
+          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations, depthQuery, hydrateBelongsTo);
         }
       }
 

@@ -221,11 +221,16 @@ export type CreateCrudServiceOptions<TData extends Record<string, any> = Record<
  */
 export type WithOptions = {
   /**
-   * true の場合、リレーション先のオブジェクトを展開して返す。
+   * リレーション先のオブジェクトを展開する深さを指定する。
+   * - false/undefined: 展開しない
+   * - true/1: 1階層（リレーション先のみ）
+   * - 2: 2階層（リレーション先のリレーションも展開）
+   *
+   * 例:
    * - belongsTo: 外部キー → オブジェクト（例: sample_category_id → sample_category）
    * - belongsToMany: ID配列 → オブジェクト配列（例: sample_tag_ids → sample_tags）
    */
-  withRelations?: boolean;
+  withRelations?: boolean | number;
   /**
    * true の場合、リレーション先のレコード数を _count に含めて返す。
    * 例: _count: { sample_tags: 5 }
@@ -243,6 +248,15 @@ export type WithOptions = {
 // ============================================================
 
 /**
+ * ネストリレーション設定。
+ * 2階層目のリレーション展開に使用する。
+ */
+export type NestedRelations = {
+  belongsTo?: BelongsToRelation[];
+  belongsToMany?: BelongsToManyObjectRelation[];
+};
+
+/**
  * belongsTo リレーション設定。
  * 外部キーからリレーション先のオブジェクトを取得する。
  */
@@ -255,6 +269,11 @@ export type BelongsToRelation<TTable = any> = {
   table: TTable;
   /** 取得するカラム名（省略時は全カラム） */
   targetFields?: string[];
+  /**
+   * 2階層目のリレーション設定。
+   * withRelations: 2 の場合にこのリレーション先のさらにリレーションを展開する。
+   */
+  nested?: NestedRelations;
 };
 
 /**
@@ -279,6 +298,11 @@ export type BelongsToManyObjectRelation<
   targetColumn: TTargetColumn;
   /** 取得するカラム名（省略時は全カラム） */
   targetFields?: string[];
+  /**
+   * 2階層目のリレーション設定。
+   * withRelations: 2 の場合にこのリレーション先のさらにリレーションを展開する。
+   */
+  nested?: NestedRelations;
 };
 
 /**
