@@ -26,3 +26,4 @@ export { ActionPopover, type ActionPopoverItem, type ActionPopoverProps } from "
 export { InfoPopover, type InfoPopoverProps } from "./InfoPopover";
 export { ChecklistPopover, type ChecklistPopoverProps, type ChecklistOption } from "./ChecklistPopover";
 export { SelectPopover, type SelectPopoverProps, type SelectOption } from "./SelectPopover";
+export { PopoverAsyncContent, type PopoverAsyncContentProps } from "./PopoverAsyncContent";
