@@ -25,10 +25,10 @@ export type ConfirmPopoverProps = {
   title?: ReactNode;
   /** 説明文 */
   description?: ReactNode;
-  /** 確認ボタンのラベル */
-  confirmLabel?: string;
-  /** キャンセルボタンのラベル */
-  cancelLabel?: string;
+  /** 確認ボタンのラベル（falseで非表示） */
+  confirmLabel?: string | false;
+  /** キャンセルボタンのラベル（falseで非表示） */
+  cancelLabel?: string | false;
   /** 確認時のコールバック（Promiseを返すと自動でローディング状態になる） */
   onConfirm?: () => void | Promise<void>;
   /** キャンセル時のコールバック */
@@ -163,22 +163,26 @@ export function ConfirmPopover({
           {description && <PopoverDescription>{description}</PopoverDescription>}
         </PopoverHeader>
         <PopoverFooter>
-          <Button
-            size="sm"
-            variant={cancelVariant}
-            onClick={handleCancel}
-            disabled={isLoading}
-          >
-            {cancelLabel}
-          </Button>
-          <Button
-            size="sm"
-            variant={confirmVariant}
-            onClick={handleConfirm}
-            disabled={confirmDisabled || isLoading}
-          >
-            {isLoading ? "処理中..." : confirmLabel}
-          </Button>
+          {cancelLabel !== false && (
+            <Button
+              size="sm"
+              variant={cancelVariant}
+              onClick={handleCancel}
+              disabled={isLoading}
+            >
+              {cancelLabel}
+            </Button>
+          )}
+          {confirmLabel !== false && (
+            <Button
+              size="sm"
+              variant={confirmVariant}
+              onClick={handleConfirm}
+              disabled={confirmDisabled || isLoading}
+            >
+              {isLoading ? "処理中..." : confirmLabel}
+            </Button>
+          )}
         </PopoverFooter>
       </PopoverContent>
     </PopoverRoot>
