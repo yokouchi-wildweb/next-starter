@@ -122,7 +122,7 @@ export function SelectPopover({
   cancelVariant = "outline",
   searchable = false,
   searchPlaceholder = "検索...",
-  maxListHeight = 280,
+  maxListHeight = 330,
   closeOnConfirm = true,
   asChild = true,
   open: controlledOpen,

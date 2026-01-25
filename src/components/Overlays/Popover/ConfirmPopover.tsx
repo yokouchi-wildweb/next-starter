@@ -160,7 +160,11 @@ export function ConfirmPopover({
       >
         <PopoverHeader>
           <PopoverTitle>{title}</PopoverTitle>
-          {description && <PopoverDescription>{description}</PopoverDescription>}
+          {description && (
+            <PopoverDescription className="max-h-[330px] overflow-y-auto">
+              {description}
+            </PopoverDescription>
+          )}
         </PopoverHeader>
         <PopoverFooter>
           {cancelLabel !== false && (

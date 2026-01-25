@@ -149,7 +149,7 @@ export function ActionPopover({
             </PopoverTitle>
           </PopoverHeader>
         )}
-        <div className="flex flex-col">
+        <div className="flex flex-col max-h-[330px] overflow-y-auto">
           {actions.map((item, index) => {
             if (item.type === "separator") {
               return (

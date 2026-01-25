@@ -129,7 +129,7 @@ export function ChecklistPopover({
   searchPlaceholder = "検索...",
   showSelectAll = false,
   maxSelections,
-  maxListHeight = 280,
+  maxListHeight = 330,
   closeOnConfirm = true,
   asChild = true,
   open: controlledOpen,

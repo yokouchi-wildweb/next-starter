@@ -121,7 +121,11 @@ export function Popover({
             {description && <PopoverDescription>{description}</PopoverDescription>}
           </PopoverHeader>
         )}
-        {children && <PopoverBody>{children}</PopoverBody>}
+        {children && (
+          <PopoverBody className="max-h-[330px] overflow-y-auto">
+            {children}
+          </PopoverBody>
+        )}
         {footer && <PopoverFooter>{footer}</PopoverFooter>}
       </PopoverContent>
     </PopoverRoot>
