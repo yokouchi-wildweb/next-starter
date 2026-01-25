@@ -250,11 +250,13 @@ export function createCrudService<
     },
 
     async list(options?: WithOptions): Promise<Select[]> {
+      const limit = options?.limit ?? 100;
       let query: any = db.select().from(table as any);
       const softDeleteFilter = buildSoftDeleteFilter();
       if (softDeleteFilter) query = query.where(softDeleteFilter);
       const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
       if (orderClauses.length) query = query.orderBy(...orderClauses);
+      query = query.limit(limit);
       const results = (await query) as Select[];
 
       // 既存の belongsToMany ID配列の hydrate

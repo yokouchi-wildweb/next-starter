@@ -231,6 +231,11 @@ export type WithOptions = {
    * 例: _count: { sample_tags: 5 }
    */
   withCount?: boolean;
+  /**
+   * 取得件数の上限。デフォルト: 100。
+   * 全件取得が必要な場合は listAll() を使用する。
+   */
+  limit?: number;
 };
 
 // ============================================================
