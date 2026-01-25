@@ -48,27 +48,27 @@ const VARIANT_CONFIG: Record<
 > = {
   success: {
     defaultIcon: "success",
-    bgClass: "bg-green-50 dark:bg-green-950/50",
-    iconClass: "text-green-600 dark:text-green-400",
-    borderClass: "border-green-200 dark:border-green-800",
+    bgClass: "bg-success/10",
+    iconClass: "text-success",
+    borderClass: "border-success/30",
   },
   error: {
     defaultIcon: "error",
-    bgClass: "bg-red-50 dark:bg-red-950/50",
-    iconClass: "text-red-600 dark:text-red-400",
-    borderClass: "border-red-200 dark:border-red-800",
+    bgClass: "bg-destructive/10",
+    iconClass: "text-destructive",
+    borderClass: "border-destructive/30",
   },
   warning: {
     defaultIcon: "warning",
-    bgClass: "bg-amber-50 dark:bg-amber-950/50",
-    iconClass: "text-amber-600 dark:text-amber-400",
-    borderClass: "border-amber-200 dark:border-amber-800",
+    bgClass: "bg-warning/10",
+    iconClass: "text-warning",
+    borderClass: "border-warning/30",
   },
   info: {
     defaultIcon: "info",
-    bgClass: "bg-blue-50 dark:bg-blue-950/50",
-    iconClass: "text-blue-600 dark:text-blue-400",
-    borderClass: "border-blue-200 dark:border-blue-800",
+    bgClass: "bg-info/10",
+    iconClass: "text-info",
+    borderClass: "border-info/30",
   },
   loading: {
     defaultIcon: "loading",
@@ -195,44 +195,54 @@ export function ToastItem({ toast, onClose }: Props) {
         touchAction: isNotification ? "none" : "auto",
       }}
       className={cn(
-        "flex items-center",
+        "relative",
         "max-w-[90vw]",
         "rounded-xl border shadow-lg",
-        variantConfig.bgClass,
         variantConfig.borderClass,
         "pointer-events-auto",
         "transition-[transform,opacity] duration-150",
         isNotification && "cursor-pointer select-none",
-        sizeConfig.container,
       )}
       role="alert"
       aria-live="assertive"
     >
-      <div className={cn("shrink-0", variantConfig.iconClass)}>
-        {IconComponent ? (
-          <IconComponent
-            className={cn(sizeConfig.icon, toast.spinning && "animate-spin")}
-          />
-        ) : (
-          toast.icon
+      {/* 下層: 不透明な背景 */}
+      <div className="absolute inset-0 rounded-xl bg-white dark:bg-gray-900" />
+      {/* 上層: 透過色背景 + コンテンツ */}
+      <div
+        className={cn(
+          "relative flex items-center",
+          "rounded-xl",
+          variantConfig.bgClass,
+          sizeConfig.container,
+        )}
+      >
+        <div className={cn("shrink-0", variantConfig.iconClass)}>
+          {IconComponent ? (
+            <IconComponent
+              className={cn(sizeConfig.icon, toast.spinning && "animate-spin")}
+            />
+          ) : (
+            toast.icon
+          )}
+        </div>
+
+        <p className={cn("flex-1 font-medium text-foreground", sizeConfig.text)}>
+          {toast.message}
+        </p>
+
+        {isNotification && (
+          <div
+            className={cn(
+              "shrink-0 p-1 rounded-full",
+              "text-muted-foreground",
+            )}
+            aria-hidden="true"
+          >
+            <XIcon className="h-4 w-4" />
+          </div>
         )}
       </div>
-
-      <p className={cn("relative flex-1 font-medium text-foreground", sizeConfig.text)}>
-        {toast.message}
-      </p>
-
-      {isNotification && (
-        <div
-          className={cn(
-            "relative shrink-0 p-1 rounded-full",
-            "text-muted-foreground",
-          )}
-          aria-hidden="true"
-        >
-          <XIcon className="h-4 w-4" />
-        </div>
-      )}
     </div>
   );
 }
