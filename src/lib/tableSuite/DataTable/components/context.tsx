@@ -32,8 +32,8 @@ export const rowVariants = cva("border-b transition-colors data-[state=selected]
       list: "even:bg-muted/50",
     },
     hoverEffect: {
-      enabled: "hover:!bg-accent/20",
-      disabled: "hover:!bg-transparent",
+      enabled: "hover:bg-accent/20",
+      disabled: "hover:bg-transparent",
     },
   },
   defaultVariants: { variant: "default", hoverEffect: "enabled" },
