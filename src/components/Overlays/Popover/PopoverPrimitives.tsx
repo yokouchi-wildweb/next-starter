@@ -112,6 +112,8 @@ export type PopoverContentProps = React.ComponentProps<
   usePortal?: boolean;
   /** 上位レイヤー（ダイアログ/モーダル等）との操作で閉じないようにするか（デフォルト: true） */
   preventLayerDismiss?: boolean;
+  /** ポインターイベントの親要素への伝播を止めるか（デフォルト: true） */
+  stopPropagation?: boolean;
 };
 
 function PopoverContent({
@@ -124,7 +126,9 @@ function PopoverContent({
   showClose = false,
   usePortal = true,
   preventLayerDismiss = true,
+  stopPropagation = true,
   onInteractOutside,
+  onPointerDown,
   children,
   ...props
 }: PopoverContentProps) {
@@ -154,12 +158,24 @@ function PopoverContent({
     [preventLayerDismiss, onInteractOutside]
   );
 
+  // ポインターイベントの親要素への伝播を止める
+  const handlePointerDown = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (stopPropagation) {
+        event.stopPropagation();
+      }
+      onPointerDown?.(event);
+    },
+    [stopPropagation, onPointerDown]
+  );
+
   const content = (
     <PopoverPrimitive.Content
       data-slot="popover-content"
       align={align}
       sideOffset={sideOffset}
       onInteractOutside={handleInteractOutside}
+      onPointerDown={handlePointerDown}
       className={cn(
         "bg-popover text-popover-foreground",
         "origin-(--radix-popover-content-transform-origin)",
