@@ -23,7 +23,7 @@ const DEMO_PAGES = [
 
 export default function DemoIndexPage() {
   return (
-    <Main containerType="wide">
+    <Main containerType="contentShell">
       <Section>
         <Stack space={6}>
           <PageTitle size="xxl" className="font-semibold">
