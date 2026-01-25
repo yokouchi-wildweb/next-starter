@@ -129,6 +129,10 @@ function PopoverContent({
   stopPropagation = true,
   onInteractOutside,
   onPointerDown,
+  onMouseDown,
+  onClick,
+  onDoubleClick,
+  onContextMenu,
   children,
   ...props
 }: PopoverContentProps) {
@@ -169,6 +173,50 @@ function PopoverContent({
     [stopPropagation, onPointerDown]
   );
 
+  // マウスダウンイベントの親要素への伝播を止める（PointerEvents非対応コード向け）
+  const handleMouseDown = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (stopPropagation) {
+        event.stopPropagation();
+      }
+      onMouseDown?.(event);
+    },
+    [stopPropagation, onMouseDown]
+  );
+
+  // クリックイベントの親要素への伝播を止める
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (stopPropagation) {
+        event.stopPropagation();
+      }
+      onClick?.(event);
+    },
+    [stopPropagation, onClick]
+  );
+
+  // ダブルクリックイベントの親要素への伝播を止める
+  const handleDoubleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (stopPropagation) {
+        event.stopPropagation();
+      }
+      onDoubleClick?.(event);
+    },
+    [stopPropagation, onDoubleClick]
+  );
+
+  // コンテキストメニュー（右クリック）イベントの親要素への伝播を止める
+  const handleContextMenu = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (stopPropagation) {
+        event.stopPropagation();
+      }
+      onContextMenu?.(event);
+    },
+    [stopPropagation, onContextMenu]
+  );
+
   const content = (
     <PopoverPrimitive.Content
       data-slot="popover-content"
@@ -176,6 +224,10 @@ function PopoverContent({
       sideOffset={sideOffset}
       onInteractOutside={handleInteractOutside}
       onPointerDown={handlePointerDown}
+      onMouseDown={handleMouseDown}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      onContextMenu={handleContextMenu}
       className={cn(
         "bg-popover text-popover-foreground",
         "origin-(--radix-popover-content-transform-origin)",
