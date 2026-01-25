@@ -5,6 +5,7 @@ import sampleCategoryConfig from "@/features/sampleCategory/domain.json";
 import sampleTagConfig from "@/features/sampleTag/domain.json";
 import couponConfig from "@/features/core/coupon/domain.json";
 import couponHistoryConfig from "@/features/core/couponHistory/domain.json";
+import userConfig from "@/features/core/user/domain.json";
 
 export const domainConfigMap = {
 
@@ -15,6 +16,9 @@ export const domainConfigMap = {
   coupon: couponConfig,
   coupon_history: couponHistoryConfig,
   // --- AUTO-GENERATED-END ---
+
+  // --- CORE DOMAINS (手動管理) ---
+  user: userConfig,
 
 } as const;
 

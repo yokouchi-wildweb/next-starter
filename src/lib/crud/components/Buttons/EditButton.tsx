@@ -10,10 +10,10 @@ import { getDomainConfig } from "@/lib/domain";
 import { getAdminPaths } from "@/lib/crud/utils";
 
 export type EditButtonProps = ButtonStyleProps & {
-  /** ドメイン名（singular形式） */
-  domain: string;
-  /** 編集対象のID */
-  id: string;
+  /** ドメイン名（singular形式）。hrefを直接指定する場合は省略可 */
+  domain?: string;
+  /** 編集対象のID。hrefを直接指定する場合は省略可 */
+  id?: string;
   /** ボタンラベル @default "編集" */
   label?: string;
   /** ボタンアイコン @default Pencil */
@@ -31,9 +31,15 @@ export function EditButton({
   size = "sm",
   variant = "outline",
 }: EditButtonProps) {
-  const config = getDomainConfig(domain);
-  const paths = getAdminPaths(config.plural);
-  const resolvedHref = href ?? paths.edit(id);
+  // hrefが直接指定されていればそれを使用、なければdomain/idから生成
+  const resolvedHref = href ?? (() => {
+    if (!domain || !id) {
+      throw new Error("EditButton: domain/id または href のどちらかを指定してください");
+    }
+    const config = getDomainConfig(domain);
+    const paths = getAdminPaths(config.plural);
+    return paths.edit(id);
+  })();
 
   return (
     <Button asChild size={size} variant={variant}>

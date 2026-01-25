@@ -1,0 +1,126 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "user",
+  "plural": "users",
+  "label": "ユーザー",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "useSoftDelete": true,
+  "compositeUniques": [["provider_type", "provider_uid"]],
+  "fields": [
+    {
+      "name": "provider_type",
+      "label": "認証方法",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": true,
+      "options": [
+        { "value": "email", "label": "メール" },
+        { "value": "local", "label": "ローカル" },
+        { "value": "google.com", "label": "Google" },
+        { "value": "yahoo.com", "label": "Yahoo" },
+        { "value": "github", "label": "GitHub" },
+        { "value": "apple", "label": "Apple" },
+        { "value": "microsoft", "label": "Microsoft" },
+        { "value": "facebook.com", "label": "Facebook" },
+        { "value": "twitter.com", "label": "Twitter" },
+        { "value": "line", "label": "LINE" },
+        { "value": "oidc", "label": "OIDC" },
+        { "value": "saml", "label": "SAML" },
+        { "value": "custom", "label": "カスタム" }
+      ]
+    },
+    {
+      "name": "provider_uid",
+      "label": "プロバイダーUID",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": true
+    },
+    {
+      "name": "email",
+      "label": "メールアドレス",
+      "fieldType": "email",
+      "formInput": "emailInput",
+      "required": false
+    },
+    {
+      "name": "name",
+      "label": "表示名",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": false
+    },
+    {
+      "name": "role",
+      "label": "ロール",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": true,
+      "options": [
+        { "value": "admin", "label": "管理者" },
+        { "value": "user", "label": "一般ユーザー" }
+      ]
+    },
+    {
+      "name": "local_password",
+      "label": "ローカルパスワード",
+      "fieldType": "password",
+      "formInput": "passwordInput",
+      "required": false
+    },
+    {
+      "name": "status",
+      "label": "ステータス",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": true,
+      "defaultValue": "pending",
+      "options": [
+        { "value": "pending", "label": "仮登録" },
+        { "value": "active", "label": "有効" },
+        { "value": "inactive", "label": "休会中" },
+        { "value": "suspended", "label": "処分保留" },
+        { "value": "banned", "label": "永久追放" },
+        { "value": "security_locked", "label": "セキュリティロック" },
+        { "value": "withdrawn", "label": "退会済み" }
+      ]
+    },
+    {
+      "name": "is_demo",
+      "label": "デモユーザー",
+      "fieldType": "boolean",
+      "formInput": "switchInput",
+      "required": true,
+      "defaultValue": false
+    },
+    {
+      "name": "last_authenticated_at",
+      "label": "最終認証日時",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "none",
+      "required": false
+    }
+  ],
+  "searchFields": ["name", "email"],
+  "defaultOrderBy": [["createdAt", "DESC"]],
+  "tableFields": ["status", "role", "name", "email", "provider_type", "createdAt"],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
+  "generateFiles": {
+    "entities": false,
+    "components": false,
+    "hooks": false,
+    "clientServices": false,
+    "serverServices": false,
+    "adminRoutes": false,
+    "registry": true,
+    "fieldConstants": false,
+    "presenters": false
+  }
+}
