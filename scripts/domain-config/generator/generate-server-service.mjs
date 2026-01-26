@@ -7,7 +7,17 @@ import {
   toPascalCase,
   toSnakeCase,
 } from "../../../src/utils/stringCase.mjs";
-import { resolveFeaturePath, resolveFeatureTemplatePath } from "./utils/pathHelpers.mjs";
+import { resolveFeaturePath, resolveFeatureTemplatePath, resolveFeaturesDir } from "./utils/pathHelpers.mjs";
+
+// ドメインの設定を取得
+function getDomainConfig(domainPath) {
+  const featuresDir = resolveFeaturesDir();
+  const configPath = path.join(featuresDir, domainPath, "domain.json");
+  if (fs.existsSync(configPath)) {
+    return JSON.parse(fs.readFileSync(configPath, "utf8"));
+  }
+  return null;
+}
 
 //
 // サーバーサービス生成スクリプト
@@ -123,17 +133,38 @@ function composeServiceOptions(config) {
     ...belongsToMany.map((item) => item.tableVar),
   ].filter((v, i, a) => a.indexOf(v) === i); // 重複除去
 
-  // リレーション先ドメインのインポート情報を収集
-  const relationDomainImports = [
-    ...belongsToRelations.map((item) => ({
-      domain: item.relationDomain,
-      tableImport: item.tableImport,
-    })),
-    ...belongsToManyObjectRelations.map((item) => ({
-      domain: item.relationDomain,
-      tableImport: item.targetTableImport,
-    })),
-  ];
+  // リレーション先ドメインのインポート情報を収集（nested対応）
+  const relationDomainImports = [];
+
+  // 再帰的にインポートを収集するヘルパー
+  function collectImports(items, type) {
+    for (const item of items) {
+      if (type === "belongsTo") {
+        relationDomainImports.push({
+          domain: item.relationDomain,
+          tableImport: item.tableImport,
+        });
+      } else {
+        relationDomainImports.push({
+          domain: item.relationDomain,
+          tableImport: item.targetTableImport,
+        });
+      }
+
+      // nestedImportsがあれば再帰的に収集
+      if (item.nestedImports) {
+        if (item.nestedImports.belongsTo?.length > 0) {
+          collectImports(item.nestedImports.belongsTo, "belongsTo");
+        }
+        if (item.nestedImports.belongsToMany?.length > 0) {
+          collectImports(item.nestedImports.belongsToMany, "belongsToMany");
+        }
+      }
+    }
+  }
+
+  collectImports(belongsToRelations, "belongsTo");
+  collectImports(belongsToManyObjectRelations, "belongsToMany");
 
   // すべてのリレーション設定をまとめたリテラルを生成
   const belongsToManyLiteral = formatAllRelationsLiteral(
@@ -185,40 +216,137 @@ function buildBelongsToManySnippets(config) {
 }
 
 /**
- * withRelations 用: belongsTo リレーション設定を生成
+ * nested リテラルの行を構築
  */
-function buildBelongsToRelationsSnippets(config) {
+function buildNestedLiteralLines(nestedBelongsTo, nestedBelongsToMany) {
+  const lines = ["      nested: {"];
+
+  if (nestedBelongsTo.length > 0) {
+    lines.push("        belongsTo: [");
+    nestedBelongsTo.forEach((item, idx) => {
+      // 各行を適切にインデント
+      const itemLines = item.literal.split("\n").map((line, lineIdx, arr) => {
+        const trimmed = line.trimStart();
+        // 開き括弧と閉じ括弧はベースインデント、プロパティ行は+2スペース
+        const isFirstOrLast = lineIdx === 0 || lineIdx === arr.length - 1;
+        const baseIndent = "          ";
+        const indent = isFirstOrLast ? baseIndent : baseIndent + "  ";
+        return indent + trimmed;
+      });
+      const suffix = idx < nestedBelongsTo.length - 1 ? "," : "";
+      // 最後の行に suffix を追加
+      itemLines[itemLines.length - 1] += suffix;
+      lines.push(...itemLines);
+    });
+    lines.push("        ],");
+  }
+
+  if (nestedBelongsToMany.length > 0) {
+    lines.push("        belongsToMany: [");
+    nestedBelongsToMany.forEach((item, idx) => {
+      const itemLines = item.literal.split("\n").map((line, lineIdx, arr) => {
+        const trimmed = line.trimStart();
+        const isFirstOrLast = lineIdx === 0 || lineIdx === arr.length - 1;
+        const baseIndent = "          ";
+        const indent = isFirstOrLast ? baseIndent : baseIndent + "  ";
+        return indent + trimmed;
+      });
+      const suffix = idx < nestedBelongsToMany.length - 1 ? "," : "";
+      itemLines[itemLines.length - 1] += suffix;
+      lines.push(...itemLines);
+    });
+    lines.push("        ],");
+  }
+
+  lines.push("      },");
+  return lines;
+}
+
+/**
+ * withRelations 用: belongsTo リレーション設定を生成（2階層nested対応）
+ * @param config - ドメイン設定
+ * @param visitedDomains - 訪問済みドメイン（循環参照防止）
+ * @param depth - 残り展開階層（1=nestedを生成、0=nestedを生成しない）
+ */
+function buildBelongsToRelationsSnippets(config, visitedDomains = new Set(), depth = 1) {
   if (!Array.isArray(config.relations)) return [];
   if (config.dbEngine !== "Neon") return [];
+
+  // 現在のドメインを訪問済みに追加（循環参照防止）
+  const currentDomain = config.singular;
+  visitedDomains.add(currentDomain);
 
   return config.relations
     .filter((relation) => relation.relationType === "belongsTo")
     .map((relation) => {
       const relationPascal = toPascalCase(relation.domain);
-      const relationSnake = toSnakeCase(relation.domain);
+      const relationCamel = toCamelCase(relation.domain);
       const tableImport = `${relationPascal}Table`;
       // field名: sample_category_id → sample_category
       const field = relation.fieldName.replace(/_id$/, "");
+
+      // リレーション先のconfigを取得してnested構築（循環参照がなく、depth > 0 の場合のみ）
+      let nestedLines = [];
+      let nestedImports = { belongsTo: [], belongsToMany: [] };
+      if (depth > 0 && !visitedDomains.has(relation.domain)) {
+        const targetConfig = getDomainConfig(relationCamel);
+        if (targetConfig && targetConfig.dbEngine === "Neon") {
+          const nestedVisited = new Set(visitedDomains);
+          // 再帰呼び出しではdepth=0でnestedを生成しない
+          const nestedBelongsTo = buildBelongsToRelationsSnippets(targetConfig, nestedVisited, 0);
+          const nestedBelongsToMany = buildBelongsToManyObjectRelationsSnippets(
+            targetConfig,
+            relationPascal,
+            relationCamel,
+            nestedVisited,
+            0
+          );
+
+          if (nestedBelongsTo.length > 0 || nestedBelongsToMany.length > 0) {
+            nestedLines = buildNestedLiteralLines(nestedBelongsTo, nestedBelongsToMany);
+            nestedImports = {
+              belongsTo: nestedBelongsTo,
+              belongsToMany: nestedBelongsToMany,
+            };
+          }
+        }
+      }
+
+      const lines = [
+        "    {",
+        `      field: "${field}",`,
+        `      foreignKey: "${relation.fieldName}",`,
+        `      table: ${tableImport},`,
+      ];
+      if (nestedLines.length > 0) {
+        lines.push(...nestedLines);
+      }
+      lines.push("    }");
+
       return {
         tableImport,
         relationDomain: relation.domain,
-        literal: [
-          "    {",
-          `      field: "${field}",`,
-          `      foreignKey: "${relation.fieldName}",`,
-          `      table: ${tableImport},`,
-          "    }",
-        ].join("\n"),
+        nestedImports,
+        literal: lines.join("\n"),
       };
     });
 }
 
 /**
- * withRelations 用: belongsToMany のオブジェクト展開設定を生成
+ * withRelations 用: belongsToMany のオブジェクト展開設定を生成（2階層nested対応）
+ * @param config - ドメイン設定
+ * @param ownerPascal - 所有者ドメインのPascalCase
+ * @param ownerCamel - 所有者ドメインのcamelCase
+ * @param visitedDomains - 訪問済みドメイン（循環参照防止）
+ * @param depth - 残り展開階層（1=nestedを生成、0=nestedを生成しない）
  */
-function buildBelongsToManyObjectRelationsSnippets(config) {
+function buildBelongsToManyObjectRelationsSnippets(config, ownerPascal = pascal, ownerCamel = camel, visitedDomains = new Set(), depth = 1) {
   if (!Array.isArray(config.relations)) return [];
   if (config.dbEngine !== "Neon") return [];
+
+  // 現在のドメインを訪問済みに追加（循環参照防止）
+  const currentDomain = config.singular;
+  visitedDomains.add(currentDomain);
 
   return config.relations
     .filter((relation) => relation.relationType === "belongsToMany" && relation.includeRelationTable !== false)
@@ -226,23 +354,57 @@ function buildBelongsToManyObjectRelationsSnippets(config) {
       const relationPascal = toPascalCase(relation.domain);
       const relationCamel = toCamelCase(relation.domain);
       const targetTableImport = `${relationPascal}Table`;
-      const throughTableVar = `${pascal}To${relationPascal}Table`;
-      const sourceProperty = `${camel}Id`;
+      const throughTableVar = `${ownerPascal}To${relationPascal}Table`;
+      const sourceProperty = `${ownerCamel}Id`;
       const targetProperty = `${relationCamel}Id`;
       // field名: sample_tag_ids → sample_tags (複数形)
       const field = toPlural(relation.domain.replace(/_/g, "_"));
+
+      // リレーション先のconfigを取得してnested構築（循環参照がなく、depth > 0 の場合のみ）
+      let nestedLines = [];
+      let nestedImports = { belongsTo: [], belongsToMany: [] };
+      if (depth > 0 && !visitedDomains.has(relation.domain)) {
+        const targetConfig = getDomainConfig(relationCamel);
+        if (targetConfig && targetConfig.dbEngine === "Neon") {
+          const nestedVisited = new Set(visitedDomains);
+          // 再帰呼び出しではdepth=0でnestedを生成しない
+          const nestedBelongsTo = buildBelongsToRelationsSnippets(targetConfig, nestedVisited, 0);
+          const nestedBelongsToMany = buildBelongsToManyObjectRelationsSnippets(
+            targetConfig,
+            relationPascal,
+            relationCamel,
+            nestedVisited,
+            0
+          );
+
+          if (nestedBelongsTo.length > 0 || nestedBelongsToMany.length > 0) {
+            nestedLines = buildNestedLiteralLines(nestedBelongsTo, nestedBelongsToMany);
+            nestedImports = {
+              belongsTo: nestedBelongsTo,
+              belongsToMany: nestedBelongsToMany,
+            };
+          }
+        }
+      }
+
+      const lines = [
+        "    {",
+        `      field: "${field}",`,
+        `      targetTable: ${targetTableImport},`,
+        `      throughTable: ${throughTableVar},`,
+        `      sourceColumn: ${throughTableVar}.${sourceProperty},`,
+        `      targetColumn: ${throughTableVar}.${targetProperty},`,
+      ];
+      if (nestedLines.length > 0) {
+        lines.push(...nestedLines);
+      }
+      lines.push("    }");
+
       return {
         targetTableImport,
         relationDomain: relation.domain,
-        literal: [
-          "    {",
-          `      field: "${field}",`,
-          `      targetTable: ${targetTableImport},`,
-          `      throughTable: ${throughTableVar},`,
-          `      sourceColumn: ${throughTableVar}.${sourceProperty},`,
-          `      targetColumn: ${throughTableVar}.${targetProperty},`,
-          "    }",
-        ].join("\n"),
+        nestedImports,
+        literal: lines.join("\n"),
       };
     });
 }

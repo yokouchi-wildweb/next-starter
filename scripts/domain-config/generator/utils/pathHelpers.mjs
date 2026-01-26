@@ -13,6 +13,10 @@ export function resolveFeaturePath(...segments) {
   return path.join(featureRoot, ...segments);
 }
 
+export function resolveFeaturesDir() {
+  return featureRoot;
+}
+
 export function ensureDirExists(targetPath) {
   if (!targetPath) return;
   if (!fs.existsSync(targetPath)) {

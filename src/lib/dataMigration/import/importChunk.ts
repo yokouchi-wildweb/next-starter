@@ -461,7 +461,7 @@ export async function importChunk(
     return {
       success: false,
       chunkName,
-      error: errorInfo.message || "Unknown error",
+      error: typeof errorInfo.message === "string" ? errorInfo.message : "Unknown error",
     };
   }
 }
