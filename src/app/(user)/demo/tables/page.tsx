@@ -301,7 +301,7 @@ export default function TablesDemoPage() {
 
   const editableColumnHeaderMap = useMemo(
     () =>
-      editableColumns.reduce<Record<string, string>>((acc, column) => {
+      editableColumns.reduce<Record<string, React.ReactNode>>((acc, column) => {
         acc[column.field] = column.header;
         return acc;
       }, {}),

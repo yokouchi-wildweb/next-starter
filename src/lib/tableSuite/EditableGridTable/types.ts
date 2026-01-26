@@ -22,7 +22,7 @@ export type EditableGridEditorType =
 
 export type EditableGridColumn<T> = {
   field: string;
-  header: string;
+  header: React.ReactNode;
   editorType: EditableGridEditorType;
   placeholder?: string;
   width?: string;

@@ -23,7 +23,7 @@ export type SortableListColumn<T> = {
   /**
    * カラムヘッダー（省略可能）
    */
-  header?: string;
+  header?: React.ReactNode;
   /**
    * セル内容のレンダリング関数
    */

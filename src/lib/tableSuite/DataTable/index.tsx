@@ -26,7 +26,7 @@ import {
 } from "../types";
 
 export type DataTableColumn<T> = {
-  header: string;
+  header: React.ReactNode;
   render: (item: T) => React.ReactNode;
   align?: TableColumnAlignment;
   /**
