@@ -280,6 +280,8 @@ function buildBelongsToManyObjectRelationsSnippets(config, pascal, camel, visite
 
       return {
         targetTableImport,
+        throughTableVar,
+        ownerDomain: toCamelCase(currentDomain), // throughTableのインポート元ドメイン
         relationDomain: relation.domain,
         nestedImports,
         literal: lines.join("\n"),
@@ -374,7 +376,7 @@ function buildRelationTableImports(belongsToRelations, belongsToManyObjectRelati
   const relationDomainImports = [];
 
   // 再帰的にインポートを収集するヘルパー
-  function collectImports(items, type) {
+  function collectImports(items, type, isNested = false) {
     for (const item of items) {
       if (type === "belongsTo") {
         relationDomainImports.push({
@@ -382,19 +384,27 @@ function buildRelationTableImports(belongsToRelations, belongsToManyObjectRelati
           tableImport: item.tableImport,
         });
       } else {
+        // targetTable のインポート
         relationDomainImports.push({
           domain: item.relationDomain,
           tableImport: item.targetTableImport,
         });
+        // nested の場合は throughTable もインポートが必要（ownerDomainから）
+        if (isNested && item.throughTableVar && item.ownerDomain) {
+          relationDomainImports.push({
+            domain: item.ownerDomain,
+            tableImport: item.throughTableVar,
+          });
+        }
       }
 
       // nestedImportsがあれば再帰的に収集
       if (item.nestedImports) {
         if (item.nestedImports.belongsTo?.length > 0) {
-          collectImports(item.nestedImports.belongsTo, "belongsTo");
+          collectImports(item.nestedImports.belongsTo, "belongsTo", true);
         }
         if (item.nestedImports.belongsToMany?.length > 0) {
-          collectImports(item.nestedImports.belongsToMany, "belongsToMany");
+          collectImports(item.nestedImports.belongsToMany, "belongsToMany", true);
         }
       }
     }
