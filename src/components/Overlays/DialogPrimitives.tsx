@@ -118,7 +118,7 @@ export function DialogContent({
 
   return (
     <BaseDialogContent
-      className={className}
+      className={cn("[&>*]:min-w-0", className)}
       showCloseButton={false}
       layerClassName={cn(CONTENT_LAYER_CLASS[layer], layerClassName)}
       overlayLayerClassName={cn(OVERLAY_LAYER_CLASS[overlayLayer], overlayLayerClassName)}
