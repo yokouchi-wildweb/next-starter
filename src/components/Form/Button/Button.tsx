@@ -16,7 +16,7 @@ export type ButtonProps = React.ComponentPropsWithoutRef<typeof ShadcnButton> &
   };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, propagateClick = false, onClick, ...props }, ref) => {
+  ({ className, variant, size, opticalAdjust, propagateClick = false, onClick, ...props }, ref) => {
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!propagateClick) {
         e.stopPropagation();
@@ -27,7 +27,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <ShadcnButton
         ref={ref}
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, opticalAdjust, className }))}
         onClick={handleClick}
         {...props}
       />

@@ -13,12 +13,13 @@ export type LinkButtonProps = ComponentPropsWithoutRef<typeof Link> & ButtonStyl
 export function LinkButton({
   variant,
   size,
+  opticalAdjust,
   className,
   ...props
 }: LinkButtonProps) {
   return (
     <Link
-      className={cn(baseButtonClassName, buttonVariants({ variant, size }), className)}
+      className={cn(baseButtonClassName, buttonVariants({ variant, size, opticalAdjust }), className)}
       {...props}
     />
   );

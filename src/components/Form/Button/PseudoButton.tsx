@@ -18,6 +18,7 @@ export const PseudoButton = React.forwardRef<HTMLDivElement, PseudoButtonProps>(
       className,
       variant,
       size,
+      opticalAdjust,
       disabled,
       onClick,
       onKeyDown,
@@ -97,7 +98,7 @@ export const PseudoButton = React.forwardRef<HTMLDivElement, PseudoButtonProps>(
         data-slot="button"
         className={cn(
           baseButtonClassName,
-          buttonVariants({ variant, size, className }),
+          buttonVariants({ variant, size, opticalAdjust, className }),
           isDisabled && "pointer-events-none cursor-not-allowed opacity-50",
         )}
         onClick={handleClick}
