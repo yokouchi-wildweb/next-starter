@@ -116,7 +116,7 @@ src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/style
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
 
 ## TOOLS
-playwright-mcp: CSS/UI verification, dynamic content, WebSearch/WebFetch fallback
+playwright-mcp: available | use only when explicitly instructed by user
 
 ## SCRIPTS
 ref: scripts/README.md | claude:test: API connection check (requires ANTHROPIC_API_KEY)
