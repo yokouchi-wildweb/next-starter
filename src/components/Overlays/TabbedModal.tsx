@@ -74,9 +74,11 @@ export default function TabbedModal({
   tabTriggerClassName,
   tabContentClassName,
   minHeight = 360,
+  open,
   ...modalProps
 }: TabbedModalProps) {
-  if (!tabs.length) {
+  // モーダルが閉じているときは空のTabs要素がDOMに残らないようにする
+  if (!open || !tabs.length) {
     return null;
   }
 
@@ -116,6 +118,7 @@ export default function TabbedModal({
     >
       <Modal
         {...modalProps}
+        open={open}
         minHeight={minHeight}
         headerContent={tabList}
       >
