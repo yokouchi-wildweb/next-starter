@@ -14,6 +14,7 @@
 
   /* Layout tokens */
   --layout-width-narrow-stack: 448px;
+  --layout-width-snug-vessel: 64rem;
   --layout-width-content-shell: 72rem;
   --layout-width-wide-showcase: 96rem;
 
@@ -30,6 +31,7 @@
 
   /* Layout tokens */
   --layout-width-narrow-stack: 448px;
+  --layout-width-snug-vessel: 64rem;
   --layout-width-content-shell: 72rem;
   --layout-width-wide-showcase: 96rem;
 

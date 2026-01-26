@@ -13,6 +13,7 @@ const mainLayoutVariants = createLayoutVariants("mx-auto w-full");
 type ContainerType =
   | "plain"
   | "narrowStack"
+  | "snugVessel"
   | "contentShell"
   | "wideShowcase"
   | "surfaceDisplay"
@@ -20,6 +21,7 @@ type ContainerType =
 
 const layoutMaxWidths: Partial<Record<ContainerType, CSSProperties["maxWidth"]>> = {
   narrowStack: "var(--layout-width-narrow-stack)",
+  snugVessel: "var(--layout-width-snug-vessel)",
   contentShell: "var(--layout-width-content-shell)",
   wideShowcase: "var(--layout-width-wide-showcase)",
 };
