@@ -4,7 +4,7 @@ import { Para } from "@/components/TextBlocks";
 
 export default function ServicesPage() {
   return (
-    <UserPage containerType="contentShell">
+    <UserPage>
       <UserPageTitle>サービス概要</UserPageTitle>
       <Para>
         このページはログイン状態に関わらずアクセス可能なサービス概要ページのサンプルです。

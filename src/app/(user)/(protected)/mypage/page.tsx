@@ -15,7 +15,7 @@ export default async function UserMyPagePage() {
 
   if (!user) {
     return (
-      <UserPage containerType="contentShell">
+      <UserPage>
         <Stack space={6}>
           <UserPageTitle>マイページ</UserPageTitle>
           <Block appearance="outlined" padding="lg">
@@ -33,7 +33,7 @@ export default async function UserMyPagePage() {
   }
 
   return (
-    <UserPage containerType="contentShell">
+    <UserPage>
       <Stack space={6}>
         <UserPageTitle>マイページ</UserPageTitle>
         <UserMyPageView user={user} />

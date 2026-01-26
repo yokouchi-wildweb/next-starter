@@ -15,7 +15,7 @@ export default async function UserProfileEditPage() {
   const profileData = await userProfileService.getProfile(user.id, user.role as UserRoleType);
 
   return (
-    <UserPage containerType="contentShell">
+    <UserPage>
       <Stack space={6}>
         <UserPageTitle>プロフィール編集</UserPageTitle>
         <UserProfileEdit user={user} profileData={profileData ?? undefined} />

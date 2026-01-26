@@ -6,7 +6,7 @@ import { Para } from "@/components/TextBlocks";
 
 export default function MaintenancePage() {
   return (
-    <UserPage containerType="contentShell">
+    <UserPage>
       <HideHeaderNav />
       <HideFooter />
       <HideBottomNav />
