@@ -1,5 +1,7 @@
 // src/components/Form/Button/Button.tsx
 
+"use client";
+
 import * as React from "react";
 
 import { Button as ShadcnButton } from "@/components/_shadcn/button";
