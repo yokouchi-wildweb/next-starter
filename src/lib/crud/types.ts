@@ -86,6 +86,13 @@ export type BulkUpsertOptions<TData> = {
    * true の場合、衝突時にレコードを更新せずスキップする。
    */
   skipDuplicates?: boolean;
+  /**
+   * ON CONFLICT DO UPDATE の SET から除外するフィールド。
+   * 指定されたフィールドは INSERT 時のみ値が設定され、
+   * UPDATE 時は既存の値が保持される。
+   * 画像フィールドなど、後から個別に更新するフィールドに使用する。
+   */
+  excludeFromUpdate?: string[];
 };
 
 export type BulkUpsertResult<T> = {

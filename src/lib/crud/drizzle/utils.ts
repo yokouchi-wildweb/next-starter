@@ -38,6 +38,48 @@ export function applyInsertDefaults<TData extends Record<string, any>>(
 }
 
 /**
+ * drizzle テーブル定義からカラム名 → プロパティ名のマッピングを構築する。
+ * 例: { "sample_category_id": "sample_category_id", "created_at": "createdAt" }
+ */
+export function buildColumnToPropertyMap(table: PgTable): Map<string, string> {
+  const mapping = new Map<string, string>();
+
+  for (const [propName, column] of Object.entries(table)) {
+    // drizzle のカラムオブジェクトは name プロパティを持つ
+    if (column && typeof column === "object" && "name" in column && typeof column.name === "string") {
+      mapping.set(column.name, propName);
+    }
+  }
+
+  return mapping;
+}
+
+/**
+ * レコードのキー名を drizzle スキーマのプロパティ名に正規化する。
+ * snake_case のカラム名を camelCase のプロパティ名に変換する。
+ * マッピングに存在しないキーはそのまま保持される。
+ *
+ * @param table - drizzle テーブル定義
+ * @param record - 正規化対象のレコード
+ * @returns プロパティ名が正規化されたレコード
+ */
+export function normalizeRecordKeys<T extends Record<string, unknown>>(
+  table: PgTable,
+  record: T,
+): T {
+  const columnToProperty = buildColumnToPropertyMap(table);
+  const normalized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(record)) {
+    // カラム名 → プロパティ名に変換、見つからなければそのまま
+    const normalizedKey = columnToProperty.get(key) ?? key;
+    normalized[normalizedKey] = value;
+  }
+
+  return normalized as T;
+}
+
+/**
  * upsert の衝突判定対象カラムを解決する。
  */
 export function resolveConflictTarget<TData extends Record<string, any>>(

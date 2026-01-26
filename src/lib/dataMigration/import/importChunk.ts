@@ -41,6 +41,45 @@ export type ImportChunkResult =
     };
 
 /**
+ * エラーオブジェクトから構造化された情報を抽出
+ * drizzle のエラーは cause にネストされていることがある
+ */
+function extractErrorInfo(error: unknown): Record<string, unknown> {
+  const info: Record<string, unknown> = {};
+
+  if (!error || typeof error !== "object") {
+    info.message = String(error);
+    return info;
+  }
+
+  const err = error as Record<string, unknown>;
+  info.type = err.constructor?.name;
+  info.message = err.message;
+
+  // PostgreSQL エラー情報（直接またはcause経由）
+  const pgSource = err.cause && typeof err.cause === "object" ? err.cause as Record<string, unknown> : err;
+  if (pgSource.code) info.pgCode = pgSource.code;
+  if (pgSource.detail) info.pgDetail = pgSource.detail;
+  if (pgSource.hint) info.pgHint = pgSource.hint;
+  if (pgSource.constraint) info.pgConstraint = pgSource.constraint;
+  if (pgSource.column) info.pgColumn = pgSource.column;
+  if (pgSource.table) info.pgTable = pgSource.table;
+  if (pgSource.dataType) info.pgDataType = pgSource.dataType;
+
+  // さらにネストされた cause をチェック
+  if (err.cause && typeof err.cause === "object") {
+    const cause = err.cause as Record<string, unknown>;
+    if (cause.cause && typeof cause.cause === "object") {
+      const deepCause = cause.cause as Record<string, unknown>;
+      if (deepCause.code && !info.pgCode) info.pgCode = deepCause.code;
+      if (deepCause.detail && !info.pgDetail) info.pgDetail = deepCause.detail;
+    }
+  }
+
+  return info;
+}
+
+/**
  * MIME タイプを拡張子から推測
  */
 function getMimeType(filename: string): string {
@@ -73,13 +112,11 @@ async function uploadImage(
 }
 
 /**
- * システムフィールドのキー名変換マップ（camelCase → snake_case）
+ * 画像フィールドのプレースホルダー値
+ * bulkUpsert 時に画像フィールドに設定し、アップロード完了後に実際の URL で更新する。
+ * アップロード失敗時は null に変換される。
  */
-const SYSTEM_FIELD_KEY_MAP: Record<string, string> = {
-  createdAt: "created_at",
-  updatedAt: "updated_at",
-  deletedAt: "deleted_at",
-};
+export const PENDING_IMAGE_PLACEHOLDER = "__PENDING_IMAGE_UPLOAD__";
 
 /**
  * fieldType に基づいてフィールドタイプを判定
@@ -140,10 +177,7 @@ function convertRecordTypes(
 ): Record<string, unknown> {
   const converted: Record<string, unknown> = {};
 
-  for (const [originalKey, value] of Object.entries(record)) {
-    // システムフィールドのキー名を変換
-    const key = SYSTEM_FIELD_KEY_MAP[originalKey] || originalKey;
-
+  for (const [key, value] of Object.entries(record)) {
     // 配列フィールドの変換
     if (arrayFields.has(key)) {
       if (value === null || value === undefined || value === "") {
@@ -325,68 +359,93 @@ export async function importChunk(
     // フィールド型情報を取得
     const { arrayFields, dateFields, numberFields } = getFieldTypes(fields);
 
-    // 画像フィールドを一旦除外し、型変換を適用してレコードを準備
-    const recordsForUpsert = records.map((record) => {
+    // 画像フィールドにプレースホルダーを設定し、型変換を適用してレコードを準備
+    // deletedAt は parseUpsert で削除されるが、drizzle-orm が DEFAULT を使用するのを防ぐため
+    // 明示的に null を設定する。実際の値は後で復元する。
+    const deletedAtMap = new Map<number, string | null>(); // index -> deletedAt 値
+    const recordsForUpsert = records.map((record, index) => {
       // まず型変換を適用
       const typedRecord = convertRecordTypes(record, arrayFields, dateFields, numberFields);
 
       const cleanRecord: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(typedRecord)) {
-        // 画像フィールドは後で処理するので除外（updateImages が true の場合）
-        if (updateImages && imageFields.includes(key)) {
-          continue;
+        // deletedAt の実際の値を保存（parseUpsert で削除されるため後で復元）
+        if (key === "deletedAt") {
+          if (value !== null && value !== undefined) {
+            deletedAtMap.set(index, value as string);
+          }
+          continue; // ループ後に明示的に設定
         }
-        cleanRecord[key] = value;
+        // 画像フィールドはプレースホルダーを設定（updateImages が true の場合）
+        // UPDATE 時は excludeFromUpdate で既存値を保持するため、INSERT 時のみ適用される
+        if (updateImages && imageFields.includes(key)) {
+          cleanRecord[key] = PENDING_IMAGE_PLACEHOLDER;
+        } else {
+          cleanRecord[key] = value;
+        }
       }
+      // deletedAt を明示的に null として設定（drizzle-orm が DEFAULT を使用するのを防ぐ）
+      // CSV に deletedAt 列がない場合も含めて確実に設定
+      // drizzle スキーマは camelCase プロパティ名を期待するため deletedAt を使用
+      cleanRecord["deletedAt"] = null;
       return cleanRecord;
     });
 
-    // bulkUpsert 実行
-    const upsertResult = await service.bulkUpsert(recordsForUpsert);
+    // bulkUpsert 実行（画像フィールドは UPDATE SET から除外して既存値を保持）
+    const upsertResult = await service.bulkUpsert(
+      recordsForUpsert,
+      updateImages && imageFields.length > 0
+        ? { excludeFromUpdate: imageFields }
+        : undefined
+    );
     const upsertedRecords = upsertResult.results as Record<string, unknown>[];
 
-    // 画像アップロードと URL 更新
-    console.log(`[Import] Image processing: updateImages=${updateImages}, imageFields=${JSON.stringify(imageFields)}, assets.size=${assets.size}`);
-    if (updateImages && imageFields.length > 0 && assets.size > 0) {
-      const urlUpdates: { id: string; updates: Record<string, string> }[] = [];
-      const assetKeys = Array.from(assets.keys());
-      console.log(`[Import] Asset keys: ${JSON.stringify(assetKeys)}`);
+    // 画像アップロード、プレースホルダークリーンアップ、deletedAt 復元を統合
+    // 各レコードに対して1回の update で処理
 
-      for (let i = 0; i < records.length; i++) {
-        const originalRecord = records[i];
-        const upsertedRecord = upsertedRecords[i];
-        if (!upsertedRecord) continue;
+    for (let i = 0; i < records.length; i++) {
+      const originalRecord = records[i];
+      const upsertedRecord = upsertedRecords[i];
+      if (!upsertedRecord) continue;
 
-        const recordId = String(upsertedRecord.id);
-        const updates: Record<string, string> = {};
+      const recordId = String(upsertedRecord.id);
+      const updates: Record<string, unknown> = {};
 
+      // 画像アップロード処理
+      if (updateImages && imageFields.length > 0) {
         for (const imageField of imageFields) {
           const csvValue = originalRecord[imageField];
-          console.log(`[Import] Record ${recordId}, field ${imageField}: csvValue=${csvValue}`);
-          // CSV に assets/ パスが記載されている場合
+
+          // CSV に assets/ パスが記載されている場合 → アップロード
           if (typeof csvValue === "string" && csvValue.startsWith("assets/")) {
-            // assets/main_image/uuid.jpg -> main_image/uuid.jpg
             const assetPath = csvValue.replace(/^assets\//, "");
             const assetBuffer = assets.get(assetPath);
-            console.log(`[Import] Looking for asset: ${assetPath}, found: ${!!assetBuffer}`);
 
             if (assetBuffer) {
               const filename = assetPath.split("/").pop() || "image";
               const newUrl = await uploadImage(domain, imageField, filename, assetBuffer);
               updates[imageField] = newUrl;
-              console.log(`[Import] Uploaded ${imageField}: ${newUrl}`);
+            } else if (upsertedRecord[imageField] === PENDING_IMAGE_PLACEHOLDER) {
+              // アセットが見つからずプレースホルダーが残っている場合は null に
+              updates[imageField] = null;
             }
+          } else if (upsertedRecord[imageField] === PENDING_IMAGE_PLACEHOLDER) {
+            // プレースホルダーが残っている場合は null に変換
+            updates[imageField] = null;
           }
-        }
-
-        if (Object.keys(updates).length > 0) {
-          urlUpdates.push({ id: recordId, updates });
         }
       }
 
-      // URL を一括更新
-      for (const { id, updates } of urlUpdates) {
-        await service.update(id, updates);
+      // deletedAt の復元（ソフトデリートされたレコードの場合）
+      // drizzle スキーマは camelCase プロパティ名を期待するため deletedAt を使用
+      const deletedAtValue = deletedAtMap.get(i);
+      if (deletedAtValue !== undefined) {
+        updates["deletedAt"] = deletedAtValue;
+      }
+
+      // 更新が必要な場合のみ update を実行
+      if (Object.keys(updates).length > 0) {
+        await service.update(recordId, updates);
       }
     }
 
@@ -396,11 +455,13 @@ export async function importChunk(
       recordCount: records.length,
     };
   } catch (error) {
-    console.error(`[Import] Chunk ${chunkName} failed:`, error);
+    // エラー情報を構造化して出力
+    const errorInfo = extractErrorInfo(error);
+    console.error(`[Import] ❌ Chunk ${chunkName} failed:`, JSON.stringify(errorInfo, null, 2));
     return {
       success: false,
       chunkName,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: errorInfo.message || "Unknown error",
     };
   }
 }

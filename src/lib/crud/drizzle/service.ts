@@ -19,7 +19,7 @@ import type {
   WithOptions,
 } from "../types";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
-import { applyInsertDefaults, resolveConflictTarget } from "./utils";
+import { applyInsertDefaults, normalizeRecordKeys, resolveConflictTarget } from "./utils";
 import type { DrizzleCrudServiceOptions, DbTransaction } from "./types";
 import {
   assignLocalRelationValues,
@@ -914,18 +914,46 @@ export function createCrudService<
         // 各レコードをパースしてデフォルト値を適用
         const parsedRecords = await Promise.all(
           records.map(async (data) => {
-            // parse 前に id を保存（parse で削除される可能性があるため）
-            const originalId = data.id;
+            // キー名を drizzle スキーマのプロパティ名に正規化（snake_case → camelCase など）
+            const normalizedData = normalizeRecordKeys(table, data as Record<string, unknown>) as typeof data;
+
+            // parse 前にシステムフィールドを保存（parse で削除される可能性があるため）
+            // Zod スキーマに定義されていないフィールドは strip される
+            const originalId = normalizedData.id;
+            const originalCreatedAt = (normalizedData as any).createdAt;
+            const originalUpdatedAt = (normalizedData as any).updatedAt;
+            const originalDeletedAt = (normalizedData as any).deletedAt;
+
             const parsedInput = serviceOptions.parseUpsert
-              ? await serviceOptions.parseUpsert(data)
+              ? await serviceOptions.parseUpsert(normalizedData)
               : serviceOptions.parseCreate
-                ? await serviceOptions.parseCreate(data)
-                : data;
-            // parse 後に id を復元
-            const withId = originalId !== undefined
-              ? { ...parsedInput, id: originalId }
-              : parsedInput;
-            return applyInsertDefaults(withId as Insert, serviceOptions) as Insert & {
+                ? await serviceOptions.parseCreate(normalizedData)
+                : normalizedData;
+
+            // parse 後にシステムフィールドを復元
+            const restored = { ...parsedInput } as any;
+            if (originalId !== undefined) {
+              restored.id = originalId;
+            }
+            // createdAt/updatedAt/deletedAt は明示的に設定されていた場合のみ復元
+            // これにより CSV からインポートした値が applyInsertDefaults で上書きされない
+            // 文字列の場合は Date オブジェクトに変換（drizzle が toISOString を呼ぶため）
+            if (originalCreatedAt !== undefined) {
+              restored.createdAt = typeof originalCreatedAt === "string"
+                ? new Date(originalCreatedAt)
+                : originalCreatedAt;
+            }
+            if (originalUpdatedAt !== undefined) {
+              restored.updatedAt = typeof originalUpdatedAt === "string"
+                ? new Date(originalUpdatedAt)
+                : originalUpdatedAt;
+            }
+            if (originalDeletedAt !== undefined) {
+              restored.deletedAt = typeof originalDeletedAt === "string"
+                ? new Date(originalDeletedAt)
+                : originalDeletedAt;
+            }
+            return applyInsertDefaults(restored as Insert, serviceOptions) as Insert & {
               id?: string;
               createdAt?: Date;
               updatedAt?: Date;
@@ -933,11 +961,12 @@ export function createCrudService<
           }),
         );
 
-        // 更新用のデータを構築（idを除外）
+        // 更新用のデータを構築（idを除外、excludeFromUpdate も除外）
         const firstRecord = parsedRecords[0];
-        const updateColumns = Object.keys(firstRecord).filter((key) => key !== "id") as Array<
-          keyof typeof firstRecord
-        >;
+        const excludeSet = new Set(bulkUpsertOptions?.excludeFromUpdate ?? []);
+        const updateColumns = Object.keys(firstRecord).filter(
+          (key) => key !== "id" && !excludeSet.has(key)
+        ) as Array<keyof typeof firstRecord>;
         const updateData = Object.fromEntries(
           updateColumns.map((col) => {
             // テーブル定義からカラム情報を取得し、実際のカラム名（snake_case）を使用

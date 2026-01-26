@@ -42,8 +42,11 @@ function formatCellValue(value: unknown): string {
   }
 
   // array (belongsToMany など)
+  // カンマ区切りで結合し、複数要素がある場合はクォートで囲む
   if (Array.isArray(value)) {
-    return value.join(",");
+    const joined = value.join(",");
+    // カンマを含む場合はクォート（RFC 4180 準拠）
+    return joined.includes(",") ? `"${joined}"` : joined;
   }
 
   // object (JSON)
