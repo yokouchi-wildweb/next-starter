@@ -97,4 +97,9 @@ export type EditableGridTableProps<T> = TableStylingProps<T> &
      * - none: アイコンを表示しない
      */
     headerIconMode?: EditableGridHeaderIconMode;
+    /**
+     * readonly セルに背景色を適用するかどうか。
+     * @default true
+     */
+    highlightReadonlyCells?: boolean;
   };

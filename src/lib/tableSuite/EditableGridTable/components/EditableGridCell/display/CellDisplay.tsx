@@ -13,6 +13,7 @@ type CellDisplayProps<T> = {
   fallbackPlaceholder: string;
   className?: string;
   isReadOnly?: boolean;
+  highlightReadonly?: boolean;
   flexAlignClass?: string;
   paddingClass: string;
 };
@@ -25,6 +26,7 @@ export function CellDisplay<T>({
   fallbackPlaceholder,
   className,
   isReadOnly,
+  highlightReadonly = true,
   flexAlignClass,
   paddingClass,
 }: CellDisplayProps<T>) {
@@ -81,7 +83,7 @@ export function CellDisplay<T>({
       data-readonly={isReadOnly || undefined}
       className={cn(
         "w-full h-full text-sm flex items-center text-foreground truncate",
-        isReadOnly && "bg-muted/50 text-muted-foreground",
+        highlightReadonly && isReadOnly && "text-muted-foreground",
         flexAlignClass,
         paddingClass,
         className,

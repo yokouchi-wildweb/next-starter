@@ -42,6 +42,7 @@ export default function EditableGridTable<T>({
   cellPaddingX = "sm",
   cellPaddingY = "none",
   headerIconMode = "readonly",
+  highlightReadonlyCells = true,
   scrollContainerRef,
   bottomSentinelRef,
 }: EditableGridTableProps<T>) {
@@ -164,6 +165,7 @@ export default function EditableGridTable<T>({
                   fallbackPlaceholder={column.placeholder ?? emptyValueFallback}
                   cellPaddingX={column.paddingX ?? cellPaddingX}
                   cellPaddingY={column.paddingY ?? cellPaddingY}
+                  highlightReadonly={highlightReadonlyCells}
                   onValidChange={(value) =>
                     onCellChange?.({
                       rowKey,

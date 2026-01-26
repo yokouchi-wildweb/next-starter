@@ -33,6 +33,7 @@ type EditableGridCellProps<T> = {
   fallbackPlaceholder: string;
   cellPaddingX: PaddingSize;
   cellPaddingY: PaddingSize;
+  highlightReadonly?: boolean;
   onValidChange?: (value: unknown) => void;
 };
 
@@ -43,6 +44,7 @@ export function EditableGridCell<T>({
   fallbackPlaceholder,
   cellPaddingX,
   cellPaddingY,
+  highlightReadonly = true,
   onValidChange,
 }: EditableGridCellProps<T>) {
   // カスタムフックでステート管理
@@ -166,6 +168,7 @@ export function EditableGridCell<T>({
       className={cn(
         "relative p-0 text-sm cursor-default border border-border/70 rounded",
         hasError && "bg-destructive/10 ring-1 ring-inset ring-destructive/50",
+        highlightReadonly && flags.isReadOnly && "bg-muted/50",
         textAlignClass,
       )}
       style={column.width ? { width: column.width } : undefined}
@@ -214,6 +217,7 @@ export function EditableGridCell<T>({
             column={column}
             fallbackPlaceholder={fallbackPlaceholder}
             isReadOnly={flags.isReadOnly}
+            highlightReadonly={highlightReadonly}
             flexAlignClass={flexAlignClass}
             paddingClass={paddingClass}
             className={shouldShowSelectIndicator ? "pr-8" : undefined}
