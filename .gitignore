@@ -56,8 +56,6 @@ yarn-error.log*
 next-env.d.ts
 
 # etc
-AGENTS.md
-GEMINI.md
 TODO.md
 .tmpref
 .next-lab
