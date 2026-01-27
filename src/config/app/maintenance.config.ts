@@ -8,6 +8,13 @@ export const maintenanceConfig = {
   // メンテナンスモードの有効/無効
   enabled: false,
 
+  // スケジュール設定（enabled: true の場合のみ有効）
+  // null = 制限なし
+  schedule: {
+    start: null as string | null, // 開始時刻（ISO8601形式）例: '2025-01-27T10:00:00+09:00'
+    end: null as string | null, // 終了時刻（ISO8601形式）例: '2025-01-27T14:00:00+09:00'
+  },
+
   // メンテナンス中もアクセス許可するパス（完全一致）
   allowedPaths: [
     '/maintenance',
