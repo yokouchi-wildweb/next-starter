@@ -33,7 +33,7 @@ export default async function UserMyPagePage() {
   }
 
   return (
-    <UserPage>
+    <UserPage containerType="narrowStack">
       <Stack space={6}>
         <UserPageTitle>マイページ</UserPageTitle>
         <UserMyPageView user={user} />

@@ -110,7 +110,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
               placeholder="ご登録のパスワード"
             />
             <div className="text-right">
-              <Link href="/" className="text-sm text-primary hover:underline">
+              <Link href="/forgot-password" className="text-sm text-primary hover:underline">
                 パスワードをお忘れですか？ ▶
               </Link>
             </div>

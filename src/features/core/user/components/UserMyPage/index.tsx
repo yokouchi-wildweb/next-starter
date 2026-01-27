@@ -4,6 +4,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserPenIcon, LogOutIcon, PauseCircleIcon, UserXIcon, ChevronRightIcon, UserCircleIcon, ArrowLeftIcon, MailIcon, LoaderIcon, LockIcon, CheckCircleIcon } from "lucide-react";
 
@@ -21,7 +22,7 @@ import { useUpdateMyProfile } from "@/features/core/user/hooks/useUpdateMyProfil
 import { useEmailChange } from "@/features/core/auth/hooks/useEmailChange";
 import { useChangePassword } from "@/features/core/auth/hooks/useChangePassword";
 
-import { ActionMenuCard } from "./ActionMenuCard";
+import { RichMenuCard } from "./RichMenuCard";
 
 type UserMyPageProps = {
   user: User;
@@ -127,60 +128,39 @@ export default function UserMyPage({ user }: UserMyPageProps) {
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             <Section>
-              <Stack space={4}>
-                <SecTitle as="h2">アカウント情報</SecTitle>
-                <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => navigateTo("account-details")}
-                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <UserCircleIcon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">アカウント詳細を表示</p>
-                        <p className="text-xs text-muted-foreground">
-                          ユーザー名、メールアドレスを確認・編集
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
-                  </button>
-                </div>
-              </Stack>
-            </Section>
-            <Section>
-              <Stack space={4}>
-                <SecTitle as="h2">メニュー</SecTitle>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <ActionMenuCard
-                    icon={LogOutIcon}
-                    title={isLoggingOut ? "ログアウト中..." : "ログアウト"}
-                    description="このアカウントからログアウト"
-                    onClick={handleLogout}
-                    disabled={isLoggingOut}
+              <Stack space={3}>
+                <RichMenuCard
+                  icon={UserCircleIcon}
+                  title="アカウント詳細を表示"
+                  description="ユーザー名、メールアドレスを確認・編集"
+                  onClick={() => navigateTo("account-details")}
+                  showChevron
+                />
+                <RichMenuCard
+                  icon={LogOutIcon}
+                  title={isLoggingOut ? "ログアウト中..." : "ログアウト"}
+                  description="このアカウントからログアウト"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                />
+                {APP_FEATURES.user.pauseEnabled && (
+                  <RichMenuCard
+                    icon={PauseCircleIcon}
+                    title="休会する"
+                    description="一時的にアカウントを休止"
+                    href="/settings/pause"
+                    variant="muted"
                   />
-                  {APP_FEATURES.user.pauseEnabled && (
-                    <ActionMenuCard
-                      icon={PauseCircleIcon}
-                      title="休会する"
-                      description="一時的にアカウントを休止"
-                      href="/settings/pause"
-                      variant="muted"
-                    />
-                  )}
-                  {APP_FEATURES.user.withdrawEnabled && (
-                    <ActionMenuCard
-                      icon={UserXIcon}
-                      title="退会する"
-                      description="アカウントを削除"
-                      href="/settings/withdraw"
-                      variant="destructive"
-                    />
-                  )}
-                </div>
+                )}
+                {APP_FEATURES.user.withdrawEnabled && (
+                  <RichMenuCard
+                    icon={UserXIcon}
+                    title="退会する"
+                    description="アカウントを削除"
+                    href="/settings/withdraw"
+                    variant="destructive"
+                  />
+                )}
               </Stack>
             </Section>
           </motion.div>
