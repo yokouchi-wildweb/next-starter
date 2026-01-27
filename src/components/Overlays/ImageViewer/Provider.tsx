@@ -57,7 +57,14 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
         <DialogContent
           data-component="image-viewer"
           className="bg-transparent border-none shadow-none p-0"
-          style={{ width: "fit-content", maxWidth: dialogMaxWidth, maxHeight: DEFAULT_MAX_HEIGHT }}
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "fit-content",
+            maxWidth: dialogMaxWidth,
+            maxHeight: DEFAULT_MAX_HEIGHT,
+          }}
           overlayLayer="super"
           layer="super"
           showCloseButton={false}
