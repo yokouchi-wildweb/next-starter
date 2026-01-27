@@ -197,21 +197,29 @@ export function useImportHandler({
           records += data.recordCount;
           successful++;
         } catch (err) {
+          // エラーメッセージを複数のフィールドから取得を試みる
+          const responseData = axios.isAxiosError(err) ? err.response?.data : null;
           const errorMsg =
-            axios.isAxiosError(err) && err.response?.data?.error
-              ? err.response.data.error
-              : "Unknown error";
+            responseData?.error ||
+            responseData?.message ||
+            (axios.isAxiosError(err) ? err.message : null) ||
+            (err instanceof Error ? err.message : "Unknown error");
           const errorDetails = axios.isAxiosError(err)
             ? {
                 status: err.response?.status,
                 statusText: err.response?.statusText,
                 data: err.response?.data,
+                headers: err.response?.headers,
               }
             : { raw: err };
           console.error(
             `${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`,
-            { domain: domainName, error: errorMsg, details: errorDetails }
+            { domain: domainName, error: errorMsg }
           );
+          console.error(`${LOG_PREFIX}   📋 エラー詳細:`, errorDetails);
+          if (responseData) {
+            console.error(`${LOG_PREFIX}   📋 サーバーレスポンス:`, JSON.stringify(responseData, null, 2));
+          }
           results.push({
             chunkName,
             domain: domainName,
