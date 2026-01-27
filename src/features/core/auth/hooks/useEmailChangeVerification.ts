@@ -4,13 +4,15 @@
 
 import { useEffect, useState } from "react";
 
-import { auth } from "@/lib/firebase/client/app";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { getEmailChangeInfo, applyEmailChange } from "@/lib/firebase/client/applyEmailChange";
 import { userClient } from "@/features/core/user/services/client/userClient";
 import { isHttpError } from "@/lib/errors";
 
 export type EmailChangeVerificationPhase =
   | "initial"
+  | "checking_auth"
+  | "require_login"
   | "processing"
   | "completed"
   | "error";
@@ -28,26 +30,35 @@ type UseEmailChangeVerificationReturn = {
 export function useEmailChangeVerification({
   oobCode,
 }: UseEmailChangeVerificationParams): UseEmailChangeVerificationReturn {
+  const { isAuthenticated } = useAuthSession();
   const [phase, setPhase] = useState<EmailChangeVerificationPhase>("initial");
   const [newEmail, setNewEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // メールアドレス変更処理
   useEffect(() => {
+    // oobCode がない場合はエラー
+    if (!oobCode) {
+      setError("無効なリンクです。");
+      setPhase("error");
+      return;
+    }
+
+    // 未ログインの場合はログインを促す
+    if (!isAuthenticated) {
+      setPhase("require_login");
+      return;
+    }
+
     let isActive = true;
 
     async function processEmailChange() {
-      if (!oobCode) {
-        setError("無効なリンクです。");
-        setPhase("error");
-        return;
-      }
-
       setPhase("processing");
       setError(null);
 
       try {
         // 1. アクションコードの情報を取得
-        const info = await getEmailChangeInfo(oobCode);
+        const info = await getEmailChangeInfo(oobCode!);
         if (!isActive) return;
 
         if (!info || !info.newEmail) {
@@ -58,8 +69,8 @@ export function useEmailChangeVerification({
 
         setNewEmail(info.newEmail);
 
-        // 2. Firebase Authでメールアドレス変更を適用
-        const applied = await applyEmailChange(oobCode);
+        // 2. Firebase Authでメールアドレス変更を適用（auth.currentUser 不要）
+        const applied = await applyEmailChange(oobCode!);
         if (!isActive) return;
 
         if (!applied) {
@@ -68,17 +79,9 @@ export function useEmailChangeVerification({
           return;
         }
 
-        // 3. 現在のユーザーがいる場合はDBを同期
-        const currentUser = auth.currentUser;
-        if (currentUser) {
-          // トークンを強制的に更新
-          const idToken = await currentUser.getIdToken(true);
-          if (!isActive) return;
-
-          // 4. DBのメールアドレスを同期
-          await userClient.confirmEmailChange({ idToken });
-          if (!isActive) return;
-        }
+        // 3. Cookie セッションを使用してサーバー側で DB を同期
+        await userClient.confirmEmailChange();
+        if (!isActive) return;
 
         setPhase("completed");
       } catch (err) {
@@ -100,7 +103,7 @@ export function useEmailChangeVerification({
     return () => {
       isActive = false;
     };
-  }, [oobCode]);
+  }, [oobCode, isAuthenticated]);
 
   return {
     phase,

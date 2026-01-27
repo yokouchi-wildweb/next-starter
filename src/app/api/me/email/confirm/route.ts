@@ -7,47 +7,32 @@ import { DomainError } from "@/lib/errors";
 
 /**
  * Firebase Auth側で更新されたメールアドレスをDBに同期します。
- * クライアントから Firebase ID Token を受け取り、
- * Firebase Auth の最新メールアドレスをDBに反映します。
+ * Cookie セッションからユーザーを特定し、Firebase Auth の最新メールアドレスをDBに反映します。
  */
 export const POST = createApiRoute(
   {
     operation: "POST /api/me/email/confirm",
     operationType: "write",
   },
-  async (req, { session }) => {
+  async (_req, { session }) => {
     if (!session) {
       throw new DomainError("認証が必要です", { status: 401 });
     }
 
-    const body = await req.json();
-    const { idToken } = body;
-
-    if (!idToken || typeof idToken !== "string") {
-      throw new DomainError("IDトークンが必要です", { status: 400 });
-    }
-
     const auth = getServerAuth();
 
-    // Firebase ID Tokenを検証して最新のメールアドレスを取得
-    let decodedToken;
-    try {
-      decodedToken = await auth.verifyIdToken(idToken);
-    } catch {
-      throw new DomainError("無効なIDトークンです", { status: 401 });
-    }
-
-    // セッションユーザーとトークンのユーザーが一致するか確認
-    const firebaseUser = await auth.getUser(decodedToken.uid);
-
+    // Cookie セッションからユーザーを取得
     const currentUser = await userService.get(session.userId);
     if (!currentUser) {
       throw new DomainError("ユーザーが見つかりません", { status: 404 });
     }
 
-    if (currentUser.providerUid !== firebaseUser.uid) {
-      throw new DomainError("ユーザーが一致しません", { status: 403 });
+    if (!currentUser.providerUid) {
+      throw new DomainError("Firebase ユーザー情報が見つかりません", { status: 400 });
     }
+
+    // Firebase Admin SDK で最新のメールアドレスを取得
+    const firebaseUser = await auth.getUser(currentUser.providerUid);
 
     const newEmail = firebaseUser.email;
     if (!newEmail) {

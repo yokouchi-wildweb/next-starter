@@ -65,17 +65,13 @@ async function sendEmailChangeVerification(data: SendEmailChangeVerificationInpu
   await axios.post("/api/me/email/send-verification", data);
 }
 
-export type ConfirmEmailChangeInput = {
-  idToken: string;
-};
-
 export type ConfirmEmailChangeResponse = {
   success: boolean;
   email: string;
 };
 
-async function confirmEmailChange(data: ConfirmEmailChangeInput): Promise<ConfirmEmailChangeResponse> {
-  const response = await axios.post<ConfirmEmailChangeResponse>("/api/me/email/confirm", data);
+async function confirmEmailChange(): Promise<ConfirmEmailChangeResponse> {
+  const response = await axios.post<ConfirmEmailChangeResponse>("/api/me/email/confirm", {});
   return response.data;
 }
 

@@ -1,4 +1,4 @@
-// src/app/(user)/(protected)/email/verify/page.tsx
+// src/app/(user)/(auth)/email/verify/page.tsx
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
