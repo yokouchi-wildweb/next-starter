@@ -5,10 +5,11 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserPenIcon, LogOutIcon, PauseCircleIcon, UserXIcon, ChevronRightIcon, UserCircleIcon, ArrowLeftIcon, MailIcon, LoaderIcon } from "lucide-react";
+import { UserPenIcon, LogOutIcon, PauseCircleIcon, UserXIcon, ChevronRightIcon, UserCircleIcon, ArrowLeftIcon, MailIcon, LoaderIcon, LockIcon, CheckCircleIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Input } from "@/components/Form/Input/Manual/Input";
+import { PasswordInput } from "@/components/Form/Input/Manual/PasswordInput";
 import { Label } from "@/components/Form/Label";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
@@ -18,6 +19,7 @@ import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import type { User } from "@/features/core/user/entities";
 import { useUpdateMyProfile } from "@/features/core/user/hooks/useUpdateMyProfile";
 import { useEmailChange } from "@/features/core/auth/hooks/useEmailChange";
+import { useChangePassword } from "@/features/core/auth/hooks/useChangePassword";
 
 import { ActionMenuCard } from "./ActionMenuCard";
 
@@ -25,7 +27,7 @@ type UserMyPageProps = {
   user: User;
 };
 
-type ViewType = "main" | "account-details" | "edit-name" | "edit-email";
+type ViewType = "main" | "account-details" | "edit-name" | "edit-email" | "edit-password";
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -48,6 +50,7 @@ const viewDepth: Record<ViewType, number> = {
   "account-details": 1,
   "edit-name": 2,
   "edit-email": 2,
+  "edit-password": 2,
 };
 
 export default function UserMyPage({ user }: UserMyPageProps) {
@@ -55,12 +58,15 @@ export default function UserMyPage({ user }: UserMyPageProps) {
   const { logout, isLoading: isLoggingOut } = useLogout();
   const { updateProfile, isLoading: isUpdating, error: updateError } = useUpdateMyProfile();
   const { sendVerification, isLoading: isSendingEmail, error: emailError, isSuccess: emailSent, reset: resetEmailChange } = useEmailChange();
+  const { changePassword, isLoading: isChangingPassword, error: passwordError, isSuccess: passwordChanged, reset: resetPasswordChange } = useChangePassword({ email: user.email });
 
   const [currentView, setCurrentView] = useState<ViewType>("main");
   const [direction, setDirection] = useState(1);
   const [editName, setEditName] = useState(user.name ?? "");
   const [displayedName, setDisplayedName] = useState(user.name ?? "未設定");
   const [editEmail, setEditEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -74,7 +80,13 @@ export default function UserMyPage({ user }: UserMyPageProps) {
       setEditEmail("");
       resetEmailChange();
     }
-  }, [currentView, resetEmailChange]);
+    // パスワード編集画面に入る時にリセット
+    if (view === "edit-password") {
+      setCurrentPassword("");
+      setNewPassword("");
+      resetPasswordChange();
+    }
+  }, [currentView, resetEmailChange, resetPasswordChange]);
 
   const handleSendEmailVerification = useCallback(async () => {
     const trimmedEmail = editEmail.trim();
@@ -94,6 +106,12 @@ export default function UserMyPage({ user }: UserMyPageProps) {
       router.refresh();
     }
   }, [editName, updateProfile, navigateTo, router]);
+
+  const handleChangePassword = useCallback(async () => {
+    if (!currentPassword.trim() || !newPassword.trim()) return;
+
+    await changePassword(currentPassword, newPassword);
+  }, [currentPassword, newPassword, changePassword]);
 
   return (
     <div className="overflow-hidden">
@@ -153,13 +171,15 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                       variant="muted"
                     />
                   )}
-                  <ActionMenuCard
-                    icon={UserXIcon}
-                    title="退会する"
-                    description="アカウントを削除"
-                    href="/settings/withdraw"
-                    variant="destructive"
-                  />
+                  {APP_FEATURES.user.withdrawEnabled && (
+                    <ActionMenuCard
+                      icon={UserXIcon}
+                      title="退会する"
+                      description="アカウントを削除"
+                      href="/settings/withdraw"
+                      variant="destructive"
+                    />
+                  )}
                 </div>
               </Stack>
             </Section>
@@ -226,6 +246,26 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                     </div>
                     <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
                   </button>
+                  {user.providerType === "email" && (
+                    <button
+                      type="button"
+                      onClick={() => navigateTo("edit-password")}
+                      className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left shadow-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                          <LockIcon className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">パスワード</p>
+                          <p className="text-xs text-muted-foreground">
+                            パスワードを変更
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
+                    </button>
+                  )}
                 </div>
               </Stack>
             </Section>
@@ -374,6 +414,102 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                       >
                         {isSendingEmail && <LoaderIcon className="h-4 w-4 animate-spin" />}
                         {isSendingEmail ? "送信中..." : "確認メールを送信"}
+                      </Button>
+                    </Stack>
+                  )}
+                </div>
+              </Stack>
+            </Section>
+          </motion.div>
+        )}
+
+        {currentView === "edit-password" && (
+          <motion.div
+            key="edit-password"
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <Section>
+              <Stack space={4}>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigateTo("account-details")}
+                    className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="戻る"
+                    disabled={isChangingPassword}
+                  >
+                    <ArrowLeftIcon className="h-5 w-5 text-foreground" />
+                  </button>
+                  <SecTitle as="h2" className="!mt-0">パスワードを変更</SecTitle>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                  {passwordChanged ? (
+                    <Stack space={4} className="text-center">
+                      <div className="flex justify-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                          <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                        </div>
+                      </div>
+                      <Stack space={2}>
+                        <p className="font-medium">パスワードを変更しました</p>
+                        <p className="text-sm text-muted-foreground">
+                          新しいパスワードでログインできるようになりました。
+                        </p>
+                      </Stack>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => navigateTo("account-details")}
+                        className="w-full"
+                      >
+                        戻る
+                      </Button>
+                    </Stack>
+                  ) : (
+                    <Stack space={4}>
+                      <div>
+                        <Label htmlFor="current-password" className="mb-2 block">
+                          現在のパスワード
+                        </Label>
+                        <PasswordInput
+                          id="current-password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="現在のパスワードを入力"
+                          disabled={isChangingPassword}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-password" className="mb-2 block">
+                          新しいパスワード
+                        </Label>
+                        <PasswordInput
+                          id="new-password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="新しいパスワードを入力"
+                          disabled={isChangingPassword}
+                        />
+                      </div>
+                      {passwordError && (
+                        <p className="text-sm text-destructive">{passwordError}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        パスワードは6文字以上で設定してください。
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={handleChangePassword}
+                        disabled={isChangingPassword || !currentPassword.trim() || !newPassword.trim()}
+                        className="w-full"
+                      >
+                        {isChangingPassword && <LoaderIcon className="h-4 w-4 animate-spin" />}
+                        {isChangingPassword ? "変更中..." : "パスワードを変更"}
                       </Button>
                     </Stack>
                   )}

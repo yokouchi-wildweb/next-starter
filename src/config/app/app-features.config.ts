@@ -45,7 +45,9 @@ export const APP_FEATURES = {
   },
   user: {
     /** 休会機能を有効にする */
-    pauseEnabled: false,
+    pauseEnabled: true,
+    /** 退会機能を有効にする */
+    withdrawEnabled: true,
   },
   adminConsole: {
     enableDarkModeSwitch: true,
