@@ -30,6 +30,7 @@ export function ZoomableImage({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      data-component="zoomable-image"
       src={src}
       alt={alt}
       style={{ ...style, cursor: "zoom-in" }}

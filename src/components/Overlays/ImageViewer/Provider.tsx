@@ -55,6 +55,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
       {children}
       <DialogPrimitives open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent
+          data-component="image-viewer"
           className="bg-transparent border-none shadow-none p-0 w-fit"
           style={{ maxWidth: dialogMaxWidth, maxHeight: DEFAULT_MAX_HEIGHT }}
           overlayLayer="super"
@@ -65,9 +66,10 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
             {imageAlt || "画像プレビュー"}
           </DialogTitle>
           {imageSrc && (
-            <div className="relative inline-block">
+            <div data-slot="image-viewer-content" className="relative inline-block mx-auto">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
+                data-slot="image-viewer-image"
                 src={imageSrc}
                 alt={imageAlt}
                 className="block object-contain"
