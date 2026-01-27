@@ -13,6 +13,10 @@ export type ImageViewerOptions = {
   maxWidth?: string;
   /** 画像の最大高さ（デフォルト: 90vh） */
   maxHeight?: string;
+  /** スケルトン表示を有効にする（デフォルト: false） */
+  showSkeleton?: boolean;
+  /** スケルトンのアスペクト比（デフォルト: 16/9） */
+  aspectRatio?: number;
 };
 
 export type ImageViewerContextValue = {
