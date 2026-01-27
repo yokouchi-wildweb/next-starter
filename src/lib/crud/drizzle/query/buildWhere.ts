@@ -1,4 +1,4 @@
-import { and, eq, ne, lt, lte, gt, gte, ilike, or, SQL, sql } from "drizzle-orm";
+import { and, eq, ne, lt, lte, gt, gte, ilike, or, SQL, sql, inArray, notInArray } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 import type { WhereExpr } from "@/lib/crud/types";
 
@@ -21,6 +21,10 @@ export const buildWhere = (table: PgTable, expr?: WhereExpr): SQL => {
         return gte(col, expr.value as any);
       case "like":
         return ilike(col, String(expr.value));
+      case "in":
+        return inArray(col, expr.value as any[]);
+      case "notIn":
+        return notInArray(col, expr.value as any[]);
     }
   } else if ("and" in expr) {
     return and(...expr.and.map((e) => buildWhere(table, e))) ?? sql`TRUE`;

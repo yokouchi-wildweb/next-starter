@@ -30,7 +30,9 @@ export type QueryOp =
   | "lte"
   | "gt"
   | "gte"
-  | "like";
+  | "like"
+  | "in"
+  | "notIn";
 
 export type WhereExpr =
   | { field: string; op: QueryOp; value: unknown }
