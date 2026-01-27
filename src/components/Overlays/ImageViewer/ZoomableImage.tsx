@@ -3,10 +3,12 @@
 "use client";
 
 import { type ComponentPropsWithoutRef, type MouseEvent } from "react";
-import { useImageViewer } from "./context";
+import { useImageViewer, type ImageViewerOptions } from "./context";
 
 type ZoomableImageProps = ComponentPropsWithoutRef<"img"> & {
   src: string;
+  /** 拡大表示時のサイズオプション */
+  viewerOptions?: ImageViewerOptions;
 };
 
 export function ZoomableImage({
@@ -14,13 +16,14 @@ export function ZoomableImage({
   alt = "",
   style,
   onClick,
+  viewerOptions,
   ...rest
 }: ZoomableImageProps) {
   const { openImage } = useImageViewer();
 
   const handleClick = (e: MouseEvent<HTMLImageElement>) => {
     e.stopPropagation();
-    openImage(src, alt);
+    openImage(src, alt, viewerOptions);
     onClick?.(e);
   };
 
