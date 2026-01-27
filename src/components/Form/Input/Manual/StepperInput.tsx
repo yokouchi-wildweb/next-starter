@@ -82,7 +82,7 @@ export default function StepperInput({
 
   const resolvedVariant = buttonVariant ?? "ghost";
   const resolvedSize = buttonSize ?? "icon";
-  const sharedButtonClassName = cn("rounded-none", iconSize[size as NonNullable<Size>]);
+  const sharedButtonClassName = cn("rounded-none bg-muted", iconSize[size as NonNullable<Size>]);
 
   const handleManualInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextText = event.target.value;
@@ -108,16 +108,18 @@ export default function StepperInput({
 
   return (
     <div className={cn(containerVariants({ size }), className, disabled && "opacity-70")}>
-      <span className="flex items-center bg-gray-700 px-4 text-white whitespace-nowrap">
-        {label}
-      </span>
+      {label ? (
+        <span className="flex items-center bg-gray-700 px-4 text-white whitespace-nowrap">
+          {label}
+        </span>
+      ) : null}
       <Button
         type="button"
         variant={resolvedVariant}
         size={resolvedSize}
         onClick={decrease}
         disabled={disabled}
-        className={sharedButtonClassName}
+        className={cn(sharedButtonClassName, "border-r")}
       >
         <MinusIcon className="size-4" />
       </Button>
@@ -146,7 +148,7 @@ export default function StepperInput({
         size={resolvedSize}
         onClick={increase}
         disabled={disabled}
-        className={sharedButtonClassName}
+        className={cn(sharedButtonClassName, "border-l")}
       >
         <PlusIcon className="size-4" />
       </Button>
