@@ -2,4 +2,4 @@
 
 export { ImageViewerProvider } from "./Provider";
 export { ZoomableImage } from "./ZoomableImage";
-export { useImageViewer } from "./context";
+export { useImageViewer, type ImageViewerOptions } from "./context";
