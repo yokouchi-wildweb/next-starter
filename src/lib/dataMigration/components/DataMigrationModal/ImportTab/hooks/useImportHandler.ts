@@ -6,6 +6,8 @@
 import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import JSZip from "jszip";
+import { v7 as uuidv7 } from "uuid";
+import { directStorageClient } from "@/lib/storage/client/directStorageClient";
 import type {
   ChunkResult,
   ImportResultData,
@@ -45,6 +47,56 @@ export type UseImportHandlerReturn = {
 
 /** デバッグログ出力用のプレフィックス */
 const LOG_PREFIX = "[Import]";
+
+/**
+ * 画像ファイルを直接Firebase Storageにアップロードし、パス→URL のマップを返す
+ */
+async function uploadAssetsDirectly(
+  assets: Map<string, ArrayBuffer>,
+  domain: string,
+  onProgress?: (uploaded: number, total: number) => void
+): Promise<Map<string, string>> {
+  const urlMap = new Map<string, string>();
+  const entries = Array.from(assets.entries());
+  let uploaded = 0;
+
+  for (const [assetPath, buffer] of entries) {
+    try {
+      // パスから拡張子を取得
+      const ext = assetPath.includes(".") ? assetPath.substring(assetPath.lastIndexOf(".")) : "";
+      // フィールド名を取得（例: main_image/xxx.jpg → main_image）
+      const fieldName = assetPath.split("/")[0] || "assets";
+      // ストレージパスを生成
+      const storagePath = `${domain}/${fieldName}/${uuidv7()}${ext}`;
+      // Blobに変換してアップロード
+      const blob = new Blob([buffer]);
+      const url = await directStorageClient.upload(storagePath, blob);
+      // assets/main_image/xxx.jpg 形式でマップに保存
+      urlMap.set(`assets/${assetPath}`, url);
+      uploaded++;
+      onProgress?.(uploaded, entries.length);
+    } catch (err) {
+      console.error(`${LOG_PREFIX} 画像アップロード失敗: ${assetPath}`, err);
+      // 失敗した場合は空文字を設定（後でnullに変換される）
+      urlMap.set(`assets/${assetPath}`, "");
+    }
+  }
+
+  return urlMap;
+}
+
+/**
+ * CSVコンテンツ内の画像パス（assets/...）を実際のURLに置換
+ */
+function replaceAssetPathsInCsv(csvContent: string, urlMap: Map<string, string>): string {
+  let result = csvContent;
+  for (const [assetPath, url] of urlMap.entries()) {
+    // CSVではカンマやダブルクォートでエスケープされている可能性があるため、
+    // 単純な置換で対応
+    result = result.split(assetPath).join(url);
+  }
+  return result;
+}
 
 /**
  * インポート処理のロジックフック
@@ -141,40 +193,58 @@ export function useImportHandler({
           failed++;
           continue;
         }
-        const csvContent = await csvFile.async("string");
+        let csvContent = await csvFile.async("string");
 
-        // FormData を作成
+        // メインドメインの場合のみ画像フィールドを処理
+        const domainImageFields = domainName === domain ? imageFields : [];
+
+        // アセットファイルを収集して直接Firebase Storageにアップロード
+        const assetsFolder = zip.folder(`${chunkPath}/assets`);
+        if (assetsFolder && domainImageFields.length > 0) {
+          const assetFiles = assetsFolder.filter(() => true);
+          const actualAssetFiles = assetFiles.filter((f) => !f.dir);
+
+          if (actualAssetFiles.length > 0) {
+            console.log(`${LOG_PREFIX}     🖼️ 画像を直接アップロード: ${actualAssetFiles.length} ファイル`, {
+              path: `${chunkPath}/assets`,
+            });
+
+            // アセットを収集
+            const assets = new Map<string, ArrayBuffer>();
+            for (const assetFile of actualAssetFiles) {
+              const assetBuffer = await assetFile.async("arraybuffer");
+              const assetPath = assetFile.name.replace(`${chunkPath}/assets/`, "");
+              assets.set(assetPath, assetBuffer);
+            }
+
+            // 直接Firebase Storageにアップロード
+            const urlMap = await uploadAssetsDirectly(
+              assets,
+              domainName,
+              (uploaded, total) => {
+                console.log(`${LOG_PREFIX}       📤 アップロード進捗: ${uploaded}/${total}`);
+              }
+            );
+
+            // CSVの画像パスをURLに置換
+            csvContent = replaceAssetPathsInCsv(csvContent, urlMap);
+            console.log(`${LOG_PREFIX}     ✅ 画像アップロード完了、CSVを更新`);
+          }
+        }
+
+        // FormData を作成（画像バイナリは含まない）
         const formData = new FormData();
         formData.append("domain", domainName);
         formData.append("chunkName", chunkName);
         formData.append("csvContent", csvContent);
-        // メインドメイン以外は画像フィールドを空にする
-        const domainImageFields = domainName === domain ? imageFields : [];
         formData.append("imageFields", JSON.stringify(domainImageFields));
-        formData.append("updateImages", "true");
+        // 画像は既にアップロード済みなので、サーバー側での画像処理をスキップ
+        formData.append("updateImages", "false");
         // メインドメインのみフィールド型情報を送る
         formData.append("fields", JSON.stringify(domainName === domain ? fieldTypeInfo : []));
         // ドメインタイプを送る
         if (domainType) {
           formData.append("domainType", domainType);
-        }
-
-        // アセットファイルを追加
-        const assetsFolder = zip.folder(`${chunkPath}/assets`);
-        if (assetsFolder) {
-          const assetFiles = assetsFolder.filter(() => true);
-          if (assetFiles.length > 0) {
-            console.log(`${LOG_PREFIX}     🖼️ アセット処理: ${assetFiles.length} ファイル`, {
-              path: `${chunkPath}/assets`,
-            });
-          }
-          for (const assetFile of assetFiles) {
-            if (assetFile.dir) continue;
-            const assetBuffer = await assetFile.async("arraybuffer");
-            const assetPath = assetFile.name.replace(`${chunkPath}/assets/`, "");
-            const blob = new Blob([assetBuffer]);
-            formData.append(`asset:${assetPath}`, blob, assetPath.split("/").pop());
-          }
         }
 
         // チャンクを送信
