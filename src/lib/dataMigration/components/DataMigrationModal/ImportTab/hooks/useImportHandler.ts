@@ -43,6 +43,9 @@ export type UseImportHandlerReturn = {
   clearError: () => void;
 };
 
+/** デバッグログ出力用のプレフィックス */
+const LOG_PREFIX = "[Import]";
+
 /**
  * インポート処理のロジックフック
  */
@@ -89,6 +92,13 @@ export function useImportHandler({
       let successful = 0;
       let failed = 0;
 
+      // ドメイン処理開始ログ
+      const domainProgress = totalDomains ? `[${domainIndex}/${totalDomains}]` : "";
+      console.log(
+        `${LOG_PREFIX} 📦 ドメイン処理開始: ${domainName} ${domainProgress}`,
+        { type: domainType, chunkCount, chunkPrefix: chunkPrefix || "(root)" }
+      );
+
       // フィールド型情報を準備（メインドメイン用）
       const fieldTypeInfo = fields.map((f) => ({
         name: f.name,
@@ -108,9 +118,19 @@ export function useImportHandler({
           currentChunkName: chunkName,
         });
 
+        // チャンク処理開始ログ
+        console.log(
+          `${LOG_PREFIX}   📄 チャンク処理: ${chunkName} [${i + 1}/${chunkCount}]`,
+          { domain: domainName, path: chunkPath }
+        );
+
         // CSV ファイルを取得
         const csvFile = zip.file(`${chunkPath}/data.csv`);
         if (!csvFile) {
+          console.error(
+            `${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`,
+            { domain: domainName, error: "data.csv が見つかりません", path: `${chunkPath}/data.csv` }
+          );
           results.push({
             chunkName,
             domain: domainName,
@@ -141,16 +161,17 @@ export function useImportHandler({
 
         // アセットファイルを追加
         const assetsFolder = zip.folder(`${chunkPath}/assets`);
-        console.log(`[Import Client] Looking for assets in: ${chunkPath}/assets`);
         if (assetsFolder) {
           const assetFiles = assetsFolder.filter(() => true);
-          console.log(`[Import Client] Found ${assetFiles.length} asset files`);
+          if (assetFiles.length > 0) {
+            console.log(`${LOG_PREFIX}     🖼️ アセット処理: ${assetFiles.length} ファイル`, {
+              path: `${chunkPath}/assets`,
+            });
+          }
           for (const assetFile of assetFiles) {
             if (assetFile.dir) continue;
-            console.log(`[Import Client] Processing asset: ${assetFile.name}`);
             const assetBuffer = await assetFile.async("arraybuffer");
             const assetPath = assetFile.name.replace(`${chunkPath}/assets/`, "");
-            console.log(`[Import Client] Asset path after strip: ${assetPath}`);
             const blob = new Blob([assetBuffer]);
             formData.append(`asset:${assetPath}`, blob, assetPath.split("/").pop());
           }
@@ -163,6 +184,10 @@ export function useImportHandler({
           });
 
           const data = response.data as { chunkName: string; recordCount: number };
+          console.log(
+            `${LOG_PREFIX}   ✅ チャンク成功: ${chunkName}`,
+            { domain: domainName, recordCount: data.recordCount }
+          );
           results.push({
             chunkName: data.chunkName,
             domain: domainName,
@@ -176,6 +201,17 @@ export function useImportHandler({
             axios.isAxiosError(err) && err.response?.data?.error
               ? err.response.data.error
               : "Unknown error";
+          const errorDetails = axios.isAxiosError(err)
+            ? {
+                status: err.response?.status,
+                statusText: err.response?.statusText,
+                data: err.response?.data,
+              }
+            : { raw: err };
+          console.error(
+            `${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`,
+            { domain: domainName, error: errorMsg, details: errorDetails }
+          );
           results.push({
             chunkName,
             domain: domainName,
@@ -186,6 +222,12 @@ export function useImportHandler({
           failed++;
         }
       }
+
+      // ドメイン処理完了ログ
+      console.log(
+        `${LOG_PREFIX} 📦 ドメイン処理完了: ${domainName}`,
+        { records, successful, failed }
+      );
 
       return { records, successful, failed, results };
     },
@@ -202,10 +244,22 @@ export function useImportHandler({
       setResult(null);
       setProgress(null);
 
+      // インポート開始ログ
+      console.log(`${LOG_PREFIX} 🚀 インポート開始`, {
+        fileName: file.name,
+        fileSize: `${(file.size / 1024).toFixed(2)} KB`,
+        targetDomain: domain,
+        imageFields,
+        fieldCount: fields.length,
+      });
+
       try {
         // ZIP をブラウザ上で解凍
         const arrayBuffer = await file.arrayBuffer();
         const zip = await JSZip.loadAsync(arrayBuffer);
+        console.log(`${LOG_PREFIX} 📁 ZIP解凍完了`, {
+          fileCount: Object.keys(zip.files).length,
+        });
 
         // manifest.json を読み込み
         const manifestFile = zip.file("manifest.json");
@@ -214,10 +268,16 @@ export function useImportHandler({
         }
         const manifestText = await manifestFile.async("string");
         const rawManifest = JSON.parse(manifestText);
+        console.log(`${LOG_PREFIX} 📋 マニフェスト読み込み完了`, rawManifest);
 
         // v1.1（複数ドメイン）の処理
         if (rawManifest.version === "1.1") {
           const manifest = rawManifest as ManifestV1_1;
+          console.log(`${LOG_PREFIX} 📦 v1.1 複数ドメインモード`, {
+            mainDomain: manifest.mainDomain,
+            domainCount: manifest.domains.length,
+            domains: manifest.domains.map((d) => `${d.name}(${d.type})`),
+          });
 
           // ドメイン検証（メインドメインのみ）
           if (manifest.mainDomain !== domain) {
@@ -229,6 +289,7 @@ export function useImportHandler({
           const sortedDomains = [...manifest.domains].sort(
             (a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99)
           );
+          console.log(`${LOG_PREFIX} 📋 処理順序`, sortedDomains.map((d) => `${d.name}(${d.type})`));
 
           const chunkResults: ChunkResult[] = [];
           const domainResults: {
@@ -267,6 +328,20 @@ export function useImportHandler({
             });
           }
 
+          // v1.1 完了ログ
+          console.log(`${LOG_PREFIX} 🎉 インポート完了 (v1.1)`, {
+            totalRecords,
+            successfulChunks,
+            failedChunks,
+            domainResults,
+          });
+          if (failedChunks > 0) {
+            console.warn(
+              `${LOG_PREFIX} ⚠️ 失敗したチャンク一覧:`,
+              chunkResults.filter((r) => !r.success)
+            );
+          }
+
           setResult({
             totalRecords,
             successfulChunks,
@@ -285,6 +360,11 @@ export function useImportHandler({
 
         // v1.0（単一ドメイン）の処理
         const manifest = rawManifest as ManifestV1;
+        console.log(`${LOG_PREFIX} 📦 v1.0 単一ドメインモード`, {
+          domain: manifest.domain,
+          chunkCount: manifest.chunkCount,
+          totalRecords: manifest.totalRecords,
+        });
 
         // ドメイン検証
         if (manifest.domain !== domain) {
@@ -302,6 +382,19 @@ export function useImportHandler({
           "main"
         );
 
+        // v1.0 完了ログ
+        console.log(`${LOG_PREFIX} 🎉 インポート完了 (v1.0)`, {
+          totalRecords: importResult.records,
+          successfulChunks: importResult.successful,
+          failedChunks: importResult.failed,
+        });
+        if (importResult.failed > 0) {
+          console.warn(
+            `${LOG_PREFIX} ⚠️ 失敗したチャンク一覧:`,
+            importResult.results.filter((r) => !r.success)
+          );
+        }
+
         setResult({
           totalRecords: importResult.records,
           successfulChunks: importResult.successful,
@@ -314,7 +407,7 @@ export function useImportHandler({
           onImportSuccess();
         }
       } catch (err) {
-        console.error("Import failed:", err);
+        console.error(`${LOG_PREFIX} ❌ インポート失敗:`, err);
         setError(err instanceof Error ? err.message : "インポートに失敗しました");
       } finally {
         setIsImporting(false);
