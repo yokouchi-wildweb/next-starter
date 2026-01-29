@@ -5,6 +5,7 @@
 import * as React from "react";
 import type {
   FieldValues,
+  FieldErrors,
   SubmitErrorHandler,
   SubmitHandler,
   UseFormReturn,
@@ -13,6 +14,36 @@ import { FormProvider } from "react-hook-form";
 
 import { Stack, type StackSpace } from "@/components/Layout/Stack";
 import type { MediaState, MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
+import { useToast } from "@/lib/toast";
+
+/**
+ * 送信ボタン付近のエラー表示モード
+ * - 'none': 表示しない
+ * - 'toast': トーストでサマリー表示
+ * - 'summary': インラインでサマリー表示
+ * - 'detailed': インラインで詳細表示
+ */
+export type SubmitErrorDisplay = "none" | "toast" | "summary" | "detailed";
+
+// エラー表示用のContext
+type AppFormErrorContextValue = {
+  /** エラー表示モード */
+  displayMode: SubmitErrorDisplay;
+  /** フォームのエラー状態 */
+  errors: FieldErrors;
+  /** エラーがあるか */
+  hasErrors: boolean;
+};
+
+const AppFormErrorContext = React.createContext<AppFormErrorContextValue | null>(null);
+
+/**
+ * AppForm内でエラー状態を取得するためのフック
+ * Button コンポーネントから使用
+ */
+export function useAppFormError() {
+  return React.useContext(AppFormErrorContext);
+}
 
 // MediaState管理用のContext
 type AppFormMediaContextValue = {
@@ -65,6 +96,14 @@ export type AppFormProps<TFieldValues extends FieldValues = FieldValues> = {
    * デフォルト: false（自動コミット有効）
    */
   disableAutoCommitMedia?: boolean;
+  /**
+   * 送信ボタン付近のエラー表示モード
+   * - false: 表示しない
+   * - 'summary': 「入力内容にエラーがあります」（デフォルト）
+   * - 'detailed': 各フィールドのエラーを列挙
+   * @default 'summary'
+   */
+  submitErrorDisplay?: SubmitErrorDisplay;
 } & Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit">;
 
 const AppFormComponent = <TFieldValues extends FieldValues>(
@@ -84,12 +123,33 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     mediaState: externalMediaState,
     onMediaStateChange,
     disableAutoCommitMedia = false,
+    submitErrorDisplay = "summary",
     ...formProps
   }: AppFormProps<TFieldValues>,
   ref: React.ForwardedRef<HTMLFormElement>,
 ) => {
   const { handleSubmit, formState } = methods;
   const isSubmitting = formState.isSubmitting;
+  const { errors } = formState;
+  const { showToast } = useToast();
+
+  // rootエラー以外のフィールドエラーがあるか判定
+  const hasFieldErrors = Object.keys(errors).some((key) => key !== "root");
+
+  // 前回のsubmitCount（送信回数）を追跡してトースト表示タイミングを制御
+  const prevSubmitCountRef = React.useRef(formState.submitCount);
+
+  // toastモードの場合、送信時にエラーがあればトーストを表示
+  React.useEffect(() => {
+    if (submitErrorDisplay !== "toast") return;
+    if (formState.submitCount === prevSubmitCountRef.current) return;
+
+    prevSubmitCountRef.current = formState.submitCount;
+
+    if (hasFieldErrors) {
+      showToast("入力内容にエラーがあります", "error");
+    }
+  }, [submitErrorDisplay, formState.submitCount, hasFieldErrors, showToast]);
 
   // 個別メディアフィールドのハンドル管理
   const mediaHandlesRef = React.useRef<Map<string, MediaHandleEntry>>(new Map());
@@ -234,26 +294,38 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     [handleMediaStateChange, registerMediaHandle, unregisterMediaHandle, isMediaUploading],
   );
 
+  // エラー表示用Context
+  const errorContextValue = React.useMemo<AppFormErrorContextValue>(
+    () => ({
+      displayMode: submitErrorDisplay,
+      errors,
+      hasErrors: hasFieldErrors,
+    }),
+    [submitErrorDisplay, errors, hasFieldErrors],
+  );
+
   return (
     <FormProvider {...methods}>
-      <AppFormMediaContext.Provider value={mediaContextValue}>
-        <form
-          ref={ref}
-          className={className}
-          data-submitting={isBusy ? "true" : "false"}
-          aria-busy={isBusy}
-          onSubmit={handleSubmit(handleSubmitWithMediaCommit, onSubmitError)}
-          onKeyDown={handleKeyDown}
-          {...formProps}
-        >
-          <fieldset
-            disabled={disableWhilePending ? isBusy : undefined}
-            className="contents"
+      <AppFormErrorContext.Provider value={errorContextValue}>
+        <AppFormMediaContext.Provider value={mediaContextValue}>
+          <form
+            ref={ref}
+            className={className}
+            data-submitting={isBusy ? "true" : "false"}
+            aria-busy={isBusy}
+            onSubmit={handleSubmit(handleSubmitWithMediaCommit, onSubmitError)}
+            onKeyDown={handleKeyDown}
+            {...formProps}
           >
-            <Stack space={fieldSpace}>{children}</Stack>
-          </fieldset>
-        </form>
-      </AppFormMediaContext.Provider>
+            <fieldset
+              disabled={disableWhilePending ? isBusy : undefined}
+              className="contents"
+            >
+              <Stack space={fieldSpace}>{children}</Stack>
+            </fieldset>
+          </form>
+        </AppFormMediaContext.Provider>
+      </AppFormErrorContext.Provider>
     </FormProvider>
   );
 };
