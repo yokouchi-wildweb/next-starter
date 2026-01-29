@@ -17,7 +17,6 @@
 //   });
 
 import { config } from "dotenv";
-import { Resend } from "resend";
 import { render } from "@react-email/render";
 import inquirer from "inquirer";
 import * as fs from "fs";
@@ -26,10 +25,13 @@ import { createElement } from "react";
 
 import { businessConfig } from "../../src/config/business.config";
 
-// .env.development を読み込む（RESEND_API_KEY 用）
+// .env.development を読み込む
 config({ path: ".env.development" });
 
+// 環境変数の確認
+const MAIL_PROVIDER = process.env.MAIL_PROVIDER || "resend";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
 // businessConfig からメール設定を取得
 const MAIL_FROM_ADDRESS = businessConfig.mail.defaultFrom;
@@ -69,11 +71,12 @@ function isMailTemplate(obj: unknown): obj is MailTemplateShape {
  * シンプルテストメール（接続確認用）
  */
 async function renderSimpleTestEmail(): Promise<{ html: string; subject: string }> {
+  const providerName = MAIL_PROVIDER === "sendgrid" ? "SendGrid" : "Resend";
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #2563eb;">メール送信テスト</h1>
-      <p>このメールはResendの設定確認用テストメールです。</p>
-      <p>正常に受信できていれば、Resendの設定は完了しています。</p>
+      <p>このメールは${providerName}の設定確認用テストメールです。</p>
+      <p>正常に受信できていれば、${providerName}の設定は完了しています。</p>
       <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
       <p style="color: #6b7280; font-size: 14px;">
         送信日時: ${new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
@@ -82,7 +85,7 @@ async function renderSimpleTestEmail(): Promise<{ html: string; subject: string 
   `;
   return {
     html,
-    subject: "【テスト】Resend メール送信テスト",
+    subject: `【テスト】${providerName} メール送信テスト`,
   };
 }
 
@@ -93,7 +96,7 @@ async function getTemplateConfigs(): Promise<TemplateConfig[]> {
   const templates: TemplateConfig[] = [
     {
       name: "シンプルテストメール",
-      description: "Resend接続確認用のシンプルなテストメール",
+      description: `${MAIL_PROVIDER === "sendgrid" ? "SendGrid" : "Resend"}接続確認用のシンプルなテストメール`,
       render: renderSimpleTestEmail,
     },
   ];
@@ -156,15 +159,87 @@ function formatFromAddress(): string {
   return MAIL_FROM_ADDRESS;
 }
 
+/**
+ * Resendでメール送信
+ */
+async function sendWithResend(
+  to: string,
+  subject: string,
+  html: string,
+  from: string,
+): Promise<void> {
+  const { Resend } = await import("resend");
+  const resend = new Resend(RESEND_API_KEY);
+
+  const { error } = await resend.emails.send({
+    from,
+    to,
+    subject,
+    html,
+  });
+
+  if (error) {
+    throw new Error(`Resend送信エラー: ${JSON.stringify(error)}`);
+  }
+}
+
+/**
+ * SendGridでメール送信
+ */
+async function sendWithSendGrid(
+  to: string,
+  subject: string,
+  html: string,
+  fromAddress: string,
+  fromName?: string,
+): Promise<void> {
+  const sgMail = (await import("@sendgrid/mail")).default;
+  sgMail.setApiKey(SENDGRID_API_KEY!);
+
+  await sgMail.send({
+    to,
+    from: fromName ? { email: fromAddress, name: fromName } : fromAddress,
+    subject,
+    html,
+  });
+}
+
+/**
+ * プロバイダーに応じてメール送信
+ */
+async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+): Promise<void> {
+  const fromAddress = formatFromAddress();
+
+  if (MAIL_PROVIDER === "sendgrid") {
+    await sendWithSendGrid(to, subject, html, MAIL_FROM_ADDRESS, MAIL_FROM_NAME);
+  } else {
+    await sendWithResend(to, subject, html, fromAddress);
+  }
+}
+
 async function main() {
   console.log("");
   console.log("📧 メールテンプレート テスト送信");
   console.log("");
 
   // 環境変数チェック
-  if (!RESEND_API_KEY) {
-    console.error("エラー: RESEND_API_KEY が設定されていません");
-    process.exit(1);
+  const providerName = MAIL_PROVIDER === "sendgrid" ? "SendGrid" : "Resend";
+  console.log(`使用プロバイダー: ${providerName}`);
+
+  if (MAIL_PROVIDER === "sendgrid") {
+    if (!SENDGRID_API_KEY) {
+      console.error("エラー: SENDGRID_API_KEY が設定されていません");
+      process.exit(1);
+    }
+  } else {
+    if (!RESEND_API_KEY) {
+      console.error("エラー: RESEND_API_KEY が設定されていません");
+      process.exit(1);
+    }
   }
 
   // テンプレート一覧を取得（自動検出）
@@ -205,6 +280,7 @@ async function main() {
 
   console.log("");
   console.log("=== 送信情報 ===");
+  console.log(`プロバイダー: ${providerName}`);
   console.log(`送信元: ${fromAddress}`);
   console.log(`送信先: ${toEmail}`);
   console.log(`テンプレート: ${selectedTemplate.name}`);
@@ -232,28 +308,15 @@ async function main() {
 
   // 送信
   console.log("送信中...");
-  const resend = new Resend(RESEND_API_KEY);
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: fromAddress,
-      to: toEmail,
-      subject,
-      html,
-    });
-
-    if (error) {
-      console.error("");
-      console.error("❌ 送信エラー:", error);
-      process.exit(1);
-    }
+    await sendEmail(toEmail, subject, html);
 
     console.log("");
     console.log("✅ 送信完了!");
-    console.log(`メールID: ${data?.id}`);
   } catch (err) {
     console.error("");
-    console.error("❌ 予期せぬエラー:", err);
+    console.error("❌ 送信エラー:", err);
     process.exit(1);
   }
 }
