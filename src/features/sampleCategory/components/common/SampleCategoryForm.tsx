@@ -63,7 +63,7 @@ export function SampleCategoryForm<TFieldValues extends FieldValues>({
       onSubmit={onSubmitAction}
       pending={isMutating}
       fieldSpace={6}
-      submitErrorDisplay="detailed"
+      submitErrorDisplay="summary"
     >
       <SampleCategoryFields<TFieldValues>
         methods={methods}

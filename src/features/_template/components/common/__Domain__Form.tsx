@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
+import { FormActions } from "@/components/Form/FormActions";
 import type { FieldConfig } from "@/components/Form/Field";
 import type {
   FieldGroup,
@@ -62,6 +63,7 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
       onSubmit={onSubmitAction}
       pending={isMutating}
       fieldSpace={6}
+      submitErrorDisplay="summary"
     >
       <__Domain__Fields<TFieldValues>
         methods={methods}
@@ -75,7 +77,7 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
         beforeField={beforeField}
         afterField={afterField}
       />
-      <div className="flex justify-center gap-3">
+      <FormActions>
         <Button type="submit" variant="default">
           {submitLabel}
         </Button>
@@ -84,7 +86,7 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
             キャンセル
           </Button>
         ) : null}
-      </div>
+      </FormActions>
     </AppForm>
   );
 }

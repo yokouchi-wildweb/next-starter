@@ -63,7 +63,7 @@ export function SampleTagForm<TFieldValues extends FieldValues>({
       onSubmit={onSubmitAction}
       pending={isMutating}
       fieldSpace={6}
-      submitErrorDisplay="detailed"
+      submitErrorDisplay="summary"
     >
       <SampleTagFields<TFieldValues>
         methods={methods}
