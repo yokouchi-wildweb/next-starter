@@ -13,6 +13,7 @@ type Props = {
   perPage: number;
   total: number;
   searchPlaceholder?: string;
+  sortBy?: string;
 };
 
 const DEFAULT_TITLE = "登録済みシステム管理者の一覧";
@@ -26,6 +27,7 @@ export default function ManagerialUserList({
   perPage,
   total,
   searchPlaceholder = DEFAULT_PLACEHOLDER,
+  sortBy,
 }: Props) {
   return (
     <Section>
@@ -36,6 +38,7 @@ export default function ManagerialUserList({
         perPage={perPage}
         total={total}
         searchPlaceholder={searchPlaceholder}
+        sortBy={sortBy}
       />
       <Table users={users} editBasePath={listPath} />
     </Section>

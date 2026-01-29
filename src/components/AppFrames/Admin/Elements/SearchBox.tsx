@@ -45,13 +45,13 @@ export default function SearchBox({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-1 min-w-48">
+    <form onSubmit={handleSubmit} className="flex items-center gap-1">
 
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
-        className="h-8 flex-1"
+        className="h-8 min-w-54"
       />
       <Button type="button" size="sm" variant="outline" onClick={handleReset}>
 

@@ -8,7 +8,7 @@ import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { userService } from "@/features/core/user/services/server/userService";
 import { getRolesByCategory } from "@/features/core/user/constants";
-import type { ListPageSearchParams, WhereExpr } from "@/lib/crud";
+import type { ListPageSearchParams, WhereExpr, OrderBySpec } from "@/lib/crud";
 
 export const metadata = {
   title: "システム管理者",
@@ -21,7 +21,7 @@ type Props = {
 };
 
 export default async function AdminSystemUserListPage({ searchParams }: Props) {
-  const { page: pageStr, searchQuery } = await searchParams;
+  const { page: pageStr, searchQuery, sortBy } = await searchParams;
   const page = Number(pageStr ?? "1");
   const perPage = await settingService.getAdminListPerPage();
 
@@ -39,11 +39,16 @@ export default async function AdminSystemUserListPage({ searchParams }: Props) {
     ],
   };
 
+  // 並び替え
+  const orderByField = sortBy === "updatedAt" ? "updatedAt" : "createdAt";
+  const orderBy: OrderBySpec = [[orderByField, "DESC"]];
+
   const { results: users, total } = await userService.search({
     page,
     limit: perPage,
     where,
     searchQuery,
+    orderBy,
   });
 
   return (
@@ -57,6 +62,7 @@ export default async function AdminSystemUserListPage({ searchParams }: Props) {
         title="登録済みシステム管理者の一覧"
         listPath={LIST_PATH}
         searchPlaceholder="管理者名またはメールアドレスで検索"
+        sortBy={sortBy}
       />
     </AdminPage>
   );

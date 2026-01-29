@@ -12,7 +12,7 @@ import type { z } from "zod";
 
 const baseOptions = {
   idType: "uuid",
-  defaultOrderBy: [["updatedAt", "DESC"]],
+  defaultOrderBy: [["createdAt", "DESC"]],
   defaultSearchFields: ["name", "email"],
   useSoftDelete: true,
 } satisfies DrizzleCrudServiceOptions<z.infer<typeof UserCoreSchema>>;

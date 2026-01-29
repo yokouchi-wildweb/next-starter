@@ -17,6 +17,7 @@ export interface BaseEntity {
 export type ListPageSearchParams = {
   page?: string;
   searchQuery?: string;
+  sortBy?: string;
 };
 
 // ============================================================

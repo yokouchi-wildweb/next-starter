@@ -13,6 +13,7 @@ type Props = {
   perPage: number;
   total: number;
   searchPlaceholder?: string;
+  sortBy?: string;
 };
 
 const DEFAULT_TITLE = "登録済みデモユーザーの一覧";
@@ -25,6 +26,7 @@ export default function DemoUserList({
   perPage,
   total,
   searchPlaceholder,
+  sortBy,
 }: Props) {
   return (
     <Section>
@@ -35,6 +37,7 @@ export default function DemoUserList({
         perPage={perPage}
         total={total}
         searchPlaceholder={searchPlaceholder}
+        sortBy={sortBy}
       />
       <Table users={users} />
     </Section>
