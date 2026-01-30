@@ -192,6 +192,12 @@ export class SquarePaymentProvider implements PaymentProvider {
       checkout_options: {
         redirect_url: params.successUrl,
       },
+      // 購入者メールアドレスを事前入力
+      ...(params.buyerEmail && {
+        pre_populated_data: {
+          buyer_email: params.buyerEmail,
+        },
+      }),
       // 購入リクエストIDをメモに保存（Webhook照合用）
       payment_note: params.purchaseRequestId,
     };

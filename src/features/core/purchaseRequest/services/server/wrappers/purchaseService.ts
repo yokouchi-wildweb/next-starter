@@ -13,6 +13,7 @@ import {
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
+import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors/domainError";
 
 // トランザクションクライアント型
@@ -135,6 +136,11 @@ export async function initiatePurchase(
   // 3. 決済プロバイダでセッション作成
   const slug = getSlugByWalletType(walletType as WalletType);
   const provider = getPaymentProvider(paymentProvider);
+
+  // ユーザーのメールアドレスを取得（決済ページで事前入力用）
+  const user = await userService.get(userId);
+  const buyerEmail = user?.email || undefined;
+
   const session = await provider.createSession({
     purchaseRequestId: purchaseRequest.id,
     amount: paymentAmount,
@@ -142,6 +148,7 @@ export async function initiatePurchase(
     successUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}`,
     cancelUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}&reason=cancelled`,
     metadata: itemName ? { itemName } : undefined,
+    buyerEmail,
   });
 
   // 4. セッション情報を記録（status: processing）

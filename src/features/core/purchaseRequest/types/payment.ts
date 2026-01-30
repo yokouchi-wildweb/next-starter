@@ -16,6 +16,8 @@ export type CreatePaymentSessionParams = {
   cancelUrl: string;
   /** 追加メタデータ */
   metadata?: Record<string, string>;
+  /** 購入者メールアドレス（決済ページで事前入力） */
+  buyerEmail?: string;
 };
 
 /**
