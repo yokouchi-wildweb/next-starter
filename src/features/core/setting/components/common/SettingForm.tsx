@@ -82,6 +82,7 @@ export function SettingForm<TFieldValues extends FieldValues>({
       />
       <div className="flex justify-center">
         <Button type="submit" disabled={loading} variant="default">
+          {submitLabel}
         </Button>
         <Button type="button" variant="outline" onClick={handleCancel} className="ml-4">
           キャンセル
