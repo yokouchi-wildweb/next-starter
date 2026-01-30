@@ -24,6 +24,7 @@ export function SwitchInput<
       value={field.value as T | null | undefined}
       name={field.name}
       onChange={field.onChange}
+      onBlur={field.onBlur}
       {...rest}
     />
   );

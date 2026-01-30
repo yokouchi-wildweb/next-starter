@@ -28,6 +28,8 @@ export type MultiSelectInputProps = {
   name?: string;
   /** 値が変更されたときのコールバック */
   onChange: (value: OptionPrimitive[]) => void;
+  /** フォーカスが外れたときのコールバック（ポップオーバーが閉じた時に発火） */
+  onBlur?: () => void;
   options?: Options[];
   placeholder?: string;
   emptyMessage?: string;
@@ -45,6 +47,7 @@ export function MultiSelectInput({
   value,
   name,
   onChange,
+  onBlur,
   options = [],
   placeholder = "選択してください",
   emptyMessage = "該当する項目がありません",
@@ -73,6 +76,10 @@ export function MultiSelectInput({
       setInternalOpen(nextOpen);
     }
     onOpenChange?.(nextOpen);
+    // ポップオーバーが閉じた時にonBlurを発火
+    if (!nextOpen) {
+      onBlur?.();
+    }
   };
 
   const handleToggle = (optionValue: OptionPrimitive) => {

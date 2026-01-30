@@ -25,6 +25,8 @@ export type CheckGroupInputProps = {
   value?: OptionPrimitive[];
   /** 値が変更されたときのコールバック */
   onChange: (value: OptionPrimitive[]) => void;
+  /** フォーカスが外れたときのコールバック（値変更後に発火） */
+  onBlur?: () => void;
   /**
    * Options to choose from. Optional so the component can render
    * even when options haven't loaded yet.
@@ -51,6 +53,7 @@ export type CheckGroupInputProps = {
 export function CheckGroupInput({
   value,
   onChange,
+  onBlur,
   options = [],
   displayType = "standard",
   orientation,
@@ -65,6 +68,7 @@ export function CheckGroupInput({
 
   const handleToggle = (optionValue: OptionPrimitive) => {
     onChange(toggleOptionValue(value, optionValue));
+    onBlur?.();
   };
 
   // classicのデフォルトはvertical、それ以外はhorizontal

@@ -21,6 +21,7 @@ export function RadioGroupInput<
     <ManualRadioGroupInput
       value={field.value}
       onChange={field.onChange}
+      onBlur={field.onBlur}
       {...rest}
     />
   );

@@ -3,15 +3,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { Control, FieldPath, FieldValues } from "react-hook-form";
+import type { Control, ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { FieldItem } from "../Controlled";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
+import { useAutoSaveContext } from "@/components/Form/AutoSave";
 import type { FieldConfig, FieldCommonProps } from "../types";
 import {
   renderInputByFormType,
   shouldUseFieldItem,
   hasVisibleInput,
+  getBlurMode,
 } from "./inputResolver";
 
 export type ConfiguredFieldProps<
@@ -76,6 +78,27 @@ export function ConfiguredField<
 
   const { formInput } = fieldConfig;
 
+  // 自動保存コンテキスト（FieldItemを使わないコンポーネント用）
+  const autoSaveContext = useAutoSaveContext<TFieldValues>();
+
+  /**
+   * FieldItemを使わないコンポーネント用に、fieldをauto-save対応でラップする
+   */
+  const wrapFieldWithAutoSave = (
+    field: ControllerRenderProps<TFieldValues, TName>
+  ): ControllerRenderProps<TFieldValues, TName> => {
+    if (!autoSaveContext?.enabled) return field;
+
+    const blurMode = getBlurMode(fieldConfig);
+    return {
+      ...field,
+      onBlur: () => {
+        field.onBlur();
+        autoSaveContext.onFieldBlur(resolvedName, { immediate: blurMode === "immediate" });
+      },
+    };
+  };
+
   // 非表示フィールド
   if (!hasVisibleInput(formInput)) {
     if (formInput === "hidden") {
@@ -97,14 +120,18 @@ export function ConfiguredField<
       <FormField
         control={control}
         name={resolvedName}
-        render={({ field }) => (
-          <FormItem className={className}>
-            <FormControl>
-              {renderInputByFormType(formInput, field, fieldConfig, inputClassName)}
-            </FormControl>
-            {!hideError && <FormMessage />}
-          </FormItem>
-        )}
+        render={({ field }) => {
+          // 自動保存対応でfieldをラップ
+          const wrappedField = wrapFieldWithAutoSave(field);
+          return (
+            <FormItem className={className}>
+              <FormControl>
+                {renderInputByFormType(formInput, wrappedField, fieldConfig, inputClassName)}
+              </FormControl>
+              {!hideError && <FormMessage />}
+            </FormItem>
+          );
+        }}
       />
     );
   }
@@ -125,6 +152,7 @@ export function ConfiguredField<
       hideError={hideError}
       layout={layout}
       labelClass={labelClass}
+      blurMode={getBlurMode(fieldConfig)}
       renderInput={(field, inputClassName) => renderInputByFormType(formInput, field, fieldConfig, inputClassName)}
     />
   );

@@ -18,13 +18,21 @@ export type AutoSaveOptions<TFieldValues extends FieldValues = FieldValues> = {
 };
 
 /**
+ * onFieldBlurのオプション
+ */
+export type FieldBlurOptions = {
+  /** trueの場合、デバウンスなしで即時保存 */
+  immediate?: boolean;
+};
+
+/**
  * AutoSaveContextの値
  */
 export type AutoSaveContextValue<TFieldValues extends FieldValues = FieldValues> = {
   /** 自動保存が有効かどうか */
   enabled: boolean;
   /** フィールドのblur時に呼び出す関数 */
-  onFieldBlur: (fieldName: FieldPath<TFieldValues>) => void;
+  onFieldBlur: (fieldName: FieldPath<TFieldValues>, options?: FieldBlurOptions) => void;
   /** 現在保存中かどうか */
   isSaving: boolean;
 };

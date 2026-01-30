@@ -18,6 +18,7 @@ export function SelectInput<
     <ManualSelectInput
       value={field.value}
       onChange={field.onChange}
+      onBlur={field.onBlur}
       {...rest}
     />
   );

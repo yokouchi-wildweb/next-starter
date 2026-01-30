@@ -127,6 +127,8 @@ export type SwitchInputProps<T = boolean> = {
   name?: string;
   /** 値が変更されたときのコールバック */
   onChange: (value: T) => void;
+  /** フォーカスが外れたときのコールバック（値変更後に発火） */
+  onBlur?: () => void;
   /** ONのときの値（デフォルト: true） */
   onValue?: T;
   /** OFFのときの値（デフォルト: false） */
@@ -178,6 +180,7 @@ export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {
     value,
     name,
     onChange,
+    onBlur,
     onValue,
     offValue,
     label,
@@ -220,6 +223,7 @@ export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {
         aria-describedby={ariaDescribedby}
         onChange={(event) => {
           onChange(event.target.checked ? resolvedOnValue : resolvedOffValue);
+          onBlur?.();
         }}
       />
 

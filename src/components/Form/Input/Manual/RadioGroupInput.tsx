@@ -20,6 +20,8 @@ export type RadioGroupInputProps = {
   value?: OptionPrimitive | null;
   /** 値が変更されたときのコールバック */
   onChange: (value: OptionPrimitive) => void;
+  /** フォーカスが外れたときのコールバック（値変更後に発火） */
+  onBlur?: () => void;
   /**
    * Options to choose from. Optional so the component can render
    * even when options haven't loaded yet.
@@ -44,6 +46,7 @@ export type RadioGroupInputProps = {
 export function RadioGroupInput({
   value,
   onChange,
+  onBlur,
   options = [],
   displayType = "standard",
   orientation,
@@ -54,6 +57,11 @@ export function RadioGroupInput({
   disabled,
   ...rest
 }: RadioGroupInputProps) {
+  // 値変更後にonBlurを発火するラップ関数
+  const handleChange = (newValue: OptionPrimitive) => {
+    onChange(newValue);
+    onBlur?.();
+  };
   const serializedValue =
     value === null || typeof value === "undefined" ? undefined : String(value);
 
@@ -74,7 +82,7 @@ export function RadioGroupInput({
   if (displayType === "classic") {
     return (
       <RadioGroup
-        onValueChange={(value) => onChange(resolveOriginalValue(value) as OptionPrimitive)}
+        onValueChange={(value) => handleChange(resolveOriginalValue(value) as OptionPrimitive)}
         value={serializedValue}
         defaultValue={serializedValue}
         disabled={disabled}
@@ -120,7 +128,7 @@ export function RadioGroupInput({
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
         const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
 
-        const handleSelect = () => onChange(op.value);
+        const handleSelect = () => handleChange(op.value);
 
         const key = optionSerialized || String(op.label ?? op.value);
 

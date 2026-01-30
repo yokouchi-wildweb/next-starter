@@ -265,3 +265,41 @@ export function shouldUseFieldItem(formInput: FormInputType): boolean {
 export function isCheckboxArray(fieldConfig: FieldConfig): boolean {
   return fieldConfig.formInput === "checkbox" && fieldConfig.fieldType === "array";
 }
+
+/**
+ * 各入力タイプの自動保存時のblurモード設定
+ *
+ * - immediate: blur時点で入力が確定しているため即座に保存
+ * - debounce: 連続操作の可能性があるため300ms待ってから保存
+ */
+const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce"> = {
+  // 即時保存: blur時点で入力が確定している
+  textInput: "immediate",
+  numberInput: "immediate",
+  textarea: "immediate",
+  emailInput: "immediate",
+  passwordInput: "immediate",
+  radio: "immediate",
+  select: "immediate",
+  multiSelect: "immediate",
+  switchInput: "immediate",
+  dateInput: "immediate",
+  timeInput: "immediate",
+  datetimeInput: "immediate",
+
+  // デバウンス保存: 連続操作の可能性がある
+  checkbox: "debounce",
+  stepperInput: "debounce",
+
+  // 特殊（自動保存の対象外または別処理）
+  hidden: "debounce",
+  none: "debounce",
+  mediaUploader: "debounce",
+};
+
+/**
+ * 自動保存時のblurモードを取得する
+ */
+export function getBlurMode(fieldConfig: FieldConfig): "immediate" | "debounce" {
+  return BLUR_MODE_CONFIG[fieldConfig.formInput] ?? "debounce";
+}

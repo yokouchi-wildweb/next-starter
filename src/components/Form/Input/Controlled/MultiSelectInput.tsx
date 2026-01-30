@@ -23,6 +23,7 @@ export function MultiSelectInput<
       value={field.value}
       name={field.name}
       onChange={field.onChange}
+      onBlur={field.onBlur}
       {...rest}
     />
   );

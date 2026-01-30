@@ -28,6 +28,8 @@ export type BooleanCheckboxInputProps = {
   name?: string;
   /** 値が変更されたときのコールバック */
   onChange: (value: boolean) => void;
+  /** フォーカスが外れたときのコールバック（値変更後に発火） */
+  onBlur?: () => void;
   label?: ReactNode;
   /**
    * チェックボックス本体のサイズ
@@ -37,14 +39,17 @@ export type BooleanCheckboxInputProps = {
   disabled?: boolean;
 } & Omit<ComponentProps<typeof Checkbox>, "checked" | "defaultChecked" | "onCheckedChange" | "value" | "name" | "disabled">;
 
-export function BooleanCheckboxInput({ value, name, onChange, label, id, className, size, disabled, ...rest }: BooleanCheckboxInputProps) {
+export function BooleanCheckboxInput({ value, name, onChange, onBlur, label, id, className, size, disabled, ...rest }: BooleanCheckboxInputProps) {
   const checkboxId = id ?? name ?? undefined;
   const checkbox = (
     <Checkbox
       id={checkboxId}
       className={cn("border-muted-foreground", checkboxSizeVariants({ size }), className)}
       checked={Boolean(value)}
-      onCheckedChange={(checked) => onChange(checked === true)}
+      onCheckedChange={(checked) => {
+        onChange(checked === true);
+        onBlur?.();
+      }}
       disabled={disabled}
       {...rest}
     />

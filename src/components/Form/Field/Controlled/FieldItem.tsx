@@ -19,6 +19,9 @@ import {
 import type { FieldCommonProps } from "../types";
 import { useAutoSaveContext } from "@/components/Form/AutoSave";
 
+/** 自動保存時のblurモード */
+export type BlurMode = "immediate" | "debounce";
+
 export type FieldItemProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
@@ -29,6 +32,8 @@ export type FieldItemProps<
   label?: ReactNode;
   /** 入力コンポーネントをレンダリングする関数 */
   renderInput: (field: ControllerRenderProps<TFieldValues, TName>, inputClassName?: string) => ReactNode;
+  /** 自動保存時のblurモード（immediate: 即時保存、debounce: デバウンスして保存）。デフォルト: debounce */
+  blurMode?: BlurMode;
 };
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
@@ -57,6 +62,7 @@ export function FieldItem<
   requiredMarkPosition = "after",
   layout = "vertical",
   labelClass,
+  blurMode = "debounce",
 }: FieldItemProps<TFieldValues, TName>) {
   // 自動保存コンテキスト（nullの場合は従来型モード）
   const autoSaveContext = useAutoSaveContext<TFieldValues>();
@@ -79,7 +85,7 @@ export function FieldItem<
               ...field,
               onBlur: () => {
                 field.onBlur();
-                autoSaveContext.onFieldBlur(name);
+                autoSaveContext.onFieldBlur(name, { immediate: blurMode === "immediate" });
               },
             }
           : field;

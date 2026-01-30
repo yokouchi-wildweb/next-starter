@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
+import { useAutoSaveConfig } from "@/components/Form/AutoSave";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
 import domainConfig from "@/features/sample/domain.json";
@@ -37,6 +38,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateSample();
   const { data: items } = useSearchSample({ limit: 10 });
+  const autoSave = useAutoSaveConfig(trigger, sample.id);
 
   const { navigator, isSwitching } = useItemNavigator({
     items,
@@ -68,6 +70,7 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
         isMutating={isMutating}
         submitLabel="更新"
         onCancel={() => router.push(redirectPath)}
+        autoSave={autoSave}
       />
     </>
   );

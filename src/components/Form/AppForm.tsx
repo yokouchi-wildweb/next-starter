@@ -123,7 +123,7 @@ export type AppFormProps<TFieldValues extends FieldValues = FieldValues> = {
    * ```
    */
   autoSave?: AutoSaveOptions<TFieldValues>;
-} & Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit">;
+} & Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit" | "autoSave">;
 
 const AppFormComponent = <TFieldValues extends FieldValues>(
   {
@@ -213,7 +213,8 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
 
   // メディアアップロード中はフォームを無効化（両方を考慮）
   const isMediaUploading = (effectiveFieldRendererState?.isUploading ?? false) || individualMediaUploading;
-  const isBusy = pending || isSubmitting || isMediaUploading || isSaving;
+  // NOTE: isSavingは含めない（自動保存中も編集を継続できるようにする）
+  const isBusy = pending || isSubmitting || isMediaUploading;
 
   // 送信成功時にメディアをコミット
   const handleSubmitWithMediaCommit: SubmitHandler<TFieldValues> = React.useCallback(
