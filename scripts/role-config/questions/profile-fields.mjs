@@ -378,6 +378,8 @@ async function askSingleField(fieldIndex) {
   }
 
   // フィールドオブジェクト構築（tagsは後で別途収集）
+  // Boolean型の場合: required=false → nullable: true（NULLを許容）
+  // Boolean型はデフォルトで notNull なので、明示的にNULLを許容する場合のみ nullable を設定
   const field = {
     name: trimmedName,
     label: trimmedLabel,
@@ -385,6 +387,7 @@ async function askSingleField(fieldIndex) {
     formInput: normalizedInput,
     ...(READONLY_SUPPORTED_FORM_INPUTS.has(normalizedInput) ? { readonly } : {}),
     ...(required ? { required: true } : {}),
+    ...(isBooleanField && !required ? { nullable: true } : {}),
     ...(uploadPath ? { uploadPath } : {}),
     ...(slug ? { slug } : {}),
     ...(mediaTypePreset ? { mediaTypePreset } : {}),

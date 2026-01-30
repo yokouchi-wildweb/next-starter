@@ -24,7 +24,7 @@ function formatValue(v) {
  * fieldType から Drizzle のカラム型を生成
  */
 function getDrizzleColumnType(field) {
-  const { name, fieldType, required, defaultValue } = field;
+  const { name, fieldType, defaultValue, nullable } = field;
   const columnName = toSnakeCase(name);
   const camelName = toCamelCase(name);
 
@@ -52,11 +52,17 @@ function getDrizzleColumnType(field) {
       columnDef = `numeric("${columnName}")${defaultSuffix}`;
       break;
     case "boolean":
+      // Boolean型はデフォルトで notNull + default(false)
+      // NULLを許容したい場合のみ nullable: true を明示的に指定
       columnDef = `boolean("${columnName}")`;
-      if (required) {
+      if (nullable) {
+        // 明示的にNULLを許容する場合
+        if (hasDefaultValue) {
+          columnDef += `.default(${defaultValue})`;
+        }
+      } else {
+        // デフォルト: notNull + default(指定値 or false)
         columnDef += `.default(${hasDefaultValue ? defaultValue : false}).notNull()`;
-      } else if (hasDefaultValue) {
-        columnDef += `.default(${defaultValue})`;
       }
       break;
     case "enum":
