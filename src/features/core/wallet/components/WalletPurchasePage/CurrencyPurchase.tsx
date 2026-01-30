@@ -4,7 +4,7 @@
 
 import { Stack } from "@/components/Layout/Stack";
 import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
-import type { WalletType } from "@/config/app/currency.config";
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 
 import { PurchaseButton } from "./PurchaseButton";
 import { PurchaseSummaryCard } from "./PurchaseSummaryCard";
@@ -26,10 +26,15 @@ export function CurrencyPurchase({
   currentBalance,
   walletType,
 }: CurrencyPurchaseProps) {
+  // 通貨設定から商品名を生成
+  const currencyConfig = CURRENCY_CONFIG[walletType];
+  const itemName = `${currencyConfig.label} ${purchaseAmount.toLocaleString()}${currencyConfig.unit}`;
+
   const { purchase, isLoading, error } = useCoinPurchase({
     walletType,
     amount: purchaseAmount,
     paymentAmount,
+    itemName,
   });
 
   return (
