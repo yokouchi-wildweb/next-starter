@@ -331,16 +331,121 @@ export class SquarePaymentProvider implements PaymentProvider {
 
   /**
    * 決済ステータスを照会
+   * Payment Link IDからOrder情報を取得し、関連するPaymentのステータスを確認
    */
   async getPaymentStatus(sessionId: string): Promise<PaymentStatusResult> {
-    // SquareのPayment Linkは支払いIDではないため、
-    // Order IDで照会する必要がある
-    // 現時点ではWebhook依存で実装
-    console.log("[Square] getPaymentStatus called - returning pending (Webhook-dependent)");
-    return {
-      status: "pending",
-      sessionId,
-    };
+    const config = this.getConfig();
+    const baseUrl = this.getApiBaseUrl();
+
+    try {
+      // 1. Payment Link から Order ID を取得
+      const linkResponse = await fetch(`${baseUrl}/v2/online-checkout/payment-links/${sessionId}`, {
+        method: "GET",
+        headers: {
+          "Square-Version": "2025-01-23",
+          Authorization: `Bearer ${config.accessToken}`,
+        },
+      });
+
+      if (!linkResponse.ok) {
+        console.error("[Square] Failed to fetch payment link:", linkResponse.status);
+        return { status: "pending", sessionId };
+      }
+
+      const linkData = await linkResponse.json();
+      const orderId = linkData.payment_link?.order_id;
+
+      if (!orderId) {
+        console.log("[Square] No order_id in payment link");
+        return { status: "pending", sessionId };
+      }
+
+      // 2. Order から Payment IDs を取得
+      const orderResponse = await fetch(`${baseUrl}/v2/orders/${orderId}`, {
+        method: "GET",
+        headers: {
+          "Square-Version": "2025-01-23",
+          Authorization: `Bearer ${config.accessToken}`,
+        },
+      });
+
+      if (!orderResponse.ok) {
+        console.error("[Square] Failed to fetch order:", orderResponse.status);
+        return { status: "pending", sessionId };
+      }
+
+      const orderData = await orderResponse.json();
+      const tenders = orderData.order?.tenders;
+
+      if (!tenders || tenders.length === 0) {
+        // まだ支払いが行われていない
+        console.log("[Square] No tenders in order - payment not completed yet");
+        return { status: "pending", sessionId };
+      }
+
+      // 3. 最初のtenderのpayment_idでPaymentステータスを確認
+      const paymentId = tenders[0].payment_id;
+      if (!paymentId) {
+        console.log("[Square] No payment_id in tender");
+        return { status: "pending", sessionId };
+      }
+
+      const paymentResponse = await fetch(`${baseUrl}/v2/payments/${paymentId}`, {
+        method: "GET",
+        headers: {
+          "Square-Version": "2025-01-23",
+          Authorization: `Bearer ${config.accessToken}`,
+        },
+      });
+
+      if (!paymentResponse.ok) {
+        console.error("[Square] Failed to fetch payment:", paymentResponse.status);
+        return { status: "pending", sessionId };
+      }
+
+      const paymentData = await paymentResponse.json();
+      const payment = paymentData.payment;
+
+      if (!payment) {
+        return { status: "pending", sessionId };
+      }
+
+      console.log("[Square] Payment status:", payment.status);
+
+      // 4. ステータスをマッピング
+      if (isSuccessPaymentStatus(payment.status)) {
+        return {
+          status: "completed",
+          sessionId,
+          transactionId: payment.id,
+          paidAt: new Date(payment.updated_at || payment.created_at),
+        };
+      }
+
+      if (payment.status === "CANCELED") {
+        return {
+          status: "failed",
+          sessionId,
+          errorCode: PAYMENT_ERROR_CODES.PAYMENT_CANCELLED,
+          errorMessage: "決済がキャンセルされました",
+        };
+      }
+
+      if (payment.status === "FAILED") {
+        return {
+          status: "failed",
+          sessionId,
+          errorCode: PAYMENT_ERROR_CODES.PAYMENT_FAILED,
+          errorMessage: "決済に失敗しました",
+        };
+      }
+
+      // PENDING, APPROVED など進行中のステータス
+      return { status: "pending", sessionId };
+    } catch (error) {
+      console.error("[Square] getPaymentStatus error:", error);
+      return { status: "pending", sessionId };
+    }
   }
 
   /**

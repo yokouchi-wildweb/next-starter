@@ -31,6 +31,8 @@ export type InitiatePurchaseParams = {
   paymentMethod: string;
   paymentProvider?: PaymentProviderName;
   baseUrl: string;
+  /** 商品名（決済ページに表示） */
+  itemName?: string;
 };
 
 export type InitiatePurchaseResult = {
@@ -104,6 +106,7 @@ export async function initiatePurchase(
     paymentMethod,
     paymentProvider = getDefaultProviderName(),
     baseUrl,
+    itemName,
   } = params;
 
   // 1. 冪等キーで既存リクエストをチェック
@@ -138,6 +141,7 @@ export async function initiatePurchase(
     userId,
     successUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}`,
     cancelUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}&reason=cancelled`,
+    metadata: itemName ? { itemName } : undefined,
   });
 
   // 4. セッション情報を記録（status: processing）

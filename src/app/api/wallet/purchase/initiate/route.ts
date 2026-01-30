@@ -24,6 +24,8 @@ const InitiatePurchaseSchema = z.object({
     .int()
     .positive({ message: "支払い金額は1以上の整数で指定してください。" }),
   paymentMethod: z.string().min(1, { message: "支払い方法を指定してください。" }),
+  /** 商品名（決済ページに表示） */
+  itemName: z.string().optional(),
 });
 
 export const POST = createApiRoute(
@@ -60,6 +62,7 @@ export const POST = createApiRoute(
       paymentAmount: payload.paymentAmount,
       paymentMethod: payload.paymentMethod,
       baseUrl,
+      itemName: payload.itemName,
     });
 
     return {

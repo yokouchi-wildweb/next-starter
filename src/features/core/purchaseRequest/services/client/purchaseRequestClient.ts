@@ -62,6 +62,8 @@ export type InitiatePurchaseRequest = {
   amount: number;
   paymentAmount: number;
   paymentMethod: string;
+  /** 商品名（決済ページに表示） */
+  itemName?: string;
 };
 
 /**

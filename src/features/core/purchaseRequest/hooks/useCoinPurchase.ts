@@ -15,6 +15,8 @@ type UseCoinPurchaseParams = {
   walletType?: WalletType;
   amount: number;
   paymentAmount: number;
+  /** 商品名（決済ページに表示） */
+  itemName?: string;
 };
 
 type UseCoinPurchaseResult = {
@@ -34,6 +36,7 @@ export function useCoinPurchase({
   walletType = defaultWalletType,
   amount,
   paymentAmount,
+  itemName,
 }: UseCoinPurchaseParams): UseCoinPurchaseResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +59,7 @@ export function useCoinPurchase({
           amount,
           paymentAmount,
           paymentMethod: "redirect",
+          itemName,
         });
 
         // 決済ページへリダイレクト
@@ -68,7 +72,7 @@ export function useCoinPurchase({
         setIsLoading(false);
       }
     },
-    [walletType, amount, paymentAmount]
+    [walletType, amount, paymentAmount, itemName]
   );
 
   return { purchase, isLoading, error };
