@@ -29,7 +29,6 @@ export const CURRENCY_CONFIG = {
     color: "#F59E0B", // amber-500
     icon: CircleDollarSign,
     packages: [
-      { amount: 10, price: 10 },
       { amount: 500, price: 500 },
       { amount: 1000, price: 1000 },
       { amount: 2000, price: 2000 },
