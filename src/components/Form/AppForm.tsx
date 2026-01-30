@@ -15,6 +15,7 @@ import { FormProvider } from "react-hook-form";
 import { Stack, type StackSpace } from "@/components/Layout/Stack";
 import type { MediaState, MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
 import { useToast } from "@/lib/toast";
+import { AutoSaveContext, useAutoSave, type AutoSaveOptions } from "./AutoSave";
 
 /**
  * 送信ボタン付近のエラー表示モード
@@ -104,6 +105,24 @@ export type AppFormProps<TFieldValues extends FieldValues = FieldValues> = {
    * @default 'summary'
    */
   submitErrorDisplay?: SubmitErrorDisplay;
+  /**
+   * 自動保存オプション
+   * 指定しない場合は従来型の保存モード（明示的なsubmitボタンクリック時のみ保存）
+   *
+   * @example
+   * ```tsx
+   * <AppForm
+   *   methods={methods}
+   *   onSubmit={handleSubmit}
+   *   autoSave={{
+   *     enabled: true,
+   *     onSave: async (data) => await updateItem(id, data),
+   *     debounceMs: 500,
+   *   }}
+   * >
+   * ```
+   */
+  autoSave?: AutoSaveOptions<TFieldValues>;
 } & Omit<React.FormHTMLAttributes<HTMLFormElement>, "onSubmit">;
 
 const AppFormComponent = <TFieldValues extends FieldValues>(
@@ -124,6 +143,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
     onMediaStateChange,
     disableAutoCommitMedia = false,
     submitErrorDisplay = "summary",
+    autoSave,
     ...formProps
   }: AppFormProps<TFieldValues>,
   ref: React.ForwardedRef<HTMLFormElement>,
@@ -132,6 +152,12 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
   const isSubmitting = formState.isSubmitting;
   const { errors } = formState;
   const { showToast } = useToast();
+
+  // 自動保存
+  const { contextValue: autoSaveContextValue, isSaving } = useAutoSave({
+    methods,
+    options: autoSave,
+  });
 
   // rootエラー以外のフィールドエラーがあるか判定
   const hasFieldErrors = Object.keys(errors).some((key) => key !== "root");
@@ -187,7 +213,7 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
 
   // メディアアップロード中はフォームを無効化（両方を考慮）
   const isMediaUploading = (effectiveFieldRendererState?.isUploading ?? false) || individualMediaUploading;
-  const isBusy = pending || isSubmitting || isMediaUploading;
+  const isBusy = pending || isSubmitting || isMediaUploading || isSaving;
 
   // 送信成功時にメディアをコミット
   const handleSubmitWithMediaCommit: SubmitHandler<TFieldValues> = React.useCallback(
@@ -306,26 +332,28 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
 
   return (
     <FormProvider {...methods}>
-      <AppFormErrorContext.Provider value={errorContextValue}>
-        <AppFormMediaContext.Provider value={mediaContextValue}>
-          <form
-            ref={ref}
-            className={className}
-            data-submitting={isBusy ? "true" : "false"}
-            aria-busy={isBusy}
-            onSubmit={handleSubmit(handleSubmitWithMediaCommit, onSubmitError)}
-            onKeyDown={handleKeyDown}
-            {...formProps}
-          >
-            <fieldset
-              disabled={disableWhilePending ? isBusy : undefined}
-              className="contents"
+      <AutoSaveContext.Provider value={autoSaveContextValue}>
+        <AppFormErrorContext.Provider value={errorContextValue}>
+          <AppFormMediaContext.Provider value={mediaContextValue}>
+            <form
+              ref={ref}
+              className={className}
+              data-submitting={isBusy ? "true" : "false"}
+              aria-busy={isBusy}
+              onSubmit={handleSubmit(handleSubmitWithMediaCommit, onSubmitError)}
+              onKeyDown={handleKeyDown}
+              {...formProps}
             >
-              <Stack space={fieldSpace}>{children}</Stack>
-            </fieldset>
-          </form>
-        </AppFormMediaContext.Provider>
-      </AppFormErrorContext.Provider>
+              <fieldset
+                disabled={disableWhilePending ? isBusy : undefined}
+                className="contents"
+              >
+                <Stack space={fieldSpace}>{children}</Stack>
+              </fieldset>
+            </form>
+          </AppFormMediaContext.Provider>
+        </AppFormErrorContext.Provider>
+      </AutoSaveContext.Provider>
     </FormProvider>
   );
 };

@@ -1,6 +1,6 @@
 // src/components/Form/Field/FieldItem.tsx
 
-import { ReactNode } from "react";
+import { ReactNode, useCallback } from "react";
 import {
   FormField,
   FormItem,
@@ -17,6 +17,7 @@ import {
   type ControllerRenderProps,
 } from "react-hook-form";
 import type { FieldCommonProps } from "../types";
+import { useAutoSaveContext } from "@/components/Form/AutoSave";
 
 export type FieldItemProps<
   TFieldValues extends FieldValues,
@@ -57,6 +58,8 @@ export function FieldItem<
   layout = "vertical",
   labelClass,
 }: FieldItemProps<TFieldValues, TName>) {
+  // 自動保存コンテキスト（nullの場合は従来型モード）
+  const autoSaveContext = useAutoSaveContext<TFieldValues>();
 
   const descPlacement = description?.placement ?? "after";
   const defaultMark = requiredMarkPosition === "before" ? DefaultRequiredMarkBefore : DefaultRequiredMarkAfter;
@@ -70,6 +73,17 @@ export function FieldItem<
       control={control}
       name={name}
       render={({ field }) => {
+        // 自動保存が有効な場合、onBlurをラップしてAutoSaveの処理を追加
+        const wrappedField = autoSaveContext?.enabled
+          ? {
+              ...field,
+              onBlur: () => {
+                field.onBlur();
+                autoSaveContext.onFieldBlur(name);
+              },
+            }
+          : field;
+
         // ラベル要素
         const labelElement = label && (
           <FormLabel
@@ -104,7 +118,7 @@ export function FieldItem<
         const errorElement = !hideError && <FormMessage />;
 
         // 入力コンポーネント
-        const inputElement = <FormControl>{renderInput(field, inputClassName)}</FormControl>;
+        const inputElement = <FormControl>{renderInput(wrappedField, inputClassName)}</FormControl>;
 
         // 横並びレイアウト
         if (isHorizontal) {
