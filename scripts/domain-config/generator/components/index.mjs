@@ -80,7 +80,7 @@ const generators = [
   (opts) => generateAdminListHeader({ ...opts, config: domainConfig }),
   (opts) => generateAdminListTable({ ...opts, config: domainConfig }),
   generateCreateForm,
-  generateEditForm,
+  (opts) => generateEditForm({ ...opts, config: domainConfig }),
   (opts) => generateDomainForm({ ...opts, config: domainConfig }),
   (opts) => generateDomainFields({ ...opts, config: domainConfig }),
 ];

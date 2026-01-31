@@ -37,8 +37,8 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
   const router = useRouter();
   const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateSample();
-  const { data: items } = useSearchSample({ limit: 10 });
   const autoSave = useAutoSaveConfig(trigger, sample.id);
+  const { data: items } = useSearchSample({ limit: 10 });
 
   const { navigator, isSwitching } = useItemNavigator({
     items,
