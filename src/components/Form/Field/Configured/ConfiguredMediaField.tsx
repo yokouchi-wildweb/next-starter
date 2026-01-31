@@ -192,6 +192,7 @@ export function ConfiguredMediaField<
       requiredMarkPosition={requiredMarkPosition}
       layout={layout}
       labelClass={labelClass}
+      blurMode="none"  // メディアは独自のオートセーブ処理（onUrlChange）を持つ
       renderInput={mediaHandle.render}
     />
   );

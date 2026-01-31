@@ -90,6 +90,9 @@ export function ConfiguredField<
     if (!autoSaveContext?.enabled) return field;
 
     const blurMode = getBlurMode(fieldConfig);
+    // blurMode="none"の場合は独自のオートセーブ処理を持つためスキップ
+    if (blurMode === "none") return field;
+
     return {
       ...field,
       onBlur: () => {
