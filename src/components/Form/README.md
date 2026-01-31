@@ -372,11 +372,18 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 
 ---
 
+## AutoSave（自動保存）
+
+編集フォームで自動保存を有効にする方法については、[AutoSave/README.md](./AutoSave/README.md) を参照。
+
+---
+
 ## ディレクトリ構造
 
 ```
 src/components/Form/
 ├── AppForm.tsx
+├── AutoSave/                        # 自動保存機能（→ AutoSave/README.md）
 ├── Field/
 │   ├── types.ts                    # 共通型定義（FieldConfig, FormInputType 等）
 │   ├── Manual/                     # 低レベル（手動でエラーを渡す/自由レイアウト）
