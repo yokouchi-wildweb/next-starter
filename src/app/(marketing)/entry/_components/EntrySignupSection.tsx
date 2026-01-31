@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { SecTitle } from "@/components/TextBlocks";
-import { VerificationEmailSendForm } from "@/features/core/auth/components/Signup/EmailVarification/sendForm";
+import { EarlyRegistrationSendForm } from "@/features/core/auth/components/Signup/EarlyRegistration/SendForm";
 import { ThirdPartySignupOptions } from "@/features/core/auth/components/Signup/ThirdPartySignupOptions";
 
 export function EntrySignupSection() {
@@ -22,7 +22,7 @@ export function EntrySignupSection() {
         </SecTitle>
 
         <Stack space={6}>
-          <VerificationEmailSendForm urlAfterEmailSent={emailSentUrl} />
+          <EarlyRegistrationSendForm urlAfterEmailSent={emailSentUrl} />
           <ThirdPartySignupOptions />
 
           <p className="text-center text-xs text-muted-foreground">
