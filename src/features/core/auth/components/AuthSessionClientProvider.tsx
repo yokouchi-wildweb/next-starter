@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
+import { useFirebaseAuthSync } from "@/features/core/auth/hooks/useFirebaseAuthSync";
 import { fetchSession } from "@/features/core/auth/services/client/session";
 
 import type { AuthSessionValue } from "./AuthSessionContext";
@@ -16,6 +17,9 @@ type AuthSessionClientProviderProps = {
 
 export function AuthSessionClientProvider({ initialUser, children }: AuthSessionClientProviderProps) {
   const [user, setUser] = useState<SessionUser | null>(initialUser);
+
+  // Firebase Auth とローカルセッションの同期を維持する。
+  useFirebaseAuthSync(user);
 
   const refreshSession = useCallback(async () => {
     try {

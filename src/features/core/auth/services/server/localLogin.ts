@@ -7,6 +7,7 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
 import { verifyPassword } from "@/features/core/auth/utils/password";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors";
+import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import type { UserRoleType, UserStatus } from "@/features/core/user/types";
 
@@ -32,6 +33,7 @@ export type LocalLoginResult = {
     maxAge: number;
   };
   requiresReactivation: boolean;
+  firebaseCustomToken: string;
 };
 
 // 管理者アカウントであることを確認し、一般ユーザーのログインを遮断する。
@@ -120,6 +122,12 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     options: { maxAge },
   });
 
+  // Firebase Storage のセキュリティルールで認証を通すためのカスタムトークンを生成する。
+  const firebaseCustomToken = await getServerAuth().createCustomToken(
+    sessionUser.userId,
+    { admin: true },
+  );
+
   // 呼び出し元へセッション情報とユーザー情報をまとめて返す。
   return {
     user: sessionUser,
@@ -129,5 +137,6 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
       maxAge,
     },
     requiresReactivation,
+    firebaseCustomToken,
   };
 }

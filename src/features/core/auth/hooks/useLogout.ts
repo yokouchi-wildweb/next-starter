@@ -4,11 +4,13 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { logout as logoutService } from "@/features/core/auth/services/client/logout";
 import type { HttpError } from "@/lib/errors";
 import { isHttpError } from "@/lib/errors";
+import { auth } from "@/lib/firebase/client/app";
 
 type UseLogoutOptions = {
   redirectTo?: string;
@@ -32,6 +34,13 @@ export function useLogout({
 
     try {
       await logoutService();
+
+      // Firebase Auth からもサインアウトする。
+      try {
+        await signOut(auth);
+      } catch {
+        // Firebase Auth のサインアウトに失敗しても、ローカルセッションは削除済みのため握り潰す。
+      }
 
       try {
         await refreshSession();

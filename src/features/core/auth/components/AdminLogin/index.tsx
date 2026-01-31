@@ -4,6 +4,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { signInWithCustomToken } from "firebase/auth";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
@@ -12,6 +13,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { localLogin } from "@/features/core/auth/services/client/localLogin";
 import { err } from "@/lib/errors";
+import { auth } from "@/lib/firebase/client/app";
 
 export function AdminLogin() {
   const router = useRouter();
@@ -34,6 +36,10 @@ export function AdminLogin() {
 
     try {
       const result = await localLogin({ email, password });
+
+      // Firebase Storage のセキュリティルールを通すため、Firebase Auth にもサインインする。
+      await signInWithCustomToken(auth, result.firebaseCustomToken);
+
       await refreshSession();
       // inactive の場合は復帰ページへ
       if (result.requiresReactivation) {

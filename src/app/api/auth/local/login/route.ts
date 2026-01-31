@@ -14,7 +14,7 @@ export const POST = createApiRoute(
   },
   async (req) => {
     const body = await req.json();
-    const { user, session, requiresReactivation } = await localLogin(body);
+    const { user, session, requiresReactivation, firebaseCustomToken } = await localLogin(body);
 
     const response = NextResponse.json({
       user,
@@ -22,6 +22,7 @@ export const POST = createApiRoute(
         expiresAt: session.expiresAt.toISOString(),
       },
       requiresReactivation,
+      firebaseCustomToken,
     });
 
     issueSessionCookie({
