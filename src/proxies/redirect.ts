@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { redirectRules, type RedirectRule } from "@/config/app/redirect.config";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
@@ -8,8 +9,38 @@ import { parseSessionCookie } from "@/lib/jwt";
 
 import type { ProxyHandler } from "./types";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 内部リダイレクトルール（システム定義）
+// ユーザー設定ファイル（redirect.config.ts）とは分離して管理
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * サインアップモードに応じたリダイレクトルール
+ * - earlyRegistration: /signup → /entry
+ * - normal: /entry → /signup
+ */
+const getSignupModeRules = (): RedirectRule[] => {
+  const { mode } = APP_FEATURES.auth.signup;
+
+  if (mode === "earlyRegistration") {
+    return [{ sourcePaths: ["/signup"], destination: "/entry", authedOnly: false }];
+  }
+  return [{ sourcePaths: ["/entry"], destination: "/signup", authedOnly: false }];
+};
+
+/**
+ * 内部リダイレクトルールを取得
+ * 新しいルールを追加する場合はここに追加
+ */
+const getInternalRedirectRules = (): RedirectRule[] => [
+  ...getSignupModeRules(),
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const findRedirectRule = (pathname: string) => {
-  return redirectRules.find((rule) => rule.sourcePaths.includes(pathname));
+  const allRules = [...getInternalRedirectRules(), ...redirectRules];
+  return allRules.find((rule) => rule.sourcePaths.includes(pathname));
 };
 
 const shouldRedirectForRule = (
