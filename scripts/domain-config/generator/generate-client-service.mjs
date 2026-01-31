@@ -1,51 +1,49 @@
 #!/usr/bin/env node
-import fs from 'fs';
-import path from 'path';
-import { toCamelCase, toPascalCase, toSnakeCase } from '../../../src/utils/stringCase.mjs';
-import { resolveFeaturePath, resolveFeatureTemplatePath } from './utils/pathHelpers.mjs';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { toCamelCase, toPascalCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { resolveFeaturePath, resolveFeatureTemplatePath } from "./utils/pathHelpers.mjs";
 
-//
-// Client service generator
-//
-// Usage:
-//   node scripts/domain-generator/generate-client-service.mjs <domain>
-//
-// <domain> can be snake_case/camelCase/PascalCase.
-// The script creates src/features/<domain>/services/client/<domain>Client.ts
-// from the template located at src/features/_template/services/client/__domain__Client.ts.
+/**
+ * クライアントサービスを生成する
+ * @param {string} domain - ドメイン名（snake_case, camelCase, PascalCase のいずれか）
+ */
+export default function generateClientService(domain) {
+  const normalized = toSnakeCase(domain) || domain;
+  const camel = toCamelCase(normalized) || normalized;
+  const pascal = toPascalCase(normalized) || normalized;
 
-const args = process.argv.slice(2);
-const domain = args[0];
+  const templatePath = resolveFeatureTemplatePath("services", "client", "__domain__Client.ts");
+  const outputDir = path.join(resolveFeaturePath(camel), "services", "client");
+  const outputFile = path.join(outputDir, `${camel}Client.ts`);
 
-// ドメイン名が渡されていない場合は使い方を表示して終了
-if (!domain) {
-  console.error('使い方: node scripts/domain-generator/generate-client-service.mjs <domain>');
-  process.exit(1);
+  if (!fs.existsSync(templatePath)) {
+    console.error(`テンプレートが見つかりません: ${templatePath}`);
+    return;
+  }
+
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const template = fs.readFileSync(templatePath, "utf8");
+  const content = template
+    .replace(/__domain__/g, camel)
+    .replace(/__Domain__/g, pascal);
+
+  fs.writeFileSync(outputFile, content);
+  console.log(`クライアントサービスを生成しました: ${outputFile}`);
 }
 
-const normalized = toSnakeCase(domain) || domain;
-const camel = toCamelCase(normalized) || normalized;
-const pascal = toPascalCase(normalized) || normalized;
+// CLI実行時
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const domain = process.argv[2];
 
-const templatePath = resolveFeatureTemplatePath('services', 'client', '__domain__Client.ts');
-const outputDir = path.join(resolveFeaturePath(camel), 'services', 'client');
-const outputFile = path.join(outputDir, `${camel}Client.ts`);
+  if (!domain) {
+    console.error("使い方: node scripts/domain-config/generator/generate-client-service.mjs <domain>");
+    process.exit(1);
+  }
 
-// テンプレートファイルが存在するかを確認し、無ければエラー終了
-if (!fs.existsSync(templatePath)) {
-  console.error(`テンプレートが見つかりません: ${templatePath}`);
-  process.exit(1);
+  generateClientService(domain);
 }
-
-// 出力先ディレクトリが存在しない場合は作成する
-if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir, { recursive: true });
-}
-
-const template = fs.readFileSync(templatePath, 'utf8');
-const content = template
-  .replace(/__domain__/g, camel)
-  .replace(/__Domain__/g, pascal);
-
-fs.writeFileSync(outputFile, content);
-console.log(`クライアントサービスを生成しました: ${outputFile}`);
