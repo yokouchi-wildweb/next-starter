@@ -5,6 +5,7 @@ import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/constants";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { activate } from "./activate";
+import { sendRegistrationCompleteMail } from "./sendRegistrationCompleteMail";
 
 export type RegisterFromAuthInput = {
   email: string;
@@ -50,6 +51,18 @@ export async function registerFromAuth(
     isFromPending,
     isRejoin,
   });
+
+  // 登録完了メールを送信（失敗しても登録処理は継続）
+  if (user.email) {
+    try {
+      await sendRegistrationCompleteMail({
+        email: user.email,
+        displayName: user.name || "",
+      });
+    } catch (error) {
+      console.error("Failed to send registration complete mail:", error);
+    }
+  }
 
   return {
     user,

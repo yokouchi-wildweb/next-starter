@@ -3,6 +3,7 @@
 // 本登録
 export * from "./registerFromAuth";
 export * from "./activate";
+export * from "./sendRegistrationCompleteMail";
 
 // 仮登録
 export * from "./preRegisterFromAuth";

@@ -19,11 +19,11 @@ import { logoPath } from "@/utils/assets";
 import { MAIL_THEME_COLORS } from "../constants/colors";
 
 export type EarlyRegistrationCompleteEmailProps = {
-  email?: string;
+  displayName: string;
 };
 
 function EarlyRegistrationCompleteEmailComponent({
-  email,
+  displayName,
 }: EarlyRegistrationCompleteEmailProps) {
   return (
     <Html>
@@ -45,13 +45,9 @@ function EarlyRegistrationCompleteEmailComponent({
           {/* 感謝セクション */}
           <Text style={s.celebrationText}>事前登録が完了しました</Text>
           <Text style={s.thankYouText}>
-            {email && (
-              <>
-                {email} 様
-                <br />
-                <br />
-              </>
-            )}
+            {displayName} 様
+            <br />
+            <br />
             この度は、{businessConfig.serviceNameShort}の
             <br />
             事前登録にお申し込みいただき、
@@ -149,7 +145,7 @@ const s = {
  * @example
  * ```ts
  * await EarlyRegistrationCompleteEmail.send("user@example.com", {
- *   email: "user@example.com",
+ *   displayName: "ユーザー名",
  * });
  * ```
  */
@@ -157,7 +153,7 @@ export const EarlyRegistrationCompleteEmail = createMailTemplate({
   subject: `【${businessConfig.serviceNameShort}】事前登録が完了しました`,
   component: EarlyRegistrationCompleteEmailComponent,
   testProps: {
-    email: "test@example.com",
+    displayName: "テストユーザー",
   },
   testDescription: "事前登録完了メール",
 });

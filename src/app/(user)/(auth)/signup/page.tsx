@@ -2,12 +2,16 @@
 
 import { redirect } from "next/navigation";
 
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Signup } from "@/features/core/auth/components/Signup";
-import { authGuard } from "@/features/core/auth/services/server/authorization";
 
 export default async function SignUpPage() {
+  // 事前登録モードの場合は事前登録ページへリダイレクト
+  if (APP_FEATURES.auth.signup.mode === "earlyRegistration") {
+    redirect("/entry");
+  }
 
   const emailSent = "/signup/email-sent";
 

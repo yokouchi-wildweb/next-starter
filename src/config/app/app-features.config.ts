@@ -4,6 +4,8 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 // ルートのブロックは featureGate (src/proxies/featureGate.ts) で自動制御されます。
 
+import type { SignupMode } from "./types";
+
 export const APP_FEATURES = {
   auth: {
     thirdPartyProviders: {
@@ -21,6 +23,8 @@ export const APP_FEATURES = {
       demoMaxAgeSeconds: 60 * 10,
     },
     signup: {
+      /** サインアップモード: "normal"=通常登録, "earlyRegistration"=事前登録 */
+      mode: "earlyRegistration" as SignupMode,
       /** 認証完了後の遷移先パス */
       afterVerificationPath: "/signup/register",
       /** 本登録ページに進捗インディケーターを表示する */
