@@ -15,6 +15,7 @@ import { FormProvider } from "react-hook-form";
 import { Stack, type StackSpace } from "@/components/Layout/Stack";
 import type { MediaState, MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
 import { useToast } from "@/lib/toast";
+import { cn } from "@/lib/cn";
 import { AutoSaveContext, useAutoSave, type AutoSaveOptions } from "./AutoSave";
 
 /**
@@ -214,7 +215,9 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
   // メディアアップロード中はフォームを無効化（両方を考慮）
   const isMediaUploading = (effectiveFieldRendererState?.isUploading ?? false) || individualMediaUploading;
   // NOTE: isSavingは含めない（自動保存中も編集を継続できるようにする）
-  const isBusy = pending || isSubmitting || isMediaUploading;
+  // autoSave有効時は、isSaving中のpendingも除外（同じtriggerを使うためisMutatingがtrueになるが、編集は継続させる）
+  const effectivePending = isSaving ? false : pending;
+  const isBusy = effectivePending || isSubmitting || isMediaUploading;
 
   // 送信成功時にメディアをコミット
   const handleSubmitWithMediaCommit: SubmitHandler<TFieldValues> = React.useCallback(
@@ -338,9 +341,10 @@ const AppFormComponent = <TFieldValues extends FieldValues>(
           <AppFormMediaContext.Provider value={mediaContextValue}>
             <form
               ref={ref}
-              className={className}
+              className={cn(className, isSaving && "cursor-progress")}
               data-submitting={isBusy ? "true" : "false"}
-              aria-busy={isBusy}
+              data-saving={isSaving ? "true" : "false"}
+              aria-busy={isBusy || isSaving}
               onSubmit={handleSubmit(handleSubmitWithMediaCommit, onSubmitError)}
               onKeyDown={handleKeyDown}
               {...formProps}

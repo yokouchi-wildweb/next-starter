@@ -13,7 +13,7 @@ export type AutoSaveOptions<TFieldValues extends FieldValues = FieldValues> = {
   enabled: boolean;
   /** 保存時に呼ばれる関数 */
   onSave: (data: TFieldValues) => Promise<void>;
-  /** デバウンス時間（ms）。デフォルト: 500 */
+  /** デバウンス時間（ms）。デフォルト: 1000 */
   debounceMs?: number;
 };
 
@@ -33,6 +33,8 @@ export type AutoSaveContextValue<TFieldValues extends FieldValues = FieldValues>
   enabled: boolean;
   /** フィールドのblur時に呼び出す関数 */
   onFieldBlur: (fieldName: FieldPath<TFieldValues>, options?: FieldBlurOptions) => void;
+  /** 即時保存をトリガーする関数（メディアアップロード完了時など） */
+  triggerSave: () => Promise<void>;
   /** 現在保存中かどうか */
   isSaving: boolean;
 };

@@ -11,6 +11,7 @@ import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-
 import { FieldItem } from "../Controlled";
 import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
 import { useAppFormMedia } from "@/components/Form/AppForm";
+import { useAutoSaveContext } from "@/components/Form/AutoSave";
 import type { FieldConfig, FieldCommonProps } from "../types";
 import type { SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
@@ -98,6 +99,12 @@ export function ConfiguredMediaField<
   // AppForm の Context を取得
   const appFormMedia = useAppFormMedia();
 
+  // AutoSave の Context を取得
+  const autoSaveContext = useAutoSaveContext<TFieldValues>();
+
+  // オートセーブ時のURL変更ハンドラ用ref（commit後にtriggerSaveを呼ぶため）
+  const mediaHandleRef = useRef<ReturnType<typeof useMediaUploaderField<TFieldValues, TName>> | null>(null);
+
   const mediaHandle = useMediaUploaderField({
     methods,
     name: fieldName,
@@ -108,7 +115,19 @@ export function ConfiguredMediaField<
       validationRule: fieldConfig.validationRule,
       onMetadataChange: fieldConfig.onMetadataChange,
     },
+    // オートセーブが有効な場合、URL変更時に即時保存
+    onUrlChange: autoSaveContext?.enabled
+      ? async (url) => {
+          // メディアをコミット（アップロード確定 or 削除確定）
+          await mediaHandleRef.current?.commit(url);
+          // フォームデータを保存
+          await autoSaveContext.triggerSave();
+        }
+      : undefined,
   });
+
+  // refを更新（onUrlChange内で使用）
+  mediaHandleRef.current = mediaHandle;
 
   // onHandleChange が渡されている場合はそちらを使用（FieldRenderer 経由）
   // そうでない場合は AppForm の Context に登録

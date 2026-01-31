@@ -18,6 +18,7 @@ export function StepperInput<
     <ManualStepperInput
       value={typeof field.value === "number" ? field.value : 0}
       onValueChange={field.onChange}
+      onBlur={field.onBlur}
       {...rest}
     />
   );

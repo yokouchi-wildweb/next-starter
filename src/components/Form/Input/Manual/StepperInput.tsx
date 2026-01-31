@@ -39,6 +39,8 @@ export type StepperInputProps = {
   className?: string;
   value?: number;
   onValueChange?: (value: number) => void;
+  /** フォーカスが外れた時のコールバック（自動保存用） */
+  onBlur?: () => void;
   buttonVariant?: ButtonStyleProps["variant"];
   buttonSize?: ButtonStyleProps["size"];
   /** 中央の値を直接入力できるようにするか */
@@ -56,6 +58,7 @@ export default function StepperInput({
   className,
   value,
   onValueChange,
+  onBlur,
   buttonVariant,
   buttonSize,
   manualInputEnabled = true,
@@ -75,6 +78,7 @@ export default function StepperInput({
       setInternalValue(nextValue);
     }
     onValueChange?.(nextValue);
+    onBlur?.();
   };
 
   const increase = () => updateValue(currentValue + step);
@@ -104,6 +108,7 @@ export default function StepperInput({
     if (manualInputValue === "") {
       setManualInputValue(String(currentValue));
     }
+    onBlur?.();
   };
 
   return (

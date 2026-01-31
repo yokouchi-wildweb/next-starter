@@ -270,9 +270,10 @@ export function isCheckboxArray(fieldConfig: FieldConfig): boolean {
  * 各入力タイプの自動保存時のblurモード設定
  *
  * - immediate: blur時点で入力が確定しているため即座に保存
- * - debounce: 連続操作の可能性があるため300ms待ってから保存
+ * - debounce: 連続操作の可能性があるためデバウンスして保存
+ * - none: blurでは保存しない（独自のオートセーブ処理を持つ、または対象外）
  */
-const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce"> = {
+const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none"> = {
   // 即時保存: blur時点で入力が確定している
   textInput: "immediate",
   numberInput: "immediate",
@@ -291,15 +292,15 @@ const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce"> = {
   checkbox: "debounce",
   stepperInput: "debounce",
 
-  // 特殊（自動保存の対象外または別処理）
-  hidden: "debounce",
-  none: "debounce",
-  mediaUploader: "debounce",
+  // 独自処理または対象外: blurでは保存しない
+  hidden: "none",
+  none: "none",
+  mediaUploader: "none",  // onUrlChangeで即時コミット+保存
 };
 
 /**
  * 自動保存時のblurモードを取得する
  */
-export function getBlurMode(fieldConfig: FieldConfig): "immediate" | "debounce" {
+export function getBlurMode(fieldConfig: FieldConfig): "immediate" | "debounce" | "none" {
   return BLUR_MODE_CONFIG[fieldConfig.formInput] ?? "debounce";
 }

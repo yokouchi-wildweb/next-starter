@@ -7,7 +7,7 @@ import type { FieldValues } from "react-hook-form";
 import type { AutoSaveOptions } from "./AutoSaveContext";
 
 type AutoSaveConfigOptions = {
-  /** デバウンス時間（ms）。デフォルト: 500 */
+  /** デバウンス時間（ms）。デフォルト: 1000 */
   debounceMs?: number;
 };
 

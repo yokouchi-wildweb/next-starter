@@ -19,8 +19,13 @@ import {
 import type { FieldCommonProps } from "../types";
 import { useAutoSaveContext } from "@/components/Form/AutoSave";
 
-/** 自動保存時のblurモード */
-export type BlurMode = "immediate" | "debounce";
+/**
+ * 自動保存時のblurモード
+ * - immediate: blur時に即座に保存
+ * - debounce: blur時にデバウンスして保存
+ * - none: blurでは保存しない（独自のオートセーブ処理を持つフィールド用）
+ */
+export type BlurMode = "immediate" | "debounce" | "none";
 
 export type FieldItemProps<
   TFieldValues extends FieldValues,
@@ -80,7 +85,8 @@ export function FieldItem<
       name={name}
       render={({ field }) => {
         // 自動保存が有効な場合、onBlurをラップしてAutoSaveの処理を追加
-        const wrappedField = autoSaveContext?.enabled
+        // blurMode="none"の場合は独自のオートセーブ処理を持つためスキップ
+        const wrappedField = autoSaveContext?.enabled && blurMode !== "none"
           ? {
               ...field,
               onBlur: () => {

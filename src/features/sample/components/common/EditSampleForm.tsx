@@ -69,7 +69,6 @@ export default function EditSampleForm({ sample, redirectPath = "/" }: Props) {
         onSubmitAction={submit}
         isMutating={isMutating}
         submitLabel="更新"
-        onCancel={() => router.push(redirectPath)}
         autoSave={autoSave}
       />
     </>

@@ -55,7 +55,7 @@ export function useAutoSave<TFieldValues extends FieldValues>({
 
   const enabled = options?.enabled ?? false;
   const onSave = options?.onSave;
-  const debounceMs = options?.debounceMs ?? 300;
+  const debounceMs = options?.debounceMs ?? 1000;
 
   const [isSaving, setIsSaving] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,23 +66,29 @@ export function useAutoSave<TFieldValues extends FieldValues>({
 
   /**
    * 実際の保存処理
+   * @param forceAll - trueの場合、pendingFieldsに関係なく全体を保存
    */
-  const performSave = useCallback(async () => {
+  const performSave = useCallback(async (forceAll = false) => {
     if (!enabled || !onSave) return;
 
     const fieldsToValidate = Array.from(pendingFieldsRef.current);
     pendingFieldsRef.current.clear();
 
-    if (fieldsToValidate.length === 0) return;
+    // forceAllでない場合は、対象フィールドがないと保存しない
+    if (!forceAll && fieldsToValidate.length === 0) return;
 
-    // 対象フィールドに変更があるかチェック
-    const hasDirtyFields = fieldsToValidate.some((field) =>
-      isFieldDirty(field, dirtyFields)
-    );
-    if (!hasDirtyFields) return;
+    // forceAllでない場合は、対象フィールドに変更があるかチェック
+    if (!forceAll) {
+      const hasDirtyFields = fieldsToValidate.some((field) =>
+        isFieldDirty(field, dirtyFields)
+      );
+      if (!hasDirtyFields) return;
+    }
 
-    // バリデーション
-    const isValid = await trigger(fieldsToValidate);
+    // バリデーション（forceAllの場合は全体、そうでない場合は対象フィールドのみ）
+    const isValid = forceAll
+      ? await trigger()
+      : await trigger(fieldsToValidate);
     if (!isValid) return;
 
     // 保存
@@ -126,6 +132,22 @@ export function useAutoSave<TFieldValues extends FieldValues>({
     [enabled, debounceMs, performSave],
   );
 
+  /**
+   * 即時保存をトリガー（メディアアップロード完了時など）
+   * デバウンスなしで即座に全データを保存する
+   */
+  const triggerSave = useCallback(async () => {
+    if (!enabled) return;
+
+    // 進行中のデバウンスタイマーをキャンセル
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    await performSave(true);
+  }, [enabled, performSave]);
+
   // クリーンアップ
   useEffect(() => {
     return () => {
@@ -137,8 +159,8 @@ export function useAutoSave<TFieldValues extends FieldValues>({
 
   const contextValue = useMemo<AutoSaveContextValue<TFieldValues> | null>(() => {
     if (!enabled) return null;
-    return { enabled: true, onFieldBlur, isSaving };
-  }, [enabled, onFieldBlur, isSaving]);
+    return { enabled: true, onFieldBlur, triggerSave, isSaving };
+  }, [enabled, onFieldBlur, triggerSave, isSaving]);
 
   return {
     contextValue,
