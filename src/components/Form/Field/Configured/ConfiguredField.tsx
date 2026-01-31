@@ -87,17 +87,33 @@ export function ConfiguredField<
   const wrapFieldWithAutoSave = (
     field: ControllerRenderProps<TFieldValues, TName>
   ): ControllerRenderProps<TFieldValues, TName> => {
-    if (!autoSaveContext?.enabled) return field;
+    console.log(`[ConfiguredField:wrapFieldWithAutoSave] name=${String(resolvedName)}, autoSaveEnabled=${autoSaveContext?.enabled}`);
+
+    if (!autoSaveContext?.enabled) {
+      console.log(`[ConfiguredField:wrapFieldWithAutoSave] → autoSave無効、ラップなし`);
+      return field;
+    }
 
     const blurMode = getBlurMode(fieldConfig);
+    console.log(`[ConfiguredField:wrapFieldWithAutoSave] blurMode=${blurMode}`);
+
     // blurMode="none"の場合は独自のオートセーブ処理を持つためスキップ
-    if (blurMode === "none") return field;
+    if (blurMode === "none") {
+      console.log(`[ConfiguredField:wrapFieldWithAutoSave] → blurMode=none、ラップなし`);
+      return field;
+    }
+
+    console.log(`[ConfiguredField:wrapFieldWithAutoSave] → onBlurをラップ (immediate=${blurMode === "immediate"})`);
+    console.log(`[ConfiguredField:wrapFieldWithAutoSave] → autoSaveContext.onFieldBlur の参照:`, autoSaveContext.onFieldBlur);
 
     return {
       ...field,
       onBlur: () => {
+        console.log(`[ConfiguredField:wrappedOnBlur] name=${String(resolvedName)} 呼び出し開始`);
         field.onBlur();
+        console.log(`[ConfiguredField:wrappedOnBlur] field.onBlur() 完了、autoSaveContext.onFieldBlur を呼び出し...`);
         autoSaveContext.onFieldBlur(resolvedName, { immediate: blurMode === "immediate" });
+        console.log(`[ConfiguredField:wrappedOnBlur] autoSaveContext.onFieldBlur 呼び出し完了`);
       },
     };
   };

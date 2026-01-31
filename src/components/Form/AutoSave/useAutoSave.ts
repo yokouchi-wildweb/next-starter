@@ -3,6 +3,10 @@
 "use client";
 
 import { useCallback, useRef, useState, useMemo, useEffect } from "react";
+
+// デバッグ用：バージョン追跡
+let performSaveVersion = 0;
+let onFieldBlurVersion = 0;
 import type { FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
@@ -53,9 +57,22 @@ export function useAutoSave<TFieldValues extends FieldValues>({
   // dirtyFieldsを購読（これにより変更時に再レンダリングされる）
   const { dirtyFields } = formState;
 
+  // dirtyFieldsをRefで保持（performSave内でリアルタイムに参照するため）
+  // クロージャの問題を回避: onChange内でonBlurを同期的に呼ぶコンポーネント（Switch, Radio等）で
+  // 古いdirtyFieldsを参照してしまう問題を解決
+  const dirtyFieldsRef = useRef(dirtyFields);
+  dirtyFieldsRef.current = dirtyFields;
+
+  // dirtyFieldsの変化をログ
+  useEffect(() => {
+    console.log(`[AutoSave] ★ dirtyFields が変化しました:`, JSON.stringify(dirtyFields));
+  }, [dirtyFields]);
+
   const enabled = options?.enabled ?? false;
   const onSave = options?.onSave;
   const debounceMs = options?.debounceMs ?? 1000;
+
+  console.log(`[AutoSave:useAutoSave] レンダリング: enabled=${enabled}, dirtyFields=`, JSON.stringify(dirtyFields));
 
   const [isSaving, setIsSaving] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,68 +86,123 @@ export function useAutoSave<TFieldValues extends FieldValues>({
    * @param forceAll - trueの場合、pendingFieldsに関係なく全体を保存
    */
   const performSave = useCallback(async (forceAll = false) => {
-    if (!enabled || !onSave) return;
+    // Refから最新のdirtyFieldsを取得（クロージャの問題を回避）
+    const currentDirtyFields = dirtyFieldsRef.current;
+
+    const myVersion = ++performSaveVersion;
+    console.log(`[AutoSave:performSave] ===== v${myVersion} 実行開始 =====`);
+    console.log(`[AutoSave:performSave] v${myVersion} enabled=${enabled}, hasOnSave=${!!onSave}, forceAll=${forceAll}`);
+    console.log(`[AutoSave:performSave] v${myVersion} dirtyFields (Ref経由):`, JSON.stringify(currentDirtyFields));
+    console.log(`[AutoSave:performSave] v${myVersion} pendingFields:`, Array.from(pendingFieldsRef.current));
+
+    if (!enabled || !onSave) {
+      console.log(`[AutoSave:performSave] v${myVersion} → 早期リターン (enabled=${enabled}, hasOnSave=${!!onSave})`);
+      return;
+    }
 
     const fieldsToValidate = Array.from(pendingFieldsRef.current);
     pendingFieldsRef.current.clear();
+    console.log(`[AutoSave:performSave] v${myVersion} fieldsToValidate:`, fieldsToValidate);
 
     // forceAllでない場合は、対象フィールドがないと保存しない
-    if (!forceAll && fieldsToValidate.length === 0) return;
+    if (!forceAll && fieldsToValidate.length === 0) {
+      console.log(`[AutoSave:performSave] v${myVersion} → 早期リターン (対象フィールドなし)`);
+      return;
+    }
 
     // forceAllでない場合は、対象フィールドに変更があるかチェック
     if (!forceAll) {
-      const hasDirtyFields = fieldsToValidate.some((field) =>
-        isFieldDirty(field, dirtyFields)
-      );
-      if (!hasDirtyFields) return;
+      const fieldDirtyStatus = fieldsToValidate.map((field) => ({
+        field,
+        isDirty: isFieldDirty(field, currentDirtyFields),
+      }));
+      console.log(`[AutoSave:performSave] v${myVersion} フィールドごとのdirty状態:`, fieldDirtyStatus);
+
+      const hasDirtyFields = fieldDirtyStatus.some((s) => s.isDirty);
+      if (!hasDirtyFields) {
+        console.log(`[AutoSave:performSave] v${myVersion} → 早期リターン (dirtyフィールドなし)`);
+        return;
+      }
     }
 
     // バリデーション（forceAllの場合は全体、そうでない場合は対象フィールドのみ）
+    console.log(`[AutoSave:performSave] v${myVersion} バリデーション開始...`);
     const isValid = forceAll
       ? await trigger()
       : await trigger(fieldsToValidate);
-    if (!isValid) return;
+    if (!isValid) {
+      console.log(`[AutoSave:performSave] v${myVersion} → 早期リターン (バリデーション失敗)`);
+      return;
+    }
 
     // 保存
+    console.log(`[AutoSave:performSave] v${myVersion} ★★★ 保存実行開始 ★★★`);
     setIsSaving(true);
     try {
       const data = getValues();
+      console.log(`[AutoSave:performSave] v${myVersion} 保存データ:`, JSON.stringify(data));
       await onSave(data);
       reset(data, { keepValues: true });
+      console.log(`[AutoSave:performSave] v${myVersion} ★★★ 保存成功 ★★★`);
       showToast("保存しました", "success");
     } catch (error) {
+      console.log(`[AutoSave:performSave] v${myVersion} ★★★ 保存失敗 ★★★`, error);
       showToast(err(error, "保存に失敗しました"), "error");
     } finally {
       setIsSaving(false);
     }
-  }, [enabled, onSave, trigger, getValues, reset, showToast, dirtyFields]);
+  }, [enabled, onSave, trigger, getValues, reset, showToast]); // dirtyFieldsを依存配列から削除
+
+  // performSaveが再作成されたことをログ
+  useEffect(() => {
+    console.log(`[AutoSave] performSave が再作成されました`);
+  }, [performSave]);
 
   /**
    * フィールドblur時のハンドラ
    */
   const onFieldBlur = useCallback(
     (fieldName: FieldPath<TFieldValues>, options?: FieldBlurOptions) => {
-      if (!enabled) return;
+      const myVersion = ++onFieldBlurVersion;
+      console.log(`[AutoSave:onFieldBlur] ===== v${myVersion} 呼び出し =====`);
+      console.log(`[AutoSave:onFieldBlur] v${myVersion} fieldName=${String(fieldName)}, immediate=${options?.immediate}`);
+      console.log(`[AutoSave:onFieldBlur] v${myVersion} enabled=${enabled}`);
+      console.log(`[AutoSave:onFieldBlur] v${myVersion} 現在のpendingFields:`, Array.from(pendingFieldsRef.current));
+
+      if (!enabled) {
+        console.log(`[AutoSave:onFieldBlur] v${myVersion} → 早期リターン (enabled=false)`);
+        return;
+      }
 
       pendingFieldsRef.current.add(fieldName);
+      console.log(`[AutoSave:onFieldBlur] v${myVersion} フィールド追加後のpendingFields:`, Array.from(pendingFieldsRef.current));
 
       if (debounceTimerRef.current) {
+        console.log(`[AutoSave:onFieldBlur] v${myVersion} 既存のデバウンスタイマーをキャンセル`);
         clearTimeout(debounceTimerRef.current);
       }
 
       if (options?.immediate) {
+        console.log(`[AutoSave:onFieldBlur] v${myVersion} → immediate モード: performSave を直接呼び出し`);
         debounceTimerRef.current = null;
         performSave();
         return;
       }
 
+      console.log(`[AutoSave:onFieldBlur] v${myVersion} → debounce モード: ${debounceMs}ms 後に performSave を呼び出し`);
       debounceTimerRef.current = setTimeout(() => {
+        console.log(`[AutoSave:onFieldBlur] v${myVersion} デバウンスタイマー発火 → performSave 呼び出し`);
         debounceTimerRef.current = null;
         performSave();
       }, debounceMs);
     },
     [enabled, debounceMs, performSave],
   );
+
+  // onFieldBlurが再作成されたことをログ
+  useEffect(() => {
+    console.log(`[AutoSave] onFieldBlur が再作成されました`);
+  }, [onFieldBlur]);
 
   /**
    * 即時保存をトリガー（メディアアップロード完了時など）
@@ -158,9 +230,19 @@ export function useAutoSave<TFieldValues extends FieldValues>({
   }, []);
 
   const contextValue = useMemo<AutoSaveContextValue<TFieldValues> | null>(() => {
-    if (!enabled) return null;
+    console.log(`[AutoSave:contextValue] useMemo 実行: enabled=${enabled}`);
+    if (!enabled) {
+      console.log(`[AutoSave:contextValue] → enabled=false、nullを返す`);
+      return null;
+    }
+    console.log(`[AutoSave:contextValue] → 新しいcontextValueを作成 (onFieldBlur参照更新)`);
     return { enabled: true, onFieldBlur, triggerSave, isSaving };
   }, [enabled, onFieldBlur, triggerSave, isSaving]);
+
+  // contextValueが更新されたことをログ
+  useEffect(() => {
+    console.log(`[AutoSave] ★ contextValue が更新されました ★`);
+  }, [contextValue]);
 
   return {
     contextValue,

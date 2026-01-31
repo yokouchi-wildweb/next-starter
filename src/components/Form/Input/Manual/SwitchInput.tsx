@@ -222,8 +222,13 @@ export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {
         aria-labelledby={ariaLabelledby}
         aria-describedby={ariaDescribedby}
         onChange={(event) => {
-          onChange(event.target.checked ? resolvedOnValue : resolvedOffValue);
+          const newValue = event.target.checked ? resolvedOnValue : resolvedOffValue;
+          console.log(`[SwitchInput] onChange 開始: name=${inputName}, checked=${event.target.checked}, newValue=${JSON.stringify(newValue)}`);
+          console.log(`[SwitchInput] onChange: onBlur関数の参照=`, onBlur);
+          onChange(newValue);
+          console.log(`[SwitchInput] onChange 完了、onBlur を呼び出し...`);
           onBlur?.();
+          console.log(`[SwitchInput] onBlur 呼び出し完了`);
         }}
       />
 

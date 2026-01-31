@@ -41,14 +41,21 @@ export function useAutoSaveConfig<TFieldValues extends FieldValues>(
   itemId: string,
   options?: AutoSaveConfigOptions,
 ): AutoSaveOptions<TFieldValues> {
+  console.log(`[useAutoSaveConfig] 設定作成: itemId=${itemId}, debounceMs=${options?.debounceMs ?? 1000}`);
+
   return useMemo(
-    () => ({
-      enabled: true,
-      onSave: async (data: TFieldValues) => {
-        await trigger({ id: itemId, data });
-      },
-      debounceMs: options?.debounceMs,
-    }),
+    () => {
+      console.log(`[useAutoSaveConfig] useMemo 実行: 新しい設定オブジェクトを作成`);
+      return {
+        enabled: true,
+        onSave: async (data: TFieldValues) => {
+          console.log(`[useAutoSaveConfig:onSave] 保存開始: itemId=${itemId}`);
+          await trigger({ id: itemId, data });
+          console.log(`[useAutoSaveConfig:onSave] 保存完了: itemId=${itemId}`);
+        },
+        debounceMs: options?.debounceMs,
+      };
+    },
     [trigger, itemId, options?.debounceMs],
   );
 }
