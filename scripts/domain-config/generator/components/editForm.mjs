@@ -6,7 +6,7 @@ import { templateDir, replaceTokens } from "./utils/template.mjs";
 // リレーション先のデータ取得は __Domain__Fields 内の useRelationOptions で自動処理される
 
 export default function generate({ config, ...tokens }) {
-  const { camel } = tokens;
+  const { camel, pascal } = tokens;
   const rel = path.join("common", "Edit__Domain__Form.tsx");
   const templatePath = path.join(templateDir, rel);
   const outputFile = path.join(process.cwd(), "src", "features", camel, "components", replaceTokens(rel, tokens));
@@ -22,13 +22,14 @@ export default function generate({ config, ...tokens }) {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
   const template = fs.readFileSync(templatePath, "utf8");
-  let content = replaceTokens(template, tokens);
 
   // オートセーブ設定の適用（config がない場合や useAutoSave がない場合はデフォルトで false）
   const useAutoSave = config?.useAutoSave ?? false;
 
+  let content = template;
+
   if (useAutoSave) {
-    // オートセーブ用のインポートを追加
+    // オートセーブ用のインポートを追加（replaceTokens 前のテンプレート状態で置換）
     content = content.replace(
       'import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";',
       'import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";\nimport { useAutoSaveConfig } from "@/components/Form/AutoSave";'
@@ -36,7 +37,7 @@ export default function generate({ config, ...tokens }) {
 
     // autoSave フックの呼び出しを追加
     content = content.replace(
-      /const { trigger, isMutating } = useUpdate__Domain__\(\);/,
+      'const { trigger, isMutating } = useUpdate__Domain__();',
       'const { trigger, isMutating } = useUpdate__Domain__();\n  const autoSave = useAutoSaveConfig(trigger, __domain__.id);'
     );
 
@@ -46,6 +47,9 @@ export default function generate({ config, ...tokens }) {
       'autoSave={autoSave}'
     );
   }
+
+  // 最後に replaceTokens を実行
+  content = replaceTokens(content, tokens);
 
   fs.writeFileSync(outputFile, content);
   console.log(`コンポーネントを生成しました: ${outputFile}`);
