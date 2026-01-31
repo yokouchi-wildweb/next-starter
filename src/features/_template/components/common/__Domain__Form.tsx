@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { AppForm } from "@/components/Form/AppForm";
+import type { AutoSaveOptions } from "@/components/Form/AutoSave";
 import { Button } from "@/components/Form/Button/Button";
 import { FormActions } from "@/components/Form/FormActions";
 import type { FieldConfig } from "@/components/Form/Field";
@@ -39,6 +40,8 @@ export type __Domain__FormProps<TFieldValues extends FieldValues> = {
   beforeField?: Partial<Record<string, ReactNode>>;
   /** 特定フィールドの後に挿入するUI */
   afterField?: Partial<Record<string, ReactNode>>;
+  /** 自動保存設定（useAutoSaveConfigで作成） */
+  autoSave?: AutoSaveOptions<TFieldValues>;
 };
 
 export function __Domain__Form<TFieldValues extends FieldValues>({
@@ -56,6 +59,7 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
   afterAll,
   beforeField,
   afterField,
+  autoSave,
 }: __Domain__FormProps<TFieldValues>) {
   return (
     <AppForm
@@ -64,6 +68,7 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
       pending={isMutating}
       fieldSpace={6}
       submitErrorDisplay="summary"
+      autoSave={autoSave}
     >
       <__Domain__Fields<TFieldValues>
         methods={methods}
