@@ -85,7 +85,7 @@ function generateComponents(domain, selectedComponents) {
 
   const generatorMap = {
     createForm: () => generateCreateForm(tokens),
-    editForm: () => generateEditForm(tokens),
+    editForm: () => generateEditForm({ ...tokens, config }),
     domainForm: () => generateDomainForm({ ...tokens, config }),
     domainFields: () => generateDomainFields({ ...tokens, config }),
     detailModal: () => generateDetailModal({ ...tokens, config }),

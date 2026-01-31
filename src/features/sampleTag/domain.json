@@ -53,6 +53,7 @@
   "useDuplicateButton": false,
   "useImportExport": false,
   "addToAdminDataMenu": true,
+  "useAutoSave": false,
   "generateFiles": {
     "entities": true,
     "components": true,

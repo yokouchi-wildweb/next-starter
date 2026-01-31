@@ -222,6 +222,7 @@
   "addToAdminDataMenu": true,
   "useDuplicateButton": true,
   "useImportExport": true,
+  "useAutoSave": true,
   "generateFiles": {
     "entities": true,
     "components": true,

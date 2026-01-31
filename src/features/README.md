@@ -28,6 +28,7 @@
 | addToAdminDataMenu | boolean | ⚪ No | adminDataMenu への自動追加 |
 | useDuplicateButton | boolean | ⚪ No | 複製ボタンの有無 |
 | useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式） |
+| useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
 

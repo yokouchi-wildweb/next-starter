@@ -116,5 +116,13 @@ export default async function askViewConfig(config) {
   });
   result.addToAdminDataMenu = addToAdminDataMenu;
 
+  const { useAutoSave } = await prompt({
+    type: 'confirm',
+    name: 'useAutoSave',
+    message: '編集フォームでオートセーブを使用しますか?',
+    default: false,
+  });
+  result.useAutoSave = useAutoSave;
+
   return result;
 }

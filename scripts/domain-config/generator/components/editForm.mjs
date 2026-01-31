@@ -5,7 +5,7 @@ import { templateDir, replaceTokens } from "./utils/template.mjs";
 // ドメインの編集フォームコンポーネントを生成する
 // リレーション先のデータ取得は __Domain__Fields 内の useRelationOptions で自動処理される
 
-export default function generate(tokens) {
+export default function generate({ config, ...tokens }) {
   const { camel } = tokens;
   const rel = path.join("common", "Edit__Domain__Form.tsx");
   const templatePath = path.join(templateDir, rel);
@@ -22,7 +22,30 @@ export default function generate(tokens) {
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
   const template = fs.readFileSync(templatePath, "utf8");
-  const content = replaceTokens(template, tokens);
+  let content = replaceTokens(template, tokens);
+
+  // オートセーブ設定の適用（config がない場合や useAutoSave がない場合はデフォルトで false）
+  const useAutoSave = config?.useAutoSave ?? false;
+
+  if (useAutoSave) {
+    // オートセーブ用のインポートを追加
+    content = content.replace(
+      'import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";',
+      'import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";\nimport { useAutoSaveConfig } from "@/components/Form/AutoSave";'
+    );
+
+    // autoSave フックの呼び出しを追加
+    content = content.replace(
+      /const { trigger, isMutating } = useUpdate__Domain__\(\);/,
+      'const { trigger, isMutating } = useUpdate__Domain__();\n  const autoSave = useAutoSaveConfig(trigger, __domain__.id);'
+    );
+
+    // onCancel を autoSave に変更
+    content = content.replace(
+      'onCancel={() => router.push(redirectPath)}',
+      'autoSave={autoSave}'
+    );
+  }
 
   fs.writeFileSync(outputFile, content);
   console.log(`コンポーネントを生成しました: ${outputFile}`);
