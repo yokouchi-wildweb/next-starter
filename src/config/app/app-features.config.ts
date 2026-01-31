@@ -24,7 +24,7 @@ export const APP_FEATURES = {
     },
     signup: {
       /** サインアップモード: "normal"=通常登録, "earlyRegistration"=事前登録 */
-      mode: "earlyRegistration" as SignupMode,
+      mode: "normal" as SignupMode,
       /** 認証完了後の遷移先パス */
       afterVerificationPath: "/signup/register",
       /** 本登録ページに進捗インディケーターを表示する */
