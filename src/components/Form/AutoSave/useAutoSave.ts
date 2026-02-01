@@ -61,7 +61,7 @@ export function useAutoSave<TFieldValues extends FieldValues>({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFieldsRef = useRef<Set<FieldPath<TFieldValues>>>(new Set());
   // performSaveの最新参照を保持（setTimeout内から常に最新版を呼び出すため）
-  const performSaveRef = useRef<(forceAll?: boolean) => Promise<void>>();
+  const performSaveRef = useRef<((forceAll?: boolean) => Promise<void>) | undefined>(undefined);
 
   // ローディングトースト
   useLoadingToast(isSaving, "保存中…");
