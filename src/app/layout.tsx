@@ -24,6 +24,13 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: seoConfig.siteName,
     locale: seoConfig.locale,
+    images: [
+      {
+        url: seoConfig.defaultOgImage,
+        width: seoConfig.ogImageSize.width,
+        height: seoConfig.ogImageSize.height,
+      },
+    ],
   },
 };
 
