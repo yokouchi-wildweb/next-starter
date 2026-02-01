@@ -86,17 +86,12 @@ export function FieldItem<
       render={({ field }) => {
         // 自動保存が有効な場合、onBlurをラップしてAutoSaveの処理を追加
         // blurMode="none"の場合は独自のオートセーブ処理を持つためスキップ
-        console.log(`[FieldItem:render] name=${String(name)}, autoSaveEnabled=${autoSaveContext?.enabled}, blurMode=${blurMode}`);
-
         const wrappedField = autoSaveContext?.enabled && blurMode !== "none"
           ? {
               ...field,
               onBlur: () => {
-                console.log(`[FieldItem:wrappedOnBlur] name=${String(name)} 呼び出し開始`);
                 field.onBlur();
-                console.log(`[FieldItem:wrappedOnBlur] field.onBlur() 完了、autoSaveContext.onFieldBlur を呼び出し...`);
                 autoSaveContext.onFieldBlur(name, { immediate: blurMode === "immediate" });
-                console.log(`[FieldItem:wrappedOnBlur] autoSaveContext.onFieldBlur 呼び出し完了`);
               },
             }
           : field;

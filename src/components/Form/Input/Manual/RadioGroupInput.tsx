@@ -59,12 +59,8 @@ export function RadioGroupInput({
 }: RadioGroupInputProps) {
   // 値変更後にonBlurを発火するラップ関数
   const handleChange = (newValue: OptionPrimitive) => {
-    console.log(`[RadioGroupInput] handleChange 開始: newValue=${JSON.stringify(newValue)}`);
-    console.log(`[RadioGroupInput] handleChange: onBlur関数の参照=`, onBlur);
     onChange(newValue);
-    console.log(`[RadioGroupInput] onChange 完了、onBlur を呼び出し...`);
     onBlur?.();
-    console.log(`[RadioGroupInput] onBlur 呼び出し完了`);
   };
   const serializedValue =
     value === null || typeof value === "undefined" ? undefined : String(value);
