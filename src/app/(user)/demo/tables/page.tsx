@@ -105,6 +105,8 @@ export default function TablesDemoPage() {
   const [lastEditSummary, setLastEditSummary] = useState("サンプルを編集するとログが更新されます");
   const [isPending, startTransition] = useTransition();
   const { data: sampleList = [], isLoading: isSampleLoading } = useSampleList();
+  // DataTable cellAction デモ用: ポップオーバーの開閉状態
+  const [detailPopoverId, setDetailPopoverId] = useState<number | null>(null);
 
   const normalizedSampleList = useMemo(
     () =>
@@ -277,21 +279,11 @@ export default function TablesDemoPage() {
             <Para size="xs" tone="muted">
               担当: {record.owner}
             </Para>
-          </Block>
-        ),
-        // cellAction のデモ: ホバーでクリック領域が表示され、クリックでポップオーバーが開く
-        cellAction: {
-          onClick: () => {
-            // onClick は InfoPopover のトリガーと併用する場合は空でも可
-          },
-          indicator: (record) => (
+            {/* cellAction のデモ: onClick で state を更新し、制御モードで Popover を開く */}
             <InfoPopover
-              trigger={
-                <Flex align="center" gap="xs" className="text-muted-foreground hover:text-foreground transition-colors">
-                  <Eye className="size-4" />
-                  <Span size="xs">詳細</Span>
-                </Flex>
-              }
+              open={detailPopoverId === record.id}
+              onOpenChange={(open) => !open && setDetailPopoverId(null)}
+              trigger={<span className="sr-only">詳細</span>}
               title={record.project}
               side="left"
               align="center"
@@ -308,6 +300,15 @@ export default function TablesDemoPage() {
                 </Para>
               </Stack>
             </InfoPopover>
+          </Block>
+        ),
+        cellAction: {
+          onClick: (record) => setDetailPopoverId(record.id),
+          indicator: (
+            <Flex align="center" gap="xs">
+              <Eye className="size-4" />
+              <Span size="xs">詳細</Span>
+            </Flex>
           ),
         },
       },
@@ -340,7 +341,7 @@ export default function TablesDemoPage() {
         },
       },
     ],
-    [],
+    [detailPopoverId],
   );
 
   const editableColumnHeaderMap = useMemo(

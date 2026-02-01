@@ -55,10 +55,11 @@ export function CellClickOverlay({
       type="button"
       onClick={handleClick}
       className={cn(
-        // 基本レイアウト: セル全体を覆う
-        "absolute inset-0 z-10",
+        // 基本レイアウト: セルの右端に配置
+        "absolute inset-y-0 right-0 z-10",
         "flex items-center justify-end",
-        "pr-2",
+        "px-1 py-3",
+        "cursor-pointer",
         // 非ホバー時: 透明
         "opacity-0 pointer-events-none",
         // ホバー時: 表示してクリック可能に
@@ -76,7 +77,9 @@ export function CellClickOverlay({
       )}
       aria-label="詳細を表示"
     >
-      {indicator ?? defaultIndicator}
+      <span className="pointer-events-none">
+        {indicator ?? defaultIndicator}
+      </span>
     </button>
   );
 }
