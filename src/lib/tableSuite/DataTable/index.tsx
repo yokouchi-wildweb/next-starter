@@ -10,6 +10,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
+  CellClickOverlay,
 } from "./components";
 import { cn } from "@/lib/cn";
 import type {
@@ -25,6 +26,23 @@ import {
   resolvePaddingClass,
 } from "../types";
 
+/**
+ * セルのクリックアクション設定
+ */
+export type CellAction<T> = {
+  /**
+   * セルクリック時のコールバック
+   */
+  onClick: (item: T) => void;
+  /**
+   * 右端に表示するインジケーター。
+   * デフォルト: 目のアイコン
+   * ReactNode または関数を渡すことで自由にカスタマイズ可能（文字列、アイコン、コンポーネントなど）
+   * 関数を渡すと行データに基づいて動的にインジケーターを生成できる
+   */
+  indicator?: React.ReactNode | ((item: T) => React.ReactNode);
+};
+
 export type DataTableColumn<T> = {
   header: React.ReactNode;
   render: (item: T) => React.ReactNode;
@@ -37,6 +55,11 @@ export type DataTableColumn<T> = {
    * このカラムの垂直パディングを上書き
    */
   paddingY?: PaddingSize;
+  /**
+   * セルにクリック可能なオーバーレイを追加する。
+   * ホバー時にクリック領域とインジケーターが表示される。
+   */
+  cellAction?: CellAction<T>;
 };
 
 export type RowCursor = "pointer" | "default" | "zoom-in" | "grab";
@@ -129,9 +152,20 @@ export default function DataTable<T>({
                   className={cn(
                     resolveColumnTextAlignClass(col.align),
                     resolvePaddingClass(col.paddingX ?? cellPaddingX, col.paddingY ?? cellPaddingY),
+                    col.cellAction && "relative group",
                   )}
                 >
                   {renderCellContent(col.render(item))}
+                  {col.cellAction && (
+                    <CellClickOverlay
+                      onClick={() => col.cellAction!.onClick(item)}
+                      indicator={
+                        typeof col.cellAction.indicator === "function"
+                          ? col.cellAction.indicator(item)
+                          : col.cellAction.indicator
+                      }
+                    />
+                  )}
                 </TableCell>
               ))}
             </TableRow>

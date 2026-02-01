@@ -9,3 +9,4 @@ export * from "./TableHead";
 export * from "./TableCell";
 export * from "./TableCaption";
 export * from "./TableCellAction";
+export * from "./CellClickOverlay";

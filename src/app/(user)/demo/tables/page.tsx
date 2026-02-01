@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { Eye, ExternalLink } from "lucide-react";
 
 import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
 import EditableGridTable, {
@@ -17,6 +18,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Main, PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
+import { InfoPopover } from "@/components/Overlays/Popover/InfoPopover";
 import { cn } from "@/lib/cn";
 import type { Sample } from "@/features/sample/entities";
 import { useSampleList } from "@/features/sample/hooks/useSampleList";
@@ -277,6 +279,37 @@ export default function TablesDemoPage() {
             </Para>
           </Block>
         ),
+        // cellAction のデモ: ホバーでクリック領域が表示され、クリックでポップオーバーが開く
+        cellAction: {
+          onClick: () => {
+            // onClick は InfoPopover のトリガーと併用する場合は空でも可
+          },
+          indicator: (record) => (
+            <InfoPopover
+              trigger={
+                <Flex align="center" gap="xs" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Eye className="size-4" />
+                  <Span size="xs">詳細</Span>
+                </Flex>
+              }
+              title={record.project}
+              side="left"
+              align="center"
+            >
+              <Stack space={2}>
+                <Para size="sm">
+                  <Span weight="medium">担当者:</Span> {record.owner}
+                </Para>
+                <Para size="sm">
+                  <Span weight="medium">ステータス:</Span> {record.status}
+                </Para>
+                <Para size="sm">
+                  <Span weight="medium">進捗率:</Span> {record.progress}%
+                </Para>
+              </Stack>
+            </InfoPopover>
+          ),
+        },
       },
       {
         header: "ステータス",
@@ -294,6 +327,17 @@ export default function TablesDemoPage() {
             {record.progress}%
           </Span>
         ),
+        // シンプルな cellAction のデモ: カスタムインジケーター（アイコン + テキスト）
+        cellAction: {
+          onClick: (record) => {
+            window.alert(`${record.project} の進捗率: ${record.progress}%`);
+          },
+          indicator: (
+            <Flex align="center" gap="xs" className="text-muted-foreground">
+              <ExternalLink className="size-3.5" />
+            </Flex>
+          ),
+        },
       },
     ],
     [],
@@ -533,10 +577,10 @@ export default function TablesDemoPage() {
       <Section>
         <Block className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
           <SecTitle size="lg" className="font-semibold">
-            DataTable デモ
+            DataTable デモ（cellAction 機能付き）
           </SecTitle>
           <Para tone="muted" size="sm">
-            ダミーレコードを 200px の固定最大高さで表示し、スクロール挙動を確認できるセクションです。
+            ダミーレコードを 200px の固定最大高さで表示。「プロジェクト名」列にホバーするとクリック領域と詳細アイコンが表示され、クリックでポップオーバーが開きます。「進捗率」列はシンプルなアラート表示のデモです。
           </Para>
           <DataTable
             items={DATA_TABLE_DEMO_ROWS}
