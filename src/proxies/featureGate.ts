@@ -21,6 +21,17 @@ type FeatureGateRule = {
  * isEnabled が false を返す場合、pathPatterns に一致するパスは404になる
  */
 const FEATURE_GATE_RULES: FeatureGateRule[] = [
+  // サインアップ
+  {
+    pathPatterns: [
+      "/signup",
+      "/api/auth/register",
+      "/api/auth/pre-register",
+      "/api/auth/send-email-link",
+      "/api/auth/send-early-registration-link",
+    ],
+    isEnabled: () => APP_FEATURES.auth.signup.enabled,
+  },
   // ウォレット
   {
     pathPatterns: ["/wallet", "/api/wallet", "/api/admin/wallet"],

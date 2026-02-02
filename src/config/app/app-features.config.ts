@@ -23,6 +23,8 @@ export const APP_FEATURES = {
       demoMaxAgeSeconds: 60 * 10,
     },
     signup: {
+      /** サインアップ機能を有効にする（falseで完全ロック: 画面・API共にアクセス不可） */
+      enabled: true,
       /** サインアップモード: "normal"=通常登録, "earlyRegistration"=事前登録 */
       mode: "normal" as SignupMode,
       /** 認証完了後の遷移先パス */
