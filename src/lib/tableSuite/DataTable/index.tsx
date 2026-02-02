@@ -41,6 +41,11 @@ export type CellAction<T> = {
    * 関数を渡すと行データに基づいて動的にインジケーターを生成できる
    */
   indicator?: React.ReactNode | ((item: T) => React.ReactNode);
+  /**
+   * セル全体をクリック領域にする（デフォルト: false）
+   * true の場合、ホバー時にセル全体がオーバーレイされる
+   */
+  fullWidth?: boolean;
 };
 
 export type DataTableColumn<T> = {
@@ -80,6 +85,11 @@ export type DataTableProps<T> = TableStylingProps<T> &
      */
     rowCursor?: RowCursor;
     emptyValueFallback?: string;
+    /**
+     * 行ホバー時の背景色変更を無効にする
+     * @default false
+     */
+    disableRowHover?: boolean;
   };
 
 const ROW_CURSOR_CLASS: Record<RowCursor, string> = {
@@ -104,6 +114,7 @@ export default function DataTable<T>({
   rowHeight = "md",
   cellPaddingX = "sm",
   cellPaddingY = "none",
+  disableRowHover = false,
 }: DataTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -145,6 +156,7 @@ export default function DataTable<T>({
                 resolveRowClassName(rowClassName, item, { index }),
               )}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
+              disableHover={disableRowHover}
             >
               {columns.map((col, idx) => (
                 <TableCell
@@ -164,6 +176,7 @@ export default function DataTable<T>({
                           ? col.cellAction.indicator(item)
                           : col.cellAction.indicator
                       }
+                      fullWidth={col.cellAction.fullWidth}
                     />
                   )}
                 </TableCell>

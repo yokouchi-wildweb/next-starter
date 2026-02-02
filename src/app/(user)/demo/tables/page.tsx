@@ -310,6 +310,7 @@ export default function TablesDemoPage() {
               <Span size="xs">詳細</Span>
             </Flex>
           ),
+          // fullWidth: true,
         },
       },
       {
