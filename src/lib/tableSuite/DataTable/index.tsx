@@ -11,7 +11,7 @@ import {
   TableHead,
   TableCell,
   CellClickOverlay,
-} from "./components";
+} from "../shared";
 import { cn } from "@/lib/cn";
 import type {
   TableColumnAlignment,

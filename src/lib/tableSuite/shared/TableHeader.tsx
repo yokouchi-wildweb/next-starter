@@ -1,4 +1,4 @@
-// src/components/Tables/DataTable/components/TableHeader.tsx
+// src/lib/tableSuite/shared/TableHeader.tsx
 
 "use client";
 

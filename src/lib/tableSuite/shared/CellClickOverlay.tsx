@@ -1,4 +1,4 @@
-// src/lib/tableSuite/DataTable/components/CellClickOverlay.tsx
+// src/lib/tableSuite/shared/CellClickOverlay.tsx
 
 "use client";
 

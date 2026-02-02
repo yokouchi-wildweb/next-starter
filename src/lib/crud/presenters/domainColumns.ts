@@ -1,5 +1,5 @@
 import React from "react";
-import type { DataTableColumn } from "@/lib/tableSuite/DataTable";
+import type { DataTableColumn } from "@/lib/tableSuite";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";
 import type { FieldPresenter } from "./formatters";

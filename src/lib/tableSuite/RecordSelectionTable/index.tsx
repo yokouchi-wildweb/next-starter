@@ -13,7 +13,8 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "../DataTable/components";
+  CellClickOverlay,
+} from "../shared";
 import type { DataTableProps } from "../DataTable";
 import {
   resolveColumnTextAlignClass,
@@ -50,6 +51,11 @@ export type RecordSelectionTableProps<T> = DataTableProps<T> & {
   bulkActionsAlwaysVisible?: boolean;
   /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
   bulkActionsEmptyMessage?: string;
+  /**
+   * 行ホバー時の背景色変更を無効にするかどうか。
+   * @default false
+   */
+  disableRowHover?: boolean;
 };
 
 export default function RecordSelectionTable<T>({
@@ -75,6 +81,7 @@ export default function RecordSelectionTable<T>({
   rowHeight = "md",
   cellPaddingX = "sm",
   cellPaddingY = "none",
+  disableRowHover = false,
 }: RecordSelectionTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -188,6 +195,7 @@ export default function RecordSelectionTable<T>({
                   onClick={isClickableRow ? () => handleRowClick(item, key) : undefined}
                   aria-selected={isSelected}
                   data-selected={isSelected ? "true" : undefined}
+                  disableHover={disableRowHover}
                 >
                   <SelectionCell
                     label={resolvedSelectColumnLabel}
@@ -202,9 +210,21 @@ export default function RecordSelectionTable<T>({
                       className={cn(
                         resolveColumnTextAlignClass(col.align),
                         resolvePaddingClass(col.paddingX ?? cellPaddingX, col.paddingY ?? cellPaddingY),
+                        col.cellAction && "relative group",
                       )}
                     >
                       {renderCellContent(col.render(item))}
+                      {col.cellAction && (
+                        <CellClickOverlay
+                          onClick={() => col.cellAction!.onClick(item)}
+                          indicator={
+                            typeof col.cellAction.indicator === "function"
+                              ? col.cellAction.indicator(item)
+                              : col.cellAction.indicator
+                          }
+                          fullWidth={col.cellAction.fullWidth}
+                        />
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>

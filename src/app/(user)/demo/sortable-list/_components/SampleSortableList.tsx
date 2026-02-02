@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import SortableList, { type ReorderResult } from "@/lib/tableSuite/SortableList";
+import { SortableList, type ReorderResult } from "@/lib/tableSuite";
 import type { Sample } from "@/features/sample/entities/model";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";

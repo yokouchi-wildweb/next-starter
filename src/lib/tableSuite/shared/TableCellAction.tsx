@@ -1,4 +1,4 @@
-// src/components/Tables/DataTable/components/TableCellAction.tsx
+// src/lib/tableSuite/shared/TableCellAction.tsx
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";

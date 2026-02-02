@@ -4,10 +4,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import DataTable, {
-  TableCellAction,
-  type DataTableColumn,
-} from "@/lib/tableSuite/DataTable";
+import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { HardDeleteButton } from "@/lib/crud/components/Buttons";
 import { Button } from "@/components/Form/Button/Button";
 import type { User } from "@/features/core/user/entities";

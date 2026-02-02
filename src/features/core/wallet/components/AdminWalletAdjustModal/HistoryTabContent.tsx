@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
-import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import { WalletHistoryTypeOptions } from "@/features/core/walletHistory/constants/field";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";

@@ -7,7 +7,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
-import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";

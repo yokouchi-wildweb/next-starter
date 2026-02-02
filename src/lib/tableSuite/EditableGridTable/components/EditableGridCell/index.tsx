@@ -5,7 +5,7 @@ import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/u
 import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-import { TableCell } from "@/lib/tableSuite/DataTable/components";
+import { TableCell, CellClickOverlay } from "@/lib/tableSuite/shared";
 import {
   resolveColumnFlexAlignClass,
   resolveColumnTextAlignClass,
@@ -54,6 +54,15 @@ export function EditableGridCell<T>({
     column,
     onValidChange,
   });
+
+  // 開発時警告: readonly 以外で cellAction を指定した場合
+  React.useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && column.cellAction && !flags.isReadOnly) {
+      console.warn(
+        `EditableGridCell: cellAction は editorType: "readonly" の場合のみ有効です。field: "${column.field}" では無視されます。`,
+      );
+    }
+  }, [column.cellAction, column.field, flags.isReadOnly]);
 
   // 値の計算
   const rawValue = React.useMemo(() => readCellValue(row, column), [column, row]);
@@ -169,6 +178,7 @@ export function EditableGridCell<T>({
         "relative p-0 text-sm cursor-default border border-border/70 rounded",
         hasError && "bg-destructive/10 ring-1 ring-inset ring-destructive/50",
         highlightReadonly && flags.isReadOnly && "bg-muted/50",
+        flags.isReadOnly && column.cellAction && "group",
         textAlignClass,
       )}
       style={column.width ? { width: column.width } : undefined}
@@ -234,6 +244,19 @@ export function EditableGridCell<T>({
           </div>
         ) : null}
       </div>
+
+      {/* セルアクションオーバーレイ（readonly のみ） */}
+      {flags.isReadOnly && column.cellAction && (
+        <CellClickOverlay
+          onClick={() => column.cellAction!.onClick(row)}
+          indicator={
+            typeof column.cellAction.indicator === "function"
+              ? column.cellAction.indicator(row)
+              : column.cellAction.indicator
+          }
+          fullWidth={column.cellAction.fullWidth}
+        />
+      )}
     </TableCell>
   );
 }

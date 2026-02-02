@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TableCellAction } from "@/lib/tableSuite/DataTable/components";
+import { TableCellAction } from "@/lib/tableSuite/shared";
 import { cn } from "@/lib/cn";
 import type { ActionEditorProps } from "../types";
 

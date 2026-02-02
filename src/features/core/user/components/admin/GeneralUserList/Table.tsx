@@ -5,10 +5,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import DataTable, {
-  TableCellAction,
-  type DataTableColumn,
-} from "@/lib/tableSuite/DataTable";
+import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton } from "@/lib/crud/components/Buttons";
 import { Button } from "@/components/Form/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";

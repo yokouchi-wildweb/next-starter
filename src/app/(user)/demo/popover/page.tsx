@@ -21,7 +21,7 @@ import {
   ChecklistPopover,
   SelectPopover,
 } from "@/components/Overlays/Popover";
-import RecordSelectionTable from "@/lib/tableSuite/RecordSelectionTable";
+import { RecordSelectionTable } from "@/lib/tableSuite";
 import { EnumFieldButton, BelongsToFieldButton, BelongsToManyFieldButton, BulkDeleteButton, BulkEnumFieldButton, BulkBelongsToFieldButton, BulkBelongsToManyFieldButton } from "@/lib/crud/components/Buttons";
 import useSWR from "swr";
 import { sampleClient } from "@/features/sample/services/client/sampleClient";

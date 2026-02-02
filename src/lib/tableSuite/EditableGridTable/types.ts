@@ -7,6 +7,7 @@ import type {
   TableCellStyleProps,
   PaddingSize,
 } from "../types";
+import type { CellAction } from "../DataTable";
 
 export type EditableGridEditorType =
   | "text"
@@ -46,6 +47,12 @@ export type EditableGridColumn<T> = {
    * このカラムの垂直パディングを上書き
    */
   paddingY?: PaddingSize;
+  /**
+   * readonly セルにクリック可能なオーバーレイを追加する。
+   * ホバー時にクリック領域とインジケーターが表示される。
+   * editorType: "readonly" の場合のみ有効。
+   */
+  cellAction?: CellAction<T>;
 };
 
 export type EditableGridHeaderIconMode = "readonly" | "editable" | "both" | "none";
@@ -102,4 +109,9 @@ export type EditableGridTableProps<T> = TableStylingProps<T> &
      * @default true
      */
     highlightReadonlyCells?: boolean;
+    /**
+     * 行ホバー時の背景色変更を無効にするかどうか。
+     * @default false
+     */
+    disableRowHover?: boolean;
   };

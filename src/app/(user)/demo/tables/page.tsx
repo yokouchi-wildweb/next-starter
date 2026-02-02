@@ -3,14 +3,15 @@
 import { useMemo, useState, useTransition } from "react";
 import { Eye, ExternalLink } from "lucide-react";
 
-import DataTable, { type DataTableColumn } from "@/lib/tableSuite/DataTable";
-import EditableGridTable, {
+import {
+  DataTable,
+  EditableGridTable,
+  RecordSelectionTable,
+  type DataTableColumn,
   type EditableGridCellChangeEvent,
   type EditableGridColumn,
-} from "@/lib/tableSuite/EditableGridTable";
-import RecordSelectionTable, {
   type RecordSelectionTableProps,
-} from "@/lib/tableSuite/RecordSelectionTable";
+} from "@/lib/tableSuite";
 import { Button } from "@/components/Form/Button/Button";
 import { RadioGroupInput } from "@/components/Form/Input/Manual/RadioGroupInput";
 import { Block } from "@/components/Layout/Block";

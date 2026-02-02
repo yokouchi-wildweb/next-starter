@@ -3,7 +3,7 @@
 "use client";
 
 import type { Sample } from "@/features/sample/entities";
-import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud";
 import config from "@/features/sample/domain.json";
 import presenters from "@/features/sample/presenters";

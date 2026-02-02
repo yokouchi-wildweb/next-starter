@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableHead,
   TableRow,
-} from "../DataTable/components";
+} from "../shared";
 import { resolveColumnTextAlignClass, resolveRowClassName, ROW_HEIGHT_CLASS } from "../types";
 import type { EditableGridColumn, EditableGridTableProps } from "./types";
 import { EditableGridCell } from "./components/EditableGridCell";
@@ -45,6 +45,7 @@ export default function EditableGridTable<T>({
   highlightReadonlyCells = true,
   scrollContainerRef,
   bottomSentinelRef,
+  disableRowHover = false,
 }: EditableGridTableProps<T>) {
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production" && autoSort && (!order || order.length === 0)) {
@@ -155,6 +156,7 @@ export default function EditableGridTable<T>({
                 rowHeightClass,
                 resolveRowClassName(rowClassName, row, { index: displayIndex }),
               )}
+              disableHover={disableRowHover}
             >
               {columns.map((column) => (
                 <EditableGridCell

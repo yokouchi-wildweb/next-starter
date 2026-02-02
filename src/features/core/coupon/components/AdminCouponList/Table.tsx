@@ -3,7 +3,7 @@
 "use client";
 
 import type { Coupon } from "@/features/core/coupon/entities";
-import DataTable, { TableCellAction, type DataTableColumn } from "@/lib/tableSuite/DataTable";
+import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton, DuplicateButton } from "@/lib/crud/components/Buttons";
 import config from "@/features/core/coupon/domain.json";
 import presenters from "@/features/core/coupon/presenters";
