@@ -11,6 +11,7 @@ import {
   TableHead,
   TableCell,
   CellClickOverlay,
+  getCellClickOverlayClassName,
 } from "../shared";
 import { cn } from "@/lib/cn";
 import type {
@@ -180,21 +181,16 @@ export default function DataTable<T>({
                           ? col.cellAction!.indicator(item)
                           : col.cellAction!.indicator;
 
-                      // ポップオーバーモード: トリガーボタンがセル全体を覆い、インジケーターは右端に配置
+                      // ポップオーバーモード: 共通スタイルを使用
                       if (col.cellAction!.popover) {
-                        const fullWidth = col.cellAction!.fullWidth;
+                        const fullWidth = col.cellAction!.fullWidth ?? false;
                         const triggerButton = (
                           <button
                             type="button"
                             data-slot="cell-click-overlay"
-                            className={cn(
-                              "absolute inset-0 z-10 flex items-center justify-end px-2",
-                              "cursor-pointer opacity-0 pointer-events-none",
-                              "group-hover:opacity-100 group-hover:pointer-events-auto",
-                              "transition-opacity duration-150",
-                              "text-muted-foreground hover:text-primary",
-                              fullWidth && "bg-black/10 hover:bg-black/20",
-                            )}
+                            onClick={(e) => e.stopPropagation()}
+                            className={getCellClickOverlayClassName(fullWidth)}
+                            aria-label="詳細を表示"
                           >
                             <span data-slot="cell-click-indicator" className="pointer-events-none">
                               {indicator}

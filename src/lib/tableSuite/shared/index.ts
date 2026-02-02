@@ -8,3 +8,4 @@ export * from "./TableHead";
 export * from "./TableCell";
 export * from "./TableCellAction";
 export * from "./CellClickOverlay";
+export * from "./cellClickOverlayStyles";
