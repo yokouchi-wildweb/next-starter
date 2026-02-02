@@ -14,6 +14,8 @@ type FeatureGateRule = {
   pathPatterns: string[];
   /** この機能が有効かどうかを判定する関数 */
   isEnabled: () => boolean;
+  /** ブロック時のリダイレクト先（省略時は /404） */
+  redirectTo?: string;
 };
 
 /**
@@ -31,6 +33,7 @@ const FEATURE_GATE_RULES: FeatureGateRule[] = [
       "/api/auth/send-early-registration-link",
     ],
     isEnabled: () => APP_FEATURES.auth.signup.enabled,
+    redirectTo: "/signup-closed",
   },
   // ウォレット
   {
@@ -65,7 +68,8 @@ export const featureGateProxy: ProxyHandler = (request) => {
     if (!rule.isEnabled()) {
       for (const pattern of rule.pathPatterns) {
         if (pathname.startsWith(pattern)) {
-          return NextResponse.rewrite(new URL("/404", request.url));
+          const redirectTo = rule.redirectTo ?? "/404";
+          return NextResponse.rewrite(new URL(redirectTo, request.url));
         }
       }
     }
