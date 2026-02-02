@@ -19,6 +19,7 @@ import type {
   TableStylingProps,
   TableCellStyleProps,
   PaddingSize,
+  CellAction,
 } from "../types";
 import {
   resolveColumnTextAlignClass,
@@ -27,32 +28,8 @@ import {
   resolvePaddingClass,
 } from "../types";
 
-/**
- * セルのクリックアクション設定
- */
-export type CellAction<T> = {
-  /**
-   * セルクリック時のコールバック（popover 使用時は省略可）
-   */
-  onClick?: (item: T) => void;
-  /**
-   * ポップオーバーモード：CellClickOverlay をトリガーとして受け取り、ポップオーバーを返す
-   * onClick の代わりに使用する
-   */
-  popover?: (item: T, trigger: React.ReactNode) => React.ReactNode;
-  /**
-   * 右端に表示するインジケーター。
-   * デフォルト: 目のアイコン
-   * ReactNode または関数を渡すことで自由にカスタマイズ可能（文字列、アイコン、コンポーネントなど）
-   * 関数を渡すと行データに基づいて動的にインジケーターを生成できる
-   */
-  indicator?: React.ReactNode | ((item: T) => React.ReactNode);
-  /**
-   * セル全体をクリック領域にする（デフォルト: false）
-   * true の場合、ホバー時にセル全体がオーバーレイされる
-   */
-  fullWidth?: boolean;
-};
+// 後方互換性のため再エクスポート
+export type { CellAction } from "../types";
 
 export type DataTableColumn<T> = {
   header: React.ReactNode;

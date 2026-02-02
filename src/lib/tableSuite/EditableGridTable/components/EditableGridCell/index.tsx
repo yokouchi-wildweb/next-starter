@@ -5,7 +5,7 @@ import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/u
 import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-import { TableCell, CellClickOverlay } from "@/lib/tableSuite";
+import { TableCell, CellClickOverlay, getCellClickOverlayClassName } from "@/lib/tableSuite";
 import {
   resolveColumnFlexAlignClass,
   resolveColumnTextAlignClass,
@@ -246,17 +246,43 @@ export function EditableGridCell<T>({
       </div>
 
       {/* セルアクションオーバーレイ（readonly のみ） */}
-      {flags.isReadOnly && column.cellAction && (
-        <CellClickOverlay
-          onClick={() => column.cellAction!.onClick(row)}
-          indicator={
-            typeof column.cellAction.indicator === "function"
-              ? column.cellAction.indicator(row)
-              : column.cellAction.indicator
+      {flags.isReadOnly &&
+        column.cellAction &&
+        (() => {
+          const indicator =
+            typeof column.cellAction!.indicator === "function"
+              ? column.cellAction!.indicator(row)
+              : column.cellAction!.indicator;
+
+          // ポップオーバーモード: 共通スタイルを使用
+          if (column.cellAction!.popover) {
+            const fullWidth = column.cellAction!.fullWidth ?? false;
+            const triggerButton = (
+              <button
+                type="button"
+                data-slot="cell-click-overlay"
+                onClick={(e) => e.stopPropagation()}
+                className={getCellClickOverlayClassName(fullWidth)}
+                aria-label="詳細を表示"
+              >
+                <span data-slot="cell-click-indicator" className="pointer-events-none">
+                  {indicator}
+                </span>
+              </button>
+            );
+
+            return column.cellAction!.popover(row, triggerButton);
           }
-          fullWidth={column.cellAction.fullWidth}
-        />
-      )}
+
+          // コールバックモード（従来）
+          return (
+            <CellClickOverlay
+              onClick={() => column.cellAction!.onClick?.(row)}
+              indicator={indicator}
+              fullWidth={column.cellAction!.fullWidth}
+            />
+          );
+        })()}
     </TableCell>
   );
 }

@@ -14,6 +14,7 @@ import {
   TableHead,
   TableCell,
   CellClickOverlay,
+  getCellClickOverlayClassName,
 } from "../shared";
 import type { DataTableProps } from "../DataTable";
 import {
@@ -214,17 +215,42 @@ export default function RecordSelectionTable<T>({
                       )}
                     >
                       {renderCellContent(col.render(item))}
-                      {col.cellAction && (
-                        <CellClickOverlay
-                          onClick={() => col.cellAction!.onClick(item)}
-                          indicator={
-                            typeof col.cellAction.indicator === "function"
-                              ? col.cellAction.indicator(item)
-                              : col.cellAction.indicator
+                      {col.cellAction &&
+                        (() => {
+                          const indicator =
+                            typeof col.cellAction!.indicator === "function"
+                              ? col.cellAction!.indicator(item)
+                              : col.cellAction!.indicator;
+
+                          // ポップオーバーモード: 共通スタイルを使用
+                          if (col.cellAction!.popover) {
+                            const fullWidth = col.cellAction!.fullWidth ?? false;
+                            const triggerButton = (
+                              <button
+                                type="button"
+                                data-slot="cell-click-overlay"
+                                onClick={(e) => e.stopPropagation()}
+                                className={getCellClickOverlayClassName(fullWidth)}
+                                aria-label="詳細を表示"
+                              >
+                                <span data-slot="cell-click-indicator" className="pointer-events-none">
+                                  {indicator}
+                                </span>
+                              </button>
+                            );
+
+                            return col.cellAction!.popover(item, triggerButton);
                           }
-                          fullWidth={col.cellAction.fullWidth}
-                        />
-                      )}
+
+                          // コールバックモード（従来）
+                          return (
+                            <CellClickOverlay
+                              onClick={() => col.cellAction!.onClick?.(item)}
+                              indicator={indicator}
+                              fullWidth={col.cellAction!.fullWidth}
+                            />
+                          );
+                        })()}
                     </TableCell>
                   ))}
                 </TableRow>

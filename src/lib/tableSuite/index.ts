@@ -26,6 +26,7 @@ export {
   TABLE_CELL_ACTION_CLASS,
   CellClickOverlay,
   type CellClickOverlayProps,
+  getCellClickOverlayClassName,
 } from "./shared";
 
 // ============================================================
@@ -45,6 +46,7 @@ export type {
   TableRowClassContext,
   RowClassNameResolver,
   TableStylingProps,
+  CellAction,
 } from "./types";
 export {
   ROW_HEIGHT_CLASS,
@@ -58,7 +60,6 @@ export {
 
 // DataTable 型
 export type {
-  CellAction,
   DataTableColumn,
   DataTableProps,
   RowCursor,
