@@ -5,7 +5,7 @@ import { normalizeOptionValues, type OptionPrimitive } from "@/components/Form/u
 import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-import { TableCell, CellClickOverlay } from "@/lib/tableSuite/shared";
+import { TableCell, CellClickOverlay } from "@/lib/tableSuite";
 import {
   resolveColumnFlexAlignClass,
   resolveColumnTextAlignClass,

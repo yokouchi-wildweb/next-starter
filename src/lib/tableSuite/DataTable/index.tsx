@@ -31,9 +31,14 @@ import {
  */
 export type CellAction<T> = {
   /**
-   * セルクリック時のコールバック
+   * セルクリック時のコールバック（popover 使用時は省略可）
    */
-  onClick: (item: T) => void;
+  onClick?: (item: T) => void;
+  /**
+   * ポップオーバーモード：CellClickOverlay をトリガーとして受け取り、ポップオーバーを返す
+   * onClick の代わりに使用する
+   */
+  popover?: (item: T, trigger: React.ReactNode) => React.ReactNode;
   /**
    * 右端に表示するインジケーター。
    * デフォルト: 目のアイコン
@@ -168,17 +173,47 @@ export default function DataTable<T>({
                   )}
                 >
                   {renderCellContent(col.render(item))}
-                  {col.cellAction && (
-                    <CellClickOverlay
-                      onClick={() => col.cellAction!.onClick(item)}
-                      indicator={
-                        typeof col.cellAction.indicator === "function"
-                          ? col.cellAction.indicator(item)
-                          : col.cellAction.indicator
+                  {col.cellAction &&
+                    (() => {
+                      const indicator =
+                        typeof col.cellAction!.indicator === "function"
+                          ? col.cellAction!.indicator(item)
+                          : col.cellAction!.indicator;
+
+                      // ポップオーバーモード: トリガーボタンがセル全体を覆い、インジケーターは右端に配置
+                      if (col.cellAction!.popover) {
+                        const fullWidth = col.cellAction!.fullWidth;
+                        const triggerButton = (
+                          <button
+                            type="button"
+                            data-slot="cell-click-overlay"
+                            className={cn(
+                              "absolute inset-0 z-10 flex items-center justify-end px-2",
+                              "cursor-pointer opacity-0 pointer-events-none",
+                              "group-hover:opacity-100 group-hover:pointer-events-auto",
+                              "transition-opacity duration-150",
+                              "text-muted-foreground hover:text-primary",
+                              fullWidth && "bg-black/10 hover:bg-black/20",
+                            )}
+                          >
+                            <span data-slot="cell-click-indicator" className="pointer-events-none">
+                              {indicator}
+                            </span>
+                          </button>
+                        );
+
+                        return col.cellAction!.popover(item, triggerButton);
                       }
-                      fullWidth={col.cellAction.fullWidth}
-                    />
-                  )}
+
+                      // コールバックモード（従来）
+                      return (
+                        <CellClickOverlay
+                          onClick={() => col.cellAction!.onClick?.(item)}
+                          indicator={indicator}
+                          fullWidth={col.cellAction!.fullWidth}
+                        />
+                      );
+                    })()}
                 </TableCell>
               ))}
             </TableRow>
