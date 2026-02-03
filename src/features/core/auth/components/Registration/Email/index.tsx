@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
@@ -12,6 +13,7 @@ import { FieldItem } from "@/components/Form";
 import { PasswordInput, SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
 import { Input } from "@/components/Form/Input/Manual";
 import { Para } from "@/components/TextBlocks";
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
@@ -19,6 +21,7 @@ import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { useLocalStorage } from "@/lib/browserStorage";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
+import { getRecaptchaToken } from "@/lib/recaptcha";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
@@ -32,6 +35,7 @@ import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./form
 
 export function EmailRegistrationForm() {
   const { guardedPush } = useGuardedNavigation();
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const [savedEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
   // ローカルストレージのメールアドレスを優先（認証時に保存された正しい値）
   const email = useMemo(() => savedEmail.trim(), [savedEmail]);
@@ -66,6 +70,12 @@ export function EmailRegistrationForm() {
 
         const idToken = await currentUser.getIdToken();
 
+        // reCAPTCHA トークンを取得
+        const recaptchaToken = await getRecaptchaToken(
+          executeRecaptcha,
+          RECAPTCHA_ACTIONS.REGISTER,
+        );
+
         await register({
           providerType: "email",
           providerUid: currentUser.uid,
@@ -75,7 +85,7 @@ export function EmailRegistrationForm() {
           password,
           role,
           profileData,
-        });
+        }, { recaptchaToken });
         await refreshSession();
         guardedPush("/signup/complete");
       } catch (error) {
@@ -83,7 +93,7 @@ export function EmailRegistrationForm() {
         form.setError("root", { type: "server", message });
       }
     },
-    [form, refreshSession, register, guardedPush],
+    [form, refreshSession, register, guardedPush, executeRecaptcha],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;

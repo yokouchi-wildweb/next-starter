@@ -33,15 +33,17 @@
       "required": true
     }
   ],
+  "searchFields": [],
+  "defaultOrderBy": [["expires_at", "DESC"]],
   "generateFiles": {
     "entities": true,
     "components": false,
-    "hooks": true,
-    "clientServices": true,
-    "serverServices": true,
+    "hooks": false,
+    "clientServices": false,
+    "serverServices": false,
     "adminRoutes": false,
     "registry": true,
-    "fieldConstants": true,
+    "fieldConstants": false,
     "presenters": false
   }
 }

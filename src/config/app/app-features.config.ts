@@ -47,6 +47,8 @@ export const APP_FEATURES = {
       defaultRole: "user",
       /** メール認証完了後の動作: "manual"=ボタン表示, "auto"=自動遷移 */
       emailVerificationRedirect: "auto" as "manual" | "auto",
+      /** reCAPTCHA v3 スコア閾値（0.0〜1.0、これ以上なら人間と判定） */
+      recaptchaThreshold: 0.5,
     },
   },
   user: {

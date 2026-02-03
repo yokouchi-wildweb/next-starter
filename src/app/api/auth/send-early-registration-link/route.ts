@@ -10,6 +10,7 @@ export const POST = createApiRoute(
     operation: "POST /api/auth/send-early-registration-link",
     operationType: "write",
     skipForDemo: true,
+    rateLimit: "signupEmail",
   },
   async (req) => {
     const body = await req.json();

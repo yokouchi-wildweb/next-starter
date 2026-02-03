@@ -13,6 +13,11 @@ const ENDPOINT = "/api/auth/register";
 
 export type RegistrationPayload = z.infer<typeof RegistrationSchema>;
 
+export type RegistrationOptions = {
+  /** reCAPTCHA v3 トークン */
+  recaptchaToken?: string;
+};
+
 export type RegistrationResponse = {
   user: User;
   session: {
@@ -22,9 +27,15 @@ export type RegistrationResponse = {
 
 export async function register(
   payload: RegistrationPayload,
+  options?: RegistrationOptions,
 ): Promise<RegistrationResponse> {
   try {
-    const response = await axios.post<RegistrationResponse>(ENDPOINT, payload);
+    const headers: Record<string, string> = {};
+    if (options?.recaptchaToken) {
+      headers["X-Recaptcha-Token"] = options.recaptchaToken;
+    }
+
+    const response = await axios.post<RegistrationResponse>(ENDPOINT, payload, { headers });
 
     return response.data;
   } catch (error) {

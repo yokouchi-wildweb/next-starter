@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { createApiRoute } from "@/lib/routeFactory";
 import { sendSignInLink } from "@/features/core/auth/services/server/sendSignInLink";
 
@@ -10,6 +11,8 @@ export const POST = createApiRoute(
     operation: "POST /api/auth/send-email-link",
     operationType: "write",
     skipForDemo: true,
+    rateLimit: "signupEmail",
+    recaptcha: { action: RECAPTCHA_ACTIONS.SEND_EMAIL_LINK },
   },
   async (req) => {
     const body = await req.json();

@@ -8,6 +8,7 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { Mail } from "lucide-react";
 
 import { AppForm } from "@/components/Form/AppForm";
@@ -16,11 +17,13 @@ import { FieldItem } from "@/components/Form";
 import { TextInput } from "@/components/Form/Input/Controlled";
 import { Block } from "@/components/Layout/Block";
 import { Para, SecTitle } from "@/components/TextBlocks";
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localStorage";
 import { useVerificationEmail } from "@/features/core/auth/hooks/useVerificationEmail";
 import { useEmailUserExists } from "@/features/core/user/hooks/useEmailUserExists";
 import { err } from "@/lib/errors";
 import { useLocalStorage } from "@/lib/browserStorage";
+import { getRecaptchaToken } from "@/lib/recaptcha";
 
 import { FormSchema, type FormValues, DefaultValues } from "./formEntities";
 
@@ -32,6 +35,7 @@ export function VerificationEmailSendForm({
   urlAfterEmailSent,
 }: VerificationEmailSendFormProps) {
   const router = useRouter();
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const { check, isLoading: isChecking } = useEmailUserExists();
   const { sendVerificationEmail, isLoading: isSending } = useVerificationEmail();
   const [, saveEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
@@ -55,8 +59,14 @@ export function VerificationEmailSendForm({
         return;
       }
 
+      // reCAPTCHA トークンを取得
+      const recaptchaToken = await getRecaptchaToken(
+        executeRecaptcha,
+        RECAPTCHA_ACTIONS.SEND_EMAIL_LINK,
+      );
+
       saveEmail(normalizedEmail);
-      await sendVerificationEmail(normalizedEmail);
+      await sendVerificationEmail(normalizedEmail, { recaptchaToken });
       router.push(urlAfterEmailSent);
     } catch (error) {
       const message = err(error, "メール送信に失敗しました");

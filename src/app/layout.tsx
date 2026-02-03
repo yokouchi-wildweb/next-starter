@@ -12,6 +12,7 @@ import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { AdminCommandProvider } from "src/features/core/adminCommand";
+import { RecaptchaProvider } from "@/components/Providers/RecaptchaProvider";
 import { seoConfig } from "@/config/seo.config";
 
 export const metadata: Metadata = {
@@ -60,12 +61,14 @@ export default function RootLayout({
         <GlobalScreenLoader />
         <GlobalToast />
         <AuthSessionProvider>
-          <AdminCommandProvider>
-            <ImageViewerProvider>
-              <RouteTransitionOverlay />
-              {children}
-            </ImageViewerProvider>
-          </AdminCommandProvider>
+          <RecaptchaProvider>
+            <AdminCommandProvider>
+              <ImageViewerProvider>
+                <RouteTransitionOverlay />
+                {children}
+              </ImageViewerProvider>
+            </AdminCommandProvider>
+          </RecaptchaProvider>
         </AuthSessionProvider>
         <Toaster position="bottom-center" richColors />
         <RedirectToastProvider />

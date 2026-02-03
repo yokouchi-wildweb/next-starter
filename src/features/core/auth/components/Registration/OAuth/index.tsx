@@ -5,18 +5,21 @@
 import { useCallback, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { FieldItem } from "@/components/Form";
 import { SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
 import { Para } from "@/components/TextBlocks";
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
+import { getRecaptchaToken } from "@/lib/recaptcha";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 import type { UserProviderType } from "@/features/core/user/types";
 
@@ -31,6 +34,7 @@ import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
 export function OAuthRegistrationForm() {
   const { guardedPush } = useGuardedNavigation();
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: DefaultValues,
@@ -80,6 +84,12 @@ export function OAuthRegistrationForm() {
 
         const idToken = await currentUser.getIdToken();
 
+        // reCAPTCHA トークンを取得
+        const recaptchaToken = await getRecaptchaToken(
+          executeRecaptcha,
+          RECAPTCHA_ACTIONS.REGISTER,
+        );
+
         await register({
           providerType: providerId as UserProviderType,
           providerUid: currentUser.uid,
@@ -88,7 +98,7 @@ export function OAuthRegistrationForm() {
           name,
           role,
           profileData,
-        });
+        }, { recaptchaToken });
 
         await refreshSession();
         guardedPush("/signup/complete");
@@ -97,7 +107,7 @@ export function OAuthRegistrationForm() {
         form.setError("root", { type: "server", message });
       }
     },
-    [form, refreshSession, register, guardedPush],
+    [form, refreshSession, register, guardedPush, executeRecaptcha],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
