@@ -1,0 +1,47 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "rate_limit",
+  "plural": "rate_limits",
+  "label": "レート制限",
+  "dbEngine": "Neon",
+  "idType": "string",
+  "relations": [],
+  "useCreatedAt": false,
+  "useUpdatedAt": false,
+  "useSoftDelete": false,
+  "fields": [
+    {
+      "name": "count",
+      "label": "カウント",
+      "fieldType": "integer",
+      "formInput": "none",
+      "required": true,
+      "defaultValue": 1
+    },
+    {
+      "name": "window_start",
+      "label": "ウィンドウ開始",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "expires_at",
+      "label": "有効期限",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "none",
+      "required": true
+    }
+  ],
+  "generateFiles": {
+    "entities": true,
+    "components": false,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "adminRoutes": false,
+    "registry": true,
+    "fieldConstants": true,
+    "presenters": false
+  }
+}

@@ -6,6 +6,7 @@ import sampleTagConfig from "@/features/sampleTag/domain.json";
 import couponConfig from "@/features/core/coupon/domain.json";
 import couponHistoryConfig from "@/features/core/couponHistory/domain.json";
 import userConfig from "@/features/core/user/domain.json";
+import rateLimitConfig from "@/features/core/rateLimit/domain.json";
 
 export const domainConfigMap = {
 
@@ -15,6 +16,7 @@ export const domainConfigMap = {
   sample_tag: sampleTagConfig,
   coupon: couponConfig,
   coupon_history: couponHistoryConfig,
+  rate_limit: rateLimitConfig,
   // --- AUTO-GENERATED-END ---
 
   // --- CORE DOMAINS (手動管理) ---
