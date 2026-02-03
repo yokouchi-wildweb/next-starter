@@ -5,7 +5,7 @@ import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { SolidTabs, type PageTabItem } from "@/components/Navigation/PageTab";
+import { SolidTabs, type PageTabItem } from "@/components/Navigation";
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import { Para } from "@/components/TextBlocks/Para";
 import { Construction } from "lucide-react";

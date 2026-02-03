@@ -6,7 +6,7 @@ import Header from "./Header";
 import Table from "./Table";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { SolidTabs, type PageTabItem } from "@/components/Navigation/PageTab";
+import { SolidTabs, type PageTabItem } from "@/components/Navigation";
 
 // CouponTypeOptions からタブアイテムを生成
 const couponTypeTabs: PageTabItem[] = CouponTypeOptions.map(opt => ({
