@@ -60,16 +60,16 @@ export default function RootLayout({
         <ViewportHeightWatcher />
         <GlobalScreenLoader />
         <GlobalToast />
-        <AuthSessionProvider>
-          <RecaptchaProvider>
+        <RecaptchaProvider>
+          <AuthSessionProvider>
             <AdminCommandProvider>
               <ImageViewerProvider>
                 <RouteTransitionOverlay />
                 {children}
               </ImageViewerProvider>
             </AdminCommandProvider>
-          </RecaptchaProvider>
-        </AuthSessionProvider>
+          </AuthSessionProvider>
+        </RecaptchaProvider>
         <Toaster position="bottom-center" richColors />
         <RedirectToastProvider />
       </body>

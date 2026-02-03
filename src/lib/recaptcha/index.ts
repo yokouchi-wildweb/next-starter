@@ -2,3 +2,4 @@
 
 // クライアント用エクスポート
 export { getRecaptchaToken } from "./client/executeRecaptcha";
+export { RecaptchaBadge } from "./components/RecaptchaBadge";

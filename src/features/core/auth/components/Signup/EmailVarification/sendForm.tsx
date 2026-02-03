@@ -23,7 +23,7 @@ import { useVerificationEmail } from "@/features/core/auth/hooks/useVerification
 import { useEmailUserExists } from "@/features/core/user/hooks/useEmailUserExists";
 import { err } from "@/lib/errors";
 import { useLocalStorage } from "@/lib/browserStorage";
-import { getRecaptchaToken } from "@/lib/recaptcha";
+import { getRecaptchaToken, RecaptchaBadge } from "@/lib/recaptcha";
 
 import { FormSchema, type FormValues, DefaultValues } from "./formEntities";
 
@@ -108,6 +108,8 @@ export function VerificationEmailSendForm({
               {rootErrorMessage}
             </Para>
           ) : null}
+
+          <RecaptchaBadge />
 
           <Button type="submit" disabled={isLoading} className="w-full justify-center">
             {isLoading ? "送信中..." : "メールアドレスで登録"}

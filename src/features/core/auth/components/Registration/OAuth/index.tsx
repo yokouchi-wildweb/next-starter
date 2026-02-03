@@ -19,7 +19,7 @@ import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
-import { getRecaptchaToken } from "@/lib/recaptcha";
+import { getRecaptchaToken, RecaptchaBadge } from "@/lib/recaptcha";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 import type { UserProviderType } from "@/features/core/user/types";
 
@@ -193,6 +193,8 @@ export function OAuthRegistrationForm() {
             {rootErrorMessage}
           </Para>
         ) : null}
+
+        <RecaptchaBadge />
 
         <Button type="submit" className="w-full justify-center" disabled={isLoading}>
           {isLoading ? "登録処理中..." : "登録を完了"}

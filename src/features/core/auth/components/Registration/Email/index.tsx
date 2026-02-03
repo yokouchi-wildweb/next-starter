@@ -21,7 +21,7 @@ import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import { useLocalStorage } from "@/lib/browserStorage";
 import { err, HttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
-import { getRecaptchaToken } from "@/lib/recaptcha";
+import { getRecaptchaToken, RecaptchaBadge } from "@/lib/recaptcha";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
@@ -209,6 +209,8 @@ export function EmailRegistrationForm() {
             {rootErrorMessage}
           </Para>
         ) : null}
+
+        <RecaptchaBadge />
 
         <Button type="submit" className="w-full justify-center" disabled={isLoading}>
           {isLoading ? "登録処理中..." : "登録を完了"}
