@@ -25,6 +25,7 @@ export const UserCoreSchema = z.object({
     .transform((value) => emptyToNull(value))
     .transform(async (value) => await createHashPreservingNullish(value)),
   lastAuthenticatedAt: z.coerce.date().nullish(),
+  metadata: z.record(z.unknown()).default({}),
   deletedAt: z.coerce.date().nullish(),
   name: z
     .string()

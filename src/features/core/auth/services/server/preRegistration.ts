@@ -24,6 +24,8 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
   }
 
   const { providerType, providerUid, idToken, email } = parsedInput.data;
+  // IPアドレスはスキーマ外で渡される
+  const ip = (input as { ip?: string })?.ip;
   const emailFromRequest = email ?? undefined;
 
   const auth = getServerAuth();
@@ -66,6 +68,7 @@ export async function preRegister(input: unknown): Promise<PreRegistrationResult
     providerUid,
     email: emailFromRequest ?? null,
     existingUser,
+    ip,
   });
 
   return { user };

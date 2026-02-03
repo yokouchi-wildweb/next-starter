@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createApiRoute } from "@/lib/routeFactory";
 import { demoLogin } from "@/features/core/auth/services/server/demoLogin";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
+import { getClientIp } from "@/lib/request/getClientIp";
 
 const DemoLoginRequestSchema = z.object({
   demoUserId: z.string().uuid().nullish(),
@@ -20,8 +21,9 @@ export const POST = createApiRoute(
   async (req) => {
     const body = await req.json().catch(() => ({}));
     const { demoUserId } = DemoLoginRequestSchema.parse(body);
+    const ip = await getClientIp();
 
-    const { user, demoUserId: returnedDemoUserId, isNewUser, session } = await demoLogin({ demoUserId });
+    const { user, demoUserId: returnedDemoUserId, isNewUser, session } = await demoLogin({ demoUserId, ip: ip ?? undefined });
 
     const response = NextResponse.json({
       user,

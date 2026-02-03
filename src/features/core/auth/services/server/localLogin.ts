@@ -11,7 +11,9 @@ import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import type { UserRoleType, UserStatus } from "@/features/core/user/types";
 
-export type LocalLoginInput = z.infer<typeof LocalLoginSchema>;
+export type LocalLoginInput = z.infer<typeof LocalLoginSchema> & {
+  ip?: string;
+};
 
 // 入力値の形式を検証するためのスキーマ。未入力やフォーマット不正を網羅的に検知する。
 const LocalLoginSchema = z.object({
@@ -70,6 +72,8 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
 
   // 正常にパースしたメールアドレスとパスワードを取り出す。
   const { email, password } = parsed.data;
+  // IPアドレスはスキーマ外で渡される
+  const ip = (input as { ip?: string })?.ip;
 
   // ローカル認証ユーザーをメールアドレスで検索する。
   const user = await userService.findByLocalEmail(email);
@@ -91,7 +95,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
   }
 
   // 最終認証日時を更新する。
-  await userService.updateLastAuthenticated(user.id);
+  await userService.updateLastAuthenticated(user.id, { ip });
 
   // セッションに格納する情報をスキーマで整形し、不正値混入を防ぐ。
   const sessionUser = SessionUserSchema.parse({

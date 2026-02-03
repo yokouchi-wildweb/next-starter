@@ -103,6 +103,14 @@
       "fieldType": "timestamp With Time Zone",
       "formInput": "none",
       "required": false
+    },
+    {
+      "name": "metadata",
+      "label": "メタデータ",
+      "fieldType": "jsonb",
+      "formInput": "none",
+      "required": false,
+      "defaultValue": {}
     }
   ],
   "searchFields": ["name", "email"],

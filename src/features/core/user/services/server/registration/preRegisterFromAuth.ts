@@ -10,6 +10,7 @@ export type PreRegisterFromAuthInput = {
   providerUid: string;
   email: string | null;
   existingUser: User | null;
+  ip?: string;
 };
 
 export type PreRegisterFromAuthResult = {
@@ -26,7 +27,7 @@ export type PreRegisterFromAuthResult = {
 export async function preRegisterFromAuth(
   input: PreRegisterFromAuthInput,
 ): Promise<PreRegisterFromAuthResult> {
-  const { providerType, providerUid, email, existingUser } = input;
+  const { providerType, providerUid, email, existingUser, ip } = input;
 
   const now = new Date();
 
@@ -34,13 +35,14 @@ export async function preRegisterFromAuth(
   const isRejoin = existingUser?.status === "withdrawn";
   const isNewRegistration = !existingUser;
 
-  // ユーザーを作成/更新
+  // ユーザーを作成/更新（新規登録の場合はsignupIpを記録）
   const user = await setPending(
     {
       providerType,
       providerUid,
       email,
       lastAuthenticatedAt: now,
+      signupIp: isNewRegistration ? ip : undefined,
     },
     existingUser,
   );

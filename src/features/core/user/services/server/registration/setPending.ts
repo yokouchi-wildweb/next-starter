@@ -14,6 +14,7 @@ export type CreatePendingInput = {
   providerUid: string;
   email: string | null;
   lastAuthenticatedAt: Date;
+  signupIp?: string;
 };
 
 /**
@@ -51,6 +52,8 @@ export async function setPending(
       localPassword: null,
       name: null,
       deletedAt: null,
+      // 新規登録の場合はsignupIpをmetadataに記録
+      ...(input.signupIp ? { metadata: { signupIp: input.signupIp } } : {}),
     } as Parameters<typeof base.upsert>[0],
     { conflictFields: ["providerType", "providerUid"] },
   );

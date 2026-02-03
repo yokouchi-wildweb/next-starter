@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { createApiRoute } from "@/lib/routeFactory";
 import { createFirebaseSession } from "@/features/core/auth/services/server/firebaseSession";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
+import { getClientIp } from "@/lib/request/getClientIp";
 
 export const POST = createApiRoute(
   {
@@ -14,7 +15,8 @@ export const POST = createApiRoute(
   },
   async (req) => {
     const body = await req.json();
-    const { user, session, requiresReactivation } = await createFirebaseSession(body);
+    const ip = await getClientIp();
+    const { user, session, requiresReactivation } = await createFirebaseSession({ ...body, ip: ip ?? undefined });
 
     const response = NextResponse.json({
       user,

@@ -10,6 +10,7 @@ import { signUserToken } from "@/lib/jwt";
 
 export type DemoLoginInput = {
   demoUserId?: string | null;
+  ip?: string;
 };
 
 export type DemoLoginResult = {
@@ -28,7 +29,7 @@ export type DemoLoginResult = {
  * demoUserId が指定されていればそのユーザーでログイン、なければ新規作成。
  */
 export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginResult> {
-  const { demoUserId } = input;
+  const { demoUserId, ip } = input;
 
   let user;
   let isNewUser = false;
@@ -53,7 +54,7 @@ export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginRe
   }
 
   // 最終認証日時を更新
-  await userService.updateLastAuthenticated(user.id);
+  await userService.updateLastAuthenticated(user.id, { ip });
 
   // セッションに格納する情報をスキーマで整形
   const sessionUser = SessionUserSchema.parse({

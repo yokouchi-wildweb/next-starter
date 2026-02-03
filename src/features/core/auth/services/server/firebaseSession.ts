@@ -7,6 +7,7 @@ import { PreRegistrationSchema } from "@/features/core/auth/entities/schema";
 import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { UserTable } from "@/features/core/user/entities/drizzle";
+import type { UserMetadata, UserLoginRecord } from "@/features/core/user/entities/model";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
@@ -19,6 +20,8 @@ const FirebaseSessionSchema = PreRegistrationSchema.pick({
   providerType: true,
   providerUid: true,
   idToken: true,
+}).extend({
+  ip: z.string().optional(),
 });
 
 export type FirebaseSessionResult = {
@@ -43,7 +46,7 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
   }
 
   // プロバイダー識別子と Firebase ID トークンを抽出する。
-  const { providerType, providerUid, idToken } = parsed.data;
+  const { providerType, providerUid, idToken, ip } = parsed.data;
 
   // サーバー用の Firebase Admin SDK インスタンスを取得する。
   const auth = getServerAuth();
@@ -94,11 +97,33 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
   // 認証成功時点を記録し、利用履歴を更新する。
   const now = new Date();
 
-  await db
-    .update(UserTable)
-    // Firebase ログインであっても lastAuthenticatedAt を更新して整合性を保つ。
-    .set({ lastAuthenticatedAt: now, updatedAt: now })
-    .where(eq(UserTable.id, user.id));
+  // IPアドレスがある場合はログイン履歴も更新
+  if (ip) {
+    const currentMetadata = (user.metadata ?? {}) as UserMetadata;
+    const newRecord: UserLoginRecord = {
+      ip,
+      at: now.toISOString(),
+    };
+    const newLoginHistory = [
+      newRecord,
+      ...(currentMetadata.loginHistory ?? []).slice(0, 2),
+    ];
+
+    await db
+      .update(UserTable)
+      .set({
+        lastAuthenticatedAt: now,
+        updatedAt: now,
+        metadata: { ...currentMetadata, loginHistory: newLoginHistory },
+      })
+      .where(eq(UserTable.id, user.id));
+  } else {
+    await db
+      .update(UserTable)
+      // Firebase ログインであっても lastAuthenticatedAt を更新して整合性を保つ。
+      .set({ lastAuthenticatedAt: now, updatedAt: now })
+      .where(eq(UserTable.id, user.id));
+  }
 
   // セッションで扱うユーザー情報をスキーマで正規化する。
   const sessionUser = SessionUserSchema.parse({
