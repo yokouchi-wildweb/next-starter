@@ -3,7 +3,7 @@
 "use client";
 
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
-import Pagination from "../../../../components/Navigation/Pagination";
+import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
