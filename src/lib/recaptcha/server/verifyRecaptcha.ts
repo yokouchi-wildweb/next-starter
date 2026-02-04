@@ -1,6 +1,6 @@
 // src/lib/recaptcha/server/verifyRecaptcha.ts
 
-import { RECAPTCHA_V3_INTERNALS } from "@/lib/recaptcha/constants";
+import { RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
 
 /**
  * reCAPTCHA検証レスポンス
@@ -24,6 +24,8 @@ export type RecaptchaVerifyResult = {
   score: number;
   /** エラーメッセージ（検証失敗時） */
   error?: string;
+  /** v2チャレンジが必要か（中間スコアの場合） */
+  requireV2Challenge?: boolean;
 };
 
 /**
@@ -31,16 +33,21 @@ export type RecaptchaVerifyResult = {
  *
  * @param token - クライアントから送信されたトークン
  * @param expectedAction - 期待されるアクション名
- * @param threshold - スコア閾値
+ * @param threshold - スコア閾値（これ以上で通過）
+ * @param v2Threshold - v2チャレンジ閾値（これ以上かつthreshold未満でv2チャレンジ、これ未満でブロック）
  * @returns 検証結果
  */
 export async function verifyRecaptcha(
   token: string,
   expectedAction?: string,
   threshold?: number,
+  v2Threshold?: number,
 ): Promise<RecaptchaVerifyResult> {
   // reCAPTCHA v3が無効な場合は常に成功
   if (!RECAPTCHA_V3_INTERNALS.enabled) {
+    if (RECAPTCHA_DEBUG.enabled) {
+      console.log("[reCAPTCHA] SKIPPED - v3 is disabled");
+    }
     return { valid: true, score: 1.0 };
   }
 
@@ -74,7 +81,13 @@ export async function verifyRecaptcha(
       return { valid: false, score: 0, error: `reCAPTCHA検証エラー: ${errorCodes}` };
     }
 
-    const score = data.score ?? 0;
+    // デバッグ: スコアを強制上書き
+    const rawScore = data.score ?? 0;
+    const score = RECAPTCHA_DEBUG.forceScore !== null ? RECAPTCHA_DEBUG.forceScore : rawScore;
+
+    if (RECAPTCHA_DEBUG.enabled && RECAPTCHA_DEBUG.forceScore !== null) {
+      console.log(`[reCAPTCHA] Score forced: ${rawScore} -> ${score}`);
+    }
 
     // アクション名の検証（指定されている場合）
     if (expectedAction && data.action !== expectedAction) {
@@ -87,6 +100,15 @@ export async function verifyRecaptcha(
 
     // スコア閾値の検証
     if (score < effectiveThreshold) {
+      // v2閾値が指定されている場合、中間スコアかどうかを判定
+      if (v2Threshold !== undefined && score >= v2Threshold) {
+        return {
+          valid: false,
+          score,
+          requireV2Challenge: true,
+          error: `スコアが閾値未満です（v2チャレンジ推奨）: ${score} < ${effectiveThreshold}`,
+        };
+      }
       return {
         valid: false,
         score,

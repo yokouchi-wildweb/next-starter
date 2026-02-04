@@ -62,9 +62,45 @@ function extractAxiosMessage(data: unknown): string | undefined {
 
 const DEFAULT_FALLBACK_MESSAGE = "リクエストに失敗しました";
 
+/**
+ * normalizeHttpError のオプション
+ */
+export type NormalizeHttpErrorOptions = {
+  /**
+   * 指定したステータスコードの場合は normalize せずに元のエラーを再スローする。
+   * 呼び出し元で特定のステータスコードを個別にハンドリングしたい場合に使用。
+   *
+   * @example
+   * ```ts
+   * try {
+   *   await api.post("/endpoint", data);
+   * } catch (error) {
+   *   // 428 (Precondition Required) は呼び出し元でハンドリング
+   *   throw normalizeHttpError(error, "エラー", { rethrowStatuses: [428] });
+   * }
+   * ```
+   */
+  rethrowStatuses?: number[];
+};
+
+/**
+ * エラーを HttpError に正規化する。
+ *
+ * - HttpError: そのまま返却
+ * - AxiosError: ステータス・レスポンスデータを抽出して HttpError に変換
+ * - Error: メッセージを抽出して HttpError に変換
+ * - その他: フォールバックメッセージで HttpError を生成
+ *
+ * @param error - 正規化するエラー
+ * @param fallbackMessage - メッセージが取得できない場合のフォールバック
+ * @param options - オプション
+ * @returns 正規化された HttpError
+ * @throws rethrowStatuses に含まれるステータスコードの場合は元のエラーを再スロー
+ */
 export function normalizeHttpError(
   error: unknown,
   fallbackMessage: string = DEFAULT_FALLBACK_MESSAGE,
+  options?: NormalizeHttpErrorOptions,
 ): HttpError {
   if (error instanceof HttpError) {
     return error;
@@ -72,6 +108,12 @@ export function normalizeHttpError(
 
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
+
+    // rethrowStatuses に含まれるステータスコードの場合は元のエラーを再スロー
+    if (status !== undefined && options?.rethrowStatuses?.includes(status)) {
+      throw error;
+    }
+
     const responseData = error.response?.data;
     const messageFromResponse = extractAxiosMessage(responseData);
     const message = messageFromResponse ?? error.message ?? fallbackMessage;

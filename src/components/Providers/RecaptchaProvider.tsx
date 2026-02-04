@@ -15,7 +15,7 @@ type RecaptchaProviderProps = {
  * reCAPTCHA v3 Provider
  *
  * - サイトキーが設定されていない場合は子要素をそのまま返す
- * - バッジはデフォルト非表示（RecaptchaBadgeコンポーネントで規約テキストを表示）
+ * - バッジはデフォルト非表示（RecaptchaBadgeコンポーネントを設置したページでのみ表示）
  */
 export function RecaptchaProvider({ children }: RecaptchaProviderProps) {
   // サイトキーが無効（未設定または短すぎる）の場合はProviderをスキップ
@@ -32,8 +32,7 @@ export function RecaptchaProvider({ children }: RecaptchaProviderProps) {
         appendTo: "head",
       }}
     >
-      {/* reCAPTCHAバッジをデフォルト非表示（Google公式で許可された方法） */}
-      {/* バッジ非表示時は規約テキストの表示が必須（RecaptchaBadgeを使用） */}
+      {/* サイト全体でバッジを非表示。表示したいページにはRecaptchaBadgeを設置 */}
       <style jsx global>{`
         .grecaptcha-badge {
           visibility: hidden !important;

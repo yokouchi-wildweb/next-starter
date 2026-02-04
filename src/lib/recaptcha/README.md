@@ -126,15 +126,20 @@ export const RECAPTCHA_ACTIONS = {
 
 | 名前 | 説明 |
 |------|------|
-| `getRecaptchaToken` | reCAPTCHAトークンを取得 |
-| `RecaptchaBadge` | 規約テキストコンポーネント |
+| `getRecaptchaToken` | reCAPTCHA v3トークンを取得 |
+| `RecaptchaBadge` | バッジ表示コンポーネント（設置したページで右下にバッジ表示） |
+| `RecaptchaV2Challenge` | v2チャレンジモーダルコンポーネント |
+| `useRecaptchaV2Challenge` | v2チャレンジ状態管理フック |
+| `isV2ChallengeRequired` | エラーがv2チャレンジ要求かを判定 |
 
 ### サーバー用 (`@/lib/recaptcha/server`)
 
 | 名前 | 説明 |
 |------|------|
-| `verifyRecaptcha` | トークンを検証 |
-| `RecaptchaVerifyResult` | 検証結果の型 |
+| `verifyRecaptcha` | v3トークンを検証 |
+| `verifyRecaptchaV2` | v2トークンを検証 |
+| `RecaptchaVerifyResult` | v3検証結果の型 |
+| `RecaptchaV2VerifyResult` | v2検証結果の型 |
 
 ### 定数 (`@/lib/recaptcha/constants`)
 
@@ -143,6 +148,82 @@ export const RECAPTCHA_ACTIONS = {
 | `RECAPTCHA_ACTIONS` | アクション名の定数 |
 | `RECAPTCHA_V3_INTERNALS` | v3内部設定（通常は直接使用しない） |
 | `RECAPTCHA_V2_INTERNALS` | v2内部設定（通常は直接使用しない） |
+
+## v3/v2 ハイブリッド
+
+v2を有効にすると、v3で中間スコアの場合にv2チャレンジを表示できる。
+
+### 閾値設定（`app-features.config.ts`）
+
+```ts
+signup: {
+  recaptchaThreshold: 0.5,    // v3通過閾値
+  recaptchaV2Threshold: 0.3,  // v2チャレンジ閾値
+}
+```
+
+### 判定フロー
+
+```
+スコア >= 0.5  → 通過
+スコア 0.3〜0.5 → v2チャレンジ表示（HTTP 428）
+スコア < 0.3   → ブロック（HTTP 403）
+```
+
+### クライアント側の実装例
+
+```tsx
+import {
+  RecaptchaV2Challenge,
+  useRecaptchaV2Challenge,
+  isV2ChallengeRequired,
+} from "@/lib/recaptcha";
+
+function MyForm() {
+  const {
+    challengeState,
+    handleV2ChallengeRequired,
+    handleV2Verify,
+    closeChallenge,
+  } = useRecaptchaV2Challenge();
+
+  const handleSubmit = async () => {
+    try {
+      await api.post("/endpoint", data, {
+        headers: { "X-Recaptcha-Token": recaptchaToken },
+      });
+    } catch (error) {
+      // v2チャレンジが必要な場合
+      if (isV2ChallengeRequired(error)) {
+        handleV2ChallengeRequired(error);
+        return;
+      }
+      throw error;
+    }
+  };
+
+  // v2認証成功後は recaptchaV2Token を使って再送信
+  const handleV2Success = async (token: string) => {
+    await api.post("/endpoint", data, {
+      headers: { "X-Recaptcha-V2-Token": token },
+    });
+  };
+
+  return (
+    <>
+      <form onSubmit={handleSubmit}>...</form>
+      {challengeState.siteKey && (
+        <RecaptchaV2Challenge
+          open={challengeState.isOpen}
+          onClose={closeChallenge}
+          onVerify={handleV2Success}
+          siteKey={challengeState.siteKey}
+        />
+      )}
+    </>
+  );
+}
+```
 
 ## スコアについて
 
@@ -155,3 +236,8 @@ export const RECAPTCHA_ACTIONS = {
 - バッジを非表示にする場合、`RecaptchaBadge` で規約テキストを表示する必要がある（Google規約）
 - 無料枠: 100,000リクエスト/月
 - 環境変数が空または短すぎる（20文字未満）場合は自動で無効化
+
+## 依存パッケージ
+
+- `react-google-recaptcha-v3` - v3用Reactラッパー
+- `react-google-recaptcha` - v2用Reactラッパー

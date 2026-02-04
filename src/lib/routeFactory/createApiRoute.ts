@@ -8,7 +8,8 @@ import { getSessionUser } from "@/features/core/auth/services/server/session/get
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
 import type { RecaptchaAction } from "@/lib/recaptcha/constants";
-import { verifyRecaptcha } from "@/lib/recaptcha/server";
+import { RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
+import { verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
 import { isDomainError } from "@/lib/errors";
 
 /**
@@ -24,8 +25,10 @@ export type OperationType = "read" | "write";
 export type RecaptchaConfig = {
   /** reCAPTCHAアクション名 */
   action: RecaptchaAction;
-  /** スコア閾値（デフォルト: 設定値） */
+  /** v3スコア閾値（デフォルト: 設定値） */
   threshold?: number;
+  /** v2チャレンジ閾値（デフォルト: 設定値）。v2が有効な場合のみ使用 */
+  v2Threshold?: number;
 };
 
 /**
@@ -124,23 +127,82 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
         }
       }
 
-      // reCAPTCHA v3 検証
-      // トークンはX-Recaptcha-Tokenヘッダーで送信
+      // reCAPTCHA 検証
+      // v3トークン: X-Recaptcha-Token ヘッダー
+      // v2トークン: X-Recaptcha-V2-Token ヘッダー
       if (config.recaptcha) {
-        const token = req.headers.get("X-Recaptcha-Token") ?? "";
-        // thresholdが指定されていない場合はAPP_FEATURESから取得
         const threshold = config.recaptcha.threshold ?? APP_FEATURES.auth.signup.recaptchaThreshold;
-        const result = await verifyRecaptcha(
-          token,
-          config.recaptcha.action,
-          threshold,
-        );
-        if (!result.valid) {
-          console.warn(`reCAPTCHA verification failed: ${result.error}, score: ${result.score}`);
-          return NextResponse.json(
-            { message: "セキュリティ検証に失敗しました。ページを再読み込みして再度お試しください。" },
-            { status: 403 }
+        const v2ThresholdConfig = config.recaptcha.v2Threshold ?? APP_FEATURES.auth.signup.recaptchaV2Threshold;
+
+        if (RECAPTCHA_DEBUG.enabled) {
+          console.log("[reCAPTCHA] Config:", {
+            v3Enabled: RECAPTCHA_V3_INTERNALS.enabled,
+            v2Enabled: RECAPTCHA_V2_INTERNALS.enabled,
+            threshold,
+            v2Threshold: v2ThresholdConfig,
+            forceScore: RECAPTCHA_DEBUG.forceScore,
+          });
+        }
+
+        const v2Token = req.headers.get("X-Recaptcha-V2-Token");
+
+        // v2トークンがある場合はv2検証を実行（v2チャレンジ完了後のリトライ）
+        if (v2Token) {
+          const v2Result = await verifyRecaptchaV2(v2Token);
+          if (RECAPTCHA_DEBUG.enabled) {
+            console.log("[reCAPTCHA] v2 Result:", { valid: v2Result.valid, error: v2Result.error });
+          }
+          if (!v2Result.valid) {
+            console.warn(`[reCAPTCHA] v2 verification failed: ${v2Result.error}`);
+            return NextResponse.json(
+              { message: "現在は登録ができません。" },
+              { status: 403 }
+            );
+          }
+          // v2検証成功 → 続行
+        } else {
+          // v3検証を実行
+          const token = req.headers.get("X-Recaptcha-Token") ?? "";
+          // v2が有効な場合のみv2Thresholdを渡す
+          const v2Threshold = RECAPTCHA_V2_INTERNALS.enabled ? v2ThresholdConfig : undefined;
+
+          const result = await verifyRecaptcha(
+            token,
+            config.recaptcha.action,
+            threshold,
+            v2Threshold,
           );
+
+          if (RECAPTCHA_DEBUG.enabled) {
+            console.log("[reCAPTCHA] v3 Result:", {
+              valid: result.valid,
+              score: result.score,
+              requireV2Challenge: result.requireV2Challenge,
+              error: result.error,
+            });
+          }
+
+          if (!result.valid) {
+            console.warn(`[reCAPTCHA] v3 verification failed: ${result.error}, score: ${result.score}`);
+
+            // v2チャレンジが必要な場合（中間スコア）
+            if (result.requireV2Challenge && RECAPTCHA_V2_INTERNALS.enabled) {
+              return NextResponse.json(
+                {
+                  message: "追加の認証が必要です",
+                  requireV2Challenge: true,
+                  recaptchaV2SiteKey: RECAPTCHA_V2_INTERNALS.siteKey,
+                },
+                { status: 428 } // Precondition Required
+              );
+            }
+
+            // 完全なブロック
+            return NextResponse.json(
+              { message: "現在は登録ができません。" },
+              { status: 403 }
+            );
+          }
         }
       }
 

@@ -15,6 +15,8 @@ export type RegistrationInput = z.infer<typeof RegistrationSchema>;
 export type RegistrationOptions = {
   /** reCAPTCHA v3 トークン */
   recaptchaToken?: string;
+  /** reCAPTCHA v2 トークン（v2チャレンジ完了後のリトライ時） */
+  recaptchaV2Token?: string;
 };
 
 export type RegistrationResult = {
@@ -34,7 +36,10 @@ export function useRegistration() {
       setError(null);
 
       try {
-        const result = await registerService(payload, { recaptchaToken: options?.recaptchaToken });
+        const result = await registerService(payload, {
+          recaptchaToken: options?.recaptchaToken,
+          recaptchaV2Token: options?.recaptchaV2Token,
+        });
         return result;
       } catch (unknownError) {
         if (isHttpError(unknownError)) {

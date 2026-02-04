@@ -47,8 +47,15 @@ export const APP_FEATURES = {
       defaultRole: "user",
       /** メール認証完了後の動作: "manual"=ボタン表示, "auto"=自動遷移 */
       emailVerificationRedirect: "auto" as "manual" | "auto",
-      /** reCAPTCHA v3 スコア閾値（0.0〜1.0、これ以上なら人間と判定） */
-      recaptchaThreshold: 0.5,
+      /**
+       * reCAPTCHA v3 スコア閾値（0.0〜1.0）
+       * - スコア >= recaptchaThreshold → 通過
+       * - スコア >= recaptchaV2Threshold かつ < recaptchaThreshold → v2チャレンジ
+       * - スコア < recaptchaV2Threshold → ブロック
+       */
+      recaptchaThreshold: 0.7,
+      /** reCAPTCHA v2チャレンジ閾値（これ未満は即ブロック） */
+      recaptchaV2Threshold: 0.3,
       /**
        * メールアドレスチェックモード
        * - disabled: チェックなし

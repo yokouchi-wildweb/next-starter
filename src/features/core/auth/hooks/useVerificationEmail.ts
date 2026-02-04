@@ -13,6 +13,8 @@ import type { HttpError } from "@/lib/errors";
 export type SendVerificationEmailOptions = {
   /** reCAPTCHA v3 トークン */
   recaptchaToken?: string;
+  /** reCAPTCHA v2 トークン（v2チャレンジ完了後のリトライ時） */
+  recaptchaV2Token?: string;
 };
 
 export function useVerificationEmail() {
@@ -24,7 +26,10 @@ export function useVerificationEmail() {
     setError(null);
 
     try {
-      await sendEmailLink({ email }, { recaptchaToken: options?.recaptchaToken });
+      await sendEmailLink({ email }, {
+        recaptchaToken: options?.recaptchaToken,
+        recaptchaV2Token: options?.recaptchaV2Token,
+      });
     } catch (err: unknown) {
       const httpError = err as HttpError;
 

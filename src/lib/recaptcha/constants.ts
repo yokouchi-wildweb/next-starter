@@ -11,6 +11,23 @@
  */
 
 /**
+ * reCAPTCHA デバッグ設定
+ *
+ * 開発環境でのテスト用。本番環境では必ず無効にすること。
+ */
+export const RECAPTCHA_DEBUG = {
+  /** デバッグログを出力するか */
+  enabled: false,
+
+  /**
+   * スコアを強制的に上書きする値
+   * - null: 上書きしない（実際のスコアを使用）
+   * - 0.0〜1.0: 指定した値で上書き
+   */
+  forceScore: null as number | null,
+} as const;
+
+/**
  * reCAPTCHAアクション名
  * スコア分析時に識別子として使用される
  */
