@@ -17,7 +17,7 @@ export const NumberInput = <
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 >(props: NumberInputProps<TFieldValues, TName>) => {
-  const { field, value: propValue, onChange, leftIcon, ...rest } = props;
+  const { field, value: propValue, onChange, onWheel, leftIcon, ...rest } = props;
   const { value: fieldValue, onChange: fieldOnChange, ...fieldRest } = field;
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -25,6 +25,12 @@ export const NumberInput = <
     const parsedValue = nextValue === "" ? null : Number(nextValue);
     fieldOnChange(parsedValue);
     onChange?.(event);
+  };
+
+  // ホイール操作による意図しない数値変更を防ぐ
+  const handleWheel: React.WheelEventHandler<HTMLInputElement> = (event) => {
+    event.currentTarget.blur();
+    onWheel?.(event);
   };
 
   const inputValue = (propValue ?? fieldValue ?? "") as string | number | undefined;
@@ -37,6 +43,7 @@ export const NumberInput = <
       {...rest}
       value={inputValue}
       onChange={handleChange}
+      onWheel={handleWheel}
       leftIcon={leftIcon}
     />
   );
