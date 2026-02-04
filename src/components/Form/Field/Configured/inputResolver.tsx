@@ -193,6 +193,11 @@ export function renderInputByFormType<
       );
       return null;
 
+    case "custom":
+      // custom はUIを自分で実装するため何も描画しない
+      // FieldRenderer の beforeField/afterField で独自コンポーネントを挿入する
+      return null;
+
     default: {
       // 未知の formInput タイプ
       const _exhaustiveCheck: never = formInput;
@@ -296,6 +301,7 @@ const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none">
   hidden: "none",
   none: "none",
   mediaUploader: "none",  // onUrlChangeで即時コミット+保存
+  custom: "none",  // 独自コンポーネントで処理
 };
 
 /**

@@ -5,7 +5,7 @@
 import { useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FieldRenderer } from "@/components/Form/FieldRenderer";
+import { FieldRenderer, type FieldRendererProps } from "@/components/Form/FieldRenderer";
 import type { ProfileConfig } from "../../profiles";
 import { getFieldConfigsForFormAsArray } from "../../utils";
 
@@ -27,6 +27,10 @@ export type RoleProfileFieldsProps<TFieldValues extends FieldValues> = {
   excludeHidden?: boolean;
   /** ラッパー div のクラス名 */
   wrapperClassName?: string;
+  /** 特定フィールドの前に挿入するUI（formInput: "custom" 用） */
+  beforeField?: FieldRendererProps<TFieldValues>["beforeField"];
+  /** 特定フィールドの後に挿入するUI（formInput: "custom" 用） */
+  afterField?: FieldRendererProps<TFieldValues>["afterField"];
 };
 
 /**
@@ -62,6 +66,8 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
   fieldPrefix = "profileData",
   excludeHidden = true,
   wrapperClassName,
+  beforeField,
+  afterField,
 }: RoleProfileFieldsProps<TFieldValues>) {
   const fields = useMemo(
     () => getFieldConfigsForFormAsArray(profiles, role, { tag, fieldPrefix, excludeHidden }),
@@ -77,6 +83,8 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
       control={methods.control}
       methods={methods}
       baseFields={fields}
+      beforeField={beforeField}
+      afterField={afterField}
     />
   );
 

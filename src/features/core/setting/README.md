@@ -40,9 +40,8 @@ src/features/core/setting/
 │   └── useAdminSetup.ts             # 初期セットアップHook
 └── components/
     ├── common/
-    │   ├── SettingForm.tsx          # フォームコンテナ
+    │   ├── SettingForm.tsx          # フォームコンテナ（FieldRenderer使用）
     │   ├── SettingFields.tsx        # 基本設定フィールド
-    │   ├── ExtendedSettingFields.tsx # [生成] 拡張設定フィールド
     │   └── EditSettingForm.tsx      # 編集フォーム統合
     ├── AdminSettingEdit/            # 管理画面：設定編集
     └── AdminSetup/                  # 管理画面：初期セットアップ
@@ -159,6 +158,30 @@ src/features/core/setting/
 | `dateInput` | `DateInput` | 日付選択 |
 | `datetimeInput` | `DatetimeInput` | 日時選択 |
 | `mediaUploader` | `ControlledMediaUploader` | ファイルアップロード |
+| `custom` | （独自実装） | カスタムUIを使用 |
+
+### custom formInput の使い方
+
+`formInput: "custom"` を指定したフィールドは、スキーマには含まれるがUIは描画されない。
+`SettingForm` の `beforeField` / `afterField` props で独自コンポーネントを挿入する。
+
+```tsx
+<SettingForm
+  methods={methods}
+  onSubmitAction={submit}
+  submitLabel="更新"
+  beforeField={{
+    customField: (
+      <FieldItem
+        control={methods.control}
+        name="customField"
+        label="カスタムフィールド"
+        renderInput={(field) => <MyCustomInput {...field} />}
+      />
+    )
+  }}
+/>
+```
 
 ---
 
@@ -196,8 +219,9 @@ pnpm sc:remove -- --name xxx    # 指定フィールドを削除
 | `entities/model.extended.ts` | 拡張TypeScript型 |
 | `entities/form.extended.ts` | 拡張フォーム型 |
 | `entities/drizzle.ts` | DBスキーマ（拡張カラム追記） |
-| `components/common/ExtendedSettingFields.tsx` | 拡張UIコンポーネント |
 | `services/server/settingDefaults.extended.ts` | 拡張デフォルト値 |
+
+> **Note**: UIコンポーネントは `SettingForm.tsx` が `setting-fields.json` を直接読み込んで `FieldRenderer` でレンダリングする。
 
 ---
 
@@ -309,7 +333,13 @@ const createDefaultSettingValues = () => ({
 // components/common/SettingForm.tsx
 
 <SettingFields control={control} />           {/* 基本フィールド */}
-<ExtendedSettingFields control={control} />   {/* 拡張フィールド */}
+<FieldRenderer                                {/* 拡張フィールド（setting-fields.json から） */}
+  control={control}
+  methods={methods}
+  baseFields={extendedFields}
+  beforeField={beforeField}
+  afterField={afterField}
+/>
 ```
 
 ---
@@ -323,10 +353,10 @@ const createDefaultSettingValues = () => ({
 - `entities/schema.extended.ts`
 - `entities/model.extended.ts`
 - `entities/form.extended.ts`
-- `components/common/ExtendedSettingFields.tsx`
 - `services/server/settingDefaults.extended.ts`
 
 カスタマイズが必要な場合は、`setting-fields.json` を編集して再生成する。
+カスタムUIが必要な場合は、`formInput: "custom"` を使用し、`beforeField`/`afterField` で独自コンポーネントを挿入する。
 
 ### drizzle.ts の更新方式
 

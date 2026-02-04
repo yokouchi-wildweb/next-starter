@@ -133,7 +133,67 @@
 | passwordInput | パスワード入力 |
 | mediaUploader | メディアアップロード |
 | hidden | 非表示入力 |
-| none | 入力なし（フォームに出さない） |
+| none | 入力なし（フォームに出さない、スキーマからも除外） |
+| custom | カスタムUI（スキーマには含める、UIは自分で実装） |
+
+#### none vs custom の違い
+
+| 項目 | none | custom |
+|------|------|--------|
+| Zodスキーマ | 除外 | 含める |
+| フォームデータ | 含まない | 含む |
+| UI描画 | なし | なし（自分で実装） |
+| 用途 | DBのみで使うフィールド | 独自UIで入力するフィールド |
+
+#### custom の使い方
+
+`formInput: "custom"` を指定したフィールドは、FieldRenderer では何も描画されない。
+代わりに `beforeField` / `afterField` props で独自コンポーネントを挿入する。
+
+**推奨: `FieldItem` を使う**
+
+統一感を保つため、`src/components/Form/Field/Controlled/FieldItem` を使用する。
+以下が自動で統一される:
+- ラベル・必須マーク
+- エラーメッセージ表示
+- 説明テキスト
+- レイアウト（vertical/horizontal）
+- オートセーブ対応
+
+```tsx
+// domain.json
+{ "name": "custom_field", "fieldType": "string", "formInput": "custom" }
+
+// フォームコンポーネント
+import { FieldItem } from "@/components/Form/Field";
+
+<FieldRenderer
+  control={control}
+  methods={methods}
+  baseFields={fields}
+  beforeField={{
+    custom_field: (
+      <FieldItem
+        control={control}
+        name="custom_field"
+        label="カスタムフィールド"
+        required
+        renderInput={(field, inputClassName) => (
+          <MyCustomInput {...field} className={inputClassName} />
+        )}
+      />
+    )
+  }}
+/>
+```
+
+**Field層の構成**
+
+| 層 | パス | 用途 |
+|----|------|------|
+| Configured | `Form/Field/Configured/` | FieldConfigベース（生成コード向け） |
+| Controlled | `Form/Field/Controlled/` | control + renderInput（**custom で推奨**） |
+| Manual | `Form/Field/Manual/` | controlなし（完全手動） |
 
 #### Option
 

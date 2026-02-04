@@ -26,7 +26,8 @@ export type FormInputType =
   | "passwordInput"
   | "mediaUploader"
   | "hidden"
-  | "none";
+  | "none"
+  | "custom";
 
 /**
  * フィールドの型（domain.json fieldType - Neon）

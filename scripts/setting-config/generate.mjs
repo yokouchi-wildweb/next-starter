@@ -9,7 +9,6 @@ import generateModelExtended from "./generator/model-extended.mjs";
 import generateFormExtended from "./generator/form-extended.mjs";
 import updateDrizzle from "./generator/drizzle-updater.mjs";
 import generateDefaultsExtended from "./generator/defaults-extended.mjs";
-import generateFieldsExtended from "./generator/fields-extended.mjs";
 
 /**
  * 全拡張ファイルを生成
@@ -69,15 +68,6 @@ export default async function generate() {
     generateDefaultsExtended();
   } catch (err) {
     console.error(`\x1b[31msettingDefaults.extended.ts の生成に失敗: ${err.message}\x1b[0m`);
-  }
-
-  console.log("\n--- UIコンポーネント生成 ---\n");
-
-  // 6. 拡張フィールドコンポーネント生成
-  try {
-    generateFieldsExtended();
-  } catch (err) {
-    console.error(`\x1b[31mExtendedSettingFields.tsx の生成に失敗: ${err.message}\x1b[0m`);
   }
 
   console.log("\n\x1b[32m=== 生成完了 ===\x1b[0m\n");
