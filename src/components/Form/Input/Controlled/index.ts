@@ -28,3 +28,5 @@ export { SingleCardCheckbox } from "./SingleCardCheckbox";
 export type { ControlledSingleCardCheckboxProps } from "./SingleCardCheckbox";
 export { StepperInput } from "./StepperInput";
 export type { ControlledStepperInputProps } from "./StepperInput";
+export { ComboboxInput } from "./ComboboxInput";
+export type { ControlledComboboxInputProps } from "./ComboboxInput";

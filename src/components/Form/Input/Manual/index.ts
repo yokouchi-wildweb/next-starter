@@ -23,3 +23,5 @@ export { Textarea } from "./Textarea";
 export { FileInput } from "./FileInput";
 export type { FileInputProps } from "./FileInput";
 export { PasswordInput } from "./PasswordInput";
+export { ComboboxInput } from "./ComboboxInput";
+export type { ComboboxInputProps } from "./ComboboxInput";

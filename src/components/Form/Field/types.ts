@@ -15,6 +15,7 @@ export type FormInputType =
   | "textarea"
   | "select"
   | "multiSelect"
+  | "combobox"
   | "radio"
   | "checkbox"
   | "stepperInput"

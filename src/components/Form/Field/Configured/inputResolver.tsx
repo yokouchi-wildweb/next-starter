@@ -6,6 +6,7 @@ import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-f
 import {
   BooleanCheckboxInput,
   CheckGroupInput,
+  ComboboxInput,
   DateInput,
   DatetimeInput,
   EmailInput,
@@ -87,6 +88,17 @@ export function renderInputByFormType<
       return (
         <MultiSelectInput
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
+          options={normalizeOptions(fieldConfig.options)}
+          placeholder={fieldConfig.placeholder}
+          disabled={fieldConfig.disabled}
+          className={inputClassName}
+        />
+      );
+
+    case "combobox":
+      return (
+        <ComboboxInput
+          field={field}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
           disabled={fieldConfig.disabled}
@@ -288,6 +300,7 @@ const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none">
   radio: "immediate",
   select: "immediate",
   multiSelect: "immediate",
+  combobox: "immediate",
   switchInput: "immediate",
   dateInput: "immediate",
   timeInput: "immediate",
