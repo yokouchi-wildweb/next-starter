@@ -356,6 +356,7 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | `Textarea` | 複数行テキスト |
 | `SelectInput` | 単一選択 |
 | `ComboboxInput` | 単一選択（検索付き） |
+| `AsyncComboboxInput` | 単一選択（非同期検索） |
 | `MultiSelectInput` | 複数選択 |
 | `RadioGroupInput` | ラジオボタン |
 | `CheckGroupInput` | チェックボックスグループ |

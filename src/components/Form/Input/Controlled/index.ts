@@ -30,3 +30,5 @@ export { StepperInput } from "./StepperInput";
 export type { ControlledStepperInputProps } from "./StepperInput";
 export { ComboboxInput } from "./ComboboxInput";
 export type { ControlledComboboxInputProps } from "./ComboboxInput";
+export { AsyncComboboxInput } from "./AsyncComboboxInput";
+export type { ControlledAsyncComboboxInputProps } from "./AsyncComboboxInput";

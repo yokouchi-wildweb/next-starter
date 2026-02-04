@@ -25,3 +25,5 @@ export type { FileInputProps } from "./FileInput";
 export { PasswordInput } from "./PasswordInput";
 export { ComboboxInput } from "./ComboboxInput";
 export type { ComboboxInputProps } from "./ComboboxInput";
+export { AsyncComboboxInput } from "./AsyncComboboxInput";
+export type { AsyncComboboxInputProps } from "./AsyncComboboxInput";
