@@ -30,6 +30,7 @@ export const TRUSTED_DOMAINS = new Set([
   "ymobile.ne.jp",
   "uqmobile.jp",
   "rakuten.jp",
+  "rakumail.jp",
 
   // 大手ISP
   "nifty.com",
@@ -47,6 +48,7 @@ export const TRUSTED_DOMAINS = new Set([
   "eonet.ne.jp",
   "infoweb.ne.jp",
   "sannet.ne.jp",
+  "ybb.ne.jp",
   "wakwak.com",
   "excite.co.jp",
   "goo.jp",

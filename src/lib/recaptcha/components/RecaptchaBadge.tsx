@@ -2,7 +2,7 @@
 
 "use client";
 
-import { RECAPTCHA_INTERNALS } from "@/lib/recaptcha/constants";
+import { RECAPTCHA_V3_INTERNALS } from "@/lib/recaptcha/constants";
 
 type RecaptchaBadgeProps = {
   /** 表示言語 */
@@ -20,8 +20,8 @@ type RecaptchaBadgeProps = {
  * @see https://developers.google.com/recaptcha/docs/faq#id-like-to-hide-the-recaptcha-badge.-what-is-allowed
  */
 export function RecaptchaBadge({ lang = "ja", className }: RecaptchaBadgeProps) {
-  // reCAPTCHAが無効な場合は何も表示しない
-  if (!RECAPTCHA_INTERNALS.hasSiteKey) {
+  // reCAPTCHA v3が無効な場合は何も表示しない
+  if (!RECAPTCHA_V3_INTERNALS.hasSiteKey) {
     return null;
   }
 

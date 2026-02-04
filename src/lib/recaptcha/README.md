@@ -1,10 +1,11 @@
-# reCAPTCHA v3 ライブラリ
+# reCAPTCHA ライブラリ
 
-Google reCAPTCHA v3 を利用したボット対策ライブラリ。
+Google reCAPTCHA v3 / v2 ハイブリッドによるボット対策ライブラリ。
 
 ## 概要
 
-- スコアベースの自動判定（ユーザー操作不要）
+- **v3**: スコアベースの自動判定（ユーザー操作不要）
+- **v2**: チャレンジベースの手動認証（v3で中間スコアの場合のフォールバック）
 - 環境変数未設定時は自動的に機能を無効化（エラーにならない）
 - バッジは自動で非表示（規約テキストで代替）
 
@@ -13,11 +14,17 @@ Google reCAPTCHA v3 を利用したボット対策ライブラリ。
 ### 1. 環境変数の設定
 
 ```env
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_site_key_here
-RECAPTCHA_SECRET_KEY=your_secret_key_here
+# v3: スコアベースの自動判定
+NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY=your_v3_site_key_here
+RECAPTCHA_V3_SECRET_KEY=your_v3_secret_key_here
+
+# v2: チャレンジベースの手動認証（オプション）
+NEXT_PUBLIC_RECAPTCHA_V2_SITE_KEY=your_v2_site_key_here
+RECAPTCHA_V2_SECRET_KEY=your_v2_secret_key_here
 ```
 
-キーは [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin) から取得。
+キーは [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin/create) から取得。
+v3とv2は別々のサイトキーが必要（同じキーは使えない）。
 
 ### 2. Providerの設置（設定済み）
 
@@ -134,7 +141,8 @@ export const RECAPTCHA_ACTIONS = {
 | 名前 | 説明 |
 |------|------|
 | `RECAPTCHA_ACTIONS` | アクション名の定数 |
-| `RECAPTCHA_INTERNALS` | 内部設定（通常は直接使用しない） |
+| `RECAPTCHA_V3_INTERNALS` | v3内部設定（通常は直接使用しない） |
+| `RECAPTCHA_V2_INTERNALS` | v2内部設定（通常は直接使用しない） |
 
 ## スコアについて
 

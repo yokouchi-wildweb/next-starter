@@ -5,7 +5,7 @@
 import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
 import type { ReactNode } from "react";
 
-import { RECAPTCHA_INTERNALS } from "@/lib/recaptcha/constants";
+import { RECAPTCHA_V3_INTERNALS } from "@/lib/recaptcha/constants";
 
 type RecaptchaProviderProps = {
   children: ReactNode;
@@ -19,13 +19,13 @@ type RecaptchaProviderProps = {
  */
 export function RecaptchaProvider({ children }: RecaptchaProviderProps) {
   // サイトキーが無効（未設定または短すぎる）の場合はProviderをスキップ
-  if (!RECAPTCHA_INTERNALS.hasSiteKey) {
+  if (!RECAPTCHA_V3_INTERNALS.hasSiteKey) {
     return <>{children}</>;
   }
 
   return (
     <GoogleReCaptchaProvider
-      reCaptchaKey={RECAPTCHA_INTERNALS.siteKey}
+      reCaptchaKey={RECAPTCHA_V3_INTERNALS.siteKey}
       scriptProps={{
         async: true,
         defer: true,

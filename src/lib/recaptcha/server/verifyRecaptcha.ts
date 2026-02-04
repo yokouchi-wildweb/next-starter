@@ -1,6 +1,6 @@
 // src/lib/recaptcha/server/verifyRecaptcha.ts
 
-import { RECAPTCHA_INTERNALS } from "@/lib/recaptcha/constants";
+import { RECAPTCHA_V3_INTERNALS } from "@/lib/recaptcha/constants";
 
 /**
  * reCAPTCHA検証レスポンス
@@ -39,8 +39,8 @@ export async function verifyRecaptcha(
   expectedAction?: string,
   threshold?: number,
 ): Promise<RecaptchaVerifyResult> {
-  // reCAPTCHAが無効な場合は常に成功
-  if (!RECAPTCHA_INTERNALS.enabled) {
+  // reCAPTCHA v3が無効な場合は常に成功
+  if (!RECAPTCHA_V3_INTERNALS.enabled) {
     return { valid: true, score: 1.0 };
   }
 
@@ -52,13 +52,13 @@ export async function verifyRecaptcha(
   const effectiveThreshold = threshold ?? 0;
 
   try {
-    const response = await fetch(RECAPTCHA_INTERNALS.verifyUrl, {
+    const response = await fetch(RECAPTCHA_V3_INTERNALS.verifyUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        secret: RECAPTCHA_INTERNALS.secretKey,
+        secret: RECAPTCHA_V3_INTERNALS.secretKey,
         response: token,
       }),
     });
