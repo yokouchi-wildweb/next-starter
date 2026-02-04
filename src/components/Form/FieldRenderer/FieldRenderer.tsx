@@ -219,9 +219,13 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
         return null;
       }
 
-      let fieldElement: ReactNode;
+      let fieldElement: ReactNode = null;
 
-      if (fieldConfig.formInput === "mediaUploader") {
+      if (fieldConfig.formInput === "custom") {
+        // custom はUIを自分で実装するため何も描画しない
+        // beforeField/afterField で独自コンポーネントを挿入する
+        fieldElement = null;
+      } else if (fieldConfig.formInput === "mediaUploader") {
         // メディアアップローダーは専用コンポーネント
         fieldElement = (
           <ConfiguredMediaField
