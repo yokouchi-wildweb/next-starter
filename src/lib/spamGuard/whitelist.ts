@@ -66,6 +66,8 @@ export const ALLOWED_TLDS = new Set([
   "org",
   "biz",
   "info",
+  "tokyo",
+  "shop",
 
   // 日本のTLD
   "jp",
