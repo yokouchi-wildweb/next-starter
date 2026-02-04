@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { createApiRoute } from "@/lib/routeFactory";
+import { isDisposableEmail } from "@/lib/spamGuard";
 import { sendSignInLink } from "@/features/core/auth/services/server/sendSignInLink";
 
 export const POST = createApiRoute(
@@ -20,6 +21,12 @@ export const POST = createApiRoute(
 
     if (!email || typeof email !== "string") {
       return NextResponse.json({ message: "メールアドレスは必須です" }, { status: 400 });
+    }
+
+    // 使い捨てメールチェック（ブロック時も成功レスポンスを返す）
+    const disposable = await isDisposableEmail(email);
+    if (disposable) {
+      return { success: true };
     }
 
     const origin = req.headers.get("origin") ?? req.nextUrl.origin;

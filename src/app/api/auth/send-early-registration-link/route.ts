@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { isDisposableEmail } from "@/lib/spamGuard";
 import { sendEarlyRegistrationLink } from "@/features/core/auth/services/server/sendEarlyRegistrationLink";
 
 export const POST = createApiRoute(
@@ -18,6 +19,12 @@ export const POST = createApiRoute(
 
     if (!email || typeof email !== "string") {
       return NextResponse.json({ message: "メールアドレスは必須です" }, { status: 400 });
+    }
+
+    // 使い捨てメールチェック（ブロック時も成功レスポンスを返す）
+    const disposable = await isDisposableEmail(email);
+    if (disposable) {
+      return { success: true };
     }
 
     const origin = req.headers.get("origin") ?? req.nextUrl.origin;

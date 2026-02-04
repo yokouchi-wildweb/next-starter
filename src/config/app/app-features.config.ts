@@ -4,7 +4,7 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 // ルートのブロックは featureGate (src/proxies/featureGate.ts) で自動制御されます。
 
-import type { SignupMode } from "./types";
+import type { EmailCheckMode, SignupMode } from "./types";
 
 export const APP_FEATURES = {
   auth: {
@@ -49,6 +49,13 @@ export const APP_FEATURES = {
       emailVerificationRedirect: "auto" as "manual" | "auto",
       /** reCAPTCHA v3 スコア閾値（0.0〜1.0、これ以上なら人間と判定） */
       recaptchaThreshold: 0.5,
+      /**
+       * メールアドレスチェックモード
+       * - disabled: チェックなし
+       * - full: 4段階フルチェック（信頼ドメイン→TLD→OSS→DeBounce）
+       * - strict: 信頼ドメイン（TRUSTED_DOMAINS）のみ許可
+       */
+      emailCheckMode: "disabled" as EmailCheckMode,
     },
   },
   user: {
