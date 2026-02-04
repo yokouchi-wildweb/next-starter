@@ -7,18 +7,39 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 import {
-  bookmarkTagBadgeVariants,
-  type BookmarkTagBadgeVariantProps,
-} from "./bookmark-tag-badge-variants";
+  badgeSizeStyles,
+  type BadgeVariant,
+  type BadgeSize,
+  type BadgeVariantStyles,
+} from "./badge-variants";
 
-export type BookmarkTagBadgeProps = React.ComponentPropsWithoutRef<"span"> &
-  BookmarkTagBadgeVariantProps & {
-    asChild?: boolean;
-    /** アイコンコンポーネント（Lucideアイコンなど） */
-    icon?: LucideIcon;
-    /** 選択状態（false の場合は muted スタイルになる） */
-    selected?: boolean;
-  };
+/** BookmarkTag固有のベーススタイル */
+const BOOKMARK_TAG_BASE =
+  "inline-flex items-center justify-center rounded-none border font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:pointer-events-none transition-colors";
+
+/** BookmarkTag固有のvariantスタイル */
+const bookmarkTagVariantStyles: BadgeVariantStyles = {
+  primary: "bg-primary text-primary-foreground border-primary",
+  secondary: "bg-secondary text-secondary-foreground border-secondary",
+  destructive: "bg-destructive text-white border-destructive",
+  success: "bg-success text-success-foreground border-success",
+  info: "bg-info text-info-foreground border-info",
+  warning: "bg-warning text-warning-foreground border-warning",
+  accent: "bg-accent text-accent-foreground border-accent",
+  muted: "bg-muted text-muted-foreground border-border",
+  outline: "bg-background text-foreground border-border",
+  ghost: "bg-transparent text-foreground border-transparent",
+};
+
+export type BookmarkTagBadgeProps = React.ComponentPropsWithoutRef<"span"> & {
+  variant?: BadgeVariant;
+  size?: BadgeSize;
+  asChild?: boolean;
+  /** アイコンコンポーネント（Lucideアイコンなど） */
+  icon?: LucideIcon;
+  /** 選択状態（false の場合は muted スタイルになる） */
+  selected?: boolean;
+};
 
 /**
  * ブックマークタグ型のバッジコンポーネント（角なし、ボーダー付き）
@@ -37,8 +58,8 @@ export const BookmarkTagBadge = React.forwardRef<
   (
     {
       className,
-      variant,
-      size,
+      variant = "primary",
+      size = "md",
       asChild = false,
       icon: Icon,
       selected,
@@ -58,7 +79,9 @@ export const BookmarkTagBadge = React.forwardRef<
         ref={ref}
         data-slot="bookmark-tag-badge"
         className={cn(
-          bookmarkTagBadgeVariants({ variant: effectiveVariant, size }),
+          BOOKMARK_TAG_BASE,
+          bookmarkTagVariantStyles[effectiveVariant],
+          badgeSizeStyles[size],
           className
         )}
         {...props}

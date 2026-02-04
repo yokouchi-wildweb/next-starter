@@ -1,25 +1,12 @@
 // src/components/Badge/index.ts
 
 export {
-  badgeSizeVariants,
+  badgeSizeStyles,
   type BadgeVariant,
   type BadgeSize,
+  type BadgeVariantStyles,
 } from "./badge-variants";
 
-export { SoftBadge, type SoftBadgeProps } from "./SoftBadge";
-export {
-  softBadgeVariants,
-  type SoftBadgeVariantProps,
-} from "./soft-badge-variants";
-
 export { SolidBadge, type SolidBadgeProps } from "./SolidBadge";
-export {
-  solidBadgeVariants,
-  type SolidBadgeVariantProps,
-} from "./solid-badge-variants";
-
+export { SoftBadge, type SoftBadgeProps } from "./SoftBadge";
 export { BookmarkTagBadge, type BookmarkTagBadgeProps } from "./BookmarkTagBadge";
-export {
-  bookmarkTagBadgeVariants,
-  type BookmarkTagBadgeVariantProps,
-} from "./bookmark-tag-badge-variants";
