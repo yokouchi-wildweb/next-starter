@@ -186,7 +186,7 @@ export type RequiredMarkOptions = {
 
 /**
  * フィールド共通Props（表示 + 必須マーク + 説明）
- * FieldItem, MediaFieldItem, ConfiguredField 等で共通使用
+ * ControlledField, ControlledMediaField, ConfiguredField 等で共通使用
  */
 export type FieldCommonProps = FieldDisplayOptions & RequiredMarkOptions & {
   /** 説明テキスト */

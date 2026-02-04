@@ -5,7 +5,7 @@
 import { useMemo } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { RadioGroupInput, SelectInput } from "@/components/Form/Input/Controlled";
 import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
 import {
@@ -103,7 +103,7 @@ export function RoleSelector<TFieldValues extends FieldValues>({
   // セレクトボックス
   if (inputType === "select") {
     return (
-      <FieldItem
+      <ControlledField
         control={control}
         name={name}
         label={label}
@@ -116,7 +116,7 @@ export function RoleSelector<TFieldValues extends FieldValues>({
 
   // ラジオボタン
   return (
-    <FieldItem
+    <ControlledField
       control={control}
       name={name}
       label={label}

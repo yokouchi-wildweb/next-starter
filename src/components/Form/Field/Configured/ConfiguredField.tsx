@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { Control, ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
-import { FieldItem } from "../Controlled";
+import { ControlledField } from "../Controlled";
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
 import { useAutoSaveContext } from "@/components/Form/AutoSave";
 import type { FieldConfig, FieldCommonProps } from "../types";
@@ -78,11 +78,11 @@ export function ConfiguredField<
 
   const { formInput } = fieldConfig;
 
-  // 自動保存コンテキスト（FieldItemを使わないコンポーネント用）
+  // 自動保存コンテキスト（ControlledFieldを使わないコンポーネント用）
   const autoSaveContext = useAutoSaveContext<TFieldValues>();
 
   /**
-   * FieldItemを使わないコンポーネント用に、fieldをauto-save対応でラップする
+   * ControlledFieldを使わないコンポーネント用に、fieldをauto-save対応でラップする
    */
   const wrapFieldWithAutoSave = (
     field: ControllerRenderProps<TFieldValues, TName>
@@ -144,9 +144,9 @@ export function ConfiguredField<
     );
   }
 
-  // 通常のフィールド（FieldItem を使用）
+  // 通常のフィールド（ControlledField を使用）
   return (
-    <FieldItem
+    <ControlledField
       control={control}
       name={resolvedName}
       label={resolvedLabel}

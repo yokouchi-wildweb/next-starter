@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
 import { useWatch } from "react-hook-form";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FieldItem } from "../Controlled";
+import { ControlledField } from "../Controlled";
 import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
 import { useAppFormMedia } from "@/components/Form/AppForm";
 import { useAutoSaveContext } from "@/components/Form/AutoSave";
@@ -178,7 +178,7 @@ export function ConfiguredMediaField<
   }, [handleMetadataChange, watchedValue]);
 
   return (
-    <FieldItem
+    <ControlledField
       control={control}
       name={fieldName}
       label={resolvedLabel}

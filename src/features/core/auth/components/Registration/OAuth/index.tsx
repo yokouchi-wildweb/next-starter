@@ -9,7 +9,7 @@ import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
 import { Para } from "@/components/TextBlocks";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
@@ -131,7 +131,7 @@ export function OAuthRegistrationForm() {
           />
         )}
 
-        <FieldItem
+        <ControlledField
           control={form.control}
           name="email"
           label="メールアドレス"
@@ -147,7 +147,7 @@ export function OAuthRegistrationForm() {
           )}
         />
 
-        <FieldItem
+        <ControlledField
           control={form.control}
           name="name"
           label="表示名"
@@ -170,7 +170,7 @@ export function OAuthRegistrationForm() {
           wrapperClassName="flex flex-col gap-4"
         />
 
-        <FieldItem
+        <ControlledField
           control={form.control}
           name="agreeToTerms"
           renderInput={(field) => (

@@ -34,7 +34,7 @@
   - `MediaHandler/`
     - 画像や動画などのメディア入力に特化したコンポーネント群。Controlled / Manual の両パターンに対応した `MediaInput` と `MediaUploader` を提供します。
   - 上記以外
-    - `AppForm.tsx`、`Field/FieldItem.tsx`、`Label.tsx` など、`field` を直接扱わない補助的なフォーム部品を配置します。
+    - `AppForm.tsx`、`Field/ControlledField.tsx`、`Label.tsx` など、`field` を直接扱わない補助的なフォーム部品を配置します。
 - **Controlled 入力コンポーネントの利用指針**
   - `ControlledInputProps`（または `ControlledTextareaProps`）を受け取り、`Controller` が渡す `value` や `onChange` を内部で扱います。
   - `value` が `undefined` になるケースを考慮し、必要に応じてフォールバックを設けてください。

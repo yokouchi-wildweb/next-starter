@@ -1,10 +1,10 @@
 // src/components/Form/Field/Manual/index.ts
 
-export { ManualFieldItem } from "./ManualFieldItem";
-export type { ManualFieldItemProps, ManualFieldItemDescription } from "./ManualFieldItem";
+export { ManualField } from "./ManualField";
+export type { ManualFieldProps, ManualFieldDescription } from "./ManualField";
 
-export { ManualFieldItemGroup } from "./ManualFieldItemGroup";
-export type { ManualFieldItemGroupProps, ManualFieldItemGroupDescription, InputConfig } from "./ManualFieldItemGroup";
+export { ManualFieldGroup } from "./ManualFieldGroup";
+export type { ManualFieldGroupProps, ManualFieldGroupDescription, InputConfig } from "./ManualFieldGroup";
 
-export { FieldController } from "./FieldController";
-export type { FieldControllerProps } from "./FieldController";
+export { ManualFieldController } from "./ManualFieldController";
+export type { ManualFieldControllerProps } from "./ManualFieldController";

@@ -172,7 +172,7 @@ src/features/core/setting/
   submitLabel="更新"
   beforeField={{
     customField: (
-      <FieldItem
+      <ControlledField
         control={methods.control}
         name="customField"
         label="カスタムフィールド"

@@ -1,4 +1,4 @@
-// src/components/Form/Field/ManualFieldItem.tsx
+// src/components/Form/Field/Manual/ManualField.tsx
 
 "use client";
 
@@ -7,14 +7,14 @@ import { Label } from "@/components/Form/Label";
 import { Para, type ParaProps } from "@/components/TextBlocks/Para";
 import { cn } from "@/lib/cn";
 
-export type ManualFieldItemDescription = {
+export type ManualFieldDescription = {
   text: ReactNode;
   tone?: ParaProps["tone"];
   size?: ParaProps["size"];
   placement?: "before" | "after";
 };
 
-export type ManualFieldItemProps = {
+export type ManualFieldProps = {
   /** フィールドラベル */
   label?: ReactNode;
   /** 入力コンポーネント */
@@ -22,7 +22,7 @@ export type ManualFieldItemProps = {
   /** エラーメッセージ */
   error?: string;
   /** 説明テキスト */
-  description?: ManualFieldItemDescription;
+  description?: ManualFieldDescription;
   /** フィールド全体のクラス名 */
   className?: string;
   /** ラベルを視覚的に非表示にする（スクリーンリーダー用に残す） */
@@ -50,22 +50,22 @@ const DefaultRequiredMarkBefore = (
 );
 
 /**
- * フィールドアイテム（低レベルコンポーネント）
+ * フィールド（低レベルコンポーネント）
  * 単一フィールドのラベル・入力・エラー表示を提供
- * FieldItem の低レベル版（手動でエラーを渡す）
+ * ControlledField の低レベル版（手動でエラーを渡す）
  *
  * @example
  * ```tsx
- * <ManualFieldItem
+ * <ManualField
  *   label="メールアドレス"
  *   error={errors.email?.message}
  *   required
  * >
  *   <Input value={email} onChange={(e) => setEmail(e.target.value)} />
- * </ManualFieldItem>
+ * </ManualField>
  * ```
  */
-export function ManualFieldItem({
+export function ManualField({
   label,
   children,
   error,
@@ -78,7 +78,7 @@ export function ManualFieldItem({
   requiredMarkPosition = "after",
   layout = "vertical",
   labelClass,
-}: ManualFieldItemProps) {
+}: ManualFieldProps) {
   const id = useId();
   const descPlacement = description?.placement ?? "after";
   const defaultMark = requiredMarkPosition === "before" ? DefaultRequiredMarkBefore : DefaultRequiredMarkAfter;

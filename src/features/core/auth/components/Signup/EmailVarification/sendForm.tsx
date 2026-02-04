@@ -13,7 +13,7 @@ import { Mail } from "lucide-react";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { TextInput } from "@/components/Form/Input/Controlled";
 import { Block } from "@/components/Layout/Block";
 import { Para, SecTitle } from "@/components/TextBlocks";
@@ -86,7 +86,7 @@ export function VerificationEmailSendForm({
         className="flex flex-col gap-4"
         noValidate
       >
-          <FieldItem
+          <ControlledField
             control={form.control}
             name="email"
             label={<span className="text-sm font-medium">メールアドレス</span>}

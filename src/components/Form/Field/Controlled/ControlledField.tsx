@@ -1,4 +1,4 @@
-// src/components/Form/Field/FieldItem.tsx
+// src/components/Form/Field/Controlled/ControlledField.tsx
 
 import { ReactNode, useCallback } from "react";
 import {
@@ -27,7 +27,7 @@ import { useAutoSaveContext } from "@/components/Form/AutoSave";
  */
 export type BlurMode = "immediate" | "debounce" | "none";
 
-export type FieldItemProps<
+export type ControlledFieldProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 > = FieldCommonProps & {
@@ -49,7 +49,7 @@ const DefaultRequiredMarkBefore = (
   <span className="text-destructive mr-0.5" aria-hidden="true">*</span>
 );
 
-export function FieldItem<
+export function ControlledField<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 >({
@@ -68,7 +68,7 @@ export function FieldItem<
   layout = "vertical",
   labelClass,
   blurMode = "debounce",
-}: FieldItemProps<TFieldValues, TName>) {
+}: ControlledFieldProps<TFieldValues, TName>) {
   // 自動保存コンテキスト（nullの場合は従来型モード）
   const autoSaveContext = useAutoSaveContext<TFieldValues>();
 

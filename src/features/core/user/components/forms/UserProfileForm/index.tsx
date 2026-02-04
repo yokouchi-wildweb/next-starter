@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { TextInput } from "@/components/Form/Input/Controlled";
 import { Flex } from "@/components/Layout/Flex";
 import { err } from "@/lib/errors";
@@ -71,7 +71,7 @@ export function UserProfileForm({
 
   return (
     <AppForm methods={methods} onSubmit={submit} pending={isMutating} fieldSpace={6}>
-      <FieldItem
+      <ControlledField
         control={control}
         name="name"
         label="表示名"

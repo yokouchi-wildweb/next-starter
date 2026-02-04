@@ -150,9 +150,9 @@
 `formInput: "custom"` を指定したフィールドは、FieldRenderer では何も描画されない。
 代わりに `beforeField` / `afterField` props で独自コンポーネントを挿入する。
 
-**推奨: `FieldItem` を使う**
+**推奨: `ControlledField` を使う**
 
-統一感を保つため、`src/components/Form/Field/Controlled/FieldItem` を使用する。
+統一感を保つため、`src/components/Form/Field/Controlled/ControlledField` を使用する。
 以下が自動で統一される:
 - ラベル・必須マーク
 - エラーメッセージ表示
@@ -165,7 +165,7 @@
 { "name": "custom_field", "fieldType": "string", "formInput": "custom" }
 
 // フォームコンポーネント
-import { FieldItem } from "@/components/Form/Field";
+import { ControlledField } from "@/components/Form/Field";
 
 <FieldRenderer
   control={control}
@@ -173,7 +173,7 @@ import { FieldItem } from "@/components/Form/Field";
   baseFields={fields}
   beforeField={{
     custom_field: (
-      <FieldItem
+      <ControlledField
         control={control}
         name="custom_field"
         label="カスタムフィールド"

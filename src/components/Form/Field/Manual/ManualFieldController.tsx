@@ -1,4 +1,4 @@
-// src/components/Form/Field/Manual/FieldController.tsx
+// src/components/Form/Field/Manual/ManualFieldController.tsx
 
 "use client";
 
@@ -11,7 +11,7 @@ import {
   useController,
 } from "react-hook-form";
 
-export type FieldControllerProps<
+export type ManualFieldControllerProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 > = {
@@ -27,24 +27,24 @@ export type FieldControllerProps<
  *
  * @example
  * ```tsx
- * <FieldController control={control} name="notify">
+ * <ManualFieldController control={control} name="notify">
  *   {(field) => (
  *     <div className="自由なレイアウト">
  *       <SwitchInput field={field} label="通知設定" />
  *       <span>補足テキスト</span>
  *     </div>
  *   )}
- * </FieldController>
+ * </ManualFieldController>
  * ```
  */
-export function FieldController<
+export function ManualFieldController<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 >({
   control,
   name,
   children,
-}: FieldControllerProps<TFieldValues, TName>) {
+}: ManualFieldControllerProps<TFieldValues, TName>) {
   const { field } = useController({ control, name });
 
   return <>{children(field)}</>;

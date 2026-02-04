@@ -2,8 +2,8 @@
 
 import { useForm } from "react-hook-form";
 import { Form } from "@/components/_shadcn/form";
-import { FieldItem, FieldItemGroup } from "@/components/Form";
-import { ManualFieldItem } from "@/components/Form/Field/Manual";
+import { ControlledField, ControlledFieldGroup } from "@/components/Form";
+import { ManualField } from "@/components/Form/Field/Manual";
 import {
   TextInput,
   EmailInput,
@@ -82,7 +82,7 @@ export default function FieldLayoutDemoPage() {
         <Form {...form}>
           <form className="mt-4 rounded-lg border bg-background p-6">
             <Stack space={6}>
-              <FieldItem
+              <ControlledField
                 control={form.control}
                 name="title"
                 label="タイトル"
@@ -94,7 +94,7 @@ export default function FieldLayoutDemoPage() {
                 )}
               />
 
-              <FieldItem
+              <ControlledField
                 control={form.control}
                 name="email"
                 label="メール"
@@ -107,7 +107,7 @@ export default function FieldLayoutDemoPage() {
                 )}
               />
 
-              <FieldItem
+              <ControlledField
                 control={form.control}
                 name="category"
                 label="カテゴリ"
@@ -118,7 +118,7 @@ export default function FieldLayoutDemoPage() {
                 )}
               />
 
-              <FieldItem
+              <ControlledField
                 control={form.control}
                 name="date"
                 label="開催日"
@@ -127,7 +127,7 @@ export default function FieldLayoutDemoPage() {
                 renderInput={(field) => <DateInput field={field} />}
               />
 
-              <FieldItem
+              <ControlledField
                 control={form.control}
                 name="description"
                 label="詳細"
@@ -149,7 +149,7 @@ export default function FieldLayoutDemoPage() {
         <Form {...form}>
           <form className="mt-4 rounded-lg border bg-background p-6">
             <Stack space={6}>
-              <FieldItem
+              <ControlledField
                 control={form.control}
                 name="title"
                 label="タイトル"
@@ -161,7 +161,7 @@ export default function FieldLayoutDemoPage() {
                 )}
               />
 
-              <FieldItem
+              <ControlledField
                 control={form.control}
                 name="email"
                 label="メール"
@@ -174,7 +174,7 @@ export default function FieldLayoutDemoPage() {
                 )}
               />
 
-              <FieldItem
+              <ControlledField
                 control={form.control}
                 name="category"
                 label="カテゴリ"
@@ -185,7 +185,7 @@ export default function FieldLayoutDemoPage() {
                 )}
               />
 
-              <FieldItem
+              <ControlledField
                 control={form.control}
                 name="description"
                 label="詳細"
@@ -201,14 +201,14 @@ export default function FieldLayoutDemoPage() {
         </Form>
       </Section>
 
-      {/* FieldItemGroup（横並びレイアウト） */}
+      {/* ControlledFieldGroup（横並びレイアウト） */}
       <Section>
-        <SecTitle>FieldItemGroup（横並びレイアウト）</SecTitle>
+        <SecTitle>ControlledFieldGroup（横並びレイアウト）</SecTitle>
         <Form {...form}>
           <form className="mt-4 rounded-lg border bg-background p-6">
             <Stack space={6}>
               {/* 2個パターン（prefix/suffix あり） */}
-              <FieldItemGroup
+              <ControlledFieldGroup
                 control={form.control}
                 names={["startTime", "endTime"] as const}
                 label="開催時間"
@@ -227,7 +227,7 @@ export default function FieldLayoutDemoPage() {
               />
 
               {/* 3個パターン（インプット縦並び） */}
-              <FieldItemGroup
+              <ControlledFieldGroup
                 control={form.control}
                 names={["birthYear", "birthMonth", "birthDay"] as const}
                 label="生年月日"
@@ -242,7 +242,7 @@ export default function FieldLayoutDemoPage() {
               />
 
               {/* 3個パターン（インプット横並び） */}
-              <FieldItemGroup
+              <ControlledFieldGroup
                 control={form.control}
                 names={["birthYear", "birthMonth", "birthDay"] as const}
                 label="生年月日（横）"
@@ -258,7 +258,7 @@ export default function FieldLayoutDemoPage() {
               />
 
               {/* 3個パターン（レスポンシブ：スマホ縦、PC横） */}
-              <FieldItemGroup
+              <ControlledFieldGroup
                 control={form.control}
                 names={["birthYear", "birthMonth", "birthDay"] as const}
                 label="生年月日（レスポンシブ）"
@@ -277,14 +277,14 @@ export default function FieldLayoutDemoPage() {
         </Form>
       </Section>
 
-      {/* FieldItemGroup（レスポンシブレイアウト） */}
+      {/* ControlledFieldGroup（レスポンシブレイアウト） */}
       <Section>
-        <SecTitle>FieldItemGroup（レスポンシブレイアウト）</SecTitle>
+        <SecTitle>ControlledFieldGroup（レスポンシブレイアウト）</SecTitle>
         <Form {...form}>
           <form className="mt-4 rounded-lg border bg-background p-6">
             <Stack space={6}>
               {/* layout="responsive" のみ指定（inputLayout は自動で responsive） */}
-              <FieldItemGroup
+              <ControlledFieldGroup
                 control={form.control}
                 names={["birthYear", "birthMonth", "birthDay"] as const}
                 label="生年月日"
@@ -302,37 +302,37 @@ export default function FieldLayoutDemoPage() {
         </Form>
       </Section>
 
-      {/* ManualFieldItem（エラー表示確認用） */}
+      {/* ManualField（エラー表示確認用） */}
       <Section>
-        <SecTitle>ManualFieldItem（エラー表示確認）</SecTitle>
+        <SecTitle>ManualField（エラー表示確認）</SecTitle>
         <div className="mt-4 rounded-lg border bg-background p-6">
           <Stack space={6}>
-            <ManualFieldItem
+            <ManualField
               label="氏名"
               layout="horizontal"
               labelClass={LABEL_CLASS}
               required
             >
               <Input placeholder="山田 太郎" />
-            </ManualFieldItem>
+            </ManualField>
 
-            <ManualFieldItem
+            <ManualField
               label="電話番号"
               layout="horizontal"
               labelClass={LABEL_CLASS}
               description={{ text: "ハイフンなしで入力してください", tone: "muted", size: "xs" }}
             >
               <Input placeholder="09012345678" />
-            </ManualFieldItem>
+            </ManualField>
 
-            <ManualFieldItem
+            <ManualField
               label="備考"
               layout="horizontal"
               labelClass={LABEL_CLASS}
               error="入力内容に誤りがあります"
             >
               <Input placeholder="自由入力" />
-            </ManualFieldItem>
+            </ManualField>
           </Stack>
         </div>
       </Section>

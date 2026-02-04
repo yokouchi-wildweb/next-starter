@@ -35,7 +35,7 @@ import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/Check
  *
  * @example
  * ```tsx
- * <FieldItem
+ * <ControlledField
  *   control={control}
  *   name={fieldConfig.name}
  *   label={fieldConfig.label}
@@ -249,11 +249,11 @@ export function hasVisibleInput(formInput: FormInputType): boolean {
 }
 
 /**
- * formInput が FieldItem でラップすべきかどうかを判定
+ * formInput が ControlledField でラップすべきかどうかを判定
  * 一部のコンポーネント（switch, stepper, booleanCheckbox）は独自のレイアウトを持つ
  */
 export function shouldUseFieldItem(formInput: FormInputType): boolean {
-  // 以下は FieldItem ではなく独自レイアウトを使用
+  // 以下は ControlledField ではなく独自レイアウトを使用
   const noFieldItemTypes: FormInputType[] = [
     "switchInput",
     "stepperInput",

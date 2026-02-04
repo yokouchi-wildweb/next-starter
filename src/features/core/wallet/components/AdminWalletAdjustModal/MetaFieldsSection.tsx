@@ -4,7 +4,7 @@
 
 import type { Control } from "react-hook-form";
 
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { TextInput, Textarea } from "@/components/Form/Input/Controlled";
 
 import type { WalletType } from "@/config/app/currency.config";
@@ -21,7 +21,7 @@ export function MetaFieldsSection({ control, walletType }: MetaFieldsSectionProp
   const metaFields = getMetaFieldsByWalletType(walletType);
 
   return metaFields.map((field) => (
-    <FieldItem
+    <ControlledField
       key={field.name}
       control={control}
       name={field.name as keyof WalletAdjustFormValues}

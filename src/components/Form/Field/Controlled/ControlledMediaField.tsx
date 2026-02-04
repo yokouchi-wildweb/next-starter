@@ -1,4 +1,4 @@
-// src/components/Form/Field/MediaFieldItem.tsx
+// src/components/Form/Field/Controlled/ControlledMediaField.tsx
 // スタンドアロン版メディアフィールドコンポーネント
 
 "use client";
@@ -7,13 +7,13 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
-import { FieldItem } from "./FieldItem";
+import { ControlledField } from "./ControlledField";
 import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUploaderField";
 import { useAppFormMedia } from "@/components/Form/AppForm";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { FieldCommonProps } from "../types";
 
-export type MediaFieldItemProps<
+export type ControlledMediaFieldProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 > = FieldCommonProps & {
@@ -37,7 +37,7 @@ export type MediaFieldItemProps<
  * @example
  * ```tsx
  * <AppForm methods={methods} onSubmit={handleSubmit}>
- *   <MediaFieldItem
+ *   <ControlledMediaField
  *     control={control}
  *     methods={methods}
  *     name="imageUrl"
@@ -48,7 +48,7 @@ export type MediaFieldItemProps<
  * </AppForm>
  * ```
  */
-export function MediaFieldItem<
+export function ControlledMediaField<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>
 >({
@@ -71,7 +71,7 @@ export function MediaFieldItem<
   inputClassName,
   layout,
   labelClass,
-}: MediaFieldItemProps<TFieldValues, TName>) {
+}: ControlledMediaFieldProps<TFieldValues, TName>) {
   // AppForm の Context を取得
   const appFormMedia = useAppFormMedia();
 
@@ -103,7 +103,7 @@ export function MediaFieldItem<
   }, [name, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, appFormMedia]);
 
   return (
-    <FieldItem
+    <ControlledField
       control={control}
       name={name}
       label={label}

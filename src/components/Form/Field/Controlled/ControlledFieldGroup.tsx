@@ -1,4 +1,4 @@
-// src/components/Form/Field/FieldItemGroup.tsx
+// src/components/Form/Field/Controlled/ControlledFieldGroup.tsx
 
 "use client";
 
@@ -11,10 +11,10 @@ import {
   useController,
   useFormState,
 } from "react-hook-form";
-import { ManualFieldItemGroup, type InputConfig } from "../Manual";
+import { ManualFieldGroup, type InputConfig } from "../Manual";
 import type { FieldItemDescription, RequiredMarkOptions } from "../types";
 
-export type FieldItemGroupProps<
+export type ControlledFieldGroupProps<
   TFieldValues extends FieldValues,
   TNames extends readonly FieldPath<TFieldValues>[]
 > = RequiredMarkOptions & {
@@ -53,12 +53,12 @@ export type FieldItemGroupProps<
 };
 
 /**
- * FieldItem のグループ版（高レベルコンポーネント）
+ * ControlledField のグループ版（高レベルコンポーネント）
  * 複数フィールドを横並びで表示し、エラーメッセージを自動収集する
  *
  * @example
  * ```tsx
- * <FieldItemGroup
+ * <ControlledFieldGroup
  *   control={form.control}
  *   names={["birth_year", "birth_month", "birth_day"] as const}
  *   label="生年月日"
@@ -71,7 +71,7 @@ export type FieldItemGroupProps<
  * />
  * ```
  */
-export function FieldItemGroup<
+export function ControlledFieldGroup<
   TFieldValues extends FieldValues,
   TNames extends readonly FieldPath<TFieldValues>[]
 >({
@@ -93,7 +93,7 @@ export function FieldItemGroup<
   labelClass,
   inputLayout,
   inputConfigs,
-}: FieldItemGroupProps<TFieldValues, TNames>) {
+}: ControlledFieldGroupProps<TFieldValues, TNames>) {
   // 各フィールドの controller を取得
   const controllers = names.map((name) =>
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -121,7 +121,7 @@ export function FieldItemGroup<
   const inputElements = renderInputs(fields, inputClassName);
 
   return (
-    <ManualFieldItemGroup
+    <ManualFieldGroup
       label={label}
       fieldWidths={fieldWidths}
       errors={errorMessages}
@@ -139,6 +139,6 @@ export function FieldItemGroup<
       inputConfigs={inputConfigs}
     >
       {inputElements}
-    </ManualFieldItemGroup>
+    </ManualFieldGroup>
   );
 }

@@ -63,7 +63,7 @@ const AppFormMediaContext = React.createContext<AppFormMediaContextValue | null>
 
 /**
  * AppForm内でMediaStateを設定するためのフック
- * ConfiguredMediaField, MediaFieldItem, FieldRenderer から使用
+ * ConfiguredMediaField, ControlledMediaField, FieldRenderer から使用
  */
 export function useAppFormMedia() {
   const context = React.useContext(AppFormMediaContext);

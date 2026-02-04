@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import type { Control, FieldPath, FieldValues, ControllerRenderProps } from "react-hook-form";
 
-import { FieldItemGroup, type InputConfig } from "../Controlled";
+import { ControlledFieldGroup, type InputConfig } from "../Controlled";
 import type { FieldConfig, FieldItemDescription, RequiredMarkOptions } from "../types";
 import { renderInputByFormType } from "./inputResolver";
 
@@ -107,7 +107,7 @@ export function ConfiguredFieldGroup<
   const resolvedRequired = required ?? fieldConfigs.some((config) => config.required) ?? false;
 
   return (
-    <FieldItemGroup
+    <ControlledFieldGroup
       control={control}
       names={names}
       label={resolvedLabel}

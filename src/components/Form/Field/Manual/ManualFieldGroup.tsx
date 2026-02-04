@@ -1,4 +1,4 @@
-// src/components/Form/Field/ManualFieldItemGroup.tsx
+// src/components/Form/Field/Manual/ManualFieldGroup.tsx
 
 "use client";
 
@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import type { FieldItemDescription, RequiredMarkOptions } from "../types";
 
 /** @deprecated FieldItemDescription を使用してください */
-export type ManualFieldItemGroupDescription = FieldItemDescription;
+export type ManualFieldGroupDescription = FieldItemDescription;
 
 /**
  * 各インプットの設定
@@ -21,7 +21,7 @@ export type InputConfig = {
   suffix?: ReactNode;
 };
 
-export type ManualFieldItemGroupProps = RequiredMarkOptions & {
+export type ManualFieldGroupProps = RequiredMarkOptions & {
   /** グループラベル */
   label?: ReactNode;
   /** 横並びで表示する入力要素 */
@@ -59,13 +59,13 @@ const DefaultRequiredMarkBefore = (
 );
 
 /**
- * フィールドアイテムグループ（低レベルコンポーネント）
+ * フィールドグループ（低レベルコンポーネント）
  * 複数フィールドを横並びで表示し、1つのフィールドのように見せる
- * ManualFieldItem と同じ UI 構造を維持
+ * ManualField と同じ UI 構造を維持
  *
  * @example
  * ```tsx
- * <ManualFieldItemGroup
+ * <ManualFieldGroup
  *   label="生年月日"
  *   required
  *   errors={[errors.birth_year?.message, errors.birth_month?.message].filter(Boolean)}
@@ -74,10 +74,10 @@ const DefaultRequiredMarkBefore = (
  *     <Select key="year" value={year} onChange={setYear} options={yearOptions} />,
  *     <Select key="month" value={month} onChange={setMonth} options={monthOptions} />,
  *   ]}
- * </ManualFieldItemGroup>
+ * </ManualFieldGroup>
  * ```
  */
-export function ManualFieldItemGroup({
+export function ManualFieldGroup({
   label,
   children,
   fieldWidths,
@@ -94,7 +94,7 @@ export function ManualFieldItemGroup({
   labelClass,
   inputLayout,
   inputConfigs,
-}: ManualFieldItemGroupProps) {
+}: ManualFieldGroupProps) {
   const id = useId();
   const descPlacement = description?.placement ?? "after";
   const defaultMark = requiredMarkPosition === "before" ? DefaultRequiredMarkBefore : DefaultRequiredMarkAfter;

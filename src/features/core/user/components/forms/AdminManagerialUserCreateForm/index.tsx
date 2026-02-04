@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { PasswordInput, TextInput } from "@/components/Form/Input/Controlled";
 import { err } from "@/lib/errors";
 import { useCreateUser } from "@/features/user/hooks/useCreateUser";
@@ -84,19 +84,19 @@ export default function ManagerialUserCreateForm({
         categories={["admin"]}
         inputType="select"
       />
-      <FieldItem
+      <ControlledField
         control={control}
         name="name"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
       />
-      <FieldItem
+      <ControlledField
         control={control}
         name="email"
         label="メールアドレス"
         renderInput={(field) => <TextInput type="email" field={field} />}
       />
-      <FieldItem
+      <ControlledField
         control={control}
         name="localPassword"
         label="パスワード"

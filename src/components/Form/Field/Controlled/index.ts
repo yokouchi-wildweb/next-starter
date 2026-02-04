@@ -1,11 +1,11 @@
 // src/components/Form/Field/Controlled/index.ts
 
-export { FieldItem } from "./FieldItem";
-export type { FieldItemProps, BlurMode } from "./FieldItem";
+export { ControlledField } from "./ControlledField";
+export type { ControlledFieldProps, BlurMode } from "./ControlledField";
 
-export { FieldItemGroup } from "./FieldItemGroup";
-export type { FieldItemGroupProps } from "./FieldItemGroup";
+export { ControlledFieldGroup } from "./ControlledFieldGroup";
+export type { ControlledFieldGroupProps } from "./ControlledFieldGroup";
 export type { InputConfig } from "../Manual";
 
-export { MediaFieldItem } from "./MediaFieldItem";
-export type { MediaFieldItemProps } from "./MediaFieldItem";
+export { ControlledMediaField } from "./ControlledMediaField";
+export type { ControlledMediaFieldProps } from "./ControlledMediaField";

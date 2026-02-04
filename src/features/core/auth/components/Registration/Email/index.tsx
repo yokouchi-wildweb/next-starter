@@ -9,7 +9,7 @@ import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
-import { FieldItem } from "@/components/Form";
+import { ControlledField } from "@/components/Form";
 import { PasswordInput, SingleCardCheckbox, TextInput } from "@/components/Form/Input/Controlled";
 import { Input } from "@/components/Form/Input/Manual";
 import { Para } from "@/components/TextBlocks";
@@ -117,7 +117,7 @@ export function EmailRegistrationForm() {
           />
         )}
 
-        <FieldItem
+        <ControlledField
           control={form.control}
           name="email"
           label={<span className="text-sm font-medium">メールアドレス</span>}
@@ -131,7 +131,7 @@ export function EmailRegistrationForm() {
           )}
         />
 
-        <FieldItem
+        <ControlledField
           control={form.control}
           name="name"
           label="表示名"
@@ -146,7 +146,7 @@ export function EmailRegistrationForm() {
           )}
         />
 
-        <FieldItem
+        <ControlledField
           control={form.control}
           name="password"
           label="パスワード"
@@ -162,7 +162,7 @@ export function EmailRegistrationForm() {
         />
 
         {isDoubleMode && (
-          <FieldItem
+          <ControlledField
             control={form.control}
             name="passwordConfirmation"
             label="パスワード（確認）"
@@ -186,7 +186,7 @@ export function EmailRegistrationForm() {
           wrapperClassName="flex flex-col gap-4"
         />
 
-        <FieldItem
+        <ControlledField
           control={form.control}
           name="agreeToTerms"
           renderInput={(field) => (
