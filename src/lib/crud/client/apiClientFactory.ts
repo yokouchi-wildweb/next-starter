@@ -50,7 +50,7 @@ async function handleRequest<R>(action: CrudAction, fn: () => Promise<R>): Promi
 function buildWithOptionsParams(options?: WithOptions): string {
   if (!options) return "";
   const params = new URLSearchParams();
-  if (options.withRelations) params.set("withRelations", "true");
+  if (options.withRelations) params.set("withRelations", String(options.withRelations));
   if (options.withCount) params.set("withCount", "true");
   const str = params.toString();
   return str ? `?${str}` : "";

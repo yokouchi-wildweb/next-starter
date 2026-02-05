@@ -2,7 +2,7 @@
 
 import { createDomainIdRoute } from "src/lib/routeFactory";
 import type { WithOptions } from "@/lib/crud";
-import { parseBooleanFlag } from "../search/utils";
+import { parseBooleanFlag, parseWithRelations } from "../search/utils";
 
 // GET /api/[domain]/[id] : IDで単一データを取得
 export const GET = createDomainIdRoute(
@@ -13,7 +13,7 @@ export const GET = createDomainIdRoute(
   async (req, { service, params }) => {
     const query = req.nextUrl.searchParams;
     const options: WithOptions = {};
-    const withRelations = parseBooleanFlag(query.get("withRelations"), "withRelations");
+    const withRelations = parseWithRelations(query.get("withRelations"));
     const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
     if (withRelations) options.withRelations = withRelations;
     if (withCount) options.withCount = withCount;

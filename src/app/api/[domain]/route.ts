@@ -2,7 +2,7 @@
 
 import { createDomainRoute } from "src/lib/routeFactory";
 import type { WithOptions } from "@/lib/crud";
-import { parseBooleanFlag, parsePositiveInteger } from "./search/utils";
+import { parseBooleanFlag, parsePositiveInteger, parseWithRelations } from "./search/utils";
 
 type DomainParams = { domain: string };
 
@@ -15,7 +15,7 @@ export const GET = createDomainRoute<any, DomainParams>(
   async (req, { service }) => {
     const query = req.nextUrl.searchParams;
     const options: WithOptions = {};
-    const withRelations = parseBooleanFlag(query.get("withRelations"), "withRelations");
+    const withRelations = parseWithRelations(query.get("withRelations"));
     const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
     const limit = parsePositiveInteger(query.get("limit"), "limit");
     if (withRelations) options.withRelations = withRelations;

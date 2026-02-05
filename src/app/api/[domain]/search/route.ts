@@ -10,6 +10,7 @@ import {
   parseOrderBy,
   parsePositiveInteger,
   parseBooleanFlag,
+  parseWithRelations,
   parseSearchFields,
   parseSearchPriorityFields,
   parseWhere,
@@ -44,7 +45,7 @@ export const GET = createDomainRoute<any, DomainParams>(
       const searchQuery = query.get("searchQuery") ?? undefined;
 
       // WithOptions のパース
-      const withRelations = parseBooleanFlag(query.get("withRelations"), "withRelations");
+      const withRelations = parseWithRelations(query.get("withRelations"));
       const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
 
       // サービスへ渡す SearchParams を組み立て
