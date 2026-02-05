@@ -5,8 +5,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
@@ -28,6 +26,7 @@ import {
   RecaptchaV2Challenge,
   useRecaptchaV2Challenge,
   isV2ChallengeRequired,
+  useRecaptcha,
 } from "@/lib/recaptcha";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 
@@ -42,7 +41,7 @@ import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./form
 
 export function EmailRegistrationForm() {
   const { guardedPush } = useGuardedNavigation();
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const { executeRecaptcha } = useRecaptcha();
   const [savedEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
   // ローカルストレージのメールアドレスを優先（認証時に保存された正しい値）
   const email = useMemo(() => savedEmail.trim(), [savedEmail]);

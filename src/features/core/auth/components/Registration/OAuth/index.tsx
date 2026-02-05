@@ -5,8 +5,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
@@ -26,6 +24,7 @@ import {
   RecaptchaV2Challenge,
   useRecaptchaV2Challenge,
   isV2ChallengeRequired,
+  useRecaptcha,
 } from "@/lib/recaptcha";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 import type { UserProviderType } from "@/features/core/user/types";
@@ -41,7 +40,7 @@ import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
 export function OAuthRegistrationForm() {
   const { guardedPush } = useGuardedNavigation();
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const { executeRecaptcha } = useRecaptcha();
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: DefaultValues,

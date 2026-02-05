@@ -2,25 +2,45 @@
 
 "use client";
 
-import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
 import type { ReactNode } from "react";
 
 import { RECAPTCHA_V3_INTERNALS } from "@/lib/recaptcha/constants";
+import { RecaptchaContext } from "@/lib/recaptcha/hooks/useRecaptcha";
 
 type RecaptchaProviderProps = {
   children: ReactNode;
 };
 
 /**
+ * GoogleReCaptchaProviderのコンテキストをカスタムコンテキストにブリッジする内部コンポーネント
+ */
+function RecaptchaBridge({ children }: { children: ReactNode }) {
+  const { executeRecaptcha } = useGoogleReCaptcha();
+  return (
+    <RecaptchaContext.Provider value={{ executeRecaptcha }}>
+      {children}
+    </RecaptchaContext.Provider>
+  );
+}
+
+/**
  * reCAPTCHA v3 Provider
  *
- * - サイトキーが設定されていない場合は子要素をそのまま返す
+ * - サイトキーが設定されていない場合はカスタムコンテキストでundefinedを提供
  * - バッジはデフォルト非表示（RecaptchaBadgeコンポーネントを設置したページでのみ表示）
  */
 export function RecaptchaProvider({ children }: RecaptchaProviderProps) {
   // サイトキーが無効（未設定または短すぎる）の場合はProviderをスキップ
   if (!RECAPTCHA_V3_INTERNALS.hasSiteKey) {
-    return <>{children}</>;
+    return (
+      <RecaptchaContext.Provider value={{ executeRecaptcha: undefined }}>
+        {children}
+      </RecaptchaContext.Provider>
+    );
   }
 
   return (
@@ -38,7 +58,7 @@ export function RecaptchaProvider({ children }: RecaptchaProviderProps) {
           visibility: hidden !important;
         }
       `}</style>
-      {children}
+      <RecaptchaBridge>{children}</RecaptchaBridge>
     </GoogleReCaptchaProvider>
   );
 }

@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { Mail } from "lucide-react";
 
 import { AppForm } from "@/components/Form/AppForm";
@@ -30,6 +29,7 @@ import {
   RecaptchaV2Challenge,
   useRecaptchaV2Challenge,
   isV2ChallengeRequired,
+  useRecaptcha,
 } from "@/lib/recaptcha";
 
 import { FormSchema, type FormValues, DefaultValues } from "./formEntities";
@@ -42,7 +42,7 @@ export function VerificationEmailSendForm({
   urlAfterEmailSent,
 }: VerificationEmailSendFormProps) {
   const router = useRouter();
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const { executeRecaptcha } = useRecaptcha();
   const { check } = useEmailUserExists();
   const { sendVerificationEmail } = useVerificationEmail();
   const [, saveEmail] = useLocalStorage(EMAIL_SIGNUP_STORAGE_KEY, "");
