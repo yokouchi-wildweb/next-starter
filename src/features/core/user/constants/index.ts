@@ -39,6 +39,13 @@ export {
   USER_REGISTERED_STATUSES,
 } from "./status";
 
+// 電話番号認証
+export {
+  PHONE_VERIFICATION_OTP_LENGTH,
+  PHONE_VERIFICATION_RESEND_INTERVAL_SECONDS,
+  PHONE_VERIFICATION_OTP_EXPIRY_SECONDS,
+} from "./phoneVerification";
+
 // 型定義（types からの再エクスポート）
 export type { RoleCategory, RoleConfig } from "../types";
 export type { ProfileFieldConfig } from "@/features/core/userProfile/types";

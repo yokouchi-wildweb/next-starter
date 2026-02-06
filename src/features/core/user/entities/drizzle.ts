@@ -21,6 +21,8 @@ export const UserTable = pgTable(
     status: UserStatusEnum("status").default("pending").notNull(),
     isDemo: boolean("is_demo").default(false).notNull(),
     lastAuthenticatedAt: timestamp("last_authenticated_at", { withTimezone: true }),
+    phoneNumber: text("phone_number").unique(),
+    phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
     metadata: jsonb("metadata").$type<UserMetadata>().default({}).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

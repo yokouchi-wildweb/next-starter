@@ -29,6 +29,8 @@ export type User = BaseEntity & {
   status: UserStatus;
   isDemo: boolean;
   lastAuthenticatedAt: Date | null;
+  phoneNumber: string | null;
+  phoneVerifiedAt: Date | null;
   metadata: UserMetadata;
   deletedAt: Date | null;
 };

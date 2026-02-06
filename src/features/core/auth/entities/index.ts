@@ -6,3 +6,4 @@
 // クライアントサイドから本ファイル経由でスキーマのみを読み込みたいケースが大半のため、
 // ここでは schema のみを再エクスポートし、session とは分離する。
 export * from "./schema";
+export * from "./phoneVerification";
