@@ -131,7 +131,9 @@
       "WebFetch(domain:api.github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:blog.fincode.jp)",
-      "WebFetch(domain:developer.squareup.com)"
+      "WebFetch(domain:developer.squareup.com)",
+      "WebFetch(domain:firebase.google.com)",
+      "WebFetch(domain:groups.google.com)"
     ],
     "deny": [
       "Bash(sudo:*)",

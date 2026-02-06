@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserPenIcon, LogOutIcon, PauseCircleIcon, UserXIcon, ChevronRightIcon, UserCircleIcon, ArrowLeftIcon, MailIcon, LoaderIcon, LockIcon, CheckCircleIcon } from "lucide-react";
+import { UserPenIcon, LogOutIcon, PauseCircleIcon, UserXIcon, ChevronRightIcon, UserCircleIcon, ArrowLeftIcon, MailIcon, LoaderIcon, LockIcon, CheckCircleIcon, PhoneIcon } from "lucide-react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Input } from "@/components/Form/Input/Manual/Input";
@@ -21,6 +21,8 @@ import type { User } from "@/features/core/user/entities";
 import { useUpdateMyProfile } from "@/features/core/user/hooks/useUpdateMyProfile";
 import { useEmailChange } from "@/features/core/auth/hooks/useEmailChange";
 import { useChangePassword } from "@/features/core/auth/hooks/useChangePassword";
+import { PhoneVerification } from "@/features/core/auth/components/PhoneVerification";
+import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 
 import { RichMenuCard } from "./RichMenuCard";
 
@@ -28,7 +30,7 @@ type UserMyPageProps = {
   user: User;
 };
 
-type ViewType = "main" | "account-details" | "edit-name" | "edit-email" | "edit-password";
+type ViewType = "main" | "account-details" | "edit-name" | "edit-email" | "edit-password" | "edit-phone";
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -52,6 +54,7 @@ const viewDepth: Record<ViewType, number> = {
   "edit-name": 2,
   "edit-email": 2,
   "edit-password": 2,
+  "edit-phone": 2,
 };
 
 export default function UserMyPage({ user }: UserMyPageProps) {
@@ -225,6 +228,30 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                       </div>
                     </div>
                     <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigateTo("edit-phone")}
+                    className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left shadow-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <PhoneIcon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">電話番号</p>
+                        <p className="text-xs text-muted-foreground">
+                          {user.phoneVerifiedAt
+                            ? formatForDisplay(user.phoneNumber ?? "")
+                            : "未認証"}
+                        </p>
+                      </div>
+                    </div>
+                    {user.phoneVerifiedAt ? (
+                      <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
+                    )}
                   </button>
                   {user.providerType === "email" && (
                     <button
@@ -492,6 +519,67 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                         {isChangingPassword ? "変更中..." : "パスワードを変更"}
                       </Button>
                     </Stack>
+                  )}
+                </div>
+              </Stack>
+            </Section>
+          </motion.div>
+        )}
+
+        {currentView === "edit-phone" && (
+          <motion.div
+            key="edit-phone"
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <Section>
+              <Stack space={4}>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigateTo("account-details")}
+                    className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="戻る"
+                  >
+                    <ArrowLeftIcon className="h-5 w-5 text-foreground" />
+                  </button>
+                  <SecTitle as="h2" className="!mt-0">電話番号認証</SecTitle>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                  {user.phoneVerifiedAt ? (
+                    <Stack space={4} className="text-center">
+                      <div className="flex justify-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                          <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                        </div>
+                      </div>
+                      <Stack space={2}>
+                        <p className="font-medium">認証済み</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatForDisplay(user.phoneNumber ?? "")}
+                        </p>
+                      </Stack>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => navigateTo("account-details")}
+                        className="w-full"
+                      >
+                        戻る
+                      </Button>
+                    </Stack>
+                  ) : (
+                    <PhoneVerification
+                      onComplete={() => {
+                        navigateTo("account-details");
+                        router.refresh();
+                      }}
+                      onCancel={() => navigateTo("account-details")}
+                    />
                   )}
                 </div>
               </Stack>

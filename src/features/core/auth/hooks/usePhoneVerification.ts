@@ -5,7 +5,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import {
   RecaptchaVerifier,
-  signInWithPhoneNumber,
+  linkWithPhoneNumber,
   type ConfirmationResult,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/app";
@@ -40,8 +40,24 @@ export type UsePhoneVerificationReturn = PhoneVerificationState & {
 
 const RECAPTCHA_CONTAINER_ID = "phone-verification-recaptcha";
 
+// デバッグ用ログ関数
+const DEBUG = true;
+const debugLog = (message: string, data?: unknown) => {
+  if (DEBUG) {
+    console.log(`[PhoneVerification] ${message}`, data ?? "");
+  }
+};
+
 /**
- * 電話番号認証フローを管理するフック
+ * 電話番号認証フローを管理するフック（ハイブリッド方式）
+ *
+ * このフックは以下の2つの処理を行います：
+ * 1. Firebase側: 既存ユーザーに電話番号プロバイダをリンク（MFA対応可能）
+ * 2. 自前DB側: phoneNumber, phoneVerifiedAtを保存（ビジネスロジック用）
+ *
+ * 前提条件:
+ * - ユーザーがFirebase Authでログイン済みであること
+ * - 電話番号が他のユーザーに使用されていないこと
  *
  * 使用例:
  * ```tsx
@@ -100,63 +116,129 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
 
   // RecaptchaVerifierの初期化
   const initRecaptchaVerifier = useCallback(() => {
+    debugLog("initRecaptchaVerifier called");
+
     if (recaptchaVerifierRef.current) {
+      debugLog("RecaptchaVerifier already exists, reusing");
       return recaptchaVerifierRef.current;
     }
+
+    const container = document.getElementById(RECAPTCHA_CONTAINER_ID);
+    debugLog("reCAPTCHA container element", {
+      containerId: RECAPTCHA_CONTAINER_ID,
+      exists: !!container,
+      innerHTML: container?.innerHTML
+    });
+
+    debugLog("Creating new RecaptchaVerifier", {
+      authApp: auth.app.name,
+      authConfig: auth.config
+    });
 
     const verifier = new RecaptchaVerifier(auth, RECAPTCHA_CONTAINER_ID, {
       size: "invisible",
       callback: () => {
-        // reCAPTCHA検証成功時のコールバック
+        debugLog("reCAPTCHA callback: verification SUCCESS");
       },
       "expired-callback": () => {
-        // reCAPTCHA期限切れ時のコールバック
+        debugLog("reCAPTCHA callback: EXPIRED");
         setError(new Error("reCAPTCHAの有効期限が切れました。再度お試しください。"));
       },
     });
 
+    debugLog("RecaptchaVerifier created successfully");
     recaptchaVerifierRef.current = verifier;
     return verifier;
   }, []);
 
   // OTP送信
   const sendOtp = useCallback(async () => {
+    debugLog("sendOtp called", { phoneNumber });
     setIsLoading(true);
     setError(null);
 
     try {
+      // ログイン中のユーザーを取得
+      const currentUser = auth.currentUser;
+      debugLog("currentUser check", {
+        exists: !!currentUser,
+        uid: currentUser?.uid,
+        email: currentUser?.email,
+        phoneNumber: currentUser?.phoneNumber,
+        providerId: currentUser?.providerId,
+      });
+
+      if (!currentUser) {
+        throw new Error("ログインが必要です");
+      }
+
       const e164PhoneNumber = formatToE164(phoneNumber);
+      debugLog("E.164 formatted phone number", { original: phoneNumber, e164: e164PhoneNumber });
 
       // 電話番号の重複チェック
+      debugLog("Checking phone availability...");
       const { available } = await checkPhoneAvailability({
         phoneNumber: e164PhoneNumber,
       });
+      debugLog("Phone availability result", { available });
 
       if (!available) {
         throw new Error("この電話番号は既に使用されています");
       }
 
       // RecaptchaVerifierを初期化
+      debugLog("Initializing RecaptchaVerifier...");
       const verifier = initRecaptchaVerifier();
+      debugLog("RecaptchaVerifier ready", { verifierType: verifier.type });
 
-      // Firebase Phone AuthでOTP送信
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
+      // IDトークンを強制リフレッシュしてセッションを最新化
+      debugLog("Refreshing ID token...");
+      try {
+        await currentUser.getIdToken(true);
+        debugLog("ID token refreshed successfully");
+      } catch (tokenError) {
+        debugLog("ID token refresh failed", {
+          errorMessage: tokenError instanceof Error ? tokenError.message : String(tokenError),
+          errorCode: (tokenError as { code?: string })?.code,
+        });
+        throw new Error("認証セッションが無効です。再ログインしてください。");
+      }
+
+      // 既存ユーザーに電話番号をリンク（Firebase側にも登録される）
+      debugLog("Calling linkWithPhoneNumber...", {
+        userId: currentUser.uid,
+        phoneNumber: e164PhoneNumber,
+      });
+
+      const confirmationResult = await linkWithPhoneNumber(
+        currentUser,
         e164PhoneNumber,
         verifier
       );
+
+      debugLog("linkWithPhoneNumber SUCCESS", {
+        verificationId: confirmationResult.verificationId,
+      });
 
       confirmationResultRef.current = confirmationResult;
       setPhoneNumber(e164PhoneNumber);
       setStep("otp");
       startResendCountdown();
     } catch (err) {
+      debugLog("sendOtp ERROR", {
+        errorName: err instanceof Error ? err.name : "Unknown",
+        errorMessage: err instanceof Error ? err.message : String(err),
+        errorCode: (err as { code?: string })?.code,
+        errorDetails: err,
+      });
+
       const error = err instanceof Error ? err : new Error("SMS送信に失敗しました");
       setError(error);
 
       // RecaptchaVerifierをリセット
       const verifier = recaptchaVerifierRef.current;
       if (verifier) {
+        debugLog("Clearing RecaptchaVerifier after error");
         verifier.clear();
         recaptchaVerifierRef.current = null;
       }
@@ -217,10 +299,17 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
     setError(null);
 
     try {
+      // ログイン中のユーザーを取得
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error("ログインが必要です");
+      }
+
       const verifier = initRecaptchaVerifier();
 
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
+      // 既存ユーザーに電話番号をリンク（再送信）
+      const confirmationResult = await linkWithPhoneNumber(
+        currentUser,
         phoneNumber,
         verifier
       );
