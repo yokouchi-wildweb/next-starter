@@ -2,12 +2,16 @@
 
 "use client";
 
-import { usePhoneVerification } from "@/features/core/auth/hooks/usePhoneVerification";
+import { usePhoneVerification, type PhoneVerificationMode } from "@/features/core/auth/hooks/usePhoneVerification";
 import { PhoneNumberStep } from "./PhoneNumberStep";
 import { OtpStep } from "./OtpStep";
 import { CompleteStep } from "./CompleteStep";
 
 export type PhoneVerificationProps = {
+  /** 認証モード: "register" = 新規登録, "change" = 番号変更 */
+  mode?: PhoneVerificationMode;
+  /** 変更モード時の現在の電話番号 */
+  currentPhoneNumber?: string | null;
   /** 認証完了時のコールバック */
   onComplete?: (result: { phoneNumber: string; phoneVerifiedAt: Date }) => void;
   /** キャンセル時のコールバック */
@@ -21,8 +25,15 @@ export type PhoneVerificationProps = {
  * 1. 電話番号入力
  * 2. OTPコード入力
  * 3. 完了
+ *
+ * mode="change" で電話番号変更モードとして使用可能
  */
-export function PhoneVerification({ onComplete, onCancel }: PhoneVerificationProps) {
+export function PhoneVerification({
+  mode = "register",
+  currentPhoneNumber: currentPhoneNumberProp = null,
+  onComplete,
+  onCancel,
+}: PhoneVerificationProps) {
   const {
     step,
     phoneNumber,
@@ -36,7 +47,11 @@ export function PhoneVerification({ onComplete, onCancel }: PhoneVerificationPro
     resendOtp,
     reset,
     recaptchaContainerId,
-  } = usePhoneVerification();
+    currentPhoneNumber,
+  } = usePhoneVerification({
+    mode,
+    currentPhoneNumber: currentPhoneNumberProp,
+  });
 
   const handleComplete = () => {
     if (onComplete && phoneVerifiedAt) {
@@ -57,6 +72,8 @@ export function PhoneVerification({ onComplete, onCancel }: PhoneVerificationPro
           onPhoneNumberChange={setPhoneNumber}
           onSubmit={sendOtp}
           onCancel={onCancel}
+          mode={mode}
+          currentPhoneNumber={currentPhoneNumber}
         />
       )}
 
@@ -76,6 +93,7 @@ export function PhoneVerification({ onComplete, onCancel }: PhoneVerificationPro
         <CompleteStep
           phoneNumber={phoneNumber}
           onComplete={handleComplete}
+          mode={mode}
         />
       )}
     </>

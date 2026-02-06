@@ -71,6 +71,8 @@ export default function UserMyPage({ user }: UserMyPageProps) {
   const [editEmail, setEditEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [isChangingPhone, setIsChangingPhone] = useState(false);
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -82,6 +84,7 @@ export default function UserMyPage({ user }: UserMyPageProps) {
     // メールアドレス編集画面に入る時にリセット
     if (view === "edit-email") {
       setEditEmail("");
+      setIsChangingEmail(false);
       resetEmailChange();
     }
     // パスワード編集画面に入る時にリセット
@@ -89,6 +92,10 @@ export default function UserMyPage({ user }: UserMyPageProps) {
       setCurrentPassword("");
       setNewPassword("");
       resetPasswordChange();
+    }
+    // 電話番号編集画面に入る時にリセット
+    if (view === "edit-phone") {
+      setIsChangingPhone(false);
     }
   }, [currentView, resetEmailChange, resetPasswordChange]);
 
@@ -222,8 +229,15 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">メールアドレス</p>
-                        <p className="text-xs text-muted-foreground">
-                          {user.email ?? "未設定"}
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {user.email ? (
+                            <>
+                              {user.email}
+                              <CheckCircleIcon className="h-3.5 w-3.5 text-green-600" />
+                            </>
+                          ) : (
+                            "未設定"
+                          )}
                         </p>
                       </div>
                     </div>
@@ -240,18 +254,19 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">電話番号</p>
-                        <p className="text-xs text-muted-foreground">
-                          {user.phoneVerifiedAt
-                            ? formatForDisplay(user.phoneNumber ?? "")
-                            : "未認証"}
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {user.phoneVerifiedAt ? (
+                            <>
+                              {formatForDisplay(user.phoneNumber ?? "")}
+                              <CheckCircleIcon className="h-3.5 w-3.5 text-green-600" />
+                            </>
+                          ) : (
+                            "未認証"
+                          )}
                         </p>
                       </div>
                     </div>
-                    {user.phoneVerifiedAt ? (
-                      <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
-                    )}
+                    <ChevronRightIcon className="h-5 w-5 text-muted-foreground" />
                   </button>
                   {user.providerType === "email" && (
                     <button
@@ -385,6 +400,37 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                         戻る
                       </Button>
                     </Stack>
+                  ) : !isChangingEmail ? (
+                    <Stack space={4} className="text-center">
+                      <div className="flex justify-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                          <MailIcon className="h-6 w-6 text-primary" />
+                        </div>
+                      </div>
+                      <Stack space={2}>
+                        <p className="font-medium">現在のメールアドレス</p>
+                        <p className="text-sm text-muted-foreground">
+                          {user.email ?? "未設定"}
+                        </p>
+                      </Stack>
+                      <Stack space={2}>
+                        <Button
+                          type="button"
+                          onClick={() => setIsChangingEmail(true)}
+                          className="w-full"
+                        >
+                          メールアドレスを変更する
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => navigateTo("account-details")}
+                          className="w-full"
+                        >
+                          戻る
+                        </Button>
+                      </Stack>
+                    </Stack>
                   ) : (
                     <Stack space={4}>
                       <div>
@@ -413,15 +459,25 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                         新しいメールアドレス宛に確認メールが送信されます。
                         メール内のリンクをクリックすると変更が完了します。
                       </p>
-                      <Button
-                        type="button"
-                        onClick={handleSendEmailVerification}
-                        disabled={isSendingEmail || !editEmail.trim()}
-                        className="w-full"
-                      >
-                        {isSendingEmail && <LoaderIcon className="h-4 w-4 animate-spin" />}
-                        {isSendingEmail ? "送信中..." : "確認メールを送信"}
-                      </Button>
+                      <Stack space={2}>
+                        <Button
+                          type="button"
+                          onClick={handleSendEmailVerification}
+                          disabled={isSendingEmail || !editEmail.trim()}
+                          className="w-full"
+                        >
+                          {isSendingEmail && <LoaderIcon className="h-4 w-4 animate-spin" />}
+                          {isSendingEmail ? "送信中..." : "確認メールを送信"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsChangingEmail(false)}
+                          className="w-full"
+                        >
+                          キャンセル
+                        </Button>
+                      </Stack>
                     </Stack>
                   )}
                 </div>
@@ -550,7 +606,7 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                   <SecTitle as="h2" className="!mt-0">電話番号認証</SecTitle>
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                  {user.phoneVerifiedAt ? (
+                  {user.phoneVerifiedAt && !isChangingPhone ? (
                     <Stack space={4} className="text-center">
                       <div className="flex justify-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
@@ -563,22 +619,40 @@ export default function UserMyPage({ user }: UserMyPageProps) {
                           {formatForDisplay(user.phoneNumber ?? "")}
                         </p>
                       </Stack>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => navigateTo("account-details")}
-                        className="w-full"
-                      >
-                        戻る
-                      </Button>
+                      <Stack space={2}>
+                        <Button
+                          type="button"
+                          onClick={() => setIsChangingPhone(true)}
+                          className="w-full"
+                        >
+                          電話番号を変更する
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => navigateTo("account-details")}
+                          className="w-full"
+                        >
+                          戻る
+                        </Button>
+                      </Stack>
                     </Stack>
                   ) : (
                     <PhoneVerification
+                      mode={user.phoneVerifiedAt ? "change" : "register"}
+                      currentPhoneNumber={user.phoneNumber}
                       onComplete={() => {
+                        setIsChangingPhone(false);
                         navigateTo("account-details");
                         router.refresh();
                       }}
-                      onCancel={() => navigateTo("account-details")}
+                      onCancel={() => {
+                        if (user.phoneVerifiedAt) {
+                          setIsChangingPhone(false);
+                        } else {
+                          navigateTo("account-details");
+                        }
+                      }}
                     />
                   )}
                 </div>

@@ -6,6 +6,9 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import {
   RecaptchaVerifier,
   linkWithPhoneNumber,
+  PhoneAuthProvider,
+  linkWithCredential,
+  unlink,
   type ConfirmationResult,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/app";
@@ -20,6 +23,8 @@ import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 
 export type PhoneVerificationStep = "input" | "otp" | "complete";
 
+export type PhoneVerificationMode = "register" | "change";
+
 export type PhoneVerificationState = {
   step: PhoneVerificationStep;
   phoneNumber: string;
@@ -29,6 +34,13 @@ export type PhoneVerificationState = {
   phoneVerifiedAt: Date | null;
 };
 
+export type UsePhoneVerificationOptions = {
+  /** 認証モード: "register" = 新規登録, "change" = 番号変更 */
+  mode?: PhoneVerificationMode;
+  /** 変更モード時の現在の電話番号 */
+  currentPhoneNumber?: string | null;
+};
+
 export type UsePhoneVerificationReturn = PhoneVerificationState & {
   setPhoneNumber: (phoneNumber: string) => void;
   sendOtp: () => Promise<void>;
@@ -36,6 +48,10 @@ export type UsePhoneVerificationReturn = PhoneVerificationState & {
   resendOtp: () => Promise<void>;
   reset: () => void;
   recaptchaContainerId: string;
+  /** 現在のモード */
+  mode: PhoneVerificationMode;
+  /** 変更モード時の現在の電話番号 */
+  currentPhoneNumber: string | null;
 };
 
 const RECAPTCHA_CONTAINER_ID = "phone-verification-recaptcha";
@@ -72,7 +88,11 @@ const debugLog = (message: string, data?: unknown) => {
  * <button onClick={() => verifyOtp(otpCode)}>検証</button>
  * ```
  */
-export function usePhoneVerification(): UsePhoneVerificationReturn {
+export function usePhoneVerification(
+  options: UsePhoneVerificationOptions = {}
+): UsePhoneVerificationReturn {
+  const { mode = "register", currentPhoneNumber: currentPhoneNumberProp = null } = options;
+
   const [step, setStep] = useState<PhoneVerificationStep>("input");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -83,6 +103,8 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // 変更モード用: verificationIdを保持
+  const verificationIdRef = useRef<string | null>(null);
 
   // カウントダウンタイマーのクリーンアップ
   useEffect(() => {
@@ -153,7 +175,7 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
 
   // OTP送信
   const sendOtp = useCallback(async () => {
-    debugLog("sendOtp called", { phoneNumber });
+    debugLog("sendOtp called", { phoneNumber, mode });
     setIsLoading(true);
     setError(null);
 
@@ -204,23 +226,45 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
         throw new Error("認証セッションが無効です。再ログインしてください。");
       }
 
-      // 既存ユーザーに電話番号をリンク（Firebase側にも登録される）
-      debugLog("Calling linkWithPhoneNumber...", {
-        userId: currentUser.uid,
-        phoneNumber: e164PhoneNumber,
-      });
+      if (mode === "change") {
+        // 変更モード: PhoneAuthProvider.verifyPhoneNumberを使用
+        // OTP検証後にunlink→linkWithCredentialを行う
+        debugLog("Calling PhoneAuthProvider.verifyPhoneNumber (change mode)...", {
+          userId: currentUser.uid,
+          phoneNumber: e164PhoneNumber,
+        });
 
-      const confirmationResult = await linkWithPhoneNumber(
-        currentUser,
-        e164PhoneNumber,
-        verifier
-      );
+        const provider = new PhoneAuthProvider(auth);
+        const verificationId = await provider.verifyPhoneNumber(
+          e164PhoneNumber,
+          verifier
+        );
 
-      debugLog("linkWithPhoneNumber SUCCESS", {
-        verificationId: confirmationResult.verificationId,
-      });
+        debugLog("verifyPhoneNumber SUCCESS", { verificationId });
 
-      confirmationResultRef.current = confirmationResult;
+        verificationIdRef.current = verificationId;
+        confirmationResultRef.current = null;
+      } else {
+        // 登録モード: linkWithPhoneNumberを使用
+        debugLog("Calling linkWithPhoneNumber (register mode)...", {
+          userId: currentUser.uid,
+          phoneNumber: e164PhoneNumber,
+        });
+
+        const confirmationResult = await linkWithPhoneNumber(
+          currentUser,
+          e164PhoneNumber,
+          verifier
+        );
+
+        debugLog("linkWithPhoneNumber SUCCESS", {
+          verificationId: confirmationResult.verificationId,
+        });
+
+        confirmationResultRef.current = confirmationResult;
+        verificationIdRef.current = null;
+      }
+
       setPhoneNumber(e164PhoneNumber);
       setStep("otp");
       startResendCountdown();
@@ -247,46 +291,104 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [phoneNumber, initRecaptchaVerifier, startResendCountdown]);
+  }, [phoneNumber, mode, initRecaptchaVerifier, startResendCountdown]);
 
   // OTP検証
   const verifyOtp = useCallback(async (otpCode: string) => {
-    if (!confirmationResultRef.current) {
-      throw new Error("先にSMSを送信してください");
-    }
+    debugLog("verifyOtp called", { mode, hasConfirmationResult: !!confirmationResultRef.current, hasVerificationId: !!verificationIdRef.current });
 
     setIsLoading(true);
     setError(null);
 
     try {
-      // Firebase Phone AuthでOTP検証
-      const userCredential = await confirmationResultRef.current.confirm(otpCode);
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error("ログインが必要です");
+      }
 
-      // IDトークンを取得
-      const idToken = await userCredential.user.getIdToken();
+      if (mode === "change") {
+        // 変更モード: verificationIdを使用してcredentialを作成
+        if (!verificationIdRef.current) {
+          throw new Error("先にSMSを送信してください");
+        }
 
-      // サーバーに検証完了を通知してDBを更新
-      const result = await verifyPhone({
-        phoneNumber,
-        idToken,
+        debugLog("Creating PhoneAuthCredential (change mode)...");
+        const credential = PhoneAuthProvider.credential(
+          verificationIdRef.current,
+          otpCode
+        );
+
+        // 既存の電話番号プロバイダをアンリンク
+        debugLog("Unlinking existing phone provider...");
+        try {
+          await unlink(currentUser, PhoneAuthProvider.PROVIDER_ID);
+          debugLog("Unlink SUCCESS");
+        } catch (unlinkError) {
+          // 電話番号が紐づいていない場合はスキップ
+          debugLog("Unlink skipped or failed (may not have phone linked)", {
+            errorCode: (unlinkError as { code?: string })?.code,
+          });
+        }
+
+        // 新しい電話番号をリンク
+        debugLog("Linking new phone credential...");
+        const userCredential = await linkWithCredential(currentUser, credential);
+        debugLog("linkWithCredential SUCCESS");
+
+        // IDトークンを取得
+        const idToken = await userCredential.user.getIdToken();
+
+        // サーバーに検証完了を通知してDBを更新
+        const result = await verifyPhone({
+          phoneNumber,
+          idToken,
+        });
+
+        setPhoneVerifiedAt(new Date(result.phoneVerifiedAt));
+        setStep("complete");
+      } else {
+        // 登録モード: confirmationResultを使用
+        if (!confirmationResultRef.current) {
+          throw new Error("先にSMSを送信してください");
+        }
+
+        debugLog("Confirming OTP (register mode)...");
+        const userCredential = await confirmationResultRef.current.confirm(otpCode);
+
+        // IDトークンを取得
+        const idToken = await userCredential.user.getIdToken();
+
+        // サーバーに検証完了を通知してDBを更新
+        const result = await verifyPhone({
+          phoneNumber,
+          idToken,
+        });
+
+        setPhoneVerifiedAt(new Date(result.phoneVerifiedAt));
+        setStep("complete");
+      }
+    } catch (err) {
+      debugLog("verifyOtp ERROR", {
+        errorName: err instanceof Error ? err.name : "Unknown",
+        errorMessage: err instanceof Error ? err.message : String(err),
+        errorCode: (err as { code?: string })?.code,
       });
 
-      setPhoneVerifiedAt(new Date(result.phoneVerifiedAt));
-      setStep("complete");
-    } catch (err) {
       const error = err instanceof Error ? err : new Error("認証コードが正しくありません");
       setError(error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [phoneNumber]);
+  }, [phoneNumber, mode]);
 
   // OTP再送信
   const resendOtp = useCallback(async () => {
     if (resendCountdown > 0) {
       return;
     }
+
+    debugLog("resendOtp called", { mode, phoneNumber });
 
     // RecaptchaVerifierをリセットして再初期化
     const existingVerifier = recaptchaVerifierRef.current;
@@ -307,16 +409,37 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
 
       const verifier = initRecaptchaVerifier();
 
-      // 既存ユーザーに電話番号をリンク（再送信）
-      const confirmationResult = await linkWithPhoneNumber(
-        currentUser,
-        phoneNumber,
-        verifier
-      );
+      if (mode === "change") {
+        // 変更モード: PhoneAuthProvider.verifyPhoneNumberを使用
+        debugLog("Resending with PhoneAuthProvider.verifyPhoneNumber (change mode)...");
+        const provider = new PhoneAuthProvider(auth);
+        const verificationId = await provider.verifyPhoneNumber(
+          phoneNumber,
+          verifier
+        );
 
-      confirmationResultRef.current = confirmationResult;
+        verificationIdRef.current = verificationId;
+        confirmationResultRef.current = null;
+      } else {
+        // 登録モード: linkWithPhoneNumberを使用
+        debugLog("Resending with linkWithPhoneNumber (register mode)...");
+        const confirmationResult = await linkWithPhoneNumber(
+          currentUser,
+          phoneNumber,
+          verifier
+        );
+
+        confirmationResultRef.current = confirmationResult;
+        verificationIdRef.current = null;
+      }
+
       startResendCountdown();
     } catch (err) {
+      debugLog("resendOtp ERROR", {
+        errorMessage: err instanceof Error ? err.message : String(err),
+        errorCode: (err as { code?: string })?.code,
+      });
+
       const error = err instanceof Error ? err : new Error("SMS再送信に失敗しました");
       setError(error);
 
@@ -331,7 +454,7 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [phoneNumber, resendCountdown, initRecaptchaVerifier, startResendCountdown]);
+  }, [phoneNumber, mode, resendCountdown, initRecaptchaVerifier, startResendCountdown]);
 
   // リセット
   const reset = useCallback(() => {
@@ -342,6 +465,7 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
     setResendCountdown(0);
     setPhoneVerifiedAt(null);
     confirmationResultRef.current = null;
+    verificationIdRef.current = null;
 
     const verifierToReset = recaptchaVerifierRef.current;
     if (verifierToReset) {
@@ -367,5 +491,7 @@ export function usePhoneVerification(): UsePhoneVerificationReturn {
     resendOtp,
     reset,
     recaptchaContainerId: RECAPTCHA_CONTAINER_ID,
+    mode,
+    currentPhoneNumber: currentPhoneNumberProp,
   };
 }

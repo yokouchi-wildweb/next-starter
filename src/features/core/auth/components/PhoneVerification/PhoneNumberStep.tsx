@@ -10,6 +10,7 @@ import { Label } from "@/components/Form/Label";
 import { Input } from "@/components/Form/Input/Manual";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import type { PhoneVerificationMode } from "@/features/core/auth/hooks/usePhoneVerification";
 
 export type PhoneNumberStepProps = {
   phoneNumber: string;
@@ -18,6 +19,10 @@ export type PhoneNumberStepProps = {
   onPhoneNumberChange: (phoneNumber: string) => void;
   onSubmit: () => Promise<void>;
   onCancel?: () => void;
+  /** 認証モード: "register" = 新規登録, "change" = 番号変更 */
+  mode?: PhoneVerificationMode;
+  /** 変更モード時の現在の電話番号 */
+  currentPhoneNumber?: string | null;
 };
 
 export function PhoneNumberStep({
@@ -27,6 +32,8 @@ export function PhoneNumberStep({
   onPhoneNumberChange,
   onSubmit,
   onCancel,
+  mode = "register",
+  currentPhoneNumber,
 }: PhoneNumberStepProps) {
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -45,20 +52,37 @@ export function PhoneNumberStep({
 
   const displayError = error?.message || localError;
 
+  const isChangeMode = mode === "change";
+
   return (
     <section id="phone-verification-input" className="w-full">
       <Stack space={6}>
         <Stack space={2}>
-          <h2 className="text-xl font-semibold">電話番号認証</h2>
+          <h2 className="text-xl font-semibold">
+            {isChangeMode ? "電話番号の変更" : "電話番号認証"}
+          </h2>
           <Para size="sm" className="text-muted-foreground">
-            SMSで認証コードを送信します。電話番号を入力してください。
+            {isChangeMode
+              ? "新しい電話番号にSMSで認証コードを送信します。"
+              : "SMSで認証コードを送信します。電話番号を入力してください。"}
           </Para>
         </Stack>
+
+        {isChangeMode && currentPhoneNumber && (
+          <Stack space={1}>
+            <Para size="sm" className="font-medium text-foreground">
+              現在の電話番号
+            </Para>
+            <Para size="sm" className="text-muted-foreground">
+              {currentPhoneNumber}
+            </Para>
+          </Stack>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Stack space={2}>
             <Label htmlFor="phone-number" className="block text-foreground">
-              電話番号
+              {isChangeMode ? "新しい電話番号" : "電話番号"}
             </Label>
             <Input
               id="phone-number"
