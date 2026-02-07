@@ -24,7 +24,7 @@ export function MainMenu() {
       <Stack space={3}>
         <RichMenuCard
           icon={UserCircleIcon}
-          title="アカウント詳細を表示"
+          title="アカウント基本情報"
           description="ユーザー名、メールアドレスを確認・編集"
           href="/mypage/account"
           showChevron

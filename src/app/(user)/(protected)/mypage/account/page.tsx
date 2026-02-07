@@ -12,7 +12,7 @@ export default async function AccountPage() {
 
   return (
     <>
-      <UserPageTitle srOnly>アカウント詳細</UserPageTitle>
+      <UserPageTitle srOnly>アカウント基本情報</UserPageTitle>
       <AccountDetails user={user} />
     </>
   );

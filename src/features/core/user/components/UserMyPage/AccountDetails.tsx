@@ -48,7 +48,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
   return (
     <Section>
       <Stack space={4}>
-        <AccountPageHeader title="アカウント詳細" backHref="/mypage" />
+        <AccountPageHeader title="アカウント基本情報" backHref="/mypage" />
         <div className="grid grid-cols-1 gap-3">
           <AccountDetailItem
             href="/mypage/account/name"
