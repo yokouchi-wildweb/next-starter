@@ -129,6 +129,10 @@ let usesPrimaryKey = false;
 const enumDefs = [];
 const fields = [];
 // ユニーク制約を持つフィールドを追跡（ソフトデリート時は部分インデックスに変換）
+// TODO: 単一フィールドのユニーク制約 (f.unique) は生成ロジックのみ実装済み
+//       questions/fields.mjs に質問フローを追加すれば有効化できる
+//       現状は domain.json に手動で "unique": true を追記すれば動作する
+//       複合ユニーク制約 (compositeUniques) は質問フロー込みで完成している
 const uniqueFields = [];
 
 // ID field
@@ -214,7 +218,7 @@ switch (config.idType) {
     const columnName = toSnakeCase(f.name);
     const column = buildColumn(typeFn, columnName);
     const notNull = f.required ? '.notNull()' : '';
-    // ユニーク制約の処理
+    // ユニーク制約の処理（TODO: 質問フロー未実装、手動設定のみ対応）
     let uniqueSuffix = '';
     if (f.unique) {
       if (config.useSoftDelete) {
