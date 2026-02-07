@@ -72,6 +72,8 @@ export default function RootLayout({
         </RecaptchaProvider>
         <Toaster position="bottom-center" richColors />
         <RedirectToastProvider />
+        {/* Firebase Phone Auth用reCAPTCHAコンテナ（モーダル外に配置が必要） */}
+        <div id="phone-verification-recaptcha" />
       </body>
     </html>
   );

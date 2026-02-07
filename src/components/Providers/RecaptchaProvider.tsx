@@ -53,9 +53,11 @@ export function RecaptchaProvider({ children }: RecaptchaProviderProps) {
       }}
     >
       {/* サイト全体でバッジを非表示。表示したいページにはRecaptchaBadgeを設置 */}
+      {/* z-indexはsurface-ui-layerレベルに設定し、ナビゲーションより上に表示 */}
       <style jsx global>{`
         .grecaptcha-badge {
           visibility: hidden !important;
+          z-index: var(--z-layer-surface-ui) !important;
         }
       `}</style>
       <RecaptchaBridge>{children}</RecaptchaBridge>

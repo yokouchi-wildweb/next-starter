@@ -97,7 +97,7 @@ export const APP_FEATURES = {
      * - none: 制限なし
      * - phoneVerified: SMS認証済みユーザーのみ購入可能
      */
-    purchaseRestriction: "none" as WalletPurchaseRestriction,
+    purchaseRestriction: "phoneVerified" as WalletPurchaseRestriction,
   },
   dataMigration: {
     /** 最大レコード数制限（デフォルト: 1000） */

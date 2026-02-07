@@ -2,6 +2,7 @@
 
 "use client";
 
+import { RecaptchaBadge } from "@/lib/recaptcha/components/RecaptchaBadge";
 import { usePhoneVerification, type PhoneVerificationMode } from "@/features/core/auth/hooks/usePhoneVerification";
 import { PhoneNumberStep } from "./PhoneNumberStep";
 import { OtpStep } from "./OtpStep";
@@ -61,8 +62,8 @@ export function PhoneVerification({
 
   return (
     <>
-      {/* reCAPTCHA用の非表示コンテナ */}
-      <div id={recaptchaContainerId} />
+      {/* reCAPTCHAバッジを表示（コンテナはlayout.tsxでbody直下に配置） */}
+      <RecaptchaBadge />
 
       {step === "input" && (
         <PhoneNumberStep
