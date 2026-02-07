@@ -9,7 +9,9 @@ import {
   PhoneAuthProvider,
   linkWithCredential,
   unlink,
+  onAuthStateChanged,
   type ConfirmationResult,
+  type User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/app";
 import {
@@ -56,12 +58,46 @@ export type UsePhoneVerificationReturn = PhoneVerificationState & {
 
 const RECAPTCHA_CONTAINER_ID = "phone-verification-recaptcha";
 
+// Firebase Auth準備完了のタイムアウト（ミリ秒）
+const FIREBASE_AUTH_READY_TIMEOUT = 5000;
+
 // デバッグ用ログ関数
 const DEBUG = true;
 const debugLog = (message: string, data?: unknown) => {
   if (DEBUG) {
     console.log(`[PhoneVerification] ${message}`, data ?? "");
   }
+};
+
+/**
+ * Firebase Authが準備完了するまで待機し、現在のユーザーを返す
+ * サインアップ直後など、useFirebaseAuthSyncの同期完了前に呼び出された場合に対応
+ */
+const waitForFirebaseAuth = (): Promise<User> => {
+  return new Promise((resolve, reject) => {
+    // すでにユーザーが存在する場合は即座に返す
+    if (auth.currentUser) {
+      debugLog("Firebase Auth already has currentUser");
+      resolve(auth.currentUser);
+      return;
+    }
+
+    debugLog("Waiting for Firebase Auth to be ready...");
+
+    const timeoutId = setTimeout(() => {
+      unsubscribe();
+      reject(new Error("認証の準備がタイムアウトしました。ページを再読み込みしてください。"));
+    }, FIREBASE_AUTH_READY_TIMEOUT);
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        clearTimeout(timeoutId);
+        unsubscribe();
+        debugLog("Firebase Auth is ready", { uid: user.uid });
+        resolve(user);
+      }
+    });
+  });
 };
 
 /**
@@ -180,8 +216,18 @@ export function usePhoneVerification(
     setError(null);
 
     try {
-      // ログイン中のユーザーを取得
-      const currentUser = auth.currentUser;
+      // Firebase Authが準備完了するまで待機してユーザーを取得
+      // サインアップ直後など、useFirebaseAuthSyncの同期完了前でも対応可能
+      let currentUser: User;
+      try {
+        currentUser = await waitForFirebaseAuth();
+      } catch (authError) {
+        debugLog("waitForFirebaseAuth failed", {
+          errorMessage: authError instanceof Error ? authError.message : String(authError),
+        });
+        throw authError;
+      }
+
       debugLog("currentUser check", {
         exists: !!currentUser,
         uid: currentUser?.uid,
@@ -189,10 +235,6 @@ export function usePhoneVerification(
         phoneNumber: currentUser?.phoneNumber,
         providerId: currentUser?.providerId,
       });
-
-      if (!currentUser) {
-        throw new Error("ログインが必要です");
-      }
 
       const e164PhoneNumber = formatToE164(phoneNumber);
       debugLog("E.164 formatted phone number", { original: phoneNumber, e164: e164PhoneNumber });
@@ -213,13 +255,16 @@ export function usePhoneVerification(
       const verifier = initRecaptchaVerifier();
       debugLog("RecaptchaVerifier ready", { verifierType: verifier.type });
 
-      // IDトークンを強制リフレッシュしてセッションを最新化
-      debugLog("Refreshing ID token...");
+      // ユーザー情報を最新化してからIDトークンをリフレッシュ
+      debugLog("Reloading user and refreshing ID token...");
       try {
+        // サインアップ直後など、Firebase Authの状態が完全に同期されていない場合に対応
+        await currentUser.reload();
+        debugLog("User reloaded successfully");
         await currentUser.getIdToken(true);
         debugLog("ID token refreshed successfully");
       } catch (tokenError) {
-        debugLog("ID token refresh failed", {
+        debugLog("User reload or ID token refresh failed", {
           errorMessage: tokenError instanceof Error ? tokenError.message : String(tokenError),
           errorCode: (tokenError as { code?: string })?.code,
         });
@@ -276,7 +321,17 @@ export function usePhoneVerification(
         errorDetails: err,
       });
 
-      const error = err instanceof Error ? err : new Error("SMS送信に失敗しました");
+      // エラーメッセージを日本語に変換
+      let errorMessage = "SMS送信に失敗しました";
+      const errMessage = err instanceof Error ? err.message : String(err);
+
+      if (errMessage.includes("reCAPTCHA has already been rendered")) {
+        errorMessage = "ページを再読み込みして、もう一度お試しください。";
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      const error = new Error(errorMessage);
       setError(error);
 
       // RecaptchaVerifierをリセット
