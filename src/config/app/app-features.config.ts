@@ -9,10 +9,10 @@ import type { EmailCheckMode, SignupMode, WalletPurchaseRestriction } from "./ty
 export const APP_FEATURES = {
   auth: {
     thirdPartyProviders: {
-      google: true,
-      yahoo: true,
-      facebook: true,
-      twitter: true,
+      google: false,
+      yahoo: false,
+      facebook: false,
+      twitter: false,
     },
     session: {
       /** JWT セッション Cookie の名前 */
