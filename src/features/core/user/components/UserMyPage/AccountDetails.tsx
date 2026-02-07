@@ -5,6 +5,7 @@ import { UserPenIcon, MailIcon, LockIcon, CheckCircleIcon, PhoneIcon, ChevronRig
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { User } from "@/features/core/user/entities";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 
@@ -70,21 +71,23 @@ export function AccountDetails({ user }: AccountDetailsProps) {
               )
             }
           />
-          <AccountDetailItem
-            href="/mypage/account/phone"
-            icon={PhoneIcon}
-            label="電話番号"
-            value={
-              user.phoneVerifiedAt ? (
-                <>
-                  {formatForDisplay(user.phoneNumber ?? "")}
-                  <CheckCircleIcon className="h-3.5 w-3.5 text-green-600" />
-                </>
-              ) : (
-                "未認証"
-              )
-            }
-          />
+          {APP_FEATURES.user.phoneVerificationEnabled && (
+            <AccountDetailItem
+              href="/mypage/account/phone"
+              icon={PhoneIcon}
+              label="電話番号"
+              value={
+                user.phoneVerifiedAt ? (
+                  <>
+                    {formatForDisplay(user.phoneNumber ?? "")}
+                    <CheckCircleIcon className="h-3.5 w-3.5 text-green-600" />
+                  </>
+                ) : (
+                  "未認証"
+                )
+              }
+            />
+          )}
           {user.providerType === "email" && (
             <AccountDetailItem
               href="/mypage/account/password"

@@ -70,6 +70,8 @@ export const APP_FEATURES = {
     pauseEnabled: false,
     /** 退会機能を有効にする */
     withdrawEnabled: false,
+    /** 電話番号認証機能を有効にする */
+    phoneVerificationEnabled: false,
   },
   adminConsole: {
     enableDarkModeSwitch: true,
