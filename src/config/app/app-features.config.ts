@@ -4,7 +4,7 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 // ルートのブロックは featureGate (src/proxies/featureGate.ts) で自動制御されます。
 
-import type { EmailCheckMode, SignupMode } from "./types";
+import type { EmailCheckMode, SignupMode, WalletPurchaseRestriction } from "./types";
 
 export const APP_FEATURES = {
   auth: {
@@ -92,6 +92,12 @@ export const APP_FEATURES = {
     enabled: true,
     /** 管理者による残高調整ボタンを有効にする */
     enableAdminBalanceAdjust: false,
+    /**
+     * 購入制限モード
+     * - none: 制限なし
+     * - phoneVerified: SMS認証済みユーザーのみ購入可能
+     */
+    purchaseRestriction: "phoneVerified" as WalletPurchaseRestriction,
   },
   dataMigration: {
     /** 最大レコード数制限（デフォルト: 1000） */

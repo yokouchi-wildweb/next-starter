@@ -14,3 +14,10 @@ export type SignupMode = "normal" | "earlyRegistration";
  * - strict: 信頼ドメイン（TRUSTED_DOMAINS）のみ許可
  */
 export type EmailCheckMode = "disabled" | "full" | "strict";
+
+/**
+ * ウォレット購入制限モード
+ * - none: 制限なし
+ * - phoneVerified: SMS認証済みユーザーのみ購入可能
+ */
+export type WalletPurchaseRestriction = "none" | "phoneVerified";

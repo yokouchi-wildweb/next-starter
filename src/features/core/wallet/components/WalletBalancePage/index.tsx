@@ -8,19 +8,29 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 
 import { BalanceCard } from "./BalanceCard";
 import { PurchaseList } from "./PurchaseList";
+import { PhoneVerificationRequired } from "./PhoneVerificationRequired";
 
 type WalletBalancePageProps = {
   /** URLスラッグ */
   slug: string;
+  /** 電話番号認証日時（認証済みの場合） */
+  phoneVerifiedAt?: Date | null;
+  /** 現在の電話番号 */
+  currentPhoneNumber?: string | null;
 };
 
-export function WalletBalancePage({ slug }: WalletBalancePageProps) {
+export function WalletBalancePage({
+  slug,
+  phoneVerifiedAt,
+  currentPhoneNumber,
+}: WalletBalancePageProps) {
   const config = getCurrencyConfigBySlug(slug);
   const { user } = useAuthSession();
   const { data, isLoading, error } = useWalletBalances(user?.userId);
@@ -60,6 +70,10 @@ export function WalletBalancePage({ slug }: WalletBalancePageProps) {
   const wallet = data?.wallets.find((w) => w.type === config.walletType);
   const currentBalance = wallet?.balance ?? 0;
 
+  // 購入制限チェック: SMS認証が必要かどうか
+  const requiresPhoneVerification =
+    APP_FEATURES.wallet.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
+
   return (
     <Stack space={6}>
       <Flex justify="end">
@@ -68,7 +82,11 @@ export function WalletBalancePage({ slug }: WalletBalancePageProps) {
         </LinkButton>
       </Flex>
       <BalanceCard balance={currentBalance} config={config} />
-      <PurchaseList slug={slug} config={config} />
+      {requiresPhoneVerification ? (
+        <PhoneVerificationRequired currentPhoneNumber={currentPhoneNumber} />
+      ) : (
+        <PurchaseList slug={slug} config={config} />
+      )}
     </Stack>
   );
 }
