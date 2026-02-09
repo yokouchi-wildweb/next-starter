@@ -59,7 +59,7 @@ export function PageTransition({ children, duration = 0.3 }: PageTransitionProps
   }, [currentDepth]);
 
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-hidden" style={{ contain: "layout paint" }}>
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
           key={pathname}
