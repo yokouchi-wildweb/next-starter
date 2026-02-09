@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -53,9 +53,10 @@ export function PageTransition({ children, duration = 0.3 }: PageTransitionProps
   // 深さの差分でスライド方向を決定（1=前進, -1=後退）
   const direction = currentDepth >= prevDepthRef.current ? 1 : -1;
 
-  if (currentDepth !== prevDepthRef.current) {
+  // レンダー後に ref を更新（レンダー中の書き換えは Strict Mode で二重実行される）
+  useEffect(() => {
     prevDepthRef.current = currentDepth;
-  }
+  }, [currentDepth]);
 
   return (
     <div className="overflow-hidden">
