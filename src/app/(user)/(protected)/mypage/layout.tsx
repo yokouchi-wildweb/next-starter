@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
+import { PageTransition } from "@/features/core/user/components/UserMyPage/PageTransition";
 
 export default function MyPageLayout({
   children,
@@ -11,7 +12,7 @@ export default function MyPageLayout({
   return (
     <UserPage containerType="narrowStack">
       <Stack space={6}>
-        {children}
+        <PageTransition>{children}</PageTransition>
       </Stack>
     </UserPage>
   );
