@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import { PageTransition } from "@/features/core/user/components/UserMyPage/PageTransition";
+import { PageTransition } from "@/components/Animation/PageTransition";
 
 export default function MyPageLayout({
   children,
