@@ -20,6 +20,9 @@ export type CheckGroupOrientation = "horizontal" | "vertical";
 
 type OptionPrimitive = Options["value"];
 
+/** カラーマップの値型（bg / text / border クラス） */
+export type ColorMapEntry = { bg: string; text: string; border: string };
+
 export type CheckGroupInputProps = {
   /** 現在の値（選択されているオプションの配列） */
   value?: OptionPrimitive[];
@@ -46,6 +49,8 @@ export type CheckGroupInputProps = {
   selectedButtonVariant?: ButtonStyleProps["variant"];
   /** 非選択時に利用するバリアント（未指定の場合は buttonVariant を利用） */
   unselectedButtonVariant?: ButtonStyleProps["variant"];
+  /** オプションの color に対応するスタイルマップ（bookmark 表示時に使用） */
+  colorMap?: Record<string, ColorMapEntry>;
   /** 無効化 */
   disabled?: boolean;
 } & Omit<HTMLAttributes<HTMLDivElement>, "disabled">;
@@ -61,6 +66,7 @@ export function CheckGroupInput({
   buttonSize,
   selectedButtonVariant,
   unselectedButtonVariant,
+  colorMap,
   disabled,
   ...rest
 }: CheckGroupInputProps) {
@@ -136,11 +142,13 @@ export function CheckGroupInput({
         const handleSelect = () => handleToggle(op.value);
 
         if (displayType === "bookmark") {
+          const tagColor = op.color && colorMap ? colorMap[op.color] : undefined;
           return (
             <BookmarkTag
               key={serialized}
               type="button"
               selected={selected}
+              tagColorClasses={tagColor}
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}

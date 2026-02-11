@@ -15,6 +15,7 @@ import { CheckGroupInput } from "@/components/Form/Input/Controlled/CheckGroupIn
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
 import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
+import { TAG_COLOR_STYLES } from "@/features/core/userTag/constants/colors";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { User } from "@/features/user/entities";
 import {
@@ -46,7 +47,7 @@ export default function GeneralUserEditForm({
   const { trigger, isMutating } = useUpdateUser();
   const enableUserTag = APP_FEATURES.user.enableUserTag;
   const { data: userTags = [] } = useUserTagList({ isPaused: () => !enableUserTag });
-  const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name }));
+  const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name, color: tag.color ?? undefined }));
 
   const submit = async (values: FormValues) => {
     const trimmedPassword = values.newPassword.trim();
@@ -109,7 +110,7 @@ export default function GeneralUserEditForm({
           name="user_tag_ids"
           label="ユーザータグ"
           renderInput={(field) => (
-            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" />
+            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
           )}
         />
       )}

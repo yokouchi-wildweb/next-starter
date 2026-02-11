@@ -15,6 +15,7 @@ import { CheckGroupInput } from "@/components/Form/Input/Controlled/CheckGroupIn
 import { err } from "@/lib/errors";
 import { useCreateUser } from "@/features/user/hooks/useCreateUser";
 import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
+import { TAG_COLOR_STYLES } from "@/features/core/userTag/constants/colors";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import {
   RoleSelector,
@@ -40,7 +41,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
   const { trigger, isMutating } = useCreateUser();
   const enableUserTag = APP_FEATURES.user.enableUserTag;
   const { data: userTags = [] } = useUserTagList({ isPaused: () => !enableUserTag });
-  const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name }));
+  const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name, color: tag.color ?? undefined }));
 
   // ロール選択を監視してプロフィールフィールドを動的に更新
   const selectedRole = useWatch({ control: methods.control, name: "role" });
@@ -99,7 +100,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
           name="user_tag_ids"
           label="ユーザータグ"
           renderInput={(field) => (
-            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" />
+            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
           )}
         />
       )}

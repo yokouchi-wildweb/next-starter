@@ -27,6 +27,29 @@
       "required": true
     },
     {
+      "name": "color",
+      "label": "カラー",
+      "fieldType": "string",
+      "formInput": "select",
+      "required": false,
+      "options": [
+        { "value": "primary", "label": "プライマリ" },
+        { "value": "secondary", "label": "セカンダリ" },
+        { "value": "accent", "label": "アクセント" },
+        { "value": "success", "label": "成功色" },
+        { "value": "warning", "label": "注意色" },
+        { "value": "destructive", "label": "警告色" },
+        { "value": "red", "label": "レッド" },
+        { "value": "orange", "label": "オレンジ" },
+        { "value": "yellow", "label": "イエロー" },
+        { "value": "green", "label": "グリーン" },
+        { "value": "blue", "label": "ブルー" },
+        { "value": "purple", "label": "パープル" },
+        { "value": "pink", "label": "ピンク" },
+        { "value": "gray", "label": "グレー" }
+      ]
+    },
+    {
       "name": "description",
       "label": "説明",
       "fieldType": "string",
@@ -36,7 +59,7 @@
   ],
   "searchFields": ["name", "description"],
   "defaultOrderBy": [["updatedAt", "DESC"]],
-  "tableFields": ["name", "description", "updatedAt"],
+  "tableFields": ["name", "color", "description", "updatedAt"],
   "useDetailModal": false,
   "useDuplicateButton": false,
   "useImportExport": false,

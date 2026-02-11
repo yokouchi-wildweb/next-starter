@@ -20,6 +20,8 @@ export type OptionValue = string | number | boolean;
 export type Options = {
   label: ReactNode;
   value: OptionValue;
+  /** タグ等で色付き表示する場合のカラーキー */
+  color?: string;
 };
 
 /**

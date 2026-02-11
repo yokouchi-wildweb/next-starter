@@ -18,12 +18,15 @@ const BOOKMARK_TAG_UNSELECTED_CLASS =
 export type BookmarkTagProps = ButtonProps & {
   /** 選択状態に応じて配色を切り替える */
   selected?: boolean;
+  /** カスタムカラークラス（選択時の bg / text / border） */
+  tagColorClasses?: { bg: string; text: string; border: string };
 };
 
 const BookmarkTag = React.forwardRef<HTMLButtonElement, BookmarkTagProps>(
   (
     {
       selected = false,
+      tagColorClasses,
       className,
       variant = "ghost",
       size = "md",
@@ -32,6 +35,10 @@ const BookmarkTag = React.forwardRef<HTMLButtonElement, BookmarkTagProps>(
     },
     ref,
   ) => {
+    const selectedClass = tagColorClasses
+      ? `${tagColorClasses.bg} ${tagColorClasses.text} ${tagColorClasses.border} hover:${tagColorClasses.bg} hover:${tagColorClasses.text}`
+      : BOOKMARK_TAG_SELECTED_CLASS;
+
     return (
       <Button
         ref={ref}
@@ -41,7 +48,7 @@ const BookmarkTag = React.forwardRef<HTMLButtonElement, BookmarkTagProps>(
         className={cn(
           "bookmark-tag",
           BOOKMARK_TAG_BASE_CLASS,
-          selected ? BOOKMARK_TAG_SELECTED_CLASS : BOOKMARK_TAG_UNSELECTED_CLASS,
+          selected ? selectedClass : BOOKMARK_TAG_UNSELECTED_CLASS,
           className,
         )}
         {...props}
