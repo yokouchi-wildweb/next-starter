@@ -449,26 +449,35 @@ export function createCrudService<
         }
 
         const shouldSyncRelations = belongsToManyRelations.length > 0 && relationValues.size > 0;
+        const hasColumnUpdates = Object.keys(updateData).length > 0;
+
+        // カラム更新またはリレーション同期のいずれかを実行するヘルパー
+        const updateOrSelect = async (executor: DbTransaction | typeof db): Promise<Select> => {
+          if (hasColumnUpdates) {
+            const rows = await executor
+              .update(table)
+              .set(updateData as PgUpdateSetSource<TTable>)
+              .where(eq(idColumn, id))
+              .returning();
+            return rows[0] as Select;
+          }
+          // belongsToMany のみの場合、既存レコードを取得
+          const rows = await executor
+            .select()
+            .from(table as any)
+            .where(eq(idColumn, id));
+          return rows[0] as Select;
+        };
 
         // リレーション同期が不要な場合
         if (!shouldSyncRelations) {
           const executor = tx ?? db;
-          const rows = await executor
-            .update(table)
-            .set(updateData as PgUpdateSetSource<TTable>)
-            .where(eq(idColumn, id))
-            .returning();
-          return rows[0] as Select;
+          return updateOrSelect(executor);
         }
 
         // リレーション同期が必要で、外部トランザクションが渡された場合
         if (tx) {
-          const rows = await tx
-            .update(table)
-            .set(updateData as PgUpdateSetSource<TTable>)
-            .where(eq(idColumn, id))
-            .returning();
-          const updated = rows[0] as Select;
+          const updated = await updateOrSelect(tx);
           if (!updated) return updated;
           await syncBelongsToManyRelations(tx, belongsToManyRelations, id, relationValues);
           assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
@@ -477,12 +486,7 @@ export function createCrudService<
 
         // リレーション同期が必要で、外部トランザクションがない場合は内部トランザクション
         return db.transaction(async (innerTx) => {
-          const rows = await innerTx
-            .update(table)
-            .set(updateData as PgUpdateSetSource<TTable>)
-            .where(eq(idColumn, id))
-            .returning();
-          const updated = rows[0] as Select;
+          const updated = await updateOrSelect(innerTx);
           if (!updated) return updated;
           await syncBelongsToManyRelations(innerTx, belongsToManyRelations, id, relationValues);
           assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
@@ -1054,11 +1058,26 @@ export function createCrudService<
             ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
           }) as PgUpdateSetSource<TTable>;
 
-          const [updated] = (await executor
-            .update(table)
-            .set(updateData)
-            .where(eq(idColumn, record.id))
-            .returning()) as Select[];
+          const hasColumnUpdates = Object.keys(updateData).length > 0;
+
+          let updated: Select | undefined;
+
+          if (hasColumnUpdates) {
+            // 通常のカラム更新がある場合
+            const [row] = (await executor
+              .update(table)
+              .set(updateData)
+              .where(eq(idColumn, record.id))
+              .returning()) as Select[];
+            updated = row;
+          } else if (relationValues.size > 0) {
+            // belongsToMany のみの場合、既存レコードを取得
+            const [row] = (await executor
+              .select()
+              .from(table as any)
+              .where(eq(idColumn, record.id))) as Select[];
+            updated = row;
+          }
 
           if (updated) {
             // belongsToMany リレーションを同期
