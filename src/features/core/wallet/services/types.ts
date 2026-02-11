@@ -74,3 +74,9 @@ export type TotalBalanceByType = {
   totalBalance: number;
   totalLockedBalance: number;
 };
+
+/** getTotalBalancesByType のフィルタオプション */
+export type TotalBalancesByTypeOptions = {
+  /** 指定したロールのユーザーのみ集計 */
+  role?: string;
+};
