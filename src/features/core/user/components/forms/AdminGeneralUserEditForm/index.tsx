@@ -84,6 +84,16 @@ export default function GeneralUserEditForm({
       pending={isMutating}
       fieldSpace={6}
     >
+      {enableUserTag && tagOptions.length > 0 && (
+        <ControlledField
+          control={control}
+          name="user_tag_ids"
+          label="ユーザータグ"
+          renderInput={(field) => (
+            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
+          )}
+        />
+      )}
       <ControlledField
         control={control}
         name="name"
@@ -104,16 +114,6 @@ export default function GeneralUserEditForm({
           <PasswordInput field={field} placeholder="新しいパスワード" />
         )}
       />
-      {enableUserTag && tagOptions.length > 0 && (
-        <ControlledField
-          control={control}
-          name="user_tag_ids"
-          label="ユーザータグ"
-          renderInput={(field) => (
-            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
-          )}
-        />
-      )}
       <RoleProfileFields methods={methods} role={user.role} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">

@@ -70,6 +70,16 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
       pending={isMutating}
       fieldSpace={6}
     >
+      {enableUserTag && tagOptions.length > 0 && (
+        <ControlledField
+          control={control}
+          name="user_tag_ids"
+          label="ユーザータグ"
+          renderInput={(field) => (
+            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
+          )}
+        />
+      )}
       <RoleSelector
         control={control}
         name="role"
@@ -94,16 +104,6 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />
-      {enableUserTag && tagOptions.length > 0 && (
-        <ControlledField
-          control={control}
-          name="user_tag_ids"
-          label="ユーザータグ"
-          renderInput={(field) => (
-            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" colorMap={TAG_COLOR_STYLES} />
-          )}
-        />
-      )}
       <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">
