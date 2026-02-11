@@ -6,6 +6,7 @@ import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { createApiRoute } from "@/lib/routeFactory";
 import { register } from "@/features/core/auth/services/server/registration";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
+import { getClientIp } from "@/lib/request/getClientIp";
 
 export const POST = createApiRoute(
   {
@@ -17,7 +18,8 @@ export const POST = createApiRoute(
   },
   async (req) => {
     const body = await req.json();
-    const { user, session } = await register(body);
+    const ip = await getClientIp();
+    const { user, session } = await register(body, ip ?? undefined);
 
     const response = NextResponse.json({
       user,

@@ -3,6 +3,9 @@
 import type { BaseEntity } from "@/lib/crud";
 import type { UserProviderType, UserRoleType, UserStatus } from "@/features/core/user/types";
 
+/** ログイン履歴の最大保持件数 */
+export const MAX_LOGIN_HISTORY = 10;
+
 /**
  * ログイン履歴の1レコード
  */

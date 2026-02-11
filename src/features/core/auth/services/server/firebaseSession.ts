@@ -7,6 +7,7 @@ import { PreRegistrationSchema } from "@/features/core/auth/entities/schema";
 import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { UserTable } from "@/features/core/user/entities/drizzle";
+import { MAX_LOGIN_HISTORY } from "@/features/core/user/entities/model";
 import type { UserMetadata, UserLoginRecord } from "@/features/core/user/entities/model";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
@@ -106,7 +107,7 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
     };
     const newLoginHistory = [
       newRecord,
-      ...(currentMetadata.loginHistory ?? []).slice(0, 2),
+      ...(currentMetadata.loginHistory ?? []).slice(0, MAX_LOGIN_HISTORY - 1),
     ];
 
     await db

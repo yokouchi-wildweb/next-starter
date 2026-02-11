@@ -3,11 +3,9 @@
 import { eq } from "drizzle-orm";
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
+import { MAX_LOGIN_HISTORY } from "@/features/core/user/entities/model";
 import type { UserMetadata, UserLoginRecord } from "@/features/core/user/entities/model";
 import { db } from "@/lib/drizzle";
-
-/** ログイン履歴の最大保持件数 */
-const MAX_LOGIN_HISTORY = 3;
 
 export type UpdateLastAuthenticatedOptions = {
   ip?: string;

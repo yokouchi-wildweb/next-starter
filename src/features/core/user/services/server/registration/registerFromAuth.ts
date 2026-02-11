@@ -4,6 +4,7 @@ import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/regist
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/constants";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { updateLastAuthenticated } from "@/features/core/user/services/server/wrappers/updateLastAuthenticated";
 import { activate } from "./activate";
 import { sendRegistrationCompleteMail } from "./sendRegistrationCompleteMail";
 
@@ -12,6 +13,7 @@ export type RegisterFromAuthInput = {
   name?: string | null;
   existingUser: User;
   role?: string;
+  ip?: string;
 };
 
 export type RegisterFromAuthResult = {
@@ -28,7 +30,7 @@ export type RegisterFromAuthResult = {
 export async function registerFromAuth(
   input: RegisterFromAuthInput,
 ): Promise<RegisterFromAuthResult> {
-  const { email, name, existingUser, role = REGISTRATION_DEFAULT_ROLE } = input;
+  const { email, name, existingUser, role = REGISTRATION_DEFAULT_ROLE, ip } = input;
 
   const now = new Date();
 
@@ -43,6 +45,11 @@ export async function registerFromAuth(
     email: email || null,
     lastAuthenticatedAt: now,
   });
+
+  // 本登録時のログイン履歴を記録
+  if (ip) {
+    await updateLastAuthenticated(user.id, { ip });
+  }
 
   // アクションログを記録
   await recordActionLog({

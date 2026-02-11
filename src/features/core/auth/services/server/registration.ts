@@ -34,7 +34,7 @@ export type RegistrationResult = {
   };
 };
 
-export async function register(input: unknown): Promise<RegistrationResult> {
+export async function register(input: unknown, ip?: string): Promise<RegistrationResult> {
   const parsedResult = RegistrationSchema.safeParse(input);
 
   if (!parsedResult.success) {
@@ -105,6 +105,7 @@ export async function register(input: unknown): Promise<RegistrationResult> {
     name,
     existingUser,
     role,
+    ip,
   });
 
   // プロフィールを持つロールの場合、プロフィールデータを保存

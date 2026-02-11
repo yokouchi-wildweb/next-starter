@@ -95,7 +95,7 @@ export function SummaryTabContent({ user }: Props) {
       {/* ログイン履歴 */}
       <Stack space={2}>
         <Para size="sm" className="font-medium">
-          直近のログイン履歴（最大3件）
+          直近のログイン履歴（最大10件）
         </Para>
         {hasHistory ? (
           <DataTable
