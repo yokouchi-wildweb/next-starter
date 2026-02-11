@@ -11,8 +11,11 @@ import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
 import { TextInput, PasswordInput } from "@/components/Form/Input/Controlled";
+import { CheckGroupInput } from "@/components/Form/Input/Controlled/CheckGroupInput";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
+import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { User } from "@/features/user/entities";
 import {
   RoleProfileFields,
@@ -41,6 +44,9 @@ export default function GeneralUserEditForm({
 
   const router = useRouter();
   const { trigger, isMutating } = useUpdateUser();
+  const enableUserTag = APP_FEATURES.user.enableUserTag;
+  const { data: userTags = [] } = useUserTagList({ isPaused: () => !enableUserTag });
+  const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name }));
 
   const submit = async (values: FormValues) => {
     const trimmedPassword = values.newPassword.trim();
@@ -53,6 +59,7 @@ export default function GeneralUserEditForm({
           email: values.email,
           newPassword: resolvedNewPassword,
           profileData: values.profileData,
+          user_tag_ids: values.user_tag_ids,
         },
       });
       toast.success("ユーザーを更新しました");
@@ -96,6 +103,16 @@ export default function GeneralUserEditForm({
           <PasswordInput field={field} placeholder="新しいパスワード" />
         )}
       />
+      {enableUserTag && tagOptions.length > 0 && (
+        <ControlledField
+          control={control}
+          name="user_tag_ids"
+          label="ユーザータグ"
+          renderInput={(field) => (
+            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" />
+          )}
+        />
+      )}
       <RoleProfileFields methods={methods} role={user.role} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">

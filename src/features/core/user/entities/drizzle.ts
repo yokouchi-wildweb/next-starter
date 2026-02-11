@@ -1,7 +1,8 @@
 // src/features/user/entities/drizzle.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
-import { boolean, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import type { UserMetadata } from "./model";
 
 export const UserRoleEnum = pgEnum("user_role", [...USER_ROLES]);
@@ -34,5 +35,20 @@ export const UserTable = pgTable(
       table.providerUid,
     ),
   }),
+);
+
+export const UserToUserTagTable = pgTable(
+  "user_to_user_tag",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => UserTable.id, { onDelete: "cascade" }),
+    userTagId: uuid("user_tag_id")
+      .notNull()
+      .references(() => UserTagTable.id, { onDelete: "cascade" }),
+  },
+  (table) => {
+    return { pk: primaryKey({ columns: [table.userId, table.userTagId] }) };
+  },
 );
 

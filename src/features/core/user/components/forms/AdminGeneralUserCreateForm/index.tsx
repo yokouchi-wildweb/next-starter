@@ -11,8 +11,11 @@ import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
 import { PasswordInput, TextInput } from "@/components/Form/Input/Controlled";
+import { CheckGroupInput } from "@/components/Form/Input/Controlled/CheckGroupInput";
 import { err } from "@/lib/errors";
 import { useCreateUser } from "@/features/user/hooks/useCreateUser";
+import { useUserTagList } from "@/features/core/userTag/hooks/useUserTagList";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import {
   RoleSelector,
   RoleProfileFields,
@@ -35,6 +38,9 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
 
   const router = useRouter();
   const { trigger, isMutating } = useCreateUser();
+  const enableUserTag = APP_FEATURES.user.enableUserTag;
+  const { data: userTags = [] } = useUserTagList({ isPaused: () => !enableUserTag });
+  const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name }));
 
   // ロール選択を監視してプロフィールフィールドを動的に更新
   const selectedRole = useWatch({ control: methods.control, name: "role" });
@@ -87,6 +93,16 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
         label="パスワード"
         renderInput={(field) => <PasswordInput field={field} />}
       />
+      {enableUserTag && tagOptions.length > 0 && (
+        <ControlledField
+          control={control}
+          name="user_tag_ids"
+          label="ユーザータグ"
+          renderInput={(field) => (
+            <CheckGroupInput field={field} options={tagOptions} displayType="bookmark" />
+          )}
+        />
+      )}
       <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">
         <Button type="submit" disabled={loading} variant="default">

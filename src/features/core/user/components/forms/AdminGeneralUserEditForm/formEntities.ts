@@ -30,6 +30,7 @@ export const FormSchema = z
     newPassword: newPasswordSchema,
     role: z.string(),
     profileData: z.record(z.unknown()).optional(),
+    user_tag_ids: z.array(z.string()).optional(),
   })
   .superRefine((value, ctx) => {
     validateProfileData(value, ctx);
@@ -41,6 +42,7 @@ export type FormValues = {
   newPassword: string;
   role: string;
   profileData?: Record<string, unknown>;
+  user_tag_ids?: string[];
 };
 
 export const createDefaultValues = (
@@ -53,5 +55,6 @@ export const createDefaultValues = (
     role: user.role ?? "user",
     newPassword: "",
     profileData: profileData ?? {},
+    user_tag_ids: user.user_tag_ids ?? [],
   };
 };

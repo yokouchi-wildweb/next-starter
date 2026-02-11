@@ -9,6 +9,7 @@ export type CreateUserInput = {
   localPassword: string;
   actorId?: string;
   profileData?: Record<string, unknown>;
+  user_tag_ids?: string[];
 };
 
 export type CreateDemoUserInput = {
@@ -23,4 +24,5 @@ export type UpdateUserInput = Partial<Omit<UserOptionalFields, "localPassword">>
   localPassword?: string | null;
   newPassword?: string | null;
   profileData?: Record<string, unknown>;
+  user_tag_ids?: string[];
 };

@@ -76,7 +76,10 @@ export const adminMenu: AdminMenuSection[] = [
     title: "データ管理",
     href: null,
     icon: Database,
-    items: adminDataMenu,
+    items: adminDataMenu.filter((item) => {
+      if (item.href === "/admin/user-tags") return APP_FEATURES.user.enableUserTag;
+      return true;
+    }),
   },
   {
     title: "ユーザー管理",

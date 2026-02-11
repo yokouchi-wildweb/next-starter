@@ -3,7 +3,7 @@
 import type { User } from "@/features/core/user/entities";
 import { UserUpdateByAdminSchema, UserSelfUpdateSchema } from "@/features/core/user/entities";
 import type { UpdateUserInput } from "@/features/core/user/services/types";
-import { base } from "../drizzleBase";
+import { base, baseOptions } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
 import { omitUndefined } from "@/utils/object";
 import { getServerAuth } from "@/lib/firebase/server/app";
@@ -11,6 +11,8 @@ import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
+import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
+import { db } from "@/lib/drizzle";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -38,7 +40,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     throw new DomainError("更新データが不正です", { status: 400 });
   }
 
-  const { newPassword, profileData, ...restRawData } = rawData;
+  const { newPassword, profileData, user_tag_ids, ...restRawData } = rawData;
   const normalizedNewPassword =
     typeof newPassword === "string" ? newPassword.trim() : undefined;
 
@@ -114,6 +116,19 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
   const effectiveRole = (updatePayload.role ?? current.role) as UserRoleType;
   if (profileData && hasRoleProfile(effectiveRole)) {
     await userProfileService.upsertProfile(id, effectiveRole, profileData);
+  }
+
+  // ユーザータグの同期
+  if (user_tag_ids !== undefined) {
+    const relationValues = new Map<string, unknown[]>();
+    relationValues.set("user_tag_ids", user_tag_ids);
+    await syncBelongsToManyRelations(
+      db,
+      baseOptions.belongsToManyRelations,
+      id,
+      relationValues,
+    );
+    (updatedUser as User).user_tag_ids = user_tag_ids;
   }
 
   return updatedUser;

@@ -36,6 +36,7 @@ export const UserCoreSchema = z.object({
     .string()
     .nullish()
     .transform((value) => emptyToNull(value)),
+  user_tag_ids: z.array(z.string()).optional(),
 });
 
 /**

@@ -55,6 +55,11 @@ const FEATURE_GATE_RULES: FeatureGateRule[] = [
     pathPatterns: ["/demo-login"],
     isEnabled: () => APP_FEATURES.demo.login,
   },
+  // ユーザータグ
+  {
+    pathPatterns: ["/admin/user-tags", "/api/userTag"],
+    isEnabled: () => APP_FEATURES.user.enableUserTag,
+  },
 ];
 
 /**

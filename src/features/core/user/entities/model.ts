@@ -36,5 +36,6 @@ export type User = BaseEntity & {
   phoneVerifiedAt: Date | null;
   metadata: UserMetadata;
   deletedAt: Date | null;
+  user_tag_ids?: string[];
 };
 
