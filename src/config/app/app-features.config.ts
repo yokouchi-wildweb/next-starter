@@ -73,7 +73,7 @@ export const APP_FEATURES = {
     /** 電話番号認証機能を有効にする */
     phoneVerificationEnabled: false,
     /** ユーザータグ機能を有効にする（false の場合はメニュー非表示・ページ 404・フォーム非表示） */
-    enableUserTag: true,
+    enableUserTag: false,
   },
   adminConsole: {
     enableDarkModeSwitch: true,
