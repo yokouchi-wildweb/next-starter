@@ -39,6 +39,7 @@ type Props = {
   open: boolean;
   user: User | null;
   onClose: () => void;
+  onSuccess?: () => void;
 };
 
 const adminFallback = "(未設定)";
@@ -53,7 +54,7 @@ const CHANGE_METHOD_OPTIONS = WalletHistoryChangeMethodOptions.map((option) => (
   value: option.value,
 }));
 
-export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
+export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess }: Props) {
   const methods = useForm<WalletAdjustFormValues>({
     resolver: zodResolver(WalletAdjustFormSchema),
     mode: "onSubmit",
@@ -118,6 +119,7 @@ export default function AdminWalletAdjustModal({ open, user, onClose }: Props) {
       await trigger({ userId: user.id, payload });
       showToast(`${currencyLabel}を更新しました`, "success");
       handleRequestClose();
+      onSuccess?.();
     } catch (error) {
       showToast(err(error, `${currencyLabel}の操作に失敗しました`), "error");
     }
