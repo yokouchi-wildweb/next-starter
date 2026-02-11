@@ -5,7 +5,17 @@
   "label": "ユーザー",
   "dbEngine": "Neon",
   "idType": "uuid",
-  "relations": [],
+  "relations": [
+    {
+      "domain": "user_tag",
+      "label": "ユーザータグ",
+      "fieldName": "user_tag_ids",
+      "fieldType": "uuid",
+      "relationType": "belongsToMany",
+      "required": false,
+      "includeRelationTable": false
+    }
+  ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
   "useSoftDelete": true,
