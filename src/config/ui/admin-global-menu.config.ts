@@ -76,10 +76,7 @@ export const adminMenu: AdminMenuSection[] = [
     title: "データ管理",
     href: null,
     icon: Database,
-    items: adminDataMenu.filter((item) => {
-      if (item.href === "/admin/user-tags") return APP_FEATURES.user.enableUserTag;
-      return true;
-    }),
+    items: adminDataMenu.filter((item) => item.href !== "/admin/user-tags"),
   },
   {
     title: "ユーザー管理",
@@ -90,6 +87,9 @@ export const adminMenu: AdminMenuSection[] = [
       { title: "システム管理者", href: "/admin/users/system" },
       ...(APP_FEATURES.adminConsole.enableDemoUser
         ? [{ title: "デモユーザー", href: "/admin/users/demo" }]
+        : []),
+      ...(APP_FEATURES.user.enableUserTag
+        ? [{ title: "ユーザータグ", href: "/admin/user-tags" }]
         : []),
     ],
     allowRoles: ["admin"],
