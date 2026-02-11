@@ -563,6 +563,7 @@ export default function PopoverDemoPage() {
                     domain="sample"
                     ids={selection.selectedIds}
                     relation="sampleTag"
+                    showClearAll
                     onSuccess={() => {
                       mutateSamples();
                       selection.clear();
@@ -630,6 +631,7 @@ export default function PopoverDemoPage() {
                         id={item.id}
                         relation="sampleTag"
                         currentValue={item.sample_tag_ids ?? []}
+                        showClearAll
                         onSuccess={() => mutateSamples()}
                       />
                       <EnumFieldButton

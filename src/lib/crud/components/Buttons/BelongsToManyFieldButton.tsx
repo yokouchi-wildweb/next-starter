@@ -62,6 +62,10 @@ export type BelongsToManyFieldButtonProps = ButtonStyleProps & {
   onSuccess?: () => void;
   /** ボタンを無効化するかどうか @default false */
   disabled?: boolean;
+  /** 「すべて削除」スイッチを表示する @default false */
+  showClearAll?: boolean;
+  /** 「すべて削除」スイッチのラベル */
+  clearAllLabel?: string;
 };
 
 /**
@@ -109,6 +113,8 @@ export function BelongsToManyFieldButton({
   errorMessage = "更新に失敗しました",
   onSuccess,
   disabled = false,
+  showClearAll = false,
+  clearAllLabel,
 }: BelongsToManyFieldButtonProps) {
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
@@ -231,6 +237,8 @@ export function BelongsToManyFieldButton({
       showSelectAll={showSelectAll}
       maxSelections={maxSelections}
       onConfirm={handleConfirm}
+      showClearAll={showClearAll}
+      clearAllLabel={clearAllLabel}
     />
   );
 }

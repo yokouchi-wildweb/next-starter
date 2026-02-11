@@ -48,7 +48,6 @@ src/features/core/userProfile/
 │   │   ├── index.ts
 │   │   ├── getProfile.ts
 │   │   ├── upsertProfile.ts
-│   │   ├── updateProfile.ts
 │   │   ├── deleteProfile.ts
 │   │   └── hasProfile.ts
 │   └── userProfileService.ts   # 公開インターフェース
@@ -300,9 +299,6 @@ getProfile(userId: string, role: UserRoleType): Promise<Record<string, unknown> 
 
 // プロフィール作成/更新（upsert）
 upsertProfile(userId: string, role: UserRoleType, data: ProfileUpsertData): Promise<Record<string, unknown> | null>
-
-// プロフィール更新
-updateProfile(userId: string, role: UserRoleType, data: ProfileUpdateData): Promise<Record<string, unknown> | null>
 
 // プロフィール削除
 deleteProfile(userId: string, role: UserRoleType): Promise<boolean>

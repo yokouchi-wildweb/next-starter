@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { Button } from "@/components/Form/Button/Button";
 import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
 import { Input } from "@/components/Form/Input/Manual/Input";
+import { SwitchInput } from "@/components/Form/Input/Manual/SwitchInput";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 
 import {
@@ -78,6 +79,10 @@ export type ChecklistPopoverProps = {
   emptyMessage?: string;
   /** 検索結果がないときの表示 */
   noResultsMessage?: string;
+  /** 「すべて削除」スイッチを表示する */
+  showClearAll?: boolean;
+  /** 「すべて削除」スイッチのラベル @default "すべて削除" */
+  clearAllLabel?: string;
 } & Omit<PopoverContentProps, "children">;
 
 /**
@@ -136,6 +141,8 @@ export function ChecklistPopover({
   onOpenChange,
   emptyMessage = "選択肢がありません",
   noResultsMessage = "該当する項目がありません",
+  showClearAll = false,
+  clearAllLabel = "すべて削除",
   // PopoverContent props
   size = "md",
   layer,
@@ -151,6 +158,7 @@ export function ChecklistPopover({
   const [selectedValues, setSelectedValues] = useState<string[]>(value);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isClearAll, setIsClearAll] = useState(false);
 
   // 制御/非制御の判定
   const isControlled = controlledOpen !== undefined;
@@ -172,6 +180,7 @@ export function ChecklistPopover({
     if (open) {
       setSelectedValues(value);
       setSearchQuery("");
+      setIsClearAll(false);
     }
   }, [open, value]);
 
@@ -252,7 +261,8 @@ export function ChecklistPopover({
       return;
     }
 
-    const result = onConfirm(selectedValues);
+    const valuesToSend = isClearAll ? [] : selectedValues;
+    const result = onConfirm(valuesToSend);
 
     if (result instanceof Promise) {
       setIsLoading(true);
@@ -265,7 +275,7 @@ export function ChecklistPopover({
     } else {
       if (closeOnConfirm) setOpen(false);
     }
-  }, [onConfirm, selectedValues, closeOnConfirm, setOpen]);
+  }, [onConfirm, selectedValues, isClearAll, closeOnConfirm, setOpen]);
 
   const handleCancel = useCallback(() => {
     onCancel?.();
@@ -282,9 +292,10 @@ export function ChecklistPopover({
 
   // 変更があるかどうか
   const hasChanges = useMemo(() => {
+    if (isClearAll) return true;
     if (selectedValues.length !== value.length) return true;
     return !selectedValues.every((v) => value.includes(v));
-  }, [selectedValues, value]);
+  }, [selectedValues, value, isClearAll]);
 
   return (
     <PopoverRoot open={open} onOpenChange={setOpen}>
@@ -355,8 +366,20 @@ export function ChecklistPopover({
           </div>
         )}
 
+        {/* すべて削除スイッチ */}
+        {showClearAll && (
+          <div className="border-b px-3 py-2">
+            <SwitchInput
+              value={isClearAll}
+              onChange={setIsClearAll}
+              label={clearAllLabel}
+              activeColor="destructive"
+            />
+          </div>
+        )}
+
         {/* チェックリスト */}
-        <div className="overflow-y-auto" style={listStyle}>
+        <div className={cn("overflow-y-auto", isClearAll && "pointer-events-none opacity-40")} style={listStyle}>
           {options.length === 0 ? (
             <div className="px-3 py-4 text-center text-sm text-muted-foreground">
               {emptyMessage}
