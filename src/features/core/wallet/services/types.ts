@@ -67,3 +67,10 @@ export type GetWalletOptions = WalletOperationOptions & {
   /** falseの場合、存在しなければnullを返す（デフォルト: true） */
   createIfNotExists?: boolean;
 };
+
+/** 通貨種別ごとの全ユーザー合計残高 */
+export type TotalBalanceByType = {
+  type: WalletTypeValue;
+  totalBalance: number;
+  totalLockedBalance: number;
+};

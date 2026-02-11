@@ -11,12 +11,14 @@ import type {
   WalletOperationOptions,
   AdjustBalanceOptions,
   GetWalletOptions,
+  TotalBalanceByType,
 } from "@/features/core/wallet/services/types";
 import { base } from "./drizzleBase";
 import { adjustBalance } from "./wrappers/adjustBalance";
 import { consumeReservedBalance } from "./wrappers/consumeReservedBalance";
 import { releaseReservation } from "./wrappers/releaseReservation";
 import { reserveBalance } from "./wrappers/reserveBalance";
+import { getTotalBalancesByType } from "./wrappers/getTotalBalancesByType";
 import { getWallet, runWithTransaction, type TransactionClient } from "./wrappers/utils";
 
 export const walletService = {
@@ -58,4 +60,7 @@ export const walletService = {
     tx?: TransactionClient,
     options?: WalletOperationOptions,
   ) => consumeReservedBalance(params, tx, options),
+
+  /** 通貨種別ごとの全ユーザー合計残高を取得 */
+  getTotalBalancesByType: (): Promise<TotalBalanceByType[]> => getTotalBalancesByType(),
 };
