@@ -10,6 +10,7 @@ export default async function UserProtectedLayout({
   await authGuard({
     allowRoles: ["admin", "user", "debugger"],
     redirectTo: "/login",
+    returnBack: true,
     statusRedirects: {
       inactive: "/reactivate",
       suspended: "/restricted",

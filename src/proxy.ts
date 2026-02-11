@@ -9,5 +9,9 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  // サーバーコンポーネントから現在のパスを参照できるようヘッダーに付与
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', request.nextUrl.pathname);
+
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }

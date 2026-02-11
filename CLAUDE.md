@@ -28,6 +28,14 @@ ref: docs/!must-read/設計思想とアーキテクチャ.md
 boundary: Hook/ClientService → HTTP → APIRoute → ServerService | Page(SSR) → ServerService direct OK | Hook → ServerService NG
 rules: client axios only | server fetch OK | DB access via ServerService only
 
+## PROXY (replaces middleware)
+entry: src/proxy.ts (default export, receives NextRequest) | handlers: src/proxies/
+pattern: handler chain — each ProxyHandler returns Response (intercept) or void (pass-through). Final fallback: NextResponse.next()
+handlers: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy (order matters)
+headers: proxy.ts sets x-pathname on request headers → server components read via headers().get("x-pathname")
+adding_handler: create src/proxies/\<name\>.ts implementing ProxyHandler → register in src/proxies/index.ts
+note: Next.js 16 uses proxy (src/proxy.ts), NOT middleware (middleware.ts)
+
 ## DIRECTORY_STRUCTURE
 all paths under src/
 
@@ -112,7 +120,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 - space-y/space-x classes (use Layout/Stack instead. Stack: flex flex-col with gap, space prop accepts Tailwind spacing scale numbers)
 
 ## CORE_FILES (approval required)
-src/lib/, src/features/core/, src/components/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
+src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
 
 ## TOOLS
