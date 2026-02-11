@@ -4,17 +4,15 @@
 import {
   getProfile,
   upsertProfile,
-  updateProfile,
   deleteProfile,
   hasProfile,
 } from "./operations";
 
-export type { ProfileUpsertData, ProfileUpdateData } from "./operations";
+export type { ProfileUpsertData } from "./operations";
 
 export const userProfileService = {
   getProfile,
   upsertProfile,
-  updateProfile,
   deleteProfile,
   hasProfile,
 };
