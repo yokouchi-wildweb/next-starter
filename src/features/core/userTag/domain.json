@@ -1,0 +1,56 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "user_tag",
+  "plural": "user_tags",
+  "label": "ユーザータグ",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "user",
+      "label": "ユーザー",
+      "fieldName": "user_ids",
+      "fieldType": "uuid",
+      "relationType": "belongsToMany",
+      "required": false,
+      "includeRelationTable": false
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "name",
+      "label": "タグ名",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": true
+    },
+    {
+      "name": "description",
+      "label": "説明",
+      "fieldType": "string",
+      "formInput": "textarea",
+      "required": false
+    }
+  ],
+  "searchFields": ["name", "description"],
+  "defaultOrderBy": [["updatedAt", "DESC"]],
+  "tableFields": ["name", "description", "updatedAt"],
+  "useDetailModal": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
+  "addToAdminDataMenu": true,
+  "useAutoSave": false,
+  "generateFiles": {
+    "entities": true,
+    "components": true,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "fieldConstants": true,
+    "adminRoutes": true,
+    "registry": true,
+    "presenters": true
+  }
+}

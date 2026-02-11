@@ -11,6 +11,7 @@ import { sampleCategoryService } from "@/features/sampleCategory/services/server
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { couponHistoryService } from "@/features/core/couponHistory/services/server/couponHistoryService";
+import { userTagService } from "@/features/core/userTag/services/server/userTagService";
 
 export const serviceRegistry: Record<string, any> = {
   userActionLog: userActionLogService,
@@ -26,6 +27,7 @@ export const serviceRegistry: Record<string, any> = {
   sampleTag: sampleTagService,
   coupon: couponService,
   couponHistory: couponHistoryService,
+  userTag: userTagService,
   // --- AUTO-GENERATED-END ---
 
 };
