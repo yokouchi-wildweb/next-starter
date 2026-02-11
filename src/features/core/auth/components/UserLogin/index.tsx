@@ -124,7 +124,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
             {isLoading ? "ログイン処理中..." : "メールアドレスでログイン"}
           </Button>
         </form>
-        <ThirdPartySignupOptions />
+        <ThirdPartySignupOptions redirectTo={redirectTo} />
 
         <div className="mt-8">
           <Button variant="outline" asChild className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground">

@@ -10,7 +10,11 @@ import { Block } from "@/components/Layout/Block";
 import { OAUTH_PROVIDER_IDS } from "@/features/core/user/constants";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 
-export function ThirdPartySignupOptions() {
+export type ThirdPartySignupOptionsProps = {
+  redirectTo?: string;
+};
+
+export function ThirdPartySignupOptions({ redirectTo }: ThirdPartySignupOptionsProps) {
   const router = useRouter();
 
   const thirdPartyConfig = APP_FEATURES.auth.thirdPartyProviders;
@@ -64,7 +68,10 @@ export function ThirdPartySignupOptions() {
             type="button"
             variant="outline"
             className="group w-full justify-center border-muted-foreground/50"
-            onClick={() => router.push(`/signup/oauth?provider=${option.providerId}`)}
+            onClick={() => {
+              const returnToParam = redirectTo ? `&returnTo=${encodeURIComponent(redirectTo)}` : "";
+              router.push(`/signup/oauth?provider=${option.providerId}${returnToParam}`);
+            }}
           >
             <option.icon className={`size-5 ${option.iconColor} group-hover:text-accent-foreground`} />
             <span className="font-normal text-muted-foreground group-hover:text-accent-foreground">{option.label}</span>

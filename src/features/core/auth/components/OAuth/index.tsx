@@ -19,6 +19,7 @@ const { afterVerificationPath } = APP_FEATURES.auth.signup;
 
 export type OAuthProps = {
   provider?: UserProviderType;
+  redirectTo?: string;
 };
 
 function LoadingState({ message }: { message: string }) {
@@ -32,7 +33,9 @@ function LoadingState({ message }: { message: string }) {
   );
 }
 
-export function OAuth({ provider }: OAuthProps) {
+const DEFAULT_REDIRECT_PATH = "/";
+
+export function OAuth({ provider, redirectTo = DEFAULT_REDIRECT_PATH }: OAuthProps) {
   const router = useRouter();
   const { guardedPush } = useGuardedNavigation();
   const { phase, requiresReactivation } = useOAuthPhase({ provider });
@@ -51,9 +54,9 @@ export function OAuth({ provider }: OAuthProps) {
       }
 
       toast.success("登録済みユーザーでログインしました");
-      router.replace("/");
+      router.replace(redirectTo);
     }
-  }, [phase, requiresReactivation, router, guardedPush]);
+  }, [phase, requiresReactivation, router, guardedPush, redirectTo]);
 
   return (
     <Section id="signup-oauth" className="relative flex flex-col gap-4">

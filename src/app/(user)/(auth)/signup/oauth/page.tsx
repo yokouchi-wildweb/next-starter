@@ -9,13 +9,16 @@ import type { UserProviderType } from "@/features/core/user/types";
 type SignUpOAuthPageProps = {
   searchParams?: Promise<{
     provider?: string;
+    returnTo?: string;
   }>;
 };
 
 export default async function SignUpOAuthPage({
   searchParams,
 }: SignUpOAuthPageProps) {
-  const providerParam = searchParams ? (await searchParams).provider : undefined;
+  const params = searchParams ? await searchParams : undefined;
+  const providerParam = params?.provider;
+  const returnTo = params?.returnTo;
   const provider: UserProviderType | undefined =
     providerParam && USER_PROVIDER_TYPES.includes(providerParam as UserProviderType)
       ? (providerParam as UserProviderType)
@@ -24,7 +27,7 @@ export default async function SignUpOAuthPage({
   return (
     <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle srOnly>OAuth認証</UserPageTitle>
-      <OAuth provider={provider} />
+      <OAuth provider={provider} redirectTo={returnTo} />
     </UserPage>
   );
 }
