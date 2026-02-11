@@ -26,6 +26,9 @@ export async function upsertProfile(
     throw new Error(`Profile base for role "${role}" is not registered`);
   }
 
+  // SSR→クライアント経由で文字列化された管理フィールドを除去
+  const { id: _id, userId: _userId, createdAt: _createdAt, updatedAt: _updatedAt, ...profileFields } = data;
+
   // upsert は userId での衝突検知（defaultUpsertConflictFields: ["userId"]）
-  return base.upsert({ userId, ...data });
+  return base.upsert({ userId, ...profileFields });
 }
