@@ -5,7 +5,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton } from "@/lib/crud/components/Buttons";
 import { Button } from "@/components/Form/Button/Button";
 import Dialog from "@/components/Overlays/Dialog";
@@ -132,6 +132,8 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
 
   const enableWalletAdjust = APP_FEATURES.wallet.enableAdminBalanceAdjust;
   const enableUserManagement = APP_FEATURES.adminConsole.enableUserManagement;
+  const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
+  const useSelectionTable = enableSelectionTable.managerial;
 
   const handleOpenAdjust = useCallback((user: User) => setAdjustTarget(user), []);
   const handleCloseAdjust = useCallback(() => setAdjustTarget(null), []);
@@ -170,12 +172,24 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
 
   return (
     <>
-      <DataTable
-        items={users}
-        columns={columns}
-        getKey={(user) => user.id}
-        emptyValueFallback={adminDataTableFallback}
-      />
+      {useSelectionTable ? (
+        <RecordSelectionTable
+          items={users}
+          columns={columns}
+          getKey={(user) => user.id}
+          emptyValueFallback={adminDataTableFallback}
+          selectionBehavior={selectionBehavior}
+          bulkActionsAlwaysVisible={bulkActionsAlwaysVisible}
+          bulkActions={() => null}
+        />
+      ) : (
+        <DataTable
+          items={users}
+          columns={columns}
+          getKey={(user) => user.id}
+          emptyValueFallback={adminDataTableFallback}
+        />
+      )}
       {enableWalletAdjust ? (
         <AdminWalletAdjustModal open={Boolean(adjustTarget)} user={adjustTarget} onClose={handleCloseAdjust} />
       ) : null}

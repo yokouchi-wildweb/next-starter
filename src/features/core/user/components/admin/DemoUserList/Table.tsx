@@ -4,7 +4,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { DataTable, RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { HardDeleteButton } from "@/lib/crud/components/Buttons";
 import { Button } from "@/components/Form/Button/Button";
 import type { User } from "@/features/core/user/entities";
@@ -94,6 +94,8 @@ const createColumns = (
 export default function DemoUserListTable({ users }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
   const enableWalletAdjust = APP_FEATURES.wallet.enableAdminBalanceAdjust;
+  const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
+  const useSelectionTable = enableSelectionTable.demo;
 
   const handleOpenAdjust = useCallback((user: User) => {
     setAdjustTarget(user);
@@ -110,12 +112,24 @@ export default function DemoUserListTable({ users }: Props) {
 
   return (
     <>
-      <DataTable
-        items={users}
-        columns={columns}
-        getKey={(user) => user.id}
-        emptyValueFallback={adminDataTableFallback}
-      />
+      {useSelectionTable ? (
+        <RecordSelectionTable
+          items={users}
+          columns={columns}
+          getKey={(user) => user.id}
+          emptyValueFallback={adminDataTableFallback}
+          selectionBehavior={selectionBehavior}
+          bulkActionsAlwaysVisible={bulkActionsAlwaysVisible}
+          bulkActions={() => null}
+        />
+      ) : (
+        <DataTable
+          items={users}
+          columns={columns}
+          getKey={(user) => user.id}
+          emptyValueFallback={adminDataTableFallback}
+        />
+      )}
       {enableWalletAdjust ? (
         <AdminWalletAdjustModal open={Boolean(adjustTarget)} user={adjustTarget} onClose={handleCloseAdjust} />
       ) : null}

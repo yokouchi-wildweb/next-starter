@@ -4,7 +4,7 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 // ルートのブロックは featureGate (src/proxies/featureGate.ts) で自動制御されます。
 
-import type { EmailCheckMode, SignupMode, WalletPurchaseRestriction } from "./types";
+import type { EmailCheckMode, SelectionBehavior, SignupMode, WalletPurchaseRestriction } from "./types";
 
 export const APP_FEATURES = {
   auth: {
@@ -80,6 +80,19 @@ export const APP_FEATURES = {
     enableUserManagement: true,
     /** デモユーザー機能を有効にする（false の場合はメニュー非表示・ページ 404） */
     enableDemoUser: true,
+    /** ユーザー一覧ページの挙動設定 */
+    userListPage: {
+      /** セレクションテーブルの選択方式 */
+      selectionBehavior: "row" as SelectionBehavior,
+      /** バルクアクションバーを常に表示する */
+      bulkActionsAlwaysVisible: true,
+      /** セレクションテーブルを有効にするユーザー種別 */
+      enableSelectionTable: {
+        general: true,
+        managerial: false,
+        demo: false,
+      },
+    },
     dashboard: {
       showMainMetrics: false,
       showAdditionalMetrics: false,

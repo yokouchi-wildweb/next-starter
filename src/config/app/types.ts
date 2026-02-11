@@ -21,3 +21,6 @@ export type EmailCheckMode = "disabled" | "full" | "strict";
  * - phoneVerified: SMS認証済みユーザーのみ購入可能
  */
 export type WalletPurchaseRestriction = "none" | "phoneVerified";
+
+/** セレクションテーブルの選択方式 */
+export type SelectionBehavior = "row" | "checkbox";
