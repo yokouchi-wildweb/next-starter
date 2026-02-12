@@ -2,6 +2,7 @@
 
 export { MainMenu } from "./MainMenu";
 export { AccountDetails } from "./AccountDetails";
+export { OtherActions } from "./OtherActions";
 export { EditName } from "./EditName";
 export { EditEmail } from "./EditEmail";
 export { EditPassword } from "./EditPassword";
