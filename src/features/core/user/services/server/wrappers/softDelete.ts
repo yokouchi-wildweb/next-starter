@@ -3,6 +3,7 @@
 import { DomainError } from "@/lib/errors";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { executeCleanup } from "@/features/core/user/services/server/executeCleanup";
+import { setStatusWithdrawn } from "@/features/core/user/services/server/setStatusWithdrawn";
 import { db } from "@/lib/drizzle";
 import { base } from "../drizzleBase";
 
@@ -36,7 +37,10 @@ export async function softDelete(input: SoftDeleteInput): Promise<void> {
     // 論理削除を実行
     await base.remove(userId, tx);
 
-    // クリーンナップ処理を実行
+    // ステータスを「退会済み」に変更
+    await setStatusWithdrawn(userId, tx);
+
+    // リソースクリーンナップ処理を実行
     await executeCleanup(userId, tx);
   });
 

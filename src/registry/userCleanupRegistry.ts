@@ -1,12 +1,12 @@
 // src/registry/userCleanupRegistry.ts
 
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
-import { setStatusWithdrawn } from "@/features/core/user/services/server/setStatusWithdrawn";
 import { clearBalance as clearWalletBalance } from "@/features/core/wallet/services/server/clearBalance";
 import { cancelPending as cancelPendingPurchaseRequests } from "@/features/core/purchaseRequest/services/server/cancelPending";
 
 /**
- * ユーザーソフトデリート時に実行されるクリーンナップハンドラの型
+ * ユーザー退会・ソフトデリート時に実行されるリソースクリーンナップハンドラの型
+ * ステータス変更は各呼び出し元が責任を持つ（このレジストリには含めない）
  */
 export type UserCleanupHandler = (userId: string, tx: DbTransaction) => Promise<void>;
 
@@ -15,8 +15,6 @@ export type UserCleanupHandler = (userId: string, tx: DbTransaction) => Promise<
  * 記載順に実行される
  */
 export const requiredHandlers: UserCleanupHandler[] = [
-  // ユーザーステータスを「退会済み（withdrawn）」に変更
-  setStatusWithdrawn,
   // 全ウォレットの残高（balance / locked_balance）を0にクリア + 履歴記録
   clearWalletBalance,
 ];
