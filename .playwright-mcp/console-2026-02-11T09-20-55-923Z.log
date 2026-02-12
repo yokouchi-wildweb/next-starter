@@ -1,2 +1,23 @@
 [     844ms] [WARNING] Image with src "http://localhost:3001/assets/imgs/logos/default.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3001/_next/static/chunks/bf4d3_next_dist_3512d8d2._.js:2297
 [    1308ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://securetoken.googleapis.com/v1/token?key=AIzaSyBL2HYDIvX120v6D5dQbkMS7NXzQi4ugDA:0
+[ 7117766ms] [ERROR] Framing 'https://www.google.com/' violates the following report-only Content Security Policy directive: "frame-ancestors 'self'". The violation has been logged, but no further action has been taken.
+ @ :0
+[59670288ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sample?withRelations=true:0
+[59670292ms] [ERROR] API request error 500 Failed query: select "id", "sample_category_id", "name", "number", "rich_number", "switch", "radio", "select", "multi_select", "sale_start_at", "date", "time", "main_image", "sub_image", "description", "sort_order", "created_at", "updated_at", "deleted_at" from "samples" where "samples"."deleted_at" is null order by "samples"."updated_at" desc limit $1
+params: 100 @ http://localhost:3001/_next/static/chunks/bf4d3_next_dist_3512d8d2._.js:3127
+[59670348ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sampleCategory:0
+[59670407ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sampleTag:0
+[59677409ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sampleTag:0
+[59677461ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sampleCategory:0
+[59677506ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sample?withRelations=true:0
+[59677507ms] [ERROR] API request error 500 Failed query: select "id", "sample_category_id", "name", "number", "rich_number", "switch", "radio", "select", "multi_select", "sale_start_at", "date", "time", "main_image", "sub_image", "description", "sort_order", "created_at", "updated_at", "deleted_at" from "samples" where "samples"."deleted_at" is null order by "samples"."updated_at" desc limit $1
+params: 100 @ http://localhost:3001/_next/static/chunks/bf4d3_next_dist_3512d8d2._.js:3127
+[59679962ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sampleCategory:0
+[59680990ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sample?withRelations=true:0
+[59680990ms] [ERROR] API request error 500 Failed query: select "id", "sample_category_id", "name", "number", "rich_number", "switch", "radio", "select", "multi_select", "sale_start_at", "date", "time", "main_image", "sub_image", "description", "sort_order", "created_at", "updated_at", "deleted_at" from "samples" where "samples"."deleted_at" is null order by "samples"."updated_at" desc limit $1
+params: 100 @ http://localhost:3001/_next/static/chunks/bf4d3_next_dist_3512d8d2._.js:3127
+[59682101ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sampleTag:0
+[59686090ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sampleTag:0
+[59689143ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/api/sample?withRelations=true:0
+[59689143ms] [ERROR] API request error 500 Failed query: select "id", "sample_category_id", "name", "number", "rich_number", "switch", "radio", "select", "multi_select", "sale_start_at", "date", "time", "main_image", "sub_image", "description", "sort_order", "created_at", "updated_at", "deleted_at" from "samples" where "samples"."deleted_at" is null order by "samples"."updated_at" desc limit $1
+params: 100 @ http://localhost:3001/_next/static/chunks/bf4d3_next_dist_3512d8d2._.js:3127
