@@ -6,13 +6,17 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/Form/Button/Button";
-import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
+import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
 import Modal from "@/components/Overlays/Modal";
 import { Checkbox } from "@/components/_shadcn/checkbox";
 import { Label } from "@/components/Form/Label";
-import { Para, SecTitle } from "@/components/TextBlocks";
+import { Para } from "@/components/TextBlocks";
 import { useWithdraw } from "@/features/core/auth/hooks/useWithdraw";
+import { AccountPageHeader } from "@/features/core/user/components/UserMyPage/AccountPageHeader";
+
+import { WithdrawDescription } from "./WithdrawDescription";
 
 export function Withdraw() {
   const router = useRouter();
@@ -39,28 +43,31 @@ export function Withdraw() {
   }, [withdraw]);
 
   return (
-    <>
-      <Block appearance="outlined" padding="lg">
-        <Flex direction="column" gap="md">
-          <SecTitle as="h2">退会について</SecTitle>
-          <Para tone="muted" size="sm">
-            退会すると、アカウントに関連するデータにアクセスできなくなります。
-            退会後に再度サービスを利用する場合は、新規登録が必要です。
-          </Para>
-          <Button
-            variant="destructive"
-            onClick={handleOpenModal}
-          >
-            退会する
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.back()}
-          >
-            キャンセル
-          </Button>
-        </Flex>
-      </Block>
+    <Section>
+      <Stack space={4}>
+        <AccountPageHeader
+          title="退会"
+          backHref="/mypage/other"
+          backDisabled={isLoading}
+        />
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <Stack space={4}>
+            <WithdrawDescription />
+            <Button
+              variant="destructive"
+              onClick={handleOpenModal}
+            >
+              退会する
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.back()}
+            >
+              キャンセル
+            </Button>
+          </Stack>
+        </div>
+      </Stack>
 
       <Modal
         open={isModalOpen}
@@ -106,7 +113,7 @@ export function Withdraw() {
           </Flex>
         </Flex>
       </Modal>
-    </>
+    </Section>
   );
 }
 

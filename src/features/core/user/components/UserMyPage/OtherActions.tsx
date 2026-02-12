@@ -22,7 +22,7 @@ export function OtherActions() {
               icon={PauseCircleIcon}
               title="休会する"
               description="一時的にアカウントを休止"
-              href="/settings/pause"
+              href="/mypage/pause"
               variant="muted"
               showChevron
             />
@@ -32,7 +32,7 @@ export function OtherActions() {
               icon={UserXIcon}
               title="退会する"
               description="アカウントを削除"
-              href="/settings/withdraw"
+              href="/mypage/withdraw"
               variant="destructive"
               showChevron
             />
