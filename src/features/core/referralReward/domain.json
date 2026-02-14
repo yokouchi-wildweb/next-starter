@@ -1,0 +1,81 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "referralReward",
+  "plural": "referralRewards",
+  "label": "紹介報酬",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "useSoftDelete": false,
+  "compositeUniques": [["referral_id", "reward_key"]],
+  "fields": [
+    {
+      "name": "referral_id",
+      "label": "紹介ID",
+      "fieldType": "uuid",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "reward_key",
+      "label": "報酬キー",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": true
+    },
+    {
+      "name": "recipient_user_id",
+      "label": "受取人ID",
+      "fieldType": "uuid",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "status",
+      "label": "ステータス",
+      "fieldType": "enum",
+      "formInput": "radio",
+      "required": true,
+      "defaultValue": "pending",
+      "options": [
+        { "value": "pending", "label": "保留" },
+        { "value": "fulfilled", "label": "付与済" },
+        { "value": "failed", "label": "失敗" }
+      ]
+    },
+    {
+      "name": "fulfilled_at",
+      "label": "付与日時",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "none",
+      "required": false
+    },
+    {
+      "name": "metadata",
+      "label": "メタデータ",
+      "fieldType": "jsonb",
+      "formInput": "none",
+      "required": false
+    }
+  ],
+  "searchFields": ["referral_id", "reward_key", "recipient_user_id"],
+  "defaultOrderBy": [["createdAt", "DESC"]],
+  "tableFields": ["referral_id", "reward_key", "recipient_user_id", "status", "fulfilled_at", "createdAt"],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
+  "generateFiles": {
+    "entities": true,
+    "components": false,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "adminRoutes": false,
+    "registry": true,
+    "fieldConstants": true,
+    "presenters": true
+  }
+}

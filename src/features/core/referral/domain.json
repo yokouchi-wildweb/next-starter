@@ -1,0 +1,66 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "referral",
+  "plural": "referrals",
+  "label": "紹介",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "useSoftDelete": false,
+  "compositeUniques": [["invitee_user_id"]],
+  "fields": [
+    {
+      "name": "coupon_id",
+      "label": "クーポンID",
+      "fieldType": "uuid",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "inviter_user_id",
+      "label": "招待者ID",
+      "fieldType": "uuid",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "invitee_user_id",
+      "label": "被招待者ID",
+      "fieldType": "uuid",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "status",
+      "label": "ステータス",
+      "fieldType": "enum",
+      "formInput": "radio",
+      "required": true,
+      "defaultValue": "active",
+      "options": [
+        { "value": "active", "label": "有効" },
+        { "value": "cancelled", "label": "取消" }
+      ]
+    }
+  ],
+  "searchFields": ["inviter_user_id", "invitee_user_id"],
+  "defaultOrderBy": [["createdAt", "DESC"]],
+  "tableFields": ["inviter_user_id", "invitee_user_id", "status", "createdAt"],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
+  "generateFiles": {
+    "entities": true,
+    "components": false,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "adminRoutes": false,
+    "registry": true,
+    "fieldConstants": true,
+    "presenters": true
+  }
+}

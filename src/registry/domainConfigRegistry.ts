@@ -8,6 +8,8 @@ import couponHistoryConfig from "@/features/core/couponHistory/domain.json";
 import userConfig from "@/features/core/user/domain.json";
 import rateLimitConfig from "@/features/core/rateLimit/domain.json";
 import userTagConfig from "@/features/core/userTag/domain.json";
+import referralConfig from "@/features/core/referral/domain.json";
+import referralRewardConfig from "@/features/core/referralReward/domain.json";
 
 export const domainConfigMap = {
 
@@ -19,6 +21,8 @@ export const domainConfigMap = {
   coupon_history: couponHistoryConfig,
   rate_limit: rateLimitConfig,
   user_tag: userTagConfig,
+  referral: referralConfig,
+  referral_reward: referralRewardConfig,
   // --- AUTO-GENERATED-END ---
 
   // --- CORE DOMAINS (手動管理) ---
