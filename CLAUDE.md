@@ -65,6 +65,7 @@ business: src/features/, has domain.json, dc:generate. examples: sample, sampleC
 
 commands: dc:init | dc:generate -- \<Domain\> | dc:generate:all | dc:delete -- \<Domain\> | dc:add -- \<Domain\>
 config_utils: src/lib/domain/ | getDomainConfig(domain), extractFields(config), getRelations(domain) | client: index.ts, server: server.ts
+new_domain_json: MUST read src/features/README.md before creating any domain.json to verify schema format
 ref: src/features/README.md
 
 ## API_ROUTES
