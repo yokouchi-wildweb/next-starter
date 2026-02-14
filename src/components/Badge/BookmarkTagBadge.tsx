@@ -15,7 +15,7 @@ import {
 
 /** BookmarkTag固有のベーススタイル */
 const BOOKMARK_TAG_BASE =
-  "inline-flex items-center justify-center rounded-none border font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:pointer-events-none transition-colors";
+  "bookmark-tag inline-flex items-center justify-center rounded-none border font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:pointer-events-none transition-colors";
 
 /** BookmarkTag固有のvariantスタイル */
 const bookmarkTagVariantStyles: BadgeVariantStyles = {
