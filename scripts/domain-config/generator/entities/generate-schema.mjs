@@ -38,8 +38,9 @@ if (!fs.existsSync(configPath)) {
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
 const DATETIME_TYPE = 'nullableDatetime';
+const REQUIRED_DATETIME_TYPE = 'requiredDatetime';
 
-function mapZodType(type) {
+function mapZodType(type, required = false) {
   switch (type) {
     case 'string':
     case 'email':
@@ -62,7 +63,7 @@ function mapZodType(type) {
       return 'z.string()';
     case 'timestamp':
     case 'timestamp With Time Zone':
-      return DATETIME_TYPE;
+      return required ? REQUIRED_DATETIME_TYPE : DATETIME_TYPE;
     case 'jsonb':
       return 'z.unknown()';
     default:
@@ -73,6 +74,7 @@ function mapZodType(type) {
 let usesEmptyToNull = false;
 let usesCreateHashPreservingNullish = false;
 let usesNullableDatetime = false;
+let usesRequiredDatetime = false;
 
 function isTimestampField(fieldType) {
   return fieldType === 'timestamp' || fieldType === 'timestamp With Time Zone';
@@ -100,7 +102,11 @@ function fieldLine({ name, label, type, required, fieldType }) {
   }
 
   if (isTimestampField(fieldType)) {
-    usesNullableDatetime = true;
+    if (required) {
+      usesRequiredDatetime = true;
+    } else {
+      usesNullableDatetime = true;
+    }
   }
 
   const resolvedLabel = label || name;
@@ -182,7 +188,7 @@ const lines = [];
     const values = (f.options || []).map((o) => `"${o.value}"`).join(', ');
     lines.push(`  ${f.name}: z.enum([${values}])${f.required ? '' : '.nullish()'},`);
   } else {
-    const t = mapZodType(f.fieldType);
+    const t = mapZodType(f.fieldType, f.required);
     lines.push(
       fieldLine({
         name: f.name,
@@ -212,8 +218,11 @@ if (usesCreateHashPreservingNullish) {
   );
 }
 
-if (usesNullableDatetime) {
-  importStatements.push('import { nullableDatetime } from "@/lib/crud/utils";');
+if (usesNullableDatetime || usesRequiredDatetime) {
+  const datetimeImports = [];
+  if (usesNullableDatetime) datetimeImports.push('nullableDatetime');
+  if (usesRequiredDatetime) datetimeImports.push('requiredDatetime');
+  importStatements.push(`import { ${datetimeImports.join(', ')} } from "@/lib/crud/utils";`);
 }
 
 importStatements.push('import { z } from "zod";');
