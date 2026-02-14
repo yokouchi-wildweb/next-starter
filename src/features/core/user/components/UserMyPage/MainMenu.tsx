@@ -3,7 +3,8 @@
 "use client";
 
 import { useCallback } from "react";
-import { UserCircleIcon, LogOutIcon, EllipsisIcon } from "lucide-react";
+import { UserCircleIcon, LogOutIcon, EllipsisIcon, GiftIcon } from "lucide-react";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
@@ -21,6 +22,15 @@ export function MainMenu() {
   return (
     <Section>
       <Stack space={3}>
+        {APP_FEATURES.marketing.referral.enabled && (
+          <RichMenuCard
+            icon={GiftIcon}
+            title="招待コードを取得"
+            description="お友だちを招待して特典を獲得"
+            href="/mypage/invite"
+            showChevron
+          />
+        )}
         <RichMenuCard
           icon={UserCircleIcon}
           title="アカウント基本情報"

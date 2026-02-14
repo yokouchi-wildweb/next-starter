@@ -127,7 +127,7 @@ export const APP_FEATURES = {
     },
     referral: {
       /** 紹介機能を有効にする */
-      enabled: false,
+      enabled: true,
     },
   },
   demo: {
