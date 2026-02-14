@@ -69,6 +69,7 @@ export function Slider<T>({
   onActiveClick,
   arrowVariant = "light",
 }: SliderProps<T>) {
+  const effectivePeek = items.length <= 1 ? false : peek
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
@@ -120,7 +121,7 @@ export function Slider<T>({
         )}
 
         <div
-          style={peek ? {
+          style={effectivePeek ? {
             overflow: "hidden",
             maskImage: getPeekMaskStyle(canScrollPrev, canScrollNext),
             WebkitMaskImage: getPeekMaskStyle(canScrollPrev, canScrollNext),
@@ -130,7 +131,7 @@ export function Slider<T>({
             setApi={setApi}
             opts={{
               loop,
-              align: peek ? peekAlign[peek] : "center",
+              align: effectivePeek ? peekAlign[effectivePeek] : "center",
             }}
           >
             <CarouselContent className={gapNegativeMargin[gap]}>
@@ -139,7 +140,7 @@ export function Slider<T>({
                   key={index}
                   className={cn(
                     gapStyles[gap],
-                    peek && "basis-[85%]",
+                    effectivePeek && "basis-[85%]",
                     index !== current && "cursor-pointer"
                   )}
                   onClick={() => {
