@@ -23,7 +23,7 @@ export default async function AdminSampleEditPage({ params, searchParams }: Prop
   const { id } = await params;
   const { returnTo } = await searchParams;
   const redirectPath = resolveReturnTo(returnTo, "/admin/samples");
-
+  
   const [sample, sampleCategories, sampleTags ] = await Promise.all([
     sampleService.get(id),
     sampleCategoryService.list(),
