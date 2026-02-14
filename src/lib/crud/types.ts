@@ -135,6 +135,7 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   upsert?(data: CreateData, options?: UpsertOptions<CreateData>): Promise<T>;
   bulkUpsert?(records: CreateData[], options?: BulkUpsertOptions<CreateData>): Promise<BulkUpsertResult<T>>;
   bulkUpdate?(records: BulkUpdateRecord<UpdateData>[]): Promise<BulkUpdateResult<T>>;
+  bulkUpdateByIds?(ids: string[], data: UpdateData): Promise<{ count: number }>;
   duplicate?(id: string): Promise<T>;
   // ソフトデリート用メソッド
   restore?(id: string): Promise<T>;

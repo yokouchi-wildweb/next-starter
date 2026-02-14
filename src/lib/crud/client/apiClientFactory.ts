@@ -112,6 +112,12 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         async () =>
           (await axios.post<BulkUpdateResult<T>>(`${baseUrl}/bulk/update`, { records })).data,
       ),
+    bulkUpdateByIds: (ids: string[], data: UpdateData) =>
+      handleRequest(
+        "bulkUpdateByIds",
+        async () =>
+          (await axios.post<{ count: number }>(`${baseUrl}/bulk/update-by-ids`, { ids, data })).data,
+      ),
     duplicate: (id: string) =>
       handleRequest(
         "duplicate",

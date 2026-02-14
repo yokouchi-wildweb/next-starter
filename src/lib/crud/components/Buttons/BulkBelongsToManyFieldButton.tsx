@@ -19,7 +19,7 @@ import { getDomainConfig } from "@/lib/domain";
 import { getBelongsToManyRelations } from "@/lib/domain/relations/getBelongsToManyRelations";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { createApiClient } from "@/lib/crud/client";
-import { useBulkUpdateDomain } from "@/lib/crud/hooks";
+import { useBulkUpdateByIdsDomain } from "@/lib/crud/hooks";
 
 /** リレーション先データの型 */
 type RelationData = {
@@ -125,10 +125,10 @@ export function BulkBelongsToManyFieldButton({
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
-  const { trigger, isMutating } = useBulkUpdateDomain(
-    `${config.plural}/bulkUpdate`,
-    client.bulkUpdate!,
-    config.plural
+  const { trigger, isMutating } = useBulkUpdateByIdsDomain(
+    `${config.plural}/bulkUpdateByIds`,
+    client.bulkUpdateByIds!,
+    config.plural,
   );
 
   const router = useRouter();
@@ -195,18 +195,12 @@ export function BulkBelongsToManyFieldButton({
   const handleConfirm = async (values: string[]) => {
     if (!fieldName) return;
 
-    // 全てのIDに同じ値を設定するレコード配列を作成
-    const records = ids.map((id) => ({
-      id,
-      data: { [fieldName]: values },
-    }));
-
     showToast({
       message: formatMessage(toastMessage, count),
       mode: "persistent",
     });
     try {
-      await trigger(records);
+      await trigger(ids, { [fieldName]: values } as any);
       showToast(formatMessage(successMessage, count), "success");
       router.refresh();
       onSuccess?.();

@@ -781,6 +781,65 @@ export function createCrudService<
       }
     },
 
+    async bulkUpdateByIds(
+      ids: string[],
+      data: Partial<Insert>,
+      tx?: DbTransaction,
+    ): Promise<{ count: number }> {
+      if (ids.length === 0) {
+        return { count: 0 };
+      }
+
+      const parsed = serviceOptions.parseUpdate
+        ? await serviceOptions.parseUpdate(data)
+        : data;
+      const { sanitizedData, relationValues } = separateBelongsToManyInput(parsed, belongsToManyRelations);
+      const updateData = omitUndefined({
+        ...sanitizedData,
+        ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
+      }) as PgUpdateSetSource<TTable>;
+
+      const hasColumnUpdates = Object.keys(updateData).length > 0;
+      const shouldSyncRelations = belongsToManyRelations.length > 0 && relationValues.size > 0;
+
+      // リレーション同期が不要な場合: 1クエリで完了
+      if (!shouldSyncRelations) {
+        const executor = tx ?? db;
+        if (hasColumnUpdates) {
+          await executor
+            .update(table)
+            .set(updateData)
+            .where(inArray(idColumn, ids));
+          return { count: ids.length };
+        }
+        return { count: 0 };
+      }
+
+      // リレーション同期が必要な場合: カラム更新は1クエリ、リレーション同期は各IDごと
+      const performUpdate = async (executor: DbTransaction | typeof db): Promise<{ count: number }> => {
+        if (hasColumnUpdates) {
+          await executor
+            .update(table)
+            .set(updateData)
+            .where(inArray(idColumn, ids));
+        }
+        for (const id of ids) {
+          await syncBelongsToManyRelations(
+            executor as DbTransaction,
+            belongsToManyRelations,
+            id,
+            relationValues,
+          );
+        }
+        return { count: ids.length };
+      };
+
+      if (tx) {
+        return performUpdate(tx);
+      }
+      return db.transaction(async (innerTx) => performUpdate(innerTx));
+    },
+
     async bulkDeleteByQuery(where: WhereExpr, tx?: DbTransaction): Promise<void> {
       if (!where) {
         throw new Error("bulkDeleteByQuery requires a where condition.");

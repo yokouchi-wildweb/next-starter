@@ -14,6 +14,7 @@ export type CrudAction =
   | "upsert"
   | "bulkUpsert"
   | "bulkUpdate"
+  | "bulkUpdateByIds"
   | "duplicate"
   | "restore"
   | "hardDelete"

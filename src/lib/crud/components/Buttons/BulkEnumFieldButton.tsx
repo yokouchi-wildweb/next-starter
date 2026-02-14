@@ -15,7 +15,7 @@ import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { getDomainConfig, getFieldOptions, getFieldLabel } from "@/lib/domain";
 import { createApiClient } from "@/lib/crud/client";
-import { useBulkUpdateDomain } from "@/lib/crud/hooks";
+import { useBulkUpdateByIdsDomain } from "@/lib/crud/hooks";
 
 export type BulkEnumFieldButtonProps = ButtonStyleProps & {
   /** ドメイン名（singular形式） */
@@ -103,9 +103,9 @@ export function BulkEnumFieldButton({
   const config = getDomainConfig(domain);
   const client = createApiClient(`/api/${config.singular}`);
 
-  const { trigger, isMutating } = useBulkUpdateDomain(
-    `${config.plural}/bulkUpdate`,
-    client.bulkUpdate!,
+  const { trigger, isMutating } = useBulkUpdateByIdsDomain(
+    `${config.plural}/bulkUpdateByIds`,
+    client.bulkUpdateByIds!,
     config.plural,
   );
 
@@ -133,15 +133,9 @@ export function BulkEnumFieldButton({
   const displayLabel = label ?? `${fieldLabel}を変更`;
 
   const handleConfirm = async (value: string) => {
-    // 全てのIDに同じ値を設定するレコード配列を作成
-    const records = ids.map((id) => ({
-      id,
-      data: { [field]: value },
-    }));
-
     showToast({ message: formatMessage(toastMessage, count), mode: "persistent" });
     try {
-      await trigger(records);
+      await trigger(ids, { [field]: value } as any);
       showToast(formatMessage(successMessage, count), "success");
       router.refresh();
       onSuccess?.();
