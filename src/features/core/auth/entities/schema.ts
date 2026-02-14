@@ -50,5 +50,7 @@ export const RegistrationSchema = z.object({
   role: z.string().optional(),
   /** ロール別プロフィールデータ（hasProfile: true のロールの場合） */
   profileData: z.record(z.unknown()).optional(),
+  /** 招待コード（任意） */
+  inviteCode: z.string().trim().optional(),
 });
 

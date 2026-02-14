@@ -30,6 +30,7 @@ import { useGuardedNavigation } from "@/lib/transitionGuard";
 import type { UserProviderType } from "@/features/core/user/types";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
+const showInviteCode = APP_FEATURES.marketing.referral.enabled;
 import {
   RoleSelector,
   RoleProfileFields,
@@ -98,7 +99,7 @@ export function OAuthRegistrationForm() {
   }, [hasV2Token, challengeState.v2Token, register, refreshSession, guardedPush, form]);
 
   const handleSubmit = useCallback(
-    async ({ email, name, role, profileData, agreeToTerms: _ }: FormValues) => {
+    async ({ email, name, role, profileData, inviteCode, agreeToTerms: _ }: FormValues) => {
       try {
         const currentUser = auth.currentUser;
 
@@ -134,6 +135,7 @@ export function OAuthRegistrationForm() {
           name,
           role,
           profileData,
+          inviteCode: inviteCode || undefined,
         };
 
         await register(payload, { recaptchaToken });
@@ -156,6 +158,7 @@ export function OAuthRegistrationForm() {
               name: values.name,
               role: values.role,
               profileData: values.profileData,
+              inviteCode: values.inviteCode || undefined,
             };
           }
           handleV2ChallengeRequired(error);
@@ -227,6 +230,20 @@ export function OAuthRegistrationForm() {
           tag="registration"
           wrapperClassName="flex flex-col gap-4"
         />
+
+        {showInviteCode && (
+          <ControlledField
+            control={form.control}
+            name="inviteCode"
+            label="招待コード"
+            renderInput={(field) => (
+              <TextInput
+                field={field}
+                placeholder="お持ちの場合は入力してください"
+              />
+            )}
+          />
+        )}
 
         <ControlledField
           control={form.control}

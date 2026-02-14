@@ -30,6 +30,7 @@ export const FormSchema = z
     name: nameSchema,
     role: z.string(),
     profileData: z.record(z.unknown()).optional(),
+    inviteCode: z.string().trim().optional(),
     agreeToTerms: agreeToTermsSchema,
   })
   .superRefine((value, ctx) => {
@@ -42,6 +43,7 @@ export type FormValues = {
   name: string;
   role: string;
   profileData?: Record<string, unknown>;
+  inviteCode?: string;
   agreeToTerms: boolean;
 };
 
@@ -50,5 +52,6 @@ export const DefaultValues: FormValues = {
   name: "",
   role: REGISTRATION_DEFAULT_ROLE,
   profileData: {},
+  inviteCode: "",
   agreeToTerms: false,
 };

@@ -40,6 +40,7 @@ const baseFields = {
   password: passwordSchema,
   role: z.string(),
   profileData: z.record(z.unknown()).optional(),
+  inviteCode: z.string().trim().optional(),
   agreeToTerms: agreeToTermsSchema,
 };
 
@@ -85,6 +86,7 @@ export type FormValues = {
   passwordConfirmation?: string;
   role: string;
   profileData?: Record<string, unknown>;
+  inviteCode?: string;
   agreeToTerms: boolean;
 };
 
@@ -94,6 +96,7 @@ export const DefaultValues: FormValues = {
   password: "",
   role: REGISTRATION_DEFAULT_ROLE,
   profileData: {},
+  inviteCode: "",
   agreeToTerms: false,
   ...(isDoubleMode ? { passwordConfirmation: "" } : {}),
 };
