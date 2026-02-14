@@ -49,6 +49,7 @@ function mapTsType(t) {
     case 'boolean':
       return 'boolean';
     case 'array':
+    case 'stringArray':
       return 'string[]';
     case 'timestamp':
     case 'timestamp With Time Zone':

@@ -55,6 +55,7 @@ const buildFormatter = (field) => {
     case "float":
       return `formatNumber(value)`;
     case "array":
+    case "stringArray":
       return `formatStringArray(value)`;
     case "enum":
       if (Array.isArray(options) && options.length) {

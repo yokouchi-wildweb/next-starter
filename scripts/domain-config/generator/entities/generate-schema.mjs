@@ -55,6 +55,7 @@ function mapZodType(type) {
     case 'boolean':
       return 'z.coerce.boolean()';
     case 'array':
+    case 'stringArray':
       return 'z.array(z.string())';
     case 'date':
     case 'time':
@@ -94,7 +95,7 @@ function isPasswordField(fieldType) {
 }
 
 function fieldLine({ name, label, type, required, fieldType }) {
-  if (fieldType === 'array') {
+  if (fieldType === 'array' || fieldType === 'stringArray') {
     return `  ${name}: ${type}.default([]),`;
   }
 

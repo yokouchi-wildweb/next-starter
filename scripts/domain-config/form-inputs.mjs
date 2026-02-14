@@ -22,6 +22,7 @@ export const FORM_INPUTS = {
     email: ['email input', 'text input', 'hidden', 'none', 'custom'],
     password: ['password input', 'hidden', 'none', 'custom'],
     array: ['checkbox', 'multi select', 'hidden', 'none', 'custom'],
+    stringArray: ['checkbox', 'multi select', 'hidden', 'none', 'custom'],
     geopoint: ['hidden', 'none', 'custom'],
     reference: ['hidden', 'none', 'custom'],
     map: ['hidden', 'none', 'custom'],
@@ -59,5 +60,6 @@ export const FORM_INPUTS = {
     Point: ['hidden', 'none', 'custom'],
     jsonb: ['hidden', 'none', 'custom'],
     array: ['checkbox', 'multi select', 'hidden', 'none', 'custom'],
+    stringArray: ['checkbox', 'multi select', 'hidden', 'none', 'custom'],
   },
 };

@@ -4,7 +4,7 @@ import { toCamelCase, toSnakeCase } from '../../../src/utils/stringCase.mjs';
 const prompt = inquirer.createPromptModule();
 
 const NUMERIC_FIELD_TYPES = new Set(['number', 'integer', 'float', 'bigint', 'numeric(10,2)']);
-const DEFAULT_VALUE_EXCLUDED_TYPES = new Set(['timestamp', 'timestamp With Time Zone', 'array', 'jsonb']);
+const DEFAULT_VALUE_EXCLUDED_TYPES = new Set(['timestamp', 'timestamp With Time Zone', 'array', 'stringArray', 'jsonb']);
 const MEDIA_ACCEPT_PRESETS = [
   { value: 'images', label: '画像のみ (image/*)', accept: 'image/*' },
   { value: 'videos', label: '動画のみ (video/*)', accept: 'video/*' },
@@ -193,7 +193,7 @@ async function askSingleField(config) {
   const normalizedInput = toCamelCase(formInput);
 
   const isBooleanField = fieldType === 'boolean';
-  const isArrayField = fieldType === 'array';
+  const isArrayField = fieldType === 'array' || fieldType === 'stringArray';
   const isEnumField = fieldType === 'enum';
   const isNumericField = isNumericFieldType(fieldType);
 

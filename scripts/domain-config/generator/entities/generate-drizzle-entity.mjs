@@ -200,7 +200,7 @@ switch (config.idType) {
     enumDefs.push(`export const ${names.constName} = pgEnum("${names.enumName}", [${values}]);`);
     const notNull = f.required ? '.notNull()' : '';
     fields.push(`  ${f.name}: ${names.constName}("${toSnakeCase(f.name)}")${notNull}${defaultSuffix},`);
-  } else if (f.fieldType === 'array') {
+  } else if (f.fieldType === 'array' || f.fieldType === 'stringArray') {
     imports.add('text');
     // 配列型は常にnotNull（nullではなく空配列を使う）
     const defaultVal = f.required ? '' : '.default([])';
