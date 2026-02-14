@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { Pencil, type LucideIcon } from "lucide-react";
+import { useSearchParams, usePathname } from "next/navigation";
 
 import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
 import { getDomainConfig } from "@/lib/domain";
@@ -31,6 +32,9 @@ export function EditButton({
   size = "sm",
   variant = "outline",
 }: EditButtonProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   // hrefが直接指定されていればそれを使用、なければdomain/idから生成
   const resolvedHref = href ?? (() => {
     if (!domain || !id) {
@@ -41,9 +45,16 @@ export function EditButton({
     return paths.edit(id);
   })();
 
+  // 現在のURL（検索パラメータ含む）をreturnToとして付与
+  const currentUrl = searchParams.toString()
+    ? `${pathname}?${searchParams.toString()}`
+    : pathname;
+  const separator = resolvedHref.includes("?") ? "&" : "?";
+  const hrefWithReturn = `${resolvedHref}${separator}returnTo=${encodeURIComponent(currentUrl)}`;
+
   return (
     <Button asChild size={size} variant={variant}>
-      <Link href={resolvedHref}>
+      <Link href={hrefWithReturn}>
         <Icon className="h-4 w-4" />
         {label}
       </Link>

@@ -57,3 +57,18 @@ export function getCrudPaths(basePath: string): CrudPaths {
 export function getAdminPaths(slugPlural: string): CrudPaths {
   return getCrudPaths(`/admin/${toKebabCase(slugPlural)}`);
 }
+
+/**
+ * returnToパラメータを検証し、安全なリダイレクト先を返す
+ *
+ * オープンリダイレクト対策として、内部パス（"/"始まり、"//"でない）のみ許可する。
+ * 不正な値の場合はfallbackを返す。
+ *
+ * @param returnTo - URLから取得したreturnToパラメータ
+ * @param fallback - returnToが無効な場合のデフォルトパス
+ */
+export function resolveReturnTo(returnTo: string | undefined, fallback: string): string {
+  return returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
+    ? returnTo
+    : fallback;
+}
