@@ -1,7 +1,7 @@
 // トリガーベースの報酬一括実行
 
 import type { Referral } from "@/features/core/referral/entities/model";
-import { getRewardKeysByTrigger } from "@/config/app/referral.config";
+import { getRewardKeysByTrigger } from "./getRewardKeysByTrigger";
 import { fulfillReward, type FulfillResult } from "./fulfillReward";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 

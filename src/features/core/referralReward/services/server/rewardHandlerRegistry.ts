@@ -5,7 +5,7 @@
 //
 // 使い方（下流プロジェクト）:
 // ```ts
-// import { registerRewardHandler } from "@/features/core/referralReward/services/server/handlers/registry";
+// import { registerRewardHandler } from "@/features/core/referralReward/services/server/rewardHandlerRegistry";
 //
 // registerRewardHandler("signup_inviter_bonus", async (referral, tx) => {
 //   const result = await walletService.adjustBalance({...}, tx);

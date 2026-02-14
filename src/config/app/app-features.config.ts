@@ -123,7 +123,7 @@ export const APP_FEATURES = {
     showInAdminMenu: true,
     coupon: {
       /** クーポン機能を有効にする */
-      enabled: false,
+      enabled: true,
     },
     referral: {
       /** 紹介機能を有効にする */
