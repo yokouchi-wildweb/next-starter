@@ -125,6 +125,10 @@ export const APP_FEATURES = {
       /** クーポン機能を有効にする */
       enabled: false,
     },
+    referral: {
+      /** 紹介機能を有効にする */
+      enabled: false,
+    },
   },
   demo: {
     /** デモページ（/demo配下）を有効にする */
