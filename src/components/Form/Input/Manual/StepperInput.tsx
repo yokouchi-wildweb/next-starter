@@ -35,6 +35,10 @@ export type StepperInputProps = {
   unit?: string;
   initialValue?: number;
   step?: number;
+  /** 最小値 */
+  min?: number;
+  /** 最大値 */
+  max?: number;
   size?: Size;
   className?: string;
   value?: number;
@@ -54,6 +58,8 @@ export default function StepperInput({
   unit = "",
   initialValue = 0,
   step = 1,
+  min,
+  max,
   size = "s",
   className,
   value,
@@ -73,13 +79,24 @@ export default function StepperInput({
     setManualInputValue(String(currentValue));
   }, [currentValue]);
 
+  const clamp = (v: number) => {
+    let result = v;
+    if (min !== undefined) result = Math.max(min, result);
+    if (max !== undefined) result = Math.min(max, result);
+    return result;
+  };
+
   const updateValue = (nextValue: number) => {
+    const clamped = clamp(nextValue);
     if (!isControlled) {
-      setInternalValue(nextValue);
+      setInternalValue(clamped);
     }
-    onValueChange?.(nextValue);
+    onValueChange?.(clamped);
     onBlur?.();
   };
+
+  const atMin = min !== undefined && currentValue <= min;
+  const atMax = max !== undefined && currentValue >= max;
 
   const increase = () => updateValue(currentValue + step);
   const decrease = () => updateValue(currentValue - step);
@@ -107,6 +124,15 @@ export default function StepperInput({
   const handleManualInputBlur = () => {
     if (manualInputValue === "") {
       setManualInputValue(String(currentValue));
+    } else {
+      const parsed = Number(manualInputValue);
+      if (!Number.isNaN(parsed)) {
+        const clamped = clamp(parsed);
+        if (clamped !== parsed) {
+          updateValue(clamped);
+          setManualInputValue(String(clamped));
+        }
+      }
     }
     onBlur?.();
   };
@@ -123,7 +149,7 @@ export default function StepperInput({
         variant={resolvedVariant}
         size={resolvedSize}
         onClick={decrease}
-        disabled={disabled}
+        disabled={disabled || atMin}
         className={cn(sharedButtonClassName, "border-r")}
       >
         <MinusIcon className="size-4" />
@@ -133,6 +159,8 @@ export default function StepperInput({
           <input
             type="number"
             inputMode="decimal"
+            min={min}
+            max={max}
             value={manualInputValue}
             onChange={handleManualInputChange}
             onBlur={handleManualInputBlur}
@@ -152,7 +180,7 @@ export default function StepperInput({
         variant={resolvedVariant}
         size={resolvedSize}
         onClick={increase}
-        disabled={disabled}
+        disabled={disabled || atMax}
         className={cn(sharedButtonClassName, "border-l")}
       >
         <PlusIcon className="size-4" />
