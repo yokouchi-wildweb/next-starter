@@ -26,11 +26,13 @@ export type FulfillResult =
  *
  * @param rewardKey 報酬キー
  * @param referral 紹介レコード
+ * @param context トリガーイベントのコンテキスト情報（オプション）
  * @param tx トランザクション（オプション）
  */
 export async function fulfillReward(
   rewardKey: string,
   referral: Referral,
+  context?: Record<string, unknown>,
   tx?: TransactionClient,
 ): Promise<FulfillResult> {
   const definition = REFERRAL_REWARD_DEFINITIONS[rewardKey];
@@ -87,7 +89,7 @@ export async function fulfillReward(
 
   // ハンドラー実行
   try {
-    const metadata = await handler(referral, tx);
+    const metadata = await handler({ referral, rewardKey, recipientUserId, context, tx });
 
     if (existing.length > 0) {
       // 既存レコードを fulfilled に更新

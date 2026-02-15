@@ -22,19 +22,21 @@ export type TriggerRewardsResult = {
  * 下流プロジェクトでの使い方:
  * ```ts
  * // サインアップ完了時
- * await triggerRewards("signup_completed", referral, tx);
+ * await triggerRewards("signup_completed", referral, undefined, tx);
  *
- * // 初回購入時
- * await triggerRewards("first_purchase", referral, tx);
+ * // 初回購入時（コンテキスト付き）
+ * await triggerRewards("first_purchase", referral, { purchaseAmount: 5000 }, tx);
  * ```
  *
  * @param trigger トリガー識別子
  * @param referral 紹介レコード
+ * @param context トリガーイベントのコンテキスト情報（オプション）
  * @param tx トランザクション（オプション）
  */
 export async function triggerRewards(
   trigger: string,
   referral: Referral,
+  context?: Record<string, unknown>,
   tx?: TransactionClient,
 ): Promise<TriggerRewardsResult> {
   const rewardKeys = getRewardKeysByTrigger(trigger);
@@ -42,7 +44,7 @@ export async function triggerRewards(
   const results: TriggerRewardsResult["results"] = [];
 
   for (const rewardKey of rewardKeys) {
-    const result = await fulfillReward(rewardKey, referral, tx);
+    const result = await fulfillReward(rewardKey, referral, context, tx);
     results.push({ rewardKey, result });
   }
 

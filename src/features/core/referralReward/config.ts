@@ -5,7 +5,8 @@
 // 使い方（下流プロジェクト）:
 // 1. このファイルに報酬定義を追加
 // 2. services/server/handlers/ にハンドラーファイルを作成し registerRewardHandler() で登録
-// 3. 任意のタイミングで triggerRewards(trigger, referral, tx?) を呼ぶ
+// 3. handlers/index.ts で副作用インポート（import "./myHandler"）
+// 4. 任意のタイミングで triggerRewards(trigger, referral, context?, tx?) を呼ぶ
 
 import type { ReferralRewardDefinition } from "./types/rewardConfig";
 

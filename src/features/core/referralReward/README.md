@@ -26,7 +26,7 @@
 
 **カスタムメソッド**:
 - `fulfillReward(params)`: 個別報酬の配布実行。冪等（配布済みならスキップ）。ハンドラー呼び出し → status 更新 → metadata 記録。失敗時は status=failed で記録
-- `triggerRewards(trigger, referral, tx?)`: トリガー名で該当する全報酬を一括実行。`referral.config.ts` の定義から reward_key を取得し、各ハンドラーを実行
+- `triggerRewards(trigger, referral, context?, tx?)`: トリガー名で該当する全報酬を一括実行。`config.ts` の定義から reward_key を取得し、各ハンドラーを実行。`context` でイベント固有の情報（購入金額等）をハンドラーに渡せる
 - `isFulfilled(referralId, rewardKey, tx?)`: 特定報酬の配布済み判定
 - `getByReferral(referralId, tx?)`: referral に紐づく報酬一覧
 
@@ -55,7 +55,7 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardDefinitio
 - `getRewardHandler(key)`: ハンドラー取得
 - `hasRewardHandler(key)`: 登録確認
 
-ハンドラーの型: `(params: { referral, rewardKey, recipientUserId, tx? }) => Promise<Record<string, unknown> | void>`
+ハンドラーの型: `(params: { referral, rewardKey, recipientUserId, context?, tx? }) => Promise<Record<string, unknown>>`
 返り値は metadata として referral_rewards.metadata に保存される。
 
 ### ヘルパー
@@ -69,9 +69,11 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardDefinitio
 1. **報酬定義を追加**: `config.ts` の `REFERRAL_REWARD_DEFINITIONS` にエントリ追加
 2. **ハンドラーを作成**: `services/server/handlers/` にハンドラーファイルを作成。ファイル内で `registerRewardHandler()` を呼んで登録
 3. **ハンドラーをインポート**: `services/server/handlers/index.ts` で副作用インポート（`import "./myHandler"`）
-4. **トリガー呼び出し**: 任意のタイミングで `referralRewardService.triggerRewards("trigger_name", referral, tx?)` を呼ぶ
+4. **トリガー呼び出し**: 任意のタイミングで `referralRewardService.triggerRewards("trigger_name", referral, context?, tx?)` を呼ぶ
 
 サインアップ時の `triggerRewards("signup_completed", referral)` は既にベースリポジトリの登録フロー内で呼ばれている。ハンドラーが未登録の場合はスキップされる。
+
+`referralRewardService` をインポートすると `handlers/index.ts` が自動的に読み込まれるため、下流で別途ハンドラーのインポートを書く必要はない。
 
 ---
 

@@ -7,8 +7,8 @@
 // ```ts
 // import { registerRewardHandler } from "@/features/core/referralReward/services/server/rewardHandlerRegistry";
 //
-// registerRewardHandler("signup_inviter_bonus", async (referral, tx) => {
-//   const result = await walletService.adjustBalance({...}, tx);
+// registerRewardHandler("signup_inviter_bonus", async ({ referral, recipientUserId, context, tx }) => {
+//   const result = await walletService.adjustBalance({ userId: recipientUserId, amount: 100 }, tx);
 //   return { walletHistoryId: result.history.id, amount: 100 };
 // });
 // ```
@@ -17,15 +17,28 @@ import type { Referral } from "@/features/core/referral/entities/model";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 
 /**
+ * 報酬ハンドラーに渡されるパラメータ
+ */
+export type RewardHandlerParams = {
+  /** 紹介レコード */
+  referral: Referral;
+  /** 報酬キー（自身がどのキーで呼ばれたかを知るため） */
+  rewardKey: string;
+  /** 受取人ユーザーID（fulfillReward が recipientRole から算出済み） */
+  recipientUserId: string;
+  /** トリガーイベントのコンテキスト情報（購入金額など） */
+  context?: Record<string, unknown>;
+  /** トランザクション */
+  tx?: TransactionClient;
+};
+
+/**
  * 報酬ハンドラーの型
  *
- * @param referral 紹介レコード
- * @param tx トランザクション（オプション）
  * @returns metadata として referralReward に保存されるオブジェクト
  */
 export type RewardHandler = (
-  referral: Referral,
-  tx?: TransactionClient,
+  params: RewardHandlerParams,
 ) => Promise<Record<string, unknown>>;
 
 /** ハンドラーの内部ストア */
