@@ -43,7 +43,7 @@ features/\<domain\>/:
 - components/Admin{List,Create,Edit}/ (generated), common/
 - entities/: schema.ts(XxxBaseSchema,XxxCreateSchema,XxxUpdateSchema), form.ts(z.infer types), model.ts(TS types), drizzle.ts(DB table)
 - services/client/, services/server/{drizzleBase(generated), wrappers/, xxxService.ts}
-- hooks/use{Create,Update,Search,Delete}*.ts (generated)
+- hooks/ (generated, ref: CRUD_SERVICE)
 - constants/, types/, presenters.ts, domain.json
 
 code_generation:
@@ -75,7 +75,13 @@ domain-specific: auth/, admin/, wallet/, webhook/, storage/
 ref: src/lib/routeFactory/README.md
 
 ## CRUD_SERVICE (createCrudService)
-operations: create, list, get, update, remove, search, query, upsert, bulkDeleteByIds, bulkDeleteByQuery | drizzle-only: belongsToMany, reorder(id,afterId), searchForSorting(auto-init NULL sort_order) | sorting requires: sortOrderColumn option
+operations: create, list, get, update, remove, search, query, upsert, duplicate, restore, hardDelete, bulkDeleteByIds, bulkDeleteByQuery, bulkUpsert, bulkUpdate | drizzle-only: belongsToMany, reorder(id,afterId), searchForSorting(auto-init NULL sort_order) | sorting requires: sortOrderColumn option
+conditional: duplicate(useDuplicateButton), restore/hardDelete(useSoftDelete), reorder/searchForSorting(sortOrderField)
+note: list is a subset of search — use only for simple full-fetch. for relations, filtering, pagination → use search
+hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (conditional ops generate only when enabled)
+hook_naming_exceptions: get→use\<Domain\>, list→use\<Domain\>List, remove→useDelete\<Domain\>
+server-only(no hook): query, belongsToMany
+hook-only: use\<Domain\>ViewModal(useDetailModal)
 extension: 1.check base methods → 2.base.query()+wrappers → 3.custom service
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 firestore_limits: no or | single orderBy | no belongsToMany
