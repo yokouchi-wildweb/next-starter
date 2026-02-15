@@ -4,7 +4,7 @@ import { db } from "@/lib/drizzle";
 import { ReferralRewardTable } from "../../../entities/drizzle";
 import type { ReferralReward } from "../../../entities/model";
 import type { Referral } from "@/features/core/referral/entities/model";
-import { REFERRAL_REWARD_DEFINITIONS } from "../../../config";
+import { getRewardDefinition } from "../../../utils/rewardDefinitionLookup";
 import { getRewardHandler } from "../rewardHandlerRegistry";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 import { eq, and } from "drizzle-orm";
@@ -35,7 +35,7 @@ export async function fulfillReward(
   context?: Record<string, unknown>,
   tx?: TransactionClient,
 ): Promise<FulfillResult> {
-  const definition = REFERRAL_REWARD_DEFINITIONS[rewardKey];
+  const definition = getRewardDefinition(rewardKey);
   if (!definition) {
     return { success: false, reason: "no_definition" };
   }
