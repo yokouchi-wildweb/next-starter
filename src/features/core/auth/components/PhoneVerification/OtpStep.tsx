@@ -17,7 +17,6 @@ export type OtpStepProps = {
   phoneNumber: string;
   isLoading: boolean;
   error: Error | null;
-  resendCountdown: number;
   onVerify: (otpCode: string) => Promise<void>;
   onResend: () => Promise<void>;
   onBack: () => void;
@@ -27,7 +26,6 @@ export function OtpStep({
   phoneNumber,
   isLoading,
   error,
-  resendCountdown,
   onVerify,
   onResend,
   onBack,
@@ -47,7 +45,7 @@ export function OtpStep({
   };
 
   const handleResend = async () => {
-    if (resendCountdown > 0 || isLoading) return;
+    if (isLoading) return;
 
     try {
       await onResend();
@@ -112,21 +110,15 @@ export function OtpStep({
             </Button>
 
             <div className="text-center">
-              {resendCountdown > 0 ? (
-                <Para size="sm" className="text-muted-foreground">
-                  {resendCountdown}秒後に再送信できます
-                </Para>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleResend}
-                  disabled={isLoading}
-                  className="text-sm text-primary hover:underline"
-                >
-                  認証コードを再送信
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleResend}
+                disabled={isLoading}
+                className="text-sm text-primary hover:underline"
+              >
+                認証コードを再送信
+              </Button>
             </div>
 
             <Button

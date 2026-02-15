@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   RecaptchaVerifier,
   linkWithPhoneNumber,
@@ -18,9 +18,6 @@ import {
   checkPhoneAvailability,
   verifyPhone,
 } from "../services/client/phoneVerification";
-import {
-  PHONE_VERIFICATION_RESEND_INTERVAL_SECONDS,
-} from "@/features/core/user/constants";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 
 export type PhoneVerificationStep = "input" | "otp" | "complete";
@@ -32,7 +29,6 @@ export type PhoneVerificationState = {
   phoneNumber: string;
   isLoading: boolean;
   error: Error | null;
-  resendCountdown: number;
   phoneVerifiedAt: Date | null;
 };
 
@@ -133,44 +129,12 @@ export function usePhoneVerification(
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [resendCountdown, setResendCountdown] = useState(0);
   const [phoneVerifiedAt, setPhoneVerifiedAt] = useState<Date | null>(null);
 
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // 変更モード用: verificationIdを保持
   const verificationIdRef = useRef<string | null>(null);
-
-  // カウントダウンタイマーのクリーンアップ
-  useEffect(() => {
-    return () => {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
-    };
-  }, []);
-
-  // カウントダウン開始
-  const startResendCountdown = useCallback(() => {
-    setResendCountdown(PHONE_VERIFICATION_RESEND_INTERVAL_SECONDS);
-
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-
-    countdownIntervalRef.current = setInterval(() => {
-      setResendCountdown((prev) => {
-        if (prev <= 1) {
-          if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current);
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, []);
 
   // RecaptchaVerifierの初期化
   const initRecaptchaVerifier = useCallback(() => {
@@ -312,7 +276,6 @@ export function usePhoneVerification(
 
       setPhoneNumber(e164PhoneNumber);
       setStep("otp");
-      startResendCountdown();
     } catch (err) {
       debugLog("sendOtp ERROR", {
         errorName: err instanceof Error ? err.name : "Unknown",
@@ -346,7 +309,7 @@ export function usePhoneVerification(
     } finally {
       setIsLoading(false);
     }
-  }, [phoneNumber, mode, initRecaptchaVerifier, startResendCountdown]);
+  }, [phoneNumber, mode, initRecaptchaVerifier]);
 
   // OTP検証
   const verifyOtp = useCallback(async (otpCode: string) => {
@@ -439,10 +402,6 @@ export function usePhoneVerification(
 
   // OTP再送信
   const resendOtp = useCallback(async () => {
-    if (resendCountdown > 0) {
-      return;
-    }
-
     debugLog("resendOtp called", { mode, phoneNumber });
 
     // RecaptchaVerifierをリセットして再初期化
@@ -488,7 +447,6 @@ export function usePhoneVerification(
         verificationIdRef.current = null;
       }
 
-      startResendCountdown();
     } catch (err) {
       debugLog("resendOtp ERROR", {
         errorMessage: err instanceof Error ? err.message : String(err),
@@ -509,7 +467,7 @@ export function usePhoneVerification(
     } finally {
       setIsLoading(false);
     }
-  }, [phoneNumber, mode, resendCountdown, initRecaptchaVerifier, startResendCountdown]);
+  }, [phoneNumber, mode, initRecaptchaVerifier]);
 
   // リセット
   const reset = useCallback(() => {
@@ -517,7 +475,6 @@ export function usePhoneVerification(
     setPhoneNumber("");
     setIsLoading(false);
     setError(null);
-    setResendCountdown(0);
     setPhoneVerifiedAt(null);
     confirmationResultRef.current = null;
     verificationIdRef.current = null;
@@ -527,10 +484,6 @@ export function usePhoneVerification(
       verifierToReset.clear();
       recaptchaVerifierRef.current = null;
     }
-
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
   }, []);
 
   return {
@@ -538,7 +491,6 @@ export function usePhoneVerification(
     phoneNumber,
     isLoading,
     error,
-    resendCountdown,
     phoneVerifiedAt,
     setPhoneNumber,
     sendOtp,

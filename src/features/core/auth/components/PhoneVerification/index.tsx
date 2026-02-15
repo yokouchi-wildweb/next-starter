@@ -40,7 +40,6 @@ export function PhoneVerification({
     phoneNumber,
     isLoading,
     error,
-    resendCountdown,
     phoneVerifiedAt,
     setPhoneNumber,
     sendOtp,
@@ -83,7 +82,6 @@ export function PhoneVerification({
           phoneNumber={phoneNumber}
           isLoading={isLoading}
           error={error}
-          resendCountdown={resendCountdown}
           onVerify={verifyOtp}
           onResend={resendOtp}
           onBack={reset}
