@@ -178,7 +178,7 @@ export default async function generateHooksForDomains() {
     name: "selectedHooks",
     message: "生成するフックを選択してください（スペースで選択／Enterで確定）:",
     choices: hookChoices,
-    default: ["get", "list", "search", "create", "update", "delete"],
+    default: BASE_HOOK_CHOICES.map((c) => c.value),
     loop: false,
   });
 
