@@ -11,7 +11,7 @@
 // }, tx);
 // ```
 
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 import { MilestoneTable } from "@/features/core/milestone/entities/drizzle";
@@ -30,6 +30,9 @@ import "../definitions";
  *
  * 指定トリガーに紐づく全マイルストーンを評価し、
  * 未達成かつ条件を満たしたものを記録する。
+ *
+ * tx がある場合、各マイルストーンの評価は SAVEPOINT で分離される。
+ * 個別マイルストーンの DB エラーがトランザクション全体を汚染しない。
  *
  * @param trigger トリガー名（例: "purchase_completed"）
  * @param params userId と payload
@@ -55,8 +58,16 @@ export async function evaluateMilestones(
   const executor = tx ?? db;
   const results: MilestoneEvaluationResult[] = [];
 
-  for (const def of definitions) {
+  for (let i = 0; i < definitions.length; i++) {
+    const def = definitions[i];
+    const savepointName = `milestone_eval_${i}`;
+
     try {
+      // tx がある場合は SAVEPOINT で分離（DB エラー時にトランザクション全体を汚染しない）
+      if (tx) {
+        await tx.execute(sql.raw(`SAVEPOINT ${savepointName}`));
+      }
+
       // 1. 既に達成済み？ → スキップ
       const existing = await executor
         .select({ id: MilestoneTable.id })
@@ -69,11 +80,17 @@ export async function evaluateMilestones(
         )
         .limit(1);
 
-      if (existing.length > 0) continue;
+      if (existing.length > 0) {
+        if (tx) await tx.execute(sql.raw(`RELEASE SAVEPOINT ${savepointName}`));
+        continue;
+      }
 
-      // 2. 条件評価
-      const achieved = await def.evaluate(context);
-      if (!achieved) continue;
+      // 2. 条件評価（tx を渡してトランザクション内の最新状態を参照可能にする）
+      const achieved = await def.evaluate(context, tx);
+      if (!achieved) {
+        if (tx) await tx.execute(sql.raw(`RELEASE SAVEPOINT ${savepointName}`));
+        continue;
+      }
 
       // 3. 達成 → コールバック実行 → 記録
       const metadata = await def.onAchieved?.({
@@ -90,8 +107,20 @@ export async function evaluateMilestones(
         metadata: metadata ?? null,
       });
 
+      if (tx) {
+        await tx.execute(sql.raw(`RELEASE SAVEPOINT ${savepointName}`));
+      }
+
       results.push({ key: def.key, achieved: true, metadata });
     } catch (error) {
+      // SAVEPOINT へロールバックしてトランザクション状態を回復
+      if (tx) {
+        try {
+          await tx.execute(sql.raw(`ROLLBACK TO SAVEPOINT ${savepointName}`));
+        } catch (rollbackError) {
+          console.error(`[evaluateMilestones] SAVEPOINT ロールバック失敗:`, rollbackError);
+        }
+      }
       // 個別マイルストーンのエラーは他の評価をブロックしない
       console.error(`[evaluateMilestones] マイルストーン "${def.key}" の評価中にエラー:`, error);
     }

@@ -10,7 +10,7 @@
 // registerMilestone({
 //   key: "first_purchase",
 //   triggers: ["purchase_completed"],
-//   evaluate: async ({ userId }) => {
+//   evaluate: async ({ userId }, tx) => {
 //     const { data } = await purchaseRequestService.search({ ... });
 //     return data.length === 1;
 //   },

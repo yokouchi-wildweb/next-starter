@@ -16,7 +16,7 @@ evaluateMilestones(trigger, { userId, payload }, tx?)
 登録済みマイルストーンのうち、該当 trigger を持つものをループ
   ↓ 各マイルストーンについて:
   ① user_milestones テーブルで達成済みか確認 → 済みならスキップ
-  ② evaluate(context) で条件を評価 → false ならスキップ
+  ② evaluate(context, tx?) で条件を評価 → false ならスキップ
   ③ onAchieved() を実行（報酬付与など）
   ④ user_milestones に記録（user_id + milestone_key のユニーク制約で冪等性を保証）
 ```
@@ -58,7 +58,8 @@ registerMilestone({
   triggers: ["purchase_completed"],
 
   // 条件: 完了済み購入が1件（= 今回が初回）
-  evaluate: async ({ userId }) => {
+  // 第2引数の tx でトランザクション内の最新状態を参照可能
+  evaluate: async ({ userId }, tx) => {
     const { results } = await purchaseRequestService.search({
       where: {
         and: [
@@ -109,7 +110,18 @@ type MilestoneEventContext = {
 
 `payload` の内容はトリガーごとに異なる。各統合ポイントで何が渡されるかは後述の「統合ポイント一覧」を参照。
 
-`evaluate` 内では payload のデータを使うことも、サービスを直接呼び出して追加データを取得することもできる。
+`evaluate` には第2引数として `tx?: TransactionClient` も渡される。トランザクション内の最新状態を参照したい場合に使用する。
+
+```ts
+// tx を使ったクエリ例（トランザクション内の未コミットデータも参照可能）
+evaluate: async ({ userId }, tx) => {
+  const executor = tx ?? db;
+  const rows = await executor.select().from(SomeTable).where(...);
+  return rows.length > 0;
+},
+```
+
+`payload` のデータを使うことも、サービスを直接呼び出して追加データを取得することもできる。
 
 ---
 
@@ -127,7 +139,7 @@ type MilestoneEventContext = {
 
 ```ts
 // payload の使用例
-evaluate: async ({ userId, payload }) => {
+evaluate: async ({ userId, payload }, tx) => {
   const pr = payload.purchaseRequest as PurchaseRequest;
   return pr.payment_amount >= 10000;
 },
@@ -177,8 +189,8 @@ registerMilestone({
 ## 設計上の注意点
 
 - **冪等性**: `user_id + milestone_key` のユニーク制約で、同じマイルストーンが二重に記録されることはない
-- **エラー分離**: 個別マイルストーンの evaluate/onAchieved でエラーが発生しても、他のマイルストーンの評価は継続する
-- **トランザクション**: `completePurchase` から呼ばれる場合は既存の tx が渡される。マイルストーンの記録と購入処理が同一トランザクションで実行される
+- **エラー分離**: 個別マイルストーンの evaluate/onAchieved でエラーが発生しても、他のマイルストーンの評価は継続する。tx がある場合は PostgreSQL の SAVEPOINT で分離されるため、DB エラーがトランザクション全体を汚染しない
+- **トランザクション**: `completePurchase` から呼ばれる場合は既存の tx が渡される。マイルストーンの記録と購入処理が同一トランザクションで実行される。evaluate にも tx が渡されるため、トランザクション内の最新状態を参照可能
 - **パフォーマンス**: 登録マイルストーンが0件の場合、`evaluateMilestones` は即座に空配列を返す（オーバーヘッドなし）
 - **user_id に FK なし**: ユーザー削除後も達成記録は保持される
 

@@ -38,7 +38,8 @@ export type MilestoneAchievedParams = {
  * registerMilestone({
  *   key: "first_purchase",
  *   triggers: ["purchase_completed"],
- *   evaluate: async ({ userId }) => {
+ *   evaluate: async ({ userId }, tx) => {
+ *     // tx が渡された場合、トランザクション内の最新状態を参照できる
  *     const { data } = await purchaseRequestService.search({ ... });
  *     return data.length === 1;
  *   },
@@ -54,8 +55,8 @@ export type MilestoneDefinition = {
   key: string;
   /** どのイベントで評価するか（複数指定可） */
   triggers: string[];
-  /** 達成条件の評価関数。true を返すと達成として記録される */
-  evaluate: (context: MilestoneEventContext) => Promise<boolean>;
+  /** 達成条件の評価関数。true を返すと達成として記録される。tx が渡された場合はトランザクション内の最新状態を参照可能 */
+  evaluate: (context: MilestoneEventContext, tx?: TransactionClient) => Promise<boolean>;
   /** 達成時のコールバック（オプション）。戻り値は metadata として保存される */
   onAchieved?: (params: MilestoneAchievedParams) => Promise<Record<string, unknown> | void>;
 };
