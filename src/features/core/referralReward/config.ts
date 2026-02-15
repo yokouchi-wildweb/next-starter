@@ -16,7 +16,7 @@ import type { ReferralRewardDefinition } from "./types/rewardConfig";
  *
  * 下流プロジェクトで追加する例:
  * ```ts
- * export const REFERRAL_REWARD_DEFINITIONS = {
+ * export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardDefinition> = {
  *   signup_inviter_bonus: {
  *     label: "招待者：登録完了ボーナス",
  *     trigger: "signup_completed",
@@ -27,7 +27,7 @@ import type { ReferralRewardDefinition } from "./types/rewardConfig";
  *     trigger: "signup_completed",
  *     recipientRole: "invitee",
  *   },
- * } as const satisfies Record<string, ReferralRewardDefinition>;
+ * };
  * ```
  */
 export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardDefinition> = {
