@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
-import { TextInput, PasswordInput } from "@/components/Form/Input/Controlled";
+import { TextInput } from "@/components/Form/Input/Controlled";
 import { CheckGroupInput } from "@/components/Form/Input/Controlled/CheckGroupInput";
 import { err } from "@/lib/errors";
 import { useUpdateUser } from "@/features/user/hooks/useUpdateUser";
@@ -50,15 +50,11 @@ export default function GeneralUserEditForm({
   const tagOptions = userTags.map((tag) => ({ value: tag.id, label: tag.name, color: tag.color ?? undefined }));
 
   const submit = async (values: FormValues) => {
-    const trimmedPassword = values.newPassword.trim();
-    const resolvedNewPassword = trimmedPassword.length > 0 ? trimmedPassword : undefined;
     try {
       await trigger({
         id: user.id,
         data: {
           name: values.name,
-          email: values.email,
-          newPassword: resolvedNewPassword,
           profileData: values.profileData,
           user_tag_ids: values.user_tag_ids,
         },
@@ -99,20 +95,6 @@ export default function GeneralUserEditForm({
         name="name"
         label="表示名"
         renderInput={(field) => <TextInput field={field} />}
-      />
-      <ControlledField
-        control={control}
-        name="email"
-        label="メールアドレス"
-        renderInput={(field) => <TextInput type="email" field={field} />}
-      />
-      <ControlledField
-        control={control}
-        name="newPassword"
-        label="パスワード"
-        renderInput={(field) => (
-          <PasswordInput field={field} placeholder="新しいパスワード" />
-        )}
       />
       <RoleProfileFields methods={methods} role={user.role} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">

@@ -35,6 +35,18 @@ async function updateFirebasePassword(uid: string, password: string): Promise<vo
   }
 }
 
+async function updateFirebasePhoneNumber(uid: string, phoneNumber: string | null): Promise<void> {
+  const auth = getServerAuth();
+  try {
+    await auth.updateUser(uid, { phoneNumber });
+  } catch (error) {
+    if (hasFirebaseErrorCode(error, "auth/phone-number-already-exists")) {
+      throw new DomainError("同じ電話番号のユーザーが既に存在します", { status: 409 });
+    }
+    throw new DomainError("電話番号の更新に失敗しました", { status: 500 });
+  }
+}
+
 export async function update(id: string, rawData?: UpdateUserInput): Promise<User> {
   if (!rawData || typeof rawData !== "object") {
     throw new DomainError("更新データが不正です", { status: 400 });
@@ -79,7 +91,10 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     throw new DomainError(message, { status: 400 });
   }
 
+  // phoneNumber は管理者更新時のみスキーマに含まれる
+  const parsedData = result.data as Record<string, unknown>;
   const { localPassword, ...rest } = result.data;
+  const phoneNumber = parsedData.phoneNumber as string | null | undefined;
 
   const shouldSyncFirebaseEmail =
     current.providerType === "email" &&
@@ -100,10 +115,29 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     await updateFirebasePassword(current.providerUid, normalizedNewPassword);
   }
 
+  // 電話番号の Firebase 同期（local 以外 = Firebase Auth 連携ユーザー）
+  const shouldSyncFirebasePhone =
+    current.providerType !== "local" &&
+    phoneNumber !== undefined &&
+    phoneNumber !== current.phoneNumber;
+
+  if (shouldSyncFirebasePhone) {
+    await updateFirebasePhoneNumber(
+      current.providerUid,
+      phoneNumber ?? null,
+    );
+  }
+
   const updatePayload = omitUndefined(rest) as Partial<User>;
 
   if (current.providerType === "local" && localPassword !== undefined) {
     updatePayload.localPassword = localPassword;
+  }
+
+  // 電話番号変更時に phoneVerifiedAt も更新
+  if (phoneNumber !== undefined && phoneNumber !== current.phoneNumber) {
+    updatePayload.phoneNumber = phoneNumber;
+    updatePayload.phoneVerifiedAt = phoneNumber ? new Date() : null;
   }
 
   // ユーザー情報の更新

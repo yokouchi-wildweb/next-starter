@@ -59,6 +59,7 @@ export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
   status: true,
   role: true,
   isDemo: true,
+  phoneNumber: true,
 });
 
 /**

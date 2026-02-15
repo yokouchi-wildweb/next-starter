@@ -12,11 +12,19 @@ type Props = {
   fallback?: string;
   /** ステータスの代わりにロールを表示 */
   showRole?: boolean;
+  /** 右側に表示するラベルと値を直接指定（showRole より優先） */
+  infoLabel?: string;
+  infoValue?: string;
 };
 
 const DEFAULT_FALLBACK = "(未設定)";
 
-export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole }: Props) {
+export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole, infoLabel, infoValue }: Props) {
+  const rightLabel = infoLabel ?? (showRole ? "現在のロール" : "現在のステータス");
+  const rightValue = infoValue ?? (showRole
+    ? formatUserRoleLabel(user.role, fallback)
+    : formatUserStatusLabel(user.status, fallback));
+
   return (
     <Stack
       className="rounded-md border border-border bg-card px-4 py-3"
@@ -35,12 +43,10 @@ export function UserInfoHeader({ user, fallback = DEFAULT_FALLBACK, showRole }: 
           </div>
           <div className="text-right">
             <Para size="xs" tone="muted">
-              {showRole ? "現在のロール" : "現在のステータス"}
+              {rightLabel}
             </Para>
             <Para size="sm" className="font-medium">
-              {showRole
-                ? formatUserRoleLabel(user.role, fallback)
-                : formatUserStatusLabel(user.status, fallback)}
+              {rightValue}
             </Para>
           </div>
         </Flex>
