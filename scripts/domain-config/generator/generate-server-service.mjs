@@ -444,6 +444,61 @@ function buildEntityImports(pascal, relationImports) {
   return imports.join(", ");
 }
 
+/**
+ * CreateSchema が空になるかを判定する
+ * 全フィールドが formInput: "none" かつリレーションがない場合に true
+ */
+function hasEmptyCreateSchema(config) {
+  if (!config) return false;
+  // belongsTo リレーションはスキーマにフィールドを追加する
+  const hasBelongsTo = (config.relations || []).some((r) => r.relationType === "belongsTo");
+  if (hasBelongsTo) return false;
+  // belongsToMany リレーションはスキーマに配列フィールドを追加する
+  const hasBelongsToMany = (config.relations || []).some(
+    (r) => r.relationType === "belongsToMany" && r.includeRelationTable !== false,
+  );
+  if (hasBelongsToMany) return false;
+  // 全フィールドが formInput: "none" か、フィールドが存在しない
+  const hasSchemaField = (config.fields || []).some((f) => f.formInput !== "none");
+  if (hasSchemaField) return false;
+  return true;
+}
+
+/**
+ * 空スキーマ時に drizzleBase テンプレートから parse/satisfies/不要 import を除去する
+ */
+function stripDrizzleBaseForEmptySchema(content) {
+  // スキーマのインポートを削除
+  content = content.replace(/import \{ \w+CreateSchema, \w+UpdateSchema \} from [^\n]+;\n/, "");
+  // import type { z } を削除
+  content = content.replace(/import type \{ z \} from "zod";\n/, "");
+  // import type { DrizzleCrudServiceOptions } を削除
+  content = content.replace(/import type \{ DrizzleCrudServiceOptions \} from [^\n]+;\n/, "");
+  // satisfies ブロックを削除（} satisfies ... >; → };）
+  content = content.replace(
+    /\} satisfies DrizzleCrudServiceOptions<\n\s*z\.infer<typeof \w+CreateSchema>\n>;/,
+    "};",
+  );
+  // parseCreate/parseUpdate/parseUpsert 行を削除
+  content = content.replace(/  parseCreate: \(data\) => \w+CreateSchema\.parse\(data\),\n/g, "");
+  content = content.replace(/  parseUpdate: \(data\) => \w+UpdateSchema\.parse\(data\),\n/g, "");
+  content = content.replace(/  parseUpsert: \(data\) => \w+CreateSchema\.parse\(data\),\n/g, "");
+  return content;
+}
+
+/**
+ * 空スキーマ時に firestoreBase テンプレートから parse/不要 import を除去する
+ */
+function stripFirestoreBaseForEmptySchema(content) {
+  // スキーマのインポートを削除
+  content = content.replace(/import \{ \w+CreateSchema, \w+UpdateSchema \} from [^\n]+;\n/, "");
+  // parseCreate/parseUpdate/parseUpsert 行を削除
+  content = content.replace(/  parseCreate: \(data\) => \w+CreateSchema\.parse\(data\),\n/g, "");
+  content = content.replace(/  parseUpdate: \(data\) => \w+UpdateSchema\.parse\(data\),\n/g, "");
+  content = content.replace(/  parseUpsert: \(data\) => \w+CreateSchema\.parse\(data\),\n/g, "");
+  return content;
+}
+
 function buildRelationTableImports(relationDomainImports) {
   if (!relationDomainImports.length) return "";
 
@@ -505,6 +560,7 @@ export default function generateServerService(domain, options = {}) {
   let belongsToManyLiteral = "";
   let relationDomainImports = [];
   let hasMediaUploader = false;
+  let isEmptyCreateSchema = false;
 
   if (fs.existsSync(configPath)) {
     const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -515,6 +571,7 @@ export default function generateServerService(domain, options = {}) {
     belongsToManyLiteral = composed.belongsToManyLiteral;
     relationDomainImports = composed.relationDomainImports || [];
     hasMediaUploader = Array.isArray(cfg.fields) && cfg.fields.some((f) => f.fieldType === "mediaUploader");
+    isEmptyCreateSchema = hasEmptyCreateSchema(cfg);
   }
 
   if (dbEngineArg) dbEngine = dbEngineArg;
@@ -572,7 +629,14 @@ export default function generateServerService(domain, options = {}) {
     }
 
     const template = fs.readFileSync(templatePath, "utf8");
-    const content = replaceTokens(template);
+    let content = replaceTokens(template);
+
+    // 全フィールドが formInput: "none" の場合、parse/satisfies を除去
+    if (isEmptyCreateSchema && file === "drizzleBase.ts") {
+      content = stripDrizzleBaseForEmptySchema(content);
+    } else if (isEmptyCreateSchema && file === "firestoreBase.ts") {
+      content = stripFirestoreBaseForEmptySchema(content);
+    }
 
     fs.writeFileSync(outputFile, content);
     console.log(`サーバーサービスを生成しました: ${outputFile}`);
