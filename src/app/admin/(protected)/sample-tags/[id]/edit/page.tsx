@@ -22,7 +22,7 @@ export default async function AdminSampleTagEditPage({ params, searchParams }: P
   const { id } = await params;
   const { returnTo } = await searchParams;
   const redirectPath = resolveReturnTo(returnTo, "/admin/sample-tags");
-  
+
   const [sampleTag, samples ] = await Promise.all([
     sampleTagService.get(id),
     sampleService.list()
