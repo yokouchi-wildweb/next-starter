@@ -7,7 +7,7 @@ import { __domain__Client } from "../services/client/__domain__Client";
 import type { __Domain__ } from "../entities";
 import type { SearchParams } from "@/lib/crud/types";
 
-export type __Domain__SearchParams = typeof __domain__Client.search extends (
+export type __Domain__SearchParams = NonNullable<typeof __domain__Client.search> extends (
   params: infer P,
 ) => Promise<unknown>
   ? P

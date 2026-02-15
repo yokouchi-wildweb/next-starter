@@ -7,7 +7,7 @@ import { couponClient } from "../services/client/couponClient";
 import type { Coupon } from "../entities";
 import type { SearchParams } from "@/lib/crud/types";
 
-export type CouponSearchParams = typeof couponClient.search extends (
+export type CouponSearchParams = NonNullable<typeof couponClient.search> extends (
   params: infer P,
 ) => Promise<unknown>
   ? P

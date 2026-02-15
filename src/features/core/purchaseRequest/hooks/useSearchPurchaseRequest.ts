@@ -7,7 +7,7 @@ import { purchaseRequestClient } from "../services/client/purchaseRequestClient"
 import type { PurchaseRequest } from "../entities";
 import type { SearchParams } from "@/lib/crud/types";
 
-export type PurchaseRequestSearchParams = typeof purchaseRequestClient.search extends (
+export type PurchaseRequestSearchParams = NonNullable<typeof purchaseRequestClient.search> extends (
   params: infer P,
 ) => Promise<unknown>
   ? P

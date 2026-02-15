@@ -7,7 +7,7 @@ import { referralRewardClient } from "../services/client/referralRewardClient";
 import type { ReferralReward } from "../entities";
 import type { SearchParams } from "@/lib/crud/types";
 
-export type ReferralRewardSearchParams = typeof referralRewardClient.search extends (
+export type ReferralRewardSearchParams = NonNullable<typeof referralRewardClient.search> extends (
   params: infer P,
 ) => Promise<unknown>
   ? P

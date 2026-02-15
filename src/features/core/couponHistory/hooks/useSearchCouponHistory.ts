@@ -7,7 +7,7 @@ import { couponHistoryClient } from "../services/client/couponHistoryClient";
 import type { CouponHistory } from "../entities";
 import type { SearchParams } from "@/lib/crud/types";
 
-export type CouponHistorySearchParams = typeof couponHistoryClient.search extends (
+export type CouponHistorySearchParams = NonNullable<typeof couponHistoryClient.search> extends (
   params: infer P,
 ) => Promise<unknown>
   ? P

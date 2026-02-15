@@ -7,7 +7,7 @@ import { walletHistoryClient } from "../services/client/walletHistoryClient";
 import type { WalletHistory } from "../entities";
 import type { SearchParams } from "@/lib/crud/types";
 
-export type WalletHistorySearchParams = typeof walletHistoryClient.search extends (
+export type WalletHistorySearchParams = NonNullable<typeof walletHistoryClient.search> extends (
   params: infer P,
 ) => Promise<unknown>
   ? P

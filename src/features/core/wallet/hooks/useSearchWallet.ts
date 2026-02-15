@@ -7,7 +7,7 @@ import { walletClient } from "../services/client/walletClient";
 import type { Wallet } from "../entities";
 import type { SearchParams } from "@/lib/crud/types";
 
-export type WalletSearchParams = typeof walletClient.search extends (
+export type WalletSearchParams = NonNullable<typeof walletClient.search> extends (
   params: infer P,
 ) => Promise<unknown>
   ? P

@@ -7,7 +7,7 @@ import { sampleCategoryClient } from "../services/client/sampleCategoryClient";
 import type { SampleCategory } from "../entities";
 import type { SearchParams } from "@/lib/crud/types";
 
-export type SampleCategorySearchParams = typeof sampleCategoryClient.search extends (
+export type SampleCategorySearchParams = NonNullable<typeof sampleCategoryClient.search> extends (
   params: infer P,
 ) => Promise<unknown>
   ? P
