@@ -3,6 +3,7 @@
 import { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import type { HttpError } from "@/lib/errors";
+import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
 
 /**
  * ドメインデータを削除するためのフック
@@ -20,7 +21,7 @@ export function useDeleteDomain(
     {
       onSuccess: async () => {
         if (revalidateKey) {
-          await mutate(revalidateKey);
+          await revalidateRelatedCaches(mutate, revalidateKey);
         }
       },
     },

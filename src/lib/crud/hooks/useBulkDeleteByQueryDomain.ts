@@ -3,6 +3,7 @@
 import { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import type { HttpError } from "@/lib/errors";
+import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
 import type { WhereExpr } from "@/lib/crud/types";
 
 /**
@@ -21,7 +22,7 @@ export function useBulkDeleteByQueryDomain(
     {
       onSuccess: async () => {
         if (revalidateKey) {
-          await mutate(revalidateKey);
+          await revalidateRelatedCaches(mutate, revalidateKey);
         }
       },
     },

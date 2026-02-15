@@ -4,6 +4,7 @@ import { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import type { UpsertOptions } from "../types";
 import type { HttpError } from "@/lib/errors";
+import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
 
 /**
  * 存在すれば更新、無ければ作成するフック
@@ -23,7 +24,7 @@ export function useUpsertDomain<T, A = Partial<T>>(
     {
       onSuccess: async () => {
         if (revalidateKey) {
-          await mutate(revalidateKey);
+          await revalidateRelatedCaches(mutate, revalidateKey);
         }
       },
     },

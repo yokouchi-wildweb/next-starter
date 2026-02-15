@@ -4,6 +4,7 @@ import { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import type { BulkUpsertOptions, BulkUpsertResult } from "../types";
 import type { HttpError } from "@/lib/errors";
+import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
 
 /**
  * 複数レコードを一括でupsertするフック
@@ -23,7 +24,7 @@ export function useBulkUpsertDomain<T, A = Partial<T>>(
     {
       onSuccess: async () => {
         if (revalidateKey) {
-          await mutate(revalidateKey);
+          await revalidateRelatedCaches(mutate, revalidateKey);
         }
       },
     },

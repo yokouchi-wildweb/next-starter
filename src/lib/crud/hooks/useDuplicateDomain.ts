@@ -3,6 +3,7 @@
 import { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import type { HttpError } from "@/lib/errors";
+import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
 
 /**
  * ドメインデータを複製するためのフック
@@ -22,7 +23,7 @@ export function useDuplicateDomain<T>(
     {
       onSuccess: async () => {
         if (revalidateKey) {
-          await mutate(revalidateKey);
+          await revalidateRelatedCaches(mutate, revalidateKey);
         }
       },
     },

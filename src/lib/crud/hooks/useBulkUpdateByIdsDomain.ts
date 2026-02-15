@@ -3,6 +3,7 @@
 import { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import type { HttpError } from "@/lib/errors";
+import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
 
 /**
  * 複数IDのレコードを同一データで一括更新するフック
@@ -25,7 +26,7 @@ export function useBulkUpdateByIdsDomain<T>(
     {
       onSuccess: async () => {
         if (revalidateKey) {
-          await mutate(revalidateKey);
+          await revalidateRelatedCaches(mutate, revalidateKey);
         }
       },
     },

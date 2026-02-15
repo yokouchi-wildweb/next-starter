@@ -4,6 +4,7 @@ import { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import type { BulkUpdateRecord, BulkUpdateResult } from "../types";
 import type { HttpError } from "@/lib/errors";
+import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
 
 /**
  * 複数レコードを一括で更新するフック
@@ -21,7 +22,7 @@ export function useBulkUpdateDomain<T, U = Partial<T>>(
     {
       onSuccess: async () => {
         if (revalidateKey) {
-          await mutate(revalidateKey);
+          await revalidateRelatedCaches(mutate, revalidateKey);
         }
       },
     },
