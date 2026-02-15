@@ -9,6 +9,7 @@ export type ReferralByInviterItem = {
   inviteeUserName: string | null;
   status: string;
   createdAt: string;
+  fulfilledRewardGroups: string[];
 };
 
 export type ReferralsByInviterResponse = {

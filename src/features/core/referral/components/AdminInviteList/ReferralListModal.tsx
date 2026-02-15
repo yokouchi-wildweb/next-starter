@@ -13,6 +13,7 @@ import {
   type ReferralByInviterItem,
 } from "../../services/client/referralsByInviter";
 import { formatDateJa } from "@/utils/date";
+import { SolidBadge } from "@/components/Badge";
 
 export type ReferralListModalProps = {
   /** 招待者のユーザーID */
@@ -53,6 +54,21 @@ const columns: DataTableColumn<ReferralByInviterItem>[] = [
         format: "YYYY/MM/DD HH:mm",
         fallback: null,
       }) ?? "-",
+  },
+  {
+    header: "達成リワード",
+    render: (item) =>
+      item.fulfilledRewardGroups.length > 0 ? (
+        <span className="flex flex-wrap gap-1">
+          {item.fulfilledRewardGroups.map((label) => (
+            <SolidBadge key={label} variant="success" size="sm">
+              {label}
+            </SolidBadge>
+          ))}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">-</span>
+      ),
   },
 ];
 
