@@ -15,6 +15,7 @@ import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors/domainError";
+import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import { evaluateMilestones } from "@/features/core/milestone/services/server/wrappers/evaluateMilestones";
 import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/constants/triggers";
 
@@ -139,9 +140,12 @@ export async function initiatePurchase(
   const slug = getSlugByWalletType(walletType as WalletType);
   const provider = getPaymentProvider(paymentProvider);
 
-  // ユーザーのメールアドレスを取得（決済ページで事前入力用）
+  // ユーザー情報を取得（決済ページで事前入力用）
   const user = await userService.get(userId);
   const buyerEmail = user?.email || undefined;
+  const buyerPhoneNumber = user?.phoneNumber
+    ? formatToE164(user.phoneNumber)
+    : undefined;
 
   const session = await provider.createSession({
     purchaseRequestId: purchaseRequest.id,
@@ -151,6 +155,7 @@ export async function initiatePurchase(
     cancelUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}&reason=cancelled`,
     metadata: itemName ? { itemName } : undefined,
     buyerEmail,
+    buyerPhoneNumber,
   });
 
   // 4. セッション情報を記録（status: processing）

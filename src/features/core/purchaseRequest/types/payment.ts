@@ -18,6 +18,8 @@ export type CreatePaymentSessionParams = {
   metadata?: Record<string, string>;
   /** 購入者メールアドレス（決済ページで事前入力） */
   buyerEmail?: string;
+  /** 購入者電話番号（E.164形式、決済ページで事前入力） */
+  buyerPhoneNumber?: string;
 };
 
 /**

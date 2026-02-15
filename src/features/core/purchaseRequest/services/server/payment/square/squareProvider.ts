@@ -48,6 +48,7 @@ type SquareCreatePaymentLinkRequest = {
   };
   pre_populated_data?: {
     buyer_email?: string;
+    buyer_phone_number?: string;
   };
   payment_note?: string;
 };
@@ -192,10 +193,11 @@ export class SquarePaymentProvider implements PaymentProvider {
       checkout_options: {
         redirect_url: params.successUrl,
       },
-      // 購入者メールアドレスを事前入力
-      ...(params.buyerEmail && {
+      // 購入者情報を事前入力
+      ...((params.buyerEmail || params.buyerPhoneNumber) && {
         pre_populated_data: {
-          buyer_email: params.buyerEmail,
+          ...(params.buyerEmail && { buyer_email: params.buyerEmail }),
+          ...(params.buyerPhoneNumber && { buyer_phone_number: params.buyerPhoneNumber }),
         },
       }),
       // 購入リクエストIDをメモに保存（Webhook照合用）
