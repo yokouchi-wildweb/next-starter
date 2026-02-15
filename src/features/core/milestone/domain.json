@@ -15,28 +15,28 @@
       "name": "user_id",
       "label": "ユーザーID",
       "fieldType": "uuid",
-      "formInput": "none",
+      "formInput": "hidden",
       "required": true
     },
     {
       "name": "milestone_key",
       "label": "マイルストーンキー",
       "fieldType": "string",
-      "formInput": "none",
+      "formInput": "hidden",
       "required": true
     },
     {
       "name": "achieved_at",
       "label": "達成日時",
       "fieldType": "timestamp With Time Zone",
-      "formInput": "none",
+      "formInput": "hidden",
       "required": true
     },
     {
       "name": "metadata",
       "label": "メタデータ",
       "fieldType": "jsonb",
-      "formInput": "none",
+      "formInput": "hidden",
       "required": false
     }
   ],

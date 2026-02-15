@@ -15,6 +15,8 @@ import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors/domainError";
+import { evaluateMilestones } from "@/features/core/milestone/services/server/wrappers/evaluateMilestones";
+import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/constants/triggers";
 
 // トランザクションクライアント型
 type TransactionClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -314,6 +316,19 @@ export async function completePurchase(
       .update(PurchaseRequestTable)
       .set({ wallet_history_id: walletResult.history.id })
       .where(eq(PurchaseRequestTable.id, purchaseRequest.id));
+
+    // マイルストーン評価（登録済みマイルストーンがなければ何もしない）
+    await evaluateMilestones(
+      MILESTONE_TRIGGER_PURCHASE_COMPLETED,
+      {
+        userId: purchaseRequest.user_id,
+        payload: {
+          purchaseRequest: { ...updated, wallet_history_id: walletResult.history.id },
+          walletHistoryId: walletResult.history.id,
+        },
+      },
+      tx,
+    );
 
     return {
       purchaseRequest: { ...updated, wallet_history_id: walletResult.history.id } as PurchaseRequest,
