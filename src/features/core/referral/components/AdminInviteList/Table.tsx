@@ -20,10 +20,10 @@ const columns: DataTableColumn<InviteCodeWithCount>[] = [
     ),
   },
   {
-    header: "発行者ID",
+    header: "発行者",
     render: (item) => (
-      <span className="font-mono text-xs">
-        {item.coupon.attribution_user_id ?? "-"}
+      <span className="text-sm">
+        {item.issuerName ?? item.coupon.attribution_user_id ?? "-"}
       </span>
     ),
   },

@@ -2,13 +2,15 @@
 
 import { db } from "@/lib/drizzle";
 import { CouponTable } from "@/features/core/coupon/entities/drizzle";
+import { UserTable } from "@/features/core/user/entities/drizzle";
 import { ReferralTable } from "../../../entities/drizzle";
 import type { Coupon } from "@/features/core/coupon/entities/model";
-import { and, eq, isNull, sql, desc, ilike, or, count as drizzleCount } from "drizzle-orm";
+import { and, eq, isNull, sql, desc, ilike, or, count as drizzleCount, inArray } from "drizzle-orm";
 
 export type InviteCodeWithCount = {
   coupon: Coupon;
   referralCount: number;
+  issuerName: string | null;
 };
 
 export type GetInviteCodeListParams = {
@@ -97,9 +99,25 @@ export async function getInviteCodeListWithCounts(
     countMap = new Map(counts.map((r) => [r.inviter_user_id, r.count]));
   }
 
+  // 発行者のユーザー名を一括取得
+  let nameMap = new Map<string, string | null>();
+
+  if (userIds.length > 0) {
+    const users = await db
+      .select({
+        id: UserTable.id,
+        name: UserTable.name,
+      })
+      .from(UserTable)
+      .where(inArray(UserTable.id, userIds));
+
+    nameMap = new Map(users.map((u) => [u.id, u.name]));
+  }
+
   const items: InviteCodeWithCount[] = coupons.map((coupon) => ({
     coupon,
     referralCount: countMap.get(coupon.attribution_user_id ?? "") ?? 0,
+    issuerName: nameMap.get(coupon.attribution_user_id ?? "") ?? null,
   }));
 
   return { items, total };

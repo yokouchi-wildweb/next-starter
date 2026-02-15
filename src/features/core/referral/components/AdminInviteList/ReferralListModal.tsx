@@ -25,9 +25,11 @@ export type ReferralListModalProps = {
 
 const columns: DataTableColumn<ReferralByInviterItem>[] = [
   {
-    header: "被招待者ID",
+    header: "被招待者",
     render: (item) => (
-      <span className="font-mono text-xs">{item.inviteeUserId}</span>
+      <span className="text-sm">
+        {item.inviteeUserName ?? item.inviteeUserId}
+      </span>
     ),
   },
   {

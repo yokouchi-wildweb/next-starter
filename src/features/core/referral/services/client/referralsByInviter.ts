@@ -6,6 +6,7 @@ import { normalizeHttpError } from "@/lib/errors";
 export type ReferralByInviterItem = {
   id: string;
   inviteeUserId: string;
+  inviteeUserName: string | null;
   status: string;
   createdAt: string;
 };
