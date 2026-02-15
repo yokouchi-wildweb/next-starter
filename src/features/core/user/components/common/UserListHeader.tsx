@@ -20,7 +20,7 @@ type Props = {
 };
 
 const DEFAULT_TITLE = "登録済みユーザーの一覧";
-const DEFAULT_PLACEHOLDER = "ユーザー名/メールアドレスで検索";
+const DEFAULT_PLACEHOLDER = "ユーザー名などで検索";
 const DEFAULT_SORT = "createdAt";
 
 const SORT_OPTIONS = [

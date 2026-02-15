@@ -48,6 +48,7 @@ export default async function AdminGeneralUserListPage({ searchParams }: Props) 
     limit: perPage,
     where,
     searchQuery,
+    searchFields: ["name", "email", "phoneNumber"],
     orderBy,
   });
 
