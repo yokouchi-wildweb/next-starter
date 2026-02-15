@@ -16,7 +16,7 @@ const PLACEHOLDER_BENEFITS = [
 
 export function InviteBenefitsSection() {
   return (
-    <div className="rounded-lg bg-gradient-to-b from-primary/5 to-transparent px-4 py-6">
+    <div className="rounded-lg bg-gradient-to-br from-primary/5 to-transparent px-4 py-6">
       <Flex direction="column" align="center" gap="md">
         {/* アイコン */}
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/10">
