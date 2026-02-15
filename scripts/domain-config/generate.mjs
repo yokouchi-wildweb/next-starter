@@ -146,7 +146,7 @@ export default async function generate(domain, options = {}) {
 
   if (gen.components)
     runGenerator(path.join("components", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
-  if (gen.hooks) runGenerator("generate-hooks.mjs", normalizedDomain, normalizedPlural, config.dbEngine);
+  if (gen.hooks) runGenerator(path.join("hooks", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
   if (gen.clientServices)
     runGenerator("generate-client-service.mjs", normalizedDomain, normalizedPlural, config.dbEngine);
   if (gen.serverServices)

@@ -24,6 +24,7 @@
     "dc:generate:all": "node scripts/domain-config/index.mjs --generate --all",
     "dc:generate:component": "node scripts/domain-config/generate-component.mjs",
     "dc:generate:service": "node scripts/domain-config/generate-service.mjs",
+    "dc:generate:hook": "node scripts/domain-config/generate-hook.mjs",
     "dc:delete": "node scripts/domain-config/index.mjs --delete",
     "dc:add": "node scripts/domain-config/add-field.mjs",
     "role:add": "node scripts/role-config/index.mjs init",
