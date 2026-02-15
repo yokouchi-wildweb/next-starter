@@ -10,6 +10,7 @@ import rateLimitConfig from "@/features/core/rateLimit/domain.json";
 import userTagConfig from "@/features/core/userTag/domain.json";
 import referralConfig from "@/features/core/referral/domain.json";
 import referralRewardConfig from "@/features/core/referralReward/domain.json";
+import milestoneConfig from "@/features/core/milestone/domain.json";
 
 export const domainConfigMap = {
 
@@ -23,6 +24,7 @@ export const domainConfigMap = {
   user_tag: userTagConfig,
   referral: referralConfig,
   referral_reward: referralRewardConfig,
+  milestone: milestoneConfig,
   // --- AUTO-GENERATED-END ---
 
   // --- CORE DOMAINS (手動管理) ---

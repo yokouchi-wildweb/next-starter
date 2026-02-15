@@ -1,0 +1,61 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "milestone",
+  "plural": "milestones",
+  "label": "マイルストーン",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [],
+  "useCreatedAt": true,
+  "useUpdatedAt": false,
+  "useSoftDelete": false,
+  "compositeUniques": [["user_id", "milestone_key"]],
+  "fields": [
+    {
+      "name": "user_id",
+      "label": "ユーザーID",
+      "fieldType": "uuid",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "milestone_key",
+      "label": "マイルストーンキー",
+      "fieldType": "string",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "achieved_at",
+      "label": "達成日時",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "none",
+      "required": true
+    },
+    {
+      "name": "metadata",
+      "label": "メタデータ",
+      "fieldType": "jsonb",
+      "formInput": "none",
+      "required": false
+    }
+  ],
+  "searchFields": ["user_id", "milestone_key"],
+  "defaultOrderBy": [["achieved_at", "DESC"]],
+  "tableFields": ["user_id", "milestone_key", "achieved_at", "createdAt"],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
+  "generateFiles": {
+    "entities": true,
+    "components": false,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "adminRoutes": false,
+    "registry": true,
+    "fieldConstants": true,
+    "presenters": true
+  }
+}

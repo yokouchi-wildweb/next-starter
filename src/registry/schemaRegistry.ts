@@ -21,6 +21,7 @@ export * from "@/features/core/rateLimit/entities/drizzle";
 export * from "@/features/core/userTag/entities/drizzle";
 export * from "@/features/core/referral/entities/drizzle";
 export * from "@/features/core/referralReward/entities/drizzle";
+export * from "@/features/core/milestone/entities/drizzle";
 // --- AUTO-GENERATED-END ---
 
 export {};

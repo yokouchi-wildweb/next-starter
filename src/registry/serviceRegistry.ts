@@ -14,6 +14,7 @@ import { couponHistoryService } from "@/features/core/couponHistory/services/ser
 import { userTagService } from "@/features/core/userTag/services/server/userTagService";
 import { referralService } from "@/features/core/referral/services/server/referralService";
 import { referralRewardService } from "@/features/core/referralReward/services/server/referralRewardService";
+import { milestoneService } from "@/features/core/milestone/services/server/milestoneService";
 
 export const serviceRegistry: Record<string, any> = {
   userActionLog: userActionLogService,
@@ -32,6 +33,7 @@ export const serviceRegistry: Record<string, any> = {
   userTag: userTagService,
   referral: referralService,
   referralReward: referralRewardService,
+  milestone: milestoneService,
   // --- AUTO-GENERATED-END ---
 
 };
