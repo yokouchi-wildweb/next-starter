@@ -3,55 +3,21 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
-import { signInWithCustomToken } from "firebase/auth";
 
 import { Button } from "@/components/Form/Button/Button";
 import { Label } from "@/components/Form/Label";
 import { Input, PasswordInput } from "@/components/Form/Input/Manual";
 import { Stack } from "@/components/Layout/Stack";
-import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { localLogin } from "@/features/core/auth/services/client/localLogin";
-import { err } from "@/lib/errors";
-import { auth } from "@/lib/firebase/client/app";
+import { useAdminLogin } from "@/features/core/auth/hooks/useAdminLogin";
 
 export function AdminLogin() {
-  const router = useRouter();
-  const { refreshSession } = useAuthSession();
+  const { signIn, isLoading, errorMessage } = useAdminLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const loading = isSubmitting;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (loading) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    try {
-      const result = await localLogin({ email, password });
-
-      // Firebase Storage のセキュリティルールを通すため、Firebase Auth にもサインインする。
-      await signInWithCustomToken(auth, result.firebaseCustomToken);
-
-      await refreshSession();
-      // inactive の場合は復帰ページへ
-      if (result.requiresReactivation) {
-        router.push("/reactivate");
-      } else {
-        router.push("/admin");
-      }
-    } catch (error) {
-      setErrorMessage(err(error, "ログインに失敗しました"));
-    } finally {
-      setIsSubmitting(false);
-    }
+    await signIn({ email, password });
   };
 
   return (
@@ -83,8 +49,8 @@ export function AdminLogin() {
           />
         </Stack>
         {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
-        <Button type="submit" disabled={loading} className="w-full mt-4">
-          {loading ? "ログイン中..." : "ログイン"}
+        <Button type="submit" disabled={isLoading} className="w-full mt-4">
+          {isLoading ? "ログイン中..." : "ログイン"}
         </Button>
       </form>
     </section>
