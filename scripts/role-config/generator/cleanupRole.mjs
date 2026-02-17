@@ -67,10 +67,11 @@ function cleanupRoleRegistry(roleId) {
  * @param {Object} options - オプション
  * @param {boolean} options.includeProfile - プロフィールも削除するか（デフォルト: true）
  * @param {boolean} options.deleteEntity - エンティティファイルも削除するか（デフォルト: true）
+ * @param {boolean} options.updateHasProfile - hasProfile を false に更新するか（デフォルト: true）
  * @param {boolean} options.silent - ログ出力を抑制するか（デフォルト: false）
  */
 export function cleanupRole(roleId, options = {}) {
-  const { includeProfile = true, deleteEntity = true, silent = false } = options;
+  const { includeProfile = true, deleteEntity = true, updateHasProfile = true, silent = false } = options;
 
   const log = silent ? () => {} : console.log;
 
@@ -87,7 +88,7 @@ export function cleanupRole(roleId, options = {}) {
 
   // プロフィール関連も削除
   if (includeProfile) {
-    results.profile = cleanupProfile(roleId, { deleteEntity, silent: true });
+    results.profile = cleanupProfile(roleId, { deleteEntity, updateHasProfile, silent: true });
 
     if (!silent) {
       if (results.profile.profilesIndex) log("  ✓ profiles/index.ts を更新");

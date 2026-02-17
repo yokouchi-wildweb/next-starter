@@ -124,7 +124,7 @@ export default async function generate(roleId, options = {}) {
   if (!profileOnly) {
     // クリーンアップ（冪等性のため、既存エントリを削除してから追加）
     console.log("\n[1/8] 既存エントリをクリーンアップ中...");
-    cleanupRole(roleId, { includeProfile: true, deleteEntity: true, silent: true });
+    cleanupRole(roleId, { includeProfile: true, deleteEntity: true, updateHasProfile: false, silent: true });
     console.log("✓ クリーンアップ完了");
 
     // 2. roleRegistry.ts を更新
@@ -151,7 +151,7 @@ export default async function generate(roleId, options = {}) {
     // profileOnly モードの場合のみクリーンアップ（フルモードは cleanupRole で実行済み）
     if (profileOnly) {
       console.log("\n[2/8] 既存エントリをクリーンアップ中...");
-      cleanupProfile(roleId, { deleteEntity: true, silent: true });
+      cleanupProfile(roleId, { deleteEntity: true, updateHasProfile: false, silent: true });
       console.log("✓ クリーンアップ完了");
     }
 

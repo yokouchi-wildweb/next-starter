@@ -153,10 +153,11 @@ function updateRoleHasProfile(roleId) {
  * @param {string} roleId - ロールID
  * @param {Object} options - オプション
  * @param {boolean} options.deleteEntity - 生成フォルダも削除するか（デフォルト: true）
+ * @param {boolean} options.updateHasProfile - hasProfile を false に更新するか（デフォルト: true）
  * @param {boolean} options.silent - ログ出力を抑制するか（デフォルト: false）
  */
 export function cleanupProfile(roleId, options = {}) {
-  const { deleteEntity = true, silent = false } = options;
+  const { deleteEntity = true, updateHasProfile = true, silent = false } = options;
 
   const log = silent ? () => {} : console.log;
 
@@ -168,7 +169,7 @@ export function cleanupProfile(roleId, options = {}) {
     profileTableRegistry: cleanupProfileTableRegistry(roleId),
     profileSchemaRegistry: cleanupProfileSchemaRegistry(roleId),
     generatedFolder: deleteEntity ? cleanupGeneratedFolder(roleId) : false,
-    roleHasProfile: updateRoleHasProfile(roleId),
+    roleHasProfile: updateHasProfile ? updateRoleHasProfile(roleId) : false,
   };
 
   // generated/index.ts を更新（フォルダ削除後）
