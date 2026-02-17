@@ -34,7 +34,7 @@ export type SelectOption = {
   description?: string;
 };
 
-export type SelectPopoverProps = {
+type SelectPopoverBaseProps = {
   /** ポップオーバーを開くトリガー要素 */
   trigger: ReactNode;
   /** タイトル */
@@ -49,8 +49,6 @@ export type SelectPopoverProps = {
   confirmLabel?: string;
   /** キャンセルボタンのラベル */
   cancelLabel?: string;
-  /** 確認時のコールバック（Promiseを返すと自動でローディング状態になる） */
-  onConfirm?: (value: string | undefined) => void | Promise<void>;
   /** キャンセル時のコールバック */
   onCancel?: () => void;
   /** 確認ボタンのスタイル */
@@ -75,11 +73,28 @@ export type SelectPopoverProps = {
   emptyMessage?: string;
   /** 検索結果がないときの表示 */
   noResultsMessage?: string;
+} & Omit<PopoverContentProps, "children">;
+
+type SelectPopoverNonClearableProps = SelectPopoverBaseProps & {
   /** 選択解除オプションを表示するか */
-  clearable?: boolean;
+  clearable?: false;
+  clearLabel?: never;
+  /** 確認時のコールバック（Promiseを返すと自動でローディング状態になる） */
+  onConfirm?: (value: string) => void | Promise<void>;
+};
+
+type SelectPopoverClearableProps = SelectPopoverBaseProps & {
+  /** 選択解除オプションを表示するか */
+  clearable: true;
   /** 選択解除オプションのラベル */
   clearLabel?: string;
-} & Omit<PopoverContentProps, "children">;
+  /** 確認時のコールバック（選択解除時はundefined） */
+  onConfirm?: (value: string | undefined) => void | Promise<void>;
+};
+
+export type SelectPopoverProps =
+  | SelectPopoverNonClearableProps
+  | SelectPopoverClearableProps;
 
 /**
  * 単一選択用ポップオーバー（ラジオボタン形式）
@@ -195,12 +210,16 @@ export function SelectPopover({
   }, [maxListHeight]);
 
   const handleConfirm = useCallback(async () => {
+    // clearable でない場合、未選択なら何もしない
+    if (!clearable && selectedValue === undefined) return;
+
     if (!onConfirm) {
       if (closeOnConfirm) setOpen(false);
       return;
     }
 
-    const result = onConfirm(selectedValue);
+    // clearable=false時はガードで string が保証、clearable=true時は (string | undefined) を受け付ける
+    const result = (onConfirm as (value: string | undefined) => void | Promise<void>)(selectedValue);
 
     if (result instanceof Promise) {
       setIsLoading(true);
@@ -213,7 +232,7 @@ export function SelectPopover({
     } else {
       if (closeOnConfirm) setOpen(false);
     }
-  }, [onConfirm, selectedValue, closeOnConfirm, setOpen]);
+  }, [onConfirm, clearable, selectedValue, closeOnConfirm, setOpen]);
 
   const handleCancel = useCallback(() => {
     onCancel?.();
