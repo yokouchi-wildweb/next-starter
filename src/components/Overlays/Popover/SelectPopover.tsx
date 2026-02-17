@@ -10,7 +10,6 @@ import { Button } from "@/components/Form/Button/Button";
 import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
 import { Input } from "@/components/Form/Input/Manual/Input";
 import { RadioGroup, RadioGroupItem } from "@/components/_shadcn/radio-group";
-
 import {
   PopoverRoot,
   PopoverTrigger,
@@ -21,6 +20,8 @@ import {
   PopoverFooter,
   type PopoverContentProps,
 } from "./PopoverPrimitives";
+
+const CLEAR_VALUE = "__POPOVER_CLEAR__";
 
 export type SelectOption = {
   /** 値（一意） */
@@ -49,7 +50,7 @@ export type SelectPopoverProps = {
   /** キャンセルボタンのラベル */
   cancelLabel?: string;
   /** 確認時のコールバック（Promiseを返すと自動でローディング状態になる） */
-  onConfirm?: (value: string) => void | Promise<void>;
+  onConfirm?: (value: string | undefined) => void | Promise<void>;
   /** キャンセル時のコールバック */
   onCancel?: () => void;
   /** 確認ボタンのスタイル */
@@ -74,6 +75,10 @@ export type SelectPopoverProps = {
   emptyMessage?: string;
   /** 検索結果がないときの表示 */
   noResultsMessage?: string;
+  /** 選択解除オプションを表示するか */
+  clearable?: boolean;
+  /** 選択解除オプションのラベル */
+  clearLabel?: string;
 } & Omit<PopoverContentProps, "children">;
 
 /**
@@ -129,6 +134,8 @@ export function SelectPopover({
   onOpenChange,
   emptyMessage = "選択肢がありません",
   noResultsMessage = "該当する項目がありません",
+  clearable = false,
+  clearLabel = "選択解除",
   // PopoverContent props
   size = "md",
   layer,
@@ -188,8 +195,6 @@ export function SelectPopover({
   }, [maxListHeight]);
 
   const handleConfirm = useCallback(async () => {
-    if (selectedValue === undefined) return;
-
     if (!onConfirm) {
       if (closeOnConfirm) setOpen(false);
       return;
@@ -264,10 +269,23 @@ export function SelectPopover({
             </div>
           ) : (
             <RadioGroup
-              value={selectedValue}
-              onValueChange={setSelectedValue}
+              value={clearable && selectedValue === undefined ? CLEAR_VALUE : selectedValue}
+              onValueChange={(v) => setSelectedValue(v === CLEAR_VALUE ? undefined : v)}
               className="p-1 gap-0"
             >
+              {clearable && (
+                <label
+                  className={cn(
+                    "flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5",
+                    "hover:bg-accent hover:text-accent-foreground transition-colors"
+                  )}
+                >
+                  <RadioGroupItem value={CLEAR_VALUE} className="mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-muted-foreground">{clearLabel}</div>
+                  </div>
+                </label>
+              )}
               {filteredOptions.map((option) => (
                 <label
                   key={option.value}
