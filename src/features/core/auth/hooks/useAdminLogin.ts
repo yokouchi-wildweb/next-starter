@@ -32,10 +32,12 @@ export function useAdminLogin() {
       try {
         const result = await localLogin({ email, password });
 
-        // Firebase Storage のセキュリティルールを通すため、Firebase Auth にもサインインする。
-        await signInWithCustomToken(auth, result.firebaseCustomToken);
-
         await refreshSession();
+
+        // Firebase Storage のセキュリティルールを通すため、Firebase Auth にもサインインする。
+        // 管理者ログインに必須ではないため、失敗してもログインフローは中断しない。
+        // 失敗時は useFirebaseAuthSync が自動的に再試行する。
+        signInWithCustomToken(auth, result.firebaseCustomToken).catch(() => {});
 
         if (result.requiresReactivation) {
           router.push("/reactivate");
