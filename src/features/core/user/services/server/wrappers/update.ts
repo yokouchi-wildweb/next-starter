@@ -9,7 +9,7 @@ import { omitUndefined } from "@/utils/object";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
+import { getRoleCategory, hasRoleProfile, type UserRoleType } from "@/features/core/user/constants";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
 import { db } from "@/lib/drizzle";
@@ -67,7 +67,7 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
   }
 
-  const isAdmin = sessionUser.role === "admin";
+  const isAdmin = getRoleCategory(sessionUser.role) === "admin";
   const isSelfUpdate = sessionUser.userId === id;
 
   if (!isAdmin && !isSelfUpdate) {

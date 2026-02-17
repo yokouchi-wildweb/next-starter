@@ -10,6 +10,7 @@ import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import type { UserRoleType, UserStatus } from "@/features/core/user/types";
+import { getRoleCategory } from "@/features/core/user/constants";
 
 export type LocalLoginInput = z.infer<typeof LocalLoginSchema> & {
   ip?: string;
@@ -38,9 +39,9 @@ export type LocalLoginResult = {
   firebaseCustomToken: string;
 };
 
-// 管理者アカウントであることを確認し、一般ユーザーのログインを遮断する。
+// 管理者カテゴリのアカウントであることを確認し、一般ユーザーのログインを遮断する。
 function assertAdminRole(role: UserRoleType): void {
-  if (role !== "admin") {
+  if (getRoleCategory(role) !== "admin") {
     throw new DomainError("このアカウントではログインできません", { status: 403 });
   }
 }

@@ -15,6 +15,7 @@ import {
 } from "@/components/_shadcn/command";
 import { DialogPrimitives, DialogContent, DialogTitle } from "@/components/Overlays/DialogPrimitives";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { getRoleCategory } from "@/features/core/user/constants";
 import { categories } from "../config/categories";
 import { filterSearchInput } from "../utils";
 import type { PaletteView } from "./types";
@@ -69,7 +70,7 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
     return categories.find((c) => c.id === view.categoryId) ?? null;
   }, [view]);
 
-  if (!user || user.role !== "admin") {
+  if (!user || getRoleCategory(user.role) !== "admin") {
     return null;
   }
 

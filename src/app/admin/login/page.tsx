@@ -8,10 +8,11 @@ import { Main } from "@/components/TextBlocks";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { AdminLogin } from "@/features/core/auth/components/AdminLogin";
 import { authGuard } from "@/features/core/auth/services/server/authorization";
+import { getRolesByCategory } from "@/features/core/user/constants";
 import Link from "next/link";
 
 export default async function AdminLoginPage() {
-  const sessionUser = await authGuard({ allowRoles: ["admin"] });
+  const sessionUser = await authGuard({ allowRoles: getRolesByCategory("admin") });
 
   if (sessionUser) {
     redirect("/admin");

@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { getRoleCategory } from "@/features/core/user/constants";
 import { walletHistoryService } from "@/features/core/walletHistory/services/server/walletHistoryService";
 
 export const GET = createApiRoute(
@@ -21,7 +22,7 @@ export const GET = createApiRoute(
     const page = Number(searchParams.get("page") ?? "1");
 
     const targetUserId = paramUserId ?? session.userId;
-    if (paramUserId && paramUserId !== session.userId && session.role !== "admin") {
+    if (paramUserId && paramUserId !== session.userId && getRoleCategory(session.role) !== "admin") {
       return NextResponse.json({ message: "この履歴を参照する権限がありません。" }, { status: 403 });
     }
 

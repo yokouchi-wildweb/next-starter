@@ -4,6 +4,7 @@
 import { deleteAuthUser } from "@/lib/firebase/server/authAdmin";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { DomainError } from "@/lib/errors";
+import { getRoleCategory } from "@/features/core/user/constants";
 import { base } from "../drizzleBase";
 
 export type HardDeleteInput = {
@@ -38,8 +39,8 @@ export async function hardDelete(input: HardDeleteInput): Promise<void> {
     reason: reason ?? null,
   });
 
-  // Firebase Authを削除
-  if (user.role === "user" && user.providerUid) {
+  // Firebase Authを削除（userカテゴリのロールはFirebase連携しているため）
+  if (getRoleCategory(user.role) === "user" && user.providerUid) {
     await deleteAuthUser(user.providerUid);
   }
 

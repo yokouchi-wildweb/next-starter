@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { getRoleCategory } from "@/features/core/user/constants";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
@@ -49,7 +50,7 @@ export const POST = createApiRoute<Params>(
       return NextResponse.json({ message: "ユーザーIDが指定されていません。" }, { status: 400 });
     }
 
-    if (!session || session.role !== "admin") {
+    if (!session || getRoleCategory(session.role) !== "admin") {
       return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
     }
 

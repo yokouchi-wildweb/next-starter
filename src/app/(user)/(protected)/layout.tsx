@@ -3,12 +3,13 @@
 import type { ReactNode } from "react";
 
 import { authGuard } from "@/features/core/auth/services/server/authorization";
+import { getRolesByCategory } from "@/features/core/user/constants";
 
 export default async function UserProtectedLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   await authGuard({
-    allowRoles: ["admin", "user", "debugger"],
+    allowRoles: [...getRolesByCategory("admin"), ...getRolesByCategory("user")],
     redirectTo: "/login",
     returnBack: true,
     statusRedirects: {

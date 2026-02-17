@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { getRoleCategory } from "@/features/core/user/constants";
 import { plugins } from "../config/plugins";
 import { AdminCommandContext } from "./context";
 import { AdminCommandPalette } from "./AdminCommandPalette";
@@ -26,7 +27,7 @@ export function AdminCommandProvider({ children }: AdminCommandProviderProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = getRoleCategory(user?.role ?? "") === "admin";
 
   // ショートカットキーの監視
   useEffect(() => {

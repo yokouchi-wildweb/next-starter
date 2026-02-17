@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
 import { createDemoUser } from "@/features/core/user/services/server/creation/console";
-import { USER_ROLES } from "@/features/core/user/constants";
+import { getRoleCategory, USER_ROLES } from "@/features/core/user/constants";
 
 const CreateDemoUserPayloadSchema = z.object({
   name: z.string(),
@@ -26,7 +26,7 @@ export const POST = createApiRoute(
     skipForDemo: false,
   },
   async (req, { session }) => {
-    if (!session || session.role !== "admin") {
+    if (!session || getRoleCategory(session.role) !== "admin") {
       return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
     }
 

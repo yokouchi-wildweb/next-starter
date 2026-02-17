@@ -2,6 +2,7 @@
 
 import { getServerAuth } from "@/lib/firebase/server/app";
 import type { SessionUser } from "@/features/core/auth/entities/session";
+import { getRoleCategory } from "@/features/core/user/constants";
 
 /**
  * セッションユーザーに対して Firebase カスタムトークンを発行する。
@@ -10,7 +11,7 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
 export async function createFirebaseToken(user: SessionUser): Promise<string> {
   const firebaseCustomToken = await getServerAuth().createCustomToken(
     user.userId,
-    { admin: user.role === "admin" },
+    { admin: getRoleCategory(user.role) === "admin" },
   );
 
   return firebaseCustomToken;

@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { createApiRoute } from "@/lib/routeFactory";
+import { getRoleCategory } from "@/features/core/user/constants";
 import { referralService } from "@/features/core/referral/services/server/referralService";
 import { referralRewardService } from "@/features/core/referralReward/services/server/referralRewardService";
 import { REFERRAL_REWARD_DEFINITIONS } from "@/features/core/referralReward/config";
@@ -18,7 +19,7 @@ export const GET = createApiRoute<RouteParams>(
     operationType: "read",
   },
   async (_req, { session, params }) => {
-    if (!session || session.role !== "admin") {
+    if (!session || getRoleCategory(session.role) !== "admin") {
       return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
     }
 

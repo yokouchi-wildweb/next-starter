@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { getRoleCategory } from "@/features/core/user/constants";
 import { getDomainListWithCount } from "@/lib/domain/server";
 
 /**
@@ -16,7 +17,7 @@ export const GET = createApiRoute(
   },
   async (_req, { session }) => {
     // admin権限チェック
-    if (!session || session.role !== "admin") {
+    if (!session || getRoleCategory(session.role) !== "admin") {
       return NextResponse.json(
         { message: "この操作を行う権限がありません。" },
         { status: 403 }
