@@ -55,6 +55,11 @@ const FEATURE_GATE_RULES: FeatureGateRule[] = [
     pathPatterns: ["/demo-login"],
     isEnabled: () => APP_FEATURES.demo.login,
   },
+  // マーケティング > 紹介
+  {
+    pathPatterns: ["/mypage/invite", "/api/referral", "/api/admin/referral"],
+    isEnabled: () => APP_FEATURES.marketing.referral.enabled,
+  },
   // ユーザータグ
   {
     pathPatterns: ["/admin/user-tags", "/api/userTag"],
