@@ -4,6 +4,7 @@ import type { User } from "@/features/core/user/entities";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { createHash } from "@/utils/hash";
 import { base } from "../../drizzleBase";
 
 export type RestoreSoftDeletedUserInput = {
@@ -63,9 +64,9 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
     role,
   };
 
-  // ローカル認証の場合はパスワードを更新
+  // ローカル認証の場合はパスワードをハッシュ化して更新
   if (existingUser.providerType === "local") {
-    updatePayload.localPassword = localPassword;
+    updatePayload.localPassword = await createHash(localPassword);
   }
 
   // isDemoフラグを設定
