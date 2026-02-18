@@ -31,6 +31,7 @@ export function TextEditor<T>({
       value={value}
       placeholder={placeholder}
       onChange={(event: React.ChangeEvent<HTMLInputElement>) => onDraftChange(event.target.value)}
+      onWheel={type === "number" ? (event: React.WheelEvent<HTMLInputElement>) => event.currentTarget.blur() : undefined}
       onBlur={() => onCommit()}
       onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === "Enter") {
