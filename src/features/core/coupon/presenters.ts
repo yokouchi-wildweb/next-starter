@@ -15,6 +15,7 @@ import { formatDateJa } from "@/utils/date";
 export type CouponFieldPresenter = FieldPresenter<Coupon>;
 
 export const presenters: Record<string, CouponFieldPresenter> = {
+  category: ({ value, field, record }) => formatString(value),
   code: ({ value, field, record }) => formatString(value),
   type: ({ value, field, record }) => formatEnumLabel(value, { "official": "公式プロモーション", "affiliate": "アフィリエイト", "invite": "ユーザー招待" }),
   status: ({ value, field, record }) => formatEnumLabel(value, { "active": "有効", "inactive": "無効" }),
@@ -27,7 +28,7 @@ export const presenters: Record<string, CouponFieldPresenter> = {
   max_total_uses: ({ value, field, record }) => formatNumber(value),
   max_uses_per_redeemer: ({ value, field, record }) => formatNumber(value),
   current_total_uses: ({ value, field, record }) => formatNumber(value),
-  owner_id: ({ value, field, record }) => formatString(value),
+  attribution_user_id: ({ value, field, record }) => formatString(value),
   createdAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   updatedAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
 };

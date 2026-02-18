@@ -4,6 +4,8 @@ import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 
 export const CouponBaseSchema = z.object({
+  category: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
   code: z.string().trim().min(1, { message: "クーポンコードは必須です。" }),
   type: z.enum(["official", "affiliate", "invite"]),
   status: z.enum(["active", "inactive"]),

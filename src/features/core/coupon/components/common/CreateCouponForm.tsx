@@ -8,6 +8,7 @@ import { CouponCreateSchema } from "@/features/core/coupon/entities/schema";
 import { CouponCreateFields } from "@/features/core/coupon/entities/form";
 import { useCreateCoupon } from "@/features/core/coupon/hooks/useCreateCoupon";
 import { CouponTypeOptions } from "@/features/core/coupon/constants/field";
+import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCategories";
 import { CouponForm } from "./CouponForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
@@ -23,6 +24,8 @@ type Props = {
 const officialOnlyOptions = CouponTypeOptions.filter(opt => opt.value === "official");
 
 export default function CreateCouponForm({ redirectPath = "/" }: Props) {
+  const { categories } = useCouponCategories();
+
   const methods = useForm<CouponCreateFields>({
     resolver: zodResolver(CouponCreateSchema) as Resolver<CouponCreateFields>,
     mode: "onSubmit",
@@ -54,6 +57,7 @@ export default function CreateCouponForm({ redirectPath = "/" }: Props) {
       onCancel={() => router.push(redirectPath)}
       fieldPatches={[
         { name: "type", options: officialOnlyOptions },
+        { name: "category", options: categories, placeholder: "カテゴリを選択" },
       ]}
     />
   );

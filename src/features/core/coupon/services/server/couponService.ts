@@ -14,6 +14,8 @@ import {
 import { issueCodeForOwner } from "./ownership/issueCodeForOwner";
 import { getCodesByOwner } from "./ownership/getCodesByOwner";
 import { getInviteCode, getOrCreateInviteCode } from "./ownership/inviteCode";
+import { validateForCategory } from "./wrappers/validateForCategory";
+import { redeemWithEffect } from "./wrappers/redeemWithEffect";
 
 export const couponService = {
   ...base,
@@ -23,6 +25,9 @@ export const couponService = {
   redeem,
   isUsable,
   getUsageCount,
+  // ハンドラー統合（カテゴリ付き検証・使用）
+  validateForCategory,
+  redeemWithEffect,
   // トランザクション対応ユーティリティ
   getCouponByCode,
   getCouponById,

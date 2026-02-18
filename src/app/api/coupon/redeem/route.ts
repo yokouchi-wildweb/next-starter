@@ -49,6 +49,8 @@ export const POST = createApiRoute(
         max_total_reached: "このクーポンの使用上限に達しました。",
         max_per_user_reached: "このクーポンの使用上限に達しました。",
         user_id_required: "このクーポンを使用するにはログインが必要です。",
+        category_mismatch: "このクーポンはこの用途には使用できません。",
+        handler_rejected: "このクーポンの使用条件を満たしていません。",
       };
       const message = messages[result.reason] ?? "クーポンを使用できません。";
       return NextResponse.json(

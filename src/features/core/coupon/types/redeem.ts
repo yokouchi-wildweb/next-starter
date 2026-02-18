@@ -13,7 +13,9 @@ export type UsabilityReason =
   | "expired"
   | "max_total_reached"
   | "max_per_user_reached"
-  | "user_id_required";
+  | "user_id_required"
+  | "category_mismatch"
+  | "handler_rejected";
 
 /**
  * 使用可否判定の結果
@@ -33,6 +35,36 @@ export type UsabilityResult =
  * クーポン使用処理の結果
  */
 export type RedeemResult =
+  | {
+      success: true;
+      history: CouponHistory;
+    }
+  | {
+      success: false;
+      reason: UsabilityReason;
+    };
+
+/**
+ * カテゴリ付きバリデーション結果
+ * validateForCategory() の戻り値
+ */
+export type CategoryValidationResult =
+  | {
+      valid: true;
+      coupon: Coupon;
+      effect: Record<string, unknown> | null;
+    }
+  | {
+      valid: false;
+      reason: UsabilityReason | string;
+      coupon?: Coupon;
+    };
+
+/**
+ * ハンドラー付き使用処理の結果
+ * redeemWithEffect() の戻り値
+ */
+export type RedeemWithEffectResult =
   | {
       success: true;
       history: CouponHistory;

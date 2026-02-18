@@ -9,6 +9,7 @@ import type { CouponUpdateFields } from "@/features/core/coupon/entities/form";
 import type { Coupon } from "@/features/core/coupon/entities";
 import { useUpdateCoupon } from "@/features/core/coupon/hooks/useUpdateCoupon";
 import { CouponTypeOptions } from "@/features/core/coupon/constants/field";
+import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCategories";
 import { CouponForm } from "./CouponForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
@@ -25,6 +26,8 @@ type Props = {
 const officialOnlyOptions = CouponTypeOptions.filter(opt => opt.value === "official");
 
 export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
+  const { categories } = useCouponCategories();
+
   const methods = useForm<CouponUpdateFields>({
     resolver: zodResolver(CouponUpdateSchema) as Resolver<CouponUpdateFields>,
     mode: "onSubmit",
@@ -57,6 +60,7 @@ export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
       fieldPatches={[
         { name: "code", disabled: true },
         { name: "type", disabled: true, options: officialOnlyOptions },
+        { name: "category", options: categories, placeholder: "カテゴリを選択" },
       ]}
       afterField={{ code: null }}
     />

@@ -28,6 +28,7 @@ export type CheckUsabilityResponse =
       coupon: {
         code: string;
         type: string;
+        category: string | null;
         name: string;
         description: string | null;
         image_url: string | null;
@@ -68,6 +69,31 @@ export async function checkCouponUsability(
       code,
     });
     return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
+// ============================================================================
+// カテゴリ一覧
+// ============================================================================
+
+export type CouponCategoryOption = {
+  value: string;
+  label: string;
+};
+
+export type GetCouponCategoriesResponse = {
+  categories: CouponCategoryOption[];
+};
+
+/**
+ * 登録済みクーポンカテゴリ一覧を取得する
+ */
+export async function getCouponCategories(): Promise<CouponCategoryOption[]> {
+  try {
+    const res = await axios.get<GetCouponCategoriesResponse>("/api/coupon/categories");
+    return res.data.categories;
   } catch (error) {
     throw normalizeHttpError(error);
   }

@@ -8,6 +8,7 @@ export const CouponStatusEnum = pgEnum("coupon_status_enum", ["active", "inactiv
 
 export const CouponTable = pgTable("coupons", {
   id: uuid("id").defaultRandom().primaryKey(),
+  category: text("category"),
   code: text("code").notNull(),
   type: CouponTypeEnum("type").notNull().default("official"),
   status: CouponStatusEnum("status").notNull().default("active"),

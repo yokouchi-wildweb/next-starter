@@ -12,6 +12,13 @@
   "compositeUniques": [["code"]],
   "fields": [
     {
+      "name": "category",
+      "label": "カテゴリ",
+      "fieldType": "string",
+      "formInput": "combobox",
+      "required": false
+    },
+    {
       "name": "code",
       "label": "クーポンコード",
       "fieldType": "string",
@@ -130,7 +137,7 @@
     {
       "key": "code",
       "label": "",
-      "fields": ["type", "code"]
+      "fields": ["type", "category", "code"]
     },
     {
       "key": "basic",
@@ -151,9 +158,9 @@
       "bgColor": "#fff1f0"
     }
   ],
-  "searchFields": ["code", "name", "admin_label"],
+  "searchFields": ["code", "name", "category", "admin_label"],
   "defaultOrderBy": [["updatedAt", "DESC"]],
-  "tableFields": ["code", "type", "status", "name", "admin_label", "current_total_uses", "valid_until", "updatedAt"],
+  "tableFields": ["code", "type", "category", "status", "name", "admin_label", "current_total_uses", "valid_until", "updatedAt"],
   "useDetailModal": true,
   "addToAdminDataMenu": true,
   "useDuplicateButton": true,

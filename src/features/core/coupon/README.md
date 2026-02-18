@@ -1,108 +1,428 @@
-# クーポン / クーポン履歴ドメイン README
+# Coupon ドメイン
 
-クーポン発行・管理・使用記録（coupon / couponHistory）の実装概要と利用方法をまとめる。管理画面 CRUD、招待コード発行、使用可否判定・使用処理、履歴記録のすべてをカバーする。
+クーポンコードの発行・管理・使用を担う汎用フレームワーク。
+
+**設計思想**: クーポンドメインは「コード・使用制限・有効期限の管理」に徹する。具体的な特典効果（割引、機能解放など）はクーポンドメイン側に定義せず、消費側ドメインがハンドラーとして自由に実装する。
 
 ---
 
-## ゴールと範囲
-- 管理者向けクーポン CRUD（一覧/作成/編集/複製/削除/復元/ハード削除）
-- 招待コード・アフィリエイトコードの発行と取得（サーバーサービス経由）
-- 使用可否判定 (`/api/coupon/check-usability`) と使用処理 (`/api/coupon/redeem`)
-- 使用履歴の記録と参照（couponHistory）
-- クライアントサービス / フック / API ルートの把握と活用方法
+## クイックスタート
+
+### クーポンを検証する（サーバー）
+
+```typescript
+import { couponService } from "@/features/core/coupon/services/server/couponService";
+
+// 基本的な使用可否チェック
+const result = await couponService.isUsable("CODE123", userId);
+if (result.usable) {
+  // result.coupon にクーポン情報
+}
+
+// カテゴリ指定の検証（ハンドラー連携）
+const result = await couponService.validateForCategory(
+  "CODE123",
+  "purchase_discount",  // 期待するカテゴリ
+  userId,
+  { paymentAmount: 2000 }  // ハンドラーに渡すメタデータ
+);
+if (result.valid) {
+  // result.coupon, result.effect（ハンドラーが返す効果情報）
+}
+```
+
+### クーポンを使用する（サーバー）
+
+```typescript
+// 基本的な使用（使用回数をカウント + 履歴記録）
+const result = await couponService.redeem("CODE123", userId, {
+  purchaseRequestId: "xxx",
+});
+if (result.success) {
+  // result.history に使用履歴
+}
+
+// ハンドラー付き使用（redeem + ハンドラーの onRedeemed 実行）
+const result = await couponService.redeemWithEffect("CODE123", userId, {
+  purchaseRequestId: "xxx",
+});
+```
+
+### クーポンを検証する（クライアント）
+
+```typescript
+// 手動トリガー
+const { check, usability, isLoading } = useCheckCouponUsability();
+await check("CODE123");
+
+// 自動トリガー（デバウンス付き）
+const { usability, isLoading } = useCheckCouponUsabilityAuto(code, 500);
+```
 
 ---
 
 ## データモデル
-### Coupon（`coupons`）
-- フィールド（主要）  
-  - `code`(unique, soft delete考慮) / `type`=`official|affiliate|invite` / `status`=`active|inactive`
-  - `name`, `description`, `image_url`, `admin_label`, `admin_note`
-  - 期間制限: `valid_from`, `valid_until`
-  - 使用制限: `max_total_uses`, `max_uses_per_redeemer`, `current_total_uses`(DB デフォルト 0・サーバー管理のみ)
-  - 所有者: `attribution_user_id` (invite/affiliate 用オーナー、FK 無し)
-  - `createdAt`, `updatedAt`, `deletedAt` (soft delete)
-- Drizzle 定義: `entities/drizzle.ts`  
-  Zod: `entities/schema.ts`（`current_total_uses` はスキーマ外。DB/サーバーのみで更新）
 
-### CouponHistory（`coupon_histories`）
-- フィールド  
-  - `coupon_id`(FK なし) / `redeemer_user_id`(nullable) / `metadata`(JSON スナップショット) / `createdAt`  
-  - `useUpdatedAt` = false, soft delete 無し。更新・削除の運用は想定せずログ扱い。
-- スナップショット構造（`types/metadata.ts`）  
-  - `code`, `type`, `name`, `attribution_user_id`, `current_total_uses_after` + 任意の追加メタデータ
+### Coupon
 
----
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| `id` | `string` | UUID |
+| `category` | `string \| null` | 用途カテゴリ（ハンドラーと紐付く） |
+| `code` | `string` | クーポンコード（ソフトデリート込みユニーク） |
+| `type` | `enum` | `official` / `affiliate` / `invite`（発行元の種類） |
+| `status` | `enum` | `active` / `inactive` |
+| `name` | `string` | クーポン名 |
+| `description` | `string \| null` | 説明文 |
+| `image_url` | `string \| null` | イメージ画像URL |
+| `admin_label` | `string \| null` | 管理者用ラベル |
+| `admin_note` | `string \| null` | 管理者用メモ |
+| `valid_from` | `Date \| null` | 有効開始日 |
+| `valid_until` | `Date \| null` | 有効終了日 |
+| `max_total_uses` | `number \| null` | 総使用回数上限（null=無制限） |
+| `max_uses_per_redeemer` | `number \| null` | 使用者毎の上限（null=無制限） |
+| `current_total_uses` | `number` | 現在の総使用回数 |
+| `attribution_user_id` | `string \| null` | 帰属ユーザーID（招待/アフィリエイト用） |
 
-## サーバーサービス / API
-### couponService（`services/server/couponService.ts`）
-- ベース CRUD: `base`（soft delete, search, upsert など標準機能）
-- 副作用付き CRUD
-  - `duplicate(id)`: コード再生成 + `current_total_uses=0` リセット + ストレージ複製
-  - `remove(id)`: ストレージ連携付き削除（soft delete）
-- 使用系
-  - `isUsable(code, redeemerUserId?)`: 可否判定のみ
-  - `redeem(code, redeemerUserId?, additionalMetadata?)`: トランザクションで SELECT FOR UPDATE → 静的バリデーション → per-user 使用回数確認 → `current_total_uses` インクリメント → `recordUsage`
-  - `getUsageCount(couponId, redeemerUserId)`
-  - `getCouponByCode` / `getCouponById` / `validateCouponStatically`
-- オーナーシップ系（invite/affiliate 用）
-  - `issueCodeForOwner(params)`: 衝突時リトライ付き発行。`type` は `invite` or `affiliate`
-  - `getCodesByOwner(params)`
-  - `getInviteCode(userId)` / `getOrCreateInviteCode(userId)`
+**`type` と `category` の違い**:
+- `type`: 発行元の種類。official=公式、affiliate=アフィリエイト、invite=ユーザー招待
+- `category`: 用途・効果の分類。ハンドラーレジストリのキーと一致させる。消費側ドメインが自由に定義
 
-### couponHistoryService（`services/server/couponHistoryService.ts`）
-- ベース CRUD のみ（soft delete 無し）。  
-- `recordUsage(params)`: 使用時にスナップショットを metadata へ格納して insert（`redeemer_user_id` は nullable）。
+### CouponHistory
 
-### API ルート
-- 汎用 CRUD: `/api/coupon`（`[domain]` ルート経由）、`/api/couponHistory`
-- 使用関連:  
-  - `POST /api/coupon/check-usability` … 可否判定（セッション任意。ゲストは user_id_required で弾かれるケースあり）  
-  - `POST /api/coupon/redeem` … 使用処理（成功時 history 返却、失敗時 400 JSON）  
-- 招待コード:  
-  - `GET /api/coupon/my-invite` … 取得のみ  
-  - `POST /api/coupon/my-invite` … 未発行なら発行して返却  
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| `id` | `string` | UUID |
+| `coupon_id` | `string` | クーポンID |
+| `redeemer_user_id` | `string \| null` | 使用者のユーザーID |
+| `metadata` | `jsonb` | クーポンスナップショット + 追加メタデータ |
+| `createdAt` | `Date` | 使用日時 |
+
+`metadata` には使用時点のクーポン情報（code, type, name 等）のスナップショットと、`redeem()` 呼び出し時に渡された `additionalMetadata` がマージされる。
 
 ---
 
-## クライアントサービス / フック
-### クーポン
-- CRUD クライアント: `services/client/couponClient.ts`（ベース CRUD）  
-- 使用系クライアント: `services/client/redemption.ts`（`redeemCoupon`, `checkCouponUsability`）  
-- 招待コードクライアント: `services/client/inviteCode.ts`（`getMyInviteCode`, `issueMyInviteCode`）
-- フック（主なもの）
-  - CRUD: `useCreateCoupon` / `useUpdateCoupon` / `useDeleteCoupon` / `useRestoreCoupon` / `useHardDeleteCoupon` / `useDuplicateCoupon` / `useCoupon` / `useCouponList` / `useSearchCoupon`
-  - 使用判定: `useCheckCouponUsability`（手動） / `useCheckCouponUsabilityAuto`（コード変更で自動実行）
-  - 使用 UI: `useCouponViewModal` はプレースホルダー。表示ロジックを実装してから `CouponDetailModal` を活用する。
-  - 招待コード: `useMyInviteCode`（SWR 取得） / `useIssueMyInviteCode`（発行してキャッシュ更新）
+## サービスAPI
 
-### クーポン履歴
-- クライアント: `services/client/couponHistoryClient.ts`（CRUD）
-- フック: `useCouponHistory`, `useCouponHistoryList`, `useSearchCouponHistory`, `useCreateCouponHistory`, `useUpsertCouponHistory`, `useUpdateCouponHistory`, `useDeleteCouponHistory`  
-  - 運用上は「ログは追加のみ」が前提。更新/削除フックは利用しない想定。
+### couponService
+
+```typescript
+import { couponService } from "@/features/core/coupon/services/server/couponService";
+```
+
+#### 使用可否チェック
+
+```typescript
+// 基本チェック（DB アクセスあり、ユーザー毎の使用回数も確認）
+const result = await couponService.isUsable(code, userId?);
+// → { usable: true, coupon } | { usable: false, reason, coupon? }
+
+// 静的チェック（DB アクセスなし、クーポンオブジェクトに対して実行）
+const result = couponService.validateCouponStatically(coupon, userId?);
+// → { valid: true } | { valid: false, reason }
+```
+
+#### 使用（redeem）
+
+```typescript
+// 基本使用（トランザクション内で SELECT FOR UPDATE → 検証 → カウント更新 → 履歴記録）
+const result = await couponService.redeem(code, userId?, additionalMetadata?, tx?);
+// → { success: true, history } | { success: false, reason }
+```
+
+#### カテゴリ付き検証（ハンドラー連携）
+
+```typescript
+// カテゴリ一致 + ハンドラーの validateForUse + resolveEffect を実行
+const result = await couponService.validateForCategory(code, category, userId, metadata?);
+// → { valid: true, coupon, effect } | { valid: false, reason, coupon? }
+```
+
+#### ハンドラー付き使用（ハンドラー連携）
+
+```typescript
+// 基本 redeem + ハンドラーの onRedeemed を実行
+const result = await couponService.redeemWithEffect(code, userId, metadata?, tx?);
+// → { success: true, history } | { success: false, reason }
+```
+
+#### コード発行・所有権
+
+```typescript
+// 招待コード取得（未発行なら null）
+const coupon = await couponService.getInviteCode(userId, tx?);
+
+// 招待コード取得 or 作成（冪等）
+const coupon = await couponService.getOrCreateInviteCode(userId, tx?);
+
+// 任意タイプのコード発行
+const coupon = await couponService.issueCodeForOwner({
+  attributionUserId: userId,
+  type: "affiliate",
+  name: "アフィリエイトコード",
+  maxTotalUses: 100,
+});
+
+// オーナーのコード一覧
+const coupons = await couponService.getCodesByOwner({
+  attributionUserId: userId,
+  type: "invite",
+});
+```
+
+#### CRUD
+
+標準の CRUD 操作（`create`, `get`, `list`, `search`, `update`, `remove`, `restore`, `hardDelete`, `duplicate`, `upsert`）も利用可能。
 
 ---
 
-## 管理画面実装メモ
-- 一覧/作成/編集: `src/app/admin/(protected)/coupons/*`。`AdminCouponList` は検索・ページネーション付き。`Duplicate`/`Delete` ボタンあり（soft delete）。  
-- 作成/編集フォーム: `CreateCouponForm` / `EditCouponForm`（`CouponForm` 基盤）。コード自動生成ボタン付き。管理画面では `type` を `official` のみに限定（`fieldPatches`）。
-- 詳細モーダル: `CouponDetailModal` は `useCouponViewModal` の viewModel 未実装。利用する場合は viewModel を作り込む。
-- couponHistory の管理画面は未提供（domain config も adminRoutes なし）。
+## ハンドラーシステム
+
+### 概念
+
+```
+クーポンドメイン                    消費側ドメイン
+┌──────────────────┐              ┌──────────────────────────┐
+│ handlers/        │              │ purchaseRequest/         │
+│   types.ts       │ ← 実装 ←── │   coupon/                │
+│   registry.ts    │              │     registerHandler.ts   │
+│   init.ts        │ ← import ── │                          │
+│                  │              │                          │
+│ couponService    │              │ purchaseService          │
+│   validateFor... │ ── 呼出 ──→ │   handler.validateForUse │
+│   redeemWith...  │ ── 呼出 ──→ │   handler.onRedeemed     │
+└──────────────────┘              └──────────────────────────┘
+```
+
+### CouponHandler インターフェース
+
+```typescript
+import type { CouponHandler } from "@/features/core/coupon/handlers";
+
+interface CouponHandler {
+  label: string;                    // カテゴリのラベル（管理画面表示用）
+  validateForUse?(context): Promise<{ valid: boolean; reason?: string }>;  // 追加検証
+  resolveEffect?(context): Promise<Record<string, unknown>>;              // 効果プレビュー
+  onRedeemed?(context): Promise<void>;                                     // redeem後処理
+  describeEffect?(coupon): { label: string; description: string } | null; // 効果説明
+}
+```
+
+| メソッド | タイミング | 副作用 | 用途例 |
+|---|---|---|---|
+| `validateForUse` | `validateForCategory` 時 | なし | 最低購入金額チェック |
+| `resolveEffect` | `validateForCategory` 時 | なし | 割引額の計算 |
+| `onRedeemed` | `redeemWithEffect` 時 | あり | 分析イベント送信 |
+| `describeEffect` | 管理画面表示時 | なし | 「500円割引」の説明生成 |
+
+### 新しいクーポン用途の追加手順
+
+#### 1. 消費側ドメインにハンドラーを作成
+
+```typescript
+// src/features/core/purchaseRequest/services/server/coupon/registerHandler.ts
+
+import { registerCouponHandler } from "@/features/core/coupon/handlers";
+
+registerCouponHandler("purchase_discount", {
+  label: "購入割引",
+
+  async validateForUse({ coupon, userId, metadata }) {
+    const paymentAmount = metadata?.paymentAmount as number;
+    if (paymentAmount < 500) {
+      return { valid: false, reason: "最低購入金額に達していません" };
+    }
+    return { valid: true };
+  },
+
+  async resolveEffect({ coupon, metadata }) {
+    const paymentAmount = metadata?.paymentAmount as number;
+    const discountAmount = 500; // 例: 固定500円引き
+    return {
+      discountAmount,
+      finalPaymentAmount: Math.max(0, paymentAmount - discountAmount),
+    };
+  },
+
+  async onRedeemed({ coupon, userId, history }) {
+    console.log(`クーポン ${coupon.code} が購入に使用されました`);
+  },
+
+  describeEffect(coupon) {
+    return { label: "500円割引", description: "コイン購入時に500円割引されます" };
+  },
+});
+```
+
+#### 2. init.ts にインポートを追加
+
+```typescript
+// src/features/core/coupon/handlers/init.ts
+
+import "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
+```
+
+#### 3. 管理画面で確認
+
+- クーポン作成/編集フォームの「カテゴリ」ドロップダウンに「購入割引」が表示される
+- 管理者がクーポンにカテゴリを設定できるようになる
+
+#### 4. 消費側ドメインで利用
+
+```typescript
+// 購入フローでのクーポン検証
+const result = await couponService.validateForCategory(
+  couponCode,
+  "purchase_discount",
+  userId,
+  { paymentAmount: 2000 }
+);
+
+if (result.valid) {
+  const { discountAmount, finalPaymentAmount } = result.effect as {
+    discountAmount: number;
+    finalPaymentAmount: number;
+  };
+  // 割引後金額で決済セッション作成
+}
+```
 
 ---
 
-## 初期設計メモ（`.tmpref/coupon-domain-design.md`）からの主な差分
-- `redeemer_user_id` は nullable / optional（必須ではない）
-- クーポン使用履歴は不変運用だが、汎用 CRUD ルートとフックは生成済み（実運用では `recordUsage` のみに限定推奨）
-- `current_total_uses` は Zod スキーマ外・フォーム非表示。DB/サーバーでのみ更新
-- 管理画面では `type`=official 固定。`invite`/`affiliate` はサーバーの発行ヘルパー経由で作成する
-- `useCouponViewModal` はプレースホルダー。実装が必要
-- presenters（couponHistory）は `redeemer_id` を参照しており、`redeemer_user_id` と齟齬があるため表示用途で使う場合は修正が必要
+## 使用可否判定の理由一覧
+
+| reason | 説明 |
+|--------|------|
+| `not_found` | クーポンが見つからない |
+| `inactive` | 無効状態 |
+| `not_started` | 有効開始前 |
+| `expired` | 有効期限切れ |
+| `max_total_reached` | 総使用回数上限に到達 |
+| `max_per_user_reached` | ユーザー毎の使用上限に到達 |
+| `user_id_required` | ユーザーIDが必要（`max_uses_per_redeemer` 設定時） |
+| `category_mismatch` | カテゴリが一致しない |
+| `handler_rejected` | ハンドラーの追加検証で拒否 |
 
 ---
 
-## 参考ファイル
-- データモデル: `entities/drizzle.ts`, `entities/schema.ts`, `entities/model.ts`, `entities/form.ts`
-- サーバーサービス: `services/server/*`（`redemption/`, `ownership/`, `wrappers/`）
-- クライアント/フック: `services/client/*`, `hooks/*`
-- API ルート: `src/app/api/coupon/*`, `src/app/api/coupon/my-invite`, `src/app/api/coupon/check-usability`, `src/app/api/coupon/redeem`
+## クライアントフック
+
+```typescript
+// 使用可否チェック（手動トリガー）
+import { useCheckCouponUsability } from "@/features/core/coupon/hooks/useCheckCouponUsability";
+
+// 使用可否チェック（自動トリガー、デバウンス付き）
+import { useCheckCouponUsabilityAuto } from "@/features/core/coupon/hooks/useCheckCouponUsability";
+
+// クーポン使用
+import { useRedeemCoupon } from "@/features/core/coupon/hooks/useRedeemCoupon";
+
+// 招待コード取得
+import { useMyInviteCode } from "@/features/core/coupon/hooks/useMyInviteCode";
+
+// 招待コード発行
+import { useIssueMyInviteCode } from "@/features/core/coupon/hooks/useIssueMyInviteCode";
+
+// 登録済みカテゴリ一覧（管理画面フォーム用）
+import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCategories";
+```
+
+---
+
+## API ルート
+
+| メソッド | パス | 用途 |
+|---------|------|------|
+| `POST` | `/api/coupon/check-usability` | 使用可否チェック |
+| `POST` | `/api/coupon/redeem` | クーポン使用 |
+| `GET` | `/api/coupon/my-invite` | 自分の招待コード取得 |
+| `POST` | `/api/coupon/my-invite` | 自分の招待コード発行 |
+| `GET` | `/api/coupon/categories` | 登録済みカテゴリ一覧 |
+
+---
+
+## ディレクトリ構造
+
+```
+src/features/core/coupon/
+├── README.md
+├── domain.json                  # ドメイン設定（dc:generate の入力）
+├── presenters.ts                # フィールド表示フォーマッター
+│
+├── entities/                    # 生成ファイル
+│   ├── drizzle.ts               # テーブル定義
+│   ├── model.ts                 # TypeScript 型
+│   ├── schema.ts                # Zod スキーマ
+│   ├── form.ts                  # フォーム型
+│   └── index.ts
+│
+├── handlers/                    # ハンドラーシステム（手動管理）
+│   ├── types.ts                 # CouponHandler インターフェース
+│   ├── registry.ts              # 登録・取得関数
+│   ├── init.ts                  # 全ハンドラーの import 集約
+│   └── index.ts
+│
+├── services/
+│   ├── client/
+│   │   ├── couponClient.ts      # 基本 CRUD クライアント
+│   │   ├── redemption.ts        # 使用・チェック・カテゴリ取得
+│   │   └── inviteCode.ts        # 招待コード
+│   └── server/
+│       ├── couponService.ts     # メインサービス（全機能の集約）
+│       ├── drizzleBase.ts       # ベース CRUD（生成）
+│       ├── redemption/          # 使用処理
+│       │   ├── redeem.ts        # トランザクション付き使用
+│       │   ├── isUsable.ts      # 使用可否判定
+│       │   ├── getUsageCount.ts # ユーザー毎の使用回数
+│       │   └── utils.ts         # 共通ユーティリティ
+│       ├── ownership/           # コード発行・所有権
+│       │   ├── issueCodeForOwner.ts
+│       │   ├── getCodesByOwner.ts
+│       │   └── inviteCode.ts
+│       └── wrappers/            # カスタマイズ可能なラッパー
+│           ├── remove.ts        # ストレージ対応削除
+│           ├── duplicate.ts     # コード再生成付き複製
+│           ├── validateForCategory.ts  # カテゴリ付き検証
+│           └── redeemWithEffect.ts     # ハンドラー付き使用
+│
+├── hooks/                       # React フック
+│   ├── useCoupon.ts             # 単体取得（生成）
+│   ├── useCouponList.ts         # 一覧取得（生成）
+│   ├── useSearchCoupon.ts       # 検索（生成）
+│   ├── useCheckCouponUsability.ts  # 使用可否チェック
+│   ├── useRedeemCoupon.ts       # クーポン使用
+│   ├── useMyInviteCode.ts       # 招待コード取得
+│   ├── useIssueMyInviteCode.ts  # 招待コード発行
+│   ├── useCouponCategories.ts   # カテゴリ一覧
+│   └── useCouponViewModal.ts    # 管理画面詳細モーダル
+│
+├── components/                  # UI コンポーネント
+│   ├── AdminCouponList/         # 管理画面一覧（生成）
+│   ├── AdminCouponCreate/       # 管理画面作成（生成）
+│   ├── AdminCouponEdit/         # 管理画面編集（生成）
+│   └── common/
+│       ├── CouponForm.tsx       # 汎用フォーム
+│       ├── CouponFields.tsx     # フィールドレンダラー
+│       ├── CreateCouponForm.tsx  # 作成フォーム
+│       ├── EditCouponForm.tsx    # 編集フォーム
+│       └── CouponDetailModal.tsx # 詳細モーダル
+│
+├── types/
+│   ├── redeem.ts                # 使用処理の型
+│   └── field.ts                 # フィールド型（生成）
+│
+├── constants/
+│   └── field.ts                 # 定数（生成）
+│
+└── utils/
+    └── generateCode.ts          # コード自動生成（8文字、紛らわしい文字除外）
+```
+
+---
+
+## 関連ドメイン
+
+- **couponHistory**: 使用履歴の記録・参照（`redeem()` から自動記録）
+- **referral**: 招待コード（`type=invite`）を使った紹介関係の管理
+- **auth**: 登録時の招待コード適用（`registration.ts`）
+- **purchaseRequest**: コイン購入時のクーポン割引（ハンドラーで実装）

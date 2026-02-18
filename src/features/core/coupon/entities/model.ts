@@ -2,6 +2,7 @@
 
 export type Coupon = {
   id: string;
+  category: string | null;
   code: string;
   type: 'official' | 'affiliate' | 'invite';
   status: 'active' | 'inactive';
