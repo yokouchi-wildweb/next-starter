@@ -30,6 +30,10 @@ export const PurchaseRequestBaseSchema = z.object({
     .transform((value) => emptyToNull(value)),
   webhook_signature: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
+  coupon_code: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
+  discount_amount: z.coerce.number().int().nullish(),
+  original_payment_amount: z.coerce.number().int().nullish(),
   completed_at: z.preprocess(
   (value) => {
     if (value == null) return undefined;

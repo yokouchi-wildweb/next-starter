@@ -19,6 +19,9 @@ export type PurchaseRequest = {
   error_code: string | null;
   error_message: string | null;
   webhook_signature: string | null;
+  coupon_code: string | null;
+  discount_amount: number | null;
+  original_payment_amount: number | null;
   completed_at: Date | null;
   paid_at: Date | null;
   expires_at: Date | null;

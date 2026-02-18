@@ -2,6 +2,8 @@
 
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
@@ -12,6 +14,7 @@ import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
+import { saveCouponCode } from "@/features/core/wallet/utils/couponParam";
 
 import { BalanceCard } from "./BalanceCard";
 import { PurchaseList } from "./PurchaseList";
@@ -31,9 +34,18 @@ export function WalletBalancePage({
   phoneVerifiedAt,
   currentPhoneNumber,
 }: WalletBalancePageProps) {
+  const searchParams = useSearchParams();
   const config = getCurrencyConfigBySlug(slug);
   const { user } = useAuthSession();
   const { data, isLoading, error } = useWalletBalances(user?.userId);
+
+  // URLパラメータ ?coupon=CODE をsessionStorageに保存
+  useEffect(() => {
+    const coupon = searchParams.get("coupon");
+    if (coupon) {
+      saveCouponCode(coupon);
+    }
+  }, [searchParams]);
 
   // 無効なスラッグ
   if (!config) {

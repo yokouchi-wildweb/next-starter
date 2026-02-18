@@ -18,6 +18,8 @@ import { DomainError } from "@/lib/errors/domainError";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import { evaluateMilestones } from "@/features/core/milestone/services/server/wrappers/evaluateMilestones";
 import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/constants/triggers";
+import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
 
 // トランザクションクライアント型
 type TransactionClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -37,6 +39,8 @@ export type InitiatePurchaseParams = {
   baseUrl: string;
   /** 商品名（決済ページに表示） */
   itemName?: string;
+  /** クーポンコード（割引適用時） */
+  couponCode?: string;
 };
 
 export type InitiatePurchaseResult = {
@@ -111,6 +115,7 @@ export async function initiatePurchase(
     paymentProvider = getDefaultProviderName(),
     baseUrl,
     itemName,
+    couponCode,
   } = params;
 
   // 1. 冪等キーで既存リクエストをチェック
@@ -119,24 +124,55 @@ export async function initiatePurchase(
     return handleExistingRequest(existing);
   }
 
-  // 2. purchase_request を作成（status: pending）
+  // 2. クーポン検証（コードが指定されている場合）
+  let actualPaymentAmount = paymentAmount;
+  let discountAmount: number | undefined;
+  if (couponCode) {
+    const validation = await couponService.validateForCategory(
+      couponCode,
+      PURCHASE_DISCOUNT_CATEGORY,
+      userId,
+      { paymentAmount },
+    );
+    if (!validation.valid) {
+      throw new DomainError(
+        validation.reason === "category_mismatch"
+          ? "このクーポンは購入割引には使用できません。"
+          : `クーポンを適用できません: ${validation.reason}`,
+        { status: 400 },
+      );
+    }
+    const effect = validation.effect as PurchaseDiscountEffect | null;
+    if (effect) {
+      discountAmount = effect.discountAmount;
+      actualPaymentAmount = effect.finalPaymentAmount;
+    }
+  }
+
+  // 3. purchase_request を作成（status: pending）
   const createData = {
     user_id: userId,
     idempotency_key: idempotencyKey,
     wallet_type: walletType,
     amount,
-    payment_amount: paymentAmount,
+    payment_amount: actualPaymentAmount,
     payment_method: paymentMethod,
     payment_provider: paymentProvider,
     status: "pending" as const,
     expires_at: new Date(Date.now() + 30 * 60 * 1000), // 30分後
+    // クーポン情報（適用時のみ記録）
+    ...(couponCode && {
+      coupon_code: couponCode,
+      discount_amount: discountAmount ?? 0,
+      original_payment_amount: paymentAmount,
+    }),
   };
   console.log("Creating purchase request with data:", JSON.stringify(createData, null, 2));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const purchaseRequest = await base.create(createData as any) as PurchaseRequest;
   console.log("Purchase request created:", purchaseRequest.id);
 
-  // 3. 決済プロバイダでセッション作成
+  // 4. 決済プロバイダでセッション作成
   const slug = getSlugByWalletType(walletType as WalletType);
   const provider = getPaymentProvider(paymentProvider);
 
@@ -149,7 +185,7 @@ export async function initiatePurchase(
 
   const session = await provider.createSession({
     purchaseRequestId: purchaseRequest.id,
-    amount: paymentAmount,
+    amount: actualPaymentAmount,
     userId,
     successUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}`,
     cancelUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}&reason=cancelled`,
@@ -158,7 +194,7 @@ export async function initiatePurchase(
     buyerPhoneNumber,
   });
 
-  // 4. セッション情報を記録（status: processing）
+  // 5. セッション情報を記録（status: processing）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updated = await base.update(purchaseRequest.id, {
     status: "processing",
@@ -321,6 +357,21 @@ export async function completePurchase(
       .update(PurchaseRequestTable)
       .set({ wallet_history_id: walletResult.history.id })
       .where(eq(PurchaseRequestTable.id, purchaseRequest.id));
+
+    // クーポン使用処理（クーポンコードが記録されている場合）
+    if (purchaseRequest.coupon_code) {
+      try {
+        await couponService.redeemWithEffect(
+          purchaseRequest.coupon_code,
+          purchaseRequest.user_id,
+          { purchaseRequestId: purchaseRequest.id },
+          tx,
+        );
+      } catch (error) {
+        // クーポンredeem失敗は購入完了をブロックしない（ログのみ）
+        console.error("[completePurchase] クーポンredeem失敗:", error);
+      }
+    }
 
     // マイルストーン評価（登録済みマイルストーンがなければ何もしない）
     await evaluateMilestones(

@@ -14,5 +14,5 @@
 // 招待リファラル
 import "@/features/core/referral/services/server/coupon/referralHandler";
 
-// 例: 購入割引ハンドラー（下流で実装時にコメントを外す）
-// import "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
+// 購入割引
+import "@/features/core/purchaseRequest/services/server/coupon/registerHandler";

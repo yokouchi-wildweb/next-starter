@@ -75,6 +75,49 @@ export async function checkCouponUsability(
 }
 
 // ============================================================================
+// カテゴリ付き検証
+// ============================================================================
+
+export type ValidateForCategoryResponse =
+  | {
+      valid: true;
+      coupon: {
+        code: string;
+        type: string;
+        category: string | null;
+        name: string;
+        description: string | null;
+        image_url: string | null;
+      };
+      effect: Record<string, unknown> | null;
+    }
+  | {
+      valid: false;
+      reason: string;
+      message: string;
+    };
+
+/**
+ * カテゴリを指定してクーポンの有効性を検証する
+ * ハンドラーの resolveEffect による効果プレビューも取得できる
+ */
+export async function validateCouponForCategory(
+  code: string,
+  category: string,
+  metadata?: Record<string, unknown>,
+): Promise<ValidateForCategoryResponse> {
+  try {
+    const res = await axios.post<ValidateForCategoryResponse>(
+      "/api/coupon/validate-for-category",
+      { code, category, metadata },
+    );
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
+// ============================================================================
 // カテゴリ一覧
 // ============================================================================
 

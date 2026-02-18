@@ -26,6 +26,8 @@ const InitiatePurchaseSchema = z.object({
   paymentMethod: z.string().min(1, { message: "支払い方法を指定してください。" }),
   /** 商品名（決済ページに表示） */
   itemName: z.string().optional(),
+  /** クーポンコード（割引適用時） */
+  couponCode: z.string().optional(),
 });
 
 export const POST = createApiRoute(
@@ -63,6 +65,7 @@ export const POST = createApiRoute(
       paymentMethod: payload.paymentMethod,
       baseUrl,
       itemName: payload.itemName,
+      couponCode: payload.couponCode,
     });
 
     return {
