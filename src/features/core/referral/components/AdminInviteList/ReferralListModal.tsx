@@ -56,6 +56,14 @@ const columns: DataTableColumn<ReferralByInviterItem>[] = [
       }) ?? "-",
   },
   {
+    header: "サインアップIP",
+    render: (item) => (
+      <span className="text-sm text-muted-foreground">
+        {item.signupIp ?? "-"}
+      </span>
+    ),
+  },
+  {
     header: "達成リワード",
     render: (item) =>
       item.fulfilledRewardGroups.length > 0 ? (

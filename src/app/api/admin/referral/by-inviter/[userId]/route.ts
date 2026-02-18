@@ -10,6 +10,7 @@ import { getRewardGroupKey } from "@/features/core/referralReward/utils/rewardDe
 import { db } from "@/lib/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { inArray } from "drizzle-orm";
+import type { UserMetadata } from "@/features/core/user/entities/model";
 
 type RouteParams = { userId: string };
 
@@ -30,13 +31,15 @@ export const GET = createApiRoute<RouteParams>(
     // 被招待者のユーザー名を一括取得
     const inviteeIds = referrals.map((r) => r.invitee_user_id);
     let nameMap = new Map<string, string | null>();
+    let metadataMap = new Map<string, UserMetadata>();
 
     if (inviteeIds.length > 0) {
       const users = await db
-        .select({ id: UserTable.id, name: UserTable.name })
+        .select({ id: UserTable.id, name: UserTable.name, metadata: UserTable.metadata })
         .from(UserTable)
         .where(inArray(UserTable.id, inviteeIds));
       nameMap = new Map(users.map((u) => [u.id, u.name]));
+      metadataMap = new Map(users.map((u) => [u.id, u.metadata]));
     }
 
     // 各 referral に紐づく reward を一括取得し、達成済みグループラベルを算出
@@ -69,6 +72,7 @@ export const GET = createApiRoute<RouteParams>(
         id: r.id,
         inviteeUserId: r.invitee_user_id,
         inviteeUserName: nameMap.get(r.invitee_user_id) ?? null,
+        signupIp: metadataMap.get(r.invitee_user_id)?.signupIp ?? null,
         status: r.status,
         createdAt: r.createdAt,
         fulfilledRewardGroups: rewardGroupsMap.get(r.id) ?? [],
