@@ -20,7 +20,12 @@ export default async function AdminCouponListPage({ searchParams }: Props) {
   const { page: pageStr, searchQuery } = await searchParams;
   const page = Number(pageStr ?? "1");
   const limit = await settingService.getAdminListPerPage();
-  const { results: coupons, total } = await couponService.search({ page, limit, searchQuery });
+  const { results: coupons, total } = await couponService.search({
+    page,
+    limit,
+    searchQuery,
+    where: { field: "type", op: "eq", value: "official" },
+  });
 
   return (
     <AdminPage>
