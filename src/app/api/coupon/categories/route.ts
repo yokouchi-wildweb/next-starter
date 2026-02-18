@@ -7,7 +7,7 @@ import { createApiRoute } from "@/lib/routeFactory";
 
 // 全ハンドラーの登録を保証
 import "@/features/core/coupon/handlers/init";
-import { getRegisteredCategoryLabels } from "@/features/core/coupon/handlers";
+import { getRegisteredCategoryInfoList } from "@/features/core/coupon/handlers";
 
 export const GET = createApiRoute(
   {
@@ -16,14 +16,7 @@ export const GET = createApiRoute(
     skipForDemo: false,
   },
   async () => {
-    const labels = getRegisteredCategoryLabels();
-
-    // { value, label } 形式の配列で返す（フォームの options にそのまま使える）
-    const categories = Object.entries(labels).map(([value, label]) => ({
-      value,
-      label,
-    }));
-
+    const categories = getRegisteredCategoryInfoList();
     return { categories };
   }
 );

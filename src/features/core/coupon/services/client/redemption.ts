@@ -78,19 +78,27 @@ export async function checkCouponUsability(
 // カテゴリ一覧
 // ============================================================================
 
+import type { FieldConfig } from "@/components/Form/Field/types";
+
 export type CouponCategoryOption = {
   value: string;
   label: string;
 };
 
+export type CouponCategoryInfo = {
+  value: string;
+  label: string;
+  settingsFields: FieldConfig[];
+};
+
 export type GetCouponCategoriesResponse = {
-  categories: CouponCategoryOption[];
+  categories: CouponCategoryInfo[];
 };
 
 /**
  * 登録済みクーポンカテゴリ一覧を取得する
  */
-export async function getCouponCategories(): Promise<CouponCategoryOption[]> {
+export async function getCouponCategories(): Promise<CouponCategoryInfo[]> {
   try {
     const res = await axios.get<GetCouponCategoriesResponse>("/api/coupon/categories");
     return res.data.categories;

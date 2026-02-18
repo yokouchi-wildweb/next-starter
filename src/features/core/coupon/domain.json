@@ -131,6 +131,13 @@
       "fieldType": "uuid",
       "formInput": "none",
       "required": false
+    },
+    {
+      "name": "settings",
+      "label": "カテゴリ設定",
+      "fieldType": "jsonb",
+      "formInput": "none",
+      "required": false
     }
   ],
   "fieldGroups": [

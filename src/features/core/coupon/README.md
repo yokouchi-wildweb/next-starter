@@ -83,6 +83,7 @@ const { usability, isLoading } = useCheckCouponUsabilityAuto(code, 500);
 | `max_uses_per_redeemer` | `number \| null` | 使用者毎の上限（null=無制限） |
 | `current_total_uses` | `number` | 現在の総使用回数 |
 | `attribution_user_id` | `string \| null` | 帰属ユーザーID（招待/アフィリエイト用） |
+| `settings` | `Record<string, unknown>` | カテゴリ固有のパラメータ（ハンドラーが定義・参照） |
 
 **`type` と `category` の違い**:
 - `type`: 発行元の種類。official=公式、affiliate=アフィリエイト、invite=ユーザー招待
@@ -202,6 +203,7 @@ import type { CouponHandler } from "@/features/core/coupon/handlers";
 
 interface CouponHandler {
   label: string;                    // カテゴリのラベル（管理画面表示用）
+  settingsFields?: FieldConfig[];   // カテゴリ固有の設定フィールド定義（管理画面フォーム用）
   validateForUse?(context): Promise<{ valid: boolean; reason?: string }>;  // 追加検証
   resolveEffect?(context): Promise<Record<string, unknown>>;              // 効果プレビュー
   onRedeemed?(context): Promise<void>;                                     // redeem後処理
@@ -209,12 +211,22 @@ interface CouponHandler {
 }
 ```
 
-| メソッド | タイミング | 副作用 | 用途例 |
+| プロパティ | タイミング | 副作用 | 用途例 |
 |---|---|---|---|
+| `settingsFields` | 管理画面フォーム描画時 | なし | 割引タイプ・割引値の入力欄定義 |
 | `validateForUse` | `validateForCategory` 時 | なし | 最低購入金額チェック |
-| `resolveEffect` | `validateForCategory` 時 | なし | 割引額の計算 |
-| `onRedeemed` | `redeemWithEffect` 時 | あり | 分析イベント送信 |
+| `resolveEffect` | `validateForCategory` 時 | なし | 割引額の計算（`coupon.settings` を参照） |
+| `onRedeemed` | `redeemWithEffect` 時 | あり | referral 作成、分析イベント送信 |
 | `describeEffect` | 管理画面表示時 | なし | 「500円割引」の説明生成 |
+
+### settings フィールドと settingsFields の関係
+
+`settingsFields` はハンドラーが「このカテゴリではどんなパラメータが必要か」を FieldConfig 形式で宣言するもの。管理画面でカテゴリを選択すると、対応する settingsFields が動的にフォームに表示され、入力値は `coupon.settings` (jsonb) に格納される。ハンドラーの `resolveEffect` 等が `coupon.settings` からパラメータを読み取って効果を計算する。
+
+```
+管理画面: カテゴリ選択 → settingsFields 表示 → 入力値を settings に保存
+実行時:   coupon.settings を参照 → resolveEffect で効果計算
+```
 
 ### 実装済みハンドラー: referral（招待リファラル）
 
@@ -248,6 +260,16 @@ import { registerCouponHandler } from "@/features/core/coupon/handlers";
 registerCouponHandler("purchase_discount", {
   label: "購入割引",
 
+  // 管理画面フォームに表示される設定フィールド（FieldConfig 互換）
+  settingsFields: [
+    {
+      name: "discountType", label: "割引タイプ", formInput: "select", required: true,
+      options: [{ value: "percentage", label: "定率" }, { value: "fixed", label: "定額" }],
+    },
+    { name: "discountValue", label: "割引値", formInput: "numberInput", required: true },
+    { name: "maxDiscountAmount", label: "割引上限額", formInput: "numberInput" },
+  ],
+
   async validateForUse({ coupon, userId, metadata }) {
     const paymentAmount = metadata?.paymentAmount as number;
     if (paymentAmount < 500) {
@@ -257,20 +279,22 @@ registerCouponHandler("purchase_discount", {
   },
 
   async resolveEffect({ coupon, metadata }) {
+    const { discountType, discountValue, maxDiscountAmount } = coupon.settings;
     const paymentAmount = metadata?.paymentAmount as number;
-    const discountAmount = 500; // 例: 固定500円引き
+    let discount = discountType === "percentage"
+      ? Math.floor(paymentAmount * (discountValue as number) / 100)
+      : (discountValue as number);
+    if (maxDiscountAmount) discount = Math.min(discount, maxDiscountAmount as number);
     return {
-      discountAmount,
-      finalPaymentAmount: Math.max(0, paymentAmount - discountAmount),
+      discountAmount: discount,
+      finalPaymentAmount: Math.max(0, paymentAmount - discount),
     };
   },
 
-  async onRedeemed({ coupon, userId, history }) {
-    console.log(`クーポン ${coupon.code} が購入に使用されました`);
-  },
-
   describeEffect(coupon) {
-    return { label: "500円割引", description: "コイン購入時に500円割引されます" };
+    const { discountType, discountValue } = coupon.settings;
+    const label = discountType === "percentage" ? `${discountValue}%割引` : `${discountValue}円割引`;
+    return { label, description: `コイン購入時に${label}されます` };
   },
 });
 ```
@@ -286,7 +310,8 @@ import "@/features/core/purchaseRequest/services/server/coupon/registerHandler";
 #### 3. 管理画面で確認
 
 - クーポン作成/編集フォームの「カテゴリ」ドロップダウンに「購入割引」が表示される
-- 管理者がクーポンにカテゴリを設定できるようになる
+- カテゴリ選択後、settingsFields で定義したフィールド（割引タイプ、割引値等）が「カテゴリ設定」セクションに動的表示される
+- 入力値は `coupon.settings` に JSON として格納される
 
 #### 4. 消費側ドメインで利用
 
@@ -358,7 +383,7 @@ import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCateg
 | `POST` | `/api/coupon/redeem` | クーポン使用 |
 | `GET` | `/api/coupon/my-invite` | 自分の招待コード取得 |
 | `POST` | `/api/coupon/my-invite` | 自分の招待コード発行 |
-| `GET` | `/api/coupon/categories` | 登録済みカテゴリ一覧 |
+| `GET` | `/api/coupon/categories` | 登録済みカテゴリ一覧（settingsFields 含む） |
 
 ---
 

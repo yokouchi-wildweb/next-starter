@@ -1,6 +1,6 @@
 // src/features/coupon/entities/drizzle.ts
 
-import { integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const CouponTypeEnum = pgEnum("coupon_type_enum", ["official", "affiliate", "invite"]);
@@ -23,6 +23,7 @@ export const CouponTable = pgTable("coupons", {
   max_uses_per_redeemer: integer("max_uses_per_redeemer"),
   current_total_uses: integer("current_total_uses").notNull().default(0),
   attribution_user_id: uuid("attribution_user_id"),
+  settings: jsonb("settings").$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),

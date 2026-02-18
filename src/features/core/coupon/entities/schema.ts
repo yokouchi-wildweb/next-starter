@@ -44,6 +44,7 @@ export const CouponBaseSchema = z.object({
 ).or(z.literal("").transform(() => undefined)).nullish(),
   max_total_uses: z.coerce.number().int().nullish(),
   max_uses_per_redeemer: z.coerce.number().int().nullish(),
+  settings: z.record(z.string(), z.unknown()).default({}),
   deletedAt: z.date().nullish(),
 });
 

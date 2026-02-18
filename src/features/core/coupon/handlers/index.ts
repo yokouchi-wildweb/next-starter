@@ -11,4 +11,8 @@ export {
   getCouponHandler,
   getRegisteredCategories,
   getRegisteredCategoryLabels,
+  getCategorySettingsFields,
+  getRegisteredCategoryInfoList,
 } from "./registry";
+
+export type { CategoryInfo } from "./registry";

@@ -17,6 +17,7 @@ export type Coupon = {
   max_uses_per_redeemer: number | null;
   current_total_uses: number;
   attribution_user_id: string | null;
+  settings: Record<string, unknown>;
   createdAt: Date | null;
   updatedAt: Date | null;
 };

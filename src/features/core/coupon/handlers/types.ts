@@ -7,6 +7,7 @@
 
 import type { Coupon } from "../entities/model";
 import type { CouponHistory } from "@/features/core/couponHistory/entities/model";
+import type { FieldConfig } from "@/components/Form/Field/types";
 
 /**
  * ハンドラーに渡されるコンテキスト
@@ -48,6 +49,14 @@ export type CouponRedeemedContext = CouponEffectContext & {
 export interface CouponHandler {
   /** カテゴリのラベル（管理画面表示用） */
   label: string;
+
+  /**
+   * カテゴリ固有の設定フィールド定義（管理画面フォーム用）
+   * 選択されたカテゴリに応じて動的にフォームに表示される。
+   * 入力値は coupon.settings に JSON として格納される。
+   * FieldConfig 互換のため、既存の FieldRenderer でそのままレンダリング可能。
+   */
+  settingsFields?: FieldConfig[];
 
   /**
    * ドメイン固有の追加バリデーション

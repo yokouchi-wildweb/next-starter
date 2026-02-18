@@ -5,6 +5,7 @@
 // クーポンサービスが getCouponHandler() で取得する。
 
 import type { CouponHandler } from "./types";
+import type { FieldConfig } from "@/components/Form/Field/types";
 
 const handlers = new Map<string, CouponHandler>();
 
@@ -54,4 +55,35 @@ export function getRegisteredCategoryLabels(): Record<string, string> {
     labels[category] = handler.label;
   }
   return labels;
+}
+
+/**
+ * カテゴリに対応する settingsFields を取得する
+ * 未登録またはフィールド定義がない場合は空配列を返す
+ */
+export function getCategorySettingsFields(
+  category: string
+): FieldConfig[] {
+  return handlers.get(category)?.settingsFields ?? [];
+}
+
+/**
+ * 登録済み全カテゴリの情報を一括取得する（API レスポンス用）
+ */
+export type CategoryInfo = {
+  value: string;
+  label: string;
+  settingsFields: FieldConfig[];
+};
+
+export function getRegisteredCategoryInfoList(): CategoryInfo[] {
+  const result: CategoryInfo[] = [];
+  for (const [category, handler] of handlers) {
+    result.push({
+      value: category,
+      label: handler.label,
+      settingsFields: handler.settingsFields ?? [],
+    });
+  }
+  return result;
 }
