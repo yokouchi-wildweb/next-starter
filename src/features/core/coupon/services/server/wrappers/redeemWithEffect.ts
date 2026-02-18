@@ -6,6 +6,7 @@
 
 import { redeem } from "../redemption/redeem";
 import { getCouponByCode } from "../redemption/utils";
+import "../../../handlers/init";
 import { getCouponHandler } from "../../../handlers/registry";
 import type { RedeemWithEffectResult } from "../../../types/redeem";
 import type { TransactionClient } from "@/lib/drizzle/transaction";

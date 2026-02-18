@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
  *
  * - クーポンの attribution_user_id を招待者として referral を作成
  * - 既に invitee の referral が存在する場合はスキップ（冪等性）
- * - attribution_user_id がない場合は null を返す（招待クーポンではない）
+ * - attribution_user_id がない場合は null を返す
  *
  * @param coupon 使用されたクーポン
  * @param inviteeUserId 被招待者（クーポン使用者）のユーザーID
@@ -24,8 +24,8 @@ export async function createReferralFromRedemption(
   inviteeUserId: string,
   tx?: TransactionClient,
 ): Promise<Referral | null> {
-  // 招待クーポン以外、または attribution_user_id がない場合はスキップ
-  if (coupon.type !== "invite" || !coupon.attribution_user_id) {
+  // attribution_user_id がない場合はスキップ
+  if (!coupon.attribution_user_id) {
     return null;
   }
 

@@ -159,6 +159,7 @@ const coupon = await couponService.getOrCreateInviteCode(userId, tx?);
 const coupon = await couponService.issueCodeForOwner({
   attributionUserId: userId,
   type: "affiliate",
+  category: "purchase_discount",
   name: "アフィリエイトコード",
   maxTotalUses: 100,
 });
@@ -183,12 +184,12 @@ const coupons = await couponService.getCodesByOwner({
 ```
 クーポンドメイン                    消費側ドメイン
 ┌──────────────────┐              ┌──────────────────────────┐
-│ handlers/        │              │ purchaseRequest/         │
-│   types.ts       │ ← 実装 ←── │   coupon/                │
-│   registry.ts    │              │     registerHandler.ts   │
+│ handlers/        │              │ referral/                │
+│   types.ts       │ ← 実装 ←── │   coupon/referralHandler  │
+│   registry.ts    │              │   (category: "referral") │
 │   init.ts        │ ← import ── │                          │
-│                  │              │                          │
-│ couponService    │              │ purchaseService          │
+│                  │              ├──────────────────────────┤
+│ couponService    │              │ purchaseRequest/ (例)    │
 │   validateFor... │ ── 呼出 ──→ │   handler.validateForUse │
 │   redeemWith...  │ ── 呼出 ──→ │   handler.onRedeemed     │
 └──────────────────┘              └──────────────────────────┘
@@ -215,12 +216,32 @@ interface CouponHandler {
 | `onRedeemed` | `redeemWithEffect` 時 | あり | 分析イベント送信 |
 | `describeEffect` | 管理画面表示時 | なし | 「500円割引」の説明生成 |
 
+### 実装済みハンドラー: referral（招待リファラル）
+
+招待コード使用時の referral 作成 + 報酬トリガーを担当する。
+
+```typescript
+// src/features/core/referral/services/server/coupon/referralHandler.ts
+
+registerCouponHandler("referral", {
+  label: "招待リファラル",
+  async onRedeemed({ coupon, userId }) {
+    const referral = await createReferralFromRedemption(coupon, userId);
+    if (referral) {
+      await referralRewardService.triggerRewards("signup_completed", referral);
+    }
+  },
+});
+```
+
+registration.ts からは `couponService.redeemWithEffect(inviteCode, user.id)` の1行で呼ばれ、ハンドラーが referral 作成と報酬処理を自動実行する。
+
 ### 新しいクーポン用途の追加手順
 
 #### 1. 消費側ドメインにハンドラーを作成
 
 ```typescript
-// src/features/core/purchaseRequest/services/server/coupon/registerHandler.ts
+// src/features/core/purchaseRequest/services/server/coupon/registerHandler.ts（例）
 
 import { registerCouponHandler } from "@/features/core/coupon/handlers";
 
@@ -423,6 +444,6 @@ src/features/core/coupon/
 ## 関連ドメイン
 
 - **couponHistory**: 使用履歴の記録・参照（`redeem()` から自動記録）
-- **referral**: 招待コード（`type=invite`）を使った紹介関係の管理
-- **auth**: 登録時の招待コード適用（`registration.ts`）
-- **purchaseRequest**: コイン購入時のクーポン割引（ハンドラーで実装）
+- **referral**: 招待リファラルハンドラー（`category=referral`）を提供。`onRedeemed` で referral 作成 + 報酬トリガーを実行
+- **auth**: 登録時の招待コード適用（`registration.ts` → `couponService.redeemWithEffect()`）
+- **purchaseRequest**: コイン購入時のクーポン割引（ハンドラーで実装予定）

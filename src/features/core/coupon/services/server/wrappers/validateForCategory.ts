@@ -4,6 +4,7 @@
 // ハンドラーによるドメイン固有バリデーション + 効果プレビューを行う。
 
 import { isUsable } from "../redemption/isUsable";
+import "../../../handlers/init";
 import { getCouponHandler } from "../../../handlers/registry";
 import type { CategoryValidationResult } from "../../../types/redeem";
 

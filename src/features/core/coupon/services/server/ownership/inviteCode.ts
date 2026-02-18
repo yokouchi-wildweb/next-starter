@@ -62,6 +62,7 @@ export async function getOrCreateInviteCode(
       {
         attributionUserId: userId,
         type: "invite",
+        category: "referral",
         name: INVITE_CODE_DEFAULTS.name,
         maxUsesPerRedeemer: INVITE_CODE_DEFAULTS.maxUsesPerRedeemer,
       },

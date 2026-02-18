@@ -23,8 +23,6 @@ import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
-import { referralService } from "@/features/core/referral/services/server/referralService";
-import { referralRewardService } from "@/features/core/referralReward/services/server/referralRewardService";
 
 export type RegistrationInput = z.infer<typeof RegistrationSchema>;
 
@@ -121,16 +119,7 @@ export async function register(input: unknown, ip?: string): Promise<Registratio
   // 招待コード処理（失敗しても登録はブロックしない）
   if (APP_FEATURES.marketing.referral.enabled && inviteCode) {
     try {
-      const coupon = await couponService.getCouponByCode(inviteCode);
-      if (coupon) {
-        const redeemResult = await couponService.redeem(inviteCode, user.id);
-        if (redeemResult.success) {
-          const referral = await referralService.createReferralFromRedemption(coupon, user.id);
-          if (referral) {
-            await referralRewardService.triggerRewards("signup_completed", referral);
-          }
-        }
-      }
+      await couponService.redeemWithEffect(inviteCode, user.id);
     } catch (error) {
       console.warn("[registration] 招待コード処理に失敗しましたが登録は続行します:", error);
     }

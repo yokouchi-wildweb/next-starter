@@ -14,6 +14,7 @@ export type IssueCodeParams = {
   attributionUserId: string;
   type: CouponTypeWithOwner;
   name: string;
+  category?: string | null;
   description?: string;
   imageUrl?: string;
   adminLabel?: string;
@@ -52,6 +53,7 @@ export async function issueCodeForOwner(
         .values({
           code,
           type: params.type,
+          category: params.category ?? null,
           status: "active",
           name: params.name,
           description: params.description ?? null,
