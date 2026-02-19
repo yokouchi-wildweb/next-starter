@@ -43,6 +43,9 @@ export const maintenanceConfig = {
   // バイパスできるロール（これらのロールを持つユーザーは制限を受けない）
   bypassRoles: ['admin', 'debugger'] as const,
 
-  // リダイレクト先
+  // メンテナンス中のリダイレクト先
   redirectTo: '/maintenance',
+
+  // メンテナンス終了後のリダイレクト先
+  redirectAfterEnd: '/',
 };

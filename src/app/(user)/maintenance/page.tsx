@@ -4,21 +4,25 @@ import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";
 
+import { MaintenanceGuard } from "./_components/MaintenanceGuard";
+
 export default function MaintenancePage() {
   return (
-    <UserPage>
-      <HideHeaderNav />
-      <HideFooter />
-      <HideBottomNav />
-      <Stack space={8} className="text-center py-12">
-        <UserPageTitle>ただいま準備中です</UserPageTitle>
-        <Para tone="muted">
-          現在サイトを準備しております。
-        </Para>
-        <Para tone="muted">
-          サービス開始までしばらくお待ちください。
-        </Para>
-      </Stack>
-    </UserPage>
+    <MaintenanceGuard>
+      <UserPage>
+        <HideHeaderNav />
+        <HideFooter />
+        <HideBottomNav />
+        <Stack space={8} className="text-center py-12">
+          <UserPageTitle>ただいま準備中です</UserPageTitle>
+          <Para tone="muted">
+            現在サイトを準備しております。
+          </Para>
+          <Para tone="muted">
+            サービス開始までしばらくお待ちください。
+          </Para>
+        </Stack>
+      </UserPage>
+    </MaintenanceGuard>
   );
 }
