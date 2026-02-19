@@ -38,6 +38,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
           search.set("page", String(p));
           return `${paths.list}?${search.toString()}`;
         }}
+        usePageJump
       />
       <CreateButton domain="sample" />
     </ListTop>
