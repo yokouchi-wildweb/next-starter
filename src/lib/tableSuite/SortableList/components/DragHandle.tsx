@@ -27,7 +27,7 @@ export function DragHandle({
     <button
       type="button"
       className={cn(
-        "flex h-8 w-8 shrink-0 items-center justify-center rounded",
+        "relative flex h-8 w-8 shrink-0 items-center justify-center rounded",
         "text-muted-foreground hover:text-foreground",
         "hover:bg-muted/50 transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
