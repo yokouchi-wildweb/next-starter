@@ -2,3 +2,4 @@
 
 export { DragHandle } from "./DragHandle";
 export { SortableItem } from "./SortableItem";
+export { StaticItem } from "./StaticItem";

@@ -118,6 +118,11 @@ export type SortableListProps<T extends SortableItem> = Omit<
    */
   disabled?: boolean;
   /**
+   * アイテム単位のドラッグ無効化判定
+   * true を返すアイテムはドラッグ不可（SortableContext から除外される）
+   */
+  isItemDisabled?: (item: T) => boolean;
+  /**
    * アイテムの高さ。デフォルト: "md"
    */
   itemHeight?: RowHeight;

@@ -18,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { cn } from "@/lib/cn";
-import { SortableItem } from "./components";
+import { SortableItem, StaticItem } from "./components";
 import type {
   SortableItem as SortableItemType,
   SortableListProps,
@@ -67,6 +67,7 @@ export default function SortableList<T extends SortableItemType>({
   emptyMessage = "アイテムがありません",
   isLoading,
   disabled,
+  isItemDisabled,
   itemHeight = "md",
   itemPaddingX = "sm",
   itemPaddingY = "none",
@@ -163,24 +164,43 @@ export default function SortableList<T extends SortableItemType>({
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={items.map((item) => item.id)}
+          items={items
+            .filter((item) => !isItemDisabled?.(item))
+            .map((item) => item.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className="flex flex-col gap-2">
-            {items.map((item, index) => (
-              <SortableItem
-                key={item.id}
-                item={item}
-                columns={columns}
-                showDragHandle={showDragHandle}
-                draggingClassName={draggingClassName}
-                rowClassName={resolveRowClassName(rowClassName, item, { index })}
-                disabled={disabled}
-                itemHeight={itemHeight}
-                itemPaddingX={itemPaddingX}
-                itemPaddingY={itemPaddingY}
-              />
-            ))}
+            {items.map((item, index) =>
+              isItemDisabled?.(item) ? (
+                <StaticItem
+                  key={item.id}
+                  item={item}
+                  columns={columns}
+                  showDragHandle={showDragHandle}
+                  rowClassName={resolveRowClassName(rowClassName, item, {
+                    index,
+                  })}
+                  itemHeight={itemHeight}
+                  itemPaddingX={itemPaddingX}
+                  itemPaddingY={itemPaddingY}
+                />
+              ) : (
+                <SortableItem
+                  key={item.id}
+                  item={item}
+                  columns={columns}
+                  showDragHandle={showDragHandle}
+                  draggingClassName={draggingClassName}
+                  rowClassName={resolveRowClassName(rowClassName, item, {
+                    index,
+                  })}
+                  disabled={disabled}
+                  itemHeight={itemHeight}
+                  itemPaddingX={itemPaddingX}
+                  itemPaddingY={itemPaddingY}
+                />
+              )
+            )}
           </div>
         </SortableContext>
       </DndContext>
@@ -189,4 +209,4 @@ export default function SortableList<T extends SortableItemType>({
 }
 
 export * from "./types";
-export { DragHandle, SortableItem } from "./components";
+export { DragHandle, SortableItem, StaticItem } from "./components";
