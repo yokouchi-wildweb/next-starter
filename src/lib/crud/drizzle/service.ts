@@ -1078,11 +1078,8 @@ export function createCrudService<
       }
 
       const ids = records.map((r) => r.id);
-
-      // belongsToMany リレーションがあるかチェック
       const hasBelongsToMany = belongsToManyRelations.length > 0;
 
-      // 内部処理関数
       const performBulkUpdate = async (executor: DbTransaction | typeof db): Promise<BulkUpdateResult<Select>> => {
         // 存在するレコードを確認
         const existingRows = await executor
@@ -1092,82 +1089,129 @@ export function createCrudService<
         const existingIds = new Set(existingRows.map((r) => r.id));
         const notFoundIds = ids.filter((id) => !existingIds.has(id));
 
-        // 存在するレコードのみ更新
         const validRecords = records.filter((r) => existingIds.has(r.id));
         if (validRecords.length === 0) {
           return { results: [], count: 0, notFoundIds };
         }
 
-        const results: Select[] = [];
+        // 全レコードのパース・分離を先に実行
+        const parsed = await Promise.all(
+          validRecords.map(async (record) => {
+            const parsedInput = serviceOptions.parseUpdate
+              ? await serviceOptions.parseUpdate(record.data)
+              : record.data;
+            const { sanitizedData, relationValues } = separateBelongsToManyInput(
+              parsedInput,
+              belongsToManyRelations,
+            );
+            const updateData = omitUndefined({
+              ...sanitizedData,
+              ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
+            }) as Record<string, any>;
+            return { id: record.id, updateData, relationValues };
+          }),
+        );
 
-        for (const record of validRecords) {
-          const parsedInput = serviceOptions.parseUpdate
-            ? await serviceOptions.parseUpdate(record.data)
-            : record.data;
+        // カラム更新があるレコードを抽出
+        const recordsWithColumnUpdates = parsed.filter(
+          (p) => Object.keys(p.updateData).length > 0,
+        );
 
-          // belongsToMany フィールドを分離
-          const { sanitizedData, relationValues } = separateBelongsToManyInput(
-            parsedInput,
-            belongsToManyRelations
-          );
-
-          const updateData = omitUndefined({
-            ...sanitizedData,
-            ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
-          }) as PgUpdateSetSource<TTable>;
-
-          const hasColumnUpdates = Object.keys(updateData).length > 0;
-
-          let updated: Select | undefined;
-
-          if (hasColumnUpdates) {
-            // 通常のカラム更新がある場合
-            const [row] = (await executor
-              .update(table)
-              .set(updateData)
-              .where(eq(idColumn, record.id))
-              .returning()) as Select[];
-            updated = row;
-          } else if (relationValues.size > 0) {
-            // belongsToMany のみの場合、既存レコードを取得
-            const [row] = (await executor
-              .select()
-              .from(table as any)
-              .where(eq(idColumn, record.id))) as Select[];
-            updated = row;
+        // CASE WHEN 方式で1クエリにまとめてUPDATE
+        if (recordsWithColumnUpdates.length > 0) {
+          // 更新対象カラム名を収集（全レコード横断）
+          const allColumns = new Set<string>();
+          for (const p of recordsWithColumnUpdates) {
+            for (const key of Object.keys(p.updateData)) {
+              allColumns.add(key);
+            }
           }
 
-          if (updated) {
-            // belongsToMany リレーションを同期
-            if (relationValues.size > 0) {
-              await syncBelongsToManyRelations(
-                executor as DbTransaction,
-                belongsToManyRelations,
-                record.id,
-                relationValues
+          const bulkIds = recordsWithColumnUpdates.map((p) => p.id);
+          const setClause: Record<string, any> = {};
+
+          for (const col of allColumns) {
+            // 全レコードで同一値なら直接セット（CASE不要）
+            const values = recordsWithColumnUpdates.map((p) => p.updateData[col]);
+            const allSame = values.every((v) => v === values[0]);
+
+            if (allSame) {
+              setClause[col] = values[0];
+            } else {
+              // レコードごとに異なる値: CASE WHEN 方式
+              const fragments = recordsWithColumnUpdates.map((p) => {
+                const val = p.updateData[col];
+                return val !== undefined
+                  ? sql`WHEN ${sql.raw(`'${p.id}'`)} THEN ${val}`
+                  : sql`WHEN ${sql.raw(`'${p.id}'`)} THEN ${sql.raw(`"${col}"`)}`;
+              });
+              setClause[col] = sql.join(
+                [sql`CASE ${idColumn}`, ...fragments, sql`END`],
+                sql` `,
               );
-              assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
             }
-            results.push(updated);
+          }
+
+          await executor
+            .update(table)
+            .set(setClause as PgUpdateSetSource<TTable>)
+            .where(inArray(idColumn, bulkIds));
+        }
+
+        // belongsToMany リレーションを同期
+        // 同一リレーション値のレコードをグルーピングして bulkSync 適用
+        const recordsWithRelations = parsed.filter((p) => p.relationValues.size > 0);
+        if (recordsWithRelations.length > 0) {
+          // リレーション値をキーにグルーピング
+          const groups = new Map<string, string[]>();
+          for (const p of recordsWithRelations) {
+            const key = JSON.stringify(
+              Array.from(p.relationValues.entries()).sort(([a], [b]) => a.localeCompare(b)),
+            );
+            const group = groups.get(key) ?? [];
+            group.push(p.id);
+            groups.set(key, group);
+          }
+
+          for (const [key, groupIds] of groups) {
+            const relationValues = recordsWithRelations.find(
+              (p) => JSON.stringify(
+                Array.from(p.relationValues.entries()).sort(([a], [b]) => a.localeCompare(b)),
+              ) === key,
+            )!.relationValues;
+            await bulkSyncBelongsToManyRelations(
+              executor as DbTransaction,
+              belongsToManyRelations,
+              groupIds,
+              relationValues,
+            );
           }
         }
 
-        return { results, count: results.length, notFoundIds };
+        // 更新後のレコードを1クエリで取得
+        const validIds = validRecords.map((r) => r.id);
+        const updatedRows = (await executor
+          .select()
+          .from(table as any)
+          .where(inArray(idColumn, validIds))) as Select[];
+
+        // ローカルでリレーション値をアサイン
+        for (const row of updatedRows) {
+          const p = parsed.find((pp) => pp.id === (row as any).id);
+          if (p && p.relationValues.size > 0) {
+            assignLocalRelationValues(row as any, belongsToManyRelations, p.relationValues);
+          }
+        }
+
+        return { results: updatedRows, count: updatedRows.length, notFoundIds };
       };
 
-      // 外部トランザクションが渡された場合はそれを使用
       if (tx) {
         return performBulkUpdate(tx);
       }
-
-      // belongsToMany がある場合はトランザクション内で実行
       if (hasBelongsToMany) {
-        return db.transaction(async (innerTx) => {
-          return performBulkUpdate(innerTx);
-        });
+        return db.transaction(async (innerTx) => performBulkUpdate(innerTx));
       }
-
-      // belongsToMany がなければトランザクションなしで実行
       return performBulkUpdate(db);
     },
 

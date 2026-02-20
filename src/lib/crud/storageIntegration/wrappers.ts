@@ -59,12 +59,17 @@ export function createStorageAwareBulkDeleteByIds<T extends BaseService>(
 
   return async (ids: string[]): Promise<void> => {
     if (storageFields.length && ids.length) {
-      const records = await Promise.all(ids.map((id) => base.get(id)));
-      await Promise.all(
-        records
-          .filter((r): r is Record<string, unknown> => r !== undefined)
-          .map((r) => cleanupStorageFiles(r, storageFields))
-      );
+      // 1クエリで全レコードを取得（bulkDeleteByQuery と同じパターン）
+      let records: Record<string, unknown>[] = [];
+      if (base.search) {
+        const result = await base.search({ where: { field: "id", op: "in", value: ids }, limit: ids.length });
+        records = result.results;
+      } else {
+        // search が未定義の場合はフォールバック
+        const fetched = await Promise.all(ids.map((id) => base.get(id)));
+        records = fetched.filter((r): r is Record<string, unknown> => r !== undefined);
+      }
+      await Promise.all(records.map((r) => cleanupStorageFiles(r, storageFields)));
     }
     await base.bulkDeleteByIds?.(ids);
   };
