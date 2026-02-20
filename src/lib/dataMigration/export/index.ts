@@ -4,7 +4,7 @@ import "server-only";
 import { getServiceOrThrow, getJunctionTable } from "@/lib/domain/server";
 import { getDataMigrationConfig, CHUNK_SIZE } from "../config";
 import { generateCsv, csvToBuffer } from "./generateCsv";
-import { createZip, downloadImage, extractFilename, type ZipEntry } from "./createZip";
+import { createZip, downloadChunkImages, type ZipEntry } from "./createZip";
 import {
   collectExportDomains,
   type ExportDomainInfo,
@@ -224,33 +224,12 @@ export async function exportData(
 
       console.log(`[Export] Processing ${chunkFolderName}: ${chunkRecords.length} records`);
 
-      // 画像を含める場合、先にダウンロードして CSV のパスを置き換える
-      const recordsForCsv = [...chunkRecords];
+      // 画像を含める場合、並列ダウンロードして CSV のパスを置き換える
+      let recordsForCsv = chunkRecords;
       if (includeImages && imageFields.length > 0) {
-        for (let i = 0; i < recordsForCsv.length; i++) {
-          const record = recordsForCsv[i];
-          const recordId = String(record.id || "unknown");
-
-          for (const imageField of imageFields) {
-            const imageUrl = record[imageField];
-            if (typeof imageUrl === "string" && imageUrl.startsWith("http")) {
-              const imageBuffer = await downloadImage(imageUrl);
-              if (imageBuffer) {
-                const filename = extractFilename(imageUrl, recordId);
-                const assetPath = `assets/${imageField}/${filename}`;
-
-                // ZIP にアセットを追加
-                zipEntries.push({
-                  path: `${chunkFolderName}/${assetPath}`,
-                  content: imageBuffer,
-                });
-
-                // CSV 用にパスを置き換え
-                recordsForCsv[i] = { ...recordsForCsv[i], [imageField]: assetPath };
-              }
-            }
-          }
-        }
+        const imageResult = await downloadChunkImages(chunkRecords, imageFields, chunkFolderName);
+        recordsForCsv = imageResult.modifiedRecords;
+        zipEntries.push(...imageResult.zipEntries);
       }
 
       // このチャンクの CSV を生成（画像パスは assets/... に置換済み）
@@ -481,33 +460,12 @@ async function exportDomainRecords(
 
     const chunkFolderName = `chunk_${String(chunkIndex).padStart(3, "0")}`;
 
-    // 画像を含める場合、先にダウンロードして CSV のパスを置き換える
-    const recordsForCsv = [...chunkRecords];
+    // 画像を含める場合、並列ダウンロードして CSV のパスを置き換える
+    let recordsForCsv = chunkRecords;
     if (includeImages && imageFields.length > 0) {
-      for (let i = 0; i < recordsForCsv.length; i++) {
-        const record = recordsForCsv[i];
-        const recordId = String(record.id || "unknown");
-
-        for (const imageField of imageFields) {
-          const imageUrl = record[imageField];
-          if (typeof imageUrl === "string" && imageUrl.startsWith("http")) {
-            const imageBuffer = await downloadImage(imageUrl);
-            if (imageBuffer) {
-              const filename = extractFilename(imageUrl, recordId);
-              const assetPath = `assets/${imageField}/${filename}`;
-
-              // ZIP にアセットを追加
-              zipEntries.push({
-                path: `${domain}/${chunkFolderName}/${assetPath}`,
-                content: imageBuffer,
-              });
-
-              // CSV 用にパスを置き換え
-              recordsForCsv[i] = { ...recordsForCsv[i], [imageField]: assetPath };
-            }
-          }
-        }
-      }
+      const imageResult = await downloadChunkImages(chunkRecords, imageFields, `${domain}/${chunkFolderName}`);
+      recordsForCsv = imageResult.modifiedRecords;
+      zipEntries.push(...imageResult.zipEntries);
     }
 
     // このチャンクの CSV を生成（画像パスは assets/... に置換済み）

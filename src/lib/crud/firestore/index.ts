@@ -82,8 +82,8 @@ export function createCrudService<
 
       const finalInsert = omitUndefined(insertData);
       await docRef.set(finalInsert);
-      const snap = await docRef.get();
-      return convertTimestamps({ id: docRef.id, ...(snap.data() as T) } as Select);
+      // serverTimestamp() 未使用のため読み戻し不要 — 入力値をそのまま返却
+      return convertTimestamps({ id: docRef.id, ...finalInsert } as unknown as Select);
     },
 
     async list(): Promise<Select[]> {
@@ -316,10 +316,12 @@ export function createCrudService<
 
         await batch.commit();
 
-        // 結果を取得
-        for (const ref of refs) {
-          const snap = await ref.get();
-          results.push(convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select));
+        // 結果を一括取得（N回の個別 get → 1回の getAll）
+        const snaps = await firestore.getAll(...refs);
+        for (const snap of snaps) {
+          if (snap.exists) {
+            results.push(convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select));
+          }
         }
       }
 
@@ -339,8 +341,8 @@ export function createCrudService<
 
       const ids = records.map((r) => r.id);
 
-      // 存在するレコードを確認
-      const existingDocs = await Promise.all(ids.map((id) => col.doc(id).get()));
+      // 存在するレコードを一括確認（N回の個別 get → 1回の getAll）
+      const existingDocs = await firestore.getAll(...ids.map((id) => col.doc(id)));
       const existingIds = new Set(
         existingDocs.filter((doc) => doc.exists).map((doc) => doc.id)
       );
@@ -378,10 +380,12 @@ export function createCrudService<
 
         await batch.commit();
 
-        // 結果を取得
-        for (const ref of refs) {
-          const snap = await ref.get();
-          results.push(convertTimestamps({ id: ref.id, ...(snap.data() as T) } as Select));
+        // 結果を一括取得（N回の個別 get → 1回の getAll）
+        const snaps = await firestore.getAll(...refs);
+        for (const snap of snaps) {
+          if (snap.exists) {
+            results.push(convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select));
+          }
         }
       }
 

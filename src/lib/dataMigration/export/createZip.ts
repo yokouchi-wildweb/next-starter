@@ -68,6 +68,68 @@ export async function downloadImage(url: string): Promise<Buffer | null> {
 }
 
 /**
+ * チャンク内の画像を並列ダウンロードし、レコードのURLをアセットパスに置換する
+ * @param records チャンク内のレコード配列
+ * @param imageFields 画像フィールド名のリスト
+ * @param pathPrefix ZIP 内のパスプレフィックス（例: "chunk_001" or "domain/chunk_001"）
+ * @returns 置換済みレコードと ZIP エントリ
+ */
+export async function downloadChunkImages(
+  records: Record<string, unknown>[],
+  imageFields: string[],
+  pathPrefix: string,
+): Promise<{ modifiedRecords: Record<string, unknown>[]; zipEntries: ZipEntry[] }> {
+  type Task = { recordIndex: number; imageField: string; url: string; recordId: string };
+  const tasks: Task[] = [];
+
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i];
+    const recordId = String(record.id || "unknown");
+    for (const imageField of imageFields) {
+      const imageUrl = record[imageField];
+      if (typeof imageUrl === "string" && imageUrl.startsWith("http")) {
+        tasks.push({ recordIndex: i, imageField, url: imageUrl, recordId });
+      }
+    }
+  }
+
+  if (tasks.length === 0) {
+    return { modifiedRecords: records, zipEntries: [] };
+  }
+
+  const modifiedRecords = records.map((r) => ({ ...r }));
+  const zipEntries: ZipEntry[] = [];
+  const CONCURRENCY = 5;
+
+  for (let i = 0; i < tasks.length; i += CONCURRENCY) {
+    const batch = tasks.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      batch.map(async (task) => ({
+        ...task,
+        imageBuffer: await downloadImage(task.url),
+      })),
+    );
+
+    for (const result of results) {
+      if (result.imageBuffer) {
+        const filename = extractFilename(result.url, result.recordId);
+        const assetPath = `assets/${result.imageField}/${filename}`;
+        zipEntries.push({
+          path: `${pathPrefix}/${assetPath}`,
+          content: result.imageBuffer,
+        });
+        modifiedRecords[result.recordIndex] = {
+          ...modifiedRecords[result.recordIndex],
+          [result.imageField]: assetPath,
+        };
+      }
+    }
+  }
+
+  return { modifiedRecords, zipEntries };
+}
+
+/**
  * URL からファイル名を抽出
  * @param url 画像の URL
  * @param recordId レコード ID
