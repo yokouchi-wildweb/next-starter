@@ -6,6 +6,7 @@ import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-f
 import {
   BooleanCheckboxInput,
   CheckGroupInput,
+  ColorInput,
   ComboboxInput,
   DateInput,
   DatetimeInput,
@@ -191,6 +192,9 @@ export function renderInputByFormType<
     case "passwordInput":
       return <PasswordInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
+    case "colorInput":
+      return <ColorInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
     case "hidden":
       return <input type="hidden" {...field} />;
 
@@ -305,6 +309,9 @@ const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none">
   dateInput: "immediate",
   timeInput: "immediate",
   datetimeInput: "immediate",
+
+  // 即時保存: カラーピッカー確定時
+  colorInput: "immediate",
 
   // デバウンス保存: 連続操作の可能性がある
   checkbox: "debounce",

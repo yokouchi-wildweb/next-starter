@@ -32,3 +32,4 @@ export { ComboboxInput } from "./ComboboxInput";
 export type { ControlledComboboxInputProps } from "./ComboboxInput";
 export { AsyncComboboxInput } from "./AsyncComboboxInput";
 export type { ControlledAsyncComboboxInputProps } from "./AsyncComboboxInput";
+export { ColorInput } from "./ColorInput";
