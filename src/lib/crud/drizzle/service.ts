@@ -1475,7 +1475,7 @@ export function createCrudService<
      * @param params - 検索パラメータ
      * @returns 検索結果（NULL が初期化済み）
      */
-    async searchForSorting(params: SearchParams): Promise<PaginatedResult<Select>> {
+    async searchForSorting(params: SearchParams & ExtraWhereOption): Promise<PaginatedResult<Select>> {
       if (!sortOrderColumn) {
         throw new DomainError(
           "searchForSorting() requires sortOrderColumn to be configured in service options.",
