@@ -131,6 +131,7 @@
 | datetimeInput | 日時入力 |
 | emailInput | メール入力 |
 | passwordInput | パスワード入力 |
+| colorInput | カラーピッカー + hexコード入力 |
 | mediaUploader | メディアアップロード |
 | hidden | 非表示入力 |
 | none | 入力なし（フォームに出さない、スキーマからも除外） |
