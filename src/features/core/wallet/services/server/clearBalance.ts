@@ -3,7 +3,7 @@
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 /**
@@ -26,36 +26,36 @@ export async function clearBalance(userId: string, tx: DbTransaction): Promise<v
 
   const requestBatchId = randomUUID();
 
-  for (const wallet of wallets) {
-    // 残高が既に0の場合はスキップ
-    if (wallet.balance === 0 && wallet.locked_balance === 0) {
-      continue;
-    }
+  // 残高が0でないウォレットのみ対象
+  const nonZeroWallets = wallets.filter(
+    (w) => w.balance !== 0 || w.locked_balance !== 0,
+  );
+  if (nonZeroWallets.length === 0) return;
 
-    const balanceBefore = wallet.balance;
+  // バルクUPDATE: 対象ウォレットの残高を一括で0に設定
+  const nonZeroIds = nonZeroWallets.map((w) => w.id);
+  await tx
+    .update(WalletTable)
+    .set({
+      balance: 0,
+      locked_balance: 0,
+      updatedAt: new Date(),
+    })
+    .where(inArray(WalletTable.id, nonZeroIds));
 
-    // 残高を0に設定
-    await tx
-      .update(WalletTable)
-      .set({
-        balance: 0,
-        locked_balance: 0,
-        updatedAt: new Date(),
-      })
-      .where(eq(WalletTable.id, wallet.id));
-
-    // ウォレット履歴を記録
-    await tx.insert(WalletHistoryTable).values({
+  // バルクINSERT: ウォレット履歴を一括記録
+  await tx.insert(WalletHistoryTable).values(
+    nonZeroWallets.map((wallet) => ({
       user_id: userId,
       type: wallet.type,
-      change_method: "SET",
+      change_method: "SET" as const,
       points_delta: 0,
-      balance_before: balanceBefore,
+      balance_before: wallet.balance,
       balance_after: 0,
-      source_type: "system",
+      source_type: "system" as const,
       request_batch_id: requestBatchId,
       reason: "ユーザーソフトデリートによる残高クリア",
       meta: {},
-    });
-  }
+    })),
+  );
 }

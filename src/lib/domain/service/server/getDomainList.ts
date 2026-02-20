@@ -94,29 +94,36 @@ export function getDomainList(): DomainInfo[] {
  */
 export async function getDomainListWithCount(): Promise<DomainInfoWithCount[]> {
   const domains = getDomainList();
-  const results: DomainInfoWithCount[] = [];
 
-  for (const domain of domains) {
-    const service = serviceRegistry[domain.key];
-    let recordCount = 0;
+  // 全ドメインのレコード数取得を並列実行（同時実行数制限付き）
+  const CONCURRENCY = 5;
+  const counts = new Array<number>(domains.length).fill(0);
 
-    if (hasSearch(service)) {
-      try {
-        const result = await service.search({ limit: 1 });
-        recordCount = result.total;
-      } catch {
-        // 検索失敗時は0として扱う
-        recordCount = 0;
-      }
-    }
-
-    results.push({
-      ...domain,
-      recordCount,
+  for (let i = 0; i < domains.length; i += CONCURRENCY) {
+    const chunk = domains.slice(i, i + CONCURRENCY);
+    const chunkCounts = await Promise.all(
+      chunk.map(async (domain) => {
+        const service = serviceRegistry[domain.key];
+        if (hasSearch(service)) {
+          try {
+            const result = await service.search({ limit: 1 });
+            return result.total;
+          } catch {
+            return 0;
+          }
+        }
+        return 0;
+      }),
+    );
+    chunkCounts.forEach((count, j) => {
+      counts[i + j] = count;
     });
   }
 
-  return results;
+  return domains.map((domain, i) => ({
+    ...domain,
+    recordCount: counts[i]!,
+  }));
 }
 
 /**

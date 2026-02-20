@@ -11,7 +11,7 @@
 // }, tx);
 // ```
 
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 import { MilestoneTable } from "@/features/core/milestone/entities/drizzle";
@@ -58,31 +58,32 @@ export async function evaluateMilestones(
   const executor = tx ?? db;
   const results: MilestoneEvaluationResult[] = [];
 
+  // 達成済みマイルストーンを1クエリで一括取得
+  const allKeys = definitions.map((d) => d.key);
+  const achievedRows = await executor
+    .select({ milestone_key: MilestoneTable.milestone_key })
+    .from(MilestoneTable)
+    .where(
+      and(
+        eq(MilestoneTable.user_id, context.userId),
+        inArray(MilestoneTable.milestone_key, allKeys),
+      ),
+    );
+  const achievedKeys = new Set(achievedRows.map((r) => r.milestone_key));
+
   for (let i = 0; i < definitions.length; i++) {
     const def = definitions[i];
     const savepointName = `milestone_eval_${i}`;
+
+    // 達成済み → スキップ（DBアクセス不要）
+    if (achievedKeys.has(def.key)) {
+      continue;
+    }
 
     try {
       // tx がある場合は SAVEPOINT で分離（DB エラー時にトランザクション全体を汚染しない）
       if (tx) {
         await tx.execute(sql.raw(`SAVEPOINT ${savepointName}`));
-      }
-
-      // 1. 既に達成済み？ → スキップ
-      const existing = await executor
-        .select({ id: MilestoneTable.id })
-        .from(MilestoneTable)
-        .where(
-          and(
-            eq(MilestoneTable.user_id, context.userId),
-            eq(MilestoneTable.milestone_key, def.key),
-          ),
-        )
-        .limit(1);
-
-      if (existing.length > 0) {
-        if (tx) await tx.execute(sql.raw(`RELEASE SAVEPOINT ${savepointName}`));
-        continue;
       }
 
       // 2. 条件評価（tx を渡してトランザクション内の最新状態を参照可能にする）

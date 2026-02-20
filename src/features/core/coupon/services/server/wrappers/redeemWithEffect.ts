@@ -5,7 +5,6 @@
 // 消費側ドメインのハンドラーに委譲する。
 
 import { redeem } from "../redemption/redeem";
-import { getCouponByCode } from "../redemption/utils";
 import "../../../handlers/init";
 import { getCouponHandler } from "../../../handlers/registry";
 import type { RedeemWithEffectResult } from "../../../types/redeem";
@@ -35,9 +34,9 @@ export async function redeemWithEffect(
     return redeemResult;
   }
 
-  // 2. ハンドラーの追加処理
-  const coupon = await getCouponByCode(code, tx);
-  if (coupon?.category) {
+  // 2. ハンドラーの追加処理（redeem() が返した coupon を利用し、再取得を回避）
+  const { coupon } = redeemResult;
+  if (coupon.category) {
     const handler = getCouponHandler(coupon.category);
     if (handler?.onRedeemed) {
       await handler.onRedeemed({

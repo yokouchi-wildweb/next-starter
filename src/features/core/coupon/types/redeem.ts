@@ -38,6 +38,7 @@ export type RedeemResult =
   | {
       success: true;
       history: CouponHistory;
+      coupon: Coupon;
     }
   | {
       success: false;

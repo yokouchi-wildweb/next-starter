@@ -85,6 +85,6 @@ export async function redeem(
       trx
     );
 
-    return { success: true, history };
+    return { success: true, history, coupon: lockedCoupon };
   });
 }
