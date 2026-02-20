@@ -3,7 +3,7 @@
 import { db } from "@/lib/drizzle";
 import { omitUndefined } from "@/utils/object";
 import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, desc, getTableName, gt } from "drizzle-orm";
-import { generateSortKey, generateFirstSortKey, generateLastSortKey } from "./fractionalSort";
+import { generateSortKey, generateFirstSortKey, generateLastSortKey, generateLastSortKeys } from "./fractionalSort";
 import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
@@ -1363,9 +1363,10 @@ export function createCrudService<
      *
      * @param ids - 初期化対象のレコードID配列（この順序で sort_order を付与）
      * @param tx - オプションのトランザクション
+     * @returns ID → 割り当てられた sort_order のマップ
      */
-    async initializeSortOrder(ids: string[], tx?: DbTransaction): Promise<void> {
-      if (!sortOrderColumn || ids.length === 0) return;
+    async initializeSortOrder(ids: string[], tx?: DbTransaction): Promise<Map<string, string>> {
+      if (!sortOrderColumn || ids.length === 0) return new Map();
 
       const sortOrderFieldName = (sortOrderColumn as any).name as string;
       const executor = tx ?? db;
@@ -1378,21 +1379,37 @@ export function createCrudService<
         .orderBy(desc(sortOrderColumn))
         .limit(1) as { sortOrder: string | null }[];
 
-      let prevKey = maxResults[0]?.sortOrder ?? null;
+      const prevKey = maxResults[0]?.sortOrder ?? null;
 
-      // 各IDに対して順番に sort_order を付与
-      for (const id of ids) {
-        const newKey = generateLastSortKey(prevKey);
-        const updateData = { [sortOrderFieldName]: newKey } as Record<string, any>;
-        if (serviceOptions.useUpdatedAt) {
-          updateData.updatedAt = new Date();
-        }
-        await executor
-          .update(table)
-          .set(updateData)
-          .where(eq(idColumn, id));
-        prevKey = newKey;
+      // メモリ上で全キーを一括生成
+      const newKeys = generateLastSortKeys(prevKey, ids.length);
+      const keyMap = new Map<string, string>();
+      ids.forEach((id, i) => keyMap.set(id, newKeys[i]!));
+
+      // 1クエリでバッチUPDATE: UPDATE table SET sort_order = CASE id WHEN ... END
+      const updatedAt = serviceOptions.useUpdatedAt ? new Date() : undefined;
+      const caseFragments = ids.map((id, i) =>
+        sql`WHEN ${sql.raw(`'${id}'`)} THEN ${newKeys[i]!}`
+      );
+      const caseExpr = sql.join([
+        sql`CASE ${idColumn}`,
+        ...caseFragments,
+        sql`END`,
+      ], sql` `);
+
+      const setClause: Record<string, any> = {
+        [sortOrderFieldName]: caseExpr,
+      };
+      if (updatedAt) {
+        setClause.updatedAt = updatedAt;
       }
+
+      await executor
+        .update(table)
+        .set(setClause as PgUpdateSetSource<TTable>)
+        .where(inArray(idColumn, ids));
+
+      return keyMap;
     },
 
     /**
@@ -1413,7 +1430,7 @@ export function createCrudService<
 
       const sortOrderFieldName = (sortOrderColumn as any).name as string;
 
-      // まず通常の検索を実行
+      // 通常の検索を実行
       const results = await this.search(params);
 
       // sort_order が NULL のアイテムを抽出
@@ -1429,7 +1446,6 @@ export function createCrudService<
       const nullIds = nullItems.map((item: any) => item.id as string);
 
       // defaultOrderBy に従って NULL アイテムの順序を決定
-      // 未設定の場合は createdAt DESC をフォールバック
       const initOrderBy = serviceOptions.defaultOrderBy ?? [["createdAt", "DESC"]];
       const orderedNullItems = await db
         .select({ id: idColumn })
@@ -1439,11 +1455,18 @@ export function createCrudService<
 
       const orderedNullIds = orderedNullItems.map((item) => String(item.id));
 
-      // sort_order を初期化
-      await this.initializeSortOrder(orderedNullIds);
+      // sort_order を初期化し、割り当てられたキーマップを取得
+      const keyMap = await this.initializeSortOrder(orderedNullIds);
 
-      // 更新後のデータを再取得
-      return this.search(params);
+      // 1回目の結果に初期化された sort_order をマージ（再searchを回避）
+      for (const item of results.results) {
+        const assignedKey = keyMap.get((item as any).id);
+        if (assignedKey !== undefined) {
+          (item as any)[sortOrderFieldName] = assignedKey;
+        }
+      }
+
+      return results;
     },
   };
 }

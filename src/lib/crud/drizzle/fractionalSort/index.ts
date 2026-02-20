@@ -1,6 +1,6 @@
 // src/lib/fractionalSort/index.ts
 
-import { generateKeyBetween } from "fractional-indexing";
+import { generateKeyBetween, generateNKeysBetween } from "fractional-indexing";
 
 /**
  * Fractional Indexing を使ったソート順管理ユーティリティ
@@ -63,15 +63,17 @@ export function generateInitialSortKey(): string {
  */
 export function generateInitialSortKeys(count: number): string[] {
   if (count <= 0) return [];
+  return generateNKeysBetween(null, null, count);
+}
 
-  const keys: string[] = [];
-  let prev: string | null = null;
-
-  for (let i = 0; i < count; i++) {
-    const key = generateKeyBetween(prev, null);
-    keys.push(key);
-    prev = key;
-  }
-
-  return keys;
+/**
+ * 指定したキーの後ろに複数のソートキーを一括生成
+ *
+ * @param afterKey - 直前のソートキー（null でリスト先頭から）
+ * @param count - 生成するキーの数
+ * @returns ソートキーの配列（昇順）
+ */
+export function generateLastSortKeys(afterKey: string | null, count: number): string[] {
+  if (count <= 0) return [];
+  return generateNKeysBetween(afterKey, null, count);
 }
