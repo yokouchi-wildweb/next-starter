@@ -29,68 +29,65 @@ export async function hydrateBelongsTo<T extends Record<string, any>>(
 ): Promise<void> {
   if (records.length === 0 || relations.length === 0 || depth < 1) return;
 
-  for (const rel of relations) {
-    // 1. 全レコードから外部キーを収集（重複除去、null/undefined除外）
-    const foreignKeys = [
-      ...new Set(
-        records
-          .map((r) => r[rel.foreignKey])
-          .filter((fk): fk is string => fk != null && fk !== "")
-      ),
-    ];
+  // 1階層目のデータ取得を全リレーション並列で実行
+  await Promise.all(
+    relations.map(async (rel) => {
+      const foreignKeys = [
+        ...new Set(
+          records
+            .map((r) => r[rel.foreignKey])
+            .filter((fk): fk is string => fk != null && fk !== "")
+        ),
+      ];
 
-    if (foreignKeys.length === 0) {
-      // 全レコードに null を設定
+      if (foreignKeys.length === 0) {
+        for (const record of records) {
+          (record as any)[rel.field] = null;
+        }
+        return;
+      }
+
+      const relatedRecords = await db
+        .select()
+        .from(rel.table)
+        .where(inArray(rel.table.id, foreignKeys));
+
+      const relatedMap = new Map(
+        relatedRecords.map((r: any) => [r.id, r])
+      );
+
       for (const record of records) {
-        (record as any)[rel.field] = null;
+        const fk = record[rel.foreignKey];
+        (record as any)[rel.field] = fk ? relatedMap.get(fk) ?? null : null;
       }
-      continue;
+    }),
+  );
+
+  // 2階層目のネスト展開（1階層目の取得完了後に実行）
+  for (const rel of relations) {
+    if (depth <= 1 || !rel.nested) continue;
+
+    const nestedRecords = records
+      .map((r) => r[rel.field])
+      .filter((r): r is Record<string, any> => r != null);
+
+    if (nestedRecords.length === 0) continue;
+
+    if (rel.nested.belongsTo && rel.nested.belongsTo.length > 0) {
+      await hydrateBelongsTo(
+        nestedRecords,
+        rel.nested.belongsTo,
+        depth - 1,
+        hydrateBelongsToMany,
+      );
     }
 
-    // 2. IN句で一括取得
-    const relatedRecords = await db
-      .select()
-      .from(rel.table)
-      .where(inArray(rel.table.id, foreignKeys));
-
-    // 3. Map化してO(1)で参照
-    const relatedMap = new Map(
-      relatedRecords.map((r: any) => [r.id, r])
-    );
-
-    // 4. 各レコードに紐付け
-    for (const record of records) {
-      const fk = record[rel.foreignKey];
-      (record as any)[rel.field] = fk ? relatedMap.get(fk) ?? null : null;
-    }
-
-    // 5. 2階層目の展開（depth > 1 かつ nested 設定がある場合）
-    if (depth > 1 && rel.nested) {
-      // リレーション先のレコードを収集（nullを除外）
-      const nestedRecords = records
-        .map((r) => r[rel.field])
-        .filter((r): r is Record<string, any> => r != null);
-
-      if (nestedRecords.length > 0) {
-        // belongsTo のネスト展開
-        if (rel.nested.belongsTo && rel.nested.belongsTo.length > 0) {
-          await hydrateBelongsTo(
-            nestedRecords,
-            rel.nested.belongsTo,
-            depth - 1,
-            hydrateBelongsToMany,
-          );
-        }
-
-        // belongsToMany のネスト展開
-        if (hydrateBelongsToMany && rel.nested.belongsToMany && rel.nested.belongsToMany.length > 0) {
-          await hydrateBelongsToMany(
-            nestedRecords,
-            rel.nested.belongsToMany,
-            depth - 1,
-          );
-        }
-      }
+    if (hydrateBelongsToMany && rel.nested.belongsToMany && rel.nested.belongsToMany.length > 0) {
+      await hydrateBelongsToMany(
+        nestedRecords,
+        rel.nested.belongsToMany,
+        depth - 1,
+      );
     }
   }
 }

@@ -15,7 +15,6 @@ export const runQuery = async <T>(
   let resultQuery = baseQuery as any;
   if (where) resultQuery = resultQuery.where(where);
   if (orderBy.length) resultQuery = resultQuery.orderBy(...(orderBy as any[]));
-  const results = await resultQuery.limit(limit).offset(offset);
 
   let totalQuery: any;
   if (countQuery) {
@@ -25,7 +24,12 @@ export const runQuery = async <T>(
     totalQuery = db.select({ count: sql<number>`count(*)` }).from(table as any);
     if (where) totalQuery = totalQuery.where(where);
   }
-  const [{ count }] = await totalQuery;
+
+  // DATA + COUNT を並列実行
+  const [results, [{ count }]] = await Promise.all([
+    resultQuery.limit(limit).offset(offset),
+    totalQuery,
+  ]);
 
   return { results: results as T[], total: Number(count) };
 };

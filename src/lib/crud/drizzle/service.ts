@@ -26,6 +26,7 @@ import {
   hydrateBelongsToManyRelations,
   separateBelongsToManyInput,
   syncBelongsToManyRelations,
+  bulkSyncBelongsToManyRelations,
 } from "./belongsToMany";
 import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateCount } from "./relations";
 
@@ -823,14 +824,12 @@ export function createCrudService<
             .set(updateData)
             .where(inArray(idColumn, ids));
         }
-        for (const id of ids) {
-          await syncBelongsToManyRelations(
-            executor as DbTransaction,
-            belongsToManyRelations,
-            id,
-            relationValues,
-          );
-        }
+        await bulkSyncBelongsToManyRelations(
+          executor as DbTransaction,
+          belongsToManyRelations,
+          ids,
+          relationValues,
+        );
         return { count: ids.length };
       };
 
@@ -1204,16 +1203,14 @@ export function createCrudService<
       const truncatedTables: string[] = [];
       const mainTableName = getTableName(table);
 
-      // belongsToMany中間テーブルを先に削除
-      for (const relation of belongsToManyRelations) {
-        const throughTableName = getTableName(relation.throughTable);
-        await db.execute(sql.raw(`TRUNCATE TABLE "${throughTableName}" CASCADE`));
-        truncatedTables.push(throughTableName);
-      }
-
-      // メインテーブルをTRUNCATE
-      await db.execute(sql.raw(`TRUNCATE TABLE "${mainTableName}" CASCADE`));
-      truncatedTables.push(mainTableName);
+      // 中間テーブル + メインテーブルを1クエリでTRUNCATE
+      const throughTableNames = belongsToManyRelations.map((relation) =>
+        getTableName(relation.throughTable),
+      );
+      const allTableNames = [...throughTableNames, mainTableName];
+      const quotedNames = allTableNames.map((name) => `"${name}"`).join(", ");
+      await db.execute(sql.raw(`TRUNCATE TABLE ${quotedNames} CASCADE`));
+      truncatedTables.push(...allTableNames);
 
       return truncatedTables;
     },

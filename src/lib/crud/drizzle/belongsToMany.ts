@@ -63,6 +63,37 @@ export async function syncBelongsToManyRelations(
   }
 }
 
+/**
+ * 複数レコードのbelongsToManyリレーションを一括同期する。
+ * リレーションごとに DELETE 1回 + INSERT 1回 = 計2クエリで完了。
+ */
+export async function bulkSyncBelongsToManyRelations(
+  executor: Pick<typeof db, "insert" | "delete">,
+  relations: Array<BelongsToManyRelationConfig<any>>,
+  recordIds: Array<string | number>,
+  relationValues: RelationValueMap,
+) {
+  if (!relations.length || !relationValues.size || !recordIds.length) return;
+
+  for (const relation of relations) {
+    if (!relationValues.has(relation.fieldName)) continue;
+    const values = relationValues.get(relation.fieldName) ?? [];
+
+    // 全対象レコードの既存リレーションを1クエリで削除
+    await executor.delete(relation.throughTable).where(inArray(relation.sourceColumn, recordIds));
+    if (!values.length) continue;
+
+    // 全対象レコード × 全リレーション値を1クエリで挿入
+    const rows = recordIds.flatMap((recordId) =>
+      values.map((targetId) => ({
+        [relation.sourceProperty]: recordId,
+        [relation.targetProperty]: targetId,
+      })),
+    );
+    await executor.insert(relation.throughTable).values(rows);
+  }
+}
+
 export function assignLocalRelationValues<TRecord extends Record<string, any>>(
   record: TRecord,
   relations: Array<BelongsToManyRelationConfig<any>>,

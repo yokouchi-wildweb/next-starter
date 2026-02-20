@@ -1,7 +1,7 @@
 // src/lib/fractionalSort/server.ts
 
 import { db } from "@/lib/drizzle";
-import { eq, gt, asc } from "drizzle-orm";
+import { eq, gt, asc, desc } from "drizzle-orm";
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
 import { generateSortKey, generateFirstSortKey } from "./index";
 
@@ -92,12 +92,10 @@ export async function calculateLastSortOrder<TTable extends PgTable>(
   const results = await db
     .select({ sortOrder: sortOrderColumn })
     .from(table as any)
-    .orderBy(asc(sortOrderColumn)) as SortOrderRecord[];
+    .orderBy(desc(sortOrderColumn))
+    .limit(1) as SortOrderRecord[];
 
-  // 末尾のsortOrderを取得
-  const lastSortOrder = results.length > 0
-    ? results[results.length - 1]?.sortOrder ?? null
-    : null;
+  const lastSortOrder = results[0]?.sortOrder ?? null;
 
   return generateSortKey(lastSortOrder, null);
 }

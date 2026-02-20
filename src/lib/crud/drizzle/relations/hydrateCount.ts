@@ -38,37 +38,35 @@ export async function hydrateCount<T extends Record<string, any>>(
     }
   }
 
-  for (const rel of relations) {
-    // 中間テーブルの外部キーカラムを取得
-    const foreignKeyColumn = (rel.throughTable as any)[rel.foreignKey];
+  await Promise.all(
+    relations.map(async (rel) => {
+      const foreignKeyColumn = (rel.throughTable as any)[rel.foreignKey];
 
-    if (!foreignKeyColumn) {
-      console.warn(`hydrateCount: foreignKey "${rel.foreignKey}" not found in throughTable`);
-      // 全レコードに 0 を設定
-      for (const record of records) {
-        (record as any)._count[rel.field] = 0;
+      if (!foreignKeyColumn) {
+        console.warn(`hydrateCount: foreignKey "${rel.foreignKey}" not found in throughTable`);
+        for (const record of records) {
+          (record as any)._count[rel.field] = 0;
+        }
+        return;
       }
-      continue;
-    }
 
-    // GROUP BY + COUNT で一括取得
-    const counts = await db
-      .select({
-        sourceId: foreignKeyColumn,
-        count: sql<number>`count(*)`.as("count"),
-      })
-      .from(rel.throughTable)
-      .where(inArray(foreignKeyColumn, recordIds))
-      .groupBy(foreignKeyColumn);
+      // GROUP BY + COUNT で一括取得
+      const counts = await db
+        .select({
+          sourceId: foreignKeyColumn,
+          count: sql<number>`count(*)`.as("count"),
+        })
+        .from(rel.throughTable)
+        .where(inArray(foreignKeyColumn, recordIds))
+        .groupBy(foreignKeyColumn);
 
-    // Map化
-    const countMap = new Map(
-      counts.map((c) => [c.sourceId as string, Number(c.count)])
-    );
+      const countMap = new Map(
+        counts.map((c) => [c.sourceId as string, Number(c.count)])
+      );
 
-    // 各レコードに紐付け
-    for (const record of records) {
-      (record as any)._count[rel.field] = countMap.get(record.id) ?? 0;
-    }
-  }
+      for (const record of records) {
+        (record as any)._count[rel.field] = countMap.get(record.id) ?? 0;
+      }
+    }),
+  );
 }
