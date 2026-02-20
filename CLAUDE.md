@@ -82,7 +82,8 @@ hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (c
 hook_naming_exceptions: get→use\<Domain\>, list→use\<Domain\>List, remove→useDelete\<Domain\>
 server-only(no hook): query, belongsToMany
 hook-only: use\<Domain\>ViewModal(useDetailModal)
-extension: 1.check base methods → 2.base.query()+wrappers → 3.custom service
+extraWhere: search/searchWithDeleted/searchForSorting accept `extraWhere?: SQL` (Drizzle only) for conditions beyond WhereExpr DSL (subqueries, EXISTS, JSONB, etc.). Type: ExtraWhereOption from @/lib/crud/drizzle
+extension: 1.check base methods → 2.extraWhere for SQL injection → 3.base.query()+wrappers → 4.custom service
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 firestore_limits: no or | single orderBy | no belongsToMany
 

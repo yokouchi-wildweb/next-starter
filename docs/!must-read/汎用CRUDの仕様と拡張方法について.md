@@ -184,8 +184,9 @@ const handleReorder = async (result: ReorderResult) => {
 
 1. **同じ機能がベースに無いか？**  
    - 例: belongsToMany の中間テーブル操作を手動で書いていないか。
-2. **where / search でやりたいことはベースで表現できるか？**  
+2. **where / search でやりたいことはベースで表現できるか？**
    - 例: `or` が必要 → Drizzle 版なら可、Firestore 版なら不可。
+   - `WhereExpr` DSL で表現できない条件（サブクエリ、EXISTS、JSONB 演算子等）は `extraWhere` で Drizzle SQL を直接注入可能。`search` / `searchWithDeleted` / `searchForSorting` が対応。
 3. **DB の選定は要件を満たしているか？**  
    - 多対多、複雑検索が必要なら Drizzle を必須とする。
 4. **拡張箇所は `wrappers` で局所化されているか？**  
