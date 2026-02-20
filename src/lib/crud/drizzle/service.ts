@@ -1139,11 +1139,12 @@ export function createCrudService<
               setClause[col] = values[0];
             } else {
               // レコードごとに異なる値: CASE WHEN 方式
+              const colRef = (table as Record<string, any>)[col];
               const fragments = recordsWithColumnUpdates.map((p) => {
                 const val = p.updateData[col];
                 return val !== undefined
-                  ? sql`WHEN ${sql.raw(`'${p.id}'`)} THEN ${val}`
-                  : sql`WHEN ${sql.raw(`'${p.id}'`)} THEN ${sql.raw(`"${col}"`)}`;
+                  ? sql`WHEN ${p.id} THEN ${val}`
+                  : sql`WHEN ${p.id} THEN ${colRef}`;
               });
               setClause[col] = sql.join(
                 [sql`CASE ${idColumn}`, ...fragments, sql`END`],
@@ -1433,7 +1434,7 @@ export function createCrudService<
       // 1クエリでバッチUPDATE: UPDATE table SET sort_order = CASE id WHEN ... END
       const updatedAt = serviceOptions.useUpdatedAt ? new Date() : undefined;
       const caseFragments = ids.map((id, i) =>
-        sql`WHEN ${sql.raw(`'${id}'`)} THEN ${newKeys[i]!}`
+        sql`WHEN ${id} THEN ${newKeys[i]!}`
       );
       const caseExpr = sql.join([
         sql`CASE ${idColumn}`,
