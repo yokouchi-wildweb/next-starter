@@ -9,4 +9,5 @@ export type {
   BelongsToManyRelationConfig,
   DbTransaction,
   DbExecutor,
+  ExtraWhereOption,
 } from "./types";

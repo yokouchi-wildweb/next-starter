@@ -1,5 +1,6 @@
 // src/lib/crud/drizzle/types.ts
 
+import type { SQL } from "drizzle-orm";
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
 import type {
   CreateCrudServiceOptions,
@@ -46,6 +47,15 @@ export type BelongsToManyRelationConfig<TData extends Record<string, any>> = {
    * insert 用に利用する関連ドメインIDカラム名。
    */
   targetProperty: string;
+};
+
+/**
+ * Drizzle固有の追加WHERE条件オプション。
+ * search / searchWithDeleted で WhereExpr DSL では表現できない
+ * Drizzle SQL条件（サブクエリ、EXISTS、JSONB演算子等）を注入する。
+ */
+export type ExtraWhereOption = {
+  extraWhere?: SQL;
 };
 
 export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = CreateCrudServiceOptions<TData> & {

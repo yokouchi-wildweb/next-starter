@@ -20,7 +20,7 @@ import type {
 } from "../types";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
 import { applyInsertDefaults, normalizeRecordKeys, resolveConflictTarget } from "./utils";
-import type { DrizzleCrudServiceOptions, DbTransaction } from "./types";
+import type { DrizzleCrudServiceOptions, DbTransaction, ExtraWhereOption } from "./types";
 import {
   assignLocalRelationValues,
   hydrateBelongsToManyRelations,
@@ -543,7 +543,7 @@ export function createCrudService<
       }
     },
 
-    async search(params: SearchParams & WithOptions = {}): Promise<PaginatedResult<Select>> {
+    async search(params: SearchParams & WithOptions & ExtraWhereOption = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
         limit = 100,
@@ -551,6 +551,7 @@ export function createCrudService<
         searchQuery,
         searchFields = serviceOptions.defaultSearchFields,
         where,
+        extraWhere,
         withRelations,
         withCount,
       } = params;
@@ -560,6 +561,10 @@ export function createCrudService<
         params.prioritizeSearchHits ?? serviceOptions.prioritizeSearchHitsByDefault ?? false;
 
       let finalWhere = buildWhere(table, where);
+      // extraWhere（Drizzle SQL条件）を合成
+      if (extraWhere) {
+        finalWhere = and(finalWhere, extraWhere) as SQL;
+      }
       // ソフトデリートフィルターを追加
       const softDeleteFilter = buildSoftDeleteFilter();
       if (softDeleteFilter) {
@@ -636,7 +641,7 @@ export function createCrudService<
       return result;
     },
 
-    async searchWithDeleted(params: SearchParams & WithOptions = {}): Promise<PaginatedResult<Select>> {
+    async searchWithDeleted(params: SearchParams & WithOptions & ExtraWhereOption = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
         limit = 100,
@@ -644,6 +649,7 @@ export function createCrudService<
         searchQuery,
         searchFields = serviceOptions.defaultSearchFields,
         where,
+        extraWhere,
         withRelations,
         withCount,
       } = params;
@@ -653,6 +659,10 @@ export function createCrudService<
         params.prioritizeSearchHits ?? serviceOptions.prioritizeSearchHitsByDefault ?? false;
 
       let finalWhere = buildWhere(table, where);
+      // extraWhere（Drizzle SQL条件）を合成
+      if (extraWhere) {
+        finalWhere = and(finalWhere, extraWhere) as SQL;
+      }
       let priorityOrderClauses: SQL[] = [];
       if (searchQuery && searchFields && searchFields.length) {
         const pattern = `%${searchQuery}%`;
