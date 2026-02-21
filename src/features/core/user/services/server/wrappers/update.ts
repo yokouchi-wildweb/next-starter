@@ -38,25 +38,29 @@ async function updateFirebasePassword(uid: string, password: string): Promise<vo
 async function updateFirebasePhoneNumber(uid: string, phoneNumber: string | null): Promise<void> {
   const auth = getServerAuth();
   try {
-    if (phoneNumber === null) {
-      // phone プロバイダーがリンクされている場合のみ providersToUnlink で解除する
-      // （プロバイダーが存在しない状態で unlink するとエラーになる）
-      const user = await auth.getUser(uid);
-      const hasPhoneProvider = user.providerData.some(
-        (p) => p.providerId === "phone",
-      );
-      await auth.updateUser(uid, {
-        phoneNumber: null,
-        ...(hasPhoneProvider && { providersToUnlink: ["phone"] }),
-      });
-    } else {
-      await auth.updateUser(uid, { phoneNumber });
-    }
+    await auth.updateUser(uid, { phoneNumber });
   } catch (error) {
     if (hasFirebaseErrorCode(error, "auth/phone-number-already-exists")) {
       throw new DomainError("同じ電話番号のユーザーが既に存在します", { status: 409 });
     }
     throw new DomainError("電話番号の更新に失敗しました", { status: 500 });
+  }
+
+  // 電話番号クリア時は phone プロバイダーも解除する
+  // （プロバイダーが残ると再登録時に auth/provider-already-linked エラーになる）
+  // updateUser の phoneNumber:null と providersToUnlink は同時指定できないため分離
+  if (phoneNumber === null) {
+    try {
+      const user = await auth.getUser(uid);
+      const hasPhoneProvider = user.providerData.some(
+        (p) => p.providerId === "phone",
+      );
+      if (hasPhoneProvider) {
+        await auth.updateUser(uid, { providersToUnlink: ["phone"] });
+      }
+    } catch {
+      // プロバイダー解除失敗は電話番号クリア自体には影響しないため無視
+    }
   }
 }
 
