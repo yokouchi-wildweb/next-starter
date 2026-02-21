@@ -77,3 +77,18 @@ export type EvaluateMilestonesResult = {
   trigger: string;
   results: MilestoneEvaluationResult[];
 };
+
+/**
+ * jsonb に永続化するためのシリアライズ型
+ *
+ * evaluateMilestones の結果を purchase_requests.milestone_results に保存する際に使用。
+ * クライアントに公開されるため、内部情報（tx 等）は含まない。
+ */
+export type PersistedMilestoneResult = {
+  /** マイルストーンキー */
+  milestoneKey: string;
+  /** 達成したかどうか */
+  achieved: boolean;
+  /** onAchieved の戻り値（報酬情報等） */
+  metadata?: Record<string, unknown>;
+};

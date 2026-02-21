@@ -18,6 +18,7 @@ import { DomainError } from "@/lib/errors/domainError";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import { evaluateMilestones } from "@/features/core/milestone/services/server/wrappers/evaluateMilestones";
 import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/constants/triggers";
+import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
 
@@ -67,6 +68,8 @@ export type CompletePurchaseParams = {
 export type CompletePurchaseResult = {
   purchaseRequest: PurchaseRequest;
   walletHistoryId: string;
+  /** マイルストーン評価結果（達成されたもののみ） */
+  milestoneResults?: PersistedMilestoneResult[];
 };
 
 export type FailPurchaseParams = {
@@ -88,6 +91,8 @@ export type HandleWebhookResult = {
   success: boolean;
   requestId: string;
   walletHistoryId?: string;
+  /** マイルストーン評価結果（達成されたもののみ） */
+  milestoneResults?: PersistedMilestoneResult[];
   message: string;
 };
 
@@ -297,6 +302,7 @@ export async function completePurchase(
     return {
       purchaseRequest,
       walletHistoryId: purchaseRequest.wallet_history_id!,
+      milestoneResults: (purchaseRequest.milestone_results as PersistedMilestoneResult[]) ?? [],
     };
   }
 
@@ -374,7 +380,7 @@ export async function completePurchase(
     }
 
     // マイルストーン評価（登録済みマイルストーンがなければ何もしない）
-    await evaluateMilestones(
+    const milestoneResult = await evaluateMilestones(
       MILESTONE_TRIGGER_PURCHASE_COMPLETED,
       {
         userId: purchaseRequest.user_id,
@@ -386,9 +392,30 @@ export async function completePurchase(
       tx,
     );
 
+    // マイルストーン結果を永続化（達成されたもののみ）
+    const persistedResults: PersistedMilestoneResult[] = milestoneResult.results
+      .filter((r) => r.achieved)
+      .map((r) => ({
+        milestoneKey: r.key,
+        achieved: true,
+        ...(r.metadata && { metadata: r.metadata as Record<string, unknown> }),
+      }));
+
+    if (persistedResults.length > 0) {
+      await tx
+        .update(PurchaseRequestTable)
+        .set({ milestone_results: persistedResults })
+        .where(eq(PurchaseRequestTable.id, purchaseRequest.id));
+    }
+
     return {
-      purchaseRequest: { ...updated, wallet_history_id: walletResult.history.id } as PurchaseRequest,
+      purchaseRequest: {
+        ...updated,
+        wallet_history_id: walletResult.history.id,
+        milestone_results: persistedResults.length > 0 ? persistedResults : null,
+      } as PurchaseRequest,
       walletHistoryId: walletResult.history.id,
+      milestoneResults: persistedResults,
     };
   });
 
@@ -463,6 +490,7 @@ export async function handleWebhook(
       success: true,
       requestId: result.purchaseRequest.id,
       walletHistoryId: result.walletHistoryId,
+      milestoneResults: result.milestoneResults,
       message: "購入が完了しました。",
     };
   } else {

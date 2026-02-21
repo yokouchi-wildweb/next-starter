@@ -9,6 +9,7 @@ import type {
   PurchaseRequestUpdateFields,
 } from "@/features/core/purchaseRequest/entities/form";
 import { normalizeHttpError } from "@/lib/errors/httpError";
+import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 
 // 基本CRUDクライアント
 export const purchaseRequestClient: ApiClient<
@@ -37,6 +38,8 @@ export type PurchaseStatusResponse = {
   completedAt?: string;
   errorCode?: string;
   errorMessage?: string;
+  /** マイルストーン評価結果（購入完了時に達成されたもの） */
+  milestoneResults?: PersistedMilestoneResult[] | null;
 };
 
 /**

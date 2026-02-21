@@ -22,6 +22,7 @@ export type PurchaseRequest = {
   coupon_code: string | null;
   discount_amount: number | null;
   original_payment_amount: number | null;
+  milestone_results: unknown | null;
   completed_at: Date | null;
   paid_at: Date | null;
   expires_at: Date | null;

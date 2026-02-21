@@ -15,6 +15,8 @@ import {
   type PurchaseStatusResponse,
 } from "../../services/client/purchaseRequestClient";
 import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/features/core/wallet";
+import { MilestoneNotifications } from "@/features/core/milestone/components/MilestoneNotifications";
+import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 
 type PurchaseCompleteProps = {
   /** URLスラッグ */
@@ -107,6 +109,10 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
               </Flex>
             </Flex>
           </Stack>
+        )}
+
+        {purchaseInfo?.milestoneResults && (purchaseInfo.milestoneResults as PersistedMilestoneResult[]).length > 0 && (
+          <MilestoneNotifications results={purchaseInfo.milestoneResults as PersistedMilestoneResult[]} />
         )}
 
         <Para align="center" tone="muted" size="sm">

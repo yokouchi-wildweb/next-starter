@@ -41,6 +41,7 @@ export const GET = createApiRoute<Params>(
       completedAt: purchaseRequest.completed_at,
       errorCode: purchaseRequest.error_code,
       errorMessage: purchaseRequest.error_message,
+      milestoneResults: purchaseRequest.milestone_results ?? null,
     };
   },
 );
