@@ -1,6 +1,6 @@
 // src/features/purchaseRequest/entities/drizzle.ts
 
-import { integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
@@ -34,9 +34,13 @@ export const PurchaseRequestTable = pgTable("purchase_requests", {
   discount_amount: integer("discount_amount"),
   original_payment_amount: integer("original_payment_amount"),
   milestone_results: jsonb("milestone_results"),
-  completed_at: timestamp("completed_at"),
+  completed_at: timestamp("completed_at", { withTimezone: true }),
   paid_at: timestamp("paid_at", { withTimezone: true }),
-  expires_at: timestamp("expires_at"),
+  expires_at: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+}, (table) => [
+  index("purchase_requests_payment_session_id_idx").on(table.payment_session_id),
+  index("purchase_requests_status_idx").on(table.status),
+  index("purchase_requests_user_id_status_idx").on(table.user_id, table.status),
+]);

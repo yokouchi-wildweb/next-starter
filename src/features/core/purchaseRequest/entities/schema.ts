@@ -3,6 +3,7 @@
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { nullableDatetime } from "@/lib/crud/utils";
 
 // CURRENCY_CONFIG から動的に walletType の値を取得
 const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
@@ -34,42 +35,9 @@ export const PurchaseRequestBaseSchema = z.object({
     .transform((value) => emptyToNull(value)),
   discount_amount: z.coerce.number().int().nullish(),
   original_payment_amount: z.coerce.number().int().nullish(),
-  completed_at: z.preprocess(
-  (value) => {
-    if (value == null) return undefined;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      return trimmed;
-    }
-    return value;
-  },
-  z.coerce.date()
-).or(z.literal("").transform(() => undefined)).nullish(),
-  paid_at: z.preprocess(
-  (value) => {
-    if (value == null) return undefined;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      return trimmed;
-    }
-    return value;
-  },
-  z.coerce.date()
-).or(z.literal("").transform(() => undefined)).nullish(),
-  expires_at: z.preprocess(
-  (value) => {
-    if (value == null) return undefined;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return undefined;
-      return trimmed;
-    }
-    return value;
-  },
-  z.coerce.date()
-).or(z.literal("").transform(() => undefined)).nullish(),
+  completed_at: nullableDatetime.nullish(),
+  paid_at: nullableDatetime.nullish(),
+  expires_at: nullableDatetime.nullish(),
 });
 
 export const PurchaseRequestCreateSchema = PurchaseRequestBaseSchema;
