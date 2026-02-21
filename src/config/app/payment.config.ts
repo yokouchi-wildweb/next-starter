@@ -24,6 +24,8 @@ export type ProviderConfig = {
   enabled: boolean;
   /** 対応する支払い方法ID一覧 */
   supportedMethods?: string[];
+  /** config ID → プロバイダAPI固有ID の変換マップ */
+  methodMapping?: Record<string, string>;
 };
 
 /**
@@ -48,6 +50,12 @@ export const paymentConfig = {
     fincode: {
       enabled: true,
       supportedMethods: ["credit_card", "convenience_store", "paypay", "bank_transfer"],
+      methodMapping: {
+        credit_card: "Card",
+        convenience_store: "Konbini",
+        paypay: "Paypay",
+        bank_transfer: "Virtualaccount",
+      },
     },
     square: {
       enabled: true,
@@ -108,6 +116,30 @@ export function getProviderPaymentMethods(providerName: string): PaymentMethodCo
   return paymentConfig.paymentMethods.filter(
     (m) => m.enabled !== false && provider.supportedMethods?.includes(m.id)
   );
+}
+
+/**
+ * プロバイダの有効な支払い方法をプロバイダAPI固有のIDに変換して取得する
+ *
+ * paymentMethods の enabled フラグと providers の supportedMethods を両方考慮し、
+ * methodMapping で変換した結果を返す。
+ */
+export function getProviderPayTypes(providerName: string): string[] {
+  const provider = paymentConfig.providers[providerName];
+  if (!provider?.supportedMethods || !provider.methodMapping) {
+    return [];
+  }
+
+  const enabledMethodIds = new Set(
+    paymentConfig.paymentMethods
+      .filter((m) => m.enabled !== false)
+      .map((m) => m.id),
+  );
+
+  return provider.supportedMethods
+    .filter((id) => enabledMethodIds.has(id))
+    .map((id) => provider.methodMapping![id])
+    .filter(Boolean);
 }
 
 /**

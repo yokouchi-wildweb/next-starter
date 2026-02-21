@@ -17,6 +17,7 @@ import {
   isSuccessEvent,
   extractPaymentMethod,
 } from "./errorMapping";
+import { getProviderPayTypes } from "@/config/app/payment.config";
 
 /**
  * Fincode 環境設定
@@ -109,8 +110,8 @@ export class FincodePaymentProvider implements PaymentProvider {
       // お支払い画面案内メール送信フラグ: "0" = 送信しない
       guide_mail_send_flag: "0",
       transaction: {
-        // 対応する支払い方法（設定で有効なもの全て）
-        pay_type: ["Card", "Konbini", "Paypay", "Virtualaccount"],
+        // 対応する支払い方法（payment.config.ts の設定に基づく）
+        pay_type: getProviderPayTypes("fincode"),
         amount: String(params.amount),
         // オーダーID（Webhook照合用）- 最大30文字、ハイフン除去
         order_id: params.purchaseRequestId.replace(/-/g, "").slice(0, 30),
