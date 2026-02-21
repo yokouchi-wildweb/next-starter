@@ -1,6 +1,6 @@
 // src/features/core/purchaseRequest/services/server/wrappers/purchaseService.ts
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
@@ -21,6 +21,10 @@ import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
+import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry";
+
+// フック定義の副作用インポート（登録を実行）
+import "../hooks/definitions";
 
 // トランザクションクライアント型
 type TransactionClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -376,6 +380,29 @@ export async function completePurchase(
       } catch (error) {
         // クーポンredeem失敗は購入完了をブロックしない（ログのみ）
         console.error("[completePurchase] クーポンredeem失敗:", error);
+      }
+    }
+
+    // ポストフック実行（登録済みフックがなければ何もしない）
+    const purchaseCompleteHooks = getPurchaseCompleteHooks();
+    for (let i = 0; i < purchaseCompleteHooks.length; i++) {
+      const hook = purchaseCompleteHooks[i];
+      const savepointName = `purchase_hook_${i}`;
+      try {
+        await tx.execute(sql.raw(`SAVEPOINT ${savepointName}`));
+        await hook.handler({
+          purchaseRequest: { ...updated, wallet_history_id: walletResult.history.id } as PurchaseRequest,
+          walletResult: { history: walletResult.history },
+          tx,
+        });
+        await tx.execute(sql.raw(`RELEASE SAVEPOINT ${savepointName}`));
+      } catch (error) {
+        try {
+          await tx.execute(sql.raw(`ROLLBACK TO SAVEPOINT ${savepointName}`));
+        } catch (rollbackError) {
+          console.error(`[completePurchase] SAVEPOINT ロールバック失敗 (hook: ${hook.key}):`, rollbackError);
+        }
+        console.error(`[completePurchase] ポストフック "${hook.key}" の実行中にエラー:`, error);
       }
     }
 
