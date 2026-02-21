@@ -209,8 +209,11 @@ PurchaseComplete コンポーネントが MilestoneNotifications を描画
   ↓
 各マイルストーンについて:
   ① レンダラーレジストリから該当キーのレンダラーを検索
-  ② 登録済み → そのコンポーネントで描画
-  ③ 未登録 → DefaultMilestoneNotification（汎用通知）で描画
+  ② displayMode で分離:
+     - inline（デフォルト）→ リスト内にインライン表示
+     - modal → リストから除外し、別途モーダルとして描画
+  ③ 登録済み → そのコンポーネントで描画
+  ④ 未登録 → DefaultMilestoneNotification（汎用通知）で描画
 ```
 
 ### 永続化型
@@ -259,6 +262,7 @@ registerMilestoneRenderer({
   key: "first_purchase",          // registerMilestone の key と一致させる
   component: FirstPurchaseCelebration,
   priority: 10,                   // 小さいほど先に表示（デフォルト: 0）
+  // displayMode: "modal",        // モーダル表示にする場合
 });
 ```
 
@@ -272,6 +276,26 @@ import "./rankUp";
 ```
 
 これだけで `PurchaseComplete` ページにマイルストーン達成通知が自動的に表示される。
+
+### 表示モード（displayMode）
+
+レンダラー登録時に `displayMode` を指定して表示方法を切り替えられる。
+
+| モード | 動作 | ユースケース |
+|---|---|---|
+| `inline`（デフォルト） | リスト内にインライン表示 | 一般的な達成通知 |
+| `modal` | リストから除外し、モーダルとして描画 | ランクアップ演出、初回購入の特別演出 |
+
+モーダル型のレンダラーコンポーネントは、自身でモーダルUIの表示/非表示を管理する。
+
+```ts
+registerMilestoneRenderer({
+  key: "rank_up",
+  component: RankUpModal,       // モーダルUI込みのコンポーネント
+  displayMode: "modal",
+  priority: 100,
+});
+```
 
 ### レジストリ API
 

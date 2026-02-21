@@ -28,6 +28,13 @@ export type MilestoneRendererProps = {
 };
 
 /**
+ * レンダラーの表示モード
+ * - inline: リスト内にインライン表示（デフォルト）
+ * - modal: モーダルとして表示（ランクアップ演出等）
+ */
+export type MilestoneDisplayMode = "inline" | "modal";
+
+/**
  * マイルストーンレンダラー定義
  */
 export type MilestoneRendererDefinition = {
@@ -37,6 +44,8 @@ export type MilestoneRendererDefinition = {
   component: ComponentType<MilestoneRendererProps>;
   /** 表示順（小さいほど先に表示。デフォルト: 0） */
   priority?: number;
+  /** 表示モード（デフォルト: "inline"） */
+  displayMode?: MilestoneDisplayMode;
 };
 
 const renderers = new Map<string, MilestoneRendererDefinition>();
