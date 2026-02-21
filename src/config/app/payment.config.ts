@@ -3,6 +3,14 @@
 // ※ダウンストリームでプロバイダを追加する際はこのファイルを拡張する
 
 /**
+ * 支払い方法のステータス
+ * - available: 利用可能（決済画面に表示・選択可）
+ * - coming_soon: 準備中（UI表示するがバッジ付き・選択不可）
+ * - disabled: 無効（UIに表示しない）
+ */
+export type PaymentMethodStatus = "available" | "coming_soon" | "disabled";
+
+/**
  * 支払い方法の定義
  */
 export type PaymentMethodConfig = {
@@ -10,10 +18,12 @@ export type PaymentMethodConfig = {
   id: string;
   /** 表示ラベル */
   label: string;
+  /** 補足説明（対応ブランド等、UI表示用） */
+  description?: string;
   /** アイコン識別子（UIで使用） */
   icon: string;
-  /** 有効/無効 */
-  enabled?: boolean;
+  /** ステータス */
+  status: PaymentMethodStatus;
 };
 
 /**
@@ -90,38 +100,45 @@ export const paymentConfig = {
    * ダウンストリームで拡張可能
    */
   paymentMethods: [
-    { id: "credit_card", label: "クレジットカード", icon: "credit-card", enabled: true },
-    { id: "convenience_store", label: "コンビニ決済", icon: "store", enabled: true },
-    { id: "bank_transfer", label: "銀行振込", icon: "bank", enabled: true },
-    { id: "paypay", label: "PayPay", icon: "paypay", enabled: false },
-    { id: "amazon_pay", label: "Amazon Pay", icon: "amazon", enabled: false },
+    { id: "credit_card", label: "クレジットカード", description: "VISA / Mastercard", icon: "credit-card", status: "available" },
+    { id: "convenience_store", label: "コンビニ決済", icon: "store", status: "available" },
+    { id: "bank_transfer", label: "銀行振込", icon: "bank", status: "available" },
+    { id: "paypay", label: "PayPay", icon: "paypay", status: "disabled" },
+    { id: "amazon_pay", label: "Amazon Pay", icon: "amazon", status: "disabled" },
   ] as PaymentMethodConfig[],
 } as const;
 
 /**
- * 有効な支払い方法を取得
+ * 利用可能な支払い方法を取得（status: "available" のみ）
  */
-export function getEnabledPaymentMethods(): PaymentMethodConfig[] {
-  return paymentConfig.paymentMethods.filter((m) => m.enabled !== false);
+export function getAvailablePaymentMethods(): PaymentMethodConfig[] {
+  return paymentConfig.paymentMethods.filter((m) => m.status === "available");
 }
 
 /**
- * プロバイダがサポートする支払い方法を取得
+ * UI表示対象の支払い方法を取得（disabled 以外 = available + coming_soon）
+ */
+export function getVisiblePaymentMethods(): PaymentMethodConfig[] {
+  return paymentConfig.paymentMethods.filter((m) => m.status !== "disabled");
+}
+
+/**
+ * プロバイダがサポートする支払い方法を取得（available のみ）
  */
 export function getProviderPaymentMethods(providerName: string): PaymentMethodConfig[] {
   const provider = paymentConfig.providers[providerName];
   if (!provider?.supportedMethods) {
-    return getEnabledPaymentMethods();
+    return getAvailablePaymentMethods();
   }
   return paymentConfig.paymentMethods.filter(
-    (m) => m.enabled !== false && provider.supportedMethods?.includes(m.id)
+    (m) => m.status === "available" && provider.supportedMethods?.includes(m.id)
   );
 }
 
 /**
  * プロバイダの有効な支払い方法をプロバイダAPI固有のIDに変換して取得する
  *
- * paymentMethods の enabled フラグと providers の supportedMethods を両方考慮し、
+ * paymentMethods の status と providers の supportedMethods を両方考慮し、
  * methodMapping で変換した結果を返す。
  */
 export function getProviderPayTypes(providerName: string): string[] {
@@ -130,14 +147,14 @@ export function getProviderPayTypes(providerName: string): string[] {
     return [];
   }
 
-  const enabledMethodIds = new Set(
+  const availableMethodIds = new Set(
     paymentConfig.paymentMethods
-      .filter((m) => m.enabled !== false)
+      .filter((m) => m.status === "available")
       .map((m) => m.id),
   );
 
   return provider.supportedMethods
-    .filter((id) => enabledMethodIds.has(id))
+    .filter((id) => availableMethodIds.has(id))
     .map((id) => provider.methodMapping![id])
     .filter(Boolean);
 }
