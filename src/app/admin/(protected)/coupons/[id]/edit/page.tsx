@@ -24,7 +24,7 @@ export default async function AdminCouponEditPage({ params }: Props) {
 
     <AdminPage>
       <PageTitle>クーポン編集</PageTitle>
-      <AdminCouponEdit coupon={coupon as Coupon} redirectPath="/admin/coupons" />
+      <AdminCouponEdit coupon={coupon as Coupon} redirectPath="/admin/coupons/official" />
     </AdminPage>
 
   );
