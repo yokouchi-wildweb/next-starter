@@ -49,6 +49,16 @@ type SquareCreatePaymentLinkRequest = {
   pre_populated_data?: {
     buyer_email?: string;
     buyer_phone_number?: string;
+    buyer_address?: {
+      first_name?: string;
+      last_name?: string;
+      address_line_1?: string;
+      address_line_2?: string;
+      locality?: string;
+      administrative_district_level_1?: string;
+      postal_code?: string;
+      country?: string;
+    };
   };
   payment_note?: string;
 };
@@ -194,10 +204,22 @@ export class SquarePaymentProvider implements PaymentProvider {
         redirect_url: params.successUrl,
       },
       // 購入者情報を事前入力
-      ...((params.buyerEmail || params.buyerPhoneNumber) && {
+      ...((params.buyerEmail || params.buyerPhoneNumber || params.buyerAddress) && {
         pre_populated_data: {
           ...(params.buyerEmail && { buyer_email: params.buyerEmail }),
           ...(params.buyerPhoneNumber && { buyer_phone_number: params.buyerPhoneNumber }),
+          ...(params.buyerAddress && {
+            buyer_address: {
+              ...(params.buyerAddress.firstName && { first_name: params.buyerAddress.firstName }),
+              ...(params.buyerAddress.lastName && { last_name: params.buyerAddress.lastName }),
+              ...(params.buyerAddress.addressLine1 && { address_line_1: params.buyerAddress.addressLine1 }),
+              ...(params.buyerAddress.addressLine2 && { address_line_2: params.buyerAddress.addressLine2 }),
+              ...(params.buyerAddress.locality && { locality: params.buyerAddress.locality }),
+              ...(params.buyerAddress.administrativeArea && { administrative_district_level_1: params.buyerAddress.administrativeArea }),
+              ...(params.buyerAddress.postalCode && { postal_code: params.buyerAddress.postalCode }),
+              ...(params.buyerAddress.country && { country: params.buyerAddress.country }),
+            },
+          }),
         },
       }),
       // 購入リクエストIDをメモに保存（Webhook照合用）

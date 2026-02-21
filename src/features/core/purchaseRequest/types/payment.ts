@@ -1,6 +1,29 @@
 // src/features/core/purchaseRequest/types/payment.ts
 
 /**
+ * 購入者住所情報（決済ページで事前入力）
+ * Square の buyer_address に対応するプロバイダ非依存な型
+ */
+export type BuyerAddress = {
+  /** 名（名前） */
+  firstName?: string;
+  /** 姓 */
+  lastName?: string;
+  /** 住所1行目（番地等） */
+  addressLine1?: string;
+  /** 住所2行目（建物名等） */
+  addressLine2?: string;
+  /** 市区町村 */
+  locality?: string;
+  /** 都道府県 */
+  administrativeArea?: string;
+  /** 郵便番号 */
+  postalCode?: string;
+  /** 国コード（ISO 3166-1 alpha-2） */
+  country?: string;
+};
+
+/**
  * 決済セッション作成パラメータ
  */
 export type CreatePaymentSessionParams = {
@@ -20,6 +43,8 @@ export type CreatePaymentSessionParams = {
   buyerEmail?: string;
   /** 購入者電話番号（E.164形式、決済ページで事前入力） */
   buyerPhoneNumber?: string;
+  /** 購入者住所情報（決済ページで事前入力） */
+  buyerAddress?: BuyerAddress;
   /** プロバイダ固有のオプション（下流から自由に渡せる） */
   providerOptions?: Record<string, unknown>;
 };
