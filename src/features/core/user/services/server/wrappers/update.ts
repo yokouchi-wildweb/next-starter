@@ -38,7 +38,12 @@ async function updateFirebasePassword(uid: string, password: string): Promise<vo
 async function updateFirebasePhoneNumber(uid: string, phoneNumber: string | null): Promise<void> {
   const auth = getServerAuth();
   try {
-    await auth.updateUser(uid, { phoneNumber });
+    // null の場合は phoneNumber クリアに加えて phone プロバイダーも明示的に解除する
+    // （プロバイダーが残ると再登録時に auth/provider-already-linked エラーになる）
+    await auth.updateUser(uid, {
+      phoneNumber,
+      ...(phoneNumber === null && { providersToUnlink: ["phone"] }),
+    });
   } catch (error) {
     if (hasFirebaseErrorCode(error, "auth/phone-number-already-exists")) {
       throw new DomainError("同じ電話番号のユーザーが既に存在します", { status: 409 });
