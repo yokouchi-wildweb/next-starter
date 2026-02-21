@@ -20,72 +20,63 @@ Square決済ページで購入者情報を事前入力するには、`pre_popula
 | フィールド | Square API パラメータ | 説明 |
 |-----------|----------------------|------|
 | メールアドレス | `buyer_email` | ✅ 実装済み |
-| 電話番号 | `buyer_phone_number` | 未実装 |
-| 住所 | `buyer_address` | 未実装 |
+| 電話番号 | `buyer_phone_number` | ✅ 実装済み |
+| 住所 | `buyer_address` | ✅ 実装済み |
 
-### 実装箇所
+### 型定義
 
-#### 1. 型定義の追加
-
-`src/features/core/purchaseRequest/types/payment.ts`:
+`src/features/core/purchaseRequest/types/payment.ts` にプロバイダ非依存な型として定義:
 
 ```typescript
-export type CreatePaymentSessionParams = {
+type BuyerAddress = {
+  firstName?: string;
+  lastName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  locality?: string;            // 市区町村
+  administrativeArea?: string;  // 都道府県
+  postalCode?: string;
+  country?: string;             // ISO 3166-1 alpha-2
+};
+
+type CreatePaymentSessionParams = {
   // ... 既存フィールド
-  buyerEmail?: string;      // ✅ 実装済み
-  buyerPhone?: string;      // 追加時はここに定義
-  buyerAddress?: {          // 追加時はここに定義
-    addressLine1?: string;
-    addressLine2?: string;
-    locality?: string;      // 市区町村
-    administrativeDistrictLevel1?: string;  // 都道府県
-    postalCode?: string;
-    country?: string;       // 例: "JP"
+  buyerEmail?: string;
+  buyerPhoneNumber?: string;
+  buyerAddress?: BuyerAddress;
+  providerOptions?: Record<string, unknown>;
+};
+```
+
+### Square APIへのマッピング
+
+`squareProvider.ts` の `createSession()` 内で `BuyerAddress` → Square の `pre_populated_data.buyer_address` に自動変換:
+
+- `firstName` → `first_name`
+- `lastName` → `last_name`
+- `addressLine1` → `address_line_1`
+- `administrativeArea` → `administrative_district_level_1`
+
+### 値の設定方法
+
+下流プロジェクトでは `sessionEnricher` を使ってDBから住所情報を取得し設定する:
+
+```typescript
+setPaymentSessionEnricher(async ({ userId, baseParams }) => {
+  const address = await addressService.getByUserId(userId);
+  return {
+    ...baseParams,
+    buyerAddress: address ? {
+      firstName: address.firstName,
+      lastName: address.lastName,
+      postalCode: address.postalCode,
+      administrativeArea: address.prefecture,
+      locality: address.city,
+      addressLine1: address.line1,
+      addressLine2: address.line2,
+      country: "JP",
+    } : undefined,
   };
-};
-```
-
-#### 2. Square プロバイダでの使用
-
-`squareProvider.ts` の `createSession()` 内:
-
-```typescript
-const requestBody: SquareCreatePaymentLinkRequest = {
-  // ... 既存設定
-
-  // 購入者情報の事前入力
-  ...(params.buyerEmail && {
-    pre_populated_data: {
-      buyer_email: params.buyerEmail,
-      // 電話番号を追加する場合:
-      // buyer_phone_number: params.buyerPhone,
-      // 住所を追加する場合:
-      // buyer_address: {
-      //   address_line_1: params.buyerAddress?.addressLine1,
-      //   locality: params.buyerAddress?.locality,
-      //   administrative_district_level_1: params.buyerAddress?.administrativeDistrictLevel1,
-      //   postal_code: params.buyerAddress?.postalCode,
-      //   country: params.buyerAddress?.country || "JP",
-      // },
-    },
-  }),
-};
-```
-
-#### 3. 購入サービスでの値取得
-
-`src/features/core/purchaseRequest/services/server/wrappers/purchaseService.ts`:
-
-```typescript
-// ユーザー情報を取得
-const user = await userService.get(userId);
-const buyerEmail = user?.email || undefined;
-// const buyerPhone = user?.phone || undefined;  // 電話番号追加時
-
-const session = await provider.createSession({
-  // ... 既存パラメータ
-  buyerEmail,
-  // buyerPhone,  // 電話番号追加時
 });
 ```
 
