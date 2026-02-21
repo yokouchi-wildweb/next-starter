@@ -26,6 +26,8 @@ import { getPaymentSessionEnricher } from "../payment/sessionEnricher";
 
 // フック定義の副作用インポート（登録を実行）
 import "../hooks/definitions";
+// エンリッチャー定義の副作用インポート（登録を実行）
+import "../payment/enrichers";
 
 // トランザクションクライアント型
 type TransactionClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
