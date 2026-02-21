@@ -49,6 +49,12 @@ const ALIGN_CONFIG = {
 
 type AlignType = keyof typeof ALIGN_CONFIG;
 
+/** テキストの太さ */
+type WeightType = "medium" | "semiBold" | "bold";
+
+/** 色の指定方法: "auto"=通貨設定色, "inherit"=親要素から継承, その他=任意の色文字列 */
+type ColorType = "auto" | "inherit" | (string & {});
+
 type CurrencyDisplayProps = {
   /** ウォレット種別 */
   walletType: WalletType;
@@ -68,8 +74,14 @@ type CurrencyDisplayProps = {
   showLabel?: boolean;
   /** 単位を表示するか（例: "1,000 コイン" or "1,000 pt"） */
   showUnit?: boolean;
-  /** 太字にするか */
+  /** 太字にするか（weight未指定時のみ有効） */
   bold?: boolean;
+  /** テキストの太さ（bold より優先） */
+  weight?: WeightType;
+  /** 色の指定: "auto"=通貨設定色(デフォルト), "inherit"=親要素から継承, 文字列=任意の色 */
+  color?: ColorType;
+  /** ルート要素に追加するクラス名 */
+  className?: string;
   /** カウントアップアニメーションを有効にするか */
   animate?: boolean;
   /** アニメーション時間（秒） */
@@ -93,6 +105,9 @@ export function CurrencyDisplay({
   showLabel = false,
   showUnit = false,
   bold = false,
+  weight,
+  color = "auto",
+  className,
   animate = false,
   animationDuration = 2,
   preserveValue = true,
@@ -104,21 +119,28 @@ export function CurrencyDisplay({
   const gapClass = GAP_CONFIG[gap];
   const alignClass = ALIGN_CONFIG[align];
 
+  // weight が指定されていれば優先、なければ bold フラグで判定
+  const resolvedWeight: WeightType = weight ?? (bold ? "bold" : "medium");
+
+  // 色の解決: "auto"=通貨設定色, "inherit"=スタイル付与なし, その他=指定値
+  const colorStyle =
+    color === "inherit" ? undefined : { color: color === "auto" ? config.color : color };
+
   // サフィックスの決定: showLabel > showUnit の優先度
   const suffix = showLabel ? config.label : showUnit ? config.unit : "";
 
   return (
-    <span className={cn("inline-flex", gapClass, alignClass)}>
+    <span className={cn("inline-flex", gapClass, alignClass, className)}>
       {showIcon && (
         <Icon
           className={iconSizeClass}
-          style={{ color: config.color }}
+          style={colorStyle}
         />
       )}
       <Span
         size={textSizeClass}
-        weight={bold ? "bold" : "medium"}
-        style={{ color: config.color }}
+        weight={resolvedWeight}
+        style={colorStyle}
       >
         {animate ? (
           <CountUp
