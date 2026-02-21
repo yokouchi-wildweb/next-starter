@@ -80,6 +80,33 @@ export function normalizeRecordKeys<T extends Record<string, unknown>>(
 }
 
 /**
+ * テーブル定義上 nullable な array カラムの空配列を null に変換する。
+ * notNull な array カラム（例: play_button_type）は変換しない。
+ */
+export function coerceEmptyArraysToNull<T extends Record<string, any>>(
+  table: PgTable,
+  data: T,
+): T {
+  const result: Record<string, any> = { ...data };
+  for (const [propName, column] of Object.entries(table)) {
+    if (
+      column &&
+      typeof column === "object" &&
+      "columnType" in column &&
+      column.columnType === "PgArray" &&
+      "notNull" in column &&
+      column.notNull === false &&
+      propName in result &&
+      Array.isArray(result[propName]) &&
+      result[propName].length === 0
+    ) {
+      result[propName] = null;
+    }
+  }
+  return result as T;
+}
+
+/**
  * upsert の衝突判定対象カラムを解決する。
  */
 export function resolveConflictTarget<TData extends Record<string, any>>(

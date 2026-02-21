@@ -19,7 +19,7 @@ import type {
   WithOptions,
 } from "../types";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
-import { applyInsertDefaults, normalizeRecordKeys, resolveConflictTarget } from "./utils";
+import { applyInsertDefaults, coerceEmptyArraysToNull, normalizeRecordKeys, resolveConflictTarget } from "./utils";
 import type { DrizzleCrudServiceOptions, DbTransaction, ExtraWhereOption } from "./types";
 import {
   assignLocalRelationValues,
@@ -209,7 +209,7 @@ export function createCrudService<
           parsedInput,
           belongsToManyRelations,
         );
-        let finalInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert;
+        let finalInsert = coerceEmptyArraysToNull(table, applyInsertDefaults(sanitizedData as Insert, serviceOptions)) as Insert;
 
         // sortOrderColumn が設定されている場合、sort_order を自動生成（先頭に追加）
         if (sortOrderColumn) {
@@ -441,9 +441,9 @@ export function createCrudService<
           ? await serviceOptions.parseUpdate(data)
           : data;
         const { sanitizedData, relationValues } = separateBelongsToManyInput(parsed, belongsToManyRelations);
-        const updateData = {
+        const updateData = coerceEmptyArraysToNull(table, {
           ...omitUndefined(sanitizedData as Record<string, any>),
-        } as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
+        }) as Partial<Insert> & Record<string, any> & { updatedAt?: Date };
 
         if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
           updateData.updatedAt = new Date();
@@ -805,10 +805,10 @@ export function createCrudService<
         ? await serviceOptions.parseUpdate(data)
         : data;
       const { sanitizedData, relationValues } = separateBelongsToManyInput(parsed, belongsToManyRelations);
-      const updateData = omitUndefined({
+      const updateData = coerceEmptyArraysToNull(table, omitUndefined({
         ...sanitizedData,
         ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
-      }) as PgUpdateSetSource<TTable>;
+      })) as PgUpdateSetSource<TTable>;
 
       const hasColumnUpdates = Object.keys(updateData).length > 0;
       const shouldSyncRelations = belongsToManyRelations.length > 0 && relationValues.size > 0;
@@ -895,7 +895,7 @@ export function createCrudService<
           belongsToManyRelations,
         );
 
-        const sanitizedInsert = applyInsertDefaults(sanitizedData as Insert, serviceOptions) as Insert & {
+        const sanitizedInsert = coerceEmptyArraysToNull(table, applyInsertDefaults(sanitizedData as Insert, serviceOptions)) as Insert & {
           id?: string;
           createdAt?: Date;
           updatedAt?: Date;
@@ -1025,7 +1025,7 @@ export function createCrudService<
                 ? new Date(originalDeletedAt)
                 : originalDeletedAt;
             }
-            return applyInsertDefaults(restored as Insert, serviceOptions) as Insert & {
+            return coerceEmptyArraysToNull(table, applyInsertDefaults(restored as Insert, serviceOptions)) as Insert & {
               id?: string;
               createdAt?: Date;
               updatedAt?: Date;
@@ -1114,10 +1114,10 @@ export function createCrudService<
               parsedInput,
               belongsToManyRelations,
             );
-            const updateData = omitUndefined({
+            const updateData = coerceEmptyArraysToNull(table, omitUndefined({
               ...sanitizedData,
               ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
-            }) as Record<string, any>;
+            })) as Record<string, any>;
             return { id: record.id, updateData, relationValues };
           }),
         );
