@@ -8,7 +8,21 @@ import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { userService } from "@/features/core/user/services/server/userService";
 import { getRolesByCategory } from "@/features/core/user/constants";
+import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import type { ListPageSearchParams, WhereExpr, OrderBySpec } from "@/lib/crud";
+
+/**
+ * 検索クエリが日本の電話番号形式（0始まりの数字列）の場合、E.164形式に変換する
+ * 例: "090-1234-5678" → "+819012345678", "090" → "+8190"
+ */
+function normalizePhoneSearchQuery(query: string | undefined): string | undefined {
+  if (!query) return query;
+  const cleaned = query.replace(/[-\s()]/g, "");
+  if (/^0\d+$/.test(cleaned)) {
+    return formatToE164(query);
+  }
+  return query;
+}
 
 export const metadata = {
   title: "登録ユーザー",
@@ -47,7 +61,7 @@ export default async function AdminGeneralUserListPage({ searchParams }: Props) 
     page,
     limit: perPage,
     where,
-    searchQuery,
+    searchQuery: normalizePhoneSearchQuery(searchQuery),
     searchFields: ["name", "email", "phoneNumber"],
     orderBy,
   });

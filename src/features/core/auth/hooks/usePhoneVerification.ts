@@ -14,6 +14,7 @@ import {
   type User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase/client/app";
+import { getFirebasePhoneAuthErrorMessage } from "@/lib/firebase/errors";
 import {
   checkPhoneAvailability,
   verifyPhone,
@@ -285,13 +286,16 @@ export function usePhoneVerification(
       });
 
       // エラーメッセージを日本語に変換
-      let errorMessage = "SMS送信に失敗しました";
       const errMessage = err instanceof Error ? err.message : String(err);
+      let errorMessage: string;
 
       if (errMessage.includes("reCAPTCHA has already been rendered")) {
         errorMessage = "ページを再読み込みして、もう一度お試しください。";
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
+      } else if (errMessage === "この電話番号は既に使用されています") {
+        // 自前のバリデーションエラーはそのまま
+        errorMessage = errMessage;
+      } else {
+        errorMessage = getFirebasePhoneAuthErrorMessage(err, "SMS送信に失敗しました。しばらく経ってからお試しください。");
       }
 
       const error = new Error(errorMessage);
@@ -392,7 +396,8 @@ export function usePhoneVerification(
         errorCode: (err as { code?: string })?.code,
       });
 
-      const error = err instanceof Error ? err : new Error("認証コードが正しくありません");
+      const errorMessage = getFirebasePhoneAuthErrorMessage(err, "認証コードの検証に失敗しました。");
+      const error = new Error(errorMessage);
       setError(error);
       throw error;
     } finally {
@@ -453,7 +458,8 @@ export function usePhoneVerification(
         errorCode: (err as { code?: string })?.code,
       });
 
-      const error = err instanceof Error ? err : new Error("SMS再送信に失敗しました");
+      const errorMessage = getFirebasePhoneAuthErrorMessage(err, "SMS再送信に失敗しました。しばらく経ってからお試しください。");
+      const error = new Error(errorMessage);
       setError(error);
 
       // RecaptchaVerifierをリセット
