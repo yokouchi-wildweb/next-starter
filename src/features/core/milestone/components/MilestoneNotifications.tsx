@@ -29,8 +29,9 @@ export function MilestoneNotifications({ results }: MilestoneNotificationsProps)
   if (achieved.length === 0) return null;
 
   // displayMode でインラインとモーダルを分離
-  const inlineResults: { result: PersistedMilestoneResult; Component: React.ComponentType<{ result: PersistedMilestoneResult }> }[] = [];
-  const modalResults: { result: PersistedMilestoneResult; Component: React.ComponentType<{ result: PersistedMilestoneResult }> }[] = [];
+  type RendererEntry = { result: PersistedMilestoneResult; Component: React.ComponentType<{ result: PersistedMilestoneResult }>; priority: number };
+  const inlineResults: RendererEntry[] = [];
+  const modalResults: RendererEntry[] = [];
 
   for (const result of achieved) {
     const renderer = getMilestoneRenderer(result.milestoneKey);
@@ -38,11 +39,16 @@ export function MilestoneNotifications({ results }: MilestoneNotificationsProps)
     const Component = renderer?.component ?? DefaultMilestoneNotification;
 
     if (displayMode === "modal") {
-      modalResults.push({ result, Component });
+      modalResults.push({ result, Component, priority: renderer?.priority ?? 0 });
     } else {
-      inlineResults.push({ result, Component });
+      inlineResults.push({ result, Component, priority: renderer?.priority ?? 0 });
     }
   }
+
+  // priority 昇順でソート
+  const sortByPriority = (a: { priority: number }, b: { priority: number }) => a.priority - b.priority;
+  inlineResults.sort(sortByPriority);
+  modalResults.sort(sortByPriority);
 
   return (
     <>
