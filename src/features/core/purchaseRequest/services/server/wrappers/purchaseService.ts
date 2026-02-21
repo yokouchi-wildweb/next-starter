@@ -22,6 +22,7 @@ import type { PersistedMilestoneResult } from "@/features/core/milestone/types/m
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
 import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry";
+import { getPaymentSessionEnricher } from "../payment/sessionEnricher";
 
 // フック定義の副作用インポート（登録を実行）
 import "../hooks/definitions";
@@ -46,6 +47,8 @@ export type InitiatePurchaseParams = {
   itemName?: string;
   /** クーポンコード（割引適用時） */
   couponCode?: string;
+  /** プロバイダ固有のオプション（決済セッション作成時にそのまま渡される） */
+  providerOptions?: Record<string, unknown>;
 };
 
 export type InitiatePurchaseResult = {
@@ -125,6 +128,7 @@ export async function initiatePurchase(
     baseUrl,
     itemName,
     couponCode,
+    providerOptions,
   } = params;
 
   // 1. 冪等キーで既存リクエストをチェック
@@ -192,7 +196,7 @@ export async function initiatePurchase(
     ? formatToE164(user.phoneNumber)
     : undefined;
 
-  const session = await provider.createSession({
+  const baseSessionParams = {
     purchaseRequestId: purchaseRequest.id,
     amount: actualPaymentAmount,
     userId,
@@ -201,7 +205,16 @@ export async function initiatePurchase(
     metadata: itemName ? { itemName } : undefined,
     buyerEmail,
     buyerPhoneNumber,
-  });
+    providerOptions,
+  };
+
+  // セッションエンリッチャー（登録されていればパラメータを拡張）
+  const sessionEnricher = getPaymentSessionEnricher();
+  const sessionParams = sessionEnricher
+    ? await sessionEnricher({ userId, walletType, baseParams: baseSessionParams })
+    : baseSessionParams;
+
+  const session = await provider.createSession(sessionParams);
 
   // 5. セッション情報を記録（status: processing）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

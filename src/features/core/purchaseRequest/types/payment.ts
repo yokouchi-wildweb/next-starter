@@ -20,6 +20,8 @@ export type CreatePaymentSessionParams = {
   buyerEmail?: string;
   /** 購入者電話番号（E.164形式、決済ページで事前入力） */
   buyerPhoneNumber?: string;
+  /** プロバイダ固有のオプション（下流から自由に渡せる） */
+  providerOptions?: Record<string, unknown>;
 };
 
 /**
