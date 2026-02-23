@@ -202,6 +202,7 @@ export function ToastItem({ toast, onClose }: Props) {
         "pointer-events-auto",
         "transition-[transform,opacity] duration-150",
         isNotification && "cursor-pointer select-none",
+        toast.className,
       )}
       role="alert"
       aria-live="assertive"
@@ -215,9 +216,10 @@ export function ToastItem({ toast, onClose }: Props) {
           "rounded-xl",
           variantConfig.bgClass,
           sizeConfig.container,
+          toast.className,
         )}
       >
-        <div className={cn("shrink-0", variantConfig.iconClass)}>
+        <div className={cn("shrink-0", variantConfig.iconClass, toast.iconClassName)}>
           {IconComponent ? (
             <IconComponent
               className={cn(sizeConfig.icon, toast.spinning && "animate-spin")}
@@ -227,7 +229,7 @@ export function ToastItem({ toast, onClose }: Props) {
           )}
         </div>
 
-        <p className={cn("flex-1 font-medium text-foreground", sizeConfig.text)}>
+        <p className={cn("flex-1 font-medium text-foreground", sizeConfig.text, toast.textClassName)}>
           {toast.message}
         </p>
 

@@ -40,6 +40,12 @@ export type Toast = {
   spinning: boolean;
   icon?: ToastIconPreset | ReactNode;
   layer: ToastLayer;
+  /** トースト本体（背景・ボーダー等）のカスタムクラス */
+  className?: string;
+  /** アイコン部分のカスタムクラス */
+  iconClassName?: string;
+  /** テキスト部分のカスタムクラス */
+  textClassName?: string;
 };
 
 export type ToastOptions = {
@@ -52,4 +58,10 @@ export type ToastOptions = {
   spinning?: boolean;
   icon?: ToastIconPreset | ReactNode;
   layer?: ToastLayer;
+  /** トースト本体（背景・ボーダー等）のカスタムクラス */
+  className?: string;
+  /** アイコン部分のカスタムクラス */
+  iconClassName?: string;
+  /** テキスト部分のカスタムクラス */
+  textClassName?: string;
 };

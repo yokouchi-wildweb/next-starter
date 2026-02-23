@@ -37,6 +37,9 @@ export const internalStore = create<ToastState>((set) => ({
         spinning,
         icon: options.icon,
         layer: options.layer ?? "alert",
+        className: options.className,
+        iconClassName: options.iconClassName,
+        textClassName: options.textClassName,
       },
     });
     return id;
