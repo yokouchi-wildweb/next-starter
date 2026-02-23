@@ -84,6 +84,10 @@ function isStringField(fieldType) {
   return ['string', 'email', 'password', 'mediaUploader', 'date', 'time', 'uuid'].includes(fieldType);
 }
 
+function formatSchemaDefault(value) {
+  return typeof value === 'string' ? `"${value}"` : value;
+}
+
 function shouldTrimField(fieldType) {
   return ['string', 'email', 'password', 'uuid', 'date', 'time', 'mediaUploader'].includes(fieldType);
 }
@@ -96,9 +100,12 @@ function isPasswordField(fieldType) {
   return fieldType === 'password';
 }
 
-function fieldLine({ name, label, type, required, fieldType }) {
+function fieldLine({ name, label, type, required, fieldType, defaultValue }) {
   if (fieldType === 'array' || fieldType === 'stringArray') {
-    return `  ${name}: ${type}.default([]),`;
+    if (required) {
+      return `  ${name}: ${type}.default([]),`;
+    }
+    return `  ${name}: ${type}.nullish(),`;
   }
 
   if (isTimestampField(fieldType)) {
@@ -150,6 +157,11 @@ function fieldLine({ name, label, type, required, fieldType }) {
     );
   }
 
+  // defaultValue が指定されていれば .default() を付与
+  if (defaultValue !== undefined) {
+    segments.push(`.default(${formatSchemaDefault(defaultValue)})`);
+  }
+
   segments.push(',');
   return segments.join('');
 }
@@ -186,7 +198,8 @@ const lines = [];
 
   if (f.fieldType === 'enum') {
     const values = (f.options || []).map((o) => `"${o.value}"`).join(', ');
-    lines.push(`  ${f.name}: z.enum([${values}])${f.required ? '' : '.nullish()'},`);
+    const defaultSuffix = f.defaultValue !== undefined ? `.default(${formatSchemaDefault(f.defaultValue)})` : '';
+    lines.push(`  ${f.name}: z.enum([${values}])${f.required ? '' : '.nullish()'}${defaultSuffix},`);
   } else {
     const t = mapZodType(f.fieldType, f.required);
     lines.push(
@@ -196,6 +209,7 @@ const lines = [];
         type: t,
         required: f.required,
         fieldType: f.fieldType,
+        defaultValue: f.defaultValue,
       }),
     );
   }

@@ -62,11 +62,6 @@ function mapTsType(t) {
 }
 
 function addField(lines, name, type, required) {
-  if (type.endsWith('[]')) {
-    lines.push(`  ${name}: ${type};`);
-    return;
-  }
-
   const t = required ? type : `${type} | null`;
   lines.push(`  ${name}: ${t};`);
 }

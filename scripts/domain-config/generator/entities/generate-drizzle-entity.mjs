@@ -202,11 +202,17 @@ switch (config.idType) {
     fields.push(`  ${f.name}: ${names.constName}("${toSnakeCase(f.name)}")${notNull}${defaultSuffix},`);
   } else if (f.fieldType === 'array' || f.fieldType === 'stringArray') {
     imports.add('text');
-    // 配列型は常にnotNull（nullではなく空配列を使う）
-    const defaultVal = f.required ? '' : '.default([])';
-    fields.push(
-      `  ${f.name}: text("${toSnakeCase(f.name)}").array()${defaultVal}.notNull(),`
-    );
+    if (f.required) {
+      // required: true → NOT NULL + デフォルト空配列
+      fields.push(
+        `  ${f.name}: text("${toSnakeCase(f.name)}").array().default([]).notNull(),`
+      );
+    } else {
+      // required: false → nullable（既存データのNULLを許容）
+      fields.push(
+        `  ${f.name}: text("${toSnakeCase(f.name)}").array(),`
+      );
+    }
   } else if (f.fieldType === 'timestamp With Time Zone') {
     imports.add('timestamp');
     let column = `timestamp("${toSnakeCase(f.name)}", { withTimezone: true })`;
