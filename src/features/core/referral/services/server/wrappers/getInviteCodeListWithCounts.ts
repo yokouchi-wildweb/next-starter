@@ -5,7 +5,7 @@ import { CouponTable } from "@/features/core/coupon/entities/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { ReferralTable } from "../../../entities/drizzle";
 import type { Coupon } from "@/features/core/coupon/entities/model";
-import { and, eq, isNull, sql, desc, ilike, or, count as drizzleCount, inArray } from "drizzle-orm";
+import { and, eq, isNull, sql, desc, ilike, count as drizzleCount, inArray } from "drizzle-orm";
 
 export type InviteCodeWithCount = {
   coupon: Coupon;
@@ -39,15 +39,10 @@ export async function getInviteCodeListWithCounts(
     isNull(CouponTable.deletedAt),
   ];
 
-  // テキスト検索
+  // テキスト検索（招待コードで検索）
   if (searchQuery) {
     const pattern = `%${searchQuery}%`;
-    baseConditions.push(
-      or(
-        ilike(CouponTable.code, pattern),
-        ilike(CouponTable.attribution_user_id, pattern),
-      )!,
-    );
+    baseConditions.push(ilike(CouponTable.code, pattern));
   }
 
   const whereClause = and(...baseConditions);
