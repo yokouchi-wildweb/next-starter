@@ -27,5 +27,7 @@ export { ComboboxInput } from "./ComboboxInput";
 export type { ComboboxInputProps } from "./ComboboxInput";
 export { AsyncComboboxInput } from "./AsyncComboboxInput";
 export type { AsyncComboboxInputProps } from "./AsyncComboboxInput";
+export { AsyncMultiSelectInput } from "./AsyncMultiSelectInput";
+export type { AsyncMultiSelectInputProps } from "./AsyncMultiSelectInput";
 export { ColorInput } from "./ColorInput";
 export type { ColorInputProps } from "./ColorInput";

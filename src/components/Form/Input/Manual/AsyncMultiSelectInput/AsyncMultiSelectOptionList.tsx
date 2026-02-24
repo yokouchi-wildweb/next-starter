@@ -1,0 +1,57 @@
+// @/components/Form/Input/Manual/AsyncMultiSelectInput/AsyncMultiSelectOptionList.tsx
+
+import { Checkbox } from "@/components/_shadcn/checkbox";
+import { CommandItem, CommandList } from "@/components/_shadcn/command";
+import {
+  includesOptionValue,
+  resolveOptionSearchText,
+  serializeOptionValue,
+  type OptionPrimitive,
+} from "@/components/Form/utils";
+import { type Options } from "@/components/Form/types";
+
+type Props = {
+  options: Options[];
+  selectedValues: OptionPrimitive[];
+  onToggle: (value: OptionPrimitive) => void;
+  emptyMessage?: string;
+};
+
+export function AsyncMultiSelectOptionList({
+  options,
+  selectedValues,
+  onToggle,
+  emptyMessage = "該当する項目がありません",
+}: Props) {
+  if (options.length === 0) {
+    return (
+      <div className="py-6 text-center text-sm text-muted-foreground">
+        {emptyMessage}
+      </div>
+    );
+  }
+
+  return (
+    <CommandList className="max-h-60 flex flex-col gap-1 p-1">
+      {options.map((option, index) => {
+        const serialized = serializeOptionValue(option.value);
+        const key = serialized || `option-${index}`;
+        const selected = includesOptionValue(selectedValues, option.value);
+        const handleToggle = () => onToggle(option.value);
+        const searchValue = resolveOptionSearchText(option);
+
+        return (
+          <CommandItem
+            key={key}
+            value={searchValue}
+            onSelect={handleToggle}
+            className="cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
+          >
+            <Checkbox checked={selected} onCheckedChange={handleToggle} aria-checked={selected} />
+            <span className="truncate">{option.label}</span>
+          </CommandItem>
+        );
+      })}
+    </CommandList>
+  );
+}
