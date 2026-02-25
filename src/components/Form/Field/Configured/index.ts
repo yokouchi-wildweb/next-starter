@@ -15,6 +15,9 @@ export type {
   MediaFieldConfig,
 } from "./ConfiguredMediaField";
 
+export { ConfiguredAsyncRelationField } from "./ConfiguredAsyncRelationField";
+export type { ConfiguredAsyncRelationFieldProps } from "./ConfiguredAsyncRelationField";
+
 // MediaHandleEntry は FieldRenderer/types.ts から再エクスポート
 export type { MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
 

@@ -29,7 +29,9 @@ export type FormInputType =
   | "mediaUploader"
   | "hidden"
   | "none"
-  | "custom";
+  | "custom"
+  | "asyncCombobox"
+  | "asyncMultiSelect";
 
 /**
  * フィールドの型（domain.json fieldType - Neon）
@@ -130,6 +132,14 @@ export type FieldConfig = {
   metadataBinding?: Record<string, string>;
   /** メタデータ変更時のコールバック（mediaUploader用） */
   onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
+
+  // === 非同期リレーション用メタデータ（ランタイム専用） ===
+  /** リレーション先 API パス（例: "/api/sampleCategory"） */
+  asyncApiPath?: string;
+  /** リレーション先のラベルに使うフィールド名（デフォルト: "name"） */
+  asyncLabelField?: string;
+  /** リレーション先の検索対象フィールド */
+  asyncSearchFields?: string[];
 };
 
 // ============================================

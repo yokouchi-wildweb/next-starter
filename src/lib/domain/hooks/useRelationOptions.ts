@@ -8,7 +8,9 @@ import { useMemo } from "react";
 import useSWR from "swr";
 import axios from "axios";
 import type { InsertFieldsMap, FieldConfig } from "@/components/Form/FieldRenderer";
+import type { FormInputType } from "@/components/Form/Field/types";
 import { toCamelCase } from "@/utils/stringCase.mjs";
+import { getDomainConfig, hasDomainConfig } from "@/lib/domain/config";
 
 /**
  * domain.json の relations の型
@@ -20,6 +22,10 @@ type RelationConfig = {
   fieldType: string;
   relationType: string; // "belongsTo" | "belongsToMany"（JSON import 時は string になる）
   required?: boolean;
+  /** リレーションフィールドのフォーム入力種別（省略時は belongsTo→select, belongsToMany→checkbox） */
+  formInput?: string;
+  /** セレクトボックスのラベルに使うフィールド（デフォルト: "name"） */
+  labelField?: string;
 };
 
 /**
@@ -37,8 +43,26 @@ type RelationData = {
   name: string;
 };
 
+/** 非同期検索対応の formInput かどうかを判定 */
+const ASYNC_FORM_INPUTS = new Set(["asyncCombobox", "asyncMultiSelect"]);
+
+function isAsyncFormInput(formInput?: string): formInput is "asyncCombobox" | "asyncMultiSelect" {
+  return formInput != null && ASYNC_FORM_INPUTS.has(formInput);
+}
+
+/** custom formInput かどうかを判定 */
+function isCustomFormInput(formInput?: string): boolean {
+  return formInput === "custom";
+}
+
+/** データの全件取得が必要なリレーションかどうかを判定 */
+function needsDataFetch(formInput?: string): boolean {
+  return !isAsyncFormInput(formInput) && !isCustomFormInput(formInput);
+}
+
 /**
  * 複数のリレーション先データを並列取得するための fetcher
+ * （非同期検索のリレーションは除外して呼び出される）
  */
 async function fetchRelationData(
   relations: RelationConfig[]
@@ -66,19 +90,21 @@ async function fetchRelationData(
 }
 
 /**
- * リレーション設定からフィールド設定を生成
+ * リレーション設定からフィールド設定を生成（従来の全件取得パターン）
  */
-function buildRelationFieldConfig(
+function buildStaticRelationFieldConfig(
   relation: RelationConfig,
   data: RelationData[]
 ): FieldConfig {
+  const labelField = relation.labelField ?? "name";
   const options = data.map((item) => ({
     value: item.id,
-    label: item.name,
+    label: String((item as Record<string, unknown>)[labelField] ?? item.id),
   }));
 
-  // belongsTo: select, belongsToMany: checkbox
-  const formInput = relation.relationType === "belongsTo" ? "select" : "checkbox";
+  // formInput が明示指定されていればそれを使用、なければデフォルト
+  const formInput = (relation.formInput ??
+    (relation.relationType === "belongsTo" ? "select" : "checkbox")) as FormInputType;
   const fieldType = relation.relationType === "belongsToMany" ? "array" : undefined;
 
   return {
@@ -87,6 +113,57 @@ function buildRelationFieldConfig(
     formInput,
     ...(fieldType && { fieldType }),
     options,
+    required: relation.required,
+  };
+}
+
+/**
+ * 非同期検索リレーションの FieldConfig を生成
+ * データは取得せず、ConfiguredAsyncRelationField が使うメタデータだけを載せる
+ */
+function buildAsyncRelationFieldConfig(
+  relation: RelationConfig,
+): FieldConfig {
+  const formInput = relation.formInput as FormInputType;
+  const fieldType = relation.relationType === "belongsToMany" ? "array" : undefined;
+  const apiPath = `/api/${toCamelCase(relation.domain)}`;
+  const labelField = relation.labelField ?? "name";
+
+  // リレーション先 domain.json の searchFields を取得
+  let searchFields: string[] | undefined;
+  if (hasDomainConfig(relation.domain)) {
+    const targetConfig = getDomainConfig(relation.domain);
+    searchFields = (targetConfig as Record<string, unknown>).searchFields as string[] | undefined;
+  }
+
+  return {
+    name: relation.fieldName,
+    label: relation.label,
+    formInput,
+    ...(fieldType && { fieldType }),
+    required: relation.required,
+    // 非同期リレーション用メタデータ
+    asyncApiPath: apiPath,
+    asyncLabelField: labelField,
+    asyncSearchFields: searchFields,
+  };
+}
+
+/**
+ * カスタム UI リレーションの FieldConfig を生成
+ * データ取得もメタデータ構築もせず、最小限の FieldConfig だけを返す。
+ * FieldRenderer が beforeField/afterField で注入されたカスタムコンポーネントを描画する。
+ */
+function buildCustomRelationFieldConfig(
+  relation: RelationConfig,
+): FieldConfig {
+  const fieldType = relation.relationType === "belongsToMany" ? "array" : undefined;
+
+  return {
+    name: relation.fieldName,
+    label: relation.label,
+    formInput: "custom",
+    ...(fieldType && { fieldType }),
     required: relation.required,
   };
 }
@@ -142,17 +219,20 @@ export function useRelationOptions(
     return false;
   });
 
-  // 対象リレーションがない場合は空を返す
+  // 同期取得が必要なリレーション（async / custom 以外）
+  const staticRelations = relations.filter((rel) => needsDataFetch(rel.formInput));
+
+  const hasStaticRelations = staticRelations.length > 0;
   const hasRelations = relations.length > 0;
 
-  // SWR キーを生成（リレーションドメインのリスト）
-  const swrKey = hasRelations
-    ? ["relationOptions", relations.map((r) => r.domain).join(",")]
+  // SWR キーを生成（同期取得が必要なリレーションのみ）
+  const swrKey = hasStaticRelations
+    ? ["relationOptions", staticRelations.map((r) => r.domain).join(",")]
     : null;
 
   const { data, error, isLoading } = useSWR(
     swrKey,
-    () => fetchRelationData(relations),
+    () => fetchRelationData(staticRelations),
     {
       revalidateOnFocus: false,
     }
@@ -160,23 +240,35 @@ export function useRelationOptions(
 
   // InsertFieldsMap を生成
   const insertBefore = useMemo<InsertFieldsMap>(() => {
-    if (!hasRelations || !data) {
+    // 同期リレーションのデータがまだ取得中の場合は空を返す
+    if (hasStaticRelations && !data) {
+      return {};
+    }
+    if (!hasRelations) {
       return {};
     }
 
+    // 元の relations 配列の順序を保持しつつ FieldConfig を生成
     const fieldConfigs: FieldConfig[] = relations.map((relation) => {
-      const relationData = data[relation.domain] ?? [];
-      return buildRelationFieldConfig(relation, relationData);
+      if (isCustomFormInput(relation.formInput)) {
+        return buildCustomRelationFieldConfig(relation);
+      }
+      if (isAsyncFormInput(relation.formInput)) {
+        return buildAsyncRelationFieldConfig(relation);
+      }
+      const relationData = data?.[relation.domain] ?? [];
+      return buildStaticRelationFieldConfig(relation, relationData);
     });
 
     return {
       __first__: fieldConfigs,
     };
-  }, [hasRelations, data, relations]);
+  }, [hasRelations, hasStaticRelations, data, relations]);
 
   return {
     insertBefore,
-    isLoading,
+    // 非同期リレーションのみの場合は isLoading にならない
+    isLoading: hasStaticRelations ? isLoading : false,
     error,
   };
 }

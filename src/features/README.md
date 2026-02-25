@@ -47,6 +47,7 @@
 | onDelete | `"RESTRICT"` \| `"CASCADE"` \| `"SET_NULL"` | ⚪ No | 削除時の挙動（belongsTo のみ） |
 | includeRelationTable | boolean | ⚪ No | 中間テーブル定義を含めるか（belongsToMany のみ） |
 | labelField | string | ⚪ No | セレクトボックスのラベルに使うフィールド（デフォルト: `name`） |
+| formInput | RelationFormInput | ⚪ No | フォーム入力種別（省略時はデフォルト値） |
 
 #### RelationType
 
@@ -56,6 +57,65 @@
 | hasMany | 1:N 子リスト | ○ | ○ |
 | hasOne | 1:1 | ○ | ○ |
 | belongsToMany | M:N 多対多 | ○ | × |
+
+#### RelationFormInput
+
+リレーションフィールドのフォーム入力種別。省略時は relationType に応じたデフォルト値が使われる。
+
+| relationType | デフォルト | 指定可能な値 |
+|---|---|---|
+| belongsTo | `select` | `select`, `combobox`, `asyncCombobox`, `custom` |
+| belongsToMany | `checkbox` | `checkbox`, `multiSelect`, `asyncMultiSelect`, `custom` |
+
+- `select` / `checkbox`: 初回に全件取得して選択肢を表示（少量データ向け）
+- `combobox` / `multiSelect`: 全件取得 + 検索フィルタ付き（中量データ向け）
+- `asyncCombobox` / `asyncMultiSelect`: ユーザー入力時に非同期検索（大量データ向け）
+- `custom`: UI は自分で実装。スキーマには含まれるが、自動 UI 描画なし
+
+`asyncCombobox` / `asyncMultiSelect` を指定した場合、リレーション先の `searchFields`（domain.json）が自動的に検索対象として使用される。
+
+`custom` を指定した場合、データ取得は行われず FieldConfig のみ生成される。
+`beforeField` / `afterField` で独自コンポーネントを注入する（通常フィールドの `custom` と同じ仕組み）。
+
+```json
+{
+  "relations": [
+    {
+      "domain": "user",
+      "label": "担当者",
+      "fieldName": "user_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "formInput": "asyncCombobox"
+    },
+    {
+      "domain": "project",
+      "label": "プロジェクト",
+      "fieldName": "project_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "formInput": "custom"
+    }
+  ]
+}
+```
+
+custom リレーションの UI 実装例:
+```tsx
+<SampleFields
+  methods={methods}
+  beforeField={{
+    project_id: (
+      <ControlledField
+        control={control}
+        name="project_id"
+        label="プロジェクト"
+        renderInput={(field) => <MyProjectSelector {...field} />}
+      />
+    )
+  }}
+/>
+```
 
 ---
 

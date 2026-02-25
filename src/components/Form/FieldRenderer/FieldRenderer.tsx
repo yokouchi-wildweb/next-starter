@@ -7,6 +7,7 @@ import {
   ConfiguredField,
   ConfiguredFieldGroup,
   ConfiguredMediaField,
+  ConfiguredAsyncRelationField,
   type FieldConfig,
 } from "@/components/Form/Field";
 import { useAppFormMedia } from "@/components/Form/AppForm";
@@ -225,6 +226,15 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
         // custom はUIを自分で実装するため何も描画しない
         // beforeField/afterField で独自コンポーネントを挿入する
         fieldElement = null;
+      } else if (fieldConfig.formInput === "asyncCombobox" || fieldConfig.formInput === "asyncMultiSelect") {
+        // 非同期リレーション検索は専用コンポーネント
+        fieldElement = (
+          <ConfiguredAsyncRelationField
+            key={fieldConfig.name}
+            control={control}
+            fieldConfig={fieldConfig}
+          />
+        );
       } else if (fieldConfig.formInput === "mediaUploader") {
         // メディアアップローダーは専用コンポーネント
         fieldElement = (

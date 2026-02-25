@@ -36,6 +36,7 @@ export {
   ConfiguredFieldGroup,
   ConfiguredFields,
   ConfiguredMediaField,
+  ConfiguredAsyncRelationField,
   renderInputByFormType,
   hasVisibleInput,
   shouldUseFieldItem,
@@ -46,6 +47,7 @@ export type {
   ConfiguredFieldGroupProps,
   ConfiguredFieldsProps,
   ConfiguredMediaFieldProps,
+  ConfiguredAsyncRelationFieldProps,
   MediaFieldConfig,
   MediaHandleEntry,
 } from "./Configured";

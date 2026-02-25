@@ -214,6 +214,15 @@ export function renderInputByFormType<
       // FieldRenderer の beforeField/afterField で独自コンポーネントを挿入する
       return null;
 
+    case "asyncCombobox":
+    case "asyncMultiSelect":
+      // FieldRenderer で ConfiguredAsyncRelationField にルーティングされるため、
+      // inputResolver には到達しない。到達した場合は警告
+      console.warn(
+        `[ConfiguredField] formInput="${formInput}" は FieldRenderer 経由で使用してください。Field: ${fieldConfig.name}`
+      );
+      return null;
+
     default: {
       // 未知の formInput タイプ
       const _exhaustiveCheck: never = formInput;
@@ -322,6 +331,10 @@ const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none">
   none: "none",
   mediaUploader: "none",  // onUrlChangeで即時コミット+保存
   custom: "none",  // 独自コンポーネントで処理
+
+  // 非同期リレーション: ポップオーバー閉じた時に即時保存
+  asyncCombobox: "immediate",
+  asyncMultiSelect: "immediate",
 };
 
 /**
