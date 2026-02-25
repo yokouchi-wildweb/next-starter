@@ -9,6 +9,7 @@ import {
   type MouseEvent,
   useState,
   useCallback,
+  useRef,
 } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -90,6 +91,7 @@ export type AsyncMultiSelectInputProps<T> = {
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
 type SearchState = "idle" | "loading" | "success" | "error";
+type InitialFetchState = "idle" | "loading" | "done" | "error";
 
 export function AsyncMultiSelectInput<T>({
   value,
@@ -127,11 +129,36 @@ export function AsyncMultiSelectInput<T>({
     () => new Map(),
   );
 
+  // 初期アイテム（ポップオーバーを開いた時にデフォルトソートで取得）
+  const [initialItems, setInitialItems] = useState<Options[]>([]);
+  const [initialFetchState, setInitialFetchState] = useState<InitialFetchState>("idle");
+  // 初期取得済みフラグ（再度開いた時に再取得しない）
+  const initialFetchedRef = useRef(false);
+
   const isControlled = typeof open === "boolean";
   const resolvedOpen = isControlled ? open : internalOpen;
 
   const selectedValues = normalizeOptionValues(value);
   const selectedCount = selectedValues.length;
+
+  // 初期アイテムの取得（ポップオーバーを開いた時に1回だけ実行）
+  const fetchInitialItems = useCallback(async () => {
+    if (initialFetchedRef.current) return;
+
+    setInitialFetchState("loading");
+    try {
+      const result = await searchFn({
+        limit,
+        page: 1,
+      });
+      const options = result.results.map(getOptionFromResult);
+      setInitialItems(options);
+      setInitialFetchState("done");
+      initialFetchedRef.current = true;
+    } catch {
+      setInitialFetchState("error");
+    }
+  }, [searchFn, limit, getOptionFromResult]);
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -142,12 +169,20 @@ export function AsyncMultiSelectInput<T>({
         setInternalOpen(nextOpen);
       }
       onOpenChange?.(nextOpen);
-      // ポップオーバーが閉じた時に onBlur を発火
-      if (!nextOpen) {
+
+      if (nextOpen) {
+        // ポップオーバーを開いた時: 検索状態をリセット + 初期アイテム取得
+        setSearchQuery("");
+        setSearchState("idle");
+        setSearchResults([]);
+        setErrorMessage(null);
+        fetchInitialItems();
+      } else {
+        // ポップオーバーが閉じた時に onBlur を発火
         onBlur?.();
       }
     },
-    [disabled, isControlled, onOpenChange, onBlur],
+    [disabled, isControlled, onOpenChange, onBlur, fetchInitialItems],
   );
 
   const handleSearch = useCallback(async () => {
@@ -192,8 +227,8 @@ export function AsyncMultiSelectInput<T>({
       const isAdding = newValues.length > selectedValues.length;
 
       if (isAdding) {
-        // 選択時: キャッシュに追加
-        const allOptions = [...(initialOptions ?? []), ...searchResults];
+        // 選択時: キャッシュに追加（initialOptions + initialItems + searchResults から探す）
+        const allOptions = [...(initialOptions ?? []), ...initialItems, ...searchResults];
         const option = allOptions.find(
           (opt) => serializeOptionValue(opt.value) === serialized,
         );
@@ -215,7 +250,7 @@ export function AsyncMultiSelectInput<T>({
 
       onChange(newValues);
     },
-    [onChange, selectedValues, initialOptions, searchResults],
+    [onChange, selectedValues, initialOptions, initialItems, searchResults],
   );
 
   const handleClosePicker = useCallback(() => {
@@ -251,29 +286,30 @@ export function AsyncMultiSelectInput<T>({
     return resolved;
   }, [selectedValues, initialOptions, selectedOptionsCache]);
 
-  // 表示するオプション: 検索結果 + 選択済みだが検索結果に含まれないもの
+  // 表示するオプション: 3 ステートモデル
+  // idle: 既存選択（initialItems に含まれないもの、上部） + initialItems（元の順序維持）
+  // success: 検索結果のみ（選択済みはチェックマークで表示、ピン留めなし）
+  // loading/error: 空（別途メッセージ表示）
   const displayOptions = (() => {
-    if (searchState !== "success") {
-      // 検索前は選択済みのものだけ表示
-      return selectedCount > 0 ? resolveSelectedOptions() : [];
+    if (searchState === "success") {
+      return searchResults;
     }
 
-    // 検索結果に含まれない選択済みアイテムを先頭に追加
-    const resultValueSet = new Set(
-      searchResults.map((opt) => serializeOptionValue(opt.value)),
+    // idle 状態: initialItems は元の順序を維持（選択操作でアイテムが移動しない）
+    const initialItemValueSet = new Set(
+      initialItems.map((opt) => serializeOptionValue(opt.value)),
     );
 
-    const selectedNotInResults = resolveSelectedOptions().filter(
-      (opt) => !resultValueSet.has(serializeOptionValue(opt.value)),
+    // initialItems に含まれない既存選択（ポップオーバーを開く前からの選択）を上部に表示
+    const preExistingSelected = resolveSelectedOptions().filter(
+      (opt) => !initialItemValueSet.has(serializeOptionValue(opt.value)),
     );
 
-    return [...selectedNotInResults, ...searchResults];
+    return [...preExistingSelected, ...initialItems];
   })();
 
   // リスト表示内容の決定
   const renderListContent = () => {
-    const trimmed = searchQuery.trim();
-
     if (searchState === "loading") {
       return (
         <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
@@ -292,7 +328,17 @@ export function AsyncMultiSelectInput<T>({
     }
 
     if (searchState === "idle") {
-      // 選択済みアイテムがある場合はリスト表示
+      // 初期アイテム読み込み中
+      if (initialFetchState === "loading") {
+        return (
+          <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" />
+            {loadingMessage}
+          </div>
+        );
+      }
+
+      // 表示するアイテムがある場合はリスト表示
       if (displayOptions.length > 0) {
         return (
           <AsyncMultiSelectOptionList
@@ -304,24 +350,19 @@ export function AsyncMultiSelectInput<T>({
         );
       }
 
-      if (trimmed.length === 0) {
+      // 初期取得完了したがアイテムがない場合
+      if (initialFetchState === "done" || initialFetchState === "error") {
         return (
           <div className="py-6 text-center text-sm text-muted-foreground">
-            {hintMessage}
+            {emptyMessage}
           </div>
         );
       }
-      if (trimmed.length < minChars) {
-        return (
-          <div className="py-6 text-center text-sm text-muted-foreground">
-            {minCharsMessage ?? `${minChars}文字以上入力してください`}
-          </div>
-        );
-      }
-      // 入力はあるがまだ検索していない
+
+      // 初期取得前（フォールバック）
       return (
         <div className="py-6 text-center text-sm text-muted-foreground">
-          Enterキーで検索
+          {hintMessage}
         </div>
       );
     }
@@ -363,7 +404,13 @@ export function AsyncMultiSelectInput<T>({
               <CommandInput
                 placeholder={searchPlaceholder}
                 value={searchQuery}
-                onValueChange={setSearchQuery}
+                onValueChange={(val) => {
+                  setSearchQuery(val);
+                  // 検索テキストがクリアされたら idle 状態に戻す
+                  if (val.trim() === "" && searchState === "success") {
+                    setSearchState("idle");
+                  }
+                }}
                 onKeyDown={handleKeyDown}
               />
               {renderListContent()}
