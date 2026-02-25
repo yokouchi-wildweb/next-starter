@@ -1,6 +1,7 @@
 "use client";
 
 // @/components/Form/Input/Manual/AsyncMultiSelectInput/index.tsx
+// スナップショット方式: ポップオーバーを開いた時に表示順序を確定し、操作中は固定する
 
 import {
   type ComponentProps,
@@ -90,8 +91,13 @@ export type AsyncMultiSelectInputProps<T> = {
   onOpenChange?: (open: boolean) => void;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
-type SearchState = "idle" | "loading" | "success" | "error";
-type InitialFetchState = "idle" | "loading" | "done" | "error";
+// ---- フェーズ ----
+// loading:  ポップオーバーを開いた直後、初期アイテム取得中
+// idle:     スナップショット表示中（検索前 or 検索クリア後）
+// searching: 検索API呼び出し中
+// results:  検索結果表示中
+// error:    検索 or 初期取得エラー
+type Phase = "loading" | "idle" | "searching" | "results" | "error";
 
 export function AsyncMultiSelectInput<T>({
   value,
@@ -119,79 +125,135 @@ export function AsyncMultiSelectInput<T>({
   onOpenChange,
   ...rest
 }: AsyncMultiSelectInputProps<T>) {
+  // ---- 開閉 ----
   const [internalOpen, setInternalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchState, setSearchState] = useState<SearchState>("idle");
-  const [searchResults, setSearchResults] = useState<Options[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  // 選択済みアイテムのキャッシュ（検索結果が入れ替わってもラベルを保持するため）
-  const [selectedOptionsCache, setSelectedOptionsCache] = useState<Map<string, Options>>(
-    () => new Map(),
-  );
-
-  // 初期アイテム（ポップオーバーを開いた時にデフォルトソートで取得）
-  const [initialItems, setInitialItems] = useState<Options[]>([]);
-  const [initialFetchState, setInitialFetchState] = useState<InitialFetchState>("idle");
-  // 初期取得済みフラグ（再度開いた時に再取得しない）
-  const initialFetchedRef = useRef(false);
-
   const isControlled = typeof open === "boolean";
   const resolvedOpen = isControlled ? open : internalOpen;
+
+  // ---- フェーズ & データ ----
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [displaySnapshot, setDisplaySnapshot] = useState<Options[]>([]);
+  const [searchResults, setSearchResults] = useState<Options[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // ラベル解決用キャッシュ（コンポーネントのライフサイクル全体で保持）
+  const labelCacheRef = useRef<Map<string, Options>>(new Map());
+
+  // 初期アイテムのキャッシュ（再度開いた時に再取得しない）
+  const fetchedItemsRef = useRef<Options[] | null>(null);
 
   const selectedValues = normalizeOptionValues(value);
   const selectedCount = selectedValues.length;
 
-  // 初期アイテムの取得（ポップオーバーを開いた時に1回だけ実行）
-  const fetchInitialItems = useCallback(async () => {
-    if (initialFetchedRef.current) return;
+  // ---- ラベルキャッシュ操作 ----
 
-    setInitialFetchState("loading");
-    try {
-      const result = await searchFn({
-        limit,
-        page: 1,
-      });
-      const options = result.results.map(getOptionFromResult);
-      setInitialItems(options);
-      setInitialFetchState("done");
-      initialFetchedRef.current = true;
-    } catch {
-      setInitialFetchState("error");
+  /** Options 配列をキャッシュに登録 */
+  const cacheOptions = useCallback((options: Options[]) => {
+    for (const opt of options) {
+      labelCacheRef.current.set(serializeOptionValue(opt.value), opt);
     }
-  }, [searchFn, limit, getOptionFromResult]);
+  }, []);
 
+  /** 選択済み値のラベルを解決（initialOptions → キャッシュの順） */
+  const resolveSelectedOptions = useCallback((): Options[] => {
+    const resolved: Options[] = [];
+    const seen = new Set<string>();
+
+    for (const v of selectedValues) {
+      const key = serializeOptionValue(v);
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const fromInitial = initialOptions?.find(
+        (opt) => serializeOptionValue(opt.value) === key,
+      );
+      if (fromInitial) {
+        resolved.push(fromInitial);
+        continue;
+      }
+
+      const fromCache = labelCacheRef.current.get(key);
+      if (fromCache) {
+        resolved.push(fromCache);
+      }
+    }
+
+    return resolved;
+  }, [selectedValues, initialOptions]);
+
+  // ---- スナップショット構築 ----
+  // 選択済み（上部） + 未選択の初期アイテム（下部）の順序で確定
+  const buildSnapshot = useCallback(
+    (fetchedItems: Options[]): Options[] => {
+      const selected = resolveSelectedOptions();
+      const selectedSet = new Set(
+        selected.map((opt) => serializeOptionValue(opt.value)),
+      );
+
+      const unselected = fetchedItems.filter(
+        (opt) => !selectedSet.has(serializeOptionValue(opt.value)),
+      );
+
+      return [...selected, ...unselected];
+    },
+    [resolveSelectedOptions],
+  );
+
+  // ---- ポップオーバー開閉 ----
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
-      if (disabled) {
-        return;
-      }
+      if (disabled) return;
+
       if (!isControlled) {
         setInternalOpen(nextOpen);
       }
       onOpenChange?.(nextOpen);
 
       if (nextOpen) {
-        // ポップオーバーを開いた時: 検索状態をリセット + 初期アイテム取得
+        // リセット
         setSearchQuery("");
-        setSearchState("idle");
         setSearchResults([]);
         setErrorMessage(null);
-        fetchInitialItems();
+
+        if (fetchedItemsRef.current) {
+          // キャッシュ済み: 即座にスナップショットを構築
+          const snapshot = buildSnapshot(fetchedItemsRef.current);
+          setDisplaySnapshot(snapshot);
+          setPhase("idle");
+        } else {
+          // 初回: API から取得
+          setPhase("loading");
+          searchFn({ limit, page: 1 })
+            .then((result) => {
+              const items = result.results.map(getOptionFromResult);
+              fetchedItemsRef.current = items;
+              cacheOptions(items);
+              const snapshot = buildSnapshot(items);
+              setDisplaySnapshot(snapshot);
+              setPhase("idle");
+            })
+            .catch(() => {
+              // 取得失敗でも選択済みのみでスナップショットを構築
+              fetchedItemsRef.current = [];
+              const snapshot = buildSnapshot([]);
+              setDisplaySnapshot(snapshot);
+              setPhase("idle");
+            });
+        }
       } else {
-        // ポップオーバーが閉じた時に onBlur を発火
         onBlur?.();
       }
     },
-    [disabled, isControlled, onOpenChange, onBlur, fetchInitialItems],
+    [disabled, isControlled, onOpenChange, onBlur, buildSnapshot, searchFn, limit, getOptionFromResult, cacheOptions],
   );
 
+  // ---- 検索 ----
   const handleSearch = useCallback(async () => {
     const trimmed = searchQuery.trim();
-    if (trimmed.length < minChars) {
-      return;
-    }
+    if (trimmed.length < minChars) return;
 
-    setSearchState("loading");
+    setPhase("searching");
     setErrorMessage(null);
 
     try {
@@ -202,13 +264,14 @@ export function AsyncMultiSelectInput<T>({
         page: 1,
       });
       const options = result.results.map(getOptionFromResult);
+      cacheOptions(options);
       setSearchResults(options);
-      setSearchState("success");
+      setPhase("results");
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "検索に失敗しました");
-      setSearchState("error");
+      setPhase("error");
     }
-  }, [searchQuery, minChars, searchFn, searchFields, limit, getOptionFromResult]);
+  }, [searchQuery, minChars, searchFn, searchFields, limit, getOptionFromResult, cacheOptions]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -220,97 +283,53 @@ export function AsyncMultiSelectInput<T>({
     [handleSearch],
   );
 
+  // ---- 検索テキスト変更 ----
+  const handleSearchQueryChange = useCallback(
+    (val: string) => {
+      setSearchQuery(val);
+      // 検索テキストをクリアしたら idle に戻す
+      if (val.trim() === "" && phase === "results") {
+        setPhase("idle");
+      }
+    },
+    [phase],
+  );
+
+  // ---- トグル ----
   const handleToggle = useCallback(
     (optionValue: OptionPrimitive) => {
-      const serialized = serializeOptionValue(optionValue);
+      const key = serializeOptionValue(optionValue);
       const newValues = toggleOptionValue(selectedValues, optionValue);
       const isAdding = newValues.length > selectedValues.length;
 
       if (isAdding) {
-        // 選択時: キャッシュに追加（initialOptions + initialItems + searchResults から探す）
-        const allOptions = [...(initialOptions ?? []), ...initialItems, ...searchResults];
+        // キャッシュに追加（displaySnapshot + searchResults から探す）
+        const allOptions = [...displaySnapshot, ...searchResults];
         const option = allOptions.find(
-          (opt) => serializeOptionValue(opt.value) === serialized,
+          (opt) => serializeOptionValue(opt.value) === key,
         );
         if (option) {
-          setSelectedOptionsCache((prev) => {
-            const next = new Map(prev);
-            next.set(serialized, option);
-            return next;
-          });
+          labelCacheRef.current.set(key, option);
         }
       } else {
-        // 選択解除時: キャッシュから削除
-        setSelectedOptionsCache((prev) => {
-          const next = new Map(prev);
-          next.delete(serialized);
-          return next;
-        });
+        labelCacheRef.current.delete(key);
       }
 
       onChange(newValues);
     },
-    [onChange, selectedValues, initialOptions, initialItems, searchResults],
+    [onChange, selectedValues, displaySnapshot, searchResults],
   );
 
   const handleClosePicker = useCallback(() => {
     handleOpenChange(false);
   }, [handleOpenChange]);
 
-  // 選択済みアイテムの Options を解決（initialOptions + キャッシュから）
-  const resolveSelectedOptions = useCallback((): Options[] => {
-    const resolved: Options[] = [];
-    const resolvedSet = new Set<string>();
+  // ---- 表示するオプション ----
+  const displayOptions = phase === "results" ? searchResults : displaySnapshot;
 
-    for (const v of selectedValues) {
-      const serialized = serializeOptionValue(v);
-      if (resolvedSet.has(serialized)) continue;
-
-      // initialOptions → キャッシュの順に探す
-      const fromInitial = initialOptions?.find(
-        (opt) => serializeOptionValue(opt.value) === serialized,
-      );
-      if (fromInitial) {
-        resolved.push(fromInitial);
-        resolvedSet.add(serialized);
-        continue;
-      }
-
-      const fromCache = selectedOptionsCache.get(serialized);
-      if (fromCache) {
-        resolved.push(fromCache);
-        resolvedSet.add(serialized);
-      }
-    }
-
-    return resolved;
-  }, [selectedValues, initialOptions, selectedOptionsCache]);
-
-  // 表示するオプション: 3 ステートモデル
-  // idle: 既存選択（initialItems に含まれないもの、上部） + initialItems（元の順序維持）
-  // success: 検索結果のみ（選択済みはチェックマークで表示、ピン留めなし）
-  // loading/error: 空（別途メッセージ表示）
-  const displayOptions = (() => {
-    if (searchState === "success") {
-      return searchResults;
-    }
-
-    // idle 状態: initialItems は元の順序を維持（選択操作でアイテムが移動しない）
-    const initialItemValueSet = new Set(
-      initialItems.map((opt) => serializeOptionValue(opt.value)),
-    );
-
-    // initialItems に含まれない既存選択（ポップオーバーを開く前からの選択）を上部に表示
-    const preExistingSelected = resolveSelectedOptions().filter(
-      (opt) => !initialItemValueSet.has(serializeOptionValue(opt.value)),
-    );
-
-    return [...preExistingSelected, ...initialItems];
-  })();
-
-  // リスト表示内容の決定
+  // ---- リスト描画 ----
   const renderListContent = () => {
-    if (searchState === "loading") {
+    if (phase === "loading" || phase === "searching") {
       return (
         <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
@@ -319,7 +338,7 @@ export function AsyncMultiSelectInput<T>({
       );
     }
 
-    if (searchState === "error") {
+    if (phase === "error") {
       return (
         <div className="py-6 text-center text-sm text-destructive">
           {errorMessage}
@@ -327,57 +346,25 @@ export function AsyncMultiSelectInput<T>({
       );
     }
 
-    if (searchState === "idle") {
-      // 初期アイテム読み込み中
-      if (initialFetchState === "loading") {
-        return (
-          <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            {loadingMessage}
-          </div>
-        );
-      }
-
-      // 表示するアイテムがある場合はリスト表示
-      if (displayOptions.length > 0) {
-        return (
-          <AsyncMultiSelectOptionList
-            options={displayOptions}
-            selectedValues={selectedValues}
-            onToggle={handleToggle}
-            emptyMessage={emptyMessage}
-          />
-        );
-      }
-
-      // 初期取得完了したがアイテムがない場合
-      if (initialFetchState === "done" || initialFetchState === "error") {
-        return (
-          <div className="py-6 text-center text-sm text-muted-foreground">
-            {emptyMessage}
-          </div>
-        );
-      }
-
-      // 初期取得前（フォールバック）
+    if (displayOptions.length > 0) {
       return (
-        <div className="py-6 text-center text-sm text-muted-foreground">
-          {hintMessage}
-        </div>
+        <AsyncMultiSelectOptionList
+          options={displayOptions}
+          selectedValues={selectedValues}
+          onToggle={handleToggle}
+          emptyMessage={emptyMessage}
+        />
       );
     }
 
-    // searchState === "success"
     return (
-      <AsyncMultiSelectOptionList
-        options={displayOptions}
-        selectedValues={selectedValues}
-        onToggle={handleToggle}
-        emptyMessage={emptyMessage}
-      />
+      <div className="py-6 text-center text-sm text-muted-foreground">
+        {emptyMessage}
+      </div>
     );
   };
 
+  // ---- レンダリング ----
   return (
     <div className={cn("w-full", className)} {...rest}>
       <Popover open={resolvedOpen} onOpenChange={handleOpenChange}>
@@ -404,13 +391,7 @@ export function AsyncMultiSelectInput<T>({
               <CommandInput
                 placeholder={searchPlaceholder}
                 value={searchQuery}
-                onValueChange={(val) => {
-                  setSearchQuery(val);
-                  // 検索テキストがクリアされたら idle 状態に戻す
-                  if (val.trim() === "" && searchState === "success") {
-                    setSearchState("idle");
-                  }
-                }}
+                onValueChange={handleSearchQueryChange}
                 onKeyDown={handleKeyDown}
               />
               {renderListContent()}
