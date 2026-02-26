@@ -27,7 +27,9 @@ export const WalletHistoryTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => ({
+    userIdIdx: index("wallet_histories_user_id_idx").on(table.user_id),
     userIdCreatedAtIdx: index("wallet_histories_user_id_created_at_idx").on(table.user_id, table.createdAt),
+    userTypeCreatedAtIdx: index("wallet_histories_user_type_created_idx").on(table.user_id, table.type, table.createdAt),
     reasonCategoryIdx: index("wallet_histories_reason_category_idx").on(table.reason_category),
     reasonCategoryCreatedAtIdx: index("wallet_histories_reason_category_created_at_idx").on(table.reason_category, table.createdAt),
   }),
