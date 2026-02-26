@@ -1,9 +1,10 @@
 // src/features/core/analytics/services/server/userRankingAnalytics.ts
 // ユーザーランキング集計サービス
+// 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
-import { and, between, eq, type SQL } from "drizzle-orm";
+import { and, between, eq, sql, type SQL } from "drizzle-orm";
 import type {
   DateRangeParams,
   RankingResponse,
@@ -13,7 +14,6 @@ import type {
 } from "@/features/core/analytics/types/common";
 import { DEFAULT_RANKING_LIMIT, MAX_RANKING_LIMIT } from "@/features/core/analytics/constants";
 import { resolveDateRange } from "./utils/dateRange";
-import { groupBy, sum } from "./utils/aggregation";
 import { buildUserFilterConditions } from "./utils/userFilter";
 
 // ============================================================================
@@ -39,10 +39,32 @@ export type UserRankingParams = DateRangeParams & WalletTypeFilter & PaginationP
 };
 
 // ============================================================================
-// DB型
+// SQL式ヘルパー
 // ============================================================================
 
-type WalletHistoryRow = typeof WalletHistoryTable.$inferSelect;
+const t = WalletHistoryTable;
+
+/** 符号付きdelta（change_method考慮）のSQL式 */
+const signedDeltaExpr = sql<number>`
+  CASE
+    WHEN ${t.change_method} = 'INCREMENT' THEN ${t.points_delta}
+    WHEN ${t.change_method} = 'DECREMENT' THEN -${t.points_delta}
+    WHEN ${t.change_method} = 'SET' THEN ${t.balance_after} - ${t.balance_before}
+    ELSE 0
+  END`;
+
+/** メトリクスに応じた集計SQL式 */
+function resolveMetricExpr(metric: RankingMetric) {
+  switch (metric) {
+    case "totalPurchase":
+    case "totalConsumption":
+      return sql<number>`COALESCE(SUM(${t.points_delta}), 0)`;
+    case "purchaseCount":
+      return sql<number>`COUNT(*)::int`;
+    case "netChange":
+      return sql<number>`COALESCE(SUM(${signedDeltaExpr}), 0)`;
+  }
+}
 
 // ============================================================================
 // ユーザーランキング
@@ -58,43 +80,41 @@ export async function getUserRanking(
   const offset = (page - 1) * limit;
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, params, metric);
-  const records = await db
-    .select()
-    .from(WalletHistoryTable)
-    .where(and(...conditions));
+  const metricSql = resolveMetricExpr(metric);
 
-  // ユーザーごとにグルーピング
-  const grouped = groupBy(records, (r) => r.user_id);
-
-  // 各ユーザーの集計値を計算
-  const userAggregates: UserRankingEntry[] = [];
-  for (const [userId, userRecords] of grouped) {
-    const totalAmount = computeMetricValue(userRecords, metric);
-    const dates = userRecords
-      .map((r) => r.createdAt)
-      .filter((d): d is Date => d !== null)
-      .sort((a, b) => b.getTime() - a.getTime());
-
-    userAggregates.push({
-      userId,
-      totalAmount,
-      count: userRecords.length,
-      lastActivityAt: dates.length > 0 ? dates[0]!.toISOString() : null,
-    });
-  }
-
-  // ソート（降順）
-  userAggregates.sort((a, b) => b.totalAmount - a.totalAmount);
-
-  const total = userAggregates.length;
-  const paged = userAggregates.slice(offset, offset + limit);
+  // ランキングクエリ + 総ユーザー数を並列実行
+  const [rows, totalRows] = await Promise.all([
+    db
+      .select({
+        userId: t.user_id,
+        totalAmount: metricSql.as("total_amount"),
+        count: sql<number>`COUNT(*)::int`.as("count"),
+        lastActivityAt: sql<string>`MAX(${t.createdAt})::text`.as("last_activity_at"),
+      })
+      .from(t)
+      .where(and(...conditions))
+      .groupBy(t.user_id)
+      .orderBy(sql`total_amount DESC`)
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({
+        total: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("total"),
+      })
+      .from(t)
+      .where(and(...conditions)),
+  ]);
+  const totalRow = totalRows[0];
 
   return {
-    items: paged.map((entry, idx) => ({
+    items: rows.map((r, idx) => ({
       rank: offset + idx + 1,
-      ...entry,
+      userId: r.userId,
+      totalAmount: Number(r.totalAmount),
+      count: Number(r.count),
+      lastActivityAt: r.lastActivityAt ?? null,
     })),
-    total,
+    total: Number(totalRow!.total),
   };
 }
 
@@ -109,52 +129,27 @@ function buildConditions(
   metric: RankingMetric,
 ): SQL[] {
   const conditions: SQL[] = [
-    between(WalletHistoryTable.createdAt, dateFrom, dateTo),
+    between(t.createdAt, dateFrom, dateTo),
   ];
 
   // ユーザー属性フィルタ（roles ホワイトリスト + デモユーザー除外）
-  conditions.push(...buildUserFilterConditions(WalletHistoryTable.user_id, params));
+  conditions.push(...buildUserFilterConditions(t.user_id, params));
 
   if (params.walletType) {
-    conditions.push(eq(WalletHistoryTable.type, params.walletType as "regular_coin" | "regular_point"));
+    conditions.push(eq(t.type, params.walletType as "regular_coin" | "regular_point"));
   }
 
-  // メトリクスに応じたフィルタ
+  // メトリクスに応じたreason_categoryフィルタ
   switch (metric) {
     case "totalPurchase":
-      conditions.push(eq(WalletHistoryTable.reason_category, "purchase"));
+    case "purchaseCount":
+      conditions.push(eq(t.reason_category, "purchase"));
       break;
     case "totalConsumption":
-      conditions.push(eq(WalletHistoryTable.reason_category, "consumption"));
-      break;
-    case "purchaseCount":
-      conditions.push(eq(WalletHistoryTable.reason_category, "purchase"));
+      conditions.push(eq(t.reason_category, "consumption"));
       break;
     // netChange: フィルタなし（全レコード対象）
   }
 
   return conditions;
-}
-
-function computeMetricValue(records: WalletHistoryRow[], metric: RankingMetric): number {
-  switch (metric) {
-    case "totalPurchase":
-      return sum(records.map((r) => r.points_delta));
-    case "totalConsumption":
-      return sum(records.map((r) => r.points_delta));
-    case "purchaseCount":
-      return records.length;
-    case "netChange":
-      return sum(records.map((r) => resolveSignedDelta(r)));
-  }
-}
-
-function resolveSignedDelta(record: WalletHistoryRow): number {
-  if (record.change_method === "DECREMENT") {
-    return -record.points_delta;
-  }
-  if (record.change_method === "SET") {
-    return record.balance_after - record.balance_before;
-  }
-  return record.points_delta;
 }

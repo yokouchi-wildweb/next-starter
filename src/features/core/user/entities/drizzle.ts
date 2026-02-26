@@ -1,7 +1,7 @@
 // src/features/user/entities/drizzle.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
-import { boolean, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import type { UserMetadata } from "./model";
 
@@ -34,6 +34,9 @@ export const UserTable = pgTable(
       table.providerType,
       table.providerUid,
     ),
+    // Analytics ユーザーフィルタ用（roles ホワイトリスト + デモ除外サブクエリ）
+    roleIdx: index("users_role_idx").on(table.role),
+    isDemoIdx: index("users_is_demo_idx").on(table.isDemo),
   }),
 );
 

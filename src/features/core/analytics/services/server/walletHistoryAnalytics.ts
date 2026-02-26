@@ -1,9 +1,10 @@
 // src/features/core/analytics/services/server/walletHistoryAnalytics.ts
 // walletHistory 集計サービス（日別集計 + 期間サマリー + 日次残高）
+// 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
-import { and, between, eq, inArray, lte, type SQL } from "drizzle-orm";
+import { and, between, eq, inArray, lte, sql, type SQL } from "drizzle-orm";
 import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
 import type {
   DateRangeParams,
@@ -19,7 +20,7 @@ import {
   generateDateKeys,
   formatDateRangeForResponse,
 } from "./utils/dateRange";
-import { groupByDate, countUnique } from "./utils/aggregation";
+
 import { buildUserFilterConditions } from "./utils/userFilter";
 
 // ============================================================================
@@ -66,10 +67,24 @@ type WalletBalanceDailyData = {
 export type WalletBalanceDailyParams = DateRangeParams & WalletTypeFilter & UserIdFilter & UserFilter;
 
 // ============================================================================
-// DB型
+// SQL式ヘルパー
 // ============================================================================
 
-type WalletHistoryRow = typeof WalletHistoryTable.$inferSelect;
+const t = WalletHistoryTable;
+
+/** タイムゾーン対応の日付抽出SQL式 */
+function dateExpr(tz: string) {
+  return sql<string>`DATE(${t.createdAt} AT TIME ZONE ${tz})`;
+}
+
+/** 符号付きdelta（change_method考慮）のSQL式 */
+const signedDeltaExpr = sql<number>`
+  CASE
+    WHEN ${t.change_method} = 'INCREMENT' THEN ${t.points_delta}
+    WHEN ${t.change_method} = 'DECREMENT' THEN -${t.points_delta}
+    WHEN ${t.change_method} = 'SET' THEN ${t.balance_after} - ${t.balance_before}
+    ELSE 0
+  END`;
 
 // ============================================================================
 // 日別ウォレット変動集計
@@ -79,22 +94,73 @@ export async function getWalletHistoryDaily(
   params: WalletHistoryDailyParams,
 ): Promise<DailyAnalyticsResponse<WalletHistoryDailyData>> {
   const range = resolveDateRange(params);
+  const tz = range.timezone;
   const groupByField = params.groupBy ?? "reasonCategory";
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, params);
-  const records = await db
-    .select()
-    .from(WalletHistoryTable)
-    .where(and(...conditions));
+  const dateSql = dateExpr(tz);
 
-  const grouped = groupByDate(records, (r) => r.createdAt, range.timezone);
+  const groupColumn = resolveGroupColumn(groupByField);
+
+  // メインクエリ + ブレイクダウンクエリを並列実行
+  const [dailyRows, breakdownRows] = await Promise.all([
+    db
+      .select({
+        date: dateSql,
+        totalIncrement: sql<number>`COALESCE(SUM(CASE WHEN ${t.change_method} = 'INCREMENT' THEN ${t.points_delta} ELSE 0 END), 0)`.as("total_increment"),
+        totalDecrement: sql<number>`COALESCE(SUM(CASE WHEN ${t.change_method} = 'DECREMENT' THEN ${t.points_delta} ELSE 0 END), 0)`.as("total_decrement"),
+        netChange: sql<number>`COALESCE(SUM(${signedDeltaExpr}), 0)`.as("net_change"),
+        recordCount: sql<number>`COUNT(*)::int`.as("record_count"),
+        uniqueUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("unique_users"),
+      })
+      .from(t)
+      .where(and(...conditions))
+      .groupBy(dateSql),
+    db
+      .select({
+        date: dateSql,
+        groupKey: sql<string>`${groupColumn}`.as("group_key"),
+        amount: sql<number>`COALESCE(SUM(${signedDeltaExpr}), 0)`.as("amount"),
+        count: sql<number>`COUNT(*)::int`.as("count"),
+        uniqueUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("unique_users"),
+      })
+      .from(t)
+      .where(and(...conditions))
+      .groupBy(dateSql, groupColumn),
+  ]);
+
+  // 結果をMap化
+  const dailyMap = new Map(dailyRows.map((r) => [r.date, r]));
+  const breakdownMap = new Map<string, Record<string, BreakdownEntry>>();
+  for (const r of breakdownRows) {
+    if (!breakdownMap.has(r.date)) {
+      breakdownMap.set(r.date, {});
+    }
+    breakdownMap.get(r.date)![r.groupKey] = {
+      amount: Number(r.amount),
+      count: Number(r.count),
+      uniqueUsers: Number(r.uniqueUsers),
+    };
+  }
+
+  // データなし日を埋めてレスポンス構築
   const dateKeys = generateDateKeys(range);
+  const emptyDay: WalletHistoryDailyData = {
+    totalIncrement: 0, totalDecrement: 0, netChange: 0,
+    recordCount: 0, uniqueUsers: 0, breakdown: {},
+  };
 
   const history = dateKeys.map((date) => {
-    const dayRecords = grouped.get(date) ?? [];
+    const row = dailyMap.get(date);
+    if (!row) return { date, ...emptyDay };
     return {
       date,
-      ...aggregateDailyRecords(dayRecords, groupByField),
+      totalIncrement: Number(row.totalIncrement),
+      totalDecrement: Number(row.totalDecrement),
+      netChange: Number(row.netChange),
+      recordCount: Number(row.recordCount),
+      uniqueUsers: Number(row.uniqueUsers),
+      breakdown: breakdownMap.get(date) ?? {},
     };
   });
 
@@ -114,24 +180,50 @@ export async function getWalletHistorySummary(
   const range = resolveDateRange(params);
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, params);
-  const records = await db
-    .select()
-    .from(WalletHistoryTable)
-    .where(and(...conditions));
 
-  const totalIncrement = sumByMethod(records, "INCREMENT");
-  const totalDecrement = sumByMethod(records, "DECREMENT");
-  const setDelta = sumSetDelta(records);
+  // メインクエリ + カテゴリ別ブレイクダウンを並列実行
+  const [summaryRows, categoryRows] = await Promise.all([
+    db
+      .select({
+        totalIncrement: sql<number>`COALESCE(SUM(CASE WHEN ${t.change_method} = 'INCREMENT' THEN ${t.points_delta} ELSE 0 END), 0)`.as("total_increment"),
+        totalDecrement: sql<number>`COALESCE(SUM(CASE WHEN ${t.change_method} = 'DECREMENT' THEN ${t.points_delta} ELSE 0 END), 0)`.as("total_decrement"),
+        netChange: sql<number>`COALESCE(SUM(${signedDeltaExpr}), 0)`.as("net_change"),
+        recordCount: sql<number>`COUNT(*)::int`.as("record_count"),
+        uniqueUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("unique_users"),
+      })
+      .from(t)
+      .where(and(...conditions)),
+    db
+      .select({
+        category: sql<string>`${t.reason_category}`.as("category"),
+        amount: sql<number>`COALESCE(SUM(${signedDeltaExpr}), 0)`.as("amount"),
+        count: sql<number>`COUNT(*)::int`.as("count"),
+        uniqueUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("unique_users"),
+      })
+      .from(t)
+      .where(and(...conditions))
+      .groupBy(t.reason_category),
+  ]);
+  const summary = summaryRows[0];
+
+  const byReasonCategory: Record<string, BreakdownEntry> = {};
+  for (const r of categoryRows) {
+    byReasonCategory[r.category] = {
+      amount: Number(r.amount),
+      count: Number(r.count),
+      uniqueUsers: Number(r.uniqueUsers),
+    };
+  }
 
   return {
     ...formatDateRangeForResponse(range),
     walletType: params.walletType ?? null,
-    totalIncrement,
-    totalDecrement: totalDecrement,
-    netChange: totalIncrement - totalDecrement + setDelta,
-    recordCount: records.length,
-    uniqueUsers: countUnique(records, (r) => r.user_id),
-    byReasonCategory: buildBreakdown(records, (r) => r.reason_category),
+    totalIncrement: Number(summary!.totalIncrement),
+    totalDecrement: Number(summary!.totalDecrement),
+    netChange: Number(summary!.netChange),
+    recordCount: Number(summary!.recordCount),
+    uniqueUsers: Number(summary!.uniqueUsers),
+    byReasonCategory,
   };
 }
 
@@ -144,57 +236,68 @@ export async function getWalletBalanceDaily(
 ): Promise<DailyAnalyticsResponse<WalletBalanceDailyData>> {
   const range = resolveDateRange(params);
   const tz = range.timezone;
+  const dateSql = dateExpr(tz);
 
-  // 期間内のレコード取得（ユーザーフィルタ適用）
-  const conditions = buildBalanceConditions(range.dateFrom, range.dateTo, params);
-  const records = await db
-    .select()
-    .from(WalletHistoryTable)
-    .where(and(...conditions));
+  const conditions = [
+    between(t.createdAt, range.dateFrom, range.dateTo),
+    ...buildBaseFilterConditions(params),
+  ];
 
-  // 期間開始前の最新レコードも取得（初日の残高ベースライン用）
-  const baselineConditions = buildBalanceBaselineConditions(range.dateFrom, params);
-  const baselineRecords = await db
-    .select()
-    .from(WalletHistoryTable)
-    .where(and(...baselineConditions));
+  // ベースライン + 日別ネット変動を並列実行
+  const baselineConditions = [
+    lte(t.createdAt, range.dateFrom),
+    ...buildBaseFilterConditions(params),
+  ];
 
-  // ベースラインはユーザーごとに最新のレコードを使用
-  const userBaselineMap = buildUserLatestBalance(baselineRecords);
+  const [baselineRows, dailyRows] = await Promise.all([
+    // 1. ベースライン: 期間開始前の全ユーザー残高合計（DISTINCT ON で各ユーザーの最新残高）
+    db
+      .select({
+        total: sql<number>`COALESCE(SUM(sub.balance_after), 0)`.as("total"),
+      })
+      .from(
+        db
+          .selectDistinctOn([t.user_id], {
+            balance_after: t.balance_after,
+          })
+          .from(t)
+          .where(and(...baselineConditions))
+          .orderBy(t.user_id, sql`${t.createdAt} DESC`)
+          .as("sub"),
+      ),
+    // 2. 日別ネット変動 + アクティビティ
+    db
+      .select({
+        date: dateSql,
+        netChange: sql<number>`COALESCE(SUM(${signedDeltaExpr}), 0)`.as("net_change"),
+        activeUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("active_users"),
+        recordCount: sql<number>`COUNT(*)::int`.as("record_count"),
+      })
+      .from(t)
+      .where(and(...conditions))
+      .groupBy(dateSql),
+  ]);
 
-  // 期間内レコードを日付でグルーピング
-  const grouped = groupByDate(records, (r) => r.createdAt, tz);
+  const baselineBalance = Number(baselineRows[0]?.total ?? 0);
+
+  const dailyMap = new Map(dailyRows.map((r) => [r.date, {
+    netChange: Number(r.netChange),
+    activeUsers: Number(r.activeUsers),
+    recordCount: Number(r.recordCount),
+  }]));
+
+  // 3. ベースライン + 累積ネット変動 でランニングバランスを構築
   const dateKeys = generateDateKeys(range);
-
-  // 日ごとに各ユーザーのclosingBalanceを追跡
-  const runningBalance = new Map<string, number>(userBaselineMap);
+  let runningBalance = baselineBalance;
 
   const history = dateKeys.map((date) => {
-    const dayRecords = grouped.get(date) ?? [];
-
-    // この日のアクティブユーザー
-    const activeUserIds = new Set<string>();
-    for (const r of dayRecords) {
-      activeUserIds.add(r.user_id);
-    }
-
-    // この日にレコードがあるユーザーの残高を更新
-    const dayLatest = buildUserLatestBalance(dayRecords);
-    for (const [userId, balance] of dayLatest) {
-      runningBalance.set(userId, balance);
-    }
-
-    // closingBalance: 全ユーザーの現在残高合計
-    let closingBalance = 0;
-    for (const balance of runningBalance.values()) {
-      closingBalance += balance;
-    }
-
+    const row = dailyMap.get(date);
+    runningBalance += row?.netChange ?? 0;
     return {
       date,
-      closingBalance,
-      activeUsers: activeUserIds.size,
-      recordCount: dayRecords.length,
+      closingBalance: runningBalance,
+      activeUsers: row?.activeUsers ?? 0,
+      recordCount: row?.recordCount ?? 0,
     };
   });
 
@@ -204,195 +307,58 @@ export async function getWalletBalanceDaily(
   };
 }
 
-/**
- * レコード配列からユーザーごとの最新balance_afterを算出
- */
-function buildUserLatestBalance(records: WalletHistoryRow[]): Map<string, number> {
-  const latestMap = new Map<string, { balance: number; time: number }>();
+// ============================================================================
+// 内部ヘルパー
+// ============================================================================
 
-  for (const r of records) {
-    const time = r.createdAt?.getTime() ?? 0;
-    const existing = latestMap.get(r.user_id);
-    if (!existing || time >= existing.time) {
-      latestMap.set(r.user_id, { balance: r.balance_after, time });
-    }
+/** groupByフィールドから対応するカラムを返す */
+function resolveGroupColumn(groupByField: "reasonCategory" | "sourceType" | "changeMethod") {
+  switch (groupByField) {
+    case "reasonCategory": return t.reason_category;
+    case "sourceType": return t.source_type;
+    case "changeMethod": return t.change_method;
   }
-
-  const result = new Map<string, number>();
-  for (const [userId, data] of latestMap) {
-    result.set(userId, data.balance);
-  }
-  return result;
 }
 
-/**
- * 残高集計用の条件（reasonCategoriesフィルタなし）
- */
-function buildBalanceConditions(
-  dateFrom: Date,
-  dateTo: Date,
+/** ユーザー/ウォレット/ロール等の共通フィルタ条件（日付条件なし） */
+function buildBaseFilterConditions(
   params: WalletTypeFilter & UserIdFilter & UserFilter,
 ): SQL[] {
-  const conditions: SQL[] = [
-    between(WalletHistoryTable.createdAt, dateFrom, dateTo),
-  ];
+  const conditions: SQL[] = [];
 
   if (params.userId) {
-    conditions.push(eq(WalletHistoryTable.user_id, params.userId));
+    conditions.push(eq(t.user_id, params.userId));
   }
 
-  conditions.push(...buildUserFilterConditions(WalletHistoryTable.user_id, params));
+  conditions.push(...buildUserFilterConditions(t.user_id, params));
 
   if (params.walletType) {
-    conditions.push(eq(WalletHistoryTable.type, params.walletType as "regular_coin" | "regular_point"));
+    conditions.push(eq(t.type, params.walletType as "regular_coin" | "regular_point"));
   }
 
   return conditions;
 }
 
-/**
- * ベースライン取得用の条件（dateFrom以前のレコード）
- */
-function buildBalanceBaselineConditions(
-  dateFrom: Date,
-  params: WalletTypeFilter & UserIdFilter & UserFilter,
-): SQL[] {
-  const conditions: SQL[] = [
-    lte(WalletHistoryTable.createdAt, dateFrom),
-  ];
-
-  if (params.userId) {
-    conditions.push(eq(WalletHistoryTable.user_id, params.userId));
-  }
-
-  conditions.push(...buildUserFilterConditions(WalletHistoryTable.user_id, params));
-
-  if (params.walletType) {
-    conditions.push(eq(WalletHistoryTable.type, params.walletType as "regular_coin" | "regular_point"));
-  }
-
-  return conditions;
-}
-
-// ============================================================================
-// 内部ヘルパー（変動集計用）
-// ============================================================================
-
+/** 日付範囲 + 全フィルタの条件 */
 function buildConditions(
   dateFrom: Date,
   dateTo: Date,
   params: WalletTypeFilter & UserIdFilter & UserFilter & { reasonCategories?: string },
 ): SQL[] {
   const conditions: SQL[] = [
-    between(WalletHistoryTable.createdAt, dateFrom, dateTo),
+    between(t.createdAt, dateFrom, dateTo),
+    ...buildBaseFilterConditions(params),
   ];
-
-  if (params.userId) {
-    conditions.push(eq(WalletHistoryTable.user_id, params.userId));
-  }
-
-  // ユーザー属性フィルタ（roles ホワイトリスト + デモユーザー除外）
-  conditions.push(...buildUserFilterConditions(WalletHistoryTable.user_id, params));
-
-  if (params.walletType) {
-    conditions.push(eq(WalletHistoryTable.type, params.walletType as "regular_coin" | "regular_point"));
-  }
 
   if (params.reasonCategories) {
     const categories = params.reasonCategories.split(",").map((s) => s.trim()) as ReasonCategory[];
     if (categories.length === 1) {
-      conditions.push(eq(WalletHistoryTable.reason_category, categories[0]!));
+      conditions.push(eq(t.reason_category, categories[0]!));
     } else if (categories.length > 1) {
-      conditions.push(inArray(WalletHistoryTable.reason_category, categories));
+      conditions.push(inArray(t.reason_category, categories));
     }
   }
 
   return conditions;
 }
 
-function aggregateDailyRecords(
-  records: WalletHistoryRow[],
-  groupByField: "reasonCategory" | "sourceType" | "changeMethod",
-): WalletHistoryDailyData {
-  const totalIncrement = sumByMethod(records, "INCREMENT");
-  const totalDecrement = sumByMethod(records, "DECREMENT");
-  const setDelta = sumSetDelta(records);
-
-  const getKey = (r: WalletHistoryRow): string => {
-    switch (groupByField) {
-      case "reasonCategory": return r.reason_category;
-      case "sourceType": return r.source_type;
-      case "changeMethod": return r.change_method;
-    }
-  };
-
-  return {
-    totalIncrement,
-    totalDecrement,
-    netChange: totalIncrement - totalDecrement + setDelta,
-    recordCount: records.length,
-    uniqueUsers: countUnique(records, (r) => r.user_id),
-    breakdown: buildBreakdown(records, getKey),
-  };
-}
-
-function buildBreakdown(
-  records: WalletHistoryRow[],
-  getKey: (r: WalletHistoryRow) => string,
-): Record<string, BreakdownEntry> {
-  const breakdown: Record<string, BreakdownEntry> = {};
-
-  for (const record of records) {
-    const key = getKey(record);
-    if (!breakdown[key]) {
-      breakdown[key] = { amount: 0, count: 0, uniqueUsers: 0 };
-    }
-    breakdown[key].amount += resolveSignedDelta(record);
-    breakdown[key].count += 1;
-  }
-
-  // uniqueUsers を各グループごとに計算
-  const groupedUsers: Record<string, Set<string>> = {};
-  for (const record of records) {
-    const key = getKey(record);
-    if (!groupedUsers[key]) {
-      groupedUsers[key] = new Set();
-    }
-    groupedUsers[key].add(record.user_id);
-  }
-  for (const key of Object.keys(breakdown)) {
-    breakdown[key]!.uniqueUsers = groupedUsers[key]?.size ?? 0;
-  }
-
-  return breakdown;
-}
-
-function sumByMethod(records: WalletHistoryRow[], method: "INCREMENT" | "DECREMENT"): number {
-  let total = 0;
-  for (const r of records) {
-    if (r.change_method === method) {
-      total += r.points_delta;
-    }
-  }
-  return total;
-}
-
-function sumSetDelta(records: WalletHistoryRow[]): number {
-  let total = 0;
-  for (const r of records) {
-    if (r.change_method === "SET") {
-      total += r.balance_after - r.balance_before;
-    }
-  }
-  return total;
-}
-
-function resolveSignedDelta(record: WalletHistoryRow): number {
-  if (record.change_method === "DECREMENT") {
-    return -record.points_delta;
-  }
-  if (record.change_method === "SET") {
-    return record.balance_after - record.balance_before;
-  }
-  return record.points_delta;
-}

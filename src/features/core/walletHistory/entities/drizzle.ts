@@ -32,5 +32,9 @@ export const WalletHistoryTable = pgTable(
     userTypeCreatedAtIdx: index("wallet_histories_user_type_created_idx").on(table.user_id, table.type, table.createdAt),
     reasonCategoryIdx: index("wallet_histories_reason_category_idx").on(table.reason_category),
     reasonCategoryCreatedAtIdx: index("wallet_histories_reason_category_created_at_idx").on(table.reason_category, table.createdAt),
+    // Analytics用: walletTypeフィルタ + 日付範囲
+    typeCreatedAtIdx: index("wallet_histories_type_created_at_idx").on(table.type, table.createdAt),
+    // Analytics用: DISTINCT ON (user_id) ORDER BY user_id, created_at DESC ベースライン計算
+    userIdCreatedAtDescIdx: index("wallet_histories_user_created_desc_idx").on(table.user_id, table.createdAt.desc()),
   }),
 );

@@ -43,4 +43,9 @@ export const PurchaseRequestTable = pgTable("purchase_requests", {
   index("purchase_requests_payment_session_id_idx").on(table.payment_session_id),
   index("purchase_requests_status_idx").on(table.status),
   index("purchase_requests_user_id_status_idx").on(table.user_id, table.status),
+  // Analytics用: 売上集計の日付範囲フィルタ
+  index("purchase_requests_status_completed_at_idx").on(table.status, table.completed_at),
+  index("purchase_requests_user_completed_at_idx").on(table.user_id, table.completed_at),
+  index("purchase_requests_wallet_type_completed_at_idx").on(table.wallet_type, table.completed_at),
+  index("purchase_requests_provider_completed_at_idx").on(table.payment_provider, table.completed_at),
 ]);

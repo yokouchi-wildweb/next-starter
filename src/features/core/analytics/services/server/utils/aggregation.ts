@@ -7,6 +7,7 @@ import { DEFAULT_TIMEZONE } from "@/features/core/analytics/constants";
 /**
  * レコード配列を日付キーでグルーピングする
  *
+ * @deprecated DB側 GROUP BY + DATE() で集計すること。大量レコードをJSで処理するとメモリ・速度の問題が発生する。
  * @param records - グルーピング対象のレコード配列
  * @param getDate - 各レコードから日付を取得する関数
  * @param timezone - タイムゾーン（デフォルト: DEFAULT_TIMEZONE）
@@ -38,6 +39,7 @@ export function groupByDate<T>(
 /**
  * ユニークな値の数をカウントする
  *
+ * @deprecated DB側 COUNT(DISTINCT column) で集計すること。大量レコードをJSで処理するとメモリ・速度の問題が発生する。
  * @param records - 対象レコード配列
  * @param getValue - 各レコードからカウント対象の値を取得する関数
  */
@@ -55,6 +57,7 @@ export function countUnique<T>(
 /**
  * レコード配列を指定キーでグルーピングする（汎用版）
  *
+ * @deprecated DB側 GROUP BY で集計すること。大量レコードをJSで処理するとメモリ・速度の問題が発生する。
  * @param records - グルーピング対象のレコード配列
  * @param getKey - 各レコードからグルーピングキーを取得する関数
  * @returns Map<string, T[]>
@@ -80,6 +83,8 @@ export function groupBy<T>(
 
 /**
  * 数値配列の合計
+ *
+ * @deprecated DB側 SUM() で集計すること。大量レコードをJSで処理するとメモリ・速度の問題が発生する。
  */
 export function sum(values: number[]): number {
   let total = 0;
@@ -91,6 +96,8 @@ export function sum(values: number[]): number {
 
 /**
  * 数値配列の中央値
+ *
+ * @deprecated DB側 PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY column) で集計すること。
  */
 export function median(values: number[]): number {
   if (values.length === 0) return 0;

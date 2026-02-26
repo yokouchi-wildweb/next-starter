@@ -23,7 +23,7 @@ analytics/
 ├── services/server/
 │   ├── utils/
 │   │   ├── dateRange.ts          # 日付範囲パラメータの解決（TZ対応）
-│   │   ├── aggregation.ts        # グルーピング、ユニークカウント等の集計ヘルパー
+│   │   ├── aggregation.ts        # changeRate等の算術ヘルパー（※JS集計関数は@deprecated）
 │   │   └── userFilter.ts         # ユーザー属性フィルター（roles, excludeDemo）
 │   ├── walletHistoryAnalytics.ts # [組み込み] walletHistory 集計 + 日次残高
 │   ├── purchaseAnalytics.ts      # [組み込み] purchase 集計
@@ -60,12 +60,28 @@ analytics/
 フィルタ:
 - `walletType`: ウォレット種別でフィルタ（指定なし = 全種別）
 
+## 集計設計原則: DB側集計
+
+**全ての集計処理はDB側 GROUP BY + 集約関数で実行すること。**
+
+「全行フェッチ → JS集計」パターンは大量レコード（数万〜数十万行）でメモリ・速度の問題が発生するため禁止。
+組み込みサービス（walletHistoryAnalytics, purchaseAnalytics, userRankingAnalytics）は全てSQL集計方式。
+
+推奨SQLパターン:
+- 日別集計: `GROUP BY DATE(column AT TIME ZONE $tz)` + `SUM()`, `COUNT(DISTINCT)`, `COUNT(*)`
+- 期間サマリー: `SUM()`, `COUNT()`, `MAX()`, `PERCENTILE_CONT(0.5)` 等
+- ランキング: `GROUP BY user_id` + `ORDER BY metric DESC` + `LIMIT/OFFSET`
+- 内訳: 別クエリで `GROUP BY date, category` → Mapに変換
+
+`aggregation.ts` のJS集計関数（`groupByDate`, `countUnique`, `groupBy`, `sum`, `median`）は `@deprecated`。
+`changeRate` のみ引き続き利用可能。
+
 ## タイムゾーン対応
 
 - デフォルト: `Asia/Tokyo`（`constants/index.ts` の `DEFAULT_TIMEZONE`）
 - 日付境界の計算（startOfDay/endOfDay）がタイムゾーンを考慮
-- groupByDateのキー生成がタイムゾーンに基づいてYYYY-MM-DDを生成
-- `Intl.DateTimeFormat` ベース（外部ライブラリ不要）
+- SQL: `DATE(column AT TIME ZONE $tz)` でタイムゾーン対応の日付抽出
+- JS: `Intl.DateTimeFormat` ベース（外部ライブラリ不要）
 
 ## ユーザーフィルター設計
 
@@ -83,14 +99,14 @@ excludeDemo パラメータ:
 
 ## ダウンストリームでの集計サービス追加
 
-### 1. サービスファイルを追加
+### 1. サービスファイルを追加（SQL集計方式）
 
 ```typescript
 // services/server/gachaAnalytics.ts
 import { db } from "@/lib/drizzle";
 import { GachaPlayTable } from "@/features/gacha/entities/drizzle";
+import { and, between, sql, type SQL } from "drizzle-orm";
 import { resolveDateRange, generateDateKeys, formatDateRangeForResponse } from "./utils/dateRange";
-import { groupByDate, countUnique } from "./utils/aggregation";
 import { buildUserFilterConditions } from "./utils/userFilter";
 import type { DateRangeParams, DailyAnalyticsResponse, UserFilter } from "@/features/core/analytics/types/common";
 
@@ -100,30 +116,44 @@ type GachaDailyData = {
   totalSpent: number;
 };
 
+const t = GachaPlayTable;
+
 export async function getGachaDaily(
   params: DateRangeParams & UserFilter,
 ): Promise<DailyAnalyticsResponse<GachaDailyData>> {
   const range = resolveDateRange(params);
+  const tz = range.timezone;
+  const dateSql = sql<string>`DATE(${t.createdAt} AT TIME ZONE ${tz})`;
 
-  // 1. DBからレコード取得（ユーザーフィルタ適用）
-  const conditions = [/* date conditions */];
-  conditions.push(...buildUserFilterConditions(GachaPlayTable.user_id, params));
-  const records = await db.select().from(GachaPlayTable).where(and(...conditions));
+  // WHERE条件構築
+  const conditions: SQL[] = [
+    between(t.createdAt, range.dateFrom, range.dateTo),
+    ...buildUserFilterConditions(t.user_id, params),
+  ];
 
-  // 2. 日別グルーピング（TZ対応）
-  const grouped = groupByDate(records, (r) => r.createdAt, range.timezone);
+  // DB側 GROUP BY で日別集計（1クエリ）
+  const dailyRows = await db
+    .select({
+      date: dateSql,
+      playCount: sql<number>`COUNT(*)::int`.as("play_count"),
+      uniqueUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("unique_users"),
+      totalSpent: sql<number>`COALESCE(SUM(${t.cost}), 0)`.as("total_spent"),
+    })
+    .from(t)
+    .where(and(...conditions))
+    .groupBy(dateSql);
 
-  // 3. 日付キー生成（データなし日も含む）
+  // データなし日を埋めてレスポンス構築
+  const dailyMap = new Map(dailyRows.map((r) => [r.date, r]));
   const dateKeys = generateDateKeys(range);
 
-  // 4. 各日の集計
   const history = dateKeys.map((date) => {
-    const dayRecords = grouped.get(date) ?? [];
+    const row = dailyMap.get(date);
     return {
       date,
-      playCount: dayRecords.length,
-      uniqueUsers: countUnique(dayRecords, (r) => r.user_id),
-      totalSpent: dayRecords.reduce((sum, r) => sum + r.cost, 0),
+      playCount: row ? Number(row.playCount) : 0,
+      uniqueUsers: row ? Number(row.uniqueUsers) : 0,
+      totalSpent: row ? Number(row.totalSpent) : 0,
     };
   });
 
