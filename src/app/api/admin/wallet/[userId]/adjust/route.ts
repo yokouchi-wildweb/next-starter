@@ -9,7 +9,7 @@ import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
 import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
-import { REASON_CATEGORY_VALUES } from "@/config/app/reason-category.config";
+import { REASON_CATEGORY_VALUES } from "@/config/app/wallet-reason-category.config";
 
 type Params = { userId: string };
 

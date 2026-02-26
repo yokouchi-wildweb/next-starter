@@ -1,4 +1,4 @@
-// src/config/app/reason-category.config.ts
+// src/config/app/wallet-reason-category.config.ts
 // ウォレット履歴のカテゴリ分類設定
 // ※ダウンストリームで拡張可能：カテゴリ追加はこのファイルに行を追加するだけ
 

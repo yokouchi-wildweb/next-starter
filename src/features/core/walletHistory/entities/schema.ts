@@ -3,7 +3,7 @@
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
-import { REASON_CATEGORY_VALUES, DEFAULT_REASON_CATEGORY } from "@/config/app/reason-category.config";
+import { REASON_CATEGORY_VALUES, DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
 
 // CURRENCY_CONFIG から動的に walletType の値を取得
 const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];

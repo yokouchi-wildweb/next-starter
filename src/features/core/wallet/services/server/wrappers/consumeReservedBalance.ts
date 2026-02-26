@@ -5,7 +5,7 @@ import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizz
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
 import { DomainError } from "@/lib/errors/domainError";
-import { DEFAULT_REASON_CATEGORY } from "@/config/app/reason-category.config";
+import { DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
 import {
   ensureLockedAmount,
   getOrCreateWallet,

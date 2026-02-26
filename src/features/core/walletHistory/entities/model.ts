@@ -2,7 +2,7 @@
 
 import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta";
 import type { WalletType } from "@/config/app/currency.config";
-import type { ReasonCategory } from "@/config/app/reason-category.config";
+import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
 
 export type WalletHistory = {
   id: string;
