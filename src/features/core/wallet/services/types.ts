@@ -5,6 +5,7 @@ import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { WalletHistory } from "@/features/core/walletHistory/entities";
 import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } from "@/features/core/walletHistory/types/field";
 import type { WalletHistoryMetaInput } from "@/features/core/walletHistory/types/meta";
+import type { ReasonCategory } from "@/config/app/reason-category.config";
 
 export type WalletAdjustmentResult = {
   wallet: Wallet;
@@ -20,6 +21,7 @@ export type AdjustWalletParams = {
   sourceType: WalletHistorySourceTypeValue;
   requestBatchId?: string | null;
   reason?: string | null;
+  reasonCategory?: ReasonCategory;
   meta?: WalletHistoryMetaInput;
 };
 
@@ -38,6 +40,7 @@ export type ConsumeReservationParams = {
   sourceType: WalletHistorySourceTypeValue;
   requestBatchId?: string | null;
   reason?: string | null;
+  reasonCategory?: ReasonCategory;
   meta?: WalletHistoryMetaInput;
 };
 
@@ -47,6 +50,7 @@ export type WalletAdjustRequestPayload = {
   amount: number;
   requestBatchId?: string | null;
   reason?: string | null;
+  reasonCategory?: ReasonCategory;
   meta?: WalletHistoryMetaInput;
 };
 

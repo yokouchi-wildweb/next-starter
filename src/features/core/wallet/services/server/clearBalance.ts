@@ -55,6 +55,7 @@ export async function clearBalance(userId: string, tx: DbTransaction): Promise<v
       source_type: "system" as const,
       request_batch_id: requestBatchId,
       reason: "ユーザーソフトデリートによる残高クリア",
+      reason_category: "system" as const,
       meta: {},
     })),
   );

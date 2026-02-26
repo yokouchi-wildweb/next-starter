@@ -9,6 +9,7 @@ import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
 import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
+import { REASON_CATEGORY_VALUES } from "@/config/app/reason-category.config";
 
 type Params = { userId: string };
 
@@ -24,6 +25,7 @@ const WalletAdjustPayloadSchema = z
       .trim()
       .max(200, { message: "理由は200文字以内で入力してください。" })
       .optional(),
+    reasonCategory: z.enum(REASON_CATEGORY_VALUES).default("admin_adjustment"),
     requestBatchId: z.string().uuid().optional(),
     meta: WalletHistoryMetaSchema.nullable().optional(),
   })
@@ -80,6 +82,7 @@ export const POST = createApiRoute<Params>(
       sourceType: "admin_action",
       requestBatchId: payload.requestBatchId,
       reason: payload.reason,
+      reasonCategory: payload.reasonCategory,
       meta: mergedMeta,
     });
 

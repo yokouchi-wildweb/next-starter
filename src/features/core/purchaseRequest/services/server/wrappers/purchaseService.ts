@@ -365,6 +365,7 @@ export async function completePurchase(
         sourceType: "user_action",
         requestBatchId: purchaseRequest.id,
         reason: "コイン購入",
+        reasonCategory: "purchase",
         meta: {
           purchaseRequestId: purchaseRequest.id,
           paymentMethod: purchaseRequest.payment_method,

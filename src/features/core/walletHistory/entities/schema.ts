@@ -3,6 +3,7 @@
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { REASON_CATEGORY_VALUES, DEFAULT_REASON_CATEGORY } from "@/config/app/reason-category.config";
 
 // CURRENCY_CONFIG から動的に walletType の値を取得
 const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
@@ -37,6 +38,7 @@ export const WalletHistoryBaseSchema = z.object({
     .trim()
     .nullish()
     .transform((value) => emptyToNull(value)),
+  reason_category: z.enum(REASON_CATEGORY_VALUES).default(DEFAULT_REASON_CATEGORY),
   meta: WalletHistoryMetaSchema.nullish().transform((value) => value ?? null),
 });
 

@@ -5,6 +5,7 @@ import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizz
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
 import { DomainError } from "@/lib/errors/domainError";
+import { DEFAULT_REASON_CATEGORY } from "@/config/app/reason-category.config";
 import {
   ensureNotBelowLockedBalance,
   ensureSufficientAvailable,
@@ -74,6 +75,7 @@ export async function adjustBalance(
         source_type: params.sourceType,
         request_batch_id: resolveRequestBatchId(params.requestBatchId),
         reason: params.reason ?? null,
+        reason_category: params.reasonCategory ?? DEFAULT_REASON_CATEGORY,
         meta: historyMeta ?? undefined,
       })
       .returning();
