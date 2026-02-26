@@ -1,9 +1,9 @@
 // src/features/core/analytics/services/server/walletHistoryAnalytics.ts
-// walletHistory 集計サービス（日別集計 + 期間サマリー）
+// walletHistory 集計サービス（日別集計 + 期間サマリー + 日次残高）
 
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
-import { and, between, eq, inArray, type SQL } from "drizzle-orm";
+import { and, between, eq, inArray, lte, type SQL } from "drizzle-orm";
 import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
 import type {
   DateRangeParams,
@@ -11,6 +11,8 @@ import type {
   PeriodSummaryResponse,
   BreakdownEntry,
   WalletTypeFilter,
+  UserIdFilter,
+  UserFilter,
 } from "@/features/core/analytics/types/common";
 import {
   resolveDateRange,
@@ -18,6 +20,7 @@ import {
   formatDateRangeForResponse,
 } from "./utils/dateRange";
 import { groupByDate, countUnique } from "./utils/aggregation";
+import { buildUserFilterConditions } from "./utils/userFilter";
 
 // ============================================================================
 // 型定義
@@ -42,14 +45,25 @@ type WalletHistorySummaryData = {
   byReasonCategory: Record<string, BreakdownEntry>;
 };
 
-export type WalletHistoryDailyParams = DateRangeParams & WalletTypeFilter & {
+export type WalletHistoryDailyParams = DateRangeParams & WalletTypeFilter & UserIdFilter & UserFilter & {
   /** 内訳の軸（デフォルト: "reasonCategory"） */
   groupBy?: "reasonCategory" | "sourceType" | "changeMethod";
   /** カテゴリフィルタ（CSV） */
   reasonCategories?: string;
 };
 
-export type WalletHistorySummaryParams = DateRangeParams & WalletTypeFilter;
+export type WalletHistorySummaryParams = DateRangeParams & WalletTypeFilter & UserIdFilter & UserFilter;
+
+type WalletBalanceDailyData = {
+  /** その日の終了時点の残高（全対象ユーザー合計、またはuserId指定時はそのユーザー） */
+  closingBalance: number;
+  /** その日にアクティブだったユーザー数 */
+  activeUsers: number;
+  /** その日のレコード数 */
+  recordCount: number;
+};
+
+export type WalletBalanceDailyParams = DateRangeParams & WalletTypeFilter & UserIdFilter & UserFilter;
 
 // ============================================================================
 // DB型
@@ -73,7 +87,7 @@ export async function getWalletHistoryDaily(
     .from(WalletHistoryTable)
     .where(and(...conditions));
 
-  const grouped = groupByDate(records, (r) => r.createdAt);
+  const grouped = groupByDate(records, (r) => r.createdAt, range.timezone);
   const dateKeys = generateDateKeys(range);
 
   const history = dateKeys.map((date) => {
@@ -122,17 +136,163 @@ export async function getWalletHistorySummary(
 }
 
 // ============================================================================
-// 内部ヘルパー
+// 日次残高（ランニングバランス）
+// ============================================================================
+
+export async function getWalletBalanceDaily(
+  params: WalletBalanceDailyParams,
+): Promise<DailyAnalyticsResponse<WalletBalanceDailyData>> {
+  const range = resolveDateRange(params);
+  const tz = range.timezone;
+
+  // 期間内のレコード取得（ユーザーフィルタ適用）
+  const conditions = buildBalanceConditions(range.dateFrom, range.dateTo, params);
+  const records = await db
+    .select()
+    .from(WalletHistoryTable)
+    .where(and(...conditions));
+
+  // 期間開始前の最新レコードも取得（初日の残高ベースライン用）
+  const baselineConditions = buildBalanceBaselineConditions(range.dateFrom, params);
+  const baselineRecords = await db
+    .select()
+    .from(WalletHistoryTable)
+    .where(and(...baselineConditions));
+
+  // ベースラインはユーザーごとに最新のレコードを使用
+  const userBaselineMap = buildUserLatestBalance(baselineRecords);
+
+  // 期間内レコードを日付でグルーピング
+  const grouped = groupByDate(records, (r) => r.createdAt, tz);
+  const dateKeys = generateDateKeys(range);
+
+  // 日ごとに各ユーザーのclosingBalanceを追跡
+  const runningBalance = new Map<string, number>(userBaselineMap);
+
+  const history = dateKeys.map((date) => {
+    const dayRecords = grouped.get(date) ?? [];
+
+    // この日のアクティブユーザー
+    const activeUserIds = new Set<string>();
+    for (const r of dayRecords) {
+      activeUserIds.add(r.user_id);
+    }
+
+    // この日にレコードがあるユーザーの残高を更新
+    const dayLatest = buildUserLatestBalance(dayRecords);
+    for (const [userId, balance] of dayLatest) {
+      runningBalance.set(userId, balance);
+    }
+
+    // closingBalance: 全ユーザーの現在残高合計
+    let closingBalance = 0;
+    for (const balance of runningBalance.values()) {
+      closingBalance += balance;
+    }
+
+    return {
+      date,
+      closingBalance,
+      activeUsers: activeUserIds.size,
+      recordCount: dayRecords.length,
+    };
+  });
+
+  return {
+    ...formatDateRangeForResponse(range),
+    history,
+  };
+}
+
+/**
+ * レコード配列からユーザーごとの最新balance_afterを算出
+ */
+function buildUserLatestBalance(records: WalletHistoryRow[]): Map<string, number> {
+  const latestMap = new Map<string, { balance: number; time: number }>();
+
+  for (const r of records) {
+    const time = r.createdAt?.getTime() ?? 0;
+    const existing = latestMap.get(r.user_id);
+    if (!existing || time >= existing.time) {
+      latestMap.set(r.user_id, { balance: r.balance_after, time });
+    }
+  }
+
+  const result = new Map<string, number>();
+  for (const [userId, data] of latestMap) {
+    result.set(userId, data.balance);
+  }
+  return result;
+}
+
+/**
+ * 残高集計用の条件（reasonCategoriesフィルタなし）
+ */
+function buildBalanceConditions(
+  dateFrom: Date,
+  dateTo: Date,
+  params: WalletTypeFilter & UserIdFilter & UserFilter,
+): SQL[] {
+  const conditions: SQL[] = [
+    between(WalletHistoryTable.createdAt, dateFrom, dateTo),
+  ];
+
+  if (params.userId) {
+    conditions.push(eq(WalletHistoryTable.user_id, params.userId));
+  }
+
+  conditions.push(...buildUserFilterConditions(WalletHistoryTable.user_id, params));
+
+  if (params.walletType) {
+    conditions.push(eq(WalletHistoryTable.type, params.walletType as "regular_coin" | "regular_point"));
+  }
+
+  return conditions;
+}
+
+/**
+ * ベースライン取得用の条件（dateFrom以前のレコード）
+ */
+function buildBalanceBaselineConditions(
+  dateFrom: Date,
+  params: WalletTypeFilter & UserIdFilter & UserFilter,
+): SQL[] {
+  const conditions: SQL[] = [
+    lte(WalletHistoryTable.createdAt, dateFrom),
+  ];
+
+  if (params.userId) {
+    conditions.push(eq(WalletHistoryTable.user_id, params.userId));
+  }
+
+  conditions.push(...buildUserFilterConditions(WalletHistoryTable.user_id, params));
+
+  if (params.walletType) {
+    conditions.push(eq(WalletHistoryTable.type, params.walletType as "regular_coin" | "regular_point"));
+  }
+
+  return conditions;
+}
+
+// ============================================================================
+// 内部ヘルパー（変動集計用）
 // ============================================================================
 
 function buildConditions(
   dateFrom: Date,
   dateTo: Date,
-  params: WalletTypeFilter & { reasonCategories?: string },
+  params: WalletTypeFilter & UserIdFilter & UserFilter & { reasonCategories?: string },
 ): SQL[] {
   const conditions: SQL[] = [
     between(WalletHistoryTable.createdAt, dateFrom, dateTo),
   ];
+
+  if (params.userId) {
+    conditions.push(eq(WalletHistoryTable.user_id, params.userId));
+  }
+
+  // ユーザー属性フィルタ（roles ホワイトリスト + デモユーザー除外）
+  conditions.push(...buildUserFilterConditions(WalletHistoryTable.user_id, params));
 
   if (params.walletType) {
     conditions.push(eq(WalletHistoryTable.type, params.walletType as "regular_coin" | "regular_point"));

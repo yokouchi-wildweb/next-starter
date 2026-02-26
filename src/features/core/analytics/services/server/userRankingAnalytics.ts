@@ -9,10 +9,12 @@ import type {
   RankingResponse,
   WalletTypeFilter,
   PaginationParams,
+  UserFilter,
 } from "@/features/core/analytics/types/common";
 import { DEFAULT_RANKING_LIMIT, MAX_RANKING_LIMIT } from "@/features/core/analytics/constants";
 import { resolveDateRange } from "./utils/dateRange";
 import { groupBy, sum } from "./utils/aggregation";
+import { buildUserFilterConditions } from "./utils/userFilter";
 
 // ============================================================================
 // 型定義
@@ -32,7 +34,7 @@ type UserRankingEntry = {
   lastActivityAt: string | null;
 };
 
-export type UserRankingParams = DateRangeParams & WalletTypeFilter & PaginationParams & {
+export type UserRankingParams = DateRangeParams & WalletTypeFilter & PaginationParams & UserFilter & {
   metric?: RankingMetric;
 };
 
@@ -103,12 +105,15 @@ export async function getUserRanking(
 function buildConditions(
   dateFrom: Date,
   dateTo: Date,
-  params: WalletTypeFilter,
+  params: WalletTypeFilter & UserFilter,
   metric: RankingMetric,
 ): SQL[] {
   const conditions: SQL[] = [
     between(WalletHistoryTable.createdAt, dateFrom, dateTo),
   ];
+
+  // ユーザー属性フィルタ（roles ホワイトリスト + デモユーザー除外）
+  conditions.push(...buildUserFilterConditions(WalletHistoryTable.user_id, params));
 
   if (params.walletType) {
     conditions.push(eq(WalletHistoryTable.type, params.walletType as "regular_coin" | "regular_point"));

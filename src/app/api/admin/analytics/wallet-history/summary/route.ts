@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { createApiRoute } from "@/lib/routeFactory";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
 import { getWalletHistorySummary } from "@/features/core/analytics/services/server/walletHistoryAnalytics";
 
 export const GET = createApiRoute(
@@ -21,6 +22,8 @@ export const GET = createApiRoute(
 
     return getWalletHistorySummary({
       ...parseDateRangeParams(searchParams),
+      ...parseUserFilterParams(searchParams),
+      userId: searchParams.get("userId") ?? undefined,
       walletType: searchParams.get("walletType") ?? undefined,
     });
   },

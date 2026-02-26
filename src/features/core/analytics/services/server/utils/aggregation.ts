@@ -1,25 +1,29 @@
 // src/features/core/analytics/services/server/utils/aggregation.ts
 // 集計ユーティリティ
 
-import { formatDateKey } from "./dateRange";
+import { formatDateKeyTz } from "./dateRange";
+import { DEFAULT_TIMEZONE } from "@/features/core/analytics/constants";
 
 /**
  * レコード配列を日付キーでグルーピングする
  *
  * @param records - グルーピング対象のレコード配列
  * @param getDate - 各レコードから日付を取得する関数
+ * @param timezone - タイムゾーン（デフォルト: DEFAULT_TIMEZONE）
  * @returns Map<YYYY-MM-DD, T[]>
  */
 export function groupByDate<T>(
   records: T[],
   getDate: (record: T) => Date | null,
+  timezone?: string,
 ): Map<string, T[]> {
+  const tz = timezone ?? DEFAULT_TIMEZONE;
   const map = new Map<string, T[]>();
 
   for (const record of records) {
     const date = getDate(record);
     if (!date) continue;
-    const key = formatDateKey(date);
+    const key = formatDateKeyTz(date, tz);
     const group = map.get(key);
     if (group) {
       group.push(record);

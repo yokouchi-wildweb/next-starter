@@ -13,6 +13,8 @@ export type DateRangeParams = {
   dateFrom?: string;
   /** 終了日（ISO文字列 or YYYY-MM-DD） */
   dateTo?: string;
+  /** タイムゾーン（IANA TZ名、デフォルト: Asia/Tokyo） */
+  timezone?: string;
 };
 
 /** 解決済みの日付範囲 */
@@ -20,6 +22,8 @@ export type ResolvedDateRange = {
   dateFrom: Date;
   dateTo: Date;
   dayCount: number;
+  /** 適用されたタイムゾーン */
+  timezone: string;
 };
 
 // ============================================================================
@@ -84,6 +88,19 @@ export type RankingEntry<T extends Record<string, unknown>> = {
 /** ウォレット種別フィルタ（集計API共通） */
 export type WalletTypeFilter = {
   walletType?: string;
+};
+
+/** ユーザーIDフィルタ */
+export type UserIdFilter = {
+  userId?: string;
+};
+
+/** ユーザー属性フィルタ（ロール ホワイトリスト + デモユーザー除外） */
+export type UserFilter = {
+  /** 含めるロール（CSV、未指定=全ロール） */
+  roles?: string;
+  /** デモユーザーを除外する */
+  excludeDemo?: boolean;
 };
 
 /** ページネーション */

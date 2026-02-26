@@ -1,5 +1,8 @@
 // src/features/core/analytics/constants/index.ts
 
+/** デフォルトタイムゾーン（IANA TZ名） */
+export const DEFAULT_TIMEZONE = "Asia/Tokyo";
+
 /** デフォルトの集計日数 */
 export const DEFAULT_ANALYTICS_DAYS = 30;
 

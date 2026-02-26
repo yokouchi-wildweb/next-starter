@@ -9,7 +9,10 @@ import type {
   DailyAnalyticsResponse,
   PeriodSummaryResponse,
   WalletTypeFilter,
+  UserIdFilter,
+  UserFilter,
 } from "@/features/core/analytics/types/common";
+import { buildUserFilterConditions } from "./utils/userFilter";
 import {
   resolveDateRange,
   generateDateKeys,
@@ -82,12 +85,12 @@ type StatusOverviewData = {
   failureReasons: FailureReason[];
 };
 
-export type PurchaseDailyParams = DateRangeParams & WalletTypeFilter & {
+export type PurchaseDailyParams = DateRangeParams & WalletTypeFilter & UserIdFilter & UserFilter & {
   paymentProvider?: string;
   status?: string;
 };
 
-export type PurchaseSummaryParams = DateRangeParams & WalletTypeFilter;
+export type PurchaseSummaryParams = DateRangeParams & WalletTypeFilter & UserIdFilter & UserFilter;
 
 // ============================================================================
 // DB型
@@ -114,7 +117,7 @@ export async function getPurchaseDaily(
     .from(PurchaseRequestTable)
     .where(and(...conditions));
 
-  const grouped = groupByDate(records, (r) => r.completed_at ?? r.paid_at);
+  const grouped = groupByDate(records, (r) => r.completed_at ?? r.paid_at, range.timezone);
   const dateKeys = generateDateKeys(range);
 
   const history = dateKeys.map((date) => {
@@ -272,7 +275,7 @@ export async function getPurchaseStatusOverview(): Promise<StatusOverviewData> {
 function buildConditions(
   dateFrom: Date,
   dateTo: Date,
-  params: WalletTypeFilter & { paymentProvider?: string; status?: string },
+  params: WalletTypeFilter & UserIdFilter & UserFilter & { paymentProvider?: string; status?: string },
 ): SQL[] {
   const dateColumn = params.status === "completed"
     ? PurchaseRequestTable.completed_at
@@ -281,6 +284,13 @@ function buildConditions(
   const conditions: SQL[] = [
     between(dateColumn, dateFrom, dateTo),
   ];
+
+  if (params.userId) {
+    conditions.push(eq(PurchaseRequestTable.user_id, params.userId));
+  }
+
+  // ユーザー属性フィルタ（roles ホワイトリスト + デモユーザー除外）
+  conditions.push(...buildUserFilterConditions(PurchaseRequestTable.user_id, params));
 
   if (params.status) {
     conditions.push(eq(PurchaseRequestTable.status, params.status as "completed"));

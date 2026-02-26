@@ -1,7 +1,7 @@
 # analytics ドメイン
 
 ドメインデータを時系列で集計・分析するためのフレームワーク。
-他ドメインのテーブルを読み取り専用で参照し、共通の集計パターン（日別・期間サマリー・ランキング）を提供する。
+他ドメインのテーブルを読み取り専用で参照し、共通の集計パターン（日別・期間サマリー・ランキング・残高推移）を提供する。
 
 ## ドメインの位置づけ
 
@@ -15,16 +15,17 @@
 analytics/
 ├── README.md                     # 本ファイル
 ├── types/
-│   ├── common.ts                 # 集計共通型（DateRangeParams, DailyRecord, BreakdownEntry 等）
+│   ├── common.ts                 # 集計共通型（DateRangeParams, DailyRecord, UserFilter 等）
 │   └── entities.ts               # エンティティ追加時の基底型（CacheBase, SnapshotBase 等）
 ├── entities/                     # アップストリームでは空。下流がテーブル定義を追加する場所
 ├── constants/
-│   └── index.ts                  # デフォルト日数、最大値等
+│   └── index.ts                  # デフォルト日数、最大値、デフォルトタイムゾーン等
 ├── services/server/
 │   ├── utils/
-│   │   ├── dateRange.ts          # 日付範囲パラメータの解決
-│   │   └── aggregation.ts        # グルーピング、ユニークカウント等の集計ヘルパー
-│   ├── walletHistoryAnalytics.ts # [組み込み] walletHistory 集計
+│   │   ├── dateRange.ts          # 日付範囲パラメータの解決（TZ対応）
+│   │   ├── aggregation.ts        # グルーピング、ユニークカウント等の集計ヘルパー
+│   │   └── userFilter.ts         # ユーザー属性フィルター（roles, excludeDemo）
+│   ├── walletHistoryAnalytics.ts # [組み込み] walletHistory 集計 + 日次残高
 │   ├── purchaseAnalytics.ts      # [組み込み] purchase 集計
 │   └── userRankingAnalytics.ts   # [組み込み] ユーザーランキング
 └── presenters.ts                 # （任意）集計結果のフォーマット
@@ -36,6 +37,7 @@ analytics/
 |---|---|---|
 | GET /api/admin/analytics/wallet-history/daily | walletHistoryAnalytics | 日別ウォレット変動集計 |
 | GET /api/admin/analytics/wallet-history/summary | walletHistoryAnalytics | 期間サマリー |
+| GET /api/admin/analytics/wallet-history/balance | walletHistoryAnalytics | 日次残高（ランニングバランス） |
 | GET /api/admin/analytics/purchase/daily | purchaseAnalytics | 日別売上集計 |
 | GET /api/admin/analytics/purchase/summary | purchaseAnalytics | 期間売上サマリー |
 | GET /api/admin/analytics/purchase/status-overview | purchaseAnalytics | ステータス概況 |
@@ -43,14 +45,41 @@ analytics/
 
 ## 共通クエリパラメータ
 
-日付範囲（全APIで共通）:
+日付範囲（status-overview以外の全APIで共通）:
 - `days`: 日数指定（デフォルト 30、最大 365）
 - `dateFrom`: 開始日（YYYY-MM-DD）
 - `dateTo`: 終了日（YYYY-MM-DD）
+- `timezone`: タイムゾーン（IANA TZ名、デフォルト: `Asia/Tokyo`）
 - dateFrom + dateTo 指定時は days より優先
+
+ユーザーフィルタ:
+- `userId`: 特定ユーザーに絞り込み（ranking以外）
+- `roles`: 含めるロール（CSV、ホワイトリスト方式）。未指定=全ロール
+- `excludeDemo`: `true` でデモユーザー（is_demo=true）を除外
 
 フィルタ:
 - `walletType`: ウォレット種別でフィルタ（指定なし = 全種別）
+
+## タイムゾーン対応
+
+- デフォルト: `Asia/Tokyo`（`constants/index.ts` の `DEFAULT_TIMEZONE`）
+- 日付境界の計算（startOfDay/endOfDay）がタイムゾーンを考慮
+- groupByDateのキー生成がタイムゾーンに基づいてYYYY-MM-DDを生成
+- `Intl.DateTimeFormat` ベース（外部ライブラリ不要）
+
+## ユーザーフィルター設計
+
+roles パラメータ（ホワイトリスト方式）:
+- 未指定: 全ロールを含む（フィルタなし）
+- `roles=_user`: 一般ユーザーのみ
+- `roles=_user,contributor`: 複数ロール指定
+
+excludeDemo パラメータ:
+- 未指定 or false: デモユーザーを含む
+- `excludeDemo=true`: is_demo=true のユーザーを除外
+
+実装: サブクエリ方式（JOIN不使用）。walletHistoryにはUserTableへのFKがないため、
+`user_id IN/NOT IN (SELECT id FROM users WHERE ...)` パターンで条件を構築。
 
 ## ダウンストリームでの集計サービス追加
 
@@ -62,7 +91,8 @@ import { db } from "@/lib/drizzle";
 import { GachaPlayTable } from "@/features/gacha/entities/drizzle";
 import { resolveDateRange, generateDateKeys, formatDateRangeForResponse } from "./utils/dateRange";
 import { groupByDate, countUnique } from "./utils/aggregation";
-import type { DateRangeParams, DailyAnalyticsResponse } from "@/features/core/analytics/types/common";
+import { buildUserFilterConditions } from "./utils/userFilter";
+import type { DateRangeParams, DailyAnalyticsResponse, UserFilter } from "@/features/core/analytics/types/common";
 
 type GachaDailyData = {
   playCount: number;
@@ -71,15 +101,17 @@ type GachaDailyData = {
 };
 
 export async function getGachaDaily(
-  params: DateRangeParams,
+  params: DateRangeParams & UserFilter,
 ): Promise<DailyAnalyticsResponse<GachaDailyData>> {
   const range = resolveDateRange(params);
 
-  // 1. DBからレコード取得
-  const records = await db.select().from(GachaPlayTable).where(/* ... */);
+  // 1. DBからレコード取得（ユーザーフィルタ適用）
+  const conditions = [/* date conditions */];
+  conditions.push(...buildUserFilterConditions(GachaPlayTable.user_id, params));
+  const records = await db.select().from(GachaPlayTable).where(and(...conditions));
 
-  // 2. 日別グルーピング（共通ユーティリティ使用）
-  const grouped = groupByDate(records, (r) => r.createdAt);
+  // 2. 日別グルーピング（TZ対応）
+  const grouped = groupByDate(records, (r) => r.createdAt, range.timezone);
 
   // 3. 日付キー生成（データなし日も含む）
   const dateKeys = generateDateKeys(range);
@@ -121,14 +153,18 @@ export type GachaDailyRecord = DailyRecord<{
 // src/app/api/admin/analytics/gacha/daily/route.ts
 import { createApiRoute } from "@/lib/routeFactory";
 import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
 import { getGachaDaily } from "@/features/core/analytics/services/server/gachaAnalytics";
 
 export const GET = createApiRoute(
   { operation: "GET /api/admin/analytics/gacha/daily", operationType: "read" },
   async (req, { session }) => {
     // 管理者チェック...
-    const params = parseDateRangeParams(new URL(req.url).searchParams);
-    return getGachaDaily(params);
+    const { searchParams } = new URL(req.url);
+    return getGachaDaily({
+      ...parseDateRangeParams(searchParams),
+      ...parseUserFilterParams(searchParams),
+    });
   },
 );
 ```
@@ -175,28 +211,3 @@ export const AnalyticsCacheTable = pgTable(
 ### 命名規約
 - テーブル名: `analytics_` プレフィクス（例: `analytics_cache`, `analytics_snapshots`）
 - metric_key / snapshot_key: snake_case（例: `daily_wallet_summary`, `wallet_balance_distribution`）
-
-### キャッシュ活用パターン
-
-集計サービス内でキャッシュを活用する場合:
-
-```typescript
-// services/server/gachaAnalytics.ts
-import { AnalyticsCacheTable } from "../../entities/drizzle";
-
-export async function getGachaDaily(params) {
-  // 1. キャッシュを確認
-  const cached = await db.select().from(AnalyticsCacheTable).where(/* metric_key + period */);
-  if (cached.length > 0 && isFresh(cached[0])) {
-    return cached[0].result;
-  }
-
-  // 2. リアルタイム集計
-  const result = await computeGachaDaily(params);
-
-  // 3. キャッシュに保存
-  await db.insert(AnalyticsCacheTable).values({ metric_key: "gacha_daily", result, ... });
-
-  return result;
-}
-```

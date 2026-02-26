@@ -1,4 +1,4 @@
-// src/app/api/admin/analytics/purchase/summary/route.ts
+// src/app/api/admin/analytics/wallet-history/balance/route.ts
 
 import { NextResponse } from "next/server";
 
@@ -6,11 +6,11 @@ import { createApiRoute } from "@/lib/routeFactory";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
 import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
-import { getPurchaseSummary } from "@/features/core/analytics/services/server/purchaseAnalytics";
+import { getWalletBalanceDaily } from "@/features/core/analytics/services/server/walletHistoryAnalytics";
 
 export const GET = createApiRoute(
   {
-    operation: "GET /api/admin/analytics/purchase/summary",
+    operation: "GET /api/admin/analytics/wallet-history/balance",
     operationType: "read",
   },
   async (req, { session }) => {
@@ -20,7 +20,7 @@ export const GET = createApiRoute(
 
     const { searchParams } = new URL(req.url);
 
-    return getPurchaseSummary({
+    return getWalletBalanceDaily({
       ...parseDateRangeParams(searchParams),
       ...parseUserFilterParams(searchParams),
       userId: searchParams.get("userId") ?? undefined,

@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { createApiRoute } from "@/lib/routeFactory";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
+import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
 import { getUserRanking, type RankingMetric } from "@/features/core/analytics/services/server/userRankingAnalytics";
 
 const VALID_METRICS: RankingMetric[] = ["totalPurchase", "totalConsumption", "purchaseCount", "netChange"];
@@ -27,6 +28,7 @@ export const GET = createApiRoute(
 
     return getUserRanking({
       ...parseDateRangeParams(searchParams),
+      ...parseUserFilterParams(searchParams),
       walletType: searchParams.get("walletType") ?? undefined,
       metric,
       limit: searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined,
