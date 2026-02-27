@@ -101,7 +101,7 @@ const p = PurchaseRequestTable;
 
 /** グルーピング用日付式（completed_at優先、fallbackでpaid_at） */
 function purchaseDateExpr(tz: string) {
-  return sql<string>`DATE(COALESCE(${p.completed_at}, ${p.paid_at}) AT TIME ZONE ${tz})`;
+  return sql<string>`DATE(COALESCE(${p.completed_at}, ${p.paid_at}) AT TIME ZONE ${tz})::text`;
 }
 
 // ============================================================================
