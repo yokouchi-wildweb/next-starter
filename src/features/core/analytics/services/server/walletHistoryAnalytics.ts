@@ -74,7 +74,7 @@ const t = WalletHistoryTable;
 
 /** タイムゾーン対応の日付抽出SQL式 */
 function dateExpr(tz: string) {
-  return sql<string>`DATE(${t.createdAt} AT TIME ZONE ${tz})`;
+  return sql<string>`DATE(${t.createdAt} AT TIME ZONE ${tz})::text`;
 }
 
 /** 符号付きdelta（change_method考慮）のSQL式 */
