@@ -115,7 +115,7 @@ export async function getWalletHistoryDaily(
       })
       .from(t)
       .where(and(...conditions))
-      .groupBy(dateSql),
+      .groupBy(sql.raw("1")),
     db
       .select({
         date: dateSql,
@@ -126,7 +126,7 @@ export async function getWalletHistoryDaily(
       })
       .from(t)
       .where(and(...conditions))
-      .groupBy(dateSql, groupColumn),
+      .groupBy(sql.raw("1"), groupColumn),
   ]);
 
   // 結果をMap化
@@ -275,7 +275,7 @@ export async function getWalletBalanceDaily(
       })
       .from(t)
       .where(and(...conditions))
-      .groupBy(dateSql),
+      .groupBy(sql.raw("1")),
   ]);
 
   const baselineBalance = Number(baselineRows[0]?.total ?? 0);

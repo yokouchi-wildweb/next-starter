@@ -131,7 +131,7 @@ export async function getPurchaseDaily(
       })
       .from(p)
       .where(and(...conditions))
-      .groupBy(dateSql),
+      .groupBy(sql.raw("1")),
     db
       .select({
         date: dateSql,
@@ -142,7 +142,7 @@ export async function getPurchaseDaily(
       })
       .from(p)
       .where(and(...conditions))
-      .groupBy(dateSql, p.wallet_type),
+      .groupBy(sql.raw("1"), p.wallet_type),
   ]);
 
   // Map化
