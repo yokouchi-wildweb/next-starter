@@ -1105,6 +1105,9 @@ export function createCrudService<
         }
 
         // 全レコードのパース・分離を先に実行
+        // updatedAtはmap外で1回だけ生成し、全レコードで同じ参照を共有させる
+        // （map内で毎回new Date()すると===比較でfalseになりCASE式パスに入ってしまう）
+        const bulkUpdatedAt = serviceOptions.useUpdatedAt ? new Date() : undefined;
         const parsed = await Promise.all(
           validRecords.map(async (record) => {
             const parsedInput = serviceOptions.parseUpdate
@@ -1116,7 +1119,7 @@ export function createCrudService<
             );
             const updateData = coerceEmptyArraysToNull(table, omitUndefined({
               ...sanitizedData,
-              ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
+              ...(bulkUpdatedAt && { updatedAt: bulkUpdatedAt }),
             })) as Record<string, any>;
             return { id: record.id, updateData, relationValues };
           }),
