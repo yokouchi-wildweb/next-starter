@@ -44,9 +44,8 @@ function InfoRow({ label, children }: InfoRowProps) {
 }
 
 export function SummaryTabContent({ user }: Props) {
-  const metadata = user.metadata ?? {};
-  const loginHistory = metadata.loginHistory ?? [];
-  const signupIp = metadata.signupIp;
+  const loginHistory = user.metadata?.loginHistory ?? [];
+  const signupIp = user.signupIp;
 
   const columns: DataTableColumn<UserLoginRecord>[] = [
     {

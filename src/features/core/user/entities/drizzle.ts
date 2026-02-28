@@ -24,6 +24,7 @@ export const UserTable = pgTable(
     lastAuthenticatedAt: timestamp("last_authenticated_at", { withTimezone: true }),
     phoneNumber: text("phone_number").unique(),
     phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
+    signupIp: text("signup_ip"),
     metadata: jsonb("metadata").$type<UserMetadata>().default({}).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

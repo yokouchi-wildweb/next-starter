@@ -30,6 +30,7 @@ export const UserCoreSchema = z.object({
     .regex(/^\+[1-9]\d{1,14}$/, { message: "電話番号はE.164形式で入力してください" })
     .nullish(),
   phoneVerifiedAt: z.coerce.date().nullish(),
+  signupIp: z.string().nullish(),
   metadata: z.record(z.unknown()).default({}),
   deletedAt: z.coerce.date().nullish(),
   name: z

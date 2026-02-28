@@ -18,7 +18,6 @@ export type UserLoginRecord = {
  * ユーザーメタデータ（JSONB）
  */
 export type UserMetadata = {
-  signupIp?: string;
   loginHistory?: UserLoginRecord[];
 };
 
@@ -31,6 +30,7 @@ export type User = BaseEntity & {
   localPassword: string | null;
   status: UserStatus;
   isDemo: boolean;
+  signupIp: string | null;
   lastAuthenticatedAt: Date | null;
   phoneNumber: string | null;
   phoneVerifiedAt: Date | null;

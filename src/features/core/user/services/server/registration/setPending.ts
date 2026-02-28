@@ -51,8 +51,8 @@ export async function setPending(
     localPassword: null,
     name: null,
     deletedAt: null,
-    // 新規登録の場合はsignupIpをmetadataに記録
-    ...(input.signupIp ? { metadata: { signupIp: input.signupIp } } : {}),
+    // 新規登録の場合はsignupIpを記録
+    ...(input.signupIp ? { signupIp: input.signupIp } : {}),
   } as unknown as Parameters<typeof base.upsert>[0];
 
   const user = await base.upsert(
