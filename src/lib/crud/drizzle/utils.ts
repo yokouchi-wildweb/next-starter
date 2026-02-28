@@ -133,3 +133,18 @@ export function resolveConflictTarget<TData extends Record<string, any>>(
 
   return columns.length === 1 ? columns[0] : columns;
 }
+
+/**
+ * bulkUpdate の allSame 判定用の値比較。
+ * === は参照比較のため Date / jsonb / 配列で同一値でも false になる。
+ * 値ベースで比較し、同一値を正しく検出して安全な .set() パスに導く。
+ */
+export function isBulkValueEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
+  if (typeof a === "object" && typeof b === "object") {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return false;
+}

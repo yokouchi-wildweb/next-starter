@@ -19,7 +19,7 @@ import type {
   WithOptions,
 } from "../types";
 import { buildOrderBy, buildWhere, runQuery } from "./query";
-import { applyInsertDefaults, coerceEmptyArraysToNull, normalizeRecordKeys, resolveConflictTarget } from "./utils";
+import { applyInsertDefaults, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
 import type { DrizzleCrudServiceOptions, DbTransaction, ExtraWhereOption } from "./types";
 import {
   assignLocalRelationValues,
@@ -1145,8 +1145,9 @@ export function createCrudService<
 
           for (const col of allColumns) {
             // 全レコードで同一値なら直接セット（CASE不要）
+            // ===は参照比較のためDate/jsonb/配列等のオブジェクト型で誤判定する。値ベースで比較する
             const values = recordsWithColumnUpdates.map((p) => p.updateData[col]);
-            const allSame = values.every((v) => v === values[0]);
+            const allSame = values.every((v) => isBulkValueEqual(v, values[0]));
 
             if (allSame) {
               setClause[col] = values[0];
