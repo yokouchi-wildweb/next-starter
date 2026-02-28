@@ -104,12 +104,12 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
       : {};
 
   return (
-    <div className={cn("relative flex h-fit items-center", containerClassName)}>
+    <div className={cn("relative flex h-fit items-center", className, containerClassName)}>
       <Input
         {...rest}
         ref={assignRef}
         type="date"
-        className={cn("pr-8", className)}
+        className="pr-8"
         {...inputValueProps}
         onFocus={(event) => {
           onFocus?.(event);
