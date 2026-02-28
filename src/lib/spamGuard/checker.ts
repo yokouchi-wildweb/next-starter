@@ -8,6 +8,22 @@ import { checkDebounce } from "./debounce";
 import { ALLOWED_TLDS, TRUSTED_DOMAINS } from "./whitelist";
 
 /**
+ * ローカルパート（@の前）に不審な文字が含まれているかチェックする
+ * 許可する文字: 英数字, ドット, ハイフン, アンダースコアのみ
+ * +やその他の特殊文字はスパマーによる複数アカウント作成に使われるためブロック
+ */
+function hasSuspiciousLocalPart(email: string): boolean {
+  const localPart = email.split("@")[0] || "";
+  // 許可文字以外が含まれていたらブロック
+  if (/[^a-zA-Z0-9._-]/.test(localPart)) return true;
+  // 連続ドット
+  if (/\.{2,}/.test(localPart)) return true;
+  // 先頭・末尾ドット
+  if (localPart.startsWith(".") || localPart.endsWith(".")) return true;
+  return false;
+}
+
+/**
  * メールアドレスからドメインを抽出する
  */
 function extractDomain(email: string): string {
@@ -43,6 +59,11 @@ function isTldAllowed(domain: string): boolean {
  * @returns true = 使い捨てメール（ブロック対象）, false = 正規メール（通過）
  */
 export async function isDisposableEmail(email: string): Promise<boolean> {
+  // ローカルパートの文字チェック（emailCheckModeに関係なく常に実行）
+  if (hasSuspiciousLocalPart(email)) {
+    return true;
+  }
+
   const mode = APP_FEATURES.auth.signup.emailCheckMode;
 
   // disabled: チェックなし
