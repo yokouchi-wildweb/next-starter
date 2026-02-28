@@ -5,8 +5,7 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-
+import { useToast } from "@/lib/toast";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
@@ -46,6 +45,7 @@ export function UserProfileForm({
   } = methods;
 
   const router = useRouter();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateUser();
 
   const submit = async (values: FormValues) => {
@@ -60,10 +60,10 @@ export function UserProfileForm({
           profileData: values.profileData,
         },
       });
-      toast.success("プロフィールを更新しました");
+      showToast("プロフィールを更新しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      toast.error(err(error, "プロフィールの更新に失敗しました"));
+      showToast(err(error, "プロフィールの更新に失敗しました"), "error");
     }
   };
 

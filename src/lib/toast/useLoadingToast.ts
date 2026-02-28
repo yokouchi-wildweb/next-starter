@@ -31,6 +31,12 @@ export function useLoadingToast(
   const { show, hideById } = useToastStore();
   const toastIdRef = useRef<string | null>(null);
 
+  // messageを依存配列に含めることで、flag=true中のメッセージ変化時にもエフェクトが再実行される
+  const message =
+    typeof messageOrOptions === "string"
+      ? messageOrOptions
+      : messageOrOptions.message;
+
   useEffect(() => {
     if (flag) {
       const options: ToastOptions =
@@ -38,17 +44,14 @@ export function useLoadingToast(
           ? { message: messageOrOptions, mode: "persistent" }
           : { ...messageOrOptions, mode: "persistent" };
       toastIdRef.current = show(options);
-    } else if (toastIdRef.current) {
-      hideById(toastIdRef.current);
-      toastIdRef.current = null;
     }
 
-    // アンマウント時にトーストを消す
+    // 依存配列の変更時・アンマウント時にトーストを消す
     return () => {
       if (toastIdRef.current) {
         hideById(toastIdRef.current);
         toastIdRef.current = null;
       }
     };
-  }, [flag, show, hideById]);
+  }, [flag, message, show, hideById]);
 }

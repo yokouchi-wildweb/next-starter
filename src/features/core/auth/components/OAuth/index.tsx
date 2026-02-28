@@ -13,7 +13,7 @@ import { useOAuthPhase } from "@/features/core/auth/hooks/useOAuthPhase";
 import { useGuardedNavigation } from "@/lib/transitionGuard";
 import type { UserProviderType } from "@/features/core/user/types";
 import { InvalidProcessState } from "./InvalidProcessState";
-import { toast } from "sonner";
+import { useToast } from "@/lib/toast";
 
 const { afterVerificationPath } = APP_FEATURES.auth.signup;
 
@@ -37,6 +37,7 @@ const DEFAULT_REDIRECT_PATH = "/";
 
 export function OAuth({ provider, redirectTo = DEFAULT_REDIRECT_PATH }: OAuthProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const { guardedPush } = useGuardedNavigation();
   const { phase, requiresReactivation } = useOAuthPhase({ provider });
 
@@ -53,10 +54,10 @@ export function OAuth({ provider, redirectTo = DEFAULT_REDIRECT_PATH }: OAuthPro
         return;
       }
 
-      toast.success("登録済みユーザーでログインしました");
+      showToast("登録済みユーザーでログインしました", "success");
       router.replace(redirectTo);
     }
-  }, [phase, requiresReactivation, router, guardedPush, redirectTo]);
+  }, [phase, requiresReactivation, router, guardedPush, redirectTo, showToast]);
 
   return (
     <Section id="signup-oauth" className="relative flex flex-col gap-4">

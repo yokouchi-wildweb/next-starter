@@ -5,8 +5,7 @@
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-
+import { useToast } from "@/lib/toast";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
@@ -38,6 +37,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
   });
 
   const router = useRouter();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useCreateUser();
   const enableUserTag = APP_FEATURES.user.enableUserTag;
   const { data: userTags = [] } = useUserTagList({ isPaused: () => !enableUserTag });
@@ -49,10 +49,10 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
   const submit = async (values: FormValues) => {
     try {
       await trigger(values);
-      toast.success("ユーザー登録が完了しました");
+      showToast("ユーザー登録が完了しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      toast.error(err(error, "ユーザー登録に失敗しました"));
+      showToast(err(error, "ユーザー登録に失敗しました"), "error");
     }
   };
 

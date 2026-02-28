@@ -5,8 +5,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-
+import { useToast } from "@/lib/toast";
 import { AppForm } from "@/components/Form/AppForm";
 import { Button } from "@/components/Form/Button/Button";
 import { ControlledField } from "@/components/Form";
@@ -40,6 +39,7 @@ export default function ManagerialUserEditForm({
   });
 
   const router = useRouter();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateUser();
 
   const submit = async (values: FormValues) => {
@@ -51,10 +51,10 @@ export default function ManagerialUserEditForm({
           profileData: values.profileData,
         },
       });
-      toast.success("ユーザーを更新しました");
+      showToast("ユーザーを更新しました", "success");
       router.push(redirectPath);
     } catch (error) {
-      toast.error(err(error, "ユーザー更新に失敗しました"));
+      showToast(err(error, "ユーザー更新に失敗しました"), "error");
     }
   };
 

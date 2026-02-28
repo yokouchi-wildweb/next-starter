@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "@/styles/global.css";
-import { Toaster } from "sonner";
 import { Suspense } from "react";
 
 import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
@@ -70,7 +69,6 @@ export default function RootLayout({
             </AdminCommandProvider>
           </AuthSessionProvider>
         </RecaptchaProvider>
-        <Toaster position="bottom-center" richColors />
         <RedirectToastProvider />
         {/* Firebase Phone Auth用reCAPTCHAコンテナ（モーダル外に配置が必要） */}
         <div id="phone-verification-recaptcha" />
