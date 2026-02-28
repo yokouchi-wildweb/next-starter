@@ -2,6 +2,7 @@
 
 "use client";
 
+import { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/cn";
@@ -16,8 +17,9 @@ import {
 /**
  * ソート可能な個別アイテムコンポーネント
  * @dnd-kit/sortable の useSortable を使用
+ * memo でラップし、ドラッグ中に変化しないアイテムの再レンダリングを防止
  */
-export function SortableItem<T extends SortableItemType>({
+function SortableItemInner<T extends SortableItemType>({
   item,
   columns,
   showDragHandle,
@@ -92,3 +94,5 @@ export function SortableItem<T extends SortableItemType>({
     </div>
   );
 }
+
+export const SortableItem = memo(SortableItemInner) as typeof SortableItemInner;

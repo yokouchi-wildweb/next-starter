@@ -1,5 +1,6 @@
 // src/lib/tableSuite/SortableList/components/StaticItem.tsx
 
+import { memo } from "react";
 import { cn } from "@/lib/cn";
 import { DragHandle } from "./DragHandle";
 import type {
@@ -27,8 +28,9 @@ type StaticItemProps<T extends SortableItemType> = {
 /**
  * ドラッグ無効なアイテムの静的レンダリング
  * SortableContext から除外されるため useSortable を使用しない
+ * memo でラップし、不要な再レンダリングを防止
  */
-export function StaticItem<T extends SortableItemType>({
+function StaticItemInner<T extends SortableItemType>({
   item,
   columns,
   showDragHandle,
@@ -77,3 +79,5 @@ export function StaticItem<T extends SortableItemType>({
     </div>
   );
 }
+
+export const StaticItem = memo(StaticItemInner) as typeof StaticItemInner;
