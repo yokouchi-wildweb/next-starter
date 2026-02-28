@@ -42,5 +42,13 @@ export function useLoadingToast(
       hideById(toastIdRef.current);
       toastIdRef.current = null;
     }
+
+    // アンマウント時にトーストを消す
+    return () => {
+      if (toastIdRef.current) {
+        hideById(toastIdRef.current);
+        toastIdRef.current = null;
+      }
+    };
   }, [flag, show, hideById]);
 }
