@@ -4,6 +4,7 @@
 // export * from "@/features/xxx/entities/drizzle";
 
 export * from "@/features/core/userActionLog/entities/drizzle";
+export * from "@/features/core/analytics/entities/drizzle";
 export * from "@/registry/profileTableRegistry";
 
 // --- AUTO-GENERATED-START ---
