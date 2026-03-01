@@ -29,6 +29,7 @@ analytics/
 │   ├── purchaseAnalytics.ts      # [組み込み] purchase 集計
 │   ├── purchaseDistributionAnalytics.ts # [組み込み] 購入額グループ分布
 │   ├── purchaseRankingAnalytics.ts      # [組み込み] 購入ランキング（purchase_requests）
+│   ├── userAnalytics.ts                 # [組み込み] ユーザー登録集計
 │   └── walletRankingAnalytics.ts        # [組み込み] ウォレットランキング（wallet_histories）
 └── presenters.ts                 # （任意）集計結果のフォーマット
 ```
@@ -45,6 +46,9 @@ analytics/
 | GET /api/admin/analytics/purchase/status-overview | purchaseAnalytics | ステータス概況 |
 | GET /api/admin/analytics/purchase/distribution | purchaseDistributionAnalytics | 購入額グループ分布 |
 | GET /api/admin/analytics/purchase/ranking | purchaseRankingAnalytics | 購入ランキング |
+| GET /api/admin/analytics/user/registration/daily | userAnalytics | 日別ユーザー登録数 |
+| GET /api/admin/analytics/user/registration/summary | userAnalytics | ユーザー登録期間サマリー |
+| GET /api/admin/analytics/user/status-overview | userAnalytics | ユーザーステータス概況 |
 | GET /api/admin/analytics/wallet/ranking | walletRankingAnalytics | ウォレットランキング |
 
 ## 共通クエリパラメータ
