@@ -14,3 +14,6 @@ export const DEFAULT_RANKING_LIMIT = 50;
 
 /** ランキングの最大取得件数 */
 export const MAX_RANKING_LIMIT = 200;
+
+/** 分布APIの最大境界値数 */
+export const MAX_DISTRIBUTION_BOUNDARIES = 20;
