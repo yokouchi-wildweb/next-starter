@@ -1,9 +1,12 @@
-// src/features/core/analytics/services/server/userRankingAnalytics.ts
-// ユーザーランキング集計サービス
+// src/features/core/analytics/services/server/walletRankingAnalytics.ts
+// ウォレット履歴ベースのランキング集計サービス
+// データソース: wallet_histories（コイン/ポイント増減の台帳）
+// 対比: purchaseRankingAnalytics.ts（purchase_requests ベース、決済情報を含む）
 // 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
 import { db } from "@/lib/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
+import { UserTable } from "@/features/core/user/entities/drizzle";
 import { and, between, eq, sql, type SQL } from "drizzle-orm";
 import type {
   DateRangeParams,
@@ -20,22 +23,25 @@ import { buildUserFilterConditions } from "./utils/userFilter";
 // 型定義
 // ============================================================================
 
-/** ランキング指標 */
-export type RankingMetric =
+/** ウォレットランキングのソート指標 */
+export type WalletRankingSortBy =
   | "totalPurchase"
   | "totalConsumption"
   | "purchaseCount"
   | "netChange";
 
-type UserRankingEntry = {
+type WalletRankingEntry = {
   userId: string;
-  totalAmount: number;
-  count: number;
+  displayName: string | null;
+  totalPurchase: number;
+  totalConsumption: number;
+  purchaseCount: number;
+  netChange: number;
   lastActivityAt: string | null;
 };
 
-export type UserRankingParams = DateRangeParams & WalletTypeFilter & PaginationParams & UserFilter & {
-  metric?: RankingMetric;
+export type WalletRankingParams = DateRangeParams & WalletTypeFilter & PaginationParams & UserFilter & {
+  sortBy?: WalletRankingSortBy;
 };
 
 // ============================================================================
@@ -43,6 +49,7 @@ export type UserRankingParams = DateRangeParams & WalletTypeFilter & PaginationP
 // ============================================================================
 
 const t = WalletHistoryTable;
+const u = UserTable;
 
 /** 符号付きdelta（change_method考慮）のSQL式 */
 const signedDeltaExpr = sql<number>`
@@ -53,48 +60,64 @@ const signedDeltaExpr = sql<number>`
     ELSE 0
   END`;
 
-/** メトリクスに応じた集計SQL式 */
-function resolveMetricExpr(metric: RankingMetric) {
-  switch (metric) {
+/** ソート指標に対応するSQLエイリアス名 */
+function resolveSortAlias(sortBy: WalletRankingSortBy): string {
+  switch (sortBy) {
     case "totalPurchase":
+      return "total_purchase";
     case "totalConsumption":
-      return sql<number>`COALESCE(SUM(${t.points_delta}), 0)`;
+      return "total_consumption";
     case "purchaseCount":
-      return sql<number>`COUNT(*)::int`;
+      return "purchase_count";
     case "netChange":
-      return sql<number>`COALESCE(SUM(${signedDeltaExpr}), 0)`;
+      return "net_change";
   }
 }
 
 // ============================================================================
-// ユーザーランキング
+// ウォレットランキング
 // ============================================================================
 
-export async function getUserRanking(
-  params: UserRankingParams,
-): Promise<RankingResponse<UserRankingEntry>> {
+export async function getWalletRanking(
+  params: WalletRankingParams,
+): Promise<RankingResponse<WalletRankingEntry>> {
   const range = resolveDateRange(params);
-  const metric = params.metric ?? "totalPurchase";
+  const sortBy = params.sortBy ?? "totalPurchase";
   const limit = Math.min(Math.max(params.limit ?? DEFAULT_RANKING_LIMIT, 1), MAX_RANKING_LIMIT);
   const page = Math.max(params.page ?? 1, 1);
   const offset = (page - 1) * limit;
 
-  const conditions = buildConditions(range.dateFrom, range.dateTo, params, metric);
-  const metricSql = resolveMetricExpr(metric);
+  const conditions = buildConditions(range.dateFrom, range.dateTo, params);
+  const sortAlias = resolveSortAlias(sortBy);
 
-  // ランキングクエリ + 総ユーザー数を並列実行
+  // ランキングクエリ（users JOIN）+ 総ユーザー数を並列実行
   const [rows, totalRows] = await Promise.all([
     db
       .select({
         userId: t.user_id,
-        totalAmount: metricSql.as("total_amount"),
-        count: sql<number>`COUNT(*)::int`.as("count"),
-        lastActivityAt: sql<string>`MAX(${t.createdAt})::text`.as("last_activity_at"),
+        displayName: u.name,
+        totalPurchase:
+          sql<number>`COALESCE(SUM(CASE WHEN ${t.reason_category} = 'purchase' THEN ${t.points_delta} ELSE 0 END), 0)`.as(
+            "total_purchase",
+          ),
+        totalConsumption:
+          sql<number>`COALESCE(SUM(CASE WHEN ${t.reason_category} = 'consumption' THEN ${t.points_delta} ELSE 0 END), 0)`.as(
+            "total_consumption",
+          ),
+        purchaseCount:
+          sql<number>`SUM(CASE WHEN ${t.reason_category} = 'purchase' THEN 1 ELSE 0 END)::int`.as(
+            "purchase_count",
+          ),
+        netChange:
+          sql<number>`COALESCE(SUM(${signedDeltaExpr}), 0)`.as("net_change"),
+        lastActivityAt:
+          sql<string>`MAX(${t.createdAt})::text`.as("last_activity_at"),
       })
       .from(t)
+      .leftJoin(u, eq(t.user_id, u.id))
       .where(and(...conditions))
-      .groupBy(t.user_id)
-      .orderBy(sql`total_amount DESC`)
+      .groupBy(t.user_id, u.name)
+      .orderBy(sql.raw(`${sortAlias} DESC`))
       .limit(limit)
       .offset(offset),
     db
@@ -110,8 +133,11 @@ export async function getUserRanking(
     items: rows.map((r, idx) => ({
       rank: offset + idx + 1,
       userId: r.userId,
-      totalAmount: Number(r.totalAmount),
-      count: Number(r.count),
+      displayName: r.displayName ?? null,
+      totalPurchase: Number(r.totalPurchase),
+      totalConsumption: Number(r.totalConsumption),
+      purchaseCount: Number(r.purchaseCount),
+      netChange: Number(r.netChange),
       lastActivityAt: r.lastActivityAt ?? null,
     })),
     total: Number(totalRow!.total),
@@ -122,11 +148,11 @@ export async function getUserRanking(
 // 内部ヘルパー
 // ============================================================================
 
+/** フィルタ条件を構築（reason_categoryフィルタなし、全指標を一括集計） */
 function buildConditions(
   dateFrom: Date,
   dateTo: Date,
   params: WalletTypeFilter & UserFilter,
-  metric: RankingMetric,
 ): SQL[] {
   const conditions: SQL[] = [
     between(t.createdAt, dateFrom, dateTo),
@@ -137,18 +163,6 @@ function buildConditions(
 
   if (params.walletType) {
     conditions.push(eq(t.type, params.walletType as "regular_coin" | "regular_point"));
-  }
-
-  // メトリクスに応じたreason_categoryフィルタ
-  switch (metric) {
-    case "totalPurchase":
-    case "purchaseCount":
-      conditions.push(eq(t.reason_category, "purchase"));
-      break;
-    case "totalConsumption":
-      conditions.push(eq(t.reason_category, "consumption"));
-      break;
-    // netChange: フィルタなし（全レコード対象）
   }
 
   return conditions;

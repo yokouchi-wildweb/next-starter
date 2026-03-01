@@ -27,7 +27,9 @@ analytics/
 │   │   └── userFilter.ts         # ユーザー属性フィルター（roles, excludeDemo）
 │   ├── walletHistoryAnalytics.ts # [組み込み] walletHistory 集計 + 日次残高
 │   ├── purchaseAnalytics.ts      # [組み込み] purchase 集計
-│   └── userRankingAnalytics.ts   # [組み込み] ユーザーランキング
+│   ├── purchaseDistributionAnalytics.ts # [組み込み] 購入額グループ分布
+│   ├── purchaseRankingAnalytics.ts      # [組み込み] 購入ランキング（purchase_requests）
+│   └── walletRankingAnalytics.ts        # [組み込み] ウォレットランキング（wallet_histories）
 └── presenters.ts                 # （任意）集計結果のフォーマット
 ```
 
@@ -41,7 +43,9 @@ analytics/
 | GET /api/admin/analytics/purchase/daily | purchaseAnalytics | 日別売上集計 |
 | GET /api/admin/analytics/purchase/summary | purchaseAnalytics | 期間売上サマリー |
 | GET /api/admin/analytics/purchase/status-overview | purchaseAnalytics | ステータス概況 |
-| GET /api/admin/analytics/user/ranking | userRankingAnalytics | ユーザーランキング |
+| GET /api/admin/analytics/purchase/distribution | purchaseDistributionAnalytics | 購入額グループ分布 |
+| GET /api/admin/analytics/purchase/ranking | purchaseRankingAnalytics | 購入ランキング |
+| GET /api/admin/analytics/wallet/ranking | walletRankingAnalytics | ウォレットランキング |
 
 ## 共通クエリパラメータ
 
@@ -65,7 +69,7 @@ analytics/
 **全ての集計処理はDB側 GROUP BY + 集約関数で実行すること。**
 
 「全行フェッチ → JS集計」パターンは大量レコード（数万〜数十万行）でメモリ・速度の問題が発生するため禁止。
-組み込みサービス（walletHistoryAnalytics, purchaseAnalytics, userRankingAnalytics）は全てSQL集計方式。
+組み込みサービスは全てSQL集計方式。
 
 推奨SQLパターン:
 - 日別集計: `GROUP BY DATE(column AT TIME ZONE $tz)` + `SUM()`, `COUNT(DISTINCT)`, `COUNT(*)`
@@ -241,3 +245,23 @@ export const AnalyticsCacheTable = pgTable(
 ### 命名規約
 - テーブル名: `analytics_` プレフィクス（例: `analytics_cache`, `analytics_snapshots`）
 - metric_key / snapshot_key: snake_case（例: `daily_wallet_summary`, `wallet_balance_distribution`）
+
+## ランキングAPI: ウォレット vs 購入
+
+2つのランキングAPIは異なるデータソースを参照し、異なるユースケースに対応する。
+
+| 観点 | wallet/ranking | purchase/ranking |
+|---|---|---|
+| データソース | wallet_histories | purchase_requests (status='completed') |
+| 日付カラム | createdAt | completed_at |
+| ソートパラメータ | `sortBy` | `sortBy` |
+| sortBy 候補 | totalPurchase, totalConsumption, purchaseCount, netChange | totalCoinAmount, totalPaymentAmount, purchaseCount, avgPaymentAmount |
+| レスポンス | 全指標を常に返す（sortBy はソート順のみ変更） | 全指標を常に返す（sortBy はソート順のみ変更） |
+| ユーザー情報 | userId + displayName（users LEFT JOIN） | userId + displayName（users LEFT JOIN） |
+| 追加フィルタ | — | paymentProvider |
+| デフォルト件数 | 50（最大200） | 20（最大100） |
+
+### 使い分け
+
+- **サービス内通貨あり**: どちらも利用可能。コイン/ポイント増減の分析には wallet/ranking、決済金額の分析には purchase/ranking
+- **直接決済のみ（ECサイト等）**: wallet_histories に購入レコードが存在しないため purchase/ranking のみ使用可能
