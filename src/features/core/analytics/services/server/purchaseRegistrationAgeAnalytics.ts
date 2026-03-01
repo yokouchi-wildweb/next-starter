@@ -112,7 +112,7 @@ export async function getRegistrationAgeDistribution(
       totalAmount:
         sql<number>`COALESCE(SUM(${p.amount}), 0)`.as("total_amount"),
       ageDays:
-        sql<number>`FLOOR(EXTRACT(EPOCH FROM (${range.dateTo}::timestamptz - ${u.createdAt})) / 86400)::int`.as(
+        sql<number>`FLOOR(EXTRACT(EPOCH FROM (${range.dateTo.toISOString()}::timestamptz - ${u.createdAt})) / 86400)::int`.as(
           "age_days",
         ),
     })
