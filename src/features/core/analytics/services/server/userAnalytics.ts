@@ -160,8 +160,8 @@ export async function getUserRegistrationSummary(
     isNull(u.deletedAt),
     ...buildUserTableFilterConditions(params),
   ];
-  const isCurrent = sql`(${u.createdAt} >= ${range.dateFrom} AND ${u.createdAt} <= ${range.dateTo})`;
-  const isPrev = sql`(${u.createdAt} >= ${prevDateFrom} AND ${u.createdAt} <= ${prevDateTo})`;
+  const isCurrent = sql`(${u.createdAt} >= ${range.dateFrom.toISOString()} AND ${u.createdAt} <= ${range.dateTo.toISOString()})`;
+  const isPrev = sql`(${u.createdAt} >= ${prevDateFrom.toISOString()} AND ${u.createdAt} <= ${prevDateTo.toISOString()})`;
 
   // 3クエリを並列実行
   const [summaryRows, providerRows, roleRows] = await Promise.all([

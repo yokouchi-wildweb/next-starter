@@ -207,8 +207,8 @@ export async function getPurchaseSummary(
     between(p.completed_at, prevDateFrom, range.dateTo),
     ...buildNonDateConditions(statusParams),
   ];
-  const isCurrent = sql`(${p.completed_at} >= ${range.dateFrom} AND ${p.completed_at} <= ${range.dateTo})`;
-  const isPrev = sql`(${p.completed_at} >= ${prevDateFrom} AND ${p.completed_at} <= ${prevDateTo})`;
+  const isCurrent = sql`(${p.completed_at} >= ${range.dateFrom.toISOString()} AND ${p.completed_at} <= ${range.dateTo.toISOString()})`;
+  const isPrev = sql`(${p.completed_at} >= ${prevDateFrom.toISOString()} AND ${p.completed_at} <= ${prevDateTo.toISOString()})`;
 
   // 4クエリを並列実行（メイン集計+前期比較を統合）
   const [summaryRows, repeatDataRows, providerRows, walletTypeRows] = await Promise.all([
