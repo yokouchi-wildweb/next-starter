@@ -11,8 +11,12 @@ import type {
 import { DEFAULT_REASON_CATEGORY, type ReasonCategory } from "@/config/app/wallet-reason-category.config";
 import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta";
 import { normalizeAmount, resolveRequestBatchId, sanitizeMeta } from "./utils";
-import { runWithTransaction, type TransactionClient } from "./utils";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { type TransactionClient } from "./utils";
+import { db } from "@/lib/drizzle";
+import { eq, and, sql, gt, inArray } from "drizzle-orm";
+
+/** バッチサイズ: 1回のトランザクションで処理するウォレット数 */
+const BATCH_SIZE = 1000;
 
 /**
  * 特定の通貨種別に対し、全ユーザーのウォレット残高を一括操作する
@@ -21,7 +25,10 @@ import { eq, and, sql, inArray } from "drizzle-orm";
  * - INCREMENT: balance に加算
  * - DECREMENT: 利用可能残高（balance - locked_balance）が不足するウォレットはスキップ
  *
- * 全変更に対して共通の requestBatchId で履歴を記録する
+ * パフォーマンス:
+ * - BATCH_SIZE 件ずつ独立したトランザクションで処理（メモリ・ロック範囲を制限）
+ * - id カーソルベースのページネーションで全件を走査
+ * - 全変更に対して共通の requestBatchId で履歴を記録
  */
 export async function bulkAdjustByType(
   params: BulkAdjustByTypeParams,
@@ -36,43 +43,97 @@ export async function bulkAdjustByType(
   const meta = sanitizeMeta(params.meta);
   const reasonCategory = params.reasonCategory ?? DEFAULT_REASON_CATEGORY;
 
-  return runWithTransaction(tx, async (trx) => {
-    // 対象ウォレットを取得（行ロック）
-    const targetWallets = await selectTargetWallets(trx, params);
+  // 外部トランザクションが渡された場合はバッチ分割せず単一トランザクションで処理
+  if (tx) {
+    return executeSingleBatch(tx, params, amount, requestBatchId, reasonCategory, meta);
+  }
 
-    if (targetWallets.length === 0) {
-      return { affectedCount: 0, skippedCount: 0, requestBatchId };
+  // バッチ分割処理: 各バッチが独立したトランザクション
+  let totalAffected = 0;
+  let totalSkipped = 0;
+  let cursor: string | null = null;
+
+  while (true) {
+    const batchResult = await db.transaction(async (trx) => {
+      const wallets = await selectBatch(trx, params, cursor, BATCH_SIZE);
+
+      if (wallets.length === 0) {
+        return { affected: 0, skipped: 0, lastId: null, hasMore: false };
+      }
+
+      const lastId = wallets[wallets.length - 1]!.id;
+      const { toUpdate, skipped } = classifyWallets(wallets, params.changeMethod, amount);
+
+      if (toUpdate.length > 0) {
+        await executeBalanceUpdate(trx, toUpdate, params.changeMethod, amount);
+        await insertHistoryRecords(trx, toUpdate, params, amount, requestBatchId, reasonCategory, meta);
+      }
+
+      return {
+        affected: toUpdate.length,
+        skipped: skipped.length,
+        lastId,
+        hasMore: wallets.length === BATCH_SIZE,
+      };
+    });
+
+    totalAffected += batchResult.affected;
+    totalSkipped += batchResult.skipped;
+
+    if (!batchResult.hasMore || batchResult.lastId === null) {
+      break;
     }
+    cursor = batchResult.lastId;
+  }
 
-    // changeMethod に応じて対象を振り分け
-    const { toUpdate, skipped } = classifyWallets(targetWallets, params.changeMethod, amount);
-
-    if (toUpdate.length === 0) {
-      return { affectedCount: 0, skippedCount: skipped.length, requestBatchId };
-    }
-
-    // バルクUPDATE
-    await executeBalanceUpdate(trx, toUpdate, params.changeMethod, amount);
-
-    // バルクINSERT: 履歴
-    await insertHistoryRecords(trx, toUpdate, params, amount, requestBatchId, reasonCategory, meta);
-
-    return {
-      affectedCount: toUpdate.length,
-      skippedCount: skipped.length,
-      requestBatchId,
-    };
-  });
+  return { affectedCount: totalAffected, skippedCount: totalSkipped, requestBatchId };
 }
 
 // --- 内部関数 ---
 
 type WalletWithNext = Wallet & { nextBalance: number; nextLockedBalance: number };
 
-/** 対象ウォレットを取得（role フィルタ対応） */
-async function selectTargetWallets(
+/** 外部トランザクション指定時: バッチ分割せず単一実行 */
+async function executeSingleBatch(
   tx: TransactionClient,
   params: BulkAdjustByTypeParams,
+  amount: number,
+  requestBatchId: string,
+  reasonCategory: ReasonCategory,
+  meta: WalletHistoryMeta | null,
+): Promise<BulkAdjustByTypeResult> {
+  let totalAffected = 0;
+  let totalSkipped = 0;
+  let cursor: string | null = null;
+
+  while (true) {
+    const wallets = await selectBatch(tx, params, cursor, BATCH_SIZE);
+    if (wallets.length === 0) break;
+
+    const lastId = wallets[wallets.length - 1]!.id;
+    const { toUpdate, skipped } = classifyWallets(wallets, params.changeMethod, amount);
+
+    if (toUpdate.length > 0) {
+      await executeBalanceUpdate(tx, toUpdate, params.changeMethod, amount);
+      await insertHistoryRecords(tx, toUpdate, params, amount, requestBatchId, reasonCategory, meta);
+    }
+
+    totalAffected += toUpdate.length;
+    totalSkipped += skipped.length;
+
+    if (wallets.length < BATCH_SIZE) break;
+    cursor = lastId;
+  }
+
+  return { affectedCount: totalAffected, skippedCount: totalSkipped, requestBatchId };
+}
+
+/** カーソルベースでバッチ取得（行ロック付き） */
+async function selectBatch(
+  tx: TransactionClient,
+  params: BulkAdjustByTypeParams,
+  cursor: string | null,
+  limit: number,
 ): Promise<Wallet[]> {
   const selectFields = {
     id: WalletTable.id,
@@ -83,12 +144,19 @@ async function selectTargetWallets(
     updatedAt: WalletTable.updatedAt,
   };
 
+  const conditions = [eq(WalletTable.type, params.walletType)];
+  if (cursor) {
+    conditions.push(gt(WalletTable.id, cursor));
+  }
+
   if (params.role) {
     const rows = await tx
       .select(selectFields)
       .from(WalletTable)
       .innerJoin(UserTable, eq(WalletTable.user_id, UserTable.id))
-      .where(and(eq(WalletTable.type, params.walletType), eq(UserTable.role, params.role)))
+      .where(and(...conditions, eq(UserTable.role, params.role)))
+      .orderBy(WalletTable.id)
+      .limit(limit)
       .for("update", { of: WalletTable });
     return rows as Wallet[];
   }
@@ -96,7 +164,9 @@ async function selectTargetWallets(
   const rows = await tx
     .select(selectFields)
     .from(WalletTable)
-    .where(eq(WalletTable.type, params.walletType))
+    .where(and(...conditions))
+    .orderBy(WalletTable.id)
+    .limit(limit)
     .for("update", { of: WalletTable });
   return rows as Wallet[];
 }
@@ -116,7 +186,6 @@ function classifyWallets(
 
     if (changeMethod === "SET") {
       nextBalance = amount;
-      // locked_balance が新しい balance を超える場合は調整
       if (nextLockedBalance > nextBalance) {
         nextLockedBalance = nextBalance;
       }
@@ -131,7 +200,7 @@ function classifyWallets(
       nextBalance -= amount;
     }
 
-    // 変更がないウォレットはスキップ（SET で同じ値の場合等）
+    // 変更がないウォレットはスキップ
     if (nextBalance === w.balance && nextLockedBalance === w.locked_balance) {
       skipped.push(w);
       continue;
@@ -153,15 +222,12 @@ async function executeBalanceUpdate(
   const walletIds = wallets.map((w) => w.id);
 
   if (changeMethod === "SET") {
-    // SET: locked_balance も調整が必要なためCASE文を使用
-    const lockedBalanceCases = wallets.map(
-      (w) => sql`WHEN ${WalletTable.id} = ${w.id} THEN ${w.nextLockedBalance}`,
-    );
+    // LEAST で locked_balance を新 balance 以下に抑える（CASE WHEN 不要）
     await tx
       .update(WalletTable)
       .set({
         balance: amount,
-        locked_balance: sql`CASE ${sql.join(lockedBalanceCases, sql` `)} ELSE ${WalletTable.locked_balance} END`,
+        locked_balance: sql`LEAST(${WalletTable.locked_balance}, ${amount})`,
         updatedAt: new Date(),
       })
       .where(inArray(WalletTable.id, walletIds));
