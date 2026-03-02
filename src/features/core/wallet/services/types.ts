@@ -84,3 +84,27 @@ export type TotalBalancesByTypeOptions = {
   /** 指定したロールのユーザーのみ集計 */
   role?: string;
 };
+
+/** bulkAdjustByType のパラメータ */
+export type BulkAdjustByTypeParams = {
+  walletType: WalletTypeValue;
+  changeMethod: WalletHistoryChangeMethodValue;
+  amount: number;
+  sourceType: WalletHistorySourceTypeValue;
+  requestBatchId?: string | null;
+  reason?: string | null;
+  reasonCategory?: ReasonCategory;
+  meta?: WalletHistoryMetaInput;
+  /** 指定したロールのユーザーのみ対象 */
+  role?: string;
+};
+
+/** bulkAdjustByType の結果 */
+export type BulkAdjustByTypeResult = {
+  /** 変更されたウォレット数 */
+  affectedCount: number;
+  /** スキップされたウォレット数（DECREMENT時の残高不足等） */
+  skippedCount: number;
+  /** 履歴追跡用バッチID */
+  requestBatchId: string;
+};
