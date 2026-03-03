@@ -3,6 +3,7 @@
 "use client";
 
 import Modal from "@/components/Overlays/Modal";
+import { Button } from "@/components/Form/Button/Button";
 import {
   RateLimitWarningContent,
   RATE_LIMIT_WARNING_TITLE,
@@ -30,6 +31,13 @@ export function RateLimitWarningModal({
     >
       <div className="px-6 pb-6">
         <RateLimitWarningContent />
+        <Button
+          variant="outline"
+          className="mt-4 w-full justify-center"
+          onClick={() => onOpenChange(false)}
+        >
+          閉じる
+        </Button>
       </div>
     </Modal>
   );

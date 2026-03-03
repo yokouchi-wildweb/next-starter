@@ -44,7 +44,7 @@ export async function checkRateLimit(
     const newCount = record.count + 1;
 
     // 制限超過
-    if (newCount > config.maxRequests) {
+    if (newCount >= config.maxRequests) {
       return {
         allowed: false,
         remaining: 0,
