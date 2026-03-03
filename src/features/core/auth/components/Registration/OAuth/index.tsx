@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AppForm } from "@/components/Form/AppForm";
@@ -16,7 +16,7 @@ import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration"
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import type { RegistrationInput } from "@/features/core/auth/hooks/useRegistration";
-import { err, HttpError } from "@/lib/errors";
+import { err, HttpError, isHttpError } from "@/lib/errors";
 import { auth } from "@/lib/firebase/client/app";
 import {
   getRecaptchaToken,
@@ -37,6 +37,7 @@ import {
 } from "@/features/core/userProfile/components/common";
 import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
+import { RateLimitWarningModal } from "../RateLimitWarningModal";
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
 export function OAuthRegistrationForm() {
@@ -48,6 +49,7 @@ export function OAuthRegistrationForm() {
   });
   const { register, isLoading } = useRegistration();
   const { refreshSession } = useAuthSession();
+  const [showRateLimitWarning, setShowRateLimitWarning] = useState(false);
 
   // v2チャレンジの状態管理
   const {
@@ -92,6 +94,10 @@ export function OAuthRegistrationForm() {
           guardedPush("/signup/complete");
         })
         .catch((error) => {
+          if (isHttpError(error) && error.status === 429) {
+            setShowRateLimitWarning(true);
+            return;
+          }
           const message = err(error, "本登録の処理に失敗しました");
           form.setError("root", { type: "server", message });
         });
@@ -162,6 +168,11 @@ export function OAuthRegistrationForm() {
             };
           }
           handleV2ChallengeRequired(error);
+          return;
+        }
+        // レートリミット発動時
+        if (isHttpError(error) && error.status === 429) {
+          setShowRateLimitWarning(true);
           return;
         }
         const message = err(error, "本登録の処理に失敗しました");
@@ -284,6 +295,12 @@ export function OAuthRegistrationForm() {
             siteKey={challengeState.siteKey}
           />
         )}
+
+        {/* レートリミット警告モーダル */}
+        <RateLimitWarningModal
+          open={showRateLimitWarning}
+          onOpenChange={setShowRateLimitWarning}
+        />
     </AppForm>
   );
 }
