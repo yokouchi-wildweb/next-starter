@@ -107,6 +107,9 @@ export default function TablesDemoPage() {
   const [lastEditSummary, setLastEditSummary] = useState("サンプルを編集するとログが更新されます");
   const [isPending, startTransition] = useTransition();
   const [dataTableSort, setDataTableSort] = useState<SortState | undefined>(undefined);
+  const [sortDemoSort, setSortDemoSort] = useState<SortState | undefined>(undefined);
+  const [sortDemoRstSort, setSortDemoRstSort] = useState<SortState | undefined>(undefined);
+  const [sortDemoEditSort, setSortDemoEditSort] = useState<SortState | undefined>(undefined);
   const { data: sampleList = [], isLoading: isSampleLoading } = useSampleList();
 
   const normalizedSampleList = useMemo(
@@ -364,6 +367,155 @@ export default function TablesDemoPage() {
     });
   }, [dataTableSort]);
 
+  // ============================================================
+  // カラムソートデモ用
+  // ============================================================
+  const sortDemoColumns = useMemo<DataTableColumn<DataTableRecord>[]>(
+    () => [
+      {
+        header: "ID",
+        sortKey: "id",
+        render: (record) => (
+          <Span size="sm" className="font-mono text-muted-foreground">
+            #{record.id.toString().padStart(2, "0")}
+          </Span>
+        ),
+      },
+      {
+        header: "プロジェクト名",
+        sortKey: "project",
+        render: (record) => (
+          <Span weight="medium">{record.project}</Span>
+        ),
+      },
+      {
+        header: "担当者",
+        sortKey: "owner",
+        render: (record) => (
+          <Span size="sm">{record.owner}</Span>
+        ),
+      },
+      {
+        header: "ステータス",
+        render: (record) => (
+          <Span size="sm" className="text-primary font-medium">
+            {record.status}
+          </Span>
+        ),
+      },
+      {
+        header: "進捗率",
+        sortKey: "progress",
+        align: "right",
+        render: (record) => (
+          <Span size="sm" className="font-mono">
+            {record.progress}%
+          </Span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const sortDemoRstColumns = useMemo<DataTableColumn<Sample>[]>(
+    () => [
+      {
+        header: "名前",
+        sortKey: "name",
+        render: (record) => (
+          <Span weight="medium">{record.name}</Span>
+        ),
+      },
+      {
+        header: "数量",
+        sortKey: "number",
+        align: "right",
+        render: (record) => (
+          <Span size="sm" className="font-mono">
+            {record.number ?? "-"}
+          </Span>
+        ),
+      },
+      {
+        header: "カテゴリ",
+        sortKey: "select",
+        render: (record) => (
+          <Span size="sm">{record.select ?? "未分類"}</Span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const sortDemoEditColumns = useMemo<EditableGridColumn<Sample>[]>(
+    () => [
+      {
+        field: "name",
+        header: "名前",
+        editorType: "readonly",
+        sortable: true,
+      },
+      {
+        field: "number",
+        header: "数量",
+        editorType: "number",
+        sortable: true,
+      },
+      {
+        field: "select",
+        header: "カテゴリ",
+        editorType: "select",
+        options: SAMPLE_SELECT_OPTIONS,
+        sortable: true,
+      },
+      {
+        field: "description",
+        header: "説明文",
+        editorType: "text",
+      },
+    ],
+    [],
+  );
+
+  const sortDemoSorted = useMemo(() => {
+    if (!sortDemoSort) return DATA_TABLE_DEMO_ROWS;
+    const { field, direction } = sortDemoSort;
+    return [...DATA_TABLE_DEMO_ROWS].sort((a, b) => {
+      const aVal = a[field as keyof DataTableRecord];
+      const bVal = b[field as keyof DataTableRecord];
+      const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      return direction === "asc" ? cmp : -cmp;
+    });
+  }, [sortDemoSort]);
+
+  const sortDemoRstSorted = useMemo(() => {
+    if (!sortDemoRstSort) return sampleList;
+    const { field, direction } = sortDemoRstSort;
+    return [...sampleList].sort((a, b) => {
+      const aVal = (a as Record<string, unknown>)[field];
+      const bVal = (b as Record<string, unknown>)[field];
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      return direction === "asc" ? cmp : -cmp;
+    });
+  }, [sortDemoRstSort, sampleList]);
+
+  const sortDemoEditSorted = useMemo(() => {
+    if (!sortDemoEditSort) return normalizedSampleList;
+    const { field, direction } = sortDemoEditSort;
+    return [...normalizedSampleList].sort((a, b) => {
+      const aVal = (a as Record<string, unknown>)[field];
+      const bVal = (b as Record<string, unknown>)[field];
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      return direction === "asc" ? cmp : -cmp;
+    });
+  }, [sortDemoEditSort, normalizedSampleList]);
+
   const editableColumnHeaderMap = useMemo(
     () =>
       editableColumns.reduce<Record<string, React.ReactNode>>((acc, column) => {
@@ -608,6 +760,83 @@ export default function TablesDemoPage() {
             onSortChange={setDataTableSort}
           />
         </Block>
+      </Section>
+      <Section>
+        <Stack space={8}>
+          <Block className="flex flex-col gap-2">
+            <SecTitle size="xl" className="font-semibold">
+              カラムソートデモ
+            </SecTitle>
+            <Para tone="muted" size="sm">
+              ヘッダーをクリックすると昇順→降順の順でソートが切り替わります。sortKey を指定していないカラム（ステータス、説明文）はソート不可です。
+            </Para>
+          </Block>
+
+          <Block className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
+            <Block className="flex flex-col gap-2">
+              <SecTitle size="lg" className="font-semibold">
+                DataTable
+              </SecTitle>
+              <Para tone="muted" size="xs">
+                {sortDemoSort
+                  ? `ソート中: ${sortDemoSort.field} (${sortDemoSort.direction})`
+                  : "ソートなし（ヘッダーをクリック）"}
+              </Para>
+            </Block>
+            <DataTable
+              items={sortDemoSorted}
+              columns={sortDemoColumns}
+              getKey={(record) => record.id}
+              sort={sortDemoSort}
+              onSortChange={setSortDemoSort}
+              maxHeight="300px"
+            />
+          </Block>
+
+          <Block className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
+            <Block className="flex flex-col gap-2">
+              <SecTitle size="lg" className="font-semibold">
+                RecordSelectionTable
+              </SecTitle>
+              <Para tone="muted" size="xs">
+                {sortDemoRstSort
+                  ? `ソート中: ${sortDemoRstSort.field} (${sortDemoRstSort.direction})`
+                  : "ソートなし（ヘッダーをクリック）"}
+              </Para>
+            </Block>
+            <RecordSelectionTable
+              items={sortDemoRstSorted}
+              columns={sortDemoRstColumns}
+              getKey={(record) => record.id}
+              selectionBehavior="checkbox"
+              sort={sortDemoRstSort}
+              onSortChange={setSortDemoRstSort}
+              maxHeight="300px"
+            />
+          </Block>
+
+          <Block className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
+            <Block className="flex flex-col gap-2">
+              <SecTitle size="lg" className="font-semibold">
+                EditableGridTable
+              </SecTitle>
+              <Para tone="muted" size="xs">
+                {sortDemoEditSort
+                  ? `ソート中: ${sortDemoEditSort.field} (${sortDemoEditSort.direction})`
+                  : "ソートなし（ヘッダーをクリック）"}
+              </Para>
+            </Block>
+            <EditableGridTable
+              items={sortDemoEditSorted}
+              columns={sortDemoEditColumns}
+              getKey={(row) => row.id}
+              sort={sortDemoEditSort}
+              onSortChange={setSortDemoEditSort}
+              headerIconMode="both"
+              maxHeight="300px"
+            />
+          </Block>
+        </Stack>
       </Section>
     </Main>
   );
