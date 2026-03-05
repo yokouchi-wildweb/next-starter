@@ -91,6 +91,7 @@ export type {
 // ユーティリティ
 // ============================================================
 export { sortItems } from "./utils/sortItems";
+export { serializeSortState, parseSortState, toOrderBySpec } from "./utils/sortState";
 
 // SortableList 型
 export type {
