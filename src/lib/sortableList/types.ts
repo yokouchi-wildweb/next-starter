@@ -1,11 +1,36 @@
-// src/lib/tableSuite/SortableList/types.ts
+// src/lib/sortableList/types.ts
 
-import type {
-  TableColumnAlignment,
-  TableStylingProps,
-  RowHeight,
-  PaddingSize,
-} from "../types";
+import type { TableColumnAlignment, RowHeight, PaddingSize } from "./variants";
+
+// ============================================================
+// 行クラス解決
+// ============================================================
+type TableRowClassContext = {
+  index: number;
+  selected?: boolean;
+};
+
+type RowClassNameResolver<T> =
+  | string
+  | ((item: T, context: TableRowClassContext) => string | undefined);
+
+export const resolveRowClassName = <T,>(
+  rowClassName: RowClassNameResolver<T> | undefined,
+  item: T,
+  context: TableRowClassContext,
+) => {
+  if (!rowClassName) {
+    return undefined;
+  }
+  if (typeof rowClassName === "function") {
+    return rowClassName(item, context) ?? undefined;
+  }
+  return rowClassName;
+};
+
+// ============================================================
+// SortableList 固有の型
+// ============================================================
 
 /**
  * ソート可能なアイテムの基本インターフェース
@@ -17,7 +42,6 @@ export type SortableItem = {
 
 /**
  * SortableList のカラム定義
- * DataTable と同様の方式だが、header は任意
  */
 export type SortableListColumn<T> = {
   /**
@@ -76,10 +100,19 @@ export type ReorderResult = {
 /**
  * SortableList コンポーネントの Props
  */
-export type SortableListProps<T extends SortableItem> = Omit<
-  TableStylingProps<T>,
-  "scrollContainerRef" | "bottomSentinelRef"
-> & {
+export type SortableListProps<T extends SortableItem> = {
+  /**
+   * テーブル全体のラッパー div に適用されるクラス名。
+   */
+  className?: string;
+  /**
+   * テーブルラッパーの最大高さ。CSSの長さ表現で指定する。未指定時は 70vh。
+   */
+  maxHeight?: string;
+  /**
+   * 行単位で適用するクラス名。関数を渡すと行ごとに計算できる。
+   */
+  rowClassName?: RowClassNameResolver<T>;
   /**
    * 表示するアイテムの配列
    */

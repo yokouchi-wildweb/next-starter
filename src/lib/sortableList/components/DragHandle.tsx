@@ -1,4 +1,4 @@
-// src/lib/tableSuite/SortableList/components/DragHandle.tsx
+// src/lib/sortableList/components/DragHandle.tsx
 
 "use client";
 

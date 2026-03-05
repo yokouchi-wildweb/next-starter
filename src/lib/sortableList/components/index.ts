@@ -1,4 +1,4 @@
-// src/lib/tableSuite/SortableList/components/index.ts
+// src/lib/sortableList/components/index.ts
 
 export { DragHandle } from "./DragHandle";
 export { SortableItem } from "./SortableItem";

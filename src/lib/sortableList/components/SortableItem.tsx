@@ -1,4 +1,4 @@
-// src/lib/tableSuite/SortableList/components/SortableItem.tsx
+// src/lib/sortableList/components/SortableItem.tsx
 
 "use client";
 
@@ -12,7 +12,7 @@ import {
   resolveColumnFlexAlignClass,
   ROW_HEIGHT_CLASS,
   resolvePaddingClass,
-} from "../../types";
+} from "../variants";
 
 /**
  * ソート可能な個別アイテムコンポーネント

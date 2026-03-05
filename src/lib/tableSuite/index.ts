@@ -10,7 +10,6 @@
 export { default as DataTable } from "./DataTable";
 export { default as RecordSelectionTable } from "./RecordSelectionTable";
 export { default as EditableGridTable } from "./EditableGridTable";
-export { default as SortableList } from "./SortableList";
 
 // ============================================================
 // 共通コンポーネント（shared/）
@@ -93,11 +92,3 @@ export type {
 export { sortItems } from "./utils/sortItems";
 export { serializeSortState, parseSortState, toOrderBySpec } from "./utils/sortState";
 
-// SortableList 型
-export type {
-  SortableItem as SortableItemType,
-  SortableListColumn,
-  SortableListProps,
-  ReorderResult,
-} from "./SortableList";
-export { DragHandle, SortableItem } from "./SortableList";

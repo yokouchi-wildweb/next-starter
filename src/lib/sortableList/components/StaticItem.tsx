@@ -1,4 +1,4 @@
-// src/lib/tableSuite/SortableList/components/StaticItem.tsx
+// src/lib/sortableList/components/StaticItem.tsx
 
 import { memo } from "react";
 import { cn } from "@/lib/cn";
@@ -13,7 +13,7 @@ import {
   resolvePaddingClass,
   type RowHeight,
   type PaddingSize,
-} from "../../types";
+} from "../variants";
 
 type StaticItemProps<T extends SortableItemType> = {
   item: T;

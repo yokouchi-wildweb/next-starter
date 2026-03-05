@@ -1,4 +1,4 @@
-// src/lib/tableSuite/SortableList/index.tsx
+// src/lib/sortableList/SortableList.tsx
 
 "use client";
 
@@ -30,7 +30,8 @@ import type {
   SortableListProps,
   ReorderResult,
 } from "./types";
-import { resolveRowClassName, type RowHeight } from "../types";
+import { resolveRowClassName } from "./types";
+import type { RowHeight } from "./variants";
 
 /**
  * @dnd-kit はサーバーとクライアントで異なる aria-describedby ID を生成するため、
@@ -301,6 +302,3 @@ export default function SortableList<T extends SortableItemType>({
     </div>
   );
 }
-
-export * from "./types";
-export { DragHandle, SortableItem, StaticItem } from "./components";
