@@ -79,7 +79,6 @@ export type {
   EditableGridHeaderIconMode,
   EditableGridCellChangeEvent,
   EditableGridSwitchToggleEvent,
-  EditableGridOrderRule,
   EditableGridTableProps,
 } from "./EditableGridTable";
 

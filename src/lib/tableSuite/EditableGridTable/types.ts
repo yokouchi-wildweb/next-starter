@@ -72,11 +72,6 @@ export type EditableGridSwitchToggleEvent<T> = {
   previousValue: boolean;
 };
 
-export type EditableGridOrderRule<T> = {
-  field: EditableGridColumn<T>["field"];
-  direction?: "asc" | "desc";
-};
-
 export type EditableGridTableProps<T> = TableStylingProps<T> &
   TableCellStyleProps & {
     /**
@@ -88,14 +83,6 @@ export type EditableGridTableProps<T> = TableStylingProps<T> &
     onCellChange?: (event: EditableGridCellChangeEvent<T>) => void;
     emptyValueFallback?: string;
     tableLayout?: "auto" | "fixed";
-    /**
-     * true の場合、order で指定された条件に基づいて rows を並び替えて表示する。
-     */
-    autoSort?: boolean;
-    /**
-     * autoSort 時に適用する並び替え条件。配列の先頭ほど優先順位が高い。
-     */
-    order?: EditableGridOrderRule<T>[];
     /**
      * ヘッダーへ表示するアイコンのモード。
      * - readonly: Readonly列のみ表示（デフォルト）

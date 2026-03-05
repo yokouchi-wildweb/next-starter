@@ -117,14 +117,19 @@ export default function TablesDemoPage() {
     [sampleList],
   );
 
-  const editableRows = useMemo(
-    () =>
-      normalizedSampleList.map((row) => ({
-        ...row,
-        ...(editableOverrides[row.id] ?? {}),
-      })),
-    [editableOverrides, normalizedSampleList],
-  );
+  const editableRows = useMemo(() => {
+    const merged = normalizedSampleList.map((row) => ({
+      ...row,
+      ...(editableOverrides[row.id] ?? {}),
+    }));
+    // ソート: number 降順 → id 昇順
+    return [...merged].sort((a, b) => {
+      const numA = a.number ?? 0;
+      const numB = b.number ?? 0;
+      if (numB !== numA) return numB - numA;
+      return Number(a.id) - Number(b.id);
+    });
+  }, [editableOverrides, normalizedSampleList]);
 
   const columns: DataTableColumn<Sample>[] = useMemo(
     () => [
@@ -525,11 +530,6 @@ export default function TablesDemoPage() {
               getKey={(row) => row.id}
               headerIconMode="both"
               onCellChange={handleEditableCellChange}
-              autoSort
-              order={[
-                { field: "number", direction: "desc" },
-                { field: "id", direction: "asc" },
-              ]}
               emptyValueFallback="-"
               tableLayout="fixed"
             />
