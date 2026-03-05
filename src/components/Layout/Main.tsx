@@ -82,7 +82,23 @@ export function Main({
   if (effectiveContainerType === "fullscreen") {
     return (
       <FullScreen layer={fullscreenLayer}>
-        <main data-component="Main" id={id} className={className} {...props}>
+        <main
+          data-component="Main"
+          id={id}
+          className={cn(
+            mainLayoutVariants({
+              appearance,
+              padding,
+              paddingBlock,
+              paddingInline,
+              margin,
+              marginBlock,
+              marginInline,
+            }),
+            className,
+          )}
+          {...props}
+        >
           {children}
         </main>
       </FullScreen>
