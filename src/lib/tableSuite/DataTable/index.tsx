@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableBody,
   TableRow,
-  TableHead,
+  SortableTableHead,
   TableCell,
   CellClickOverlay,
   getCellClickOverlayClassName,
@@ -18,6 +18,7 @@ import type {
   TableColumnAlignment,
   TableStylingProps,
   TableCellStyleProps,
+  ColumnSortProps,
   PaddingSize,
   CellAction,
 } from "../types";
@@ -36,6 +37,10 @@ export type DataTableColumn<T> = {
   render: (item: T) => React.ReactNode;
   align?: TableColumnAlignment;
   /**
+   * ソート可能にする場合のキー。指定するとヘッダーがクリック可能になる。
+   */
+  sortKey?: string;
+  /**
    * このカラムの水平パディングを上書き
    */
   paddingX?: PaddingSize;
@@ -53,7 +58,8 @@ export type DataTableColumn<T> = {
 export type RowCursor = "pointer" | "default" | "zoom-in" | "grab";
 
 export type DataTableProps<T> = TableStylingProps<T> &
-  TableCellStyleProps & {
+  TableCellStyleProps &
+  ColumnSortProps & {
     /**
      * Data rows to render. Optional to allow callers to omit until data is loaded
      * without causing runtime errors.
@@ -98,6 +104,8 @@ export default function DataTable<T>({
   cellPaddingX = "sm",
   cellPaddingY = "none",
   disableRowHover = false,
+  sort,
+  onSortChange,
 }: DataTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -122,9 +130,15 @@ export default function DataTable<T>({
         <TableHeader>
           <TableRow disableHover>
             {columns.map((col, idx) => (
-              <TableHead key={idx} className={resolveColumnTextAlignClass(col.align)}>
+              <SortableTableHead
+                key={idx}
+                sortKey={col.sortKey}
+                sort={sort}
+                onSortChange={onSortChange}
+                className={resolveColumnTextAlignClass(col.align)}
+              >
                 {col.header}
-              </TableHead>
+              </SortableTableHead>
             ))}
           </TableRow>
         </TableHeader>

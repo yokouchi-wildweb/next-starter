@@ -11,6 +11,7 @@ import {
   type EditableGridCellChangeEvent,
   type EditableGridColumn,
   type RecordSelectionTableProps,
+  type SortState,
 } from "@/lib/tableSuite";
 import { Button } from "@/components/Form/Button/Button";
 import { RadioGroupInput } from "@/components/Form/Input/Manual/RadioGroupInput";
@@ -105,6 +106,7 @@ export default function TablesDemoPage() {
   const [editableOverrides, setEditableOverrides] = useState<Record<string, Partial<Sample>>>({});
   const [lastEditSummary, setLastEditSummary] = useState("サンプルを編集するとログが更新されます");
   const [isPending, startTransition] = useTransition();
+  const [dataTableSort, setDataTableSort] = useState<SortState | undefined>(undefined);
   const { data: sampleList = [], isLoading: isSampleLoading } = useSampleList();
 
   const normalizedSampleList = useMemo(
@@ -266,6 +268,7 @@ export default function TablesDemoPage() {
     () => [
       {
         header: "ID",
+        sortKey: "id",
         render: (record) => (
           <Span size="sm" className="font-mono text-muted-foreground">
             #{record.id.toString().padStart(2, "0")}
@@ -274,6 +277,7 @@ export default function TablesDemoPage() {
       },
       {
         header: "プロジェクト名",
+        sortKey: "project",
         align: "left",
         render: (record) => (
           <Block className="flex flex-col gap-1">
@@ -317,6 +321,7 @@ export default function TablesDemoPage() {
       },
       {
         header: "ステータス",
+        sortKey: "status",
         render: (record) => (
           <Span size="sm" className="text-primary font-medium">
             {record.status}
@@ -325,6 +330,7 @@ export default function TablesDemoPage() {
       },
       {
         header: "進捗率",
+        sortKey: "progress",
         align: "right",
         render: (record) => (
           <Span size="sm" className="font-mono">
@@ -346,6 +352,17 @@ export default function TablesDemoPage() {
     ],
     [],
   );
+
+  const sortedDataTableRows = useMemo(() => {
+    if (!dataTableSort) return DATA_TABLE_DEMO_ROWS;
+    const { field, direction } = dataTableSort;
+    return [...DATA_TABLE_DEMO_ROWS].sort((a, b) => {
+      const aVal = a[field as keyof DataTableRecord];
+      const bVal = b[field as keyof DataTableRecord];
+      const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      return direction === "asc" ? cmp : -cmp;
+    });
+  }, [dataTableSort]);
 
   const editableColumnHeaderMap = useMemo(
     () =>
@@ -582,11 +599,13 @@ export default function TablesDemoPage() {
             ダミーレコードを 200px の固定最大高さで表示。「プロジェクト名」列にホバーするとクリック領域と詳細アイコンが表示され、クリックでポップオーバーが開きます。「進捗率」列はシンプルなアラート表示のデモです。
           </Para>
           <DataTable
-            items={DATA_TABLE_DEMO_ROWS}
+            items={sortedDataTableRows}
             columns={dataTableColumns}
             getKey={(record) => record.id}
             emptyValueFallback="-"
             maxHeight="200px"
+            sort={dataTableSort}
+            onSortChange={setDataTableSort}
           />
         </Block>
       </Section>

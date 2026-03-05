@@ -27,6 +27,7 @@ export {
   CellClickOverlay,
   type CellClickOverlayProps,
   getCellClickOverlayClassName,
+  SortableTableHead,
 } from "./shared";
 
 // ============================================================
@@ -47,6 +48,9 @@ export type {
   RowClassNameResolver,
   TableStylingProps,
   CellAction,
+  SortDirection,
+  SortState,
+  ColumnSortProps,
 } from "./types";
 export {
   ROW_HEIGHT_CLASS,
@@ -56,6 +60,7 @@ export {
   resolveColumnTextAlignClass,
   resolveColumnFlexAlignClass,
   resolveRowClassName,
+  resolveNextSort,
 } from "./types";
 
 // DataTable 型

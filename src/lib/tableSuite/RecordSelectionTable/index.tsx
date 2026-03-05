@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableBody,
   TableRow,
-  TableHead,
+  SortableTableHead,
   TableCell,
   CellClickOverlay,
   getCellClickOverlayClassName,
@@ -83,6 +83,8 @@ export default function RecordSelectionTable<T>({
   cellPaddingX = "sm",
   cellPaddingY = "none",
   disableRowHover = false,
+  sort,
+  onSortChange,
 }: RecordSelectionTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -168,9 +170,15 @@ export default function RecordSelectionTable<T>({
                 onRequestToggle={() => updateAllSelection(!isAllSelected)}
               />
               {columns.map((col, idx) => (
-                <TableHead key={idx} className={resolveColumnTextAlignClass(col.align)}>
+                <SortableTableHead
+                  key={idx}
+                  sortKey={col.sortKey}
+                  sort={sort}
+                  onSortChange={onSortChange}
+                  className={resolveColumnTextAlignClass(col.align)}
+                >
                   {col.header}
-                </TableHead>
+                </SortableTableHead>
               ))}
             </TableRow>
           </TableHeader>

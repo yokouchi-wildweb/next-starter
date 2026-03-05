@@ -12,7 +12,7 @@ import {
   Table,
   TableBody,
   TableHeader,
-  TableHead,
+  SortableTableHead,
   TableRow,
 } from "../shared";
 import { resolveColumnTextAlignClass, resolveRowClassName, ROW_HEIGHT_CLASS } from "../types";
@@ -43,6 +43,8 @@ export default function EditableGridTable<T>({
   scrollContainerRef,
   bottomSentinelRef,
   disableRowHover = false,
+  sort,
+  onSortChange,
 }: EditableGridTableProps<T>) {
   const keyedRows = React.useMemo<KeyedRow<T>[]>(
     () =>
@@ -109,16 +111,17 @@ export default function EditableGridTable<T>({
         <TableHeader>
           <TableRow disableHover>
             {columns.map((column) => (
-              <TableHead
+              <SortableTableHead
                 key={column.field}
+                sortKey={column.sortable ? column.field : undefined}
+                sort={sort}
+                onSortChange={onSortChange}
                 style={column.width ? { width: column.width } : undefined}
                 className={resolveColumnTextAlignClass(column.align)}
               >
-                <div className="flex items-center gap-1">
-                  <span>{column.header}</span>
-                  {renderHeaderIcon(column)}
-                </div>
-              </TableHead>
+                <span>{column.header}</span>
+                {renderHeaderIcon(column)}
+              </SortableTableHead>
             ))}
           </TableRow>
         </TableHeader>

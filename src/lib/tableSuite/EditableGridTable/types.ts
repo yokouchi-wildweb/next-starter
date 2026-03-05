@@ -5,6 +5,7 @@ import type {
   TableColumnAlignment,
   TableStylingProps,
   TableCellStyleProps,
+  ColumnSortProps,
   PaddingSize,
 } from "../types";
 import type { CellAction } from "../DataTable";
@@ -40,6 +41,10 @@ export type EditableGridColumn<T> = {
   onToggleRequest?: (event: EditableGridSwitchToggleEvent<T>) => boolean | Promise<boolean>;
   align?: TableColumnAlignment;
   /**
+   * ソート可能にするかどうか。true の場合、field をソートキーとしてヘッダーがクリック可能になる。
+   */
+  sortable?: boolean;
+  /**
    * このカラムの水平パディングを上書き
    */
   paddingX?: PaddingSize;
@@ -73,7 +78,8 @@ export type EditableGridSwitchToggleEvent<T> = {
 };
 
 export type EditableGridTableProps<T> = TableStylingProps<T> &
-  TableCellStyleProps & {
+  TableCellStyleProps &
+  ColumnSortProps & {
     /**
      * DataTable/RecordSelectionTable と同じ API を採用。未指定時は空配列扱い。
      */

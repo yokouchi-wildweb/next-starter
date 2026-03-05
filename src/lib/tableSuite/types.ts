@@ -91,6 +91,36 @@ export const resolveRowClassName = <T,>(
 };
 
 // ============================================================
+// カラムソート
+// ============================================================
+export type SortDirection = "asc" | "desc";
+
+export type SortState = {
+  /** ソート対象のカラムキー */
+  field: string;
+  /** ソート方向 */
+  direction: SortDirection;
+};
+
+export type ColumnSortProps = {
+  /** 現在のソート状態 */
+  sort?: SortState;
+  /** ヘッダークリック時のコールバック */
+  onSortChange?: (sort: SortState) => void;
+};
+
+/**
+ * ヘッダークリック時の次のソート状態を算出する。
+ * 同じフィールド → 方向を反転、別フィールド → asc で開始。
+ */
+export const resolveNextSort = (current: SortState | undefined, field: string): SortState => {
+  if (current?.field === field && current.direction === "asc") {
+    return { field, direction: "desc" };
+  }
+  return { field, direction: "asc" };
+};
+
+// ============================================================
 // セルアクション
 // ============================================================
 
