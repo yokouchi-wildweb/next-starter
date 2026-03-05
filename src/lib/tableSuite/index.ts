@@ -87,6 +87,11 @@ export type {
   EditableGridTableProps,
 } from "./EditableGridTable";
 
+// ============================================================
+// ユーティリティ
+// ============================================================
+export { sortItems } from "./utils/sortItems";
+
 // SortableList 型
 export type {
   SortableItem as SortableItemType,

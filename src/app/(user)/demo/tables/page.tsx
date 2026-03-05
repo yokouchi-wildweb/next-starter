@@ -12,6 +12,7 @@ import {
   type EditableGridColumn,
   type RecordSelectionTableProps,
   type SortState,
+  sortItems,
 } from "@/lib/tableSuite";
 import { Button } from "@/components/Form/Button/Button";
 import { RadioGroupInput } from "@/components/Form/Input/Manual/RadioGroupInput";
@@ -356,16 +357,7 @@ export default function TablesDemoPage() {
     [],
   );
 
-  const sortedDataTableRows = useMemo(() => {
-    if (!dataTableSort) return DATA_TABLE_DEMO_ROWS;
-    const { field, direction } = dataTableSort;
-    return [...DATA_TABLE_DEMO_ROWS].sort((a, b) => {
-      const aVal = a[field as keyof DataTableRecord];
-      const bVal = b[field as keyof DataTableRecord];
-      const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-      return direction === "asc" ? cmp : -cmp;
-    });
-  }, [dataTableSort]);
+  const sortedDataTableRows = useMemo(() => sortItems(DATA_TABLE_DEMO_ROWS, dataTableSort), [dataTableSort]);
 
   // ============================================================
   // カラムソートデモ用
@@ -477,44 +469,9 @@ export default function TablesDemoPage() {
     [],
   );
 
-  const sortDemoSorted = useMemo(() => {
-    if (!sortDemoSort) return DATA_TABLE_DEMO_ROWS;
-    const { field, direction } = sortDemoSort;
-    return [...DATA_TABLE_DEMO_ROWS].sort((a, b) => {
-      const aVal = a[field as keyof DataTableRecord];
-      const bVal = b[field as keyof DataTableRecord];
-      const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-      return direction === "asc" ? cmp : -cmp;
-    });
-  }, [sortDemoSort]);
-
-  const sortDemoRstSorted = useMemo(() => {
-    if (!sortDemoRstSort) return sampleList;
-    const { field, direction } = sortDemoRstSort;
-    return [...sampleList].sort((a, b) => {
-      const aVal = (a as Record<string, unknown>)[field];
-      const bVal = (b as Record<string, unknown>)[field];
-      if (aVal == null && bVal == null) return 0;
-      if (aVal == null) return 1;
-      if (bVal == null) return -1;
-      const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-      return direction === "asc" ? cmp : -cmp;
-    });
-  }, [sortDemoRstSort, sampleList]);
-
-  const sortDemoEditSorted = useMemo(() => {
-    if (!sortDemoEditSort) return normalizedSampleList;
-    const { field, direction } = sortDemoEditSort;
-    return [...normalizedSampleList].sort((a, b) => {
-      const aVal = (a as Record<string, unknown>)[field];
-      const bVal = (b as Record<string, unknown>)[field];
-      if (aVal == null && bVal == null) return 0;
-      if (aVal == null) return 1;
-      if (bVal == null) return -1;
-      const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-      return direction === "asc" ? cmp : -cmp;
-    });
-  }, [sortDemoEditSort, normalizedSampleList]);
+  const sortDemoSorted = useMemo(() => sortItems(DATA_TABLE_DEMO_ROWS, sortDemoSort), [sortDemoSort]);
+  const sortDemoRstSorted = useMemo(() => sortItems(sampleList, sortDemoRstSort), [sortDemoRstSort, sampleList]);
+  const sortDemoEditSorted = useMemo(() => sortItems(normalizedSampleList, sortDemoEditSort), [sortDemoEditSort, normalizedSampleList]);
 
   const editableColumnHeaderMap = useMemo(
     () =>
