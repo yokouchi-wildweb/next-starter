@@ -34,6 +34,12 @@ type BuildDomainColumnsParams<T> = {
   actionColumn?: DataTableColumn<T>;
   truncateLength?: number;
   presenters?: Record<string, FieldPresenter<T>>;
+  /**
+   * ソート可能にするフィールド名の配列。
+   * 指定されたフィールドの DataTableColumn に sortKey が自動設定される。
+   * true を渡すと tableFields の全フィールドをソート可能にする（画像・配列フィールドは自動除外）。
+   */
+  sortableFields?: string[] | true;
 };
 
 function buildLabelMap(config: DomainJsonConfig): {
@@ -120,17 +126,44 @@ function renderValue({
   return String(value ?? "");
 }
 
+const UNSORTABLE_INPUT_TYPES = new Set(["mediaUploader", "fileUploader"]);
+const UNSORTABLE_FIELD_TYPES = new Set(["array"]);
+
+function resolveSortKey(
+  field: string,
+  sortableFields: string[] | true | undefined,
+  inputType: string | undefined,
+  fieldType: string | undefined,
+): string | undefined {
+  if (!sortableFields) return undefined;
+
+  if (sortableFields === true) {
+    if (inputType && UNSORTABLE_INPUT_TYPES.has(inputType)) return undefined;
+    if (fieldType && UNSORTABLE_FIELD_TYPES.has(fieldType)) return undefined;
+    return field;
+  }
+
+  return sortableFields.includes(field) ? field : undefined;
+}
+
 export function buildDomainColumns<T>({
   config,
   actionColumn,
   truncateLength = 30,
   presenters,
+  sortableFields,
 }: BuildDomainColumnsParams<T>): DataTableColumn<T>[] {
   const tableFields = Array.isArray(config.tableFields) ? (config.tableFields as string[]) : [];
   const { labelMap, inputMap, optionLabelMap } = buildLabelMap(config);
 
+  const fieldTypeMap: Record<string, string> = {};
+  (config.fields ?? []).forEach(({ name, fieldType }) => {
+    if (fieldType) fieldTypeMap[name] = fieldType;
+  });
+
   const columns = tableFields.map<DataTableColumn<T>>((field) => ({
     header: labelMap[field] ?? field,
+    sortKey: resolveSortKey(field, sortableFields, inputMap[field], fieldTypeMap[field]),
     render: (item: T) => {
       const record = item as Record<string, unknown>;
       const value = record[field];
