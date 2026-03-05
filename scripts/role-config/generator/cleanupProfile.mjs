@@ -85,6 +85,7 @@ function cleanupProfileTableRegistry(roleId) {
   const filePath = path.join(ROOT_DIR, "src/registry/profileTableRegistry.ts");
 
   const patterns = [
+    `export * from "@/features/core/userProfile/generated/${roleId}/drizzle"`,
     `export * from "@/features/core/userProfile/generated/${roleId}"`,
   ];
 

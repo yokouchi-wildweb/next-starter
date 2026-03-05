@@ -94,6 +94,7 @@ export function cleanupRole(roleId, options = {}) {
       if (results.profile.profilesIndex) log("  ✓ profiles/index.ts を更新");
       if (results.profile.profileBaseRegistry) log("  ✓ profileBaseRegistry.ts を更新");
       if (results.profile.profileTableRegistry) log("  ✓ profileTableRegistry.ts を更新");
+      if (results.profile.profileSchemaRegistry) log("  ✓ profileSchemaRegistry.ts を更新");
       if (results.profile.generatedFolder) log("  ✓ generated/ フォルダを削除");
     }
   }

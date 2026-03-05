@@ -19,7 +19,10 @@ function updateProfileTables(roleConfig) {
   let content = fs.readFileSync(filePath, "utf-8");
 
   const roleId = roleConfig.id;
-  const exportLine = `export * from "@/features/core/userProfile/generated/${roleId}";`;
+  const exportLines = [
+    `export * from "@/features/core/userProfile/generated/${roleId}/drizzle";`,
+    `export * from "@/features/core/userProfile/generated/${roleId}";`,
+  ];
 
   // アンカーコメント間に追加
   const anchorStart = "// === AUTO-GENERATED EXPORTS START ===";
@@ -39,7 +42,7 @@ function updateProfileTables(roleConfig) {
   );
 
   // 新しいエクスポートを追加
-  const newExports = existingExports.trimEnd() + "\n" + exportLine + "\n";
+  const newExports = existingExports.trimEnd() + "\n" + exportLines.join("\n") + "\n";
 
   content =
     content.slice(0, startIndex + anchorStart.length) +
