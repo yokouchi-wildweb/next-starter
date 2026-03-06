@@ -27,6 +27,10 @@ export const tabletButtonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
       },
       size: {
+        // 48px - 補助的な操作
+        xxs: "h-12 rounded-lg gap-1.5 px-8 min-w-24 text-sm",
+        // 56px - サブアクション
+        xs: "h-14 rounded-lg gap-2 px-10 min-w-26 text-base",
         // 64px - コンパクトな操作
         sm: "h-16 rounded-lg gap-2 px-12 min-w-28 text-base",
         // 72px - 標準
