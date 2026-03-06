@@ -14,3 +14,7 @@ export type { RoundedButtonProps } from "./RoundedButton";
 
 export { BookmarkTag } from "./BookmarkTag";
 export type { BookmarkTagProps } from "./BookmarkTag";
+
+export { TabletButton, tabletButtonVariants } from "./TabletButton";
+export type { TabletButtonProps } from "./TabletButton";
+export type { TabletButtonStyleProps } from "./tablet-button-variants";
