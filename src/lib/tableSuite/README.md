@@ -9,7 +9,6 @@
 | DataTable | 読み取り専用の一覧表示 |
 | RecordSelectionTable | 行選択 + 一括操作 |
 | EditableGridTable | インライン編集 |
-| SortableList | ドラッグ&ドロップ並び替え（仮想スクロール対応） |
 
 ## 基本的な使い方
 
@@ -19,8 +18,8 @@
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 
 const columns: DataTableColumn<Item>[] = [
-  { header: "名前", render: (item) => item.name },
-  { header: "数量", render: (item) => item.count, align: "right" },
+  { header: "名前", render: (item) => item.name, width: "40%" },
+  { header: "数量", render: (item) => item.count, align: "right", width: "120px" },
 ];
 
 <DataTable items={items} columns={columns} getKey={(item) => item.id} />
@@ -67,25 +66,6 @@ const columns: EditableGridColumn<Item>[] = [
 ```
 
 editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `datetime` | `readonly` | `switch` | `action`
-
-### SortableList
-
-ドラッグ&ドロップで並び替え可能なリスト。`@tanstack/react-virtual` による仮想スクロール対応。
-
-```tsx
-import { SortableList } from "@/lib/tableSuite";
-
-<SortableList
-  items={items}  // { id: string } を含むオブジェクトの配列
-  columns={[
-    { render: (item) => item.title, width: "flex-1" },
-    { render: (item) => <Badge>{item.status}</Badge>, width: "w-24" },
-  ]}
-  onReorder={({ itemId, afterItemId }) => {
-    // サーバーに並び替えリクエストを送信
-  }}
-/>
-```
 
 ## カラムソート
 
@@ -214,6 +194,15 @@ const columns = buildDomainColumns<Sample>({
 | `cellPaddingY` | `PaddingSize` | `"none"` | セルの垂直パディング |
 | `disableRowHover` | `boolean` | `false` | 行ホバー時の背景色変更を無効化 |
 
+### カラム幅
+
+全テーブル共通で、カラム定義に `width?: string` を指定できる。CSS の width 値（`"200px"`, `"30%"`, `"auto"` など）をヘッダー（th）の `style` に適用する。
+
+```tsx
+{ header: "名前", render: (item) => item.name, width: "40%" }
+{ header: "操作", render: (item) => <Button />, width: "80px" }
+```
+
 ### CellAction（セルクリックオーバーレイ）
 
 DataTable / RecordSelectionTable のカラムに `cellAction` を設定すると、ホバー時にクリック領域とインジケーターが表示される。
@@ -254,7 +243,6 @@ tableSuite/
   DataTable/            # 読み取り専用テーブル
   RecordSelectionTable/ # 行選択テーブル
   EditableGridTable/    # インライン編集テーブル
-  SortableList/         # ドラッグ&ドロップリスト
 ```
 
 ## デモ

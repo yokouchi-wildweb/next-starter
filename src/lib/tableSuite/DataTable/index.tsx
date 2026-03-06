@@ -49,6 +49,11 @@ export type DataTableColumn<T> = {
    */
   paddingY?: PaddingSize;
   /**
+   * カラムの幅。CSS の width 値で指定する（例: "200px", "30%", "auto"）。
+   * ヘッダー（th）に適用され、テーブルの列幅として反映される。
+   */
+  width?: string;
+  /**
    * セルにクリック可能なオーバーレイを追加する。
    * ホバー時にクリック領域とインジケーターが表示される。
    */
@@ -135,6 +140,7 @@ export default function DataTable<T>({
                 sortKey={col.sortKey}
                 sort={sort}
                 onSortChange={onSortChange}
+                style={col.width ? { width: col.width } : undefined}
                 className={resolveColumnTextAlignClass(col.align)}
               >
                 {col.header}

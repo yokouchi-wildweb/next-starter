@@ -175,6 +175,7 @@ export default function RecordSelectionTable<T>({
                   sortKey={col.sortKey}
                   sort={sort}
                   onSortChange={onSortChange}
+                  style={col.width ? { width: col.width } : undefined}
                   className={resolveColumnTextAlignClass(col.align)}
                 >
                   {col.header}
