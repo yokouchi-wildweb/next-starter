@@ -93,11 +93,13 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
     if (event && !event.isTrusted) return;
     const el = localRef.current;
     if (el && typeof (el as any).showPicker === "function") {
-      try {
-        (el as any).showPicker();
-      } catch {
-        // showPicker はユーザー操作でないと失敗するため無視
-      }
+      requestAnimationFrame(() => {
+        try {
+          (el as any).showPicker();
+        } catch {
+          // showPicker はユーザー操作でないと失敗するため無視
+        }
+      });
     }
   }, []);
 

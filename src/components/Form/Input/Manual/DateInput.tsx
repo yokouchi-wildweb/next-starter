@@ -74,11 +74,13 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
     if (event && !event.isTrusted) return;
     const el = localRef.current;
     if (el && typeof (el as any).showPicker === "function") {
-      try {
-        (el as any).showPicker();
-      } catch {
-        // showPicker はユーザー操作でないと失敗するため握りつぶす
-      }
+      requestAnimationFrame(() => {
+        try {
+          (el as any).showPicker();
+        } catch {
+          // showPicker はユーザー操作でないと失敗するため握りつぶす
+        }
+      });
     }
   }, []);
 
