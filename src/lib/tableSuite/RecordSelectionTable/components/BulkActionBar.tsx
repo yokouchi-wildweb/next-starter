@@ -19,10 +19,18 @@ export type BulkActionSelection<T> = {
 
 export type BulkActionBarSpacing = "sm" | "md" | "lg";
 
-const SPACING_CLASSES: Record<BulkActionBarSpacing, string> = {
+export type BulkActionBarPosition = "top" | "bottom" | "both";
+
+const SPACING_MB: Record<BulkActionBarSpacing, string> = {
   sm: "mb-1",
   md: "mb-2",
   lg: "mb-3",
+};
+
+const SPACING_MT: Record<BulkActionBarSpacing, string> = {
+  sm: "mt-1",
+  md: "mt-2",
+  lg: "mt-3",
 };
 
 type BulkActionBarProps<T> = {
@@ -30,6 +38,8 @@ type BulkActionBarProps<T> = {
   bulkActions: (selection: BulkActionSelection<T>) => React.ReactNode;
   /** テーブルとの余白 @default "md" */
   spacing?: BulkActionBarSpacing;
+  /** テーブルの上か下か @default "top" */
+  placement?: "top" | "bottom";
   /** 常に表示するかどうか @default false */
   alwaysVisible?: boolean;
   /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
@@ -40,12 +50,13 @@ export function BulkActionBar<T>({
   selection,
   bulkActions,
   spacing = "md",
+  placement = "top",
   alwaysVisible = false,
   emptyMessage = "行を選択して一括処理を実行",
 }: BulkActionBarProps<T>) {
   const hasSelection = selection.count > 0;
   const isVisible = alwaysVisible || hasSelection;
-  const spacingClass = SPACING_CLASSES[spacing];
+  const spacingClass = placement === "top" ? SPACING_MB[spacing] : SPACING_MT[spacing];
 
   return (
     <div

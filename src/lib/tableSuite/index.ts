@@ -74,6 +74,7 @@ export type {
   RecordSelectionTableProps,
   BulkActionSelection,
   BulkActionBarSpacing,
+  BulkActionBarPosition,
 } from "./RecordSelectionTable";
 
 // EditableGridTable 型

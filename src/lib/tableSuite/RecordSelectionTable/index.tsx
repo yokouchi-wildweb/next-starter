@@ -23,12 +23,12 @@ import {
   ROW_HEIGHT_CLASS,
   resolvePaddingClass,
 } from "../types";
-import { BulkActionBar, type BulkActionSelection, type BulkActionBarSpacing } from "./components/BulkActionBar";
+import { BulkActionBar, type BulkActionSelection, type BulkActionBarSpacing, type BulkActionBarPosition } from "./components/BulkActionBar";
 import { SelectionCell } from "./components/SelectionCell";
 import { SelectionHeaderCell } from "./components/SelectionHeaderCell";
 import { useRecordSelectionState } from "./hooks/useRecordSelectionState";
 
-export type { BulkActionSelection, BulkActionBarSpacing } from "./components/BulkActionBar";
+export type { BulkActionSelection, BulkActionBarSpacing, BulkActionBarPosition } from "./components/BulkActionBar";
 
 type SelectionBehavior = "row" | "checkbox";
 
@@ -48,6 +48,8 @@ export type RecordSelectionTableProps<T> = DataTableProps<T> & {
   bulkActions?: (selection: BulkActionSelection<T>) => React.ReactNode;
   /** 一括操作バーとテーブルの余白 @default "md" */
   bulkActionsSpacing?: BulkActionBarSpacing;
+  /** 一括操作バーの表示位置 @default "top" */
+  bulkActionsPosition?: BulkActionBarPosition;
   /** 一括操作バーを常に表示するかどうか @default false */
   bulkActionsAlwaysVisible?: boolean;
   /** 0件選択時のメッセージ @default "行を選択して一括処理を実行" */
@@ -77,6 +79,7 @@ export default function RecordSelectionTable<T>({
   scrollContainerRef,
   bulkActions,
   bulkActionsSpacing,
+  bulkActionsPosition = "top",
   bulkActionsAlwaysVisible,
   bulkActionsEmptyMessage,
   rowHeight = "md",
@@ -144,11 +147,12 @@ export default function RecordSelectionTable<T>({
 
   return (
     <>
-      {bulkActions && (
+      {bulkActions && (bulkActionsPosition === "top" || bulkActionsPosition === "both") && (
         <BulkActionBar
           selection={bulkActionSelection}
           bulkActions={bulkActions}
           spacing={bulkActionsSpacing}
+          placement="top"
           alwaysVisible={bulkActionsAlwaysVisible}
           emptyMessage={bulkActionsEmptyMessage}
         />
@@ -271,6 +275,16 @@ export default function RecordSelectionTable<T>({
           <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
         ) : null}
       </div>
+      {bulkActions && (bulkActionsPosition === "bottom" || bulkActionsPosition === "both") && (
+        <BulkActionBar
+          selection={bulkActionSelection}
+          bulkActions={bulkActions}
+          spacing={bulkActionsSpacing}
+          placement="bottom"
+          alwaysVisible={bulkActionsAlwaysVisible}
+          emptyMessage={bulkActionsEmptyMessage}
+        />
+      )}
     </>
   );
 }
