@@ -28,13 +28,13 @@ export const tabletButtonVariants = cva(
       },
       size: {
         // 64px - コンパクトな操作
-        sm: "h-16 rounded-lg gap-2 px-6 min-w-28 text-base",
+        sm: "h-16 rounded-lg gap-2 px-12 min-w-28 text-base",
         // 72px - 標準
-        md: "h-18 rounded-lg gap-2 px-8 min-w-32 text-lg",
+        md: "h-18 rounded-lg gap-2 px-16 min-w-32 text-lg",
         // 80px - 主要アクション
-        lg: "h-20 rounded-lg gap-3 px-10 min-w-36 text-lg",
+        lg: "h-20 rounded-lg gap-3 px-20 min-w-36 text-lg",
         // 96px - ヒーロー操作
-        xl: "h-24 rounded-xl gap-3 px-12 min-w-40 text-xl",
+        xl: "h-24 rounded-xl gap-3 px-24 min-w-40 text-xl",
         // 64px 正方形アイコン
         icon: "size-16 rounded-lg",
         // 80px 正方形アイコン
