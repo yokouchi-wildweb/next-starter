@@ -42,7 +42,7 @@ export async function preRegisterFromAuth(
       providerUid,
       email,
       lastAuthenticatedAt: now,
-      signupIp: isNewRegistration ? ip : undefined,
+      signupIp: (isNewRegistration || isRejoin) ? ip : undefined,
     },
     existingUser,
   );
