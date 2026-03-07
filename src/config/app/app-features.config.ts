@@ -4,7 +4,7 @@
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
 // ルートのブロックは featureGate (src/proxies/featureGate.ts) で自動制御されます。
 
-import type { EmailCheckMode, SelectionBehavior, SignupMode, WalletPurchaseRestriction } from "./types";
+import type { EmailCheckMode, HideMyEmailAction, SelectionBehavior, SignupMode, WalletPurchaseRestriction } from "./types";
 
 export const APP_FEATURES = {
   auth: {
@@ -63,6 +63,13 @@ export const APP_FEATURES = {
        * - strict: 信頼ドメイン（TRUSTED_DOMAINS）のみ許可
        */
       emailCheckMode: "disabled" as EmailCheckMode,
+      /**
+       * Hide My Email（Apple「メールを非公開」）検知時のアクション
+       * - disabled: チェックなし
+       * - block: 検知時にサイレントブロック（メール送信しない）
+       * - challenge: 検知時にreCAPTCHA v2チャレンジを要求
+       */
+      hideMyEmailAction: "challenge" as HideMyEmailAction,
     },
   },
   user: {

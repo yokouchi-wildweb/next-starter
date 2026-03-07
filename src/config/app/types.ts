@@ -22,5 +22,13 @@ export type EmailCheckMode = "disabled" | "full" | "strict";
  */
 export type WalletPurchaseRestriction = "none" | "phoneVerified";
 
+/**
+ * Hide My Email（Apple「メールを非公開」）検知時のアクション
+ * - disabled: チェックなし
+ * - block: 検知時にサイレントブロック（メール送信しない）
+ * - challenge: 検知時にreCAPTCHA v2チャレンジを要求
+ */
+export type HideMyEmailAction = "disabled" | "block" | "challenge";
+
 /** セレクションテーブルの選択方式 */
 export type SelectionBehavior = "row" | "checkbox";
