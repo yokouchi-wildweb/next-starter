@@ -15,11 +15,23 @@ export const RATE_LIMIT_CONFIG = {
   },
 
   /**
-   * サインアップ: 登録系
+   * サインアップ: 登録系（IP単位）
    * 同一IPから1時間に3回まで
+   * ※ signupSubnet とハイブリッドで併用（どちらか先に到達した方で制限）
    */
   signupRegister: {
     windowSeconds: 3600,
+    maxRequests: 3,
+  },
+
+  /**
+   * サインアップ: 登録系（サブネット /24 単位）
+   * 同一サブネットから10分に3回まで
+   * iCloud Private Relay 等でIPが分散する攻撃への対策
+   * ※ signupRegister とハイブリッドで併用（どちらか先に到達した方で制限）
+   */
+  signupSubnet: {
+    windowSeconds: 600,
     maxRequests: 3,
   },
 

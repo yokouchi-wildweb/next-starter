@@ -53,6 +53,12 @@ export type ApiRouteConfig = {
    */
   rateLimit?: RateLimitCategory;
   /**
+   * サブネット単位（/24）のレート制限カテゴリ
+   * 指定するとIPの上位3オクテットでレート制限が適用される
+   * iCloud Private Relay 等でIPが分散する攻撃に有効
+   */
+  rateLimitSubnet?: RateLimitCategory;
+  /**
    * reCAPTCHA v3 検証設定
    * 指定するとリクエストボディのrecaptchaTokenを検証する
    */
@@ -121,6 +127,23 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
             {
               message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
               resetAt: limit.resetAt,
+            },
+            { status: 429 }
+          );
+        }
+      }
+
+      // サブネット単位（/24）レート制限チェック
+      if (config.rateLimitSubnet) {
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+        const subnet = ip.split(".").slice(0, 3).join(".");
+        const limit = await checkRateLimit(config.rateLimitSubnet, subnet);
+        if (!limit.allowed) {
+          return NextResponse.json(
+            {
+              message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
+              resetAt: limit.resetAt,
+              silent: true,
             },
             { status: 429 }
           );

@@ -38,6 +38,7 @@ import {
 import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
 import { RateLimitWarningModal } from "../RateLimitWarningModal";
+import { isSilentRateLimit } from "../RateLimitWarningContent";
 import { DefaultValues, FormSchema, type FormValues } from "./formEntities";
 
 export function OAuthRegistrationForm() {
@@ -95,7 +96,11 @@ export function OAuthRegistrationForm() {
         })
         .catch((error) => {
           if (isHttpError(error) && error.status === 429) {
-            setShowRateLimitWarning(true);
+            if (isSilentRateLimit(error)) {
+              form.setError("root", { type: "server", message: error.message });
+            } else {
+              setShowRateLimitWarning(true);
+            }
             return;
           }
           const message = err(error, "本登録の処理に失敗しました");
@@ -172,7 +177,11 @@ export function OAuthRegistrationForm() {
         }
         // レートリミット発動時
         if (isHttpError(error) && error.status === 429) {
-          setShowRateLimitWarning(true);
+          if (isSilentRateLimit(error)) {
+            form.setError("root", { type: "server", message: error.message });
+          } else {
+            setShowRateLimitWarning(true);
+          }
           return;
         }
         const message = err(error, "本登録の処理に失敗しました");

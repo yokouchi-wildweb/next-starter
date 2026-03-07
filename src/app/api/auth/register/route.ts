@@ -14,6 +14,7 @@ export const POST = createApiRoute(
     operationType: "write",
     skipForDemo: true,
     rateLimit: "signupRegister",
+    rateLimitSubnet: "signupSubnet",
     recaptcha: { action: RECAPTCHA_ACTIONS.REGISTER },
   },
   async (req) => {
