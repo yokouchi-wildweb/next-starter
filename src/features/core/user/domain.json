@@ -123,7 +123,7 @@
       "defaultValue": {}
     }
   ],
-  "searchFields": ["name", "email"],
+  "searchFields": ["name", "email", "signupIp"],
   "defaultOrderBy": [["createdAt", "DESC"]],
   "tableFields": ["status", "role", "name", "email", "provider_type", "createdAt"],
   "useDetailModal": false,
