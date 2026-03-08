@@ -23,7 +23,7 @@ export default function AdminCouponListHeader({ page, perPage, total }: AdminCou
   return (
     <ListTop title="発行済の公式クーポン">
       {hasSearch && <SearchBox makeHref={(p) => `/admin/coupons/official?${p.toString()}`} />}
-      {config.useImportExport === true && (
+      {"useImportExport" in config && config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
       )}
       <Pagination

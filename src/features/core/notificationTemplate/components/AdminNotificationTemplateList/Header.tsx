@@ -26,7 +26,7 @@ export default function AdminNotificationTemplateListHeader({ page, perPage, tot
   return (
     <ListTop title="登録済みお知らせテンプレートの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
-      {config.useImportExport === true && (
+      {"useImportExport" in config && config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
       )}
       <Pagination

@@ -26,7 +26,7 @@ export default function AdminSampleTagListHeader({ page, perPage, total }: Admin
   return (
     <ListTop title="登録済みサンプルタグの一覧">
       {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
-      {config.useImportExport === true && (
+      {"useImportExport" in config && config.useImportExport === true && (
         <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
       )}
       <Pagination
