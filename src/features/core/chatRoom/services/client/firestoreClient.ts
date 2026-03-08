@@ -4,7 +4,10 @@
 // リアルタイム購読・ルーム作成・既読更新など、REST API を経由しない直接操作を提供する。
 
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
+  deleteField,
   doc,
   orderBy,
   query,
@@ -27,7 +30,11 @@ import type { ChatRoom } from "@/features/chatRoom/entities";
 import type { ChatRoomType, LastMessageSnapshot } from "@/features/chatRoom/entities/message";
 import { messagesSubcollectionPath } from "@/features/chatRoom/entities/message";
 import { collectionPath } from "@/features/chatRoom/entities/firestore";
-import { SYSTEM_MESSAGE_ROOM_CREATED } from "@/features/chatRoom/constants/chat";
+import {
+  SYSTEM_MESSAGE_PARTICIPANT_ADDED,
+  SYSTEM_MESSAGE_PARTICIPANT_REMOVED,
+  SYSTEM_MESSAGE_ROOM_CREATED,
+} from "@/features/chatRoom/constants/chat";
 
 // ---------------------------------------------------------------------------
 // 型定義
@@ -183,6 +190,132 @@ export async function updateReadAt(
   await updateDoc(ref, {
     [`readAt.${uid}`]: serverTimestamp(),
   });
+}
+
+// ---------------------------------------------------------------------------
+// 参加者管理
+// ---------------------------------------------------------------------------
+
+/** 参加者追加パラメータ */
+export type AddParticipantParams = {
+  roomId: string;
+  /** 追加する userId */
+  uid: string;
+  /** 操作者の userId（システムメッセージの senderId） */
+  operatorUid: string;
+  /** 表示用の名前（システムメッセージ用） */
+  displayName: string;
+};
+
+/** 参加者退出パラメータ */
+export type RemoveParticipantParams = {
+  roomId: string;
+  /** 退出する userId */
+  uid: string;
+  /** 操作者の userId（システムメッセージの senderId） */
+  operatorUid: string;
+  /** 表示用の名前（システムメッセージ用） */
+  displayName: string;
+};
+
+/**
+ * グループルームに参加者を追加する。
+ *
+ * writeBatch で以下をアトミック実行:
+ * 1. participants 配列に追加（arrayUnion）
+ * 2. readAt に新規参加者のエントリ追加
+ * 3. システムメッセージ作成
+ * 4. lastMessageSnapshot 更新
+ */
+export async function addParticipant(params: AddParticipantParams): Promise<void> {
+  const { roomId, uid, operatorUid, displayName } = params;
+
+  const roomRef = doc(fstore, collectionPath, roomId);
+  const messageRef = doc(collection(fstore, messagesSubcollectionPath(roomId)));
+  const content = SYSTEM_MESSAGE_PARTICIPANT_ADDED.replace("{name}", displayName);
+
+  const snapshotData = {
+    type: "system",
+    content,
+    senderId: operatorUid,
+    createdAt: serverTimestamp(),
+  };
+
+  const operations: BatchOperation[] = [
+    {
+      type: "update",
+      ref: roomRef,
+      data: {
+        participants: arrayUnion(uid),
+        [`readAt.${uid}`]: serverTimestamp(),
+        lastMessageSnapshot: snapshotData,
+        updatedAt: serverTimestamp(),
+      },
+    },
+    {
+      type: "set",
+      ref: messageRef,
+      data: {
+        type: "system",
+        content,
+        senderId: operatorUid,
+        metadata: null,
+        createdAt: serverTimestamp(),
+      },
+    },
+  ];
+
+  await executeBatch(operations);
+}
+
+/**
+ * グループルームから参加者を退出させる。
+ *
+ * writeBatch で以下をアトミック実行:
+ * 1. participants 配列から除去（arrayRemove）
+ * 2. readAt から該当ユーザーのエントリ削除
+ * 3. システムメッセージ作成
+ * 4. lastMessageSnapshot 更新
+ */
+export async function removeParticipant(params: RemoveParticipantParams): Promise<void> {
+  const { roomId, uid, operatorUid, displayName } = params;
+
+  const roomRef = doc(fstore, collectionPath, roomId);
+  const messageRef = doc(collection(fstore, messagesSubcollectionPath(roomId)));
+  const content = SYSTEM_MESSAGE_PARTICIPANT_REMOVED.replace("{name}", displayName);
+
+  const snapshotData = {
+    type: "system",
+    content,
+    senderId: operatorUid,
+    createdAt: serverTimestamp(),
+  };
+
+  const operations: BatchOperation[] = [
+    {
+      type: "update",
+      ref: roomRef,
+      data: {
+        participants: arrayRemove(uid),
+        [`readAt.${uid}`]: deleteField(),
+        lastMessageSnapshot: snapshotData,
+        updatedAt: serverTimestamp(),
+      },
+    },
+    {
+      type: "set",
+      ref: messageRef,
+      data: {
+        type: "system",
+        content,
+        senderId: operatorUid,
+        metadata: null,
+        createdAt: serverTimestamp(),
+      },
+    },
+  ];
+
+  await executeBatch(operations);
 }
 
 // ---------------------------------------------------------------------------

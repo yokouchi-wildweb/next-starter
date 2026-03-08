@@ -43,6 +43,10 @@ export type ChatMessage = {
   senderId: string;
   metadata: MessageMetadata | null;
   createdAt: Date;
+  /** 編集済みの場合の編集日時 */
+  editedAt: Date | null;
+  /** 論理削除日時 */
+  deletedAt: Date | null;
 };
 
 /**

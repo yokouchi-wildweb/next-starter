@@ -3,6 +3,8 @@
 
 import { useCallback, useMemo } from "react";
 
+import type { UploadProgress } from "@/lib/storage/client/clientUploader";
+
 import { internalStore } from "./internalStore";
 import type { MessageSendingStatus, PendingMessage } from "./types";
 
@@ -13,6 +15,8 @@ export type UseMessageSendingStoreReturn = {
   addPending: (message: PendingMessage) => void;
   /** メッセージの送信状態を更新する */
   updateStatus: (id: string, status: MessageSendingStatus) => void;
+  /** アップロード進捗を更新する */
+  updateProgress: (id: string, progress: UploadProgress) => void;
   /** 送信中メッセージを除去する */
   removePending: (id: string) => void;
   /** 指定ルームの送信済みメッセージをすべて除去する */
@@ -30,6 +34,7 @@ export function useMessageSendingStore(roomId: string | null): UseMessageSending
   const pendingByRoom = internalStore((s) => s.pendingByRoom);
   const addPending = internalStore((s) => s.addPending);
   const updateStatus = internalStore((s) => s.updateStatus);
+  const updateProgress = internalStore((s) => s.updateProgress);
   const removePending = internalStore((s) => s.removePending);
   const storeClearSent = internalStore((s) => s.clearSent);
   const storeClearRoom = internalStore((s) => s.clearRoom);
@@ -51,6 +56,7 @@ export function useMessageSendingStore(roomId: string | null): UseMessageSending
     pendingMessages,
     addPending,
     updateStatus,
+    updateProgress,
     removePending,
     clearSent,
     clearRoom,

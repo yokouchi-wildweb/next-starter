@@ -41,3 +41,9 @@ export const chatStoragePath = (roomId: string, messageId: string, fileName: str
 
 /** システムメッセージ: ルーム作成時 */
 export const SYSTEM_MESSAGE_ROOM_CREATED = "ルームが作成されました";
+
+/** システムメッセージ: 参加者追加時（{name} はプレースホルダ） */
+export const SYSTEM_MESSAGE_PARTICIPANT_ADDED = "{name}が参加しました";
+
+/** システムメッセージ: 参加者退出時（{name} はプレースホルダ） */
+export const SYSTEM_MESSAGE_PARTICIPANT_REMOVED = "{name}が退出しました";

@@ -23,10 +23,11 @@ import {
 import type { BatchOperation, CollectionChangesSnapshot } from "@/lib/firestore/client";
 import type { Unsubscribe } from "@/lib/firestore/types";
 
-import type { ChatMessage, MessageMetadata, MessageType } from "@/features/chatRoom/entities/message";
+import type { ChatMessage, LastMessageSnapshot, MessageMetadata, MessageType } from "@/features/chatRoom/entities/message";
 import { messagesSubcollectionPath } from "@/features/chatRoom/entities/message";
 import { collectionPath } from "@/features/chatRoom/entities/firestore";
 import { MESSAGES_PER_PAGE } from "@/features/chatRoom/constants/chat";
+import { updateDoc } from "@/lib/firestore/client";
 
 // ---------------------------------------------------------------------------
 // ユーティリティ
@@ -125,6 +126,91 @@ export async function sendFileMessage(
     senderId,
     metadata,
     messageId,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// メッセージ編集
+// ---------------------------------------------------------------------------
+
+/** メッセージ編集パラメータ */
+export type EditMessageParams = {
+  roomId: string;
+  messageId: string;
+  content: string;
+  senderId: string;
+  /**
+   * このメッセージが最新メッセージかどうか。
+   * true の場合、lastMessageSnapshot も同時更新する。
+   * 呼び出し側で lastMessageSnapshot.createdAt と比較して判定する。
+   */
+  isLatestMessage: boolean;
+};
+
+/**
+ * メッセージを編集する。
+ *
+ * - editedAt を設定し、content を更新する
+ * - 最新メッセージの場合は writeBatch で lastMessageSnapshot も同時更新
+ * - 最新でない場合はメッセージのみ更新
+ */
+export async function editMessage(params: EditMessageParams): Promise<void> {
+  const { roomId, messageId, content, senderId, isLatestMessage } = params;
+
+  const messageRef = doc(fstore, messagesSubcollectionPath(roomId), messageId);
+  const roomRef = doc(fstore, collectionPath, roomId);
+
+  if (isLatestMessage) {
+    const operations: BatchOperation[] = [
+      {
+        type: "update",
+        ref: messageRef,
+        data: {
+          content,
+          editedAt: serverTimestamp(),
+        },
+      },
+      {
+        type: "update",
+        ref: roomRef,
+        data: {
+          "lastMessageSnapshot.content": content,
+          updatedAt: serverTimestamp(),
+        },
+      },
+    ];
+    await executeBatch(operations);
+  } else {
+    await updateDoc(messageRef, {
+      content,
+      editedAt: serverTimestamp(),
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// メッセージ削除（論理削除）
+// ---------------------------------------------------------------------------
+
+/** メッセージ削除パラメータ */
+export type DeleteMessageParams = {
+  roomId: string;
+  messageId: string;
+};
+
+/**
+ * メッセージを論理削除する。
+ *
+ * - deletedAt を設定する
+ * - lastMessageSnapshot は変更しない（設計方針に準拠）
+ * - 表示側で deletedAt を確認して「メッセージが削除されました」と表示する
+ */
+export async function deleteMessage(params: DeleteMessageParams): Promise<void> {
+  const { roomId, messageId } = params;
+  const messageRef = doc(fstore, messagesSubcollectionPath(roomId), messageId);
+
+  await updateDoc(messageRef, {
+    deletedAt: serverTimestamp(),
   });
 }
 
