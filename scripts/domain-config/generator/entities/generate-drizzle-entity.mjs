@@ -123,11 +123,69 @@ function buildOnDeleteOption(behavior) {
   }
 }
 
+/**
+ * PostgreSQLの識別子最大長
+ */
+const PG_MAX_IDENTIFIER_LENGTH = 63;
+
+/**
+ * Drizzleが自動生成するFK制約名を計算
+ * パターン: {table}_{column}_{foreignTable}_{foreignColumn}_fk
+ */
+function computeFkName(sourceTable, columnName, foreignTable, foreignColumn = 'id') {
+  return `${sourceTable}_${columnName}_${foreignTable}_${foreignColumn}_fk`;
+}
+
+/**
+ * 短縮FK制約名を生成（外部テーブル名を省略）
+ * パターン: {table}_{column}_fk
+ */
+function buildShortFkName(sourceTable, columnName) {
+  return `${sourceTable}_${columnName}_fk`;
+}
+
+/**
+ * FK制約名が63文字を超えるかチェック
+ */
+function isFkNameTooLong(sourceTable, columnName, foreignTable, foreignColumn = 'id') {
+  return computeFkName(sourceTable, columnName, foreignTable, foreignColumn).length > PG_MAX_IDENTIFIER_LENGTH;
+}
+
+/**
+ * リレーション先ドメインのテーブル名を取得
+ * domain.jsonが存在すればpluralを使用、なければsnake_case化
+ * features/ と features/core/ の両方を探索
+ */
+function getForeignTableName(domainName) {
+  const domainCamel = toCamelCase(domainName) || domainName;
+  const featuresDir = path.join(process.cwd(), 'src', 'features');
+  const candidates = [
+    path.join(featuresDir, domainCamel, 'domain.json'),
+    path.join(featuresDir, 'core', domainCamel, 'domain.json'),
+  ];
+  for (const configPath of candidates) {
+    if (fs.existsSync(configPath)) {
+      try {
+        const foreignConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (foreignConfig.plural) {
+          return toSnakeCase(foreignConfig.plural);
+        }
+      } catch {
+        // JSONパースエラー時はフォールバック
+      }
+      break;
+    }
+  }
+  return toSnakeCase(domainName);
+}
+
 const imports = new Set(['pgTable']);
 const relationImports = new Map();
 let usesPrimaryKey = false;
 const enumDefs = [];
 const fields = [];
+// テーブルコールバックで定義するFK制約（名前が長すぎる場合）
+const deferredForeignKeys = [];
 // ユニーク制約を持つフィールドを追跡（ソフトデリート時は部分インデックスに変換）
 // TODO: 単一フィールドのユニーク制約 (f.unique) は生成ロジックのみ実装済み
 //       questions/fields.mjs に質問フローを追加すれば有効化できる
@@ -182,8 +240,25 @@ switch (config.idType) {
   }
   let line = `  ${rel.fieldName}: ${column}`;
   if (rel.required) line += '.notNull()';
-  const opt = buildOnDeleteOption(onDeleteBehavior);
-  line += `\n    .references(() => ${relationDomainPascal}Table.id${opt})`;
+
+  const foreignTableName = getForeignTableName(rel.domain);
+
+  if (isFkNameTooLong(tableName, columnName, foreignTableName)) {
+    // FK名が長すぎるのでテーブルコールバックで定義
+    imports.add('foreignKey');
+    const shortName = buildShortFkName(tableName, columnName);
+    const onDeleteMap = { CASCADE: '"cascade"', SET_NULL: '"set null"', RESTRICT: '"restrict"' };
+    const onDeleteStr = onDeleteMap[onDeleteBehavior] || '';
+    deferredForeignKeys.push({
+      name: shortName,
+      fieldName: rel.fieldName,
+      foreignTablePascal: relationDomainPascal,
+      onDelete: onDeleteStr,
+    });
+  } else {
+    const opt = buildOnDeleteOption(onDeleteBehavior);
+    line += `\n    .references(() => ${relationDomainPascal}Table.id${opt})`;
+  }
   line += ',';
   fields.push(line);
 });
@@ -325,7 +400,21 @@ if (hasCompositeUniques) {
   });
 }
 
-// pgTableの生成（インデックスがある場合は第3引数を追加）
+// テーブルコールバックで定義するFK制約を追加
+deferredForeignKeys.forEach((fk) => {
+  let fkDef = `  // FK制約名の自動短縮（PostgreSQL 63文字制限対応）\n`;
+  fkDef += `  foreignKey({\n`;
+  fkDef += `    name: "${fk.name}",\n`;
+  fkDef += `    columns: [table.${fk.fieldName}],\n`;
+  fkDef += `    foreignColumns: [${fk.foreignTablePascal}Table.id],\n`;
+  fkDef += `  })`;
+  if (fk.onDelete) {
+    fkDef += `.onDelete(${fk.onDelete})`;
+  }
+  tableIndexes.push(fkDef);
+});
+
+// pgTableの生成（インデックスやFK制約がある場合は第3引数を追加）
 content += `export const ${pascal}Table = pgTable("${tableName}", {\n`;
 content += fields.join('\n');
 if (tableIndexes.length > 0) {
@@ -341,7 +430,41 @@ relationTables.forEach((t) => {
   const relationColumnName = `${toSnakeCase(t.domainCamel)}_id`;
   const baseColumn = buildColumn(t.typeFn, baseColumnName);
   const relationColumn = buildColumn(t.typeFn, relationColumnName);
-  content += `\nexport const ${t.tableVar} = pgTable(\n  "${t.tableName}",\n  {\n    ${camel}Id: ${baseColumn}\n      .notNull()\n      .references(() => ${pascal}Table.id, { onDelete: "cascade" }),\n    ${t.domainCamel}Id: ${relationColumn}\n      .notNull()\n      .references(() => ${t.domainPascal}Table.id, { onDelete: "cascade" }),\n  },\n  (table) => {\n    return { pk: primaryKey({ columns: [table.${camel}Id, table.${t.domainCamel}Id] }) };\n  },\n);\n`;
+
+  const baseFkTooLong = isFkNameTooLong(t.tableName, baseColumnName, tableName);
+  const foreignRelationTableName = getForeignTableName(t.domainCamel);
+  const relationFkTooLong = isFkNameTooLong(t.tableName, relationColumnName, foreignRelationTableName);
+
+  // カラム定義
+  let baseColDef = `    ${camel}Id: ${baseColumn}\n      .notNull()`;
+  let relationColDef = `    ${t.domainCamel}Id: ${relationColumn}\n      .notNull()`;
+  if (!baseFkTooLong) {
+    baseColDef += `\n      .references(() => ${pascal}Table.id, { onDelete: "cascade" })`;
+  }
+  if (!relationFkTooLong) {
+    relationColDef += `\n      .references(() => ${t.domainPascal}Table.id, { onDelete: "cascade" })`;
+  }
+
+  // テーブルコールバック要素
+  const junctionCallbackItems = [];
+  junctionCallbackItems.push(`pk: primaryKey({ columns: [table.${camel}Id, table.${t.domainCamel}Id] })`);
+  if (baseFkTooLong) {
+    imports.add('foreignKey');
+    const shortName = buildShortFkName(t.tableName, baseColumnName);
+    junctionCallbackItems.push(
+      `${camel}Fk: foreignKey({\n      name: "${shortName}",\n      columns: [table.${camel}Id],\n      foreignColumns: [${pascal}Table.id],\n    }).onDelete("cascade")`
+    );
+  }
+  if (relationFkTooLong) {
+    imports.add('foreignKey');
+    const shortName = buildShortFkName(t.tableName, relationColumnName);
+    junctionCallbackItems.push(
+      `${t.domainCamel}Fk: foreignKey({\n      name: "${shortName}",\n      columns: [table.${t.domainCamel}Id],\n      foreignColumns: [${t.domainPascal}Table.id],\n    }).onDelete("cascade")`
+    );
+  }
+
+  const callbackBody = junctionCallbackItems.map(item => `    ${item}`).join(',\n');
+  content += `\nexport const ${t.tableVar} = pgTable(\n  "${t.tableName}",\n  {\n${baseColDef},\n${relationColDef},\n  },\n  (table) => {\n    return {\n${callbackBody},\n    };\n  },\n);\n`;
 });
 
 if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
