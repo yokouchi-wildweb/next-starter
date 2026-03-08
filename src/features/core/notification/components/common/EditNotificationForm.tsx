@@ -4,11 +4,11 @@
 
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { NotificationUpdateSchema } from "@/features/core/notification/entities/schema";
-import type { NotificationUpdateFields } from "@/features/core/notification/entities/form";
-import type { Notification } from "@/features/core/notification/entities";
-import { useUpdateNotification } from "@/features/core/notification/hooks/useUpdateNotification";
-import { useSearchNotification } from "@/features/core/notification/hooks/useSearchNotification";
+import { NotificationUpdateSchema } from "@/features/notification/entities/schema";
+import type { NotificationUpdateFields } from "@/features/notification/entities/form";
+import type { Notification } from "@/features/notification/entities";
+import { useUpdateNotification } from "@/features/notification/hooks/useUpdateNotification";
+import { useSearchNotification } from "@/features/notification/hooks/useSearchNotification";
 import { NotificationForm } from "./NotificationForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
@@ -16,7 +16,7 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import domainConfig from "@/features/core/notification/domain.json";
+import domainConfig from "@/features/notification/domain.json";
 
 const adminPaths = getAdminPaths(domainConfig.plural);
 

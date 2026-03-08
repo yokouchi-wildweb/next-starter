@@ -13,7 +13,7 @@ import type {
 } from "@/components/Form/FieldRenderer/types";
 import { useRelationOptions } from "@/lib/domain/hooks";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import domainConfig from "@/features/core/notification/domain.json";
+import domainConfig from "@/features/notification/domain.json";
 
 export type NotificationFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

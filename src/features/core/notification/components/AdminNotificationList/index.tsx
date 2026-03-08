@@ -1,6 +1,6 @@
 // src/features/notification/components/AdminNotificationList/index.tsx
 
-import type { Notification } from "@/features/core/notification/entities";
+import type { Notification } from "@/features/notification/entities";
 import Header from "./Header";
 import Table from "./Table";
 import { Section } from "@/components/Layout/Section";

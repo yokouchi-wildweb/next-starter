@@ -5,8 +5,9 @@ import type { NotificationTemplate } from "@/features/notificationTemplate/entit
 export type Notification = {
   id: string;
   notification_template_id: string | null;
-  title: string;
+  title: string | null;
   body: string;
+  image: string | null;
   target_type: 'all' | 'role' | 'individual';
   target_user_ids: string[] | null;
   target_roles: string[] | null;

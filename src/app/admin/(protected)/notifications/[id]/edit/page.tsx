@@ -2,11 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { SWRConfig } from "swr";
 import { notificationTemplateService } from "@/features/notificationTemplate/services/server/notificationTemplateService";
-import { notificationService } from "@/features/core/notification/services/server/notificationService";
-import AdminNotificationEdit from "@/features/core/notification/components/AdminNotificationEdit";
+import { notificationService } from "@/features/notification/services/server/notificationService";
+import AdminNotificationEdit from "@/features/notification/components/AdminNotificationEdit";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import type { Notification } from "@/features/core/notification/entities";
+import type { Notification } from "@/features/notification/entities";
 import { resolveReturnTo } from "@/lib/crud/utils";
 
 export const metadata = {

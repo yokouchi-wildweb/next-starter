@@ -7,7 +7,7 @@ import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
-import config from "@/features/core/notification/domain.json";
+import config from "@/features/notification/domain.json";
 import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/crud/utils";
 

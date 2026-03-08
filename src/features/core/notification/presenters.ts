@@ -1,6 +1,6 @@
 // src/features/notification/presenters.ts
 
-import type { Notification } from "@/features/core/notification/entities";
+import type { Notification } from "@/features/notification/entities";
 import type { FieldPresenter } from "@/lib/crud";
 import {
   formatBoolean,

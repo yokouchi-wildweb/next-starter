@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 
-import { notificationService } from "@/features/core/notification/services/server/notificationService";
+import { notificationService } from "@/features/notification/services/server/notificationService";
 
 import { settingService } from "../../../../features/core/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/lib/crud";
-import AdminNotificationList from "@/features/core/notification/components/AdminNotificationList";
+import AdminNotificationList from "@/features/notification/components/AdminNotificationList";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 

@@ -1,9 +1,9 @@
 // src/features/notification/services/server/drizzleBase.ts
 
 import { getDomainConfig, type DomainConfig } from "@/lib/domain";
-import { NotificationTable } from "@/features/core/notification/entities/drizzle";
+import { NotificationTable } from "@/features/notification/entities/drizzle";
 import { NotificationTemplateTable } from "@/features/notificationTemplate/entities/drizzle";
-import { NotificationCreateSchema, NotificationUpdateSchema } from "@/features/core/notification/entities/schema";
+import { NotificationCreateSchema, NotificationUpdateSchema } from "@/features/notification/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";

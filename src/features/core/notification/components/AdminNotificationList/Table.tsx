@@ -2,11 +2,11 @@
 
 "use client";
 
-import type { Notification } from "@/features/core/notification/entities";
+import type { Notification } from "@/features/notification/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud";
-import config from "@/features/core/notification/domain.json";
-import presenters from "@/features/core/notification/presenters";
+import config from "@/features/notification/domain.json";
+import presenters from "@/features/notification/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 

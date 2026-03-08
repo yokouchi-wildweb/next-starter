@@ -24,7 +24,7 @@
       "label": "タイトル",
       "fieldType": "string",
       "formInput": "textInput",
-      "required": true
+      "required": false
     },
     {
       "name": "body",
@@ -32,6 +32,17 @@
       "fieldType": "string",
       "formInput": "textarea",
       "required": true
+    },
+    {
+      "name": "image",
+      "label": "画像",
+      "fieldType": "mediaUploader",
+      "formInput": "mediaUploader",
+      "required": false,
+      "uploadPath": "notification/image",
+      "slug": "notificationImage",
+      "mediaTypePreset": "images",
+      "accept": "image/*"
     },
     {
       "name": "target_type",

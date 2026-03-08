@@ -4,15 +4,15 @@
 
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { NotificationCreateSchema } from "@/features/core/notification/entities/schema";
-import { NotificationCreateFields } from "@/features/core/notification/entities/form";
-import { useCreateNotification } from "@/features/core/notification/hooks/useCreateNotification";
+import { NotificationCreateSchema } from "@/features/notification/entities/schema";
+import { NotificationCreateFields } from "@/features/notification/entities/form";
+import { useCreateNotification } from "@/features/notification/hooks/useCreateNotification";
 import { NotificationForm } from "./NotificationForm";
 import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import domainConfig from "@/features/core/notification/domain.json";
+import domainConfig from "@/features/notification/domain.json";
 
 type Props = {
   redirectPath?: string;

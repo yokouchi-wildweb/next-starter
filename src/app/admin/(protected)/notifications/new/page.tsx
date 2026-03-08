@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { SWRConfig } from "swr";
 import { notificationTemplateService } from "@/features/notificationTemplate/services/server/notificationTemplateService";
-import AdminNotificationCreate from "@/features/core/notification/components/AdminNotificationCreate";
+import AdminNotificationCreate from "@/features/notification/components/AdminNotificationCreate";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 

@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import EditNotificationForm from "../common/EditNotificationForm";
-import type { Notification } from "@/features/core/notification/entities";
+import type { Notification } from "@/features/notification/entities";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 
 export type AdminNotificationEditProps = {

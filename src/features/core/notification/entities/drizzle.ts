@@ -9,8 +9,9 @@ export const NotificationSenderTypeEnum = pgEnum("notification_sender_type_enum"
 export const NotificationTable = pgTable("notifications", {
   id: uuid("id").defaultRandom().primaryKey(),
   notification_template_id: uuid("notification_template_id"),
-  title: text("title").notNull(),
+  title: text("title"),
   body: text("body").notNull(),
+  image: text("image"),
   target_type: NotificationTargetTypeEnum("target_type").notNull(),
   target_user_ids: text("target_user_ids").array(),
   target_roles: text("target_roles").array(),
