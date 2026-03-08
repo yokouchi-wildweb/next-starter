@@ -13,7 +13,7 @@ export type Sample = {
   switch: boolean | null;
   radio: boolean | null;
   select: 'apple' | 'orange' | 'berry' | null;
-  multi_select: string[];
+  multi_select: string[] | null;
   sale_start_at: Date | null;
   date: string | null;
   time: string | null;

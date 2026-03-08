@@ -16,7 +16,7 @@ export const SampleTable = pgTable("samples", {
   switch: boolean("switch"),
   radio: boolean("radio"),
   select: SampleSelectEnum("select").default("orange"),
-  multi_select: text("multi_select").array().default([]).notNull(),
+  multi_select: text("multi_select").array(),
   sale_start_at: timestamp("sale_start_at", { withTimezone: true }),
   date: date("date"),
   time: time("time"),
@@ -40,6 +40,8 @@ export const SampleToSampleTagTable = pgTable(
       .references(() => SampleTagTable.id, { onDelete: "cascade" }),
   },
   (table) => {
-    return { pk: primaryKey({ columns: [table.sampleId, table.sampleTagId] }) };
+    return {
+    pk: primaryKey({ columns: [table.sampleId, table.sampleTagId] }),
+    };
   },
 );

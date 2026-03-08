@@ -7,7 +7,10 @@ import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
-import config from "@/features/sample/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawConfig from "@/features/sample/domain.json";
+
+const config = normalizeDomainJsonConfig(rawConfig);
 import { CreateButton } from "@/lib/crud";
 import { getAdminPaths } from "@/lib/crud/utils";
 
@@ -38,7 +41,6 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
           search.set("page", String(p));
           return `${paths.list}?${search.toString()}`;
         }}
-        usePageJump
       />
       <CreateButton domain="sample" />
     </ListTop>

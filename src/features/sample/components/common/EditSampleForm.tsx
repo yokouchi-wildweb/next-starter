@@ -17,7 +17,10 @@ import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useAutoSaveConfig } from "@/components/Form/AutoSave";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import domainConfig from "@/features/sample/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/sample/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 const adminPaths = getAdminPaths(domainConfig.plural);
 

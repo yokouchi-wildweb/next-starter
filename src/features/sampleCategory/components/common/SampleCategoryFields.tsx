@@ -11,7 +11,10 @@ import type {
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
-import domainConfig from "@/features/sampleCategory/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/sampleCategory/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 export type SampleCategoryFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

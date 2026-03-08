@@ -11,7 +11,10 @@ import type {
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
-import domainConfig from "@/features/sampleTag/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/sampleTag/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 export type SampleTagFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

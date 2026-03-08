@@ -13,7 +13,10 @@ import type {
 } from "@/components/Form/FieldRenderer/types";
 import { useRelationOptions } from "@/lib/domain/hooks";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
-import domainConfig from "@/features/sample/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/sample/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

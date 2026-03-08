@@ -4,8 +4,11 @@
 
 import type { Sample } from "@/features/sample/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud";
-import config from "@/features/sample/domain.json";
+import { EditButton, DeleteButton } from "@/lib/crud";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+__DUPLICATE_IMPORT__import rawConfig from "@/features/sample/domain.json";
+
+const config = normalizeDomainJsonConfig(rawConfig);
 import presenters from "@/features/sample/presenters";
 import { useState } from "react";
 import SampleDetailModal from "../common/SampleDetailModal";
