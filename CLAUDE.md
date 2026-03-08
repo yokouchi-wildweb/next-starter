@@ -65,7 +65,7 @@ business: src/features/, has domain.json, dc:generate. examples: sample, sampleC
 
 commands: dc:init | dc:generate -- \<Domain\> | dc:generate:all | dc:delete -- \<Domain\> | dc:add -- \<Domain\>
 config_utils: src/lib/domain/ | getDomainConfig(domain), extractFields(config), getRelations(domain) | client: index.ts, server: server.ts
-new_domain_json: MUST read src/features/README.md before creating any domain.json to verify schema format
+new_domain_json: MUST read src/features/README.md before creating or editing any domain.json to verify schema format
 ref: src/features/README.md
 
 ## API_ROUTES
@@ -103,7 +103,8 @@ ui_layers:
 
 page_controls: AppFrames/User/controls/ (header/footer/bottomMenu visibility, use in page.tsx)
 FieldRenderer: baseFields, fieldPatches, fieldGroups, inlineGroups | onMediaStateChange(MediaState)
-FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, hidden, none
+FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, hidden, custom, none
+programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schema, own UI) | none = excluded from schema entirely, NOT for programmatic use
 async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel
 ref: src/components/README.md
 
