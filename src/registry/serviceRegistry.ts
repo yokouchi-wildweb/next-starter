@@ -15,6 +15,8 @@ import { userTagService } from "@/features/core/userTag/services/server/userTagS
 import { referralService } from "@/features/core/referral/services/server/referralService";
 import { referralRewardService } from "@/features/core/referralReward/services/server/referralRewardService";
 import { milestoneService } from "@/features/core/milestone/services/server/milestoneService";
+import { notificationService } from "@/features/core/notification/services/server/notificationService";
+import { notificationTemplateService } from "@/features/core/notificationTemplate/services/server/notificationTemplateService";
 
 export const serviceRegistry: Record<string, any> = {
   userActionLog: userActionLogService,
@@ -34,6 +36,8 @@ export const serviceRegistry: Record<string, any> = {
   referral: referralService,
   referralReward: referralRewardService,
   milestone: milestoneService,
+  notification: notificationService,
+  notificationTemplate: notificationTemplateService,
   // --- AUTO-GENERATED-END ---
 
 };

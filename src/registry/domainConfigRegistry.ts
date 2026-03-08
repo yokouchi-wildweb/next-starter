@@ -11,6 +11,8 @@ import userTagConfig from "@/features/core/userTag/domain.json";
 import referralConfig from "@/features/core/referral/domain.json";
 import referralRewardConfig from "@/features/core/referralReward/domain.json";
 import milestoneConfig from "@/features/core/milestone/domain.json";
+import notificationConfig from "@/features/core/notification/domain.json";
+import notificationTemplateConfig from "@/features/core/notificationTemplate/domain.json";
 
 export const domainConfigMap = {
 
@@ -25,6 +27,8 @@ export const domainConfigMap = {
   referral: referralConfig,
   referral_reward: referralRewardConfig,
   milestone: milestoneConfig,
+  notification: notificationConfig,
+  notification_template: notificationTemplateConfig,
   // --- AUTO-GENERATED-END ---
 
   // --- CORE DOMAINS (手動管理) ---

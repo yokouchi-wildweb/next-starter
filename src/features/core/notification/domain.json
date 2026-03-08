@@ -1,0 +1,103 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "notification",
+  "plural": "notifications",
+  "label": "お知らせ",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "notification_template",
+      "label": "テンプレート",
+      "fieldName": "notification_template_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": false,
+      "onDelete": "SET_NULL"
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "title",
+      "label": "タイトル",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": true
+    },
+    {
+      "name": "body",
+      "label": "本文",
+      "fieldType": "string",
+      "formInput": "textarea",
+      "required": true
+    },
+    {
+      "name": "target_type",
+      "label": "送信対象",
+      "fieldType": "enum",
+      "formInput": "select",
+      "required": true,
+      "options": [
+        { "value": "all", "label": "全員" },
+        { "value": "role", "label": "ロール指定" },
+        { "value": "individual", "label": "個別指定" }
+      ]
+    },
+    {
+      "name": "target_user_ids",
+      "label": "対象ユーザーID",
+      "fieldType": "array",
+      "formInput": "none",
+      "required": false
+    },
+    {
+      "name": "target_roles",
+      "label": "対象ロール",
+      "fieldType": "array",
+      "formInput": "none",
+      "required": false
+    },
+    {
+      "name": "sender_type",
+      "label": "送信者種別",
+      "fieldType": "enum",
+      "formInput": "hidden",
+      "required": true,
+      "options": [
+        { "value": "admin", "label": "管理者" },
+        { "value": "system", "label": "システム" }
+      ]
+    },
+    {
+      "name": "created_by_id",
+      "label": "作成者ID",
+      "fieldType": "uuid",
+      "formInput": "none",
+      "required": false
+    },
+    {
+      "name": "published_at",
+      "label": "公開日時",
+      "fieldType": "timestamp With Time Zone",
+      "formInput": "datetimeInput",
+      "required": true
+    }
+  ],
+  "searchFields": ["title"],
+  "defaultOrderBy": [["published_at", "DESC"]],
+  "tableFields": ["title", "sender_type", "target_type", "published_at"],
+  "addToAdminDataMenu": false,
+  "generateFiles": {
+    "entities": true,
+    "components": true,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "adminRoutes": true,
+    "registry": true,
+    "fieldConstants": true,
+    "presenters": true
+  }
+}
