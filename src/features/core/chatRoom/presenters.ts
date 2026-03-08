@@ -18,9 +18,9 @@ export const presenters: Record<string, ChatRoomFieldPresenter> = {
   type: ({ value, field, record }) => formatString(value),
   name: ({ value, field, record }) => formatString(value),
   participants: ({ value, field, record }) => formatStringArray(value),
-  participant_pair: ({ value, field, record }) => formatString(value),
-  read_at: ({ value, field, record }) => formatString(value),
-  last_message_snapshot: ({ value, field, record }) => formatString(value),
+  participantPair: ({ value, field, record }) => formatString(value),
+  readAt: ({ value, field, record }) => formatString(value),
+  lastMessageSnapshot: ({ value, field, record }) => formatString(value),
   createdAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   updatedAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
 };

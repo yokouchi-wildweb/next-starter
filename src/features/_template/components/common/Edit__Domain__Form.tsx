@@ -16,7 +16,10 @@ import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import { useItemNavigator } from "@/components/AppFrames/Admin/Elements/ItemNavigator";
 import { getAdminPaths } from "@/lib/crud/utils/paths";
-import domainConfig from "@/features/__domain__/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/__domain__/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 const adminPaths = getAdminPaths(domainConfig.plural);
 

@@ -5,9 +5,9 @@ export type ChatRoom = {
   type: string;
   name: string | null;
   participants: string[] | null;
-  participant_pair: string | null;
-  read_at: any | null;
-  last_message_snapshot: any | null;
+  participantPair: string | null;
+  readAt: any | null;
+  lastMessageSnapshot: any | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };

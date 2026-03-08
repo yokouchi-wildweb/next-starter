@@ -15,7 +15,7 @@ export const baseOptions = {
   ],
   defaultOrderBy: [
     [
-      "updated_at",
+      "updatedAt",
       "DESC"
     ]
   ],
@@ -24,7 +24,7 @@ export const baseOptions = {
 // 互換性のためエイリアスもエクスポート
 export const chatRoomServiceOptions = baseOptions;
 
-export const base = createCrudService<ChatRoom>("chatRooms", {
+export const base = createCrudService<ChatRoom>("chat_rooms", {
   ...baseOptions,
   parseCreate: (data) => ChatRoomCreateSchema.parse(data),
   parseUpdate: (data) => ChatRoomUpdateSchema.parse(data),

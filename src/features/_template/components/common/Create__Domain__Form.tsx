@@ -12,7 +12,10 @@ import { useRouter } from "next/navigation";
 import { useToast, useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import domainConfig from "@/features/__domain__/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/__domain__/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 type Props = {
   redirectPath?: string;

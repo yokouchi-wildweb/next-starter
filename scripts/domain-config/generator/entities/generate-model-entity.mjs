@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { toCamelCase, toPascalCase, toSnakeCase, toPlural } from '../../../../src/utils/stringCase.mjs';
+import { resolveFieldName } from '../utils/fieldName.mjs';
 
 // Entity model generator
 // Usage:
@@ -29,6 +30,7 @@ if (!fs.existsSync(configPath)) {
 }
 
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+const dbEngine = config.dbEngine || '';
 
 function mapTsType(t) {
   switch (t) {
@@ -75,24 +77,25 @@ lines.push(`  id: ${idTs};`);
 (config.relations || []).forEach((rel) => {
   if (rel.relationType !== 'belongsTo') return;
   const t = mapTsType(rel.fieldType || config.idType);
-  addField(lines, rel.fieldName, t, rel.required);
+  addField(lines, resolveFieldName(rel.fieldName, dbEngine), t, rel.required);
 });
 
 // belongsToMany relations
 (config.relations || []).forEach((rel) => {
   if (rel.relationType !== 'belongsToMany' || rel.includeRelationTable === false) return;
   const t = mapTsType(rel.fieldType || config.idType);
-  lines.push(`  ${rel.fieldName}?: ${t}[];`);
+  lines.push(`  ${resolveFieldName(rel.fieldName, dbEngine)}?: ${t}[];`);
 });
 
 // normal fields
 (config.fields || []).forEach((f) => {
+  const fieldName = resolveFieldName(f.name, dbEngine);
   if (f.fieldType === 'enum') {
     const values = (f.options || []).map((o) => `'${o.value}'`).join(' | ');
-    addField(lines, f.name, values, f.required);
+    addField(lines, fieldName, values, f.required);
   } else {
     const t = mapTsType(f.fieldType);
-    addField(lines, f.name, t, f.required);
+    addField(lines, fieldName, t, f.required);
   }
 });
 
@@ -142,7 +145,7 @@ function buildWithRelationsType() {
   belongsToRelations.forEach((rel) => {
     const relPascal = toPascalCase(rel.domain);
     // field名: sample_category_id → sample_category
-    const fieldName = rel.fieldName.replace(/_id$/, '');
+    const fieldName = resolveFieldName(rel.fieldName.replace(/_id$/, ''), dbEngine);
     fields.push(`  /** belongsTo: ${rel.label || rel.domain} */`);
     fields.push(`  ${fieldName}?: ${relPascal} | null;`);
   });
@@ -150,7 +153,7 @@ function buildWithRelationsType() {
   belongsToManyRelations.forEach((rel) => {
     const relPascal = toPascalCase(rel.domain);
     // field名: 複数形（sample_tag → sample_tags）
-    const fieldName = toPlural(rel.domain);
+    const fieldName = resolveFieldName(toPlural(rel.domain), dbEngine);
     fields.push(`  /** belongsToMany: ${rel.label || rel.domain} */`);
     fields.push(`  ${fieldName}?: ${relPascal}[];`);
   });
@@ -172,7 +175,7 @@ function buildWithCountType() {
 
   const countFields = belongsToManyRelations.map((rel) => {
     // field名: 複数形（sample_tag → sample_tags）
-    const fieldName = toPlural(rel.domain);
+    const fieldName = resolveFieldName(toPlural(rel.domain), dbEngine);
     return `    /** ${rel.label || rel.domain}の数 */\n    ${fieldName}: number;`;
   });
 

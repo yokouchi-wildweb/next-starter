@@ -11,7 +11,10 @@ import type {
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
-import domainConfig from "@/features/core/chatRoom/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/core/chatRoom/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 export type ChatRoomFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

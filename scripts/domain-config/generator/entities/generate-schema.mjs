@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { toCamelCase, toPascalCase, toSnakeCase } from '../../../../src/utils/stringCase.mjs';
+import { resolveFieldName } from '../utils/fieldName.mjs';
 
 //
 // Schema generator
@@ -36,6 +37,7 @@ if (!fs.existsSync(configPath)) {
 
 
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+const dbEngine = config.dbEngine || '';
 
 const DATETIME_TYPE = 'nullableDatetime';
 const REQUIRED_DATETIME_TYPE = 'requiredDatetime';
@@ -174,7 +176,7 @@ const lines = [];
   const type = mapZodType(rel.fieldType || config.idType);
   lines.push(
     fieldLine({
-      name: rel.fieldName,
+      name: resolveFieldName(rel.fieldName, dbEngine),
       label: rel.label || rel.fieldName,
       type,
       required: rel.required,
@@ -187,7 +189,7 @@ const lines = [];
 (config.relations || []).forEach((rel) => {
   if (rel.relationType !== 'belongsToMany' || rel.includeRelationTable === false) return;
   const elem = mapZodType(rel.fieldType || config.idType);
-  lines.push(`  ${rel.fieldName}: z.array(${elem}).default([]),`);
+  lines.push(`  ${resolveFieldName(rel.fieldName, dbEngine)}: z.array(${elem}).default([]),`);
 });
 
 // normal fields
@@ -196,15 +198,16 @@ const lines = [];
   // formInput: "custom" はUIのみカスタムでスキーマには含める
   if (f.formInput === 'none') return;
 
+  const fieldName = resolveFieldName(f.name, dbEngine);
   if (f.fieldType === 'enum') {
     const values = (f.options || []).map((o) => `"${o.value}"`).join(', ');
     const defaultSuffix = f.defaultValue !== undefined ? `.default(${formatSchemaDefault(f.defaultValue)})` : '';
-    lines.push(`  ${f.name}: z.enum([${values}])${f.required ? '' : '.nullish()'}${defaultSuffix},`);
+    lines.push(`  ${fieldName}: z.enum([${values}])${f.required ? '' : '.nullish()'}${defaultSuffix},`);
   } else {
     const t = mapZodType(f.fieldType, f.required);
     lines.push(
       fieldLine({
-        name: f.name,
+        name: fieldName,
         label: f.label || f.name,
         type: t,
         required: f.required,

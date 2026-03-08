@@ -9,6 +9,7 @@ import {
   toSnakeCase,
 } from "../../../src/utils/stringCase.mjs";
 import { resolveFeaturePath, resolveFeatureTemplatePath, resolveFeaturesDir } from "./utils/pathHelpers.mjs";
+import { resolveFieldName, resolveOrderByFields, resolveSearchFields } from "./utils/fieldName.mjs";
 
 // ドメインの設定を取得
 function getDomainConfig(domainPath) {
@@ -22,16 +23,17 @@ function getDomainConfig(domainPath) {
 
 function collectBaseServiceOptions(config) {
   if (!config) return {};
+  const dbEngine = config.dbEngine || '';
   const options = {};
   if (config.idType) options.idType = config.idType;
   if (config.useCreatedAt) options.useCreatedAt = true;
   if (config.useUpdatedAt) options.useUpdatedAt = true;
   if (config.useSoftDelete) options.useSoftDelete = true;
   if (Array.isArray(config.searchFields) && config.searchFields.length) {
-    options.defaultSearchFields = config.searchFields;
+    options.defaultSearchFields = resolveSearchFields(config.searchFields, dbEngine);
   }
   if (Array.isArray(config.defaultOrderBy) && config.defaultOrderBy.length) {
-    options.defaultOrderBy = config.defaultOrderBy;
+    options.defaultOrderBy = resolveOrderByFields(config.defaultOrderBy, dbEngine);
   }
   return options;
 }
@@ -547,7 +549,7 @@ export default function generateServerService(domain, options = {}) {
   const camel = toCamelCase(normalized) || normalized;
   const pascal = toPascalCase(normalized) || normalized;
 
-  const camelPlural = pluralArg ? toCamelCase(pluralArg) : toPlural(camel);
+  let camelPlural = pluralArg ? toCamelCase(pluralArg) : toPlural(camel);
   const pascalPlural = pluralArg ? toPascalCase(pluralArg) : toPlural(pascal);
 
   const baseTemplateDir = resolveFeatureTemplatePath("services", "server");
@@ -561,20 +563,28 @@ export default function generateServerService(domain, options = {}) {
   let relationDomainImports = [];
   let hasMediaUploader = false;
   let isEmptyCreateSchema = false;
+  let domainConfig = null;
 
   if (fs.existsSync(configPath)) {
-    const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    dbEngine = cfg.dbEngine || "";
-    const composed = composeServiceOptions(cfg, pascal, camel);
+    domainConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    dbEngine = domainConfig.dbEngine || "";
+    const composed = composeServiceOptions(domainConfig, pascal, camel);
     serviceOptionsLiteral = composed.optionsLiteral;
     relationImports = composed.relationTableImports;
     belongsToManyLiteral = composed.belongsToManyLiteral;
     relationDomainImports = composed.relationDomainImports || [];
-    hasMediaUploader = Array.isArray(cfg.fields) && cfg.fields.some((f) => f.fieldType === "mediaUploader");
-    isEmptyCreateSchema = hasEmptyCreateSchema(cfg);
+    hasMediaUploader = Array.isArray(domainConfig.fields) && domainConfig.fields.some((f) => f.fieldType === "mediaUploader");
+    isEmptyCreateSchema = hasEmptyCreateSchema(domainConfig);
   }
 
   if (dbEngineArg) dbEngine = dbEngineArg;
+
+  // Firestore: コレクションパスを firestore.ts の collectionPath と一致させる
+  // firestore.ts は config.plural をそのまま使うため、__domains__ トークンも同じ値にする
+  if (dbEngine === "Firestore") {
+    const plural = domainConfig?.plural || pluralArg || `${normalized}s`;
+    camelPlural = plural;
+  }
 
   const templateDir = baseTemplateDir;
   const outputDir = path.join(camelDir, "services", "server");

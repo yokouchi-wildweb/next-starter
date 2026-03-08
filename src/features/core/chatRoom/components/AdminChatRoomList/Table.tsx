@@ -5,7 +5,10 @@
 import type { ChatRoom } from "@/features/core/chatRoom/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud";
-import config from "@/features/core/chatRoom/domain.json";
+import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawConfig from "@/features/core/chatRoom/domain.json";
+
+const config = normalizeDomainJsonConfig(rawConfig);
 import presenters from "@/features/core/chatRoom/presenters";
 import { useState } from "react";
 import ChatRoomDetailModal from "../common/ChatRoomDetailModal";

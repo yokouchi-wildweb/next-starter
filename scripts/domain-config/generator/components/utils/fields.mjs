@@ -56,7 +56,10 @@ import type {
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
-${useRelationImport}import domainConfig from "@/features/__domain__/domain.json";
+${useRelationImport}import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawDomainConfig from "@/features/__domain__/domain.json";
+
+const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
 export type __Domain__FieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

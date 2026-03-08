@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../../src/utils/stringCase.mjs";
+import { resolveFieldName } from "../utils/fieldName.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +39,7 @@ if (!fs.existsSync(templatePath)) {
 }
 
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+const dbEngine = config.dbEngine || '';
 
 const buildOptionsMap = (options = []) => {
   return options
@@ -93,7 +95,7 @@ const presenterEntries = (config.fields ?? [])
     if (formatter === null) {
       return null;
     }
-    return `  ${field.name}: ({ value, field, record }) => ${formatter},`;
+    return `  ${resolveFieldName(field.name, dbEngine)}: ({ value, field, record }) => ${formatter},`;
   })
   .filter((entry) => entry !== null);
 
