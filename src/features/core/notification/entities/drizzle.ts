@@ -1,6 +1,6 @@
 // src/features/notification/entities/drizzle.ts
 
-import { pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { foreignKey, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { NotificationTemplateTable } from "@/features/notificationTemplate/entities/drizzle";
 
 export const NotificationTargetTypeEnum = pgEnum("notification_target_type_enum", ["all", "role", "individual"]);
@@ -8,8 +8,7 @@ export const NotificationSenderTypeEnum = pgEnum("notification_sender_type_enum"
 
 export const NotificationTable = pgTable("notifications", {
   id: uuid("id").defaultRandom().primaryKey(),
-  notification_template_id: uuid("notification_template_id")
-    .references(() => NotificationTemplateTable.id, { onDelete: "set null" }),
+  notification_template_id: uuid("notification_template_id"),
   title: text("title").notNull(),
   body: text("body").notNull(),
   target_type: NotificationTargetTypeEnum("target_type").notNull(),
@@ -20,4 +19,11 @@ export const NotificationTable = pgTable("notifications", {
   published_at: timestamp("published_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+}, (table) => [
+  // FK制約名の自動短縮（PostgreSQL 63文字制限対応）
+  foreignKey({
+    name: "notifications_notification_template_id_fk",
+    columns: [table.notification_template_id],
+    foreignColumns: [NotificationTemplateTable.id],
+  }).onDelete("set null")
+]);

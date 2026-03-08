@@ -1,25 +1,26 @@
 // src/registry/domainConfigRegistry.ts
 
+// --- Core imports ---
+import userConfig from "@/features/user/domain.json";
+import couponConfig from "@/features/coupon/domain.json";
+import couponHistoryConfig from "@/features/couponHistory/domain.json";
+import rateLimitConfig from "@/features/rateLimit/domain.json";
+import userTagConfig from "@/features/userTag/domain.json";
+import referralConfig from "@/features/referral/domain.json";
+import referralRewardConfig from "@/features/referralReward/domain.json";
+import milestoneConfig from "@/features/milestone/domain.json";
+import notificationConfig from "@/features/notification/domain.json";
+import notificationTemplateConfig from "@/features/notificationTemplate/domain.json";
+
+// --- Auto-generated imports ---
 import sampleConfig from "@/features/sample/domain.json";
 import sampleCategoryConfig from "@/features/sampleCategory/domain.json";
 import sampleTagConfig from "@/features/sampleTag/domain.json";
-import couponConfig from "@/features/core/coupon/domain.json";
-import couponHistoryConfig from "@/features/core/couponHistory/domain.json";
-import userConfig from "@/features/core/user/domain.json";
-import rateLimitConfig from "@/features/core/rateLimit/domain.json";
-import userTagConfig from "@/features/core/userTag/domain.json";
-import referralConfig from "@/features/core/referral/domain.json";
-import referralRewardConfig from "@/features/core/referralReward/domain.json";
-import milestoneConfig from "@/features/core/milestone/domain.json";
-import notificationConfig from "@/features/core/notification/domain.json";
-import notificationTemplateConfig from "@/features/core/notificationTemplate/domain.json";
 
 export const domainConfigMap = {
 
-  // --- AUTO-GENERATED-START ---
-  sample: sampleConfig,
-  sample_category: sampleCategoryConfig,
-  sample_tag: sampleTagConfig,
+  // --- CORE DOMAINS (手動管理) ---
+  user: userConfig,
   coupon: couponConfig,
   coupon_history: couponHistoryConfig,
   rate_limit: rateLimitConfig,
@@ -29,10 +30,12 @@ export const domainConfigMap = {
   milestone: milestoneConfig,
   notification: notificationConfig,
   notification_template: notificationTemplateConfig,
-  // --- AUTO-GENERATED-END ---
 
-  // --- CORE DOMAINS (手動管理) ---
-  user: userConfig,
+  // --- AUTO-GENERATED-START ---
+  sample: sampleConfig,
+  sample_category: sampleCategoryConfig,
+  sample_tag: sampleTagConfig,
+  // --- AUTO-GENERATED-END ---
 
 } as const;
 

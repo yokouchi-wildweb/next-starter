@@ -3,29 +3,30 @@
 // example
 // export * from "@/features/xxx/entities/drizzle";
 
-export * from "@/features/core/userActionLog/entities/drizzle";
-export * from "@/features/core/analytics/entities/drizzle";
+// --- CORE DOMAINS (手動管理) ---
+export * from "@/features/userActionLog/entities/drizzle";
+export * from "@/features/analytics/entities/drizzle";
 export * from "@/registry/profileTableRegistry";
+export * from "@/features/user/entities/drizzle";
+export * from "@/features/setting/entities/drizzle";
+export * from "@/features/wallet/entities/drizzle";
+export * from "@/features/walletHistory/entities/drizzle";
+export * from "@/features/purchaseRequest/entities/drizzle";
+export * from "@/features/coupon/entities/drizzle";
+export * from "@/features/couponHistory/entities/drizzle";
+export * from "@/features/rateLimit/entities/drizzle";
+export * from "@/features/userTag/entities/drizzle";
+export * from "@/features/referral/entities/drizzle";
+export * from "@/features/referralReward/entities/drizzle";
+export * from "@/features/milestone/entities/drizzle";
+export * from "@/features/notification/entities/drizzle";
+export * from "@/features/notification/entities/notificationRead";
+export * from "@/features/notificationTemplate/entities/drizzle";
 
 // --- AUTO-GENERATED-START ---
-export * from "@/features/core/user/entities/drizzle";
-export * from "@/features/core/setting/entities/drizzle";
-export * from "@/features/core/wallet/entities/drizzle";
-export * from "@/features/core/walletHistory/entities/drizzle";
-export * from "@/features/core/purchaseRequest/entities/drizzle";
 export * from "@/features/sample/entities/drizzle";
 export * from "@/features/sampleCategory/entities/drizzle";
 export * from "@/features/sampleTag/entities/drizzle";
-export * from "@/features/core/coupon/entities/drizzle";
-export * from "@/features/core/couponHistory/entities/drizzle";
-export * from "@/features/core/rateLimit/entities/drizzle";
-export * from "@/features/core/userTag/entities/drizzle";
-export * from "@/features/core/referral/entities/drizzle";
-export * from "@/features/core/referralReward/entities/drizzle";
-export * from "@/features/core/milestone/entities/drizzle";
-export * from "@/features/core/notification/entities/drizzle";
-export * from "@/features/core/notification/entities/notificationRead";
-export * from "@/features/core/notificationTemplate/entities/drizzle";
 // --- AUTO-GENERATED-END ---
 
 export {};

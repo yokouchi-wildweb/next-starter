@@ -62,6 +62,7 @@ ref: src/stores/README.md
 ## DOMAINS
 core: src/features/core/, no domain.json, manual. examples: auth, user, wallet, setting, mail
 business: src/features/, has domain.json, dc:generate. examples: sample, sampleCategory, sampleTag
+path_alias: tsconfig paths maps @/features/\<coreDomain\>/* → @/features/core/\<coreDomain\>/*. omit core/ in imports (preferred)
 
 commands: dc:init | dc:generate -- \<Domain\> | dc:generate:all | dc:delete -- \<Domain\> | dc:add -- \<Domain\>
 config_utils: src/lib/domain/ | getDomainConfig(domain), extractFields(config), getRelations(domain) | client: index.ts, server: server.ts
