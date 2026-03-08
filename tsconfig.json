@@ -25,11 +25,27 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@/features/user/*": ["./src/features/core/user/*"],
-      "@/features/wallet/*": ["./src/features/core/wallet/*"],
-      "@/features/walletHistory/*": ["./src/features/core/walletHistory/*"],
+      "@/features/adminCommand/*": ["./src/features/core/adminCommand/*"],
+      "@/features/analytics/*": ["./src/features/core/analytics/*"],
+      "@/features/auth/*": ["./src/features/core/auth/*"],
+      "@/features/coupon/*": ["./src/features/core/coupon/*"],
+      "@/features/couponHistory/*": ["./src/features/core/couponHistory/*"],
+      "@/features/insane/*": ["./src/features/core/insane/*"],
+      "@/features/mail/*": ["./src/features/core/mail/*"],
+      "@/features/milestone/*": ["./src/features/core/milestone/*"],
+      "@/features/notification/*": ["./src/features/core/notification/*"],
+      "@/features/notificationTemplate/*": ["./src/features/core/notificationTemplate/*"],
       "@/features/purchaseRequest/*": ["./src/features/core/purchaseRequest/*"],
-      "@/features/setting/*": ["./src/features/core/setting/*"]
+      "@/features/rateLimit/*": ["./src/features/core/rateLimit/*"],
+      "@/features/referral/*": ["./src/features/core/referral/*"],
+      "@/features/referralReward/*": ["./src/features/core/referralReward/*"],
+      "@/features/setting/*": ["./src/features/core/setting/*"],
+      "@/features/user/*": ["./src/features/core/user/*"],
+      "@/features/userActionLog/*": ["./src/features/core/userActionLog/*"],
+      "@/features/userProfile/*": ["./src/features/core/userProfile/*"],
+      "@/features/userTag/*": ["./src/features/core/userTag/*"],
+      "@/features/wallet/*": ["./src/features/core/wallet/*"],
+      "@/features/walletHistory/*": ["./src/features/core/walletHistory/*"]
     }
   },
   "include": [
