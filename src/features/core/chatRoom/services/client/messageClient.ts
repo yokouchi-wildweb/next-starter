@@ -29,6 +29,21 @@ import { collectionPath } from "@/features/chatRoom/entities/firestore";
 import { MESSAGES_PER_PAGE } from "@/features/chatRoom/constants/chat";
 
 // ---------------------------------------------------------------------------
+// ユーティリティ
+// ---------------------------------------------------------------------------
+
+/**
+ * メッセージ ID を事前生成する。
+ *
+ * 楽観的UI で PendingMessage.id と Firestore ドキュメント ID を
+ * 一致させるために使用する。
+ */
+export function generateMessageId(roomId: string): string {
+  const messagesRef = collection(fstore, messagesSubcollectionPath(roomId));
+  return doc(messagesRef).id;
+}
+
+// ---------------------------------------------------------------------------
 // 型定義
 // ---------------------------------------------------------------------------
 
@@ -37,6 +52,8 @@ export type SendTextMessageParams = {
   roomId: string;
   content: string;
   senderId: string;
+  /** 事前生成したメッセージ ID（楽観的UI 用） */
+  messageId?: string;
 };
 
 /** ファイル/画像メッセージ送信パラメータ */
@@ -48,6 +65,8 @@ export type SendFileMessageParams = {
   type: Extract<MessageType, "image" | "file">;
   senderId: string;
   metadata: MessageMetadata;
+  /** 事前生成したメッセージ ID（楽観的UI 用） */
+  messageId?: string;
 };
 
 /** 過去メッセージ取得の結果 */
@@ -76,13 +95,14 @@ export type FetchMessagesResult = {
 export async function sendTextMessage(
   params: SendTextMessageParams,
 ): Promise<string> {
-  const { roomId, content, senderId } = params;
+  const { roomId, content, senderId, messageId } = params;
   return sendMessage({
     roomId,
     type: "text",
     content,
     senderId,
     metadata: null,
+    messageId,
   });
 }
 
@@ -97,13 +117,14 @@ export async function sendTextMessage(
 export async function sendFileMessage(
   params: SendFileMessageParams,
 ): Promise<string> {
-  const { roomId, type, content, senderId, metadata } = params;
+  const { roomId, type, content, senderId, metadata, messageId } = params;
   return sendMessage({
     roomId,
     type,
     content,
     senderId,
     metadata,
+    messageId,
   });
 }
 
@@ -179,6 +200,8 @@ type SendMessageInternalParams = {
   content: string;
   senderId: string;
   metadata: MessageMetadata | null;
+  /** 事前生成したメッセージ ID（楽観的UI 用。省略時は自動生成） */
+  messageId?: string;
 };
 
 /**
@@ -191,10 +214,10 @@ type SendMessageInternalParams = {
 async function sendMessage(
   params: SendMessageInternalParams,
 ): Promise<string> {
-  const { roomId, type, content, senderId, metadata } = params;
+  const { roomId, type, content, senderId, metadata, messageId } = params;
 
   const messagesRef = collection(fstore, messagesSubcollectionPath(roomId));
-  const messageRef = doc(messagesRef);
+  const messageRef = messageId ? doc(messagesRef, messageId) : doc(messagesRef);
   const roomRef = doc(fstore, collectionPath, roomId);
 
   const snapshotData = {
