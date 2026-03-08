@@ -4,6 +4,7 @@ import { type CSSProperties, type ReactNode } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
+import UnreadNotificationModal from "@/features/notification/components/common/UnreadNotificationModal";
 
 import { BottomNavVisibilityProvider } from "../contexts/BottomNavVisibilityContext";
 import { BackgroundLayer } from "./BackgroundLayer";
@@ -64,6 +65,7 @@ export const UserAppLayout = ({
               <UserFooter />
               <BottomNavSpacer />
               <UserBottomNav />
+              <UnreadNotificationModal />
             </Flex>
           </BottomNavVisibilityProvider>
         </FooterVisibilityProvider>

@@ -5,13 +5,11 @@
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
-import { DataMigrationButton } from "@/lib/dataMigration";
 import { useSearchParams } from "next/navigation";
 import config from "@/features/notification/domain.json";
 import { CreateButton } from "@/lib/crud";
-import { getAdminPaths } from "@/lib/crud/utils";
+import { Send } from "lucide-react";
 
-const paths = getAdminPaths("notifications");
 const hasSearch = Array.isArray(config.searchFields) && config.searchFields.length > 0;
 
 export type AdminNotificationListHeaderProps = {
@@ -24,11 +22,8 @@ export default function AdminNotificationListHeader({ page, perPage, total }: Ad
   const params = useSearchParams();
 
   return (
-    <ListTop title="登録済みお知らせの一覧">
-      {hasSearch && <SearchBox makeHref={(p) => `${paths.list}?${p.toString()}`} />}
-      {"useImportExport" in config && config.useImportExport === true && (
-        <DataMigrationButton domain={config.singular} searchParams={params.toString()} />
-      )}
+    <ListTop title="送信済みお知らせの一覧">
+      {hasSearch && <SearchBox makeHref={(p) => `/admin/notifications?${p.toString()}`} />}
       <Pagination
         page={page}
         perPage={perPage}
@@ -36,10 +31,10 @@ export default function AdminNotificationListHeader({ page, perPage, total }: Ad
         makeHref={(p) => {
           const search = new URLSearchParams(params.toString());
           search.set("page", String(p));
-          return `${paths.list}?${search.toString()}`;
+          return `/admin/notifications?${search.toString()}`;
         }}
       />
-      <CreateButton domain="notification" />
+      <CreateButton label="新規送信" icon={Send} href="/admin/notifications/send" />
     </ListTop>
   );
 }

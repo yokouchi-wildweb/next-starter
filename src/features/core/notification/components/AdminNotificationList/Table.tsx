@@ -4,7 +4,7 @@
 
 import type { Notification } from "@/features/notification/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { EditButton, DeleteButton } from "@/lib/crud";
+import { DeleteButton } from "@/lib/crud";
 import config from "@/features/notification/domain.json";
 import presenters from "@/features/notification/presenters";
 import { buildDomainColumns } from "@/lib/crud";
@@ -28,7 +28,6 @@ const columns: DataTableColumn<Notification>[] = buildDomainColumns<Notification
     header: "操作",
     render: (d: Notification) => (
       <TableCellAction>
-        <EditButton domain="notification" id={d.id} />
         <DeleteButton domain="notification" id={d.id} />
       </TableCellAction>
     ),

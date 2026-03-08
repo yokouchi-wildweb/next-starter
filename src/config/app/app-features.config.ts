@@ -136,6 +136,14 @@ export const APP_FEATURES = {
       /** 紹介機能を有効にする */
       enabled: true,
     },
+    notification: {
+      /** 管理者による全体配信を有効にする（false: 管理画面メニュー非表示・ページ404） */
+      enableAdminBroadcast: false,
+      /** ユーザー側に未読通知モーダルを表示する */
+      showUnreadModal: false,
+      /** 未読通知モーダルを表示するパス一覧（前方一致） */
+      unreadModalPaths: ["/"] as readonly string[],
+    },
   },
   demo: {
     /** デモページ（/demo配下）を有効にする */

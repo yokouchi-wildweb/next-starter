@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic";
 
+import { sql } from "drizzle-orm";
 import { notificationService } from "@/features/notification/services/server/notificationService";
-
-import { settingService } from "../../../../features/core/setting/services/server/settingService";
+import { NotificationTable } from "@/features/notification/entities/drizzle";
+import { settingService } from "@/features/setting/services/server/settingService";
 import type { ListPageSearchParams } from "@/lib/crud";
 import AdminNotificationList from "@/features/notification/components/AdminNotificationList";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
@@ -20,7 +21,16 @@ export default async function AdminNotificationListPage({ searchParams }: Props)
   const { page: pageStr, searchQuery } = await searchParams;
   const page = Number(pageStr ?? "1");
   const limit = await settingService.getAdminListPerPage();
-  const { results: notifications, total } = await notificationService.search({ page, limit, searchQuery });
+
+  // 管理者が全員向けに送信したお知らせのみ表示
+  const extraWhere = sql`${NotificationTable.target_type} = 'all' AND ${NotificationTable.sender_type} = 'admin'`;
+
+  const { results: notifications, total } = await notificationService.search({
+    page,
+    limit,
+    searchQuery,
+    extraWhere,
+  });
 
   return (
     <AdminPage>

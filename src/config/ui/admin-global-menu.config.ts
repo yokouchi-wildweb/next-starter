@@ -14,6 +14,7 @@ import {
   LogOut,
   Megaphone,
   Ticket,
+  Bell,
 } from "lucide-react";
 
 // ============================================
@@ -65,6 +66,9 @@ export const adminMenu: AdminMenuSection[] = [
           href: null,
           icon: Megaphone,
           items: [
+            ...(APP_FEATURES.marketing.notification.enableAdminBroadcast
+              ? [{ title: "お知らせ", href: "/admin/notifications", icon: Bell }]
+              : []),
             ...(APP_FEATURES.marketing.coupon.enabled
               ? [{ title: "クーポン", href: "/admin/coupons/official", icon: Ticket }]
               : []),

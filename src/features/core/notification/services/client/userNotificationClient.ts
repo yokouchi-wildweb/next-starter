@@ -63,3 +63,23 @@ export async function markAllAsRead(): Promise<void> {
     throw normalizeHttpError(error);
   }
 }
+
+// --- 管理者向け ---
+
+export type SendNotificationInput = {
+  title?: string | null;
+  body: string;
+  image?: string | null;
+  targetType: "all" | "role" | "individual";
+  targetUserIds?: string[] | null;
+  targetRoles?: string[] | null;
+  publishedAt?: string | null;
+};
+
+export async function sendNotification(input: SendNotificationInput): Promise<void> {
+  try {
+    await axios.post("/api/notification/send", input);
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}

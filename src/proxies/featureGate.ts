@@ -65,6 +65,11 @@ const FEATURE_GATE_RULES: FeatureGateRule[] = [
     pathPatterns: ["/admin/user-tags", "/api/userTag"],
     isEnabled: () => APP_FEATURES.user.enableUserTag,
   },
+  // マーケティング > お知らせ
+  {
+    pathPatterns: ["/admin/notifications", "/api/notification/send"],
+    isEnabled: () => APP_FEATURES.marketing.notification.enableAdminBroadcast,
+  },
 ];
 
 /**
