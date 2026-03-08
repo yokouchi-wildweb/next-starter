@@ -3,6 +3,6 @@
 "use client";
 
 import { useRestoreDomain } from "@/lib/crud/hooks";
-import { chatRoomClient } from "../services/client/chatRoomClient";
+import { chatRoomClient } from "../services/client/chatRoomApiClient";
 
 export const useRestoreChatRoom = () => useRestoreDomain("chatRooms/restore", chatRoomClient.restore!, "chatRooms");

@@ -3,6 +3,6 @@
 "use client";
 
 import { useDeleteDomain } from "@/lib/crud/hooks";
-import { chatRoomClient } from "../services/client/chatRoomClient";
+import { chatRoomClient } from "../services/client/chatRoomApiClient";
 
 export const useDeleteChatRoom = () => useDeleteDomain("chatRooms/delete", chatRoomClient.delete, "chatRooms");

@@ -3,7 +3,7 @@
 "use client";
 
 import { useUpsertDomain } from "@/lib/crud/hooks";
-import { chatRoomClient } from "../services/client/chatRoomClient";
+import { chatRoomClient } from "../services/client/chatRoomApiClient";
 import type { ChatRoom } from "../entities";
 import type { ChatRoomCreateFields } from "../entities/form";
 
