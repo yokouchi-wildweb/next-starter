@@ -2,7 +2,12 @@
 
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 // Firebase configuration
@@ -19,7 +24,18 @@ const firebaseConfig = {
 // Initialize Firebase (client side)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const fstore = getFirestore(app);
+// initializeFirestore は同一アプリに対して1回しか呼べない。
+// 開発時のホットリロードでモジュールが再評価された場合は getFirestore にフォールバックする。
+let fstore: ReturnType<typeof getFirestore>;
+try {
+  fstore = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
+  });
+} catch {
+  fstore = getFirestore(app);
+}
 const storage = getStorage(app);
 
 export { app, auth, fstore, storage };

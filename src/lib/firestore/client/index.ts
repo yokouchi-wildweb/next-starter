@@ -1,0 +1,10 @@
+export { executeBatch } from "./batch";
+export type { BatchOperation } from "./batch";
+export { convertTimestamps } from "./converter";
+export { normalizeFirestoreError } from "./errors";
+export { getDoc, queryDocs, setDoc, updateDoc, deleteDoc } from "./operations";
+export type { QueryResult } from "./operations";
+export { subscribeCollection, subscribeCollectionChanges, subscribeDoc } from "./subscribe";
+export type { CollectionChangesSnapshot, DocChange, SubscribeOptions } from "./subscribe";
+export { executeTransaction } from "./transaction";
+export type { TransactionContext } from "./transaction";
