@@ -3,7 +3,7 @@
 "use client";
 
 import { useBulkDeleteByQueryDomain } from "@/lib/crud/hooks";
-import { chatRoomClient } from "../services/client/chatRoomApiClient";
+import { chatRoomClient } from "../services/client/chatRoomClient";
 
 export const useBulkDeleteByQueryChatRoom = () => {
   const bulkDeleteByQuery = chatRoomClient.bulkDeleteByQuery;
