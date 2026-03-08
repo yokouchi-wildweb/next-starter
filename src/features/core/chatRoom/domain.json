@@ -1,0 +1,72 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "chat_room",
+  "plural": "chat_rooms",
+  "label": "チャットルーム",
+  "dbEngine": "Firestore",
+  "idType": "string",
+  "relations": [],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "useSoftDelete": true,
+  "fields": [
+    {
+      "name": "type",
+      "label": "種別",
+      "fieldType": "string",
+      "formInput": "select",
+      "required": true,
+      "options": [
+        { "value": "direct", "label": "ダイレクト" },
+        { "value": "group", "label": "グループ" }
+      ]
+    },
+    {
+      "name": "name",
+      "label": "ルーム名",
+      "fieldType": "string",
+      "formInput": "textInput",
+      "required": false
+    },
+    {
+      "name": "participants",
+      "label": "参加者",
+      "fieldType": "array",
+      "formInput": "none"
+    },
+    {
+      "name": "participant_pair",
+      "label": "参加者ペアキー",
+      "fieldType": "string",
+      "formInput": "none"
+    },
+    {
+      "name": "read_at",
+      "label": "既読時刻",
+      "fieldType": "map",
+      "formInput": "none"
+    },
+    {
+      "name": "last_message_snapshot",
+      "label": "最新メッセージ",
+      "fieldType": "map",
+      "formInput": "none"
+    }
+  ],
+  "searchFields": ["name"],
+  "defaultOrderBy": [["updated_at", "DESC"]],
+  "tableFields": ["type", "name", "participants", "updated_at"],
+  "useDetailModal": true,
+  "addToAdminDataMenu": true,
+  "generateFiles": {
+    "entities": true,
+    "components": true,
+    "hooks": true,
+    "clientServices": true,
+    "serverServices": true,
+    "adminRoutes": true,
+    "registry": true,
+    "fieldConstants": true,
+    "presenters": true
+  }
+}

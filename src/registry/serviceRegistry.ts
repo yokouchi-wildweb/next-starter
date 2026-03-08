@@ -20,6 +20,7 @@ import { notificationTemplateService } from "@/features/notificationTemplate/ser
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
+import { chatRoomService } from "@/features/core/chatRoom/services/server/chatRoomService";
 
 export const serviceRegistry: Record<string, any> = {
 
@@ -43,6 +44,7 @@ export const serviceRegistry: Record<string, any> = {
   sample: sampleService,
   sampleCategory: sampleCategoryService,
   sampleTag: sampleTagService,
+  chatRoom: chatRoomService,
   // --- AUTO-GENERATED-END ---
 
 };
