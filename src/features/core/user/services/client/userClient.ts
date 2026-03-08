@@ -50,6 +50,7 @@ async function hardDelete(userId: string, data?: HardDeleteInput): Promise<void>
 
 export type UpdateMyProfileInput = {
   name: string;
+  profileData?: Record<string, unknown>;
 };
 
 async function updateMyProfile(data: UpdateMyProfileInput): Promise<User> {

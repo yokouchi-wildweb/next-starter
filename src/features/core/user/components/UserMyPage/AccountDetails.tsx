@@ -51,9 +51,9 @@ export function AccountDetails({ user }: AccountDetailsProps) {
         <AccountPageHeader title="アカウント基本情報" backHref="/mypage" />
         <div className="grid grid-cols-1 gap-3">
           <AccountDetailItem
-            href="/mypage/account/name"
+            href="/mypage/account/profile"
             icon={UserPenIcon}
-            label="ユーザー名"
+            label="プロフィール"
             value={user.name ?? "未設定"}
           />
           <AccountDetailItem
