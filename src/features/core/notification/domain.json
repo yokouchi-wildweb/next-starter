@@ -89,6 +89,13 @@
       "required": false
     },
     {
+      "name": "metadata",
+      "label": "メタデータ",
+      "fieldType": "jsonb",
+      "formInput": "none",
+      "required": false
+    },
+    {
       "name": "published_at",
       "label": "公開日時",
       "fieldType": "timestamp With Time Zone",

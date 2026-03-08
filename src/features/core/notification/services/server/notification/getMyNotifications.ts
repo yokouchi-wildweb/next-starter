@@ -14,6 +14,7 @@ export type MyNotification = {
   body: string;
   image: string | null;
   senderType: "admin" | "system";
+  metadata: Record<string, unknown> | null;
   publishedAt: Date;
   readAt: Date | null;
 };
@@ -45,6 +46,7 @@ export async function getMyNotifications(
       body: NotificationTable.body,
       image: NotificationTable.image,
       senderType: NotificationTable.sender_type,
+      metadata: NotificationTable.metadata,
       publishedAt: NotificationTable.published_at,
       readAt: NotificationReadTable.readAt,
     })

@@ -15,6 +15,7 @@ type SendDirectInput = {
   targetRoles?: string[] | null;
   senderType: "admin" | "system";
   createdById?: string | null;
+  metadata?: Record<string, unknown> | null;
   publishedAt?: Date | null;
 };
 
@@ -33,6 +34,7 @@ export async function sendDirect(input: SendDirectInput): Promise<Notification> 
       target_roles: input.targetType === "role" ? input.targetRoles : null,
       sender_type: input.senderType,
       created_by_id: input.createdById ?? null,
+      metadata: input.metadata ?? null,
       published_at: input.publishedAt ?? new Date(),
     })
     .returning();

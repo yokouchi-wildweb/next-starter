@@ -13,6 +13,7 @@ export type Notification = {
   target_roles: string[] | null;
   sender_type: 'admin' | 'system';
   created_by_id: string | null;
+  metadata: Record<string, unknown> | null;
   published_at: Date;
   createdAt: Date | null;
   updatedAt: Date | null;

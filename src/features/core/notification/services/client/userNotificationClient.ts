@@ -1,4 +1,4 @@
-// src/features/core/notification/services/client/myNotifications.ts
+// src/features/core/notification/services/client/userNotificationClient.ts
 // ユーザー向けお知らせ取得・既読操作のクライアントサービス
 
 import axios from "axios";
@@ -10,6 +10,7 @@ export type MyNotification = {
   body: string;
   image: string | null;
   senderType: "admin" | "system";
+  metadata: Record<string, unknown> | null;
   publishedAt: string;
   readAt: string | null;
 };
