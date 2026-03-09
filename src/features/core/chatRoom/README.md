@@ -444,8 +444,8 @@ onSnapshot で実メッセージ到着 → ID 一致で pending 除去
 ### 未読管理
 
 - `isRoomUnread(room, uid)` = `lastMessageSnapshot.createdAt > readAt[uid]`
-- `readAt` はチャット画面を開いた時に `useReadAt` で更新
-- 一覧画面では更新しない（既読にならない）
+- `countUnreadRooms(rooms, uid)` で未読ルーム数を取得
+- `readAt` はチャット画面の入室時と退出時に `useReadAt` で更新
 
 ### ファイルアップロード
 
