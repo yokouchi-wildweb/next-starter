@@ -15,10 +15,12 @@ import { useMessageSendingStore } from "@/features/chatRoom/stores/messageSendin
 
 /** 表示用メッセージ。実メッセージまたは pending メッセージ。 */
 export type DisplayMessage = {
-  /** メッセージデータ（実メッセージまたは pending の共通フィールド） */
+  /** メッセージデータ */
   message: ChatMessage;
   /** pending メッセージの場合の送信状態（実メッセージの場合は undefined） */
   sendingStatus?: PendingMessage["status"];
+  /** アップロード進捗（ファイル送信の uploading 時のみ） */
+  uploadProgress?: PendingMessage["uploadProgress"];
   /** pending メッセージかどうか */
   isPending: boolean;
 };
@@ -47,8 +49,8 @@ export function useMergedMessages(
 
     const realIds = new Set(messages.map((m) => m.id));
     for (const pending of pendingMessages) {
-      if (pending.status === "sent" && realIds.has(pending.id)) {
-        removePending(pending.id);
+      if (pending.status === "sent" && realIds.has(pending.message.id)) {
+        removePending(pending.message.id);
       }
     }
   }, [messages, pendingMessages, removePending]);
@@ -64,17 +66,11 @@ export function useMergedMessages(
 
     // 実メッセージと重複しない pending を末尾に追加
     const pendingDisplay: DisplayMessage[] = pendingMessages
-      .filter((p) => !realIds.has(p.id))
+      .filter((p) => !realIds.has(p.message.id))
       .map((p) => ({
-        message: {
-          id: p.id,
-          type: p.type,
-          content: p.content,
-          senderId: p.senderId,
-          metadata: p.metadata,
-          createdAt: p.createdAt,
-        },
+        message: p.message,
         sendingStatus: p.status,
+        uploadProgress: p.uploadProgress,
         isPending: true,
       }));
 

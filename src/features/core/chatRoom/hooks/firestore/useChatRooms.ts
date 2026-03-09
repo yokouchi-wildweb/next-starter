@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import type { ChatRoom } from "@/features/chatRoom/entities";
+import type { SubscribeRoomsOptions } from "@/features/chatRoom/services/client/firestoreClient";
 import { subscribeRooms } from "@/features/chatRoom/services/client/firestoreClient";
 
 export type UseChatRoomsReturn = {
@@ -18,8 +19,9 @@ export type UseChatRoomsReturn = {
  * ユーザーが参加しているルーム一覧をリアルタイム購読する。
  *
  * lastMessageSnapshot.createdAt 降順でソートされた状態で返される。
+ * options.type を指定すると、そのタイプのルームのみに絞り込む。
  */
-export function useChatRooms(uid: string | null): UseChatRoomsReturn {
+export function useChatRooms(uid: string | null, options?: SubscribeRoomsOptions): UseChatRoomsReturn {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -47,10 +49,11 @@ export function useChatRooms(uid: string | null): UseChatRoomsReturn {
         setIsLoading(false);
       },
       handleError,
+      options,
     );
 
     return unsubscribe;
-  }, [uid, handleError]);
+  }, [uid, handleError, options?.type]);
 
   return { rooms, isLoading, error };
 }

@@ -32,7 +32,7 @@ export type UseMessageSendingStoreReturn = {
  */
 export function useMessageSendingStore(roomId: string | null): UseMessageSendingStoreReturn {
   const pendingByRoom = internalStore((s) => s.pendingByRoom);
-  const addPending = internalStore((s) => s.addPending);
+  const storeAddPending = internalStore((s) => s.addPending);
   const updateStatus = internalStore((s) => s.updateStatus);
   const updateProgress = internalStore((s) => s.updateProgress);
   const removePending = internalStore((s) => s.removePending);
@@ -42,6 +42,13 @@ export function useMessageSendingStore(roomId: string | null): UseMessageSending
   const pendingMessages = useMemo(
     () => (roomId ? pendingByRoom[roomId] ?? [] : []),
     [pendingByRoom, roomId],
+  );
+
+  const addPending = useCallback(
+    (message: PendingMessage) => {
+      if (roomId) storeAddPending(roomId, message);
+    },
+    [roomId, storeAddPending],
   );
 
   const clearSent = useCallback(() => {

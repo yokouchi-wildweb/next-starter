@@ -12,7 +12,7 @@ type MessageSendingState = {
   pendingByRoom: Record<string, PendingMessage[]>;
 
   /** 送信中メッセージを追加する */
-  addPending: (message: PendingMessage) => void;
+  addPending: (roomId: string, message: PendingMessage) => void;
 
   /** メッセージの送信状態を更新する */
   updateStatus: (id: string, status: MessageSendingStatus) => void;
@@ -33,13 +33,13 @@ type MessageSendingState = {
 export const internalStore = create<MessageSendingState>((set) => ({
   pendingByRoom: {},
 
-  addPending: (message) =>
+  addPending: (roomId, message) =>
     set((state) => {
-      const roomMessages = state.pendingByRoom[message.roomId] ?? [];
+      const roomMessages = state.pendingByRoom[roomId] ?? [];
       return {
         pendingByRoom: {
           ...state.pendingByRoom,
-          [message.roomId]: [...roomMessages, message],
+          [roomId]: [...roomMessages, message],
         },
       };
     }),
@@ -49,7 +49,9 @@ export const internalStore = create<MessageSendingState>((set) => ({
       const updated: Record<string, PendingMessage[]> = {};
       for (const [roomId, messages] of Object.entries(state.pendingByRoom)) {
         updated[roomId] = messages.map((m) =>
-          m.id === id ? { ...m, status, uploadProgress: status !== "uploading" ? null : m.uploadProgress } : m,
+          m.message.id === id
+            ? { ...m, status, uploadProgress: status !== "uploading" ? null : m.uploadProgress }
+            : m,
         );
       }
       return { pendingByRoom: updated };
@@ -60,7 +62,7 @@ export const internalStore = create<MessageSendingState>((set) => ({
       const updated: Record<string, PendingMessage[]> = {};
       for (const [roomId, messages] of Object.entries(state.pendingByRoom)) {
         updated[roomId] = messages.map((m) =>
-          m.id === id ? { ...m, uploadProgress: progress } : m,
+          m.message.id === id ? { ...m, uploadProgress: progress } : m,
         );
       }
       return { pendingByRoom: updated };
@@ -70,7 +72,7 @@ export const internalStore = create<MessageSendingState>((set) => ({
     set((state) => {
       const updated: Record<string, PendingMessage[]> = {};
       for (const [roomId, messages] of Object.entries(state.pendingByRoom)) {
-        const filtered = messages.filter((m) => m.id !== id);
+        const filtered = messages.filter((m) => m.message.id !== id);
         if (filtered.length > 0) {
           updated[roomId] = filtered;
         }

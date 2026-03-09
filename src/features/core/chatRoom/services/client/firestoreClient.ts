@@ -142,21 +142,30 @@ export async function createGroupRoom(
 // ルーム購読
 // ---------------------------------------------------------------------------
 
+/** subscribeRooms のオプション */
+export type SubscribeRoomsOptions = {
+  /** ルームタイプでフィルタする（未指定時は全タイプ） */
+  type?: ChatRoomType;
+};
+
 /**
  * ユーザーが参加しているルーム一覧をリアルタイム購読する。
  *
  * lastMessageSnapshot.createdAt 降順でソートされる。
+ * options.type を指定すると、そのタイプのルームのみに絞り込む。
  */
 export function subscribeRooms(
   uid: string,
   callback: (rooms: ChatRoom[]) => void,
   onError?: (error: Error) => void,
+  options?: SubscribeRoomsOptions,
 ): Unsubscribe {
-  const q = query(
-    collection(fstore, collectionPath),
+  const constraints = [
     where("participants", "array-contains", uid),
+    ...(options?.type ? [where("type", "==", options.type)] : []),
     orderBy("lastMessageSnapshot.createdAt", "desc"),
-  );
+  ];
+  const q = query(collection(fstore, collectionPath), ...constraints);
   return subscribeCollection<ChatRoom>(q, callback, onError as any);
 }
 
@@ -319,10 +328,11 @@ export async function removeParticipant(params: RemoveParticipantParams): Promis
 }
 
 // ---------------------------------------------------------------------------
-// 内部関数
+// 汎用ルーム作成（ダウンストリーム拡張用）
 // ---------------------------------------------------------------------------
 
-type CreateRoomInternalParams = {
+/** createRoomWithSystemMessage のパラメータ */
+export type CreateRoomInternalParams = {
   roomId: string;
   type: ChatRoomType;
   name: string | null;
@@ -337,7 +347,7 @@ type CreateRoomInternalParams = {
  * 設計方針: lastMessageSnapshot が null になるのを防ぐため、
  * ルーム作成時に必ずシステムメッセージを同時作成する。
  */
-async function createRoomWithSystemMessage(
+export async function createRoomWithSystemMessage(
   params: CreateRoomInternalParams,
 ): Promise<CreateRoomResult> {
   const { roomId, type, name, participants, participantPair, senderId } = params;

@@ -89,6 +89,21 @@ export function useChatMessageSender(
     }
   }, []);
 
+  /** ChatMessage の共通初期値を生成する */
+  const buildBaseMessage = useCallback(
+    (messageId: string, type: MessageType, content: string, metadata: MessageMetadata | null) => ({
+      id: messageId,
+      type,
+      content,
+      senderId: senderId!,
+      metadata,
+      createdAt: new Date(),
+      editedAt: null,
+      deletedAt: null,
+    }),
+    [senderId],
+  );
+
   // -----------------------------------------------------------------------
   // テキスト送信
   // -----------------------------------------------------------------------
@@ -102,14 +117,8 @@ export function useChatMessageSender(
 
       const messageId = generateMessageId(roomId);
       const pending: PendingMessage = {
-        id: messageId,
-        roomId,
-        type: "text",
-        content,
-        senderId,
-        metadata: null,
+        message: buildBaseMessage(messageId, "text", content, null),
         status: "sending",
-        createdAt: new Date(),
       };
 
       addPending(pending);
@@ -123,7 +132,7 @@ export function useChatMessageSender(
 
       return { valid: true };
     },
-    [roomId, senderId, addPending, updateStatus],
+    [roomId, senderId, addPending, updateStatus, buildBaseMessage],
   );
 
   // -----------------------------------------------------------------------
@@ -145,14 +154,8 @@ export function useChatMessageSender(
       };
 
       const pending: PendingMessage = {
-        id: messageId,
-        roomId,
-        type,
-        content: "",
-        senderId,
-        metadata,
+        message: buildBaseMessage(messageId, type, "", metadata),
         status: "uploading",
-        createdAt: new Date(),
         uploadProgress: null,
         file,
       };
@@ -199,7 +202,7 @@ export function useChatMessageSender(
 
       return { valid: true };
     },
-    [roomId, senderId, addPending, updateStatus, updateProgress],
+    [roomId, senderId, addPending, updateStatus, updateProgress, buildBaseMessage],
   );
 
   // -----------------------------------------------------------------------
@@ -210,15 +213,17 @@ export function useChatMessageSender(
     async (pendingId: string) => {
       if (!roomId || !senderId) return;
 
-      const pending = pendingMessages.find((m) => m.id === pendingId);
+      const pending = pendingMessages.find((m) => m.message.id === pendingId);
       if (!pending || pending.status !== "failed") return;
 
-      if (pending.type === "text" || pending.type === "system") {
+      const { message } = pending;
+
+      if (message.type === "text" || message.type === "system") {
         updateStatus(pendingId, "sending");
         try {
           await sendTextMessage({
             roomId,
-            content: pending.content,
+            content: message.content,
             senderId,
             messageId: pendingId,
           });
@@ -229,17 +234,17 @@ export function useChatMessageSender(
       } else if (pending.file) {
         // ファイル再送（再アップロードから）
         removePending(pendingId);
-        sendFile(pending.file, pending.type as Extract<MessageType, "image" | "file">);
-      } else if (pending.content) {
+        sendFile(pending.file, message.type as Extract<MessageType, "image" | "file">);
+      } else if (message.content) {
         // アップロード済み・メッセージ送信のみ失敗した場合
         updateStatus(pendingId, "sending");
         try {
           await sendFileMessage({
             roomId,
-            content: pending.content,
-            type: pending.type as Extract<MessageType, "image" | "file">,
+            content: message.content,
+            type: message.type as Extract<MessageType, "image" | "file">,
             senderId,
-            metadata: pending.metadata!,
+            metadata: message.metadata!,
             messageId: pendingId,
           });
           updateStatus(pendingId, "sent");
