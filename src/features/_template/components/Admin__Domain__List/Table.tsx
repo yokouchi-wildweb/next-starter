@@ -5,13 +5,13 @@
 import type { __Domain__ } from "@/features/__domain__/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { EditButton, DeleteButton } from "@/lib/crud";
-import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
-__DUPLICATE_IMPORT__import rawConfig from "@/features/__domain__/domain.json";
-
-const config = normalizeDomainJsonConfig(rawConfig);
+__DUPLICATE_IMPORT__import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
+import rawConfig from "@/features/__domain__/domain.json";
 import presenters from "@/features/__domain__/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+
+const config = normalizeDomainJsonConfig(rawConfig);
 
 export type Admin__Domain__ListTableProps = {
   /**
