@@ -33,7 +33,7 @@ function convertTimestamps<T>(data: T): T {
   return data;
 }
 
-export type DefaultInsert<T> = Omit<T, "id" | "createdAt" | "updatedAt">;
+export type DefaultInsert<T> = Partial<Omit<T, "id" | "createdAt" | "updatedAt">>;
 
 /**
  * Create a CRUD service for the given Firestore collection.
