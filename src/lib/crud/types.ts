@@ -151,7 +151,7 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   searchForSorting?(params: SearchParams): Promise<PaginatedResult<T>>;
 };
 
-export type IdType = "uuid" | "db" | "manual";
+export type IdType = "uuid" | "db" | "manual" | "string";
 
 type BaseCrudServiceOptions = {
   /**
