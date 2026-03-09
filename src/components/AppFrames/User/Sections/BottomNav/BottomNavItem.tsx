@@ -48,7 +48,14 @@ export const BottomNavItem = ({ item }: BottomNavItemProps) => {
         isActive ? activeColorClass : "text-muted-foreground",
       )}
     >
-      <Icon className="size-6" />
+      <div className="relative">
+        <Icon className="size-6" />
+        {item.badge && (
+          <span className="absolute -top-1 -right-1">
+            {item.badge}
+          </span>
+        )}
+      </div>
       <span id={`bottom-nav-label-${item.key}`} className="text-[10px] font-medium leading-tight">{item.label}</span>
     </Link>
   );

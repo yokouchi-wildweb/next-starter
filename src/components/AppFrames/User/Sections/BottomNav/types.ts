@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 
 /**
  * ボトムナビゲーションのアイテム定義
@@ -27,4 +27,6 @@ export type BottomNavItem = {
    * 指定した場合はmatchPathsのいずれかに前方一致で判定
    */
   readonly matchPaths?: readonly string[];
+  /** アイコン右上に表示するバッジ（未読数やドットなど） */
+  readonly badge?: ReactNode;
 };
