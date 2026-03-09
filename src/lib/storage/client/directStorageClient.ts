@@ -17,7 +17,9 @@ export const directStorageClient = {
    */
   upload: async (path: string, file: Blob | File): Promise<string> => {
     const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
+    await uploadBytes(storageRef, file, {
+      cacheControl: "public, max-age=31536000, immutable",
+    });
     return getDownloadURL(storageRef);
   },
 

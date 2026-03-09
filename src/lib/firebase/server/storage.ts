@@ -12,7 +12,10 @@ import { getServerStorage } from "./app";
 export async function uploadFileServer(path: string, buffer: Buffer, contentType?: string): Promise<string> {
   const bucket = getServerStorage().bucket();
   const file = bucket.file(path);
-  await file.save(buffer, { contentType });
+  await file.save(buffer, {
+    contentType,
+    metadata: { cacheControl: "public, max-age=31536000, immutable" },
+  });
   await file.makePublic();
   return file.publicUrl();
 }

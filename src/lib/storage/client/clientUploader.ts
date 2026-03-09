@@ -47,7 +47,9 @@ export const clientUploader = {
     const path = `${basePath}/${objectName}`;
 
     const storageRef = ref(storage, path);
-    const task = uploadBytesResumable(storageRef, file);
+    const task = uploadBytesResumable(storageRef, file, {
+      cacheControl: "public, max-age=31536000, immutable",
+    });
 
     task.on(
       "state_changed",
