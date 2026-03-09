@@ -9,11 +9,15 @@ import type { LastMessageSnapshot, ReadAtMap } from "@/features/chatRoom/entitie
  * ルームが未読かどうかを判定する。
  *
  * 判定ロジック:
- * lastMessageSnapshot.createdAt > readAt[uid] なら未読
+ * - 最新メッセージの送信者が自分なら未読としない
+ * - lastMessageSnapshot.createdAt > readAt[uid] なら未読
  */
 export function isRoomUnread(room: ChatRoom, uid: string): boolean {
   const snapshot = room.lastMessageSnapshot as LastMessageSnapshot | null;
   if (!snapshot?.createdAt) return false;
+
+  // 自分が送った最新メッセージでは未読にしない
+  if (snapshot.senderId === uid) return false;
 
   const readAt = room.readAt as ReadAtMap | null;
   const userReadAt = readAt?.[uid];

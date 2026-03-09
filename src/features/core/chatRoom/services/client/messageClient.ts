@@ -323,6 +323,7 @@ async function sendMessage(
       ref: roomRef,
       data: {
         lastMessageSnapshot: snapshotData,
+        [`readAt.${senderId}`]: serverTimestamp(),
         updatedAt: serverTimestamp(),
       },
     },

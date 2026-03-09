@@ -19,7 +19,6 @@ import {
   sendFileMessage,
   sendTextMessage,
 } from "@/features/chatRoom/services/client/messageClient";
-import { updateReadAt } from "@/features/chatRoom/services/client/firestoreClient";
 import { useMessageSendingStore } from "@/features/chatRoom/stores/messageSending";
 import type { PendingMessage } from "@/features/chatRoom/stores/messageSending";
 import { validateChatFile, validateTextMessage } from "@/features/chatRoom/utils/validation";
@@ -127,7 +126,7 @@ export function useChatMessageSender(
       try {
         await sendTextMessage({ roomId, content, senderId, messageId });
         updateStatus(messageId, "sent");
-        updateReadAt(roomId, senderId).catch(() => {});
+
       } catch {
         updateStatus(messageId, "failed");
       }
@@ -186,7 +185,6 @@ export function useChatMessageSender(
               messageId,
             });
             updateStatus(messageId, "sent");
-            updateReadAt(roomId!, senderId!).catch(() => {});
             uploadedPathsRef.current.delete(messageId);
           } catch {
             updateStatus(messageId, "failed");
@@ -231,7 +229,7 @@ export function useChatMessageSender(
             messageId: pendingId,
           });
           updateStatus(pendingId, "sent");
-          updateReadAt(roomId, senderId).catch(() => {});
+  
         } catch {
           updateStatus(pendingId, "failed");
         }
@@ -252,7 +250,7 @@ export function useChatMessageSender(
             messageId: pendingId,
           });
           updateStatus(pendingId, "sent");
-          updateReadAt(roomId, senderId).catch(() => {});
+  
           uploadedPathsRef.current.delete(pendingId);
         } catch {
           updateStatus(pendingId, "failed");
