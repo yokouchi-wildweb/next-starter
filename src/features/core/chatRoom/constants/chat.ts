@@ -20,21 +20,6 @@ export const FILE_MAX_SIZE = 20 * 1024 * 1024; // 20MB
 /** 画像リサイズ時の最大幅（ピクセル） */
 export const IMAGE_MAX_WIDTH = 1920;
 
-/** 許可する画像形式 */
-export const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-] as const;
-
-/** 許可するファイル形式 */
-export const ALLOWED_FILE_TYPES = [
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-] as const;
-
 /** Firebase Storage のチャットファイルパス */
 export const chatStoragePath = (roomId: string, messageId: string, fileName: string) =>
   `chat/${roomId}/${messageId}/${fileName}` as const;
