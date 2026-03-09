@@ -39,12 +39,12 @@ export const serviceRegistry: Record<string, any> = {
   milestone: milestoneService,
   notification: notificationService,
   notificationTemplate: notificationTemplateService,
+  chatRoom: chatRoomService,
 
   // --- AUTO-GENERATED-START ---
   sample: sampleService,
   sampleCategory: sampleCategoryService,
   sampleTag: sampleTagService,
-  chatRoom: chatRoomService,
   // --- AUTO-GENERATED-END ---
 
 };

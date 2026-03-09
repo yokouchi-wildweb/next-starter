@@ -31,12 +31,12 @@ export const domainConfigMap = {
   milestone: milestoneConfig,
   notification: notificationConfig,
   notification_template: notificationTemplateConfig,
+  chat_room: chatRoomConfig,
 
   // --- AUTO-GENERATED-START ---
   sample: sampleConfig,
   sample_category: sampleCategoryConfig,
   sample_tag: sampleTagConfig,
-  chat_room: chatRoomConfig,
   // --- AUTO-GENERATED-END ---
 
 } as const;
