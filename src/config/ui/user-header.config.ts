@@ -4,6 +4,8 @@
  * ★ プロジェクトごとにこのファイルを編集してカスタマイズしてください
  */
 
+import type { ReactNode } from "react";
+
 import { Home, LayoutGrid, LogIn, LogOut, User, UserPlus } from "lucide-react";
 import { FileIcon } from "@/components/Icons";
 import type { IconComponent } from "@/components/Icons";
@@ -106,4 +108,22 @@ export const LOGOUT_ICON = LogOut;
 
 /** ログアウト後のリダイレクト先 */
 export const LOGOUT_REDIRECT_TO = "/login";
+
+// ============================================
+// バッジ設定
+// ============================================
+
+/**
+ * メニューアイテムキーごとのバッジを返す hook
+ *
+ * ダウンストリームで差し替えてバッジを表示する。
+ * hook なので内部で useUnreadCount() 等を自由に呼び出せる。
+ *
+ * @example
+ * export const useHeaderMenuBadges = () => {
+ *   const { count } = useUnreadCount();
+ *   return { notification: count > 0 ? <UnreadDot /> : undefined };
+ * };
+ */
+export const useHeaderMenuBadges: () => Record<string, ReactNode> = () => ({});
 

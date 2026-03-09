@@ -58,11 +58,11 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
               }}
               className="flex-1"
             >
-              <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
+              <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
             </Link>
           ) : (
             <span id={`header-sp-accordion-label-${item.key}`} className="flex-1">
-              <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
+              <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
             </span>
           )}
           <ChevronDown
@@ -109,7 +109,7 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
         variant="ghost"
         className={styles.action}
       >
-        <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
+        <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
       </Button>
     );
   }
@@ -117,7 +117,7 @@ export const SpMenuItem = ({ item, showIcon = true, onNavigate }: SpMenuItemProp
   // 通常のリンク/非リンクアイテム
   return (
     <MenuItemLink id={`header-sp-link-${item.key}`} href={item.href} className={styles.link} onClick={onNavigate}>
-      <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
+      <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
     </MenuItemLink>
   );
 };
@@ -131,6 +131,6 @@ type SpMenuItemChildProps = {
 
 const SpMenuItemChild = ({ item, showIcon = true, onNavigate }: SpMenuItemChildProps) => (
   <MenuItemLink id={`header-sp-child-link-${item.key}`} href={item.href} className={styles.childLink} onClick={onNavigate}>
-    <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
+    <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
   </MenuItemLink>
 );

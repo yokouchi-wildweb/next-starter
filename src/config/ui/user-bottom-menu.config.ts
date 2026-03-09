@@ -4,6 +4,8 @@
  * ★ プロジェクトごとにこのファイルを編集してカスタマイズしてください
  */
 
+import type { ReactNode } from "react";
+
 import { Dices, History, LogIn, Package, User } from "lucide-react";
 
 import type { BottomNavItem } from "@/components/AppFrames/User/Sections/BottomNav/types";
@@ -20,6 +22,20 @@ export const BOTTOM_NAV_HEIGHT = 64;
 
 /** カレントアイテムの色（primary / secondary / accent） */
 export const ACTIVE_COLOR_TYPE: "primary" | "secondary" | "accent" = "accent";
+
+/**
+ * アイテムキーごとのバッジを返す hook
+ *
+ * ダウンストリームで差し替えてバッジを表示する。
+ * hook なので内部で useUnreadCount() 等を自由に呼び出せる。
+ *
+ * @example
+ * export const useBottomNavBadges = () => {
+ *   const { count } = useUnreadCount();
+ *   return { chat: count > 0 ? <UnreadDot /> : undefined };
+ * };
+ */
+export const useBottomNavBadges: () => Record<string, ReactNode> = () => ({});
 
 // ============================================
 // メニューアイテム設定

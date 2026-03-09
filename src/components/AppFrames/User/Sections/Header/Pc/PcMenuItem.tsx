@@ -74,7 +74,7 @@ export const PcMenuItem = ({
         disabled={item.disabled}
         className={styles.link}
       >
-        <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
+        <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
       </button>
     );
   }
@@ -114,7 +114,7 @@ const PcMenuItemContent = ({
 }: PcMenuItemContentProps) => {
   const content = (
     <>
-      <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} />
+      <MenuItemLabel label={item.label} icon={item.icon} showIcon={showIcon} badge={item.badge} />
       {showChevron && <ChevronDown className="size-4 transition-transform group-hover:rotate-180" />}
     </>
   );

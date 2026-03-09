@@ -20,6 +20,7 @@ import {
   LOGOUT_LABEL,
   LOGOUT_REDIRECT_TO,
   SHOW_LOGOUT_BUTTON,
+  useHeaderMenuBadges,
 } from "@/config/ui/user-header.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
@@ -171,6 +172,9 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     };
   }, [isMenuOpen]);
 
+  // バッジ
+  const badgeMap = useHeaderMenuBadges();
+
   // ナビゲーションメニュー項目
   const navItems = useMemo<HeaderNavItem[]>(() => {
     const baseItems: HeaderNavItem[] = isAuthenticated
@@ -188,8 +192,12 @@ export const useHeaderData = (): UseHeaderDataReturn => {
       });
     }
 
-    return baseItems;
-  }, [isAuthenticated, isLogoutLoading, logout]);
+    // バッジをマージ
+    return baseItems.map((item) => ({
+      ...item,
+      badge: badgeMap[item.key] ?? item.badge,
+    }));
+  }, [isAuthenticated, isLogoutLoading, logout, badgeMap]);
 
   // 表示/非表示のクラスを決定
   const visibilityClass = useMemo(() => {

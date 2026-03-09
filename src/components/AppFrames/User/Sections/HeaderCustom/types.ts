@@ -2,6 +2,8 @@
  * Header コンポーネント共通型定義・ユーティリティ
  */
 
+import type { ReactNode } from "react";
+
 import type { IconComponent } from "@/components/Icons";
 
 // ============================================
@@ -17,6 +19,8 @@ export type NavigationMenuItem = {
   readonly disabled?: boolean;
   readonly icon?: IconComponent;
   readonly children?: NavigationMenuItem[];
+  /** ラベル横に表示するバッジ（未読数やドットなど） */
+  readonly badge?: ReactNode;
 };
 
 // ============================================

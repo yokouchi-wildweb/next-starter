@@ -11,15 +11,23 @@ import {
   BOTTOM_NAV_ENABLED,
   BOTTOM_NAV_HEIGHT,
   GUEST_MENU_ITEMS,
+  useBottomNavBadges,
 } from "@/config/ui/user-bottom-menu.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 
 export const useBottomNavItems = () => {
   const { isAuthenticated } = useAuthSession();
+  const badgeMap = useBottomNavBadges();
 
   const items = useMemo(
-    () => (isAuthenticated ? AUTHENTICATED_MENU_ITEMS : GUEST_MENU_ITEMS),
-    [isAuthenticated],
+    () => {
+      const baseItems = isAuthenticated ? AUTHENTICATED_MENU_ITEMS : GUEST_MENU_ITEMS;
+      return baseItems.map((item) => ({
+        ...item,
+        badge: badgeMap[item.key] ?? item.badge,
+      }));
+    },
+    [isAuthenticated, badgeMap],
   );
 
   return {
