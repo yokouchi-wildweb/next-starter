@@ -21,3 +21,10 @@ export function isRoomUnread(room: ChatRoom, uid: string): boolean {
 
   return snapshot.createdAt > userReadAt;
 }
+
+/**
+ * 未読ルーム数をカウントする。
+ */
+export function countUnreadRooms(rooms: ChatRoom[], uid: string): number {
+  return rooms.filter((room) => isRoomUnread(room, uid)).length;
+}
