@@ -231,16 +231,9 @@ export async function fetchPastMessages(
 ): Promise<FetchMessagesResult> {
   const messagesRef = collection(fstore, messagesSubcollectionPath(roomId));
 
-  const constraints = [
-    orderBy("createdAt", "desc"),
-    firestoreLimit(limit),
-  ];
-
-  if (cursor) {
-    constraints.splice(1, 0, startAfter(cursor));
-  }
-
-  const q = query(messagesRef, ...constraints);
+  const q = cursor
+    ? query(messagesRef, orderBy("createdAt", "desc"), startAfter(cursor), firestoreLimit(limit))
+    : query(messagesRef, orderBy("createdAt", "desc"), firestoreLimit(limit));
   const { docs, lastSnapshot } = await queryDocs<ChatMessage>(q);
 
   return {
