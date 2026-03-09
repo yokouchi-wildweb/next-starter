@@ -104,7 +104,9 @@ chatRoom/
 │   ├── useChatMessageSender.ts
 │   ├── useMergedMessages.ts
 │   ├── useReadAt.ts
-│   └── useResolvedParticipants.ts
+│   ├── useResolvedParticipants.ts
+│   ├── useUnreadCount.ts
+│   └── useChatScreen.ts
 │
 ├── hooks/                  # CRUD フック（自動生成・管理画面用）
 │   ├── useChatRoom.ts
@@ -174,29 +176,21 @@ function ChatRoomList({ uid }: { uid: string }) {
 
 ### 2. チャット画面
 
+`useChatScreen` でメッセージ取得・送信・楽観的UI・既読更新をまとめて接続できる。
+
 ```tsx
-import { useChatMessages } from "@/features/chatRoom/hooks/firestore/useChatMessages";
-import { useChatMessageSender } from "@/features/chatRoom/hooks/firestore/useChatMessageSender";
-import { useMergedMessages } from "@/features/chatRoom/hooks/firestore/useMergedMessages";
+import { useChatScreen } from "@/features/chatRoom/hooks/firestore/useChatScreen";
 import { useChatRoomSubscription } from "@/features/chatRoom/hooks/firestore/useChatRoomSubscription";
-import { useReadAt } from "@/features/chatRoom/hooks/firestore/useReadAt";
 
 function ChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
-  // ルーム情報のリアルタイム購読
+  // ルーム情報のリアルタイム購読（参加者・readAt 等）
   const { room } = useChatRoomSubscription(roomId);
 
-  // メッセージ取得 + 新着購読
-  const { messages, isLoading, hasMore, loadMore } = useChatMessages(roomId);
-
-  // 送信機能
-  const { sendText, sendFile, retry, dismiss, cancelUpload } =
-    useChatMessageSender(roomId, uid);
-
-  // 実メッセージ + pending の統合
-  const { displayMessages } = useMergedMessages(roomId, messages);
-
-  // 既読更新（マウント時に1回）
-  useReadAt(roomId, uid);
+  // メッセージ・送信・既読を統合
+  const {
+    displayMessages, isLoading, hasMore, loadMore,
+    sendText, sendFile, retry, dismiss, cancelUpload,
+  } = useChatScreen(roomId, uid);
 
   return (
     <div>
@@ -220,6 +214,9 @@ function ChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
   );
 }
 ```
+
+> 個別フック（`useChatMessages`, `useChatMessageSender`, `useMergedMessages`, `useReadAt`）を
+> 直接使うこともできる。カスタムな接続が必要な場合はそちらを使用する。
 
 ### 3. ルーム作成
 
@@ -443,9 +440,19 @@ onSnapshot で実メッセージ到着 → ID 一致で pending 除去
 
 ### 未読管理
 
-- `isRoomUnread(room, uid)` = `lastMessageSnapshot.createdAt > readAt[uid]`
-- `countUnreadRooms(rooms, uid)` で未読ルーム数を取得
-- `readAt` はチャット画面の入室時と退出時に `useReadAt` で更新
+- `isRoomUnread(room, uid)`: 未読判定。最新メッセージの送信者が自分なら未読としない
+- `countUnreadRooms(rooms, uid)`: 未読ルーム数を取得
+- `useUnreadCount(uid, options?)`: 未読ルーム数のリアルタイム取得フック（バッジ表示用）
+- `readAt` は入室時・滞在中（新着メッセージ受信時）・退出時に `useReadAt` で更新
+- メッセージ送信時は writeBatch で `readAt` もアトミック更新されるため、自分の送信で未読にならない
+
+```tsx
+// ヘッダーやボトムナビのバッジ表示
+import { useUnreadCount } from "@/features/chatRoom/hooks/firestore/useUnreadCount";
+
+const unreadCount = useUnreadCount(uid);
+// <Badge count={unreadCount} />
+```
 
 ### ファイルアップロード
 
