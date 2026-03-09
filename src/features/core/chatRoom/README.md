@@ -103,7 +103,8 @@ chatRoom/
 │   ├── useChatMessages.ts
 │   ├── useChatMessageSender.ts
 │   ├── useMergedMessages.ts
-│   └── useReadAt.ts
+│   ├── useReadAt.ts
+│   └── useResolvedParticipants.ts
 │
 ├── hooks/                  # CRUD フック（自動生成・管理画面用）
 │   ├── useChatRoom.ts
@@ -130,29 +131,46 @@ chatRoom/
 
 ## 基本的な使い方
 
-### 1. ルーム一覧の表示
+### 1. ルーム一覧の表示（参加者プロフィール付き）
 
 ```tsx
 import { useChatRooms } from "@/features/chatRoom/hooks/firestore/useChatRooms";
+import { useResolvedParticipants } from "@/features/chatRoom/hooks/firestore/useResolvedParticipants";
 import { isRoomUnread } from "@/features/chatRoom/utils/unread";
 
 function ChatRoomList({ uid }: { uid: string }) {
   const { rooms, isLoading } = useChatRooms(uid);
 
+  // 参加者プロフィールの解決（resolver はプロジェクトの User モデルに合わせて実装）
+  const { profileMap } = useResolvedParticipants(rooms, uid, async (uids) => {
+    const users = await fetchUsersByIds(uids); // ダウンストリームの API
+    return new Map(users.map((u) => [u.id, { name: u.name, avatarUrl: u.avatarUrl }]));
+  });
+
   return (
     <ul>
-      {rooms.map((room) => (
-        <li key={room.id}>
-          {room.name ?? "ダイレクトチャット"}
-          {isRoomUnread(room, uid) && <span>●</span>}
-          {/* lastMessageSnapshot で最新メッセージをプレビュー */}
-          <p>{room.lastMessageSnapshot?.content}</p>
-        </li>
-      ))}
+      {rooms.map((room) => {
+        // direct ルームの場合、相手のプロフィールを取得
+        const otherUid = room.participants?.find((p) => p !== uid);
+        const profile = otherUid ? profileMap.get(otherUid) : null;
+
+        return (
+          <li key={room.id}>
+            {room.type === "direct" ? profile?.name : room.name}
+            {isRoomUnread(room, uid) && <span>●</span>}
+            <p>{room.lastMessageSnapshot?.content}</p>
+          </li>
+        );
+      })}
     </ul>
   );
 }
 ```
+
+> **resolver の実装**: `useResolvedParticipants` はプロジェクトの User モデルに依存しないため、
+> resolver 関数でプロジェクト固有のユーザー取得ロジックを注入する。
+> 内部で全ルームの UID を一意に収集し、resolver を1回だけバッチ呼び出しする。
+> rooms が更新された際は未取得の UID のみ差分取得する。
 
 ### 2. チャット画面
 
@@ -359,6 +377,17 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 - **複合クエリの制限**: `where` + `orderBy` の組み合わせには複合インデックスが必要。`subscribeRooms` でタイプフィルタを使用する場合、`(type, participants, lastMessageSnapshot.createdAt)` のインデックスを作成すること
 - **単一 orderBy**: Firestore は1クエリにつき1フィールドの orderBy のみ。メッセージは `createdAt` でソート
 - **OR クエリなし**: 複数タイプでのフィルタが必要な場合は、クライアント側でフィルタするか購読を複数立てる
+
+### serverTimestamp と null 安全性
+
+`serverTimestamp()` で書き込んだフィールドは、ローカルの `onSnapshot` で先にローカルスナップショットが発火する際、サーバーからの確定値が未到着で `null` になりうる。
+
+ベースの subscribe ライブラリ（`src/lib/firestore/client/subscribe.ts`）では `.data({ serverTimestamps: "estimate" })` を適用済みで、クライアントの推定時刻が自動的に埋められる。そのため通常は `null` にはならないが、日時を表示する際は念のため防御的にハンドリングすることを推奨する。
+
+```tsx
+// 日時表示の例
+<span>{room.lastMessageSnapshot?.createdAt?.toLocaleString() ?? ""}</span>
+```
 
 ### writeBatch の使用
 

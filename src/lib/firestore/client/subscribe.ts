@@ -71,7 +71,7 @@ export function subscribeCollection<T extends { id: string }>(
     listenOptions,
     (snapshot) => {
       const items = snapshot.docs.map((doc) =>
-        convertTimestamps({ id: doc.id, ...doc.data() } as T),
+        convertTimestamps({ id: doc.id, ...doc.data({ serverTimestamps: "estimate" }) } as T),
       );
       callback(items);
     },
@@ -120,7 +120,7 @@ export function subscribeCollectionChanges<T extends { id: string }>(
     (snapshot) => {
       const changes: DocChange<T>[] = snapshot.docChanges().map((change) => ({
         type: change.type,
-        doc: convertTimestamps({ id: change.doc.id, ...change.doc.data() } as T),
+        doc: convertTimestamps({ id: change.doc.id, ...change.doc.data({ serverTimestamps: "estimate" }) } as T),
       }));
       callback({ changes, metadata: snapshot.metadata });
     },
@@ -160,7 +160,7 @@ export function subscribeDoc<T extends { id: string }>(
         callback(null);
         return;
       }
-      const item = convertTimestamps({ id: snapshot.id, ...snapshot.data() } as T);
+      const item = convertTimestamps({ id: snapshot.id, ...snapshot.data({ serverTimestamps: "estimate" }) } as T);
       callback(item);
     },
     onError ?? defaultErrorHandler,

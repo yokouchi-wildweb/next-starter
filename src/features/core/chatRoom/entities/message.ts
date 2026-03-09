@@ -55,6 +55,27 @@ export type ChatMessage = {
  */
 export type ReadAtMap = Record<string, Date>;
 
+// ---------------------------------------------------------------------------
+// 参加者プロフィール解決
+// ---------------------------------------------------------------------------
+
+/**
+ * 参加者の表示情報。
+ * ダウンストリームが resolver で返すデータの型。
+ */
+export type ParticipantProfile = {
+  name: string;
+  avatarUrl?: string;
+};
+
+/**
+ * 参加者 UID 配列からプロフィール情報をバッチ取得する関数の型。
+ * ダウンストリームが自プロジェクトの User モデルに合わせて実装する。
+ */
+export type ParticipantResolver = (
+  uids: string[],
+) => Promise<Map<string, ParticipantProfile>>;
+
 /**
  * メッセージのサブコレクションパス
  */
