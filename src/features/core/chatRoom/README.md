@@ -370,11 +370,42 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
 ---
 
+## セットアップ
+
+### 必須: Firestore 複合インデックスの作成
+
+チャット機能を使用するには、Firebase コンソールで以下の複合インデックスを作成する必要がある。
+これがないとルーム一覧の購読（`subscribeRooms`）でエラーになる。
+
+**ルーム一覧用（必須）**
+
+| 項目 | 値 |
+|---|---|
+| コレクション ID | `chat_rooms` |
+| フィールド 1 | `participants` — Arrays |
+| フィールド 2 | `lastMessageSnapshot.createdAt` — Descending |
+| クエリのスコープ | コレクション |
+
+**ルームタイプフィルタ用（`subscribeRooms` で `type` オプションを使用する場合）**
+
+| 項目 | 値 |
+|---|---|
+| コレクション ID | `chat_rooms` |
+| フィールド 1 | `type` — Ascending |
+| フィールド 2 | `participants` — Arrays |
+| フィールド 3 | `lastMessageSnapshot.createdAt` — Descending |
+| クエリのスコープ | コレクション |
+
+> **作成方法**: Firebase コンソール → Firestore Database → インデックス → 複合インデックスを作成。
+> または、インデックスが未作成の状態でクエリを実行するとブラウザのコンソールにインデックス作成用の直リンクが表示されるので、それをクリックして作成することもできる。
+
+---
+
 ## 設計上の制約と注意点
 
 ### Firestore の制約
 
-- **複合クエリの制限**: `where` + `orderBy` の組み合わせには複合インデックスが必要。`subscribeRooms` でタイプフィルタを使用する場合、`(type, participants, lastMessageSnapshot.createdAt)` のインデックスを作成すること
+- **複合インデックス**: 上記「セットアップ」セクションを参照。`where` + `orderBy` の組み合わせには複合インデックスが必須
 - **単一 orderBy**: Firestore は1クエリにつき1フィールドの orderBy のみ。メッセージは `createdAt` でソート
 - **OR クエリなし**: 複数タイプでのフィルタが必要な場合は、クライアント側でフィルタするか購読を複数立てる
 
