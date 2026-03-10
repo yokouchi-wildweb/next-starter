@@ -6,7 +6,7 @@ import type { User } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";
 import type { UserRoleType } from "@/features/core/user/constants/role";
 import type { CreateUserInput, UpdateUserInput } from "../types";
-import type { SearchParams, PaginatedResult, WithOptions } from "@/lib/crud/types";
+import type { SearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/lib/crud/types";
 import { normalizeHttpError } from "@/lib/errors";
 import axios from "axios";
 
@@ -79,20 +79,30 @@ async function confirmEmailChange(): Promise<ConfirmEmailChangeResponse> {
   return response.data;
 }
 
+export type SearchWithProfileClientParams = SearchParams & WithOptions & {
+  /** プロフィールフィールドの構造化フィルタ（WhereExpr DSL） */
+  profileWhere?: WhereExpr;
+};
+
 /**
  * ユーザー + プロフィール横断検索
- * role で指定したプロフィールの searchFields も含めてキーワード検索する
+ * role で指定したプロフィールの searchFields も含めてキーワード検索する。
+ * profileWhere でプロフィールフィールドの構造化フィルタも可能。
  */
 async function searchWithProfile(
   role: string,
-  params: SearchParams & WithOptions,
+  params: SearchWithProfileClientParams,
 ): Promise<PaginatedResult<User>> {
   try {
-    const queryParams: Record<string, unknown> = { ...params, role };
+    const { profileWhere, ...rest } = params;
+    const queryParams: Record<string, unknown> = { ...rest, role };
     if (params.where) {
       queryParams.where = JSON.stringify(params.where);
     } else {
       delete queryParams.where;
+    }
+    if (profileWhere) {
+      queryParams.profileWhere = JSON.stringify(profileWhere);
     }
     return (
       await axios.get<PaginatedResult<User>>(

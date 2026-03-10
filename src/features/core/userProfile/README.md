@@ -483,37 +483,64 @@ const result = await base.search({
 ```typescript
 import { userService } from "@/features/core/user/services/server/userService";
 
-// SSR ページから：contributor ロールのプロフィールフィールドも含めて検索
+// テキスト横断検索
 const result = await userService.searchWithProfile("contributor", {
   searchQuery: "田中",
+  page: 1,
+  limit: 20,
+});
+
+// プロフィールフィールドで構造化フィルタ（WhereExpr DSL）
+const result = await userService.searchWithProfile("contributor", {
+  profileWhere: { field: "prefecture", op: "eq", value: "東京都" },
+  page: 1,
+  limit: 20,
+});
+
+// テキスト検索 + 構造化フィルタの組み合わせ
+const result = await userService.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  profileWhere: {
+    and: [
+      { field: "prefecture", op: "eq", value: "東京都" },
+      { field: "age", op: "gte", value: 20 },
+    ],
+  },
   page: 1,
   limit: 20,
 });
 ```
 
 **動作:**
-- ユーザーテーブルの `searchFields`（`domain.json`: name, email 等）で ILIKE 検索
-- 指定ロールの `searchFields`（`profile.json`）で EXISTS サブクエリによる ILIKE 検索
-- これらを **OR** で結合し、いずれかにマッチするユーザーを返す
-- `searchQuery` がない場合や `profile.json` に `searchFields` が未設定の場合は通常の `userService.search()` にフォールバック
+- `searchQuery`: ユーザーテーブルの `searchFields`（`domain.json`）+ プロフィールの `searchFields`（`profile.json`）で ILIKE 横断検索（OR 結合）
+- `profileWhere`: プロフィールフィールドの構造化フィルタ（`WhereExpr` DSL）。EXISTS サブクエリとして AND 結合
+- `searchQuery` と `profileWhere` は独立して機能し、両方指定すれば AND 結合
+- いずれも未指定の場合は通常の `userService.search()` にフォールバック
 
 **クライアントからの利用:**
 
 ```typescript
 // クライアントサービス
 import { userClient } from "@/features/core/user/services/client/userClient";
-const result = await userClient.searchWithProfile("contributor", { searchQuery: "田中", page: 1, limit: 20 });
+const result = await userClient.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  profileWhere: { field: "prefecture", op: "eq", value: "東京都" },
+  page: 1,
+  limit: 20,
+});
 
 // Hook
 import { useSearchUserWithProfile } from "@/features/core/user/hooks/useSearchUserWithProfile";
 const { data, total, isLoading } = useSearchUserWithProfile("contributor", {
   searchQuery: "田中",
+  profileWhere: { field: "prefecture", op: "eq", value: "東京都" },
   page: 1,
   limit: 20,
 });
 ```
 
-> API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中`
+> API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中&profileWhere={"field":"prefecture","op":"eq","value":"東京都"}`
+> `profileWhere` は JSON 文字列として渡す。`WhereExpr` DSL の演算子: `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `like`, `in`, `notIn`。`and` / `or` で複合条件を組める。
 > プロフィール管理の CRUD 検索には引き続き `getProfileBase(role).search()` を使用する。
 
 ## フォームでの使用パターン

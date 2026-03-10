@@ -6,8 +6,8 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "src/lib/routeFactory";
-import type { SearchParams, WithOptions } from "@/lib/crud";
 import { userService } from "@/features/core/user/services/server/userService";
+import type { SearchWithProfileParams } from "@/features/core/user/services/server/wrappers/searchWithProfile";
 
 import {
   BadRequestError,
@@ -41,15 +41,17 @@ export const GET = createApiRoute(
       const orderBy = parseOrderBy(query.getAll("orderBy"));
       const where = parseWhere(query.get("where"));
       const searchQuery = query.get("searchQuery") ?? undefined;
+      const profileWhere = parseWhere(query.get("profileWhere"));
       const withRelations = parseWithRelations(query.get("withRelations"));
       const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
 
-      const searchParams: SearchParams & WithOptions = {};
+      const searchParams: SearchWithProfileParams = {};
       if (typeof page === "number") searchParams.page = page;
       if (typeof limit === "number") searchParams.limit = limit;
       if (orderBy) searchParams.orderBy = orderBy;
       if (searchQuery) searchParams.searchQuery = searchQuery;
       if (where) searchParams.where = where;
+      if (profileWhere) searchParams.profileWhere = profileWhere;
       if (withRelations) searchParams.withRelations = withRelations;
       if (withCount) searchParams.withCount = withCount;
 
