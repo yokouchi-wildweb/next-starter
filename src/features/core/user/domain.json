@@ -115,6 +115,13 @@
       "required": false
     },
     {
+      "name": "avatar_url",
+      "label": "アバター画像URL",
+      "fieldType": "string",
+      "formInput": "none",
+      "required": false
+    },
+    {
       "name": "metadata",
       "label": "メタデータ",
       "fieldType": "jsonb",
