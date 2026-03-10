@@ -198,7 +198,7 @@ export default async function generate(roleId, options = {}) {
 
     // registry を更新
     console.log("\n[7/8] registry を更新中...");
-    updateProfileRegistry(roleConfig);
+    updateProfileRegistry();
     console.log("✓ registry を更新しました");
 
     console.log("\n[8/8] 完了");

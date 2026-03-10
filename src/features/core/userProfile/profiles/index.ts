@@ -18,4 +18,6 @@ export type ProfileConfig = {
   roleId: string;
   fields: ProfileFieldConfig[];
   tags?: Record<string, string[]>;
+  /** keyword検索対象のカラム名（camelCase） */
+  searchFields?: string[];
 };

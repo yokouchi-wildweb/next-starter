@@ -1,5 +1,5 @@
 // scripts/role-config/generator/updateProfileRegistry.mjs
-// src/registry/profileTableRegistry.ts と profileBaseRegistry.ts の更新
+// src/registry/profileTableRegistry.ts と profileBaseRegistry.ts の全件再生成
 
 import fs from "fs";
 import path, { dirname } from "path";
@@ -9,114 +9,134 @@ import { toPascalCase } from "../../../src/utils/stringCase.mjs";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 const REGISTRY_DIR = path.join(ROOT_DIR, "src/registry");
+const PROFILES_DIR = path.join(
+  ROOT_DIR,
+  "src/features/core/userProfile/profiles"
+);
 
 /**
- * profileTableRegistry.ts を更新
- * アンカーコメント間に export 文を追加
+ * 全プロフィール設定を取得
  */
-function updateProfileTables(roleConfig) {
-  const filePath = path.join(REGISTRY_DIR, "profileTableRegistry.ts");
-  let content = fs.readFileSync(filePath, "utf-8");
-
-  const roleId = roleConfig.id;
-  const exportLines = [
-    `export * from "@/features/core/userProfile/generated/${roleId}/drizzle";`,
-    `export * from "@/features/core/userProfile/generated/${roleId}";`,
-  ];
-
-  // アンカーコメント間に追加
-  const anchorStart = "// === AUTO-GENERATED EXPORTS START ===";
-  const anchorEnd = "// === AUTO-GENERATED EXPORTS END ===";
-
-  const startIndex = content.indexOf(anchorStart);
-  const endIndex = content.indexOf(anchorEnd);
-
-  if (startIndex === -1 || endIndex === -1) {
-    throw new Error("profileTableRegistry.ts にアンカーコメントが見つかりません");
+function getAllProfiles() {
+  if (!fs.existsSync(PROFILES_DIR)) {
+    return [];
   }
 
-  // 既存のエクスポートを取得
-  const existingExports = content.slice(
-    startIndex + anchorStart.length,
-    endIndex
-  );
-
-  // 新しいエクスポートを追加
-  const newExports = existingExports.trimEnd() + "\n" + exportLines.join("\n") + "\n";
-
-  content =
-    content.slice(0, startIndex + anchorStart.length) +
-    newExports +
-    content.slice(endIndex);
-
-  fs.writeFileSync(filePath, content);
+  const files = fs.readdirSync(PROFILES_DIR);
+  return files
+    .filter((file) => file.endsWith(".profile.json"))
+    .map((file) => {
+      const roleId = file.replace(".profile.json", "");
+      return { roleId };
+    });
 }
 
 /**
- * profileBaseRegistry.ts を更新
- * アンカーコメント間に import 文とエントリを追加
+ * profileTableRegistry.ts を全件再生成
  */
-function updateProfileBases(roleConfig) {
-  const filePath = path.join(REGISTRY_DIR, "profileBaseRegistry.ts");
-  let content = fs.readFileSync(filePath, "utf-8");
-
-  const roleId = roleConfig.id;
-  const tableVar = `${toPascalCase(roleId)}ProfileTable`;
-
-  // import 文を追加
-  const importLine = `import { ${tableVar} } from "@/features/core/userProfile/generated/${roleId}";`;
-  const importStart = "// === AUTO-GENERATED IMPORTS START ===";
-  const importEnd = "// === AUTO-GENERATED IMPORTS END ===";
-
-  let importStartIndex = content.indexOf(importStart);
-  let importEndIndex = content.indexOf(importEnd);
-
-  if (importStartIndex === -1 || importEndIndex === -1) {
-    throw new Error("profileBaseRegistry.ts に import アンカーコメントが見つかりません");
+function generateProfileTableRegistry(profiles) {
+  if (profiles.length === 0) {
+    const content = `// src/registry/profileTableRegistry.ts
+// プロフィールテーブル定義の re-export（自動生成）
+//
+// このファイルは role:generate スクリプトによって自動生成されました
+`;
+    fs.writeFileSync(path.join(REGISTRY_DIR, "profileTableRegistry.ts"), content);
+    return;
   }
 
-  const existingImports = content.slice(
-    importStartIndex + importStart.length,
-    importEndIndex
-  );
-  const newImports = existingImports.trimEnd() + "\n" + importLine + "\n";
+  const exports = profiles
+    .map(({ roleId }) => [
+      `export * from "@/features/core/userProfile/generated/${roleId}/drizzle";`,
+      `export * from "@/features/core/userProfile/generated/${roleId}";`,
+    ])
+    .flat()
+    .join("\n");
 
-  content =
-    content.slice(0, importStartIndex + importStart.length) +
-    newImports +
-    content.slice(importEndIndex);
+  const content = `// src/registry/profileTableRegistry.ts
+// プロフィールテーブル定義の re-export（自動生成）
+//
+// このファイルは role:generate スクリプトによって自動生成されました
 
-  // エントリを追加
-  const entryLine = `  ${roleId}: createProfileBase(${tableVar}),`;
-  const entryStart = "// === AUTO-GENERATED ENTRIES START ===";
-  const entryEnd = "// === AUTO-GENERATED ENTRIES END ===";
+${exports}
+`;
 
-  // content が更新されたので再度インデックスを取得
-  const entryStartIndex = content.indexOf(entryStart);
-  const entryEndIndex = content.indexOf(entryEnd);
-
-  if (entryStartIndex === -1 || entryEndIndex === -1) {
-    throw new Error("profileBaseRegistry.ts に entry アンカーコメントが見つかりません");
-  }
-
-  const existingEntries = content.slice(
-    entryStartIndex + entryStart.length,
-    entryEndIndex
-  );
-  const newEntries = existingEntries.trimEnd() + "\n" + entryLine + "\n  ";
-
-  content =
-    content.slice(0, entryStartIndex + entryStart.length) +
-    newEntries +
-    content.slice(entryEndIndex);
-
-  fs.writeFileSync(filePath, content);
+  fs.writeFileSync(path.join(REGISTRY_DIR, "profileTableRegistry.ts"), content);
 }
 
 /**
- * registry を更新
+ * profileBaseRegistry.ts を全件再生成
  */
-export function updateProfileRegistry(roleConfig) {
-  updateProfileTables(roleConfig);
-  updateProfileBases(roleConfig);
+function generateProfileBaseRegistry(profiles) {
+  if (profiles.length === 0) {
+    const content = `// src/registry/profileBaseRegistry.ts
+// ロール → プロフィールベースのマッピング（自動生成）
+//
+// このファイルは role:generate スクリプトによって自動生成されました
+//
+// ヘルパー関数は @/features/core/userProfile/utils/profileBaseHelpers を使用してください
+
+import { createProfileBase } from "@/features/core/userProfile/utils/createProfileBase";
+import type { ProfileBase } from "@/features/core/userProfile/types";
+
+/**
+ * ロール → プロフィールベースのマッピング
+ */
+export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {};
+`;
+    fs.writeFileSync(path.join(REGISTRY_DIR, "profileBaseRegistry.ts"), content);
+    return;
+  }
+
+  // import 文を生成
+  const imports = profiles
+    .map(({ roleId }) => {
+      const tableVar = `${toPascalCase(roleId)}ProfileTable`;
+      return [
+        `import { ${tableVar} } from "@/features/core/userProfile/generated/${roleId}";`,
+        `import ${roleId}Profile from "@/features/core/userProfile/profiles/${roleId}.profile.json";`,
+      ].join("\n");
+    })
+    .join("\n");
+
+  // レジストリエントリを生成
+  const entries = profiles
+    .map(({ roleId }) => {
+      const tableVar = `${toPascalCase(roleId)}ProfileTable`;
+      const profileVar = `${roleId}Profile`;
+      return `  ${roleId}: createProfileBase(${tableVar}, { defaultSearchFields: (${profileVar} as ProfileConfig).searchFields }),`;
+    })
+    .join("\n");
+
+  const content = `// src/registry/profileBaseRegistry.ts
+// ロール → プロフィールベースのマッピング（自動生成）
+//
+// このファイルは role:generate スクリプトによって自動生成されました
+//
+// ヘルパー関数は @/features/core/userProfile/utils/profileBaseHelpers を使用してください
+
+import { createProfileBase } from "@/features/core/userProfile/utils/createProfileBase";
+import type { ProfileBase } from "@/features/core/userProfile/types";
+import type { ProfileConfig } from "@/features/core/userProfile/profiles";
+
+${imports}
+
+/**
+ * ロール → プロフィールベースのマッピング
+ */
+export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {
+${entries}
+};
+`;
+
+  fs.writeFileSync(path.join(REGISTRY_DIR, "profileBaseRegistry.ts"), content);
+}
+
+/**
+ * プロフィールレジストリを全件再生成
+ */
+export function updateProfileRegistry() {
+  const profiles = getAllProfiles();
+  generateProfileTableRegistry(profiles);
+  generateProfileBaseRegistry(profiles);
 }

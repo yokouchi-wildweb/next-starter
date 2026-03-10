@@ -1,10 +1,7 @@
 // src/registry/profileTableRegistry.ts
-// プロフィールテーブル定義の re-export（自動生成対象）
+// プロフィールテーブル定義の re-export（自動生成）
 //
-// このファイルは role:generate スクリプトによって更新されます。
-// アンカーコメント間のコードは自動生成スクリプトによって更新されます。
+// このファイルは role:generate スクリプトによって自動生成されました
 
-// === AUTO-GENERATED EXPORTS START ===
 export * from "@/features/core/userProfile/generated/contributor/drizzle";
 export * from "@/features/core/userProfile/generated/contributor";
-// === AUTO-GENERATED EXPORTS END ===
