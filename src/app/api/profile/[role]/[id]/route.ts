@@ -43,3 +43,20 @@ export const PATCH = createApiRoute<Params>(
     return profileBase.update(params.id, data);
   },
 );
+
+// DELETE /api/profile/[role]/[id] : プロフィールIDで削除
+export const DELETE = createApiRoute<Params>(
+  {
+    operation: "DELETE /api/profile/[role]/[id]",
+    operationType: "write",
+  },
+  async (_req, { params }) => {
+    const profileBase = getProfileBase(params.role);
+    if (!profileBase) {
+      return new NextResponse("Not Found", { status: 404 });
+    }
+
+    await profileBase.remove(params.id);
+    return { success: true };
+  },
+);

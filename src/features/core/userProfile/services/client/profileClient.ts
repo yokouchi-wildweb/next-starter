@@ -83,4 +83,16 @@ export const profileClient = {
     handleRequest(async () =>
       (await axios.patch<ProfileRecord>(`${buildBaseUrl(role)}/by-user/${userId}`, { data })).data,
     ),
+
+  /** プロフィールIDで削除 */
+  remove: (role: string, id: string) =>
+    handleRequest(async () =>
+      (await axios.delete<{ success: boolean }>(`${buildBaseUrl(role)}/${id}`)).data,
+    ),
+
+  /** userIdでプロフィールを削除 */
+  removeByUserId: (role: string, userId: string) =>
+    handleRequest(async () =>
+      (await axios.delete<{ success: boolean }>(`${buildBaseUrl(role)}/by-user/${userId}`)).data,
+    ),
 };
