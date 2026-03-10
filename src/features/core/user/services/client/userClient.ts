@@ -6,6 +6,8 @@ import type { User } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";
 import type { UserRoleType } from "@/features/core/user/constants/role";
 import type { CreateUserInput, UpdateUserInput } from "../types";
+import type { SearchParams, PaginatedResult, WithOptions } from "@/lib/crud/types";
+import { normalizeHttpError } from "@/lib/errors";
 import axios from "axios";
 
 const baseClient: ApiClient<User, CreateUserInput, UpdateUserInput> =
@@ -77,6 +79,32 @@ async function confirmEmailChange(): Promise<ConfirmEmailChangeResponse> {
   return response.data;
 }
 
+/**
+ * ユーザー + プロフィール横断検索
+ * role で指定したプロフィールの searchFields も含めてキーワード検索する
+ */
+async function searchWithProfile(
+  role: string,
+  params: SearchParams & WithOptions,
+): Promise<PaginatedResult<User>> {
+  try {
+    const queryParams: Record<string, unknown> = { ...params, role };
+    if (params.where) {
+      queryParams.where = JSON.stringify(params.where);
+    } else {
+      delete queryParams.where;
+    }
+    return (
+      await axios.get<PaginatedResult<User>>(
+        "/api/admin/user/search-with-profile",
+        { params: queryParams },
+      )
+    ).data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
 export const userClient = {
   ...baseClient,
   changeStatus,
@@ -86,4 +114,5 @@ export const userClient = {
   updateMyProfile,
   sendEmailChangeVerification,
   confirmEmailChange,
+  searchWithProfile,
 };

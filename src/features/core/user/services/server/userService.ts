@@ -19,6 +19,7 @@ import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
 import { changeStatus } from "./wrappers/changeStatus";
 import { changeRole } from "./wrappers/changeRole";
 import { softDelete } from "./wrappers/softDelete";
+import { searchWithProfile } from "./wrappers/searchWithProfile";
 
 export { requireCurrentUser } from "./resolvers/requireCurrentUser";
 export type { RequireCurrentUserOptions } from "./resolvers/requireCurrentUser";
@@ -38,6 +39,7 @@ export const userService = {
   changeStatus,
   changeRole,
   softDelete,
+  searchWithProfile,
   // creation (console)
   createAdmin,
   createGeneralUser,

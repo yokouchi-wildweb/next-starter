@@ -146,6 +146,7 @@ roles/
 **searchFields（オプション）:**
 - keyword 検索対象のカラム名を配列で指定（camelCase）
 - `ProfileBase.search()` の `searchQuery` パラメータで使用される
+- `userService.searchWithProfile()` でのプロフィール横断検索にも使用される
 - 未指定の場合、keyword 検索は無効
 
 ## 自動生成ファイル
@@ -474,6 +475,46 @@ const result = await base.search({
 > `getProfileBase` はサーバー専用。クライアントからは hooks（`useProfileSearch` 等）または API ルート経由でアクセスする。
 
 > **extraWhere について**: `extraWhere` は Drizzle の `SQL` 型を直接受け取るため、API ルート（HTTP 経由）では使用できない。JSONB 検索や複雑な SQL 条件が必要な場合は、SSR ページから `getProfileBase` を直接呼び出すこと。
+
+### ユーザー + プロフィール横断検索（userService.searchWithProfile）
+
+ユーザーを検索する際に、プロフィールのフィールドも含めて横断検索したい場合は、ユーザードメイン側の `searchWithProfile` を使用する。
+
+```typescript
+import { userService } from "@/features/core/user/services/server/userService";
+
+// SSR ページから：contributor ロールのプロフィールフィールドも含めて検索
+const result = await userService.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  page: 1,
+  limit: 20,
+});
+```
+
+**動作:**
+- ユーザーテーブルの `searchFields`（`domain.json`: name, email 等）で ILIKE 検索
+- 指定ロールの `searchFields`（`profile.json`）で EXISTS サブクエリによる ILIKE 検索
+- これらを **OR** で結合し、いずれかにマッチするユーザーを返す
+- `searchQuery` がない場合や `profile.json` に `searchFields` が未設定の場合は通常の `userService.search()` にフォールバック
+
+**クライアントからの利用:**
+
+```typescript
+// クライアントサービス
+import { userClient } from "@/features/core/user/services/client/userClient";
+const result = await userClient.searchWithProfile("contributor", { searchQuery: "田中", page: 1, limit: 20 });
+
+// Hook
+import { useSearchUserWithProfile } from "@/features/core/user/hooks/useSearchUserWithProfile";
+const { data, total, isLoading } = useSearchUserWithProfile("contributor", {
+  searchQuery: "田中",
+  page: 1,
+  limit: 20,
+});
+```
+
+> API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中`
+> プロフィール管理の CRUD 検索には引き続き `getProfileBase(role).search()` を使用する。
 
 ## フォームでの使用パターン
 

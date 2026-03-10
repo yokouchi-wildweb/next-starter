@@ -35,16 +35,19 @@ function getAllProfiles() {
  * profileTableRegistry.ts を全件再生成
  */
 function generateProfileTableRegistry(profiles) {
-  if (profiles.length === 0) {
-    const content = `// src/registry/profileTableRegistry.ts
-// プロフィールテーブル定義の re-export（自動生成）
+  const header = `// src/registry/profileTableRegistry.ts
+// プロフィールテーブル定義の re-export + テーブルマップ（自動生成）
 //
-// このファイルは role:generate スクリプトによって自動生成されました
+// このファイルは role:generate スクリプトによって自動生成されました`;
+
+  if (profiles.length === 0) {
+    const content = `${header}
 `;
     fs.writeFileSync(path.join(REGISTRY_DIR, "profileTableRegistry.ts"), content);
     return;
   }
 
+  // re-export
   const exports = profiles
     .map(({ roleId }) => [
       `export * from "@/features/core/userProfile/generated/${roleId}/drizzle";`,
@@ -53,12 +56,38 @@ function generateProfileTableRegistry(profiles) {
     .flat()
     .join("\n");
 
-  const content = `// src/registry/profileTableRegistry.ts
-// プロフィールテーブル定義の re-export（自動生成）
-//
-// このファイルは role:generate スクリプトによって自動生成されました
+  // PROFILE_TABLE_MAP 用の import
+  const tableImports = profiles
+    .map(({ roleId }) => {
+      const tableVar = `${toPascalCase(roleId)}ProfileTable`;
+      return `import { ${tableVar} } from "@/features/core/userProfile/generated/${roleId}/drizzle";`;
+    })
+    .join("\n");
+
+  // PROFILE_TABLE_MAP のエントリ
+  const tableEntries = profiles
+    .map(({ roleId }) => {
+      const tableVar = `${toPascalCase(roleId)}ProfileTable`;
+      return `  ${roleId}: ${tableVar},`;
+    })
+    .join("\n");
+
+  const content = `${header}
+
+import type { PgTable } from "drizzle-orm/pg-core";
 
 ${exports}
+
+${tableImports}
+
+/**
+ * ロール → プロフィールテーブルのマッピング
+ * searchWithProfile 等でプロフィールテーブルを動的に参照するために使用
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const PROFILE_TABLE_MAP: Record<string, PgTable & Record<string, any>> = {
+${tableEntries}
+};
 `;
 
   fs.writeFileSync(path.join(REGISTRY_DIR, "profileTableRegistry.ts"), content);
