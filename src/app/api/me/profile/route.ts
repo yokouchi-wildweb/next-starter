@@ -16,10 +16,14 @@ export const PATCH = createApiRoute(
 
     const body = await req.json();
 
-    // 名前とプロフィールデータを更新可能とする
+    // 名前・アバター・プロフィールデータを更新可能とする
     const updateData: Record<string, unknown> = {
       name: body.name,
     };
+
+    if (body.avatarUrl !== undefined) {
+      updateData.avatarUrl = body.avatarUrl;
+    }
 
     if (body.profileData !== undefined) {
       updateData.profileData = body.profileData;

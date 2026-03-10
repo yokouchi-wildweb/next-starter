@@ -79,6 +79,8 @@ export const APP_FEATURES = {
     withdrawEnabled: false,
     /** 電話番号認証機能を有効にする */
     phoneVerificationEnabled: false,
+    /** アバター画像の変更機能を有効にする */
+    avatarEnabled: true,
     /** ユーザータグ機能を有効にする（false の場合はメニュー非表示・ページ 404・フォーム非表示） */
     enableUserTag: true,
   },

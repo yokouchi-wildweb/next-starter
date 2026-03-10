@@ -9,6 +9,7 @@ import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { User } from "@/features/core/user/entities";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 
+import { AccountAvatarSection } from "./AccountAvatarSection";
 import { AccountPageHeader } from "./AccountPageHeader";
 
 type AccountDetailsProps = {
@@ -49,6 +50,9 @@ export function AccountDetails({ user }: AccountDetailsProps) {
     <Section>
       <Stack space={4}>
         <AccountPageHeader title="アカウント基本情報" backHref="/mypage" />
+        {APP_FEATURES.user.avatarEnabled && (
+          <AccountAvatarSection user={user} />
+        )}
         <div className="grid grid-cols-1 gap-3">
           <AccountDetailItem
             href="/mypage/account/profile"
