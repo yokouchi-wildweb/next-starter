@@ -3,7 +3,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CameraIcon, CircleUserRoundIcon, ImageIcon, LoaderIcon, Trash2Icon } from "lucide-react";
+import { CameraIcon, ImageIcon, LoaderIcon, Trash2Icon, UserIcon } from "lucide-react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { clientUploader } from "@/lib/storage/client/clientUploader";
@@ -32,12 +32,18 @@ type AccountAvatarSectionProps = {
 // --- デフォルトフォールバック ---
 
 function DefaultFallback({ size }: { size: number }) {
+  const iconSize = size * 0.45;
   return (
-    <CircleUserRoundIcon
-      className="text-muted-foreground/60"
+    <span
+      className="flex items-center justify-center rounded-full bg-primary/10"
       style={{ width: size, height: size }}
-      strokeWidth={1}
-    />
+    >
+      <UserIcon
+        className="text-primary"
+        style={{ width: iconSize, height: iconSize }}
+        strokeWidth={1.5}
+      />
+    </span>
   );
 }
 
@@ -203,7 +209,7 @@ export function AccountAvatarSection({
 
   return (
     <Stack space={1}>
-      <div className="flex flex-col items-center gap-3 py-2">
+      <div className="flex flex-col items-center gap-2 py-2">
         {/* アバター */}
         <div className="relative">
           <button
