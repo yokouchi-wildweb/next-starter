@@ -149,6 +149,52 @@ roles/
 - `userService.searchWithProfile()` でのプロフィール横断検索にも使用される
 - 未指定の場合、keyword 検索は無効
 
+### リレーション設定
+
+`profile.json` に `relations` を追加することで、プロフィールテーブルにリレーションを設定できる。
+フォーマットは `domain.json` の `relations` と同じ。
+
+```json
+{
+  "roleId": "contributor",
+  "fields": [...],
+  "relations": [
+    {
+      "domain": "contributor_category",
+      "label": "カテゴリ",
+      "fieldName": "contributor_category_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": false,
+      "onDelete": "RESTRICT",
+      "formInput": "asyncCombobox"
+    },
+    {
+      "domain": "contributor_tag",
+      "label": "タグ",
+      "fieldName": "contributor_tag_ids",
+      "fieldType": "uuid",
+      "relationType": "belongsToMany",
+      "includeRelationTable": true,
+      "formInput": "asyncMultiSelect"
+    }
+  ]
+}
+```
+
+**対応するリレーションタイプ:**
+- `belongsTo`: 外部キーカラムを生成。`onDelete` で削除時の挙動を指定
+- `belongsToMany`: 中間テーブルを自動生成（`{RoleId}ProfileTo{Relation}Table`）
+
+**自動生成される内容:**
+- `drizzle.ts`: FK カラム（belongsTo）、中間テーブル（belongsToMany）
+- `schema.ts`: FK フィールドの Zod バリデーション
+- `model.ts`: FK フィールドの型定義
+- `profileBaseRegistry.ts`: `createProfileBase` に `belongsToManyRelations`, `belongsToRelations`, `belongsToManyObjectRelations`, `countableRelations` を渡す
+
+**対話型スクリプトでの設定:**
+`role:init` または `role:add-profile` 実行時に、フィールド設定後にリレーション質問が表示される。
+
 ## 自動生成ファイル
 
 設定 JSON から以下が自動生成される（`role:generate` スクリプト）。
@@ -208,12 +254,44 @@ type ProfileBase = {
 ### createProfileBase オプション
 
 ```typescript
+// 基本（searchFields のみ）
 createProfileBase(table, {
-  defaultSearchFields: ["bio", "organizationName"],  // keyword 検索対象カラム
+  defaultSearchFields: ["bio", "organizationName"],
+});
+
+// リレーション付き
+createProfileBase(ContributorProfileTable, {
+  defaultSearchFields: ["bio"],
+  belongsToRelations: [
+    { field: "contributorCategory", foreignKey: "contributorCategoryId", table: ContributorCategoryTable },
+  ],
+  belongsToManyRelations: [
+    {
+      fieldName: "contributorTagIds",
+      throughTable: ContributorProfileToContributorTagTable,
+      sourceColumn: ContributorProfileToContributorTagTable.contributorProfileId,
+      targetColumn: ContributorProfileToContributorTagTable.contributorTagId,
+      sourceProperty: "contributorProfileId",
+      targetProperty: "contributorTagId",
+    },
+  ],
+  belongsToManyObjectRelations: [
+    {
+      field: "contributor_tags",
+      targetTable: ContributorTagTable,
+      throughTable: ContributorProfileToContributorTagTable,
+      sourceColumn: ContributorProfileToContributorTagTable.contributorProfileId,
+      targetColumn: ContributorProfileToContributorTagTable.contributorTagId,
+    },
+  ],
+  countableRelations: [
+    { field: "contributor_tags", throughTable: ContributorProfileToContributorTagTable, foreignKey: "contributorProfileId" },
+  ],
 });
 ```
 
-`profile.json` に `searchFields` を記述すると、自動生成時に `profileBaseRegistry.ts` へ反映される。
+`profile.json` に `searchFields` や `relations` を記述すると、自動生成時に `profileBaseRegistry.ts` へ反映される。
+リレーションを設定すると `search()` / `list()` で `withRelations` / `withCount` オプションが使用可能になる。
 
 ### query() による自由な JOIN
 
@@ -620,8 +698,17 @@ pnpm role:generate -- <roleId>
 
 実行内容:
 1. roleRegistry.ts 更新
-2. generated/{roleId}/ 配下のファイル生成
+2. generated/{roleId}/ 配下のファイル生成（relations があれば FK カラム・中間テーブルも生成）
 3. profileSchemaRegistry.ts 全件再生成
 4. profileConfigRegistry.ts 全件再生成
-5. profileBaseRegistry.ts 全件再生成（searchFields 反映）
+5. profileBaseRegistry.ts 全件再生成（searchFields・リレーション設定を反映）
 6. profileTableRegistry.ts 全件再生成
+
+### role:init / role:add-profile
+
+対話型でプロフィール設定を作成。フィールド収集後にリレーション質問が表示される。
+
+```bash
+pnpm role:init           # 新規ロール + プロフィール作成
+pnpm role:add-profile    # 既存ロールにプロフィール追加
+```
