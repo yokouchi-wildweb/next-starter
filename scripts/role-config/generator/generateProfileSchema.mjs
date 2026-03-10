@@ -116,6 +116,22 @@ export function generateProfileSchema(roleConfig, profileConfig) {
   usesNullableDatetime = false;
   const lines = [];
 
+  // belongsTo リレーションの FK フィールド
+  (profileConfig.relations || []).forEach((rel) => {
+    if (rel.relationType !== "belongsTo") return;
+    const camelName = toCamelCase(rel.fieldName);
+    const zodType = "z.string()";
+    lines.push(
+      fieldLine({
+        name: camelName,
+        label: rel.label,
+        type: zodType,
+        required: rel.required,
+        fieldType: "uuid",
+      })
+    );
+  });
+
   // フィールド定義
   (profileConfig.fields || []).forEach((f) => {
     if (f.formInput === "none" || f.formInput === "hidden") return;

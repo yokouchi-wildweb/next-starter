@@ -7,6 +7,7 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import askProfileFields from "./questions/profile-fields.mjs";
+import askProfileRelations from "./questions/profile-relations.mjs";
 import formatDomainConfig from "../domain-config/utils/formatConfig.mjs";
 import generate from "./generate.mjs";
 
@@ -61,13 +62,14 @@ function profileExists(roleId) {
 /**
  * プロフィール設定を保存
  */
-function saveProfileConfig(roleId, fields, tags) {
+function saveProfileConfig(roleId, fields, tags, relations) {
   ensureDir(PROFILES_DIR);
 
   const profileConfig = {
     roleId,
     fields,
     ...(tags && Object.keys(tags).length > 0 ? { tags } : {}),
+    ...(relations && relations.length > 0 ? { relations } : {}),
   };
 
   const fileName = `${roleId}.profile.json`;
@@ -139,8 +141,11 @@ export default async function addProfile() {
     return;
   }
 
+  // リレーション質問
+  const { relations } = await askProfileRelations();
+
   // プロフィール設定を保存
-  saveProfileConfig(selectedRoleId, fields, tags);
+  saveProfileConfig(selectedRoleId, fields, tags, relations);
 
   // hasProfile の更新確認
   if (!selectedRole.hasProfile) {

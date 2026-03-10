@@ -21,6 +21,49 @@ function formatValue(v) {
 }
 
 /**
+ * リレーション先ドメインのテーブル名を取得
+ * domain.json が存在すれば plural を使用、なければ snake_case 化
+ */
+function getForeignTableName(domainName) {
+  const domainCamel = toCamelCase(domainName) || domainName;
+  const featuresDir = path.join(ROOT_DIR, "src", "features");
+  const candidates = [
+    path.join(featuresDir, domainCamel, "domain.json"),
+    path.join(featuresDir, "core", domainCamel, "domain.json"),
+  ];
+  for (const configPath of candidates) {
+    if (fs.existsSync(configPath)) {
+      try {
+        const foreignConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        if (foreignConfig.plural) {
+          return toSnakeCase(foreignConfig.plural);
+        }
+      } catch {
+        // JSON パースエラー時はフォールバック
+      }
+      break;
+    }
+  }
+  return toSnakeCase(domainName);
+}
+
+/**
+ * onDelete 設定から Drizzle オプション文字列を生成
+ */
+function buildOnDeleteOption(behavior) {
+  switch (behavior) {
+    case "CASCADE":
+      return ', { onDelete: "cascade" }';
+    case "SET_NULL":
+      return ', { onDelete: "set null" }';
+    case "RESTRICT":
+      return ', { onDelete: "restrict" }';
+    default:
+      return "";
+  }
+}
+
+/**
  * fieldType から Drizzle のカラム型を生成
  */
 function getDrizzleColumnType(field) {
@@ -115,7 +158,97 @@ function generateFieldDefinitions(fields) {
     lines.push(`  ${camelName}: ${columnDef},`);
   }
 
-  return { lines, imports: Array.from(imports) };
+  return { lines, imports };
+}
+
+/**
+ * belongsTo リレーションの FK カラム定義を生成
+ */
+function generateBelongsToColumns(relations, profileTableName) {
+  const lines = [];
+  const imports = new Set();
+  const relationImports = [];
+
+  const belongsToRels = (relations || []).filter((r) => r.relationType === "belongsTo");
+  if (belongsToRels.length === 0) return { lines, imports, relationImports };
+
+  for (const rel of belongsToRels) {
+    const relationPascal = toPascalCase(rel.domain);
+    const relationCamel = toCamelCase(rel.domain);
+    const columnName = toSnakeCase(rel.fieldName);
+    const camelName = toCamelCase(rel.fieldName);
+    const onDelete = rel.onDelete || "RESTRICT";
+    const opt = buildOnDeleteOption(onDelete);
+
+    // FK カラムの型（デフォルトは uuid）
+    const colType = rel.fieldType || "uuid";
+    imports.add(colType === "uuid" ? "uuid" : "text");
+    const colFn = colType === "uuid" ? "uuid" : "text";
+
+    let line = `  /** ${rel.label} */\n`;
+    line += `  ${camelName}: ${colFn}("${columnName}")`;
+    if (rel.required) line += ".notNull()";
+    line += `\n    .references(() => ${relationPascal}Table.id${opt}),`;
+    lines.push(line);
+
+    // import 対象を記録
+    relationImports.push({
+      domain: relationCamel,
+      tableVar: `${relationPascal}Table`,
+    });
+  }
+
+  return { lines, imports, relationImports };
+}
+
+/**
+ * belongsToMany リレーションの中間テーブル定義を生成
+ */
+function generateBelongsToManyTables(relations, roleId, rolePascal, profileTableVar) {
+  const blocks = [];
+  const relationImports = [];
+
+  const m2mRels = (relations || []).filter(
+    (r) => r.relationType === "belongsToMany" && r.includeRelationTable !== false
+  );
+  if (m2mRels.length === 0) return { blocks, relationImports, needsPrimaryKey: false };
+
+  for (const rel of m2mRels) {
+    const relationPascal = toPascalCase(rel.domain);
+    const relationCamel = toCamelCase(rel.domain);
+    const junctionPascal = `${rolePascal}ProfileTo${relationPascal}`;
+    const junctionTableVar = `${junctionPascal}Table`;
+    const junctionTableName = toSnakeCase(junctionPascal);
+    const sourceCol = `${toSnakeCase(roleId)}_profile_id`;
+    const targetCol = `${toSnakeCase(rel.domain)}_id`;
+    const sourceProp = `${toCamelCase(roleId)}ProfileId`;
+    const targetProp = `${relationCamel}Id`;
+
+    const block = `
+export const ${junctionTableVar} = pgTable(
+  "${junctionTableName}",
+  {
+    ${sourceProp}: uuid("${sourceCol}")
+      .notNull()
+      .references(() => ${profileTableVar}.id, { onDelete: "cascade" }),
+    ${targetProp}: uuid("${targetCol}")
+      .notNull()
+      .references(() => ${relationPascal}Table.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.${sourceProp}, table.${targetProp}] }),
+  }),
+);`;
+
+    blocks.push(block);
+
+    relationImports.push({
+      domain: relationCamel,
+      tableVar: `${relationPascal}Table`,
+    });
+  }
+
+  return { blocks, relationImports, needsPrimaryKey: m2mRels.length > 0 };
 }
 
 /**
@@ -129,6 +262,52 @@ export function generateProfileDrizzle(roleConfig, profileConfig) {
 
   const { lines: fieldLines, imports } = generateFieldDefinitions(profileConfig.fields);
 
+  // リレーション処理
+  const belongsTo = generateBelongsToColumns(
+    profileConfig.relations,
+    tableName
+  );
+  const m2m = generateBelongsToManyTables(
+    profileConfig.relations,
+    roleId,
+    rolePascal,
+    tableVar
+  );
+
+  // belongsTo の imports をマージ
+  for (const imp of belongsTo.imports) {
+    imports.add(imp);
+  }
+  if (m2m.needsPrimaryKey) {
+    imports.add("primaryKey");
+  }
+
+  // リレーション先テーブルの import 文を収集（重複排除）
+  const allRelationImports = new Map();
+  for (const ri of [...belongsTo.relationImports, ...m2m.relationImports]) {
+    allRelationImports.set(ri.domain, ri.tableVar);
+  }
+
+  const relationImportLines = Array.from(allRelationImports.entries())
+    .map(
+      ([domain, tableVar]) =>
+        `import { ${tableVar} } from "@/features/${domain}/entities/drizzle";`
+    )
+    .join("\n");
+  const relationImportBlock = relationImportLines ? `\n${relationImportLines}` : "";
+
+  // belongsTo FK カラムのブロック
+  const belongsToBlock =
+    belongsTo.lines.length > 0
+      ? `\n  // ==========================================================================
+  // リレーション（外部キー）
+  // ==========================================================================
+${belongsTo.lines.join("\n")}\n`
+      : "";
+
+  // 中間テーブルブロック
+  const m2mBlock = m2m.blocks.join("\n");
+
   const content = `// src/features/core/userProfile/generated/${roleId}/drizzle.ts
 // ${roleConfig.label}（${roleId}）ロール用のプロフィールテーブル
 //
@@ -136,7 +315,7 @@ export function generateProfileDrizzle(roleConfig, profileConfig) {
 // このファイルは role:generate スクリプトによって自動生成されました
 
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { ${imports.join(", ")}, pgTable } from "drizzle-orm/pg-core";
+import { ${Array.from(imports).join(", ")}, pgTable } from "drizzle-orm/pg-core";${relationImportBlock}
 
 /**
  * ${roleConfig.label}プロフィールテーブル
@@ -154,7 +333,7 @@ export const ${tableVar} = pgTable("${tableName}", {
     .notNull()
     .unique()
     .references(() => UserTable.id, { onDelete: "cascade" }),
-
+${belongsToBlock}
   // ==========================================================================
   // プロフィールフィールド
   // @source ${roleId}.profile.json
@@ -173,6 +352,7 @@ ${fieldLines.join("\n")}
  */
 export type ${rolePascal}Profile = typeof ${tableVar}.$inferSelect;
 export type ${rolePascal}ProfileInsert = typeof ${tableVar}.$inferInsert;
+${m2mBlock}
 `;
 
   // generated/{roleId}/ フォルダを作成

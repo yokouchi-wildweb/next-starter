@@ -12,6 +12,31 @@ import contributorProfile from "./contributor.profile.json";
 // JSON プロフィール設定の読み込み
 
 /**
+ * プロフィールリレーション設定。
+ * domain.json の relations と同じフォーマット。
+ */
+export type ProfileRelationConfig = {
+  /** 関連先ドメイン名（snake_case） */
+  domain: string;
+  /** ラベル */
+  label: string;
+  /** フィールド名（belongsTo: 外部キー, belongsToMany: 配列フィールド） */
+  fieldName: string;
+  /** フィールドタイプ */
+  fieldType: string;
+  /** リレーションタイプ */
+  relationType: "belongsTo" | "belongsToMany";
+  /** 必須フラグ */
+  required?: boolean;
+  /** 削除時の挙動（belongsTo のみ） */
+  onDelete?: string;
+  /** 中間テーブルを生成するか（belongsToMany のみ） */
+  includeRelationTable?: boolean;
+  /** フォーム入力タイプ */
+  formInput?: string;
+};
+
+/**
  * プロフィール設定の型
  */
 export type ProfileConfig = {
@@ -20,4 +45,6 @@ export type ProfileConfig = {
   tags?: Record<string, string[]>;
   /** keyword検索対象のカラム名（camelCase） */
   searchFields?: string[];
+  /** リレーション設定（domain.json と同じフォーマット） */
+  relations?: ProfileRelationConfig[];
 };

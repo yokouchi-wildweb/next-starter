@@ -66,6 +66,13 @@ export function generateProfileModel(roleConfig, profileConfig) {
   lines.push("  /** ユーザーID */");
   lines.push("  userId: string;");
 
+  // belongsTo リレーションの FK フィールド
+  (profileConfig.relations || []).forEach((rel) => {
+    if (rel.relationType !== "belongsTo") return;
+    const camelName = toCamelCase(rel.fieldName);
+    addField(lines, camelName, "string", rel.required);
+  });
+
   // プロフィールフィールド
   (profileConfig.fields || []).forEach((f) => {
     const camelName = toCamelCase(f.name);

@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import askRoleBasics from "./questions/role-basics.mjs";
 import askProfileFields from "./questions/profile-fields.mjs";
+import askProfileRelations from "./questions/profile-relations.mjs";
 import formatDomainConfig from "../domain-config/utils/formatConfig.mjs";
 import generate from "./generate.mjs";
 
@@ -53,7 +54,7 @@ function saveRoleConfig(roleConfig) {
  * @param {Array} fields - フィールド定義
  * @param {Object} tags - タグマッピング
  */
-function saveProfileConfig(roleId, fields, tags) {
+function saveProfileConfig(roleId, fields, tags, relations) {
   const rootDir = path.resolve(__dirname, "..", "..");
   const profilesDir = path.join(rootDir, "src", "features", "core", "userProfile", "profiles");
   ensureDir(profilesDir);
@@ -62,6 +63,7 @@ function saveProfileConfig(roleId, fields, tags) {
     roleId,
     fields,
     tags,
+    ...(relations && relations.length > 0 ? { relations } : {}),
   };
 
   const fileName = `${roleId}.profile.json`;
@@ -121,7 +123,9 @@ export default async function init() {
     const { fields, tags } = await askProfileFields();
 
     if (fields.length > 0) {
-      saveProfileConfig(roleConfig.id, fields, tags);
+      // リレーション質問
+      const { relations } = await askProfileRelations();
+      saveProfileConfig(roleConfig.id, fields, tags, relations);
     } else {
       console.log("\nプロフィールフィールドが空のため、プロフィール設定はスキップしました。");
     }
