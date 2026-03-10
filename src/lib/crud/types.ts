@@ -25,15 +25,30 @@ export type ListPageSearchParams = {
 // ============================================================
 
 export type QueryOp =
+  // 比較
   | "eq"
   | "ne"
   | "lt"
   | "lte"
   | "gt"
   | "gte"
+  // テキスト
   | "like"
+  | "startsWith"
+  | "endsWith"
+  // リスト
   | "in"
-  | "notIn";
+  | "notIn"
+  // NULL
+  | "isNull"
+  | "isNotNull"
+  // JSONB
+  | "contains"
+  | "containedBy"
+  | "hasKey"
+  // PostgreSQL 配列
+  | "arrayContains"
+  | "arrayOverlaps";
 
 export type WhereExpr =
   | { field: string; op: QueryOp; value: unknown }
