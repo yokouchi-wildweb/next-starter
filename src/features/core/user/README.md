@@ -230,6 +230,55 @@ pending, active, paused, withdrawn
    - `userProfile/entities/{role}Profile.ts` を作成
    - `userProfile/registry/` を更新
 
+## プロフィール横断検索
+
+ユーザー検索時に、プロフィールテーブルのフィールドも含めて横断検索できる。
+
+### サーバー（SSR ページ / ServerService）
+
+```typescript
+import { userService } from "@/features/core/user/services/server/userService";
+
+const result = await userService.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  page: 1,
+  limit: 20,
+});
+```
+
+### クライアント（Hook）
+
+```tsx
+import { useSearchUserWithProfile } from "@/features/core/user/hooks/useSearchUserWithProfile";
+
+const { data, total, isLoading } = useSearchUserWithProfile("contributor", {
+  searchQuery: "田中",
+  page: 1,
+  limit: 20,
+});
+```
+
+### クライアント（サービス直接）
+
+```typescript
+import { userClient } from "@/features/core/user/services/client/userClient";
+
+const result = await userClient.searchWithProfile("contributor", {
+  searchQuery: "田中",
+  page: 1,
+  limit: 20,
+});
+```
+
+**動作:**
+- ユーザーテーブルの `searchFields`（`domain.json`: name, email 等）で ILIKE 検索
+- 指定ロールのプロフィールテーブルの `searchFields`（`profile.json`）で EXISTS サブクエリによる ILIKE 検索
+- これらを **OR** で結合し、いずれかにマッチするユーザーを返す
+- `searchQuery` がない場合や `profile.json` に `searchFields` が未設定の場合は通常の `userService.search()` にフォールバック
+
+> API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中`
+> 検索対象のプロフィールフィールドは `profile.json` の `searchFields` で設定する。詳細は `src/features/core/userProfile/README.md` を参照。
+
 ## 関連ファイル
 
 | ファイル | 役割 |
