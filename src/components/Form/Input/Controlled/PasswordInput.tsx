@@ -15,5 +15,6 @@ export const PasswordInput = <TFieldValues extends FieldValues, TName extends Fi
   props: PasswordInputProps<TFieldValues, TName>,
 ) => {
   const { field, leftIcon, ...rest } = props;
-  return <ManualPasswordInput {...field} {...rest} leftIcon={leftIcon} />;
+  const { value, ...fieldRest } = field;
+  return <ManualPasswordInput {...fieldRest} {...rest} value={value ?? ""} leftIcon={leftIcon} />;
 };

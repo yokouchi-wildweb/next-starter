@@ -8,5 +8,6 @@ export const Textarea = <TFieldValues extends FieldValues, TName extends FieldPa
   props: ControlledTextareaProps<TFieldValues, TName>,
 ) => {
   const { field, ...rest } = props;
-  return <ManualTextarea {...field} {...rest} />;
+  const { value, ...fieldRest } = field;
+  return <ManualTextarea {...fieldRest} {...rest} value={value ?? ""} />;
 };
