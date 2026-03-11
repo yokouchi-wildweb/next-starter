@@ -144,15 +144,30 @@ export async function createGroupRoom(
 
 /** subscribeRooms のオプション */
 export type SubscribeRoomsOptions = {
-  /** ルームタイプでフィルタする（未指定時は全タイプ） */
-  type?: ChatRoomType;
+  /**
+   * 含めるルームタイプでフィルタする（未指定時は全タイプ）。
+   * - 単一指定: Firestore where でサーバーサイドフィルタ（効率的）
+   * - 配列指定: 全件取得後にクライアントサイドでフィルタ（Firestore の in + array-contains 制約回避）
+   */
+  type?: ChatRoomType | ChatRoomType[];
+  /**
+   * 除外するルームタイプ。
+   * 全件取得後にクライアントサイドでフィルタする。
+   * type と同時指定した場合は type が優先される。
+   */
+  excludeTypes?: ChatRoomType[];
 };
 
 /**
  * ユーザーが参加しているルーム一覧をリアルタイム購読する。
  *
  * lastMessageSnapshot.createdAt 降順でソートされる。
- * options.type を指定すると、そのタイプのルームのみに絞り込む。
+ *
+ * フィルタ動作:
+ * - type（単一）: Firestore where でサーバーサイドフィルタ
+ * - type（配列）: 全件取得後にクライアントサイドで include フィルタ
+ * - excludeTypes: 全件取得後にクライアントサイドで exclude フィルタ
+ * - type と excludeTypes の同時指定時は type が優先される
  */
 export function subscribeRooms(
   uid: string,
@@ -160,13 +175,33 @@ export function subscribeRooms(
   onError?: (error: Error) => void,
   options?: SubscribeRoomsOptions,
 ): Unsubscribe {
+  // 単一 type のみ Firestore where を使用（効率的）
+  const singleType = typeof options?.type === "string" ? options.type : undefined;
+
   const constraints = [
     where("participants", "array-contains", uid),
-    ...(options?.type ? [where("type", "==", options.type)] : []),
+    ...(singleType ? [where("type", "==", singleType)] : []),
     orderBy("lastMessageSnapshot.createdAt", "desc"),
   ];
   const q = query(collection(fstore, collectionPath), ...constraints);
-  return subscribeCollection<ChatRoom>(q, callback, onError as any);
+
+  // クライアントサイドフィルタが必要な場合はコールバックをラップ
+  const typeArray = Array.isArray(options?.type) ? options.type : undefined;
+  const excludeTypes = !typeArray && !singleType ? options?.excludeTypes : undefined;
+  const needsClientFilter = typeArray || excludeTypes;
+
+  const wrappedCallback = needsClientFilter
+    ? (rooms: ChatRoom[]) => {
+        const filtered = rooms.filter((room) => {
+          if (typeArray) return typeArray.includes(room.type as ChatRoomType);
+          if (excludeTypes) return !excludeTypes.includes(room.type as ChatRoomType);
+          return true;
+        });
+        callback(filtered);
+      }
+    : callback;
+
+  return subscribeCollection<ChatRoom>(q, wrappedCallback, onError as any);
 }
 
 /**

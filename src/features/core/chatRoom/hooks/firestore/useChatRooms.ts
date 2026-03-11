@@ -19,7 +19,7 @@ export type UseChatRoomsReturn = {
  * ユーザーが参加しているルーム一覧をリアルタイム購読する。
  *
  * lastMessageSnapshot.createdAt 降順でソートされた状態で返される。
- * options.type を指定すると、そのタイプのルームのみに絞り込む。
+ * options.type / options.excludeTypes でルームタイプをフィルタリングできる。
  */
 export function useChatRooms(uid: string | null, options?: SubscribeRoomsOptions): UseChatRoomsReturn {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -31,6 +31,12 @@ export function useChatRooms(uid: string | null, options?: SubscribeRoomsOptions
     setError(err);
     setIsLoading(false);
   }, []);
+
+  // 安定した依存値を生成（配列の参照変更による不要な再購読を防ぐ）
+  const typeKey = Array.isArray(options?.type)
+    ? options.type.slice().sort().join(",")
+    : options?.type ?? "";
+  const excludeKey = options?.excludeTypes?.slice().sort().join(",") ?? "";
 
   useEffect(() => {
     if (!uid) {
@@ -53,7 +59,8 @@ export function useChatRooms(uid: string | null, options?: SubscribeRoomsOptions
     );
 
     return unsubscribe;
-  }, [uid, handleError, options?.type]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, handleError, typeKey, excludeKey]);
 
   return { rooms, isLoading, error };
 }

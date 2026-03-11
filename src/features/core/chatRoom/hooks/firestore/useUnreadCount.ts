@@ -16,14 +16,17 @@ import { countUnreadRooms } from "@/features/chatRoom/utils/unread";
  * 未読ルーム数をリアルタイムで取得する。
  *
  * 内部で useChatRooms を購読し、未読ルーム数をカウントして返す。
- * options.type でルームタイプを絞り込める。
+ * options.type / options.excludeTypes でルームタイプを絞り込める。
  *
  * @example
  * ```tsx
- * // ヘッダーのバッジ表示
+ * // ヘッダーのバッジ表示（全タイプ）
  * const unreadCount = useUnreadCount(uid);
  *
- * // スカウトチャットのみ
+ * // 特殊タイプを除外
+ * const messageUnread = useUnreadCount(uid, { excludeTypes: ["scout"] });
+ *
+ * // 特定タイプのみ
  * const scoutUnread = useUnreadCount(uid, { type: "scout" as any });
  * ```
  */
