@@ -55,6 +55,8 @@ export type SendTextMessageParams = {
   senderId: string;
   /** 事前生成したメッセージ ID（楽観的UI 用） */
   messageId?: string;
+  /** メッセージに添付するメタデータ */
+  metadata?: MessageMetadata;
 };
 
 /** ファイル/画像メッセージ送信パラメータ */
@@ -96,13 +98,13 @@ export type FetchMessagesResult = {
 export async function sendTextMessage(
   params: SendTextMessageParams,
 ): Promise<string> {
-  const { roomId, content, senderId, messageId } = params;
+  const { roomId, content, senderId, messageId, metadata } = params;
   return sendMessage({
     roomId,
     type: "text",
     content,
     senderId,
-    metadata: null,
+    metadata: metadata ?? null,
     messageId,
   });
 }

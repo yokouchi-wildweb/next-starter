@@ -79,9 +79,23 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
     [role, profiles, tag, fieldPrefix, excludeHidden]
   );
 
+  // タグ指定時はタグに含まれるリレーションのみに絞る
+  // タグ未指定時（管理画面）は全リレーションを表示
+  const filteredRelations = useMemo(() => {
+    const relations = profileConfig?.relations;
+    if (!relations || relations.length === 0) return undefined;
+    if (!tag) return relations;
+
+    const tagFields = profileConfig?.tags?.[tag];
+    if (!tagFields || tagFields.length === 0) return [];
+
+    const tagFieldSet = new Set(tagFields);
+    return relations.filter((rel) => tagFieldSet.has(rel.fieldName));
+  }, [profileConfig, tag]);
+
   // リレーションフィールドをビジネスドメインと同じ useRelationOptions で処理
   const { insertBefore: rawInsertBefore, isLoading: isRelationLoading } = useRelationOptions({
-    relations: profileConfig?.relations,
+    relations: filteredRelations,
   });
 
   // useRelationOptions の FieldConfig.name は snake_case（例: event_genre_id）
@@ -98,7 +112,7 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
     return result;
   }, [rawInsertBefore, fieldPrefix]);
 
-  if (fields.length === 0 && !profileConfig?.relations?.length) {
+  if (fields.length === 0 && !filteredRelations?.length) {
     return null;
   }
 
