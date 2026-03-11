@@ -7,7 +7,6 @@ import type { FieldValues, UseFormReturn } from "react-hook-form";
 
 import type { InsertFieldsMap } from "@/components/Form/FieldRenderer";
 import { FieldRenderer, type FieldRendererProps } from "@/components/Form/FieldRenderer";
-import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import { useRelationOptions } from "@/lib/domain/hooks/useRelationOptions";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import type { ProfileConfig } from "../../profiles";
@@ -103,16 +102,19 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
     return null;
   }
 
-  if (isRelationLoading) {
-    return <FormSkeleton />;
-  }
+  // ハイドレーションミスマッチ防止:
+  // SSR時は useSWR がフェッチしない（isLoading: false, data: undefined）のに対し、
+  // クライアントではフェッチが走る（isLoading: true）ため、FormSkeleton で早期リターン
+  // するとSSR/クライアントで出力が異なる。
+  // ローディング中は baseFields のみでレンダリングし、取得完了後にリレーションを追加する。
+  const effectiveInsertBefore = isRelationLoading ? {} : relationInsertBefore;
 
   const renderer = (
     <FieldRenderer
       control={methods.control}
       methods={methods}
       baseFields={fields}
-      insertBefore={relationInsertBefore}
+      insertBefore={effectiveInsertBefore}
       beforeField={beforeField}
       afterField={afterField}
     />
