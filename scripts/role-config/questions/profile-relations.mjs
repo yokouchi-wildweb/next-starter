@@ -107,6 +107,21 @@ async function askSingleRelation(domain, label, relationType) {
     formInput = res.formInput;
   }
 
+  // セレクトボックスのラベルに使うフィールド
+  let labelField = undefined;
+  if (formInput !== "hidden") {
+    const res = await prompt({
+      type: "input",
+      name: "labelField",
+      message: "セレクトボックスのラベルに使うフィールド名 [name]:",
+      default: "name",
+    });
+    const trimmed = res.labelField.trim();
+    if (trimmed && trimmed !== "name") {
+      labelField = trimmed;
+    }
+  }
+
   const defaultLabel = toPascalCase(domain) || domain;
   return {
     domain,
@@ -118,6 +133,7 @@ async function askSingleRelation(domain, label, relationType) {
     ...(onDelete && { onDelete }),
     ...(relationType === "belongsToMany" && { includeRelationTable }),
     ...(formInput && { formInput }),
+    ...(labelField && { labelField }),
   };
 }
 

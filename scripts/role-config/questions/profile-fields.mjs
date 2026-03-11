@@ -413,9 +413,10 @@ async function askSingleField(fieldIndex) {
 /**
  * タグごとにフィールドを選択
  * @param {Array} fields - 収集済みフィールド
+ * @param {Array} relations - 収集済みリレーション（オプション）
  * @returns {Promise<Object>} タグマッピング
  */
-async function askTagMappings(fields) {
+export async function askTagMappings(fields, relations = []) {
   console.log("\n=== タグマッピングの設定 ===\n");
   console.log("各タグに紐づけるフィールドを選択してください。\n");
 
@@ -438,6 +439,15 @@ async function askTagMappings(fields) {
     value: f.name,
   }));
 
+  // リレーション fieldName も選択肢に追加
+  const relationChoices = (relations || [])
+    .filter((r) => r.formInput !== "hidden")
+    .map((r) => ({
+      name: `${r.label} (${r.fieldName}) [${r.relationType}]`,
+      value: r.fieldName,
+    }));
+  const allChoices = [...fieldChoices, ...relationChoices];
+
   const tags = {};
 
   for (const tagConfig of PROFILE_FIELD_TAGS) {
@@ -448,7 +458,7 @@ async function askTagMappings(fields) {
       type: "checkbox",
       name: "selectedFields",
       message: `${chalk.cyan(tagLabel)} に表示するフィールド:`,
-      choices: fieldChoices,
+      choices: allChoices,
     });
 
     tags[tagValue] = selectedFields;
@@ -489,8 +499,6 @@ export default async function askProfileFields() {
     return { fields, tags: {} };
   }
 
-  // タグマッピングを収集
-  const tags = await askTagMappings(fields);
-
-  return { fields, tags };
+  // タグマッピングはリレーション収集後に行うため、ここでは収集しない
+  return { fields, tags: {} };
 }

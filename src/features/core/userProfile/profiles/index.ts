@@ -34,6 +34,8 @@ export type ProfileRelationConfig = {
   includeRelationTable?: boolean;
   /** フォーム入力タイプ */
   formInput?: string;
+  /** セレクトボックスのラベルに使うフィールド名（デフォルト: "name"） */
+  labelField?: string;
 };
 
 /**

@@ -6,6 +6,8 @@ import { useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
 import { FieldRenderer, type FieldRendererProps } from "@/components/Form/FieldRenderer";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
+import { useRelationOptions } from "@/lib/domain/hooks/useRelationOptions";
 import type { ProfileConfig } from "../../profiles";
 import { getFieldConfigsForFormAsArray } from "../../utils";
 
@@ -69,13 +71,24 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
   beforeField,
   afterField,
 }: RoleProfileFieldsProps<TFieldValues>) {
+  const profileConfig = profiles[role];
+
   const fields = useMemo(
     () => getFieldConfigsForFormAsArray(profiles, role, { tag, fieldPrefix, excludeHidden }),
     [role, profiles, tag, fieldPrefix, excludeHidden]
   );
 
-  if (fields.length === 0) {
+  // リレーションフィールドをビジネスドメインと同じ useRelationOptions で処理
+  const { insertBefore: relationInsertBefore, isLoading: isRelationLoading } = useRelationOptions({
+    relations: profileConfig?.relations,
+  });
+
+  if (fields.length === 0 && !profileConfig?.relations?.length) {
     return null;
+  }
+
+  if (isRelationLoading) {
+    return <FormSkeleton />;
   }
 
   const renderer = (
@@ -83,6 +96,7 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
       control={methods.control}
       methods={methods}
       baseFields={fields}
+      insertBefore={relationInsertBefore}
       beforeField={beforeField}
       afterField={afterField}
     />

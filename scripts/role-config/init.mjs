@@ -7,7 +7,7 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import askRoleBasics from "./questions/role-basics.mjs";
-import askProfileFields from "./questions/profile-fields.mjs";
+import askProfileFields, { askTagMappings } from "./questions/profile-fields.mjs";
 import askProfileRelations from "./questions/profile-relations.mjs";
 import formatDomainConfig from "../domain-config/utils/formatConfig.mjs";
 import generate from "./generate.mjs";
@@ -120,11 +120,13 @@ export default async function init() {
 
   // プロフィールフィールドの収集（hasProfile: true の場合）
   if (roleConfig.hasProfile) {
-    const { fields, tags } = await askProfileFields();
+    const { fields } = await askProfileFields();
 
     if (fields.length > 0) {
       // リレーション質問
       const { relations } = await askProfileRelations();
+      // タグマッピング（フィールド + リレーション fieldName を選択肢に含める）
+      const tags = await askTagMappings(fields, relations);
       saveProfileConfig(roleConfig.id, fields, tags, relations);
     } else {
       console.log("\nプロフィールフィールドが空のため、プロフィール設定はスキップしました。");
