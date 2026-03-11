@@ -5,9 +5,11 @@
 import { useMemo } from "react";
 import type { FieldValues, UseFormReturn } from "react-hook-form";
 
+import type { InsertFieldsMap } from "@/components/Form/FieldRenderer";
 import { FieldRenderer, type FieldRendererProps } from "@/components/Form/FieldRenderer";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 import { useRelationOptions } from "@/lib/domain/hooks/useRelationOptions";
+import { toCamelCase } from "@/utils/stringCase.mjs";
 import type { ProfileConfig } from "../../profiles";
 import { getFieldConfigsForFormAsArray } from "../../utils";
 
@@ -79,9 +81,23 @@ export function RoleProfileFields<TFieldValues extends FieldValues>({
   );
 
   // リレーションフィールドをビジネスドメインと同じ useRelationOptions で処理
-  const { insertBefore: relationInsertBefore, isLoading: isRelationLoading } = useRelationOptions({
+  const { insertBefore: rawInsertBefore, isLoading: isRelationLoading } = useRelationOptions({
     relations: profileConfig?.relations,
   });
+
+  // useRelationOptions の FieldConfig.name は snake_case（例: event_genre_id）
+  // プロフィールフォームでは ${fieldPrefix}.${camelCase} 形式が必要なので変換
+  const relationInsertBefore = useMemo<InsertFieldsMap>(() => {
+    const result: InsertFieldsMap = {};
+    for (const [key, fieldConfigs] of Object.entries(rawInsertBefore)) {
+      if (!fieldConfigs) continue;
+      result[key] = fieldConfigs.map((fc) => ({
+        ...fc,
+        name: `${fieldPrefix}.${toCamelCase(fc.name)}`,
+      }));
+    }
+    return result;
+  }, [rawInsertBefore, fieldPrefix]);
 
   if (fields.length === 0 && !profileConfig?.relations?.length) {
     return null;
