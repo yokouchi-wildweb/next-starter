@@ -558,6 +558,56 @@ await updateDoc(doc(fstore, "chat_rooms", roomId), {
 type ExtendedChatRoom = ChatRoom & { iconUrl?: string; description?: string };
 ```
 
+### メッセージメタデータの拡張
+
+`MessageMetadata` は `BaseMessageMetadata & Record<string, unknown>` として定義されており、コアファイルを変更せずに任意のフィールドを追加できる。
+
+**書き込み（コア変更不要）**
+
+```ts
+await sendTextMessage({
+  roomId,
+  content: "この求人に興味はありませんか？",
+  senderId: uid,
+  metadata: {
+    linkedResources: [
+      { type: "job", id: "job_123", url: "/jobs/job_123", title: "フロントエンドエンジニア" },
+    ],
+  },
+});
+```
+
+**読み取り（Zod で型安全に）**
+
+```ts
+import { z } from "zod";
+import { getTypedMetadata } from "@/features/chatRoom/utils/metadata";
+
+const LinkedResourceSchema = z.object({
+  linkedResources: z.array(z.object({
+    type: z.string(),
+    id: z.string(),
+    url: z.string(),
+    title: z.string().optional(),
+  })),
+});
+
+function ScoutMessageCard({ message }: { message: ChatMessage }) {
+  const meta = getTypedMetadata(message, LinkedResourceSchema);
+  if (!meta) return null;
+
+  return (
+    <div>
+      {meta.linkedResources.map((r) => (
+        <a key={r.id} href={r.url}>{r.title ?? r.id}</a>
+      ))}
+    </div>
+  );
+}
+```
+
+> `getTypedMetadata` は `safeParse` を使うため、スキーマに合致しない場合は `null` を返す（クラッシュしない）。
+
 ### メッセージの表示カスタマイズ
 
 `deletedAt` / `editedAt` に応じた表示切り替え:
@@ -700,6 +750,7 @@ chatRoom/
 │   └── index.ts
 │
 ├── utils/
+│   ├── metadata.ts         # getTypedMetadata（メタデータの型安全な読み取り）
 │   ├── unread.ts           # isRoomUnread, countUnreadRooms
 │   └── validation.ts       # メッセージ/ファイルのバリデーション
 │

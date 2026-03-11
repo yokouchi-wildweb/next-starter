@@ -10,14 +10,21 @@ export type MessageType = "text" | "image" | "file" | "system";
 export type ChatRoomType = "direct" | "group";
 
 /**
- * ファイル・画像メッセージの付加情報
+ * ファイル・画像メッセージの付加情報（コア提供）
  */
-export type MessageMetadata = {
+export type BaseMessageMetadata = {
   fileName?: string;
   fileSize?: number;
   mimeType?: string;
   thumbnailUrl?: string;
 };
+
+/**
+ * メッセージメタデータ型。
+ * コアの BaseMessageMetadata に加えて、ダウンストリームが任意のフィールドを追加できる。
+ * 読み取り時は getTypedMetadata() で Zod スキーマにより型安全に絞り込む。
+ */
+export type MessageMetadata = BaseMessageMetadata & Record<string, unknown>;
 
 /**
  * chatRoom に冗長保存される最新メッセージのスナップショット。
