@@ -85,6 +85,12 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
           delete queryParams.where;
         }
 
+        if (params.relationWhere) {
+          queryParams.relationWhere = JSON.stringify(params.relationWhere);
+        } else {
+          delete queryParams.relationWhere;
+        }
+
         return (await axios.get<PaginatedResult<T>>(`${baseUrl}/search`, { params: queryParams })).data;
       }),
     bulkDeleteByIds: (ids) =>

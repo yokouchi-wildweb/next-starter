@@ -116,4 +116,14 @@ export function parseWhere(value: string | null): SearchParams["where"] {
   }
 }
 
+// relationWhere クエリを JSON として読み込むヘルパー
+export function parseRelationWhere(value: string | null): SearchParams["relationWhere"] {
+  if (!value) return undefined;
+  try {
+    return JSON.parse(value) as SearchParams["relationWhere"];
+  } catch {
+    throw new BadRequestError("relationWhere は有効な JSON 文字列で指定してください");
+  }
+}
+
 export { BadRequestError };

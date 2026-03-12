@@ -14,6 +14,7 @@ import {
   parseSearchFields,
   parseSearchPriorityFields,
   parseWhere,
+  parseRelationWhere,
 } from "./utils";
 
 type DomainParams = { domain: string };
@@ -41,6 +42,7 @@ export const GET = createDomainRoute<any, DomainParams>(
         "prioritizeSearchHits",
       );
       const where = parseWhere(query.get("where"));
+      const relationWhere = parseRelationWhere(query.get("relationWhere"));
 
       const searchQuery = query.get("searchQuery") ?? undefined;
 
@@ -56,6 +58,7 @@ export const GET = createDomainRoute<any, DomainParams>(
       if (searchQuery) searchParams.searchQuery = searchQuery;
       if (searchFields) searchParams.searchFields = searchFields;
       if (where) searchParams.where = where;
+      if (relationWhere) searchParams.relationWhere = relationWhere;
       if (searchPriorityFields) searchParams.searchPriorityFields = searchPriorityFields;
       if (typeof prioritizeSearchHits === "boolean")
         searchParams.prioritizeSearchHits = prioritizeSearchHits;
