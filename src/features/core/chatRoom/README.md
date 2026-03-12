@@ -40,6 +40,7 @@ Firestore SDK を直接操作する。管理画面向けには自動生成の CR
 ┌─ Service 層 ─┴──────────────────────────────────────────────┐
 │  firestoreClient.ts    ルーム操作（作成・購読・参加者管理）    │
 │  messageClient.ts      メッセージ操作（送信・編集・削除・取得）│
+│  bulkMessageClient.ts  複数ユーザーへの一斉メッセージ送信      │
 └──────────────┬──────────────────────────────────────────────┘
                │ Firestore SDK
 ┌─ Firestore ──┴──────────────────────────────────────────────┐
@@ -227,6 +228,40 @@ const unreadCount = useUnreadCount(uid);
 // <Badge count={unreadCount} />
 ```
 
+### 一斉メッセージ送信
+
+複数ユーザーに同一のダイレクトメッセージを一斉送信する。
+
+```tsx
+import { useBulkMessageSender } from "@/features/chatRoom/hooks/firestore/useBulkMessageSender";
+
+function BulkMessageForm({ uid }: { uid: string }) {
+  const { send, status, progress, result, reset } = useBulkMessageSender(uid);
+
+  const handleSend = async () => {
+    await send({
+      targetUserIds: selectedUserIds,
+      content: messageText,
+    });
+  };
+
+  if (status === "sending" && progress) {
+    return <p>{progress.completed} / {progress.total} 件送信中...</p>;
+  }
+
+  if (status === "done" && result) {
+    return (
+      <div>
+        <p>完了: 成功 {result.successCount} 件 / 失敗 {result.failedCount} 件</p>
+        <button onClick={reset}>戻る</button>
+      </div>
+    );
+  }
+
+  return <button onClick={handleSend}>一斉送信</button>;
+}
+```
+
 ---
 
 ## Hook リファレンス
@@ -270,6 +305,33 @@ const unreadCount = useUnreadCount(uid);
 | 戻り値 | 型 |
 |---|---|
 | `number` | 未読ルーム数 |
+
+#### `useBulkMessageSender(senderId)`
+
+複数ユーザーに同一のダイレクトメッセージを一斉送信する。
+
+| パラメータ | 型 | 説明 |
+|---|---|---|
+| `senderId` | `string` | 送信者の userId |
+
+| 戻り値 | 型 | 説明 |
+|---|---|---|
+| `send` | `(params: BulkSendParams) => Promise<BulkSendResult>` | 一斉送信を実行 |
+| `status` | `"idle" \| "sending" \| "done"` | 送信状態 |
+| `progress` | `BulkSendProgress \| null` | 進捗情報（`{ completed, total, latest }`） |
+| `result` | `BulkSendResult \| null` | 最終結果（`{ results, successCount, failedCount }`） |
+| `reset` | `() => void` | 状態をリセット |
+
+```ts
+type BulkSendParams = {
+  targetUserIds: string[];
+  content: string;
+  metadata?: MessageMetadata;
+  concurrency?: number; // デフォルト: 5
+};
+```
+
+> 内部では同時実行数を制限して Firestore のレート制限に配慮する。各宛先の成功/失敗は独立しており、一部が失敗しても他の送信には影響しない。
 
 ### 個別 Hook
 
@@ -516,6 +578,31 @@ const { messages, nextCursor, hasMore } = await fetchPastMessages(roomId);
 // 次ページ: await fetchPastMessages(roomId, nextCursor);
 ```
 
+### 一斉メッセージ送信（bulkMessageClient.ts）
+
+複数ユーザーに同一のダイレクトメッセージを一斉送信する。各宛先に対してルームの確保（find or create）→ メッセージ送信を並行実行する。
+
+```ts
+import { sendBulkDirectMessage } from "@/features/chatRoom/services/client/bulkMessageClient";
+
+const result = await sendBulkDirectMessage({
+  senderId: currentUser.uid,
+  targetUserIds: ["user1", "user2", "user3"],
+  content: "お知らせ：明日の会議は15時に変更になりました",
+  concurrency: 5, // 同時実行数（デフォルト: 5）
+  onProgress: ({ completed, total }) => {
+    console.log(`${completed} / ${total} 件完了`);
+  },
+});
+
+console.log(`成功: ${result.successCount}, 失敗: ${result.failedCount}`);
+
+// 失敗した宛先の確認
+const failed = result.results.filter((r) => r.status === "failed");
+```
+
+> 同時実行数を制限（デフォルト5）して Firestore のレート制限に配慮する。各宛先の処理は独立しており、一部の失敗が他に影響しない。
+
 ### 未読ユーティリティ（utils/unread.ts）
 
 ```ts
@@ -728,6 +815,7 @@ chatRoom/
 ├── services/client/
 │   ├── firestoreClient.ts  # ルーム作成・購読・参加者管理（手動）
 │   ├── messageClient.ts    # メッセージ送信・編集・削除・取得・購読（手動）
+│   ├── bulkMessageClient.ts # 複数ユーザーへの一斉メッセージ送信（手動）
 │   └── chatRoomClient.ts   # REST API クライアント（自動生成・管理画面用）
 │
 ├── hooks/firestore/        # Firestore リアルタイム用フック（手動）
@@ -739,7 +827,8 @@ chatRoom/
 │   ├── useChatMessageSender.ts
 │   ├── useMergedMessages.ts
 │   ├── useReadAt.ts
-│   └── useResolvedParticipants.ts
+│   ├── useResolvedParticipants.ts
+│   └── useBulkMessageSender.ts    ← 一斉送信フック
 │
 ├── hooks/                  # CRUD フック（自動生成・管理画面用）
 │
@@ -750,6 +839,7 @@ chatRoom/
 │   └── index.ts
 │
 ├── utils/
+│   ├── concurrency.ts      # pMap（同時実行数制限付き並行処理）
 │   ├── metadata.ts         # getTypedMetadata（メタデータの型安全な読み取り）
 │   ├── unread.ts           # isRoomUnread, countUnreadRooms
 │   └── validation.ts       # メッセージ/ファイルのバリデーション
