@@ -91,12 +91,14 @@ createCrudService<TTable, TCreate>(table, {
 | `update(id, data, tx?)` | string, Partial | Select | M2M 差分同期 |
 | `remove(id, tx?)` | string | void | useSoftDelete 時は論理削除 |
 
-### 検索・クエリ
+### 検索・クエリ・カウント
 
 | メソッド | 引数 | 戻り値 | 備考 |
 |----------|------|--------|------|
 | `search(params?)` | SearchParams & WithOptions & ExtraWhereOption | PaginatedResult | メインの検索メソッド |
 | `searchWithDeleted(params?)` | 同上 | PaginatedResult | 論理削除レコードも含む |
+| `count(params?)` | CountParams & ExtraWhereOption | CountResult | 件数のみ取得（レコード不要時に最適） |
+| `countWithDeleted(params?)` | 同上 | CountResult | 論理削除レコードも含めた件数 |
 | `query(baseQuery, options?, countQuery?)` | カスタム SELECT | PaginatedResult | サーバー専用。JOIN 等の自由なクエリ |
 | `searchForSorting(params?)` | SearchParams & ExtraWhereOption | PaginatedResult | sort_order NULL を自動初期化 |
 
@@ -139,9 +141,11 @@ createCrudService<TTable, TCreate>(table, {
 
 ---
 
-## search() の詳細仕様
+## search() / count() の詳細仕様
 
 ### WHERE 合成順序
+
+`search()` と `count()` は同じ WHERE 合成ロジックを使用する。
 
 ```
 1. buildWhere(table, where)           ← WhereExpr DSL
@@ -152,6 +156,8 @@ createCrudService<TTable, TCreate>(table, {
 ```
 
 各レイヤーは値がなければスキップ。すべて `and()` で合成される。
+
+`count()` は上記の WHERE 条件で `SELECT COUNT(*)` のみを実行し、`{ total: number }` を返す。レコードの取得・ハイドレーション・ソートは一切行わない。
 
 ### WhereExpr DSL
 

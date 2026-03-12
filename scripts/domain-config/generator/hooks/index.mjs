@@ -25,6 +25,7 @@ import generateRestore from "./restore.mjs";
 import generateHardDelete from "./hardDelete.mjs";
 import generateReorder from "./reorder.mjs";
 import generateSearchForSorting from "./searchForSorting.mjs";
+import generateCount from "./count.mjs";
 
 // 各種フックをまとめて生成するエントリースクリプト
 //
@@ -76,6 +77,7 @@ const generators = [
   generateBulkDeleteByQuery,
   generateBulkUpsert,
   generateBulkUpdate,
+  generateCount,
 ];
 
 // 条件付きフック

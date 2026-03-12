@@ -4,6 +4,8 @@ import axios from "axios";
 import type {
   ApiClient,
   SearchParams,
+  CountParams,
+  CountResult,
   PaginatedResult,
   UpsertOptions,
   BulkUpsertOptions,
@@ -137,5 +139,7 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
       handleRequest("reorder", async () => (await axios.post<T>(`${baseUrl}/${id}/reorder`, { afterItemId })).data),
     searchForSorting: (params: SearchParams) =>
       handleRequest("searchForSorting", async () => (await axios.post<PaginatedResult<T>>(`${baseUrl}/search-for-sorting`, params)).data),
+    count: (params: CountParams) =>
+      handleRequest("count", async () => (await axios.post<CountResult>(`${baseUrl}/count`, params)).data),
   };
 }

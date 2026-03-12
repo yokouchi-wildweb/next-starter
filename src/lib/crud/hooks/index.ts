@@ -15,3 +15,4 @@ export * from "./useRestoreDomain";
 export * from "./useHardDeleteDomain";
 export * from "./useReorderDomain";
 export * from "./useSearchForSortingDomain";
+export * from "./useCountDomain";

@@ -19,7 +19,8 @@ export type CrudAction =
   | "restore"
   | "hardDelete"
   | "reorder"
-  | "searchForSorting";
+  | "searchForSorting"
+  | "count";
 
 export type CrudEvent = {
   action: CrudAction;

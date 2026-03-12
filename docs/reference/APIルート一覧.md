@@ -28,6 +28,7 @@ DB変更あり = (操作タイプ === "write") && (デモ時スキップ === fal
 | `/api/[domain]/[id]` | PUT | write | ✅ | 🟢 なし | 更新 |
 | `/api/[domain]/[id]` | DELETE | write | ✅ | 🟢 なし | 論理削除 |
 | `/api/[domain]/search` | GET | read | - | 🟢 なし | 検索 |
+| `/api/[domain]/count` | POST | read | - | 🟢 なし | 件数取得 |
 | `/api/[domain]/upsert` | PUT | write | ✅ | 🟢 なし | Upsert |
 | `/api/[domain]/[id]/duplicate` | POST | write | ✅ | 🟢 なし | 複製 |
 | `/api/[domain]/[id]/hard-delete` | DELETE | write | ✅ | 🟢 なし | 物理削除 |

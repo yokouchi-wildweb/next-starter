@@ -9,6 +9,8 @@ import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
 import type {
   SearchParams,
+  CountParams,
+  CountResult,
   PaginatedResult,
   UpsertOptions,
   BulkUpsertOptions,
@@ -543,6 +545,42 @@ export function createCrudService<
       }
     },
 
+    async count(params: CountParams & ExtraWhereOption = {}): Promise<CountResult> {
+      const {
+        searchQuery,
+        searchFields = serviceOptions.defaultSearchFields,
+        where,
+        extraWhere,
+        relationWhere,
+      } = params;
+
+      let finalWhere = buildWhere(table, where);
+      if (extraWhere) {
+        finalWhere = and(finalWhere, extraWhere) as SQL;
+      }
+      if (relationWhere?.length) {
+        const relationCondition = buildRelationWhere(table, idColumn, relationWhere, belongsToManyRelations, belongsToRelations);
+        if (relationCondition) {
+          finalWhere = and(finalWhere, relationCondition) as SQL;
+        }
+      }
+      const softDeleteFilter = buildSoftDeleteFilter();
+      if (softDeleteFilter) {
+        finalWhere = finalWhere ? and(finalWhere, softDeleteFilter) as SQL : softDeleteFilter;
+      }
+
+      if (searchQuery && searchFields && searchFields.length) {
+        const pattern = `%${searchQuery}%`;
+        const searchConds = searchFields.map((field) => ilike((table as any)[field], pattern));
+        const searchWhere = or(...(searchConds as any[]));
+        finalWhere = and(finalWhere, searchWhere) as SQL;
+      }
+
+      const totalQuery = db.select({ count: sql<number>`count(*)` }).from(table as any);
+      const [{ count }] = await (finalWhere ? totalQuery.where(finalWhere) : totalQuery);
+      return { total: Number(count) };
+    },
+
     async search(params: SearchParams & WithOptions & ExtraWhereOption = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
@@ -647,6 +685,39 @@ export function createCrudService<
       }
 
       return result;
+    },
+
+    async countWithDeleted(params: CountParams & ExtraWhereOption = {}): Promise<CountResult> {
+      const {
+        searchQuery,
+        searchFields = serviceOptions.defaultSearchFields,
+        where,
+        extraWhere,
+        relationWhere,
+      } = params;
+
+      let finalWhere = buildWhere(table, where);
+      if (extraWhere) {
+        finalWhere = and(finalWhere, extraWhere) as SQL;
+      }
+      if (relationWhere?.length) {
+        const relationCondition = buildRelationWhere(table, idColumn, relationWhere, belongsToManyRelations, belongsToRelations);
+        if (relationCondition) {
+          finalWhere = and(finalWhere, relationCondition) as SQL;
+        }
+      }
+      // ソフトデリートフィルターなし（削除済み含む）
+
+      if (searchQuery && searchFields && searchFields.length) {
+        const pattern = `%${searchQuery}%`;
+        const searchConds = searchFields.map((field) => ilike((table as any)[field], pattern));
+        const searchWhere = or(...(searchConds as any[]));
+        finalWhere = and(finalWhere, searchWhere) as SQL;
+      }
+
+      const totalQuery = db.select({ count: sql<number>`count(*)` }).from(table as any);
+      const [{ count }] = await (finalWhere ? totalQuery.where(finalWhere) : totalQuery);
+      return { total: Number(count) };
     },
 
     async searchWithDeleted(params: SearchParams & WithOptions & ExtraWhereOption = {}): Promise<PaginatedResult<Select>> {

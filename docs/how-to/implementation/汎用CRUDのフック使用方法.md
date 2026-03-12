@@ -165,7 +165,31 @@ export const SampleInfiniteList = ({ keyword }: { keyword: string }) => {
 
 ---
 
-## 4. 作成・更新・削除・アップサート
+## 4. 件数取得: `useCountSample`
+
+`useCountSample` は `search` と同じフィルタ条件を受け取り、件数のみを返します。レコードの取得は行わないため、バッジ表示や条件付き UI の出し分けなど、件数だけが必要な場面で使用します。
+
+```tsx
+import { useCountSample } from "@/features/sample/hooks/useCountSample";
+import { err } from "@/lib/errors";
+
+export const SampleCountBadge = ({ status }: { status: string }) => {
+  const { total, isLoading, error } = useCountSample({
+    where: { field: "status", op: "eq", value: status },
+  });
+
+  if (isLoading) return <span>...</span>;
+  if (error) return <span>{err(error, "件数の取得に失敗しました")}</span>;
+
+  return <span className="badge">{total} 件</span>;
+};
+```
+
+`CountParams` は `where`、`searchQuery`、`searchFields`、`relationWhere` を受け付けます。`search` と同じ条件をそのまま渡せるため、検索画面のヘッダーに件数を表示する場合にも活用できます。
+
+---
+
+## 5. 作成・更新・削除・アップサート
 
 Mutation 系フックは `trigger` 関数を通じて操作を行います。`trigger` は成功時に関連するキャッシュキー（自動生成ファイルではドメイン一覧）を再検証するよう設定済みです。
 
@@ -294,7 +318,7 @@ export const SampleSyncButton = ({ payload }: { payload: SampleCreateFields }) =
 
 ---
 
-## 5. 詳細モーダル用のビューモデル: `useSampleViewModal`
+## 6. 詳細モーダル用のビューモデル: `useSampleViewModal`
 
 詳細モーダル用のフックは、詳細データとモーダル表示に必要なビュー構造をまとめて返します。`useSample` の結果を内部で利用しているため、選択中の ID を渡すだけでモーダル表示用の値が組み立てられます。
 
@@ -344,7 +368,7 @@ export const SampleDetailModal = ({ sampleId }: { sampleId: string | null }) => 
 
 ---
 
-## 6. まとめ
+## 7. まとめ
 
 - 自動生成されるフックは汎用 CRUD クライアントを安全にラップし、UI から一貫した操作フローを提供します。
 - 検索フックでは `searchQuery` と `where` を自由に組み合わせ、サーバー側の複雑な検索ロジックをそのまま呼び出せます。

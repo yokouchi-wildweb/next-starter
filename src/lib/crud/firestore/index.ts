@@ -6,6 +6,8 @@ import { uuidv7 } from "uuidv7";
 import { Timestamp } from "firebase-admin/firestore";
 import type {
   SearchParams,
+  CountParams,
+  CountResult,
   CreateCrudServiceOptions,
   PaginatedResult,
   UpsertOptions,
@@ -157,6 +159,21 @@ export function createCrudService<
 
     async hardDelete(id: string): Promise<void> {
       await col.doc(id).delete();
+    },
+
+    async count(params: CountParams = {}): Promise<CountResult> {
+      let q = buildSearchQuery(col, params, options);
+      if (useSoftDelete) {
+        q = q.where("deletedAt", "==", null);
+      }
+      const snap = await q.count().get();
+      return { total: snap.data().count };
+    },
+
+    async countWithDeleted(params: CountParams = {}): Promise<CountResult> {
+      const q = buildSearchQuery(col, params, options);
+      const snap = await q.count().get();
+      return { total: snap.data().count };
     },
 
     /**

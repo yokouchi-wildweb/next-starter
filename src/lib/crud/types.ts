@@ -137,6 +137,28 @@ export type PaginatedResult<T> = {
   total: number;
 };
 
+/**
+ * count() の返り値。
+ */
+export type CountResult = {
+  total: number;
+};
+
+/**
+ * count() に渡すパラメータ。
+ * search() と同じフィルタ条件を受け取るが、ページング・ソート関連は不要。
+ */
+export type CountParams = {
+  searchQuery?: string;
+  searchFields?: string[];
+  where?: WhereExpr;
+  /**
+   * リレーション経由のフィルタリング（belongsToMany / belongsTo 両対応）。
+   * Drizzle 専用（Firestore では無視される）。
+   */
+  relationWhere?: RelationFilter[];
+};
+
 export type UpsertOptions<TData> = {
   /**
    * 指定されたフィールドを衝突検知の対象にする。
@@ -215,6 +237,10 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
    * ソート画面用検索。sort_order が NULL のレコードを自動初期化する。
    */
   searchForSorting?(params: SearchParams): Promise<PaginatedResult<T>>;
+  /**
+   * フィルタ条件に一致するレコード件数を取得する。
+   */
+  count?(params: CountParams): Promise<CountResult>;
 };
 
 export type IdType = "uuid" | "db" | "manual" | "string";
