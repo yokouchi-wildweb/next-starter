@@ -12,6 +12,7 @@ import type { z } from "zod";
 const conf = getDomainConfig("__domain__") as DomainConfig & {
   useSoftDelete?: boolean;
   sortOrderField?: string | null;
+  searchFields?: string[];
 };
 
 // sortOrderField が設定されている場合、対応するカラムを取得
