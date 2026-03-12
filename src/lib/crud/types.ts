@@ -55,6 +55,30 @@ export type WhereExpr =
   | { and: WhereExpr[] }
   | { or: WhereExpr[] };
 
+// ============================================================
+// belongsToMany リレーションフィルタ
+// ============================================================
+
+/**
+ * belongsToMany リレーション経由のフィルタリング条件。
+ * createCrudService に登録済みの belongsToManyRelations を fieldName で参照し、
+ * 中間テーブル経由でターゲットIDによる絞り込みを行う。
+ *
+ * - "any": いずれかの targetId を持つレコードに一致（デフォルト）
+ * - "all": すべての targetId を持つレコードに一致
+ * - "none": いずれの targetId も持たないレコードに一致（除外フィルタ）
+ *
+ * targetIds が空配列の場合はそのフィルタをスキップする（no-op）。
+ */
+export type BelongsToManyFilter = {
+  /** belongsToManyRelations の fieldName で参照（例: "sampleTagIds"） */
+  relationField: string;
+  /** フィルタ対象のターゲットID群（空配列 = スキップ） */
+  targetIds: string[];
+  /** フィルタモード（デフォルト: "any"） */
+  mode?: "any" | "all" | "none";
+};
+
 /**
  * Tuple array specifying field name, sort direction, and optional nulls handling.
  * - [field, direction] or [field, direction, nulls]
@@ -79,6 +103,12 @@ export type SearchParams = {
    */
   prioritizeSearchHits?: boolean;
   where?: WhereExpr;
+  /**
+   * belongsToMany リレーション経由のフィルタリング。
+   * 複数指定した場合は AND で合成される。
+   * Drizzle 専用（Firestore では無視される）。
+   */
+  relationWhere?: BelongsToManyFilter[];
 };
 
 export type PaginatedResult<T> = {

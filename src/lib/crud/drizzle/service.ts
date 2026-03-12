@@ -18,7 +18,7 @@ import type {
   WhereExpr,
   WithOptions,
 } from "../types";
-import { buildOrderBy, buildWhere, runQuery } from "./query";
+import { buildOrderBy, buildRelationWhere, buildWhere, runQuery } from "./query";
 import { applyInsertDefaults, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
 import type { DrizzleCrudServiceOptions, DbTransaction, ExtraWhereOption } from "./types";
 import {
@@ -552,6 +552,7 @@ export function createCrudService<
         searchFields = serviceOptions.defaultSearchFields,
         where,
         extraWhere,
+        relationWhere,
         withRelations,
         withCount,
       } = params;
@@ -564,6 +565,13 @@ export function createCrudService<
       // extraWhere（Drizzle SQL条件）を合成
       if (extraWhere) {
         finalWhere = and(finalWhere, extraWhere) as SQL;
+      }
+      // relationWhere（belongsToManyリレーションフィルタ）を合成
+      if (relationWhere?.length) {
+        const relationCondition = buildRelationWhere(idColumn, relationWhere, belongsToManyRelations);
+        if (relationCondition) {
+          finalWhere = and(finalWhere, relationCondition) as SQL;
+        }
       }
       // ソフトデリートフィルターを追加
       const softDeleteFilter = buildSoftDeleteFilter();
@@ -650,6 +658,7 @@ export function createCrudService<
         searchFields = serviceOptions.defaultSearchFields,
         where,
         extraWhere,
+        relationWhere,
         withRelations,
         withCount,
       } = params;
@@ -662,6 +671,13 @@ export function createCrudService<
       // extraWhere（Drizzle SQL条件）を合成
       if (extraWhere) {
         finalWhere = and(finalWhere, extraWhere) as SQL;
+      }
+      // relationWhere（belongsToManyリレーションフィルタ）を合成
+      if (relationWhere?.length) {
+        const relationCondition = buildRelationWhere(idColumn, relationWhere, belongsToManyRelations);
+        if (relationCondition) {
+          finalWhere = and(finalWhere, relationCondition) as SQL;
+        }
       }
       let priorityOrderClauses: SQL[] = [];
       if (searchQuery && searchFields && searchFields.length) {
