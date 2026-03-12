@@ -83,9 +83,9 @@ hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (c
 hook_naming_exceptions: get→use\<Domain\>, list→use\<Domain\>List, remove→useDelete\<Domain\>
 server-only(no hook): query, belongsToMany
 hook-only: use\<Domain\>ViewModal(useDetailModal)
-relationWhere: search/searchWithDeleted/searchForSorting accept `relationWhere?: BelongsToManyFilter[]` for filtering by M2M relation target IDs. Modes: any(default)|all|none. Requires belongsToManyRelations registered. Type: BelongsToManyFilter from @/lib/crud/types
+relationWhere: search/searchWithDeleted/searchForSorting accept `relationWhere?: RelationFilter[]` for filtering by relations (Drizzle only). Two variants: BelongsToManyFilter(targetIds+mode:any|all|none) for M2M | BelongsToFilter(where:WhereExpr) for belongsTo. Discriminated by targetIds vs where. Type: RelationFilter from @/lib/crud/types
 extraWhere: search/searchWithDeleted/searchForSorting accept `extraWhere?: SQL` (Drizzle only) for conditions beyond WhereExpr DSL (subqueries, EXISTS, JSONB, etc.). Type: ExtraWhereOption from @/lib/crud/drizzle
-extension: 1.check base methods → 2.relationWhere for M2M filtering → 3.extraWhere for SQL injection → 4.base.query()+wrappers → 5.custom service
+extension: 1.check base methods → 2.relationWhere for relation filtering → 3.extraWhere for SQL injection → 4.base.query()+wrappers → 5.custom service
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 firestore_limits: no or | single orderBy | no belongsToMany
 

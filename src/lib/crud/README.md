@@ -146,7 +146,7 @@ createCrudService<TTable, TCreate>(table, {
 ```
 1. buildWhere(table, where)           ← WhereExpr DSL
 2. AND extraWhere                     ← Drizzle SQL 直接注入
-3. AND buildRelationWhere(...)        ← belongsToMany フィルタ
+3. AND buildRelationWhere(...)        ← リレーションフィルタ（belongsToMany / belongsTo）
 4. AND buildSoftDeleteFilter()        ← deletedAt IS NULL
 5. AND searchQuery ILIKE conditions   ← テキスト検索
 ```
@@ -166,7 +166,11 @@ createCrudService<TTable, TCreate>(table, {
 
 **対応演算子:** eq, ne, lt, lte, gt, gte, like, startsWith, endsWith, in, notIn, isNull, isNotNull, contains, containedBy, hasKey, arrayContains, arrayOverlaps
 
-### relationWhere（belongsToMany フィルタ）
+### relationWhere（リレーションフィルタ）
+
+belongsToMany（M2M）と belongsTo の両方に対応。`targetIds` の有無で自動判別される。
+
+#### belongsToMany フィルタ（M2M）
 
 ```typescript
 relationWhere: [
@@ -185,8 +189,27 @@ relationWhere: [
 | `none` | `NOT EXISTS (... WHERE target IN (...))` | いずれの ID も持たない |
 
 - `targetIds` が空配列の場合はスキップ（no-op）
-- 未登録の `relationField` はエラー
+
+#### belongsTo フィルタ
+
+```typescript
+relationWhere: [
+  {
+    relationField: "user",           // belongsToRelations の field
+    where: { field: "role", op: "eq", value: "contributor" },
+  }
+]
+```
+
+生成 SQL: `EXISTS (SELECT 1 FROM users WHERE users.id = main_table.user_id AND users.role = 'contributor')`
+
+- `where` には WhereExpr DSL をそのまま使用（and/or ネストも可）
+
+#### 共通ルール
+
+- 未登録の `relationField` はエラー（利用可能なフィールド名を含むメッセージ）
 - 複数エントリは AND で合成
+- belongsToMany と belongsTo を同一配列内に混在可能
 
 ### extraWhere
 

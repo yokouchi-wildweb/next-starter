@@ -568,7 +568,7 @@ export function createCrudService<
       }
       // relationWhere（belongsToManyリレーションフィルタ）を合成
       if (relationWhere?.length) {
-        const relationCondition = buildRelationWhere(idColumn, relationWhere, belongsToManyRelations);
+        const relationCondition = buildRelationWhere(table, idColumn, relationWhere, belongsToManyRelations, belongsToRelations);
         if (relationCondition) {
           finalWhere = and(finalWhere, relationCondition) as SQL;
         }
@@ -674,7 +674,7 @@ export function createCrudService<
       }
       // relationWhere（belongsToManyリレーションフィルタ）を合成
       if (relationWhere?.length) {
-        const relationCondition = buildRelationWhere(idColumn, relationWhere, belongsToManyRelations);
+        const relationCondition = buildRelationWhere(table, idColumn, relationWhere, belongsToManyRelations, belongsToRelations);
         if (relationCondition) {
           finalWhere = and(finalWhere, relationCondition) as SQL;
         }

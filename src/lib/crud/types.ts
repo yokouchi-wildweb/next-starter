@@ -56,7 +56,7 @@ export type WhereExpr =
   | { or: WhereExpr[] };
 
 // ============================================================
-// belongsToMany リレーションフィルタ
+// リレーションフィルタ
 // ============================================================
 
 /**
@@ -78,6 +78,27 @@ export type BelongsToManyFilter = {
   /** フィルタモード（デフォルト: "any"） */
   mode?: "any" | "all" | "none";
 };
+
+/**
+ * belongsTo リレーション先テーブルのカラム条件によるフィルタリング。
+ * createCrudService に登録済みの belongsToRelations を field で参照し、
+ * リレーション先テーブルに対する WHERE 条件で絞り込む。
+ *
+ * 生成 SQL: EXISTS (SELECT 1 FROM <relatedTable> WHERE <relatedTable>.id = <mainTable>.<foreignKey> AND <where条件>)
+ */
+export type BelongsToFilter = {
+  /** belongsToRelations の field で参照（例: "user"） */
+  relationField: string;
+  /** リレーション先テーブルのカラムに対する条件 */
+  where: WhereExpr;
+};
+
+/**
+ * リレーションフィルタの統合型。
+ * - targetIds を持つ → BelongsToManyFilter（M2M）
+ * - where を持つ → BelongsToFilter（belongsTo）
+ */
+export type RelationFilter = BelongsToManyFilter | BelongsToFilter;
 
 /**
  * Tuple array specifying field name, sort direction, and optional nulls handling.
@@ -104,11 +125,11 @@ export type SearchParams = {
   prioritizeSearchHits?: boolean;
   where?: WhereExpr;
   /**
-   * belongsToMany リレーション経由のフィルタリング。
+   * リレーション経由のフィルタリング（belongsToMany / belongsTo 両対応）。
    * 複数指定した場合は AND で合成される。
    * Drizzle 専用（Firestore では無視される）。
    */
-  relationWhere?: BelongsToManyFilter[];
+  relationWhere?: RelationFilter[];
 };
 
 export type PaginatedResult<T> = {
