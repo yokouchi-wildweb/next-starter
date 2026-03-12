@@ -42,4 +42,28 @@ export const domainConfigMap = {
 } as const;
 
 export type DomainKey = keyof typeof domainConfigMap;
-export type DomainConfig = (typeof domainConfigMap)[DomainKey];
+
+/**
+ * domain.json でオプショナル（⚪ No）なフィールド。
+ * union 型では省略されたメンバーのプロパティにアクセスできないため、
+ * intersection で付与して型安全にアクセス可能にする。
+ *
+ * ⚠️ domain.json スキーマにオプショナルフィールドを追加した場合、ここにも追加すること。
+ *    追加漏れ → searchFields がないドメインが存在するだけでビルドエラーになる。
+ *    スキーマ定義: src/features/README.md「トップレベルプロパティ」
+ */
+type DomainConfigOptionals = {
+  useSoftDelete?: boolean;
+  searchFields?: string[];
+  defaultOrderBy?: [string, string][];
+  tableFields?: string[];
+  useDetailModal?: boolean;
+  addToAdminDataMenu?: boolean;
+  useDuplicateButton?: boolean;
+  useImportExport?: boolean;
+  useAutoSave?: boolean;
+  compositeUniques?: string[][];
+  sortOrderField?: string | null;
+};
+
+export type DomainConfig = (typeof domainConfigMap)[DomainKey] & DomainConfigOptionals;
