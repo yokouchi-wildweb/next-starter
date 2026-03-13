@@ -6,14 +6,18 @@ import type { HttpError } from "@/lib/errors";
 
 /**
  * 検索用のフック
+ * enabled: false を渡すとリクエスト自体を発行しない（SWR の key を null にする）
  */
 export function useSearchDomain<T, P extends Record<string, unknown>>(
   key: string,
   searchFn: (params: P) => Promise<PaginatedResult<T>>,
-  params: P,
+  params: P & { enabled?: boolean },
 ) {
-  const { data, error, isLoading, mutate } = useSWR<PaginatedResult<T>, HttpError>([key, params], () => {
-    return searchFn(params);
+  const { enabled, ...searchParams } = params;
+  const swrKey = enabled === false ? null : [key, searchParams];
+
+  const { data, error, isLoading, mutate } = useSWR<PaginatedResult<T>, HttpError>(swrKey, () => {
+    return searchFn(searchParams as P);
   });
 
   return {

@@ -91,14 +91,23 @@ relationWhere: [
 
 ---
 
-## できないこと（制約）
+## できること・できないこと
+
+### 対応済み（以前は制約だったもの）
+
+| 機能 | 方法 |
+|------|------|
+| belongsTo 先のカラム属性でフィルタ（ユーザーの role 等） | `relationWhere` の belongsTo フィルタ（`where` に WhereExpr を指定） |
+| M2M 関連レコードの属性取得 | `withRelations: true` で全カラム取得可能 |
+| 複数テーブルのトランザクション制御 | 全書き込みメソッドが `tx?: DbTransaction` を受け付けるため、`db.transaction` + `tx` 渡しで実現可能 |
+
+### 現在の制約
 
 | 制約 | 対応策 |
 |------|--------|
-| メインテーブル以外のカラム属性でフィルタ（タグ名で絞り込み等） | `base.query()` で JOIN |
-| M2M 関連レコードの属性取得・集計 | JOIN + カスタム SELECT |
+| M2M（belongsToMany）先のカラム属性でフィルタ（タグ名で絞り込み等） | `base.query()` で JOIN |
+| M2M 関連レコードの集計（COUNT, SUM 等） | JOIN + カスタム SELECT |
 | CRUD 前後の副作用（監査ログ、ファイル削除等） | `wrappers/` で追加 |
-| 複数テーブルのトランザクション制御 | `db.transaction` でラッパー作成 |
 | Firestore: or 条件、複数列ソート、belongsToMany | Drizzle へ移行 |
 
 ---
