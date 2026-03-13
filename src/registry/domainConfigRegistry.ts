@@ -55,7 +55,7 @@ export type DomainKey = keyof typeof domainConfigMap;
 type DomainConfigOptionals = {
   useSoftDelete?: boolean;
   searchFields?: string[];
-  defaultOrderBy?: [string, string][];
+  defaultOrderBy?: string[][];
   tableFields?: string[];
   useDetailModal?: boolean;
   addToAdminDataMenu?: boolean;
