@@ -13,3 +13,4 @@
 - never_commit_without_explicit_instruction: true. never commit unless explicitly requested
 - never_push_db_without_explicit_instruction: true. never run db push/migrate commands (e.g. drizzle-kit push, drizzle-kit migrate). always ask user to run manually
 - never_use_enter_plan_mode: true. never use EnterPlanMode tool. plan tasks using TodoWrite instead
+- propose_prerequisite_work: when base logic improvements, core file changes, or work in a different scope would unblock or simplify the current task, proactively propose switching to that scope first before continuing
