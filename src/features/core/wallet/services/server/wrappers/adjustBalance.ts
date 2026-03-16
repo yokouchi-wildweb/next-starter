@@ -23,7 +23,8 @@ export async function adjustBalance(
   options?: AdjustBalanceOptions,
 ): Promise<WalletAdjustmentResult> {
   return runWithTransaction(tx, async (trx) => {
-    const wallet = await getOrCreateWallet(trx, params.userId, params.walletType, { lock: options?.lock });
+    const wallet = options?.wallet
+      ?? await getOrCreateWallet(trx, params.userId, params.walletType, { lock: options?.lock });
     const amount =
       params.changeMethod === "SET"
         ? normalizeAmount(params.amount, { allowZero: true })
