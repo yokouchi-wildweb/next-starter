@@ -62,6 +62,8 @@ export type WalletOperationOptions = {
 
 /** adjustBalance用のオプション */
 export type AdjustBalanceOptions = WalletOperationOptions & {
+  /** 事前に取得済みのウォレットを渡す（省略時は内部で取得/作成） */
+  wallet?: Wallet;
   /** trueの場合、履歴記録をスキップ */
   skipHistory?: boolean;
 };

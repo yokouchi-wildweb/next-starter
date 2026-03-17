@@ -2,10 +2,10 @@
 
 import { integer, pgEnum, pgTable, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { WALLET_TYPE_KEYS, type WalletType } from "@/config/app/currency.keys";
 
-// CURRENCY_CONFIG から動的に walletType の値を取得
-const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+// WALLET_TYPE_KEYS から walletType の値を取得（React/JSX 依存を避けるため currency.keys.ts を使用）
+const walletTypes = [...WALLET_TYPE_KEYS] as [WalletType, ...WalletType[]];
 
 export const WalletTypeEnum = pgEnum("wallet_type_enum", walletTypes);
 
