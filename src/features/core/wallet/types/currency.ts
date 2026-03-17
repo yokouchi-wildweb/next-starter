@@ -1,7 +1,6 @@
 // src/features/core/wallet/types/currency.ts
 // 通貨設定に関する型定義
 
-import type { LucideIcon } from "lucide-react";
 
 /**
  * 購入パッケージの型定義
@@ -52,8 +51,6 @@ export type CurrencyConfig = {
   unit: string;
   /** テーマカラー（HEX） */
   color: string;
-  /** アイコンコンポーネント */
-  icon: LucideIcon;
   /** 購入パッケージ一覧 */
   packages: PurchasePackage[];
   /** 管理画面で表示するメタフィールド */

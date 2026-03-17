@@ -6,6 +6,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Span } from "@/components/TextBlocks";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { getCurrencyIcon } from "@/features/core/wallet/components/common/currencyIcons";
 
 export function WalletIndexPage() {
   const walletTypes = Object.keys(CURRENCY_CONFIG) as WalletType[];
@@ -14,7 +15,7 @@ export function WalletIndexPage() {
     <Stack space={0}>
       {walletTypes.map((walletType) => {
         const config = CURRENCY_CONFIG[walletType];
-        const Icon = config.icon;
+        const Icon = getCurrencyIcon(walletType);
 
         return (
           <Link

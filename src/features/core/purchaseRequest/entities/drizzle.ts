@@ -3,10 +3,12 @@
 import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
-// [!!] 通貨種別の追加・削除時は currency.config.ts と合わせて更新すること
-// currency.config.ts を直接 import すると、icon の .tsx 依存が drizzle-kit の esbuild でエラーになるためリテラル定義
-// TODO: currency.config.ts のキーとの同期を型レベルで保証する仕組みを検討
-export const PurchaseRequestWalletTypeEnum = pgEnum("purchaseRequest_wallet_type_enum", ["regular_coin", "regular_point"]);
+import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+
+// CURRENCY_CONFIG から動的に walletType の値を取得
+const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
+
+export const PurchaseRequestWalletTypeEnum = pgEnum("purchaseRequest_wallet_type_enum", walletTypes);
 export const PurchaseRequestStatusEnum = pgEnum("purchaseRequest_status_enum", ["pending", "processing", "completed", "failed", "expired"]);
 
 export const PurchaseRequestTable = pgTable("purchase_requests", {

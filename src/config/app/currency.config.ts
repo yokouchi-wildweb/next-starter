@@ -4,8 +4,6 @@
 
 // [!!]通貨設定の変更後は必ずマイグレーションが必要です
 
-import { CircleDollarSign, Coins, Gift } from "lucide-react";
-
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
 
 /**
@@ -17,7 +15,6 @@ import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
  * - label: 表示名
  * - unit: 単位（例: "pt", "コイン"）
  * - color: テーマカラー（HEX）
- * - icon: アイコンコンポーネント
  * - packages: 購入パッケージ一覧
  * - metaFields: 管理画面での補足入力フィールド
  */
@@ -27,7 +24,6 @@ export const CURRENCY_CONFIG = {
     label: "コイン",
     unit: "コイン",
     color: "#F59E0B", // amber-500
-    icon: CircleDollarSign,
     packages: [
       { amount: 500, price: 500 },
       { amount: 1000, price: 1000 },
@@ -65,7 +61,6 @@ export const CURRENCY_CONFIG = {
     label: "ポイント",
     unit: "pt",
     color: "#3B82F6", // blue-500
-    icon: Coins,
     packages: [
       { amount: 100, price: 100 },
       { amount: 500, price: 500 },
@@ -81,7 +76,6 @@ export const CURRENCY_CONFIG = {
   //   label: "期間限定ポイント",
   //   unit: "pt",
   //   color: "#EC4899", // pink-500
-  //   icon: Gift,
   //   packages: [
   //     { amount: 100, price: 80, bonus: "20%お得" },
   //     { amount: 500, price: 400, bonus: "20%お得" },
