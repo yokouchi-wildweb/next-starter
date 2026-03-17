@@ -7,7 +7,6 @@
 import { CircleDollarSign, Coins, Gift } from "lucide-react";
 
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
-import type { WalletType } from "@/config/app/currency.keys";
 
 /**
  * 通貨設定マップ
@@ -91,7 +90,9 @@ export const CURRENCY_CONFIG = {
   //   metaFields: [
   //   ],
   // },
-} as const satisfies Record<WalletType, CurrencyConfig>;
+} as const satisfies Record<string, CurrencyConfig>;
 
-// WalletType は currency.keys.ts で定義（drizzle が React 依存を避けるため分離）
-export type { WalletType } from "@/config/app/currency.keys";
+/**
+ * ウォレット種別の型（キーから自動推論）
+ */
+export type WalletType = keyof typeof CURRENCY_CONFIG;
