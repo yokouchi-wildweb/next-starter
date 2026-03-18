@@ -7,6 +7,7 @@ import { createApiRoute } from "@/lib/routeFactory";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
+import { sendAdjustmentNotification } from "@/features/core/wallet/services/server/notification/sendAdjustmentNotification";
 import type { WalletAdjustRequestPayload } from "@/features/core/wallet/services/types";
 import { WalletHistoryMetaSchema } from "@/features/core/walletHistory/entities/schema";
 import { REASON_CATEGORY_VALUES } from "@/config/app/wallet-reason-category.config";
@@ -84,6 +85,17 @@ export const POST = createApiRoute<Params>(
       reason: payload.reason,
       reasonCategory: payload.reasonCategory,
       meta: mergedMeta,
+    });
+
+    // 残高変更をユーザーに通知（Safe版: 失敗しても本体処理に影響しない）
+    await sendAdjustmentNotification({
+      userId,
+      walletType: payload.walletType,
+      changeMethod: payload.changeMethod,
+      amount: payload.amount,
+      balanceBefore: result.history?.balance_before ?? 0,
+      balanceAfter: result.wallet.balance,
+      reason: payload.reason,
     });
 
     return result;

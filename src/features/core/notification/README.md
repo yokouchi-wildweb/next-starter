@@ -28,7 +28,8 @@ src/features/core/notification/
 │   │       ├── getUnreadCount.ts    # 未読数取得
 │   │       ├── markAsRead.ts        # 個別既読
 │   │       ├── markAllAsRead.ts     # 全既読
-│   │       └── queryHelpers.ts      # 共通WHERE条件
+│   │       ├── queryHelpers.ts      # 共通WHERE条件
+│   │       └── resolveNotificationImage.ts # 通知画像リゾルバ（汎用）
 │   └── client/
 │       ├── notificationClient.ts        # 標準CRUDクライアント（生成）
 │       └── userNotificationClient.ts    # ユーザー向けAPIクライアント
@@ -397,6 +398,46 @@ notification: {
 
 - 末尾に `*` なし → **完全一致**（例: `"/"` はトップページのみ）
 - 末尾に `*` あり → **前方一致**（例: `"/wallet/*"` は `/wallet`, `/wallet/coin/purchase/complete` 等にマッチ）
+
+---
+
+## 通知画像の自動挿入
+
+`public/assets/imgs/notification/` に命名規則に従った画像を配置すると、通知の `image` フィールドに自動セットされる。
+
+### リゾルバ
+
+```typescript
+import { resolveNotificationImage } from "@/features/notification/services/server/notification/resolveNotificationImage";
+
+// 候補キーを優先順に渡す。最初に見つかった画像のパスを返す（なければ null）
+const image = resolveNotificationImage([
+  "wallet-regular_coin-increment",
+  "wallet-regular_coin",
+  "wallet",
+]);
+// → "/assets/imgs/notification/wallet-regular_coin.png" など
+```
+
+### フォールバックチェーン
+
+候補キーを先頭から順に探索し、全て見つからなければ `default.{ext}` をフォールバックとして探す。
+
+対応拡張子（優先順）: `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`
+
+### 命名例
+
+| 候補キー | 用途 |
+|----------|------|
+| `wallet-regular_coin-increment` | コイン増加通知 固有 |
+| `wallet-regular_coin` | コイン通知全般 |
+| `wallet` | ウォレット通知全般 |
+| `purchase-regular_coin` | コイン購入通知 |
+| `purchase` | 購入通知全般 |
+| `rank_up` | ランクアップ通知 |
+| `default` | 全通知共通フォールバック |
+
+詳細: `public/assets/imgs/notification/README.md`
 
 ---
 
