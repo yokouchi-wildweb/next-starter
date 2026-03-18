@@ -16,6 +16,7 @@ export type SendDirectInput = {
   senderType: "admin" | "system";
   createdById?: string | null;
   metadata?: Record<string, unknown> | null;
+  silent?: boolean;
   publishedAt?: Date | null;
 };
 
@@ -35,6 +36,7 @@ export async function sendDirect(input: SendDirectInput): Promise<Notification> 
       sender_type: input.senderType,
       created_by_id: input.createdById ?? null,
       metadata: input.metadata ?? null,
+      is_silent: input.silent ?? false,
       published_at: input.publishedAt ?? new Date(),
     })
     .returning();

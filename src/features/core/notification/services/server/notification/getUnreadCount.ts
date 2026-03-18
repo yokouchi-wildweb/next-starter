@@ -26,7 +26,13 @@ export async function getUnreadCount(
         sql`${NotificationReadTable.userId} = ${userId}`
       )
     )
-    .where(and(whereCondition, isNull(NotificationReadTable.readAt)));
+    .where(
+      and(
+        whereCondition,
+        isNull(NotificationReadTable.readAt),
+        sql`${NotificationTable.is_silent} = false`
+      )
+    );
 
   return result?.count ?? 0;
 }

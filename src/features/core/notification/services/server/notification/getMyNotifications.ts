@@ -15,6 +15,7 @@ export type MyNotification = {
   image: string | null;
   senderType: "admin" | "system";
   metadata: Record<string, unknown> | null;
+  isSilent: boolean;
   publishedAt: Date;
   readAt: Date | null;
 };
@@ -37,6 +38,7 @@ export async function getMyNotifications(
   const conditions = [whereCondition];
   if (unreadOnly) {
     conditions.push(isNull(NotificationReadTable.readAt));
+    conditions.push(sql`${NotificationTable.is_silent} = false`);
   }
 
   const rows = await db
@@ -47,6 +49,7 @@ export async function getMyNotifications(
       image: NotificationTable.image,
       senderType: NotificationTable.sender_type,
       metadata: NotificationTable.metadata,
+      isSilent: NotificationTable.is_silent,
       publishedAt: NotificationTable.published_at,
       readAt: NotificationReadTable.readAt,
     })

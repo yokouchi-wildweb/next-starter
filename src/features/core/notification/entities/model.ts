@@ -14,6 +14,7 @@ export type Notification = {
   sender_type: 'admin' | 'system';
   created_by_id: string | null;
   metadata: Record<string, unknown> | null;
+  is_silent: boolean;
   published_at: Date;
   createdAt: Date | null;
   updatedAt: Date | null;

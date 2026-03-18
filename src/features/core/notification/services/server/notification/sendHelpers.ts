@@ -10,6 +10,7 @@ export type NotificationContent = {
   body: string;
   image?: string | null;
   metadata?: Record<string, unknown> | null;
+  silent?: boolean;
   publishedAt?: Date | null;
 };
 

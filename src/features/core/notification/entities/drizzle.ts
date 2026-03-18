@@ -1,6 +1,6 @@
 // src/features/notification/entities/drizzle.ts
 
-import { foreignKey, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, foreignKey, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { NotificationTemplateTable } from "@/features/notificationTemplate/entities/drizzle";
 
 export const NotificationTargetTypeEnum = pgEnum("notification_target_type_enum", ["all", "role", "individual"]);
@@ -18,6 +18,7 @@ export const NotificationTable = pgTable("notifications", {
   sender_type: NotificationSenderTypeEnum("sender_type").notNull(),
   created_by_id: uuid("created_by_id"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  is_silent: boolean("is_silent").default(false).notNull(),
   published_at: timestamp("published_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
