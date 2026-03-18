@@ -6,7 +6,7 @@ import { DomainError } from "@/lib/errors/domainError";
 import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import type { Notification } from "@/features/core/notification/entities/model";
 
-type SendDirectInput = {
+export type SendDirectInput = {
   title?: string | null;
   body: string;
   image?: string | null;
