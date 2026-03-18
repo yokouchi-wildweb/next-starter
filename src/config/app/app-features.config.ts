@@ -143,7 +143,7 @@ export const APP_FEATURES = {
       enableAdminBroadcast: false,
       /** ユーザー側に未読通知モーダルを表示する */
       showUnreadModal: false,
-      /** 未読通知モーダルを表示するパス一覧（前方一致） */
+      /** 未読通知モーダルを表示するパス一覧（完全一致。末尾 * で前方一致） */
       unreadModalPaths: ["/"] as readonly string[],
     },
   },

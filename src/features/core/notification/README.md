@@ -21,7 +21,9 @@ src/features/core/notification/
 │   │   │   ├── create.ts            # 標準create無効化（405）
 │   │   │   └── update.ts            # 公開済み編集ガード
 │   │   └── notification/
-│   │       ├── sendDirect.ts        # 送信
+│   │       ├── sendDirect.ts        # 送信（低レベル）
+│   │       ├── sendHelpers.ts       # 送信ヘルパー（sendToUser等）
+│   │       ├── sendSafe.ts          # 全send関数のSafe版
 │   │       ├── getMyNotifications.ts # ユーザー向け一覧取得
 │   │       ├── getUnreadCount.ts    # 未読数取得
 │   │       ├── markAsRead.ts        # 個別既読
@@ -56,6 +58,7 @@ src/features/core/notification/
 | sender_type | enum | admin / system |
 | created_by_id | uuid | 作成した管理者のユーザーID（任意） |
 | metadata | jsonb | プロジェクト固有の追加情報（任意） |
+| is_silent | boolean | サイレント通知フラグ（デフォルト: false） |
 | published_at | timestamptz | 公開日時（即時 or 予約） |
 | notification_template_id | uuid | テンプレートへの参照（任意、将来拡張） |
 
@@ -120,7 +123,71 @@ await notificationService.sendDirect({
 | senderType | "admin" \| "system" | Yes | 送信者種別 |
 | createdById | string | - | 管理者のユーザーID |
 | metadata | Record\<string, unknown\> | - | プロジェクト固有の追加情報 |
+| silent | boolean | - | サイレント通知（省略時は false） |
 | publishedAt | Date | - | 公開日時（省略時は即時） |
+
+### ヘルパー関数 — 簡易送信
+
+`sendDirect` のラッパー。`senderType: "system"` 固定で、ターゲット指定を簡略化する。
+
+```typescript
+// 特定ユーザー1名に送信
+await notificationService.sendToUser(userId, {
+  title: "購入完了",
+  body: "1,000コインを購入しました",
+  metadata: { actionType: "purchase", amount: 1000 },
+});
+
+// 複数ユーザーに送信
+await notificationService.sendToUsers([userId1, userId2], { body: "..." });
+
+// ロール指定（string | string[]）
+await notificationService.sendToRole("contributor", { body: "..." });
+await notificationService.sendToRole(["admin", "editor"], { body: "..." });
+
+// 全員に送信
+await notificationService.sendToAll({ body: "メンテナンスのお知らせ" });
+```
+
+#### NotificationContent（ヘルパー共通入力型）
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| title | string | - | タイトル |
+| body | string | Yes | 本文 |
+| image | string | - | 画像URL |
+| metadata | Record\<string, unknown\> | - | プロジェクト固有の追加情報 |
+| silent | boolean | - | サイレント通知（省略時は false） |
+| publishedAt | Date | - | 公開日時（省略時は即時） |
+
+### Safe版 — エラーを握りつぶす送信
+
+全 send 関数に対応する Safe 版を提供。失敗時は `console.error` でログ出力し `null` を返す。本体処理（購入、ランクアップ等）を通知送信の失敗で巻き込まないために使用する。
+
+```typescript
+// 通常版: 失敗時に例外が発生 → 本体処理に影響する可能性
+await notificationService.sendToUser(userId, { body: "..." });
+
+// Safe版: 失敗時に null を返す → 本体処理に影響しない
+await notificationService.sendToUserSafe(userId, { body: "..." });
+```
+
+対応関数: `sendDirectSafe`, `sendToUserSafe`, `sendToUsersSafe`, `sendToRoleSafe`, `sendToAllSafe`
+
+### サイレント通知
+
+`silent: true` で送信された通知は、未読バッジ・未読フィルタから除外される。通知一覧には表示されるが、ユーザーに能動的な確認を求めない。
+
+ユースケース: 購入完了画面で既に情報を表示済みだが、履歴として通知一覧に残したい場合。
+
+```typescript
+await notificationService.sendToUserSafe(userId, {
+  title: "購入完了",
+  body: "1,000コインを購入しました",
+  metadata: { actionType: "purchase", amount: 1000 },
+  silent: true,
+});
+```
 
 ### getMyNotifications — ユーザー向け一覧取得
 
@@ -286,15 +353,46 @@ const { markAsRead } = useMarkNotificationAsRead();
 
 ```typescript
 // サーバーサービスから呼び出し（例: ランクアップ時）
-await notificationService.sendDirect({
+await notificationService.sendToUserSafe(userId, {
   title: "ランクアップ",
   body: `${previousRank} → ${newRank} にランクアップしました！`,
-  targetType: "individual",
-  targetUserIds: [userId],
-  senderType: "system",
   metadata: { actionType: "rank_up", rankName: newRank },
 });
 ```
+
+### パターン4: サイレント通知（購入完了の履歴記録）
+
+```typescript
+// 購入完了画面で既に表示済み → サイレントで履歴だけ残す
+await notificationService.sendToUserSafe(userId, {
+  title: "購入完了",
+  body: `${amount}コインを購入しました`,
+  metadata: { actionType: "purchase", amount },
+  silent: true,
+});
+```
+
+---
+
+## 未読通知モーダル（UnreadNotificationModal）
+
+ホワイトリストに登録されたパスへの遷移時に、未読通知を1件ずつモーダルで表示するコンポーネント。
+
+### 設定
+
+`app-features.config.ts` で制御:
+
+```typescript
+notification: {
+  showUnreadModal: true,
+  unreadModalPaths: ["/", "/wallet/*"],
+}
+```
+
+### パスマッチング
+
+- 末尾に `*` なし → **完全一致**（例: `"/"` はトップページのみ）
+- 末尾に `*` あり → **前方一致**（例: `"/wallet/*"` は `/wallet`, `/wallet/coin/purchase/complete` 等にマッチ）
 
 ---
 

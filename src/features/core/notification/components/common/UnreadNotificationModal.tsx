@@ -38,9 +38,14 @@ function saveConfirmedIds(ids: Set<string>) {
   sessionStorage.setItem(CONFIRMED_IDS_KEY, JSON.stringify([...ids]));
 }
 
-/** パスがホワイトリストに一致するか（完全一致） */
+/** パスがホワイトリストに一致するか（末尾 * で前方一致、それ以外は完全一致） */
 function isWhitelistedPath(pathname: string): boolean {
-  return unreadModalPaths.some((p) => pathname === p);
+  return unreadModalPaths.some((p) => {
+    if (p.endsWith("*")) {
+      return pathname.startsWith(p.slice(0, -1));
+    }
+    return pathname === p;
+  });
 }
 
 export default function UnreadNotificationModal() {
