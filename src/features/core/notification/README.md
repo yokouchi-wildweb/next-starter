@@ -377,6 +377,23 @@ await notificationService.sendToUserSafe(userId, {
 });
 ```
 
+### パターン5: 管理者による残高変更通知
+
+管理画面からの残高変更時にユーザーへ通知を送信する。操作タイプ別にフィーチャーフラグで制御:
+
+```typescript
+// app-features.config.ts
+wallet: {
+  notifyOnAdjust: {
+    increment: false,  // 増加時に通知
+    decrement: false,  // 減少時に通知
+    set: false,        // 残高設定時に通知
+  },
+}
+```
+
+通知は `sendToUserSafe` で送信され、失敗しても残高操作には影響しない。文言のカスタマイズは `wallet/services/server/notification/adjustmentNotificationTemplate.ts` を編集する。
+
 ---
 
 ## 未読通知モーダル（UnreadNotificationModal）

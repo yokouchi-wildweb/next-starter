@@ -174,6 +174,23 @@ const result = await walletService.adjustBalance(
 // result: { wallet: Wallet, history: WalletHistory | null }
 ```
 
+##### 管理者操作時のユーザー通知
+
+管理画面からの残高変更（`POST /api/admin/wallet/[userId]/adjust`）時に、ユーザーへ通知を送信できる。操作タイプ別にフィーチャーフラグで制御:
+
+```typescript
+// app-features.config.ts
+wallet: {
+  notifyOnAdjust: {
+    increment: false,  // 増加時に通知
+    decrement: false,  // 減少時に通知
+    set: false,        // 残高設定時に通知
+  },
+}
+```
+
+通知の文言をカスタマイズする場合は `wallet/services/server/notification/adjustmentNotificationTemplate.ts` を編集する。
+
 #### reserveBalance
 
 残高を予約（ロック）。`locked_balance` を増加。
@@ -545,6 +562,9 @@ src/features/core/wallet/
 │   └── server/
 │       ├── walletService.ts  # メインサービス
 │       ├── drizzleBase.ts    # ベースCRUD
+│       ├── notification/
+│       │   ├── adjustmentNotificationTemplate.ts  # 通知テンプレート（文言カスタマイズ用）
+│       │   └── sendAdjustmentNotification.ts      # 残高変更通知の送信
 │       └── wrappers/
 │           ├── utils.ts      # ユーティリティ（getOrCreateWallet等）
 │           ├── adjustBalance.ts
