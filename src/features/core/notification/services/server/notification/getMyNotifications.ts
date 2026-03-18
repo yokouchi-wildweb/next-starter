@@ -51,7 +51,7 @@ export async function getMyNotifications(
       metadata: NotificationTable.metadata,
       isSilent: NotificationTable.is_silent,
       publishedAt: NotificationTable.published_at,
-      readAt: NotificationReadTable.readAt,
+      readAt: sql<Date | null>`COALESCE(${NotificationReadTable.readAt}, CASE WHEN ${NotificationTable.is_silent} THEN ${NotificationTable.published_at} ELSE NULL END)`,
     })
     .from(NotificationTable)
     .leftJoin(

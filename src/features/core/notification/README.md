@@ -176,7 +176,11 @@ await notificationService.sendToUserSafe(userId, { body: "..." });
 
 ### サイレント通知
 
-`silent: true` で送信された通知は、未読バッジ・未読フィルタから除外される。通知一覧には表示されるが、ユーザーに能動的な確認を求めない。
+`silent: true` で送信された通知は以下の挙動になる:
+
+- 未読カウント（`getUnreadCount`）から除外
+- 未読フィルタ（`unreadOnly: true`）から除外
+- 通知一覧（`getMyNotifications`）では `readAt` に `publishedAt` の値がセットされ、既読として表示される
 
 ユースケース: 購入完了画面で既に情報を表示済みだが、履歴として通知一覧に残したい場合。
 
