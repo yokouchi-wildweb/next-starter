@@ -157,6 +157,7 @@ function UnreadNotificationModalInner() {
       titleSrOnly={!current.title}
       showCloseButton={false}
       maxWidth={480}
+      maxHeight="70vh"
       className="p-4 gap-3"
     >
       <Stack space={1}>
@@ -175,9 +176,7 @@ function UnreadNotificationModalInner() {
         </Para>
 
         {/* 本文 */}
-        <div className="max-h-[30vh] overflow-y-auto">
-          <Para className="whitespace-pre-wrap">{current.body}</Para>
-        </div>
+        <Para className="whitespace-pre-wrap">{current.body}</Para>
 
         {/* ボタン */}
         <Flex gap="sm" justify="center" className="pt-2">
