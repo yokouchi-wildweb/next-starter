@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
 import { getRoleCategory } from "@/features/core/user/constants";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import { sendAdjustmentNotification } from "@/features/core/wallet/services/server/notification/sendAdjustmentNotification";
@@ -87,16 +88,20 @@ export const POST = createApiRoute<Params>(
       meta: mergedMeta,
     });
 
-    // 残高変更をユーザーに通知（Safe版: 失敗しても本体処理に影響しない）
-    await sendAdjustmentNotification({
-      userId,
-      walletType: payload.walletType,
-      changeMethod: payload.changeMethod,
-      amount: payload.amount,
-      balanceBefore: result.history?.balance_before ?? 0,
-      balanceAfter: result.wallet.balance,
-      reason: payload.reason,
-    });
+    // 操作タイプに応じて通知を送信（Safe版: 失敗しても本体処理に影響しない）
+    const notifyFlags = APP_FEATURES.wallet.notifyOnAdjust;
+    const shouldNotify = notifyFlags[payload.changeMethod.toLowerCase() as keyof typeof notifyFlags] ?? false;
+    if (shouldNotify) {
+      await sendAdjustmentNotification({
+        userId,
+        walletType: payload.walletType,
+        changeMethod: payload.changeMethod,
+        amount: payload.amount,
+        balanceBefore: result.history?.balance_before ?? 0,
+        balanceAfter: result.wallet.balance,
+        reason: payload.reason,
+      });
+    }
 
     return result;
   },

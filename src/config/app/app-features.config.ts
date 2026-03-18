@@ -122,6 +122,12 @@ export const APP_FEATURES = {
      * - phoneVerified: SMS認証済みユーザーのみ購入可能
      */
     purchaseRestriction: "phoneVerified" as WalletPurchaseRestriction,
+    /** 管理者による残高変更時にユーザーへ通知を送信する（操作タイプ別） */
+    notifyOnAdjust: {
+      increment: false,
+      decrement: false,
+      set: false,
+    },
   },
   dataMigration: {
     /** 最大レコード数制限（デフォルト: 1000） */
