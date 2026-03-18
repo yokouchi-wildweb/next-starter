@@ -36,12 +36,11 @@ export async function sendAdjustmentNotification(
     reason: input.reason,
   };
 
-  const changeMethodLower = input.changeMethod.toLowerCase();
-  const image = resolveNotificationImage([
-    `wallet-${input.walletType}-${changeMethodLower}`,
-    `wallet-${input.walletType}`,
-    "wallet",
-  ]);
+  const image = resolveNotificationImage({
+    category: "wallet",
+    sub1: input.walletType,
+    sub2: input.changeMethod.toLowerCase(),
+  });
 
   await notificationService.sendToUserSafe(input.userId, {
     title: buildTitle(params),

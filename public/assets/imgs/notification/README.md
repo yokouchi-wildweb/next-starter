@@ -5,37 +5,60 @@
 
 ## 命名規則
 
-**パターン**: `{候補キー}.{拡張子}`
+### ファイル名パターン
 
-対応拡張子: `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`（この優先順で探索）
+`{category}-{sub1}-{sub2}.{ext}`
 
-### フォールバックチェーン
+- **カテゴリ区切り**: ハイフン（`-`）
+- **DB由来の値**: snake_case をそのまま使用（例: `regular_coin`, `admin_action`）
+- **固有の名前**: snake_case を推奨（例: `rank_up`, `campaign`）
 
-リゾルバに渡された候補キーの配列を先頭から順に探索し、最初に見つかった画像を使用する。
-全て見つからなければ `default.{ext}` をフォールバックとして探索する。
+対応拡張子（優先順）: `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`
 
-### ウォレット残高変更通知の例
+### 構造化入力とフォールバックチェーン
 
-候補キー（優先順）:
-1. `wallet-regular_coin-increment` — 通貨 + 操作 固有
-2. `wallet-regular_coin` — 通貨 固有
-3. `wallet` — ウォレット通知全般
-4. `default` — 全通知共通フォールバック
+リゾルバは構造化入力から候補チェーンを自動生成し、具体→汎用の順に探索する。
 
-### その他の通知での命名例
-
+```typescript
+resolveNotificationImage({ category: "wallet", sub1: "regular_coin", sub2: "increment" })
 ```
-purchase-regular_coin.png    ← 購入通知（コイン固有）
-purchase.png                 ← 購入通知全般
-rank_up.png                  ← ランクアップ通知
-campaign.png                 ← キャンペーン通知
-default.png                  ← 全通知共通フォールバック
-```
+
+生成される候補チェーン:
+1. `wallet-regular_coin-increment` — カテゴリ + sub1 + sub2（最も具体的）
+2. `wallet-regular_coin` — カテゴリ + sub1
+3. `wallet` — カテゴリのみ
+4. `default` — 全通知共通フォールバック（自動付与）
+
+### 命名例
+
+| ファイル名 | 用途 |
+|---|---|
+| `wallet-regular_coin-increment.png` | コイン増加通知 固有 |
+| `wallet-regular_coin.png` | コイン通知全般 |
+| `wallet.png` | ウォレット通知全般 |
+| `purchase-regular_coin.png` | コイン購入通知 |
+| `purchase.png` | 購入通知全般 |
+| `rank_up.png` | ランクアップ通知 |
+| `campaign.png` | キャンペーン通知 |
+| `default.png` | 全通知共通フォールバック |
 
 ## 使い方
 
 1. このディレクトリに命名規則に従った画像を配置する
-2. サーバーサービスから `resolveNotificationImage(["wallet-regular_coin", "wallet"])` を呼ぶ
+2. サーバーサービスから構造化入力でリゾルバを呼ぶ
 3. 存在する画像のパスが返される（なければ `null`）
+
+```typescript
+import { resolveNotificationImage } from "@/features/notification/services/server/notification/resolveNotificationImage";
+
+// 構造化入力（推奨）
+const image = resolveNotificationImage({ category: "wallet", sub1: "regular_coin", sub2: "increment" });
+
+// カテゴリのみ
+const image = resolveNotificationImage({ category: "rank_up" });
+
+// 配列で直接指定（後方互換）
+const image = resolveNotificationImage(["purchase-regular_coin", "purchase"]);
+```
 
 リゾルバ: `src/features/core/notification/services/server/notification/resolveNotificationImage.ts`

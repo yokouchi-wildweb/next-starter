@@ -407,35 +407,41 @@ notification: {
 
 ### リゾルバ
 
+構造化入力からフォールバックチェーンを自動生成し、具体→汎用の順に画像を探索する。
+
 ```typescript
 import { resolveNotificationImage } from "@/features/notification/services/server/notification/resolveNotificationImage";
 
-// 候補キーを優先順に渡す。最初に見つかった画像のパスを返す（なければ null）
-const image = resolveNotificationImage([
-  "wallet-regular_coin-increment",
-  "wallet-regular_coin",
-  "wallet",
-]);
-// → "/assets/imgs/notification/wallet-regular_coin.png" など
+// 構造化入力（推奨）— 候補チェーンを自動生成
+const image = resolveNotificationImage({
+  category: "wallet",
+  sub1: "regular_coin",
+  sub2: "increment",
+});
+// → ["wallet-regular_coin-increment", "wallet-regular_coin", "wallet", "default"] を順に探索
+
+// カテゴリのみ
+const image = resolveNotificationImage({ category: "rank_up" });
+// → ["rank_up", "default"] を順に探索
 ```
 
-### フォールバックチェーン
+### 命名ガイドライン
 
-候補キーを先頭から順に探索し、全て見つからなければ `default.{ext}` をフォールバックとして探す。
-
-対応拡張子（優先順）: `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`
+- **カテゴリ区切り**: ハイフン（`-`）
+- **DB由来の値**: snake_case をそのまま使用（例: `regular_coin`）
+- **固有の名前**: snake_case を推奨（例: `rank_up`）
+- 対応拡張子（優先順）: `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`
 
 ### 命名例
 
-| 候補キー | 用途 |
+| ファイル名 | 用途 |
 |----------|------|
-| `wallet-regular_coin-increment` | コイン増加通知 固有 |
-| `wallet-regular_coin` | コイン通知全般 |
-| `wallet` | ウォレット通知全般 |
-| `purchase-regular_coin` | コイン購入通知 |
-| `purchase` | 購入通知全般 |
-| `rank_up` | ランクアップ通知 |
-| `default` | 全通知共通フォールバック |
+| `wallet-regular_coin-increment.png` | コイン増加通知 固有 |
+| `wallet-regular_coin.png` | コイン通知全般 |
+| `wallet.png` | ウォレット通知全般 |
+| `purchase-regular_coin.png` | コイン購入通知 |
+| `rank_up.png` | ランクアップ通知 |
+| `default.png` | 全通知共通フォールバック |
 
 詳細: `public/assets/imgs/notification/README.md`
 
