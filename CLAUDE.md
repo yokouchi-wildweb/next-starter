@@ -70,7 +70,7 @@ new_domain_json: MUST read src/features/README.md before creating or editing any
 ref: src/features/README.md
 
 ## SETTING (core domain)
-singleton: id="global" | extend: setting.extended.ts にZodフィールド追加するだけ（DB migration不要）
+singleton: id="global" | extend: just add Zod fields to setting.extended.ts (no DB migration needed)
 ref: src/features/core/setting/README.md
 
 ## API_ROUTES
