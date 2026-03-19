@@ -46,7 +46,8 @@
       "@/features/userTag/*": ["./src/features/core/userTag/*"],
       "@/features/wallet/*": ["./src/features/core/wallet/*"],
       "@/features/chatRoom/*": ["./src/features/core/chatRoom/*"],
-      "@/features/walletHistory/*": ["./src/features/core/walletHistory/*"]
+      "@/features/walletHistory/*": ["./src/features/core/walletHistory/*"],
+      "@/features/batchJob/*": ["./src/features/core/batchJob/*"]
     }
   },
   "include": [

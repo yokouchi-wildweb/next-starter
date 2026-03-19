@@ -19,6 +19,7 @@ import type {
 import { base } from "./drizzleBase";
 import { adjustBalance } from "./wrappers/adjustBalance";
 import { bulkAdjustByType } from "./wrappers/bulkAdjustByType";
+import { bulkAdjustByUsers, type BulkAdjustByUsersParams } from "./wrappers/bulkAdjustByUsers";
 import { consumeReservedBalance } from "./wrappers/consumeReservedBalance";
 import { releaseReservation } from "./wrappers/releaseReservation";
 import { reserveBalance } from "./wrappers/reserveBalance";
@@ -74,4 +75,11 @@ export const walletService = {
     params: BulkAdjustByTypeParams,
     tx?: TransactionClient,
   ): Promise<BulkAdjustByTypeResult> => bulkAdjustByType(params, tx),
+
+  /** 指定ユーザーIDリストに対してウォレット残高を一括調整（バッチジョブ用） */
+  bulkAdjustByUsers: (
+    tx: TransactionClient,
+    userIds: string[],
+    params: BulkAdjustByUsersParams,
+  ) => bulkAdjustByUsers(tx, userIds, params),
 };

@@ -22,6 +22,7 @@ export * from "@/features/milestone/entities/drizzle";
 export * from "@/features/notification/entities/drizzle";
 export * from "@/features/notification/entities/notificationRead";
 export * from "@/features/notificationTemplate/entities/drizzle";
+export * from "@/features/batchJob/entities/drizzle";
 
 // --- AUTO-GENERATED-START ---
 export * from "@/features/sample/entities/drizzle";
