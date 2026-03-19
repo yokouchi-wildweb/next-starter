@@ -21,7 +21,12 @@ export const NumberInput = <
   const { value: fieldValue, onChange: fieldOnChange, ...fieldRest } = field;
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
-    const nextValue = event.target.value;
+    const raw = event.target.value;
+    // 先頭の不要なゼロを除去（"01" → "1", "007" → "7", "0.5" → "0.5"）
+    const nextValue = raw.replace(/^0+(?=\d)/, "");
+    if (nextValue !== raw) {
+      event.target.value = nextValue;
+    }
     const parsedValue = nextValue === "" ? null : Number(nextValue);
     fieldOnChange(parsedValue);
     onChange?.(event);
