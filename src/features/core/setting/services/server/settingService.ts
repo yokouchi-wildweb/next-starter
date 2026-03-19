@@ -83,6 +83,7 @@ export async function initializeAdminSetup(data: AdminSetupInput): Promise<User>
 
 export const settingService = {
   ...base,
+  get: async (_id: string) => getGlobalSetting(),
   getGlobalSetting,
   getAdminListPerPage,
   DEFAULT_ADMIN_LIST_PER_PAGE,
