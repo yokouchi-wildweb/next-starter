@@ -14,8 +14,8 @@ import { SettingForm } from "./SettingForm";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
-import settingFieldsJson from "../../setting-fields.json";
+import { getZodDefaults } from "@/lib/zod";
+import { settingExtendedSchema } from "../../setting.extended";
 
 // 統合されたフォーム型
 type CombinedSettingUpdateFields = SettingUpdateFields & SettingExtendedUpdateFields;
@@ -26,11 +26,7 @@ type Props = {
 };
 
 export default function EditSettingForm({ setting, redirectPath = "/" }: Props) {
-  // 拡張設定項目のdefaultValuesを動的に構築
-  const extendedDefaults = buildFormDefaultValues(
-    { fields: settingFieldsJson.fields },
-    setting as unknown as Record<string, unknown>,
-  );
+  const extendedDefaults = getZodDefaults(settingExtendedSchema);
 
   const methods = useForm<CombinedSettingUpdateFields>({
     resolver: zodResolver(SettingCombinedUpdateSchema),
@@ -39,13 +35,19 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
     defaultValues: {
       // 基本設定項目
       adminListPerPage: setting.adminListPerPage ?? 100,
-      // 拡張設定項目（setting-fields.json から動的に構築）
+      // 拡張設定項目（setting.extended.ts から取得したデフォルト値を既存値で上書き）
       ...extendedDefaults,
+      ...Object.fromEntries(
+        Object.keys(extendedDefaults).map((key) => [
+          key,
+          (setting as unknown as Record<string, unknown>)[key] ?? extendedDefaults[key as keyof typeof extendedDefaults],
+        ]),
+      ),
     } as CombinedSettingUpdateFields,
   });
 
   const router = useRouter();
-  const { showToast, hideToast } = useToast();
+  const { showToast } = useToast();
   const { trigger, isMutating } = useUpdateSetting();
 
   const submit = async (data: CombinedSettingUpdateFields) => {

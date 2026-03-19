@@ -35,11 +35,6 @@
     "prof:add": "node scripts/role-config/addProfile.mjs",
     "prof:generate": "node scripts/role-config/generateProfile.mjs",
     "prof:delete": "node scripts/role-config/deleteProfile.mjs",
-    "sc:init": "node scripts/setting-config/index.mjs --init",
-    "sc:generate": "node scripts/setting-config/index.mjs --generate",
-    "sc:list": "node scripts/setting-config/index.mjs --list",
-    "sc:add": "node scripts/setting-config/index.mjs --add",
-    "sc:remove": "node scripts/setting-config/index.mjs --remove",
     "mail:test": "npx tsx scripts/mail/test-send.ts",
     "mail:generate-colors": "npx tsx scripts/mail/generate-colors.ts",
     "claude:test": "cross-env APP_ENV=.env.development npx tsx scripts/test-claude-api.ts"

@@ -50,25 +50,6 @@ pnpm dc:delete -- <Domain>
 pnpm dc:add -- <Domain>
 ```
 
-### 設定管理 (sc)
-
-```bash
-# 設定テンプレート作成
-pnpm sc:init -- <SettingKey>
-
-# 設定ファイル生成
-pnpm sc:generate -- <SettingKey>
-
-# 設定一覧表示
-pnpm sc:list
-
-# 設定項目追加
-pnpm sc:add -- <SettingKey>
-
-# 設定項目削除
-pnpm sc:remove -- <SettingKey>
-```
-
 ### メール (mail)
 
 ```bash
@@ -98,6 +79,5 @@ scripts/
 │   ├── seed/              # シーダー
 │   └── clear/             # データ削除
 ├── domain-config/         # ドメイン設定生成
-├── setting-config/        # 設定管理
 └── mail/                  # メール関連
 ```

@@ -2,18 +2,19 @@
 import type { Setting } from "@/features/core/setting/entities";
 import type { User } from "@/features/core/user/entities";
 import { createAdmin } from "@/features/core/user/services/server/creation/console";
+import { getZodDefaults } from "@/lib/zod";
 
+import { settingExtendedSchema } from "../../setting.extended";
 import type { AdminSetupInput } from "../types";
 import { base } from "./drizzleBase";
-import { extendedDefaultSettingValues } from "./settingDefaults.extended";
 
 const DEFAULT_ADMIN_LIST_PER_PAGE = 50;
 
 const createDefaultSettingValues = () => ({
   // 基本設定項目
   adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,
-  // 拡張設定項目（setting-fields.json から生成）
-  ...extendedDefaultSettingValues,
+  // 拡張設定項目（setting.extended.ts から自動取得）
+  ...getZodDefaults(settingExtendedSchema),
 });
 
 async function getGlobalSetting(): Promise<Setting> {
@@ -30,6 +31,7 @@ async function getGlobalSetting(): Promise<Setting> {
   }
 
   return {
+    ...defaultValues,
     ...existing,
     adminListPerPage: existing.adminListPerPage ?? defaultValues.adminListPerPage,
   };
