@@ -69,6 +69,17 @@ config_utils: src/lib/domain/ | getDomainConfig(domain), extractFields(config), 
 new_domain_json: MUST read src/features/README.md before creating or editing any domain.json to verify schema format
 ref: src/features/README.md
 
+## SETTING (core domain)
+singleton: id="global", 1 record only
+extend_file: src/features/core/setting/setting.extended.ts (ONLY file downstream edits to add settings)
+how_to_add: define Zod fields in settingExtendedSchema → done. no DB migration needed (stored in extended jsonb column)
+supported_types: string, number, boolean, enum, array, nested object (z.object/z.array) — any Zod-expressible type
+defaults: use .default() on Zod schema → auto-extracted by getZodDefaults (src/lib/zod/)
+reading: server: settingService.getGlobalSetting() | client: useSetting() — both return flat Setting type (extended fields merged)
+writing: drizzleBase.ts auto-packs extended fields into jsonb on create/update
+ui: SettingForm accepts children prop — downstream builds custom UI freely (grouping, conditional display, JSON editors)
+ref: src/features/core/setting/README.md
+
 ## API_ROUTES
 required: routeFactory (createApiRoute / createDomainRoute)
 generic: GET|POST / (list|create) | GET|PATCH|DELETE /[id] (get|update|soft-delete) | POST /search, /count, /upsert, /bulk/delete-by-ids, /[id]/duplicate, /[id]/restore | DELETE /[id]/hard-delete
