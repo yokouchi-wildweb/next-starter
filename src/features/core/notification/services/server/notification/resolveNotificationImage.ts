@@ -1,10 +1,11 @@
 // src/features/core/notification/services/server/notification/resolveNotificationImage.ts
 // 通知画像のフォールバック解決
-// 構造化入力からフォールバックチェーンを自動生成し、最初に存在する画像のパスを返す
+// セグメント列からフォルダ階層パスを生成し、具体→汎用の順に最初に存在する画像を返す
 
 import fs from "node:fs";
 import path from "node:path";
 import { imgPath } from "@/utils/assets";
+import { toKebabCase } from "@/utils/stringCase.mjs";
 
 /** 探索する拡張子（優先順） */
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".svg"] as const;
@@ -17,68 +18,66 @@ const NOTIFICATION_IMAGE_DIR = path.join(
 
 /** 構造化入力 */
 export type NotificationImageQuery = {
-  /** 通知カテゴリ（例: "wallet", "purchase", "rank_up"） */
-  category: string;
-  /** サブキー1（例: walletType "regular_coin"） */
-  sub1?: string;
-  /** サブキー2（例: changeMethod "increment"） */
-  sub2?: string;
+  /** 通知を表すセグメント列（例: ["wallet", "regular_coin", "INCREMENT"]） */
+  segments: Array<string | null | undefined>;
 };
 
 /**
- * 構造化入力からフォールバック候補チェーンを生成する。
- *
- * { category: "wallet", sub1: "regular_coin", sub2: "increment" }
- * → ["wallet-regular_coin-increment", "wallet-regular_coin", "wallet"]
+ * セグメントをファイル配置用の kebab-case に正規化する。
+ * パス区切り文字は除去する。
  */
-export function buildCandidates(query: NotificationImageQuery): string[] {
-  const { category, sub1, sub2 } = query;
+function normalizeSegment(segment: string): string {
+  return toKebabCase(segment.replace(/[./\\]+/g, " ").trim());
+}
+
+/**
+ * セグメント列からフォールバック候補パスを生成する。
+ * 末尾セグメントはファイル名、それ以外はディレクトリになる。
+ *
+ * { segments: ["wallet", "regular_coin", "INCREMENT"] }
+ * → ["wallet/regular-coin/increment", "wallet/regular-coin", "wallet"]
+ */
+export function buildCandidatePaths(query: NotificationImageQuery): string[] {
+  const segments = query.segments
+    .filter((s): s is string => typeof s === "string")
+    .map(normalizeSegment)
+    .filter(Boolean);
   const candidates: string[] = [];
 
-  if (sub1 && sub2) {
-    candidates.push(`${category}-${sub1}-${sub2}`);
+  for (let length = segments.length; length > 0; length -= 1) {
+    const dirs = segments.slice(0, length - 1);
+    const file = segments[length - 1];
+    candidates.push(dirs.length > 0 ? `${dirs.join("/")}/${file}` : file);
   }
-  if (sub1) {
-    candidates.push(`${category}-${sub1}`);
-  }
-  candidates.push(category);
 
   return candidates;
 }
 
 /**
- * 候補キーに一致する通知画像を探索し、公開URLパスを返す。
+ * 候補パスに一致する通知画像を探索し、公開URLパスを返す。
  * 全候補が見つからなければ "default" をフォールバックとして探索する。
  * それでも見つからなければ null を返す。
  *
- * @param input - 構造化入力、または優先順に並べた候補キーの配列（後方互換）
- * @returns 公開URLパス（例: "/assets/imgs/notification/wallet.png"）または null
+ * @param query - セグメント列による構造化入力
+ * @returns 公開URLパス（例: "/assets/imgs/notification/wallet/regular-coin/increment.png"）または null
  *
  * @example
- * // 構造化入力（推奨）
- * resolveNotificationImage({ category: "wallet", sub1: "regular_coin", sub2: "increment" })
- * // → ["wallet-regular_coin-increment", "wallet-regular_coin", "wallet", "default"] を順に探索
+ * resolveNotificationImage({ segments: ["wallet", "regular_coin", "INCREMENT"] })
+ * // → "wallet/regular-coin/increment.*" → "wallet/regular-coin.*" → "wallet.*" → "default.*"
  *
- * // カテゴリのみ
- * resolveNotificationImage({ category: "rank_up" })
- * // → ["rank_up", "default"] を順に探索
- *
- * // 配列で直接指定（後方互換）
- * resolveNotificationImage(["purchase-regular_coin", "purchase"])
+ * resolveNotificationImage({ segments: ["rank_up"] })
+ * // → "rank-up.*" → "default.*"
  */
 export function resolveNotificationImage(
-  input: NotificationImageQuery | string[],
+  query: NotificationImageQuery,
 ): string | null {
-  const candidates = Array.isArray(input) ? input : buildCandidates(input);
+  const pathsToCheck = [...buildCandidatePaths(query), "default"];
 
-  // 候補 + default フォールバック
-  const keysToCheck = [...candidates, "default"];
-
-  for (const key of keysToCheck) {
+  for (const candidate of pathsToCheck) {
     for (const ext of IMAGE_EXTENSIONS) {
-      const filePath = path.join(NOTIFICATION_IMAGE_DIR, `${key}${ext}`);
+      const filePath = path.join(NOTIFICATION_IMAGE_DIR, `${candidate}${ext}`);
       if (fs.existsSync(filePath)) {
-        return imgPath(`notification/${key}${ext}`);
+        return imgPath(`notification/${candidate}${ext}`);
       }
     }
   }

@@ -37,9 +37,7 @@ export async function sendAdjustmentNotification(
   };
 
   const image = resolveNotificationImage({
-    category: "wallet",
-    sub1: input.walletType,
-    sub2: input.changeMethod.toLowerCase(),
+    segments: ["wallet", input.walletType, input.changeMethod],
   });
 
   await notificationService.sendToUserSafe(input.userId, {

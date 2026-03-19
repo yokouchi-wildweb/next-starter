@@ -420,45 +420,38 @@ notification: {
 
 ## 通知画像の自動挿入
 
-`public/assets/imgs/notification/` に命名規則に従った画像を配置すると、通知の `image` フィールドに自動セットされる。
+`public/assets/imgs/notification/` に配置規則に従った画像を置くと、通知の `image` フィールドに自動セットされる。
 
 ### リゾルバ
 
-構造化入力からフォールバックチェーンを自動生成し、具体→汎用の順に画像を探索する。
+セグメント列からフォルダ階層のフォールバックチェーンを自動生成し、具体→汎用の順に画像を探索する。
 
 ```typescript
 import { resolveNotificationImage } from "@/features/notification/services/server/notification/resolveNotificationImage";
 
-// 構造化入力（推奨）— 候補チェーンを自動生成
-const image = resolveNotificationImage({
-  category: "wallet",
-  sub1: "regular_coin",
-  sub2: "increment",
-});
-// → ["wallet-regular_coin-increment", "wallet-regular_coin", "wallet", "default"] を順に探索
+// セグメント列 — DB値やコード上の定数をそのまま渡せる（kebab-case に自動正規化）
+const image = resolveNotificationImage({ segments: ["wallet", "regular_coin", "INCREMENT"] });
+// → "wallet/regular-coin/increment.*" → "wallet/regular-coin.*" → "wallet.*" → "default.*"
 
-// カテゴリのみ
-const image = resolveNotificationImage({ category: "rank_up" });
-// → ["rank_up", "default"] を順に探索
+// 単一カテゴリ
+const image = resolveNotificationImage({ segments: ["rank_up"] });
+// → "rank-up.*" → "default.*"
 ```
 
-### 命名ガイドライン
+### 配置ガイドライン
 
-- **カテゴリ区切り**: ハイフン（`-`）
-- **DB由来の値**: snake_case をそのまま使用（例: `regular_coin`）
-- **固有の名前**: snake_case を推奨（例: `rank_up`）
+- **セグメント区切り**: ディレクトリ（`/`）、ファイル名は末尾セグメント
+- **命名規則**: すべて kebab-case（resolver が自動正規化）
 - 対応拡張子（優先順）: `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`
 
-### 命名例
+### 配置例
 
-| ファイル名 | 用途 |
-|----------|------|
-| `wallet-regular_coin-increment.png` | コイン増加通知 固有 |
-| `wallet-regular_coin.png` | コイン通知全般 |
-| `wallet.png` | ウォレット通知全般 |
-| `purchase-regular_coin.png` | コイン購入通知 |
-| `rank_up.png` | ランクアップ通知 |
-| `default.png` | 全通知共通フォールバック |
+- `wallet/regular-coin/increment.png`: コイン増加通知 固有
+- `wallet/regular-coin.png`: コイン通知全般フォールバック
+- `wallet.png`: ウォレット通知全般フォールバック
+- `purchase/regular-coin.png`: コイン購入通知
+- `rank-up.png`: ランクアップ通知
+- `default.png`: 全通知共通フォールバック
 
 詳細: `public/assets/imgs/notification/README.md`
 
