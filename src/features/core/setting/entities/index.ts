@@ -5,7 +5,7 @@ export * from "./drizzle";
 export * from "./schema";
 export * from "./form";
 
-// 拡張エンティティ（setting-fields.json から生成）
+// 拡張エンティティ（setting.extended.ts から導出）
 export * from "./schema.extended";
 export * from "./model.extended";
 export * from "./form.extended";

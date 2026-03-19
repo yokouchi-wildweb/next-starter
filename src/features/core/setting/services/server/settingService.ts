@@ -5,12 +5,32 @@ import { createAdmin } from "@/features/core/user/services/server/creation/conso
 import { getZodDefaults } from "@/lib/zod";
 
 import { settingExtendedSchema } from "../../setting.extended";
+import type { SettingExtended } from "../../setting.extended";
 import type { AdminSetupInput } from "../types";
 import { base } from "./drizzleBase";
 
 const DEFAULT_ADMIN_LIST_PER_PAGE = 50;
 
-const createDefaultSettingValues = () => ({
+/**
+ * DBの行データ（extended jsonb を含む）をフラットな Setting 型に変換する
+ */
+function flattenSettingRow(
+  row: Record<string, unknown>,
+  defaults: Record<string, unknown>,
+): Setting {
+  const { extended, ...baseFields } = row;
+  const extendedData = settingExtendedSchema.safeParse({
+    ...defaults,
+    ...(extended as Record<string, unknown> | null),
+  });
+
+  return {
+    ...baseFields,
+    ...(extendedData.success ? extendedData.data : defaults),
+  } as Setting;
+}
+
+const createDefaultSettingValues = (): Record<string, unknown> => ({
   // 基本設定項目
   adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,
   // 拡張設定項目（setting.extended.ts から自動取得）
@@ -18,7 +38,7 @@ const createDefaultSettingValues = () => ({
 });
 
 async function getGlobalSetting(): Promise<Setting> {
-  const existing = (await base.get("global")) as Setting | undefined;
+  const existing = await base.get("global");
   const defaultValues = createDefaultSettingValues();
 
   if (!existing) {
@@ -27,13 +47,17 @@ async function getGlobalSetting(): Promise<Setting> {
       createdAt: null,
       updatedAt: null,
       ...defaultValues,
-    };
+    } as Setting;
   }
 
+  const setting = flattenSettingRow(
+    existing as unknown as Record<string, unknown>,
+    defaultValues,
+  );
+
   return {
-    ...defaultValues,
-    ...existing,
-    adminListPerPage: existing.adminListPerPage ?? defaultValues.adminListPerPage,
+    ...setting,
+    adminListPerPage: setting.adminListPerPage ?? DEFAULT_ADMIN_LIST_PER_PAGE,
   };
 }
 
@@ -47,13 +71,11 @@ export async function initializeAdminSetup(data: AdminSetupInput): Promise<User>
   const defaultValues = createDefaultSettingValues();
   const existing = await base.get("global");
 
+  const createData = { id: "global", ...defaultValues } as Parameters<typeof base.create>[0];
   if (!existing) {
-    await base.create({
-      id: "global",
-      ...defaultValues,
-    });
+    await base.create(createData);
   } else {
-    await base.update("global", defaultValues);
+    await base.update("global", defaultValues as Parameters<typeof base.update>[1]);
   }
 
   return user;
