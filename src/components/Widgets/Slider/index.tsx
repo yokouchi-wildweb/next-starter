@@ -273,9 +273,9 @@ export function Slider<T>({
                   key={index}
                   className={cn(
                     gapStyles[gap],
-                    effectivePeek && `basis-[${slideSize}]`,
                     index !== current && "cursor-pointer"
                   )}
+                  style={effectivePeek ? { flexBasis: slideSize } : undefined}
                   onClick={() => {
                     if (index !== current) {
                       api?.scrollTo(index)
