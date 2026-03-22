@@ -1,12 +1,16 @@
 "use client"
 
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import useEmblaCarousel from "embla-carousel-react"
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   type CarouselApi,
 } from "@/components/_shadcn/carousel"
+import AutoplayPlugin from "embla-carousel-autoplay"
+
+type EmblaPlugins = Parameters<typeof useEmblaCarousel>[1]
 import { cn } from "@/lib/cn"
 import { SliderArrow, type ArrowVariant, type ArrowSize } from "./SliderArrow"
 import { SliderDots, type DotVariant } from "./SliderDots"
@@ -57,6 +61,13 @@ export type RenderDotsProps = {
   onDotClick: (index: number) => void
 }
 
+export type AutoplayOption = boolean | {
+  /** 自動再生の間隔（ms）。デフォルト: 4000 */
+  delay?: number
+  /** ユーザー操作時に自動再生を停止する。デフォルト: true */
+  stopOnInteraction?: boolean
+}
+
 const responsiveShowClasses: Record<string, string> = {
   sm: "hidden sm:block",
   md: "hidden md:block",
@@ -95,6 +106,10 @@ type SliderProps<T> = {
   peekFade?: boolean
   /** スライド変更時のコールバック */
   onSlideChange?: (index: number) => void
+  /** 自動再生。trueでデフォルト設定、オブジェクトで詳細設定 */
+  autoplay?: AutoplayOption
+  /** emblaプラグインを直接渡す（autoplay以外のプラグイン用） */
+  plugins?: EmblaPlugins
 }
 
 const peekAlign = {
@@ -123,8 +138,26 @@ export function Slider<T>({
   slideSize = "85%",
   peekFade = true,
   onSlideChange,
+  autoplay,
+  plugins: externalPlugins,
 }: SliderProps<T>) {
   const effectivePeek = items.length <= 1 ? false : peek
+
+  const emblaPlugins = useMemo<EmblaPlugins>(() => {
+    const list: NonNullable<EmblaPlugins> = []
+    if (autoplay) {
+      const opts = typeof autoplay === "object" ? autoplay : {}
+      list.push(AutoplayPlugin({
+        delay: opts.delay ?? 4000,
+        stopOnInteraction: opts.stopOnInteraction ?? true,
+      }))
+    }
+    if (externalPlugins) {
+      list.push(...externalPlugins)
+    }
+    return list.length > 0 ? list : undefined
+  }, [autoplay, externalPlugins])
+
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
@@ -232,6 +265,7 @@ export function Slider<T>({
               loop,
               align: effectivePeek ? peekAlign[effectivePeek] : "center",
             }}
+            plugins={emblaPlugins}
           >
             <CarouselContent className={gapNegativeMargin[gap]}>
               {items.map((item, index) => (

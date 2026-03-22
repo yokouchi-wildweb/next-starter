@@ -46,6 +46,8 @@ export default function DemoPage() {
   const [dotPosition, setDotPosition] = useState<DotPosition>("bottom")
   const [slideSize, setSlideSize] = useState("85%")
   const [peekFade, setPeekFade] = useState(true)
+  const [autoplay, setAutoplay] = useState(false)
+  const [autoplayDelay, setAutoplayDelay] = useState("4000")
   const [lastSlideIndex, setLastSlideIndex] = useState<number | null>(null)
 
   const peekValue = peek === "none" ? undefined : peek
@@ -226,6 +228,29 @@ export default function DemoPage() {
               />
               <span className="text-sm">peekFade</span>
             </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoplay}
+                onChange={(e) => setAutoplay(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-sm">autoplay</span>
+            </label>
+
+            {autoplay && (
+              <label className="flex flex-col gap-1">
+                <span className="text-sm">autoplay delay (ms)</span>
+                <input
+                  type="text"
+                  value={autoplayDelay}
+                  onChange={(e) => setAutoplayDelay(e.target.value)}
+                  placeholder="4000"
+                  className="rounded border px-2 py-1 text-sm bg-background"
+                />
+              </label>
+            )}
           </div>
 
           {lastSlideIndex !== null && (
@@ -253,6 +278,7 @@ export default function DemoPage() {
           dotPosition={dotPosition}
           slideSize={slideSize}
           peekFade={peekFade}
+          autoplay={autoplay ? { delay: Number(autoplayDelay) || 4000 } : undefined}
           onSlideChange={setLastSlideIndex}
         />
       </Stack>
