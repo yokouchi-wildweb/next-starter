@@ -45,7 +45,11 @@ export default function DemoPage() {
   const [dotVariant, setDotVariant] = useState<DotVariant>("default")
   const [dotPosition, setDotPosition] = useState<DotPosition>("bottom")
   const [slideSize, setSlideSize] = useState("85%")
-  const [peekFade, setPeekFade] = useState(true)
+  const [alignMode, setAlignMode] = useState<"auto" | "start" | "center" | "end" | "custom">("auto")
+  const [alignValue, setAlignValue] = useState("0.15")
+  const [maskEnabled, setMaskEnabled] = useState(true)
+  const [maskLeft, setMaskLeft] = useState("10")
+  const [maskRight, setMaskRight] = useState("10")
   const [autoplay, setAutoplay] = useState(false)
   const [autoplayDelay, setAutoplayDelay] = useState("4000")
   const [lastSlideIndex, setLastSlideIndex] = useState<number | null>(null)
@@ -219,15 +223,69 @@ export default function DemoPage() {
               />
             </label>
 
+            <label className="flex flex-col gap-1">
+              <span className="text-sm">align</span>
+              <select
+                value={alignMode}
+                onChange={(e) => setAlignMode(e.target.value as typeof alignMode)}
+                className="rounded border px-2 py-1 text-sm bg-background"
+              >
+                <option value="auto">auto (peek依存)</option>
+                <option value="start">start</option>
+                <option value="center">center</option>
+                <option value="end">end</option>
+                <option value="custom">数値指定</option>
+              </select>
+            </label>
+
+            {alignMode === "custom" && (
+              <label className="flex flex-col gap-1">
+                <span className="text-sm">align値 (0〜1)</span>
+                <input
+                  type="text"
+                  value={alignValue}
+                  onChange={(e) => setAlignValue(e.target.value)}
+                  placeholder="0.15"
+                  className="rounded border px-2 py-1 text-sm bg-background"
+                />
+              </label>
+            )}
+
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={peekFade}
-                onChange={(e) => setPeekFade(e.target.checked)}
+                checked={maskEnabled}
+                onChange={(e) => setMaskEnabled(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">peekFade</span>
+              <span className="text-sm">mask</span>
             </label>
+
+            {maskEnabled && (
+              <>
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm">mask left (%)</span>
+                  <input
+                    type="text"
+                    value={maskLeft}
+                    onChange={(e) => setMaskLeft(e.target.value)}
+                    placeholder="10"
+                    className="rounded border px-2 py-1 text-sm bg-background"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm">mask right (%)</span>
+                  <input
+                    type="text"
+                    value={maskRight}
+                    onChange={(e) => setMaskRight(e.target.value)}
+                    placeholder="10"
+                    className="rounded border px-2 py-1 text-sm bg-background"
+                  />
+                </label>
+              </>
+            )}
 
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -277,7 +335,8 @@ export default function DemoPage() {
           dotVariant={dotVariant}
           dotPosition={dotPosition}
           slideSize={slideSize}
-          peekFade={peekFade}
+          align={alignMode === "auto" ? undefined : alignMode === "custom" ? (Number(alignValue) || 0) : alignMode}
+          mask={maskEnabled ? { left: Number(maskLeft) || 0, right: Number(maskRight) || 0 } : false}
           autoplay={autoplay ? { delay: Number(autoplayDelay) || 4000 } : undefined}
           onSlideChange={setLastSlideIndex}
         />

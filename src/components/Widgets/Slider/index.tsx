@@ -15,18 +15,21 @@ import { cn } from "@/lib/cn"
 import { SliderArrow, type ArrowVariant, type ArrowSize } from "./SliderArrow"
 import { SliderDots, type DotVariant } from "./SliderDots"
 
-function getPeekMaskStyle(canScrollPrev: boolean, canScrollNext: boolean) {
-  if (canScrollPrev && canScrollNext) {
-    // 両側フェード
-    return "linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)"
-  } else if (!canScrollPrev && canScrollNext) {
-    // 右のみフェード
-    return "linear-gradient(to right, black 0%, black 90%, transparent 100%)"
-  } else if (canScrollPrev && !canScrollNext) {
-    // 左のみフェード
-    return "linear-gradient(to right, transparent 0%, black 10%, black 100%)"
+function getMaskStyle(
+  canScrollPrev: boolean,
+  canScrollNext: boolean,
+  left: number,
+  right: number,
+) {
+  const hasLeft = canScrollPrev && left > 0
+  const hasRight = canScrollNext && right > 0
+  if (hasLeft && hasRight) {
+    return `linear-gradient(to right, transparent 0%, black ${left}%, black ${100 - right}%, transparent 100%)`
+  } else if (!hasLeft && hasRight) {
+    return `linear-gradient(to right, black 0%, black ${100 - right}%, transparent 100%)`
+  } else if (hasLeft && !hasRight) {
+    return `linear-gradient(to right, transparent 0%, black ${left}%, black 100%)`
   }
-  // フェードなし
   return undefined
 }
 
@@ -68,6 +71,13 @@ export type AutoplayOption = boolean | {
   stopOnInteraction?: boolean
 }
 
+export type MaskOption = boolean | {
+  /** 左端のフェード幅（%）。0でフェードなし。デフォルト: 10 */
+  left?: number
+  /** 右端のフェード幅（%）。0でフェードなし。デフォルト: 10 */
+  right?: number
+}
+
 const responsiveShowClasses: Record<string, string> = {
   sm: "hidden sm:block",
   md: "hidden md:block",
@@ -102,8 +112,12 @@ type SliderProps<T> = {
   renderDots?: (props: RenderDotsProps) => ReactNode
   /** peek時のスライドサイズ。例: "85%", "70%", "300px"（デフォルト: "85%"） */
   slideSize?: string
-  /** peek時のフェードマスク。falseで隣のスライドがくっきり見える（デフォルト: true） */
-  peekFade?: boolean
+  /** Emblaのalignを直接指定。peekのデフォルトalignを上書きする。
+   *  数値(0〜1): 0=左端, 0.5=中央, 1=右端（viewSizeに対する比率で配置位置を計算）
+   *  文字列: "start" | "center" | "end" */
+  align?: "start" | "center" | "end" | number
+  /** 端のフェードマスク。true=デフォルト(左右10%), false=なし, オブジェクト=左右個別指定。peek無しでも適用可能 */
+  mask?: MaskOption
   /** スライド変更時のコールバック */
   onSlideChange?: (index: number) => void
   /** 自動再生。trueでデフォルト設定、オブジェクトで詳細設定 */
@@ -136,7 +150,8 @@ export function Slider<T>({
   dotPosition = "bottom",
   renderDots,
   slideSize = "85%",
-  peekFade = true,
+  align,
+  mask = true,
   onSlideChange,
   autoplay,
   plugins: externalPlugins,
@@ -208,8 +223,10 @@ export function Slider<T>({
   const arrowResponsiveClass = typeof showArrows === "string" ? responsiveShowClasses[showArrows] : undefined
   const dotsResponsiveClass = typeof showDots === "string" ? responsiveShowClasses[showDots] : undefined
 
-  const peekMask = effectivePeek && peekFade
-    ? getPeekMaskStyle(canScrollPrev, canScrollNext)
+  const maskLeft = mask === false ? 0 : mask === true ? 10 : (mask.left ?? 10)
+  const maskRight = mask === false ? 0 : mask === true ? 10 : (mask.right ?? 10)
+  const maskStyle = mask !== false
+    ? getMaskStyle(canScrollPrev, canScrollNext, maskLeft, maskRight)
     : undefined
 
   const arrowWrapperBase = "absolute top-1/2 -translate-y-1/2 z-10"
@@ -253,17 +270,21 @@ export function Slider<T>({
         {arrowsVisible && renderArrowElement("prev")}
 
         <div
-          style={effectivePeek ? {
+          style={maskStyle ? {
             overflow: "hidden",
-            maskImage: peekMask,
-            WebkitMaskImage: peekMask,
+            maskImage: maskStyle,
+            WebkitMaskImage: maskStyle,
           } : undefined}
         >
           <Carousel
             setApi={setApi}
             opts={{
               loop,
-              align: effectivePeek ? peekAlign[effectivePeek] : "center",
+              align: align != null
+                ? (typeof align === "number"
+                  ? (viewSize: number) => viewSize * align
+                  : align)
+                : (effectivePeek ? peekAlign[effectivePeek] : "center"),
             }}
             plugins={emblaPlugins}
           >
