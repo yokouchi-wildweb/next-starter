@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useCallback, useEffect, useState } from "react"
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import {
   Carousel,
   CarouselContent,
@@ -38,17 +38,34 @@ const gapNegativeMargin = {
   lg: "-ml-6",
 } as const
 
+/** boolean: 常時表示/非表示 | ブレークポイント文字列: 指定以上で表示 */
+export type ResponsiveToggle = boolean | "sm" | "md" | "lg" | "xl" | "2xl"
+
+const responsiveShowClasses: Record<string, string> = {
+  sm: "hidden sm:block",
+  md: "hidden md:block",
+  lg: "hidden lg:block",
+  xl: "hidden xl:block",
+  "2xl": "hidden 2xl:block",
+}
+
 type SliderProps<T> = {
   items: T[]
   renderItem: (item: T, index: number) => ReactNode
-  showArrows?: boolean
-  showDots?: boolean
+  showArrows?: ResponsiveToggle
+  showDots?: ResponsiveToggle
   loop?: boolean
   peek?: "left" | "right" | "both" | false
   gap?: "sm" | "md" | "lg"
   containerWidth?: number | string
   onActiveClick?: (item: T, index: number) => void
   arrowVariant?: "light" | "dark"
+  /** peek時のスライドサイズ。例: "85%", "70%", "300px"（デフォルト: "85%"） */
+  slideSize?: string
+  /** peek時のフェードマスク。falseで隣のスライドがくっきり見える（デフォルト: true） */
+  peekFade?: boolean
+  /** スライド変更時のコールバック */
+  onSlideChange?: (index: number) => void
 }
 
 const peekAlign = {
@@ -68,6 +85,9 @@ export function Slider<T>({
   containerWidth,
   onActiveClick,
   arrowVariant = "light",
+  slideSize = "85%",
+  peekFade = true,
+  onSlideChange,
 }: SliderProps<T>) {
   const effectivePeek = items.length <= 1 ? false : peek
   const [api, setApi] = useState<CarouselApi>()
@@ -75,13 +95,21 @@ export function Slider<T>({
   const [count, setCount] = useState(0)
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
+  const onSlideChangeRef = useRef(onSlideChange)
+  onSlideChangeRef.current = onSlideChange
 
   useEffect(() => {
     if (!api) return
 
     const updateState = () => {
       setCount(api.scrollSnapList().length)
-      setCurrent(api.selectedScrollSnap())
+      const newIndex = api.selectedScrollSnap()
+      setCurrent((prev) => {
+        if (prev !== newIndex) {
+          onSlideChangeRef.current?.(newIndex)
+        }
+        return newIndex
+      })
       setCanScrollPrev(api.canScrollPrev())
       setCanScrollNext(api.canScrollNext())
     }
@@ -107,24 +135,35 @@ export function Slider<T>({
     return null
   }
 
+  const arrowsVisible = showArrows !== false
+  const dotsVisible = showDots !== false
+  const arrowResponsiveClass = typeof showArrows === "string" ? responsiveShowClasses[showArrows] : undefined
+  const dotsResponsiveClass = typeof showDots === "string" ? responsiveShowClasses[showDots] : undefined
+
+  const peekMask = effectivePeek && peekFade
+    ? getPeekMaskStyle(canScrollPrev, canScrollNext)
+    : undefined
+
   return (
     <div
       style={containerWidth ? { width: containerWidth, marginLeft: "auto", marginRight: "auto" } : undefined}
     >
       <div className="relative">
-        {showArrows && canScrollPrev && (
-          <SliderArrow
-            direction="prev"
-            onClick={() => api?.scrollPrev()}
-            variant={arrowVariant}
-          />
+        {arrowsVisible && canScrollPrev && (
+          <div className={arrowResponsiveClass}>
+            <SliderArrow
+              direction="prev"
+              onClick={() => api?.scrollPrev()}
+              variant={arrowVariant}
+            />
+          </div>
         )}
 
         <div
           style={effectivePeek ? {
             overflow: "hidden",
-            maskImage: getPeekMaskStyle(canScrollPrev, canScrollNext),
-            WebkitMaskImage: getPeekMaskStyle(canScrollPrev, canScrollNext),
+            maskImage: peekMask,
+            WebkitMaskImage: peekMask,
           } : undefined}
         >
           <Carousel
@@ -140,7 +179,7 @@ export function Slider<T>({
                   key={index}
                   className={cn(
                     gapStyles[gap],
-                    effectivePeek && "basis-[85%]",
+                    effectivePeek && `basis-[${slideSize}]`,
                     index !== current && "cursor-pointer"
                   )}
                   onClick={() => {
@@ -158,21 +197,25 @@ export function Slider<T>({
           </Carousel>
         </div>
 
-        {showArrows && canScrollNext && (
-          <SliderArrow
-            direction="next"
-            onClick={() => api?.scrollNext()}
-            variant={arrowVariant}
-          />
+        {arrowsVisible && canScrollNext && (
+          <div className={arrowResponsiveClass}>
+            <SliderArrow
+              direction="next"
+              onClick={() => api?.scrollNext()}
+              variant={arrowVariant}
+            />
+          </div>
         )}
       </div>
 
-      {showDots && (
-        <SliderDots
-          count={count}
-          current={current}
-          onDotClick={handleDotClick}
-        />
+      {dotsVisible && (
+        <div className={dotsResponsiveClass}>
+          <SliderDots
+            count={count}
+            current={current}
+            onDotClick={handleDotClick}
+          />
+        </div>
       )}
     </div>
   )

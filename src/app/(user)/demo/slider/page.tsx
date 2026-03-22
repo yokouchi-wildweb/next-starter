@@ -1,7 +1,7 @@
 "use client"
 
 import { ReactNode, useState } from "react"
-import { Slider } from "@/components/Widgets"
+import { Slider, type ResponsiveToggle } from "@/components/Widgets"
 import { Stack, Main } from "@/components/Layout"
 import { SecTitle } from "@/components/TextBlocks"
 
@@ -24,15 +24,25 @@ function SampleCard({ title, description }: { title: ReactNode; description: Rea
 type PeekOption = "none" | "left" | "right" | "both"
 type GapOption = "sm" | "md" | "lg"
 type ArrowVariantOption = "light" | "dark"
+type ResponsiveToggleOption = "true" | "false" | "sm" | "md" | "lg" | "xl" | "2xl"
+
+function parseResponsiveToggle(value: ResponsiveToggleOption): ResponsiveToggle {
+  if (value === "true") return true
+  if (value === "false") return false
+  return value
+}
 
 export default function DemoPage() {
-  const [showArrows, setShowArrows] = useState(true)
-  const [showDots, setShowDots] = useState(true)
+  const [showArrows, setShowArrows] = useState<ResponsiveToggleOption>("true")
+  const [showDots, setShowDots] = useState<ResponsiveToggleOption>("true")
   const [loop, setLoop] = useState(false)
   const [peek, setPeek] = useState<PeekOption>("none")
   const [gap, setGap] = useState<GapOption>("md")
   const [containerWidth, setContainerWidth] = useState<string>("")
   const [arrowVariant, setArrowVariant] = useState<ArrowVariantOption>("light")
+  const [slideSize, setSlideSize] = useState("85%")
+  const [peekFade, setPeekFade] = useState(true)
+  const [lastSlideIndex, setLastSlideIndex] = useState<number | null>(null)
 
   const peekValue = peek === "none" ? undefined : peek
   const containerWidthValue = containerWidth ? (isNaN(Number(containerWidth)) ? containerWidth : Number(containerWidth)) : undefined
@@ -45,25 +55,39 @@ export default function DemoPage() {
         <div className="rounded-lg border bg-muted/50 p-4 mb-8">
           <h3 className="text-sm font-semibold mb-4">設定パネル</h3>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showArrows}
-                onChange={(e) => setShowArrows(e.target.checked)}
-                className="rounded"
-              />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <label className="flex flex-col gap-1">
               <span className="text-sm">showArrows</span>
+              <select
+                value={showArrows}
+                onChange={(e) => setShowArrows(e.target.value as ResponsiveToggleOption)}
+                className="rounded border px-2 py-1 text-sm bg-background"
+              >
+                <option value="true">true</option>
+                <option value="false">false</option>
+                <option value="sm">sm</option>
+                <option value="md">md</option>
+                <option value="lg">lg</option>
+                <option value="xl">xl</option>
+                <option value="2xl">2xl</option>
+              </select>
             </label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showDots}
-                onChange={(e) => setShowDots(e.target.checked)}
-                className="rounded"
-              />
+            <label className="flex flex-col gap-1">
               <span className="text-sm">showDots</span>
+              <select
+                value={showDots}
+                onChange={(e) => setShowDots(e.target.value as ResponsiveToggleOption)}
+                className="rounded border px-2 py-1 text-sm bg-background"
+              >
+                <option value="true">true</option>
+                <option value="false">false</option>
+                <option value="sm">sm</option>
+                <option value="md">md</option>
+                <option value="lg">lg</option>
+                <option value="xl">xl</option>
+                <option value="2xl">2xl</option>
+              </select>
             </label>
 
             <label className="flex items-center gap-2 cursor-pointer">
@@ -125,7 +149,34 @@ export default function DemoPage() {
                 <option value="dark">dark</option>
               </select>
             </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-sm">slideSize</span>
+              <input
+                type="text"
+                value={slideSize}
+                onChange={(e) => setSlideSize(e.target.value)}
+                placeholder="例: 85%, 70%, 300px"
+                className="rounded border px-2 py-1 text-sm bg-background"
+              />
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={peekFade}
+                onChange={(e) => setPeekFade(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-sm">peekFade</span>
+            </label>
           </div>
+
+          {lastSlideIndex !== null && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              onSlideChange: スライド {lastSlideIndex + 1} に移動
+            </div>
+          )}
         </div>
 
         <Slider
@@ -133,13 +184,16 @@ export default function DemoPage() {
           renderItem={(item) => (
             <SampleCard title={item.title} description={item.description} />
           )}
-          showArrows={showArrows}
-          showDots={showDots}
+          showArrows={parseResponsiveToggle(showArrows)}
+          showDots={parseResponsiveToggle(showDots)}
           loop={loop}
           peek={peekValue}
           gap={gap}
           containerWidth={containerWidthValue}
           arrowVariant={arrowVariant}
+          slideSize={slideSize}
+          peekFade={peekFade}
+          onSlideChange={setLastSlideIndex}
         />
       </Stack>
     </Main>
