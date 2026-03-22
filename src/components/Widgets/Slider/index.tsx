@@ -8,7 +8,7 @@ import {
   type CarouselApi,
 } from "@/components/_shadcn/carousel"
 import { cn } from "@/lib/cn"
-import { SliderArrow } from "./SliderArrow"
+import { SliderArrow, type ArrowVariant, type ArrowSize } from "./SliderArrow"
 import { SliderDots } from "./SliderDots"
 
 function getPeekMaskStyle(canScrollPrev: boolean, canScrollNext: boolean) {
@@ -41,6 +41,14 @@ const gapNegativeMargin = {
 /** boolean: 常時表示/非表示 | ブレークポイント文字列: 指定以上で表示 */
 export type ResponsiveToggle = boolean | "sm" | "md" | "lg" | "xl" | "2xl"
 
+export type ArrowPosition = "inside" | "outside"
+
+export type RenderArrowProps = {
+  direction: "prev" | "next"
+  onClick: () => void
+  disabled: boolean
+}
+
 const responsiveShowClasses: Record<string, string> = {
   sm: "hidden sm:block",
   md: "hidden md:block",
@@ -48,6 +56,11 @@ const responsiveShowClasses: Record<string, string> = {
   xl: "hidden xl:block",
   "2xl": "hidden 2xl:block",
 }
+
+const arrowPositionStyles = {
+  inside: { prev: "left-0", next: "right-0" },
+  outside: { prev: "right-full mr-2", next: "left-full ml-2" },
+} as const
 
 type SliderProps<T> = {
   items: T[]
@@ -59,7 +72,11 @@ type SliderProps<T> = {
   gap?: "sm" | "md" | "lg"
   containerWidth?: number | string
   onActiveClick?: (item: T, index: number) => void
-  arrowVariant?: "light" | "dark"
+  arrowVariant?: ArrowVariant
+  arrowSize?: ArrowSize
+  arrowPosition?: ArrowPosition
+  /** variant/size/positionを無視し、矢印を完全カスタム描画する */
+  renderArrow?: (props: RenderArrowProps) => ReactNode
   /** peek時のスライドサイズ。例: "85%", "70%", "300px"（デフォルト: "85%"） */
   slideSize?: string
   /** peek時のフェードマスク。falseで隣のスライドがくっきり見える（デフォルト: true） */
@@ -85,6 +102,9 @@ export function Slider<T>({
   containerWidth,
   onActiveClick,
   arrowVariant = "light",
+  arrowSize = "md",
+  arrowPosition = "inside",
+  renderArrow,
   slideSize = "85%",
   peekFade = true,
   onSlideChange,
@@ -144,20 +164,45 @@ export function Slider<T>({
     ? getPeekMaskStyle(canScrollPrev, canScrollNext)
     : undefined
 
+  const arrowWrapperBase = "absolute top-1/2 -translate-y-1/2 z-10"
+  const prevPositionClass = arrowPositionStyles[arrowPosition].prev
+  const nextPositionClass = arrowPositionStyles[arrowPosition].next
+
+  const renderArrowElement = (direction: "prev" | "next") => {
+    const isPrev = direction === "prev"
+    const canScroll = isPrev ? canScrollPrev : canScrollNext
+    const onClick = () => (isPrev ? api?.scrollPrev() : api?.scrollNext())
+    const posClass = isPrev ? prevPositionClass : nextPositionClass
+
+    // renderArrow: 常時表示し、disabled で制御を委ねる
+    if (renderArrow) {
+      return (
+        <div className={cn(arrowWrapperBase, posClass, arrowResponsiveClass)}>
+          {renderArrow({ direction, onClick, disabled: !canScroll })}
+        </div>
+      )
+    }
+
+    // デフォルト: スクロール不可時は非表示
+    if (!canScroll) return null
+    return (
+      <div className={cn(arrowWrapperBase, posClass, arrowResponsiveClass)}>
+        <SliderArrow
+          direction={direction}
+          onClick={onClick}
+          variant={arrowVariant}
+          size={arrowSize}
+        />
+      </div>
+    )
+  }
+
   return (
     <div
       style={containerWidth ? { width: containerWidth, marginLeft: "auto", marginRight: "auto" } : undefined}
     >
       <div className="relative">
-        {arrowsVisible && canScrollPrev && (
-          <div className={arrowResponsiveClass}>
-            <SliderArrow
-              direction="prev"
-              onClick={() => api?.scrollPrev()}
-              variant={arrowVariant}
-            />
-          </div>
-        )}
+        {arrowsVisible && renderArrowElement("prev")}
 
         <div
           style={effectivePeek ? {
@@ -197,15 +242,7 @@ export function Slider<T>({
           </Carousel>
         </div>
 
-        {arrowsVisible && canScrollNext && (
-          <div className={arrowResponsiveClass}>
-            <SliderArrow
-              direction="next"
-              onClick={() => api?.scrollNext()}
-              variant={arrowVariant}
-            />
-          </div>
-        )}
+        {arrowsVisible && renderArrowElement("next")}
       </div>
 
       {dotsVisible && (

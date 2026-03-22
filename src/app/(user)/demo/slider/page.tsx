@@ -1,7 +1,7 @@
 "use client"
 
 import { ReactNode, useState } from "react"
-import { Slider, type ResponsiveToggle } from "@/components/Widgets"
+import { Slider, type ResponsiveToggle, type ArrowVariant, type ArrowSize, type ArrowPosition } from "@/components/Widgets"
 import { Stack, Main } from "@/components/Layout"
 import { SecTitle } from "@/components/TextBlocks"
 
@@ -23,7 +23,7 @@ function SampleCard({ title, description }: { title: ReactNode; description: Rea
 
 type PeekOption = "none" | "left" | "right" | "both"
 type GapOption = "sm" | "md" | "lg"
-type ArrowVariantOption = "light" | "dark"
+type ArrowVariantOption = ArrowVariant
 type ResponsiveToggleOption = "true" | "false" | "sm" | "md" | "lg" | "xl" | "2xl"
 
 function parseResponsiveToggle(value: ResponsiveToggleOption): ResponsiveToggle {
@@ -40,6 +40,8 @@ export default function DemoPage() {
   const [gap, setGap] = useState<GapOption>("md")
   const [containerWidth, setContainerWidth] = useState<string>("")
   const [arrowVariant, setArrowVariant] = useState<ArrowVariantOption>("light")
+  const [arrowSize, setArrowSize] = useState<ArrowSize>("md")
+  const [arrowPosition, setArrowPosition] = useState<ArrowPosition>("inside")
   const [slideSize, setSlideSize] = useState("85%")
   const [peekFade, setPeekFade] = useState(true)
   const [lastSlideIndex, setLastSlideIndex] = useState<number | null>(null)
@@ -147,6 +149,33 @@ export default function DemoPage() {
               >
                 <option value="light">light</option>
                 <option value="dark">dark</option>
+                <option value="outline">outline</option>
+                <option value="ghost">ghost</option>
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-sm">arrowSize</span>
+              <select
+                value={arrowSize}
+                onChange={(e) => setArrowSize(e.target.value as ArrowSize)}
+                className="rounded border px-2 py-1 text-sm bg-background"
+              >
+                <option value="sm">sm</option>
+                <option value="md">md</option>
+                <option value="lg">lg</option>
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-sm">arrowPosition</span>
+              <select
+                value={arrowPosition}
+                onChange={(e) => setArrowPosition(e.target.value as ArrowPosition)}
+                className="rounded border px-2 py-1 text-sm bg-background"
+              >
+                <option value="inside">inside</option>
+                <option value="outside">outside</option>
               </select>
             </label>
 
@@ -191,6 +220,8 @@ export default function DemoPage() {
           gap={gap}
           containerWidth={containerWidthValue}
           arrowVariant={arrowVariant}
+          arrowSize={arrowSize}
+          arrowPosition={arrowPosition}
           slideSize={slideSize}
           peekFade={peekFade}
           onSlideChange={setLastSlideIndex}

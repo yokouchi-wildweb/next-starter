@@ -3,15 +3,30 @@
 import { cn } from "@/lib/cn"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
+export type ArrowVariant = "light" | "dark" | "outline" | "ghost"
+export type ArrowSize = "sm" | "md" | "lg"
+
 type SliderArrowProps = {
   direction: "prev" | "next"
   onClick: () => void
-  variant?: "light" | "dark"
+  variant?: ArrowVariant
+  size?: ArrowSize
 }
 
-export function SliderArrow({ direction, onClick, variant = "light" }: SliderArrowProps) {
+const sizeStyles: Record<ArrowSize, string> = {
+  sm: "size-6",
+  md: "size-8",
+  lg: "size-10",
+}
+
+const iconSizeStyles: Record<ArrowSize, string> = {
+  sm: "size-3.5",
+  md: "size-5",
+  lg: "size-6",
+}
+
+export function SliderArrow({ direction, onClick, variant = "light", size = "md" }: SliderArrowProps) {
   const Icon = direction === "prev" ? ChevronLeft : ChevronRight
-  const positionClass = direction === "prev" ? "left-0" : "right-0"
   const label = direction === "prev" ? "前へ" : "次へ"
 
   return (
@@ -19,14 +34,16 @@ export function SliderArrow({ direction, onClick, variant = "light" }: SliderArr
       type="button"
       onClick={onClick}
       className={cn(
-        "absolute top-1/2 -translate-y-1/2 z-10 size-8 flex items-center justify-center rounded-full border backdrop-blur-sm shadow-md",
-        positionClass,
-        variant === "light" && "bg-background/50 hover:bg-background/70 text-foreground",
-        variant === "dark" && "bg-foreground/50 hover:bg-foreground/70 text-background border-foreground/20"
+        "flex items-center justify-center rounded-full transition-colors",
+        sizeStyles[size],
+        variant === "light" && "bg-background/50 hover:bg-background/70 text-foreground border backdrop-blur-sm shadow-md",
+        variant === "dark" && "bg-foreground/50 hover:bg-foreground/70 text-background border-foreground/20 border backdrop-blur-sm shadow-md",
+        variant === "outline" && "bg-transparent hover:bg-accent text-foreground border border-border",
+        variant === "ghost" && "bg-transparent hover:bg-accent text-foreground",
       )}
       aria-label={label}
     >
-      <Icon className="size-5" />
+      <Icon className={iconSizeStyles[size]} />
     </button>
   )
 }
