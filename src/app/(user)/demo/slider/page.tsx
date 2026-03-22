@@ -1,7 +1,7 @@
 "use client"
 
 import { ReactNode, useState } from "react"
-import { Slider, type ResponsiveToggle, type ArrowVariant, type ArrowSize, type ArrowPosition } from "@/components/Widgets"
+import { Slider, type ResponsiveToggle, type ArrowVariant, type ArrowSize, type ArrowPosition, type DotVariant, type DotPosition } from "@/components/Widgets"
 import { Stack, Main } from "@/components/Layout"
 import { SecTitle } from "@/components/TextBlocks"
 
@@ -42,6 +42,8 @@ export default function DemoPage() {
   const [arrowVariant, setArrowVariant] = useState<ArrowVariantOption>("light")
   const [arrowSize, setArrowSize] = useState<ArrowSize>("md")
   const [arrowPosition, setArrowPosition] = useState<ArrowPosition>("inside")
+  const [dotVariant, setDotVariant] = useState<DotVariant>("default")
+  const [dotPosition, setDotPosition] = useState<DotPosition>("bottom")
   const [slideSize, setSlideSize] = useState("85%")
   const [peekFade, setPeekFade] = useState(true)
   const [lastSlideIndex, setLastSlideIndex] = useState<number | null>(null)
@@ -180,6 +182,31 @@ export default function DemoPage() {
             </label>
 
             <label className="flex flex-col gap-1">
+              <span className="text-sm">dotVariant</span>
+              <select
+                value={dotVariant}
+                onChange={(e) => setDotVariant(e.target.value as DotVariant)}
+                className="rounded border px-2 py-1 text-sm bg-background"
+              >
+                <option value="default">default</option>
+                <option value="line">line</option>
+                <option value="dash">dash</option>
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-sm">dotPosition</span>
+              <select
+                value={dotPosition}
+                onChange={(e) => setDotPosition(e.target.value as DotPosition)}
+                className="rounded border px-2 py-1 text-sm bg-background"
+              >
+                <option value="bottom">bottom</option>
+                <option value="inside-bottom">inside-bottom</option>
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
               <span className="text-sm">slideSize</span>
               <input
                 type="text"
@@ -222,6 +249,8 @@ export default function DemoPage() {
           arrowVariant={arrowVariant}
           arrowSize={arrowSize}
           arrowPosition={arrowPosition}
+          dotVariant={dotVariant}
+          dotPosition={dotPosition}
           slideSize={slideSize}
           peekFade={peekFade}
           onSlideChange={setLastSlideIndex}

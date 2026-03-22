@@ -9,7 +9,7 @@ import {
 } from "@/components/_shadcn/carousel"
 import { cn } from "@/lib/cn"
 import { SliderArrow, type ArrowVariant, type ArrowSize } from "./SliderArrow"
-import { SliderDots } from "./SliderDots"
+import { SliderDots, type DotVariant } from "./SliderDots"
 
 function getPeekMaskStyle(canScrollPrev: boolean, canScrollNext: boolean) {
   if (canScrollPrev && canScrollNext) {
@@ -49,6 +49,14 @@ export type RenderArrowProps = {
   disabled: boolean
 }
 
+export type DotPosition = "bottom" | "inside-bottom"
+
+export type RenderDotsProps = {
+  count: number
+  current: number
+  onDotClick: (index: number) => void
+}
+
 const responsiveShowClasses: Record<string, string> = {
   sm: "hidden sm:block",
   md: "hidden md:block",
@@ -77,6 +85,10 @@ type SliderProps<T> = {
   arrowPosition?: ArrowPosition
   /** variant/size/positionを無視し、矢印を完全カスタム描画する */
   renderArrow?: (props: RenderArrowProps) => ReactNode
+  dotVariant?: DotVariant
+  dotPosition?: DotPosition
+  /** variant/positionを無視し、ドットを完全カスタム描画する */
+  renderDots?: (props: RenderDotsProps) => ReactNode
   /** peek時のスライドサイズ。例: "85%", "70%", "300px"（デフォルト: "85%"） */
   slideSize?: string
   /** peek時のフェードマスク。falseで隣のスライドがくっきり見える（デフォルト: true） */
@@ -105,6 +117,9 @@ export function Slider<T>({
   arrowSize = "md",
   arrowPosition = "inside",
   renderArrow,
+  dotVariant = "default",
+  dotPosition = "bottom",
+  renderDots,
   slideSize = "85%",
   peekFade = true,
   onSlideChange,
@@ -243,15 +258,23 @@ export function Slider<T>({
         </div>
 
         {arrowsVisible && renderArrowElement("next")}
+
+        {dotsVisible && dotPosition === "inside-bottom" && (
+          <div className={cn("absolute bottom-2 left-0 right-0 z-10", dotsResponsiveClass)}>
+            {renderDots
+              ? renderDots({ count, current, onDotClick: handleDotClick })
+              : <SliderDots count={count} current={current} onDotClick={handleDotClick} variant={dotVariant} />
+            }
+          </div>
+        )}
       </div>
 
-      {dotsVisible && (
-        <div className={dotsResponsiveClass}>
-          <SliderDots
-            count={count}
-            current={current}
-            onDotClick={handleDotClick}
-          />
+      {dotsVisible && dotPosition === "bottom" && (
+        <div className={cn("mt-4", dotsResponsiveClass)}>
+          {renderDots
+            ? renderDots({ count, current, onDotClick: handleDotClick })
+            : <SliderDots count={count} current={current} onDotClick={handleDotClick} variant={dotVariant} />
+          }
         </div>
       )}
     </div>
