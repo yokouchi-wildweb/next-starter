@@ -103,7 +103,7 @@ export type FieldConfig = {
   formInput: FormInputType;
   /** 必須かどうか */
   required?: boolean;
-  /** 読み取り専用（textInput, numberInput, textarea のみ） */
+  /** 読み取り専用（テキスト系は readOnly、選択系は disabled として適用） */
   readonly?: boolean;
   /** 無効化（select, radio, checkbox 等で使用） */
   disabled?: boolean;

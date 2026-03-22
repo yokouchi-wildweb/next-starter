@@ -130,7 +130,7 @@ custom リレーションの UI 実装例:
 | fieldType | FieldType | 🟢 Yes | データ型 |
 | formInput | FormInput | 🟢 Yes | フォーム入力種別 |
 | required | boolean | ⚪ No | 必須かどうか |
-| readonly | boolean | ⚪ No | 読み取り専用（textInput, numberInput, textarea のみ） |
+| readonly | boolean | ⚪ No | 読み取り専用（テキスト系は readOnly、選択系は disabled として適用） |
 | defaultValue | any | ⚪ No | デフォルト値 |
 | options | Option[] | ⚪ No | 選択肢（select, radio, checkbox, multiSelect で使用） |
 | displayType | `"standard"` \| `"bookmark"` | ⚪ No | radio/checkbox の表示スタイル |

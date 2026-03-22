@@ -80,7 +80,7 @@ export function renderInputByFormType<
           field={field}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -91,7 +91,7 @@ export function renderInputByFormType<
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -102,7 +102,7 @@ export function renderInputByFormType<
           field={field}
           options={normalizeOptions(fieldConfig.options)}
           placeholder={fieldConfig.placeholder}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -114,7 +114,7 @@ export function renderInputByFormType<
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           options={options}
           displayType={(fieldConfig.displayType as RadioGroupDisplayType | undefined) ?? "standard"}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -128,7 +128,7 @@ export function renderInputByFormType<
             field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
             options={normalizeOptions(fieldConfig.options)}
             displayType={(fieldConfig.displayType as CheckGroupDisplayType | undefined) ?? "standard"}
-            disabled={fieldConfig.disabled}
+            disabled={fieldConfig.disabled || readOnly}
             className={inputClassName}
           />
         );
@@ -137,7 +137,7 @@ export function renderInputByFormType<
         <BooleanCheckboxInput
           field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}
           label={fieldConfig.label}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -147,7 +147,7 @@ export function renderInputByFormType<
       return (
         <StepperInput
           field={field}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );
@@ -162,7 +162,7 @@ export function renderInputByFormType<
             onValue={options[0].value}
             offValue={options[1].value}
             label={fieldConfig.label}
-            disabled={fieldConfig.disabled}
+            disabled={fieldConfig.disabled || readOnly}
             className={inputClassName}
           />
         );
@@ -171,7 +171,7 @@ export function renderInputByFormType<
         <SwitchInput
           field={field}
           label={fieldConfig.label}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || readOnly}
           className={inputClassName}
         />
       );

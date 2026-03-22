@@ -220,7 +220,7 @@ export function ConfiguredAsyncRelationField<
             searchFields={searchFields}
             initialOption={initialOption}
             clearable={!resolvedRequired}
-            disabled={fieldConfig.disabled}
+            disabled={fieldConfig.disabled || fieldConfig.readonly}
           />
         )}
       />
@@ -238,7 +238,7 @@ export function ConfiguredAsyncRelationField<
           getOptionFromResult={getOptionFromResult}
           searchFields={searchFields}
           initialOptions={initialOptions}
-          disabled={fieldConfig.disabled}
+          disabled={fieldConfig.disabled || fieldConfig.readonly}
         />
       )}
     />
