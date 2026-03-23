@@ -22,6 +22,7 @@
     "fs:count": "npx tsx scripts/firestore/cli.ts count",
     "fs:describe": "npx tsx scripts/firestore/cli.ts describe",
     "fs:query": "npx tsx scripts/firestore/cli.ts query",
+    "fs:delete": "npx tsx scripts/firestore/cli.ts delete",
     "generate:client": "node scripts/domain-config/generator/generate-client-service.mjs",
     "dc:init": "node scripts/domain-config/index.mjs --init",
     "dc:generate": "node scripts/domain-config/index.mjs --generate",

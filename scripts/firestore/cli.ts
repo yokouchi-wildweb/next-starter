@@ -120,9 +120,22 @@ function detectType(val: unknown): string {
   return typeof val;
 }
 
+// --- 確認プロンプト ---
+
+async function confirm(message: string): Promise<boolean> {
+  const { createInterface } = await import("readline");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question(`${message} (y/N): `, (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === "y");
+    });
+  });
+}
+
 // --- コマンド実装 ---
 
-type Command = "collections" | "count" | "describe" | "query";
+type Command = "collections" | "count" | "describe" | "query" | "delete";
 
 async function listCollections(path?: string) {
   const db = initFirestore();
@@ -317,6 +330,65 @@ async function queryCollection(
   printTable(rows);
 }
 
+async function deleteDocument(docPath: string, force: boolean) {
+  const db = initFirestore();
+
+  // パスのセグメント数が偶数であることを確認（コレクション/ドキュメント）
+  const segments = docPath.split("/");
+  if (segments.length % 2 !== 0) {
+    console.error(
+      "エラー: ドキュメントパスは「コレクション/ドキュメントID」形式で指定してください",
+    );
+    console.error(`  例: pnpm fs:delete users/abc123`);
+    console.error(`  例: pnpm fs:delete chat_rooms/abc123/messages/msg001`);
+    process.exit(1);
+  }
+
+  const docRef = db.doc(docPath);
+  const snapshot = await docRef.get();
+
+  if (!snapshot.exists) {
+    console.error(`エラー: ドキュメント "${docPath}" が見つかりません`);
+    process.exit(1);
+  }
+
+  // 削除対象の内容を表示
+  const data = snapshot.data()!;
+  console.log(`\n🗑️  削除対象: ${docPath}\n`);
+  const rows = Object.entries(data)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([field, value]) => ({
+      field,
+      type: detectType(value),
+      value: formatValue(value),
+    }));
+  printTable(rows);
+
+  // サブコレクション確認
+  const subCollections = await docRef.listCollections();
+  if (subCollections.length > 0) {
+    console.log(
+      `\n⚠️  このドキュメントには ${subCollections.length} 個のサブコレクションがあります（サブコレクションは削除されません）`,
+    );
+    for (const col of subCollections) {
+      console.log(`  - ${col.path}`);
+    }
+  }
+
+  // 確認
+  if (!force) {
+    console.log();
+    const ok = await confirm("このドキュメントを削除しますか？");
+    if (!ok) {
+      console.log("キャンセルしました");
+      return;
+    }
+  }
+
+  await docRef.delete();
+  console.log(`\n✅ 削除しました: ${docPath}`);
+}
+
 // --- メイン ---
 
 async function main() {
@@ -363,6 +435,18 @@ async function main() {
       break;
     }
 
+    case "delete": {
+      if (!param) {
+        console.error(
+          "使用法: pnpm fs:delete <collection/docId> [--force]",
+        );
+        process.exit(1);
+      }
+      const force = args.includes("--force");
+      await deleteDocument(param, force);
+      break;
+    }
+
     default:
       console.log(`
 Firestore CLIツール
@@ -372,12 +456,18 @@ Firestore CLIツール
   pnpm fs:count [collection_path]      ドキュメント数を表示
   pnpm fs:describe <collection_path>   コレクション構造を表示（サンプルから推測）
   pnpm fs:query <collection> [条件]     ドキュメントを取得
+  pnpm fs:delete <collection/docId>    ドキュメントを削除
 
 クエリ例:
   pnpm fs:query chat_rooms
   pnpm fs:query chat_rooms status == active
   pnpm fs:query chat_rooms createdAt > 2024-01-01 --limit 5
   pnpm fs:query chat_rooms status in '["active","pending"]'
+
+削除例:
+  pnpm fs:delete users/abc123
+  pnpm fs:delete chat_rooms/abc123/messages/msg001
+  pnpm fs:delete users/abc123 --force    確認をスキップ
 
 サブコレクション:
   pnpm fs:collections chat_rooms/abc123

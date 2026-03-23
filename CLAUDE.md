@@ -146,7 +146,7 @@ playwright-mcp: available | use only when explicitly instructed by user
 ## SCRIPTS
 ref: scripts/README.md | claude:test: API connection check (requires ANTHROPIC_API_KEY)
 db:query "SQL": execute SQL | db:tables: list tables | db:describe \<table\>: show structure | db:count [table]: row counts
-fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe, fs:query). run without args for usage
+fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe, fs:query, fs:delete). run without args for usage
 
 ## DOCS
 location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/
