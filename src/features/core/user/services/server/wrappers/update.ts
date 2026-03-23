@@ -132,9 +132,8 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     await updateFirebasePassword(current.providerUid, normalizedNewPassword);
   }
 
-  // 電話番号の Firebase 同期（local 以外 = Firebase Auth 連携ユーザー）
+  // 電話番号の Firebase 同期（local 含む全ユーザー対象）
   const shouldSyncFirebasePhone =
-    current.providerType !== "local" &&
     phoneNumber !== undefined &&
     phoneNumber !== current.phoneNumber;
 

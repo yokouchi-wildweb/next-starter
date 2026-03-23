@@ -27,7 +27,7 @@ type FieldVisibility = {
 
 const PROVIDER_VISIBILITY: Record<string, FieldVisibility> = {
   email: { email: true, password: true, phone: true },
-  local: { email: true, password: true, phone: false },
+  local: { email: true, password: true, phone: true },
 };
 
 const DEFAULT_VISIBILITY: FieldVisibility = {
