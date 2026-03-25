@@ -1,6 +1,7 @@
 // src/features/core/walletHistory/types/batch.ts
 
 import type { WalletHistory } from "@/features/core/walletHistory/entities";
+import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
 
 export type WalletHistoryBatchSummary = {
   batchId: string;
@@ -14,6 +15,7 @@ export type WalletHistoryBatchSummary = {
   totalDelta: number;
   changeMethods: WalletHistory["change_method"][];
   sourceTypes: WalletHistory["source_type"][];
+  reasonCategories: ReasonCategory[];
   records: WalletHistory[];
 };
 

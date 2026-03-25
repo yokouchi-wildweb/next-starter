@@ -72,6 +72,7 @@ function buildBatchSummary(batchId: string, records: WalletHistory[]): WalletHis
     totalDelta: sortedRecords.reduce((sum, record) => sum + resolveSignedDelta(record), 0),
     changeMethods: Array.from(new Set(sortedRecords.map((record) => record.change_method))),
     sourceTypes: Array.from(new Set(sortedRecords.map((record) => record.source_type))),
+    reasonCategories: Array.from(new Set(sortedRecords.map((record) => record.reason_category))),
     records: sortedRecords.sort(
       (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
     ),

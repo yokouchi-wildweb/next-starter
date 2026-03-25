@@ -10,8 +10,14 @@ import {
   WalletHistoryChangeMethodOptions,
   WalletHistorySourceTypeOptions,
 } from "@/features/core/walletHistory/constants/field";
+import { REASON_CATEGORY_CONFIG, type ReasonCategory } from "@/config/app/wallet-reason-category.config";
 import { getMetaFieldLabelMap } from "@/features/core/wallet/utils/currency";
 import { formatNumber, formatMetaValue } from "./formatters";
+
+// カテゴリラベルマップの作成
+const categoryLabelMap = new Map(
+  Object.entries(REASON_CATEGORY_CONFIG).map(([key, config]) => [key, config.label]),
+);
 
 // ラベルマップの作成
 const methodLabelMap = new Map(
@@ -55,6 +61,19 @@ export function formatChangeMethodLabel(history: WalletHistoryBatchSummarySerial
     return methodLabelMap.get(method) ?? method;
   }
   return "複数の操作";
+}
+
+/**
+ * カテゴリをフォーマット
+ */
+export function formatReasonCategories(categories: ReasonCategory[]): string {
+  if (categories.length === 1) {
+    return categoryLabelMap.get(categories[0]!) ?? categories[0]!;
+  }
+  if (categories.length > 1) {
+    return "複数";
+  }
+  return "-";
 }
 
 /**

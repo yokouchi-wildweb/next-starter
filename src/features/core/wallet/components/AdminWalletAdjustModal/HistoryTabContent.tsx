@@ -8,16 +8,17 @@ import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
-import { WalletHistoryTypeOptions } from "@/features/core/walletHistory/constants/field";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
 import { walletHistoryBatchClient } from "@/features/core/walletHistory/services/client/walletHistoryBatchClient";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
+import { CurrencyDisplay } from "@/features/core/wallet/components/common/CurrencyDisplay";
 import { formatDate, formatNumber } from "@/features/core/wallet/utils/formatters";
 import {
   formatDeltaSummary,
   formatBalanceClass,
   formatChangeMethodLabel,
+  formatReasonCategories,
   formatSourceTypes,
   formatDeltaRecord,
   extractReasons,
@@ -31,8 +32,6 @@ type WalletHistoryTabContentProps = {
 };
 
 const HISTORY_PAGE_SIZE = 20;
-
-const typeLabelMap = new Map(WalletHistoryTypeOptions.map((option) => [option.value, option.label]));
 
 export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps) {
   const fetcher = useCallback(
@@ -79,8 +78,8 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
       render: (history) => formatDate(history.completedAt),
     },
     {
-      header: "ウォレット",
-      render: (history) => typeLabelMap.get(history.type) ?? history.type,
+      header: "カテゴリ",
+      render: (history) => formatReasonCategories(history.reasonCategories),
     },
     {
       header: "操作",
@@ -94,10 +93,11 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
     {
       header: "残高遷移",
       render: (history) => (
-        <span className="text-sm font-medium">
-          {formatNumber(history.balanceBefore)} →{" "}
+        <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+          <CurrencyDisplay walletType={history.type} amount={history.balanceBefore} size="sm" showUnit color="inherit" />
+          <span>→</span>
           <span className={formatBalanceClass(history)}>
-            {formatNumber(history.balanceAfter)}
+            <CurrencyDisplay walletType={history.type} amount={history.balanceAfter} size="sm" showIcon={false} showUnit color="inherit" />
           </span>
         </span>
       ),
