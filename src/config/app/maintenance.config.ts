@@ -1,4 +1,19 @@
-// src/config/maintenance.config.ts
+// src/config/app/maintenance.config.ts
+
+/**
+ * 現在メンテナンス期間内かどうか判定
+ */
+export function isMaintenanceActive(): boolean {
+  if (!maintenanceConfig.enabled) return false;
+
+  const { start, end } = maintenanceConfig.schedule;
+  const now = new Date();
+
+  if (start && now < new Date(start)) return false;
+  if (end && now >= new Date(end)) return false;
+
+  return true;
+}
 
 /**
  * メンテナンスモードの設定

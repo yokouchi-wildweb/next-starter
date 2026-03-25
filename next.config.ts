@@ -1,11 +1,17 @@
 // next.config.ts
 
+import crypto from "node:crypto";
 import path from "node:path";
 import type { NextConfig } from "next";
 
+// ビルドごとに一意なID（デプロイ検知用）
+const buildId = crypto.randomUUID();
+
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
+  generateBuildId: () => buildId,
   env: {
+    NEXT_BUILD_ID: buildId,
   },
   serverExternalPackages: ["firebase-admin"],
   images: {
