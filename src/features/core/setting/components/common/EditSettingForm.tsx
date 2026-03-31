@@ -38,7 +38,7 @@ export default function EditSettingForm({ setting, redirectPath = "/" }: Props) 
       // 拡張設定項目（setting.extended.ts から取得したデフォルト値を既存値で上書き）
       ...extendedDefaults,
       ...Object.fromEntries(
-        Object.keys(extendedDefaults).map((key) => [
+        Object.keys(settingExtendedSchema.shape).map((key) => [
           key,
           (setting as unknown as Record<string, unknown>)[key] ?? extendedDefaults[key as keyof typeof extendedDefaults],
         ]),
