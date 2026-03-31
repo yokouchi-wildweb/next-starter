@@ -17,5 +17,9 @@ export async function unlinkLineAccount(userId: string): Promise<User> {
     throw new DomainError("LINE 連携されていません", { status: 400 });
   }
 
-  return base.update(userId, { lineUserId: null } as Parameters<typeof base.update>[1]);
+  return base.update(userId, {
+    lineUserId: null,
+    lineDisplayName: null,
+    linePictureUrl: null,
+  } as Parameters<typeof base.update>[1]);
 }

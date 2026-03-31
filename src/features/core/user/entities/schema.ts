@@ -32,6 +32,8 @@ export const UserCoreSchema = z.object({
   phoneVerifiedAt: z.coerce.date().nullish(),
   avatarUrl: z.string().url().nullish(),
   lineUserId: z.string().nullish(),
+  lineDisplayName: z.string().nullish(),
+  linePictureUrl: z.string().url().nullish(),
   signupIp: z.string().nullish(),
   metadata: z.record(z.unknown()).default({}),
   deletedAt: z.coerce.date().nullish(),

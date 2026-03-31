@@ -86,8 +86,11 @@ export const GET = createApiRoute(
       const callbackUrl = new URL("/api/auth/line/callback", req.nextUrl.origin).toString();
       const linkResult = await processCallback(code, callbackUrl, friendshipStatusChanged);
 
-      // ユーザーに LINE userId を紐付け
-      await userService.linkLineAccount(sessionUser.userId, linkResult.lineUserId);
+      // ユーザーに LINE userId + プロフィール情報を紐付け
+      await userService.linkLineAccount(sessionUser.userId, linkResult.lineUserId, {
+        displayName: linkResult.displayName,
+        pictureUrl: linkResult.pictureUrl,
+      });
 
       // 成功時のリダイレクト（nonce cookie を削除）
       const redirectUrl = new URL(redirectAfter, req.nextUrl.origin);

@@ -32,6 +32,8 @@ export type User = BaseEntity & {
   isDemo: boolean;
   avatarUrl: string | null;
   lineUserId: string | null;
+  lineDisplayName: string | null;
+  linePictureUrl: string | null;
   signupIp: string | null;
   lastAuthenticatedAt: Date | null;
   phoneNumber: string | null;
