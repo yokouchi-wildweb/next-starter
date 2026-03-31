@@ -29,9 +29,9 @@ export function getLineMessagingConfig() {
   };
 }
 
-/** LIFF ID（クライアント側で使用、任意） */
-export function getLiffId(): string {
-  return getEnvOrThrow("LIFF_ID");
+/** LIFF ID（クライアント側で使用、任意。未設定時は undefined を返す） */
+export function getLiffId(): string | undefined {
+  return process.env.LIFF_ID || undefined;
 }
 
 /** LINE API のベースURL */

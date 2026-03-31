@@ -14,7 +14,7 @@ GET /api/auth/line/login?redirect_after=/mypage
 LINE 認証画面（プロフィール許可 + 友だち追加）
   ↓ ユーザーが許可
 GET /api/auth/line/callback?code=xxx&state=yyy
-  ↓ code→token交換 → lineUserId取得 → users.line_user_id に保存
+  ↓ nonce検証(CSRF) → code→token交換 → id_token署名検証(LINE Verify API) → users.line_user_id に保存
 リダイレクト → /mypage?line_linked=true
 ```
 
@@ -128,7 +128,7 @@ await pushMessage(user.lineUserId, [
 ```ts
 import { multicast, textMessage } from "@/lib/line";
 
-// 複数ユーザーへ一斉送信（最大500件）
+// 複数ユーザーへ一斉送信（500件超は自動バッチ分割）
 const lineUserIds = users.map((u) => u.lineUserId).filter(Boolean);
 await multicast(lineUserIds, [
   textMessage("新しいガチャマシンが公開されました！"),
@@ -255,11 +255,12 @@ import {
   // OAuth
   buildAuthorizationUrl,
   processCallback,
+  verifyIdToken,
 
-  // Messaging
+  // Messaging（戻り値で送信結果を取得可能）
   pushMessage,
   replyMessage,
-  multicast,
+  multicast,    // 500件超は自動バッチ分割
   broadcast,
   textMessage,
 
@@ -271,8 +272,15 @@ import {
   // Config
   getLineLoginConfig,
   getLineMessagingConfig,
+  getLiffId,     // string | undefined（LIFF未使用時は undefined）
 } from "@/lib/line";
 ```
+
+## セキュリティ
+
+- **id_token 署名検証**: LINE の Verify API（POST /oauth2/v2.1/verify）でサーバーサイド検証。自前デコードではなく LINE サーバーが署名・aud・iss・exp を検証する
+- **CSRF 対策**: OAuth フロー開始時に nonce を httpOnly cookie に保存し、callback で state 内の nonce と照合。不一致時は `invalid_state` エラーでリダイレクト
+- **Webhook 署名検証**: HMAC-SHA256 で x-line-signature ヘッダーを検証
 
 ## 注意事項
 

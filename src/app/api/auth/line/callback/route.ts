@@ -4,16 +4,31 @@ import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
 import { processCallback } from "@/lib/line/oauth";
+import { LINE_OAUTH_NONCE_COOKIE } from "@/lib/line/constants";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { userService } from "@/features/core/user/services/server/userService";
+
+/**
+ * エラー時のリダイレクトレスポンスを生成するヘルパー。
+ * nonce cookie の削除も行う。
+ */
+function errorRedirect(redirectAfter: string, origin: string, errorMessage: string): NextResponse {
+  const redirectUrl = new URL(redirectAfter, origin);
+  redirectUrl.searchParams.set("line_link_error", errorMessage);
+  const response = NextResponse.redirect(redirectUrl.toString());
+  response.cookies.delete(LINE_OAUTH_NONCE_COOKIE);
+  return response;
+}
 
 /**
  * LINE Login OAuth コールバック。
  * LINE から認可コードを受け取り、lineUserId をユーザーに紐付ける。
  *
+ * CSRF 対策: login 時に cookie に保存した nonce と state 内の nonce を照合する。
+ *
  * LINE からのリダイレクトで以下のクエリパラメータが付与される:
  * - code: 認可コード
- * - state: login 時に生成した state（redirect_after を含む）
+ * - state: login 時に生成した state（nonce + redirect_after を含む）
  * - friendship_status_changed: 友だち追加状態が変わったかどうか
  */
 export const GET = createApiRoute(
@@ -28,40 +43,42 @@ export const GET = createApiRoute(
     const friendshipStatusChanged =
       req.nextUrl.searchParams.get("friendship_status_changed") === "true";
 
-    // state からリダイレクト先を復元
+    // state からリダイレクト先と nonce を復元
     let redirectAfter = "/";
+    let stateNonce: string | undefined;
     if (stateParam) {
       try {
         const statePayload = JSON.parse(
           Buffer.from(stateParam, "base64url").toString("utf-8"),
-        ) as { redirectAfter?: string };
+        ) as { redirectAfter?: string; nonce?: string };
         redirectAfter = statePayload.redirectAfter ?? "/";
+        stateNonce = statePayload.nonce;
       } catch {
         // state のパースに失敗した場合はルートにリダイレクト
       }
+    }
+
+    // nonce の CSRF 検証
+    const cookieNonce = req.cookies.get(LINE_OAUTH_NONCE_COOKIE)?.value;
+    if (!stateNonce || !cookieNonce || stateNonce !== cookieNonce) {
+      return errorRedirect(redirectAfter, req.nextUrl.origin, "invalid_state");
     }
 
     // エラーパラメータのチェック（ユーザーが認可を拒否した場合等）
     const error = req.nextUrl.searchParams.get("error");
     if (error) {
       const errorDescription = req.nextUrl.searchParams.get("error_description") ?? error;
-      const redirectUrl = new URL(redirectAfter, req.nextUrl.origin);
-      redirectUrl.searchParams.set("line_link_error", errorDescription);
-      return NextResponse.redirect(redirectUrl.toString());
+      return errorRedirect(redirectAfter, req.nextUrl.origin, errorDescription);
     }
 
     if (!code) {
-      const redirectUrl = new URL(redirectAfter, req.nextUrl.origin);
-      redirectUrl.searchParams.set("line_link_error", "missing_code");
-      return NextResponse.redirect(redirectUrl.toString());
+      return errorRedirect(redirectAfter, req.nextUrl.origin, "missing_code");
     }
 
     // 現在のログインユーザーを取得
     const sessionUser = await getSessionUser();
     if (!sessionUser) {
-      const redirectUrl = new URL(redirectAfter, req.nextUrl.origin);
-      redirectUrl.searchParams.set("line_link_error", "not_authenticated");
-      return NextResponse.redirect(redirectUrl.toString());
+      return errorRedirect(redirectAfter, req.nextUrl.origin, "not_authenticated");
     }
 
     try {
@@ -72,18 +89,18 @@ export const GET = createApiRoute(
       // ユーザーに LINE userId を紐付け
       await userService.linkLineAccount(sessionUser.userId, linkResult.lineUserId);
 
-      // 成功時のリダイレクト
+      // 成功時のリダイレクト（nonce cookie を削除）
       const redirectUrl = new URL(redirectAfter, req.nextUrl.origin);
       redirectUrl.searchParams.set("line_linked", "true");
       if (linkResult.isFriend) {
         redirectUrl.searchParams.set("line_friend", "true");
       }
-      return NextResponse.redirect(redirectUrl.toString());
+      const response = NextResponse.redirect(redirectUrl.toString());
+      response.cookies.delete(LINE_OAUTH_NONCE_COOKIE);
+      return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : "unknown_error";
-      const redirectUrl = new URL(redirectAfter, req.nextUrl.origin);
-      redirectUrl.searchParams.set("line_link_error", message);
-      return NextResponse.redirect(redirectUrl.toString());
+      return errorRedirect(redirectAfter, req.nextUrl.origin, message);
     }
   },
 );

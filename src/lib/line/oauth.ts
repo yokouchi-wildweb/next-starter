@@ -65,36 +65,32 @@ export async function exchangeCodeForToken(
 }
 
 /**
- * id_token をデコードして LINE userId 等を取得する。
- * JWTのペイロード部分を base64 デコードするシンプルな実装。
- * channelId による aud 検証を行う。
+ * LINE の Verify API を使って id_token を検証し、ペイロードを取得する。
+ * LINE サーバー側で署名検証・aud/iss/exp チェックが行われるため、
+ * 自前での HMAC 検証やペイロードデコードは不要。
  */
-export function decodeIdToken(idToken: string): LineIdTokenPayload {
+export async function verifyIdToken(idToken: string): Promise<LineIdTokenPayload> {
   const { channelId } = getLineLoginConfig();
 
-  const parts = idToken.split(".");
-  if (parts.length !== 3) {
-    throw new Error("不正な id_token 形式です");
+  const response = await fetch(`${LINE_API_BASE}/oauth2/v2.1/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      id_token: idToken,
+      client_id: channelId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`id_token の検証に失敗しました: ${response.status} ${errorBody}`);
   }
 
-  const payload = JSON.parse(
-    Buffer.from(parts[1], "base64url").toString("utf-8"),
-  ) as LineIdTokenPayload & { aud?: string; iss?: string; exp?: number };
-
-  // aud（audience）がチャネルIDと一致するか検証
-  if (payload.aud !== channelId) {
-    throw new Error("id_token の aud がチャネルIDと一致しません");
-  }
-
-  // iss（issuer）の検証
-  if (payload.iss !== "https://access.line.me") {
-    throw new Error("id_token の iss が不正です");
-  }
-
-  // 有効期限の検証
-  if (payload.exp && payload.exp * 1000 < Date.now()) {
-    throw new Error("id_token の有効期限が切れています");
-  }
+  const payload = (await response.json()) as LineIdTokenPayload & {
+    aud?: string;
+    iss?: string;
+    exp?: number;
+  };
 
   return {
     sub: payload.sub,
@@ -132,7 +128,7 @@ export async function processCallback(
   friendshipStatusChanged: boolean,
 ): Promise<LineLinkResult> {
   const tokenResponse = await exchangeCodeForToken(code, redirectUri);
-  const idTokenPayload = decodeIdToken(tokenResponse.id_token);
+  const idTokenPayload = await verifyIdToken(tokenResponse.id_token);
   const isFriend = await getFriendshipStatus(tokenResponse.access_token);
 
   return {

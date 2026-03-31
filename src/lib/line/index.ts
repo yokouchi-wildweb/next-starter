@@ -7,7 +7,7 @@ export { getLineLoginConfig, getLineMessagingConfig, getLiffId } from "./config"
 export {
   buildAuthorizationUrl,
   exchangeCodeForToken,
-  decodeIdToken,
+  verifyIdToken,
   getFriendshipStatus,
   processCallback,
 } from "./oauth";
@@ -28,6 +28,9 @@ export {
   filterEvents,
 } from "./webhook";
 
+// 定数
+export { LINE_OAUTH_NONCE_COOKIE, LINE_MULTICAST_MAX_RECIPIENTS } from "./constants";
+
 // 型
 export type {
   LineTokenResponse,
@@ -35,7 +38,13 @@ export type {
   LineFriendshipStatusResponse,
   LineMessage,
   LineTextMessage,
+  LineImageMessage,
+  LineVideoMessage,
+  LineAudioMessage,
+  LineStickerMessage,
   LineFlexMessage,
+  LineTemplateMessage,
+  LineSendMessageResponse,
   LinePushMessageRequest,
   LineReplyMessageRequest,
   LineWebhookEvent,

@@ -35,13 +35,38 @@ export type LineFriendshipStatusResponse = {
 // Messaging API
 // ────────────────────────────────────────
 
-/** メッセージの種類 */
-export type LineMessageType = "text" | "image" | "video" | "audio" | "flex" | "template";
-
 /** テキストメッセージ */
 export type LineTextMessage = {
   type: "text";
   text: string;
+};
+
+/** 画像メッセージ */
+export type LineImageMessage = {
+  type: "image";
+  originalContentUrl: string;
+  previewImageUrl: string;
+};
+
+/** 動画メッセージ */
+export type LineVideoMessage = {
+  type: "video";
+  originalContentUrl: string;
+  previewImageUrl: string;
+};
+
+/** 音声メッセージ */
+export type LineAudioMessage = {
+  type: "audio";
+  originalContentUrl: string;
+  duration: number;
+};
+
+/** スタンプメッセージ */
+export type LineStickerMessage = {
+  type: "sticker";
+  packageId: string;
+  stickerId: string;
 };
 
 /** Flex メッセージ */
@@ -51,8 +76,22 @@ export type LineFlexMessage = {
   contents: Record<string, unknown>;
 };
 
+/** テンプレートメッセージ */
+export type LineTemplateMessage = {
+  type: "template";
+  altText: string;
+  template: Record<string, unknown>;
+};
+
 /** Push/Reply で送信可能なメッセージ */
-export type LineMessage = LineTextMessage | LineFlexMessage | { type: string; [key: string]: unknown };
+export type LineMessage =
+  | LineTextMessage
+  | LineImageMessage
+  | LineVideoMessage
+  | LineAudioMessage
+  | LineStickerMessage
+  | LineFlexMessage
+  | LineTemplateMessage;
 
 /** Push メッセージのリクエスト */
 export type LinePushMessageRequest = {
@@ -64,6 +103,11 @@ export type LinePushMessageRequest = {
 export type LineReplyMessageRequest = {
   replyToken: string;
   messages: LineMessage[];
+};
+
+/** Messaging API の送信レスポンス */
+export type LineSendMessageResponse = {
+  sentMessages?: { id: string; quoteToken?: string }[];
 };
 
 // ────────────────────────────────────────

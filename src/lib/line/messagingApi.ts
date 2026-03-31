@@ -1,15 +1,17 @@
 // src/lib/line/messagingApi.ts
 
 import { getLineMessagingConfig, LINE_API_BASE } from "./config";
-import type { LineMessage, LineTextMessage } from "./types";
+import { LINE_MULTICAST_MAX_RECIPIENTS } from "./constants";
+import type { LineMessage, LineSendMessageResponse, LineTextMessage } from "./types";
 
 /**
- * Messaging API の共通リクエスト送信
+ * Messaging API の共通リクエスト送信。
+ * レスポンスボディを型付きで返す。
  */
 async function sendRequest(
   path: string,
   body: Record<string, unknown>,
-): Promise<void> {
+): Promise<LineSendMessageResponse> {
   const { channelAccessToken } = getLineMessagingConfig();
 
   const response = await fetch(`${LINE_API_BASE}${path}`, {
@@ -25,6 +27,11 @@ async function sendRequest(
     const errorBody = await response.text();
     throw new Error(`LINE Messaging API エラー: ${response.status} ${errorBody}`);
   }
+
+  // 200 でボディが空の場合（broadcast 等）は空オブジェクトを返す
+  const text = await response.text();
+  if (!text) return {};
+  return JSON.parse(text) as LineSendMessageResponse;
 }
 
 /**
@@ -44,8 +51,8 @@ export function textMessage(text: string): LineTextMessage {
 export async function pushMessage(
   to: string,
   messages: LineMessage[],
-): Promise<void> {
-  await sendRequest("/v2/bot/message/push", { to, messages });
+): Promise<LineSendMessageResponse> {
+  return sendRequest("/v2/bot/message/push", { to, messages });
 }
 
 /**
@@ -57,21 +64,30 @@ export async function pushMessage(
 export async function replyMessage(
   replyToken: string,
   messages: LineMessage[],
-): Promise<void> {
-  await sendRequest("/v2/bot/message/reply", { replyToken, messages });
+): Promise<LineSendMessageResponse> {
+  return sendRequest("/v2/bot/message/reply", { replyToken, messages });
 }
 
 /**
  * マルチキャスト送信（複数ユーザーへの一斉送信）。
+ * 500件を超える場合は自動的にバッチ分割して順次送信する。
  *
- * @param to - LINE userId の配列（最大500件）
+ * @param to - LINE userId の配列（件数制限なし、内部で500件ごとに分割）
  * @param messages - 送信するメッセージ（最大5件）
  */
 export async function multicast(
   to: string[],
   messages: LineMessage[],
-): Promise<void> {
-  await sendRequest("/v2/bot/message/multicast", { to, messages });
+): Promise<LineSendMessageResponse[]> {
+  const results: LineSendMessageResponse[] = [];
+
+  for (let i = 0; i < to.length; i += LINE_MULTICAST_MAX_RECIPIENTS) {
+    const chunk = to.slice(i, i + LINE_MULTICAST_MAX_RECIPIENTS);
+    const result = await sendRequest("/v2/bot/message/multicast", { to: chunk, messages });
+    results.push(result);
+  }
+
+  return results;
 }
 
 /**
@@ -81,6 +97,6 @@ export async function multicast(
  */
 export async function broadcast(
   messages: LineMessage[],
-): Promise<void> {
-  await sendRequest("/v2/bot/message/broadcast", { messages });
+): Promise<LineSendMessageResponse> {
+  return sendRequest("/v2/bot/message/broadcast", { messages });
 }
