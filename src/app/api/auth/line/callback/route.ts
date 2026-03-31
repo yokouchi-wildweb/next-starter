@@ -6,7 +6,7 @@ import { createApiRoute } from "@/lib/routeFactory";
 import { processCallback } from "@/lib/line/oauth";
 import { LINE_OAUTH_NONCE_COOKIE } from "@/lib/line/constants";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { userService } from "@/features/core/user/services/server/userService";
+import { userLineProfileService } from "@/features/core/userLineProfile/services/server/userLineProfileService";
 
 /**
  * エラー時のリダイレクトレスポンスを生成するヘルパー。
@@ -87,7 +87,7 @@ export const GET = createApiRoute(
       const linkResult = await processCallback(code, callbackUrl, friendshipStatusChanged);
 
       // ユーザーに LINE userId + プロフィール情報を紐付け
-      await userService.linkLineAccount(sessionUser.userId, linkResult.lineUserId, {
+      await userLineProfileService.linkLineAccount(sessionUser.userId, linkResult.lineUserId, {
         displayName: linkResult.displayName,
         pictureUrl: linkResult.pictureUrl,
       });

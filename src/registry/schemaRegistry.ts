@@ -15,6 +15,7 @@ export * from "@/features/purchaseRequest/entities/drizzle";
 export * from "@/features/coupon/entities/drizzle";
 export * from "@/features/couponHistory/entities/drizzle";
 export * from "@/features/rateLimit/entities/drizzle";
+export * from "@/features/userLineProfile/entities/drizzle";
 export * from "@/features/userTag/entities/drizzle";
 export * from "@/features/referral/entities/drizzle";
 export * from "@/features/referralReward/entities/drizzle";

@@ -5,6 +5,7 @@ import userConfig from "@/features/user/domain.json";
 import couponConfig from "@/features/coupon/domain.json";
 import couponHistoryConfig from "@/features/couponHistory/domain.json";
 import rateLimitConfig from "@/features/rateLimit/domain.json";
+import userLineProfileConfig from "@/features/userLineProfile/domain.json";
 import userTagConfig from "@/features/userTag/domain.json";
 import referralConfig from "@/features/referral/domain.json";
 import referralRewardConfig from "@/features/referralReward/domain.json";
@@ -25,6 +26,7 @@ export const domainConfigMap = {
   coupon: couponConfig,
   coupon_history: couponHistoryConfig,
   rate_limit: rateLimitConfig,
+  user_line_profile: userLineProfileConfig,
   user_tag: userTagConfig,
   referral: referralConfig,
   referral_reward: referralRewardConfig,

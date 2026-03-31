@@ -47,8 +47,19 @@ LIFF_ID=your_liff_id
 
 ### 3. DBマイグレーション
 
-`users` テーブルに `line_user_id` カラムが追加されている。
+`user_line_profiles` テーブルが新規追加されている（`users` テーブルとは 1:1 リレーション）。
 `drizzle-kit push` でスキーマを反映する。
+
+```
+user_line_profiles
+├── id (uuid, PK)
+├── user_id (uuid, FK → users, unique)  ← 1:1
+├── line_user_id (text, unique)
+├── display_name (text, nullable)
+├── picture_url (text, nullable)
+├── created_at
+└── updated_at
+```
 
 ## ダウンストリームでの実装
 
@@ -103,33 +114,33 @@ export async function unlinkLine() {
 
 ```ts
 // サーバーサービス（API ルート内）
-import { userService } from "@/features/core/user/services/server/userService";
+import { userLineProfileService } from "@/features/core/userLineProfile/services/server/userLineProfileService";
 
-await userService.unlinkLineAccount(session.userId);
+await userLineProfileService.unlinkLineAccount(session.userId);
 ```
 
 ### Push通知を送る
 
 ```ts
 import { pushMessage, textMessage } from "@/lib/line";
+import { userLineProfileService } from "@/features/core/userLineProfile/services/server/userLineProfileService";
 
-// 単一ユーザーへテキスト送信
-await pushMessage(user.lineUserId, [
-  textMessage("当選おめでとうございます！S賞を獲得しました🎉"),
-]);
-
-// 複数メッセージ（最大5件）
-await pushMessage(user.lineUserId, [
-  textMessage("ご注文の商品が発送されました"),
-  textMessage("追跡番号: 1234-5678-9012"),
-]);
+// LINE連携プロフィールを取得
+const lineProfile = await userLineProfileService.findByUserId(user.id);
+if (lineProfile) {
+  // 単一ユーザーへテキスト送信
+  await pushMessage(lineProfile.lineUserId, [
+    textMessage("当選おめでとうございます！S賞を獲得しました🎉"),
+  ]);
+}
 ```
 
 ```ts
 import { multicast, textMessage } from "@/lib/line";
 
 // 複数ユーザーへ一斉送信（500件超は自動バッチ分割）
-const lineUserIds = users.map((u) => u.lineUserId).filter(Boolean);
+const profiles = await userLineProfileService.list();
+const lineUserIds = profiles.map((p) => p.lineUserId);
 await multicast(lineUserIds, [
   textMessage("新しいガチャマシンが公開されました！"),
 ]);
@@ -174,9 +185,9 @@ async function handleMessage(event: LineMessageEvent) {
 
   if (event.message.text === "残高") {
     // LINE userId からユーザーを特定して残高照会
-    const user = await userService.findByLineUserId(event.source.userId!);
-    if (user) {
-      const balance = await walletService.getBalance(user.id);
+    const lineProfile = await userLineProfileService.findByLineUserId(event.source.userId!);
+    if (lineProfile) {
+      const balance = await walletService.getBalance(lineProfile.userId);
       await replyMessage(event.replyToken, [
         textMessage(`現在の残高: ${balance} コイン`),
       ]);
@@ -240,13 +251,16 @@ LINE からのOAuthコールバック（直接呼び出さない）。
 
 LINE Platform からの Webhook 受信。`x-line-signature` ヘッダーで HMAC-SHA256 署名検証を行う。
 
-## userService メソッド
+## userLineProfileService メソッド
+
+`@/features/core/userLineProfile/services/server/userLineProfileService` からインポート。
 
 | メソッド | 説明 |
 |---------|------|
-| `linkLineAccount(userId, lineUserId)` | LINE userId を紐付け（重複時は 409） |
-| `unlinkLineAccount(userId)` | LINE 連携を解除 |
-| `findByLineUserId(lineUserId)` | LINE userId からユーザー検索 |
+| `linkLineAccount(userId, lineUserId, options?)` | LINE userId を紐付け（displayName/pictureUrl も保存、重複時は 409） |
+| `unlinkLineAccount(userId)` | LINE 連携を解除（レコード物理削除） |
+| `findByLineUserId(lineUserId)` | LINE userId から連携プロフィール検索 |
+| `findByUserId(userId)` | ユーザーIDから連携プロフィール検索 |
 
 ## ライブラリ公開API
 

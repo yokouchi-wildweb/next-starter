@@ -122,28 +122,6 @@
       "required": false
     },
     {
-      "name": "line_user_id",
-      "label": "LINE ユーザーID",
-      "fieldType": "string",
-      "formInput": "none",
-      "required": false,
-      "unique": true
-    },
-    {
-      "name": "line_display_name",
-      "label": "LINE表示名",
-      "fieldType": "string",
-      "formInput": "none",
-      "required": false
-    },
-    {
-      "name": "line_picture_url",
-      "label": "LINEプロフィール画像URL",
-      "fieldType": "string",
-      "formInput": "none",
-      "required": false
-    },
-    {
       "name": "metadata",
       "label": "メタデータ",
       "fieldType": "jsonb",

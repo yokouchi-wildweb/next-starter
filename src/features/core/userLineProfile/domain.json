@@ -1,0 +1,61 @@
+{
+  "domainConfigVersion": "1.2",
+  "singular": "user_line_profile",
+  "plural": "user_line_profiles",
+  "label": "LINE連携プロフィール",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "user",
+      "label": "ユーザー",
+      "fieldName": "user_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": true,
+      "onDelete": "CASCADE"
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "fields": [
+    {
+      "name": "line_user_id",
+      "label": "LINE ユーザーID",
+      "fieldType": "string",
+      "formInput": "none",
+      "required": true,
+      "unique": true
+    },
+    {
+      "name": "display_name",
+      "label": "LINE表示名",
+      "fieldType": "string",
+      "formInput": "none",
+      "required": false
+    },
+    {
+      "name": "picture_url",
+      "label": "LINEプロフィール画像URL",
+      "fieldType": "string",
+      "formInput": "none",
+      "required": false
+    }
+  ],
+  "defaultOrderBy": [["createdAt", "DESC"]],
+  "useDetailModal": false,
+  "addToAdminDataMenu": false,
+  "useDuplicateButton": false,
+  "useImportExport": false,
+  "generateFiles": {
+    "entities": false,
+    "components": false,
+    "hooks": false,
+    "clientServices": false,
+    "serverServices": false,
+    "adminRoutes": false,
+    "registry": true,
+    "fieldConstants": false,
+    "presenters": false
+  }
+}

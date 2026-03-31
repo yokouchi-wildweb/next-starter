@@ -1,7 +1,6 @@
 // src/features/user/entities/drizzle.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
-import { sql } from "drizzle-orm";
 import { boolean, index, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import type { UserMetadata } from "./model";
@@ -26,9 +25,6 @@ export const UserTable = pgTable(
     phoneNumber: text("phone_number").unique(),
     phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
     avatarUrl: text("avatar_url"),
-    lineUserId: text("line_user_id"),
-    lineDisplayName: text("line_display_name"),
-    linePictureUrl: text("line_picture_url"),
     signupIp: text("signup_ip"),
     metadata: jsonb("metadata").$type<UserMetadata>().default({}).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -40,10 +36,6 @@ export const UserTable = pgTable(
       table.providerType,
       table.providerUid,
     ),
-    // LINE連携用（ソフトデリート対応の部分ユニークインデックス）
-    lineUserIdUniqueActive: uniqueIndex("users_line_user_id_unique_active")
-      .on(table.lineUserId)
-      .where(sql`deleted_at IS NULL`),
     // Analytics ユーザーフィルタ用（roles ホワイトリスト + デモ除外サブクエリ）
     roleIdx: index("users_role_idx").on(table.role),
     isDemoIdx: index("users_is_demo_idx").on(table.isDemo),
