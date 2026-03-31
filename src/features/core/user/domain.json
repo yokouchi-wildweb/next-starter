@@ -122,6 +122,14 @@
       "required": false
     },
     {
+      "name": "line_user_id",
+      "label": "LINE ユーザーID",
+      "fieldType": "string",
+      "formInput": "none",
+      "required": false,
+      "unique": true
+    },
+    {
       "name": "metadata",
       "label": "メタデータ",
       "fieldType": "jsonb",

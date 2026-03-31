@@ -2,6 +2,7 @@
 
 import { base } from "./drizzleBase";
 import { checkAdminUserExists } from "./finders/checkAdminUserExists";
+import { findByLineUserId } from "./finders/findByLineUserId";
 import { findByLocalEmail } from "./finders/findByLocalEmail";
 import { findByProvider } from "./finders/findByProvider";
 import {
@@ -18,6 +19,8 @@ import { update } from "./wrappers/update";
 import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
 import { changeStatus } from "./wrappers/changeStatus";
 import { changeRole } from "./wrappers/changeRole";
+import { linkLineAccount } from "./wrappers/linkLineAccount";
+import { unlinkLineAccount } from "./wrappers/unlinkLineAccount";
 import { softDelete } from "./wrappers/softDelete";
 import { searchWithProfile } from "./wrappers/searchWithProfile";
 
@@ -33,11 +36,14 @@ export const userService = {
   // finders
   findByProvider,
   findByLocalEmail,
+  findByLineUserId,
   checkAdminUserExists,
   // wrappers
   updateLastAuthenticated,
   changeStatus,
   changeRole,
+  linkLineAccount,
+  unlinkLineAccount,
   softDelete,
   searchWithProfile,
   // creation (console)
