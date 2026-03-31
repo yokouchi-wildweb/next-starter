@@ -664,8 +664,12 @@ const webhookIdentifierResolvers: Partial<
 /**
  * Webhook識別子から購入リクエストを検索
  * 1. まず汎用的な payment_session_id で検索
- * 2. 見つからない場合、プロバイダ固有のリゾルバーを使用
+ * 2. identifier が UUID 形式なら purchaseRequest.id で検索（Square 等、payment.note に purchaseRequestId を格納するプロバイダ向け）
+ * 3. 見つからない場合、プロバイダ固有のリゾルバーを使用
  */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function findByWebhookIdentifier(
   identifier: string,
   providerName?: PaymentProviderName
@@ -681,7 +685,20 @@ async function findByWebhookIdentifier(
     return bySessionId[0] as PurchaseRequest;
   }
 
-  // 2. プロバイダ固有のフォールバック
+  // 2. UUID 形式なら purchaseRequest.id で検索
+  if (UUID_RE.test(identifier)) {
+    const byId = await db
+      .select()
+      .from(PurchaseRequestTable)
+      .where(eq(PurchaseRequestTable.id, identifier))
+      .limit(1);
+
+    if (byId[0]) {
+      return byId[0] as PurchaseRequest;
+    }
+  }
+
+  // 3. プロバイダ固有のフォールバック
   if (providerName) {
     const resolver = webhookIdentifierResolvers[providerName];
     if (resolver) {
