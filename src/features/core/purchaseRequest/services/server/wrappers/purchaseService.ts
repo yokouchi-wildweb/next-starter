@@ -1,6 +1,6 @@
 // src/features/core/purchaseRequest/services/server/wrappers/purchaseService.ts
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
@@ -348,11 +348,16 @@ export async function completePurchase(
         webhook_signature: webhookSignature,
         updatedAt: new Date(),
       })
-      .where(eq(PurchaseRequestTable.id, purchaseRequest.id))
+      .where(
+        and(
+          eq(PurchaseRequestTable.id, purchaseRequest.id),
+          eq(PurchaseRequestTable.status, "processing")
+        )
+      )
       .returning();
 
-    if (!updated || updated.status !== "completed") {
-      throw new DomainError("購入リクエストの更新に失敗しました", { status: 409 });
+    if (!updated) {
+      throw new DomainError("購入リクエストの更新に失敗しました（既に処理済みの可能性があります）", { status: 409 });
     }
 
     // ウォレット残高を更新
