@@ -16,6 +16,7 @@ import {
 import {
   SQUARE_ERROR_MAP,
   isSuccessPaymentStatus,
+  isFailurePaymentStatus,
   extractPaymentMethod,
 } from "./errorMapping";
 
@@ -282,11 +283,12 @@ export class SquarePaymentProvider implements PaymentProvider {
 
       // payment.noteに保存したpurchaseRequestIdを取得
       const sessionId = payment.note || payment.order_id || "";
-      const isSuccess = isSuccessPaymentStatus(payment.status);
 
-      if (isSuccess) {
+      // 成功（COMPLETED / APPROVED）
+      if (isSuccessPaymentStatus(payment.status)) {
         return {
           success: true,
+          status: "completed",
           sessionId,
           transactionId: payment.id,
           paymentMethod: extractPaymentMethod(payment.source_type),
@@ -295,18 +297,29 @@ export class SquarePaymentProvider implements PaymentProvider {
         };
       }
 
-      // 失敗・キャンセル
-      const cardStatus = payment.card_details?.status;
-      const errorCode = cardStatus
-        ? mapProviderError(cardStatus, SQUARE_ERROR_MAP)
-        : PAYMENT_ERROR_CODES.PAYMENT_FAILED;
+      // 確定的な失敗（CANCELED / FAILED）
+      if (isFailurePaymentStatus(payment.status)) {
+        const cardStatus = payment.card_details?.status;
+        const errorCode = cardStatus
+          ? mapProviderError(cardStatus, SQUARE_ERROR_MAP)
+          : PAYMENT_ERROR_CODES.PAYMENT_FAILED;
 
+        return {
+          success: false,
+          status: "failed",
+          sessionId,
+          errorCode,
+          errorMessage: this.getErrorMessageFromStatus(payment.status),
+          rawResponse: body,
+        };
+      }
+
+      // 未確定（PENDING 等）— 処理をスキップして 200 を返す
+      console.log(`[Square] 未確定ステータスのためスキップ: status=${payment.status}, sessionId=${sessionId}`);
       return {
         success: false,
+        status: "pending",
         sessionId,
-        errorCode,
-        errorMessage: this.getErrorMessageFromStatus(payment.status),
-        rawResponse: body,
       };
     } catch (error) {
       console.error("[Square] Webhook parsing error:", error);

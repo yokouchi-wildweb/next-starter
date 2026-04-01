@@ -74,21 +74,26 @@ export const POST = createApiRoute(
       });
       return result;
     } catch (error) {
+      // Webhook は全ケースで 200 を返す（プロバイダーのリトライストームを防止）
       if (isDomainError(error)) {
         if (error.status === 404) {
-          // 不明なセッションでも 200 を返す（Webhook の再送を防ぐため）
           console.warn("Webhook received for unknown session");
           return NextResponse.json(
             { success: true, message: "セッションが見つかりませんでした。" },
             { status: 200 }
           );
         }
+        console.error(`[webhook] DomainError: ${error.status} ${error.message}`);
         return NextResponse.json(
           { success: false, error: "processing_error", message: error.message },
-          { status: error.status }
+          { status: 200 }
         );
       }
-      throw error;
+      console.error("[webhook] Unexpected error:", error);
+      return NextResponse.json(
+        { success: false, error: "internal_error", message: "内部エラーが発生しました" },
+        { status: 200 }
+      );
     }
   }
 );

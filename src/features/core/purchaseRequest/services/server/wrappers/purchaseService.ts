@@ -1,6 +1,6 @@
 // src/features/core/purchaseRequest/services/server/wrappers/purchaseService.ts
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, lt, or, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
@@ -325,8 +325,8 @@ export async function completePurchase(
     };
   }
 
-  // 3. processing以外のステータスはエラー
-  if (purchaseRequest.status !== "processing") {
+  // 3. processing または failed（Webhook順序逆転の救済）のみ許可
+  if (purchaseRequest.status !== "processing" && purchaseRequest.status !== "failed") {
     throw new DomainError(
       `無効なステータスです: ${purchaseRequest.status}`,
       { status: 400 }
@@ -335,7 +335,7 @@ export async function completePurchase(
 
   // 4. トランザクションでウォレット更新とステータス更新を実行
   const result = await db.transaction(async (tx: TransactionClient) => {
-    // 楽観的ロック: processingの場合のみ更新
+    // 楽観的ロック: processing または failed（Webhook順序逆転の救済）の場合のみ更新
     const [updated] = await tx
       .update(PurchaseRequestTable)
       .set({
@@ -346,12 +346,18 @@ export async function completePurchase(
         ...(paymentMethod && { payment_method: paymentMethod }),
         paid_at: paidAt ?? new Date(),
         webhook_signature: webhookSignature,
+        // failed からの救済時にエラー情報をクリア
+        error_code: null,
+        error_message: null,
         updatedAt: new Date(),
       })
       .where(
         and(
           eq(PurchaseRequestTable.id, purchaseRequest.id),
-          eq(PurchaseRequestTable.status, "processing")
+          or(
+            eq(PurchaseRequestTable.status, "processing"),
+            eq(PurchaseRequestTable.status, "failed")
+          )
         )
       )
       .returning();
@@ -476,6 +482,7 @@ export async function completePurchase(
 
 /**
  * 購入を失敗としてマーク
+ * 楽観的ロック: processing または pending の場合のみ更新（completed は上書きしない）
  */
 export async function failPurchase(params: FailPurchaseParams): Promise<PurchaseRequest> {
   const { sessionId, errorCode, errorMessage, providerName } = params;
@@ -485,24 +492,37 @@ export async function failPurchase(params: FailPurchaseParams): Promise<Purchase
     throw new DomainError("購入リクエストが見つかりません", { status: 404 });
   }
 
-  // 既に完了済みなら変更しない
-  if (purchaseRequest.status === "completed") {
+  // 既に完了済みまたは失敗済みなら変更しない（冪等性）
+  if (purchaseRequest.status === "completed" || purchaseRequest.status === "failed") {
     return purchaseRequest;
   }
 
-  // 既に失敗済みなら何もしない
-  if (purchaseRequest.status === "failed") {
+  // 楽観的ロック: processing または pending の場合のみ failed に遷移
+  const [updated] = await db
+    .update(PurchaseRequestTable)
+    .set({
+      status: "failed",
+      error_code: errorCode ?? "PAYMENT_FAILED",
+      error_message: errorMessage ?? "決済に失敗しました",
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(PurchaseRequestTable.id, purchaseRequest.id),
+        or(
+          eq(PurchaseRequestTable.status, "processing"),
+          eq(PurchaseRequestTable.status, "pending")
+        )
+      )
+    )
+    .returning();
+
+  if (!updated) {
+    // 並行処理で既に completed or failed に遷移済み → 冪等に返す
     return purchaseRequest;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await base.update(purchaseRequest.id, {
-    status: "failed",
-    error_code: errorCode ?? "PAYMENT_FAILED",
-    error_message: errorMessage ?? "決済に失敗しました",
-  } as any) as PurchaseRequest;
-
-  return result;
+  return updated as PurchaseRequest;
 }
 
 // ============================================================================
@@ -522,39 +542,70 @@ export async function handleWebhook(
   const provider = getPaymentProvider(providerName);
   const paymentResult = await provider.verifyWebhook(request);
 
-  // 2. 決済結果に応じて処理
-  if (paymentResult.success) {
-    // 決済成功 → 購入完了処理
-    const result = await completePurchase({
-      sessionId: paymentResult.sessionId,
-      transactionId: paymentResult.transactionId,
-      paymentMethod: paymentResult.paymentMethod,
-      paidAt: paymentResult.paidAt,
-      webhookSignature,
-      providerName,
-    });
-
+  // 2. 未確定ステータス（PENDING 等）は無視して 200 を返す
+  // PaymentResult.status が "pending" の場合、または status 未指定かつ success=false でエラー情報がない場合
+  if (paymentResult.status === "pending") {
+    console.log(`[handleWebhook] 未確定ステータスのためスキップ: sessionId=${paymentResult.sessionId}`);
     return {
       success: true,
-      requestId: result.purchaseRequest.id,
-      walletHistoryId: result.walletHistoryId,
-      milestoneResults: result.milestoneResults,
-      message: "購入が完了しました。",
+      requestId: "",
+      message: "未確定ステータスのため処理をスキップしました。",
     };
+  }
+
+  // 3. 決済結果に応じて処理
+  if (paymentResult.success) {
+    // 決済成功 → 購入完了処理
+    try {
+      const result = await completePurchase({
+        sessionId: paymentResult.sessionId,
+        transactionId: paymentResult.transactionId,
+        paymentMethod: paymentResult.paymentMethod,
+        paidAt: paymentResult.paidAt,
+        webhookSignature,
+        providerName,
+      });
+
+      return {
+        success: true,
+        requestId: result.purchaseRequest.id,
+        walletHistoryId: result.walletHistoryId,
+        milestoneResults: result.milestoneResults,
+        message: "購入が完了しました。",
+      };
+    } catch (error) {
+      // 409（楽観的ロック競合）、400（無効なステータス）等は
+      // Webhookの正常応答として扱う（プロバイダーのリトライを防止）
+      console.warn("[handleWebhook] completePurchase failed:", error);
+      return {
+        success: true,
+        requestId: "",
+        message: "処理済みまたはスキップされました。",
+      };
+    }
   } else {
     // 決済失敗 → 失敗処理
-    const result = await failPurchase({
-      sessionId: paymentResult.sessionId,
-      errorCode: paymentResult.errorCode,
-      errorMessage: paymentResult.errorMessage,
-      providerName,
-    });
+    try {
+      const result = await failPurchase({
+        sessionId: paymentResult.sessionId,
+        errorCode: paymentResult.errorCode,
+        errorMessage: paymentResult.errorMessage,
+        providerName,
+      });
 
-    return {
-      success: true, // Webhook処理自体は成功
-      requestId: result.id,
-      message: "決済失敗を記録しました。",
-    };
+      return {
+        success: true, // Webhook処理自体は成功
+        requestId: result.id,
+        message: "決済失敗を記録しました。",
+      };
+    } catch (error) {
+      console.warn("[handleWebhook] failPurchase failed:", error);
+      return {
+        success: true,
+        requestId: "",
+        message: "処理済みまたはスキップされました。",
+      };
+    }
   }
 }
 
@@ -575,11 +626,13 @@ export async function expirePendingRequests(): Promise<number> {
       status: "expired",
       updatedAt: now,
     })
-    .where(eq(PurchaseRequestTable.status, "pending"))
+    .where(
+      and(
+        eq(PurchaseRequestTable.status, "pending"),
+        lt(PurchaseRequestTable.expires_at, now)
+      )
+    )
     .returning();
-
-  // TODO: expires_at < now の条件を追加
-  // 現在はDrizzleのand条件が複雑なため簡略化
 
   return result.length;
 }

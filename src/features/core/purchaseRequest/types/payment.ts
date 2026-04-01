@@ -67,6 +67,14 @@ export type PaymentSession = {
 export type PaymentResult = {
   /** 決済成功かどうか */
   success: boolean;
+  /**
+   * Webhookのステータス分類。
+   * - "completed": 決済成功（completePurchase を実行）
+   * - "failed": 決済失敗確定（failPurchase を実行）
+   * - "pending": 未確定（何もせず 200 を返す）
+   * 未指定の場合は success で判定（後方互換）
+   */
+  status?: "completed" | "failed" | "pending";
   /** 決済サービス側のセッションID */
   sessionId: string;
   /** プロバイダ側の取引ID（問い合わせ・追跡用） */

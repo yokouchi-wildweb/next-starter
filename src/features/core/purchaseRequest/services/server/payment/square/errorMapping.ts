@@ -79,6 +79,14 @@ export function isSuccessPaymentStatus(status: string): boolean {
 }
 
 /**
+ * Webhookイベントが確定的な失敗を示すかどうかを判定
+ * PENDING 等の未確定ステータスは false を返す
+ */
+export function isFailurePaymentStatus(status: string): boolean {
+  return status === SQUARE_PAYMENT_STATUS.CANCELED || status === SQUARE_PAYMENT_STATUS.FAILED;
+}
+
+/**
  * Squareの支払いソースタイプから支払い方法を抽出
  */
 export function extractPaymentMethod(sourceType?: string): string {
