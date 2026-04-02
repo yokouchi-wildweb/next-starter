@@ -1,6 +1,6 @@
 // src/features/purchaseRequest/entities/drizzle.ts
 
-import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
@@ -33,6 +33,7 @@ export const PurchaseRequestTable = pgTable("purchase_requests", {
   coupon_code: text("coupon_code"),
   discount_amount: integer("discount_amount"),
   original_payment_amount: integer("original_payment_amount"),
+  coupon_redeem_failed: boolean("coupon_redeem_failed").default(false),
   milestone_results: jsonb("milestone_results"),
   completed_at: timestamp("completed_at", { withTimezone: true }),
   paid_at: timestamp("paid_at", { withTimezone: true }),

@@ -462,8 +462,16 @@ export async function completePurchase(
           tx,
         );
       } catch (error) {
-        // クーポンredeem失敗は購入完了をブロックしない（ログのみ）
-        console.error("[completePurchase] クーポンredeem失敗:", error);
+        // クーポンredeem失敗は購入完了をブロックしない
+        // ただし失敗をDBに記録して管理者が後から検知・対応できるようにする
+        console.error(
+          `[completePurchase] クーポンredeem失敗: code=${purchaseRequest.coupon_code}, requestId=${purchaseRequest.id}`,
+          error,
+        );
+        await tx
+          .update(PurchaseRequestTable)
+          .set({ coupon_redeem_failed: true })
+          .where(eq(PurchaseRequestTable.id, purchaseRequest.id));
       }
     }
 
