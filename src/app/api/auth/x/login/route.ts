@@ -19,10 +19,10 @@ import {
  * - redirect_after: X連携完了後の戻り先URL（必須）
  * - scopes: カンマ区切りのスコープ（任意、デフォルト: tweet.read,tweet.write,users.read,offline.access）
  */
-export const POST = createApiRoute(
+export const GET = createApiRoute(
   {
-    operation: "POST /api/auth/x/login",
-    operationType: "write",
+    operation: "GET /api/auth/x/login",
+    operationType: "read",
   },
   async (req) => {
     const redirectAfter = req.nextUrl.searchParams.get("redirect_after");

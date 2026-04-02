@@ -215,10 +215,10 @@ await revokeXToken(savedAccessToken);
 LINE 連携と同じパターン。`redirect_after` で連携後の戻り先を指定する。
 
 ```tsx
-// マイページ等に設置（POST でリクエスト）
-<form action="/api/auth/x/login?redirect_after=/mypage" method="POST">
-  <button type="submit">X と連携する</button>
-</form>
+// マイページ等に設置
+<a href="/api/auth/x/login?redirect_after=/mypage">
+  X と連携する
+</a>
 ```
 
 リダイレクト後のクエリパラメータで結果を判定:
@@ -531,7 +531,7 @@ import {
 
 | メソッド | パス | 説明 |
 |---------|------|------|
-| POST | `/api/auth/x/login` | OAuth 2.0 PKCE フロー開始。`redirect_after` 必須、`scopes` 任意 |
+| GET | `/api/auth/x/login` | OAuth 2.0 PKCE フロー開始。`redirect_after` 必須、`scopes` 任意 |
 | GET | `/api/auth/x/callback` | X からの OAuth コールバック（直接呼び出さない） |
 | POST | `/api/auth/x/unlink` | X 連携解除（トークン revoke + レコード削除） |
 
