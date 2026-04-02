@@ -73,13 +73,12 @@ export async function hydrateHasMany<T extends Record<string, any>>(
         return;
       }
 
-      // 子テーブルから一括取得（親数 × limit で全体上限を設定）
+      // 子テーブルから一括取得（全体 limit なし、親あたりの制限はグルーピング時に適用）
       const childRecords = await db
         .select()
         .from(rel.table)
         .where(inArray(rel.table[rel.foreignKey], parentIds))
-        .orderBy(asc(rel.table.id))
-        .limit(parentIds.length * limit);
+        .orderBy(asc(rel.table.id));
 
       // 親IDでグルーピング（親あたり limit 件まで）
       const grouped = new Map<string, any[]>();

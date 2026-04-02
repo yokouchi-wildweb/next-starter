@@ -46,9 +46,11 @@ const resolveRecordId = (value: unknown): string | number | undefined => {
  * - true/1: 1階層
  * - 2: 2階層（リレーション先のリレーションも展開）
  */
+const MAX_RELATION_DEPTH = 3;
+
 const resolveRelationDepth = (withRelations?: boolean | number): number => {
   if (withRelations === true) return 1;
-  if (typeof withRelations === "number" && withRelations > 0) return withRelations;
+  if (typeof withRelations === "number" && withRelations > 0) return Math.min(withRelations, MAX_RELATION_DEPTH);
   return 0;
 };
 
