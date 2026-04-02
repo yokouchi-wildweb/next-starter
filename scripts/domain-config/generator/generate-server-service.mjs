@@ -306,7 +306,9 @@ function buildHasManyRelationsSnippets(config, pascal, camel, visitedDomains = n
     .map((relation) => {
       const relationPascal = toPascalCase(relation.domain);
       const tableImport = `${relationPascal}Table`;
-      const foreignKey = relation.fieldName;
+      // hasMany の foreignKey は「親ドメインのsingular + _id」= 子テーブルが親を参照するFK
+      // relation.fieldName はdomain.json上の管理用フィールド名であり、子テーブルのカラム名とは異なる
+      const foreignKey = `${config.singular}_id`;
       const field = toPlural(relation.domain);
 
       let nestedLines = [];
