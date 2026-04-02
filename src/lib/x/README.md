@@ -1,0 +1,338 @@
+# X (Twitter) API ライブラリ
+
+`twitter-api-v2` をベースに、X API の認証・投稿・メディアアップロード・Webhook 検証を統一されたインターフェースで提供する基盤ライブラリ。
+
+**設計思想**: `twitter-api-v2` は TypeScript 完全対応の高品質ライブラリのため、全 API を再ラップせず、認証・設定管理をプロジェクト標準に統一しつつ、ダウンストリームが `twitter-api-v2` の全機能にそのままアクセスできる拡張ポイントを残している。
+
+## ディレクトリ構成
+
+```
+src/lib/x/
+├── index.ts          # re-export（公開API一覧）
+├── config.ts         # 環境変数の一元管理
+├── client.ts         # クライアントファクトリ（OAuth 1.0a / 2.0 / App-only）
+├── types.ts          # プロジェクト固有の型定義
+├── constants.ts      # 定数（スコープ、制限値、Cookie名）
+├── oauth.ts          # OAuth 2.0 PKCE フロー
+├── tweets.ts         # ツイート投稿・削除ヘルパー
+├── media.ts          # メディアアップロードヘルパー
+└── webhook.ts        # Webhook 署名検証・CRC チャレンジ応答
+```
+
+## セットアップ
+
+### 1. X Developer Portal
+
+1. [X Developer Portal](https://developer.x.com/) でプロジェクトとアプリを作成
+2. 「User authentication settings」で OAuth 2.0 を有効化し、コールバックURLを登録
+3. Keys and tokens から認証情報を取得
+
+### 2. 環境変数
+
+```env
+# OAuth 1.0a（投稿・メディアアップロード）
+X_API_KEY=your_api_key
+X_API_SECRET=your_api_secret
+X_ACCESS_TOKEN=your_access_token
+X_ACCESS_SECRET=your_access_secret
+
+# OAuth 2.0 PKCE（ユーザー認証フロー、必要な場合のみ）
+X_OAUTH2_CLIENT_ID=your_client_id
+X_OAUTH2_CLIENT_SECRET=your_client_secret
+```
+
+## ダウンストリームでの実装
+
+### ツイートを投稿する
+
+```ts
+import { createXUserClient, postTweet } from "@/lib/x";
+
+const client = createXUserClient();
+const result = await postTweet(client, "Hello from our app!");
+console.log("投稿成功:", result.id);
+```
+
+### メディア付きツイート
+
+```ts
+import { createXUserClient, uploadMedia, postTweetWithMedia } from "@/lib/x";
+
+const client = createXUserClient();
+
+// 画像をアップロード（代替テキスト付き）
+const mediaId = await uploadMedia(client, "/path/to/image.png", {
+  altText: "商品の画像",
+});
+
+// メディア付きで投稿
+await postTweetWithMedia(client, "新商品が入荷しました！", [mediaId]);
+```
+
+### Buffer からのメディアアップロード
+
+```ts
+import { createXUserClient, uploadMediaFromBuffer, postTweetWithMedia } from "@/lib/x";
+
+const client = createXUserClient();
+
+// 動的に生成した画像を投稿
+const imageBuffer = await generateOgImage(data);
+const mediaId = await uploadMediaFromBuffer(client, imageBuffer, "image/png");
+await postTweetWithMedia(client, "本日の結果", [mediaId]);
+```
+
+### リプライ・引用ツイート
+
+```ts
+import { createXUserClient, postTweet, buildReplyOptions, buildQuoteOptions } from "@/lib/x";
+
+const client = createXUserClient();
+
+// リプライ
+await postTweet(client, "ありがとうございます！", {
+  ...buildReplyOptions("1234567890"),
+});
+
+// 引用ツイート
+await postTweet(client, "こちらの記事がおすすめです", {
+  ...buildQuoteOptions("1234567890"),
+});
+
+// 投票付きツイート
+await postTweet(client, "好きな色は？", {
+  poll: { options: ["赤", "青", "緑"], durationMinutes: 60 },
+});
+```
+
+### ツイートの削除
+
+```ts
+import { createXUserClient, deleteTweet } from "@/lib/x";
+
+const client = createXUserClient();
+await deleteTweet(client, "1234567890");
+```
+
+### OAuth 2.0 PKCE（ユーザー認証フロー）
+
+ユーザーに X アカウントでの認証を求め、そのユーザーとして操作する場合に使用。
+
+```ts
+// --- 認可URL生成（ログインボタン押下時） ---
+import { buildXAuthorizationUrl, X_SCOPES } from "@/lib/x";
+
+const { url, codeVerifier, state } = buildXAuthorizationUrl(
+  "https://example.com/api/auth/x/callback",
+  [X_SCOPES.TWEET_READ, X_SCOPES.TWEET_WRITE, X_SCOPES.USERS_READ, X_SCOPES.OFFLINE_ACCESS],
+);
+
+// state と codeVerifier を Cookie/セッションに保存してからリダイレクト
+```
+
+```ts
+// --- コールバック処理 ---
+import { exchangeXCodeForToken } from "@/lib/x";
+
+const { client, accessToken, refreshToken, expiresIn } = await exchangeXCodeForToken(
+  code,           // クエリパラメータから取得
+  codeVerifier,   // Cookie/セッションから復元
+  "https://example.com/api/auth/x/callback",
+);
+
+// client はそのユーザーとして認証済み
+// accessToken, refreshToken を DB に保存
+```
+
+```ts
+// --- トークンのリフレッシュ ---
+import { refreshXToken } from "@/lib/x";
+
+const { client, accessToken, refreshToken: newRefreshToken } = await refreshXToken(savedRefreshToken);
+// 新しいトークンで DB を更新
+```
+
+```ts
+// --- トークンの失効（ログアウト時など） ---
+import { revokeXToken } from "@/lib/x";
+
+await revokeXToken(savedAccessToken);
+```
+
+### マルチアカウント対応
+
+各関数にカスタム認証情報を渡すことで、複数アカウントを操作可能。
+
+```ts
+import { createXUserClient, postTweet } from "@/lib/x";
+
+// アカウントAで投稿
+const clientA = createXUserClient({
+  accessToken: accountA.accessToken,
+  accessSecret: accountA.accessSecret,
+});
+await postTweet(clientA, "アカウントAからの投稿");
+
+// アカウントBで投稿
+const clientB = createXUserClient({
+  accessToken: accountB.accessToken,
+  accessSecret: accountB.accessSecret,
+});
+await postTweet(clientB, "アカウントBからの投稿");
+```
+
+### twitter-api-v2 の全APIを直接使用
+
+ヘルパーでカバーしていない操作は、クライアントから `twitter-api-v2` の API を直接呼び出せる。
+
+```ts
+import { createXUserClient } from "@/lib/x";
+
+const client = createXUserClient();
+
+// タイムライン取得
+const timeline = await client.v2.userTimeline(userId);
+
+// ユーザー検索
+const user = await client.v2.userByUsername("username");
+
+// いいね
+await client.v2.like(myUserId, tweetId);
+
+// フォロー
+await client.v2.follow(myUserId, targetUserId);
+
+// ブックマーク
+await client.v2.bookmark(tweetId);
+
+// リスト操作
+const list = await client.v2.createList({ name: "Tech", private: true });
+
+// ストリーム（フィルター）
+const stream = await client.v2.searchStream();
+stream.on("data", (tweet) => console.log(tweet));
+```
+
+利用可能な全メソッドは [twitter-api-v2 ドキュメント](https://github.com/PLhery/node-twitter-api-v2) を参照。
+
+### Webhook（Account Activity API）
+
+```ts
+// --- CRC チャレンジ応答（GET） ---
+import { handleCrcChallenge } from "@/lib/x";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const crcToken = searchParams.get("crc_token");
+
+  if (!crcToken) {
+    return Response.json({ error: "crc_token is required" }, { status: 400 });
+  }
+
+  const response = handleCrcChallenge(crcToken);
+  return Response.json(response);
+}
+```
+
+```ts
+// --- Webhook イベント受信（POST） ---
+import { parseXWebhookRequest } from "@/lib/x";
+import type { XTweetCreateEvent, XFollowEvent, XDirectMessageEvent } from "@/lib/x";
+
+export async function POST(request: Request) {
+  const event = await parseXWebhookRequest(request);
+
+  if ("tweet_create_events" in event) {
+    const tweetEvent = event as XTweetCreateEvent;
+    for (const tweet of tweetEvent.tweet_create_events) {
+      console.log(`新しいツイート: ${tweet.text} by @${tweet.user.screen_name}`);
+    }
+  }
+
+  if ("follow_events" in event) {
+    const followEvent = event as XFollowEvent;
+    for (const follow of followEvent.follow_events) {
+      console.log(`${follow.type}: @${follow.source.screen_name} → @${follow.target.screen_name}`);
+    }
+  }
+
+  if ("direct_message_events" in event) {
+    const dmEvent = event as XDirectMessageEvent;
+    for (const dm of dmEvent.direct_message_events) {
+      console.log(`DM: ${dm.message_create.message_data.text}`);
+    }
+  }
+
+  return Response.json({ ok: true });
+}
+```
+
+## ライブラリ公開API
+
+```ts
+import {
+  // クライアント生成
+  createXClient,           // カスタム設定からクライアント生成
+  createXUserClient,       // 環境変数から OAuth 1.0a ユーザークライアント
+  createXAppClient,        // 環境変数から App-only クライアント
+  createXOAuth2Client,     // 環境変数から OAuth 2.0 クライアント
+  getReadWriteClient,      // readWrite 権限クライアント取得
+  getReadOnlyClient,       // readOnly 権限クライアント取得
+
+  // OAuth 2.0 PKCE
+  buildXAuthorizationUrl,  // 認可URL生成
+  exchangeXCodeForToken,   // コード→トークン交換
+  refreshXToken,           // トークンリフレッシュ
+  revokeXToken,            // トークン失効
+
+  // ツイート操作
+  postTweet,               // ツイート投稿
+  postTweetWithMedia,      // メディア付き投稿
+  deleteTweet,             // ツイート削除
+  buildReplyOptions,       // リプライオプション構築
+  buildQuoteOptions,       // 引用オプション構築
+
+  // メディア
+  uploadMedia,             // ファイルパス/Buffer/FileHandle からアップロード
+  uploadMediaFromBuffer,   // Buffer からアップロード（MIMEタイプ必須）
+  uploadMediaBatch,        // 複数ファイル一括アップロード
+
+  // Webhook
+  verifyXWebhookSignature, // 署名検証（タイミングセーフ）
+  handleCrcChallenge,      // CRC チャレンジ応答
+  parseXWebhookRequest,    // 署名検証 + ボディパース
+
+  // 設定
+  getXAppConfig,           // アプリ認証情報
+  getXUserConfig,          // ユーザー認証情報
+  getXOAuthConfig,         // OAuth 2.0 認証情報
+
+  // 定数
+  X_SCOPES,                // OAuth 2.0 スコープ一覧
+  X_MAX_TWEET_LENGTH,      // 280
+  X_MAX_IMAGES_PER_TWEET,  // 4
+} from "@/lib/x";
+```
+
+## API料金（2026年2月〜）
+
+| プラン | 月額 | 投稿上限 | 備考 |
+|-------|------|---------|------|
+| Free | $0 | 500件/月 | 読み取りほぼ不可、実質廃止方向 |
+| Pay-Per-Use | 従量 | — | 投稿 $0.010/件、読み取り $0.005/件 |
+| Basic | $200 | — | 一般的な開発用途 |
+| Pro | $5,000 | — | 大規模利用 |
+
+## セキュリティ
+
+- **Webhook 署名検証**: HMAC-SHA256 + タイミングセーフ比較（`timingSafeEqual`）で検証
+- **OAuth 2.0 PKCE**: code_verifier による認可コード横取り攻撃の防止
+- **CSRF 対策**: OAuth フローの state パラメータによるリクエスト偽造防止
+- **環境変数**: 認証情報は全て環境変数から取得。コードにハードコードしない
+
+## 注意事項
+
+- メディアアップロード（`uploadMedia`）は **OAuth 1.0a 認証が必要**（v1.1 エンドポイントを使用）
+- OAuth 2.0 で取得したクライアントではメディアアップロードは不可
+- Free Tier は 2026年2月以降 Pay-Per-Use への移行が進んでおり、投稿上限が500件/月に制限
+- `twitter-api-v2` のレート制限ハンドリングが必要な場合は `@twitter-api-v2/plugin-rate-limit` の導入を検討
