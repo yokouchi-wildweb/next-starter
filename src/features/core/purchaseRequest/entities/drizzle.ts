@@ -25,6 +25,7 @@ export const PurchaseRequestTable = pgTable("purchase_requests", {
   status: PurchaseRequestStatusEnum("status").notNull(),
   payment_provider: text("payment_provider").notNull(),
   payment_session_id: text("payment_session_id"),
+  provider_order_id: text("provider_order_id"),
   transaction_id: text("transaction_id"),
   redirect_url: text("redirect_url"),
   error_code: text("error_code"),
@@ -42,6 +43,7 @@ export const PurchaseRequestTable = pgTable("purchase_requests", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => [
   index("purchase_requests_payment_session_id_idx").on(table.payment_session_id),
+  index("purchase_requests_provider_order_id_idx").on(table.provider_order_id),
   index("purchase_requests_status_idx").on(table.status),
   index("purchase_requests_user_id_status_idx").on(table.user_id, table.status),
   // Analytics用: 売上集計の日付範囲フィルタ
@@ -49,4 +51,6 @@ export const PurchaseRequestTable = pgTable("purchase_requests", {
   index("purchase_requests_user_completed_at_idx").on(table.user_id, table.completed_at),
   index("purchase_requests_wallet_type_completed_at_idx").on(table.wallet_type, table.completed_at),
   index("purchase_requests_provider_completed_at_idx").on(table.payment_provider, table.completed_at),
+  // バッチ処理用: expirePendingRequests の WHERE status='pending' AND expires_at < now
+  index("purchase_requests_status_expires_at_idx").on(table.status, table.expires_at),
 ]);

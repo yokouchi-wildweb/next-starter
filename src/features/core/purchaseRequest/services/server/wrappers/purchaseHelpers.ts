@@ -1,7 +1,7 @@
 // src/features/core/purchaseRequest/services/server/wrappers/purchaseHelpers.ts
 // 購入リクエストのヘルパー関数（識別子解決、冪等キー検索、期限切れ処理）
 
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, lt, or } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
@@ -44,6 +44,8 @@ type WebhookIdentifierResolver = (
 /**
  * Fincode用リゾルバー
  * Fincodeは order_id（purchase_request.id のハイフン除去・30文字切り詰め）を送信する
+ * 1. provider_order_id カラムでインデックス検索（新規レコード）
+ * 2. フォールバック: 全レコードスキャンで照合（provider_order_id 未設定の既存レコード用）
  */
 async function resolveFincodeIdentifier(
   identifier: string
@@ -53,25 +55,33 @@ async function resolveFincodeIdentifier(
     return null;
   }
 
-  // processing または completed ステータスのリクエストから検索（冪等性のため）
+  // 1. provider_order_id カラムでインデックス検索
+  const byOrderId = await db
+    .select()
+    .from(PurchaseRequestTable)
+    .where(eq(PurchaseRequestTable.provider_order_id, identifier))
+    .limit(1);
+
+  if (byOrderId[0]) {
+    return byOrderId[0] as PurchaseRequest;
+  }
+
+  // 2. フォールバック: provider_order_id が未設定の既存レコード用
+  //    将来的に全レコードに provider_order_id が設定されたら削除可能
   const candidates = await db
     .select()
     .from(PurchaseRequestTable)
     .where(
-      eq(PurchaseRequestTable.status, "processing")
+      and(
+        eq(PurchaseRequestTable.provider_order_id, null as unknown as string),
+        or(
+          eq(PurchaseRequestTable.status, "processing"),
+          eq(PurchaseRequestTable.status, "completed")
+        )
+      )
     );
 
-  // completedも検索（Webhookの再送対応）
-  const completedCandidates = await db
-    .select()
-    .from(PurchaseRequestTable)
-    .where(
-      eq(PurchaseRequestTable.status, "completed")
-    );
-
-  const allCandidates = [...candidates, ...completedCandidates];
-
-  const matched = allCandidates.find((r) => {
+  const matched = candidates.find((r) => {
     const orderIdFromId = r.id.replace(/-/g, "").slice(0, 30);
     return orderIdFromId === identifier;
   });

@@ -179,11 +179,16 @@ export async function initiatePurchase(
   const session = await provider.createSession(sessionParams);
 
   // 6. セッション情報を記録（status: processing）
+  // プロバイダ固有の識別子を保存（Fincode: order_id = UUID のハイフン除去・30文字切り詰め）
+  const providerOrderId = paymentProvider === "fincode"
+    ? purchaseRequest.id.replace(/-/g, "").slice(0, 30)
+    : undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updated = await base.update(purchaseRequest.id, {
     status: "processing",
     payment_session_id: session.sessionId,
     redirect_url: session.redirectUrl,
+    ...(providerOrderId && { provider_order_id: providerOrderId }),
   } as any) as PurchaseRequest;
 
   return {
