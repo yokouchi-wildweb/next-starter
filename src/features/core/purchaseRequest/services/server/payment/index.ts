@@ -21,6 +21,9 @@ export type PaymentProviderName = "dummy" | "komoju" | "fincode" | "square";
 export function getPaymentProvider(providerName: PaymentProviderName): PaymentProvider {
   switch (providerName) {
     case "dummy":
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("Dummy payment provider is not allowed in production");
+      }
       return dummyPaymentProvider;
 
     case "fincode":
