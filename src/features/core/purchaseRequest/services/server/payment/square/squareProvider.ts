@@ -19,6 +19,7 @@ import {
   isFailurePaymentStatus,
   extractPaymentMethod,
 } from "./errorMapping";
+import { paymentConfig } from "@/config/app/payment.config";
 
 /**
  * Square 環境設定
@@ -227,7 +228,11 @@ export class SquarePaymentProvider implements PaymentProvider {
       payment_note: params.purchaseRequestId,
     };
 
-    console.log("[Square] Creating payment link:", JSON.stringify(requestBody, null, 2));
+    if (paymentConfig.debugLog) {
+      console.log("[Square] Creating payment link:", JSON.stringify(requestBody, null, 2));
+    } else {
+      console.log(`[Square] Creating payment link: purchaseRequestId=${params.purchaseRequestId}, amount=${params.amount}`);
+    }
 
     const response = await fetch(`${baseUrl}/v2/online-checkout/payment-links`, {
       method: "POST",
@@ -266,7 +271,11 @@ export class SquarePaymentProvider implements PaymentProvider {
     try {
       const body: SquareWebhookPayload = await request.json();
 
-      console.log("[Square] Webhook payload:", JSON.stringify(body, null, 2));
+      if (paymentConfig.debugLog) {
+        console.log("[Square] Webhook payload:", JSON.stringify(body, null, 2));
+      } else {
+        console.log(`[Square] Webhook received: type=${body.type}, paymentId=${body.data?.object?.payment?.id}`);
+      }
 
       const eventType = body.type;
       const payment = body.data.object.payment;

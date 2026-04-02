@@ -18,6 +18,7 @@ import {
   isSuccessEvent,
   extractPaymentMethod,
 } from "./errorMapping";
+import { paymentConfig } from "@/config/app/payment.config";
 import { getProviderPayTypes } from "@/config/app/payment.config";
 
 /**
@@ -134,7 +135,11 @@ export class FincodePaymentProvider implements PaymentProvider {
       ...(params.metadata && { metadata: params.metadata }),
     };
 
-    console.log("[Fincode] Request body:", JSON.stringify(requestBody, null, 2));
+    if (paymentConfig.debugLog) {
+      console.log("[Fincode] Request body:", JSON.stringify(requestBody, null, 2));
+    } else {
+      console.log(`[Fincode] Creating session: purchaseRequestId=${params.purchaseRequestId}, amount=${params.amount}`);
+    }
 
     const response = await fetch(`${config.apiUrl}/v1/sessions`, {
       method: "POST",
@@ -167,7 +172,11 @@ export class FincodePaymentProvider implements PaymentProvider {
     try {
       const body: FincodeWebhookPayload = await request.json();
 
-      console.log("[Fincode] Webhook payload:", JSON.stringify(body, null, 2));
+      if (paymentConfig.debugLog) {
+        console.log("[Fincode] Webhook payload:", JSON.stringify(body, null, 2));
+      } else {
+        console.log(`[Fincode] Webhook received: event=${body.event}, orderId=${body.order_id}`);
+      }
 
       const eventType = body.event;
       const isSuccess = this.isSuccessWebhook(body);

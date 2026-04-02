@@ -79,6 +79,14 @@ export const paymentConfig = {
   } as Record<string, ProviderConfig>,
 
   /**
+   * デバッグログ
+   * true にすると決済プロバイダーの Webhook ペイロードやリクエストボディを
+   * 全体出力する。PII（メールアドレス、電話番号等）を含むため、
+   * 本番環境では false にすること。
+   */
+  debugLog: false,
+
+  /**
    * Webhook設定
    */
   webhook: {
