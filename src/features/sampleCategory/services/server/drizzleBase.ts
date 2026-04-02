@@ -2,6 +2,8 @@
 
 import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
+import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/drizzle";
+import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
@@ -9,10 +11,7 @@ import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("sampleCategory") as DomainConfig & {
-  useSoftDelete?: boolean;
-  sortOrderField?: string | null;
-};
+const conf = getDomainConfig("sampleCategory");
 
 // sortOrderField が設定されている場合、対応するカラムを取得
 const sortOrderColumn = conf.sortOrderField
@@ -26,6 +25,31 @@ export const baseOptions = {
   useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
+  hasManyRelations: [
+    {
+      field: "samples",
+      table: SampleTable,
+      foreignKey: "sample_category_id",
+      nested: {
+        belongsTo: [
+          {
+            field: "sample_category",
+            foreignKey: "sample_category_id",
+            table: SampleCategoryTable,
+          }
+        ],
+        belongsToMany: [
+          {
+            field: "sample_tags",
+            targetTable: SampleTagTable,
+            throughTable: SampleToSampleTagTable,
+            sourceColumn: SampleToSampleTagTable.sampleId,
+            targetColumn: SampleToSampleTagTable.sampleTagId,
+          }
+        ],
+      },
+    }
+  ],
 
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof SampleCategoryCreateSchema>

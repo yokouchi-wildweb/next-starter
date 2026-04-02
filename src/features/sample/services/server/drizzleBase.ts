@@ -11,10 +11,7 @@ import type { IdType, OrderBySpec } from "@/lib/crud/types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
-const conf = getDomainConfig("sample") as DomainConfig & {
-  useSoftDelete?: boolean;
-  sortOrderField?: string | null;
-};
+const conf = getDomainConfig("sample");
 
 // sortOrderField が設定されている場合、対応するカラムを取得
 const sortOrderColumn = conf.sortOrderField

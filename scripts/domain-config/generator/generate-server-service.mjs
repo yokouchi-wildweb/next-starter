@@ -595,12 +595,14 @@ function stripFirestoreBaseForEmptySchema(content) {
   return content;
 }
 
-function buildRelationTableImports(relationDomainImports) {
+function buildRelationTableImports(relationDomainImports, selfDomain = "") {
   if (!relationDomainImports.length) return "";
 
   const byDomain = new Map();
   relationDomainImports.forEach(({ domain, tableImport }) => {
     const domainCamel = toCamelCase(domain);
+    // 自ドメインのテーブルは __DrizzleEntityImports__ で出力されるため除外
+    if (domainCamel === selfDomain) return;
     if (!byDomain.has(domainCamel)) {
       byDomain.set(domainCamel, []);
     }
@@ -693,7 +695,7 @@ export default function generateServerService(domain, options = {}) {
   if (generateService) templates.push(serviceTemplate);
 
   const drizzleEntityImports = buildEntityImports(pascal, relationImports);
-  const relationTableImportsText = buildRelationTableImports(relationDomainImports);
+  const relationTableImportsText = buildRelationTableImports(relationDomainImports, camel);
 
   function replaceTokens(content) {
     return content
