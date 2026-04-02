@@ -20,12 +20,23 @@ src/lib/x/
 └── webhook.ts        # Webhook 署名検証・CRC チャレンジ応答
 ```
 
+## 関連モジュール
+
+X 連携は以下の3レイヤーで構成される（LINE 連携と同じパターン）:
+
+| レイヤー | パス | 役割 |
+|---------|------|------|
+| ライブラリ | `src/lib/x/` | API ラッパー（本ファイル） |
+| ライブラリ | `src/lib/crypto/` | トークン暗号化（AES-256-GCM、汎用） |
+| ドメイン | `src/features/core/userXProfile/` | プロフィール + 暗号化トークン保存 |
+| ルート | `src/app/api/auth/x/` | OAuth フロー（login / callback / unlink） |
+
 ## セットアップ
 
 ### 1. X Developer Portal
 
 1. [X Developer Portal](https://developer.x.com/) でプロジェクトとアプリを作成
-2. 「User authentication settings」で OAuth 2.0 を有効化し、コールバックURLを登録
+2. 「User authentication settings」で OAuth 2.0 を有効化し、コールバックURLに `https://<your-domain>/api/auth/x/callback` を登録
 3. Keys and tokens から認証情報を取得
 
 ### 2. 環境変数
@@ -40,6 +51,29 @@ X_ACCESS_SECRET=your_access_secret
 # OAuth 2.0 PKCE（ユーザー認証フロー、必要な場合のみ）
 X_OAUTH2_CLIENT_ID=your_client_id
 X_OAUTH2_CLIENT_SECRET=your_client_secret
+
+# トークン暗号化キー（64文字の hex。generateEncryptionKey() で生成可能）
+ENCRYPTION_KEY=your_64char_hex_key
+```
+
+### 3. DB マイグレーション
+
+`user_x_profiles` テーブルが新規追加されている（`users` テーブルとは 1:1 リレーション）。
+`drizzle-kit push` でスキーマを反映する。
+
+```
+user_x_profiles
+├── id (uuid, PK)
+├── user_id (uuid, FK → users, unique)     ← 1:1
+├── x_user_id (text, unique)               ← X のユーザーID
+├── username (text, nullable)              ← @スクリーンネーム
+├── display_name (text, nullable)
+├── profile_image_url (text, nullable)
+├── access_token_encrypted (text)          ← AES-256-GCM 暗号化
+├── refresh_token_encrypted (text)         ← AES-256-GCM 暗号化
+├── token_expires_at (timestamp)           ← 期限管理
+├── scopes (text[], nullable)              ← 認可スコープ
+├── created_at / updated_at
 ```
 
 ## ダウンストリームでの実装
@@ -158,6 +192,58 @@ const { client, accessToken, refreshToken: newRefreshToken } = await refreshXTok
 import { revokeXToken } from "@/lib/x";
 
 await revokeXToken(savedAccessToken);
+```
+
+### X 連携ボタン（ダウンストリームでの最小実装）
+
+LINE 連携と同じパターン。`redirect_after` で連携後の戻り先を指定する。
+
+```tsx
+// マイページ等に設置（POST でリクエスト）
+<form action="/api/auth/x/login?redirect_after=/mypage" method="POST">
+  <button type="submit">X と連携する</button>
+</form>
+```
+
+リダイレクト後のクエリパラメータで結果を判定:
+
+| パラメータ | 値 | 意味 |
+|-----------|-----|------|
+| `x_linked` | `"true"` | 連携成功 |
+| `x_link_error` | エラーメッセージ | 連携失敗 |
+
+### X 連携解除
+
+```ts
+import { axios } from "@/lib/axios";
+
+export async function unlinkX() {
+  return axios.post("/api/auth/x/unlink");
+}
+```
+
+### userXProfileService
+
+`@/features/core/userXProfile/services/server/userXProfileService` からインポート。
+
+| メソッド | 説明 |
+|---------|------|
+| `linkXAccount(userId, options)` | X アカウントを紐付け（トークン暗号化、重複時は 409） |
+| `unlinkXAccount(userId)` | X 連携解除（X 側 revoke + レコード削除） |
+| `findByUserId(userId)` | ユーザーIDから連携プロフィール検索 |
+| `findByXUserId(xUserId)` | X userId から連携プロフィール検索 |
+| `getValidClient(userId)` | 有効なクライアント取得（期限切れ時は自動リフレッシュ + DB更新） |
+| `updateTokens(userId, tokens)` | トークンを暗号化して更新 |
+
+**`getValidClient` の使用例（推奨）:**
+
+```ts
+import { userXProfileService } from "@/features/core/userXProfile/services/server/userXProfileService";
+import { postTweet } from "@/lib/x";
+
+// ユーザーの代わりに投稿（トークン管理は全て自動）
+const { client } = await userXProfileService.getValidClient(userId);
+await postTweet(client, "当選おめでとうございます！🎉");
 ```
 
 ### OAuth 2.0 保存済みトークンからクライアント生成
@@ -425,6 +511,14 @@ import {
 } from "@/lib/x";
 ```
 
+## API ルート
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| POST | `/api/auth/x/login` | OAuth 2.0 PKCE フロー開始。`redirect_after` 必須、`scopes` 任意 |
+| GET | `/api/auth/x/callback` | X からの OAuth コールバック（直接呼び出さない） |
+| POST | `/api/auth/x/unlink` | X 連携解除（トークン revoke + レコード削除） |
+
 ## API料金（2026年2月〜）
 
 | プラン | 月額 | 投稿上限 | 備考 |
@@ -436,10 +530,12 @@ import {
 
 ## セキュリティ
 
+- **トークン暗号化**: `src/lib/crypto/` の AES-256-GCM でアクセストークン・リフレッシュトークンを暗号化して DB に保存。`v1:iv:tag:ciphertext` フォーマットでバージョン管理
 - **Webhook 署名検証**: HMAC-SHA256 + タイミングセーフ比較（`timingSafeEqual`）で検証
 - **OAuth 2.0 PKCE**: code_verifier による認可コード横取り攻撃の防止
-- **CSRF 対策**: OAuth フローの state パラメータによるリクエスト偽造防止
-- **環境変数**: 認証情報は全て環境変数から取得。コードにハードコードしない
+- **CSRF 対策**: OAuth フローの state パラメータ + nonce cookie によるリクエスト偽造防止
+- **連携解除時の revoke**: `unlinkXAccount` は X 側のトークン失効も実行（失敗しても解除は続行）
+- **環境変数**: 認証情報・暗号化キーは全て環境変数から取得。コードにハードコードしない
 
 ## 注意事項
 
