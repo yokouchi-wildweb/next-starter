@@ -1,6 +1,7 @@
 // src/features/core/purchaseRequest/services/server/payment/fincode/fincodeProvider.ts
 // GMO Fincode 決済プロバイダ実装（リダイレクト型決済）
 
+import crypto from "crypto";
 import type {
   PaymentProvider,
   CreatePaymentSessionParams,
@@ -232,11 +233,17 @@ export class FincodePaymentProvider implements PaymentProvider {
 
   /**
    * Webhook署名を検証
-   * Fincodeは登録時に設定した固定値でシンプルに検証
+   * Fincodeは登録時に設定した固定トークンをヘッダーに付与する方式（HMAC ではない）
+   * タイミング攻撃防止のため定数時間比較を使用
    */
   async verifyWebhookSignature(_request: Request, signature: string): Promise<boolean> {
     const config = this.getConfig();
-    return signature === config.webhookSignature;
+    const expected = Buffer.from(config.webhookSignature);
+    const actual = Buffer.from(signature);
+    if (expected.length !== actual.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(expected, actual);
   }
 
   /**
