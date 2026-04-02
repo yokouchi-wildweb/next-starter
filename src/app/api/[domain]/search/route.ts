@@ -49,6 +49,7 @@ export const GET = createDomainRoute<any, DomainParams>(
       // WithOptions のパース
       const withRelations = parseWithRelations(query.get("withRelations"));
       const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
+      const hasManyLimit = parsePositiveInteger(query.get("hasManyLimit"), "hasManyLimit");
 
       // サービスへ渡す SearchParams を組み立て
       const searchParams: SearchParams & WithOptions = {};
@@ -64,6 +65,7 @@ export const GET = createDomainRoute<any, DomainParams>(
         searchParams.prioritizeSearchHits = prioritizeSearchHits;
       if (withRelations) searchParams.withRelations = withRelations;
       if (withCount) searchParams.withCount = withCount;
+      if (typeof hasManyLimit === "number") searchParams.hasManyLimit = hasManyLimit;
 
       // ドメインサービスの search を実行し結果を JSON で返却
       return service.search(searchParams);

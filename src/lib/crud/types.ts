@@ -344,6 +344,11 @@ export type WithOptions = {
    * 全件取得が必要な場合は listAll() を使用する。
    */
   limit?: number;
+  /**
+   * hasMany リレーション展開時の、親レコードあたりの子レコード取得上限。
+   * 省略時はデフォルト 100。
+   */
+  hasManyLimit?: number;
 };
 
 // ============================================================
@@ -357,6 +362,7 @@ export type WithOptions = {
 export type NestedRelations = {
   belongsTo?: BelongsToRelation[];
   belongsToMany?: BelongsToManyObjectRelation[];
+  hasMany?: HasManyRelation[];
 };
 
 /**
@@ -399,6 +405,26 @@ export type BelongsToManyObjectRelation<
   sourceColumn: TSourceColumn;
   /** 中間テーブルの target 側カラム（例: SampleToSampleTagTable.sampleTagId） */
   targetColumn: TTargetColumn;
+  /** 取得するカラム名（省略時は全カラム） */
+  targetFields?: string[];
+  /**
+   * 2階層目のリレーション設定。
+   * withRelations: 2 の場合にこのリレーション先のさらにリレーションを展開する。
+   */
+  nested?: NestedRelations;
+};
+
+/**
+ * hasMany リレーション設定。
+ * 親→子方向のリレーションを展開し、子レコードの配列を取得する。
+ */
+export type HasManyRelation<TTable = any> = {
+  /** 展開後のフィールド名（例: "samples"） */
+  field: string;
+  /** 子テーブル（例: SampleTable） */
+  table: TTable;
+  /** 子テーブル側の外部キーカラム名（例: "sample_category_id"） */
+  foreignKey: string;
   /** 取得するカラム名（省略時は全カラム） */
   targetFields?: string[];
   /**

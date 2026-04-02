@@ -18,9 +18,11 @@ export const GET = createDomainRoute<any, DomainParams>(
     const withRelations = parseWithRelations(query.get("withRelations"));
     const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
     const limit = parsePositiveInteger(query.get("limit"), "limit");
+    const hasManyLimit = parsePositiveInteger(query.get("hasManyLimit"), "hasManyLimit");
     if (withRelations) options.withRelations = withRelations;
     if (withCount) options.withCount = withCount;
     if (typeof limit === "number") options.limit = limit;
+    if (typeof hasManyLimit === "number") options.hasManyLimit = hasManyLimit;
     return service.list(options);
   },
 );

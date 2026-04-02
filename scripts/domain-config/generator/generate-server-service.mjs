@@ -291,12 +291,83 @@ function buildCountableRelationsSnippets(config, pascal, camel) {
     });
 }
 
+/**
+ * withRelations 用: hasMany リレーション設定を生成（2階層nested対応）
+ */
+function buildHasManyRelationsSnippets(config, pascal, camel, visitedDomains = new Set(), depth = 1) {
+  if (!Array.isArray(config.relations)) return [];
+  if (config.dbEngine !== "Neon") return [];
+
+  const currentDomain = config.singular;
+  visitedDomains.add(currentDomain);
+
+  return config.relations
+    .filter((relation) => relation.relationType === "hasMany")
+    .map((relation) => {
+      const relationPascal = toPascalCase(relation.domain);
+      const tableImport = `${relationPascal}Table`;
+      const foreignKey = relation.fieldName;
+      const field = toPlural(relation.domain);
+
+      let nestedLines = [];
+      let nestedImports = { belongsTo: [], belongsToMany: [], hasMany: [] };
+      if (depth > 0 && !visitedDomains.has(relation.domain)) {
+        const targetConfig = getDomainConfig(toCamelCase(relation.domain));
+        if (targetConfig && targetConfig.dbEngine === "Neon") {
+          const nestedVisited = new Set(visitedDomains);
+          const nestedBelongsTo = buildBelongsToRelationsSnippets(
+            targetConfig,
+            relationPascal,
+            toCamelCase(relation.domain),
+            nestedVisited,
+            0
+          );
+          const nestedBelongsToMany = buildBelongsToManyObjectRelationsSnippets(
+            targetConfig,
+            relationPascal,
+            toCamelCase(relation.domain),
+            nestedVisited,
+            0
+          );
+
+          if (nestedBelongsTo.length > 0 || nestedBelongsToMany.length > 0) {
+            nestedLines = buildNestedLiteralLines(nestedBelongsTo, nestedBelongsToMany);
+            nestedImports = {
+              belongsTo: nestedBelongsTo,
+              belongsToMany: nestedBelongsToMany,
+              hasMany: [],
+            };
+          }
+        }
+      }
+
+      const lines = [
+        "    {",
+        `      field: "${field}",`,
+        `      table: ${tableImport},`,
+        `      foreignKey: "${foreignKey}",`,
+      ];
+      if (nestedLines.length > 0) {
+        lines.push(...nestedLines);
+      }
+      lines.push("    }");
+
+      return {
+        tableImport,
+        relationDomain: relation.domain,
+        nestedImports,
+        literal: lines.join("\n"),
+      };
+    });
+}
+
 function formatOptionsLiteral(
   baseOptions,
   belongsToMany,
   belongsToRelations = [],
   belongsToManyObjectRelations = [],
-  countableRelations = []
+  countableRelations = [],
+  hasManyRelations = []
 ) {
   const entries = Object.entries(baseOptions).map(([key, value]) => {
     const formatted = JSON.stringify(value, null, 2).replace(/\n/g, "\n  ");
@@ -316,6 +387,11 @@ function formatOptionsLiteral(
   if (belongsToManyObjectRelations.length) {
     const literal = belongsToManyObjectRelations.map((item) => item.literal).join(",\n");
     entries.push(`  belongsToManyObjectRelations: [\n${literal}\n  ],`);
+  }
+
+  if (hasManyRelations.length) {
+    const literal = hasManyRelations.map((item) => item.literal).join(",\n");
+    entries.push(`  hasManyRelations: [\n${literal}\n  ],`);
   }
 
   if (countableRelations.length) {
@@ -341,7 +417,8 @@ function formatAllRelationsLiteral(
   belongsToMany,
   belongsToRelations,
   belongsToManyObjectRelations,
-  countableRelations
+  countableRelations,
+  hasManyRelations = []
 ) {
   const sections = [];
 
@@ -362,6 +439,11 @@ function formatAllRelationsLiteral(
     sections.push(`  belongsToManyObjectRelations: [\n${literal}\n  ],`);
   }
 
+  if (hasManyRelations.length) {
+    const literal = hasManyRelations.map((item) => item.literal).join(",\n");
+    sections.push(`  hasManyRelations: [\n${literal}\n  ],`);
+  }
+
   if (countableRelations.length) {
     const literal = countableRelations.map((item) => item.literal).join(",\n");
     sections.push(`  countableRelations: [\n${literal}\n  ],`);
@@ -377,13 +459,15 @@ function composeServiceOptions(config, pascal, camel) {
   const belongsToRelations = buildBelongsToRelationsSnippets(config, pascal, camel);
   const belongsToManyObjectRelations = buildBelongsToManyObjectRelationsSnippets(config, pascal, camel);
   const countableRelations = buildCountableRelationsSnippets(config, pascal, camel);
+  const hasManyRelations = buildHasManyRelationsSnippets(config, pascal, camel);
 
   const optionsLiteral = formatOptionsLiteral(
     baseOptions,
     belongsToMany,
     belongsToRelations,
     belongsToManyObjectRelations,
-    countableRelations
+    countableRelations,
+    hasManyRelations
   );
 
   const relationTableImports = [
@@ -395,6 +479,11 @@ function composeServiceOptions(config, pascal, camel) {
   function collectImports(items, type, isNested = false) {
     for (const item of items) {
       if (type === "belongsTo") {
+        relationDomainImports.push({
+          domain: item.relationDomain,
+          tableImport: item.tableImport,
+        });
+      } else if (type === "hasMany") {
         relationDomainImports.push({
           domain: item.relationDomain,
           tableImport: item.tableImport,
@@ -419,18 +508,23 @@ function composeServiceOptions(config, pascal, camel) {
         if (item.nestedImports.belongsToMany?.length > 0) {
           collectImports(item.nestedImports.belongsToMany, "belongsToMany", true);
         }
+        if (item.nestedImports.hasMany?.length > 0) {
+          collectImports(item.nestedImports.hasMany, "hasMany", true);
+        }
       }
     }
   }
 
   collectImports(belongsToRelations, "belongsTo");
   collectImports(belongsToManyObjectRelations, "belongsToMany");
+  collectImports(hasManyRelations, "hasMany");
 
   const belongsToManyLiteral = formatAllRelationsLiteral(
     belongsToMany,
     belongsToRelations,
     belongsToManyObjectRelations,
-    countableRelations
+    countableRelations,
+    hasManyRelations
   );
 
   return { optionsLiteral, relationTableImports, belongsToManyLiteral, relationDomainImports };

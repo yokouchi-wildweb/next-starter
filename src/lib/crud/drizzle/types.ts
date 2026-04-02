@@ -7,6 +7,7 @@ import type {
   BelongsToRelation,
   BelongsToManyObjectRelation,
   CountableRelation,
+  HasManyRelation,
 } from "@/lib/crud/types";
 import type { db } from "@/lib/drizzle";
 
@@ -70,6 +71,11 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    * 中間テーブルを経由してリレーション先のオブジェクト配列を取得する。
    */
   belongsToManyObjectRelations?: BelongsToManyObjectRelation[];
+  /**
+   * withRelations オプション用: hasMany リレーション設定。
+   * 親→子方向のリレーションを展開し、子レコードの配列を取得する。
+   */
+  hasManyRelations?: HasManyRelation[];
   /**
    * withCount オプション用: カウント取得対象のリレーション設定。
    */

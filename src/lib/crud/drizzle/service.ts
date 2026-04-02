@@ -19,6 +19,7 @@ import type {
   BulkUpdateResult,
   WhereExpr,
   WithOptions,
+  HasManyRelation,
 } from "../types";
 import { buildOrderBy, buildRelationWhere, buildWhere, runQuery } from "./query";
 import { applyInsertDefaults, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
@@ -30,7 +31,7 @@ import {
   syncBelongsToManyRelations,
   bulkSyncBelongsToManyRelations,
 } from "./belongsToMany";
-import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateCount } from "./relations";
+import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateHasMany, DEFAULT_HAS_MANY_LIMIT, hydrateCount } from "./relations";
 
 const resolveRecordId = (value: unknown): string | number | undefined => {
   if (typeof value === "string" || typeof value === "number") {
@@ -187,6 +188,7 @@ export function createCrudService<
   // withRelations / withCount 用のリレーション設定
   const belongsToRelations = serviceOptions.belongsToRelations ?? [];
   const belongsToManyObjectRelations = serviceOptions.belongsToManyObjectRelations ?? [];
+  const hasManyRelations = serviceOptions.hasManyRelations ?? [];
   const countableRelations = serviceOptions.countableRelations ?? [];
   // reorder 用の sortOrder カラム
   const sortOrderColumn = serviceOptions.sortOrderColumn;
@@ -199,6 +201,59 @@ export function createCrudService<
   const buildSoftDeleteFilter = (): SQL | undefined => {
     if (!deletedAtColumn) return undefined;
     return isNull(deletedAtColumn);
+  };
+
+  /**
+   * withRelations / withCount のリレーション展開を共通化したヘルパー。
+   * belongsTo → belongsToMany → hasMany の順に展開し、withCount も処理する。
+   */
+  const hydrateRelations = async (
+    records: Record<string, any>[],
+    options?: WithOptions,
+  ): Promise<void> => {
+    const depth = resolveRelationDepth(options?.withRelations);
+
+    if (depth > 0) {
+      const hasManyLimit = options?.hasManyLimit ?? DEFAULT_HAS_MANY_LIMIT;
+
+      // ネスト展開用のラップ関数（循環参照回避のため引数で渡す）
+      const wrappedHydrateHasMany = async (
+        recs: Record<string, any>[],
+        rels: HasManyRelation[],
+        d: number,
+      ) => {
+        await hydrateHasMany(recs, rels, d, hasManyLimit, hydrateBelongsTo, hydrateBelongsToManyObjects);
+      };
+
+      const wrappedHydrateBelongsToMany = async (
+        recs: Record<string, any>[],
+        rels: typeof belongsToManyObjectRelations,
+        d: number,
+      ) => {
+        await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo, wrappedHydrateHasMany);
+      };
+
+      if (belongsToRelations.length) {
+        await hydrateBelongsTo(records, belongsToRelations, depth, wrappedHydrateBelongsToMany, wrappedHydrateHasMany);
+      }
+      if (belongsToManyObjectRelations.length) {
+        await hydrateBelongsToManyObjects(records, belongsToManyObjectRelations, depth, hydrateBelongsTo, wrappedHydrateHasMany);
+      }
+      if (hasManyRelations.length) {
+        await hydrateHasMany(
+          records,
+          hasManyRelations,
+          depth,
+          hasManyLimit,
+          hydrateBelongsTo,
+          hydrateBelongsToManyObjects,
+        );
+      }
+    }
+
+    if (options?.withCount && countableRelations.length) {
+      await hydrateCount(records, countableRelations);
+    }
   };
 
   return {
@@ -279,32 +334,8 @@ export function createCrudService<
         await hydrateBelongsToManyRelations(results, belongsToManyRelations);
       }
 
-      // withRelations: リレーション先オブジェクトを展開
-      const depth = resolveRelationDepth(options?.withRelations);
-      if (depth > 0) {
-        // belongsToMany展開関数をラップ（再帰呼び出し用）
-        const wrappedHydrateBelongsToMany = async (
-          recs: Record<string, any>[],
-          rels: typeof belongsToManyObjectRelations,
-          d: number,
-        ) => {
-          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
-        };
-
-        if (belongsToRelations.length) {
-          await hydrateBelongsTo(results, belongsToRelations, depth, wrappedHydrateBelongsToMany);
-        }
-        if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(results, belongsToManyObjectRelations, depth, hydrateBelongsTo);
-        }
-      }
-
-      // withCount: リレーション先のレコード数を取得
-      if (options?.withCount) {
-        if (countableRelations.length) {
-          await hydrateCount(results, countableRelations);
-        }
-      }
+      // withRelations / withCount
+      await hydrateRelations(results, options);
 
       return results;
     },
@@ -320,31 +351,8 @@ export function createCrudService<
         await hydrateBelongsToManyRelations(results, belongsToManyRelations);
       }
 
-      // withRelations: リレーション先オブジェクトを展開
-      const depth = resolveRelationDepth(options?.withRelations);
-      if (depth > 0) {
-        const wrappedHydrateBelongsToMany = async (
-          recs: Record<string, any>[],
-          rels: typeof belongsToManyObjectRelations,
-          d: number,
-        ) => {
-          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
-        };
-
-        if (belongsToRelations.length) {
-          await hydrateBelongsTo(results, belongsToRelations, depth, wrappedHydrateBelongsToMany);
-        }
-        if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(results, belongsToManyObjectRelations, depth, hydrateBelongsTo);
-        }
-      }
-
-      // withCount: リレーション先のレコード数を取得
-      if (options?.withCount) {
-        if (countableRelations.length) {
-          await hydrateCount(results, countableRelations);
-        }
-      }
+      // withRelations / withCount
+      await hydrateRelations(results, options);
 
       return results;
     },
@@ -366,31 +374,8 @@ export function createCrudService<
         await hydrateBelongsToManyRelations([record], belongsToManyRelations);
       }
 
-      // withRelations: リレーション先オブジェクトを展開
-      const depth = resolveRelationDepth(options?.withRelations);
-      if (depth > 0) {
-        const wrappedHydrateBelongsToMany = async (
-          recs: Record<string, any>[],
-          rels: typeof belongsToManyObjectRelations,
-          d: number,
-        ) => {
-          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
-        };
-
-        if (belongsToRelations.length) {
-          await hydrateBelongsTo([record], belongsToRelations, depth, wrappedHydrateBelongsToMany);
-        }
-        if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects([record], belongsToManyObjectRelations, depth, hydrateBelongsTo);
-        }
-      }
-
-      // withCount: リレーション先のレコード数を取得
-      if (options?.withCount) {
-        if (countableRelations.length) {
-          await hydrateCount([record], countableRelations);
-        }
-      }
+      // withRelations / withCount
+      await hydrateRelations([record], options);
 
       return record;
     },
@@ -408,31 +393,8 @@ export function createCrudService<
         await hydrateBelongsToManyRelations([record], belongsToManyRelations);
       }
 
-      // withRelations: リレーション先オブジェクトを展開
-      const depthWithDeleted = resolveRelationDepth(options?.withRelations);
-      if (depthWithDeleted > 0) {
-        const wrappedHydrateBelongsToMany = async (
-          recs: Record<string, any>[],
-          rels: typeof belongsToManyObjectRelations,
-          d: number,
-        ) => {
-          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
-        };
-
-        if (belongsToRelations.length) {
-          await hydrateBelongsTo([record], belongsToRelations, depthWithDeleted, wrappedHydrateBelongsToMany);
-        }
-        if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects([record], belongsToManyObjectRelations, depthWithDeleted, hydrateBelongsTo);
-        }
-      }
-
-      // withCount: リレーション先のレコード数を取得
-      if (options?.withCount) {
-        if (countableRelations.length) {
-          await hydrateCount([record], countableRelations);
-        }
-      }
+      // withRelations / withCount
+      await hydrateRelations([record], options);
 
       return record;
     },
@@ -593,6 +555,7 @@ export function createCrudService<
         relationWhere,
         withRelations,
         withCount,
+        hasManyLimit,
       } = params;
 
       const searchPriorityFields = params.searchPriorityFields ?? serviceOptions.defaultSearchPriorityFields;
@@ -658,31 +621,8 @@ export function createCrudService<
         await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
       }
 
-      // withRelations: リレーション先オブジェクトを展開
-      const depth = resolveRelationDepth(withRelations);
-      if (depth > 0) {
-        const wrappedHydrateBelongsToMany = async (
-          recs: Record<string, any>[],
-          rels: typeof belongsToManyObjectRelations,
-          d: number,
-        ) => {
-          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
-        };
-
-        if (belongsToRelations.length) {
-          await hydrateBelongsTo(result.results, belongsToRelations, depth, wrappedHydrateBelongsToMany);
-        }
-        if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations, depth, hydrateBelongsTo);
-        }
-      }
-
-      // withCount: リレーション先のレコード数を取得
-      if (withCount) {
-        if (countableRelations.length) {
-          await hydrateCount(result.results, countableRelations);
-        }
-      }
+      // withRelations / withCount
+      await hydrateRelations(result.results, { withRelations, withCount, hasManyLimit });
 
       return result;
     },
@@ -732,6 +672,7 @@ export function createCrudService<
         relationWhere,
         withRelations,
         withCount,
+        hasManyLimit,
       } = params;
 
       const searchPriorityFields = params.searchPriorityFields ?? serviceOptions.defaultSearchPriorityFields;
@@ -791,31 +732,8 @@ export function createCrudService<
         await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
       }
 
-      // withRelations: リレーション先オブジェクトを展開
-      const depthSearchWithDeleted = resolveRelationDepth(withRelations);
-      if (depthSearchWithDeleted > 0) {
-        const wrappedHydrateBelongsToMany = async (
-          recs: Record<string, any>[],
-          rels: typeof belongsToManyObjectRelations,
-          d: number,
-        ) => {
-          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
-        };
-
-        if (belongsToRelations.length) {
-          await hydrateBelongsTo(result.results, belongsToRelations, depthSearchWithDeleted, wrappedHydrateBelongsToMany);
-        }
-        if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations, depthSearchWithDeleted, hydrateBelongsTo);
-        }
-      }
-
-      // withCount: リレーション先のレコード数を取得
-      if (withCount) {
-        if (countableRelations.length) {
-          await hydrateCount(result.results, countableRelations);
-        }
-      }
+      // withRelations / withCount
+      await hydrateRelations(result.results, { withRelations, withCount, hasManyLimit });
 
       return result;
     },
@@ -825,7 +743,7 @@ export function createCrudService<
       options: { page?: number; limit?: number; orderBy?: SQL[]; where?: SQL } & WithOptions = {},
       countQuery?: any,
     ): Promise<PaginatedResult<TSelect>> {
-      const { withRelations, withCount, ...queryOptions } = options;
+      const { withRelations, withCount, hasManyLimit, ...queryOptions } = options;
       const result = await runQuery<TSelect>(table, baseQuery, queryOptions, countQuery);
 
       // 既存の belongsToMany ID配列の hydrate
@@ -833,31 +751,8 @@ export function createCrudService<
         await hydrateBelongsToManyRelations(result.results, belongsToManyRelations);
       }
 
-      // withRelations: リレーション先オブジェクトを展開
-      const depthQuery = resolveRelationDepth(withRelations);
-      if (depthQuery > 0) {
-        const wrappedHydrateBelongsToMany = async (
-          recs: Record<string, any>[],
-          rels: typeof belongsToManyObjectRelations,
-          d: number,
-        ) => {
-          await hydrateBelongsToManyObjects(recs, rels, d, hydrateBelongsTo);
-        };
-
-        if (belongsToRelations.length) {
-          await hydrateBelongsTo(result.results, belongsToRelations, depthQuery, wrappedHydrateBelongsToMany);
-        }
-        if (belongsToManyObjectRelations.length) {
-          await hydrateBelongsToManyObjects(result.results, belongsToManyObjectRelations, depthQuery, hydrateBelongsTo);
-        }
-      }
-
-      // withCount: リレーション先のレコード数を取得
-      if (withCount) {
-        if (countableRelations.length) {
-          await hydrateCount(result.results, countableRelations);
-        }
-      }
+      // withRelations / withCount
+      await hydrateRelations(result.results, { withRelations, withCount, hasManyLimit });
 
       return result;
     },

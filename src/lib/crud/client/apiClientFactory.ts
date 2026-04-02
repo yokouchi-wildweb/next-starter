@@ -54,6 +54,7 @@ function buildWithOptionsParams(options?: WithOptions): string {
   const params = new URLSearchParams();
   if (options.withRelations) params.set("withRelations", String(options.withRelations));
   if (options.withCount) params.set("withCount", "true");
+  if (options.hasManyLimit) params.set("hasManyLimit", String(options.hasManyLimit));
   const str = params.toString();
   return str ? `?${str}` : "";
 }

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/drizzle";
 import { eq, inArray } from "drizzle-orm";
-import type { BelongsToRelation, BelongsToManyObjectRelation } from "@/lib/crud/types";
+import type { BelongsToRelation, BelongsToManyObjectRelation, HasManyRelation } from "@/lib/crud/types";
 
 /**
  * belongsToMany リレーションをオブジェクト配列で展開する。
@@ -30,6 +30,16 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
       relations: BelongsToManyObjectRelation[],
       depth: number,
     ) => Promise<void>,
+    hydrateHasManyFn?: (
+      records: Record<string, any>[],
+      relations: HasManyRelation[],
+      depth: number,
+    ) => Promise<void>,
+  ) => Promise<void>,
+  hydrateHasManyFn?: (
+    records: Record<string, any>[],
+    relations: HasManyRelation[],
+    depth: number,
   ) => Promise<void>,
 ): Promise<void> {
   if (records.length === 0 || relations.length === 0 || depth < 1) return;
@@ -105,6 +115,7 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
             rel.nested.belongsTo,
             depth - 1,
             wrappedHydrateBelongsToMany,
+            hydrateHasManyFn,
           );
         }
 
@@ -115,6 +126,16 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
             rel.nested.belongsToMany,
             depth - 1,
             hydrateBelongsTo,
+            hydrateHasManyFn,
+          );
+        }
+
+        // hasMany のネスト展開
+        if (hydrateHasManyFn && rel.nested.hasMany && rel.nested.hasMany.length > 0) {
+          await hydrateHasManyFn(
+            nestedRecords,
+            rel.nested.hasMany,
+            depth - 1,
           );
         }
       }

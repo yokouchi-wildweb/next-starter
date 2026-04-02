@@ -2,7 +2,7 @@
 
 import { createDomainIdRoute } from "src/lib/routeFactory";
 import type { WithOptions } from "@/lib/crud";
-import { parseBooleanFlag, parseWithRelations } from "../search/utils";
+import { parseBooleanFlag, parsePositiveInteger, parseWithRelations } from "../search/utils";
 
 // GET /api/[domain]/[id] : IDで単一データを取得
 export const GET = createDomainIdRoute(
@@ -15,8 +15,10 @@ export const GET = createDomainIdRoute(
     const options: WithOptions = {};
     const withRelations = parseWithRelations(query.get("withRelations"));
     const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
+    const hasManyLimit = parsePositiveInteger(query.get("hasManyLimit"), "hasManyLimit");
     if (withRelations) options.withRelations = withRelations;
     if (withCount) options.withCount = withCount;
+    if (typeof hasManyLimit === "number") options.hasManyLimit = hasManyLimit;
     return service.get(params.id, options);
   },
 );
