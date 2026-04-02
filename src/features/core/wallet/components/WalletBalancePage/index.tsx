@@ -98,10 +98,8 @@ export function WalletBalancePage({
   const currentBalance = wallet?.balance ?? 0;
 
   // 購入制限チェック: SMS認証が必要かどうか
-  // TODO: デザイン確認用に一時的に無効化
-  const requiresPhoneVerification = false;
-  // const requiresPhoneVerification =
-  //   APP_FEATURES.wallet.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
+  const requiresPhoneVerification =
+    APP_FEATURES.wallet.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
 
   return (
     <Stack space={6}>
