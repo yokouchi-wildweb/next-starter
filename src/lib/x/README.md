@@ -35,25 +35,41 @@ X 連携は以下の3レイヤーで構成される（LINE 連携と同じパタ
 
 ### 1. X Developer Portal
 
-1. [X Developer Portal](https://developer.x.com/) でプロジェクトとアプリを作成
-2. 「User authentication settings」で OAuth 2.0 を有効化し、コールバックURLに `https://<your-domain>/api/auth/x/callback` を登録
-3. Keys and tokens から認証情報を取得
+1. [X Developer Portal](https://developer.x.com/) にアクセスし、Developer アカウントを作成
+2. 「Projects & Apps」→「+ Create Project」でプロジェクトを作成
+3. プロジェクト内で「+ Add App」でアプリを作成
+4. アプリの「Settings」→「User authentication settings」→「Set up」で以下を設定:
+   - **App permissions**: `Read and write`（投稿に必要）
+   - **Type of App**: `Web App, Automated App or Bot`
+   - **Callback URI**: `https://<your-domain>/api/auth/x/callback`（ローカル開発: `http://localhost:3000/api/auth/x/callback`）
+   - **Website URL**: アプリの URL
+5. 保存すると **Client ID** と **Client Secret** が表示される → `X_OAUTH2_CLIENT_ID` / `X_OAUTH2_CLIENT_SECRET`
+6. 「Keys and tokens」タブで以下を生成（メディアアップロード・公式アカウント投稿に必要な場合のみ）:
+   - **API Key and Secret** → `X_API_KEY` / `X_API_SECRET`
+   - **Access Token and Secret** → `X_ACCESS_TOKEN` / `X_ACCESS_SECRET`（Permissions を `Read and Write` に設定してから生成すること）
 
 ### 2. 環境変数
 
 ```env
-# OAuth 1.0a（投稿・メディアアップロード）
-X_API_KEY=your_api_key
-X_API_SECRET=your_api_secret
-X_ACCESS_TOKEN=your_access_token
-X_ACCESS_SECRET=your_access_secret
+# OAuth 2.0 PKCE（ユーザー認証フロー）
+# Developer Portal → App → Keys and tokens → OAuth 2.0 Client ID and Client Secret
+X_OAUTH2_CLIENT_ID=
+X_OAUTH2_CLIENT_SECRET=
 
-# OAuth 2.0 PKCE（ユーザー認証フロー、必要な場合のみ）
-X_OAUTH2_CLIENT_ID=your_client_id
-X_OAUTH2_CLIENT_SECRET=your_client_secret
+# OAuth 1.0a（メディアアップロード・アプリ公式アカウント投稿に必要な場合のみ）
+# Developer Portal → App → Keys and tokens → Consumer Keys / Authentication Tokens
+X_API_KEY=
+X_API_SECRET=
+X_ACCESS_TOKEN=
+X_ACCESS_SECRET=
 
-# トークン暗号化キー（64文字の hex。generateEncryptionKey() で生成可能）
-ENCRYPTION_KEY=your_64char_hex_key
+# トークン暗号化キー（AES-256-GCM、64文字の hex）
+# 以下のいずれかで生成:
+#   import { generateEncryptionKey } from "@/lib/crypto";
+#   generateEncryptionKey();
+# または:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+ENCRYPTION_KEY=
 ```
 
 ### 3. DB マイグレーション
