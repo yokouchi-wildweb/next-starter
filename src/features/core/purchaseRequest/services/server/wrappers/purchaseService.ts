@@ -23,6 +23,7 @@ import { couponService } from "@/features/core/coupon/services/server/couponServ
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
 import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry";
 import { getPaymentSessionEnricher } from "../payment/sessionEnricher";
+import { CURRENCY_CONFIG } from "@/config/app/currency.config";
 
 // フック定義の副作用インポート（登録を実行）
 import "../hooks/definitions";
@@ -139,7 +140,21 @@ export async function initiatePurchase(
     return handleExistingRequest(existing);
   }
 
-  // 2. クーポン検証（コードが指定されている場合）
+  // 2. 購入パッケージの照合（amount と paymentAmount が正規パッケージに一致するか検証）
+  const currencyConfig = CURRENCY_CONFIG[walletType as keyof typeof CURRENCY_CONFIG] as
+    | { packages: ReadonlyArray<{ amount: number; price: number }> }
+    | undefined;
+  if (!currencyConfig?.packages?.length) {
+    throw new DomainError("このウォレット種別では購入できません。", { status: 400 });
+  }
+  const validPackage = currencyConfig.packages.find(
+    (pkg) => pkg.amount === amount && pkg.price === paymentAmount
+  );
+  if (!validPackage) {
+    throw new DomainError("無効な購入パッケージです。", { status: 400 });
+  }
+
+  // 3. クーポン検証（コードが指定されている場合）
   let actualPaymentAmount = paymentAmount;
   let discountAmount: number | undefined;
   if (couponCode) {
