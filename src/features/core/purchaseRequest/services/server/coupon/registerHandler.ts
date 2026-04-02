@@ -43,33 +43,45 @@ registerCouponHandler(PURCHASE_DISCOUNT_CATEGORY, {
 
   async validateForUse({ coupon, metadata }) {
     const paymentAmount = metadata?.paymentAmount as number | undefined;
-    if (paymentAmount == null || paymentAmount <= 0) {
-      return { valid: false, reason: "支払い金額が指定されていません" };
-    }
 
     const { discountType, discountValue } = coupon.settings;
     if (!discountType || discountValue == null) {
       return { valid: false, reason: "クーポンの割引設定が不正です" };
     }
 
-    // 割引後金額が0以下になる場合は拒否
-    const discount = calculateDiscount(coupon.settings, paymentAmount);
-    if (paymentAmount - discount <= 0) {
-      return { valid: false, reason: "割引額が支払い金額を超えています" };
+    // paymentAmount が指定されている場合のみ金額チェック
+    // （パッケージ一覧での検証時は paymentAmount なしで呼ばれる）
+    if (paymentAmount != null) {
+      if (paymentAmount <= 0) {
+        return { valid: false, reason: "支払い金額が指定されていません" };
+      }
+      const discount = calculateDiscount(coupon.settings, paymentAmount);
+      if (paymentAmount - discount <= 0) {
+        return { valid: false, reason: "割引額が支払い金額を超えています" };
+      }
     }
 
     return { valid: true };
   },
 
   async resolveEffect({ coupon, metadata }): Promise<PurchaseDiscountEffect> {
-    const paymentAmount = metadata?.paymentAmount as number;
-    const discount = calculateDiscount(coupon.settings, paymentAmount);
-    const finalPaymentAmount = Math.max(0, paymentAmount - discount);
+    const paymentAmount = metadata?.paymentAmount as number | undefined;
+    const { discountType, discountValue, maxDiscountAmount } = coupon.settings;
+
+    const discount = paymentAmount != null
+      ? calculateDiscount(coupon.settings, paymentAmount)
+      : 0;
+    const finalPaymentAmount = paymentAmount != null
+      ? Math.max(0, paymentAmount - discount)
+      : 0;
 
     return {
       discountAmount: discount,
       finalPaymentAmount,
       label: formatDiscountLabel(coupon.settings) ?? undefined,
+      discountType: String(discountType),
+      discountValue: Number(discountValue) || 0,
+      maxDiscountAmount: Number(maxDiscountAmount) || null,
     };
   },
 

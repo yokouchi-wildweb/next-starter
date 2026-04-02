@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
@@ -15,6 +15,8 @@ import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { saveCouponCode } from "@/features/core/wallet/utils/couponParam";
+import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
+import { CouponInput } from "../WalletPurchasePage/CouponInput";
 
 import { BalanceCard } from "./BalanceCard";
 import { PurchaseList } from "./PurchaseList";
@@ -38,6 +40,22 @@ export function WalletBalancePage({
   const config = getCurrencyConfigBySlug(slug);
   const { user } = useAuthSession();
   const { data, isLoading, error } = useWalletBalances(user?.userId);
+
+  // クーポン状態管理
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [couponEffect, setCouponEffect] = useState<PurchaseDiscountEffect | null>(null);
+
+  const handleCouponApply = useCallback((code: string, effect: PurchaseDiscountEffect) => {
+    setCouponCode(code);
+    setCouponEffect(effect);
+    // 購入ページ遷移時に引き継ぐために保存
+    saveCouponCode(code);
+  }, []);
+
+  const handleCouponClear = useCallback(() => {
+    setCouponCode(null);
+    setCouponEffect(null);
+  }, []);
 
   // URLパラメータ ?coupon=CODE をsessionStorageに保存
   useEffect(() => {
@@ -83,8 +101,10 @@ export function WalletBalancePage({
   const currentBalance = wallet?.balance ?? 0;
 
   // 購入制限チェック: SMS認証が必要かどうか
-  const requiresPhoneVerification =
-    APP_FEATURES.wallet.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
+  // TODO: デザイン確認用に一時的に無効化
+  const requiresPhoneVerification = false;
+  // const requiresPhoneVerification =
+  //   APP_FEATURES.wallet.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
 
   return (
     <Stack space={6}>
@@ -97,7 +117,18 @@ export function WalletBalancePage({
       {requiresPhoneVerification ? (
         <PhoneVerificationRequired currentPhoneNumber={currentPhoneNumber} />
       ) : (
-        <PurchaseList slug={slug} config={config} />
+        <>
+          <CouponInput
+            onApply={handleCouponApply}
+            onClear={handleCouponClear}
+          />
+          <PurchaseList
+            slug={slug}
+            config={config}
+            couponCode={couponCode}
+            couponEffect={couponEffect}
+          />
+        </>
       )}
     </Stack>
   );

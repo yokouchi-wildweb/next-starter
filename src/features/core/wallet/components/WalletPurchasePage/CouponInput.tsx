@@ -16,8 +16,8 @@ import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "@/featu
 import { consumeCouponCode } from "@/features/core/wallet/utils/couponParam";
 
 type CouponInputProps = {
-  /** 元の支払い金額（割引計算のmetadataとして送信） */
-  paymentAmount: number;
+  /** 元の支払い金額（割引計算のmetadataとして送信。未指定時は割引条件のみ取得） */
+  paymentAmount?: number;
   /** クーポン適用時のコールバック */
   onApply: (couponCode: string, effect: PurchaseDiscountEffect) => void;
   /** クーポン取り消し時のコールバック */
@@ -32,27 +32,34 @@ export function CouponInput({ paymentAmount, onApply, onClear }: CouponInputProp
 
   const { validate, isLoading } = useValidateCouponForCategory();
 
-  // sessionStorageから保存済みクーポンコードを自動入力
+  // sessionStorageから保存済みクーポンコードを自動入力・自動適用
   useEffect(() => {
     const saved = consumeCouponCode();
     if (saved) {
       setCode(saved);
+      applyCode(saved);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleApply = useCallback(async () => {
-    if (!code.trim()) return;
+  const applyCode = useCallback(async (targetCode: string) => {
+    if (!targetCode.trim()) return;
     setErrorMessage(null);
 
+    const metadata: Record<string, unknown> = {};
+    if (paymentAmount != null) {
+      metadata.paymentAmount = paymentAmount;
+    }
+
     try {
-      const res = await validate(code.trim(), PURCHASE_DISCOUNT_CATEGORY, { paymentAmount });
+      const res = await validate(targetCode.trim(), PURCHASE_DISCOUNT_CATEGORY, metadata);
 
       if (res.valid) {
         const effect = res.effect as PurchaseDiscountEffect | null;
         if (effect) {
-          setAppliedCode(code.trim());
+          setAppliedCode(targetCode.trim());
           setAppliedEffect(effect);
-          onApply(code.trim(), effect);
+          onApply(targetCode.trim(), effect);
         } else {
           setErrorMessage("割引効果を取得できませんでした。");
         }
@@ -62,7 +69,11 @@ export function CouponInput({ paymentAmount, onApply, onClear }: CouponInputProp
     } catch {
       setErrorMessage("クーポンの検証に失敗しました。");
     }
-  }, [code, paymentAmount, validate, onApply]);
+  }, [paymentAmount, validate, onApply]);
+
+  const handleApply = useCallback(() => {
+    applyCode(code);
+  }, [code, applyCode]);
 
   const handleClear = useCallback(() => {
     setCode("");
@@ -90,7 +101,10 @@ export function CouponInput({ paymentAmount, onApply, onClear }: CouponInputProp
           >
             <Span size="sm" weight="medium">{appliedCode}</Span>
             <Span size="sm" tone="success" weight="bold">
-              {appliedEffect.label ?? `${appliedEffect.discountAmount.toLocaleString()}円割引`}
+              {appliedEffect.label
+                ?? (appliedEffect.discountAmount > 0
+                  ? `${appliedEffect.discountAmount.toLocaleString()}円割引`
+                  : null)}
             </Span>
           </Flex>
         </Stack>
