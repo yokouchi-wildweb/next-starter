@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { initiatePurchase } from "../services/client/purchaseRequestClient";
 import { err } from "@/lib/errors/httpError";
@@ -44,14 +44,16 @@ export function useCoinPurchase({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 冪等キーはコンポーネントのマウント時に1回だけ生成
+  // 同一ページ上での二重クリックやクーポン変更後の再試行で同じキーを使い回す
+  const idempotencyKey = useMemo(() => uuidv4(), []);
+
   const purchase = useCallback(
     async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        // 冪等キーを生成
-        const idempotencyKey = uuidv4();
 
         // 購入開始APIを呼び出し
         // paymentMethod は決済プロバイダ側で選択されるため、初期値として "redirect" を設定
@@ -76,7 +78,7 @@ export function useCoinPurchase({
         setIsLoading(false);
       }
     },
-    [walletType, amount, paymentAmount, itemName, couponCode]
+    [idempotencyKey, walletType, amount, paymentAmount, itemName, couponCode]
   );
 
   return { purchase, isLoading, error };

@@ -137,7 +137,12 @@ export async function initiatePurchase(
   // 1. 冪等キーで既存リクエストをチェック
   const existing = await findByIdempotencyKey(idempotencyKey);
   if (existing) {
-    return handleExistingRequest(existing);
+    // pending の場合はクーポン情報を更新して決済セッション作成からやり直す
+    // processing 以降は既に決済プロバイダーにセッションがあるため既存フローで処理
+    if (existing.status !== "pending") {
+      return handleExistingRequest(existing);
+    }
+    // pending → 以下のバリデーション・クーポン検証・セッション作成フローに合流
   }
 
   // 2. 購入パッケージの照合（amount と paymentAmount が正規パッケージに一致するか検証）
@@ -179,28 +184,47 @@ export async function initiatePurchase(
     }
   }
 
-  // 3. purchase_request を作成（status: pending）
-  const createData = {
-    user_id: userId,
-    idempotency_key: idempotencyKey,
-    wallet_type: walletType,
-    amount,
-    payment_amount: actualPaymentAmount,
-    payment_method: paymentMethod,
-    payment_provider: paymentProvider,
-    status: "pending" as const,
-    expires_at: new Date(Date.now() + 30 * 60 * 1000), // 30分後
-    // クーポン情報（適用時のみ記録）
-    ...(couponCode && {
-      coupon_code: couponCode,
-      discount_amount: discountAmount ?? 0,
-      original_payment_amount: paymentAmount,
-    }),
-  };
-  console.log("Creating purchase request with data:", JSON.stringify(createData, null, 2));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const purchaseRequest = await base.create(createData as any) as PurchaseRequest;
-  console.log("Purchase request created:", purchaseRequest.id);
+  // 4. purchase_request を作成、または pending の既存リクエストを再利用
+  let purchaseRequest: PurchaseRequest;
+  if (existing?.status === "pending") {
+    // 既存の pending リクエストのクーポン情報を更新して再利用
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    purchaseRequest = await base.update(existing.id, {
+      payment_amount: actualPaymentAmount,
+      ...(couponCode
+        ? {
+            coupon_code: couponCode,
+            discount_amount: discountAmount ?? 0,
+            original_payment_amount: paymentAmount,
+          }
+        : {
+            coupon_code: null,
+            discount_amount: 0,
+            original_payment_amount: null,
+          }),
+    } as any) as PurchaseRequest;
+  } else {
+    // 新規作成
+    const createData = {
+      user_id: userId,
+      idempotency_key: idempotencyKey,
+      wallet_type: walletType,
+      amount,
+      payment_amount: actualPaymentAmount,
+      payment_method: paymentMethod,
+      payment_provider: paymentProvider,
+      status: "pending" as const,
+      expires_at: new Date(Date.now() + 30 * 60 * 1000), // 30分後
+      // クーポン情報（適用時のみ記録）
+      ...(couponCode && {
+        coupon_code: couponCode,
+        discount_amount: discountAmount ?? 0,
+        original_payment_amount: paymentAmount,
+      }),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    purchaseRequest = await base.create(createData as any) as PurchaseRequest;
+  }
 
   // 4. 決済プロバイダでセッション作成
   const slug = getSlugByWalletType(walletType as WalletType);
