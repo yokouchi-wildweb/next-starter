@@ -184,6 +184,11 @@ export async function initiatePurchase(
     }
   }
 
+  // 割引後の支払い金額が0以下でないことを保証（クーポンバリデーションとの二重防御）
+  if (actualPaymentAmount <= 0) {
+    throw new DomainError("割引後の支払い金額が無効です。", { status: 400 });
+  }
+
   // 4. purchase_request を作成、または pending の既存リクエストを再利用
   let purchaseRequest: PurchaseRequest;
   if (existing?.status === "pending") {
