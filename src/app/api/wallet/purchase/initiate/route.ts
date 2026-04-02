@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createApiRoute } from "@/lib/routeFactory";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { businessConfig } from "@/config/business.config";
 
 // currency.config.ts から動的に walletType の値を取得（型安全）
 const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
@@ -54,7 +55,7 @@ export const POST = createApiRoute(
       return NextResponse.json({ message: "リクエストボディの解析に失敗しました。" }, { status: 400 });
     }
 
-    const baseUrl = getBaseUrl(req);
+    const baseUrl = businessConfig.url;
 
     const result = await purchaseRequestService.initiatePurchase({
       userId: session.userId,
@@ -78,9 +79,3 @@ export const POST = createApiRoute(
   },
 );
 
-function getBaseUrl(req: Request): string {
-  const headers = req.headers;
-  const host = headers.get("x-forwarded-host") ?? headers.get("host") ?? "localhost:3000";
-  const protocol = headers.get("x-forwarded-proto") ?? "https";
-  return `${protocol}://${host}`;
-}
