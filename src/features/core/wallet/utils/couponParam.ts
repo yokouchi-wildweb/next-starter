@@ -1,14 +1,23 @@
-// URLパラメータ経由のクーポンコード保持
+// アクティブクーポンコードのsessionStorage管理
 //
-// /wallet/coin?coupon=CODE のようなURLでアクセスした際に
-// クーポンコードをsessionStorageに保存し、購入ページで自動入力する。
+// 「現在適用中のクーポンコード」を1つだけ保持する。
+// どのページからでも保存・参照・クリアできる。
+//
+// 保存タイミング:
+//   - URLパラメータ ?coupon=CODE でアクセスした時
+//   - CouponInput でクーポンを適用した時
+// クリアタイミング:
+//   - CouponInput でクーポンを取り消した時
+//   - 購入完了時（将来）
+// 参照タイミング:
+//   - CouponInput マウント時に自動適用
 
-const STORAGE_KEY = "wallet_coupon_code";
+const STORAGE_KEY = "wallet_active_coupon";
 
 /**
- * sessionStorageにクーポンコードを保存
+ * アクティブクーポンコードを保存
  */
-export function saveCouponCode(code: string): void {
+export function setActiveCoupon(code: string): void {
   try {
     sessionStorage.setItem(STORAGE_KEY, code);
   } catch {
@@ -17,24 +26,20 @@ export function saveCouponCode(code: string): void {
 }
 
 /**
- * sessionStorageからクーポンコードを取得（取得後に削除）
+ * アクティブクーポンコードを取得（削除しない）
  */
-export function consumeCouponCode(): string | null {
+export function getActiveCoupon(): string | null {
   try {
-    const code = sessionStorage.getItem(STORAGE_KEY);
-    if (code) {
-      sessionStorage.removeItem(STORAGE_KEY);
-    }
-    return code;
+    return sessionStorage.getItem(STORAGE_KEY);
   } catch {
     return null;
   }
 }
 
 /**
- * sessionStorageのクーポンコードを削除
+ * アクティブクーポンコードをクリア
  */
-export function clearCouponCode(): void {
+export function clearActiveCoupon(): void {
   try {
     sessionStorage.removeItem(STORAGE_KEY);
   } catch {

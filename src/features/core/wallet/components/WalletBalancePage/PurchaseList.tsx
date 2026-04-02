@@ -11,7 +11,6 @@ import type { WalletType } from "@/config/app/currency.config";
 import type { CurrencyConfig } from "@/features/core/wallet/types/currency";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { calculatePackageDiscount, formatPackageDiscountLabel } from "@/features/core/wallet/utils/discountCalculator";
-import { saveCouponCode } from "@/features/core/wallet/utils/couponParam";
 import { CurrencyDisplay } from "../common/CurrencyDisplay";
 
 type PurchaseListProps = {
@@ -19,22 +18,15 @@ type PurchaseListProps = {
   slug: string;
   /** 通貨設定 */
   config: CurrencyConfig & { walletType: WalletType };
-  /** 適用中のクーポンコード */
-  couponCode?: string | null;
   /** 適用中のクーポン効果（割引条件） */
   couponEffect?: PurchaseDiscountEffect | null;
 };
 
-export function PurchaseList({ slug, config, couponCode, couponEffect }: PurchaseListProps) {
+export function PurchaseList({ slug, config, couponEffect }: PurchaseListProps) {
   const hasDiscount = couponEffect != null;
-  const discountLabel = hasDiscount ? formatPackageDiscountLabel(couponEffect) : null;
+  const isPerPackage = couponEffect?.discountMode === "per_package";
 
-  const handleLinkClick = () => {
-    // 購入ページ遷移前にクーポンコードを保存（自動適用用）
-    if (couponCode) {
-      saveCouponCode(couponCode);
-    }
-  };
+
 
   return (
     <Section>
@@ -45,10 +37,14 @@ export function PurchaseList({ slug, config, couponCode, couponEffect }: Purchas
         <Stack space={0}>
         {config.packages.map((pkg) => {
           const discount = hasDiscount
-            ? calculatePackageDiscount(couponEffect, pkg.price)
+            ? calculatePackageDiscount(couponEffect, pkg.price, pkg.amount)
             : 0;
           const discountedPrice = pkg.price - discount;
           const isDiscountValid = discount > 0 && discountedPrice > 0;
+          // per_package: パッケージ別ラベル / flat: 全パッケージ共通ラベル
+          const discountLabel = hasDiscount
+            ? formatPackageDiscountLabel(couponEffect, isPerPackage ? pkg.amount : undefined)
+            : null;
 
           return (
             <Flex
@@ -81,7 +77,7 @@ export function PurchaseList({ slug, config, couponCode, couponEffect }: Purchas
                 variant="default"
                 size="sm"
                 className="min-w-24 rounded-full"
-                onClick={handleLinkClick}
+
               >
                 {isDiscountValid ? (
                   <Stack space={0} className="items-center">

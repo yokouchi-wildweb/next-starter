@@ -4,18 +4,32 @@
 // クーポンの settings に格納された割引設定に基づいて割引計算を行う。
 //
 // 管理画面でクーポン作成時にカテゴリ「購入割引」を選択すると、
-// settingsFields で定義したフォーム（割引タイプ、割引値、上限額）が表示される。
+// settingsFields で定義したフォーム（割引モード、割引タイプ、割引値、上限額）が表示される。
 // 入力値は coupon.settings に保存され、resolveEffect で参照される。
+//
+// discountMode:
+//   - "flat"（デフォルト）: 全パッケージに同一の割引を適用
+//   - "per_package": パッケージごとに異なる割引率を適用
 
 import { registerCouponHandler } from "@/features/core/coupon/handlers";
 import { PURCHASE_DISCOUNT_CATEGORY } from "../../../types/couponEffect";
-import type { PurchaseDiscountEffect } from "../../../types/couponEffect";
+import type { PurchaseDiscountEffect, PackageDiscount, DiscountMode } from "../../../types/couponEffect";
 
 registerCouponHandler(PURCHASE_DISCOUNT_CATEGORY, {
   label: "購入割引",
 
   // 管理画面フォームに表示される設定フィールド
   settingsFields: [
+    {
+      name: "discountMode",
+      label: "割引モード",
+      formInput: "select",
+      required: true,
+      options: [
+        { value: "flat", label: "一律割引" },
+        { value: "per_package", label: "パッケージ別割引" },
+      ],
+    },
     {
       name: "discountType",
       label: "割引タイプ",
@@ -39,25 +53,54 @@ registerCouponHandler(PURCHASE_DISCOUNT_CATEGORY, {
       formInput: "numberInput",
       placeholder: "定率割引時の上限額（未設定で上限なし）",
     },
+    {
+      name: "packageDiscounts",
+      label: "パッケージ別割引設定",
+      formInput: "custom",
+      fieldType: "jsonb",
+    },
   ],
 
   async validateForUse({ coupon, metadata }) {
     const paymentAmount = metadata?.paymentAmount as number | undefined;
+    const purchaseAmount = metadata?.purchaseAmount as number | undefined;
+    const mode = getDiscountMode(coupon.settings);
 
-    const { discountType, discountValue } = coupon.settings;
-    if (!discountType || discountValue == null) {
-      return { valid: false, reason: "クーポンの割引設定が不正です" };
-    }
-
-    // paymentAmount が指定されている場合のみ金額チェック
-    // （パッケージ一覧での検証時は paymentAmount なしで呼ばれる）
-    if (paymentAmount != null) {
-      if (paymentAmount <= 0) {
-        return { valid: false, reason: "支払い金額が指定されていません" };
+    if (mode === "per_package") {
+      const packageDiscounts = parsePackageDiscounts(coupon.settings);
+      if (packageDiscounts.length === 0) {
+        return { valid: false, reason: "パッケージ別割引設定がありません" };
       }
-      const discount = calculateDiscount(coupon.settings, paymentAmount);
-      if (paymentAmount - discount <= 0) {
-        return { valid: false, reason: "割引額が支払い金額を超えています" };
+
+      // purchaseAmount 指定時は該当パッケージの存在確認
+      if (purchaseAmount != null && paymentAmount != null) {
+        if (paymentAmount <= 0) {
+          return { valid: false, reason: "支払い金額が指定されていません" };
+        }
+        const entry = findPackageDiscount(packageDiscounts, purchaseAmount);
+        if (!entry) {
+          return { valid: false, reason: "このパッケージにはクーポン割引が適用できません" };
+        }
+        const discount = calculateDiscountFromEntry(entry, paymentAmount);
+        if (paymentAmount - discount <= 0) {
+          return { valid: false, reason: "割引額が支払い金額を超えています" };
+        }
+      }
+    } else {
+      // flat モード
+      const { discountType, discountValue } = coupon.settings;
+      if (!discountType || discountValue == null) {
+        return { valid: false, reason: "クーポンの割引設定が不正です" };
+      }
+
+      if (paymentAmount != null) {
+        if (paymentAmount <= 0) {
+          return { valid: false, reason: "支払い金額が指定されていません" };
+        }
+        const discount = calculateFlatDiscount(coupon.settings, paymentAmount);
+        if (paymentAmount - discount <= 0) {
+          return { valid: false, reason: "割引額が支払い金額を超えています" };
+        }
       }
     }
 
@@ -66,10 +109,42 @@ registerCouponHandler(PURCHASE_DISCOUNT_CATEGORY, {
 
   async resolveEffect({ coupon, metadata }): Promise<PurchaseDiscountEffect> {
     const paymentAmount = metadata?.paymentAmount as number | undefined;
+    const purchaseAmount = metadata?.purchaseAmount as number | undefined;
+    const mode = getDiscountMode(coupon.settings);
+
+    if (mode === "per_package") {
+      const packageDiscounts = parsePackageDiscounts(coupon.settings);
+
+      let discount = 0;
+      let finalPaymentAmount = 0;
+      let label: string | undefined;
+
+      if (purchaseAmount != null && paymentAmount != null) {
+        const entry = findPackageDiscount(packageDiscounts, purchaseAmount);
+        if (entry) {
+          discount = calculateDiscountFromEntry(entry, paymentAmount);
+          finalPaymentAmount = Math.max(0, paymentAmount - discount);
+          label = formatEntryLabel(entry);
+        }
+      }
+
+      return {
+        discountAmount: discount,
+        finalPaymentAmount,
+        label: label ?? "パッケージ別割引",
+        discountMode: "per_package",
+        discountType: "percentage",
+        discountValue: 0,
+        maxDiscountAmount: Number(coupon.settings.maxDiscountAmount) || null,
+        packageDiscounts,
+      };
+    }
+
+    // flat モード
     const { discountType, discountValue, maxDiscountAmount } = coupon.settings;
 
     const discount = paymentAmount != null
-      ? calculateDiscount(coupon.settings, paymentAmount)
+      ? calculateFlatDiscount(coupon.settings, paymentAmount)
       : 0;
     const finalPaymentAmount = paymentAmount != null
       ? Math.max(0, paymentAmount - discount)
@@ -78,7 +153,8 @@ registerCouponHandler(PURCHASE_DISCOUNT_CATEGORY, {
     return {
       discountAmount: discount,
       finalPaymentAmount,
-      label: formatDiscountLabel(coupon.settings) ?? undefined,
+      label: formatFlatLabel(coupon.settings) ?? undefined,
+      discountMode: "flat",
       discountType: String(discountType),
       discountValue: Number(discountValue) || 0,
       maxDiscountAmount: Number(maxDiscountAmount) || null,
@@ -86,7 +162,18 @@ registerCouponHandler(PURCHASE_DISCOUNT_CATEGORY, {
   },
 
   describeEffect(coupon) {
-    const label = formatDiscountLabel(coupon.settings);
+    const mode = getDiscountMode(coupon.settings);
+
+    if (mode === "per_package") {
+      const packageDiscounts = parsePackageDiscounts(coupon.settings);
+      if (packageDiscounts.length === 0) return null;
+      return {
+        label: "パッケージ別割引",
+        description: `コイン購入時にパッケージごとの割引が適用されます（${packageDiscounts.length}パッケージ設定済み）`,
+      };
+    }
+
+    const label = formatFlatLabel(coupon.settings);
     if (!label) return null;
     return { label, description: `コイン購入時に${label}されます` };
   },
@@ -97,9 +184,74 @@ registerCouponHandler(PURCHASE_DISCOUNT_CATEGORY, {
 // ============================================================================
 
 /**
- * settings から割引額を計算
+ * settings から discountMode を取得（後方互換: 未設定時は "flat"）
  */
-function calculateDiscount(
+function getDiscountMode(settings: Record<string, unknown>): DiscountMode {
+  const mode = settings.discountMode as string | undefined;
+  return mode === "per_package" ? "per_package" : "flat";
+}
+
+/**
+ * settings.packageDiscounts を型安全にパースする
+ */
+function parsePackageDiscounts(settings: Record<string, unknown>): PackageDiscount[] {
+  const raw = settings.packageDiscounts;
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .filter((entry): entry is Record<string, unknown> =>
+      entry != null && typeof entry === "object"
+    )
+    .map((entry) => ({
+      amount: Number(entry.amount) || 0,
+      discountType: entry.discountType === "fixed" ? "fixed" as const : "percentage" as const,
+      discountValue: Number(entry.discountValue) || 0,
+    }))
+    .filter((entry) => entry.amount > 0 && entry.discountValue > 0);
+}
+
+/**
+ * purchaseAmount（購入数量）に対応する packageDiscount エントリを取得
+ *
+ * packageDiscounts の amount は currency.config.ts の amount（購入数量）に対応する。
+ */
+function findPackageDiscount(
+  packageDiscounts: PackageDiscount[],
+  purchaseAmount: number
+): PackageDiscount | undefined {
+  return packageDiscounts.find((entry) => entry.amount === purchaseAmount);
+}
+
+/**
+ * パッケージ別割引エントリから割引額を計算
+ */
+function calculateDiscountFromEntry(
+  entry: PackageDiscount,
+  paymentAmount: number
+): number {
+  let discount: number;
+  if (entry.discountType === "percentage") {
+    discount = Math.floor(paymentAmount * entry.discountValue / 100);
+  } else {
+    discount = entry.discountValue;
+  }
+  return Math.max(0, discount);
+}
+
+/**
+ * パッケージ別割引エントリのラベルを生成
+ */
+function formatEntryLabel(entry: PackageDiscount): string {
+  if (entry.discountType === "percentage") {
+    return `${entry.discountValue}%割引`;
+  }
+  return `${entry.discountValue.toLocaleString()}円割引`;
+}
+
+/**
+ * flat モード: settings から割引額を計算
+ */
+function calculateFlatDiscount(
   settings: Record<string, unknown>,
   paymentAmount: number
 ): number {
@@ -110,7 +262,6 @@ function calculateDiscount(
   if (discountType === "percentage") {
     discount = Math.floor(paymentAmount * value / 100);
   } else {
-    // fixed
     discount = value;
   }
 
@@ -124,9 +275,9 @@ function calculateDiscount(
 }
 
 /**
- * 割引の表示ラベルを生成
+ * flat モード: 割引の表示ラベルを生成
  */
-function formatDiscountLabel(settings: Record<string, unknown>): string | null {
+function formatFlatLabel(settings: Record<string, unknown>): string | null {
   const { discountType, discountValue } = settings;
   const value = Number(discountValue) || 0;
   if (value <= 0) return null;

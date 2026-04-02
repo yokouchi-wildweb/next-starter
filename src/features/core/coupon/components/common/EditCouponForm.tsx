@@ -19,6 +19,7 @@ import { buildFormDefaultValues } from "@/components/Form/FieldRenderer";
 import type { FieldConfig } from "@/components/Form/Field/types";
 import type { FieldGroup } from "@/components/Form/FieldRenderer/types";
 import domainConfig from "@/features/core/coupon/domain.json";
+import { PackageDiscountsInput } from "./PackageDiscountsInput";
 
 type Props = {
   coupon: Coupon;
@@ -27,6 +28,14 @@ type Props = {
 
 // 管理画面では公式プロモーションのみ選択可能
 const officialOnlyOptions = CouponTypeOptions.filter(opt => opt.value === "official");
+
+// flat 専用フィールドは per_package 時に非表示
+const FLAT_ONLY_FIELDS = new Set(["discountType", "discountValue", "maxDiscountAmount"]);
+
+function filterSettingsField(name: string, discountMode?: string): boolean {
+  if (discountMode === "per_package" && FLAT_ONLY_FIELDS.has(name)) return false;
+  return true;
+}
 
 export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
   const { categories, categoryInfoList } = useCouponCategories();
@@ -42,16 +51,21 @@ export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
 
   const selectedCategory = methods.watch("category" as any) as string | undefined;
 
+  const discountMode = methods.watch("settings.discountMode" as any) as string | undefined;
+
   // 選択中カテゴリの settingsFields を settings.{name} にプレフィックス変換
+  // discountMode に応じて表示フィールドをフィルタリング
   const settingsFields = useMemo<FieldConfig[]>(() => {
     if (!selectedCategory) return [];
     const info = categoryInfoList.find(c => c.value === selectedCategory);
     if (!info?.settingsFields?.length) return [];
-    return info.settingsFields.map(f => ({
-      ...f,
-      name: `settings.${f.name}`,
-    }));
-  }, [selectedCategory, categoryInfoList]);
+    return info.settingsFields
+      .filter(f => filterSettingsField(f.name, discountMode))
+      .map(f => ({
+        ...f,
+        name: `settings.${f.name}`,
+      }));
+  }, [selectedCategory, categoryInfoList, discountMode]);
 
   // settingsFields がある場合、fieldGroups に動的セクションを追加
   const dynamicFieldGroups = useMemo<FieldGroup[]>(() => {
@@ -101,6 +115,9 @@ export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
           : undefined
       }
       fieldGroups={dynamicFieldGroups}
+      beforeField={{
+        "settings.packageDiscounts": <PackageDiscountsInput />,
+      }}
       afterField={{ code: null }}
     />
   );

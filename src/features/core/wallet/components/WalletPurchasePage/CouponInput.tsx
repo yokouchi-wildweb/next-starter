@@ -13,18 +13,20 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { useValidateCouponForCategory } from "@/features/core/coupon/hooks/useValidateCouponForCategory";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
-import { consumeCouponCode } from "@/features/core/wallet/utils/couponParam";
+import { getActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 
 type CouponInputProps = {
   /** 元の支払い金額（割引計算のmetadataとして送信。未指定時は割引条件のみ取得） */
   paymentAmount?: number;
+  /** 購入数量（per_package 照合用。未指定時はパッケージ別割引の照合をスキップ） */
+  purchaseAmount?: number;
   /** クーポン適用時のコールバック */
   onApply: (couponCode: string, effect: PurchaseDiscountEffect) => void;
   /** クーポン取り消し時のコールバック */
   onClear: () => void;
 };
 
-export function CouponInput({ paymentAmount, onApply, onClear }: CouponInputProps) {
+export function CouponInput({ paymentAmount, purchaseAmount, onApply, onClear }: CouponInputProps) {
   const [code, setCode] = useState("");
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
   const [appliedEffect, setAppliedEffect] = useState<PurchaseDiscountEffect | null>(null);
@@ -32,9 +34,9 @@ export function CouponInput({ paymentAmount, onApply, onClear }: CouponInputProp
 
   const { validate, isLoading } = useValidateCouponForCategory();
 
-  // sessionStorageから保存済みクーポンコードを自動入力・自動適用
+  // マウント時にアクティブクーポンを復元して自動適用
   useEffect(() => {
-    const saved = consumeCouponCode();
+    const saved = getActiveCoupon();
     if (saved) {
       setCode(saved);
       applyCode(saved);
@@ -49,6 +51,9 @@ export function CouponInput({ paymentAmount, onApply, onClear }: CouponInputProp
     const metadata: Record<string, unknown> = {};
     if (paymentAmount != null) {
       metadata.paymentAmount = paymentAmount;
+    }
+    if (purchaseAmount != null) {
+      metadata.purchaseAmount = purchaseAmount;
     }
 
     try {
@@ -69,7 +74,7 @@ export function CouponInput({ paymentAmount, onApply, onClear }: CouponInputProp
     } catch {
       setErrorMessage("クーポンの検証に失敗しました。");
     }
-  }, [paymentAmount, validate, onApply]);
+  }, [paymentAmount, purchaseAmount, validate, onApply]);
 
   const handleApply = useCallback(() => {
     applyCode(code);

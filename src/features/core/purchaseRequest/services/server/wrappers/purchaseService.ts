@@ -162,7 +162,7 @@ export async function initiatePurchase(
       couponCode,
       PURCHASE_DISCOUNT_CATEGORY,
       userId,
-      { paymentAmount },
+      { paymentAmount, purchaseAmount: amount },
     );
     if (!validation.valid) {
       throw new DomainError(

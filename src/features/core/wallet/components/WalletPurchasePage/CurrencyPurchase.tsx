@@ -7,6 +7,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
+import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 
 import { PurchaseButton } from "./PurchaseButton";
 import { PurchaseSummaryCard } from "./PurchaseSummaryCard";
@@ -51,11 +52,13 @@ export function CurrencyPurchase({
   const handleCouponApply = useCallback((code: string, effect: PurchaseDiscountEffect) => {
     setCouponCode(code);
     setCouponEffect(effect);
+    setActiveCoupon(code);
   }, []);
 
   const handleCouponClear = useCallback(() => {
     setCouponCode(null);
     setCouponEffect(null);
+    clearActiveCoupon();
   }, []);
 
   return (
@@ -70,6 +73,7 @@ export function CurrencyPurchase({
       />
       <CouponInput
         paymentAmount={paymentAmount}
+        purchaseAmount={purchaseAmount}
         onApply={handleCouponApply}
         onClear={handleCouponClear}
       />
