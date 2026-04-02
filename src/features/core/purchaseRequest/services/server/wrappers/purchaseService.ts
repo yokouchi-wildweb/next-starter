@@ -69,6 +69,8 @@ export type CompletePurchaseParams = {
   paymentMethod?: string;
   /** 支払い完了日時 */
   paidAt?: Date;
+  /** プロバイダが実際に課金した金額（Webhookペイロードから取得、照合用） */
+  paidAmount?: number;
   /** Webhook署名（デバッグ用） */
   webhookSignature?: string;
   /** 決済プロバイダ名（識別子解決に使用） */
@@ -352,7 +354,7 @@ export async function getPurchaseStatusForUser(
 export async function completePurchase(
   params: CompletePurchaseParams
 ): Promise<CompletePurchaseResult> {
-  const { sessionId, transactionId, paymentMethod, paidAt, webhookSignature, providerName } = params;
+  const { sessionId, transactionId, paymentMethod, paidAt, paidAmount, webhookSignature, providerName } = params;
 
   // 1. Webhook識別子で購入リクエストを検索
   const purchaseRequest = await findByWebhookIdentifier(sessionId, providerName);
@@ -373,6 +375,17 @@ export async function completePurchase(
   if (purchaseRequest.status !== "processing" && purchaseRequest.status !== "failed") {
     throw new DomainError(
       `無効なステータスです: ${purchaseRequest.status}`,
+      { status: 400 }
+    );
+  }
+
+  // 4. 決済金額の照合（Webhookペイロードの金額とDB上の金額が一致するか検証）
+  if (paidAmount != null && paidAmount !== purchaseRequest.payment_amount) {
+    console.error(
+      `[completePurchase] 決済金額不一致: paidAmount=${paidAmount}, expected=${purchaseRequest.payment_amount}, requestId=${purchaseRequest.id}`
+    );
+    throw new DomainError(
+      "決済金額がリクエストの金額と一致しません。",
       { status: 400 }
     );
   }
@@ -606,6 +619,7 @@ export async function handleWebhook(
         transactionId: paymentResult.transactionId,
         paymentMethod: paymentResult.paymentMethod,
         paidAt: paymentResult.paidAt,
+        paidAmount: paymentResult.paidAmount,
         webhookSignature,
         providerName,
       });

@@ -189,6 +189,7 @@ export class FincodePaymentProvider implements PaymentProvider {
           transactionId: body.access_id || body.transaction_id,
           paymentMethod: extractPaymentMethod(eventType),
           paidAt,
+          paidAmount: body.amount ? Number(body.amount) : undefined,
           rawResponse: body,
         };
       }

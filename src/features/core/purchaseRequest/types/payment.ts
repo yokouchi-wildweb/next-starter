@@ -85,6 +85,8 @@ export type PaymentResult = {
   paidAt?: Date;
   /** プロバイダ固有データ（デバッグ用） */
   rawResponse?: unknown;
+  /** プロバイダが実際に課金した金額（Webhookペイロードから取得、照合用） */
+  paidAmount?: number;
   /** エラーコード */
   errorCode?: string;
   /** エラーメッセージ */

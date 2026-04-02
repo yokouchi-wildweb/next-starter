@@ -293,6 +293,7 @@ export class SquarePaymentProvider implements PaymentProvider {
           transactionId: payment.id,
           paymentMethod: extractPaymentMethod(payment.source_type),
           paidAt: new Date(payment.updated_at || payment.created_at),
+          paidAmount: payment.amount_money?.amount,
           rawResponse: body,
         };
       }
