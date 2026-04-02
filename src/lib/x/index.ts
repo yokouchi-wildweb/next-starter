@@ -15,6 +15,7 @@ export {
   createXUserClient,
   createXAppClient,
   createXOAuth2Client,
+  createXOAuth2UserClient,
   getReadWriteClient,
   getReadOnlyClient,
 } from "./client";
@@ -25,6 +26,7 @@ export {
   exchangeXCodeForToken,
   refreshXToken,
   revokeXToken,
+  getOrRefreshXClient,
 } from "./oauth";
 
 // ツイート操作
@@ -49,6 +51,17 @@ export {
   handleCrcChallenge,
   parseXWebhookRequest,
 } from "./webhook";
+
+// エラー型・判別ヘルパー
+export {
+  XApiError,
+  toXApiError,
+  isXApiError,
+  isXRateLimited,
+  isXTokenExpired,
+  isXSuspended,
+  isXRetryable,
+} from "./errors";
 
 // 定数
 export {
@@ -81,7 +94,13 @@ export type {
   XDirectMessageEvent,
   XWebhookEvent,
   XCrcChallengeResponse,
+  XTokenSet,
+  XRefreshedTokens,
+  XAutoRefreshOptions,
+  XAutoRefreshResult,
 } from "./types";
+
+export type { XApiErrorCode } from "./errors";
 
 // twitter-api-v2 の主要型を re-export（ダウンストリームが直接利用可能）
 export type {

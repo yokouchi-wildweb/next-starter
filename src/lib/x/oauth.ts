@@ -2,8 +2,13 @@
 
 import type { TwitterApi } from "twitter-api-v2";
 
-import { createXOAuth2Client } from "./client";
-import type { XOAuthAuthorizationResult, XOAuthCallbackResult } from "./types";
+import { createXOAuth2Client, createXOAuth2UserClient } from "./client";
+import type {
+  XAutoRefreshOptions,
+  XAutoRefreshResult,
+  XOAuthAuthorizationResult,
+  XOAuthCallbackResult,
+} from "./types";
 
 /**
  * OAuth 2.0 PKCE 認可URLを生成する。
@@ -102,4 +107,49 @@ export async function revokeXToken(
 ): Promise<void> {
   const requestClient = options?.client ?? createXOAuth2Client();
   await requestClient.revokeOAuth2Token(token, tokenType);
+}
+
+/**
+ * 保存済みトークンの期限をチェックし、必要に応じて自動リフレッシュしてクライアントを返す。
+ * トークンが更新された場合は onTokenRefreshed コールバックが呼ばれる（DB更新等に使用）。
+ *
+ * @param options.tokens - 保存済みのトークン情報（accessToken, refreshToken, expiresAt）
+ * @param options.onTokenRefreshed - トークン更新時のコールバック
+ * @param options.refreshMarginSeconds - 期限の何秒前にリフレッシュするか（デフォルト: 300秒）
+ */
+export async function getOrRefreshXClient(
+  options: XAutoRefreshOptions,
+): Promise<XAutoRefreshResult> {
+  const { tokens, onTokenRefreshed, refreshMarginSeconds = 300 } = options;
+  const now = Date.now();
+  const marginMs = refreshMarginSeconds * 1000;
+
+  // トークンがまだ有効な場合はそのまま返す
+  if (tokens.expiresAt - marginMs > now) {
+    return {
+      client: createXOAuth2UserClient(tokens.accessToken),
+      refreshed: false,
+      tokens,
+    };
+  }
+
+  // リフレッシュが必要
+  const { client, accessToken, refreshToken, expiresIn } =
+    await refreshXToken(tokens.refreshToken);
+
+  const newTokens = {
+    accessToken,
+    refreshToken: refreshToken ?? tokens.refreshToken,
+    expiresAt: now + expiresIn * 1000,
+  };
+
+  if (onTokenRefreshed) {
+    await onTokenRefreshed(newTokens);
+  }
+
+  return {
+    client,
+    refreshed: true,
+    tokens: newTokens,
+  };
 }

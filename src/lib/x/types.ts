@@ -58,6 +58,40 @@ export type XOAuthCallbackResult = {
   scope: string;
 };
 
+/** トークン自動リフレッシュの入力 */
+export type XTokenSet = {
+  accessToken: string;
+  refreshToken: string;
+  /** トークンの有効期限（Unix timestamp ミリ秒） */
+  expiresAt: number;
+};
+
+/** トークンリフレッシュ後のコールバックに渡されるデータ */
+export type XRefreshedTokens = {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+};
+
+/** getOrRefreshXClient のオプション */
+export type XAutoRefreshOptions = {
+  /** 保存済みトークン情報 */
+  tokens: XTokenSet;
+  /** トークンが更新された場合に呼ばれるコールバック（DB更新等） */
+  onTokenRefreshed?: (newTokens: XRefreshedTokens) => void | Promise<void>;
+  /** 有効期限の何秒前にリフレッシュするか（デフォルト: 300 = 5分） */
+  refreshMarginSeconds?: number;
+};
+
+/** getOrRefreshXClient の戻り値 */
+export type XAutoRefreshResult = {
+  client: import("twitter-api-v2").TwitterApi;
+  /** トークンが更新されたか */
+  refreshed: boolean;
+  /** 現在有効なトークン情報 */
+  tokens: XTokenSet;
+};
+
 // ────────────────────────────────────────
 // ツイート操作
 // ────────────────────────────────────────

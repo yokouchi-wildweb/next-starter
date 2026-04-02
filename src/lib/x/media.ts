@@ -63,12 +63,5 @@ export async function uploadMediaBatch(
   files: TUploadableMedia[],
   options?: XMediaUploadOptions,
 ): Promise<string[]> {
-  const results: string[] = [];
-
-  for (const file of files) {
-    const mediaId = await uploadMedia(client, file, options);
-    results.push(mediaId);
-  }
-
-  return results;
+  return Promise.all(files.map((file) => uploadMedia(client, file, options)));
 }

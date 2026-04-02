@@ -16,6 +16,7 @@ src/lib/x/
 ├── oauth.ts          # OAuth 2.0 PKCE フロー
 ├── tweets.ts         # ツイート投稿・削除ヘルパー
 ├── media.ts          # メディアアップロードヘルパー
+├── errors.ts         # エラー型・判別ヘルパー
 └── webhook.ts        # Webhook 署名検証・CRC チャレンジ応答
 ```
 
@@ -159,6 +160,105 @@ import { revokeXToken } from "@/lib/x";
 await revokeXToken(savedAccessToken);
 ```
 
+### OAuth 2.0 保存済みトークンからクライアント生成
+
+DBに保存したアクセストークンから「そのユーザーとして」操作するクライアントをワンライナーで生成。
+
+```ts
+import { createXOAuth2UserClient, postTweet } from "@/lib/x";
+
+// DBから取得したトークンでクライアント生成
+const client = createXOAuth2UserClient(user.xAccessToken);
+await postTweet(client, "ユーザーとして投稿！");
+```
+
+### トークン自動リフレッシュ
+
+アクセストークンの有効期限（通常2時間）をチェックし、期限切れ前なら自動リフレッシュしてクライアントを返す。トークン更新時はコールバックで DB 更新が可能。
+
+```ts
+import { getOrRefreshXClient, postTweet } from "@/lib/x";
+
+const { client, refreshed, tokens } = await getOrRefreshXClient({
+  tokens: {
+    accessToken: user.xAccessToken,
+    refreshToken: user.xRefreshToken,
+    expiresAt: user.xTokenExpiresAt,  // Unix timestamp（ミリ秒）
+  },
+  // トークンが更新された場合に DB を更新
+  onTokenRefreshed: async (newTokens) => {
+    await db.update(users).set({
+      xAccessToken: newTokens.accessToken,
+      xRefreshToken: newTokens.refreshToken,
+      xTokenExpiresAt: newTokens.expiresAt,
+    }).where(eq(users.id, user.id));
+  },
+  // 期限の何秒前にリフレッシュするか（デフォルト: 300秒 = 5分）
+  refreshMarginSeconds: 300,
+});
+
+// client は常に有効なトークンで認証済み
+await postTweet(client, "当選おめでとうございます！");
+```
+
+### エラーハンドリング
+
+X API のエラーを分類し、リトライ可能かどうかを判別できる。
+
+```ts
+import {
+  postTweet,
+  toXApiError,
+  isXRateLimited,
+  isXTokenExpired,
+  isXRetryable,
+} from "@/lib/x";
+
+try {
+  await postTweet(client, text);
+} catch (err) {
+  const xError = toXApiError(err);
+
+  switch (xError.code) {
+    case "rate_limited":
+      // xError.retryAfter 秒後にリトライ可能
+      console.log(`レート制限: ${xError.retryAfter}秒後にリトライ`);
+      break;
+    case "token_expired":
+      // トークンをリフレッシュして再試行
+      break;
+    case "suspended":
+      // アカウント凍結 — ユーザーに通知
+      break;
+    case "duplicate":
+      // 同一内容の重複投稿
+      break;
+    case "forbidden":
+    case "not_found":
+    case "unknown":
+      // その他のエラー
+      break;
+  }
+
+  // または簡易判別ヘルパーで
+  if (isXRateLimited(err)) { /* ... */ }
+  if (isXTokenExpired(err)) { /* ... */ }
+  if (isXRetryable(err)) { /* リトライ可能 */ }
+}
+```
+
+エラーコード一覧:
+
+| コード | 意味 | リトライ可能 |
+|-------|------|-------------|
+| `rate_limited` | レート制限（429） | Yes（retryAfter 秒後） |
+| `token_expired` | トークン期限切れ/無効（401） | No（リフレッシュ必要） |
+| `forbidden` | アクセス拒否（403） | No |
+| `suspended` | アカウント凍結（403） | No |
+| `duplicate` | 重複投稿 | No |
+| `not_found` | リソース未検出（404） | No |
+| `unknown` | その他（5xx等） | 5xx の場合 Yes |
+
 ### マルチアカウント対応
 
 各関数にカスタム認証情報を渡すことで、複数アカウントを操作可能。
@@ -276,6 +376,7 @@ import {
   createXUserClient,       // 環境変数から OAuth 1.0a ユーザークライアント
   createXAppClient,        // 環境変数から App-only クライアント
   createXOAuth2Client,     // 環境変数から OAuth 2.0 クライアント
+  createXOAuth2UserClient, // 保存済みトークンからクライアント生成
   getReadWriteClient,      // readWrite 権限クライアント取得
   getReadOnlyClient,       // readOnly 権限クライアント取得
 
@@ -284,6 +385,7 @@ import {
   exchangeXCodeForToken,   // コード→トークン交換
   refreshXToken,           // トークンリフレッシュ
   revokeXToken,            // トークン失効
+  getOrRefreshXClient,     // 期限チェック + 自動リフレッシュ
 
   // ツイート操作
   postTweet,               // ツイート投稿
@@ -295,7 +397,16 @@ import {
   // メディア
   uploadMedia,             // ファイルパス/Buffer/FileHandle からアップロード
   uploadMediaFromBuffer,   // Buffer からアップロード（MIMEタイプ必須）
-  uploadMediaBatch,        // 複数ファイル一括アップロード
+  uploadMediaBatch,        // 複数ファイル並列アップロード
+
+  // エラー
+  XApiError,               // エラークラス
+  toXApiError,             // 任意のエラーを XApiError に変換
+  isXApiError,             // XApiError かどうか判定
+  isXRateLimited,          // レート制限エラー判定
+  isXTokenExpired,         // トークン期限切れ判定
+  isXSuspended,            // アカウント凍結判定
+  isXRetryable,            // リトライ可能判定
 
   // Webhook
   verifyXWebhookSignature, // 署名検証（タイミングセーフ）

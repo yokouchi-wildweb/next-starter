@@ -79,6 +79,16 @@ export function createXOAuth2Client(
 }
 
 /**
+ * OAuth 2.0 で取得済みのアクセストークンからクライアントを生成する。
+ * DBに保存したトークンから「そのユーザーとして」操作するクライアントを作る場面で使用。
+ *
+ * @param accessToken - OAuth 2.0 で取得したアクセストークン
+ */
+export function createXOAuth2UserClient(accessToken: string): TwitterApi {
+  return new TwitterApi(accessToken);
+}
+
+/**
  * 既存クライアントから readWrite 権限のクライアントを取得する。
  */
 export function getReadWriteClient(client: TwitterApi): TwitterApiReadWrite {
