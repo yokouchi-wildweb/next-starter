@@ -89,10 +89,11 @@ export const POST = createApiRoute(
           { status: 200 }
         );
       }
+      // DB障害等の500系エラーはプロバイダーにリトライさせる
       console.error("[webhook] Unexpected error:", error);
       return NextResponse.json(
         { success: false, error: "internal_error", message: "内部エラーが発生しました" },
-        { status: 200 }
+        { status: 500 }
       );
     }
   }

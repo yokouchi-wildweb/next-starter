@@ -14,7 +14,7 @@ import { walletService } from "@/features/core/wallet/services/server/walletServ
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { userService } from "@/features/core/user/services/server/userService";
-import { DomainError } from "@/lib/errors/domainError";
+import { DomainError, isDomainError } from "@/lib/errors/domainError";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import { evaluateMilestones } from "@/features/core/milestone/services/server/wrappers/evaluateMilestones";
 import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/constants/triggers";
@@ -618,14 +618,18 @@ export async function handleWebhook(
         message: "購入が完了しました。",
       };
     } catch (error) {
-      // 409（楽観的ロック競合）、400（無効なステータス）等は
+      // DomainError（409: 楽観的ロック競合、400: 無効なステータス等）は
       // Webhookの正常応答として扱う（プロバイダーのリトライを防止）
-      console.warn("[handleWebhook] completePurchase failed:", error);
-      return {
-        success: true,
-        requestId: "",
-        message: "処理済みまたはスキップされました。",
-      };
+      // それ以外（DB障害等）は re-throw してプロバイダーにリトライさせる
+      if (isDomainError(error)) {
+        console.warn("[handleWebhook] completePurchase DomainError:", error.message);
+        return {
+          success: true,
+          requestId: "",
+          message: "処理済みまたはスキップされました。",
+        };
+      }
+      throw error;
     }
   } else {
     // 決済失敗 → 失敗処理
@@ -643,12 +647,15 @@ export async function handleWebhook(
         message: "決済失敗を記録しました。",
       };
     } catch (error) {
-      console.warn("[handleWebhook] failPurchase failed:", error);
-      return {
-        success: true,
-        requestId: "",
-        message: "処理済みまたはスキップされました。",
-      };
+      if (isDomainError(error)) {
+        console.warn("[handleWebhook] failPurchase DomainError:", error.message);
+        return {
+          success: true,
+          requestId: "",
+          message: "処理済みまたはスキップされました。",
+        };
+      }
+      throw error;
     }
   }
 }
