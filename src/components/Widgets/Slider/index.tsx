@@ -124,6 +124,8 @@ type SliderProps<T> = {
   autoplay?: AutoplayOption
   /** emblaプラグインを直接渡す（autoplay以外のプラグイン用） */
   plugins?: EmblaPlugins
+  /** EmblaのcontainScrollオプション。falseで端スライドの中央寄せを強制できる。未指定時はEmblaデフォルト（"trimSnaps"） */
+  containScroll?: "trimSnaps" | "keepSnaps" | false
 }
 
 const peekAlign = {
@@ -155,6 +157,7 @@ export function Slider<T>({
   onSlideChange,
   autoplay,
   plugins: externalPlugins,
+  containScroll,
 }: SliderProps<T>) {
   const effectivePeek = items.length <= 1 ? false : peek
 
@@ -285,6 +288,7 @@ export function Slider<T>({
                   ? (viewSize: number) => viewSize * align
                   : align)
                 : (effectivePeek ? peekAlign[effectivePeek] : "center"),
+              ...(containScroll != null && { containScroll }),
             }}
             plugins={emblaPlugins}
           >
