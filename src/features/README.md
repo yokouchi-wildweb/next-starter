@@ -42,8 +42,8 @@
 |-----------|-----|------|------|
 | domain | string | 🟢 Yes | 関連先ドメイン名（snake_case） |
 | label | string | 🟢 Yes | 表示名 |
-| fieldName | string | 🟢 Yes | フィールド名（例: `category_id`, `tag_ids`） |
-| fieldType | `"uuid"` \| `"string"` \| `"number"` | 🟢 Yes | 外部キーの型 |
+| fieldName | string | 条件付き | フィールド名。relationType により意味が異なる（後述） |
+| fieldType | `"uuid"` \| `"string"` \| `"number"` | 条件付き | 外部キーの型（belongsTo / belongsToMany で必須、hasMany では不要） |
 | relationType | RelationType | 🟢 Yes | リレーション種別 |
 | required | boolean | ⚪ No | 必須かどうか（belongsTo のみ有効） |
 | onDelete | `"RESTRICT"` \| `"CASCADE"` \| `"SET_NULL"` | ⚪ No | 削除時の挙動（belongsTo のみ） |
@@ -56,13 +56,32 @@
 | 値 | 説明 | Neon | Firestore |
 |----|------|------|-----------|
 | belongsTo | N:1 参照 | ○ | ○ |
-| hasMany | 1:N 子リスト | ○ | ○ |
+| hasMany | 1:N 子リスト（withRelations で子レコード配列を展開） | ○ | × |
 | hasOne | 1:1 | ○ | ○ |
 | belongsToMany | M:N 多対多 | ○ | × |
 
+#### fieldName の意味（relationType 別）
+
+| relationType | fieldName の意味 | 例 |
+|---|---|---|
+| belongsTo | 自テーブルの外部キーカラム名 | `"category_id"` |
+| belongsToMany | 自テーブルの配列フィールド名 | `"tag_ids"` |
+| hasMany | 管理用の識別名（**子テーブルの FK 生成には使われない**） | `"sample_id"` 等 |
+
+> ⚠️ **hasMany の FK 生成ルール**: 子テーブル側の外部キーカラム名は `親のsingular + "_id"` で自動決定される。例: 親が `gacha_machine` なら子テーブルの FK は `gacha_machine_id`。fieldName の値は直接使われない。
+
+#### hasMany と withRelations
+
+hasMany リレーションを定義すると、`dc:generate` 時に drizzleBase.ts へ `hasManyRelations` 設定が自動生成される。これにより `withRelations: 1` で子レコード配列が親に展開される。
+
+- 親あたりのデフォルト取得上限: 100件
+- 呼び出し側で `hasManyLimit` を指定してオーバーライド可能（例: `search({ withRelations: 1, hasManyLimit: 20 })`）
+- `withRelations` の depth 上限は 3（`resolveRelationDepth` で制限）
+- hasMany はエンティティ・スキーマ・フォームには影響しない（サーバーサービスの読み取り時のみ）
+
 #### RelationFormInput
 
-リレーションフィールドのフォーム入力種別。省略時は relationType に応じたデフォルト値が使われる。
+リレーションフィールドのフォーム入力種別。省略時は relationType に応じたデフォルト値が使われる。hasMany / hasOne にはフォーム入力は適用されない。
 
 | relationType | デフォルト | 指定可能な値 |
 |---|---|---|
@@ -79,6 +98,8 @@
 `custom` を指定した場合、データ取得は行われず FieldConfig のみ生成される。
 `beforeField` / `afterField` で独自コンポーネントを注入する（通常フィールドの `custom` と同じ仕組み）。
 
+#### リレーション定義例
+
 ```json
 {
   "relations": [
@@ -91,12 +112,17 @@
       "formInput": "asyncCombobox"
     },
     {
-      "domain": "project",
-      "label": "プロジェクト",
-      "fieldName": "project_id",
+      "domain": "tag",
+      "label": "タグ",
+      "fieldName": "tag_ids",
       "fieldType": "uuid",
-      "relationType": "belongsTo",
-      "formInput": "custom"
+      "relationType": "belongsToMany"
+    },
+    {
+      "domain": "order_item",
+      "label": "注文明細",
+      "fieldName": "order_item_id",
+      "relationType": "hasMany"
     }
   ]
 }
