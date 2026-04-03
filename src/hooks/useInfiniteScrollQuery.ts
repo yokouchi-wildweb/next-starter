@@ -20,6 +20,12 @@ type UseInfiniteScrollQueryOptions<TItem, TParams extends Record<string, unknown
   enabled?: boolean;
   /** params の変更などでリセットしたいときの依存配列。 */
   deps?: ReadonlyArray<unknown>;
+  /**
+   * SSR 等で事前取得済みのデータ。初回マウント時および deps 変更時に
+   * このデータで初期化し、API 取得をスキップする。
+   * limit は本フックに渡す値と同じ値で取得すること。
+   */
+  initialData?: { items: TItem[]; total: number };
   /** IntersectionObserver のオプション。 */
   observerOptions?: IntersectionObserverInit;
 };
@@ -50,22 +56,34 @@ export function useInfiniteScrollQuery<
     initialPage = 1,
     enabled = true,
     deps,
+    initialData,
     observerOptions,
   } = options;
 
-  const [page, setPage] = useState(initialPage);
-  const [items, setItems] = useState<TItem[]>([]);
-  const [total, setTotal] = useState(0);
+  const hasInitialData = initialData !== undefined;
+  const initialStartPage = hasInitialData
+    ? Math.ceil(initialData.items.length / limit) + 1
+    : initialPage;
+
+  const [page, setPage] = useState(initialStartPage);
+  const [items, setItems] = useState<TItem[]>(initialData?.items ?? []);
+  const [total, setTotal] = useState(initialData?.total ?? 0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(
+    hasInitialData ? initialData.items.length < initialData.total : true,
+  );
   const [resetCounter, setResetCounter] = useState(0);
 
-  const itemsRef = useRef<TItem[]>([]);
+  const itemsRef = useRef<TItem[]>(initialData?.items ?? []);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const latestPageRef = useRef(initialPage);
+  const latestPageRef = useRef(initialStartPage);
   const requestIdRef = useRef(0);
   const depsInitialized = useRef(false);
+  const initialDataRef = useRef(initialData);
+  initialDataRef.current = initialData;
+  /** initialData による初期化直後、fetchPage useEffect の発火をスキップするフラグ */
+  const initialFetchSkipped = useRef(hasInitialData);
 
   const fetchPage = useCallback(
     async (pageToFetch: number) => {
@@ -108,6 +126,10 @@ export function useInfiniteScrollQuery<
 
   useEffect(() => {
     if (!enabled) return;
+    if (initialFetchSkipped.current) {
+      initialFetchSkipped.current = false;
+      return;
+    }
     fetchPage(page);
   }, [enabled, fetchPage, page, resetCounter]);
 
@@ -127,13 +149,34 @@ export function useInfiniteScrollQuery<
     setResetCounter((count) => count + 1);
   }, [initialPage]);
 
+  const reinitializeWithData = useCallback(
+    (data: { items: TItem[]; total: number }) => {
+      const nextPage = Math.ceil(data.items.length / limit) + 1;
+      itemsRef.current = data.items;
+      latestPageRef.current = nextPage;
+      initialFetchSkipped.current = true;
+      setItems(data.items);
+      setTotal(data.total);
+      setHasMore(data.items.length < data.total);
+      setError(null);
+      setPage(nextPage);
+      setResetCounter((count) => count + 1);
+    },
+    [limit],
+  );
+
   useEffect(() => {
     if (!deps || deps.length === 0) return;
     if (!depsInitialized.current) {
       depsInitialized.current = true;
       return;
     }
-    reset();
+    const currentInitialData = initialDataRef.current;
+    if (currentInitialData !== undefined) {
+      reinitializeWithData(currentInitialData);
+    } else {
+      reset();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps ?? []);
 
