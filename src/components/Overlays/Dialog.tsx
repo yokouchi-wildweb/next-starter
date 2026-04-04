@@ -2,7 +2,7 @@
 
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useCallback, useRef } from "react";
 import {
   DialogPrimitives,
   DialogContent,
@@ -98,6 +98,27 @@ export function Dialog({
   cancelVariant = "outline",
   onCloseAutoFocus,
 }: DialogProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const lockRef = useRef(false);
+
+  const handleConfirm = useCallback(async () => {
+    if (!onConfirm || lockRef.current) return;
+
+    const result = onConfirm();
+
+    // Promiseの場合はローディング状態を管理
+    if (result instanceof Promise) {
+      lockRef.current = true;
+      setIsLoading(true);
+      try {
+        await result;
+      } finally {
+        lockRef.current = false;
+        setIsLoading(false);
+      }
+    }
+  }, [onConfirm]);
+
   const footerAlignClass =
     footerAlign === "left"
       ? "justify-start sm:justify-start"
@@ -145,6 +166,7 @@ export function Dialog({
                   e.stopPropagation();
                   onOpenChange(false);
                 }}
+                disabled={isLoading}
               >
                 {cancelLabel}
               </Button>
@@ -155,11 +177,11 @@ export function Dialog({
                 variant={confirmVariant}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onConfirm?.();
+                  handleConfirm();
                 }}
-                disabled={confirmDisabled}
+                disabled={confirmDisabled || isLoading}
               >
-                {confirmLabel}
+                {isLoading ? "処理中..." : confirmLabel}
               </Button>
             )}
           </DialogFooter>

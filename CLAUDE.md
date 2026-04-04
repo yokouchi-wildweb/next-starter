@@ -114,6 +114,7 @@ FieldRenderer: baseFields, fieldPatches, fieldGroups, inlineGroups | onMediaStat
 FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, hidden, custom, none
 programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schema, own UI) | none = excluded from schema entirely, NOT for programmatic use
 async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel
+async_guard: useAsyncAction(src/hooks/) — useRefベースの排他ロックで非同期アクションの二重発火を防止。Dialog/ConfirmPopoverはonConfirmがPromiseを返すと自動でloading管理+ロック
 ref: src/components/README.md
 
 ## ERROR_HANDLING
