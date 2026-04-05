@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 
 import { auth } from "@/lib/firebase/client/app";
@@ -33,6 +33,7 @@ export function useResetPassword({ oobCode }: UseResetPasswordParams): UseResetP
   const [phase, setPhase] = useState<ResetPasswordPhase>("initial");
   const [email, setEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const lockRef = useRef(false);
 
   // oobCodeの検証
   useEffect(() => {
@@ -77,6 +78,8 @@ export function useResetPassword({ oobCode }: UseResetPasswordParams): UseResetP
         setError("無効なリンクです。");
         return false;
       }
+      if (lockRef.current) return false;
+      lockRef.current = true;
 
       setPhase("submitting");
       setError(null);
@@ -90,6 +93,8 @@ export function useResetPassword({ oobCode }: UseResetPasswordParams): UseResetP
         setError(getFirebaseAuthErrorMessage(err));
         setPhase("ready");
         return false;
+      } finally {
+        lockRef.current = false;
       }
     },
     [oobCode]

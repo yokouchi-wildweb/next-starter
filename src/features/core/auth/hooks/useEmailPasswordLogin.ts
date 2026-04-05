@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { signInWithEmailAndPassword, type UserCredential } from "firebase/auth";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
@@ -27,8 +27,11 @@ type SignInResult = {
 export function useEmailPasswordLogin() {
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
+  const lockRef = useRef(false);
   const signIn = useCallback(
     async ({ email, password }: SignInParams): Promise<SignInResult> => {
+      if (lockRef.current) throw new Error("処理中です");
+      lockRef.current = true;
       setIsLoading(true);
       // メールアドレス認証の開始を記録
       log(3, "[useEmailPasswordLogin] signIn: begin", {
@@ -80,6 +83,7 @@ export function useEmailPasswordLogin() {
         log(3, "[useEmailPasswordLogin] signIn: cleanup", {
           email,
         });
+        lockRef.current = false;
         setIsLoading(false);
       }
     },

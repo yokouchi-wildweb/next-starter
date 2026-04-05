@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
@@ -50,8 +50,11 @@ export function useDemoLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UseDemoLogi
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<HttpError | null>(null);
+  const lockRef = useRef(false);
 
   const handleDemoLogin = useCallback(async () => {
+    if (lockRef.current) return;
+    lockRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -77,6 +80,7 @@ export function useDemoLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UseDemoLogi
       }
       throw unknownError;
     } finally {
+      lockRef.current = false;
       setIsLoading(false);
     }
   }, [redirectTo, refreshSession, router]);

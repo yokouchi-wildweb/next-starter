@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -95,6 +95,8 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
     }
   }, [open, reset]);
 
+  const lockRef = useRef(false);
+
   if (!user) {
     return null;
   }
@@ -105,6 +107,9 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
   };
 
   const submit = async (values: WalletAdjustFormValues) => {
+    if (lockRef.current) return;
+    lockRef.current = true;
+
     const payload: WalletAdjustRequestPayload = {
       walletType: values.walletType,
       changeMethod: values.changeMethod,
@@ -122,6 +127,8 @@ export default function AdminWalletAdjustModal({ open, user, onClose, onSuccess 
       onSuccess?.();
     } catch (error) {
       showToast(err(error, `${currencyLabel}の操作に失敗しました`), "error");
+    } finally {
+      lockRef.current = false;
     }
   };
 

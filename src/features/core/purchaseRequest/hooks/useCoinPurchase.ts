@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { initiatePurchase } from "../services/client/purchaseRequestClient";
 import { err } from "@/lib/errors/httpError";
@@ -43,6 +43,7 @@ export function useCoinPurchase({
 }: UseCoinPurchaseParams): UseCoinPurchaseResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lockRef = useRef(false);
 
   // 冪等キーはコンポーネントのマウント時に1回だけ生成
   // 同一ページ上での二重クリックやクーポン変更後の再試行で同じキーを使い回す
@@ -50,11 +51,12 @@ export function useCoinPurchase({
 
   const purchase = useCallback(
     async () => {
+      if (lockRef.current) return;
+      lockRef.current = true;
       setIsLoading(true);
       setError(null);
 
       try {
-
         // 購入開始APIを呼び出し
         // paymentMethod は決済プロバイダ側で選択されるため、初期値として "redirect" を設定
         // 実際の決済方法はWebhook受信時に上書きされる
@@ -75,6 +77,7 @@ export function useCoinPurchase({
       } catch (e) {
         const message = err(e, "購入処理の開始に失敗しました");
         setError(message);
+        lockRef.current = false;
         setIsLoading(false);
       }
     },

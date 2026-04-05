@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
@@ -24,8 +24,11 @@ export function useReactivate({
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<HttpError | null>(null);
+  const lockRef = useRef(false);
 
   const handleReactivate = useCallback(async () => {
+    if (lockRef.current) return;
+    lockRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -50,6 +53,7 @@ export function useReactivate({
       }
       throw unknownError;
     } finally {
+      lockRef.current = false;
       setIsLoading(false);
     }
   }, [redirectTo, refreshSession, router]);

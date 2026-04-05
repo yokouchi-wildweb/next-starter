@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useSWRConfig } from "swr";
 import { markAllAsRead } from "../services/client/userNotificationClient";
 import { MY_NOTIFICATIONS_SWR_KEY } from "./useMyNotifications";
@@ -19,8 +19,11 @@ export function useMarkAllNotificationsAsRead(): UseMarkAllNotificationsAsReadRe
   const { mutate } = useSWRConfig();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const lockRef = useRef(false);
 
   const handleMarkAllAsRead = useCallback(async () => {
+    if (lockRef.current) return;
+    lockRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -37,6 +40,7 @@ export function useMarkAllNotificationsAsRead(): UseMarkAllNotificationsAsReadRe
       setError(e);
       throw e;
     } finally {
+      lockRef.current = false;
       setIsLoading(false);
     }
   }, [mutate]);

@@ -122,6 +122,7 @@ export function AccountAvatarSection({
   const [error, setError] = useState<string | null>(null);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(user.avatarUrl);
 
+  const lockRef = useRef(false);
   const isBusy = isUploading || isRemoving;
 
   const openFileSelector = useCallback(() => {
@@ -141,6 +142,8 @@ export function AccountAvatarSection({
   }, [isBusy, currentAvatarUrl, openFileSelector]);
 
   const handleRemoveImage = useCallback(async () => {
+    if (lockRef.current) return;
+    lockRef.current = true;
     setError(null);
     setIsRemoving(true);
 
@@ -155,6 +158,7 @@ export function AccountAvatarSection({
       const normalized = normalizeHttpError(err);
       setError(normalized.message);
     } finally {
+      lockRef.current = false;
       setIsRemoving(false);
     }
   }, [user.name, onAvatarUpdated]);

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { type ReactNode, useState, useCallback } from "react";
+import { type ReactNode, useState, useCallback, useRef } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
 import { type ButtonStyleProps } from "@/components/Form/Button/button-variants";
@@ -101,6 +101,7 @@ export function ConfirmPopover({
 }: ConfirmPopoverProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const lockRef = useRef(false);
 
   // 制御/非制御の判定
   const isControlled = controlledOpen !== undefined;
@@ -118,8 +119,8 @@ export function ConfirmPopover({
   );
 
   const handleConfirm = useCallback(async () => {
-    if (!onConfirm) {
-      if (closeOnConfirm) setOpen(false);
+    if (!onConfirm || lockRef.current) {
+      if (!lockRef.current && closeOnConfirm) setOpen(false);
       return;
     }
 
@@ -127,11 +128,13 @@ export function ConfirmPopover({
 
     // Promiseの場合はローディング状態を管理
     if (result instanceof Promise) {
+      lockRef.current = true;
       setIsLoading(true);
       try {
         await result;
         if (closeOnConfirm) setOpen(false);
       } finally {
+        lockRef.current = false;
         setIsLoading(false);
       }
     } else {

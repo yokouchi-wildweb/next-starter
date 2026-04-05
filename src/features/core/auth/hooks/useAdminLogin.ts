@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithCustomToken } from "firebase/auth";
 
@@ -21,10 +21,12 @@ export function useAdminLogin() {
   const { refreshSession } = useAuthSession();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const lockRef = useRef(false);
 
   const signIn = useCallback(
     async ({ email, password }: AdminLoginParams) => {
-      if (isLoading) return;
+      if (lockRef.current) return;
+      lockRef.current = true;
 
       setIsLoading(true);
       setErrorMessage(null);
@@ -47,10 +49,11 @@ export function useAdminLogin() {
       } catch (error) {
         setErrorMessage(err(error, "ログインに失敗しました"));
       } finally {
+        lockRef.current = false;
         setIsLoading(false);
       }
     },
-    [isLoading, refreshSession, router],
+    [refreshSession, router],
   );
 
   return {

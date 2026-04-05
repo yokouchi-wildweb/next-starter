@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 
@@ -27,8 +27,11 @@ export function useLogout({
   const { refreshSession } = useAuthSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<HttpError | null>(null);
+  const lockRef = useRef(false);
 
   const handleLogout = useCallback(async () => {
+    if (lockRef.current) return;
+    lockRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -61,6 +64,7 @@ export function useLogout({
       }
       throw unknownError;
     } finally {
+      lockRef.current = false;
       setIsLoading(false);
     }
   }, [redirectTo, refreshSession, router, skipRedirect]);

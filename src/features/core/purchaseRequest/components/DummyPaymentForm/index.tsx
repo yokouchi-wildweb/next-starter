@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { CreditCard } from "lucide-react";
@@ -21,6 +21,7 @@ export function DummyPaymentForm() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lockRef = useRef(false);
 
   // パラメータ不足チェック
   if (!sessionId || !successUrl || !cancelUrl) {
@@ -44,6 +45,8 @@ export function DummyPaymentForm() {
   }
 
   const handlePayment = async (success: boolean) => {
+    if (lockRef.current) return;
+    lockRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -63,6 +66,7 @@ export function DummyPaymentForm() {
     } catch (err) {
       console.error("Payment webhook call failed:", err);
       setError("決済処理中にエラーが発生しました。");
+      lockRef.current = false;
       setLoading(false);
     }
   };

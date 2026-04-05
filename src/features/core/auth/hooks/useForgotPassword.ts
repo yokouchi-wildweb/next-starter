@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import axios from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
@@ -22,6 +22,7 @@ export function useForgotPassword(): UseForgotPasswordReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const lockRef = useRef(false);
 
   const reset = useCallback(() => {
     setError(null);
@@ -29,6 +30,8 @@ export function useForgotPassword(): UseForgotPasswordReturn {
   }, []);
 
   const sendResetEmail = useCallback(async (email: string): Promise<boolean> => {
+    if (lockRef.current) return false;
+    lockRef.current = true;
     setIsLoading(true);
     setError(null);
     setIsSuccess(false);
@@ -42,6 +45,7 @@ export function useForgotPassword(): UseForgotPasswordReturn {
       setError(normalized.message);
       return false;
     } finally {
+      lockRef.current = false;
       setIsLoading(false);
     }
   }, []);
