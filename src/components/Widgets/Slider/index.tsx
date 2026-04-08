@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import useEmblaCarousel from "embla-carousel-react"
 import {
   Carousel,
@@ -78,6 +78,41 @@ export type MaskOption = boolean | {
   right?: number
 }
 
+export type ResponsiveSlideSize = {
+  /** デフォルトのスライドサイズ */
+  default: string
+  sm?: string
+  md?: string
+  lg?: string
+  xl?: string
+  "2xl"?: string
+}
+
+const breakpointMinWidths: Record<string, string> = {
+  sm: "40rem",
+  md: "48rem",
+  lg: "64rem",
+  xl: "80rem",
+  "2xl": "96rem",
+}
+
+/** レスポンシブslideSizeのCSS変数名を生成する際に使うIDを安全な文字列に変換 */
+function sanitizeId(id: string): string {
+  return id.replace(/:/g, "-")
+}
+
+function buildResponsiveSlideSizeStyle(id: string, size: ResponsiveSlideSize): string {
+  const varName = `--slider-size-${sanitizeId(id)}`
+  let css = `[data-slider-id="${id}"] { ${varName}: ${size.default}; }`
+  for (const [bp, minWidth] of Object.entries(breakpointMinWidths)) {
+    const value = size[bp as keyof Omit<ResponsiveSlideSize, "default">]
+    if (value) {
+      css += ` @media (min-width: ${minWidth}) { [data-slider-id="${id}"] { ${varName}: ${value}; } }`
+    }
+  }
+  return css
+}
+
 const responsiveShowClasses: Record<string, string> = {
   sm: "hidden sm:block",
   md: "hidden md:block",
@@ -110,8 +145,8 @@ type SliderProps<T> = {
   dotPosition?: DotPosition
   /** variant/positionを無視し、ドットを完全カスタム描画する */
   renderDots?: (props: RenderDotsProps) => ReactNode
-  /** peek時のスライドサイズ。例: "85%", "70%", "300px"（デフォルト: "85%"） */
-  slideSize?: string
+  /** peek時のスライドサイズ。文字列 or レスポンシブオブジェクト（デフォルト: "85%"） */
+  slideSize?: string | ResponsiveSlideSize
   /** Emblaのalignを直接指定。peekのデフォルトalignを上書きする。
    *  数値(0〜1): 0=左端, 0.5=中央, 1=右端（viewSizeに対する比率で配置位置を計算）
    *  文字列: "start" | "center" | "end" */
@@ -162,6 +197,10 @@ export function Slider<T>({
   containScroll,
   keepPeekOnSingle = false,
 }: SliderProps<T>) {
+  const sliderId = useId()
+  const isResponsiveSlideSize = typeof slideSize === "object"
+  const slideSizeVarName = `--slider-size-${sanitizeId(sliderId)}`
+
   const effectivePeek = (!keepPeekOnSingle && items.length <= 1) ? false : peek
 
   const emblaPlugins = useMemo<EmblaPlugins>(() => {
@@ -270,8 +309,12 @@ export function Slider<T>({
 
   return (
     <div
+      data-slider-id={isResponsiveSlideSize ? sliderId : undefined}
       style={containerWidth ? { width: containerWidth, marginLeft: "auto", marginRight: "auto" } : undefined}
     >
+      {isResponsiveSlideSize && (
+        <style dangerouslySetInnerHTML={{ __html: buildResponsiveSlideSizeStyle(sliderId, slideSize) }} />
+      )}
       <div className="relative">
         {arrowsVisible && renderArrowElement("prev")}
 
@@ -303,7 +346,10 @@ export function Slider<T>({
                     gapStyles[gap],
                     index !== current && "cursor-pointer"
                   )}
-                  style={effectivePeek ? { flexBasis: slideSize } : undefined}
+                  style={effectivePeek
+                    ? { flexBasis: isResponsiveSlideSize ? `var(${slideSizeVarName})` : slideSize }
+                    : undefined
+                  }
                   onClick={() => {
                     if (index !== current) {
                       api?.scrollTo(index)
