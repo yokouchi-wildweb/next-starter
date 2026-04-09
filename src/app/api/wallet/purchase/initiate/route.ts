@@ -7,6 +7,7 @@ import { createApiRoute } from "@/lib/routeFactory";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { businessConfig } from "@/config/business.config";
+import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/config/app/app-features.config";
 
 // currency.config.ts から動的に walletType の値を取得（型安全）
 const walletTypes = Object.keys(CURRENCY_CONFIG) as [WalletType, ...WalletType[]];
@@ -40,6 +41,14 @@ export const POST = createApiRoute(
   async (req, { session }) => {
     if (!session) {
       return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
+    }
+
+    // 購入一時停止チェック
+    if (isPurchaseSuspended()) {
+      return NextResponse.json(
+        { message: getPurchaseSuspensionMessage() },
+        { status: 503 },
+      );
     }
 
     let payload: z.infer<typeof InitiatePurchaseSchema>;

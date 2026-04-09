@@ -11,7 +11,9 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
+import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/config/app/app-features.config";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
+import { PurchaseSuspended } from "../common/PurchaseSuspended";
 import { CurrencyPurchase } from "./CurrencyPurchase";
 
 type WalletPurchasePageProps = {
@@ -93,6 +95,20 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
           残高情報の取得に失敗しました。
         </Para>
       </Block>
+    );
+  }
+
+  // 購入一時停止チェック
+  if (isPurchaseSuspended()) {
+    return (
+      <Stack space={6}>
+        <Flex justify="end">
+          <LinkButton href={backUrl} variant="outline" size="sm">
+            {config.label}管理に戻る
+          </LinkButton>
+        </Flex>
+        <PurchaseSuspended message={getPurchaseSuspensionMessage()} />
+      </Stack>
     );
   }
 

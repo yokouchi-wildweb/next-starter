@@ -122,6 +122,20 @@ export const APP_FEATURES = {
      * - phoneVerified: SMS認証済みユーザーのみ購入可能
      */
     purchaseRestriction: "phoneVerified" as WalletPurchaseRestriction,
+    /**
+     * 通貨購入の一時停止設定
+     * enabled: true かつスケジュール期間内の場合、全通貨の購入を停止する
+     * start/end が null の場合は制限なし（enabled: true + 両方 null = 無期限停止）
+     */
+    purchaseSuspension: {
+      enabled: false,
+      schedule: {
+        start: null as string | null, // 開始時刻（ISO8601形式）例: '2025-06-01T00:00:00+09:00'
+        end: null as string | null,   // 終了時刻（ISO8601形式）例: '2025-06-02T00:00:00+09:00'
+      },
+      /** 停止中に表示するメッセージ（nullでデフォルトメッセージを使用） */
+      message: null as string | null,
+    },
     /** 管理者による残高変更時にユーザーへ通知を送信する（操作タイプ別） */
     notifyOnAdjust: {
       increment: false,
@@ -162,3 +176,27 @@ export const APP_FEATURES = {
 } as const;
 
 export type ThirdPartyProvider = keyof typeof APP_FEATURES.auth.thirdPartyProviders;
+
+/**
+ * 通貨購入が一時停止中かどうか判定
+ */
+export function isPurchaseSuspended(): boolean {
+  const { enabled, schedule } = APP_FEATURES.wallet.purchaseSuspension;
+  if (!enabled) return false;
+
+  const now = new Date();
+  if (schedule.start && now < new Date(schedule.start)) return false;
+  if (schedule.end && now >= new Date(schedule.end)) return false;
+
+  return true;
+}
+
+/**
+ * 購入停止中のメッセージを取得
+ */
+export function getPurchaseSuspensionMessage(): string {
+  return (
+    APP_FEATURES.wallet.purchaseSuspension.message ??
+    "現在、決済機能はメンテナンス中です。しばらくお待ちください。"
+  );
+}

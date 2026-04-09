@@ -10,7 +10,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+import { APP_FEATURES, isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/config/app/app-features.config";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
@@ -18,6 +18,7 @@ import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { CouponInput } from "../WalletPurchasePage/CouponInput";
 
+import { PurchaseSuspended } from "../common/PurchaseSuspended";
 import { BalanceCard } from "./BalanceCard";
 import { PurchaseList } from "./PurchaseList";
 import { PhoneVerificationRequired } from "./PhoneVerificationRequired";
@@ -97,9 +98,35 @@ export function WalletBalancePage({
   const wallet = data?.wallets.find((w) => w.type === config.walletType);
   const currentBalance = wallet?.balance ?? 0;
 
+  // 購入一時停止チェック
+  const purchaseSuspended = isPurchaseSuspended();
+
   // 購入制限チェック: SMS認証が必要かどうか
   const requiresPhoneVerification =
     APP_FEATURES.wallet.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
+
+  // 購入セクションの表示判定
+  const renderPurchaseSection = () => {
+    if (purchaseSuspended) {
+      return <PurchaseSuspended message={getPurchaseSuspensionMessage()} />;
+    }
+    if (requiresPhoneVerification) {
+      return <PhoneVerificationRequired currentPhoneNumber={currentPhoneNumber} />;
+    }
+    return (
+      <>
+        <CouponInput
+          onApply={handleCouponApply}
+          onClear={handleCouponClear}
+        />
+        <PurchaseList
+          slug={slug}
+          config={config}
+          couponEffect={couponEffect}
+        />
+      </>
+    );
+  };
 
   return (
     <Stack space={6}>
@@ -109,21 +136,7 @@ export function WalletBalancePage({
         </LinkButton>
       </Flex>
       <BalanceCard balance={currentBalance} config={config} />
-      {requiresPhoneVerification ? (
-        <PhoneVerificationRequired currentPhoneNumber={currentPhoneNumber} />
-      ) : (
-        <>
-          <CouponInput
-            onApply={handleCouponApply}
-            onClear={handleCouponClear}
-          />
-          <PurchaseList
-            slug={slug}
-            config={config}
-            couponEffect={couponEffect}
-          />
-        </>
-      )}
+      {renderPurchaseSection()}
     </Stack>
   );
 }
