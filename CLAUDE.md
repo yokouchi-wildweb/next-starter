@@ -137,6 +137,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 - API routes without routeFactory
 - direct asset paths (use utils/assets: assetPath, imgPath, videoPath, logoPath)
 - space-y/space-x classes (use Layout/Stack instead. Stack: flex flex-col with gap, space prop accepts Tailwind spacing scale numbers)
+- unpaginated full-fetch of user-scale data (ユーザーに紐づくデータをbase.search()等でlimit未指定の全件取得するのは禁止。必ずページネーション(page/limit)を使い、UIは無限スクロール等で段階取得すること。base.searchのデフォルトlimit=100は安全策ではなくデータ欠損の原因になる)
 - utility functions in config files (src/config/): config files are values only, place logic in relevant domain utils or lib
 
 ## CORE_FILES (approval required)
