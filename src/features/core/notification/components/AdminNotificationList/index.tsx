@@ -7,6 +7,7 @@ import { Section } from "@/components/Layout/Section";
 
 export type AdminNotificationListProps = {
   notifications: Notification[];
+  readCounts: Record<string, number>;
   page: number;
   perPage: number;
   total: number;
@@ -14,6 +15,7 @@ export type AdminNotificationListProps = {
 
 export default function AdminNotificationList({
   notifications,
+  readCounts,
   page,
   perPage,
   total,
@@ -21,7 +23,7 @@ export default function AdminNotificationList({
   return (
     <Section>
       <Header page={page} perPage={perPage} total={total} />
-      <Table notifications={notifications} />
+      <Table notifications={notifications} readCounts={readCounts} />
     </Section>
   );
 }

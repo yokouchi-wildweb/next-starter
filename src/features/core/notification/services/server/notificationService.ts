@@ -23,6 +23,7 @@ import { getMyNotifications } from "./notification/getMyNotifications";
 import { getUnreadCount } from "./notification/getUnreadCount";
 import { markAsRead } from "./notification/markAsRead";
 import { markAllAsRead } from "./notification/markAllAsRead";
+import { getReadCounts } from "./notification/getReadCounts";
 
 export const notificationService = {
   ...base,
@@ -44,4 +45,5 @@ export const notificationService = {
   getUnreadCount,
   markAsRead,
   markAllAsRead,
+  getReadCounts,
 };

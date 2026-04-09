@@ -22,8 +22,8 @@ export default async function AdminNotificationListPage({ searchParams }: Props)
   const page = Number(pageStr ?? "1");
   const limit = await settingService.getAdminListPerPage();
 
-  // 管理者が全員向けに送信したお知らせのみ表示
-  const extraWhere = sql`${NotificationTable.target_type} = 'all' AND ${NotificationTable.sender_type} = 'admin'`;
+  // 管理者が送信したお知らせを表示（全員・ロール指定・個別送信すべて）
+  const extraWhere = sql`${NotificationTable.sender_type} = 'admin'`;
 
   const { results: notifications, total } = await notificationService.search({
     page,
@@ -32,10 +32,15 @@ export default async function AdminNotificationListPage({ searchParams }: Props)
     extraWhere,
   });
 
+  // 表示中の通知に対する既読数を取得
+  const readCounts = await notificationService.getReadCounts(
+    notifications.map((n) => n.id)
+  );
+
   return (
     <AdminPage>
       <PageTitle>お知らせ管理</PageTitle>
-      <AdminNotificationList notifications={notifications} page={page} perPage={limit} total={total} />
+      <AdminNotificationList notifications={notifications} readCounts={readCounts} page={page} perPage={limit} total={total} />
     </AdminPage>
   );
 }
