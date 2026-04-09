@@ -137,6 +137,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 - API routes without routeFactory
 - direct asset paths (use utils/assets: assetPath, imgPath, videoPath, logoPath)
 - space-y/space-x classes (use Layout/Stack instead. Stack: flex flex-col with gap, space prop accepts Tailwind spacing scale numbers)
+- utility functions in config files (src/config/): config files are values only, place logic in relevant domain utils or lib
 
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
