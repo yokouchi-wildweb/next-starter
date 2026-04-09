@@ -11,7 +11,7 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
-import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/config/app/app-features.config";
+import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { PurchaseSuspended } from "../common/PurchaseSuspended";
 import { CurrencyPurchase } from "./CurrencyPurchase";
