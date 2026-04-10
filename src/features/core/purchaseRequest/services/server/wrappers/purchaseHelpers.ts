@@ -1,7 +1,7 @@
 // src/features/core/purchaseRequest/services/server/wrappers/purchaseHelpers.ts
 // 購入リクエストのヘルパー関数（識別子解決、冪等キー検索、期限切れ処理）
 
-import { and, eq, lt, or } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
@@ -68,12 +68,13 @@ async function resolveFincodeIdentifier(
 
   // 2. フォールバック: provider_order_id が未設定の既存レコード用
   //    将来的に全レコードに provider_order_id が設定されたら削除可能
+  //    NOTE: SQL の NULL 比較は = NULL では動かないため必ず IS NULL (drizzle: isNull) を使う
   const candidates = await db
     .select()
     .from(PurchaseRequestTable)
     .where(
       and(
-        eq(PurchaseRequestTable.provider_order_id, null as unknown as string),
+        isNull(PurchaseRequestTable.provider_order_id),
         or(
           eq(PurchaseRequestTable.status, "processing"),
           eq(PurchaseRequestTable.status, "completed")

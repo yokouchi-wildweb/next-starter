@@ -21,6 +21,11 @@ export const PurchaseRequestBaseSchema = z.object({
   payment_provider: z.string().trim().min(1, { message: "決済プロバイダは必須です。" }),
   payment_session_id: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
+  // プロバイダ固有の注文ID（Fincode 等で Webhook 照合に使用）
+  // initiatePurchase で base.update() 経由で書き込むため、ここに定義しないと
+  // Zod の strip により無視され、DB に NULL のまま残ってしまう
+  provider_order_id: z.string().trim().nullish()
+    .transform((value) => emptyToNull(value)),
   transaction_id: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   redirect_url: z.string().trim().nullish()
