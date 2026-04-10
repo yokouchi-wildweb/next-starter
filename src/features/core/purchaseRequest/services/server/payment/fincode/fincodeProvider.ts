@@ -53,7 +53,9 @@ type FincodeWebhookPayload = {
   transaction_id?: string;
   // 決済情報
   pay_type?: string;
-  amount?: string;
+  // amount は仕様上 string だが、実運用では number で来るケースも観測されうるため
+  // unknown としてパース時に正規化する（parsePaidAmount を参照）
+  amount?: unknown;
   // 日時
   transaction_date?: string;
   // エラー情報
@@ -198,7 +200,7 @@ export class FincodePaymentProvider implements PaymentProvider {
           transactionId: body.access_id || body.transaction_id,
           paymentMethod: extractPaymentMethod(eventType),
           paidAt,
-          paidAmount: body.amount ? Number(body.amount) : undefined,
+          paidAmount: parsePaidAmount(body.amount),
           rawResponse: body,
         };
       }
@@ -320,3 +322,51 @@ export class FincodePaymentProvider implements PaymentProvider {
  * Fincodeプロバイダのシングルトンインスタンス
  */
 export const fincodePaymentProvider = new FincodePaymentProvider();
+
+/**
+ * Fincode webhook ペイロードの amount フィールドを安全に数値化する。
+ *
+ * Fincode のドキュメント上 amount は「整数を文字列で表現したもの（円単位）」だが、
+ * 実運用ではイベント種別やプロバイダのバージョン差により以下のパターンが観測されうる:
+ *   - undefined / null / 空文字: 当該イベントに金額情報がない
+ *   - "1000": 通常の整数文字列
+ *   - "1000.00": 小数点付き（一部イベントで観測）
+ *   - "1,000": カンマ区切り（互換のため許容）
+ *   - 数値型 1000: 型定義は string だが念のため対応
+ *
+ * 上記いずれにも該当しない（パース不能、NaN、負数）場合は undefined を返し、
+ * 金額照合チェックをスキップさせる。これにより、Fincode 側のペイロード仕様変更で
+ * 誤って金額不一致エラーになり購入が永久に塩漬けになる事故を防ぐ。
+ *
+ * セキュリティ的には、金額照合は防御層の1つに過ぎず（Webhook 署名検証・冪等キー・
+ * order_id 紐付けが先に効いている）、パース不能ケースをスキップしても他の防御層で
+ * カバーされる。実際の不一致は completePurchase 側で検出され、markAsFatalFailure
+ * で failed 状態に遷移するため、UX も保たれる。
+ */
+function parsePaidAmount(raw: unknown): number | undefined {
+  if (raw == null) return undefined;
+
+  // 数値型がそのまま渡ってきた場合
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) && raw >= 0 ? raw : undefined;
+  }
+
+  if (typeof raw !== "string") return undefined;
+
+  // 空文字・空白のみは未設定として扱う
+  const trimmed = raw.trim();
+  if (trimmed === "") return undefined;
+
+  // カンマ区切りを除去（"1,000" → "1000"）
+  const normalized = trimmed.replace(/,/g, "");
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    console.warn(
+      `[Fincode] paidAmount のパースに失敗。金額照合をスキップします: raw=${JSON.stringify(raw)}`,
+    );
+    return undefined;
+  }
+
+  return parsed;
+}

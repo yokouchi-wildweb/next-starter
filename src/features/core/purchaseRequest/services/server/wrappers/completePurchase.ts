@@ -56,9 +56,18 @@ export async function completePurchase(
   }
 
   // 4. 決済金額の照合（Webhookペイロードの金額とDB上の金額が一致するか検証）
+  //    不一致の場合は、修復不能なため status を failed に遷移してから例外を投げる。
+  //    こうしないと webhookHandler が DomainError を 200 で飲み込む結果、
+  //    リクエストが processing のまま塩漬けになり、ユーザーがコールバック画面で
+  //    無限にスピナーを見ることになる。
   if (paidAmount != null && paidAmount !== purchaseRequest.payment_amount) {
     console.error(
       `[completePurchase] 決済金額不一致: paidAmount=${paidAmount}, expected=${purchaseRequest.payment_amount}, requestId=${purchaseRequest.id}`
+    );
+    await markAsFatalFailure(
+      purchaseRequest.id,
+      "AMOUNT_MISMATCH",
+      "決済金額がリクエストの金額と一致しません。",
     );
     throw new DomainError(
       "決済金額がリクエストの金額と一致しません。",
@@ -215,4 +224,53 @@ export async function completePurchase(
   });
 
   return result;
+}
+
+// ============================================================================
+// 内部ヘルパー
+// ============================================================================
+
+/**
+ * 修復不能な DomainError を投げる前に呼び出すヘルパー。
+ * 購入リクエストの status を `failed` に遷移させ、エラー情報を記録する。
+ *
+ * これがないと、completePurchase が投げた DomainError が webhookHandler で
+ * リトライ防止のために 200 として飲み込まれた結果、リクエストが processing の
+ * まま塩漬けになり、クライアント側のポーリングが完了を検知できないまま
+ * 60秒のタイムアウトを待つことになる（無限スピナーの原因）。
+ *
+ * 楽観ロック (`WHERE status = 'processing'`) 付きで、すでに completed や failed
+ * になっているレコードは絶対に上書きしないため、既存の冪等性は破壊しない。
+ *
+ * 将来 completePurchase に新しい「修復不能エラー」分岐を追加する場合は、
+ * 必ず throw 前にこのヘルパーを呼び出すこと。
+ */
+async function markAsFatalFailure(
+  requestId: string,
+  errorCode: string,
+  errorMessage: string,
+): Promise<void> {
+  try {
+    await db
+      .update(PurchaseRequestTable)
+      .set({
+        status: "failed",
+        error_code: errorCode,
+        error_message: errorMessage,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(PurchaseRequestTable.id, requestId),
+          eq(PurchaseRequestTable.status, "processing"),
+        ),
+      );
+  } catch (error) {
+    // ヘルパー内でのエラーは握りつぶす（呼び出し元の DomainError を優先して投げるため）。
+    // ログは残して運用側で検知できるようにする。
+    console.error(
+      `[markAsFatalFailure] status 遷移に失敗: requestId=${requestId}, errorCode=${errorCode}`,
+      error,
+    );
+  }
 }

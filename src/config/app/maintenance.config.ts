@@ -21,7 +21,7 @@ export function isMaintenanceActive(): boolean {
  */
 export const maintenanceConfig = {
   // メンテナンスモードの有効/無効
-  enabled: false,
+  enabled: true,
 
   // スケジュール設定（enabled: true の場合のみ有効）
   // null = 制限なし

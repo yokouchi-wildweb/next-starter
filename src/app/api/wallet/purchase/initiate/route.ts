@@ -6,7 +6,7 @@ import { z } from "zod";
 import { createApiRoute } from "@/lib/routeFactory";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
-import { businessConfig } from "@/config/business.config";
+import { getAppBaseUrl } from "@/lib/url";
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 
 // currency.config.ts から動的に walletType の値を取得（型安全）
@@ -64,7 +64,7 @@ export const POST = createApiRoute(
       return NextResponse.json({ message: "リクエストボディの解析に失敗しました。" }, { status: 400 });
     }
 
-    const baseUrl = businessConfig.url;
+    const baseUrl = getAppBaseUrl();
 
     const result = await purchaseRequestService.initiatePurchase({
       userId: session.userId,
