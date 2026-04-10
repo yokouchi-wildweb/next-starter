@@ -14,6 +14,12 @@ export type PurchaseRequest = {
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'expired';
   payment_provider: string;
   payment_session_id: string | null;
+  /**
+   * プロバイダ固有の注文ID（Fincode の order_id など）
+   * Fincode: purchase_request.id のハイフン除去・30文字切り詰め
+   * Webhook 照合 (findByWebhookIdentifier) と API ポーリング照会の両方で使用する
+   */
+  provider_order_id: string | null;
   transaction_id: string | null;
   redirect_url: string | null;
   error_code: string | null;

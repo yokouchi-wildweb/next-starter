@@ -259,20 +259,92 @@ export class FincodePaymentProvider implements PaymentProvider {
   }
 
   /**
-   * 決済ステータスを照会
+   * 決済ステータスを照会（Webhook フォールバック用）
    *
-   * 注意: Fincodeのリダイレクト型決済ではセッション照会APIが存在しないため、
-   * このメソッドは常に "pending" を返します。
-   * 決済完了の検知はWebhookに依存します。
+   * `GET /v1/payments/Card/{order_id}` で Fincode API に問い合わせ、現在の決済状態を取得する。
+   * クライアント側のポーリング (`usePurchaseStatusPolling`) から
+   * `getPurchaseStatusForUser` 経由で呼ばれるため、Webhook が何らかの理由で届かない場合でも
+   * 購入リクエストが自動で completed に遷移する（セルフヒーリング）。
+   *
+   * Webhook との二重化により、以下のいずれの故障ケースでも UX が保たれる:
+   *   - Webhook 未登録イベント種別（例: 売上確定を登録し忘れ）で発火しない
+   *   - Webhook 署名不一致で 401 返却
+   *   - その他 Vercel 側でのリクエスト拒否
+   *
+   * @param identifier Fincode の `order_id`
+   *   （`initiatePurchase` で `purchaseRequest.id` からハイフン除去・30 文字切り詰めした値）
    */
-  async getPaymentStatus(sessionId: string): Promise<PaymentStatusResult> {
-    // Fincodeのリダイレクト型決済はセッション照会APIをサポートしていない
-    // 決済完了はWebhookで通知されるため、ここでは pending を返す
-    console.log("[Fincode] getPaymentStatus called - returning pending (Webhook-dependent)");
-    return {
-      status: "pending",
-      sessionId,
-    };
+  async getPaymentStatus(identifier: string): Promise<PaymentStatusResult> {
+    const config = this.getConfig();
+
+    if (!identifier) {
+      return { status: "pending", sessionId: identifier };
+    }
+
+    try {
+      // Fincode 公式 API 仕様:
+      //   GET /v1/payments/{id}?pay_type=Card
+      //   ({id} は order_id、pay_type は path ではなく query で指定する)
+      // 将来コンビニ / PayPay 等を有効化する場合は pay_type を動的に切替えること。
+      const response = await fetch(
+        `${config.apiUrl}/v1/payments/${encodeURIComponent(identifier)}?pay_type=Card`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${config.secretKey}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        // 404: まだ Fincode 側にも決済が存在しない（ユーザーが決済画面を開いていない等）→ pending
+        // その他のエラー: 次回ポーリングでリトライさせるため pending を返す
+        const errorText = await response.text().catch(() => "");
+        console.warn(
+          `[Fincode] getPaymentStatus HTTP ${response.status}: identifier=${identifier}, body=${errorText}`,
+        );
+        return { status: "pending", sessionId: identifier };
+      }
+
+      const data = (await response.json()) as FincodeSessionStatusResponse;
+
+      if (paymentConfig.debugLog) {
+        console.log("[Fincode] Payment status response:", JSON.stringify(data, null, 2));
+      } else {
+        console.log(
+          `[Fincode] Payment status: identifier=${identifier}, fincodeStatus=${data.status}`,
+        );
+      }
+
+      const mapped = this.mapFincodeStatus(data.status);
+
+      // Fincode レスポンスの日時フィールド優先順位:
+      //   1. process_date — 決済処理日時
+      //   2. updated      — レコード更新日時
+      //   3. paid         — (旧仕様、後方互換用)
+      // いずれも "YYYY/MM/DD HH:mm:ss.sss" 形式
+      let paidAt: Date | undefined;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawDate = (data as any).process_date || (data as any).updated || data.paid;
+      if (rawDate && typeof rawDate === "string") {
+        const parsed = new Date(rawDate.replace(/\//g, "-"));
+        if (!Number.isNaN(parsed.getTime())) {
+          paidAt = parsed;
+        }
+      }
+
+      return {
+        status: mapped,
+        sessionId: identifier,
+        transactionId: data.access_id,
+        paidAt,
+        errorCode: data.error_code ?? undefined,
+      };
+    } catch (error) {
+      console.error("[Fincode] getPaymentStatus network error:", error);
+      return { status: "pending", sessionId: identifier };
+    }
   }
 
   /**

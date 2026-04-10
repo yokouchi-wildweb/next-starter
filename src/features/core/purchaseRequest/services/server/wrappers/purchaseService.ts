@@ -129,7 +129,7 @@ export async function getPurchaseStatusForUser(
   }
 
   // processingの場合、プロバイダーにステータスを確認
-  if (request.status === "processing" && request.payment_session_id && request.payment_provider) {
+  if (request.status === "processing" && request.payment_provider) {
     const providerName = request.payment_provider as PPN;
     try {
       const provider = getPaymentProvider(providerName);
@@ -137,12 +137,27 @@ export async function getPurchaseStatusForUser(
       if (!provider.getPaymentStatus) {
         return request;
       }
-      const providerStatus = await provider.getPaymentStatus(request.payment_session_id);
+
+      // プロバイダ別に API 照会用の識別子を選択する。
+      // - Fincode: provider_order_id（`GET /v1/payments/Card/{order_id}` の id 部分）
+      // - Square 等: payment_session_id（既存の挙動）
+      //
+      // この識別子は findByWebhookIdentifier の照合キーとしてもそのまま使われるため、
+      // completePurchase / failPurchase の sessionId にも同じ値を渡す必要がある。
+      const identifier =
+        providerName === "fincode"
+          ? request.provider_order_id
+          : request.payment_session_id;
+      if (!identifier) {
+        return request;
+      }
+
+      const providerStatus = await provider.getPaymentStatus(identifier);
 
       if (providerStatus.status === "completed") {
         // 決済完了 → DB更新
         const result = await completePurchase({
-          sessionId: request.payment_session_id,
+          sessionId: identifier,
           transactionId: providerStatus.transactionId,
           paidAt: providerStatus.paidAt,
           providerName,
@@ -151,7 +166,7 @@ export async function getPurchaseStatusForUser(
       } else if (providerStatus.status === "failed" || providerStatus.status === "expired") {
         // 決済失敗/期限切れ → DB更新
         const result = await failPurchase({
-          sessionId: request.payment_session_id,
+          sessionId: identifier,
           errorCode: providerStatus.errorCode,
           errorMessage: providerStatus.errorMessage,
           providerName,
