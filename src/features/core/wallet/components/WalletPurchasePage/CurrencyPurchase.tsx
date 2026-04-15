@@ -5,7 +5,7 @@
 import { useState, useCallback } from "react";
 import { Stack } from "@/components/Layout/Stack";
 import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import type { WalletType } from "@/config/app/currency.config";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 
@@ -37,9 +37,9 @@ export function CurrencyPurchase({
   // 実際の支払い金額（割引適用後）
   const actualPaymentAmount = couponEffect?.finalPaymentAmount ?? paymentAmount;
 
-  // 通貨設定から商品名を生成
-  const currencyConfig = CURRENCY_CONFIG[walletType];
-  const itemName = `${currencyConfig.label} ${purchaseAmount.toLocaleString()}${currencyConfig.unit}`;
+  // 決済プロバイダに渡す商品名（UIには表示されない）
+  // 通貨種別を含めない汎用表記にしてプロバイダ側のレシート/管理画面でも中立的に表示
+  const itemName = `商品購入 ${purchaseAmount.toLocaleString()}`;
 
   const { purchase, isLoading, error } = useCoinPurchase({
     walletType,
