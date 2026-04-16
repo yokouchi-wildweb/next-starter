@@ -44,6 +44,18 @@ export type ConsumeReservationParams = {
   meta?: WalletHistoryMetaInput;
 };
 
+/** TX内で残高を即時引き落とし（予約不要な単一TX用） */
+export type DebitBalanceParams = {
+  userId: string;
+  walletType: WalletTypeValue;
+  amount: number;
+  sourceType: WalletHistorySourceTypeValue;
+  requestBatchId?: string | null;
+  reason?: string | null;
+  reasonCategory?: ReasonCategory;
+  meta?: WalletHistoryMetaInput;
+};
+
 export type WalletAdjustRequestPayload = {
   walletType: WalletTypeValue;
   changeMethod: WalletHistoryChangeMethodValue;

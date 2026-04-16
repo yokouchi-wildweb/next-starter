@@ -13,6 +13,7 @@ export type {
   ReserveWalletParams,
   ReleaseReservationParams,
   ConsumeReservationParams,
+  DebitBalanceParams,
   WalletOperationOptions,
   AdjustBalanceOptions,
   GetWalletOptions,

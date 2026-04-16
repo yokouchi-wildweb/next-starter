@@ -7,6 +7,7 @@ import type {
   ReserveWalletParams,
   ReleaseReservationParams,
   ConsumeReservationParams,
+  DebitBalanceParams,
   WalletAdjustmentResult,
   WalletOperationOptions,
   AdjustBalanceOptions,
@@ -21,6 +22,7 @@ import { adjustBalance } from "./wrappers/adjustBalance";
 import { bulkAdjustByType } from "./wrappers/bulkAdjustByType";
 import { bulkAdjustByUsers, type BulkAdjustByUsersParams } from "./wrappers/bulkAdjustByUsers";
 import { consumeReservedBalance } from "./wrappers/consumeReservedBalance";
+import { debitBalance } from "./wrappers/debitBalance";
 import { releaseReservation } from "./wrappers/releaseReservation";
 import { reserveBalance } from "./wrappers/reserveBalance";
 import { getTotalBalancesByType } from "./wrappers/getTotalBalancesByType";
@@ -65,6 +67,13 @@ export const walletService = {
     tx?: TransactionClient,
     options?: WalletOperationOptions,
   ) => consumeReservedBalance(params, tx, options),
+
+  /** TX内で残高を即時引き落とし（予約不要な単一TX用） */
+  debitBalance: (
+    params: DebitBalanceParams,
+    tx?: TransactionClient,
+    options?: { wallet?: Wallet },
+  ): Promise<WalletAdjustmentResult> => debitBalance(params, tx, options),
 
   /** 通貨種別ごとの全ユーザー合計残高を取得（roleでフィルタ可能） */
   getTotalBalancesByType: (options?: TotalBalancesByTypeOptions): Promise<TotalBalanceByType[]> =>
