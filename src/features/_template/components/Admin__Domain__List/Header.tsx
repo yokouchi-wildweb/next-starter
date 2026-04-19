@@ -2,10 +2,12 @@
 
 "use client";
 
+import Link from "next/link";
 import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
 import { Pagination } from "@/components/Navigation";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import { DataMigrationButton } from "@/lib/dataMigration";
+import { Button } from "@/components/Form/Button/Button";
 import { useSearchParams } from "next/navigation";
 import { normalizeDomainJsonConfig } from "@/lib/domain/config/normalizeDomainJsonConfig";
 import rawConfig from "@/features/__domain__/domain.json";
@@ -42,6 +44,11 @@ export default function Admin__Domain__ListHeader({ page, perPage, total }: Admi
           return `${paths.list}?${search.toString()}`;
         }}
       />
+      {"sortOrderField" in config && config.sortOrderField && (
+        <Button variant="outline" asChild>
+          <Link href={`${paths.list}/sort`}>並び替え</Link>
+        </Button>
+      )}
       <CreateButton domain="__domain__" />
     </ListTop>
   );

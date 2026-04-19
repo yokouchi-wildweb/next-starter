@@ -7,6 +7,7 @@ import generateAdminEdit from './adminEdit.mjs';
 import generateAdminListIndex from './adminListIndex.mjs';
 import generateAdminListHeader from './adminListHeader.mjs';
 import generateAdminListTable from './adminListTable.mjs';
+import generateAdminSort from './adminSort.mjs';
 import generateCreateForm from './createForm.mjs';
 import generateEditForm from './editForm.mjs';
 import generateDomainForm from './domainForm.mjs';
@@ -87,6 +88,10 @@ const generators = [
 
 if (domainConfig?.useDetailModal) {
   generators.push((opts) => generateDetailModal({ ...opts, config: domainConfig }));
+}
+
+if (domainConfig?.sortOrderField) {
+  generators.push((opts) => generateAdminSort({ ...opts, config: domainConfig }));
 }
 
 // 各ジェネレーターを順に実行

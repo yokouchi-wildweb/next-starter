@@ -73,6 +73,11 @@ if (fs.existsSync(configPath)) {
   domainConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
 }
 
+// sortOrderField が設定されているドメインには並び替えページを追加
+if (domainConfig?.sortOrderField) {
+  templates.push(path.join("__domains__", "sort", "page.tsx"));
+}
+
 let dbEngine = domainConfig?.dbEngine || "";
 // CLI 引数があれば設定より優先
 if (dbEngineArg) dbEngine = dbEngineArg;

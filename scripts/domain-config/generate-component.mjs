@@ -20,6 +20,7 @@ import generateAdminEdit from "./generator/components/adminEdit.mjs";
 import generateAdminListIndex from "./generator/components/adminListIndex.mjs";
 import generateAdminListHeader from "./generator/components/adminListHeader.mjs";
 import generateAdminListTable from "./generator/components/adminListTable.mjs";
+import generateAdminSort from "./generator/components/adminSort.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -39,6 +40,7 @@ const COMPONENT_CHOICES = [
   { name: "AdminXxxList/index.tsx（管理画面：一覧ページ）", value: "adminListIndex" },
   { name: "AdminXxxList/Header.tsx（管理画面：一覧ヘッダー）", value: "adminListHeader" },
   { name: "AdminXxxList/Table.tsx（管理画面：一覧テーブル）", value: "adminListTable" },
+  { name: "AdminXxxSort/index.tsx（管理画面：並び替えページ／sortOrderField が必要）", value: "adminSort" },
 ];
 
 // domain.json を持つディレクトリを検索
@@ -94,6 +96,7 @@ function generateComponents(domain, selectedComponents) {
     adminListIndex: () => generateAdminListIndex(tokens),
     adminListHeader: () => generateAdminListHeader({ ...tokens, config }),
     adminListTable: () => generateAdminListTable({ ...tokens, config }),
+    adminSort: () => generateAdminSort({ ...tokens, config }),
   };
 
   selectedComponents.forEach((componentKey) => {
