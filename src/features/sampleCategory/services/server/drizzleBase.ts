@@ -30,6 +30,8 @@ export const baseOptions = {
       field: "samples",
       table: SampleTable,
       foreignKey: "sample_category_id",
+      useSoftDelete: true,
+      deletedAtColumn: SampleTable.deletedAt,
       nested: {
         belongsTo: [
           {

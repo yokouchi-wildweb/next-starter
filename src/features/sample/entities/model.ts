@@ -23,6 +23,7 @@ export type Sample = {
   sort_order: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
+  deletedAt: Date | null;
 };
 
 /**
