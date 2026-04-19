@@ -43,6 +43,7 @@ export const baseOptions = {
         belongsToMany: [
           {
             field: "sample_tags",
+            idField: "sample_tag_ids",
             targetTable: SampleTagTable,
             throughTable: SampleToSampleTagTable,
             sourceColumn: SampleToSampleTagTable.sampleId,
