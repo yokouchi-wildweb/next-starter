@@ -1,7 +1,7 @@
 // src/lib/crud/drizzle/relations/hydrateBelongsToManyObjects.ts
 
 import { db } from "@/lib/drizzle";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { BelongsToRelation, BelongsToManyObjectRelation, HasManyRelation } from "@/lib/crud/types";
 
 /**
@@ -57,6 +57,11 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
       continue;
     }
 
+    const softDeleteFilter =
+      rel.useSoftDelete && rel.deletedAtColumn
+        ? isNull(rel.deletedAtColumn)
+        : undefined;
+
     // 2. 中間テーブル + ターゲットテーブルをJOINで取得
     // sourceColumn: SampleToSampleTagTable.sampleId
     // targetColumn: SampleToSampleTagTable.sampleTagId
@@ -71,7 +76,11 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
         rel.targetTable,
         eq(rel.targetColumn, rel.targetTable.id)
       )
-      .where(inArray(rel.sourceColumn, recordIds));
+      .where(
+        softDeleteFilter
+          ? and(inArray(rel.sourceColumn, recordIds), softDeleteFilter)
+          : inArray(rel.sourceColumn, recordIds),
+      );
 
     // 3. sourceId でグルーピング
     const grouped = new Map<string, any[]>();

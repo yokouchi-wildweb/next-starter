@@ -379,6 +379,13 @@ export type BelongsToRelation<TTable = any> = {
   /** 取得するカラム名（省略時は全カラム） */
   targetFields?: string[];
   /**
+   * リレーション先のテーブルが論理削除を使う場合 true。
+   * 設定すると hydrate 時に deletedAt IS NULL で絞り込み、削除済みレコードを除外する。
+   */
+  useSoftDelete?: boolean;
+  /** リレーション先テーブルの deletedAt カラム（useSoftDelete: true の時のみ参照） */
+  deletedAtColumn?: any;
+  /**
    * 2階層目のリレーション設定。
    * withRelations: 2 の場合にこのリレーション先のさらにリレーションを展開する。
    */
@@ -408,6 +415,13 @@ export type BelongsToManyObjectRelation<
   /** 取得するカラム名（省略時は全カラム） */
   targetFields?: string[];
   /**
+   * リレーション先のテーブルが論理削除を使う場合 true。
+   * 設定すると hydrate 時に targetTable.deletedAt IS NULL で絞り込み、削除済みレコードを除外する。
+   */
+  useSoftDelete?: boolean;
+  /** リレーション先テーブルの deletedAt カラム（useSoftDelete: true の時のみ参照） */
+  deletedAtColumn?: any;
+  /**
    * 2階層目のリレーション設定。
    * withRelations: 2 の場合にこのリレーション先のさらにリレーションを展開する。
    */
@@ -428,6 +442,13 @@ export type HasManyRelation<TTable = any> = {
   /** 取得するカラム名（省略時は全カラム） */
   targetFields?: string[];
   /**
+   * 子テーブルが論理削除を使う場合 true。
+   * 設定すると hydrate 時に deletedAt IS NULL で絞り込み、削除済みレコードを除外する。
+   */
+  useSoftDelete?: boolean;
+  /** 子テーブルの deletedAt カラム（useSoftDelete: true の時のみ参照） */
+  deletedAtColumn?: any;
+  /**
    * 2階層目のリレーション設定。
    * withRelations: 2 の場合にこのリレーション先のさらにリレーションを展開する。
    */
@@ -438,11 +459,22 @@ export type HasManyRelation<TTable = any> = {
  * belongsToMany リレーションのカウント設定。
  * 中間テーブルを経由してリレーション先のレコード数を取得する。
  */
-export type CountableRelation<TThroughTable = any> = {
+export type CountableRelation<TThroughTable = any, TTargetTable = any> = {
   /** カウントフィールド名（例: "sample_tags"） */
   field: string;
   /** 中間テーブル（例: SampleToSampleTagTable） */
   throughTable: TThroughTable;
   /** 中間テーブルの source 側外部キー名（例: "sampleId"） */
   foreignKey: string;
+  /**
+   * カウント対象のターゲットテーブル。
+   * useSoftDelete: true の場合に JOIN 対象として必須。
+   */
+  targetTable?: TTargetTable;
+  /** 中間テーブルの target 側カラム（例: SampleToSampleTagTable.sampleTagId）。useSoftDelete: true の場合に必須 */
+  targetColumn?: any;
+  /** ターゲットテーブルが論理削除を使う場合 true */
+  useSoftDelete?: boolean;
+  /** ターゲットテーブルの deletedAt カラム（useSoftDelete: true の時のみ参照） */
+  deletedAtColumn?: any;
 };

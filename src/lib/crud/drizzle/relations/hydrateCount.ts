@@ -1,7 +1,7 @@
 // src/lib/crud/drizzle/relations/hydrateCount.ts
 
 import { db } from "@/lib/drizzle";
-import { inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { CountableRelation } from "@/lib/crud/types";
 
 /**
@@ -50,15 +50,34 @@ export async function hydrateCount<T extends Record<string, any>>(
         return;
       }
 
-      // GROUP BY + COUNT で一括取得
-      const counts = await db
-        .select({
-          sourceId: foreignKeyColumn,
-          count: sql<number>`count(*)`.as("count"),
-        })
-        .from(rel.throughTable)
-        .where(inArray(foreignKeyColumn, recordIds))
-        .groupBy(foreignKeyColumn);
+      // ターゲットテーブルが論理削除を使う場合は JOIN して deletedAt IS NULL で除外
+      const useSoftDeleteJoin = Boolean(
+        rel.useSoftDelete && rel.targetTable && rel.targetColumn && rel.deletedAtColumn,
+      );
+
+      const counts = useSoftDeleteJoin
+        ? await db
+            .select({
+              sourceId: foreignKeyColumn,
+              count: sql<number>`count(*)`.as("count"),
+            })
+            .from(rel.throughTable)
+            .innerJoin(
+              rel.targetTable as any,
+              eq(rel.targetColumn, (rel.targetTable as any).id),
+            )
+            .where(
+              and(inArray(foreignKeyColumn, recordIds), isNull(rel.deletedAtColumn)),
+            )
+            .groupBy(foreignKeyColumn)
+        : await db
+            .select({
+              sourceId: foreignKeyColumn,
+              count: sql<number>`count(*)`.as("count"),
+            })
+            .from(rel.throughTable)
+            .where(inArray(foreignKeyColumn, recordIds))
+            .groupBy(foreignKeyColumn);
 
       const countMap = new Map(
         counts.map((c) => [c.sourceId as string, Number(c.count)])

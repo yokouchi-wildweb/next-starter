@@ -1,7 +1,7 @@
 // src/lib/crud/drizzle/relations/hydrateHasMany.ts
 
 import { db } from "@/lib/drizzle";
-import { inArray, asc } from "drizzle-orm";
+import { and, asc, inArray, isNull } from "drizzle-orm";
 import type { HasManyRelation, BelongsToRelation, BelongsToManyObjectRelation } from "@/lib/crud/types";
 
 /** hasMany 展開時の親レコードあたりのデフォルト取得上限 */
@@ -73,11 +73,20 @@ export async function hydrateHasMany<T extends Record<string, any>>(
         return;
       }
 
+      const softDeleteFilter =
+        rel.useSoftDelete && rel.deletedAtColumn
+          ? isNull(rel.deletedAtColumn)
+          : undefined;
+
       // 子テーブルから一括取得（全体 limit なし、親あたりの制限はグルーピング時に適用）
       const childRecords = await db
         .select()
         .from(rel.table)
-        .where(inArray(rel.table[rel.foreignKey], parentIds))
+        .where(
+          softDeleteFilter
+            ? and(inArray(rel.table[rel.foreignKey], parentIds), softDeleteFilter)
+            : inArray(rel.table[rel.foreignKey], parentIds),
+        )
         .orderBy(asc(rel.table.id));
 
       // 親IDでグルーピング（親あたり limit 件まで）

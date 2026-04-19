@@ -101,6 +101,7 @@ lines.push(`  id: ${idTs};`);
 
 if (config.useCreatedAt) lines.push('  createdAt: Date | null;');
 if (config.useUpdatedAt) lines.push('  updatedAt: Date | null;');
+if (config.useSoftDelete) lines.push('  deletedAt: Date | null;');
 
 // リレーション情報を収集
 const belongsToRelations = (config.relations || []).filter(

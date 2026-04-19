@@ -138,10 +138,16 @@ function buildBelongsToRelationsSnippets(config, pascal, camel, visitedDomains =
       const tableImport = `${relationPascal}Table`;
       const field = relation.fieldName.replace(/_id$/, "");
 
+      // 参照先ドメインの useSoftDelete を読み出す
+      const targetConfigForMeta = getDomainConfig(relationCamel);
+      const targetUseSoftDelete = Boolean(
+        targetConfigForMeta && targetConfigForMeta.useSoftDelete,
+      );
+
       let nestedLines = [];
       let nestedImports = { belongsTo: [], belongsToMany: [] };
       if (depth > 0 && !visitedDomains.has(relation.domain)) {
-        const targetConfig = getDomainConfig(relationCamel);
+        const targetConfig = targetConfigForMeta;
         if (targetConfig && targetConfig.dbEngine === "Neon") {
           const nestedVisited = new Set(visitedDomains);
           const nestedBelongsTo = buildBelongsToRelationsSnippets(
@@ -175,6 +181,10 @@ function buildBelongsToRelationsSnippets(config, pascal, camel, visitedDomains =
         `      foreignKey: "${relation.fieldName}",`,
         `      table: ${tableImport},`,
       ];
+      if (targetUseSoftDelete) {
+        lines.push(`      useSoftDelete: true,`);
+        lines.push(`      deletedAtColumn: ${tableImport}.deletedAt,`);
+      }
       if (nestedLines.length > 0) {
         lines.push(...nestedLines);
       }
@@ -210,10 +220,16 @@ function buildBelongsToManyObjectRelationsSnippets(config, ownerPascal, ownerCam
       const targetProperty = `${relationCamel}Id`;
       const field = toPlural(relation.domain.replace(/_/g, "_"));
 
+      // 参照先ドメインの useSoftDelete を読み出す
+      const targetConfigForMeta = getDomainConfig(relationCamel);
+      const targetUseSoftDelete = Boolean(
+        targetConfigForMeta && targetConfigForMeta.useSoftDelete,
+      );
+
       let nestedLines = [];
       let nestedImports = { belongsTo: [], belongsToMany: [] };
       if (depth > 0 && !visitedDomains.has(relation.domain)) {
-        const targetConfig = getDomainConfig(relationCamel);
+        const targetConfig = targetConfigForMeta;
         if (targetConfig && targetConfig.dbEngine === "Neon") {
           const nestedVisited = new Set(visitedDomains);
           const nestedBelongsTo = buildBelongsToRelationsSnippets(
@@ -249,6 +265,10 @@ function buildBelongsToManyObjectRelationsSnippets(config, ownerPascal, ownerCam
         `      sourceColumn: ${throughTableVar}.${sourceProperty},`,
         `      targetColumn: ${throughTableVar}.${targetProperty},`,
       ];
+      if (targetUseSoftDelete) {
+        lines.push(`      useSoftDelete: true,`);
+        lines.push(`      deletedAtColumn: ${targetTableImport}.deletedAt,`);
+      }
       if (nestedLines.length > 0) {
         lines.push(...nestedLines);
       }
@@ -276,17 +296,38 @@ function buildCountableRelationsSnippets(config, pascal, camel) {
     .filter((relation) => relation.relationType === "belongsToMany" && relation.includeRelationTable !== false)
     .map((relation) => {
       const relationPascal = toPascalCase(relation.domain);
+      const relationCamel = toCamelCase(relation.domain);
       const throughTableVar = `${pascal}To${relationPascal}Table`;
       const sourceProperty = `${camel}Id`;
+      const targetProperty = `${relationCamel}Id`;
+      const targetTableImport = `${relationPascal}Table`;
       const field = toPlural(relation.domain.replace(/_/g, "_"));
+
+      // 参照先ドメインの useSoftDelete を読み出す
+      const targetConfigForMeta = getDomainConfig(relationCamel);
+      const targetUseSoftDelete = Boolean(
+        targetConfigForMeta && targetConfigForMeta.useSoftDelete,
+      );
+
+      const lines = [
+        "    {",
+        `      field: "${field}",`,
+        `      throughTable: ${throughTableVar},`,
+        `      foreignKey: "${sourceProperty}",`,
+      ];
+      if (targetUseSoftDelete) {
+        lines.push(`      targetTable: ${targetTableImport},`);
+        lines.push(`      targetColumn: ${throughTableVar}.${targetProperty},`);
+        lines.push(`      useSoftDelete: true,`);
+        lines.push(`      deletedAtColumn: ${targetTableImport}.deletedAt,`);
+      }
+      lines.push("    }");
+
       return {
-        literal: [
-          "    {",
-          `      field: "${field}",`,
-          `      throughTable: ${throughTableVar},`,
-          `      foreignKey: "${sourceProperty}",`,
-          "    }",
-        ].join("\n"),
+        literal: lines.join("\n"),
+        // softDelete対象の場合は targetTable と throughTable のインポートが必要
+        relationDomain: targetUseSoftDelete ? relation.domain : null,
+        tableImport: targetUseSoftDelete ? targetTableImport : null,
       };
     });
 }
@@ -305,16 +346,23 @@ function buildHasManyRelationsSnippets(config, pascal, camel, visitedDomains = n
     .filter((relation) => relation.relationType === "hasMany")
     .map((relation) => {
       const relationPascal = toPascalCase(relation.domain);
+      const relationCamel = toCamelCase(relation.domain);
       const tableImport = `${relationPascal}Table`;
       // hasMany の foreignKey は「親ドメインのsingular + _id」= 子テーブルが親を参照するFK
       // relation.fieldName はdomain.json上の管理用フィールド名であり、子テーブルのカラム名とは異なる
       const foreignKey = `${config.singular}_id`;
       const field = toPlural(relation.domain);
 
+      // 参照先（子）ドメインの useSoftDelete を読み出す
+      const targetConfigForMeta = getDomainConfig(relationCamel);
+      const targetUseSoftDelete = Boolean(
+        targetConfigForMeta && targetConfigForMeta.useSoftDelete,
+      );
+
       let nestedLines = [];
       let nestedImports = { belongsTo: [], belongsToMany: [], hasMany: [] };
       if (depth > 0 && !visitedDomains.has(relation.domain)) {
-        const targetConfig = getDomainConfig(toCamelCase(relation.domain));
+        const targetConfig = targetConfigForMeta;
         if (targetConfig && targetConfig.dbEngine === "Neon") {
           const nestedVisited = new Set(visitedDomains);
           const nestedBelongsTo = buildBelongsToRelationsSnippets(
@@ -349,6 +397,10 @@ function buildHasManyRelationsSnippets(config, pascal, camel, visitedDomains = n
         `      table: ${tableImport},`,
         `      foreignKey: "${foreignKey}",`,
       ];
+      if (targetUseSoftDelete) {
+        lines.push(`      useSoftDelete: true,`);
+        lines.push(`      deletedAtColumn: ${tableImport}.deletedAt,`);
+      }
       if (nestedLines.length > 0) {
         lines.push(...nestedLines);
       }
@@ -520,6 +572,17 @@ function composeServiceOptions(config, pascal, camel) {
   collectImports(belongsToRelations, "belongsTo");
   collectImports(belongsToManyObjectRelations, "belongsToMany");
   collectImports(hasManyRelations, "hasMany");
+
+  // countableRelations は通常 throughTable のみで自ドメイン由来。
+  // softDelete対象の場合のみ targetTable のインポートが追加で必要。
+  for (const item of countableRelations) {
+    if (item.relationDomain && item.tableImport) {
+      relationDomainImports.push({
+        domain: item.relationDomain,
+        tableImport: item.tableImport,
+      });
+    }
+  }
 
   const belongsToManyLiteral = formatAllRelationsLiteral(
     belongsToMany,

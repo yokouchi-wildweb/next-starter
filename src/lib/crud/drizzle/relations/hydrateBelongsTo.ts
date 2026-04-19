@@ -1,7 +1,7 @@
 // src/lib/crud/drizzle/relations/hydrateBelongsTo.ts
 
 import { db } from "@/lib/drizzle";
-import { inArray } from "drizzle-orm";
+import { and, inArray, isNull } from "drizzle-orm";
 import type { BelongsToRelation, BelongsToManyObjectRelation, HasManyRelation } from "@/lib/crud/types";
 
 /**
@@ -52,10 +52,19 @@ export async function hydrateBelongsTo<T extends Record<string, any>>(
         return;
       }
 
+      const softDeleteFilter =
+        rel.useSoftDelete && rel.deletedAtColumn
+          ? isNull(rel.deletedAtColumn)
+          : undefined;
+
       const relatedRecords = await db
         .select()
         .from(rel.table)
-        .where(inArray(rel.table.id, foreignKeys));
+        .where(
+          softDeleteFilter
+            ? and(inArray(rel.table.id, foreignKeys), softDeleteFilter)
+            : inArray(rel.table.id, foreignKeys),
+        );
 
       const relatedMap = new Map(
         relatedRecords.map((r: any) => [r.id, r])
