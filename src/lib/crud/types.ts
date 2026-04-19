@@ -404,6 +404,15 @@ export type BelongsToManyObjectRelation<
 > = {
   /** 展開後のフィールド名（例: "sample_tags"） */
   field: string;
+  /**
+   * ID 配列を格納するフィールド名（例: "sample_tag_ids"）。
+   * 指定した場合、JOIN で取得したターゲットIDから ID 配列を派生させ、
+   * `field` のオブジェクト配列と並べて `record[idField]` に格納する。
+   * ネスト階層で `hydrateBelongsToManyRelations` が呼ばれないため、
+   * ネスト先の belongsToMany で *_ids を使いたい場合に指定する。
+   * 追加 DB クエリは発生しない（JOIN 済みデータから派生）。
+   */
+  idField?: string;
   /** リレーション先のテーブル（例: SampleTagTable） */
   targetTable: TTargetTable;
   /** 中間テーブル（例: SampleToSampleTagTable） */

@@ -260,6 +260,7 @@ function buildBelongsToManyObjectRelationsSnippets(config, ownerPascal, ownerCam
       const lines = [
         "    {",
         `      field: "${field}",`,
+        `      idField: "${relation.fieldName}",`,
         `      targetTable: ${targetTableImport},`,
         `      throughTable: ${throughTableVar},`,
         `      sourceColumn: ${throughTableVar}.${sourceProperty},`,
