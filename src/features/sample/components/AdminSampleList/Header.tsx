@@ -44,7 +44,7 @@ export default function AdminSampleListHeader({ page, perPage, total }: AdminSam
           return `${paths.list}?${search.toString()}`;
         }}
       />
-      {"sortOrderField" in config && config.sortOrderField && (
+      {"sortOrderField" in config && Boolean(config.sortOrderField) && (
         <Button variant="outline" asChild>
           <Link href={`${paths.list}/sort`}>並び替え</Link>
         </Button>
