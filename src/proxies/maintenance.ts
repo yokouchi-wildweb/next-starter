@@ -2,8 +2,9 @@
 
 import { NextResponse } from "next/server";
 
-import { isMaintenanceActive, maintenanceConfig } from "@/config/app/maintenance.config";
+import { maintenanceConfig } from "@/config/app/maintenance.config";
 import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
+import { settingService } from "@/features/core/setting/services/server/settingService";
 import { parseSessionCookie } from "@/lib/jwt";
 
 import type { ProxyHandler } from "./types";
@@ -30,7 +31,7 @@ const isAllowedPath = (pathname: string): boolean => {
  */
 export const maintenanceProxy: ProxyHandler = async (request) => {
   const pathname = request.nextUrl.pathname;
-  const inMaintenance = isMaintenanceActive();
+  const inMaintenance = await settingService.isMaintenanceActive();
 
   // メンテナンス時間外: /maintenance にいるユーザーをリダイレクト
   if (!inMaintenance) {

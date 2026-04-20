@@ -66,6 +66,24 @@ async function getAdminListPerPage(): Promise<number> {
   return setting.adminListPerPage;
 }
 
+/**
+ * 現在メンテナンス期間内かどうか判定
+ * DB上の maintenanceEnabled / maintenanceStartAt / maintenanceEndAt を参照する
+ */
+async function isMaintenanceActive(): Promise<boolean> {
+  const setting = await getGlobalSetting();
+  if (!setting.maintenanceEnabled) return false;
+
+  const now = Date.now();
+  const start = setting.maintenanceStartAt ? new Date(setting.maintenanceStartAt).getTime() : null;
+  const end = setting.maintenanceEndAt ? new Date(setting.maintenanceEndAt).getTime() : null;
+
+  if (start !== null && now < start) return false;
+  if (end !== null && now >= end) return false;
+
+  return true;
+}
+
 export async function initializeAdminSetup(data: AdminSetupInput): Promise<User> {
   const user = await createAdmin(data);
   const defaultValues = createDefaultSettingValues();
@@ -86,6 +104,7 @@ export const settingService = {
   get: async (_id: string) => getGlobalSetting(),
   getGlobalSetting,
   getAdminListPerPage,
+  isMaintenanceActive,
   DEFAULT_ADMIN_LIST_PER_PAGE,
   initializeAdminSetup,
 };

@@ -1,13 +1,13 @@
 # Setting ドメイン
 
 アプリケーション全体の設定を管理するコアドメイン。
-基本設定項目は固定で、追加の設定項目は `setting.extended.ts` で直接定義する。
+**セクション駆動アーキテクチャ**で、新しい設定カテゴリは `setting.sections.ts` にエントリを1つ追加するだけで管理画面・メニューが自動生成される。
 
 ## 概要
 
-- **シングルトンパターン**: 設定は `id: "global"` の1レコードのみ
-- **ハイブリッド構成**: 基本項目（固定） + 拡張項目（`setting.extended.ts` で定義）
-- **1ファイル完結**: 拡張設定項目の追加は `setting.extended.ts` を編集するだけ
+- **シングルトンパターン**: 設定は `id: "global"` の 1 レコードのみ
+- **ハイブリッド構成**: 基本項目（固定カラム） + 拡張項目（`setting.extended.ts` の Zod 定義、`extended` jsonb カラムに格納）
+- **セクション駆動 UI**: `setting.sections.ts` のカタログから、ページ / メニュー / フォームを動的生成
 
 ---
 
@@ -15,147 +15,114 @@
 
 ```
 src/features/core/setting/
-├── setting.extended.ts                 # 拡張設定項目の定義（ダウンストリームが編集する唯一のファイル）
+├── setting.extended.ts                       # 拡張設定項目の Zod スキーマ
+├── setting.sections.ts                       # セクション定義（管理UI のカタログ）
+├── menu.ts                                   # セクションから管理メニューを組み立てる helper
 ├── entities/
-│   ├── index.ts                        # エクスポート集約・統合スキーマ
-│   ├── drizzle.ts                      # DBスキーマ
-│   ├── schema.ts                       # 基本Zodスキーマ（固定）
-│   ├── schema.extended.ts              # 拡張Zodスキーマ（setting.extended.ts を再エクスポート）
-│   ├── model.ts                        # 基本型定義（固定）
-│   ├── model.extended.ts               # 拡張型定義（setting.extended.ts から導出）
-│   ├── form.ts                         # 基本フォーム型
-│   └── form.extended.ts                # 拡張フォーム型（setting.extended.ts から導出）
+│   ├── index.ts, drizzle.ts, schema.ts, model.ts, form.ts
+│   ├── schema.extended.ts, model.extended.ts, form.extended.ts
 ├── services/
-│   ├── client/
-│   │   ├── settingClient.ts            # 設定取得・更新API
-│   │   └── adminSetupClient.ts         # 初期セットアップAPI
-│   ├── server/
-│   │   ├── drizzleBase.ts              # CRUD基本操作
-│   │   └── settingService.ts           # ビジネスロジック
-│   └── types.ts                        # サービス層の型定義
-├── hooks/
-│   ├── useSetting.ts                   # 設定取得Hook
-│   ├── useUpdateSetting.ts             # 設定更新Hook
-│   └── useAdminSetup.ts                # 初期セットアップHook
+│   ├── client/settingClient.ts, adminSetupClient.ts
+│   ├── server/drizzleBase.ts, settingService.ts
+│   └── types.ts
+├── hooks/useSetting.ts, useUpdateSetting.ts, useAdminSetup.ts
 └── components/
-    ├── common/
-    │   ├── SettingForm.tsx              # フォームコンテナ（children で拡張UI）
-    │   ├── SettingFields.tsx            # 基本設定フィールド
-    │   └── EditSettingForm.tsx          # 編集フォーム統合
-    ├── AdminSettingEdit/               # 管理画面：設定編集
-    └── AdminSetup/                     # 管理画面：初期セットアップ
+    ├── common/EditSettingSectionForm.tsx     # セクション駆動の汎用フォーム
+    ├── AdminSettingSectionEdit/              # 管理画面: 設定編集ラッパ
+    └── AdminSetup/                           # 管理画面: 初期セットアップ
 ```
+
+管理画面のルートは `src/app/admin/(protected)/settings/` 配下の 1 動的ルート `[section]/page.tsx` で全セクションを賄う。
 
 ---
 
-## 基本設定項目（固定）
+## 基本設定項目（固定カラム）
 
 | 項目名 | DB列名 | 型 | 説明 |
 |--------|--------|-----|------|
 | `adminListPerPage` | `admin_list_per_page` | integer | 一覧表示件数（デフォルト: 50） |
+| `maintenanceEnabled` | `extended` jsonb | boolean | メンテナンスモード有効フラグ |
+| `maintenanceStartAt` | `extended` jsonb | date \| null | メンテナンス開始日時 |
+| `maintenanceEndAt` | `extended` jsonb | date \| null | メンテナンス終了日時 |
 
-これらの項目は `entities/schema.ts` と `entities/drizzle.ts` で直接定義されており、変更する場合は手動編集が必要。
+固定カラムは `entities/schema.ts` と `entities/drizzle.ts` で定義されており、変更する場合は手動編集が必要。
 
 ---
 
-## 拡張設定項目の追加方法
+## 設定カテゴリ（セクション）の追加方法
 
 ### 手順
 
-**`setting.extended.ts` を編集するだけ。** DBマイグレーション不要。
+1. **スキーマを `setting.extended.ts` に追加（必要な場合）**
 
 ```ts
 // src/features/core/setting/setting.extended.ts
-import { z } from "zod";
-
 export const settingExtendedSchema = z.object({
-  // ここにフィールドを追加するだけ
-  siteTitle: z.string().nullish(),
-  maintenanceMode: z.coerce.boolean().default(false),
-  consumptionRewardEnabled: z.coerce.boolean().default(false),
-  consumptionRewardCoinsPerUnitMin: z.coerce.number().int().default(0),
-  consumptionRewardCoinsPerUnitMax: z.coerce.number().int().default(0),
-  bonusTiers: z.array(z.object({
-    threshold: z.number(),
-    multiplier: z.number(),
-  })).default([]),
+  // 既存
+  maintenanceEnabled: z.coerce.boolean().default(false),
+  // 追加
+  siteTitle: z.string().default(""),
+  seoDescription: z.string().default(""),
 });
-
-export type SettingExtended = z.infer<typeof settingExtendedSchema>;
 ```
 
-### 何が自動的に行われるか
-
-- **バリデーション**: Zod のメソッドチェーンで定義したルールがそのまま適用される
-- **デフォルト値**: `.default()` で指定した値が `getGlobalSetting()` で自動適用される
-- **TypeScript 型**: `z.infer<typeof settingExtendedSchema>` で自動導出される
-- **スキーマ統合**: `SettingCombinedUpdateSchema` に自動マージされる
-
-### サポートするフィールド例
+2. **`setting.sections.ts` にセクションを追加**
 
 ```ts
-// プリミティブ型
-name: z.string().nullish(),
-count: z.coerce.number().int().default(0),
-enabled: z.coerce.boolean().default(false),
+// src/features/core/setting/setting.sections.ts
+export const settingSections: SettingSectionMap = {
+  // 既存 general, maintenance …
 
-// enum
-theme: z.enum(["light", "dark"]).default("light"),
-
-// 配列
-tags: z.array(z.string()).default([]),
-
-// ネストオブジェクト（jsonb）
-config: z.object({
-  key: z.string(),
-  value: z.number(),
-}).default({ key: "", value: 0 }),
-
-// 可変長構造化データ（jsonb）
-tiers: z.array(z.object({
-  threshold: z.number(),
-  multiplier: z.number(),
-})).default([]),
+  seo: {
+    label: "SEO 設定",
+    order: 30,
+    icon: Search,
+    fields: [
+      { name: "siteTitle", label: "サイトタイトル", formInput: "textInput" },
+      { name: "seoDescription", label: "ディスクリプション", formInput: "textarea" },
+    ],
+  },
+};
 ```
 
----
+これだけ。以下は **すべて自動**：
 
-## UI のカスタマイズ
+- 管理メニュー「システム設定」配下に「SEO 設定」が追加される
+- `/admin/settings/seo` ページが動作する
+- 入力UI は `formInput` に従って `FieldRenderer` が生成する
+- 保存処理は既存の `useUpdateSetting` を流用
 
-`SettingForm` は `children` プロパティで拡張UIを受け取る。
-セクション分け、条件付き表示、JSON編集など自由に構成できる。
+### バリデーション
 
-```tsx
-import { SettingForm } from "./SettingForm";
-import { ControlledField } from "@/components/Form";
-import { SwitchInput, TextInput } from "@/components/Form/Input/Controlled";
+- **Zod**: 真実のソースは `setting.extended.ts`。バリデーションやデフォルト値はここだけで定義
+- **UI 定義との整合性**: 起動時に `validateSectionFields` がセクション定義のフィールド名が Zod スキーマに存在することを検証。不整合があれば throw
 
-<SettingForm methods={methods} onSubmitAction={submit} submitLabel="更新">
-  {/* セクション分け */}
-  <Section title="基本設定">
-    <ControlledField name="siteTitle" label="サイトタイトル"
-      renderInput={(field) => <TextInput field={field} />} />
-  </Section>
+### 入力UIの種類
 
-  {/* 条件付き表示（フィールド間の依存関係） */}
-  <Section title="消費報酬設定">
-    <ControlledField name="consumptionRewardEnabled" label="消費報酬"
-      renderInput={(field) => <SwitchInput field={field} />} />
-    {watch("consumptionRewardEnabled") && (
-      <>
-        <ControlledField name="consumptionRewardCoinsPerUnitMin" label="最小コイン数"
-          renderInput={(field) => <TextInput field={field} type="number" />} />
-        <ControlledField name="consumptionRewardCoinsPerUnitMax" label="最大コイン数"
-          renderInput={(field) => <TextInput field={field} type="number" />} />
-      </>
-    )}
-  </Section>
+`formInput` に指定可能な値（FieldRenderer のサポート分）:
 
-  {/* カスタムJSON編集UI */}
-  <Section title="ボーナス設定">
-    <BonusTierEditor control={control} />
-  </Section>
-</SettingForm>
+`textInput`, `numberInput`, `textarea`, `select`, `multiSelect`, `combobox`,
+`radio`, `checkbox`, `stepperInput`, `switchInput`, `dateInput`, `timeInput`,
+`datetimeInput`, `emailInput`, `passwordInput`, `colorInput`, `mediaUploader`,
+`hidden`, `none`, `custom`, `asyncCombobox`, `asyncMultiSelect`
+
+詳細は `src/components/Form/Field/types.ts` を参照。
+
+### カスタムUI
+
+`formInput: "custom"` を使う、または `fieldGroups` / `inlineGroups` を指定してレイアウトを調整する。より複雑なケースはセクション定義を書き換えず、そのセクション専用のページを独自に作ってもよい（動的ルートと共存可能）。
+
+### セクションの権限制御
+
+`allowRoles` を指定すると、そのロールのみがメニューに表示・ページにアクセス可能になる。
+
+```ts
+security: {
+  label: "セキュリティ",
+  order: 50,
+  allowRoles: ["super_admin"],
+  fields: [ ... ],
+},
 ```
 
 ---
@@ -167,14 +134,12 @@ import { SwitchInput, TextInput } from "@/components/Form/Input/Controlled";
 ```typescript
 import { settingService } from "@/features/core/setting/services/server/settingService";
 
-// グローバル設定を取得（拡張項目もフラットにアクセス可能）
 const setting = await settingService.getGlobalSetting();
 setting.adminListPerPage;        // 基本項目
-setting.maintenanceMode;         // 拡張項目（フラットアクセス）
-setting.bonusTiers;              // jsonb 項目も同様
+setting.maintenanceEnabled;      // 拡張項目（フラットアクセス）
 
-// 一覧表示件数を取得
-const perPage = await settingService.getAdminListPerPage();
+// メンテナンス中かどうか
+const inMaintenance = await settingService.isMaintenanceActive();
 ```
 
 ### 設定を取得する（クライアントサイド）
@@ -182,25 +147,19 @@ const perPage = await settingService.getAdminListPerPage();
 ```typescript
 import { useSetting } from "@/features/core/setting/hooks/useSetting";
 
-function MyComponent() {
-  const { data: setting, isLoading, error } = useSetting();
-  if (isLoading) return <div>Loading...</div>;
-  return <div>{setting.maintenanceMode ? "メンテナンス中" : "稼働中"}</div>;
-}
+const { data: setting, isLoading, error } = useSetting();
 ```
 
-### 設定を更新する（クライアントサイド）
+### 設定を更新する（通常は自動。個別呼び出しする場合）
 
 ```typescript
 import { useUpdateSetting } from "@/features/core/setting/hooks/useUpdateSetting";
 
-function EditForm() {
-  const { trigger, isMutating } = useUpdateSetting();
-  const handleSubmit = async (data) => {
-    await trigger({ id: "global", data });
-  };
-}
+const { trigger, isMutating } = useUpdateSetting();
+await trigger({ id: "global", data: { /* 更新内容 */ } });
 ```
+
+> ⚠️ **注意**: `extended` jsonb カラムは**部分更新ができず全置換**になる。`EditSettingSectionForm` は defaultValues に全フィールドを読み込むことでこの問題を吸収している。独自に `trigger` を呼ぶ場合も、保持したいフィールドは全て `data` に含める必要がある。
 
 ---
 
@@ -216,31 +175,43 @@ function EditForm() {
 
 ## アーキテクチャ
 
-### スキーマ統合
+### スキーマ統合（entities/index.ts）
 
 ```typescript
-// entities/index.ts
-// 基本スキーマと拡張スキーマをマージ
 export const SettingCombinedBaseSchema = SettingBaseSchema.merge(SettingExtendedBaseSchema);
 export const SettingCombinedUpdateSchema = SettingUpdateSchema.merge(SettingExtendedBaseSchema.partial());
 ```
 
-### デフォルト値の統合
+### デフォルト値の統合（settingService.ts）
 
 ```typescript
-// services/server/settingService.ts
-import { getZodDefaults } from "@/lib/zod";
-import { settingExtendedSchema } from "../../setting.extended";
-
 const createDefaultSettingValues = () => ({
   adminListPerPage: DEFAULT_ADMIN_LIST_PER_PAGE,
-  ...getZodDefaults(settingExtendedSchema), // .default() から自動抽出
+  ...getZodDefaults(settingExtendedSchema),
 });
+```
+
+### セクションカタログ → 管理UI の流れ
+
+```
+setting.sections.ts
+       │
+       ├─ setting/menu.ts ─────► admin-global-menu.config.ts （メニュー items）
+       │                              │
+       │                              └─► BaseSidebar がロール別にフィルタ
+       │
+       └─ app/admin/(protected)/settings/[section]/page.tsx
+              │
+              ├─ section.allowRoles で authGuard
+              └─ AdminSettingSectionEdit → EditSettingSectionForm
+                      │
+                      └─► FieldRenderer（baseFields = section.fields）
 ```
 
 ---
 
 ## 関連ファイル
 
-- `src/lib/zod/getZodDefaults.ts` — Zod スキーマからデフォルト値を抽出するユーティリティ
-- `CLAUDE.md` の Setting 関連セクション
+- `src/lib/zod/getZodDefaults.ts` — Zod スキーマからデフォルト値を抽出
+- `src/components/Form/FieldRenderer/` — セクションフィールドを描画する汎用レンダラ
+- `docs/how-to/システム設定セクションの追加方法.md` — 旧構造からの移行ガイドと追加手順

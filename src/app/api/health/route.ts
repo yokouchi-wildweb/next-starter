@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { isMaintenanceActive } from "@/config/app/maintenance.config";
+import { settingService } from "@/features/core/setting/services/server/settingService";
 import { createApiRoute } from "@/lib/routeFactory";
 
 // ビルド時に確定するID（next.config.ts の env で注入）
@@ -19,9 +19,10 @@ export const GET = createApiRoute(
     operationType: "read",
   },
   async () => {
+    const maintenance = await settingService.isMaintenanceActive();
     // デプロイ検知のためキャッシュを無効化
     return NextResponse.json(
-      { buildId: BUILD_ID, maintenance: isMaintenanceActive() },
+      { buildId: BUILD_ID, maintenance },
       { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } },
     );
   },

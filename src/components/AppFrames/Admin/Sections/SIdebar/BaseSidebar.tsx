@@ -37,6 +37,20 @@ type SidebarMenuItem = {
   title: string;
   href: string;
   icon?: IconComponent;
+  allowRoles?: readonly string[];
+};
+
+/**
+ * allowRoles によるフィルタ判定
+ * - allowRoles 未指定/空 → 全員表示
+ * - ユーザーロールが allowRoles に含まれているか
+ */
+const isAllowedForRole = (
+  allowRoles: readonly string[] | undefined,
+  userRole: string | undefined,
+): boolean => {
+  if (!allowRoles || allowRoles.length === 0) return true;
+  return userRole ? allowRoles.includes(userRole) : false;
 };
 
 type SidebarMenuSection = {
@@ -55,14 +69,7 @@ function buildSidebarSections(
   userRole: string | undefined,
 ): SidebarMenuSection[] {
   return menu
-    .filter((section) => {
-      // allowRoles 未指定は全員表示
-      if (!section.allowRoles || section.allowRoles.length === 0) {
-        return true;
-      }
-      // ユーザーロールが allowRoles に含まれているか
-      return userRole ? section.allowRoles.includes(userRole) : false;
-    })
+    .filter((section) => isAllowedForRole(section.allowRoles, userRole))
     .map((section) => {
       const primaryHref = hasHref(section.href) ? section.href : null;
 
@@ -70,11 +77,16 @@ function buildSidebarSections(
         if (!hasHref(item.href)) {
           return acc;
         }
+        // アイテム単位の allowRoles でも絞り込み
+        if (!isAllowedForRole(item.allowRoles, userRole)) {
+          return acc;
+        }
 
         acc.push({
           title: item.title,
           href: item.href,
           icon: item.icon,
+          allowRoles: item.allowRoles,
         });
         return acc;
       }, []);

@@ -1,4 +1,5 @@
 import { maintenanceConfig } from "@/config/app/maintenance.config";
+import { settingService } from "@/features/core/setting/services/server/settingService";
 
 import { MaintenanceAutoRedirect } from "./MaintenanceAutoRedirect";
 
@@ -8,11 +9,16 @@ import { MaintenanceAutoRedirect } from "./MaintenanceAutoRedirect";
  *
  * ※ メンテナンス時間外のサーバーサイドリダイレクトは Proxy 層で処理
  */
-export function MaintenanceGuard({ children }: { children: React.ReactNode }) {
+export async function MaintenanceGuard({ children }: { children: React.ReactNode }) {
+  const setting = await settingService.getGlobalSetting();
+  const endTime = setting.maintenanceEndAt
+    ? new Date(setting.maintenanceEndAt).toISOString()
+    : null;
+
   return (
     <>
       <MaintenanceAutoRedirect
-        endTime={maintenanceConfig.schedule.end}
+        endTime={endTime}
         redirectTo={maintenanceConfig.redirectAfterEnd}
       />
       {children}

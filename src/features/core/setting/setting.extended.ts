@@ -7,7 +7,7 @@
 //   1. settingExtendedSchema に Zod フィールドを追加する
 //   2. デフォルト値は .default() で指定する
 //   3. DB マイグレーション不要（jsonb カラムに格納される）
-//   4. UI は SettingForm 内で自由に構成する
+//   4. UI に出す場合は `setting.sections.ts` の任意セクションに FieldConfig を追加する
 //
 // 例:
 //   export const settingExtendedSchema = z.object({
@@ -30,7 +30,12 @@ import { z } from "zod";
  * - 型: z.infer<typeof settingExtendedSchema> で自動導出
  */
 export const settingExtendedSchema = z.object({
-  // ダウンストリームでここにフィールドを追加する
+  // メンテナンスモード
+  // 有効フラグ・開始/終了日時を管理画面から制御する。
+  // 許可パス/バイパスロール等の構造は src/config/app/maintenance.config.ts 側に残す。
+  maintenanceEnabled: z.coerce.boolean().default(false),
+  maintenanceStartAt: z.coerce.date().nullable().default(null),
+  maintenanceEndAt: z.coerce.date().nullable().default(null),
 });
 
 /** 拡張設定項目の型（自動導出） */

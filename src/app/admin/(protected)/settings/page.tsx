@@ -1,22 +1,11 @@
-// src/app/admin/settings/page.tsx
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import AdminSettingEdit from "@/features/core/setting/components/AdminSettingEdit";
-import { settingService } from "@/features/core/setting/services/server/settingService";
+// src/app/admin/(protected)/settings/page.tsx
+//
+// システム設定ルート。動的ルート `[section]` のうち、順序最小のセクションへリダイレクトする。
+// 旧ブックマーク (/admin/settings) からの導線維持と、既定ページ決定を一箇所に集約する目的。
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+import { getDefaultSettingSectionKey } from "@/features/core/setting/setting.sections";
 
-export const metadata = {
-  title: "システム設定",
-};
-
-export default async function AdminSettingPage() {
-  const setting = await settingService.getGlobalSetting();
-
-  return (
-    <AdminPage>
-      <PageTitle>システム設定</PageTitle>
-      <AdminSettingEdit setting={setting} redirectPath="/admin/settings" />
-    </AdminPage>
-  );
+export default function AdminSettingIndexPage() {
+  redirect(`/admin/settings/${getDefaultSettingSectionKey()}`);
 }

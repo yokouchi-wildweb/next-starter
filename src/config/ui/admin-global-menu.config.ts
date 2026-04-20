@@ -3,6 +3,7 @@
 import { adminDataMenu } from "@/registry/adminDataMenu";
 import type { UserRoleType } from "@/features/core/user/types";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+import { buildSettingMenuItems } from "@/features/core/setting/menu";
 import type { IconComponent } from "@/components/Icons";
 import {
   Home,
@@ -36,6 +37,8 @@ export type AdminMenuItem = {
   href: string;
   /** アイコン（省略可、ADMIN_MENU_ICONS_ENABLEDがtrueの場合のみ表示） */
   icon?: IconComponent;
+  /** 指定した場合、そのロールのみ表示（未指定は全員表示） */
+  allowRoles?: UserRoleType[];
 };
 
 export type AdminMenuSection = {
@@ -110,8 +113,8 @@ export const adminMenu: AdminMenuSection[] = [
   },
   {
     title: "システム設定",
-    href: "/admin/settings",
+    href: null,
     icon: Settings,
-    items: [],
+    items: buildSettingMenuItems(),
   },
 ];
