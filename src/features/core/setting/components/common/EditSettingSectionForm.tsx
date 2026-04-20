@@ -111,14 +111,6 @@ export default function EditSettingSectionForm({
         <Button type="submit" disabled={isMutating} variant="default">
           更新
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => methods.reset()}
-          className="ml-4"
-        >
-          キャンセル
-        </Button>
       </div>
     </AppForm>
   );
