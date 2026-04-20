@@ -20,15 +20,18 @@ import { err } from "@/lib/errors";
 import { getZodDefaults } from "@/lib/zod";
 
 import { settingExtendedSchema } from "../../setting.extended";
-import type { SettingSection } from "../../setting.sections";
+import type { SettingSectionFormProps } from "../../setting.sections";
 
 // 送信時の型（base + extended 統合）
 // セクションに属さないフィールドも jsonb 保持のために同梱するため全部入り
 type CombinedSettingUpdateFields = SettingUpdateFields & SettingExtendedUpdateFields;
 
 type Props = {
-  /** セクション定義（表示するフィールドやグループ構成を決定する） */
-  section: SettingSection;
+  /**
+   * セクション定義のうち、フォーム描画に必要なプロパティのみ。
+   * `icon` 等のシリアライズ不可プロパティは呼び出し側（Server Component）で除外すること。
+   */
+  section: SettingSectionFormProps;
   /** 現在の設定値（全フィールドをフラット展開した状態） */
   setting: Setting;
   /** 更新後のリダイレクト先 */

@@ -69,6 +69,48 @@ export type SettingSection = {
 export type SettingSectionKey = string;
 export type SettingSectionMap = Record<SettingSectionKey, SettingSection>;
 
+/**
+ * フォーム（Client Component）に渡すためのサブセット型。
+ *
+ * `icon` / `order` / `allowRoles` はサーバーサイドのメニュー生成・権限チェックで使う
+ * メタデータで、フォーム描画には不要。これらはサーバー→クライアント境界越えで
+ * シリアライズ不可なもの（icon は React コンポーネント参照）を含むため、
+ * フォームへ渡すセクションは本型に絞り込む。
+ */
+export type SettingSectionFormProps = Pick<
+  SettingSection,
+  | "label"
+  | "fields"
+  | "fieldGroups"
+  | "inlineGroups"
+  | "fieldPatches"
+  | "insertBefore"
+  | "insertAfter"
+  | "beforeAll"
+  | "afterAll"
+  | "beforeField"
+  | "afterField"
+>;
+
+/**
+ * SettingSection からフォーム用のプロパティのみを抜き出す
+ */
+export function toSettingSectionFormProps(section: SettingSection): SettingSectionFormProps {
+  return {
+    label: section.label,
+    fields: section.fields,
+    fieldGroups: section.fieldGroups,
+    inlineGroups: section.inlineGroups,
+    fieldPatches: section.fieldPatches,
+    insertBefore: section.insertBefore,
+    insertAfter: section.insertAfter,
+    beforeAll: section.beforeAll,
+    afterAll: section.afterAll,
+    beforeField: section.beforeField,
+    afterField: section.afterField,
+  };
+}
+
 // ============================================
 // セクションカタログ
 // ============================================
