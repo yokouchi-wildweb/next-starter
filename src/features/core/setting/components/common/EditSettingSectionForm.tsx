@@ -96,6 +96,13 @@ export default function EditSettingSectionForm({
         baseFields={section.fields}
         fieldGroups={section.fieldGroups}
         inlineGroups={section.inlineGroups}
+        fieldPatches={section.fieldPatches}
+        insertBefore={section.insertBefore}
+        insertAfter={section.insertAfter}
+        beforeAll={section.beforeAll}
+        afterAll={section.afterAll}
+        beforeField={section.beforeField as never}
+        afterField={section.afterField as never}
       />
       <div className="flex justify-center">
         <Button type="submit" disabled={isMutating} variant="default">

@@ -1,4 +1,4 @@
-// src/features/core/setting/setting.sections.ts
+// src/features/core/setting/setting.sections.tsx
 //
 // システム設定のセクション（管理画面のサブページ単位）を定義するカタログ。
 //
@@ -7,16 +7,19 @@
 //
 // 手順:
 //   1. 設定項目のスキーマを `setting.extended.ts` に追加（Zod）
-//   2. このファイル（`setting.sections.ts`）の `settingSections` にエントリを追加
+//   2. このファイル（`setting.sections.tsx`）の `settingSections` にエントリを追加
 //   3. 必要に応じて icon や権限を設定
 //
 // 注意:
 //   - フィールド名は `SettingBaseSchema` もしくは `settingExtendedSchema` に存在する必要がある
 //     （起動時に `validateSectionFields` が検証し、存在しない場合は throw する）
-//   - `formInput: "custom"` で独自UIも使用可能
+//   - カスタムUIは `formInput: "custom"` にしたフィールドへ `beforeField`/`afterField` で独自コンポーネントを差し込む
+//   - JSX が書けるよう拡張子は .tsx
+
+import type { ReactNode } from "react";
 
 import type { FieldConfig } from "@/components/Form/Field/types";
-import type { FieldGroup, InlineFieldGroup } from "@/components/Form/FieldRenderer";
+import type { FieldGroup, InlineFieldGroup, InsertFieldsMap } from "@/components/Form/FieldRenderer";
 import type { IconComponent } from "@/components/Icons";
 import type { UserRoleType } from "@/features/core/user/types";
 import { Sliders, Construction } from "lucide-react";
@@ -42,6 +45,25 @@ export type SettingSection = {
   fieldGroups?: FieldGroup[];
   /** 横並びグループ（FieldRenderer の inlineGroups） */
   inlineGroups?: InlineFieldGroup[];
+
+  // ============================================
+  // カスタム UI 差し込み口（FieldRenderer の props をそのままセクション宣言から利用可能に）
+  // ============================================
+
+  /** 全フィールドの前に挿入する UI（FieldRenderer の beforeAll） */
+  beforeAll?: ReactNode;
+  /** 全フィールドの後に挿入する UI（FieldRenderer の afterAll） */
+  afterAll?: ReactNode;
+  /** 特定フィールドの前に挿入する UI（キー: フィールド名） */
+  beforeField?: Partial<Record<string, ReactNode>>;
+  /** 特定フィールドの後に挿入する UI（キー: フィールド名） */
+  afterField?: Partial<Record<string, ReactNode>>;
+  /** 既存フィールドの部分上書きパッチ（formInput 変更や label 変更等） */
+  fieldPatches?: Partial<FieldConfig>[];
+  /** 指定フィールド位置の前に新規フィールドを挿入 */
+  insertBefore?: InsertFieldsMap;
+  /** 指定フィールド位置の後に新規フィールドを挿入 */
+  insertAfter?: InsertFieldsMap;
 };
 
 export type SettingSectionKey = string;

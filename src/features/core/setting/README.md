@@ -110,7 +110,58 @@ export const settingSections: SettingSectionMap = {
 
 ### カスタムUI
 
-`formInput: "custom"` を使う、または `fieldGroups` / `inlineGroups` を指定してレイアウトを調整する。より複雑なケースはセクション定義を書き換えず、そのセクション専用のページを独自に作ってもよい（動的ルートと共存可能）。
+**ファイル拡張子は `.tsx`**（JSX を直接書ける）。任意のReactコンポーネントをフィールド位置に差し込める。
+
+#### パターン1: 既存フィールド位置にUIを追加挿入
+
+セクションに `beforeField` / `afterField` / `beforeAll` / `afterAll` を書く:
+
+```tsx
+import { MyInfoBanner } from "@/features/xxx/components/MyInfoBanner";
+
+maintenance: {
+  label: "メンテナンス",
+  order: 20,
+  fields: [ /* ... */ ],
+  beforeAll: <MyInfoBanner message="作業時間を慎重に設定してください" />,
+  afterField: {
+    maintenanceEndAt: <Para tone="muted">終了後の自動解除はサーバ時刻基準です</Para>,
+  },
+},
+```
+
+#### パターン2: フィールド自体のUIを完全に独自実装
+
+`formInput: "custom"` を使うと FieldRenderer は該当フィールド位置に何も描画しない。代わりに `beforeField` / `afterField` から独自コンポーネントを挿入する。独自コンポーネント内で `react-hook-form` の `Controller` を使って値と連携する:
+
+```tsx
+import { Controller } from "react-hook-form";
+
+const MyPriceTierEditor = () => {
+  // useFormContext でform状態にアクセスしつつ独自UIを組む
+  return <Controller name="bonusTiers" render={({ field }) => /* 独自UI */} />;
+};
+
+pricing: {
+  label: "料金設定",
+  order: 40,
+  fields: [
+    { name: "bonusTiers", label: "階層ボーナス", formInput: "custom" },
+  ],
+  beforeField: {
+    bonusTiers: <MyPriceTierEditor />,
+  },
+},
+```
+
+#### パターン3: 既存フィールドの部分上書き・新規フィールド追加
+
+- `fieldPatches`: 既存フィールドの一部プロパティを上書き（formInput や label の変更等）
+- `insertBefore` / `insertAfter`: 特定フィールドの前後に新規 FieldConfig を挿入（バリデーションスキーマ側にも対応キー必要）
+
+#### パターン4: ページ自体を自作
+
+それでも不十分なほど凝ったUIなら、セクション定義を書かず `app/admin/(protected)/settings/my-custom/page.tsx` を独自に作ってもよい（動的ルートと共存可能、メニュー追加は手動）。
 
 ### セクションの権限制御
 
