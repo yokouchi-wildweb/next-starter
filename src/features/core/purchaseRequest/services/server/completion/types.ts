@@ -46,14 +46,63 @@ export type CompletionResult = {
 };
 
 /**
+ * afterInitiate / onFail / onExpire 用のライフサイクル・コンテキスト
+ * 戦略が副次テーブルの作成・更新・削除を行う際に使用する。
+ *
+ * いずれも db.transaction 内で呼ばれる（atomic）。
+ * 例外を投げた場合の挙動はフックごとに異なる（型宣言側のコメント参照）。
+ */
+export type LifecycleContext = {
+  purchaseRequest: PurchaseRequest;
+  tx: TransactionClient;
+};
+
+/**
+ * onFail 用のコンテキスト。失敗理由を errorCode / errorMessage で受け取れる。
+ *
+ * errorCode 例:
+ *   - "PAYMENT_FAILED"     : 決済プロバイダからの明示的な失敗
+ *   - "PAYMENT_CANCELLED"  : ユーザーが決済画面でキャンセル
+ *   - "AMOUNT_MISMATCH"    : 金額照合エラー（修復不能）
+ *   - null                 : 失敗理由未指定（レガシー経路）
+ *
+ * 戦略側で errorCode を見てキャンセル／失敗を区別できる。
+ */
+export type FailureContext = LifecycleContext & {
+  errorCode: string | null;
+  errorMessage: string | null;
+};
+
+/**
  * 購入完了戦略インターフェース
  *
  * type: PurchaseTypeKey と1対1で対応する。
  * validateInitiation: initiatePurchase のパッケージ検証等（同期的に throw してOK）。
- * complete: completePurchase のトランザクション内で呼ばれる本体処理。
+ * complete: completePurchase のトランザクション内で呼ばれる本体処理（成功パス）。
+ *
+ * ライフサイクルフック（いずれも optional）:
+ *   afterInitiate: 購入リクエスト作成直後・同一tx内で呼ばれる。
+ *                  副次テーブル（DirectSaleOrder 等）の atomic 作成用。
+ *                  例外を投げると purchase_request 自体の作成もロールバックされる。
+ *                  冪等キー重複による pending 再利用時は呼ばれない（初回作成のみ）。
+ *
+ *   onFail:        failPurchase で status=failed に遷移した直後・同一tx内で呼ばれる。
+ *                  副次テーブルのクリーンアップ用。
+ *                  Webhook リトライ等で複数回呼ばれる可能性があるため idempotent に実装すること。
+ *                  例外を投げるとトランザクション全体がロールバックされる（= 失敗マーク自体も戻る）
+ *                  ため、握りつぶすか upsert/idempotent な処理にすること推奨。
+ *
+ *   onExpire:      expirePendingRequests で status=expired に遷移した直後・同一tx内で呼ばれる。
+ *                  cancelPending（ユーザー削除時の一括 expire）からも呼ばれる。
+ *                  onExpire を定義した purchase_type は per-row 処理となり、
+ *                  未定義の type は従来の bulk UPDATE のまま（性能互換）。
+ *                  onFail と同じく idempotent を要求。
  */
 export type PurchaseCompletionStrategy = {
   type: PurchaseTypeKey;
   validateInitiation: (ctx: InitiationValidationContext) => Promise<void>;
   complete: (ctx: CompletionContext) => Promise<CompletionResult>;
+  afterInitiate?: (ctx: LifecycleContext) => Promise<void>;
+  onFail?: (ctx: FailureContext) => Promise<void>;
+  onExpire?: (ctx: LifecycleContext) => Promise<void>;
 };

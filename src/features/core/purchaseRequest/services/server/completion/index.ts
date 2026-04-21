@@ -16,4 +16,4 @@ import { walletTopupStrategy } from "./walletTopupStrategy";
 registerPurchaseCompletionStrategy(walletTopupStrategy);
 
 export { registerPurchaseCompletionStrategy, getPurchaseCompletionStrategy, getRegisteredPurchaseTypes } from "./strategyRegistry";
-export type { PurchaseCompletionStrategy, CompletionContext, CompletionResult, InitiationValidationContext } from "./types";
+export type { PurchaseCompletionStrategy, CompletionContext, CompletionResult, InitiationValidationContext, LifecycleContext, FailureContext } from "./types";

@@ -2,6 +2,7 @@
 // 購入開始処理
 
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
+import { db } from "@/lib/drizzle";
 import { base } from "../drizzleBase";
 import {
   getPaymentProvider,
@@ -158,8 +159,21 @@ export async function initiatePurchase(
         original_payment_amount: paymentAmount,
       }),
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    purchaseRequest = await base.create(createData as any) as PurchaseRequest;
+    // afterInitiate フックが定義されていれば atomic 実行するため tx で包む。
+    // 未定義の場合は従来通り tx 無しで create（性能・挙動の完全互換）。
+    // afterInitiate 内で throw されると create もロールバックされ、
+    // 副次テーブルとの整合を保ったまま購入失敗として呼び出し元に伝播する。
+    if (strategy.afterInitiate) {
+      purchaseRequest = await db.transaction(async (tx) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const created = await base.create(createData as any, tx) as PurchaseRequest;
+        await strategy.afterInitiate!({ purchaseRequest: created, tx });
+        return created;
+      });
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      purchaseRequest = await base.create(createData as any) as PurchaseRequest;
+    }
   }
 
   // 5. 決済プロバイダでセッション作成

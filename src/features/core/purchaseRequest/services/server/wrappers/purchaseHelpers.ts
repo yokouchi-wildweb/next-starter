@@ -1,13 +1,14 @@
 // src/features/core/purchaseRequest/services/server/wrappers/purchaseHelpers.ts
 // 購入リクエストのヘルパー関数（識別子解決、冪等キー検索、期限切れ処理）
 
-import { and, eq, isNull, lt, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { DomainError } from "@/lib/errors/domainError";
 import type { PaymentProviderName } from "../payment";
+import { getPurchaseCompletionStrategy, getRegisteredPurchaseTypes } from "../completion";
 import type { InitiatePurchaseResult } from "./purchaseService";
 
 // ============================================================================
@@ -210,23 +211,91 @@ export function handleExistingRequest(
 /**
  * 期限切れの購入リクエストを expired に更新
  * バッチジョブから定期的に呼び出す
+ *
+ * パフォーマンス設計:
+ *   - onExpire を定義していない purchase_type → 従来通り bulk UPDATE 一発（高速）
+ *   - onExpire を定義している purchase_type のみ per-row 処理（副次テーブル掃除）
+ *
+ * これにより wallet_topup 等の onExpire 不要な既存フローは性能無影響のまま、
+ * 下流が必要な purchase_type だけ onExpire を有効化できる。
  */
 export async function expirePendingRequests(): Promise<number> {
   const now = new Date();
 
-  const result = await db
-    .update(PurchaseRequestTable)
-    .set({
-      status: "expired",
-      updatedAt: now,
-    })
-    .where(
-      and(
+  // 登録済み戦略のうち onExpire を持つものを収集
+  const typesWithOnExpire = getRegisteredPurchaseTypes().filter(
+    (type) => getPurchaseCompletionStrategy(type)?.onExpire != null,
+  );
+
+  let totalExpired = 0;
+
+  // 1. onExpire を持たない purchase_type を bulk UPDATE で一括 expire（高速パス）
+  const bulkCondition = typesWithOnExpire.length > 0
+    ? and(
         eq(PurchaseRequestTable.status, "pending"),
-        lt(PurchaseRequestTable.expires_at, now)
+        lt(PurchaseRequestTable.expires_at, now),
+        notInArray(PurchaseRequestTable.purchase_type, typesWithOnExpire),
       )
-    )
+    : and(
+        eq(PurchaseRequestTable.status, "pending"),
+        lt(PurchaseRequestTable.expires_at, now),
+      );
+
+  const bulkRows = await db
+    .update(PurchaseRequestTable)
+    .set({ status: "expired", updatedAt: now })
+    .where(bulkCondition)
     .returning();
 
-  return result.length;
+  totalExpired += bulkRows.length;
+
+  // 2. onExpire を持つ purchase_type は per-row で expire + フック実行（atomic）
+  if (typesWithOnExpire.length > 0) {
+    const targetRows = await db
+      .select()
+      .from(PurchaseRequestTable)
+      .where(
+        and(
+          eq(PurchaseRequestTable.status, "pending"),
+          lt(PurchaseRequestTable.expires_at, now),
+          inArray(PurchaseRequestTable.purchase_type, typesWithOnExpire),
+        ),
+      );
+
+    for (const row of targetRows) {
+      const strategy = getPurchaseCompletionStrategy(row.purchase_type);
+      if (!strategy?.onExpire) continue;
+
+      try {
+        await db.transaction(async (tx) => {
+          // 楽観的ロック: status='pending' の場合のみ更新
+          const [updated] = await tx
+            .update(PurchaseRequestTable)
+            .set({ status: "expired", updatedAt: now })
+            .where(
+              and(
+                eq(PurchaseRequestTable.id, row.id),
+                eq(PurchaseRequestTable.status, "pending"),
+              ),
+            )
+            .returning();
+          if (!updated) return; // 他プロセスで既に遷移済み
+
+          await strategy.onExpire!({
+            purchaseRequest: updated as PurchaseRequest,
+            tx,
+          });
+          totalExpired += 1;
+        });
+      } catch (error) {
+        // 1件のフック失敗で全体を止めないためログのみ
+        console.error(
+          `[expirePendingRequests] onExpire 失敗: requestId=${row.id}, purchase_type=${row.purchase_type}`,
+          error,
+        );
+      }
+    }
+  }
+
+  return totalExpired;
 }
