@@ -6,9 +6,7 @@ import { base } from "../drizzleBase";
 import {
   getPaymentProvider,
   getDefaultProviderName,
-  type PaymentProviderName,
 } from "../payment";
-import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors/domainError";
@@ -16,7 +14,8 @@ import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
 import { getPaymentSessionEnricher } from "../payment/sessionEnricher";
-import { CURRENCY_CONFIG } from "@/config/app/currency.config";
+import { PURCHASE_TYPE_CONFIG } from "@/config/app/purchaseType.config";
+import { getPurchaseCompletionStrategy } from "../completion";
 import { findByIdempotencyKey, handleExistingRequest } from "./purchaseHelpers";
 import type { InitiatePurchaseParams, InitiatePurchaseResult } from "./purchaseService";
 
@@ -39,6 +38,7 @@ export async function initiatePurchase(
   const {
     userId,
     idempotencyKey,
+    purchaseType = "wallet_topup",
     walletType,
     amount,
     paymentAmount,
@@ -61,19 +61,26 @@ export async function initiatePurchase(
     // pending → 以下のバリデーション・クーポン検証・セッション作成フローに合流
   }
 
-  // 2. 購入パッケージの照合（amount と paymentAmount が正規パッケージに一致するか検証）
-  const currencyConfig = CURRENCY_CONFIG[walletType as keyof typeof CURRENCY_CONFIG] as
-    | { packages: ReadonlyArray<{ amount: number; price: number }> }
-    | undefined;
-  if (!currencyConfig?.packages?.length) {
-    throw new DomainError("このウォレット種別では購入できません。", { status: 400 });
+  // 2. purchase_type に対応する戦略を解決し、戦略固有の事前バリデーション（パッケージ照合等）を委譲
+  //    戦略未登録 = 設定エラーなので明示的に失敗させる（サイレント skip は絶対に避ける）
+  const typeConfig = PURCHASE_TYPE_CONFIG[purchaseType];
+  if (!typeConfig) {
+    throw new DomainError(`未知の purchase_type です: ${purchaseType}`, { status: 400 });
   }
-  const validPackage = currencyConfig.packages.find(
-    (pkg) => pkg.amount === amount && pkg.price === paymentAmount
-  );
-  if (!validPackage) {
-    throw new DomainError("無効な購入パッケージです。", { status: 400 });
+  if (typeConfig.requiresWalletType && !walletType) {
+    throw new DomainError(
+      `purchase_type=${purchaseType} では walletType が必須です。`,
+      { status: 400 },
+    );
   }
+  const strategy = getPurchaseCompletionStrategy(purchaseType);
+  if (!strategy) {
+    throw new DomainError(
+      `purchase_type=${purchaseType} の CompletionStrategy が未登録です。completion/ で登録してください。`,
+      { status: 500 },
+    );
+  }
+  await strategy.validateInitiation({ params });
 
   // 3. クーポン検証（コードが指定されている場合）
   let actualPaymentAmount = paymentAmount;
@@ -129,7 +136,9 @@ export async function initiatePurchase(
     const createData = {
       user_id: userId,
       idempotency_key: idempotencyKey,
-      wallet_type: walletType,
+      purchase_type: purchaseType,
+      // wallet_topup 以外では null を許容する（DB も nullable）
+      wallet_type: walletType ?? null,
       amount,
       payment_amount: actualPaymentAmount,
       payment_method: paymentMethod,
@@ -148,7 +157,10 @@ export async function initiatePurchase(
   }
 
   // 5. 決済プロバイダでセッション作成
-  const slug = getSlugByWalletType(walletType as WalletType);
+  // slug は wallet_topup 由来のコールバック URL 構築に使う。
+  // wallet_type が null の購入タイプ（direct_sale 等）では空文字とし、
+  // 下流で独自のコールバック/リダイレクト処理を行う前提。
+  const slug = walletType ? getSlugByWalletType(walletType as WalletType) : "";
   const provider = getPaymentProvider(paymentProvider);
 
   // ユーザー情報を取得（決済ページで事前入力用）
@@ -173,7 +185,7 @@ export async function initiatePurchase(
   // セッションエンリッチャー（登録されていればパラメータを拡張）
   const sessionEnricher = getPaymentSessionEnricher();
   const sessionParams = sessionEnricher
-    ? await sessionEnricher({ userId, walletType, baseParams: baseSessionParams })
+    ? await sessionEnricher({ userId, walletType: walletType ?? null, baseParams: baseSessionParams })
     : baseSessionParams;
 
   const session = await provider.createSession(sessionParams);

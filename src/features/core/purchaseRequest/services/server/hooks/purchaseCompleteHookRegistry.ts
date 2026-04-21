@@ -32,8 +32,18 @@ import type { TransactionClient } from "@/lib/drizzle/transaction";
 export type PurchaseCompleteHookParams = {
   /** 完了した購入リクエスト */
   purchaseRequest: PurchaseRequest;
-  /** ウォレット残高更新の結果 */
-  walletResult: { history: WalletHistory };
+  /**
+   * ウォレット残高更新の結果
+   *
+   * history は nullable:
+   *   - 従来の wallet_topup 購入では WalletHistory が入る（従来挙動）
+   *   - ウォレット加算を伴わない購入（例: direct_sale）では null
+   * フック側で history に依存する処理を行う場合は null チェックを行うこと。
+   * 多くのフックは「wallet_topup 購入のみ対象」のはずなので、
+   * `if (purchaseRequest.purchase_type !== "wallet_topup") return;`
+   * または `if (!walletResult.history) return;` を handler 冒頭に入れるのが推奨パターン。
+   */
+  walletResult: { history: WalletHistory | null };
   /** トランザクションクライアント */
   tx: TransactionClient;
 };

@@ -5,14 +5,13 @@ import { and, eq, or, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
-import { walletService } from "@/features/core/wallet/services/server/walletService";
-import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { DomainError } from "@/lib/errors/domainError";
 import { evaluateMilestones } from "@/features/core/milestone/services/server/wrappers/evaluateMilestones";
 import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/constants/triggers";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry";
+import { getPurchaseCompletionStrategy } from "../completion";
 import { findByWebhookIdentifier } from "./purchaseHelpers";
 import type { CompletePurchaseParams, CompletePurchaseResult } from "./purchaseService";
 
@@ -39,10 +38,11 @@ export async function completePurchase(
   }
 
   // 2. 既に完了済みなら何もしない（冪等性）
+  //    非ウォレット購入（wallet_history_id が NULL）でも walletHistoryId: null を返す。
   if (purchaseRequest.status === "completed") {
     return {
       purchaseRequest,
-      walletHistoryId: purchaseRequest.wallet_history_id!,
+      walletHistoryId: purchaseRequest.wallet_history_id,
       milestoneResults: (purchaseRequest.milestone_results as PersistedMilestoneResult[]) ?? [],
     };
   }
@@ -108,34 +108,30 @@ export async function completePurchase(
       throw new DomainError("購入リクエストの更新に失敗しました（既に処理済みの可能性があります）", { status: 409 });
     }
 
-    // ウォレット残高を更新
-    const walletResult = await walletService.adjustBalance(
-      {
-        userId: purchaseRequest.user_id,
-        walletType: purchaseRequest.wallet_type as WalletTypeValue,
-        changeMethod: "INCREMENT",
-        amount: purchaseRequest.amount,
-        sourceType: "user_action",
-        requestBatchId: purchaseRequest.id,
-        reason: "コイン購入",
-        reasonCategory: "purchase",
-        meta: {
-          purchaseRequestId: purchaseRequest.id,
-          paymentMethod: purchaseRequest.payment_method,
-          paymentAmount: purchaseRequest.payment_amount,
-        },
-      },
-      tx
-    );
-
-    // wallet_history_id を記録
-    if (!walletResult.history) {
-      throw new DomainError("ウォレット履歴の記録に失敗しました。", { status: 500 });
+    // 購入完了戦略をディスパッチ
+    // purchase_type に対応する戦略がウォレット加算等の実処理を担う。
+    // wallet_topup のビルトイン戦略は従来挙動と完全互換。
+    // 戦略未登録は設定エラーのため明示的に 500 を投げる（サイレント skip 厳禁）。
+    const strategy = getPurchaseCompletionStrategy(purchaseRequest.purchase_type);
+    if (!strategy) {
+      throw new DomainError(
+        `purchase_type=${purchaseRequest.purchase_type} の CompletionStrategy が未登録です。`,
+        { status: 500 },
+      );
     }
-    await tx
-      .update(PurchaseRequestTable)
-      .set({ wallet_history_id: walletResult.history.id })
-      .where(eq(PurchaseRequestTable.id, purchaseRequest.id));
+    const strategyResult = await strategy.complete({
+      purchaseRequest: { ...updated } as PurchaseRequest,
+      tx,
+    });
+
+    // 戦略がウォレット加算を行った場合のみ wallet_history_id を記録
+    // direct_sale 等の非ウォレット戦略では walletHistory は null で、記録もしない
+    if (strategyResult.walletHistory) {
+      await tx
+        .update(PurchaseRequestTable)
+        .set({ wallet_history_id: strategyResult.walletHistory.id })
+        .where(eq(PurchaseRequestTable.id, purchaseRequest.id));
+    }
 
     // クーポン使用処理（クーポンコードが記録されている場合）
     if (purchaseRequest.coupon_code) {
@@ -160,6 +156,9 @@ export async function completePurchase(
       }
     }
 
+    // 戦略結果から wallet_history_id を決定（非ウォレット戦略では null）
+    const walletHistoryId = strategyResult.walletHistory?.id ?? null;
+
     // ポストフック実行（登録済みフックがなければ何もしない）
     const purchaseCompleteHooks = getPurchaseCompleteHooks();
     for (let i = 0; i < purchaseCompleteHooks.length; i++) {
@@ -168,8 +167,8 @@ export async function completePurchase(
       try {
         await tx.execute(sql.raw(`SAVEPOINT ${savepointName}`));
         await hook.handler({
-          purchaseRequest: { ...updated, wallet_history_id: walletResult.history.id } as PurchaseRequest,
-          walletResult: { history: walletResult.history },
+          purchaseRequest: { ...updated, wallet_history_id: walletHistoryId } as PurchaseRequest,
+          walletResult: { history: strategyResult.walletHistory },
           tx,
         });
         await tx.execute(sql.raw(`RELEASE SAVEPOINT ${savepointName}`));
@@ -189,8 +188,8 @@ export async function completePurchase(
       {
         userId: purchaseRequest.user_id,
         payload: {
-          purchaseRequest: { ...updated, wallet_history_id: walletResult.history.id },
-          walletHistoryId: walletResult.history.id,
+          purchaseRequest: { ...updated, wallet_history_id: walletHistoryId },
+          walletHistoryId,
         },
       },
       tx,
@@ -215,10 +214,10 @@ export async function completePurchase(
     return {
       purchaseRequest: {
         ...updated,
-        wallet_history_id: walletResult.history.id,
+        wallet_history_id: walletHistoryId,
         milestone_results: persistedResults.length > 0 ? persistedResults : null,
       } as PurchaseRequest,
-      walletHistoryId: walletResult.history.id,
+      walletHistoryId,
       milestoneResults: persistedResults,
     };
   });

@@ -34,8 +34,11 @@ import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 export type SessionEnricherContext = {
   /** 購入ユーザーID */
   userId: string;
-  /** ウォレット種別 */
-  walletType: WalletTypeValue;
+  /**
+   * ウォレット種別
+   * wallet_topup 購入では値が入る。ウォレット加算を伴わない購入（direct_sale 等）では null。
+   */
+  walletType: WalletTypeValue | null;
   /** ベースのセッション作成パラメータ */
   baseParams: CreatePaymentSessionParams;
 };

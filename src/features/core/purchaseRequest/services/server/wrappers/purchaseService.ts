@@ -6,11 +6,14 @@ import type { PaymentProviderName } from "../payment";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
+import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
 
 // フック定義の副作用インポート（登録を実行）
 import "../hooks/definitions";
 // エンリッチャー定義の副作用インポート（登録を実行）
 import "../payment/enrichers";
+// 購入完了戦略の副作用インポート（ビルトイン wallet_topup の登録を実行）
+import "../completion";
 
 // ============================================================================
 // 型定義
@@ -19,7 +22,16 @@ import "../payment/enrichers";
 export type InitiatePurchaseParams = {
   userId: string;
   idempotencyKey: string;
-  walletType: WalletTypeValue;
+  /**
+   * 購入タイプ（履行形態）。省略時は "wallet_topup"（従来挙動）。
+   * 下流プロジェクトで独自の購入タイプを使う場合は明示指定する。
+   */
+  purchaseType?: PurchaseTypeKey;
+  /**
+   * 加算対象のウォレット種別。
+   * purchase_type=wallet_topup のときのみ必須。それ以外は null 可。
+   */
+  walletType?: WalletTypeValue | null;
   amount: number;
   paymentAmount: number;
   paymentMethod: string;
@@ -58,7 +70,12 @@ export type CompletePurchaseParams = {
 
 export type CompletePurchaseResult = {
   purchaseRequest: PurchaseRequest;
-  walletHistoryId: string;
+  /**
+   * ウォレット履歴ID
+   * - wallet_topup 購入: 生成された WalletHistory の id
+   * - ウォレット加算を伴わない購入（例: direct_sale）: null
+   */
+  walletHistoryId: string | null;
   /** マイルストーン評価結果（達成されたもののみ） */
   milestoneResults?: PersistedMilestoneResult[];
 };
@@ -81,7 +98,13 @@ export type HandleWebhookParams = {
 export type HandleWebhookResult = {
   success: boolean;
   requestId: string;
-  walletHistoryId?: string;
+  /**
+   * ウォレット履歴ID
+   * - wallet_topup 購入: 生成された WalletHistory の id
+   * - ウォレット加算を伴わない購入（例: direct_sale）: null
+   * - 未確定や早期リターン: undefined
+   */
+  walletHistoryId?: string | null;
   /** マイルストーン評価結果（達成されたもののみ） */
   milestoneResults?: PersistedMilestoneResult[];
   message: string;

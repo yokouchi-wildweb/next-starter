@@ -1,13 +1,23 @@
 // src/features/purchaseRequest/entities/model.ts
 
 import type { WalletType } from "@/config/app/currency.config";
+import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
 
 export type PurchaseRequest = {
   id: string;
   user_id: string;
   wallet_history_id: string | null;
   idempotency_key: string;
-  wallet_type: WalletType;
+  /**
+   * 購入の履行形態（ウォレット加算 / ダイレクト販売 など）。
+   * どの CompletionStrategy で完了処理を行うかのディスクリミネータ。
+   */
+  purchase_type: PurchaseTypeKey;
+  /**
+   * 加算対象のウォレット種別。
+   * purchase_type が wallet_topup のときのみ必須。それ以外は null を許容する。
+   */
+  wallet_type: WalletType | null;
   amount: number;
   payment_amount: number;
   payment_method: string;

@@ -162,20 +162,23 @@ export async function findByWebhookIdentifier(
 export function handleExistingRequest(
   existing: PurchaseRequest
 ): InitiatePurchaseResult {
-  const slug = getSlugByWalletType(existing.wallet_type as WalletType);
+  // wallet_topup 以外（wallet_type が null）では slug ベースの URL フォールバックを持たない。
+  // その場合 redirect_url がレコードに保存されていればそれを使い、なければ空文字列を返す。
+  // 下流は direct_sale 等で自前のコールバック/完了ページを redirect_url に入れる運用にすること。
+  const slug = existing.wallet_type ? getSlugByWalletType(existing.wallet_type as WalletType) : null;
 
   switch (existing.status) {
     case "completed":
       return {
         purchaseRequest: existing,
-        redirectUrl: `/wallet/${slug}/purchase/complete?request_id=${existing.id}`,
+        redirectUrl: slug ? `/wallet/${slug}/purchase/complete?request_id=${existing.id}` : (existing.redirect_url ?? ""),
         alreadyCompleted: true,
       };
 
     case "processing":
       return {
         purchaseRequest: existing,
-        redirectUrl: existing.redirect_url ?? `/wallet/${slug}/purchase/callback?request_id=${existing.id}`,
+        redirectUrl: existing.redirect_url ?? (slug ? `/wallet/${slug}/purchase/callback?request_id=${existing.id}` : ""),
         alreadyProcessing: true,
       };
 
@@ -183,7 +186,7 @@ export function handleExistingRequest(
       // pending の場合は続行（リダイレクトURLがあればそれを使う）
       return {
         purchaseRequest: existing,
-        redirectUrl: existing.redirect_url ?? `/wallet/${slug}/purchase/failed?request_id=${existing.id}&reason=invalid_state`,
+        redirectUrl: existing.redirect_url ?? (slug ? `/wallet/${slug}/purchase/failed?request_id=${existing.id}&reason=invalid_state` : ""),
         alreadyProcessing: true,
       };
 

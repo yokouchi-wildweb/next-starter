@@ -3,6 +3,7 @@
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
+import { PURCHASE_TYPE_KEYS } from "@/config/app/purchaseType.config";
 import { nullableDatetime } from "@/lib/crud/utils";
 
 // CURRENCY_CONFIG から動的に walletType の値を取得
@@ -13,7 +14,11 @@ export const PurchaseRequestBaseSchema = z.object({
   wallet_history_id: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   idempotency_key: z.string().trim().min(1, { message: "冪等キーは必須です。" }),
-  wallet_type: z.enum(walletTypes),
+  // 購入の履行形態。未指定の場合は wallet_topup を既定とする（後方互換）。
+  purchase_type: z.enum(PURCHASE_TYPE_KEYS).default("wallet_topup"),
+  // purchase_type=wallet_topup 以外では NULL を許容する。戦略側で整合性を担保する。
+  wallet_type: z.enum(walletTypes).nullish()
+    .transform((value) => value ?? null),
   amount: z.coerce.number().int(),
   payment_amount: z.coerce.number().int(),
   payment_method: z.string().trim().min(1, { message: "支払い方法は必須です。" }),
