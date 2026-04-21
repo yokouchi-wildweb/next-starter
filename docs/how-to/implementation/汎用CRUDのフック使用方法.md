@@ -159,7 +159,29 @@ export const SampleInfiniteList = ({ keyword }: { keyword: string }) => {
 };
 ```
 
-`useInfiniteScrollQuery` は `items`, `total`, `hasMore`, `loadMore`, `reset`, `sentinelRef` を返します。`sentinelRef` をリスト末尾のダミー要素へ付与するだけで IntersectionObserver が機能し、画面下端へ到達するたびに `loadMore` が自動実行されます。`deps` へ検索条件を渡しておけば、条件変更時に 1 ページ目からリロードされます。
+`useInfiniteScrollQuery` は `items`, `total`, `hasMore`, `nextPage`, `loadMore`, `retry`, `reset`, `sentinelRef` を返します。`sentinelRef` をリスト末尾のダミー要素へ付与するだけで IntersectionObserver が機能し、画面下端へ到達するたびに `loadMore` が自動実行されます。`deps` へ検索条件を渡しておけば、条件変更時に 1 ページ目からリロードされます。`retry` はネットワーク失敗などで `hasMore=false` になった後に同じページを再取得するための明示的 API です。
+
+> ⚠️ **`fetcher` と `deps` の契約**: 本フックは `fetcher` の identity 変化だけでは再取得を行いません。`fetcher` が外部値に依存する場合、その値を必ず `deps` にも含めてください (例: `useCallback(fetcher, [userId])` を渡す際は `deps: [userId]` も必須)。
+
+#### SSR で初期データを埋め込む場合 (`initialData`)
+
+一覧ページを SSR で 1 ページ目分取得している場合、`initialData` に `{ items, total }` を渡すと初回レンダーからデータを表示しつつ、次のスクロール時に続きを取りに行けます。
+
+```tsx
+const { items, hasMore, sentinelRef } = useInfiniteScrollQuery({
+  fetcher: (params) => sampleClient.search(params),
+  limit: 100,
+  deps: [keyword],
+  initialData: { items: ssrItems, total: ssrTotal }, // SSR 取得分
+});
+```
+
+制約:
+
+- `limit` は SSR 取得時と同じ値を渡す。
+- `items.length` は `limit` の倍数でも端数 (例: 末尾ページ) でもよい。端数の場合は「これ以上無い」と自動判定され追加 fetch は発火しない。
+- `items.length >= limit` かつ倍数であれば複数ページ相当の事前取得も許容 (例: `limit=100`, `items.length=200` は pages 1..2 事前取得済みとして扱う)。
+- `total` が upstream の都合で不正確でも、本フックは「直近バッチが `limit` 未満 / 0 件」を別途終端条件として持つため、無限ループに陥らずに停止する。
 
 > ⚠️ **Firestore バックエンドを利用する場合**: 現行実装では `orderBy` の複数列指定、`searchFields` による複数フィールド検索、`where` の `or` 条件、`searchPriorityFields` を使った検索ヒット優先度は未対応です。Firestore で検索機能を提供する際は、単一列ソートと AND 条件を前提としたシンプルなクエリ構成に留めてください。
 
