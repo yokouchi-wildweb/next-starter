@@ -41,6 +41,14 @@ export type InitiatePurchaseParams = {
   itemName?: string;
   /** クーポンコード（割引適用時） */
   couponCode?: string;
+  /**
+   * 下流プロジェクト向けの汎用メタデータ。
+   * そのまま purchase_requests.metadata (JSONB) に保存され、
+   * strategy.complete() から purchaseRequest.metadata として読み出せる。
+   * purchase_type 固有の識別情報（例: directSaleId, planId）を格納する用途。
+   * 冪等キー再利用時は上書きされる（古い metadata は残らない）。
+   */
+  metadata?: Record<string, unknown>;
   /** プロバイダ固有のオプション（決済セッション作成時にそのまま渡される） */
   providerOptions?: Record<string, unknown>;
 };

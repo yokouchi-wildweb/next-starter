@@ -46,6 +46,12 @@ export const PurchaseRequestTable = pgTable("purchase_requests", {
   original_payment_amount: integer("original_payment_amount"),
   coupon_redeem_failed: boolean("coupon_redeem_failed").default(false),
   milestone_results: jsonb("milestone_results"),
+  // 下流プロジェクトで自由に利用できる汎用メタデータ。
+  // purchase_type ごとの固有情報（例: direct_sale_id, subscription_plan_id, seat_number 等）を格納する用途。
+  // コアロジックはこのフィールドの中身を解釈しない（opaque）。
+  // 外部キーや検索軸になるデータはサイドテーブルを作る方が推奨。
+  // 詳細は docs/concepts/purchase-type-migration.md を参照。
+  metadata: jsonb("metadata"),
   completed_at: timestamp("completed_at", { withTimezone: true }),
   paid_at: timestamp("paid_at", { withTimezone: true }),
   expires_at: timestamp("expires_at", { withTimezone: true }),

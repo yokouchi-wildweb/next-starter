@@ -47,6 +47,7 @@ export async function initiatePurchase(
     baseUrl,
     itemName,
     couponCode,
+    metadata,
     providerOptions,
   } = params;
 
@@ -113,12 +114,15 @@ export async function initiatePurchase(
   }
 
   // 4. purchase_request を作成、または pending の既存リクエストを再利用
+  //    metadata は pending 再利用時も上書き更新する（古い metadata を残さない運用）。
+  //    冪等キーが同じでも metadata が変わるケース（商品ID差し替え等）に追従するため。
   let purchaseRequest: PurchaseRequest;
   if (existing?.status === "pending") {
     // 既存の pending リクエストのクーポン情報を更新して再利用
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     purchaseRequest = await base.update(existing.id, {
       payment_amount: actualPaymentAmount,
+      metadata: metadata ?? null,
       ...(couponCode
         ? {
             coupon_code: couponCode,
@@ -145,6 +149,8 @@ export async function initiatePurchase(
       payment_provider: paymentProvider,
       status: "pending" as const,
       expires_at: new Date(Date.now() + 30 * 60 * 1000), // 30分後
+      // 下流向け汎用メタデータ（opaque JSONB）
+      metadata: metadata ?? null,
       // クーポン情報（適用時のみ記録）
       ...(couponCode && {
         coupon_code: couponCode,

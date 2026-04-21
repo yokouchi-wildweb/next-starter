@@ -39,6 +39,16 @@ export type PurchaseRequest = {
   discount_amount: number | null;
   original_payment_amount: number | null;
   milestone_results: unknown | null;
+  /**
+   * 下流プロジェクト向けの汎用メタデータ（JSONB）。
+   * purchase_type 固有の識別情報（例: directSaleId, planId, seatNumber）を opaque に格納する。
+   * コアロジックは中身を解釈しない。型付けは各下流プロジェクト側の責務。
+   *
+   * 運用指針（docs/concepts/purchase-type-migration.md を参照）:
+   *   - 外部キー・検索軸になるデータは専用サイドテーブルを推奨
+   *   - 戦略内部で1回参照する程度の識別情報なら metadata で十分
+   */
+  metadata: unknown | null;
   completed_at: Date | null;
   paid_at: Date | null;
   expires_at: Date | null;

@@ -45,6 +45,10 @@ export const PurchaseRequestBaseSchema = z.object({
     .transform((value) => emptyToNull(value)),
   discount_amount: z.coerce.number().int().nullish(),
   original_payment_amount: z.coerce.number().int().nullish(),
+  // 下流プロジェクト向けの汎用メタデータ（JSONB）。
+  // purchase_type 固有の識別情報や拡張情報を opaque に格納する。
+  // コアロジックは中身を解釈しない。下流での運用指針は docs 参照。
+  metadata: z.unknown().nullish(),
   completed_at: nullableDatetime.nullish(),
   paid_at: nullableDatetime.nullish(),
   expires_at: nullableDatetime.nullish(),

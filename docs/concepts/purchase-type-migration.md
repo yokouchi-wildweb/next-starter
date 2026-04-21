@@ -26,6 +26,7 @@
 - `purchase_requests` テーブル
   - 【追加】`purchase_type` 列（enum, NOT NULL, default `'wallet_topup'`）
   - 【変更】`wallet_type` を nullable 化
+  - 【追加】`metadata` 列（JSONB, nullable）— 下流プロジェクト向け汎用メタデータ保持領域
   - 【追加】`purchase_requests_purchase_type_completed_at_idx` インデックス
   - `purchase_requests_wallet_type_completed_at_idx` は **温存**（Analytics 互換のため）
 
@@ -216,6 +217,119 @@ handler: async ({ purchaseRequest, walletResult, tx }) => {
   // ...
 }
 ```
+
+---
+
+## `metadata` カラムの使い方と運用指針
+
+`purchase_requests.metadata` は **JSONB 型の汎用メタデータ保持領域** で、下流プロジェクトが
+purchase_type 固有の情報を opaque に格納するためのエスケープハッチ。
+コアロジック（initiatePurchase / completePurchase / 各種フック）はこのフィールドの中身を
+一切解釈しない。
+
+### 書き込み・読み出し
+
+```ts
+// initiatePurchase 時に渡す
+await initiatePurchase({
+  purchaseType: "direct_sale",
+  metadata: { directSaleId: "uuid-xxx", prizeItemId: "uuid-yyy" },
+  // ...
+});
+
+// strategy.complete() で取り出す
+const directSaleStrategy: PurchaseCompletionStrategy = {
+  type: "direct_sale",
+  complete: async ({ purchaseRequest, tx }) => {
+    // 下流プロジェクトで型定義してキャスト（自己責任）
+    const meta = purchaseRequest.metadata as {
+      directSaleId: string;
+      prizeItemId: string;
+    };
+    // meta.directSaleId を使って在庫減算・UserItem 作成など
+    return { walletHistory: null };
+  },
+  // ...
+};
+```
+
+### 冪等性・更新タイミング
+
+- 新規作成: metadata はそのまま保存される
+- pending リクエストの再利用（同じ idempotency_key で再呼び出し）: **metadata は上書き更新される**
+  - 古い metadata は残らない
+  - 商品差し替え等の再リトライで新しい内容を反映可能
+- processing 以降: metadata は固定（initiatePurchase は既存フローを返すだけで更新しない）
+
+### 何を `metadata` に入れるか vs サイドテーブルに切り出すか
+
+**重要**: 「metadata 列があればサイドテーブルは不要」ではない。データの性質で使い分ける。
+
+| データの性質 | 推奨 | 理由 |
+|---|---|---|
+| 外部キー（別テーブルのID） | サイドテーブル | FK 制約・CASCADE・リレーション検索 |
+| 検索軸になる値（WHERE 条件で使う） | サイドテーブル | インデックス効率（JSONB は GIN 運用が重い） |
+| 集計・分析に使う値 | サイドテーブル | Analytics クエリの書きやすさ |
+| 非キーのスカラー（表示用の補足情報） | metadata OK | JSONB で十分 |
+| 戦略内部で1回参照するだけの識別情報 | metadata OK | 戦略実行と同一トランザクションで完結 |
+| ログ・監査目的の付帯情報 | metadata OK | 検索不要なら JSONB で十分 |
+
+### 推奨パターン: サイドテーブル + metadata の併用
+
+```
+purchase_requests (共通スキーマ)
+  ├─ id, user_id, purchase_type, ...
+  └─ metadata: { customerNote: "...", displayLabel: "..." }  -- 非キー情報
+
+direct_sale_purchases (ダイレクト販売の構造化データ)
+  ├─ purchase_request_id UUID PRIMARY KEY REFERENCES purchase_requests(id) ON DELETE CASCADE
+  ├─ direct_sale_id UUID NOT NULL REFERENCES direct_sales(id)
+  ├─ prize_item_id UUID NOT NULL REFERENCES prize_items(id)
+  └─ ...
+```
+
+- 外部キーや検索軸はサイドテーブルで厳密に型付け
+- ちょっとしたスカラー補足は metadata
+
+### 最初は metadata のみで始めてもよい
+
+販売規模が小さい初期フェーズでは metadata に全部突っ込んで動かし始め、
+- 検索軸が必要になったタイミング
+- FK 制約が欲しくなったタイミング
+- 集計クエリが複雑化したタイミング
+
+でサイドテーブルに昇格させる運用もOK。その場合は metadata から該当フィールドを抜いて
+サイドテーブルに移すマイグレーションを書く。
+
+### 型安全性について
+
+`metadata` の型は `unknown | null`。**下流プロジェクトで自己責任で型付け** する方針。
+
+```ts
+// 下流プロジェクトの完了戦略ファイル内
+type DirectSaleMetadata = {
+  directSaleId: string;
+  prizeItemId: string;
+};
+
+const directSaleStrategy: PurchaseCompletionStrategy = {
+  type: "direct_sale",
+  validateInitiation: async ({ params }) => {
+    // metadata のスキーマ検証も下流の責務
+    const meta = params.metadata as DirectSaleMetadata | undefined;
+    if (!meta?.directSaleId || !meta?.prizeItemId) {
+      throw new DomainError("metadata に directSaleId と prizeItemId が必要です。", { status: 400 });
+    }
+  },
+  complete: async ({ purchaseRequest, tx }) => {
+    const meta = purchaseRequest.metadata as DirectSaleMetadata;
+    // 以降は型付きで使える
+  },
+};
+```
+
+Zod 等でスキーマ検証を噛ませるのが堅い。upstream 側で型ジェネリクス化（`Strategy<TMetadata>`）は
+現時点では実装していないが、将来必要になれば後から追加可能。
 
 ---
 
