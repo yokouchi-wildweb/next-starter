@@ -444,6 +444,35 @@ onFail: async ({ purchaseRequest, errorCode, tx }) => {
 }
 ```
 
+### scheduler 設定（期限切れ処理の発火）
+
+`onExpire` フックを有効活用するには、定期的に `expirePendingRequests()` を呼ぶスケジューラが必要。
+アップストリームが API ルートと CLI の両方を提供しているので、**下流は設定を1つ入れるだけで済む**。
+
+#### Vercel Cron を使う場合
+
+`vercel.json` を作成（`vercel.json.example` をコピー可能）:
+
+```json
+{
+  "crons": [
+    { "path": "/api/cron/expire-pending-purchases", "schedule": "*/15 * * * *" }
+  ]
+}
+```
+
+`CRON_SECRET` 環境変数を Vercel プロジェクト設定で追加。
+
+#### Vercel 以外を使う場合
+
+任意のスケジューラから:
+
+```bash
+pnpm cron expire-pending-purchases
+```
+
+詳細なセットアップ例は `docs/reference/cron-tasks.md` を参照。
+
 ### パフォーマンス特性（`expirePendingRequests` / `cancelPending`）
 
 - onExpire **未定義** の purchase_type: 従来通り **単一 SQL の bulk UPDATE**（N 件でも1クエリ）
