@@ -1,8 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/cn"
-
-export type DotVariant = "default" | "line" | "dash"
+import type { DotVariant } from "./types"
 
 type SliderDotsProps = {
   count: number
@@ -32,6 +31,7 @@ export function SliderDots({ count, current, onDotClick, variant = "default" }: 
                   : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
               )}
               aria-label={`スライド ${index + 1} へ移動`}
+              aria-current={isActive || undefined}
             />
           )
         }
@@ -49,11 +49,11 @@ export function SliderDots({ count, current, onDotClick, variant = "default" }: 
                   : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
               )}
               aria-label={`スライド ${index + 1} へ移動`}
+              aria-current={isActive || undefined}
             />
           )
         }
 
-        // default: 丸ドット
         return (
           <button
             key={index}
@@ -66,6 +66,7 @@ export function SliderDots({ count, current, onDotClick, variant = "default" }: 
                 : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
             )}
             aria-label={`スライド ${index + 1} へ移動`}
+            aria-current={isActive || undefined}
           />
         )
       })}

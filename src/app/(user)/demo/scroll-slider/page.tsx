@@ -1,7 +1,16 @@
 "use client"
 
-import { ReactNode, useState } from "react"
-import { Slider, type ResponsiveToggle, type ArrowVariant, type ArrowSize, type ArrowPosition, type DotVariant, type DotPosition } from "@/components/Widgets"
+import { ReactNode, useRef, useState } from "react"
+import {
+  ScrollSlider,
+  type ArrowPosition,
+  type ArrowSize,
+  type ArrowVariant,
+  type DotPosition,
+  type DotVariant,
+  type ResponsiveToggle,
+  type SliderImperativeApi,
+} from "@/components/Widgets"
 import { Stack, Main } from "@/components/Layout"
 import { SecTitle } from "@/components/TextBlocks"
 
@@ -23,7 +32,6 @@ function SampleCard({ title, description }: { title: ReactNode; description: Rea
 
 type PeekOption = "none" | "left" | "right" | "both"
 type GapOption = "sm" | "md" | "lg"
-type ArrowVariantOption = ArrowVariant
 type ResponsiveToggleOption = "true" | "false" | "sm" | "md" | "lg" | "xl" | "2xl"
 
 function parseResponsiveToggle(value: ResponsiveToggleOption): ResponsiveToggle {
@@ -39,7 +47,7 @@ export default function DemoPage() {
   const [peek, setPeek] = useState<PeekOption>("none")
   const [gap, setGap] = useState<GapOption>("md")
   const [containerWidth, setContainerWidth] = useState<string>("")
-  const [arrowVariant, setArrowVariant] = useState<ArrowVariantOption>("light")
+  const [arrowVariant, setArrowVariant] = useState<ArrowVariant>("light")
   const [arrowSize, setArrowSize] = useState<ArrowSize>("md")
   const [arrowPosition, setArrowPosition] = useState<ArrowPosition>("inside")
   const [dotVariant, setDotVariant] = useState<DotVariant>("default")
@@ -52,15 +60,21 @@ export default function DemoPage() {
   const [maskRight, setMaskRight] = useState("10")
   const [autoplay, setAutoplay] = useState(false)
   const [autoplayDelay, setAutoplayDelay] = useState("4000")
-  const [lastSlideIndex, setLastSlideIndex] = useState<number | null>(null)
+  const [lastIndex, setLastIndex] = useState<number | null>(null)
+
+  const sliderRef = useRef<SliderImperativeApi>(null)
 
   const peekValue = peek === "none" ? undefined : peek
-  const containerWidthValue = containerWidth ? (isNaN(Number(containerWidth)) ? containerWidth : Number(containerWidth)) : undefined
+  const containerWidthValue = containerWidth
+    ? isNaN(Number(containerWidth))
+      ? containerWidth
+      : Number(containerWidth)
+    : undefined
 
   return (
     <Main>
       <Stack space={8} className="py-8">
-        <SecTitle>CardSlider デモ</SecTitle>
+        <SecTitle>ScrollSlider デモ</SecTitle>
 
         <div className="rounded-lg border bg-muted/50 p-4 mb-8">
           <h3 className="text-sm font-semibold mb-4">設定パネル</h3>
@@ -152,7 +166,7 @@ export default function DemoPage() {
               <span className="text-sm">arrowVariant</span>
               <select
                 value={arrowVariant}
-                onChange={(e) => setArrowVariant(e.target.value as ArrowVariantOption)}
+                onChange={(e) => setArrowVariant(e.target.value as ArrowVariant)}
                 className="rounded border px-2 py-1 text-sm bg-background"
               >
                 <option value="light">light</option>
@@ -311,14 +325,53 @@ export default function DemoPage() {
             )}
           </div>
 
-          {lastSlideIndex !== null && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => sliderRef.current?.prev()}
+              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+            >
+              ref.prev()
+            </button>
+            <button
+              type="button"
+              onClick={() => sliderRef.current?.next()}
+              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+            >
+              ref.next()
+            </button>
+            <button
+              type="button"
+              onClick={() => sliderRef.current?.goTo(0)}
+              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+            >
+              ref.goTo(0)
+            </button>
+            <button
+              type="button"
+              onClick={() => sliderRef.current?.play()}
+              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+            >
+              ref.play()
+            </button>
+            <button
+              type="button"
+              onClick={() => sliderRef.current?.pause()}
+              className="rounded border bg-background px-3 py-1 text-sm hover:bg-accent"
+            >
+              ref.pause()
+            </button>
+          </div>
+
+          {lastIndex !== null && (
             <div className="mt-2 text-xs text-muted-foreground">
-              onSlideChange: スライド {lastSlideIndex + 1} に移動
+              onIndexChange: スライド {lastIndex + 1} に移動
             </div>
           )}
         </div>
 
-        <Slider
+        <ScrollSlider
+          ref={sliderRef}
           items={sampleItems}
           renderItem={(item) => (
             <SampleCard title={item.title} description={item.description} />
@@ -335,10 +388,16 @@ export default function DemoPage() {
           dotVariant={dotVariant}
           dotPosition={dotPosition}
           slideSize={slideSize}
-          align={alignMode === "auto" ? undefined : alignMode === "custom" ? (Number(alignValue) || 0) : alignMode}
+          align={
+            alignMode === "auto"
+              ? undefined
+              : alignMode === "custom"
+              ? Number(alignValue) || 0
+              : alignMode
+          }
           mask={maskEnabled ? { left: Number(maskLeft) || 0, right: Number(maskRight) || 0 } : false}
           autoplay={autoplay ? { delay: Number(autoplayDelay) || 4000 } : undefined}
-          onSlideChange={setLastSlideIndex}
+          onIndexChange={setLastIndex}
         />
       </Stack>
     </Main>

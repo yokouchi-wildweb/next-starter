@@ -2,15 +2,14 @@
 
 import { cn } from "@/lib/cn"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-
-export type ArrowVariant = "light" | "dark" | "outline" | "ghost"
-export type ArrowSize = "sm" | "md" | "lg"
+import type { ArrowSize, ArrowVariant } from "./types"
 
 type SliderArrowProps = {
   direction: "prev" | "next"
   onClick: () => void
   variant?: ArrowVariant
   size?: ArrowSize
+  disabled?: boolean
 }
 
 const sizeStyles: Record<ArrowSize, string> = {
@@ -25,7 +24,13 @@ const iconSizeStyles: Record<ArrowSize, string> = {
   lg: "size-6",
 }
 
-export function SliderArrow({ direction, onClick, variant = "light", size = "md" }: SliderArrowProps) {
+export function SliderArrow({
+  direction,
+  onClick,
+  variant = "light",
+  size = "md",
+  disabled = false,
+}: SliderArrowProps) {
   const Icon = direction === "prev" ? ChevronLeft : ChevronRight
   const label = direction === "prev" ? "前へ" : "次へ"
 
@@ -33,8 +38,10 @@ export function SliderArrow({ direction, onClick, variant = "light", size = "md"
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
         "flex items-center justify-center rounded-full transition-colors",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
         sizeStyles[size],
         variant === "light" && "bg-background/50 hover:bg-background/70 text-foreground border backdrop-blur-sm shadow-md",
         variant === "dark" && "bg-foreground/50 hover:bg-foreground/70 text-background border-foreground/20 border backdrop-blur-sm shadow-md",
