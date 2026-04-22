@@ -58,6 +58,28 @@ export type LifecycleContext = {
 };
 
 /**
+ * buildCallbackUrls 用のコンテキスト
+ * 決済プロバイダに渡す success/cancel URL を戦略側で組み立てる時に使用。
+ */
+export type CallbackUrlContext = {
+  purchaseRequest: PurchaseRequest;
+  /**
+   * URL の起点となる origin（例: https://example.com）。
+   * initiatePurchase の呼び出し元から baseUrl として渡される。
+   */
+  baseUrl: string;
+};
+
+/**
+ * 戦略が返すコールバックURL
+ * 決済プロバイダのセッション作成に渡される。
+ */
+export type CallbackUrls = {
+  successUrl: string;
+  cancelUrl: string;
+};
+
+/**
  * onFail 用のコンテキスト。失敗理由を errorCode / errorMessage で受け取れる。
  *
  * errorCode 例:
@@ -105,4 +127,16 @@ export type PurchaseCompletionStrategy = {
   afterInitiate?: (ctx: LifecycleContext) => Promise<void>;
   onFail?: (ctx: FailureContext) => Promise<void>;
   onExpire?: (ctx: LifecycleContext) => Promise<void>;
+  /**
+   * 決済プロバイダに渡す成功/キャンセル URL を戦略が組み立てる（optional）。
+   *
+   * URL 決定の優先順位は initiatePurchase 側で以下の3段階:
+   *   1. params.successUrl / cancelUrl （呼び出し側の直接指定・最優先）
+   *   2. strategy.buildCallbackUrls    （戦略ごとの型レベルデフォルト）
+   *   3. wallet-based デフォルト       （`/api/wallet/purchase/callback` 互換・後方互換用）
+   *
+   * direct_sale 等で wallet 以外のパスに戻したい場合はこのメソッドを実装する。
+   * 未定義の場合は従来の wallet-based URL が使われる（walletType が null だと空 slug で壊れるため注意）。
+   */
+  buildCallbackUrls?: (ctx: CallbackUrlContext) => CallbackUrls;
 };

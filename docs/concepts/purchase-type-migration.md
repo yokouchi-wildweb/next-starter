@@ -444,6 +444,55 @@ onFail: async ({ purchaseRequest, errorCode, tx }) => {
 }
 ```
 
+### コールバック URL のカスタマイズ
+
+決済プロバイダから戻ってくる `successUrl` / `cancelUrl` は、以下の3段階フォールバックで決定される:
+
+```
+1. params.successUrl / cancelUrl    呼び出し側の直接指定（最優先・動的用途）
+2. strategy.buildCallbackUrls()     戦略ごとの型レベルデフォルト
+3. wallet-based デフォルト          /api/wallet/purchase/callback 互換（後方互換用）
+```
+
+#### 戦略でデフォルト URL を定義する（推奨）
+
+direct_sale のような非ウォレット購入では、戦略ファイル内で `buildCallbackUrls` を実装するのが標準パターン:
+
+```ts
+export const directSaleStrategy: PurchaseCompletionStrategy = {
+  type: "direct_sale",
+
+  buildCallbackUrls: ({ purchaseRequest, baseUrl }) => ({
+    successUrl: `${baseUrl}/direct-sale/complete?request_id=${purchaseRequest.id}`,
+    cancelUrl: `${baseUrl}/direct-sale/cancel?request_id=${purchaseRequest.id}`,
+  }),
+
+  // ...その他のフック
+};
+```
+
+これで `/api/wallet/purchase/callback` に戻らず、下流独自のページに戻るフローが完成する。
+
+#### 呼び出しごとに URL を動的に上書きする
+
+A/B テスト・マルチテナント等で URL を動的に変えたい場合は、`initiatePurchase` の params で上書き可能:
+
+```ts
+await initiatePurchase({
+  purchaseType: "direct_sale",
+  // ...
+  successUrl: `${baseUrl}/special-landing/${tenantId}/thanks`,
+  cancelUrl: `${baseUrl}/special-landing/${tenantId}/cancel`,
+});
+```
+
+この指定は戦略の `buildCallbackUrls` より優先される。
+
+#### wallet_topup は放置で OK
+
+既存の `walletTopupStrategy` は `buildCallbackUrls` を定義していないので、従来通り
+`/api/wallet/purchase/callback?wallet_type=${slug}` にフォールバックする。挙動互換。
+
 ### scheduler 設定（期限切れ処理の発火）
 
 `onExpire` フックを有効活用するには、定期的に `expirePendingRequests()` を呼ぶスケジューラが必要。

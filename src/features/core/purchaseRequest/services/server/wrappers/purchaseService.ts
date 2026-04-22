@@ -42,6 +42,18 @@ export type InitiatePurchaseParams = {
   /** クーポンコード（割引適用時） */
   couponCode?: string;
   /**
+   * 決済成功時のコールバック URL（optional・最優先）
+   * 指定された場合は戦略の buildCallbackUrls やデフォルト URL より優先して使用される。
+   * A/B テスト・マルチテナント・動的ページ遷移等の用途向け。
+   * 未指定時は戦略の buildCallbackUrls → wallet-based デフォルトの順でフォールバック。
+   */
+  successUrl?: string;
+  /**
+   * 決済キャンセル時のコールバック URL（optional・最優先）
+   * successUrl と同様のフォールバック順。
+   */
+  cancelUrl?: string;
+  /**
    * 下流プロジェクト向けの汎用メタデータ。
    * そのまま purchase_requests.metadata (JSONB) に保存され、
    * strategy.complete() から purchaseRequest.metadata として読み出せる。

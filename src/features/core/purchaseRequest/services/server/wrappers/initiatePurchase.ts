@@ -49,6 +49,8 @@ export async function initiatePurchase(
     itemName,
     couponCode,
     metadata,
+    successUrl: successUrlOverride,
+    cancelUrl: cancelUrlOverride,
     providerOptions,
   } = params;
 
@@ -177,10 +179,6 @@ export async function initiatePurchase(
   }
 
   // 5. 決済プロバイダでセッション作成
-  // slug は wallet_topup 由来のコールバック URL 構築に使う。
-  // wallet_type が null の購入タイプ（direct_sale 等）では空文字とし、
-  // 下流で独自のコールバック/リダイレクト処理を行う前提。
-  const slug = walletType ? getSlugByWalletType(walletType as WalletType) : "";
   const provider = getPaymentProvider(paymentProvider);
 
   // ユーザー情報を取得（決済ページで事前入力用）
@@ -190,12 +188,23 @@ export async function initiatePurchase(
     ? formatToE164(user.phoneNumber)
     : undefined;
 
+  // コールバック URL 決定（3段階フォールバック）:
+  //   1. params.successUrl / cancelUrl  呼び出し側の直接指定（最優先）
+  //   2. strategy.buildCallbackUrls     戦略ごとの型レベルデフォルト
+  //   3. wallet-based デフォルト        `/api/wallet/purchase/callback` 互換（後方互換）
+  const strategyUrls = strategy.buildCallbackUrls?.({ purchaseRequest, baseUrl });
+  const slug = walletType ? getSlugByWalletType(walletType as WalletType) : "";
+  const defaultSuccessUrl = `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}`;
+  const defaultCancelUrl = `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}&reason=cancelled`;
+  const successUrl = successUrlOverride ?? strategyUrls?.successUrl ?? defaultSuccessUrl;
+  const cancelUrl = cancelUrlOverride ?? strategyUrls?.cancelUrl ?? defaultCancelUrl;
+
   const baseSessionParams = {
     purchaseRequestId: purchaseRequest.id,
     amount: actualPaymentAmount,
     userId,
-    successUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}`,
-    cancelUrl: `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}&reason=cancelled`,
+    successUrl,
+    cancelUrl,
     metadata: itemName ? { itemName } : undefined,
     buyerEmail,
     buyerPhoneNumber,
