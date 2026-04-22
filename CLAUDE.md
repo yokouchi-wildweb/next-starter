@@ -100,6 +100,9 @@ placement: multi-domain→src/components/ or AppFrames/ | single-domain→featur
 
 wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid,Stack} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton
 
+overlays (direct _shadcn/dialog or self-built overlay NG — pick from here): modal-confirm→Overlays/Dialog | generic modal→Overlays/Modal | tabbed modal→Overlays/TabbedModal | media+rows detail→Overlays/DetailModal | inline confirm→Overlays/Popover/ConfirmPopover | text/number prompt→Overlays/Popover/PromptPopover | action menu→Overlays/Popover/ActionPopover | multi-select list→Overlays/Popover/ChecklistPopover | help/info bubble→Overlays/Popover/InfoPopover | generic popover→Overlays/Popover | hover hint→Overlays/Tooltip | hover preview card→Overlays/HoverCard | image zoom→Overlays/ImageViewer | loading overlay→Overlays/Loading/ScreenLoader | toast→@/lib/toast (GlobalToast+useToast) | low-level only→Overlays/DialogPrimitives
+ref: src/components/Overlays/README.md
+
 UserPage: Main alias, wraps \<main\> with containerType, h1 not included
 
 ui_layers:

@@ -4,13 +4,14 @@ import type { PaymentProvider } from "@/features/core/purchaseRequest/types/paym
 import { dummyPaymentProvider } from "./dummyProvider";
 import { fincodePaymentProvider } from "./fincode";
 import { squarePaymentProvider } from "./square";
+import { stripePaymentProvider } from "./stripe";
 
 export type { PaymentProvider, CreatePaymentSessionParams, PaymentSession, PaymentResult } from "@/features/core/purchaseRequest/types/payment";
 
 /**
  * 利用可能な決済プロバイダ名
  */
-export type PaymentProviderName = "dummy" | "komoju" | "fincode" | "square";
+export type PaymentProviderName = "dummy" | "komoju" | "fincode" | "square" | "stripe";
 
 /**
  * 決済プロバイダを取得
@@ -32,6 +33,9 @@ export function getPaymentProvider(providerName: PaymentProviderName): PaymentPr
     case "square":
       return squarePaymentProvider;
 
+    case "stripe":
+      return stripePaymentProvider;
+
     case "komoju":
       // TODO: KOMOJU実装後に有効化
       throw new Error("KOMOJU provider is not implemented yet");
@@ -52,6 +56,9 @@ export function getDefaultProviderName(): PaymentProviderName {
   }
   if (envProvider === "square") {
     return "square";
+  }
+  if (envProvider === "stripe") {
+    return "stripe";
   }
   if (envProvider === "komoju") {
     return "komoju";

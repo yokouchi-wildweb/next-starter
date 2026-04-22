@@ -71,11 +71,10 @@ export const paymentConfig = {
       enabled: true,
       supportedMethods: ["credit_card"],
     },
-    // 以下はダウンストリームで追加
-    // stripe: {
-    //   enabled: true,
-    //   supportedMethods: ["credit_card"],
-    // },
+    stripe: {
+      enabled: true,
+      supportedMethods: ["credit_card"],
+    },
   } as Record<string, ProviderConfig>,
 
   /**
@@ -98,7 +97,7 @@ export const paymentConfig = {
       dummy: null,
       fincode: "Fincode-Signature",
       square: "x-square-hmacsha256-signature",
-      // stripe: "Stripe-Signature",
+      stripe: "Stripe-Signature",
       // komoju: "X-Komoju-Signature",
     } as Record<string, string | null>,
   },

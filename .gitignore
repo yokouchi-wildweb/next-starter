@@ -58,6 +58,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# playwright-mcp (ページスナップショットに秘密情報が混入する可能性があるためコミット禁止)
+.playwright-mcp/
+
 # etc
 TODO.md
 .tmpref
