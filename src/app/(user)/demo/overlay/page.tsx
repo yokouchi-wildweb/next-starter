@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
-import { Input } from "@/components/Form/Input/Manual";
+import { Input, NumberInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
@@ -498,18 +498,14 @@ export default function OverlayDemoPage() {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-duration">表示時間 (ms)</Label>
-              <Input
+              <NumberInput
                 id="app-toast-duration"
-                type="number"
                 min={1000}
                 max={10000}
                 step={500}
                 value={appToastOptions.duration}
-                onChange={(event) =>
-                  setAppToastOptions((prev) => ({
-                    ...prev,
-                    duration: Number(event.target.value) || 3000,
-                  }))
+                onChange={(value) =>
+                  setAppToastOptions((prev) => ({ ...prev, duration: value }))
                 }
                 disabled={appToastOptions.mode === "persistent"}
               />

@@ -16,6 +16,8 @@ export { MultiSelectInput } from "./MultiSelectInput";
 export type { MultiSelectInputProps } from "./MultiSelectInput";
 export { Input } from "./Input";
 export { default as StepperInput } from "./StepperInput";
+export { NumberInput } from "./NumberInput";
+export type { NumberInputProps } from "./NumberInput";
 export { DateInput } from "./DateInput";
 export { TimeInput } from "./TimeInput";
 export { DatetimeInput } from "./DatetimeInput";

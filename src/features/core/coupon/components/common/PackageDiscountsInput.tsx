@@ -11,7 +11,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import { Span } from "@/components/TextBlocks";
-import { Input } from "@/components/Form/Input/Manual/Input";
+import { NumberInput } from "@/components/Form/Input/Manual";
 import { CURRENCY_CONFIG } from "@/config/app/currency.config";
 import type { PackageDiscount } from "@/features/core/purchaseRequest/types/couponEffect";
 
@@ -85,10 +85,10 @@ export function PackageDiscountsInput() {
                   <option value="percentage">%割引</option>
                   <option value="fixed">円割引</option>
                 </select>
-                <Input
-                  type="number"
-                  value={entry.discountValue || ""}
-                  onChange={(e) => handleValueChange(index, Number(e.target.value) || 0)}
+                <NumberInput
+                  value={entry.discountValue}
+                  onChange={(v) => handleValueChange(index, v)}
+                  min={0}
                   placeholder={entry.discountType === "percentage" ? "%" : "円"}
                   className="w-24"
                 />
