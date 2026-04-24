@@ -143,7 +143,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
           commit(event.target.value);
         }}
       />
-      <PopoverRoot open={popoverOpen} onOpenChange={setPopoverOpen}>
+      <PopoverRoot modal open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"
