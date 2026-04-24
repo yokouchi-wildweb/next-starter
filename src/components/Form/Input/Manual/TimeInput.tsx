@@ -1,3 +1,12 @@
+// @/components/Form/Input/Manual/TimeInput.tsx
+//
+// 時刻入力コンポーネント。
+// - テキスト直入力・ペースト対応（HH:mm / H:mm / HHmm / 和文等）
+// - 右側アイコンクリックで Popover に TimeFields（時/分の分離数値入力）を表示
+// - 入出力契約: value は TimeLike、onValueChange は "HH:mm" または "" を返す
+
+"use client";
+
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import { Clock } from "lucide-react";
@@ -6,17 +15,23 @@ import {
   useCallback,
   useMemo,
   useRef,
+  useState,
   type ComponentProps,
   type ChangeEventHandler,
-  type SyntheticEvent,
 } from "react";
 
 import { cn } from "@/lib/cn";
+import { parseFlexibleTime } from "@/lib/date/parseFlexible";
+import {
+  PopoverRoot,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/Overlays/Popover/PopoverPrimitives";
 
 import { Input } from "./Input";
+import { TimeFields } from "./TimeFields";
 
 type InputProps = ComponentProps<typeof Input>;
-
 type TimeLike = string | Date | number | Dayjs | null | undefined;
 
 type BaseProps = Omit<InputProps, "type" | "value" | "defaultValue" | "onChange">;
@@ -37,29 +52,23 @@ const formatTimeValue = (value: TimeLike): string => {
     if (!trimmed) return "";
     const isoMatch = trimmed.match(/[T\s](\d{2}:\d{2})/);
     if (isoMatch) return isoMatch[1];
-
     const hhmmMatch = trimmed.match(/^(\d{2}:\d{2})/);
     if (hhmmMatch) return hhmmMatch[1];
-
     const hhmmssMatch = trimmed.match(/^(\d{2}:\d{2}):\d{2}(?:\.\d+)?$/);
     if (hhmmssMatch) return hhmmssMatch[1];
-
-    return "";
+    return trimmed;
   }
 
-  if (typeof value === "number") {
-    return dayjs(value).format("HH:mm");
-  }
-
-  if (dayjs.isDayjs(value)) {
-    return value.format("HH:mm");
-  }
-
-  if (value instanceof Date) {
-    return dayjs(value).format("HH:mm");
-  }
-
+  if (typeof value === "number") return dayjs(value).format("HH:mm");
+  if (dayjs.isDayjs(value)) return value.format("HH:mm");
+  if (value instanceof Date) return dayjs(value).format("HH:mm");
   return "";
+};
+
+const parseHHmm = (value: string): { hour: number; minute: number } | null => {
+  const match = value.match(/^(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  return { hour: Number(match[1]), minute: Number(match[2]) };
 };
 
 export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, forwardedRef) => {
@@ -69,13 +78,32 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
     onValueChange,
     containerClassName,
     className,
-    onFocus,
-    onClick,
+    onBlur,
     onChange,
+    placeholder = "HH:mm",
     ...rest
   } = props;
 
+  const hasValueProp = Object.prototype.hasOwnProperty.call(props, "value");
+  const hasDefaultValueProp = Object.prototype.hasOwnProperty.call(props, "defaultValue");
+
+  const initialFormatted = useMemo(() => {
+    if (hasValueProp) return formatTimeValue(value);
+    if (hasDefaultValueProp) return formatTimeValue(defaultValue);
+    return "";
+  }, [hasValueProp, hasDefaultValueProp, value, defaultValue]);
+
+  const [rawInput, setRawInput] = useState<string>(initialFormatted);
+  const [isInvalid, setIsInvalid] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [prevExternalValue, setPrevExternalValue] = useState(value);
   const localRef = useRef<HTMLInputElement | null>(null);
+
+  if (hasValueProp && value !== prevExternalValue) {
+    setPrevExternalValue(value);
+    setRawInput(formatTimeValue(value));
+    setIsInvalid(false);
+  }
 
   const assignRef = useCallback(
     (node: HTMLInputElement | null) => {
@@ -89,63 +117,70 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
     [forwardedRef],
   );
 
-  const openPicker = useCallback((event?: SyntheticEvent) => {
-    if (event && !event.isTrusted) return;
-    const el = localRef.current;
-    if (el && typeof (el as any).showPicker === "function") {
-      requestAnimationFrame(() => {
-        try {
-          (el as any).showPicker();
-        } catch {
-          // showPicker はユーザー操作でないと失敗するため無視
-        }
-      });
-    }
-  }, []);
+  const commit = useCallback(
+    (next: string) => {
+      const parsed = parseFlexibleTime(next);
+      if (parsed === null) {
+        setIsInvalid(true);
+        return;
+      }
+      setIsInvalid(false);
+      setRawInput(parsed);
+      onValueChange?.(parsed);
+    },
+    [onValueChange],
+  );
 
-  const hasValueProp = Object.prototype.hasOwnProperty.call(props, "value");
-  const hasDefaultValueProp = Object.prototype.hasOwnProperty.call(props, "defaultValue");
-
-  const resolvedValue = useMemo(() => {
-    if (!hasValueProp) return undefined;
-    return formatTimeValue(value);
-  }, [hasValueProp, value]);
-
-  const resolvedDefaultValue = useMemo(() => {
-    if (hasValueProp || !hasDefaultValueProp) {
-      return undefined;
-    }
-    return formatTimeValue(defaultValue);
-  }, [defaultValue, hasDefaultValueProp, hasValueProp]);
-
-  const inputValueProps = hasValueProp
-    ? { value: resolvedValue ?? "" }
-    : hasDefaultValueProp
-      ? { defaultValue: resolvedDefaultValue ?? "" }
-      : {};
+  const parsedHHmm = parseHHmm(rawInput);
 
   return (
     <div className={cn("relative flex h-fit items-center", containerClassName)}>
       <Input
         {...rest}
         ref={assignRef}
-        type="time"
-        className={cn("pr-8", className)}
-        {...inputValueProps}
-        onFocus={(event) => {
-          onFocus?.(event);
-          openPicker(event);
-        }}
-        onClick={(event) => {
-          onClick?.(event);
-          openPicker(event);
-        }}
+        type="text"
+        inputMode="numeric"
+        placeholder={placeholder}
+        className={cn("pr-10", className)}
+        value={rawInput}
+        aria-invalid={isInvalid || rest["aria-invalid"]}
         onChange={(event) => {
           onChange?.(event);
-          onValueChange?.(event.target.value);
+          setRawInput(event.target.value);
+          if (isInvalid) setIsInvalid(false);
+        }}
+        onBlur={(event) => {
+          onBlur?.(event);
+          commit(event.target.value);
         }}
       />
-      <Clock className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <PopoverRoot open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label="時刻ピッカーを開く"
+            tabIndex={-1}
+            disabled={rest.disabled || rest.readOnly}
+            className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Clock className="size-4" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent size="auto" align="end" className="p-3">
+          <TimeFields
+            hour={parsedHHmm?.hour ?? null}
+            minute={parsedHHmm?.minute ?? null}
+            onChange={({ hour, minute }) => {
+              const formatted = `${hour.toString().padStart(2, "0")}:${minute
+                .toString()
+                .padStart(2, "0")}`;
+              setRawInput(formatted);
+              setIsInvalid(false);
+              onValueChange?.(formatted);
+            }}
+          />
+        </PopoverContent>
+      </PopoverRoot>
     </div>
   );
 });

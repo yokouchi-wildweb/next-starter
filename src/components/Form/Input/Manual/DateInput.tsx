@@ -1,3 +1,12 @@
+// @/components/Form/Input/Manual/DateInput.tsx
+//
+// 日付入力コンポーネント。
+// - テキスト直入力・ペースト対応（空白/スラッシュ/ドット/和文など広めに受理）
+// - 右側アイコンクリックで Popover に Calendar を表示
+// - 入出力契約: value は DateLike、onValueChange は "YYYY-MM-DD" または "" を返す
+
+"use client";
+
 import dayjs from "dayjs";
 import { CalendarIcon } from "lucide-react";
 import {
@@ -5,16 +14,23 @@ import {
   useCallback,
   useMemo,
   useRef,
+  useState,
   type ComponentProps,
   type ChangeEventHandler,
-  type SyntheticEvent,
 } from "react";
 
 import { cn } from "@/lib/cn";
+import { parseFlexibleDate } from "@/lib/date/parseFlexible";
+import { Calendar } from "@/components/Overlays/Calendar";
+import {
+  PopoverRoot,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/Overlays/Popover/PopoverPrimitives";
 
 import { Input } from "./Input";
-type InputProps = ComponentProps<typeof Input>;
 
+type InputProps = ComponentProps<typeof Input>;
 type DateLike = string | number | Date | null | undefined;
 
 type BaseProps = Omit<InputProps, "type" | "value" | "defaultValue" | "onChange">;
@@ -28,17 +44,13 @@ export type DateInputProps = BaseProps & {
 };
 
 const formatDateValue = (value: DateLike): string => {
-  if (value === null || typeof value === "undefined") {
-    return "";
-  }
-
+  if (value === null || typeof value === "undefined") return "";
   if (typeof value === "string") {
     const trimmed = value.trim();
     if (!trimmed) return "";
     const parsed = dayjs(trimmed);
-    return parsed.isValid() ? parsed.format("YYYY-MM-DD") : "";
+    return parsed.isValid() ? parsed.format("YYYY-MM-DD") : trimmed;
   }
-
   const parsed = dayjs(value);
   return parsed.isValid() ? parsed.format("YYYY-MM-DD") : "";
 };
@@ -50,13 +62,33 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
     onValueChange,
     containerClassName,
     className,
-    onFocus,
-    onClick,
+    onBlur,
     onChange,
+    placeholder = "YYYY-MM-DD",
     ...rest
   } = props;
 
+  const hasValueProp = Object.prototype.hasOwnProperty.call(props, "value");
+  const hasDefaultValueProp = Object.prototype.hasOwnProperty.call(props, "defaultValue");
+
+  const initialFormatted = useMemo(() => {
+    if (hasValueProp) return formatDateValue(value);
+    if (hasDefaultValueProp) return formatDateValue(defaultValue);
+    return "";
+  }, [hasValueProp, hasDefaultValueProp, value, defaultValue]);
+
+  const [rawInput, setRawInput] = useState<string>(initialFormatted);
+  const [isInvalid, setIsInvalid] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [prevExternalValue, setPrevExternalValue] = useState(value);
   const localRef = useRef<HTMLInputElement | null>(null);
+
+  // 制御モードで prop value が外部から変わった時だけローカル表示を追従させる
+  if (hasValueProp && value !== prevExternalValue) {
+    setPrevExternalValue(value);
+    setRawInput(formatDateValue(value));
+    setIsInvalid(false);
+  }
 
   const assignRef = useCallback(
     (node: HTMLInputElement | null) => {
@@ -70,63 +102,80 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
     [forwardedRef],
   );
 
-  const openPicker = useCallback((event?: SyntheticEvent) => {
-    if (event && !event.isTrusted) return;
-    const el = localRef.current;
-    if (el && typeof (el as any).showPicker === "function") {
-      requestAnimationFrame(() => {
-        try {
-          (el as any).showPicker();
-        } catch {
-          // showPicker はユーザー操作でないと失敗するため握りつぶす
-        }
-      });
-    }
-  }, []);
+  const commit = useCallback(
+    (next: string) => {
+      const parsed = parseFlexibleDate(next);
+      if (parsed === null) {
+        // パース不能: raw を保持しつつエラー表示
+        setIsInvalid(true);
+        return;
+      }
+      setIsInvalid(false);
+      setRawInput(parsed);
+      onValueChange?.(parsed);
+    },
+    [onValueChange],
+  );
 
-  const hasValueProp = Object.prototype.hasOwnProperty.call(props, "value");
-  const hasDefaultValueProp = Object.prototype.hasOwnProperty.call(props, "defaultValue");
-
-  const resolvedValue = useMemo(() => {
-    if (!hasValueProp) return undefined;
-    return formatDateValue(value);
-  }, [hasValueProp, value]);
-
-  const resolvedDefaultValue = useMemo(() => {
-    if (hasValueProp || !hasDefaultValueProp) {
-      return undefined;
-    }
-    return formatDateValue(defaultValue);
-  }, [defaultValue, hasDefaultValueProp, hasValueProp]);
-
-  const inputValueProps = hasValueProp
-    ? { value: resolvedValue ?? "" }
-    : hasDefaultValueProp
-      ? { defaultValue: resolvedDefaultValue ?? "" }
-      : {};
+  const selectedDate = useMemo(() => {
+    const parsed = dayjs(rawInput, "YYYY-MM-DD", true);
+    return parsed.isValid() ? parsed.toDate() : undefined;
+  }, [rawInput]);
 
   return (
-    <div className={cn("relative flex h-fit items-center", className, containerClassName)}>
+    <div className={cn("relative flex h-fit items-center", containerClassName)}>
       <Input
         {...rest}
         ref={assignRef}
-        type="date"
-        className="pr-8"
-        {...inputValueProps}
-        onFocus={(event) => {
-          onFocus?.(event);
-          openPicker(event);
-        }}
-        onClick={(event) => {
-          onClick?.(event);
-          openPicker(event);
-        }}
+        type="text"
+        inputMode="numeric"
+        placeholder={placeholder}
+        className={cn("pr-10", className)}
+        value={rawInput}
+        aria-invalid={isInvalid || rest["aria-invalid"]}
         onChange={(event) => {
           onChange?.(event);
-          onValueChange?.(event.target.value);
+          setRawInput(event.target.value);
+          if (isInvalid) setIsInvalid(false);
+        }}
+        onBlur={(event) => {
+          onBlur?.(event);
+          commit(event.target.value);
         }}
       />
-      <CalendarIcon className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <PopoverRoot open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label="カレンダーを開く"
+            tabIndex={-1}
+            disabled={rest.disabled || rest.readOnly}
+            className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <CalendarIcon className="size-4" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent size="auto" className="p-0" align="end">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            defaultMonth={selectedDate}
+            onSelect={(date) => {
+              if (!date) {
+                setRawInput("");
+                setIsInvalid(false);
+                onValueChange?.("");
+                return;
+              }
+              const formatted = dayjs(date).format("YYYY-MM-DD");
+              setRawInput(formatted);
+              setIsInvalid(false);
+              onValueChange?.(formatted);
+              setPopoverOpen(false);
+            }}
+          />
+        </PopoverContent>
+      </PopoverRoot>
     </div>
   );
 });
