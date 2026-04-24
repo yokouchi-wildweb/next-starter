@@ -26,7 +26,7 @@ type DateTimeEditorProps<T> = BaseEditorProps<T> & {
 const INPUT_FORMAT: Record<CellType, string> = {
   date: "YYYY-MM-DD",
   time: "HH:mm",
-  datetime: "YYYY-MM-DDTHH:mm",
+  datetime: "YYYY-MM-DD HH:mm",
 };
 
 const PLACEHOLDER: Record<CellType, string> = {

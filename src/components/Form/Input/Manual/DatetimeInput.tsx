@@ -3,7 +3,7 @@
 // 日時入力コンポーネント。
 // - テキスト直入力・ペースト対応（ISO/和文/各種区切りを広く受理）
 // - 右側アイコンクリックで Popover に Calendar + TimeFields を表示
-// - 入出力契約: value は DatetimeLike、onValueChange は "YYYY-MM-DDTHH:mm" または "" を返す
+// - 入出力契約: value は DatetimeLike、onValueChange は "YYYY-MM-DD HH:mm" または "" を返す
 
 "use client";
 
@@ -46,7 +46,7 @@ export type DatetimeInputProps = BaseProps & {
   onChange?: ChangeEventHandler<HTMLInputElement>;
 };
 
-const OUTPUT_FORMAT = "YYYY-MM-DDTHH:mm";
+const OUTPUT_FORMAT = "YYYY-MM-DD HH:mm";
 
 const formatDatetimeValue = (value: DatetimeLike): string => {
   if (value == null) return "";
