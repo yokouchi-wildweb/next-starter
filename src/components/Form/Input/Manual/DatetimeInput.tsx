@@ -22,6 +22,7 @@ import {
 
 import { cn } from "@/lib/cn";
 import { parseFlexibleDatetime } from "@/lib/date/parseFlexible";
+import { Button } from "@/components/Form/Button";
 import { Calendar } from "@/components/Overlays/Calendar";
 import {
   PopoverRoot,
@@ -195,6 +196,41 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
                   emitFromParts(base.hour(hour).minute(minute));
                 }}
               />
+            </div>
+            <div className="flex items-center justify-between gap-2 border-t p-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => {
+                  setRawInput("");
+                  setIsInvalid(false);
+                  onValueChange?.("");
+                  setPopoverOpen(false);
+                }}
+              >
+                クリア
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() => {
+                    emitFromParts(dayjs());
+                  }}
+                >
+                  今
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="xs"
+                  onClick={() => setPopoverOpen(false)}
+                >
+                  閉じる
+                </Button>
+              </div>
             </div>
           </PopoverContent>
         </PopoverRoot>

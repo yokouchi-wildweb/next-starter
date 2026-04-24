@@ -21,6 +21,7 @@ import {
 
 import { cn } from "@/lib/cn";
 import { parseFlexibleDate } from "@/lib/date/parseFlexible";
+import { Button } from "@/components/Form/Button";
 import { Calendar } from "@/components/Overlays/Calendar";
 import {
   PopoverRoot,
@@ -174,6 +175,45 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
               setPopoverOpen(false);
             }}
           />
+          <div className="flex items-center justify-between gap-2 border-t p-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                setRawInput("");
+                setIsInvalid(false);
+                onValueChange?.("");
+                setPopoverOpen(false);
+              }}
+            >
+              クリア
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => {
+                  const today = dayjs().format("YYYY-MM-DD");
+                  setRawInput(today);
+                  setIsInvalid(false);
+                  onValueChange?.(today);
+                  setPopoverOpen(false);
+                }}
+              >
+                今日
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="xs"
+                onClick={() => setPopoverOpen(false)}
+              >
+                閉じる
+              </Button>
+            </div>
+          </div>
         </PopoverContent>
       </PopoverRoot>
     </div>

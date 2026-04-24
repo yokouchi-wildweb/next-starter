@@ -22,6 +22,7 @@ import {
 
 import { cn } from "@/lib/cn";
 import { parseFlexibleTime } from "@/lib/date/parseFlexible";
+import { Button } from "@/components/Form/Button";
 import {
   PopoverRoot,
   PopoverTrigger,
@@ -166,19 +167,59 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
             <Clock className="size-4" />
           </button>
         </PopoverTrigger>
-        <PopoverContent size="auto" align="end" className="p-3">
-          <TimeFields
-            hour={parsedHHmm?.hour ?? null}
-            minute={parsedHHmm?.minute ?? null}
-            onChange={({ hour, minute }) => {
-              const formatted = `${hour.toString().padStart(2, "0")}:${minute
-                .toString()
-                .padStart(2, "0")}`;
-              setRawInput(formatted);
-              setIsInvalid(false);
-              onValueChange?.(formatted);
-            }}
-          />
+        <PopoverContent size="auto" align="end" className="p-0">
+          <div className="p-3">
+            <TimeFields
+              hour={parsedHHmm?.hour ?? null}
+              minute={parsedHHmm?.minute ?? null}
+              onChange={({ hour, minute }) => {
+                const formatted = `${hour.toString().padStart(2, "0")}:${minute
+                  .toString()
+                  .padStart(2, "0")}`;
+                setRawInput(formatted);
+                setIsInvalid(false);
+                onValueChange?.(formatted);
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-2 border-t p-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                setRawInput("");
+                setIsInvalid(false);
+                onValueChange?.("");
+                setPopoverOpen(false);
+              }}
+            >
+              クリア
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => {
+                  const now = dayjs().format("HH:mm");
+                  setRawInput(now);
+                  setIsInvalid(false);
+                  onValueChange?.(now);
+                }}
+              >
+                今
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="xs"
+                onClick={() => setPopoverOpen(false)}
+              >
+                閉じる
+              </Button>
+            </div>
+          </div>
         </PopoverContent>
       </PopoverRoot>
     </div>
