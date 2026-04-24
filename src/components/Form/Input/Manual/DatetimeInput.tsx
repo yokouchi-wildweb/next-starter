@@ -223,15 +223,15 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="xs"
                   onClick={() => setDraftDatetime(dayjs())}
                 >
-                  今
+                  現在
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="xs"
                   onClick={() => setPopoverOpen(false)}
                 >

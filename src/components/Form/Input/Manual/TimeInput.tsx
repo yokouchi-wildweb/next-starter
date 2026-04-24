@@ -215,18 +215,18 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
             <div className="flex items-center gap-2">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="xs"
                 onClick={() => {
                   const now = dayjs();
                   setDraftTime({ hour: now.hour(), minute: now.minute() });
                 }}
               >
-                今
+                現在
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="xs"
                 onClick={() => setPopoverOpen(false)}
               >

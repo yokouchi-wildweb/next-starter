@@ -201,15 +201,15 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
             <div className="flex items-center gap-2">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="xs"
                 onClick={() => setDraftDate(new Date())}
               >
-                今日
+                現在
               </Button>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="xs"
                 onClick={() => setPopoverOpen(false)}
               >
