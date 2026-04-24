@@ -97,6 +97,7 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
   const [rawInput, setRawInput] = useState<string>(initialFormatted);
   const [isInvalid, setIsInvalid] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [draftTime, setDraftTime] = useState<{ hour: number; minute: number } | null>(null);
   const [prevExternalValue, setPrevExternalValue] = useState(value);
   const localRef = useRef<HTMLInputElement | null>(null);
 
@@ -134,6 +135,28 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
 
   const parsedHHmm = parseHHmm(rawInput);
 
+  const handlePopoverOpenChange = (open: boolean) => {
+    // 開く瞬間に現在値をドラフトへ。閉じる（外クリック・Escape）はドラフト破棄扱い。
+    if (open) setDraftTime(parsedHHmm);
+    setPopoverOpen(open);
+  };
+
+  const confirmDraft = () => {
+    if (!draftTime) {
+      setRawInput("");
+      setIsInvalid(false);
+      onValueChange?.("");
+    } else {
+      const formatted = `${draftTime.hour.toString().padStart(2, "0")}:${draftTime.minute
+        .toString()
+        .padStart(2, "0")}`;
+      setRawInput(formatted);
+      setIsInvalid(false);
+      onValueChange?.(formatted);
+    }
+    setPopoverOpen(false);
+  };
+
   return (
     <div className={cn("relative flex h-fit items-center", containerClassName)}>
       <Input
@@ -155,7 +178,7 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
           commit(event.target.value);
         }}
       />
-      <PopoverRoot modal open={popoverOpen} onOpenChange={setPopoverOpen}>
+      <PopoverRoot modal open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -170,16 +193,9 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
         <PopoverContent size="auto" align="end" className="p-0">
           <div className="p-3">
             <TimeFields
-              hour={parsedHHmm?.hour ?? null}
-              minute={parsedHHmm?.minute ?? null}
-              onChange={({ hour, minute }) => {
-                const formatted = `${hour.toString().padStart(2, "0")}:${minute
-                  .toString()
-                  .padStart(2, "0")}`;
-                setRawInput(formatted);
-                setIsInvalid(false);
-                onValueChange?.(formatted);
-              }}
+              hour={draftTime?.hour ?? null}
+              minute={draftTime?.minute ?? null}
+              onChange={({ hour, minute }) => setDraftTime({ hour, minute })}
             />
           </div>
           <div className="flex items-center justify-between gap-2 border-t p-2">
@@ -202,21 +218,27 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
                 variant="outline"
                 size="xs"
                 onClick={() => {
-                  const now = dayjs().format("HH:mm");
-                  setRawInput(now);
-                  setIsInvalid(false);
-                  onValueChange?.(now);
+                  const now = dayjs();
+                  setDraftTime({ hour: now.hour(), minute: now.minute() });
                 }}
               >
                 今
               </Button>
               <Button
                 type="button"
-                variant="primary"
+                variant="ghost"
                 size="xs"
                 onClick={() => setPopoverOpen(false)}
               >
-                閉じる
+                キャンセル
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="xs"
+                onClick={confirmDraft}
+              >
+                確定
               </Button>
             </div>
           </div>

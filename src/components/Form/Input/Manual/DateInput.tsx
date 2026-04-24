@@ -81,6 +81,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
   const [rawInput, setRawInput] = useState<string>(initialFormatted);
   const [isInvalid, setIsInvalid] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [draftDate, setDraftDate] = useState<Date | undefined>(undefined);
   const [prevExternalValue, setPrevExternalValue] = useState(value);
   const localRef = useRef<HTMLInputElement | null>(null);
 
@@ -118,10 +119,30 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
     [onValueChange],
   );
 
-  const selectedDate = useMemo(() => {
+  const currentDate = useMemo(() => {
     const parsed = dayjs(rawInput, "YYYY-MM-DD", true);
     return parsed.isValid() ? parsed.toDate() : undefined;
   }, [rawInput]);
+
+  const handlePopoverOpenChange = (open: boolean) => {
+    // 開く瞬間に現在値をドラフトへスナップショット。閉じる時はドラフト破棄（確定ボタンのみ反映）
+    if (open) setDraftDate(currentDate);
+    setPopoverOpen(open);
+  };
+
+  const confirmDraft = () => {
+    if (!draftDate) {
+      setRawInput("");
+      setIsInvalid(false);
+      onValueChange?.("");
+    } else {
+      const formatted = dayjs(draftDate).format("YYYY-MM-DD");
+      setRawInput(formatted);
+      setIsInvalid(false);
+      onValueChange?.(formatted);
+    }
+    setPopoverOpen(false);
+  };
 
   return (
     <div className={cn("relative flex h-fit items-center", containerClassName)}>
@@ -144,7 +165,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
           commit(event.target.value);
         }}
       />
-      <PopoverRoot modal open={popoverOpen} onOpenChange={setPopoverOpen}>
+      <PopoverRoot modal open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -159,21 +180,9 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
         <PopoverContent size="auto" className="p-0" align="end">
           <Calendar
             mode="single"
-            selected={selectedDate}
-            defaultMonth={selectedDate}
-            onSelect={(date) => {
-              if (!date) {
-                setRawInput("");
-                setIsInvalid(false);
-                onValueChange?.("");
-                return;
-              }
-              const formatted = dayjs(date).format("YYYY-MM-DD");
-              setRawInput(formatted);
-              setIsInvalid(false);
-              onValueChange?.(formatted);
-              setPopoverOpen(false);
-            }}
+            selected={draftDate}
+            defaultMonth={draftDate ?? currentDate}
+            onSelect={(date) => setDraftDate(date ?? undefined)}
           />
           <div className="flex items-center justify-between gap-2 border-t p-2">
             <Button
@@ -194,23 +203,25 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
                 type="button"
                 variant="outline"
                 size="xs"
-                onClick={() => {
-                  const today = dayjs().format("YYYY-MM-DD");
-                  setRawInput(today);
-                  setIsInvalid(false);
-                  onValueChange?.(today);
-                  setPopoverOpen(false);
-                }}
+                onClick={() => setDraftDate(new Date())}
               >
                 今日
               </Button>
               <Button
                 type="button"
-                variant="primary"
+                variant="ghost"
                 size="xs"
                 onClick={() => setPopoverOpen(false)}
               >
-                閉じる
+                キャンセル
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="xs"
+                onClick={confirmDraft}
+              >
+                確定
               </Button>
             </div>
           </div>

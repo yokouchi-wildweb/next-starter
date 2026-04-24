@@ -89,6 +89,7 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
     const [rawInput, setRawInput] = useState<string>(initialFormatted);
     const [isInvalid, setIsInvalid] = useState(false);
     const [popoverOpen, setPopoverOpen] = useState(false);
+    const [draftDatetime, setDraftDatetime] = useState<Dayjs | null>(null);
     const [prevExternalValue, setPrevExternalValue] = useState(value);
     const localRef = useRef<HTMLInputElement | null>(null);
 
@@ -129,11 +130,24 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
       return parsed.isValid() ? parsed : null;
     }, [rawInput]);
 
-    const emitFromParts = (next: dayjs.Dayjs) => {
-      const formatted = next.format(OUTPUT_FORMAT);
-      setRawInput(formatted);
-      setIsInvalid(false);
-      onValueChange?.(formatted);
+    const handlePopoverOpenChange = (open: boolean) => {
+      // 開く瞬間に現在値をドラフトへ。閉じる（外クリック・Escape）はドラフト破棄扱い。
+      if (open) setDraftDatetime(currentDayjs);
+      setPopoverOpen(open);
+    };
+
+    const confirmDraft = () => {
+      if (!draftDatetime) {
+        setRawInput("");
+        setIsInvalid(false);
+        onValueChange?.("");
+      } else {
+        const formatted = draftDatetime.format(OUTPUT_FORMAT);
+        setRawInput(formatted);
+        setIsInvalid(false);
+        onValueChange?.(formatted);
+      }
+      setPopoverOpen(false);
     };
 
     return (
@@ -156,7 +170,7 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
             commit(event.target.value);
           }}
         />
-        <PopoverRoot modal open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <PopoverRoot modal open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
           <PopoverTrigger asChild>
             <button
               type="button"
@@ -171,29 +185,24 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
           <PopoverContent size="auto" align="end" className="p-0">
             <Calendar
               mode="single"
-              selected={currentDayjs?.toDate()}
-              defaultMonth={currentDayjs?.toDate()}
+              selected={draftDatetime?.toDate()}
+              defaultMonth={draftDatetime?.toDate() ?? currentDayjs?.toDate()}
               onSelect={(date) => {
                 if (!date) {
-                  setRawInput("");
-                  setIsInvalid(false);
-                  onValueChange?.("");
+                  setDraftDatetime(null);
                   return;
                 }
-                const base = currentDayjs ?? dayjs(date);
-                const next = dayjs(date)
-                  .hour(base.hour())
-                  .minute(base.minute());
-                emitFromParts(next);
+                const base = draftDatetime ?? dayjs(date);
+                setDraftDatetime(dayjs(date).hour(base.hour()).minute(base.minute()));
               }}
             />
             <div className="border-t px-3 py-3">
               <TimeFields
-                hour={currentDayjs?.hour() ?? null}
-                minute={currentDayjs?.minute() ?? null}
+                hour={draftDatetime?.hour() ?? null}
+                minute={draftDatetime?.minute() ?? null}
                 onChange={({ hour, minute }) => {
-                  const base = currentDayjs ?? dayjs().startOf("day");
-                  emitFromParts(base.hour(hour).minute(minute));
+                  const base = draftDatetime ?? dayjs().startOf("day");
+                  setDraftDatetime(base.hour(hour).minute(minute));
                 }}
               />
             </div>
@@ -216,19 +225,25 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
                   type="button"
                   variant="outline"
                   size="xs"
-                  onClick={() => {
-                    emitFromParts(dayjs());
-                  }}
+                  onClick={() => setDraftDatetime(dayjs())}
                 >
                   今
                 </Button>
                 <Button
                   type="button"
-                  variant="primary"
+                  variant="ghost"
                   size="xs"
                   onClick={() => setPopoverOpen(false)}
                 >
-                  閉じる
+                  キャンセル
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="xs"
+                  onClick={confirmDraft}
+                >
+                  確定
                 </Button>
               </div>
             </div>
