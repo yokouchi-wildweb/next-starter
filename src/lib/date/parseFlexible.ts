@@ -70,5 +70,5 @@ export const parseFlexibleDatetime = (raw: string): string | null => {
   const normalized = normalizeInput(raw);
   if (!normalized) return "";
   const parsed = dayjs(normalized, DATETIME_FORMATS, true);
-  return parsed.isValid() ? parsed.format("YYYY-MM-DDTHH:mm") : null;
+  return parsed.isValid() ? parsed.format("YYYY-MM-DD HH:mm") : null;
 };
