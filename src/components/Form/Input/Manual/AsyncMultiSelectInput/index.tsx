@@ -303,8 +303,8 @@ export function AsyncMultiSelectInput<T>({
         // session snapshot を current value で初期化
         const currentValues = normalizeOptionValues(value);
         setSelectedSnapshot([...currentValues]);
-        // デフォルトタブ: 選択済みがあれば「選択済み」、なければ「検索」
-        setActiveTab(currentValues.length > 0 ? "selected" : "search");
+        // デフォルトタブ: 検索（入力フィールドにフォーカスを当てて即タイピング可能にする）
+        setActiveTab("search");
         // 検索系を全リセット
         setSearchQuery("");
         setHasSearched(false);
@@ -518,6 +518,10 @@ export function AsyncMultiSelectInput<T>({
         </PopoverTrigger>
         <PopoverContent
           align="start"
+          onOpenAutoFocus={(e) => {
+            // radix の既定（content への focus）を抑止し、CommandInput の autoFocus に委譲
+            e.preventDefault();
+          }}
           {...popoverContentProps}
           className={cn(
             "surface-ui-layer w-[min(360px,90vw)] p-0",
@@ -532,8 +536,8 @@ export function AsyncMultiSelectInput<T>({
                 value={activeTab}
                 onValueChange={(v) => setActiveTab(v as ActiveTab)}
                 tabs={[
-                  { value: "selected", label: `選択済み (${selectedCount})` },
                   { value: "search", label: "検索" },
+                  { value: "selected", label: `選択済み (${selectedCount})` },
                 ]}
                 className="px-2 pt-2"
                 listClassName="w-full"
@@ -555,6 +559,7 @@ export function AsyncMultiSelectInput<T>({
 
                 <StateTabsContent value="search">
                   <CommandInput
+                    autoFocus
                     placeholder={searchPlaceholder}
                     value={searchQuery}
                     onValueChange={handleSearchQueryChange}
