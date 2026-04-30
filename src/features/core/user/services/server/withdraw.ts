@@ -1,7 +1,7 @@
 // src/features/core/user/services/server/withdraw.ts
 
 import type { User } from "@/features/core/user/entities";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { executeCleanup } from "@/features/core/user/services/server/executeCleanup";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";

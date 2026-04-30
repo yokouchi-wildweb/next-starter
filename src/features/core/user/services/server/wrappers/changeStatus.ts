@@ -2,7 +2,7 @@
 
 import type { User } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { base } from "../drizzleBase";
 

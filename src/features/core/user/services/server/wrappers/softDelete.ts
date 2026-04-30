@@ -1,6 +1,6 @@
 // src/features/core/user/services/server/wrappers/softDelete.ts
 
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { executeCleanup } from "@/features/core/user/services/server/executeCleanup";
 import { setStatusWithdrawn } from "@/features/core/user/services/server/setStatusWithdrawn";

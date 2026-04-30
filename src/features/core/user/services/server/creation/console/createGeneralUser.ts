@@ -3,7 +3,7 @@
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";

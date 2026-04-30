@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";

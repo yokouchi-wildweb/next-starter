@@ -2,7 +2,7 @@
 // ハードデリート: Firebase Auth と DB レコードを物理削除し、監査ログを記録
 
 import { deleteAuthUser } from "@/lib/firebase/server/authAdmin";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { base } from "../drizzleBase";

@@ -3,7 +3,7 @@
 import { UserTable, UserToUserTagTable } from "@/features/core/user/entities/drizzle";
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import { getDomainConfig } from "@/lib/domain";

@@ -1,20 +1,17 @@
 // src/features/core/auditLog/index.ts
 //
-// 汎用監査ログドメインの公開エントリーポイント。
-// 他ドメインの wrapper / service からはここから auditLogger を import すること。
+// 汎用監査ログドメインの公開エントリーポイント (client-safe)。
 //
-// 例:
-//   import { auditLogger } from "@/features/core/auditLog";
-//   await auditLogger.record({
-//     targetType: "user",
-//     targetId: userId,
-//     action: "user.email.changed",
-//     before: { email: oldEmail },
-//     after: { email: newEmail },
-//     tx,
-//   });
-
-export { auditLogger, type AuditLogger } from "./services/server/auditLogService";
+// このバレルからは server-only な値 (auditLogger / pruneExpiredAuditLogs 等)
+// は export しない。AuditTimeline 等の Client Component から import された際に
+// `node:async_hooks` / `postgres` の依存がクライアントバンドルへ流入することを
+// 防ぐため。
+//
+// server コードから recorder を使う場合は専用パスを利用する:
+//   import { auditLogger } from "@/features/core/auditLog/services/server";
+//
+// client コード / Server Component の表示系はこの index から import:
+//   import { AuditTimeline, auditLogClient } from "@/features/core/auditLog";
 
 export type {
   AuditLog,

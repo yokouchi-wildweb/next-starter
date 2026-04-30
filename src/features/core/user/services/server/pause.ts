@@ -1,7 +1,7 @@
 // src/features/core/user/services/server/pause.ts
 
 import type { User } from "@/features/core/user/entities";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { base } from "./drizzleBase";
 

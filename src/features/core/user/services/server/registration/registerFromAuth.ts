@@ -3,7 +3,7 @@
 import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/constants";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { updateLastAuthenticated } from "@/features/core/user/services/server/wrappers/updateLastAuthenticated";
 import { activate } from "./activate";
 import { sendRegistrationCompleteMail } from "./sendRegistrationCompleteMail";

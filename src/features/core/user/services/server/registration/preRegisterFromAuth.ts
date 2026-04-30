@@ -2,7 +2,7 @@
 
 import type { User } from "@/features/core/user/entities";
 import type { UserProviderType } from "@/features/core/user/types";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { setPending } from "./setPending";
 
 export type PreRegisterFromAuthInput = {

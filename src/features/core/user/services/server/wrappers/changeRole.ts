@@ -3,7 +3,7 @@
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/constants/role";
 import { assertRoleEnabled, hasRoleProfile } from "@/features/core/user/utils/roleHelpers";
-import { auditLogger } from "@/features/core/auditLog";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { deleteProfile } from "@/features/core/userProfile/services/server/operations/deleteProfile";
 import { base } from "../drizzleBase";
