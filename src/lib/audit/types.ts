@@ -65,6 +65,41 @@ export type AuditRecordInput = {
 };
 
 /**
+ * `auditLogger.recordDiff` に渡す入力。
+ * record() と異なり before / after を必須にして、内部で差分を計算する。
+ */
+export type AuditRecordDiffInput = Omit<AuditRecordInput, "before" | "after"> & {
+  before: Record<string, unknown> | null | undefined;
+  after: Record<string, unknown> | null | undefined;
+  /**
+   * 差分検出対象を限定するフィールド名のリスト。
+   * 省略時は before / after の union を対象にする。
+   * denylist 対象は常に除外される。
+   */
+  trackedFields?: readonly string[];
+  /**
+   * true（既定）なら差分が無い場合に記録をスキップする。
+   * 監査として「変更なしの操作も残したい」場合のみ false にする。
+   */
+  skipIfNoChanges?: boolean;
+};
+
+/**
+ * 監査ログの recorder インターフェース。
+ *
+ * 実体は features/core/auditLog/services/server に存在する `auditLogger` だが、
+ * lib 層（lib/crud 等）からは features を import できないため、
+ * 呼び出し側が DI でインスタンスを渡す形を取る（`createCrudService` の `audit.recorder`）。
+ *
+ * tx は `unknown` で受けて recorder 実装側で適切な型に narrow する。
+ * これは lib/crud → lib/audit 経由で features の DbTransaction 型を曝さないための割り切り。
+ */
+export interface AuditRecorder {
+  record(input: AuditRecordInput & { tx?: unknown }): Promise<void>;
+  recordDiff(input: AuditRecordDiffInput & { tx?: unknown }): Promise<void>;
+}
+
+/**
  * 監査ログの内部表現（DB 永続化前の構造）。
  * recorder 実装が DB へ insert する際の入力。
  */

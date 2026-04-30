@@ -1,6 +1,7 @@
 // src/lib/crud/drizzle/service.ts
 
 import { db } from "@/lib/drizzle";
+import { stripDenylisted } from "@/lib/audit";
 import { omitUndefined } from "@/utils/object";
 import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, desc, getTableName, gt } from "drizzle-orm";
 import { generateSortKey, generateFirstSortKey, generateLastSortKey, generateLastSortKeys } from "./fractionalSort";
@@ -23,7 +24,7 @@ import type {
 } from "../types";
 import { buildOrderBy, buildRelationWhere, buildWhere, runQuery } from "./query";
 import { applyInsertDefaults, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
-import type { DrizzleCrudServiceOptions, DbTransaction, ExtraWhereOption } from "./types";
+import type { AuditConfig, BulkAuditMode, DrizzleCrudServiceOptions, DbTransaction, DbExecutor, ExtraWhereOption } from "./types";
 import {
   assignLocalRelationValues,
   hydrateBelongsToManyRelations,
@@ -187,6 +188,150 @@ export function createCrudService<
   const belongsToManyRelations = serviceOptions.belongsToManyRelations ?? [];
   const useSoftDelete = serviceOptions.useSoftDelete ?? false;
 
+  // ===== 監査ログ（audit）統合 =====
+  // serviceOptions.audit が指定された場合、CRUD 操作を audit_logs に自動記録する。
+  // recorder は features/core/auditLog 側から DI される（lib→features 違反回避）。
+  const audit: AuditConfig | undefined =
+    serviceOptions.audit?.enabled ? serviceOptions.audit : undefined;
+  const auditBulkMode: BulkAuditMode = audit?.bulkMode ?? "aggregate";
+  const auditStrict = audit?.strict !== false; // 既定 true
+  const auditBestEffort = !auditStrict;
+
+  /** 記録対象フィールドのみを抽出（trackedFields 指定時）+ denylist 除外 */
+  const projectAuditFields = (
+    record: Record<string, unknown> | null | undefined,
+  ): Record<string, unknown> | null => {
+    if (!record) return null;
+    if (audit?.trackedFields?.length) {
+      const result: Record<string, unknown> = {};
+      for (const field of audit.trackedFields) {
+        if (field in record) result[field] = (record as Record<string, unknown>)[field];
+      }
+      return stripDenylisted(result);
+    }
+    return stripDenylisted(record as Record<string, unknown>);
+  };
+
+  /** record の id を文字列化。number / uuid / string を許容 */
+  const auditIdOf = (record: Record<string, unknown>): string => {
+    const value = record.id;
+    if (typeof value === "string") return value;
+    if (typeof value === "number") return String(value);
+    return String(value);
+  };
+
+  /** executor が tx 経由なら recorder.tx として渡す。db 直なら undefined */
+  const auditTxOf = (executor: DbExecutor): unknown => (executor === db ? undefined : executor);
+
+  const auditCommonOptions = () =>
+    audit
+      ? {
+          retentionDays: audit.retentionDays,
+          bestEffort: auditBestEffort,
+        }
+      : null;
+
+  /** create 系操作の audit 記録 */
+  const auditOnCreate = async (executor: DbExecutor, created: Record<string, unknown>) => {
+    if (!audit) return;
+    await audit.recorder.record({
+      ...auditCommonOptions()!,
+      targetType: audit.targetType,
+      targetId: auditIdOf(created),
+      action: `${audit.actionPrefix}.created`,
+      after: projectAuditFields(created),
+      tx: auditTxOf(executor),
+    });
+  };
+
+  /** update 系操作の audit 記録（差分があれば） */
+  const auditOnUpdate = async (
+    executor: DbExecutor,
+    before: Record<string, unknown>,
+    after: Record<string, unknown>,
+  ) => {
+    if (!audit) return;
+    await audit.recorder.recordDiff({
+      ...auditCommonOptions()!,
+      targetType: audit.targetType,
+      targetId: auditIdOf(after),
+      action: `${audit.actionPrefix}.updated`,
+      before,
+      after,
+      trackedFields: audit.trackedFields,
+      tx: auditTxOf(executor),
+    });
+  };
+
+  /** delete 系操作の audit 記録（softDelete / hardDelete 共通） */
+  const auditOnDelete = async (
+    executor: DbExecutor,
+    before: Record<string, unknown>,
+    options?: { hard?: boolean },
+  ) => {
+    if (!audit) return;
+    const verb = options?.hard ? "hard_deleted" : "deleted";
+    await audit.recorder.record({
+      ...auditCommonOptions()!,
+      targetType: audit.targetType,
+      targetId: auditIdOf(before),
+      action: `${audit.actionPrefix}.${verb}`,
+      before: projectAuditFields(before),
+      tx: auditTxOf(executor),
+    });
+  };
+
+  /** restore 操作の audit 記録 */
+  const auditOnRestore = async (executor: DbExecutor, restored: Record<string, unknown>) => {
+    if (!audit) return;
+    await audit.recorder.record({
+      ...auditCommonOptions()!,
+      targetType: audit.targetType,
+      targetId: auditIdOf(restored),
+      action: `${audit.actionPrefix}.restored`,
+      after: projectAuditFields(restored),
+      tx: auditTxOf(executor),
+    });
+  };
+
+  /** bulk 操作の集約モード記録（1 件にまとめる） */
+  const auditOnBulkAggregate = async (
+    executor: DbExecutor,
+    verb: string,
+    metadata: Record<string, unknown>,
+    representativeTargetId: string = "*",
+  ) => {
+    if (!audit || auditBulkMode !== "aggregate") return;
+    await audit.recorder.record({
+      ...auditCommonOptions()!,
+      targetType: audit.targetType,
+      targetId: representativeTargetId,
+      action: `${audit.actionPrefix}.bulk_${verb}`,
+      metadata,
+      tx: auditTxOf(executor),
+    });
+  };
+
+  /**
+   * detail モード用: 既存レコードを丸ごと取得する（bulk 削除前の before スナップショットなど）。
+   * tracking 対象が明示されていれば必要列だけを select して I/O を抑える。
+   */
+  const fetchAuditBeforeSnapshots = async (
+    executor: DbExecutor,
+    ids: string[],
+  ): Promise<Map<string, Record<string, unknown>>> => {
+    if (!ids.length) return new Map();
+    const rows = (await executor.select().from(table as any).where(inArray(idColumn, ids))) as Record<
+      string,
+      unknown
+    >[];
+    const map = new Map<string, Record<string, unknown>>();
+    for (const row of rows) {
+      map.set(auditIdOf(row), row);
+    }
+    return map;
+  };
+
   // withRelations / withCount 用のリレーション設定
   const belongsToRelations = serviceOptions.belongsToRelations ?? [];
   const belongsToManyObjectRelations = serviceOptions.belongsToManyObjectRelations ?? [];
@@ -288,9 +433,20 @@ export function createCrudService<
 
         // belongsToMany がない場合
         if (!belongsToManyRelations.length) {
+          // audit ありの場合は tx を確保してから記録
+          if (audit && !tx) {
+            return db.transaction(async (innerTx) => {
+              const rows = await innerTx.insert(table).values(finalInsert).returning();
+              const created = rows[0] as Select;
+              if (created) await auditOnCreate(innerTx, created as Record<string, unknown>);
+              return created;
+            });
+          }
           const executor = tx ?? db;
           const rows = await executor.insert(table).values(finalInsert).returning();
-          return rows[0] as Select;
+          const created = rows[0] as Select;
+          if (created && audit) await auditOnCreate(executor, created as Record<string, unknown>);
+          return created;
         }
 
         // belongsToMany があり、外部トランザクションが渡された場合
@@ -303,6 +459,7 @@ export function createCrudService<
             await syncBelongsToManyRelations(tx, belongsToManyRelations, relationRecordId, relationValues);
           }
           assignLocalRelationValues(created, belongsToManyRelations, relationValues);
+          if (audit) await auditOnCreate(tx, created as Record<string, unknown>);
           return created;
         }
 
@@ -316,6 +473,7 @@ export function createCrudService<
             await syncBelongsToManyRelations(innerTx, belongsToManyRelations, relationRecordId, relationValues);
           }
           assignLocalRelationValues(created, belongsToManyRelations, relationValues);
+          if (audit) await auditOnCreate(innerTx, created as Record<string, unknown>);
           return created;
         });
       });
@@ -418,6 +576,13 @@ export function createCrudService<
         const shouldSyncRelations = belongsToManyRelations.length > 0 && relationValues.size > 0;
         const hasColumnUpdates = Object.keys(updateData).length > 0;
 
+        // 同一 tx 内で before スナップショットを取得するヘルパー（audit 用）
+        const fetchBefore = async (executor: DbExecutor): Promise<Select | undefined> => {
+          if (!audit) return undefined;
+          const rows = await executor.select().from(table as any).where(eq(idColumn, id));
+          return rows[0] as Select | undefined;
+        };
+
         // カラム更新またはリレーション同期のいずれかを実行するヘルパー
         const updateOrSelect = async (executor: DbTransaction | typeof db): Promise<Select> => {
           if (hasColumnUpdates) {
@@ -438,75 +603,131 @@ export function createCrudService<
 
         // リレーション同期が不要な場合
         if (!shouldSyncRelations) {
+          // audit ありなら tx を確保
+          if (audit && !tx) {
+            return db.transaction(async (innerTx) => {
+              const before = await fetchBefore(innerTx);
+              const updated = await updateOrSelect(innerTx);
+              if (updated && before) {
+                await auditOnUpdate(innerTx, before as Record<string, unknown>, updated as Record<string, unknown>);
+              }
+              return updated;
+            });
+          }
           const executor = tx ?? db;
-          return updateOrSelect(executor);
+          const before = audit ? await fetchBefore(executor) : undefined;
+          const updated = await updateOrSelect(executor);
+          if (audit && updated && before) {
+            await auditOnUpdate(executor, before as Record<string, unknown>, updated as Record<string, unknown>);
+          }
+          return updated;
         }
 
         // リレーション同期が必要で、外部トランザクションが渡された場合
         if (tx) {
+          const before = audit ? await fetchBefore(tx) : undefined;
           const updated = await updateOrSelect(tx);
           if (!updated) return updated;
           await syncBelongsToManyRelations(tx, belongsToManyRelations, id, relationValues);
           assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
+          if (audit && before) {
+            await auditOnUpdate(tx, before as Record<string, unknown>, updated as Record<string, unknown>);
+          }
           return updated;
         }
 
         // リレーション同期が必要で、外部トランザクションがない場合は内部トランザクション
         return db.transaction(async (innerTx) => {
+          const before = audit ? await fetchBefore(innerTx) : undefined;
           const updated = await updateOrSelect(innerTx);
           if (!updated) return updated;
           await syncBelongsToManyRelations(innerTx, belongsToManyRelations, id, relationValues);
           assignLocalRelationValues(updated, belongsToManyRelations, relationValues);
+          if (audit && before) {
+            await auditOnUpdate(innerTx, before as Record<string, unknown>, updated as Record<string, unknown>);
+          }
           return updated;
         });
       });
     },
 
     async remove(id: string, tx?: DbTransaction): Promise<void> {
-      const executor = tx ?? db;
-      if (deletedAtColumn) {
-        // ソフトデリート: deletedAt を現在時刻に設定
-        await executor
-          .update(table)
-          .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
-          .where(eq(idColumn, id));
-      } else {
-        // 物理削除
-        try {
-          await executor.delete(table).where(eq(idColumn, id));
-        } catch (error) {
-          handleConstraintError(error);
+      // audit 用に before を同一 tx で取得 → 削除 → audit 記録
+      const performRemove = async (executor: DbExecutor): Promise<void> => {
+        const before = audit
+          ? ((await executor.select().from(table as any).where(eq(idColumn, id)))[0] as Record<string, unknown> | undefined)
+          : undefined;
+
+        if (deletedAtColumn) {
+          await executor
+            .update(table)
+            .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
+            .where(eq(idColumn, id));
+        } else {
+          try {
+            await executor.delete(table).where(eq(idColumn, id));
+          } catch (error) {
+            handleConstraintError(error);
+          }
         }
+
+        if (audit && before) {
+          await auditOnDelete(executor, before, { hard: !deletedAtColumn });
+        }
+      };
+
+      if (audit && !tx) {
+        await db.transaction(async (innerTx) => performRemove(innerTx));
+        return;
       }
+      await performRemove(tx ?? db);
     },
 
     async restore(id: string, tx?: DbTransaction): Promise<Select> {
       if (!deletedAtColumn) {
         throw new Error("restore() is only available when useSoftDelete is enabled.");
       }
-      const executor = tx ?? db;
-      const rows = await executor
-        .update(table)
-        .set({ deletedAt: null } as PgUpdateSetSource<TTable>)
-        .where(eq(idColumn, id))
-        .returning();
-      const record = rows[0] as Select;
-      if (!record) {
-        throw new Error(`Record not found: ${id}`);
+      const performRestore = async (executor: DbExecutor): Promise<Select> => {
+        const rows = await executor
+          .update(table)
+          .set({ deletedAt: null } as PgUpdateSetSource<TTable>)
+          .where(eq(idColumn, id))
+          .returning();
+        const record = rows[0] as Select;
+        if (!record) {
+          throw new Error(`Record not found: ${id}`);
+        }
+        if (belongsToManyRelations.length) {
+          await hydrateBelongsToManyRelations([record], belongsToManyRelations);
+        }
+        if (audit) await auditOnRestore(executor, record as Record<string, unknown>);
+        return record;
+      };
+
+      if (audit && !tx) {
+        return db.transaction(async (innerTx) => performRestore(innerTx));
       }
-      if (belongsToManyRelations.length) {
-        await hydrateBelongsToManyRelations([record], belongsToManyRelations);
-      }
-      return record;
+      return performRestore(tx ?? db);
     },
 
     async hardDelete(id: string, tx?: DbTransaction): Promise<void> {
-      const executor = tx ?? db;
-      try {
-        await executor.delete(table).where(eq(idColumn, id));
-      } catch (error) {
-        handleConstraintError(error);
+      const performHardDelete = async (executor: DbExecutor): Promise<void> => {
+        const before = audit
+          ? ((await executor.select().from(table as any).where(eq(idColumn, id)))[0] as Record<string, unknown> | undefined)
+          : undefined;
+        try {
+          await executor.delete(table).where(eq(idColumn, id));
+        } catch (error) {
+          handleConstraintError(error);
+        }
+        if (audit && before) await auditOnDelete(executor, before, { hard: true });
+      };
+
+      if (audit && !tx) {
+        await db.transaction(async (innerTx) => performHardDelete(innerTx));
+        return;
       }
+      await performHardDelete(tx ?? db);
     },
 
     async count(params: CountParams & ExtraWhereOption = {}): Promise<CountResult> {
@@ -760,20 +981,47 @@ export function createCrudService<
     },
 
     async bulkDeleteByIds(ids: string[], tx?: DbTransaction): Promise<void> {
-      const executor = tx ?? db;
-      if (deletedAtColumn) {
-        // ソフトデリート
-        await executor
-          .update(table)
-          .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
-          .where(inArray(idColumn, ids));
-      } else {
-        try {
-          await executor.delete(table).where(inArray(idColumn, ids));
-        } catch (error) {
-          handleConstraintError(error);
+      const isHard = !deletedAtColumn;
+
+      const performBulk = async (executor: DbExecutor): Promise<void> => {
+        // detail モード: 各レコードの before を取得してから削除
+        let beforeSnapshots: Map<string, Record<string, unknown>> | undefined;
+        if (audit && auditBulkMode === "detail") {
+          beforeSnapshots = await fetchAuditBeforeSnapshots(executor, ids);
         }
+
+        if (deletedAtColumn) {
+          await executor
+            .update(table)
+            .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
+            .where(inArray(idColumn, ids));
+        } else {
+          try {
+            await executor.delete(table).where(inArray(idColumn, ids));
+          } catch (error) {
+            handleConstraintError(error);
+          }
+        }
+
+        // audit
+        if (audit && auditBulkMode === "aggregate") {
+          await auditOnBulkAggregate(
+            executor,
+            isHard ? "hard_deleted" : "deleted",
+            { count: ids.length, sampleIds: ids.slice(0, 10) },
+          );
+        } else if (audit && auditBulkMode === "detail" && beforeSnapshots) {
+          for (const before of beforeSnapshots.values()) {
+            await auditOnDelete(executor, before, { hard: isHard });
+          }
+        }
+      };
+
+      if (audit && audit.bulkMode !== "off" && !tx) {
+        await db.transaction(async (innerTx) => performBulk(innerTx));
+        return;
       }
+      await performBulk(tx ?? db);
     },
 
     async bulkUpdateByIds(
@@ -799,19 +1047,50 @@ export function createCrudService<
 
       // リレーション同期が不要な場合: 1クエリで完了
       if (!shouldSyncRelations) {
-        const executor = tx ?? db;
-        if (hasColumnUpdates) {
+        const performSimpleUpdate = async (executor: DbExecutor): Promise<{ count: number }> => {
+          if (!hasColumnUpdates) return { count: 0 };
+
+          // detail モード: before を先に取得
+          let beforeSnapshots: Map<string, Record<string, unknown>> | undefined;
+          if (audit && auditBulkMode === "detail") {
+            beforeSnapshots = await fetchAuditBeforeSnapshots(executor, ids);
+          }
+
           await executor
             .update(table)
             .set(updateData)
             .where(inArray(idColumn, ids));
+
+          if (audit && auditBulkMode === "aggregate") {
+            await auditOnBulkAggregate(
+              executor,
+              "updated",
+              { count: ids.length, sampleIds: ids.slice(0, 10), patch: projectAuditFields(updateData as Record<string, unknown>) },
+            );
+          } else if (audit && auditBulkMode === "detail" && beforeSnapshots) {
+            const afterSnapshots = await fetchAuditBeforeSnapshots(executor, ids);
+            for (const [id, before] of beforeSnapshots) {
+              const after = afterSnapshots.get(id);
+              if (after) await auditOnUpdate(executor, before, after);
+            }
+          }
           return { count: ids.length };
+        };
+
+        if (audit && audit.bulkMode !== "off" && !tx) {
+          return db.transaction(async (innerTx) => performSimpleUpdate(innerTx));
         }
-        return { count: 0 };
+        return performSimpleUpdate(tx ?? db);
       }
 
       // リレーション同期が必要な場合: カラム更新は1クエリ、リレーション同期は各IDごと
       const performUpdate = async (executor: DbTransaction | typeof db): Promise<{ count: number }> => {
+        // detail モード: 各レコードの before を更新前に取得
+        let beforeSnapshots: Map<string, Record<string, unknown>> | undefined;
+        if (audit && auditBulkMode === "detail") {
+          beforeSnapshots = await fetchAuditBeforeSnapshots(executor, ids);
+        }
+
         if (hasColumnUpdates) {
           await executor
             .update(table)
@@ -824,6 +1103,21 @@ export function createCrudService<
           ids,
           relationValues,
         );
+
+        // audit
+        if (audit && auditBulkMode === "aggregate") {
+          await auditOnBulkAggregate(
+            executor,
+            "updated",
+            { count: ids.length, sampleIds: ids.slice(0, 10), patch: projectAuditFields(updateData as Record<string, unknown>) },
+          );
+        } else if (audit && auditBulkMode === "detail" && beforeSnapshots) {
+          const afterSnapshots = await fetchAuditBeforeSnapshots(executor, ids);
+          for (const [id, before] of beforeSnapshots) {
+            const after = afterSnapshots.get(id);
+            if (after) await auditOnUpdate(executor, before, after);
+          }
+        }
         return { count: ids.length };
       };
 
@@ -837,30 +1131,94 @@ export function createCrudService<
       if (!where) {
         throw new Error("bulkDeleteByQuery requires a where condition.");
       }
-      const executor = tx ?? db;
       const condition = buildWhere(table, where);
-      if (deletedAtColumn) {
-        // ソフトデリート
-        await executor
-          .update(table)
-          .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
-          .where(condition);
-      } else {
-        try {
-          await executor.delete(table).where(condition);
-        } catch (error) {
-          handleConstraintError(error);
+      const isHard = !deletedAtColumn;
+
+      const performBulk = async (executor: DbExecutor): Promise<void> => {
+        // 影響対象の ID 群を audit のために事前取得（aggregate なら count のみ、detail なら全レコード）
+        let affectedIds: string[] = [];
+        let beforeSnapshots: Map<string, Record<string, unknown>> | undefined;
+
+        if (audit && auditBulkMode !== "off") {
+          if (auditBulkMode === "detail") {
+            const rows = (await executor.select().from(table as any).where(condition)) as Record<
+              string,
+              unknown
+            >[];
+            beforeSnapshots = new Map();
+            for (const row of rows) {
+              const id = auditIdOf(row);
+              affectedIds.push(id);
+              beforeSnapshots.set(id, row);
+            }
+          } else {
+            const rows = (await executor.select({ id: idColumn }).from(table as any).where(condition)) as { id: unknown }[];
+            affectedIds = rows.map((r) => String(r.id));
+          }
         }
+
+        if (deletedAtColumn) {
+          await executor
+            .update(table)
+            .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
+            .where(condition);
+        } else {
+          try {
+            await executor.delete(table).where(condition);
+          } catch (error) {
+            handleConstraintError(error);
+          }
+        }
+
+        if (audit && auditBulkMode === "aggregate") {
+          await auditOnBulkAggregate(
+            executor,
+            isHard ? "hard_deleted" : "deleted",
+            { count: affectedIds.length, sampleIds: affectedIds.slice(0, 10), criteria: where as unknown as Record<string, unknown> },
+          );
+        } else if (audit && auditBulkMode === "detail" && beforeSnapshots) {
+          for (const before of beforeSnapshots.values()) {
+            await auditOnDelete(executor, before, { hard: isHard });
+          }
+        }
+      };
+
+      if (audit && audit.bulkMode !== "off" && !tx) {
+        await db.transaction(async (innerTx) => performBulk(innerTx));
+        return;
       }
+      await performBulk(tx ?? db);
     },
 
     async bulkHardDeleteByIds(ids: string[], tx?: DbTransaction): Promise<void> {
-      const executor = tx ?? db;
-      try {
-        await executor.delete(table).where(inArray(idColumn, ids));
-      } catch (error) {
-        handleConstraintError(error);
+      const performBulk = async (executor: DbExecutor): Promise<void> => {
+        let beforeSnapshots: Map<string, Record<string, unknown>> | undefined;
+        if (audit && auditBulkMode === "detail") {
+          beforeSnapshots = await fetchAuditBeforeSnapshots(executor, ids);
+        }
+        try {
+          await executor.delete(table).where(inArray(idColumn, ids));
+        } catch (error) {
+          handleConstraintError(error);
+        }
+        if (audit && auditBulkMode === "aggregate") {
+          await auditOnBulkAggregate(
+            executor,
+            "hard_deleted",
+            { count: ids.length, sampleIds: ids.slice(0, 10) },
+          );
+        } else if (audit && auditBulkMode === "detail" && beforeSnapshots) {
+          for (const before of beforeSnapshots.values()) {
+            await auditOnDelete(executor, before, { hard: true });
+          }
+        }
+      };
+
+      if (audit && audit.bulkMode !== "off" && !tx) {
+        await db.transaction(async (innerTx) => performBulk(innerTx));
+        return;
       }
+      await performBulk(tx ?? db);
     },
 
     async upsert(
@@ -890,9 +1248,8 @@ export function createCrudService<
         } as PgUpdateSetSource<TTable> & Record<string, any> & { id?: string };
         delete (updateData as Record<string, unknown>).id;
 
-        // belongsToMany がない場合
-        if (!belongsToManyRelations.length) {
-          const executor = tx ?? db;
+        // upsert 共通: insert + onConflictDoUpdate を 1 ステートメントで実行
+        const performUpsert = async (executor: DbExecutor): Promise<Select> => {
           const rows = await executor
             .insert(table)
             .values(sanitizedInsert as any)
@@ -902,45 +1259,82 @@ export function createCrudService<
             })
             .returning();
           return rows[0] as Select;
+        };
+
+        // belongsToMany がない場合
+        if (!belongsToManyRelations.length) {
+          if (audit && !tx) {
+            return db.transaction(async (innerTx) => {
+              const upserted = await performUpsert(innerTx);
+              if (upserted) {
+                await audit.recorder.record({
+                  ...auditCommonOptions()!,
+                  targetType: audit.targetType,
+                  targetId: auditIdOf(upserted as Record<string, unknown>),
+                  action: `${audit.actionPrefix}.upserted`,
+                  after: projectAuditFields(upserted as Record<string, unknown>),
+                  tx: auditTxOf(innerTx),
+                });
+              }
+              return upserted;
+            });
+          }
+          const executor = tx ?? db;
+          const upserted = await performUpsert(executor);
+          if (upserted && audit) {
+            await audit.recorder.record({
+              ...auditCommonOptions()!,
+              targetType: audit.targetType,
+              targetId: auditIdOf(upserted as Record<string, unknown>),
+              action: `${audit.actionPrefix}.upserted`,
+              after: projectAuditFields(upserted as Record<string, unknown>),
+              tx: auditTxOf(executor),
+            });
+          }
+          return upserted;
         }
 
         // belongsToMany があり、外部トランザクションが渡された場合
         if (tx) {
-          const rows = await tx
-            .insert(table)
-            .values(sanitizedInsert as any)
-            .onConflictDoUpdate({
-              target: resolveConflictTarget(table, serviceOptions, upsertOptions),
-              set: updateData,
-            })
-            .returning();
-          const upserted = rows[0] as Select;
+          const upserted = await performUpsert(tx);
           if (!upserted) return upserted;
           const relationRecordId = resolveRecordId(upserted.id as unknown);
           if (relationRecordId !== undefined) {
             await syncBelongsToManyRelations(tx, belongsToManyRelations, relationRecordId, relationValues);
           }
           assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
+          if (audit) {
+            await audit.recorder.record({
+              ...auditCommonOptions()!,
+              targetType: audit.targetType,
+              targetId: auditIdOf(upserted as Record<string, unknown>),
+              action: `${audit.actionPrefix}.upserted`,
+              after: projectAuditFields(upserted as Record<string, unknown>),
+              tx: auditTxOf(tx),
+            });
+          }
           return upserted;
         }
 
         // belongsToMany があり、外部トランザクションがない場合は内部トランザクション
         return db.transaction(async (innerTx) => {
-          const rows = await innerTx
-            .insert(table)
-            .values(sanitizedInsert as any)
-            .onConflictDoUpdate({
-              target: resolveConflictTarget(table, serviceOptions, upsertOptions),
-              set: updateData,
-            })
-            .returning();
-          const upserted = rows[0] as Select;
+          const upserted = await performUpsert(innerTx);
           if (!upserted) return upserted;
           const relationRecordId = resolveRecordId(upserted.id as unknown);
           if (relationRecordId !== undefined) {
             await syncBelongsToManyRelations(innerTx, belongsToManyRelations, relationRecordId, relationValues);
           }
           assignLocalRelationValues(upserted, belongsToManyRelations, relationValues);
+          if (audit) {
+            await audit.recorder.record({
+              ...auditCommonOptions()!,
+              targetType: audit.targetType,
+              targetId: auditIdOf(upserted as Record<string, unknown>),
+              action: `${audit.actionPrefix}.upserted`,
+              after: projectAuditFields(upserted as Record<string, unknown>),
+              tx: auditTxOf(innerTx),
+            });
+          }
           return upserted;
         });
       });
@@ -1055,6 +1449,29 @@ export function createCrudService<
             .returning()) as Select[];
         }
 
+        // audit: bulkUpsert は after のみ記録（before は事前 fetch コストが大きいためサポートしない）
+        if (audit && auditBulkMode === "aggregate") {
+          await auditOnBulkAggregate(
+            executor,
+            "upserted",
+            {
+              count: rows.length,
+              sampleIds: rows.slice(0, 10).map((r) => auditIdOf(r as Record<string, unknown>)),
+            },
+          );
+        } else if (audit && auditBulkMode === "detail") {
+          for (const row of rows) {
+            await audit.recorder.record({
+              ...auditCommonOptions()!,
+              targetType: audit.targetType,
+              targetId: auditIdOf(row as Record<string, unknown>),
+              action: `${audit.actionPrefix}.upserted`,
+              after: projectAuditFields(row as Record<string, unknown>),
+              tx: auditTxOf(executor),
+            });
+          }
+        }
+
         return { results: rows, count: rows.length };
       });
     },
@@ -1086,6 +1503,15 @@ export function createCrudService<
         const validRecords = records.filter((r) => existingIds.has(r.id));
         if (validRecords.length === 0) {
           return { results: [], count: 0, notFoundIds };
+        }
+
+        // detail モード: 全 valid レコードの before を取得
+        let beforeSnapshots: Map<string, Record<string, unknown>> | undefined;
+        if (audit && auditBulkMode === "detail") {
+          beforeSnapshots = await fetchAuditBeforeSnapshots(
+            executor,
+            validRecords.map((r) => r.id),
+          );
         }
 
         // 全レコードのパース・分離を先に実行
@@ -1202,13 +1628,32 @@ export function createCrudService<
           }
         }
 
+        // audit
+        if (audit && auditBulkMode === "aggregate") {
+          await auditOnBulkAggregate(
+            executor,
+            "updated",
+            {
+              count: updatedRows.length,
+              sampleIds: updatedRows.slice(0, 10).map((r) => auditIdOf(r as Record<string, unknown>)),
+            },
+          );
+        } else if (audit && auditBulkMode === "detail" && beforeSnapshots) {
+          for (const row of updatedRows) {
+            const id = auditIdOf(row as Record<string, unknown>);
+            const before = beforeSnapshots.get(id);
+            if (before) await auditOnUpdate(executor, before, row as Record<string, unknown>);
+          }
+        }
+
         return { results: updatedRows, count: updatedRows.length, notFoundIds };
       };
 
       if (tx) {
         return performBulkUpdate(tx);
       }
-      if (hasBelongsToMany) {
+      // audit ありで bulkMode が off 以外の場合は tx を強制する（aggregate でも記録するため）
+      if (hasBelongsToMany || (audit && audit.bulkMode !== "off")) {
         return db.transaction(async (innerTx) => performBulkUpdate(innerTx));
       }
       return performBulkUpdate(db);

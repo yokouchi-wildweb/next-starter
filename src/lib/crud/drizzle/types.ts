@@ -2,6 +2,7 @@
 
 import type { SQL } from "drizzle-orm";
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
+import type { AuditRecorder } from "@/lib/audit";
 import type {
   CreateCrudServiceOptions,
   BelongsToRelation,
@@ -59,6 +60,44 @@ export type ExtraWhereOption = {
   extraWhere?: SQL;
 };
 
+/**
+ * bulk 系操作（bulkDeleteByIds / bulkDeleteByQuery / bulkUpdateByIds / bulkUpdate / bulkUpsert）の
+ * 監査ログ記録モード。
+ *
+ * - "aggregate": 件数 + サンプル ID + 条件スナップショットを 1 行に集約（既定）
+ * - "detail":    各レコードに対して個別に記録（個別 select が必要なためコスト大）
+ * - "off":       bulk 操作については一切記録しない
+ *
+ * ドメインの性質に応じて選ぶ。重要データ（user / payment 等）は detail、
+ * 大量ログ（analytics 等）は aggregate ないし off を選択する。
+ */
+export type BulkAuditMode = "aggregate" | "detail" | "off";
+
+/**
+ * createCrudService に渡す監査ログ設定。
+ *
+ * 実体の recorder（auditLogger）は features/core/auditLog 側にあるため、
+ * 呼び出し側が DI で渡す（lib→features 違反を回避するため）。
+ *
+ * - enabled: false の場合は audit hook を一切呼び出さない（性能影響ゼロ）
+ * - targetType: audit_logs.target_type に保存される値。ドメイン名と揃える
+ * - actionPrefix: action 名の先頭。例: "user" → "user.created" / "user.updated" / "user.deleted"
+ * - trackedFields: 差分検出対象の絞り込み。省略時は全フィールド（denylist 適用後）
+ * - bulkMode: bulk 操作の記録モード（既定: aggregate）
+ * - retentionDays: ログ保持日数（省略時は recorder 既定）
+ * - strict:    true（既定）で失敗時 throw、false で dead-letter 退避（best-effort）
+ */
+export type AuditConfig = {
+  enabled: boolean;
+  targetType: string;
+  actionPrefix: string;
+  trackedFields?: readonly string[];
+  bulkMode?: BulkAuditMode;
+  retentionDays?: number;
+  strict?: boolean;
+  recorder: AuditRecorder;
+};
+
 export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = CreateCrudServiceOptions<TData> & {
   belongsToManyRelations?: Array<BelongsToManyRelationConfig<TData>>;
   /**
@@ -86,4 +125,9 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    * Fractional Indexing（文字列ベース）を使用。
    */
   sortOrderColumn?: AnyPgColumn;
+  /**
+   * 監査ログ設定。指定すると CRUD 操作が自動的に audit_logs に記録される。
+   * recorder は features/core/auditLog の `auditLogger` を渡す。
+   */
+  audit?: AuditConfig;
 };

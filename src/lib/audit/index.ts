@@ -16,6 +16,8 @@ export {
   type AuditActorType,
   type AuditContext,
   type AuditRecordInput,
+  type AuditRecordDiffInput,
+  type AuditRecorder,
   type AuditLogPayload,
 } from "./types";
 
