@@ -18,8 +18,6 @@
     "db:tables": "npx tsx scripts/db/cli.ts tables",
     "db:describe": "npx tsx scripts/db/cli.ts describe",
     "db:count": "npx tsx scripts/db/cli.ts count",
-    "audit:migrate": "cross-env APP_ENV=.env.development npx tsx scripts/audit-logs/migrate-from-user-action-logs.ts",
-    "audit:drop-legacy": "cross-env APP_ENV=.env.development npx tsx scripts/audit-logs/drop-user-action-logs.ts",
     "fs:collections": "npx tsx scripts/firestore/cli.ts collections",
     "fs:count": "npx tsx scripts/firestore/cli.ts count",
     "fs:describe": "npx tsx scripts/firestore/cli.ts describe",
