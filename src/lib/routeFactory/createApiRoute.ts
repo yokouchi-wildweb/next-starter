@@ -7,10 +7,51 @@ import type { RateLimitCategory } from "@/config/app/rate-limit.config";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
+import {
+  runWithAuditContext,
+  type AuditActorType,
+  type AuditContext,
+} from "@/lib/audit";
 import type { RecaptchaAction } from "@/lib/recaptcha/constants";
 import { RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
 import { verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
 import { isDomainError } from "@/lib/errors";
+
+/**
+ * リクエストヘッダ + session から AuditContext を組み立てる。
+ *
+ * - actorType:
+ *   - session 無し → "system"（未認証経由のサインアップ等）
+ *   - session.role に "admin" を含む → "admin"
+ *   - それ以外 → "user"
+ * - requestId: x-request-id ヘッダ優先、無ければ UUID 発番
+ * - ip: x-forwarded-for の先頭エントリ
+ *
+ * 派生ロールが増えた場合の actorType 判定は後方互換性のため寛容（小文字 includes）。
+ */
+function buildAuditContext(req: NextRequest, session: SessionUser | null): AuditContext {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const userAgent = req.headers.get("user-agent") ?? null;
+  const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
+
+  let actorType: AuditActorType;
+  if (!session) {
+    actorType = "system";
+  } else if (typeof session.role === "string" && session.role.toLowerCase().includes("admin")) {
+    actorType = "admin";
+  } else {
+    actorType = "user";
+  }
+
+  return {
+    actorId: session?.userId ?? null,
+    actorType,
+    ip,
+    userAgent,
+    sessionId: null,
+    requestId,
+  };
+}
 
 /**
  * 操作の種類
@@ -104,6 +145,7 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
   return async (req: NextRequest, context: { params: Promise<TParams> }) => {
     const params = await context.params;
     const session = await getSessionUser();
+    const auditContext = buildAuditContext(req, session);
 
     try {
       // ===== 共通処理（前処理） =====
@@ -234,9 +276,11 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
       // - 監査ログ（前処理）
 
       // ===== ハンドラー実行 =====
+      // ALS で AuditContext をスコープに敷き、handler 内部の任意の深さから
+      // getAuditContext() で actor / IP / UA / requestId を取得できるようにする。
 
       const ctx: ApiRouteContext<TParams> = { params, session };
-      const result = await handler(req, ctx);
+      const result = await runWithAuditContext(auditContext, () => handler(req, ctx));
 
       // 将来の拡張ポイント:
       // - 監査ログ（後処理）
