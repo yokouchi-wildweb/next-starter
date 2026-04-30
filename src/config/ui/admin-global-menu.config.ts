@@ -16,6 +16,7 @@ import {
   Megaphone,
   Ticket,
   Bell,
+  ScrollText,
 } from "lucide-react";
 
 // ============================================
@@ -98,6 +99,15 @@ export const adminMenu: AdminMenuSection[] = [
       ...(APP_FEATURES.user.enableUserTag
         ? [{ title: "ユーザータグ", href: "/admin/user-tags" }]
         : []),
+    ],
+    allowRoles: ["admin"],
+  },
+  {
+    title: "監査ログ",
+    href: "/admin/audit-logs",
+    icon: ScrollText,
+    items: [
+      { title: "横断検索", href: "/admin/audit-logs" },
     ],
     allowRoles: ["admin"],
   },

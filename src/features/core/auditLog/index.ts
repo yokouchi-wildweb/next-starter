@@ -30,3 +30,14 @@ export {
   DEFAULT_RETENTION_DAYS,
   AUDIT_MODE_DISABLED,
 } from "./constants";
+
+export {
+  formatActionLabel,
+  formatActorTypeLabel,
+  formatAuditDate,
+  registerActionLabels,
+} from "./presenters";
+
+export { AuditTimeline } from "./components/common/AuditTimeline";
+
+export { auditLogClient } from "./services/client/auditLogClient";
