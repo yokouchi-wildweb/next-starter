@@ -1,6 +1,9 @@
 // src/features/core/auditLog/constants/index.ts
 
-import { AUDIT_ACTOR_TYPES, type AuditActorType } from "@/lib/audit";
+// 注意: @/lib/audit (index) からは import しないこと。
+// presenters → constants → lib/audit と辿った先に context.ts (node:async_hooks) があり、
+// クライアントバンドルに混入してビルドエラーになる。types のみを浅く import する。
+import { AUDIT_ACTOR_TYPES, type AuditActorType } from "@/lib/audit/types";
 
 export { AUDIT_ACTOR_TYPES, type AuditActorType };
 
