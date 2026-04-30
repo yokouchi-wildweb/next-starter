@@ -60,6 +60,26 @@ pnpm mail:test
 pnpm mail:generate-colors
 ```
 
+### 監査ログ移行 (audit)
+
+旧 `user_action_logs` から新 `audit_logs` へ過去ログを移行する。
+
+```bash
+# 移行内容を DB に書き込まず確認
+pnpm audit:migrate -- --dry-run
+
+# 移行を実行 (バッチサイズ既定 1000、再実行で冪等)
+pnpm audit:migrate
+
+# 旧テーブルの削除前確認
+pnpm audit:drop-legacy -- --dry-run
+
+# 旧テーブルを削除
+pnpm audit:drop-legacy -- --confirm
+```
+
+詳細: [`docs/how-to/監査ログ基盤への移行.md`](../docs/how-to/監査ログ基盤への移行.md)
+
 ### Claude API
 
 ```bash
