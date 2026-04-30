@@ -1,10 +1,9 @@
 // src/features/core/user/services/server/phoneVerification/updatePhoneVerified.ts
 
-import { eq } from "drizzle-orm";
-
-import { UserTable } from "@/features/core/user/entities/drizzle";
-import { db } from "@/lib/drizzle";
+import type { User } from "@/features/core/user/entities";
 import { DomainError } from "@/lib/errors";
+
+import { base } from "../drizzleBase";
 import { assertPhoneAvailability } from "../helpers/assertPhoneAvailability";
 
 export type UpdatePhoneVerifiedParams = {
@@ -21,12 +20,14 @@ export type UpdatePhoneVerifiedResult = {
  * ユーザーの電話番号認証を完了し、DBを更新する。
  * - 電話番号の重複チェックを行う
  * - phoneNumber と phoneVerifiedAt を更新
+ *
+ * 他の wrapper と同様に base.update を経由させ、
+ * createCrudService の audit hook を素通りさせない設計。
  */
 export async function updatePhoneVerified({
   userId,
   phoneNumber,
 }: UpdatePhoneVerifiedParams): Promise<UpdatePhoneVerifiedResult> {
-  // 重複チェック（自身を除外）
   await assertPhoneAvailability({
     phoneNumber,
     excludeUserId: userId,
@@ -34,18 +35,11 @@ export async function updatePhoneVerified({
 
   const now = new Date();
 
-  const [updated] = await db
-    .update(UserTable)
-    .set({
-      phoneNumber,
-      phoneVerifiedAt: now,
-      updatedAt: now,
-    })
-    .where(eq(UserTable.id, userId))
-    .returning({
-      phoneNumber: UserTable.phoneNumber,
-      phoneVerifiedAt: UserTable.phoneVerifiedAt,
-    });
+  const updated = await base.update(userId, {
+    phoneNumber,
+    phoneVerifiedAt: now,
+    updatedAt: now,
+  } as Partial<User>);
 
   if (!updated) {
     throw new DomainError("ユーザーが見つかりません", { status: 404 });
