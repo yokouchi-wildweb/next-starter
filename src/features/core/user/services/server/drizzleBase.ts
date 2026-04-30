@@ -3,6 +3,7 @@
 import { UserTable, UserToUserTagTable } from "@/features/core/user/entities/drizzle";
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
+import { auditLogger } from "@/features/core/auditLog";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import { getDomainConfig } from "@/lib/domain";
@@ -45,6 +46,19 @@ export const baseOptions = {
       foreignKey: "userId",
     },
   ],
+  // 監査対象は wrapper で明示記録していない情報変更系のみに絞る。
+  // status / role / 削除系は changeStatus / changeRole / softDelete / hardDelete
+  // 等の wrapper が個別 action ("user.status.changed" 等) で記録するため、
+  // ここで重複させない。
+  audit: {
+    enabled: true,
+    targetType: "user",
+    actionPrefix: "user",
+    trackedFields: ["email", "name", "phoneNumber"],
+    bulkMode: "detail",
+    retentionDays: 730,
+    recorder: auditLogger,
+  },
 } satisfies DrizzleCrudServiceOptions<z.infer<typeof UserCoreSchema>>;
 
 export const base = createCrudService(UserTable, baseOptions);
