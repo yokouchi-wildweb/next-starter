@@ -8,7 +8,7 @@ type PcSidebarProps = {
 
 export function PcSidebar({ width }: PcSidebarProps) {
   return (
-    <div className="hidden md:block" style={{ width }}>
+    <div className="hidden md:block h-full" style={{ width }}>
       <BaseSidebar width={width} />
     </div>
   );

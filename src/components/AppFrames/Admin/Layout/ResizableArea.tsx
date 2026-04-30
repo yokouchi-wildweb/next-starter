@@ -4,6 +4,7 @@
 
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+import { Footer } from "../Sections/Footer";
 import { PcSidebar } from "../Sections/SIdebar/PcSidebar";
 import { SpSidebar } from "../Sections/SIdebar/SpSidebar";
 
@@ -43,7 +44,7 @@ export function ResizableArea({
   }, [isSidebarResizable]);
 
   return (
-    <div className="flex flex-1 min-h-0 relative">
+    <div className="flex h-full min-h-0 relative">
       <SpSidebar width={sidebarWidth} isOpen={isSidebarOpen} onClose={onSidebarClose} />
       <PcSidebar width={sidebarWidth} />
 
@@ -53,11 +54,16 @@ export function ResizableArea({
             dragging.current = true;
             document.body.style.cursor = "ew-resize";
           }}
-          className="hidden md:block w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"
+          className="hidden md:block h-full w-1 cursor-ew-resize bg-border hover:bg-muted shrink-0"
         />
       ) : null}
 
-      <div className="flex-1 min-h-0 min-w-0 overflow-x-hidden">{children}</div>
+      {/* メイン領域: ここがスクロールコンテナ。Footer は内部末尾に流し込み、
+          コンテンツが短い場合は flex-1 のスペーサで最下部に押し下げる sticky-bottom 構成 */}
+      <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">
+        <div className="flex-1">{children}</div>
+        <Footer />
+      </div>
     </div>
   );
 }
