@@ -95,6 +95,28 @@ extension: 1.check base methods → 2.relationWhere for relation filtering → 3
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 firestore_limits: no or | single orderBy | no belongsToMany
 
+## AUDIT (汎用監査ログ)
+table: audit_logs (append-only) + audit_logs_failed (dead-letter)
+columns: target_type, target_id(text), actor_id, actor_type(system|admin|user|api_key|webhook), action, before_value, after_value, context, metadata, reason, retention_days, created_at
+action_naming: `<domain>.<entity>.<verb_past>` 規約 | 例: user.email.changed | ESLint で静的強制 (eslint-rules/audit-action-naming.mjs)
+context: ALS で routeFactory が自動敷設 (actor_id, actor_type, ip, user_agent, request_id) | wrapper には actorId 引数不要
+
+usage:
+- パターンA(自動): createCrudService に audit: { enabled, targetType, actionPrefix, trackedFields, bulkMode, recorder: auditLogger } を追加 → CRUD ライフサイクル全自動記録
+- パターンB(手動): wrapper で `import { auditLogger } from "@/features/core/auditLog"` → auditLogger.record({ targetType, targetId, action, before, after, tx }) | 必ず同一 tx に乗せる
+- 併用: A で広く拾い B でドメイン固有イベント
+
+bulkMode: aggregate(既定/1行集約) | detail(各レコード個別) | off
+strict: 既定 true(失敗で throw + rollback) | false で audit_logs_failed に退避
+trackedFields: 省略時は denylist 適用後の全フィールド | denylist: src/lib/audit/denylist.ts (password / token / secret 等を全ドメイン横断で除外)
+retention_days: 行単位 | デフォルト 365 | コンプライアンス対象は 730+ | cron で経過行を自動削除
+emergency_stop: AUDIT_MODE=disabled で全 audit を no-op
+
+context_outside_http: cron / batch / CLI 経路は runAsSystem(fn) または runWithAuditContext(ctx, fn) で明示敷設
+ui: \<AuditTimeline targetType targetId /\> で履歴タブ完成 | /admin/audit-logs で横断検索 | registerActionLabels({...}) で日本語ラベル登録
+cron: pnpm cron audit-log-prune (0 3 * * *) | pnpm cron audit-log-recover-dead-letter (0 * * * *)
+ref: docs/how-to/監査ログ採用ガイド.md
+
 ## COMPONENTS
 placement: multi-domain→src/components/ or AppFrames/ | single-domain→features/\<domain\>/components/common/ | page-only→app/\<route\>/_components/
 
