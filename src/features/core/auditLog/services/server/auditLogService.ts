@@ -62,6 +62,7 @@ function resolveContext(explicit?: AuditContext): AuditContext {
  * - denylist 除外
  * - サイズ過大値の切り詰め
  * - context の jsonb 化
+ * - actorOverride を適用
  */
 function buildPayload(input: RecordOptions, context: AuditContext) {
   validateActionName(input.action);
@@ -70,11 +71,17 @@ function buildPayload(input: RecordOptions, context: AuditContext) {
   const beforeFiltered = stripDenylisted(input.before ?? null);
   const afterFiltered = stripDenylisted(input.after ?? null);
 
+  // actorOverride を適用（未認証経路で本人操作を記録する場合等）
+  const actorId = input.actorOverride?.actorId !== undefined
+    ? input.actorOverride.actorId
+    : context.actorId;
+  const actorType = input.actorOverride?.actorType ?? context.actorType;
+
   return {
     targetType: input.targetType,
     targetId: input.targetId,
-    actorId: context.actorId,
-    actorType: context.actorType,
+    actorId,
+    actorType,
     action: input.action,
     beforeValue: truncateLargeValues(beforeFiltered),
     afterValue: truncateLargeValues(afterFiltered),

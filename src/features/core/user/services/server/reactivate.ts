@@ -1,7 +1,7 @@
 // src/features/core/user/services/server/reactivate.ts
 
 import type { User } from "@/features/core/user/entities";
-import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { auditLogger } from "@/features/core/auditLog";
 import { DomainError } from "@/lib/errors";
 import { base } from "./drizzleBase";
 
@@ -12,7 +12,9 @@ export type ReactivateResult = {
 /**
  * ユーザーの復帰処理を行う。
  * - ステータスを "active" に変更
- * - アクションログを記録
+ * - 監査ログを記録
+ *
+ * actor は AsyncLocalStorage 経由で routeFactory から自動注入される。
  */
 export async function reactivate(userId: string): Promise<ReactivateResult> {
   const user = await base.get(userId);
@@ -35,15 +37,12 @@ export async function reactivate(userId: string): Promise<ReactivateResult> {
     status: "active",
   } as Partial<User>);
 
-  // 復帰ログを記録
-  await userActionLogService.create({
-    targetUserId: userId,
-    actorId: userId,
-    actorType: "user",
-    actionType: "user_reactivate",
-    beforeValue: { status: beforeStatus },
-    afterValue: { status: "active" },
-    reason: null,
+  await auditLogger.record({
+    targetType: "user",
+    targetId: userId,
+    action: "user.reactivated",
+    before: { status: beforeStatus },
+    after: { status: "active" },
   });
 
   return {

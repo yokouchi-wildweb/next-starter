@@ -2,7 +2,7 @@
 
 import type { User } from "@/features/core/user/entities";
 import type { UserProviderType } from "@/features/core/user/types";
-import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { auditLogger } from "@/features/core/auditLog";
 import { setPending } from "./setPending";
 
 export type PreRegisterFromAuthInput = {
@@ -22,7 +22,10 @@ export type PreRegisterFromAuthResult = {
 /**
  * auth ドメインからの仮登録処理。
  * - 新規ユーザーまたは withdrawn ユーザーを pending 状態で作成/更新
- * - アクションログを記録
+ * - 監査ログを記録
+ *
+ * 未認証経路で呼ばれるため、ALS context の actor は "system" になる。
+ * 実際は本人による操作なので actorOverride で actorType="user" / actorId=userId に上書きする。
  */
 export async function preRegisterFromAuth(
   input: PreRegisterFromAuthInput,
@@ -31,11 +34,10 @@ export async function preRegisterFromAuth(
 
   const now = new Date();
 
-  // 状態遷移の判定
   const isRejoin = existingUser?.status === "withdrawn";
   const isNewRegistration = !existingUser;
 
-  // ユーザーを作成/更新（新規登録の場合はsignupIpを記録）
+  // 新規登録または再入会時は signupIp を記録
   const user = await setPending(
     {
       providerType,
@@ -47,7 +49,6 @@ export async function preRegisterFromAuth(
     existingUser,
   );
 
-  // アクションログを記録（新規登録または再入会の場合のみ）
   await recordActionLog({
     user,
     existingUser,
@@ -79,31 +80,29 @@ async function recordActionLog({
   isRejoin,
   isNewRegistration,
 }: RecordActionLogParams): Promise<void> {
-  const afterValue = {
+  const after = {
     status: user.status,
     email: user.email,
     providerType: user.providerType,
   };
 
   if (isRejoin) {
-    await userActionLogService.create({
-      targetUserId: user.id,
-      actorId: user.id,
-      actorType: "user",
-      actionType: "user_rejoin",
-      beforeValue: { status: existingUser!.status },
-      afterValue,
-      reason: null,
+    await auditLogger.record({
+      targetType: "user",
+      targetId: user.id,
+      action: "user.rejoined",
+      before: { status: existingUser!.status },
+      after,
+      actorOverride: { actorType: "user", actorId: user.id },
     });
   } else if (isNewRegistration) {
-    await userActionLogService.create({
-      targetUserId: user.id,
-      actorId: user.id,
-      actorType: "user",
-      actionType: "user_preregister",
-      beforeValue: null,
-      afterValue,
-      reason: null,
+    await auditLogger.record({
+      targetType: "user",
+      targetId: user.id,
+      action: "user.preregistered",
+      before: null,
+      after,
+      actorOverride: { actorType: "user", actorId: user.id },
     });
   }
   // pending からの再実行の場合はログ不要

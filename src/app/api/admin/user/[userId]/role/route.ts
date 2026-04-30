@@ -40,7 +40,6 @@ export const PATCH = createApiRoute<RouteParams>(
     const user = await userService.changeRole({
       userId,
       newRole: parsed.data.role,
-      actorId: session.userId,
       reason: parsed.data.reason,
       deleteOldProfile: parsed.data.deleteOldProfile,
     });

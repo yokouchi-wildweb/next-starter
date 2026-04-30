@@ -36,7 +36,6 @@ export const DELETE = createApiRoute<RouteParams>(
 
     await userService.hardDelete({
       userId,
-      actorId: session.userId,
       reason: parsed.data.reason,
     });
 

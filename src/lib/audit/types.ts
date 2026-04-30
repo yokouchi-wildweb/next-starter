@@ -62,6 +62,18 @@ export type AuditRecordInput = {
    * 通常は ALS から自動取得されるため省略する。
    */
   context?: AuditContext;
+  /**
+   * リクエスト context の actor を上書きする。
+   * 未認証経路でユーザー本人による操作を記録したい場合（仮登録 / 本登録など、
+   * routeFactory が actorType="system" で context を構築する経路）に使う。
+   *
+   * actorOverride を指定しても ip / userAgent / requestId は ALS の値を維持する。
+   * actorId / actorType のみ上書きされる。
+   */
+  actorOverride?: {
+    actorId?: string | null;
+    actorType?: AuditActorType;
+  };
 };
 
 /**

@@ -1,7 +1,7 @@
 // src/features/core/user/services/server/withdraw.ts
 
 import type { User } from "@/features/core/user/entities";
-import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { auditLogger } from "@/features/core/auditLog";
 import { executeCleanup } from "@/features/core/user/services/server/executeCleanup";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
@@ -15,10 +15,10 @@ export type WithdrawResult = {
  * ユーザーの退会処理を行う。
  * - ステータスを "withdrawn" に変更
  * - リソースクリーンナップ（ウォレット残高クリア、購入リクエストキャンセル等）
- * - アクションログを記録
+ * - 監査ログを記録（同一トランザクション内）
  *
- * ステータス変更とクリーンナップは同一トランザクション内で実行される。
  * セッションの削除は API ルートで行う。
+ * actor は AsyncLocalStorage 経由で routeFactory から自動注入される。
  */
 export async function withdraw(userId: string): Promise<WithdrawResult> {
   const user = await base.get(userId);
@@ -37,27 +37,23 @@ export async function withdraw(userId: string): Promise<WithdrawResult> {
 
   const beforeStatus = user.status;
 
-  // ステータス変更とリソースクリーンナップをトランザクション内で実行
   const updatedUser = await db.transaction(async (tx) => {
     const updated = await base.update(userId, {
       status: "withdrawn",
     } as Partial<User>, tx);
 
-    // リソースクリーンナップ（ウォレット残高クリア等）
     await executeCleanup(userId, tx);
 
-    return updated;
-  });
+    await auditLogger.record({
+      targetType: "user",
+      targetId: userId,
+      action: "user.withdrew",
+      before: { status: beforeStatus },
+      after: { status: "withdrawn" },
+      tx,
+    });
 
-  // 退会ログを記録（トランザクション外）
-  await userActionLogService.create({
-    targetUserId: userId,
-    actorId: userId,
-    actorType: "user",
-    actionType: "user_withdraw",
-    beforeValue: { status: beforeStatus },
-    afterValue: { status: "withdrawn" },
-    reason: null,
+    return updated;
   });
 
   return {

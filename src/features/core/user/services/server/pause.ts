@@ -1,7 +1,7 @@
 // src/features/core/user/services/server/pause.ts
 
 import type { User } from "@/features/core/user/entities";
-import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { auditLogger } from "@/features/core/auditLog";
 import { DomainError } from "@/lib/errors";
 import { base } from "./drizzleBase";
 
@@ -12,9 +12,10 @@ export type PauseResult = {
 /**
  * ユーザーの休会処理を行う。
  * - ステータスを "inactive" に変更
- * - アクションログを記録
+ * - 監査ログを記録（actor はユーザー本人）
  *
  * セッションの削除は API ルートで行う。
+ * actor は AsyncLocalStorage 経由で routeFactory から自動注入される。
  */
 export async function pause(userId: string): Promise<PauseResult> {
   const user = await base.get(userId);
@@ -37,15 +38,12 @@ export async function pause(userId: string): Promise<PauseResult> {
     status: "inactive",
   } as Partial<User>);
 
-  // 休会ログを記録
-  await userActionLogService.create({
-    targetUserId: userId,
-    actorId: userId,
-    actorType: "user",
-    actionType: "user_pause",
-    beforeValue: { status: beforeStatus },
-    afterValue: { status: "inactive" },
-    reason: null,
+  await auditLogger.record({
+    targetType: "user",
+    targetId: userId,
+    action: "user.paused",
+    before: { status: beforeStatus },
+    after: { status: "inactive" },
   });
 
   return {

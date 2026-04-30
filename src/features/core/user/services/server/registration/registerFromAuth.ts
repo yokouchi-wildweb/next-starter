@@ -3,7 +3,7 @@
 import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/constants";
-import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
+import { auditLogger } from "@/features/core/auditLog";
 import { updateLastAuthenticated } from "@/features/core/user/services/server/wrappers/updateLastAuthenticated";
 import { activate } from "./activate";
 import { sendRegistrationCompleteMail } from "./sendRegistrationCompleteMail";
@@ -25,7 +25,10 @@ export type RegisterFromAuthResult = {
 /**
  * auth ドメインからの本登録処理。
  * - 仮登録済みユーザー（pending/withdrawn）を有効化
- * - アクションログを記録
+ * - 監査ログを記録
+ *
+ * 未認証経路で呼ばれるため、ALS context の actor は "system" になる。
+ * 実際は本人による操作なので actorOverride で actorType="user" / actorId=userId に上書きする。
  */
 export async function registerFromAuth(
   input: RegisterFromAuthInput,
@@ -34,11 +37,9 @@ export async function registerFromAuth(
 
   const now = new Date();
 
-  // 状態遷移の判定
   const isFromPending = existingUser.status === "pending";
   const isRejoin = existingUser.status === "withdrawn";
 
-  // ユーザーを有効化
   const user = await activate(existingUser.id, {
     role: role as UserRoleType,
     name: name ?? "",
@@ -51,7 +52,6 @@ export async function registerFromAuth(
     await updateLastAuthenticated(user.id, { ip });
   }
 
-  // アクションログを記録
   await recordActionLog({
     user,
     existingUser,
@@ -95,7 +95,7 @@ async function recordActionLog({
   isFromPending,
   isRejoin,
 }: RecordActionLogParams): Promise<void> {
-  const afterValue = {
+  const after = {
     status: user.status,
     email: user.email,
     name: user.name,
@@ -103,24 +103,22 @@ async function recordActionLog({
   };
 
   if (isFromPending) {
-    await userActionLogService.create({
-      targetUserId: user.id,
-      actorId: user.id,
-      actorType: "user",
-      actionType: "user_register",
-      beforeValue: { status: existingUser.status },
-      afterValue,
-      reason: null,
+    await auditLogger.record({
+      targetType: "user",
+      targetId: user.id,
+      action: "user.registered",
+      before: { status: existingUser.status },
+      after,
+      actorOverride: { actorType: "user", actorId: user.id },
     });
   } else if (isRejoin) {
-    await userActionLogService.create({
-      targetUserId: user.id,
-      actorId: user.id,
-      actorType: "user",
-      actionType: "user_rejoin",
-      beforeValue: { status: existingUser.status },
-      afterValue,
-      reason: null,
+    await auditLogger.record({
+      targetType: "user",
+      targetId: user.id,
+      action: "user.rejoined",
+      before: { status: existingUser.status },
+      after,
+      actorOverride: { actorType: "user", actorId: user.id },
     });
   }
 }

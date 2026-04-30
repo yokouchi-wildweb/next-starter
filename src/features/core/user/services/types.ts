@@ -7,7 +7,6 @@ export type CreateUserInput = {
   email: string;
   role: User["role"];
   localPassword: string;
-  actorId?: string;
   profileData?: Record<string, unknown>;
   user_tag_ids?: string[];
 };

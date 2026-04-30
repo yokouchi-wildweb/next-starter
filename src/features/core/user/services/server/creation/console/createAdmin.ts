@@ -5,11 +5,11 @@ import { randomUUID } from "crypto";
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
+import { auditLogger } from "@/features/core/auditLog";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
 import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
-import { userActionLogService } from "@/features/core/userActionLog/services/server/userActionLogService";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { restoreSoftDeletedUser } from "./restore";
 
@@ -18,7 +18,6 @@ export type CreateAdminInput = {
   email: string;
   localPassword: string;
   role?: string;
-  actorId?: string;
   [key: string]: unknown;
 };
 
@@ -32,27 +31,27 @@ function validateInput(input: CreateAdminInput): void {
   }
 }
 
+/**
+ * 管理者ユーザーを作成する。
+ * actor は AsyncLocalStorage 経由で routeFactory から自動注入される。
+ */
 export async function createAdmin(data: CreateAdminInput): Promise<User> {
   validateInput(data);
 
-  // ロールの有効性チェック
   const role = data.role ?? "admin";
   assertRoleEnabled(role);
 
-  // ソフトデリート済みユーザーを検索
   const softDeletedUser = await findSoftDeletedUser({
     providerType: "local",
     email: data.email,
   });
 
-  // ソフトデリート済みユーザーが存在する場合は復元処理
   if (softDeletedUser) {
     return restoreSoftDeletedUser({
       existingUser: softDeletedUser,
       name: data.name,
       localPassword: data.localPassword,
       role,
-      actorId: data.actorId,
     });
   }
 
@@ -74,24 +73,19 @@ export async function createAdmin(data: CreateAdminInput): Promise<User> {
 
   const [user] = await db.insert(UserTable).values(values).returning();
 
-  // 操作者IDがある場合のみアクションログを記録
-  if (data.actorId) {
-    await userActionLogService.create({
-      targetUserId: user.id,
-      actorId: data.actorId,
-      actorType: "admin",
-      actionType: "admin_create_user",
-      beforeValue: null,
-      afterValue: {
-        role: user.role,
-        status: user.status,
-        email: user.email,
-        name: user.name,
-        providerType: user.providerType,
-      },
-      reason: null,
-    });
-  }
+  await auditLogger.record({
+    targetType: "user",
+    targetId: user.id,
+    action: "user.created_by_admin",
+    before: null,
+    after: {
+      role: user.role,
+      status: user.status,
+      email: user.email,
+      name: user.name,
+      providerType: user.providerType,
+    },
+  });
 
   return user;
 }

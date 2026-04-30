@@ -36,7 +36,6 @@ export const POST = createApiRoute<RouteParams>(
 
     await userService.softDelete({
       userId,
-      actorId: session.userId,
       reason: parsed.data.reason,
     });
 

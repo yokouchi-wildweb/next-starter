@@ -39,7 +39,6 @@ export const PATCH = createApiRoute<RouteParams>(
     const user = await userService.changeStatus({
       userId,
       newStatus: parsed.data.status,
-      actorId: session.userId,
       reason: parsed.data.reason,
     });
 
