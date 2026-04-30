@@ -10,6 +10,7 @@ import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import {
   APP_HEADER_ELEMENT_ID,
+  ADMIN_HEADER_TITLE_SLOT_ID,
   ADMIN_HEADER_CENTER_SLOT_ID,
   ADMIN_HEADER_RIGHT_SLOT_ID,
 } from "@/components/AppFrames/constants";
@@ -39,6 +40,12 @@ export function Header() {
           className="hidden h-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"
         />
       </Link>
+
+      {/* タイトルスロット: ロゴ右隣に配置（sm 以上で表示、モバイルではページ内フォールバック） */}
+      <div
+        id={ADMIN_HEADER_TITLE_SLOT_ID}
+        className="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"
+      />
 
       {/* 中央: ポータルスロット */}
       <div

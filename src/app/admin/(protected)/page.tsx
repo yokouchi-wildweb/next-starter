@@ -87,7 +87,7 @@ export default async function AdminHomePage() {
     <AdminPage>
       <Stack space={8}>
 
-        <PageTitle>管理ダッシュボード</PageTitle>
+        <PageTitle placement="header">管理ダッシュボード</PageTitle>
 
         {showMainMetrics && (
           <Section id='main-metrics'>
