@@ -3,6 +3,16 @@
 export { auditLogger, type AuditLogger } from "./auditLogService";
 export { auditLogBase, auditLogFailedBase } from "./drizzleBase";
 export { searchByTarget, type SearchByTargetParams } from "./wrappers/searchByTarget";
+export {
+  pruneExpiredAuditLogs,
+  type PruneOptions,
+  type PruneResult,
+} from "./pruning";
+export {
+  recoverDeadLetterAuditLogs,
+  type RecoverOptions,
+  type RecoverResult,
+} from "./recoverDeadLetter";
 
 import { auditLogBase } from "./drizzleBase";
 import { searchByTarget } from "./wrappers/searchByTarget";

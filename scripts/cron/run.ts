@@ -28,6 +28,18 @@ const TASKS: Record<string, CronTask> = {
     const expired = await expirePendingRequests();
     return { expired };
   },
+  "audit-log-prune": async () => {
+    const { pruneExpiredAuditLogs } = await import(
+      "@/features/core/auditLog/services/server"
+    );
+    return await pruneExpiredAuditLogs();
+  },
+  "audit-log-recover-dead-letter": async () => {
+    const { recoverDeadLetterAuditLogs } = await import(
+      "@/features/core/auditLog/services/server"
+    );
+    return await recoverDeadLetterAuditLogs();
+  },
   // 今後の cron タスクはここに追加
 };
 
