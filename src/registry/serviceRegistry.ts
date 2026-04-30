@@ -2,7 +2,6 @@
 
 // --- Core imports ---
 import { userService } from "@/features/user/services/server/userService";
-import { userActionLogService } from "@/features/userActionLog/services/server/userActionLogService";
 import { settingService } from "@/features/setting/services/server/settingService";
 import { walletService } from "@/features/wallet/services/server/walletService";
 import { walletHistoryService } from "@/features/walletHistory/services/server/walletHistoryService";
@@ -25,7 +24,6 @@ import { chatRoomService } from "@/features/core/chatRoom/services/server/chatRo
 export const serviceRegistry: Record<string, any> = {
 
   // --- CORE DOMAINS (手動管理) ---
-  userActionLog: userActionLogService,
   user: userService,
   setting: settingService,
   wallet: walletService,

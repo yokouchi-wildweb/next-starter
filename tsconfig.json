@@ -42,7 +42,6 @@
       "@/features/referralReward/*": ["./src/features/core/referralReward/*"],
       "@/features/setting/*": ["./src/features/core/setting/*"],
       "@/features/user/*": ["./src/features/core/user/*"],
-      "@/features/userActionLog/*": ["./src/features/core/userActionLog/*"],
       "@/features/userProfile/*": ["./src/features/core/userProfile/*"],
       "@/features/userLineProfile/*": ["./src/features/core/userLineProfile/*"],
       "@/features/userXProfile/*": ["./src/features/core/userXProfile/*"],

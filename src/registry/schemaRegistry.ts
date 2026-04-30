@@ -5,7 +5,6 @@
 
 // --- CORE DOMAINS (手動管理) ---
 export * from "@/features/auditLog/entities/drizzle";
-export * from "@/features/userActionLog/entities/drizzle";
 export * from "@/features/analytics/entities/drizzle";
 export * from "@/registry/profileTableRegistry";
 export * from "@/features/user/entities/drizzle";
