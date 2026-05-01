@@ -9,6 +9,8 @@ import type { WalletType } from "@/config/app/currency.config";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 
+import { SupportedPaymentMethods } from "../common/SupportedPaymentMethods";
+
 import { PurchaseButton } from "./PurchaseButton";
 import { PurchaseSummaryCard } from "./PurchaseSummaryCard";
 import { CouponInput } from "./CouponInput";
@@ -77,6 +79,7 @@ export function CurrencyPurchase({
         onApply={handleCouponApply}
         onClear={handleCouponClear}
       />
+      <SupportedPaymentMethods />
       <PurchaseButton
         onPurchase={purchase}
         isLoading={isLoading}

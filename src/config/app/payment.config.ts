@@ -107,10 +107,10 @@ export const paymentConfig = {
    * ダウンストリームで拡張可能
    */
   paymentMethods: [
-    { id: "credit_card", label: "クレジットカード", description: "VISA / Mastercard", icon: "credit-card", status: "available" },
-    { id: "convenience_store", label: "コンビニ決済", icon: "store", status: "available" },
+    { id: "credit_card", label: "クレジットカード", description: "VISA / Mastercard / JCB / AMEX / Diners", icon: "credit-card", status: "available" },
+    { id: "convenience_store", label: "コンビニ決済", description: "セブン-イレブン / ファミリーマート / ローソン", icon: "store", status: "available" },
     { id: "bank_transfer", label: "銀行振込", icon: "bank", status: "available" },
-    { id: "paypay", label: "PayPay", icon: "paypay", status: "disabled" },
+    { id: "paypay", label: "PayPay", icon: "paypay", status: "coming_soon" },
     { id: "amazon_pay", label: "Amazon Pay", icon: "amazon", status: "disabled" },
   ] as PaymentMethodConfig[],
 } as const;
