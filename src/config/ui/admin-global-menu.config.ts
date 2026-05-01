@@ -102,15 +102,16 @@ export const adminMenu: AdminMenuSection[] = [
     ],
     allowRoles: ["admin"],
   },
-  {
-    title: "監査ログ",
-    href: "/admin/audit-logs",
-    icon: ScrollText,
-    items: [
-      { title: "横断検索", href: "/admin/audit-logs" },
-    ],
-    allowRoles: ["admin"],
-  },
+  // 現状運用では未使用のため一時的に非表示。再開時はコメントアウトを解除する。
+  // {
+  //   title: "監査ログ",
+  //   href: "/admin/audit-logs",
+  //   icon: ScrollText,
+  //   items: [
+  //     { title: "横断検索", href: "/admin/audit-logs" },
+  //   ],
+  //   allowRoles: ["admin"],
+  // },
   {
     title: "UIデモ",
     href: "/admin/tabs-demo/overview",
