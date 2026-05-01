@@ -13,6 +13,8 @@ import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
+import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
+
 import { PurchaseSuspended } from "../common/PurchaseSuspended";
 import { CurrencyPurchase } from "./CurrencyPurchase";
 
@@ -107,6 +109,8 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
             {config.label}管理に戻る
           </LinkButton>
         </Flex>
+        {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
+        <ActiveTransferBanner />
         <PurchaseSuspended message={getPurchaseSuspensionMessage()} />
       </Stack>
     );
@@ -123,6 +127,8 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
           {config.label}管理に戻る
         </LinkButton>
       </Flex>
+      {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
+      <ActiveTransferBanner />
       <CurrencyPurchase
         purchaseAmount={purchaseAmount}
         paymentAmount={paymentAmount}

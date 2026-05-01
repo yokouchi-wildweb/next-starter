@@ -3,7 +3,9 @@
 // 表示対象は status が "available" / "coming_soon" のもの（disabled は除外）。
 //
 // available: ラジオ的に選択可能（primary カラーで強調）
-// coming_soon: 非アクティブ表示（"準備中" バッジ付き、選択不可）
+// coming_soon: 非アクティブ表示（"準備中" バッジ付き、選択不可、warning 黄系）
+// blocked (props): 動的に「選択不可」状態を強制する（destructive 赤系）。
+//                   進行中の自社銀行振込がある時に bank_transfer_inhouse をブロックする等の用途。
 
 "use client";
 
@@ -49,6 +51,17 @@ function ComingSoonBadge() {
   );
 }
 
+function BlockedBadge({ label }: { label: string }) {
+  return (
+    <Span
+      size="xs"
+      className="shrink-0 rounded-full bg-destructive/15 px-2 py-0.5 text-destructive"
+    >
+      {label}
+    </Span>
+  );
+}
+
 function SelectionIndicator({ isSelected }: { isSelected: boolean }) {
   const containerClass = isSelected
     ? "flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors"
@@ -65,12 +78,17 @@ function SelectionIndicator({ isSelected }: { isSelected: boolean }) {
 type CardProps = {
   method: PaymentMethodConfig;
   isSelected: boolean;
+  /** undefined なら通常表示。値が入っている時は選択不可（赤系の destructive 表示） */
+  blocked?: BlockedPaymentMethod;
   onSelect: () => void;
 };
 
-function PaymentMethodCard({ method, isSelected, onSelect }: CardProps) {
+function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps) {
   const Icon = resolveIcon(method.icon);
   const isComingSoon = method.status === "coming_soon";
+  const isBlocked = blocked !== undefined;
+  // インタラクティブにするかどうか（blocked は coming_soon と同じく非インタラクティブ）
+  const isInteractive = !isComingSoon && !isBlocked;
 
   // カード本体のクラス（状態別）
   // ※ 全状態で border-2 に統一して状態切替時の縦方向レイアウトシフトを防ぐ。
@@ -78,7 +96,10 @@ function PaymentMethodCard({ method, isSelected, onSelect }: CardProps) {
   // ※ 背景色は常に不透明な bg-card 系で保持し、半透明 tint (bg-primary/5 等) は使わない。
   //   半透明だと親要素が透けて選択時に見た目が抜けて見えるため。
   let cardClasses: string;
-  if (isComingSoon) {
+  if (isBlocked) {
+    cardClasses =
+      "rounded-lg border-2 border-dashed border-destructive/40 bg-background opacity-70";
+  } else if (isComingSoon) {
     cardClasses =
       "rounded-lg border-2 border-dashed border-warning/40 bg-background opacity-70";
   } else if (isSelected) {
@@ -91,7 +112,10 @@ function PaymentMethodCard({ method, isSelected, onSelect }: CardProps) {
 
   // アイコンコンテナ（状態別: 斜めグラデ + 内側リング + 微弱シャドウ）
   let iconContainerClass: string;
-  if (isComingSoon) {
+  if (isBlocked) {
+    iconContainerClass =
+      "shrink-0 rounded-xl bg-gradient-to-br from-destructive/30 via-destructive/15 to-destructive/5 shadow-sm ring-1 ring-inset ring-destructive/25";
+  } else if (isComingSoon) {
     iconContainerClass =
       "shrink-0 rounded-xl bg-gradient-to-br from-warning/30 via-warning/15 to-warning/5 shadow-sm ring-1 ring-inset ring-warning/25";
   } else if (isSelected) {
@@ -103,15 +127,20 @@ function PaymentMethodCard({ method, isSelected, onSelect }: CardProps) {
   }
 
   // アイコン色
-  const iconColorClass = isComingSoon
-    ? "text-warning"
-    : isSelected
-      ? "text-primary"
-      : "text-muted-foreground";
+  const iconColorClass = isBlocked
+    ? "text-destructive"
+    : isComingSoon
+      ? "text-warning"
+      : isSelected
+        ? "text-primary"
+        : "text-muted-foreground";
 
   // ラベル色 / 太さ
   const labelToneClass = isSelected ? "text-primary" : "";
   const labelWeight = isSelected ? "semiBold" : "medium";
+
+  // blocked 時は description を blocked.message に差し替え（理由を案内する優先表示）
+  const descriptionText = isBlocked ? blocked.message : method.description;
 
   const innerContent = (
     <Flex align="center" gap="sm">
@@ -127,18 +156,24 @@ function PaymentMethodCard({ method, isSelected, onSelect }: CardProps) {
         <Span weight={labelWeight} size="sm" className={labelToneClass}>
           {method.label}
         </Span>
-        {method.description && (
-          <Span size="xs" tone="muted">
-            {method.description}
+        {descriptionText && (
+          <Span size="xs" tone={isBlocked ? "destructive" : "muted"}>
+            {descriptionText}
           </Span>
         )}
       </Stack>
-      {isComingSoon ? <ComingSoonBadge /> : <SelectionIndicator isSelected={isSelected} />}
+      {isBlocked ? (
+        <BlockedBadge label={blocked.badge ?? "進行中"} />
+      ) : isComingSoon ? (
+        <ComingSoonBadge />
+      ) : (
+        <SelectionIndicator isSelected={isSelected} />
+      )}
     </Flex>
   );
 
-  // 準備中: 非インタラクティブ要素として表示
-  if (isComingSoon) {
+  // 非インタラクティブ (blocked / coming_soon): 静的 Block で表示
+  if (!isInteractive) {
     return (
       <Block className={`${cardClasses} cursor-not-allowed`} padding="md" aria-disabled>
         {innerContent}
@@ -160,11 +195,30 @@ function PaymentMethodCard({ method, isSelected, onSelect }: CardProps) {
   );
 }
 
+/**
+ * 動的に「選択不可」状態を強制したい支払い方法の指定。
+ * 例: 進行中の自社銀行振込がある時に bank_transfer_inhouse をブロックして
+ *     重複申し込みを UI 側で先回りに防ぐ。
+ */
+export type BlockedPaymentMethod = {
+  /** 対象の payment method ID（payment.config.ts の paymentMethods[].id と一致） */
+  id: string;
+  /** 右端に出す赤系バッジのラベル（省略時 "進行中"） */
+  badge?: string;
+  /** 補足説明（method.description を上書き）。理由案内に使う */
+  message?: string;
+};
+
 type SupportedPaymentMethodsProps = {
   /** 選択中の支払い方法 ID（controlled）。未指定時は内部 state で保持 */
   value?: string | null;
   /** 選択変更時のコールバック（controlled）。未指定時は内部 state を更新 */
   onChange?: (methodId: string) => void;
+  /**
+   * 動的にブロックする支払い方法の一覧。該当 method ID は赤系の destructive 表示になり
+   * 選択不可になる。空配列または未指定なら通常通り全て選択可能。
+   */
+  blockedMethods?: BlockedPaymentMethod[];
 };
 
 /**
@@ -175,14 +229,28 @@ type SupportedPaymentMethodsProps = {
  *
  * `value` / `onChange` を渡すと controlled として親が選択状態を管理する。
  * 未指定時は内部 state で保持する uncontrolled 動作になる。
+ *
+ * `blockedMethods` で動的に選択不可を指定できる（赤系表示）。
  */
-export function SupportedPaymentMethods({ value, onChange }: SupportedPaymentMethodsProps = {}) {
+export function SupportedPaymentMethods({
+  value,
+  onChange,
+  blockedMethods,
+}: SupportedPaymentMethodsProps = {}) {
   const methods = getVisiblePaymentMethods();
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
   const isControlled = value !== undefined;
   const selectedId = isControlled ? value : internalSelectedId;
 
+  // ID → BlockedPaymentMethod のマップ化（毎レンダーで作るが要素数 5 程度なので無視できるコスト）
+  const blockedMap = new Map<string, BlockedPaymentMethod>();
+  for (const b of blockedMethods ?? []) {
+    blockedMap.set(b.id, b);
+  }
+
   const handleSelect = (id: string) => {
+    // ブロック対象の手動クリックを念のため弾く（disabled なボタンなので通常到達しない）
+    if (blockedMap.has(id)) return;
     if (isControlled) {
       onChange?.(id);
     } else {
@@ -207,6 +275,7 @@ export function SupportedPaymentMethods({ value, onChange }: SupportedPaymentMet
               key={method.id}
               method={method}
               isSelected={selectedId === method.id}
+              blocked={blockedMap.get(method.id)}
               onSelect={() => handleSelect(method.id)}
             />
           ))}
