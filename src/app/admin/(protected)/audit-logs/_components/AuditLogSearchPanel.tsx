@@ -39,7 +39,7 @@ const EMPTY_FILTERS: Filters = {
   actionPrefix: "",
 };
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 100;
 
 function buildWhere(filters: Filters): WhereExpr | undefined {
   const conds: WhereExpr[] = [];
@@ -71,7 +71,6 @@ export function AuditLogSearchPanel() {
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const [detailLog, setDetailLog] = useState<AuditLog | null>(null);
-  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
 
   const fetcher = useCallback(
     async ({ page, limit }: { page: number; limit: number }) =>
@@ -79,10 +78,14 @@ export function AuditLogSearchPanel() {
     [applied],
   );
 
-  const observerOptions = useMemo<IntersectionObserverInit | undefined>(() => {
-    if (!scrollContainer) return undefined;
-    return { root: scrollContainer, rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
-  }, [scrollContainer]);
+  // ページ全体がスクロールするレイアウト (DataTable maxHeight="none") のため
+  // IntersectionObserver の root はビューポートに任せる。
+  // 過去に root を DataTable wrapper に指定して sentinel が常時 intersecting と
+  // 判定され loadMore が連射される不具合があった。
+  const observerOptions = useMemo<IntersectionObserverInit>(
+    () => ({ rootMargin: "0px 0px 160px 0px", threshold: 0.1 }),
+    [],
+  );
 
   const { items: logs, total, isLoading, error, hasMore, sentinelRef } =
     useInfiniteScrollQuery<AuditLog>({
@@ -195,7 +198,6 @@ export function AuditLogSearchPanel() {
               getKey={(item) => item.id}
               emptyValueFallback="-"
               onRowClick={setDetailLog}
-              scrollContainerRef={(node) => setScrollContainer(node)}
               bottomSentinelRef={(node) => sentinelRef(node)}
             />
             <div className="mt-2 flex items-center justify-center">
