@@ -19,6 +19,8 @@ import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
 import { CouponInput } from "../WalletPurchasePage/CouponInput";
 
+import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
+
 import { PurchaseSuspended } from "../common/PurchaseSuspended";
 import { BalanceCard } from "./BalanceCard";
 import { PurchaseList } from "./PurchaseList";
@@ -131,6 +133,8 @@ export function WalletBalancePage({
 
   return (
     <Stack space={6}>
+      {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
+      <ActiveTransferBanner />
       <Flex justify="end">
         <LinkButton href={`/wallet/${slug}/history`} variant="outline" size="sm">
           履歴

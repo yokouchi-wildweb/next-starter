@@ -83,6 +83,8 @@ export type BankTransferConfig = {
   account: {
     bankName: string;
     branchName: string;
+    /** 支店コード（3 桁数字。案内画面では「支店名 (コード)」形式で表示） */
+    branchCode: string;
     accountType: string;
     accountNumber: string;
     accountHolder: string;
@@ -147,11 +149,12 @@ export const paymentConfig = {
   bankTransfer: {
     autoComplete: true,
     account: {
-      bankName: "",
-      branchName: "",
+      bankName: "サンプル銀行",
+      branchName: "サンプル支店",
+      branchCode: "000",
       accountType: "普通",
-      accountNumber: "",
-      accountHolder: "",
+      accountNumber: "0000000",
+      accountHolder: "サンプル（カ",
     },
   } as BankTransferConfig,
 
@@ -192,14 +195,14 @@ export const paymentConfig = {
   paymentMethods: [
     { id: "credit_card", label: "クレジットカード", description: "VISA / Mastercard / JCB / AMEX / Diners", icon: "credit-card", status: "available", provider: "fincode" },
     { id: "convenience_store", label: "コンビニ決済", description: "セブン-イレブン / ファミリーマート / ローソン", icon: "store", status: "available", provider: "fincode" },
-    { id: "bank_transfer", label: "銀行振込（仮想口座）", description: "Fincode の仮想口座で受付", icon: "bank", status: "available", provider: "fincode" },
+    // { id: "bank_transfer", label: "銀行振込（仮想口座）", description: "Fincode の仮想口座で受付", icon: "bank", status: "available", provider: "fincode" },
     /**
      * 自社受付の銀行振込。
      * - 外部決済プロバイダを介さず、画面上に表示する自社の口座へ直接振り込んでもらう。
      * - 振込完了はユーザーが画面から自己申告（POST /api/wallet/purchase/[id]/bank-transfer/confirm）。
      * - fincode 仮想口座とは別メソッドとして並立。
      */
-    { id: "bank_transfer_inhouse", label: "銀行振込", description: "自社指定口座へお振込みください", icon: "bank", status: "available", provider: "inhouse" },
+    { id: "bank_transfer_inhouse", label: "リアルタイム銀行振込", description: "手続き後に即時反映!!", icon: "bank", status: "available", provider: "inhouse" },
     { id: "paypay", label: "PayPay", icon: "paypay", status: "coming_soon", provider: "fincode" },
     { id: "amazon_pay", label: "Amazon Pay", icon: "amazon", status: "disabled" },
   ] as PaymentMethodConfig[],

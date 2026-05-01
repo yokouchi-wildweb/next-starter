@@ -103,3 +103,4 @@ export async function initiatePurchase(
     throw normalizeHttpError(error, "購入処理の開始に失敗しました");
   }
 }
+
