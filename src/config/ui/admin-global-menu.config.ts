@@ -17,6 +17,8 @@ import {
   Ticket,
   Bell,
   ScrollText,
+  Inbox,
+  Banknote,
 } from "lucide-react";
 
 // ============================================
@@ -85,6 +87,15 @@ export const adminMenu: AdminMenuSection[] = [
     href: null,
     icon: Database,
     items: adminDataMenu.filter((item) => item.href !== "/admin/user-tags"),
+  },
+  {
+    title: "リクエスト管理",
+    href: null,
+    icon: Inbox,
+    items: [
+      { title: "銀行振込レビュー", href: "/admin/bank-transfer-reviews/pending-review", icon: Banknote },
+    ],
+    allowRoles: ["admin"],
   },
   {
     title: "ユーザー管理",
