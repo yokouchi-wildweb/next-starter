@@ -75,16 +75,18 @@ function PaymentMethodCard({ method, isSelected, onSelect }: CardProps) {
   // カード本体のクラス（状態別）
   // ※ 全状態で border-2 に統一して状態切替時の縦方向レイアウトシフトを防ぐ。
   //   選択時の強調はリング (ring-2) と border-color で表現する（ring は box-shadow 実装なのでレイアウトに影響しない）。
+  // ※ 背景色は常に不透明な bg-card 系で保持し、半透明 tint (bg-primary/5 等) は使わない。
+  //   半透明だと親要素が透けて選択時に見た目が抜けて見えるため。
   let cardClasses: string;
   if (isComingSoon) {
     cardClasses =
       "rounded-lg border-2 border-dashed border-warning/40 bg-background opacity-70";
   } else if (isSelected) {
     cardClasses =
-      "rounded-lg border-2 border-primary bg-primary/5 ring-2 ring-primary/15 transition-all";
+      "rounded-lg border-2 border-primary bg-card ring-2 ring-primary/15 transition-all";
   } else {
     cardClasses =
-      "rounded-lg border-2 border-border bg-card transition-all hover:border-primary/40 hover:bg-primary/5";
+      "rounded-lg border-2 border-border bg-card transition-all hover:border-primary/40";
   }
 
   // アイコンコンテナ（状態別: 斜めグラデ + 内側リング + 微弱シャドウ）
