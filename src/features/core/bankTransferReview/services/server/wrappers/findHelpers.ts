@@ -24,11 +24,20 @@ export async function findByPurchaseRequest(
 }
 
 /**
- * 指定ユーザーの現在進行中（pending_review）のレビューを 1 件取得する。
- * ユーザー側の「進行中振込バナー」用。inhouseProvider.validateInitiation で
- * 同一ユーザーの pending/processing 振込は 1 件に制限しているため、結果は最大 1 件。
+ * ユーザー側のバナー表示用に「ユーザーがまだアクション必要なレビュー」を 1 件取得する。
  *
- * 安全側に倒して desc(submitted_at) で最新を 1 件取る。
+ * 「進行中」の定義 (ユーザー視点):
+ *   - mode=approval_required + status=pending_review: 申告済みだが通貨未付与、
+ *     管理者の承認を待つ状態 → ユーザーから見れば「処理中」なのでバナー表示対象
+ *   - mode=immediate + status=pending_review: 申告済みで通貨は既に付与済み。
+ *     レビュー自体は管理者の事後の振込確認待ちだが、ユーザー側は何もすることがない
+ *     ので **バナー表示対象外**（ここを含めると申告完了後もバナーが残るバグになる）
+ *   - confirmed / rejected: ユーザー視点では完了 / 失敗のいずれかで終了状態
+ *
+ * 管理者側の一覧検索は別関数（admin route で直接 db クエリ）を使うため、
+ * このヘルパーはユーザー視点専用。inhouseProvider.validateInitiation の並行ブロックで
+ * 同一ユーザーの未完了振込は最大 1 件に制限されているが、安全側に desc(submitted_at)
+ * で最新の 1 件を取る。
  */
 export async function findActiveByUser(
   userId: string,
@@ -40,6 +49,7 @@ export async function findActiveByUser(
       and(
         eq(BankTransferReviewTable.user_id, userId),
         eq(BankTransferReviewTable.status, "pending_review"),
+        eq(BankTransferReviewTable.mode, "approval_required"),
       ),
     )
     .orderBy(desc(BankTransferReviewTable.submitted_at))

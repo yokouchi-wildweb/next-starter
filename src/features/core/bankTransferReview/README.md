@@ -213,7 +213,15 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 **エラー**: 401 (未ログイン) / 400 (画像 URL 不正・status 不正・メソッド不一致) / 404 (リクエスト不在 or 別ユーザー)
 
 #### `GET /api/wallet/purchase/bank-transfer/active`
-自分の進行中銀行振込を 1 件返す（バナー表示判定用）。
+**ユーザーがまだアクション必要な振込** を 1 件返す（バナー表示判定用）。
+
+「ユーザーがアクション必要」の定義:
+- 振込前 (`pre_submit`) — 両モード共通で「振込手続きをしてください」案内が必要
+- 確認モードの申告済み (`pending_review` + `mode=approval_required`) — 通貨未付与で承認待ち
+
+即時モード (`immediate`) の `pending_review` レビュー（管理者の事後確認待ち）は、
+通貨は既に付与済みなのでユーザー視点では完了扱いとなり、active 検出の対象外。
+管理画面側ではこれらも `pending_review` として一覧に出るので別軸の判定。
 
 **レスポンス**:
 ```ts

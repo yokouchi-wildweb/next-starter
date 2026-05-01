@@ -57,7 +57,6 @@ function buildRedirectUrl(
   walletType: WalletType | null,
   purchaseRequestId: string,
   status: ActiveStatus,
-  mode: BankTransferReviewMode | null,
 ): string {
   if (!walletType) return "";
   const slug = getSlugByWalletType(walletType);
@@ -67,12 +66,10 @@ function buildRedirectUrl(
   }
 
   // status === "pending_review"
-  // - immediate モードは申告時に通貨付与済み（purchase_request は completed）。
-  //   完了画面に誘導する。
-  // - approval_required モードは付与待ち。確認待ちページに誘導する。
-  if (mode === "immediate") {
-    return `/wallet/${slug}/purchase/complete?request_id=${purchaseRequestId}`;
-  }
+  // findActiveByUser が mode=approval_required のみを返すため、ここに到達するのは
+  // 確認モードの確認待ちレビューだけ（immediate モードは申告完了時点で
+  // ユーザー視点では完了扱いとなり active 検出対象外）。
+  // 詳細: findHelpers.ts の findActiveByUser コメント参照
   return `/wallet/${slug}/purchase/awaiting-review?request_id=${purchaseRequestId}`;
 }
 
@@ -112,7 +109,6 @@ export const GET = createApiRoute(
             walletType,
             review.purchase_request_id,
             "pending_review",
-            review.mode,
           ),
         },
       };
@@ -147,7 +143,7 @@ export const GET = createApiRoute(
         status: "pre_submit",
         mode: null,
         submittedAt: null,
-        redirectUrl: buildRedirectUrl(walletType, pr.id, "pre_submit", null),
+        redirectUrl: buildRedirectUrl(walletType, pr.id, "pre_submit"),
       },
     };
   },
