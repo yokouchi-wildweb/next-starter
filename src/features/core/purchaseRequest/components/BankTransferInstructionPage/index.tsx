@@ -15,6 +15,7 @@ import type { BankTransferConfig } from "@/config/app/payment.config";
 
 import { AccountInfoCard } from "./AccountInfoCard";
 import { AmountDisplay } from "./AmountDisplay";
+import { CancelTransferButton } from "./CancelTransferButton";
 import { ConfirmTransferCTA } from "./ConfirmTransferCTA";
 import { PrepareProofImage } from "./PrepareProofImage";
 import { SaveBookmarkButton } from "./SaveBookmarkButton";
@@ -73,6 +74,9 @@ export function BankTransferInstructionPage({
         disabled={proofImageUrl === null}
         disabledLabel="先に画像を添付してください"
       />
+
+      {/* 最下部: 振込による購入をキャンセル（不可逆 / Dialog で確認） */}
+      <CancelTransferButton requestId={requestId} />
     </Stack>
   );
 }

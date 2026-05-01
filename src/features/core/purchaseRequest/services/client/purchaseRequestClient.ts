@@ -104,3 +104,45 @@ export async function initiatePurchase(
   }
 }
 
+// ============================================================================
+// 進行中の購入リクエストをユーザー自身がキャンセル
+// ============================================================================
+
+/**
+ * 購入キャンセルのレスポンス
+ *
+ * サーバーは status を expired に変更し、関連する bank_transfer_review があれば
+ * rejected に遷移させる。redirectUrl は決済方法選択画面（同一の amount / price）への
+ * リダイレクト URL を想定。
+ */
+export type CancelPurchaseResponse = {
+  success: boolean;
+  requestId: string;
+  /** 決済方法選択画面 (/wallet/[slug]/purchase?amount=...&price=...) への遷移先 */
+  redirectUrl: string;
+};
+
+/**
+ * 自分の進行中の購入リクエストをキャンセルする。
+ * 主な用途: 銀行振込の案内画面から「キャンセル」ボタンで購入をやり直す。
+ *
+ * サーバー側で:
+ * - 認可（user_id 一致）
+ * - status が pending / processing のときのみ受け付け（completed 等は 400）
+ * - status を expired に変更
+ * - 関連 bank_transfer_review が pending_review なら rejected に変更
+ * - redirectUrl で決済方法選択画面に戻す
+ */
+export async function cancelPurchase(
+  requestId: string,
+): Promise<CancelPurchaseResponse> {
+  try {
+    const res = await axios.post<CancelPurchaseResponse>(
+      `/api/wallet/purchase/${requestId}/cancel`,
+    );
+    return res.data;
+  } catch (error) {
+    throw normalizeHttpError(error, "キャンセル処理に失敗しました");
+  }
+}
+

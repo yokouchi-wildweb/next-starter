@@ -7,6 +7,7 @@ import {
   getPurchaseStatusForUser,
   completePurchase,
   failPurchase,
+  cancelPurchase,
   handleWebhook,
   expirePendingRequests,
 } from "./wrappers/purchaseService";
@@ -19,6 +20,7 @@ export const purchaseRequestService = {
   getPurchaseStatusForUser,
   completePurchase,
   failPurchase,
+  cancelPurchase,
   handleWebhook,
   expirePendingRequests,
 };
@@ -30,6 +32,8 @@ export type {
   CompletePurchaseParams,
   CompletePurchaseResult,
   FailPurchaseParams,
+  CancelPurchaseParams,
+  CancelPurchaseResult,
   HandleWebhookParams,
   HandleWebhookResult,
 } from "./wrappers/purchaseService";

@@ -142,6 +142,8 @@ export type HandleWebhookResult = {
 export { initiatePurchase } from "./initiatePurchase";
 export { completePurchase } from "./completePurchase";
 export { failPurchase } from "./failPurchase";
+export { cancelPurchase } from "./cancelPurchase";
+export type { CancelPurchaseParams, CancelPurchaseResult } from "./cancelPurchase";
 export { handleWebhook } from "./webhookHandler";
 export { expirePendingRequests } from "./purchaseHelpers";
 
