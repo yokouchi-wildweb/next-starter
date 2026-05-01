@@ -44,16 +44,22 @@ export const INHOUSE_BANK_TRANSFER_METHOD_ID = "bank_transfer_inhouse" as const;
 /**
  * 振込時の氏名末尾に付与する識別文字列を生成する。
  *
- * - purchase_request.id（UUID v4）から派生させ、ハイフンを除去した先頭 8 桁を大文字化。
- * - UUID v4 の先頭 32bit はランダムなので、衝突確率はユーザー個別運用なら無視できる。
- * - 8 桁の英数字は振込人名の「氏名末尾の追記」として現実的に入力可能な長さ。
+ * 数字のみ 8 桁（先頭 0 詰め）。振込人名の末尾追記としてユーザー入力されるため、
+ * 英字混じりは B/8・I/1・O/0 等の見間違いと入力ミスを誘発する。数字のみに固定。
+ *
+ * - purchase_request.id（UUID v4）の末尾 52bit を Number として 10 進数化し
+ *   1e8 でモジュロ → padStart で 0〜99999999 を 8 桁固定にする。
+ *   52bit は Number.MAX_SAFE_INTEGER (53bit) に収まるため parseInt で安全に扱える。
+ * - 同一ユーザー単位の衝突確率は誕生日問題で 10^4 件規模まで実質ゼロ。
  *
  * 保存先は purchase_requests.provider_order_id。Webhook を使わないため
  * findByWebhookIdentifier の照合キーには現状使われないが、振込明細側との照合用に
  * インデックス済みカラム（provider_order_id_idx）に格納しておく。
  */
 export function generateInhouseTransferIdentifier(purchaseRequestId: string): string {
-  return purchaseRequestId.replace(/-/g, "").slice(0, 8).toUpperCase();
+  const hex = purchaseRequestId.replace(/-/g, "");
+  const value = parseInt(hex.slice(-13), 16);
+  return (value % 100_000_000).toString().padStart(8, "0");
 }
 
 class InhousePaymentProvider implements PaymentProvider {
