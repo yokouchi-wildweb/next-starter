@@ -13,12 +13,18 @@ type PurchaseButtonProps = {
   onPurchase: () => Promise<void>;
   isLoading?: boolean;
   error?: string | null;
+  /** ボタンを非活性にする（支払い方法未選択時など） */
+  disabled?: boolean;
+  /** disabled 時のボタンラベル。未指定時は通常ラベル「購入する」を表示 */
+  disabledLabel?: string;
 };
 
 export function PurchaseButton({
   onPurchase,
   isLoading = false,
   error = null,
+  disabled = false,
+  disabledLabel,
 }: PurchaseButtonProps) {
   const handlePurchase = async () => {
     await onPurchase();
@@ -27,10 +33,6 @@ export function PurchaseButton({
   return (
     <Section>
       <Stack space={4}>
-        <Para size="sm" tone="muted" align="center">
-          次画面でお支払い方法を選択できます
-        </Para>
-
         {error && (
           <Para tone="danger" size="sm" align="center">
             {error}
@@ -43,13 +45,15 @@ export function PurchaseButton({
             size="lg"
             className="w-full max-w-xs"
             onClick={handlePurchase}
-            disabled={isLoading}
+            disabled={isLoading || disabled}
           >
             {isLoading ? (
               <Flex align="center" gap="xs">
                 <Spinner className="h-4 w-4" />
                 <span>処理中...</span>
               </Flex>
+            ) : disabled && disabledLabel ? (
+              disabledLabel
             ) : (
               "購入する"
             )}

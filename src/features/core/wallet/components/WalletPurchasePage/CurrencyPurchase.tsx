@@ -36,6 +36,10 @@ export function CurrencyPurchase({
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [couponEffect, setCouponEffect] = useState<PurchaseDiscountEffect | null>(null);
 
+  // 支払い方法の選択状態（未選択 = null）
+  // 未選択時は購入ボタンを非活性にし、選択を強制する
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+
   // 実際の支払い金額（割引適用後）
   const actualPaymentAmount = couponEffect?.finalPaymentAmount ?? paymentAmount;
 
@@ -47,6 +51,7 @@ export function CurrencyPurchase({
     walletType,
     amount: purchaseAmount,
     paymentAmount,
+    paymentMethod: selectedPaymentMethod ?? "",
     itemName,
     couponCode: couponCode ?? undefined,
   });
@@ -79,11 +84,16 @@ export function CurrencyPurchase({
         onApply={handleCouponApply}
         onClear={handleCouponClear}
       />
-      <SupportedPaymentMethods />
+      <SupportedPaymentMethods
+        value={selectedPaymentMethod}
+        onChange={setSelectedPaymentMethod}
+      />
       <PurchaseButton
         onPurchase={purchase}
         isLoading={isLoading}
         error={error}
+        disabled={selectedPaymentMethod === null}
+        disabledLabel="決済方法が未選択"
       />
     </Stack>
   );
