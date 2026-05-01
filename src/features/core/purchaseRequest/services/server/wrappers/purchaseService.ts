@@ -110,7 +110,12 @@ export type FailPurchaseParams = {
 
 export type HandleWebhookParams = {
   request: Request;
-  providerName?: PaymentProviderName;
+  /**
+   * 決済プロバイダ名。
+   * Webhook URL の `?provider=<name>` クエリ由来で決定される。
+   * route.ts 側でクエリ未指定時は 400 を返すため、handler 到達時点で必ず確定している。
+   */
+  providerName: PaymentProviderName;
   /** Webhook署名（デバッグ用に記録） */
   webhookSignature?: string;
 };

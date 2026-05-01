@@ -61,13 +61,6 @@ export type ProviderConfig = {
  */
 export const paymentConfig = {
   /**
-   * デフォルトの決済プロバイダ（後方互換用フォールバック）
-   * 通常はメソッド単位の provider 解決を使うため参照不要。
-   * 環境変数 PAYMENT_PROVIDER で切り替え可能。
-   */
-  defaultProvider: (process.env.PAYMENT_PROVIDER || "dummy") as string,
-
-  /**
    * プロバイダ別設定
    * ダウンストリームでプロバイダを追加する場合はここに enabled / methodMapping を定義する。
    */

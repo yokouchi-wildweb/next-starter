@@ -1,10 +1,7 @@
 // src/features/core/purchaseRequest/services/server/wrappers/webhookHandler.ts
 // Webhook処理
 
-import {
-  getPaymentProvider,
-  getDefaultProviderName,
-} from "../payment";
+import { getPaymentProvider } from "../payment";
 import { isDomainError } from "@/lib/errors/domainError";
 import { completePurchase } from "./completePurchase";
 import { failPurchase } from "./failPurchase";
@@ -21,7 +18,7 @@ import type { HandleWebhookParams, HandleWebhookResult } from "./purchaseService
 export async function handleWebhook(
   params: HandleWebhookParams
 ): Promise<HandleWebhookResult> {
-  const { request, providerName = getDefaultProviderName(), webhookSignature } = params;
+  const { request, providerName, webhookSignature } = params;
 
   // 1. プロバイダでWebhookを検証・パース
   const provider = getPaymentProvider(providerName);

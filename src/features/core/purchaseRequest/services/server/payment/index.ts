@@ -44,24 +44,3 @@ export function getPaymentProvider(providerName: PaymentProviderName): PaymentPr
       throw new Error(`Unknown payment provider: ${providerName}`);
   }
 }
-
-/**
- * デフォルトの決済プロバイダ名を取得
- * 環境変数で切り替え可能
- */
-export function getDefaultProviderName(): PaymentProviderName {
-  const envProvider = process.env.PAYMENT_PROVIDER;
-  if (envProvider === "fincode") {
-    return "fincode";
-  }
-  if (envProvider === "square") {
-    return "square";
-  }
-  if (envProvider === "stripe") {
-    return "stripe";
-  }
-  if (envProvider === "komoju") {
-    return "komoju";
-  }
-  return "dummy";
-}

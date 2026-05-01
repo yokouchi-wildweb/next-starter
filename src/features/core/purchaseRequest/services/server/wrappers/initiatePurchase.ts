@@ -6,7 +6,6 @@ import { db } from "@/lib/drizzle";
 import { base } from "../drizzleBase";
 import {
   getPaymentProvider,
-  getDefaultProviderName,
   type PaymentProviderName,
 } from "../payment";
 import {
@@ -70,12 +69,17 @@ export async function initiatePurchase(
   // プロバイダ解決の優先順位:
   //   1. params.paymentProvider が明示指定された場合はそれを使用（A/B テスト・特殊経路用）
   //   2. paymentMethod から resolveProviderForMethod で解決
-  //   3. （後方互換）環境変数の defaultProvider にフォールバック
-  // 通常は 2 が使われる。
-  const paymentProvider: PaymentProviderName =
-    paymentProviderOverride ??
-    (resolveProviderForMethod(paymentMethod) as PaymentProviderName | undefined) ??
-    getDefaultProviderName();
+  // isPaymentMethodSelectable を通過した paymentMethod に対して
+  // resolveProviderForMethod は常に有効な provider を返すため、
+  // 解決失敗は config の整合性が崩れた異常系。500 で fail-fast。
+  const resolvedProvider = paymentProviderOverride ?? resolveProviderForMethod(paymentMethod);
+  if (!resolvedProvider) {
+    throw new DomainError(
+      `支払い方法 "${paymentMethod}" に対応するプロバイダを解決できませんでした。payment.config.ts を確認してください。`,
+      { status: 500 },
+    );
+  }
+  const paymentProvider = resolvedProvider as PaymentProviderName;
 
   // 1. 冪等キーで既存リクエストをチェック
   const existing = await findByIdempotencyKey(idempotencyKey);
