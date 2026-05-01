@@ -33,6 +33,12 @@ export type CreatePaymentSessionParams = {
   amount: number;
   /** ユーザーID */
   userId: string;
+  /**
+   * ユーザーが選択した支払い方法 ID。
+   * paymentConfig.paymentMethods[i].id と一致する値（例: "credit_card", "convenience_store"）。
+   * 各プロバイダはこの値を providerConfig.methodMapping 経由で API 固有 ID に変換して使用する。
+   */
+  paymentMethod: string;
   /** 支払い成功時のリダイレクト先 */
   successUrl: string;
   /** キャンセル時のリダイレクト先 */
@@ -144,7 +150,8 @@ export interface PaymentProvider {
   /**
    * 決済ステータスを照会（Webhook未着時のフォールバック用）
    * @param sessionId 決済セッションID
+   * @param paymentMethod 共通 paymentMethod ID（プロバイダによっては照会 API の引数に必要）
    * @returns 決済ステータス
    */
-  getPaymentStatus?(sessionId: string): Promise<PaymentStatusResult>;
+  getPaymentStatus?(sessionId: string, paymentMethod?: string): Promise<PaymentStatusResult>;
 }

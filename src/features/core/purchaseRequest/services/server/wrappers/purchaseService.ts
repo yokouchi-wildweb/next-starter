@@ -195,7 +195,12 @@ export async function getPurchaseStatusForUser(
         return request;
       }
 
-      const providerStatus = await provider.getPaymentStatus(identifier);
+      // payment_method は購入時にユーザーが選択した値。
+      // Fincode の照会 API は pay_type を要求するため、ここから動的に解決する。
+      const providerStatus = await provider.getPaymentStatus(
+        identifier,
+        request.payment_method ?? undefined,
+      );
 
       if (providerStatus.status === "completed") {
         // 決済完了 → DB更新

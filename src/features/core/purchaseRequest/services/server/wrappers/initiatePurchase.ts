@@ -7,7 +7,12 @@ import { base } from "../drizzleBase";
 import {
   getPaymentProvider,
   getDefaultProviderName,
+  type PaymentProviderName,
 } from "../payment";
+import {
+  isPaymentMethodSelectable,
+  resolveProviderForMethod,
+} from "@/config/app/payment.config";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors/domainError";
@@ -44,7 +49,7 @@ export async function initiatePurchase(
     amount,
     paymentAmount,
     paymentMethod,
-    paymentProvider = getDefaultProviderName(),
+    paymentProvider: paymentProviderOverride,
     baseUrl,
     itemName,
     couponCode,
@@ -53,6 +58,24 @@ export async function initiatePurchase(
     cancelUrl: cancelUrlOverride,
     providerOptions,
   } = params;
+
+  // 支払い方法の妥当性チェック（status="available" かつ provider が enabled）
+  if (!isPaymentMethodSelectable(paymentMethod)) {
+    throw new DomainError(
+      `指定された支払い方法 "${paymentMethod}" は利用できません。`,
+      { status: 400 },
+    );
+  }
+
+  // プロバイダ解決の優先順位:
+  //   1. params.paymentProvider が明示指定された場合はそれを使用（A/B テスト・特殊経路用）
+  //   2. paymentMethod から resolveProviderForMethod で解決
+  //   3. （後方互換）環境変数の defaultProvider にフォールバック
+  // 通常は 2 が使われる。
+  const paymentProvider: PaymentProviderName =
+    paymentProviderOverride ??
+    (resolveProviderForMethod(paymentMethod) as PaymentProviderName | undefined) ??
+    getDefaultProviderName();
 
   // 1. 冪等キーで既存リクエストをチェック
   const existing = await findByIdempotencyKey(idempotencyKey);
@@ -203,6 +226,7 @@ export async function initiatePurchase(
     purchaseRequestId: purchaseRequest.id,
     amount: actualPaymentAmount,
     userId,
+    paymentMethod,
     successUrl,
     cancelUrl,
     metadata: itemName ? { itemName } : undefined,

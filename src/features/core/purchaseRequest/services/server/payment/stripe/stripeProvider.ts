@@ -16,7 +16,7 @@ import {
   STRIPE_PAYMENT_STATUS,
   extractPaymentMethod,
 } from "./errorMapping";
-import { paymentConfig } from "@/config/app/payment.config";
+import { paymentConfig, getProviderApiMethodId } from "@/config/app/payment.config";
 
 /**
  * Stripe 環境設定
@@ -168,9 +168,21 @@ export class StripePaymentProvider implements PaymentProvider {
       }
     }
 
+    // ユーザーが選択した支払い方法を Stripe の payment_method_types 形式に変換する。
+    // 1メソッド = 1プロバイダの設計上、選択された単一メソッドのみを Stripe に渡す。
+    // mapping が存在しない場合は明示的にエラー（共通 ID をそのまま送ると Stripe が拒否するため）。
+    const stripePaymentMethodType = getProviderApiMethodId("stripe", params.paymentMethod);
+    const stripeMappingExists =
+      paymentConfig.providers.stripe?.methodMapping?.[params.paymentMethod];
+    if (!stripeMappingExists) {
+      throw new Error(
+        `[Stripe] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。payment.config.ts を確認してください。`,
+      );
+    }
+
     const body: Record<string, unknown> = {
       mode: "payment",
-      payment_method_types: ["card"],
+      payment_method_types: [stripePaymentMethodType],
       line_items: [
         {
           price_data: {

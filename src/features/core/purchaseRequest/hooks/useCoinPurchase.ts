@@ -15,6 +15,12 @@ type UseCoinPurchaseParams = {
   walletType?: WalletType;
   amount: number;
   paymentAmount: number;
+  /**
+   * ユーザーが選択した支払い方法 ID。
+   * payment.config.ts の paymentMethods[i].id と一致する値（"credit_card" 等）。
+   * サーバー側で provider 解決に使用されるため、UI 上で選択された値を必ず渡すこと。
+   */
+  paymentMethod: string;
   /** 商品名（決済ページに表示） */
   itemName?: string;
   /** クーポンコード（割引適用時） */
@@ -22,7 +28,7 @@ type UseCoinPurchaseParams = {
 };
 
 type UseCoinPurchaseResult = {
-  /** 購入処理を開始（決済方法はリダイレクト先で選択） */
+  /** 購入処理を開始し、選択された支払い方法に対応するプロバイダ画面へリダイレクトする */
   purchase: () => Promise<void>;
   /** 処理中かどうか */
   isLoading: boolean;
@@ -32,12 +38,13 @@ type UseCoinPurchaseResult = {
 
 /**
  * コイン購入を開始するフック
- * 決済ページへのリダイレクトまでを処理
+ * 選択された支払い方法に対応するプロバイダの決済ページへのリダイレクトまでを処理する
  */
 export function useCoinPurchase({
   walletType = defaultWalletType,
   amount,
   paymentAmount,
+  paymentMethod,
   itemName,
   couponCode,
 }: UseCoinPurchaseParams): UseCoinPurchaseResult {
@@ -57,15 +64,16 @@ export function useCoinPurchase({
       setError(null);
 
       try {
-        // 購入開始APIを呼び出し
-        // paymentMethod は決済プロバイダ側で選択されるため、初期値として "redirect" を設定
-        // 実際の決済方法はWebhook受信時に上書きされる
+        // 購入開始 API を呼び出し
+        // paymentMethod はユーザーが選択した値をそのまま送る。
+        // サーバー側で resolveProviderForMethod により担当プロバイダが解決され、
+        // 該当プロバイダの決済画面 URL が redirectUrl として返る。
         const result = await initiatePurchase({
           idempotencyKey,
           walletType,
           amount,
           paymentAmount,
-          paymentMethod: "redirect",
+          paymentMethod,
           itemName,
           couponCode: couponCode || undefined,
         });
@@ -81,7 +89,7 @@ export function useCoinPurchase({
         setIsLoading(false);
       }
     },
-    [idempotencyKey, walletType, amount, paymentAmount, itemName, couponCode]
+    [idempotencyKey, walletType, amount, paymentAmount, paymentMethod, itemName, couponCode]
   );
 
   return { purchase, isLoading, error };

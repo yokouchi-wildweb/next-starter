@@ -25,9 +25,11 @@ export class DummyPaymentProvider implements PaymentProvider {
 
     // ダミー決済確認ページにリダイレクト
     // このページでユーザーが「支払いを完了する」ボタンを押すとWebhookが発火する
+    // payment_method はデモ画面に「ユーザーが選択した支払い方法」を表示する用途で渡す
     const queryParams = new URLSearchParams({
       session_id: sessionId,
       amount: String(params.amount),
+      payment_method: params.paymentMethod,
       success_url: params.successUrl,
       cancel_url: params.cancelUrl,
     });

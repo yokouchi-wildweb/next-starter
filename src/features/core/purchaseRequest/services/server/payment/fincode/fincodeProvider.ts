@@ -18,8 +18,7 @@ import {
   isSuccessEvent,
   extractPaymentMethod,
 } from "./errorMapping";
-import { paymentConfig } from "@/config/app/payment.config";
-import { getProviderPayTypes } from "@/config/app/payment.config";
+import { paymentConfig, getProviderApiMethodId } from "@/config/app/payment.config";
 
 /**
  * Fincode 環境設定
@@ -108,14 +107,31 @@ export class FincodePaymentProvider implements PaymentProvider {
   async createSession(params: CreatePaymentSessionParams): Promise<PaymentSession> {
     const config = this.getConfig();
 
+    // ユーザーが選択した支払い方法を Fincode の pay_type 形式に変換する。
+    // 1メソッド = 1プロバイダの設計上、ここでは選択された単一メソッドのみを渡す。
+    // mapping が無いと Fincode が共通 ID を解釈できないため、明示的にエラーにする。
+    const fincodePayType = getProviderApiMethodId("fincode", params.paymentMethod);
+    if (!fincodePayType || fincodePayType === params.paymentMethod) {
+      // mapping が見つからない場合 getProviderApiMethodId は元の ID をそのまま返すため、
+      // ここで Fincode 側に意図せぬ ID が渡らないよう守る。
+      const mappingExists =
+        paymentConfig.providers.fincode?.methodMapping?.[params.paymentMethod];
+      if (!mappingExists) {
+        throw new Error(
+          `[Fincode] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。payment.config.ts を確認してください。`,
+        );
+      }
+    }
+
     const requestBody = {
       success_url: params.successUrl,
       cancel_url: params.cancelUrl,
       // お支払い画面案内メール送信フラグ: "0" = 送信しない
       guide_mail_send_flag: "0",
       transaction: {
-        // 対応する支払い方法（payment.config.ts の設定に基づく）
-        pay_type: getProviderPayTypes("fincode"),
+        // ユーザーが選択した単一の支払い方法のみを Fincode に渡す
+        // （Fincode 側の選択画面ではこれ1種のみが提示される）
+        pay_type: [fincodePayType],
         amount: String(params.amount),
         // オーダーID（Webhook照合用）- 最大30文字、ハイフン除去
         order_id: params.purchaseRequestId.replace(/-/g, "").slice(0, 30),
@@ -273,21 +289,28 @@ export class FincodePaymentProvider implements PaymentProvider {
    *
    * @param identifier Fincode の `order_id`
    *   （`initiatePurchase` で `purchaseRequest.id` からハイフン除去・30 文字切り詰めした値）
+   * @param paymentMethod 購入時にユーザーが選択した支払い方法 ID。
+   *   照会 API の `pay_type` クエリに必要（メソッドごとに値が異なる）。
+   *   未指定時は後方互換として "Card" を使用する。
    */
-  async getPaymentStatus(identifier: string): Promise<PaymentStatusResult> {
+  async getPaymentStatus(identifier: string, paymentMethod?: string): Promise<PaymentStatusResult> {
     const config = this.getConfig();
 
     if (!identifier) {
       return { status: "pending", sessionId: identifier };
     }
 
+    // Fincode 公式 API 仕様:
+    //   GET /v1/payments/{id}?pay_type=Card
+    //   ({id} は order_id、pay_type は path ではなく query で指定する)
+    // 購入時に選択された pay_type を動的に解決する（mapping が無い場合は Card にフォールバック）。
+    const fincodePayType = paymentMethod
+      ? getProviderApiMethodId("fincode", paymentMethod)
+      : "Card";
+
     try {
-      // Fincode 公式 API 仕様:
-      //   GET /v1/payments/{id}?pay_type=Card
-      //   ({id} は order_id、pay_type は path ではなく query で指定する)
-      // 将来コンビニ / PayPay 等を有効化する場合は pay_type を動的に切替えること。
       const response = await fetch(
-        `${config.apiUrl}/v1/payments/${encodeURIComponent(identifier)}?pay_type=Card`,
+        `${config.apiUrl}/v1/payments/${encodeURIComponent(identifier)}?pay_type=${encodeURIComponent(fincodePayType)}`,
         {
           method: "GET",
           headers: {

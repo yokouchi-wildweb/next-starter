@@ -64,6 +64,11 @@ export type InitiatePurchaseRequest = {
   walletType: string;
   amount: number;
   paymentAmount: number;
+  /**
+   * ユーザーが選択した支払い方法 ID（payment.config.ts の paymentMethods[i].id と一致）。
+   * 例: "credit_card", "convenience_store", "bank_transfer"
+   * サーバー側で provider 解決 (resolveProviderForMethod) に使用される。
+   */
   paymentMethod: string;
   /** 商品名（決済ページに表示） */
   itemName?: string;

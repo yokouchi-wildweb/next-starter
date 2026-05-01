@@ -20,6 +20,8 @@ import {
   extractPaymentMethod,
 } from "./errorMapping";
 import { paymentConfig } from "@/config/app/payment.config";
+// Square Checkout API は payment_method_types のような明示指定を持たないため、
+// methodMapping は「Square が担当するメソッドかどうか」のバリデーション用途で参照する。
 
 /**
  * Square 環境設定
@@ -188,6 +190,17 @@ export class SquarePaymentProvider implements PaymentProvider {
   async createSession(params: CreatePaymentSessionParams): Promise<PaymentSession> {
     const config = this.getConfig();
     const baseUrl = this.getApiBaseUrl();
+
+    // Square が担当しないメソッドが渡ってきた場合は早期にエラー化する。
+    // （resolveProviderForMethod で正しく解決されていれば通常到達しないが、
+    //  paymentProvider 引数で直接 "square" を指定された経路に対する防御。）
+    const squareMappingExists =
+      paymentConfig.providers.square?.methodMapping?.[params.paymentMethod];
+    if (!squareMappingExists) {
+      throw new Error(
+        `[Square] 支払い方法 "${params.paymentMethod}" の methodMapping が定義されていません。payment.config.ts を確認してください。`,
+      );
+    }
 
     // idempotency_keyとしてpurchaseRequestIdを使用
     const idempotencyKey = params.purchaseRequestId;
