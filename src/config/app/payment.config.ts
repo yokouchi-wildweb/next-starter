@@ -202,7 +202,7 @@ export const paymentConfig = {
      * - 振込完了はユーザーが画面から自己申告（POST /api/wallet/purchase/[id]/bank-transfer/confirm）。
      * - fincode 仮想口座とは別メソッドとして並立。
      */
-    { id: "bank_transfer_inhouse", label: "リアルタイム銀行振込", description: "手続き後に即時反映!!", icon: "bank", status: "available", provider: "inhouse" },
+    { id: "bank_transfer_inhouse", label: "リアルタイム銀行振込", description: "手続き後に即時反映されます", icon: "bank", status: "available", provider: "inhouse" },
     { id: "paypay", label: "PayPay", icon: "paypay", status: "coming_soon", provider: "fincode" },
     { id: "amazon_pay", label: "Amazon Pay", icon: "amazon", status: "disabled" },
   ] as PaymentMethodConfig[],

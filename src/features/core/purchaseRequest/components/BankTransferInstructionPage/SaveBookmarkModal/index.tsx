@@ -94,7 +94,7 @@ export function SaveBookmarkModal({ open, onOpenChange, title, url }: Props) {
               icon={<Mail className="h-5 w-5" />}
               iconAccent="bg-sky-500/10 text-sky-600"
               label="メールで送る"
-              description="メーラーが起動し、自分宛てに保管できます"
+              description="メールを自分宛てに送付して保管できます"
               onClick={handleEmail}
             />
             {canNativeShare ? (
@@ -102,7 +102,7 @@ export function SaveBookmarkModal({ open, onOpenChange, title, url }: Props) {
                 icon={<Share2 className="h-5 w-5" />}
                 iconAccent="bg-primary/10 text-primary"
                 label="その他で共有"
-                description="LINE などの送信先を OS の共有シートから選べます"
+                description="LINEなどの送信先を共有シートで選べます"
                 onClick={handleNativeShare}
               />
             ) : (
@@ -120,7 +120,7 @@ export function SaveBookmarkModal({ open, onOpenChange, title, url }: Props) {
         <Block className="rounded-md border border-border/60 bg-muted/30 px-3 py-2">
           <Flex align="center" gap="xs">
             <Para size="xs" tone="muted" className="my-0">
-              ヒント: このページをブックマークに登録しておくと、いつでもこの画面を開けます。
+              このページをブックマークに登録しておくと、いつでも閲覧できます。
             </Para>
           </Flex>
         </Block>
