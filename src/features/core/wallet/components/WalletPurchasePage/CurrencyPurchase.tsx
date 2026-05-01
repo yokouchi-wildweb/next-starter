@@ -46,19 +46,21 @@ export function CurrencyPurchase({
 
   // 進行中の自社銀行振込を取得し、ある場合は bank_transfer_inhouse を選択不可化する
   // （サーバー側の validateInitiation が並行ブロックする仕様の UI 反映）
+  // クリックで進行中セッションの redirectUrl へ復帰させる
   const { data: activeBankTransfer } = useActiveBankTransfer();
-  const hasActiveBankTransfer = Boolean(activeBankTransfer?.active);
+  const activeRedirectUrl = activeBankTransfer?.active?.redirectUrl ?? null;
 
   const blockedMethods = useMemo<BlockedPaymentMethod[]>(() => {
-    if (!hasActiveBankTransfer) return [];
+    if (!activeRedirectUrl) return [];
     return [
       {
         id: INHOUSE_BANK_TRANSFER_METHOD_ID,
         badge: "進行中",
         message: "現在お振込み中のご購入があります",
+        redirectUrl: activeRedirectUrl,
       },
     ];
-  }, [hasActiveBankTransfer]);
+  }, [activeRedirectUrl]);
 
   // 選択中のメソッドが後からブロック対象になった場合は未選択に戻す（押下できないボタンが選択状態のまま残るのを防ぐ）
   useEffect(() => {

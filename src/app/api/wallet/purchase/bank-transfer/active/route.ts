@@ -57,6 +57,7 @@ function buildRedirectUrl(
   walletType: WalletType | null,
   purchaseRequestId: string,
   status: ActiveStatus,
+  mode: BankTransferReviewMode | null,
 ): string {
   if (!walletType) return "";
   const slug = getSlugByWalletType(walletType);
@@ -65,12 +66,18 @@ function buildRedirectUrl(
     return `/wallet/${slug}/purchase/bank-transfer/${purchaseRequestId}`;
   }
 
-  // status === "pending_review"
-  // findActiveByUser が mode=approval_required のみを返すため、ここに到達するのは
-  // 確認モードの確認待ちレビューだけ（immediate モードは申告完了時点で
-  // ユーザー視点では完了扱いとなり active 検出対象外）。
-  // 詳細: findHelpers.ts の findActiveByUser コメント参照
-  return `/wallet/${slug}/purchase/awaiting-review?request_id=${purchaseRequestId}`;
+  // status === "pending_review" + purchase_request.status=processing が確定している
+  // (findActiveByUser が JOIN で絞り込み済み)。
+  //
+  // - mode=approval_required: 通常の管理者承認待ち → 確認待ちページに誘導
+  // - mode=immediate: 申告は受け付けたが completePurchase が失敗して通貨未付与の
+  //   異常状態。振込案内ページに戻して再申告（画像差し替えで completePurchase 再試行）
+  //   で回復させる。UI 側はレスポンスの mode を見て「再申告が必要」のメッセージを
+  //   出し分けることを推奨。
+  if (mode === "approval_required") {
+    return `/wallet/${slug}/purchase/awaiting-review?request_id=${purchaseRequestId}`;
+  }
+  return `/wallet/${slug}/purchase/bank-transfer/${purchaseRequestId}`;
 }
 
 export const GET = createApiRoute(
@@ -109,6 +116,7 @@ export const GET = createApiRoute(
             walletType,
             review.purchase_request_id,
             "pending_review",
+            review.mode,
           ),
         },
       };
@@ -143,7 +151,7 @@ export const GET = createApiRoute(
         status: "pre_submit",
         mode: null,
         submittedAt: null,
-        redirectUrl: buildRedirectUrl(walletType, pr.id, "pre_submit"),
+        redirectUrl: buildRedirectUrl(walletType, pr.id, "pre_submit", null),
       },
     };
   },

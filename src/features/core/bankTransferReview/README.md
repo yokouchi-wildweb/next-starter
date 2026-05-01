@@ -215,13 +215,25 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 #### `GET /api/wallet/purchase/bank-transfer/active`
 **ユーザーがまだアクション必要な振込** を 1 件返す（バナー表示判定用）。
 
-「ユーザーがアクション必要」の定義:
-- 振込前 (`pre_submit`) — 両モード共通で「振込手続きをしてください」案内が必要
-- 確認モードの申告済み (`pending_review` + `mode=approval_required`) — 通貨未付与で承認待ち
+検出条件は **`purchase_request.status=processing`** を判定軸に置く（review status だけ
+では不十分なため JOIN で絞り込む）:
 
-即時モード (`immediate`) の `pending_review` レビュー（管理者の事後確認待ち）は、
-通貨は既に付与済みなのでユーザー視点では完了扱いとなり、active 検出の対象外。
-管理画面側ではこれらも `pending_review` として一覧に出るので別軸の判定。
+| 状態 | active? | 誘導先 |
+|---|---|---|
+| 振込前 (review なし、purchase_request=processing) | ✅ | 振込案内ページ |
+| 確認モード申告済み (pending_review + processing) | ✅ | 確認待ちページ |
+| **即時モード申告済みで completePurchase 失敗** (pending_review + **processing**) | ✅ | 振込案内ページ (再申告で回復) |
+| 即時モード正常完了 (pending_review + completed) | ❌ | — |
+| 確認モード承認後の review 残り (pending_review + completed、稀) | ❌ | — |
+| confirmed / rejected | ❌ | — |
+
+即時モードで completePurchase が失敗した状態 (異常) もここで検出することで、ユーザーは
+バナー → 振込案内ページ → 再申告 (画像差し替えで completePurchase 再試行) というルートで
+自助回復できる。UI 側は mode + status の組み合わせで「再申告が必要」のメッセージを
+出し分けることを推奨。
+
+管理画面側では `pending_review` 全件を一覧表示するので別軸の判定（事後の振込確認は
+管理者が実施）。
 
 **レスポンス**:
 ```ts

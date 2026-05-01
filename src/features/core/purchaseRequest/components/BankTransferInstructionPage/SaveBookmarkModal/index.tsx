@@ -3,11 +3,11 @@
 // 「この画面を保存」モーダルの本体。
 //
 // 構成:
-//   1. URL プレビューカード（タイトル + URL + コピーボタン）
-//   2. 共有アクションリスト
+//   1. 説明テキスト（保存の意義 + ブックマーク推奨）
+//   2. URL プレビューカード（タイトル + URL + コピーボタン）
+//   3. 共有アクションリスト
 //      - メールで送る（mailto）
 //      - その他で共有（navigator.share）/ 利用不可端末では URL コピーにフォールバック
-//   3. ブックマーク案内（1 行のヒント）
 //
 // 振込完了後にユーザーがこの画面に再訪して「振込完了を申告する」を押せるよう、
 // URL を確実に手元に保管してもらうための導線を集約する。
@@ -20,8 +20,6 @@
 import { Mail, Share2 } from "lucide-react";
 
 import Modal from "@/components/Overlays/Modal";
-import { Block } from "@/components/Layout/Block";
-import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { useToast } from "@/lib/toast";
@@ -83,6 +81,10 @@ export function SaveBookmarkModal({ open, onOpenChange, title, url }: Props) {
       className="p-4 gap-4"
     >
       <Stack space={4}>
+        <Para size="sm" tone="muted" className="my-0">
+          この画面を保存しておけばブラウザを閉じてもいつでも確認することができます。ブックマーク登録もおすすめします。
+        </Para>
+
         <UrlPreviewCard title={title} url={url} />
 
         <Stack space={2}>
@@ -116,14 +118,6 @@ export function SaveBookmarkModal({ open, onOpenChange, title, url }: Props) {
             )}
           </Stack>
         </Stack>
-
-        <Block className="rounded-md border border-border/60 bg-muted/30 px-3 py-2">
-          <Flex align="center" gap="xs">
-            <Para size="xs" tone="muted" className="my-0">
-              このページをブックマークに登録しておくと、いつでも閲覧できます。
-            </Para>
-          </Flex>
-        </Block>
       </Stack>
     </Modal>
   );

@@ -9,8 +9,9 @@
 
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Check, CreditCard, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
+import { Check, ChevronRight, CreditCard, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";
@@ -87,7 +88,10 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
   const Icon = resolveIcon(method.icon);
   const isComingSoon = method.status === "coming_soon";
   const isBlocked = blocked !== undefined;
-  // インタラクティブにするかどうか（blocked は coming_soon と同じく非インタラクティブ）
+  // 「ブロック中だがクリックで進行中セッションへ戻れる」モード（redirectUrl 指定時）
+  const blockedRedirectUrl = blocked?.redirectUrl;
+  const isBlockedClickable = isBlocked && blockedRedirectUrl !== undefined;
+  // インタラクティブにするかどうか（選択ボタンとして動くか）
   const isInteractive = !isComingSoon && !isBlocked;
 
   // カード本体のクラス（状態別）
@@ -96,7 +100,11 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
   // ※ 背景色は常に不透明な bg-card 系で保持し、半透明 tint (bg-primary/5 等) は使わない。
   //   半透明だと親要素が透けて選択時に見た目が抜けて見えるため。
   let cardClasses: string;
-  if (isBlocked) {
+  if (isBlockedClickable) {
+    // 進行中セッションへの復帰リンクとして機能する。opacity を落とさず hover 効果を持たせる
+    cardClasses =
+      "rounded-lg border-2 border-dashed border-destructive/40 bg-background transition-colors hover:bg-destructive/5";
+  } else if (isBlocked) {
     cardClasses =
       "rounded-lg border-2 border-dashed border-destructive/40 bg-background opacity-70";
   } else if (isComingSoon) {
@@ -163,7 +171,13 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
         )}
       </Stack>
       {isBlocked ? (
-        <BlockedBadge label={blocked.badge ?? "進行中"} />
+        <Flex align="center" gap="xs">
+          <BlockedBadge label={blocked.badge ?? "進行中"} />
+          {/* クリックで進行中セッションへ復帰できることを示すシェブロン */}
+          {isBlockedClickable && (
+            <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-destructive/60" />
+          )}
+        </Flex>
       ) : isComingSoon ? (
         <ComingSoonBadge />
       ) : (
@@ -171,6 +185,17 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
       )}
     </Flex>
   );
+
+  // ブロック中 + redirectUrl あり: 進行中セッションへの復帰リンクとして機能する
+  if (isBlockedClickable) {
+    return (
+      <Link href={blockedRedirectUrl} className="block">
+        <Block className={`${cardClasses} cursor-pointer`} padding="md">
+          {innerContent}
+        </Block>
+      </Link>
+    );
+  }
 
   // 非インタラクティブ (blocked / coming_soon): 静的 Block で表示
   if (!isInteractive) {
@@ -207,6 +232,12 @@ export type BlockedPaymentMethod = {
   badge?: string;
   /** 補足説明（method.description を上書き）。理由案内に使う */
   message?: string;
+  /**
+   * 指定時、カードがクリック可能になり、押下するとこの URL へ遷移する。
+   * 進行中セッションがあるときに「その案内画面に復帰する」復帰導線として使う。
+   * 省略時はカードは選択不可かつクリック不可（純粋な disabled 表示）。
+   */
+  redirectUrl?: string;
 };
 
 type SupportedPaymentMethodsProps = {

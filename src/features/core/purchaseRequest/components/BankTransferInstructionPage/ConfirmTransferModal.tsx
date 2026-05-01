@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { mutate as swrMutate } from "swr";
 
 import Modal from "@/components/Overlays/Modal";
 import { Block } from "@/components/Layout/Block";
@@ -25,8 +26,23 @@ import { Para, Span } from "@/components/TextBlocks";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors/httpError";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 import { submitBankTransferProof } from "@/features/core/bankTransferReview";
+
+/** useActiveBankTransfer の SWR key と一致させる */
+const ACTIVE_BANK_TRANSFER_KEY = "/api/wallet/purchase/bank-transfer/active";
+
+/**
+ * サーバーから受け取った redirectUrl が「同一オリジン内の相対 URL」かを検証する。
+ * - 先頭が "/" で始まる
+ * - "//evil.com" のようなプロトコル相対 URL を排除
+ * 万が一サーバー応答が改竄された場合の Open Redirect への defense-in-depth。
+ */
+function isSafeRelativeRedirect(url: string): boolean {
+  if (typeof url !== "string" || url === "") return false;
+  return url.startsWith("/") && !url.startsWith("//");
+}
 
 type Props = {
   open: boolean;
@@ -37,7 +53,6 @@ type Props = {
 };
 
 export function ConfirmTransferModal({ open, onOpenChange, requestId, proofImageUrl }: Props) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   // 同意チェックは「ご注意」を読んだ上での確定アクションとして必須にする。
   // モーダルを開くたびに未チェック状態に戻す（毎回の確認を強制）
   const [agreed, setAgreed] = useState(false);
@@ -47,9 +62,11 @@ export function ConfirmTransferModal({ open, onOpenChange, requestId, proofImage
     if (open) setAgreed(false);
   }, [open]);
 
-  const handleConfirm = async () => {
-    if (isSubmitting || !agreed) return;
-    setIsSubmitting(true);
+  // useAsyncAction: useRef ベースの排他ロックで二重送信を確実に防止する。
+  // setState ベースの guard では state 更新の非同期性で稀に race するため、
+  // 不可逆操作 (申告 = 通貨付与) ではこちらを使う。
+  const { execute, isExecuting: isSubmitting } = useAsyncAction(async () => {
+    if (!agreed) return;
     try {
       // mode に応じてサーバー側が redirectUrl を返す:
       //   - immediate          → /wallet/[slug]/purchase/complete?...
@@ -58,17 +75,27 @@ export function ConfirmTransferModal({ open, onOpenChange, requestId, proofImage
         purchaseRequestId: requestId,
         proofImageUrl,
       });
+
+      // 申告完了で active 状態（pending_review / pre_submit）が変わるため SWR キャッシュを無効化。
+      // 通常は直後の window.location.href で full reload されるが、redirectUrl が空のフォールバック
+      // パスや別タブでバナーを表示中のケースをカバーする。
+      await swrMutate(ACTIVE_BANK_TRANSFER_KEY);
+
       if (result.redirectUrl) {
+        if (!isSafeRelativeRedirect(result.redirectUrl)) {
+          showToast("リダイレクト URL が不正です。", "error");
+          return;
+        }
         window.location.href = result.redirectUrl;
         return;
       }
       showToast("申告を受け付けました", "success");
       onOpenChange(false);
     } catch (e) {
+      // catch 内で握りつぶす（useAsyncAction の finally でロック解除されリトライ可能）
       showToast(err(e, "申告に失敗しました"), "error");
-      setIsSubmitting(false);
     }
-  };
+  });
 
   // 送信中の close 操作は無視（二重送信や中断による不整合を防ぐ）
   const handleOpenChange = (next: boolean) => {
@@ -162,7 +189,7 @@ export function ConfirmTransferModal({ open, onOpenChange, requestId, proofImage
           <Button
             type="button"
             variant="default"
-            onClick={handleConfirm}
+            onClick={() => execute()}
             disabled={isSubmitting || !agreed}
           >
             {isSubmitting ? (

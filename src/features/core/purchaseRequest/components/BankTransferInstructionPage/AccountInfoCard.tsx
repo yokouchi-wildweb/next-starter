@@ -8,7 +8,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye } from "lucide-react";
+import { Landmark } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
@@ -47,7 +47,7 @@ export function AccountInfoCard({ account, identifier, expiresAt }: Props) {
               className="w-full max-w-xs"
               onClick={() => setOpen(true)}
             >
-              <Eye className="h-4 w-4" />
+              <Landmark className="h-4 w-4" />
               入金先口座を表示
             </Button>
           </Flex>
