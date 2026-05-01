@@ -121,7 +121,7 @@ export const APP_FEATURES = {
      * - none: 制限なし
      * - phoneVerified: SMS認証済みユーザーのみ購入可能
      */
-    purchaseRestriction: "none" as WalletPurchaseRestriction,
+    purchaseRestriction: "phoneVerified" as WalletPurchaseRestriction,
     /**
      * 通貨購入の一時停止設定
      * enabled: true かつスケジュール期間内の場合、全通貨の購入を停止する
