@@ -9,9 +9,11 @@ import {
   type PaymentProviderName,
 } from "../payment";
 import {
+  getProviderSessionExpiryMinutes,
   isPaymentMethodSelectable,
   resolveProviderForMethod,
 } from "@/config/app/payment.config";
+import { generateInhouseTransferIdentifier } from "../payment/inhouse";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors/domainError";
@@ -80,6 +82,9 @@ export async function initiatePurchase(
     );
   }
   const paymentProvider = resolvedProvider as PaymentProviderName;
+  // プロバイダインスタンスは validateInitiation と createSession の両方で使うため早期に取得。
+  // getPaymentProvider は switch + return の軽量関数なので早期取得しても副作用なし。
+  const provider = getPaymentProvider(paymentProvider);
 
   // 1. 冪等キーで既存リクエストをチェック
   const existing = await findByIdempotencyKey(idempotencyKey);
@@ -90,6 +95,21 @@ export async function initiatePurchase(
       return handleExistingRequest(existing);
     }
     // pending → 以下のバリデーション・クーポン検証・セッション作成フローに合流
+  }
+
+  // 1.5. プロバイダ固有の事前チェック（自社銀行振込の並行ブロックなど）
+  //      冪等キー pending 再利用ケースではスキップする（自分自身を並行扱いしないため）。
+  //      validateInitiation が「既存リクエストへ誘導」を返した場合は新規作成せず早期リターン。
+  if (!existing && provider.validateInitiation) {
+    const guard = await provider.validateInitiation({
+      userId,
+      paymentMethod,
+      purchaseType,
+      walletType: walletType ?? null,
+    });
+    if (guard?.kind === "redirect") {
+      return handleExistingRequest(guard.existing);
+    }
   }
 
   // 2. purchase_type に対応する戦略を解決し、戦略固有の事前バリデーション（パッケージ照合等）を委譲
@@ -178,7 +198,12 @@ export async function initiatePurchase(
       payment_method: paymentMethod,
       payment_provider: paymentProvider,
       status: "pending" as const,
-      expires_at: new Date(Date.now() + 30 * 60 * 1000), // 30分後
+      // expires_at: プロバイダ別に有効期限を設定（payment.config.ts の sessionExpiryMinutes、
+      // 未指定時は PROVIDER_DEFAULT_SESSION_EXPIRY_MINUTES = 30 分）。
+      // 銀行振込のように振込確定までユーザーの実時間が必要なプロバイダは長めに設定する。
+      expires_at: new Date(
+        Date.now() + getProviderSessionExpiryMinutes(paymentProvider) * 60 * 1000,
+      ),
       // 下流向け汎用メタデータ（opaque JSONB）
       metadata: metadata ?? null,
       // クーポン情報（適用時のみ記録）
@@ -205,9 +230,7 @@ export async function initiatePurchase(
     }
   }
 
-  // 5. 決済プロバイダでセッション作成
-  const provider = getPaymentProvider(paymentProvider);
-
+  // 5. 決済プロバイダでセッション作成（provider は冒頭で取得済み）
   // ユーザー情報を取得（決済ページで事前入力用）
   const user = await userService.get(userId);
   const buyerEmail = user?.email || undefined;
@@ -237,6 +260,11 @@ export async function initiatePurchase(
     buyerEmail,
     buyerPhoneNumber,
     providerOptions,
+    // 自社プロバイダが自社内 URL を組み立てるために参照するコンテキスト。
+    // 外部リダイレクト型プロバイダ（Square / Fincode 等）は通常使用しない。
+    purchaseType,
+    walletType: walletType ?? null,
+    baseUrl,
   };
 
   // セッションエンリッチャー（登録されていればパラメータを拡張）
@@ -248,10 +276,16 @@ export async function initiatePurchase(
   const session = await provider.createSession(sessionParams);
 
   // 6. セッション情報を記録（status: processing）
-  // プロバイダ固有の識別子を保存（Fincode: order_id = UUID のハイフン除去・30文字切り詰め）
-  const providerOrderId = paymentProvider === "fincode"
-    ? purchaseRequest.id.replace(/-/g, "").slice(0, 30)
-    : undefined;
+  // プロバイダ固有の識別子を保存。
+  // - Fincode: order_id = UUID のハイフン除去・30 文字切り詰め
+  // - inhouse: 振込氏名末尾用の 8 文字識別子（generateInhouseTransferIdentifier）
+  // 将来プロバイダ別フックに移譲する余地あり（現状は config 駆動 + ここでの分岐で十分）。
+  let providerOrderId: string | undefined;
+  if (paymentProvider === "fincode") {
+    providerOrderId = purchaseRequest.id.replace(/-/g, "").slice(0, 30);
+  } else if (paymentProvider === "inhouse") {
+    providerOrderId = generateInhouseTransferIdentifier(purchaseRequest.id);
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updated = await base.update(purchaseRequest.id, {
     status: "processing",

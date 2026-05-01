@@ -5,13 +5,16 @@ import { dummyPaymentProvider } from "./dummyProvider";
 import { fincodePaymentProvider } from "./fincode";
 import { squarePaymentProvider } from "./square";
 import { stripePaymentProvider } from "./stripe";
+import { inhousePaymentProvider } from "./inhouse";
 
 export type { PaymentProvider, CreatePaymentSessionParams, PaymentSession, PaymentResult } from "@/features/core/purchaseRequest/types/payment";
 
 /**
  * 利用可能な決済プロバイダ名
+ *
+ * - inhouse: 自社受付の銀行振込（外部 Webhook を持たず、ユーザーの自己申告 API で完了）
  */
-export type PaymentProviderName = "dummy" | "komoju" | "fincode" | "square" | "stripe";
+export type PaymentProviderName = "dummy" | "komoju" | "fincode" | "square" | "stripe" | "inhouse";
 
 /**
  * 決済プロバイダを取得
@@ -35,6 +38,9 @@ export function getPaymentProvider(providerName: PaymentProviderName): PaymentPr
 
     case "stripe":
       return stripePaymentProvider;
+
+    case "inhouse":
+      return inhousePaymentProvider;
 
     case "komoju":
       // TODO: KOMOJU実装後に有効化

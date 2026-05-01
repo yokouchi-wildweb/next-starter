@@ -1,5 +1,9 @@
 // src/features/core/purchaseRequest/types/payment.ts
 
+import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
+import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
+import type { WalletTypeValue } from "@/features/core/wallet/types/field";
+
 /**
  * 購入者住所情報（決済ページで事前入力）
  * Square の buyer_address に対応するプロバイダ非依存な型
@@ -53,6 +57,23 @@ export type CreatePaymentSessionParams = {
   buyerAddress?: BuyerAddress;
   /** プロバイダ固有のオプション（下流から自由に渡せる） */
   providerOptions?: Record<string, unknown>;
+  /**
+   * 購入の履行形態（wallet_topup / direct_sale 等）。
+   * 自社プロバイダが purchase_type 別に振る舞いを変えたい場合に参照する。
+   */
+  purchaseType?: PurchaseTypeKey;
+  /**
+   * 加算対象のウォレット種別（wallet_topup のときのみ非 null）。
+   * 自社内の遷移先 URL を組み立てる必要があるプロバイダ（例: 自社銀行振込の振込案内ページ）が
+   * slug 解決のために使う。外部決済プロバイダは通常使用しない。
+   */
+  walletType?: WalletTypeValue | null;
+  /**
+   * アプリのオリジン URL（例: https://example.com）。
+   * 自社内の絶対 URL を組み立てる必要があるプロバイダで使用する。
+   * 通常の外部リダイレクト型プロバイダは successUrl / cancelUrl で十分なので参照しない。
+   */
+  baseUrl?: string;
 };
 
 /**
@@ -98,6 +119,35 @@ export type PaymentResult = {
   /** エラーメッセージ */
   errorMessage?: string;
 };
+
+/**
+ * provider.validateInitiation に渡されるコンテキスト。
+ *
+ * initiatePurchase が「冪等キーで既存が見つからなかった新規リクエスト」に対し、
+ * purchase_request 作成の直前にプロバイダ固有の事前チェックを実行する用途で使う。
+ * （冪等キー再利用の pending 上書きケースでは呼ばれない。自分自身を並行扱いにしないため。）
+ */
+export type InitiationGuardContext = {
+  userId: string;
+  /** ユーザーが選択した支払い方法 ID（payment.config.ts の paymentMethods[i].id） */
+  paymentMethod: string;
+  /** 購入の履行形態 */
+  purchaseType: PurchaseTypeKey;
+  /** 加算対象ウォレット種別（wallet_topup のときのみ非 null） */
+  walletType: WalletTypeValue | null;
+};
+
+/**
+ * provider.validateInitiation の戻り値。
+ *
+ * - undefined を返した場合は通常通り新規 purchase_request の作成に進む。
+ * - { kind: "redirect", existing } を返した場合、initiatePurchase は新規作成せず、
+ *   その既存リクエストを handleExistingRequest 相当のレスポンスとしてクライアントに返す。
+ *   （自社銀行振込の「同一ユーザーで未完了の振込が既にある場合は新規作成せず既存案内ページへ」用途）
+ */
+export type InitiationGuardResult =
+  | { kind: "redirect"; existing: PurchaseRequest }
+  | undefined;
 
 /**
  * 決済ステータス照会結果（ポーリング用）
@@ -154,4 +204,19 @@ export interface PaymentProvider {
    * @returns 決済ステータス
    */
   getPaymentStatus?(sessionId: string, paymentMethod?: string): Promise<PaymentStatusResult>;
+
+  /**
+   * 新規 purchase_request 作成の直前に呼ばれるプロバイダ固有の事前チェック。
+   *
+   * 冪等キーによる既存 pending の再利用ケースでは呼ばれない（自分自身を並行扱いしないため）。
+   * 同一ユーザーが既に未完了の同種リクエストを持っている場合に、新規作成を阻止して
+   * 既存リクエストを再開させたいプロバイダ（自社銀行振込など）が実装する。
+   *
+   * - undefined を返す → 新規作成へ進む
+   * - { kind: "redirect", existing } を返す → 新規作成せず既存リクエストへ誘導
+   * - throw する → そのままエラーレスポンス（DomainError 等）
+   *
+   * 外部決済プロバイダ（Square / Fincode 等）は通常実装不要。
+   */
+  validateInitiation?(ctx: InitiationGuardContext): Promise<InitiationGuardResult>;
 }
