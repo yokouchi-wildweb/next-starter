@@ -27,6 +27,7 @@ import type {
   BankTransferReview,
   BankTransferReviewMode,
 } from "@/features/bankTransferReview/entities/model";
+import { validateProofImageUrl } from "@/features/bankTransferReview/utils/validateProofImageUrl";
 
 import { base } from "../drizzleBase";
 import { findByPurchaseRequest } from "./findHelpers";
@@ -70,6 +71,12 @@ export async function submitReview(
       { status: 400 },
     );
   }
+
+  // 2.5. 振込明細画像 URL の検証
+  //      Firebase Storage の正規 URL かつパスが本リクエスト専用の固定パスと完全一致するか
+  //      確認する。任意の外部 URL の保存と他ユーザー画像の URL 流用を同時に防ぐ。
+  //      認可・メソッド整合チェック後に実施することで、URL 検証による情報漏洩を回避。
+  validateProofImageUrl(proofImageUrl, purchaseRequestId);
 
   // 3. status 検証
   //    - processing: 通常の申告対象（immediate / approval_required どちらも）
