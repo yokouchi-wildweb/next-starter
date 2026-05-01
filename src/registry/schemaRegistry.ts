@@ -12,6 +12,7 @@ export * from "@/features/setting/entities/drizzle";
 export * from "@/features/wallet/entities/drizzle";
 export * from "@/features/walletHistory/entities/drizzle";
 export * from "@/features/purchaseRequest/entities/drizzle";
+export * from "@/features/bankTransferReview/entities/drizzle";
 export * from "@/features/coupon/entities/drizzle";
 export * from "@/features/couponHistory/entities/drizzle";
 export * from "@/features/rateLimit/entities/drizzle";

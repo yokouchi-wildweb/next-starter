@@ -28,6 +28,7 @@
       "@/features/adminCommand/*": ["./src/features/core/adminCommand/*"],
       "@/features/analytics/*": ["./src/features/core/analytics/*"],
       "@/features/auditLog/*": ["./src/features/core/auditLog/*"],
+      "@/features/bankTransferReview/*": ["./src/features/core/bankTransferReview/*"],
       "@/features/auth/*": ["./src/features/core/auth/*"],
       "@/features/coupon/*": ["./src/features/core/coupon/*"],
       "@/features/couponHistory/*": ["./src/features/core/couponHistory/*"],
