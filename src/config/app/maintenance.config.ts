@@ -36,6 +36,9 @@ export const maintenanceConfig = {
   ],
 
   // バイパスできるロール（これらのロールを持つユーザーは制限を受けない）
+  // 拡張ポイント: より細かい条件（特定 userId、IP、機能フラグ等）を追加したい場合は
+  //   src/features/core/setting/utils/maintenanceBypass.ts の canBypassMaintenance を編集する。
+  //   そこが proxy と /api/health の両方から参照される単一情報源となっている。
   bypassRoles: ['admin', 'debugger'] as const,
 
   // メンテナンス中のリダイレクト先

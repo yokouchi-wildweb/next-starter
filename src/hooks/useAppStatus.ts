@@ -6,7 +6,12 @@ import { useCallback, useEffect, useRef } from "react";
 
 type AppStatus = {
   buildId: string;
-  maintenance: boolean;
+  maintenance: {
+    /** メンテナンスモードが有効か（raw 状態） */
+    active: boolean;
+    /** 当該 viewer がバイパス可能か（true なら active でもブロックしない） */
+    bypassed: boolean;
+  };
 };
 
 type UseAppStatusOptions = {
@@ -52,8 +57,9 @@ export function useAppStatus(options: UseAppStatusOptions = {}) {
 
       const data: AppStatus = await res.json();
 
-      // メンテナンス検知
-      if (data.maintenance) {
+      // メンテナンス検知（viewer 視点で実際にブロックされる場合のみ発火）
+      // bypass 判定は /api/health 側で評価済み（proxy と同一ロジック）
+      if (data.maintenance.active && !data.maintenance.bypassed) {
         onMaintenanceRef.current?.();
         return;
       }

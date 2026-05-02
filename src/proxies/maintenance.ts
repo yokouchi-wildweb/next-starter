@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { maintenanceConfig } from "@/config/app/maintenance.config";
 import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
 import { settingService } from "@/features/core/setting/services/server/settingService";
+import { canBypassMaintenance } from "@/features/core/setting/utils/maintenanceBypass";
 import { parseSessionCookie } from "@/lib/jwt";
 
 import type { ProxyHandler } from "./types";
@@ -46,12 +47,11 @@ export const maintenanceProxy: ProxyHandler = async (request) => {
     return;
   }
 
-  // セッションを取得してロールをチェック
+  // セッションを取得してバイパス判定（判定ロジックは canBypassMaintenance に集約）
   const token = parseSessionCookie(request.cookies);
   const sessionUser = token ? await resolveSessionUser(token) : null;
 
-  // バイパス可能なロールならスキップ
-  if (sessionUser && maintenanceConfig.bypassRoles.includes(sessionUser.role as typeof maintenanceConfig.bypassRoles[number])) {
+  if (canBypassMaintenance(sessionUser)) {
     return;
   }
 
