@@ -44,10 +44,13 @@ export function AdminOuterLayout({
       style={layoutStyle}
     >
       <Header />
-      {/* ヘッダー固定 + メイン領域だけスクロール可能にする土台。
-          保護下ではこの中で AdminProtectedLayout が h-full を取り、内部で独自スクロールするため
-          ここの overflow-y-auto は事実上 login/setup などフォールバック用 */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">{children}</div>
+      {/* ヘッダー固定 + メイン領域は配下が独自にスクロールを担う土台。
+          かつてここを overflow-y-auto にしていたが、AdminProtectedLayout / InsaneProtectedLayout
+          配下にもう一段 overflow-y-auto があるため二重スクロールとなり、フォーム再 render 時の
+          フォーカス自動スクロールで外側がジャンプしレイアウトが崩れる問題が発生していた。
+          配下のレイアウト（ResizableArea / InsaneResizableArea / login・setup の Main）が
+          自前でスクロール可能領域を確保する前提とする。 */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">{children}</div>
     </div>
   );
 }

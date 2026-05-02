@@ -57,7 +57,9 @@ export function InsaneResizableArea({
         />
       ) : null}
 
-      <div className="flex-1 min-h-0 min-w-0 overflow-x-hidden">{children}</div>
+      {/* メイン領域: 縦スクロールはここで担う。AdminOuterLayout 側は overflow-hidden に変更されたため、
+          insane 配下でコンテンツが画面高を超える場合のスクロール責務はこのコンテナが持つ。 */}
+      <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">{children}</div>
     </div>
   );
 }
