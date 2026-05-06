@@ -10,12 +10,14 @@ import type {
   WalletTypeFilter,
   UserFilter,
 } from "@/features/core/analytics/types/common";
-import { MAX_DISTRIBUTION_BOUNDARIES } from "@/features/core/analytics/constants";
 import { buildUserFilterConditions } from "./utils/userFilter";
 import {
   resolveDateRange,
   formatDateRangeForResponse,
 } from "./utils/dateRange";
+import { buildBucketExpr } from "./utils/distribution";
+
+export { parseBoundaries, BOUNDARIES_ERROR_MESSAGE } from "./utils/distribution";
 
 // ============================================================================
 // 型定義
@@ -64,32 +66,6 @@ export type PurchaseDistributionParams = DateRangeParams &
 // ============================================================================
 
 const VALID_METRICS: DistributionMetric[] = ["coinAmount", "paymentAmount"];
-
-/**
- * boundaries パラメータをパースしてバリデーションする
- * @returns パース済み境界値配列、不正な場合は null
- */
-export function parseBoundaries(raw: string): number[] | null {
-  const parts = raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (parts.length === 0 || parts.length > MAX_DISTRIBUTION_BOUNDARIES)
-    return null;
-
-  const numbers = parts.map(Number);
-
-  // 全て正の整数であること
-  if (numbers.some((n) => !Number.isFinite(n) || n <= 0 || !Number.isInteger(n)))
-    return null;
-
-  // 昇順かつ重複なし
-  for (let i = 1; i < numbers.length; i++) {
-    if (numbers[i] <= numbers[i - 1]) return null;
-  }
-
-  return numbers;
-}
 
 export function parseMetric(raw: string | null): DistributionMetric | undefined {
   if (raw && VALID_METRICS.includes(raw as DistributionMetric)) {
@@ -186,21 +162,6 @@ export async function getPurchaseDistribution(
 // ============================================================================
 // 内部ヘルパー
 // ============================================================================
-
-/**
- * CASE WHEN式でユーザー合計額をバケットに振り分ける
- * boundaries を降順に評価し、最初に一致した境界値を返す（最下位は 0）
- */
-function buildBucketExpr(
-  metricRef: SQL.Aliased<number>,
-  boundaries: number[],
-): SQL {
-  const desc = [...boundaries].sort((a, b) => b - a);
-  const whenClauses = desc.map(
-    (b) => sql`WHEN ${metricRef} >= ${b} THEN ${b}`,
-  );
-  return sql`CASE ${sql.join(whenClauses, sql` `)} ELSE 0 END`;
-}
 
 /** フィルタ条件を構築（status='completed' 固定） */
 function buildConditions(

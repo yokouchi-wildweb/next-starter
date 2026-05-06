@@ -1,23 +1,20 @@
-// src/app/api/admin/analytics/purchase/distribution/route.ts
+// src/app/api/admin/analytics/wallet/state/distribution/route.ts
 
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
 import { getRoleCategory } from "@/features/core/user/constants";
-import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
 import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
-import {
-  getPurchaseDistribution,
-  parseMetric,
-} from "@/features/core/analytics/services/server/purchaseDistributionAnalytics";
+import { getWalletStateDistribution } from "@/features/core/analytics/services/server/walletStateAnalytics";
 import {
   parseBoundaries,
   BOUNDARIES_ERROR_MESSAGE,
 } from "@/features/core/analytics/services/server/utils/distribution";
+import { isWalletType } from "@/features/core/wallet/utils/currency";
 
 export const GET = createApiRoute(
   {
-    operation: "GET /api/admin/analytics/purchase/distribution",
+    operation: "GET /api/admin/analytics/wallet/state/distribution",
     operationType: "read",
   },
   async (req, { session }) => {
@@ -29,8 +26,14 @@ export const GET = createApiRoute(
     }
 
     const { searchParams } = new URL(req.url);
+    const walletType = searchParams.get("walletType");
+    if (!isWalletType(walletType)) {
+      return NextResponse.json(
+        { message: "walletType パラメータは必須です。" },
+        { status: 400 },
+      );
+    }
 
-    // boundaries は必須パラメータ
     const boundariesParam = searchParams.get("boundaries");
     if (!boundariesParam) {
       return NextResponse.json(
@@ -38,7 +41,6 @@ export const GET = createApiRoute(
         { status: 400 },
       );
     }
-
     const boundaries = parseBoundaries(boundariesParam);
     if (!boundaries) {
       return NextResponse.json(
@@ -47,12 +49,10 @@ export const GET = createApiRoute(
       );
     }
 
-    return getPurchaseDistribution({
-      ...parseDateRangeParams(searchParams),
+    return getWalletStateDistribution({
+      walletType,
       ...parseUserFilterParams(searchParams),
-      walletType: searchParams.get("walletType") ?? undefined,
       boundaries,
-      metric: parseMetric(searchParams.get("metric")),
     });
   },
 );

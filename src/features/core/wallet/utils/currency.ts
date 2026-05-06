@@ -10,10 +10,22 @@ import type { CurrencyConfig, CurrencyMetaFieldConfig } from "../types/currency"
 export const VALID_SLUGS = Object.values(CURRENCY_CONFIG).map((c) => c.slug) as string[];
 
 /**
+ * 有効な walletType の一覧
+ */
+export const VALID_WALLET_TYPES = Object.keys(CURRENCY_CONFIG) as WalletType[];
+
+/**
  * スラッグが有効かどうかを判定
  */
 export function isValidSlug(slug: string): boolean {
   return VALID_SLUGS.includes(slug);
+}
+
+/**
+ * 任意の値が有効な walletType かどうかを判定（型ガード）
+ */
+export function isWalletType(value: unknown): value is WalletType {
+  return typeof value === "string" && (VALID_WALLET_TYPES as string[]).includes(value);
 }
 
 /**

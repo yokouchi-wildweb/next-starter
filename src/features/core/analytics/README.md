@@ -24,8 +24,10 @@ analytics/
 │   ├── utils/
 │   │   ├── dateRange.ts          # 日付範囲パラメータの解決（TZ対応）
 │   │   ├── aggregation.ts        # changeRate等の算術ヘルパー（※JS集計関数は@deprecated）
+│   │   ├── distribution.ts       # 分布共通: parseBoundaries / buildBucketExpr
 │   │   └── userFilter.ts         # ユーザー属性フィルター（roles, excludeDemo）
 │   ├── walletHistoryAnalytics.ts # [組み込み] walletHistory 集計 + 日次残高
+│   ├── walletStateAnalytics.ts   # [組み込み] wallets テーブルのスナップショット集計
 │   ├── purchaseAnalytics.ts      # [組み込み] purchase 集計
 │   ├── purchaseDistributionAnalytics.ts # [組み込み] 購入額グループ分布
 │   ├── purchaseRankingAnalytics.ts      # [組み込み] 購入ランキング（purchase_requests）
@@ -49,7 +51,10 @@ analytics/
 | GET /api/admin/analytics/user/registration/daily | userAnalytics | 日別ユーザー登録数 |
 | GET /api/admin/analytics/user/registration/summary | userAnalytics | ユーザー登録期間サマリー |
 | GET /api/admin/analytics/user/status-overview | userAnalytics | ユーザーステータス概況 |
-| GET /api/admin/analytics/wallet/ranking | walletRankingAnalytics | ウォレットランキング |
+| GET /api/admin/analytics/wallet/ranking | walletRankingAnalytics | ウォレット履歴ベースのランキング（増減量） |
+| GET /api/admin/analytics/wallet/state/summary | walletStateAnalytics | ウォレット現在保有のサマリー（流通量・保有者数・平均/中央値/最大） |
+| GET /api/admin/analytics/wallet/state/ranking | walletStateAnalytics | ウォレット現在保有量のランキング |
+| GET /api/admin/analytics/wallet/state/distribution | walletStateAnalytics | ウォレット現在保有量のレンジ別分布 |
 
 ## 共通クエリパラメータ
 
@@ -269,3 +274,23 @@ export const AnalyticsCacheTable = pgTable(
 
 - **サービス内通貨あり**: どちらも利用可能。コイン/ポイント増減の分析には wallet/ranking、決済金額の分析には purchase/ranking
 - **直接決済のみ（ECサイト等）**: wallet_histories に購入レコードが存在しないため purchase/ranking のみ使用可能
+
+## ウォレット系API: history 軸 vs state 軸
+
+ウォレット分析は2つの軸で構成される。データソースが別なので両方共存する。
+
+| 観点 | history 軸（wallet_histories） | state 軸（wallets） |
+|---|---|---|
+| データソース | 増減台帳の累積 | 現時点の保有スナップショット |
+| 期間概念 | 日付範囲必須（dateFrom/dateTo/days） | スナップショットなので期間なし |
+| walletType | optional（クロス集計可、単位は意味依存） | **必須**（型ごとに残高単位が異なる） |
+| 提供 API | `/wallet-history/{daily,summary,balance}`, `/wallet/ranking` | `/wallet/state/{summary,ranking,distribution}` |
+| 主なユースケース | 期間内の流入・流出、KPI推移 | 現在の流通量・保有者分布、リワード設計 |
+
+### state 軸の追加要件・補足
+
+- **walletType は必須クエリパラメータ**: 残高（balance）の単位は通貨によって意味が変わる（例: コイン枚数とポイント数は加算しても意味がない）。state 系では `walletType` 未指定はリクエストエラー。
+- **保有者の定義**: `balance > 0` のユーザー。`locked_balance` は参考値として `totalLockedBalance` で別途返却する。
+- **distribution の boundaries**: `purchase/distribution` と完全に同じ仕様。CSV、昇順、正整数、最大20個。境界外（balance < 先頭境界）は bucket=0 に集約。さらに完全な 0 残高ウォレットは別途 `zeroBalanceCount` として返す。
+- **クライアント / フック**: `services/client/walletStateAnalyticsClient.ts` および `hooks/useWalletState{Summary,Ranking,Distribution}.ts` を提供済み。下流ではこれらをそのまま再利用する想定。
+- **既定バケット値の扱い**: アップストリームでは保持しない。事業ごとに妥当なバケット値が異なるため、ダウンストリーム側の管理画面コンポーネント等で `boundaries` を組み立ててクライアント関数に渡すこと。
