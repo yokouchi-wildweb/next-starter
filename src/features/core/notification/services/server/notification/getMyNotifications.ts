@@ -1,12 +1,15 @@
 // src/features/core/notification/services/server/notification/getMyNotifications.ts
 // ユーザー向けお知らせ一覧取得
 
-import { sql, and, isNull } from "drizzle-orm";
+import { sql, and } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import { NotificationReadTable } from "@/features/core/notification/entities/notificationRead";
 
-import { buildMyNotificationsWhere } from "./queryHelpers";
+import {
+  buildMyNotificationsWhere,
+  buildUnreadOnlyConditions,
+} from "./queryHelpers";
 
 export type MyNotification = {
   id: string;
@@ -37,8 +40,7 @@ export async function getMyNotifications(
 
   const conditions = [whereCondition];
   if (unreadOnly) {
-    conditions.push(isNull(NotificationReadTable.readAt));
-    conditions.push(sql`${NotificationTable.is_silent} = false`);
+    conditions.push(...buildUnreadOnlyConditions());
   }
 
   const rows = await db

@@ -48,6 +48,65 @@ export async function getUnreadCount(): Promise<number> {
   }
 }
 
+type GetMyNotificationsCountParams = {
+  /** true で未読のみカウント。省略時は false（全件） */
+  unreadOnly?: boolean;
+};
+
+/**
+ * 自分宛通知の総件数を取得する。
+ * バッジ表示や、件数のみ必要な場面で使用。無限スクロールの hasMore 判定には
+ * getMyNotificationsPage を推奨（race condition がない）。
+ */
+export async function getMyNotificationsCount(
+  params: GetMyNotificationsCountParams = {}
+): Promise<number> {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params.unreadOnly) searchParams.set("unreadOnly", "true");
+    const query = searchParams.toString();
+    const url = `/api/notification/my/count${query ? `?${query}` : ""}`;
+    const { data } = await axios.get<{ count: number }>(url);
+    return data.count;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
+export type MyNotificationsPage = {
+  items: MyNotification[];
+  total: number;
+  hasMore: boolean;
+};
+
+type GetMyNotificationsPageParams = {
+  limit?: number;
+  offset?: number;
+  unreadOnly?: boolean;
+};
+
+/**
+ * 自分宛通知の items + total + hasMore を 1 リクエストで取得する。
+ * 無限スクロール / ページネーション UI の推奨パス。
+ */
+export async function getMyNotificationsPage(
+  params: GetMyNotificationsPageParams = {}
+): Promise<MyNotificationsPage> {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params.limit != null) searchParams.set("limit", String(params.limit));
+    if (params.offset != null) searchParams.set("offset", String(params.offset));
+    if (params.unreadOnly) searchParams.set("unreadOnly", "true");
+
+    const query = searchParams.toString();
+    const url = `/api/notification/my/page${query ? `?${query}` : ""}`;
+    const { data } = await axios.get<MyNotificationsPage>(url);
+    return data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
 export async function markAsRead(notificationId: string): Promise<void> {
   try {
     await axios.post(`/api/notification/${notificationId}/read`);

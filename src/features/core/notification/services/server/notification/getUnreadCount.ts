@@ -1,38 +1,16 @@
 // src/features/core/notification/services/server/notification/getUnreadCount.ts
-// 未読数取得
+// 未読数取得（getMyNotificationsCount の薄いラッパ。「未読」の定義は queryHelpers.ts に集約）
 
-import { sql, and, isNull } from "drizzle-orm";
-import { db } from "@/lib/drizzle";
-import { NotificationTable } from "@/features/core/notification/entities/drizzle";
-import { NotificationReadTable } from "@/features/core/notification/entities/notificationRead";
+import { getMyNotificationsCount } from "./getMyNotificationsCount";
 
-import { buildMyNotificationsWhere } from "./queryHelpers";
-
+/**
+ * 未読通知の件数を返す。
+ * 内部的には getMyNotificationsCount({ unreadOnly: true }) と同義。
+ * 既存呼び出し側との互換のため残されている。
+ */
 export async function getUnreadCount(
   userId: string,
   userRole: string
 ): Promise<number> {
-  const whereCondition = buildMyNotificationsWhere(userId, userRole);
-
-  const [result] = await db
-    .select({
-      count: sql<number>`COUNT(*)::int`,
-    })
-    .from(NotificationTable)
-    .leftJoin(
-      NotificationReadTable,
-      and(
-        sql`${NotificationReadTable.notificationId} = ${NotificationTable.id}`,
-        sql`${NotificationReadTable.userId} = ${userId}`
-      )
-    )
-    .where(
-      and(
-        whereCondition,
-        isNull(NotificationReadTable.readAt),
-        sql`${NotificationTable.is_silent} = false`
-      )
-    );
-
-  return result?.count ?? 0;
+  return getMyNotificationsCount(userId, userRole, { unreadOnly: true });
 }
