@@ -4,6 +4,12 @@
 // - テキスト直入力・ペースト対応（HH:mm / H:mm / HHmm / 和文等）
 // - 右側アイコンクリックで Popover に TimeFields（時/分の分離数値入力）を表示
 // - 入出力契約: value は TimeLike、onValueChange は "HH:mm" または "" を返す
+//
+// className プロパティの規約:
+// - className: コンポーネント全体（ラッパー要素）に適用。レイアウト・幅制御
+//   （max-w-* / w-* など）はここで指定する。
+// - inputClassName: 内部の <input> 要素に直接適用（border / bg / shadow など内側スタイル拡張用）
+// - containerClassName: 廃止予定（@deprecated）。後方互換のため className とマージされる。
 
 "use client";
 
@@ -41,6 +47,9 @@ export type TimeInputProps = BaseProps & {
   value?: TimeLike;
   defaultValue?: TimeLike;
   onValueChange?: (value: string) => void;
+  /** 内部 <input> 要素に追加適用するクラス */
+  inputClassName?: string;
+  /** @deprecated `className` を使用してください（後方互換のためマージされます）*/
   containerClassName?: string;
   onChange?: ChangeEventHandler<HTMLInputElement>;
 };
@@ -79,6 +88,7 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
     onValueChange,
     containerClassName,
     className,
+    inputClassName,
     onBlur,
     onChange,
     placeholder = "HH:mm",
@@ -158,14 +168,14 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
   };
 
   return (
-    <div className={cn("relative flex h-fit items-center", containerClassName)}>
+    <div className={cn("relative flex h-fit items-center", containerClassName, className)}>
       <Input
         {...rest}
         ref={assignRef}
         type="text"
         inputMode="numeric"
         placeholder={placeholder}
-        className={cn("pr-10", className)}
+        className={cn("pr-10", inputClassName)}
         value={rawInput}
         aria-invalid={isInvalid || rest["aria-invalid"]}
         onChange={(event) => {
