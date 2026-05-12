@@ -25,6 +25,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@/features/admin/*": ["./src/features/core/admin/*"],
       "@/features/adminCommand/*": ["./src/features/core/adminCommand/*"],
       "@/features/analytics/*": ["./src/features/core/analytics/*"],
       "@/features/auditLog/*": ["./src/features/core/auditLog/*"],
