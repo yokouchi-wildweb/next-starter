@@ -59,11 +59,20 @@ analytics/
 ## 共通クエリパラメータ
 
 日付範囲（status-overview以外の全APIで共通）:
-- `days`: 日数指定（デフォルト 30、最大 365）
+- `days`: 日数指定（デフォルト 30）
 - `dateFrom`: 開始日（YYYY-MM-DD）
 - `dateTo`: 終了日（YYYY-MM-DD）
 - `timezone`: タイムゾーン（IANA TZ名、デフォルト: `Asia/Tokyo`）
+- `granularity`: 集計粒度。`hour` / `day` / `week` / `month`（デフォルト: `day`）
 - dateFrom + dateTo 指定時は days より優先
+
+集計粒度（granularity）の挙動:
+- 時系列集計 API (`*/daily`, `wallet-history/balance` 等) のバケット単位を切り替える
+- `history[].date` の書式は粒度で変わる: hour=`YYYY-MM-DDTHH:00`, day=`YYYY-MM-DD`, week=月曜開始日 `YYYY-MM-DD`, month=`YYYY-MM`
+- レスポンスには解決済み `granularity` フィールドが含まれる
+- 期間上限は粒度ごと: hour=31日, day=365日, week=2年, month=10年（バケット数の爆発を防ぐ）
+- DAU は `day` のみサポート。他粒度を指定すると `DomainError`（400）を返す（`UserDailyActivityTable` が date 型のため）
+- 期間サマリー API (`*/summary`) では集計に影響しない（期間全体を1つの集計値にする）
 
 ユーザーフィルタ:
 - `userId`: 特定ユーザーに絞り込み（ranking以外）
@@ -72,6 +81,25 @@ analytics/
 
 フィルタ:
 - `walletType`: ウォレット種別でフィルタ（指定なし = 全種別）
+
+### サービスでの granularity 取り扱い
+
+新しい時系列集計サービスを実装する場合:
+- `resolveDateRange(params)` の戻り値から `range.granularity` を読み取る
+- グルーピング SQL は `granularityDateExpr(column, granularity, tz)` ヘルパーで生成する
+- `generateDateKeys(range)` がそのまま粒度対応のキー配列を返す
+- `formatDateRangeForResponse(range)` がレスポンスの `granularity` フィールドを含む
+
+特定粒度のみサポートするサービス（例: DAU）:
+- `export const FOO_SUPPORTED_GRANULARITIES = ["day"] as const satisfies readonly Granularity[];`
+- 関数冒頭で `assertGranularitySupported(range.granularity, FOO_SUPPORTED_GRANULARITIES, "Foo 集計")` を呼ぶ
+- 未サポート粒度では `GranularityNotSupportedError`（DomainError 派生、400）が投げられる
+
+新しい粒度（例: minute）を追加する場合:
+- `types/common.ts` の `Granularity` / `GRANULARITIES` に追加
+- `constants/index.ts` の `MAX_GRANULARITY_PERIOD_DAYS` に上限を追加
+- `utils/dateRange.ts` の `GRANULARITY_SPECS` テーブルに `truncUnit` / `sqlFormatPattern` / `formatKey` / `truncate` / `advance` を追加
+- 既存サービスは変更不要（拡張ポイントが 1 箇所に集約されている）
 
 ## 集計設計原則: DB側集計
 

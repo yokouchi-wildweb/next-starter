@@ -2,6 +2,27 @@
 // 集計共通型定義
 
 // ============================================================================
+// 集計粒度（タイムバケット）
+// ============================================================================
+
+/**
+ * 時系列集計の時間粒度。
+ *
+ * バケット境界は `Granularity` に対応する PostgreSQL の `date_trunc` 単位と一致する:
+ *  - hour:  毎時 00 分
+ *  - day:   タイムゾーンの日初（00:00）
+ *  - week:  ISO 週（月曜開始）
+ *  - month: 月初（1 日 00:00）
+ *
+ * 新しい粒度を追加する場合は GRANULARITIES と
+ * utils/dateRange.ts の GRANULARITY_SPECS に対応エントリを足す。
+ */
+export type Granularity = "hour" | "day" | "week" | "month";
+
+/** 全 Granularity 値（バリデーション / イテレーション用） */
+export const GRANULARITIES = ["hour", "day", "week", "month"] as const satisfies readonly Granularity[];
+
+// ============================================================================
 // 日付範囲
 // ============================================================================
 
@@ -15,6 +36,8 @@ export type DateRangeParams = {
   dateTo?: string;
   /** タイムゾーン（IANA TZ名、デフォルト: Asia/Tokyo） */
   timezone?: string;
+  /** 集計粒度（省略時は day で後方互換） */
+  granularity?: Granularity;
 };
 
 /** 解決済みの日付範囲 */
@@ -24,15 +47,26 @@ export type ResolvedDateRange = {
   dayCount: number;
   /** 適用されたタイムゾーン */
   timezone: string;
+  /** 解決済みの集計粒度 */
+  granularity: Granularity;
 };
 
 // ============================================================================
 // 日別集計
 // ============================================================================
 
-/** 日別レコードの基底型 */
+/**
+ * 時系列レコードの基底型。
+ *
+ * `date` フィールドは granularity により書式が変わる:
+ *  - hour:  YYYY-MM-DDTHH:00
+ *  - day:   YYYY-MM-DD
+ *  - week:  YYYY-MM-DD（週開始日 = 月曜）
+ *  - month: YYYY-MM
+ *
+ * 名称が `date` のまま残るのは後方互換のため。意味的には「バケットキー」。
+ */
 export type DailyRecord<T extends Record<string, unknown> = Record<string, unknown>> = {
-  /** YYYY-MM-DD */
   date: string;
 } & T;
 
@@ -43,10 +77,12 @@ export type BreakdownEntry = {
   uniqueUsers: number;
 };
 
-/** 日別集計レスポンスの基底型 */
+/** 時系列集計レスポンスの基底型 */
 export type DailyAnalyticsResponse<T extends Record<string, unknown>> = {
   dateFrom: string;
   dateTo: string;
+  /** 解決済みの集計粒度（クライアントの描画判別用） */
+  granularity: Granularity;
   history: DailyRecord<T>[];
 };
 

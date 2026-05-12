@@ -8,6 +8,7 @@ import { and, between, sql, type SQL } from "drizzle-orm";
 import type {
   DateRangeParams,
   DailyAnalyticsResponse,
+  Granularity,
   PeriodSummaryResponse,
   UserFilter,
 } from "@/features/core/analytics/types/common";
@@ -15,9 +16,21 @@ import {
   resolveDateRange,
   generateDateKeys,
   formatDateRangeForResponse,
+  assertGranularitySupported,
 } from "./utils/dateRange";
 import { buildUserFilterConditions } from "./utils/userFilter";
 import { changeRate } from "./utils/aggregation";
+
+/**
+ * DAU が対応する集計粒度。
+ *
+ * `UserDailyActivityTable` は date 型 (activity_date) で日次集計済みのため、
+ * 日未満 (hour) は不可。週/月は date_trunc で集計可能だが、本テーブルは
+ * 「日次のユニークユーザー」がアトミック単位であり、週/月でユニークを取り直すと
+ * 意味が変わる (週内ユニーク = 週DAU の解釈) ため、現状は day のみに固定する。
+ * 将来 week/month を解禁する場合は user_id を保持しているので拡張可能。
+ */
+export const DAU_SUPPORTED_GRANULARITIES = ["day"] as const satisfies readonly Granularity[];
 
 // ============================================================================
 // 型定義
@@ -74,6 +87,7 @@ export async function getDauDaily(
   params: DauDailyParams,
 ): Promise<DailyAnalyticsResponse<DauDailyData>> {
   const range = resolveDateRange(params);
+  assertGranularitySupported(range.granularity, DAU_SUPPORTED_GRANULARITIES, "DAU 集計");
   const conditions = buildConditions(range.dateFrom, range.dateTo, params);
 
   const dailyRows = await db
@@ -108,6 +122,7 @@ export async function getDauSummary(
   params: DauSummaryParams,
 ): Promise<PeriodSummaryResponse<DauSummaryData>> {
   const range = resolveDateRange(params);
+  assertGranularitySupported(range.granularity, DAU_SUPPORTED_GRANULARITIES, "DAU 集計");
 
   // 前期の日付範囲
   const prevDateFrom = new Date(range.dateFrom);

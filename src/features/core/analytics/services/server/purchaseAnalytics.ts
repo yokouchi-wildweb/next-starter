@@ -18,6 +18,7 @@ import {
   resolveDateRange,
   generateDateKeys,
   formatDateRangeForResponse,
+  granularityDateExpr,
 } from "./utils/dateRange";
 import { changeRate } from "./utils/aggregation";
 
@@ -100,8 +101,12 @@ export type PurchaseSummaryParams = DateRangeParams & WalletTypeFilter & UserIdF
 const p = PurchaseRequestTable;
 
 /** グルーピング用日付式（completed_at優先、fallbackでpaid_at） */
-function purchaseDateExpr(tz: string) {
-  return sql<string>`DATE(COALESCE(${p.completed_at}, ${p.paid_at}) AT TIME ZONE ${tz})::text`;
+function purchaseDateExpr(tz: string, granularity: Parameters<typeof granularityDateExpr>[1]) {
+  return granularityDateExpr(
+    sql`COALESCE(${p.completed_at}, ${p.paid_at})`,
+    granularity,
+    tz,
+  );
 }
 
 // ============================================================================
@@ -116,7 +121,7 @@ export async function getPurchaseDaily(
   const status = params.status ?? "completed";
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, { ...params, status });
-  const dateSql = purchaseDateExpr(tz);
+  const dateSql = purchaseDateExpr(tz, range.granularity);
 
   // メインクエリ + ウォレット種別ブレイクダウンを並列実行
   const [dailyRows, walletTypeRows] = await Promise.all([

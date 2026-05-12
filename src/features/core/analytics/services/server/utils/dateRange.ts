@@ -1,8 +1,31 @@
 // src/features/core/analytics/services/server/utils/dateRange.ts
-// 日付範囲パラメータの解決ユーティリティ（タイムゾーン対応）
+// 日付範囲・集計粒度（Granularity）の解決ユーティリティ。
+//
+// 設計方針:
+//  - 粒度ごとの違いは GRANULARITY_SPECS テーブルに局所化する。
+//    新しい粒度を足す場合はこのテーブルに 1 エントリ追加するだけで、
+//    SQL 式生成・キー文字列生成・バケット境界計算が一貫して動く。
+//  - SQL 側のキー書式と JS 側のキー書式は完全に一致させる
+//    （Map.get(date) のジョインに使うため）。
 
-import { DEFAULT_ANALYTICS_DAYS, MAX_ANALYTICS_DAYS, DEFAULT_TIMEZONE } from "@/features/core/analytics/constants";
-import type { DateRangeParams, ResolvedDateRange } from "@/features/core/analytics/types/common";
+import { sql, type AnyColumn, type SQL } from "drizzle-orm";
+import {
+  DEFAULT_ANALYTICS_DAYS,
+  DEFAULT_GRANULARITY,
+  DEFAULT_TIMEZONE,
+  MAX_GRANULARITY_PERIOD_DAYS,
+} from "@/features/core/analytics/constants";
+import {
+  GRANULARITIES,
+  type DateRangeParams,
+  type Granularity,
+  type ResolvedDateRange,
+} from "@/features/core/analytics/types/common";
+import { DomainError } from "@/lib/errors/domainError";
+
+// ============================================================================
+// 公開 API
+// ============================================================================
 
 /**
  * APIリクエストの日付範囲パラメータを解決する
@@ -13,15 +36,20 @@ import type { DateRangeParams, ResolvedDateRange } from "@/features/core/analyti
  * 3. dateTo のみ → dateTo から days 日遡る
  * 4. days のみ → 今日から days 日遡る
  * 5. 何も指定なし → デフォルト日数で今日から遡る
+ *
+ * granularity 省略時は DEFAULT_GRANULARITY（後方互換のため "day"）。
+ * 期間は MAX_GRANULARITY_PERIOD_DAYS[granularity] で上限制限される。
  */
 export function resolveDateRange(params: DateRangeParams): ResolvedDateRange {
   const tz = params.timezone ?? DEFAULT_TIMEZONE;
+  const granularity = params.granularity ?? DEFAULT_GRANULARITY;
+  const maxDays = MAX_GRANULARITY_PERIOD_DAYS[granularity];
   const now = new Date();
   const today = startOfDayTz(now, tz);
 
   const days = Math.min(
     Math.max(params.days ?? DEFAULT_ANALYTICS_DAYS, 1),
-    MAX_ANALYTICS_DAYS,
+    maxDays,
   );
 
   let dateFrom: Date;
@@ -46,9 +74,15 @@ export function resolveDateRange(params: DateRangeParams): ResolvedDateRange {
     dateFrom = startOfDayTz(dateTo, tz);
   }
 
-  const dayCount = Math.ceil((dateTo.getTime() - dateFrom.getTime()) / (1000 * 60 * 60 * 24));
+  // 上限超過時は dateFrom を引き上げて期間を切り詰める
+  const dayCount = Math.ceil((dateTo.getTime() - dateFrom.getTime()) / DAY_MS);
+  if (dayCount > maxDays) {
+    dateFrom = startOfDayTz(addDays(dateTo, -(maxDays - 1)), tz);
+  }
 
-  return { dateFrom, dateTo, dayCount, timezone: tz };
+  const finalDayCount = Math.ceil((dateTo.getTime() - dateFrom.getTime()) / DAY_MS);
+
+  return { dateFrom, dateTo, dayCount: finalDayCount, timezone: tz, granularity };
 }
 
 /**
@@ -59,82 +93,308 @@ export function parseDateRangeParams(searchParams: URLSearchParams): DateRangePa
   const dateFrom = searchParams.get("dateFrom");
   const dateTo = searchParams.get("dateTo");
   const timezone = searchParams.get("timezone");
+  const granularityParam = searchParams.get("granularity");
+  const granularity = granularityParam && isGranularity(granularityParam)
+    ? granularityParam
+    : undefined;
 
   return {
     ...(days && { days: Number(days) }),
     ...(dateFrom && { dateFrom }),
     ...(dateTo && { dateTo }),
     ...(timezone && { timezone }),
+    ...(granularity && { granularity }),
   };
 }
 
 /**
- * ResolvedDateRange内の全日付をYYYY-MM-DD配列として生成
- * 日別集計で「データのない日もレコードに含める」場合に使用
+ * ResolvedDateRange のバケットキー配列を granularity に従って生成する。
+ *
+ * 集計クエリ結果との JOIN 用に「データのないバケットも含む」キー一覧を返す。
+ * キーの書式は granularity ごとに DailyRecord["date"] の規約と一致する。
  */
 export function generateDateKeys(range: ResolvedDateRange): string[] {
-  const tz = range.timezone ?? DEFAULT_TIMEZONE;
+  const tz = range.timezone;
+  const spec = GRANULARITY_SPECS[range.granularity];
   const keys: string[] = [];
-  const current = new Date(range.dateFrom);
+
+  let current = spec.truncate(range.dateFrom, tz);
   const end = range.dateTo;
 
   while (current <= end) {
-    keys.push(formatDateKeyTz(current, tz));
-    current.setDate(current.getDate() + 1);
+    keys.push(spec.formatKey(current, tz));
+    current = spec.advance(current, tz);
   }
 
   return keys;
 }
 
 /**
- * Date → YYYY-MM-DD 文字列（タイムゾーン指定）
+ * Date → バケットキー文字列（タイムゾーン + granularity 指定）。
+ *
+ * granularity 省略時は DEFAULT_GRANULARITY（後方互換のため "day" = YYYY-MM-DD）。
  */
-export function formatDateKeyTz(date: Date, timezone: string): string {
+export function formatDateKeyTz(date: Date, timezone: string, granularity: Granularity = DEFAULT_GRANULARITY): string {
+  return GRANULARITY_SPECS[granularity].formatKey(date, timezone);
+}
+
+/** Date → YYYY-MM-DD 文字列（デフォルトTZ、day 粒度） */
+export function formatDateKey(date: Date): string {
+  return formatDateKeyTz(date, DEFAULT_TIMEZONE);
+}
+
+/**
+ * ResolvedDateRange → レスポンス用文字列ペア + granularity。
+ *
+ * dateFrom/dateTo は粒度に関わらず YYYY-MM-DD で返す（範囲の意味的な境界表現）。
+ */
+export function formatDateRangeForResponse(
+  range: ResolvedDateRange,
+): { dateFrom: string; dateTo: string; granularity: Granularity } {
+  const tz = range.timezone;
+  return {
+    dateFrom: GRANULARITY_SPECS.day.formatKey(range.dateFrom, tz),
+    dateTo: GRANULARITY_SPECS.day.formatKey(range.dateTo, tz),
+    granularity: range.granularity,
+  };
+}
+
+/**
+ * 集計クエリ用の SQL 式を生成する。
+ *
+ * 出力する文字列キーは generateDateKeys / formatDateKeyTz の出力と一致する。
+ * これにより JS 側で `Map<key, row>` を組んで JOIN できる。
+ *
+ * 例: `granularityDateExpr(t.createdAt, "hour", "Asia/Tokyo")`
+ *    → `to_char(date_trunc('hour', t.created_at AT TIME ZONE 'Asia/Tokyo'), 'YYYY-MM-DD"T"HH24":00"')`
+ */
+export function granularityDateExpr(
+  column: AnyColumn | SQL,
+  granularity: Granularity,
+  timezone: string,
+): SQL<string> {
+  const spec = GRANULARITY_SPECS[granularity];
+  // truncUnit / sqlFormatPattern は内部で定義した安全なリテラルのみ流れ込むため
+  // sql.raw / リテラル埋め込みが安全。timezone のみパラメータバインド。
+  return sql<string>`to_char(date_trunc(${sql.raw(`'${spec.truncUnit}'`)}, ${column} AT TIME ZONE ${timezone}), ${sql.raw(`'${spec.sqlFormatPattern}'`)})`;
+}
+
+/**
+ * サービスが受け入れる粒度を制約する。
+ *
+ * supportedGranularities に含まれない値が指定された場合は呼び出し側で
+ * DomainError を投げるのに利用する（DAU など特殊なテーブル設計向け）。
+ */
+export function assertGranularitySupported(
+  granularity: Granularity,
+  supported: readonly Granularity[],
+  context: string,
+): void {
+  if (!supported.includes(granularity)) {
+    const supportedList = supported.join(", ");
+    throw new GranularityNotSupportedError(
+      `${context} は granularity="${granularity}" に対応していません。サポート: ${supportedList}`,
+      supported,
+    );
+  }
+}
+
+/**
+ * 未サポート粒度を伝える専用エラー。
+ *
+ * DomainError 派生のため API レイヤーで自動的に 400 レスポンスに変換される。
+ * `supportedGranularities` を保持するので、必要なら API ハンドラ側で
+ * 追加情報をレスポンスに含めることもできる。
+ */
+export class GranularityNotSupportedError extends DomainError {
+  readonly supportedGranularities: readonly Granularity[];
+  constructor(message: string, supported: readonly Granularity[]) {
+    super(message, { status: 400 });
+    this.name = "GranularityNotSupportedError";
+    this.supportedGranularities = supported;
+  }
+}
+
+// ============================================================================
+// 粒度仕様テーブル
+// ============================================================================
+
+type GranularitySpec = {
+  /** PostgreSQL date_trunc の単位 */
+  truncUnit: "hour" | "day" | "week" | "month";
+  /** PostgreSQL to_char のパターン。formatKey の出力と完全一致させる */
+  sqlFormatPattern: string;
+  /** Date をタイムゾーン上のバケットキー文字列に変換 */
+  formatKey: (date: Date, timezone: string) => string;
+  /** Date をそのバケットの開始時刻 (UTC Date) に丸める */
+  truncate: (date: Date, timezone: string) => Date;
+  /** バケット境界を 1 単位進める (UTC Date)。truncate された Date を入力に取る前提 */
+  advance: (date: Date, timezone: string) => Date;
+};
+
+const GRANULARITY_SPECS: Record<Granularity, GranularitySpec> = {
+  hour: {
+    truncUnit: "hour",
+    sqlFormatPattern: 'YYYY-MM-DD"T"HH24":00"',
+    formatKey: (date, tz) => {
+      const p = tzParts(date, tz);
+      return `${p.year}-${pad2(p.month)}-${pad2(p.day)}T${pad2(p.hour)}:00`;
+    },
+    truncate: (date, tz) => {
+      const p = tzParts(date, tz);
+      return tzDateToUtc(ymd(p.year, p.month, p.day), `${pad2(p.hour)}:00:00.000`, tz);
+    },
+    advance: (date, tz) => {
+      const p = tzParts(date, tz);
+      const d = new Date(Date.UTC(p.year, p.month - 1, p.day, p.hour));
+      d.setUTCHours(d.getUTCHours() + 1);
+      return tzDateToUtc(isoYmd(d), `${pad2(d.getUTCHours())}:00:00.000`, tz);
+    },
+  },
+  day: {
+    truncUnit: "day",
+    sqlFormatPattern: "YYYY-MM-DD",
+    formatKey: (date, tz) => {
+      const p = tzParts(date, tz);
+      return ymd(p.year, p.month, p.day);
+    },
+    truncate: (date, tz) => {
+      const p = tzParts(date, tz);
+      return tzDateToUtc(ymd(p.year, p.month, p.day), "00:00:00.000", tz);
+    },
+    advance: (date, tz) => {
+      const p = tzParts(date, tz);
+      const d = new Date(Date.UTC(p.year, p.month - 1, p.day));
+      d.setUTCDate(d.getUTCDate() + 1);
+      return tzDateToUtc(isoYmd(d), "00:00:00.000", tz);
+    },
+  },
+  week: {
+    truncUnit: "week",
+    sqlFormatPattern: "YYYY-MM-DD",
+    formatKey: (date, tz) => {
+      const p = tzParts(date, tz);
+      const w = isoWeekStart(p.year, p.month, p.day);
+      return ymd(w.year, w.month, w.day);
+    },
+    truncate: (date, tz) => {
+      const p = tzParts(date, tz);
+      const w = isoWeekStart(p.year, p.month, p.day);
+      return tzDateToUtc(ymd(w.year, w.month, w.day), "00:00:00.000", tz);
+    },
+    advance: (date, tz) => {
+      const p = tzParts(date, tz);
+      const d = new Date(Date.UTC(p.year, p.month - 1, p.day));
+      d.setUTCDate(d.getUTCDate() + 7);
+      return tzDateToUtc(isoYmd(d), "00:00:00.000", tz);
+    },
+  },
+  month: {
+    truncUnit: "month",
+    sqlFormatPattern: "YYYY-MM",
+    formatKey: (date, tz) => {
+      const p = tzParts(date, tz);
+      return `${p.year}-${pad2(p.month)}`;
+    },
+    truncate: (date, tz) => {
+      const p = tzParts(date, tz);
+      return tzDateToUtc(ymd(p.year, p.month, 1), "00:00:00.000", tz);
+    },
+    advance: (date, tz) => {
+      const p = tzParts(date, tz);
+      const d = new Date(Date.UTC(p.year, p.month - 1, 1));
+      d.setUTCMonth(d.getUTCMonth() + 1);
+      return tzDateToUtc(
+        ymd(d.getUTCFullYear(), d.getUTCMonth() + 1, 1),
+        "00:00:00.000",
+        tz,
+      );
+    },
+  },
+};
+
+// ============================================================================
+// 内部ヘルパー
+// ============================================================================
+
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function ymd(year: number, month: number, day: number): string {
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+
+function isoYmd(date: Date): string {
+  return ymd(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
+}
+
+function isGranularity(value: string): value is Granularity {
+  return (GRANULARITIES as readonly string[]).includes(value);
+}
+
+/** 指定タイムゾーンで見た年月日時を取得 */
+function tzParts(date: Date, timezone: string): {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+} {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
   }).formatToParts(date);
 
-  const y = parts.find((p) => p.type === "year")!.value;
-  const m = parts.find((p) => p.type === "month")!.value;
-  const d = parts.find((p) => p.type === "day")!.value;
-  return `${y}-${m}-${d}`;
-}
-
-/** Date → YYYY-MM-DD 文字列（デフォルトTZ） */
-export function formatDateKey(date: Date): string {
-  return formatDateKeyTz(date, DEFAULT_TIMEZONE);
-}
-
-/** ResolvedDateRange → レスポンス用文字列ペア */
-export function formatDateRangeForResponse(range: ResolvedDateRange): { dateFrom: string; dateTo: string } {
-  const tz = range.timezone ?? DEFAULT_TIMEZONE;
+  const get = (type: string) => Number(parts.find((p) => p.type === type)!.value);
   return {
-    dateFrom: formatDateKeyTz(range.dateFrom, tz),
-    dateTo: formatDateKeyTz(range.dateTo, tz),
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    hour: get("hour"),
   };
 }
 
-// ============================================================================
-// タイムゾーン対応の日付ヘルパー
-// ============================================================================
+/**
+ * ISO 週（月曜開始）の週開始日を算出。
+ * タイムゾーン非依存（日付自体の曜日のみで決まる）。
+ */
+function isoWeekStart(year: number, month: number, day: number): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  const dayOfWeek = utcDate.getUTCDay(); // 0=日, 1=月, ..., 6=土
+  const daysFromMonday = (dayOfWeek + 6) % 7; // 0=月, ..., 6=日
+  utcDate.setUTCDate(utcDate.getUTCDate() - daysFromMonday);
+  return {
+    year: utcDate.getUTCFullYear(),
+    month: utcDate.getUTCMonth() + 1,
+    day: utcDate.getUTCDate(),
+  };
+}
 
 /**
  * 指定タイムゾーンでの日の開始（00:00:00.000）をUTC Date として返す
  */
 function startOfDayTz(date: Date, timezone: string): Date {
-  const localDateStr = formatDateKeyTz(date, timezone);
-  return tzDateToUtc(localDateStr, "00:00:00.000", timezone);
+  return GRANULARITY_SPECS.day.truncate(date, timezone);
 }
 
 /**
  * 指定タイムゾーンでの日の終了（23:59:59.999）をUTC Date として返す
  */
 function endOfDayTz(date: Date, timezone: string): Date {
-  const localDateStr = formatDateKeyTz(date, timezone);
-  return tzDateToUtc(localDateStr, "23:59:59.999", timezone);
+  const p = tzParts(date, timezone);
+  return tzDateToUtc(ymd(p.year, p.month, p.day), "23:59:59.999", timezone);
 }
 
 /**

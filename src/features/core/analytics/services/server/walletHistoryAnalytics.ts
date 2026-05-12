@@ -19,7 +19,9 @@ import {
   resolveDateRange,
   generateDateKeys,
   formatDateRangeForResponse,
+  granularityDateExpr,
 } from "./utils/dateRange";
+import type { Granularity } from "@/features/core/analytics/types/common";
 
 import { buildUserFilterConditions } from "./utils/userFilter";
 
@@ -72,9 +74,9 @@ export type WalletBalanceDailyParams = DateRangeParams & WalletTypeFilter & User
 
 const t = WalletHistoryTable;
 
-/** タイムゾーン対応の日付抽出SQL式 */
-function dateExpr(tz: string) {
-  return sql<string>`DATE(${t.createdAt} AT TIME ZONE ${tz})::text`;
+/** タイムゾーン + 粒度対応のバケットキー抽出SQL式 */
+function dateExpr(tz: string, granularity: Granularity) {
+  return granularityDateExpr(t.createdAt, granularity, tz);
 }
 
 /** 符号付きdelta（change_method考慮）のSQL式 */
@@ -98,7 +100,7 @@ export async function getWalletHistoryDaily(
   const groupByField = params.groupBy ?? "reasonCategory";
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, params);
-  const dateSql = dateExpr(tz);
+  const dateSql = dateExpr(tz, range.granularity);
 
   const groupColumn = resolveGroupColumn(groupByField);
 
@@ -236,7 +238,7 @@ export async function getWalletBalanceDaily(
 ): Promise<DailyAnalyticsResponse<WalletBalanceDailyData>> {
   const range = resolveDateRange(params);
   const tz = range.timezone;
-  const dateSql = dateExpr(tz);
+  const dateSql = dateExpr(tz, range.granularity);
 
   const conditions = [
     between(t.createdAt, range.dateFrom, range.dateTo),
