@@ -37,7 +37,7 @@ export default async function AdminSampleCategoryEditPage({ params, searchParams
   >
 
     <AdminPage>
-      <PageTitle>サンプルカテゴリ編集</PageTitle>
+      <PageTitle placement="header">サンプルカテゴリ編集</PageTitle>
       <AdminSampleCategoryEdit sampleCategory={sampleCategory as SampleCategory} redirectPath={redirectPath} />
     </AdminPage>
   </SWRConfig>

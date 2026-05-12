@@ -23,7 +23,7 @@ export default async function AdminSampleCategoryCreatePage() {
   >
 
     <AdminPage>
-      <PageTitle>サンプルカテゴリ追加</PageTitle>
+      <PageTitle placement="header">サンプルカテゴリ追加</PageTitle>
       <AdminSampleCategoryCreate redirectPath="/admin/sample-categories" />
     </AdminPage>
   </SWRConfig>

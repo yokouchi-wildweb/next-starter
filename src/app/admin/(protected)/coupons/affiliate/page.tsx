@@ -24,7 +24,7 @@ const couponTypeTabs: PageTabItem[] = CouponTypeOptions.map(opt => ({
 export default async function AdminCouponAffiliateListPage() {
   return (
     <AdminPage>
-      <PageTitle>クーポン管理</PageTitle>
+      <PageTitle placement="header">クーポン管理</PageTitle>
       <Section>
         <Stack space={6}>
           <SolidTabs tabs={couponTypeTabs} ariaLabel="クーポン種別" />

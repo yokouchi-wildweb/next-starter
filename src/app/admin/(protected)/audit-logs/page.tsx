@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default function AdminAuditLogsPage() {
   return (
     <AdminPage>
-      <PageTitle>監査ログ</PageTitle>
+      <PageTitle placement="header">監査ログ</PageTitle>
       <Section>
         <AuditLogSearchPanel />
       </Section>

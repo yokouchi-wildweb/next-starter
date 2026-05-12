@@ -39,7 +39,7 @@ export default async function AdminSampleEditPage({ params, searchParams }: Prop
   >
 
     <AdminPage>
-      <PageTitle>サンプル編集</PageTitle>
+      <PageTitle placement="header">サンプル編集</PageTitle>
       <AdminSampleEdit sample={sample as Sample} redirectPath={redirectPath} />
     </AdminPage>
   </SWRConfig>

@@ -31,7 +31,7 @@ export default async function AdminBankTransferReviewsStatusPage({ params }: Pro
 
   return (
     <AdminPage>
-      <PageTitle>銀行振込レビュー</PageTitle>
+      <PageTitle placement="header">銀行振込レビュー</PageTitle>
       <Section>
         <BankTransferReviewListPanel status={status} />
       </Section>

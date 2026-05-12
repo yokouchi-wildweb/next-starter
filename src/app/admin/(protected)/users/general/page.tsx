@@ -67,7 +67,7 @@ export default async function AdminGeneralUserListPage({ searchParams }: Props) 
 
   return (
     <AdminPage>
-      <PageTitle>登録ユーザー</PageTitle>
+      <PageTitle placement="header">登録ユーザー</PageTitle>
       <GeneralUserList
         users={users}
         page={page}

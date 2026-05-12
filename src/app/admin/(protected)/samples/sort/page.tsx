@@ -20,7 +20,7 @@ export default async function AdminSampleSortPage() {
 
   return (
     <AdminPage>
-      <PageTitle>サンプル並び替え</PageTitle>
+      <PageTitle placement="header">サンプル並び替え</PageTitle>
       <AdminSampleSort initialSamples={samples} />
     </AdminPage>
   );

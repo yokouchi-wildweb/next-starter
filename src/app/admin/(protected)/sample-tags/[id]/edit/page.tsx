@@ -37,7 +37,7 @@ export default async function AdminSampleTagEditPage({ params, searchParams }: P
   >
 
     <AdminPage>
-      <PageTitle>サンプルタグ編集</PageTitle>
+      <PageTitle placement="header">サンプルタグ編集</PageTitle>
       <AdminSampleTagEdit sampleTag={sampleTag as SampleTag} redirectPath={redirectPath} />
     </AdminPage>
   </SWRConfig>

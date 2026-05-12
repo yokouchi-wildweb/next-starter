@@ -23,7 +23,7 @@ export default async function AdminUserTagCreatePage() {
   >
 
     <AdminPage>
-      <PageTitle>ユーザータグ追加</PageTitle>
+      <PageTitle placement="header">ユーザータグ追加</PageTitle>
       <AdminUserTagCreate redirectPath="/admin/user-tags" />
     </AdminPage>
   </SWRConfig>

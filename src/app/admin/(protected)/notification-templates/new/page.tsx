@@ -14,7 +14,7 @@ export default function AdminNotificationTemplateCreatePage() {
   return (
 
     <AdminPage>
-      <PageTitle>お知らせテンプレート追加</PageTitle>
+      <PageTitle placement="header">お知らせテンプレート追加</PageTitle>
       <AdminNotificationTemplateCreate redirectPath="/admin/notification-templates" />
     </AdminPage>
 

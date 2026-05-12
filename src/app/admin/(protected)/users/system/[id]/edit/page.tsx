@@ -35,7 +35,7 @@ export default async function AdminSystemUserEditPage({ params }: Props) {
 
   return (
     <AdminPage>
-      <PageTitle>システム管理者編集</PageTitle>
+      <PageTitle placement="header">システム管理者編集</PageTitle>
       <ManagerialUserEdit user={user} profileData={profileData ?? undefined} redirectPath={REDIRECT_PATH} />
     </AdminPage>
   );

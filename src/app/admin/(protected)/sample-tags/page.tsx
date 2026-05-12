@@ -24,7 +24,7 @@ export default async function AdminSampleTagListPage({ searchParams }: Props) {
 
   return (
     <AdminPage>
-      <PageTitle>サンプルタグ管理</PageTitle>
+      <PageTitle placement="header">サンプルタグ管理</PageTitle>
       <AdminSampleTagList sampleTags={sampleTags} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

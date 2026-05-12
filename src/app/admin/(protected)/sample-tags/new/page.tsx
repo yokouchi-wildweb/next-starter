@@ -23,7 +23,7 @@ export default async function AdminSampleTagCreatePage() {
   >
 
     <AdminPage>
-      <PageTitle>サンプルタグ追加</PageTitle>
+      <PageTitle placement="header">サンプルタグ追加</PageTitle>
       <AdminSampleTagCreate redirectPath="/admin/sample-tags" />
     </AdminPage>
   </SWRConfig>

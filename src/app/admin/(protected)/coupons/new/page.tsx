@@ -14,7 +14,7 @@ export default function AdminCouponCreatePage() {
   return (
 
     <AdminPage>
-      <PageTitle>クーポン追加</PageTitle>
+      <PageTitle placement="header">クーポン追加</PageTitle>
       <AdminCouponCreate redirectPath="/admin/coupons/official" />
     </AdminPage>
 

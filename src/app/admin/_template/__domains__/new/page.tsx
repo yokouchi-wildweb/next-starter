@@ -14,7 +14,7 @@ __LIST_FETCH__
   return (
 __SWR_START__
     <AdminPage>
-      <PageTitle>__DomainLabel__追加</PageTitle>
+      <PageTitle placement="header">__DomainLabel__追加</PageTitle>
       <Admin__Domain__Create redirectPath="/admin/__domainsSlug__" />
     </AdminPage>
 __SWR_END__

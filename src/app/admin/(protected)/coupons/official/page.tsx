@@ -29,7 +29,7 @@ export default async function AdminCouponListPage({ searchParams }: Props) {
 
   return (
     <AdminPage>
-      <PageTitle>クーポン管理</PageTitle>
+      <PageTitle placement="header">クーポン管理</PageTitle>
       <AdminCouponList coupons={coupons} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

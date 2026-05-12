@@ -27,7 +27,7 @@ __DOMAIN_AND_LIST_FETCH__
   return (
 __SWR_START__
     <AdminPage>
-      <PageTitle>__DomainLabel__編集</PageTitle>
+      <PageTitle placement="header">__DomainLabel__編集</PageTitle>
       <Admin__Domain__Edit __domain__={__domain__ as __Domain__} redirectPath={redirectPath} />
     </AdminPage>
 __SWR_END__

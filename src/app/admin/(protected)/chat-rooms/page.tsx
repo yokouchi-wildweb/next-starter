@@ -24,7 +24,7 @@ export default async function AdminChatRoomListPage({ searchParams }: Props) {
 
   return (
     <AdminPage>
-      <PageTitle>チャットルーム管理</PageTitle>
+      <PageTitle placement="header">チャットルーム管理</PageTitle>
       <AdminChatRoomList chatRooms={chatRooms} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

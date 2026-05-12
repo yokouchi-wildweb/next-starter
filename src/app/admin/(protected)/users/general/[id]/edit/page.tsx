@@ -35,7 +35,7 @@ export default async function AdminGeneralUserEditPage({ params }: Props) {
 
   return (
     <AdminPage>
-      <PageTitle>一般ユーザー編集</PageTitle>
+      <PageTitle placement="header">一般ユーザー編集</PageTitle>
       <GeneralUserEdit user={user} profileData={profileData ?? undefined} redirectPath={REDIRECT_PATH} />
     </AdminPage>
   );

@@ -39,7 +39,7 @@ export default async function AdminNotificationListPage({ searchParams }: Props)
 
   return (
     <AdminPage>
-      <PageTitle>お知らせ管理</PageTitle>
+      <PageTitle placement="header">お知らせ管理</PageTitle>
       <AdminNotificationList notifications={notifications} readCounts={readCounts} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

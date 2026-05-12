@@ -32,7 +32,7 @@ export default async function AdminUserTagEditPage({ params }: Props) {
   >
 
     <AdminPage>
-      <PageTitle>ユーザータグ編集</PageTitle>
+      <PageTitle placement="header">ユーザータグ編集</PageTitle>
       <AdminUserTagEdit userTag={userTag as UserTag} redirectPath="/admin/user-tags" />
     </AdminPage>
   </SWRConfig>

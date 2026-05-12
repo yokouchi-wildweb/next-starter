@@ -24,7 +24,7 @@ export default async function Admin__Domain__ListPage({ searchParams }: Props) {
 
   return (
     <AdminPage>
-      <PageTitle>__DomainLabel__管理</PageTitle>
+      <PageTitle placement="header">__DomainLabel__管理</PageTitle>
       <Admin__Domain__List __domains__={__domains__} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

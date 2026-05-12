@@ -28,7 +28,7 @@ export default async function AdminChatRoomEditPage({ params, searchParams }: Pr
   return (
 
     <AdminPage>
-      <PageTitle>チャットルーム編集</PageTitle>
+      <PageTitle placement="header">チャットルーム編集</PageTitle>
       <AdminChatRoomEdit chatRoom={chatRoom as ChatRoom} redirectPath={redirectPath} />
     </AdminPage>
 

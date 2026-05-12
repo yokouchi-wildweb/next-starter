@@ -24,7 +24,7 @@ export default async function AdminSampleCategoryListPage({ searchParams }: Prop
 
   return (
     <AdminPage>
-      <PageTitle>サンプルカテゴリ管理</PageTitle>
+      <PageTitle placement="header">サンプルカテゴリ管理</PageTitle>
       <AdminSampleCategoryList sampleCategories={sampleCategories} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

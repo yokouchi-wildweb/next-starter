@@ -20,7 +20,7 @@ export default async function Admin__Domain__SortPage() {
 
   return (
     <AdminPage>
-      <PageTitle>__DomainLabel__並び替え</PageTitle>
+      <PageTitle placement="header">__DomainLabel__並び替え</PageTitle>
       <Admin__Domain__Sort initial__Domains__={__domains__} />
     </AdminPage>
   );

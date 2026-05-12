@@ -25,7 +25,7 @@ export default async function AdminSampleCreatePage() {
   >
 
     <AdminPage>
-      <PageTitle>サンプル追加</PageTitle>
+      <PageTitle placement="header">サンプル追加</PageTitle>
       <AdminSampleCreate redirectPath="/admin/samples" />
     </AdminPage>
   </SWRConfig>

@@ -39,7 +39,7 @@ export default async function AdminDemoUserListPage({ searchParams }: Props) {
 
   return (
     <AdminPage>
-      <PageTitle>デモユーザー</PageTitle>
+      <PageTitle placement="header">デモユーザー</PageTitle>
       <DemoUserList
         users={users}
         page={page}

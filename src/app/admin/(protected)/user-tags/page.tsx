@@ -24,7 +24,7 @@ export default async function AdminUserTagListPage({ searchParams }: Props) {
 
   return (
     <AdminPage>
-      <PageTitle>ユーザータグ管理</PageTitle>
+      <PageTitle placement="header">ユーザータグ管理</PageTitle>
       <AdminUserTagList userTags={userTags} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

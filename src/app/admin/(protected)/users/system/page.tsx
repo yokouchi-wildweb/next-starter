@@ -67,7 +67,7 @@ export default async function AdminSystemUserListPage({ searchParams }: Props) {
 
   return (
     <AdminPage>
-      <PageTitle>システム管理者</PageTitle>
+      <PageTitle placement="header">システム管理者</PageTitle>
       <ManagerialUserList
         users={users}
         page={page}

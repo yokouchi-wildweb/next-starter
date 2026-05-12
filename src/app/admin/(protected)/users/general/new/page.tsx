@@ -15,7 +15,7 @@ const REDIRECT_PATH = "/admin/users/general";
 export default function AdminGeneralUserCreatePage() {
   return (
     <AdminPage>
-      <PageTitle>一般ユーザー追加</PageTitle>
+      <PageTitle placement="header">一般ユーザー追加</PageTitle>
       <GeneralUserCreate redirectPath={REDIRECT_PATH} />
     </AdminPage>
   );

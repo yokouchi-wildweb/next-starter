@@ -36,7 +36,7 @@ const ADMIN_TABS_DEMO_ITEMS: PageTabItem[] = [
 export default function AdminTabsDemoInsightsPage() {
   return (
     <AdminPage>
-      <PageTitle>タブUIデモ</PageTitle>
+      <PageTitle placement="header">タブUIデモ</PageTitle>
       <Section>
         <Stack space={6}>
           <SecTitle>タブ切り替えデモ（インサイト）</SecTitle>

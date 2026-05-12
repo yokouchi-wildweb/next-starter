@@ -24,7 +24,7 @@ export default async function AdminNotificationTemplateListPage({ searchParams }
 
   return (
     <AdminPage>
-      <PageTitle>お知らせテンプレート管理</PageTitle>
+      <PageTitle placement="header">お知らせテンプレート管理</PageTitle>
       <AdminNotificationTemplateList notificationTemplates={notificationTemplates} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

@@ -13,7 +13,7 @@ const LIST_PATH = "/admin/users/demo";
 export default function AdminDemoUserCreatePage() {
   return (
     <AdminPage>
-      <PageTitle>デモユーザー作成</PageTitle>
+      <PageTitle placement="header">デモユーザー作成</PageTitle>
       <DemoUserCreate redirectPath={LIST_PATH} />
     </AdminPage>
   );

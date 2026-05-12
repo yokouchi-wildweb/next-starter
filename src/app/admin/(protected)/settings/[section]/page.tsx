@@ -42,7 +42,7 @@ export default async function AdminSettingSectionPage({
 
   return (
     <AdminPage>
-      <PageTitle>{section.label}</PageTitle>
+      <PageTitle placement="header">{section.label}</PageTitle>
       <AdminSettingSectionEdit
         section={section}
         setting={setting}

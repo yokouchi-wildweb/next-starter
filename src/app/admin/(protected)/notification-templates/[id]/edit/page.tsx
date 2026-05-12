@@ -28,7 +28,7 @@ export default async function AdminNotificationTemplateEditPage({ params, search
   return (
 
     <AdminPage>
-      <PageTitle>お知らせテンプレート編集</PageTitle>
+      <PageTitle placement="header">お知らせテンプレート編集</PageTitle>
       <AdminNotificationTemplateEdit notificationTemplate={notificationTemplate as NotificationTemplate} redirectPath={redirectPath} />
     </AdminPage>
 

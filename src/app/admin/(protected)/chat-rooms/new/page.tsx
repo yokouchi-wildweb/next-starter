@@ -14,7 +14,7 @@ export default function AdminChatRoomCreatePage() {
   return (
 
     <AdminPage>
-      <PageTitle>チャットルーム追加</PageTitle>
+      <PageTitle placement="header">チャットルーム追加</PageTitle>
       <AdminChatRoomCreate redirectPath="/admin/chat-rooms" />
     </AdminPage>
 

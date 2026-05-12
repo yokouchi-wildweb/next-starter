@@ -9,7 +9,7 @@ export const metadata = {
 export default function AdminNotificationSendPage() {
   return (
     <AdminPage>
-      <PageTitle>お知らせ送信</PageTitle>
+      <PageTitle placement="header">お知らせ送信</PageTitle>
       <AdminNotificationSend />
     </AdminPage>
   );

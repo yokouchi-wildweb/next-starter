@@ -21,7 +21,7 @@ export default async function AdminCouponInviteListPage({ searchParams }: Props)
   if (!APP_FEATURES.marketing.referral.enabled) {
     return (
       <AdminPage>
-        <PageTitle>クーポン管理</PageTitle>
+        <PageTitle placement="header">クーポン管理</PageTitle>
         <Para>ユーザーの紹介機能が無効です</Para>
       </AdminPage>
     );
@@ -39,7 +39,7 @@ export default async function AdminCouponInviteListPage({ searchParams }: Props)
 
   return (
     <AdminPage>
-      <PageTitle>クーポン管理</PageTitle>
+      <PageTitle placement="header">クーポン管理</PageTitle>
       <AdminInviteList items={items} page={page} perPage={limit} total={total} />
     </AdminPage>
   );
