@@ -38,6 +38,7 @@ function mapType(t) {
     case 'email':
     case 'password':
     case 'mediaUploader':
+    case 'mediaUploaderMulti':
       return 'text';
     case 'integer':
       return 'integer';
@@ -288,6 +289,12 @@ switch (config.idType) {
         `  ${f.name}: text("${toSnakeCase(f.name)}").array(),`
       );
     }
+  } else if (f.fieldType === 'mediaUploaderMulti') {
+    // mediaUploaderMulti は常に NOT NULL + 空配列既定（null/[] の混在を避ける）
+    imports.add('text');
+    fields.push(
+      `  ${f.name}: text("${toSnakeCase(f.name)}").array().default([]).notNull(),`
+    );
   } else if (f.fieldType === 'timestamp With Time Zone') {
     imports.add('timestamp');
     let column = `timestamp("${toSnakeCase(f.name)}", { withTimezone: true })`;
@@ -358,11 +365,21 @@ if (needsUniqueIndex) {
   imports.add('uniqueIndex');
 }
 
+// 非ユニークインデックス (config.indexes) の有無と sql 句使用判定
+// 形式: indexes: [{ fields: string[], where?: string, name?: string }]
+// where は sql テンプレート内に挿入される（partial index 用）
+const extraIndexes = Array.isArray(config.indexes) ? config.indexes : [];
+const hasExtraIndexes = extraIndexes.length > 0;
+const extraIndexesHaveWhere = extraIndexes.some((i) => typeof i.where === 'string' && i.where.length > 0);
+if (hasExtraIndexes) {
+  imports.add('index');
+}
+
 const importLine = `import { ${Array.from(imports).sort().join(', ')} } from "drizzle-orm/pg-core";`;
 let content = `// src/features/${camel}/entities/drizzle.ts\n\n`;
 content += `${importLine}\n`;
-// ソフトデリート + ユニーク制約がある場合は sql を drizzle-orm からインポート
-const needsSqlImport = needsPartialIndex || (config.useSoftDelete && hasCompositeUniques);
+// ソフトデリート + ユニーク制約 OR 非ユニークインデックスの where 句がある場合は sql をインポート
+const needsSqlImport = needsPartialIndex || (config.useSoftDelete && hasCompositeUniques) || extraIndexesHaveWhere;
 if (needsSqlImport) {
   content += `import { sql } from "drizzle-orm";\n`;
 }
@@ -395,6 +412,32 @@ if (hasCompositeUniques) {
     indexDef += `  uniqueIndex("${indexName}").on(${fieldsOnClause})`;
     if (config.useSoftDelete) {
       indexDef += `.where(sql\`deleted_at IS NULL\`)`;
+    }
+    tableIndexes.push(indexDef);
+  });
+}
+
+// 非ユニークインデックス (domain.json の indexes 配列)
+// 検索・集計頻度の高いカラム向け。compositeUniques とは別物（こちらはユニーク制約なし）。
+// 形式: { fields: string[], where?: string, name?: string }
+//   - fields: TS プロパティ名 (createdAt 等の camelCase もそのまま)
+//   - where: 省略可。指定時は partial index になる (例: "deleted_at IS NULL")
+//   - name:  省略可。省略時は <table>_<col1>_<col2>_..._idx で自動命名
+if (hasExtraIndexes) {
+  extraIndexes.forEach((idx) => {
+    if (!Array.isArray(idx.fields) || idx.fields.length === 0) return;
+    const snakeFields = idx.fields.map((f) => toSnakeCase(f));
+    const indexName = idx.name || `${tableName}_${snakeFields.join('_')}_idx`;
+    if (indexName.length > PG_MAX_IDENTIFIER_LENGTH) {
+      console.error(`エラー: インデックス名 "${indexName}" が ${PG_MAX_IDENTIFIER_LENGTH} 文字を超えています`);
+      console.error('  domain.json の indexes 要素に "name" を指定して短くしてください');
+      process.exit(1);
+    }
+    const fieldsOnClause = idx.fields.map((f) => `table.${f}`).join(', ');
+    let indexDef = `  // インデックス: [${idx.fields.join(', ')}]\n`;
+    indexDef += `  index("${indexName}").on(${fieldsOnClause})`;
+    if (typeof idx.where === 'string' && idx.where.length > 0) {
+      indexDef += `.where(sql\`${idx.where}\`)`;
     }
     tableIndexes.push(indexDef);
   });
