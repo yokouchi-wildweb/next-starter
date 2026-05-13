@@ -11,6 +11,9 @@ import type { DomainConfig } from "../config";
  * const config = getDomainConfig("sample");
  * const imageFields = extractImageFields(config);
  * // ["thumbnail", "images"]
+ *
+ * NOTE: mediaUploaderMulti (string[]) は data migration の export/import が
+ * 単一値前提のため対象外。将来的に dataMigration が配列フィールド対応した時点で含める。
  */
 export function extractImageFields(config: DomainConfig): string[] {
   return config.fields

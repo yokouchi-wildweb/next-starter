@@ -13,6 +13,7 @@ export const FORM_INPUTS = {
     number: ['number input', 'stepper input', 'select', 'radio', 'hidden', 'none', 'custom'],
     boolean: ['checkbox', 'radio', 'switch input', 'hidden', 'none', 'custom'],
     mediaUploader: ['media uploader', 'hidden', 'none', 'custom'],
+    mediaUploaderMulti: ['media uploader multi', 'hidden', 'none', 'custom'],
     timestamp: [
       'datetime input',
       'hidden',
@@ -44,6 +45,7 @@ export const FORM_INPUTS = {
     boolean: ['checkbox', 'radio', 'switch input', 'hidden', 'none', 'custom'],
     enum: ['select', 'radio', 'hidden', 'none', 'custom'],
     mediaUploader: ['media uploader', 'hidden', 'none', 'custom'],
+    mediaUploaderMulti: ['media uploader multi', 'hidden', 'none', 'custom'],
     date: ['date input', 'text input', 'hidden', 'none', 'custom'],
     time: ['time input', 'text input', 'hidden', 'none', 'custom'],
     'timestamp With Time Zone': [

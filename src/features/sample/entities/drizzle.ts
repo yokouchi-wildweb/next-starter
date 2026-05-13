@@ -22,6 +22,7 @@ export const SampleTable = pgTable("samples", {
   time: time("time"),
   main_image: text("main_image"),
   sub_image: text("sub_image"),
+  gallery_images: text("gallery_images").array().default([]).notNull(),
   description: text("description"),
   sort_order: text("sort_order"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

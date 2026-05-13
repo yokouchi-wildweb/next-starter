@@ -10,6 +10,8 @@ export type VideoPreviewProps = {
   controls?: boolean;
   muted?: boolean;
   loop?: boolean;
+  /** 動画の収め方（既定: contain） */
+  fit?: "contain" | "cover";
   onLoadedMetadata?: (video: HTMLVideoElement) => void;
   onError?: () => void;
 };
@@ -21,6 +23,7 @@ export const VideoPreview = ({
   controls = true,
   muted = true,
   loop = false,
+  fit = "contain",
   onLoadedMetadata,
   onError,
 }: VideoPreviewProps) => {
@@ -50,7 +53,7 @@ export const VideoPreview = ({
         muted={muted}
         loop={loop}
         preload="metadata"
-        style={{ width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+        style={{ width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", objectFit: fit }}
         onLoadedMetadata={handleLoadedMetadata}
         onError={handleError}
       />

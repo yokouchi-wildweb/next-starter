@@ -203,7 +203,12 @@ async function askSingleField(config) {
   let acceptValue;
   let maxSizeBytes;
   let metadataBinding;
-  if (normalizedInput === 'mediaUploader') {
+  let maxItems;
+  let minItems;
+  let reorderable;
+  const isMediaField =
+    normalizedInput === 'mediaUploader' || normalizedInput === 'mediaUploaderMulti';
+  if (isMediaField) {
     const domainSlug = toCamelCase(config.singular ?? '') || 'domain';
     const uploadExample = `${domainSlug}/main`;
     while (true) {
@@ -266,6 +271,56 @@ async function askSingleField(config) {
     const parsedMax = Number(maxAnswer.maxFileSizeMb);
     if (!Number.isNaN(parsedMax) && parsedMax > 0) {
       maxSizeBytes = Math.round(parsedMax * 1024 * 1024);
+    }
+
+    if (normalizedInput === 'mediaUploaderMulti') {
+      const maxItemsAnswer = await prompt({
+        type: 'input',
+        name: 'maxItems',
+        message: '最大アップロード件数（既定: 10）:',
+        default: '10',
+        validate: (input) => {
+          const trimmed = String(input ?? '').trim();
+          if (!trimmed) return true;
+          const num = Number(trimmed);
+          if (!Number.isInteger(num) || num <= 0) {
+            return '1以上の整数で入力してください。';
+          }
+          return true;
+        },
+      });
+      const parsedMax = Number(String(maxItemsAnswer.maxItems ?? '').trim());
+      if (Number.isInteger(parsedMax) && parsedMax > 0) {
+        maxItems = parsedMax;
+      }
+
+      const minItemsAnswer = await prompt({
+        type: 'input',
+        name: 'minItems',
+        message: '最小アップロード件数（任意、空欄で省略）:',
+        default: '',
+        validate: (input) => {
+          const trimmed = String(input ?? '').trim();
+          if (!trimmed) return true;
+          const num = Number(trimmed);
+          if (!Number.isInteger(num) || num < 0) {
+            return '0以上の整数で入力してください。';
+          }
+          return true;
+        },
+      });
+      const parsedMin = Number(String(minItemsAnswer.minItems ?? '').trim());
+      if (Number.isInteger(parsedMin) && parsedMin >= 0) {
+        minItems = parsedMin;
+      }
+
+      const reorderAnswer = await prompt({
+        type: 'confirm',
+        name: 'reorderable',
+        message: 'ドラッグで並び替えできるようにしますか？',
+        default: true,
+      });
+      reorderable = Boolean(reorderAnswer.reorderable);
     }
 
     const { enableMetadataBinding } = await prompt({
@@ -352,9 +407,9 @@ async function askSingleField(config) {
     }
   }
 
-  // デフォルト値の質問（mediaUploader は対象外）
+  // デフォルト値の質問（mediaUploader / mediaUploaderMulti は対象外）
   let defaultValue;
-  if (normalizedInput !== 'mediaUploader') {
+  if (!isMediaField) {
     defaultValue = await askDefaultValue(fieldType, options);
   }
 
@@ -369,9 +424,18 @@ async function askSingleField(config) {
     ...(slug ? { slug } : {}),
     ...(mediaTypePreset ? { mediaTypePreset } : {}),
     ...(acceptValue ? { accept: acceptValue } : {}),
-    ...(typeof maxSizeBytes === 'number'
-      ? { validationRule: { maxSizeBytes } }
+    ...(typeof maxSizeBytes === 'number' ||
+    typeof maxItems === 'number' ||
+    typeof minItems === 'number'
+      ? {
+          validationRule: {
+            ...(typeof maxSizeBytes === 'number' ? { maxSizeBytes } : {}),
+            ...(typeof maxItems === 'number' ? { maxItems } : {}),
+            ...(typeof minItems === 'number' ? { minItems } : {}),
+          },
+        }
       : {}),
+    ...(typeof reorderable === 'boolean' ? { reorderable } : {}),
     ...(metadataBinding ? { metadataBinding } : {}),
     ...(options && options.length ? { options } : {}),
     ...(defaultValue !== undefined ? { defaultValue } : {}),

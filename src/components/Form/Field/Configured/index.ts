@@ -15,6 +15,9 @@ export type {
   MediaFieldConfig,
 } from "./ConfiguredMediaField";
 
+export { ConfiguredMediaMultiField } from "./ConfiguredMediaMultiField";
+export type { ConfiguredMediaMultiFieldProps } from "./ConfiguredMediaMultiField";
+
 export { ConfiguredAsyncRelationField } from "./ConfiguredAsyncRelationField";
 export type { ConfiguredAsyncRelationFieldProps } from "./ConfiguredAsyncRelationField";
 

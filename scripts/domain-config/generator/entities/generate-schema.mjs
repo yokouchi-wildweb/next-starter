@@ -102,7 +102,28 @@ function isPasswordField(fieldType) {
   return fieldType === 'password';
 }
 
-function fieldLine({ name, label, type, required, fieldType, defaultValue }) {
+function fieldLine({ name, label, type, required, fieldType, defaultValue, validationRule }) {
+  if (fieldType === 'mediaUploaderMulti') {
+    // 複数枚アップローダ: 常に default([])。required は min(1) として表現
+    const resolvedLabel = label || name;
+    const minItems =
+      typeof validationRule?.minItems === 'number'
+        ? validationRule.minItems
+        : required
+          ? 1
+          : 0;
+    const maxItems =
+      typeof validationRule?.maxItems === 'number' ? validationRule.maxItems : 10;
+    const segments = [`  ${name}: z.array(z.string().trim().min(1))`];
+    if (minItems > 0) {
+      segments.push(`.min(${minItems}, { message: "${resolvedLabel}は${minItems}件以上必要です。" })`);
+    }
+    segments.push(`.max(${maxItems}, { message: "${resolvedLabel}は${maxItems}件以下にしてください。" })`);
+    segments.push('.default([])');
+    segments.push(',');
+    return segments.join('');
+  }
+
   if (fieldType === 'array' || fieldType === 'stringArray') {
     if (required) {
       return `  ${name}: ${type}.default([]),`;
@@ -213,6 +234,7 @@ const lines = [];
         required: f.required,
         fieldType: f.fieldType,
         defaultValue: f.defaultValue,
+        validationRule: f.validationRule,
       }),
     );
   }

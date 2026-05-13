@@ -7,6 +7,7 @@ import {
   ConfiguredField,
   ConfiguredFieldGroup,
   ConfiguredMediaField,
+  ConfiguredMediaMultiField,
   ConfiguredAsyncRelationField,
   type FieldConfig,
 } from "@/components/Form/Field";
@@ -236,9 +237,20 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
           />
         );
       } else if (fieldConfig.formInput === "mediaUploader") {
-        // メディアアップローダーは専用コンポーネント
+        // メディアアップローダー（単一）は専用コンポーネント
         fieldElement = (
           <ConfiguredMediaField
+            key={fieldConfig.name}
+            control={control}
+            methods={methods}
+            fieldConfig={fieldConfig}
+            onHandleChange={handleMediaHandleChange}
+          />
+        );
+      } else if (fieldConfig.formInput === "mediaUploaderMulti") {
+        // メディアアップローダー（複数枚）は専用コンポーネント
+        fieldElement = (
+          <ConfiguredMediaMultiField
             key={fieldConfig.name}
             control={control}
             methods={methods}

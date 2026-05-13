@@ -202,10 +202,11 @@ export function renderInputByFormType<
       return null;
 
     case "mediaUploader":
-      // mediaUploader は特殊な処理が必要なため、ConfiguredField では未サポート
+    case "mediaUploaderMulti":
+      // mediaUploader / mediaUploaderMulti は特殊な処理が必要なため、ConfiguredField では未サポート
       // FieldRenderer を使用してください
       console.warn(
-        `[ConfiguredField] formInput="mediaUploader" is not supported. Use FieldRenderer instead. Field: ${fieldConfig.name}`
+        `[ConfiguredField] formInput="${formInput}" is not supported. Use FieldRenderer instead. Field: ${fieldConfig.name}`
       );
       return null;
 
@@ -285,6 +286,7 @@ export function shouldUseFieldItem(formInput: FormInputType): boolean {
     "hidden",
     "none",
     "mediaUploader",
+    "mediaUploaderMulti",
   ];
   return !noFieldItemTypes.includes(formInput);
 }
@@ -330,6 +332,7 @@ const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none">
   hidden: "none",
   none: "none",
   mediaUploader: "none",  // onUrlChangeで即時コミット+保存
+  mediaUploaderMulti: "none",  // onUrlsChangeで即時コミット+保存
   custom: "none",  // 独自コンポーネントで処理
 
   // 非同期リレーション: ポップオーバー閉じた時に即時保存

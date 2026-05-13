@@ -27,6 +27,7 @@ export type FormInputType =
   | "passwordInput"
   | "colorInput"
   | "mediaUploader"
+  | "mediaUploaderMulti"
   | "hidden"
   | "none"
   | "custom"
@@ -54,7 +55,8 @@ export type FieldDataType =
   | "Point"
   | "jsonb"
   | "array"
-  | "mediaUploader";
+  | "mediaUploader"
+  | "mediaUploaderMulti";
 
 /**
  * フィールドの型（domain.json fieldType - Firestore）
@@ -72,7 +74,8 @@ export type FieldDataTypeFirestore =
   | "reference"
   | "map"
   | "null"
-  | "mediaUploader";
+  | "mediaUploader"
+  | "mediaUploaderMulti";
 
 /**
  * 選択肢の型（select, radio, checkbox, multiSelect で使用）
@@ -84,8 +87,14 @@ export type FieldOption = {
 
 /**
  * MediaUploader 用バリデーションルール
+ * mediaUploaderMulti では minItems / maxItems も使用される
  */
-export type MediaValidationRule = FileValidationRule;
+export type MediaValidationRule = FileValidationRule & {
+  /** 最小件数（mediaUploaderMulti用） */
+  minItems?: number;
+  /** 最大件数（mediaUploaderMulti用、既定 10） */
+  maxItems?: number;
+};
 
 /**
  * フィールド設定（domain.json の Field と完全互換）
@@ -132,6 +141,8 @@ export type FieldConfig = {
   metadataBinding?: Record<string, string>;
   /** メタデータ変更時のコールバック（mediaUploader用） */
   onMetadataChange?: (metadata: SelectedMediaMetadata) => void;
+  /** 並び替え可否（mediaUploaderMulti用、既定 true） */
+  reorderable?: boolean;
 
   // === 非同期リレーション用メタデータ（ランタイム専用） ===
   /** リレーション先 API パス（例: "/api/sampleCategory"） */

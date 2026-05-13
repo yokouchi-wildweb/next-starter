@@ -19,6 +19,7 @@ export type Sample = {
   time: string | null;
   main_image: string | null;
   sub_image: string | null;
+  gallery_images: string[];
   description: string | null;
   sort_order: string | null;
   createdAt: Date | null;

@@ -12,6 +12,8 @@
 src/lib/mediaInputSuite
   components/MediaInput.tsx
   components/MediaUploader.tsx
+  components/MediaUploaderMulti.tsx
+  components/MediaThumbGrid.tsx
   components/MediaPreview.tsx
   components/ImagePreview.tsx
   components/VideoPreview.tsx
@@ -51,7 +53,21 @@ src/lib/mediaInputSuite
 - 進捗オーバーレイとキャンセルを内蔵。
 - `onRegisterPendingUpload` / `onRegisterPendingDelete` を使うと、アップロード完了後や削除時に pending 管理へ通知できる。
 
-### 2.3 MediaPreview (`src/lib/mediaInputSuite/components/MediaPreview.tsx`)
+### 2.3 MediaUploaderMulti (`src/lib/mediaInputSuite/components/MediaUploaderMulti.tsx`)
+
+- 複数枚アップロード版。`value: string[]` を扱う。
+- 並列アップロード（スロット毎の進捗・キャンセル）、追加スロット、削除、ドラッグ並び替え（`reorderable` で切替）。
+- `validationRule.maxItems`（既定 10） / `minItems` で件数制約。
+- 表示は正方形グリッド（`MediaThumbGrid` を内包）。動画は controls 非表示の第1フレーム表示。
+- `image/*,video/*` 等の `accept` で動画も許可可能。
+
+### 2.4 MediaThumbGrid (`src/lib/mediaInputSuite/components/MediaThumbGrid.tsx`)
+
+- 正方形グリッド + `@dnd-kit/sortable`（`rectSortingStrategy`）の汎用ラッパ。
+- `reorderable=false` 時は `DndContext` をマウントせず、静的グリッドとして表示。
+- `renderItem` 経由で各スロットを描画、`trailing` 末尾スロットを差し込める。
+
+### 2.5 MediaPreview (`src/lib/mediaInputSuite/components/MediaPreview.tsx`)
 
 - `detectMediaType` で image/video/unknown を判定。
 - `ImagePreview` / `VideoPreview` / `UnsupportedPreview` に振り分け。

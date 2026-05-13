@@ -80,8 +80,12 @@ const buildFormatter = (field) => {
   if (formInput === "dateInput") {
     return `formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
   }
-  // mediaUploader / fileUploader は renderValue のフォールバック処理で画像表示するため除外
-  if (formInput === "mediaUploader" || formInput === "fileUploader") {
+  // mediaUploader / mediaUploaderMulti / fileUploader は renderValue のフォールバック処理で画像表示するため除外
+  if (
+    formInput === "mediaUploader" ||
+    formInput === "mediaUploaderMulti" ||
+    formInput === "fileUploader"
+  ) {
     return null;
   }
 

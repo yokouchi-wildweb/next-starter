@@ -8,6 +8,8 @@ export type ImagePreviewProps = {
   alt?: string;
   className?: string;
   style?: CSSProperties;
+  /** 画像の収め方（既定: contain） */
+  fit?: "contain" | "cover";
   onLoad?: (element: HTMLImageElement) => void;
   onError?: (element: HTMLImageElement) => void;
 };
@@ -17,6 +19,7 @@ export const ImagePreview = ({
   alt = "preview",
   className,
   style,
+  fit = "contain",
   onLoad,
   onError,
 }: ImagePreviewProps) => {
@@ -51,7 +54,7 @@ export const ImagePreview = ({
           height: "100%",
           maxWidth: "100%",
           maxHeight: "100%",
-          objectFit: "contain",
+          objectFit: fit,
           opacity: loading ? 0 : 1,
         }}
         onLoad={handleLoad}

@@ -4,6 +4,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { MediaPreviewDemo } from "./MediaPreviewDemo";
 import { MediaInputDemo } from "./MediaInputDemo";
 import { MediaUploadDemo } from "./MediaUploadDemo";
+import { MediaUploadMultiDemo } from "./MediaUploadMultiDemo";
 
 export default function MediaInputDemoPage() {
   return (
@@ -41,6 +42,16 @@ export default function MediaInputDemoPage() {
               uploads/demo へアップロードするモック処理で、進捗バーと完了時の URL 表示を確認できます。
             </Para>
             <MediaUploadDemo />
+          </Stack>
+        </Section>
+
+        <Section>
+          <Stack space={4}>
+            <SecTitle>MediaUploaderMulti デモ（複数枚アップロード）</SecTitle>
+            <Para tone="muted" size="sm">
+              複数枚アップロード版。並列アップロード、正方形クロッププレビュー、ドラッグ並び替え、件数上限の動作を確認できます。
+            </Para>
+            <MediaUploadMultiDemo />
           </Stack>
         </Section>
       </Stack>
