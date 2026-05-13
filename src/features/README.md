@@ -383,6 +383,16 @@ PostgreSQL の識別子上限 (63 文字) を超える場合は generator がエ
 | 一意性を強制したい (DB レベルの制約) | `compositeUniques` |
 | 検索/集計を高速化したい (ユニーク強制なし) | `indexes` |
 
+#### ⚠️ DB への反映が必須
+
+`indexes` を追加・変更しても、それだけでは実 DB にインデックスは作成されない。Drizzle スキーマ定義 (`entities/drizzle.ts`) に反映後、必ず以下を実行する:
+
+```bash
+npx drizzle-kit push
+```
+
+詳細手順は [Neon マイグレーション実行手順](../../docs/how-to/implementation/Neonのマイグレーション実行手順.md) を参照。push を忘れると、コード上は index 定義があってもクエリは全表スキャンのままで、本機能の目的 (検索/集計の高速化) を達成できない。
+
 ---
 
 ### core ドメインへの indexes 反映について
