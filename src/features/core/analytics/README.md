@@ -32,7 +32,10 @@ analytics/
 │   ├── purchaseDistributionAnalytics.ts # [組み込み] 購入額グループ分布
 │   ├── purchaseRankingAnalytics.ts      # [組み込み] 購入ランキング（purchase_requests）
 │   ├── userAnalytics.ts                 # [組み込み] ユーザー登録集計
-│   └── walletRankingAnalytics.ts        # [組み込み] ウォレットランキング（wallet_histories）
+│   ├── walletRankingAnalytics.ts        # [組み込み] ウォレットランキング（wallet_histories）
+│   ├── referralAnalytics.ts             # [組み込み] 紹介経由ユーザー数 + 紹介リワード金額のサマリー
+│   ├── dauAnalytics.ts                  # [組み込み] DAU (Daily Active Users) 集計
+│   └── dauService.ts                    # [組み込み] DAU 記録の書き込み API
 └── presenters.ts                 # （任意）集計結果のフォーマット
 ```
 
@@ -55,6 +58,13 @@ analytics/
 | GET /api/admin/analytics/wallet/state/summary | walletStateAnalytics | ウォレット現在保有のサマリー（流通量・保有者数・平均/中央値/最大） |
 | GET /api/admin/analytics/wallet/state/ranking | walletStateAnalytics | ウォレット現在保有量のランキング |
 | GET /api/admin/analytics/wallet/state/distribution | walletStateAnalytics | ウォレット現在保有量のレンジ別分布 |
+| GET /api/admin/analytics/referral/summary | referralAnalytics | 紹介経由ユーザー数 + 紹介リワード金額（前期比含む） |
+| GET /api/admin/analytics/dau/daily | dauAnalytics | 日別 DAU（granularity は day のみ） |
+| GET /api/admin/analytics/dau/summary | dauAnalytics | DAU 期間サマリー（granularity は day のみ） |
+
+### referral summary 固有のパラメータ
+- `referralStatuses`: 集計対象とする `referrals.status` を CSV で指定（例: `active,cancelled`）。省略時は全状態をカウント
+- リワード金額の抽出 SQL 式は `getReferralSummary()` の `rewardAmountExpr` 引数で差し替え可能。デフォルトは `(referral_rewards.metadata ->> 'amount')::numeric`（rewardHandler が metadata に `amount: number` を入れる規約に従う場合）。下流が異なる metadata 構造を持つ場合は独自の API ルートからカスタム SQL を渡す
 
 ## 共通クエリパラメータ
 
