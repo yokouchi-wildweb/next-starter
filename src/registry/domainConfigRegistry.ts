@@ -65,6 +65,11 @@ type DomainConfigOptionals = {
   useImportExport?: boolean;
   useAutoSave?: boolean;
   compositeUniques?: string[][];
+  indexes?: Array<{
+    fields: string[];
+    where?: string;
+    name?: string;
+  }>;
   sortOrderField?: string | null;
 };
 

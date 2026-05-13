@@ -30,6 +30,7 @@
 | useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式） |
 | useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
+| indexes | Index[] | ⚪ No | 非ユニーク検索/集計用インデックス（Neon のみ） |
 | generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
 
 > ⚠️ **オプショナルフィールドを追加する場合**: `src/registry/domainConfigRegistry.ts` の `DomainConfigOptionals` にも同じフィールドを追加すること。省略すると、そのフィールドを持たないドメインが存在するだけで DomainConfig の union 型が壊れてビルドエラーになる。
@@ -340,6 +341,59 @@ mimeType, src, durationSec, durationFormatted
 - CRUD 操作時に制約違反があると 409 エラーを返す
 
 生成されるインデックス名: `{テーブル名}_composite_unique_{連番}`
+
+---
+
+### indexes（非ユニーク検索/集計用インデックス）
+
+**Neon (PostgreSQL/Drizzle) 専用機能**。Firestore では利用不可。
+
+検索・集計頻度が高いカラム（WHERE フィルタ、期間絞り込み、JOIN キー等）にインデックスを宣言する場合に使用。`compositeUniques` がユニーク制約を強制するのに対し、`indexes` は**ユニーク制約なしの検索高速化用**。
+
+```json
+{
+  "indexes": [
+    { "fields": ["status"] },
+    { "fields": ["status", "fulfilled_at"] },
+    { "fields": ["status"], "where": "deleted_at IS NULL" },
+    { "fields": ["external_id"], "name": "custom_short_idx" }
+  ]
+}
+```
+
+#### プロパティ
+
+| プロパティ | 型 | 必須 | 説明 |
+|---|---|---|---|
+| fields | string[] | 🟢 Yes | インデックス対象カラム（先頭から複合キー）。TS プロパティ名で指定 |
+| where | string | ⚪ No | 部分インデックスの WHERE 句（SQL リテラル）。例: `"deleted_at IS NULL"` |
+| name | string | ⚪ No | インデックス名のオーバーライド。省略時は `{テーブル名}_{col1}_{col2}_..._idx` で自動命名 |
+
+#### 名前の自動命名規則
+
+省略時: `{テーブル名}_{col1}_{col2}_..._idx`
+例: `indexes: [{ "fields": ["status", "fulfilled_at"] }]` → `referral_rewards_status_fulfilled_at_idx`
+
+PostgreSQL の識別子上限 (63 文字) を超える場合は generator がエラーで停止する。その場合は `name` で短縮指定する。
+
+#### compositeUniques との使い分け
+
+| 用途 | フィールド |
+|---|---|
+| 一意性を強制したい (DB レベルの制約) | `compositeUniques` |
+| 検索/集計を高速化したい (ユニーク強制なし) | `indexes` |
+
+---
+
+### core ドメインへの indexes 反映について
+
+core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンドの対象外** (ベースの設計上、`features/` 直下のみ対応)。core ドメインで `indexes` を追加・変更する場合は以下のいずれかで反映する:
+
+1. **手書きで `entities/drizzle.ts` を直接編集** (推奨、変更が小さい場合)
+   - `domain.json` の `indexes` 宣言も同時に更新する (将来の整合性のため)
+   - 手書きの形式は generator 出力と完全一致させる（一時的に features/ 直下に複製して `dc:generate` した出力をコピーすると確実）
+2. **features/ 直下に一時複製してから再生成 → core/ に戻す**
+   - 既存の運用フローと同じ手順
 
 ---
 

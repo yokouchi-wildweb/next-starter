@@ -10,6 +10,9 @@
   "useUpdatedAt": true,
   "useSoftDelete": false,
   "compositeUniques": [["invitee_user_id"]],
+  "indexes": [
+    { "fields": ["status"] }
+  ],
   "fields": [
     {
       "name": "coupon_id",

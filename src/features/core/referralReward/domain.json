@@ -10,6 +10,9 @@
   "useUpdatedAt": true,
   "useSoftDelete": false,
   "compositeUniques": [["referral_id", "reward_key"]],
+  "indexes": [
+    { "fields": ["status", "fulfilled_at"] }
+  ],
   "fields": [
     {
       "name": "referral_id",

@@ -1,6 +1,6 @@
 // src/features/referral/entities/drizzle.ts
 
-import { pgEnum, pgTable, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { index, pgEnum, pgTable, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const ReferralStatusEnum = pgEnum("referral_status_enum", ["active", "cancelled"]);
 
@@ -14,5 +14,7 @@ export const ReferralTable = pgTable("referrals", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => [
   // 複合ユニーク制約 0: [invitee_user_id]
-  uniqueIndex("referrals_composite_unique_0").on(table.invitee_user_id)
+  uniqueIndex("referrals_composite_unique_0").on(table.invitee_user_id),
+  // インデックス: [status]
+  index("referrals_status_idx").on(table.status)
 ]);
