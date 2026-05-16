@@ -76,7 +76,7 @@ export type BelongsToFieldButtonProps = ButtonStyleProps & {
  *   domain="sample"
  *   id={sample.id}
  *   relation="sampleCategory"
- *   currentValue={sample.sampleCategoryId}
+ *   currentValue={sample.sample_category_id}
  * />
  *
  * @example
@@ -86,7 +86,7 @@ export type BelongsToFieldButtonProps = ButtonStyleProps & {
  *   id={sample.id}
  *   relation="sampleCategory"
  *   options={categories.map(c => ({ value: c.id, label: c.name }))}
- *   currentValue={sample.sampleCategoryId}
+ *   currentValue={sample.sample_category_id}
  * />
  */
 export function BelongsToFieldButton({

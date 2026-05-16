@@ -70,12 +70,12 @@ export type EnumFieldButtonProps = ButtonStyleProps & {
  * <EnumFieldButton
  *   domain="sample"
  *   id={sample.id}
- *   field="status"
+ *   field="select"
  *   options={[
- *     { value: "draft", label: "下書き" },
- *     { value: "published", label: "公開中" },
+ *     { value: "apple", label: "りんご" },
+ *     { value: "orange", label: "みかん" },
  *   ]}
- *   currentValue={sample.status}
+ *   currentValue={sample.select}
  * />
  */
 export function EnumFieldButton({

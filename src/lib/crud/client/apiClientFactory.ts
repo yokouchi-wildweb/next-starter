@@ -1,4 +1,4 @@
-// src/lib/crud/apiClientFactory.ts
+// src/lib/crud/client/apiClientFactory.ts
 
 import axios from "axios";
 import type {

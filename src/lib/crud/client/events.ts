@@ -1,4 +1,4 @@
-// src/lib/crud/events.ts
+// src/lib/crud/client/events.ts
 
 import type { HttpError } from "@/lib/errors";
 
