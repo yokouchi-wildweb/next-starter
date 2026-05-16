@@ -15,6 +15,11 @@ export type AuditLog = {
   metadata: Record<string, unknown> | null;
   reason: string | null;
   retentionDays: number;
+  /**
+   * バッチ記録 (recordMany / recordManyDiff) の場合に共通発番される UUID。
+   * 単件記録 (record / recordDiff) では null。
+   */
+  batchId: string | null;
   createdAt: Date;
 };
 

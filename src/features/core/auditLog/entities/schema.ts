@@ -30,6 +30,11 @@ export const AuditLogCreateSchema = z.object({
   metadata: z.unknown().nullable(),
   reason: z.string().nullable(),
   retentionDays: z.number().int().positive().max(365 * 50),
+  /**
+   * バッチ記録 (recordMany / recordManyDiff) のグルーピング UUID。
+   * 単件記録時は null / 省略可。
+   */
+  batchId: z.string().uuid().nullable().optional(),
 });
 
 export type AuditLogCreateInput = z.infer<typeof AuditLogCreateSchema>;

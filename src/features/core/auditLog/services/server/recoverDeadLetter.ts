@@ -47,6 +47,10 @@ export type RecoverResult = {
  * `audit_logs` の payload として最低限必要なキー。
  * dead-letter に保存される際は AuditLogTable のカラム名そのままで JSON 化されている想定
  * (`auditLogService.writeDeadLetter` の挙動)。
+ *
+ * `batchId` は recordMany / recordManyDiff 経由のバッチ記録のみに付与され、
+ * 単件 record / recordDiff 由来の payload では undefined / null。復旧時はその値を
+ * そのまま新しい行の `batch_id` 列に書き戻し、同一バッチを再結合可能にする。
  */
 type AuditLogInsertPayload = {
   targetType: string;
@@ -60,6 +64,7 @@ type AuditLogInsertPayload = {
   metadata: unknown;
   reason: string | null;
   retentionDays: number;
+  batchId?: string | null;
 };
 
 /**
@@ -68,6 +73,7 @@ type AuditLogInsertPayload = {
  * - context 解決失敗時の dead-letter には raw `RecordOptions` が入っている可能性がある
  *   (auditLogService.record の context 解決失敗パス参照)
  * - 形が合わないものは早期に failed としてカウントし、再投入を試みない（無限再試行防止）
+ * - batchId は optional（旧 payload との後方互換のため必須にしない）
  */
 function isAuditLogPayload(value: unknown): value is AuditLogInsertPayload {
   if (!value || typeof value !== "object") return false;
@@ -148,6 +154,9 @@ export async function recoverDeadLetterAuditLogs(
         metadata: (payload.metadata as never) ?? null,
         reason: payload.reason ?? null,
         retentionDays: payload.retentionDays,
+        // batchId は recordMany 由来の payload にのみ存在。旧 payload は undefined で
+        // 列のデフォルト (NULL) が入る。
+        batchId: payload.batchId ?? null,
       });
       recoveredIds.push(id);
     } catch (error) {

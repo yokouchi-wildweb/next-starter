@@ -1,6 +1,7 @@
 // src/features/core/auditLog/entities/drizzle.ts
 
 import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { AUDIT_ACTOR_TYPES } from "@/features/core/auditLog/constants";
 
@@ -34,6 +35,13 @@ export const AuditLogTable = pgTable(
     metadata: jsonb("metadata"),
     reason: text("reason"),
     retentionDays: integer("retention_days").notNull(),
+    /**
+     * バッチ記録 (recordMany / recordManyDiff) の場合に共通発番される UUID。
+     * 単件記録 (record / recordDiff) では NULL。
+     * dead-letter 経由で個別行に退避された場合や、復旧後の同テーブル上でも、この値で
+     * 同一バッチに属する行を再結合できる。
+     */
+    batchId: uuid("batch_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
@@ -45,6 +53,11 @@ export const AuditLogTable = pgTable(
     actionIdx: index("audit_logs_action_idx").on(table.action, table.createdAt),
     // retention pruning 用（created_at + retention_days * INTERVAL で算出）
     createdAtIdx: index("audit_logs_created_at_idx").on(table.createdAt),
+    // バッチ単位での横断検索用 (WHERE batch_id = $1)。NULL 行は除外する partial index
+    // (record/recordDiff の単件記録は全て NULL のため、index サイズを節約)
+    batchIdIdx: index("audit_logs_batch_id_idx")
+      .on(table.batchId, table.createdAt)
+      .where(sql`batch_id IS NOT NULL`),
   }),
 );
 

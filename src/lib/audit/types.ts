@@ -74,6 +74,19 @@ export type AuditRecordInput = {
     actorId?: string | null;
     actorType?: AuditActorType;
   };
+  /**
+   * バッチ記録単位を識別する UUID。`audit_logs.batch_id` 列に永続化される。
+   *
+   * - `recordMany` / `recordManyDiff` 経由で記録すると、未指定なら自動発番され
+   *   バッチ全行で共通の UUID が割り当てられる
+   * - `record` / `recordDiff` で単件記録する場合に、論理的に親バッチへ紐づけたい
+   *   ときは明示的に同じ UUID を渡せる
+   * - 省略時 (undefined / null) は NULL として記録され、index 対象外となる
+   *
+   * 主な用途は dead-letter 復旧後のトレースと、SQL での横断検索:
+   * `SELECT * FROM audit_logs WHERE batch_id = $1`
+   */
+  batchId?: string | null;
 };
 
 /**

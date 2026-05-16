@@ -30,6 +30,7 @@ type Filters = {
   targetId: string;
   actorId: string;
   actionPrefix: string;
+  batchId: string;
 };
 
 const EMPTY_FILTERS: Filters = {
@@ -37,6 +38,7 @@ const EMPTY_FILTERS: Filters = {
   targetId: "",
   actorId: "",
   actionPrefix: "",
+  batchId: "",
 };
 
 const PAGE_SIZE = 100;
@@ -55,6 +57,11 @@ function buildWhere(filters: Filters): WhereExpr | undefined {
   if (filters.actionPrefix.trim()) {
     // "user.email" → "user.email%" 前方一致
     conds.push({ field: "action", op: "startsWith", value: filters.actionPrefix.trim() });
+  }
+  if (filters.batchId.trim()) {
+    // recordMany / recordManyDiff で発番された共通 UUID。dead-letter 復旧時の
+    // トレースや、同バッチに含まれる全行の一括取得に使う
+    conds.push({ field: "batchId", op: "eq", value: filters.batchId.trim() });
   }
   if (conds.length === 0) return undefined;
   if (conds.length === 1) return conds[0];
@@ -119,6 +126,11 @@ export function AuditLogSearchPanel() {
         value: <DiffView before={detailLog.beforeValue} after={detailLog.afterValue} />,
       }]);
     }
+    if (detailLog.batchId) {
+      // recordMany / recordManyDiff 由来のバッチ行のみ表示。dead-letter 復旧時の
+      // トレースや同バッチの一括検索（バッチID フィルタ）で利用される。
+      rows.push([{ label: "バッチID", value: detailLog.batchId }]);
+    }
     if (detailLog.metadata && Object.keys(detailLog.metadata).length > 0) {
       rows.push([{
         label: "メタデータ",
@@ -170,6 +182,12 @@ export function AuditLogSearchPanel() {
               value={draft.actionPrefix}
               onChange={(v) => setDraft({ ...draft, actionPrefix: v })}
               placeholder="例: user.email"
+            />
+            <FilterField
+              label="バッチID (batch_id)"
+              value={draft.batchId}
+              onChange={(v) => setDraft({ ...draft, batchId: v })}
+              placeholder="UUID (recordMany 由来)"
             />
           </Flex>
           <Flex gap="sm">

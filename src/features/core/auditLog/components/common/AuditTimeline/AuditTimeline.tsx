@@ -131,6 +131,12 @@ export function AuditTimeline({
       }]);
     }
 
+    if (detailLog.batchId) {
+      // バッチ記録 (recordMany / recordManyDiff) の場合のみ表示。
+      // dead-letter 復旧時のトレース、および同一バッチ行の追跡に利用できる。
+      rows.push([{ label: "バッチID", value: detailLog.batchId }]);
+    }
+
     if (detailLog.metadata && Object.keys(detailLog.metadata).length > 0) {
       rows.push([{
         label: "メタデータ",
