@@ -2,6 +2,8 @@
 
 "use client";
 
+import { useState } from "react";
+
 import type { Notification } from "@/features/notification/entities";
 import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
 import { DeleteButton } from "@/lib/crud";
@@ -9,6 +11,7 @@ import config from "@/features/notification/domain.json";
 import presenters from "@/features/notification/presenters";
 import { buildDomainColumns } from "@/lib/crud";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
+import NotificationDetailModal from "@/features/core/notification/components/common/NotificationDetailModal";
 
 export type AdminNotificationListTableProps = {
   /**
@@ -55,11 +58,28 @@ function buildColumns(readCounts: Record<string, number>): DataTableColumn<Notif
 }
 
 export default function AdminNotificationListTable({ notifications, readCounts = {} }: AdminNotificationListTableProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const columns = buildColumns(readCounts);
-  return <DataTable
-    items={notifications ?? []}
-    columns={columns}
-    getKey={(d) => d.id}
-    emptyValueFallback={adminDataTableFallback}
-  />;
+
+  return (
+    <>
+      <DataTable
+        items={notifications ?? []}
+        columns={columns}
+        getKey={(d) => d.id}
+        rowClassName="cursor-pointer"
+        onRowClick={(d) => setSelectedId(String(d.id))}
+        emptyValueFallback={adminDataTableFallback}
+      />
+      <NotificationDetailModal
+        notificationId={selectedId}
+        open={selectedId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedId(null);
+          }
+        }}
+      />
+    </>
+  );
 }
