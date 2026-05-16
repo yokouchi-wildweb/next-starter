@@ -26,13 +26,19 @@ import { changeRate } from "./utils/aggregation";
 // 型定義
 // ============================================================================
 
-type WalletTypeSummary = {
+export type WalletTypeSummary = {
   coinAmount: number;
   paymentAmount: number;
   count: number;
 };
 
-type PurchaseDailyData = {
+export type PaymentMethodSummary = {
+  coinAmount: number;
+  paymentAmount: number;
+  count: number;
+};
+
+export type PurchaseDailyData = {
   coinAmount: number;
   paymentAmount: number;
   discountAmount: number;
@@ -40,14 +46,15 @@ type PurchaseDailyData = {
   uniqueUsers: number;
   avgPaymentAmount: number;
   byWalletType: Record<string, WalletTypeSummary>;
+  byPaymentMethod: Record<string, PaymentMethodSummary>;
 };
 
-type ProviderSummary = {
+export type ProviderSummary = {
   paymentAmount: number;
   count: number;
 };
 
-type PurchaseSummaryData = {
+export type PurchaseSummaryData = {
   totalCoinAmount: number;
   totalPaymentAmount: number;
   totalDiscountAmount: number;
@@ -59,6 +66,7 @@ type PurchaseSummaryData = {
   repeatPurchaseRate: number;
   byProvider: Record<string, ProviderSummary>;
   byWalletType: Record<string, WalletTypeSummary>;
+  byPaymentMethod: Record<string, PaymentMethodSummary>;
   comparison: {
     previousPeriod: {
       totalPaymentAmount: number;
@@ -71,18 +79,18 @@ type PurchaseSummaryData = {
   };
 };
 
-type StatusCount = {
+export type StatusCount = {
   count: number;
   totalAmount: number;
   oldestAt: string | null;
 };
 
-type FailureReason = {
+export type FailureReason = {
   errorCode: string;
   count: number;
 };
 
-type StatusOverviewData = {
+export type StatusOverviewData = {
   current: Record<string, StatusCount>;
   failureReasons: FailureReason[];
 };
@@ -123,8 +131,8 @@ export async function getPurchaseDaily(
   const conditions = buildConditions(range.dateFrom, range.dateTo, { ...params, status });
   const dateSql = purchaseDateExpr(tz, range.granularity);
 
-  // メインクエリ + ウォレット種別ブレイクダウンを並列実行
-  const [dailyRows, walletTypeRows] = await Promise.all([
+  // メインクエリ + ウォレット種別 + 決済方法別ブレイクダウンを並列実行
+  const [dailyRows, walletTypeRows, paymentMethodRows] = await Promise.all([
     db
       .select({
         date: dateSql,
@@ -148,6 +156,17 @@ export async function getPurchaseDaily(
       .from(p)
       .where(and(...conditions))
       .groupBy(sql.raw("1"), p.wallet_type),
+    db
+      .select({
+        date: dateSql,
+        paymentMethod: sql<string>`COALESCE(${p.payment_method}, 'unknown')`.as("payment_method"),
+        coinAmount: sql<number>`COALESCE(SUM(${p.amount}), 0)`.as("coin_amount"),
+        paymentAmount: sql<number>`COALESCE(SUM(${p.payment_amount}), 0)`.as("payment_amount"),
+        count: sql<number>`COUNT(*)::int`.as("count"),
+      })
+      .from(p)
+      .where(and(...conditions))
+      .groupBy(sql.raw("1"), p.payment_method),
   ]);
 
   // Map化
@@ -161,12 +180,22 @@ export async function getPurchaseDaily(
       count: Number(r.count),
     };
   }
+  const paymentMethodMap = new Map<string, Record<string, PaymentMethodSummary>>();
+  for (const r of paymentMethodRows) {
+    if (!paymentMethodMap.has(r.date)) paymentMethodMap.set(r.date, {});
+    paymentMethodMap.get(r.date)![r.paymentMethod] = {
+      coinAmount: Number(r.coinAmount),
+      paymentAmount: Number(r.paymentAmount),
+      count: Number(r.count),
+    };
+  }
 
   // データなし日を埋めてレスポンス構築
   const dateKeys = generateDateKeys(range);
   const emptyDay: PurchaseDailyData = {
     coinAmount: 0, paymentAmount: 0, discountAmount: 0,
-    purchaseCount: 0, uniqueUsers: 0, avgPaymentAmount: 0, byWalletType: {},
+    purchaseCount: 0, uniqueUsers: 0, avgPaymentAmount: 0,
+    byWalletType: {}, byPaymentMethod: {},
   };
 
   const history = dateKeys.map((date) => {
@@ -183,6 +212,7 @@ export async function getPurchaseDaily(
       uniqueUsers: Number(row.uniqueUsers),
       avgPaymentAmount: purchaseCount > 0 ? Math.round(paymentAmount / purchaseCount) : 0,
       byWalletType: walletTypeMap.get(date) ?? {},
+      byPaymentMethod: paymentMethodMap.get(date) ?? {},
     };
   });
 
@@ -215,8 +245,8 @@ export async function getPurchaseSummary(
   const isCurrent = sql`(${p.completed_at} >= ${range.dateFrom.toISOString()} AND ${p.completed_at} <= ${range.dateTo.toISOString()})`;
   const isPrev = sql`(${p.completed_at} >= ${prevDateFrom.toISOString()} AND ${p.completed_at} <= ${prevDateTo.toISOString()})`;
 
-  // 4クエリを並列実行（メイン集計+前期比較を統合）
-  const [summaryRows, repeatDataRows, providerRows, walletTypeRows] = await Promise.all([
+  // 5クエリを並列実行（メイン集計+前期比較を統合）
+  const [summaryRows, repeatDataRows, providerRows, walletTypeRows, paymentMethodRows] = await Promise.all([
     // 1. メイン集計 + 前期比較（CASE WHENで1クエリ化）
     db
       .select({
@@ -268,6 +298,17 @@ export async function getPurchaseSummary(
       .from(p)
       .where(and(...conditions))
       .groupBy(p.wallet_type),
+    // 5. 決済方法別
+    db
+      .select({
+        paymentMethod: sql<string>`COALESCE(${p.payment_method}, 'unknown')`.as("payment_method"),
+        coinAmount: sql<number>`COALESCE(SUM(${p.amount}), 0)`.as("coin_amount"),
+        paymentAmount: sql<number>`COALESCE(SUM(${p.payment_amount}), 0)`.as("payment_amount"),
+        count: sql<number>`COUNT(*)::int`.as("count"),
+      })
+      .from(p)
+      .where(and(...conditions))
+      .groupBy(p.payment_method),
   ]);
 
   const summary = summaryRows[0];
@@ -285,6 +326,15 @@ export async function getPurchaseSummary(
   const byWalletType: Record<string, WalletTypeSummary> = {};
   for (const r of walletTypeRows) {
     byWalletType[r.walletType] = {
+      coinAmount: Number(r.coinAmount),
+      paymentAmount: Number(r.paymentAmount),
+      count: Number(r.count),
+    };
+  }
+
+  const byPaymentMethod: Record<string, PaymentMethodSummary> = {};
+  for (const r of paymentMethodRows) {
+    byPaymentMethod[r.paymentMethod] = {
       coinAmount: Number(r.coinAmount),
       paymentAmount: Number(r.paymentAmount),
       count: Number(r.count),
@@ -310,6 +360,7 @@ export async function getPurchaseSummary(
     repeatPurchaseRate: uniqueUsers > 0 ? Number(repeatData!.repeatUsers) / uniqueUsers : 0,
     byProvider,
     byWalletType,
+    byPaymentMethod,
     comparison: {
       previousPeriod: {
         totalPaymentAmount: prevTotalPaymentAmount,
