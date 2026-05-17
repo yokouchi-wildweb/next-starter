@@ -16,6 +16,7 @@ import {
 import { generateInhouseTransferIdentifier } from "../payment/inhouse";
 import { reserveQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
+import { assertHoldingLimit } from "@/features/core/wallet/services/server/wrappers/checkHoldingLimit";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors/domainError";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
@@ -133,6 +134,12 @@ export async function initiatePurchase(
     );
   }
   await strategy.validateInitiation({ params });
+
+  // 2.5. ウォレット保有上限チェック (CURRENCY_CONFIG.maxHoldingAmount が設定されている通貨のみ)。
+  //      非ウォレット購入 (walletType=null) はスキップ。失敗時は 409 で早期 fail-fast。
+  if (walletType) {
+    await assertHoldingLimit({ userId, walletType });
+  }
 
   // 3. クーポン検証（コードが指定されている場合）
   let actualPaymentAmount = paymentAmount;

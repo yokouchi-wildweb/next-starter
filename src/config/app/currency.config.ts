@@ -24,6 +24,7 @@ export const CURRENCY_CONFIG = {
     label: "コイン",
     unit: "コイン",
     color: "#F59E0B", // amber-500
+    // maxHoldingAmount: 150_000,  // 保有上限を設けたい場合に有効化 (balance >= この値で追加購入をブロック)
     packages: [
       { amount: 500, price: 500 },
       { amount: 1000, price: 1000 },

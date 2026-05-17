@@ -55,4 +55,9 @@ export type CurrencyConfig = {
   packages: PurchasePackage[];
   /** 管理画面で表示するメタフィールド */
   metaFields: CurrencyMetaFieldConfig[];
+  /**
+   * 保有上限 (この値以上を保有しているユーザーは追加購入できない)。
+   * 省略時は無制限。balance のみで判定 (locked_balance は対象外)。
+   */
+  maxHoldingAmount?: number;
 };
