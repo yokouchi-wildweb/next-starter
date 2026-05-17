@@ -23,6 +23,7 @@ import { and, eq, or } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { releaseQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { DomainError } from "@/lib/errors/domainError";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
@@ -166,6 +167,9 @@ export async function cancelPurchase(
         tx,
       });
     }
+
+    // 3e. 購入クォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)
+    await releaseQuota(current.id, tx);
 
     return { purchaseRequest: updated as PurchaseRequest };
   });

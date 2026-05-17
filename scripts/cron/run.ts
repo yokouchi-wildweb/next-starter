@@ -40,6 +40,13 @@ const TASKS: Record<string, CronTask> = {
     );
     return await recoverDeadLetterAuditLogs();
   },
+  "purchase-quota-cleanup": async () => {
+    const { cleanupOldLedger } = await import(
+      "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper"
+    );
+    const deleted = await cleanupOldLedger();
+    return { deleted };
+  },
   // 今後の cron タスクはここに追加
 };
 

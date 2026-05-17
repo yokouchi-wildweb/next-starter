@@ -10,6 +10,7 @@ import { evaluateMilestones } from "@/features/core/milestone/services/server/wr
 import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/constants/triggers";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { commitQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry";
 import { getPurchaseCompletionStrategy } from "../completion";
 import { findByWebhookIdentifier } from "./purchaseHelpers";
@@ -107,6 +108,10 @@ export async function completePurchase(
     if (!updated) {
       throw new DomainError("購入リクエストの更新に失敗しました（既に処理済みの可能性があります）", { status: 409 });
     }
+
+    // 購入クォータ台帳を reserved → committed に遷移 (集計値は不変、状態遷移のみ)。
+    // PURCHASE_QUOTA_RULES が空なら no-op。
+    await commitQuota(purchaseRequest.id, tx);
 
     // 購入完了戦略をディスパッチ
     // purchase_type に対応する戦略がウォレット加算等の実処理を担う。

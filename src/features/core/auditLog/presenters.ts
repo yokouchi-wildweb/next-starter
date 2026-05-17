@@ -40,6 +40,9 @@ const DEFAULT_ACTION_LABELS: Record<string, string> = {
   "user.bulk_hard_deleted": "ユーザー一括物理削除",
   "user.bulk_updated": "ユーザー一括更新",
   "user.bulk_upserted": "ユーザー一括 upsert",
+
+  // purchase quota (購入上限制御)
+  "purchase_quota.reservation.exceeded": "購入上限超過による拒否",
 };
 
 const customActionLabels: Record<string, string> = {};

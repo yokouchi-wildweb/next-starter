@@ -5,6 +5,7 @@ import { and, eq, or } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
+import { releaseQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { DomainError } from "@/lib/errors/domainError";
 import { getPurchaseCompletionStrategy } from "../completion";
 import { findByWebhookIdentifier } from "./purchaseHelpers";
@@ -73,6 +74,8 @@ export async function failPurchase(params: FailPurchaseParams): Promise<Purchase
         errorMessage: resolvedErrorMessage,
         tx,
       });
+      // クォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)
+      await releaseQuota(updatedRecord.id, tx);
       return updatedRecord;
     });
   }
@@ -101,6 +104,9 @@ export async function failPurchase(params: FailPurchaseParams): Promise<Purchase
     // 並行処理で既に completed or failed に遷移済み → 冪等に返す
     return purchaseRequest;
   }
+
+  // クォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)
+  await releaseQuota((updated as PurchaseRequest).id);
 
   return updated as PurchaseRequest;
 }

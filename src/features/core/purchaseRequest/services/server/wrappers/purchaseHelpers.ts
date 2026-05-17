@@ -5,6 +5,7 @@ import { and, eq, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
+import { releaseQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { DomainError } from "@/lib/errors/domainError";
 import type { PaymentProviderName } from "../payment";
@@ -249,6 +250,12 @@ export async function expirePendingRequests(): Promise<number> {
 
   totalExpired += bulkRows.length;
 
+  // 一括 expire した分のクォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)。
+  // bulk 経路は onExpire を持たないため別 tx での release で十分 (購入レコードは確定済み)。
+  if (bulkRows.length > 0) {
+    await releaseQuota(bulkRows.map((row) => row.id));
+  }
+
   // 2. onExpire を持つ purchase_type は per-row で expire + フック実行（atomic）
   if (typesWithOnExpire.length > 0) {
     const targetRows = await db
@@ -285,6 +292,8 @@ export async function expirePendingRequests(): Promise<number> {
             purchaseRequest: updated as PurchaseRequest,
             tx,
           });
+          // クォータ台帳を released に遷移 (PURCHASE_QUOTA_RULES が空なら no-op)
+          await releaseQuota(updated.id, tx);
           totalExpired += 1;
         });
       } catch (error) {

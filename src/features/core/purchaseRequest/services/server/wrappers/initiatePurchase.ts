@@ -14,6 +14,7 @@ import {
   resolveProviderForMethod,
 } from "@/config/app/payment.config";
 import { generateInhouseTransferIdentifier } from "../payment/inhouse";
+import { reserveQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors/domainError";
@@ -166,25 +167,43 @@ export async function initiatePurchase(
   // 4. purchase_request を作成、または pending の既存リクエストを再利用
   //    metadata は pending 再利用時も上書き更新する（古い metadata を残さない運用）。
   //    冪等キーが同じでも metadata が変わるケース（商品ID差し替え等）に追従するため。
+  //
+  //    クォータ予約 (reserveQuota) を同一 tx で行うため、全ケースを tx で包む。
+  //    PURCHASE_QUOTA_RULES が空ならクォータ予約は no-op で従来挙動と同一。
   let purchaseRequest: PurchaseRequest;
   if (existing?.status === "pending") {
-    // 既存の pending リクエストのクーポン情報を更新して再利用
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    purchaseRequest = await base.update(existing.id, {
-      payment_amount: actualPaymentAmount,
-      metadata: metadata ?? null,
-      ...(couponCode
-        ? {
-            coupon_code: couponCode,
-            discount_amount: discountAmount ?? 0,
-            original_payment_amount: paymentAmount,
-          }
-        : {
-            coupon_code: null,
-            discount_amount: 0,
-            original_payment_amount: null,
-          }),
-    } as any) as PurchaseRequest;
+    purchaseRequest = await db.transaction(async (tx) => {
+      // 既存の pending リクエストのクーポン情報を更新して再利用
+      const updated = await base.update(existing.id, {
+        payment_amount: actualPaymentAmount,
+        metadata: metadata ?? null,
+        ...(couponCode
+          ? {
+              coupon_code: couponCode,
+              discount_amount: discountAmount ?? 0,
+              original_payment_amount: paymentAmount,
+            }
+          : {
+              coupon_code: null,
+              discount_amount: 0,
+              original_payment_amount: null,
+            }),
+      } as any, tx) as PurchaseRequest;
+
+      // クォータ再予約: pending 再利用時はクーポン適用で actualPaymentAmount が
+      // 変動し得るため、最新の金額で台帳行を上書きする (既存行は自己除外で計算)。
+      await reserveQuota(
+        {
+          userId,
+          paymentMethod,
+          amount: actualPaymentAmount,
+          purchaseRequestId: updated.id,
+        },
+        tx,
+      );
+
+      return updated;
+    });
   } else {
     // 新規作成
     const createData = {
@@ -213,21 +232,26 @@ export async function initiatePurchase(
         original_payment_amount: paymentAmount,
       }),
     };
-    // afterInitiate フックが定義されていれば atomic 実行するため tx で包む。
-    // 未定義の場合は従来通り tx 無しで create（性能・挙動の完全互換）。
+    // 新規作成: create + reserveQuota + (任意) afterInitiate を 1 tx で atomic に。
+    // reserveQuota は PURCHASE_QUOTA_RULES が空なら no-op。
     // afterInitiate 内で throw されると create もロールバックされ、
     // 副次テーブルとの整合を保ったまま購入失敗として呼び出し元に伝播する。
-    if (strategy.afterInitiate) {
-      purchaseRequest = await db.transaction(async (tx) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const created = await base.create(createData as any, tx) as PurchaseRequest;
-        await strategy.afterInitiate!({ purchaseRequest: created, tx });
-        return created;
-      });
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      purchaseRequest = await base.create(createData as any) as PurchaseRequest;
-    }
+    purchaseRequest = await db.transaction(async (tx) => {
+      const created = await base.create(createData as any, tx) as PurchaseRequest;
+      await reserveQuota(
+        {
+          userId,
+          paymentMethod,
+          amount: actualPaymentAmount,
+          purchaseRequestId: created.id,
+        },
+        tx,
+      );
+      if (strategy.afterInitiate) {
+        await strategy.afterInitiate({ purchaseRequest: created, tx });
+      }
+      return created;
+    });
   }
 
   // 5. 決済プロバイダでセッション作成（provider は冒頭で取得済み）
