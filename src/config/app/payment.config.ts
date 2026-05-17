@@ -79,6 +79,13 @@ export type ProviderConfig = {
 export type BankTransferConfig = {
   /** 振込完了申告時に即時で通貨を付与するか（false=管理者確認モード・今回スコープ外） */
   autoComplete: boolean;
+  /**
+   * AI による振込画像の事前判定ステップを有効化するか。
+   * - true: 画像添付 → AI 判定 → 通過後のみ申告ボタンが活性化（4ステップ構成）
+   * - false: 画像添付 → 即申告ボタン活性化（従来の 3ステップ構成）
+   *   Anthropic API キー未設定や AI サービス停止時の緊急バイパスにも使える。
+   */
+  aiImageJudgmentEnabled: boolean;
   /** 振込先口座情報（案内画面に表示） */
   account: {
     bankName: string;
@@ -148,6 +155,7 @@ export const paymentConfig = {
    */
   bankTransfer: {
     autoComplete: true,
+    aiImageJudgmentEnabled: false,
     account: {
       bankName: "サンプル銀行",
       branchName: "サンプル支店",

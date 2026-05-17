@@ -5,6 +5,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Main, PageTitle, Para } from "@/components/TextBlocks";
 
 const DEMO_PAGES = [
+  { path: "bank-transfer-vision", label: "Bank Transfer Vision", description: "AIによる銀行振込画像の事前判定" },
   { path: "block-appearance", label: "Block Appearance", description: "ブロック要素の外観設定" },
   { path: "check-env", label: "Check Env", description: "環境変数の確認" },
   { path: "dummy-payment", label: "Dummy Payment", description: "ダミー決済フロー" },

@@ -147,6 +147,7 @@ flow: ServerService throw DomainError → APIRoute JSON{status,message} → Clie
 
 ## NAMING
 components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only
+db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates FK names as `{table}_{column}_{reftable}_{refcolumn}_fk` — long table/column names trigger `42622` NOTICE on db:push and the name gets truncated, which can collide. When adding tables/columns, keep names short enough so generated FK names stay ≤63 chars. If unavoidable, set an explicit shorter FK name via Drizzle's `foreignKey({...}, "shortname_fk")`.
 
 ## PROHIBITED
 - client fetch (use axios)

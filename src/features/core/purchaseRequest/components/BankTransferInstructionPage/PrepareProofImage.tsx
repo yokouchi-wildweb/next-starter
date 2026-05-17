@@ -28,16 +28,24 @@ import { useToast } from "@/lib/toast";
 
 import { useBankTransferProofUpload } from "@/features/core/purchaseRequest/hooks/useBankTransferProofUpload";
 
+import { circledNumber } from "./stepNumber";
+
 type Props = {
+  /** 親が動的に決定するステップ番号 (例: 2) */
+  step: number;
   /** purchase_request の ID（アップロードパスの一部に使用） */
   requestId: string;
   /** アップロード済み画像 URL。null = 未添付 */
   imageUrl: string | null;
-  /** アップロード成功 / クリア時のコールバック */
-  onChange: (url: string | null) => void;
+  /**
+   * アップロード成功 / クリア時のコールバック。
+   * - url: Firebase Storage の永続 URL（Step④ 申告 API に渡す）
+   * - file: 選択された File オブジェクト（Step③ の AI 判定 API へ multipart で渡す）。クリア時は null。
+   */
+  onChange: (url: string | null, file: File | null) => void;
 };
 
-export function PrepareProofImage({ requestId, imageUrl, onChange }: Props) {
+export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props) {
   const { upload } = useBankTransferProofUpload(requestId);
   const { showToast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +69,11 @@ export function PrepareProofImage({ requestId, imageUrl, onChange }: Props) {
     e.target.value = "";
     if (!file) return;
 
+    // 差し替え瞬間に親側の URL/File/判定結果を即時無効化する。
+    // これをしないとアップロード完了までは旧 URL と旧判定結果が残り、
+    // Step④ ボタンが古い判定で押せてしまう。
+    onChange(null, null);
+
     // ローカルプレビューを即時表示
     const localUrl = URL.createObjectURL(file);
     setPreviewUrl((prev) => {
@@ -71,12 +84,12 @@ export function PrepareProofImage({ requestId, imageUrl, onChange }: Props) {
 
     try {
       const url = await upload(file);
-      onChange(url);
+      onChange(url, file);
     } catch {
       showToast("画像のアップロードに失敗しました", "error");
       URL.revokeObjectURL(localUrl);
       setPreviewUrl(null);
-      onChange(null);
+      onChange(null, null);
     } finally {
       setIsUploading(false);
     }
@@ -87,7 +100,7 @@ export function PrepareProofImage({ requestId, imageUrl, onChange }: Props) {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
     }
-    onChange(null);
+    onChange(null, null);
   };
 
   const hasAttached = imageUrl !== null || previewUrl !== null;
@@ -97,7 +110,7 @@ export function PrepareProofImage({ requestId, imageUrl, onChange }: Props) {
     <Block padding="md" className="rounded-lg border border-border bg-card">
       <Stack space={3}>
         <Span weight="semiBold" size="md">
-          ② 振込明細の画像を用意
+          {circledNumber(step)} 振込明細の画像を用意
         </Span>
 
         {/* 隠しファイル input。ボタンクリックで OS のネイティブシート（カメラ / ライブラリ）が開く */}

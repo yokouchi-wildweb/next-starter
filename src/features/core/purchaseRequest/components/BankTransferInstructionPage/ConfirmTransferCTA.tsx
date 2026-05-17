@@ -1,8 +1,8 @@
 // src/features/core/purchaseRequest/components/BankTransferInstructionPage/ConfirmTransferCTA.tsx
 //
-// ③ 振込完了申告セクション。
+// ④ 振込完了申告セクション。
 // クリックで ConfirmTransferModal（添付画像プレビュー + 不正注意 + 申告 API）を開く。
-// ② で画像が添付されるまでは disabled（親から制御）。
+// ② の画像添付 + ③ の AI 判定通過まで disabled（親から制御）。
 
 "use client";
 
@@ -15,8 +15,11 @@ import { Button } from "@/components/Form/Button/Button";
 import { Para, Span } from "@/components/TextBlocks";
 
 import { ConfirmTransferModal } from "./ConfirmTransferModal";
+import { circledNumber } from "./stepNumber";
 
 type Props = {
+  /** 親が動的に決定するステップ番号 (AI 判定有効時=4, 無効時=3) */
+  step: number;
   /** purchase_request の ID（申告 API 呼び出しに使用） */
   requestId: string;
   /** ② で添付された画像の Storage URL。null = 未添付（ボタン非活性） */
@@ -28,6 +31,7 @@ type Props = {
 };
 
 export function ConfirmTransferCTA({
+  step,
   requestId,
   proofImageUrl,
   disabled = false,
@@ -46,7 +50,7 @@ export function ConfirmTransferCTA({
       <Block padding="md" className="rounded-lg border border-border bg-card">
         <Stack space={3}>
           <Span weight="semiBold" size="md">
-            ③ 振込完了の申告
+            {circledNumber(step)} 振込完了の申告
           </Span>
           <Para size="sm" tone="muted">
             振込が完了したら下のボタンから申告してください。

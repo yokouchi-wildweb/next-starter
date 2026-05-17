@@ -19,8 +19,11 @@ import type { BankTransferConfig } from "@/config/app/payment.config";
 
 import { BankAccountDetailsModal } from "./BankAccountDetailsModal";
 import { ExpiryNotice } from "./ExpiryNotice";
+import { circledNumber } from "./stepNumber";
 
 type Props = {
+  /** 親が動的に決定するステップ番号 (例: 1) */
+  step: number;
   /** 振込先口座情報（モーダル内で表示） */
   account: BankTransferConfig["account"];
   /** 振込人名末尾に付与する識別子（モーダル内で表示） */
@@ -29,7 +32,7 @@ type Props = {
   expiresAt: Date | null;
 };
 
-export function AccountInfoCard({ account, identifier, expiresAt }: Props) {
+export function AccountInfoCard({ step, account, identifier, expiresAt }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -37,7 +40,7 @@ export function AccountInfoCard({ account, identifier, expiresAt }: Props) {
       <Block padding="md" className="rounded-lg border border-border bg-card">
         <Stack space={3}>
           <Span weight="semiBold" size="md">
-            ① 振込先口座
+            {circledNumber(step)} 振込先口座
           </Span>
           <Flex justify="center">
             <Button

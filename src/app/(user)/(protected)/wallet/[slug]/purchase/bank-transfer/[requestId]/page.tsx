@@ -67,7 +67,8 @@ export default async function BankTransferInstructionPageRoute({ params }: PageP
     redirect(`/wallet/${slug}`);
   }
 
-  const account = getBankTransferConfig().account;
+  const bankTransferConfig = getBankTransferConfig();
+  const account = bankTransferConfig.account;
   const identifier = purchaseRequest.provider_order_id ?? "";
 
   return (
@@ -80,6 +81,7 @@ export default async function BankTransferInstructionPageRoute({ params }: PageP
           account={account}
           identifier={identifier}
           expiresAt={purchaseRequest.expires_at}
+          aiImageJudgmentEnabled={bankTransferConfig.aiImageJudgmentEnabled}
         />
       </Stack>
     </UserPage>
