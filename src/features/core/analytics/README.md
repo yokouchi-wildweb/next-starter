@@ -61,6 +61,7 @@ analytics/
 | GET /api/admin/analytics/referral/summary | referralAnalytics | 紹介経由ユーザー数 + 紹介リワード金額（前期比含む） |
 | GET /api/admin/analytics/dau/daily | dauAnalytics | 日別 DAU（granularity は day のみ） |
 | GET /api/admin/analytics/dau/summary | dauAnalytics | DAU 期間サマリー（granularity は day のみ） |
+| GET /api/admin/analytics/coin-issuance/summary | coinIssuance | コイン創出サマリー（収入・発行・finalProfit を統合、前期比含む。下流で source 追加可） |
 
 ### referral summary 固有のパラメータ
 - `referralStatuses`: 集計対象とする `referrals.status` を CSV で指定（例: `active,cancelled`）。省略時は全状態をカウント
@@ -248,6 +249,164 @@ export const GET = createApiRoute(
     });
   },
 );
+```
+
+## コイン創出サマリーへの参加方法
+
+`GET /api/admin/analytics/coin-issuance/summary` は **拡張可能な集計レジストリ** を採用しており、各ドメインが「コイン創出ソース (`CoinIssuanceSource`)」を登録するだけでサービス全体の `finalProfit` 計算に組み込まれる。
+upstream / downstream の双方がソースを登録できるため、サービス間で「最終収支」の定義がブレることを防ぐ。
+
+### 概念
+
+各ソースは 1 種類のコイン収支寄与を表す。
+
+- `kind: "revenue"` … 収入源 (例: ガチャ売上)。`finalProfit` に加算される
+- `kind: "issuance"` … 発行源 = サービスが負担する費用 (例: クーポンボーナス、紹介リワード、当選報告特典)。`finalProfit` から減算される
+
+`finalProfit = Σ revenue.current − Σ issuance.current`
+
+### upstream 組み込みソース
+
+| key | kind | 概要 |
+|---|---|---|
+| `coupon_bonus_gap` | issuance | `purchase_requests` の `SUM(amount - payment_amount) WHERE status='completed'`（クーポン割引・ランクボーナス・決済方法ボーナス等で上乗せされたコイン）|
+| `referral_reward` | issuance | `referral_rewards` の `status='fulfilled'` 金額合計 (`getReferralSummary().rewardTotal` と同 SQL) |
+
+### ソース追加の手順 (downstream)
+
+1. `CoinIssuanceSource` を満たす値を作成する
+2. `src/registry/coinIssuanceRegistry.ts` の配列に追加する
+3. (任意) `services/server/coinIssuance/labels.ts` の `registerCoinIssuanceLabels` で表示名を登録する
+
+### 実装テンプレート
+
+```typescript
+// 例: src/features/gacha/analytics/coinIssuance/gachaProfitSource.ts
+import { db } from "@/lib/drizzle";
+import { GachaPlayTable } from "@/features/gacha/entities/drizzle";
+import { and, between, sql } from "drizzle-orm";
+import { buildUserFilterConditions } from "@/features/core/analytics/services/server/utils/userFilter";
+import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance";
+
+const t = GachaPlayTable;
+
+export const gachaProfitSource: CoinIssuanceSource = {
+  key: "gacha_profit",
+  kind: "revenue",
+
+  async aggregate({ range, prevRange, userFilter }) {
+    const isCurrent = sql`(${t.createdAt} >= ${range.dateFrom.toISOString()} AND ${t.createdAt} <= ${range.dateTo.toISOString()})`;
+    const isPrev = sql`(${t.createdAt} >= ${prevRange.dateFrom.toISOString()} AND ${t.createdAt} <= ${prevRange.dateTo.toISOString()})`;
+
+    // 当期+前期を CASE WHEN で 1 クエリ集計
+    const rows = await db
+      .select({
+        current: sql<number>`COALESCE(SUM(CASE WHEN ${isCurrent} THEN ${t.profit} ELSE 0 END), 0)`.as("current_profit"),
+        previous: sql<number>`COALESCE(SUM(CASE WHEN ${isPrev} THEN ${t.profit} ELSE 0 END), 0)`.as("prev_profit"),
+      })
+      .from(t)
+      .where(and(
+        between(t.createdAt, prevRange.dateFrom, range.dateTo),
+        ...buildUserFilterConditions(t.user_id, userFilter),
+      ));
+
+    return {
+      current: Number(rows[0]?.current ?? 0),
+      previous: Number(rows[0]?.previous ?? 0),
+    };
+  },
+};
+```
+
+```typescript
+// src/registry/coinIssuanceRegistry.ts に追加
+import { gachaProfitSource } from "@/features/gacha/analytics/coinIssuance/gachaProfitSource";
+
+export const coinIssuanceSources: CoinIssuanceSource[] = [
+  // --- CORE (upstream-provided) ---
+  couponBonusGapSource,
+  referralRewardSource,
+
+  // --- DOWNSTREAM ---
+  gachaProfitSource,
+  // winningReportRewardSource, winningCommentRewardSource, ...
+];
+```
+
+```typescript
+// (任意) ラベル登録 (downstream の任意の初期化箇所)
+import { registerCoinIssuanceLabels } from "@/features/core/analytics/services/server/coinIssuance/labels";
+
+registerCoinIssuanceLabels({
+  gacha_profit: "ガチャ収支",
+  winning_report_reward: "当選報告特典",
+});
+```
+
+### 実装上のベストプラクティス
+
+#### 1. 付与額のスナップショットカラムを推奨
+
+報酬・特典系の付与額は **ドメインテーブルに専用カラム** として持つことを強く推奨する。
+
+- **推奨**: 付与時に `promotion_reward_coin_amount: integer` 等のカラムへスナップショット書き込み → 集計は `SUM(promotion_reward_coin_amount)` で済む
+- **非推奨**: `wallet_history.reason LIKE '当選報告特典%'` のような文字列マッチ集計
+
+専用カラム方式のメリット:
+- reason 文字列の変更や handler 追加に強い (`promotion_reward_coin_amount` の意味は固定)
+- 集計 SQL が単純化される (LIKE / 正規表現を避けられる)
+- 監査ログとの整合が取りやすい
+
+専用カラムが追加できない事情がある場合のみ wallet_history からの集計を選ぶ。
+
+#### 2. 当期+前期を 1 クエリで集計
+
+各ソースは `Promise.all` で並列実行されるため個別ソース内のクエリ数は少ない方が良い。
+**当期と前期を別クエリにせず、`CASE WHEN` で 1 クエリにまとめる** (上記テンプレート参照)。
+これは既存 summary 系 (`purchaseAnalytics`, `referralAnalytics`) と同じパターン。
+
+#### 3. UserFilter は意味のある場合のみ適用
+
+`userFilter (roles / excludeDemo)` は対象テーブルの `user_id` カラムに対して
+`buildUserFilterConditions(column, userFilter)` で適用できる。
+ただし「発行先 user を絞り込むことが意味を持たないソース」(e.g. `referral_reward` の rewardTotal) は適用しない。
+
+#### 4. 戻り値は常に絶対値
+
+`CoinIssuanceSource.aggregate()` の戻り値 `{current, previous}` は **絶対値 (正の数)** とする。
+符号反転 (issuance を finalProfit から減算する処理) は aggregator の責務なので、
+ソース側で `-` を返さないこと。
+
+#### 5. key 命名
+
+`CoinIssuanceSource.key` は API レスポンスの `sources` Record のキーとしてそのまま使われる。
+upstream の key と衝突しない snake_case を選ぶ。
+`gacha_profit`, `winning_report_reward`, `winning_comment_reward` 等、ソースの意味が読み取れる命名にする。
+
+### `referralReward` の金額抽出 SQL を差し替える
+
+`referralReward` ソースは `metadata ->> 'amount'` で金額を抽出する規約に従う。
+規約が異なる downstream は、`aggregateReferralRewardCurrentVsPrev` を直接呼ぶカスタム source を実装するか、
+`referralRewardSource` を置き換える形で独自 source を登録する。
+
+```typescript
+import { sql } from "drizzle-orm";
+import { ReferralRewardTable } from "@/features/core/referralReward/entities/drizzle";
+import { aggregateReferralRewardCurrentVsPrev } from "@/features/core/analytics/services/server/referralAnalytics";
+import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance";
+
+// 独自 metadata 構造 ({ rewardCoins: number } 等) を持つ downstream 用
+export const customReferralRewardSource: CoinIssuanceSource = {
+  key: "referral_reward",
+  kind: "issuance",
+  async aggregate({ range, prevRange }) {
+    return aggregateReferralRewardCurrentVsPrev({
+      range,
+      prevRange,
+      rewardAmountExpr: sql<number>`(${ReferralRewardTable.metadata} ->> 'rewardCoins')::numeric`,
+    });
+  },
+};
 ```
 
 ## エンティティの追加

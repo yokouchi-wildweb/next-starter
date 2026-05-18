@@ -20,6 +20,7 @@ import { and, between, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import type {
   DateRangeParams,
   PeriodSummaryResponse,
+  ResolvedDateRange,
   UserFilter,
 } from "@/features/core/analytics/types/common";
 import { resolveDateRange, formatDateRangeForResponse } from "./utils/dateRange";
@@ -73,6 +74,51 @@ type ReferralSummaryData = {
 export const DEFAULT_REWARD_AMOUNT_EXPR: SQL<number> =
   sql<number>`(${ReferralRewardTable.metadata} ->> 'amount')::numeric`;
 
+/**
+ * 当期+前期の referralReward 合計を 1 クエリで集計するヘルパー。
+ *
+ * coinIssuance の referralReward ソースと getReferralSummary の rewardTotal 計算が
+ * 同一 SQL を要求するため、共通化して二重メンテを防ぐ。
+ *
+ * 集計条件は既存 getReferralSummary と完全に同一:
+ *   - ReferralRewardTable.fulfilled_at が当期 or 前期に含まれる
+ *   - ReferralRewardTable.status = "fulfilled"
+ *   - UserFilter は適用しない (既存 referral summary の rewardTotal も非適用のため踏襲)
+ *
+ * 公開関数として export しているため、coinIssuance/sources/ や下流の独自集計から再利用できる。
+ */
+export type AggregateReferralRewardCurrentVsPrevParams = {
+  range: ResolvedDateRange;
+  prevRange: { dateFrom: Date; dateTo: Date };
+  /** 金額抽出 SQL 式。省略時は DEFAULT_REWARD_AMOUNT_EXPR */
+  rewardAmountExpr?: SQL<number>;
+};
+
+export async function aggregateReferralRewardCurrentVsPrev(
+  params: AggregateReferralRewardCurrentVsPrevParams,
+): Promise<{ current: number; previous: number }> {
+  const amountExpr = params.rewardAmountExpr ?? DEFAULT_REWARD_AMOUNT_EXPR;
+
+  const isCurrentReward = sql`(${ReferralRewardTable.fulfilled_at} >= ${params.range.dateFrom.toISOString()} AND ${ReferralRewardTable.fulfilled_at} <= ${params.range.dateTo.toISOString()})`;
+  const isPrevReward = sql`(${ReferralRewardTable.fulfilled_at} >= ${params.prevRange.dateFrom.toISOString()} AND ${ReferralRewardTable.fulfilled_at} <= ${params.prevRange.dateTo.toISOString()})`;
+
+  const rows = await db
+    .select({
+      current: sql<number>`COALESCE(SUM(CASE WHEN ${isCurrentReward} THEN ${amountExpr} ELSE 0 END), 0)::numeric`.as("current_total"),
+      previous: sql<number>`COALESCE(SUM(CASE WHEN ${isPrevReward} THEN ${amountExpr} ELSE 0 END), 0)::numeric`.as("prev_total"),
+    })
+    .from(ReferralRewardTable)
+    .where(and(
+      between(ReferralRewardTable.fulfilled_at, params.prevRange.dateFrom, params.range.dateTo),
+      eq(ReferralRewardTable.status, "fulfilled"),
+    ));
+
+  return {
+    current: Number(rows[0]?.current ?? 0),
+    previous: Number(rows[0]?.previous ?? 0),
+  };
+}
+
 // ============================================================================
 // テーブル別名
 // ============================================================================
@@ -89,7 +135,6 @@ export async function getReferralSummary(
   params: ReferralSummaryParams,
 ): Promise<PeriodSummaryResponse<ReferralSummaryData>> {
   const range = resolveDateRange(params);
-  const amountExpr = params.rewardAmountExpr ?? DEFAULT_REWARD_AMOUNT_EXPR;
   const statuses = params.referralStatuses;
 
   // 前期の日付範囲（既存 summary 系と同パターン）
@@ -97,12 +142,10 @@ export async function getReferralSummary(
   prevDateFrom.setDate(prevDateFrom.getDate() - range.dayCount);
   const prevDateTo = new Date(range.dateFrom);
   prevDateTo.setMilliseconds(prevDateTo.getMilliseconds() - 1);
+  const prevRange = { dateFrom: prevDateFrom, dateTo: prevDateTo };
 
   const isCurrentUser = sql`(${u.createdAt} >= ${range.dateFrom.toISOString()} AND ${u.createdAt} <= ${range.dateTo.toISOString()})`;
   const isPrevUser = sql`(${u.createdAt} >= ${prevDateFrom.toISOString()} AND ${u.createdAt} <= ${prevDateTo.toISOString()})`;
-
-  const isCurrentReward = sql`(${rr.fulfilled_at} >= ${range.dateFrom.toISOString()} AND ${rr.fulfilled_at} <= ${range.dateTo.toISOString()})`;
-  const isPrevReward = sql`(${rr.fulfilled_at} >= ${prevDateFrom.toISOString()} AND ${rr.fulfilled_at} <= ${prevDateTo.toISOString()})`;
 
   const userTableFilters = buildUserTableFilterConditions(params);
   const statusFilter = statuses && statuses.length > 0
@@ -124,24 +167,19 @@ export async function getReferralSummary(
       ...statusFilter,
     ));
 
-  // rewardTotal: ReferralReward の fulfilled レコードを当期+前期で集計
-  const rewardRowsPromise = db
-    .select({
-      current: sql<number>`COALESCE(SUM(CASE WHEN ${isCurrentReward} THEN ${amountExpr} ELSE 0 END), 0)::numeric`.as("current_total"),
-      previous: sql<number>`COALESCE(SUM(CASE WHEN ${isPrevReward} THEN ${amountExpr} ELSE 0 END), 0)::numeric`.as("prev_total"),
-    })
-    .from(rr)
-    .where(and(
-      between(rr.fulfilled_at, prevDateFrom, range.dateTo),
-      eq(rr.status, "fulfilled"),
-    ));
+  // rewardTotal: 共通ヘルパーで当期+前期を 1 クエリ集計 (coinIssuance と同一ロジック)
+  const rewardTotalsPromise = aggregateReferralRewardCurrentVsPrev({
+    range,
+    prevRange,
+    rewardAmountExpr: params.rewardAmountExpr,
+  });
 
-  const [referredRows, rewardRows] = await Promise.all([referredRowsPromise, rewardRowsPromise]);
+  const [referredRows, rewardTotals] = await Promise.all([referredRowsPromise, rewardTotalsPromise]);
 
   const referredUserCount = Number(referredRows[0]?.current ?? 0);
   const prevReferredUserCount = Number(referredRows[0]?.previous ?? 0);
-  const rewardTotal = Number(rewardRows[0]?.current ?? 0);
-  const prevRewardTotal = Number(rewardRows[0]?.previous ?? 0);
+  const rewardTotal = rewardTotals.current;
+  const prevRewardTotal = rewardTotals.previous;
 
   return {
     ...formatDateRangeForResponse(range),
