@@ -19,6 +19,7 @@ import {
   generateDateKeys,
   formatDateRangeForResponse,
   granularityDateExpr,
+  derivePreviousRange,
 } from "./utils/dateRange";
 import { changeRate } from "./utils/aggregation";
 
@@ -231,11 +232,7 @@ export async function getPurchaseSummary(
   const statusParams = { ...params, status: "completed" as const };
   const conditions = buildConditions(range.dateFrom, range.dateTo, statusParams);
 
-  // 前期の日付範囲
-  const prevDateFrom = new Date(range.dateFrom);
-  prevDateFrom.setDate(prevDateFrom.getDate() - range.dayCount);
-  const prevDateTo = new Date(range.dateFrom);
-  prevDateTo.setMilliseconds(prevDateTo.getMilliseconds() - 1);
+  const { dateFrom: prevDateFrom, dateTo: prevDateTo } = derivePreviousRange(range);
 
   // 当期+前期を1クエリで集計するための条件（CASE WHENで期間を分離）
   const unifiedConditions: SQL[] = [

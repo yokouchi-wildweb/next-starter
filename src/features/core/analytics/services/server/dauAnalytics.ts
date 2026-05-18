@@ -17,6 +17,7 @@ import {
   generateDateKeys,
   formatDateRangeForResponse,
   assertGranularitySupported,
+  derivePreviousRange,
 } from "./utils/dateRange";
 import { buildUserFilterConditions } from "./utils/userFilter";
 import { changeRate } from "./utils/aggregation";
@@ -124,11 +125,7 @@ export async function getDauSummary(
   const range = resolveDateRange(params);
   assertGranularitySupported(range.granularity, DAU_SUPPORTED_GRANULARITIES, "DAU 集計");
 
-  // 前期の日付範囲
-  const prevDateFrom = new Date(range.dateFrom);
-  prevDateFrom.setDate(prevDateFrom.getDate() - range.dayCount);
-  const prevDateTo = new Date(range.dateFrom);
-  prevDateTo.setMilliseconds(prevDateTo.getMilliseconds() - 1);
+  const { dateFrom: prevDateFrom, dateTo: prevDateTo } = derivePreviousRange(range);
 
   // 当期と前期を並列取得
   const [currentDaily, prevDaily] = await Promise.all([

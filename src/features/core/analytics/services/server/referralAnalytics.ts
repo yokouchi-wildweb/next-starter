@@ -23,7 +23,7 @@ import type {
   ResolvedDateRange,
   UserFilter,
 } from "@/features/core/analytics/types/common";
-import { resolveDateRange, formatDateRangeForResponse } from "./utils/dateRange";
+import { resolveDateRange, formatDateRangeForResponse, derivePreviousRange } from "./utils/dateRange";
 import { changeRate } from "./utils/aggregation";
 
 // ============================================================================
@@ -137,12 +137,8 @@ export async function getReferralSummary(
   const range = resolveDateRange(params);
   const statuses = params.referralStatuses;
 
-  // 前期の日付範囲（既存 summary 系と同パターン）
-  const prevDateFrom = new Date(range.dateFrom);
-  prevDateFrom.setDate(prevDateFrom.getDate() - range.dayCount);
-  const prevDateTo = new Date(range.dateFrom);
-  prevDateTo.setMilliseconds(prevDateTo.getMilliseconds() - 1);
-  const prevRange = { dateFrom: prevDateFrom, dateTo: prevDateTo };
+  const prevRange = derivePreviousRange(range);
+  const { dateFrom: prevDateFrom, dateTo: prevDateTo } = prevRange;
 
   const isCurrentUser = sql`(${u.createdAt} >= ${range.dateFrom.toISOString()} AND ${u.createdAt} <= ${range.dateTo.toISOString()})`;
   const isPrevUser = sql`(${u.createdAt} >= ${prevDateFrom.toISOString()} AND ${u.createdAt} <= ${prevDateTo.toISOString()})`;

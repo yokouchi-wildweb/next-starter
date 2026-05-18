@@ -16,6 +16,7 @@ import {
   generateDateKeys,
   formatDateRangeForResponse,
   granularityDateExpr,
+  derivePreviousRange,
 } from "./utils/dateRange";
 import type { Granularity } from "@/features/core/analytics/types/common";
 import { changeRate } from "./utils/aggregation";
@@ -150,11 +151,7 @@ export async function getUserRegistrationSummary(
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, params);
 
-  // 前期の日付範囲
-  const prevDateFrom = new Date(range.dateFrom);
-  prevDateFrom.setDate(prevDateFrom.getDate() - range.dayCount);
-  const prevDateTo = new Date(range.dateFrom);
-  prevDateTo.setMilliseconds(prevDateTo.getMilliseconds() - 1);
+  const { dateFrom: prevDateFrom, dateTo: prevDateTo } = derivePreviousRange(range);
 
   // 当期+前期を1クエリで集計するための条件
   const unifiedConditions: SQL[] = [

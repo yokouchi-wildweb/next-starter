@@ -86,6 +86,28 @@ export function resolveDateRange(params: DateRangeParams): ResolvedDateRange {
 }
 
 /**
+ * 当期と同じ長さ・直前の連続期間 (= 前期) を算出する。
+ *
+ * 前期比較を行う全 summary 系サービスで同じ計算が必要なため共通化している。
+ * 計算ロジック:
+ *   prevDateFrom = range.dateFrom - dayCount 日
+ *   prevDateTo   = range.dateFrom - 1ms
+ *
+ * 戻り値の dateFrom / dateTo は同じ ResolvedDateRange の timezone 軸上での
+ * 「直前の同期間」を表す Date オブジェクト。
+ */
+export function derivePreviousRange(range: ResolvedDateRange): {
+  dateFrom: Date;
+  dateTo: Date;
+} {
+  const dateFrom = new Date(range.dateFrom);
+  dateFrom.setDate(dateFrom.getDate() - range.dayCount);
+  const dateTo = new Date(range.dateFrom);
+  dateTo.setMilliseconds(dateTo.getMilliseconds() - 1);
+  return { dateFrom, dateTo };
+}
+
+/**
  * URLSearchParamsからDateRangeParamsを抽出する
  */
 export function parseDateRangeParams(searchParams: URLSearchParams): DateRangeParams {

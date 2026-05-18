@@ -20,7 +20,7 @@ import type {
   DateRangeParams,
   UserFilter,
 } from "@/features/core/analytics/types/common";
-import { resolveDateRange, formatDateRangeForResponse } from "../utils/dateRange";
+import { resolveDateRange, formatDateRangeForResponse, derivePreviousRange } from "../utils/dateRange";
 import { changeRate } from "../utils/aggregation";
 import type {
   CoinIssuanceSource,
@@ -42,12 +42,7 @@ export async function getCoinIssuanceSummary(
 ): Promise<CoinIssuanceSummaryData> {
   const range = resolveDateRange(params);
 
-  // 前期の日付範囲 (既存 summary 系と同じ計算ロジック)
-  const prevDateFrom = new Date(range.dateFrom);
-  prevDateFrom.setDate(prevDateFrom.getDate() - range.dayCount);
-  const prevDateTo = new Date(range.dateFrom);
-  prevDateTo.setMilliseconds(prevDateTo.getMilliseconds() - 1);
-  const prevRange = { dateFrom: prevDateFrom, dateTo: prevDateTo };
+  const prevRange = derivePreviousRange(range);
 
   const userFilter: UserFilter = {
     ...(params.roles && { roles: params.roles }),
