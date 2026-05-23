@@ -25,8 +25,8 @@ ref: docs/!must-read/設計思想とアーキテクチャ.md
 7.Entity(features/*/entities): schema, types, drizzle
 8.Database: PostgreSQL | Firestore
 
-boundary: Hook/ClientService → HTTP → APIRoute → ServerService | Page(SSR) → ServerService direct OK | Hook → ServerService NG
-rules: client axios only | server fetch OK | DB access via ServerService only
+boundary: Hook → ClientService → HTTP → APIRoute → ServerService | Page(SSR) → ServerService direct OK | Hook → ServerService NG | Hook → APIRoute (axios直叩き) NG
+rules: client axios only | server fetch OK | DB access via ServerService only | HTTP呼び出しは必ず ClientService に集約 (Hook/Component は ClientService 経由のみ)
 
 ## PROXY (replaces middleware)
 entry: src/proxy.ts (default export, receives NextRequest) | handlers: src/proxies/
@@ -156,6 +156,7 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - direct _shadcn imports (use wrappers: button→Form/Button, input→Form/Input/*, skeleton→Skeleton/BaseSkeleton, etc. | no wrapper? → propose creating one)
 - form schemas in entities/schema.ts (use formEntities.ts)
 - Hook calling ServerService
+- Hook/Component calling APIRoute directly (axios/fetch を Hook 内で直叩き禁止。HTTP 呼び出しは必ず ClientService に集約)
 - skip normalizeHttpError in ClientService
 - manual m2m when belongsToMany available
 - re-implement when base CRUD suffices
