@@ -127,11 +127,11 @@ import Modal from "@/components/Overlays/Modal";
 | `maxWidth` | `number \| string` | `640` | 最大幅 |
 | `className` | `string` | - | コンテナに付与するクラス |
 | `minHeight` | `number \| string` | - | 最小高さ（指定すると内部がスクロール領域でラップされる） |
-| `maxHeight` | `number \| string` | - | 最大高さ（指定すると内部がスクロール領域でラップされる） |
+| `maxHeight` | `number \| string \| null` | `"calc(100dvh - 8rem)"` | 最大高さ。指定するとコンテンツが overflow-y-auto でラップされる。`null` を渡すと制限を解除できる。 |
 | `height` | `number \| string` | - | 高さ（指定すると内部がスクロール領域でラップされる） |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 
-`minHeight` / `maxHeight` / `height` のいずれかを指定すると、コンテンツは自動的にスクロール可能なラッパーで包まれる。
+デフォルトで `maxHeight` が設定されているため、長いコンテンツは常にビューポート内に収まり内部スクロールされる。タイトル部 (DialogHeader) は固定で、本体だけがスクロールする。デフォルトを無効化したい場合は `maxHeight={null}` を渡す。
 
 **onCloseAutoFocus の使用例:**
 

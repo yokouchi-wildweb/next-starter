@@ -21,10 +21,18 @@ export type ModalProps = {
   className?: string;
   maxWidth?: number | string;
   minHeight?: number | string;
-  maxHeight?: number | string;
+  /** 最大高さ。指定すると本体が overflow-y-auto でラップされる。
+   * デフォルトはビューポート - 上下 4rem 余白。`null` を渡すと制限を解除できる。 */
+  maxHeight?: number | string | null;
   height?: number | string;
   onCloseAutoFocus?: (event: Event) => void;
 };
+
+/** Modal 本体の既定の最大高さ。
+ * DialogContent の padding (1.5rem * 2)・ヘッダ・gap などのクローム分 (~6rem) と
+ * 画面端の余白 (上下 1rem ずつ) を差し引いた値。これより大きい値を渡すと
+ * close ボタン等が画面外に出る可能性がある。 */
+const DEFAULT_MAX_HEIGHT = "calc(100dvh - 8rem)";
 
 export default function Modal({
   open,
@@ -37,14 +45,20 @@ export default function Modal({
   className,
   maxWidth = 640,
   minHeight,
-  maxHeight,
+  maxHeight = DEFAULT_MAX_HEIGHT,
   height,
   onCloseAutoFocus,
 }: ModalProps) {
+  // null が明示的に渡された場合は制限を解除（後方互換用）
+  const effectiveMaxHeight = maxHeight ?? undefined;
   const resolvedScrollableMinHeight =
     minHeight !== undefined ? (typeof minHeight === "number" ? `${minHeight}px` : minHeight) : undefined;
   const resolvedScrollableMaxHeight =
-    maxHeight !== undefined ? (typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight) : undefined;
+    effectiveMaxHeight !== undefined
+      ? typeof effectiveMaxHeight === "number"
+        ? `${effectiveMaxHeight}px`
+        : effectiveMaxHeight
+      : undefined;
   const resolvedScrollableHeight =
     height !== undefined ? (typeof height === "number" ? `${height}px` : height) : undefined;
   const shouldWrapScrollable = Boolean(
