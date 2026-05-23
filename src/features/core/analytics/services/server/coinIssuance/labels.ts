@@ -1,7 +1,7 @@
 // src/features/core/analytics/services/server/coinIssuance/labels.ts
 // コイン創出ソースの表示ラベルレジストリ。
 //
-// CoinIssuanceSource.key は機械可読な snake_case (例: "coupon_bonus_gap") なので、
+// CoinIssuanceSource.key は機械可読な snake_case (例: "purchase_bonus_gap") なので、
 // 管理画面で表示する際は人間可読なラベルへ変換する必要がある。
 // このレジストリで key → 表示名 のマッピングを一元管理する。
 //
@@ -55,11 +55,13 @@ export function getAllCoinIssuanceLabels(): Record<string, string> {
 // upstream 組み込みソースのデフォルトラベル
 // ============================================================================
 //
-// upstream で確実に登録されるソース (couponBonusGap / referralReward) のラベルは
+// upstream で確実に登録されるソース (purchaseBonusGap / referralReward) のラベルは
 // 最初から登録しておく。downstream は registerCoinIssuanceLabels を必要に応じて
 // 追加で呼べばよい。
 
 registerCoinIssuanceLabels({
-  coupon_bonus_gap: "クーポン・ボーナス発行",
+  // コイン購入時にサービス側が負担した上乗せボーナス全般
+  // (クーポン割引 / ユーザーランクボーナス / 決済方法ボーナス / 購入パッケージのボーナス)
+  purchase_bonus_gap: "購入時ボーナス発行",
   referral_reward: "紹介リワード",
 });

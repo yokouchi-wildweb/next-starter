@@ -6,7 +6,7 @@
 // kind に応じて revenue (加算) / issuance (減算) として finalProfit に寄与する。
 //
 // 設計思想:
-//  - upstream は確実に存在するドメインのソース (couponBonusGap / referralReward) のみを
+//  - upstream は確実に存在するドメインのソース (purchaseBonusGap / referralReward) のみを
 //    最初から登録しておく
 //  - downstream は自分のドメインのソース (gachaProfit / winningReportReward 等) を
 //    この配列に追加することで、upstream の集計 API がそのままそれを含める
@@ -22,7 +22,7 @@
 // 詳細な実装ガイドは src/features/core/analytics/README.md の
 // 「コイン創出サマリーへの参加方法」セクションを参照。
 
-import { couponBonusGapSource } from "@/features/core/analytics/services/server/coinIssuance/sources/couponBonusGap";
+import { purchaseBonusGapSource } from "@/features/core/analytics/services/server/coinIssuance/sources/purchaseBonusGap";
 import { referralRewardSource } from "@/features/core/analytics/services/server/coinIssuance/sources/referralReward";
 
 import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance/types";
@@ -39,7 +39,7 @@ import type { CoinIssuanceSource } from "@/features/core/analytics/services/serv
  */
 export const coinIssuanceSources: CoinIssuanceSource[] = [
   // --- CORE (upstream-provided) ---
-  couponBonusGapSource,
+  purchaseBonusGapSource,
   referralRewardSource,
 
   // --- DOWNSTREAM (downstream で追加) ---

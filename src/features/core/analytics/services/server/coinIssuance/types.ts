@@ -81,7 +81,7 @@ export type CoinIssuanceSourceResult = {
 export type CoinIssuanceSource = {
   /**
    * レジストリ内の一意キー。レスポンス JSON のキーとしてそのまま使うため
-   * snake_case を推奨 (例: "coupon_bonus_gap", "referral_reward").
+   * snake_case を推奨 (例: "purchase_bonus_gap", "referral_reward").
    *
    * 同一キーを 2 つ登録するとレジストリ初期化時にエラーになる。
    */

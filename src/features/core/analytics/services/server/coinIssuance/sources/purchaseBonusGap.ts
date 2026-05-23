@@ -1,5 +1,5 @@
-// src/features/core/analytics/services/server/coinIssuance/sources/couponBonusGap.ts
-// coinIssuance ソース: 購入時のクーポン / ボーナスによる発行ギャップ。
+// src/features/core/analytics/services/server/coinIssuance/sources/purchaseBonusGap.ts
+// coinIssuance ソース: コイン購入時にサービス側が負担した「上乗せボーナス全般」。
 //
 // 集計対象:
 //   purchase_requests のうち status='completed' のレコードに対し、
@@ -9,8 +9,14 @@
 //   - amount         = 実際にユーザーへ付与したコイン数
 //   - payment_amount = 実際にユーザーから受け取った JPY 額
 //   - 1 JPY = 1 coin 基準の購入パッケージを前提とすると、
-//     amount - payment_amount は「クーポン割引 / ランクボーナス / 決済方法ボーナス等で
+//     amount - payment_amount は「クーポン割引 / ユーザーランクボーナス /
+//     決済方法ボーナス / 購入パッケージの上乗せボーナス等で
 //     上乗せされた、サービス側がコストとして負担した分」に相当する。
+//
+//   ※ 旧名称 `coupon_bonus_gap` は実態より狭い印象を与えていたため
+//      `purchase_bonus_gap` にリネームした (README の Breaking Changes 参照)。
+//      購入と無関係なコインボーナス (紹介リワード・当選報告特典等) は
+//      別ソースとして登録されるため、本ソースには含まれない。
 //
 // 期間判定:
 //   completed_at で行う (既存 purchaseAnalytics と同じ)。
@@ -27,8 +33,8 @@ import type { CoinIssuanceSource } from "../types";
 
 const p = PurchaseRequestTable;
 
-export const couponBonusGapSource: CoinIssuanceSource = {
-  key: "coupon_bonus_gap",
+export const purchaseBonusGapSource: CoinIssuanceSource = {
+  key: "purchase_bonus_gap",
   kind: "issuance",
 
   async aggregate({ range, prevRange, userFilter }) {
