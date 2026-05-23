@@ -1,11 +1,10 @@
 // src/features/auth/services/server/authorization.ts
 
 import { redirect } from "next/navigation";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 
-import { parseSessionCookie } from "@/lib/jwt";
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
+import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { USER_AVAILABLE_STATUSES } from "@/features/core/user/constants";
 import type { UserRoleType, UserStatus } from "@/features/core/user/types";
 
@@ -43,18 +42,11 @@ export async function authGuard(options: AuthGuardOptions = {}): Promise<Session
     return buildReturnBackUrl(redirectTo, currentPath);
   };
 
-  // レイアウトやサーバーコンポーネントから呼び出され、Cookie からセッションを検証する。
-  const cookieStore = await cookies();
-  const token = parseSessionCookie(cookieStore);
-
-  if (!token) {
-    const url = await resolveRedirectUrl();
-    if (url) redirect(url);
-    return null;
-  }
-
-  // トークンを検証してユーザー情報を取得する。失敗時は未ログインとして扱う。
-  const sessionUser = await resolveSessionUser(token);
+  // レイアウトやサーバーコンポーネントから呼び出され、セッションを検証する。
+  // getSessionUser は React `cache()` でラップされているため、同一リクエスト内で
+  // AuthSessionProvider 等と重複呼び出しされても DB 引きは 1 回に dedupe される。
+  // 戻り値の status / role は常に DB の現在値が反映される。
+  const sessionUser = await getSessionUser();
 
   if (!sessionUser) {
     const url = await resolveRedirectUrl();

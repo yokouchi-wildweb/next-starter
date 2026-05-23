@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { RateLimitCategory } from "@/config/app/rate-limit.config";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
+import { getTokenOnlySession } from "@/features/core/auth/services/server/session/getTokenOnlySession";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
 import {
@@ -144,7 +144,11 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
 ): NextRouteHandler<TParams> {
   return async (req: NextRequest, context: { params: Promise<TParams> }) => {
     const params = await context.params;
-    const session = await getSessionUser();
+    // 監査ログの actor_id / actorType とデモユーザー判定にしか使わないため、
+    // DB 同期が不要な JWT-only 取得を選択する。
+    // 認可判定 (status / role による拒否) が必要な API ルートでは、ハンドラ内で
+    // authGuard() / getSessionUser() (= DB と同期される) を別途呼ぶこと。
+    const session = await getTokenOnlySession();
     const auditContext = buildAuditContext(req, session);
 
     try {
