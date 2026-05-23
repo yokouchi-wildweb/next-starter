@@ -2,6 +2,18 @@ import { and, eq, ne, lt, lte, gt, gte, ilike, isNull, isNotNull, or, SQL, sql, 
 import type { PgTable } from "drizzle-orm/pg-core";
 import type { WhereExpr } from "@/lib/crud/types";
 
+// HTTP 経由で WhereExpr を受け取る場合、JSON は Date をシリアライズできないため
+// value は必ず string で届く。Drizzle の PgTimestamp/PgDate (mode:"date") は
+// 比較値として Date オブジェクトを期待するので、ここで補正する。
+// 不正文字列は元の値のまま渡し、Drizzle 側の既存エラーで気付けるようにする。
+const coerceValue = (col: unknown, value: unknown): unknown => {
+  if (typeof value !== "string") return value;
+  const dataType = (col as { dataType?: string } | null)?.dataType;
+  if (dataType !== "date") return value;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d;
+};
+
 export const buildWhere = (table: PgTable, expr?: WhereExpr): SQL => {
   if (!expr) return sql`TRUE`;
   if ("field" in expr) {
@@ -9,17 +21,17 @@ export const buildWhere = (table: PgTable, expr?: WhereExpr): SQL => {
     switch (expr.op) {
       // 比較
       case "eq":
-        return eq(col, expr.value as any);
+        return eq(col, coerceValue(col, expr.value) as any);
       case "ne":
-        return ne(col, expr.value as any);
+        return ne(col, coerceValue(col, expr.value) as any);
       case "lt":
-        return lt(col, expr.value as any);
+        return lt(col, coerceValue(col, expr.value) as any);
       case "lte":
-        return lte(col, expr.value as any);
+        return lte(col, coerceValue(col, expr.value) as any);
       case "gt":
-        return gt(col, expr.value as any);
+        return gt(col, coerceValue(col, expr.value) as any);
       case "gte":
-        return gte(col, expr.value as any);
+        return gte(col, coerceValue(col, expr.value) as any);
       // テキスト
       case "like":
         return ilike(col, String(expr.value));
@@ -29,9 +41,9 @@ export const buildWhere = (table: PgTable, expr?: WhereExpr): SQL => {
         return ilike(col, `%${expr.value}`);
       // リスト
       case "in":
-        return inArray(col, expr.value as any[]);
+        return inArray(col, (expr.value as unknown[]).map((v) => coerceValue(col, v)) as any[]);
       case "notIn":
-        return notInArray(col, expr.value as any[]);
+        return notInArray(col, (expr.value as unknown[]).map((v) => coerceValue(col, v)) as any[]);
       // NULL
       case "isNull":
         return isNull(col);
