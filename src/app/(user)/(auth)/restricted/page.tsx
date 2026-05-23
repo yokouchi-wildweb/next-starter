@@ -26,10 +26,27 @@ export default async function RestrictedPage() {
   }
 
   // suspended, banned, security_locked のみ表示
+  // suspended は不正確定前のグレー状態のため、専用の柔らかい文言を出す
+  const isSuspended = sessionUser.status === "suspended";
+
   return (
     <UserPage containerType="narrowStack" className="text-center items-center">
-      <UserPageTitle>アカウント制限中</UserPageTitle>
-      <Para>現在このアカウントはご利用になれません。</Para>
+      {isSuspended ? (
+        <>
+          <UserPageTitle>アカウントを確認中です</UserPageTitle>
+          <Para>
+            ご利用状況の確認のため、現在アカウントのご利用を一時的に停止しております。
+          </Para>
+          <Para>
+            確認が完了次第、改めてご案内いたします。お急ぎの場合や心当たりがない場合は、お手数ですがサポートまでお問い合わせください。
+          </Para>
+        </>
+      ) : (
+        <>
+          <UserPageTitle>アカウント制限中</UserPageTitle>
+          <Para>現在このアカウントはご利用になれません。</Para>
+        </>
+      )}
     </UserPage>
   );
 }
