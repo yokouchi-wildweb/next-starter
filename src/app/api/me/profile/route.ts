@@ -32,12 +32,14 @@ export const PATCH = createApiRoute(
     const updatedUser = await userService.update(session.userId, updateData);
     // 管理者専用 / セキュリティ内部フィールドは /me 経路から除外する。
     // - adminMemo: 本人が自分宛ての管理者メモを取得できないように
-    // - failedLoginCount / lockedUntil / lastFailedLoginAt: セキュリティ内部状態
+    // - failedLoginCount / lockedUntil / lastFailedLoginAt: ロック状態
+    // - sessionsInvalidatedAt: セッション失効境界 (内部判定用)
     const {
       adminMemo: _adminMemo,
       failedLoginCount: _failedLoginCount,
       lockedUntil: _lockedUntil,
       lastFailedLoginAt: _lastFailedLoginAt,
+      sessionsInvalidatedAt: _sessionsInvalidatedAt,
       ...selfVisibleUser
     } = updatedUser;
     return selfVisibleUser;

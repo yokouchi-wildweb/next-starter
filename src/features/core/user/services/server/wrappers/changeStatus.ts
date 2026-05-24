@@ -3,6 +3,7 @@
 import type { User } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { invalidateSessionsForUser } from "@/features/core/auth/services/server/sessionInvalidation";
 import { DomainError } from "@/lib/errors";
 import { base } from "../drizzleBase";
 
@@ -63,6 +64,16 @@ export async function changeStatus(input: ChangeStatusInput): Promise<User> {
       after: { status: newStatus, failedLoginCount: 0 },
       reason: reason ?? null,
       bestEffort: true,
+    });
+  }
+
+  // banned / security_locked への遷移時は既存セッションを即時失効させる
+  // (有効な JWT が残ったまま access され続けるのを防ぐ)。
+  if (newStatus === "banned" || newStatus === "security_locked") {
+    await invalidateSessionsForUser({
+      userId,
+      providerUid: currentUser.providerUid,
+      reason: newStatus === "banned" ? "status_ban" : "status_lock",
     });
   }
 

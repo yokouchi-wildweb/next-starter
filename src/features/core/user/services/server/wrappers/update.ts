@@ -13,6 +13,7 @@ import { getRoleCategory, hasRoleProfile, type UserRoleType } from "@/features/c
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
 import { db } from "@/lib/drizzle";
+import { invalidateSessionsForUser } from "@/features/core/auth/services/server/sessionInvalidation";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -167,6 +168,21 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     Object.keys(updatePayload).length === 0
       ? current
       : await base.update(id, updatePayload);
+
+  // パスワード変更が発生した場合は全セッションを失効させる (既存 JWT 無効化 + Firebase revoke)。
+  // local: localPassword (DB側) が更新された場合。
+  // Firebase 系: shouldSyncFirebasePassword が true で Firebase 側パスワードが更新された場合。
+  const passwordChanged =
+    (current.providerType === "local" && localPassword !== undefined) ||
+    shouldSyncFirebasePassword;
+
+  if (passwordChanged) {
+    await invalidateSessionsForUser({
+      userId: id,
+      providerUid: current.providerUid,
+      reason: "password_change",
+    });
+  }
 
   // プロフィールデータの更新
   const effectiveRole = (updatePayload.role ?? current.role) as UserRoleType;

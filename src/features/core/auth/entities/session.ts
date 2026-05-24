@@ -26,6 +26,9 @@ export const TokenPayloadSchema = SessionUserSchema.omit({
   expiresAt: z
     .string({ required_error: "トークンの有効期限が不足しています" })
     .datetime({ message: "トークンの有効期限が不正です" }),
+  // jose の SignJWT.setIssuedAt() が自動付与する Unix epoch (秒)。
+  // セッション失効判定 (resolveSessionUser) で DB.sessions_invalidated_at と比較される。
+  iat: z.number().int().positive(),
 });
 
 export type SessionUser = z.infer<typeof SessionUserSchema>;

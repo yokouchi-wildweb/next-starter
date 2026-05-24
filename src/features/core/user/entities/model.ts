@@ -40,6 +40,8 @@ export type User = BaseEntity & {
   lockedUntil: Date | null;
   /** 直近のログイン失敗時刻 (時間窓ベースのカウントリセットに使用) */
   lastFailedLoginAt: Date | null;
+  /** 全セッション失効の境界時刻。JWT.iat がこれより前なら認可拒否 */
+  sessionsInvalidatedAt: Date | null;
   lastAuthenticatedAt: Date | null;
   phoneNumber: string | null;
   phoneVerifiedAt: Date | null;

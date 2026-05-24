@@ -104,6 +104,19 @@ export async function resolveSessionUser(token: string): Promise<SessionUser | n
     return null;
   }
 
+  // 全セッション失効チェック: パスワード変更や status=banned/security_locked への
+  // 遷移で sessionsInvalidatedAt が更新されている場合、それより前に発行された
+  // JWT (= jwt.iat < invalidatedAt) は失効とみなす。
+  // 発火元: invalidateSessionsForUser (src/features/core/auth/services/server/sessionInvalidation.ts)
+  if (dbUser.sessionsInvalidatedAt) {
+    const invalidatedAtSeconds = Math.floor(
+      dbUser.sessionsInvalidatedAt.getTime() / 1000,
+    );
+    if (payload.iat < invalidatedAtSeconds) {
+      return null;
+    }
+  }
+
   const parsed = SessionUserSchema.safeParse({
     userId: dbUser.id,
     role: dbUser.role,

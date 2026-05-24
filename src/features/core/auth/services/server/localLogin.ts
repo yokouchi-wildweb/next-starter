@@ -9,6 +9,7 @@ import { userService, formatShortLockMessage, PERMANENT_LOCK_MESSAGE } from "@/f
 import { AccountLockedEmail } from "@/features/core/mail/templates/AccountLockedEmail";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { recordLoginFailure } from "./loginAudit";
+import { invalidateSessionsForUser } from "./sessionInvalidation";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
@@ -123,6 +124,13 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     await recordLoginFailure({ user, email, reason: "wrong_password" });
     const outcome = await userService.recordFailedLogin(user);
     if (outcome.kind === "permanent_locked") {
+      // 永続ロック発動時は既存全セッションも即時失効させる。
+      // (status=security_locked への遷移と同時に発火、A5 の責務)
+      await invalidateSessionsForUser({
+        userId: user.id,
+        providerUid: user.providerUid,
+        reason: "status_lock",
+      });
       // 永続ロック通知メールを fire-and-forget で送信。
       // メール送信失敗で認証フローを止めない (失敗は warn ログのみ)。
       if (user.email) {

@@ -34,6 +34,10 @@ export const UserTable = pgTable(
     failedLoginCount: integer("failed_login_count").default(0).notNull(),
     lockedUntil: timestamp("locked_until", { withTimezone: true }),
     lastFailedLoginAt: timestamp("last_failed_login_at", { withTimezone: true }),
+    // 全セッション失効の境界時刻。getSessionUser で JWT.iat と比較し、
+    // iat < sessionsInvalidatedAt なら認可拒否。
+    // パスワード変更 / status=banned,security_locked への遷移で now() がセットされる。
+    sessionsInvalidatedAt: timestamp("sessions_invalidated_at", { withTimezone: true }),
     metadata: jsonb("metadata").$type<UserMetadata>().default({}).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

@@ -48,6 +48,8 @@ export const UserCoreSchema = z.object({
   failedLoginCount: z.number().int().nonnegative().default(0),
   lockedUntil: z.coerce.date().nullish(),
   lastFailedLoginAt: z.coerce.date().nullish(),
+  // セッション失効境界時刻。invalidateSessionsForUser 経由でのみ更新される。
+  sessionsInvalidatedAt: z.coerce.date().nullish(),
   user_tag_ids: z.array(z.string()).optional(),
 });
 
