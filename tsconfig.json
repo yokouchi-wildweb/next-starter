@@ -38,6 +38,7 @@
       "@/features/milestone/*": ["./src/features/core/milestone/*"],
       "@/features/notification/*": ["./src/features/core/notification/*"],
       "@/features/notificationTemplate/*": ["./src/features/core/notificationTemplate/*"],
+      "@/features/purchaseQuota/*": ["./src/features/core/purchaseQuota/*"],
       "@/features/purchaseRequest/*": ["./src/features/core/purchaseRequest/*"],
       "@/features/rateLimit/*": ["./src/features/core/rateLimit/*"],
       "@/features/referral/*": ["./src/features/core/referral/*"],
