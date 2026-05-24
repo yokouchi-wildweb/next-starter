@@ -8,10 +8,11 @@ import { verifyPassword } from "@/features/core/auth/utils/password";
 import { userService, formatShortLockMessage, PERMANENT_LOCK_MESSAGE } from "@/features/core/user/services/server/userService";
 import { AccountLockedEmail } from "@/features/core/mail/templates/AccountLockedEmail";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { recordLoginFailure } from "./loginAudit";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
-import type { UserRoleType, UserStatus } from "@/features/core/user/types";
+import type { User } from "@/features/core/user/entities";
 import { getRoleCategory } from "@/features/core/user/constants";
 
 export type LocalLoginInput = z.infer<typeof LocalLoginSchema> & {
@@ -42,17 +43,23 @@ export type LocalLoginResult = {
 };
 
 // 管理者カテゴリのアカウントであることを確認し、一般ユーザーのログインを遮断する。
-function assertAdminRole(role: UserRoleType): void {
-  if (getRoleCategory(role) !== "admin") {
+// 違反時は recordLoginFailure で監査ログを残してから throw する。
+async function assertAdminRole(user: User, email: string): Promise<void> {
+  if (getRoleCategory(user.role) !== "admin") {
+    await recordLoginFailure({ user, email, reason: "not_admin_role" });
     throw new DomainError("このアカウントではログインできません", { status: 403 });
   }
 }
 
 // 利用ステータスを検証し、ログイン可否を判定する。
 // security_locked (永続ロック) と短期ロックは checkLockState / assertNotLocked で扱う。
-function assertLoginableStatus(status: UserStatus): void {
-  // pending, withdrawn は利用不可
-  if (status === "pending" || status === "withdrawn") {
+async function assertLoginableStatus(user: User, email: string): Promise<void> {
+  if (user.status === "pending") {
+    await recordLoginFailure({ user, email, reason: "status_pending" });
+    throw new DomainError("このアカウントは利用できません", { status: 403 });
+  }
+  if (user.status === "withdrawn") {
+    await recordLoginFailure({ user, email, reason: "status_withdrawn" });
     throw new DomainError("このアカウントは利用できません", { status: 403 });
   }
   // active, inactive, suspended, banned はログイン許可
@@ -61,14 +68,14 @@ function assertLoginableStatus(status: UserStatus): void {
 
 // 現在のロック状態を検査し、ロック中ならその旨を throw する。
 // 短期ロック中・永続ロック中とも、パスワード検証より前にブロックする (カウントは増分しない)。
-function assertNotLocked(
-  user: { status: UserStatus; lockedUntil: Date | null },
-): void {
+async function assertNotLocked(user: User, email: string): Promise<void> {
   const state = userService.checkLockState(user);
   if (state.kind === "permanent_locked") {
+    await recordLoginFailure({ user, email, reason: "permanent_locked" });
     throw new DomainError(PERMANENT_LOCK_MESSAGE, { status: 403 });
   }
   if (state.kind === "short_locked") {
+    await recordLoginFailure({ user, email, reason: "short_locked" });
     throw new DomainError(formatShortLockMessage(state.lockedUntil), { status: 403 });
   }
 }
@@ -93,22 +100,27 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
   const user = await userService.findByLocalEmail(email);
 
   // 該当ユーザーが存在しなければ認証失敗とする。
+  // 不明 email への試行パターン検知のため targetId=unknown:<hash> で監査ログ記録。
   if (!user) {
+    await recordLoginFailure({ user: null, email, reason: "user_not_found" });
     throw new DomainError("メールアドレスまたはパスワードが正しくありません", { status: 401 });
   }
 
   // 権限・ロック状態・ステータスのチェックを先に行い、以降の処理を早期に中断する。
   // ロック検査はパスワード検証より先に置き、短期ロック中の試行を即ブロックする
   // (カウントを増分しないことで攻撃者が永続ロックへの到達を意図的に早められないようにする)。
-  assertAdminRole(user.role);
-  assertNotLocked(user);
-  assertLoginableStatus(user.status);
+  await assertAdminRole(user, email);
+  await assertNotLocked(user, email);
+  await assertLoginableStatus(user, email);
 
   // ハッシュ化されたパスワードと比較し、誤りがあれば同様に認証失敗。
   const passwordMatched = await verifyPassword(password, user.localPassword);
 
   if (!passwordMatched) {
-    // 失敗カウントを増分し、必要に応じて短期/永続ロックを発動する。
+    // 個別の失敗を監査ログに記録。続いて recordFailedLogin で
+    // 累積カウント増分と (閾値到達なら) ロック発動を行う。
+    // 両者は意味が異なるため両方記録する (個別失敗 vs ロック遷移)。
+    await recordLoginFailure({ user, email, reason: "wrong_password" });
     const outcome = await userService.recordFailedLogin(user);
     if (outcome.kind === "permanent_locked") {
       // 永続ロック通知メールを fire-and-forget で送信。
