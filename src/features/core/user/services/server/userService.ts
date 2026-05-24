@@ -20,9 +20,16 @@ import { changeStatus } from "./wrappers/changeStatus";
 import { changeRole } from "./wrappers/changeRole";
 import { softDelete } from "./wrappers/softDelete";
 import { searchWithProfile } from "./wrappers/searchWithProfile";
+import { checkLockState, recordFailedLogin, clearLockState } from "./wrappers/lockoutPolicy";
 
 export { requireCurrentUser } from "./resolvers/requireCurrentUser";
 export type { RequireCurrentUserOptions } from "./resolvers/requireCurrentUser";
+export {
+  formatShortLockMessage,
+  PERMANENT_LOCK_MESSAGE,
+  type LockState,
+  type FailedLoginOutcome,
+} from "./wrappers/lockoutPolicy";
 
 export const userService = {
   ...base,
@@ -40,6 +47,10 @@ export const userService = {
   changeRole,
   softDelete,
   searchWithProfile,
+  // lockout policy
+  checkLockState,
+  recordFailedLogin,
+  clearLockState,
   // creation (console)
   createAdmin,
   createGeneralUser,

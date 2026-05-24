@@ -5,7 +5,9 @@ import { z } from "zod";
 import { SessionUserSchema } from "@/features/core/auth/entities/session";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { verifyPassword } from "@/features/core/auth/utils/password";
-import { userService } from "@/features/core/user/services/server/userService";
+import { userService, formatShortLockMessage, PERMANENT_LOCK_MESSAGE } from "@/features/core/user/services/server/userService";
+import { AccountLockedEmail } from "@/features/core/mail/templates/AccountLockedEmail";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
@@ -47,17 +49,28 @@ function assertAdminRole(role: UserRoleType): void {
 }
 
 // 利用ステータスを検証し、ログイン可否を判定する。
+// security_locked (永続ロック) と短期ロックは checkLockState / assertNotLocked で扱う。
 function assertLoginableStatus(status: UserStatus): void {
-  // security_locked はログイン自体をブロック
-  if (status === "security_locked") {
-    throw new DomainError("アカウントがロックされています。", { status: 403 });
-  }
   // pending, withdrawn は利用不可
   if (status === "pending" || status === "withdrawn") {
     throw new DomainError("このアカウントは利用できません", { status: 403 });
   }
   // active, inactive, suspended, banned はログイン許可
   // （inactive は復帰ページへ、suspended/banned は制限ページへ誘導）
+}
+
+// 現在のロック状態を検査し、ロック中ならその旨を throw する。
+// 短期ロック中・永続ロック中とも、パスワード検証より前にブロックする (カウントは増分しない)。
+function assertNotLocked(
+  user: { status: UserStatus; lockedUntil: Date | null },
+): void {
+  const state = userService.checkLockState(user);
+  if (state.kind === "permanent_locked") {
+    throw new DomainError(PERMANENT_LOCK_MESSAGE, { status: 403 });
+  }
+  if (state.kind === "short_locked") {
+    throw new DomainError(formatShortLockMessage(state.lockedUntil), { status: 403 });
+  }
 }
 
 /**
@@ -84,18 +97,56 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     throw new DomainError("メールアドレスまたはパスワードが正しくありません", { status: 401 });
   }
 
-  // 権限・ステータスのチェックを先に行い、以降の処理を早期に中断する。
+  // 権限・ロック状態・ステータスのチェックを先に行い、以降の処理を早期に中断する。
+  // ロック検査はパスワード検証より先に置き、短期ロック中の試行を即ブロックする
+  // (カウントを増分しないことで攻撃者が永続ロックへの到達を意図的に早められないようにする)。
   assertAdminRole(user.role);
+  assertNotLocked(user);
   assertLoginableStatus(user.status);
 
   // ハッシュ化されたパスワードと比較し、誤りがあれば同様に認証失敗。
   const passwordMatched = await verifyPassword(password, user.localPassword);
 
   if (!passwordMatched) {
+    // 失敗カウントを増分し、必要に応じて短期/永続ロックを発動する。
+    const outcome = await userService.recordFailedLogin(user);
+    if (outcome.kind === "permanent_locked") {
+      // 永続ロック通知メールを fire-and-forget で送信。
+      // メール送信失敗で認証フローを止めない (失敗は warn ログのみ)。
+      if (user.email) {
+        AccountLockedEmail.send(user.email, {
+          occurredAt: new Date().toLocaleString("ja-JP"),
+          ip: ip ?? null,
+        }).catch((err) => {
+          console.warn("[lockout] failed to send account-locked notification", err);
+        });
+      }
+      throw new DomainError(PERMANENT_LOCK_MESSAGE, { status: 403 });
+    }
+    if (outcome.kind === "short_locked") {
+      throw new DomainError(formatShortLockMessage(outcome.lockedUntil), { status: 403 });
+    }
     throw new DomainError("メールアドレスまたはパスワードが正しくありません", { status: 401 });
   }
 
-  // 最終認証日時を更新する。
+  // assertNotLocked を通過した時点で lockedUntil は null または過去日時。
+  // 直前まで短期ロック中だった (= lockedUntil が過去にセットされていた) 場合、
+  // 時間経過で実質解除されている。「unlocked_auto」として監査ログを残す。
+  if (user.lockedUntil) {
+    await auditLogger.record({
+      targetType: "user",
+      targetId: user.id,
+      action: "auth.account.unlocked_auto",
+      before: {
+        lockedUntil: user.lockedUntil.toISOString(),
+        failedLoginCount: user.failedLoginCount,
+      },
+      after: { lockedUntil: null, failedLoginCount: 0 },
+      bestEffort: true,
+    });
+  }
+
+  // 最終認証日時を更新する (ロックアウト関連カウンタも併せてクリアされる)。
   await userService.updateLastAuthenticated(user.id, { ip });
 
   // セッションに格納する情報をスキーマで整形し、不正値混入を防ぐ。

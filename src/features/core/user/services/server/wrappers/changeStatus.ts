@@ -30,7 +30,16 @@ export async function changeStatus(input: ChangeStatusInput): Promise<User> {
     throw new DomainError("現在と同じステータスには変更できません", { status: 400 });
   }
 
-  const updatePayload = { status: newStatus } as Partial<User>;
+  // security_locked から別ステータスへ遷移するときは「管理者によるロック解除」を意味する。
+  // ロックアウト関連カウンタを同時リセットし、再ログイン可能な状態に戻す。
+  const isAdminUnlock = beforeStatus === "security_locked" && newStatus !== "security_locked";
+
+  const updatePayload: Partial<User> = { status: newStatus };
+  if (isAdminUnlock) {
+    updatePayload.failedLoginCount = 0;
+    updatePayload.lockedUntil = null;
+    updatePayload.lastFailedLoginAt = null;
+  }
   const updatedUser = await base.update(userId, updatePayload);
 
   await auditLogger.record({
@@ -41,6 +50,21 @@ export async function changeStatus(input: ChangeStatusInput): Promise<User> {
     after: { status: newStatus },
     reason: reason ?? null,
   });
+
+  if (isAdminUnlock) {
+    await auditLogger.record({
+      targetType: "user",
+      targetId: userId,
+      action: "auth.account.unlocked_admin",
+      before: {
+        status: "security_locked",
+        failedLoginCount: currentUser.failedLoginCount,
+      },
+      after: { status: newStatus, failedLoginCount: 0 },
+      reason: reason ?? null,
+      bestEffort: true,
+    });
+  }
 
   return updatedUser;
 }

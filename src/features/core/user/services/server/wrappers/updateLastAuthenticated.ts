@@ -48,12 +48,22 @@ export async function updateLastAuthenticated(
         lastAuthenticatedAt: now,
         updatedAt: now,
         metadata: { ...currentMetadata, loginHistory: newLoginHistory },
+        // ログイン成功時はロックアウト関連カウンタを全クリア (詳細: lockoutPolicy.ts)
+        failedLoginCount: 0,
+        lockedUntil: null,
+        lastFailedLoginAt: null,
       })
       .where(eq(UserTable.id, userId));
   } else {
     await db
       .update(UserTable)
-      .set({ lastAuthenticatedAt: now, updatedAt: now })
+      .set({
+        lastAuthenticatedAt: now,
+        updatedAt: now,
+        failedLoginCount: 0,
+        lockedUntil: null,
+        lastFailedLoginAt: null,
+      })
       .where(eq(UserTable.id, userId));
   }
 }

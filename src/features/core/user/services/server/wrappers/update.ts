@@ -149,6 +149,11 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
 
   if (current.providerType === "local" && localPassword !== undefined) {
     updatePayload.localPassword = localPassword;
+    // ローカル認証ユーザーのパスワード変更時はロックアウト関連カウンタを同時リセット。
+    // (管理者によるパスワード再発行で即時再ログイン可能にするため)
+    updatePayload.failedLoginCount = 0;
+    updatePayload.lockedUntil = null;
+    updatePayload.lastFailedLoginAt = null;
   }
 
   // 電話番号変更時に phoneVerifiedAt も更新

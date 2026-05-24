@@ -100,10 +100,32 @@ export function StatusTabContent({ user, onClose }: Props) {
     </Flex>
   );
 
+  // security_locked は連続ログイン失敗で自動遷移するシステム専用ステータス。
+  // 管理者の手動操作からは選択不可とし、誤操作を防ぐ。
+  // (security_locked からの解除はユーザーを active 等の別ステータスに変更すれば、
+  //  changeStatus wrapper が failed_login_count / locked_until も同時にリセットする)
+  const statusOptions = USER_STATUS_OPTIONS.filter(
+    (opt) => opt.value !== user.status && opt.value !== "security_locked",
+  );
+
+  const lockoutSummary = buildLockoutSummary(user);
+
   return (
     <>
       <Stack space={4} padding="md">
         <UserInfoHeader user={user} />
+
+        {lockoutSummary ? (
+          <Block className="mt-3 rounded-md border border-border bg-muted/40 p-3">
+            <Para size="xs" tone="muted" className="mb-1">
+              ロック状況
+            </Para>
+            <Para size="sm" className="font-medium">
+              {lockoutSummary}
+            </Para>
+          </Block>
+        ) : null}
+
         <Stack space={6} className="mt-4">
           <div>
             <Para size="sm" className="mb-2 font-medium">
@@ -112,10 +134,13 @@ export function StatusTabContent({ user, onClose }: Props) {
             <SelectInput
               value={selectedStatus}
               onChange={(value) => setSelectedStatus(String(value ?? ""))}
-              options={USER_STATUS_OPTIONS.filter((opt) => opt.value !== user.status)}
+              options={statusOptions}
               placeholder="ステータスを選択"
               contentClassName="surface-ui-layer"
             />
+            <Para size="xs" tone="muted" className="mt-1">
+              「セキュリティロック」は連続ログイン失敗で自動的にセットされるため、手動では選択できません。
+            </Para>
           </div>
           <div>
             <Para size="sm" className="mb-2 font-medium">
@@ -159,4 +184,31 @@ export function StatusTabContent({ user, onClose }: Props) {
       </Dialog>
     </>
   );
+}
+
+/**
+ * 表示用にロック状態の要約を組み立てる。
+ * - 永続ロック中 / 短期ロック中 / カウントのみ進行中 / なし(null) の 4 状態
+ */
+function buildLockoutSummary(user: User): string | null {
+  const now = Date.now();
+  const isShortLocked = user.lockedUntil && user.lockedUntil.getTime() > now;
+
+  if (user.status === "security_locked") {
+    return `永続ロック中 (連続失敗 ${user.failedLoginCount} 回)`;
+  }
+  if (isShortLocked && user.lockedUntil) {
+    const until = user.lockedUntil.toLocaleString("ja-JP", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `一時ロック中 (${until} まで, 失敗 ${user.failedLoginCount} 回)`;
+  }
+  if (user.failedLoginCount > 0) {
+    const last = user.lastFailedLoginAt
+      ? `, 直近: ${user.lastFailedLoginAt.toLocaleString("ja-JP")}`
+      : "";
+    return `ロックなし (失敗 ${user.failedLoginCount} 回${last})`;
+  }
+  return null;
 }

@@ -43,6 +43,11 @@ export const UserCoreSchema = z.object({
     .string()
     .nullish()
     .transform((value) => emptyToNull(value)),
+  // アカウントロックアウト関連 (詳細: src/config/app/auth-lockout.config.ts)
+  // 認証フロー側で管理するため admin/self 編集スキーマには含めない。
+  failedLoginCount: z.number().int().nonnegative().default(0),
+  lockedUntil: z.coerce.date().nullish(),
+  lastFailedLoginAt: z.coerce.date().nullish(),
   user_tag_ids: z.array(z.string()).optional(),
 });
 

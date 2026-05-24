@@ -1,7 +1,7 @@
 // src/features/user/entities/drizzle.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
-import { boolean, index, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import type { UserMetadata } from "./model";
 
@@ -30,6 +30,10 @@ export const UserTable = pgTable(
     // 既定では UI 非表示。APP_FEATURES.adminConsole.enableUserMemo を true にすると
     // 管理画面のユーザー一覧から編集できる。
     adminMemo: text("admin_memo"),
+    // アカウントロックアウト関連フィールド (詳細: src/config/app/auth-lockout.config.ts)
+    failedLoginCount: integer("failed_login_count").default(0).notNull(),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    lastFailedLoginAt: timestamp("last_failed_login_at", { withTimezone: true }),
     metadata: jsonb("metadata").$type<UserMetadata>().default({}).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
