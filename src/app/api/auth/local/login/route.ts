@@ -12,6 +12,8 @@ export const POST = createApiRoute(
     operation: "POST /api/auth/local/login",
     operationType: "write",
     skipForDemo: false,
+    rateLimit: "login",
+    rateLimitSubnet: "loginSubnet",
   },
   async (req) => {
     const body = await req.json();

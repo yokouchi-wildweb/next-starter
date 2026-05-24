@@ -169,12 +169,16 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
         const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
         const limit = await checkRateLimit(config.rateLimit, ip);
         if (!limit.allowed) {
+          const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
           return NextResponse.json(
             {
               message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
               resetAt: limit.resetAt,
             },
-            { status: 429 }
+            {
+              status: 429,
+              headers: { "Retry-After": String(retryAfterSeconds) },
+            }
           );
         }
       }
@@ -185,13 +189,17 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
         const subnet = ip.split(".").slice(0, 3).join(".");
         const limit = await checkRateLimit(config.rateLimitSubnet, subnet);
         if (!limit.allowed) {
+          const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
           return NextResponse.json(
             {
               message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
               resetAt: limit.resetAt,
               silent: true,
             },
-            { status: 429 }
+            {
+              status: 429,
+              headers: { "Retry-After": String(retryAfterSeconds) },
+            }
           );
         }
       }

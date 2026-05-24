@@ -38,10 +38,22 @@ export const RATE_LIMIT_CONFIG = {
   /**
    * ログイン試行
    * 同一IPから15分に5回まで
+   * ※ loginSubnet とハイブリッドで併用（どちらか先に到達した方で制限）
    */
   login: {
     windowSeconds: 900,
     maxRequests: 5,
+  },
+
+  /**
+   * ログイン試行（サブネット /24 単位）
+   * 同一サブネットから15分に20回まで
+   * iCloud Private Relay やボットネット等でIPが分散する攻撃への対策
+   * ※ login とハイブリッドで併用（どちらか先に到達した方で制限）
+   */
+  loginSubnet: {
+    windowSeconds: 900,
+    maxRequests: 20,
   },
 
   /**
