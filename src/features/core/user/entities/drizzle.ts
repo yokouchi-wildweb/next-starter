@@ -26,6 +26,10 @@ export const UserTable = pgTable(
     phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
     avatarUrl: text("avatar_url"),
     signupIp: text("signup_ip"),
+    // 管理者がユーザー単位で自由記述メモを残すためのフィールド。
+    // 既定では UI 非表示。APP_FEATURES.adminConsole.enableUserMemo を true にすると
+    // 管理画面のユーザー一覧から編集できる。
+    adminMemo: text("admin_memo"),
     metadata: jsonb("metadata").$type<UserMetadata>().default({}).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

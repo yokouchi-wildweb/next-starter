@@ -32,6 +32,8 @@ export type User = BaseEntity & {
   isDemo: boolean;
   avatarUrl: string | null;
   signupIp: string | null;
+  /** 管理者がユーザー単位で残す自由記述メモ (機能フラグ enableUserMemo で UI 切り替え) */
+  adminMemo: string | null;
   lastAuthenticatedAt: Date | null;
   phoneNumber: string | null;
   phoneVerifiedAt: Date | null;

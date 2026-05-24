@@ -38,6 +38,11 @@ export const UserCoreSchema = z.object({
     .string()
     .nullish()
     .transform((value) => emptyToNull(value)),
+  /** 管理者メモ (機能フラグ enableUserMemo で UI 切り替え。空文字は null に正規化) */
+  adminMemo: z
+    .string()
+    .nullish()
+    .transform((value) => emptyToNull(value)),
   user_tag_ids: z.array(z.string()).optional(),
 });
 
@@ -62,6 +67,7 @@ export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
   role: true,
   isDemo: true,
   phoneNumber: true,
+  adminMemo: true,
 });
 
 /**

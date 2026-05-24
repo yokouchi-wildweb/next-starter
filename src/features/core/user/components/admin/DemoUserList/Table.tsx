@@ -11,6 +11,7 @@ import type { User } from "@/features/core/user/entities";
 import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
+import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 
 type Props = {
@@ -23,8 +24,9 @@ const adminDataTableFallback = adminDataTable?.emptyFieldFallback ?? "(未設定
 const createColumns = (
   onAdjust: (user: User) => void,
   enableWalletAdjust: boolean,
+  enableUserMemo: boolean,
 ): DataTableColumn<User>[] => {
-  return [
+  const columns: DataTableColumn<User>[] = [
     {
       header: "ステータス",
       render: (user) =>
@@ -70,30 +72,41 @@ const createColumns = (
           record: user,
         }),
     },
-    {
-      header: "操作",
-      render: (user) => (
-        <TableCellAction>
-          {enableWalletAdjust ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              onClick={() => onAdjust(user)}
-            >
-              ポイント操作
-            </Button>
-          ) : null}
-          <HardDeleteButton domain="user" id={user.id} title="デモユーザー削除" label="削除" description="デモユーザーを削除します。よろしいですか？" confirmLabel="削除する" />
-        </TableCellAction>
-      ),
-    },
   ];
+
+  if (enableUserMemo) {
+    columns.push({
+      header: "メモ",
+      render: (user) => <UserAdminMemoCell userId={user.id} memo={user.adminMemo} />,
+    });
+  }
+
+  columns.push({
+    header: "操作",
+    render: (user) => (
+      <TableCellAction>
+        {enableWalletAdjust ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => onAdjust(user)}
+          >
+            ポイント操作
+          </Button>
+        ) : null}
+        <HardDeleteButton domain="user" id={user.id} title="デモユーザー削除" label="削除" description="デモユーザーを削除します。よろしいですか？" confirmLabel="削除する" />
+      </TableCellAction>
+    ),
+  });
+
+  return columns;
 };
 
 export default function DemoUserListTable({ users }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
   const enableWalletAdjust = APP_FEATURES.wallet.enableAdminBalanceAdjust;
+  const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
   const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
   const useSelectionTable = enableSelectionTable.demo;
 
@@ -106,8 +119,8 @@ export default function DemoUserListTable({ users }: Props) {
   }, []);
 
   const columns = useMemo(
-    () => createColumns(handleOpenAdjust, enableWalletAdjust),
-    [handleOpenAdjust, enableWalletAdjust],
+    () => createColumns(handleOpenAdjust, enableWalletAdjust, enableUserMemo),
+    [handleOpenAdjust, enableWalletAdjust, enableUserMemo],
   );
 
   return (

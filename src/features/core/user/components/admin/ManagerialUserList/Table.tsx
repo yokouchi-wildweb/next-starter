@@ -14,6 +14,7 @@ import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import AdminUserManageModal from "@/features/core/user/components/admin/AdminUserManageModal";
+import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useSoftDeleteUser } from "@/features/core/user/hooks/useSoftDeleteUser";
 import { useToast } from "@/lib/toast";
@@ -34,8 +35,10 @@ const createColumns = (
   onDelete: (user: User) => void,
   enableWalletAdjust: boolean,
   enableUserManagement: boolean,
+  enableUserMemo: boolean,
   isMutating: boolean,
-): DataTableColumn<User>[] => [
+): DataTableColumn<User>[] => {
+  const columns: DataTableColumn<User>[] = [
   {
     header: "状態",
     render: (user) =>
@@ -81,7 +84,16 @@ const createColumns = (
         record: user,
       }),
   },
-  {
+  ];
+
+  if (enableUserMemo) {
+    columns.push({
+      header: "メモ",
+      render: (user) => <UserAdminMemoCell userId={user.id} memo={user.adminMemo} />,
+    });
+  }
+
+  columns.push({
     header: "操作",
     render: (user) => (
       <TableCellAction>
@@ -118,8 +130,10 @@ const createColumns = (
         <EditButton domain="user" id={user.id} href={`${editBasePath}/${user.id}/edit`} />
       </TableCellAction>
     ),
-  },
-];
+  });
+
+  return columns;
+};
 
 export default function ManagerialUserListTable({ users, editBasePath }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
@@ -132,6 +146,7 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
 
   const enableWalletAdjust = APP_FEATURES.wallet.enableAdminBalanceAdjust;
   const enableUserManagement = APP_FEATURES.adminConsole.enableUserManagement;
+  const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
   const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
   const useSelectionTable = enableSelectionTable.managerial;
 
@@ -165,9 +180,10 @@ export default function ManagerialUserListTable({ users, editBasePath }: Props) 
       handleOpenDelete,
       enableWalletAdjust,
       enableUserManagement,
+      enableUserMemo,
       isMutating,
     ),
-    [editBasePath, handleOpenAdjust, handleOpenManage, handleOpenDelete, enableWalletAdjust, enableUserManagement, isMutating],
+    [editBasePath, handleOpenAdjust, handleOpenManage, handleOpenDelete, enableWalletAdjust, enableUserManagement, enableUserMemo, isMutating],
   );
 
   return (

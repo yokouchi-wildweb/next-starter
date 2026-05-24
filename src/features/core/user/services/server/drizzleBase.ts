@@ -54,7 +54,7 @@ export const baseOptions = {
     enabled: true,
     targetType: "user",
     actionPrefix: "user",
-    trackedFields: ["email", "name", "phoneNumber"],
+    trackedFields: ["email", "name", "phoneNumber", "adminMemo"],
     bulkMode: "detail",
     retentionDays: 730,
     recorder: auditLogger,

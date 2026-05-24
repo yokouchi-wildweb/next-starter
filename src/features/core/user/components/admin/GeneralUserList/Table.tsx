@@ -14,6 +14,7 @@ import { UI_BEHAVIOR_CONFIG } from "@/config/ui/ui-behavior-config";
 import presenters from "@/features/core/user/presenters";
 import AdminWalletAdjustModal from "@/features/core/wallet/components/AdminWalletAdjustModal";
 import AdminUserManageModal from "@/features/core/user/components/admin/AdminUserManageModal";
+import { UserAdminMemoCell } from "@/features/core/user/components/common/UserAdminMemoCell";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { useSoftDeleteUser } from "@/features/core/user/hooks/useSoftDeleteUser";
 import { useToast } from "@/lib/toast";
@@ -34,6 +35,7 @@ const createColumns = (
   onDelete: (user: User) => void,
   enableWalletAdjust: boolean,
   enableUserManagement: boolean,
+  enableUserMemo: boolean,
   isMutating: boolean,
 ): DataTableColumn<User>[] => {
   const columns: DataTableColumn<User>[] = [
@@ -93,6 +95,13 @@ const createColumns = (
     },
   ];
 
+  if (enableUserMemo) {
+    columns.push({
+      header: "メモ",
+      render: (user) => <UserAdminMemoCell userId={user.id} memo={user.adminMemo} />,
+    });
+  }
+
   columns.push({
     header: "操作",
     render: (user) => (
@@ -146,6 +155,7 @@ export default function GeneralUserListTable({ users, editBasePath }: Props) {
 
   const enableWalletAdjust = APP_FEATURES.wallet.enableAdminBalanceAdjust;
   const enableUserManagement = APP_FEATURES.adminConsole.enableUserManagement;
+  const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
   const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
   const useSelectionTable = enableSelectionTable.general;
 
@@ -194,9 +204,10 @@ export default function GeneralUserListTable({ users, editBasePath }: Props) {
       handleOpenDelete,
       enableWalletAdjust,
       enableUserManagement,
+      enableUserMemo,
       isMutating,
     ),
-    [editBasePath, enableWalletAdjust, enableUserManagement, isMutating, handleOpenAdjust, handleOpenManage, handleOpenDelete],
+    [editBasePath, enableWalletAdjust, enableUserManagement, enableUserMemo, isMutating, handleOpenAdjust, handleOpenManage, handleOpenDelete],
   );
 
   return (

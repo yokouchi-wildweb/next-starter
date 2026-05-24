@@ -91,6 +91,13 @@ export const APP_FEATURES = {
     enableUserManagement: true,
     /** デモユーザー機能を有効にする（false の場合はメニュー非表示・ページ 404） */
     enableDemoUser: true,
+    /**
+     * 管理者メモ機能を有効にする
+     * - true: 管理画面のユーザー一覧（General/Managerial/Demo）にメモ列が表示され、
+     *         セル内のポップオーバーから自由記述メモを編集できる
+     * - false: メモ列は表示されない（DB の users.admin_memo 列は残存）
+     */
+    enableUserMemo: false,
     /** ユーザー一覧ページの挙動設定 */
     userListPage: {
       /** セレクションテーブルの選択方式 */
