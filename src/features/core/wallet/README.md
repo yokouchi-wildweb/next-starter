@@ -512,6 +512,75 @@ ON wallet_histories USING gin ((meta ->> 'orderId'));
 
 ---
 
+## 監査ログ（audit_logs）ポリシー
+
+ウォレットには「**業務台帳としての wallet_histories**」と「**統制ログとしての audit_logs**」の **2 系統**の記録があり、責務が異なる。混同しないこと。
+
+### 役割の違い
+
+| 観点 | `wallet_histories` | `audit_logs` |
+|------|-------------------|-------------|
+| 目的 | 財務台帳（残高変動の元帳） | 統制・コンプラ・セキュリティトレイル |
+| 何を残すか | 残高の前後値・delta・通貨種別・request_batch_id | 誰が（actor_type / actor_id / IP / UA / request_id）何をしたか |
+| 対象 | **全ての残高変動** | **介入操作のみ** |
+| 保持期間 | 業務上の要件で決定（通常は無期限） | retention_days で行単位制御（既定 365 / wallet は 730 日） |
+
+### 「介入 (intervention)」と「業務 (business)」の判断軸
+
+audit_logs に載せるのは **「介入」操作のみ**。「業務」操作は載せない。
+
+**「介入」として audit に載せる**:
+
+- 管理者が業務フロー外で手動操作する（actor_type=admin、admin 専用 API 経由）
+- ポリシーを曲げる・緊急対応・手動修正・ユーザーの財産に直接介入する操作
+
+**「業務」として audit に載せない**:
+
+- システム設計通りに自動実行される高頻度処理（ガチャ消費、購入決済確定など）
+- ユーザー操作の正常系（actor_type=user による課金・消費）
+- 既に `wallet_histories` で財務的に追跡できているもの
+
+**迷ったときの判断**:
+
+- その関数が **admin から呼ばれる前提が 1 つでもあるか?** → Yes なら「介入」→ audit に載せる
+- 同じ関数が admin / system 両方から呼ばれる場合: **載せる（actor_type で後から区別可能）**
+- 件数規模が大きい bulk 介入は `aggregate` モード（1 ジョブ 1 行）で集約記録する
+
+### ウォレット操作の対応一覧
+
+| 操作 | 用途 | wallet_histories | audit_logs | action |
+|------|------|------------------|-----------|--------|
+| `adjustBalance` | **管理者による残高調整** | ✅ 記録 | ✅ 記録（介入） | `wallet.balance.adjusted` |
+| `bulkAdjustByType` | **管理者による通貨種別単位の一括調整** | ✅ 記録（detail） | ✅ 1 行集約（aggregate） | `wallet.balance.bulk_adjusted_by_type` |
+| `bulkAdjustByUsers` | **バッチジョブによるユーザー指定一括調整** | ✅ 記録（detail） | ✅ チャンク単位 1 行集約 | `wallet.balance.bulk_adjusted_by_users` |
+| `clearBalance` | **ソフトデリート時の残高クリア** | ✅ 記録 | ✅ 記録（介入） | `wallet.balance.cleared` |
+| `reserveBalance` | 残高予約（ロック） | — (残高変動なし) | ❌ 業務扱い | — |
+| `releaseReservation` | 予約解除 | — (残高変動なし) | ❌ 業務扱い | — |
+| `consumeReservedBalance` | 予約消費（購入決済確定など） | ✅ 記録 | ❌ 業務扱い | — |
+| `debitBalance` | TX 内即時引落（クーポン適用など） | ✅ 記録 | ❌ 業務扱い | — |
+
+### なぜ consume/debit を audit に載せないか
+
+ガチャプレイ・購入決済確定などは高頻度な **業務フロー**であり、これを audit に載せると:
+
+- 単位時間あたりの audit_logs 書き込みが爆発し、ストレージ・I/O コストが増大する
+- 「介入」を検索するときに「業務」イベントに埋もれて統制目的が果たせなくなる
+- ダウンストリーム側で既にドメイン履歴（ガチャプレイ履歴、購入履歴）を持っているケースが多く、三重記録になる
+
+**業務イベントは `wallet_histories` とドメイン履歴で十分に追跡できる。audit はあくまで「介入」専用。**
+
+### 保持期間（retention_days）
+
+ウォレット系 audit は **730 日（2 年）** を採用。コンプライアンス対象ドメインとしての推奨値（[監査ログ採用ガイド](../../../../docs/how-to/監査ログ採用ガイド.md) 参照）。
+
+各 wrapper 内で `WALLET_AUDIT_RETENTION_DAYS = 730` として定数化されている。
+
+### 横展開：他ドメインで判断するとき
+
+同じ「介入 vs 業務」の判断軸は他のドメイン（`userItem`、`couponGrant`、`subscription` 等）でも適用できる。詳しくは [監査ログ採用ガイド](../../../../docs/how-to/監査ログ採用ガイド.md) を参照。
+
+---
+
 ## 管理機能
 
 ### 管理API

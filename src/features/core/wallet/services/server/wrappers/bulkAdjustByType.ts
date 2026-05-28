@@ -10,6 +10,7 @@ import type {
 } from "@/features/core/wallet/services/types";
 import { DEFAULT_REASON_CATEGORY, type ReasonCategory } from "@/config/app/wallet-reason-category.config";
 import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { normalizeAmount, resolveRequestBatchId, sanitizeMeta } from "./utils";
 import { type TransactionClient } from "./utils";
 import { db } from "@/lib/drizzle";
@@ -17,6 +18,9 @@ import { eq, and, sql, gt, inArray } from "drizzle-orm";
 
 /** バッチサイズ: 1回のトランザクションで処理するウォレット数 */
 const BATCH_SIZE = 1000;
+
+/** ウォレット系 audit retention（コンプライアンス対応で 2 年）*/
+const WALLET_AUDIT_RETENTION_DAYS = 730;
 
 /**
  * 特定の通貨種別に対し、全ユーザーのウォレット残高を一括操作する
@@ -43,50 +47,79 @@ export async function bulkAdjustByType(
   const meta = sanitizeMeta(params.meta);
   const reasonCategory = params.reasonCategory ?? DEFAULT_REASON_CATEGORY;
 
+  let result: BulkAdjustByTypeResult;
+
   // 外部トランザクションが渡された場合はバッチ分割せず単一トランザクションで処理
   if (tx) {
-    return executeSingleBatch(tx, params, amount, requestBatchId, reasonCategory, meta);
-  }
+    result = await executeSingleBatch(tx, params, amount, requestBatchId, reasonCategory, meta);
+  } else {
+    // バッチ分割処理: 各バッチが独立したトランザクション
+    let totalAffected = 0;
+    let totalSkipped = 0;
+    let cursor: string | null = null;
 
-  // バッチ分割処理: 各バッチが独立したトランザクション
-  let totalAffected = 0;
-  let totalSkipped = 0;
-  let cursor: string | null = null;
+    while (true) {
+      const batchResult = await db.transaction(async (trx) => {
+        const wallets = await selectBatch(trx, params, cursor, BATCH_SIZE);
 
-  while (true) {
-    const batchResult = await db.transaction(async (trx) => {
-      const wallets = await selectBatch(trx, params, cursor, BATCH_SIZE);
+        if (wallets.length === 0) {
+          return { affected: 0, skipped: 0, lastId: null, hasMore: false };
+        }
 
-      if (wallets.length === 0) {
-        return { affected: 0, skipped: 0, lastId: null, hasMore: false };
+        const lastId = wallets[wallets.length - 1]!.id;
+        const { toUpdate, skipped } = classifyWallets(wallets, params.changeMethod, amount);
+
+        if (toUpdate.length > 0) {
+          await executeBalanceUpdate(trx, toUpdate, params.changeMethod, amount);
+          await insertHistoryRecords(trx, toUpdate, params, amount, requestBatchId, reasonCategory, meta);
+        }
+
+        return {
+          affected: toUpdate.length,
+          skipped: skipped.length,
+          lastId,
+          hasMore: wallets.length === BATCH_SIZE,
+        };
+      });
+
+      totalAffected += batchResult.affected;
+      totalSkipped += batchResult.skipped;
+
+      if (!batchResult.hasMore || batchResult.lastId === null) {
+        break;
       }
-
-      const lastId = wallets[wallets.length - 1]!.id;
-      const { toUpdate, skipped } = classifyWallets(wallets, params.changeMethod, amount);
-
-      if (toUpdate.length > 0) {
-        await executeBalanceUpdate(trx, toUpdate, params.changeMethod, amount);
-        await insertHistoryRecords(trx, toUpdate, params, amount, requestBatchId, reasonCategory, meta);
-      }
-
-      return {
-        affected: toUpdate.length,
-        skipped: skipped.length,
-        lastId,
-        hasMore: wallets.length === BATCH_SIZE,
-      };
-    });
-
-    totalAffected += batchResult.affected;
-    totalSkipped += batchResult.skipped;
-
-    if (!batchResult.hasMore || batchResult.lastId === null) {
-      break;
+      cursor = batchResult.lastId;
     }
-    cursor = batchResult.lastId;
+
+    result = { affectedCount: totalAffected, skippedCount: totalSkipped, requestBatchId };
   }
 
-  return { affectedCount: totalAffected, skippedCount: totalSkipped, requestBatchId };
+  // 「介入」ログ: 一括残高調整を 1 行集約で audit に残す。
+  // 外部 tx に乗っている場合は同一 tx 内で記録（strict）→ audit 失敗で全体 rollback。
+  // 内部分割 tx で既に commit 済みのケースでは bestEffort で dead-letter フォールバック
+  // （財務処理は既に確定しているため監査だけ強制 rollback は不可）。
+  await auditLogger.record({
+    targetType: "wallet",
+    targetId: requestBatchId,
+    action: "wallet.balance.bulk_adjusted_by_type",
+    metadata: {
+      walletType: params.walletType,
+      role: params.role ?? null,
+      changeMethod: params.changeMethod,
+      amount,
+      sourceType: params.sourceType,
+      affectedCount: result.affectedCount,
+      skippedCount: result.skippedCount,
+      reasonCategory,
+      requestMeta: meta,
+    },
+    reason: params.reason ?? null,
+    retentionDays: WALLET_AUDIT_RETENTION_DAYS,
+    tx,
+    bestEffort: !tx,
+  });
+
+  return result;
 }
 
 // --- 内部関数 ---

@@ -9,9 +9,16 @@ import type { WalletHistoryChangeMethodValue, WalletHistorySourceTypeValue } fro
 import type { ReasonCategory } from "@/config/app/wallet-reason-category.config";
 import { DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
 import type { ChunkResult } from "@/features/batchJob/types";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import { normalizeAmount, sanitizeMeta, resolveRequestBatchId } from "./utils";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 import { and, eq, inArray, sql } from "drizzle-orm";
+
+/** ウォレット系 audit retention（コンプライアンス対応で 2 年） */
+const WALLET_AUDIT_RETENTION_DAYS = 730;
+
+/** metadata 肥大化を避けるため、サンプル ID は先頭 N 件のみ格納する */
+const SAMPLE_USER_IDS_CAP = 20;
 
 export type BulkAdjustByUsersParams = {
   walletType: WalletTypeValue;
@@ -161,6 +168,30 @@ export async function bulkAdjustByUsers(
     await tx.insert(WalletHistoryTable).values(historyValues);
   }
 
-  // 7. ChunkResult 返却
+  // 7. 「介入」ログ: チャンク単位で 1 行集約 audit。
+  // requestBatchId をジョブ側で共通化すれば、複数チャンクの audit を batch_id で横串検索できる。
+  // tx は必須引数なので strict（既定）で記録 → audit 失敗時は呼び出し元 tx ごと rollback。
+  await auditLogger.record({
+    targetType: "wallet",
+    targetId: requestBatchId,
+    action: "wallet.balance.bulk_adjusted_by_users",
+    metadata: {
+      walletType: params.walletType,
+      changeMethod: params.changeMethod,
+      amount,
+      sourceType: params.sourceType,
+      succeededCount: succeeded.length,
+      failedCount: failed.length,
+      skippedCount: skipped.length,
+      sampleSucceededUserIds: succeeded.slice(0, SAMPLE_USER_IDS_CAP),
+      reasonCategory,
+      requestMeta: meta,
+    },
+    reason: params.reason ?? null,
+    retentionDays: WALLET_AUDIT_RETENTION_DAYS,
+    tx,
+  });
+
+  // 8. ChunkResult 返却
   return { succeeded, failed, skipped };
 }

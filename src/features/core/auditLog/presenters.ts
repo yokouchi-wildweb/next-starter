@@ -43,6 +43,12 @@ const DEFAULT_ACTION_LABELS: Record<string, string> = {
 
   // purchase quota (購入上限制御)
   "purchase_quota.reservation.exceeded": "購入上限超過による拒否",
+
+  // wallet (管理者による残高介入操作のみ。通常業務フローの consume/debit/reserve は audit に載せない)
+  "wallet.balance.adjusted": "残高調整",
+  "wallet.balance.bulk_adjusted_by_type": "残高一括調整（通貨種別単位）",
+  "wallet.balance.bulk_adjusted_by_users": "残高一括調整（ユーザー指定）",
+  "wallet.balance.cleared": "残高クリア",
 };
 
 const customActionLabels: Record<string, string> = {};

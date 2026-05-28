@@ -6,6 +6,7 @@ import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { eq } from "drizzle-orm";
 import { DomainError } from "@/lib/errors/domainError";
 import { DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import {
   ensureNotBelowLockedBalance,
   ensureSufficientAvailable,
@@ -16,6 +17,9 @@ import {
   runWithTransaction,
   type TransactionClient,
 } from "./utils";
+
+// ウォレット系の audit retention（コンプライアンス対応で 2 年）
+const WALLET_AUDIT_RETENTION_DAYS = 730;
 
 export async function adjustBalance(
   params: AdjustWalletParams,
@@ -84,6 +88,29 @@ export async function adjustBalance(
     if (!history) {
       throw new DomainError("ウォレット履歴の記録に失敗しました。", { status: 500 });
     }
+
+    // 「介入」ログ: 管理者残高調整を audit に残す。
+    // actor は ALS から自動注入される（admin/system/user を区別する用途）。
+    await auditLogger.record({
+      targetType: "wallet",
+      targetId: updated.id,
+      action: "wallet.balance.adjusted",
+      before: { balance: wallet.balance, locked_balance: wallet.locked_balance },
+      after: { balance: updated.balance, locked_balance: updated.locked_balance },
+      metadata: {
+        userId: params.userId,
+        walletType: params.walletType,
+        changeMethod: params.changeMethod,
+        amount,
+        sourceType: params.sourceType,
+        requestBatchId: history.request_batch_id,
+        reasonCategory: params.reasonCategory ?? DEFAULT_REASON_CATEGORY,
+        walletHistoryId: history.id,
+      },
+      reason: params.reason ?? null,
+      retentionDays: WALLET_AUDIT_RETENTION_DAYS,
+      tx: trx,
+    });
 
     return { wallet: updated, history };
   });

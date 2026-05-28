@@ -2,9 +2,13 @@
 
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
+import { auditLogger } from "@/features/core/auditLog/services/server";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import { eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
+
+/** ウォレット系 audit retention（コンプライアンス対応で 2 年） */
+const WALLET_AUDIT_RETENTION_DAYS = 730;
 
 /**
  * ユーザーの全ウォレット残高をクリア（0に設定）する
@@ -57,6 +61,26 @@ export async function clearBalance(userId: string, tx: DbTransaction): Promise<v
       reason: "ユーザーソフトデリートによる残高クリア",
       reason_category: "system" as const,
       meta: {},
+    })),
+  );
+
+  // 「介入」ログ: 通常業務フロー外の残高消去なのでウォレット単位で audit を残す。
+  // 件数はユーザーあたり数件（通貨種別数）に収まる前提で detail 記録（recordMany）。
+  await auditLogger.recordMany(
+    nonZeroWallets.map((wallet) => ({
+      targetType: "wallet",
+      targetId: wallet.id,
+      action: "wallet.balance.cleared",
+      before: { balance: wallet.balance, locked_balance: wallet.locked_balance },
+      after: { balance: 0, locked_balance: 0 },
+      metadata: {
+        userId,
+        walletType: wallet.type,
+        requestBatchId,
+      },
+      reason: "ユーザーソフトデリートによる残高クリア",
+      retentionDays: WALLET_AUDIT_RETENTION_DAYS,
+      tx,
     })),
   );
 }
