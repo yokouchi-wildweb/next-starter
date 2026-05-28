@@ -27,6 +27,36 @@
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "expired": 12 }`
 
+### `audit-log-prune`
+
+`audit_logs` テーブルの retention_days を超過した行をバッチ削除する。各ドメインが記録した監査ログを行単位 retention に基づいて整理する。`SKIP LOCKED` でバッチ反復するため書き込み tx を長時間ブロックしない。
+
+- **API**: `GET /api/cron/audit-log-prune`
+- **CLI**: `pnpm cron audit-log-prune`
+- **推奨スケジュール**: `0 3 * * *` （日次・深夜帯）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "deletedCount": 3200, "iterations": 4, "truncated": false }`
+
+### `audit-log-recover-dead-letter`
+
+`audit_logs_failed` （bestEffort 記録の dead-letter 退避先）に溜まった行を再 insert する。書き込み失敗が一過性（DB 一時障害等）の場合に救済する。永続失敗は別途運用判断で手動対処。
+
+- **API**: `GET /api/cron/audit-log-recover-dead-letter`
+- **CLI**: `pnpm cron audit-log-recover-dead-letter`
+- **推奨スケジュール**: `0 * * * *` （毎時）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "recovered": 5, "remaining": 0 }`
+
+### `user-login-event-prune`
+
+`user_login_events` テーブルの retention_days を超過した行をバッチ削除する。IP 横断検索用の正規化テーブルで、件数増加が早いため日次プルーニングを推奨。
+
+- **API**: `GET /api/cron/user-login-event-prune`
+- **CLI**: `pnpm cron user-login-event-prune`
+- **推奨スケジュール**: `0 4 * * *` （日次・深夜帯。`audit-log-prune` と時刻を被らせない）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "deletedCount": 1500, "iterations": 2, "truncated": false }`
+
 ---
 
 ## セットアップ
@@ -38,7 +68,10 @@
 ```json
 {
   "crons": [
-    { "path": "/api/cron/expire-pending-purchases", "schedule": "*/15 * * * *" }
+    { "path": "/api/cron/expire-pending-purchases",      "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/audit-log-prune",               "schedule": "0 3 * * *" },
+    { "path": "/api/cron/audit-log-recover-dead-letter", "schedule": "0 * * * *" },
+    { "path": "/api/cron/user-login-event-prune",        "schedule": "0 4 * * *" }
   ]
 }
 ```

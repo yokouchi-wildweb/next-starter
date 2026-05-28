@@ -40,6 +40,12 @@ const TASKS: Record<string, CronTask> = {
     );
     return await recoverDeadLetterAuditLogs();
   },
+  "user-login-event-prune": async () => {
+    const { pruneExpiredUserLoginEvents } = await import(
+      "@/features/core/userLoginEvent/services/server"
+    );
+    return await pruneExpiredUserLoginEvents();
+  },
   "purchase-quota-cleanup": async () => {
     const { cleanupOldLedger } = await import(
       "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper"

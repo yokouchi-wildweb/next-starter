@@ -3,6 +3,7 @@
 import type { User } from "@/features/core/user/entities";
 import type { UserProviderType } from "@/features/core/user/types";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { recordLoginEvent } from "@/features/core/userLoginEvent/services/server";
 import { setPending } from "./setPending";
 
 export type PreRegisterFromAuthInput = {
@@ -55,6 +56,18 @@ export async function preRegisterFromAuth(
     isRejoin,
     isNewRegistration,
   });
+
+  // IP 横断検索用テーブル (user_login_events) にも signup を記録する。
+  // 新規登録 / 再入会のときだけ。pending からの再実行 (重複呼び出し) では記録しない。
+  // recordLoginEvent は IP 未指定や書き込み失敗を内部で握り潰す bestEffort 仕様。
+  if (isNewRegistration || isRejoin) {
+    await recordLoginEvent({
+      userId: user.id,
+      eventType: "signup",
+      ip,
+      occurredAt: now,
+    });
+  }
 
   return {
     user,
