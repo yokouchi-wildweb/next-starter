@@ -3,6 +3,7 @@
 export { auditLogger, type AuditLogger } from "./auditLogService";
 export { auditLogBase, auditLogFailedBase } from "./drizzleBase";
 export { searchByTarget, type SearchByTargetParams } from "./wrappers/searchByTarget";
+export { searchBySubjectUser } from "./wrappers/searchBySubjectUser";
 export {
   pruneExpiredAuditLogs,
   type PruneOptions,
@@ -16,6 +17,7 @@ export {
 
 import { auditLogBase } from "./drizzleBase";
 import { searchByTarget } from "./wrappers/searchByTarget";
+import { searchBySubjectUser } from "./wrappers/searchBySubjectUser";
 
 /**
  * 監査ログ参照系サービス。serviceRegistry に登録して `[domain]` 経由の API
@@ -26,4 +28,5 @@ import { searchByTarget } from "./wrappers/searchByTarget";
 export const auditLogService = {
   ...auditLogBase,
   searchByTarget,
+  searchBySubjectUser,
 };

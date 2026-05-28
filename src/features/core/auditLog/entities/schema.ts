@@ -15,6 +15,12 @@ const ACTION_NAME_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
 export const AuditLogCreateSchema = z.object({
   targetType: z.string().min(1).max(64),
   targetId: z.string().min(1).max(256),
+  /**
+   * 操作対象のユーザー ID（"data subject"）。target_type='user' なら targetId と同値、
+   * 関連エンティティの場合はそのユーザー ID、特定不能な場合は null。
+   * actor (実行者) と概念分離するため独立カラム化されている。
+   */
+  subjectUserId: z.string().min(1).max(256).nullable().optional(),
   actorId: z.string().nullable(),
   actorType: z.enum(AUDIT_ACTOR_TYPES),
   action: z

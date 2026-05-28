@@ -6,6 +6,12 @@ export type AuditLog = {
   id: string;
   targetType: string;
   targetId: string;
+  /**
+   * 「この操作が誰のユーザーに対するものか」を表す集約キー（"data subject"）。
+   * target_type='user' なら targetId と同値、関連エンティティ（wallet 等）ならそのユーザー ID、
+   * 対象ユーザーが特定できない bulk aggregate やシステム設定変更では null。
+   */
+  subjectUserId: string | null;
   actorId: string | null;
   actorType: AuditActorType;
   action: string;

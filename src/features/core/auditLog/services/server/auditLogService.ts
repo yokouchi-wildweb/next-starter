@@ -94,6 +94,7 @@ function buildPayload(input: RecordOptions, context: AuditContext) {
   return {
     targetType: input.targetType,
     targetId: input.targetId,
+    subjectUserId: input.subjectUserId ?? null,
     actorId,
     actorType,
     action: input.action,

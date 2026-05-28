@@ -36,5 +36,6 @@ export {
 } from "./presenters";
 
 export { AuditTimeline } from "./components/common/AuditTimeline";
+export { UserActivityTimeline } from "./components/common/UserActivityTimeline";
 
 export { auditLogClient } from "./services/client/auditLogClient";

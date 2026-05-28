@@ -58,6 +58,23 @@ async function searchByTarget(
 }
 
 /**
+ * 管理者用: 指定ユーザーが "data subject" になっている全監査ログを取得する糖衣構文。
+ * UserActivityTimeline コンポーネントから利用される。
+ *
+ * target_type を跨いで（user / wallet / user_item 等）ユーザー単位にアクティビティを
+ * 集約するユースケース向け。
+ */
+async function searchBySubjectUser(
+  subjectUserId: string,
+  params: Omit<SearchParams, "where"> = {},
+): Promise<PaginatedResult<AuditLog>> {
+  return searchAsAdmin({
+    ...params,
+    where: { field: "subjectUserId", op: "eq", value: subjectUserId },
+  });
+}
+
+/**
  * 認証ユーザー本人用: 自分が target または actor になっているログを取得する。
  */
 async function fetchMine(params: { page?: number; limit?: number } = {}): Promise<PaginatedResult<AuditLog>> {
@@ -71,5 +88,6 @@ async function fetchMine(params: { page?: number; limit?: number } = {}): Promis
 export const auditLogClient = {
   search: searchAsAdmin,
   searchByTarget,
+  searchBySubjectUser,
   fetchMine,
 };

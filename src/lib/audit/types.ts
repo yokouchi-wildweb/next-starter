@@ -40,6 +40,19 @@ export type AuditRecordInput = {
   targetType: string;
   /** ターゲットの ID（uuid 以外も許容するため text で受ける） */
   targetId: string;
+  /**
+   * 「この操作が誰のユーザーに対するものか」を表す集約キー（"data subject"）。
+   *
+   * - target_type='user' の場合: targetId と同値を冗長設定する（後段の `audit_logs WHERE
+   *   subject_user_id = $1` クエリで関連エンティティと混在で取得できるようにするため）
+   * - target_type='wallet' / 'user_item' 等の関連エンティティ操作: そのレコードが属する
+   *   userId を必ず設定する（ユーザー詳細画面のアクティビティタイムラインで集約するため）
+   * - bulk aggregate / システム設定変更 / 対象ユーザーが特定できない操作: 省略可（NULL）
+   *
+   * 規約として「ユーザーに紐づく操作」では必ず設定すること。詳細は
+   * docs/how-to/監査ログ採用ガイド.md の "actor vs subject" セクション参照。
+   */
+  subjectUserId?: string | null;
   /** action 名（規約: "<domain>.<entity>.<verb_past>"。例: "user.email.changed"） */
   action: string;
   /** 変更前のスナップショット（変更フィールドのみ推奨） */
@@ -131,6 +144,8 @@ export interface AuditRecorder {
 export type AuditLogPayload = {
   targetType: string;
   targetId: string;
+  /** "data subject"（操作対象のユーザー ID）。特定不能な場合は null */
+  subjectUserId: string | null;
   actorId: string | null;
   actorType: AuditActorType;
   action: string;
