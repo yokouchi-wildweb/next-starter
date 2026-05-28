@@ -139,6 +139,121 @@ const auditActionNamingRule = {
   },
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// audit/subject-required ルール
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// 監査ログにおける "actor (誰が)" と "subject (誰に対して)" の概念分離を促す静的検出。
+//
+// 検出対象:
+// - auditLogger.record({ ... }) / auditLogger.recordDiff({ ... }) の単件呼び出し
+//   (recordMany / recordManyDiff の配列要素は動的に組み立てられるため対象外)
+//
+// 警告対象:
+// - targetType が文字列リテラル "user" で subjectUserId フィールド未指定
+// - action が REQUIRED_SUBJECT_ACTION_PREFIXES のいずれかで始まる文字列リテラルで
+//   subjectUserId フィールド未指定
+//
+// 除外対象:
+// - action 名に `.bulk_` を含む（bulk aggregate は対象ユーザーが単一でないため subject=null が正常）
+// - subjectUserId フィールドが存在すれば値は問わない（null 明示も許容、unknown user 等で使う）
+//
+// 動的に組み立てる必要がある正当なケースは個別 `eslint-disable` で許可する。
+
+/**
+ * subjectUserId 設定が期待される action 名のプレフィックス。
+ * upstream 同梱ドメインを列挙する。フォーク先で固有ドメインを追加する場合は
+ * フォーク側でこのファイルを更新するか、上位プラグインで補強する。
+ */
+const REQUIRED_SUBJECT_ACTION_PREFIXES = [
+  "user.",
+  "auth.",
+  "wallet.",
+  "user_item.",
+  "subscription.",
+  "purchase_request.",
+  "purchase_quota.",
+  "bank_transfer_review.",
+  "coupon_grant.",
+];
+
+/**
+ * 上記プレフィックスに該当しても、bulk aggregate 用の action 名は subject 無しで正常。
+ * "wallet.balance.bulk_adjusted_by_type" 等を除外する。
+ */
+const BULK_ACTION_PATTERN = /\.bulk_/;
+
+function actionRequiresSubject(actionValue) {
+  if (BULK_ACTION_PATTERN.test(actionValue)) return false;
+  return REQUIRED_SUBJECT_ACTION_PREFIXES.some((p) => actionValue.startsWith(p));
+}
+
+const auditSubjectRequiredRule = {
+  meta: {
+    type: "suggestion",
+    docs: {
+      description:
+        "ユーザーに紐づく監査ログ呼び出しに subjectUserId フィールドを必須化する（subject 概念分離の構造担保）",
+    },
+    schema: [],
+    messages: {
+      missingSubjectUserId:
+        'auditLogger.{{method}}() に subjectUserId フィールドが指定されていません。' +
+        ' targetType / action から「ユーザーに紐づく操作」と判定されました（target: {{target}}, action: {{action}}）。' +
+        ' 対象ユーザー ID を subjectUserId に渡してください。bulk aggregate や対象が特定不能なケースで' +
+        ' 意図的に null としたい場合は `subjectUserId: null` を明示するか eslint-disable で抑止してください。',
+    },
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        if (!isAuditLoggerCall(node)) return;
+        const methodName = node.callee.property.name;
+        // recordMany / recordManyDiff の配列引数は静的に内部を読まない（誤検知を避ける）
+        if (methodName !== "record" && methodName !== "recordDiff") return;
+
+        const arg = node.arguments[0];
+        if (!arg || arg.type !== "ObjectExpression") return;
+
+        let targetTypeLiteral = null;
+        let actionLiteral = null;
+        let hasSubjectUserId = false;
+
+        for (const prop of arg.properties) {
+          const keyName = getPropertyKeyName(prop);
+          if (keyName === "subjectUserId") {
+            hasSubjectUserId = true;
+            continue;
+          }
+          if (keyName === "targetType" && prop.value.type === "Literal" && typeof prop.value.value === "string") {
+            targetTypeLiteral = prop.value.value;
+          }
+          if (keyName === "action" && prop.value.type === "Literal" && typeof prop.value.value === "string") {
+            actionLiteral = prop.value.value;
+          }
+        }
+
+        if (hasSubjectUserId) return;
+
+        const targetTypeRequires = targetTypeLiteral === "user";
+        const actionRequires = actionLiteral !== null && actionRequiresSubject(actionLiteral);
+
+        if (!targetTypeRequires && !actionRequires) return;
+
+        context.report({
+          node: arg,
+          messageId: "missingSubjectUserId",
+          data: {
+            method: methodName,
+            target: targetTypeLiteral ?? "(dynamic)",
+            action: actionLiteral ?? "(dynamic)",
+          },
+        });
+      },
+    };
+  },
+};
+
 /**
  * Flat config 用のプラグインオブジェクト。
  * eslint.config.mjs から `plugins: { "audit": <this> }` で登録する。
@@ -150,6 +265,7 @@ const plugin = {
   },
   rules: {
     "action-naming": auditActionNamingRule,
+    "subject-required": auditSubjectRequiredRule,
   },
 };
 
