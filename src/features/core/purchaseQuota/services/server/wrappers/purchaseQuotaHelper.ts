@@ -185,6 +185,7 @@ async function recordExceededAudit(params: {
     await auditLogger.record({
       targetType: "purchase_quota",
       targetId: params.purchaseRequestId,
+      subjectUserId: params.userId,
       // action 名は ESLint rule (audit/action-naming) で静的検証する必要があるためリテラル指定。
       // 変更時は src/features/core/purchaseQuota/constants/index.ts の
       // PURCHASE_QUOTA_AUDIT_ACTIONS.EXCEEDED と src/features/core/auditLog/presenters.ts の

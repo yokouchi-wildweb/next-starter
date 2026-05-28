@@ -70,6 +70,7 @@ export async function clearBalance(userId: string, tx: DbTransaction): Promise<v
     nonZeroWallets.map((wallet) => ({
       targetType: "wallet",
       targetId: wallet.id,
+      subjectUserId: userId,
       action: "wallet.balance.cleared",
       before: { balance: wallet.balance, locked_balance: wallet.locked_balance },
       after: { balance: 0, locked_balance: 0 },

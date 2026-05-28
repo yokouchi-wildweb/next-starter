@@ -87,6 +87,7 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
   await auditLogger.record({
     targetType: "user",
     targetId: user.id,
+    subjectUserId: user.id,
     action: "user.created_by_admin",
     before: null,
     after: {

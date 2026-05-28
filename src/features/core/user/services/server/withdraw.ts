@@ -47,6 +47,7 @@ export async function withdraw(userId: string): Promise<WithdrawResult> {
     await auditLogger.record({
       targetType: "user",
       targetId: userId,
+      subjectUserId: userId,
       action: "user.withdrew",
       before: { status: beforeStatus },
       after: { status: "withdrawn" },

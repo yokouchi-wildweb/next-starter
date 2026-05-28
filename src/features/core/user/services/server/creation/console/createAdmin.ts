@@ -76,6 +76,7 @@ export async function createAdmin(data: CreateAdminInput): Promise<User> {
   await auditLogger.record({
     targetType: "user",
     targetId: user.id,
+    subjectUserId: user.id,
     action: "user.created_by_admin",
     before: null,
     after: {

@@ -40,6 +40,7 @@ export async function reactivate(userId: string): Promise<ReactivateResult> {
   await auditLogger.record({
     targetType: "user",
     targetId: userId,
+    subjectUserId: userId,
     action: "user.reactivated",
     before: { status: beforeStatus },
     after: { status: "active" },

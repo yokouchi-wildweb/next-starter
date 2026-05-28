@@ -31,6 +31,7 @@ export async function hardDelete(input: HardDeleteInput): Promise<void> {
   await auditLogger.record({
     targetType: "user",
     targetId: userId,
+    subjectUserId: userId,
     action: "user.hard_deleted",
     before: user as unknown as Record<string, unknown>,
     reason: reason ?? null,

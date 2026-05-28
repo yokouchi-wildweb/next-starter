@@ -45,6 +45,7 @@ export async function changeRole(input: ChangeRoleInput): Promise<User> {
   await auditLogger.record({
     targetType: "user",
     targetId: userId,
+    subjectUserId: userId,
     action: "user.role.changed",
     before: { role: beforeRole },
     after: { role: newRole, profileDeleted: deleteOldProfile ?? false },

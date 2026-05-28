@@ -43,6 +43,10 @@ export async function recordLoginFailure({
   await auditLogger.record({
     targetType: "user",
     targetId,
+    // 既知ユーザーへの失敗試行はそのユーザーの subject に紐付ける。
+    // 不明 email への試行は対象ユーザーが特定できないため null（攻撃検知用 unknown:<hash> として
+    // targetId にのみ残し、ユーザー単位タイムラインには出さない）。
+    subjectUserId: user?.id ?? null,
     action: "auth.login.failed",
     metadata,
     defaultRetentionDays: LOGIN_FAILURE_RETENTION_DAYS,

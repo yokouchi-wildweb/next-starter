@@ -75,6 +75,7 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
   await auditLogger.record({
     targetType: "user",
     targetId: updatedUser.id,
+    subjectUserId: updatedUser.id,
     action: "user.reregistered_by_admin",
     before,
     after: {

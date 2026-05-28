@@ -46,6 +46,7 @@ export async function changeStatus(input: ChangeStatusInput): Promise<User> {
   await auditLogger.record({
     targetType: "user",
     targetId: userId,
+    subjectUserId: userId,
     action: "user.status.changed",
     before: { status: beforeStatus },
     after: { status: newStatus },
@@ -56,6 +57,7 @@ export async function changeStatus(input: ChangeStatusInput): Promise<User> {
     await auditLogger.record({
       targetType: "user",
       targetId: userId,
+      subjectUserId: userId,
       action: "auth.account.unlocked_admin",
       before: {
         status: "security_locked",

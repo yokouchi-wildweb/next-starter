@@ -94,6 +94,7 @@ export async function adjustBalance(
     await auditLogger.record({
       targetType: "wallet",
       targetId: updated.id,
+      subjectUserId: params.userId,
       action: "wallet.balance.adjusted",
       before: { balance: wallet.balance, locked_balance: wallet.locked_balance },
       after: { balance: updated.balance, locked_balance: updated.locked_balance },

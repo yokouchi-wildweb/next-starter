@@ -39,6 +39,7 @@ export async function softDelete(input: SoftDeleteInput): Promise<void> {
     await auditLogger.record({
       targetType: "user",
       targetId: userId,
+      subjectUserId: userId,
       action: "user.soft_deleted",
       before: { status: currentUser.status, deletedAt: null },
       after: { status: currentUser.status, deletedAt: new Date().toISOString() },

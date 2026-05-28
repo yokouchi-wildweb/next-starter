@@ -150,6 +150,7 @@ export async function submitReview(
     await auditLogger.record({
       targetType: "bank_transfer_review",
       targetId: next.id,
+      subjectUserId: userId,
       action: "bank_transfer_review.review.submitted",
       before: existing
         ? {

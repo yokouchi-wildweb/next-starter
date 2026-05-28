@@ -41,6 +41,7 @@ export async function pause(userId: string): Promise<PauseResult> {
   await auditLogger.record({
     targetType: "user",
     targetId: userId,
+    subjectUserId: userId,
     action: "user.paused",
     before: { status: beforeStatus },
     after: { status: "inactive" },

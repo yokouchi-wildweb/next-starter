@@ -156,6 +156,7 @@ export async function localLogin(input: unknown): Promise<LocalLoginResult> {
     await auditLogger.record({
       targetType: "user",
       targetId: user.id,
+      subjectUserId: user.id,
       action: "auth.account.unlocked_auto",
       before: {
         lockedUntil: user.lockedUntil.toISOString(),

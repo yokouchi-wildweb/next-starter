@@ -94,6 +94,7 @@ export async function rejectReview(
     await auditLogger.record({
       targetType: "bank_transfer_review",
       targetId: next.id,
+      subjectUserId: review.user_id,
       action: "bank_transfer_review.review.rejected",
       before: { status: review.status, reviewed_by: review.reviewed_by },
       after: {

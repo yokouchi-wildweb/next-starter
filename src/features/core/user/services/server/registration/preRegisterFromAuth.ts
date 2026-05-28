@@ -103,6 +103,7 @@ async function recordActionLog({
     await auditLogger.record({
       targetType: "user",
       targetId: user.id,
+      subjectUserId: user.id,
       action: "user.rejoined",
       before: { status: existingUser!.status },
       after,
@@ -112,6 +113,7 @@ async function recordActionLog({
     await auditLogger.record({
       targetType: "user",
       targetId: user.id,
+      subjectUserId: user.id,
       action: "user.preregistered",
       before: null,
       after,

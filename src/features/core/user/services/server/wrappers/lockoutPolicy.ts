@@ -88,6 +88,7 @@ export async function recordFailedLogin(
     await auditLogger.record({
       targetType: "user",
       targetId: user.id,
+      subjectUserId: user.id,
       action: "auth.account.locked_permanent",
       before: { status: user.status, failedLoginCount: baseCount },
       after: { status: "security_locked", failedLoginCount: newCount },
@@ -114,6 +115,7 @@ export async function recordFailedLogin(
     await auditLogger.record({
       targetType: "user",
       targetId: user.id,
+      subjectUserId: user.id,
       action: "auth.account.locked_short",
       before: { failedLoginCount: baseCount },
       after: {

@@ -139,6 +139,7 @@ export async function cancelPurchase(
     await auditLogger.record({
       targetType: "purchase_request",
       targetId: current.id,
+      subjectUserId: userId,
       action: "purchase_request.status.cancelled",
       before: { status: current.status },
       after: { status: "expired" },
@@ -155,6 +156,7 @@ export async function cancelPurchase(
       await auditLogger.record({
         targetType: "bank_transfer_review",
         targetId: updatedReviewId,
+        subjectUserId: userId,
         action: "bank_transfer_review.review.cancelled",
         before: { status: "pending_review" },
         after: { status: "rejected", reject_reason: USER_CANCEL_REJECT_REASON },

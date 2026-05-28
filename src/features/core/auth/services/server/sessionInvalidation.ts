@@ -76,6 +76,7 @@ export async function invalidateSessionsForUser({
   await auditLogger.record({
     targetType: "user",
     targetId: userId,
+    subjectUserId: userId,
     action: "auth.session.invalidated",
     metadata: { reason },
     bestEffort: true,
