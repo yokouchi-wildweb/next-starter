@@ -10,14 +10,19 @@ import { Input, PasswordInput } from "@/components/Form/Input/Manual";
 import { Stack } from "@/components/Layout/Stack";
 import { useAdminLogin } from "@/features/core/auth/hooks/useAdminLogin";
 
-export function AdminLogin() {
+export type AdminLoginProps = {
+  /** ログイン成功後の遷移先。未指定時は useAdminLogin 側のデフォルト (/admin) */
+  redirectTo?: string;
+};
+
+export function AdminLogin({ redirectTo }: AdminLoginProps = {}) {
   const { signIn, isLoading, errorMessage } = useAdminLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await signIn({ email, password });
+    await signIn({ email, password, redirectTo });
   };
 
   return (

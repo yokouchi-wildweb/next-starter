@@ -9,13 +9,26 @@ import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { AdminLogin } from "@/features/core/auth/components/AdminLogin";
 import { authGuard } from "@/features/core/auth/services/server/authorization";
 import { getRolesByCategory } from "@/features/core/user/constants";
+import { resolveReturnTo } from "@/lib/crud/utils/paths";
 import Link from "next/link";
 
-export default async function AdminLoginPage() {
+const DEFAULT_REDIRECT_PATH = "/admin";
+
+type AdminLoginPageProps = {
+  searchParams?: Promise<{
+    returnTo?: string;
+  }>;
+};
+
+export default async function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
+  const rawReturnTo = searchParams ? (await searchParams).returnTo : undefined;
+  // open redirect 対策として内部パスのみを許可する
+  const redirectPath = resolveReturnTo(rawReturnTo, DEFAULT_REDIRECT_PATH);
+
   const sessionUser = await authGuard({ allowRoles: getRolesByCategory("admin") });
 
   if (sessionUser) {
-    redirect("/admin");
+    redirect(redirectPath);
   }
 
   return (
@@ -24,7 +37,7 @@ export default async function AdminLoginPage() {
         <Section as="header" className="w-full">
           <PageTitle marginBottom="xs">管理者ログイン</PageTitle>
         </Section>
-        <AdminLogin />
+        <AdminLogin redirectTo={redirectPath} />
         <Link href="/">サービストップへ戻る</Link>
       </Flex>
     </Main>

@@ -22,7 +22,7 @@ export default async function InsaneLayout({
   // 管理者ユーザーが未作成の環境では、初期セットアップへリダイレクト
   if (adminUserCount === 0) redirect("/admin/setup");
 
-  await authGuard({ allowRoles: ["admin"], redirectTo: "/admin/login" });
+  await authGuard({ allowRoles: ["admin"], redirectTo: "/admin/login", returnBack: true });
 
   return <InsaneProtectedLayout>{children}</InsaneProtectedLayout>;
 }

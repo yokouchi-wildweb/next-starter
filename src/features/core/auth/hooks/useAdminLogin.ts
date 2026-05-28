@@ -14,7 +14,11 @@ import { err } from "@/lib/errors";
 type AdminLoginParams = {
   email: string;
   password: string;
+  /** ログイン成功後の遷移先。未指定時は /admin */
+  redirectTo?: string;
 };
+
+const DEFAULT_REDIRECT_PATH = "/admin";
 
 export function useAdminLogin() {
   const router = useRouter();
@@ -24,7 +28,7 @@ export function useAdminLogin() {
   const lockRef = useRef(false);
 
   const signIn = useCallback(
-    async ({ email, password }: AdminLoginParams) => {
+    async ({ email, password, redirectTo }: AdminLoginParams) => {
       if (lockRef.current) return;
       lockRef.current = true;
 
@@ -44,7 +48,7 @@ export function useAdminLogin() {
         if (result.requiresReactivation) {
           router.push("/reactivate");
         } else {
-          router.push("/admin");
+          router.push(redirectTo ?? DEFAULT_REDIRECT_PATH);
         }
       } catch (error) {
         setErrorMessage(err(error, "ログインに失敗しました"));
