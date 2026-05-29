@@ -14,6 +14,9 @@ export const MAX_PARTICIPANTS = 30;
 /** 画像ファイルの最大サイズ（バイト） */
 export const IMAGE_MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
+/** 動画ファイルの最大サイズ（バイト） */
+export const VIDEO_MAX_SIZE = 200 * 1024 * 1024; // 200MB
+
 /** その他ファイルの最大サイズ（バイト） */
 export const FILE_MAX_SIZE = 20 * 1024 * 1024; // 20MB
 

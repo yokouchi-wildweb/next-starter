@@ -8,6 +8,7 @@ import {
   FILE_MAX_SIZE,
   IMAGE_MAX_SIZE,
   MESSAGE_MAX_LENGTH,
+  VIDEO_MAX_SIZE,
 } from "@/features/chatRoom/constants/chat";
 
 export type ValidationResult =
@@ -33,6 +34,14 @@ export function validateImageFile(file: File): ValidationResult {
   return { valid: true };
 }
 
+/** 動画ファイルのバリデーション（サイズのみ） */
+export function validateVideoFile(file: File): ValidationResult {
+  if (file.size > VIDEO_MAX_SIZE) {
+    return { valid: false, reason: `動画ファイルは${VIDEO_MAX_SIZE / (1024 * 1024)}MB以内にしてください。` };
+  }
+  return { valid: true };
+}
+
 /** その他ファイルのバリデーション（サイズのみ） */
 export function validateFile(file: File): ValidationResult {
   if (file.size > FILE_MAX_SIZE) {
@@ -42,6 +51,13 @@ export function validateFile(file: File): ValidationResult {
 }
 
 /** ファイル種別に応じたバリデーション */
-export function validateChatFile(file: File, type: "image" | "file"): ValidationResult {
-  return type === "image" ? validateImageFile(file) : validateFile(file);
+export function validateChatFile(file: File, type: "image" | "video" | "file"): ValidationResult {
+  switch (type) {
+    case "image":
+      return validateImageFile(file);
+    case "video":
+      return validateVideoFile(file);
+    case "file":
+      return validateFile(file);
+  }
 }

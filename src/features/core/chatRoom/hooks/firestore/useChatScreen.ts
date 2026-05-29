@@ -31,7 +31,7 @@ export type UseChatScreenReturn = {
   /** テキストメッセージを送信する */
   sendText: (content: string) => Promise<ValidationResult>;
   /** ファイル/画像メッセージを送信する */
-  sendFile: (file: File, type: Extract<MessageType, "image" | "file">) => ValidationResult;
+  sendFile: (file: File, type: Extract<MessageType, "image" | "video" | "file">) => ValidationResult;
   /** 失敗したメッセージを再送する */
   retry: (pendingId: string) => Promise<void>;
   /** 失敗したメッセージを破棄する */

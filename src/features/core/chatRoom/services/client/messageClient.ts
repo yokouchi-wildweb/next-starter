@@ -64,8 +64,8 @@ export type SendFileMessageParams = {
   roomId: string;
   /** ダウンロード URL */
   content: string;
-  /** "image" または "file" */
-  type: Extract<MessageType, "image" | "file">;
+  /** "image" / "video" / "file" */
+  type: Extract<MessageType, "image" | "video" | "file">;
   senderId: string;
   metadata: MessageMetadata;
   /** 事前生成したメッセージ ID（楽観的UI 用） */

@@ -127,7 +127,7 @@ Firestore SDK を直接操作する。管理画面向けには自動生成の CR
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| `type` | `"text" \| "image" \| "file" \| "system"` | メッセージ種別 |
+| `type` | `"text" \| "image" \| "video" \| "file" \| "system"` | メッセージ種別 |
 | `content` | `string` | テキスト本文 / ファイル URL |
 | `senderId` | `string` | 送信者の userId |
 | `metadata` | `MessageMetadata \| null` | ファイル情報（下記参照） |
@@ -288,7 +288,7 @@ function BulkMessageForm({ uid }: { uid: string }) {
 | `error` | `Error \| null` | エラー |
 | `loadMore` | `() => Promise<void>` | 過去メッセージを追加取得 |
 | `sendText` | `(content: string) => Promise<ValidationResult>` | テキストメッセージ送信 |
-| `sendFile` | `(file: File, type: "image" \| "file") => ValidationResult` | ファイル/画像送信 |
+| `sendFile` | `(file: File, type: "image" \| "video" \| "file") => ValidationResult` | ファイル/画像/動画送信 |
 | `retry` | `(pendingId: string) => Promise<void>` | 失敗メッセージの再送 |
 | `dismiss` | `(pendingId: string) => void` | 失敗メッセージの破棄 |
 | `cancelUpload` | `(pendingId: string) => void` | アップロードキャンセル |
@@ -396,7 +396,7 @@ type BulkSendParams = {
 |---|---|---|
 | `pendingMessages` | `PendingMessage[]` | 送信中/失敗のメッセージ一覧 |
 | `sendText` | `(content: string) => Promise<ValidationResult>` | テキスト送信 |
-| `sendFile` | `(file: File, type: "image" \| "file") => ValidationResult` | ファイル送信 |
+| `sendFile` | `(file: File, type: "image" \| "video" \| "file") => ValidationResult` | ファイル/画像/動画送信 |
 | `retry` | `(pendingId: string) => Promise<void>` | 再送 |
 | `dismiss` | `(pendingId: string) => void` | 破棄 |
 | `cancelUpload` | `(pendingId: string) => void` | アップロードキャンセル |
@@ -797,6 +797,7 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 | `MESSAGES_PER_PAGE` | 30 | 1回のページネーションで取得する件数 |
 | `MAX_PARTICIPANTS` | 30 | グループルームの最大参加者数 |
 | `IMAGE_MAX_SIZE` | 10MB | 画像ファイルの最大サイズ |
+| `VIDEO_MAX_SIZE` | 200MB | 動画ファイルの最大サイズ |
 | `FILE_MAX_SIZE` | 20MB | 一般ファイルの最大サイズ |
 
 ### ファイル構成

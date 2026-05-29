@@ -4,7 +4,7 @@
 // domain.json では対応できないため手動で管理する。
 
 /** メッセージ種別 */
-export type MessageType = "text" | "image" | "file" | "system";
+export type MessageType = "text" | "image" | "video" | "file" | "system";
 
 /** チャットルーム種別 */
 export type ChatRoomType = "direct" | "group";

@@ -38,7 +38,7 @@ export type UseChatMessageSenderReturn = {
    * ファイル選択直後に pending メッセージが一覧に表示される（楽観的UI）。
    * バリデーション失敗時は ValidationResult を返す。
    */
-  sendFile: (file: File, type: Extract<MessageType, "image" | "file">) => ValidationResult;
+  sendFile: (file: File, type: Extract<MessageType, "image" | "video" | "file">) => ValidationResult;
   /** 失敗したメッセージを再送する */
   retry: (pendingId: string) => Promise<void>;
   /** 失敗したメッセージを破棄する */
@@ -141,7 +141,7 @@ export function useChatMessageSender(
   // -----------------------------------------------------------------------
 
   const sendFile = useCallback(
-    (file: File, type: Extract<MessageType, "image" | "file">): ValidationResult => {
+    (file: File, type: Extract<MessageType, "image" | "video" | "file">): ValidationResult => {
       if (!roomId || !senderId) return { valid: false, reason: "送信できません。" };
 
       const validation = validateChatFile(file, type);
@@ -236,7 +236,7 @@ export function useChatMessageSender(
       } else if (pending.file) {
         // ファイル再送（再アップロードから）
         removePending(pendingId);
-        sendFile(pending.file, message.type as Extract<MessageType, "image" | "file">);
+        sendFile(pending.file, message.type as Extract<MessageType, "image" | "video" | "file">);
       } else if (message.content) {
         // アップロード済み・メッセージ送信のみ失敗した場合
         updateStatus(pendingId, "sending");
@@ -244,7 +244,7 @@ export function useChatMessageSender(
           await sendFileMessage({
             roomId,
             content: message.content,
-            type: message.type as Extract<MessageType, "image" | "file">,
+            type: message.type as Extract<MessageType, "image" | "video" | "file">,
             senderId,
             metadata: message.metadata!,
             messageId: pendingId,
