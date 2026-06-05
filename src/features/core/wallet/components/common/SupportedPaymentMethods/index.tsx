@@ -11,7 +11,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Check, ChevronRight, CreditCard, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, CreditCard, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";
@@ -35,6 +35,8 @@ const PAYMENT_ICON_MAP: Record<string, LucideIcon> = {
   bank: Landmark,
   paypay: Smartphone,
   amazon: ShoppingCart,
+  // Paidy（あと払い）。Lucide に専用アイコンが無いため翌月払いを連想させる CalendarClock を使用。
+  paidy: CalendarClock,
 };
 
 function resolveIcon(iconId: string): LucideIcon {

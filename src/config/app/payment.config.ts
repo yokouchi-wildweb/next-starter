@@ -147,6 +147,15 @@ export const paymentConfig = {
       enabled: true,
       sessionExpiryMinutes: 60 * 24 * 7,
     },
+    /**
+     * Paidy（あと払い）。
+     * client_sdk 起動方式（paidy.js）でモーダル決済を起動するため、
+     * createSession は外部 URL ではなく LaunchInstruction を返す。
+     * 単一メソッド ("paidy") のみ担当するため methodMapping は不要。
+     */
+    paidy: {
+      enabled: true,
+    },
   } as Record<string, ProviderConfig>,
 
   /**
@@ -188,6 +197,9 @@ export const paymentConfig = {
       square: "x-square-hmacsha256-signature",
       stripe: "Stripe-Signature",
       // komoju: "X-Komoju-Signature",
+      // Paidy は HMAC 等の Webhook 署名検証機構を提供していないため null。
+      // 偽 Webhook 対策は verifyWebhook 側で payment_id 経由の GET /payments/{id} 二重確認で行う。
+      paidy: null,
     } as Record<string, string | null>,
   },
 
@@ -212,6 +224,14 @@ export const paymentConfig = {
      */
     { id: "bank_transfer_inhouse", label: "リアルタイム銀行振込", description: "手続き後に即時反映されます", icon: "bank", status: "available", provider: "inhouse" },
     { id: "paypay", label: "PayPay", icon: "paypay", status: "coming_soon", provider: "fincode" },
+    {
+      id: "paidy",
+      label: "ペイディ",
+      description: "翌月にまとめてあと払い（3・6・12 回分割払いに対応）",
+      icon: "paidy",
+      status: "available",
+      provider: "paidy",
+    },
     { id: "amazon_pay", label: "Amazon Pay", icon: "amazon", status: "disabled" },
   ] as PaymentMethodConfig[],
 } as const;
