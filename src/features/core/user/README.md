@@ -160,9 +160,13 @@ pnpm drizzle-kit push
 | `status` | Enum | ステータス |
 | `isDemo` | Boolean | デモユーザーフラグ |
 | `lastAuthenticatedAt` | Timestamp | 最終認証日時 |
+| `signupIp` | Text | 登録時 IP (referral / 管理画面が参照) |
+| `metadata` | JSONB | 拡張メタデータ。`loginHistory` (直近ログイン履歴) 等を格納 |
 | `deletedAt` | Timestamp | 論理削除日時 |
 | `createdAt` | Timestamp | 作成日時 |
 | `updatedAt` | Timestamp | 更新日時 |
+
+> **IP データの所在に注意**: ログイン / サインアップの IP は `signupIp` 列・`metadata.loginHistory` (JSONB)・専用テーブル `user_login_events` の **3 箇所に併存** している。同一 IP のアカウント横断検索など IP 集計を行う場合は、JSONB をスキャンせず [`userLoginEvent` ドメイン](../userLoginEvent/README.md) の検索 API (`countDistinctUsersByIp` / `findUsersBySameIp` / `findUsersBySubnet`) を使うこと。併存の理由と移行方針は同 README を参照。
 
 ### Enum 定義
 
