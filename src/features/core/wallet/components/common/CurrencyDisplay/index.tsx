@@ -75,6 +75,10 @@ type CurrencyDisplayProps = {
   showLabel?: boolean;
   /** 単位を表示するか（例: "1,000 コイン" or "1,000 pt"） */
   showUnit?: boolean;
+  /** 金額の前に付ける任意のテキスト（例: "合計"） */
+  prefix?: string;
+  /** 金額の後に付ける任意のテキスト（指定時は showLabel/showUnit より優先） */
+  suffix?: string;
   /** 太字にするか（weight未指定時のみ有効） */
   bold?: boolean;
   /** テキストの太さ（bold より優先） */
@@ -105,6 +109,8 @@ export function CurrencyDisplay({
   showIcon = true,
   showLabel = false,
   showUnit = false,
+  prefix,
+  suffix,
   bold = false,
   weight,
   color = "auto",
@@ -127,11 +133,20 @@ export function CurrencyDisplay({
   const colorStyle =
     color === "inherit" ? undefined : { color: color === "auto" ? config.color : color };
 
-  // サフィックスの決定: showLabel > showUnit の優先度
-  const suffix = showLabel ? config.label : showUnit ? config.unit : "";
+  // サフィックスの決定: suffix prop > showLabel > showUnit の優先度
+  const resolvedSuffix = suffix ?? (showLabel ? config.label : showUnit ? config.unit : "");
 
   return (
     <span className={cn("inline-flex", gapClass, alignClass, className)}>
+      {prefix && (
+        <Span
+          size={textSizeClass}
+          weight={resolvedWeight}
+          style={colorStyle}
+        >
+          {prefix}
+        </Span>
+      )}
       {showIcon && (
         <Icon
           className={iconSizeClass}
@@ -153,7 +168,7 @@ export function CurrencyDisplay({
         ) : (
           amount.toLocaleString()
         )}
-        {suffix && ` ${suffix}`}
+        {resolvedSuffix && ` ${resolvedSuffix}`}
       </Span>
     </span>
   );
