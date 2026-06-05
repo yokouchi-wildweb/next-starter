@@ -57,13 +57,32 @@ export const PAIDY_WEBHOOK_EVENTS = {
  * Paidy 決済オブジェクトの status フィールド値
  *
  * paidy.js の closed コールバックや GET /payments/{id} レスポンスに入る決済状態。
- * AUTHORIZED は与信完了（capture 待ち）、CLOSED は capture または void 後の終了状態。
+ * - authorized: 与信完了（capture 待ち）
+ * - pending:    中間状態（paidy.js 内部で authorized と同列に成功扱いされる）
+ * - rejected:   与信失敗
+ * - closed:     capture または void 後の終了状態
+ *
+ * ペイディの公式ドキュメントでは定数キー名（大文字: AUTHORIZED 等）が記載されているが、
+ * paidy.js が実際にコールバックで渡す値は全て小文字（apps.paidy.com/ のソース確認済み）。
+ * GET /payments/{id} API のレスポンスは大文字を返すケースがあるため、
+ * 比較する場合は呼び出し側で toLowerCase() するか、両形式を許容する必要がある。
  */
 export const PAIDY_PAYMENT_STATUS = {
-  AUTHORIZED: "AUTHORIZED",
-  REJECTED: "REJECTED",
-  CLOSED: "CLOSED",
+  AUTHORIZED: "authorized",
+  PENDING: "pending",
+  REJECTED: "rejected",
+  CLOSED: "closed",
 } as const;
+
+/**
+ * Paidy が返す status 値を小文字に正規化する。
+ *
+ * 用途: paidy.js は小文字、REST API は大文字を返すケースがあるため、
+ * PAIDY_PAYMENT_STATUS と比較する前にこの関数で揃える。
+ */
+export function normalizePaidyStatus(status: string | undefined | null): string {
+  return (status ?? "").toLowerCase();
+}
 
 /**
  * Paidy event_type フィールドの値

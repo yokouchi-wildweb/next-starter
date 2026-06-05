@@ -26,7 +26,7 @@ import { completePurchase } from "@/features/core/purchaseRequest/services/serve
 import { failPurchase } from "@/features/core/purchaseRequest/services/server/wrappers/failPurchase";
 import { base } from "@/features/core/purchaseRequest/services/server/drizzleBase";
 import { paidyPaymentProvider } from "./paidyProvider";
-import { PAIDY_PAYMENT_STATUS } from "./errorMapping";
+import { PAIDY_PAYMENT_STATUS, normalizePaidyStatus } from "./errorMapping";
 
 const PAIDY_PROVIDER_NAME = "paidy" as const;
 
@@ -101,7 +101,8 @@ export async function confirmPaidyPayment(
   //    AUTHORIZED: 与信のみ完了 → 能動的に capture を叩く。
   //    CLOSED:    既に capture 済み（Webhook 後着 → サーバー再起動等のレアケース）→ skip。
   //    REJECTED:  与信失敗 → failPurchase を呼んで失敗確定 + 400 を投げる。
-  if (payment.status === PAIDY_PAYMENT_STATUS.REJECTED) {
+  const normalizedPaymentStatus = normalizePaidyStatus(payment.status);
+  if (normalizedPaymentStatus === PAIDY_PAYMENT_STATUS.REJECTED) {
     await failPurchase({
       sessionId: purchaseRequest.id,
       errorCode: "PAIDY_REJECTED",
@@ -111,7 +112,7 @@ export async function confirmPaidyPayment(
     throw new DomainError("Paidy が決済を拒否しました", { status: 400 });
   }
 
-  if (payment.status === PAIDY_PAYMENT_STATUS.AUTHORIZED) {
+  if (normalizedPaymentStatus === PAIDY_PAYMENT_STATUS.AUTHORIZED) {
     const captured = await paidyPaymentProvider.capturePayment(
       providerPaymentId,
       purchaseRequest.payment_amount,

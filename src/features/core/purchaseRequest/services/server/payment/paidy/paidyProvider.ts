@@ -22,10 +22,12 @@ import type {
 } from "@/features/core/purchaseRequest/types/payment";
 import { PAYMENT_ERROR_CODES } from "@/features/core/purchaseRequest/constants/errorCodes";
 import { paymentConfig } from "@/config/app/payment.config";
+import { userService } from "@/features/core/user/services/server/userService";
 import {
   PAIDY_EVENT_TYPE,
   PAIDY_PAYMENT_STATUS,
   PAIDY_WEBHOOK_EVENTS,
+  normalizePaidyStatus,
 } from "./errorMapping";
 
 /**
@@ -51,7 +53,10 @@ export type PaidyPayment = {
   id: string;
   amount: number;
   currency: string;
-  status: "AUTHORIZED" | "REJECTED" | "CLOSED";
+  // Paidy は paidy.js コールバック側で小文字 ("authorized" 等)、REST API のレスポンスでは
+  // 大文字 ("AUTHORIZED" 等) を返すケースがある。両方を許容するため string で受け、
+  // 比較側で normalizePaidyStatus() を経由してから判定する。
+  status: string;
   captured_amount?: number;
   captures?: Array<{ id: string; amount: number; created_at: string }>;
   created_at?: string;
@@ -126,6 +131,17 @@ export class PaidyPaymentProvider implements PaymentProvider {
       );
     }
 
+    // order.items 用の商品名。initiatePurchase の metadata.itemName を流用し、
+    // 無い場合は wallet_topup 等のデフォルト名にフォールバックする。
+    const itemTitle =
+      (typeof params.metadata?.itemName === "string" && params.metadata.itemName) ||
+      "購入";
+
+    // buyer.name1 用のユーザー名。Paidy は nonempty バリデーションで弾くため、
+    // ユーザー登録名が空のケース（NULL / 空文字 / 空白のみ）では明示的なフォールバック値を入れる。
+    const user = await userService.get(params.userId);
+    const buyerName = user?.name?.trim() || "購入者";
+
     return {
       sessionId,
       instruction: {
@@ -136,8 +152,10 @@ export class PaidyPaymentProvider implements PaymentProvider {
           purchaseRequestId: params.purchaseRequestId,
           amount: params.amount,
           currency: "JPY",
+          itemTitle,
           // クライアント側でユーザーに表示する補助情報。空でも paidy.js は動作するが、
           // 与信通過率向上のため可能な限り渡す。
+          buyerName,
           buyerEmail: params.buyerEmail,
           buyerPhoneNumber: params.buyerPhoneNumber,
           // 店舗名等のビジネス情報はクライアント側 sdkLauncher が businessConfig から取る。
@@ -212,7 +230,7 @@ export class PaidyPaymentProvider implements PaymentProvider {
           // capture / close は決済確定。
           // CLOSED 状態でも captured_amount が 0 の場合は void（無料/キャンセル close）扱いとする。
           if (
-            payment.status === PAIDY_PAYMENT_STATUS.CLOSED &&
+            normalizePaidyStatus(payment.status) === PAIDY_PAYMENT_STATUS.CLOSED &&
             payment.captured_amount === 0
           ) {
             return {
@@ -284,7 +302,7 @@ export class PaidyPaymentProvider implements PaymentProvider {
         return { status: "pending", sessionId };
       }
 
-      switch (payment.status) {
+      switch (normalizePaidyStatus(payment.status)) {
         case PAIDY_PAYMENT_STATUS.AUTHORIZED:
           return { status: "processing", sessionId, transactionId: payment.id };
 
