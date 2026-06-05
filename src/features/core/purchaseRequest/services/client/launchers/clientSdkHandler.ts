@@ -4,12 +4,13 @@
 // 流れ:
 //   1. sdkLaunchers[sdkName] を取得
 //   2. load() → launch(config) でモーダル決済を実施
-//   3. authorized なら確定 API (/api/wallet/purchase/[id]/[sdkName]/confirm) を叩く
-//   4. 確定 API 成功なら successUrl に遷移、失敗 / closed なら呼び元判断
+//   3. authorized なら確定 API (/api/wallet/purchase/[id]/[sdkName]/confirm) を
+//      keepalive 付き fetch で発火し、待たずに即 successUrl (= callback 画面) へ遷移する。
+//      確定処理はサーバー側で進行し、callback 画面の usePurchaseStatusPolling が
+//      purchase_request.status を監視して completed / failed への遷移を検知する。
+//      これにより redirect 型と SDK 型の UX が統一される（ローディング体感の差が無くなる）。
 
 "use client";
-
-import axios from "axios";
 
 import type { LaunchClientSdk } from "@/features/core/purchaseRequest/types/payment";
 import { getSdkLauncher } from "../sdkLaunchers";
@@ -60,30 +61,38 @@ export const clientSdkHandler: LaunchHandler<LaunchClientSdk> = {
       };
     }
 
-    // authorized: 確定 API を叩く
+    // authorized:
+    //   1. 確定 API を keepalive 付き fetch で発火（await しない）。keepalive はページ遷移後も
+    //      リクエストの送信を継続させる Fetch API 標準オプション。Beacon と同じ仕組み。
+    //   2. 即座に successUrl（callback 画面）へ遷移。サーバー側で確定処理が進む間、
+    //      callback 画面の usePurchaseStatusPolling が purchase_request.status を監視する。
+    //   3. 確定 API の失敗は purchase_request.status へ書き戻されるため、ポーリングが
+    //      最終的に検知する。Webhook が登録されていれば Webhook 経由でも救済される。
     const confirmUrl = `/api/wallet/purchase/${encodeURIComponent(context.purchaseRequestId)}/${encodeURIComponent(instruction.sdkName)}/confirm`;
     try {
-      await axios.post(confirmUrl, {
-        providerPaymentId: outcome.providerPaymentId,
+      // void で明示的に Promise を捨てる。await しないことが意図であることを示す。
+      void fetch(confirmUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerPaymentId: outcome.providerPaymentId }),
+        keepalive: true,
+        credentials: "same-origin",
+      }).catch((e) => {
+        // ページ遷移後はユーザーは見ないが、開発時のデバッグ用にコンソールには出す。
+        console.error("[clientSdkHandler] confirm API fetch error:", e);
       });
     } catch (e) {
-      // 確定 API 失敗。Webhook での確定にフォールバックする想定で、purchase 自体は救えるが、
-      // クライアント側ではエラーを返して呼び元に判断させる。
+      // fetch そのものが同期 throw するケース（URL 不正等）の防御
       return {
         kind: "failed",
         error: e instanceof Error ? e : new Error(String(e)),
       };
     }
 
-    // 成功 → successUrl に遷移してフロー完結
     if (context.successUrl) {
       window.location.href = context.successUrl;
     }
 
-    return {
-      kind: "completed",
-      providerPaymentId: outcome.providerPaymentId,
-      rawResult: outcome.rawResult,
-    };
+    return { kind: "redirected" };
   },
 };
