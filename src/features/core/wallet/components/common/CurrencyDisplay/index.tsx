@@ -1,6 +1,7 @@
 // src/features/core/wallet/components/CurrencyDisplay/index.tsx
 "use client";
 
+import type { ReactNode } from "react";
 import { CountUp } from "@/components/Animation";
 import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
@@ -75,10 +76,12 @@ type CurrencyDisplayProps = {
   showLabel?: boolean;
   /** 単位を表示するか（例: "1,000 コイン" or "1,000 pt"） */
   showUnit?: boolean;
-  /** 金額の前に付ける任意のテキスト（例: "合計"） */
-  prefix?: string;
-  /** 金額の後に付ける任意のテキスト（指定時は showLabel/showUnit より優先） */
-  suffix?: string;
+  /** 金額の前に付ける任意の内容（文字列・JSX・装飾コンポーネント可。例: "合計"） */
+  prefix?: ReactNode;
+  /** prefix をアイコンの前後どちらに置くか（デフォルト: "beforeIcon"） */
+  prefixPosition?: "beforeIcon" | "afterIcon";
+  /** 金額の後に付ける任意の内容（文字列・JSX 可。指定時は showLabel/showUnit より優先） */
+  suffix?: ReactNode;
   /** 太字にするか（weight未指定時のみ有効） */
   bold?: boolean;
   /** テキストの太さ（bold より優先） */
@@ -110,6 +113,7 @@ export function CurrencyDisplay({
   showLabel = false,
   showUnit = false,
   prefix,
+  prefixPosition = "beforeIcon",
   suffix,
   bold = false,
   weight,
@@ -136,23 +140,27 @@ export function CurrencyDisplay({
   // サフィックスの決定: suffix prop > showLabel > showUnit の優先度
   const resolvedSuffix = suffix ?? (showLabel ? config.label : showUnit ? config.unit : "");
 
+  // prefix 要素（位置のみアイコン前後で切り替えるため一度だけ定義）
+  const prefixNode = prefix ? (
+    <Span
+      size={textSizeClass}
+      weight={resolvedWeight}
+      style={colorStyle}
+    >
+      {prefix}
+    </Span>
+  ) : null;
+
   return (
     <span className={cn("inline-flex", gapClass, alignClass, className)}>
-      {prefix && (
-        <Span
-          size={textSizeClass}
-          weight={resolvedWeight}
-          style={colorStyle}
-        >
-          {prefix}
-        </Span>
-      )}
+      {prefixPosition === "beforeIcon" && prefixNode}
       {showIcon && (
         <Icon
           className={iconSizeClass}
           style={colorStyle}
         />
       )}
+      {prefixPosition === "afterIcon" && prefixNode}
       <Span
         size={textSizeClass}
         weight={resolvedWeight}
@@ -168,7 +176,12 @@ export function CurrencyDisplay({
         ) : (
           amount.toLocaleString()
         )}
-        {resolvedSuffix && ` ${resolvedSuffix}`}
+        {resolvedSuffix !== "" && resolvedSuffix != null && (
+          <>
+            {" "}
+            {resolvedSuffix}
+          </>
+        )}
       </Span>
     </span>
   );
