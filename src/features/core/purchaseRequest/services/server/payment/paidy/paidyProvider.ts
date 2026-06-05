@@ -45,8 +45,9 @@ type PaidyConfig = {
  * Paidy Payment オブジェクト（GET /payments/{id} レスポンス、使用フィールドのみ抜粋）
  *
  * 完全仕様は paidy.com/docs/api を参照。本実装で参照するのは amount/status/captures のみ。
+ * 確定サービス (confirmPaidyPayment) からも参照されるため export する。
  */
-type PaidyPayment = {
+export type PaidyPayment = {
   id: string;
   amount: number;
   currency: string;
@@ -324,9 +325,10 @@ export class PaidyPaymentProvider implements PaymentProvider {
 
   /**
    * GET /payments/{id} で Paidy Payment オブジェクトを取得する。
-   * verifyWebhook の二重確認と getPaymentStatus の両方から共有される。
+   * verifyWebhook の二重確認、getPaymentStatus、確定 API (confirmPaidyPayment) から共有される。
+   * confirmPaidyPayment が provider 外から呼び出すため public。
    */
-  private async fetchPayment(paymentId: string): Promise<PaidyPayment | null> {
+  async fetchPayment(paymentId: string): Promise<PaidyPayment | null> {
     const config = this.getConfig();
 
     try {
