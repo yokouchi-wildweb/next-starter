@@ -245,7 +245,7 @@ export class StripePaymentProvider implements PaymentProvider {
 
     return {
       sessionId: data.id,
-      redirectUrl: data.url,
+      instruction: { type: "redirect", url: data.url },
       expiresAt: data.expires_at
         ? new Date(data.expires_at * 1000)
         : undefined,

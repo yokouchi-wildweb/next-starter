@@ -271,7 +271,7 @@ export class SquarePaymentProvider implements PaymentProvider {
 
     return {
       sessionId: data.payment_link.id,
-      redirectUrl: data.payment_link.url,
+      instruction: { type: "redirect", url: data.payment_link.url },
       // Square Payment Linkには明示的な有効期限がないため undefined
       expiresAt: undefined,
     };
