@@ -6,6 +6,7 @@ import { fincodePaymentProvider } from "./fincode";
 import { squarePaymentProvider } from "./square";
 import { stripePaymentProvider } from "./stripe";
 import { inhousePaymentProvider } from "./inhouse";
+import { paidyPaymentProvider } from "./paidy";
 
 export type { PaymentProvider, CreatePaymentSessionParams, PaymentSession, PaymentResult } from "@/features/core/purchaseRequest/types/payment";
 
@@ -13,8 +14,10 @@ export type { PaymentProvider, CreatePaymentSessionParams, PaymentSession, Payme
  * 利用可能な決済プロバイダ名
  *
  * - inhouse: 自社受付の銀行振込（外部 Webhook を持たず、ユーザーの自己申告 API で完了）
+ * - paidy: BNPL（あと払い）。client_sdk 起動方式（paidy.js）。クライアントの sdkLaunchers["paidy"]
+ *   がモーダルを launch し、完了後に /api/wallet/purchase/[id]/paidy/confirm で確定する
  */
-export type PaymentProviderName = "dummy" | "komoju" | "fincode" | "square" | "stripe" | "inhouse";
+export type PaymentProviderName = "dummy" | "komoju" | "fincode" | "square" | "stripe" | "inhouse" | "paidy";
 
 /**
  * 決済プロバイダを取得
@@ -41,6 +44,9 @@ export function getPaymentProvider(providerName: PaymentProviderName): PaymentPr
 
     case "inhouse":
       return inhousePaymentProvider;
+
+    case "paidy":
+      return paidyPaymentProvider;
 
     case "komoju":
       // TODO: KOMOJU実装後に有効化
