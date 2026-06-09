@@ -84,6 +84,7 @@ type PaidyWebhookPayload = {
  */
 export class PaidyPaymentProvider implements PaymentProvider {
   readonly providerName = "paidy";
+  readonly launchType = "client_sdk" as const;
 
   private readonly apiBaseUrl = "https://api.paidy.com";
 

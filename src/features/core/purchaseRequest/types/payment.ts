@@ -219,6 +219,18 @@ export interface PaymentProvider {
   readonly providerName: string;
 
   /**
+   * 起動方式。
+   * - "redirect":   外部 URL へリダイレクトする型（Stripe / Fincode / Square / inhouse）。
+   * - "client_sdk": クライアント SDK をページ内で起動する型（Paidy / PayPal）。
+   *
+   * 主に「同一 processing リクエストの再起動可否」の判定に使う。client_sdk 型は外部
+   * リダイレクト URL を持たないため、ユーザーが一度モーダルを閉じても、processing 状態の
+   * まま createSession をやり直して SDK を再起動できる（initiatePurchase が参照する）。
+   * 省略時は "redirect" 扱い（後方互換）。
+   */
+  readonly launchType?: "redirect" | "client_sdk";
+
+  /**
    * 決済セッションを作成
    * @param params セッション作成パラメータ
    * @returns 決済セッション情報（LaunchInstruction を含む）
