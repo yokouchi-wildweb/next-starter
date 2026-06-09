@@ -1,6 +1,6 @@
 // src/features/notification/entities/drizzle.ts
 
-import { boolean, foreignKey, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, foreignKey, index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { NotificationTemplateTable } from "@/features/notificationTemplate/entities/drizzle";
 
 export const NotificationTargetTypeEnum = pgEnum("notification_target_type_enum", ["all", "role", "individual"]);
@@ -28,5 +28,8 @@ export const NotificationTable = pgTable("notifications", {
     name: "notifications_notification_template_id_fk",
     columns: [table.notification_template_id],
     foreignColumns: [NotificationTemplateTable.id],
-  }).onDelete("set null")
+  }).onDelete("set null"),
+  // ユーザー向け通知クエリ (buildVisibilityWhere) の published_at 範囲フィルタ +
+  // ORDER BY published_at DESC を索引で処理するため。全件スキャン回避。
+  index("notifications_published_at_idx").on(table.published_at),
 ]);
