@@ -10,6 +10,7 @@ import type {
 } from "@/features/core/purchaseRequest/entities/form";
 import { normalizeHttpError } from "@/lib/errors/httpError";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
+import type { LaunchInstruction } from "@/features/core/purchaseRequest/types/payment";
 
 // 基本CRUDクライアント
 export const purchaseRequestClient: ApiClient<
@@ -78,11 +79,17 @@ export type InitiatePurchaseRequest = {
 
 /**
  * 購入開始レスポンス
+ *
+ * instruction はクライアントへの起動指示。useCoinPurchase が executePaymentLaunch
+ * 経由で type に応じてリダイレクト or SDK 起動を行う。
+ * successUrl / cancelUrl は SDK 型完了後のクライアント側遷移先として使用する。
  */
 export type InitiatePurchaseResponse = {
   success: boolean;
   requestId: string;
-  redirectUrl: string;
+  instruction: LaunchInstruction;
+  successUrl: string;
+  cancelUrl: string;
   alreadyProcessing?: boolean;
   alreadyCompleted?: boolean;
 };

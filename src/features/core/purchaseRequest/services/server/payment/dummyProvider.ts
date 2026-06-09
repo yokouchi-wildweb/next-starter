@@ -37,7 +37,7 @@ export class DummyPaymentProvider implements PaymentProvider {
 
     return {
       sessionId,
-      redirectUrl,
+      instruction: { type: "redirect", url: redirectUrl },
       expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30分後
     };
   }

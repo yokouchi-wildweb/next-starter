@@ -5,6 +5,7 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { initiatePurchase } from "../services/client/purchaseRequestClient";
+import { executePaymentLaunch } from "../services/client/launchers";
 import { err } from "@/lib/errors/httpError";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 
@@ -67,7 +68,7 @@ export function useCoinPurchase({
         // 購入開始 API を呼び出し
         // paymentMethod はユーザーが選択した値をそのまま送る。
         // サーバー側で resolveProviderForMethod により担当プロバイダが解決され、
-        // 該当プロバイダの決済画面 URL が redirectUrl として返る。
+        // 該当プロバイダの起動指示 (LaunchInstruction) が返る。
         const result = await initiatePurchase({
           idempotencyKey,
           walletType,
@@ -78,9 +79,28 @@ export function useCoinPurchase({
           couponCode: couponCode || undefined,
         });
 
-        // 決済ページへリダイレクト
-        if (result.redirectUrl) {
-          window.location.href = result.redirectUrl;
+        // LaunchInstruction を起動レイヤに委譲。
+        // - redirect 型: window.location.href にリダイレクト URL を代入（ページ遷移）
+        // - client_sdk 型: SDK モーダル起動 → 完了 → 確定 API → successUrl 遷移
+        const launchResult = await executePaymentLaunch(result.instruction, {
+          purchaseRequestId: result.requestId,
+          successUrl: result.successUrl,
+          cancelUrl: result.cancelUrl,
+        });
+
+        // redirected / completed では既に遷移済 or 遷移中。
+        // closed / rejected / failed は呼び元のリトライ余地を残すためロックを解除する。
+        if (launchResult.kind === "closed") {
+          lockRef.current = false;
+          setIsLoading(false);
+        } else if (launchResult.kind === "rejected") {
+          setError(launchResult.reason ?? "決済が拒否されました");
+          lockRef.current = false;
+          setIsLoading(false);
+        } else if (launchResult.kind === "failed") {
+          setError(launchResult.error.message);
+          lockRef.current = false;
+          setIsLoading(false);
         }
       } catch (e) {
         const message = err(e, "購入処理の開始に失敗しました");

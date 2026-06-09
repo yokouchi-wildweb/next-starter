@@ -97,7 +97,7 @@ class InhousePaymentProvider implements PaymentProvider {
     const expiryMinutes = getProviderSessionExpiryMinutes(this.providerName);
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
-    return { sessionId, redirectUrl, expiresAt };
+    return { sessionId, instruction: { type: "redirect", url: redirectUrl }, expiresAt };
   }
 
   /**

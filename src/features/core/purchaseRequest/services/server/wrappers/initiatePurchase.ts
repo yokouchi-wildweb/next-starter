@@ -317,16 +317,23 @@ export async function initiatePurchase(
   } else if (paymentProvider === "inhouse") {
     providerOrderId = generateInhouseTransferIdentifier(purchaseRequest.id);
   }
+  // redirect_url カラムには redirect 型の URL のみ保存する。
+  // client_sdk 型は外部 URL を持たないため null とし、再起動が必要なら別途設計する。
+  const redirectUrlForDb =
+    session.instruction.type === "redirect" ? session.instruction.url : null;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updated = await base.update(purchaseRequest.id, {
     status: "processing",
     payment_session_id: session.sessionId,
-    redirect_url: session.redirectUrl,
+    redirect_url: redirectUrlForDb,
     ...(providerOrderId && { provider_order_id: providerOrderId }),
   } as any) as PurchaseRequest;
 
   return {
     purchaseRequest: updated,
-    redirectUrl: session.redirectUrl,
+    instruction: session.instruction,
+    successUrl,
+    cancelUrl,
   };
 }

@@ -178,7 +178,7 @@ export class FincodePaymentProvider implements PaymentProvider {
 
     return {
       sessionId: data.id,
-      redirectUrl: data.link_url,
+      instruction: { type: "redirect", url: data.link_url },
       expiresAt: data.expire ? new Date(data.expire) : undefined,
     };
   }

@@ -77,13 +77,52 @@ export type CreatePaymentSessionParams = {
 };
 
 /**
+ * 決済の起動指示。
+ *
+ * 各 provider の createSession が「クライアントが決済をどう開始するか」を表現して返す。
+ * クライアント側の起動レイヤ (executePaymentLaunch) が type で分岐し、対応する handler に
+ * dispatch する。新たな起動方式（QR ポーリング・デバイス API 等）を追加する場合は、
+ * このユニオン型に variant を追加し、対応する LaunchHandler を実装するだけで済む。
+ */
+export type LaunchInstruction = LaunchRedirect | LaunchClientSdk;
+
+/**
+ * リダイレクト型: 既存の Stripe / Fincode / Square / inhouse 等が返す。
+ * url は外部プロバイダのホスト型決済ページ URL でも、自社内の遷移先 URL でも可。
+ * クライアントは window.location.href にこの url を代入して即時遷移する。
+ */
+export type LaunchRedirect = {
+  type: "redirect";
+  /** ブラウザが遷移する URL */
+  url: string;
+};
+
+/**
+ * クライアント SDK 起動型: Paidy 等が返す。
+ * クライアント側で sdkName で識別される JS SDK を読み込み、config を渡して起動する。
+ * 完了結果はクライアント側で受け取り、確定 API (/api/wallet/purchase/[id]/[provider]/confirm)
+ * を呼び出して購入を確定させる。
+ */
+export type LaunchClientSdk = {
+  type: "client_sdk";
+  /** クライアント側 SDK ローダーレジストリのキー（"paidy" 等） */
+  sdkName: string;
+  /**
+   * SDK 起動に必要なクライアント可視の設定。
+   * 例: { publicKey, amount, currency, purchaseRequestId, buyer, storeName, ... }
+   * 値はクライアントに直接渡るため、サーバー秘密 (sk_*) を含めてはならない。
+   */
+  config: Record<string, unknown>;
+};
+
+/**
  * 決済セッション
  */
 export type PaymentSession = {
-  /** 決済サービス側のセッションID */
+  /** 決済サービス側のセッションID（client_sdk 型では purchase_request.id を流用してよい） */
   sessionId: string;
-  /** ユーザーをリダイレクトするURL */
-  redirectUrl: string;
+  /** クライアントへの起動指示。type に応じてリダイレクト or SDK 起動が走る */
+  instruction: LaunchInstruction;
   /** セッションの有効期限 */
   expiresAt?: Date;
 };
@@ -170,6 +209,10 @@ export type PaymentStatusResult = {
 /**
  * 決済プロバイダインターフェース
  * 各決済サービス（KOMOJU, Stripe等）はこのインターフェースを実装する
+ *
+ * 起動方式の区別は createSession が返す LaunchInstruction.type で表現する
+ * （フィールドではなく値で多態化する設計）。新しい起動方式を追加する場合は
+ * LaunchInstruction にバリアントを追加する。
  */
 export interface PaymentProvider {
   /** プロバイダ名 */
@@ -178,7 +221,7 @@ export interface PaymentProvider {
   /**
    * 決済セッションを作成
    * @param params セッション作成パラメータ
-   * @returns 決済セッション情報（リダイレクトURL含む）
+   * @returns 決済セッション情報（LaunchInstruction を含む）
    */
   createSession(params: CreatePaymentSessionParams): Promise<PaymentSession>;
 

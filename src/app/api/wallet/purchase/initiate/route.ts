@@ -91,7 +91,9 @@ export const POST = createApiRoute(
     return {
       success: true,
       requestId: result.purchaseRequest.id,
-      redirectUrl: result.redirectUrl,
+      instruction: result.instruction,
+      successUrl: result.successUrl,
+      cancelUrl: result.cancelUrl,
       alreadyProcessing: result.alreadyProcessing ?? false,
       alreadyCompleted: result.alreadyCompleted ?? false,
     };
