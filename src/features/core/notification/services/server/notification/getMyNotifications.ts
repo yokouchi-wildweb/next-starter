@@ -40,7 +40,7 @@ export async function getMyNotifications(
 
   const conditions = [buildVisibilityWhere(viewer)];
   if (unreadOnly) {
-    conditions.push(...unreadConditions());
+    conditions.push(...unreadConditions(viewer));
   }
 
   const rows = await db
@@ -53,7 +53,7 @@ export async function getMyNotifications(
       metadata: NotificationTable.metadata,
       isSilent: NotificationTable.is_silent,
       publishedAt: NotificationTable.published_at,
-      readAt: effectiveReadAtExpr(),
+      readAt: effectiveReadAtExpr(viewer),
     })
     .from(NotificationTable)
     .leftJoin(NotificationReadTable, readStateJoinOn(viewer))

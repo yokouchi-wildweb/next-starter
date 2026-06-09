@@ -25,6 +25,7 @@ export * from "@/features/referralReward/entities/drizzle";
 export * from "@/features/milestone/entities/drizzle";
 export * from "@/features/notification/entities/drizzle";
 export * from "@/features/notification/entities/notificationRead";
+export * from "@/features/notification/entities/notificationReadState";
 export * from "@/features/notificationTemplate/entities/drizzle";
 export * from "@/features/batchJob/entities/drizzle";
 

@@ -50,7 +50,7 @@ export async function getMyNotificationsPage(
 
   const conditions = [buildVisibilityWhere(viewer)];
   if (unreadOnly) {
-    conditions.push(...unreadConditions());
+    conditions.push(...unreadConditions(viewer));
   }
 
   const rows = await db
@@ -63,7 +63,7 @@ export async function getMyNotificationsPage(
       metadata: NotificationTable.metadata,
       isSilent: NotificationTable.is_silent,
       publishedAt: NotificationTable.published_at,
-      readAt: effectiveReadAtExpr(),
+      readAt: effectiveReadAtExpr(viewer),
       total: sql<number>`COUNT(*) OVER()::int`,
     })
     .from(NotificationTable)

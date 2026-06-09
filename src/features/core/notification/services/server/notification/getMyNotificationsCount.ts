@@ -47,7 +47,7 @@ export async function getMyNotificationsCount(
     .select({ count: sql<number>`COUNT(*)::int` })
     .from(NotificationTable)
     .leftJoin(NotificationReadTable, readStateJoinOn(viewer))
-    .where(and(whereCondition, ...unreadConditions()));
+    .where(and(whereCondition, ...unreadConditions(viewer)));
 
   return result?.count ?? 0;
 }
