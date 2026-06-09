@@ -61,6 +61,9 @@ next-env.d.ts
 # playwright-mcp (ページスナップショットに秘密情報が混入する可能性があるためコミット禁止)
 .playwright-mcp/
 
+# Claude Code が生成する一時 worktree（リポジトリにコミットしない）
+.claude/worktrees/
+
 # etc
 TODO.md
 .tmpref
