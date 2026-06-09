@@ -26,7 +26,7 @@ src/features/core/notification/
 │   │       ├── sendSafe.ts          # 全send関数のSafe版
 │   │       ├── getMyNotifications.ts      # ユーザー向け一覧取得（配列のみ）
 │   │       ├── getMyNotificationsCount.ts # ユーザー向け総件数取得（unreadOnly対応）
-│   │       ├── getMyNotificationsPage.ts  # items+total+hasMore を1クエリで取得（推奨）
+│   │       ├── getMyNotificationsPage.ts  # keyset ページネーション（無限スクロール推奨）
 │   │       ├── getUnreadCount.ts    # 未読数取得（getMyNotificationsCountのラッパ）
 │   │       ├── markAsRead.ts        # 個別既読
 │   │       ├── markAllAsRead.ts     # 全既読
@@ -37,7 +37,7 @@ src/features/core/notification/
 │       └── userNotificationClient.ts    # ユーザー向けAPIクライアント
 ├── hooks/
 │   ├── useMyNotifications.ts            # お知らせ一覧（配列のみ）
-│   ├── useMyNotificationsPage.ts        # items+total+hasMore（無限スクロール推奨）
+│   ├── useMyNotificationsPage.ts        # 無限スクロール（keyset, useSWRInfinite）
 │   ├── useMyNotificationsCount.ts       # 総件数（unreadOnly対応）
 │   ├── useUnreadNotificationCount.ts    # 未読数（バッジ用）
 │   ├── useMarkNotificationAsRead.ts     # 個別既読
@@ -238,20 +238,27 @@ const notifications = await notificationService.getMyNotifications(
 );
 ```
 
-### getMyNotificationsPage — items + total + hasMore を1クエリで取得（推奨）
+### getMyNotificationsPage — keyset ページネーション（推奨）
 
-無限スクロール / ページネーション UI 推奨パス。`items` と `total` を `COUNT(*) OVER()`
-ウィンドウ関数で同一クエリ内に計算するため、別々に取得する場合に発生する race condition
-（取得の合間に新着通知が入って hasMore がズレる）が発生しない。
+無限スクロール推奨パス。`(published_at, id)` の複合カーソルで O(page) を保つ
+（OFFSET は深いページで O(offset) になるため不採用）。並び順は published_at DESC, id DESC。
+`total` は keyset では安価に出せないため返さない（件数が必要なら getMyNotificationsCount を併用）。
 
 ```typescript
-const { items, total, hasMore } = await notificationService.getMyNotificationsPage(
-  viewer,
-  { limit: 20, offset: 0, unreadOnly: false }
-);
+// 先頭ページ
+const first = await notificationService.getMyNotificationsPage(viewer, {
+  limit: 20,
+  unreadOnly: false,
+});
+// 次ページは前ページの nextCursor を渡す
+const next = await notificationService.getMyNotificationsPage(viewer, {
+  limit: 20,
+  cursor: first.nextCursor,
+});
 ```
 
-戻り値: `{ items: MyNotification[]; total: number; hasMore: boolean }`
+戻り値: `{ items: MyNotification[]; hasMore: boolean; nextCursor: string | null }`
+（`nextCursor` は不透明文字列。`hasMore=false` のとき null）
 
 ### getMyNotificationsCount — 総件数のみ取得
 
@@ -298,14 +305,14 @@ await notificationService.markAllAsRead(viewer);
 | メソッド | パス | 説明 |
 |---------|------|------|
 | GET | /api/notification/my | 自分のお知らせ一覧（配列のみ） |
-| GET | /api/notification/my/page | items+total+hasMore（無限スクロール推奨） |
+| GET | /api/notification/my/page | keyset ページネーション（無限スクロール推奨） |
 | GET | /api/notification/my/count | 自分宛通知の総件数（unreadOnly対応） |
 | GET | /api/notification/my/unread-count | 未読数 |
 | POST | /api/notification/[id]/read | 個別既読マーク |
 | POST | /api/notification/read-all | 全既読マーク |
 
 GET /api/notification/my クエリパラメータ: limit, offset, unreadOnly(true/false)
-GET /api/notification/my/page クエリパラメータ: limit, offset, unreadOnly(true/false)
+GET /api/notification/my/page クエリパラメータ: limit, cursor, unreadOnly(true/false)
 GET /api/notification/my/count クエリパラメータ: unreadOnly(true/false)
 
 ---
@@ -321,14 +328,16 @@ const { notifications, isLoading, mutate } = useMyNotifications({
 });
 ```
 
-### useMyNotificationsPage — items+total+hasMore（無限スクロール推奨）
+### useMyNotificationsPage — 無限スクロール（keyset, 推奨）
 
-無限スクロール / ページネーション UI 推奨パス。1 リクエストで items と total を原子的に取得するため、
-別々に取得する場合に起きる race condition（hasMore がズレて重複表示や読み飛ばしが発生）を回避できる。
+useSWRInfinite ベース。前ページの nextCursor を辿って順次取得し、全ページを flatten した
+`items` を返す。`loadMore()` で次ページを追加読み込み。
 
 ```typescript
-const { page, isLoading } = useMyNotificationsPage({ limit: 20, offset: 0 });
-// page: { items: MyNotification[]; total: number; hasMore: boolean } | undefined
+const { items, hasMore, isLoading, isLoadingMore, loadMore } =
+  useMyNotificationsPage({ limit: 20 });
+// items: MyNotification[]（取得済み全ページ）
+// hasMore: 次ページの有無 / loadMore(): 追加読み込み
 ```
 
 ### useMyNotificationsCount — 総件数（unreadOnly対応）
@@ -445,29 +454,20 @@ const { markAsRead } = useMarkNotificationAsRead();
 
 ### パターン2-b: 無限スクロール（推奨）
 
-`useMyNotificationsPage` を使用すると items と total が同一リクエストで返り、hasMore 判定が
-原子的に確定する（取得の合間に新着通知が入っても表示が崩れない）。
+`useMyNotificationsPage` は keyset ページネーション（useSWRInfinite ベース）。
+カーソルを内部で辿るので、呼び出し側は `loadMore()` を末尾検知時に呼ぶだけでよい。
+件数（total）は返らないため、必要なら `useMyNotificationsCount` を併用する。
 
 ```typescript
-const PAGE_SIZE = 20;
-const [offset, setOffset] = useState(0);
-const { page, isLoading, mutate } = useMyNotificationsPage({
-  limit: PAGE_SIZE,
-  offset,
-});
+const { items, hasMore, isLoading, isLoadingMore, loadMore } =
+  useMyNotificationsPage({ limit: 20 });
 
-// 末尾検知時
-if (page?.hasMore && !isLoading) {
-  setOffset((prev) => prev + PAGE_SIZE);
-}
+// 末尾検知時（IntersectionObserver 等）に次ページを読み込み
+if (hasMore && !isLoadingMore) loadMore();
 
-// items / total を表示
-page?.items.map((n) => /* ... */);
-const remaining = (page?.total ?? 0) - (offset + (page?.items.length ?? 0));
+// items を表示
+items.map((n) => /* ... */);
 ```
-
-サーバー側で複数ページを蓄積保持したい場合は SWR の useSWRInfinite と組み合わせる。
-キーには `[MY_NOTIFICATIONS_PAGE_SWR_KEY, { limit, offset, unreadOnly }]` を使用する。
 
 ### パターン3: システム通知の発火
 

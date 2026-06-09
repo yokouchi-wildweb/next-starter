@@ -29,7 +29,9 @@ export const NotificationTable = pgTable("notifications", {
     columns: [table.notification_template_id],
     foreignColumns: [NotificationTemplateTable.id],
   }).onDelete("set null"),
-  // ユーザー向け通知クエリ (buildVisibilityWhere) の published_at 範囲フィルタ +
-  // ORDER BY published_at DESC を索引で処理するため。全件スキャン回避。
-  index("notifications_published_at_idx").on(table.published_at),
+  // ユーザー向け通知クエリの keyset ページネーション用複合インデックス。
+  // 行値比較 (published_at, id) < (...) と ORDER BY published_at DESC, id DESC を
+  // 索引で処理する。左端プレフィックスにより published_at 単独の範囲フィルタ
+  // (buildVisibilityWhere) も引き続き効く。
+  index("notifications_published_at_id_idx").on(table.published_at, table.id),
 ]);

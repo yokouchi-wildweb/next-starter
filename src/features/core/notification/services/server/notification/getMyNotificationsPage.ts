@@ -1,13 +1,14 @@
 // src/features/core/notification/services/server/notification/getMyNotificationsPage.ts
-// ユーザー向けお知らせの「ページ取得」: items + total + hasMore を 1 クエリで原子的に返す
+// ユーザー向けお知らせの「ページ取得」: keyset(cursor) ページネーション
 //
-// 大規模運用での無限スクロール / ページネーション UI 推奨パス。
-// items 取得と件数取得を別クエリにすると、その間に新着通知が入った場合に
-// hasMore 判定がズレて重複表示や読み飛ばしが発生する。本実装は
-// COUNT(*) OVER() ウィンドウ関数で同一トランザクション内に計算する。
+// 大規模運用での無限スクロール推奨パス。OFFSET 方式は深いページで O(offset) の
+// コストがかかるため、(published_at, id) の複合カーソルで O(page) に保つ。
+// 並び順は published_at DESC, id DESC（同時刻配信のタイブレークに id を使い安定化）。
+// total は keyset では安価に出せないため返さない（件数が必要なら my/count を併用）。
 
 import { sql, and } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
+import { DomainError } from "@/lib/errors";
 import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import { NotificationReadTable } from "@/features/core/notification/entities/notificationRead";
 
@@ -22,37 +23,63 @@ import type { NotificationViewer } from "./viewer";
 
 type GetMyNotificationsPageOptions = {
   limit?: number;
-  offset?: number;
+  /** 前ページの nextCursor。null/未指定で先頭から取得 */
+  cursor?: string | null;
   unreadOnly?: boolean;
 };
 
 export type MyNotificationsPage = {
-  /** このページの通知一覧（published_at DESC 順） */
+  /** このページの通知一覧（published_at DESC, id DESC 順） */
   items: MyNotification[];
-  /** WHERE 条件にマッチする全件数（フィルタ後・ページ前） */
-  total: number;
-  /** offset + items.length < total（次ページが存在するか） */
+  /** 次ページが存在するか */
   hasMore: boolean;
+  /** 次ページ取得に渡す不透明カーソル。hasMore=false のとき null */
+  nextCursor: string | null;
 };
 
+type DecodedCursor = { publishedAt: string; id: string };
+
 const DEFAULT_LIMIT = 50;
-const DEFAULT_OFFSET = 0;
+
+/** (publishedAt, id) を不透明な base64url 文字列にエンコード */
+function encodeCursor(publishedAt: Date, id: string): string {
+  const payload: DecodedCursor = { publishedAt: publishedAt.toISOString(), id };
+  return Buffer.from(JSON.stringify(payload)).toString("base64url");
+}
+
+/** カーソル文字列をデコード。不正な場合は 400 を投げる */
+function decodeCursor(cursor: string): DecodedCursor {
+  try {
+    const json = Buffer.from(cursor, "base64url").toString("utf8");
+    const parsed = JSON.parse(json) as DecodedCursor;
+    if (typeof parsed.publishedAt !== "string" || typeof parsed.id !== "string") {
+      throw new Error("missing fields");
+    }
+    return parsed;
+  } catch {
+    throw new DomainError("不正なカーソルです。", { status: 400 });
+  }
+}
 
 export async function getMyNotificationsPage(
   viewer: NotificationViewer,
   options: GetMyNotificationsPageOptions = {}
 ): Promise<MyNotificationsPage> {
-  const {
-    limit = DEFAULT_LIMIT,
-    offset = DEFAULT_OFFSET,
-    unreadOnly = false,
-  } = options;
+  const { limit = DEFAULT_LIMIT, cursor = null, unreadOnly = false } = options;
 
   const conditions = [buildVisibilityWhere(viewer)];
   if (unreadOnly) {
     conditions.push(...unreadConditions(viewer));
   }
+  if (cursor) {
+    const { publishedAt, id } = decodeCursor(cursor);
+    // 行値比較: published_at が小さい、または同時刻で id が小さい（= より古い）ものが次ページ
+    conditions.push(
+      sql`(${NotificationTable.published_at}, ${NotificationTable.id}) < (${publishedAt}::timestamptz, ${id}::uuid)`
+    );
+  }
 
+  // hasMore 判定のため limit + 1 件取得する
   const rows = await db
     .select({
       id: NotificationTable.id,
@@ -64,35 +91,17 @@ export async function getMyNotificationsPage(
       isSilent: NotificationTable.is_silent,
       publishedAt: NotificationTable.published_at,
       readAt: effectiveReadAtExpr(viewer),
-      total: sql<number>`COUNT(*) OVER()::int`,
     })
     .from(NotificationTable)
     .leftJoin(NotificationReadTable, readStateJoinOn(viewer))
     .where(and(...conditions))
-    .orderBy(sql`${NotificationTable.published_at} DESC`)
-    .limit(limit)
-    .offset(offset);
+    .orderBy(sql`${NotificationTable.published_at} DESC`, sql`${NotificationTable.id} DESC`)
+    .limit(limit + 1);
 
-  // 結果が空のとき COUNT(*) OVER() は値を返さないため、別クエリで total=0 を確定させる必要はないが、
-  // offset 過大などで「該当はあるが行が返らない」ケースもあり得るため、空のときのみ別途 COUNT を取得する。
-  let total: number;
-  if (rows.length > 0) {
-    total = rows[0].total;
-  } else {
-    const [countResult] = await db
-      .select({ count: sql<number>`COUNT(*)::int` })
-      .from(NotificationTable)
-      .leftJoin(NotificationReadTable, readStateJoinOn(viewer))
-      .where(and(...conditions));
-    total = countResult?.count ?? 0;
-  }
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  const last = items[items.length - 1];
+  const nextCursor = hasMore && last ? encodeCursor(last.publishedAt, last.id) : null;
 
-  // total を除いた items を返す
-  const items: MyNotification[] = rows.map(({ total: _total, ...rest }) => rest);
-
-  return {
-    items,
-    total,
-    hasMore: offset + items.length < total,
-  };
+  return { items, hasMore, nextCursor };
 }

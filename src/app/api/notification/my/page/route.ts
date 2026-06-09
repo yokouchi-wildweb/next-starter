@@ -1,7 +1,7 @@
 // src/app/api/notification/my/page/route.ts
-// 自分宛通知のページ取得（user）: items + total + hasMore を 1 リクエストで返す
-// 無限スクロール / ページネーション UI 推奨パス
-// クエリ: limit, offset, unreadOnly
+// 自分宛通知のページ取得（user）: keyset ページネーションで items + hasMore + nextCursor を返す
+// 無限スクロール推奨パス
+// クエリ: limit, cursor, unreadOnly
 
 import { createApiRoute } from "@/lib/routeFactory";
 import { DomainError } from "@/lib/errors";
@@ -20,13 +20,13 @@ export const GET = createApiRoute(
 
     const { searchParams } = new URL(req.url);
     const limit = searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined;
-    const offset = searchParams.get("offset") ? Number(searchParams.get("offset")) : undefined;
+    const cursor = searchParams.get("cursor") ?? undefined;
     const unreadOnly = searchParams.get("unreadOnly") === "true";
 
     const viewer = notificationViewerFromSession(session);
     return notificationService.getMyNotificationsPage(viewer, {
       limit,
-      offset,
+      cursor,
       unreadOnly,
     });
   }

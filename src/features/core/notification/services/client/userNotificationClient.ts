@@ -75,19 +75,21 @@ export async function getMyNotificationsCount(
 
 export type MyNotificationsPage = {
   items: MyNotification[];
-  total: number;
   hasMore: boolean;
+  /** 次ページ取得に渡す不透明カーソル。hasMore=false のとき null */
+  nextCursor: string | null;
 };
 
 type GetMyNotificationsPageParams = {
   limit?: number;
-  offset?: number;
+  /** 前ページの nextCursor。未指定で先頭から取得 */
+  cursor?: string | null;
   unreadOnly?: boolean;
 };
 
 /**
- * 自分宛通知の items + total + hasMore を 1 リクエストで取得する。
- * 無限スクロール / ページネーション UI の推奨パス。
+ * 自分宛通知を keyset ページネーションで取得する（無限スクロール推奨パス）。
+ * total は返さない（件数が必要なら getMyNotificationsCount を併用）。
  */
 export async function getMyNotificationsPage(
   params: GetMyNotificationsPageParams = {}
@@ -95,7 +97,7 @@ export async function getMyNotificationsPage(
   try {
     const searchParams = new URLSearchParams();
     if (params.limit != null) searchParams.set("limit", String(params.limit));
-    if (params.offset != null) searchParams.set("offset", String(params.offset));
+    if (params.cursor) searchParams.set("cursor", params.cursor);
     if (params.unreadOnly) searchParams.set("unreadOnly", "true");
 
     const query = searchParams.toString();
