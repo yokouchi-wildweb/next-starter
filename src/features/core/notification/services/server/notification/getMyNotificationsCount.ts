@@ -7,9 +7,10 @@ import { NotificationTable } from "@/features/core/notification/entities/drizzle
 import { NotificationReadTable } from "@/features/core/notification/entities/notificationRead";
 
 import {
-  buildMyNotificationsWhere,
+  buildVisibilityWhere,
   buildUnreadOnlyConditions,
 } from "./queryHelpers";
+import type { NotificationViewer } from "./viewer";
 
 type GetMyNotificationsCountOptions = {
   /** true: 未読のみカウント。false（デフォルト）: 該当ユーザーの全通知をカウント */
@@ -28,12 +29,12 @@ type GetMyNotificationsCountOptions = {
  * 件数のみが必要な場面で使用する。
  */
 export async function getMyNotificationsCount(
-  userId: string,
-  userRole: string,
+  viewer: NotificationViewer,
   options: GetMyNotificationsCountOptions = {}
 ): Promise<number> {
   const { unreadOnly = false } = options;
-  const whereCondition = buildMyNotificationsWhere(userId, userRole);
+  const { userId } = viewer;
+  const whereCondition = buildVisibilityWhere(viewer);
 
   if (!unreadOnly) {
     // JOIN 省略: 単純な COUNT(*) で済むため最も軽量

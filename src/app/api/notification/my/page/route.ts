@@ -6,6 +6,7 @@
 import { createApiRoute } from "@/lib/routeFactory";
 import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
+import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
 
 export const GET = createApiRoute(
   {
@@ -22,7 +23,8 @@ export const GET = createApiRoute(
     const offset = searchParams.get("offset") ? Number(searchParams.get("offset")) : undefined;
     const unreadOnly = searchParams.get("unreadOnly") === "true";
 
-    return notificationService.getMyNotificationsPage(session.userId, session.role, {
+    const viewer = notificationViewerFromSession(session);
+    return notificationService.getMyNotificationsPage(viewer, {
       limit,
       offset,
       unreadOnly,

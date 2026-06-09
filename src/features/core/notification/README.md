@@ -77,6 +77,36 @@ src/features/core/notification/
 
 複合PK: (notification_id, user_id)。レコードなし = 未読。
 
+## 可視性ルール（誰にどの通知が見えるか）
+
+ユーザー向け通知クエリ（`getMyNotifications` / `getMyNotificationsPage` / `getMyNotificationsCount` / `getUnreadCount` / `markAllAsRead`）が「閲覧者にどの通知が見えるか」を判定するルールは、**`queryHelpers.ts` の `buildVisibilityWhere(viewer)` 1箇所に集約**されている。配信レコードを持たず、読み取り時にこの WHERE 条件で対象者を動的に判定する設計（query-time fan-out）。
+
+現在のルール:
+
+- `published_at <= now()` — 公開済みのみ（予約投稿は時刻到来まで非表示）
+- `published_at >= 閲覧者の登録日時（user.created_at）` — **登録日以前の通知は閲覧不可**。新規ユーザーに過去の全体配信がすべて見えてしまう問題への対策（アクセス制御）。相関のないサブクエリで実装しているため PG では1回だけ評価される。`created_at` が NULL / ユーザー行が存在しない場合は比較結果が NULL となり全件除外＝**fail-closed**（安全側）
+- ターゲット一致 — `target_type = 'all'` OR ロール一致 OR userId 一致
+
+### 閲覧者コンテキスト（NotificationViewer）
+
+可視性判定に必要な閲覧者の情報は `services/server/notification/viewer.ts` の `NotificationViewer` 型に集約され、各クエリ関数はこのオブジェクトを受け取る。API ルートなどセッションがある文脈では `notificationViewerFromSession(session)` で生成する。
+
+```typescript
+import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
+
+const viewer = notificationViewerFromSession(session);
+const notifications = await notificationService.getMyNotifications(viewer, { unreadOnly: true });
+```
+
+### 可視性ルールの拡張方法
+
+ルールにユーザー属性を追加したい場合（例: 配信停止設定、セグメント）:
+
+1. `NotificationViewer` 型に属性を追加（eager に DB から取りたい値なら `notificationViewerFromSession` を resolver 化して取得）
+2. `buildVisibilityWhere()` に WHERE 句を1つ追加
+
+この2箇所だけで、全消費者（一覧 / ページ / 件数 / 既読化）へ一貫して反映される。呼び出し側のシグネチャは変わらない。
+
 ---
 
 ## サーバーサービス API
@@ -201,9 +231,9 @@ await notificationService.sendToUserSafe(userId, {
 ### getMyNotifications — ユーザー向け一覧取得（配列のみ）
 
 ```typescript
+const viewer = notificationViewerFromSession(session);
 const notifications = await notificationService.getMyNotifications(
-  userId,
-  userRole,
+  viewer,
   { limit: 20, offset: 0, unreadOnly: true }
 );
 ```
@@ -216,8 +246,7 @@ const notifications = await notificationService.getMyNotifications(
 
 ```typescript
 const { items, total, hasMore } = await notificationService.getMyNotificationsPage(
-  userId,
-  userRole,
+  viewer,
   { limit: 20, offset: 0, unreadOnly: false }
 );
 ```
@@ -231,10 +260,10 @@ const { items, total, hasMore } = await notificationService.getMyNotificationsPa
 
 ```typescript
 // 自分宛通知の全件数
-const total = await notificationService.getMyNotificationsCount(userId, userRole);
+const total = await notificationService.getMyNotificationsCount(viewer);
 
 // 未読のみ（getUnreadCount と同義）
-const unread = await notificationService.getMyNotificationsCount(userId, userRole, {
+const unread = await notificationService.getMyNotificationsCount(viewer, {
   unreadOnly: true,
 });
 ```
@@ -244,14 +273,14 @@ const unread = await notificationService.getMyNotificationsCount(userId, userRol
 `getMyNotificationsCount({ unreadOnly: true })` の薄いラッパ。互換のため残されている。
 
 ```typescript
-const count = await notificationService.getUnreadCount(userId, userRole);
+const count = await notificationService.getUnreadCount(viewer);
 ```
 
 ### markAsRead / markAllAsRead — 既読マーク
 
 ```typescript
 await notificationService.markAsRead(notificationId, userId);
-await notificationService.markAllAsRead(userId, userRole);
+await notificationService.markAllAsRead(viewer);
 ```
 
 ---

@@ -6,12 +6,11 @@ import { db } from "@/lib/drizzle";
 import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import { NotificationReadTable } from "@/features/core/notification/entities/notificationRead";
 
-import { buildMyNotificationsWhere } from "./queryHelpers";
+import { buildVisibilityWhere } from "./queryHelpers";
+import type { NotificationViewer } from "./viewer";
 
-export async function markAllAsRead(
-  userId: string,
-  userRole: string
-): Promise<void> {
+export async function markAllAsRead(viewer: NotificationViewer): Promise<void> {
+  const { userId } = viewer;
   // 自分宛の未読通知IDを取得して一括 insert
   const unreadNotifications = await db
     .select({
@@ -25,7 +24,7 @@ export async function markAllAsRead(
         sql`${NotificationReadTable.userId} = ${userId}`
       )
     )
-    .where(and(buildMyNotificationsWhere(userId, userRole), isNull(NotificationReadTable.readAt)));
+    .where(and(buildVisibilityWhere(viewer), isNull(NotificationReadTable.readAt)));
 
   if (unreadNotifications.length === 0) return;
 

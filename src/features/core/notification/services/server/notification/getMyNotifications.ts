@@ -7,9 +7,10 @@ import { NotificationTable } from "@/features/core/notification/entities/drizzle
 import { NotificationReadTable } from "@/features/core/notification/entities/notificationRead";
 
 import {
-  buildMyNotificationsWhere,
+  buildVisibilityWhere,
   buildUnreadOnlyConditions,
 } from "./queryHelpers";
+import type { NotificationViewer } from "./viewer";
 
 export type MyNotification = {
   id: string;
@@ -30,13 +31,13 @@ type GetMyNotificationsOptions = {
 };
 
 export async function getMyNotifications(
-  userId: string,
-  userRole: string,
+  viewer: NotificationViewer,
   options: GetMyNotificationsOptions = {}
 ): Promise<MyNotification[]> {
   const { limit = 50, offset = 0, unreadOnly = false } = options;
+  const { userId } = viewer;
 
-  const whereCondition = buildMyNotificationsWhere(userId, userRole);
+  const whereCondition = buildVisibilityWhere(viewer);
 
   const conditions = [whereCondition];
   if (unreadOnly) {

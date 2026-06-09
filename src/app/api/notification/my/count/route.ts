@@ -5,6 +5,7 @@
 import { createApiRoute } from "@/lib/routeFactory";
 import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
+import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
 
 export const GET = createApiRoute(
   {
@@ -19,11 +20,10 @@ export const GET = createApiRoute(
     const { searchParams } = new URL(req.url);
     const unreadOnly = searchParams.get("unreadOnly") === "true";
 
-    const count = await notificationService.getMyNotificationsCount(
-      session.userId,
-      session.role,
-      { unreadOnly }
-    );
+    const viewer = notificationViewerFromSession(session);
+    const count = await notificationService.getMyNotificationsCount(viewer, {
+      unreadOnly,
+    });
     return { count };
   }
 );

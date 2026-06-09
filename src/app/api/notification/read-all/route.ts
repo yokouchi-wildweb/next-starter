@@ -4,6 +4,7 @@
 import { createApiRoute } from "@/lib/routeFactory";
 import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
+import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
 
 export const POST = createApiRoute(
   {
@@ -15,7 +16,8 @@ export const POST = createApiRoute(
       throw new DomainError("認証が必要です。", { status: 401 });
     }
 
-    await notificationService.markAllAsRead(session.userId, session.role);
+    const viewer = notificationViewerFromSession(session);
+    await notificationService.markAllAsRead(viewer);
     return { success: true };
   }
 );

@@ -4,6 +4,7 @@
 import { createApiRoute } from "@/lib/routeFactory";
 import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
+import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
 
 export const GET = createApiRoute(
   {
@@ -15,7 +16,8 @@ export const GET = createApiRoute(
       throw new DomainError("認証が必要です。", { status: 401 });
     }
 
-    const count = await notificationService.getUnreadCount(session.userId, session.role);
+    const viewer = notificationViewerFromSession(session);
+    const count = await notificationService.getUnreadCount(viewer);
     return { count };
   }
 );
