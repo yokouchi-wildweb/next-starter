@@ -98,6 +98,7 @@ function parseAmountValue(value: string | undefined): number | undefined {
  */
 export class PayPalPaymentProvider implements PaymentProvider {
   readonly providerName = "paypal";
+  readonly launchType = "client_sdk" as const;
 
   private getConfig(): PayPalConfig {
     return getPayPalConfig();

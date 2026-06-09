@@ -23,10 +23,126 @@ import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
 import { getPaymentSessionEnricher } from "../payment/sessionEnricher";
-import { PURCHASE_TYPE_CONFIG } from "@/config/app/purchaseType.config";
+import { PURCHASE_TYPE_CONFIG, type PurchaseTypeKey } from "@/config/app/purchaseType.config";
 import { getPurchaseCompletionStrategy } from "../completion";
 import { findByIdempotencyKey, handleExistingRequest } from "./purchaseHelpers";
 import type { InitiatePurchaseParams, InitiatePurchaseResult } from "./purchaseService";
+
+// ============================================================================
+// セッション生成 + processing 永続化（共通ヘルパー）
+// ============================================================================
+
+/**
+ * 決済セッションを作成し、purchase_request を processing に更新して起動結果を返す。
+ *
+ * 以下の 2 経路から共有される:
+ *   1. 新規 / pending 再利用の通常フロー（initiatePurchase 本体の末尾）
+ *   2. client_sdk 型（PayPal / Paidy 等）の processing リクエストの再起動
+ *      （ユーザーが一度モーダルを閉じて再度購入ボタンを押したケース）
+ *
+ * createSession の呼び出しと、payment_session_id / redirect_url / provider_order_id の
+ * 永続化をここに集約する。再起動経路では新規作成・クーポン検証・クォータ予約は行わない
+ * （既に確定済みの purchase_request をそのまま再利用する）。
+ */
+async function buildLaunchForRequest(args: {
+  purchaseRequest: PurchaseRequest;
+  provider: ReturnType<typeof getPaymentProvider>;
+  paymentProvider: PaymentProviderName;
+  paymentMethod: string;
+  strategy: ReturnType<typeof getPurchaseCompletionStrategy>;
+  userId: string;
+  walletType: WalletType | null;
+  purchaseType: PurchaseTypeKey;
+  baseUrl: string;
+  itemName?: string;
+  providerOptions?: Record<string, unknown>;
+  successUrlOverride?: string;
+  cancelUrlOverride?: string;
+}): Promise<InitiatePurchaseResult> {
+  const {
+    purchaseRequest,
+    provider,
+    paymentProvider,
+    paymentMethod,
+    strategy,
+    userId,
+    walletType,
+    purchaseType,
+    baseUrl,
+    itemName,
+    providerOptions,
+    successUrlOverride,
+    cancelUrlOverride,
+  } = args;
+
+  // ユーザー情報を取得（決済ページで事前入力用）
+  const user = await userService.get(userId);
+  const buyerEmail = user?.email || undefined;
+  const buyerPhoneNumber = user?.phoneNumber
+    ? formatToE164(user.phoneNumber)
+    : undefined;
+
+  // コールバック URL 決定（3段階フォールバック）:
+  //   1. 呼び出し側の直接指定（最優先） 2. 戦略デフォルト 3. wallet-based デフォルト
+  const strategyUrls = strategy?.buildCallbackUrls?.({ purchaseRequest, baseUrl });
+  const slug = walletType ? getSlugByWalletType(walletType as WalletType) : "";
+  const defaultSuccessUrl = `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}`;
+  const defaultCancelUrl = `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}&reason=cancelled`;
+  const successUrl = successUrlOverride ?? strategyUrls?.successUrl ?? defaultSuccessUrl;
+  const cancelUrl = cancelUrlOverride ?? strategyUrls?.cancelUrl ?? defaultCancelUrl;
+
+  const baseSessionParams = {
+    purchaseRequestId: purchaseRequest.id,
+    // 既に discount 適用済みの payment_amount を使う（再起動時もこの値が真）。
+    amount: purchaseRequest.payment_amount,
+    userId,
+    paymentMethod,
+    successUrl,
+    cancelUrl,
+    metadata: itemName ? { itemName } : undefined,
+    buyerEmail,
+    buyerPhoneNumber,
+    providerOptions,
+    purchaseType,
+    walletType: walletType ?? null,
+    baseUrl,
+  };
+
+  // セッションエンリッチャー（登録されていればパラメータを拡張）
+  const sessionEnricher = getPaymentSessionEnricher();
+  const sessionParams = sessionEnricher
+    ? await sessionEnricher({ userId, walletType: walletType ?? null, baseParams: baseSessionParams })
+    : baseSessionParams;
+
+  const session = await provider.createSession(sessionParams);
+
+  // プロバイダ固有の識別子を保存。
+  // - Fincode: order_id = UUID のハイフン除去・30 文字切り詰め
+  // - inhouse: 振込氏名末尾用の 8 文字識別子
+  let providerOrderId: string | undefined;
+  if (paymentProvider === "fincode") {
+    providerOrderId = purchaseRequest.id.replace(/-/g, "").slice(0, 30);
+  } else if (paymentProvider === "inhouse") {
+    providerOrderId = generateInhouseTransferIdentifier(purchaseRequest.id);
+  }
+  // redirect_url カラムには redirect 型の URL のみ保存する。client_sdk 型は null。
+  const redirectUrlForDb =
+    session.instruction.type === "redirect" ? session.instruction.url : null;
+
+  const updated = await base.update(purchaseRequest.id, {
+    status: "processing",
+    payment_session_id: session.sessionId,
+    redirect_url: redirectUrlForDb,
+    ...(providerOrderId && { provider_order_id: providerOrderId }),
+  } as any) as PurchaseRequest;
+
+  return {
+    purchaseRequest: updated,
+    instruction: session.instruction,
+    successUrl,
+    cancelUrl,
+  };
+}
 
 // ============================================================================
 // 購入開始
@@ -91,8 +207,35 @@ export async function initiatePurchase(
   // 1. 冪等キーで既存リクエストをチェック
   const existing = await findByIdempotencyKey(idempotencyKey);
   if (existing) {
+    // client_sdk 型（PayPal / Paidy 等）の processing は「SDK の再起動」を許可する。
+    // これらは外部リダイレクト URL を持たないため、handleExistingRequest に流すと
+    // コールバック（決済結果確認）画面へ直行してしまい、モーダルが再展開されない。
+    // createSession をやり直して起動指示を返すことで、ユーザーがモーダルを閉じた後の
+    // 再押下でも決済をやり直せる（PayPal は PayPal-Request-Id により同一 Order を冪等再利用、
+    // Paidy は外部副作用なし）。
+    if (
+      existing.status === "processing" &&
+      existing.payment_provider === paymentProvider &&
+      provider.launchType === "client_sdk"
+    ) {
+      return buildLaunchForRequest({
+        purchaseRequest: existing,
+        provider,
+        paymentProvider,
+        paymentMethod,
+        strategy: getPurchaseCompletionStrategy(existing.purchase_type),
+        userId,
+        walletType: (existing.wallet_type as WalletType | null) ?? null,
+        purchaseType: existing.purchase_type as PurchaseTypeKey,
+        baseUrl,
+        itemName,
+        providerOptions,
+        successUrlOverride,
+        cancelUrlOverride,
+      });
+    }
     // pending の場合はクーポン情報を更新して決済セッション作成からやり直す
-    // processing 以降は既に決済プロバイダーにセッションがあるため既存フローで処理
+    // processing 以降（redirect 型）は既に決済プロバイダーにセッションがあるため既存フローで処理
     if (existing.status !== "pending") {
       return handleExistingRequest(existing);
     }
@@ -261,79 +404,21 @@ export async function initiatePurchase(
     });
   }
 
-  // 5. 決済プロバイダでセッション作成（provider は冒頭で取得済み）
-  // ユーザー情報を取得（決済ページで事前入力用）
-  const user = await userService.get(userId);
-  const buyerEmail = user?.email || undefined;
-  const buyerPhoneNumber = user?.phoneNumber
-    ? formatToE164(user.phoneNumber)
-    : undefined;
-
-  // コールバック URL 決定（3段階フォールバック）:
-  //   1. params.successUrl / cancelUrl  呼び出し側の直接指定（最優先）
-  //   2. strategy.buildCallbackUrls     戦略ごとの型レベルデフォルト
-  //   3. wallet-based デフォルト        `/api/wallet/purchase/callback` 互換（後方互換）
-  const strategyUrls = strategy.buildCallbackUrls?.({ purchaseRequest, baseUrl });
-  const slug = walletType ? getSlugByWalletType(walletType as WalletType) : "";
-  const defaultSuccessUrl = `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}`;
-  const defaultCancelUrl = `${baseUrl}/api/wallet/purchase/callback?request_id=${purchaseRequest.id}&wallet_type=${slug}&reason=cancelled`;
-  const successUrl = successUrlOverride ?? strategyUrls?.successUrl ?? defaultSuccessUrl;
-  const cancelUrl = cancelUrlOverride ?? strategyUrls?.cancelUrl ?? defaultCancelUrl;
-
-  const baseSessionParams = {
-    purchaseRequestId: purchaseRequest.id,
-    amount: actualPaymentAmount,
-    userId,
+  // 5-6. 決済セッション作成 + processing 永続化（共通ヘルパーに委譲）。
+  //      client_sdk 型 processing の再起動経路（冒頭）と同一のロジックを共有する。
+  return buildLaunchForRequest({
+    purchaseRequest,
+    provider,
+    paymentProvider,
     paymentMethod,
-    successUrl,
-    cancelUrl,
-    metadata: itemName ? { itemName } : undefined,
-    buyerEmail,
-    buyerPhoneNumber,
-    providerOptions,
-    // 自社プロバイダが自社内 URL を組み立てるために参照するコンテキスト。
-    // 外部リダイレクト型プロバイダ（Square / Fincode 等）は通常使用しない。
-    purchaseType,
+    strategy,
+    userId,
     walletType: walletType ?? null,
+    purchaseType,
     baseUrl,
-  };
-
-  // セッションエンリッチャー（登録されていればパラメータを拡張）
-  const sessionEnricher = getPaymentSessionEnricher();
-  const sessionParams = sessionEnricher
-    ? await sessionEnricher({ userId, walletType: walletType ?? null, baseParams: baseSessionParams })
-    : baseSessionParams;
-
-  const session = await provider.createSession(sessionParams);
-
-  // 6. セッション情報を記録（status: processing）
-  // プロバイダ固有の識別子を保存。
-  // - Fincode: order_id = UUID のハイフン除去・30 文字切り詰め
-  // - inhouse: 振込氏名末尾用の 8 文字識別子（generateInhouseTransferIdentifier）
-  // 将来プロバイダ別フックに移譲する余地あり（現状は config 駆動 + ここでの分岐で十分）。
-  let providerOrderId: string | undefined;
-  if (paymentProvider === "fincode") {
-    providerOrderId = purchaseRequest.id.replace(/-/g, "").slice(0, 30);
-  } else if (paymentProvider === "inhouse") {
-    providerOrderId = generateInhouseTransferIdentifier(purchaseRequest.id);
-  }
-  // redirect_url カラムには redirect 型の URL のみ保存する。
-  // client_sdk 型は外部 URL を持たないため null とし、再起動が必要なら別途設計する。
-  const redirectUrlForDb =
-    session.instruction.type === "redirect" ? session.instruction.url : null;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updated = await base.update(purchaseRequest.id, {
-    status: "processing",
-    payment_session_id: session.sessionId,
-    redirect_url: redirectUrlForDb,
-    ...(providerOrderId && { provider_order_id: providerOrderId }),
-  } as any) as PurchaseRequest;
-
-  return {
-    purchaseRequest: updated,
-    instruction: session.instruction,
-    successUrl,
-    cancelUrl,
-  };
+    itemName,
+    providerOptions,
+    successUrlOverride,
+    cancelUrlOverride,
+  });
 }
