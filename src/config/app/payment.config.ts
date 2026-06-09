@@ -156,6 +156,14 @@ export const paymentConfig = {
     paidy: {
       enabled: true,
     },
+    /**
+     * PayPal（直接連携）。
+     * client_sdk 起動方式（PayPal JS SDK ボタン）。createSession で Orders v2 の Order を
+     * サーバー作成し order_id を返す。単一メソッド ("paypal") のみ担当するため methodMapping は不要。
+     */
+    paypal: {
+      enabled: true,
+    },
   } as Record<string, ProviderConfig>,
 
   /**
@@ -200,6 +208,9 @@ export const paymentConfig = {
       // Paidy は HMAC 等の Webhook 署名検証機構を提供していないため null。
       // 偽 Webhook 対策は verifyWebhook 側で payment_id 経由の GET /payments/{id} 二重確認で行う。
       paidy: null,
+      // PayPal は verify-webhook-signature API による署名検証を持つ。
+      // verifyWebhookSignature がトランスミッション系ヘッダー + webhook_id + 生ペイロードで検証する。
+      paypal: "Paypal-Transmission-Sig",
     } as Record<string, string | null>,
   },
 
@@ -231,6 +242,14 @@ export const paymentConfig = {
       icon: "paidy",
       status: "available",
       provider: "paidy",
+    },
+    {
+      id: "paypal",
+      label: "PayPal",
+      description: "PayPal 残高・クレジットカード・銀行口座で支払い",
+      icon: "paypal",
+      status: "available",
+      provider: "paypal",
     },
     { id: "amazon_pay", label: "Amazon Pay", icon: "amazon", status: "disabled" },
   ] as PaymentMethodConfig[],

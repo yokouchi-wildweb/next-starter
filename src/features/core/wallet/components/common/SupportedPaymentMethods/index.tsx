@@ -37,6 +37,8 @@ const PAYMENT_ICON_MAP: Record<string, LucideIcon> = {
   amazon: ShoppingCart,
   // Paidy（あと払い）。Lucide に専用アイコンが無いため翌月払いを連想させる CalendarClock を使用。
   paidy: CalendarClock,
+  // PayPal。Lucide にブランドアイコンが無いため汎用のウォレットアイコンを使用。
+  paypal: Wallet,
 };
 
 function resolveIcon(iconId: string): LucideIcon {
