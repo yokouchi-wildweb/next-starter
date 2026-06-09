@@ -9,6 +9,7 @@
 "use client";
 
 import { paidySdkLauncher } from "./paidy";
+import { paypalSdkLauncher } from "./paypal";
 import type { SdkLauncher } from "./types";
 
 export type { SdkLauncher, SdkLaunchOutcome } from "./types";
@@ -18,6 +19,7 @@ export type { SdkLauncher, SdkLaunchOutcome } from "./types";
  */
 export const sdkLaunchers: Record<string, SdkLauncher> = {
   paidy: paidySdkLauncher,
+  paypal: paypalSdkLauncher,
 };
 
 /**
