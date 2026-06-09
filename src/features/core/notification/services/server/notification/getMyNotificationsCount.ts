@@ -6,10 +6,8 @@ import { db } from "@/lib/drizzle";
 import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import { NotificationReadTable } from "@/features/core/notification/entities/notificationRead";
 
-import {
-  buildVisibilityWhere,
-  buildUnreadOnlyConditions,
-} from "./queryHelpers";
+import { buildVisibilityWhere } from "./queryHelpers";
+import { readStateJoinOn, unreadConditions } from "./readState";
 import type { NotificationViewer } from "./viewer";
 
 type GetMyNotificationsCountOptions = {
@@ -33,7 +31,6 @@ export async function getMyNotificationsCount(
   options: GetMyNotificationsCountOptions = {}
 ): Promise<number> {
   const { unreadOnly = false } = options;
-  const { userId } = viewer;
   const whereCondition = buildVisibilityWhere(viewer);
 
   if (!unreadOnly) {
@@ -49,14 +46,8 @@ export async function getMyNotificationsCount(
   const [result] = await db
     .select({ count: sql<number>`COUNT(*)::int` })
     .from(NotificationTable)
-    .leftJoin(
-      NotificationReadTable,
-      and(
-        sql`${NotificationReadTable.notificationId} = ${NotificationTable.id}`,
-        sql`${NotificationReadTable.userId} = ${userId}`
-      )
-    )
-    .where(and(whereCondition, ...buildUnreadOnlyConditions()));
+    .leftJoin(NotificationReadTable, readStateJoinOn(viewer))
+    .where(and(whereCondition, ...unreadConditions()));
 
   return result?.count ?? 0;
 }

@@ -6,10 +6,12 @@ import { db } from "@/lib/drizzle";
 import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import { NotificationReadTable } from "@/features/core/notification/entities/notificationRead";
 
+import { buildVisibilityWhere } from "./queryHelpers";
 import {
-  buildVisibilityWhere,
-  buildUnreadOnlyConditions,
-} from "./queryHelpers";
+  readStateJoinOn,
+  effectiveReadAtExpr,
+  unreadConditions,
+} from "./readState";
 import type { NotificationViewer } from "./viewer";
 
 export type MyNotification = {
@@ -35,13 +37,10 @@ export async function getMyNotifications(
   options: GetMyNotificationsOptions = {}
 ): Promise<MyNotification[]> {
   const { limit = 50, offset = 0, unreadOnly = false } = options;
-  const { userId } = viewer;
 
-  const whereCondition = buildVisibilityWhere(viewer);
-
-  const conditions = [whereCondition];
+  const conditions = [buildVisibilityWhere(viewer)];
   if (unreadOnly) {
-    conditions.push(...buildUnreadOnlyConditions());
+    conditions.push(...unreadConditions());
   }
 
   const rows = await db
@@ -54,16 +53,10 @@ export async function getMyNotifications(
       metadata: NotificationTable.metadata,
       isSilent: NotificationTable.is_silent,
       publishedAt: NotificationTable.published_at,
-      readAt: sql<Date | null>`COALESCE(${NotificationReadTable.readAt}, CASE WHEN ${NotificationTable.is_silent} THEN ${NotificationTable.published_at} ELSE NULL END)`,
+      readAt: effectiveReadAtExpr(),
     })
     .from(NotificationTable)
-    .leftJoin(
-      NotificationReadTable,
-      and(
-        sql`${NotificationReadTable.notificationId} = ${NotificationTable.id}`,
-        sql`${NotificationReadTable.userId} = ${userId}`
-      )
-    )
+    .leftJoin(NotificationReadTable, readStateJoinOn(viewer))
     .where(and(...conditions))
     .orderBy(sql`${NotificationTable.published_at} DESC`)
     .limit(limit)
