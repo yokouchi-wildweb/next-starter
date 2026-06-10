@@ -59,13 +59,18 @@ type PaidyGlobal = {
 
 /**
  * Paidy の shipping_address 型。
- * Paidy 仕様上 shipping_address を送る場合は line1 と zip が必須。
+ *
+ * 注意: Paidy は line1=建物名・部屋番号 / line2=番地 で、Square 等とは line1/line2 が逆。
+ * 公式要件は「zip 必須 + 他1フィールド以上」。zip は NNN-NNNN 形式。
  */
 type PaidyShippingAddress = {
-  line1: string;
+  /** 建物名・部屋番号 */
+  line1?: string;
+  /** 番地 */
   line2?: string;
   city?: string;
   state?: string;
+  /** NNN-NNNN 形式 */
   zip: string;
   country?: string;
 };
@@ -168,20 +173,37 @@ function readBuyerAddress(raw: unknown): ConfigBuyerAddress | undefined {
 }
 
 /**
+ * 郵便番号を Paidy 仕様の NNN-NNNN 形式に整形する。
+ * ダウンストリームがハイフン無し 7 桁で保存しているケースがあるため、`/^\d{7}$/` に
+ * マッチする場合のみ NNN-NNNN に整形する（それ以外は加工せずそのまま）。
+ */
+function formatPaidyZip(postalCode: string): string {
+  return /^\d{7}$/.test(postalCode)
+    ? `${postalCode.slice(0, 3)}-${postalCode.slice(3)}`
+    : postalCode;
+}
+
+/**
  * ConfigBuyerAddress を Paidy の shipping_address に変換する。
- * Paidy 仕様で shipping_address を送る場合 line1 と zip が必須のため、両方が揃う時だけ付与する
- * （不完全な住所を送ると Paidy が 400 を返し決済全体が失敗するため）。
+ *
+ * - **line1/line2 は Square 等と逆**: Paidy は line1=建物名・部屋番号 / line2=番地。
+ *   よって addressLine2(建物名)→line1、addressLine1(番地)→line2 に交差マッピングする。
+ * - 付与条件: zip(postalCode) + 番地(addressLine1) が揃う時のみ（公式要件「zip 必須 + 他1
+ *   フィールド以上」を満たす。番地は line2 として常に入る）。不完全な住所を送ると Paidy が
+ *   400 を返し決済全体が失敗するため。
+ * - zip は NNN-NNNN 形式に整形する。
  */
 function toPaidyShippingAddress(
   addr: ConfigBuyerAddress | undefined,
 ): PaidyShippingAddress | undefined {
   if (!addr?.postalCode || !addr?.addressLine1) return undefined;
   return {
-    line1: addr.addressLine1,
-    ...(addr.addressLine2 && { line2: addr.addressLine2 }),
+    // Paidy: line1=建物名・部屋番号, line2=番地（Square 等とは逆）
+    ...(addr.addressLine2 && { line1: addr.addressLine2 }),
+    line2: addr.addressLine1,
     ...(addr.locality && { city: addr.locality }),
     ...(addr.administrativeArea && { state: addr.administrativeArea }),
-    zip: addr.postalCode,
+    zip: formatPaidyZip(addr.postalCode),
     country: addr.country || "JP",
   };
 }
