@@ -30,6 +30,7 @@ import {
   buildRedirectResumeResult,
 } from "./purchaseHelpers";
 import { resolveInitiation } from "./resolveInitiation";
+import { expireStaleClientSdkSessions } from "./expireStaleSessions";
 import type { InitiatePurchaseParams, InitiatePurchaseResult } from "./purchaseService";
 
 // ============================================================================
@@ -367,6 +368,11 @@ export async function initiatePurchase(
       return updated;
     });
   } else {
+    // 新規作成の前に、同一ユーザーの放置 client_sdk processing リクエストを expire する
+    // （orphan cleanup, best-effort）。intent 由来の冪等キーで方法/金額を切り替えると別 request が
+    // 作られ、古い PayPal/Paidy の processing が残るため、ここで掃除して capture 窓を閉じる。
+    await expireStaleClientSdkSessions(userId);
+
     // 新規作成
     const createData = {
       user_id: userId,
