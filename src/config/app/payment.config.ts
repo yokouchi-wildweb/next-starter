@@ -223,22 +223,13 @@ export const paymentConfig = {
    * - 同一の支払い方法 ID を複数プロバイダで担当することは禁止
    *   （1メソッド = 1プロバイダの原則）。
    */
+  // 表示順 = この配列順（getVisiblePaymentMethods が順序を保持）。並べ替えはここで行う。
   paymentMethods: [
-    { id: "credit_card", label: "クレジットカード", description: "VISA / Mastercard / JCB / AMEX / Diners", icon: "credit-card", status: "available", provider: "fincode" },
-    { id: "convenience_store", label: "コンビニ決済", description: "セブン-イレブン / ファミリーマート / ローソン", icon: "store", status: "available", provider: "fincode" },
-    // { id: "bank_transfer", label: "銀行振込（仮想口座）", description: "Fincode の仮想口座で受付", icon: "bank", status: "available", provider: "fincode" },
-    /**
-     * 自社受付の銀行振込。
-     * - 外部決済プロバイダを介さず、画面上に表示する自社の口座へ直接振り込んでもらう。
-     * - 振込完了はユーザーが画面から自己申告（POST /api/wallet/purchase/[id]/bank-transfer/confirm）。
-     * - fincode 仮想口座とは別メソッドとして並立。
-     */
-    { id: "bank_transfer_inhouse", label: "リアルタイム銀行振込", description: "手続き後に即時反映されます", icon: "bank", status: "available", provider: "inhouse" },
-    { id: "paypay", label: "PayPay", icon: "paypay", status: "coming_soon", provider: "fincode" },
     {
+      // Paidy 規約上、表記は「あと払い（ペイディ）」+ 指定の説明文に固定すること（変更不可）。
       id: "paidy",
-      label: "ペイディ",
-      description: "翌月にまとめてあと払い（3・6・12 回分割払いに対応）",
+      label: "あと払い（ペイディ）",
+      description: "クレジットカード登録不要、お支払いは翌月でOK",
       icon: "paidy",
       status: "available",
       provider: "paidy",
@@ -251,6 +242,17 @@ export const paymentConfig = {
       status: "available",
       provider: "paypal",
     },
+    /**
+     * 自社受付の銀行振込。
+     * - 外部決済プロバイダを介さず、画面上に表示する自社の口座へ直接振り込んでもらう。
+     * - 振込完了はユーザーが画面から自己申告（POST /api/wallet/purchase/[id]/bank-transfer/confirm）。
+     * - fincode 仮想口座とは別メソッドとして並立。
+     */
+    { id: "bank_transfer_inhouse", label: "リアルタイム銀行振込", description: "手続き後に即時反映されます", icon: "bank-realtime", status: "available", provider: "inhouse" },
+    { id: "credit_card", label: "クレジットカード", description: "VISA / Mastercard / JCB / AMEX / Diners", icon: "credit-card", status: "available", provider: "fincode" },
+    { id: "convenience_store", label: "コンビニ決済", description: "セブン-イレブン / ファミリーマート / ローソン", icon: "store", status: "available", provider: "fincode" },
+    // { id: "bank_transfer", label: "銀行振込（仮想口座）", description: "Fincode の仮想口座で受付", icon: "bank", status: "available", provider: "fincode" },
+    { id: "paypay", label: "PayPay", icon: "paypay", status: "coming_soon", provider: "fincode" },
     { id: "amazon_pay", label: "Amazon Pay", icon: "amazon", status: "disabled" },
   ] as PaymentMethodConfig[],
 } as const;
