@@ -4,14 +4,15 @@
 //
 // available: ラジオ的に選択可能（primary カラーで強調）
 // coming_soon: 非アクティブ表示（"準備中" バッジ付き、選択不可、warning 黄系）
-// blocked (props): 動的に「選択不可」状態を強制する（destructive 赤系）。
+// blocked (props): 動的に「選択不可」状態を強制する（info シアン系。進行中＝案内であり
+//                   エラーではないため、destructive 赤系ではなく info を用いる）。
 //                   進行中の自社銀行振込がある時に bank_transfer_inhouse をブロックする等の用途。
 
 "use client";
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarClock, Check, ChevronRight, CreditCard, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, CreditCard, Gauge, Landmark, ShoppingCart, Smartphone, Store, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Block } from "@/components/Layout/Block";
@@ -33,6 +34,8 @@ const PAYMENT_ICON_MAP: Record<string, LucideIcon> = {
   "credit-card": CreditCard,
   store: Store,
   bank: Landmark,
+  // リアルタイム銀行振込。即時反映（リアルタイム）性を伝えるためスピードメーターの Gauge を使用。
+  "bank-realtime": Gauge,
   paypay: Smartphone,
   amazon: ShoppingCart,
   // Paidy（あと払い）。Lucide に専用アイコンが無いため翌月払いを連想させる CalendarClock を使用。
@@ -60,7 +63,7 @@ function BlockedBadge({ label }: { label: string }) {
   return (
     <Span
       size="xs"
-      className="shrink-0 rounded-full bg-destructive/15 px-2 py-0.5 text-destructive"
+      className="shrink-0 rounded-full bg-info/15 px-2 py-0.5 text-info"
     >
       {label}
     </Span>
@@ -107,10 +110,10 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
   if (isBlockedClickable) {
     // 進行中セッションへの復帰リンクとして機能する。opacity を落とさず hover 効果を持たせる
     cardClasses =
-      "rounded-lg border-2 border-dashed border-destructive/40 bg-background transition-colors hover:bg-destructive/5";
+      "rounded-lg border-2 border-dashed border-info/40 bg-background transition-colors hover:bg-info/5";
   } else if (isBlocked) {
     cardClasses =
-      "rounded-lg border-2 border-dashed border-destructive/40 bg-background opacity-70";
+      "rounded-lg border-2 border-dashed border-info/40 bg-background opacity-70";
   } else if (isComingSoon) {
     cardClasses =
       "rounded-lg border-2 border-dashed border-warning/40 bg-background opacity-70";
@@ -126,7 +129,7 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
   let iconContainerClass: string;
   if (isBlocked) {
     iconContainerClass =
-      "shrink-0 rounded-xl bg-gradient-to-br from-destructive/30 via-destructive/15 to-destructive/5 shadow-sm ring-1 ring-inset ring-destructive/25";
+      "shrink-0 rounded-xl bg-gradient-to-br from-info/30 via-info/15 to-info/5 shadow-sm ring-1 ring-inset ring-info/25";
   } else if (isComingSoon) {
     iconContainerClass =
       "shrink-0 rounded-xl bg-gradient-to-br from-warning/30 via-warning/15 to-warning/5 shadow-sm ring-1 ring-inset ring-warning/25";
@@ -140,7 +143,7 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
 
   // アイコン色
   const iconColorClass = isBlocked
-    ? "text-destructive"
+    ? "text-info"
     : isComingSoon
       ? "text-warning"
       : isSelected
@@ -169,7 +172,7 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
           {method.label}
         </Span>
         {descriptionText && (
-          <Span size="xs" tone={isBlocked ? "destructive" : "muted"}>
+          <Span size="xs" tone={isBlocked ? "info" : "muted"}>
             {descriptionText}
           </Span>
         )}
@@ -179,7 +182,7 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
           <BlockedBadge label={blocked.badge ?? "進行中"} />
           {/* クリックで進行中セッションへ復帰できることを示すシェブロン */}
           {isBlockedClickable && (
-            <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-destructive/60" />
+            <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-info/60" />
           )}
         </Flex>
       ) : isComingSoon ? (
@@ -232,7 +235,7 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
 export type BlockedPaymentMethod = {
   /** 対象の payment method ID（payment.config.ts の paymentMethods[].id と一致） */
   id: string;
-  /** 右端に出す赤系バッジのラベル（省略時 "進行中"） */
+  /** 右端に出す info（シアン系）バッジのラベル（省略時 "進行中"） */
   badge?: string;
   /** 補足説明（method.description を上書き）。理由案内に使う */
   message?: string;
