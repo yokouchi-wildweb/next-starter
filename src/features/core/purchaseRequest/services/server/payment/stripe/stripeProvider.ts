@@ -78,6 +78,8 @@ type StripeApiErrorResponse = {
  */
 export class StripePaymentProvider implements PaymentProvider {
   readonly providerName = "stripe";
+  readonly launchType = "redirect" as const;
+  readonly correlationKey = "session_id" as const;
 
   private readonly apiBaseUrl = "https://api.stripe.com";
 

@@ -64,6 +64,17 @@ export function generateInhouseTransferIdentifier(purchaseRequestId: string): st
 
 class InhousePaymentProvider implements PaymentProvider {
   readonly providerName = INHOUSE_PROVIDER_NAME;
+  // 自社内の振込案内ページへ遷移する redirect 型。外部 Webhook は持たない。
+  readonly launchType = "redirect" as const;
+  readonly correlationKey = "session_id" as const;
+
+  /**
+   * 振込氏名の末尾に付与する 8 文字識別子を purchase_request.id から導出する。
+   * provider_order_id に保存し、振込明細との照合に使う。
+   */
+  deriveProviderOrderId(purchaseRequestId: string): string {
+    return generateInhouseTransferIdentifier(purchaseRequestId);
+  }
 
   /**
    * 「決済セッション作成」を自社内の振込案内ページへの遷移として表現する。

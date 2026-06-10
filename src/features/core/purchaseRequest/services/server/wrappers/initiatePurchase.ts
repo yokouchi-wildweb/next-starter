@@ -13,7 +13,6 @@ import {
   isPaymentMethodSelectable,
   resolveProviderForMethod,
 } from "@/config/app/payment.config";
-import { generateInhouseTransferIdentifier } from "../payment/inhouse";
 import { reserveQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 import { assertHoldingLimit } from "@/features/core/wallet/services/server/wrappers/checkHoldingLimit";
@@ -25,7 +24,13 @@ import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../.
 import { getPaymentSessionEnricher } from "../payment/sessionEnricher";
 import { PURCHASE_TYPE_CONFIG, type PurchaseTypeKey } from "@/config/app/purchaseType.config";
 import { getPurchaseCompletionStrategy } from "../completion";
-import { findByIdempotencyKey, handleExistingRequest } from "./purchaseHelpers";
+import {
+  findByIdempotencyKey,
+  buildCompletedResult,
+  buildRedirectResumeResult,
+} from "./purchaseHelpers";
+import { resolveInitiation } from "./resolveInitiation";
+import { expireStaleClientSdkSessions } from "./expireStaleSessions";
 import type { InitiatePurchaseParams, InitiatePurchaseResult } from "./purchaseService";
 
 // ============================================================================
@@ -47,7 +52,6 @@ import type { InitiatePurchaseParams, InitiatePurchaseResult } from "./purchaseS
 async function buildLaunchForRequest(args: {
   purchaseRequest: PurchaseRequest;
   provider: ReturnType<typeof getPaymentProvider>;
-  paymentProvider: PaymentProviderName;
   paymentMethod: string;
   strategy: ReturnType<typeof getPurchaseCompletionStrategy>;
   userId: string;
@@ -62,7 +66,6 @@ async function buildLaunchForRequest(args: {
   const {
     purchaseRequest,
     provider,
-    paymentProvider,
     paymentMethod,
     strategy,
     userId,
@@ -116,15 +119,9 @@ async function buildLaunchForRequest(args: {
 
   const session = await provider.createSession(sessionParams);
 
-  // プロバイダ固有の識別子を保存。
-  // - Fincode: order_id = UUID のハイフン除去・30 文字切り詰め
-  // - inhouse: 振込氏名末尾用の 8 文字識別子
-  let providerOrderId: string | undefined;
-  if (paymentProvider === "fincode") {
-    providerOrderId = purchaseRequest.id.replace(/-/g, "").slice(0, 30);
-  } else if (paymentProvider === "inhouse") {
-    providerOrderId = generateInhouseTransferIdentifier(purchaseRequest.id);
-  }
+  // プロバイダ固有の order 識別子を保存（provider 契約 deriveProviderOrderId に委譲）。
+  // Fincode（UUID 30 文字）/ inhouse（振込氏名識別子）等が実装し、未実装なら undefined。
+  const providerOrderId = provider.deriveProviderOrderId?.(purchaseRequest.id);
   // redirect_url カラムには redirect 型の URL のみ保存する。client_sdk 型は null。
   const redirectUrlForDb =
     session.instruction.type === "redirect" ? session.instruction.url : null;
@@ -204,48 +201,62 @@ export async function initiatePurchase(
   // getPaymentProvider は switch + return の軽量関数なので早期取得しても副作用なし。
   const provider = getPaymentProvider(paymentProvider);
 
-  // 1. 冪等キーで既存リクエストをチェック
-  const existing = await findByIdempotencyKey(idempotencyKey);
-  if (existing) {
-    // client_sdk 型（PayPal / Paidy 等）の processing は「SDK の再起動」を許可する。
-    // これらは外部リダイレクト URL を持たないため、handleExistingRequest に流すと
-    // コールバック（決済結果確認）画面へ直行してしまい、モーダルが再展開されない。
-    // createSession をやり直して起動指示を返すことで、ユーザーがモーダルを閉じた後の
-    // 再押下でも決済をやり直せる（PayPal は PayPal-Request-Id により同一 Order を冪等再利用、
-    // Paidy は外部副作用なし）。
-    if (
-      existing.status === "processing" &&
-      existing.payment_provider === paymentProvider &&
-      provider.launchType === "client_sdk"
-    ) {
-      return buildLaunchForRequest({
-        purchaseRequest: existing,
-        provider,
-        paymentProvider,
-        paymentMethod,
-        strategy: getPurchaseCompletionStrategy(existing.purchase_type),
-        userId,
-        walletType: (existing.wallet_type as WalletType | null) ?? null,
-        purchaseType: existing.purchase_type as PurchaseTypeKey,
-        baseUrl,
-        itemName,
-        providerOptions,
-        successUrlOverride,
-        cancelUrlOverride,
-      });
+  // 1. 冪等キー（user スコープ）で既存を引き、resolveInitiation で次のアクションを決定する。
+  //    findByIdempotencyKey は必ず user_id でスコープする（冪等キー予測による認可バイパスを防ぐ）。
+  const existing = await findByIdempotencyKey(idempotencyKey, userId);
+  const outcome = resolveInitiation({
+    existing,
+    intentProvider: paymentProvider,
+    launchType: provider.launchType,
+  });
+
+  // 2. outcome を dispatch。create / reuse-pending 以外はここで確定する。
+  if (outcome.kind === "conflict") {
+    if (outcome.reason === "provider-mismatch") {
+      // 別 provider で進行中（冪等キーが intent 依存なら通常起きないが防御的に弾く）。
+      throw new DomainError(
+        "別の支払い方法での購入が進行中です。完了またはキャンセル後に再度お試しください。",
+        { status: 409 },
+      );
     }
-    // pending の場合はクーポン情報を更新して決済セッション作成からやり直す
-    // processing 以降（redirect 型）は既に決済プロバイダーにセッションがあるため既存フローで処理
-    if (existing.status !== "pending") {
-      return handleExistingRequest(existing);
+    // terminal: 失敗 / 期限切れ。新しい intent（＝新しい冪等キー）での再開を促す。
+    throw new DomainError(
+      "この購入リクエストは既に失敗または期限切れです。新しい購入を開始してください。",
+      { status: 400 },
+    );
+  }
+  if (outcome.kind === "completed") {
+    return buildCompletedResult(outcome.request);
+  }
+  if (outcome.kind === "resume") {
+    // redirect 型: 保存済み redirect_url を再利用する（createSession は再実行しない）。
+    if (outcome.launchType === "redirect") {
+      return buildRedirectResumeResult(outcome.request);
     }
-    // pending → 以下のバリデーション・クーポン検証・セッション作成フローに合流
+    // client_sdk 型: createSession を再実行してモーダルを再展開する（provider 契約により冪等）。
+    return buildLaunchForRequest({
+      purchaseRequest: outcome.request,
+      provider,
+      paymentMethod,
+      strategy: getPurchaseCompletionStrategy(outcome.request.purchase_type),
+      userId,
+      walletType: (outcome.request.wallet_type as WalletType | null) ?? null,
+      purchaseType: outcome.request.purchase_type as PurchaseTypeKey,
+      baseUrl,
+      itemName,
+      providerOptions,
+      successUrlOverride,
+      cancelUrlOverride,
+    });
   }
 
-  // 1.5. プロバイダ固有の事前チェック（自社銀行振込の並行ブロックなど）
-  //      冪等キー pending 再利用ケースではスキップする（自分自身を並行扱いしないため）。
+  // ここに到達するのは create / reuse-pending のみ。
+  const reuseTarget = outcome.kind === "reuse-pending" ? outcome.request : null;
+
+  // 2.5. プロバイダ固有の事前チェック（自社銀行振込の並行ブロックなど）。
+  //      新規作成時のみ実行する（pending 再利用は自分自身なので並行扱いしない）。
   //      validateInitiation が「既存リクエストへ誘導」を返した場合は新規作成せず早期リターン。
-  if (!existing && provider.validateInitiation) {
+  if (!reuseTarget && provider.validateInitiation) {
     const guard = await provider.validateInitiation({
       userId,
       paymentMethod,
@@ -253,7 +264,7 @@ export async function initiatePurchase(
       walletType: walletType ?? null,
     });
     if (guard?.kind === "redirect") {
-      return handleExistingRequest(guard.existing);
+      return buildRedirectResumeResult(guard.existing);
     }
   }
 
@@ -276,6 +287,8 @@ export async function initiatePurchase(
       { status: 500 },
     );
   }
+  // create / reuse-pending の両方で必ず実行する。reuse-pending は payment_amount を更新するため、
+  // パッケージ照合（サーバー権威の金額検証）を再走させないと金額詐称の穴になる（セキュリティ要件）。
   await strategy.validateInitiation({ params });
 
   // 2.5. ウォレット保有上限チェック (CURRENCY_CONFIG.maxHoldingAmount が設定されている通貨のみ)。
@@ -321,10 +334,10 @@ export async function initiatePurchase(
   //    クォータ予約 (reserveQuota) を同一 tx で行うため、全ケースを tx で包む。
   //    PURCHASE_QUOTA_RULES が空ならクォータ予約は no-op で従来挙動と同一。
   let purchaseRequest: PurchaseRequest;
-  if (existing?.status === "pending") {
+  if (reuseTarget) {
     purchaseRequest = await db.transaction(async (tx) => {
       // 既存の pending リクエストのクーポン情報を更新して再利用
-      const updated = await base.update(existing.id, {
+      const updated = await base.update(reuseTarget.id, {
         payment_amount: actualPaymentAmount,
         metadata: metadata ?? null,
         ...(couponCode
@@ -355,6 +368,11 @@ export async function initiatePurchase(
       return updated;
     });
   } else {
+    // 新規作成の前に、同一ユーザーの放置 client_sdk processing リクエストを expire する
+    // （orphan cleanup, best-effort）。intent 由来の冪等キーで方法/金額を切り替えると別 request が
+    // 作られ、古い PayPal/Paidy の processing が残るため、ここで掃除して capture 窓を閉じる。
+    await expireStaleClientSdkSessions(userId);
+
     // 新規作成
     const createData = {
       user_id: userId,
@@ -405,11 +423,10 @@ export async function initiatePurchase(
   }
 
   // 5-6. 決済セッション作成 + processing 永続化（共通ヘルパーに委譲）。
-  //      client_sdk 型 processing の再起動経路（冒頭）と同一のロジックを共有する。
+  //      client_sdk 型 processing の再起動経路（resolveInitiation の resume）と同一ロジックを共有する。
   return buildLaunchForRequest({
     purchaseRequest,
     provider,
-    paymentProvider,
     paymentMethod,
     strategy,
     userId,

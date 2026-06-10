@@ -7,7 +7,6 @@ import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/d
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
 import { releaseQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
-import { DomainError } from "@/lib/errors/domainError";
 import type { PaymentProviderName } from "../payment";
 import { getPurchaseCompletionStrategy, getRegisteredPurchaseTypes } from "../completion";
 import type { InitiatePurchaseResult } from "./purchaseService";
@@ -17,15 +16,25 @@ import type { InitiatePurchaseResult } from "./purchaseService";
 // ============================================================================
 
 /**
- * 冪等キーで購入リクエストを検索
+ * 冪等キーで購入リクエストを検索（**必ず user_id でスコープする**）。
+ *
+ * セキュリティ: 冪等キーが intent 由来（決定論的）になると予測可能になり得るため、
+ * user_id を AND しないと他人の purchase_request を冪等ヒットさせて掴む認可バイパスの芽になる。
+ * idempotency_key は unique だが、検索は必ず本人スコープに限定する。
  */
 export async function findByIdempotencyKey(
-  idempotencyKey: string
+  idempotencyKey: string,
+  userId: string,
 ): Promise<PurchaseRequest | null> {
   const results = await db
     .select()
     .from(PurchaseRequestTable)
-    .where(eq(PurchaseRequestTable.idempotency_key, idempotencyKey))
+    .where(
+      and(
+        eq(PurchaseRequestTable.idempotency_key, idempotencyKey),
+        eq(PurchaseRequestTable.user_id, userId),
+      ),
+    )
     .limit(1);
 
   return (results[0] as PurchaseRequest) ?? null;
@@ -154,79 +163,70 @@ export async function findByWebhookIdentifier(
 }
 
 // ============================================================================
-// 既存リクエストの処理
+// 既存リクエスト → レスポンス構築（resolveInitiation の outcome から呼ばれる）
 // ============================================================================
+//
+// handleExistingRequest（旧: status を内部 switch する一枚岩）は廃止。状態判定は
+// resolveInitiation（純粋リゾルバ）に集約し、ここは「completed の完了画面誘導」と
+// 「redirect 型の processing 再開（保存済み redirect_url 再利用）」のレスポンス構築だけを担う。
 
 /**
- * 既存リクエストの処理
- * ステータスに応じて適切なレスポンスを返す
+ * wallet_type から slug を解決する（wallet_topup 以外は null）。
+ * 完了/コールバック URL のフォールバック生成に使う。
  */
-export function handleExistingRequest(
-  existing: PurchaseRequest
+function slugOf(existing: PurchaseRequest): string | null {
+  return existing.wallet_type
+    ? getSlugByWalletType(existing.wallet_type as WalletType)
+    : null;
+}
+
+/**
+ * 完了済み purchase_request を完了画面へ誘導するレスポンスを構築する。
+ * resolveInitiation の `completed` outcome から呼ばれる。
+ *
+ * wallet_topup 以外（wallet_type=null）は slug ベースの URL を持たないため、保存済み
+ * redirect_url があればそれを、なければ空文字を返す（下流が独自の完了ページを redirect_url に入れる運用）。
+ */
+export function buildCompletedResult(
+  existing: PurchaseRequest,
 ): InitiatePurchaseResult {
-  // wallet_topup 以外（wallet_type が null）では slug ベースの URL フォールバックを持たない。
-  // その場合 redirect_url がレコードに保存されていればそれを使い、なければ空文字列を返す。
-  // 下流は direct_sale 等で自前のコールバック/完了ページを redirect_url に入れる運用にすること。
-  const slug = existing.wallet_type ? getSlugByWalletType(existing.wallet_type as WalletType) : null;
+  const slug = slugOf(existing);
+  const url = slug
+    ? `/wallet/${slug}/purchase/complete?request_id=${existing.id}`
+    : (existing.redirect_url ?? "");
+  return {
+    purchaseRequest: existing,
+    instruction: { type: "redirect", url },
+    successUrl: url,
+    cancelUrl: url,
+    alreadyCompleted: true,
+  };
+}
 
-  // 既存リクエストへの戻り先は常に「URL リダイレクト」で表現する。
-  // client_sdk 型で再起動する経路は今後の課題（redirect_url が null のケース）。
-  // successUrl / cancelUrl は handleExistingRequest 経路では新規取得しないため、
-  // instruction.url を兼用する（クライアントは結局その URL に遷移するだけのため）。
-  const buildUrlFor = (fallbackPath: string) =>
-    slug ? `/wallet/${slug}/${fallbackPath}` : (existing.redirect_url ?? "");
-
-  switch (existing.status) {
-    case "completed": {
-      const url = slug
-        ? `/wallet/${slug}/purchase/complete?request_id=${existing.id}`
-        : (existing.redirect_url ?? "");
-      return {
-        purchaseRequest: existing,
-        instruction: { type: "redirect", url },
-        successUrl: url,
-        cancelUrl: url,
-        alreadyCompleted: true,
-      };
-    }
-
-    case "processing": {
-      const url =
-        existing.redirect_url ??
-        buildUrlFor(`purchase/callback?request_id=${existing.id}`);
-      return {
-        purchaseRequest: existing,
-        instruction: { type: "redirect", url },
-        successUrl: url,
-        cancelUrl: url,
-        alreadyProcessing: true,
-      };
-    }
-
-    case "pending": {
-      const url =
-        existing.redirect_url ??
-        buildUrlFor(`purchase/failed?request_id=${existing.id}&reason=invalid_state`);
-      return {
-        purchaseRequest: existing,
-        instruction: { type: "redirect", url },
-        successUrl: url,
-        cancelUrl: url,
-        alreadyProcessing: true,
-      };
-    }
-
-    case "failed":
-    case "expired":
-      // 失敗/期限切れの場合はエラー
-      throw new DomainError(
-        "この購入リクエストは既に失敗または期限切れです。新しい購入を開始してください。",
-        { status: 400 }
-      );
-
-    default:
-      throw new DomainError("不明なステータスです", { status: 500 });
-  }
+/**
+ * redirect 型 provider の processing 既存を、保存済み redirect_url（無ければコールバック画面）
+ * へ戻すレスポンスを構築する。
+ *
+ * 呼び出し元:
+ * - resolveInitiation の `resume` outcome のうち launchType==="redirect" のケース
+ * - inhouse の validateInitiation guard（進行中の振込案内ページへ復帰）
+ *
+ * client_sdk 型は redirect_url を持たず resume 時は createSession 再実行（別経路）になるため、
+ * この関数には到達しない。
+ */
+export function buildRedirectResumeResult(
+  existing: PurchaseRequest,
+): InitiatePurchaseResult {
+  const slug = slugOf(existing);
+  const fallback = slug ? `/wallet/${slug}/purchase/callback?request_id=${existing.id}` : "";
+  const url = existing.redirect_url ?? fallback;
+  return {
+    purchaseRequest: existing,
+    instruction: { type: "redirect", url },
+    successUrl: url,
+    cancelUrl: url,
+    alreadyProcessing: true,
+  };
 }
 
 // ============================================================================

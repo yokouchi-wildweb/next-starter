@@ -15,6 +15,8 @@ import type {
  */
 export class DummyPaymentProvider implements PaymentProvider {
   readonly providerName = "dummy";
+  readonly launchType = "redirect" as const;
+  readonly correlationKey = "session_id" as const;
 
   /**
    * ダミー決済セッションを作成
