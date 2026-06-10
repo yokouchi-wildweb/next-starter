@@ -31,7 +31,7 @@ const columns: DataTableColumn<Coupon>[] = buildDomainColumns<Coupon>({
     render: (d: Coupon) => (
       <TableCellAction>
         <EditButton domain="coupon" id={d.id} />
-        <DuplicateButton domain="coupon" id={d.id} />
+        <DuplicateButton domain="coupon" id={d.id} currentName={d.name} />
         <DeleteButton domain="coupon" id={d.id} />
       </TableCellAction>
     ),

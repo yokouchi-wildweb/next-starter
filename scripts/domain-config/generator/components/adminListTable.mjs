@@ -9,10 +9,22 @@ function replaceDuplicatePlaceholders(content, config) {
   const useDuplicate = config?.useDuplicateButton ?? false;
 
   if (useDuplicate) {
+    // string 型の name フィールドを持つドメインでは、複製確認時に名前を編集できるよう
+    // currentName を渡す（name が無いドメインで d.name を参照すると型エラーになるため条件付き）
+    const nameField = (config?.fields ?? []).find(
+      (f) => f.name === "name" && f.fieldType === "string",
+    );
+    // 非必須の name は string | null になるため undefined に変換して渡す
+    const currentNameAttr = nameField
+      ? nameField.required
+        ? " currentName={d.name}"
+        : " currentName={d.name ?? undefined}"
+      : "";
+
     // DuplicateButtonを含むimport文に変更
     const duplicateImport = `import { EditButton, DuplicateButton, DeleteButton } from "@/lib/crud";\n`;
     // DuplicateButtonコンポーネント
-    const duplicateButton = `<DuplicateButton domain="__domain__" id={d.id} />\n        `;
+    const duplicateButton = `<DuplicateButton domain="__domain__" id={d.id}${currentNameAttr} />\n        `;
 
     return content
       .replace(/import { EditButton, DeleteButton } from "@\/lib\/crud";\n__DUPLICATE_IMPORT__/g, duplicateImport)
