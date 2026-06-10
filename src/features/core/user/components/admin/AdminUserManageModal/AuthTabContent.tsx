@@ -158,6 +158,15 @@ function PasswordSection({ user, onSuccess }: SectionProps) {
         <Button
           type="button"
           size="sm"
+          variant="outline"
+          onClick={() => setPassword("")}
+          disabled={password === "" || isMutating}
+        >
+          リセット
+        </Button>
+        <Button
+          type="button"
+          size="sm"
           onClick={handleSave}
           disabled={!isValid || isMutating}
         >
