@@ -72,11 +72,12 @@ type SectionProps = {
 // --- EmailSection ---
 
 function EmailSection({ user, onSuccess }: SectionProps) {
-  const [email, setEmail] = useState(user.email ?? "");
+  const initialEmail = user.email ?? "";
+  const [email, setEmail] = useState(initialEmail);
   const { trigger, isMutating } = useUpdateUser();
   const { showToast } = useToast();
 
-  const hasChanged = email.trim() !== (user.email ?? "");
+  const hasChanged = email.trim() !== initialEmail;
 
   const handleSave = async () => {
     try {
@@ -96,10 +97,20 @@ function EmailSection({ user, onSuccess }: SectionProps) {
           <Input
             value={email}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            onClear={() => setEmail("")}
             type="email"
             placeholder="example@mail.com"
           />
         </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setEmail(initialEmail)}
+          disabled={email === initialEmail || isMutating}
+        >
+          リセット
+        </Button>
         <Button
           type="button"
           size="sm"
@@ -194,10 +205,20 @@ function PhoneSection({ user, onSuccess }: SectionProps) {
           <Input
             value={phoneNumber}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)}
+            onClear={() => setPhoneNumber("")}
             type="tel"
             placeholder="09012345678"
           />
         </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setPhoneNumber(displayValue)}
+          disabled={phoneNumber === displayValue || isMutating}
+        >
+          リセット
+        </Button>
         <Button
           type="button"
           size="sm"
