@@ -181,12 +181,45 @@ export type InitiationGuardContext = {
  *
  * - undefined を返した場合は通常通り新規 purchase_request の作成に進む。
  * - { kind: "redirect", existing } を返した場合、initiatePurchase は新規作成せず、
- *   その既存リクエストを handleExistingRequest 相当のレスポンスとしてクライアントに返す。
+ *   その既存リクエストを buildRedirectResumeResult で「進行中の案内ページへ復帰」させて返す。
  *   （自社銀行振込の「同一ユーザーで未完了の振込が既にある場合は新規作成せず既存案内ページへ」用途）
  */
 export type InitiationGuardResult =
   | { kind: "redirect"; existing: PurchaseRequest }
   | undefined;
+
+/**
+ * 起動方式。
+ * - "redirect":   外部 URL へ遷移する型（Stripe / Fincode / Square / inhouse / dummy）
+ * - "client_sdk": クライアント SDK をページ内で起動する型（Paidy / PayPal）
+ *
+ * resolveInitiation の網羅判定の軸であり、PaymentProvider.launchType として宣言される。
+ */
+export type LaunchType = "redirect" | "client_sdk";
+
+/**
+ * 購入開始リゾルバ resolveInitiation の戻り値（純粋な「次に何をすべきか」の分類）。
+ *
+ * 設計方針:
+ * - instruction / URL を持たせない（分類のみ）。Launch 生成は後段の buildLaunchForRequest に
+ *   一本化する。
+ * - 競合は throw せず conflict として値で返し、境界（initiatePurchase）で DomainError 化する
+ *   （決定とエラー表現の分離）。
+ *
+ * 分類:
+ * - create:        新規 purchase_request を作成して起動
+ * - reuse-pending: pending の既存を更新（金額・クーポン再検証）して再セッション
+ * - resume:        processing の既存を再起動。launchType により URL 再利用（redirect）or
+ *                  createSession 再実行（client_sdk）に分岐する
+ * - completed:     既に完了済み → 完了画面へ誘導
+ * - conflict:      競合。provider-mismatch（別 provider で進行中）/ terminal（失敗・期限切れ）
+ */
+export type InitiationOutcome =
+  | { kind: "create" }
+  | { kind: "reuse-pending"; request: PurchaseRequest }
+  | { kind: "resume"; request: PurchaseRequest; launchType: LaunchType }
+  | { kind: "completed"; request: PurchaseRequest }
+  | { kind: "conflict"; request: PurchaseRequest; reason: "provider-mismatch" | "terminal" };
 
 /**
  * 決済ステータス照会結果（ポーリング用）
@@ -219,19 +252,39 @@ export interface PaymentProvider {
   readonly providerName: string;
 
   /**
-   * 起動方式。
-   * - "redirect":   外部 URL へリダイレクトする型（Stripe / Fincode / Square / inhouse）。
-   * - "client_sdk": クライアント SDK をページ内で起動する型（Paidy / PayPal）。
-   *
-   * 主に「同一 processing リクエストの再起動可否」の判定に使う。client_sdk 型は外部
-   * リダイレクト URL を持たないため、ユーザーが一度モーダルを閉じても、processing 状態の
-   * まま createSession をやり直して SDK を再起動できる（initiatePurchase が参照する）。
-   * 省略時は "redirect" 扱い（後方互換）。
+   * 起動方式（必須）。resolveInitiation が「同一 processing リクエストをどう再起動するか」を
+   * 判定する網羅軸。client_sdk 型は外部リダイレクト URL を持たないため、ユーザーがモーダルを
+   * 閉じても processing のまま createSession をやり直して SDK を再起動する。redirect 型は
+   * 保存済みの redirect_url を再利用する。全 provider が明示すること（網羅性を型で保証するため）。
    */
-  readonly launchType?: "redirect" | "client_sdk";
+  readonly launchType: LaunchType;
+
+  /**
+   * Webhook / ステータス照会で purchase_request を逆引きする際の照合キーの種別（必須）。
+   * - "session_id": payment_session_id（createSession が返す sessionId）で照合（多数派の既定）
+   * - "order_id":   provider_order_id（deriveProviderOrderId で生成した値）で照合（Fincode 等）
+   *
+   * getPurchaseStatusForUser が照会用識別子を選ぶ際に参照する（provider 名の直書き分岐を排除）。
+   */
+  readonly correlationKey: "session_id" | "order_id";
+
+  /**
+   * purchase_request.id から provider 固有の order_id を導出する（任意）。
+   * Fincode（UUID のハイフン除去・30 文字切り詰め）や inhouse（振込氏名識別子）等、
+   * provider が独自の order 識別子を必要とする場合に実装する。
+   * 未実装なら provider_order_id は設定されない。
+   */
+  deriveProviderOrderId?(purchaseRequestId: string): string | undefined;
 
   /**
    * 決済セッションを作成
+   *
+   * **冪等性の契約（重要）**: 同一 purchaseRequestId に対する createSession の再呼び出しは
+   * 冪等でなければならない。resolveInitiation の resume（client_sdk 型）がモーダル再展開のため
+   * createSession を再実行するため、外部に副作用を持つ provider は idempotency key を用いて
+   * 同一セッション/Order を再利用すること（例: PayPal は PayPal-Request-Id=order_${id}）。
+   * 副作用を持たない provider（Paidy 等、SDK がクライアント側で決済を生成）は自然に冪等。
+   *
    * @param params セッション作成パラメータ
    * @returns 決済セッション情報（LaunchInstruction を含む）
    */

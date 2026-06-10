@@ -204,14 +204,14 @@ export async function getPurchaseStatusForUser(
         return request;
       }
 
-      // プロバイダ別に API 照会用の識別子を選択する。
-      // - Fincode: provider_order_id（`GET /v1/payments/Card/{order_id}` の id 部分）
-      // - Square 等: payment_session_id（既存の挙動）
+      // API 照会用の識別子を provider 契約（correlationKey）で選択する。
+      // - "order_id"  : provider_order_id（Fincode の `GET /v1/payments/Card/{order_id}` の id 部分）
+      // - "session_id": payment_session_id（多数派の既定）
       //
       // この識別子は findByWebhookIdentifier の照合キーとしてもそのまま使われるため、
       // completePurchase / failPurchase の sessionId にも同じ値を渡す必要がある。
       const identifier =
-        providerName === "fincode"
+        provider.correlationKey === "order_id"
           ? request.provider_order_id
           : request.payment_session_id;
       if (!identifier) {

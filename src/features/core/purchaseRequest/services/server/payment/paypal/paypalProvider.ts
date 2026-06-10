@@ -218,6 +218,8 @@ function buildPayer(
 export class PayPalPaymentProvider implements PaymentProvider {
   readonly providerName = "paypal";
   readonly launchType = "client_sdk" as const;
+  // order_id を createSession 時点で payment_session_id に保存するため session_id 照合。
+  readonly correlationKey = "session_id" as const;
 
   private getConfig(): PayPalConfig {
     return getPayPalConfig();

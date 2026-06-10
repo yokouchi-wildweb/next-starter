@@ -53,9 +53,15 @@ export function useCoinPurchase({
   const [error, setError] = useState<string | null>(null);
   const lockRef = useRef(false);
 
-  // 冪等キーはコンポーネントのマウント時に1回だけ生成
-  // 同一ページ上での二重クリックやクーポン変更後の再試行で同じキーを使い回す
-  const idempotencyKey = useMemo(() => uuidv4(), []);
+  // 冪等キーは「購入 intent（支払い方法・ウォレット・金額）」が変わるたびに発番し直す。
+  // - 同一 intent での二重クリック/再レンダーでは同じキー（メモ化）＝二重送信防止。
+  // - 支払い方法や金額を切り替えると別キー＝別 purchase_request になり、別 provider の
+  //   processing を掴む不具合（モーダルを閉じて別方法を選ぶと結果画面へ直行）を構造的に防ぐ。
+  // - クーポン変更ではキーを変えない（pending を再利用して金額更新するため deps に含めない）。
+  // idempotency_key カラムが uuid 型のため intent を直接キーに焼き込めず、deps 変化をトリガに
+  // uuidv4 を再生成する（uuid のランダム性が冪等キーの予測不能性も担保する）。
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- deps は再生成トリガで callback では未参照
+  const idempotencyKey = useMemo(() => uuidv4(), [paymentMethod, walletType, amount, paymentAmount]);
 
   const purchase = useCallback(
     async () => {

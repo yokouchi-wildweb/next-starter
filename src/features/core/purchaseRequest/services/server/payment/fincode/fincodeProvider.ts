@@ -81,6 +81,17 @@ type FincodeSessionStatusResponse = {
  */
 export class FincodePaymentProvider implements PaymentProvider {
   readonly providerName = "fincode";
+  readonly launchType = "redirect" as const;
+  // Fincode は order_id（provider_order_id）で照合する（GET /v1/payments/Card/{order_id}）。
+  readonly correlationKey = "order_id" as const;
+
+  /**
+   * Fincode の order_id を purchase_request.id から導出する。
+   * UUID のハイフンを除去し 30 文字に切り詰める（Fincode の order_id 制約に合わせる）。
+   */
+  deriveProviderOrderId(purchaseRequestId: string): string {
+    return purchaseRequestId.replace(/-/g, "").slice(0, 30);
+  }
 
   private getConfig(): FincodeConfig {
     const apiUrl = process.env.FINCODE_API_URL;

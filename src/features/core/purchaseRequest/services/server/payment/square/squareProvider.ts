@@ -143,6 +143,8 @@ type SquarePayment = {
  */
 export class SquarePaymentProvider implements PaymentProvider {
   readonly providerName = "square";
+  readonly launchType = "redirect" as const;
+  readonly correlationKey = "session_id" as const;
 
   private getConfig(): SquareConfig {
     const accessToken = process.env.SQUARE_ACCESS_TOKEN;

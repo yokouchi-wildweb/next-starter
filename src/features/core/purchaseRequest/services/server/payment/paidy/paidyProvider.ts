@@ -85,6 +85,8 @@ type PaidyWebhookPayload = {
 export class PaidyPaymentProvider implements PaymentProvider {
   readonly providerName = "paidy";
   readonly launchType = "client_sdk" as const;
+  // 確定 API が payment_session_id に Paidy の pay_id を保存し、それで照合する。
+  readonly correlationKey = "session_id" as const;
 
   private readonly apiBaseUrl = "https://api.paidy.com";
 
