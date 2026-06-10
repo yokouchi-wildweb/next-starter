@@ -211,6 +211,18 @@ export type BulkUpdateResult<T> = {
   notFoundIds: string[];
 };
 
+/**
+ * duplicate のオプション。
+ */
+export type DuplicateOptions = {
+  /**
+   * 複製後レコードの name。
+   * 未指定時は複製元の name に「_コピー」を付与する（従来動作）。
+   * 複製元に string 型の name フィールドがない場合は無視される。
+   */
+  name?: string;
+};
+
 export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   getAll(options?: WithOptions): Promise<T[]>;
   getById(id: string, options?: WithOptions): Promise<T>;
@@ -224,7 +236,7 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   bulkUpsert?(records: CreateData[], options?: BulkUpsertOptions<CreateData>): Promise<BulkUpsertResult<T>>;
   bulkUpdate?(records: BulkUpdateRecord<UpdateData>[]): Promise<BulkUpdateResult<T>>;
   bulkUpdateByIds?(ids: string[], data: UpdateData): Promise<{ count: number }>;
-  duplicate?(id: string): Promise<T>;
+  duplicate?(id: string, options?: DuplicateOptions): Promise<T>;
   // ソフトデリート用メソッド
   restore?(id: string): Promise<T>;
   hardDelete?(id: string): Promise<void>;

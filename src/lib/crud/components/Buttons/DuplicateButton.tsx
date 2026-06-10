@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Copy, type LucideIcon } from "lucide-react";
 
 import { Button, type ButtonStyleProps } from "@/components/Form/Button/Button";
-import { ConfirmPopover } from "@/components/Overlays/Popover";
+import { ConfirmPopover, PromptPopover } from "@/components/Overlays/Popover";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import { getDomainConfig } from "@/lib/domain";
@@ -38,8 +38,14 @@ export type DuplicateButtonProps = ButtonStyleProps & {
   successMessage?: string;
   /** エラー時のトーストメッセージ @default "複製に失敗しました" */
   errorMessage?: string;
-  /** 複製成功時のコールバック */
-  onSuccess?: () => void;
+  /**
+   * 複製元レコードの name。
+   * 指定すると確認ポップオーバーで複製後の名前を編集できる（初期値は「複製元の名前_コピー」）。
+   * showConfirm=false の場合は無視される。
+   */
+  currentName?: string;
+  /** 複製成功時のコールバック（作成されたレコードを受け取る） */
+  onSuccess?: (created: Record<string, unknown>) => void;
   /** ボタンを無効化するかどうか @default false */
   disabled?: boolean;
 };
@@ -57,6 +63,7 @@ export function DuplicateButton({
   toastMessage = "複製を実行中です…",
   successMessage = "複製が完了しました。",
   errorMessage = "複製に失敗しました",
+  currentName,
   onSuccess,
   disabled = false,
   size = "sm",
@@ -74,13 +81,13 @@ export function DuplicateButton({
   const router = useRouter();
   const { showToast } = useToast();
 
-  const handleDuplicate = async () => {
+  const handleDuplicate = async (name?: string) => {
     showToast({ message: toastMessage, mode: "persistent" });
     try {
-      await trigger(id);
+      const created = await trigger(id, name !== undefined ? { name } : undefined);
       showToast(successMessage, "success");
       router.refresh();
-      onSuccess?.();
+      onSuccess?.(created as Record<string, unknown>);
     } catch (error) {
       showToast(err(error, errorMessage), "error");
     }
@@ -94,7 +101,7 @@ export function DuplicateButton({
       size={size}
       variant={variant}
       disabled={disabled || isMutating}
-      onClick={showConfirm ? undefined : handleDuplicate}
+      onClick={showConfirm ? undefined : () => handleDuplicate()}
     >
       <Icon className="h-4 w-4" />
       {isMutating ? loadingLabel : label}
@@ -105,6 +112,26 @@ export function DuplicateButton({
     return button;
   }
 
+  if (currentName !== undefined) {
+    return (
+      <PromptPopover
+        trigger={button}
+        title={resolvedTitle}
+        description={description}
+        defaultValue={`${currentName}_コピー`}
+        confirmLabel={confirmLabel}
+        confirmVariant="secondary"
+        validation={(value) => {
+          const trimmed = value.trim();
+          if (trimmed.length === 0) return "名前を入力してください";
+          if (trimmed.length > 255) return "名前は255文字以内で入力してください";
+          return null;
+        }}
+        onConfirm={(value) => handleDuplicate(value.trim())}
+      />
+    );
+  }
+
   return (
     <ConfirmPopover
       trigger={button}
@@ -112,7 +139,7 @@ export function DuplicateButton({
       description={description}
       confirmLabel={confirmLabel}
       confirmVariant="secondary"
-      onConfirm={handleDuplicate}
+      onConfirm={() => handleDuplicate()}
     />
   );
 }

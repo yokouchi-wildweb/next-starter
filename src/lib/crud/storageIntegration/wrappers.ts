@@ -1,6 +1,7 @@
 // src/lib/crud/storageIntegration/wrappers.ts
 
 import { getDomainConfig } from "@/lib/domain";
+import type { DuplicateOptions } from "../types";
 import { extractStorageFields, extractStorageFieldsWithPath } from "./extractStorageFields";
 import { cleanupStorageFiles } from "./cleanupFiles";
 import { duplicateStorageFiles } from "./duplicateFiles";
@@ -9,7 +10,7 @@ type BaseService = {
   get: (id: string) => Promise<Record<string, unknown> | undefined>;
   create: (data: any) => Promise<Record<string, unknown>>;
   remove: (id: string) => Promise<void>;
-  duplicate?: (id: string) => Promise<Record<string, unknown>>;
+  duplicate?: (id: string, options?: DuplicateOptions) => Promise<Record<string, unknown>>;
   bulkDeleteByIds?: (ids: string[]) => Promise<void>;
   hardDelete?: (id: string) => Promise<void>;
   bulkDeleteByQuery?: (where: any) => Promise<void>;
@@ -87,10 +88,10 @@ export function createStorageAwareBulkDeleteByIds<T extends BaseService>(
 export function createStorageAwareDuplicate<T extends BaseService>(
   base: T,
   domainKey: string
-): (id: string) => Promise<Record<string, unknown>> {
+): (id: string, options?: DuplicateOptions) => Promise<Record<string, unknown>> {
   const storageFieldsInfo = extractStorageFieldsWithPath(getDomainConfig(domainKey));
 
-  return async (id: string): Promise<Record<string, unknown>> => {
+  return async (id: string, options?: DuplicateOptions): Promise<Record<string, unknown>> => {
     const record = await base.get(id);
     if (!record) {
       throw new Error(`Record not found: ${id}`);
@@ -105,9 +106,9 @@ export function createStorageAwareDuplicate<T extends BaseService>(
 
     let newData: Record<string, unknown> = { ...rest };
 
-    // nameフィールドがあれば「_コピー」を追加
+    // nameフィールドがあれば name 指定値を採用、未指定なら「_コピー」を追加
     if (typeof newData.name === "string") {
-      newData.name = `${newData.name}_コピー`;
+      newData.name = options?.name ?? `${newData.name}_コピー`;
     }
 
     if (storageFieldsInfo.length) {

@@ -113,7 +113,7 @@ createCrudService<TTable, TCreate>(table, {
 | `bulkDeleteByIds(ids, tx?)` | string[] | void | ソフト/ハード自動判定 |
 | `bulkHardDeleteByIds(ids, tx?)` | string[] | void | 物理削除 |
 | `bulkDeleteByQuery(where, tx?)` | WhereExpr | void | 条件一致を削除 |
-| `duplicate(id, tx?)` | string | Select | name に「_コピー」付与 |
+| `duplicate(id, options?, tx?)` | string, DuplicateOptions | Select | `options.name` 指定時はそれを採用、未指定時は name に「_コピー」付与 |
 
 ### ソフトデリート専用
 

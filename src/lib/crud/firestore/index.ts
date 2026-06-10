@@ -15,6 +15,7 @@ import type {
   BulkUpsertResult,
   BulkUpdateRecord,
   BulkUpdateResult,
+  DuplicateOptions,
   WhereExpr,
 } from "../types";
 import { buildSearchQuery, applyWhere } from "./query";
@@ -409,7 +410,7 @@ export function createCrudService<
       return { results, count: results.length, notFoundIds };
     },
 
-    async duplicate(id: string): Promise<Select> {
+    async duplicate(id: string, options?: DuplicateOptions): Promise<Select> {
       const record = await this.get(id);
       if (!record) {
         throw new Error(`Record not found: ${id}`);
@@ -425,7 +426,7 @@ export function createCrudService<
 
       const newData = rest as Record<string, unknown>;
       if (typeof newData.name === "string") {
-        newData.name = `${newData.name}_コピー`;
+        newData.name = options?.name ?? `${newData.name}_コピー`;
       }
 
       return this.create(newData as unknown as Insert);
