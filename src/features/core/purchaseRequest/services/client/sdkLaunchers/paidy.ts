@@ -60,8 +60,11 @@ type PaidyGlobal = {
 /**
  * Paidy の shipping_address 型。
  *
- * 注意: Paidy は line1=建物名・部屋番号 / line2=番地 で、Square 等とは line1/line2 が逆。
- * 公式要件は「zip 必須 + 他1フィールド以上」。zip は NNN-NNNN 形式。
+ * 注意:
+ * - Paidy は line1=建物名・部屋番号 / line2=番地 で、Square 等とは line1/line2 が逆。
+ * - 公式リファレンスのフィールドは line1 / line2 / city / state / zip のみ。**country は存在しない**
+ *   ため送らない（未知フィールドを 400 で弾く可能性があり、決済全体を壊しうるため）。
+ * - 公式要件は「zip 必須 + 他1フィールド以上」。zip は NNN-NNNN 形式。
  */
 type PaidyShippingAddress = {
   /** 建物名・部屋番号 */
@@ -72,7 +75,6 @@ type PaidyShippingAddress = {
   state?: string;
   /** NNN-NNNN 形式 */
   zip: string;
-  country?: string;
 };
 
 /**
@@ -204,7 +206,7 @@ function toPaidyShippingAddress(
     ...(addr.locality && { city: addr.locality }),
     ...(addr.administrativeArea && { state: addr.administrativeArea }),
     zip: formatPaidyZip(addr.postalCode),
-    country: addr.country || "JP",
+    // country は Paidy 公式 shipping_address に存在しないため送らない（400 リスク回避）。
   };
 }
 
