@@ -69,7 +69,9 @@ Paidy の `shipping_address` に渡す。このテンプレート自体は住所
 
 - マッピング（**line1/line2 は Square 等と逆**。Paidy は line1=建物名・部屋番号 / line2=番地）:
   `addressLine2(建物名)→line1` / `addressLine1(番地)→line2` / `locality→city` /
-  `administrativeArea→state` / `postalCode→zip` / `country→country`（既定 `"JP"`）。
+  `administrativeArea→state` / `postalCode→zip`。
+  **`country` は Paidy 公式 shipping_address に存在しないため送らない**（未知フィールドで 400 になる
+  リスク回避。フィールドは line1/line2/city/state/zip のみ）。
 - 付与条件: **`postalCode` と `addressLine1`（番地）が両方揃う時のみ**（公式要件「zip 必須 +
   他1フィールド以上」を満たす。番地は line2 として常に入る）。不完全だと Paidy が 400 を返し
   決済全体が失敗するため。
