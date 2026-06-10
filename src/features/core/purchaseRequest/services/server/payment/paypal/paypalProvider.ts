@@ -18,6 +18,7 @@
 // - JPY はゼロ小数通貨。amount.value は小数なしの整数文字列で送る必要がある。
 
 import type {
+  BuyerAddress,
   CreatePaymentSessionParams,
   PaymentProvider,
   PaymentResult,
@@ -94,6 +95,124 @@ function parseAmountValue(value: string | undefined): number | undefined {
 }
 
 /**
+ * PayPal Orders v2 の address オブジェクト（payer.address に使用）。
+ */
+type PayPalAddress = {
+  address_line_1?: string;
+  address_line_2?: string;
+  /** 市区町村 */
+  admin_area_2?: string;
+  /** 都道府県 */
+  admin_area_1?: string;
+  postal_code?: string;
+  /** ISO 3166-1 alpha-2。PayPal では address を送る場合に必須 */
+  country_code: string;
+};
+
+/**
+ * アプリ側の BuyerAddress を PayPal address にマッピングする。
+ *
+ * country_code は PayPal で address を送る際の必須項目のため、country が無い住所は
+ * （部分的でも）送らない（PayPal が 400 を返すため）。それ以外は埋まっている項目のみ付与。
+ */
+function toPayPalAddress(addr?: BuyerAddress): PayPalAddress | undefined {
+  if (!addr || !addr.country) return undefined;
+  return {
+    ...(addr.addressLine1 && { address_line_1: addr.addressLine1 }),
+    ...(addr.addressLine2 && { address_line_2: addr.addressLine2 }),
+    ...(addr.locality && { admin_area_2: addr.locality }),
+    ...(addr.administrativeArea && { admin_area_1: addr.administrativeArea }),
+    ...(addr.postalCode && { postal_code: addr.postalCode }),
+    country_code: addr.country,
+  };
+}
+
+/**
+ * E.164 形式の電話番号（"+819012345678"）を PayPal の phone オブジェクトに変換する。
+ *
+ * PayPal の phone_number.national_number は「E.164 から先頭 '+' を除いた数字（国番号を含む・
+ * 最大 14 桁）」が正しい形式（公式例 "14155552671" = +1 415... に一致）。
+ * 桁数や文字種が範囲外（PayPal pattern: ^[0-9]{1,14}$）の場合は undefined を返し、
+ * Order 作成全体を 400 で壊さないよう電話だけ省く。
+ */
+function toPayPalPhone(
+  e164?: string,
+): { phone_type: "MOBILE"; phone_number: { national_number: string } } | undefined {
+  if (!e164) return undefined;
+  const digits = e164.replace(/^\+/, "");
+  if (!/^[0-9]{1,14}$/.test(digits)) return undefined;
+  return { phone_type: "MOBILE", phone_number: { national_number: digits } };
+}
+
+/**
+ * PayPal の配送先住所の扱い（application_context.shipping_preference）。
+ * - NO_SHIPPING:         配送先住所セクションを出さない（物販でない場合の既定）。
+ * - GET_FROM_FILE:       PayPal アカウントの住所を使い、配送先を選ばせる。
+ * - SET_PROVIDED_ADDRESS: Order に渡した住所を配送先として固定。
+ */
+const PAYPAL_SHIPPING_PREFERENCES = [
+  "NO_SHIPPING",
+  "GET_FROM_FILE",
+  "SET_PROVIDED_ADDRESS",
+] as const;
+
+/**
+ * shipping_preference を解決する。
+ *
+ * 既定は NO_SHIPPING（コイン購入等のデジタル財では配送先が不要で、「請求先住所に配送」
+ * チェックボックス等がユーザーを混乱させるため非表示にする）。物販を扱うダウンストリームは
+ * providerOptions.shippingPreference で GET_FROM_FILE / SET_PROVIDED_ADDRESS に上書きできる。
+ */
+function resolveShippingPreference(params: CreatePaymentSessionParams): string {
+  const override = params.providerOptions?.shippingPreference;
+  if (
+    typeof override === "string" &&
+    (PAYPAL_SHIPPING_PREFERENCES as readonly string[]).includes(override)
+  ) {
+    return override;
+  }
+  return "NO_SHIPPING";
+}
+
+/**
+ * 決済ページ事前入力（prefill）用の payer を組み立てる。
+ *
+ * email / 電話 / 氏名 / 住所のいずれかが供給されている時だけオブジェクトを返す（無ければ
+ * undefined＝payer 自体を Order に付与しない＝従来挙動）。email / 電話はこのプロジェクトでも
+ * ユーザーレコードから供給される。住所は sessionEnricher 経由で params.buyerAddress が
+ * 供給されたダウンストリームでのみ載る（Square と同じ拡張ポイント）。
+ *
+ * 注意: 標準 Buttons のゲストカード決済では、請求先住所の prefill 可否は PayPal 側 UI に依存する。
+ * カードの請求先住所まで確実に自動入力したい場合は Advanced Card Fields への移行が必要。
+ * ここではアプリが持つ情報を「渡せるだけ渡す」配線に留める。
+ */
+function buildPayer(
+  params: CreatePaymentSessionParams,
+): Record<string, unknown> | undefined {
+  const address = toPayPalAddress(params.buyerAddress);
+  const phone = toPayPalPhone(params.buyerPhoneNumber);
+  const firstName = params.buyerAddress?.firstName;
+  const lastName = params.buyerAddress?.lastName;
+  const name =
+    firstName || lastName
+      ? {
+          ...(firstName && { given_name: firstName }),
+          ...(lastName && { surname: lastName }),
+        }
+      : undefined;
+  const email = params.buyerEmail;
+
+  if (!address && !name && !email && !phone) return undefined;
+
+  return {
+    ...(email && { email_address: email }),
+    ...(phone && { phone }),
+    ...(name && { name }),
+    ...(address && { address }),
+  };
+}
+
+/**
  * PayPal 決済プロバイダ
  */
 export class PayPalPaymentProvider implements PaymentProvider {
@@ -130,6 +249,10 @@ export class PayPalPaymentProvider implements PaymentProvider {
     // JPY はゼロ小数通貨。value は小数なしの整数文字列にする。
     const amountValue = String(Math.round(params.amount));
 
+    // 事前入力用の payer（email / 電話 / 氏名 / 住所）。供給されている時だけ載せる（後方互換）。
+    // buyerAddress はダウンストリームが sessionEnricher で params.buyerAddress を供給した場合のみ入る。
+    const payer = buildPayer(params);
+
     const orderBody = {
       intent: "CAPTURE",
       purchase_units: [
@@ -145,6 +268,13 @@ export class PayPalPaymentProvider implements PaymentProvider {
           },
         },
       ],
+      ...(payer && { payer }),
+      // 配送先住所セクション（「請求先住所に配送」チェックボックス等）の表示制御。
+      // 既定 NO_SHIPPING で非表示。資金源（PayPal 残高 / カード）に依らず効くよう
+      // payment_source 配下ではなく order レベルの application_context に置く。
+      application_context: {
+        shipping_preference: resolveShippingPreference(params),
+      },
     };
 
     const response = await payPalFetch(config, "/v2/checkout/orders", {
