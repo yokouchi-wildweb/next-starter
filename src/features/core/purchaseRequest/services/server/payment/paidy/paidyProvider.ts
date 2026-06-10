@@ -141,9 +141,13 @@ export class PaidyPaymentProvider implements PaymentProvider {
       "購入";
 
     // buyer.name1 用のユーザー名。Paidy は nonempty バリデーションで弾くため、
-    // ユーザー登録名が空のケース（NULL / 空文字 / 空白のみ）では明示的なフォールバック値を入れる。
+    // 空のケース（NULL / 空文字 / 空白のみ）では明示的なフォールバック値を入れる。
+    // 与信精度向上のため、buyerAddress に実氏名（姓・名）が供給されていればそれを優先し、
+    // 無ければユーザー登録名（表示名）→ "購入者" の順でフォールバックする。
+    const addr = params.buyerAddress;
+    const realName = `${addr?.lastName ?? ""}${addr?.firstName ?? ""}`.trim();
     const user = await userService.get(params.userId);
-    const buyerName = user?.name?.trim() || "購入者";
+    const buyerName = realName || user?.name?.trim() || "購入者";
 
     return {
       sessionId,
@@ -161,6 +165,21 @@ export class PaidyPaymentProvider implements PaymentProvider {
           buyerName,
           buyerEmail: params.buyerEmail,
           buyerPhoneNumber: params.buyerPhoneNumber,
+          // 購入者住所（sessionEnricher 経由で供給されたダウンストリームでのみ入る。
+          // PayPal / Square と同じ拡張ポイント）。クライアント側 sdkLauncher が
+          // Paidy の shipping_address に組み立てる。zip(郵便番号) が無い場合は付与しない。
+          buyerAddress: addr
+            ? {
+                firstName: addr.firstName,
+                lastName: addr.lastName,
+                postalCode: addr.postalCode,
+                administrativeArea: addr.administrativeArea,
+                locality: addr.locality,
+                addressLine1: addr.addressLine1,
+                addressLine2: addr.addressLine2,
+                country: addr.country,
+              }
+            : undefined,
           // 店舗名等のビジネス情報はクライアント側 sdkLauncher が businessConfig から取る。
         },
       },

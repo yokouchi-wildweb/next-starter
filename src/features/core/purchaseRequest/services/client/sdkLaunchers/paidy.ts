@@ -58,6 +58,19 @@ type PaidyGlobal = {
 };
 
 /**
+ * Paidy の shipping_address 型。
+ * Paidy 仕様上 shipping_address を送る場合は line1 と zip が必須。
+ */
+type PaidyShippingAddress = {
+  line1: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  zip: string;
+  country?: string;
+};
+
+/**
  * paidyHandler.launch に渡す payload 型（必須フィールドのみ）
  *
  * order は実質必須。未指定だと Paidy が "request_content.malformed / error.decoding / field: order"
@@ -75,6 +88,22 @@ type PaidyLaunchPayload = {
   order: {
     items: Array<{ id?: string; quantity: number; title?: string; unit_price: number }>;
   };
+  /** 配送先住所（与信精度向上のため。供給され、かつ line1/zip が揃う時のみ付与） */
+  shipping_address?: PaidyShippingAddress;
+};
+
+/**
+ * サーバー側 paidyProvider が config.buyerAddress に詰める購入者住所の形（クライアント読み取り用）。
+ */
+type ConfigBuyerAddress = {
+  firstName?: string;
+  lastName?: string;
+  postalCode?: string;
+  administrativeArea?: string;
+  locality?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  country?: string;
 };
 
 declare global {
@@ -118,6 +147,45 @@ function loadPaidyScript(): Promise<void> {
  * Paidy config からの値取り出し（型ガード）。
  * サーバー側 paidyProvider が必ずセットするフィールドだが、防御的に検証する。
  */
+/**
+ * config.buyerAddress（object）を ConfigBuyerAddress に型ガードして取り出す。
+ * 各フィールドは欠落しうるため string のものだけ拾う。
+ */
+function readBuyerAddress(raw: unknown): ConfigBuyerAddress | undefined {
+  if (typeof raw !== "object" || raw === null) return undefined;
+  const r = raw as Record<string, unknown>;
+  const pick = (k: string) => (typeof r[k] === "string" ? (r[k] as string) : undefined);
+  return {
+    firstName: pick("firstName"),
+    lastName: pick("lastName"),
+    postalCode: pick("postalCode"),
+    administrativeArea: pick("administrativeArea"),
+    locality: pick("locality"),
+    addressLine1: pick("addressLine1"),
+    addressLine2: pick("addressLine2"),
+    country: pick("country"),
+  };
+}
+
+/**
+ * ConfigBuyerAddress を Paidy の shipping_address に変換する。
+ * Paidy 仕様で shipping_address を送る場合 line1 と zip が必須のため、両方が揃う時だけ付与する
+ * （不完全な住所を送ると Paidy が 400 を返し決済全体が失敗するため）。
+ */
+function toPaidyShippingAddress(
+  addr: ConfigBuyerAddress | undefined,
+): PaidyShippingAddress | undefined {
+  if (!addr?.postalCode || !addr?.addressLine1) return undefined;
+  return {
+    line1: addr.addressLine1,
+    ...(addr.addressLine2 && { line2: addr.addressLine2 }),
+    ...(addr.locality && { city: addr.locality }),
+    ...(addr.administrativeArea && { state: addr.administrativeArea }),
+    zip: addr.postalCode,
+    country: addr.country || "JP",
+  };
+}
+
 function readConfig(config: Record<string, unknown>): {
   publicKey: string;
   amount: number;
@@ -127,6 +195,7 @@ function readConfig(config: Record<string, unknown>): {
   purchaseRequestId?: string;
   buyerEmail?: string;
   buyerPhoneNumber?: string;
+  buyerAddress?: ConfigBuyerAddress;
 } {
   const publicKey = typeof config.publicKey === "string" ? config.publicKey : "";
   const amount = typeof config.amount === "number" ? config.amount : NaN;
@@ -158,6 +227,7 @@ function readConfig(config: Record<string, unknown>): {
     purchaseRequestId,
     buyerEmail,
     buyerPhoneNumber,
+    buyerAddress: readBuyerAddress(config.buyerAddress),
   };
 }
 
@@ -180,7 +250,11 @@ export const paidySdkLauncher: SdkLauncher = {
       purchaseRequestId,
       buyerEmail,
       buyerPhoneNumber,
+      buyerAddress,
     } = readConfig(config);
+
+    // 与信精度向上のため配送先住所を組み立てる（line1/zip が揃う時のみ。無ければ未付与）。
+    const shippingAddress = toPaidyShippingAddress(buyerAddress);
 
     return new Promise<SdkLaunchOutcome>((resolve) => {
       const handler = window.Paidy!.configure({
@@ -230,6 +304,8 @@ export const paidySdkLauncher: SdkLauncher = {
             },
           ],
         },
+        // 配送先住所（供給され、line1/zip が揃う時のみ付与）。
+        ...(shippingAddress && { shipping_address: shippingAddress }),
       };
 
       handler.launch(payload);
