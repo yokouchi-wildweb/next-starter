@@ -24,6 +24,9 @@ import {
   adminGetBankTransferReview,
   adminConfirmBankTransferReview,
   adminRejectBankTransferReview,
+  adminInvestigateBankTransferReview,
+  adminUpdateBankTransferReviewAdminMemo,
+  type BankTransferReviewApprovalSource,
   type BankTransferReviewDto,
   type BankTransferReviewMode,
   type BankTransferReviewStatus,
@@ -35,9 +38,13 @@ import {
 } from "@/features/core/wallet";
 
 import {
+  approvalSourceBadgeVariant,
+  formatApprovalSourceLabel,
   formatBankTransferDate,
   formatJpyAmount,
   formatModeLabel,
+  formatNeedsCheckContextSummary,
+  formatNeedsCheckReasonLabel,
   formatPurchaseRequestStatusLabel,
   formatStatusLabel,
   modeBadgeVariant,
@@ -46,6 +53,8 @@ import {
 } from "./formatters";
 
 const REJECT_REASON_MAX = 500;
+const ADMIN_MEMO_MAX = 2000;
+const INVESTIGATE_NOTE_MAX = 500;
 
 type Props = {
   reviewId: string | null;
@@ -66,7 +75,14 @@ export function BankTransferReviewDetailModal({ reviewId, onClose, onActionDone 
   const review = data?.review;
   const status = review?.status as BankTransferReviewStatus | undefined;
   const mode = review?.mode as BankTransferReviewMode | undefined;
-  const isPending = status === "pending_review";
+  // pending_review / needs_check / investigating はすべて管理者の判定対象。承認/拒否ボタンを出す。
+  const isActionable =
+    status === "pending_review" ||
+    status === "needs_check" ||
+    status === "investigating";
+  // 検証中への移行は pending_review / needs_check からのみ（investigating からは出さない）。
+  const canEscalateToInvestigating =
+    status === "pending_review" || status === "needs_check";
 
   return (
     <Modal
@@ -96,19 +112,36 @@ export function BankTransferReviewDetailModal({ reviewId, onClose, onActionDone 
             user={data.user}
           />
 
-          {!isPending ? (
+          {review?.needs_check_reason ? (
+            <NeedsCheckReasonSection review={review} />
+          ) : null}
+
+          {!isActionable ? (
             <ReviewedSection
               reviewer={data.reviewer}
               reviewedAt={review?.reviewed_at ?? null}
               rejectReason={review?.reject_reason ?? null}
               status={status}
+              approvalSource={review?.approval_source ?? null}
             />
           ) : null}
 
-          {isPending && reviewId && mode ? (
+          {reviewId ? (
+            <AdminMemoSection
+              reviewId={reviewId}
+              initialMemo={review?.admin_memo ?? null}
+              onSaved={() => {
+                onActionDone();
+                void mutate();
+              }}
+            />
+          ) : null}
+
+          {isActionable && reviewId && mode ? (
             <ActionSection
               reviewId={reviewId}
               mode={mode}
+              canEscalateToInvestigating={canEscalateToInvestigating}
               onSuccess={() => {
                 onActionDone();
                 void mutate();
@@ -278,11 +311,17 @@ function ReviewedSection({
   reviewedAt,
   rejectReason,
   status,
+  approvalSource,
 }: {
   reviewer: { id: string; name: string | null; email: string | null } | null;
   reviewedAt: string | null;
   rejectReason: string | null;
   status: BankTransferReviewStatus | undefined;
+  /**
+   * 承認の入力経路（confirmed のときのみ意味を持つ）。
+   * rejected 時は null 想定だが、誤って渡されても表示行は status で分岐するため安全。
+   */
+  approvalSource: BankTransferReviewApprovalSource | null;
 }) {
   return (
     <Stack space={2}>
@@ -296,6 +335,16 @@ function ReviewedSection({
             ? `${reviewer.name ?? "(名前未設定)"} (${reviewer.email ?? "(メール未設定)"})`
             : "-"}
         </DefinitionRow>
+        {status === "confirmed" ? (
+          <DefinitionRow label="承認方法">
+            <SoftBadge
+              variant={approvalSourceBadgeVariant(approvalSource)}
+              size="sm"
+            >
+              {formatApprovalSourceLabel(approvalSource)}
+            </SoftBadge>
+          </DefinitionRow>
+        ) : null}
         {status === "rejected" ? (
           <DefinitionRow label="拒否理由">
             {rejectReason ? (
@@ -317,10 +366,16 @@ function ReviewedSection({
 function ActionSection({
   reviewId,
   mode,
+  canEscalateToInvestigating,
   onSuccess,
 }: {
   reviewId: string;
   mode: BankTransferReviewMode;
+  /**
+   * 「検証中に移行」ボタンを表示するかどうか。
+   * pending_review / needs_check の時のみ true。investigating からは出さない。
+   */
+  canEscalateToInvestigating: boolean;
   onSuccess: () => void;
 }) {
   const { showToast } = useToast();
@@ -328,19 +383,28 @@ function ActionSection({
   // モーダル状態
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [investigateOpen, setInvestigateOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [investigating, setInvestigating] = useState(false);
 
   // 拒否理由 (拒否モーダル内で利用)
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState<string | null>(null);
 
+  // 検証中メモ (検証中モーダル内で利用)
+  const [investigateNote, setInvestigateNote] = useState("");
+  const [investigateError, setInvestigateError] = useState<string | null>(null);
+
   // モーダル外 (reviewId 切り替え) で state がリークしないようリセット
   useEffect(() => {
     setConfirmOpen(false);
     setRejectOpen(false);
+    setInvestigateOpen(false);
     setRejectReason("");
     setRejectError(null);
+    setInvestigateNote("");
+    setInvestigateError(null);
   }, [reviewId]);
 
   const handleConfirm = async () => {
@@ -387,6 +451,33 @@ function ActionSection({
     }
   };
 
+  const handleInvestigate = async () => {
+    // 検証中メモは任意。文字数だけ検査する（空でも OK）。
+    if (investigateNote.length > INVESTIGATE_NOTE_MAX) {
+      setInvestigateError(
+        `メモは ${INVESTIGATE_NOTE_MAX} 文字以内で入力してください。`,
+      );
+      return;
+    }
+    setInvestigateError(null);
+    setInvestigating(true);
+    try {
+      const trimmed = investigateNote.trim();
+      await adminInvestigateBankTransferReview({
+        reviewId,
+        note: trimmed === "" ? null : trimmed,
+      });
+      showToast("レビューを検証中に移行しました", "success");
+      setInvestigateOpen(false);
+      setInvestigateNote("");
+      onSuccess();
+    } catch (e) {
+      showToast(err(e, "検証中への移行に失敗しました"), "error");
+    } finally {
+      setInvestigating(false);
+    }
+  };
+
   // mode による承認時の確認文言
   const confirmDescription =
     mode === "immediate"
@@ -399,14 +490,26 @@ function ActionSection({
       ? "即時付与モードのため、拒否しても既に付与済みの通貨はロールバックされません。残高調整やユーザー連絡は別途手動で対応してください。"
       : "確認待ちモードのため、拒否すると関連する購入リクエストが failed になり、通貨は付与されません。";
 
+  const actionsBusy = confirming || rejecting || investigating;
+
   return (
     <>
       <Flex gap="sm" justify="end" wrap="wrap">
+        {canEscalateToInvestigating ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setInvestigateOpen(true)}
+            disabled={actionsBusy}
+          >
+            検証中に移行
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="destructive"
           onClick={() => setRejectOpen(true)}
-          disabled={confirming || rejecting}
+          disabled={actionsBusy}
         >
           拒否
         </Button>
@@ -414,7 +517,7 @@ function ActionSection({
           type="button"
           variant="success"
           onClick={() => setConfirmOpen(true)}
-          disabled={confirming || rejecting}
+          disabled={actionsBusy}
         >
           承認
         </Button>
@@ -489,7 +592,172 @@ function ActionSection({
           </Flex>
         </Stack>
       </Modal>
+
+      {/* 検証中移行モーダル (メモは任意入力) */}
+      <Modal
+        open={investigateOpen}
+        onOpenChange={(o) => {
+          if (!investigating) setInvestigateOpen(o);
+        }}
+        title="検証中に移行しますか？"
+        maxWidth={560}
+      >
+        <Stack space={4}>
+          <Para size="sm" tone="warning">
+            通貨残高や購入リクエストの状態は変更されません。レビューを
+            「検証中」に切り替え、ユーザーへの停止措置など追加対応が必要な
+            ケースとして識別します。停止措置の実施自体は別画面・別オペレーションで
+            運用してください。
+          </Para>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">
+              メモ (任意・{INVESTIGATE_NOTE_MAX} 文字以内)
+            </span>
+            <Manual.Textarea
+              value={investigateNote}
+              rows={4}
+              placeholder="例: 同一画像での複数申告の疑いあり。ユーザーへ確認連絡中"
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+                setInvestigateNote(e.target.value);
+                if (investigateError) setInvestigateError(null);
+              }}
+              aria-invalid={Boolean(investigateError)}
+            />
+            <span className="text-xs text-muted-foreground">
+              {investigateNote.length} / {INVESTIGATE_NOTE_MAX}
+            </span>
+            {investigateError ? (
+              <span className="text-xs text-destructive">{investigateError}</span>
+            ) : null}
+          </label>
+          <Flex gap="sm" justify="end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setInvestigateOpen(false)}
+              disabled={investigating}
+            >
+              キャンセル
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleInvestigate}
+              disabled={investigating}
+            >
+              {investigating ? "移行中..." : "検証中に移行"}
+            </Button>
+          </Flex>
+        </Stack>
+      </Modal>
     </>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// セクション: 要確認理由 (status=needs_check の根拠表示)
+// ----------------------------------------------------------------------------
+
+/**
+ * needs_check_reason / needs_check_context が立っているレビューに対し、
+ * 「なぜこの状態になったか」を一目で分かる形で表示する。
+ * 承認/拒否後もデータは残し続ける運用 (履歴) なので、確定後のレビューでも表示する。
+ */
+function NeedsCheckReasonSection({ review }: { review: BankTransferReviewDto }) {
+  const reasonLabel = formatNeedsCheckReasonLabel(review.needs_check_reason);
+  const summary = formatNeedsCheckContextSummary(review.needs_check_context);
+
+  return (
+    <Stack space={2}>
+      <SecTitle>要確認の理由</SecTitle>
+      <Flex gap="sm" align="center" wrap="wrap">
+        <SoftBadge variant="warning" size="sm">
+          {reasonLabel}
+        </SoftBadge>
+        {summary ? (
+          <Para size="sm" tone="muted">
+            {summary}
+          </Para>
+        ) : null}
+      </Flex>
+    </Stack>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// セクション: 管理者メモ (常時編集可)
+// ----------------------------------------------------------------------------
+
+/**
+ * status を問わず管理者が手書きでメモを残せるセクション。
+ * 発送リクエストの admin_memo と同等運用。
+ * 「保存」ボタンを押した時のみ PATCH を発行する (オートセーブはしない)。
+ */
+function AdminMemoSection({
+  reviewId,
+  initialMemo,
+  onSaved,
+}: {
+  reviewId: string;
+  initialMemo: string | null;
+  onSaved: () => void;
+}) {
+  const { showToast } = useToast();
+  const [draft, setDraft] = useState(initialMemo ?? "");
+  const [saving, setSaving] = useState(false);
+
+  // reviewId 切り替え時 / 親で再取得時に最新値へ追従
+  useEffect(() => {
+    setDraft(initialMemo ?? "");
+  }, [reviewId, initialMemo]);
+
+  const normalizedDraft = draft.trim();
+  const normalizedInitial = (initialMemo ?? "").trim();
+  const dirty = normalizedDraft !== normalizedInitial;
+  const overflow = draft.length > ADMIN_MEMO_MAX;
+
+  const handleSave = async () => {
+    if (!dirty || overflow) return;
+    setSaving(true);
+    try {
+      await adminUpdateBankTransferReviewAdminMemo({
+        reviewId,
+        adminMemo: normalizedDraft === "" ? null : normalizedDraft,
+      });
+      showToast("管理者メモを保存しました", "success");
+      onSaved();
+    } catch (e) {
+      showToast(err(e, "管理者メモの保存に失敗しました"), "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Stack space={2}>
+      <SecTitle>管理者メモ</SecTitle>
+      <Manual.Textarea
+        value={draft}
+        rows={4}
+        placeholder="運用上のメモ（公開されません）"
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
+        aria-invalid={overflow}
+      />
+      <Flex justify="between" align="center" wrap="wrap" gap="sm">
+        <Para size="xs" tone={overflow ? "destructive" : "muted"}>
+          {draft.length} / {ADMIN_MEMO_MAX}
+        </Para>
+        <Button
+          type="button"
+          size="sm"
+          variant="primary"
+          onClick={handleSave}
+          disabled={!dirty || overflow || saving}
+        >
+          {saving ? "保存中…" : "メモを保存"}
+        </Button>
+      </Flex>
+    </Stack>
   );
 }
 

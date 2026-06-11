@@ -7,6 +7,11 @@ import { base } from "./drizzleBase";
 import { submitReview } from "./wrappers/submitReview";
 import { confirmReview } from "./wrappers/confirmReview";
 import { rejectReview } from "./wrappers/rejectReview";
+import { escalateToNeedsCheck } from "./wrappers/escalateToNeedsCheck";
+import { escalateToInvestigating } from "./wrappers/escalateToInvestigating";
+import { updateAdminMemo } from "./wrappers/updateAdminMemo";
+import { bulkImportFromCsv } from "./wrappers/bulkImportFromCsv";
+import { bulkSendEmail } from "./wrappers/bulkSendEmail";
 import {
   findActiveByUser,
   findByPurchaseRequest,
@@ -17,6 +22,11 @@ export const bankTransferReviewService = {
   submitReview,
   confirmReview,
   rejectReview,
+  escalateToNeedsCheck,
+  escalateToInvestigating,
+  updateAdminMemo,
+  bulkImportFromCsv,
+  bulkSendEmail,
   findActiveByUser,
   findByPurchaseRequest,
 };
@@ -33,3 +43,27 @@ export type {
   RejectReviewParams,
   RejectReviewResult,
 } from "./wrappers/rejectReview";
+export type {
+  EscalateToNeedsCheckParams,
+  EscalateToNeedsCheckResult,
+} from "./wrappers/escalateToNeedsCheck";
+export type {
+  EscalateToInvestigatingParams,
+  EscalateToInvestigatingResult,
+} from "./wrappers/escalateToInvestigating";
+export type {
+  UpdateAdminMemoParams,
+  UpdateAdminMemoResult,
+} from "./wrappers/updateAdminMemo";
+export type {
+  BankTransferReviewImportDecision,
+  BankTransferReviewImportRow,
+  BulkImportBankTransferReviewCsvParams,
+  BulkImportBankTransferReviewCsvResult,
+} from "./wrappers/bulkImportFromCsv";
+export { BANK_TRANSFER_REVIEW_IMPORT_HEADERS } from "./wrappers/bulkImportFromCsv";
+export type {
+  BulkSendEmailParams,
+  BulkSendEmailFailure,
+  BulkSendEmailResult,
+} from "./wrappers/bulkSendEmail";

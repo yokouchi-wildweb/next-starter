@@ -18,12 +18,20 @@ import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/d
 /**
  * レビューの状態。
  * - pending_review: ユーザーが申告済みで管理者の判定待ち
+ * - needs_check: CSV 一括取込等で「自動承認はできないが、管理者の追加判断を要する」と
+ *   判定された中間ステータス。pending_review と同じく承認 (confirmed) / 拒否 (rejected) 両方への
+ *   遷移が可能。pending_review に戻すフローは設けない（一度フラグが立ったものは
+ *   人間の判断で確定させる方針）。
+ * - investigating: needs_check 以上に踏み込んだ追加検証が必要なケース。
+ *   ユーザー側へ停止措置等の運用対応を伴う重大ケースの管理用中間ステータス。
+ *   pending_review / needs_check の双方から遷移可能で、ここから confirmed / rejected
+ *   への確定もできる。pending_review / needs_check への巻き戻しは設けない。
  * - confirmed: 管理者が振込実在を確認済み
  * - rejected: 管理者が振込未確認と判断（運用で別途対応）
  */
 export const BankTransferReviewStatusEnum = pgEnum(
   "bank_transfer_review_status_enum",
-  ["pending_review", "confirmed", "rejected"],
+  ["pending_review", "needs_check", "investigating", "confirmed", "rejected"],
 );
 
 /**
@@ -77,8 +85,40 @@ export const BankTransferReviewTable = pgTable(
       onDelete: "set null",
     }),
     reviewed_at: timestamp("reviewed_at", { withTimezone: true }),
+    /**
+     * 承認操作の入力経路を記録する。confirmed に遷移した瞬間に確定し、以後不変。
+     * - manual: 管理者が画面で「承認」ボタンを押した
+     * - csv_auto: CSV 一括取込で金額一致と判定され自動承認された
+     * - null: 未承認 / 拒否確定 / 機能リリース前の既存 confirmed レコード（不明扱い）
+     *
+     * 値の列挙は schema.ts の `BANK_TRANSFER_REVIEW_APPROVAL_SOURCES` で管理する。
+     * needs_check を経由して最終的に手動承認されたケースは `manual` とする
+     *  （「最終的に承認に移動した際の操作主体」で判定し、以前の経緯は audit_log で追う）。
+     */
+    approval_source: text("approval_source"),
     /** 拒否時の理由（confirmed の場合は null） */
     reject_reason: text("reject_reason"),
+    /**
+     * 管理者が手書きで残すメモ。CSV 取込時の自動追記には使わず（自動文言は
+     * needs_check_reason / needs_check_context 側で構造化保存する）、
+     * 純粋に管理者の自由メモとして発送リクエストの admin_memo と同等の運用。
+     */
+    admin_memo: text("admin_memo"),
+    /**
+     * needs_check に遷移した理由のコード。`amount_mismatch` 等。
+     * 値は schema.ts の `BANK_TRANSFER_REVIEW_NEEDS_CHECK_REASONS` で列挙する。
+     * UI のバッジ表示・集計の絞り込みに使う。pending_review / confirmed / rejected では
+     * 通常 null だが、confirmed/rejected 後も「どの理由から最終判断に至ったか」の
+     * 履歴として残し続ける（クリアしない）。
+     */
+    needs_check_reason: text("needs_check_reason"),
+    /**
+     * needs_check 理由の詳細（理由コードによってスキーマが異なる）。
+     * 例: `amount_mismatch` の場合 `{ csvAmount: number; expectedAmount: number }`。
+     * UI で「CSV: ¥1,500 / 期待: ¥1,000」のような補足表示に使う。
+     * 監査用にレビュー履歴中も保持。コアロジックは中身を解釈しない。
+     */
+    needs_check_context: jsonb("needs_check_context"),
     /**
      * 拡張用メタデータ。再レビュー履歴・追加コメント・添付ファイル多数化等を
      * カラム追加せず取り込む将来余地として保持。コアロジックは中身を解釈しない。

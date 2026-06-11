@@ -7,12 +7,16 @@ import type { BankTransferReviewStatus } from "@/features/core/bankTransferRevie
 
 export const STATUS_SLUG_BY_VALUE: Record<BankTransferReviewStatus, string> = {
   pending_review: "pending-review",
+  needs_check: "needs-check",
+  investigating: "investigating",
   confirmed: "confirmed",
   rejected: "rejected",
 };
 
 export const STATUS_VALUE_BY_SLUG: Record<string, BankTransferReviewStatus> = {
   "pending-review": "pending_review",
+  "needs-check": "needs_check",
+  investigating: "investigating",
   confirmed: "confirmed",
   rejected: "rejected",
 };

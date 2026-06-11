@@ -36,6 +36,10 @@ export const POST = createApiRoute<Params>(
     const result = await bankTransferReviewService.confirmReview({
       reviewId: id,
       reviewedBy: session.userId,
+      // この API は管理画面の承認ボタンからのみ叩かれる前提なので "manual" 固定。
+      // CSV 取込からの自動承認は bulkImportFromCsv が直接 confirmReview を
+      // 呼ぶ経路 (source: "csv_auto") を通り、この HTTP API は経由しない。
+      source: "manual",
     });
 
     return {

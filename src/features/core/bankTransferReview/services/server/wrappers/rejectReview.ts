@@ -3,7 +3,10 @@
 // 管理者が「振込を確認できない（拒否）」と判断するときに呼ばれるサービス。
 //
 // 動作:
-// - status=pending_review 以外は 400
+// - status=pending_review / needs_check / investigating 以外は 400
+//   needs_check (要確認) は CSV 取込で自動承認を保留したケース。pending_review と
+//   同じくここから rejected へ遷移可能。
+//   investigating (検証中) は追加検証中のケース。ここから rejected へ遷移可能。
 // - 拒否理由は必須（運用上ユーザーへの説明や監査追跡のため）
 // - mode=immediate: 通貨付与は申告時点で完了済み。**通貨ロールバックは行わない**
 //   （事業判断: 拒否は「拒否したという意思表示」の記録に留め、通貨操作・ユーザー連絡は
@@ -49,7 +52,11 @@ export async function rejectReview(
     throw new DomainError("レビューが見つかりません。", { status: 404 });
   }
 
-  if (review.status !== "pending_review") {
+  if (
+    review.status !== "pending_review" &&
+    review.status !== "needs_check" &&
+    review.status !== "investigating"
+  ) {
     throw new DomainError(
       `このレビューは既に ${review.status} 状態です。`,
       { status: 400 },
@@ -105,6 +112,9 @@ export async function rejectReview(
       metadata: {
         purchaseRequestId: review.purchase_request_id,
         mode: review.mode,
+        fromStatus: review.status,
+        needsCheckReason: review.needs_check_reason,
+        needsCheckContext: review.needs_check_context,
       },
       reason: rejectReason,
       tx,
