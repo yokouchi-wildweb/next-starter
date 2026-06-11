@@ -23,6 +23,7 @@ import type {
 } from "@/features/bankTransferReview/entities/model";
 
 import { base } from "../drizzleBase";
+import { lockReviewStatus } from "./lockReviewStatus";
 
 export type EscalateToNeedsCheckParams = {
   reviewId: string;
@@ -69,6 +70,21 @@ export async function escalateToNeedsCheck(
   }
 
   const updated = await db.transaction(async (tx) => {
+    // 事前チェック後〜ここまでの間に別リクエストが status を変えた場合（TOCTOU）に
+    // 古い判断で上書きしないよう、行ロックの上で遷移可否を再検証する。
+    // 特に CSV 一括取込と手動承認の並走で、confirmed を needs_check に
+    // 巻き戻してしまう事故をここで防ぐ。
+    const currentStatus = await lockReviewStatus(tx, review.id);
+    if (currentStatus === null) {
+      throw new DomainError("レビューが見つかりません。", { status: 404 });
+    }
+    if (currentStatus !== "pending_review") {
+      throw new DomainError(
+        `このレビューは既に ${currentStatus} 状態のため要確認に遷移できません。`,
+        { status: 400 },
+      );
+    }
+
     const next = (await base.update(
       review.id,
       {
@@ -86,7 +102,7 @@ export async function escalateToNeedsCheck(
       targetId: next.id,
       subjectUserId: review.user_id,
       action: "bank_transfer_review.review.flagged_needs_check",
-      before: { status: review.status },
+      before: { status: currentStatus },
       after: {
         status: next.status,
         needs_check_reason: next.needs_check_reason,

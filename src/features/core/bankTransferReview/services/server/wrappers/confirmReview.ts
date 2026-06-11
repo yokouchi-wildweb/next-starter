@@ -30,6 +30,7 @@ import type {
 } from "@/features/bankTransferReview/entities/model";
 
 import { base } from "../drizzleBase";
+import { lockReviewStatus } from "./lockReviewStatus";
 
 export type ConfirmReviewParams = {
   reviewId: string;
@@ -97,6 +98,24 @@ export async function confirmReview(
   // レビュー status 更新 + 監査ログを同一トランザクションで atomic に。
   // completePurchase は内部で別 tx を開くためここでは含めない（既に外側で実行済み）。
   const updated = await db.transaction(async (tx) => {
+    // 事前チェック後〜ここまでの間に別リクエストが status を変えた場合（TOCTOU）に
+    // 古い判断で上書きしないよう、行ロックの上で遷移可否を再検証する。
+    // 並走相手が先に confirm 済みでも completePurchase は冪等のため通貨の二重付与はない。
+    const currentStatus = await lockReviewStatus(tx, review.id);
+    if (currentStatus === null) {
+      throw new DomainError("レビューが見つかりません。", { status: 404 });
+    }
+    if (
+      currentStatus !== "pending_review" &&
+      currentStatus !== "needs_check" &&
+      currentStatus !== "investigating"
+    ) {
+      throw new DomainError(
+        `このレビューは既に ${currentStatus} 状態です。`,
+        { status: 400 },
+      );
+    }
+
     const next = (await base.update(
       review.id,
       {
@@ -120,13 +139,13 @@ export async function confirmReview(
       targetId: next.id,
       subjectUserId: review.user_id,
       action: "bank_transfer_review.review.confirmed",
-      before: { status: review.status, reviewed_by: review.reviewed_by },
+      before: { status: currentStatus, reviewed_by: review.reviewed_by },
       after: { status: next.status, reviewed_by: next.reviewed_by },
       metadata: {
         purchaseRequestId: review.purchase_request_id,
         mode: review.mode,
         walletHistoryId,
-        fromStatus: review.status,
+        fromStatus: currentStatus,
         needsCheckReason: review.needs_check_reason,
         needsCheckContext: review.needs_check_context,
         source,
