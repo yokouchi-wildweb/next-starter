@@ -1,45 +1,37 @@
 // src/app/admin/(protected)/bank-transfer-reviews/_components/BankTransferReviewListPanel.tsx
 //
 // 銀行振込レビュー管理画面のメインコンテナ。
-// status タブ・フィルタ・ページング・モーダル開閉などの状態を一括で管理する。
+// status タブ・ページング・モーダル開閉などの状態を一括で管理する。
+// CSV 一括取込ボタンは全タブ共通でヘッダーに常設する。
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type Key } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import useSWR from "swr";
+import { Upload } from "lucide-react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
 import {
   adminListBankTransferReviews,
+  adminGetBankTransferReviewStatusCounts,
+  adminUpdateBankTransferReviewAdminMemo,
   type BankTransferReviewStatus,
 } from "@/features/core/bankTransferReview";
 import { err } from "@/lib/errors";
+import { useToast } from "@/lib/toast";
 
-import {
-  BankTransferReviewFilterBar,
-  EMPTY_FILTERS,
-  type BankTransferReviewAppliedFilters,
-} from "./BankTransferReviewFilterBar";
 import { BankTransferReviewTable } from "./BankTransferReviewTable";
 import { BankTransferReviewDetailModal } from "./BankTransferReviewDetailModal";
+import { BankTransferReviewCsvImportDialog } from "./BankTransferReviewCsvImportDialog";
 import { StatusTabs } from "./StatusTabs";
 
-const PAGE_LIMIT = 20;
-
-/**
- * YYYY-MM-DD を「その日の 00:00:00 UTC」または「23:59:59.999 UTC」の ISO 文字列に変換する。
- * dateFrom は始端、dateTo は終端なので異なる時刻を採用する。
- */
-function toIsoFromYmd(ymd: string, end: boolean): string | undefined {
-  if (!ymd) return undefined;
-  const d = new Date(end ? `${ymd}T23:59:59.999Z` : `${ymd}T00:00:00.000Z`);
-  if (Number.isNaN(d.getTime())) return undefined;
-  return d.toISOString();
-}
+const PAGE_LIMIT = 100;
 
 type Props = {
   /** URL の動的セグメントから決定された現在の status */
@@ -47,45 +39,103 @@ type Props = {
 };
 
 export function BankTransferReviewListPanel({ status }: Props) {
-  const [applied, setApplied] = useState<BankTransferReviewAppliedFilters>(EMPTY_FILTERS);
+  const params = useSearchParams();
+  const pathname = usePathname();
+  const { showToast } = useToast();
+  // SearchBox は URL クエリ駆動なので、ここでは読み取り側として使う
+  const searchQuery = params.get("searchQuery") ?? "";
+
   const [page, setPage] = useState(1);
   const [detailReviewId, setDetailReviewId] = useState<string | null>(null);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  // バルクアクション用にチェックボックスで選択中の行キー（review.id）
+  const [selectedKeys, setSelectedKeys] = useState<Key[]>([]);
+
+  // タブ・検索が変わったら 1 ページ目に戻し、ページを含むスコープが変わったら
+  // 選択を解除する。振込レビューはページングのため、ページを跨いだ選択は保持
+  // しない（一斉送信の対象は表示中ページ内の最大 PAGE_LIMIT 件）。effect 内
+  // setState を避けるため、レンダー中に前回スコープと比較する（React 推奨パターン）。
+  const [prevSelectionScope, setPrevSelectionScope] = useState({
+    status,
+    searchQuery,
+    page,
+  });
+  if (
+    prevSelectionScope.status !== status ||
+    prevSelectionScope.searchQuery !== searchQuery
+  ) {
+    setPrevSelectionScope({ status, searchQuery, page: 1 });
+    setPage(1);
+    setSelectedKeys([]);
+  } else if (prevSelectionScope.page !== page) {
+    setPrevSelectionScope({ status, searchQuery, page });
+    setSelectedKeys([]);
+  }
 
   const swrKey = useMemo(
-    () =>
-      [
-        "adminListBankTransferReviews",
-        status,
-        applied.mode ?? "",
-        applied.userId,
-        applied.dateFrom,
-        applied.dateTo,
-        page,
-      ] as const,
-    [status, applied, page],
+    () => ["adminListBankTransferReviews", status, searchQuery, page] as const,
+    [status, searchQuery, page],
   );
 
   const { data, isLoading, error, mutate } = useSWR(swrKey, async () => {
     return adminListBankTransferReviews({
       status,
-      mode: applied.mode,
-      userId: applied.userId || undefined,
-      dateFrom: toIsoFromYmd(applied.dateFrom, false),
-      dateTo: toIsoFromYmd(applied.dateTo, true),
+      searchQuery: searchQuery || undefined,
       page,
       limit: PAGE_LIMIT,
     });
   });
 
-  const handleApply = useCallback((next: BankTransferReviewAppliedFilters) => {
-    setApplied(next);
-    setPage(1);
-  }, []);
+  // status 別件数。ページ移動では再取得せず、検索クエリが変わったときと
+  // 一覧アクション完了時にだけ再取得する（list 本体とは独立した SWR キー）。
+  const statusCountsSwrKey = useMemo(
+    () => ["adminGetBankTransferReviewStatusCounts", searchQuery] as const,
+    [searchQuery],
+  );
+  const { data: statusCountsData, mutate: mutateStatusCounts } = useSWR(
+    statusCountsSwrKey,
+    async () =>
+      adminGetBankTransferReviewStatusCounts({
+        searchQuery: searchQuery || undefined,
+      }),
+  );
 
-  const handleReset = useCallback(() => {
-    setApplied(EMPTY_FILTERS);
-    setPage(1);
-  }, []);
+  const handleCsvImportDone = useCallback(() => {
+    void mutate();
+    void mutateStatusCounts();
+  }, [mutate, mutateStatusCounts]);
+
+  // 一覧の「管理者メモ」列のインライン編集（発送リクエスト一覧と同じ運用）。
+  // メール一斉送信での送付履歴追記もこの列に反映される。
+  const handleAdminMemoChange = useCallback(
+    async (reviewId: string, memo: string) => {
+      showToast({
+        message: "メモを保存中…",
+        variant: "loading",
+        mode: "persistent",
+      });
+      try {
+        await adminUpdateBankTransferReviewAdminMemo({
+          reviewId,
+          adminMemo: memo,
+        });
+        showToast("管理者メモを更新しました", "success");
+        void mutate();
+      } catch (error) {
+        showToast(err(error, "管理者メモの更新に失敗しました"), "error");
+      }
+    },
+    [mutate, showToast],
+  );
+
+  // SearchBox 用: 現在のパスを保ちつつ URLSearchParams を差し替えるリンク生成器
+  const makeSearchHref = useCallback(
+    (next: URLSearchParams) => {
+      const query = next.toString();
+      return query ? `${pathname}?${query}` : pathname;
+    },
+    [pathname],
+  );
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -97,13 +147,24 @@ export function BankTransferReviewListPanel({ status }: Props) {
   return (
     <>
       <Stack space={4}>
-        <StatusTabs />
-
-        <BankTransferReviewFilterBar
-          applied={applied}
-          onApply={handleApply}
-          onReset={handleReset}
-        />
+        <Flex justify="between" align="center" wrap="wrap" gap="sm">
+          <StatusTabs counts={statusCountsData?.counts} />
+          <Flex gap="sm" align="center" wrap="wrap">
+            <SearchBox
+              makeHref={makeSearchHref}
+              placeholder="ユーザー / 承認番号 / 電話 / メール"
+            />
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setCsvDialogOpen(true)}
+            >
+              <Upload className="size-4 mr-1" />
+              振込明細CSVで一括判定
+            </Button>
+          </Flex>
+        </Flex>
 
         <Flex justify="between" align="center" wrap="wrap" gap="sm">
           <Para size="xs" tone="muted">
@@ -154,8 +215,15 @@ export function BankTransferReviewListPanel({ status }: Props) {
           </Flex>
         ) : hasItems ? (
           <BankTransferReviewTable
+            status={status}
             items={items}
-            onSelect={(reviewId) => setDetailReviewId(reviewId)}
+            onSelect={setDetailReviewId}
+            selectedKeys={selectedKeys}
+            onSelectionChange={setSelectedKeys}
+            onBulkActionDone={() => {
+              void mutate();
+            }}
+            onAdminMemoChange={handleAdminMemoChange}
           />
         ) : (
           <Flex
@@ -173,8 +241,16 @@ export function BankTransferReviewListPanel({ status }: Props) {
         onClose={() => setDetailReviewId(null)}
         onActionDone={() => {
           // 一覧と詳細の両方を再取得する。詳細モーダル側でも自身の SWR を refresh する。
+          // status 遷移を伴うアクションでタブ件数も変わるので併せて mutate する。
           void mutate();
+          void mutateStatusCounts();
         }}
+      />
+
+      <BankTransferReviewCsvImportDialog
+        open={csvDialogOpen}
+        onOpenChange={setCsvDialogOpen}
+        onImportDone={handleCsvImportDone}
       />
     </>
   );

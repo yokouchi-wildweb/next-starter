@@ -171,7 +171,7 @@ export type SwitchInputProps<T = boolean> = {
     | "warning";
 } & Omit<
   ComponentPropsWithoutRef<"input">,
-  "type" | "value" | "defaultValue" | "defaultChecked" | "checked" | "onChange" | "name"
+  "type" | "value" | "defaultValue" | "defaultChecked" | "checked" | "onChange" | "size" | "name"
 >;
 
 export function SwitchInput<T = boolean>(props: SwitchInputProps<T>) {

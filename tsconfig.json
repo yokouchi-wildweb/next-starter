@@ -52,7 +52,8 @@
       "@/features/wallet/*": ["./src/features/core/wallet/*"],
       "@/features/chatRoom/*": ["./src/features/core/chatRoom/*"],
       "@/features/walletHistory/*": ["./src/features/core/walletHistory/*"],
-      "@/features/batchJob/*": ["./src/features/core/batchJob/*"]
+      "@/features/batchJob/*": ["./src/features/core/batchJob/*"],
+      "@/features/messaging/*": ["./src/features/core/messaging/*"]
     }
   },
   "include": [

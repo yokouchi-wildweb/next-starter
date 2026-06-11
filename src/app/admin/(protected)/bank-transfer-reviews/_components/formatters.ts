@@ -3,7 +3,10 @@
 // 銀行振込レビュー管理画面 専用の表示整形ヘルパー。
 
 import type {
+  BankTransferReviewApprovalSource,
   BankTransferReviewMode,
+  BankTransferReviewNeedsCheckContext,
+  BankTransferReviewNeedsCheckReason,
   BankTransferReviewStatus,
 } from "@/features/core/bankTransferReview";
 
@@ -49,7 +52,11 @@ export function modeBadgeVariant(mode: BankTransferReviewMode): "info" | "warnin
 }
 
 const STATUS_LABELS: Record<BankTransferReviewStatus, string> = {
-  pending_review: "確認待ち",
+  // mode の「確認待ち（approval_required）」と紛らわしいため、
+  // status 側はあえて別の語「レビュー待ち」を使う。
+  pending_review: "レビュー待ち",
+  needs_check: "要確認",
+  investigating: "検証中",
   confirmed: "承認済み",
   rejected: "拒否",
 };
@@ -60,16 +67,84 @@ export function formatStatusLabel(status: BankTransferReviewStatus): string {
 
 /**
  * status に対応するバッジ色。
- * - pending_review: warning (オレンジ系) — 管理者の対応待ち
+ * - pending_review / needs_check: warning (オレンジ系) — 管理者の対応待ち
+ * - investigating: accent — 追加検証中（停止措置等を伴う重大ケース）。
+ *   rejected (destructive=赤) と区別したいため accent を使う。
  * - confirmed: success (緑) — 完了
  * - rejected: destructive (赤) — 拒否済み
  */
 export function statusBadgeVariant(
   status: BankTransferReviewStatus,
-): "warning" | "success" | "destructive" {
+): "warning" | "success" | "destructive" | "accent" {
   if (status === "confirmed") return "success";
   if (status === "rejected") return "destructive";
+  if (status === "investigating") return "accent";
+  // pending_review / needs_check はどちらも管理者対応待ちなので warning。
+  // needs_check の特別感は別バッジ (理由バッジ) で表現する想定 (Phase3)。
   return "warning";
+}
+
+/**
+ * needs_check 理由コードの日本語ラベル。
+ * 値追加時はここと entities/schema.ts の REASONS を同期。
+ */
+const NEEDS_CHECK_REASON_LABELS: Record<BankTransferReviewNeedsCheckReason, string> = {
+  amount_mismatch: "金額不一致",
+};
+
+export function formatNeedsCheckReasonLabel(
+  reason: BankTransferReviewNeedsCheckReason | null | undefined,
+): string {
+  if (!reason) return "-";
+  return NEEDS_CHECK_REASON_LABELS[reason] ?? reason;
+}
+
+/**
+ * needs_check_context の補足表示文。理由コードごとに人が読みやすい一文を生成する。
+ * 構造化データを UI に直接出すと読みづらいため、ここで日本語化する。
+ */
+export function formatNeedsCheckContextSummary(
+  context: BankTransferReviewNeedsCheckContext | null | undefined,
+): string | null {
+  if (!context) return null;
+  if (context.reason === "amount_mismatch") {
+    return `CSV ${formatJpyAmount(context.csvAmount)} / 期待 ${formatJpyAmount(context.expectedAmount)}`;
+  }
+  return null;
+}
+
+/**
+ * 承認の入力経路ラベル。null（不明）は呼び出し側で扱いを分岐するため
+ * ここでは BankTransferReviewApprovalSource の 2 値のみマップする。
+ */
+const APPROVAL_SOURCE_LABELS: Record<BankTransferReviewApprovalSource, string> = {
+  manual: "手動承認",
+  csv_auto: "CSV自動承認",
+};
+
+/**
+ * 承認の入力経路ラベル。
+ * - null（機能リリース前の既存 confirmed 等）は「不明」と表示する。
+ */
+export function formatApprovalSourceLabel(
+  source: BankTransferReviewApprovalSource | null | undefined,
+): string {
+  if (!source) return "不明";
+  return APPROVAL_SOURCE_LABELS[source] ?? source;
+}
+
+/**
+ * 承認の入力経路バッジ色。
+ * - manual: info（人の介在を表す中立色）
+ * - csv_auto: success（自動処理の完了を表す緑）
+ * - null（不明）: muted
+ */
+export function approvalSourceBadgeVariant(
+  source: BankTransferReviewApprovalSource | null | undefined,
+): "info" | "success" | "muted" {
+  if (source === "csv_auto") return "success";
+  if (source === "manual") return "info";
+  return "muted";
 }
 
 /**
