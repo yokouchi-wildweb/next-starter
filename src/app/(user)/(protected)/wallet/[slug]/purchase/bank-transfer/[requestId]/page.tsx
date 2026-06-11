@@ -24,7 +24,7 @@ import {
   INHOUSE_PROVIDER_NAME,
 } from "@/features/core/purchaseRequest/services/server/payment/inhouse";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
-import { isValidSlug } from "@/features/core/wallet";
+import { getCurrencyConfigBySlug } from "@/features/core/wallet";
 
 type PageProps = {
   params: Promise<{ slug: string; requestId: string }>;
@@ -33,7 +33,9 @@ type PageProps = {
 export default async function BankTransferInstructionPageRoute({ params }: PageProps) {
   const { slug, requestId } = await params;
 
-  if (!isValidSlug(slug)) {
+  // slug の妥当性検証を兼ねて通貨設定を取得（表示名を注意喚起ダイアログで使用）
+  const currency = getCurrencyConfigBySlug(slug);
+  if (!currency) {
     notFound();
   }
 
@@ -83,6 +85,7 @@ export default async function BankTransferInstructionPageRoute({ params }: PageP
           expiresAt={purchaseRequest.expires_at}
           aiImageJudgmentEnabled={bankTransferConfig.aiImageJudgmentEnabled}
           aiImageJudgmentStrictMode={bankTransferConfig.aiImageJudgmentStrictMode}
+          currencyLabel={currency.label}
         />
       </Stack>
     </UserPage>

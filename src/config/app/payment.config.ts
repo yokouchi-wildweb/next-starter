@@ -180,8 +180,8 @@ export const paymentConfig = {
    */
   bankTransfer: {
     autoComplete: true,
-    aiImageJudgmentEnabled: false,
-    aiImageJudgmentStrictMode: false,
+    aiImageJudgmentEnabled: true,
+    aiImageJudgmentStrictMode: true,
     account: {
       bankName: "サンプル銀行",
       branchName: "サンプル支店",

@@ -191,9 +191,13 @@ const ResultView = ({ result }: { result: JudgmentResult }) => {
         <SoftBadge variant="muted">{imageTypeLabel(result.imageType)}</SoftBadge>
       </div>
 
-      <ConfidenceBar value={result.confidence} />
-
-      {result.strictChecks ? <StrictCheckList checks={result.strictChecks} /> : null}
+      {/* ストリクトモード時は本番 UI と同様に 3 点チェックリストのみ表示
+          （確信度は生レスポンス JSON で確認可能） */}
+      {result.strictChecks ? (
+        <StrictCheckList checks={result.strictChecks} />
+      ) : (
+        <ConfidenceBar value={result.confidence} />
+      )}
 
       <div>
         <Para size="sm" weight="medium">

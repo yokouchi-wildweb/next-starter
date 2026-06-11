@@ -28,6 +28,7 @@ import {
 import { PrepareProofImage } from "./PrepareProofImage";
 import { SaveBookmarkButton } from "./SaveBookmarkButton";
 import { StepConnector } from "./StepConnector";
+import { StrictModeNoticeDialog } from "./StrictModeNoticeDialog";
 
 export type BankTransferInstructionPageProps = {
   /** purchase_request の ID（画像アップロードのパスに使用） */
@@ -51,6 +52,8 @@ export type BankTransferInstructionPageProps = {
    * 実際の厳格判定はサーバー側（judge-image API）で行われる。
    */
   aiImageJudgmentStrictMode: boolean;
+  /** 購入対象通貨の表示名（例: コイン、ポイント）。ストリクトモードの注意喚起文言に使用 */
+  currencyLabel: string;
 };
 
 export function BankTransferInstructionPage({
@@ -61,6 +64,7 @@ export function BankTransferInstructionPage({
   expiresAt,
   aiImageJudgmentEnabled,
   aiImageJudgmentStrictMode,
+  currencyLabel,
 }: BankTransferInstructionPageProps) {
   // 添付された画像の Storage URL。null = 未添付。申告ステップ API に渡す。
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
@@ -97,6 +101,11 @@ export function BankTransferInstructionPage({
 
   return (
     <Stack space={5}>
+      {/* ストリクトモード時の入場時注意喚起（3点確認できないと即時付与されない旨） */}
+      {aiImageJudgmentEnabled && aiImageJudgmentStrictMode && (
+        <StrictModeNoticeDialog currencyLabel={currencyLabel} />
+      )}
+
       {/* 振込金額 */}
       <AmountDisplay amount={paymentAmount} />
 

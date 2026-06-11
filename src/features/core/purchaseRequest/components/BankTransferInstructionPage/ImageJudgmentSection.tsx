@@ -262,9 +262,13 @@ function ResultView({ result }: { result: JudgmentResult }) {
         </SoftBadge>
       </Flex>
 
-      <ResultBar isPassed={isPassed} confidence={result.confidence} />
-
-      {result.strictChecks ? <StrictCheckList checks={result.strictChecks} /> : null}
+      {/* ストリクトモード時は 3 点チェックリストのみ表示（確信度バーは出さない）。
+          通過判定は 3 点の合否で決まるため、確信度はユーザーに提示しない方が分かりやすい。 */}
+      {result.strictChecks ? (
+        <StrictCheckList checks={result.strictChecks} />
+      ) : (
+        <ResultBar isPassed={isPassed} confidence={result.confidence} />
+      )}
 
       <Para size="sm">{result.reason}</Para>
     </Stack>
