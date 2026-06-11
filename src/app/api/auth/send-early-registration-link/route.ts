@@ -6,6 +6,7 @@ import { createApiRoute } from "@/lib/routeFactory";
 import { isDisposableEmail } from "@/lib/spamGuard";
 import { sendEarlyRegistrationLink } from "@/features/core/auth/services/server/sendEarlyRegistrationLink";
 
+// eslint-disable-next-line route-authz/require-authz -- 公開: 登録前のメール送信（reCAPTCHA/レート制限で保護）
 export const POST = createApiRoute(
   {
     operation: "POST /api/auth/send-early-registration-link",

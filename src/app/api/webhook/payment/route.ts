@@ -51,6 +51,7 @@ async function verifySignature(
   return { valid: isValid, signature: isValid ? signature : undefined };
 }
 
+// eslint-disable-next-line route-authz/require-authz -- 公開: 決済プロバイダ Webhook（ハンドラ内で署名検証）
 export const POST = createApiRoute(
   {
     operation: "POST /api/webhook/payment",

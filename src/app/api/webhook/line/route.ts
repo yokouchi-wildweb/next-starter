@@ -37,6 +37,7 @@ const handleEvent: LineWebhookHandler = async (_event) => {
  * LINE Platform は 200 を返さないと再送を繰り返すため、
  * イベント処理でエラーが発生しても 200 を返す。
  */
+// eslint-disable-next-line route-authz/require-authz -- 公開: LINE Webhook（ハンドラ内で HMAC 署名検証）
 export const POST = createApiRoute(
   {
     operation: "POST /api/webhook/line",

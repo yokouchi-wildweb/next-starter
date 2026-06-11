@@ -54,6 +54,47 @@ domain.json に `apiAccess` を追加する（スキーマ詳細: `src/features/
 
 新ドメイン追加時は `dc:init` が read / write の許可範囲を対話で確認し、domain.json に明示宣言する。
 
+## カスタムルートの認可（重要）
+
+ここまでの仕組みは **汎用ルート（`createDomainRoute`）専用**。`createApiRoute` を直接使う
+手書きルート（`src/app/api/**/route.ts`）は **認可を書かなくても通る（fail-open）**。
+domain.json の `apiAccess` は効かないため、**各ルートのハンドラ内で明示的に認可する**こと。
+
+### 認可ヘルパー
+
+`@/features/core/auth/services/server/requireRole` の以下を**ハンドラ先頭で呼ぶ**。
+失敗時は `DomainError` を throw し、`createApiRoute` が 401 / 403 に変換する。
+ロール判定は DB 同期される `getSessionUser` を使う（`ctx.session` は token-only のため認可に使わない）。
+
+```ts
+import { requireAdmin, requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
+
+export const POST = createApiRoute({ operation: "...", operationType: "write" }, async (req) => {
+  await requireAdmin();          // 管理者限定（未認証→401 / 非admin・利用停止→403）
+  // または await requireAuthenticated();  // ログイン必須（未認証→401 / 利用停止→403）
+  ...
+});
+```
+
+オーナーシップ（自分のレコードのみ）が必要なら、`requireAuthenticated()` で得た
+`user.userId` をハンドラ内で where 条件に使うか、`/api/me/` 系の専用ルートで提供する。
+
+### 未認証で公開するルート
+
+ログイン前処理・署名検証付き webhook・公開マスタ等、未認証が正当なルートは
+**理由付きで lint を抑止**して「意図的公開」であることを記録する。
+
+```ts
+// eslint-disable-next-line route-authz/require-authz -- 公開: <理由>
+export const POST = createApiRoute(...);
+```
+
+### lint による検出
+
+`eslint-rules/route-authz.mjs`（`route-authz/require-authz`）が、`createApiRoute` を使うのに
+認可ヘルパーも `session` 参照も無いルートを **warn** で検出する。新規ルートで認可を書き忘れると
+警告が出るので、認可を足すか、上記の理由付き抑止で公開を明示すること。
+
 ## 設計指針
 
 ### オーナーシップ制御はできない

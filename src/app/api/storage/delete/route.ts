@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { storageService } from "@/lib/storage/server/storageService";
 
 export const POST = createApiRoute(
@@ -12,6 +13,8 @@ export const POST = createApiRoute(
     skipForDemo: true,
   },
   async (req) => {
+    await requireAuthenticated();
+
     const { pathOrUrl } = await req.json();
 
     if (typeof pathOrUrl !== "string") {

@@ -19,6 +19,7 @@ import {
  * - redirect_after: X連携完了後の戻り先URL（必須）
  * - scopes: カンマ区切りのスコープ（任意、デフォルト: tweet.read,tweet.write,users.read,offline.access）
  */
+// eslint-disable-next-line route-authz/require-authz -- 公開: X OAuth 開始（未認証、PKCE/state で CSRF 対策済み）
 export const GET = createApiRoute(
   {
     operation: "GET /api/auth/x/login",

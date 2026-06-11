@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { createApiRoute } from "src/lib/routeFactory";
 import { getProfileBase } from "@/features/core/userProfile/utils/profileBaseHelpers";
+import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import type { WithOptions } from "@/lib/crud";
 import {
   parseBooleanFlag,
@@ -20,6 +21,7 @@ export const GET = createApiRoute<Params>(
     operationType: "read",
   },
   async (req, { params }) => {
+    await requireAdmin();
     const profileBase = getProfileBase(params.role);
     if (!profileBase) {
       return new NextResponse("Not Found", { status: 404 });

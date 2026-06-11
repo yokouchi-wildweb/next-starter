@@ -9,6 +9,7 @@ import { createApiRoute } from "@/lib/routeFactory";
 import "@/features/core/coupon/handlers/init";
 import { getRegisteredCategoryInfoList } from "@/features/core/coupon/handlers";
 
+// eslint-disable-next-line route-authz/require-authz -- 公開: クーポンカテゴリのマスタデータ（機密性なし）
 export const GET = createApiRoute(
   {
     operation: "GET /api/coupon/categories",

@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createApiRoute } from "@/lib/routeFactory";
+import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { exportData } from "@/lib/dataMigration/export";
 
 type ExportRequestBody = {
@@ -20,6 +21,8 @@ export const POST = createApiRoute(
     operationType: "read",
   },
   async (req: NextRequest) => {
+    await requireAdmin();
+
     const body = (await req.json()) as ExportRequestBody;
 
     const { domain, selectedFields, includeImages, searchParams, imageFields, includeRelations, selectedHasManyDomains } = body;

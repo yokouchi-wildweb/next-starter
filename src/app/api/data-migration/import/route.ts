@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createApiRoute } from "@/lib/routeFactory";
+import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { importData } from "@/lib/dataMigration/import";
 
 export const POST = createApiRoute(
@@ -10,6 +11,8 @@ export const POST = createApiRoute(
     operationType: "write",
   },
   async (req: NextRequest) => {
+    await requireAdmin();
+
     // FormData から ZIP ファイルを取得
     const formData = await req.formData();
 

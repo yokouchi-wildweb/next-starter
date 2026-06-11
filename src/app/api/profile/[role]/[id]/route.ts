@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { createApiRoute } from "src/lib/routeFactory";
 import { getProfileBase } from "@/features/core/userProfile/utils/profileBaseHelpers";
+import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 
 type Params = { role: string; id: string };
 
@@ -14,6 +15,7 @@ export const GET = createApiRoute<Params>(
     operationType: "read",
   },
   async (_req, { params }) => {
+    await requireAdmin();
     const profileBase = getProfileBase(params.role);
     if (!profileBase) {
       return new NextResponse("Not Found", { status: 404 });
@@ -34,6 +36,7 @@ export const PATCH = createApiRoute<Params>(
     operationType: "write",
   },
   async (req, { params }) => {
+    await requireAdmin();
     const profileBase = getProfileBase(params.role);
     if (!profileBase) {
       return new NextResponse("Not Found", { status: 404 });
@@ -51,6 +54,7 @@ export const DELETE = createApiRoute<Params>(
     operationType: "write",
   },
   async (_req, { params }) => {
+    await requireAdmin();
     const profileBase = getProfileBase(params.role);
     if (!profileBase) {
       return new NextResponse("Not Found", { status: 404 });
