@@ -37,6 +37,8 @@ export type BulkSendEmailParams = {
   notificationTitle?: string;
   /** 通知本文（sendNotification=true のとき必須） */
   notificationBody?: string;
+  /** 二重送信防止用の冪等性キー（クライアント発行）。messaging へそのまま委譲する */
+  idempotencyKey?: string;
 };
 
 /** メール送信失敗時の詳細 */
@@ -82,6 +84,7 @@ export async function bulkSendEmail(
     sendNotification,
     notificationTitle,
     notificationBody,
+    idempotencyKey,
   } = params;
 
   if (reviewIds.length === 0) {
@@ -127,6 +130,7 @@ export async function bulkSendEmail(
     notificationTitle: notificationTitle?.trim(),
     notificationBody: notificationBody?.trim(),
     source: MESSAGING_SOURCES.BANK_TRANSFER_REVIEW_BULK,
+    idempotencyKey,
   });
 
   // メール失敗を既存 API 互換の形に整形

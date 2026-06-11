@@ -7,7 +7,10 @@
 // - 通知: 1 レコードで複数ユーザーに配信（notification の target_type=individual）
 //        通知失敗はジョブ全体の失敗扱いだが、メール送信は止めない
 // - 並列度: chunkSize ごとに Promise.all で並列実行 → 完了後に次チャンク
-// - 永続化: 全送信完了後に message_dispatches 1 行 + audit_logs N 行（recordMany）
+// - 永続化: 送信「前」に message_dispatches 1 行を status='processing' で INSERT し、
+//          全送信完了後に件数確定 UPDATE + audit_logs N 行（recordMany）。
+//          事前 INSERT + idempotency_key の UNIQUE 制約により、同一キーの再実行は
+//          メールを 1 通も送る前に拒否される（二重送信の構造的防止）
 
 import { inArray } from "drizzle-orm";
 
@@ -27,7 +30,7 @@ import type {
 import { recordRecipientAudits } from "./auditing";
 import { sendEmailViaTemplate } from "./channels/email";
 import { sendInAppNotification } from "./channels/inApp";
-import { insertDispatch } from "./dispatch";
+import { completeDispatch, createDispatch } from "./dispatch";
 
 const EMPTY_CHANNEL_RESULT: MessagingChannelResult = {
   attempted: false,
@@ -53,6 +56,20 @@ export async function bulkSend(
 
   // メール送信時のみユーザー情報が必要（email / name を引く）
   const userMap = useEmail ? await fetchUsersForEmail(uniqueUserIds) : null;
+
+  // dispatch 永続化（送信前 INSERT, status='processing'）。
+  // 同一 idempotencyKey の再実行はここで 409 になり、メールは 1 通も送られない。
+  const dispatchId = await createDispatch({
+    channels: input.channels,
+    emailSubject: useEmail ? input.emailSubject! : null,
+    emailBody: useEmail ? input.emailBody! : null,
+    notificationTitle: useInApp ? input.notificationTitle! : null,
+    notificationBody: useInApp ? input.notificationBody! : null,
+    recipientCount: uniqueUserIds.length,
+    source: input.source,
+    reason: input.reason ?? null,
+    idempotencyKey: input.idempotencyKey ?? null,
+  });
 
   // メール送信（chunkSize 単位で並列、チャンク間は逐次）
   const perRecipient = new Map<string, MessagingRecipientResult>();
@@ -120,20 +137,24 @@ export async function bulkSend(
     }
   }
 
-  // dispatch 永続化（1 INSERT）
-  const dispatchId = await insertDispatch({
-    channels: input.channels,
-    emailSubject: useEmail ? input.emailSubject! : null,
-    emailBody: useEmail ? input.emailBody! : null,
-    notificationTitle: useInApp ? input.notificationTitle! : null,
-    notificationBody: useInApp ? input.notificationBody! : null,
-    recipientCount: uniqueUserIds.length,
-    emailSuccessCount,
-    emailFailedCount,
-    notificationCreated,
-    source: input.source,
-    reason: input.reason ?? null,
-  });
+  // 件数確定（status='completed' へ UPDATE）。
+  // ここで失敗しても throw しない: メールは送信済みであり、500 を返すと呼び出し元に
+  // 「失敗した」と誤認させて再実行 = 二重送信を誘発する。行は processing のまま残り、
+  // 監査ログ（後続の recordRecipientAudits）と合わせて実態を追跡できる。
+  try {
+    await completeDispatch({
+      dispatchId,
+      emailSuccessCount,
+      emailFailedCount,
+      notificationCreated,
+    });
+  } catch (error) {
+    console.error(
+      `[messaging.bulkSend] dispatch 完了更新に失敗 dispatchId=${dispatchId} ` +
+        `success=${emailSuccessCount} failed=${emailFailedCount}: `,
+      error,
+    );
+  }
 
   // 受信者単位の監査ログ（recordMany で 1 statement INSERT）
   const recipientsList = [...perRecipient.values()];

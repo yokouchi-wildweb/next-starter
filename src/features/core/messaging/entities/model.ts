@@ -7,9 +7,13 @@ import type {
   MessagingBulkSendInputSchema,
   MessagingSendInputSchema,
 } from "./schema";
+import type { MESSAGE_DISPATCH_STATUSES } from "./schema";
 
 export type MessageDispatch = typeof MessageDispatchTable.$inferSelect;
 export type MessageDispatchInsert = typeof MessageDispatchTable.$inferInsert;
+
+/** 送信ジョブの状態（値の意味は schema.ts の MESSAGE_DISPATCH_STATUSES を参照） */
+export type MessageDispatchStatus = (typeof MESSAGE_DISPATCH_STATUSES)[number];
 
 export type MessagingSendInput = z.infer<typeof MessagingSendInputSchema>;
 export type MessagingBulkSendInput = z.infer<

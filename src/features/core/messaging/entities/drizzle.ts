@@ -13,13 +13,33 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+import { MESSAGE_DISPATCH_STATUSES } from "./schema";
 
 export const MessageDispatchTable = pgTable(
   "message_dispatches",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+
+    /**
+     * 送信ジョブの状態。送信開始前に 'processing' で INSERT され、送信処理の完走後に
+     * 'completed' へ UPDATE される。processing のまま残っている行は処理が異常終了した
+     * 痕跡（メールは送信済みの可能性がある）なので、安易に再実行しないこと。
+     * default は既存行のバックフィル用（カラム追加前の行はすべて送信完了後の記録）。
+     */
+    status: text("status")
+      .$type<(typeof MESSAGE_DISPATCH_STATUSES)[number]>()
+      .notNull()
+      .default("completed"),
+
+    /**
+     * 二重送信防止用の冪等性キー（クライアント発行）。UNIQUE 制約により、同一キーの
+     * 2 回目の INSERT は送信開始前に失敗する。キーなし送信（NULL）は衝突しない。
+     */
+    idempotency_key: text("idempotency_key"),
 
     /** 使用したチャネル: 'email' | 'inApp'. 1 件以上 */
     channels: text("channels").array().notNull(),
@@ -63,10 +83,16 @@ export const MessageDispatchTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+
+    /** 送信処理が完走し件数が確定した日時（status='completed' になった時刻） */
+    completed_at: timestamp("completed_at", { withTimezone: true }),
   },
   (table) => [
     index("idx_message_dispatches_created_at").on(table.createdAt.desc()),
     index("idx_message_dispatches_actor").on(table.actor_id),
     index("idx_message_dispatches_source").on(table.source),
+    uniqueIndex("uq_message_dispatches_idempotency_key").on(
+      table.idempotency_key,
+    ),
   ],
 );

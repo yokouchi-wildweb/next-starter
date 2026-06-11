@@ -78,6 +78,11 @@ export function BulkSendEmailButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<BulkSendEmailResult | null>(null);
 
+  // 二重送信防止用の冪等性キー。フォームを開くたびに発行し、同じフォームセッション内の
+  // 再試行（ネットワークエラー後の再クリック等）では同一キーを送る。サーバー側は同一
+  // キーの 2 回目以降をメール送信前に 409 で拒否するため、構造的に二重送信できない。
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
+
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [sendNotification, setSendNotification] = useState(true);
@@ -110,6 +115,7 @@ export function BulkSendEmailButton({
     (open: boolean) => {
       if (isSubmitting) return;
       setFormOpen(open);
+      if (open) setIdempotencyKey(crypto.randomUUID());
       if (!open) resetForm();
     },
     [isSubmitting, resetForm],
@@ -136,6 +142,7 @@ export function BulkSendEmailButton({
         sendNotification,
         notificationTitle: sendNotification ? notificationTitle.trim() : undefined,
         notificationBody: sendNotification ? notificationBody.trim() : undefined,
+        idempotencyKey: idempotencyKey ?? undefined,
       });
       setResult(res);
       setConfirmOpen(false);
@@ -159,6 +166,7 @@ export function BulkSendEmailButton({
     sendNotification,
     notificationTitle,
     notificationBody,
+    idempotencyKey,
     showToast,
     onSuccess,
   ]);
@@ -181,7 +189,7 @@ export function BulkSendEmailButton({
         size="sm"
         variant="outline"
         disabled={count === 0}
-        onClick={() => setFormOpen(true)}
+        onClick={() => handleFormOpenChange(true)}
       >
         <Mail className="h-4 w-4" />
         メール一斉送信

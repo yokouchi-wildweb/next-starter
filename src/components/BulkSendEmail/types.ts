@@ -18,6 +18,11 @@ export type BulkSendEmailInput = {
   notificationTitle?: string;
   /** 通知本文（sendNotification=true のとき必須） */
   notificationBody?: string;
+  /**
+   * 二重送信防止用の冪等性キー。フォームを開いた時点で発行され、同じフォーム
+   * セッション内の再試行では同一キーが送られる（サーバー側で 2 回目以降を拒否）。
+   */
+  idempotencyKey?: string;
 };
 
 /** メール送信失敗時の詳細 */

@@ -15,6 +15,14 @@ import {
 const MessagingChannelSchema = z.enum(["email", "inApp"]);
 
 /**
+ * message_dispatches.status の取り得る値。
+ * - processing: 送信前に作成された行。処理中、または処理が異常終了した痕跡
+ *   （processing のまま残っている行は「送信が走ったかもしれない」ことを示す）
+ * - completed: 送信処理が最後まで走り、成功/失敗件数が確定した行
+ */
+export const MESSAGE_DISPATCH_STATUSES = ["processing", "completed"] as const;
+
+/**
  * 受信者は ID のみを受け取り、email / name は内部で DB から取得する。
  * 将来 caller 側で予め取得した user を渡したくなった場合は別 API を切る。
  */
@@ -45,6 +53,12 @@ const baseShape = {
     .optional(),
   source: z.string().min(1),
   reason: z.string().max(500).optional(),
+  /**
+   * 二重送信防止用の冪等性キー（クライアント発行、crypto.randomUUID() 推奨）。
+   * 同一キーでの再実行は送信開始前に 409 で拒否される。
+   * 省略時は冪等性チェックなし（互換のため任意。新規の送信 UI では必ず渡すこと）。
+   */
+  idempotencyKey: z.string().trim().min(8).max(128).optional(),
 } as const;
 
 function requireChannelContent(

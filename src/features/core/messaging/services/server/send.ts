@@ -21,7 +21,7 @@ import type {
 import { recordRecipientAudits } from "./auditing";
 import { sendEmailViaTemplate } from "./channels/email";
 import { sendInAppNotification } from "./channels/inApp";
-import { insertDispatch } from "./dispatch";
+import { completeDispatch, createDispatch } from "./dispatch";
 
 const EMPTY_CHANNEL_RESULT: MessagingChannelResult = {
   attempted: false,
@@ -35,7 +35,9 @@ const EMPTY_CHANNEL_RESULT: MessagingChannelResult = {
  * - channels に含めたチャネルのみ送信を試みる
  * - メール送信は失敗してもユーザー通知は継続する（独立した経路）
  * - メールアドレス未登録ユーザーで email チャネル指定 → DomainError（呼び出し元の契約違反）
- * - 送信完了後、message_dispatches に 1 行、audit_logs に 1 行記録する
+ * - 送信「前」に message_dispatches へ status='processing' で 1 行 INSERT し、
+ *   送信完了後に件数確定 UPDATE + audit_logs に 1 行記録する
+ *   （idempotencyKey 指定時、同一キーの再実行は送信前に 409 で拒否される）
  */
 export async function send(
   input: MessagingSendInput,
@@ -65,6 +67,20 @@ export async function send(
       { status: 400 },
     );
   }
+
+  // dispatch 永続化（送信前 INSERT, status='processing'）。
+  // 同一 idempotencyKey の再実行はここで 409 になり、送信は行われない。
+  const dispatchId = await createDispatch({
+    channels: input.channels,
+    emailSubject: useEmail ? input.emailSubject! : null,
+    emailBody: useEmail ? input.emailBody! : null,
+    notificationTitle: useInApp ? input.notificationTitle! : null,
+    notificationBody: useInApp ? input.notificationBody! : null,
+    recipientCount: 1,
+    source: input.source,
+    reason: input.reason ?? null,
+    idempotencyKey: input.idempotencyKey ?? null,
+  });
 
   // チャネル別の送信
   let emailResult: MessagingChannelResult = EMPTY_CHANNEL_RESULT;
@@ -99,20 +115,22 @@ export async function send(
     };
   }
 
-  // ジョブ単位の永続化
-  const dispatchId = await insertDispatch({
-    channels: input.channels,
-    emailSubject: useEmail ? input.emailSubject! : null,
-    emailBody: useEmail ? input.emailBody! : null,
-    notificationTitle: useInApp ? input.notificationTitle! : null,
-    notificationBody: useInApp ? input.notificationBody! : null,
-    recipientCount: 1,
-    emailSuccessCount: emailResult.succeeded ? 1 : 0,
-    emailFailedCount: emailResult.attempted && !emailResult.succeeded ? 1 : 0,
-    notificationCreated,
-    source: input.source,
-    reason: input.reason ?? null,
-  });
+  // 件数確定（status='completed' へ UPDATE）。
+  // ここで失敗しても throw しない: 送信は実施済みであり、500 を返すと呼び出し元に
+  // 再実行 = 二重送信を誘発する。行は processing のまま残るので追跡は可能。
+  try {
+    await completeDispatch({
+      dispatchId,
+      emailSuccessCount: emailResult.succeeded ? 1 : 0,
+      emailFailedCount: emailResult.attempted && !emailResult.succeeded ? 1 : 0,
+      notificationCreated,
+    });
+  } catch (error) {
+    console.error(
+      `[messaging.send] dispatch 完了更新に失敗 dispatchId=${dispatchId}: `,
+      error,
+    );
+  }
 
   // 受信者単位の監査ログ
   const recipient: MessagingRecipientResult = {

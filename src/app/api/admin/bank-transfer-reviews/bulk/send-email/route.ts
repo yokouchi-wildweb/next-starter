@@ -23,6 +23,8 @@ const BodySchema = z
     sendNotification: z.boolean(),
     notificationTitle: z.string().optional(),
     notificationBody: z.string().optional(),
+    /** 二重送信防止用の冪等性キー（クライアント発行、crypto.randomUUID()） */
+    idempotencyKey: z.string().trim().min(8).max(128).optional(),
   })
   .refine(
     (v) =>
@@ -73,6 +75,7 @@ export const POST = createApiRoute(
       notificationBody: body.sendNotification
         ? body.notificationBody?.trim()
         : undefined,
+      idempotencyKey: body.idempotencyKey,
     });
 
     return {

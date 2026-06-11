@@ -5,7 +5,7 @@ export type { MessagingService } from "./messagingService";
 
 export { send } from "./send";
 export { bulkSend } from "./bulkSend";
-export { insertDispatch } from "./dispatch";
+export { createDispatch, completeDispatch } from "./dispatch";
 export { recordRecipientAudits } from "./auditing";
 export {
   sendEmailViaTemplate,
