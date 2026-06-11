@@ -53,6 +53,10 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
   const [preview, setPreview] = useState<AdminBulkImportBankTransferReviewCsvResponse | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // 実行完了フラグ。true の間は実行ボタンを無効化し、同じ CSV の誤再実行を防ぐ
+  // （再実行しても対象は処理済みのため全行エラー表示になり、成功した結果表が
+  // 上書きされて管理者を混乱させる）。CSV の差し替え・再プレビューで解除される。
+  const [executed, setExecuted] = useState(false);
 
   const resetState = useCallback(() => {
     setCsvText("");
@@ -61,6 +65,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
     setPreview(null);
     setIsValidating(false);
     setIsSubmitting(false);
+    setExecuted(false);
   }, []);
 
   const handleOpenChange = useCallback(
@@ -78,6 +83,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
     const text = await file.text();
     setCsvText(text);
     setPreview(null);
+    setExecuted(false);
   }, []);
 
   const handleRemoveFile = useCallback(() => {
@@ -85,6 +91,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
     setFileResetKey((k) => k + 1);
     setCsvText("");
     setPreview(null);
+    setExecuted(false);
   }, []);
 
   const handleDownloadTemplate = useCallback(() => {
@@ -131,6 +138,8 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
         dryRun: true,
       });
       setPreview(result);
+      // 新しいプレビューは新しい判定根拠なので、実行完了フラグを解除する
+      setExecuted(false);
     } catch (error) {
       showToast(error instanceof Error ? error.message : "検証に失敗しました", "error");
     } finally {
@@ -152,6 +161,8 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
         showToast(result.fatalError, "error");
         return;
       }
+      // fatalError 時は何も処理されていないため、フラグを立てず再実行を許す
+      setExecuted(true);
       const summary = `承認 ${result.confirmedCount}件 / 要確認 ${result.needsCheckCount}件 / スキップ ${result.skipCount}件${result.errorCount > 0 ? ` / エラー ${result.errorCount}件` : ""}`;
       showToast(`取り込み完了: ${summary}`, "success");
       onImportDone();
@@ -163,10 +174,12 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
   }, [preview, csvText, showToast, onImportDone]);
 
   // 実行可能性: プレビュー済み + 実行候補が1件以上ある（confirm/needs_check が 0 件なら無意味）
+  // + 未実行（実行完了後は CSV 差し替え or 再プレビューまで再実行不可）
   const executableCount = preview
     ? preview.confirmedCount + preview.needsCheckCount
     : 0;
-  const canSubmit = preview !== null && executableCount > 0 && !isSubmitting;
+  const canSubmit =
+    preview !== null && executableCount > 0 && !isSubmitting && !executed;
 
   return (
     <Modal
@@ -216,6 +229,7 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
             onChange={(e) => {
               setCsvText(e.target.value);
               setPreview(null);
+              setExecuted(false);
               if (fileName) {
                 setFileName(undefined);
                 setFileResetKey((k) => k + 1);
@@ -301,9 +315,11 @@ export function BankTransferReviewCsvImportDialog({ open, onOpenChange, onImport
           >
             {isSubmitting
               ? "取り込み中…"
-              : executableCount > 0
-                ? `${executableCount}件を取り込み`
-                : "取り込み"}
+              : executed
+                ? "取り込み完了"
+                : executableCount > 0
+                  ? `${executableCount}件を取り込み`
+                  : "取り込み"}
           </Button>
         </Flex>
       </Stack>
