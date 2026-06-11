@@ -24,7 +24,9 @@ type OmittedProps =
   | "searchFn"
   | "getOptionFromResult"
   | "searchFields"
-  | "initialOptions";
+  | "initialOptions"
+  // 基底 HTMLAttributes の role(AriaRole) を遮断（ロールフィルタの role と衝突し配列形が型エラーになるため）
+  | "role";
 
 export type UserAsyncMultiSelectProps = Omit<
   AsyncMultiSelectInputProps<User>,
