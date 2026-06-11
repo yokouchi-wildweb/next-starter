@@ -1,5 +1,5 @@
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "sample_category",
   "plural": "sample_categories",
   "label": "サンプルカテゴリ",
@@ -51,6 +51,14 @@
   "useImportExport": true,
   "addToAdminDataMenu": true,
   "useAutoSave": false,
+  "apiAccess": {
+    "read": "public",
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  },
   "generateFiles": {
     "entities": true,
     "components": true,

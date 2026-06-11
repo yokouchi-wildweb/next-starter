@@ -9,6 +9,7 @@ type DomainParams = { domain: string };
 export const POST = createDomainRoute<any, DomainParams>(
   {
     operation: "POST /api/[domain]/search-for-sorting",
+    crudOp: "searchForSorting",
     operationType: "write", // 副作用（NULL初期化）があるため write
     supports: "searchForSorting",
   },

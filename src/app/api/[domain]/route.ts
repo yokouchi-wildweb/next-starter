@@ -10,6 +10,7 @@ type DomainParams = { domain: string };
 export const GET = createDomainRoute<any, DomainParams>(
   {
     operation: "GET /api/[domain]",
+    crudOp: "list",
     operationType: "read",
   },
   async (req, { service }) => {
@@ -31,6 +32,7 @@ export const GET = createDomainRoute<any, DomainParams>(
 export const POST = createDomainRoute<any, DomainParams>(
   {
     operation: "POST /api/[domain]",
+    crudOp: "create",
     operationType: "write",
   },
   async (req, { service }) => {

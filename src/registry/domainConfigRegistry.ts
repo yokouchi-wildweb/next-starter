@@ -71,6 +71,13 @@ type DomainConfigOptionals = {
     name?: string;
   }>;
   sortOrderField?: string | null;
+  // JSON インポートの型推論（string）と相性を保つため、リテラル union ではなく緩い型で宣言する。
+  // 厳密な型は src/lib/domain/types/apiAccess.ts の DomainApiAccessConfig を参照。
+  apiAccess?: {
+    read?: string | { roles?: string[]; roleCategories?: string[] };
+    write?: string | { roles?: string[]; roleCategories?: string[] };
+    operations?: Record<string, string | { roles?: string[]; roleCategories?: string[] }>;
+  };
 };
 
 export type DomainConfig = (typeof domainConfigMap)[DomainKey] & DomainConfigOptionals;

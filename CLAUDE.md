@@ -76,6 +76,7 @@ ref: src/features/core/setting/README.md
 ## API_ROUTES
 required: routeFactory (createApiRoute / createDomainRoute)
 generic: GET|POST / (list|create) | GET|PATCH|DELETE /[id] (get|update|soft-delete) | POST /search, /count, /upsert, /bulk/delete-by-ids, /[id]/duplicate, /[id]/restore | DELETE /[id]/hard-delete
+generic_access_control: domain.json apiAccess (read/write/operations) → createDomainRoute enforces | rules: public | authenticated | none | {roles,roleCategories} | undeclared → fail-closed (admin category only, default: src/config/app/domain-api-access.config.ts) | role check uses DB-synced getSessionUser | ownership scoping NOT supported — user-owned data stays admin-only, serve users via /api/me/ | ref: docs/how-to/汎用APIアクセス制御ガイド.md
 domain-specific: auth/, admin/, wallet/, webhook/, storage/
 ref: src/lib/routeFactory/README.md
 

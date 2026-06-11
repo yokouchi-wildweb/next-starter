@@ -9,6 +9,7 @@ type DomainParams = { domain: string };
 export const POST = createDomainRoute<any, DomainParams>(
   {
     operation: "POST /api/[domain]/count",
+    crudOp: "count",
     operationType: "read",
     supports: "count",
   },

@@ -1,5 +1,5 @@
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "user",
   "plural": "users",
   "label": "ユーザー",
@@ -19,7 +19,12 @@
   "useCreatedAt": true,
   "useUpdatedAt": true,
   "useSoftDelete": true,
-  "compositeUniques": [["provider_type", "provider_uid"]],
+  "compositeUniques": [
+    [
+      "provider_type",
+      "provider_uid"
+    ]
+  ],
   "fields": [
     {
       "name": "provider_type",
@@ -127,16 +132,47 @@
       "fieldType": "jsonb",
       "formInput": "none",
       "required": false,
-      "defaultValue": {}
+      "defaultValue": {
+
+      }
     }
   ],
-  "searchFields": ["name", "email", "phoneNumber", "signupIp"],
-  "defaultOrderBy": [["createdAt", "DESC"]],
-  "tableFields": ["status", "role", "name", "email", "provider_type", "createdAt"],
+  "searchFields": [
+    "name",
+    "email",
+    "phoneNumber",
+    "signupIp"
+  ],
+  "defaultOrderBy": [
+    [
+      "createdAt",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "status",
+    "role",
+    "name",
+    "email",
+    "provider_type",
+    "createdAt"
+  ],
   "useDetailModal": false,
   "addToAdminDataMenu": false,
   "useDuplicateButton": false,
   "useImportExport": false,
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  },
   "generateFiles": {
     "entities": false,
     "components": false,

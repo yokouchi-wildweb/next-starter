@@ -8,6 +8,7 @@ import { createDomainIdRoute } from "src/lib/routeFactory";
 export const DELETE = createDomainIdRoute(
   {
     operation: "DELETE /api/[domain]/[id]/hard-delete",
+    crudOp: "hardDelete",
     operationType: "write",
     supports: "hardDelete",
   },

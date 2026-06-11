@@ -1,5 +1,5 @@
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "user_tag",
   "plural": "user_tags",
   "label": "ユーザータグ",
@@ -57,14 +57,39 @@
       "required": false
     }
   ],
-  "searchFields": ["name", "description"],
-  "defaultOrderBy": [["updatedAt", "DESC"]],
-  "tableFields": ["name", "color", "description", "updatedAt"],
+  "searchFields": [
+    "name",
+    "description"
+  ],
+  "defaultOrderBy": [
+    [
+      "updatedAt",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "name",
+    "color",
+    "description",
+    "updatedAt"
+  ],
   "useDetailModal": false,
   "useDuplicateButton": false,
   "useImportExport": false,
   "addToAdminDataMenu": true,
   "useAutoSave": false,
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  },
   "generateFiles": {
     "entities": true,
     "components": true,

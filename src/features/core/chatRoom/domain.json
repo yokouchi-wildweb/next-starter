@@ -1,11 +1,13 @@
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "chat_room",
   "plural": "chat_rooms",
   "label": "チャットルーム",
   "dbEngine": "Firestore",
   "idType": "string",
-  "relations": [],
+  "relations": [
+
+  ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
   "useSoftDelete": true,
@@ -53,11 +55,35 @@
       "formInput": "none"
     }
   ],
-  "searchFields": ["name"],
-  "defaultOrderBy": [["updated_at", "DESC"]],
-  "tableFields": ["type", "name", "participants", "updated_at"],
+  "searchFields": [
+    "name"
+  ],
+  "defaultOrderBy": [
+    [
+      "updated_at",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "type",
+    "name",
+    "participants",
+    "updated_at"
+  ],
   "useDetailModal": true,
   "addToAdminDataMenu": true,
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  },
   "generateFiles": {
     "entities": true,
     "components": true,

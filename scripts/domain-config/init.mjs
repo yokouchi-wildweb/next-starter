@@ -10,6 +10,7 @@ import askNameField from "./questions/name-field.mjs";
 import askFields from "./questions/fields.mjs";
 import askCompositeUniques from "./questions/composite-uniques.mjs";
 import askViewConfig from "./questions/view-config.mjs";
+import askApiAccess from "./questions/api-access.mjs";
 import askGenerateFiles from "./questions/generate-files.mjs";
 import { toCamelCase } from "../../src/utils/stringCase.mjs";
 import formatDomainConfig from "./utils/formatConfig.mjs";
@@ -35,6 +36,7 @@ export default async function init() {
   config.fields = nameFieldEntry ? [nameFieldEntry, ...fields] : fields;
   Object.assign(config, await askCompositeUniques(config));
   Object.assign(config, await askViewConfig(config));
+  Object.assign(config, await askApiAccess());
   Object.assign(config, await askGenerateFiles());
 
   const rootDir = path.resolve(__dirname, "..", "..");

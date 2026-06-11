@@ -1,11 +1,13 @@
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "rate_limit",
   "plural": "rate_limits",
   "label": "レート制限",
   "dbEngine": "Neon",
   "idType": "string",
-  "relations": [],
+  "relations": [
+
+  ],
   "useCreatedAt": false,
   "useUpdatedAt": false,
   "useSoftDelete": false,
@@ -33,8 +35,27 @@
       "required": true
     }
   ],
-  "searchFields": [],
-  "defaultOrderBy": [["expires_at", "DESC"]],
+  "searchFields": [
+
+  ],
+  "defaultOrderBy": [
+    [
+      "expires_at",
+      "DESC"
+    ]
+  ],
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  },
   "generateFiles": {
     "entities": true,
     "components": false,

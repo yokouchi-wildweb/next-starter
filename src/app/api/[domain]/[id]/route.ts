@@ -8,6 +8,7 @@ import { parseBooleanFlag, parsePositiveInteger, parseWithRelations } from "../s
 export const GET = createDomainIdRoute(
   {
     operation: "GET /api/[domain]/[id]",
+    crudOp: "get",
     operationType: "read",
   },
   async (req, { service, params }) => {
@@ -27,6 +28,7 @@ export const GET = createDomainIdRoute(
 export const PUT = createDomainIdRoute(
   {
     operation: "PUT /api/[domain]/[id]",
+    crudOp: "update",
     operationType: "write",
   },
   async (req, { service, params }) => {
@@ -39,6 +41,7 @@ export const PUT = createDomainIdRoute(
 export const DELETE = createDomainIdRoute(
   {
     operation: "DELETE /api/[domain]/[id]",
+    crudOp: "remove",
     operationType: "write",
   },
   async (_req, { service, params }) => {

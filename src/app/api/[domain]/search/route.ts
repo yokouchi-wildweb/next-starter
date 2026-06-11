@@ -23,6 +23,7 @@ type DomainParams = { domain: string };
 export const GET = createDomainRoute<any, DomainParams>(
   {
     operation: "GET /api/[domain]/search",
+    crudOp: "search",
     operationType: "read",
     supports: "search",
   },

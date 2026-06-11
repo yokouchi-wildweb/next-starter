@@ -8,6 +8,7 @@ type DomainParams = { domain: string };
 export const POST = createDomainRoute<any, DomainParams>(
   {
     operation: "POST /api/[domain]/bulk/delete-by-ids",
+    crudOp: "bulkDeleteByIds",
     operationType: "write",
     supports: "bulkDeleteByIds",
   },

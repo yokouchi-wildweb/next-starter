@@ -6,6 +6,7 @@ import { createDomainIdRoute } from "src/lib/routeFactory";
 export const POST = createDomainIdRoute(
   {
     operation: "POST /api/[domain]/[id]/restore",
+    crudOp: "restore",
     operationType: "write",
     supports: "restore",
   },

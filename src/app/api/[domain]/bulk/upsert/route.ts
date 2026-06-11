@@ -8,6 +8,7 @@ type DomainParams = { domain: string };
 export const POST = createDomainRoute<any, DomainParams>(
   {
     operation: "POST /api/[domain]/bulk/upsert",
+    crudOp: "bulkUpsert",
     operationType: "write",
     supports: "bulkUpsert",
   },

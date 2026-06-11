@@ -6,6 +6,7 @@ import { createDomainIdRoute } from "src/lib/routeFactory";
 export const POST = createDomainIdRoute(
   {
     operation: "POST /api/[domain]/[id]/reorder",
+    crudOp: "reorder",
     operationType: "write",
     supports: "reorder",
   },

@@ -10,7 +10,7 @@
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| domainConfigVersion | string | 🟢 Yes | 設定バージョン（現在 `"1.2"`） |
+| domainConfigVersion | string | 🟢 Yes | 設定バージョン（現在 `"1.3"`） |
 | singular | string | 🟢 Yes | ドメイン名単数形（snake_case、例: `sample_category`） |
 | plural | string | 🟢 Yes | ドメイン名複数形（snake_case、例: `sample_categories`） |
 | label | string | 🟢 Yes | 管理画面での表示名（日本語可） |
@@ -31,6 +31,7 @@
 | useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | indexes | Index[] | ⚪ No | 非ユニーク検索/集計用インデックス（Neon のみ） |
+| apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（後述）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
 | generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
 
 > ⚠️ **オプショナルフィールドを追加する場合**: `src/registry/domainConfigRegistry.ts` の `DomainConfigOptionals` にも同じフィールドを追加すること。省略すると、そのフィールドを持たないドメインが存在するだけで DomainConfig の union 型が壊れてビルドエラーになる。
@@ -423,13 +424,62 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 
 ---
 
+### ApiAccess（汎用 API アクセス制御）
+
+`/api/[domain]/**` の汎用 CRUD ルートに対するロールベースのアクセス制御。
+判定は `createDomainRoute`（`src/lib/routeFactory`）が一元的に行う。
+
+| プロパティ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| read | AccessRule | ⚪ No | 読み取り操作（list, get, search, count）の既定ルール |
+| write | AccessRule | ⚪ No | 書き込み操作（create, update, remove, upsert 等）の既定ルール |
+| operations | Record<Operation, AccessRule> | ⚪ No | 操作単位の上書き（read/write より優先） |
+
+#### AccessRule
+
+| 値 | 説明 |
+|----|------|
+| `"public"` | 未認証でもアクセス可 |
+| `"authenticated"` | ログイン済み（利用可能ステータス）なら誰でも可 |
+| `"none"` | 汎用 API を無効化（404）。専用ルートのみ公開したいドメイン用 |
+| `{ "roles": [...], "roleCategories": [...] }` | 指定ロール ID / ロールカテゴリのみ可（OR 条件） |
+
+#### Operation（operations のキー）
+
+`list` `get` `search` `count` `create` `update` `remove` `upsert` `duplicate` `restore` `hardDelete` `reorder` `searchForSorting` `bulkUpsert` `bulkUpdate` `bulkUpdateByIds` `bulkDeleteByIds` `bulkDeleteByQuery`
+
+#### フォールバック（fail-closed）
+
+- `apiAccess` 自体、または `read` / `write` が未宣言の場合、グローバル既定値（`src/config/app/domain-api-access.config.ts`、初期値: admin カテゴリのみ）が適用される
+- domain.json を持たないが serviceRegistry に登録されているドメイン（wallet 等）も同様に既定値が適用される
+- **新ドメイン追加時にガードを書き忘れても安全側（admin-only）に倒れる**
+
+#### 例
+
+```json
+"apiAccess": {
+  "read": "public",
+  "write": { "roleCategories": ["admin"] },
+  "operations": { "hardDelete": "none" }
+}
+```
+
+#### ⚠️ オーナーシップ制御は対象外
+
+ロールガードのみで「自分のレコードだけ」という制御はできない。ユーザー所有データ
+（notification 等）の汎用 API は admin-only のままにし、ユーザー向けアクセスは
+`/api/me/` 系の専用ルートで提供すること。`"read": "authenticated"` を設定すると
+**他ユーザーのレコードも読める**点に注意。
+
+---
+
 ## サンプル
 
 最小構成:
 
 ```json
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "category",
   "plural": "categories",
   "label": "カテゴリ",
@@ -447,6 +497,10 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
       "required": true
     }
   ],
+  "apiAccess": {
+    "read": { "roleCategories": ["admin"] },
+    "write": { "roleCategories": ["admin"] }
+  },
   "generateFiles": {
     "entities": true,
     "components": true,

@@ -15,6 +15,7 @@ const duplicateBodySchema = z.object({
 export const POST = createDomainIdRoute(
   {
     operation: "POST /api/[domain]/[id]/duplicate",
+    crudOp: "duplicate",
     operationType: "write",
     supports: "duplicate",
   },

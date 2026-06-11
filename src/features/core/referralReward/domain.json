@@ -1,17 +1,29 @@
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "referralReward",
   "plural": "referralRewards",
   "label": "紹介報酬",
   "dbEngine": "Neon",
   "idType": "uuid",
-  "relations": [],
+  "relations": [
+
+  ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
   "useSoftDelete": false,
-  "compositeUniques": [["referral_id", "reward_key"]],
+  "compositeUniques": [
+    [
+      "referral_id",
+      "reward_key"
+    ]
+  ],
   "indexes": [
-    { "fields": ["status", "fulfilled_at"] }
+    {
+      "fields": [
+        "status",
+        "fulfilled_at"
+      ]
+    }
   ],
   "fields": [
     {
@@ -63,13 +75,41 @@
       "required": false
     }
   ],
-  "searchFields": ["referral_id", "reward_key", "recipient_user_id"],
-  "defaultOrderBy": [["createdAt", "DESC"]],
-  "tableFields": ["referral_id", "reward_key", "recipient_user_id", "status", "fulfilled_at", "createdAt"],
+  "searchFields": [
+    "referral_id",
+    "reward_key",
+    "recipient_user_id"
+  ],
+  "defaultOrderBy": [
+    [
+      "createdAt",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "referral_id",
+    "reward_key",
+    "recipient_user_id",
+    "status",
+    "fulfilled_at",
+    "createdAt"
+  ],
   "useDetailModal": false,
   "addToAdminDataMenu": false,
   "useDuplicateButton": false,
   "useImportExport": false,
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  },
   "generateFiles": {
     "entities": true,
     "components": false,

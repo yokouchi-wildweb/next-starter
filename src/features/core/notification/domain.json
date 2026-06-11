@@ -1,5 +1,5 @@
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "notification",
   "plural": "notifications",
   "label": "お知らせ",
@@ -103,10 +103,34 @@
       "required": true
     }
   ],
-  "searchFields": ["title"],
-  "defaultOrderBy": [["published_at", "DESC"]],
-  "tableFields": ["title", "sender_type", "target_type", "published_at"],
+  "searchFields": [
+    "title"
+  ],
+  "defaultOrderBy": [
+    [
+      "published_at",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "title",
+    "sender_type",
+    "target_type",
+    "published_at"
+  ],
   "addToAdminDataMenu": false,
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  },
   "generateFiles": {
     "entities": true,
     "components": true,

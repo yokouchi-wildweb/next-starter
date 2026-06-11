@@ -8,6 +8,7 @@ type DomainParams = { domain: string };
 export const PUT = createDomainRoute<any, DomainParams>(
   {
     operation: "PUT /api/[domain]/upsert",
+    crudOp: "upsert",
     operationType: "write",
     supports: "upsert",
   },

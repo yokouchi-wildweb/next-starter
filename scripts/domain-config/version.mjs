@@ -1,1 +1,1 @@
-export const DOMAIN_CONFIG_VERSION = "1.2";
+export const DOMAIN_CONFIG_VERSION = "1.3";

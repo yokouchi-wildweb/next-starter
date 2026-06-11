@@ -1,17 +1,27 @@
 {
-  "domainConfigVersion": "1.2",
+  "domainConfigVersion": "1.3",
   "singular": "referral",
   "plural": "referrals",
   "label": "紹介",
   "dbEngine": "Neon",
   "idType": "uuid",
-  "relations": [],
+  "relations": [
+
+  ],
   "useCreatedAt": true,
   "useUpdatedAt": true,
   "useSoftDelete": false,
-  "compositeUniques": [["invitee_user_id"]],
+  "compositeUniques": [
+    [
+      "invitee_user_id"
+    ]
+  ],
   "indexes": [
-    { "fields": ["status"] }
+    {
+      "fields": [
+        "status"
+      ]
+    }
   ],
   "fields": [
     {
@@ -48,13 +58,38 @@
       ]
     }
   ],
-  "searchFields": ["inviter_user_id", "invitee_user_id"],
-  "defaultOrderBy": [["createdAt", "DESC"]],
-  "tableFields": ["inviter_user_id", "invitee_user_id", "status", "createdAt"],
+  "searchFields": [
+    "inviter_user_id",
+    "invitee_user_id"
+  ],
+  "defaultOrderBy": [
+    [
+      "createdAt",
+      "DESC"
+    ]
+  ],
+  "tableFields": [
+    "inviter_user_id",
+    "invitee_user_id",
+    "status",
+    "createdAt"
+  ],
   "useDetailModal": false,
   "addToAdminDataMenu": false,
   "useDuplicateButton": false,
   "useImportExport": false,
+  "apiAccess": {
+    "read": {
+      "roleCategories": [
+        "admin"
+      ]
+    },
+    "write": {
+      "roleCategories": [
+        "admin"
+      ]
+    }
+  },
   "generateFiles": {
     "entities": true,
     "components": false,

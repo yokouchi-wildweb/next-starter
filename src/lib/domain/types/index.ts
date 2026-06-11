@@ -5,3 +5,4 @@ export * from "./relation";
 export * from "./field";
 export * from "./junction";
 export * from "./domain";
+export * from "./apiAccess";

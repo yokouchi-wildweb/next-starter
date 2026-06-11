@@ -3,6 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createApiRoute, type OperationType, type ApiRouteContext } from "./createApiRoute";
+import { evaluateApiAccessRule } from "@/features/core/auth/services/server/apiAccess";
+import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
+import { resolveDomainApiAccessRule, type DomainApiOperation } from "@/lib/domain";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 
@@ -14,6 +17,11 @@ export type DomainRouteConfig<TService> = {
   operation: string;
   /** 操作の種類 */
   operationType: OperationType;
+  /**
+   * CRUD 操作名（アクセス制御用）
+   * domain.json の apiAccess.operations のキーと対応する
+   */
+  crudOp: DomainApiOperation;
   /** サービスが特定のメソッドをサポートしているか確認 */
   supports?: keyof TService | Array<keyof TService>;
   /**
@@ -94,6 +102,28 @@ export function createDomainRoute<
 
       if (!ensureSupports(service, config.supports)) {
         return new NextResponse("Not Found", { status: 404 });
+      }
+
+      // ===== アクセス制御（domain.json の apiAccess 宣言に基づく） =====
+      // 未宣言ドメインは fail-closed（admin カテゴリのみ）にフォールバックする。
+      // ロール判定には DB 同期される getSessionUser を使う（token-only セッションでは
+      // ロール剥奪・利用停止が反映されないため）。public の場合は DB 引きを避ける。
+      const rule = resolveDomainApiAccessRule(domain, config.crudOp, config.operationType);
+      const requiresSession = rule !== "public" && rule !== "none";
+      const sessionUser = requiresSession ? await getSessionUser() : null;
+      const decision = evaluateApiAccessRule(rule, sessionUser);
+
+      if (decision === "not_found") {
+        return new NextResponse("Not Found", { status: 404 });
+      }
+      if (decision === "unauthenticated") {
+        return NextResponse.json({ message: "認証が必要です。" }, { status: 401 });
+      }
+      if (decision === "forbidden") {
+        return NextResponse.json(
+          { message: "この操作を行う権限がありません。" },
+          { status: 403 },
+        );
       }
 
       const domainCtx: DomainRouteContext<TService, TParams> = {
