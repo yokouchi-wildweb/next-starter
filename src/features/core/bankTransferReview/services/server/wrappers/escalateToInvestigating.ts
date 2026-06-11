@@ -75,6 +75,7 @@ export async function escalateToInvestigating(
     await auditLogger.record({
       targetType: "bank_transfer_review",
       targetId: next.id,
+      subjectUserId: review.user_id,
       action: "bank_transfer_review.review.flagged_investigating",
       before: { status: review.status },
       after: { status: next.status },

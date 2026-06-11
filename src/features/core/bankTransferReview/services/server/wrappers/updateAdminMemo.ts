@@ -71,6 +71,7 @@ export async function updateAdminMemo(
     await auditLogger.record({
       targetType: "bank_transfer_review",
       targetId: next.id,
+      subjectUserId: review.user_id,
       action: "bank_transfer_review.admin_memo.changed",
       before: { admin_memo: review.admin_memo },
       after: { admin_memo: next.admin_memo },

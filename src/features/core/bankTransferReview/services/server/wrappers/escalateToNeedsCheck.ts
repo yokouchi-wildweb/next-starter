@@ -84,6 +84,7 @@ export async function escalateToNeedsCheck(
     await auditLogger.record({
       targetType: "bank_transfer_review",
       targetId: next.id,
+      subjectUserId: review.user_id,
       action: "bank_transfer_review.review.flagged_needs_check",
       before: { status: review.status },
       after: {

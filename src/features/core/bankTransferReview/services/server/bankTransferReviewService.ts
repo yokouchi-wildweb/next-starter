@@ -10,6 +10,7 @@ import { rejectReview } from "./wrappers/rejectReview";
 import { escalateToNeedsCheck } from "./wrappers/escalateToNeedsCheck";
 import { escalateToInvestigating } from "./wrappers/escalateToInvestigating";
 import { updateAdminMemo } from "./wrappers/updateAdminMemo";
+import { countByStatus } from "./wrappers/countByStatus";
 import { bulkImportFromCsv } from "./wrappers/bulkImportFromCsv";
 import { bulkSendEmail } from "./wrappers/bulkSendEmail";
 import {
@@ -25,6 +26,7 @@ export const bankTransferReviewService = {
   escalateToNeedsCheck,
   escalateToInvestigating,
   updateAdminMemo,
+  countByStatus,
   bulkImportFromCsv,
   bulkSendEmail,
   findActiveByUser,
@@ -55,6 +57,10 @@ export type {
   UpdateAdminMemoParams,
   UpdateAdminMemoResult,
 } from "./wrappers/updateAdminMemo";
+export type {
+  CountByStatusParams,
+  CountByStatusResult,
+} from "./wrappers/countByStatus";
 export type {
   BankTransferReviewImportDecision,
   BankTransferReviewImportRow,

@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type Key } from "react";
+import { useCallback, useMemo, useState, type Key } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { Upload } from "lucide-react";
@@ -51,15 +51,10 @@ export function BankTransferReviewListPanel({ status }: Props) {
   // バルクアクション用にチェックボックスで選択中の行キー（review.id）
   const [selectedKeys, setSelectedKeys] = useState<Key[]>([]);
 
-  // 検索キーワードが変わったら 1 ページ目に戻す（URL 駆動でもタブ切替でも有効）
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery, status]);
-
-  // タブ・検索・ページの変更で選択を解除する。振込レビューはページングのため、
-  // ページを跨いだ選択は保持しない（一斉送信の対象は表示中ページ内の最大
-  // PAGE_LIMIT 件）。effect 内 setState を避けるため、レンダー中に前回スコープと
-  // 比較して解除する（React 推奨パターン）。
+  // タブ・検索が変わったら 1 ページ目に戻し、ページを含むスコープが変わったら
+  // 選択を解除する。振込レビューはページングのため、ページを跨いだ選択は保持
+  // しない（一斉送信の対象は表示中ページ内の最大 PAGE_LIMIT 件）。effect 内
+  // setState を避けるため、レンダー中に前回スコープと比較する（React 推奨パターン）。
   const [prevSelectionScope, setPrevSelectionScope] = useState({
     status,
     searchQuery,
@@ -67,9 +62,12 @@ export function BankTransferReviewListPanel({ status }: Props) {
   });
   if (
     prevSelectionScope.status !== status ||
-    prevSelectionScope.searchQuery !== searchQuery ||
-    prevSelectionScope.page !== page
+    prevSelectionScope.searchQuery !== searchQuery
   ) {
+    setPrevSelectionScope({ status, searchQuery, page: 1 });
+    setPage(1);
+    setSelectedKeys([]);
+  } else if (prevSelectionScope.page !== page) {
     setPrevSelectionScope({ status, searchQuery, page });
     setSelectedKeys([]);
   }
