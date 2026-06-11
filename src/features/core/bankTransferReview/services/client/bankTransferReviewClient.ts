@@ -197,6 +197,11 @@ export type AdminBankTransferReviewListResponse = {
   total: number;
   page: number;
   limit: number;
+  /**
+   * 氏名プロファイル（lastName / firstName を持つテーブル）がプロジェクト構成に
+   * 存在するか。false のとき一覧の氏名カラムは表示しない。
+   */
+  profileNameAvailable: boolean;
 };
 
 export type AdminBankTransferReviewListFilters = {

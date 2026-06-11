@@ -49,6 +49,11 @@ type Props = {
   onBulkActionDone: () => void;
   /** 管理者メモのインライン編集確定時のコールバック */
   onAdminMemoChange: (reviewId: string, memo: string) => void;
+  /**
+   * 氏名プロファイルがプロジェクト構成に存在するか（一覧 API の同名フィールド）。
+   * false のとき氏名カラムを表示しない。未指定（移行期の旧 API レスポンス）は表示する。
+   */
+  profileNameAvailable?: boolean;
 };
 
 export function BankTransferReviewTable({
@@ -59,6 +64,7 @@ export function BankTransferReviewTable({
   onSelectionChange,
   onBulkActionDone,
   onAdminMemoChange,
+  profileNameAvailable,
 }: Props) {
   const showNeedsCheckColumn = status === "needs_check";
   // 承認済み / 拒否タブでは判定日時 (reviewed_at) を申告日時の左隣に表示する。
@@ -68,6 +74,8 @@ export function BankTransferReviewTable({
   // 承認方法（手動 / CSV自動）は confirmed タブでのみ意味があるためここで出す。
   // rejected には approval_source が立たないので列追加しない。
   const showApprovalSourceColumn = status === "confirmed";
+  // 氏名プロファイルが無いプロジェクトでは全行「未登録」になるため列ごと出さない。
+  const showNameColumn = profileNameAvailable ?? true;
 
   const columns = useMemo<DataTableColumn<AdminBankTransferReviewListItem>[]>(
     () => [
@@ -160,16 +168,23 @@ export function BankTransferReviewTable({
         header: "ユーザー名",
         render: (item) => item.user?.name ?? "(名前未設定)",
       },
-      {
-        header: "氏名",
-        render: (item) => {
-          const fullName = [item.userProfile?.lastName, item.userProfile?.firstName]
-            .map((part) => part?.trim())
-            .filter((part): part is string => Boolean(part))
-            .join(" ");
-          return fullName || "未登録";
-        },
-      },
+      ...(showNameColumn
+        ? [
+            {
+              header: "氏名",
+              render: (item: AdminBankTransferReviewListItem) => {
+                const fullName = [
+                  item.userProfile?.lastName,
+                  item.userProfile?.firstName,
+                ]
+                  .map((part) => part?.trim())
+                  .filter((part): part is string => Boolean(part))
+                  .join(" ");
+                return fullName || "未登録";
+              },
+            } satisfies DataTableColumn<AdminBankTransferReviewListItem>,
+          ]
+        : []),
       {
         header: "メールアドレス",
         render: (item) => item.user?.email ?? "(メール未設定)",
@@ -245,6 +260,7 @@ export function BankTransferReviewTable({
       showNeedsCheckColumn,
       showReviewedAtColumn,
       showApprovalSourceColumn,
+      showNameColumn,
       reviewedAtHeader,
       onSelect,
       onAdminMemoChange,

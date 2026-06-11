@@ -217,6 +217,7 @@ export function BankTransferReviewListPanel({ status }: Props) {
           <BankTransferReviewTable
             status={status}
             items={items}
+            profileNameAvailable={data?.profileNameAvailable}
             onSelect={setDetailReviewId}
             selectedKeys={selectedKeys}
             onSelectionChange={setSelectedKeys}

@@ -195,6 +195,11 @@ export const GET = createApiRoute(
       total,
       page,
       limit,
+      // 氏名プロファイルがプロジェクト構成に存在するか。false のとき UI は
+      // 氏名カラムごと非表示にする（プロファイルを持たないテンプレート/フォークでは
+      // 全行「未登録」の無意味な列になるため）。プロファイルを後から追加すると
+      // 動的検出により自動で true になりカラムが現れる。
+      profileNameAvailable: NameProfileTable !== undefined,
     };
   },
 );
