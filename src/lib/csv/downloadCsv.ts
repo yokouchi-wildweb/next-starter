@@ -8,6 +8,9 @@
 // - Excel での文字化けを避けるため、ダウンロード時は UTF-8 BOM を必ず付与する。
 // - エスケープ規則は RFC 4180 準拠（`,` `"` `\n` を含むセルはダブルクォートで囲み、
 //   セル内の `"` を `""` にエスケープ）。
+// - フォーミュラインジェクション対策（既定で有効）: `=` `+` `-` `@` タブ CR で始まる
+//   セルに `'` を前置し、Excel / Google Sheets での数式解釈を防ぐ。外部入力
+//   （ユーザー名・振込人名等）を含む CSV を管理者が表計算ソフトで開く用途を想定。
 
 /** CSV の 1 セルを RFC 4180 準拠でエスケープする */
 function escapeCsvCell(value: string): string {
@@ -17,6 +20,29 @@ function escapeCsvCell(value: string): string {
   return value;
 }
 
+/** 表計算ソフトが数式として解釈し得る先頭文字 */
+const FORMULA_TRIGGER_CHARS = new Set(["=", "+", "-", "@", "\t", "\r"]);
+
+/**
+ * フォーミュラインジェクション対策として、数式として解釈され得るセルに `'` を前置する。
+ * 正規の数値表現（-1500, +3.14 等）は数式にならないため対象外とし、金額列等が
+ * `'` で汚れないようにする。
+ */
+function sanitizeFormulaCell(value: string): string {
+  if (value.length === 0 || !FORMULA_TRIGGER_CHARS.has(value[0])) return value;
+  if (/^[+-]?\d+(\.\d+)?$/.test(value)) return value;
+  return `'${value}`;
+}
+
+export type BuildCsvOptions = {
+  /**
+   * フォーミュラインジェクション対策（危険な先頭文字を持つセルへの `'` 前置）を行うか。
+   * 既定 true。`'` はデータの一部として残るため、人間が表計算ソフトで開く用途では
+   * 既定のまま、機械連携用エクスポート（値の完全一致が必要）でのみ false にする。
+   */
+  sanitizeFormulas?: boolean;
+};
+
 /**
  * ヘッダー + 行データから CSV 文字列を生成する純関数。
  *
@@ -25,13 +51,18 @@ function escapeCsvCell(value: string): string {
  *
  * @param headers  ヘッダー列名の配列
  * @param rows     各行のセル値配列。長さは headers と一致させる前提（揃えない場合の補完はしない）
+ * @param options  生成オプション（フォーミュラ無害化の切替等）
  */
 export function buildCsv(
   headers: ReadonlyArray<string>,
   rows: ReadonlyArray<ReadonlyArray<string>>,
+  options: BuildCsvOptions = {},
 ): string {
-  const headerLine = headers.map(escapeCsvCell).join(",");
-  const bodyLines = rows.map((r) => r.map(escapeCsvCell).join(","));
+  const sanitize = options.sanitizeFormulas ?? true;
+  const toCell = (value: string) =>
+    escapeCsvCell(sanitize ? sanitizeFormulaCell(value) : value);
+  const headerLine = headers.map(toCell).join(",");
+  const bodyLines = rows.map((r) => r.map(toCell).join(","));
   return [headerLine, ...bodyLines].join("\n");
 }
 
