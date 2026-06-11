@@ -35,7 +35,7 @@ export type PopoverProps = {
   defaultOpen?: boolean;
   /** triggerにasChildを適用するか */
   asChild?: boolean;
-} & Omit<PopoverContentProps, "children">;
+} & Omit<PopoverContentProps, "children" | "title">;
 
 /**
  * 汎用ポップオーバーコンポーネント

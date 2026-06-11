@@ -34,7 +34,7 @@ export type InfoPopoverProps = {
   open?: boolean;
   /** 制御モード: 開閉状態変更コールバック */
   onOpenChange?: (open: boolean) => void;
-} & Omit<PopoverContentProps, "children">;
+} & Omit<PopoverContentProps, "children" | "title">;
 
 const ICON_SIZE_CLASS = {
   sm: "size-3.5",

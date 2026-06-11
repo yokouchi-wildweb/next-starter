@@ -73,7 +73,7 @@ type SelectPopoverBaseProps = {
   emptyMessage?: string;
   /** 検索結果がないときの表示 */
   noResultsMessage?: string;
-} & Omit<PopoverContentProps, "children">;
+} & Omit<PopoverContentProps, "children" | "title">;
 
 type SelectPopoverNonClearableProps = SelectPopoverBaseProps & {
   /** 選択解除オプションを表示するか */

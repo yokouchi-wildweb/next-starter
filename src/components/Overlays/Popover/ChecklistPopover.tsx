@@ -83,7 +83,7 @@ export type ChecklistPopoverProps = {
   showClearAll?: boolean;
   /** 「すべて削除」スイッチのラベル @default "すべて削除" */
   clearAllLabel?: string;
-} & Omit<PopoverContentProps, "children">;
+} & Omit<PopoverContentProps, "children" | "title">;
 
 /**
  * チェックリスト選択用ポップオーバー

@@ -47,7 +47,7 @@ export type ConfirmPopoverProps = {
   open?: boolean;
   /** 制御モード: 開閉状態変更コールバック */
   onOpenChange?: (open: boolean) => void;
-} & Omit<PopoverContentProps, "children">;
+} & Omit<PopoverContentProps, "children" | "title">;
 
 /**
  * 確認用ポップオーバーコンポーネント
