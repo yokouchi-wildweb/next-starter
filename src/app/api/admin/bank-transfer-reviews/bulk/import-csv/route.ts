@@ -15,10 +15,18 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
 import { getRoleCategory } from "@/features/core/user/constants";
-import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
+import {
+  bankTransferReviewService,
+  BANK_TRANSFER_REVIEW_IMPORT_MAX_TEXT_LENGTH,
+} from "@/features/bankTransferReview/services/server/bankTransferReviewService";
 
 const BodySchema = z.object({
-  csvText: z.string().min(1, { message: "CSVテキストを指定してください。" }),
+  csvText: z
+    .string()
+    .min(1, { message: "CSVテキストを指定してください。" })
+    .max(BANK_TRANSFER_REVIEW_IMPORT_MAX_TEXT_LENGTH, {
+      message: "CSVが大きすぎます。ファイルを分割してください。",
+    }),
   dryRun: z.boolean(),
 });
 

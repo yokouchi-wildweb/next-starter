@@ -57,6 +57,18 @@ export const BANK_TRANSFER_REVIEW_IMPORT_HEADERS = [
   "transfer_amount",
 ] as const;
 
+/**
+ * csvText の最大文字数（≒5MB）。誤って巨大ファイルを選んだ場合の即時拒否用。
+ * 銀行明細 CSV は通常数百 KB 以下なので、正当な業務で当たることはない上限。
+ */
+export const BANK_TRANSFER_REVIEW_IMPORT_MAX_TEXT_LENGTH = 5_000_000;
+
+/**
+ * 取り込み対象のデータ行数上限。実行時は行ごとに逐次トランザクションを回すため、
+ * 上限なしだと巨大 CSV で長時間リクエストになる。必要ならフォーク側で調整可。
+ */
+export const BANK_TRANSFER_REVIEW_IMPORT_MAX_ROWS = 10_000;
+
 /** 行レベルの判定結果 */
 export type BankTransferReviewImportDecision =
   | "confirm"
@@ -140,6 +152,14 @@ export async function bulkImportFromCsv(
 ): Promise<BulkImportBankTransferReviewCsvResult> {
   const { csvText, dryRun, triggeredBy } = params;
 
+  // 0. サイズ・行数の上限チェック（API ルートの Zod 検証と二段構え）
+  if (csvText.length > BANK_TRANSFER_REVIEW_IMPORT_MAX_TEXT_LENGTH) {
+    return emptyResult({
+      ok: false,
+      fatalError: `CSVが大きすぎます（最大 ${BANK_TRANSFER_REVIEW_IMPORT_MAX_TEXT_LENGTH.toLocaleString()} 文字）。ファイルを分割してください。`,
+    });
+  }
+
   // 1. CSVパース（共通ヘルパー）
   const parsed = parseCsvWithHeaders(csvText, BANK_TRANSFER_REVIEW_IMPORT_HEADERS);
   if (!parsed.ok) {
@@ -149,6 +169,12 @@ export async function bulkImportFromCsv(
     return emptyResult({
       ok: false,
       fatalError: "CSVにデータ行がありません。",
+    });
+  }
+  if (parsed.records.length > BANK_TRANSFER_REVIEW_IMPORT_MAX_ROWS) {
+    return emptyResult({
+      ok: false,
+      fatalError: `CSVの行数（${parsed.records.length.toLocaleString()} 行）が上限（${BANK_TRANSFER_REVIEW_IMPORT_MAX_ROWS.toLocaleString()} 行）を超えています。ファイルを分割してください。`,
     });
   }
 

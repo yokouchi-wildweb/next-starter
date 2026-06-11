@@ -67,7 +67,11 @@ export type {
   BulkImportBankTransferReviewCsvParams,
   BulkImportBankTransferReviewCsvResult,
 } from "./wrappers/bulkImportFromCsv";
-export { BANK_TRANSFER_REVIEW_IMPORT_HEADERS } from "./wrappers/bulkImportFromCsv";
+export {
+  BANK_TRANSFER_REVIEW_IMPORT_HEADERS,
+  BANK_TRANSFER_REVIEW_IMPORT_MAX_TEXT_LENGTH,
+  BANK_TRANSFER_REVIEW_IMPORT_MAX_ROWS,
+} from "./wrappers/bulkImportFromCsv";
 export type {
   BulkSendEmailParams,
   BulkSendEmailFailure,
