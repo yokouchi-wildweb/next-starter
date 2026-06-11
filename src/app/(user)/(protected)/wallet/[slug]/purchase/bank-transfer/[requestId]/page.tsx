@@ -82,6 +82,7 @@ export default async function BankTransferInstructionPageRoute({ params }: PageP
           identifier={identifier}
           expiresAt={purchaseRequest.expires_at}
           aiImageJudgmentEnabled={bankTransferConfig.aiImageJudgmentEnabled}
+          aiImageJudgmentStrictMode={bankTransferConfig.aiImageJudgmentStrictMode}
         />
       </Stack>
     </UserPage>

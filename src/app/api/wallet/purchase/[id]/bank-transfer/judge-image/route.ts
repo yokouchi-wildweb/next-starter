@@ -6,6 +6,10 @@
 // このエンドポイントは判定結果を返すのみで、purchase_request の状態は変更しない。
 // 実際の振込完了申告は /confirm エンドポイント側で行う。
 //
+// ストリクトモード（paymentConfig.bankTransfer.aiImageJudgmentStrictMode=true）:
+// 明細内で「振込人名・名前の前後の識別数字・振込金額」の 3 点が確認できなければ不合格。
+// 期待値はサーバー側で purchase_request（provider_order_id / payment_amount）から渡す。
+//
 // レート制限（ユーザー単位）:
 // - 直近15分: 失敗3回まで（4回目以降ブロック）。成功はカウントしない
 // - 直近24時間: 試行30回まで（31回目以降ブロック）。成功・失敗いずれもカウント
@@ -60,9 +64,11 @@ export const POST = createApiRoute<Params>(
   async (req, { params, session }) => {
     const { id } = params;
 
+    const bankTransferConfig = getBankTransferConfig();
+
     // 防御的チェック: フラグが false の場合は AI 判定を提供しない。
     // UI 側でもセクション自体を非表示にしているが、API 直叩きの保険として 503 を返す。
-    if (!getBankTransferConfig().aiImageJudgmentEnabled) {
+    if (!bankTransferConfig.aiImageJudgmentEnabled) {
       return NextResponse.json(
         { message: "現在この機能はご利用いただけません。" },
         { status: 503 },
@@ -135,11 +141,29 @@ export const POST = createApiRoute<Params>(
     const arrayBuffer = await file.arrayBuffer();
     const imageBase64 = Buffer.from(arrayBuffer).toString("base64");
 
+    // ストリクトモード: 識別数字（provider_order_id）と振込金額を期待値として渡し、
+    // 振込人名・識別数字・金額の 3 点が明細内で確認できなければ不合格にする。
+    // provider_order_id 未生成（想定外のデータ不整合）の場合は期待値照合ができないため、
+    // 通常モードにフォールバックして警告を残す。
+    const identifier = purchaseRequest.provider_order_id ?? "";
+    const useStrict = bankTransferConfig.aiImageJudgmentStrictMode && identifier !== "";
+    if (bankTransferConfig.aiImageJudgmentStrictMode && identifier === "") {
+      console.warn(
+        `[judge-image] strict mode requested but provider_order_id is missing (purchaseRequest=${purchaseRequest.id}). Falling back to normal judgment.`,
+      );
+    }
+
     let judgment;
     try {
       judgment = await checkBankTransferReceipt({
         imageBase64,
         mediaType: file.type,
+        strict: useStrict
+          ? {
+              expectedIdentifier: identifier,
+              expectedAmount: purchaseRequest.payment_amount,
+            }
+          : undefined,
       });
     } catch (e) {
       // Anthropic API エラー（タイムアウト・5xx 等）はインフラ起因なのでカウントしない。

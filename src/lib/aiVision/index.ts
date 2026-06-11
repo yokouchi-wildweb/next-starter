@@ -5,5 +5,7 @@ export type {
   CheckBankTransferReceiptInput,
   CheckBankTransferReceiptResult,
   BankTransferReceiptImageType,
+  BankTransferStrictChecks,
+  BankTransferStrictExpectation,
   SupportedImageMediaType,
 } from "./bankTransferReceipt";

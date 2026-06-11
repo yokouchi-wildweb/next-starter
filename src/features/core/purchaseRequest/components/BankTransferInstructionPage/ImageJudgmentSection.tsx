@@ -7,6 +7,10 @@
 // 判定結果が「承認候補 かつ confidence >= JUDGMENT_PASS_THRESHOLD」のときのみ
 // 親側の Step④ ボタンが活性化する。判定結果は画像差し替え時に親側でリセットされる。
 //
+// ストリクトモード時はレスポンスに strictChecks（振込人名・識別数字・金額の個別合否）が
+// 付与され、チェックリストとして表示する。通過判定自体はサーバー側で合算済みのため
+// isJudgmentPassed のロジックは共通。
+//
 // レート制限:
 // - 直近15分: 失敗3回まで、4回目で 429。成功はカウントしない
 // - 直近24時間: 試行30回まで、31回目で 429。成功・失敗いずれもカウント
@@ -17,7 +21,7 @@
 
 import { useEffect, useState } from "react";
 import axios, { AxiosError } from "axios";
-import { Brain, RefreshCw } from "lucide-react";
+import { Brain, CircleCheck, CircleX, RefreshCw } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button/Button";
@@ -44,11 +48,28 @@ export type RateLimitInfo = {
   resetAt24h: string | null;
 };
 
+/**
+ * ストリクトモード時の必須 3 点チェックの個別結果。
+ * サーバー側 (lib/aiVision) の BankTransferStrictChecks と同期。
+ */
+export type StrictChecks = {
+  /** 振込人名が明細内で読み取れたか */
+  senderNameConfirmed: boolean;
+  /** 振込人名の前後どちらかに識別数字があるか */
+  identifierConfirmed: boolean;
+  /** 振込金額が一致したか */
+  amountConfirmed: boolean;
+  /** 読み取れた振込人名（読み取れなかった場合は null） */
+  detectedSenderName: string | null;
+};
+
 export type JudgmentResult = {
   isLikelyBankTransfer: boolean;
   confidence: number;
   imageType: "photo" | "screenshot" | "other";
   reason: string;
+  /** ストリクトモード時のみ付与される */
+  strictChecks?: StrictChecks;
   rateLimit: RateLimitInfo;
 };
 
@@ -72,9 +93,18 @@ type Props = {
   result: JudgmentResult | null;
   /** 判定結果の更新（再判定の前にも null で呼んでクリア） */
   onResultChange: (result: JudgmentResult | null) => void;
+  /** ストリクトモード（振込人名・識別数字・金額の 3 点確認）の有効化フラグ。説明文の切替に使用 */
+  strictMode: boolean;
 };
 
-export function ImageJudgmentSection({ step, requestId, file, result, onResultChange }: Props) {
+export function ImageJudgmentSection({
+  step,
+  requestId,
+  file,
+  result,
+  onResultChange,
+  strictMode,
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 直近の rate limit 情報。429 を受けた時 / 判定が完了した時の両方で更新される。
@@ -137,7 +167,9 @@ export function ImageJudgmentSection({ step, requestId, file, result, onResultCh
         ) : null}
 
         <Para size="sm" tone="muted">
-          添付画像の妥当性を検証します。
+          {strictMode
+            ? "添付画像から「振込人名」「名前の前後の識別数字」「振込金額」の3点を確認します。すべて確認できないと申告に進めません。"
+            : "添付画像の妥当性を検証します。"}
         </Para>
 
         {!file ? (
@@ -232,7 +264,38 @@ function ResultView({ result }: { result: JudgmentResult }) {
 
       <ResultBar isPassed={isPassed} confidence={result.confidence} />
 
+      {result.strictChecks ? <StrictCheckList checks={result.strictChecks} /> : null}
+
       <Para size="sm">{result.reason}</Para>
+    </Stack>
+  );
+}
+
+/**
+ * ストリクトモードの必須 3 点チェック結果の一覧表示。
+ * どの項目が原因で不合格になったかをユーザーが把握できるようにする。
+ */
+function StrictCheckList({ checks }: { checks: StrictChecks }) {
+  const items: { label: string; confirmed: boolean }[] = [
+    { label: "振込人名の確認", confirmed: checks.senderNameConfirmed },
+    { label: "識別数字の確認（名前の前後）", confirmed: checks.identifierConfirmed },
+    { label: "振込金額の一致", confirmed: checks.amountConfirmed },
+  ];
+
+  return (
+    <Stack space={1}>
+      {items.map(({ label, confirmed }) => (
+        <Flex key={label} gap="xs" align="center">
+          {confirmed ? (
+            <CircleCheck aria-hidden className="h-4 w-4 shrink-0 text-success" />
+          ) : (
+            <CircleX aria-hidden className="h-4 w-4 shrink-0 text-destructive" />
+          )}
+          <Span size="sm" tone={confirmed ? "default" : "destructive"}>
+            {label}
+          </Span>
+        </Flex>
+      ))}
     </Stack>
   );
 }

@@ -45,6 +45,12 @@ export type BankTransferInstructionPageProps = {
    * SSR ページから paymentConfig.bankTransfer.aiImageJudgmentEnabled が渡る。
    */
   aiImageJudgmentEnabled: boolean;
+  /**
+   * AI 判定のストリクトモードフラグ（説明文の切替用）。
+   * SSR ページから paymentConfig.bankTransfer.aiImageJudgmentStrictMode が渡る。
+   * 実際の厳格判定はサーバー側（judge-image API）で行われる。
+   */
+  aiImageJudgmentStrictMode: boolean;
 };
 
 export function BankTransferInstructionPage({
@@ -54,6 +60,7 @@ export function BankTransferInstructionPage({
   identifier,
   expiresAt,
   aiImageJudgmentEnabled,
+  aiImageJudgmentStrictMode,
 }: BankTransferInstructionPageProps) {
   // 添付された画像の Storage URL。null = 未添付。申告ステップ API に渡す。
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
@@ -125,6 +132,7 @@ export function BankTransferInstructionPage({
             file={proofImageFile}
             result={judgmentResult}
             onResultChange={setJudgmentResult}
+            strictMode={aiImageJudgmentStrictMode}
           />
           <StepConnector />
         </>

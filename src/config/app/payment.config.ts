@@ -86,6 +86,14 @@ export type BankTransferConfig = {
    *   Anthropic API キー未設定や AI サービス停止時の緊急バイパスにも使える。
    */
   aiImageJudgmentEnabled: boolean;
+  /**
+   * AI 判定のストリクトモード。aiImageJudgmentEnabled=true のときのみ有効。
+   * - true: 明細内で「①振込人名が読み取れる ②名前の前後どちらかに識別数字（8桁）が
+   *   一致して付与されている ③振込金額が一致する」の 3 点すべてを確認できなければ不合格。
+   *   確認できない・不鮮明な場合も不合格に倒す（通常モードは「迷ったら通す」）。
+   * - false: 従来どおり「振込明細らしい画像か」のざっくり仮判定のみ。
+   */
+  aiImageJudgmentStrictMode: boolean;
   /** 振込先口座情報（案内画面に表示） */
   account: {
     bankName: string;
@@ -173,6 +181,7 @@ export const paymentConfig = {
   bankTransfer: {
     autoComplete: true,
     aiImageJudgmentEnabled: false,
+    aiImageJudgmentStrictMode: false,
     account: {
       bankName: "サンプル銀行",
       branchName: "サンプル支店",

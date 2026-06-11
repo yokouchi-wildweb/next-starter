@@ -1,9 +1,15 @@
 // src/app/api/demo/bank-transfer-vision/route.ts
+//
+// AI 振込明細判定のサンドボックス用エンドポイント。
+// formData に expectedIdentifier と expectedAmount の両方が含まれる場合は
+// ストリクトモード（振込人名・識別数字・金額の 3 点確認）で判定する。
+// どちらか一方のみの場合は 400 を返す（期待値が揃わないと照合できないため）。
 
 import { NextResponse } from "next/server";
 
 import {
   checkBankTransferReceipt,
+  type BankTransferStrictExpectation,
   type SupportedImageMediaType,
 } from "@/lib/aiVision";
 import { createApiRoute } from "@/lib/routeFactory";
@@ -57,12 +63,41 @@ export const POST = createApiRoute(
       );
     }
 
+    // ストリクトモードの期待値（任意）。両方揃ったときのみ strict 判定。
+    const rawIdentifier = formData.get("expectedIdentifier");
+    const rawAmount = formData.get("expectedAmount");
+    const hasIdentifier = typeof rawIdentifier === "string" && rawIdentifier.trim() !== "";
+    const hasAmount = typeof rawAmount === "string" && rawAmount.trim() !== "";
+
+    if (hasIdentifier !== hasAmount) {
+      return NextResponse.json(
+        { message: "ストリクトモードには識別数字と振込金額の両方を指定してください" },
+        { status: 400 },
+      );
+    }
+
+    let strict: BankTransferStrictExpectation | undefined;
+    if (hasIdentifier && hasAmount) {
+      const expectedAmount = Number(rawAmount);
+      if (!Number.isInteger(expectedAmount) || expectedAmount <= 0) {
+        return NextResponse.json(
+          { message: "振込金額は正の整数（円）で指定してください" },
+          { status: 400 },
+        );
+      }
+      strict = {
+        expectedIdentifier: rawIdentifier.trim(),
+        expectedAmount,
+      };
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const imageBase64 = Buffer.from(arrayBuffer).toString("base64");
 
     const result = await checkBankTransferReceipt({
       imageBase64,
       mediaType: file.type,
+      strict,
     });
 
     return NextResponse.json(result);

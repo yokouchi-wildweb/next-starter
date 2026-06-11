@@ -2,18 +2,32 @@
 
 import axios, { AxiosError } from "axios";
 import { useState } from "react";
+import { CircleCheck, CircleX } from "lucide-react";
 
 import { SoftBadge } from "@/components/Badge";
 import { Button } from "@/components/Form/Button/Button";
+import { Input, NumberInput, SwitchInput } from "@/components/Form/Input/Manual";
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Para, Span } from "@/components/TextBlocks";
 import { MediaInput } from "@/lib/mediaInputSuite";
+
+/** ストリクトモード時の必須 3 点チェックの個別結果（lib/aiVision の BankTransferStrictChecks と同期） */
+type StrictChecks = {
+  senderNameConfirmed: boolean;
+  identifierConfirmed: boolean;
+  amountConfirmed: boolean;
+  detectedSenderName: string | null;
+};
 
 type JudgmentResult = {
   isLikelyBankTransfer: boolean;
   confidence: number;
   imageType: "photo" | "screenshot" | "other";
   reason: string;
+  /** ストリクトモード時のみ付与される */
+  strictChecks?: StrictChecks;
 };
 
 type ApiError = { message?: string };
@@ -26,9 +40,18 @@ export const BankTransferVisionDemo = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<JudgmentResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // ストリクトモード（振込人名・識別数字・金額の 3 点確認）の切り替えと期待値
+  const [strictMode, setStrictMode] = useState(false);
+  const [expectedIdentifier, setExpectedIdentifier] = useState("");
+  const [expectedAmount, setExpectedAmount] = useState<number | null>(null);
+
+  // ストリクト時は期待値が両方揃わないと判定不可
+  const strictReady =
+    expectedIdentifier.trim() !== "" && expectedAmount !== null && expectedAmount > 0;
+  const canJudge = !!file && !loading && (!strictMode || strictReady);
 
   const handleJudge = async () => {
-    if (!file || loading) return;
+    if (!file || !canJudge) return;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -36,6 +59,10 @@ export const BankTransferVisionDemo = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      if (strictMode) {
+        formData.append("expectedIdentifier", expectedIdentifier.trim());
+        formData.append("expectedAmount", String(expectedAmount));
+      }
       const res = await axios.post<JudgmentResult>(
         "/api/demo/bank-transfer-vision",
         formData,
@@ -79,14 +106,69 @@ export const BankTransferVisionDemo = () => {
         resetSignal={resetSignal}
       />
 
-      <div className="flex gap-2">
-        <Button onClick={handleJudge} disabled={!file || loading}>
+      <Stack space={3}>
+        <SwitchInput
+          value={strictMode}
+          label="ストリクトモード"
+          description="振込人名・名前の前後の識別数字・振込金額の3点が明細内で確認できなければ不合格にします"
+          onChange={(next) => {
+            setStrictMode(next);
+            // モード切替後の結果は前提が異なるためクリアする
+            setResult(null);
+            setError(null);
+          }}
+        />
+
+        {strictMode && (
+          <Block padding="md" className="rounded-lg border border-border bg-card">
+            <Stack space={3}>
+              <Stack space={1}>
+                <Span size="sm" weight="medium">
+                  識別数字（振込人名の前後に付与されている想定の数字）
+                </Span>
+                <Input
+                  value={expectedIdentifier}
+                  placeholder="例: 13495532"
+                  inputMode="numeric"
+                  onChange={(e) => {
+                    setExpectedIdentifier(e.target.value);
+                    setResult(null);
+                  }}
+                />
+              </Stack>
+              <Stack space={1}>
+                <Span size="sm" weight="medium">
+                  振込金額（円）
+                </Span>
+                <NumberInput
+                  nullable
+                  value={expectedAmount}
+                  min={1}
+                  placeholder="例: 10000"
+                  onChange={(next) => {
+                    setExpectedAmount(next);
+                    setResult(null);
+                  }}
+                />
+              </Stack>
+              {!strictReady && (
+                <Para size="xs" tone="muted">
+                  識別数字と振込金額の両方を入力すると判定できます。
+                </Para>
+              )}
+            </Stack>
+          </Block>
+        )}
+      </Stack>
+
+      <Flex gap="xs">
+        <Button onClick={handleJudge} disabled={!canJudge}>
           {loading ? "判定中..." : "判定する"}
         </Button>
         <Button variant="outline" onClick={handleReset} disabled={loading}>
           リセット
         </Button>
-      </div>
+      </Flex>
 
       {error ? (
         <Para tone="destructive" size="sm">
@@ -111,6 +193,8 @@ const ResultView = ({ result }: { result: JudgmentResult }) => {
 
       <ConfidenceBar value={result.confidence} />
 
+      {result.strictChecks ? <StrictCheckList checks={result.strictChecks} /> : null}
+
       <div>
         <Para size="sm" weight="medium">
           判定根拠
@@ -126,6 +210,40 @@ const ResultView = ({ result }: { result: JudgmentResult }) => {
           {JSON.stringify(result, null, 2)}
         </pre>
       </details>
+    </Stack>
+  );
+};
+
+/**
+ * ストリクトモードの必須 3 点チェック結果の一覧表示。
+ * 読み取れた振込人名も補足表示してプロンプト調整の手がかりにする。
+ */
+const StrictCheckList = ({ checks }: { checks: StrictChecks }) => {
+  const items: { label: string; confirmed: boolean }[] = [
+    { label: "振込人名の確認", confirmed: checks.senderNameConfirmed },
+    { label: "識別数字の確認（名前の前後）", confirmed: checks.identifierConfirmed },
+    { label: "振込金額の一致", confirmed: checks.amountConfirmed },
+  ];
+
+  return (
+    <Stack space={1}>
+      {items.map(({ label, confirmed }) => (
+        <Flex key={label} gap="xs" align="center">
+          {confirmed ? (
+            <CircleCheck aria-hidden className="h-4 w-4 shrink-0 text-success" />
+          ) : (
+            <CircleX aria-hidden className="h-4 w-4 shrink-0 text-destructive" />
+          )}
+          <Span size="sm" tone={confirmed ? "default" : "destructive"}>
+            {label}
+          </Span>
+        </Flex>
+      ))}
+      {checks.detectedSenderName ? (
+        <Para size="xs" tone="muted">
+          読み取れた振込人名: {checks.detectedSenderName}
+        </Para>
+      ) : null}
     </Stack>
   );
 };
