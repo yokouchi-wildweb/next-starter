@@ -26,6 +26,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/example",
     operationType: "read",
+    access: "authenticated", // 必須: アクセスポリシー
   },
   async (req, { params, session }) => {
     // ビジネスロジック
@@ -40,7 +41,10 @@ export const GET = createApiRoute(
 |-----------|-----|-----|
 | `operation` | `string` | 操作名（ログ・デバッグ用） |
 | `operationType` | `"read" \| "write"` | 操作種別 |
+| `access` | `RouteAccess` | **必須**。`"public" \| "authenticated" \| "custom" \| { roles?, roleCategories? }`。`"custom"` 以外は factory が認可を強制。型必須のため宣言漏れはコンパイルエラー |
 | `skipForDemo` | `boolean \| undefined` | デモユーザー時のスキップ制御 |
+
+`access` の選び方・パターンは [APIルート認可実装ガイド](../../../docs/how-to/APIルート認可実装ガイド.md) を参照。
 
 #### `skipForDemo` の挙動
 
@@ -72,55 +76,69 @@ export const GET = createDomainRoute<any, Params>(
 );
 ```
 
+アクセスポリシーは serviceRegistry の登録エントリ（`{ service, access }`）で宣言する（型必須）。
+
 ---
 
-## 使用例
+### 3. `createMeRoute` - 本人専用ファクトリー（オーナーシップ）
 
-### 読み取り専用API
+`/api/me/**` 配下の「自分のデータだけ」を扱うルート専用。認証を強制し、ハンドラに
+**認証済み `user`（DB 同期）** を渡す。`access` は不要（内部で認証を強制する）。
 
 ```ts
-export const GET = createApiRoute(
-  {
-    operation: "GET /api/wallet/balance",
-    operationType: "read",
-  },
-  async (_req, { session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "認証が必要です" }, { status: 401 });
-    }
-    return walletService.getBalance(session.userId);
+import { createMeRoute } from "@/lib/routeFactory";
+
+export const GET = createMeRoute(
+  { operation: "GET /api/me/wallet", operationType: "read" },
+  async (_req, { user }) => {
+    // user.userId でサーバー側スコープを強制（クライアント指定の id は使わない）
+    const result = await walletService.search({
+      where: { field: "user_id", op: "eq", value: user.userId },
+    });
+    return { wallets: result.results ?? [] };
   },
 );
 ```
 
-### 書き込みAPI（デモ時は自動スキップ）
+---
+
+## 使用例
+
+### 本人のデータを返す（createMeRoute）
+
+```ts
+export const GET = createMeRoute(
+  { operation: "GET /api/me/wallet", operationType: "read" },
+  async (_req, { user }) => walletService.search({
+    where: { field: "user_id", op: "eq", value: user.userId },
+  }),
+);
+```
+
+### 管理者限定の書き込み（createApiRoute + access）
 
 ```ts
 export const POST = createApiRoute(
   {
     operation: "POST /api/storage/upload",
     operationType: "write",
-    // skipForDemo: undefined → write なので自動スキップ
+    access: "authenticated",
   },
-  async (req, { session }) => {
-    // デモユーザーはここに到達しない
-    return storageService.upload(req);
-  },
+  async (req) => storageService.upload(req), // 認可は factory が処理済み
 );
 ```
 
-### 書き込みAPI（デモでも実行必須）
+### 自前認可が必要なルート（access: "custom"）
 
 ```ts
 export const POST = createApiRoute(
   {
-    operation: "POST /api/auth/login",
+    operation: "POST /api/webhook/payment",
     operationType: "write",
-    skipForDemo: false, // ログインはデモでも必要
+    access: "custom",       // 署名検証など独自ガードを自前で行う
+    skipForDemo: false,
   },
-  async (req) => {
-    return authService.login(req);
-  },
+  async (req) => { /* 署名検証 → 処理 */ },
 );
 ```
 
@@ -129,12 +147,14 @@ export const POST = createApiRoute(
 ## 禁止事項
 
 - ファクトリーを経由せずに直接ハンドラをエクスポートすること
-- `operationType` を省略すること
+- `operationType` / `access` を省略すること（access は型必須）
+- ユーザー所有データを汎用 `/api/[domain]` で出すこと（オーナーシップを強制できない。createMeRoute を使う）
 - デモスキップの判断をハンドラ内で行うこと（ファクトリーに委譲する）
 
 ---
 
 ## 関連ドキュメント
 
+- [APIルート認可実装ガイド](../../../docs/how-to/APIルート認可実装ガイド.md) - access / 3 ファクトリーの実装手順
+- [汎用APIアクセス制御ガイド](../../../docs/how-to/汎用APIアクセス制御ガイド.md) - 設計思想・仕組み
 - `docs/!must-read/アプリ構築における構成層.md` - 全体アーキテクチャ
-- `docs/!must-read/汎用CRUDの仕様と拡張方法について.md` - CRUD仕様

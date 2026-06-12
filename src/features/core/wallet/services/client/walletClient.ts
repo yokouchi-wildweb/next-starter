@@ -25,6 +25,8 @@ export type BulkAdjustByTypePayload = Omit<WalletAdjustRequestPayload, "requestB
 type WalletClient = ApiClient<Wallet, WalletCreateFields, WalletUpdateFields> & {
   adjustBalance(userId: string, payload: WalletAdjustRequestPayload): Promise<WalletAdjustmentResult>;
   bulkAdjustByType(payload: BulkAdjustByTypePayload): Promise<BulkAdjustByTypeResult>;
+  /** 本人のウォレット残高を取得（オーナーシップはサーバーが session で強制） */
+  getMyBalances(): Promise<{ wallets: Wallet[] }>;
 };
 
 const baseClient = createApiClient<Wallet, WalletCreateFields, WalletUpdateFields>("/api/wallet");
@@ -47,8 +49,18 @@ async function bulkAdjustByType(payload: BulkAdjustByTypePayload) {
   }
 }
 
+async function getMyBalances(): Promise<{ wallets: Wallet[] }> {
+  try {
+    const response = await axios.get<{ wallets: Wallet[] }>("/api/me/wallet");
+    return response.data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
 export const walletClient: WalletClient = {
   ...baseClient,
   adjustBalance,
   bulkAdjustByType,
+  getMyBalances,
 };

@@ -13,7 +13,7 @@ import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
+import { useMyWalletBalances } from "@/features/core/wallet/hooks/useMyWalletBalances";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
@@ -43,7 +43,7 @@ export function WalletBalancePage({
   const searchParams = useSearchParams();
   const config = getCurrencyConfigBySlug(slug);
   const { user } = useAuthSession();
-  const { data, isLoading, error } = useWalletBalances(user?.userId);
+  const { data, isLoading, error } = useMyWalletBalances(user?.userId);
 
   // クーポン状態管理
   const [couponEffect, setCouponEffect] = useState<PurchaseDiscountEffect | null>(null);

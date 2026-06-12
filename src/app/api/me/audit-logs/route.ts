@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/lib/routeFactory";
 import { auditLogBase } from "@/features/core/auditLog/services/server";
 import type { SearchParams, WhereExpr } from "@/lib/crud";
 
@@ -16,17 +16,12 @@ import {
 } from "@/app/api/[domain]/search/utils";
 
 // GET /api/me/audit-logs?page=1&limit=20
-export const GET = createApiRoute(
+export const GET = createMeRoute(
   {
     operation: "GET /api/me/audit-logs",
     operationType: "read",
-    access: "custom",
   },
-  async (req, { session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "認証が必要です" }, { status: 401 });
-    }
-
+  async (req, { user }) => {
     try {
       const query = req.nextUrl.searchParams;
 
@@ -40,10 +35,10 @@ export const GET = createApiRoute(
           {
             and: [
               { field: "targetType", op: "eq", value: "user" },
-              { field: "targetId", op: "eq", value: session.userId },
+              { field: "targetId", op: "eq", value: user.userId },
             ],
           },
-          { field: "actorId", op: "eq", value: session.userId },
+          { field: "actorId", op: "eq", value: user.userId },
         ],
       };
 

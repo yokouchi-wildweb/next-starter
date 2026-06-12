@@ -429,6 +429,11 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 `/api/[domain]/**` の汎用 CRUD ルートに対するロールベースのアクセス制御。
 判定は `createDomainRoute`（`src/lib/routeFactory`）が一元的に行う。
 
+> **実行時ソースは serviceRegistry**: domain.json の `apiAccess` は editing source で、
+> `dc:generate` が serviceRegistry エントリの `access` に展開する（`{ service, access }`、型必須）。
+> 実行時の認可は registry の access を参照する。手動登録のコアドメインは registry に直接 access を書く。
+> 詳細: docs/how-to/汎用APIアクセス制御ガイド.md
+
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
 | read | AccessRule | ⚪ No | 読み取り操作（list, get, search, count）の既定ルール |
@@ -450,9 +455,9 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 
 #### フォールバック（fail-closed）
 
-- `apiAccess` 自体、または `read` / `write` が未宣言の場合、グローバル既定値（`src/config/app/domain-api-access.config.ts`、初期値: admin カテゴリのみ）が適用される
-- domain.json を持たないが serviceRegistry に登録されているドメイン（wallet 等）も同様に既定値が適用される
-- **新ドメイン追加時にガードを書き忘れても安全側（admin-only）に倒れる**
+- serviceRegistry の `access` は型必須のため、登録時に宣言を省略できない（書き忘れはコンパイルエラー）
+- `read` / `write` / `operations` が当該操作をカバーしない（部分宣言・空 `{}`）場合、グローバル既定値（`src/config/app/domain-api-access.config.ts`、初期値: admin カテゴリのみ）が適用される
+- **書き忘れても安全側（admin-only）に倒れる**
 
 #### 例
 
@@ -467,9 +472,9 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 #### ⚠️ オーナーシップ制御は対象外
 
 ロールガードのみで「自分のレコードだけ」という制御はできない。ユーザー所有データ
-（notification 等）の汎用 API は admin-only のままにし、ユーザー向けアクセスは
-`/api/me/` 系の専用ルートで提供すること。`"read": "authenticated"` を設定すると
-**他ユーザーのレコードも読める**点に注意。
+（wallet, notification 等）の汎用 API は admin 限定にし、ユーザー向けアクセスは
+`createMeRoute`（`/api/me/**`）で所有者スコープを強制すること。`"read": "authenticated"` を
+設定すると汎用 API では**他ユーザーのレコードも読める**点に注意。
 
 ---
 

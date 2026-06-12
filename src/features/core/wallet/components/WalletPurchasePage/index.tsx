@@ -10,7 +10,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
-import { useWalletBalances } from "@/features/core/wallet/hooks/useWalletBalances";
+import { useMyWalletBalances } from "@/features/core/wallet/hooks/useMyWalletBalances";
 import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
@@ -30,7 +30,7 @@ export function WalletPurchasePage({ slug }: WalletPurchasePageProps) {
 
   const config = getCurrencyConfigBySlug(slug);
   const { user } = useAuthSession();
-  const { data, isLoading, error } = useWalletBalances(user?.userId);
+  const { data, isLoading, error } = useMyWalletBalances(user?.userId);
 
   // 無効なスラッグ
   if (!config) {

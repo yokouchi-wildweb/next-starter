@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/lib/routeFactory";
 import { sendEmailChangeLink } from "@/features/core/auth/services/server/sendEmailChangeLink";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors";
@@ -12,17 +12,12 @@ const RequestSchema = z.object({
   newEmail: z.string().email("有効なメールアドレスを入力してください"),
 });
 
-export const POST = createApiRoute(
+export const POST = createMeRoute(
   {
     operation: "POST /api/me/email/send-verification",
     operationType: "write",
-    access: "custom",
   },
-  async (req, { session }) => {
-    if (!session) {
-      throw new DomainError("認証が必要です", { status: 401 });
-    }
-
+  async (req, { user }) => {
     const body = await req.json();
     const result = RequestSchema.safeParse(body);
 
@@ -34,7 +29,7 @@ export const POST = createApiRoute(
     const { newEmail } = result.data;
 
     // 現在のユーザー情報を取得
-    const currentUser = await userService.get(session.userId);
+    const currentUser = await userService.get(user.userId);
     if (!currentUser) {
       throw new DomainError("ユーザーが見つかりません", { status: 404 });
     }

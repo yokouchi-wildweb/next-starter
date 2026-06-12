@@ -1,200 +1,183 @@
 # API ルート認可実装ガイド
 
 API ルートを **作る / 守る** ときの実装手順・パターン・チェックリスト。
-設計思想と仕組みの詳細は [汎用APIアクセス制御ガイド](./汎用APIアクセス制御ガイド.md) を参照。
+設計思想と仕組みの背景は [汎用APIアクセス制御ガイド](./汎用APIアクセス制御ガイド.md) を参照。
 
 > 対象読者: 本テンプレート（および各フォーク）で API ルートを実装する開発者。
-> このリポジトリで新規ルートを書く前と、既存ルートの認可を棚卸しするときに読む。
+> 新規ルートを書く前に読む。
 
 ---
 
-## 大前提: 2 種類のルートでガードの効き方が違う
+## 大前提: API ルートは必ずいずれかのファクトリーを通す
 
-| 種別 | 実装 | デフォルトの安全性 |
-|------|------|--------------------|
-| 汎用ルート | `createDomainRoute`（`/api/[domain]/**`、自動生成） | **fail-closed**（domain.json の apiAccess で守られる。未宣言は admin 限定） |
-| カスタムルート | `createApiRoute`（手書き `route.ts`） | **fail-open**（認可を書かないと誰でも通る） |
+すべての API ルートは 3 つのファクトリーのいずれかで作る。各ファクトリーが**構造的に認可を強制**する。
 
-**最重要**: カスタムルートは認可を書き忘れると素通しになる。本ガイドの主目的は、この
-カスタムルートを正しく・統一的に守ることにある。
+| ファクトリー | 用途 | 認可の効き方 |
+|------|------|--------------|
+| `createDomainRoute` | 汎用 CRUD（`/api/[domain]/**`、自動生成） | serviceRegistry の `access` で強制（**fail-closed**） |
+| `createApiRoute` | 手書きカスタムルート | `access` が**型必須**。宣言しないとコンパイルが通らない（**fail-closed by construction**） |
+| `createMeRoute` | 本人専用（`/api/me/**`、オーナーシップ） | 認証を強制し、ハンドラに認証済み `user` を渡す |
+
+いずれも `access` の宣言（または createMeRoute の利用）を**書き忘れると型エラー or 弾かれる**ため、「認可を考えずにルートを書く」ことができない。
 
 ---
 
-## 決定木: 新しい API をどう守るか
+## 決定木: どのファクトリーを使うか
 
 ```
-新しいデータ操作を API で公開したい
+新しい API を作りたい
 │
 ├─ ドメインの標準 CRUD で足りる？
-│   └─ YES → 汎用ルートを使う（手書きルート不要）
-│            domain.json に apiAccess を宣言する → 「① 汎用ルート」へ
+│   └─ YES → createDomainRoute（手書き不要）。serviceRegistry の access で宣言 →「① 汎用」
 │
-└─ NO（独自ロジック・特殊な入出力）→ カスタムルートを書く → 「② カスタムルート」へ
-        │
-        └─ 公開範囲は？
-            ├─ 未認証で正当（ログイン前・webhook・公開マスタ）→ 「②-a public」
-            ├─ ログインユーザーなら誰でも　　　　　　　　　　 → 「②-b authenticated」
-            ├─ 管理者のみ　　　　　　　　　　　　　　　　　　 → 「②-c admin」
-            └─ 自分のレコードのみ（オーナーシップ）　　　　　 → 「②-d owner」
+├─ 自分（ログインユーザー本人）のデータだけを扱う？
+│   └─ YES → createMeRoute（/api/me/**）→「③ オーナーシップ」
+│
+└─ それ以外（独自ロジック・特殊入出力）→ createApiRoute →「② カスタム」
+        access を必ず宣言:
+        ├─ 未認証で正当（ログイン前・署名付きwebhook・公開マスタ）→ "public"
+        ├─ ログインユーザーなら誰でも　　　　　　　　　　　　　 → "authenticated"
+        ├─ 管理者のみ　　　　　　　　　　　　　　　　　　　　　 → { roleCategories: ["admin"] }
+        └─ ファクトリーに任せられない独自認可（署名検証等）　　 → "custom"（自前で守る）
 ```
 
 ---
 
-## ① 汎用ルート: domain.json で宣言
+## ① 汎用ルート（createDomainRoute）
 
-手書きルートは不要。domain.json に `apiAccess` を書くだけで `createDomainRoute` が強制する。
+手書き不要。アクセスポリシーは **serviceRegistry の登録エントリ**で宣言する。
 
-```json
-"apiAccess": {
-  "read":  "public",
-  "write": { "roleCategories": ["admin"] },
-  "operations": { "hardDelete": "none" }
-}
+```ts
+// src/registry/serviceRegistry.ts
+sample: {
+  service: sampleService,
+  access: { read: "public", write: { roleCategories: ["admin"] } },
+},
 ```
 
-- ルール: `"public"` | `"authenticated"` | `"none"` | `{ "roles": [...], "roleCategories": [...] }`
-- 未宣言は **admin 限定にフォールバック**（fail-closed）
+- 自動生成ドメイン: domain.json の `apiAccess` を `dc:generate` が registry に展開する（domain.json が編集元）
+- 手動登録ドメイン（コアドメイン）: registry に直接 access を書く
+- access は**型必須**。空 `{}` でも `defaultRule`（admin 限定）にフォールバックし安全側に倒れる
+- ルール値: `"public"` | `"authenticated"` | `"none"` | `{ roles?, roleCategories? }`、操作単位の上書きは `operations`
 - スキーマ詳細: `src/features/README.md`「ApiAccess」
 
 ---
 
-## ② カスタムルート: ハンドラ先頭で認可する
+## ② カスタムルート（createApiRoute）
 
-認可ヘルパー `@/features/core/auth/services/server/requireRole` を **ハンドラの先頭で呼ぶ**。
-失敗時は `DomainError` を throw し、`createApiRoute` が 401 / 403 に変換する。
-ロール判定は DB 同期される `getSessionUser` を使う（`ctx.session` は token-only のため認可に使わない）。
+`access` を**必ず**宣言する（型必須）。`"custom"` 以外はファクトリーが認可を強制する。
 
 ### ②-a public（未認証で正当）
 
-ログイン前処理・署名検証付き webhook・公開マスタ等。**理由付きで lint を抑止**して明示する。
-
 ```ts
-// eslint-disable-next-line route-authz/require-authz -- public: <理由>
-export const POST = createApiRoute({ operation: "...", operationType: "write" }, async (req) => {
-  // webhook なら署名検証をここで必ず行う
-  ...
-});
+export const POST = createApiRoute(
+  { operation: "...", operationType: "write", access: "public" },
+  async (req) => { /* webhook なら署名検証をここで行う */ },
+);
 ```
 
 ### ②-b authenticated（ログイン必須）
 
 ```ts
-import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
-
-export const POST = createApiRoute({ operation: "...", operationType: "write" }, async (req) => {
-  await requireAuthenticated();   // 未認証→401 / 利用停止→403
-  ...
-});
+export const POST = createApiRoute(
+  { operation: "...", operationType: "write", access: "authenticated" },
+  async (req) => { /* 未認証→401 / 利用停止→403 は factory が処理 */ },
+);
 ```
 
 ### ②-c admin（管理者限定）
 
 ```ts
-import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
-
-export const POST = createApiRoute({ operation: "...", operationType: "write" }, async (req) => {
-  await requireAdmin();           // 未認証→401 / 非admin・利用停止→403
-  ...
-});
+export const GET = createApiRoute(
+  { operation: "...", operationType: "read", access: { roleCategories: ["admin"] } },
+  async (req) => { /* 未認証→401 / 非admin→403 は factory が処理 */ },
+);
 ```
 
-### ②-d owner（自分のレコードのみ）
+### ②-d custom（自前認可）
 
-ヘルパーは「ログイン済みか」「管理者か」までしか見ない。**オーナーシップは自前で**。
-`requireAuthenticated()` が返す `SessionUser` の `userId` を where 条件に必ず混ぜる。
+webhook の署名検証など、ファクトリーの宣言的認可に乗らない独自ガードを持つルート。
+`access: "custom"` を宣言し、ハンドラ内で自前に守る。認可ヘルパーは
+`@/features/core/auth/services/server/requireRole` の `requireAdmin()` / `requireAuthenticated()` を使える
+（失敗時 `DomainError` を throw し factory が 401/403 に変換。ロール判定は DB 同期の `getSessionUser`）。
 
 ```ts
-export const GET = createApiRoute({ operation: "...", operationType: "read" }, async (req) => {
-  const user = await requireAuthenticated();
-  // userId で必ず絞る（他人のレコードを返さない）
-  return someService.search({ where: { user_id: user.userId } });
-});
+export const POST = createApiRoute(
+  { operation: "...", operationType: "write", access: "custom" },
+  async (req) => {
+    // 例: 署名検証 / 独自トークン検証 / 条件付き認可
+  },
+);
 ```
 
-ユーザー向けの定型操作は、所有者スコープを内包した `/api/me/` 系の専用ルートにまとめると安全。
+---
+
+## ③ オーナーシップ専用ルート（createMeRoute）
+
+「自分のレコードだけ」を扱うユーザー向け API は `/api/me/**` に置き、`createMeRoute` で作る。
+認証が強制され、ハンドラに**認証済み `user`（DB 同期）が渡る**。
+
+```ts
+// src/app/api/me/wallet/route.ts
+export const GET = createMeRoute(
+  { operation: "GET /api/me/wallet", operationType: "read" },
+  async (_req, { user }) => {
+    // user.userId でサーバー側スコープを強制（クライアント指定の id は使わない）
+    const result = await walletService.search({
+      where: { field: "user_id", op: "eq", value: user.userId },
+    });
+    return { wallets: result.results ?? [] };
+  },
+);
+```
+
+- `access` は不要（createMeRoute が内部で認証を強制する）
+- **オーナーシップは `user.userId` を where 等に必ず使って実現する**。汎用 `/api/[domain]` は
+  クライアント指定の `user_id` を信用してしまうため、ユーザー所有データは createMeRoute に集約する
+- 他ユーザーのデータを見る管理用途は createMeRoute ではなく admin 用ルート（`{ roleCategories: ["admin"] }`）で
 
 ---
 
 ## lint による検出（route-authz/require-authz）
 
-`eslint-rules/route-authz.mjs` が、`createApiRoute` を使うのに認可ヘルパーも `session` 参照も
-無いルートを **warn** で検出する。
+`eslint-rules/route-authz.mjs` が `createApiRoute` の `access` 宣言を検査する。
 
-- 警告が出たら → 認可ヘルパーを足す、または ②-a の理由付き抑止で公開を明示する
-- フォーク先で独自の認可ヘルパーを追加した場合は、`route-authz.mjs` の `AUTH_SIGNALS` に
-  その関数名を追加すると誤検知を防げる
+- `access` が宣言済み（非 custom）→ OK（factory が強制 / 意図的公開）
+- `access: "custom"` なのにハンドラ内に認可の痕跡（`getSessionUser` / `requireAdmin` / `session` 参照 等）が無い → **警告**
+- `access` 未宣言 → **警告**（型必須のため通常はコンパイルエラーが先に出る）
+
+フォーク先で独自の認可ヘルパーを足した場合は `route-authz.mjs` の `AUTH_SIGNALS` に関数名を追加する。
 
 ---
 
 ## PR 前チェックリスト
 
-- [ ] 汎用ルートで足りるなら手書きせず domain.json の apiAccess で宣言したか
-- [ ] カスタムルートのハンドラ先頭で `requireAdmin()` / `requireAuthenticated()` を呼んだか
-- [ ] 公開ルートは理由付き `eslint-disable` で意図を明示したか
-- [ ] オーナーシップが必要なら `user.userId` で where を絞ったか（他人のデータが返らないか）
+- [ ] 汎用 CRUD で足りるなら手書きせず createDomainRoute（serviceRegistry の access）で宣言したか
+- [ ] 本人専用データは createMeRoute（/api/me）にしたか
+- [ ] createApiRoute に `access` を宣言したか（public/authenticated/custom/{roleCategories}）
+- [ ] `access: "custom"` のルートはハンドラ内で実際に認可しているか
+- [ ] オーナーシップは `user.userId` でサーバー側スコープしたか（他人のデータが返らないか）
 - [ ] webhook はハンドラ内で署名/トークン検証しているか
-- [ ] `pnpm lint` で `route-authz/require-authz` の警告が 0 か
-
----
-
-## 既存ルートの棚卸し（フォーク先で実施推奨）
-
-各フォークには、本テンプレートに無い独自のカスタムルートがある。認可漏れが残っている
-可能性が高いので、以下の手順で一括棚卸しする。
-
-### 1. lint で警告を一覧化
-
-```bash
-pnpm lint
-# route-authz/require-authz の警告が出るルート = 認可も session 参照も無いルート
-```
-
-### 2. 認可シグナルの無いルートを抽出（lint の補助・素朴な確認）
-
-```bash
-# createApiRoute を直接使う route.ts で、認可関数も session も触らないものを洗う
-grep -rL 'getSessionUser\|requireAdmin\|requireAuthenticated\|authGuard\|session' \
-  $(grep -rl 'createApiRoute' src/app/api --include=route.ts | grep -v '/\[domain\]/')
-```
-
-> この grep は `eslint-disable` を見ないため、**public 明示済みのルートもヒットする**。
-> 正確な「未対応」一覧は手順 1 の lint（`route-authz/require-authz` 警告）が示す。
-> grep はあくまで候補の洗い出しで、結果は手順 3 で仕分ける。
-
-### 3. 各ルートを仕分けて対応
-
-| 分類 | 対応 |
-|------|------|
-| 管理機能（データ移行・全件検索・PII 操作等） | `requireAdmin()` を追加 |
-| ログインユーザー向け | `requireAuthenticated()` を追加 |
-| 自分のデータのみ | `requireAuthenticated()` + `userId` で where 絞り、または `/api/me/` 化 |
-| 未認証で正当（ログイン前・署名付き webhook・公開マスタ） | 理由付き `eslint-disable` で明示 |
-
-### 4. 動作確認
-
-未認証でアクセスして、塞いだルートが 401/403、公開ルートが 200 を返すことを確認する。
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:3000/api/<塞いだルート>
-# → 401 が返れば OK
-```
+- [ ] `pnpm tsc --noEmit` と `pnpm lint`（route-authz 警告 0）が通るか
 
 ---
 
 ## アンチパターン
 
 - **`ctx.session` でロール判定する**: token-only のためロール剥奪・利用停止が即時反映されない。
-  認可判定は必ず `requireAdmin()` / `requireAuthenticated()`（= DB 同期の `getSessionUser`）を使う。
-- **`operationType: "write"` を認可と勘違いする**: これはデモスキップと監査ログ用で、認可とは無関係。
-- **認可ヘルパーをハンドラの途中・末尾で呼ぶ**: 必ず先頭で。途中だと処理が一部実行されうる。
-- **オーナーシップをロールだけで代替する**: `authenticated` でも他人のレコードは見える。`userId` 絞り必須。
-- **認可漏れを `eslint-disable` で理由なく黙らせる**: 抑止には必ず `-- public: <理由>` を書く。
+  認可は factory の `access` か `requireAdmin/requireAuthenticated`（= DB 同期の `getSessionUser`）に任せる。
+- **`operationType: "write"` を認可と勘違いする**: デモスキップ・監査ログ用で認可とは無関係。
+- **ユーザー所有データを汎用 `/api/[domain]` で出す**: where の `user_id` がクライアント任せでオーナーシップを
+  強制できない。createMeRoute（/api/me）に置く。
+- **オーナーシップをロールだけで代替する**: `authenticated` でも他人のレコードは見える。`user.userId` 絞り必須。
+- **`access: "custom"` で実際には何も守らない**: custom は「自前で守る」宣言。守らないなら適切な access を宣言する。
 
 ---
 
 ## 関連
 
-- [汎用APIアクセス制御ガイド](./汎用APIアクセス制御ガイド.md) — 設計思想・fail-closed の仕組み・apiAccess スキーマ
-- `src/features/core/auth/services/server/requireRole.ts` — 認可ヘルパー実体
-- `eslint-rules/route-authz.mjs` — 認可漏れ検出ルール
-- `src/features/README.md`「ApiAccess」 — domain.json スキーマ
+- [汎用APIアクセス制御ガイド](./汎用APIアクセス制御ガイド.md) — 設計思想・fail-closed・registry co-location
+- `src/lib/routeFactory/` — `createDomainRoute` / `createApiRoute` / `createMeRoute`
+- `src/features/core/auth/services/server/requireRole.ts` — 認可ヘルパー（custom ルート用）
+- `eslint-rules/route-authz.mjs` — access 宣言の検査
+- `src/features/README.md`「ApiAccess」 — domain.json スキーマ（generator が registry へ展開）

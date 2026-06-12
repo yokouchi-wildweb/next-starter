@@ -1,20 +1,14 @@
 // src/app/api/me/profile/route.ts
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/lib/routeFactory";
 import { userService } from "@/features/core/user/services/server/userService";
-import { DomainError } from "@/lib/errors";
 
-export const PATCH = createApiRoute(
+export const PATCH = createMeRoute(
   {
     operation: "PATCH /api/me/profile",
     operationType: "write",
-    access: "custom",
   },
-  async (req, { session }) => {
-    if (!session) {
-      throw new DomainError("認証が必要です", { status: 401 });
-    }
-
+  async (req, { user }) => {
     const body = await req.json();
 
     // 名前・アバター・プロフィールデータを更新可能とする
@@ -30,7 +24,7 @@ export const PATCH = createApiRoute(
       updateData.profileData = body.profileData;
     }
 
-    const updatedUser = await userService.update(session.userId, updateData);
+    const updatedUser = await userService.update(user.userId, updateData);
     // 管理者専用 / セキュリティ内部フィールドは /me 経路から除外する。
     // - adminMemo: 本人が自分宛ての管理者メモを取得できないように
     // - failedLoginCount / lockedUntil / lastFailedLoginAt: ロック状態

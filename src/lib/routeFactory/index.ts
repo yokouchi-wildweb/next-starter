@@ -14,3 +14,8 @@ export {
   type DomainRouteConfig,
   type DomainRouteContext,
 } from "./createDomainRoute";
+export {
+  createMeRoute,
+  type MeRouteContext,
+  type MeRouteHandler,
+} from "./createMeRoute";
