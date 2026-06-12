@@ -3,8 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createApiRoute, type OperationType, type ApiRouteContext } from "./createApiRoute";
-import { evaluateApiAccessRule } from "@/features/core/auth/services/server/apiAccess";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
+import { enforceAccessRule } from "./enforceAccess";
 import { resolveAccessRule, type DomainApiOperation } from "@/lib/domain";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 import { toCamelCase } from "@/utils/stringCase.mjs";
@@ -89,6 +88,9 @@ export function createDomainRoute<
       operation: config.operation,
       operationType: config.operationType,
       skipForDemo: config.skipForDemo,
+      // 認可は createDomainRoute がドメインごとに registry の access から動的に強制する。
+      // createApiRoute 側の認可はスキップさせる。
+      access: "custom",
     },
     async (req, ctx) => {
       const { domain } = ctx.params;
@@ -108,25 +110,9 @@ export function createDomainRoute<
 
       // ===== アクセス制御（serviceRegistry エントリの access 宣言に基づく） =====
       // access が当該操作をカバーしない場合は fail-closed（admin カテゴリのみ）に倒れる。
-      // ロール判定には DB 同期される getSessionUser を使う（token-only セッションでは
-      // ロール剥奪・利用停止が反映されないため）。public の場合は DB 引きを避ける。
       const rule = resolveAccessRule(entry.access, config.crudOp, config.operationType);
-      const requiresSession = rule !== "public" && rule !== "none";
-      const sessionUser = requiresSession ? await getSessionUser() : null;
-      const decision = evaluateApiAccessRule(rule, sessionUser);
-
-      if (decision === "not_found") {
-        return new NextResponse("Not Found", { status: 404 });
-      }
-      if (decision === "unauthenticated") {
-        return NextResponse.json({ message: "認証が必要です。" }, { status: 401 });
-      }
-      if (decision === "forbidden") {
-        return NextResponse.json(
-          { message: "この操作を行う権限がありません。" },
-          { status: 403 },
-        );
-      }
+      const denied = await enforceAccessRule(rule);
+      if (denied) return denied;
 
       const domainCtx: DomainRouteContext<TService, TParams> = {
         ...ctx,

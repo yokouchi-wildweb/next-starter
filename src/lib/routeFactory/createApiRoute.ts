@@ -16,6 +16,7 @@ import type { RecaptchaAction } from "@/lib/recaptcha/constants";
 import { RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
 import { verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
 import { isDomainError } from "@/lib/errors";
+import { enforceAccessRule } from "./enforceAccess";
 
 /**
  * リクエストヘッダ + session から AuditContext を組み立てる。
@@ -61,6 +62,23 @@ function buildAuditContext(req: NextRequest, session: SessionUser | null): Audit
 export type OperationType = "read" | "write";
 
 /**
+ * カスタムルート（createApiRoute）のアクセスポリシー。
+ * - "public": 未認証でもアクセス可
+ * - "authenticated": ログイン必須（未認証→401 / 利用停止→403）
+ * - { roles?, roleCategories? }: 指定ロール / ロールカテゴリのみ（未認証→401 / 権限不足→403）
+ * - "custom": ハンドラ内で自前認可する（requireAdmin / requireAuthenticated 等）。
+ *   ファクトリーは認可しない。webhook の署名検証など独自ガードを持つルート向け。
+ *
+ * 指定すると createApiRoute が認可を強制する。"custom" は明示的な「自前で守る」宣言で、
+ * route-authz lint の対象（宣言漏れ検出）と整合する。
+ */
+export type RouteAccess =
+  | "public"
+  | "authenticated"
+  | "custom"
+  | { roles?: string[]; roleCategories?: string[] };
+
+/**
  * reCAPTCHA検証設定
  */
 export type RecaptchaConfig = {
@@ -80,6 +98,13 @@ export type ApiRouteConfig = {
   operation: string;
   /** 操作の種類 */
   operationType: OperationType;
+  /**
+   * アクセスポリシー（指定すると createApiRoute が認可を強制する）
+   * - Phase 2 時点では任意。未指定のルートは従来通りハンドラ側で認可する。
+   * - "custom" は「ハンドラ内で自前認可する」明示宣言。
+   * 詳細: docs/how-to/APIルート認可実装ガイド.md
+   */
+  access?: RouteAccess;
   /**
    * デモユーザーの場合にDB操作をスキップするか
    * - undefined: operationType === "write" の場合に自動スキップ
@@ -153,6 +178,14 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
 
     try {
       // ===== 共通処理（前処理） =====
+
+      // アクセス制御: access が指定され "custom" 以外なら、ファクトリーが認可を強制する。
+      // "custom" / 未指定はハンドラ側で認可する（route-authz lint が漏れを検出）。
+      // デモスキップより前に評価し、権限の無いユーザーにデモ成功を返さないようにする。
+      if (config.access && config.access !== "custom") {
+        const denied = await enforceAccessRule(config.access);
+        if (denied) return denied;
+      }
 
       // デモユーザーの書き込み操作をスキップ
       // skipForDemo が明示的に指定されていればその値を使用

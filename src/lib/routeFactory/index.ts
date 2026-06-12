@@ -1,6 +1,13 @@
 // src/lib/apiRoute/index.ts
 
-export { createApiRoute, type ApiRouteConfig, type ApiRouteContext, type OperationType } from "./createApiRoute";
+export {
+  createApiRoute,
+  type ApiRouteConfig,
+  type ApiRouteContext,
+  type OperationType,
+  type RouteAccess,
+} from "./createApiRoute";
+export { enforceAccessRule } from "./enforceAccess";
 export {
   createDomainRoute,
   createDomainIdRoute,
