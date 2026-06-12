@@ -14,6 +14,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/domains",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { session }) => {
     // admin権限チェック

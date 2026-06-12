@@ -10,6 +10,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/analytics/user/status-overview",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { session }) => {
     if (!session || getRoleCategory(session.role) !== "admin") {

@@ -12,6 +12,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/withdraw",
     operationType: "write",
+    access: "custom",
     skipForDemo: true,
   },
   async () => {

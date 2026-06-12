@@ -20,6 +20,7 @@ export const PATCH = createApiRoute<RouteParams>(
   {
     operation: "PATCH /api/admin/user/[userId]/role",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session, params }) => {

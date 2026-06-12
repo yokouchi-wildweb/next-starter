@@ -14,6 +14,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/x/unlink",
     operationType: "write",
+    access: "custom",
     skipForDemo: true,
   },
   async () => {

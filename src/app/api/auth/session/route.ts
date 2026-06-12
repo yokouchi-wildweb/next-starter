@@ -18,6 +18,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/auth/session",
     operationType: "read",
+    access: "custom",
   },
   async (req) => {
     // リクエストに含まれるセッション Cookie からトークン文字列を取得する。

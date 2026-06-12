@@ -12,6 +12,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/reactivate",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async () => {

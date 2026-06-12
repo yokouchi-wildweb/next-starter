@@ -15,6 +15,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/analytics/purchase/registration-age",
     operationType: "read",
+    access: "custom",
   },
   async (req, { session }) => {
     if (!session || getRoleCategory(session.role) !== "admin") {

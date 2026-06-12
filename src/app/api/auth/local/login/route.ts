@@ -11,6 +11,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/local/login",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
     rateLimit: "login",
     rateLimitSubnet: "loginSubnet",

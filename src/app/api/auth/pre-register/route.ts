@@ -4,11 +4,11 @@ import { createApiRoute } from "@/lib/routeFactory";
 import { preRegister } from "@/features/core/auth/services/server/preRegistration";
 import { getClientIp } from "@/lib/request/getClientIp";
 
-// eslint-disable-next-line route-authz/require-authz -- 公開: 新規登録の前段処理（未認証）
 export const POST = createApiRoute(
   {
     operation: "POST /api/auth/pre-register",
     operationType: "write",
+    access: "public",
     skipForDemo: true,
   },
   async (req) => {

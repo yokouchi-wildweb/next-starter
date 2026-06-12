@@ -19,6 +19,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/analytics/wallet/ranking",
     operationType: "read",
+    access: "custom",
   },
   async (req, { session }) => {
     if (!session || getRoleCategory(session.role) !== "admin") {

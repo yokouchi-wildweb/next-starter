@@ -15,6 +15,7 @@ export const POST = createApiRoute<Params>(
   {
     operation: "POST /api/admin/bank-transfer-reviews/[id]/confirm",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (_req, { params, session }) => {

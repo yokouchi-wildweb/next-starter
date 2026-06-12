@@ -36,6 +36,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/auth/x/callback",
     operationType: "write",
+    access: "custom",
     skipForDemo: true,
   },
   async (req) => {

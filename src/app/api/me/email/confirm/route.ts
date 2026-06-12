@@ -13,6 +13,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/me/email/confirm",
     operationType: "write",
+    access: "custom",
   },
   async (_req, { session }) => {
     if (!session) {

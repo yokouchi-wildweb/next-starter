@@ -17,6 +17,7 @@ export const DELETE = createApiRoute<RouteParams>(
   {
     operation: "DELETE /api/admin/user/[userId]/hard-delete",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session, params }) => {

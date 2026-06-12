@@ -13,6 +13,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/phone/verify",
     operationType: "write",
+    access: "custom",
   },
   async (req, { session }) => {
     // ログインチェック

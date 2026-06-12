@@ -9,6 +9,8 @@ export const GET = createApiRoute(
   {
     operation: "GET /demo/check-env/api",
     operationType: "read",
+    // 公開: /demo 配下のデモツール（本番では featureGate proxy が遮断する）
+    access: "public",
   },
   async () => {
     try {

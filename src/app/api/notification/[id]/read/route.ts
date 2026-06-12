@@ -11,6 +11,7 @@ export const POST = createApiRoute<Params>(
   {
     operation: "POST /api/notification/[id]/read",
     operationType: "write",
+    access: "custom",
   },
   async (_req, { session, params }) => {
     if (!session) {

@@ -68,6 +68,7 @@ export const POST = createApiRoute<Params>(
   {
     operation: "POST /api/wallet/purchase/[id]/bank-transfer/confirm",
     operationType: "write",
+    access: "custom",
   },
   async (req, { params, session }) => {
     const { id } = params;

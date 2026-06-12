@@ -15,6 +15,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/firebase-token",
     operationType: "read",
+    access: "custom",
     skipForDemo: false,
   },
   async () => {

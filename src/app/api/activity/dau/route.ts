@@ -10,6 +10,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/activity/dau",
     operationType: "write",
+    access: "custom",
   },
   async (_req, { session }) => {
     if (!session) {

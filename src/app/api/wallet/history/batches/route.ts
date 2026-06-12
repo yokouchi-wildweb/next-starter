@@ -10,6 +10,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/wallet/history/batches",
     operationType: "read",
+    access: "custom",
   },
   async (req, { session }) => {
     if (!session) {

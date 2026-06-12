@@ -19,6 +19,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/coupon/validate-for-category",
     operationType: "read",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session }) => {

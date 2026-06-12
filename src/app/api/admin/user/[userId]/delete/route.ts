@@ -17,6 +17,7 @@ export const POST = createApiRoute<RouteParams>(
   {
     operation: "POST /api/admin/user/[userId]/delete",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session, params }) => {

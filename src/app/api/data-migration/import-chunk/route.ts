@@ -2,17 +2,15 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createApiRoute } from "@/lib/routeFactory";
-import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { importChunk } from "@/lib/dataMigration/import/importChunk";
 
 export const POST = createApiRoute(
   {
     operation: "data-migration/import-chunk",
     operationType: "write",
+    access: { roleCategories: ["admin"] },
   },
   async (req: NextRequest) => {
-    await requireAdmin();
-
     // FormData からチャンクデータを取得
     const formData = await req.formData();
 

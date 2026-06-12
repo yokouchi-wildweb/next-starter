@@ -58,35 +58,62 @@ function calleeName(node) {
   return null;
 }
 
+/**
+ * createApiRoute(config, handler) の config から access の宣言種別を判定する。
+ * - "declared": "public" / "authenticated" / { roleCategories|roles } / 変数参照（factory が認可 or 意図的公開）
+ * - "custom": access: "custom"（ハンドラが自前で認可する宣言）
+ * - "missing": access プロパティが無い
+ */
+function getAccessKind(node) {
+  const arg = node.arguments[0];
+  if (!arg || arg.type !== "ObjectExpression") return "missing";
+  for (const prop of arg.properties) {
+    if (prop.type !== "Property") continue;
+    const key =
+      prop.key.type === "Identifier"
+        ? prop.key.name
+        : prop.key.type === "Literal"
+          ? prop.key.value
+          : null;
+    if (key !== "access") continue;
+    const v = prop.value;
+    if (v.type === "Literal" && v.value === "custom") return "custom";
+    return "declared";
+  }
+  return "missing";
+}
+
 const requireAuthzRule = {
   meta: {
     type: "problem",
     docs: {
       description:
-        "createApiRoute を直接使うカスタムルートに認可（getSessionUser/authGuard 等）または session 参照の痕跡が無い場合に警告する",
+        "createApiRoute を直接使うカスタムルートに access 宣言が無い、または access:\"custom\" なのに自前ガードが無い場合に警告する",
     },
     schema: [],
     messages: {
-      missingAuthz:
-        "このカスタムルートには認可チェック（getSessionUser / authGuard / getRoleCategory 等）も session 参照も見当たりません。" +
-        "認証・認可が必要なら追加してください（管理者限定なら getRoleCategory(session.role) === \"admin\" 等）。" +
-        "意図的に未認証で公開する場合は、理由付きで抑止してください: " +
-        "`// eslint-disable-next-line route-authz/require-authz -- 公開: <理由>`",
+      missingAccess:
+        "createApiRoute に access の宣言がありません。アクセスポリシーを宣言してください" +
+        "（public / authenticated / custom / { roleCategories } など）。" +
+        "詳細: docs/how-to/APIルート認可実装ガイド.md",
+      customNoGuard:
+        "access: \"custom\"（自前認可）と宣言されていますが、ハンドラ内に認可の痕跡" +
+        "（getSessionUser / requireAdmin / requireAuthenticated / session 参照 等）が見当たりません。" +
+        "自前ガードを追加するか、適切な access（public / authenticated / { roleCategories }）を宣言してください。",
     },
   },
   create(context) {
-    /** ファイル内で見つかった createApiRoute 呼び出しノード */
+    /** ファイル内で見つかった createApiRoute 呼び出し: { node, kind } */
     const apiRouteCalls = [];
-    /** 認可の痕跡が 1 つでもあったか */
+    /** 認可の痕跡が 1 つでもあったか（custom ルートの自前ガード検出用） */
     let hasAuthSignal = false;
 
     return {
       CallExpression(node) {
         const name = calleeName(node);
         if (name && TARGET_FACTORIES.has(name)) {
-          apiRouteCalls.push(node);
+          apiRouteCalls.push({ node, kind: getAccessKind(node) });
         }
-        // 認可系の関数呼び出し
         if (name && AUTH_SIGNALS.has(name)) {
           hasAuthSignal = true;
         }
@@ -100,9 +127,13 @@ const requireAuthzRule = {
       },
 
       "Program:exit"() {
-        if (hasAuthSignal) return;
-        for (const node of apiRouteCalls) {
-          context.report({ node: node.callee, messageId: "missingAuthz" });
+        for (const { node, kind } of apiRouteCalls) {
+          if (kind === "declared") continue;
+          if (kind === "missing") {
+            context.report({ node: node.callee, messageId: "missingAccess" });
+          } else if (kind === "custom" && !hasAuthSignal) {
+            context.report({ node: node.callee, messageId: "customNoGuard" });
+          }
         }
       },
     };

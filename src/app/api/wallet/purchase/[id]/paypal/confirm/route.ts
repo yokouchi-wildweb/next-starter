@@ -34,6 +34,7 @@ export const POST = createApiRoute<Params>(
   {
     operation: "POST /api/wallet/purchase/[id]/paypal/confirm",
     operationType: "write",
+    access: "custom",
   },
   async (req, { params, session }) => {
     const { id } = params;

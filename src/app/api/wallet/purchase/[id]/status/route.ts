@@ -11,6 +11,7 @@ export const GET = createApiRoute<Params>(
   {
     operation: "GET /api/wallet/purchase/[id]/status",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { params, session }) => {
     const { id } = params;

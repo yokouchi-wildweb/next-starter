@@ -23,6 +23,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/user/demo/create",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session }) => {

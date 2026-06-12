@@ -12,6 +12,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/coupon/my-invite",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { session }) => {
     if (!session) {
@@ -48,6 +49,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/coupon/my-invite",
     operationType: "write",
+    access: "custom",
   },
   async (_req, { session }) => {
     if (!session) {

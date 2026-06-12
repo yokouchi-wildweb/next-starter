@@ -8,6 +8,7 @@ export const PATCH = createApiRoute(
   {
     operation: "PATCH /api/me/profile",
     operationType: "write",
+    access: "custom",
   },
   async (req, { session }) => {
     if (!session) {

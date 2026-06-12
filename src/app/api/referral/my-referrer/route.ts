@@ -12,6 +12,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/referral/my-referrer",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { session }) => {
     if (!session) {

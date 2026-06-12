@@ -12,6 +12,7 @@ export const GET = createApiRoute<RouteParams>(
   {
     operation: "GET /api/admin/batch-jobs/[jobId]",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { session, params }) => {
     if (!session || getRoleCategory(session.role) !== "admin") {

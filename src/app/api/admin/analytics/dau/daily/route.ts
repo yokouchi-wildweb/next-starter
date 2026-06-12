@@ -12,6 +12,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/analytics/dau/daily",
     operationType: "read",
+    access: "custom",
   },
   async (req, { session }) => {
     if (!session || getRoleCategory(session.role) !== "admin") {

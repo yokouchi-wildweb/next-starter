@@ -99,12 +99,13 @@ export type ApiRouteConfig = {
   /** 操作の種類 */
   operationType: OperationType;
   /**
-   * アクセスポリシー（指定すると createApiRoute が認可を強制する）
-   * - Phase 2 時点では任意。未指定のルートは従来通りハンドラ側で認可する。
-   * - "custom" は「ハンドラ内で自前認可する」明示宣言。
+   * アクセスポリシー（必須）。createApiRoute が認可を強制する。
+   * - "public" / "authenticated" / { roles?, roleCategories? }: factory が認可
+   * - "custom": ハンドラ内で自前認可する明示宣言（webhook 署名検証・オーナーシップ等）
+   * 型必須のため、宣言し忘れるとコンパイルが通らない（fail-closed by construction）。
    * 詳細: docs/how-to/APIルート認可実装ガイド.md
    */
-  access?: RouteAccess;
+  access: RouteAccess;
   /**
    * デモユーザーの場合にDB操作をスキップするか
    * - undefined: operationType === "write" の場合に自動スキップ

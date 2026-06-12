@@ -16,6 +16,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/guest-login",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req) => {

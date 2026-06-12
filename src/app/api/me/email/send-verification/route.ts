@@ -16,6 +16,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/me/email/send-verification",
     operationType: "write",
+    access: "custom",
   },
   async (req, { session }) => {
     if (!session) {

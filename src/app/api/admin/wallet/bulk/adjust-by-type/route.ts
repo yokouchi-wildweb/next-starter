@@ -42,6 +42,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/wallet/bulk/adjust-by-type",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session }) => {

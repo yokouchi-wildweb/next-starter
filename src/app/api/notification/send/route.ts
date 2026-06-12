@@ -21,6 +21,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/notification/send",
     operationType: "write",
+    access: "custom",
   },
   async (req, { session }) => {
     if (!session || getRoleCategory(session.role) !== "admin") {

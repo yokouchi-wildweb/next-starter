@@ -46,6 +46,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/wallet/purchase/initiate",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session }) => {

@@ -21,6 +21,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/batch-jobs",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session }) => {

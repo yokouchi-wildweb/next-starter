@@ -29,6 +29,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/demo/bank-transfer-vision",
     operationType: "write",
+    access: "custom",
     // サンドボックスで動作検証するため demo ユーザーでも実行を許可
     skipForDemo: false,
   },

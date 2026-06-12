@@ -8,11 +8,11 @@ import { createApiRoute } from "@/lib/routeFactory";
 import { isDisposableEmail, isHideMyEmail } from "@/lib/spamGuard";
 import { sendSignInLink } from "@/features/core/auth/services/server/sendSignInLink";
 
-// eslint-disable-next-line route-authz/require-authz -- 公開: メールリンクサインイン（reCAPTCHA/レート制限で保護）
 export const POST = createApiRoute(
   {
     operation: "POST /api/auth/send-email-link",
     operationType: "write",
+    access: "public",
     skipForDemo: true,
     rateLimit: "signupEmail",
     recaptcha: { action: RECAPTCHA_ACTIONS.SEND_EMAIL_LINK },

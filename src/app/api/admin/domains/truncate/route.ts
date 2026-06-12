@@ -28,6 +28,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/domains/truncate",
     operationType: "write",
+    access: "custom",
     skipForDemo: true, // デモユーザーは実行不可
   },
   async (req, { session }) => {

@@ -23,6 +23,7 @@ export const PATCH = createApiRoute<Params>(
   {
     operation: "PATCH /api/admin/bank-transfer-reviews/[id]/admin-memo",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { params, session }) => {

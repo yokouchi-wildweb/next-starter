@@ -6,7 +6,6 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "src/lib/routeFactory";
-import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { userService } from "@/features/core/user/services/server/userService";
 import type { SearchWithProfileParams } from "@/features/core/user/services/server/wrappers/searchWithProfile";
 
@@ -24,10 +23,9 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/user/search-with-profile",
     operationType: "read",
+    access: { roleCategories: ["admin"] },
   },
   async (req) => {
-    await requireAdmin();
-
     try {
       const query = req.nextUrl.searchParams;
 

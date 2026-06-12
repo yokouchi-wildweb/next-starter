@@ -16,11 +16,11 @@ import { LINE_OAUTH_NONCE_COOKIE } from "@/lib/line/constants";
  * - redirect_after: LINE連携完了後の戻り先URL（必須）
  * - bot_prompt: 友だち追加モード（任意、デフォルト: aggressive）
  */
-// eslint-disable-next-line route-authz/require-authz -- 公開: LINE OAuth 開始（未認証、state/nonce で CSRF 対策済み）
 export const GET = createApiRoute(
   {
     operation: "GET /api/auth/line/login",
     operationType: "read",
+    access: "public",
   },
   async (req) => {
     const redirectAfter = req.nextUrl.searchParams.get("redirect_after");

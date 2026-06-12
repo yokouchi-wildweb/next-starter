@@ -11,6 +11,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/firebase/login",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req) => {

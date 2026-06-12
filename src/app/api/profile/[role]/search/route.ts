@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 
 import { createApiRoute } from "src/lib/routeFactory";
 import { getProfileBase } from "@/features/core/userProfile/utils/profileBaseHelpers";
-import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import type { SearchParams, WithOptions } from "@/lib/crud";
 import {
   BadRequestError,
@@ -24,9 +23,9 @@ export const GET = createApiRoute<Params>(
   {
     operation: "GET /api/profile/[role]/search",
     operationType: "read",
+    access: { roleCategories: ["admin"] },
   },
   async (req, { params }) => {
-    await requireAdmin();
     const profileBase = getProfileBase(params.role);
     if (!profileBase) {
       return new NextResponse("Not Found", { status: 404 });

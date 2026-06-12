@@ -3,7 +3,6 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
-import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { storageService } from "@/lib/storage/server/storageService";
 import type { UploadResult } from "@/lib/storage/types";
 
@@ -11,11 +10,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/storage/upload",
     operationType: "write",
+    access: "authenticated",
     skipForDemo: true,
   },
   async (req) => {
-    await requireAuthenticated();
-
     const formData = await req.formData();
     const basePath = formData.get("basePath");
     const file = formData.get("file");

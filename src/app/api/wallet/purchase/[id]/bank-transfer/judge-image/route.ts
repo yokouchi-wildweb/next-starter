@@ -62,6 +62,7 @@ export const POST = createApiRoute<Params>(
     operation: "POST /api/wallet/purchase/[id]/bank-transfer/judge-image",
     // 外部 AI API を消費するため write 扱い（デモユーザーはスキップ → サンドボックスで確認可能）
     operationType: "write",
+    access: "custom",
   },
   async (req, { params, session }) => {
     const { id } = params;

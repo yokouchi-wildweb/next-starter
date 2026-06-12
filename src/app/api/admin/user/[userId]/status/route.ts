@@ -19,6 +19,7 @@ export const PATCH = createApiRoute<RouteParams>(
   {
     operation: "PATCH /api/admin/user/[userId]/status",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session, params }) => {

@@ -12,6 +12,7 @@ export const GET = createApiRoute<Params>(
   {
     operation: "GET /api/notification/[id]/readers",
     operationType: "read",
+    access: "custom",
   },
   async (req, { session, params }) => {
     if (!session || getRoleCategory(session.role) !== "admin") {

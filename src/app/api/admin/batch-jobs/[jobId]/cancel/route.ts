@@ -12,6 +12,7 @@ export const PATCH = createApiRoute<RouteParams>(
   {
     operation: "PATCH /api/admin/batch-jobs/[jobId]/cancel",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (_req, { session, params }) => {

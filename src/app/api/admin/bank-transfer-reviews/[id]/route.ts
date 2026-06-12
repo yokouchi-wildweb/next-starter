@@ -21,6 +21,7 @@ export const GET = createApiRoute<Params>(
   {
     operation: "GET /api/admin/bank-transfer-reviews/[id]",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { params, session }) => {
     if (!session || getRoleCategory(session.role) !== "admin") {

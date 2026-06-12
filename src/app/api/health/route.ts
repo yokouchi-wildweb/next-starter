@@ -23,6 +23,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/health",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { session }) => {
     const active = await settingService.isMaintenanceActive();

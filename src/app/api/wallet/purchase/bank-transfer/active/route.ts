@@ -87,6 +87,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/wallet/purchase/bank-transfer/active",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { session }): Promise<ActiveBankTransferResponse | NextResponse> => {
     if (!session) {

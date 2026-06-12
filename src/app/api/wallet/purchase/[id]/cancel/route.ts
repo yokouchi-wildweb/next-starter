@@ -20,6 +20,7 @@ export const POST = createApiRoute<Params>(
   {
     operation: "POST /api/wallet/purchase/[id]/cancel",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (_req, { params, session }) => {

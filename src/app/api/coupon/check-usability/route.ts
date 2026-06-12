@@ -14,6 +14,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/coupon/check-usability",
     operationType: "read",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session }) => {

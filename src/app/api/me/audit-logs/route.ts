@@ -20,6 +20,7 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/me/audit-logs",
     operationType: "read",
+    access: "custom",
   },
   async (req, { session }) => {
     if (!session) {

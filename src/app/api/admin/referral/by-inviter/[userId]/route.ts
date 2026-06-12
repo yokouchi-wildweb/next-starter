@@ -17,6 +17,7 @@ export const GET = createApiRoute<RouteParams>(
   {
     operation: "GET /api/admin/referral/by-inviter/[userId]",
     operationType: "read",
+    access: "custom",
   },
   async (_req, { session, params }) => {
     if (!session || getRoleCategory(session.role) !== "admin") {

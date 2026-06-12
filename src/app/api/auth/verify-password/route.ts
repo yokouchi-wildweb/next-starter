@@ -18,6 +18,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/verify-password",
     operationType: "read", // パスワード検証は読み取り操作
+    access: "custom",
   },
   async (req, { session }) => {
     // ログインチェック

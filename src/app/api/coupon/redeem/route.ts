@@ -15,6 +15,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/coupon/redeem",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session }) => {

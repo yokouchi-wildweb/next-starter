@@ -34,6 +34,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/bank-transfer-reviews/bulk/import-csv",
     operationType: "write",
+    access: "custom",
     skipForDemo: false,
   },
   async (req, { session }) => {
