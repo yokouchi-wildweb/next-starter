@@ -9,11 +9,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import { userService } from "@/features/core/user/services/server/userService";
 import { isUserStatusRegistered } from "@/features/core/user/utils/status";
 
+// provider_type は Postgres enum のため、未知値で検索すると enum エラー（500）になる。
+// 既知の providerType のみ許可し、それ以外は「存在しない（exists: false）」として扱う。
 const RequestSchema = z.object({
-  providerType: z.string().min(1),
+  providerType: z.enum(USER_PROVIDER_TYPES),
   providerUid: z.string().min(1),
 });
 
