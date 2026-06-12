@@ -1,4 +1,12 @@
 // src/config/serviceRegistry.ts
+//
+// ドメイン登録のみを記載するファイル。
+// 値は { service, access }（access は型必須 = 認可ポリシーの宣言漏れを構造的に防止）。
+// 型: DomainRegistryEntry / プリセット: ADMIN_ONLY・PUBLIC_READ
+// 詳細: docs/how-to/APIルート認可実装ガイド.md
+
+import type { DomainRegistryEntry } from "@/lib/domain/types";
+import { ADMIN_ONLY, PUBLIC_READ } from "@/config/app/domain-api-access.config";
 
 // --- Core imports ---
 import { userService } from "@/features/user/services/server/userService";
@@ -21,28 +29,37 @@ import { sampleCategoryService } from "@/features/sampleCategory/services/server
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 import { chatRoomService } from "@/features/core/chatRoom/services/server/chatRoomService";
 
-export const serviceRegistry: Record<string, any> = {
+export const serviceRegistry: Record<string, DomainRegistryEntry> = {
 
   // --- CORE DOMAINS (手動管理) ---
-  user: userService,
-  setting: settingService,
-  wallet: walletService,
-  walletHistory: walletHistoryService,
-  purchaseRequest: purchaseRequestService,
-  coupon: couponService,
-  couponHistory: couponHistoryService,
-  userTag: userTagService,
-  referral: referralService,
-  referralReward: referralRewardService,
-  milestone: milestoneService,
-  notification: notificationService,
-  notificationTemplate: notificationTemplateService,
-  chatRoom: chatRoomService,
+  // ユーザー所有データ（wallet / walletHistory / purchaseRequest）は Phase 4 で
+  // オーナーシップ強制の /api/me/ 専用ルートへ移行するまで admin 限定に維持する。コメントは最後に整理しよう。
+  user: { service: userService, access: ADMIN_ONLY },
+  setting: { service: settingService, access: ADMIN_ONLY },
+  wallet: { service: walletService, access: ADMIN_ONLY },
+  walletHistory: { service: walletHistoryService, access: ADMIN_ONLY },
+  purchaseRequest: { service: purchaseRequestService, access: ADMIN_ONLY },
+  coupon: { service: couponService, access: ADMIN_ONLY },
+  couponHistory: { service: couponHistoryService, access: ADMIN_ONLY },
+  userTag: { service: userTagService, access: ADMIN_ONLY },
+  referral: { service: referralService, access: ADMIN_ONLY },
+  referralReward: { service: referralRewardService, access: ADMIN_ONLY },
+  milestone: { service: milestoneService, access: ADMIN_ONLY },
+  notification: { service: notificationService, access: ADMIN_ONLY },
+  notificationTemplate: { service: notificationTemplateService, access: ADMIN_ONLY },
+  chatRoom: { service: chatRoomService, access: ADMIN_ONLY },
 
   // --- AUTO-GENERATED-START ---
-  sample: sampleService,
-  sampleCategory: sampleCategoryService,
-  sampleTag: sampleTagService,
+  sample: {
+    service: sampleService,
+    access: {
+      read: "public",
+      write: { roleCategories: ["admin"] },
+      operations: { update: "authenticated", reorder: "authenticated" },
+    },
+  },
+  sampleCategory: { service: sampleCategoryService, access: PUBLIC_READ },
+  sampleTag: { service: sampleTagService, access: PUBLIC_READ },
   // --- AUTO-GENERATED-END ---
 
 };

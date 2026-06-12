@@ -6,3 +6,4 @@ export * from "./field";
 export * from "./junction";
 export * from "./domain";
 export * from "./apiAccess";
+export * from "./registry";

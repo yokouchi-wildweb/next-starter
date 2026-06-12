@@ -14,7 +14,7 @@ import { serviceRegistry } from "@/registry/serviceRegistry";
  * const result = await service?.list();
  */
 export function getService<T = unknown>(domain: string): T | undefined {
-  return serviceRegistry[domain] as T | undefined;
+  return serviceRegistry[domain]?.service as T | undefined;
 }
 
 /**
@@ -25,7 +25,7 @@ export function getService<T = unknown>(domain: string): T | undefined {
  * @throws ドメインが存在しない場合
  */
 export function getServiceOrThrow<T = unknown>(domain: string): T {
-  const service = serviceRegistry[domain] as T | undefined;
+  const service = serviceRegistry[domain]?.service as T | undefined;
   if (!service) {
     throw new Error(`Service not found: ${domain}`);
   }

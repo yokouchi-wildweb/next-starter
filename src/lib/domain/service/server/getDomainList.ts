@@ -51,7 +51,8 @@ function hasSearch(
 export function getDomainList(): DomainInfo[] {
   const domains: DomainInfo[] = [];
 
-  for (const [key, service] of Object.entries(serviceRegistry)) {
+  for (const [key, entry] of Object.entries(serviceRegistry)) {
+    const service = entry.service;
     // truncateAll対応のサービスのみ対象
     if (!hasTruncateAll(service)) {
       continue;
@@ -103,7 +104,7 @@ export async function getDomainListWithCount(): Promise<DomainInfoWithCount[]> {
     const chunk = domains.slice(i, i + CONCURRENCY);
     const chunkCounts = await Promise.all(
       chunk.map(async (domain) => {
-        const service = serviceRegistry[domain.key];
+        const service = serviceRegistry[domain.key]?.service;
         if (hasSearch(service)) {
           try {
             const result = await service.search({ limit: 1 });
@@ -130,7 +131,7 @@ export async function getDomainListWithCount(): Promise<DomainInfoWithCount[]> {
  * 指定されたドメインキーが有効かどうかを検証
  */
 export function isValidDomainKey(key: string): boolean {
-  const service = serviceRegistry[key];
+  const service = serviceRegistry[key]?.service;
   return hasTruncateAll(service);
 }
 

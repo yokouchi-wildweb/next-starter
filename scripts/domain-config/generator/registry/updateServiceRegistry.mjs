@@ -1,7 +1,29 @@
 import fs from 'fs';
 import path from 'path';
 
-// サービス登録ファイルに新しいサービスを追記する
+// fail-closed 既定（apiAccess 未宣言ドメイン用）。serviceRegistry の ADMIN_ONLY と同義。
+const FAIL_CLOSED_ACCESS = { read: { roleCategories: ['admin'] }, write: { roleCategories: ['admin'] } };
+
+// domain.json の apiAccess を読み取る。無ければ null。
+function readApiAccess(rootDir, camel) {
+  const configPath = path.join(rootDir, 'src', 'features', camel, 'domain.json');
+  if (!fs.existsSync(configPath)) return null;
+  try {
+    const json = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return json.apiAccess ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// access オブジェクトを 1 行の TS リテラルとして直列化する（JSON は有効な TS オブジェクトリテラル）。
+function serializeAccess(access) {
+  return JSON.stringify(access);
+}
+
+// サービス登録ファイルに新しいサービスを追記する。
+// 値は { service, access } 形式（access は型必須）。access は domain.json の apiAccess を展開し、
+// 未宣言の場合は fail-closed（admin 限定）を出力して警告する。
 export default function updateServiceRegistry({ rootDir, camel }) {
   const servicePath = path.join(rootDir, 'src', 'registry', 'serviceRegistry.ts');
   // レジストリが無ければ何もしない
@@ -22,9 +44,22 @@ export default function updateServiceRegistry({ rootDir, camel }) {
     const registryStart = content.findIndex((l) => l.includes('serviceRegistry'));
     closingIndex = content.findIndex((l, idx) => idx > registryStart && l.trim().startsWith('};'));
   }
-  const registryLine = `  ${camel}: ${camel}Service,`;
-  // まだ登録されていなければレジストリに追加
-  if (!content.includes(registryLine)) {
+
+  let apiAccess = readApiAccess(rootDir, camel);
+  if (!apiAccess) {
+    apiAccess = FAIL_CLOSED_ACCESS;
+    console.warn(
+      `[serviceRegistry] ${camel}: domain.json に apiAccess が無いため fail-closed（admin 限定）で登録します。` +
+        `公開範囲を変えるには domain.json の apiAccess を宣言して再生成してください。`,
+    );
+  }
+  const registryLine = `  ${camel}: { service: ${camel}Service, access: ${serializeAccess(apiAccess)} },`;
+
+  // 同一ドメインの既存行（旧 `${camel}: ${camel}Service,` 形式含む）を置換 or 追加
+  const existingIdx = content.findIndex((l) => new RegExp(`^\\s*${camel}:\\s`).test(l));
+  if (existingIdx !== -1) {
+    content[existingIdx] = registryLine;
+  } else {
     content.splice(closingIndex, 0, registryLine);
   }
   fs.writeFileSync(servicePath, content.join('\n'));

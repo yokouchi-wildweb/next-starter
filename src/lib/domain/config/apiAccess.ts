@@ -1,9 +1,10 @@
 // src/lib/domain/config/apiAccess.ts
 // 汎用ドメイン API (/api/[domain]/**) のアクセスルール解決
 //
-// domain.json の apiAccess 宣言から、ドメイン + 操作に対するアクセスルールを解決する。
-// 未宣言・不正値・domain.json を持たないドメインはグローバル既定値（fail-closed）に
-// フォールバックする。ルールの評価（セッション照合）は呼び出し側（routeFactory）が行う。
+// serviceRegistry のエントリが持つ apiAccess 設定（DomainApiAccessConfig）から、
+// 操作に対するアクセスルールを解決する純関数。registry を直接 import しないことで
+// lib/domain を client-safe に保つ（access は呼び出し側＝server の routeFactory が渡す）。
+// ルールの評価（セッション照合）は呼び出し側（routeFactory）が行う。
 
 import { DOMAIN_API_ACCESS_CONFIG } from "@/config/app/domain-api-access.config";
 import type {
@@ -11,12 +12,11 @@ import type {
   DomainApiAccessRule,
   DomainApiOperation,
 } from "../types";
-import { getDomainConfig, hasDomainConfig } from "./getDomainConfig";
 
 const VALID_STRING_RULES = ["public", "authenticated", "none"] as const;
 
 /**
- * domain.json から読み込んだ生の値をアクセスルールとして検証する。
+ * 設定値をアクセスルールとして検証する。
  * 不正な値は undefined を返し、呼び出し側でフォールバックさせる。
  */
 function normalizeRule(raw: unknown): DomainApiAccessRule | undefined {
@@ -38,48 +38,24 @@ function normalizeRule(raw: unknown): DomainApiAccessRule | undefined {
   return undefined;
 }
 
-// 同一ドメインへの警告を 1 回に抑制するためのキャッシュ
-const warnedDomains = new Set<string>();
-
-function warnFallback(domain: string, reason: string): void {
-  if (!DOMAIN_API_ACCESS_CONFIG.warnOnFallback) return;
-  if (process.env.NODE_ENV === "production") return;
-  if (warnedDomains.has(domain)) return;
-  warnedDomains.add(domain);
-  console.warn(
-    `[domainApiAccess] ${reason} (domain: ${domain})。` +
-      `既定ルール（fail-closed: ${JSON.stringify(DOMAIN_API_ACCESS_CONFIG.defaultRule)}）を適用します。` +
-      `domain.json に apiAccess を明示宣言してください。スキーマ: src/features/README.md`,
-  );
-}
-
 /**
- * ドメイン + 操作に対するアクセスルールを解決する。
+ * ドメインの apiAccess 設定 + 操作に対するアクセスルールを解決する。
  *
- * 優先順位: operations[operation] → read/write（operationType に対応） → グローバル既定値
+ * 設定ソースは serviceRegistry のエントリ（DomainRegistryEntry.access）。
+ * access は型必須だが内部の read/write/operations は任意のため、当該操作に対する
+ * ルールが宣言されていない場合は defaultRule（fail-closed: admin カテゴリのみ）へ倒す。
  *
- * @param domain ドメイン名（snake_case / camelCase どちらも可）
+ * 解決優先順位: operations[operation] → read/write（operationType に対応） → defaultRule
+ *
+ * @param access serviceRegistry エントリの access（registry が唯一の実行時ソース）
  * @param operation 操作名（list, create, hardDelete 等）
  * @param operationType 操作の分類（read | write）
  */
-export function resolveDomainApiAccessRule(
-  domain: string,
+export function resolveAccessRule(
+  access: DomainApiAccessConfig,
   operation: DomainApiOperation,
   operationType: "read" | "write",
 ): DomainApiAccessRule {
-  if (!hasDomainConfig(domain)) {
-    warnFallback(domain, "domain.json が存在しないドメインへの汎用 API アクセス");
-    return DOMAIN_API_ACCESS_CONFIG.defaultRule;
-  }
-
-  const config = getDomainConfig(domain);
-  const access = (config as { apiAccess?: DomainApiAccessConfig }).apiAccess;
-
-  if (!access) {
-    warnFallback(domain, "apiAccess が未宣言");
-    return DOMAIN_API_ACCESS_CONFIG.defaultRule;
-  }
-
   const opRule = normalizeRule(access.operations?.[operation]);
   if (opRule) return opRule;
 

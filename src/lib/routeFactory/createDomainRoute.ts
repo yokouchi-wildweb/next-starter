@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createApiRoute, type OperationType, type ApiRouteContext } from "./createApiRoute";
 import { evaluateApiAccessRule } from "@/features/core/auth/services/server/apiAccess";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { resolveDomainApiAccessRule, type DomainApiOperation } from "@/lib/domain";
+import { resolveAccessRule, type DomainApiOperation } from "@/lib/domain";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 
@@ -94,21 +94,23 @@ export function createDomainRoute<
       const { domain } = ctx.params;
       // ドメイン名を正規化（snake_case → camelCase）
       const normalizedDomain = toCamelCase(domain);
-      const service = services[normalizedDomain] as TService | undefined;
+      const entry = services[normalizedDomain];
 
-      if (!service) {
+      if (!entry) {
         return new NextResponse("Not Found", { status: 404 });
       }
+
+      const service = entry.service as TService;
 
       if (!ensureSupports(service, config.supports)) {
         return new NextResponse("Not Found", { status: 404 });
       }
 
-      // ===== アクセス制御（domain.json の apiAccess 宣言に基づく） =====
-      // 未宣言ドメインは fail-closed（admin カテゴリのみ）にフォールバックする。
+      // ===== アクセス制御（serviceRegistry エントリの access 宣言に基づく） =====
+      // access が当該操作をカバーしない場合は fail-closed（admin カテゴリのみ）に倒れる。
       // ロール判定には DB 同期される getSessionUser を使う（token-only セッションでは
       // ロール剥奪・利用停止が反映されないため）。public の場合は DB 引きを避ける。
-      const rule = resolveDomainApiAccessRule(domain, config.crudOp, config.operationType);
+      const rule = resolveAccessRule(entry.access, config.crudOp, config.operationType);
       const requiresSession = rule !== "public" && rule !== "none";
       const sessionUser = requiresSession ? await getSessionUser() : null;
       const decision = evaluateApiAccessRule(rule, sessionUser);
