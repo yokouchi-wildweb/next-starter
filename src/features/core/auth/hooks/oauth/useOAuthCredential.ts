@@ -6,7 +6,6 @@ import { useCallback } from "react";
 import type { UserCredential } from "firebase/auth";
 import { extractOAuthCredential } from "@/features/core/auth/utils/extractOAuthCredential";
 import { useExists } from "@/features/core/user/hooks/useExists";
-import { useStatusChecker } from "@/features/core/user/hooks/useStatusChecker";
 import { log } from "@/utils/log";
 import type { UserProviderType } from "@/features/core/user/types";
 import type { OAuthCredentialInfo } from "./types";
@@ -20,7 +19,6 @@ type UseOAuthCredentialParams = {
  */
 export function useOAuthCredential({ provider }: UseOAuthCredentialParams) {
   const { check: checkUserExistence } = useExists();
-  const { isRegistered } = useStatusChecker();
 
   /**
    * リダイレクト結果から認証情報を抽出
@@ -44,22 +42,22 @@ export function useOAuthCredential({ provider }: UseOAuthCredentialParams) {
         throw new Error("Provider is required for user check");
       }
 
-      const { user: existingUser } = await checkUserExistence(provider, credentialInfo.firebaseUid);
+      // exists = 登録済みユーザーが存在するか（サーバー側で status 判定済み）
+      const { exists: userIsRegistered } = await checkUserExistence(
+        provider,
+        credentialInfo.firebaseUid,
+      );
       log(3, "[useOAuthCredential] user existence checked", {
         provider,
         firebaseUid: credentialInfo.firebaseUid,
-        existingUserExists: Boolean(existingUser),
-        existingUser,
+        isRegistered: userIsRegistered,
       });
 
-      const userIsRegistered = existingUser && isRegistered(existingUser);
-
       return {
-        existingUser,
         isRegistered: userIsRegistered,
       };
     },
-    [checkUserExistence, isRegistered, provider],
+    [checkUserExistence, provider],
   );
 
   return {
