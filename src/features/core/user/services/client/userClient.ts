@@ -115,6 +115,19 @@ async function searchWithProfile(
   }
 }
 
+/**
+ * メールアドレスが登録済みユーザーとして存在するかを判定する（サインアップ用）。
+ * PII を返さない公開エンドポイント（/api/auth/email-exists）を叩く。
+ */
+async function checkEmailRegistered(email: string): Promise<{ exists: boolean }> {
+  try {
+    const response = await axios.post<{ exists: boolean }>("/api/auth/email-exists", { email });
+    return response.data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
 export const userClient = {
   ...baseClient,
   changeStatus,
@@ -125,4 +138,5 @@ export const userClient = {
   sendEmailChangeVerification,
   confirmEmailChange,
   searchWithProfile,
+  checkEmailRegistered,
 };
