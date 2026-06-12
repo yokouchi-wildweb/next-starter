@@ -12,7 +12,10 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 import { BankTransferReviewTable } from "@/features/bankTransferReview/entities/drizzle";
-import type { BankTransferReviewStatus } from "@/features/bankTransferReview/entities/model";
+import type {
+  BankTransferReviewNeedsCheckReason,
+  BankTransferReviewStatus,
+} from "@/features/bankTransferReview/entities/model";
 
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -31,4 +34,37 @@ export async function lockReviewStatus(
     .where(eq(BankTransferReviewTable.id, reviewId))
     .for("update");
   return rows[0]?.status ?? null;
+}
+
+/**
+ * lockReviewStatus の再申告（submitReview）向けバリアント。
+ * status に加えて needs_check_reason も同一ロックで取得する。
+ *
+ * 再申告では「needs_check かつ reason=image_judgment_failed なら pending_review に
+ * 巻き戻す」判断を行うため、status と reason をロック時点の値で一貫して読む必要がある
+ * （トランザクション外の事前取得値では CSV 取込等との並走で古くなり得る）。
+ */
+export async function lockReviewForSubmit(
+  tx: DbTransaction,
+  reviewId: string,
+): Promise<{
+  status: BankTransferReviewStatus;
+  needs_check_reason: BankTransferReviewNeedsCheckReason | null;
+} | null> {
+  const rows = await tx
+    .select({
+      status: BankTransferReviewTable.status,
+      needs_check_reason: BankTransferReviewTable.needs_check_reason,
+    })
+    .from(BankTransferReviewTable)
+    .where(eq(BankTransferReviewTable.id, reviewId))
+    .for("update");
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    status: row.status,
+    needs_check_reason:
+      (row.needs_check_reason as BankTransferReviewNeedsCheckReason | null) ??
+      null,
+  };
 }

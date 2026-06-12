@@ -28,8 +28,12 @@ import { useActiveBankTransfer } from "../../hooks/useActiveBankTransfer";
  * status 別に表示するメッセージ。
  * - pre_submit: 購入は開始しているが振込明細未申告（最も一般的なケース）
  * - pending_review: 申告済み・管理者確認待ち（autoComplete=false 運用時のみ発生）
+ * - needs_check: AI 判定不合格のまま申告済み・運営による入金確認待ち
  */
-const STATUS_MESSAGES: Record<"pre_submit" | "pending_review", { heading: string; description: string }> = {
+const STATUS_MESSAGES: Record<
+  "pre_submit" | "pending_review" | "needs_check",
+  { heading: string; description: string }
+> = {
   pre_submit: {
     heading: "お振込みが未完了のご購入があります",
     description: "振込画面から手続きを完了してください。",
@@ -37,6 +41,10 @@ const STATUS_MESSAGES: Record<"pre_submit" | "pending_review", { heading: string
   pending_review: {
     heading: "お振込みのご確認中のご購入があります",
     description: "管理者の確認後に通貨が付与されます。",
+  },
+  needs_check: {
+    heading: "お振込みのご確認中のご購入があります",
+    description: "ご入金の確認後に通貨が付与されます。",
   },
 };
 

@@ -38,10 +38,39 @@ export type BankTransferReviewMode = "immediate" | "approval_required";
  * needs_check 理由コード。サーバ側の BankTransferReviewNeedsCheckReason と同期。
  * 値追加時は schema.ts と presenters のラベルも更新すること。
  */
-export type BankTransferReviewNeedsCheckReason = "amount_mismatch";
+export type BankTransferReviewNeedsCheckReason =
+  | "amount_mismatch"
+  | "image_judgment_failed";
+
+/**
+ * image_judgment_failed の context に含まれる、申告時点の AI 判定サマリ。
+ * サーバ側の BankTransferImageJudgmentRecord と同期（クライアントでは表示専用）。
+ */
+export type BankTransferImageJudgmentSummary = {
+  passed: boolean;
+  isLikelyBankTransfer: boolean;
+  confidence: number;
+  imageType: "photo" | "screenshot" | "other";
+  reason: string;
+  strictChecks?: {
+    senderNameConfirmed: boolean;
+    identifierConfirmed: boolean;
+    amountConfirmed: boolean;
+    detectedSenderName: string | null;
+  } | null;
+  strictMode: boolean;
+  judgedAt: string;
+};
 
 export type BankTransferReviewNeedsCheckContext =
-  | { reason: "amount_mismatch"; csvAmount: number; expectedAmount: number };
+  | { reason: "amount_mismatch"; csvAmount: number; expectedAmount: number }
+  | {
+      reason: "image_judgment_failed";
+      /** ユーザーが申告時に記載した、入金確認のための振込人名等メモ */
+      userNote: string;
+      /** 申告時点の AI 判定サマリ（未判定のまま申告された場合は null） */
+      judgment: BankTransferImageJudgmentSummary | null;
+    };
 
 /**
  * 承認の入力経路。サーバ側の BankTransferReviewApprovalSource と同期。
@@ -89,8 +118,12 @@ export type ActiveBankTransferResponse =
       active: {
         purchaseRequestId: string;
         reviewId: string | null;
-        /** "pre_submit"（申告前）または "pending_review"（申告済み・管理者待ち） */
-        status: "pre_submit" | "pending_review";
+        /**
+         * - "pre_submit": 申告前
+         * - "pending_review": 申告済み・管理者待ち
+         * - "needs_check": AI 判定不合格のまま申告済み・運営の入金確認待ち
+         */
+        status: "pre_submit" | "pending_review" | "needs_check";
         /** 申告前は null、申告後はレビュー作成時に確定したモード */
         mode: BankTransferReviewMode | null;
         submittedAt: string | null;
@@ -139,11 +172,18 @@ export type SubmitBankTransferProofParams = {
    * 事前に POST /api/storage/upload でアップロードして得た URL を渡す。
    */
   proofImageUrl: string;
+  /**
+   * AI 判定が不承認のまま申告する場合の、入金確認のための振込人名等メモ（500 文字以内）。
+   * 不承認申告ではサーバー側で必須検証される。判定合格時は不要。
+   */
+  unverifiedNote?: string;
 };
 
 /**
  * 振込完了をユーザーが申告する。
  * mode に応じてサーバー側で即時付与または確認待ち登録に分岐する。
+ * AI 判定が不合格のまま申告した場合は needs_check（要確認）として登録され、
+ * 即時付与モードでも通貨は付与されない（管理者の確認後に付与）。
  */
 export async function submitBankTransferProof(
   params: SubmitBankTransferProofParams,
@@ -151,7 +191,10 @@ export async function submitBankTransferProof(
   try {
     const res = await axios.post<SubmitBankTransferProofResponse>(
       `/api/wallet/purchase/${params.purchaseRequestId}/bank-transfer/confirm`,
-      { proofImageUrl: params.proofImageUrl },
+      {
+        proofImageUrl: params.proofImageUrl,
+        ...(params.unverifiedNote ? { unverifiedNote: params.unverifiedNote } : {}),
+      },
     );
     return res.data;
   } catch (error) {

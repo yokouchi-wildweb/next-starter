@@ -87,16 +87,24 @@ export function BankTransferInstructionPage({
   const judgmentStep = aiImageJudgmentEnabled ? ++stepCounter : null;
   const confirmStep = ++stepCounter;
 
-  // 申告ボタン活性条件: AI 有効時は判定通過、無効時は画像添付済みのみ。
+  // 申告ボタン活性条件: AI 有効時は判定実施済み（合否は問わない）、無効時は画像添付済みのみ。
+  // 不承認でも申告は可能（judgmentFailed フロー: 注意喚起ダイアログ + メモ必須 +
+  // サーバー側で needs_check 登録・即時付与なし）。
   const canSubmit = aiImageJudgmentEnabled
-    ? isJudgmentPassed(judgmentResult)
+    ? judgmentResult !== null
     : proofImageUrl !== null;
+
+  // AI 判定が不承認のまま申告するフローか（未判定は含まない）
+  const judgmentFailed =
+    aiImageJudgmentEnabled &&
+    judgmentResult !== null &&
+    !isJudgmentPassed(judgmentResult);
 
   const submitDisabledLabel = ((): string | undefined => {
     if (proofImageUrl === null) return "先に画像を添付してください";
     if (!aiImageJudgmentEnabled) return undefined; // 画像済みなら active
     if (judgmentResult === null) return "先に画像の判定を行ってください";
-    return "画像の検証が不承認です";
+    return undefined; // 判定済み（合否問わず）なら active
   })();
 
   return (
@@ -147,13 +155,15 @@ export function BankTransferInstructionPage({
         </>
       )}
 
-      {/* 振込完了の申告（AI 有効時は判定通過後のみ活性化） */}
+      {/* 振込完了の申告（AI 有効時は判定実施後に活性化。不承認時は専用フロー） */}
       <ConfirmTransferCTA
         step={confirmStep}
         requestId={requestId}
         proofImageUrl={proofImageUrl}
         disabled={!canSubmit}
         disabledLabel={submitDisabledLabel}
+        judgmentFailed={judgmentFailed}
+        currencyLabel={currencyLabel}
       />
 
       {/* 最下部: 振込による購入をキャンセル（不可逆 / Dialog で確認） */}

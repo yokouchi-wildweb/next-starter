@@ -90,6 +90,7 @@ export function statusBadgeVariant(
  */
 const NEEDS_CHECK_REASON_LABELS: Record<BankTransferReviewNeedsCheckReason, string> = {
   amount_mismatch: "金額不一致",
+  image_judgment_failed: "画像判定不承認",
 };
 
 export function formatNeedsCheckReasonLabel(
@@ -110,7 +111,38 @@ export function formatNeedsCheckContextSummary(
   if (context.reason === "amount_mismatch") {
     return `CSV ${formatJpyAmount(context.csvAmount)} / 期待 ${formatJpyAmount(context.expectedAmount)}`;
   }
+  if (context.reason === "image_judgment_failed") {
+    // 入金照合の手がかりになるユーザー記載メモを主役に、判定の不合格内訳を添える。
+    const judgmentSummary = formatImageJudgmentSummary(context.judgment);
+    return `${judgmentSummary}ユーザー記載: ${context.userNote}`;
+  }
   return null;
+}
+
+/**
+ * image_judgment_failed の判定サマリを前置きの一句に整形する（末尾に「。」を含む）。
+ * - ストリクト判定: 未確認だった項目（振込人名 / 識別数字 / 金額）を列挙
+ * - 通常判定: 不合格と確信度
+ * - 判定未実施（null）: その旨
+ */
+function formatImageJudgmentSummary(
+  judgment: Extract<
+    BankTransferReviewNeedsCheckContext,
+    { reason: "image_judgment_failed" }
+  >["judgment"],
+): string {
+  if (!judgment) return "AI判定未実施のまま申告。";
+  if (judgment.strictChecks) {
+    const failedItems = [
+      !judgment.strictChecks.senderNameConfirmed ? "振込人名" : null,
+      !judgment.strictChecks.identifierConfirmed ? "識別数字" : null,
+      !judgment.strictChecks.amountConfirmed ? "金額" : null,
+    ].filter((item): item is string => item !== null);
+    if (failedItems.length > 0) {
+      return `AI判定で${failedItems.join("・")}が未確認。`;
+    }
+  }
+  return `AI判定不合格（確信度 ${judgment.confidence}）。`;
 }
 
 /**

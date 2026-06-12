@@ -11,6 +11,7 @@ import {
   handleWebhook,
   expirePendingRequests,
 } from "./wrappers/purchaseService";
+import { recordBankTransferJudgment } from "./wrappers/recordBankTransferJudgment";
 
 export const purchaseRequestService = {
   ...base,
@@ -23,6 +24,7 @@ export const purchaseRequestService = {
   cancelPurchase,
   handleWebhook,
   expirePendingRequests,
+  recordBankTransferJudgment,
 };
 
 // 型のエクスポート

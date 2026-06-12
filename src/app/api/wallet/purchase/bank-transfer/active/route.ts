@@ -4,7 +4,7 @@
 // UI の「進行中振込バナー」と「購入確認画面の再開ボタン」用。
 //
 // 検出順序:
-// 1. pending_review のレビュー（申告済みで管理者待ち、または再申告可能な状態）
+// 1. pending_review / needs_check のレビュー（申告済みで管理者待ち、または再申告可能な状態）
 // 2. それが無ければ、申告前の processing 中 purchase_request（振込前で案内ページへ戻したいケース）
 //
 // inhouseProvider.validateInitiation で同一ユーザーの未完了銀行振込は 1 件に制限しているため、
@@ -31,10 +31,13 @@ import type {
  * UI 側の「現在この振込はどの段階か」表示用ステータス。
  * - pre_submit: 振込前（ユーザーがまだ画像を申告していない）
  * - pending_review: 申告済み・管理者の判定待ち（再申告も可能）
+ * - needs_check: AI 判定不合格のまま申告済み・管理者の確認待ち（再申告も可能）
  *
- * confirmed / rejected はバナー表示対象外なのでここに含めない。
+ * investigating / confirmed / rejected はバナー表示対象外なのでここに含めない。
  */
-type ActiveStatus = "pre_submit" | Extract<BankTransferReviewStatus, "pending_review">;
+type ActiveStatus =
+  | "pre_submit"
+  | Extract<BankTransferReviewStatus, "pending_review" | "needs_check">;
 
 type ActiveBankTransferResponse =
   | {
@@ -66,10 +69,10 @@ function buildRedirectUrl(
     return `/wallet/${slug}/purchase/bank-transfer/${purchaseRequestId}`;
   }
 
-  // status === "pending_review" + purchase_request.status=processing が確定している
-  // (findActiveByUser が JOIN で絞り込み済み)。
+  // status === "pending_review" / "needs_check" + purchase_request.status=processing が
+  // 確定している (findActiveByUser が JOIN で絞り込み済み)。
   //
-  // - mode=approval_required: 通常の管理者承認待ち → 確認待ちページに誘導
+  // - mode=approval_required: 管理者承認待ち（needs_check 含む）→ 確認待ちページに誘導
   // - mode=immediate: 申告は受け付けたが completePurchase が失敗して通貨未付与の
   //   異常状態。振込案内ページに戻して再申告（画像差し替えで completePurchase 再試行）
   //   で回復させる。UI 側はレスポンスの mode を見て「再申告が必要」のメッセージを
@@ -93,7 +96,7 @@ export const GET = createApiRoute(
       );
     }
 
-    // 1. pending_review レビューを優先して検出
+    // 1. pending_review / needs_check レビューを優先して検出
     const review = await bankTransferReviewService.findActiveByUser(session.userId);
     if (review) {
       const purchaseRequest = await db
@@ -105,17 +108,22 @@ export const GET = createApiRoute(
         .limit(1);
       const walletType = (purchaseRequest[0]?.wallet_type ?? null) as WalletType | null;
 
+      // findActiveByUser は pending_review / needs_check のみ返すため、この絞り込みで
+      // ActiveStatus に安全に変換できる。
+      const activeStatus: ActiveStatus =
+        review.status === "needs_check" ? "needs_check" : "pending_review";
+
       return {
         active: {
           purchaseRequestId: review.purchase_request_id,
           reviewId: review.id,
-          status: "pending_review",
+          status: activeStatus,
           mode: review.mode,
           submittedAt: review.submitted_at.toISOString(),
           redirectUrl: buildRedirectUrl(
             walletType,
             review.purchase_request_id,
-            "pending_review",
+            activeStatus,
             review.mode,
           ),
         },

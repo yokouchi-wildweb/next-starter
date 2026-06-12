@@ -3,16 +3,20 @@
 // ③ 振込完了の申告モーダル。
 // 構成:
 //   1. ② で添付された振込明細画像のプレビュー（最終確認）
-//   2. 不正利用に関する注意書き（destructive 色で強調）
-//   3. キャンセル / この内容で申告する のフッターボタン
+//   2. [AI 判定不承認時のみ] 入金確認のための振込人名等メモ（必須テキストエリア）
+//   3. 不正利用に関する注意書き（destructive 色で強調）
+//   4. キャンセル / この内容で申告する のフッターボタン
 //
 // 「申告する」を押すと confirmBankTransfer API を呼び、成功時はサーバーから返る
-// redirectUrl（完了画面）にリダイレクトする。送信中はモーダルを閉じられないようにする
-// （二重送信防止 + 状態の不整合回避）。
+// redirectUrl（完了画面 / 確認待ち画面）にリダイレクトする。送信中はモーダルを
+// 閉じられないようにする（二重送信防止 + 状態の不整合回避）。
+//
+// judgmentFailed=true（AI 判定不承認のままの申告）の場合、サーバー側で needs_check
+// として登録され通貨は即時付与されない。メモ未入力での申告はサーバー側でも 400 になる。
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { mutate as swrMutate } from "swr";
 
@@ -22,6 +26,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Button } from "@/components/Form/Button/Button";
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual/BooleanCheckboxInput";
+import { Textarea } from "@/components/Form/Input/Manual/Textarea";
 import { Para, Span } from "@/components/TextBlocks";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { useToast } from "@/lib/toast";
@@ -44,36 +49,54 @@ function isSafeRelativeRedirect(url: string): boolean {
   return url.startsWith("/") && !url.startsWith("//");
 }
 
+/** 振込人名等メモの最大文字数。confirm API 側の上限と同期 */
+const UNVERIFIED_NOTE_MAX_LENGTH = 500;
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   requestId: string;
   /** ② で添付した振込明細画像の Storage URL */
   proofImageUrl: string;
+  /**
+   * AI 判定が不承認のままの申告か。
+   * true の場合、入金確認のための振込人名等メモの入力が必須になる。
+   */
+  judgmentFailed?: boolean;
 };
 
-export function ConfirmTransferModal({ open, onOpenChange, requestId, proofImageUrl }: Props) {
+export function ConfirmTransferModal({
+  open,
+  onOpenChange,
+  requestId,
+  proofImageUrl,
+  judgmentFailed = false,
+}: Props) {
   // 同意チェックは「ご注意」を読んだ上での確定アクションとして必須にする。
-  // モーダルを開くたびに未チェック状態に戻す（毎回の確認を強制）
+  // 不承認申告時の振込人名等メモも同様に毎回の記入を強制する。
+  // どちらもモーダルを閉じるタイミング（handleOpenChange）でリセットし、
+  // 次回オープン時は常に初期状態から始まるようにする。
   const [agreed, setAgreed] = useState(false);
+  const [unverifiedNote, setUnverifiedNote] = useState("");
   const { showToast } = useToast();
 
-  useEffect(() => {
-    if (open) setAgreed(false);
-  }, [open]);
+  // 不承認申告ではメモ（空白のみは不可）が必須。サーバー側でも同条件で 400 になる。
+  const noteFilled = unverifiedNote.trim() !== "";
+  const canSubmit = agreed && (!judgmentFailed || noteFilled);
 
   // useAsyncAction: useRef ベースの排他ロックで二重送信を確実に防止する。
   // setState ベースの guard では state 更新の非同期性で稀に race するため、
   // 不可逆操作 (申告 = 通貨付与) ではこちらを使う。
   const { execute, isExecuting: isSubmitting } = useAsyncAction(async () => {
-    if (!agreed) return;
+    if (!canSubmit) return;
     try {
-      // mode に応じてサーバー側が redirectUrl を返す:
-      //   - immediate          → /wallet/[slug]/purchase/complete?...
-      //   - approval_required  → /wallet/[slug]/purchase/awaiting-review
+      // 通貨付与の有無に応じてサーバー側が redirectUrl を返す:
+      //   - 付与済み (即時モード) → /wallet/[slug]/purchase/complete?...
+      //   - 未付与 (確認待ち / 不承認申告の要確認) → /wallet/[slug]/purchase/awaiting-review
       const result = await submitBankTransferProof({
         purchaseRequestId: requestId,
         proofImageUrl,
+        ...(judgmentFailed ? { unverifiedNote: unverifiedNote.trim() } : {}),
       });
 
       // 申告完了で active 状態（pending_review / pre_submit）が変わるため SWR キャッシュを無効化。
@@ -97,9 +120,14 @@ export function ConfirmTransferModal({ open, onOpenChange, requestId, proofImage
     }
   });
 
-  // 送信中の close 操作は無視（二重送信や中断による不整合を防ぐ）
+  // 送信中の close 操作は無視（二重送信や中断による不整合を防ぐ）。
+  // 閉じる際に同意チェック・メモを初期化する（Radix 経由の close はすべてここを通る）。
   const handleOpenChange = (next: boolean) => {
     if (isSubmitting) return;
+    if (!next) {
+      setAgreed(false);
+      setUnverifiedNote("");
+    }
     onOpenChange(next);
   };
 
@@ -132,6 +160,29 @@ export function ConfirmTransferModal({ open, onOpenChange, requestId, proofImage
             />
           </Block>
         </Stack>
+
+        {/* [不承認申告のみ] 入金確認のための振込人名等メモ（必須） */}
+        {judgmentFailed && (
+          <Stack space={1}>
+            <Span size="sm" weight="semiBold">
+              ご入金の確認が取れる情報
+              <Span size="xs" tone="destructive" weight="semiBold" className="ml-1">
+                （必須）
+              </Span>
+            </Span>
+            <Para size="xs" tone="muted">
+              お振込みにご利用されたお名前（振込人名）など、運営がご入金の確認を行うための情報をご記載ください。
+            </Para>
+            <Textarea
+              value={unverifiedNote}
+              onChange={(e) => setUnverifiedNote(e.target.value)}
+              maxLength={UNVERIFIED_NOTE_MAX_LENGTH}
+              rows={3}
+              placeholder="例: ヤマダタロウ名義で振り込みました（識別数字を付け忘れました）"
+              disabled={isSubmitting}
+            />
+          </Stack>
+        )}
 
         {/* お手続きに関するご注意 */}
         <Block padding="sm" className="rounded-lg border-2 border-destructive/40 bg-destructive/5">
@@ -190,7 +241,7 @@ export function ConfirmTransferModal({ open, onOpenChange, requestId, proofImage
             type="button"
             variant="default"
             onClick={() => execute()}
-            disabled={isSubmitting || !agreed}
+            disabled={isSubmitting || !canSubmit}
           >
             {isSubmitting ? (
               <Flex align="center" gap="xs">

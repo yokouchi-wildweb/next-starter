@@ -3,8 +3,9 @@
 // 自社銀行振込（inhouse プロバイダ）の振込明細画像を AI が事前判定するエンドポイント。
 // ユーザーが /wallet/[slug]/purchase/bank-transfer/[id] 画面で「判定する」を押した時に呼ばれる。
 //
-// このエンドポイントは判定結果を返すのみで、purchase_request の状態は変更しない。
-// 実際の振込完了申告は /confirm エンドポイント側で行う。
+// 判定の合否（passed）はサーバー側で確定し、purchase_requests.metadata に永続化する。
+// /confirm エンドポイントはこの保存値で合否を検証する（クライアント申告は信用しない）。
+// purchase_request の status は変更しない。実際の振込完了申告は /confirm 側で行う。
 //
 // ストリクトモード（paymentConfig.bankTransfer.aiImageJudgmentStrictMode=true）:
 // 明細内で「振込人名・名前の前後の識別数字・振込金額」の 3 点が確認できなければ不合格。
@@ -23,6 +24,7 @@ import {
   type SupportedImageMediaType,
 } from "@/lib/aiVision";
 import { createApiRoute } from "@/lib/routeFactory";
+import { isBankTransferJudgmentPassed } from "@/features/core/purchaseRequest/constants/bankTransferJudgment";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 import {
   checkJudgmentRateLimit,
@@ -180,6 +182,25 @@ export const POST = createApiRoute<Params>(
       );
     }
 
+    // 合否はサーバー側で確定し、purchase_requests.metadata に永続化する。
+    // 振込完了申告（confirm）はこの保存値で検証するため、クライアントが判定結果を
+    // 偽って申告しても即時付与は受けられない（未判定 = 不合格扱い）。
+    const passed = isBankTransferJudgmentPassed(judgment);
+    await purchaseRequestService.recordBankTransferJudgment({
+      purchaseRequestId: purchaseRequest.id,
+      userId: session.userId,
+      judgment: {
+        passed,
+        isLikelyBankTransfer: judgment.isLikelyBankTransfer,
+        confidence: judgment.confidence,
+        imageType: judgment.imageType,
+        reason: judgment.reason,
+        strictChecks: judgment.strictChecks ?? null,
+        strictMode: useStrict,
+        judgedAt: new Date().toISOString(),
+      },
+    });
+
     // 24時間カウンタは成功・失敗いずれもインクリメント。
     // 15分カウンタは失敗時のみ。
     await recordAttempt(session.userId);
@@ -190,6 +211,7 @@ export const POST = createApiRoute<Params>(
 
     return NextResponse.json({
       ...judgment,
+      passed,
       rateLimit: serializeRateLimit(finalStatus),
     });
   },

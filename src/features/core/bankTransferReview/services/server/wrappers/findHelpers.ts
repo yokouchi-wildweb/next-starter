@@ -2,7 +2,7 @@
 //
 // 共通検索ヘルパー。ユーザー側 / 管理者側の双方から利用される。
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 import { BankTransferReviewTable } from "@/features/bankTransferReview/entities/drizzle";
@@ -27,7 +27,8 @@ export async function findByPurchaseRequest(
 /**
  * ユーザー側のバナー表示用に「ユーザーがまだアクション必要なレビュー」を 1 件取得する。
  *
- * 検出条件: review.status=pending_review **かつ** purchase_request.status=processing
+ * 検出条件: review.status が pending_review / needs_check **かつ**
+ * purchase_request.status=processing
  *
  * 「purchase_request.status=processing」を判定軸に置くことで、各モードを mode で
  * 分岐せずに「ユーザー対応が必要な状態」を一括検出できる:
@@ -39,6 +40,10 @@ export async function findByPurchaseRequest(
  *   - mode=immediate + processing (異常: 申告は受け付けたが completePurchase が失敗して
  *     通貨未付与のまま停止している状態) → 検出する。バナー → 振込案内ページへの誘導で
  *     ユーザーが再申告 (画像差し替え) すると completePurchase が再試行されて回復可能
+ *   - needs_check + processing (AI 判定不合格のまま申告し、管理者の確認待ち) → 検出。
+ *     ユーザーは確認待ち画面への誘導を受けつつ、振込案内ページから正しい画像で
+ *     再申告して pending_review に戻すこともできる
+ *   - investigating: 管理者の検証中。ユーザーに促すアクションが無いため検出しない
  *   - confirmed / rejected: ユーザー視点で終了状態 → 検出しない
  *
  * 管理者側の一覧検索は別関数（admin route で直接 db クエリ）を使うため、このヘルパーは
@@ -60,7 +65,10 @@ export async function findActiveByUser(
     .where(
       and(
         eq(BankTransferReviewTable.user_id, userId),
-        eq(BankTransferReviewTable.status, "pending_review"),
+        inArray(BankTransferReviewTable.status, [
+          "pending_review",
+          "needs_check",
+        ]),
         eq(PurchaseRequestTable.status, "processing"),
       ),
     )

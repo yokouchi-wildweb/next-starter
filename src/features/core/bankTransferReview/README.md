@@ -365,7 +365,7 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 | 画像アップロードフック | `src/features/core/purchaseRequest/hooks/useBankTransferProofUpload.ts` | 固定パスへの上書きアップロード | 実装済 |
 | 進行中振込バナー | `src/features/core/bankTransferReview/components/ActiveTransferBanner/` | ウォレットトップに表示する未完了振込の案内 | 実装済 |
 | バナー用フック | `src/features/core/bankTransferReview/hooks/useActiveBankTransfer.ts` | `getActiveBankTransfer` のラッパー | 実装済 |
-| 確認待ちページ | `src/app/(user)/(protected)/wallet/[slug]/purchase/awaiting-review/page.tsx` | 確認モードでの申告完了画面（管理者承認待ち） | **未実装** |
+| 確認待ちページ | `src/app/(user)/(protected)/wallet/[slug]/purchase/awaiting-review/page.tsx` | 確認モードでの申告完了画面（管理者承認待ち / AI 判定不承認の要確認） | 実装済 |
 
 ### 管理者側
 
@@ -434,7 +434,7 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 
 ## 11. 既知の TODO
 
-- [ ] 確認待ちページ (`/wallet/[slug]/purchase/awaiting-review`) の UI 実装
+- [x] 確認待ちページ (`/wallet/[slug]/purchase/awaiting-review`) の UI 実装
 - [ ] 管理画面 (`/admin/bank-transfer-reviews`) の UI 実装
 - [ ] 孤児画像ファイル削除 cron の実装
 - [ ] ユニットテスト / E2E テスト

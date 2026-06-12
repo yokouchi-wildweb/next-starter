@@ -4,8 +4,10 @@
 // ② で添付された画像（File）を /api/wallet/purchase/[id]/bank-transfer/judge-image に POST し、
 // Claude Vision の判定結果（承認候補 / 不承認候補 + 確信度 + 判定根拠）を表示する。
 //
-// 判定結果が「承認候補 かつ confidence >= JUDGMENT_PASS_THRESHOLD」のときのみ
-// 親側の Step④ ボタンが活性化する。判定結果は画像差し替え時に親側でリセットされる。
+// 合否（passed）はサーバー側（judge-image API）で確定して返り、purchase_requests.metadata
+// にも永続化される。申告時のサーバー検証はその保存値で行われるため、UI の passed は
+// あくまで表示・活性制御用。判定結果は画像差し替え時に親側でリセットされる。
+// 不承認でも親側の Step④ は「不承認のまま申告する」フローとして活性化する。
 //
 // ストリクトモード時はレスポンスに strictChecks（振込人名・識別数字・金額の個別合否）が
 // 付与され、チェックリストとして表示する。通過判定自体はサーバー側で合算済みのため
@@ -64,6 +66,11 @@ export type StrictChecks = {
 };
 
 export type JudgmentResult = {
+  /**
+   * サーバー側で確定した合否（isLikelyBankTransfer && confidence >= 閾値）。
+   * 閾値の定義は purchaseRequest/constants/bankTransferJudgment.ts に集約されている。
+   */
+  passed: boolean;
   isLikelyBankTransfer: boolean;
   confidence: number;
   imageType: "photo" | "screenshot" | "other";
@@ -73,13 +80,9 @@ export type JudgmentResult = {
   rateLimit: RateLimitInfo;
 };
 
-/** 通過判定の最小確信度。これ未満の承認候補は Step④ を活性化しない。 */
-export const JUDGMENT_PASS_THRESHOLD = 35;
-
-/** 親側で Step④ の活性条件として参照するヘルパー。 */
+/** 親側で判定通過の参照に使うヘルパー。合否はサーバーが返した passed をそのまま使う。 */
 export function isJudgmentPassed(result: JudgmentResult | null): boolean {
-  if (!result) return false;
-  return result.isLikelyBankTransfer && result.confidence >= JUDGMENT_PASS_THRESHOLD;
+  return result?.passed === true;
 }
 
 type Props = {
@@ -143,7 +146,7 @@ export function ImageJudgmentSection({
     rateLimit !== null &&
     (rateLimit.remainingFailures15m === 0 || rateLimit.remainingAttempts24h === 0);
   const buttonShouldShow =
-    !!file && (loading || result === null || !result.isLikelyBankTransfer);
+    !!file && (loading || result === null || !result.passed);
 
   // 15分残量ヘッダー: 失敗が1回でも発生したときだけ表示（満タンでは出さない）
   const show15mHeader =
@@ -253,7 +256,7 @@ function renderButtonContent({
 }
 
 function ResultView({ result }: { result: JudgmentResult }) {
-  const isPassed = result.isLikelyBankTransfer;
+  const isPassed = result.passed;
   return (
     <Stack space={3} className="rounded-md border border-border bg-background p-3">
       <Flex justify="center">

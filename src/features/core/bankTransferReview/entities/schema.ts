@@ -22,11 +22,14 @@ export const BANK_TRANSFER_REVIEW_MODES = [
  * needs_check に遷移する理由コードの列挙。
  *
  * ここに足すたびに UI 側のラベル定数 (presenters 等) も足すことを推奨。
- * 現状は CSV 一括取込での「金額不一致」のみ。将来「重複振込疑い」「期限超過確認」等を
- * 追加する場合はここに値を追加する。
+ * - amount_mismatch: CSV 一括取込で金額不一致と判定された
+ * - image_judgment_failed: AI 画像判定が不合格（または未判定）のままユーザーが申告した。
+ *   needs_check_context にユーザー記載の振込人名等メモ（userNote）と判定サマリが入る
+ * 将来「重複振込疑い」「期限超過確認」等を追加する場合はここに値を追加する。
  */
 export const BANK_TRANSFER_REVIEW_NEEDS_CHECK_REASONS = [
   "amount_mismatch",
+  "image_judgment_failed",
 ] as const;
 
 /**
