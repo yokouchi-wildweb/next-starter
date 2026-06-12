@@ -119,21 +119,22 @@ export const POST = createApiRoute(
 
 ```ts
 // src/app/api/me/wallet/route.ts
+import { createMeRoute, ownerWhere } from "@/lib/routeFactory";
+
 export const GET = createMeRoute(
   { operation: "GET /api/me/wallet", operationType: "read" },
   async (_req, { user }) => {
-    // user.userId でサーバー側スコープを強制（クライアント指定の id は使わない）
-    const result = await walletService.search({
-      where: { field: "user_id", op: "eq", value: user.userId },
-    });
+    // ownerWhere(user) = { field: "user_id", op: "eq", value: user.userId }
+    const result = await walletService.search({ where: ownerWhere(user) });
     return { wallets: result.results ?? [] };
   },
 );
 ```
 
 - `access` は不要（createMeRoute が内部で認証を強制する）
-- **オーナーシップは `user.userId` を where 等に必ず使って実現する**。汎用 `/api/[domain]` は
-  クライアント指定の `user_id` を信用してしまうため、ユーザー所有データは createMeRoute に集約する
+- **オーナーシップは `ownerWhere(user)` でサーバー側スコープを固定する**（所有者カラムが `user_id` 以外なら
+  `ownerWhere(user, "owner_id")`）。汎用 `/api/[domain]` はクライアント指定の `user_id` を信用してしまうため、
+  ユーザー所有データは createMeRoute に集約する
 - 他ユーザーのデータを見る管理用途は createMeRoute ではなく admin 用ルート（`{ roleCategories: ["admin"] }`）で
 
 ---

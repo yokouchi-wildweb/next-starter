@@ -14,6 +14,7 @@ import { NextRequest } from "next/server";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
+import type { WhereExpr } from "@/lib/crud";
 
 import { createApiRoute, type ApiRouteConfig, type ApiRouteContext } from "./createApiRoute";
 
@@ -47,4 +48,18 @@ export function createMeRoute<TParams = Record<string, string>, TResult = unknow
       return handler(req, { ...ctx, user });
     },
   );
+}
+
+/**
+ * 認証済みユーザー本人のレコードに絞る where 式を返す。
+ * createMeRoute の ctx.user と組み合わせ、オーナーシップを所有者カラムで固定する。
+ *
+ * @example
+ *   const result = await service.search({ where: ownerWhere(user) });
+ *
+ * @param user createMeRoute が渡す認証済みユーザー
+ * @param field 所有者カラム名（既定: "user_id"）
+ */
+export function ownerWhere(user: SessionUser, field = "user_id"): WhereExpr {
+  return { field, op: "eq", value: user.userId };
 }

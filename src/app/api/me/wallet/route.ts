@@ -4,7 +4,7 @@
 // オーナーシップはサーバー側で user.userId に固定して強制する
 // （クライアント指定の user_id は受け取らない）。
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute, ownerWhere } from "@/lib/routeFactory";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 
 // GET /api/me/wallet : 本人の全ウォレット（通貨種別ごと）を取得
@@ -14,9 +14,7 @@ export const GET = createMeRoute(
     operationType: "read",
   },
   async (_req, { user }) => {
-    const result = await walletService.search({
-      where: { field: "user_id", op: "eq", value: user.userId },
-    });
+    const result = await walletService.search({ where: ownerWhere(user) });
     return { wallets: result.results ?? [] };
   },
 );

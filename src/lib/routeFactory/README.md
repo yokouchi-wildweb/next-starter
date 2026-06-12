@@ -86,15 +86,13 @@ export const GET = createDomainRoute<any, Params>(
 **認証済み `user`（DB 同期）** を渡す。`access` は不要（内部で認証を強制する）。
 
 ```ts
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute, ownerWhere } from "@/lib/routeFactory";
 
 export const GET = createMeRoute(
   { operation: "GET /api/me/wallet", operationType: "read" },
   async (_req, { user }) => {
-    // user.userId でサーバー側スコープを強制（クライアント指定の id は使わない）
-    const result = await walletService.search({
-      where: { field: "user_id", op: "eq", value: user.userId },
-    });
+    // ownerWhere(user) で本人スコープを固定（クライアント指定の id は使わない）
+    const result = await walletService.search({ where: ownerWhere(user) });
     return { wallets: result.results ?? [] };
   },
 );
@@ -109,9 +107,7 @@ export const GET = createMeRoute(
 ```ts
 export const GET = createMeRoute(
   { operation: "GET /api/me/wallet", operationType: "read" },
-  async (_req, { user }) => walletService.search({
-    where: { field: "user_id", op: "eq", value: user.userId },
-  }),
+  async (_req, { user }) => walletService.search({ where: ownerWhere(user) }),
 );
 ```
 
