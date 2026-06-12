@@ -154,53 +154,53 @@ export function BankTransferReviewListPanel({ status }: Props) {
       </AdminHeaderPortal>
 
       <Stack space={4}>
-        <Flex justify="end" align="center" wrap="wrap" gap="sm">
-          <SearchBox
-            makeHref={makeSearchHref}
-            placeholder="ユーザー / 承認番号 / 電話 / メール"
-          />
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={() => setCsvDialogOpen(true)}
-          >
-            <Upload className="size-4 mr-1" />
-            振込明細CSVで一括判定
-          </Button>
-        </Flex>
-
+        {/* タブをヘッダーへ移設して空いた最上段に、件数・検索・CSV・ページャを 1 段で収める */}
         <Flex justify="between" align="center" wrap="wrap" gap="sm">
           <Para size="xs" tone="muted">
             {total > 0 ? `${start} - ${end} (全 ${total} 件)` : "該当なし"}
           </Para>
-          {totalPages > 1 ? (
-            <Flex gap="xs" align="center">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                aria-label="前のページ"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Para size="xs" tone="muted">
-                {page} / {totalPages}
-              </Para>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                aria-label="次のページ"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </Flex>
-          ) : null}
+          <Flex gap="sm" align="center" wrap="wrap">
+            <SearchBox
+              makeHref={makeSearchHref}
+              placeholder="ユーザー / 承認番号 / 電話 / メール"
+            />
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setCsvDialogOpen(true)}
+            >
+              <Upload className="size-4 mr-1" />
+              振込明細CSVで一括判定
+            </Button>
+            {totalPages > 1 ? (
+              <Flex gap="xs" align="center">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  aria-label="前のページ"
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <Para size="xs" tone="muted">
+                  {page} / {totalPages}
+                </Para>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  aria-label="次のページ"
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </Flex>
+            ) : null}
+          </Flex>
         </Flex>
 
         {error ? (
