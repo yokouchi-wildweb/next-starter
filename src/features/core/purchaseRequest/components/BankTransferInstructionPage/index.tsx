@@ -29,6 +29,7 @@ import { PrepareProofImage } from "./PrepareProofImage";
 import { SaveBookmarkButton } from "./SaveBookmarkButton";
 import { StepConnector } from "./StepConnector";
 import { StrictModeNoticeDialog } from "./StrictModeNoticeDialog";
+import { UnverifiedSubmitNoticeDialog } from "./UnverifiedSubmitNoticeDialog";
 
 export type BankTransferInstructionPageProps = {
   /** purchase_request の ID（画像アップロードのパスに使用） */
@@ -72,12 +73,24 @@ export function BankTransferInstructionPage({
   const [proofImageFile, setProofImageFile] = useState<File | null>(null);
   // AI 判定結果。null = 未判定。AI 有効時のみ申告ステップの活性条件として参照する。
   const [judgmentResult, setJudgmentResult] = useState<JudgmentResult | null>(null);
+  // 不承認の注意喚起ダイアログ。判定結果が不承認で返ってきた時点で自動表示する
+  // （再判定で再び不承認になった場合も都度表示する）。
+  const [unverifiedNoticeOpen, setUnverifiedNoticeOpen] = useState(false);
 
   const handleImageChange = (url: string | null, file: File | null) => {
     setProofImageUrl(url);
     setProofImageFile(file);
     // 画像差し替え・削除時は判定結果をリセット（再判定を強制）
     setJudgmentResult(null);
+  };
+
+  const handleJudgmentResultChange = (result: JudgmentResult | null) => {
+    setJudgmentResult(result);
+    // 不承認になった時点で注意喚起（即時付与されない旨）を先に一度見せる。
+    // 申告ボタンからはこのダイアログを経由せず、直接申告モーダルが開く。
+    if (result !== null && !isJudgmentPassed(result)) {
+      setUnverifiedNoticeOpen(true);
+    }
   };
 
   // ステップ番号を動的計算: AI 判定セクションの有無で申告ステップが 3 または 4 になる。
@@ -148,12 +161,19 @@ export function BankTransferInstructionPage({
             requestId={requestId}
             file={proofImageFile}
             result={judgmentResult}
-            onResultChange={setJudgmentResult}
+            onResultChange={handleJudgmentResultChange}
             strictMode={aiImageJudgmentStrictMode}
           />
           <StepConnector />
         </>
       )}
+
+      {/* 判定不承認になった直後に自動表示する注意喚起（即時付与されない旨） */}
+      <UnverifiedSubmitNoticeDialog
+        open={unverifiedNoticeOpen}
+        onOpenChange={setUnverifiedNoticeOpen}
+        currencyLabel={currencyLabel}
+      />
 
       {/* 振込完了の申告（AI 有効時は判定実施後に活性化。不承認時は専用フロー） */}
       <ConfirmTransferCTA
@@ -163,7 +183,6 @@ export function BankTransferInstructionPage({
         disabled={!canSubmit}
         disabledLabel={submitDisabledLabel}
         judgmentFailed={judgmentFailed}
-        currencyLabel={currencyLabel}
       />
 
       {/* 最下部: 振込による購入をキャンセル（不可逆 / Dialog で確認） */}

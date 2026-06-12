@@ -2,7 +2,8 @@
 //
 // 銀行振込レビュー管理画面のメインコンテナ。
 // status タブ・ページング・モーダル開閉などの状態を一括で管理する。
-// CSV 一括取込ボタンは全タブ共通でヘッダーに常設する。
+// status タブは AdminHeaderPortal (slot="center") で管理画面ヘッダー中央に表示する。
+// CSV 一括取込ボタンは全タブ共通でページ上部に常設する。
 
 "use client";
 
@@ -17,6 +18,7 @@ import { Para } from "@/components/TextBlocks/Para";
 import { Button } from "@/components/Form/Button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import SearchBox from "@/components/AppFrames/Admin/Elements/SearchBox";
+import { AdminHeaderPortal } from "@/components/AppFrames/Admin/Elements/AdminHeaderPortal";
 import {
   adminListBankTransferReviews,
   adminGetBankTransferReviewStatusCounts,
@@ -146,24 +148,26 @@ export function BankTransferReviewListPanel({ status }: Props) {
 
   return (
     <>
+      {/* status タブはページ内ではなく管理画面ヘッダー中央のポータルスロットに表示する */}
+      <AdminHeaderPortal slot="center">
+        <StatusTabs counts={statusCountsData?.counts} />
+      </AdminHeaderPortal>
+
       <Stack space={4}>
-        <Flex justify="between" align="center" wrap="wrap" gap="sm">
-          <StatusTabs counts={statusCountsData?.counts} />
-          <Flex gap="sm" align="center" wrap="wrap">
-            <SearchBox
-              makeHref={makeSearchHref}
-              placeholder="ユーザー / 承認番号 / 電話 / メール"
-            />
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() => setCsvDialogOpen(true)}
-            >
-              <Upload className="size-4 mr-1" />
-              振込明細CSVで一括判定
-            </Button>
-          </Flex>
+        <Flex justify="end" align="center" wrap="wrap" gap="sm">
+          <SearchBox
+            makeHref={makeSearchHref}
+            placeholder="ユーザー / 承認番号 / 電話 / メール"
+          />
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => setCsvDialogOpen(true)}
+          >
+            <Upload className="size-4 mr-1" />
+            振込明細CSVで一括判定
+          </Button>
         </Flex>
 
         <Flex justify="between" align="center" wrap="wrap" gap="sm">

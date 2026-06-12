@@ -33,9 +33,11 @@ export function formatJpyAmount(amount: number): string {
   return `¥${amount.toLocaleString("ja-JP")}`;
 }
 
+// mode は「状態」ではなく付与方式の契約（作成時に固定・不変）なので、
+// 承認後の行に表示されても自然な「方式」を表す語にする。
 const MODE_LABELS: Record<BankTransferReviewMode, string> = {
   immediate: "即時付与",
-  approval_required: "確認待ち",
+  approval_required: "手動付与",
 };
 
 export function formatModeLabel(mode: BankTransferReviewMode): string {
@@ -52,8 +54,7 @@ export function modeBadgeVariant(mode: BankTransferReviewMode): "info" | "warnin
 }
 
 const STATUS_LABELS: Record<BankTransferReviewStatus, string> = {
-  // mode の「確認待ち（approval_required）」と紛らわしいため、
-  // status 側はあえて別の語「レビュー待ち」を使う。
+  // mode（手動付与/即時付与）と混同されないよう、status 側は進行状態を表す語を使う。
   pending_review: "レビュー待ち",
   needs_check: "要確認",
   investigating: "検証中",

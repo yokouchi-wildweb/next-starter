@@ -482,13 +482,13 @@ function ActionSection({
   const confirmDescription =
     mode === "immediate"
       ? "即時付与モードのため、通貨残高は変動しません。振込確認の記録のみ実施します。"
-      : "確認待ちモードのため、承認するとユーザーに通貨が付与されます。本当に承認しますか？";
+      : "手動付与モードのため、承認するとユーザーに通貨が付与されます。本当に承認しますか？";
 
   // mode による拒否時の警告
   const rejectWarning =
     mode === "immediate"
       ? "即時付与モードのため、拒否しても既に付与済みの通貨はロールバックされません。残高調整やユーザー連絡は別途手動で対応してください。"
-      : "確認待ちモードのため、拒否すると関連する購入リクエストが failed になり、通貨は付与されません。";
+      : "手動付与モードのため、拒否すると関連する購入リクエストが failed になり、通貨は付与されません。";
 
   const actionsBusy = confirming || rejecting || investigating;
 

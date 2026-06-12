@@ -171,14 +171,14 @@ export function ConfirmTransferModal({
               </Span>
             </Span>
             <Para size="xs" tone="muted">
-              お振込みにご利用されたお名前（振込人名）など、運営がご入金の確認を行うための情報をご記載ください。
+              お振込みにご利用されたお名前（振込人名）や振込日時など、ご入金の確認を行うための情報をご記載ください。
             </Para>
             <Textarea
               value={unverifiedNote}
               onChange={(e) => setUnverifiedNote(e.target.value)}
               maxLength={UNVERIFIED_NOTE_MAX_LENGTH}
               rows={3}
-              placeholder="例: ヤマダタロウ名義で振り込みました（識別数字を付け忘れました）"
+              placeholder="例: 識別数字を付け忘れました。ヤマダタロウ名義で1月31日12時頃振り込み済み"
               disabled={isSubmitting}
             />
           </Stack>

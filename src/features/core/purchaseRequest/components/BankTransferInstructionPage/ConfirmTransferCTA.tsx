@@ -4,9 +4,9 @@
 // クリックで ConfirmTransferModal（添付画像プレビュー + 不正注意 + 申告 API）を開く。
 // ② の画像添付（+ AI 有効時は ③ の判定実施）まで disabled（親から制御）。
 //
-// AI 判定が不承認（judgmentFailed=true）の場合もボタンは活性化するが、
-// 先に UnverifiedSubmitNoticeDialog（即時付与されない旨の注意喚起）を挟んでから
-// 申告モーダルを開く。申告モーダル側では振込人名等メモの入力が必須になる。
+// AI 判定が不承認（judgmentFailed=true）の場合もボタンは活性化し、クリックで
+// 直接申告モーダル（メモ入力必須バリアント）を開く。即時付与されない旨の注意喚起
+// （UnverifiedSubmitNoticeDialog）は判定不承認の時点で親（index.tsx）が表示済み。
 
 "use client";
 
@@ -19,7 +19,6 @@ import { Button } from "@/components/Form/Button/Button";
 import { Para, Span } from "@/components/TextBlocks";
 
 import { ConfirmTransferModal } from "./ConfirmTransferModal";
-import { UnverifiedSubmitNoticeDialog } from "./UnverifiedSubmitNoticeDialog";
 import { circledNumber } from "./stepNumber";
 
 type Props = {
@@ -35,11 +34,9 @@ type Props = {
   disabledLabel?: string;
   /**
    * AI 判定が不承認のまま申告するフローか（親が判定結果から算出）。
-   * true の場合、注意喚起ダイアログを挟み、申告モーダルでメモ入力が必須になる。
+   * true の場合、申告モーダルでメモ入力が必須になる。
    */
   judgmentFailed?: boolean;
-  /** 通貨の表示名（例: コイン、ポイント）。不承認時の注意文言に使用 */
-  currencyLabel: string;
 };
 
 export function ConfirmTransferCTA({
@@ -49,19 +46,12 @@ export function ConfirmTransferCTA({
   disabled = false,
   disabledLabel,
   judgmentFailed = false,
-  currencyLabel,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [noticeOpen, setNoticeOpen] = useState(false);
 
   const handleClick = () => {
     // 念のため: disabled が掛かっている時にプログラム的にクリックされた場合の防御
     if (proofImageUrl === null) return;
-    if (judgmentFailed) {
-      // 不承認のままの申告は、先に注意喚起（即時付与されない旨）を挟む
-      setNoticeOpen(true);
-      return;
-    }
     setOpen(true);
   };
 
@@ -95,14 +85,6 @@ export function ConfirmTransferCTA({
           </Flex>
         </Stack>
       </Block>
-
-      {/* 不承認申告フローの注意喚起（了解で申告モーダルへ） */}
-      <UnverifiedSubmitNoticeDialog
-        open={noticeOpen}
-        onOpenChange={setNoticeOpen}
-        onProceed={() => setOpen(true)}
-        currencyLabel={currencyLabel}
-      />
 
       {proofImageUrl !== null && (
         <ConfirmTransferModal
