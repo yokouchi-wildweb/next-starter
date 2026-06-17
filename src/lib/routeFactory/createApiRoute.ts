@@ -16,6 +16,7 @@ import type { RecaptchaAction } from "@/lib/recaptcha/constants";
 import { RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
 import { verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
 import { isDomainError } from "@/lib/errors";
+import { runWithUserDirtyTracking } from "@/lib/userDirty";
 import { enforceAccessRule } from "./enforceAccess";
 
 /**
@@ -324,9 +325,15 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
       // ===== ハンドラー実行 =====
       // ALS で AuditContext をスコープに敷き、handler 内部の任意の深さから
       // getAuditContext() で actor / IP / UA / requestId を取得できるようにする。
+      //
+      // さらに userDirty トラッキングスコープを内側に敷く。handler 内の任意の深さで
+      // markUserDirty(userId) された対象を、業務TXのコミット後（handler 完了後）に
+      // flush する。flush の中身（再計算等）は下流が registerUserDirtyFlushHandler で差し込む。
 
       const ctx: ApiRouteContext<TParams> = { params, session };
-      const result = await runWithAuditContext(auditContext, () => handler(req, ctx));
+      const result = await runWithAuditContext(auditContext, () =>
+        runWithUserDirtyTracking(() => handler(req, ctx)),
+      );
 
       // 将来の拡張ポイント:
       // - 監査ログ（後処理）

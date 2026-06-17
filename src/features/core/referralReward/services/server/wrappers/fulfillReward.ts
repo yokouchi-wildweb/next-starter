@@ -6,6 +6,7 @@ import type { ReferralReward } from "../../../entities/model";
 import type { Referral } from "@/features/core/referral/entities/model";
 import { getRewardDefinition } from "../../../utils/rewardDefinitionLookup";
 import { getRewardHandler } from "../rewardHandlerRegistry";
+import { markUserDirty } from "@/lib/userDirty";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 import { eq, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
@@ -90,6 +91,11 @@ export async function fulfillReward(
   // ハンドラー実行
   try {
     const metadata = await handler({ referral, rewardKey, recipientUserId, context, tx });
+
+    // ハンドラー成功＝報酬が fulfilled 確定。受領者（招待した側 or 被招待者）を
+    // 外側TXのコミット後の再計算対象として回収する。markUserDirty は ALS 内 Set への
+    // push のみで TX には乗らない。flush（再計算等）は routeFactory がコミット後に実行する。
+    markUserDirty(recipientUserId);
 
     if (existing.length > 0) {
       // 既存レコードを fulfilled に更新

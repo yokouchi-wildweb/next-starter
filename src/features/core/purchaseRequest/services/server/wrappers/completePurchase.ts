@@ -12,6 +12,7 @@ import type { PersistedMilestoneResult } from "@/features/core/milestone/types/m
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { commitQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry";
+import { markUserDirty } from "@/lib/userDirty";
 import { getPurchaseCompletionStrategy } from "../completion";
 import { findByWebhookIdentifier } from "./purchaseHelpers";
 import type { CompletePurchaseParams, CompletePurchaseResult } from "./purchaseService";
@@ -226,6 +227,12 @@ export async function completePurchase(
       milestoneResults: persistedResults,
     };
   });
+
+  // 購入者本人を、コミット後の再計算対象として回収する。
+  // TX のコミット成功後（throw 時はここに到達しない）にのみマークする。
+  // markUserDirty は ALS 内 Set への push のみで TX には乗らない。
+  // flush（再計算等）は routeFactory がコミット後に実行する。
+  markUserDirty(purchaseRequest.user_id);
 
   return result;
 }
