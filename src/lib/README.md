@@ -61,6 +61,7 @@
 | `transitionGuard` | ページ遷移ガード（フロー離脱時に最初からやり直させる） | ✓ |
 | `sortableList` | ドラッグ&ドロップの並べ替えリスト UI | |
 | `toast` | トースト通知システム（`GlobalToast` / `useToast`） | |
+| `seamlessVideo` | 変換済み fmp4 を MSE で継ぎ目なく連結再生（映像+音声・progressive・A/V同期・BGM・共有URL） | ✓ |
 
 ## ユーティリティ
 

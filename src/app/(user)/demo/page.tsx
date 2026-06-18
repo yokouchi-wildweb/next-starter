@@ -16,6 +16,8 @@ const DEMO_PAGES = [
   { path: "media-input", label: "Media Input", description: "メディアアップロード" },
   { path: "overlay", label: "Overlay", description: "モーダル・ダイアログ" },
   { path: "popover", label: "Popover", description: "ポップオーバー" },
+  { path: "seamless-video", label: "Seamless Video", description: "fmp4のMSE継ぎ目なし連結再生" },
+  { path: "seamless-av", label: "Seamless A/V", description: "音声付きフラグメントの連結再生(映像MSE+音声WebAudio)" },
   { path: "scroll-slider", label: "ScrollSlider", description: "横スクロール型スライダー" },
   { path: "fade-slider", label: "FadeSlider", description: "フェード型スライダー" },
   { path: "sortable-list", label: "Sortable List", description: "並び替え可能なリスト" },

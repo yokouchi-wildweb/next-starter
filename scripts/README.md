@@ -69,6 +69,19 @@ pnpm claude:test
 
 事前設定: `.env.development` に `ANTHROPIC_API_KEY` を設定
 
+### Storage (CORS)
+
+```bash
+# Firebase Storage バケットに CORS を設定(origin は "*")
+pnpm storage:setup-cors
+
+# origin を実ドメインに限定(本番推奨)
+pnpm storage:setup-cors https://your-app.com https://www.your-app.com
+```
+
+用途: ブラウザの MSE / Web Audio はファイルのバイト列を `fetch()` で読むため、別ドメインの Storage から読むには CORS 許可が必要。一度設定すれば Firebase から直接配信(CDN)のまま読めるようになる。
+事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+
 ## ディレクトリ構成
 
 ```

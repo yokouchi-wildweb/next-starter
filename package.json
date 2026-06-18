@@ -43,6 +43,7 @@
     "mail:test": "npx tsx scripts/mail/test-send.ts",
     "mail:generate-colors": "npx tsx scripts/mail/generate-colors.ts",
     "claude:test": "cross-env APP_ENV=.env.development npx tsx scripts/test-claude-api.ts",
+    "storage:setup-cors": "cross-env APP_ENV=.env.development npx tsx scripts/storage/setup-cors.ts",
     "cron": "cross-env APP_ENV=.env.development npx tsx scripts/cron/run.ts"
   },
   "engines": {
