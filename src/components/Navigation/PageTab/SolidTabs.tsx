@@ -65,7 +65,7 @@ export function SolidTabs({
   const sizeClassName = TAB_SIZE_STYLES[size]
 
   return (
-    <nav aria-label={ariaLabel}>
+    <nav aria-label={ariaLabel} className="w-full">
       <Tabs value={resolvedValue} className={cn("w-full", className)}>
         <TabsList className={cn("w-full", listAppearanceClassName, listClassName)}>
           {tabs.map((tab) => {
@@ -76,7 +76,7 @@ export function SolidTabs({
                 key={tab.value}
                 value={tab.value}
                 asChild
-                className={cn(sizeClassName, activeTriggerClassName, tab.className)}
+                className={cn("min-w-0", sizeClassName, activeTriggerClassName, tab.className)}
               >
                 <Link
                   href={tab.href}
@@ -90,7 +90,7 @@ export function SolidTabs({
                     {tab.icon}
                     <Span
                       weight="normal"
-                      className={cn("truncate", isActive && activeLabelClassName)}
+                      className={cn("min-w-0 truncate", isActive && activeLabelClassName)}
                     >
                       {tab.label}
                     </Span>

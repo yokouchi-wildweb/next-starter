@@ -61,13 +61,13 @@ export function UnderlineTabs({
   const sizeClassName = UNDERLINE_SIZE_STYLES[size]
 
   return (
-    <nav aria-label={ariaLabel} className={cn("border-b border-border", className)}>
+    <nav aria-label={ariaLabel} className={cn("w-full border-b border-border", className)}>
       <ul className="flex list-none">
         {tabs.map((tab) => {
           const isActive = tab.value === resolvedValue
 
           return (
-            <li key={tab.value} className="relative flex-1">
+            <li key={tab.value} className="relative flex-1 min-w-0">
               <Link
                 href={tab.href}
                 prefetch={tab.prefetch}
@@ -84,7 +84,7 @@ export function UnderlineTabs({
               >
                 <Flex align="center" justify="center" gap="xs">
                   {tab.icon}
-                  <Span weight={isActive ? "medium" : "normal"} tone="inherit" className="truncate">
+                  <Span weight={isActive ? "medium" : "normal"} tone="inherit" className="min-w-0 truncate">
                     {tab.label}
                   </Span>
                 </Flex>
