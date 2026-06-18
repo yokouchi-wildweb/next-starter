@@ -80,6 +80,7 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
 3. 初期アクセスルールは `allow read, write: if false;` となっていることが多いため、開発用途では暫定的に `request.auth != null` を条件にするなど最小限の許可に留めます。
 4. ルール編集後は **公開** をクリックしてデプロイします。
 5. バケット名は `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` と一致する必要があるため、設定を変更した場合は環境変数も更新します。
+6. **CORS 設定（リモートメディアをブラウザで読む場合は必須）**: 別ドメインの Storage バイトをブラウザで読み取る機能（動画の MSE 連結再生・`fetch()` 読み取り・`<video crossOrigin>`→canvas でのサムネ生成・Web Audio など）を使う場合、バケットに CORS 設定が必要です。バケット単位・一度きりの設定で、判定ルール・前提・手順は [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](StorageのCORS設定（リモートメディア読み取りの基盤前提）.md) に集約しています。
 
 ### 6.2 Firestore
 

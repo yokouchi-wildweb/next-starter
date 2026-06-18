@@ -189,19 +189,18 @@ await load(fragments, { progressive: true }); // 先頭準備で ready(=playable
 
 ### ⚠ 重要: 別ドメイン URL の再生にはバケットの CORS 設定が必要
 
-MSE(`appendBuffer`)/ Web Audio(`decodeAudioData`)は、ファイルのバイト列を `fetch()` で読み取る。
-`<video src>` で表示するのと違い、**別ドメイン(Firebase Storage 等)からのバイト読み取りは CORS の対象**で、
-バケットに CORS 設定が無いと再生時に `Failed to fetch` になる。
+URL ソースの再生は MSE(`appendBuffer`)/ Web Audio(`decodeAudioData`)がバイト列を `fetch()` で読むため、
+別ドメイン(Firebase Storage 等)のバケットに CORS 設定が無いと再生時に `Failed to fetch` になる。
+これは seamlessVideo 固有ではなく **「別ドメインの Storage バイトを読む全機能の共通基盤前提」** で、
+設定は `pnpm storage:setup-cors` で一度きり。**判定ルール・前提(権限/env)・手順・トラブルシュートは一次情報を参照**:
 
-一度だけ次を実行してバケットに CORS を設定する(配信は Firebase から直接 = CDN のまま。中継しないので性能劣化なし):
+➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../../../docs/how-to/initial-setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
 
-```bash
-pnpm storage:setup-cors                          # origin "*"(検証用)
-pnpm storage:setup-cors https://your-app.com     # 本番は実ドメインに限定
-```
+seamlessVideo 固有の補足:
 
-※ アップロード前の File/Blob を直接 `load()` に渡す場合は fetch しないため CORS 不要。
-詳細は scripts/README.md「Storage (CORS)」を参照。
+- アップロード前の File/Blob を直接 `load()` に渡す場合は fetch しないため CORS 不要。
+- URL 取得は `core/fragmentBytes.ts` が `@/lib/storageCors` の `fetchStorageBytes` 経由で行うため、
+  開発時は CORS 未設定で失敗すると自動で設定コマンドを案内する。
 
 ## 既知の制限(v1)
 

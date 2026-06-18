@@ -79,7 +79,10 @@ pnpm storage:setup-cors
 pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 ```
 
-用途: ブラウザの MSE / Web Audio はファイルのバイト列を `fetch()` で読むため、別ドメインの Storage から読むには CORS 許可が必要。一度設定すれば Firebase から直接配信(CDN)のまま読めるようになる。
+用途: 別ドメインの Storage バイトをブラウザで読む全機能(MSE / `fetch()` / `<video crossOrigin>`→canvas / Web Audio)の共通基盤前提。バケット単位・一度きりの設定。判定ルール・トラブルシュート・前提(権限/env)は一次情報に集約:
+
+➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/how-to/initial-setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
+
 事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 
 ## ディレクトリ構成
