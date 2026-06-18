@@ -45,6 +45,7 @@
 |---|---|---|
 | `firebase` | Firebase SDK のクライアント/サーバー初期化・ユーティリティ | ✓ |
 | `storage` | Firebase Storage の共通サービスレイヤー（client/server/hooks） | ✓ |
+| `storageCors` | 別ドメインの Storage バイト読取（fetch/canvas）の CORS 未設定を開発時に自己診断・案内 | ✓ |
 | `mail` | メール送信（Resend / SendGrid）+ React Email テンプレート | |
 | `line` | LINE 連携（Push通知・Bot応答・LIFF・Webhook 検証） | ✓ |
 | `x` | X(Twitter) API（認証・投稿・メディア・Webhook 検証） | ✓ |
