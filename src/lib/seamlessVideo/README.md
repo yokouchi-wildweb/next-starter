@@ -149,7 +149,21 @@ await load(fragments, { progressive: true }); // 先頭準備で ready(=playable
 - **連続 BGM(別レイヤー)**: `setBgm(url, { loop, volume })` → `play()` 時に自動再生。`setBgmVolume` / `fadeBgm` でダッキング・フェード可。フラグメント音声とは独立。
 - **動的シーケンス**: `load(fragments, { open: true })` でストリームを開いたままにし、`appendFragment(fragment)` で実行時に継ぎ足し、`endReel()` で確定。抽選を再生中に決めるような用途向け。
 - **章ジャンプ**: `seekToFragment(index)`(音声尺ベース)。
-- **先読み**: `prefetchFragments(urls, fetcher?)` / `prefetchManifest(manifest, fetcher?)` で再生前にキャッシュを温める(ガチャの当選候補を事前ロード等)。
+- **ワンショットSE**: `playSe(url, { atFragment?, volume? })`。tier リビール等の瞬間にフラグメント境界同期で効果音を 1 回再生(BGM とは別経路、デコードキャッシュあり)。
+- **先読み**: `prefetchFragments(urls, fetcher?)` / `prefetchManifest(manifest, fetcher?)` で再生前にキャッシュを温める。**取得バッファは保持せずブラウザ HTTP キャッシュ依存**(容量は LRU でブラウザ管理＝本ライブラリ側で肥大しない)。
+
+### 長時間 open ストリームのメモリ対策(quota / 退避)
+
+- `appendBuffer` の `QuotaExceededError` は常時捕捉し、再生済み区間を `remove` して 1 度だけ再試行(堅牢化、常時有効)。
+- `useSeamlessReel({ bufferBehindSec })` を設定すると、再生位置より前を一定秒だけ残して**映像(`SourceBuffer.remove`)・音声(再生済みバッファ破棄)を自動退避**。`open:true` で 1 本を長く継ぎ足すラッシュ用途のメモリ肥大を防ぐ。
+
+### 読み込み失敗時の回復契約(progressive)
+
+- `onFragmentError?: (index, error) => "skip" | "abort"`(既定 `"abort"`）。
+  - `"skip"`: そのフラグメントを**映像・音声まとめて欠落**として読み飛ばし継続(A/V 整合を保持)。
+  - `"abort"`: 以降の読み込みを停止。**まだ再生可能でなければ `load()` は reject**(呼び出し側で「結果へ抜ける」等のフォールバックへ)。
+  - フラグメントは映像+音声を揃えてから確定する原子的読み込みのため、片方だけ欠けた中途半端な状態にならない。
+  - ※ 非 progressive の `load()` は全件揃い前提(1 本でも失敗で reject)。skip は progressive 専用。
 
 ### 仕組み
 
@@ -169,7 +183,7 @@ await load(fragments, { progressive: true }); // 先頭準備で ready(=playable
 リールを URL ベースで保存・共有し、別端末で再生するための仕組み。
 
 - `buildReelManifest(fragments, createdAtISO)` でマニフェスト(各フラグメントの公開 URL + 順序)を作成
-- `reelManifestClient.saveLatest(manifest)` で保存(サーバー側は `server/reelManifestStore`。固定キーに上書き)
+- `reelManifestClient.save(manifest, key?)` で保存(サーバー側は `server/reelManifestStore`)。`key` 省略時は最新スロット、指定で任意キー名前空間(複数リール定義を URL で持てる)。`saveLatest(manifest)` は後方互換
 - 再生側は保存済みマニフェストを `manifestToFragments(manifest)` に通して `useSeamlessReel().load(...)` へ
 - アップロードは `clientUploader`(ブラウザ→Firebase 直、サイズ制限なし)を使う
 

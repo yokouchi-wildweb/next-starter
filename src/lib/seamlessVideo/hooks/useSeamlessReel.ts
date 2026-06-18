@@ -13,7 +13,7 @@ export type SeamlessReelStatus = "idle" | "loading" | "ready" | "error";
 
 export type UseSeamlessReelOptions = Pick<
   SeamlessReelOptions,
-  "mimeType" | "syncThreshold" | "hardResyncThreshold" | "syncIntervalMs" | "loop"
+  "mimeType" | "syncThreshold" | "hardResyncThreshold" | "syncIntervalMs" | "loop" | "bufferBehindSec" | "onFragmentError"
 > & {
   /** URL ソースのバイト取得を差し替える(認証/キャッシュ/CDN 等) */
   fetcher?: FragmentFetcher;
@@ -49,6 +49,8 @@ export type UseSeamlessReelResult = {
   stopBgm: () => void;
   setBgmVolume: (v: number) => void;
   fadeBgm: (target: number, durationSec: number) => void;
+  /** ワンショット効果音を再生(再生開始後に呼ぶ) */
+  playSe: (source: SeamlessFragmentSource, opts?: { atFragment?: number; volume?: number }) => Promise<void>;
   /** status==="ready" は「再生可能(playable)」を意味する */
   status: SeamlessReelStatus;
   error: Error | null;
@@ -127,6 +129,8 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
         hardResyncThreshold: opt.hardResyncThreshold,
         syncIntervalMs: opt.syncIntervalMs,
         loop: opt.loop,
+        bufferBehindSec: opt.bufferBehindSec,
+        onFragmentError: opt.onFragmentError,
         onLog: opt.onLog,
         onDrift: opt.onDrift,
         onPlay: opt.onPlay,
@@ -196,6 +200,9 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
   const fadeBgm = useCallback((target: number, durationSec: number) => {
     reelRef.current?.fadeBgm(target, durationSec);
   }, []);
+  const playSe = useCallback(async (source: SeamlessFragmentSource, opts?: { atFragment?: number; volume?: number }) => {
+    await reelRef.current?.playSe(source, opts);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -220,6 +227,7 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
     stopBgm,
     setBgmVolume,
     fadeBgm,
+    playSe,
     status,
     error,
     progress,

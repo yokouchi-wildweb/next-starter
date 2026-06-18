@@ -57,6 +57,10 @@ export type SeamlessReelOptions = {
   syncIntervalMs?: number;
   /** 連結全体をループ再生する(末尾到達で先頭へ) */
   loop?: boolean;
+  /** 設定すると、再生位置より前の区間を一定秒だけ残して自動退避する(長尺 open のメモリ抑制) */
+  bufferBehindSec?: number;
+  /** progressive 読み込み中にフラグメント取得/デコードが失敗したときの回復方針。既定 "abort" */
+  onFragmentError?: (index: number, error: Error) => "skip" | "abort";
   onFragmentAppended?: (appended: number, total: number) => void;
   /** A/V ドリフト計測の通知(診断用)。drift = video - audio(秒) */
   onDrift?: (driftSec: number, corrected: boolean) => void;
@@ -85,7 +89,11 @@ export class SeamlessReel {
   private playable = false;
   private complete = false;
   private open = false;
+  private videoSkipped = 0;
+  private audioSkipped = 0;
+  private loadAborted = false;
   private playableResolve: (() => void) | null = null;
+  private playableReject: ((e: Error) => void) | null = null;
 
   private reconcileTimer: ReturnType<typeof setTimeout> | null = null;
   private audioStarting = false;
@@ -120,6 +128,9 @@ export class SeamlessReel {
     this.total = fragments.length;
     this.videoLoaded = 0;
     this.audioLoaded = 0;
+    this.videoSkipped = 0;
+    this.audioSkipped = 0;
+    this.loadAborted = false;
     this.playable = false;
     this.complete = false;
 
@@ -152,8 +163,9 @@ export class SeamlessReel {
     }
 
     // progressive: 先頭が用意でき次第 resolve し、残りは裏で読み込む
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       this.playableResolve = resolve;
+      this.playableReject = reject;
       if (fragments.length === 0) {
         this.playable = true;
         resolve();
@@ -229,6 +241,7 @@ export class SeamlessReel {
     this.destroyed = true;
     this.playableResolve?.();
     this.playableResolve = null;
+    this.playableReject = null;
     this.stopReconcileLoop();
     this.detachLifecycle();
     this.video.playbackRate = 1;
@@ -261,6 +274,10 @@ export class SeamlessReel {
   }
   fadeBgm(target: number, durationSec: number): void {
     this.audioReel.fadeBgm(target, durationSec);
+  }
+  /** ワンショット効果音を再生(再生開始後＝unlock 済みで呼ぶこと)。atFragment 指定で境界スケジュール。 */
+  async playSe(source: SeamlessFragmentSource, opts?: { atFragment?: number; volume?: number }): Promise<void> {
+    await this.audioReel.playSe(source, opts);
   }
 
   /** 指定フラグメントの先頭へシークする(音声尺ベース。算出不能時は何もしない)。 */
@@ -310,66 +327,90 @@ export class SeamlessReel {
   // --- progressive 読み込み ---
 
   private runProgressive(videos: SeamlessFragmentSource[], audios: SeamlessFragmentSource[]): void {
-    // 映像: 並列フェッチ → 順序を保って append
+    // 取得/デコードは並列に先行開始(順序維持・A/V 原子性は append ループ側で担保)
     const vBufs = videos.map((v) => toArrayBuffer(v, this.options.fetcher));
     vBufs.forEach((p) => void p.catch(() => {}));
+    const aBufs = this.hasAudio ? audios.map((a) => this.audioReel.decode(a)) : [];
+    aBufs.forEach((p) => void p.catch(() => {}));
 
     void (async () => {
-      try {
-        for (let i = 0; i < videos.length; i++) {
-          if (this.destroyed) return;
-          const buf = await vBufs[i];
-          await this.videoSource.append(buf);
-          this.videoLoaded = i + 1;
-          this.maybePlayable();
-          this.emitState();
+      for (let i = 0; i < videos.length; i++) {
+        if (this.destroyed || this.loadAborted) break;
+        try {
+          // フラグメント単位で映像+音声を揃えてから確定(skip 時に A/V 整合を保つ)
+          const vbuf = await vBufs[i];
+          const abuf = this.hasAudio ? await aBufs[i] : undefined;
+          await this.videoSource.append(vbuf);
+          if (abuf) this.audioReel.setBuffer(i, abuf);
+          this.videoLoaded += 1;
+          if (abuf) this.audioLoaded += 1;
+        } catch (e) {
+          const err = e instanceof Error ? e : new Error(String(e));
+          const action = this.options.onFragmentError?.(i, err) ?? "abort";
+          this.options.onError?.(err);
+          this.log(`フラグメント#${i + 1} 読み込み失敗 → ${action}`);
+          if (action === "abort") {
+            this.loadAborted = true;
+            break;
+          }
+          // skip: 映像は append せず、音声も欠落(尺0)として読み飛ばし、A/V 整合を保ったまま継続
+          if (this.hasAudio) this.audioReel.markSkipped(i);
+          this.videoSkipped += 1;
+          this.audioSkipped += 1;
         }
-        // open のときは確定しない(後から appendFragment 可能)。endReel() で確定する。
-        if (!this.destroyed && !this.open) await this.videoSource.end();
-      } catch (e) {
-        this.options.onError?.(e instanceof Error ? e : new Error("映像の読み込みに失敗しました"));
+        this.maybePlayable();
+        this.emitState();
+      }
+
+      // abort で残した分も skip 扱いにして完了判定を進める
+      const processed = this.videoLoaded + this.videoSkipped;
+      if (processed < videos.length) {
+        for (let i = processed; i < videos.length; i++) {
+          if (this.hasAudio) this.audioReel.markSkipped(i);
+        }
+        this.videoSkipped += videos.length - processed;
+        this.audioSkipped += videos.length - processed;
+      }
+
+      if (!this.destroyed && !this.open) {
+        try {
+          await this.videoSource.end();
+        } catch {
+          /* noop */
+        }
       }
       this.checkComplete();
     })();
-
-    // 音声: 並列デコード → 到着順に setBuffer(自動で追従スケジュール)
-    audios.forEach((a, i) => {
-      this.audioReel
-        .decodeInto(i, a)
-        .then(() => {
-          if (this.destroyed) return;
-          this.audioLoaded += 1;
-          this.maybePlayable();
-          this.emitState();
-          this.checkComplete();
-        })
-        .catch((e: unknown) => {
-          this.options.onError?.(e instanceof Error ? e : new Error("音声の読み込みに失敗しました"));
-        });
-    });
   }
 
-  /** 先頭フラグメント(映像[0] と、音声があれば音声[0])が揃ったら playable に。 */
+  /** 最初の生存フラグメントが揃ったら playable に(原子的 append のため映像確定=音声も確定)。 */
   private maybePlayable(): void {
     if (this.playable) return;
-    const videoReady = this.videoLoaded >= 1;
-    const audioReady = !this.hasAudio || this.audioReel.hasBuffer(0);
-    if (videoReady && audioReady) {
+    if (this.videoLoaded >= 1) {
       this.playable = true;
       this.log(`progressive: 再生可能 (ctx=${this.audioReel.contextState})`);
       this.playableResolve?.();
       this.playableResolve = null;
+      this.playableReject = null;
       this.emitState();
     }
   }
 
   private checkComplete(): void {
     if (this.complete || this.destroyed || this.open) return;
-    const videoDone = this.videoLoaded >= this.total;
-    const audioDone = !this.hasAudio || this.audioLoaded >= this.total;
+    const videoDone = this.videoLoaded + this.videoSkipped >= this.total;
+    const audioDone = !this.hasAudio || this.audioLoaded + this.audioSkipped >= this.total;
     if (videoDone && audioDone) {
       this.complete = true;
-      this.log("progressive: 全フラグメント読み込み完了");
+      // 1 本も再生可能にならずに処理完了 = 全滅。load を reject して呼び出し側のフォールバックへ
+      if (!this.playable) {
+        const err = new Error("再生可能なフラグメントがありません");
+        this.options.onError?.(err);
+        this.playableReject?.(err);
+        this.playableReject = null;
+        this.playableResolve = null;
+      }
+      this.log("progressive: 全フラグメント処理完了");
       this.emitState();
     }
   }
@@ -385,6 +426,11 @@ export class SeamlessReel {
     const tick = () => {
       if (this.destroyed) return;
       if (this.hasAudio) this.reconcileAudio(soft, hard);
+      // 長尺 open 用の退避リング(再生中のみ)
+      if (this.options.bufferBehindSec != null && !this.video.paused && !this.video.seeking) {
+        void this.videoSource.evictBehind(this.options.bufferBehindSec);
+        if (this.hasAudio) this.audioReel.evictBehind(this.audioReel.currentTime(), this.options.bufferBehindSec);
+      }
       this.emitState();
       this.reconcileTimer = setTimeout(tick, interval);
     };

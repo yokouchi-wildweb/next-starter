@@ -194,6 +194,11 @@ export class SeamlessSource {
   }
 
   private doAppend(data: ArrayBuffer, mime?: string): Promise<void> {
+    return this.appendOnce(data, mime, true);
+  }
+
+  /** 1 回 append する。QuotaExceededError 時は再生済み区間を退避して 1 度だけ再試行する。 */
+  private appendOnce(data: ArrayBuffer, mime: string | undefined, allowEvict: boolean): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const sb = this.sourceBuffer;
       if (!sb || this.destroyed) {
@@ -228,11 +233,54 @@ export class SeamlessSource {
         sb.appendBuffer(data);
       } catch (e) {
         cleanup();
+        // バッファ満杯: 再生済み区間を退避して 1 度だけ再試行
+        if (allowEvict && e instanceof DOMException && e.name === "QuotaExceededError") {
+          this.log("QuotaExceeded: 再生済み区間を退避して再試行");
+          this.removeRange(Math.max(0, this.video.currentTime - 2))
+            .then(() => this.appendOnce(data, mime, false))
+            .then(resolve, reject);
+          return;
+        }
         const err = e instanceof Error ? e : new Error("appendBuffer に失敗しました");
         this.options.onError?.(err);
         reject(err);
       }
     });
+  }
+
+  /** buffered の先頭から removeEnd までを削除する(SourceBuffer が更新中でなければ実行)。 */
+  private removeRange(removeEnd: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const sb = this.sourceBuffer;
+      if (!sb || this.destroyed || sb.updating || sb.buffered.length === 0 || removeEnd <= 0) {
+        resolve();
+        return;
+      }
+      const start = sb.buffered.start(0);
+      if (removeEnd <= start) {
+        resolve();
+        return;
+      }
+      const onUpdateEnd = () => {
+        sb.removeEventListener("updateend", onUpdateEnd);
+        resolve();
+      };
+      sb.addEventListener("updateend", onUpdateEnd);
+      try {
+        sb.remove(start, removeEnd);
+      } catch {
+        sb.removeEventListener("updateend", onUpdateEnd);
+        resolve();
+      }
+    });
+  }
+
+  /** 再生位置より keepSec 以上前の区間を退避する(長尺 open ストリームのメモリ抑制)。append と直列化。 */
+  evictBehind(keepSec: number): Promise<void> {
+    this.appendChain = this.appendChain.then(() =>
+      this.removeRange(Math.max(0, this.video.currentTime - keepSec)),
+    );
+    return this.appendChain;
   }
 
   private async endOfStream(): Promise<void> {

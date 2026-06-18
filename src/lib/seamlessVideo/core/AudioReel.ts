@@ -50,8 +50,14 @@ export class AudioReel {
   private masterGain: GainNode | null = null;
   private volume = 1;
 
-  /** フラグメント index ごとのデコード済みバッファ(未デコードは null) */
+  /** フラグメント index ごとのデコード済みバッファ(未デコード/退避後は null) */
   private slots: (AudioBuffer | null)[] = [];
+  /** フラグメント尺(秒)。バッファ退避後も保持し、オフセット算出を壊さない */
+  private fragDurations: (number | undefined)[] = [];
+  /** ワンショット SE のデコードキャッシュ(URL キー) */
+  private seCache = new Map<string, AudioBuffer>();
+  /** スキップされた(フラグメントごと欠落)index。スケジュールで読み飛ばす */
+  private skipped = new Set<number>();
 
   private activeNodes: AudioBufferSourceNode[] = [];
   private scheduledIndex = 0;
@@ -95,16 +101,20 @@ export class AudioReel {
 
   init(count: number): void {
     this.slots = new Array(count).fill(null);
+    this.fragDurations = new Array(count).fill(undefined);
+    this.skipped.clear();
     this.scheduledIndex = 0;
   }
 
   private ensureSlot(index: number): void {
     while (this.slots.length <= index) this.slots.push(null);
+    while (this.fragDurations.length <= index) this.fragDurations.push(undefined);
   }
 
   setBuffer(index: number, buffer: AudioBuffer): void {
     this.ensureSlot(index);
     this.slots[index] = buffer;
+    this.fragDurations[index] = buffer.duration;
     this.log(
       `音声#${index + 1}: ${buffer.duration.toFixed(2)}s / ${buffer.sampleRate}Hz / ${buffer.numberOfChannels}ch / peak=${peakAmplitude(buffer).toFixed(3)}`,
     );
@@ -112,10 +122,24 @@ export class AudioReel {
   }
 
   async decodeInto(index: number, source: SeamlessFragmentSource): Promise<void> {
+    const decoded = await this.decode(source);
+    this.setBuffer(index, decoded);
+  }
+
+  /** ソースをデコードして AudioBuffer を返す(スロットには格納しない)。 */
+  async decode(source: SeamlessFragmentSource): Promise<AudioBuffer> {
     const ctx = this.ensureContext();
     const buf = await toArrayBuffer(source, this.options.fetcher);
-    const decoded = await ctx.decodeAudioData(buf.slice(0));
-    this.setBuffer(index, decoded);
+    return ctx.decodeAudioData(buf.slice(0));
+  }
+
+  /** 指定フラグメントを欠落(尺 0)として扱い、スケジュールで読み飛ばす(skip 回復用)。 */
+  markSkipped(index: number): void {
+    this.ensureSlot(index);
+    this.fragDurations[index] = 0;
+    this.slots[index] = null;
+    this.skipped.add(index);
+    if (this.playing) this.trySchedule();
   }
 
   /** 末尾に 1 スロット追加してデコードする(動的シーケンス用)。追加した index を返す。 */
@@ -141,7 +165,7 @@ export class AudioReel {
   // --- 情報 ---
 
   get durations(): number[] {
-    return this.slots.map((b) => b?.duration ?? 0);
+    return this.fragDurations.map((d) => d ?? 0);
   }
   get loadedCount(): number {
     return this.slots.reduce((n, b) => n + (b ? 1 : 0), 0);
@@ -153,7 +177,7 @@ export class AudioReel {
     return this.slots.length;
   }
   get duration(): number {
-    return this.slots.reduce((s, b) => s + (b?.duration ?? 0), 0);
+    return this.fragDurations.reduce<number>((s, d) => s + (d ?? 0), 0);
   }
   get isPlaying(): boolean {
     return this.playing;
@@ -165,26 +189,44 @@ export class AudioReel {
     return this.activeNodes.length;
   }
 
-  /** フラグメント i の reel 開始位置(秒)。0..i-1 が連続デコード済みでなければ null。 */
+  /** フラグメント i の reel 開始位置(秒)。0..i-1 の尺が判明していなければ null(尺はバッファ退避後も保持)。 */
   fragmentOffset(index: number): number | null {
     let acc = 0;
     for (let k = 0; k < index; k++) {
-      const b = this.slots[k];
-      if (!b) return null;
-      acc += b.duration;
+      const d = this.fragDurations[k];
+      if (d == null) return null;
+      acc += d;
     }
     return acc;
   }
 
   fragmentIndexAt(reelSec: number): number {
     let acc = 0;
-    for (let i = 0; i < this.slots.length; i++) {
-      const b = this.slots[i];
-      if (!b) return -1;
-      if (reelSec < acc + b.duration) return i;
-      acc += b.duration;
+    for (let i = 0; i < this.fragDurations.length; i++) {
+      const d = this.fragDurations[i];
+      if (d == null) return -1;
+      if (reelSec < acc + d) return i;
+      acc += d;
     }
-    return Math.max(0, this.slots.length - 1);
+    return Math.max(0, this.fragDurations.length - 1);
+  }
+
+  /** 再生済みで古くなったフラグメントのデコードバッファを破棄してメモリを解放する(長尺 open 用)。 */
+  evictBehind(currentReelSec: number, keepSec: number): void {
+    const threshold = currentReelSec - keepSec;
+    if (threshold <= 0) return;
+    for (let i = 0; i < this.scheduledIndex && i < this.slots.length; i++) {
+      if (!this.slots[i]) continue; // 既に破棄済み
+      const off = this.fragmentOffset(i);
+      const d = this.fragDurations[i];
+      if (off == null || d == null) break;
+      if (off + d < threshold) {
+        // 既にスケジュール済み(再生中ノードは自前で buffer 参照を保持)なので破棄して安全
+        this.slots[i] = null;
+      } else {
+        break; // まだ必要な範囲に到達
+      }
+    }
   }
 
   // --- 音量 / フェード(マスター) ---
@@ -274,6 +316,54 @@ export class AudioReel {
     this.bgmVolume = Math.max(0, target);
   }
 
+  // --- ワンショット SE(効果音) ---
+
+  private async decodeSe(source: SeamlessFragmentSource): Promise<AudioBuffer> {
+    const key = typeof source === "string" ? source : null;
+    if (key && this.seCache.has(key)) return this.seCache.get(key)!;
+    const ctx = this.ensureContext();
+    const ab = await toArrayBuffer(source, this.options.fetcher);
+    const buf = await ctx.decodeAudioData(ab.slice(0));
+    if (key) this.seCache.set(key, buf);
+    return buf;
+  }
+
+  /**
+   * 効果音を 1 回再生する。atFragment 指定かつ再生中なら、そのフラグメント境界に合わせてスケジュールする。
+   * 必ずユーザー操作起点の後(unlock 済み)で呼ぶこと。
+   */
+  async playSe(source: SeamlessFragmentSource, opts: { atFragment?: number; volume?: number } = {}): Promise<void> {
+    const ctx = this.ensureContext();
+    if (ctx.state === "suspended") await ctx.resume();
+    const buf = await this.decodeSe(source);
+
+    const gain = ctx.createGain();
+    gain.gain.value = opts.volume ?? 1;
+    gain.connect(ctx.destination);
+
+    const node = ctx.createBufferSource();
+    node.buffer = buf;
+    node.connect(gain);
+
+    let when = ctx.currentTime;
+    if (opts.atFragment != null && this.playing) {
+      const off = this.fragmentOffset(opts.atFragment);
+      if (off != null) {
+        const t = this.startContextTime + (off - this.startReelOffset);
+        if (t > ctx.currentTime) when = t;
+      }
+    }
+    node.onended = () => {
+      try {
+        node.disconnect();
+        gain.disconnect();
+      } catch {
+        /* noop */
+      }
+    };
+    node.start(when);
+  }
+
   // --- 再生制御(フラグメント音声) ---
 
   async start(reelOffsetSec = 0): Promise<void> {
@@ -297,7 +387,14 @@ export class AudioReel {
     while (this.scheduledIndex < this.slots.length) {
       const i = this.scheduledIndex;
       const buf = this.slots[i];
-      if (!buf) break;
+      if (!buf) {
+        // skip 済みは読み飛ばす。未デコードは到着待ちで停止
+        if (this.skipped.has(i)) {
+          this.scheduledIndex += 1;
+          continue;
+        }
+        break;
+      }
 
       const fragStart = this.fragmentOffset(i);
       if (fragStart === null) break;
@@ -367,6 +464,9 @@ export class AudioReel {
     this.stopNodes();
     this.stopBgm();
     this.slots = [];
+    this.fragDurations = [];
+    this.skipped.clear();
+    this.seCache.clear();
     this.bgmBuffer = null;
     this.playing = false;
     if (this.ctx) {

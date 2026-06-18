@@ -90,6 +90,9 @@ export function SeamlessAvDemo() {
   const [bgmFile, setBgmFile] = useState<File | null>(null);
   const [bgmVolume, setBgmVolumeState] = useState(0.6);
   const [ended, setEnded] = useState(false);
+  const [seFile, setSeFile] = useState<File | null>(null);
+  const [evictOn, setEvictOn] = useState(false);
+  const [recovery, setRecovery] = useState<"abort" | "skip">("abort");
 
   const { showToast } = useToast();
 
@@ -113,8 +116,11 @@ export function SeamlessAvDemo() {
     setBgmVolume,
     fadeBgm,
     seekToFragment,
+    playSe,
   } = useSeamlessReel({
     loop: loopOn,
+    bufferBehindSec: evictOn ? 5 : undefined,
+    onFragmentError: () => recovery,
     onLog: (m) => setLogs((prev) => [...prev, m]),
     onDrift: (value, corrected) => setDrift({ value, corrected }),
     onPlay: () => setEnded(false),
@@ -193,6 +199,10 @@ export function SeamlessAvDemo() {
   const handleBgmVolumeChange = (v: number) => {
     setBgmVolumeState(v);
     setBgmVolume(v);
+  };
+  const handlePlaySe = (atFragment?: number) => {
+    if (!seFile) return;
+    void playSe(seFile, atFragment != null ? { atFragment } : undefined);
   };
 
   const canLoad = env.mse && fragments.length > 0 && status !== "loading";
@@ -430,6 +440,21 @@ export function SeamlessAvDemo() {
               <input type="checkbox" checked={loopOn} onChange={(e) => setLoopOn(e.target.checked)} />
               ループ再生
             </label>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <input type="checkbox" checked={evictOn} onChange={(e) => setEvictOn(e.target.checked)} />
+              退避リング(bufferBehindSec=5・長尺向け)
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              失敗時:
+              <select
+                value={recovery}
+                onChange={(e) => setRecovery(e.target.value === "skip" ? "skip" : "abort")}
+                className="rounded border bg-background px-1 py-0.5"
+              >
+                <option value="abort">中断(abort)</option>
+                <option value="skip">スキップ継続(skip)</option>
+              </select>
+            </label>
             <span className="text-xs text-muted-foreground">※ トグルは「読み込み」で反映</span>
           </Flex>
 
@@ -522,6 +547,32 @@ export function SeamlessAvDemo() {
                 ))}
               </Flex>
             )}
+
+            {/* ワンショット SE */}
+            <Flex gap="xs" align="center" wrap="wrap">
+              <span className="text-xs text-muted-foreground">SE(効果音)</span>
+              <label className={buttonVariants({ variant: "outline", size: "xs" })}>
+                SEを選択
+                <input
+                  type="file"
+                  accept="audio/*,.wav,.m4a,.aac,.mp3"
+                  hidden
+                  onChange={(e) => setSeFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              <span className="max-w-[140px] truncate text-xs text-muted-foreground">{seFile?.name ?? "未選択"}</span>
+              <Button variant="ghost" size="xs" onClick={() => handlePlaySe()} disabled={!canPlay || !seFile}>
+                今すぐ再生
+              </Button>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => handlePlaySe(currentFragment >= 0 ? currentFragment + 1 : undefined)}
+                disabled={!canPlay || !seFile}
+              >
+                次の境界で再生
+              </Button>
+            </Flex>
           </Stack>
 
           {/* 診断 */}
