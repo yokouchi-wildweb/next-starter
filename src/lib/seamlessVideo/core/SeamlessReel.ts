@@ -17,6 +17,7 @@
 import type { FragmentFetcher, ReelFragment, SeamlessFragmentSource } from "../types";
 import { SeamlessSource } from "./SeamlessSource";
 import { AudioReel } from "./AudioReel";
+import type { AudioEngine } from "./AudioEngine";
 import { toArrayBuffer } from "./fragmentBytes";
 
 /** 再生状態のスナップショット(UI 構築用)。 */
@@ -49,6 +50,8 @@ export type SeamlessReelOptions = {
   mimeType?: string;
   /** URL ソースのバイト取得を差し替える(認証/キャッシュ/CDN 等) */
   fetcher?: FragmentFetcher;
+  /** 共有 AudioEngine(load を跨いで context を永続化する。フックが保持・close する) */
+  audioEngine?: AudioEngine;
   /** ソフト同期の許容ドリフト(秒)。超えたら playbackRate で寄せる。既定 0.08 */
   syncThreshold?: number;
   /** ハードリシンクの閾値(秒)。超えたら音声を映像位置へスナップ。既定 0.5 */
@@ -114,7 +117,12 @@ export class SeamlessReel {
       onError: options.onError,
       onLog: options.onLog,
     });
-    this.audioReel = new AudioReel({ fetcher: options.fetcher, onError: options.onError, onLog: options.onLog });
+    this.audioReel = new AudioReel({
+      fetcher: options.fetcher,
+      engine: options.audioEngine,
+      onError: options.onError,
+      onLog: options.onLog,
+    });
   }
 
   /**

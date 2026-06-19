@@ -16,16 +16,12 @@
 import type { FragmentFetcher, SeamlessFragmentSource } from "../types";
 import { toArrayBuffer } from "./fragmentBytes";
 
-type AudioContextCtor = typeof AudioContext;
-
-function getAudioContextCtor(): AudioContextCtor | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as { AudioContext?: AudioContextCtor; webkitAudioContext?: AudioContextCtor };
-  return w.AudioContext ?? w.webkitAudioContext ?? null;
-}
+import { AudioEngine } from "./AudioEngine";
 
 export type AudioReelOptions = {
   fetcher?: FragmentFetcher;
+  /** 共有する AudioEngine。渡すと context を使い回し、destroy では閉じない(フックで永続化する用途) */
+  engine?: AudioEngine;
   onError?: (error: Error) => void;
   onLog?: (message: string) => void;
 };
@@ -46,6 +42,9 @@ function peakAmplitude(buffer: AudioBuffer): number {
 
 export class AudioReel {
   private readonly options: AudioReelOptions;
+  /** ctx/master を保持するエンジン。注入された場合は共有(destroy で閉じない) */
+  private readonly engine: AudioEngine;
+  private readonly ownsEngine: boolean;
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private volume = 1;
@@ -74,26 +73,22 @@ export class AudioReel {
 
   constructor(options: AudioReelOptions = {}) {
     this.options = options;
+    // engine 注入時は共有(閉じない)、未注入時は自前生成して destroy で閉じる(後方互換)
+    this.engine = options.engine ?? new AudioEngine();
+    this.ownsEngine = !options.engine;
   }
 
   static isSupported(): boolean {
-    return getAudioContextCtor() !== null;
+    return AudioEngine.isSupported();
   }
 
   async unlock(): Promise<void> {
-    const ctx = this.ensureContext();
-    if (ctx.state === "suspended") await ctx.resume();
+    await this.engine.unlock();
   }
 
   private ensureContext(): AudioContext {
-    if (!this.ctx) {
-      const Ctor = getAudioContextCtor();
-      if (!Ctor) throw new Error("この環境は Web Audio(AudioContext)に対応していません");
-      this.ctx = new Ctor();
-      this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = this.volume;
-      this.masterGain.connect(this.ctx.destination);
-    }
+    this.ctx = this.engine.ensure();
+    this.masterGain = this.engine.masterGain();
     return this.ctx;
   }
 
@@ -183,7 +178,7 @@ export class AudioReel {
     return this.playing;
   }
   get contextState(): string {
-    return this.ctx?.state ?? "none";
+    return this.engine.state;
   }
   get scheduledCount(): number {
     return this.activeNodes.length;
@@ -463,22 +458,26 @@ export class AudioReel {
   async destroy(): Promise<void> {
     this.stopNodes();
     this.stopBgm();
+    if (this.bgmGain) {
+      try {
+        this.bgmGain.disconnect();
+      } catch {
+        /* noop */
+      }
+      this.bgmGain = null;
+    }
     this.slots = [];
     this.fragDurations = [];
     this.skipped.clear();
     this.seCache.clear();
     this.bgmBuffer = null;
     this.playing = false;
-    if (this.ctx) {
-      try {
-        await this.ctx.close();
-      } catch {
-        /* noop */
-      }
-      this.ctx = null;
-      this.masterGain = null;
-      this.bgmGain = null;
+    // 共有 engine のときは context を閉じない(フックが unmount/reset で閉じる)
+    if (this.ownsEngine) {
+      await this.engine.close();
     }
+    this.ctx = null;
+    this.masterGain = null;
   }
 
   private stopNodes(): void {

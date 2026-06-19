@@ -125,6 +125,26 @@ await play(); // 必ずユーザー操作(クリック)内から呼ぶ(AudioCont
 検証は `validateReel(inputs)`(映像 fmp4 + 音声デコード可否 + 映像/音声尺整合)。
 レポートは `formatReelValidationReport(report)` / 映像のみは `formatValidationReport(report)` で人間可読な文字列配列へ整形できる(UI 表示・ログ用。装飾は呼び出し側)。
 
+### unlock(): 非同期 play() でも音を出す(AudioContext の事前起動)
+
+`play()` を「タップ → サーバー往復(await) → 再生」のように**ユーザー操作の同期外**で呼ぶと、AudioContext を
+resume できず音が出ない(モバイルの自動再生制約)。これを避けるため、AudioContext は**フックインスタンス内で
+1 つだけ生成して load を跨いで生存**させ、`unlock()` を公開している。
+
+```ts
+const { unlock, load, play } = useSeamlessReel();
+// 開始タップ(確実なユーザー操作)の同期内で 1 回だけ:
+await unlock();                              // ctx を生成&resume(再生はしない・冪等)
+// 以降は任意のタイミング(await 後=gesture 外でも):
+await load(fragments, { progressive: true });
+await play();                                // gesture 外でも音が鳴る
+```
+
+- `unlock()` は load より前に呼べ、冪等(複数回呼んでも安全)。
+- context は `load()` ごとに作り直さず生存(映像側 MSE/SourceBuffer は従来どおり毎 load 再生成)。
+- `reset()` / コンポーネント unmount で context を `close`(リークなし)。
+- 既存利用(load → ▶ タップで play)は load 内 unlock が gesture 内で resume するため**従来どおり**動作。
+
 ### 読み込み最適化(各プロジェクトで本番UIを作りやすくするための土台)
 
 - **並列ダウンロード**: 取得は内部で並列化済み(append は順序維持)。直列待ちにならない。

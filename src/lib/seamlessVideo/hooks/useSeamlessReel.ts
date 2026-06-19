@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { FragmentFetcher, ReelFragment, SeamlessFragmentSource } from "../types";
 import { SeamlessReel, type SeamlessReelOptions, type SeamlessReelState } from "../core/SeamlessReel";
+import { AudioEngine } from "../core/AudioEngine";
 
 export type SeamlessReelStatus = "idle" | "loading" | "ready" | "error";
 
@@ -28,6 +29,11 @@ export type SeamlessReelLoaded = { video: number; audio: number; total: number }
 
 export type UseSeamlessReelResult = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  /**
+   * AudioContext を生成 & resume する(再生はしない)。load より前に、確実なユーザー操作(開始タップ等)の
+   * 同期内で 1 回呼んでおくと、以降の load()/play() を await 後(gesture 外)に呼んでも音声が鳴る。冪等。
+   */
+  unlock: () => Promise<void>;
   /** フラグメント(映像+音声)を読み込み連結する。progressive=true で先頭準備時点から再生可能に。open=true で動的継ぎ足し可 */
   load: (fragments: ReelFragment[], opts?: { progressive?: boolean; open?: boolean }) => Promise<void>;
   play: () => Promise<void>;
@@ -71,6 +77,8 @@ export type UseSeamlessReelResult = {
 export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamlessReelResult {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reelRef = useRef<SeamlessReel | null>(null);
+  // AudioContext は load を跨いで使い回す(フックインスタンスに 1 つ)。close は reset/unmount のみ。
+  const engine = useState(() => new AudioEngine())[0];
 
   const [status, setStatus] = useState<SeamlessReelStatus>("idle");
   const [error, setError] = useState<Error | null>(null);
@@ -95,9 +103,15 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
     setCurrentFragment(s.currentFragment);
   }, []);
 
+  /** AudioContext を生成 & resume(再生はしない)。開始タップ等の同期内で 1 回呼ぶ。冪等。 */
+  const unlock = useCallback(async () => {
+    await engine.unlock();
+  }, [engine]);
+
   const reset = useCallback(() => {
     reelRef.current?.destroy();
     reelRef.current = null;
+    void engine.close();
     setStatus("idle");
     setError(null);
     setProgress({ appended: 0, total: 0 });
@@ -107,7 +121,7 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
     setLoaded({ video: 0, audio: 0, total: 0 });
     setBufferedSec(0);
     setCurrentFragment(-1);
-  }, []);
+  }, [engine]);
 
   const load = useCallback(
     async (fragments: ReelFragment[], opts?: { progressive?: boolean; open?: boolean }) => {
@@ -125,6 +139,7 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
       const reel = new SeamlessReel(video, {
         mimeType: opt.mimeType,
         fetcher: opt.fetcher,
+        audioEngine: engine, // load を跨いで AudioContext を共有・永続化
         syncThreshold: opt.syncThreshold,
         hardResyncThreshold: opt.hardResyncThreshold,
         syncIntervalMs: opt.syncIntervalMs,
@@ -154,7 +169,7 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
         setStatus("error");
       }
     },
-    [applyState],
+    [applyState, engine],
   );
 
   const play = useCallback(async () => {
@@ -208,11 +223,13 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
     return () => {
       reelRef.current?.destroy();
       reelRef.current = null;
+      void engine.close();
     };
-  }, []);
+  }, [engine]);
 
   return {
     videoRef,
+    unlock,
     load,
     play,
     pause,

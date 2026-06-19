@@ -17,6 +17,7 @@ export {
 export { SeamlessVideoPlayer, type SeamlessVideoPlayerProps } from "./components/SeamlessVideoPlayer";
 
 // 音声付き連結(方式 B): 映像 MSE + 音声 Web Audio + A/V 同期
+export { AudioEngine } from "./core/AudioEngine";
 export { AudioReel, type AudioReelOptions } from "./core/AudioReel";
 export {
   SeamlessReel,
