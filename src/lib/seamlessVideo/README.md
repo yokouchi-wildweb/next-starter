@@ -123,6 +123,7 @@ await play(); // 必ずユーザー操作(クリック)内から呼ぶ(AudioCont
 ```
 
 検証は `validateReel(inputs)`(映像 fmp4 + 音声デコード可否 + 映像/音声尺整合)。
+レポートは `formatReelValidationReport(report)` / 映像のみは `formatValidationReport(report)` で人間可読な文字列配列へ整形できる(UI 表示・ログ用。装飾は呼び出し側)。
 
 ### 読み込み最適化(各プロジェクトで本番UIを作りやすくするための土台)
 

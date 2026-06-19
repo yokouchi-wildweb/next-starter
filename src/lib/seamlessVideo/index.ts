@@ -52,6 +52,7 @@ export {
   type ReelFragmentValidation,
   type ReelValidationReport,
 } from "./probe/validateReel";
+export { formatValidationReport, formatReelValidationReport } from "./probe/formatReport";
 
 // 連結リールの永続化・共有(マニフェスト)
 // ※ server/reelManifestStore はサーバー専用のため、ここでは再エクスポートしない
