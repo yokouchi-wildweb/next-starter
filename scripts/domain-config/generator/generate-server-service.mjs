@@ -696,7 +696,6 @@ function buildRelationTableImports(relationDomainImports, selfDomain = "") {
  * @param {boolean} [options.targets.base] - drizzleBase.ts / firestoreBase.ts を生成
  * @param {boolean} [options.targets.service] - xxxService.ts を生成
  * @param {boolean} [options.targets.duplicateWrapper] - wrappers/duplicate.ts を生成
- * @param {boolean} [options.targets.removeWrapper] - wrappers/remove.ts を生成
  */
 export default function generateServerService(domain, options = {}) {
   const { plural: pluralArg, dbEngine: dbEngineArg, targets } = options;
@@ -705,7 +704,6 @@ export default function generateServerService(domain, options = {}) {
   const generateBase = targets?.base ?? true;
   const generateService = targets?.service ?? true;
   const generateDuplicateWrapper = targets?.duplicateWrapper ?? true;
-  const generateRemoveWrapper = targets?.removeWrapper ?? true;
 
   const normalized = toSnakeCase(domain) || domain;
   const camel = toCamelCase(normalized) || normalized;
@@ -815,9 +813,11 @@ export default function generateServerService(domain, options = {}) {
   }
 
   // mediaUploaderがある場合はwrappersも生成（個別にフラグで制御）
+  // NOTE: 削除系（remove / bulkDeleteByIds / bulkDeleteByQuery / hardDelete）の Storage
+  // クリーンアップは drizzleBase が createCrudService に storageCleanupFields を渡すことで
+  // base 側に内蔵されているため、ラッパー生成は不要。duplicate のみファイル複製のため生成する。
   if (hasMediaUploader) {
     const wrapperTemplates = [];
-    if (generateRemoveWrapper) wrapperTemplates.push("wrappers/remove.ts");
     if (generateDuplicateWrapper) wrapperTemplates.push("wrappers/duplicate.ts");
 
     for (const wrapperFile of wrapperTemplates) {

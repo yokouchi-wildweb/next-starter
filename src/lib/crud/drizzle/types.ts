@@ -130,4 +130,16 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    * recorder は features/core/auditLog の `auditLogger` を渡す。
    */
   audit?: AuditConfig;
+  /**
+   * Storage連携クリーンアップ対象の mediaUploader フィールド名一覧。
+   * 指定すると、レコードが「物理削除」される操作で対象フィールドが参照する
+   * Storage 上のファイルを自動削除する（best-effort）。
+   * 対象操作:
+   * - hardDelete（常に物理削除）
+   * - remove / bulkDeleteByIds / bulkDeleteByQuery（useSoftDelete=false のときのみ物理削除）
+   * ソフトデリート（deletedAt 設定）では復元可能性を保つためファイルは保持し、
+   * hardDelete 時にのみ削除する。
+   * 通常は drizzleBase が `extractStorageFields(conf)` の結果を渡す。
+   */
+  storageCleanupFields?: string[];
 };

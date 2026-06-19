@@ -21,7 +21,6 @@ const SERVICE_CHOICES = [
   { name: "xxxService.ts（サーバーサービス）", value: "serverService" },
   { name: "drizzleBase.ts / firestoreBase.ts（ベースサービス）", value: "baseService" },
   { name: "wrappers/duplicate.ts（複製ラッパー）", value: "duplicateWrapper" },
-  { name: "wrappers/remove.ts（削除ラッパー）", value: "removeWrapper" },
 ];
 
 // domain.json を持つディレクトリを検索（core配下は除外）
@@ -69,11 +68,10 @@ function generateServices(domainPath, selectedServices) {
     base: selectedServices.includes("baseService"),
     service: selectedServices.includes("serverService"),
     duplicateWrapper: selectedServices.includes("duplicateWrapper"),
-    removeWrapper: selectedServices.includes("removeWrapper"),
   };
 
   // サーバー関連のいずれかが選択されている場合のみ実行
-  if (serverTargets.base || serverTargets.service || serverTargets.duplicateWrapper || serverTargets.removeWrapper) {
+  if (serverTargets.base || serverTargets.service || serverTargets.duplicateWrapper) {
     generateServerService(camel, { plural, dbEngine, targets: serverTargets });
   }
 }

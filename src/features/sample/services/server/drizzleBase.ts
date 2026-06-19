@@ -5,6 +5,7 @@ import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
+import { extractStorageFields } from "@/lib/crud/storageIntegration/extractStorageFields";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
@@ -71,9 +72,13 @@ export const sampleServiceOptions = baseOptions;
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/sample/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
+// mediaUploader 列が参照する Storage ファイルを、物理削除時に自動クリーンアップする
+const storageCleanupFields = extractStorageFields(conf);
+
 export const base = createCrudService(SampleTable, {
   ...baseOptions,
   sortOrderColumn,
+  storageCleanupFields,
   parseCreate: (data) => SampleCreateSchema.parse(data),
   parseUpdate: (data) => SampleUpdateSchema.parse(data),
   parseUpsert: (data) => SampleCreateSchema.parse(data),

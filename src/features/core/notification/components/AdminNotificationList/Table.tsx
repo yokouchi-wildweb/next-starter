@@ -2,11 +2,11 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, type Key } from "react";
 
 import type { Notification } from "@/features/notification/entities";
-import { DataTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
-import { DeleteButton } from "@/lib/crud";
+import { RecordSelectionTable, TableCellAction, type DataTableColumn } from "@/lib/tableSuite";
+import { DeleteButton, BulkDeleteButton } from "@/lib/crud";
 import config from "@/features/notification/domain.json";
 import presenters from "@/features/notification/presenters";
 import { buildDomainColumns } from "@/lib/crud";
@@ -59,17 +59,33 @@ function buildColumns(readCounts: Record<string, number>): DataTableColumn<Notif
 
 export default function AdminNotificationListTable({ notifications, readCounts = {} }: AdminNotificationListTableProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // チェックボックスで選択中の行（お知らせID）。バルク削除の対象。
+  const [selectedKeys, setSelectedKeys] = useState<Key[]>([]);
   const columns = buildColumns(readCounts);
 
   return (
     <>
-      <DataTable
+      <RecordSelectionTable
         items={notifications ?? []}
         columns={columns}
         getKey={(d) => d.id}
         rowClassName="cursor-pointer"
+        // checkbox選択にすることで、行クリックは従来どおり詳細モーダルを開く挙動を維持する
+        selectionBehavior="checkbox"
+        selectedKeys={selectedKeys}
+        onSelectionChange={(keys) => setSelectedKeys(keys)}
         onRowClick={(d) => setSelectedId(String(d.id))}
         emptyValueFallback={adminDataTableFallback}
+        bulkActionsAlwaysVisible
+        bulkActionsEmptyMessage="お知らせを選択すると一括削除できます"
+        bulkActions={(selection) => (
+          <BulkDeleteButton
+            domain="notification"
+            ids={selection.selectedIds}
+            title="お知らせを{count}件削除"
+            onSuccess={() => selection.clear()}
+          />
+        )}
       />
       <NotificationDetailModal
         notificationId={selectedId}

@@ -3,6 +3,7 @@
 import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { CouponTable } from "@/features/core/coupon/entities/drizzle";
 import { CouponCreateSchema, CouponUpdateSchema } from "@/features/core/coupon/entities/schema";
+import { extractStorageFields } from "@/lib/crud/storageIntegration/extractStorageFields";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
@@ -38,9 +39,13 @@ export const couponServiceOptions = baseOptions;
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/coupon/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
+// mediaUploader 列が参照する Storage ファイルを、物理削除時に自動クリーンアップする
+const storageCleanupFields = extractStorageFields(conf);
+
 export const base = createCrudService(CouponTable, {
   ...baseOptions,
   sortOrderColumn,
+  storageCleanupFields,
   parseCreate: (data) => CouponCreateSchema.parse(data),
   parseUpdate: (data) => CouponUpdateSchema.parse(data),
   parseUpsert: (data) => CouponCreateSchema.parse(data),

@@ -3,6 +3,7 @@
 import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { __DrizzleEntityImports__ } from "@/features/__domain__/entities/drizzle";
 __RelationTableImports__import { __Domain__CreateSchema, __Domain__UpdateSchema } from "@/features/__domain__/entities/schema";
+import { extractStorageFields } from "@/lib/crud/storageIntegration/extractStorageFields";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
@@ -35,9 +36,14 @@ export const __domain__ServiceOptions = baseOptions;
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/__domain__/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
+// mediaUploader 列が参照する Storage ファイルを、物理削除時に自動クリーンアップする。
+// media を持たないドメインでは [] となり no-op。
+const storageCleanupFields = extractStorageFields(conf);
+
 export const base = createCrudService(__Domain__Table, {
   ...baseOptions,
   sortOrderColumn,
+  storageCleanupFields,
   parseCreate: (data) => __Domain__CreateSchema.parse(data),
   parseUpdate: (data) => __Domain__UpdateSchema.parse(data),
   parseUpsert: (data) => __Domain__CreateSchema.parse(data),
