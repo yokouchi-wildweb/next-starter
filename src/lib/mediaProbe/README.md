@@ -71,6 +71,22 @@ probeMedia()                       … 消費側はこれだけ呼ぶ
 - `next.config.ts` の `serverExternalPackages` に `"mediainfo.js"` を登録済み
   （実行時に node_modules の WASM をロードするため）。
 
+### WASM の解決とバンドル同梱（dev と本番の両対応）
+
+`.wasm` の扱いは dev（Turbopack）と本番（Vercel / @vercel/nft）で要件が相反するため、
+両方を満たすよう次の 2 段構えにしている。混乱しやすいので変更時は両方を必ず考慮すること。
+
+1. **Turbopack 回避（dev）**: `mediainfoEngine.ts` は `req.resolve("...MediaInfoModule.wasm")`
+   のような `.wasm` 文字列リテラルを持たない。リテラルがあると Turbopack が WASM ローダーを
+   自動生成して `Module not found: 'a'` で落ちるため、`package.json` からディレクトリを辿り
+   `.wasm` パスは実行時に `path.join` で組み立てる。
+2. **バンドル同梱（本番）**: 上記により nft の静的検出が効かないので、`next.config.ts` の
+   `outputFileTracingIncludes` で `MediaInfoModule.wasm` を明示同梱する。これが無いと本番で
+   `ENOENT: ... MediaInfoModule.wasm` になる。
+
+> probeMedia を **API ルート以外**（SSR ページ / Server Action 等）から呼ぶフォークは、
+> `outputFileTracingIncludes` にそのルートのキーを追加すること（既定は `"/api/**"`）。
+
 ### エンジンの追加・差し替え
 
 ```ts
