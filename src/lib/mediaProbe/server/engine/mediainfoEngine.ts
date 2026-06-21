@@ -5,6 +5,7 @@
 // 幅広いコンテナ（mp4/mov/webm/mkv/mp3/wav/ogg/aac/flac 等）に対応する。
 
 import { createRequire } from "node:module";
+import path from "node:path";
 
 import mediaInfoFactory from "mediainfo.js";
 import type { MediaInfo, MediaInfoResult, Track } from "mediainfo.js";
@@ -25,7 +26,10 @@ function errMessage(e: unknown): string {
 function resolveWasmPath(): string | null {
   try {
     const req = createRequire(import.meta.url);
-    return req.resolve("mediainfo.js/MediaInfoModule.wasm");
+    // ".wasm" の文字列リテラルを Turbopack に静的解析させない（WASM ローダーの自動生成を防ぐ）ため、
+    // package.json からパッケージのディレクトリを辿り、.wasm の絶対パスは実行時に組み立てる。
+    const pkgDir = path.dirname(req.resolve("mediainfo.js/package.json"));
+    return path.join(pkgDir, "dist", "MediaInfoModule.wasm");
   } catch {
     return null;
   }
