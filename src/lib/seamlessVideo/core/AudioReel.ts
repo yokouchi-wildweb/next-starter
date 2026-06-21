@@ -16,7 +16,7 @@
 import type { FragmentFetcher, SeamlessFragmentSource } from "../types";
 import { toArrayBuffer } from "./fragmentBytes";
 
-import { AudioEngine } from "./AudioEngine";
+import { AudioEngine } from "@/lib/webAudio";
 
 export type AudioReelOptions = {
   fetcher?: FragmentFetcher;

@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { FragmentFetcher, ReelFragment, SeamlessFragmentSource } from "../types";
 import { SeamlessReel, type SeamlessReelOptions, type SeamlessReelState } from "../core/SeamlessReel";
-import { AudioEngine } from "../core/AudioEngine";
+import { getSharedAudioEngine } from "@/lib/webAudio";
 
 export type SeamlessReelStatus = "idle" | "loading" | "ready" | "error";
 
@@ -77,8 +77,9 @@ export type UseSeamlessReelResult = {
 export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamlessReelResult {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reelRef = useRef<SeamlessReel | null>(null);
-  // AudioContext は load を跨いで使い回す(フックインスタンスに 1 つ)。close は reset/unmount のみ。
-  const engine = useState(() => new AudioEngine())[0];
+  // AudioContext はアプリ全体で共有する単一エンジンを使う(効果音 playSe 等と同一 ctx)。
+  // iOS のオーディオセッション競合を避けるため、ここでは close() せず生かし続ける。
+  const engine = getSharedAudioEngine();
 
   const [status, setStatus] = useState<SeamlessReelStatus>("idle");
   const [error, setError] = useState<Error | null>(null);
@@ -111,7 +112,7 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
   const reset = useCallback(() => {
     reelRef.current?.destroy();
     reelRef.current = null;
-    void engine.close();
+    // 共有 AudioContext はアプリ全体で再利用するため close しない(reel の destroy で音は停止済み)
     setStatus("idle");
     setError(null);
     setProgress({ appended: 0, total: 0 });
@@ -121,7 +122,7 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
     setLoaded({ video: 0, audio: 0, total: 0 });
     setBufferedSec(0);
     setCurrentFragment(-1);
-  }, [engine]);
+  }, []);
 
   const load = useCallback(
     async (fragments: ReelFragment[], opts?: { progressive?: boolean; open?: boolean }) => {
@@ -223,9 +224,9 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
     return () => {
       reelRef.current?.destroy();
       reelRef.current = null;
-      void engine.close();
+      // 共有 AudioContext はアプリ全体で再利用するため unmount でも close しない
     };
-  }, [engine]);
+  }, []);
 
   return {
     videoRef,

@@ -1,9 +1,12 @@
-// src/lib/seamlessVideo/core/AudioEngine.ts
+// src/lib/webAudio/AudioEngine.ts
 //
-// AudioContext とマスター GainNode を保持する小さなホルダ。
-// useSeamlessReel のフックインスタンス内で 1 つだけ生成して使い回し、load() を跨いで context を生存させる。
-// これにより「開始タップ(ユーザー操作)で一度 unlock() しておけば、以降は await 後(gesture 外)の
-// play() でも音が鳴る」状態を作れる(モバイルの自動再生制約への対応)。
+// AudioContext とマスター GainNode を保持する小さなホルダ(アプリ共通の「音響の土台」)。
+// インスタンスを 1 つ生成して使い回し、複数機能(効果音 / 連結動画の音声 / BGM 等)で
+// 同一の AudioContext を共有させることで、iOS Safari のオーディオセッション競合
+// (複数 AudioContext の取り合いで片方が鳴らない / 途切れる)を構造的に回避する。
+//
+// AudioContext はユーザー操作起点でしか開始できない(モバイルの自動再生制約)。
+// 最初の確実なタップ等の同期内で一度 unlock() しておけば、以降は await 後(gesture 外)でも鳴る。
 
 type AudioContextCtor = typeof AudioContext;
 

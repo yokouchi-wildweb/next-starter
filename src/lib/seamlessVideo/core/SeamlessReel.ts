@@ -17,7 +17,7 @@
 import type { FragmentFetcher, ReelFragment, SeamlessFragmentSource } from "../types";
 import { SeamlessSource } from "./SeamlessSource";
 import { AudioReel } from "./AudioReel";
-import type { AudioEngine } from "./AudioEngine";
+import type { AudioEngine } from "@/lib/webAudio";
 import { toArrayBuffer } from "./fragmentBytes";
 
 /** 再生状態のスナップショット(UI 構築用)。 */
