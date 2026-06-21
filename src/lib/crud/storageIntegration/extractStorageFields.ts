@@ -39,12 +39,13 @@ export function extractStorageFields(domainConfig: DomainConfigForStorage): stri
 }
 
 /**
- * domainConfigからmediaUploaderフィールドの詳細情報を抽出する
+ * domainConfigからStorageファイルを保持するフィールドの詳細情報を抽出する
+ * （mediaUploader / mediaUploaderMulti の両方）
  */
 export function extractStorageFieldsWithPath(domainConfig: DomainConfigForStorage): StorageFieldInfo[] {
   if (!domainConfig.fields) return [];
   return domainConfig.fields
-    .filter((f) => f.fieldType === "mediaUploader")
+    .filter((f) => isStorageField(f.fieldType))
     .map((f) => ({
       name: f.name,
       uploadPath: f.uploadPath ?? "",
