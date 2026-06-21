@@ -143,8 +143,9 @@ createCrudService<TTable, TCreate>(table, {
 
 ## Storage 連携クリーンアップ
 
-`mediaUploader` 列が参照する Storage 上のファイルは、レコードが **物理削除** されるタイミングで
-`createCrudService` が自動削除する（best-effort）。ドメイン側でラッパーを書く必要はない。
+`mediaUploader`（単一 / string）および `mediaUploaderMulti`（複数 / string[]）列が参照する
+Storage 上のファイルは、レコードが **物理削除** されるタイミングで `createCrudService` が
+自動削除する（best-effort）。ドメイン側でラッパーを書く必要はない。
 
 - 有効化: `createCrudService` の `storageCleanupFields` に対象フィールド名を渡す。
   生成される `drizzleBase.ts` が `extractStorageFields(conf)` の結果を自動的に渡すため、

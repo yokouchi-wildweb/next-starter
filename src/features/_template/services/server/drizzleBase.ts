@@ -36,8 +36,8 @@ export const __domain__ServiceOptions = baseOptions;
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/__domain__/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
-// mediaUploader 列が参照する Storage ファイルを、物理削除時に自動クリーンアップする。
-// media を持たないドメインでは [] となり no-op。
+// mediaUploader / mediaUploaderMulti 列が参照する Storage ファイルを、物理削除時に
+// 自動クリーンアップする。media を持たないドメインでは [] となり no-op。
 const storageCleanupFields = extractStorageFields(conf);
 
 export const base = createCrudService(__Domain__Table, {

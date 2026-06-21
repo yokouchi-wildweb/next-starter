@@ -131,7 +131,8 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    */
   audit?: AuditConfig;
   /**
-   * Storage連携クリーンアップ対象の mediaUploader フィールド名一覧。
+   * Storage連携クリーンアップ対象のフィールド名一覧
+   * （mediaUploader=単一/string, mediaUploaderMulti=複数/string[] の両方）。
    * 指定すると、レコードが「物理削除」される操作で対象フィールドが参照する
    * Storage 上のファイルを自動削除する（best-effort）。
    * 対象操作:

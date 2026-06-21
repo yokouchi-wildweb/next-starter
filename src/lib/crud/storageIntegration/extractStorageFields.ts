@@ -16,12 +16,25 @@ export type StorageFieldInfo = {
 };
 
 /**
- * domainConfigからmediaUploaderフィールド名を抽出する
+ * Storage にファイルを保存するフィールドの fieldType 一覧。
+ * - mediaUploader: 単一ファイル（DBは string）
+ * - mediaUploaderMulti: 複数ファイル（DBは string[] / text[]）
+ * cleanupStorageFiles / duplicateStorageFiles は string と string[] の両方を扱う。
+ */
+const STORAGE_FIELD_TYPES = ["mediaUploader", "mediaUploaderMulti"] as const;
+
+function isStorageField(fieldType: string): boolean {
+  return (STORAGE_FIELD_TYPES as readonly string[]).includes(fieldType);
+}
+
+/**
+ * domainConfigからStorageファイルを保持するフィールド名を抽出する
+ * （mediaUploader / mediaUploaderMulti の両方）
  */
 export function extractStorageFields(domainConfig: DomainConfigForStorage): string[] {
   if (!domainConfig.fields) return [];
   return domainConfig.fields
-    .filter((f) => f.fieldType === "mediaUploader")
+    .filter((f) => isStorageField(f.fieldType))
     .map((f) => f.name);
 }
 
