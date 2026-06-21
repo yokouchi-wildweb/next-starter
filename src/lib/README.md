@@ -50,6 +50,7 @@
 | `line` | LINE 連携（Push通知・Bot応答・LIFF・Webhook 検証） | ✓ |
 | `x` | X(Twitter) API（認証・投稿・メディア・Webhook 検証） | ✓ |
 | `aiVision` | Claude Vision による画像の事前判定ユーティリティ | ✓ |
+| `mediaProbe` | Storage 上のメディアをサーバーで解析しストリーム構成（音声トラック有無等）を返す。エンジン差し替え可（WASM/ffprobe） | ✓ |
 | `clarity` | Microsoft Clarity 解析タグ | |
 
 ## UI / コンポーネント

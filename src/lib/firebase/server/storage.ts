@@ -27,6 +27,44 @@ export async function deleteFileServer(path: string): Promise<void> {
 }
 
 /**
+ * 読み取り用の署名付き URL を払い出す（サーバー用）。
+ *
+ * フルダウンロードせず Range で部分取得したい用途（メディア解析 probe 等）に使う。
+ * Admin SDK のサービスアカウント鍵でオフライン V4 署名するため、追加の権限設定は不要。
+ *
+ * @param path - Storage 内のパス
+ * @param ttlSec - 有効期限（秒）。既定 120 秒
+ * @returns 署名付き読み取り URL
+ */
+export async function getReadSignedUrl(path: string, ttlSec = 120): Promise<string> {
+  const bucket = getServerStorage().bucket();
+  const [url] = await bucket.file(path).getSignedUrl({
+    version: "v4",
+    action: "read",
+    expires: Date.now() + ttlSec * 1000,
+  });
+  return url;
+}
+
+/**
+ * Storage オブジェクトのメタデータ（サイズ・Content-Type）を取得する（サーバー用）。
+ *
+ * @param path - Storage 内のパス
+ * @returns sizeBytes / contentType（取得不能な項目は null）
+ */
+export async function getFileMetadata(
+  path: string,
+): Promise<{ sizeBytes: number | null; contentType: string | null }> {
+  const bucket = getServerStorage().bucket();
+  const [metadata] = await bucket.file(path).getMetadata();
+  const size = metadata.size != null ? Number(metadata.size) : null;
+  return {
+    sizeBytes: size != null && Number.isFinite(size) ? size : null,
+    contentType: metadata.contentType ?? null,
+  };
+}
+
+/**
  * Firebase Storage のファイルを複製する（サーバー用）
  *
  * @param sourcePath - コピー元のパス

@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_BUILD_ID: buildId,
   },
-  serverExternalPackages: ["firebase-admin"],
+  serverExternalPackages: ["firebase-admin", "mediainfo.js"],
   images: {
     unoptimized: true,
   },
