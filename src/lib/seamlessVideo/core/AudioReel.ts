@@ -24,6 +24,29 @@ export type AudioReelOptions = {
   engine?: AudioEngine;
   onError?: (error: Error) => void;
   onLog?: (message: string) => void;
+  /**
+   * 無音ウォッチドッグの監視間隔(ms)。再生中なのに鳴っているノードが無い状態を検出し、
+   * 現在位置から自動復帰させる。0 以下で無効化。既定 250。
+   */
+  watchdogIntervalMs?: number;
+  /**
+   * スケジュールの最小先読み(秒)。実効リードは max(minScheduleLeadSec, frame×rate) で
+   * 高レート/低スペック時も when が過去落ちしにくくする。既定 0.05。
+   */
+  minScheduleLeadSec?: number;
+};
+
+/** スケジュール済みノード 1 件の追跡情報(ノード↔フラグメント対応 + 無音検出/レート追従用の時刻)。 */
+type ScheduledNode = {
+  node: AudioBufferSourceNode;
+  /** このノードが担うフラグメント index */
+  index: number;
+  /** 再生開始の context 時刻 */
+  when: number;
+  /** 開始時のバッファ内オフセット秒(catch-up で途中から鳴らした分) */
+  bufferOffset: number;
+  /** 終了の context 時刻(現行 rate 基準。レート変更時に引き直す) */
+  endTime: number;
 };
 
 /** setRate のクランプ範囲(0.25〜4x)。範囲外/不正値は丸める。 */
@@ -67,7 +90,7 @@ export class AudioReel {
   /** スキップされた(フラグメントごと欠落)index。スケジュールで読み飛ばす */
   private skipped = new Set<number>();
 
-  private activeNodes: AudioBufferSourceNode[] = [];
+  private activeNodes: ScheduledNode[] = [];
   private scheduledIndex = 0;
   private startContextTime = 0;
   private startReelOffset = 0;
@@ -76,6 +99,13 @@ export class AudioReel {
   private rate = 1;
   /** マスターミュート(volume を保持したまま無音化。早送り中のピッチ上昇音を消す用途) */
   private muted = false;
+  /**
+   * 世代トークン。start/reschedule/stop 等で increment し、await を跨ぐ古い start() の結果を破棄して
+   * 連続レート変更時の再スケジュール競合(直前に組んだノードを後発が止めて無音化)を防ぐ。
+   */
+  private generation = 0;
+  /** 無音ウォッチドッグの interval ハンドル(再生中のみ稼働) */
+  private watchdogTimer: ReturnType<typeof setInterval> | null = null;
 
   // BGM(別レイヤー)
   private bgmBuffer: AudioBuffer | null = null;
@@ -392,7 +422,8 @@ export class AudioReel {
 
   /**
    * フラグメント音声の再生レートを変更する(早送り/スロー)。範囲は 0.25〜4x にクランプ。
-   * 再生中は現在位置を保ったまま新レートで再スケジュールする(ハードリシンクと同じ経路)。
+   * 再生中は teardown せず、再生中の現在フラグメントノードは playbackRate をライブ変更で追従させ、
+   * 「まだ start していない先のフラグメント」だけを再スケジュールする(継ぎ目・無音・カクつきを構造的に回避)。
    * 音程(ピッチ)は rate に比例して変化する(等ピッチ化はしない)。
    */
   setRate(rate: number): void {
@@ -402,23 +433,90 @@ export class AudioReel {
       this.rate = clamped;
       return;
     }
-    // 現在の reel 位置を採取してから rate を更新し、その位置から再スケジュールする
-    const pos = this.currentTime();
-    this.rate = clamped;
-    void this.start(pos);
+    this.reschedule(clamped);
+  }
+
+  /** 実効スケジュールリード(秒)。高レート/低スペックで when が過去落ちしないよう rate に応じて伸ばす。 */
+  private scheduleLead(): number {
+    const min = this.options.minScheduleLeadSec ?? 0.05;
+    const frame = 1 / 60;
+    return Math.max(min, frame * this.rate);
+  }
+
+  /**
+   * 再生を止めずにレートを切り替える(レート据え置きでの呼び出しは「現在位置からの再 attach」=空スケジュール
+   * 自動リカバリにも使う)。再生中の現在フラグメントノードは playbackRate をライブ変更し、未来の予約ノードだけ
+   * 組み直す。アンカーを現時刻へ再固定するため、残したノードの終端と次フラグメント開始が一致し継ぎ目が出ない。
+   */
+  private reschedule(newRate: number): void {
+    const ctx = this.ctx;
+    const out = this.masterGain;
+    if (!ctx || !out) {
+      this.rate = newRate;
+      return;
+    }
+    // 古い start()/再スケジュールの結果を破棄する(連続呼び出しの競合ガード)
+    this.generation += 1;
+    const now = ctx.currentTime;
+    const pos = this.currentTime(); // 旧アンカーでの現在 reel 位置
+    const oldRate = this.rate;
+    const cur = this.fragmentIndexAt(pos);
+
+    // 再生中の現在フラグメントノードだけ残してライブ追従。それ以外(未来予約ノード等)は停止する。
+    let kept: ScheduledNode | null = null;
+    const survivors: ScheduledNode[] = [];
+    for (const entry of this.activeNodes) {
+      const started = entry.when <= now;
+      const sounding = started && now < entry.endTime;
+      if (kept === null && sounding && entry.index === cur && entry.node.buffer) {
+        try {
+          entry.node.playbackRate.cancelScheduledValues(now);
+          entry.node.playbackRate.setValueAtTime(newRate, now);
+          // 残ノードの終端を新レートで引き直す(これ以降の継ぎ目算出の基準)
+          const playedBuf = entry.bufferOffset + (now - entry.when) * oldRate;
+          const remaining = Math.max(0, entry.node.buffer.duration - playedBuf);
+          entry.endTime = now + remaining / newRate;
+          kept = entry;
+          survivors.push(entry);
+          continue;
+        } catch {
+          /* ライブ変更に失敗したら停止側へフォールバック */
+        }
+      }
+      try {
+        entry.node.onended = null;
+        entry.node.stop();
+        entry.node.disconnect();
+      } catch {
+        /* 既に停止済みは無視 */
+      }
+    }
+    this.activeNodes = survivors;
+
+    // アンカーを現時刻へ再固定。残ノードの終端 = 新アンカーで算出する次フラグメント開始 と一致する。
+    this.rate = newRate;
+    this.startReelOffset = pos;
+    this.startContextTime = now;
+    // 残せたら次フラグメントから、残せなければ現在フラグメントを catch-up 経路で鳴らし直す
+    this.scheduledIndex = kept ? kept.index + 1 : 0;
+    this.trySchedule();
+    this.ensureWatchdog();
   }
 
   async start(reelOffsetSec = 0): Promise<void> {
     const ctx = this.ensureContext();
+    const gen = ++this.generation;
     if (ctx.state === "suspended") await ctx.resume();
+    if (gen !== this.generation) return; // より新しい操作に追い越された(古い start を破棄)
     this.stopNodes();
 
-    const lead = 0.05;
+    const lead = this.scheduleLead();
     this.startContextTime = ctx.currentTime + lead;
     this.startReelOffset = reelOffsetSec;
     this.scheduledIndex = 0;
     this.playing = true;
     this.trySchedule();
+    this.ensureWatchdog();
   }
 
   private trySchedule(): void {
@@ -470,12 +568,15 @@ export class AudioReel {
       node.buffer = buf;
       node.playbackRate.value = this.rate;
       node.connect(out);
+      // when が過去にならないようクランプ(高レート/負荷時の取りこぼし防止)
+      const safeWhen = Math.max(when, ctx.currentTime);
       try {
-        node.start(when, bufferOffset);
+        node.start(safeWhen, bufferOffset);
       } catch (e) {
         this.options.onError?.(e instanceof Error ? e : new Error("音声スケジュールに失敗しました"));
       }
-      this.activeNodes.push(node);
+      const endTime = safeWhen + Math.max(0, buf.duration - bufferOffset) / this.rate;
+      this.activeNodes.push({ node, index: i, when: safeWhen, bufferOffset, endTime });
       this.scheduledIndex += 1;
     }
   }
@@ -486,6 +587,9 @@ export class AudioReel {
   }
 
   async pause(): Promise<void> {
+    // in-flight な start() を無効化(復帰時に playing を勝手に true へ戻させない)
+    this.generation += 1;
+    this.clearWatchdog();
     if (this.ctx && this.ctx.state === "running") {
       const pos = this.currentTime();
       await this.ctx.suspend();
@@ -498,15 +602,20 @@ export class AudioReel {
   async resume(): Promise<void> {
     if (this.ctx && this.ctx.state === "suspended") await this.ctx.resume();
     this.playing = true;
+    this.ensureWatchdog();
   }
 
   stop(): void {
+    this.generation += 1;
+    this.clearWatchdog();
     this.stopNodes();
     this.playing = false;
     this.scheduledIndex = 0;
   }
 
   async destroy(): Promise<void> {
+    this.generation += 1;
+    this.clearWatchdog();
     this.stopNodes();
     this.stopBgm();
     if (this.bgmGain) {
@@ -545,7 +654,7 @@ export class AudioReel {
   }
 
   private stopNodes(): void {
-    for (const node of this.activeNodes) {
+    for (const { node } of this.activeNodes) {
       try {
         node.onended = null;
         node.stop();
@@ -555,6 +664,41 @@ export class AudioReel {
       }
     }
     this.activeNodes = [];
+  }
+
+  // --- 無音ウォッチドッグ ---
+
+  /** 再生中の監視 interval を起動する(多重起動・無効設定はスキップ)。 */
+  private ensureWatchdog(): void {
+    const ms = this.options.watchdogIntervalMs ?? 250;
+    if (ms <= 0 || this.watchdogTimer != null) return;
+    this.watchdogTimer = setInterval(() => this.watchdogTick(), ms);
+  }
+
+  private clearWatchdog(): void {
+    if (this.watchdogTimer != null) {
+      clearInterval(this.watchdogTimer);
+      this.watchdogTimer = null;
+    }
+  }
+
+  /**
+   * 再生中なのにアクティブな音声ノードが無い状態を検出し、現在位置から自動復帰させる。
+   * 未デコード待ち(該当フラグメントのバッファ未到着)は正当な無音として除外する。
+   */
+  private watchdogTick(): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.playing || ctx.state !== "running") return;
+    const now = ctx.currentTime;
+    const reel = this.currentTime();
+    if (reel >= this.duration - 0.05) return; // 末尾付近は対象外
+    const cur = this.fragmentIndexAt(reel);
+    if (cur < 0 || !this.slots[cur]) return; // 未デコード待ちの無音は正当
+    const sounding = this.activeNodes.some((e) => e.when <= now && now < e.endTime);
+    if (sounding) return;
+    // 鳴っているべきなのに無音 → 現在位置から再 attach(レート据え置き)
+    this.log(`無音検出: ${reel.toFixed(2)}s から自動復帰`);
+    this.reschedule(this.rate);
   }
 
   private log(message: string): void {
