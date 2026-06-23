@@ -166,6 +166,8 @@ await load(fragments, { progressive: true }); // 先頭準備で ready(=playable
 
 - **ライフサイクル**: `onPlay` / `onPause` / `onEnded`(loop 時は ended を出さず先頭へ)。例: ガチャ演出終了 → 結果表示は `onEnded` で。
 - **ループ**: `useSeamlessReel({ loop: true })`。
+- **再生レート(早送り)**: `setRate(rate, { mute? })`。フラグメント音声マスターを `rate` 倍速化し、映像はソフト同期で追従する。範囲は **0.25〜4x にクランプ**(範囲外は丸め)。`setRate(1)` で完全に等速へ復帰(同期も通常状態へ戻る)。`AudioBufferSource.playbackRate` 方式のため**音程(ピッチ)は rate に比例して上がる**(等ピッチ化はしない)。`{ mute: true }` で同時に無音化可。音声無効(映像のみ)時は映像 `playbackRate` を直接変更。例: 押しっぱなしで `setRate(3)` → 離して `setRate(1)`。
+- **ミュート**: `setMuted(muted)`。`volume` を保持したまま出力のみ 0(復音で元の音量へ)。早送り中のピッチ上昇音を消す用途。`setRate` の `mute` オプションと同じ仕組み。
 - **音量 / フェード**: `setVolume(v)` / `fade(target, sec)`(フラグメント音声のマスター)。
 - **連続 BGM(別レイヤー)**: `setBgm(url, { loop, volume })` → `play()` 時に自動再生。`setBgmVolume` / `fadeBgm` でダッキング・フェード可。フラグメント音声とは独立。
 - **動的シーケンス**: `load(fragments, { open: true })` でストリームを開いたままにし、`appendFragment(fragment)` で実行時に継ぎ足し、`endReel()` で確定。抽選を再生中に決めるような用途向け。
@@ -195,6 +197,7 @@ await load(fragments, { progressive: true }); // 先頭準備で ready(=playable
 ### 制約・注意
 
 - **2 つのクロック(映像/音声)を扱うため A/V 同期は近似**。ガチャ演出のように厳密なリップシンクが不要な用途を想定。
+- **早送り(`setRate`)はバッファ済み区間に対して継ぎ目維持**。progressive 読み込み中に取得が追いつかない高倍率を指定すると映像バッファが枯渇し得る(機能のバグではなくデータ供給律速)。読み込み完了後の早送りは安全。レート変更時に音声を現在位置から再スケジュールするため、瞬間的に約 50ms のリスケジュールを挟む(押下/離しの 2 回程度では問題にならない)。
 - AudioContext はユーザー操作起点でしか開始できない(`play()` は必ずクリック等の中から呼ぶ)。
 - 全フラグメントに音声がある場合のみ音声連結が有効(一部欠落時は映像のみ再生)。
 - iPhone は ManagedMediaSource(映像)＋ Web Audio(音声)で動作。iOS 17.1+ 前提、実機確認推奨。

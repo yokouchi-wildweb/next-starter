@@ -45,6 +45,13 @@ export type UseSeamlessReelResult = {
   endReel: () => Promise<void>;
   /** 指定フラグメント先頭へシーク */
   seekToFragment: (index: number) => void;
+  /**
+   * 再生レート(早送り)を変更する。範囲は 0.25〜4x にクランプ。setRate(1) で完全に等速へ復帰。
+   * 音程(ピッチ)は rate に比例して上がる。opts.mute 指定でレート変更と同時にミュート切替も行える。
+   */
+  setRate: (rate: number, opts?: { mute?: boolean }) => void;
+  /** フラグメント音声のミュート切替(volume は保持。早送り中の音を消す用途) */
+  setMuted: (muted: boolean) => void;
   /** フラグメント音声の音量(0..) */
   setVolume: (v: number) => void;
   /** フラグメント音声を target へ durationSec でフェード */
@@ -195,6 +202,12 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
   const seekToFragment = useCallback((index: number) => {
     reelRef.current?.seekToFragment(index);
   }, []);
+  const setRate = useCallback((rate: number, opts?: { mute?: boolean }) => {
+    reelRef.current?.setRate(rate, opts);
+  }, []);
+  const setMuted = useCallback((muted: boolean) => {
+    reelRef.current?.setMuted(muted);
+  }, []);
   const setVolume = useCallback((v: number) => {
     reelRef.current?.setVolume(v);
   }, []);
@@ -238,6 +251,8 @@ export function useSeamlessReel(options: UseSeamlessReelOptions = {}): UseSeamle
     appendFragment,
     endReel,
     seekToFragment,
+    setRate,
+    setMuted,
     setVolume,
     fade,
     setBgm,

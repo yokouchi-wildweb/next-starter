@@ -26,6 +26,15 @@ export type AudioReelOptions = {
   onLog?: (message: string) => void;
 };
 
+/** setRate のクランプ範囲(0.25〜4x)。範囲外/不正値は丸める。 */
+export const MIN_PLAYBACK_RATE = 0.25;
+export const MAX_PLAYBACK_RATE = 4;
+/** 再生レートを許容範囲にクランプする(NaN/Infinity は等速へフォールバック)。 */
+export function clampPlaybackRate(rate: number): number {
+  if (!Number.isFinite(rate)) return 1;
+  return Math.min(MAX_PLAYBACK_RATE, Math.max(MIN_PLAYBACK_RATE, rate));
+}
+
 /** バッファのピーク振幅(無音判定用)。負荷軽減のため間引いて走査する。 */
 function peakAmplitude(buffer: AudioBuffer): number {
   let peak = 0;
@@ -63,6 +72,10 @@ export class AudioReel {
   private startContextTime = 0;
   private startReelOffset = 0;
   private playing = false;
+  /** フラグメント音声の再生レート(早送り)。reel 時間は context 時間の rate 倍速で進む */
+  private rate = 1;
+  /** マスターミュート(volume を保持したまま無音化。早送り中のピッチ上昇音を消す用途) */
+  private muted = false;
 
   // BGM(別レイヤー)
   private bgmBuffer: AudioBuffer | null = null;
@@ -230,22 +243,33 @@ export class AudioReel {
     this.volume = Math.max(0, v);
     if (this.masterGain && this.ctx) {
       this.masterGain.gain.cancelScheduledValues(this.ctx.currentTime);
-      this.masterGain.gain.value = this.volume;
+      // muted 中は volume を保持したまま出力だけ 0(復音時に元の音量へ戻す)
+      this.masterGain.gain.value = this.muted ? 0 : this.volume;
     }
   }
 
   /** 現在の音量から target へ durationSec かけてフェード。 */
   fade(target: number, durationSec: number): void {
-    if (!this.ctx || !this.masterGain) {
-      this.volume = Math.max(0, target);
-      return;
-    }
+    this.volume = Math.max(0, target);
+    if (!this.ctx || !this.masterGain) return;
     const now = this.ctx.currentTime;
     const g = this.masterGain.gain;
     g.cancelScheduledValues(now);
     g.setValueAtTime(g.value, now);
-    g.linearRampToValueAtTime(Math.max(0, target), now + Math.max(0, durationSec));
-    this.volume = Math.max(0, target);
+    // muted 中は無音を維持(volume だけ更新し、復音時に setMuted(false) で反映)
+    g.linearRampToValueAtTime(this.muted ? 0 : this.volume, now + Math.max(0, durationSec));
+  }
+
+  /** マスター出力のミュート切替(volume は保持。早送り中のピッチ上昇音を消す用途)。 */
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.masterGain.gain.value = muted ? 0 : this.volume;
+    }
+  }
+  get isMuted(): boolean {
+    return this.muted;
   }
 
   // --- BGM(別レイヤー) ---
@@ -344,7 +368,8 @@ export class AudioReel {
     if (opts.atFragment != null && this.playing) {
       const off = this.fragmentOffset(opts.atFragment);
       if (off != null) {
-        const t = this.startContextTime + (off - this.startReelOffset);
+        // フラグメント境界の reel 位置を rate 込みで context 時刻へ写像する(早送り中も整合)。
+        const t = this.startContextTime + (off - this.startReelOffset) / this.rate;
         if (t > ctx.currentTime) when = t;
       }
     }
@@ -360,6 +385,28 @@ export class AudioReel {
   }
 
   // --- 再生制御(フラグメント音声) ---
+
+  get playbackRate(): number {
+    return this.rate;
+  }
+
+  /**
+   * フラグメント音声の再生レートを変更する(早送り/スロー)。範囲は 0.25〜4x にクランプ。
+   * 再生中は現在位置を保ったまま新レートで再スケジュールする(ハードリシンクと同じ経路)。
+   * 音程(ピッチ)は rate に比例して変化する(等ピッチ化はしない)。
+   */
+  setRate(rate: number): void {
+    const clamped = clampPlaybackRate(rate);
+    if (clamped === this.rate) return;
+    if (!this.playing) {
+      this.rate = clamped;
+      return;
+    }
+    // 現在の reel 位置を採取してから rate を更新し、その位置から再スケジュールする
+    const pos = this.currentTime();
+    this.rate = clamped;
+    void this.start(pos);
+  }
 
   async start(reelOffsetSec = 0): Promise<void> {
     const ctx = this.ensureContext();
@@ -400,14 +447,17 @@ export class AudioReel {
         continue;
       }
 
-      const desired = this.startContextTime + (fragStart - this.startReelOffset);
+      // reel 時間で組んだスケジュールを /rate で context 時刻へ写像する(rate 倍速ぶん前倒し)。
+      const desired = this.startContextTime + (fragStart - this.startReelOffset) / this.rate;
       let when: number;
       let bufferOffset: number;
       if (desired >= ctx.currentTime) {
         when = desired;
         bufferOffset = 0;
       } else {
-        const skip = ctx.currentTime - this.startContextTime + this.startReelOffset - fragStart;
+        // 既に開始時刻を過ぎている分はバッファ内オフセット(reel/buffer 秒。速度は playbackRate が吸収)で詰める。
+        const reelPos = this.startReelOffset + (ctx.currentTime - this.startContextTime) * this.rate;
+        const skip = reelPos - fragStart;
         if (skip >= buf.duration) {
           this.scheduledIndex += 1;
           continue;
@@ -418,6 +468,7 @@ export class AudioReel {
 
       const node = ctx.createBufferSource();
       node.buffer = buf;
+      node.playbackRate.value = this.rate;
       node.connect(out);
       try {
         node.start(when, bufferOffset);
@@ -431,7 +482,7 @@ export class AudioReel {
 
   currentTime(): number {
     if (!this.ctx || !this.playing) return this.startReelOffset;
-    return this.startReelOffset + (this.ctx.currentTime - this.startContextTime);
+    return this.startReelOffset + (this.ctx.currentTime - this.startContextTime) * this.rate;
   }
 
   async pause(): Promise<void> {
@@ -472,6 +523,19 @@ export class AudioReel {
     this.seCache.clear();
     this.bgmBuffer = null;
     this.playing = false;
+    this.rate = 1;
+    this.muted = false;
+    // 共有 master はリール跨ぎで残るため、mute/フェードの痕跡を中立(1)へ戻してから手放す
+    // (次リールが無音や減衰を継承しないように)。
+    if (this.masterGain && this.ctx) {
+      try {
+        this.masterGain.gain.cancelScheduledValues(this.ctx.currentTime);
+        this.masterGain.gain.value = 1;
+      } catch {
+        /* noop */
+      }
+    }
+    this.volume = 1;
     // 共有 engine のときは context を閉じない(フックが unmount/reset で閉じる)
     if (this.ownsEngine) {
       await this.engine.close();

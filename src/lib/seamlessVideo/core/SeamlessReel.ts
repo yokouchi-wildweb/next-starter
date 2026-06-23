@@ -16,7 +16,7 @@
 
 import type { FragmentFetcher, ReelFragment, SeamlessFragmentSource } from "../types";
 import { SeamlessSource } from "./SeamlessSource";
-import { AudioReel } from "./AudioReel";
+import { AudioReel, clampPlaybackRate } from "./AudioReel";
 import type { AudioEngine } from "@/lib/webAudio";
 import { toArrayBuffer } from "./fragmentBytes";
 
@@ -103,6 +103,8 @@ export class SeamlessReel {
   private destroyed = false;
   private lifecycleAttached = false;
   private lastEmit: SeamlessReelState | null = null;
+  /** 再生レート(早送り)。音声マスターを rate 倍速化し、映像はリコンサイルで rate を基準に追従する */
+  private rate = 1;
 
   constructor(video: HTMLVideoElement, options: SeamlessReelOptions = {}) {
     this.video = video;
@@ -252,9 +254,42 @@ export class SeamlessReel {
     this.playableReject = null;
     this.stopReconcileLoop();
     this.detachLifecycle();
+    this.rate = 1;
     this.video.playbackRate = 1;
     void this.audioReel.destroy();
     this.videoSource.destroy();
+  }
+
+  // --- 再生レート(早送り) / ミュート ---
+
+  /** 現在の再生レート(早送り倍率)。 */
+  get playbackRate(): number {
+    return this.rate;
+  }
+
+  /**
+   * 再生レート(早送り)を変更する。範囲は 0.25〜4x にクランプ。
+   * 音声マスターを rate 倍速化し、映像はリコンサイルループが rate を基準に音声へ寄せる。
+   * 音声無効(映像のみ)時は映像の playbackRate を直接設定する。
+   * setRate(1) で完全に等速へ復帰する(映像・音声の同期も通常状態へ戻る)。
+   * opts.mute 指定時はレート変更と同時にミュート状態も切り替える(早送り中のピッチ上昇音対策)。
+   * 音程(ピッチ)は rate に比例して変化する(等ピッチ化はしない)。
+   */
+  setRate(rate: number, opts?: { mute?: boolean }): void {
+    this.rate = clampPlaybackRate(rate);
+    // 映像へ即時適用(次のリコンサイルティックまでのドリフト過渡を抑える)。
+    // 音声ありの場合はリコンサイルが以降 this.rate を基準に微調整し続ける。
+    this.video.playbackRate = this.rate;
+    if (this.hasAudio) this.audioReel.setRate(this.rate);
+    if (opts?.mute != null) this.setMuted(opts.mute);
+  }
+
+  /** フラグメント音声のミュート切替(volume は保持。早送り中の音を消す用途)。 */
+  setMuted(muted: boolean): void {
+    this.audioReel.setMuted(muted);
+  }
+  get isMuted(): boolean {
+    return this.audioReel.isMuted;
   }
 
   // --- 音量 / フェード / BGM ---
@@ -462,7 +497,8 @@ export class SeamlessReel {
         this.audioReel.stop();
         this.log("音声停止 (video 停止/シーク中)");
       }
-      this.video.playbackRate = 1;
+      // 再開時に早送りを維持できるよう、ベースラインは現在の rate に戻す
+      this.video.playbackRate = this.rate;
       return;
     }
 
@@ -491,15 +527,16 @@ export class SeamlessReel {
     const drift = v.currentTime - this.audioReel.currentTime();
     const abs = Math.abs(drift);
     let corrected = false;
+    // 補正は等速(1)ではなく現在の rate を基準に行う(早送り中も音声マスターへ寄せ続ける)。
     if (abs > hard) {
       void this.audioReel.start(v.currentTime);
-      this.video.playbackRate = 1;
+      this.video.playbackRate = this.rate;
       corrected = true;
     } else if (abs > soft) {
-      this.video.playbackRate = drift > 0 ? 0.97 : 1.03;
+      this.video.playbackRate = this.rate * (drift > 0 ? 0.97 : 1.03);
       corrected = true;
     } else {
-      this.video.playbackRate = 1;
+      this.video.playbackRate = this.rate;
     }
     this.options.onDrift?.(drift, corrected);
   }
