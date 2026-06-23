@@ -101,11 +101,29 @@ setDefaultProbeEngine("ffprobe");
 
 ---
 
-## 取得方式
+## 取得方式（head+tail プリフェッチ）
 
 フルダウンロードしない。Firebase Storage の path を短命の署名付き URL に変換し、
-エンジンが HTTP Range で「目次（moov 等）」付近のみ取得する。サイズはメタデータ
+HTTP Range で「目次（ftyp/moov 等）」付近のみ取得する。サイズはメタデータ
 （不能時は `bytes=0-0` の Content-Range）から得る。
+
+コンテナのメタデータは先頭・末尾に集中するため、`createMediaSource` は生成時に
+**先頭窓・末尾窓を並列 Range 2 本でメモリへプリフェッチ**する。`readChunk` は要求区間が
+窓内ならメモリから即返し、窓外のときだけ追加 Range フェッチへフォールバックする。
+
+- これにより mediainfo.js の seek 駆動ループ（非 faststart MP4 で moov を末尾から拾う等）が
+  発生させる**多数の直列往復**を、**定数回の並列往復**へ収束させる。
+- プリフェッチは best-effort。失敗・サイズ不明時はバッファ無しで従来のチャンク取得へ劣化する。
+- 窓サイズは `ProbeOptions.prefetchHeadBytes` / `prefetchTailBytes`（各既定 4MB、0 で無効化）。
+- 堅牢化: Range 非対応プロキシ等で `200`（全件）が返っても、要求オフセットへスライスして返す。
+
+### WASM インスタンスの再利用
+
+WASM（約 2.5MB）の compile+instantiate はコールド時に秒単位を要するため、`MediaInfo`
+インスタンスを**上限付きプール**（既定 `MAX_INSTANCES=4`）で再利用する。`analyzeData` は
+同時並行実行できない（内部 `isAnalyzing` 排他）ため、プールが同時解析数を上限に制限しつつ
+並行性も確保する。メモリは `MAX_INSTANCES × WASM` に有界。異常終了したインスタンスは
+プールへ戻さず破棄し、健全なプールを維持する。
 
 ---
 
@@ -118,6 +136,7 @@ setDefaultProbeEngine("ffprobe");
 ## 対応範囲・上限
 
 - コンテナ: mp4 / mov / webm / mkv / mp3 / wav / ogg / aac / flac 等（mediainfo が網羅）。
-- タイムアウト: 既定 10s（`ProbeOptions.timeoutMs`）。
+- タイムアウト: 既定 20s（`ProbeOptions.timeoutMs`）。ソース解決・プリフェッチ・解析の end-to-end を締め切る。
 - 署名 URL 有効期限: 既定 120s（`ProbeOptions.signedUrlTtlSec`）。
+- プリフェッチ窓: 先頭/末尾 各既定 4MB（`ProbeOptions.prefetchHeadBytes` / `prefetchTailBytes`）。
 - 尺の上限判定は返り値の `durationSec` を使って**消費側**で行う（ポリシー）。
