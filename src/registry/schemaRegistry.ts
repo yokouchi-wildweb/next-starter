@@ -23,6 +23,7 @@ export * from "@/features/userTag/entities/drizzle";
 export * from "@/features/referral/entities/drizzle";
 export * from "@/features/referralReward/entities/drizzle";
 export * from "@/features/milestone/entities/drizzle";
+export * from "@/features/userCounter/entities/drizzle";
 export * from "@/features/notification/entities/drizzle";
 export * from "@/features/notification/entities/notificationRead";
 export * from "@/features/notification/entities/notificationReadState";

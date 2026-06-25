@@ -20,6 +20,7 @@ import { userTagService } from "@/features/userTag/services/server/userTagServic
 import { referralService } from "@/features/referral/services/server/referralService";
 import { referralRewardService } from "@/features/referralReward/services/server/referralRewardService";
 import { milestoneService } from "@/features/milestone/services/server/milestoneService";
+import { counterService } from "@/features/userCounter/services/server/counterService";
 import { notificationService } from "@/features/notification/services/server/notificationService";
 import { notificationTemplateService } from "@/features/notificationTemplate/services/server/notificationTemplateService";
 
@@ -45,6 +46,10 @@ export const serviceRegistry: Record<string, DomainRegistryEntry> = {
   referral: { service: referralService, access: ADMIN_ONLY },
   referralReward: { service: referralRewardService, access: ADMIN_ONLY },
   milestone: { service: milestoneService, access: ADMIN_ONLY },
+  // 汎用 per-user カウンタ。書き込み主経路は counterService.bump（サーバ内部専用）。
+  // 汎用 API は admin 閲覧・手動補正のみに限定（fail-closed）。ユーザ向け read は
+  // 各ドメインが /api/me/<feature> を薄く生やして提供する（README 参照）。
+  userCounter: { service: counterService, access: ADMIN_ONLY },
   notification: { service: notificationService, access: ADMIN_ONLY },
   notificationTemplate: { service: notificationTemplateService, access: ADMIN_ONLY },
   chatRoom: { service: chatRoomService, access: ADMIN_ONLY },
