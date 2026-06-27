@@ -15,6 +15,7 @@ import {
   type PurchaseStatusResponse,
 } from "../../services/client/purchaseRequestClient";
 import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/features/core/wallet";
+import { useGoogleAdsConversion } from "@/lib/googleTag";
 import { MilestoneNotifications } from "@/features/core/milestone/components/MilestoneNotifications";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 
@@ -31,6 +32,18 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
   const [purchaseInfo, setPurchaseInfo] = useState<PurchaseStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // コイン購入完了コンバージョン（status==="completed" 時のみ・transaction_id で dedup。env 未設定なら no-op）
+  const { fire } = useGoogleAdsConversion();
+  useEffect(() => {
+    if (!requestId) return;
+    if (purchaseInfo?.status !== "completed") return;
+    fire("coinPurchase", {
+      value: purchaseInfo.paymentAmount,
+      currency: "JPY",
+      transactionId: requestId,
+    });
+  }, [purchaseInfo, requestId, fire]);
 
   useEffect(() => {
     if (!requestId) {

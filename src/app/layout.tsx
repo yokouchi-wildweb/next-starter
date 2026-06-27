@@ -9,6 +9,7 @@ import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider"
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
+import { GoogleTag } from "@/lib/googleTag";
 import { AuthSessionProvider } from "@/features/core/auth/components/AuthSessionProvider";
 import { AdminCommandProvider } from "src/features/core/adminCommand";
 import { RecaptchaProvider } from "@/components/Providers/RecaptchaProvider";
@@ -56,6 +57,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <MicrosoftClarity />
         </Suspense>
+        <GoogleTag />
         <ViewportHeightWatcher />
         <GlobalScreenLoader />
         <GlobalToast />
