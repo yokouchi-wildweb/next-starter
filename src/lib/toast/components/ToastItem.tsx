@@ -190,6 +190,9 @@ export function ToastItem({ toast, onClose }: Props) {
       {...bind()}
       onClick={handleClick}
       style={{
+        // toast.style を先に展開し、ドラッグ制御プロパティを後置して必ず勝たせる
+        // (consumer が transform/opacity を渡してもスワイプ挙動を壊さない)
+        ...toast.style,
         transform: `translate(${offset.x}px, ${offset.y}px)`,
         opacity,
         touchAction: isNotification ? "none" : "auto",
@@ -210,7 +213,10 @@ export function ToastItem({ toast, onClose }: Props) {
       {/* 下層: 不透明な背景 */}
       <div className="absolute inset-0 rounded-xl bg-white dark:bg-gray-900" />
       {/* 上層: 透過色背景 + コンテンツ */}
+      {/* toast.style はこの可視レイヤーにも適用する（下層の不透明レイヤーに隠れず */}
+      {/* 動的グラデ背景等が実際に見える。className と同じく root/コンテンツ両方に当てる挙動） */}
       <div
+        style={toast.style}
         className={cn(
           "relative flex items-center",
           "rounded-xl",

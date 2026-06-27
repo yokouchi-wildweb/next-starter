@@ -40,6 +40,7 @@ export const internalStore = create<ToastState>((set) => ({
         className: options.className,
         iconClassName: options.iconClassName,
         textClassName: options.textClassName,
+        style: options.style,
       },
     });
     return id;

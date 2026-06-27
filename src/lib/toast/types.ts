@@ -1,6 +1,6 @@
 // lib/toast/types.ts
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export type ToastMode = "notification" | "persistent";
 
@@ -46,6 +46,12 @@ export type Toast = {
   iconClassName?: string;
   /** テキスト部分のカスタムクラス */
   textClassName?: string;
+  /**
+   * トースト本体に適用するインラインスタイル。
+   * 実行時に算出する動的な見た目（テーマ色・データ駆動のグラデ背景等）向け。
+   * className と重複するプロパティはインラインスタイルが優先（DOM標準挙動）。
+   */
+  style?: CSSProperties;
 };
 
 export type ToastOptions = {
@@ -64,4 +70,10 @@ export type ToastOptions = {
   iconClassName?: string;
   /** テキスト部分のカスタムクラス */
   textClassName?: string;
+  /**
+   * トースト本体に適用するインラインスタイル。
+   * 実行時に算出する動的な見た目（テーマ色・データ駆動のグラデ背景等）向け。
+   * className と重複するプロパティはインラインスタイルが優先（DOM標準挙動）。
+   */
+  style?: CSSProperties;
 };
