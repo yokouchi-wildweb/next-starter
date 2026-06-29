@@ -33,6 +33,8 @@ export const buttonVariants = cva("disabled:pointer-events-auto disabled:cursor-
         "bg-accent text-accent-foreground shadow-lg hover:bg-accent/90 focus-visible:ring-accent/30 dark:focus-visible:ring-accent/50",
       // ツールバーなどで使うアイコンのみの控えめなボタン。
       mutedIcon: "text-muted-foreground hover:text-foreground",
+      // 色を一切付与しないニュートラル。独自スタイルを className で当てつつ、共通挙動(cursor/focus/a11y)だけ継承したい場合に使う。
+      none: "",
     },
     size: {
       // インラインUIなど極小サイズ。
@@ -55,6 +57,8 @@ export const buttonVariants = cva("disabled:pointer-events-auto disabled:cursor-
       xxxl: "h-16 rounded-md px-12 min-w-36",
       // アイコンのみで使う正方形サイズ。
       icon: "size-9",
+      // 高さ・padding・min-width を一切付与しないニュートラル。寸法を className で完全に制御したい場合に使う。
+      none: "",
     },
     /** アイコン付きボタンの視覚的補正を有効にする @default false */
     opticalAdjust: {
