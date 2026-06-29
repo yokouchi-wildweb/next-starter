@@ -24,7 +24,7 @@ import {
   type Range,
 } from "@tanstack/react-virtual";
 import { cn } from "@/lib/cn";
-import { SortableItem, StaticItem } from "./components";
+import { HeaderRow, SortableItem, StaticItem } from "./components";
 import type {
   SortableItem as SortableItemType,
   SortableListProps,
@@ -82,6 +82,8 @@ export default function SortableList<T extends SortableItemType>({
   columns,
   onReorder,
   showDragHandle = true,
+  showHeader = false,
+  headerClassName,
   draggingClassName,
   className,
   maxHeight,
@@ -198,9 +200,33 @@ export default function SortableList<T extends SortableItemType>({
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
 
+  /**
+   * showHeader 時にカラムヘッダー行をスクロール領域の外・上に配置する。
+   * loading / empty / データ表示のすべての状態で同じヘッダーが表示され、
+   * 本文の仮想スクロールにも干渉しない（ヘッダーは scroll element の外側）。
+   * showHeader=false のときは本文をそのまま返し、既存の描画と完全に一致させる。
+   */
+  const withHeader = (body: React.ReactNode) => {
+    if (!showHeader) {
+      return body;
+    }
+    return (
+      <div className="flex w-full max-w-full flex-col gap-2">
+        <HeaderRow
+          columns={columns}
+          showDragHandle={showDragHandle}
+          itemPaddingX={itemPaddingX}
+          itemPaddingY={itemPaddingY}
+          className={headerClassName}
+        />
+        {body}
+      </div>
+    );
+  };
+
   // ローディング中またはマウント前はスケルトンを表示
   if (isLoading || !mounted) {
-    return (
+    return withHeader(
       <div
         className={cn("w-full max-w-full flex flex-col gap-2", className)}
         style={{ maxHeight: resolvedMaxHeight }}
@@ -216,7 +242,7 @@ export default function SortableList<T extends SortableItemType>({
   }
 
   if (items.length === 0) {
-    return (
+    return withHeader(
       <div
         className={cn(
           "w-full max-w-full flex items-center justify-center rounded-lg border border-dashed p-8",
@@ -229,7 +255,7 @@ export default function SortableList<T extends SortableItemType>({
     );
   }
 
-  return (
+  return withHeader(
     <div
       ref={scrollContainerRef}
       className={cn("w-full max-w-full overflow-y-auto", className)}

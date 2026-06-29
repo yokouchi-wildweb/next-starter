@@ -122,6 +122,20 @@ export type SortableListProps<T extends SortableItem> = {
    */
   columns: SortableListColumn<T>[];
   /**
+   * カラムヘッダー行を表示するか。
+   * true のとき、各カラムの `header` をスクロール領域の外・上に常時表示する
+   * （loading / empty / データ表示のすべての状態で表示され、本文の仮想スクロール中も
+   * 常に見える）。データ行とドラッグハンドル幅・gap・カラムごとの width/align/padding を
+   * 共有して厳密に整列する。
+   * @default false
+   */
+  showHeader?: boolean;
+  /**
+   * ヘッダー行に適用するクラス名。
+   * sticky 化やボーダー追加など、下流で見た目を上書きするための拡張点。
+   */
+  headerClassName?: string;
+  /**
    * 並び替え完了時のコールバック
    */
   onReorder: (result: ReorderResult) => void;
