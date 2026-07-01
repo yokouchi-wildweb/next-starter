@@ -10,12 +10,12 @@ const footerContainer = cva(
   "h-12 flex items-center justify-center px-6 bg-background text-foreground shadow-inner text-sm",
 );
 
-export function Footer() {
+export function Footer({ className }: { className?: string }) {
   const year = new Date().getFullYear();
   const footerText = `© ${year} ${businessConfig.serviceName}`;
 
   return (
-    <footer id={APP_FOOTER_ELEMENT_ID} className={cn(footerContainer())}>
+    <footer id={APP_FOOTER_ELEMENT_ID} className={cn(footerContainer(), className)}>
       {footerText}
     </footer>
   );

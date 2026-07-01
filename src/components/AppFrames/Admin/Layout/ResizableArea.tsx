@@ -58,11 +58,16 @@ export function ResizableArea({
         />
       ) : null}
 
-      {/* メイン領域: ここがスクロールコンテナ。Footer は内部末尾に流し込み、
-          コンテンツが短い場合は flex-1 のスペーサで最下部に押し下げる sticky-bottom 構成 */}
+      {/* メイン領域: ここがスクロールコンテナ。children を直接インラインし、
+          Footer は mt-auto で最下部へ押し下げる sticky-bottom 構成。
+          中間の block wrapper を挟まないことで、<AdminPage fill> の
+          flex-1 min-h-0 高さチェーンがページまで伝播し、fill ページは
+          内部ペインが独自にスクロールできる（外側は非スクロール）。
+          non-fill ページは従来通り: 背の高いコンテンツはここでスクロールし、
+          短いコンテンツは Footer の mt-auto が最下部へ押し下げる。 */}
       <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">
-        <div className="flex-1">{children}</div>
-        <Footer />
+        {children}
+        <Footer className="mt-auto" />
       </div>
     </div>
   );

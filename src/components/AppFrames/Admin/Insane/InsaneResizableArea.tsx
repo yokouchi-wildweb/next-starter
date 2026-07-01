@@ -58,7 +58,10 @@ export function InsaneResizableArea({
       ) : null}
 
       {/* メイン領域: 縦スクロールはここで担う。AdminOuterLayout 側は overflow-hidden に変更されたため、
-          insane 配下でコンテンツが画面高を超える場合のスクロール責務はこのコンテナが持つ。 */}
+          insane 配下でコンテンツが画面高を超える場合のスクロール責務はこのコンテナが持つ。
+          children を中間 wrapper なしで直接インラインしているため、<AdminPage fill> の
+          flex-1 min-h-0 高さチェーンはそのまま伝播する（ResizableArea と構造的に対称）。
+          このバリアントは Footer を持たないため mt-auto の sticky-bottom 処理は不要。 */}
       <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">{children}</div>
     </div>
   );
