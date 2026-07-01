@@ -30,20 +30,49 @@ const SIZE_CLASS: Record<PopoverSize, string> = {
   auto: "w-auto",
 };
 
+// 複数の ref を1つに束ねる（内部用）
+function mergeRefs<T>(
+  ...refs: (React.Ref<T> | undefined)[]
+): React.RefCallback<T> {
+  return (node: T) => {
+    for (const ref of refs) {
+      if (!ref) continue;
+      if (typeof ref === "function") ref(node);
+      else (ref as React.MutableRefObject<T | null>).current = node;
+    }
+  };
+}
+
+// Popover 内部コンテキスト（トリガーの DOM 位置を Content から参照するため）
+type PopoverContextValue = {
+  /** トリガー要素の ref（ダイアログ入れ子検出に使う） */
+  triggerRef: React.MutableRefObject<HTMLElement | null>;
+};
+
+const PopoverContext = React.createContext<PopoverContextValue | null>(null);
+
 // Popover Root
 function PopoverRoot({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-  return <PopoverPrimitive.Root data-slot="popover" {...props} />;
+  const triggerRef = React.useRef<HTMLElement | null>(null);
+  return (
+    <PopoverContext.Provider value={{ triggerRef }}>
+      <PopoverPrimitive.Root data-slot="popover" {...props} />
+    </PopoverContext.Provider>
+  );
 }
 
 // Popover Trigger
 function PopoverTrigger({
   className,
+  ref,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
+  const ctx = React.useContext(PopoverContext);
   return (
     <PopoverPrimitive.Trigger
+      ref={mergeRefs(ctx?.triggerRef, ref)}
       data-slot="popover-trigger"
       className={cn("cursor-pointer", className)}
       {...props}
@@ -108,9 +137,20 @@ export type PopoverContentProps = React.ComponentProps<
   showArrow?: boolean;
   /** 閉じるボタンを表示するか */
   showClose?: boolean;
-  /** ポータルを使用するか（デフォルト: true） */
+  /**
+   * ポータルを使用するか。
+   * 未指定時は自動判定: ダイアログ/モーダル内に入れ子のときは非ポータル（false）、
+   * それ以外は従来通りポータル（true）。
+   * 理由: Radix Dialog の react-remove-scroll は body 直下ポータル（ダイアログ外）の
+   * wheel/touch を食うため、入れ子時は非ポータルにしてスクロールを通す。
+   */
   usePortal?: boolean;
-  /** 上位レイヤー（ダイアログ/モーダル等）との操作で閉じないようにするか（デフォルト: true） */
+  /**
+   * ダイアログ自身の dismiss 操作（オーバーレイ/閉じるボタン）でポップオーバーが
+   * 閉じないようにするか（デフォルト: true）。
+   * 注: 空のモーダル本体など、ダイアログの dismiss chrome 以外の外側クリックは
+   * （standard なポップオーバーUXとして）常にポップオーバーを閉じる。
+   */
   preventLayerDismiss?: boolean;
   /** ポインターイベントの親要素への伝播を止めるか（デフォルト: true） */
   stopPropagation?: boolean;
@@ -124,7 +164,7 @@ function PopoverContent({
   layer = "overlay",
   showArrow = false,
   showClose = false,
-  usePortal = true,
+  usePortal,
   preventLayerDismiss = true,
   stopPropagation = true,
   onInteractOutside,
@@ -145,13 +185,14 @@ function PopoverContent({
     (event: InteractOutsideEvent) => {
       if (preventLayerDismiss) {
         const target = event.target as HTMLElement | null;
-        // ダイアログ/モーダル関連の要素をクリックした場合は閉じない
+        // ダイアログ「自身の dismiss chrome」（オーバーレイ/閉じるボタン）だけは
+        // ポップオーバーの外クリック閉じを抑止する。
+        // 以前は [data-slot="dialog-content"] / [role="dialog"] まで一致させていたため、
+        // モーダル本体まるごとが該当し、モーダル内のどこをクリックしても閉じなかった。
+        // 空のモーダル本体クリック等は下の onInteractOutside に流し、正しく閉じる。
         if (
           target?.closest('[data-slot="dialog-overlay"]') ||
-          target?.closest('[data-slot="dialog-content"]') ||
-          target?.closest('[data-slot="dialog-close"]') ||
-          target?.closest('[role="dialog"]') ||
-          target?.closest('[role="alertdialog"]')
+          target?.closest('[data-slot="dialog-close"]')
         ) {
           event.preventDefault();
           return;
@@ -217,6 +258,14 @@ function PopoverContent({
     [stopPropagation, onContextMenu]
   );
 
+  // ダイアログ/モーダル内に入れ子かどうかをトリガーの DOM 位置から判定
+  const ctx = React.useContext(PopoverContext);
+  const nestedInDialog =
+    typeof document !== "undefined" &&
+    Boolean(ctx?.triggerRef.current?.closest('[data-slot="dialog-content"]'));
+  // 明示指定があれば尊重、無ければ入れ子時のみ非ポータル（RemoveScroll対策）
+  const effectivePortal = usePortal ?? !nestedInDialog;
+
   const content = (
     <PopoverPrimitive.Content
       data-slot="popover-content"
@@ -251,7 +300,7 @@ function PopoverContent({
     </PopoverPrimitive.Content>
   );
 
-  if (usePortal) {
+  if (effectivePortal) {
     return <PopoverPrimitive.Portal>{content}</PopoverPrimitive.Portal>;
   }
 
