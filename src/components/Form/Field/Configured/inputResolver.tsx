@@ -7,6 +7,7 @@ import {
   BooleanCheckboxInput,
   CheckGroupInput,
   ColorInput,
+  ColorValueInput,
   ComboboxInput,
   DateInput,
   DatetimeInput,
@@ -195,6 +196,11 @@ export function renderInputByFormType<
     case "colorInput":
       return <ColorInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
+    case "colorValueInput":
+      // domain.json 経由では default の意味（resolveDefault/プレビュー）を注入できないため
+      // 既定挙動でレンダリングする。意味を注入したい場合は Controlled/Manual を直接利用すること。
+      return <ColorValueInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+
     case "hidden":
       return <input type="hidden" {...field} />;
 
@@ -323,6 +329,7 @@ const BLUR_MODE_CONFIG: Record<FormInputType, "immediate" | "debounce" | "none">
 
   // 即時保存: カラーピッカー確定時
   colorInput: "immediate",
+  colorValueInput: "immediate",
 
   // デバウンス保存: 連続操作の可能性がある
   checkbox: "debounce",

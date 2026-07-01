@@ -35,3 +35,4 @@ export type { ControlledAsyncComboboxInputProps } from "./AsyncComboboxInput";
 export { AsyncMultiSelectInput } from "./AsyncMultiSelectInput";
 export type { ControlledAsyncMultiSelectInputProps } from "./AsyncMultiSelectInput";
 export { ColorInput } from "./ColorInput";
+export { ColorValueInput } from "./ColorValueInput";

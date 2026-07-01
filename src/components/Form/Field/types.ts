@@ -26,6 +26,7 @@ export type FormInputType =
   | "emailInput"
   | "passwordInput"
   | "colorInput"
+  | "colorValueInput"
   | "mediaUploader"
   | "mediaUploaderMulti"
   | "hidden"
