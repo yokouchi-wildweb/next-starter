@@ -33,6 +33,7 @@ export default function AdminPage({ children, fill = false }: AdminPageProps) {
   if (fill) {
     return (
       <Main
+        data-admin-fill=""
         containerType="plain"
         padding="none"
         paddingBlock="none"

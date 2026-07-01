@@ -61,3 +61,18 @@
     --admin-header-padding-y: 0.75rem;
   }
 }
+
+/*
+ * ResizableArea のメイン領域ラッパー（[data-admin-main-wrapper]）の mode 切替。
+ * 既定は display:block（flex-1 で伸長）— non-fill ページは中身の高さぶんに伸びて
+ * 外側スクロールコンテナがスクロールする（従来挙動）。
+ * <AdminPage fill> が配下に data-admin-fill を出している時だけ、ラッパーを
+ * flex-col + min-height:0 の束縛モードへ切り替え、fill の flex-1 min-h-0 高さ
+ * チェーンをページへ伝播させる（外側は非スクロール、内部ペインが独自スクロール）。
+ * :has() は全モダンブラウザで対応済み。
+ */
+[data-admin-main-wrapper]:has([data-admin-fill]) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}

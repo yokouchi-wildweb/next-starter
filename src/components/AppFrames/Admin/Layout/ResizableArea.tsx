@@ -58,16 +58,24 @@ export function ResizableArea({
         />
       ) : null}
 
-      {/* メイン領域: ここがスクロールコンテナ。children を直接インラインし、
-          Footer は mt-auto で最下部へ押し下げる sticky-bottom 構成。
-          中間の block wrapper を挟まないことで、<AdminPage fill> の
-          flex-1 min-h-0 高さチェーンがページまで伝播し、fill ページは
-          内部ペインが独自にスクロールできる（外側は非スクロール）。
-          non-fill ページは従来通り: 背の高いコンテンツはここでスクロールし、
-          短いコンテンツは Footer の mt-auto が最下部へ押し下げる。 */}
+      {/* メイン領域: ここがスクロールコンテナ。Footer は内部末尾に流し込み、
+          コンテンツが短い場合は flex-1 のスペーサで最下部に押し下げる sticky-bottom 構成。
+
+          ラッパーは既定では display:block のまま（flex-1 は flex アイテムとしての
+          伸長指定）。non-fill ページ（中身が overflow-hidden な Main）は、この
+          ブロックラッパーが中身の高さぶんに伸びることでコンテナがスクロールする。
+          直接 flex アイテム化すると Main の overflow-hidden により最小高が 0 に
+          潰れてクリップされる（＝スクロール不能になる）ため、ここは必ずブロック。
+
+          <AdminPage fill> の時だけ、配下の data-admin-fill を :has() で検知して
+          このラッパーを flex-col + min-h-0 の束縛モードに切り替える（styles/config.css）。
+          これにより fill の flex-1 min-h-0 高さチェーンがページへ伝播し、内部ペインが
+          独自スクロール、外側は非スクロールになる。 */}
       <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">
-        {children}
-        <Footer className="mt-auto" />
+        <div data-admin-main-wrapper className="flex-1">
+          {children}
+        </div>
+        <Footer />
       </div>
     </div>
   );
