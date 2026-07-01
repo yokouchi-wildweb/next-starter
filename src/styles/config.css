@@ -36,4 +36,28 @@
   --layout-width-wide-showcase: 96rem;
 
   --app-header-height: 0px;
+
+  /*
+   * Admin レイアウトの縦横スペーシングトークン。
+   * AdminPage / Header がこれらを参照することで、フルハイトレイアウトが
+   * calc(100dvh - Nrem) のマジックナンバーに依存せず、ヘッダー密度や
+   * ページ余白の変更に自動追従する。既定値は従来の見た目を厳密に維持:
+   *   --admin-page-padding-inline: Main padding="lg"  (p-4 → sm:p-6)
+   *   --admin-page-padding-block : Main paddingBlock="xl" (py-6 → sm:py-10)
+   *   --admin-header-padding-y   : Header py-2 → sm:py-3
+   * sm 境界(40rem)での切替は下部の @media で行う。
+   * downstream はこれらのトークンを上書きするだけで、共有コンポーネントを
+   * 編集せずにヘッダー密度・ページ余白を調整できる。
+   */
+  --admin-page-padding-inline: 1rem;
+  --admin-page-padding-block: 1.5rem;
+  --admin-header-padding-y: 0.5rem;
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --admin-page-padding-inline: 1.5rem;
+    --admin-page-padding-block: 2.5rem;
+    --admin-header-padding-y: 0.75rem;
+  }
 }

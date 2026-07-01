@@ -17,8 +17,11 @@ import {
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { logoPath } from "@/utils/assets";
 
+// 縦 padding は --admin-header-padding-y トークン経由（sm 切替はトークン側の
+// メディアクエリで吸収）。downstream はトークン上書きだけでヘッダー密度を
+// 変更でき、共有コンポーネントを編集する必要がない。
 const headerContainer = cva(
-  "flex items-center justify-between gap-3 px-4 py-2 text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:py-3 sm:text-lg",
+  "flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg",
 );
 
 export function Header() {
