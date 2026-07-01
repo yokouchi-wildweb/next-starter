@@ -15,11 +15,14 @@ export type ColorInputProps = Omit<
   onChange?: (value: string) => void;
   /** blur時のコールバック */
   onBlur?: () => void;
+  /** コンパクト表示（スウォッチを縮小し、hexテキスト欄を省いたchip表示） */
+  compact?: boolean;
 };
 
 /**
  * カラー入力コンポーネント
  * ネイティブカラーピッカー + hexコードテキスト入力の組み合わせ
+ * compact=true では hexテキスト欄を省いた小さなchip表示になる（密なレイアウト向け）
  */
 const ColorInput = React.forwardRef<HTMLInputElement, ColorInputProps>(
   (props, ref) => {
@@ -30,6 +33,7 @@ const ColorInput = React.forwardRef<HTMLInputElement, ColorInputProps>(
       onBlur,
       readOnly,
       disabled,
+      compact = false,
       ...rest
     } = props;
 
@@ -46,20 +50,30 @@ const ColorInput = React.forwardRef<HTMLInputElement, ColorInputProps>(
       onChange?.(e.target.value);
     };
 
+    const swatch = (
+      <input
+        ref={compact ? ref : undefined}
+        type="color"
+        value={value || "#000000"}
+        onChange={handleColorChange}
+        onBlur={onBlur}
+        disabled={disabled || readOnly}
+        className={cn(
+          "shrink-0 cursor-pointer rounded-md border border-muted-foreground/50 p-0.5",
+          compact ? "h-8 w-8" : "h-10 w-10",
+          (readOnly || disabled) && "cursor-not-allowed opacity-50",
+        )}
+        {...rest}
+      />
+    );
+
+    if (compact) {
+      return <div className={cn("inline-flex items-center", className)}>{swatch}</div>;
+    }
+
     return (
       <div className={cn("flex items-center gap-2", className)}>
-        <input
-          type="color"
-          value={value || "#000000"}
-          onChange={handleColorChange}
-          onBlur={onBlur}
-          disabled={disabled || readOnly}
-          className={cn(
-            "h-10 w-10 shrink-0 cursor-pointer rounded-md border border-muted-foreground/50 p-0.5",
-            (readOnly || disabled) && "cursor-not-allowed opacity-50",
-          )}
-          {...rest}
-        />
+        {swatch}
         <ShadcnInput
           ref={ref}
           type="text"

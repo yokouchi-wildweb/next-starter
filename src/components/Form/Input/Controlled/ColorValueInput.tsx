@@ -14,7 +14,15 @@ type ColorValueInputProps<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
 > = Omit<ControlledInputProps<TFieldValues, TName>, "onChange" | "value" | "type"> &
-  Pick<ManualProps, "modes" | "defaultPreview" | "defaultLabel" | "gradients">;
+  Pick<
+    ManualProps,
+    | "modes"
+    | "defaultPreview"
+    | "defaultLabel"
+    | "gradients"
+    | "layout"
+    | "gradientPickerVariant"
+  >;
 
 export const ColorValueInput = <
   TFieldValues extends FieldValues,
@@ -22,12 +30,21 @@ export const ColorValueInput = <
 >(
   props: ColorValueInputProps<TFieldValues, TName>,
 ) => {
-  const { field, modes, defaultPreview, defaultLabel, gradients, ...rest } = props;
+  const {
+    field,
+    modes,
+    defaultPreview,
+    defaultLabel,
+    gradients,
+    layout,
+    gradientPickerVariant,
+    ...rest
+  } = props;
   const { value, onChange, onBlur } = field;
 
   return (
     <ManualColorValueInput
-      value={(value as ColorValue | null) ?? null}
+      value={(value as ColorValue | string | null) ?? null}
       onChange={onChange}
       onBlur={onBlur}
       readOnly={rest.readOnly}
@@ -37,6 +54,8 @@ export const ColorValueInput = <
       defaultPreview={defaultPreview}
       defaultLabel={defaultLabel}
       gradients={gradients}
+      layout={layout}
+      gradientPickerVariant={gradientPickerVariant}
     />
   );
 };

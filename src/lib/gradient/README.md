@@ -54,8 +54,11 @@ export const customGradients: GradientTokenInput[] = [
 `colorInput` を拡張した **`colorValueInput`**（3モード）。ドメイン非依存に保つため `"default"` の意味（プレビュー/ラベル）は props で注入する。
 
 - Manual: `@/components/Form/Input/Manual` → `ColorValueInput`
-- Controlled: `@/components/Form/Input/Controlled` → `ColorValueInput`（RHF `field` を渡す。値は `ColorValue`）
-- props: `modes?`, `defaultPreview?`, `defaultLabel?`, `gradients?`
+- Controlled: `@/components/Form/Input/Controlled` → `ColorValueInput`（RHF `field` を渡す。値は `ColorValue`。生CSS文字列も受理し内部で `normalizeColorValue`）
+- props: `modes?`, `defaultPreview?`, `defaultLabel?`, `gradients?`, `layout?`, `gradientPickerVariant?`
+- `layout`: `"stack"`（既定・縦積みブロック）/ `"inline"`（1行セグメンテッド＋インラインchip＋gradientドロップダウン。密なテーブル行向け）
+- `gradientPickerVariant`: `"grid"` / `"dropdown"`（既定は layout から導出。stack→grid, inline→dropdown）
+- `value`: `ColorValue | string | null`。生CSS文字列（旧データ）を渡しても内部正規化されモードが確定する
 - `FormInputType: "colorValueInput"` として `inputResolver` にも登録済み（domain.json 経由では default の意味注入ができないため既定挙動。意味を注入したい場合は Controlled/Manual を直接利用）。
 
 ```tsx
