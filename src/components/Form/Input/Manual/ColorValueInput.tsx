@@ -13,7 +13,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import {
@@ -42,6 +42,10 @@ const ALL_MODES: ColorMode[] = ["default", "solid", "gradient"];
 
 /** ドロップダウンに検索欄を出す閾値（これを超えたら検索可能） */
 const DROPDOWN_SEARCH_THRESHOLD = 8;
+
+/** inline レイアウトで全モード共通に使う正方形スウォッチのクラス */
+const INLINE_SWATCH_CLASS =
+  "h-8 w-8 shrink-0 rounded-md border border-muted-foreground/50";
 
 export type ColorValueLayout = "stack" | "inline";
 export type GradientPickerVariant = "grid" | "dropdown";
@@ -235,27 +239,22 @@ function GradientDropdown(props: {
   return (
     <PopoverRoot open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
+        {/* 全モード共通の正方形スウォッチ。選択中グラデを表示し、クリックでポップオーバーを開く */}
         <button
           type="button"
           disabled={locked}
+          aria-label={
+            selected ? `グラデーション: ${selected.label}` : "グラデーションを選択"
+          }
+          title={selected?.label ?? "グラデーションを選択"}
           className={cn(
-            "inline-flex h-8 min-w-40 items-center gap-2 rounded-md border border-muted-foreground/40 bg-background px-2 text-sm",
+            INLINE_SWATCH_CLASS,
+            "cursor-pointer p-0",
+            !selected && "bg-muted",
             locked && "cursor-not-allowed opacity-50",
           )}
-        >
-          {selected ? (
-            <>
-              <span
-                className="h-4 w-6 shrink-0 rounded-sm"
-                style={{ background: selected.cssValue }}
-              />
-              <span className="truncate">{selected.label}</span>
-            </>
-          ) : (
-            <span className="truncate text-muted-foreground">選択...</span>
-          )}
-          <ChevronDown className="ml-auto size-4 shrink-0 text-muted-foreground" />
-        </button>
+          style={selected ? { background: selected.cssValue } : undefined}
+        />
       </PopoverTrigger>
       <PopoverContent size="sm" className="p-0">
         {searchable && (
@@ -364,10 +363,12 @@ const ColorValueInput = React.forwardRef<HTMLDivElement, ColorValueInputProps>(
       if (current.mode === "default") {
         return (
           <div className="flex items-center gap-2">
+            {/* default は表示専用（inert）。inline では他モードと同じ正方形スウォッチ */}
             <span
               className={cn(
-                "shrink-0 rounded-md border border-muted-foreground/50",
-                inline ? "h-8 w-8" : "h-10 w-10",
+                inline
+                  ? INLINE_SWATCH_CLASS
+                  : "h-10 w-10 shrink-0 rounded-md border border-muted-foreground/50",
               )}
               style={{ background: defaultPreview ?? "transparent" }}
             />
