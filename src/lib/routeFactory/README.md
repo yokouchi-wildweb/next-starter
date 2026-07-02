@@ -78,6 +78,13 @@ export const GET = createDomainRoute<any, Params>(
 
 アクセスポリシーは serviceRegistry の登録エントリ（`{ service, access }`）で宣言する（型必須）。
 
+> **注意（よくある誤解）**: `/api/<domain>/` に独自の静的サブルート（例 `/api/coupon/redeem`）が
+> あっても、汎用 `/api/[domain]/**` は**そのまま動く**。「静的フォルダが汎用ルートをシャドーして 404 に
+> なる」ことは**無い**（Next.js はフルパスでマッチし、静的は完全一致パスだけを占有する）。ミラールートの
+> ような対策は不要。client で setting 等が読めない場合はルーティングではなく**アクセス制御**（例:
+> setting は `ADMIN_ONLY`）を疑う。詳細と検証手順:
+> [docs/troubleshooting/APIルートの静的フォルダは汎用domainルートをシャドーしない.md](../../../docs/troubleshooting/APIルートの静的フォルダは汎用domainルートをシャドーしない.md)
+
 ---
 
 ### 3. `createMeRoute` - 本人専用ファクトリー（オーナーシップ）
