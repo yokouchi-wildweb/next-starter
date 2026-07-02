@@ -100,6 +100,52 @@ export const GET = createMeRoute(
 
 ---
 
+### 4. 固定ドメインファクトリー（静的フォルダ・シャドーイング対策）
+
+**問題**: Next.js App Router は静的セグメントを動的 `[domain]` より優先解決する。
+登録済みドメイン `<domain>` に対し `src/app/api/<domain>/`（例: `/api/setting/setup`,
+`/api/coupon/redeem`）という静的フォルダが存在すると、`/api/<domain>/<id>` や
+`/api/<domain>/search` 等の汎用オペレーションが `/api/[domain]/**` にフォールバックせず
+**404** になる。SSR は service 直呼びで HTTP を通らないため、クライアント CRUD
+（`createApiClient` / `use<Domain>` / `useUpdate<Domain>`）が使われて初めて露見する。
+
+**対策**: 静的フォルダを持つドメインは、必要な汎用オペレーションを固定ドメイン
+ファクトリーで **同じ場所に再公開** する。認可（serviceRegistry の access）・URLスキーム・
+ハンドラ実装は汎用ルートと完全に同一（`domainRoutes.ts` の単一ソースを共有）。domain を
+params から読むか固定値で解決するかだけが違う。
+
+```ts
+// src/app/api/<domain>/route.ts        （list + create）
+export const { GET, POST } = createDomainCollectionRouteFor("<domain>");
+// src/app/api/<domain>/[id]/route.ts   （get + update + remove）
+export const { GET, PUT, DELETE } = createDomainIdRouteFor("<domain>");
+// src/app/api/<domain>/search/route.ts
+export const { GET } = createDomainSearchRouteFor("<domain>");
+// src/app/api/<domain>/upsert/route.ts
+export const { PUT } = createDomainUpsertRouteFor("<domain>");
+```
+
+利用可能なファクトリー（各 route.ts に対応。ドメインが実際に使うオペレーションだけ mirror すればよい）:
+
+- `createDomainCollectionRouteFor` → `route.ts`（GET list / POST create）
+- `createDomainIdRouteFor` → `[id]/route.ts`（GET / PUT / DELETE）
+- `createDomainSearchRouteFor` → `search/route.ts`
+- `createDomainSearchForSortingRouteFor` → `search-for-sorting/route.ts`
+- `createDomainCountRouteFor` → `count/route.ts`
+- `createDomainUpsertRouteFor` → `upsert/route.ts`
+- `createDomainDuplicateRouteFor` → `[id]/duplicate/route.ts`
+- `createDomainHardDeleteRouteFor` → `[id]/hard-delete/route.ts`
+- `createDomainReorderRouteFor` → `[id]/reorder/route.ts`
+- `createDomainRestoreRouteFor` → `[id]/restore/route.ts`
+- `createDomainBulk{DeleteByIds,DeleteByQuery,Update,UpdateByIds,Upsert}RouteFor` → `bulk/*/route.ts`
+
+**CI ガード**: `pnpm check:route-shadow`（`scripts/check/domain-route-shadow.mjs`）が、
+`createApiClient("/api/<domain>")` で汎用クライアント CRUD を束縛しているのに静的フォルダで
+`[id]` ルートを再公開していないドメインを検出して失敗する。新しく静的フォルダを追加した際の
+シャドーイング再発を防ぐ。
+
+---
+
 ## 使用例
 
 ### 本人のデータを返す（createMeRoute）

@@ -1,42 +1,9 @@
 // src/app/api/[domain]/route.ts
 
-import { createDomainRoute } from "src/lib/routeFactory";
-import type { WithOptions } from "@/lib/crud";
-import { parseBooleanFlag, parsePositiveInteger, parseWithRelations } from "./search/utils";
-
-type DomainParams = { domain: string };
+import { buildDomainRoute, createOperation, listOperation } from "src/lib/routeFactory";
 
 // GET /api/[domain] : 指定ドメインの一覧を取得
-export const GET = createDomainRoute<any, DomainParams>(
-  {
-    operation: "GET /api/[domain]",
-    crudOp: "list",
-    operationType: "read",
-  },
-  async (req, { service }) => {
-    const query = req.nextUrl.searchParams;
-    const options: WithOptions = {};
-    const withRelations = parseWithRelations(query.get("withRelations"));
-    const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
-    const limit = parsePositiveInteger(query.get("limit"), "limit");
-    const hasManyLimit = parsePositiveInteger(query.get("hasManyLimit"), "hasManyLimit");
-    if (withRelations) options.withRelations = withRelations;
-    if (withCount) options.withCount = withCount;
-    if (typeof limit === "number") options.limit = limit;
-    if (typeof hasManyLimit === "number") options.hasManyLimit = hasManyLimit;
-    return service.list(options);
-  },
-);
+export const GET = buildDomainRoute(listOperation);
 
 // POST /api/[domain] : 指定ドメインの新規データを作成
-export const POST = createDomainRoute<any, DomainParams>(
-  {
-    operation: "POST /api/[domain]",
-    crudOp: "create",
-    operationType: "write",
-  },
-  async (req, { service }) => {
-    const { data } = await req.json();
-    return service.create(data);
-  },
-);
+export const POST = buildDomainRoute(createOperation);

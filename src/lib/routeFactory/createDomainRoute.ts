@@ -24,6 +24,18 @@ export type DomainRouteConfig<TService> = {
   /** サービスが特定のメソッドをサポートしているか確認 */
   supports?: keyof TService | Array<keyof TService>;
   /**
+   * ドメイン名を params からではなく固定値で解決する。
+   * - undefined（既定）: 従来どおり ctx.params.domain から解決（/api/[domain]/** 汎用ルート用）
+   * - 文字列: そのドメインに固定（静的フォルダ配下の再公開ルート用）
+   *
+   * Next.js App Router の静的セグメントが動的 [domain] をシャドーするケース
+   * （例: /api/setting/setup 静的フォルダが存在すると /api/setting/<id> が
+   * /api/[domain]/[id] にフォールバックせず 404 になる）で、同一の serviceRegistry
+   * と認可ルールに対して汎用オペレーションを再公開するために使う。
+   * @see createDomainCollectionRouteFor / createDomainIdRouteFor
+   */
+  fixedDomain?: string;
+  /**
    * デモユーザーの場合にDB操作をスキップするか
    * - undefined: operationType === "write" の場合に自動スキップ
    * - true: 強制的にスキップ
@@ -93,7 +105,9 @@ export function createDomainRoute<
       access: "custom",
     },
     async (req, ctx) => {
-      const { domain } = ctx.params;
+      // fixedDomain 指定時は params ではなく固定値を使う（静的フォルダ配下の再公開ルート）。
+      // 未指定時は従来どおり params から解決するため、静的フォルダを持たない既存ドメインの挙動は不変。
+      const domain = config.fixedDomain ?? ctx.params.domain;
       // ドメイン名を正規化（snake_case → camelCase）
       const normalizedDomain = toCamelCase(domain);
       const entry = services[normalizedDomain];
