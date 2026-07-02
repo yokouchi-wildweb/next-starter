@@ -1,6 +1,80 @@
 // src/app/api/[domain]/search/route.ts
 
-import { buildDomainRoute, searchOperation } from "src/lib/routeFactory";
+import { NextResponse } from "next/server";
+
+import { createDomainRoute } from "src/lib/routeFactory";
+import type { SearchParams, WithOptions } from "@/lib/crud";
+
+import {
+  BadRequestError,
+  parseOrderBy,
+  parsePositiveInteger,
+  parseBooleanFlag,
+  parseWithRelations,
+  parseSearchFields,
+  parseSearchPriorityFields,
+  parseWhere,
+  parseRelationWhere,
+} from "./utils";
+
+type DomainParams = { domain: string };
 
 // GET /api/[domain]/search : ドメインデータを検索
-export const GET = buildDomainRoute(searchOperation);
+export const GET = createDomainRoute<any, DomainParams>(
+  {
+    operation: "GET /api/[domain]/search",
+    crudOp: "search",
+    operationType: "read",
+    supports: "search",
+  },
+  async (req, { service }) => {
+    try {
+      // クエリパラメータを取得し、検索条件へ変換
+      const query = req.nextUrl.searchParams;
+
+      // ページング・ソート・検索対象フィールド・where 条件を個別に解析
+      const page = parsePositiveInteger(query.get("page"), "page");
+      const limit = parsePositiveInteger(query.get("limit"), "limit");
+      const orderBy = parseOrderBy(query.getAll("orderBy"));
+      const searchFields = parseSearchFields(query.getAll("searchFields"));
+      const searchPriorityFields = parseSearchPriorityFields(query.getAll("searchPriorityFields"));
+      const prioritizeSearchHits = parseBooleanFlag(
+        query.get("prioritizeSearchHits"),
+        "prioritizeSearchHits",
+      );
+      const where = parseWhere(query.get("where"));
+      const relationWhere = parseRelationWhere(query.get("relationWhere"));
+
+      const searchQuery = query.get("searchQuery") ?? undefined;
+
+      // WithOptions のパース
+      const withRelations = parseWithRelations(query.get("withRelations"));
+      const withCount = parseBooleanFlag(query.get("withCount"), "withCount");
+      const hasManyLimit = parsePositiveInteger(query.get("hasManyLimit"), "hasManyLimit");
+
+      // サービスへ渡す SearchParams を組み立て
+      const searchParams: SearchParams & WithOptions = {};
+      if (typeof page === "number") searchParams.page = page;
+      if (typeof limit === "number") searchParams.limit = limit;
+      if (orderBy) searchParams.orderBy = orderBy;
+      if (searchQuery) searchParams.searchQuery = searchQuery;
+      if (searchFields) searchParams.searchFields = searchFields;
+      if (where) searchParams.where = where;
+      if (relationWhere) searchParams.relationWhere = relationWhere;
+      if (searchPriorityFields) searchParams.searchPriorityFields = searchPriorityFields;
+      if (typeof prioritizeSearchHits === "boolean")
+        searchParams.prioritizeSearchHits = prioritizeSearchHits;
+      if (withRelations) searchParams.withRelations = withRelations;
+      if (withCount) searchParams.withCount = withCount;
+      if (typeof hasManyLimit === "number") searchParams.hasManyLimit = hasManyLimit;
+
+      // ドメインサービスの search を実行し結果を JSON で返却
+      return service.search(searchParams);
+    } catch (error) {
+      if (error instanceof BadRequestError) {
+        return NextResponse.json({ message: error.message }, { status: 400 });
+      }
+      throw error;
+    }
+  },
+);

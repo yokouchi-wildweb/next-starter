@@ -14,8 +14,6 @@ export {
   type DomainRouteConfig,
   type DomainRouteContext,
 } from "./createDomainRoute";
-export * from "./domainRoutes";
-export * from "./domainQuery";
 export {
   createMeRoute,
   ownerWhere,

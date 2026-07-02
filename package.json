@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "check:route-shadow": "node scripts/check/domain-route-shadow.mjs",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",
     "db:push": "cross-env APP_ENV=.env.development drizzle-kit push",
     "db:seed": "cross-env APP_ENV=.env.development npx tsx scripts/db/seed/run.ts",
