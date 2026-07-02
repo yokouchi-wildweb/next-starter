@@ -16,15 +16,20 @@ import type { z } from "zod";
 // src/features/setting/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
 /** 拡張フィールドのキー一覧 */
-const extendedKeys = new Set(Object.keys(settingExtendedSchema.shape));
+export const extendedKeys = new Set(Object.keys(settingExtendedSchema.shape));
 
 /**
- * フラットなデータを { 基本カラム, extended: {...} } 形式に変換する
+ * フラットなデータを { 基本カラム } と { 拡張フィールド } に分離する
  *
  * クライアントからは { adminListPerPage: 50, siteTitle: "Hello" } のようなフラットデータが送られてくるが、
- * DB上は extended jsonb カラムに格納するため、拡張フィールドを extended にパックする。
+ * DB上は拡張フィールドを extended jsonb カラムに格納するため、両者を振り分ける。
+ * マージ更新（settingService.update）では extended を現在値とマージする必要があるため、
+ * pack 前の生の分離結果を再利用できるようこのヘルパを切り出している。
  */
-function packExtendedFields(data: Record<string, unknown>): Record<string, unknown> {
+export function splitExtendedFields(data: Record<string, unknown>): {
+  base: Record<string, unknown>;
+  extended: Record<string, unknown>;
+} {
   const base: Record<string, unknown> = {};
   const extended: Record<string, unknown> = {};
 
@@ -35,6 +40,18 @@ function packExtendedFields(data: Record<string, unknown>): Record<string, unkno
       base[key] = value;
     }
   }
+
+  return { base, extended };
+}
+
+/**
+ * フラットなデータを { 基本カラム, extended: {...} } 形式に変換する
+ *
+ * 注意: extended は「送られてきたキーだけ」で構築されるフル置換用の形。
+ * 部分更新で他フィールドを消さないためのマージは settingService.update 側で行う。
+ */
+function packExtendedFields(data: Record<string, unknown>): Record<string, unknown> {
+  const { base, extended } = splitExtendedFields(data);
 
   // 拡張フィールドがある場合のみ extended を設定
   if (Object.keys(extended).length > 0) {

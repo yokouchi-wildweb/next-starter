@@ -210,7 +210,16 @@ const { trigger, isMutating } = useUpdateSetting();
 await trigger({ id: "global", data: { /* 更新内容 */ } });
 ```
 
-> ⚠️ **注意**: `extended` jsonb カラムは**部分更新ができず全置換**になる。`EditSettingSectionForm` は defaultValues に全フィールドを読み込むことでこの問題を吸収している。独自に `trigger` を呼ぶ場合も、保持したいフィールドは全て `data` に含める必要がある。
+> ℹ️ **extended の部分更新（マージ）**: `settingService.update` / `updateFields` は `extended` jsonb を**マージ更新**する。送っていない拡張フィールドは保持されるため、一部フィールド（例: 単一フラグ）だけを送れば安全に更新できる。
+>
+> ```typescript
+> // サーバー側: 単一フラグのトグルも他フィールドを消さずに更新できる
+> await settingService.updateFields({ someFlag: true });
+> ```
+>
+> - マージは拡張フィールド単位の shallow マージ。**配列は連結せず置換**される。
+> - `EditSettingSectionForm`（全フィールド送信）は「全集合とマージ」＝同結果で従来どおり動作する。
+> - 基本カラム（`adminListPerPage` 等）は元々列単位の部分更新。
 
 ---
 

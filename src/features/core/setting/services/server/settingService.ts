@@ -7,7 +7,7 @@ import { getZodDefaults } from "@/lib/zod";
 import { settingExtendedSchema } from "../../setting.extended";
 import type { SettingExtended } from "../../setting.extended";
 import type { AdminSetupInput } from "../types";
-import { base } from "./drizzleBase";
+import { base, extendedKeys, splitExtendedFields } from "./drizzleBase";
 
 const DEFAULT_ADMIN_LIST_PER_PAGE = 50;
 
@@ -61,6 +61,60 @@ async function getGlobalSetting(): Promise<Setting> {
   };
 }
 
+/**
+ * global 設定を部分更新する（extended jsonb をマージ）
+ *
+ * setting は singleton（id="global"）。基本カラムは createCrudService の update が
+ * 「送られてきた列だけ」を更新するので問題ないが、extended は単一の jsonb カラムのため
+ * 送られてきたキーだけで書くと他の拡張フィールドが黙って全消しされる。
+ * そこで現在の extended を読み出し、送られてきた拡張フィールドだけを上書きした
+ * 完全な集合を書き戻す。
+ *
+ * マージ方針: 拡張フィールド単位の shallow マージ。配列は連結せず置換される
+ * （incoming の配列がそのまま現在値を置き換える）。ネストした object も同様に丸ごと置換。
+ * 全フィールドを送る EditSettingSectionForm 経路は「全集合とマージ」＝同結果で無害。
+ */
+async function updateGlobalSetting(
+  data: Parameters<typeof base.update>[1],
+  tx?: Parameters<typeof base.update>[2],
+): Promise<Setting> {
+  const { base: incomingBase, extended: incomingExtended } = splitExtendedFields(
+    data as Record<string, unknown>,
+  );
+
+  // 拡張フィールドが更新対象に含まれるときのみ現在値とマージする。
+  let mergedExtendedFlat: Record<string, unknown> = incomingExtended;
+  if (Object.keys(incomingExtended).length > 0) {
+    const current = (await getGlobalSetting()) as unknown as Record<string, unknown>;
+    const currentExtended: Record<string, unknown> = {};
+    for (const key of extendedKeys) {
+      if (key in current) currentExtended[key] = current[key];
+    }
+    mergedExtendedFlat = { ...currentExtended, ...incomingExtended };
+  }
+
+  const updated = await base.update(
+    "global",
+    { ...incomingBase, ...mergedExtendedFlat } as Parameters<typeof base.update>[1],
+    tx,
+  );
+
+  // get と同じフラット形状で返す（update の戻り値を nested のまま返さない）。
+  if (!updated) return getGlobalSetting();
+  return flattenSettingRow(
+    updated as unknown as Record<string, unknown>,
+    createDefaultSettingValues(),
+  );
+}
+
+/**
+ * 拡張フィールドの一部だけを安全に更新する便宜メソッド。
+ * 例: settingService.updateFields({ someFlag: true }) — 他フィールドは保持される。
+ */
+async function updateFields(partial: Partial<Setting>): Promise<Setting> {
+  return updateGlobalSetting(partial as Parameters<typeof base.update>[1]);
+}
+
 async function getAdminListPerPage(): Promise<number> {
   const setting = await getGlobalSetting();
   return setting.adminListPerPage;
@@ -102,7 +156,11 @@ export async function initializeAdminSetup(data: AdminSetupInput): Promise<User>
 export const settingService = {
   ...base,
   get: async (_id: string) => getGlobalSetting(),
+  // extended jsonb をマージ更新するオーバーライド（全消し footgun を safe-by-default 化）
+  update: (_id: string, data: Parameters<typeof base.update>[1], tx?: Parameters<typeof base.update>[2]) =>
+    updateGlobalSetting(data, tx),
   getGlobalSetting,
+  updateFields,
   getAdminListPerPage,
   isMaintenanceActive,
   DEFAULT_ADMIN_LIST_PER_PAGE,

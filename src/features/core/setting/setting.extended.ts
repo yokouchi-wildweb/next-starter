@@ -5,9 +5,15 @@
 //
 // 使い方:
 //   1. settingExtendedSchema に Zod フィールドを追加する
-//   2. デフォルト値は .default() で指定する
+//   2. デフォルト値は .default() で指定する（EXTENDED_DEFAULT / 初期値はここから自動導出される。二重管理不要）
 //   3. DB マイグレーション不要（jsonb カラムに格納される）
 //   4. UI に出す場合は `setting.sections.ts` の任意セクションに FieldConfig を追加する
+//
+// 部分更新について:
+//   settingService.update / updateFields は extended を「マージ更新」する。
+//   一部の拡張フィールドだけを送れば、送っていない他フィールドは保持される（全消しされない）。
+//   例: settingService.updateFields({ someFlag: true })
+//   マージは拡張フィールド単位の shallow マージ。配列は連結せず「置換」される。
 //
 // 例:
 //   export const settingExtendedSchema = z.object({
