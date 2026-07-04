@@ -240,61 +240,104 @@ export async function getWalletBalanceDaily(
   const tz = range.timezone;
   const dateSql = dateExpr(tz, range.granularity);
 
-  const conditions = [
+  const filterConditions = buildBaseFilterConditions(params);
+  const rangeWhere = and(
     between(t.createdAt, range.dateFrom, range.dateTo),
-    ...buildBaseFilterConditions(params),
-  ];
-
-  // ベースライン + 日別ネット変動を並列実行
-  const baselineConditions = [
+    ...filterConditions,
+  )!;
+  const baselineWhere = and(
     lte(t.createdAt, range.dateFrom),
-    ...buildBaseFilterConditions(params),
-  ];
+    ...filterConditions,
+  )!;
 
-  const [baselineRows, dailyRows] = await Promise.all([
-    // 1. ベースライン: 期間開始前の全ユーザー残高合計（DISTINCT ON で各ユーザーの最新残高）
-    db
-      .select({
-        total: sql<number>`COALESCE(SUM(sub.balance_after), 0)`.as("total"),
-      })
-      .from(
-        db
-          .selectDistinctOn([t.user_id], {
-            balance_after: t.balance_after,
-          })
-          .from(t)
-          .where(and(...baselineConditions))
-          .orderBy(t.user_id, sql`${t.createdAt} DESC`)
-          .as("sub"),
-      ),
-    // 2. 日別ネット変動 + アクティビティ
-    db
-      .select({
-        date: dateSql,
-        netChange: sql<number>`COALESCE(SUM(${signedDeltaExpr}), 0)`.as("net_change"),
-        activeUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("active_users"),
-        recordCount: sql<number>`COUNT(*)::int`.as("record_count"),
-      })
-      .from(t)
-      .where(and(...conditions))
-      .groupBy(sql.raw("1")),
-  ]);
+  // 残高集計は balance_after スナップショットのみを情報源にする（アンカー差分方式）。
+  // points_delta の符号付き累積は、不整合な行（初期シード・手動修正・履歴prune等）が
+  // 1件でも混ざると期間依存の恒久ドリフトになるため使わない。
+  //
+  //   baseline:      期間開始時点の per-(user, type) 最新 balance_after
+  //   range_anchors: バケットごとの per-(user, type) 最新 balance_after
+  //   diffs:         アンカーの前回値（初回は baseline、なければ 0）との差分
+  //
+  // バケットごとの diff 合計を累積すると、per-(user, type) の差分がテレスコープ和で
+  // 打ち消し合い、各バケットの closing は「そのバケット終端時点の per-(user, type)
+  // 最新 balance_after の合計」に厳密に一致する。スキャン量は旧 delta 方式と同等
+  // （バケット数に比例した再スキャンをしない）。
+  const anchorQuery = db.execute(sql`
+    WITH baseline AS (
+      SELECT DISTINCT ON (${t.user_id}, ${t.type})
+        ${t.user_id} AS user_id,
+        ${t.type} AS type,
+        ${t.balance_after} AS bal
+      FROM ${t}
+      WHERE ${baselineWhere}
+      ORDER BY ${t.user_id}, ${t.type}, ${t.createdAt} DESC
+    ),
+    range_anchors AS (
+      SELECT DISTINCT ON (x.user_id, x.type, x.bucket)
+        x.user_id, x.type, x.bucket, x.bal
+      FROM (
+        SELECT
+          ${t.user_id} AS user_id,
+          ${t.type} AS type,
+          ${dateSql} AS bucket,
+          ${t.balance_after} AS bal,
+          ${t.createdAt} AS created_at
+        FROM ${t}
+        WHERE ${rangeWhere}
+      ) x
+      ORDER BY x.user_id, x.type, x.bucket, x.created_at DESC
+    ),
+    diffs AS (
+      SELECT
+        r.bucket,
+        r.bal - COALESCE(
+          LAG(r.bal) OVER (PARTITION BY r.user_id, r.type ORDER BY r.bucket),
+          b.bal,
+          0
+        ) AS diff
+      FROM range_anchors r
+      LEFT JOIN baseline b ON b.user_id = r.user_id AND b.type = r.type
+    )
+    SELECT bucket, COALESCE(SUM(diff), 0) AS amount FROM diffs GROUP BY bucket
+    UNION ALL
+    SELECT NULL::text AS bucket, COALESCE(SUM(bal), 0) AS amount FROM baseline
+  `) as Promise<Array<{ bucket: string | null; amount: string | number }>>;
 
-  const baselineBalance = Number(baselineRows[0]?.total ?? 0);
+  // アクティビティ（activeUsers / recordCount）は flow 集計のため従来どおり
+  const activityQuery = db
+    .select({
+      date: dateSql,
+      activeUsers: sql<number>`COUNT(DISTINCT ${t.user_id})::int`.as("active_users"),
+      recordCount: sql<number>`COUNT(*)::int`.as("record_count"),
+    })
+    .from(t)
+    .where(rangeWhere)
+    .groupBy(sql.raw("1"));
+
+  const [anchorRows, dailyRows] = await Promise.all([anchorQuery, activityQuery]);
+
+  // bucket=NULL 行がベースライン合計、それ以外が各バケットのアンカー差分合計
+  let baselineBalance = 0;
+  const anchorChangeMap = new Map<string, number>();
+  for (const row of anchorRows) {
+    if (row.bucket === null) {
+      baselineBalance = Number(row.amount);
+    } else {
+      anchorChangeMap.set(row.bucket, Number(row.amount));
+    }
+  }
 
   const dailyMap = new Map(dailyRows.map((r) => [r.date, {
-    netChange: Number(r.netChange),
     activeUsers: Number(r.activeUsers),
     recordCount: Number(r.recordCount),
   }]));
 
-  // 3. ベースライン + 累積ネット変動 でランニングバランスを構築
   const dateKeys = generateDateKeys(range);
   let runningBalance = baselineBalance;
 
   const history = dateKeys.map((date) => {
+    runningBalance += anchorChangeMap.get(date) ?? 0;
     const row = dailyMap.get(date);
-    runningBalance += row?.netChange ?? 0;
     return {
       date,
       closingBalance: runningBalance,
