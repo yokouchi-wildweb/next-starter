@@ -262,6 +262,10 @@ export async function getWalletBalanceDaily(
   // 打ち消し合い、各バケットの closing は「そのバケット終端時点の per-(user, type)
   // 最新 balance_after の合計」に厳密に一致する。スキャン量は旧 delta 方式と同等
   // （バケット数に比例した再スキャンをしない）。
+  //
+  // 同一 created_at の行（1トランザクション内の複数操作）は id DESC でタイブレークする。
+  // 恣意的だが決定的な選択であり、実行ごとに値が揺れることを防ぐ。テレスコープ恒等式を
+  // 保つため、タイブレークは baseline / range_anchors の両方に同一に適用すること。
   const anchorQuery = db.execute(sql`
     WITH baseline AS (
       SELECT DISTINCT ON (${t.user_id}, ${t.type})
@@ -270,7 +274,7 @@ export async function getWalletBalanceDaily(
         ${t.balance_after} AS bal
       FROM ${t}
       WHERE ${baselineWhere}
-      ORDER BY ${t.user_id}, ${t.type}, ${t.createdAt} DESC
+      ORDER BY ${t.user_id}, ${t.type}, ${t.createdAt} DESC, ${t.id} DESC
     ),
     range_anchors AS (
       SELECT DISTINCT ON (x.user_id, x.type, x.bucket)
@@ -281,11 +285,12 @@ export async function getWalletBalanceDaily(
           ${t.type} AS type,
           ${dateSql} AS bucket,
           ${t.balance_after} AS bal,
-          ${t.createdAt} AS created_at
+          ${t.createdAt} AS created_at,
+          ${t.id} AS id
         FROM ${t}
         WHERE ${rangeWhere}
       ) x
-      ORDER BY x.user_id, x.type, x.bucket, x.created_at DESC
+      ORDER BY x.user_id, x.type, x.bucket, x.created_at DESC, x.id DESC
     ),
     diffs AS (
       SELECT
