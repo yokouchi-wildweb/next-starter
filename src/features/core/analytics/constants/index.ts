@@ -41,3 +41,21 @@ export const MAX_PURCHASE_RANKING_LIMIT = 100;
 
 /** 分布APIの最大境界値数 */
 export const MAX_DISTRIBUTION_BOUNDARIES = 20;
+
+// ============================================================================
+// サーバーサイド集計キャッシュ（withAnalyticsCache）
+// ============================================================================
+
+/** 当日を含む範囲のキャッシュTTL（ミリ秒）。鮮度優先で短め */
+export const DEFAULT_ANALYTICS_CACHE_TTL_LIVE_MS = 60 * 1000;
+
+/**
+ * 確定済み範囲（過去日のみ）のキャッシュTTL（ミリ秒）。
+ *
+ * immutable にはしない: バックフィル・ロールアップ再計算・集計除外の遡及適用で
+ * 過去バケットの値も書き換わり得るため、長期だが有限のTTLに留める。
+ */
+export const DEFAULT_ANALYTICS_CACHE_TTL_CLOSED_MS = 12 * 60 * 60 * 1000;
+
+/** キャッシュの最大エントリ数（超過時はLRUで古いものから破棄） */
+export const ANALYTICS_CACHE_MAX_ENTRIES = 500;
