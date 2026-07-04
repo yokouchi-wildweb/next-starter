@@ -122,13 +122,14 @@ ref: docs/how-to/監査ログ採用ガイド.md
 ## COUNTING (which primitive — check BEFORE building any count/tracking feature)
 matrix: user×key(login-only) → userCounter | content×action(anonymous OK) → interactionTracking | each axis has lifetime + daily
 userCounter: bump(lifetime) / bumpDaily(lifetime+daily same-tx) / getTodayCount(daily-limit check) / getDailySeries. server-internal only (no client route) | ref: src/features/core/userCounter/README.md (decision guide)
-interactionTracking: public ingest POST /api/interactions (fail-closed via src/registry/interactionTargetRegistry.ts) + batch ingest POST /api/interactions/batch (impressions etc: registry batchActions only, counters-only no detail) + server record()/recordBatch(). reads: getCounts / getCountsBulk(admin list columns) / getDailySeries(marketing time-series, permanent) / getAudience+getAudienceSummary(who-clicked, admin PII) | client: trackInteraction() fire-and-forget, useImpressionTracker()(viewport→buffered batch send), <InteractionAudienceModal>(admin) | ref: src/features/core/interactionTracking/README.md
+interactionTracking: public ingest POST /api/interactions (fail-closed via src/registry/interactionTargetRegistry.ts) + batch ingest POST /api/interactions/batch (impressions etc: registry batchActions only, counters-only no detail) + server record()/recordBatch(). reads: getCounts / getCountsBulk(admin list columns) / getDailySeries(marketing time-series, permanent) / getAudience+getAudienceSummary(who-clicked, admin PII) | client: trackInteraction() fire-and-forget, useImpressionTracker()(viewport→buffered batch send) | ref: src/features/core/interactionTracking/README.md
 lifetime counters + content-daily: permanent | event detail + user-daily: retention_days + prune cron
 NOT_for: game telemetry, scroll/mousemove streams, sustained tens-of-millions events/day → needs separate queue/external pipeline, do NOT retrofit these domains
 adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = read-only aggregation over existing tables (records nothing)
 
 ## COMPONENTS
 placement: multi-domain→src/components/ or AppFrames/ | single-domain→features/\<domain\>/components/common/ | page-only→app/\<route\>/_components/
+core_domain_ui_boundary: core domains (this upstream) ship DATA LAYER ONLY (entities/services/API routes/client services/hooks) — do NOT add domain-screen UI components under src/features/core/**. Screen/design is downstream-owned; provide UI as README recipes on the data contract instead. Even if an upreq ticket requests a UI part, counter-propose data-layer + recipe (precedent: interactionTracking audience viewer, removed by 20260704-154147). Existing widgets (AuditTimeline etc.) are grandfathered — do not add new ones
 
 wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid,Stack} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton
 

@@ -142,29 +142,37 @@ const series = await interactionService.getDailySeries("bulletin", bulletin.id, 
 
 ### 5. オーディエンスビューア（誰がクリックしたか・admin 画面用）
 
-管理一覧の行クリック等から、クリックしたユーザーの一覧を表示する汎用モーダル:
+**UI は本ドメインでは提供しない**（画面・デザインは downstream の完全所有。upstream の責務は
+データレイヤまで）。以下のデータ契約の上に、各 downstream が自前の UI を組む:
+
+- API: `GET /api/admin/interactions/audience?targetType&targetId&action&page&limit&orderBy`
+  （admin 限定・PII 含む）→ `{ total, results: [{ userId, name, email, clickCount, lastClickedAt }] }`
+  - `orderBy`: `lastClickedAt`（新しい順・既定）| `clickCount`（回数順）、`limit` 既定 50・上限 100
+- API: `GET /api/admin/interactions/audience-summary?targetType&targetId`
+  → `{ [action]: { lifetimeTotal, loggedInCount, anonymousCount } }`
+- ClientService: `fetchInteractionAudience` / `fetchInteractionAudienceSummary`
+  （services/client/interactionAdminClient）
+- hooks: `useInteractionAudienceSummary(targetType, targetId, { enabled })`（SWR）。
+  一覧側は `useInfiniteScrollQuery`（src/hooks）に `fetchInteractionAudience` を渡せば
+  無限スクロールがそのまま成立する
 
 ```tsx
-import { InteractionAudienceModal } from "@/features/interactionTracking/components/common/InteractionAudienceModal";
-
-<InteractionAudienceModal
-  targetType="bulletin"
-  targetId={selected.id}
-  tabs={[
-    { action: "click", label: "バナークリック" },
-    { action: "link_click", label: "リンククリック" },
-  ]}
-  open={Boolean(selected)}
-  onOpenChange={(open) => { if (!open) setSelected(null); }}
-/>
+// downstream での実装例（UI の形は完全に自由）
+const fetcher = useCallback(
+  ({ page, limit }) => fetchInteractionAudience({ targetType, targetId, action, orderBy, page, limit }),
+  [targetType, targetId, action, orderBy],
+);
+const { items, total, isLoading, hasMore, sentinelRef } = useInfiniteScrollQuery({
+  fetcher, limit: 50, deps: [targetType, targetId, action, orderBy],
+});
 ```
 
-- タブごとにサマリー（累計 / ログイン済み / 匿名）+ ユーザー一覧（無限スクロール 50 件、
-  並び替え: 新しい順 / 回数順）
-- API: `GET /api/admin/interactions/audience` / `audience-summary`（admin 限定。PII を含むため）
-- 一覧・内訳は**明細ベース（保持期限内のみ）**、累計は永久カウンタ。prune 後に乖離するのは正常で、
-  モーダル内に注記が出る。退会済みユーザー（SET NULL）は匿名に合流する
-- `recordDetail: false` の対象は明細が無いため、一覧は明示的な非対応表示になる（累計は正確）
+UI 実装時の注意（表示側で必ず考慮すること）:
+- 一覧・ログイン/匿名内訳は**明細ベース（保持期限内のみ）**、累計は永久カウンタ。
+  prune 後に乖離するのは正常なので、その旨の注記を UI に置くこと
+- 退会済みユーザー（SET NULL）は匿名に合流する
+- `recordDetail: false` の対象は明細が無い。「累計 > 0 かつ 内訳 = 0」は「0 人」ではなく
+  「内訳非対応」として表示すること
 
 ### 6. cron の配線
 
