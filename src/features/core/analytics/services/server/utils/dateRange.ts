@@ -178,6 +178,22 @@ export function formatDateKey(date: Date): string {
 }
 
 /**
+ * YYYY-MM-DD の日付キー + タイムゾーン → その日の開始/終了（UTC Date）を返す。
+ *
+ * 日次ロールアップ等、「特定の1日」を再集計する処理でバケット境界を復元する用途。
+ * dateFrom = 00:00:00.000 / dateTo = 23:59:59.999（いずれも timezone 上のローカル時刻）。
+ */
+export function resolveDayBounds(
+  dateKey: string,
+  timezone: string,
+): { dateFrom: Date; dateTo: Date } {
+  return {
+    dateFrom: tzDateToUtc(dateKey, "00:00:00.000", timezone),
+    dateTo: tzDateToUtc(dateKey, "23:59:59.999", timezone),
+  };
+}
+
+/**
  * ResolvedDateRange → レスポンス用文字列ペア + granularity。
  *
  * dateFrom/dateTo は粒度に関わらず YYYY-MM-DD で返す（範囲の意味的な境界表現）。

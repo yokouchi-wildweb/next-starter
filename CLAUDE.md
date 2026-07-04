@@ -125,7 +125,13 @@ userCounter: bump(lifetime) / bumpDaily(lifetime+daily same-tx) / getTodayCount(
 interactionTracking: public ingest POST /api/interactions (fail-closed via src/registry/interactionTargetRegistry.ts) + batch ingest POST /api/interactions/batch (impressions etc: registry batchActions only, counters-only no detail) + server record()/recordBatch(). reads: getCounts / getCountsBulk(admin list columns) / getDailySeries(marketing time-series, permanent) / getAudience+getAudienceSummary(who-clicked, admin PII) | client: trackInteraction() fire-and-forget, useImpressionTracker()(viewport→buffered batch send) | ref: src/features/core/interactionTracking/README.md
 lifetime counters + content-daily: permanent | event detail + user-daily: retention_days + prune cron
 NOT_for: game telemetry, scroll/mousemove streams, sustained tens-of-millions events/day → needs separate queue/external pipeline, do NOT retrofit these domains
-adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = read-only aggregation over existing tables (records nothing)
+adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = read-only aggregation over existing tables (only derived data: analytics_daily_rollups = recomputable pre-aggregation cache, NOT source of truth — see ANALYTICS_PERF)
+
+## ANALYTICS_PERF (heavy dashboard reads — check BEFORE adding per-domain caching/snapshot tables)
+cache: withAnalyticsCache({key,range}, fn) — closed(past-only) range=12h TTL, includes today=60s, auto-judged | per-instance memory | NOT immutable: call invalidateAnalyticsCache() after rewriting closed buckets | escape: ANALYTICS_CACHE=disabled
+rollup: analytics_daily_rollups + src/registry/analyticsRollupRegistry.ts (downstream registers RollupMetricConfig, upstream ships none) | kind: flow(sum) | snapshot(closing value, baseline=1-row lookup → fixes running-balance full-history scans) | read: readRolledDailySeries (closed=rollup rows, today=live merge) | cron analytics-rollup-daily + backfill CLI (idempotent; backfill re-run = recompute path for retroactive fixes)
+decision: simple GROUP BY still fast → cache only | unbounded-growth scan → rollup | composable (cache front, rollup behind)
+ref: src/features/core/analytics/README.md
 
 ## COMPONENTS
 placement: multi-domain→src/components/ or AppFrames/ | single-domain→features/\<domain\>/components/common/ | page-only→app/\<route\>/_components/

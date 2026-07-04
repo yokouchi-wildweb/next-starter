@@ -65,6 +65,35 @@ const TASKS: Record<string, CronTask> = {
     const deleted = await cleanupOldLedger();
     return { deleted };
   },
+  "analytics-rollup-daily": async () => {
+    const { runDailyRollup } = await import(
+      "@/features/core/analytics/services/server/rollup"
+    );
+    return await runDailyRollup();
+  },
+  // 使い方: pnpm cron analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+  "analytics-rollup-backfill": async () => {
+    const { backfillRollup } = await import(
+      "@/features/core/analytics/services/server/rollup"
+    );
+    // pnpm は "--" をそのまま渡してくるため除去する
+    const args = process.argv.slice(3).filter((arg) => arg !== "--");
+    const metricKey = args[0];
+    if (!metricKey || metricKey.startsWith("--")) {
+      throw new Error(
+        "使い方: pnpm cron analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]",
+      );
+    }
+    const readFlag = (name: string): string | undefined => {
+      const index = args.indexOf(`--${name}`);
+      return index >= 0 ? args[index + 1] : undefined;
+    };
+    return await backfillRollup({
+      metricKey,
+      from: readFlag("from"),
+      to: readFlag("to"),
+    });
+  },
   // 今後の cron タスクはここに追加
 };
 
