@@ -119,6 +119,14 @@ ui: \<AuditTimeline targetType targetId /\> | /admin/audit-logs cross-search | r
 cron: pnpm cron audit-log-prune (0 3 * * *) | pnpm cron audit-log-recover-dead-letter (0 * * * *)
 ref: docs/how-to/監査ログ採用ガイド.md
 
+## COUNTING (which primitive — check BEFORE building any count/tracking feature)
+matrix: user×key(login-only) → userCounter | content×action(anonymous OK) → interactionTracking | each axis has lifetime + daily
+userCounter: bump(lifetime) / bumpDaily(lifetime+daily same-tx) / getTodayCount(daily-limit check) / getDailySeries. server-internal only (no client route) | ref: src/features/core/userCounter/README.md (decision guide)
+interactionTracking: public ingest POST /api/interactions (fail-closed via src/registry/interactionTargetRegistry.ts) + server record(). reads: getCounts / getCountsBulk(admin list columns) / getDailySeries(marketing time-series, permanent) | client: trackInteraction() fire-and-forget | ref: src/features/core/interactionTracking/README.md
+lifetime counters + content-daily: permanent | event detail + user-daily: retention_days + prune cron
+NOT_for: machine-generated high-frequency events (per-page impressions, game telemetry, scroll) → needs separate queue/batch pipeline, do NOT retrofit these domains
+adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = read-only aggregation over existing tables (records nothing)
+
 ## COMPONENTS
 placement: multi-domain→src/components/ or AppFrames/ | single-domain→features/\<domain\>/components/common/ | page-only→app/\<route\>/_components/
 

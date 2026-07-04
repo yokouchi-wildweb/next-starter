@@ -46,6 +46,12 @@ const TASKS: Record<string, CronTask> = {
     );
     return await pruneExpiredUserLoginEvents();
   },
+  "user-daily-counter-prune": async () => {
+    const { pruneExpiredUserDailyCounters } = await import(
+      "@/features/core/userCounter/services/server/pruning"
+    );
+    return await pruneExpiredUserDailyCounters();
+  },
   "interaction-event-prune": async () => {
     const { pruneExpiredInteractionEvents } = await import(
       "@/features/core/interactionTracking/services/server"
