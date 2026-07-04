@@ -17,6 +17,10 @@ export type {
   WalletOperationOptions,
   AdjustBalanceOptions,
   GetWalletOptions,
+  ExpiringLot,
+  ExpiringLotsSummary,
+  UserExpiringAmount,
+  ExpiringLotsPayload,
 } from './services/types';
 
 // トランザクション関連の型
@@ -24,6 +28,8 @@ export type { TransactionClient } from './services/server/wrappers/utils';
 
 // 設定
 export { CURRENCY_CONFIG } from '@/config/app/currency.config';
+export { WALLET_EXPIRATION_CONFIG } from '@/config/app/wallet-expiration.config';
+export type { WalletExpirationConfig } from '@/config/app/wallet-expiration.config';
 
 // 派生定数
 export { WalletTypeOptions } from './constants/currency';
@@ -39,3 +45,11 @@ export {
   getAllMetaFields,
   getMetaFieldLabelMap,
 } from './utils/currency';
+export {
+  getExpirationDays,
+  isExpirationEnabled,
+  isSweepEnabled,
+  getExpirationEnabledWalletTypes,
+  getSweepEnabledWalletTypes,
+  calcExpiresAt,
+} from './utils/expiration';

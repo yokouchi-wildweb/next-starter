@@ -3,6 +3,7 @@
 import { WalletTable } from "@/features/core/wallet/entities/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { clearLots } from "@/features/core/wallet/services/server/lots/lotAccounting";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import { eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -46,6 +47,9 @@ export async function clearBalance(userId: string, tx: DbTransaction): Promise<v
       updatedAt: new Date(),
     })
     .where(inArray(WalletTable.id, nonZeroIds));
+
+  // ロット会計: 残高0化に合わせてロットも全削除（有効期限が無効な通貨には行が存在せず no-op）
+  await clearLots(tx, nonZeroIds);
 
   // バルクINSERT: ウォレット履歴を一括記録
   await tx.insert(WalletHistoryTable).values(

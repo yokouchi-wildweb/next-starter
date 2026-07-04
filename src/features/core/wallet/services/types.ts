@@ -122,3 +122,30 @@ export type BulkAdjustByTypeResult = {
   /** 履歴追跡用バッチID */
   requestBatchId: string;
 };
+
+/** 失効間近ロット（失効日ごとに集約済み） */
+export type ExpiringLot = {
+  expiresAt: Date;
+  amount: number;
+};
+
+/** 失効間近残高のサマリ（getExpiringLots の結果） */
+export type ExpiringLotsSummary = {
+  /** 失効日昇順 */
+  lots: ExpiringLot[];
+  /** withinDays 以内に失効する合計額 */
+  totalExpiring: number;
+};
+
+/** ユーザーごとの失効間近合計額（getExpiringSummaryByUsers の結果） */
+export type UserExpiringAmount = {
+  userId: string;
+  expiringAmount: number;
+};
+
+/** GET /api/me/wallet/expiring のレスポンス（JSON 経由のため expiresAt は ISO 文字列） */
+export type ExpiringLotsPayload = {
+  lots: { expiresAt: string; amount: number }[];
+  totalExpiring: number;
+  withinDays: number;
+};

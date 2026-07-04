@@ -16,8 +16,11 @@ import type {
   TotalBalancesByTypeOptions,
   BulkAdjustByTypeParams,
   BulkAdjustByTypeResult,
+  ExpiringLotsSummary,
+  UserExpiringAmount,
 } from "@/features/core/wallet/services/types";
 import { base } from "./drizzleBase";
+import { getExpiringLots, getExpiringSummaryByUsers } from "./lots/getExpiringLots";
 import { adjustBalance } from "./wrappers/adjustBalance";
 import { bulkAdjustByType } from "./wrappers/bulkAdjustByType";
 import { bulkAdjustByUsers, type BulkAdjustByUsersParams } from "./wrappers/bulkAdjustByUsers";
@@ -91,4 +94,18 @@ export const walletService = {
     userIds: string[],
     params: BulkAdjustByUsersParams,
   ) => bulkAdjustByUsers(tx, userIds, params),
+
+  /** 失効間近ロットを失効日ごとに集約して取得（有効期限が無効な通貨では常に空） */
+  getExpiringLots: (
+    userId: string,
+    walletType: WalletTypeValue,
+    withinDays: number,
+  ): Promise<ExpiringLotsSummary> => getExpiringLots(userId, walletType, withinDays),
+
+  /** 複数ユーザーの失効間近合計額を取得（通知バッチ・管理一覧用） */
+  getExpiringSummaryByUsers: (
+    userIds: string[],
+    walletType: WalletTypeValue,
+    withinDays: number,
+  ): Promise<UserExpiringAmount[]> => getExpiringSummaryByUsers(userIds, walletType, withinDays),
 };

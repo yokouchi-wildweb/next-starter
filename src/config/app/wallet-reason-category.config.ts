@@ -53,6 +53,11 @@ export const REASON_CATEGORY_CONFIG = {
     sourceTypes: ["system"],
     sortOrder: 60,
   },
+  expiration: {
+    label: "有効期限切れ",
+    sourceTypes: ["system"],
+    sortOrder: 65,
+  },
   other: {
     label: "その他",
     sourceTypes: ["user_action", "admin_action", "system"],

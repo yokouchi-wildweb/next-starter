@@ -10,6 +10,11 @@ import type { ReasonCategory } from "@/config/app/wallet-reason-category.config"
 import { DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
 import type { ChunkResult } from "@/features/batchJob/types";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import {
+  consumeLotsFifoBulk,
+  grantLotsBulk,
+  rebaselineLotsBulk,
+} from "@/features/core/wallet/services/server/lots/lotAccounting";
 import { normalizeAmount, sanitizeMeta, resolveRequestBatchId } from "./utils";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -148,6 +153,15 @@ export async function bulkAdjustByUsers(
           updatedAt: new Date(),
         })
         .where(inArray(WalletTable.id, walletIds));
+    }
+
+    // ロット会計: 有効期限が有効な walletType のみ内部で処理される（無効なら no-op）
+    if (params.changeMethod === "SET") {
+      await rebaselineLotsBulk(tx, { walletIds, walletType: params.walletType, newBalance: amount });
+    } else if (params.changeMethod === "INCREMENT") {
+      await grantLotsBulk(tx, { walletIds, walletType: params.walletType, amount });
+    } else if (params.changeMethod === "DECREMENT") {
+      await consumeLotsFifoBulk(tx, { walletIds, walletType: params.walletType, amount });
     }
 
     // 6. バルク INSERT (wallet_history, 共通のrequest_batch_id)

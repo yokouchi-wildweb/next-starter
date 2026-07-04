@@ -94,6 +94,25 @@ const TASKS: Record<string, CronTask> = {
       to: readFlag("to"),
     });
   },
+  "wallet-expire-lots": async () => {
+    const { sweepExpiredWalletLots } = await import(
+      "@/features/core/wallet/services/server/lots/sweepExpiredLots"
+    );
+    return await sweepExpiredWalletLots();
+  },
+  "wallet-lots-prune": async () => {
+    const { pruneConsumedWalletLots } = await import(
+      "@/features/core/wallet/services/server/lots/pruneConsumedLots"
+    );
+    return await pruneConsumedWalletLots();
+  },
+  // 導入時1回だけの初期化（定期実行しない。再実行は全ユーザーの失効カウントをリセットするので注意）
+  "wallet-lots-init": async () => {
+    const { initWalletLots } = await import(
+      "@/features/core/wallet/services/server/lots/initWalletLots"
+    );
+    return await initWalletLots();
+  },
   // 今後の cron タスクはここに追加
 };
 

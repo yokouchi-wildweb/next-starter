@@ -57,6 +57,34 @@
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "deletedCount": 1500, "iterations": 2, "truncated": false }`
 
+### `wallet-expire-lots`
+
+有効期限切れウォレットロットの残額を没収（残高減算 + wallet_histories 記録）する。
+`wallet-expiration.config.ts` で `expirationDays` + `sweepEnabled` を設定した通貨のみ対象で、
+未設定（デフォルト）なら即終了の no-op。登録したままでも害はない。冪等・再実行安全。
+
+- **API**: `GET /api/cron/wallet-expire-lots`
+- **CLI**: `pnpm cron wallet-expire-lots`
+- **推奨スケジュール**: `30 4 * * *` （日次・深夜帯）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "sweptWallets": 120, "expiredAmount": 45000, "iterations": 1, "truncated": false }`
+- **詳細**: `src/features/core/wallet/README.md` の「有効期限（ロット管理）」
+
+### `wallet-lots-prune`
+
+消費し尽くしたウォレットロット（remaining = 0）を保持期間（デフォルト30日）経過後に物理削除する。
+有効期限を有効化した（特に付与頻度が高い）プロジェクトでは wallet_lots の肥大化を防ぐため必須。
+機能未使用なら削除対象が存在せず no-op。
+
+- **API**: `GET /api/cron/wallet-lots-prune`
+- **CLI**: `pnpm cron wallet-lots-prune`
+- **推奨スケジュール**: `45 4 * * *` （日次・深夜帯。`wallet-expire-lots` の後）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "deletedCount": 8000, "iterations": 8, "truncated": false }`
+
+> **Note**: `pnpm cron wallet-lots-init` は cron ランナーに登録されているが**定期実行してはいけない**
+> （ウォレット有効期限の導入時に1回だけ手動実行するデータ移行。再実行は全ユーザーの失効カウントをリセットする）。
+
 ---
 
 ## セットアップ
@@ -71,7 +99,9 @@
     { "path": "/api/cron/expire-pending-purchases",      "schedule": "*/15 * * * *" },
     { "path": "/api/cron/audit-log-prune",               "schedule": "0 3 * * *" },
     { "path": "/api/cron/audit-log-recover-dead-letter", "schedule": "0 * * * *" },
-    { "path": "/api/cron/user-login-event-prune",        "schedule": "0 4 * * *" }
+    { "path": "/api/cron/user-login-event-prune",        "schedule": "0 4 * * *" },
+    { "path": "/api/cron/wallet-expire-lots",            "schedule": "30 4 * * *" },
+    { "path": "/api/cron/wallet-lots-prune",             "schedule": "45 4 * * *" }
   ]
 }
 ```

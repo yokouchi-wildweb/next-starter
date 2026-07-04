@@ -37,15 +37,23 @@ const TASKS: Record<string, () => Promise<unknown>> = {
 };
 ```
 
-### 3. vercel.json にスケジュール登録
+### 3. vercel.json.example にスケジュール登録
 
-下流プロジェクトの `vercel.json` に:
+リポジトリルートの `vercel.json.example` に追記する（**忘れやすいので注意**。
+下流プロジェクトはこれをコピーした `vercel.json` を持ち、Vercel がデプロイ時に自動で cron を稼働させる）:
 
 ```json
 {
   "crons": [{ "path": "/api/cron/my-task", "schedule": "*/15 * * * *" }]
 }
 ```
+
+導入時1回だけの手動タスク（データ移行等）は vercel.json.example に**載せない**（定期実行されてはいけないため）。
+
+### 4. カタログに記載
+
+`docs/reference/cron-tasks.md` にタスクの説明・推奨スケジュール・レスポンス例を追記する。
+下流プロジェクトはこのカタログを見てスケジュール登録を判断する。
 
 ## cron タスクカタログ
 

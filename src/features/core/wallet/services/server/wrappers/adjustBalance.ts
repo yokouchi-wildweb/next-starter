@@ -8,6 +8,12 @@ import { DomainError } from "@/lib/errors/domainError";
 import { DEFAULT_REASON_CATEGORY } from "@/config/app/wallet-reason-category.config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import {
+  consumeLotsFifo,
+  grantLot,
+  rebaselineLots,
+} from "@/features/core/wallet/services/server/lots/lotAccounting";
+import { isExpirationEnabled } from "@/features/core/wallet/utils/expiration";
+import {
   ensureNotBelowLockedBalance,
   ensureSufficientAvailable,
   getOrCreateWallet,
@@ -27,8 +33,13 @@ export async function adjustBalance(
   options?: AdjustBalanceOptions,
 ): Promise<WalletAdjustmentResult> {
   return runWithTransaction(tx, async (trx) => {
+    // 有効期限が有効な通貨は必ず行ロックで読む: 失効スイープ（system 書き込み）と並走した際、
+    // ロックなし読取→絶対値 UPDATE がスイープの減算を上書き消失させ、ロット不変条件が壊れるため。
+    // 無効な通貨では従来挙動（options.lock 指定時のみロック）と完全に同一
     const wallet = options?.wallet
-      ?? await getOrCreateWallet(trx, params.userId, params.walletType, { lock: options?.lock });
+      ?? await getOrCreateWallet(trx, params.userId, params.walletType, {
+        lock: options?.lock || isExpirationEnabled(params.walletType),
+      });
     const amount =
       params.changeMethod === "SET"
         ? normalizeAmount(params.amount, { allowZero: true })
@@ -59,6 +70,17 @@ export async function adjustBalance(
 
     if (!updated) {
       throw new DomainError("ウォレットの更新に失敗しました。", { status: 500 });
+    }
+
+    // ロット会計: 有効期限が有効な walletType のみ内部で処理される（無効なら no-op）。
+    // skipHistory でも必ず実行する（履歴と違いロットは残高との不変条件を持つため省略不可）
+    if (params.changeMethod === "INCREMENT") {
+      await grantLot(trx, { walletId: wallet.id, walletType: params.walletType, amount });
+    } else if (params.changeMethod === "DECREMENT") {
+      await consumeLotsFifo(trx, { walletId: wallet.id, walletType: params.walletType, amount });
+    } else {
+      // SET: 取得時期の情報が失われるため、全ロットを現在取得扱いで置き直す
+      await rebaselineLots(trx, { walletId: wallet.id, walletType: params.walletType, newBalance: nextBalance });
     }
 
     // skipHistory: true の場合は履歴記録をスキップ

@@ -127,6 +127,10 @@ lifetime counters + content-daily: permanent | event detail + user-daily: retent
 NOT_for: game telemetry, scroll/mousemove streams, sustained tens-of-millions events/day → needs separate queue/external pipeline, do NOT retrofit these domains
 adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = read-only aggregation over existing tables (only derived data: analytics_daily_rollups = recomputable pre-aggregation cache, NOT source of truth — see ANALYTICS_PERF)
 
+## CRON_TASKS
+scheduler not built-in: downstream copies vercel.json.example → Vercel auto-runs | new task = wire ALL 4: api/cron route + run.ts TASKS + vercel.json.example + docs/reference/cron-tasks.md
+one-shot migration task (e.g. wallet-lots-init): run.ts only, never scheduled | design: idempotent, batched+SKIP LOCKED, no-op unless opted-in | ref: src/lib/cron/README.md
+
 ## ANALYTICS_PERF (heavy dashboard reads — check BEFORE adding per-domain caching/snapshot tables)
 cache: withAnalyticsCache({key,range}, fn) — closed(past-only) range=12h TTL, includes today=60s, auto-judged | per-instance memory | NOT immutable: call invalidateAnalyticsCache() after rewriting closed buckets | escape: ANALYTICS_CACHE=disabled
 rollup: analytics_daily_rollups + src/registry/analyticsRollupRegistry.ts (downstream registers RollupMetricConfig, upstream ships none) | kind: flow(sum) | snapshot(closing value, baseline=1-row lookup → fixes running-balance full-history scans) | read: readRolledDailySeries (closed=rollup rows, today=live merge) | cron analytics-rollup-daily + backfill CLI (idempotent; backfill re-run = recompute path for retroactive fixes)

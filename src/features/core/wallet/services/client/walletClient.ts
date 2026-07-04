@@ -14,7 +14,9 @@ import type {
   WalletAdjustmentResult,
   WalletAdjustRequestPayload,
   BulkAdjustByTypeResult,
+  ExpiringLotsPayload,
 } from "@/features/core/wallet/services/types";
+import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 
 /** bulkAdjustByType のリクエストペイロード */
 export type BulkAdjustByTypePayload = Omit<WalletAdjustRequestPayload, "requestBatchId"> & {
@@ -27,6 +29,8 @@ type WalletClient = ApiClient<Wallet, WalletCreateFields, WalletUpdateFields> & 
   bulkAdjustByType(payload: BulkAdjustByTypePayload): Promise<BulkAdjustByTypeResult>;
   /** 本人のウォレット残高を取得（オーナーシップはサーバーが session で強制） */
   getMyBalances(): Promise<{ wallets: Wallet[] }>;
+  /** 本人の失効間近残高を取得（有効期限が無効な通貨では常に空） */
+  getMyExpiringLots(walletType: WalletTypeValue, withinDays?: number): Promise<ExpiringLotsPayload>;
 };
 
 const baseClient = createApiClient<Wallet, WalletCreateFields, WalletUpdateFields>("/api/wallet");
@@ -58,9 +62,24 @@ async function getMyBalances(): Promise<{ wallets: Wallet[] }> {
   }
 }
 
+async function getMyExpiringLots(
+  walletType: WalletTypeValue,
+  withinDays?: number,
+): Promise<ExpiringLotsPayload> {
+  try {
+    const response = await axios.get<ExpiringLotsPayload>("/api/me/wallet/expiring", {
+      params: { walletType, ...(withinDays != null ? { withinDays } : {}) },
+    });
+    return response.data;
+  } catch (error) {
+    throw normalizeHttpError(error);
+  }
+}
+
 export const walletClient: WalletClient = {
   ...baseClient,
   adjustBalance,
   bulkAdjustByType,
   getMyBalances,
+  getMyExpiringLots,
 };

@@ -11,6 +11,12 @@ import type {
 import { DEFAULT_REASON_CATEGORY, type ReasonCategory } from "@/config/app/wallet-reason-category.config";
 import type { WalletHistoryMeta } from "@/features/core/walletHistory/types/meta";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import {
+  consumeLotsFifoBulk,
+  grantLotsBulk,
+  rebaselineLotsBulk,
+} from "@/features/core/wallet/services/server/lots/lotAccounting";
+import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { normalizeAmount, resolveRequestBatchId, sanitizeMeta } from "./utils";
 import { type TransactionClient } from "./utils";
 import { db } from "@/lib/drizzle";
@@ -70,7 +76,7 @@ export async function bulkAdjustByType(
         const { toUpdate, skipped } = classifyWallets(wallets, params.changeMethod, amount);
 
         if (toUpdate.length > 0) {
-          await executeBalanceUpdate(trx, toUpdate, params.changeMethod, amount);
+          await executeBalanceUpdate(trx, toUpdate, params.walletType, params.changeMethod, amount);
           await insertHistoryRecords(trx, toUpdate, params, amount, requestBatchId, reasonCategory, meta);
         }
 
@@ -147,7 +153,7 @@ async function executeSingleBatch(
     const { toUpdate, skipped } = classifyWallets(wallets, params.changeMethod, amount);
 
     if (toUpdate.length > 0) {
-      await executeBalanceUpdate(tx, toUpdate, params.changeMethod, amount);
+      await executeBalanceUpdate(tx, toUpdate, params.walletType, params.changeMethod, amount);
       await insertHistoryRecords(tx, toUpdate, params, amount, requestBatchId, reasonCategory, meta);
     }
 
@@ -245,10 +251,11 @@ function classifyWallets(
   return { toUpdate, skipped };
 }
 
-/** バルクUPDATE: changeMethod に応じた一括更新 */
+/** バルクUPDATE: changeMethod に応じた一括更新（ロット会計込み） */
 async function executeBalanceUpdate(
   tx: TransactionClient,
   wallets: WalletWithNext[],
+  walletType: WalletTypeValue,
   changeMethod: string,
   amount: number,
 ): Promise<void> {
@@ -264,6 +271,7 @@ async function executeBalanceUpdate(
         updatedAt: new Date(),
       })
       .where(inArray(WalletTable.id, walletIds));
+    await rebaselineLotsBulk(tx, { walletIds, walletType, newBalance: amount });
   } else if (changeMethod === "INCREMENT") {
     await tx
       .update(WalletTable)
@@ -272,6 +280,7 @@ async function executeBalanceUpdate(
         updatedAt: new Date(),
       })
       .where(inArray(WalletTable.id, walletIds));
+    await grantLotsBulk(tx, { walletIds, walletType, amount });
   } else if (changeMethod === "DECREMENT") {
     await tx
       .update(WalletTable)
@@ -280,6 +289,7 @@ async function executeBalanceUpdate(
         updatedAt: new Date(),
       })
       .where(inArray(WalletTable.id, walletIds));
+    await consumeLotsFifoBulk(tx, { walletIds, walletType, amount });
   }
 }
 
