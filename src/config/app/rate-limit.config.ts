@@ -94,6 +94,28 @@ export const RATE_LIMIT_CONFIG = {
     windowSeconds: 60,
     maxRequests: 300,
   },
+
+  /**
+   * インタラクション計測バッチ ingest（POST /api/interactions/batch）
+   * 同一IPから1分に20回まで
+   * クライアント側で集約して送る前提のため、正常利用では数十秒に1回しか飛ばない
+   * ※ interactionBatchSubnet とハイブリッドで併用（どちらか先に到達した方で制限）
+   */
+  interactionBatch: {
+    windowSeconds: 60,
+    maxRequests: 20,
+  },
+
+  /**
+   * インタラクション計測バッチ ingest（サブネット /24 単位）
+   * 同一サブネットから1分に120回まで
+   * IPが分散するボット等によるカウント水増しへの対策
+   * ※ interactionBatch とハイブリッドで併用（どちらか先に到達した方で制限）
+   */
+  interactionBatchSubnet: {
+    windowSeconds: 60,
+    maxRequests: 120,
+  },
 } as const;
 
 export type RateLimitCategory = keyof typeof RATE_LIMIT_CONFIG;

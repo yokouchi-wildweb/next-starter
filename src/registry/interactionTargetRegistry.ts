@@ -33,6 +33,16 @@ export type InteractionTargetRule = {
    * 「誰が」の追跡が不要で流量の多い targetType 向け（userId も記録されなくなる）
    */
   recordDetail?: boolean;
+  /**
+   * バッチ ingest（POST /api/interactions/batch）で受け付ける action の語彙。
+   * 省略時はバッチ経路を一切受け付けない（fail-closed）。
+   *
+   * バッチ経路は count をまとめて申告できるため、クリック等の「1操作=1加算」で
+   * 守りたい action をここに含めないこと。インプレッション等の高頻度・
+   * 集計のみでよい action だけを列挙する（例: ["impression"]）。
+   * バッチ経路は明細を書かない（常に集計のみ・userId も記録しない）
+   */
+  batchActions?: readonly string[];
 };
 
 export const interactionTargetRegistry: Record<string, InteractionTargetRule> = {

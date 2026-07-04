@@ -37,3 +37,26 @@ export const InteractionIngestSchema = z.object({
 });
 
 export type InteractionIngestInput = z.infer<typeof InteractionIngestSchema>;
+
+/**
+ * バッチ ingest ルート（POST /api/interactions/batch）の入力スキーマ。
+ *
+ * インプレッション等の高頻度イベント用。クライアント側で集約済みの
+ * (target × action × source) → count を最大 100 エントリまで一括送信する。
+ * - count はエントリあたり 1〜100 に制限（水増し・肥大化対策）
+ * - 受け付ける action は registry の batchActions で明示された語彙のみ（fail-closed）
+ */
+export const InteractionBatchEntrySchema = z.object({
+  targetType: z.string().trim().min(1).max(100),
+  targetId: z.string().trim().min(1).max(200),
+  action: z.string().trim().min(1).max(100),
+  source: z.string().trim().min(1).max(100).optional(),
+  count: z.coerce.number().int().min(1).max(100),
+});
+
+export const InteractionBatchIngestSchema = z.object({
+  events: z.array(InteractionBatchEntrySchema).min(1).max(100),
+});
+
+export type InteractionBatchEntry = z.infer<typeof InteractionBatchEntrySchema>;
+export type InteractionBatchIngestInput = z.infer<typeof InteractionBatchIngestSchema>;

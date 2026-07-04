@@ -14,13 +14,15 @@
 
 判定基準: **「ユーザーの指がクリックする速度でしか増えないイベントか？」**
 
-| ✅ 守備範囲 | ❌ 守備範囲外 |
-|---|---|
-| バナー / CTA / リンクのクリック | 全ページのインプレッション自動送信 |
-| キャンペーン LP・共有リンクの開封 | リアルタイムゲームの操作ログ・スコア更新 |
-| コンテンツの利用・再生開始などの能動アクション | スクロール・マウス移動などの機械的高頻度イベント |
+| ✅ 守備範囲（1件ずつの ingest） | ✅ 守備範囲（バッチ ingest） | ❌ 守備範囲外 |
+|---|---|---|
+| バナー / CTA / リンクのクリック | バナー等のインプレッション（表示回数） | リアルタイムゲームの操作ログ・スコア更新 |
+| キャンペーン LP・共有リンクの開封 | 「見ただけ」系の高頻度イベント全般 | スクロール・マウス移動などの連続イベント |
+| コンテンツの利用・再生開始などの能動アクション | | 日数千万件を超える恒常的な物量 |
 
-守備範囲外の「機械的に大量発生するイベント」は、クリック1回=DB書き込み1トランザクションという本ドメインの構造に合わない（恒常的に毎秒数千件を超えると Postgres 直挿しが本体 DB の帯域を圧迫する）。その物量が必要になったら、キュー + 一括書き込みや外部分析基盤を**別の仕組みとして**用意すること。本ドメインを改造して対応しようとしないこと。
+- **1件ずつの ingest**（`/api/interactions`）: 人間の操作速度で増えるイベント。明細（誰が・いつ）も記録できる
+- **バッチ ingest**（`/api/interactions/batch`）: インプレッション等の機械発生イベント。クライアント側で集約して送り、サーバーは**集計のみ**加算（明細なし・「誰が」は残らない）
+- それでも溢れる物量（日数千万件〜）は、キュー + 一括書き込みや外部分析基盤を**別の仕組みとして**用意すること。本ドメインを改造して対応しようとしないこと
 
 ### 隣接プリミティブとの棲み分け
 
@@ -53,8 +55,13 @@
    - `interactionTargetRegistry` 未登録の targetType は **fail-closed で拒否**
    - ログイン中はセッションから userId を自動付与（クライアント申告は受け付けない）
    - デモユーザーの書き込みは自動スキップ（カウントに混入しない）
-2. **サーバー内部**: `interactionService.record({...})` — サーバーロジックから直接記録する場合
-   （`tx` を渡せば呼び出し側トランザクションに合流）
+2. **バッチ ingest（インプレッション等）**: `POST /api/interactions/batch`
+   - クライアント側で集約済みの (target × action × source) → count を最大100エントリ一括送信
+   - **registry の `batchActions` に明示された action のみ受理**（fail-closed）。count をまとめて
+     申告できる経路のため、クリック等の 1操作=1加算 で守る action は含めないこと（水増し防止）
+   - 明細は書かない（集計のみ・userId も記録しない）。検証に失敗したエントリは棄却して残りを処理
+3. **サーバー内部**: `interactionService.record({...})` / `recordBatch([...])` — サーバーロジックから
+   直接記録する場合（`tx` を渡せば呼び出し側トランザクションに合流）
 
 汎用 API (`/api/interactionEvent`) は admin 限定のイベント明細調査・閲覧用。
 **汎用 CRUD での直接挿入はカウンタを加算しない**ため、通常運用では使わないこと。
@@ -71,6 +78,7 @@ import { bulletinService } from "@/features/bulletin/services/server/bulletinSer
 export const interactionTargetRegistry: Record<string, InteractionTargetRule> = {
   bulletin: {
     allowedActions: ["click", "link_click"],
+    batchActions: ["impression"], // バッチ経路で受けるのはインプレッションのみ（click は不可）
     validate: async (targetId) => {
       const bulletin = await bulletinService.get(targetId).catch(() => null);
       return !!bulletin?.is_published; // 公開中のみ受け付ける（水増し防止）
@@ -91,6 +99,25 @@ trackInteraction({ targetType: "bulletin", targetId: bulletin.id, action: "click
 ```
 
 action / source の語彙の採番は消費側ドメインの責務（userCounter の counter_key と同じ方針）。
+
+### 2b. インプレッション計測（表示されたら記録・CTR 用）
+
+```tsx
+import { useImpressionTracker } from "@/features/interactionTracking/hooks/useImpressionTracker";
+
+const impressionRef = useImpressionTracker({
+  targetType: "bulletin",
+  targetId: bulletin.id,
+  source: "home",
+});
+return <Block ref={impressionRef}>{/* バナー */}</Block>;
+```
+
+- 要素の 50% がビューポートに入った時点で 1 回計上（マウント毎に 1 回・重複なし）
+- 送信はバッファ集約（15 秒ごと / ページ離脱時 / 満杯時にまとめて 1 リクエスト）。
+  離脱時は sendBeacon で取りこぼしを防ぐ
+- CTR はクリックと同じ軸に載る: `getDailySeries` で click ÷ impression を日別に計算できる
+- ビューポート判定が不要な場合は `trackImpression()` を直接呼んでもよい
 
 ### 3. 管理一覧にカウントを表示（サーバー側で一括取得）
 
@@ -113,14 +140,40 @@ const series = await interactionService.getDailySeries("bulletin", bulletin.id, 
 // 導線を問わない日別合計が欲しい場合は date × action で畳み込む
 ```
 
-### 5. cron の配線
+### 5. オーディエンスビューア（誰がクリックしたか・admin 画面用）
+
+管理一覧の行クリック等から、クリックしたユーザーの一覧を表示する汎用モーダル:
+
+```tsx
+import { InteractionAudienceModal } from "@/features/interactionTracking/components/common/InteractionAudienceModal";
+
+<InteractionAudienceModal
+  targetType="bulletin"
+  targetId={selected.id}
+  tabs={[
+    { action: "click", label: "バナークリック" },
+    { action: "link_click", label: "リンククリック" },
+  ]}
+  open={Boolean(selected)}
+  onOpenChange={(open) => { if (!open) setSelected(null); }}
+/>
+```
+
+- タブごとにサマリー（累計 / ログイン済み / 匿名）+ ユーザー一覧（無限スクロール 50 件、
+  並び替え: 新しい順 / 回数順）
+- API: `GET /api/admin/interactions/audience` / `audience-summary`（admin 限定。PII を含むため）
+- 一覧・内訳は**明細ベース（保持期限内のみ）**、累計は永久カウンタ。prune 後に乖離するのは正常で、
+  モーダル内に注記が出る。退会済みユーザー（SET NULL）は匿名に合流する
+- `recordDetail: false` の対象は明細が無いため、一覧は明示的な非対応表示になる（累計は正確）
+
+### 6. cron の配線
 
 - CLI: `pnpm cron interaction-event-prune`
 - HTTP: `GET /api/cron/interaction-event-prune`（Bearer `CRON_SECRET`）
 - 推奨スケジュール: `30 3 * * *`（1 日 1 回・深夜帯）
 - 削除対象は**明細のみ**。累計・日次集計は消えない
 
-### 6. DB 反映
+### 7. DB 反映
 
 テーブルは schemaRegistry 登録済み。`pnpm db:push` は手動実行の運用（自動実行しない）。
 
@@ -129,14 +182,16 @@ const series = await interactionService.getDailySeries("bulletin", bulletin.id, 
 | メソッド | 概要 |
 |---|---|
 | `record(input)` | 明細追記 + 累計/日次の原子加算（同一 tx・3書き込み）。サーバー内部専用 |
+| `recordBatch(entries, tx?)` | 集約済みイベントの一括加算（集計のみ・明細なし）。サーバー内部専用 |
 | `getCounts(targetType, targetId)` | 累計: `Map<action, count>` |
 | `getCountsBulk(targetType, targetIds[])` | 累計: `Map<targetId, Map<action, count>>`（1 クエリ） |
 | `getDailySeries(targetType, targetId, opts?)` | 日次時系列: `{date, action, source, count}[]`（永久データ） |
+| `getAudience(targetType, targetId, {action, page, limit, orderBy})` | 「誰がクリックしたか」ユーザー単位一覧（PII 含む・admin ルート専用） |
+| `getAudienceSummary(targetType, targetId)` | action 別の 累計 / ログイン済み / 匿名 件数 |
 | `pruneExpiredInteractionEvents(options?)` | 明細の retention prune（cron 用） |
 | `...base` | 汎用 CRUD（admin 調査用） |
 
 ## 将来スコープ（設計上の考慮のみ・未実装）
 
-- **インプレッション計測**: クライアント側バッチ送信（CTR 算出）。1 件ずつの送信は守備範囲外の物量になるため、バッチ ingest の設計とセットで導入すること。`metadata` jsonb 列は確保済み
-- **userSegment 連携**: 「target X をクリックしたユーザー」条件ハンドラ。`interaction_events` の (user_id, created_at) インデックスは確保済み
-- **管理 UI パーツ**: `<InteractionCount targetType targetId />`、時系列チャート
+- **userSegment 連携**: 「target X をクリックしたユーザー」条件ハンドラ。`interaction_events` の (user_id, created_at) インデックスは確保済み（オーディエンス一覧の getAudience は実装済み。セグメント条件ハンドラのみ未実装）
+- **管理 UI パーツ（追加分）**: `<InteractionCount targetType targetId />`、時系列チャート（オーディエンスビューア・インプレッション計測は実装済み）

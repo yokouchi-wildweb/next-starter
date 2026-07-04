@@ -48,3 +48,30 @@ export type InteractionDailySeriesPoint = {
   source: string;
   count: number;
 };
+
+/** オーディエンス一覧の並び順（lastClickedAt=新しい順 / clickCount=回数順） */
+export type InteractionAudienceOrderBy = "lastClickedAt" | "clickCount";
+
+/** オーディエンス一覧の 1 行（ユーザー単位に集約。ログイン済みイベントのみ） */
+export type InteractionAudienceEntry = {
+  userId: string;
+  /** users テーブルの表示名（未設定は null） */
+  name: string | null;
+  email: string | null;
+  clickCount: number;
+  /** 最終アクション日時（ISO 8601） */
+  lastClickedAt: string;
+};
+
+/** アクション 1 種別ぶんのオーディエンスサマリー */
+export type InteractionAudienceSummary = {
+  /** 累計（interaction_counters 由来・永久） */
+  lifetimeTotal: number;
+  /** ログイン済みイベント数（明細由来・保持期限内のみ） */
+  loggedInCount: number;
+  /** 匿名イベント数（明細由来・保持期限内のみ。削除ユーザーもここに合流） */
+  anonymousCount: number;
+};
+
+/** action → サマリー。HTTP で返すため Map ではなく Record */
+export type InteractionAudienceSummaryMap = Record<string, InteractionAudienceSummary>;
