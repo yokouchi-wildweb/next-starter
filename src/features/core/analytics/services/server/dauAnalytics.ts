@@ -18,6 +18,7 @@ import {
   formatDateRangeForResponse,
   assertGranularitySupported,
   derivePreviousRange,
+  granularityDateExprForDateColumn,
 } from "./utils/dateRange";
 import { buildUserFilterConditions } from "./utils/userFilter";
 import { changeRate } from "./utils/aggregation";
@@ -26,12 +27,11 @@ import { changeRate } from "./utils/aggregation";
  * DAU が対応する集計粒度。
  *
  * `UserDailyActivityTable` は date 型 (activity_date) で日次集計済みのため、
- * 日未満 (hour) は不可。週/月は date_trunc で集計可能だが、本テーブルは
- * 「日次のユニークユーザー」がアトミック単位であり、週/月でユニークを取り直すと
- * 意味が変わる (週内ユニーク = 週DAU の解釈) ため、現状は day のみに固定する。
- * 将来 week/month を解禁する場合は user_id を保持しているので拡張可能。
+ * 日未満 (hour) は不可。week/month は user_id を保持しているため
+ * バケット内ユニークユーザー（週 = WAU、月 = MAU）として集計する。
+ * 「日次 DAU の合計」ではない点に注意（同一ユーザーはバケット内で 1 カウント）。
  */
-export const DAU_SUPPORTED_GRANULARITIES = ["day"] as const satisfies readonly Granularity[];
+export const DAU_SUPPORTED_GRANULARITIES = ["day", "week", "month"] as const satisfies readonly Granularity[];
 
 // ============================================================================
 // 型定義
@@ -90,16 +90,16 @@ export async function getDauDaily(
   const range = resolveDateRange(params);
   assertGranularitySupported(range.granularity, DAU_SUPPORTED_GRANULARITIES, "DAU 集計");
   const conditions = buildConditions(range.dateFrom, range.dateTo, params);
+  const dateSql = granularityDateExprForDateColumn(t.activityDate, range.granularity);
 
   const dailyRows = await db
     .select({
-      date: sql<string>`${t.activityDate}::text`.as("date"),
+      date: dateSql,
       count: sql<number>`COUNT(DISTINCT ${t.userId})::int`.as("count"),
     })
     .from(t)
     .where(and(...conditions))
-    .groupBy(t.activityDate)
-    .orderBy(t.activityDate);
+    .groupBy(sql.raw("1"));
 
   const dailyMap = new Map(dailyRows.map((r) => [r.date, r]));
 
@@ -129,8 +129,8 @@ export async function getDauSummary(
 
   // 当期と前期を並列取得
   const [currentDaily, prevDaily] = await Promise.all([
-    getDailyCountsRaw(range.dateFrom, range.dateTo, params),
-    getDailyCountsRaw(prevDateFrom, prevDateTo, params),
+    getBucketCountsRaw(range.dateFrom, range.dateTo, range.granularity, params),
+    getBucketCountsRaw(prevDateFrom, prevDateTo, range.granularity, params),
   ]);
 
   const currentStats = computeStats(currentDaily);
@@ -158,21 +158,24 @@ export async function getDauSummary(
 // 内部ヘルパー
 // ============================================================================
 
-/** 指定期間の日別DAUカウントを取得（統計計算用） */
-async function getDailyCountsRaw(
+/** 指定期間のバケット別アクティブユーザー数を取得（統計計算用） */
+async function getBucketCountsRaw(
   dateFrom: Date,
   dateTo: Date,
+  granularity: Granularity,
   params: UserFilter,
 ): Promise<number[]> {
   const conditions = buildConditions(dateFrom, dateTo, params);
+  const dateSql = granularityDateExprForDateColumn(t.activityDate, granularity);
 
   const rows = await db
     .select({
+      date: dateSql,
       count: sql<number>`COUNT(DISTINCT ${t.userId})::int`.as("count"),
     })
     .from(t)
     .where(and(...conditions))
-    .groupBy(t.activityDate);
+    .groupBy(sql.raw("1"));
 
   return rows.map((r) => Number(r.count));
 }

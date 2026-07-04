@@ -59,8 +59,8 @@ analytics/
 | GET /api/admin/analytics/wallet/state/ranking | walletStateAnalytics | ウォレット現在保有量のランキング |
 | GET /api/admin/analytics/wallet/state/distribution | walletStateAnalytics | ウォレット現在保有量のレンジ別分布 |
 | GET /api/admin/analytics/referral/summary | referralAnalytics | 紹介経由ユーザー数 + 紹介リワード金額（前期比含む） |
-| GET /api/admin/analytics/dau/daily | dauAnalytics | 日別 DAU（granularity は day のみ） |
-| GET /api/admin/analytics/dau/summary | dauAnalytics | DAU 期間サマリー（granularity は day のみ） |
+| GET /api/admin/analytics/dau/daily | dauAnalytics | バケット別アクティブユーザー数（day=DAU / week=WAU / month=MAU、hour 不可） |
+| GET /api/admin/analytics/dau/summary | dauAnalytics | DAU 期間サマリー（week/month はバケット単位の統計値） |
 | GET /api/admin/analytics/coin-issuance/summary | coinIssuance | コイン創出サマリー（収入・発行・finalProfit を統合、前期比含む。下流で source 追加可） |
 
 ### referral summary 固有のパラメータ
@@ -75,6 +75,7 @@ analytics/
 - `dateTo`: 終了日（YYYY-MM-DD）
 - `timezone`: タイムゾーン（IANA TZ名、デフォルト: `Asia/Tokyo`）
 - `granularity`: 集計粒度。`hour` / `day` / `week` / `month`（デフォルト: `day`）
+- `alignToGranularity`: `true`（または `1`）で dateFrom を粒度のバケット開始境界（week=ISO月曜、month=月初）へ floor する。デフォルト off。先頭の不完全バケットがフロー系メトリクスで過少表示されるのを防ぐ用途
 - dateFrom + dateTo 指定時は days より優先
 
 集計粒度（granularity）の挙動:
@@ -82,7 +83,7 @@ analytics/
 - `history[].date` の書式は粒度で変わる: hour=`YYYY-MM-DDTHH:00`, day=`YYYY-MM-DD`, week=月曜開始日 `YYYY-MM-DD`, month=`YYYY-MM`
 - レスポンスには解決済み `granularity` フィールドが含まれる
 - 期間上限は粒度ごと: hour=31日, day=365日, week=2年, month=10年（バケット数の爆発を防ぐ）
-- DAU は `day` のみサポート。他粒度を指定すると `DomainError`（400）を返す（`UserDailyActivityTable` が date 型のため）
+- DAU は `day` / `week` / `month` をサポート（week/month はバケット内ユニークユーザー = WAU/MAU）。`hour` は `DomainError`（400）（`UserDailyActivityTable` が日次集計済みのため）
 - 期間サマリー API (`*/summary`) では集計に影響しない（期間全体を1つの集計値にする）
 
 ユーザーフィルタ:
@@ -98,10 +99,11 @@ analytics/
 新しい時系列集計サービスを実装する場合:
 - `resolveDateRange(params)` の戻り値から `range.granularity` を読み取る
 - グルーピング SQL は `granularityDateExpr(column, granularity, tz)` ヘルパーで生成する
+- date 型カラム（timestamptz ではない）は `granularityDateExprForDateColumn(column, granularity)` を使う（AT TIME ZONE 変換を挟むとサーバ TZ 依存の境界ズレが起きるため）
 - `generateDateKeys(range)` がそのまま粒度対応のキー配列を返す
 - `formatDateRangeForResponse(range)` がレスポンスの `granularity` フィールドを含む
 
-特定粒度のみサポートするサービス（例: DAU）:
+特定粒度のみサポートするサービス（例: DAU は hour 非対応）:
 - `export const FOO_SUPPORTED_GRANULARITIES = ["day"] as const satisfies readonly Granularity[];`
 - 関数冒頭で `assertGranularitySupported(range.granularity, FOO_SUPPORTED_GRANULARITIES, "Foo 集計")` を呼ぶ
 - 未サポート粒度では `GranularityNotSupportedError`（DomainError 派生、400）が投げられる

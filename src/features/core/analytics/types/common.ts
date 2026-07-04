@@ -38,6 +38,12 @@ export type DateRangeParams = {
   timezone?: string;
   /** 集計粒度（省略時は day で後方互換） */
   granularity?: Granularity;
+  /**
+   * dateFrom を granularity のバケット開始境界へ floor する（opt-in）。
+   * week = ISO 月曜、month = 月初。day/hour は実質 no-op。
+   * 非整列な dateFrom による先頭不完全バケットの過少計上を防ぐ。
+   */
+  alignToGranularity?: boolean;
 };
 
 /** 解決済みの日付範囲 */
