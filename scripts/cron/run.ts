@@ -46,6 +46,12 @@ const TASKS: Record<string, CronTask> = {
     );
     return await pruneExpiredUserLoginEvents();
   },
+  "interaction-event-prune": async () => {
+    const { pruneExpiredInteractionEvents } = await import(
+      "@/features/core/interactionTracking/services/server"
+    );
+    return await pruneExpiredInteractionEvents();
+  },
   "purchase-quota-cleanup": async () => {
     const { cleanupOldLedger } = await import(
       "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper"

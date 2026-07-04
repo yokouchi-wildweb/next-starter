@@ -21,6 +21,7 @@ import { referralService } from "@/features/referral/services/server/referralSer
 import { referralRewardService } from "@/features/referralReward/services/server/referralRewardService";
 import { milestoneService } from "@/features/milestone/services/server/milestoneService";
 import { counterService } from "@/features/userCounter/services/server/counterService";
+import { interactionService } from "@/features/interactionTracking/services/server/interactionService";
 import { notificationService } from "@/features/notification/services/server/notificationService";
 import { notificationTemplateService } from "@/features/notificationTemplate/services/server/notificationTemplateService";
 
@@ -50,6 +51,10 @@ export const serviceRegistry: Record<string, DomainRegistryEntry> = {
   // 汎用 API は admin 閲覧・手動補正のみに限定（fail-closed）。ユーザ向け read は
   // 各ドメインが /api/me/<feature> を薄く生やして提供する（README 参照）。
   userCounter: { service: counterService, access: ADMIN_ONLY },
+  // 汎用インタラクション計測。書き込み主経路は公開 ingest (POST /api/interactions) +
+  // interactionService.record（サーバ内部）。汎用 API は admin のイベント明細
+  // 調査・閲覧のみに限定（fail-closed）。汎用 CRUD での直接挿入はカウンタを加算しない。
+  interactionEvent: { service: interactionService, access: ADMIN_ONLY },
   notification: { service: notificationService, access: ADMIN_ONLY },
   notificationTemplate: { service: notificationTemplateService, access: ADMIN_ONLY },
   chatRoom: { service: chatRoomService, access: ADMIN_ONLY },

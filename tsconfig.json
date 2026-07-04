@@ -34,6 +34,7 @@
       "@/features/coupon/*": ["./src/features/core/coupon/*"],
       "@/features/couponHistory/*": ["./src/features/core/couponHistory/*"],
       "@/features/insane/*": ["./src/features/core/insane/*"],
+      "@/features/interactionTracking/*": ["./src/features/core/interactionTracking/*"],
       "@/features/mail/*": ["./src/features/core/mail/*"],
       "@/features/milestone/*": ["./src/features/core/milestone/*"],
       "@/features/notification/*": ["./src/features/core/notification/*"],

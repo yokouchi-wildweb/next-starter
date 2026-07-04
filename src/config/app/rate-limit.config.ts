@@ -73,6 +73,27 @@ export const RATE_LIMIT_CONFIG = {
     windowSeconds: 60,
     maxRequests: 60,
   },
+
+  /**
+   * インタラクション計測 ingest（POST /api/interactions）
+   * 同一IPから1分に60回まで
+   * ※ interactionIngestSubnet とハイブリッドで併用（どちらか先に到達した方で制限）
+   */
+  interactionIngest: {
+    windowSeconds: 60,
+    maxRequests: 60,
+  },
+
+  /**
+   * インタラクション計測 ingest（サブネット /24 単位）
+   * 同一サブネットから1分に300回まで
+   * IPが分散するボット等によるカウント水増しへの対策
+   * ※ interactionIngest とハイブリッドで併用（どちらか先に到達した方で制限）
+   */
+  interactionIngestSubnet: {
+    windowSeconds: 60,
+    maxRequests: 300,
+  },
 } as const;
 
 export type RateLimitCategory = keyof typeof RATE_LIMIT_CONFIG;
