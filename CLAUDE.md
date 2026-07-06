@@ -129,12 +129,9 @@ NOT_for: game telemetry, scroll/mousemove streams, sustained tens-of-millions ev
 adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = read-only aggregation over existing tables (only derived data: analytics_daily_rollups = recomputable pre-aggregation cache, NOT source of truth — see ANALYTICS_PERF)
 
 ## USER_ACQUISITION (signup attribution, multi-touch)
-capture: src/proxies/attribution.ts (response decorator) — GET page navigation with utm_* / click-ID (gclid etc.) / external referrer → touch appended to httpOnly cookie acq_touches (dedup consecutive same-channel, first-touch always kept on trim, maxAge refreshed per touch) | no DB write pre-signup
-persist: POST /api/auth/register reads cookie server-side (NOT client input, RegistrationSchema unchanged) → recordSignupAcquisition (bestEffort, tx) → user_acquisitions (1:1 summary, first/last denormalized typed columns for GROUP BY) + user_acquisition_touches (1:N timeline, touch_index asc) → cookie deleted | rejoin = overwrite as new journey | _ga client_id → extras.gaClientId
-read(server-only): getUserAcquisition / getUserAcquisitionTouches | no row = no measurable signal (organic direct)
-config: src/config/app/acquisition.config.ts (enabled | cookieMaxAgeDays=30 | maxTouches=15 | clickIdParams map)
-rules: users table gets NO analytics columns — per-concern satellite tables (this domain is the precedent) | aggregation axes = typed columns, long-tail (utm_term/click-IDs/gaClientId) = extras jsonb, promote to column only when it becomes an aggregation axis | dashboard aggregation → ANALYTICS_PERF (cache → rollup)
-ref: src/features/core/userAcquisition/README.md
+flow: proxy decorator (src/proxies/attribution.ts) accumulates utm/click-ID/external-referrer touches into httpOnly cookie (no DB write pre-signup) → /api/auth/register reads cookie server-side → user_acquisitions (1:1 first/last summary) + user_acquisition_touches (1:N timeline) | config: src/config/app/acquisition.config.ts
+rules: users table gets NO analytics columns — per-concern satellite tables (this domain is the precedent) | aggregation axes = typed columns, long-tail = extras jsonb | dashboard aggregation → ANALYTICS_PERF
+ref: src/features/core/userAcquisition/README.md (cookie spec, read API, aggregation recipes)
 
 ## CRON_TASKS
 scheduler not built-in: downstream copies vercel.json.example → Vercel auto-runs | new task = wire ALL 4: api/cron route + run.ts TASKS + vercel.json.example + docs/reference/cron-tasks.md
