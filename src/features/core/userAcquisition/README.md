@@ -60,20 +60,20 @@ import {
 
 ## 招待リンク連携（referral / referralReward）
 
-`ACQUISITION_CONFIG.referralParam`（既定: `invite`）付きの URL を踏むと:
+`ACQUISITION_CONFIG.referralParam`（既定: `invite`）付きの URL を踏んだときの扱いは、
+**解析と機能で系統が分かれており、それぞれ独立にオンオフできる**:
 
-1. **計測**: タッチとして記録され、紹介経由の流入が広告・SNS 等と同じ土俵で集計できる。
-   コード自体は extras（`extras.invite`）に残るため「どの紹介者経由のサインアップか」まで追える
-2. **フォームプリフィル**: サインアップフォームの招待コード欄に cookie 由来のコードが自動入力され、
-   ユーザーに見える・編集できる・消せる状態になる
-   （`GET /api/acquisition/pending-invite-code` → `useInviteCodePrefill`（auth ドメイン）。手入力済みの場合は上書きしない）
-3. **自動適用**: 本登録時、フォーム値が未指定（undefined）なら cookie タッチ履歴の最新コード
-   （last-touch 優先）が `couponService.redeemWithEffect` にフォールバック適用される。
-   プリフィルされたコードをユーザーが消して送信した場合は「明示的拒否」（`inviteCode: ""`）として
-   フォールバックも行わない。無効コードでも登録はブロックされない
+- **解析（本ドメイン、`ACQUISITION_CONFIG.enabled` でゲート）**: タッチとして記録され、
+  紹介経由の流入が広告・SNS 等と同じ土俵で集計できる。コード自体は extras（`extras.invite`）に
+  残るため「どの紹介者経由のサインアップか」まで追える
+- **機能（referral ドメイン、`APP_FEATURES.marketing.referral.enabled` でゲート）**: コードが
+  referral 専用 cookie（`pending_invite`、last-touch 優先で上書き・30日）に保持され、
+  サインアップフォームへのプリフィルと本登録時の自動適用が動く。
+  **解析が無効でも招待リンクは機能する**。実装は `referral/lib/inviteLinkCookie.ts` /
+  `src/proxies/inviteLink.ts` / `GET /api/referral/pending-invite-code`、
+  挙動の詳細（プリフィル・明示的拒否の意味論）は referral README を参照
 
-前提条件: `ACQUISITION_CONFIG.enabled: true` **かつ** `APP_FEATURES.marketing.referral.enabled: true`。
-acquisition が無効だと cookie が蓄積されないため、招待リンクの自動適用も動かない（手入力は従来どおり動く）。
+パラメータ名の語彙（`referralParam.param`）だけが両系統の共有定義。
 
 ### 招待リンクの生成レシピ（downstream 実装用）
 

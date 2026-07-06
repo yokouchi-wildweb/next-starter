@@ -3,10 +3,12 @@
 import { NextResponse } from "next/server";
 
 import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { createApiRoute } from "@/lib/routeFactory";
 import { register } from "@/features/core/auth/services/server/registration";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
+import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";
 import { ACQUISITION_COOKIE_NAME } from "@/features/core/userAcquisition/constants";
 import {
   extractGaClientId,
@@ -44,7 +46,17 @@ export const POST = createApiRoute(
           }
         : undefined;
 
-    const { user, session } = await register(body, ip ?? undefined, acquisition);
+    // 招待リンク由来の保留コード（referral 専用 cookie、解析のオンオフとは独立）
+    const pendingInviteCode = APP_FEATURES.marketing.referral.enabled
+      ? req.cookies.get(INVITE_LINK_COOKIE_NAME)?.value?.trim() || null
+      : null;
+
+    const { user, session } = await register(
+      body,
+      ip ?? undefined,
+      acquisition,
+      pendingInviteCode,
+    );
 
     const response = NextResponse.json({
       user,
@@ -60,9 +72,12 @@ export const POST = createApiRoute(
       maxAge: session.maxAge,
     });
 
-    // 確定保存が済んだタッチ履歴 cookie は削除する
+    // 確定保存が済んだタッチ履歴 cookie / 招待コード cookie は削除する
     if (cookieTouches.length > 0) {
       response.cookies.delete(ACQUISITION_COOKIE_NAME);
+    }
+    if (pendingInviteCode) {
+      response.cookies.delete(INVITE_LINK_COOKIE_NAME);
     }
 
     return response;

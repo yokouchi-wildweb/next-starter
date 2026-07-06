@@ -33,13 +33,14 @@ export const ACQUISITION_CONFIG = {
    * ユーザー紹介（referral / referralReward）の招待リンク用 URL パラメータ。
    * 例: https://example.com/lp?invite=ABC123
    *
-   * - 計測: このパラメータ付き訪問をタッチとして記録し、UTM 無指定なら
-   *   下記 source / medium を補完する。medium は GA が外部サイト流入に
-   *   自動分類する "referral" と混ざらないよう別語彙にしている。
-   *   コード自体は extras[param] に保存され「どの紹介者経由か」まで追える。
-   * - 機能: サインアップ本登録時、フォームの招待コードが空なら cookie 内の
-   *   最新コードが自動適用される（要: enabled=true かつ
-   *   APP_FEATURES.marketing.referral.enabled=true）。
+   * ここで定義するのは「解析」側の扱い: このパラメータ付き訪問をタッチとして記録し、
+   * UTM 無指定なら下記 source / medium を補完する。medium は GA が外部サイト流入に
+   * 自動分類する "referral" と混ざらないよう別語彙にしている。
+   * コード自体は extras[param] に保存され「どの紹介者経由か」まで追える。
+   *
+   * 紹介リワードの「機能」（フォームプリフィル / 本登録時の自動適用）は referral 側の
+   * 専用 cookie が担い、本 config の enabled とは独立して動く
+   * （param 名の語彙だけ referral/lib/inviteLinkCookie.ts と共有される）。
    */
   referralParam: {
     param: "invite",

@@ -185,22 +185,6 @@ export function toAcquisitionTouch(touch: AttributionCookieTouch): AcquisitionTo
 }
 
 /**
- * タッチ履歴から最新の招待コード（招待リンク由来）を取り出す。
- * サインアップ本登録時、フォームの招待コードが空の場合のフォールバックに使う
- * （複数の招待リンクを踏んでいた場合は last-touch 優先）。
- */
-export function findLatestInviteCode(touches: AcquisitionTouch[]): string | null {
-  const param = ACQUISITION_CONFIG.referralParam.param;
-
-  for (let i = touches.length - 1; i >= 0; i--) {
-    const code = touches[i].extras?.[param];
-    if (code) return code;
-  }
-
-  return null;
-}
-
-/**
  * GA の `_ga` cookie 値から client_id を取り出す（GA データとの突合用）。
  * 形式: "GA1.1.123456789.1700000000" → client_id は末尾 2 セグメント
  * "123456789.1700000000"。形式不明なら null。

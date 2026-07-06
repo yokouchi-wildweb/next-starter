@@ -1,5 +1,6 @@
 import type { ProxyHandler, ProxyResponseDecorator } from './types';
 import { attributionDecorator } from './attribution';
+import { inviteLinkDecorator } from './inviteLink';
 import { demoModeProxy } from './demoMode';
 import { featureGateProxy } from './featureGate';
 import { maintenanceProxy } from './maintenance';
@@ -17,7 +18,8 @@ export const proxyHandlers: ProxyHandler[] = [
  * ハンドラーがインターセプトした場合は実行されない。
  */
 export const proxyResponseDecorators: ProxyResponseDecorator[] = [
-  attributionDecorator, // 流入タッチの cookie 蓄積
+  attributionDecorator, // 流入タッチの cookie 蓄積（解析: ACQUISITION_CONFIG.enabled でゲート）
+  inviteLinkDecorator,  // 招待コードの cookie 保存（機能: referral フラグでゲート、解析とは独立）
 ];
 
 export type { ProxyHandler, ProxyResponseDecorator } from './types';

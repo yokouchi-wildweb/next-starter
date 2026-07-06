@@ -52,8 +52,8 @@ export const attributionDecorator: ProxyResponseDecorator = (
   });
 };
 
-/** ページナビゲーション（HTML ドキュメント要求）のみ対象にする */
-function isPageNavigation(request: NextRequest): boolean {
+/** ページナビゲーション（HTML ドキュメント要求）のみ対象にする（inviteLink デコレーターと共用） */
+export function isPageNavigation(request: NextRequest): boolean {
   const pathname = request.nextUrl.pathname;
   if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) return false;
   if (FILE_EXTENSION_PATTERN.test(pathname)) return false;

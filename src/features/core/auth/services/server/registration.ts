@@ -24,7 +24,6 @@ import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { recordSignupAcquisition } from "@/features/core/userAcquisition/services/server";
-import { findLatestInviteCode } from "@/features/core/userAcquisition/lib/attributionCookie";
 import type {
   AcquisitionExtras,
   AcquisitionTouch,
@@ -55,6 +54,8 @@ export async function register(
   input: unknown,
   ip?: string,
   acquisition?: RegistrationAcquisitionInput,
+  /** 招待リンク由来の保留コード（referral 専用 cookie から API ルートが復元して渡す） */
+  pendingInviteCode?: string | null,
 ): Promise<RegistrationResult> {
   const parsedResult = RegistrationSchema.safeParse(input);
 
@@ -148,11 +149,11 @@ export async function register(
   // inviteCode の意味論:
   // - 非空: フォームの値を使用（手入力 / プリフィル値）
   // - "": プリフィルをユーザーが明示的に消した = 拒否（cookie フォールバックもしない）
-  // - undefined: 未指定 → 招待リンク由来（cookie タッチ履歴、last-touch 優先）へフォールバック
+  // - undefined: 未指定 → 招待リンク由来（referral 専用 cookie、last-touch 優先）へフォールバック
   const effectiveInviteCode =
     inviteCode !== undefined
       ? inviteCode || undefined
-      : findLatestInviteCode(acquisition?.touches ?? []) ?? undefined;
+      : pendingInviteCode ?? undefined;
   if (APP_FEATURES.marketing.referral.enabled && effectiveInviteCode) {
     try {
       await couponService.redeemWithEffect(effectiveInviteCode, user.id);

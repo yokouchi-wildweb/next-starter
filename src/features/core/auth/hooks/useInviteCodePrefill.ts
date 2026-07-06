@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { usePendingInviteCode } from "@/features/core/userAcquisition/hooks/usePendingInviteCode";
+import { usePendingInviteCode } from "@/features/core/referral/hooks/usePendingInviteCode";
 
 type UseInviteCodePrefillParams = {
   /** フォームの現在の招待コード値を返す */
@@ -35,7 +34,8 @@ export function useInviteCodePrefill({
   getInviteCode,
   setInviteCode,
 }: UseInviteCodePrefillParams): UseInviteCodePrefillReturn {
-  const enabled = ACQUISITION_CONFIG.enabled && APP_FEATURES.marketing.referral.enabled;
+  // ゲートは referral 機能フラグのみ（流入経路解析のオンオフとは独立）
+  const enabled = APP_FEATURES.marketing.referral.enabled;
   const { inviteCode: pendingInviteCode } = usePendingInviteCode(enabled);
   const prefilledRef = useRef(false);
 

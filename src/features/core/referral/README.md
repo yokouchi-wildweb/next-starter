@@ -72,10 +72,15 @@
 
 - `RegistrationSchema` に `inviteCode`（optional）を追加
 - Email / OAuth 両登録フォームに招待コード入力欄（`APP_FEATURES.marketing.referral.enabled` で表示制御）
-- **招待リンク連携**: `?invite=CODE` 付き URL を踏むと userAcquisition の cookie にコードが保持され、
-  登録フォームの招待コード欄へプリフィルされる（`useInviteCodePrefill`）。フォーム未指定なら本登録時に
-  フォールバック適用、プリフィルを消して送信したら明示的拒否として適用しない（手入力が常に優先）。
-  要 `ACQUISITION_CONFIG.enabled: true`。リンク生成レシピ含め詳細は `src/features/core/userAcquisition/README.md`
+- **招待リンク連携**: `?invite=CODE` 付き URL を踏むと専用 cookie（`pending_invite`、httpOnly・30日・
+  last-touch 優先で上書き）にコードが保持され、登録フォームの招待コード欄へプリフィルされる。
+  フォーム未指定（undefined）なら本登録時にフォールバック適用、プリフィルを消して送信したら
+  明示的拒否（`""`）として適用しない（手入力が常に優先）。登録完了時に cookie は削除される。
+  ゲートは `APP_FEATURES.marketing.referral.enabled` のみ（流入経路解析 `ACQUISITION_CONFIG.enabled` とは独立。
+  解析も有効なら紹介流入が獲得チャンネルとしても集計される）。
+  実装: `lib/inviteLinkCookie.ts`（cookie 定義）/ `src/proxies/inviteLink.ts`(保存) /
+  `GET /api/referral/pending-invite-code` + `hooks/usePendingInviteCode`(取得) /
+  auth `useInviteCodePrefill`(プリフィル)。リンク生成レシピは `src/features/core/userAcquisition/README.md`
 - サーバー `register()` 内の処理フロー:
   1. `getCouponByCode(inviteCode)`
   2. `redeem(inviteCode, userId)`
