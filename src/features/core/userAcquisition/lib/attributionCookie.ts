@@ -97,8 +97,15 @@ export type NavigationSignal = {
  * - 既知の広告クリック ID パラメータがある
  * - 外部リファラーがある（自ホストからの遷移は対象外）
  *
- * source / medium の補完は GA の慣例に準拠:
+ * タッチ条件（いずれか）:
+ * - utm_* パラメータがある
+ * - 既知の広告クリック ID パラメータがある
+ * - 招待リンクパラメータ（referralParam）がある
+ * - 外部リファラーがある（自ホストからの遷移は対象外）
+ *
+ * source / medium の補完は GA の慣例に準拠（優先順位: UTM > クリック ID > 招待リンク > リファラー）:
  * UTM 無し + クリック ID → クリック ID 由来の source/medium、
+ * UTM 無し + 招待リンク → referralParam の source/medium（medium は "referral" と別語彙）、
  * UTM 無し + 外部リファラーのみ → source=リファラーホスト, medium="referral"
  *
  * @returns タッチ。流入シグナルが無い場合は null
@@ -117,18 +124,23 @@ export function buildTouchFromNavigation(signal: NavigationSignal): AttributionC
   }
 
   let clickIdChannel: { source: string; medium: string } | null = null;
+  let hasClickId = false;
   for (const [param, channel] of Object.entries(ACQUISITION_CONFIG.clickIdParams)) {
     const value = readParam(params, param);
     if (!value) continue;
     extras[param] = value;
+    hasClickId = true;
     clickIdChannel ??= channel;
   }
+
+  // 招待リンク（紹介リワード）。コードは extras に保存し、本登録時の自動適用にも使う
+  const inviteCode = readParam(params, ACQUISITION_CONFIG.referralParam.param);
+  if (inviteCode) extras[ACQUISITION_CONFIG.referralParam.param] = inviteCode;
 
   const referrerHost = resolveExternalReferrerHost(signal.referrer, signal.url.host);
 
   const hasUtm = Boolean(utmSource || utmMedium || utmCampaign);
-  const hasClickId = clickIdChannel !== null || Object.keys(extras).some((k) => k in ACQUISITION_CONFIG.clickIdParams);
-  if (!hasUtm && !hasClickId && !referrerHost) return null;
+  if (!hasUtm && !hasClickId && !inviteCode && !referrerHost) return null;
 
   // source / medium の補完（UTM 明示指定が常に優先）
   let source = utmSource;
@@ -136,6 +148,10 @@ export function buildTouchFromNavigation(signal: NavigationSignal): AttributionC
   if (!source && clickIdChannel) {
     source = clickIdChannel.source;
     medium ??= clickIdChannel.medium;
+  }
+  if (!source && inviteCode) {
+    source = ACQUISITION_CONFIG.referralParam.source;
+    medium ??= ACQUISITION_CONFIG.referralParam.medium;
   }
   if (!source && referrerHost) {
     source = referrerHost;
@@ -166,6 +182,22 @@ export function toAcquisitionTouch(touch: AttributionCookieTouch): AcquisitionTo
     landingPage: touch.l ?? null,
     extras: touch.x ?? null,
   };
+}
+
+/**
+ * タッチ履歴から最新の招待コード（招待リンク由来）を取り出す。
+ * サインアップ本登録時、フォームの招待コードが空の場合のフォールバックに使う
+ * （複数の招待リンクを踏んでいた場合は last-touch 優先）。
+ */
+export function findLatestInviteCode(touches: AcquisitionTouch[]): string | null {
+  const param = ACQUISITION_CONFIG.referralParam.param;
+
+  for (let i = touches.length - 1; i >= 0; i--) {
+    const code = touches[i].extras?.[param];
+    if (code) return code;
+  }
+
+  return null;
 }
 
 /**

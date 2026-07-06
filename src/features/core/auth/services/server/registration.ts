@@ -24,6 +24,7 @@ import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { recordSignupAcquisition } from "@/features/core/userAcquisition/services/server";
+import { findLatestInviteCode } from "@/features/core/userAcquisition/lib/attributionCookie";
 import type {
   AcquisitionExtras,
   AcquisitionTouch,
@@ -144,9 +145,12 @@ export async function register(
   }
 
   // 招待コード処理（失敗しても登録はブロックしない）
-  if (APP_FEATURES.marketing.referral.enabled && inviteCode) {
+  // フォーム入力（明示的な意思）を優先し、空なら招待リンク由来（cookie タッチ履歴）へフォールバック
+  const effectiveInviteCode =
+    inviteCode || findLatestInviteCode(acquisition?.touches ?? []) || undefined;
+  if (APP_FEATURES.marketing.referral.enabled && effectiveInviteCode) {
     try {
-      await couponService.redeemWithEffect(inviteCode, user.id);
+      await couponService.redeemWithEffect(effectiveInviteCode, user.id);
     } catch (error) {
       console.warn("[registration] 招待コード処理に失敗しましたが登録は続行します:", error);
     }

@@ -42,8 +42,9 @@ httpOnly cookie (acq_touches) に            → register() → recordSignupAcqu
 ## タッチの記録ルール（cookie 側）
 
 - 対象: GET のページナビゲーションのみ（/api/・/_next/・アセットは除外）
-- タッチ条件: `utm_*` あり / 既知のクリック ID あり / 外部リファラーあり
-- source/medium 補完（GA 慣例）: UTM 無し+クリック ID → config の対応表、UTM 無し+外部リファラーのみ → `source=リファラーホスト, medium=referral`
+- タッチ条件: `utm_*` あり / 既知のクリック ID あり / 招待リンクパラメータ（`invite`）あり / 外部リファラーあり
+- source/medium 補完の優先順位: **UTM > クリック ID > 招待リンク > 外部リファラー**。UTM 無し+クリック ID → config の対応表、UTM 無し+招待リンク → `source=invite, medium=invite`、UTM 無し+外部リファラーのみ → `source=リファラーホスト, medium=referral`
+- 招待リンクの medium を `referral` にしない理由: GA が外部サイトからの自然リンク流入を `referral` に自動分類するため、混ざらないよう別語彙（`invite`）にしている（config で変更可）
 - 重複抑止: 直前タッチと同一チャンネル（source/medium/campaign/referrer_host）は追記しない
 - 上限: `maxTouches`（既定 15）超過・4KB 逼迫時は **first-touch を必ず保持**して古い中間タッチから間引く
 - 有効期限: 追記のたびにリフレッシュ = 最終タッチから `cookieMaxAgeDays`（既定 30 日）
@@ -55,6 +56,34 @@ import {
   getUserAcquisition,        // 1:1 サマリー（無ければ null）
   getUserAcquisitionTouches, // タッチ明細（時系列昇順）
 } from "@/features/userAcquisition/services/server";
+```
+
+## 招待リンク連携（referral / referralReward）
+
+`ACQUISITION_CONFIG.referralParam`（既定: `invite`）付きの URL を踏むと:
+
+1. **計測**: タッチとして記録され、紹介経由の流入が広告・SNS 等と同じ土俵で集計できる。
+   コード自体は extras（`extras.invite`）に残るため「どの紹介者経由のサインアップか」まで追える
+2. **自動適用**: サインアップ本登録時、**フォームの招待コードが空なら** cookie タッチ履歴の
+   最新コードが `couponService.redeemWithEffect` に自動適用される（手入力が常に優先。
+   複数リンクを踏んでいた場合は last-touch 優先。無効コードでも登録はブロックされない）
+
+前提条件: `ACQUISITION_CONFIG.enabled: true` **かつ** `APP_FEATURES.marketing.referral.enabled: true`。
+acquisition が無効だと cookie が蓄積されないため、招待リンクの自動適用も動かない（手入力は従来どおり動く）。
+
+### 招待リンクの生成レシピ（downstream 実装用）
+
+core は招待コード文字列のコピー UI（InviteCodePage）までを提供する。リンク化は downstream で:
+
+```ts
+import { getAppBaseUrl } from "@/lib/url";
+
+// 基本形
+const inviteUrl = `${getAppBaseUrl()}/?invite=${encodeURIComponent(code)}`;
+
+// GA 側でも紹介チャンネルとして分類したい場合は UTM を併記する
+// （UTM が優先されるため、サービス側 DB と GA の集計ラベルが一致する）
+const inviteUrlWithUtm = `${getAppBaseUrl()}/?invite=${encodeURIComponent(code)}&utm_source=invite&utm_medium=invite`;
 ```
 
 ## 集計レシピ

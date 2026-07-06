@@ -72,6 +72,9 @@
 
 - `RegistrationSchema` に `inviteCode`（optional）を追加
 - Email / OAuth 両登録フォームに招待コード入力欄（`APP_FEATURES.marketing.referral.enabled` で表示制御）
+- **招待リンク経由の自動適用**: `?invite=CODE` 付き URL を踏むと userAcquisition の cookie にコードが保持され、
+  本登録時にフォーム入力が空ならフォールバック適用される（手入力が常に優先）。
+  要 `ACQUISITION_CONFIG.enabled: true`。リンク生成レシピ含め詳細は `src/features/core/userAcquisition/README.md`
 - サーバー `register()` 内の処理フロー:
   1. `getCouponByCode(inviteCode)`
   2. `redeem(inviteCode, userId)`

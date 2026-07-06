@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 
+import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { createApiRoute } from "@/lib/routeFactory";
 import { register } from "@/features/core/auth/services/server/registration";
@@ -30,9 +31,10 @@ export const POST = createApiRoute(
 
     // 流入経路: proxy が蓄積したタッチ履歴 cookie をサーバーサイドで復元して渡す
     // (クライアント申告値ではないため RegistrationSchema には含めない)
-    const cookieTouches = parseAttributionCookie(
-      req.cookies.get(ACQUISITION_COOKIE_NAME)?.value,
-    );
+    // enabled=false 時は蓄積側(proxy)と揃えて確定保存も行わない (期限切れ前の残存 cookie 対策)
+    const cookieTouches = ACQUISITION_CONFIG.enabled
+      ? parseAttributionCookie(req.cookies.get(ACQUISITION_COOKIE_NAME)?.value)
+      : [];
     const gaClientId = extractGaClientId(req.cookies.get("_ga")?.value);
     const acquisition =
       cookieTouches.length > 0

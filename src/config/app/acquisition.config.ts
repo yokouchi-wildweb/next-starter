@@ -30,6 +30,24 @@ export const ACQUISITION_CONFIG = {
   maxTouches: 15,
 
   /**
+   * ユーザー紹介（referral / referralReward）の招待リンク用 URL パラメータ。
+   * 例: https://example.com/lp?invite=ABC123
+   *
+   * - 計測: このパラメータ付き訪問をタッチとして記録し、UTM 無指定なら
+   *   下記 source / medium を補完する。medium は GA が外部サイト流入に
+   *   自動分類する "referral" と混ざらないよう別語彙にしている。
+   *   コード自体は extras[param] に保存され「どの紹介者経由か」まで追える。
+   * - 機能: サインアップ本登録時、フォームの招待コードが空なら cookie 内の
+   *   最新コードが自動適用される（要: enabled=true かつ
+   *   APP_FEATURES.marketing.referral.enabled=true）。
+   */
+  referralParam: {
+    param: "invite",
+    source: "invite",
+    medium: "invite",
+  },
+
+  /**
    * 広告クリック ID として認識する URL パラメータと、
    * UTM が無い場合に補完する source / medium（GA の慣例に準拠）。
    * 値の null は「クリック ID は extras に保存するが source/medium は導出しない」の意。
