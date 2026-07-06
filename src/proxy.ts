@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { proxyHandlers } from './proxies';
+import { proxyHandlers, proxyResponseDecorators } from './proxies';
 
 export default async function proxy(request: NextRequest) {
   for (const handler of proxyHandlers) {
@@ -13,5 +13,12 @@ export default async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', request.nextUrl.pathname);
 
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+  // 素通しレスポンスへの副作用（cookie 付与等）。ハンドラーがインターセプトした場合は実行されない
+  for (const decorator of proxyResponseDecorators) {
+    await decorator(request, response);
+  }
+
+  return response;
 }

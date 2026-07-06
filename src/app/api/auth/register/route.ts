@@ -6,6 +6,12 @@ import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { createApiRoute } from "@/lib/routeFactory";
 import { register } from "@/features/core/auth/services/server/registration";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
+import { ACQUISITION_COOKIE_NAME } from "@/features/core/userAcquisition/constants";
+import {
+  extractGaClientId,
+  parseAttributionCookie,
+  toAcquisitionTouch,
+} from "@/features/core/userAcquisition/lib/attributionCookie";
 import { getClientIp } from "@/lib/request/getClientIp";
 
 export const POST = createApiRoute(
@@ -21,7 +27,22 @@ export const POST = createApiRoute(
   async (req) => {
     const body = await req.json();
     const ip = await getClientIp();
-    const { user, session } = await register(body, ip ?? undefined);
+
+    // 流入経路: proxy が蓄積したタッチ履歴 cookie をサーバーサイドで復元して渡す
+    // (クライアント申告値ではないため RegistrationSchema には含めない)
+    const cookieTouches = parseAttributionCookie(
+      req.cookies.get(ACQUISITION_COOKIE_NAME)?.value,
+    );
+    const gaClientId = extractGaClientId(req.cookies.get("_ga")?.value);
+    const acquisition =
+      cookieTouches.length > 0
+        ? {
+            touches: cookieTouches.map(toAcquisitionTouch),
+            extras: gaClientId ? { gaClientId } : null,
+          }
+        : undefined;
+
+    const { user, session } = await register(body, ip ?? undefined, acquisition);
 
     const response = NextResponse.json({
       user,
@@ -36,6 +57,11 @@ export const POST = createApiRoute(
       expiresAt: session.expiresAt,
       maxAge: session.maxAge,
     });
+
+    // 確定保存が済んだタッチ履歴 cookie は削除する
+    if (cookieTouches.length > 0) {
+      response.cookies.delete(ACQUISITION_COOKIE_NAME);
+    }
 
     return response;
   },

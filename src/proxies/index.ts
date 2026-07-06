@@ -1,4 +1,5 @@
-import type { ProxyHandler } from './types';
+import type { ProxyHandler, ProxyResponseDecorator } from './types';
+import { attributionDecorator } from './attribution';
 import { demoModeProxy } from './demoMode';
 import { featureGateProxy } from './featureGate';
 import { maintenanceProxy } from './maintenance';
@@ -11,4 +12,12 @@ export const proxyHandlers: ProxyHandler[] = [
   redirectProxy,
 ];
 
-export type { ProxyHandler } from './types';
+/**
+ * 素通しレスポンス（NextResponse.next()）に副作用を加えるデコレーター。
+ * ハンドラーがインターセプトした場合は実行されない。
+ */
+export const proxyResponseDecorators: ProxyResponseDecorator[] = [
+  attributionDecorator, // 流入タッチの cookie 蓄積
+];
+
+export type { ProxyHandler, ProxyResponseDecorator } from './types';

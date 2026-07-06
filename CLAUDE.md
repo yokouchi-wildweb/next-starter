@@ -34,6 +34,7 @@ pattern: handler chain — each ProxyHandler returns Response (intercept) or voi
 handlers: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy (order matters)
 headers: proxy.ts sets x-pathname on request headers → server components read via headers().get("x-pathname")
 adding_handler: create src/proxies/\<name\>.ts implementing ProxyHandler → register in src/proxies/index.ts
+decorators: ProxyResponseDecorator (request,response)=>void — side-effect (cookie write etc.) on pass-through NextResponse.next() | register in proxyResponseDecorators (src/proxies/index.ts) | NOT executed when a handler intercepts | current: attributionDecorator (USER_ACQUISITION)
 note: Next.js 16 uses proxy (src/proxy.ts), NOT middleware (middleware.ts)
 
 ## DIRECTORY_STRUCTURE
@@ -126,6 +127,14 @@ interactionTracking: public ingest POST /api/interactions (fail-closed via src/r
 lifetime counters + content-daily: permanent | event detail + user-daily: retention_days + prune cron
 NOT_for: game telemetry, scroll/mousemove streams, sustained tens-of-millions events/day → needs separate queue/external pipeline, do NOT retrofit these domains
 adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = read-only aggregation over existing tables (only derived data: analytics_daily_rollups = recomputable pre-aggregation cache, NOT source of truth — see ANALYTICS_PERF)
+
+## USER_ACQUISITION (signup attribution, multi-touch)
+capture: src/proxies/attribution.ts (response decorator) — GET page navigation with utm_* / click-ID (gclid etc.) / external referrer → touch appended to httpOnly cookie acq_touches (dedup consecutive same-channel, first-touch always kept on trim, maxAge refreshed per touch) | no DB write pre-signup
+persist: POST /api/auth/register reads cookie server-side (NOT client input, RegistrationSchema unchanged) → recordSignupAcquisition (bestEffort, tx) → user_acquisitions (1:1 summary, first/last denormalized typed columns for GROUP BY) + user_acquisition_touches (1:N timeline, touch_index asc) → cookie deleted | rejoin = overwrite as new journey | _ga client_id → extras.gaClientId
+read(server-only): getUserAcquisition / getUserAcquisitionTouches | no row = no measurable signal (organic direct)
+config: src/config/app/acquisition.config.ts (enabled | cookieMaxAgeDays=30 | maxTouches=15 | clickIdParams map)
+rules: users table gets NO analytics columns — per-concern satellite tables (this domain is the precedent) | aggregation axes = typed columns, long-tail (utm_term/click-IDs/gaClientId) = extras jsonb, promote to column only when it becomes an aggregation axis | dashboard aggregation → ANALYTICS_PERF (cache → rollup)
+ref: src/features/core/userAcquisition/README.md
 
 ## CRON_TASKS
 scheduler not built-in: downstream copies vercel.json.example → Vercel auto-runs | new task = wire ALL 4: api/cron route + run.ts TASKS + vercel.json.example + docs/reference/cron-tasks.md

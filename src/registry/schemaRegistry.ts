@@ -8,6 +8,7 @@ export * from "@/features/auditLog/entities/drizzle";
 export * from "@/features/analytics/entities/drizzle";
 export * from "@/registry/profileTableRegistry";
 export * from "@/features/user/entities/drizzle";
+export * from "@/features/userAcquisition/entities/drizzle";
 export * from "@/features/setting/entities/drizzle";
 export * from "@/features/wallet/entities/drizzle";
 export * from "@/features/walletHistory/entities/drizzle";
