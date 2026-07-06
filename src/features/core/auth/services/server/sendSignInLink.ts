@@ -4,6 +4,7 @@ import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { VerificationEmail } from "@/features/core/mail/templates/VerificationEmail";
+import { toDirectSignInLink } from "@/features/core/auth/services/server/toDirectSignInLink";
 import { DomainError } from "@/lib/errors";
 
 export type SendSignInLinkParams = {
@@ -15,6 +16,8 @@ export type SendSignInLinkParams = {
 
 /**
  * Firebase Admin SDK でサインインリンクを生成し、Resend でメールを送信します。
+ * 生成リンクは firebaseapp.com の中継ページを経由しないアプリ直リンクに
+ * 組み直して送信します（toDirectSignInLink 参照）。
  */
 export async function sendSignInLink({
   email,
@@ -29,10 +32,10 @@ export async function sendSignInLink({
     handleCodeInApp: true,
   };
 
-  let verificationUrl: string;
+  let firebaseGeneratedUrl: string;
 
   try {
-    verificationUrl = await auth.generateSignInWithEmailLink(
+    firebaseGeneratedUrl = await auth.generateSignInWithEmailLink(
       email,
       actionCodeSettings,
     );
@@ -43,6 +46,9 @@ export async function sendSignInLink({
       { status: 500 },
     );
   }
+
+  // firebaseapp.com のアクションページをスキップし、アプリに直接飛ばす URL を生成
+  const verificationUrl = toDirectSignInLink(firebaseGeneratedUrl, continueUrl);
 
   try {
     await VerificationEmail.send(email, {

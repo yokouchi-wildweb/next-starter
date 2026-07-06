@@ -4,6 +4,7 @@ import type { ActionCodeSettings } from "firebase-admin/auth";
 
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { EarlyRegistrationEmail } from "@/features/core/mail/templates/EarlyRegistrationEmail";
+import { toDirectSignInLink } from "@/features/core/auth/services/server/toDirectSignInLink";
 import { DomainError } from "@/lib/errors";
 
 export type SendEarlyRegistrationLinkParams = {
@@ -15,6 +16,8 @@ export type SendEarlyRegistrationLinkParams = {
 
 /**
  * Firebase Admin SDK で事前登録用サインインリンクを生成し、メールを送信します。
+ * 生成リンクは firebaseapp.com の中継ページを経由しないアプリ直リンクに
+ * 組み直して送信します（toDirectSignInLink 参照）。
  */
 export async function sendEarlyRegistrationLink({
   email,
@@ -29,10 +32,10 @@ export async function sendEarlyRegistrationLink({
     handleCodeInApp: true,
   };
 
-  let verificationUrl: string;
+  let firebaseGeneratedUrl: string;
 
   try {
-    verificationUrl = await auth.generateSignInWithEmailLink(
+    firebaseGeneratedUrl = await auth.generateSignInWithEmailLink(
       email,
       actionCodeSettings,
     );
@@ -43,6 +46,9 @@ export async function sendEarlyRegistrationLink({
       { status: 500 },
     );
   }
+
+  // firebaseapp.com のアクションページをスキップし、アプリに直接飛ばす URL を生成
+  const verificationUrl = toDirectSignInLink(firebaseGeneratedUrl, continueUrl);
 
   try {
     await EarlyRegistrationEmail.send(email, {
