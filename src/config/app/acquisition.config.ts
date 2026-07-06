@@ -8,8 +8,12 @@
  * user_acquisition_touches へ確定保存するための設定。
  */
 export const ACQUISITION_CONFIG = {
-  /** 計測全体の有効 / 無効。false にすると cookie 蓄積・保存とも停止する */
-  enabled: true,
+  /**
+   * 計測全体の有効 / 無効（cookie 蓄積・確定保存の両方を制御）。
+   * デフォルト無効。downstream で流入経路計測が必要になったら true にする（オプトイン）。
+   * 有効化した時点以降のサインアップから蓄積される（過去のサインアップには遡及できない）。
+   */
+  enabled: false,
 
   /**
    * タッチ履歴 cookie の有効期間（日）。

@@ -129,7 +129,7 @@ NOT_for: game telemetry, scroll/mousemove streams, sustained tens-of-millions ev
 adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = read-only aggregation over existing tables (only derived data: analytics_daily_rollups = recomputable pre-aggregation cache, NOT source of truth — see ANALYTICS_PERF)
 
 ## USER_ACQUISITION (signup attribution, multi-touch)
-flow: proxy decorator (src/proxies/attribution.ts) accumulates utm/click-ID/external-referrer touches into httpOnly cookie (no DB write pre-signup) → /api/auth/register reads cookie server-side → user_acquisitions (1:1 first/last summary) + user_acquisition_touches (1:N timeline) | config: src/config/app/acquisition.config.ts
+flow: proxy decorator (src/proxies/attribution.ts) accumulates utm/click-ID/external-referrer touches into httpOnly cookie (no DB write pre-signup) → /api/auth/register reads cookie server-side → user_acquisitions (1:1 first/last summary) + user_acquisition_touches (1:N timeline) | config: src/config/app/acquisition.config.ts (opt-in, default disabled — downstream enables when needed, no retroactive data)
 rules: users table gets NO analytics columns — per-concern satellite tables (this domain is the precedent) | aggregation axes = typed columns, long-tail = extras jsonb | dashboard aggregation → ANALYTICS_PERF
 ref: src/features/core/userAcquisition/README.md (cookie spec, read API, aggregation recipes)
 
