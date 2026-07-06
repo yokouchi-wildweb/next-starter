@@ -64,9 +64,13 @@ import {
 
 1. **計測**: タッチとして記録され、紹介経由の流入が広告・SNS 等と同じ土俵で集計できる。
    コード自体は extras（`extras.invite`）に残るため「どの紹介者経由のサインアップか」まで追える
-2. **自動適用**: サインアップ本登録時、**フォームの招待コードが空なら** cookie タッチ履歴の
-   最新コードが `couponService.redeemWithEffect` に自動適用される（手入力が常に優先。
-   複数リンクを踏んでいた場合は last-touch 優先。無効コードでも登録はブロックされない）
+2. **フォームプリフィル**: サインアップフォームの招待コード欄に cookie 由来のコードが自動入力され、
+   ユーザーに見える・編集できる・消せる状態になる
+   （`GET /api/acquisition/pending-invite-code` → `useInviteCodePrefill`（auth ドメイン）。手入力済みの場合は上書きしない）
+3. **自動適用**: 本登録時、フォーム値が未指定（undefined）なら cookie タッチ履歴の最新コード
+   （last-touch 優先）が `couponService.redeemWithEffect` にフォールバック適用される。
+   プリフィルされたコードをユーザーが消して送信した場合は「明示的拒否」（`inviteCode: ""`）として
+   フォールバックも行わない。無効コードでも登録はブロックされない
 
 前提条件: `ACQUISITION_CONFIG.enabled: true` **かつ** `APP_FEATURES.marketing.referral.enabled: true`。
 acquisition が無効だと cookie が蓄積されないため、招待リンクの自動適用も動かない（手入力は従来どおり動く）。

@@ -131,7 +131,7 @@ adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) |
 ## USER_ACQUISITION (signup attribution, multi-touch)
 flow: proxy decorator (src/proxies/attribution.ts) accumulates utm/click-ID/external-referrer touches into httpOnly cookie (no DB write pre-signup) → /api/auth/register reads cookie server-side → user_acquisitions (1:1 first/last summary) + user_acquisition_touches (1:N timeline) | config: src/config/app/acquisition.config.ts (opt-in, default disabled — downstream enables when needed, no retroactive data)
 rules: users table gets NO analytics columns — per-concern satellite tables (this domain is the precedent) | aggregation axes = typed columns, long-tail = extras jsonb | dashboard aggregation → ANALYTICS_PERF
-referral_link: ?invite=CODE (config referralParam) → touch (source/medium=invite, NOT "referral") + auto-applies invite code at register when form input empty (needs acquisition enabled + marketing.referral.enabled)
+referral_link: ?invite=CODE (config referralParam) → touch (source/medium=invite, NOT "referral") + signup form prefill (GET /api/acquisition/pending-invite-code → auth useInviteCodePrefill) + register fallback (needs acquisition enabled + marketing.referral.enabled) | register inviteCode semantics: non-empty=use | ""=explicit decline, no fallback | undefined=fallback to cookie last-touch
 ref: src/features/core/userAcquisition/README.md (cookie spec, read API, aggregation recipes, invite-link recipe)
 
 ## CRON_TASKS

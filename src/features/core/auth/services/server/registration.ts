@@ -145,9 +145,14 @@ export async function register(
   }
 
   // 招待コード処理（失敗しても登録はブロックしない）
-  // フォーム入力（明示的な意思）を優先し、空なら招待リンク由来（cookie タッチ履歴）へフォールバック
+  // inviteCode の意味論:
+  // - 非空: フォームの値を使用（手入力 / プリフィル値）
+  // - "": プリフィルをユーザーが明示的に消した = 拒否（cookie フォールバックもしない）
+  // - undefined: 未指定 → 招待リンク由来（cookie タッチ履歴、last-touch 優先）へフォールバック
   const effectiveInviteCode =
-    inviteCode || findLatestInviteCode(acquisition?.touches ?? []) || undefined;
+    inviteCode !== undefined
+      ? inviteCode || undefined
+      : findLatestInviteCode(acquisition?.touches ?? []) ?? undefined;
   if (APP_FEATURES.marketing.referral.enabled && effectiveInviteCode) {
     try {
       await couponService.redeemWithEffect(effectiveInviteCode, user.id);

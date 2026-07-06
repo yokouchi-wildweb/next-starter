@@ -14,6 +14,7 @@ import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
 import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { useInviteCodePrefill } from "@/features/core/auth/hooks/useInviteCodePrefill";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import type { RegistrationInput } from "@/features/core/auth/hooks/useRegistration";
 import { err, HttpError, isHttpError } from "@/lib/errors";
@@ -51,6 +52,12 @@ export function OAuthRegistrationForm() {
   const { register, isLoading } = useRegistration();
   const { refreshSession } = useAuthSession();
   const [showRateLimitWarning, setShowRateLimitWarning] = useState(false);
+
+  // 招待リンク（?invite=CODE）由来のコードを招待コード欄へプリフィル
+  const { resolveInviteCodePayload } = useInviteCodePrefill({
+    getInviteCode: () => form.getValues("inviteCode"),
+    setInviteCode: (code) => form.setValue("inviteCode", code),
+  });
 
   // v2チャレンジの状態管理
   const {
@@ -146,7 +153,7 @@ export function OAuthRegistrationForm() {
           name,
           role,
           profileData,
-          inviteCode: inviteCode || undefined,
+          inviteCode: resolveInviteCodePayload(inviteCode),
         };
 
         await register(payload, { recaptchaToken });
@@ -169,7 +176,7 @@ export function OAuthRegistrationForm() {
               name: values.name,
               role: values.role,
               profileData: values.profileData,
-              inviteCode: values.inviteCode || undefined,
+              inviteCode: resolveInviteCodePayload(values.inviteCode),
             };
           }
           handleV2ChallengeRequired(error);
@@ -188,7 +195,7 @@ export function OAuthRegistrationForm() {
         form.setError("root", { type: "server", message });
       }
     },
-    [form, refreshSession, register, guardedPush, executeRecaptcha, handleV2ChallengeRequired],
+    [form, refreshSession, register, guardedPush, executeRecaptcha, handleV2ChallengeRequired, resolveInviteCodePayload],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
