@@ -115,7 +115,8 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
                 }}
                 onLoad={handleImageLoad}
               />
-              <DialogClose className="absolute top-0 right-0 translate-x-[calc(50%-6px)] sm:translate-x-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white hover:bg-black/90 transition-colors cursor-pointer">
+              {/* right: 余白があれば従来どおり外側にはみ出し、画像端がビューポート端に迫ると内側へスライド（% は画像ラッパー幅基準 → (100%-100vw)/2 = -左右余白） */}
+              <DialogClose className="absolute top-0 right-[max(-14px,calc((100%-100vw)/2+4px))] sm:right-[max(-20px,calc((100%-100vw)/2+4px))] -translate-y-1/2 rounded-full bg-black/70 p-2 text-white hover:bg-black/90 transition-colors cursor-pointer">
                 <XIcon className="size-6" />
                 <span className="sr-only">閉じる</span>
               </DialogClose>
