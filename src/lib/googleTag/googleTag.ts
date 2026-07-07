@@ -7,6 +7,8 @@
  * - クライアント専用（SSR では何もしない）
  */
 
+import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
+
 const GOOGLE_TAG_ID = process.env.NEXT_PUBLIC_GOOGLE_TAG_ID; // GA4: G-XXXXXXX
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID; // Ads: AW-XXXXXXX
 
@@ -117,6 +119,46 @@ function shouldIgnoreReferrer(
   );
 }
 
+/**
+ * 招待リンク（?invite=CODE）のみで流入した場合の GA4 手動キャンペーン値を解決する。
+ *
+ * 背景: GA4 は utm_* / クリック ID しか流入元判定に使わず、独自の invite
+ * パラメータは無視される。X 等でシェアされた招待リンクからの流入が
+ * 「t.co / referral」や「(direct) / (none)」に分類されてしまうため、
+ * campaign_source / campaign_medium を config で明示し、独自チャンネル
+ * （既定: invite / invite）としてセッションを分類させる。
+ *
+ * 優先順位はサービス側 DB 解析（attributionCookie の source/medium 補完）と同一:
+ * UTM > クリック ID > 招待リンク。UTM またはクリック ID がある場合は
+ * GA 本来の判定（あるいは招待リンクへの utm 併記）を尊重して何もしない。
+ * 語彙は ACQUISITION_CONFIG.referralParam を共有（downstream の変更に両側が追随）。
+ *
+ * 注意: これはセッションの参照元/メディアの割り当てまで。GA4 のチャンネル
+ * グループ表示で「invite」を独自チャンネルとしてまとめたい場合は、GA 側で
+ * source=invite を条件にしたカスタムチャンネルグループを別途作成する（任意）。
+ */
+export function resolveInviteCampaign(
+  search: string
+): { campaign_source: string; campaign_medium: string } | null {
+  const params = new URLSearchParams(search);
+
+  if (!params.get(ACQUISITION_CONFIG.referralParam.param)?.trim()) return null;
+
+  // UTM 明示指定が最優先（招待リンクに utm を併記する運用も尊重）
+  if (params.get("utm_source") || params.get("utm_medium") || params.get("utm_campaign")) {
+    return null;
+  }
+  // クリック ID があれば広告流入として GA / Ads の自動判定に任せる
+  for (const clickIdParam of Object.keys(ACQUISITION_CONFIG.clickIdParams)) {
+    if (params.get(clickIdParam)) return null;
+  }
+
+  return {
+    campaign_source: ACQUISITION_CONFIG.referralParam.source,
+    campaign_medium: ACQUISITION_CONFIG.referralParam.medium,
+  };
+}
+
 let initialized = false;
 
 /**
@@ -173,12 +215,26 @@ export function initGoogleTag(options?: GoogleTagInitOptions): void {
   // 決済・認証リダイレクト戻り時は中間ドメインによる参照元上書きを抑止。
   // config パラメータは以後のイベントにも引き継がれるが、ランディング後の
   // SPA 遷移のリファラーは同一オリジンのため実害はない
-  const ignoreReferrer = shouldIgnoreReferrer(win, options);
+  const ga4Params: Record<string, unknown> = {};
+
+  if (shouldIgnoreReferrer(win, options)) {
+    ga4Params.ignore_referrer = true;
+  }
+
+  // 招待リンクのみでの流入は独自チャンネル（invite/invite）としてセッションを分類。
+  // リファラー（t.co 等）による上書きを防ぐため ignore_referrer も併せて付与
+  const inviteCampaign = resolveInviteCampaign(win.location.search);
+  if (inviteCampaign) {
+    ga4Params.campaign_source = inviteCampaign.campaign_source;
+    ga4Params.campaign_medium = inviteCampaign.campaign_medium;
+    ga4Params.ignore_referrer = true;
+  }
+
   if (GOOGLE_TAG_ID) {
     gtag(
       "config",
       GOOGLE_TAG_ID,
-      ...(ignoreReferrer ? [{ ignore_referrer: true }] : [])
+      ...(Object.keys(ga4Params).length > 0 ? [ga4Params] : [])
     );
   }
   if (GOOGLE_ADS_ID) gtag("config", GOOGLE_ADS_ID);

@@ -85,8 +85,10 @@ import { getAppBaseUrl } from "@/lib/url";
 // 基本形
 const inviteUrl = `${getAppBaseUrl()}/?invite=${encodeURIComponent(code)}`;
 
-// GA 側でも紹介チャンネルとして分類したい場合は UTM を併記する
-// （UTM が優先されるため、サービス側 DB と GA の集計ラベルが一致する）
+// GA 併用時も基本形のままで OK: googleTag 基盤が invite のみの流入を
+// campaign_source/medium=invite として GA4 に自動分類する（src/lib/googleTag/README.md 参照）。
+// UTM を併記したい場合（GTM 直貼り等、googleTag 基盤を経由しない構成）はこちら
+// （UTM が最優先されるため、サービス側 DB と GA の集計ラベルは一致する）
 const inviteUrlWithUtm = `${getAppBaseUrl()}/?invite=${encodeURIComponent(code)}&utm_source=invite&utm_medium=invite`;
 ```
 

@@ -41,6 +41,20 @@ Google tag (gtag.js) + Google Ads コンバージョン計測。**すべて `NEX
 - Firebase Auth のリファラー問題の根本対策は authDomain をアプリ自身のドメインにして `/__/auth/*` をプロキシする構成（Google 推奨・ITP 対策も兼ねる）。インフラ構成に依存するため downstream 判断
 - 決済ページ滞在が 30 分を超えた場合のセッション分断はどちらの方法でも防げない（GA4 仕様）
 
+## 招待リンク流入の独自チャンネル分類（campaign_source/medium）
+
+GA4 は utm_* / クリック ID しか流入元判定に使わず、招待リンク（`?invite=CODE`、userAcquisition/referral 参照）の
+独自パラメータは無視される。X 等でシェアされた招待リンクからの流入が「t.co / referral」や「(direct) / (none)」に
+分類されてしまうため、`initGoogleTag()` はランディング URL が **invite のみ**（utm_* もクリック ID も無い）の場合、
+GA4 config に `campaign_source` / `campaign_medium`（既定: `invite` / `invite`、`ACQUISITION_CONFIG.referralParam` の
+語彙を共有）と `ignore_referrer: true` を付与し、独自チャンネルとしてセッションを分類させる。
+
+- 優先順位はサービス側 DB 解析と同一（UTM > クリック ID > invite）。utm 併記リンクでは何もしない（GA 本来の判定を尊重）
+- GA 管理画面の設定は不要。ただしチャンネルグループ表示で「invite」を独自チャンネルにまとめたい場合のみ、
+  source=invite を条件にしたカスタムチャンネルグループを作成する（任意・表示グルーピングの話）
+- GA4 のチャンネルグループルールは独自パラメータを条件にできないため、GA 側設定だけではこの分類は実現できない
+  （このコード側対応が唯一の自動化手段。上記 ignore_referrer と同じく、この lib 経由のタグ計測にのみ効く）
+
 ## 発火ポイント（core）
 
 - サインアップ完了 `app/(user)/(auth)/signup/complete/page.tsx`: `useTransitionGuard` の正当遷移時のみ `fire("signup")`
