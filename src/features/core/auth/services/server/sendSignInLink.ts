@@ -5,6 +5,7 @@ import type { ActionCodeSettings } from "firebase-admin/auth";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { VerificationEmail } from "@/features/core/mail/templates/VerificationEmail";
 import { toDirectSignInLink } from "@/features/core/auth/services/server/toDirectSignInLink";
+import { appendInviteLinkParam } from "@/features/core/referral/lib/inviteLinkCookie";
 import { DomainError } from "@/lib/errors";
 
 export type SendSignInLinkParams = {
@@ -12,6 +13,12 @@ export type SendSignInLinkParams = {
   email: string;
   /** リダイレクト先のオリジン（例: https://example.com） */
   origin: string;
+  /**
+   * 招待リンク由来の保留コード（referral 専用 cookie から API ルートが復元して渡す）。
+   * cookie はブラウザをまたげないため、メールリンクの URL に埋め込んで
+   * 開いた先のブラウザへ引き継ぐ（アプリ内ブラウザ → デフォルトブラウザ対策）。
+   */
+  inviteCode?: string | null;
 };
 
 /**
@@ -22,10 +29,14 @@ export type SendSignInLinkParams = {
 export async function sendSignInLink({
   email,
   origin,
+  inviteCode,
 }: SendSignInLinkParams): Promise<void> {
   const auth = getServerAuth();
   const baseUrl = `${origin.replace(/\/$/, "")}/signup/verify`;
-  const continueUrl = `${baseUrl}?email=${encodeURIComponent(email)}`;
+  let continueUrl = `${baseUrl}?email=${encodeURIComponent(email)}`;
+  if (inviteCode) {
+    continueUrl = appendInviteLinkParam(continueUrl, inviteCode);
+  }
 
   const actionCodeSettings: ActionCodeSettings = {
     url: continueUrl,

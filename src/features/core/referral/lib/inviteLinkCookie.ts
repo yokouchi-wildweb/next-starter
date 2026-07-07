@@ -38,3 +38,17 @@ export function readInviteLinkParam(url: URL): string | null {
   // 異常値の cookie / DB 流入を防ぐため切り詰める（コードの実在検証は redeem 側が担う）
   return value.slice(0, 200);
 }
+
+/**
+ * URL 文字列に招待リンクパラメータを付与する。
+ *
+ * 用途: メール認証リンク（continueUrl）への引き継ぎ。
+ * cookie はブラウザをまたげないため（例: X アプリ内ブラウザで招待リンクを踏み、
+ * 認証メールをデフォルトブラウザで開くケース）、メールリンクの URL にコードを
+ * 埋め込み、開いた先のブラウザで proxy（inviteLinkDecorator）に cookie を
+ * 焼き直させることで紹介を成立させる。email の別ブラウザ対策と同じ手法。
+ */
+export function appendInviteLinkParam(url: string, code: string): string {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}${ACQUISITION_CONFIG.referralParam.param}=${encodeURIComponent(code)}`;
+}

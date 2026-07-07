@@ -81,6 +81,11 @@
   実装: `lib/inviteLinkCookie.ts`（cookie 定義）/ `src/proxies/inviteLink.ts`(保存) /
   `GET /api/referral/pending-invite-code` + `hooks/usePendingInviteCode`(取得) /
   auth `useInviteCodePrefill`(プリフィル)。リンク生成レシピは `src/features/core/userAcquisition/README.md`
+- **ブラウザまたぎ対応（アプリ内ブラウザ → デフォルトブラウザ）**: X 等のアプリ内ブラウザで招待リンクを
+  踏んだ後、認証メールを別ブラウザで開くと cookie が引き継がれない。このため認証メール送信時
+  （send-email-link / send-early-registration-link）に cookie の保留コードをメールリンク URL へ
+  `&invite=CODE` として埋め込み、開いた先のブラウザで proxy が cookie を焼き直す（email の別ブラウザ対策と同じ手法）。
+  副次効果として紹介経由ユーザーの流入解析（source=invite）も開いた先のブラウザで復元される
 - サーバー `register()` 内の処理フロー:
   1. `getCouponByCode(inviteCode)`
   2. `redeem(inviteCode, userId)`

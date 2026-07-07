@@ -7,6 +7,7 @@ import { RECAPTCHA_ACTIONS, RECAPTCHA_V2_INTERNALS } from "@/lib/recaptcha/const
 import { createApiRoute } from "@/lib/routeFactory";
 import { isDisposableEmail, isHideMyEmail } from "@/lib/spamGuard";
 import { sendSignInLink } from "@/features/core/auth/services/server/sendSignInLink";
+import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";
 
 export const POST = createApiRoute(
   {
@@ -57,7 +58,15 @@ export const POST = createApiRoute(
     }
 
     const origin = req.headers.get("origin") ?? req.nextUrl.origin;
-    await sendSignInLink({ email, origin });
+
+    // 招待リンク由来の保留コードをメールリンクへ引き継ぐ
+    // (このリクエストは招待リンクを踏んだブラウザから届くため cookie が読める。
+    //  メールを別ブラウザで開いても proxy が cookie を焼き直し、紹介が成立する)
+    const inviteCode = APP_FEATURES.marketing.referral.enabled
+      ? req.cookies.get(INVITE_LINK_COOKIE_NAME)?.value?.trim() || undefined
+      : undefined;
+
+    await sendSignInLink({ email, origin, inviteCode });
 
     return { success: true };
   },
