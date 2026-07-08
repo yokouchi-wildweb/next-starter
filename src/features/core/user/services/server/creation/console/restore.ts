@@ -4,6 +4,7 @@ import type { User } from "@/features/core/user/entities";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { createHash } from "@/utils/hash";
 import { base } from "../../drizzleBase";
 
@@ -71,6 +72,13 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
   }
 
   const updatedUser = await base.update(existingUser.id, updatePayload);
+
+  await recordStatusTransition({
+    userId: existingUser.id,
+    fromStatus: existingUser.status,
+    toStatus: "active",
+    trigger: "admin_restore",
+  });
 
   await auditLogger.record({
     targetType: "user",

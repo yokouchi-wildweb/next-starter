@@ -113,6 +113,13 @@ const TASKS: Record<string, CronTask> = {
     );
     return await initWalletLots();
   },
+  // 導入時1回だけの過去分復元（定期実行しない。冪等なので再実行は安全）
+  "user-status-history-backfill": async () => {
+    const { backfillStatusHistoryFromAuditLogs } = await import(
+      "@/features/core/user/services/server/statusHistoryBackfill"
+    );
+    return await backfillStatusHistoryFromAuditLogs();
+  },
   // 今後の cron タスクはここに追加
 };
 

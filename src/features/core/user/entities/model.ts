@@ -21,6 +21,42 @@ export type UserMetadata = {
   loginHistory?: UserLoginRecord[];
 };
 
+/**
+ * ステータス遷移のきっかけ（user_status_histories.trigger の語彙）
+ * - self_*: ユーザー本人の操作
+ * - signup_*: 登録フロー（仮登録・本登録。退会済みユーザーの再入会含む）
+ * - admin_*: 管理者操作
+ * - demo_create: デモユーザー作成
+ * - security_lockout: ログイン連続失敗による自動ロック
+ *
+ * 過去分バックフィル（audit_logs からの復元）も同じ語彙にマップして記録する。
+ */
+export type UserStatusTransitionTrigger =
+  | "self_withdraw"
+  | "self_pause"
+  | "self_reactivate"
+  | "signup_pre_register"
+  | "signup_activate"
+  | "admin_change_status"
+  | "admin_soft_delete"
+  | "admin_restore"
+  | "admin_create"
+  | "demo_create"
+  | "security_lockout";
+
+/**
+ * ユーザーステータス遷移履歴の1レコード（user_status_histories）
+ */
+export type UserStatusHistory = {
+  id: string;
+  userId: string;
+  /** 遷移前ステータス。新規作成（INSERT）の場合は null */
+  fromStatus: UserStatus | null;
+  toStatus: UserStatus;
+  trigger: UserStatusTransitionTrigger;
+  changedAt: Date;
+};
+
 export type User = BaseEntity & {
   providerType: UserProviderType;
   providerUid: string;

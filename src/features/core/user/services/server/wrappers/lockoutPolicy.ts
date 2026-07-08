@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { AUTH_LOCKOUT_CONFIG } from "@/config/app/auth-lockout.config";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { db } from "@/lib/drizzle";
 import type { User } from "@/features/core/user/entities";
 
@@ -84,6 +85,18 @@ export async function recordFailedLogin(
         updatedAt: now,
       })
       .where(eq(UserTable.id, user.id));
+
+    // ログイン失敗応答を壊さないよう、監査ログ同様 best-effort で記録する
+    try {
+      await recordStatusTransition({
+        userId: user.id,
+        fromStatus: user.status,
+        toStatus: "security_locked",
+        trigger: "security_lockout",
+      });
+    } catch (error) {
+      console.error("[lockoutPolicy] ステータス遷移履歴の記録に失敗しました", error);
+    }
 
     await auditLogger.record({
       targetType: "user",

@@ -3,6 +3,7 @@
 import type { User } from "@/features/core/user/entities";
 import { UserPreRegistrationSchema } from "@/features/core/user/entities/schema";
 import type { UserProviderType } from "@/features/core/user/types";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
 
@@ -59,6 +60,15 @@ export async function setPending(
     upsertData,
     { conflictFields: ["providerType", "providerUid"] as any },
   );
+
+  // 新規 INSERT は null→pending、再入会は withdrawn→pending。
+  // 既存 pending の再仮登録（pending→pending）はヘルパー側で no-op
+  await recordStatusTransition({
+    userId: user.id,
+    fromStatus: existingUser?.status ?? null,
+    toStatus: "pending",
+    trigger: "signup_pre_register",
+  });
 
   return user;
 }

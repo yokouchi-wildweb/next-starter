@@ -3,6 +3,7 @@
 import type { User } from "@/features/core/user/entities";
 import { UserActivationSchema } from "@/features/core/user/entities/schema";
 import type { UserRoleType } from "@/features/core/user/constants";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { base } from "../drizzleBase";
 import { DomainError } from "@/lib/errors";
 
@@ -49,6 +50,13 @@ export async function activate(
     ...result.data,
     deletedAt: null,
   } as Parameters<typeof base.update>[1]);
+
+  await recordStatusTransition({
+    userId,
+    fromStatus: current.status,
+    toStatus: "active",
+    trigger: "signup_activate",
+  });
 
   return user;
 }

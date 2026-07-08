@@ -2,6 +2,7 @@
 
 import type { User } from "@/features/core/user/entities";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { DomainError } from "@/lib/errors";
 import { base } from "./drizzleBase";
 
@@ -36,6 +37,13 @@ export async function reactivate(userId: string): Promise<ReactivateResult> {
   const updatedUser = await base.update(userId, {
     status: "active",
   } as Partial<User>);
+
+  await recordStatusTransition({
+    userId,
+    fromStatus: beforeStatus,
+    toStatus: "active",
+    trigger: "self_reactivate",
+  });
 
   await auditLogger.record({
     targetType: "user",

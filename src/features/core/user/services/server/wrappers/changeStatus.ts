@@ -4,6 +4,7 @@ import type { User } from "@/features/core/user/entities";
 import type { UserStatus } from "@/features/core/user/types";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { invalidateSessionsForUser } from "@/features/core/auth/services/server/sessionInvalidation";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { DomainError } from "@/lib/errors";
 import { base } from "../drizzleBase";
 
@@ -42,6 +43,13 @@ export async function changeStatus(input: ChangeStatusInput): Promise<User> {
     updatePayload.lastFailedLoginAt = null;
   }
   const updatedUser = await base.update(userId, updatePayload);
+
+  await recordStatusTransition({
+    userId,
+    fromStatus: beforeStatus,
+    toStatus: newStatus,
+    trigger: "admin_change_status",
+  });
 
   await auditLogger.record({
     targetType: "user",

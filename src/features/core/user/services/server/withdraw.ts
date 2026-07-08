@@ -3,6 +3,7 @@
 import type { User } from "@/features/core/user/entities";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { executeCleanup } from "@/features/core/user/services/server/executeCleanup";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { base } from "./drizzleBase";
@@ -41,6 +42,14 @@ export async function withdraw(userId: string): Promise<WithdrawResult> {
     const updated = await base.update(userId, {
       status: "withdrawn",
     } as Partial<User>, tx);
+
+    await recordStatusTransition({
+      userId,
+      fromStatus: beforeStatus,
+      toStatus: "withdrawn",
+      trigger: "self_withdraw",
+      tx,
+    });
 
     await executeCleanup(userId, tx);
 

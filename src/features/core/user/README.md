@@ -306,6 +306,63 @@ const result = await userClient.searchWithProfile("contributor", {
 > API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中&profileWhere={"field":"prefecture","op":"eq","value":"東京都"}`
 > 検索対象のプロフィールフィールドは `profile.json` の `searchFields` で設定する。`profileWhere` の DSL 詳細は `src/features/core/userProfile/README.md` を参照。
 
+## ステータス遷移履歴（user_status_histories）
+
+退会・休会・復帰・BAN 等のステータス遷移を恒久保存するサテライトテーブル。**常時オン**（設定フラグなし）。
+
+### 設計方針
+
+- users テーブルに分析用カラム（withdrawnAt 等）を追加しない方針の実装。関心事ごとのサテライトテーブル（USER_ACQUISITION と同じ前例）
+- audit_logs とは責務が別: 監査ログはコンプライアンス用途で保持期限つき（既定365日で prune）、本テーブルは集計用途で恒久保存
+- 記録は `recordStatusTransition()`（`services/server/statusHistory.ts`）に集約。`fromStatus === toStatus` は no-op
+
+### スキーマ
+
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| `user_id` | uuid FK(users, cascade) | 対象ユーザー |
+| `from_status` | user_status \| null | 遷移前。新規作成（INSERT）は null |
+| `to_status` | user_status | 遷移後 |
+| `trigger` | text | 遷移のきっかけ（語彙: `entities/model.ts` の `UserStatusTransitionTrigger`） |
+| `changed_at` | timestamptz | 遷移日時 |
+
+trigger 語彙: `self_withdraw` / `self_pause` / `self_reactivate` / `signup_pre_register` / `signup_activate` / `admin_change_status` / `admin_soft_delete` / `admin_restore` / `admin_create` / `demo_create` / `security_lockout`
+
+### 集計レシピ
+
+```typescript
+// 日別退会数（本人退会 + 管理者削除）
+import { sql } from "drizzle-orm";
+import { UserStatusHistoryTable } from "@/features/core/user/entities/drizzle";
+
+const rows = await db
+  .select({
+    day: sql<string>`date_trunc('day', ${UserStatusHistoryTable.changedAt})::date`,
+    count: sql<number>`count(*)::int`,
+  })
+  .from(UserStatusHistoryTable)
+  .where(eq(UserStatusHistoryTable.toStatus, "withdrawn"))
+  .groupBy(sql`1`)
+  .orderBy(sql`1`);
+```
+
+- デモユーザー除外は users への JOIN で `is_demo = false` を条件に加える
+- ダッシュボードで重くなったら ANALYTICS_PERF（`withAnalyticsCache` → rollup）に載せる。単純 GROUP BY のうちは cache のみで十分
+
+### 過去分のバックフィル
+
+導入時に1回だけ実行（冪等・再実行安全）:
+
+```bash
+pnpm cron user-status-history-backfill
+```
+
+audit_logs に残っている `user.withdrew` / `user.status.changed` 等から復元する。監査ログの保持期限を過ぎて prune 済みの遷移は復元不可。
+
+### 注意
+
+**`users.status` を書き換える処理を新設したら、必ず `recordStatusTransition()` の呼び出しを追加すること。** 既存の記録箇所は `statusHistory.ts` の docstring を参照。
+
 ## 関連ファイル
 
 | ファイル | 役割 |

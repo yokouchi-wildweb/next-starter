@@ -4,6 +4,7 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { executeCleanup } from "@/features/core/user/services/server/executeCleanup";
 import { setStatusWithdrawn } from "@/features/core/user/services/server/setStatusWithdrawn";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { db } from "@/lib/drizzle";
 import { base } from "../drizzleBase";
 
@@ -34,6 +35,14 @@ export async function softDelete(input: SoftDeleteInput): Promise<void> {
   await db.transaction(async (tx) => {
     await base.remove(userId, tx);
     await setStatusWithdrawn(userId, tx);
+    // すでに withdrawn だった場合（本人退会後の管理者削除等）はヘルパー側で no-op
+    await recordStatusTransition({
+      userId,
+      fromStatus: currentUser.status,
+      toStatus: "withdrawn",
+      trigger: "admin_soft_delete",
+      tx,
+    });
     await executeCleanup(userId, tx);
 
     await auditLogger.record({

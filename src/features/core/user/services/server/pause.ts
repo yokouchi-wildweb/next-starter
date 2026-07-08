@@ -2,6 +2,7 @@
 
 import type { User } from "@/features/core/user/entities";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { DomainError } from "@/lib/errors";
 import { base } from "./drizzleBase";
 
@@ -37,6 +38,13 @@ export async function pause(userId: string): Promise<PauseResult> {
   const updatedUser = await base.update(userId, {
     status: "inactive",
   } as Partial<User>);
+
+  await recordStatusTransition({
+    userId,
+    fromStatus: beforeStatus,
+    toStatus: "inactive",
+    trigger: "self_pause",
+  });
 
   await auditLogger.record({
     targetType: "user",

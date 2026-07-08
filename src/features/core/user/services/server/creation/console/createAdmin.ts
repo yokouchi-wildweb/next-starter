@@ -11,6 +11,7 @@ import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
 import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { restoreSoftDeletedUser } from "./restore";
 
 export type CreateAdminInput = {
@@ -72,6 +73,13 @@ export async function createAdmin(data: CreateAdminInput): Promise<User> {
   });
 
   const [user] = await db.insert(UserTable).values(values).returning();
+
+  await recordStatusTransition({
+    userId: user.id,
+    fromStatus: null,
+    toStatus: "active",
+    trigger: "admin_create",
+  });
 
   await auditLogger.record({
     targetType: "user",

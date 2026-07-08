@@ -10,6 +10,7 @@ import { getServerAuth } from "@/lib/firebase/server/app";
 import { db } from "@/lib/drizzle";
 import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { restoreSoftDeletedUser } from "./restore";
 
 export type CreateGeneralUserInput = {
@@ -83,6 +84,13 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
   });
 
   const [user] = await db.insert(UserTable).values(values).returning();
+
+  await recordStatusTransition({
+    userId: user.id,
+    fromStatus: null,
+    toStatus: "active",
+    trigger: "admin_create",
+  });
 
   await auditLogger.record({
     targetType: "user",

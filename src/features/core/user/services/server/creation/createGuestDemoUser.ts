@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
+import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { db } from "@/lib/drizzle";
 
 const DEMO_USER_PROVIDER_TYPE = "custom";
@@ -30,6 +31,13 @@ export async function createGuestDemoUser(): Promise<User> {
   });
 
   const [user] = await db.insert(UserTable).values(values).returning();
+
+  await recordStatusTransition({
+    userId: user.id,
+    fromStatus: null,
+    toStatus: "active",
+    trigger: "demo_create",
+  });
 
   return user;
 }
