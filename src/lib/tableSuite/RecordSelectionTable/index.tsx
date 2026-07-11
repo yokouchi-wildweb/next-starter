@@ -16,6 +16,7 @@ import {
   CellClickOverlay,
   getCellClickOverlayClassName,
   renderColumnHeader,
+  FullWidthRowsAt,
 } from "../shared";
 import type { DataTableProps } from "../DataTable";
 import {
@@ -23,6 +24,7 @@ import {
   resolveRowClassName,
   ROW_HEIGHT_CLASS,
   resolvePaddingClass,
+  groupFullWidthRowsByIndex,
 } from "../types";
 import { BulkActionBar, type BulkActionSelection, type BulkActionBarSpacing, type BulkActionBarPosition } from "./components/BulkActionBar";
 import { SelectionCell } from "./components/SelectionCell";
@@ -87,6 +89,7 @@ export default function RecordSelectionTable<T>({
   cellPaddingX = "sm",
   cellPaddingY = "none",
   disableRowHover = false,
+  fullWidthRows,
   sort,
   onSortChange,
 }: RecordSelectionTableProps<T>) {
@@ -129,6 +132,13 @@ export default function RecordSelectionTable<T>({
 
   const resolvedMaxHeight = maxHeight ?? "70vh";
   const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
+
+  const fullWidthRowsByIndex = React.useMemo(
+    () => groupFullWidthRowsByIndex(fullWidthRows, items.length),
+    [fullWidthRows, items.length],
+  );
+  // 選択列を含めた全カラムを結合して描画する
+  const fullWidthColSpan = columns.length + 1;
 
   // 一括操作バー用のselectionオブジェクトを作成
   const bulkActionSelection = React.useMemo<BulkActionSelection<T>>(() => {
@@ -189,6 +199,7 @@ export default function RecordSelectionTable<T>({
             </TableRow>
           </TableHeader>
           <TableBody>
+            <FullWidthRowsAt rowsByIndex={fullWidthRowsByIndex} index={-1} colSpan={fullWidthColSpan} />
             {keyedItems.map(({ item, key }, itemIndex) => {
               const isSelected = selectedKeySet.has(key);
               const resolvedRowClass = resolveRowClassName(rowClassName, item, {
@@ -198,8 +209,8 @@ export default function RecordSelectionTable<T>({
               const isClickableRow = shouldHandleRowSelection || Boolean(onRowClick);
 
               return (
+                <React.Fragment key={key}>
                 <TableRow
-                  key={key}
                   className={cn(
                     "group",
                     rowHeightClass,
@@ -268,6 +279,8 @@ export default function RecordSelectionTable<T>({
                     </TableCell>
                   ))}
                 </TableRow>
+                <FullWidthRowsAt rowsByIndex={fullWidthRowsByIndex} index={itemIndex} colSpan={fullWidthColSpan} />
+                </React.Fragment>
               );
             })}
           </TableBody>

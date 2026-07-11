@@ -47,6 +47,7 @@ export type {
   RowClassNameResolver,
   TableStylingProps,
   CellAction,
+  FullWidthRow,
   SortDirection,
   SortState,
   ColumnSortProps,

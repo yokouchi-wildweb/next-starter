@@ -150,3 +150,53 @@ export type CellAction<T> = {
    */
   fullWidth?: boolean;
 };
+
+// ============================================================
+// 全幅差し込み行
+// ============================================================
+
+/**
+ * 全幅の差し込み行。
+ * データ行とは独立した情報行（グループの空き枠表示・区切り・注釈など）を
+ * 指定位置に挿入する。選択・行クリック・ソート・カラム描画の対象にはならない。
+ */
+export type FullWidthRow = {
+  /** React key（データ行のキーと衝突しない一意値） */
+  key: React.Key;
+  /**
+   * この index のデータ行の直後に挿入する。-1 で先頭。
+   * items の範囲を超える値は末尾に丸められる。
+   * ソート・ページ変更などで items が変わる際は、使用側が再計算する責任を持つ。
+   */
+  afterIndex: number;
+  /** 行コンテンツ（全カラムを結合した1セルに描画される） */
+  render: () => React.ReactNode;
+  /** tr への追加クラス */
+  className?: string;
+};
+
+/**
+ * 全幅差し込み行を afterIndex ごとにグループ化する。
+ * 範囲外の afterIndex は末尾（itemCount - 1）へ丸め、-1 は先頭を表す。
+ * items が空のときはすべて -1（先頭）に集約される。
+ */
+export const groupFullWidthRowsByIndex = (
+  fullWidthRows: FullWidthRow[] | undefined,
+  itemCount: number,
+): Map<number, FullWidthRow[]> => {
+  const map = new Map<number, FullWidthRow[]>();
+  if (!fullWidthRows || fullWidthRows.length === 0) {
+    return map;
+  }
+  const lastIndex = itemCount - 1;
+  for (const row of fullWidthRows) {
+    const index = Math.max(-1, Math.min(row.afterIndex, lastIndex));
+    const bucket = map.get(index);
+    if (bucket) {
+      bucket.push(row);
+    } else {
+      map.set(index, [row]);
+    }
+  }
+  return map;
+};

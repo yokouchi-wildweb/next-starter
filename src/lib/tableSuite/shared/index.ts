@@ -9,5 +9,6 @@ export * from "./SortableTableHead";
 export * from "./TableCell";
 export * from "./TableCellAction";
 export * from "./CellClickOverlay";
+export * from "./FullWidthRows";
 export * from "./ColumnHeader";
 export * from "./cellClickOverlayStyles";
