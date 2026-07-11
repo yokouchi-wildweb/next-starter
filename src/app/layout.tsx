@@ -6,6 +6,7 @@ import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLo
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
 import { ImageViewerProvider } from "@/components/Overlays/ImageViewer/Provider";
+import { TooltipProvider } from "@/components/Overlays/Tooltip";
 import { ViewportHeightWatcher } from "@/components/Fanctional/ViewportHeightWatcher";
 import { FirebaseAnalytics } from "@/components/Fanctional/FirebaseAnalytics";
 import { MicrosoftClarity } from "@/lib/clarity/MicrosoftClarity";
@@ -61,16 +62,18 @@ export default function RootLayout({
         <ViewportHeightWatcher />
         <GlobalScreenLoader />
         <GlobalToast />
-        <RecaptchaProvider>
-          <AuthSessionProvider>
-            <AdminCommandProvider>
-              <ImageViewerProvider>
-                <RouteTransitionOverlay />
-                {children}
-              </ImageViewerProvider>
-            </AdminCommandProvider>
-          </AuthSessionProvider>
-        </RecaptchaProvider>
+        <TooltipProvider>
+          <RecaptchaProvider>
+            <AuthSessionProvider>
+              <AdminCommandProvider>
+                <ImageViewerProvider>
+                  <RouteTransitionOverlay />
+                  {children}
+                </ImageViewerProvider>
+              </AdminCommandProvider>
+            </AuthSessionProvider>
+          </RecaptchaProvider>
+        </TooltipProvider>
         <RedirectToastProvider />
         {/* Firebase Phone Auth用reCAPTCHAコンテナ（モーダル外に配置が必要） */}
         <div id="phone-verification-recaptcha" />

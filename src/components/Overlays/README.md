@@ -633,7 +633,53 @@ import { Tooltip } from "@/components/Overlays/Tooltip";
 | `children` | `ReactNode` | - | トリガー要素 |
 | `side` | `"top" \| "right" \| "bottom" \| "left"` | `"top"` | 表示位置 |
 | `delayDuration` | `number` | `200` | 表示までの遅延（ms） |
+| `skipDelayDuration` | `number` | -（共有Providerに従う） | 遅延スキップ時間の個別指定（後述） |
 | `showArrow` | `boolean` | `true` | 矢印表示 |
+
+### TooltipProvider（共有プロバイダー）
+
+`app/layout.tsx` にアプリ全体で1つ配置済み。隣接するツールチップ間を移動したとき、
+直前のツールチップが閉じてから `skipDelayDuration`（デフォルト300ms）以内なら
+表示遅延なしで次が即表示される（Radix の仕様上、この挙動は Provider 単位でしか
+機能しないため共有している）。
+
+- 各 `Tooltip` は自動で共有 Provider に参加する。**通常は何も意識しなくてよい**
+- `Tooltip` に `skipDelayDuration` を明示指定した場合のみ、そのインスタンスは
+  個別 Provider にフォールバックし指定値が適用される（後方互換）
+- `delayDuration` の個別指定は共有 Provider 配下でもそのまま有効
+
+---
+
+## HelpTip
+
+ラベル + ?アイコン + ホバー説明。テーブルヘッダーやフォームラベルなど
+「名前だけでは意味が伝わらない項目」に説明を添える。
+デスクトップはホバー、タッチデバイスはタップで開閉。
+
+クリックで開く操作性やリッチな長文コンテンツが必要な場合は `InfoPopover` を使う。
+
+```tsx
+import { HelpTip } from "@/components/Overlays/Tooltip";
+
+// DataTable のヘッダー
+{
+  header: <HelpTip label="詳細CTR" help="詳細クリック ÷ インプレッション。バナーが表示されたうち詳細が開かれた割合" />,
+  render: ...
+}
+```
+
+**Props:**
+
+| Prop | 型 | デフォルト | 説明 |
+|------|-----|-----------|------|
+| `label` | `ReactNode` | - | 表示ラベル |
+| `help` | `ReactNode` | - | ホバー/タップで表示する説明文 |
+| `iconSize` | `"sm" \| "md" \| "lg"` | `"md"` | ヘルプアイコンのサイズ |
+| `side` | `"top" \| "right" \| "bottom" \| "left"` | `"top"` | 表示位置 |
+| `layer` | `TooltipLayer` | `"overlay"` | z-indexレイヤー |
+| `className` | `string` | - | ラッパーの追加クラス |
+| `iconClassName` | `string` | - | アイコンの追加クラス |
+| `contentClassName` | `string` | - | ツールチップコンテンツの追加クラス |
 
 ---
 

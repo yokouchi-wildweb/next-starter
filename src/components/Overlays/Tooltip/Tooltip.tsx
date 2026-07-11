@@ -7,6 +7,8 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 import { cn } from "@/lib/cn";
 
+import { useIsInsideTooltipProvider } from "./Provider";
+
 // レイヤータイプ
 export type TooltipLayer = "overlay" | "alert" | "super" | "ultimate" | "apex";
 
@@ -31,7 +33,13 @@ export type TooltipProps = {
   sideOffset?: number;
   /** 表示までの遅延（ms） */
   delayDuration?: number;
-  /** 非表示までの遅延（ms） */
+  /**
+   * 直前のツールチップが閉じてからこの時間内は遅延なしで次を表示（ms）
+   *
+   * 明示指定すると共有 TooltipProvider 配下でも個別 Provider を mount して
+   * この値を適用する（Radix仕様上 Provider 単位でしか効かないため）。
+   * 未指定なら共有 Provider の設定に従う。
+   */
   skipDelayDuration?: number;
   /** z-indexレイヤー */
   layer?: TooltipLayer;
@@ -75,7 +83,7 @@ export function Tooltip({
   align = "center",
   sideOffset = 4,
   delayDuration = 200,
-  skipDelayDuration = 300,
+  skipDelayDuration,
   layer = "overlay",
   showArrow = true,
   asChild = true,
@@ -84,15 +92,17 @@ export function Tooltip({
   onOpenChange,
   defaultOpen,
 }: TooltipProps) {
-  return (
-    <TooltipPrimitive.Provider
-      delayDuration={delayDuration}
-      skipDelayDuration={skipDelayDuration}
-    >
+  const isInsideProvider = useIsInsideTooltipProvider();
+  // skipDelayDuration の明示指定は Provider 単位でしか適用できないため、
+  // 指定時は共有 Provider 配下でも個別 Provider を mount する（後方互換）
+  const useLocalProvider = !isInsideProvider || skipDelayDuration !== undefined;
+
+  const root = (
       <TooltipPrimitive.Root
         open={open}
         onOpenChange={onOpenChange}
         defaultOpen={defaultOpen}
+        delayDuration={useLocalProvider ? undefined : delayDuration}
       >
         <TooltipPrimitive.Trigger asChild={asChild}>
           {children}
@@ -126,6 +136,16 @@ export function Tooltip({
           </TooltipPrimitive.Content>
         </TooltipPrimitive.Portal>
       </TooltipPrimitive.Root>
+  );
+
+  if (!useLocalProvider) return root;
+
+  return (
+    <TooltipPrimitive.Provider
+      delayDuration={delayDuration}
+      skipDelayDuration={skipDelayDuration ?? 300}
+    >
+      {root}
     </TooltipPrimitive.Provider>
   );
 }
