@@ -65,6 +65,16 @@ type DomainConfigOptionals = {
   useImportExport?: boolean;
   useAutoSave?: boolean;
   compositeUniques?: string[][];
+  // 正規の型は src/components/Form/FieldRenderer/types.ts の FieldGroup を参照。
+  // JSON インポートの型推論と相性を保つためインラインで再宣言している。
+  fieldGroups?: Array<{
+    key: string;
+    label: string;
+    fields: string[];
+    collapsible?: boolean;
+    defaultCollapsed?: boolean;
+    bgColor?: string;
+  }>;
   indexes?: Array<{
     fields: string[];
     where?: string;

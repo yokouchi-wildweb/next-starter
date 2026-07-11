@@ -8,6 +8,7 @@ import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer"
 import type { FieldConfig } from "@/components/Form/Field";
 import type {
   FieldGroup,
+  GroupContentMap,
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
@@ -36,6 +37,10 @@ export type NotificationFieldsProps<TFieldValues extends FieldValues> = {
   beforeField?: Partial<Record<string, ReactNode>>;
   /** 特定フィールドの後に挿入するUI */
   afterField?: Partial<Record<string, ReactNode>>;
+  /** 特定グループの先頭に挿入するUI（キー: FieldGroup.key） */
+  beforeGroup?: GroupContentMap;
+  /** 特定グループの末尾に挿入するUI（キー: FieldGroup.key） */
+  afterGroup?: GroupContentMap;
 };
 
 export function NotificationFields<TFieldValues extends FieldValues>({
@@ -50,6 +55,8 @@ export function NotificationFields<TFieldValues extends FieldValues>({
   afterAll,
   beforeField,
   afterField,
+  beforeGroup,
+  afterGroup,
 }: NotificationFieldsProps<TFieldValues>) {
   // リレーション先のデータを自動取得し、insertBefore 形式で返す
   const { insertBefore: relationInsertBefore, isLoading } = useRelationOptions(domainConfig);
@@ -79,6 +86,8 @@ export function NotificationFields<TFieldValues extends FieldValues>({
       afterAll={afterAll}
       beforeField={beforeField}
       afterField={afterField}
+      beforeGroup={beforeGroup}
+      afterGroup={afterGroup}
     />
   );
 }

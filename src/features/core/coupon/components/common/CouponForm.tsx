@@ -9,6 +9,7 @@ import { Button } from "@/components/Form/Button/Button";
 import type { FieldConfig } from "@/components/Form/Field";
 import type {
   FieldGroup,
+  GroupContentMap,
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
@@ -38,6 +39,10 @@ export type CouponFormProps<TFieldValues extends FieldValues> = {
   beforeField?: Partial<Record<string, ReactNode>>;
   /** 特定フィールドの後に挿入するUI */
   afterField?: Partial<Record<string, ReactNode>>;
+  /** 特定グループの先頭に挿入するUI（キー: FieldGroup.key） */
+  beforeGroup?: GroupContentMap;
+  /** 特定グループの末尾に挿入するUI（キー: FieldGroup.key） */
+  afterGroup?: GroupContentMap;
 };
 
 export function CouponForm<TFieldValues extends FieldValues>({
@@ -55,6 +60,8 @@ export function CouponForm<TFieldValues extends FieldValues>({
   afterAll,
   beforeField,
   afterField,
+  beforeGroup,
+  afterGroup,
 }: CouponFormProps<TFieldValues>) {
   return (
     <AppForm
@@ -74,6 +81,8 @@ export function CouponForm<TFieldValues extends FieldValues>({
         afterAll={afterAll}
         beforeField={beforeField}
         afterField={afterField}
+        beforeGroup={beforeGroup}
+        afterGroup={afterGroup}
       />
       <div className="flex justify-center gap-3">
         <Button type="submit" variant="default">

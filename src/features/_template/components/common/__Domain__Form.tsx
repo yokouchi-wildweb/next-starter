@@ -11,6 +11,7 @@ import { FormActions } from "@/components/Form/FormActions";
 import type { FieldConfig } from "@/components/Form/Field";
 import type {
   FieldGroup,
+  GroupContentMap,
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
@@ -40,6 +41,10 @@ export type __Domain__FormProps<TFieldValues extends FieldValues> = {
   beforeField?: Partial<Record<string, ReactNode>>;
   /** 特定フィールドの後に挿入するUI */
   afterField?: Partial<Record<string, ReactNode>>;
+  /** 特定グループの先頭に挿入するUI（キー: FieldGroup.key） */
+  beforeGroup?: GroupContentMap;
+  /** 特定グループの末尾に挿入するUI（キー: FieldGroup.key） */
+  afterGroup?: GroupContentMap;
   /** 自動保存設定（useAutoSaveConfigで作成） */
   autoSave?: AutoSaveOptions<TFieldValues>;
 };
@@ -59,6 +64,8 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
   afterAll,
   beforeField,
   afterField,
+  beforeGroup,
+  afterGroup,
   autoSave,
 }: __Domain__FormProps<TFieldValues>) {
   return (
@@ -81,6 +88,8 @@ export function __Domain__Form<TFieldValues extends FieldValues>({
         afterAll={afterAll}
         beforeField={beforeField}
         afterField={afterField}
+        beforeGroup={beforeGroup}
+        afterGroup={afterGroup}
       />
       <FormActions>
         <Button type="submit" variant="default">

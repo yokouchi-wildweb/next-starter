@@ -21,6 +21,7 @@
 | useUpdatedAt | boolean | 🟢 Yes | updatedAt カラムの有無 |
 | useSoftDelete | boolean | ⚪ No | 論理削除の有無（deletedAt カラム） |
 | fields | Field[] | 🟢 Yes | フィールド定義 |
+| fieldGroups | FieldGroup[] | ⚪ No | 管理画面フォームのセクション分け（後述） |
 | searchFields | string[] | ⚪ No | 検索対象フィールド名の配列 |
 | defaultOrderBy | [string, "ASC" \| "DESC"][] | ⚪ No | デフォルトソート順 |
 | tableFields | string[] | ⚪ No | 管理画面テーブルに表示するフィールド |
@@ -318,6 +319,45 @@ import { ControlledField } from "@/components/Form/Field";
 sizeBytes, width, height, aspectRatio, orientation,
 mimeType, src, durationSec, durationFormatted
 ```
+
+---
+
+### FieldGroup（フィールドグループ）
+
+管理画面フォームのフィールドをセクション（`<fieldset>` + legend）に分けて表示する。生成された `XxxFields` が domain.json の `fieldGroups` を自動で読み込む（props の `fieldGroups` 指定で上書きも可能）。
+
+| プロパティ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| key | string | 🟢 Yes | グループキー（一意識別子。`beforeGroup` / `afterGroup` のキーにもなる） |
+| label | string | 🟢 Yes | セクションの表示ラベル |
+| fields | string[] | 🟢 Yes | グループに含むフィールド名 |
+| collapsible | boolean | ⚪ No | 折りたたみ可能か（デフォルト: false） |
+| defaultCollapsed | boolean | ⚪ No | 初期状態で折りたたむか（デフォルト: false） |
+| bgColor | string | ⚪ No | 背景色（CSSカラーコード、例: `"#f0f7ff"`） |
+
+```json
+{
+  "fieldGroups": [
+    {
+      "key": "basic",
+      "label": "基本情報",
+      "fields": ["name", "description"],
+      "bgColor": "#f0f7ff"
+    },
+    {
+      "key": "datetime",
+      "label": "日時設定",
+      "collapsible": true,
+      "defaultCollapsed": true,
+      "fields": ["sale_start_at", "date"]
+    }
+  ]
+}
+```
+
+- どのグループにも属さないフィールドは、全グループの後ろに「グループ外枠」としてまとめて描画される
+- セクションへのUI差し込み（オーバーライド警告等）は `beforeGroup` / `afterGroup` props で行う
+- 描画仕様・カスタマイズの詳細: `src/components/Form/FieldRenderer/README.md`
 
 ---
 

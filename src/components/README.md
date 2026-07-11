@@ -1,105 +1,40 @@
 # components ディレクトリ概要
 
-`src/components/` ではアプリ全体で共有する汎用 UI コンポーネントをカテゴリごとに整理しています。サブディレクトリ単位の README は廃止し、本ファイルでフォルダごとの役割と運用ルールを一元管理します。
+`src/components/` にはアプリ全体で共有する汎用 UI コンポーネントをカテゴリごとに配置します。
 
-## AppFrames
+本ファイルは**カテゴリの索引**です。詳細な仕様・使い分けは各サブディレクトリの README（コロケーション）に置き、複雑な仕組みを持つカテゴリには必ず README を併設します。
 
-- **主な役割**： 管理者用レイアウト、ユーザー用レイアウトなど画面のブループごとのアウトラインを提供するアプリの基礎コンポーネント
-- **ディレクトリ構成**
-  - `Admin/` - 管理者向けアプリケーションのレイアウトフレーム
-  - `User/` - ユーザー向けアプリケーションのレイアウトフレーム
-- **ガイドライン**
-  - マクロな構造やそれぞれのアプリでグローバルなセクションを提供する。
+## 配置判断
 
-## Fanctional
+- 複数ドメインで使う汎用 UI → ここ（`src/components/`）
+- 特定ドメイン専用 UI → `src/features/<domain>/components/common/`
+- 特定ページ専用 UI → `app/<route>/_components/`
 
-- **主な役割**：ボタンやスイッチなど動作を伴う UI を整理します。テーマ切り替え、CRUD 操作、ページネーション、ポータル系のコントローラなど、ユーザー操作に応じて挙動が変化する要素が対象です。
-- **ガイドライン**
-  - Provider や高機能ボタンなど、特定の動作をカプセル化した部品を配置します。
+## カテゴリ一覧
 
-## Form
+| ディレクトリ | 役割 | 詳細ドキュメント |
+|---|---|---|
+| `Animation/` | アニメーション演出（`CountUp`、`PageTransition` など） | - |
+| `AppFrames/` | 管理者用・ユーザー用アプリのレイアウトフレーム（ヘッダー / フッター / メニュー、ページ単位の表示制御） | [AppFrames/User/README.md](./AppFrames/User/README.md) |
+| `AppStatusGuard/` | メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置 | - |
+| `Badge/` | バッジ（`SolidBadge`、`SoftBadge` など） | - |
+| `BulkSendEmail/` | 選択ユーザーへの一括メール送信モーダル | - |
+| `Fanctional/` | 動作をカプセル化した部品（`DarkModeSwitch`、`BodyPortal` / `HeadPortal`、`FirebaseAnalytics` など） | - |
+| `Form/` | フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md) |
+| `Icons/` | プロジェクト固有アイコンを Lucide 互換 API で一元管理 | [Icons/README.md](./Icons/README.md) |
+| `Layout/` | レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | [Layout/README.md](./Layout/README.md) |
+| `Navigation/` | ナビゲーション（`PageTab`、`StateTabs`、`Pagination`） | - |
+| `Overlays/` | 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）。**自作前に必ず一覧を確認** | [Overlays/README.md](./Overlays/README.md) |
+| `Providers/` | 外部サービスの Provider（`RecaptchaProvider` など） | - |
+| `Skeleton/` | `BaseSkeleton` を基盤としたローディングプレースホルダー | [Skeleton/README.md](./Skeleton/README.md) |
+| `TextBlocks/` | 文章構造コンポーネント（`PageTitle` / `SecTitle` / `Para` / `Span`）。見出し・段落の raw HTML の代替 | - |
+| `Three/` | three.js を利用した 3D 表現 | - |
+| `Widgets/` | 完成品ウィジェット（`FadeSlider`、`ScrollSlider` など） | [Widgets/FadeSlider/README.md](./Widgets/FadeSlider/README.md)・[Widgets/ScrollSlider/README.md](./Widgets/ScrollSlider/README.md) |
+| `_shadcn/` | shadcn/ui からインストールした原本。**直接インポート禁止**（ラッパー経由で使用） | [_shadcn/README.md](./_shadcn/README.md) |
 
-- **主な役割**：フォーム入力に関わるコンポーネントをまとめます。送信ボタンや単項目フィールドをはじめ、React Hook Form の Controller 連携向けと手動制御向けのサブカテゴリに分けて入力部品を整理しています。
-- **ディレクトリ構成**
-  - `Controlled/`
-    - `react-hook-form` の `Controller` / `useController` から受け取る `field` オブジェクトを前提とした入力コンポーネント群。
-    - `index.ts` でコンポーネントと型を再エクスポートし、利用側は `@/components/Form/Input/Controlled` からまとめて import します。
-  - `Manual/`
-    - shadcn/ui などの複合コンポーネントを用いて `field` を手動で橋渡しする入力部品を配置します。
-    - `index.ts` で `CheckGroupInput` / `RadioGroupInput` / `SelectInput` を再エクスポートし、`@/components/Form/Input/Manual` から利用します。
-  - `Button/`
-    - ボタン系コンポーネントを配置します。`Button`、`LinkButton`、`PseudoButton`、`RoundedButton` など、用途に応じたボタンバリエーションと共通スタイル（`button-variants.ts`）を提供します。
-  - `FieldRenderer/`
-    - ドメイン設定に基づいてフォームフィールドを動的に描画するレンダラー。フィールドタイプの定義やマッピング、メディアフィールドの処理を含みます。
-  - `MediaHandler/`
-    - 画像や動画などのメディア入力に特化したコンポーネント群。Controlled / Manual の両パターンに対応した `MediaInput` と `MediaUploader` を提供します。
-  - 上記以外
-    - `AppForm.tsx`、`Field/ControlledField.tsx`、`Label.tsx` など、`field` を直接扱わない補助的なフォーム部品を配置します。
-- **Controlled 入力コンポーネントの利用指針**
-  - `ControlledInputProps`（または `ControlledTextareaProps`）を受け取り、`Controller` が渡す `value` や `onChange` を内部で扱います。
-  - `value` が `undefined` になるケースを考慮し、必要に応じてフォールバックを設けてください。
-  - 追加の `onChange` を差し込みたい場合は `field.onChange` 呼び出し後に実行するパターンを踏襲します。
-  - ファイル系コンポーネントは UI を内包しますが、アップロード通信は呼び出し元で実行し、結果を props 経由で渡してください。
-- **ガイドライン**
-  - 入力フィールドやバリデーション関連の UI はここに集約します。
-  - `Controller` を前提としたコンポーネントは必ず `Controlled/` 配下へ配置し、`index.ts` にエクスポートを追加します。
-  - 手動制御が必要な場合は `Manual/` を利用し、共通パターンを整備します。
+## 共通ルール
 
-## Layout
-
-- **主な役割**：ページやセクションのレイアウトを形作るラッパー。ブロック要素、フレックスレイアウト、画面全体を覆うコンテナなど、配置や余白調整を担う構造要素を提供します。
-- **ガイドライン**
-  - ページ全体や大きなセクションのアウトラインを定義するコンポーネントを対象にします。
-
-## Navigation
-
-- **主な役割**：ページ間・ページ内のナビゲーションに関するコンポーネントを提供します。タブ型ナビゲーションやページネーションなど、ユーザーの画面遷移を支援する要素が対象です。
-- **主要コンポーネント**
-  - `PageTabs`：管理画面などで再利用するタブ型ナビゲーション。URL 遷移と連動し、`matcher` でアクティブ判定をカスタマイズ可能。
-  - `Pagination`：ページ送りコンポーネント。`makeHref` で遷移先 URL を生成し、件数表示とページ番号リンクを提供。
-- **ガイドライン**
-  - ナビゲーション・ページ遷移に関連するコンポーネントのみを追加します。
-
-## Overlays
-
-- **主な役割**：ローディング画面やモーダル、ダイアログなど画面上に重ねて表示するコンポーネントを扱います。
-- **ガイドライン**
-  - オーバーレイ表示に関連する要素のみを追加します。
-
-## Skeleton
-
-- **主な役割**：Shadcn の `Skeleton` をラップした `BaseSkeleton` を中心に、フォームやモーダルなど画面単位で利用するスケルトン（ローディングプレースホルダー）を提供します。
-- **主要コンポーネント**
-  - `BaseSkeleton`：シマー効果や背景トーンを調整可能な基盤コンポーネント。
-  - `FormSkeleton`：フォーム全体のローディング。`fields` や `includeButtons` で調整可能。
-  - `DetailModalSkeleton`：詳細モーダルのフォールバック表示。
-  - `ImageUploaderSkeleton`：画像アップローダーのプレビュー領域で使用。
-- **ガイドライン**
-  - 新しい Skeleton を追加する場合は `BaseSkeleton` を基準に構築してください。
-
-## _shadcn
-
-- **主な役割**：shadcn/ui からインストールしたオリジナルのコンポーネントをそのまま配置するディレクトリ。ボタン、入力欄、ダイアログ、セレクト、テーブルなどのプリミティブが含まれます。
-- **⚠️ 直接使用禁止**：このディレクトリ内のコンポーネントを直接インポートしないでください。必ず対応するラッパーコンポーネント（`Form/Button`、`Form/Input`、`Skeleton/BaseSkeleton` など）を使用します。
-- **ガイドライン**
-  - shadcn/ui の更新時はこのディレクトリ内のファイルを更新し、ラッパー側で差分を吸収します。
-  - フォルダ名の先頭にアンダースコアを付けることで、他のコンポーネントフォルダと区別しています。
-  - 対応するラッパーが存在しない場合は、適切なディレクトリに新規ラッパーを作成してください。
-
-## TextBlocks
-
-- **主な役割**：ページ内で文章構造を表すためのコンポーネント群。`main` や各種セクショニング要素、見出し、段落などを共通化してクラス指定を最小化します。
-- **主要コンポーネント**
-  - `Main`：ページ全体を包む `main` 要素。バリアントで代表的なレイアウトを切り替えます。
-  - `Section`：`section` を基本に `article` や `aside` などへ切り替え可能なラッパー。
-  - `PageTitle`：ページ内で基本的に 1 回使用する `h1` 見出し。
-  - `SecTitle`：`h2` 以降の見出し用。`as` で `h3` などに変更できます。
-  - `Para`：本文用の `p` 要素。トーンやサイズをバリアントで変更できます。
-- **ガイドライン**
-  - 文章構造やセマンティクスの統一を目的とした部品のみを追加します。
-
-## Three
-
-- **主な役割**：three.js を利用した 3D 表現用コンポーネント。キャンバス描画やシーン構築を担い、立体的な演出をパッケージ化しています。
-- **ガイドライン**
-  - three.js に依存するコンポーネントのみを配置します。
+- **raw HTML よりラッパー優先**: `div` → `Layout/Block・Flex・Grid・Stack`、`main` → `Layout/Main`、`section` → `Layout/Section`、`button` → `Form/Button`、`p` → `TextBlocks/Para`、`h2` → `TextBlocks/SecTitle` など（一覧: CLAUDE.md「COMPONENTS」）
+- **`_shadcn` 直接使用禁止**: 必ず対応するラッパー（`Form/Button`、`Form/Input`、`Skeleton/BaseSkeleton` など）を使用する。ラッパーが無い場合は新規ラッパーの作成を提案する
+- **shadcn/ui の更新**: `_shadcn/` 内のファイルを更新し、差分はラッパー側で吸収する
+- **カテゴリの追加・仕様の複雑化時**: サブディレクトリに README を追加し、本ファイルの索引にも1行追加する

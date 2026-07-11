@@ -13,7 +13,8 @@ import {
 } from "@/components/Form/Field";
 import { useAppFormMedia } from "@/components/Form/AppForm";
 import { FieldGroupSection } from "./FieldGroupSection";
-import type { FieldGroup, InlineFieldGroup, MediaState, MediaHandleEntry, InsertFieldsMap } from "./types";
+import { UNGROUPED_GROUP_KEY } from "./types";
+import type { FieldGroup, GroupContentMap, InlineFieldGroup, MediaState, MediaHandleEntry, InsertFieldsMap } from "./types";
 
 // 型を re-export（後方互換性のため）
 export type { MediaState, MediaHandleEntry } from "./types";
@@ -66,6 +67,24 @@ export type FieldRendererProps<TFieldValues extends FieldValues> = {
 
   /** 特定フィールドの後に挿入するUI（キー: フィールド名） */
   afterField?: Partial<Record<FieldPath<TFieldValues>, ReactNode>>;
+
+  /**
+   * 特定グループの先頭（legend直下・フィールド一覧の上）に挿入するUI
+   * - キー: FieldGroup.key（UNGROUPED_GROUP_KEY でグループ外フィールド枠を指定可）
+   * - fieldGroups 指定時のみ有効（フラット表示では無視）
+   * - 折りたたみ時はフィールドと同様に非表示
+   * - グループの全フィールドが解決不能でも、スロット指定があればセクションは描画される
+   */
+  beforeGroup?: GroupContentMap;
+
+  /**
+   * 特定グループの末尾（フィールド一覧の下）に挿入するUI
+   * - キー: FieldGroup.key（UNGROUPED_GROUP_KEY でグループ外フィールド枠を指定可）
+   * - fieldGroups 指定時のみ有効（フラット表示では無視）
+   * - 折りたたみ時はフィールドと同様に非表示
+   * - グループの全フィールドが解決不能でも、スロット指定があればセクションは描画される
+   */
+  afterGroup?: GroupContentMap;
 };
 
 export function FieldRenderer<TFieldValues extends FieldValues>({
@@ -82,6 +101,8 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
   afterAll,
   beforeField,
   afterField,
+  beforeGroup,
+  afterGroup,
 }: FieldRendererProps<TFieldValues>) {
   // AppFormのContextを取得（存在する場合）
   const appFormMedia = useAppFormMedia();
@@ -355,7 +376,11 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
         .map((fieldName) => fieldConfigMap.get(fieldName))
         .filter((entry): entry is NonNullable<typeof entry> => entry != null);
 
-      if (groupFields.length === 0) return null;
+      const beforeContent = beforeGroup?.[group.key];
+      const afterContent = afterGroup?.[group.key];
+
+      // フィールドもスロット指定も無いグループは描画しない
+      if (groupFields.length === 0 && beforeContent == null && afterContent == null) return null;
 
       return (
         <FieldGroupSection
@@ -364,6 +389,8 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
           collapsible={group.collapsible}
           defaultCollapsed={group.defaultCollapsed}
           bgColor={group.bgColor}
+          beforeContent={beforeContent}
+          afterContent={afterContent}
         >
           {renderFieldsWithInlineSupport(groupFields)}
         </FieldGroupSection>
@@ -375,17 +402,22 @@ export function FieldRenderer<TFieldValues extends FieldValues>({
       .map((config, index) => ({ config, index }))
       .filter(({ config }) => !groupedFieldNames.has(config.name));
 
+    const ungroupedBefore = beforeGroup?.[UNGROUPED_GROUP_KEY];
+    const ungroupedAfter = afterGroup?.[UNGROUPED_GROUP_KEY];
+
     return (
       <>
         {groups}
-        {ungroupedFields.length > 0 && (
+        {(ungroupedFields.length > 0 || ungroupedBefore != null || ungroupedAfter != null) && (
           <div className="flex flex-col gap-4">
+            {ungroupedBefore}
             {renderFieldsWithInlineSupport(ungroupedFields)}
+            {ungroupedAfter}
           </div>
         )}
       </>
     );
-  }, [fieldGroups, fieldConfigMap, combinedFields, renderFieldsWithInlineSupport]);
+  }, [fieldGroups, fieldConfigMap, combinedFields, renderFieldsWithInlineSupport, beforeGroup, afterGroup]);
 
   // フラット表示（インライングループ対応）
   const renderedFields = useMemo(() => {

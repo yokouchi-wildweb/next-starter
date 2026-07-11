@@ -8,6 +8,7 @@ import { FieldRenderer, type MediaState } from "@/components/Form/FieldRenderer"
 import type { FieldConfig } from "@/components/Form/Field";
 import type {
   FieldGroup,
+  GroupContentMap,
   InlineFieldGroup,
   InsertFieldsMap,
 } from "@/components/Form/FieldRenderer/types";
@@ -37,6 +38,10 @@ export type CouponFieldsProps<TFieldValues extends FieldValues> = {
   beforeField?: Partial<Record<string, ReactNode>>;
   /** 特定フィールドの後に挿入するUI */
   afterField?: Partial<Record<string, ReactNode>>;
+  /** 特定グループの先頭に挿入するUI（キー: FieldGroup.key） */
+  beforeGroup?: GroupContentMap;
+  /** 特定グループの末尾に挿入するUI（キー: FieldGroup.key） */
+  afterGroup?: GroupContentMap;
 };
 
 export function CouponFields<TFieldValues extends FieldValues>({
@@ -51,6 +56,8 @@ export function CouponFields<TFieldValues extends FieldValues>({
   afterAll,
   beforeField,
   afterField,
+  beforeGroup,
+  afterGroup,
 }: CouponFieldsProps<TFieldValues>) {
   const handleGenerateCode = () => {
     const code = generateCouponCode();
@@ -93,6 +100,8 @@ export function CouponFields<TFieldValues extends FieldValues>({
       afterAll={afterAll}
       beforeField={beforeField}
       afterField={mergedAfterField as any}
+      beforeGroup={beforeGroup}
+      afterGroup={afterGroup}
     />
   );
 }

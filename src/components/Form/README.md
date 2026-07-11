@@ -298,6 +298,8 @@ inputLayout 未指定時のデフォルトは `layout` に連動します。
 
 domain.json からフォームを自動生成する。**Controlled のみ対応**。
 
+カスタマイズ（フィールドのパッチ・挿入、セクション分け `fieldGroups`、UI差し込みスロット `beforeAll` / `beforeField` / `beforeGroup` 等）の詳細は [FieldRenderer/README.md](./FieldRenderer/README.md) を参照。
+
 ```tsx
 import { AppForm } from "@/components/Form";
 import { FieldRenderer } from "@/components/Form/FieldRenderer";
@@ -405,7 +407,7 @@ src/components/Form/
 ├── Input/
 │   ├── Controlled/
 │   └── Manual/
-├── FieldRenderer/
+├── FieldRenderer/                   # 動的フォーム描画（→ FieldRenderer/README.md）
 ├── Button/
 ├── MediaHandler/
 └── Label.tsx

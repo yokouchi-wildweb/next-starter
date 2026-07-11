@@ -1,6 +1,8 @@
 // src/components/Form/FieldRenderer/types.ts
 // FieldRenderer 固有の型定義
 
+import type { ReactNode } from "react";
+
 import type { FieldConfig as FieldConfigType } from "@/components/Form/Field/types";
 
 // Field/types.ts から共通型を re-export
@@ -44,7 +46,8 @@ export type MediaHandleEntry = {
 
 /**
  * フィールドグループ定義（セクション分け用）
- * @see src/features/README.md - FieldGroup（フィールドグループ）
+ * @see src/components/Form/FieldRenderer/README.md - fieldGroups（セクション分け）
+ * @see src/features/README.md - FieldGroup（フィールドグループ）※domain.json スキーマ
  */
 export type FieldGroup = {
   /** グループキー（一意識別子） */
@@ -60,6 +63,21 @@ export type FieldGroup = {
   /** 背景色（CSSカラーコード形式、例: "#f5f5f5", "rgba(0,0,0,0.05)"） */
   bgColor?: string;
 };
+
+/**
+ * グループ外フィールド枠（fieldGroups のいずれにも属さないフィールドのまとまり）を
+ * beforeGroup / afterGroup で指定するための予約キー
+ */
+export const UNGROUPED_GROUP_KEY = "__ungrouped__";
+
+/**
+ * グループ単位のUI差し込みマップ（beforeGroup / afterGroup 用）
+ * - キー: FieldGroup.key または UNGROUPED_GROUP_KEY（グループ外フィールド枠）
+ * - 値: 差し込む ReactNode
+ * - fieldGroups 未指定（フラット表示）時は無視される
+ * @see src/components/Form/FieldRenderer/README.md - beforeGroup / afterGroup
+ */
+export type GroupContentMap = Partial<Record<string, ReactNode>>;
 
 /**
  * インラインフィールドグループ定義（横並び表示用）

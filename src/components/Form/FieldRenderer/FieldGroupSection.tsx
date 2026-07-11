@@ -15,6 +15,10 @@ export type FieldGroupSectionProps = {
   defaultCollapsed?: boolean;
   /** 背景色（CSSカラーコード形式） */
   bgColor?: string;
+  /** フィールド一覧の上（legend直下）に差し込むUI。折りたたみ時はフィールドと同様に非表示 */
+  beforeContent?: ReactNode;
+  /** フィールド一覧の下に差し込むUI。折りたたみ時はフィールドと同様に非表示 */
+  afterContent?: ReactNode;
   /** 追加のクラス名 */
   className?: string;
 };
@@ -29,6 +33,8 @@ export function FieldGroupSection({
   collapsible = false,
   defaultCollapsed = false,
   bgColor,
+  beforeContent,
+  afterContent,
   className,
 }: FieldGroupSectionProps) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
@@ -70,7 +76,9 @@ export function FieldGroupSection({
       </legend>
       {!isCollapsed && (
         <div className="flex flex-col gap-4 pt-2">
+          {beforeContent}
           {children}
+          {afterContent}
         </div>
       )}
     </fieldset>

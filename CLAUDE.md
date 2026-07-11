@@ -166,7 +166,7 @@ ui_layers:
   rule: call hooks at upper layer, pass handlers via props
 
 page_controls: AppFrames/User/controls/ (header/footer/bottomMenu visibility, use in page.tsx)
-FieldRenderer: baseFields, fieldPatches, fieldGroups, inlineGroups | onMediaStateChange(MediaState)
+FieldRenderer: baseFields, fieldPatches, insertBefore/insertAfter, fieldGroups, inlineGroups | onMediaStateChange(MediaState) | UI slots: beforeAll/afterAll, beforeField/afterField(field-name key), beforeGroup/afterGroup(FieldGroup.key, UNGROUPED_GROUP_KEY="__ungrouped__" for ungrouped block, grouped path only, hidden when collapsed) | ref: src/components/Form/FieldRenderer/README.md
 FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, mediaUploaderMulti, hidden, custom, none
 mediaUploaderMulti: 複数枚アップロード(string[])。validationRule.maxItems(既定10)/minItems、reorderable(既定true)、画像/動画両対応(mediaTypePreset). DBは text[] NOT NULL DEFAULT [] (Neon)
 programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schema, own UI) | none = excluded from schema entirely, NOT for programmatic use
