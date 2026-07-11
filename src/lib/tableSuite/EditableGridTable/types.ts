@@ -25,6 +25,11 @@ export type EditableGridEditorType =
 export type EditableGridColumn<T> = {
   field: string;
   header: React.ReactNode;
+  /**
+   * ヘッダーに ?アイコン + ホバー説明を添える（HelpTip に合成される）。
+   * 集計値・派生値など名前だけでは意味が伝わらない列に使用する。
+   */
+  headerHelp?: React.ReactNode;
   editorType: EditableGridEditorType;
   placeholder?: string;
   width?: string;

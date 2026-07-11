@@ -14,6 +14,7 @@ import {
   TableHeader,
   SortableTableHead,
   TableRow,
+  renderColumnHeader,
 } from "../shared";
 import { resolveColumnTextAlignClass, resolveRowClassName, ROW_HEIGHT_CLASS } from "../types";
 import type { EditableGridColumn, EditableGridTableProps } from "./types";
@@ -119,7 +120,7 @@ export default function EditableGridTable<T>({
                 style={column.width ? { width: column.width } : undefined}
                 className={resolveColumnTextAlignClass(column.align)}
               >
-                <span>{column.header}</span>
+                <span>{renderColumnHeader(column.header, column.headerHelp)}</span>
                 {renderHeaderIcon(column)}
               </SortableTableHead>
             ))}

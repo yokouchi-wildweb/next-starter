@@ -203,6 +203,22 @@ const columns = buildDomainColumns<Sample>({
 { header: "操作", render: (item) => <Button />, width: "80px" }
 ```
 
+### headerHelp（ヘッダーのホバー説明）
+
+全テーブル共通で、カラム定義に `headerHelp?: ReactNode` を指定できる。指定するとヘッダーが「ラベル + ?アイコン + ホバー説明」（`HelpTip`）に合成される。インプレッションや CTR など、名前だけでは意味が伝わらない集計・派生カラムに使用する。
+
+```tsx
+{
+  header: "詳細CTR",
+  headerHelp: "詳細クリック ÷ インプレッション。バナーが表示されたうち詳細が開かれた割合",
+  render: (item) => formatRate(item),
+}
+```
+
+- `header` にカスタムノードを渡している場合も、そのノードがラベルとして HelpTip に合成される
+- デスクトップはホバー、タッチデバイスはタップで説明が開閉する
+- 注意: ソート可能列（`sortKey` / `sortable`）では、タッチ端末でヘルプをタップするとソートも同時に発火する（クリック伝播は止めない仕様）
+
 ### CellAction（セルクリックオーバーレイ）
 
 DataTable / RecordSelectionTable のカラムに `cellAction` を設定すると、ホバー時にクリック領域とインジケーターが表示される。

@@ -12,6 +12,7 @@ import {
   TableCell,
   CellClickOverlay,
   getCellClickOverlayClassName,
+  renderColumnHeader,
 } from "../shared";
 import { cn } from "@/lib/cn";
 import type {
@@ -34,6 +35,11 @@ export type { CellAction } from "../types";
 
 export type DataTableColumn<T> = {
   header: React.ReactNode;
+  /**
+   * ヘッダーに ?アイコン + ホバー説明を添える（HelpTip に合成される）。
+   * 集計値・派生値など名前だけでは意味が伝わらない列に使用する。
+   */
+  headerHelp?: React.ReactNode;
   render: (item: T) => React.ReactNode;
   align?: TableColumnAlignment;
   /**
@@ -143,7 +149,7 @@ export default function DataTable<T>({
                 style={col.width ? { width: col.width } : undefined}
                 className={resolveColumnTextAlignClass(col.align)}
               >
-                {col.header}
+                {renderColumnHeader(col.header, col.headerHelp)}
               </SortableTableHead>
             ))}
           </TableRow>

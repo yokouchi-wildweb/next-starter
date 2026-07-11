@@ -15,6 +15,7 @@ import {
   TableCell,
   CellClickOverlay,
   getCellClickOverlayClassName,
+  renderColumnHeader,
 } from "../shared";
 import type { DataTableProps } from "../DataTable";
 import {
@@ -182,7 +183,7 @@ export default function RecordSelectionTable<T>({
                   style={col.width ? { width: col.width } : undefined}
                   className={resolveColumnTextAlignClass(col.align)}
                 >
-                  {col.header}
+                  {renderColumnHeader(col.header, col.headerHelp)}
                 </SortableTableHead>
               ))}
             </TableRow>
