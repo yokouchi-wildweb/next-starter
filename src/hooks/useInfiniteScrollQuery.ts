@@ -36,7 +36,10 @@ type UseInfiniteScrollQueryOptions<TItem, TParams extends Record<string, unknown
    *   (例: limit=100 / items.length=200 は pages=1..2 を事前取得済みとして扱う)。
    */
   initialData?: { items: TItem[]; total: number };
-  /** IntersectionObserver のオプション。 */
+  /**
+   * IntersectionObserver のオプション。
+   * センチネルの attach 時にのみ参照される (identity 変化では Observer を再生成しない)。
+   */
   observerOptions?: IntersectionObserverInit;
 };
 
@@ -133,8 +136,12 @@ export function computeHasMore(
  * ### 堅牢性
  * - `hasMore` は「items < total」に加えて「直近バッチが limit 未満/0 件なら false」。
  *   upstream の `total` が不正確でも無限ループしない。
- * - `loadMore` / `sentinelRef` の identity を `enabled`/`isLoading`/`hasMore` から
- *   切り離し、guard を ref 経由で読む。Observer の無駄な再アタッチを抑制。
+ * - `loadMore` / `sentinelRef` の identity を `enabled`/`isLoading`/`hasMore`/
+ *   `observerOptions` から切り離し、guard を ref 経由で読む。Observer の無駄な再アタッチを抑制。
+ * - フェッチ完了後・`enabled` 復帰後にセンチネルが可視のままの場合は re-observe で
+ *   交差状態を再評価し、ビューポートが埋まるまでページを連鎖ロードする
+ *   (IntersectionObserver は交差の遷移でしか発火しないため、縦長ビューポート ×
+ *   小さい limit で初期ページが画面を埋めきれないとストールする問題への対策)。
  * - 競合する fetch は `requestIdRef` で破棄 (最新のみ反映)。
  * - `reset` / `deps` 変化時は in-flight リクエストを強制無効化する。
  */
@@ -187,6 +194,7 @@ export function useInfiniteScrollQuery<
   const lastFetchedPageRef = useRef<number>(initialLastFetchedPage);
   const requestIdRef = useRef<number>(0);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const sentinelNodeRef = useRef<HTMLElement | null>(null);
   const depsInitializedRef = useRef<boolean>(false);
   const initialDataRef = useRef(initialData);
   initialDataRef.current = initialData;
@@ -202,10 +210,12 @@ export function useInfiniteScrollQuery<
   const paramsRef = useRef(params);
   const limitRef = useRef(limit);
   const initialPageRef = useRef(initialPage);
+  const observerOptionsRef = useRef(observerOptions);
   fetcherRef.current = fetcher;
   paramsRef.current = params;
   limitRef.current = limit;
   initialPageRef.current = initialPage;
+  observerOptionsRef.current = observerOptions;
 
   const fetchPage = useCallback(async (pageToFetch: number) => {
     if (!enabledRef.current) return;
@@ -342,21 +352,36 @@ export function useInfiniteScrollQuery<
     (node: HTMLElement | null) => {
       observerRef.current?.disconnect();
       observerRef.current = null;
+      sentinelNodeRef.current = node;
 
       if (!node) return;
 
       observerRef.current = new IntersectionObserver((entries) => {
-        const entry = entries[0];
+        // 交差遷移がキューされて複数エントリ届くことがあり、末尾が最新の状態
+        const entry = entries[entries.length - 1];
         if (!entry?.isIntersecting) return;
         // guard は ref 経由で最新値を読む (Observer 自体は再生成せずに済む)
         if (!enabledRef.current || isLoadingRef.current || !hasMoreRef.current) return;
         triggerFetch(lastFetchedPageRef.current + 1);
-      }, observerOptions);
+      }, observerOptionsRef.current);
 
       observerRef.current.observe(node);
     },
-    [observerOptions, triggerFetch],
+    [triggerFetch],
   );
+
+  // フェッチ完了後 (および enabled 復帰後) もセンチネルが可視のままだと
+  // IntersectionObserver は遷移イベントを発火しない。re-observe して現在の
+  // 交差状態を再配信させ、可視のままなら次ページを連鎖ロードする。
+  // 終端は IO callback 内の guard と computeHasMore が保証する。
+  useEffect(() => {
+    if (isLoading || !enabled || !hasMore) return;
+    const node = sentinelNodeRef.current;
+    const observer = observerRef.current;
+    if (!node || !observer) return;
+    observer.unobserve(node);
+    observer.observe(node);
+  }, [isLoading, enabled, hasMore]);
 
   return {
     items,
