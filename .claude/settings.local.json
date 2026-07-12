@@ -23,7 +23,11 @@
       "WebFetch(domain:blog.fincode.jp)",
       "WebFetch(domain:developer.squareup.com)",
       "WebFetch(domain:firebase.google.com)",
-      "WebFetch(domain:groups.google.com)"
+      "WebFetch(domain:groups.google.com)",
+      "Bash(rm -f /home/yokouchi/.claude/commands/outbox.md)",
+      "Read(//home/yokouchi/.claude/commands/**)",
+      "Bash(mkdir -p /home/yokouchi/.claude/upstream-requests/done)",
+      "Bash(mv /home/yokouchi/.claude/upstream-requests/20260625-231351-webaudio-loop-se-primitive.md /home/yokouchi/.claude/upstream-requests/done/)"
     ],
     "deny": [
       "Bash(sudo:*)",

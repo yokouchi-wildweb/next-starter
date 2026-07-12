@@ -219,4 +219,6 @@ db:query "SQL": execute SQL | db:tables: list tables | db:describe \<table\>: sh
 fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe, fs:query, fs:delete). run without args for usage
 
 ## DOCS
+policy: colocation-first — primary docs in README.md next to code | docs/ = legacy, phasing out except !must-read/ (exception: standalone docs allowed when clearly superior)
+stale_README: full rewrite over partial patch when README contradicts actual code
 location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/

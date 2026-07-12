@@ -1,4 +1,4 @@
-// src/app/play/seamless-av/page.tsx
+// src/app/(user)/demo/seamless-av/play/page.tsx
 //
 // 公開再生ページ(認証不要)。固定キーの最新マニフェストを SSR で読み、各端末で連結再生する。
 

@@ -241,7 +241,7 @@ export function SeamlessAvDemo() {
       setSaveMsg("マニフェストを保存中...");
       await reelManifestClient.saveLatest(buildReelManifest(manifestFragments, new Date().toISOString()));
 
-      setShareUrl(`${window.location.origin}/play/seamless-av`);
+      setShareUrl(`${window.location.origin}/demo/seamless-av/play`);
       showToast("保存しました。共有 URL を発行しました", "success");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "保存に失敗しました", "error");
