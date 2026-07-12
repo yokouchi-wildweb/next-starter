@@ -13,6 +13,7 @@ const containerVariants = cva(
   {
     variants: {
       size: {
+        xs: "h-7 text-xs",
         s: "h-9 text-sm",
         m: "h-10 text-base",
         l: "h-12 text-base",
@@ -25,9 +26,24 @@ const containerVariants = cva(
 type Size = VariantProps<typeof containerVariants>["size"];
 
 const iconSize: Record<NonNullable<Size>, string> = {
+  xs: "size-7",
   s: "size-9",
   m: "size-10",
   l: "size-12",
+};
+
+const centerWidth: Record<NonNullable<Size>, string> = {
+  xs: "min-w-[2.25rem]",
+  s: "min-w-[4rem]",
+  m: "min-w-[4rem]",
+  l: "min-w-[4rem]",
+};
+
+const manualInputSize: Record<NonNullable<Size>, string> = {
+  xs: "w-[2rem] text-xs",
+  s: "w-[3rem] text-base",
+  m: "w-[3rem] text-base",
+  l: "w-[3rem] text-base",
 };
 
 export type StepperInputProps = {
@@ -154,7 +170,12 @@ export default function StepperInput({
       >
         <MinusIcon className="size-4" />
       </Button>
-      <div className="flex min-w-[4rem] items-center justify-center gap-1 px-2">
+      <div
+        className={cn(
+          "flex items-center justify-center gap-1 px-2",
+          centerWidth[size as NonNullable<Size>]
+        )}
+      >
         {manualInputEnabled ? (
           <input
             type="number"
@@ -166,7 +187,8 @@ export default function StepperInput({
             onBlur={handleManualInputBlur}
             disabled={disabled}
             className={cn(
-              "w-[3rem] bg-transparent text-center text-base outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+              "bg-transparent text-center outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+              manualInputSize[size as NonNullable<Size>],
               disabled && "cursor-not-allowed"
             )}
           />
