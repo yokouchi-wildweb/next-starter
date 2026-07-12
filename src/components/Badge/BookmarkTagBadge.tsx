@@ -1,11 +1,11 @@
 // src/components/Badge/BookmarkTagBadge.tsx
 
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 
+import { BadgeCore } from "./BadgeCore";
 import {
   badgeSizeStyles,
   type BadgeVariant,
@@ -56,26 +56,15 @@ export const BookmarkTagBadge = React.forwardRef<
   BookmarkTagBadgeProps
 >(
   (
-    {
-      className,
-      variant = "primary",
-      size = "md",
-      asChild = false,
-      icon: Icon,
-      selected,
-      children,
-      ...props
-    },
+    { className, variant = "primary", size = "md", selected, ...props },
     ref
   ) => {
-    const Comp = asChild ? Slot : "span";
-
     // selected が明示的に指定されている場合、選択状態に応じて variant を切り替え
     const effectiveVariant =
       selected === undefined ? variant : selected ? variant : "muted";
 
     return (
-      <Comp
+      <BadgeCore
         ref={ref}
         data-slot="bookmark-tag-badge"
         className={cn(
@@ -85,10 +74,7 @@ export const BookmarkTagBadge = React.forwardRef<
           className
         )}
         {...props}
-      >
-        {Icon && <Icon />}
-        {children}
-      </Comp>
+      />
     );
   }
 );

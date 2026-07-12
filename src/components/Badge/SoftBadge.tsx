@@ -1,11 +1,11 @@
 // src/components/Badge/SoftBadge.tsx
 
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 
+import { BadgeCore } from "./BadgeCore";
 import {
   badgeSizeStyles,
   type BadgeVariant,
@@ -42,6 +42,10 @@ export type SoftBadgeProps = React.ComponentPropsWithoutRef<"span"> & {
 /**
  * 柔らかい印象のバッジコンポーネント（薄い背景 + ボーダー + 色付きテキスト）
  *
+ * 透過色背景の下に不透明な下地を敷く二層構造。ラッパーspanは asChild 時も残り、
+ * バッジスタイルと props は内側の要素（asChild 時は children）にマージされる。
+ * ref はラッパーspanに付く（従来仕様）。
+ *
  * @example
  * <SoftBadge variant="success">有効</SoftBadge>
  * <SoftBadge variant="success" icon={Check}>有効</SoftBadge>
@@ -49,26 +53,13 @@ export type SoftBadgeProps = React.ComponentPropsWithoutRef<"span"> & {
  * <SoftBadge variant="muted" size="sm">下書き</SoftBadge>
  */
 export const SoftBadge = React.forwardRef<HTMLSpanElement, SoftBadgeProps>(
-  (
-    {
-      className,
-      variant = "primary",
-      size = "md",
-      asChild = false,
-      icon: Icon,
-      children,
-      ...props
-    },
-    ref
-  ) => {
-    const Comp = asChild ? Slot : "span";
-
+  ({ className, variant = "primary", size = "md", ...props }, ref) => {
     return (
       <span ref={ref} data-slot="soft-badge" className="relative inline-flex w-fit">
         {/* 下層: 不透明な背景 */}
         <span className="absolute inset-0 bg-background rounded-full" />
         {/* 上層: 透過色背景 + コンテンツ */}
-        <Comp
+        <BadgeCore
           className={cn(
             SOFT_BASE,
             softVariantStyles[variant],
@@ -76,10 +67,7 @@ export const SoftBadge = React.forwardRef<HTMLSpanElement, SoftBadgeProps>(
             className
           )}
           {...props}
-        >
-          {Icon && <Icon />}
-          {children}
-        </Comp>
+        />
       </span>
     );
   }

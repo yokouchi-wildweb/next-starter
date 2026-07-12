@@ -1,11 +1,11 @@
 // src/components/Badge/SolidBadge.tsx
 
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 
+import { BadgeCore } from "./BadgeCore";
 import {
   badgeSizeStyles,
   type BadgeVariant,
@@ -47,24 +47,13 @@ export type SolidBadgeProps = React.ComponentPropsWithoutRef<"span"> & {
  * <SolidBadge variant="success" icon={Check}>有効</SolidBadge>
  * <SolidBadge variant="destructive">エラー</SolidBadge>
  * <SolidBadge variant="muted" size="sm">下書き</SolidBadge>
+ * // asChild: 子要素(単一)にバッジスタイルをマージ（詳細は README.md）
+ * <SolidBadge asChild variant="primary"><Button variant="none" size="none" onClick={...}>5台</Button></SolidBadge>
  */
 export const SolidBadge = React.forwardRef<HTMLSpanElement, SolidBadgeProps>(
-  (
-    {
-      className,
-      variant = "primary",
-      size = "md",
-      asChild = false,
-      icon: Icon,
-      children,
-      ...props
-    },
-    ref
-  ) => {
-    const Comp = asChild ? Slot : "span";
-
+  ({ className, variant = "primary", size = "md", ...props }, ref) => {
     return (
-      <Comp
+      <BadgeCore
         ref={ref}
         data-slot="solid-badge"
         className={cn(
@@ -74,10 +63,7 @@ export const SolidBadge = React.forwardRef<HTMLSpanElement, SolidBadgeProps>(
           className
         )}
         {...props}
-      >
-        {Icon && <Icon />}
-        {children}
-      </Comp>
+      />
     );
   }
 );
