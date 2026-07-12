@@ -178,6 +178,7 @@ mediaUploaderMulti: 複数枚アップロード(string[])。validationRule.maxIt
 programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schema, own UI) | none = excluded from schema entirely, NOT for programmatic use
 async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel
 async_guard: useAsyncAction(src/hooks/) — useRefベースの排他ロックで非同期アクションの二重発火を防止。Dialog/ConfirmPopoverはonConfirmがPromiseを返すと自動でloading管理+ロック
+async_feedback (MUST): client-side background通信(mutation/送信/同期)中は必ずローディング状態を可視化 — ボタン内スピナー/ScreenLoader(local)/persistent toast(variant:loading)のいずれか。無反応UI禁止。Dialog/ConfirmPopoverのPromise自動loading・useAsyncActionのpending活用を優先 | 例外: fire-and-forget計測(trackInteraction等)
 ref: src/components/README.md
 
 ## ERROR_HANDLING
