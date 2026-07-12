@@ -53,6 +53,17 @@ sample: {
 
 解決の優先順位: `operations[操作名]` → `read` / `write` → `defaultRule`。
 
+よく使うポリシーは `src/config/app/domain-api-access.config.ts` にプリセットがある：
+
+| プリセット | 意味 |
+|-----------|------|
+| `ADMIN_ONLY` | 読み書きとも管理者カテゴリのみ |
+| `PUBLIC_READ` | 公開読み取り + 管理者書き込み（公開マスタ等） |
+| `ADMIN_OR_DEBUGGER` | 読み書きとも管理者カテゴリ + デバッガーロール（デバッグ用ドメイン等） |
+
+単一ルール版の `ADMIN_OR_DEBUGGER_RULE` は `operations` 単位の上書きや
+カスタムルート（`createApiRoute` の `access`）にもそのまま使える。
+
 ## フォールバック（fail-closed）
 
 - access は型必須のため、登録時に宣言を省略できない（`access:` を書かないとコンパイルエラー）

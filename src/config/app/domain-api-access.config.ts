@@ -1,6 +1,10 @@
 // src/config/app/domain-api-access.config.ts
 
-import type { DomainApiAccessConfig, DomainApiAccessRule } from "@/lib/domain/types";
+import type {
+  DomainApiAccessConfig,
+  DomainApiAccessRule,
+  DomainApiRoleRule,
+} from "@/lib/domain/types";
 
 /**
  * 汎用ドメイン API (/api/[domain]/**) アクセス制御のグローバル設定
@@ -31,4 +35,20 @@ export const ADMIN_ONLY: DomainApiAccessConfig = {
 export const PUBLIC_READ: DomainApiAccessConfig = {
   read: "public",
   write: { roleCategories: ["admin"] },
+};
+
+/**
+ * 管理者カテゴリ + デバッガーロールを許可する単一ルール（OR 条件）。
+ * createApiRoute の access や、operations 単位の上書きにもそのまま使える
+ * （そのため DomainApiAccessRule ではなくロールルール型で宣言している）。
+ */
+export const ADMIN_OR_DEBUGGER_RULE: DomainApiRoleRule = {
+  roles: ["debugger"],
+  roleCategories: ["admin"],
+};
+
+/** 読み書きとも 管理者カテゴリ + デバッガーロールのみ（デバッグ用ドメイン等） */
+export const ADMIN_OR_DEBUGGER: DomainApiAccessConfig = {
+  read: ADMIN_OR_DEBUGGER_RULE,
+  write: ADMIN_OR_DEBUGGER_RULE,
 };

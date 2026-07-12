@@ -59,6 +59,7 @@ sample: {
 - 手動登録ドメイン（コアドメイン）: registry に直接 access を書く
 - access は**型必須**。空 `{}` でも `defaultRule`（admin 限定）にフォールバックし安全側に倒れる
 - ルール値: `"public"` | `"authenticated"` | `"none"` | `{ roles?, roleCategories? }`、操作単位の上書きは `operations`
+- プリセット（`src/config/app/domain-api-access.config.ts`）: `ADMIN_ONLY`（管理者のみ）/ `PUBLIC_READ`（公開読み取り + 管理者書き込み）/ `ADMIN_OR_DEBUGGER`（管理者カテゴリ + デバッガーロール）
 - スキーマ詳細: `src/features/README.md`「ApiAccess」
 
 ---
@@ -93,6 +94,10 @@ export const GET = createApiRoute(
   async (req) => { /* 未認証→401 / 非admin→403 は factory が処理 */ },
 );
 ```
+
+> 管理者 + デバッガーロールに開放したいデバッグ用ルートは、プリセットの単一ルール版
+> `ADMIN_OR_DEBUGGER_RULE`（`@/config/app/domain-api-access.config`）をそのまま `access` に渡せる。
+> 実例（雛形）: `src/app/api/debug/ping/route.ts`。画面側の雛形は `src/app/debug/`（layout が一括ガード）。
 
 ### ②-d custom（自前認可）
 
