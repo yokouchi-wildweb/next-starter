@@ -144,6 +144,7 @@ export function CurrencyDisplay({
   const prefixNode = prefix ? (
     <Span
       data-currency-display="prefix"
+      className="self-baseline"
       size={textSizeClass}
       weight={resolvedWeight}
       style={colorStyle}
@@ -155,9 +156,7 @@ export function CurrencyDisplay({
   return (
     <span
       data-currency-display="root"
-      // align-middle: inline-flex のベースラインは先頭アイテム(SVGアイコン)の下端になり、
-      // baseline 揃えだと周囲テキストより上に飛び出すため、行内では中央揃えで配置する
-      className={cn("inline-flex align-middle", gapClass, alignClass, className)}
+      className={cn("inline-flex", gapClass, alignClass, className)}
     >
       {prefixPosition === "beforeIcon" && prefixNode}
       {showIcon && (
@@ -170,6 +169,10 @@ export function CurrencyDisplay({
       {prefixPosition === "afterIcon" && prefixNode}
       <Span
         data-currency-display="amount"
+        // self-baseline: flexコンテナのベースラインをこのテキストから取らせる。
+        // これが無いと先頭アイテム(SVGアイコン)の下端がコンテナのベースラインになり、
+        // 周囲のテキスト行に対して全体が上下にズレて配置される
+        className="self-baseline"
         size={textSizeClass}
         weight={resolvedWeight}
         style={colorStyle}
