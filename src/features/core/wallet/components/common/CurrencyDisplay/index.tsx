@@ -143,6 +143,7 @@ export function CurrencyDisplay({
   // prefix 要素（位置のみアイコン前後で切り替えるため一度だけ定義）
   const prefixNode = prefix ? (
     <Span
+      data-currency-display="prefix"
       size={textSizeClass}
       weight={resolvedWeight}
       style={colorStyle}
@@ -152,16 +153,23 @@ export function CurrencyDisplay({
   ) : null;
 
   return (
-    <span className={cn("inline-flex", gapClass, alignClass, className)}>
+    <span
+      data-currency-display="root"
+      // align-middle: inline-flex のベースラインは先頭アイテム(SVGアイコン)の下端になり、
+      // baseline 揃えだと周囲テキストより上に飛び出すため、行内では中央揃えで配置する
+      className={cn("inline-flex align-middle", gapClass, alignClass, className)}
+    >
       {prefixPosition === "beforeIcon" && prefixNode}
       {showIcon && (
         <Icon
+          data-currency-display="icon"
           className={iconSizeClass}
           style={colorStyle}
         />
       )}
       {prefixPosition === "afterIcon" && prefixNode}
       <Span
+        data-currency-display="amount"
         size={textSizeClass}
         weight={resolvedWeight}
         style={colorStyle}
@@ -177,10 +185,10 @@ export function CurrencyDisplay({
           amount.toLocaleString()
         )}
         {resolvedSuffix !== "" && resolvedSuffix != null && (
-          <>
+          <span data-currency-display="suffix">
             {" "}
             {resolvedSuffix}
-          </>
+          </span>
         )}
       </Span>
     </span>

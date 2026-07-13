@@ -3,16 +3,33 @@
 // 時/分の分離数値入力。TimeInput / DatetimeInput の Popover 内で共用する。
 // - 表示はゼロ埋め2桁、ただし編集中は1桁状態を許容（"2" → "21" の自然な打鍵）
 // - フォーカス時は全選択し、次の打鍵で先頭から上書きされる
-// - 2桁が確定すると自動で次のフィールドへフォーカス遷移
+// - 入力確定で自動的に次へフォーカス遷移: 時 → 分 → onComplete（確定ボタン等）
+//   確定条件は「2桁入力」または「2桁目が存在し得ない先頭桁（時: 3-9 / 分: 6-9）」で、
+//   時と分をまたいで数字を連続入力できる
 // - 矢印キーで ±1、Shift+矢印で ±10 / ±5（時/分）
 // - スクロールで値変更
 // - 24h時計固定（am/pmは採用しない）
+// - ref（TimeFieldsHandle）で focusHour() を公開。カレンダーの日付クリック後に
+//   時フィールドへフォーカスを移す用途など
 
 "use client";
 
-import { useCallback, useRef, useState, type KeyboardEvent, type WheelEvent } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type WheelEvent,
+} from "react";
 
 import { Input } from "./Input";
+
+export type TimeFieldsHandle = {
+  /** 時フィールドへフォーカスし、既存の入力を全選択する */
+  focusHour: () => void;
+};
 
 export type TimeFieldsProps = {
   /** 時 (0-23) */
@@ -20,6 +37,8 @@ export type TimeFieldsProps = {
   /** 分 (0-59) */
   minute: number | null;
   onChange: (next: { hour: number; minute: number }) => void;
+  /** 分の入力が確定した際に呼ばれる。確定ボタンへのフォーカス移動などに使う */
+  onComplete?: () => void;
   /** 最小入力幅を揃えるためのクラス */
   className?: string;
 };
@@ -37,9 +56,21 @@ const clamp = (value: number, max: number) => {
 const pad2 = (value: number | null) =>
   value === null ? "" : value.toString().padStart(2, "0");
 
-export function TimeFields({ hour, minute, onChange, className }: TimeFieldsProps) {
+export const TimeFields = forwardRef<TimeFieldsHandle, TimeFieldsProps>(
+  function TimeFields({ hour, minute, onChange, onComplete, className }, ref) {
   const hourRef = useRef<HTMLInputElement | null>(null);
   const minuteRef = useRef<HTMLInputElement | null>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focusHour: () => {
+        hourRef.current?.focus();
+        hourRef.current?.select();
+      },
+    }),
+    [],
+  );
 
   // 編集中ローカル文字列。null の場合は親の値を pad2 で表示する。
   // 1桁入力途中（例: "2"）を保持するために必要。
@@ -107,7 +138,8 @@ export function TimeFields({ hour, minute, onChange, className }: TimeFieldsProp
   // 入力共通処理。
   // - 数字以外を除去し最大2桁に制限
   // - 0桁/1桁は編集中文字列としてそのまま保持（pad2 しない）
-  // - 2桁達成で clamp し、必要なら次のフィールドへフォーカス遷移
+  // - 2桁達成で clamp して確定。1桁でも2桁目が存在し得ない先頭桁
+  //   （時: 3-9 / 分: 6-9）ならゼロ埋めして即確定し、連続入力を途切れさせない
   const handleInput = (
     raw: string,
     kind: "hour" | "minute",
@@ -118,7 +150,11 @@ export function TimeFields({ hour, minute, onChange, className }: TimeFieldsProp
       return { editing: "", numeric: 0, completed: false };
     }
     if (digits.length === 1) {
-      return { editing: digits, numeric: Number(digits), completed: false };
+      const numeric = Number(digits);
+      if (numeric > Math.floor(max / 10)) {
+        return { editing: pad2(numeric), numeric, completed: true };
+      }
+      return { editing: digits, numeric, completed: false };
     }
     const numeric = clamp(Number(digits), max);
     return { editing: pad2(numeric), numeric, completed: true };
@@ -164,9 +200,13 @@ export function TimeFields({ hour, minute, onChange, className }: TimeFieldsProp
           onKeyDown={handleMinuteKeyDown}
           onWheel={handleWheel("minute")}
           onChange={(event) => {
-            const { editing, numeric } = handleInput(event.target.value, "minute");
+            const { editing, numeric, completed } = handleInput(event.target.value, "minute");
             setEditingMinute(editing);
             emit(hour, numeric);
+            if (completed) {
+              // 分の確定で入力完了 → 確定ボタン等へフォーカスを渡す
+              onComplete?.();
+            }
           }}
           onBlur={() => setEditingMinute(null)}
         />
@@ -176,4 +216,4 @@ export function TimeFields({ hour, minute, onChange, className }: TimeFieldsProp
       </p>
     </div>
   );
-}
+});

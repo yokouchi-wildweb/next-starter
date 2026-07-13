@@ -3,6 +3,10 @@
 // 日時入力コンポーネント。
 // - テキスト直入力・ペースト対応（ISO/和文/各種区切りを広く受理）
 // - 右側アイコンクリックで Popover に Calendar + TimeFields を表示
+// - Popover 内フォーカスフロー: 日付クリック → 時（全選択）→ 分 → 確定ボタン
+//   （時/分は数字の連続入力で自動遷移。詳細は TimeFields 参照）
+// - クリア/現在はドラフト操作のみ。値への反映は必ず確定ボタン経由
+//   （外クリック・Escape・キャンセルはドラフト破棄）
 // - 入出力契約: value は DatetimeLike、onValueChange は "YYYY-MM-DD HH:mm" または "" を返す
 //
 // className プロパティの規約:
@@ -37,7 +41,7 @@ import {
 } from "@/components/Overlays/Popover/PopoverPrimitives";
 
 import { Input } from "./Input";
-import { TimeFields } from "./TimeFields";
+import { TimeFields, type TimeFieldsHandle } from "./TimeFields";
 
 type InputProps = ComponentProps<typeof Input>;
 type DatetimeLike = string | Date | number | Dayjs | null | undefined;
@@ -102,6 +106,8 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
     const [draftDatetime, setDraftDatetime] = useState<Dayjs | null>(null);
     const [prevExternalValue, setPrevExternalValue] = useState(value);
     const localRef = useRef<HTMLInputElement | null>(null);
+    const timeFieldsRef = useRef<TimeFieldsHandle | null>(null);
+    const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
 
     if (hasValueProp && value !== prevExternalValue) {
       setPrevExternalValue(value);
@@ -204,16 +210,21 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
                 }
                 const base = draftDatetime ?? dayjs(date);
                 setDraftDatetime(dayjs(date).hour(base.hour()).minute(base.minute()));
+                // 日付選択後は時フィールドへフォーカス。再レンダー後の値に対して
+                // 全選択が効くよう1フレーム遅らせる
+                requestAnimationFrame(() => timeFieldsRef.current?.focusHour());
               }}
             />
             <div className="border-t px-3 py-3">
               <TimeFields
+                ref={timeFieldsRef}
                 hour={draftDatetime?.hour() ?? null}
                 minute={draftDatetime?.minute() ?? null}
                 onChange={({ hour, minute }) => {
                   const base = draftDatetime ?? dayjs().startOf("day");
                   setDraftDatetime(base.hour(hour).minute(minute));
                 }}
+                onComplete={() => confirmButtonRef.current?.focus()}
               />
             </div>
             <div className="flex items-center justify-between gap-2 border-t p-2">
@@ -221,12 +232,7 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
                 type="button"
                 variant="ghost"
                 size="xs"
-                onClick={() => {
-                  setRawInput("");
-                  setIsInvalid(false);
-                  onValueChange?.("");
-                  setPopoverOpen(false);
-                }}
+                onClick={() => setDraftDatetime(null)}
               >
                 クリア
               </Button>
@@ -248,6 +254,7 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
                   キャンセル
                 </Button>
                 <Button
+                  ref={confirmButtonRef}
                   type="button"
                   variant="primary"
                   size="xs"

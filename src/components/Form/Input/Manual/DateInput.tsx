@@ -3,6 +3,8 @@
 // 日付入力コンポーネント。
 // - テキスト直入力・ペースト対応（空白/スラッシュ/ドット/和文など広めに受理）
 // - 右側アイコンクリックで Popover に Calendar を表示
+// - 時刻入力がないため確定ボタンは置かず、日付クリック/クリア/現在は
+//   その場で確定して Popover を閉じる（ドラフトを持たない即確定モデル）
 // - 入出力契約: value は DateLike、onValueChange は "YYYY-MM-DD" または "" を返す
 //
 // className プロパティの規約:
@@ -91,7 +93,6 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
   const [rawInput, setRawInput] = useState<string>(initialFormatted);
   const [isInvalid, setIsInvalid] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [draftDate, setDraftDate] = useState<Date | undefined>(undefined);
   const [prevExternalValue, setPrevExternalValue] = useState(value);
   const localRef = useRef<HTMLInputElement | null>(null);
 
@@ -134,23 +135,15 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
     return parsed.isValid() ? parsed.toDate() : undefined;
   }, [rawInput]);
 
-  const handlePopoverOpenChange = (open: boolean) => {
-    // 開く瞬間に現在値をドラフトへスナップショット。閉じる時はドラフト破棄（確定ボタンのみ反映）
-    if (open) setDraftDate(currentDate);
-    setPopoverOpen(open);
-  };
-
-  const confirmDraft = () => {
-    if (!draftDate) {
-      setRawInput("");
-      setIsInvalid(false);
-      onValueChange?.("");
-    } else {
-      const formatted = dayjs(draftDate).format("YYYY-MM-DD");
+  // 日付クリック・現在ボタンから呼ぶ即確定処理。値を反映して Popover を閉じる
+  const commitAndClose = (date: Date | undefined) => {
+    if (date) {
+      const formatted = dayjs(date).format("YYYY-MM-DD");
       setRawInput(formatted);
       setIsInvalid(false);
       onValueChange?.(formatted);
     }
+    // 選択済みの日を再クリック（選択解除イベント）は現値を維持して閉じるだけ
     setPopoverOpen(false);
   };
 
@@ -175,7 +168,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
           commit(event.target.value);
         }}
       />
-      <PopoverRoot modal open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
+      <PopoverRoot modal open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -190,9 +183,9 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
         <PopoverContent size="auto" className="p-0" align="end">
           <Calendar
             mode="single"
-            selected={draftDate}
-            defaultMonth={draftDate ?? currentDate}
-            onSelect={(date) => setDraftDate(date ?? undefined)}
+            selected={currentDate}
+            defaultMonth={currentDate}
+            onSelect={commitAndClose}
           />
           <div className="flex items-center justify-between gap-2 border-t p-2">
             <Button
@@ -208,32 +201,14 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
             >
               クリア
             </Button>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                onClick={() => setDraftDate(new Date())}
-              >
-                現在
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="xs"
-                onClick={() => setPopoverOpen(false)}
-              >
-                キャンセル
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                size="xs"
-                onClick={confirmDraft}
-              >
-                確定
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => commitAndClose(new Date())}
+            >
+              現在
+            </Button>
           </div>
         </PopoverContent>
       </PopoverRoot>

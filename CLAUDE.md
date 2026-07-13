@@ -99,6 +99,7 @@ server-only(no hook): query, belongsToMany
 hook-only: use\<Domain\>ViewModal(useDetailModal)
 relationWhere: search/searchWithDeleted/searchForSorting/count accept `relationWhere?: RelationFilter[]` for filtering by relations (Drizzle only). Two variants: BelongsToManyFilter(targetIds+mode:any|all|none) for M2M | BelongsToFilter(where:WhereExpr) for belongsTo. Discriminated by targetIds vs where. Type: RelationFilter from @/lib/crud/types
 extraWhere: search/searchWithDeleted/searchForSorting/count accept `extraWhere?: SQL` (Drizzle only) for conditions beyond WhereExpr DSL (subqueries, EXISTS, JSONB, etc.). Type: ExtraWhereOption from @/lib/crud/drizzle
+extraOrderBy: search/searchWithDeleted accept `extraOrderBy?: SQL[]` (Drizzle only) for SQL-expression ordering (COALESCE/CASE etc.) beyond column-name OrderBySpec. Takes precedence over orderBy (orderBy becomes tiebreak). Type: ExtraOrderByOption from @/lib/crud/drizzle
 withRelations: `withRelations?: boolean | number`. true/1 = 1 level, 2+ = recursive nested relation fetch (requires nested config on relation definition, max depth=3). Expands belongsTo(FK→object), belongsToMany(IDs→objects), hasMany(parent→child array). use\<Domain\>/use\<Domain\>List hooks do NOT accept WithOptions — use useSearch\<Domain\> (search hook) which passes WithOptions through params
 hasManyLimit: `hasManyLimit?: number` in WithOptions. Per-parent child record limit for hasMany expansion (default: 100). Passed via query param from client→API→service
 extension: 1.check base methods → 2.relationWhere for relation filtering → 3.extraWhere for SQL injection → 4.base.query()+wrappers → 5.custom service
@@ -179,6 +180,8 @@ programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schem
 async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel
 async_guard: useAsyncAction(src/hooks/) — useRefベースの排他ロックで非同期アクションの二重発火を防止。Dialog/ConfirmPopoverはonConfirmがPromiseを返すと自動でloading管理+ロック
 async_feedback (MUST): client-side background通信(mutation/送信/同期)中は必ずローディング状態を可視化 — ボタン内スピナー/ScreenLoader(local)/persistent toast(variant:loading)のいずれか。無反応UI禁止。Dialog/ConfirmPopoverのPromise自動loading・useAsyncActionのpending活用を優先 | 例外: fire-and-forget計測(trackInteraction等)
+infinite_scroll: 無限スクロール画面は @/components/Widgets/InfiniteScrollList を使う (sentinel/初回ローダー/空表示/追加スピナー/完了メッセージを内包)。データ取得は @/hooks/useInfiniteScrollQuery 派生フックで、isInitialLoading / isFetchingMore / hasMore / updateItems / removeItems / revalidate を返却する
+action_optimistic: ステータス変更系の server logic (例: convertToCoins/requestShipping) は処理済み UserItem ID 配列を返す (例: convertedItemIds / requestedItemIds)。クライアントは hook の onSuccess でこの ID を受け、updateItems (status 書き換え) / removeItems (フィルタ済みリストから除去) でローカル即時反映する。完了後の revalidate(再フェッチ) は UX 退化 + 通信往復2回の二重コストになるため避ける
 ref: src/components/README.md
 
 ## ERROR_HANDLING
@@ -206,6 +209,9 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - unpaginated full-fetch of user-scale data (ユーザーに紐づくデータをbase.search()等でlimit未指定の全件取得するのは禁止。必ずページネーション(page/limit)を使い、UIは無限スクロール等で段階取得すること。base.searchのデフォルトlimit=100は安全策ではなくデータ欠損の原因になる)
 - utility functions in config files (src/config/): config files are values only, place logic in relevant domain utils or lib
 - direct businessConfig.url for runtime base URL (decision: use getAppBaseUrl() from @/lib/url). businessConfig.url is "事業者の正式URL" (mail/SEO等). 実行環境のオリジン (決済コールバック・メールリンク等) は getAppBaseUrl() 経由のみ。リクエストヘッダ (Host/X-Forwarded-Host) からの組み立ては Host Header Injection になるため禁止
+- direct lib/mail.send() for user-facing messages: 管理者→ユーザー向けメッセージ送信は必ず messagingService.send / bulkSend (@/features/messaging) 経由。lib/mail 直接呼び出しはシステムメール (PWリセット、メール認証、登録完了等のテンプレート系) に限定。理由: 受信者単位の audit_logs 記録と本文を保持する message_dispatches 行を漏れなく永続化するため
+- 自前で無限スクロール sentinel / 全画面ローダー early return を組む (use @/components/Widgets/InfiniteScrollList。isLoading 単独で early return すると追加ロード時に既存リストが消える既知の落とし穴を再発させる)
+- アクション完了後の revalidate / resetItems による「最新化のための再フェッチ」(API レスポンスに含まれる処理済み ID で updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト)
 
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css

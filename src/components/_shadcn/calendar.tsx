@@ -6,7 +6,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker, type DayPickerProps } from "react-day-picker";
 
 import { cn } from "@/lib/cn";
@@ -25,20 +25,30 @@ function Calendar({
     <DayPicker
       data-slot="calendar"
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      // relative: v9 では Nav ボタンがキャプションの外に描画されるため、
+      // absolute 配置の基準をカレンダー自身に固定する
+      className={cn("relative p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row gap-2",
         month: "flex flex-col gap-4",
         month_caption: "flex justify-center pt-1 relative items-center w-full",
-        caption_label: "text-sm font-medium",
+        caption_label: "flex items-center gap-1 text-sm font-medium",
+        // captionLayout="dropdown" 用。v9 は「透明なネイティブ <select> を
+        // 見た目用ラベル（caption_label + Chevron）に重ねる」構造で描画する
+        dropdowns: "flex items-center justify-center gap-1.5",
+        dropdown_root:
+          "relative rounded-md px-1.5 py-1 transition-colors hover:bg-accent hover:text-accent-foreground has-[select:focus-visible]:ring-1 has-[select:focus-visible]:ring-ring",
+        dropdown: "absolute inset-0 cursor-pointer appearance-none opacity-0",
         nav: "flex items-center gap-1",
+        // z-10: 後続の month_caption (relative, w-full) に描画順で負けて
+        // ホバー/クリックが奪われるのを防ぐ（rdp v9 で Nav が caption の外に出たため）
         button_previous: cn(
           baseButtonClassName,
-          "size-7 bg-transparent p-0 hover:bg-accent hover:text-accent-foreground absolute left-1 top-1",
+          "size-7 bg-transparent p-0 hover:bg-accent hover:text-accent-foreground absolute left-1 top-1 z-10",
         ),
         button_next: cn(
           baseButtonClassName,
-          "size-7 bg-transparent p-0 hover:bg-accent hover:text-accent-foreground absolute right-1 top-1",
+          "size-7 bg-transparent p-0 hover:bg-accent hover:text-accent-foreground absolute right-1 top-1 z-10",
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
@@ -66,6 +76,10 @@ function Calendar({
         Chevron: ({ orientation, className: chevronClassName }) => {
           if (orientation === "left") {
             return <ChevronLeft className={cn("size-4", chevronClassName)} />;
+          }
+          if (orientation === "down") {
+            // dropdown キャプションのラベル横に描画される
+            return <ChevronDown className={cn("size-4", chevronClassName)} />;
           }
           return <ChevronRight className={cn("size-4", chevronClassName)} />;
         },
