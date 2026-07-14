@@ -7,7 +7,9 @@
 
 - core ドメイン（domain.json なし、手動管理）
 - エンティティ: `user_daily_activities`（DAU 計測）と `analytics_daily_rollups`（日次事前集計）のみ。下流で必要に応じて追加
-- データ所有: 原則なし（wallet_histories, purchase_requests 等を参照のみ）。例外は上記2テーブルで、いずれも**ソーステーブルから再計算可能な派生データ**であり真実のソースではない
+- データ所有: 原則なし（wallet_histories, purchase_requests 等を参照のみ）。例外は上記2テーブル
+  - `user_daily_activities`: **本ドメインが所有する一次記録（source of truth）**。イベント発生時の ingest（useDauTracker → POST /api/activity/dau）でのみ生まれ、他テーブルから再計算**できない**
+  - `analytics_daily_rollups`: ソーステーブルから再計算可能な**派生キャッシュ**（真実のソースではない）
 
 ## ディレクトリ構成
 
@@ -67,6 +69,7 @@ analytics/
 | GET /api/admin/analytics/referral/summary | referralAnalytics | 紹介経由ユーザー数 + 紹介リワード金額（前期比含む） |
 | GET /api/admin/analytics/dau/daily | dauAnalytics | バケット別アクティブユーザー数（day=DAU / week=WAU / month=MAU、hour 不可） |
 | GET /api/admin/analytics/dau/summary | dauAnalytics | DAU 期間サマリー（week/month はバケット単位の統計値） |
+| GET /api/admin/analytics/dau/ranking | dauAnalytics | ユーザー別アクティブ日数ランキング（期間内の訪問日数 top-N、ページネーション付き） |
 | GET /api/admin/analytics/coin-issuance/summary | coinIssuance | コイン創出サマリー（収入・発行・finalProfit を統合、前期比含む。下流で source 追加可） |
 
 ### referral summary 固有のパラメータ
@@ -602,6 +605,36 @@ export const AnalyticsCacheTable = pgTable(
 ### 命名規約
 - テーブル名: `analytics_` プレフィクス（例: `analytics_cache`, `analytics_snapshots`）
 - metric_key / snapshot_key: snake_case（例: `daily_wallet_summary`, `wallet_balance_distribution`）
+
+## DAU（アクティブユーザー）系 API
+
+`user_daily_activities`（1 ユーザー × 1 日 = 1 行、ON CONFLICT DO NOTHING で冪等 ingest）を一次データとする、訪問・アクティブ系の read 群。
+「DAU / WAU / MAU」「ユーザーごとの訪問日数」「最もアクティブなユーザー」の問いは全てここで解く（userCounter のキーで再実装しない — userCounter README の決定ガイド参照）。
+
+| 関数（dauAnalytics） | エンドポイント | 返すもの |
+|---|---|---|
+| `getDauDaily` | GET /api/admin/analytics/dau/daily | バケット別アクティブユーザー数（day=DAU / week=WAU / month=MAU） |
+| `getDauSummary` | GET /api/admin/analytics/dau/summary | 期間サマリー（avg/max/min、前期比） |
+| `getDauRanking` | GET /api/admin/analytics/dau/ranking | ユーザー別アクティブ日数ランキング |
+
+### ランキング（getDauRanking）
+
+- パラメータ: 日付範囲共通パラメータ + `limit`（既定 50、最大 200）/ `page`（1 始まり） + ユーザーフィルタ（roles / excludeDemo）
+- レスポンス: `RankingResponse`（`items: [{ rank, userId, displayName, activeDays, lastActiveDate }]` + `total`）
+- 並び順: activeDays DESC → lastActiveDate DESC → userId ASC（ページングが安定するよう決定的）
+- `(user_id, activity_date)` ユニークのため `COUNT(*)` = 期間内アクティブ日数。`activity_date` index のレンジスキャン + GROUP BY で解決
+
+### ユーザー単位ドリルダウン（userId パラメータ）
+
+daily / summary は `userId` で単一ユーザーに絞り込める（他ドメインの分析 API と同じ共通パラメータ）:
+
+- `dau/summary?userId=X` → `totalActiveRecords` = そのユーザーの期間内アクティブ日数
+- `dau/daily?userId=X`（day 粒度） → 0/1 の系列（アクティビティカレンダー・ヒートマップ用途）
+
+### クライアント / フック
+
+- 記録（ingest）: `hooks/useDauTracker.ts`（1 日 1 回 `POST /api/activity/dau`）
+- 読み取り: `services/client/dauAnalyticsClient.ts`（fetchDauDaily / fetchDauSummary / fetchDauRanking）+ `hooks/useDauDaily.ts` / `useDauSummary.ts` / `useDauRanking.ts`（SWR）。管理画面のダッシュボード・「アクティブユーザー」タブ等はこれらをそのまま利用する（画面 UI は下流の責務）
 
 ## ランキングAPI: ウォレット vs 購入
 

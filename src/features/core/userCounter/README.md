@@ -4,16 +4,20 @@
 
 ## カウント要求の決定ガイド（どのプリミティブを使うか）
 
-カウント系の要求は「数える単位 × 時間軸」の行列で必ずどこかに落ちる:
+カウント系の要求は「数える単位 × 時間軸」の行列に当てはめる:
 
 | 数える単位 | 累計 | 日別 |
 |---|---|---|
 | **ユーザー × キー** | `user_counters`（本ドメイン, bump） | `user_daily_counters`（本ドメイン, bumpDaily） |
 | **コンテンツ × アクション** | `interaction_counters`（interactionTracking） | `interaction_daily_counters`（interactionTracking） |
+| **ユーザー × 日（訪問したか）** | — （アクティブ日数は読み取りで導出） | `user_daily_activities`（**core/analytics の DAU 基盤**） |
 
 - 「**この人が**何回」→ 本ドメイン。ログイン前提・サーバ内部からのみ加算
 - 「**このコンテンツが**（匿名含む全員から）何回」→ interactionTracking。公開 ingest あり
-- どちらも人間の操作速度で増えるイベント向け。機械生成の高頻度イベント（テレメトリ等）は守備範囲外（interactionTracking README 参照）
+- 「**この人がその日来たか / 何日来たか** / DAU・アクティブユーザー数・アクティブ日数ランキング」→ **core/analytics の DAU 基盤**（`user_daily_activities`）。ingest は実装済み（`useDauTracker` → `POST /api/activity/dau`）、読み取りは `dauAnalytics`（getDauDaily / getDauSummary / getDauRanking、`userId` でユーザー単位ドリルダウン）。**userCounter のキーで再実装しないこと**（詳細: `src/features/core/analytics/README.md`）
+- いずれも人間の操作速度で増えるイベント向け。機械生成の高頻度イベント（テレメトリ等）は守備範囲外（interactionTracking README 参照）
+
+⚠ 「ユーザー × 日」の訪問記録は一見「ユーザー × キー の日別セル」（bumpDaily）に見えるが、DAU 基盤が既に一次データを持っている。訪問系の要求で `user_daily_counters` に新キーを生やすのは重複実装。
 
 ## データモデル
 

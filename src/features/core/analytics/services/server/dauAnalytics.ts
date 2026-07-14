@@ -1,17 +1,22 @@
 // src/features/core/analytics/services/server/dauAnalytics.ts
-// DAU集計サービス（日別DAU + サマリー）
+// DAU集計サービス（日別DAU + サマリー + ユーザー別アクティブ日数ランキング）
 // 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
 import { db } from "@/lib/drizzle";
 import { UserDailyActivityTable } from "@/features/core/analytics/entities/drizzle";
-import { and, between, sql, type SQL } from "drizzle-orm";
+import { UserTable } from "@/features/core/user/entities/drizzle";
+import { and, between, eq, sql, type SQL } from "drizzle-orm";
 import type {
   DateRangeParams,
   DailyAnalyticsResponse,
   Granularity,
+  PaginationParams,
   PeriodSummaryResponse,
+  RankingResponse,
   UserFilter,
+  UserIdFilter,
 } from "@/features/core/analytics/types/common";
+import { DEFAULT_RANKING_LIMIT, MAX_RANKING_LIMIT } from "@/features/core/analytics/constants";
 import {
   resolveDateRange,
   generateDateKeys,
@@ -37,11 +42,11 @@ export const DAU_SUPPORTED_GRANULARITIES = ["day", "week", "month"] as const sat
 // 型定義
 // ============================================================================
 
-type DauDailyData = {
+export type DauDailyData = {
   count: number;
 };
 
-type DauSummaryData = {
+export type DauSummaryData = {
   totalDays: number;
   totalActiveRecords: number;
   avgDau: number;
@@ -57,33 +62,61 @@ type DauSummaryData = {
   };
 };
 
-export type DauDailyParams = DateRangeParams & UserFilter;
-export type DauSummaryParams = DateRangeParams & UserFilter;
+/** ランキングエントリ（期間内のアクティブ日数 top-N） */
+export type DauRankingEntry = {
+  userId: string;
+  displayName: string | null;
+  /** 期間内にアクティビティが記録された日数 */
+  activeDays: number;
+  /** 期間内の最終アクティブ日（YYYY-MM-DD） */
+  lastActiveDate: string;
+};
+
+export type DauDailyParams = DateRangeParams & UserIdFilter & UserFilter;
+export type DauSummaryParams = DateRangeParams & UserIdFilter & UserFilter;
+export type DauRankingParams = DateRangeParams & PaginationParams & UserFilter;
 
 // ============================================================================
 // テーブルエイリアス
 // ============================================================================
 
 const t = UserDailyActivityTable;
+const u = UserTable;
 
 // ============================================================================
 // 条件ビルダー
 // ============================================================================
 
-function buildConditions(dateFrom: Date, dateTo: Date, params: UserFilter): SQL[] {
+function buildConditions(
+  dateFrom: Date,
+  dateTo: Date,
+  params: UserIdFilter & UserFilter,
+): SQL[] {
   const dateFromStr = dateFrom.toISOString().split("T")[0]!;
   const dateToStr = dateTo.toISOString().split("T")[0]!;
 
-  return [
+  const conditions: SQL[] = [
     between(t.activityDate, dateFromStr, dateToStr),
     ...buildUserFilterConditions(t.userId, params),
   ];
+
+  if (params.userId) {
+    conditions.push(eq(t.userId, params.userId));
+  }
+
+  return conditions;
 }
 
 // ============================================================================
 // 日別DAU
 // ============================================================================
 
+/**
+ * バケット別アクティブユーザー数（day=DAU / week=WAU / month=MAU）。
+ *
+ * `userId` 指定時は単一ユーザーへのドリルダウンになり、
+ * day 粒度では 0/1 の系列（アクティビティカレンダー用途）を返す。
+ */
 export async function getDauDaily(
   params: DauDailyParams,
 ): Promise<DailyAnalyticsResponse<DauDailyData>> {
@@ -119,6 +152,12 @@ export async function getDauDaily(
 // DAUサマリー
 // ============================================================================
 
+/**
+ * DAU 期間サマリー。
+ *
+ * `userId` 指定時は単一ユーザーへのドリルダウンになり、
+ * `totalActiveRecords` = そのユーザーの期間内アクティブ日数として読める。
+ */
 export async function getDauSummary(
   params: DauSummaryParams,
 ): Promise<PeriodSummaryResponse<DauSummaryData>> {
@@ -151,6 +190,64 @@ export async function getDauSummary(
         },
       },
     },
+  };
+}
+
+// ============================================================================
+// ユーザー別アクティブ日数ランキング
+// ============================================================================
+
+/**
+ * 期間内のアクティブ日数によるユーザーランキング（ページネーション付き）。
+ *
+ * `(user_id, activity_date)` はユニークのため `COUNT(*)` がそのまま
+ * 「期間内のアクティブ日数（DISTINCT 日数）」になる。
+ * 並び順: activeDays DESC → lastActiveDate DESC → userId ASC（安定ソート）。
+ */
+export async function getDauRanking(
+  params: DauRankingParams,
+): Promise<RankingResponse<DauRankingEntry>> {
+  const range = resolveDateRange(params);
+  const limit = Math.min(Math.max(params.limit ?? DEFAULT_RANKING_LIMIT, 1), MAX_RANKING_LIMIT);
+  const page = Math.max(params.page ?? 1, 1);
+  const offset = (page - 1) * limit;
+
+  const conditions = buildConditions(range.dateFrom, range.dateTo, params);
+
+  // ランキングクエリ（users JOIN）+ 総ユーザー数を並列実行
+  const [rows, totalRows] = await Promise.all([
+    db
+      .select({
+        userId: t.userId,
+        displayName: u.name,
+        activeDays: sql<number>`COUNT(*)::int`.as("active_days"),
+        lastActiveDate: sql<string>`MAX(${t.activityDate})::text`.as("last_active_date"),
+      })
+      .from(t)
+      .leftJoin(u, eq(t.userId, u.id))
+      .where(and(...conditions))
+      .groupBy(t.userId, u.name)
+      .orderBy(sql.raw("active_days DESC, last_active_date DESC"), t.userId)
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({
+        total: sql<number>`COUNT(DISTINCT ${t.userId})::int`.as("total"),
+      })
+      .from(t)
+      .where(and(...conditions)),
+  ]);
+  const totalRow = totalRows[0];
+
+  return {
+    items: rows.map((r, idx) => ({
+      rank: offset + idx + 1,
+      userId: r.userId,
+      displayName: r.displayName ?? null,
+      activeDays: Number(r.activeDays),
+      lastActiveDate: r.lastActiveDate,
+    })),
+    total: Number(totalRow!.total),
   };
 }
 

@@ -128,12 +128,13 @@ cron: pnpm cron audit-log-prune (0 3 * * *) | pnpm cron audit-log-recover-dead-l
 ref: docs/how-to/監査ログ採用ガイド.md
 
 ## COUNTING (which primitive — check BEFORE building any count/tracking feature)
-matrix: user×key(login-only) → userCounter | content×action(anonymous OK) → interactionTracking | each axis has lifetime + daily
+matrix: user×key(login-only) → userCounter | content×action(anonymous OK) → interactionTracking | user×day "visited?"(DAU/active-days) → analytics DAU base | userCounter/interactionTracking have lifetime + daily
 userCounter: bump(lifetime) / bumpDaily(lifetime+daily same-tx) / getTodayCount(daily-limit check) / getDailySeries. server-internal only (no client route) | ref: src/features/core/userCounter/README.md (decision guide)
+dau: user_daily_activities (1 row per user per day, permanent, analytics-OWNED source-of-truth ingest) | ingest: useDauTracker → POST /api/activity/dau → dauService.recordDailyActivity (server contexts call directly) | reads: dauAnalytics getDauDaily(day=DAU/week=WAU/month=MAU) / getDauSummary / getDauRanking(active-days top-N, paginated) + userId param = per-user drill-down (active days, 0/1 calendar series) | hooks: useDauDaily/useDauSummary/useDauRanking | "did user visit day X / days visited per user / most active users" → HERE, NOT a userCounter key
 interactionTracking: public ingest POST /api/interactions (fail-closed via src/registry/interactionTargetRegistry.ts) + batch ingest POST /api/interactions/batch (impressions etc: registry batchActions only, counters-only no detail) + server record()/recordBatch(). reads: getCounts / getCountsBulk(admin list columns) / getDailySeries(marketing time-series, permanent) / getAudience+getAudienceSummary(who-clicked, admin PII) | client: trackInteraction() fire-and-forget, useImpressionTracker()(viewport→buffered batch send) | ref: src/features/core/interactionTracking/README.md
-lifetime counters + content-daily: permanent | event detail + user-daily: retention_days + prune cron
+lifetime counters + content-daily + dau: permanent | event detail + user-daily: retention_days + prune cron
 NOT_for: game telemetry, scroll/mousemove streams, sustained tens-of-millions events/day → needs separate queue/external pipeline, do NOT retrofit these domains
-adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = read-only aggregation over existing tables (only derived data: analytics_daily_rollups = recomputable pre-aggregation cache, NOT source of truth — see ANALYTICS_PERF)
+adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = aggregation reads over existing tables + OWNS the DAU ingest above (user_daily_activities = first-party record, NOT derived; analytics_daily_rollups = recomputable pre-aggregation cache, NOT source of truth — see ANALYTICS_PERF)
 
 ## USER_ACQUISITION (signup attribution, multi-touch)
 flow: proxy decorator (src/proxies/attribution.ts) accumulates utm/click-ID/external-referrer touches into httpOnly cookie (no DB write pre-signup) → /api/auth/register reads cookie server-side → user_acquisitions (1:1 first/last summary) + user_acquisition_touches (1:N timeline) | config: src/config/app/acquisition.config.ts (opt-in, default disabled — downstream enables when needed, no retroactive data)

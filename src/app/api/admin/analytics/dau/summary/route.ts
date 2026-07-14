@@ -24,6 +24,7 @@ export const GET = createApiRoute(
     return getDauSummary({
       ...parseDateRangeParams(searchParams),
       ...parseUserFilterParams(searchParams),
+      userId: searchParams.get("userId") ?? undefined,
     });
   },
 );
