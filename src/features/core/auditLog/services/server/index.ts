@@ -14,6 +14,7 @@ export {
   type RecoverOptions,
   type RecoverResult,
 } from "./recoverDeadLetter";
+export { buildUserVisibleActionsWhere } from "./userVisibility";
 
 import { auditLogBase } from "./drizzleBase";
 import { searchByTarget } from "./wrappers/searchByTarget";

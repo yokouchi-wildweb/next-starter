@@ -122,6 +122,7 @@ trackedFields: omit = denylist-applied all fields | denylist: src/lib/audit/deny
 retention_days: per-row | default 365 | compliance 730+ | cron auto-prunes
 emergency_stop: AUDIT_MODE=disabled → all audit no-op
 
+user_visibility: GET /api/me/audit-logs is fail-closed — returns ONLY actions allow-listed in src/registry/userVisibleAuditActionsRegistry.ts (USER_VISIBLE_AUDIT_ACTIONS, upstream default empty = always empty results). exact name or "prefix.*" | covert admin actions stay invisible to the target user by default | admin routes/AuditTimeline unaffected
 non_http_context: runAsSystem(fn) | runWithAuditContext(ctx, fn)
 ui: \<AuditTimeline targetType targetId /\> | /admin/audit-logs cross-search | registerActionLabels({...}) for i18n
 cron: pnpm cron audit-log-prune (0 3 * * *) | pnpm cron audit-log-recover-dead-letter (0 * * * *)
