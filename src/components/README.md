@@ -23,6 +23,7 @@
 | `Form/` | フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md) |
 | `Icons/` | プロジェクト固有アイコンを Lucide 互換 API で一元管理 | [Icons/README.md](./Icons/README.md) |
 | `Layout/` | レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | [Layout/README.md](./Layout/README.md) |
+| `Media/` | 画像・メディア表示（`AppImage`: next/image ラッパー。raw `<img>` / next/image 直接使用の代替） | [Media/AppImage/README.md](./Media/AppImage/README.md) |
 | `Navigation/` | ナビゲーション（`PageTab`、`StateTabs`、`Pagination`） | - |
 | `Overlays/` | 画面に重ねて表示する UI（モーダル / ダイアログ / ポップオーバー / ツールチップなど）。**自作前に必ず一覧を確認** | [Overlays/README.md](./Overlays/README.md) |
 | `Providers/` | 外部サービスの Provider（`RecaptchaProvider` など） | - |
@@ -34,7 +35,7 @@
 
 ## 共通ルール
 
-- **raw HTML よりラッパー優先**: `div` → `Layout/Block・Flex・Grid・Stack`、`main` → `Layout/Main`、`section` → `Layout/Section`、`button` → `Form/Button`、`p` → `TextBlocks/Para`、`h2` → `TextBlocks/SecTitle` など（一覧: CLAUDE.md「COMPONENTS」）
+- **raw HTML よりラッパー優先**: `div` → `Layout/Block・Flex・Grid・Stack`、`main` → `Layout/Main`、`section` → `Layout/Section`、`button` → `Form/Button`、`p` → `TextBlocks/Para`、`h2` → `TextBlocks/SecTitle`、`img` → `Media/AppImage`（`next/image` 直接使用も不可）など（一覧: CLAUDE.md「COMPONENTS」）
 - **`_shadcn` 直接使用禁止**: 必ず対応するラッパー（`Form/Button`、`Form/Input`、`Skeleton/BaseSkeleton` など）を使用する。ラッパーが無い場合は新規ラッパーの作成を提案する
 - **shadcn/ui の更新**: `_shadcn/` 内のファイルを更新し、差分はラッパー側で吸収する
 - **カテゴリの追加・仕様の複雑化時**: サブディレクトリに README を追加し、本ファイルの索引にも1行追加する
