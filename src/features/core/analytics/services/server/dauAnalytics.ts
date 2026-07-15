@@ -20,6 +20,7 @@ import { DEFAULT_RANKING_LIMIT, MAX_RANKING_LIMIT } from "@/features/core/analyt
 import {
   resolveDateRange,
   generateDateKeys,
+  formatDateKeyTz,
   formatDateRangeForResponse,
   assertGranularitySupported,
   derivePreviousRange,
@@ -90,10 +91,13 @@ const u = UserTable;
 function buildConditions(
   dateFrom: Date,
   dateTo: Date,
+  timezone: string,
   params: UserIdFilter & UserFilter,
 ): SQL[] {
-  const dateFromStr = dateFrom.toISOString().split("T")[0]!;
-  const dateToStr = dateTo.toISOString().split("T")[0]!;
+  // activity_date は TZ ローカルの日付キー。toISOString()（UTC暦日）で文字列化すると
+  // UTC より先行する TZ で下限が1日前にずれるため、必ず formatDateKeyTz を使う
+  const dateFromStr = formatDateKeyTz(dateFrom, timezone);
+  const dateToStr = formatDateKeyTz(dateTo, timezone);
 
   const conditions: SQL[] = [
     between(t.activityDate, dateFromStr, dateToStr),
@@ -122,7 +126,7 @@ export async function getDauDaily(
 ): Promise<DailyAnalyticsResponse<DauDailyData>> {
   const range = resolveDateRange(params);
   assertGranularitySupported(range.granularity, DAU_SUPPORTED_GRANULARITIES, "DAU 集計");
-  const conditions = buildConditions(range.dateFrom, range.dateTo, params);
+  const conditions = buildConditions(range.dateFrom, range.dateTo, range.timezone, params);
   const dateSql = granularityDateExprForDateColumn(t.activityDate, range.granularity);
 
   const dailyRows = await db
@@ -168,8 +172,8 @@ export async function getDauSummary(
 
   // 当期と前期を並列取得
   const [currentDaily, prevDaily] = await Promise.all([
-    getBucketCountsRaw(range.dateFrom, range.dateTo, range.granularity, params),
-    getBucketCountsRaw(prevDateFrom, prevDateTo, range.granularity, params),
+    getBucketCountsRaw(range.dateFrom, range.dateTo, range.timezone, range.granularity, params),
+    getBucketCountsRaw(prevDateFrom, prevDateTo, range.timezone, range.granularity, params),
   ]);
 
   const currentStats = computeStats(currentDaily);
@@ -212,7 +216,7 @@ export async function getDauRanking(
   const page = Math.max(params.page ?? 1, 1);
   const offset = (page - 1) * limit;
 
-  const conditions = buildConditions(range.dateFrom, range.dateTo, params);
+  const conditions = buildConditions(range.dateFrom, range.dateTo, range.timezone, params);
 
   // ランキングクエリ（users JOIN）+ 総ユーザー数を並列実行
   const [rows, totalRows] = await Promise.all([
@@ -259,10 +263,11 @@ export async function getDauRanking(
 async function getBucketCountsRaw(
   dateFrom: Date,
   dateTo: Date,
+  timezone: string,
   granularity: Granularity,
   params: UserFilter,
 ): Promise<number[]> {
-  const conditions = buildConditions(dateFrom, dateTo, params);
+  const conditions = buildConditions(dateFrom, dateTo, timezone, params);
   const dateSql = granularityDateExprForDateColumn(t.activityDate, granularity);
 
   const rows = await db
