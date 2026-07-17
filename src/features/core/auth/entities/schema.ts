@@ -1,6 +1,7 @@
 // src/features/auth/entities/schema.ts
 
 import { USER_PROVIDER_TYPES } from "@/features/core/user/constants";
+import { UserNameSchema } from "@/features/core/user/entities/userName";
 import { z } from "zod";
 
 const IdTokenSchema = z
@@ -25,11 +26,6 @@ const EmailSchema = z
 
 const OptionalEmailSchema = EmailSchema.optional();
 
-const DisplayNameSchema = z
-  .string({ required_error: "表示名を入力してください" })
-  .trim()
-  .min(1, { message: "表示名を入力してください" });
-
 // 仮登録用のスキーマ
 export const PreRegistrationSchema = z.object({
   providerType: z.enum(USER_PROVIDER_TYPES),
@@ -43,7 +39,7 @@ export const RegistrationSchema = z.object({
   providerType: z.enum(USER_PROVIDER_TYPES),
   providerUid: ProviderUidSchema,
   email: EmailSchema,
-  name: DisplayNameSchema,
+  name: UserNameSchema,
   idToken: IdTokenSchema,
   password: PasswordSchema.optional(),
   /** ロール（指定がない場合は app-features.config の defaultRole を使用） */

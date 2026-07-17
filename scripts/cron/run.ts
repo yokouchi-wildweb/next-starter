@@ -120,6 +120,16 @@ const TASKS: Record<string, CronTask> = {
     );
     return await backfillStatusHistoryFromAuditLogs();
   },
+  // 表示名の一意性 (USER_NAME_CONFIG.unique) 有効化時に1回だけ実行する既存重複の解消
+  // （定期実行しない。冪等なので再実行は安全）
+  // 使い方: pnpm cron user-name-dedup -- --dry-run で対象確認 → dry-run なしで実行
+  "user-name-dedup": async () => {
+    const { dedupUserNames } = await import(
+      "@/features/core/user/services/server/nameDedup"
+    );
+    const args = process.argv.slice(3);
+    return await dedupUserNames({ dryRun: args.includes("--dry-run") });
+  },
   // 今後の cron タスクはここに追加
 };
 

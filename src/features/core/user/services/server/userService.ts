@@ -14,6 +14,7 @@ import { registerFromAuth, preRegisterFromAuth } from "./registration";
 import { create } from "./wrappers/create";
 import { hardDelete } from "./wrappers/hardDelete";
 import { remove } from "./wrappers/remove";
+import { restore } from "./wrappers/restore";
 import { update } from "./wrappers/update";
 import { updateLastAuthenticated } from "./wrappers/updateLastAuthenticated";
 import { changeStatus } from "./wrappers/changeStatus";
@@ -36,6 +37,7 @@ export const userService = {
   create,
   remove,
   hardDelete,
+  restore,
   update,
   // finders
   findByProvider,

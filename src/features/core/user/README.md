@@ -196,6 +196,67 @@ pending, active, paused, withdrawn
 | `UserUpdateByAdminSchema` | 管理者による更新用 |
 | `UserSelfUpdateSchema` | ユーザー自身による更新用 |
 
+## 表示名（バリデーションと一意性）
+
+設定: `src/config/app/user-name.config.ts`（`USER_NAME_CONFIG`）
+
+### バリデーション（常時適用）
+
+共有スキーマ `entities/userName.ts` を全書き込み経路（サインアップ・本登録・マイページ・管理画面）で使用する。
+
+| スキーマ | 用途 |
+|---------|------|
+| `UserNameSchema` | 必須の経路（サインアップ `RegistrationSchema`、本登録 `UserActivationSchema`） |
+| `UserNameNullishSchema` | エンティティ側の任意フィールド（`UserCoreSchema.name`。空文字は null に正規化） |
+| `UserNameFormSchema` | react-hook-form 用（空文字 = クリアを許容、文字列のまま検証） |
+
+ルール: trim + `maxLength`（既定 30、設定で調整）+ 制御文字/改行/ゼロ幅文字の拒否。
+表示名のルールを変える場合は `userName.ts` だけを変更すれば全経路に反映される。
+
+### 一意性（オプトイン、既定は重複許容）
+
+`USER_NAME_CONFIG.unique.enabled: true` で表示名の重複を禁止できる。DB の unique 制約ではなく
+**アプリケーションレイヤ**（`services/server/helpers/nameAvailability.ts`）で検証する。
+
+- 判定スコープ: `deleted_at IS NULL` かつ `is_demo = false`（退会済み・デモユーザーは名前を占有しない）
+- `caseInsensitive: true`（既定）で大文字小文字を同一視。正規化ロジックは
+  `utils/userName.ts` の `normalizeUserNameForComparison` に一元化
+- check→write 間の同時実行レースは `pg_advisory_xact_lock`（正規化名キー）で直列化して排除
+- 検索は expression index `users_name_norm_idx`（`lower(btrim(name))`、unique 制約ではない）が受ける
+- 違反時は `DomainError` 409「この表示名は既に使用されています」
+
+検証が入る書き込みポイント（`withUserNameGuard` / `assertUserNameAvailable`）:
+
+| 経路 | 実装 |
+|------|------|
+| サインアップ本登録・再入会 | `registration/activate.ts` |
+| マイページ・管理画面の更新 | `wrappers/update.ts`（name 変更時のみ） |
+| 管理画面からのユーザー作成 | `creation/console/createGeneralUser.ts` / `createAdmin.ts` |
+| 管理画面からの再登録（名前指定あり） | `creation/console/restore.ts`（衝突時 409） |
+| 汎用 restore（`/api/user/[id]/restore`） | `wrappers/restore.ts`（衝突時はブロックせず「名前_2」等へ自動付替） |
+
+### 有効化手順（運用途中の切り替え）
+
+1. `unique.enabled: true` に変更してデプロイ（以後の新規書き込みから検証開始）
+2. 既存の重複を確認: `pnpm cron user-name-dedup -- --dry-run`
+3. 既存の重複を解消: `pnpm cron user-name-dedup`
+   - 各グループで `createdAt` 最古のユーザーが元の名前を保持し、他は「名前_2」「名前_3」…に自動リネーム
+   - リネームは `base.update` 経由のため audit_logs に記録される
+   - 冪等・one-shot（定期実行しない）
+
+DB 制約を使わないため、既存データに重複があっても有効化がブロックされることはない
+（有効化〜解消完了までの間、既存重複はそのまま残り、新規の書き込みだけが検証される）。
+
+#### 有効化時の注意
+
+- **リネームされたユーザーへの通知は組み込まれていない。** dedup は audit_logs に記録を残すが、
+  本人向けの通知（「表示名が変更されました」等）は行わない。必要なら dry-run の結果
+  （`renamed` の userId 一覧）をもとに `messagingService.send / bulkSend` で通知するのは
+  ダウンストリームの責務
+- **セッション JWT の name クレームは古いまま残る。** リネーム後、DB 参照
+  （`requireCurrentUser` 経由）の画面は即反映されるが、JWT クレームの name を表示に
+  使っている箇所は再ログインまで旧名が見える（実害は表示のみ）
+
 ## ロール追加の手順
 
 1. **JSON ファイル作成**

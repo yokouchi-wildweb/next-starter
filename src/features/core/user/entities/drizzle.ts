@@ -1,6 +1,7 @@
 // src/features/user/entities/drizzle.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
+import { sql } from "drizzle-orm";
 import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import type { UserMetadata } from "./model";
@@ -51,6 +52,10 @@ export const UserTable = pgTable(
     // Analytics ユーザーフィルタ用（roles ホワイトリスト + デモ除外サブクエリ）
     roleIdx: index("users_role_idx").on(table.role),
     isDemoIdx: index("users_is_demo_idx").on(table.isDemo),
+    // 表示名の重複チェック用 (services/server/helpers/nameAvailability.ts)。
+    // unique 制約ではなく検索用の expression index。一意性フラグ (USER_NAME_CONFIG.unique)
+    // とは独立に常設し、caseInsensitive の両モードで同じ index が効くよう lower() で正規化する
+    nameNormIdx: index("users_name_norm_idx").on(sql`lower(btrim(${table.name}))`),
   }),
 );
 

@@ -1,6 +1,7 @@
 // src/features/user/entities/schema.ts
 
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
+import { UserNameSchema, UserNameNullishSchema } from "@/features/core/user/entities/userName";
 import { createHashPreservingNullish } from "@/utils/hash";
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
@@ -34,10 +35,7 @@ export const UserCoreSchema = z.object({
   signupIp: z.string().nullish(),
   metadata: z.record(z.unknown()).default({}),
   deletedAt: z.coerce.date().nullish(),
-  name: z
-    .string()
-    .nullish()
-    .transform((value) => emptyToNull(value)),
+  name: UserNameNullishSchema,
   /** 管理者メモ (機能フラグ enableUserMemo で UI 切り替え。空文字は null に正規化) */
   adminMemo: z
     .string()
@@ -95,10 +93,7 @@ export const UserSelfUpdateSchema = UserOptionalSchema.pick({
 export const UserActivationSchema = z.object({
   role: z.enum(USER_ROLES),
   status: z.literal("active"),
-  name: z
-    .string()
-    .min(1, { message: "表示名を入力してください" })
-    .transform((value) => emptyToNull(value)),
+  name: UserNameSchema,
   email: z
     .string()
     .email()

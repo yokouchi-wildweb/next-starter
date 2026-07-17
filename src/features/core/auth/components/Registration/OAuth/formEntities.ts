@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { REGISTRATION_DEFAULT_ROLE } from "@/features/core/auth/constants/registration";
+import { UserNameSchema } from "@/features/core/user/entities/userName";
 import { createProfileDataValidator } from "@/features/core/userProfile/utils";
 import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
@@ -15,10 +16,7 @@ const emailSchema = z
   .min(1, { message: "メールアドレスを入力してください" })
   .email({ message: "メールアドレスの形式が不正です" });
 
-const nameSchema = z
-  .string({ required_error: "表示名を入力してください" })
-  .trim()
-  .min(1, { message: "表示名を入力してください" });
+const nameSchema = UserNameSchema;
 
 const agreeToTermsSchema = z.boolean().refine((val) => val === true, {
   message: "利用規約への同意が必要です",

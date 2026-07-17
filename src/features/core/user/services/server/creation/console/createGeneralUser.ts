@@ -9,6 +9,10 @@ import { hasFirebaseErrorCode } from "@/lib/firebase/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { db } from "@/lib/drizzle";
 import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
+import {
+  assertUserNameAvailable,
+  withUserNameGuard,
+} from "@/features/core/user/services/server/helpers/nameAvailability";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { restoreSoftDeletedUser } from "./restore";
@@ -40,6 +44,10 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
 
   const role = data.role ?? "user";
   assertRoleEnabled(role);
+
+  // Firebase Auth ユーザー作成前に表示名の重複を先行チェックする
+  // (作成後に失敗すると孤児の Firebase アカウントが残るため。原子性は insert 時のガードで担保)
+  await assertUserNameAvailable(data.name);
 
   // ソフトデリート済みユーザーを検索（Firebase Auth チェック前に実行）
   const softDeletedUser = await findSoftDeletedUser({
@@ -83,7 +91,9 @@ export async function createGeneralUser(data: CreateGeneralUserInput): Promise<U
     name: data.name,
   });
 
-  const [user] = await db.insert(UserTable).values(values).returning();
+  const [user] = await withUserNameGuard({ name: values.name }, (tx) =>
+    (tx ?? db).insert(UserTable).values(values).returning(),
+  );
 
   await recordStatusTransition({
     userId: user.id,

@@ -9,6 +9,7 @@ import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { db } from "@/lib/drizzle";
 import { assertEmailAvailability } from "@/features/core/user/services/server/helpers/assertEmailAvailability";
+import { withUserNameGuard } from "@/features/core/user/services/server/helpers/nameAvailability";
 import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
@@ -72,7 +73,9 @@ export async function createAdmin(data: CreateAdminInput): Promise<User> {
     name: data.name,
   });
 
-  const [user] = await db.insert(UserTable).values(values).returning();
+  const [user] = await withUserNameGuard({ name: values.name }, (tx) =>
+    (tx ?? db).insert(UserTable).values(values).returning(),
+  );
 
   await recordStatusTransition({
     userId: user.id,

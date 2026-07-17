@@ -1,11 +1,13 @@
 import { z } from "zod";
 
+import { UserNameFormSchema } from "@/features/core/user/entities/userName";
+
 import {
   createProfileDataValidator,
   getProfilesByCategory,
 } from "@/features/core/userProfile/utils";
 
-const nameSchema = z.string();
+const nameSchema = UserNameFormSchema;
 
 const emailSchema = z
   .string({ required_error: "メールアドレスを入力してください" })

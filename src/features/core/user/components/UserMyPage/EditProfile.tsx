@@ -16,6 +16,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { useUpdateMyProfile } from "@/features/core/user/hooks/useUpdateMyProfile";
 import type { User } from "@/features/core/user/entities";
+import { UserNameFormSchema } from "@/features/core/user/entities/userName";
 import {
   RoleProfileFields,
   getProfilesByCategory,
@@ -37,7 +38,7 @@ const validateProfileData = createProfileDataValidator(
 
 const FormSchema = z
   .object({
-    name: z.string().trim(),
+    name: UserNameFormSchema,
     role: z.string(),
     profileData: z.record(z.unknown()).optional(),
   })

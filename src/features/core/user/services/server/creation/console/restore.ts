@@ -4,6 +4,7 @@ import type { User } from "@/features/core/user/entities";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
+import { withUserNameGuard } from "@/features/core/user/services/server/helpers/nameAvailability";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { createHash } from "@/utils/hash";
 import { base } from "../../drizzleBase";
@@ -54,9 +55,6 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
     }
   }
 
-  // restore（deletedAt を null に）
-  await base.restore(existingUser.id);
-
   const updatePayload: Partial<User> = {
     status: "active",
     name,
@@ -71,7 +69,14 @@ export async function restoreSoftDeletedUser(data: RestoreSoftDeletedUserInput):
     updatePayload.isDemo = isDemo;
   }
 
-  const updatedUser = await base.update(existingUser.id, updatePayload);
+  // restore（deletedAt を null に）+ 新しい情報での更新 (表示名の一意性ガード込み)
+  const updatedUser = await withUserNameGuard(
+    { name, excludeUserId: existingUser.id },
+    async (tx) => {
+      await base.restore(existingUser.id, tx);
+      return base.update(existingUser.id, updatePayload, tx);
+    },
+  );
 
   await recordStatusTransition({
     userId: existingUser.id,

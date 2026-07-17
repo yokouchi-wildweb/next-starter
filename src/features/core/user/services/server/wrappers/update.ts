@@ -14,6 +14,7 @@ import { userProfileService } from "@/features/core/userProfile/services/server/
 import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
 import { db } from "@/lib/drizzle";
 import { invalidateSessionsForUser } from "@/features/core/auth/services/server/sessionInvalidation";
+import { withUserNameGuard } from "../helpers/nameAvailability";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -163,11 +164,17 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     updatePayload.phoneVerifiedAt = phoneNumber ? new Date() : null;
   }
 
-  // ユーザー情報の更新
+  // ユーザー情報の更新 (表示名が変わる場合は一意性ガードを通す)
+  const nameForGuard =
+    typeof updatePayload.name === "string" && updatePayload.name !== current.name
+      ? updatePayload.name
+      : null;
   const updatedUser =
     Object.keys(updatePayload).length === 0
       ? current
-      : await base.update(id, updatePayload);
+      : await withUserNameGuard({ name: nameForGuard, excludeUserId: id }, (tx) =>
+          base.update(id, updatePayload, tx),
+        );
 
   // パスワード変更が発生した場合は全セッションを失効させる (既存 JWT 無効化 + Firebase revoke)。
   // local: localPassword (DB側) が更新された場合。
