@@ -621,10 +621,13 @@ export const AnalyticsCacheTable = pgTable(
 
 ### ランキング（getDauRanking）
 
-- パラメータ: 日付範囲共通パラメータ + `limit`（既定 50、最大 200）/ `page`（1 始まり） + ユーザーフィルタ（roles / excludeDemo）
+- パラメータ: 日付範囲共通パラメータ + `limit`（既定 50、最大 200）/ `page`（1 始まり） + ユーザーフィルタ（roles / excludeDemo） + 最終アクティブ日フィルタ（`lastActiveDateFrom` / `lastActiveDateTo`、YYYY-MM-DD・TZ ローカル日付キー、任意）
 - レスポンス: `RankingResponse`（`items: [{ rank, userId, displayName, activeDays, lastActiveDate }]` + `total`）
 - 並び順: activeDays DESC → lastActiveDate DESC → userId ASC（ページングが安定するよう決定的）
 - `(user_id, activity_date)` ユニークのため `COUNT(*)` = 期間内アクティブ日数。`activity_date` index のレンジスキャン + GROUP BY で解決
+- 最終アクティブ日フィルタ: 期間内の `MAX(activity_date)` に対する HAVING 絞り込み。`total` も同じ条件のサブクエリで数えるためページネーションは常に整合。集計後の条件のためサーバー側でのみ解決できる（下流でのページ全走査・クエリ複製は不要）
+  - チャーンリスク抽出（「期間中は高アクティブだが直近 N 日訪問なし」）: `lastActiveDateTo = 今日 − N 日` を渡す。カットオフ日数（3/7/14 等）の決定は下流ポリシー
+  - 復帰・リテンション分析（「X 日以降に戻ってきたユーザー」）: `lastActiveDateFrom = X`
 
 ### アクティブ日数ヒストグラム（getDauActiveDaysHistogram）
 

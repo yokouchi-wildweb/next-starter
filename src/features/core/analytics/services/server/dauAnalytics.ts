@@ -28,6 +28,7 @@ import {
 } from "./utils/dateRange";
 import { buildUserFilterConditions } from "./utils/userFilter";
 import { changeRate } from "./utils/aggregation";
+import { DomainError } from "@/lib/errors/domainError";
 
 /**
  * DAU が対応する集計粒度。
@@ -90,9 +91,21 @@ export type DauActiveDaysHistogramResponse = {
   histogram: DauActiveDaysHistogramEntry[];
 };
 
+/**
+ * 期間内の「最終アクティブ日」（MAX(activity_date)）による絞り込み。
+ * 日付キーは YYYY-MM-DD（activity_date と同じ TZ ローカル暦日）。
+ * 集計結果への条件（HAVING）のためサーバー側でのみ解決できる。
+ */
+export type LastActiveDateFilter = {
+  /** 最終アクティブ日がこの日以降のユーザーに絞る（復帰・リテンション分析用） */
+  lastActiveDateFrom?: string;
+  /** 最終アクティブ日がこの日以前のユーザーに絞る（チャーンリスク抽出用） */
+  lastActiveDateTo?: string;
+};
+
 export type DauDailyParams = DateRangeParams & UserIdFilter & UserFilter;
 export type DauSummaryParams = DateRangeParams & UserIdFilter & UserFilter;
-export type DauRankingParams = DateRangeParams & PaginationParams & UserFilter;
+export type DauRankingParams = DateRangeParams & PaginationParams & UserFilter & LastActiveDateFilter;
 export type DauActiveDaysHistogramParams = DateRangeParams & UserFilter;
 
 // ============================================================================
@@ -127,6 +140,35 @@ function buildConditions(
   }
 
   return conditions;
+}
+
+const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function assertValidDateKey(value: string, paramName: string): void {
+  if (!DATE_KEY_PATTERN.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
+    throw new DomainError(`${paramName} は YYYY-MM-DD 形式の有効な日付で指定してください。`);
+  }
+}
+
+/**
+ * 最終アクティブ日フィルタ → HAVING 条件（未指定なら undefined）。
+ *
+ * activity_date は date 型・TZ ローカル日付キーのため、
+ * 日付キー文字列のまま比較する（Date オブジェクト化しない）。
+ */
+function buildLastActiveHaving(params: LastActiveDateFilter): SQL | undefined {
+  const havingConditions: SQL[] = [];
+
+  if (params.lastActiveDateFrom) {
+    assertValidDateKey(params.lastActiveDateFrom, "lastActiveDateFrom");
+    havingConditions.push(sql`MAX(${t.activityDate}) >= ${params.lastActiveDateFrom}`);
+  }
+  if (params.lastActiveDateTo) {
+    assertValidDateKey(params.lastActiveDateTo, "lastActiveDateTo");
+    havingConditions.push(sql`MAX(${t.activityDate}) <= ${params.lastActiveDateTo}`);
+  }
+
+  return havingConditions.length > 0 ? and(...havingConditions) : undefined;
 }
 
 // ============================================================================
@@ -225,6 +267,11 @@ export async function getDauSummary(
  * `(user_id, activity_date)` はユニークのため `COUNT(*)` がそのまま
  * 「期間内のアクティブ日数（DISTINCT 日数）」になる。
  * 並び順: activeDays DESC → lastActiveDate DESC → userId ASC（安定ソート）。
+ *
+ * `lastActiveDateFrom` / `lastActiveDateTo` 指定時は期間内の最終アクティブ日
+ * （MAX(activity_date)）で HAVING 絞り込みする（例: 「期間中は高アクティブ
+ * だったが直近 N 日訪問なし」のチャーンリスク抽出）。`total` も同じ条件で
+ * 数えるためページネーションは常に整合する。
  */
 export async function getDauRanking(
   params: DauRankingParams,
@@ -235,6 +282,30 @@ export async function getDauRanking(
   const offset = (page - 1) * limit;
 
   const conditions = buildConditions(range.dateFrom, range.dateTo, range.timezone, params);
+  const lastActiveHaving = buildLastActiveHaving(params);
+
+  // 総ユーザー数: HAVING はグループ化後の条件のため、フィルタ指定時のみ
+  // 「GROUP BY user_id + HAVING」サブクエリの行数を数える形に切り替える
+  const totalQuery = lastActiveHaving
+    ? db
+        .select({
+          total: sql<number>`COUNT(*)::int`.as("total"),
+        })
+        .from(
+          db
+            .select({ userId: t.userId })
+            .from(t)
+            .where(and(...conditions))
+            .groupBy(t.userId)
+            .having(lastActiveHaving)
+            .as("filtered_users"),
+        )
+    : db
+        .select({
+          total: sql<number>`COUNT(DISTINCT ${t.userId})::int`.as("total"),
+        })
+        .from(t)
+        .where(and(...conditions));
 
   // ランキングクエリ（users JOIN）+ 総ユーザー数を並列実行
   const [rows, totalRows] = await Promise.all([
@@ -249,15 +320,11 @@ export async function getDauRanking(
       .leftJoin(u, eq(t.userId, u.id))
       .where(and(...conditions))
       .groupBy(t.userId, u.name)
+      .having(lastActiveHaving)
       .orderBy(sql.raw("active_days DESC, last_active_date DESC"), t.userId)
       .limit(limit)
       .offset(offset),
-    db
-      .select({
-        total: sql<number>`COUNT(DISTINCT ${t.userId})::int`.as("total"),
-      })
-      .from(t)
-      .where(and(...conditions)),
+    totalQuery,
   ]);
   const totalRow = totalRows[0];
 

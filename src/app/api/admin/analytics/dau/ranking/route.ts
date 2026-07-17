@@ -30,6 +30,8 @@ export const GET = createApiRoute(
       page: searchParams.get("page")
         ? Number(searchParams.get("page"))
         : undefined,
+      lastActiveDateFrom: searchParams.get("lastActiveDateFrom") ?? undefined,
+      lastActiveDateTo: searchParams.get("lastActiveDateTo") ?? undefined,
     });
   },
 );

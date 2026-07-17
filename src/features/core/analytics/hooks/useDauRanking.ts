@@ -20,6 +20,8 @@ const buildKey = (params: DauRankingClientParams) =>
     params.page ?? null,
     params.roles ?? null,
     params.excludeDemo ?? false,
+    params.lastActiveDateFrom ?? null,
+    params.lastActiveDateTo ?? null,
   ] as const;
 
 export function useDauRanking(

@@ -91,6 +91,10 @@ export type DauRankingClientParams = DauAnalyticsClientBaseParams & {
   limit?: number;
   /** ページ番号（1 始まり） */
   page?: number;
+  /** 期間内の最終アクティブ日がこの日以降のユーザーに絞る (YYYY-MM-DD) */
+  lastActiveDateFrom?: string;
+  /** 期間内の最終アクティブ日がこの日以前のユーザーに絞る (YYYY-MM-DD、チャーンリスク抽出用) */
+  lastActiveDateTo?: string;
 };
 
 export async function fetchDauRanking(
