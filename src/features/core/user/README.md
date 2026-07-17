@@ -196,7 +196,10 @@ pending, active, paused, withdrawn
 | `UserUpdateByAdminSchema` | 管理者による更新用 |
 | `UserSelfUpdateSchema` | ユーザー自身による更新用 |
 
-## 表示名（バリデーションと一意性）
+## 表示名 = ユーザー名（バリデーションと一意性）
+
+`users.name` の仕様。マイページ等の UI ラベルでは「ユーザー名」、コード・スキーマ上は「表示名 (display name)」
+と呼んでいるが同一フィールドを指す。「ユーザー名の重複禁止」を検討している場合はこのセクションが該当する。
 
 設定: `src/config/app/user-name.config.ts`（`USER_NAME_CONFIG`）
 
