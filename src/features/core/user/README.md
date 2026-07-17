@@ -238,6 +238,34 @@ pending, active, paused, withdrawn
 | 管理画面からの再登録（名前指定あり） | `creation/console/restore.ts`（衝突時 409） |
 | 汎用 restore（`/api/user/[id]/restore`） | `wrappers/restore.ts`（衝突時はブロックせず「名前_2」等へ自動付替） |
 
+一括判定が必要な場合（候補名リストのフィルタリング等）は `isUserNamesTaken(names[]) => Set<使用中の入力文字列>`
+を使う（単一クエリ + 同一の判定条件。`isUserNameTaken` はこの単発版）。
+
+### 予約名（users テーブル外の名前を一意性チェックに参加させる）
+
+ボット・NPC・合成ランキングエントリなど「実ユーザーの隣に表示される非ユーザー名」や、
+「運営」「admin」等の予約語を実ユーザーに取らせたくない場合は、
+`src/registry/reservedUserNamesRegistry.ts` にプロバイダを登録する（上流は空 = 挙動変化なし）。
+
+```ts
+// 例: 静的な予約語リスト
+export const RESERVED_USER_NAME_PROVIDERS: readonly ReservedUserNameProvider[] = [
+  {
+    key: "static-reserved-words",
+    filterReserved: async (names) => names.filter((n) => ["運営", "admin", "公式"].includes(n)),
+  },
+];
+```
+
+- `filterReserved(normalizedNames, ctx)` は「渡された正規化済み名前のうち予約済みのもの」を返す。
+  比較対象は `normalizeUserNameForComparison` と同じ正規化（trim + caseInsensitive 時は小文字化）で保持すること
+- users スキャンで空きだった名前についてのみ照会される。サフィックス採番
+  （restore 衝突・dedup）も予約名を自動回避する
+- **プロバイダは高速なローカル DB 参照に限る。** advisory lock を保持したトランザクション内で
+  呼ばれるため、遅いプロバイダは同名サインアップの直列化待ちを伸ばす。
+  外部 API 等の遅い I/O は事前にテーブルへ同期しておくこと
+- `ctx.executor` が渡された場合、Drizzle 参照はそれを使う（ガードと同一トランザクションで読むため）
+
 ### 有効化手順（運用途中の切り替え）
 
 1. `unique.enabled: true` に変更してデプロイ（以後の新規書き込みから検証開始）

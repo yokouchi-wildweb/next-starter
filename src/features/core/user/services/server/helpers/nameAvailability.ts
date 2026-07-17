@@ -1,6 +1,6 @@
 // src/features/core/user/services/server/helpers/nameAvailability.ts
 
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 
 import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
 import { UserTable } from "@/features/core/user/entities/drizzle";
@@ -8,6 +8,7 @@ import { normalizeUserNameForComparison } from "@/features/core/user/utils/userN
 import type { DbExecutor, DbTransaction } from "@/lib/crud/drizzle/types";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
+import { RESERVED_USER_NAME_PROVIDERS } from "@/registry/reservedUserNamesRegistry";
 
 export type UserNameAvailabilityParams = {
   /** 自分自身を重複判定から除外する (更新・復元時に指定) */
@@ -16,40 +17,103 @@ export type UserNameAvailabilityParams = {
 };
 
 /**
- * 表示名が使用中かを判定する (USER_NAME_CONFIG.unique の設定に従う)。
- * - ソフトデリート済みユーザーとデモユーザーは名前を占有しない
- * - 候補は大文字小文字を無視して引き、caseInsensitive: false のときは JS 側で厳密比較に絞り込む
- *   (どちらのモードでも users_name_norm_idx の同一 expression index が効くようにするため)
+ * 予約名プロバイダ (reservedUserNamesRegistry) を順に照会し、予約済みの正規化名を返す。
+ * 既に予約と判明した名前は後続プロバイダに渡さない。上流はレジストリ空 = 常に空集合。
  */
-export async function isUserNameTaken(
-  name: string,
-  { excludeUserId, executor = db }: UserNameAvailabilityParams = {},
-): Promise<boolean> {
-  const folded = name.trim().toLowerCase();
+async function filterReservedUserNames(
+  normalizedNames: string[],
+  ctx: { executor?: DbExecutor },
+): Promise<Set<string>> {
+  const reserved = new Set<string>();
+  let pending = normalizedNames;
 
-  if (!folded) {
-    return false;
+  for (const provider of RESERVED_USER_NAME_PROVIDERS) {
+    if (pending.length === 0) break;
+    const hits = await provider.filterReserved(pending, ctx);
+    for (const hit of hits) {
+      reserved.add(hit);
+    }
+    pending = pending.filter((name) => !reserved.has(name));
+  }
+
+  return reserved;
+}
+
+/**
+ * 複数の表示名が使用中かを一括判定し、使用中だった入力文字列の Set を返す。
+ * - users スキャン: ソフトデリート済みとデモユーザーは名前を占有しない。
+ *   候補は大文字小文字を無視して引き (users_name_norm_idx が両モードで効く)、
+ *   厳密判定は normalizeUserNameForComparison による JS 側比較で行う
+ * - users で空きだった名前は予約名プロバイダ (reservedUserNamesRegistry) にも照会する
+ */
+export async function isUserNamesTaken(
+  names: string[],
+  { excludeUserId, executor = db }: UserNameAvailabilityParams = {},
+): Promise<Set<string>> {
+  const taken = new Set<string>();
+
+  const candidates = names
+    .map((original) => ({
+      original,
+      folded: original.trim().toLowerCase(),
+      normalized: normalizeUserNameForComparison(original),
+    }))
+    .filter((candidate) => candidate.folded !== "");
+
+  if (candidates.length === 0) {
+    return taken;
   }
 
   const rows = await executor
-    .select({ id: UserTable.id, name: UserTable.name })
+    .select({ name: UserTable.name })
     .from(UserTable)
     .where(
       and(
         isNull(UserTable.deletedAt),
         eq(UserTable.isDemo, false),
-        sql`lower(btrim(${UserTable.name})) = ${folded}`,
+        inArray(
+          sql`lower(btrim(${UserTable.name}))`,
+          [...new Set(candidates.map((candidate) => candidate.folded))],
+        ),
         ...(excludeUserId ? [ne(UserTable.id, excludeUserId)] : []),
       ),
-    )
-    .limit(50);
+    );
 
-  if (USER_NAME_CONFIG.unique.caseInsensitive) {
-    return rows.length > 0;
+  const takenNorms = new Set(
+    rows.map((row) => normalizeUserNameForComparison(row.name ?? "")),
+  );
+
+  for (const candidate of candidates) {
+    if (takenNorms.has(candidate.normalized)) {
+      taken.add(candidate.original);
+    }
   }
 
-  const exact = name.trim();
-  return rows.some((row) => (row.name ?? "").trim() === exact);
+  // users で空きだった名前だけ予約名プロバイダに照会
+  const remaining = candidates.filter((candidate) => !taken.has(candidate.original));
+  if (remaining.length > 0) {
+    const reserved = await filterReservedUserNames(
+      remaining.map((candidate) => candidate.normalized),
+      { executor },
+    );
+    for (const candidate of remaining) {
+      if (reserved.has(candidate.normalized)) {
+        taken.add(candidate.original);
+      }
+    }
+  }
+
+  return taken;
+}
+
+/**
+ * 表示名が使用中かを判定する (isUserNamesTaken の単発版。判定条件は同一)。
+ */
+export async function isUserNameTaken(
+  name: string,
+  params: UserNameAvailabilityParams = {},
+): Promise<boolean> {
+  return (await isUserNamesTaken([name], params)).has(name);
 }
 
 /**
