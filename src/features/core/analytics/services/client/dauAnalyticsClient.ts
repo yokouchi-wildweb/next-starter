@@ -1,5 +1,5 @@
 // src/features/core/analytics/services/client/dauAnalyticsClient.ts
-// DAU 集計系 analytics（daily / summary / ranking）の HTTP クライアント
+// DAU 集計系 analytics（daily / summary / ranking / active-days-histogram）の HTTP クライアント
 // ※ DAU の記録（ingest）は dauClient.ts / useDauTracker を使用する
 
 "use client";
@@ -10,6 +10,7 @@ import type {
   DauDailyData,
   DauSummaryData,
   DauRankingEntry,
+  DauActiveDaysHistogramResponse,
 } from "@/features/core/analytics/services/server/dauAnalytics";
 import type {
   DailyAnalyticsResponse,
@@ -103,5 +104,25 @@ export async function fetchDauRanking(
     return data;
   } catch (error) {
     throw normalizeHttpError(error, "アクティブ日数ランキングの取得に失敗しました");
+  }
+}
+
+// ============================================================================
+// active-days-histogram
+// ============================================================================
+
+export type DauActiveDaysHistogramClientParams = DauAnalyticsClientBaseParams;
+
+export async function fetchDauActiveDaysHistogram(
+  params?: DauActiveDaysHistogramClientParams,
+): Promise<DauActiveDaysHistogramResponse> {
+  try {
+    const { data } = await axios.get<DauActiveDaysHistogramResponse>(
+      `${BASE_PATH}/active-days-histogram`,
+      { params },
+    );
+    return data;
+  } catch (error) {
+    throw normalizeHttpError(error, "アクティブ日数ヒストグラムの取得に失敗しました");
   }
 }

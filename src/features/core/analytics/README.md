@@ -70,6 +70,7 @@ analytics/
 | GET /api/admin/analytics/dau/daily | dauAnalytics | バケット別アクティブユーザー数（day=DAU / week=WAU / month=MAU、hour 不可） |
 | GET /api/admin/analytics/dau/summary | dauAnalytics | DAU 期間サマリー（week/month はバケット単位の統計値） |
 | GET /api/admin/analytics/dau/ranking | dauAnalytics | ユーザー別アクティブ日数ランキング（期間内の訪問日数 top-N、ページネーション付き） |
+| GET /api/admin/analytics/dau/active-days-histogram | dauAnalytics | アクティブ日数ヒストグラム（ちょうど N 日アクティブだったユーザー数の分布） |
 | GET /api/admin/analytics/coin-issuance/summary | coinIssuance | コイン創出サマリー（収入・発行・finalProfit を統合、前期比含む。下流で source 追加可） |
 
 ### referral summary 固有のパラメータ
@@ -616,6 +617,7 @@ export const AnalyticsCacheTable = pgTable(
 | `getDauDaily` | GET /api/admin/analytics/dau/daily | バケット別アクティブユーザー数（day=DAU / week=WAU / month=MAU） |
 | `getDauSummary` | GET /api/admin/analytics/dau/summary | 期間サマリー（avg/max/min、前期比） |
 | `getDauRanking` | GET /api/admin/analytics/dau/ranking | ユーザー別アクティブ日数ランキング |
+| `getDauActiveDaysHistogram` | GET /api/admin/analytics/dau/active-days-histogram | アクティブ日数ヒストグラム（activeDays → userCount 分布） |
 
 ### ランキング（getDauRanking）
 
@@ -623,6 +625,13 @@ export const AnalyticsCacheTable = pgTable(
 - レスポンス: `RankingResponse`（`items: [{ rank, userId, displayName, activeDays, lastActiveDate }]` + `total`）
 - 並び順: activeDays DESC → lastActiveDate DESC → userId ASC（ページングが安定するよう決定的）
 - `(user_id, activity_date)` ユニークのため `COUNT(*)` = 期間内アクティブ日数。`activity_date` index のレンジスキャン + GROUP BY で解決
+
+### アクティブ日数ヒストグラム（getDauActiveDaysHistogram）
+
+- パラメータ: 日付範囲共通パラメータ + ユーザーフィルタ（roles / excludeDemo）。ページネーション不要（行数は期間日数で有界）
+- レスポンス: `{ dateFrom, dateTo, totalUsers, histogram: [{ activeDays, users }] }`（users > 0 の行のみ、activeDays ASC。`totalUsers` = 期間内に 1 日以上アクティブだった DISTINCT ユーザー数 = users 合計）
+- SQL 形: ユーザーごとのアクティブ日数を集計するサブクエリ → その日数で再 GROUP BY（全て DB 側で解決）
+- バケット化（「皆勤 / 80%+ / 50-79% …」等の割合しきい値・ラベル）はプロダクトポリシーのため**下流の責務**。下流はこのヒストグラムをクライアント側で任意の帯にマッピングする（境界変更のたびに upstream 変更が不要になる切り分け）
 
 ### ユーザー単位ドリルダウン（userId パラメータ）
 
@@ -634,7 +643,7 @@ daily / summary は `userId` で単一ユーザーに絞り込める（他ドメ
 ### クライアント / フック
 
 - 記録（ingest）: `hooks/useDauTracker.ts`（1 日 1 回 `POST /api/activity/dau`）
-- 読み取り: `services/client/dauAnalyticsClient.ts`（fetchDauDaily / fetchDauSummary / fetchDauRanking）+ `hooks/useDauDaily.ts` / `useDauSummary.ts` / `useDauRanking.ts`（SWR）。管理画面のダッシュボード・「アクティブユーザー」タブ等はこれらをそのまま利用する（画面 UI は下流の責務）
+- 読み取り: `services/client/dauAnalyticsClient.ts`（fetchDauDaily / fetchDauSummary / fetchDauRanking / fetchDauActiveDaysHistogram）+ `hooks/useDauDaily.ts` / `useDauSummary.ts` / `useDauRanking.ts` / `useDauActiveDaysHistogram.ts`（SWR）。管理画面のダッシュボード・「アクティブユーザー」タブ等はこれらをそのまま利用する（画面 UI は下流の責務）
 
 ## ランキングAPI: ウォレット vs 購入
 

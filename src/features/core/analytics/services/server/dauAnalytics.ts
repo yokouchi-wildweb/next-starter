@@ -1,5 +1,5 @@
 // src/features/core/analytics/services/server/dauAnalytics.ts
-// DAU集計サービス（日別DAU + サマリー + ユーザー別アクティブ日数ランキング）
+// DAU集計サービス（日別DAU + サマリー + ユーザー別アクティブ日数ランキング + アクティブ日数ヒストグラム）
 // 全ての集計処理はDB側 GROUP BY + 集約関数で実行する
 
 import { db } from "@/lib/drizzle";
@@ -73,9 +73,27 @@ export type DauRankingEntry = {
   lastActiveDate: string;
 };
 
+/** ヒストグラムエントリ（アクティブ日数 → ユーザー数） */
+export type DauActiveDaysHistogramEntry = {
+  /** 期間内のアクティブ日数 */
+  activeDays: number;
+  /** ちょうど activeDays 日アクティブだったユーザー数 */
+  users: number;
+};
+
+export type DauActiveDaysHistogramResponse = {
+  dateFrom: string;
+  dateTo: string;
+  /** 期間内に1日以上アクティブだった総ユーザー数（histogram の users 合計と同値） */
+  totalUsers: number;
+  /** users > 0 の行のみ、activeDays ASC */
+  histogram: DauActiveDaysHistogramEntry[];
+};
+
 export type DauDailyParams = DateRangeParams & UserIdFilter & UserFilter;
 export type DauSummaryParams = DateRangeParams & UserIdFilter & UserFilter;
 export type DauRankingParams = DateRangeParams & PaginationParams & UserFilter;
+export type DauActiveDaysHistogramParams = DateRangeParams & UserFilter;
 
 // ============================================================================
 // テーブルエイリアス
@@ -252,6 +270,55 @@ export async function getDauRanking(
       lastActiveDate: r.lastActiveDate,
     })),
     total: Number(totalRow!.total),
+  };
+}
+
+// ============================================================================
+// アクティブ日数ヒストグラム
+// ============================================================================
+
+/**
+ * 期間内のアクティブ日数分布（ちょうど N 日アクティブだったユーザー数）。
+ *
+ * バケット化（割合しきい値等）はプロダクトポリシーのため下流の責務。
+ * ここでは生のヒストグラムのみ返す。行数は期間日数で有界のためページネーション不要。
+ * `totalUsers` は (user_id, activity_date) ユニークにより
+ * histogram の users 合計 = DISTINCT ユーザー数となるため JS 側で合算する。
+ */
+export async function getDauActiveDaysHistogram(
+  params: DauActiveDaysHistogramParams,
+): Promise<DauActiveDaysHistogramResponse> {
+  const range = resolveDateRange(params);
+  const conditions = buildConditions(range.dateFrom, range.dateTo, range.timezone, params);
+
+  const perUser = db
+    .select({
+      activeDays: sql<number>`COUNT(*)::int`.as("active_days"),
+    })
+    .from(t)
+    .where(and(...conditions))
+    .groupBy(t.userId)
+    .as("per_user");
+
+  const rows = await db
+    .select({
+      activeDays: perUser.activeDays,
+      users: sql<number>`COUNT(*)::int`.as("users"),
+    })
+    .from(perUser)
+    .groupBy(perUser.activeDays)
+    .orderBy(perUser.activeDays);
+
+  const histogram = rows.map((r) => ({
+    activeDays: Number(r.activeDays),
+    users: Number(r.users),
+  }));
+
+  return {
+    dateFrom: formatDateKeyTz(range.dateFrom, range.timezone),
+    dateTo: formatDateKeyTz(range.dateTo, range.timezone),
+    totalUsers: histogram.reduce((sum, r) => sum + r.users, 0),
+    histogram,
   };
 }
 
