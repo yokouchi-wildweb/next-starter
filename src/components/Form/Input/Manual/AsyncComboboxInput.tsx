@@ -30,7 +30,11 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/_shadcn/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/_shadcn/popover";
+import {
+  PopoverContent,
+  PopoverRoot,
+  PopoverTrigger,
+} from "@/components/Overlays/Popover/PopoverPrimitives";
 import { Button } from "@/components/Form/Button/Button";
 import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
 import {
@@ -535,7 +539,7 @@ export function AsyncComboboxInput<T>({
 
   return (
     <div className={cn("w-full", className)} {...rest}>
-      <Popover open={resolvedOpen} onOpenChange={handleOpenChange}>
+      <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
             type="button"
@@ -564,13 +568,14 @@ export function AsyncComboboxInput<T>({
         </PopoverTrigger>
         <PopoverContent
           align="start"
+          layer="surface-ui"
           onOpenAutoFocus={(e) => {
             // radix の既定（content への focus）を抑止し、CommandInput の autoFocus に委譲
             e.preventDefault();
           }}
           {...popoverContentProps}
           className={cn(
-            "surface-ui-layer w-[--radix-popover-trigger-width] p-0",
+            "w-[--radix-popover-trigger-width] p-0",
             contentClassName,
             popoverContentProps?.className
           )}
@@ -589,7 +594,7 @@ export function AsyncComboboxInput<T>({
             </CommandList>
           </Command>
         </PopoverContent>
-      </Popover>
+      </PopoverRoot>
     </div>
   );
 }

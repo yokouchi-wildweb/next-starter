@@ -9,10 +9,17 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 // レイヤータイプ
-export type PopoverLayer = "overlay" | "alert" | "super" | "ultimate" | "apex";
+export type PopoverLayer =
+  | "overlay"
+  | "surface-ui"
+  | "alert"
+  | "super"
+  | "ultimate"
+  | "apex";
 
 const LAYER_CLASS: Record<PopoverLayer, string> = {
   overlay: "overlay-layer",
+  "surface-ui": "surface-ui-layer",
   alert: "alert-layer",
   super: "super-layer",
   ultimate: "ultimate-layer",

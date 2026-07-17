@@ -28,7 +28,11 @@ import {
 import { Loader2 } from "lucide-react";
 
 import { Command, CommandInput } from "@/components/_shadcn/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/_shadcn/popover";
+import {
+  PopoverContent,
+  PopoverRoot,
+  PopoverTrigger,
+} from "@/components/Overlays/Popover/PopoverPrimitives";
 import { Button } from "@/components/Form/Button/Button";
 import {
   normalizeOptionValues,
@@ -506,7 +510,7 @@ export function AsyncMultiSelectInput<T>({
   // ---- レンダリング ----
   return (
     <div className={cn("w-full", className)} {...rest}>
-      <Popover open={resolvedOpen} onOpenChange={handleOpenChange}>
+      <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <MultiSelectTrigger
             placeholder={placeholder}
@@ -518,13 +522,14 @@ export function AsyncMultiSelectInput<T>({
         </PopoverTrigger>
         <PopoverContent
           align="start"
+          layer="surface-ui"
           onOpenAutoFocus={(e) => {
             // radix の既定（content への focus）を抑止し、CommandInput の autoFocus に委譲
             e.preventDefault();
           }}
           {...popoverContentProps}
           className={cn(
-            "surface-ui-layer w-[min(360px,90vw)] p-0",
+            "w-[min(360px,90vw)] p-0",
             contentClassName,
             popoverContentProps?.className,
           )}
@@ -588,7 +593,7 @@ export function AsyncMultiSelectInput<T>({
             </Flex>
           </Stack>
         </PopoverContent>
-      </Popover>
+      </PopoverRoot>
     </div>
   );
 }

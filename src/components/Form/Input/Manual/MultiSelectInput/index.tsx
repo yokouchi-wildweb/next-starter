@@ -5,7 +5,11 @@
 import { type ComponentProps, type HTMLAttributes, type MouseEvent, useState } from "react";
 
 import { Command } from "@/components/_shadcn/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/_shadcn/popover";
+import {
+  PopoverContent,
+  PopoverRoot,
+  PopoverTrigger,
+} from "@/components/Overlays/Popover/PopoverPrimitives";
 import { Button } from "@/components/Form/Button/Button";
 import {
   normalizeOptionValues,
@@ -92,7 +96,7 @@ export function MultiSelectInput({
 
   return (
     <div className={cn("w-full", className)} {...rest}>
-      <Popover open={resolvedOpen} onOpenChange={handleOpenChange}>
+      <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <MultiSelectTrigger
             placeholder={placeholder}
@@ -104,9 +108,10 @@ export function MultiSelectInput({
         </PopoverTrigger>
         <PopoverContent
           align="start"
+          layer="surface-ui"
           {...popoverContentProps}
           className={cn(
-            "surface-ui-layer w-[min(320px,90vw)] p-0",
+            "w-[min(320px,90vw)] p-0",
             popoverContentProps?.className
           )}
         >
@@ -139,7 +144,7 @@ export function MultiSelectInput({
             </Flex>
           </Stack>
         </PopoverContent>
-      </Popover>
+      </PopoverRoot>
     </div>
   );
 }

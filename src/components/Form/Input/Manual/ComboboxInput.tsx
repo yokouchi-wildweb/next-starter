@@ -12,7 +12,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/_shadcn/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/_shadcn/popover";
+import {
+  PopoverContent,
+  PopoverRoot,
+  PopoverTrigger,
+} from "@/components/Overlays/Popover/PopoverPrimitives";
 import { Button } from "@/components/Form/Button/Button";
 import {
   resolveOptionSearchText,
@@ -114,7 +118,7 @@ export function ComboboxInput({
 
   return (
     <div className={cn("w-full", className)} {...rest}>
-      <Popover open={resolvedOpen} onOpenChange={handleOpenChange}>
+      <PopoverRoot open={resolvedOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
             type="button"
@@ -143,9 +147,10 @@ export function ComboboxInput({
         </PopoverTrigger>
         <PopoverContent
           align="start"
+          layer="surface-ui"
           {...popoverContentProps}
           className={cn(
-            "surface-ui-layer w-[--radix-popover-trigger-width] p-0",
+            "w-[--radix-popover-trigger-width] p-0",
             contentClassName,
             popoverContentProps?.className
           )}
@@ -183,7 +188,7 @@ export function ComboboxInput({
             </CommandList>
           </Command>
         </PopoverContent>
-      </Popover>
+      </PopoverRoot>
     </div>
   );
 }
