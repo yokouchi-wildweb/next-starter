@@ -104,15 +104,9 @@ withRelations: `withRelations?: boolean | number`. true/1 = 1 level, 2+ = recurs
 hasManyLimit: `hasManyLimit?: number` in WithOptions. Per-parent child record limit for hasMany expansion (default: 100). Passed via query param from client→API→service
 extension: 1.check base methods → 2.relationWhere for relation filtering → 3.extraWhere for SQL injection → 4.base.query()+wrappers → 5.custom service
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
+requestMemo: option requestMemo:true → get(id) request-scoped memoized + all write methods auto-invalidate | enabled: user, setting | Drizzle only
+requestMemo_rule (MANDATORY): raw SQL write to enabled table → base.invalidateRequestMemo() right after | detail: src/lib/requestMemo/README.md
 firestore_limits: no or | single orderBy | no belongsToMany
-
-## REQUEST_MEMO (request-scoped read dedup — Drizzle only)
-lib: src/lib/requestMemo (createRequestMemo — React cache()-based invalidatable per-request memo | outside request scope (cron/CLI) degrades to plain call)
-crud: createCrudService option requestMemo:true → get(id) (no-options calls only) memoized per request + ALL write methods auto-invalidate on completion + service.invalidateRequestMemo() exposed (no-op when disabled) | enabled: user, setting drizzleBase
-rule (MANDATORY): raw SQL write to a requestMemo-enabled table (db.update(UserTable) etc.) → call base.invalidateRequestMemo() immediately after | writes via base methods need nothing (auto)
-criteria: identity-stable + high fan-in reads only (session user row, global setting) | NOT for list/search/count
-caveats: memoized rows share object refs within a request (treat results as immutable) | invalidate fires at method return, not tx commit (tx-internal reads must use tx executor per existing rule)
-ref: src/lib/requestMemo/README.md
 
 ## AUDIT
 tables: audit_logs (append-only) | audit_logs_failed (dead-letter)
