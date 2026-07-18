@@ -75,6 +75,9 @@ createCrudService<TTable, TCreate>(table, {
   // 並び替え
   sortOrderColumn?: AnyPgColumn,
 
+  // 特権書き込み allowlist（Drizzle のみ、後述）
+  systemColumns?: readonly string[],
+
   // リクエストスコープメモ化（既定: false）
   requestMemo?: boolean,
 })
@@ -94,6 +97,51 @@ createCrudService<TTable, TCreate>(table, {
   setting のグローバル設定）のみ。list / search はメモ化されない
 - 詳細・注意点: `src/lib/requestMemo/README.md`
 
+### systemColumns と特権書き込み（systemUpdate / systemBulkUpdateByQuery）
+
+Create/Update Zod スキーマから意図的に除外したシステム管理カラム（`ended_at`,
+`sort_order`, `sold_out_at` 等）は、通常の `update()` に渡しても parseUpdate で
+strip される。従来はこの書き込みだけ生SQL（`db.update(Table)`）に落ちるしかなく、
+audit 自動記録・requestMemo 自動 invalidate 等の横断フックが素通りしていた。
+`systemColumns` はこれを正規経路に戻すための宣言（Drizzle のみ）。
+
+```typescript
+// 宣言（drizzleBase / domain.json）
+createCrudService(GachaMachineTable, {
+  ...,
+  systemColumns: ["ended_at", "archived_at", "played_count", "sold_out_at"],
+});
+
+// システムカラムの更新（parseUpdate バイパス・allowlist 厳密適用）
+await base.systemUpdate(id, { ended_at: new Date() });
+
+// SQL 式によるアトミック加算 + CASE（1 クエリ）
+await base.systemUpdate(id, {
+  played_count: sql`${GachaMachineTable.playedCount} + 1`,
+  sold_out_at: sql`CASE WHEN ${GachaMachineTable.stock} <= 1 THEN now() ELSE ${GachaMachineTable.soldOutAt} END`,
+});
+
+// WHERE 条件の特権一括更新
+await base.systemBulkUpdateByQuery({ status: "active" }, { archived_at: new Date() });
+```
+
+ルール:
+
+- **fail-closed**: `systemColumns` 未宣言のサービスでは system 系メソッドは常に throw。
+  宣言外のキーを渡した呼び出しも throw する（Zod との二重管理はせず宣言＝自己文書化。
+  通常カラムを同一アトミック書き込みに含めたい場合はそのカラムも明示宣言する）
+- 宣言はプロパティ名・DB カラム名のどちらでも可。存在しないカラム名はサービス生成時に
+  throw（typo の fail-fast）
+- 値には drizzle の `sql\`\`` 式を渡せる（アトミックインクリメント・CASE・COALESCE 採番等）。
+  通常の `update()` は従来どおり SQL 式を受け付けない
+- updatedAt 付与・audit 記録・requestMemo 自動 invalidate・制約エラー変換は
+  `update()` / `bulkUpdateByIds()` と同一挙動。追加クエリなし（ホットパス安全）
+- belongsToMany リレーション同期は対象外
+- **サービス層限定の特権**。汎用 HTTP ルート（`/api/[domain]/**`）には配線されておらず、
+  今後も配線しないこと。HTTP 入力の安全網は従来どおり Zod strip
+- business ドメインは domain.json の `systemColumns` に宣言して `dc:generate` で反映、
+  core ドメインは drizzleBase の `createCrudService` オプションに直接宣言する
+
 ---
 
 ## 提供メソッド一覧
@@ -106,6 +154,7 @@ createCrudService<TTable, TCreate>(table, {
 | `get(id, options?)` | string | Select \| undefined | withRelations / withCount 対応 |
 | `list(options?)` | WithOptions | Select[] | 全件取得（上限 100）。フィルタ不要な場合のみ |
 | `update(id, data, tx?)` | string, Partial | Select | M2M 差分同期 |
+| `systemUpdate(id, data, tx?)` | string, Record | Select | 特権更新（systemColumns 必須・SQL 式可・サーバー専用） |
 | `remove(id, tx?)` | string | void | useSoftDelete 時は論理削除 |
 
 ### 検索・クエリ・カウント
@@ -127,6 +176,8 @@ createCrudService<TTable, TCreate>(table, {
 | `bulkUpsert(records, options?, tx?)` | Insert[] | BulkUpsertResult | M2M 非対応（警告ログ） |
 | `bulkUpdate(records, tx?)` | BulkUpdateRecord[] | BulkUpdateResult | CASE WHEN + M2M グループ同期 |
 | `bulkUpdateByIds(ids, data, tx?)` | string[], Partial | { count } | 全 ID に同じ値を適用 |
+| `bulkUpdateByQuery(where, data, tx?)` | WhereExpr, Partial | { count } | 条件一致に同じ値を適用（parseUpdate 経路・M2M 非対応） |
+| `systemBulkUpdateByQuery(where, data, tx?)` | WhereExpr, Record | { count } | 特権一括更新（systemColumns 必須・SQL 式可・サーバー専用） |
 | `bulkDeleteByIds(ids, tx?)` | string[] | void | ソフト/ハード自動判定 |
 | `bulkHardDeleteByIds(ids, tx?)` | string[] | void | 物理削除 |
 | `bulkDeleteByQuery(where, tx?)` | WhereExpr | void | 条件一致を削除 |

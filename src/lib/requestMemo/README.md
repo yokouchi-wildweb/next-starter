@@ -49,6 +49,9 @@ export const base = createCrudService(SomeTable, {
   （呼び忘れが構造的に起きない）
 - `createCrudService` を経由しない生SQL書き込み（`db.update(Table)` 等）をした場合のみ、
   直後に `base.invalidateRequestMemo()` を手動で呼ぶこと（**必須ルール**）
+- 生SQLに落ちる前に確認: システム管理カラムの更新・SQL式（アトミック加算等）・WHERE条件一括更新は
+  `systemUpdate` / `systemBulkUpdateByQuery` / `bulkUpdateByQuery`（`src/lib/crud/README.md`）で
+  正規経路のまま書けるため、生SQL化＝手動 invalidate 自体を回避できる
 
 実装: `src/lib/crud/drizzle/requestMemo.ts` / 採用例: user・setting の drizzleBase
 

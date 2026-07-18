@@ -24,6 +24,8 @@ export const baseOptions = {
   useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
+  // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（未宣言なら無効）
+  systemColumns: conf.systemColumns,
 __belongsToManyRelations__
 } satisfies DrizzleCrudServiceOptions<
   z.infer<typeof __Domain__CreateSchema>

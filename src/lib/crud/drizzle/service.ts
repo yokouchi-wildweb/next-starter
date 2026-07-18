@@ -24,7 +24,7 @@ import type {
   HasManyRelation,
 } from "../types";
 import { buildOrderBy, buildRelationWhere, buildWhere, runQuery } from "./query";
-import { applyInsertDefaults, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
+import { applyInsertDefaults, buildColumnToPropertyMap, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
 import type { AuditConfig, BulkAuditMode, DrizzleCrudServiceOptions, DbTransaction, DbExecutor, ExtraWhereOption } from "./types";
 import {
   assignLocalRelationValues,
@@ -356,6 +356,140 @@ export function createCrudService<
     return map;
   };
 
+  // ===== systemUpdate / systemBulkUpdateByQuery（特権書き込み）=====
+  // systemColumns 宣言をプロパティ名の Set に解決する。
+  // 宣言はプロパティ名・DB カラム名のどちらでも受け付け、存在しないカラム名は
+  // サービス生成時に即 throw する（typo をデプロイ前に検出するため fail-fast）。
+  const systemColumnProps: Set<string> | undefined = (() => {
+    const declared = serviceOptions.systemColumns;
+    if (!declared || declared.length === 0) return undefined;
+    const columnToProperty = buildColumnToPropertyMap(table);
+    const propertyNames = new Set(columnToProperty.values());
+    const props = new Set<string>();
+    for (const name of declared) {
+      const prop = propertyNames.has(name) ? name : columnToProperty.get(name);
+      if (!prop) {
+        throw new Error(
+          `systemColumns: unknown column "${name}" on table "${getTableName(table)}".`,
+        );
+      }
+      props.add(prop);
+    }
+    return props;
+  })();
+
+  /**
+   * system 系メソッドの入力データを検証・整形する。
+   * - systemColumns 未宣言のサービスでは常に throw（fail-closed）
+   * - 宣言外のキーは throw（parseUpdate バイパスの代償として allowlist を厳密適用）
+   * - 値には drizzle の SQL 式（sql`` オブジェクト）を許可する（アトミック加算・CASE 等）
+   * - updatedAt はサービス自身が付与するため宣言不要（呼び出し側が明示指定する場合は宣言必須）
+   */
+  const prepareSystemWriteData = (
+    data: Record<string, unknown>,
+    methodName: string,
+  ): Record<string, unknown> & { updatedAt?: Date } => {
+    if (!systemColumnProps) {
+      throw new DomainError(
+        `${methodName}() requires systemColumns to be configured in service options.`,
+        { status: 500 },
+      );
+    }
+    const cleaned = omitUndefined(normalizeRecordKeys(table, data));
+    for (const key of Object.keys(cleaned)) {
+      if (!systemColumnProps.has(key)) {
+        throw new DomainError(
+          `${methodName}(): column "${key}" is not declared in systemColumns.`,
+          { status: 500 },
+        );
+      }
+    }
+    if (Object.keys(cleaned).length === 0) {
+      throw new DomainError(
+        `${methodName}() requires at least one column to update.`,
+        { status: 500 },
+      );
+    }
+    const updateData = coerceEmptyArraysToNull(table, cleaned) as Record<string, unknown> & {
+      updatedAt?: Date;
+    };
+    if (serviceOptions.useUpdatedAt && updateData.updatedAt === undefined) {
+      updateData.updatedAt = new Date();
+    }
+    return updateData;
+  };
+
+  /** audit の aggregate metadata 用に、シリアライズ不能な SQL 式の値をマーカー文字列に置換する */
+  const maskSqlValues = (record: Record<string, unknown>): Record<string, unknown> =>
+    Object.fromEntries(
+      Object.entries(record).map(([key, value]) => [
+        key,
+        value instanceof SQL ? "[sql-expression]" : value,
+      ]),
+    );
+
+  /**
+   * bulkUpdateByQuery / systemBulkUpdateByQuery の共通実装。
+   * WhereExpr 条件に一致する行を一括更新し、実際に更新された件数を返す。
+   * - 更新本体は UPDATE ... RETURNING id の 1 クエリ（audit 無効時も追加クエリなし）
+   * - audit aggregate: 件数 + サンプル ID + 条件スナップショット + patch を 1 行に集約
+   * - audit detail: 更新前に条件一致行の before を取得し、更新後に after と突き合わせて個別記録
+   * - 条件は buildWhere をそのまま適用する（ソフトデリート済み行の暗黙除外はしない。
+   *   既存の bulkDeleteByQuery / update と同じ「書き込み系は暗黙フィルタなし」の原則）
+   */
+  const performBulkUpdateByQuery = async (
+    methodName: string,
+    where: WhereExpr,
+    updateData: Record<string, unknown>,
+    auditPatch: Record<string, unknown> | null,
+    tx?: DbTransaction,
+  ): Promise<{ count: number }> => {
+    if (!where) {
+      throw new Error(`${methodName} requires a where condition.`);
+    }
+    const condition = buildWhere(table, where);
+
+    const perform = async (executor: DbExecutor): Promise<{ count: number }> => {
+      // detail モード: 条件一致行の before スナップショットを更新前に取得
+      let beforeSnapshots: Map<string, Record<string, unknown>> | undefined;
+      if (audit && auditBulkMode === "detail") {
+        const rows = (await executor.select().from(table as any).where(condition)) as Record<
+          string,
+          unknown
+        >[];
+        beforeSnapshots = new Map(rows.map((row) => [auditIdOf(row), row]));
+      }
+
+      const updatedRows = (await executor
+        .update(table)
+        .set(updateData as PgUpdateSetSource<TTable>)
+        .where(condition)
+        .returning({ id: idColumn })) as { id: unknown }[];
+      const affectedIds = updatedRows.map((row) => String(row.id));
+
+      if (audit && auditBulkMode === "aggregate") {
+        await auditOnBulkAggregate(executor, "updated", {
+          count: affectedIds.length,
+          sampleIds: affectedIds.slice(0, 10),
+          criteria: where as unknown as Record<string, unknown>,
+          patch: auditPatch,
+        });
+      } else if (audit && auditBulkMode === "detail" && beforeSnapshots) {
+        const afterSnapshots = await fetchAuditBeforeSnapshots(executor, affectedIds);
+        for (const [recordId, before] of beforeSnapshots) {
+          const after = afterSnapshots.get(recordId);
+          if (after) await auditOnUpdate(executor, before, after);
+        }
+      }
+      return { count: affectedIds.length };
+    };
+
+    if (audit && audit.bulkMode !== "off" && !tx) {
+      return db.transaction(async (innerTx) => perform(innerTx));
+    }
+    return perform(tx ?? db);
+  };
+
   // withRelations / withCount 用のリレーション設定
   const belongsToRelations = serviceOptions.belongsToRelations ?? [];
   const belongsToManyObjectRelations = serviceOptions.belongsToManyObjectRelations ?? [];
@@ -672,6 +806,63 @@ export function createCrudService<
           }
           return updated;
         });
+      });
+    },
+
+    /**
+     * システム管理カラムの特権更新（サービス層限定・parseUpdate バイパス）。
+     *
+     * Create/Update Zod スキーマから除外されたシステム管理カラム（ended_at, sort_order 等）を
+     * createCrudService の正規経路で書き込むためのメソッド。書き込めるのはサービスオプション
+     * systemColumns に宣言されたカラムのみで、宣言外のキーは throw する（fail-closed）。
+     *
+     * 値には drizzle の SQL 式を渡せる（例: sql`${Table.playedCount} + 1` でアトミック加算）。
+     * updatedAt 付与・audit 記録（before/after 差分）・requestMemo 自動 invalidate は
+     * update() と同一挙動。belongsToMany リレーション同期は対象外。
+     *
+     * 汎用 HTTP ルートには配線しないこと。HTTP 入力の安全網は従来どおり Zod strip であり、
+     * このメソッドはサーバー内部ロジック専用の特権経路。
+     */
+    async systemUpdate(
+      id: string,
+      data: Record<string, unknown>,
+      tx?: DbTransaction,
+    ): Promise<Select> {
+      return withCrudEnhancements(async () => {
+        const updateData = prepareSystemWriteData(data, "systemUpdate");
+
+        const fetchBefore = async (executor: DbExecutor): Promise<Select | undefined> => {
+          if (!audit) return undefined;
+          const rows = await executor.select().from(table as any).where(eq(idColumn, id));
+          return rows[0] as Select | undefined;
+        };
+
+        const performUpdate = async (executor: DbExecutor): Promise<Select> => {
+          const rows = await executor
+            .update(table)
+            .set(updateData as PgUpdateSetSource<TTable>)
+            .where(eq(idColumn, id))
+            .returning();
+          return rows[0] as Select;
+        };
+
+        if (audit && !tx) {
+          return db.transaction(async (innerTx) => {
+            const before = await fetchBefore(innerTx);
+            const updated = await performUpdate(innerTx);
+            if (updated && before) {
+              await auditOnUpdate(innerTx, before as Record<string, unknown>, updated as Record<string, unknown>);
+            }
+            return updated;
+          });
+        }
+        const executor = tx ?? db;
+        const before = audit ? await fetchBefore(executor) : undefined;
+        const updated = await performUpdate(executor);
+        if (audit && updated && before) {
+          await auditOnUpdate(executor, before as Record<string, unknown>, updated as Record<string, unknown>);
+        }
+        return updated;
       });
     },
 
@@ -1266,6 +1457,68 @@ export function createCrudService<
       if (shouldCleanupStorage) {
         await cleanupStorageForRecords(cleanupRecords);
       }
+    },
+
+    /**
+     * WhereExpr 条件に一致する行の一括更新（bulkDeleteByQuery の update 版）。
+     * data は bulkUpdateByIds と同じ parseUpdate 経路を通る（Zod strip 適用）。
+     * belongsToMany フィールドは対象外（対象 ID が事前確定しないため throw）。
+     * 実際に更新された件数を { count } で返す。
+     */
+    async bulkUpdateByQuery(
+      where: WhereExpr,
+      data: Partial<Insert>,
+      tx?: DbTransaction,
+    ): Promise<{ count: number }> {
+      const parsed = serviceOptions.parseUpdate
+        ? await serviceOptions.parseUpdate(data)
+        : data;
+      const { sanitizedData, relationValues } = separateBelongsToManyInput(parsed, belongsToManyRelations);
+      if (relationValues.size > 0) {
+        throw new DomainError(
+          "bulkUpdateByQuery() does not support belongsToMany fields. Use bulkUpdateByIds() instead.",
+          { status: 500 },
+        );
+      }
+      const updateData = coerceEmptyArraysToNull(table, omitUndefined({
+        ...sanitizedData,
+        ...(serviceOptions.useUpdatedAt && { updatedAt: new Date() }),
+      })) as Record<string, unknown>;
+
+      if (Object.keys(updateData).length === 0) {
+        return { count: 0 };
+      }
+      return withCrudEnhancements(() =>
+        performBulkUpdateByQuery(
+          "bulkUpdateByQuery",
+          where,
+          updateData,
+          projectAuditFields(updateData),
+          tx,
+        ),
+      );
+    },
+
+    /**
+     * WhereExpr 条件に一致する行の特権一括更新（systemUpdate の bulk 版）。
+     * data は systemColumns 宣言済みカラムのみ許可（parseUpdate バイパス・fail-closed）。
+     * 値には drizzle の SQL 式を渡せる。サービス層限定・汎用 HTTP ルートには配線しないこと。
+     */
+    async systemBulkUpdateByQuery(
+      where: WhereExpr,
+      data: Record<string, unknown>,
+      tx?: DbTransaction,
+    ): Promise<{ count: number }> {
+      const updateData = prepareSystemWriteData(data, "systemBulkUpdateByQuery");
+      return withCrudEnhancements(() =>
+        performBulkUpdateByQuery(
+          "systemBulkUpdateByQuery",
+          where,
+          updateData,
+          projectAuditFields(maskSqlValues(updateData)),
+          tx,
+        ),
+      );
     },
 
     async bulkHardDeleteByIds(ids: string[], tx?: DbTransaction): Promise<void> {

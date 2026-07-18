@@ -32,6 +32,7 @@
 | useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | indexes | Index[] | ⚪ No | 非ユニーク検索/集計用インデックス（Neon のみ） |
+| systemColumns | string[] | ⚪ No | `systemUpdate` / `systemBulkUpdateByQuery`（特権書き込み）で書き込みを許可するカラムの allowlist（Neon のみ）。Zod スキーマ外のシステム管理カラム（`ended_at` 等）をサービス層から正規経路で書き込むための宣言。**未宣言時は system 系メソッドは常に throw（fail-closed）**。詳細: `src/lib/crud/README.md` |
 | apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（後述）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
 | generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
 

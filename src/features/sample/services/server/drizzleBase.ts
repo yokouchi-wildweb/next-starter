@@ -26,6 +26,8 @@ export const baseOptions = {
   useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
+  // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（未宣言なら無効）
+  systemColumns: conf.systemColumns,
   belongsToManyRelations: [
     {
       fieldName: "sample_tag_ids",
@@ -72,7 +74,8 @@ export const sampleServiceOptions = baseOptions;
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/sample/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
-// mediaUploader 列が参照する Storage ファイルを、物理削除時に自動クリーンアップする
+// mediaUploader / mediaUploaderMulti 列が参照する Storage ファイルを、物理削除時に
+// 自動クリーンアップする。media を持たないドメインでは [] となり no-op。
 const storageCleanupFields = extractStorageFields(conf);
 
 export const base = createCrudService(SampleTable, {

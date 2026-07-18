@@ -81,6 +81,9 @@ type DomainConfigOptionals = {
     name?: string;
   }>;
   sortOrderField?: string | null;
+  // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（Neon のみ）。
+  // 詳細は src/lib/crud/README.md を参照。
+  systemColumns?: string[];
   // JSON インポートの型推論（string）と相性を保つため、リテラル union ではなく緩い型で宣言する。
   // 厳密な型は src/lib/domain/types/apiAccess.ts の DomainApiAccessConfig を参照。
   apiAccess?: {

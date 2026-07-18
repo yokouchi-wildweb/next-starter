@@ -144,6 +144,17 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    */
   storageCleanupFields?: string[];
   /**
+   * systemUpdate / systemBulkUpdateByQuery（特権書き込み）で書き込みを許可する
+   * カラムの宣言（fail-closed allowlist）。
+   * Create/Update Zod スキーマから除外されたシステム管理カラム（ended_at, sort_order 等）を
+   * parseUpdate をバイパスしてサービス層から書き込むための唯一の経路。
+   * - 未宣言（省略/空）のサービスでは system 系メソッドは常に throw する
+   * - 宣言外のキーを渡した呼び出しも throw する（Zod との二重管理はせず、宣言＝自己文書化）
+   * - プロパティ名・DB カラム名のどちらでも指定可。存在しないカラム名はサービス生成時に throw
+   * - 汎用 HTTP ルート（/api/[domain]）には配線されない。HTTP 入力の安全網は従来どおり Zod strip
+   */
+  systemColumns?: readonly string[];
+  /**
    * リクエストスコープメモ化（既定: false）。
    * true にすると get(id)（オプションなし呼び出しのみ）が同一サーバーリクエスト内で
    * メモ化され、同じ行の重複クエリが1回に圧縮される。全書き込みメソッドは完了時に

@@ -95,7 +95,8 @@ conditional: duplicate(useDuplicateButton), restore/hardDelete(useSoftDelete), r
 note: list is a subset of search — use only for simple full-fetch. for relations, filtering, pagination → use search. count returns { total } without fetching records
 hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (conditional ops generate only when enabled)
 hook_naming_exceptions: get→use\<Domain\>, list→use\<Domain\>List, remove→useDelete\<Domain\>, count→useCount\<Domain\>
-server-only(no hook): query, belongsToMany
+server-only(no hook): query, belongsToMany, systemUpdate, bulkUpdateByQuery, systemBulkUpdateByQuery
+system_write (Drizzle only): systemUpdate(id,data,tx?) / systemBulkUpdateByQuery(where,data,tx?) — parseUpdate bypass for Zod-excluded system columns (ended_at etc.), fail-closed allowlist via systemColumns option (domain.json key for business domains), sql`` values OK (atomic increment/CASE). service-layer ONLY, never wire to HTTP routes | bulkUpdateByQuery(where,data,tx?)→{count} = update counterpart of bulkDeleteByQuery (parseUpdate path) | audit/requestMemo hooks fire like update | detail: src/lib/crud/README.md
 hook-only: use\<Domain\>ViewModal(useDetailModal)
 relationWhere: search/searchWithDeleted/searchForSorting/count accept `relationWhere?: RelationFilter[]` for filtering by relations (Drizzle only). Two variants: BelongsToManyFilter(targetIds+mode:any|all|none) for M2M | BelongsToFilter(where:WhereExpr) for belongsTo. Discriminated by targetIds vs where. Type: RelationFilter from @/lib/crud/types
 extraWhere: search/searchWithDeleted/searchForSorting/count accept `extraWhere?: SQL` (Drizzle only) for conditions beyond WhereExpr DSL (subqueries, EXISTS, JSONB, etc.). Type: ExtraWhereOption from @/lib/crud/drizzle

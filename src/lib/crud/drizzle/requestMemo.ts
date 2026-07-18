@@ -10,6 +10,7 @@ import { createRequestMemo } from "@/lib/requestMemo";
 const WRITE_METHOD_NAMES = [
   "create",
   "update",
+  "systemUpdate",
   "remove",
   "restore",
   "hardDelete",
@@ -23,6 +24,8 @@ const WRITE_METHOD_NAMES = [
   "bulkDeleteByQuery",
   "bulkHardDeleteByIds",
   "bulkUpdateByIds",
+  "bulkUpdateByQuery",
+  "systemBulkUpdateByQuery",
   "bulkUpdate",
   "bulkUpsert",
   "truncateAll",
