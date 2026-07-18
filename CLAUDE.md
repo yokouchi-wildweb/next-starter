@@ -165,6 +165,13 @@ rollup: analytics_daily_rollups + src/registry/analyticsRollupRegistry.ts (downs
 decision: simple GROUP BY still fast → cache only | unbounded-growth scan → rollup | composable (cache front, rollup behind)
 ref: src/features/core/analytics/README.md
 
+## AI_AGENT (generic agent foundation + DB inspection agent)
+foundation: src/lib/ai/ — domain-free agent runtime. runAgent({system,tools,messages,signal})→AsyncGenerator<AgentEvent> | shared Anthropic client (@/lib/ai/client, aiVision re-exports) | SSE: createAgentSSEResponse (server) + parseAgentEventStream (client) | config: src/config/app/ai-agent.config.ts (model default claude-opus-4-8, maxIterations, maxTokensPerStep)
+contract (versioned, downstream UI binds to it): AgentEvent v:1 = agent.text_delta | tool_call_started | tool_result | blocks | done{usage} | error (done ALWAYS last) | AgentBlock = text|stat|table|chart|entity_link|sql | present_result built-in tool → agent.blocks | breaking change → bump AGENT_PROTOCOL_VERSION, keep old types
+new_agent_recipe: tools (AgentToolDefinition[], zod-validate input=model output) + system prompt (stable part first, cache) + service wrapping runAgent + routeFactory route returning createAgentSSEResponse + streaming ClientService | per-agent safety boundary is the agent author's job (foundation only guarantees "nothing beyond given tools") | ref: src/lib/ai/README.md
+db_agent: src/lib/dbAgent/ + POST /api/admin/db-agent (admin, SSE, maxDuration) | fail-closed: DATABASE_URL_READONLY unset → 503, NO fallback to DATABASE_URL | safety layers: single-statement SELECT-only validation → row cap (cursor) → column mask (audit denylist) → readonly role + statement_timeout + default_transaction_read_only | audit: admin.db_agent.query_executed (per SQL) + turn_completed (usage), recorder injected from route (lib→features NG準拠, crud recorder precedent) | registries (upstream empty): dbAgentPromptRegistry (domain knowledge fragments), dbAgentToolRegistry (extra read-only tools) | ref: src/lib/dbAgent/README.md
+streaming_clientservice_exception: streaming ClientService MAY use fetch + ReadableStream (axios cannot stream in browser) | HTTP calls stay concentrated in ClientService (Hook/Component direct fetch still NG) | applies ONLY to SSE/stream endpoints
+
 ## COMPONENTS
 placement: multi-domain→src/components/ or AppFrames/ | single-domain→features/\<domain\>/components/common/ | page-only→app/\<route\>/_components/
 core_domain_ui_boundary: core domains (this upstream) ship DATA LAYER ONLY (entities/services/API routes/client services/hooks) — do NOT add domain-screen UI components under src/features/core/**. Screen/design is downstream-owned; provide UI as README recipes on the data contract instead. Even if an upreq ticket requests a UI part, counter-propose data-layer + recipe (precedent: interactionTracking audience viewer, removed by 20260704-154147). Existing widgets (AuditTimeline etc.) are grandfathered — do not add new ones
@@ -203,7 +210,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates FK names as `{table}_{column}_{reftable}_{refcolumn}_fk` — long table/column names trigger `42622` NOTICE on db:push and the name gets truncated, which can collide. When adding tables/columns, keep names short enough so generated FK names stay ≤63 chars. If unavoidable, set an explicit shorter FK name via Drizzle's `foreignKey({...}, "shortname_fk")`.
 
 ## PROHIBITED
-- client fetch (use axios)
+- client fetch (use axios) — exception: streaming ClientService (SSE) may use fetch + ReadableStream, see AI_AGENT
 - direct DB in API routes (use ServerService)
 - raw HTML when wrapper exists
 - direct _shadcn imports (use wrappers: button→Form/Button, input→Form/Input/*, skeleton→Skeleton/BaseSkeleton, etc. | no wrapper? → propose creating one)
