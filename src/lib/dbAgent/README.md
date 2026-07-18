@@ -38,10 +38,48 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO db_agent_readonly;
 -- 3. 今後作成されるテーブルにも自動で SELECT を付与
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT SELECT ON TABLES TO db_agent_readonly;
+
+-- 4. 【必須】PG15 未満デフォルトの穴を塞ぐ:
+--    旧来の PostgreSQL は schema public の CREATE 権限を PUBLIC に付与しており
+--    (Neon 含む)、GRANT 系の手順だけでは readonly ロールが CREATE TABLE できてしまう
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+
+-- 5. 【必須】ロールレベルでも read only を強制:
+--    readonlyDb.ts の接続パラメータ (default_transaction_read_only) はアプリ経由の
+--    接続にしか効かない。ロール資格情報での直接 psql ログインにも効かせるための多層防御
+ALTER ROLE db_agent_readonly SET default_transaction_read_only = on;
 ```
 
-Neon の場合はダッシュボードの Roles からも作成できる。接続文字列はアプリ用と同じ
-ホストで、ユーザー名/パスワードだけ読取専用ロールのものに差し替える。
+注記:
+- 手順4の REVOKE は DB 全体に効くが、アプリの owner ロールはスキーマ ACL を
+  バイパスするため影響しない。PG15 以降のデータベースは元々 PUBLIC に CREATE を
+  付与していないため no-op になる (実行して安全 — 冪等)
+- Neon の場合はダッシュボードの Roles からもロールを作成できるが、SQL 作成と
+  既定権限が異なる可能性がある (未検証)。ダッシュボードで作成した場合も
+  手順4・5と下記の検証は必ず実施すること
+- 接続文字列はアプリ用と同じホストで、ユーザー名/パスワードだけ読取専用ロールの
+  ものに差し替える
+
+### 遮断の検証 (セットアップ後に必ず実施)
+
+readonly の接続文字列で psql 接続し、3点を確認する:
+
+```sql
+-- (1) 読取が成功すること
+SELECT count(*) FROM users;
+-- → 件数が返る
+
+-- (2) オブジェクト作成が拒否されること
+CREATE TABLE _dbagent_probe (id int);
+-- → ERROR: permission denied for schema public
+
+-- (3) 書き込みが拒否されること
+INSERT INTO users (id) VALUES ('x');
+UPDATE users SET name = 'x' WHERE false;
+-- → ERROR: permission denied for table users (または read-only transaction)
+```
+
+(2) が通ってしまう場合は手順4が未実施 (pre-PG15 デフォルトの穴が残っている)。
 
 ## 安全設計 (多層防御)
 
