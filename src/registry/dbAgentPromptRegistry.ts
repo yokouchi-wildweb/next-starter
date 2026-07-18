@@ -17,6 +17,8 @@
 //   - 断片はシステムプロンプトの安定部分としてキャッシュされるため、
 //     動的な値 (日付等) を含めないこと
 
+import type { DbAgentSystemSuffixProvider } from "@/lib/dbAgent/prompt";
+
 /**
  * 登録済みのプロンプト断片一覧 (登録順に結合される)。
  */
@@ -25,4 +27,34 @@ export const dbAgentPromptFragments: string[] = [
 
   // --- DOWNSTREAM (downstream で追加) ---
   // 例: GACHA_DOMAIN_KNOWLEDGE, WALLET_DOMAIN_KNOWLEDGE, ...
+];
+
+/**
+ * 実行時サフィックス (運営追加指示) のプロバイダ一覧。
+ *
+ * 上記 dbAgentPromptFragments が「コードで管理する安定知識」なのに対し、
+ * こちらは「管理者が管理画面で編集する準静的テキスト」をリクエストごとに
+ * 取得する経路。返り値はシステムプロンプトの最後 (安定部分の後ろ) に
+ * 「## 運営からの追加指示」として結合される。複数登録時は登録順に結合。
+ *
+ * downstream での追加例 (setting ドメインの拡張フィールドから読む):
+ *   1. setting.extended.ts に dbAgentCustomInstruction: z.string() を追加
+ *   2. ここに登録:
+ *        async () => {
+ *          const { settingService } = await import("@/features/setting/services/server/settingService");
+ *          const setting = await settingService.get("global");
+ *          return setting?.dbAgentCustomInstruction ?? null;
+ *        }
+ *      (setting は requestMemo 有効のため同一リクエスト内の読取コストは実質ゼロ)
+ *
+ * 制約:
+ *   - 返すテキストは運営 (管理者) 作成の信頼テキストに限定。
+ *     エンドユーザー生成テキストを流し込まないこと (プロンプトインジェクション経路)
+ *   - プロバイダの throw はエージェント側で握り潰されてスキップされる
+ *     (追加指示の欠落は機能停止より軽微とみなす。最終防衛線は read-only ツール境界)
+ */
+export const dbAgentSystemSuffixProviders: DbAgentSystemSuffixProvider[] = [
+  // --- CORE (upstream-provided): なし ---
+
+  // --- DOWNSTREAM (downstream で追加) ---
 ];

@@ -39,4 +39,7 @@ export const DB_AGENT_CONFIG = {
 
   /** run_query に渡せる SQL の最大文字数 */
   maxQueryChars: 10_000,
+
+  /** 実行時システムプロンプトサフィックス (運営追加指示) の最大文字数 (超過分は切り詰め) */
+  maxSystemSuffixChars: 4_000,
 } as const;

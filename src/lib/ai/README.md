@@ -52,6 +52,9 @@ agent.done                   … 終了 (累計 usage)。異常時は直前に a
    「渡したツール以外何もできない」ことまで。
 2. **system プロンプトを書く**。安定部分 (役割・ツール使用方針) を先頭、
    可変部分 (レジストリ断片等) を後方に置く (プロンプトキャッシュはプレフィックス一致)。
+   運営が編集できる実行時指示が必要なら「安定プロンプト + 末尾サフィックス
+   (プロバイダレジストリでリクエストごとに解決)」のパターンを使う —
+   実装例: `@/lib/dbAgent` の `dbAgentSystemSuffixProviders`。
 3. **サービス関数**で `runAgent({system, tools, messages, signal})` を呼ぶ。
 4. **API ルート** (routeFactory 必須・認可を宣言) でサービスを呼び、
    `createAgentSSEResponse(generator, {abortController})` を返す。
