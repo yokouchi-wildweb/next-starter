@@ -106,6 +106,14 @@ extension: 1.check base methods → 2.relationWhere for relation filtering → 3
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 firestore_limits: no or | single orderBy | no belongsToMany
 
+## REQUEST_MEMO (request-scoped read dedup — Drizzle only)
+lib: src/lib/requestMemo (createRequestMemo — React cache()-based invalidatable per-request memo | outside request scope (cron/CLI) degrades to plain call)
+crud: createCrudService option requestMemo:true → get(id) (no-options calls only) memoized per request + ALL write methods auto-invalidate on completion + service.invalidateRequestMemo() exposed (no-op when disabled) | enabled: user, setting drizzleBase
+rule (MANDATORY): raw SQL write to a requestMemo-enabled table (db.update(UserTable) etc.) → call base.invalidateRequestMemo() immediately after | writes via base methods need nothing (auto)
+criteria: identity-stable + high fan-in reads only (session user row, global setting) | NOT for list/search/count
+caveats: memoized rows share object refs within a request (treat results as immutable) | invalidate fires at method return, not tx commit (tx-internal reads must use tx executor per existing rule)
+ref: src/lib/requestMemo/README.md
+
 ## AUDIT
 tables: audit_logs (append-only) | audit_logs_failed (dead-letter)
 columns: target_type, target_id(text), actor_id, actor_type(system|admin|user|api_key|webhook), action, before_value, after_value, context, metadata, reason, retention_days, created_at

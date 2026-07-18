@@ -63,6 +63,10 @@ function packExtendedFields(data: Record<string, unknown>): Record<string, unkno
 
 const baseOptions = {
   idType: "manual",
+  // global 設定は 1 リクエスト内で複数サブシステム（メンテ判定・各機能の設定参照等）から
+  // 繰り返し読まれる高 fan-in 行のため、リクエストスコープでメモ化する。
+  // 書き込みメソッドは自動 invalidate されるため read-your-writes は維持される。
+  requestMemo: true,
   parseCreate: (data) => {
     const parsed = SettingCreateSchema.parse(data);
     return packExtendedFields(parsed as Record<string, unknown>) as typeof parsed;

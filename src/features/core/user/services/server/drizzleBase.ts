@@ -17,6 +17,11 @@ const conf = getDomainConfig("user");
 
 export const baseOptions = {
   idType: "uuid",
+  // セッションユーザー行は 1 リクエスト内で認可ガード・各サブシステムから繰り返し
+  // 読まれる高 fan-in 行のため、リクエストスコープでメモ化する（get の id 指定・
+  // オプションなし呼び出しのみ）。書き込みメソッドは自動 invalidate される。
+  // 生 SQL で UserTable を書くコードは直後に base.invalidateRequestMemo() を呼ぶこと。
+  requestMemo: true,
   defaultOrderBy: [["createdAt", "DESC"]],
   defaultSearchFields: conf.searchFields,
   useSoftDelete: true,

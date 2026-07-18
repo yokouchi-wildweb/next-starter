@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { UserTable } from "@/features/core/user/entities/drizzle";
+import { base as userBase } from "@/features/core/user/services/server/drizzleBase";
 import { db } from "@/lib/drizzle";
 import { revokeAuthTokens } from "@/lib/firebase/server/authAdmin";
 
@@ -56,6 +57,7 @@ export async function invalidateSessionsForUser({
     .update(UserTable)
     .set({ sessionsInvalidatedAt: now, updatedAt: now })
     .where(eq(UserTable.id, userId));
+  userBase.invalidateRequestMemo();
 
   // 2. Firebase 側のリフレッシュトークン revoke (best-effort)
   if (providerUid) {

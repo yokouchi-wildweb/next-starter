@@ -34,6 +34,7 @@ import {
   bulkSyncBelongsToManyRelations,
 } from "./belongsToMany";
 import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateHasMany, DEFAULT_HAS_MANY_LIMIT, hydrateCount } from "./relations";
+import { applyRequestMemo } from "./requestMemo";
 
 const resolveRecordId = (value: unknown): string | number | undefined => {
   if (typeof value === "string" || typeof value === "number") {
@@ -426,7 +427,7 @@ export function createCrudService<
     }
   };
 
-  return {
+  const service = {
     async create(data: Insert, tx?: DbTransaction): Promise<Select> {
       return withCrudEnhancements(async () => {
         const parsedInput = serviceOptions.parseCreate
@@ -2047,4 +2048,8 @@ export function createCrudService<
       return results;
     },
   };
+
+  // requestMemo: get のリクエストスコープメモ化 + 書き込みメソッドでの自動 invalidate。
+  // 無効時も invalidateRequestMemo (no-op) を公開し、サービスの形を一定に保つ。
+  return applyRequestMemo(service, serviceOptions.requestMemo === true);
 }

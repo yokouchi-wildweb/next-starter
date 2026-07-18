@@ -19,6 +19,7 @@ import { findSoftDeletedUser } from "@/features/core/user/services/server/finder
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { userProfileService } from "@/features/core/userProfile/services/server/userProfileService";
 import type { CreateDemoUserInput } from "../../../types";
+import { base } from "../../drizzleBase";
 import { restoreSoftDeletedUser } from "./restore";
 
 /**
@@ -88,6 +89,7 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
   });
 
   const [user] = await db.insert(UserTable).values(values).returning();
+  base.invalidateRequestMemo();
 
   await recordStatusTransition({
     userId: user.id,
@@ -150,6 +152,7 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
   });
 
   const [user] = await db.insert(UserTable).values(values).returning();
+  base.invalidateRequestMemo();
 
   await recordStatusTransition({
     userId: user.id,

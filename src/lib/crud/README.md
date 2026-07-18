@@ -74,8 +74,25 @@ createCrudService<TTable, TCreate>(table, {
 
   // 並び替え
   sortOrderColumn?: AnyPgColumn,
+
+  // リクエストスコープメモ化（既定: false）
+  requestMemo?: boolean,
 })
 ```
+
+### requestMemo（リクエストスコープメモ化）
+
+`requestMemo: true` にすると、`get(id)`（オプションなし呼び出しのみ）が同一サーバー
+リクエスト内でメモ化され、複数サブシステムからの同一行の重複クエリが1回に圧縮される。
+
+- 全書き込みメソッド（update / remove / bulkUpdate 等）は完了時にメモを自動破棄する
+  → 同一リクエスト内の read-your-writes は維持される（呼び忘れが構造的に起きない）
+- `createCrudService` を経由しない生SQL書き込み（`db.update(Table)` 等）をした場合のみ、
+  直後に `service.invalidateRequestMemo()` を手動で呼ぶこと（必須ルール）
+- リクエストスコープ外（cron / CLI）では自動的に素通しになる（従来動作）
+- 対象基準: identity-stable かつ高 fan-in な行（例: user のセッションユーザー行、
+  setting のグローバル設定）のみ。list / search はメモ化されない
+- 詳細・注意点: `src/lib/requestMemo/README.md`
 
 ---
 

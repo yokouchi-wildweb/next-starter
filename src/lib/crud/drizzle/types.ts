@@ -143,4 +143,15 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    * 通常は drizzleBase が `extractStorageFields(conf)` の結果を渡す。
    */
   storageCleanupFields?: string[];
+  /**
+   * リクエストスコープメモ化（既定: false）。
+   * true にすると get(id)（オプションなし呼び出しのみ）が同一サーバーリクエスト内で
+   * メモ化され、同じ行の重複クエリが1回に圧縮される。全書き込みメソッドは完了時に
+   * メモを自動破棄するため read-your-writes は維持される。
+   * createCrudService を経由しない生SQL書き込みをした場合のみ
+   * `service.invalidateRequestMemo()` を直後に呼ぶこと。
+   * リクエストスコープ外（cron / CLI）では自動的に素通しになる。
+   * 対象基準・注意点: src/lib/requestMemo/README.md
+   */
+  requestMemo?: boolean;
 };

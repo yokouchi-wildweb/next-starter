@@ -13,6 +13,7 @@ import { withUserNameGuard } from "@/features/core/user/services/server/helpers/
 import { findSoftDeletedUser } from "@/features/core/user/services/server/finders/findSoftDeletedUser";
 import { assertRoleEnabled } from "@/features/core/user/utils/roleHelpers";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
+import { base } from "../../drizzleBase";
 import { restoreSoftDeletedUser } from "./restore";
 
 export type CreateAdminInput = {
@@ -76,6 +77,7 @@ export async function createAdmin(data: CreateAdminInput): Promise<User> {
   const [user] = await withUserNameGuard({ name: values.name }, (tx) =>
     (tx ?? db).insert(UserTable).values(values).returning(),
   );
+  base.invalidateRequestMemo();
 
   await recordStatusTransition({
     userId: user.id,

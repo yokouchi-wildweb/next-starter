@@ -9,6 +9,7 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { MAX_LOGIN_HISTORY } from "@/features/core/user/entities/model";
 import type { UserMetadata, UserLoginRecord } from "@/features/core/user/entities/model";
+import { base as userBase } from "@/features/core/user/services/server/drizzleBase";
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { getServerAuth } from "@/lib/firebase/server/app";
@@ -125,6 +126,7 @@ export async function createFirebaseSession(input: unknown): Promise<FirebaseSes
       .set({ lastAuthenticatedAt: now, updatedAt: now })
       .where(eq(UserTable.id, user.id));
   }
+  userBase.invalidateRequestMemo();
 
   // セッションで扱うユーザー情報をスキーマで正規化する。
   const sessionUser = SessionUserSchema.parse({
