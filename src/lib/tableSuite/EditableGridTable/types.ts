@@ -6,6 +6,7 @@ import type {
   TableStylingProps,
   TableCellStyleProps,
   ColumnSortProps,
+  RowReorderProps,
   PaddingSize,
 } from "../types";
 import type { CellAction } from "../DataTable";
@@ -84,7 +85,8 @@ export type EditableGridSwitchToggleEvent<T> = {
 
 export type EditableGridTableProps<T> = TableStylingProps<T> &
   TableCellStyleProps &
-  ColumnSortProps & {
+  ColumnSortProps &
+  RowReorderProps<T> & {
     /**
      * DataTable/RecordSelectionTable と同じ API を採用。未指定時は空配列扱い。
      */

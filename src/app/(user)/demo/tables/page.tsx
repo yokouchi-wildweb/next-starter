@@ -11,6 +11,7 @@ import {
   type EditableGridCellChangeEvent,
   type EditableGridColumn,
   type RecordSelectionTableProps,
+  type ReorderResult,
   type SortState,
   sortItems,
 } from "@/lib/tableSuite";
@@ -79,6 +80,47 @@ const DATA_TABLE_DEMO_ROWS: DataTableRecord[] = Array.from({ length: 30 }, (_, i
   };
 });
 
+type ReorderDemoRecord = {
+  id: string;
+  name: string;
+  group: string;
+};
+
+const REORDER_DEMO_FLAT_ROWS: ReorderDemoRecord[] = Array.from({ length: 6 }, (_, index) => ({
+  id: `task-${index + 1}`,
+  name: `タスク ${index + 1}`,
+  group: "-",
+}));
+
+const REORDER_DEMO_GROUPS = ["グループA", "グループB", "グループC"] as const;
+const REORDER_DEMO_GROUPED_ROWS: ReorderDemoRecord[] = REORDER_DEMO_GROUPS.flatMap((group) =>
+  Array.from({ length: 3 }, (_, index) => ({
+    id: `${group}-${index + 1}`,
+    name: `${group.slice(-1)}チームのタスク ${index + 1}`,
+    group,
+  })),
+);
+
+const REORDER_GROUP_ROW_CLASS: Record<string, string> = {
+  グループA: "bg-emerald-50/60",
+  グループB: "bg-amber-50/60",
+  グループC: "bg-rose-50/60",
+};
+
+type ReorderEditableRecord = {
+  id: string;
+  name: string;
+  number: number;
+  category: string | null;
+};
+
+const REORDER_DEMO_EDITABLE_ROWS: ReorderEditableRecord[] = Array.from({ length: 5 }, (_, index) => ({
+  id: `edit-${index + 1}`,
+  name: `編集ありタスク ${index + 1}`,
+  number: (index + 1) * 10,
+  category: SAMPLE_SELECT_OPTIONS[index % SAMPLE_SELECT_OPTIONS.length].value,
+}));
+
 const formatDisplayValue = (value: unknown) => {
   if (Array.isArray(value)) {
     return value.length ? value.map((entry) => String(entry)).join(", ") : "未設定";
@@ -111,6 +153,11 @@ export default function TablesDemoPage() {
   const [sortDemoSort, setSortDemoSort] = useState<SortState | undefined>(undefined);
   const [sortDemoRstSort, setSortDemoRstSort] = useState<SortState | undefined>(undefined);
   const [sortDemoEditSort, setSortDemoEditSort] = useState<SortState | undefined>(undefined);
+  const [reorderFlatRows, setReorderFlatRows] = useState<ReorderDemoRecord[]>(REORDER_DEMO_FLAT_ROWS);
+  const [reorderFlatSort, setReorderFlatSort] = useState<SortState | undefined>(undefined);
+  const [reorderGroupedRows, setReorderGroupedRows] = useState<ReorderDemoRecord[]>(REORDER_DEMO_GROUPED_ROWS);
+  const [reorderEditRows, setReorderEditRows] = useState<ReorderEditableRecord[]>(REORDER_DEMO_EDITABLE_ROWS);
+  const [reorderLog, setReorderLog] = useState("行をドラッグすると ReorderResult がここに表示されます");
   const { data: sampleList = [], isLoading: isSampleLoading } = useSampleList();
 
   const normalizedSampleList = useMemo(
@@ -473,6 +520,108 @@ export default function TablesDemoPage() {
   const sortDemoRstSorted = useMemo(() => sortItems(sampleList, sortDemoRstSort), [sortDemoRstSort, sampleList]);
   const sortDemoEditSorted = useMemo(() => sortItems(normalizedSampleList, sortDemoEditSort), [sortDemoEditSort, normalizedSampleList]);
 
+  // ============================================================
+  // 行並び替えデモ用
+  // ============================================================
+  const applyReorderResult = <T,>(
+    setRows: React.Dispatch<React.SetStateAction<T[]>>,
+  ) => (result: ReorderResult) => {
+    // 楽観的更新: UIローカルで並び替えを反映（実運用ではここでサーバーの reorder を呼ぶ）
+    setRows((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(result.oldIndex, 1);
+      next.splice(result.newIndex, 0, moved);
+      return next;
+    });
+    setReorderLog(
+      `itemId: ${result.itemId} / afterItemId: ${result.afterItemId ?? "null"} / beforeItemId: ${result.beforeItemId ?? "null"} (index ${result.oldIndex} → ${result.newIndex})`,
+    );
+  };
+
+  const reorderFlatColumns = useMemo<DataTableColumn<ReorderDemoRecord>[]>(
+    () => [
+      {
+        header: "ID",
+        sortKey: "id",
+        width: "120px",
+        render: (record) => (
+          <Span size="sm" className="font-mono text-muted-foreground">
+            {record.id}
+          </Span>
+        ),
+      },
+      {
+        header: "タスク名",
+        render: (record) => <Span weight="medium">{record.name}</Span>,
+      },
+    ],
+    [],
+  );
+
+  const reorderGroupedColumns = useMemo<DataTableColumn<ReorderDemoRecord>[]>(
+    () => [
+      {
+        header: "グループ",
+        width: "140px",
+        render: (record) => (
+          <Span
+            size="sm"
+            className="inline-flex items-center rounded-full border border-muted-foreground/30 px-2.5 py-0.5 text-xs font-semibold"
+          >
+            {record.group}
+          </Span>
+        ),
+      },
+      {
+        header: "タスク名",
+        render: (record) => <Span weight="medium">{record.name}</Span>,
+      },
+    ],
+    [],
+  );
+
+  const reorderFlatSorted = useMemo(
+    () => sortItems(reorderFlatRows, reorderFlatSort),
+    [reorderFlatRows, reorderFlatSort],
+  );
+
+  const reorderEditColumns = useMemo<EditableGridColumn<ReorderEditableRecord>[]>(
+    () => [
+      {
+        field: "name",
+        header: "名前",
+        editorType: "readonly",
+      },
+      {
+        field: "number",
+        header: "数量",
+        editorType: "number",
+        placeholder: "0 以上の整数",
+        validator: (value) => {
+          if (typeof value === "number" && value < 0) {
+            return "0以上の値を入力してください";
+          }
+          return null;
+        },
+      },
+      {
+        field: "category",
+        header: "カテゴリ",
+        editorType: "select",
+        options: SAMPLE_SELECT_OPTIONS,
+        allowNullSelection: true,
+        nullOptionLabel: "未設定（null）",
+      },
+    ],
+    [],
+  );
+
+  const handleReorderEditCellChange = (event: EditableGridCellChangeEvent<ReorderEditableRecord>) => {
+    setReorderEditRows((prev) =>
+      prev.map((row) => (row.id === String(event.rowKey) ? { ...row, [event.field]: event.value } : row)),
+    );
+  };
+
   const editableColumnHeaderMap = useMemo(
     () =>
       editableColumns.reduce<Record<string, React.ReactNode>>((acc, column) => {
@@ -790,6 +939,97 @@ export default function TablesDemoPage() {
               sort={sortDemoEditSort}
               onSortChange={setSortDemoEditSort}
               headerIconMode="both"
+              maxHeight="300px"
+            />
+          </Block>
+        </Stack>
+      </Section>
+
+      <Section>
+        <Stack space={8}>
+          <Block className="flex flex-col gap-2">
+            <SecTitle size="xl" className="font-semibold">
+              行並び替えデモ（reorderable）
+            </SecTitle>
+            <Para tone="muted" size="sm">
+              左端のハンドルをドラッグして行を並び替えられます。onReorder が返す ReorderResult は CRUD の
+              reorder(id, afterItemId) にそのまま接続できます。
+            </Para>
+            <Para tone="muted" size="xs" className="font-mono">
+              {reorderLog}
+            </Para>
+          </Block>
+
+          <Block className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
+            <Block className="flex flex-col gap-2">
+              <SecTitle size="lg" className="font-semibold">
+                フラットな並び替え + カラムソートとの排他
+              </SecTitle>
+              <Para tone="muted" size="xs">
+                ID ヘッダーをクリックしてカラムソートを適用すると、表示順と保存順が一致しなくなるためハンドルが自動で無効化されます。
+              </Para>
+            </Block>
+            <DataTable
+              items={reorderFlatSorted}
+              columns={reorderFlatColumns}
+              getKey={(record) => record.id}
+              sort={reorderFlatSort}
+              onSortChange={setReorderFlatSort}
+              reorderable={{ onReorder: applyReorderResult(setReorderFlatRows) }}
+              maxHeight="300px"
+            />
+            {reorderFlatSort && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="self-start"
+                onClick={() => setReorderFlatSort(undefined)}
+              >
+                カラムソートを解除して並び替えに戻る
+              </Button>
+            )}
+          </Block>
+
+          <Block className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
+            <Block className="flex flex-col gap-2">
+              <SecTitle size="lg" className="font-semibold">
+                グループ内の並び替え（getGroup）
+              </SecTitle>
+              <Para tone="muted" size="xs">
+                同じグループ内でのみドラッグできます。グループを跨ぐドロップはキャンセルされ、グループ先頭への移動は
+                afterItemId: null に正規化されます。
+              </Para>
+            </Block>
+            <DataTable
+              items={reorderGroupedRows}
+              columns={reorderGroupedColumns}
+              getKey={(record) => record.id}
+              rowClassName={(record) => REORDER_GROUP_ROW_CLASS[record.group] ?? ""}
+              reorderable={{
+                onReorder: applyReorderResult(setReorderGroupedRows),
+                getGroup: (record) => record.group,
+              }}
+              maxHeight="400px"
+            />
+          </Block>
+
+          <Block className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm">
+            <Block className="flex flex-col gap-2">
+              <SecTitle size="lg" className="font-semibold">
+                EditableGridTable の並び替え
+              </SecTitle>
+              <Para tone="muted" size="xs">
+                インライン編集とハンドルドラッグの共存デモです。セルの編集操作（数量・カテゴリ）はそのまま使え、並び替えは左端のハンドルのみで発火します。
+              </Para>
+            </Block>
+            <EditableGridTable
+              items={reorderEditRows}
+              columns={reorderEditColumns}
+              getKey={(row) => row.id}
+              headerIconMode="both"
+              onCellChange={handleReorderEditCellChange}
+              reorderable={{ onReorder: applyReorderResult(setReorderEditRows) }}
               maxHeight="300px"
             />
           </Block>

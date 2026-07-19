@@ -2,6 +2,8 @@
 
 import type React from "react";
 
+import type { ReorderResult } from "@/lib/sortableList";
+
 // バリアント定義を再エクスポート
 export {
   type RowHeight,
@@ -118,6 +120,41 @@ export const resolveNextSort = (current: SortState | undefined, field: string): 
     return { field, direction: "desc" };
   }
   return { field, direction: "asc" };
+};
+
+// ============================================================
+// 行の並び替え（reorderable）
+// ============================================================
+
+export type ReorderableConfig<T> = {
+  /**
+   * 並び替え確定時のコールバック。
+   * ReorderResult は CRUD の reorder(id, afterItemId) / useReorder<Domain> にそのまま接続できる。
+   */
+  onReorder: (result: ReorderResult) => void;
+  /**
+   * グループ単位の並び替え。指定すると:
+   * - グループを跨ぐドロップはキャンセルされる（所属変更は update の責務であり並び替えでは扱わない）
+   * - afterItemId / beforeItemId は同一グループ内のレコードに正規化される
+   *   （グループ先頭への移動は afterItemId: null になる）
+   *
+   * 表示順が「グループ → sort_order」のとき、Fractional Indexing の
+   * reorder(id, afterItemId) にそのまま渡してグループ内順序を正しく保存できる。
+   */
+  getGroup?: (item: T) => string | number;
+  /** ドラッグ全体を無効化する（ハンドル列は薄表示のまま残る） */
+  disabled?: boolean;
+  /** 行単位でドラッグを無効化する */
+  isItemDisabled?: (item: T) => boolean;
+};
+
+export type RowReorderProps<T> = {
+  /**
+   * 行のドラッグ並び替えを有効にする。指定すると先頭にドラッグハンドル列が追加される。
+   * - getKey で安定したレコードIDを返すこと（index フォールバックは並び替えに使えない）
+   * - カラムソート（sort）適用中は表示順と保存順が一致しないため自動的に無効化される
+   */
+  reorderable?: ReorderableConfig<T>;
 };
 
 // ============================================================

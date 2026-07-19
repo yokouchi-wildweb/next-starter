@@ -14,6 +14,10 @@ import {
   getCellClickOverlayClassName,
   renderColumnHeader,
   FullWidthRowsAt,
+  TableReorderProvider,
+  ReorderableRow,
+  DragHandleHead,
+  useTableReorder,
 } from "../shared";
 import { cn } from "@/lib/cn";
 import type {
@@ -21,6 +25,7 @@ import type {
   TableStylingProps,
   TableCellStyleProps,
   ColumnSortProps,
+  RowReorderProps,
   PaddingSize,
   CellAction,
   FullWidthRow,
@@ -73,7 +78,8 @@ export type RowCursor = "pointer" | "default" | "zoom-in" | "grab";
 
 export type DataTableProps<T> = TableStylingProps<T> &
   TableCellStyleProps &
-  ColumnSortProps & {
+  ColumnSortProps &
+  RowReorderProps<T> & {
     /**
      * Data rows to render. Optional to allow callers to omit until data is loaded
      * without causing runtime errors.
@@ -126,6 +132,7 @@ export default function DataTable<T>({
   fullWidthRows,
   sort,
   onSortChange,
+  reorderable,
 }: DataTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -145,15 +152,24 @@ export default function DataTable<T>({
     [fullWidthRows, items.length],
   );
 
+  const reorder = useTableReorder({ items, getKey, reorderable, sort });
+  const fullWidthColSpan = columns.length + (reorder.enabled ? 1 : 0);
+
   return (
     <div
       className={cn("w-full max-w-full overflow-x-auto overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
       ref={scrollContainerRef}
     >
+      <TableReorderProvider
+        active={reorder.active}
+        sortableIds={reorder.sortableIds}
+        onDragEnd={reorder.handleDragEnd}
+      >
       <Table variant="list">
         <TableHeader>
           <TableRow disableHover>
+            {reorder.enabled && <DragHandleHead />}
             {columns.map((col, idx) => (
               <SortableTableHead
                 key={idx}
@@ -169,10 +185,13 @@ export default function DataTable<T>({
           </TableRow>
         </TableHeader>
         <TableBody>
-          <FullWidthRowsAt rowsByIndex={fullWidthRowsByIndex} index={-1} colSpan={columns.length} />
+          <FullWidthRowsAt rowsByIndex={fullWidthRowsByIndex} index={-1} colSpan={fullWidthColSpan} />
           {items.map((item, index) => (
             <React.Fragment key={getKey(item, index)}>
-            <TableRow
+            <ReorderableRow
+              reorder={reorder}
+              item={item}
+              rowId={reorder.ids[index]}
               className={cn(
                 "group",
                 rowHeightClass,
@@ -230,12 +249,13 @@ export default function DataTable<T>({
                     })()}
                 </TableCell>
               ))}
-            </TableRow>
-            <FullWidthRowsAt rowsByIndex={fullWidthRowsByIndex} index={index} colSpan={columns.length} />
+            </ReorderableRow>
+            <FullWidthRowsAt rowsByIndex={fullWidthRowsByIndex} index={index} colSpan={fullWidthColSpan} />
             </React.Fragment>
           ))}
         </TableBody>
       </Table>
+      </TableReorderProvider>
       {bottomSentinelRef ? (
         <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
       ) : null}

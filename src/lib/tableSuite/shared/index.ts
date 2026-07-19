@@ -12,3 +12,4 @@ export * from "./CellClickOverlay";
 export * from "./FullWidthRows";
 export * from "./ColumnHeader";
 export * from "./cellClickOverlayStyles";
+export * from "./reorder";

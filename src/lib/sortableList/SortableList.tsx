@@ -28,9 +28,9 @@ import { HeaderRow, SortableItem, StaticItem } from "./components";
 import type {
   SortableItem as SortableItemType,
   SortableListProps,
-  ReorderResult,
 } from "./types";
 import { resolveRowClassName } from "./types";
+import { computeReorderResult } from "./utils";
 import type { RowHeight } from "./variants";
 
 /**
@@ -158,38 +158,19 @@ export default function SortableList<T extends SortableItemType>({
       setActiveId(null);
 
       const { active, over } = event;
-      if (!over || active.id === over.id) {
+      if (!over) {
         return;
       }
 
-      const oldIndex = items.findIndex((item) => item.id === active.id);
-      const newIndex = items.findIndex((item) => item.id === over.id);
+      const result = computeReorderResult(
+        items.map((item) => item.id),
+        String(active.id),
+        String(over.id),
+      );
 
-      if (oldIndex === -1 || newIndex === -1) {
-        return;
+      if (result) {
+        onReorder(result);
       }
-
-      // 移動先の前後のアイテムIDを計算
-      const afterItemId =
-        newIndex > 0 ? items[newIndex - 1]?.id ?? null : null;
-      const beforeItemId =
-        newIndex < items.length - 1 ? items[newIndex + 1]?.id ?? null : null;
-
-      // 移動方向を考慮して前後を調整
-      const adjustedAfterItemId =
-        oldIndex < newIndex ? items[newIndex]?.id ?? null : afterItemId;
-      const adjustedBeforeItemId =
-        oldIndex > newIndex ? items[newIndex]?.id ?? null : beforeItemId;
-
-      const result: ReorderResult = {
-        itemId: String(active.id),
-        afterItemId: adjustedAfterItemId,
-        beforeItemId: adjustedBeforeItemId,
-        newIndex,
-        oldIndex,
-      };
-
-      onReorder(result);
     },
     [items, onReorder]
   );

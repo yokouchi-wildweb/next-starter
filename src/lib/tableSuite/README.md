@@ -178,6 +178,79 @@ const columns = buildDomainColumns<Sample>({
 | `toOrderBySpec(sort)` | SortState → CRUD の OrderBySpec |
 | `resolveNextSort(current?, field)` | ヘッダークリック時の次のソート状態を算出 |
 
+## 行の並び替え（reorderable）
+
+3つのテーブル共通で、行のドラッグ並び替えを提供する。指定すると先頭にドラッグハンドル列が追加される（ハンドル限定ドラッグ。行クリック選択・onRowClick・セル編集と衝突しない）。
+
+### 基本的な使い方
+
+```tsx
+import { DataTable, type ReorderResult } from "@/lib/tableSuite";
+
+<DataTable
+  items={items}
+  columns={columns}
+  getKey={(item) => item.id}  // reorderable 使用時は安定IDを返す getKey が必須
+  reorderable={{
+    onReorder: (result: ReorderResult) => {
+      // result: { itemId, afterItemId, beforeItemId, oldIndex, newIndex }
+      // CRUD の reorder(id, afterItemId) / useReorder<Domain> にそのまま接続できる
+    },
+  }}
+/>
+```
+
+呼び出し側の定石は「楽観的更新 + 失敗時ロールバック」（`Admin__Domain__Sort` テンプレートと同じ）:
+
+```tsx
+const handleReorder = async (result: ReorderResult) => {
+  const previous = items;
+  setItems((prev) => {
+    const next = [...prev];
+    const [moved] = next.splice(result.oldIndex, 1);
+    next.splice(result.newIndex, 0, moved);
+    return next;
+  });
+  try {
+    await sampleClient.reorder?.(result.itemId, result.afterItemId);
+  } catch {
+    setItems(previous); // ロールバック
+  }
+};
+```
+
+### グループ内の並び替え（getGroup）
+
+「グループ → sort_order」順で表示しているテーブルで、グループ内に限定した並び替えができる。
+
+```tsx
+reorderable={{
+  onReorder: handleReorder,
+  getGroup: (item) => item.categoryId,
+}}
+```
+
+- グループを跨ぐドロップは**キャンセル**される（所属変更は並び替えではなく update の責務）
+- `afterItemId` は**同一グループ内の直前レコード**に正規化される。グループ先頭への移動は `afterItemId: null`
+- CRUD の reorder は Fractional Indexing のため、この正規化された値をそのまま渡せばグループ内順序が正しく保存される（sort_order キーはグループ内でしか比較されないため、グローバル先頭挿入 = グループ先頭挿入として成立する）
+- グループの区切り表示には `fullWidthRows` が使える（もともと並び替え対象外）
+
+### オプション
+
+| キー | 説明 |
+|---|---|
+| `onReorder(result)` | 並び替え確定時のコールバック（必須） |
+| `getGroup(item)` | グループ判定。指定するとグループ内限定の並び替えになる |
+| `disabled` | ドラッグ全体を無効化（ハンドル列は薄表示で残る） |
+| `isItemDisabled(item)` | 行単位でドラッグを無効化 |
+
+### 制約・注意
+
+- **getKey 必須**: reorderable 使用時は安定したレコードIDを返す `getKey` を必ず指定する（index フォールバックは並び替えに使えない）
+- **カラムソートと排他**: `sort` 適用中は表示順と保存順が一致しないため、ハンドルが自動で無効化される（title で理由を表示）
+- **ページネーション**: afterItemId 方式なのでページ内のドラッグは正しく保存されるが、ページ境界を越える移動はできない。本格的な並び替え運用は searchForSorting + 専用ソート画面を推奨
+- **SortableList との使い分け**: 大量件数の専用ソート画面 → `@/lib/sortableList`（仮想スクロールあり）／既存の一覧テーブルに並び替えを足したい → tableSuite `reorderable`
+
 ## 共通Props
 
 ### スタイリング

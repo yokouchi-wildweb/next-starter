@@ -51,7 +51,12 @@ export type {
   SortDirection,
   SortState,
   ColumnSortProps,
+  ReorderableConfig,
+  RowReorderProps,
 } from "./types";
+
+// 行並び替え（reorderable）の結果型。CRUD の reorder(id, afterItemId) にそのまま接続できる
+export type { ReorderResult } from "@/lib/sortableList";
 export {
   ROW_HEIGHT_CLASS,
   PADDING_X_CLASS,

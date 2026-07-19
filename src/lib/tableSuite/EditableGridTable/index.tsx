@@ -15,6 +15,10 @@ import {
   SortableTableHead,
   TableRow,
   renderColumnHeader,
+  TableReorderProvider,
+  ReorderableRow,
+  DragHandleHead,
+  useTableReorder,
 } from "../shared";
 import { resolveColumnTextAlignClass, resolveRowClassName, ROW_HEIGHT_CLASS } from "../types";
 import type { EditableGridColumn, EditableGridTableProps } from "./types";
@@ -46,6 +50,7 @@ export default function EditableGridTable<T>({
   disableRowHover = false,
   sort,
   onSortChange,
+  reorderable,
 }: EditableGridTableProps<T>) {
   const keyedRows = React.useMemo<KeyedRow<T>[]>(
     () =>
@@ -102,15 +107,23 @@ export default function EditableGridTable<T>({
   const resolvedMaxHeight = maxHeight ?? "70vh";
   const rowHeightClass = ROW_HEIGHT_CLASS[rowHeight];
 
+  const reorder = useTableReorder({ items, getKey, reorderable, sort });
+
   return (
     <div
       className={cn("w-full max-w-full overflow-x-auto overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
       ref={scrollContainerRef}
     >
+      <TableReorderProvider
+        active={reorder.active}
+        sortableIds={reorder.sortableIds}
+        onDragEnd={reorder.handleDragEnd}
+      >
       <Table variant="list" tableLayout={tableLayout}>
         <TableHeader>
           <TableRow disableHover>
+            {reorder.enabled && <DragHandleHead />}
             {columns.map((column) => (
               <SortableTableHead
                 key={column.field}
@@ -128,8 +141,11 @@ export default function EditableGridTable<T>({
         </TableHeader>
         <TableBody>
           {keyedRows.map(({ row, rowKey }, displayIndex) => (
-            <TableRow
+            <ReorderableRow
               key={rowKey}
+              reorder={reorder}
+              item={row}
+              rowId={reorder.ids[displayIndex]}
               className={cn(
                 "group",
                 rowHeightClass,
@@ -157,10 +173,11 @@ export default function EditableGridTable<T>({
                   }
                 />
               ))}
-            </TableRow>
+            </ReorderableRow>
           ))}
         </TableBody>
       </Table>
+      </TableReorderProvider>
       {bottomSentinelRef ? (
         <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
       ) : null}

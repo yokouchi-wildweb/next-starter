@@ -17,6 +17,10 @@ import {
   getCellClickOverlayClassName,
   renderColumnHeader,
   FullWidthRowsAt,
+  TableReorderProvider,
+  ReorderableRow,
+  DragHandleHead,
+  useTableReorder,
 } from "../shared";
 import type { DataTableProps } from "../DataTable";
 import {
@@ -92,6 +96,7 @@ export default function RecordSelectionTable<T>({
   fullWidthRows,
   sort,
   onSortChange,
+  reorderable,
 }: RecordSelectionTableProps<T>) {
   const resolvedFallback = emptyValueFallback ?? "(未設定)";
   const renderCellContent = (content: React.ReactNode) => {
@@ -137,8 +142,10 @@ export default function RecordSelectionTable<T>({
     () => groupFullWidthRowsByIndex(fullWidthRows, items.length),
     [fullWidthRows, items.length],
   );
-  // 選択列を含めた全カラムを結合して描画する
-  const fullWidthColSpan = columns.length + 1;
+
+  const reorder = useTableReorder({ items, getKey, reorderable, sort });
+  // 選択列（+ ハンドル列）を含めた全カラムを結合して描画する
+  const fullWidthColSpan = columns.length + 1 + (reorder.enabled ? 1 : 0);
 
   // 一括操作バー用のselectionオブジェクトを作成
   const bulkActionSelection = React.useMemo<BulkActionSelection<T>>(() => {
@@ -173,9 +180,15 @@ export default function RecordSelectionTable<T>({
         style={{ maxHeight: resolvedMaxHeight }}
         ref={scrollContainerRef}
       >
+        <TableReorderProvider
+          active={reorder.active}
+          sortableIds={reorder.sortableIds}
+          onDragEnd={reorder.handleDragEnd}
+        >
         <Table variant="list">
           <TableHeader>
             <TableRow disableHover>
+              {reorder.enabled && <DragHandleHead />}
               <SelectionHeaderCell
                 label={resolvedSelectColumnLabel}
                 isCheckboxSelection={isCheckboxSelection}
@@ -210,7 +223,10 @@ export default function RecordSelectionTable<T>({
 
               return (
                 <React.Fragment key={key}>
-                <TableRow
+                <ReorderableRow
+                  reorder={reorder}
+                  item={item}
+                  rowId={reorder.ids[itemIndex]}
                   className={cn(
                     "group",
                     rowHeightClass,
@@ -278,13 +294,14 @@ export default function RecordSelectionTable<T>({
                         })()}
                     </TableCell>
                   ))}
-                </TableRow>
+                </ReorderableRow>
                 <FullWidthRowsAt rowsByIndex={fullWidthRowsByIndex} index={itemIndex} colSpan={fullWidthColSpan} />
                 </React.Fragment>
               );
             })}
           </TableBody>
         </Table>
+        </TableReorderProvider>
         {bottomSentinelRef ? (
           <div ref={bottomSentinelRef} aria-hidden="true" className="h-px w-full" />
         ) : null}
