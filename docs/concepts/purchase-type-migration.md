@@ -517,7 +517,7 @@ await initiatePurchase({
 任意のスケジューラから:
 
 ```bash
-pnpm cron expire-pending-purchases
+pnpm task expire-pending-purchases
 ```
 
 詳細なセットアップ例は `docs/reference/cron-tasks.md` を参照。

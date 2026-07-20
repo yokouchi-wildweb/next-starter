@@ -128,7 +128,7 @@ emergency_stop: AUDIT_MODE=disabled → all audit no-op
 user_visibility: GET /api/me/audit-logs is fail-closed — returns ONLY actions allow-listed in src/registry/userVisibleAuditActionsRegistry.ts (USER_VISIBLE_AUDIT_ACTIONS, upstream default empty = always empty results). exact name or "prefix.*" | covert admin actions stay invisible to the target user by default | admin routes/AuditTimeline unaffected
 non_http_context: runAsSystem(fn) | runWithAuditContext(ctx, fn)
 ui: \<AuditTimeline targetType targetId /\> | /admin/audit-logs cross-search | registerActionLabels({...}) for i18n
-cron: pnpm cron audit-log-prune (0 3 * * *) | pnpm cron audit-log-recover-dead-letter (0 * * * *)
+cron: pnpm task audit-log-prune (0 3 * * *) | pnpm task audit-log-recover-dead-letter (0 * * * *)
 ref: docs/how-to/監査ログ採用ガイド.md
 
 ## COUNTING (which primitive — check BEFORE building any count/tracking feature)
@@ -151,14 +151,15 @@ config: src/config/app/user-name.config.ts (maxLength + unique.enabled default f
 unique: app-layer check (user/services/server/helpers/nameAvailability.ts), NOT db unique constraint (late-enable + soft-delete + normalization reasons) | scope: deleted_at IS NULL AND is_demo=false | TOCTOU race closed via pg_advisory_xact_lock (withUserNameGuard wraps check+write in one tx, pass tx to base.create/update/restore) | lookup index: users_name_norm_idx lower(btrim(name)) (non-unique, always-on) | violation → DomainError 409 | bulk: isUserNamesTaken(names[]) → Set<taken inputs> (single query, same semantics)
 reserved_names: src/registry/reservedUserNamesRegistry.ts (downstream registers ReservedUserNameProvider, upstream ships empty) — non-user names (bots/NPC/synthetic entries/reserved words like 運営・admin) join the uniqueness check + suffix allocation avoids them | provider contract: filterReserved(normalizedNames)→reserved subset, fast local DB reads ONLY (runs inside advisory-lock tx), normalization = normalizeUserNameForComparison
 write points wired: registration/activate, wrappers/update (name change only), console/createGeneralUser+createAdmin+restore, wrappers/restore (generic /[id]/restore: collision → auto-suffix "name_2", not blocked)
-enable flow: unique.enabled=true deploy → pnpm cron user-name-dedup -- --dry-run → pnpm cron user-name-dedup (one-shot, idempotent, oldest keeps name) | ref: src/features/core/user/README.md
+enable flow: unique.enabled=true deploy → pnpm task user-name-dedup -- --dry-run → pnpm task user-name-dedup (one-shot, idempotent, oldest keeps name) | ref: src/features/core/user/README.md
 
 ## USER_STATUS_HISTORY (withdraw/pause/ban timing aggregation)
-user_status_histories: all users.status transitions, permanent (no prune), always-on | write: recordStatusTransition (user/services/server/statusHistory.ts) — MANDATORY when adding any status-writing code (from===to auto-skips) | agg: withdrawals/day = to_status='withdrawn' GROUP BY changed_at, exclude demo via users JOIN | backfill: pnpm cron user-status-history-backfill (one-shot, idempotent, restores from audit_logs within retention) | audit_logs reuse for aggregation prohibited | ref: src/features/core/user/README.md
+user_status_histories: all users.status transitions, permanent (no prune), always-on | write: recordStatusTransition (user/services/server/statusHistory.ts) — MANDATORY when adding any status-writing code (from===to auto-skips) | agg: withdrawals/day = to_status='withdrawn' GROUP BY changed_at, exclude demo via users JOIN | backfill: pnpm task user-status-history-backfill (one-shot, idempotent, restores from audit_logs within retention) | audit_logs reuse for aggregation prohibited | ref: src/features/core/user/README.md
 
-## CRON_TASKS
-scheduler not built-in: downstream copies vercel.json.example → Vercel auto-runs | new task = wire ALL 4: api/cron route + run.ts TASKS + vercel.json.example + docs/reference/cron-tasks.md
-one-shot migration task (e.g. wallet-lots-init): run.ts only, never scheduled | design: idempotent, batched+SKIP LOCKED, no-op unless opted-in | ref: src/lib/cron/README.md
+## OPS_TASKS (task runner + cron)
+runner: pnpm task \<name\> (scripts/tasks/run.ts) = unified CLI for ALL ops tasks — scheduled (cron) AND one-shot (backfill/migration). one-shot DB ops go HERE, not ad-hoc scripts
+scheduler not built-in: downstream copies vercel.json.example → Vercel auto-runs /api/cron/* | new scheduled task = wire ALL 4: api/cron route + scripts/tasks/run.ts TASKS + vercel.json.example + docs/reference/cron-tasks.md
+one-shot migration task (e.g. wallet-lots-init): TASKS entry only, never scheduled | design: idempotent, batched+SKIP LOCKED, no-op unless opted-in | ref: src/lib/cron/README.md
 
 ## ANALYTICS_PERF (heavy dashboard reads — check BEFORE adding per-domain caching/snapshot tables)
 cache: withAnalyticsCache({key,range}, fn) — closed(past-only) range=12h TTL, includes today=60s, auto-judged | per-instance memory | NOT immutable: call invalidateAnalyticsCache() after rewriting closed buckets | escape: ANALYTICS_CACHE=disabled

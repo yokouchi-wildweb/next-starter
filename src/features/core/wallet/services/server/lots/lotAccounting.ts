@@ -25,7 +25,7 @@ import type { TransactionClient } from "@/lib/drizzle/transaction";
 /** ロット合計と残高の不整合（初期化漏れ等）を検知した際の共通エラー */
 function lotMismatchError(walletIds: string[]): DomainError {
   return new DomainError(
-    `ウォレットロットが残高と一致しません。有効期限の初期化（pnpm cron wallet-lots-init）が未実行の可能性があります。(walletIds: ${walletIds.join(", ")})`,
+    `ウォレットロットが残高と一致しません。有効期限の初期化（pnpm task wallet-lots-init）が未実行の可能性があります。(walletIds: ${walletIds.join(", ")})`,
     { status: 500 },
   );
 }

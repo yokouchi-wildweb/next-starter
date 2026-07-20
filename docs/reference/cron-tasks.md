@@ -5,7 +5,7 @@
 ## 基本設計
 
 - API ルート: `src/app/api/cron/<task-name>/route.ts`
-- CLI: `pnpm cron <task-name>`
+- CLI: `pnpm task <task-name>`
 - 認証: `Authorization: Bearer ${CRON_SECRET}` （development はバイパス）
 - レスポンス: `{ ok: true, ...result }` or `{ ok: false, error }`
 - ログ: stdout に JSON 構造化ログ
@@ -22,7 +22,7 @@
 `onExpire` フックを定義した purchase_type では副次テーブルの atomic クリーンアップも同時に実行される。
 
 - **API**: `GET /api/cron/expire-pending-purchases`
-- **CLI**: `pnpm cron expire-pending-purchases`
+- **CLI**: `pnpm task expire-pending-purchases`
 - **推奨スケジュール**: `*/15 * * * *` （15分間隔）
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "expired": 12 }`
@@ -32,7 +32,7 @@
 `audit_logs` テーブルの retention_days を超過した行をバッチ削除する。各ドメインが記録した監査ログを行単位 retention に基づいて整理する。`SKIP LOCKED` でバッチ反復するため書き込み tx を長時間ブロックしない。
 
 - **API**: `GET /api/cron/audit-log-prune`
-- **CLI**: `pnpm cron audit-log-prune`
+- **CLI**: `pnpm task audit-log-prune`
 - **推奨スケジュール**: `0 3 * * *` （日次・深夜帯）
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "deletedCount": 3200, "iterations": 4, "truncated": false }`
@@ -42,7 +42,7 @@
 `audit_logs_failed` （bestEffort 記録の dead-letter 退避先）に溜まった行を再 insert する。書き込み失敗が一過性（DB 一時障害等）の場合に救済する。永続失敗は別途運用判断で手動対処。
 
 - **API**: `GET /api/cron/audit-log-recover-dead-letter`
-- **CLI**: `pnpm cron audit-log-recover-dead-letter`
+- **CLI**: `pnpm task audit-log-recover-dead-letter`
 - **推奨スケジュール**: `0 * * * *` （毎時）
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "recovered": 5, "remaining": 0 }`
@@ -52,7 +52,7 @@
 `user_login_events` テーブルの retention_days を超過した行をバッチ削除する。IP 横断検索用の正規化テーブルで、件数増加が早いため日次プルーニングを推奨。
 
 - **API**: `GET /api/cron/user-login-event-prune`
-- **CLI**: `pnpm cron user-login-event-prune`
+- **CLI**: `pnpm task user-login-event-prune`
 - **推奨スケジュール**: `0 4 * * *` （日次・深夜帯。`audit-log-prune` と時刻を被らせない）
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "deletedCount": 1500, "iterations": 2, "truncated": false }`
@@ -64,7 +64,7 @@
 未設定（デフォルト）なら即終了の no-op。登録したままでも害はない。冪等・再実行安全。
 
 - **API**: `GET /api/cron/wallet-expire-lots`
-- **CLI**: `pnpm cron wallet-expire-lots`
+- **CLI**: `pnpm task wallet-expire-lots`
 - **推奨スケジュール**: `30 4 * * *` （日次・深夜帯）
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "sweptWallets": 120, "expiredAmount": 45000, "iterations": 1, "truncated": false }`
@@ -77,15 +77,15 @@
 機能未使用なら削除対象が存在せず no-op。
 
 - **API**: `GET /api/cron/wallet-lots-prune`
-- **CLI**: `pnpm cron wallet-lots-prune`
+- **CLI**: `pnpm task wallet-lots-prune`
 - **推奨スケジュール**: `45 4 * * *` （日次・深夜帯。`wallet-expire-lots` の後）
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "deletedCount": 8000, "iterations": 8, "truncated": false }`
 
-> **Note**: `pnpm cron wallet-lots-init` は cron ランナーに登録されているが**定期実行してはいけない**
+> **Note**: `pnpm task wallet-lots-init` はタスクランナーに登録されているが**定期実行してはいけない**
 > （ウォレット有効期限の導入時に1回だけ手動実行するデータ移行。再実行は全ユーザーの失効カウントをリセットする）。
 
-> **Note**: `pnpm cron user-name-dedup` も one-shot タスクで**定期実行しない**
+> **Note**: `pnpm task user-name-dedup` も one-shot タスクで**定期実行しない**
 > （表示名の一意性 `USER_NAME_CONFIG.unique` を有効化する際に1回だけ実行し、既存の重複表示名へ
 > サフィックスを付与して解消する。冪等なので再実行は安全。`-- --dry-run` で対象の事前確認が可能。
 > 詳細: `src/features/core/user/README.md` の「表示名（バリデーションと一意性）」）。
@@ -115,11 +115,11 @@
 
 ### CLI（Vercel 以外の環境）
 
-`package.json` の `pnpm cron` コマンドを任意のスケジューラから呼ぶ。
+`package.json` の `pnpm task` コマンドを任意のスケジューラから呼ぶ。
 
 **Docker + cron:**
 ```cron
-*/15 * * * * cd /app && pnpm cron expire-pending-purchases
+*/15 * * * * cd /app && pnpm task expire-pending-purchases
 ```
 
 **Kubernetes CronJob:**
@@ -133,7 +133,7 @@ spec:
           containers:
           - name: expire-pending
             image: myapp:latest
-            command: ["pnpm", "cron", "expire-pending-purchases"]
+            command: ["pnpm", "task", "expire-pending-purchases"]
 ```
 
 **GitHub Actions:**
@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pnpm install && pnpm cron expire-pending-purchases
+      - run: pnpm install && pnpm task expire-pending-purchases
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 ```
@@ -154,7 +154,7 @@ jobs:
 ### 登録タスク確認
 
 ```bash
-pnpm cron --list
+pnpm task --list
 ```
 
 ---

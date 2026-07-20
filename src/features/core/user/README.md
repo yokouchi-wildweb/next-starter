@@ -269,8 +269,8 @@ export const RESERVED_USER_NAME_PROVIDERS: readonly ReservedUserNameProvider[] =
 ### 有効化手順（運用途中の切り替え）
 
 1. `unique.enabled: true` に変更してデプロイ（以後の新規書き込みから検証開始）
-2. 既存の重複を確認: `pnpm cron user-name-dedup -- --dry-run`
-3. 既存の重複を解消: `pnpm cron user-name-dedup`
+2. 既存の重複を確認: `pnpm task user-name-dedup -- --dry-run`
+3. 既存の重複を解消: `pnpm task user-name-dedup`
    - 各グループで `createdAt` 最古のユーザーが元の名前を保持し、他は「名前_2」「名前_3」…に自動リネーム
    - リネームは `base.update` 経由のため audit_logs に記録される
    - 冪等・one-shot（定期実行しない）
@@ -446,7 +446,7 @@ const rows = await db
 導入時に1回だけ実行（冪等・再実行安全）:
 
 ```bash
-pnpm cron user-status-history-backfill
+pnpm task user-status-history-backfill
 ```
 
 audit_logs に残っている `user.withdrew` / `user.status.changed` 等から復元する。監査ログの保持期限を過ぎて prune 済みの遷移は復元不可。

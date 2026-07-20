@@ -17,7 +17,7 @@
  *
  * 有効化手順 (詳細: src/features/core/user/README.md):
  * 1. unique.enabled を true に変更してデプロイ
- * 2. 既存の重複を解消: pnpm cron user-name-dedup -- --dry-run で確認 → dry-run なしで実行
+ * 2. 既存の重複を解消: pnpm task user-name-dedup -- --dry-run で確認 → dry-run なしで実行
  */
 export const USER_NAME_CONFIG = {
   /** 表示名の最大文字数 (サービス内での表示崩れ防止。露出面のデザインに合わせて調整可) */

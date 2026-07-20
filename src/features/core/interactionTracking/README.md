@@ -176,7 +176,7 @@ UI 実装時の注意（表示側で必ず考慮すること）:
 
 ### 6. cron の配線
 
-- CLI: `pnpm cron interaction-event-prune`
+- CLI: `pnpm task interaction-event-prune`
 - HTTP: `GET /api/cron/interaction-event-prune`（Bearer `CRON_SECRET`）
 - 推奨スケジュール: `30 3 * * *`（1 日 1 回・深夜帯）
 - 削除対象は**明細のみ**。累計・日次集計は消えない

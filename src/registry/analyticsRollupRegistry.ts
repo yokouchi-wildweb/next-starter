@@ -2,8 +2,8 @@
 // 日次メトリクス事前集計（ロールアップ）のメトリクスレジストリ。
 //
 // ここに登録された RollupMetricConfig が以下の対象になる:
-//  - 日次 cron: pnpm cron analytics-rollup-daily（昨日 + 直近ギャップの自己修復）
-//  - バックフィル: pnpm cron analytics-rollup-backfill -- <metricKey> [--from --to]
+//  - 日次 cron: pnpm task analytics-rollup-daily（昨日 + 直近ギャップの自己修復）
+//  - バックフィル: pnpm task analytics-rollup-backfill -- <metricKey> [--from --to]
 //  - 読み取り: readRolledDailySeries（確定日 = ロールアップ、当日 = ライブ計算をマージ）
 //
 // 設計思想:
@@ -16,7 +16,7 @@
 //   1. src/features/<domain>/analytics/rollup/<name>.ts に RollupMetricConfig を定義する
 //      （集計除外の適用は compute 内部の責務）
 //   2. このファイルにインポートと配列追加を 1 行ずつ加える
-//   3. バックフィルを実行する: pnpm cron analytics-rollup-backfill -- <metricKey>
+//   3. バックフィルを実行する: pnpm task analytics-rollup-backfill -- <metricKey>
 //
 // 詳細な実装ガイドは src/features/core/analytics/README.md の
 // 「日次ロールアップ（事前集計）フレームワーク」セクションを参照。

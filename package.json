@@ -45,7 +45,7 @@
     "gradient:gen": "npx tsx scripts/styles/generate-gradient-css.ts",
     "claude:test": "cross-env APP_ENV=.env.development npx tsx scripts/test-claude-api.ts",
     "storage:setup-cors": "cross-env APP_ENV=.env.development npx tsx scripts/storage/setup-cors.ts",
-    "cron": "cross-env APP_ENV=.env.development npx tsx scripts/cron/run.ts"
+    "task": "cross-env APP_ENV=.env.development npx tsx scripts/tasks/run.ts"
   },
   "engines": {
     "node": "24"

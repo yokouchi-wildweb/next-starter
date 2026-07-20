@@ -130,7 +130,7 @@ await db.transaction(async (tx) => {
 
 ## cron（日次カウンタの prune）
 
-- CLI: `pnpm cron user-daily-counter-prune`
+- CLI: `pnpm task user-daily-counter-prune`
 - HTTP: `GET /api/cron/user-daily-counter-prune`（Bearer `CRON_SECRET`）
 - 推奨スケジュール: `45 3 * * *`（1 日 1 回・深夜帯）
 - 削除対象は**日次行のみ**。累計（user_counters）は消えない

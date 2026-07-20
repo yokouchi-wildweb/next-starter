@@ -1,26 +1,28 @@
 #!/usr/bin/env tsx
-// scripts/cron/run.ts
-// cron タスクを CLI から実行するための統合ランナー
+// scripts/tasks/run.ts
+// 運用タスクを CLI から実行するための統合ランナー
+// 定期実行（cron）タスクと、バックフィル・データ移行などのワンショットタスクの両方を扱う。
 //
 // 使い方:
-//   pnpm cron <task-name>
-//   pnpm cron expire-pending-purchases
-//   pnpm cron --list            # 登録済みタスク一覧
+//   pnpm task <task-name>
+//   pnpm task expire-pending-purchases
+//   pnpm task --list            # 登録済みタスク一覧
 //
 // Vercel 以外のホスティング（Docker / AWS / オンプレ）では、
 // 各社スケジューラ（EventBridge / Kubernetes CronJob / 自前 cron）
 // から直接このスクリプトを叩く構成が可能。
 //
-// 新しい cron タスクを追加する場合は、下記 TASKS マップにエントリを追加するだけ。
-// API ルート (src/app/api/cron/*) と CLI を同じビジネスロジック関数に接続すること。
+// 新しいタスクを追加する場合は、下記 TASKS マップにエントリを追加するだけ。
+// 定期実行するタスクは API ルート (src/app/api/cron/*) と CLI を
+// 同じビジネスロジック関数に接続すること。ワンショットタスクは TASKS のみでよい。
 
-type CronTask = () => Promise<Record<string, unknown>>;
+type TaskFn = () => Promise<Record<string, unknown>>;
 
 /**
- * 登録済み cron タスク
- * ここに追加 = pnpm cron <name> で実行可能になる
+ * 登録済み運用タスク
+ * ここに追加 = pnpm task <name> で実行可能になる
  */
-const TASKS: Record<string, CronTask> = {
+const TASKS: Record<string, TaskFn> = {
   "expire-pending-purchases": async () => {
     const { expirePendingRequests } = await import(
       "@/features/core/purchaseRequest/services/server/wrappers/purchaseService"
@@ -71,7 +73,7 @@ const TASKS: Record<string, CronTask> = {
     );
     return await runDailyRollup();
   },
-  // 使い方: pnpm cron analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+  // 使い方: pnpm task analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]
   "analytics-rollup-backfill": async () => {
     const { backfillRollup } = await import(
       "@/features/core/analytics/services/server/rollup"
@@ -81,7 +83,7 @@ const TASKS: Record<string, CronTask> = {
     const metricKey = args[0];
     if (!metricKey || metricKey.startsWith("--")) {
       throw new Error(
-        "使い方: pnpm cron analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]",
+        "使い方: pnpm task analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]",
       );
     }
     const readFlag = (name: string): string | undefined => {
@@ -122,7 +124,7 @@ const TASKS: Record<string, CronTask> = {
   },
   // 表示名の一意性 (USER_NAME_CONFIG.unique) 有効化時に1回だけ実行する既存重複の解消
   // （定期実行しない。冪等なので再実行は安全）
-  // 使い方: pnpm cron user-name-dedup -- --dry-run で対象確認 → dry-run なしで実行
+  // 使い方: pnpm task user-name-dedup -- --dry-run で対象確認 → dry-run なしで実行
   "user-name-dedup": async () => {
     const { dedupUserNames } = await import(
       "@/features/core/user/services/server/nameDedup"
@@ -137,12 +139,12 @@ async function main() {
   const taskName = process.argv[2];
 
   if (!taskName || taskName === "--list" || taskName === "-l") {
-    console.log("Available cron tasks:");
+    console.log("Available tasks:");
     for (const name of Object.keys(TASKS)) {
       console.log(`  - ${name}`);
     }
     if (!taskName) {
-      console.log("\nUsage: pnpm cron <task-name>");
+      console.log("\nUsage: pnpm task <task-name>");
       process.exit(1);
     }
     return;
@@ -160,14 +162,14 @@ async function main() {
     const result = await task();
     const durationMs = Date.now() - startedAt;
     console.log(
-      JSON.stringify({ level: "info", scope: "cron-cli", task: taskName, ok: true, durationMs, ...result }),
+      JSON.stringify({ level: "info", scope: "task-cli", task: taskName, ok: true, durationMs, ...result }),
     );
     process.exit(0);
   } catch (error) {
     const durationMs = Date.now() - startedAt;
     const message = error instanceof Error ? error.message : String(error);
     console.error(
-      JSON.stringify({ level: "error", scope: "cron-cli", task: taskName, ok: false, durationMs, error: message }),
+      JSON.stringify({ level: "error", scope: "task-cli", task: taskName, ok: false, durationMs, error: message }),
     );
     process.exit(1);
   }

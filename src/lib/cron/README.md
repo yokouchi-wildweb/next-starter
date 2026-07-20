@@ -2,6 +2,11 @@
 
 `/api/cron/*` 配下の定期タスク用 API ルートと、CLI からも同じタスクを呼ぶための共通基盤。
 
+CLI 側のランナーは `pnpm task <task-name>`（`scripts/tasks/run.ts`）。この統合ランナーは
+定期実行（cron）タスクだけでなく、バックフィル・データ移行などの**ワンショット運用タスク**も扱う。
+ワンショットタスクは下記手順のうち「2. CLI エントリ」のみを配線し、
+API ルートとスケジュール登録は行わない（定期実行されてはいけないため）。
+
 ## 構成
 
 - `auth.ts` — 共通認証（`CRON_SECRET` の Bearer 検証）
@@ -28,7 +33,7 @@ export const GET = createCronRoute({
 
 ### 2. CLI エントリ
 
-`scripts/cron/run.ts` の TASKS に追加:
+`scripts/tasks/run.ts` の TASKS に追加:
 
 ```ts
 const TASKS: Record<string, () => Promise<unknown>> = {

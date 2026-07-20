@@ -7,7 +7,7 @@
 //
 // [!!] 有効化手順（必ず順番に実行すること）:
 //   1. 対象通貨の expirationDays に日数を設定（例: 180）
-//   2. `pnpm cron wallet-lots-init` を1回実行
+//   2. `pnpm task wallet-lots-init` を1回実行
 //      （既存残高を「実行日取得扱い」の初期ロット1本に変換する。これを忘れると消費時にエラーになる）
 //   3. スケジューラに wallet-expire-lots を登録（推奨: 日次深夜帯）
 // 詳細: src/features/core/wallet/README.md
