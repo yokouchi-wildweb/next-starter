@@ -46,6 +46,16 @@ export const toggleOptionValue = (
 };
 
 /**
+ * cmdk CommandItem のアイデンティティ用文字列（key / value 共用）。
+ * cmdk は value をアイテムの同一性判定に使うため、ラベルではなく選択肢の値ベースで
+ * 一意にする（ラベル重複時にハイライト・キーボード操作が同名行と衝突しないように）。
+ * 値が null/undefined で空文字になる場合は index でフォールバック。
+ */
+export const resolveOptionItemIdentity = (option: Options, index: number) => {
+  return serializeOptionValue(option.value) || `option-${index}`;
+};
+
+/**
  * Command検索用の文字列。label が文字列でない場合は value をフォールバックに使う。
  */
 export const resolveOptionSearchText = (option: Options) => {

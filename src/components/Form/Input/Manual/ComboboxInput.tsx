@@ -19,6 +19,7 @@ import {
 } from "@/components/Overlays/Popover/PopoverPrimitives";
 import { Button } from "@/components/Form/Button/Button";
 import {
+  resolveOptionItemIdentity,
   resolveOptionSearchText,
   serializeOptionValue,
   type OptionPrimitive,
@@ -161,17 +162,17 @@ export function ComboboxInput({
               <CommandEmpty>{emptyMessage}</CommandEmpty>
               {options.map((option, index) => {
                 const serialized = serializeOptionValue(option.value);
-                const key = serialized || `option-${index}`;
+                const identity = resolveOptionItemIdentity(option, index);
                 const isSelected =
                   value !== null &&
                   value !== undefined &&
                   serializeOptionValue(value) === serialized;
-                const searchValue = resolveOptionSearchText(option);
 
                 return (
                   <CommandItem
-                    key={key}
-                    value={searchValue}
+                    key={identity}
+                    value={identity}
+                    keywords={[resolveOptionSearchText(option)]}
                     onSelect={() => handleSelect(option.value)}
                     className="cursor-pointer"
                   >

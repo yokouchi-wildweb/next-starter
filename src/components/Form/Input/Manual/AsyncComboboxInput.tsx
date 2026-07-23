@@ -39,7 +39,7 @@ import { Button } from "@/components/Form/Button/Button";
 import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
 import {
   serializeOptionValue,
-  resolveOptionSearchText,
+  resolveOptionItemIdentity,
   type OptionPrimitive,
 } from "@/components/Form/utils";
 import { type Options } from "@/components/Form/types";
@@ -489,12 +489,11 @@ export function AsyncComboboxInput<T>({
     return (
       <>
         {listItems.map((option, index) => {
-          const serialized = serializeOptionValue(option.value);
-          const key = serialized || `option-${index}`;
+          const identity = resolveOptionItemIdentity(option, index);
           return (
             <CommandItem
-              key={key}
-              value={resolveOptionSearchText(option)}
+              key={identity}
+              value={identity}
               onSelect={() => handleSelect(option.value)}
               className="cursor-pointer"
             >

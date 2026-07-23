@@ -6,8 +6,7 @@ import { Checkbox } from "@/components/_shadcn/checkbox";
 import { CommandItem, CommandList } from "@/components/_shadcn/command";
 import {
   includesOptionValue,
-  resolveOptionSearchText,
-  serializeOptionValue,
+  resolveOptionItemIdentity,
   type OptionPrimitive,
 } from "@/components/Form/utils";
 import { type Options } from "@/components/Form/types";
@@ -43,16 +42,14 @@ export function AsyncMultiSelectOptionList({
       onScroll={onScroll}
     >
       {options.map((option, index) => {
-        const serialized = serializeOptionValue(option.value);
-        const key = serialized || `option-${index}`;
+        const identity = resolveOptionItemIdentity(option, index);
         const selected = includesOptionValue(selectedValues, option.value);
         const handleToggle = () => onToggle(option.value);
-        const searchValue = resolveOptionSearchText(option);
 
         return (
           <CommandItem
-            key={key}
-            value={searchValue}
+            key={identity}
+            value={identity}
             onSelect={handleToggle}
             className="cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
           >

@@ -4,8 +4,8 @@ import { Checkbox } from "@/components/_shadcn/checkbox";
 import { CommandEmpty, CommandItem, CommandList } from "@/components/_shadcn/command";
 import {
   includesOptionValue,
+  resolveOptionItemIdentity,
   resolveOptionSearchText,
-  serializeOptionValue,
   type OptionPrimitive,
 } from "@/components/Form/utils";
 import { type Options } from "@/components/Form/types";
@@ -27,16 +27,15 @@ export function MultiSelectOptionList({
     <CommandList className="max-h-60 flex flex-col gap-1 p-1">
       <CommandEmpty>{emptyMessage ?? "該当する項目がありません"}</CommandEmpty>
       {options.map((option, index) => {
-        const serialized = serializeOptionValue(option.value);
-        const key = serialized || `option-${index}`;
+        const identity = resolveOptionItemIdentity(option, index);
         const selected = includesOptionValue(selectedValues, option.value);
         const handleToggle = () => onToggle(option.value);
-        const searchValue = resolveOptionSearchText(option);
 
         return (
           <CommandItem
-            key={key}
-            value={searchValue}
+            key={identity}
+            value={identity}
+            keywords={[resolveOptionSearchText(option)]}
             onSelect={handleToggle}
             className="cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
           >
