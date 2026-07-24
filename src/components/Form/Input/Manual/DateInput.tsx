@@ -2,6 +2,8 @@
 //
 // 日付入力コンポーネント。
 // - テキスト直入力・ペースト対応（空白/スラッシュ/ドット/和文など広めに受理）
+// - 直接入力は厳密パースが成立した時点で即 onValueChange（blur を待たない）。
+//   blur は従来どおり表示の正規化と invalid 判定を担う
 // - 右側アイコンクリックで Popover に Calendar を表示
 // - 時刻入力がないため確定ボタンは置かず、日付クリック/クリア/現在は
 //   その場で確定して Popover を閉じる（ドラフトを持たない即確定モデル）
@@ -99,8 +101,13 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
   // 制御モードで prop value が外部から変わった時だけローカル表示を追従させる
   if (hasValueProp && value !== prevExternalValue) {
     setPrevExternalValue(value);
-    setRawInput(formatDateValue(value));
-    setIsInvalid(false);
+    // 入力中テキストと意味的に同値（タイピング中の即コミットが value 経由で
+    // 戻ってきたケース）なら表示を上書きせず、入力継続を妨げない
+    const formatted = formatDateValue(value);
+    if (parseFlexibleDate(rawInput) !== formatted) {
+      setRawInput(formatted);
+      setIsInvalid(false);
+    }
   }
 
   const assignRef = useCallback(
@@ -160,8 +167,13 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
         aria-invalid={isInvalid || rest["aria-invalid"]}
         onChange={(event) => {
           onChange?.(event);
-          setRawInput(event.target.value);
+          const next = event.target.value;
+          setRawInput(next);
           if (isInvalid) setIsInvalid(false);
+          // 完全な値として厳密パースできた時点で即コミット（クリア "" も含む）。
+          // 表示の正規化は blur に任せ、入力中の rawInput は書き換えない
+          const parsed = parseFlexibleDate(next);
+          if (parsed !== null) onValueChange?.(parsed);
         }}
         onBlur={(event) => {
           onBlur?.(event);

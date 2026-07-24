@@ -2,6 +2,8 @@
 //
 // 時刻入力コンポーネント。
 // - テキスト直入力・ペースト対応（HH:mm / H:mm / HHmm / 和文等）
+// - 直接入力は厳密パースが成立した時点で即 onValueChange（blur を待たない）。
+//   blur は従来どおり表示の正規化と invalid 判定を担う
 // - 右側アイコンクリックで Popover に TimeFields（時/分の分離数値入力）を表示
 // - 入出力契約: value は TimeLike、onValueChange は "HH:mm" または "" を返す
 //
@@ -113,8 +115,13 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
 
   if (hasValueProp && value !== prevExternalValue) {
     setPrevExternalValue(value);
-    setRawInput(formatTimeValue(value));
-    setIsInvalid(false);
+    // 入力中テキストと意味的に同値（タイピング中の即コミットが value 経由で
+    // 戻ってきたケース）なら表示を上書きせず、入力継続を妨げない
+    const formatted = formatTimeValue(value);
+    if (parseFlexibleTime(rawInput) !== formatted) {
+      setRawInput(formatted);
+      setIsInvalid(false);
+    }
   }
 
   const assignRef = useCallback(
@@ -180,8 +187,13 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>((props, fo
         aria-invalid={isInvalid || rest["aria-invalid"]}
         onChange={(event) => {
           onChange?.(event);
-          setRawInput(event.target.value);
+          const next = event.target.value;
+          setRawInput(next);
           if (isInvalid) setIsInvalid(false);
+          // 完全な値として厳密パースできた時点で即コミット（クリア "" も含む）。
+          // 表示の正規化は blur に任せ、入力中の rawInput は書き換えない
+          const parsed = parseFlexibleTime(next);
+          if (parsed !== null) onValueChange?.(parsed);
         }}
         onBlur={(event) => {
           onBlur?.(event);

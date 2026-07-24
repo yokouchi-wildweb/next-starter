@@ -2,6 +2,8 @@
 //
 // 日時入力コンポーネント。
 // - テキスト直入力・ペースト対応（ISO/和文/各種区切りを広く受理）
+// - 直接入力は厳密パースが成立した時点で即 onValueChange（blur を待たない）。
+//   blur は従来どおり表示の正規化と invalid 判定を担う
 // - 右側アイコンクリックで Popover に Calendar + TimeFields を表示
 // - Popover 内フォーカスフロー: 日付クリック → 時（全選択）→ 分 → 確定ボタン
 //   （時/分は数字の連続入力で自動遷移。詳細は TimeFields 参照）
@@ -111,8 +113,13 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
 
     if (hasValueProp && value !== prevExternalValue) {
       setPrevExternalValue(value);
-      setRawInput(formatDatetimeValue(value));
-      setIsInvalid(false);
+      // 入力中テキストと意味的に同値（タイピング中の即コミットが value 経由で
+      // 戻ってきたケース）なら表示を上書きせず、入力継続を妨げない
+      const formatted = formatDatetimeValue(value);
+      if (parseFlexibleDatetime(rawInput) !== formatted) {
+        setRawInput(formatted);
+        setIsInvalid(false);
+      }
     }
 
     const assignRef = useCallback(
@@ -178,8 +185,13 @@ export const DatetimeInput = forwardRef<HTMLInputElement, DatetimeInputProps>(
           aria-invalid={isInvalid || rest["aria-invalid"]}
           onChange={(event) => {
             onChange?.(event);
-            setRawInput(event.target.value);
+            const next = event.target.value;
+            setRawInput(next);
             if (isInvalid) setIsInvalid(false);
+            // 完全な値として厳密パースできた時点で即コミット（クリア "" も含む）。
+            // 表示の正規化は blur に任せ、入力中の rawInput は書き換えない
+            const parsed = parseFlexibleDatetime(next);
+            if (parsed !== null) onValueChange?.(parsed);
           }}
           onBlur={(event) => {
             onBlur?.(event);
