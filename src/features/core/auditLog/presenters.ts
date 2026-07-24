@@ -31,6 +31,10 @@ const DEFAULT_ACTION_LABELS: Record<string, string> = {
   "user.hard_deleted": "物理削除",
   "user.restored": "復元",
 
+  // X アカウント連携（linked は新規連携と付け替えを兼ねる。付け替えは before に旧アカウントが入る）
+  "user.x_profile.linked": "Xアカウント連携",
+  "user.x_profile.unlinked": "Xアカウント連携解除",
+
   // generic CRUD action labels (createCrudService 自動記録分)
   "user.created": "ユーザー作成",
   "user.updated": "ユーザー情報更新",
