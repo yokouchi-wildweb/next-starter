@@ -26,7 +26,9 @@
 - `createReferralFromRedemption(coupon, inviteeUserId, tx?)`: クーポン使用 → referral 作成。冪等（同一 invitee は無視）、自己招待ガード付き
 - `getByInvitee(inviteeUserId, tx?)`: 被招待者の紹介元を取得（active のみ）
 - `getByInviter(inviterUserId, options?, tx?)`: 招待者の紹介一覧。`{ activeOnly?: boolean }` オプション
-- `getInviteCodeListWithCounts(params?)`: 管理画面用。invite型クーポン一覧 + 各発行者の紹介人数を一括集計
+- `getInviteCodeListWithCounts(params?)`: 管理画面用。invite型クーポン一覧 + 各発行者の紹介人数・報酬集計（発動人数 / 合計金額 / 段階別発動数）を単一クエリで集計
+  - `params.sort?: SortState`（`@/lib/tableSuite`）でサーバーサイドソート。キー: `referralCount` | `rewardedReferralCount` | `totalRewardAmount` | `stageRate{i}`（結果 `stages[i]` に対応する段階の発動率）。不明キーは既定ソート（referralCount desc, createdAt desc）にフォールバック
+  - 報酬金額は `referral_rewards.metadata.amount`（数値）を集計する（オプトイン規約。詳細は referralReward README）。段階 = `REFERRAL_REWARD_DEFINITIONS` の各グループの inviter 向け reward_key（upstream は定義が空のため `stages: []` / 集計 0 で無害）
 
 ---
 

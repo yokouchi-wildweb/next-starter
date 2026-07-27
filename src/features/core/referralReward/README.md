@@ -73,6 +73,12 @@ export const REFERRAL_REWARD_DEFINITIONS: Record<string, ReferralRewardGroup> = 
 ハンドラーの型: `(params: { referral, rewardKey, recipientUserId, context?, tx? }) => Promise<Record<string, unknown>>`
 返り値は metadata として referral_rewards.metadata に保存される。
 
+#### metadata.amount 規約（オプトイン）
+
+ハンドラー返り値に `amount`（数値）を含めると、報酬金額として管理画面の招待コード一覧集計
+（referral の `getInviteCodeListWithCounts` → `totalRewardAmount` / `grandTotalRewardAmount`）に合算される。
+含めない場合は単に集計 0 のままで、他の動作に影響はない。数値として解釈できない値は 0 扱い（SQL エラーにはならない）。
+
 ### ヘルパー
 
 - `getRewardKeysByTrigger(trigger)`: トリガー名から該当 reward_key の一覧を取得
