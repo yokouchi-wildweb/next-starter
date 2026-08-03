@@ -457,6 +457,8 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 
 ## Firestore 版との差異
 
+> **機能凍結**: Firestore アダプタは機能凍結済み。下表の制限は仕様として固定し、以後の機能拡張は行わない（理由: `docs/!must-read/バックエンド構成ドクトリン.md`）。
+
 | 機能 | Drizzle | Firestore |
 |------|---------|-----------|
 | belongsToMany | 自動同期 + hydrate | 非対応 |

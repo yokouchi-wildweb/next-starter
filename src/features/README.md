@@ -14,7 +14,7 @@
 | singular | string | 🟢 Yes | ドメイン名単数形（snake_case、例: `sample_category`） |
 | plural | string | 🟢 Yes | ドメイン名複数形（snake_case、例: `sample_categories`） |
 | label | string | 🟢 Yes | 管理画面での表示名（日本語可） |
-| dbEngine | `"Neon"` \| `"Firestore"` | 🟢 Yes | 使用するDB |
+| dbEngine | `"Neon"` \| `"Firestore"` | 🟢 Yes | 使用するDB。原則 `"Neon"`。`"Firestore"` はリアルタイム配信が本質要件のドメインのみ（`docs/!must-read/バックエンド構成ドクトリン.md`） |
 | idType | `"uuid"` \| `"string"` \| `"number"` | 🟢 Yes | 主キーの型 |
 | relations | Relation[] | 🟢 Yes | リレーション定義（空配列可） |
 | useCreatedAt | boolean | 🟢 Yes | createdAt カラムの有無 |
