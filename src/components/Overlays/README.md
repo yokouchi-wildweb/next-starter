@@ -124,6 +124,7 @@ import Modal from "@/components/Overlays/Modal";
 | `headerContent` | `ReactNode` | - | ヘッダーに追加するコンテンツ |
 | `children` | `ReactNode` | - | モーダル本体のコンテンツ |
 | `footer` | `ReactNode` | - | スクロール領域の外側に描画される常時表示フッター（アクションバー）。区切り線・余白は Modal 側が持つ |
+| `confirmOnClose` | `ModalConfirmOnClose` | - | `{ enabled, title?, message?, confirmLabel?, cancelLabel? }`。enabled が true の間、閉じ操作を確認ダイアログで遮る |
 | `showCloseButton` | `boolean` | `true` | 閉じるボタンの表示 |
 | `maxWidth` | `number \| string` | `640` | 最大幅 |
 | `className` | `string` | - | コンテナに付与するクラス |
@@ -155,6 +156,48 @@ import Modal from "@/components/Overlays/Modal";
 ```
 
 footer はスクロールラッパーの外側（DialogContent 直下）に描画されるため、本体がスクロールしてもボタン列は常に表示される。`sticky bottom-0 bg-background` のような手組みは不要（背景透けの問題も構造的に発生しない）。区切り線（`border-t`）と余白は Modal が付与するので、ボタン列だけを渡せばよい。TabbedModal にもそのまま透過される。
+
+**confirmOnClose（未保存変更の破棄防止ガード）:**
+
+```tsx
+<Modal
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  title="一括編集"
+  confirmOnClose={{ enabled: isDirty }}
+>
+  <BulkEditForm />
+</Modal>
+```
+
+`enabled` が true の間、ユーザー操作による閉じ（✕ ボタン / ESC / 背景クリック）を確認ダイアログ（`layer="alert"` でモーダルの上に表示）で遮り、承諾されたときだけ `onOpenChange(false)` が呼ばれる。文言は `title` / `message` / `confirmLabel` / `cancelLabel` で差し替え可能（既定: 「編集中の内容が保存されていません。閉じてもよろしいですか？」）。見た目は共有の `Overlays/Dialog` に追従する（テーマ/Dialog をカスタマイズしていればそれに従う）。
+
+注意: 親コンポーネントが `open` を直接 false にするプログラム的クローズ（保存完了後など）は遮らない。モーダル内に自前のキャンセルボタンを置く場合、そのボタンが親の state を直接 false にするとガードを通らないため、破棄確認が必要なら自前で確認を挟むか閉じる前に `enabled` を評価すること。TabbedModal にもそのまま透過される。
+
+**API 凍結（upstream 方針）:** `confirmOnClose` は「文言4点の差し替え + 共有 Dialog の見た目」の定型ケース省力化として**この形で凍結**する。ボタン variant の変更・任意 JSX の埋め込み・確認 UI の差し替えといった拡張は今後も追加しない。それ以上のカスタムが必要な場合は `confirmOnClose` を使わず、下記の自前ガードレシピを使うこと。
+
+**自前ガードレシピ（完全カスタムの確認 UI を出したい場合）:**
+
+Modal は controlled なので、✕ / ESC / 背景クリックによる閉じ要求はすべて親の `onOpenChange(false)` に届くだけで、親が `open` を false にしない限り閉じない。これを利用して任意の確認 UI を挟める：
+
+```tsx
+const [isOpen, setIsOpen] = useState(false);
+const [confirmOpen, setConfirmOpen] = useState(false);
+
+<Modal
+  open={isOpen}
+  onOpenChange={(next) => {
+    if (!next && isDirty) {
+      setConfirmOpen(true); // 閉じずに自前の確認 UI を開く（UI は何でもよい）
+      return;
+    }
+    setIsOpen(next);
+  }}
+>
+  {/* ... */}
+</Modal>
+// confirmOpen に応じて任意の確認 UI を表示し、承諾時に setIsOpen(false) を呼ぶ
+```
 
 **onCloseAutoFocus の使用例:**
 
