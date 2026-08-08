@@ -91,8 +91,10 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 # アプリ(Vercel) + ルームサーバー(Cloudflare) を1コマンドで揃えてデプロイ(手動運用の標準)
 # room 無効フォークでは Worker を skip しアプリのみ。引数は vercel CLI へ透過(無指定なら --prod)
 pnpm deploy:all
-pnpm deploy:all -- --preview
+pnpm deploy:all -- --target=preview
 ```
+
+※ vercel CLI に `--preview` フラグは無い(`--prod` は `--target=production` の短縮形)。プレビューは `--target=preview` を明示する
 
 ### リアルタイムルーム (room)
 
@@ -102,6 +104,9 @@ pnpm room:init
 
 # Worker 単体デプロイ(config enabled=false なら skip。冪等)
 pnpm room:deploy
+
+# デプロイ済み Worker の動作確認(疎通・認可・WS配信・永続化の11項目。env から接続先を読む)
+pnpm room:check
 
 # ローカル実行(Cloudflare アカウント不要。wrangler dev)
 pnpm room:dev

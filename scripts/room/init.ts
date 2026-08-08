@@ -46,23 +46,28 @@ console.log(`
 2. 共有署名鍵を生成する (例: openssl rand -base64 32)
 
 3. Next 側 env (.env.production / Vercel) に設定:
-     REALTIME_ROOM_URL=            # 1. で確定した Worker URL
-     REALTIME_ROOM_AUTH_SECRET=    # 2. で生成した値
+     REALTIME_ROOM_URL=            # 1. で確定した Worker URL (公開情報なので通常の env でよい)
+     REALTIME_ROOM_AUTH_SECRET=    # 2. で生成した値 (Vercel では Sensitive 指定を推奨)
 
-4. Worker 側 secret に同じ値を登録:
-     pnpm -C servers/room exec wrangler secret put REALTIME_ROOM_AUTH_SECRET
-
-5. servers/room/wrangler.toml の [vars] APP_BASE_URL にアプリの正式オリジンを設定
+4. servers/room/wrangler.toml の [vars] APP_BASE_URL にアプリの正式オリジンを設定
    (callback effect = PG 永続化エスケープハッチを使う場合のみ)
 
-6. src/config/app/realtime-room.config.ts の enabled を true にする
+5. src/config/app/realtime-room.config.ts の enabled を true にする
 
-7. デプロイ:
+6. デプロイ:
      pnpm deploy:all                # アプリ + Worker の統合デプロイ (手動運用の標準)
      pnpm room:deploy               # Worker 単体 (要 wrangler login または CLOUDFLARE_API_TOKEN)
    CI 経由 (git push 連動) を使うフォークのみ:
      cp .github/workflows/deploy-room.yml.example .github/workflows/deploy-room.yml
      GitHub Secrets に CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID を登録
+
+7. Worker 側 secret に 2. と同じ値を登録 (※ 必ず初回デプロイの後に。未デプロイの Worker へ
+   secret put すると対話プロンプトが出る。secret は以後のデプロイでも保持される):
+     pnpm -C servers/room exec wrangler secret put REALTIME_ROOM_AUTH_SECRET
+
+8. 動作確認:
+     pnpm room:check                # 疎通〜認可〜WS配信〜永続化の11項目を機械検証
+   (最低限なら: curl https://<Worker URL>/version → {"protocolVersion":N})
 
 ローカル動作確認 (Cloudflare アカウント不要):
      pnpm room:dev                  # wrangler dev でローカル起動

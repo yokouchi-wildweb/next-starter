@@ -13,8 +13,10 @@
 //   - enabled=true で未初期化 → 明示エラー (アプリのデプロイにも進まない)
 //
 // 引数はそのまま vercel CLI へ渡す。無指定なら --prod。
-//   pnpm deploy:all               # vercel --prod
-//   pnpm deploy:all -- --preview  # プレビューデプロイ等、任意の vercel 引数
+//   pnpm deploy:all                        # vercel --prod
+//   pnpm deploy:all -- --target=preview    # プレビューデプロイ等、任意の vercel 引数
+// ※ vercel CLI に --preview フラグは存在しない。素のデプロイ (=プレビュー) は本コマンドでは
+//    --prod フォールバックに塞がれているため、プレビューは --target=preview を明示すること
 
 import { execSync, spawnSync } from "node:child_process";
 import path from "node:path";

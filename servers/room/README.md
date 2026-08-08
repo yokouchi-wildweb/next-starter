@@ -83,15 +83,23 @@ pnpm room:init   # wrangler.toml 生成 + 依存インストール + チェッ�
 2. **workers.dev サブドメインを先に登録する** (ダッシュボード → Workers & Pages → 右カラム。アカウントごとに1回だけ)。
    この時点で Worker URL は `https://room-server.<サブドメイン>.workers.dev` と機械的に確定する。
    初回デプロイの対話プロンプトに任せないこと (CI では対話できず失敗する / env を先に揃えられる)
-3. 共有鍵生成 → Next 側 env (`REALTIME_ROOM_URL` / `REALTIME_ROOM_AUTH_SECRET`) + Worker 側 secret に登録
+3. 共有鍵生成 → Next 側 env に登録: `REALTIME_ROOM_URL` (公開情報なので通常の env でよい) /
+   `REALTIME_ROOM_AUTH_SECRET` (Vercel では Sensitive 指定を推奨)
 4. `src/config/app/realtime-room.config.ts` の `enabled: true`
 5. デプロイ (下記)
+6. **Worker 側 secret 登録は必ず初回デプロイの後に**: `pnpm -C servers/room exec wrangler secret put REALTIME_ROOM_AUTH_SECRET`
+   (未デプロイの Worker へ secret put すると「新規作成するか」の対話プロンプトが出る。登録した secret は以後のデプロイでも保持される)
+7. 動作確認: `pnpm room:check` — 疎通・認可 fail-closed・WS 配信・永続化の 11 項目を機械検証
+   (最低限なら `curl https://<Worker URL>/version` → `{"protocolVersion":N}`)
 
 補足:
 - 1つの Cloudflare アカウントに複数プロジェクトを同居させる場合、サブドメインは共通なので
   wrangler.toml の `name` をプロジェクト固有名 (例: `room-server-myapp`) に変えて URL を分岐させる
   (原則は 1 プロジェクト = 1 アカウントを推奨: 課金・権限・事故の分離)
 - 本番で独自ドメインを使う場合は Worker に Custom Domain を割り当て、`REALTIME_ROOM_URL` を差し替えるだけでよい
+- **dev から本番 Worker を共有しない**: ルーム状態は ns/roomId 単位で共有されるため、dev と本番が
+  同じ Worker を向くと、同じ roomId への dev の dispatch が本番ユーザーの見ている状態を書き換え得る。
+  原則: dev は `pnpm room:dev` (localhost:8787)。本番 Worker の共有は roomId が衝突しない検証に限る
 
 **有効/無効の判定は config enabled + env の 1 点に集約されている。** 揃っていなければ
 useRoomState は `status:"disabled"`、API は 503、deploy は skip — どのフォークで何を実行しても安全 (冪等)。
@@ -106,6 +114,10 @@ useRoomState は `status:"disabled"`、API は 503、deploy は skip — どの�
 | ローカル開発 | `pnpm room:dev` | **Cloudflare アカウント不要**。wrangler dev で DO 込みのローカル実行。Next 側は `REALTIME_ROOM_URL=http://localhost:8787` を指す |
 
 Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 servers/room を触ったか」を人間が判断する必要はない。
+
+`CLOUDFLARE_API_TOKEN` の作成: Cloudflare ダッシュボード → My Profile → API Tokens →
+テンプレート **「Edit Cloudflare Workers」** で作成し、対象を自アカウントに限定する。
+デプロイ権限を持つトークンなので、登録先 (GitHub Secrets / CI env) 以外への放置・共有はしないこと。
 
 ## 所有権と統治
 
