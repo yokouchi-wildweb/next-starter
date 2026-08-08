@@ -80,9 +80,18 @@ pnpm room:init   # wrangler.toml 生成 + 依存インストール + チェッ�
 以降は init が表示するチェックリスト通り:
 
 1. Cloudflare アカウント登録 (無料で開始可。本番規模の WebSocket 接続数は Workers Paid ~$5/月)
-2. 共有鍵生成 → Next 側 env (`REALTIME_ROOM_URL` / `REALTIME_ROOM_AUTH_SECRET`) + Worker 側 secret に登録
-3. `src/config/app/realtime-room.config.ts` の `enabled: true`
-4. デプロイ (下記)
+2. **workers.dev サブドメインを先に登録する** (ダッシュボード → Workers & Pages → 右カラム。アカウントごとに1回だけ)。
+   この時点で Worker URL は `https://room-server.<サブドメイン>.workers.dev` と機械的に確定する。
+   初回デプロイの対話プロンプトに任せないこと (CI では対話できず失敗する / env を先に揃えられる)
+3. 共有鍵生成 → Next 側 env (`REALTIME_ROOM_URL` / `REALTIME_ROOM_AUTH_SECRET`) + Worker 側 secret に登録
+4. `src/config/app/realtime-room.config.ts` の `enabled: true`
+5. デプロイ (下記)
+
+補足:
+- 1つの Cloudflare アカウントに複数プロジェクトを同居させる場合、サブドメインは共通なので
+  wrangler.toml の `name` をプロジェクト固有名 (例: `room-server-myapp`) に変えて URL を分岐させる
+  (原則は 1 プロジェクト = 1 アカウントを推奨: 課金・権限・事故の分離)
+- 本番で独自ドメインを使う場合は Worker に Custom Domain を割り当て、`REALTIME_ROOM_URL` を差し替えるだけでよい
 
 **有効/無効の判定は config enabled + env の 1 点に集約されている。** 揃っていなければ
 useRoomState は `status:"disabled"`、API は 503、deploy は skip — どのフォークで何を実行しても安全 (冪等)。
@@ -91,11 +100,12 @@ useRoomState は `status:"disabled"`、API は 503、deploy は skip — どの�
 
 | 経路 | コマンド | 用途 |
 |------|---------|------|
-| CI (推奨) | `git push` のみ | `.github/workflows/deploy-room.yml.example` をコピーし GitHub Secrets 登録。アプリ (Vercel) と同じ push で両方揃う。Secrets 未登録なら skip でグリーン |
-| ローカル | `pnpm room:deploy` | enabled=false なら skip。wrangler 認証は `wrangler login` か `CLOUDFLARE_API_TOKEN` |
+| **統合 (手動運用の標準)** | `pnpm deploy:all` | **アプリ (Vercel) + Worker を 1 コマンドで揃えてデプロイ** (Worker → アプリの順)。room 無効フォークでは Worker を skip してアプリのみ — どのフォークでも常にこの 1 コマンドでよい。引数は vercel CLI へ透過 (無指定なら `--prod`)。要 vercel CLI + `wrangler login` or `CLOUDFLARE_API_TOKEN` |
+| Worker 単体 | `pnpm room:deploy` | Worker だけ直した時の単体デプロイ。enabled=false なら skip |
+| CI (オプション) | `git push` 連動 | git 連携デプロイのフォーク向け。`.github/workflows/deploy-room.yml.example` をコピーし GitHub Secrets 登録。Secrets 未登録なら skip でグリーン |
 | ローカル開発 | `pnpm room:dev` | **Cloudflare アカウント不要**。wrangler dev で DO 込みのローカル実行。Next 側は `REALTIME_ROOM_URL=http://localhost:8787` を指す |
 
-Worker 側の変更が無い push でも deploy は無害 (冪等)。「今回 servers/room を触ったか」を人間が判断する必要はない。
+Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 servers/room を触ったか」を人間が判断する必要はない。
 
 ## 所有権と統治
 

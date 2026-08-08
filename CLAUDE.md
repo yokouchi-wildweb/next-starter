@@ -14,7 +14,7 @@ current: servers/room/ = room authority server (Cloudflare Durable Objects) | 1 
 realtimeRoom: app SDK = @/lib/realtimeRoom (server/ createRoomClient+verifyRoomCallback | client/ useRoomState+roomSessionClient | protocol/ shared types+ROOM_PROTOCOL_VERSION) | room logic (reducer) = src/features/\<domain\>/room/ (PURE: imports limited to relative + protocol + import type, lint realtime-room/purity) | registration = servers/room/src/registry.ts (downstream edit point) | economy/authority actions via server dispatch ONLY (clientActions allowlist = high-freq low-authority only, default all-deny) | PG stays authoritative — room holds display/coordination state
 boundaries: servers→src imports: lib/realtimeRoom/protocol + features/*/room ONLY | src→servers: forbidden | protocol breaking change → bump ROOM_PROTOCOL_VERSION (skew = explicit error)
 ownership: servers/room/src/core/ + index.ts = upstream (CORE_FILES) | registry.ts + wrangler.toml = downstream
-deploy: pnpm room:init (setup) | pnpm room:deploy (idempotent: disabled→skip) | pnpm room:dev (local, no CF account) | CI: .github/workflows/deploy-room.yml.example (secrets absent→skip green) | ref: servers/room/README.md
+deploy: pnpm deploy:all (unified app+worker, manual-ops standard, room disabled→app only) | pnpm room:init (setup) | pnpm room:deploy (worker only, disabled→skip) | pnpm room:dev (local, no CF account) | CI option: .github/workflows/deploy-room.yml.example (secrets absent→skip green) | ref: servers/room/README.md
 client_ws_exception: useRoomState uses native WebSocket (axios cannot; same class as SSE streaming exception). HTTP (token fetch) stays in ClientService (roomSessionClient)
 
 ## CODE_PLACEMENT (3-tier)

@@ -33,6 +33,33 @@ if (!existsSync(path.join(roomDir, "node_modules"))) {
   execSync("pnpm install --ignore-workspace", { cwd: roomDir, stdio: "inherit" });
 }
 
+// pnpm 経由だと workspace スキャンの警告ノイズが出るため、wrangler は直接バイナリで呼ぶ
+const wranglerBin = path.join(roomDir, "node_modules/.bin/wrangler");
+
+// 認証プリフライト: 未認証のまま wrangler deploy に進むと環境によって対話プロンプトで
+// ハングするため、先に明示エラーにする (統合コマンド経由の無人実行を安全に失敗させる)。
+// 注意: wrangler whoami は未認証でも exit 0 を返すため、出力文字列で判定する
+if (!process.env.CLOUDFLARE_API_TOKEN) {
+  let whoami = "";
+  try {
+    whoami = execSync(`${wranglerBin} whoami`, { cwd: roomDir, stdio: "pipe" }).toString();
+  } catch {
+    whoami = "not authenticated";
+  }
+  if (/not authenticated/i.test(whoami)) {
+    console.error(`✗ Cloudflare 未認証です。どちらかで認証してください:
+    pnpm -C servers/room exec wrangler login   # ブラウザで OAuth (手元マシン向け)
+    export CLOUDFLARE_API_TOKEN=...            # API トークン (CI / 無人実行向け)`);
+    process.exit(1);
+  }
+}
+
 console.log("→ wrangler deploy を実行します...\n");
-execSync("pnpm exec wrangler deploy", { cwd: roomDir, stdio: "inherit" });
+try {
+  execSync(`${wranglerBin} deploy`, { cwd: roomDir, stdio: "inherit" });
+} catch {
+  // wrangler が直前に詳細エラーを表示済み。ここではスタックを出さず終了コードのみ返す
+  console.error("\n✗ wrangler deploy が失敗しました (上記エラーを参照)");
+  process.exit(1);
+}
 console.log("\n✓ デプロイ完了");

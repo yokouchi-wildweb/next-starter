@@ -85,13 +85,22 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 
 事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 
+### デプロイ (統合)
+
+```bash
+# アプリ(Vercel) + ルームサーバー(Cloudflare) を1コマンドで揃えてデプロイ(手動運用の標準)
+# room 無効フォークでは Worker を skip しアプリのみ。引数は vercel CLI へ透過(無指定なら --prod)
+pnpm deploy:all
+pnpm deploy:all -- --preview
+```
+
 ### リアルタイムルーム (room)
 
 ```bash
 # 有効化セットアップ(wrangler.toml 生成 + 依存インストール + チェックリスト表示。冪等)
 pnpm room:init
 
-# デプロイ(config enabled=false なら skip。冪等)
+# Worker 単体デプロイ(config enabled=false なら skip。冪等)
 pnpm room:deploy
 
 # ローカル実行(Cloudflare アカウント不要。wrangler dev)

@@ -2,6 +2,7 @@ onlyBuiltDependencies:
   - '@firebase/util'
   - '@parcel/watcher'
   - esbuild
+  - workerd
   - msw
   - protobufjs
   - sharp
