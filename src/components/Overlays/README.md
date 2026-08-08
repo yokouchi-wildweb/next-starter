@@ -22,6 +22,7 @@ DialogPrimitives (低レベル部品)
 |---------------|------|------|
 | **Dialog** | 端的な確認 | テキスト + 確認/キャンセルボタン |
 | **Modal** | 複雑な情報表示 | 自由度が高い、フォームや詳細表示など |
+| **Modal `scrollable={false}`** | タブ + 内部テーブル等の固定高モーダル | 本体はスクロールせず、内側の指定領域だけがスクロールする |
 
 ---
 
@@ -131,11 +132,39 @@ import Modal from "@/components/Overlays/Modal";
 | `minHeight` | `number \| string` | - | 最小高さ（指定すると内部がスクロール領域でラップされる） |
 | `maxHeight` | `number \| string \| null` | `"calc(100dvh - 8rem)"` | 最大高さ。指定するとコンテンツが overflow-y-auto でラップされる。デフォルト値を超える指定は内部でクランプされる。`null` を渡すと制限を解除できる。 |
 | `height` | `number \| string` | - | 高さ（指定すると内部がスクロール領域でラップされる）。デフォルト最大高さを超える指定は内部でクランプされる |
+| `scrollable` | `boolean` | `true` | `false` で固定高コンテナモード：本体ラッパーがスクロールせず（overflow-clip）、consumer が用意した内側領域だけをスクロールさせる。詳細は下記 |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 
 デフォルトで `maxHeight` が設定されているため、長いコンテンツは常にビューポート内に収まり内部スクロールされる。タイトル部 (DialogHeader) は固定で、本体だけがスクロールする。デフォルトを無効化したい場合は `maxHeight={null}` を渡す。
 
 **高さのクランプ:** `maxHeight` / `height` にデフォルト最大高さ（`calc(100dvh - 8rem)`）を超える値（例: `90vh`）を渡しても、`min()` で自動的にクランプされるため close ボタンが画面外に出ることはない。さらにモーダルの箱全体にも `max-h-[calc(100dvh-2rem)]` の上限があり、footer やヘッダの実高が大きい場合は本体スクロール領域側が縮んで全体がビューポート内に収まる。`maxHeight={null}` を渡すとクランプごと解除される（従来挙動）。
+
+**scrollable（固定高コンテナモード）:**
+
+タブ + 内部テーブルのようなモーダルでは「タブ切替で高さが揺れない」「スクロール領域はちょうど1つ（内側のテーブルだけ）」が必要になる。デフォルトの Modal は「高さ制約 = 本体が overflow-y-auto」なので、内側に独自のスクロール領域を作ると 1px の溢れでも外側スクロールバーが復活して二重スクロールになる。`scrollable={false}` はこの結合を切る：
+
+```tsx
+<Modal
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  title="ユーザー管理"
+  scrollable={false}
+>
+  {/* 箱の高さが確定するので h-full / flex-1 で内部レイアウトを組める */}
+  <Flex direction="column" className="h-full">
+    <FilterBar />
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <BigTable />
+    </div>
+  </Flex>
+</Modal>
+```
+
+- 本体ラッパーが `overflow-y-auto` → `overflow-clip` になり、外側スクロールは構造的に発生しない（`overflow-hidden` でないのは、hidden だと scroll container として残り内部の focus 駆動 scrollIntoView で隠れスクロールが発火するため）。
+- `height` 未指定なら `maxHeight`（クランプ後）が `height` に自動補完され、箱の高さが確定する。既定 `maxHeight` が生きていれば `scrollable={false}` だけで常にビューポートいっぱいの固定高になる。低くしたい場合は `maxHeight` を明示する。
+- スクロールさせたい内側領域には `min-h-0` + `overflow-y-auto` を自分で付与する（flex 子は `min-h-0` がないと縮まず溢れる）。
+- `maxHeight={null}` と併用した場合はラッパー自体が描画されず、高さ管理は consumer に委ねられる。
+- TabbedModal にもそのまま透過される（タブ + 固定高 + 内側テーブルの組み合わせが主用途）。
 
 **footer（常時表示アクションバー）:**
 

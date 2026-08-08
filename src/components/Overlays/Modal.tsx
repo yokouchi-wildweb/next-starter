@@ -52,6 +52,16 @@ export type ModalProps = {
    * `null` を渡すとクランプごと制限を解除できる。 */
   maxHeight?: number | string | null;
   height?: number | string;
+  /** 本体ラッパーをスクロールコンテナにするか。デフォルト true（従来挙動: overflow-y-auto）。
+   * false = 固定高コンテナモード: ラッパーが overflow-clip になり本体はスクロールせず、
+   * consumer が用意した内側領域（タブ内のテーブル等）だけをスクロールさせる。
+   * このとき height 未指定なら maxHeight（クランプ後）を height に自動補完するため、
+   * 箱の高さが確定し子要素は h-full / flex-1 で内部レイアウトを組める。
+   * 既定 maxHeight が生きている場合、false 指定だけで常にビューポートいっぱいの固定高になる点に注意。
+   * maxHeight: null と併用するとラッパー自体が描画されず高さ管理は consumer に委ねられる。
+   * overflow-hidden でなく clip なのは、hidden は scroll container として残り
+   * 内部の focus 駆動 scrollIntoView で隠れスクロールが発火するため。 */
+  scrollable?: boolean;
   onCloseAutoFocus?: (event: Event) => void;
 };
 
@@ -88,6 +98,7 @@ export default function Modal({
   minHeight,
   maxHeight = DEFAULT_MAX_HEIGHT,
   height,
+  scrollable = true,
   onCloseAutoFocus,
 }: ModalProps) {
   // 閉じ確認ダイアログの表示状態（confirmOnClose 用）
@@ -115,8 +126,12 @@ export default function Modal({
     minHeight !== undefined ? toCssSize(minHeight) : undefined;
   const resolvedScrollableMaxHeight =
     effectiveMaxHeight !== undefined ? clampToViewport(toCssSize(effectiveMaxHeight)) : undefined;
-  const resolvedScrollableHeight =
+  const clampedHeight =
     height !== undefined ? clampToViewport(toCssSize(height)) : undefined;
+  // 固定高コンテナモード（scrollable=false）で height 未指定なら maxHeight を height に補完し、
+  // 箱の高さを確定させて子の h-full / flex-1 を機能させる
+  const resolvedScrollableHeight =
+    !scrollable && clampedHeight === undefined ? resolvedScrollableMaxHeight : clampedHeight;
   const shouldWrapScrollable = Boolean(
     resolvedScrollableMinHeight || resolvedScrollableMaxHeight || resolvedScrollableHeight,
   );
@@ -146,7 +161,7 @@ export default function Modal({
             </DialogHeader>
           ) : null}
           {shouldWrapScrollable ? (
-            <div className="overflow-y-auto" style={scrollableStyle}>
+            <div className={scrollable ? "overflow-y-auto" : "overflow-clip"} style={scrollableStyle}>
               {children}
             </div>
           ) : (
