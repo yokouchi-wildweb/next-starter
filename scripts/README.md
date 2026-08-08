@@ -85,6 +85,23 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 
 事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 
+### リアルタイムルーム (room)
+
+```bash
+# 有効化セットアップ(wrangler.toml 生成 + 依存インストール + チェックリスト表示。冪等)
+pnpm room:init
+
+# デプロイ(config enabled=false なら skip。冪等)
+pnpm room:deploy
+
+# ローカル実行(Cloudflare アカウント不要。wrangler dev)
+pnpm room:dev
+```
+
+用途: ホットパス・リアルタイム基盤 `servers/room` (Cloudflare Durable Objects) の運用コマンド。オプトイン既定無効。手順・env・CI 連携の一次情報:
+
+➡ [servers/room/README.md](../servers/room/README.md)
+
 ## ディレクトリ構成
 
 ```
@@ -95,5 +112,6 @@ scripts/
 │   ├── seed/              # シーダー
 │   └── clear/             # データ削除
 ├── domain-config/         # ドメイン設定生成
-└── mail/                  # メール関連
+├── mail/                  # メール関連
+└── room/                  # リアルタイムルーム基盤の init / deploy
 ```

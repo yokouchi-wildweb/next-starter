@@ -26,6 +26,7 @@
 |---|---|---|
 | `drizzle` | PostgreSQL（Neon）クライアント + トランザクションヘルパ | |
 | `firestore` | Firestore のクライアント操作レイヤー | ✓ |
+| `realtimeRoom` | ホットパス・リアルタイム基盤の SDK（servers/room 接続。購読フック / サーバー dispatch / callback 検証） | ✓ |
 | `dataMigration` | CSV+ZIP のエクスポート/インポート（管理画面・チャンク処理） | ✓ |
 | `csv` | CSV ダウンロード / ヘッダ付きパース | |
 | `zod` | Zod スキーマからのデフォルト値抽出（`getZodDefaults`） | |
