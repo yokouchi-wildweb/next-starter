@@ -123,15 +123,38 @@ import Modal from "@/components/Overlays/Modal";
 | `titleSrOnly` | `boolean` | - | タイトルをスクリーンリーダー専用にする |
 | `headerContent` | `ReactNode` | - | ヘッダーに追加するコンテンツ |
 | `children` | `ReactNode` | - | モーダル本体のコンテンツ |
+| `footer` | `ReactNode` | - | スクロール領域の外側に描画される常時表示フッター（アクションバー）。区切り線・余白は Modal 側が持つ |
 | `showCloseButton` | `boolean` | `true` | 閉じるボタンの表示 |
 | `maxWidth` | `number \| string` | `640` | 最大幅 |
 | `className` | `string` | - | コンテナに付与するクラス |
 | `minHeight` | `number \| string` | - | 最小高さ（指定すると内部がスクロール領域でラップされる） |
-| `maxHeight` | `number \| string \| null` | `"calc(100dvh - 8rem)"` | 最大高さ。指定するとコンテンツが overflow-y-auto でラップされる。`null` を渡すと制限を解除できる。 |
-| `height` | `number \| string` | - | 高さ（指定すると内部がスクロール領域でラップされる） |
+| `maxHeight` | `number \| string \| null` | `"calc(100dvh - 8rem)"` | 最大高さ。指定するとコンテンツが overflow-y-auto でラップされる。デフォルト値を超える指定は内部でクランプされる。`null` を渡すと制限を解除できる。 |
+| `height` | `number \| string` | - | 高さ（指定すると内部がスクロール領域でラップされる）。デフォルト最大高さを超える指定は内部でクランプされる |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 
 デフォルトで `maxHeight` が設定されているため、長いコンテンツは常にビューポート内に収まり内部スクロールされる。タイトル部 (DialogHeader) は固定で、本体だけがスクロールする。デフォルトを無効化したい場合は `maxHeight={null}` を渡す。
+
+**高さのクランプ:** `maxHeight` / `height` にデフォルト最大高さ（`calc(100dvh - 8rem)`）を超える値（例: `90vh`）を渡しても、`min()` で自動的にクランプされるため close ボタンが画面外に出ることはない。さらにモーダルの箱全体にも `max-h-[calc(100dvh-2rem)]` の上限があり、footer やヘッダの実高が大きい場合は本体スクロール領域側が縮んで全体がビューポート内に収まる。`maxHeight={null}` を渡すとクランプごと解除される（従来挙動）。
+
+**footer（常時表示アクションバー）:**
+
+```tsx
+<Modal
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  title="スタック設定"
+  footer={
+    <>
+      <Button variant="outline" onClick={() => setIsOpen(false)}>キャンセル</Button>
+      <Button onClick={handleSubmit}>保存</Button>
+    </>
+  }
+>
+  <LongForm />
+</Modal>
+```
+
+footer はスクロールラッパーの外側（DialogContent 直下）に描画されるため、本体がスクロールしてもボタン列は常に表示される。`sticky bottom-0 bg-background` のような手組みは不要（背景透けの問題も構造的に発生しない）。区切り線（`border-t`）と余白は Modal が付与するので、ボタン列だけを渡せばよい。TabbedModal にもそのまま透過される。
 
 **onCloseAutoFocus の使用例:**
 
