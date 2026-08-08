@@ -1,0 +1,26 @@
+{
+  "name": "room-server",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ルーム権威サーバー (Cloudflare Durable Objects)。Next.js アプリの外側にデプロイされる独立プログラム",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250705.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.24.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd"
+    ]
+  }
+}

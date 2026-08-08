@@ -1,6 +1,7 @@
 import nextConfig from "eslint-config-next";
 
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
+import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import routeAuthzPlugin from "./eslint-rules/route-authz.mjs";
 
 export default [
@@ -36,6 +37,15 @@ export default [
     plugins: { "route-authz": routeAuthzPlugin },
     rules: {
       "route-authz/require-authz": "warn",
+    },
+  },
+  // ルームロジック (servers/room にバンドルされる) の純度制約。
+  // Node/Next/DB import を静的に遮断する (詳細: eslint-rules/realtime-room-purity.mjs)。
+  {
+    files: ["src/features/**/room/**/*.ts"],
+    plugins: { "realtime-room": realtimeRoomPlugin },
+    rules: {
+      "realtime-room/purity": "error",
     },
   },
 ];

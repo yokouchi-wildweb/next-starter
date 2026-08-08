@@ -6,7 +6,16 @@
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
 
 ## BACKEND_DOCTRINE
-firestore = realtime delivery channel ONLY (new domains default dbEngine:"Neon"; Firestore only when realtime UX is the essential requirement) | crud firestore adapter FROZEN (no feature additions, current limits = spec) | firebase coupling surface capped at auth/storage/delivery (no business data in Firestore, no logic in Firebase Functions) | auth↔users sync paths = core asset (verify both sides on any change) | ref: docs/!must-read/バックエンド構成ドクトリン.md
+firestore = realtime delivery channel ONLY (new domains default dbEngine:"Neon"; Firestore only when realtime UX is the essential requirement) | crud firestore adapter FROZEN (no feature additions, current limits = spec) | firebase coupling surface capped at auth/storage/delivery (no business data in Firestore, no logic in Firebase Functions) | auth↔users sync paths = core asset (verify both sides on any change) | hot-path realtime (sustained ~1write/sec+ shared state, 100s+ subscriber fanout, single-TX threshold semantics) = realtimeRoom (SERVERS), NOT Firestore | ref: docs/!must-read/バックエンド構成ドクトリン.md
+
+## SERVERS (Next外側の常駐サーバープログラム区画)
+placement: standalone server programs deployed outside Next/Vercel → servers/\<name\>/ (own package.json+tsconfig, NOT in pnpm workspace — non-user forks never install)
+current: servers/room/ = room authority server (Cloudflare Durable Objects) | 1 room = 1 serialized authority + WebSocket broadcast | opt-in default OFF (src/config/app/realtime-room.config.ts enabled + REALTIME_ROOM_URL/REALTIME_ROOM_AUTH_SECRET env — single gate, all paths fail-closed)
+realtimeRoom: app SDK = @/lib/realtimeRoom (server/ createRoomClient+verifyRoomCallback | client/ useRoomState+roomSessionClient | protocol/ shared types+ROOM_PROTOCOL_VERSION) | room logic (reducer) = src/features/\<domain\>/room/ (PURE: imports limited to relative + protocol + import type, lint realtime-room/purity) | registration = servers/room/src/registry.ts (downstream edit point) | economy/authority actions via server dispatch ONLY (clientActions allowlist = high-freq low-authority only, default all-deny) | PG stays authoritative — room holds display/coordination state
+boundaries: servers→src imports: lib/realtimeRoom/protocol + features/*/room ONLY | src→servers: forbidden | protocol breaking change → bump ROOM_PROTOCOL_VERSION (skew = explicit error)
+ownership: servers/room/src/core/ + index.ts = upstream (CORE_FILES) | registry.ts + wrangler.toml = downstream
+deploy: pnpm room:init (setup) | pnpm room:deploy (idempotent: disabled→skip) | pnpm room:dev (local, no CF account) | CI: .github/workflows/deploy-room.yml.example (secrets absent→skip green) | ref: servers/room/README.md
+client_ws_exception: useRoomState uses native WebSocket (axios cannot; same class as SSE streaming exception). HTTP (token fetch) stays in ClientService (roomSessionClient)
 
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities
@@ -215,7 +224,7 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates FK names as `{table}_{column}_{reftable}_{refcolumn}_fk` — long table/column names trigger `42622` NOTICE on db:push and the name gets truncated, which can collide. When adding tables/columns, keep names short enough so generated FK names stay ≤63 chars. If unavoidable, set an explicit shorter FK name via Drizzle's `foreignKey({...}, "shortname_fk")`.
 
 ## PROHIBITED
-- client fetch (use axios) — exception: streaming ClientService (SSE) may use fetch + ReadableStream, see AI_AGENT
+- client fetch (use axios) — exception: streaming ClientService (SSE) may use fetch + ReadableStream (see AI_AGENT) | realtimeRoom useRoomState may use native WebSocket (see SERVERS)
 - direct DB in API routes (use ServerService)
 - raw HTML when wrapper exists
 - direct _shadcn imports (use wrappers: button→Form/Button, input→Form/Input/*, skeleton→Skeleton/BaseSkeleton, etc. | no wrapper? → propose creating one)
@@ -237,7 +246,7 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - アクション完了後の revalidate / resetItems による「最新化のための再フェッチ」(API レスポンスに含まれる処理済み ID で updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト)
 
 ## CORE_FILES (approval required)
-src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css
+src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css, servers/room/src/core/, servers/room/src/index.ts
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
 
 ## TOOLS

@@ -68,6 +68,7 @@
   ],
   "exclude": [
     "node_modules",
+    "servers",
     "src/_stash",
     "src/features/_template",
     "src/app/admin/_template",

@@ -1,0 +1,64 @@
+# .github/workflows/deploy-room.yml.example
+#
+# ルームサーバー (servers/room) の CI 自動デプロイ雛形。
+# 有効化するフォークはこのファイルを deploy-room.yml にコピーする (vercel.json.example と同じ方式)。
+#
+# 冪等設計:
+#   - GitHub Secrets (CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID) が未登録なら skip でグリーン
+#     → 誤ってコピーしたまま放置しても、使わないフォークでは何も起きない
+#   - 登録済みなら main への push ごとに wrangler deploy
+#     → アプリ (Vercel の git 連携) と同じ push で両方が揃ってデプロイされる
+#
+# 必要な GitHub Secrets:
+#   CLOUDFLARE_API_TOKEN   — My Profile → API Tokens → 「Edit Cloudflare Workers」テンプレート
+#   CLOUDFLARE_ACCOUNT_ID  — ダッシュボード Workers & Pages 画面
+
+name: Deploy room server
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-room:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check secrets
+        id: check
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "room: skipped (CLOUDFLARE_API_TOKEN not configured)"
+          fi
+
+      - name: Checkout
+        if: steps.check.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        if: steps.check.outputs.enabled == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        if: steps.check.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Deploy
+        if: steps.check.outputs.enabled == 'true'
+        working-directory: servers/room
+        run: |
+          if [ ! -f wrangler.toml ]; then
+            echo "::error::servers/room/wrangler.toml がありません (pnpm room:init を実行してコミットしてください)"
+            exit 1
+          fi
+          pnpm install --ignore-workspace
+          pnpm exec wrangler deploy
