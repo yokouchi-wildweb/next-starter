@@ -4,10 +4,11 @@
 // 冪等分岐: どのフォークで実行しても正しい結果に落ちる。
 //   - config enabled=false          → skip (正常終了。使わないフォークで実行しても無害)
 //   - enabled=true, wrangler.toml 無 → 明示エラー (pnpm room:init を案内)
+//   - Worker 名が既定 "room-server"  → 明示エラー (--allow-default-name で強行可)
 //   - enabled=true, 準備済み         → wrangler deploy (認証エラーは wrangler が明示する)
 
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { REALTIME_ROOM_CONFIG } from "../../src/config/app/realtime-room.config";
@@ -25,6 +26,19 @@ if (!REALTIME_ROOM_CONFIG.enabled) {
 
 if (!existsSync(path.join(roomDir, "wrangler.toml"))) {
   console.error("✗ servers/room/wrangler.toml がありません。先に pnpm room:init を実行してください");
+  process.exit(1);
+}
+
+// 既定名ガード: wrangler deploy は同名 Worker を無言で置換するため、テンプレート既定名
+// "room-server" のままのデプロイは拒否する (同一アカウント同居の他プロジェクトを上書きする事故防止)
+const workerName = /^name\s*=\s*"([^"]+)"/m.exec(readFileSync(path.join(roomDir, "wrangler.toml"), "utf8"))?.[1];
+if (workerName === "room-server" && !process.argv.includes("--allow-default-name")) {
+  console.error(`✗ Worker 名がテンプレート既定の "room-server" のままです。
+  同一 Cloudflare アカウントに複数プロジェクトが同居した場合、wrangler deploy は同名 Worker を
+  無言で置換するため、既定名のままのデプロイは拒否します。
+  対処: servers/room/wrangler.toml の name をプロジェクト固有名 (例: "room-server-<プロジェクト名>")
+  に変更してください (name を変えると Worker URL も変わるため REALTIME_ROOM_URL の更新も忘れずに)。
+  この名前が自分のものだと確信できる場合のみ: pnpm room:deploy --allow-default-name`);
   process.exit(1);
 }
 

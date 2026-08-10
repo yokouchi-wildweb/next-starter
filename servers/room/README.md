@@ -80,17 +80,23 @@ pnpm room:init   # wrangler.toml 生成 + 依存インストール + チェッ�
 以降は init が表示するチェックリスト通り:
 
 1. Cloudflare アカウント登録 (無料で開始可。本番規模の WebSocket 接続数は Workers Paid ~$5/月)
-2. **workers.dev サブドメインを先に登録する** (ダッシュボード → Workers & Pages → 右カラム。アカウントごとに1回だけ)。
-   この時点で Worker URL は `https://room-server.<サブドメイン>.workers.dev` と機械的に確定する。
+2. **Worker 名の確認**: room:init は `room-server-<package名>` を wrangler.toml に書き込む。
+   既定名 `room-server` のままのデプロイは room:deploy が拒否する (同一アカウント同居時、
+   wrangler deploy は同名 Worker を**無言で置換**するため。過去に他プロジェクトの検証 Worker を
+   上書きしかけた実事例あり)
+3. **workers.dev サブドメインを先に登録する** (ダッシュボード → Workers & Pages → 右カラム。アカウントごとに1回だけ)。
+   この時点で Worker URL は `https://<Worker名>.<サブドメイン>.workers.dev` と機械的に確定する。
    初回デプロイの対話プロンプトに任せないこと (CI では対話できず失敗する / env を先に揃えられる)
-3. 共有鍵生成 → Next 側 env に登録: `REALTIME_ROOM_URL` (公開情報なので通常の env でよい) /
-   `REALTIME_ROOM_AUTH_SECRET` (Vercel では Sensitive 指定を推奨)
-4. `src/config/app/realtime-room.config.ts` の `enabled: true`
-5. デプロイ (下記)
-6. **Worker 側 secret 登録は必ず初回デプロイの後に**: `pnpm -C servers/room exec wrangler secret put REALTIME_ROOM_AUTH_SECRET`
-   (未デプロイの Worker へ secret put すると「新規作成するか」の対話プロンプトが出る。登録した secret は以後のデプロイでも保持される)
-7. 動作確認: `pnpm room:check` — 疎通・認可 fail-closed・WS 配信・永続化の 11 項目を機械検証
-   (最低限なら `curl https://<Worker URL>/version` → `{"protocolVersion":N}`)
+4. Next 側 env に `REALTIME_ROOM_URL` を登録 (公開情報なので通常の env でよい)
+5. `src/config/app/realtime-room.config.ts` の `enabled: true`
+6. デプロイ (下記)
+7. **共有鍵の生成と登録 (必ず初回デプロイの後に)**: `pnpm room:secret`
+   — 鍵生成 → `wrangler secret bulk` で Worker へ非対話登録 → Next 側 env に貼る
+   `REALTIME_ROOM_AUTH_SECRET` 行を表示 (Vercel では Sensitive 指定を推奨)。
+   未デプロイ Worker へは明示拒否する (対話プロンプトの罠のツール化)。登録済み鍵の誤上書きも拒否
+   (意図的なローテーションは `pnpm room:secret --rotate`)。secret は以後のデプロイでも保持される
+8. 動作確認: `pnpm room:check` — 疎通・認可 fail-closed・WS 配信・永続化の 11 項目を機械検証
+   (初回は workers.dev の伝播待ちで最大 60 秒リトライする。最低限なら `curl https://<Worker URL>/version`)
 
 補足:
 - 1つの Cloudflare アカウントに複数プロジェクトを同居させる場合、サブドメインは共通なので
@@ -123,10 +129,25 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
 
 - `src/core/` + `src/index.ts`: **上流所有 (CORE_FILES)**。変更は上流への提案経由
 - `src/registry.ts` + `wrangler.toml`: **下流編集点**
+- **wrangler.toml は有効化したフォークがコミットする** (vercel.json と同じ方式。secret は含まれず、
+  Worker 名や vars のみなのでコミットして安全)。アップストリームは `.example` のみを出荷する
 - ルームロジック本体: `src/features/<domain>/room/` (ドメインに帰属、純度制約付き)
 - 境界: `servers/room → src` の import は `lib/realtimeRoom/protocol` と `features/*/room` のみ。
   `src → servers` の import は全面禁止
 - プロトコル互換性を壊す変更は `ROOM_PROTOCOL_VERSION` をインクリメントすること
+
+### 中間層フォークが有効化する場合 (自分がさらに下流フォーク群の上流であるとき)
+
+有効化コミット (`enabled: true` + wrangler.toml) は**下流フォークにもそのまま伝播する**。下流側では:
+
+- wrangler.toml ごと引いたフォークは、**中間層の Worker 名のまま自アカウントへデプロイ**してしまう
+  (room:deploy の既定名ガードは固有名に変更済みの名前を検知できない)
+- `enabled: true` だけ引いて wrangler.toml が無いフォークは、`deploy:all` が明示エラーで止まる
+  (fail-closed としては正しいが、下流にとっては突然の変化)
+
+対処: 中間層で有効化をコミットしたら、**ロールアウト時に下流へ DOWNSTREAM NOTICE (/downreq) を出す**こと。
+内容は「wrangler.toml の name を自プロジェクト固有名へ変更 + 自アカウントでセットアップ (room:init 手順) or
+使わないなら `enabled: false` へ戻す」の二択を明示する。
 
 ## 制約・非対象
 

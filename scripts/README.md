@@ -102,8 +102,12 @@ pnpm deploy:all -- --target=preview
 # 有効化セットアップ(wrangler.toml 生成 + 依存インストール + チェックリスト表示。冪等)
 pnpm room:init
 
-# Worker 単体デプロイ(config enabled=false なら skip。冪等)
+# Worker 単体デプロイ(config enabled=false なら skip。既定Worker名 "room-server" は拒否。冪等)
 pnpm room:deploy
+
+# 共有鍵の生成 + Worker への非対話登録 + Next側env行の表示(未デプロイWorkerと登録済み鍵の上書きは拒否)
+pnpm room:secret
+pnpm room:secret --rotate   # 鍵ローテーション(Next側envの差し替えとセットで)
 
 # デプロイ済み Worker の動作確認(疎通・認可・WS配信・永続化の11項目。env から接続先を読む)
 pnpm room:check

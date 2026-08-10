@@ -49,6 +49,7 @@
     "deploy:all": "npx tsx scripts/deploy.ts",
     "room:init": "npx tsx scripts/room/init.ts",
     "room:deploy": "npx tsx scripts/room/deploy.ts",
+    "room:secret": "npx tsx scripts/room/secret.ts",
     "room:check": "npx tsx scripts/room/check.ts",
     "room:dev": "pnpm -C servers/room dev"
   },

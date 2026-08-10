@@ -67,13 +67,34 @@ console.log(`=== realtime room: check (${baseUrl}) ===\n`);
 const main = async () => {
 
 // --- 1. /version ---
-let version: { protocolVersion?: number };
-try {
-  const res = await fetch(`${baseUrl}/version`);
-  version = (await res.json()) as { protocolVersion?: number };
-} catch (error) {
-  finish(`/version に接続できません (${error instanceof Error ? error.message : String(error)})`);
-  throw error;
+// 新規 workers.dev サブドメインは伝播に ~20 秒程度かかり、その間 Cloudflare のエラーページ
+// (1042 等、非 JSON) が返る。初回デプロイ直後の実行が「失敗」に見えないよう短いバックオフで
+// リトライする (上限は ROOM_CHECK_VERSION_TIMEOUT_MS で調整可、既定 60 秒)
+const versionTimeoutMs = Number(process.env.ROOM_CHECK_VERSION_TIMEOUT_MS) || 60_000;
+let version: { protocolVersion?: number } | null = null;
+{
+  const startedAt = Date.now();
+  let lastError = "";
+  let waitNoticeShown = false;
+  while (Date.now() - startedAt < versionTimeoutMs) {
+    try {
+      const res = await fetch(`${baseUrl}/version`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      version = (await res.json()) as { protocolVersion?: number };
+      break;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+      if (!waitNoticeShown) {
+        console.log("… /version 応答待ち (初回デプロイ直後は workers.dev の伝播に ~20 秒かかることがあります)");
+        waitNoticeShown = true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 5_000));
+    }
+  }
+  if (!version) {
+    finish(`/version に接続できません (${Math.round(versionTimeoutMs / 1000)}秒リトライ後も失敗: ${lastError})`);
+    throw new Error("unreachable");
+  }
 }
 check(
   "1. /version 疎通 + プロトコル一致",
