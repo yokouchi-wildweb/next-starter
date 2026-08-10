@@ -23,13 +23,22 @@ export type RoomActorContext = {
 
 /**
  * reducer が返す副作用。
- * - event: 状態に載せない一過性ブロードキャスト (ライブフィード等)。全購読者に配信される
+ * - event: 状態に載せない一過性ブロードキャスト (ライブフィード等)。全購読者に配信される。
+ *   状態pushと違い broadcastThrottleMs の合流対象にならない (ワンショット演出トリガー用)
  * - callback: アプリ側 API への署名付き POST (PG 永続化のエスケープハッチ)。
  *   path はアプリ側の相対パス (例: "/api/raid/snapshot")。検証は verifyRoomCallbackToken で行う
+ * - schedule: 指定時刻に action を自己 dispatch する予約 (Durable Object alarm)。
+ *   時間駆動の状態遷移 (バフ失効・カウントダウン・ラウンドタイマー等) 用。
+ *   通常の dispatch と同じ直列化・永続化・配信・effects 経路で actorType:"server", userId:null として実行される。
+ *   ルームにつき単一スロット (後の schedule が前の予約を置換)。action: null で予約クリア。
+ *   予約は storage 永続 (hibernation/eviction を跨いで発火する)。発火は at-most-once 相当なので、
+ *   厳密性が必要な失効は reducer 側の遅延評価 (次 dispatch で nowMs 判定) を安全網として併用すること。
+ *   atMs は純度維持のため action payload から計算する (reducer 内で Date.now() を呼ばない)
  */
 export type RoomEffect =
   | { type: "event"; event: string; payload: unknown }
-  | { type: "callback"; path: string; payload: unknown };
+  | { type: "callback"; path: string; payload: unknown }
+  | { type: "schedule"; atMs: number; action: RoomActionBase | null };
 
 /** reducer の戻り値。state は新しい状態 (イミュータブル推奨) */
 export type RoomReducerResult<S extends RoomStateBase> = {
@@ -65,6 +74,13 @@ export type RoomDefinition<
    * 必ず Next サーバー経由 (createRoomClient) にすること。
    */
   clientActions?: readonly string[];
+  /**
+   * 状態ブロードキャストの合流ウィンドウ (ミリ秒)。省略/0 = dispatch 毎に即時 push (従来動作)。
+   * 高頻度ルームで「N ms に最大1回」に間引く (leading + trailing edge、最終状態は必ず配信される)。
+   * 状態メッセージはスナップショットなので中間フレームの間引きは無損失。
+   * 接続時の初期 push・event effect・dispatch HTTP レスポンスは対象外 (常に即時)
+   */
+  broadcastThrottleMs?: number;
 };
 
 /**
@@ -76,6 +92,7 @@ export type AnyRoomDefinition = {
   createInitialState: (roomId: string) => RoomStateBase;
   reducer: (state: never, action: never, ctx: RoomActorContext) => RoomReducerResult<RoomStateBase>;
   clientActions?: readonly string[];
+  broadcastThrottleMs?: number;
 };
 
 // ---------------------------------------------------------------------------

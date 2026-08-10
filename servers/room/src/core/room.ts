@@ -32,6 +32,7 @@ import type { Env } from "./types";
 const KEY_META = "meta";
 const KEY_STATE = "state";
 const KEY_STATE_VERSION = "stateVersion";
+const KEY_SCHEDULED_ACTION = "scheduledAction";
 
 type RoomMeta = { ns: string; roomId: string };
 
@@ -64,6 +65,10 @@ export class RoomDurableObject {
   private roomState: RoomStateBase | null = null;
   private stateVersion = 0;
   private loaded = false;
+
+  /** 状態push合流 (broadcastThrottleMs) 用: 直近push時刻と trailing push 予約フラグ */
+  private lastStatePushMs = 0;
+  private trailingPushPending = false;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -167,6 +172,21 @@ export class RoomDurableObject {
     // 接続数に応じた処理が必要になったら here (現状は何もしない)
   }
 
+  /**
+   * schedule effect が武装した alarm の発火。予約 action を通常の dispatch 経路
+   * (直列化・永続化・配信・effects) で実行する。actorType:"server", userId:null。
+   * 予約は消費時に削除する (at-most-once 相当。厳密な失効は reducer 側の遅延評価を安全網に)
+   */
+  async alarm(): Promise<void> {
+    await this.ensureLoaded(null);
+    if (!this.meta) return;
+    const def = roomRegistry[this.meta.ns];
+    const scheduled = (await this.state.storage.get(KEY_SCHEDULED_ACTION)) as RoomActionBase | undefined;
+    await this.state.storage.delete(KEY_SCHEDULED_ACTION);
+    if (!def || !scheduled || typeof scheduled.type !== "string") return;
+    await this.applyAction(def, scheduled, { actorType: "server", userId: null });
+  }
+
   // -------------------------------------------------------------------------
   // HTTP dispatch / state (Next サーバーからの呼び出し)
   // -------------------------------------------------------------------------
@@ -261,14 +281,50 @@ export class RoomDurableObject {
       [KEY_STATE_VERSION]: this.stateVersion,
     });
 
-    this.broadcast(this.buildStateMessage());
+    this.pushStateCoalesced(def.broadcastThrottleMs ?? 0);
 
     for (const effect of result.effects ?? []) {
-      this.runEffect(effect);
+      await this.runEffect(effect);
     }
   }
 
-  private runEffect(effect: RoomEffect): void {
+  /**
+   * 状態ブロードキャスト (合流付き)。
+   * throttleMs=0 は即時 (従来動作)。それ以外は leading + trailing edge:
+   * ウィンドウ外なら即時 push、ウィンドウ内なら末尾に1回だけ最新状態を push する。
+   * 状態はスナップショットなので間引きは無損失 (中間フレームは次の push に包含される)。
+   * trailing タイマーは state.waitUntil で繋ぎ、hibernation/eviction 前に必ず flush される。
+   * event effect と接続時初期 push はこの経路を通らない (常に即時)。
+   */
+  private pushStateCoalesced(throttleMs: number): void {
+    if (throttleMs <= 0) {
+      this.lastStatePushMs = Date.now();
+      this.broadcast(this.buildStateMessage());
+      return;
+    }
+    const now = Date.now();
+    const elapsed = now - this.lastStatePushMs;
+    if (elapsed >= throttleMs) {
+      this.lastStatePushMs = now;
+      this.broadcast(this.buildStateMessage());
+      return;
+    }
+    if (this.trailingPushPending) return; // 既に末尾 push 予約済み (最新状態は push 時に読む)
+    this.trailingPushPending = true;
+    const delay = throttleMs - elapsed;
+    this.state.waitUntil(
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          this.trailingPushPending = false;
+          this.lastStatePushMs = Date.now();
+          this.broadcast(this.buildStateMessage());
+          resolve();
+        }, delay);
+      }),
+    );
+  }
+
+  private async runEffect(effect: RoomEffect): Promise<void> {
     if (effect.type === "event") {
       this.broadcast({
         v: ROOM_PROTOCOL_VERSION,
@@ -276,6 +332,18 @@ export class RoomDurableObject {
         event: effect.event,
         payload: effect.payload,
       });
+      return;
+    }
+    if (effect.type === "schedule") {
+      // 単一スロット: 後の schedule が前の予約を置換。action: null はクリア。
+      // 予約 action は storage 永続 (alarm 自体は eviction を跨いで発火するため、payload も残す必要がある)
+      if (effect.action === null) {
+        await this.state.storage.delete(KEY_SCHEDULED_ACTION);
+        await this.state.storage.deleteAlarm();
+      } else {
+        await this.state.storage.put(KEY_SCHEDULED_ACTION, effect.action);
+        await this.state.storage.setAlarm(effect.atMs);
+      }
       return;
     }
     if (effect.type === "callback") {

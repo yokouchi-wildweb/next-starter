@@ -140,19 +140,35 @@ const wrongKind = await fetch(`${baseUrl}/rooms/${NS}/${ROOM}/dispatch`, {
 check("5. client トークンで HTTP dispatch → 401", wrongKind.status === 401, `status=${wrongKind.status}`);
 
 // --- 6〜9. WebSocket ---
+// 到着順に依存しない書き方にすること: broadcastThrottleMs 設定時は状態 push が trailing に
+// 遅延し、event effect (即時) が先に届き得る (スナップショット+合流の正規の挙動)
 const ws = new WebSocket(`${wsBase}/rooms/${NS}/${ROOM}/ws?token=${encodeURIComponent(clientToken)}`);
 type Msg = { type: string; event?: string; code?: string; state?: { count?: number; lastActorId?: string | null }; payload?: { count?: number } };
-const messages: Msg[] = [];
+let initial: Msg | null = null;
+let updated: Msg | null = null;
+let milestone: Msg | null = null;
+let forbidden: Msg | null = null;
 try {
   await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("WebSocket 応答タイムアウト (10秒)")), 10_000);
+    const timer = setTimeout(() => reject(new Error("WebSocket 応答タイムアウト (15秒)")), 15_000);
+    let resetSent = false;
     ws.onmessage = (ev) => {
-      messages.push(JSON.parse(ev.data as string) as Msg);
-      if (messages.length === 1) {
+      const msg = JSON.parse(ev.data as string) as Msg;
+      if (msg.type === "state" && initial === null) {
+        // 接続直後の初期状態 (合流対象外・必ず最初の state)
+        initial = msg;
         ws.send(JSON.stringify({ v: ROOM_PROTOCOL_VERSION, type: "dispatch", action: { type: "increment", payload: { amount: 5 } } }));
-      } else if (messages.length === 3) {
+        return;
+      }
+      if (msg.type === "state" && msg.state?.count === 10) updated = msg;
+      if (msg.type === "event" && msg.event === "milestone") milestone = msg;
+      if (msg.type === "error") forbidden = msg;
+      // increment の反映 (state + event) が揃ってから禁止 action を送る
+      if (updated && milestone && !resetSent) {
+        resetSent = true;
         ws.send(JSON.stringify({ v: ROOM_PROTOCOL_VERSION, type: "dispatch", action: { type: "reset" } }));
-      } else if (messages.length === 4) {
+      }
+      if (updated && milestone && forbidden) {
         clearTimeout(timer);
         resolve();
       }
@@ -167,11 +183,15 @@ try {
 }
 ws.close();
 
-const [initial, updated, milestone, forbidden] = messages;
-check("6. WS 初期状態受信", initial?.type === "state" && initial.state?.count === 5, JSON.stringify(initial));
-check("7. WS クライアント dispatch (許可リスト内)", updated?.type === "state" && updated.state?.count === 10 && updated.state?.lastActorId === "check-user", JSON.stringify(updated));
-check("8. WS event effect (milestone)", milestone?.type === "event" && milestone.event === "milestone" && milestone.payload?.count === 10, JSON.stringify(milestone));
-check("9. WS 許可リスト外アクション拒否", forbidden?.type === "error" && forbidden.code === "action_forbidden", JSON.stringify(forbidden));
+// TS はクロージャ内での代入を追跡できず never に絞り込むため、明示キャストで戻す
+const initialMsg = initial as Msg | null;
+const updatedMsg = updated as Msg | null;
+const milestoneMsg = milestone as Msg | null;
+const forbiddenMsg = forbidden as Msg | null;
+check("6. WS 初期状態受信", initialMsg?.type === "state" && initialMsg.state?.count === 5, JSON.stringify(initialMsg));
+check("7. WS クライアント dispatch (許可リスト内)", updatedMsg?.state?.count === 10 && updatedMsg?.state?.lastActorId === "check-user", JSON.stringify(updatedMsg));
+check("8. WS event effect (milestone)", milestoneMsg?.payload?.count === 10, JSON.stringify(milestoneMsg));
+check("9. WS 許可リスト外アクション拒否", forbiddenMsg?.code === "action_forbidden", JSON.stringify(forbiddenMsg));
 
 // --- 10. 不正トークン ---
 const badWs = new WebSocket(`${wsBase}/rooms/${NS}/${ROOM}/ws?token=invalid`);

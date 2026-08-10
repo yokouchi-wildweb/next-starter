@@ -25,7 +25,10 @@ type SampleCounterState = {
 
 type SampleCounterAction =
   | { type: "increment"; payload?: { amount?: number } }
-  | { type: "reset" };
+  | { type: "reset" }
+  // schedule effect のリファレンス: delayMs 後に reset を自己 dispatch する予約 (server 専用)。
+  // 純度維持のため現在時刻 nowMs は payload で渡す (reducer 内で Date.now() を呼ばない)
+  | { type: "scheduleReset"; payload: { delayMs: number; nowMs: number } };
 
 const sampleCounterDefinition: RoomDefinition<SampleCounterState, SampleCounterAction> = {
   createInitialState: () => ({ count: 0, lastActorId: null }),
@@ -47,13 +50,29 @@ const sampleCounterDefinition: RoomDefinition<SampleCounterState, SampleCounterA
       case "reset":
         // server 経由のみ許可 (clientActions に載せていない)
         return { state: { count: 0, lastActorId: ctx.userId } };
+      case "scheduleReset":
+        // 状態は変えず、指定時刻に reset を予約する (単一スロット: 後の予約が前を置換)
+        return {
+          state,
+          effects: [
+            {
+              type: "schedule",
+              atMs: action.payload.nowMs + action.payload.delayMs,
+              action: { type: "reset" },
+            },
+          ],
+        };
       default:
         return { state };
     }
   },
 
-  // increment のみブラウザから直接 dispatch 可 (reset はサーバー専用)
+  // increment のみブラウザから直接 dispatch 可 (reset / scheduleReset はサーバー専用)
   clientActions: ["increment"],
+
+  // 状態pushの合流リファレンス: 100ms に最大1回 (leading + trailing、最終状態は必ず届く)。
+  // 既定は 0 (dispatch 毎に即時 push)。高頻度ルームのみ設定する
+  broadcastThrottleMs: 100,
 };
 
 // ---------------------------------------------------------------------------

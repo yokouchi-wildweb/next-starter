@@ -35,7 +35,7 @@ Next.js アプリの**外側**にデプロイされる独立プログラムで�
 Cloudflare Worker (servers/room)
   └─ RoomDurableObject (ns/roomId ごとに1個)
        ・reducer (純粋関数) で状態遷移 ─── 実装は src/features/<domain>/room/
-       ・effects: event (一過性配信) / callback (アプリAPIへ署名付きPOST)
+       ・effects: event (一過性配信) / callback (アプリAPIへ署名付きPOST) / schedule (DO alarm で指定時刻に自己dispatch)
   ▲                                    │
   │ HTTP dispatch/getState             │ callback (room_callback トークン)
   │ (room_server トークン)             ▼
@@ -148,6 +148,20 @@ Worker 側の変更が無い回でも deploy は無害 (冪等)。「今回 serv
 対処: 中間層で有効化をコミットしたら、**ロールアウト時に下流へ DOWNSTREAM NOTICE (/downreq) を出す**こと。
 内容は「wrangler.toml の name を自プロジェクト固有名へ変更 + 自アカウントでセットアップ (room:init 手順) or
 使わないなら `enabled: false` へ戻す」の二択を明示する。
+
+## 高頻度ルーム向けオプション
+
+- **状態pushの合流** (`RoomDefinition.broadcastThrottleMs`): 既定 0 = dispatch 毎に全購読者へ即時 push。
+  高頻度ルーム (毎秒数十 dispatch × 大人数購読) では「N ms に最大1回」に間引ける (目安 100〜250)。
+  leading + trailing edge で最終状態は必ず配信され、状態はスナップショットなので間引きは無損失。
+  接続時の初期 push・event effect・dispatch HTTP レスポンスは常に即時 (対象外)
+- **時限アクション** (`{ type: "schedule", atMs, action }` effect): DO alarm で指定時刻に action を
+  自己 dispatch (通常の直列化・配信・effects 経路、actorType:"server")。バフ失効・カウントダウン等の
+  時間駆動遷移用。ルームにつき単一スロット (後の予約が置換、`action: null` でクリア)、
+  予約は storage 永続で eviction を跨いで発火する。at-most-once 相当のため、厳密な失効判定は
+  reducer 側の遅延評価 (payload の nowMs 比較) を安全網として併用すること。
+  atMs は純度維持のため action payload から計算する (reducer 内で Date.now() 禁止は従来通り)
+- 両方の実装例: `src/registry.ts` の sample-counter (broadcastThrottleMs + scheduleReset)
 
 ## 制約・非対象
 
