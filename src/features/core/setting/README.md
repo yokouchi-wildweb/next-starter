@@ -229,7 +229,13 @@ await trigger({ id: "global", data: { /* 更新内容 */ } });
 |----------|------|------|
 | GET | `/api/setting/global` | 設定取得 |
 | PATCH | `/api/setting/global` | 設定更新 |
-| POST | `/api/admin/setup` | 初期セットアップ |
+| POST | `/api/setting/setup` | 初期セットアップ |
+
+### 初期セットアップ (`POST /api/setting/setup`) のセキュリティモデル
+
+- 未認証（`access: "public"`）だが **ワンショット**: `initializeAdminSetup` が冒頭で `checkAdminUserExists()` を確認し、管理者が1人でも存在すれば 409 で拒否する（fail-closed、画面側の redirect はUI補助にすぎない）
+- `role` はクライアント入力を無視して `admin` 固定（セットアップUIにロール選択は存在しない）
+- 既知の受容リスク: 存在チェックと作成が同一トランザクションでないため、初回セットアップ完了前のみ同時リクエストによる複数管理者作成の競合窓が理論上ある。セットアップ時点では実運用開始前のためリスク受容とし、advisory lock 等での厳密化は意図的に見送っている（判断根拠は `settingService.ts` の `initializeAdminSetup` コメント参照）
 
 ---
 

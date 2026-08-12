@@ -2,6 +2,8 @@
 import type { Setting } from "@/features/core/setting/entities";
 import type { User } from "@/features/core/user/entities";
 import { createAdmin } from "@/features/core/user/services/server/creation/console";
+import { checkAdminUserExists } from "@/features/core/user/services/server/finders/checkAdminUserExists";
+import { DomainError } from "@/lib/errors";
 import { getZodDefaults } from "@/lib/zod";
 
 import { settingExtendedSchema } from "../../setting.extended";
@@ -139,7 +141,17 @@ async function isMaintenanceActive(): Promise<boolean> {
 }
 
 export async function initializeAdminSetup(data: AdminSetupInput): Promise<User> {
-  const user = await createAdmin(data);
+  // 初回セットアップ専用: 管理者が既に存在する場合は未認証経路からの管理者追加を拒否する
+  // NOTE: 存在チェックと作成は同一トランザクションではないため、初回セットアップ完了前の
+  // 一瞬だけ同時リクエストで管理者が複数作られうる競合窓が理論上残る（TOCTOU）。
+  // 初回セットアップ時点では実運用が始まっていないため、このリスクは受容する方針
+  // （advisory lock 等での厳密化は意図的に見送り）。管理者が1人でも存在すれば以降は完全に閉じる。
+  if (await checkAdminUserExists()) {
+    throw new DomainError("セットアップは完了済みです", { status: 409 });
+  }
+
+  // role はクライアント入力を無視して admin 固定（セットアップUIにロール選択は存在しない）
+  const user = await createAdmin({ ...data, role: "admin" });
   const defaultValues = createDefaultSettingValues();
   const existing = await base.get("global");
 
