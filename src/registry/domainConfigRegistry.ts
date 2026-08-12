@@ -84,6 +84,10 @@ type DomainConfigOptionals = {
   // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（Neon のみ）。
   // 詳細は src/lib/crud/README.md を参照。
   systemColumns?: string[];
+  // 秘匿カラム（サービスの全戻り値・withRelations 展開から null 置換、Neon のみ）。
+  // dc:generate が entities/drizzle.ts に defineHiddenColumns() を出力する。
+  // 詳細は src/lib/crud/README.md の hiddenColumns 節を参照。
+  hiddenColumns?: string[];
   // JSON インポートの型推論（string）と相性を保つため、リテラル union ではなく緩い型で宣言する。
   // 厳密な型は src/lib/domain/types/apiAccess.ts の DomainApiAccessConfig を参照。
   apiAccess?: {

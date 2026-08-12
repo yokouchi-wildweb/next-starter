@@ -365,6 +365,29 @@ if (needsUniqueIndex) {
   imports.add('uniqueIndex');
 }
 
+// 秘匿カラム (config.hiddenColumns) の検証
+// 形式: hiddenColumns: string[] (TS プロパティ名)
+// createCrudService の全戻り値・他ドメインの withRelations 展開から null 置換される
+// (詳細: src/lib/crud/README.md の hiddenColumns 節)
+const hiddenColumns = Array.isArray(config.hiddenColumns) ? config.hiddenColumns : [];
+if (hiddenColumns.length > 0) {
+  const knownProps = new Set(['id']);
+  (config.relations || []).forEach((rel) => {
+    if (rel.relationType === 'belongsTo') knownProps.add(rel.fieldName);
+  });
+  (config.fields || []).forEach((f) => knownProps.add(f.name));
+  if (config.useCreatedAt) knownProps.add('createdAt');
+  if (config.useUpdatedAt) knownProps.add('updatedAt');
+  if (config.useSoftDelete) knownProps.add('deletedAt');
+  for (const col of hiddenColumns) {
+    if (!knownProps.has(col)) {
+      console.error(`エラー: hiddenColumns に未知のフィールド "${col}" が指定されています`);
+      console.error('  domain.json の fields / relations に存在するプロパティ名（camelCase）で指定してください');
+      process.exit(1);
+    }
+  }
+}
+
 // 非ユニークインデックス (config.indexes) の有無と sql 句使用判定
 // 形式: indexes: [{ fields: string[], where?: string, name?: string }]
 // where は sql テンプレート内に挿入される（partial index 用）
@@ -382,6 +405,9 @@ content += `${importLine}\n`;
 const needsSqlImport = needsPartialIndex || (config.useSoftDelete && hasCompositeUniques) || extraIndexesHaveWhere;
 if (needsSqlImport) {
   content += `import { sql } from "drizzle-orm";\n`;
+}
+if (hiddenColumns.length > 0) {
+  content += `import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";\n`;
 }
 relationImports.forEach((domainPascal, domainCamel) => {
   content += `import { ${domainPascal}Table } from "@/features/${domainCamel}/entities/drizzle";\n`;
@@ -466,6 +492,14 @@ if (tableIndexes.length > 0) {
   content += `\n]);\n`;
 } else {
   content += `\n});\n`;
+}
+
+// 秘匿カラム宣言（テーブル定義直後に置く: import 順序に依存せず参照させるため）
+if (hiddenColumns.length > 0) {
+  const list = hiddenColumns.map((c) => `"${c}"`).join(', ');
+  content += `\n// 秘匿カラム宣言: サービスの全戻り値・withRelations 展開から null 置換される\n`;
+  content += `// (詳細: src/lib/crud/README.md の hiddenColumns 節)\n`;
+  content += `defineHiddenColumns(${pascal}Table, [${list}]);\n`;
 }
 
 relationTables.forEach((t) => {
