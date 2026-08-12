@@ -254,6 +254,9 @@ ref: scripts/README.md | claude:test: API connection check (requires ANTHROPIC_A
 db:query "SQL": execute SQL | db:tables: list tables | db:describe \<table\>: show structure | db:count [table]: row counts
 fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe, fs:query, fs:delete). run without args for usage
 
+## DOWNSTREAM_NOTICES (上流追随)
+upstream変更の追随通知 = .notices/*.md (変更と同じcommit/PRで出荷、mergeで下流に届く) | 起票: /downreq | 受領・適用: /flux (merge→未適用検出→承認1回→適用・DB・検証・台帳・commitまで完走) | 台帳: .notices/applied/\<fork-id\>.md (forkごと別ファイル) | ref: .notices/README.md
+
 ## DOCS
 policy: colocation-first — primary docs in README.md next to code | docs/ = legacy, phasing out except !must-read/ (exception: standalone docs allowed when clearly superior)
 stale_README: full rewrite over partial patch when README contradicts actual code
