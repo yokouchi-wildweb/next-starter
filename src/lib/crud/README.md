@@ -142,6 +142,42 @@ await base.systemBulkUpdateByQuery({ status: "active" }, { archived_at: new Date
 - business ドメインは domain.json の `systemColumns` に宣言して `dc:generate` で反映、
   core ドメインは drizzleBase の `createCrudService` オプションに直接宣言する
 
+### hiddenColumns（秘匿カラム — サービス境界の外に出さない）
+
+パスワードハッシュ等「DB には保持するがサービスの戻り値に決して含めてはならない」
+カラムをテーブル定義レベルで宣言する仕組み（Drizzle のみ）。宣言はサービスオプション
+ではなく **entities/drizzle.ts のテーブル定義直後** に置く。テーブルオブジェクトを
+参照するあらゆるコードから import 順序に依存せず参照できるようにするため。
+
+```typescript
+// entities/drizzle.ts（テーブル定義の直後）
+import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";
+
+defineHiddenColumns(UserTable, ["localPassword"]);
+```
+
+効果（すべて自動・個別ルート対応不要）:
+
+- `createCrudService` の**全メソッドの戻り値**から宣言カラムが `null` に置換される
+  （get/search/create/update/upsert/bulk 系/query/restore/... 戻り形状に依存しない
+  deep-strip のため、将来メソッドが増えても fail-closed でカバーされる）
+- **他ドメインの `withRelations` 展開**で埋め込まれる行（belongsTo / belongsToMany /
+  hasMany、ネスト展開含む）からも除去される
+- audit 記録・requestMemo は生値で動作した後、呼び出し元へ返る直前に置換される
+  （audit の before/after 差分検出は壊れない。秘匿値自体は audit denylist が別途マスク）
+
+ルール:
+
+- プロパティ名（camelCase）で宣言。存在しないカラム名は定義時に即 throw（fail-fast）
+- 値は「キー削除」ではなく「null 置換」。エンティティ型を nullable にしておけば
+  型と実態が一致する
+- サーバー内部で秘匿値を読む正規経路は、`createCrudService` を経由しない専用
+  ファインダー（`services/server/finders/` に直接 drizzle 読み取り）のみ。
+  例: `user/services/server/finders/findByIdWithSecrets.ts`。
+  ファインダーの戻り値を HTTP レスポンスに乗せることは厳禁
+- 未宣言のテーブルにはラッパー自体が適用されず、性能影響ゼロ
+- Firestore アダプタは対象外（FROZEN。ドクトリン上 Firestore に秘匿情報は置かない）
+
 ---
 
 ## 提供メソッド一覧

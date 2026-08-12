@@ -3,6 +3,7 @@
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
 import { sql } from "drizzle-orm";
 import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import type { UserMetadata } from "./model";
 
@@ -58,6 +59,11 @@ export const UserTable = pgTable(
     nameNormIdx: index("users_name_norm_idx").on(sql`lower(btrim(${table.name}))`),
   }),
 );
+
+// 秘匿カラム宣言: localPassword（ハッシュ）は createCrudService の全戻り値・
+// 他ドメインの withRelations 展開から null 化され、サービス境界の外に出ない。
+// サーバー内部での検証読み取りは finders/findByIdWithSecrets.ts（直接 drizzle）経由のみ。
+defineHiddenColumns(UserTable, ["localPassword"]);
 
 /**
  * ユーザーステータス遷移履歴（分析・集計用サテライトテーブル）。

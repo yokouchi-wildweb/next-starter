@@ -3,6 +3,7 @@
 import { db } from "@/lib/drizzle";
 import { and, inArray, isNull } from "drizzle-orm";
 import type { BelongsToRelation, BelongsToManyObjectRelation, HasManyRelation } from "@/lib/crud/types";
+import { stripHiddenColumnsForTable } from "../hiddenColumns";
 
 /**
  * belongsTo リレーションを展開する。
@@ -65,6 +66,9 @@ export async function hydrateBelongsTo<T extends Record<string, any>>(
             ? and(inArray(rel.table.id, foreignKeys), softDeleteFilter)
             : inArray(rel.table.id, foreignKeys),
         );
+
+      // リレーション先テーブルの秘匿カラムを埋め込み前に除去
+      stripHiddenColumnsForTable(rel.table, relatedRecords as Record<string, unknown>[]);
 
       const relatedMap = new Map(
         relatedRecords.map((r: any) => [r.id, r])

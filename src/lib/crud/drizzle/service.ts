@@ -35,6 +35,7 @@ import {
 } from "./belongsToMany";
 import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateHasMany, DEFAULT_HAS_MANY_LIMIT, hydrateCount } from "./relations";
 import { applyRequestMemo } from "./requestMemo";
+import { applyHiddenColumns } from "./hiddenColumns";
 
 const resolveRecordId = (value: unknown): string | number | undefined => {
   if (typeof value === "string" || typeof value === "number") {
@@ -2304,5 +2305,7 @@ export function createCrudService<
 
   // requestMemo: get のリクエストスコープメモ化 + 書き込みメソッドでの自動 invalidate。
   // 無効時も invalidateRequestMemo (no-op) を公開し、サービスの形を一定に保つ。
-  return applyRequestMemo(service, serviceOptions.requestMemo === true);
+  // hiddenColumns: テーブルに defineHiddenColumns() の宣言があれば、最外層で
+  // 全メソッドの戻り値から秘匿カラムを null 化する（audit / memo は生値で動作済み）。
+  return applyHiddenColumns(applyRequestMemo(service, serviceOptions.requestMemo === true), table);
 }

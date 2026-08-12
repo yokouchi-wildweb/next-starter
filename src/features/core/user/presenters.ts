@@ -24,7 +24,6 @@ export const presenters: Record<string, UserFieldPresenter> = {
   email: ({ value }) => formatString(value),
   name: ({ value }) => formatString(value),
   role: ({ value }) => formatEnumLabel(value, ROLE_LABEL_MAP),
-  localPassword: ({ value }) => formatString(value),
   status: ({ value }) => formatUserStatusLabel(value as string | null | undefined, "―"),
   lastAuthenticatedAt: ({ value }) =>
     formatDateValue(value, "YYYY/MM/DD HH:mm", (val, format) =>

@@ -3,6 +3,7 @@
 import { db } from "@/lib/drizzle";
 import { and, asc, inArray, isNull } from "drizzle-orm";
 import type { HasManyRelation, BelongsToRelation, BelongsToManyObjectRelation } from "@/lib/crud/types";
+import { stripHiddenColumnsForTable } from "../hiddenColumns";
 
 /** hasMany 展開時の親レコードあたりのデフォルト取得上限 */
 export const DEFAULT_HAS_MANY_LIMIT = 100;
@@ -88,6 +89,9 @@ export async function hydrateHasMany<T extends Record<string, any>>(
             : inArray(rel.table[rel.foreignKey], parentIds),
         )
         .orderBy(asc(rel.table.id));
+
+      // リレーション先テーブルの秘匿カラムを埋め込み前に除去
+      stripHiddenColumnsForTable(rel.table, childRecords as Record<string, unknown>[]);
 
       // 親IDでグルーピング（親あたり limit 件まで）
       const grouped = new Map<string, any[]>();

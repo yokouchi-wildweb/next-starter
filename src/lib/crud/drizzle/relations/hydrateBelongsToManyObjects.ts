@@ -3,6 +3,7 @@
 import { db } from "@/lib/drizzle";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { BelongsToRelation, BelongsToManyObjectRelation, HasManyRelation } from "@/lib/crud/types";
+import { stripHiddenColumnsForTable } from "../hiddenColumns";
 
 /**
  * belongsToMany リレーションをオブジェクト配列で展開する。
@@ -84,6 +85,12 @@ export async function hydrateBelongsToManyObjects<T extends Record<string, any>>
           ? and(inArray(rel.sourceColumn, recordIds), softDeleteFilter)
           : inArray(rel.sourceColumn, recordIds),
       );
+
+    // リレーション先テーブルの秘匿カラムを埋め込み前に除去
+    stripHiddenColumnsForTable(
+      rel.targetTable,
+      joinedRecords.map((jr) => jr.target as Record<string, unknown>),
+    );
 
     // 3. sourceId でグルーピング（オブジェクト配列 + ID 配列を同時に構築）
     const grouped = new Map<string, any[]>();

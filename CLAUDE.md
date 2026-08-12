@@ -115,6 +115,7 @@ extension: 1.check base methods → 2.relationWhere for relation filtering → 3
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 requestMemo: option requestMemo:true → get(id) request-scoped memoized + all write methods auto-invalidate | enabled: user, setting | Drizzle only
 requestMemo_rule (MANDATORY): raw SQL write to enabled table → base.invalidateRequestMemo() right after | detail: src/lib/requestMemo/README.md
+hiddenColumns (secrets never leave service): defineHiddenColumns(table, props) in entities/drizzle.ts → ALL service returns + other domains' withRelations embeds null the cols (Drizzle only, fail-closed) | enabled: users.localPassword | internal secret read = dedicated finder (user findByIdWithSecrets) ONLY, never return over HTTP | detail: src/lib/crud/README.md
 firestore_limits: no or | single orderBy | no belongsToMany
 
 ## AUDIT

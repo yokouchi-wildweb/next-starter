@@ -18,7 +18,9 @@ export async function verifyCurrentUserPassword(
   password: string,
 ): Promise<boolean> {
   // ユーザーを取得（論理削除されたユーザーも含む）
-  const user = await userService.getWithDeleted(userId);
+  // localPassword は hiddenColumns により汎用サービス経由では null 化されるため、
+  // 秘匿カラムを含む専用ファインダーで取得する
+  const user = await userService.findByIdWithSecrets(userId);
 
   if (!user) {
     throw new DomainError(`ユーザーが見つかりません (ID: ${userId})`, { status: 404 });

@@ -2,6 +2,7 @@
 
 import { base } from "./drizzleBase";
 import { checkAdminUserExists } from "./finders/checkAdminUserExists";
+import { findByIdWithSecrets } from "./finders/findByIdWithSecrets";
 import { findByLocalEmail } from "./finders/findByLocalEmail";
 import { findByProvider } from "./finders/findByProvider";
 import {
@@ -42,6 +43,7 @@ export const userService = {
   // finders
   findByProvider,
   findByLocalEmail,
+  findByIdWithSecrets,
   checkAdminUserExists,
   // wrappers
   updateLastAuthenticated,
