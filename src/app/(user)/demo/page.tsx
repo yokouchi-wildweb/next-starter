@@ -10,6 +10,7 @@ const DEMO_PAGES = [
   { path: "check-env", label: "Check Env", description: "環境変数の確認" },
   { path: "dummy-payment", label: "Dummy Payment", description: "ダミー決済フロー" },
   { path: "field-layout", label: "Field Layout", description: "フィールドレイアウトのデモ" },
+  { path: "fingerprint", label: "Fingerprint", description: "デバイス信号の収集とフォーム行動計測" },
   { path: "form-components", label: "Form Components", description: "フォームコンポーネント一覧" },
   { path: "google-popup", label: "Google Popup", description: "Google認証（ポップアップ）" },
   { path: "google-redirect", label: "Google Redirect", description: "Google認証（リダイレクト）" },
