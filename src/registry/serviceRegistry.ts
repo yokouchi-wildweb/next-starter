@@ -24,6 +24,8 @@ import { counterService } from "@/features/userCounter/services/server/counterSe
 import { interactionService } from "@/features/interactionTracking/services/server/interactionService";
 import { notificationService } from "@/features/notification/services/server/notificationService";
 import { notificationTemplateService } from "@/features/notificationTemplate/services/server/notificationTemplateService";
+import { deviceFingerprintService } from "@/features/deviceFingerprint/services/server";
+import { fingerprintChallengeService } from "@/features/fingerprintChallenge/services/server";
 
 // --- Auto-generated imports ---
 import { sampleService } from "@/features/sample/services/server/sampleService";
@@ -58,6 +60,13 @@ export const serviceRegistry: Record<string, DomainRegistryEntry> = {
   notification: { service: notificationService, access: ADMIN_ONLY },
   notificationTemplate: { service: notificationTemplateService, access: ADMIN_ONLY },
   chatRoom: { service: chatRoomService, access: ADMIN_ONLY },
+  // デバイスフィンガープリント。書き込み主経路は POST /api/me/fingerprint (本人 ingest) +
+  // recordDeviceFingerprint (サーバ内部)。汎用 API は admin の閲覧・調査のみに限定 (fail-closed)。
+  // 類似照合は /api/admin/device-fingerprint/similar・compare を使う。
+  deviceFingerprint: { service: deviceFingerprintService, access: ADMIN_ONLY },
+  // 回答チャレンジ。発行 / 状態遷移は /api/admin/fingerprint-challenges (専用アクション)、
+  // 本人の回答は /api/me/fingerprint-challenges/[token]。汎用 API は admin の一覧・検索のみ。
+  fingerprintChallenge: { service: fingerprintChallengeService, access: ADMIN_ONLY },
 
   // --- AUTO-GENERATED-START ---
   sample: {

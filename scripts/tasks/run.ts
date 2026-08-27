@@ -48,6 +48,12 @@ const TASKS: Record<string, TaskFn> = {
     );
     return await pruneExpiredUserLoginEvents();
   },
+  "device-fingerprint-prune": async () => {
+    const { pruneExpiredDeviceFingerprints } = await import(
+      "@/features/core/deviceFingerprint/services/server"
+    );
+    return await pruneExpiredDeviceFingerprints();
+  },
   "user-daily-counter-prune": async () => {
     const { pruneExpiredUserDailyCounters } = await import(
       "@/features/core/userCounter/services/server/pruning"

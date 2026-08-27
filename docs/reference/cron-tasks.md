@@ -57,6 +57,17 @@
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "deletedCount": 1500, "iterations": 2, "truncated": false }`
 
+### `device-fingerprint-prune`
+
+`device_fingerprints` テーブルの retention_days を超過した行をバッチ削除する。ブラウザフィンガープリントは IP 同様に個人へ紐づく識別情報のため、無期限保持にせず日次プルーニングする。機能未使用（`FINGERPRINT_CONFIG` 無効）なら削除対象が存在せず no-op。
+
+- **API**: `GET /api/cron/device-fingerprint-prune`
+- **CLI**: `pnpm task device-fingerprint-prune`
+- **推奨スケジュール**: `15 4 * * *` （日次・深夜帯。他の prune 系と時刻を被らせない）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "deletedCount": 1200, "iterations": 2, "truncated": false }`
+- **詳細**: `src/features/core/deviceFingerprint/README.md`
+
 ### `wallet-expire-lots`
 
 有効期限切れウォレットロットの残額を没収（残高減算 + wallet_histories 記録）する。
@@ -105,6 +116,7 @@
     { "path": "/api/cron/audit-log-prune",               "schedule": "0 3 * * *" },
     { "path": "/api/cron/audit-log-recover-dead-letter", "schedule": "0 * * * *" },
     { "path": "/api/cron/user-login-event-prune",        "schedule": "0 4 * * *" },
+    { "path": "/api/cron/device-fingerprint-prune",      "schedule": "15 4 * * *" },
     { "path": "/api/cron/wallet-expire-lots",            "schedule": "30 4 * * *" },
     { "path": "/api/cron/wallet-lots-prune",             "schedule": "45 4 * * *" }
   ]
