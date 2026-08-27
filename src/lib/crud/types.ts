@@ -194,6 +194,18 @@ export type BulkUpsertResult<T> = {
 };
 
 /**
+ * replaceByQuery のオプション。
+ */
+export type ReplaceByQueryOptions = {
+  /**
+   * true の場合、sortOrderColumn 設定済みサービスで挿入 records の配列順に
+   * fractional sort key を自動採番する（records 内の明示値より優先）。
+   * sortOrderColumn 未設定のサービスで指定すると throw（fail-fast）。
+   */
+  sortOrderFromIndex?: boolean;
+};
+
+/**
  * バルクアップデート用のレコード型。
  * idと更新データをセットで渡す。
  */
@@ -232,6 +244,14 @@ export type ApiClient<T, CreateData = Partial<T>, UpdateData = Partial<T>> = {
   search?(params: SearchParams & WithOptions): Promise<PaginatedResult<T>>;
   bulkDeleteByIds?(ids: string[]): Promise<void>;
   bulkDeleteByQuery?(where: WhereExpr): Promise<void>;
+  /**
+   * where 一致行の全削除と records の挿入を単一トランザクションで行う（Drizzle のみ）。
+   */
+  replaceByQuery?(
+    where: WhereExpr,
+    records: CreateData[],
+    options?: ReplaceByQueryOptions,
+  ): Promise<T[]>;
   upsert?(data: CreateData, options?: UpsertOptions<CreateData>): Promise<T>;
   bulkUpsert?(records: CreateData[], options?: BulkUpsertOptions<CreateData>): Promise<BulkUpsertResult<T>>;
   bulkUpdate?(records: BulkUpdateRecord<UpdateData>[]): Promise<BulkUpdateResult<T>>;

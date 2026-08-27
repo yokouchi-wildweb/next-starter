@@ -18,6 +18,7 @@ import generateDelete from "./delete.mjs";
 import generateBulkDeleteByIds from "./bulkDeleteByIds.mjs";
 import generateBulkDeleteByQuery from "./bulkDeleteByQuery.mjs";
 import generateBulkUpsert from "./bulkUpsert.mjs";
+import generateReplaceByQuery from "./replaceByQuery.mjs";
 import generateBulkUpdate from "./bulkUpdate.mjs";
 import generateViewModal from "./viewModal.mjs";
 import generateDuplicate from "./duplicate.mjs";
@@ -81,6 +82,11 @@ const generators = [
 ];
 
 // 条件付きフック
+// replaceByQuery は Drizzle 専用（Firestore アダプタは未対応・FROZEN）
+if (domainConfig?.dbEngine !== "Firestore") {
+  generators.push(generateReplaceByQuery);
+}
+
 if (domainConfig?.useDetailModal) {
   generators.push(generateViewModal);
 }

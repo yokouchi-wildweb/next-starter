@@ -24,6 +24,7 @@ export const DOMAIN_API_OPERATIONS = [
   "bulkUpdateByIds",
   "bulkDeleteByIds",
   "bulkDeleteByQuery",
+  "replaceByQuery",
 ] as const;
 
 export type DomainApiOperation = (typeof DOMAIN_API_OPERATIONS)[number];

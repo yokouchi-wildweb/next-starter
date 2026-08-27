@@ -12,6 +12,7 @@ import type {
   BulkUpsertResult,
   BulkUpdateRecord,
   BulkUpdateResult,
+  ReplaceByQueryOptions,
   DuplicateOptions,
   WhereExpr,
   WithOptions,
@@ -115,6 +116,12 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
         "bulkUpsert",
         async () =>
           (await axios.post<BulkUpsertResult<T>>(`${baseUrl}/bulk/upsert`, { records, options })).data,
+      ),
+    replaceByQuery: (where: WhereExpr, records: CreateData[], options?: ReplaceByQueryOptions) =>
+      handleRequest(
+        "replaceByQuery",
+        async () =>
+          (await axios.post<T[]>(`${baseUrl}/bulk/replace-by-query`, { where, records, options })).data,
       ),
     bulkUpdate: (records: BulkUpdateRecord<UpdateData>[]) =>
       handleRequest(

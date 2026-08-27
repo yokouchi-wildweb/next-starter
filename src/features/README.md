@@ -493,7 +493,7 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 
 #### Operation（operations のキー）
 
-`list` `get` `search` `count` `create` `update` `remove` `upsert` `duplicate` `restore` `hardDelete` `reorder` `searchForSorting` `bulkUpsert` `bulkUpdate` `bulkUpdateByIds` `bulkDeleteByIds` `bulkDeleteByQuery`
+`list` `get` `search` `count` `create` `update` `remove` `upsert` `duplicate` `restore` `hardDelete` `reorder` `searchForSorting` `bulkUpsert` `bulkUpdate` `bulkUpdateByIds` `bulkDeleteByIds` `bulkDeleteByQuery` `replaceByQuery`
 
 #### フォールバック（fail-closed）
 

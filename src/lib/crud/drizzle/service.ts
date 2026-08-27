@@ -4,7 +4,7 @@ import { db } from "@/lib/drizzle";
 import { stripDenylisted } from "@/lib/audit";
 import { omitUndefined } from "@/utils/object";
 import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, desc, getTableName, gt } from "drizzle-orm";
-import { generateSortKey, generateFirstSortKey, generateLastSortKey, generateLastSortKeys } from "./fractionalSort";
+import { generateSortKey, generateFirstSortKey, generateLastSortKey, generateLastSortKeys, generateInitialSortKeys } from "./fractionalSort";
 import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type { PgTable, AnyPgColumn, PgUpdateSetSource, PgTimestampString } from "drizzle-orm/pg-core";
@@ -18,6 +18,7 @@ import type {
   BulkUpsertResult,
   BulkUpdateRecord,
   BulkUpdateResult,
+  ReplaceByQueryOptions,
   DuplicateOptions,
   WhereExpr,
   WithOptions,
@@ -42,6 +43,23 @@ const resolveRecordId = (value: unknown): string | number | undefined => {
     return value;
   }
   return undefined;
+};
+
+/**
+ * replaceByQuery のスコープガード用の値比較。
+ * where の eq 値は HTTP 経由だと JSON 由来（Date は ISO 文字列、数値/文字列の揺れあり）、
+ * record 側は Zod parse 済みの型付き値のため、型を正規化してから比較する。
+ */
+const isSameScopeValue = (a: unknown, b: unknown): boolean => {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  const normalize = (v: unknown): unknown =>
+    v instanceof Date
+      ? v.toISOString()
+      : typeof v === "number" || typeof v === "boolean"
+        ? String(v)
+        : v;
+  return normalize(a) === normalize(b);
 };
 
 /**
@@ -1818,6 +1836,205 @@ export function createCrudService<
         }
 
         return { results: rows, count: rows.length };
+      });
+    },
+
+    /**
+     * WhereExpr 条件に一致する行の全削除と records の挿入を単一トランザクションで行う
+     * （親スコープ配下の子リストの「丸ごと置換」用）。
+     *
+     * - READ COMMITTED の並行リーダーからは常に旧セットか新セットのどちらかが見え、
+     *   「空」の瞬間は観測されない。失敗時は削除ごと巻き戻る。
+     * - records は create と同じ parseCreate（Zod）経路を通り、挿入行を入力順で返す。
+     *   records が空の場合は削除のみ実行して [] を返す（許可された操作）。
+     * - スコープガード（fail-closed）: where の eq 句（and 直下含む。or 分岐内は対象外）を
+     *   スコープ制約とみなし、record 側の未指定値は where の値で自動補完、parse 後に
+     *   値が食い違う record があれば 422 で全体を拒否する（records がスコープ外へ逃げない）。
+     * - 削除フェーズは bulkDeleteByQuery と同じ分岐（soft-delete はソフトマーク、物理削除は
+     *   Storage クリーンアップ + 制約エラー変換）。soft-delete テーブルでは旧行が残るため、
+     *   同一 id を records で再送すると PK 衝突する点に注意。
+     * - belongsToMany フィールドは非対応（throw）。個別に create() でリレーション同期すること。
+     * - 親行のロックは取得しない（アトミックコミットで十分。ロックは呼び出し側の責務）。
+     */
+    async replaceByQuery(
+      where: WhereExpr,
+      records: Insert[],
+      replaceOptions?: ReplaceByQueryOptions,
+      tx?: DbTransaction,
+    ): Promise<Select[]> {
+      if (!where) {
+        throw new Error("replaceByQuery requires a where condition.");
+      }
+      if (replaceOptions?.sortOrderFromIndex && !sortOrderColumn) {
+        throw new DomainError(
+          "replaceByQuery({ sortOrderFromIndex: true }) requires sortOrderColumn to be configured in service options.",
+          { status: 500 },
+        );
+      }
+
+      const condition = buildWhere(table, where);
+      const isHard = !deletedAtColumn;
+      const shouldCleanupStorage = hasStorageCleanup && isHard;
+
+      // where の eq 制約（and 直下含む）をスコープ制約として収集する。
+      // or 分岐内の eq は「全行に必ず成立する制約」ではないため対象外。
+      const scopeConstraints = new Map<string, unknown>();
+      const collectScopeConstraints = (expr: WhereExpr): void => {
+        if ("and" in expr) {
+          expr.and.forEach(collectScopeConstraints);
+          return;
+        }
+        if ("or" in expr) return;
+        if (expr.op === "eq") scopeConstraints.set(expr.field, expr.value);
+      };
+      collectScopeConstraints(where);
+
+      // field 表記（プロパティ名 / DB カラム名）をプロパティ名に解決
+      const columnToProperty = buildColumnToPropertyMap(table);
+      const propertyNames = new Set(columnToProperty.values());
+      const resolvedScope = new Map<string, unknown>();
+      for (const [field, value] of scopeConstraints) {
+        const prop = propertyNames.has(field) ? field : columnToProperty.get(field);
+        if (prop) resolvedScope.set(prop, value);
+      }
+
+      return withCrudEnhancements(async () => {
+        const parsedRecords = await Promise.all(
+          records.map(async (data, index) => {
+            const normalizedData = normalizeRecordKeys(
+              table,
+              data as Record<string, unknown>,
+            ) as Record<string, unknown>;
+
+            // スコープ制約カラムの未指定値を where の値で補完（Zod required 対策で parse 前）
+            for (const [prop, value] of resolvedScope) {
+              if (normalizedData[prop] === undefined) normalizedData[prop] = value;
+            }
+
+            const parsedInput = serviceOptions.parseCreate
+              ? await serviceOptions.parseCreate(normalizedData as Insert)
+              : normalizedData;
+
+            const { sanitizedData, relationValues } = separateBelongsToManyInput(
+              parsedInput as Partial<Insert>,
+              belongsToManyRelations,
+            );
+            // Zod default（[] 等）で常時注入される空の M2M 値は同期不要のため黙って落とす。
+            // 実値が入っている場合のみ非対応として reject（fail-closed）。
+            const hasRelationInput = Array.from(relationValues.values()).some((value) =>
+              Array.isArray(value) ? value.length > 0 : value != null,
+            );
+            if (hasRelationInput) {
+              throw new DomainError(
+                "replaceByQuery() does not support belongsToMany fields. Use create() individually for relation sync.",
+                { status: 500 },
+              );
+            }
+
+            const finalInsert = coerceEmptyArraysToNull(
+              table,
+              applyInsertDefaults(sanitizedData as Insert, serviceOptions),
+            ) as Record<string, unknown>;
+
+            // Zod スキーマ外のスコープ制約カラム（parse で strip された場合）を復元
+            for (const [prop, value] of resolvedScope) {
+              if (finalInsert[prop] === undefined) finalInsert[prop] = value;
+            }
+
+            // スコープガード（fail-closed）: where の eq 制約と食い違う record は全体を拒否
+            for (const [prop, value] of resolvedScope) {
+              if (!isSameScopeValue(finalInsert[prop], value)) {
+                throw new DomainError(
+                  `replaceByQuery(): records[${index}].${prop} が where のスコープ条件と一致しません`,
+                  { status: 422 },
+                );
+              }
+            }
+            return finalInsert;
+          }),
+        );
+
+        // sortOrderFromIndex: 配列順で fractional sort key を採番（明示値より優先）
+        if (replaceOptions?.sortOrderFromIndex && sortOrderColumn) {
+          const sortOrderFieldName = (sortOrderColumn as any).name as string;
+          const keys = generateInitialSortKeys(parsedRecords.length);
+          parsedRecords.forEach((record, i) => {
+            record[sortOrderFieldName] = keys[i];
+          });
+        }
+
+        // 物理削除の Storage クリーンアップ / audit detail 用の削除前スナップショット
+        let deletedRows: Record<string, unknown>[] = [];
+        const needsDeletedRows =
+          shouldCleanupStorage || (audit && auditBulkMode === "detail");
+
+        const perform = async (executor: DbExecutor): Promise<Select[]> => {
+          if (needsDeletedRows) {
+            deletedRows = (await executor
+              .select()
+              .from(table as any)
+              .where(condition)) as Record<string, unknown>[];
+          }
+
+          let deletedIds: string[] = [];
+          if (deletedAtColumn) {
+            const rows = (await executor
+              .update(table)
+              .set({ deletedAt: new Date() } as PgUpdateSetSource<TTable>)
+              .where(condition)
+              .returning({ id: idColumn })) as { id: unknown }[];
+            deletedIds = rows.map((r) => String(r.id));
+          } else {
+            try {
+              const rows = (await executor
+                .delete(table)
+                .where(condition)
+                .returning({ id: idColumn })) as { id: unknown }[];
+              deletedIds = rows.map((r) => String(r.id));
+            } catch (error) {
+              handleConstraintError(error);
+            }
+          }
+
+          let inserted: Select[] = [];
+          if (parsedRecords.length > 0) {
+            inserted = (await executor
+              .insert(table)
+              .values(parsedRecords as any[])
+              .returning()) as Select[];
+          }
+
+          if (audit && auditBulkMode === "aggregate") {
+            await auditOnBulkAggregate(executor, "replaced", {
+              deletedCount: deletedIds.length,
+              insertedCount: inserted.length,
+              sampleDeletedIds: deletedIds.slice(0, 10),
+              sampleInsertedIds: inserted
+                .slice(0, 10)
+                .map((r) => auditIdOf(r as Record<string, unknown>)),
+              criteria: where as unknown as Record<string, unknown>,
+            });
+          } else if (audit && auditBulkMode === "detail") {
+            for (const before of deletedRows) {
+              await auditOnDelete(executor, before, { hard: isHard });
+            }
+            for (const row of inserted) {
+              await auditOnCreate(executor, row as Record<string, unknown>);
+            }
+          }
+
+          return inserted;
+        };
+
+        // 削除 + 挿入のアトミック性が本メソッドの本質のため、外部 tx がなければ必ず内部 tx を張る
+        const results = tx
+          ? await perform(tx)
+          : await db.transaction(async (innerTx) => perform(innerTx));
+
+        if (shouldCleanupStorage) {
+          await cleanupStorageForRecords(deletedRows);
+        }
+        return results;
       });
     },
 

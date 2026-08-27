@@ -28,6 +28,7 @@ const WRITE_METHOD_NAMES = [
   "systemBulkUpdateByQuery",
   "bulkUpdate",
   "bulkUpsert",
+  "replaceByQuery",
   "truncateAll",
 ] as const;
 
