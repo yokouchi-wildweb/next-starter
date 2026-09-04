@@ -2,6 +2,7 @@
 
 import { base } from "../drizzleBase";
 import { getUsageCount } from "./getUsageCount";
+import { validateCouponStatically } from "./utils";
 import type { UsabilityResult } from "../../../types/redeem";
 
 /**
@@ -9,13 +10,18 @@ import type { UsabilityResult } from "../../../types/redeem";
  *
  * 判定順序:
  * 1. code で coupon 取得 → not_found
- * 2. status !== 'active' → inactive
- * 3. valid_from > now → not_started
- * 4. valid_until < now → expired
- * 5. max_total_uses 到達 → max_total_reached
- * 6. max_uses_per_redeemer 設定あり & userId なし → user_id_required
- * 7. max_uses_per_redeemer 到達 → max_per_user_reached
- * 8. すべてパス → usable: true
+ * 2. 静的バリデーション（validateCouponStatically と共通）
+ *    - status !== 'active' → inactive
+ *    - valid_from > now → not_started
+ *    - valid_until < now → expired
+ *    - max_total_uses 到達 → max_total_reached
+ *    - max_uses_per_redeemer 設定あり & userId なし → user_id_required
+ *    - attribution_user_id === userId → self_redeem_forbidden
+ * 3. max_uses_per_redeemer 到達 → max_per_user_reached（DB アクセス）
+ * 4. すべてパス → usable: true
+ *
+ * redeem() と判定条件を共有するため、静的な項目は validateCouponStatically に
+ * 集約している（ここで個別に条件を追加しないこと）。
  *
  * @param code クーポンコード
  * @param redeemerUserId 使用者のユーザーID（オプション。max_uses_per_redeemer 設定時は必須）
@@ -35,43 +41,20 @@ export async function isUsable(
     return { usable: false, reason: "not_found" };
   }
 
-  // 2. ステータスチェック
-  if (coupon.status !== "active") {
-    return { usable: false, reason: "inactive", coupon };
+  // 2. 静的バリデーション
+  const staticCheck = validateCouponStatically(coupon, redeemerUserId);
+  if (!staticCheck.valid) {
+    return { usable: false, reason: staticCheck.reason, coupon };
   }
 
-  const now = new Date();
-
-  // 3. 開始日チェック
-  if (coupon.valid_from && coupon.valid_from > now) {
-    return { usable: false, reason: "not_started", coupon };
-  }
-
-  // 4. 終了日チェック
-  if (coupon.valid_until && coupon.valid_until < now) {
-    return { usable: false, reason: "expired", coupon };
-  }
-
-  // 5. 総使用回数上限チェック
-  if (
-    coupon.max_total_uses !== null &&
-    coupon.current_total_uses >= coupon.max_total_uses
-  ) {
-    return { usable: false, reason: "max_total_reached", coupon };
-  }
-
-  // 6. ユーザー毎の使用回数上限チェック
-  if (coupon.max_uses_per_redeemer !== null) {
-    // ユーザーIDが必須
-    if (!redeemerUserId) {
-      return { usable: false, reason: "user_id_required", coupon };
-    }
+  // 3. ユーザー毎の使用回数上限チェック（DB アクセス必要）
+  if (coupon.max_uses_per_redeemer !== null && redeemerUserId) {
     const userUsageCount = await getUsageCount(coupon.id, redeemerUserId);
     if (userUsageCount >= coupon.max_uses_per_redeemer) {
       return { usable: false, reason: "max_per_user_reached", coupon };
     }
   }
 
-  // 7. すべてパス
+  // 4. すべてパス
   return { usable: true, coupon };
 }

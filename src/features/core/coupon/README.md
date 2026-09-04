@@ -163,7 +163,12 @@ const coupon = await couponService.issueCodeForOwner({
   category: "purchase_discount",
   name: "アフィリエイトコード",
   maxTotalUses: 100,
+  // カテゴリハンドラーが参照する settings（省略時 {}）
+  settings: { discountType: "percentage", discountValue: 3 },
 });
+
+// 承認制の発行者プログラム（申請 → 承認 → 周期発行）は couponIssuerGrant ドメインが担う
+// → src/features/core/couponIssuerGrant/README.md
 
 // オーナーのコード一覧
 const coupons = await couponService.getCodesByOwner({
@@ -216,8 +221,10 @@ interface CouponHandler {
 | `settingsFields` | 管理画面フォーム描画時 | なし | 割引タイプ・割引値の入力欄定義 |
 | `validateForUse` | `validateForCategory` 時 | なし | 最低購入金額チェック |
 | `resolveEffect` | `validateForCategory` 時 | なし | 割引額の計算（`coupon.settings` を参照） |
-| `onRedeemed` | `redeemWithEffect` 時 | あり | referral 作成、分析イベント送信 |
+| `onRedeemed` | `redeemWithEffect` 時 | あり | referral 作成、分析イベント送信、帰属報酬付与 |
 | `describeEffect` | 管理画面表示時 | なし | 「500円割引」の説明生成 |
+
+`onRedeemed` の context には `redeemWithEffect(code, userId, metadata, tx)` に渡された `tx` がそのまま `context.tx` として伝搬する（省略時は `undefined`）。購入完了 tx 内で呼ばれる場合、ハンドラーはこの `tx` を使って同一トランザクションに副作用（帰属報酬付与など）を乗せられる。tx が無い場合の独立実行との両対応が必要なら、`runWithTransaction(context.tx, ...)` で受けること。
 
 ### settings フィールドと settingsFields の関係
 
@@ -346,8 +353,19 @@ if (result.valid) {
 | `max_total_reached` | 総使用回数上限に到達 |
 | `max_per_user_reached` | ユーザー毎の使用上限に到達 |
 | `user_id_required` | ユーザーIDが必要（`max_uses_per_redeemer` 設定時） |
+| `self_redeem_forbidden` | 帰属ユーザー（発行者）本人による使用（自己消込禁止） |
 | `category_mismatch` | カテゴリが一致しない |
 | `handler_rejected` | ハンドラーの追加検証で拒否 |
+
+reason → ユーザー向け文言は `constants/redeemReasonMessages.ts` の `getCouponRedeemReasonMessage()` に一本化されている。API ルート（check-usability / redeem / validate-for-category）はすべてこれを使う。reason を追加したら `UsabilityReason` と `COUPON_REDEEM_REASON_MESSAGES` の両方を更新する（型で網羅を強制）。
+
+### 自己消込ガード（self_redeem_forbidden）
+
+`attribution_user_id` が設定されたクーポン（invite / affiliate）を、その帰属ユーザー本人が使うことは常に拒否する。発行者が自分のコードで「割引 + 帰属報酬」を自己ループする不正を、コア基底検証（`validateCouponStatically`）で閉じるためで、`isUsable` / `redeem` / `validateForCategory` の全経路に効く。
+
+- `attribution_user_id = null`（official）は対象外。挙動は従来どおり
+- 招待フロー（被招待者が招待者のコードを使う）は別ユーザーなので影響なし
+- オプトアウトは設けない。自己消込を許容する業務が出た場合は settings キーでの opt-out を Tier1 に提案すること（per-consumer での再実装は禁止）
 
 ---
 

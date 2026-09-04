@@ -140,15 +140,26 @@ export async function completePurchase(
     }
 
     // クーポン使用処理（クーポンコードが記録されている場合）
+    // SAVEPOINT で囲み、redeem / ハンドラー内で SQL エラーが起きても外側 tx が
+    // abort 状態にならないようにする（ポストフックと同じ隔離パターン）。
+    // 囲まないと catch 内の coupon_redeem_failed 更新自体が失敗し、購入完了ごと巻き戻る。
     if (purchaseRequest.coupon_code) {
+      const couponSavepoint = "purchase_coupon_redeem";
       try {
+        await tx.execute(sql.raw(`SAVEPOINT ${couponSavepoint}`));
         await couponService.redeemWithEffect(
           purchaseRequest.coupon_code,
           purchaseRequest.user_id,
           { purchaseRequestId: purchaseRequest.id },
           tx,
         );
+        await tx.execute(sql.raw(`RELEASE SAVEPOINT ${couponSavepoint}`));
       } catch (error) {
+        try {
+          await tx.execute(sql.raw(`ROLLBACK TO SAVEPOINT ${couponSavepoint}`));
+        } catch (rollbackError) {
+          console.error("[completePurchase] クーポン SAVEPOINT ロールバック失敗:", rollbackError);
+        }
         // クーポンredeem失敗は購入完了をブロックしない
         // ただし失敗をDBに記録して管理者が後から検知・対応できるようにする
         console.error(

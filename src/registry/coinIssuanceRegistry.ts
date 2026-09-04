@@ -24,6 +24,7 @@
 
 import { purchaseBonusGapSource } from "@/features/core/analytics/services/server/coinIssuance/sources/purchaseBonusGap";
 import { referralRewardSource } from "@/features/core/analytics/services/server/coinIssuance/sources/referralReward";
+import { couponAttributionRewardSource } from "@/features/core/analytics/services/server/coinIssuance/sources/couponAttributionReward";
 
 import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance/types";
 
@@ -41,6 +42,7 @@ export const coinIssuanceSources: CoinIssuanceSource[] = [
   // --- CORE (upstream-provided) ---
   purchaseBonusGapSource,
   referralRewardSource,
+  couponAttributionRewardSource,
 
   // --- DOWNSTREAM (downstream で追加) ---
   // 例: gachaProfitSource, winningReportRewardSource, winningCommentRewardSource, ...

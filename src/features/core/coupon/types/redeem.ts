@@ -14,6 +14,7 @@ export type UsabilityReason =
   | "max_total_reached"
   | "max_per_user_reached"
   | "user_id_required"
+  | "self_redeem_forbidden"
   | "category_mismatch"
   | "handler_rejected";
 

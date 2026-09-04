@@ -23,6 +23,8 @@ export type IssueCodeParams = {
   maxUsesPerRedeemer?: number | null;
   validFrom?: Date | null;
   validUntil?: Date | null;
+  /** カテゴリハンドラーが参照する設定値（省略時 {}） */
+  settings?: Record<string, unknown>;
 };
 
 const MAX_RETRY = 5;
@@ -65,6 +67,7 @@ export async function issueCodeForOwner(
           max_uses_per_redeemer: params.maxUsesPerRedeemer ?? null,
           valid_from: params.validFrom ?? null,
           valid_until: params.validUntil ?? null,
+          settings: params.settings ?? {},
           current_total_uses: 0,
         })
         .returning();

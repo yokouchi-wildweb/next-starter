@@ -64,4 +64,5 @@ registerCoinIssuanceLabels({
   // (クーポン割引 / ユーザーランクボーナス / 決済方法ボーナス / 購入パッケージのボーナス)
   purchase_bonus_gap: "購入時ボーナス発行",
   referral_reward: "紹介リワード",
+  coupon_attribution_reward: "クーポン帰属報酬",
 });

@@ -26,6 +26,8 @@ import { notificationService } from "@/features/notification/services/server/not
 import { notificationTemplateService } from "@/features/notificationTemplate/services/server/notificationTemplateService";
 import { deviceFingerprintService } from "@/features/deviceFingerprint/services/server";
 import { fingerprintChallengeService } from "@/features/fingerprintChallenge/services/server";
+import { couponAttributionRewardService } from "@/features/couponAttributionReward/services/server";
+import { couponIssuerGrantService } from "@/features/couponIssuerGrant/services/server";
 
 // --- Auto-generated imports ---
 import { sampleService } from "@/features/sample/services/server/sampleService";
@@ -67,6 +69,12 @@ export const serviceRegistry: Record<string, DomainRegistryEntry> = {
   // 回答チャレンジ。発行 / 状態遷移は /api/admin/fingerprint-challenges (専用アクション)、
   // 本人の回答は /api/me/fingerprint-challenges/[token]。汎用 API は admin の一覧・検索のみ。
   fingerprintChallenge: { service: fingerprintChallengeService, access: ADMIN_ONLY },
+  // クーポン帰属報酬台帳。付与は grant()（ハンドラー onRedeemed から tx 付き）のみ。
+  // 本人の閲覧は /api/me/coupon-attribution-rewards。汎用 API は admin の一覧・検索・補正。
+  couponAttributionReward: { service: couponAttributionRewardService, access: ADMIN_ONLY },
+  // クーポン発行者プログラム（申請/承認/周期発行）。状態遷移は /api/admin/coupon-issuer-grants/[id]
+  // の専用アクション、本人操作は /api/me/coupon-issuer。汎用 API は admin の一覧・検索。
+  couponIssuerGrant: { service: couponIssuerGrantService, access: ADMIN_ONLY },
 
   // --- AUTO-GENERATED-START ---
   sample: {

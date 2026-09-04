@@ -35,6 +35,7 @@ export async function redeemWithEffect(
   }
 
   // 2. ハンドラーの追加処理（redeem() が返した coupon を利用し、再取得を回避）
+  //    外部 tx が渡されていればハンドラーにも伝搬し、同一 tx 内で副作用を実行できるようにする
   const { coupon } = redeemResult;
   if (coupon.category) {
     const handler = getCouponHandler(coupon.category);
@@ -44,6 +45,7 @@ export async function redeemWithEffect(
         userId,
         metadata,
         history: redeemResult.history,
+        tx,
       });
     }
   }

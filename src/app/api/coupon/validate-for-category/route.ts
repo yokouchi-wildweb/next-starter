@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { getCouponRedeemReasonMessage } from "@/features/core/coupon/constants/redeemReasonMessages";
 
 const ValidateForCategorySchema = z.object({
   code: z.string().min(1, { message: "クーポンコードを指定してください。" }),
@@ -48,18 +49,8 @@ export const POST = createApiRoute(
     );
 
     if (!result.valid) {
-      const messages: Record<string, string> = {
-        not_found: "クーポンが見つかりません。",
-        inactive: "このクーポンは無効です。",
-        not_started: "このクーポンはまだ使用開始前です。",
-        expired: "このクーポンは有効期限切れです。",
-        max_total_reached: "このクーポンの使用上限に達しました。",
-        max_per_user_reached: "このクーポンの使用上限に達しました。",
-        user_id_required: "このクーポンを使用するにはログインが必要です。",
-        category_mismatch: "このクーポンはこの用途には使用できません。",
-        handler_rejected: "このクーポンの使用条件を満たしていません。",
-      };
-      const message = messages[result.reason] ?? result.reason ?? "クーポンを使用できません。";
+      // ハンドラー由来の自由文字列 reason はそのまま表示文言として扱う
+      const message = getCouponRedeemReasonMessage(result.reason);
       return {
         valid: false,
         reason: result.reason,

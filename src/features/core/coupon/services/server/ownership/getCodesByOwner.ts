@@ -3,7 +3,7 @@
 import { db } from "@/lib/drizzle";
 import { CouponTable } from "../../../entities/drizzle";
 import type { Coupon } from "../../../entities/model";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import type { TransactionClient } from "@/lib/drizzle/transaction";
 import type { CouponTypeWithOwner } from "./issueCodeForOwner";
 
@@ -12,6 +12,10 @@ export type GetCodesByOwnerParams = {
   type?: CouponTypeWithOwner;
   includeInactive?: boolean;
   includeDeleted?: boolean;
+  /** 取得件数上限（省略時は全件。周期発行など件数が増える用途では必ず指定する） */
+  limit?: number;
+  /** createdAt の並び順（既定 asc） */
+  order?: "asc" | "desc";
 };
 
 /**
@@ -43,11 +47,14 @@ export async function getCodesByOwner(
     conditions.push(isNull(CouponTable.deletedAt));
   }
 
-  const rows = await executor
+  const orderBy = params.order === "desc" ? desc(CouponTable.createdAt) : asc(CouponTable.createdAt);
+  const query = executor
     .select()
     .from(CouponTable)
     .where(and(...conditions))
-    .orderBy(CouponTable.createdAt);
+    .orderBy(orderBy);
+
+  const rows = params.limit ? await query.limit(params.limit) : await query;
 
   return rows as Coupon[];
 }

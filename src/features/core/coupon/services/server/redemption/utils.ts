@@ -67,6 +67,7 @@ export async function getCouponById(
  * - valid_until >= now（設定時）
  * - current_total_uses < max_total_uses（設定時）
  * - max_uses_per_redeemer 設定時は userId 必須
+ * - attribution_user_id 設定時は使用者本人でないこと（自己消込禁止）
  *
  * チェックしない項目（DB アクセス必要）:
  * - not_found（クーポン取得は呼び出し側で行う）
@@ -104,6 +105,17 @@ export function validateCouponStatically(
   // ユーザー毎の使用回数上限が設定されている場合、userId 必須
   if (coupon.max_uses_per_redeemer !== null && !redeemerUserId) {
     return { valid: false, reason: "user_id_required" };
+  }
+
+  // 自己消込禁止: 帰属ユーザー（発行者）本人による使用は拒否する
+  // 招待/アフィリエイト型で「自分のコードを自分で使って割引+報酬」の
+  // 不正ループを閉じる。attribution_user_id が null の公式クーポンは対象外。
+  if (
+    coupon.attribution_user_id !== null &&
+    redeemerUserId &&
+    coupon.attribution_user_id === redeemerUserId
+  ) {
+    return { valid: false, reason: "self_redeem_forbidden" };
   }
 
   return { valid: true };

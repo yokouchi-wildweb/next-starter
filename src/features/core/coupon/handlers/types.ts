@@ -8,6 +8,7 @@
 import type { Coupon } from "../entities/model";
 import type { CouponHistory } from "@/features/core/couponHistory/entities/model";
 import type { FieldConfig } from "@/components/Form/Field/types";
+import type { TransactionClient } from "@/lib/drizzle/transaction";
 
 /**
  * ハンドラーに渡されるコンテキスト
@@ -21,9 +22,14 @@ export type CouponEffectContext = {
 
 /**
  * redeem 成功後にハンドラーに渡されるコンテキスト
+ *
+ * tx: redeemWithEffect() に外部トランザクションが渡された場合、そのまま伝搬する。
+ *     購入完了 tx 内で呼ばれるハンドラーが、同一 tx に副作用（報酬付与など）を
+ *     乗せるために使う。省略時（独立実行）は undefined。
  */
 export type CouponRedeemedContext = CouponEffectContext & {
   history: CouponHistory;
+  tx?: TransactionClient;
 };
 
 /**
