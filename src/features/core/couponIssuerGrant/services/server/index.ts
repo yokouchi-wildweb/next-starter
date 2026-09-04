@@ -26,6 +26,20 @@ export {
   isCouponIssuerProgramEnabled,
   requireCouponIssuerProgram,
 } from "./program";
+export {
+  getGrantListWithStats,
+  getIssuerStatsByGrantId,
+  getIssuerUsageHistory,
+  getIssuerRewardHistory,
+  type GrantWithStats,
+  type IssuerStats,
+  type IssuerUserSummary,
+  type CurrentPeriodCouponSummary,
+  type GetGrantListWithStatsParams,
+  type GetGrantListWithStatsResult,
+  type IssuerUsageHistoryItem,
+  type IssuerRewardHistoryItem,
+} from "./stats";
 
 import { couponIssuerGrantBase } from "./drizzleBase";
 import { getGrantByUser } from "./queries";
@@ -37,6 +51,12 @@ import {
   updateGrantSettings,
 } from "./grants";
 import { getCurrentPeriodCoupon, issueForGrant, syncCurrentPeriodCoupon } from "./issuance";
+import {
+  getGrantListWithStats,
+  getIssuerRewardHistory,
+  getIssuerStatsByGrantId,
+  getIssuerUsageHistory,
+} from "./stats";
 
 /**
  * 発行者プログラムサービス。
@@ -54,4 +74,9 @@ export const couponIssuerGrantService = {
   issueForGrant,
   getCurrentPeriodCoupon,
   syncCurrentPeriodCoupon,
+  // 管理用リードモデル
+  getGrantListWithStats,
+  getIssuerStatsByGrantId,
+  getIssuerUsageHistory,
+  getIssuerRewardHistory,
 };

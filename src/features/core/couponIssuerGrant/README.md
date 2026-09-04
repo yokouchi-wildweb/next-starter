@@ -108,6 +108,47 @@ import { couponIssuerGrantService } from "@/features/core/couponIssuerGrant/serv
 
 ---
 
+## 管理用リードモデル（一覧統計・ドリルダウン）
+
+`/admin/coupons/affiliate` の実画面を下流が組むための集計 API。集計元（grants × coupons × coupon_histories × coupon_attribution_rewards × purchase_requests）はすべて Tier1 所有なので、下流で SQL を書かずここを使う（invite 側 `getInviteCodeListWithCounts` と対称）。
+
+```typescript
+const { items, total, grandTotals, period } = await couponIssuerGrantService.getGrantListWithStats({
+  status: ["approved"], searchQuery: "山田", page: 1, limit: 20,
+  sort: { field: "rewardPaidTotal", direction: "desc" },
+});
+// items[]: { grant, user: {id,name,email}|null, currentPeriodCoupon|null, currentPeriodUses,
+//           lifetimeUses, rewardPaidCurrentPeriod, rewardPaidTotal, discountTotal }
+```
+
+| 値 | 定義 |
+|---|---|
+| `currentPeriodCoupon` | registry の周期で解決した当期区間に `valid_from` が入る affiliate クーポン（id / code / status / current_total_uses / max_total_uses / valid_from / valid_until）。program 未設定・未発行なら null |
+| `lifetimeUses` | 発行者の affiliate クーポン（program.category 限定）の `coupon_histories` 件数 |
+| `rewardPaidTotal` / `rewardPaidCurrentPeriod` | `coupon_attribution_rewards.amount` の合計（fulfilled のみ。当期は `fulfilled_at` で区切り） |
+| `discountTotal` | `purchase_requests.discount_amount` の合計（status=completed、`coupon_code` で結合） |
+| `grandTotals` | フィルタ非依存の全体合計（lifetimeUses / rewardPaidTotal / discountTotal） |
+
+ソートキー: `requested_at`（既定）/ `lifetimeUses` / `currentPeriodUses` / `rewardPaidTotal` / `rewardPaidCurrentPeriod` / `discountTotal`。集計は主表に LEFT JOIN されるため、クーポン未発行の grant も 0 埋めで並ぶ。
+
+ドリルダウン:
+- `getIssuerStatsByGrantId(grantId)` → 一覧 1 行と同じ形（詳細ヘッダ用）
+- `getIssuerUsageHistory({ userId, page, limit })` → 発行者の全クーポン横断の利用履歴（coupon code / redeemer {id,name} / metadata）
+- `getIssuerRewardHistory({ userId, page, limit })` → 帰属報酬履歴（全 status、coupon code 同梱）
+
+| メソッド | パス | 用途 |
+|---|---|---|
+| `GET` | `/api/admin/coupon-issuer-grants?status=a,b&searchQuery&page&limit&sortField&sortDirection` | 一覧 + 統計 |
+| `GET` | `/api/admin/coupon-issuer-grants/[id]/stats` | 1 件の統計 |
+| `GET` | `/api/admin/coupon-issuer-grants/[id]/usage-history?page&limit` | 利用履歴 |
+| `GET` | `/api/admin/coupon-issuer-grants/[id]/reward-history?page&limit` | 報酬履歴 |
+
+フック（`@/features/core/couponIssuerGrant/hooks/useCouponIssuerGrantAdmin`）: `useCouponIssuerGrantListWithStats(query)` / `useCouponIssuerStats(grantId)` / `useCouponIssuerUsageHistory(grantId, {page,limit})` / `useCouponIssuerRewardHistory(grantId, {page,limit})`。SSR で直接 `getGrantListWithStats` を呼んで初期表示に使う構成も可（invite 一覧ページと同じ）。
+
+日次系列（チャート用）は含めない。一覧は発行者数規模で有界なのでキャッシュ / ロールアップ不要と判断している。必要になれば ANALYTICS_PERF の規約で別途追加する。
+
+---
+
 ## 下流の画面レシピ
 
 ### マイページ（申請 → 発行）
@@ -133,7 +174,7 @@ const { issue, isIssuing } = useIssueMyCoupon();
 
 ### 管理画面（申請管理）
 
-- 一覧: 汎用 `useSearchCouponIssuerGrant` 相当は生成していないので、`/api/coupon-issuer-grant/search` を ClientService 経由で叩く（`where: { field: "status", op: "eq", value: "pending" }`）。ユーザー情報は `withRelations` 未定義のため `user_id` から別途解決する
+- 一覧: `useCouponIssuerGrantListWithStats({ status, searchQuery, page, sort })`（上記リードモデル。ユーザー名 / 当期クーポン / 統計込み）
 - 審査: `PATCH /api/admin/coupon-issuer-grants/[id]` に `{ action: "approve", settings: { monthlyMaxUses, discountRate, rewardRate }, adminNote }`
 - 設定変更: `{ action: "update_settings", settings }` → 当期クーポンへ即時反映（`buildCouponPatch` 定義時）
 - `/admin/coupons/affiliate` の「準備中」プレースホルダは、この基盤を使った一覧に下流で差し替える
