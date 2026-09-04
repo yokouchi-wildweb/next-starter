@@ -99,6 +99,21 @@ export async function register(
     throw new DomainError("認証情報が一致しません", { status: 400 });
   }
 
+  // email プロバイダーはトークンの email とフォームの email が一致しなければならない。
+  // preRegistration と対称の検証。フォームの email が localStorage 由来で、資格情報が
+  // 別アカウント（例: 退会済み旧アカウントへのログイン残留セッション）になっている場合に、
+  // 旧アカウントを rejoin して email を上書きしてしまう事故を防ぐ。
+  // updateUser(password) より前に置くことで旧アカウントのパスワード上書きも防ぐ。
+  if (providerType === "email") {
+    const emailFromToken =
+      typeof decodedToken.email === "string" ? decodedToken.email.trim().toLowerCase() : null;
+    const emailFromRequest = email.trim().toLowerCase();
+
+    if (!emailFromToken || emailFromToken !== emailFromRequest) {
+      throw new DomainError("メールアドレスが一致しません", { status: 400 });
+    }
+  }
+
   const existingUser = await userService.findByProvider(providerType, providerUid);
 
   if (!existingUser) {

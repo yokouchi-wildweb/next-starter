@@ -123,6 +123,18 @@ export function EmailRegistrationForm() {
           });
         }
 
+        // フォームの email（localStorage 由来）と Firebase セッションの email が食い違っている場合は
+        // 別アカウントの資格情報で本登録しようとしている状態なので送信前に止める。
+        // サーバー側 register() でも同じ検証を行うが、ここで止めれば利用者に原因を伝えられる。
+        const sessionEmail = currentUser.email?.trim().toLowerCase() ?? null;
+        if (!sessionEmail || sessionEmail !== emailValue.trim().toLowerCase()) {
+          throw new HttpError({
+            message:
+              "認証したメールアドレスと登録内容が一致しません。再度メール認証からお試しください。",
+            status: 400,
+          });
+        }
+
         const idToken = await currentUser.getIdToken();
 
         // reCAPTCHA トークンを取得

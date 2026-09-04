@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import {
   getRedirectResult,
   signInWithRedirect,
+  signOut,
   type AuthProvider,
   type UserCredential,
 } from "firebase/auth";
@@ -71,8 +72,12 @@ export function useThirdPartyLogin() {
     // リダイレクト復帰時の処理開始を記録
     log(3, "[useThirdPartyLogin] handleRedirectResult: begin");
 
+    // リダイレクト結果から Firebase 資格情報を取得できたかどうか（失敗時の後始末の判定に使う）
+    let firebaseSignedIn = false;
+
     try {
       const credential = await getRedirectResult(auth);
+      firebaseSignedIn = Boolean(credential);
       const storedProviderType = sessionStorageClient.load(PROVIDER_TYPE_STORAGE_KEY) as
         | UserProviderType
         | null;
@@ -143,6 +148,15 @@ export function useThirdPartyLogin() {
       log(3, "[useThirdPartyLogin] handleRedirectResult: error", {
         error: unknownError,
       });
+      // Firebase サインイン成功後にアプリセッション発行が失敗した場合（退会済み 403 等）、
+      // Firebase クライアントセッションだけが残らないようサインアウトする（useEmailPasswordLogin と対称）。
+      if (firebaseSignedIn) {
+        await signOut(auth).catch((signOutError) => {
+          log(3, "[useThirdPartyLogin] handleRedirectResult: signOut after failure failed", {
+            error: signOutError,
+          });
+        });
+      }
       throw normalizeHttpError(unknownError, "サードパーティ認証に失敗しました");
     } finally {
       sessionStorageClient.remove(PROVIDER_TYPE_STORAGE_KEY);
