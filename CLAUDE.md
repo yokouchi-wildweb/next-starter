@@ -143,6 +143,9 @@ ref: docs/how-to/監査ログ採用ガイド.md
 ## FINGERPRINT (browser device fingerprint + fraud challenge, opt-in default OFF)
 lib: src/lib/fingerprint/ (domain-free collector: collectDeviceSignals/collectFingerprintPayload + useBehavioralCapture headless form hook) | deviceFingerprint = device-axis cross-user match (sibling of userLoginEvent IP-axis), fingerprintChallenge = issue form to suspected user, force-collect fingerprint+behavior on submit | config: src/config/app/fingerprint.config.ts (collection.enabled / challenge.enabled independent gates) | UI = downstream (core ships data-layer + README recipes only) | signals are client-declared/spoofable = reference evidence NOT proof | ref: src/features/core/deviceFingerprint/README.md + fingerprintChallenge/README.md
 
+## COUPON
+self-redeem of attribution coupons = always rejected in core (self_redeem_forbidden), never re-check per consumer | reason→message: coupon/constants/redeemReasonMessages.ts only | issuer payout / apply→approve→periodic self-issue = couponAttributionReward / couponIssuerGrant (data-layer only, UI downstream) | ref: src/features/core/coupon/README.md + couponAttributionReward/README.md + couponIssuerGrant/README.md
+
 ## COUNTING (which primitive — check BEFORE building any count/tracking feature)
 matrix: user×key(login-only) → userCounter | content×action(anonymous OK) → interactionTracking | user×day "visited?"(DAU/active-days) → analytics DAU base | userCounter/interactionTracking have lifetime + daily
 userCounter: bump(lifetime) / bumpDaily(lifetime+daily same-tx) / getTodayCount(daily-limit check) / getDailySeries. server-internal only (no client route) | ref: src/features/core/userCounter/README.md (decision guide)
