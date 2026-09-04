@@ -11,7 +11,25 @@ API ルートとスケジュール登録は行わない（定期実行されて�
 
 - `auth.ts` — 共通認証（`CRON_SECRET` の Bearer 検証）
 - `createCronRoute.ts` — API ルート生成ファクトリ
+- `runBudgetedBatches.ts` — 時間予算付き・再開可能バッチランナー（下記）
 - `index.ts` — 公開エントリ
+
+## 時間予算付きバッチ（maxDuration で殺されないために）
+
+serverless では 1 回の実行が maxDuration（Vercel 既定 300s）で途中 kill される。
+「毎回全件を舐める」タスクは成長とともに必ずここに当たり、**毎回途中で死んで一度も完走しない**状態になる。
+無制限に増えるデータを扱う cron は、最初から次の 2 つで組む:
+
+- `runBudgetedBatches({ deadline, fetchNext, processChunk, onChunkDone, maxItems?, maxChunks? })`
+  - 締切をチャンク開始前に判定し、処理中のチャンクは完走させてから抜ける
+  - `onChunkDone` で進捗を永続化（チェックポイント前進など）すれば、kill されても次回は続きから
+  - 戻り値 `{ processed, chunks, exhausted, budgetExhausted, stopReason }` をそのままレスポンスに載せる
+- `createDeadline(budgetMs)` — `budgetMs` は maxDuration そのものではなく
+  「maxDuration − 1 チャンクの最大所要時間 − 余裕」（300s なら 240_000 程度）
+
+進捗の永続化先は `@/features/cronCheckpoint`（`getCheckpoint` / `advanceCheckpoint`、単調前進）。
+「ソースの `updated_at` から read-model を差分更新する」典型パターンは、これらを合成済みの
+`@/features/incrementalRefresh`（`createIncrementalRefresh`）を使う。
 
 ## 新しい cron タスクを追加する
 

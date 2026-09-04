@@ -11,6 +11,8 @@
 - ログ: stdout に JSON 構造化ログ
 
 新しいタスクを追加する手順は `src/lib/cron/README.md` を参照。
+無制限に増えるデータを走査するタスクは、maxDuration で途中 kill されないよう時間予算 + チェックポイントで組む
+（`runBudgetedBatches` / `@/features/cronCheckpoint` / `@/features/incrementalRefresh`。同 README 参照）。
 
 ---
 

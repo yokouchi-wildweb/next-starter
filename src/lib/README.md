@@ -13,7 +13,7 @@
 | `routeFactory` | 全 API ルートの生成ファクトリ。認可を構造的に強制（直書きハンドラは禁止） | ✓ |
 | `crud` | `createCrudService` 汎用 CRUD。サービス/フック/管理UIを生成 | ✓ |
 | `domain` | `domain.json` 設定の読取・フィールド/リレーション抽出（`getDomainConfig` 等） | |
-| `cron` | `/api/cron/*` 定期タスク基盤。CLI からも同タスクを実行 | ✓ |
+| `cron` | `/api/cron/*` 定期タスク基盤。CLI からも同タスクを実行。`runBudgetedBatches` 時間予算付き再開可能ループ（チェックポイントは features/cronCheckpoint、差分更新の完成品は features/incrementalRefresh） | ✓ |
 | `audit` | 監査ログ基盤（ALS コンテキスト・diff・denylist） | |
 | `userDirty` | コミット後の再計算回収口。ALS で対象 user_id を収集し post-commit で flush | |
 | `errors` | `DomainError` / `HttpError` 定義 | |

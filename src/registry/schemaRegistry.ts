@@ -34,6 +34,7 @@ export * from "@/features/batchJob/entities/drizzle";
 export * from "@/features/messaging/entities/drizzle";
 export * from "@/features/deviceFingerprint/entities/drizzle";
 export * from "@/features/fingerprintChallenge/entities/drizzle";
+export * from "@/features/cronCheckpoint/entities/drizzle";
 
 // --- AUTO-GENERATED-START ---
 export * from "@/features/sample/entities/drizzle";
