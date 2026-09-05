@@ -8,6 +8,7 @@ import AdminInviteList from "@/features/core/referral/components/AdminInviteList
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
+import { CouponSectionTabs } from "../_components/CouponSectionTabs";
 
 export const metadata = {
   title: "クーポン一覧（ユーザー招待）",
@@ -22,6 +23,7 @@ export default async function AdminCouponInviteListPage({ searchParams }: Props)
     return (
       <AdminPage>
         <PageTitle placement="header">クーポン管理</PageTitle>
+        <CouponSectionTabs placement="header" />
         <Para>ユーザーの紹介機能が無効です</Para>
       </AdminPage>
     );
@@ -40,6 +42,7 @@ export default async function AdminCouponInviteListPage({ searchParams }: Props)
   return (
     <AdminPage>
       <PageTitle placement="header">クーポン管理</PageTitle>
+      <CouponSectionTabs placement="header" />
       <AdminInviteList items={items} page={page} perPage={limit} total={total} />
     </AdminPage>
   );

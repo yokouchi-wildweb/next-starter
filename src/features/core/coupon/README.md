@@ -351,7 +351,8 @@ downstream が種別に属さない派生クーポンの専用画面（例: フ�
 
 - レジストリ: `src/registry/couponAdminSectionTabsRegistry.ts`（`extraCouponAdminSectionTabs: PageTabItem[]`、upstream は空 = 従来どおり 3 タブ）
 - 組み立て: `buildCouponAdminSectionTabs()`（`@/features/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 登録分。value 重複は core 優先で除外
-- 消費側（core）: `AdminCouponList` / referral `AdminInviteList` / `app/admin/(protected)/coupons/affiliate/page.tsx`。ローカルでタブ配列を組まず必ずこの関数を使う
+- 描画: `src/app/admin/(protected)/coupons/_components/CouponSectionTabs.tsx`（`placement?: "body" | "header"`、既定 body）。header は AdminHeaderPortal slot="center" に size="sm" で出す。core ページ（official / invite / affiliate）は `placement="header"`
+- **一覧コンポーネント（`AdminCouponList` / referral `AdminInviteList`）はタブを描画しない**。配置（本文 or ヘッダー）はページの関心事なので page.tsx が CouponSectionTabs を置く。これらを使う downstream ページも自分でタブを置くこと（置かなければタブなし）
 - DB / enum 変更なし。派生クーポンの画面（一覧・絞り込みクエリ）自体は downstream 所有
 
 ### downstream レシピ
@@ -363,13 +364,18 @@ export const extraCouponAdminSectionTabs: PageTabItem[] = [
 ];
 
 // 2. src/app/admin/(protected)/coupons/friend-coupon/page.tsx（downstream 実装）
-import { buildCouponAdminSectionTabs } from "@/features/core/coupon/lib/adminSectionTabs";
-const couponSectionTabs = buildCouponAdminSectionTabs();
-// ... <SolidTabs tabs={couponSectionTabs} ariaLabel="クーポン種別" />
+import { CouponSectionTabs } from "../_components/CouponSectionTabs";
+// ...
+<AdminPage>
+  <PageTitle placement="header">クーポン管理</PageTitle>
+  <CouponSectionTabs placement="header" />
+  {/* 一覧本体 */}
+</AdminPage>
 ```
 
 downstream 所有の official / affiliate ページを差し替えている場合も、ローカルのタブ定義を捨てて
-`buildCouponAdminSectionTabs()` に寄せると core と downstream のタブ一覧が常に一致する。
+CouponSectionTabs（内部で `buildCouponAdminSectionTabs()`）に寄せると core と downstream のタブ一覧が常に一致する。
+本文配置に戻したい場合は `placement` を省略する。
 
 ---
 
@@ -458,7 +464,7 @@ src/features/core/coupon/
 │   └── index.ts
 │
 ├── lib/
-│   └── adminSectionTabs.ts      # 管理画面セクションタブ組み立て（core 3 タブ + registry 登録分）
+│   └── adminSectionTabs.ts      # 管理画面セクションタブ組み立て（core 3 タブ + registry 登録分。描画は app/admin/(protected)/coupons/_components/CouponSectionTabs）
 │
 ├── services/
 │   ├── client/

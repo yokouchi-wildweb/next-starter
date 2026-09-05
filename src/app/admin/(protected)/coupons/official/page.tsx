@@ -7,6 +7,7 @@ import type { ListPageSearchParams } from "@/lib/crud";
 import AdminCouponList from "@/features/core/coupon/components/AdminCouponList";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import { CouponSectionTabs } from "../_components/CouponSectionTabs";
 
 export const metadata = {
   title: "クーポン一覧",
@@ -30,6 +31,7 @@ export default async function AdminCouponListPage({ searchParams }: Props) {
   return (
     <AdminPage>
       <PageTitle placement="header">クーポン管理</PageTitle>
+      <CouponSectionTabs placement="header" />
       <AdminCouponList coupons={coupons} page={page} perPage={limit} total={total} />
     </AdminPage>
   );
