@@ -2,7 +2,7 @@
 
 "use client";
 
-import type { ComponentProps, CSSProperties } from "react";
+import { createContext, useContext, type ComponentProps, type CSSProperties } from "react";
 import { XIcon } from "lucide-react";
 
 import {
@@ -39,6 +39,18 @@ const OVERLAY_LAYER_CLASS: Record<DialogOverlayLayer, string> = {
   ultimate: "ultimate-layer",
   apex: "apex-layer",
 };
+
+/** 「Dialog（DialogContent）の React ツリー内に居るか」を子孫へ伝える context。
+ * Popover 等がポータル可否を決めるのに使う（Radix Dialog の react-remove-scroll は
+ * body 直下ポータルの wheel/touch を食うため、入れ子時は非ポータルにする必要がある）。
+ * DOM 位置を ref で読む判定は初回 render で null になり defaultOpen 等で誤判定するため、
+ * React ツリーで同期的に判定する。ポータル越しでも context は届く。 */
+const DialogNestingContext = createContext(false);
+
+/** 現在のコンポーネントが DialogContent の子孫（React ツリー上）なら true */
+export function useIsNestedInDialog(): boolean {
+  return useContext(DialogNestingContext);
+}
 
 /** title 省略時に Dialog / Modal が sr-only で描画する既定のアクセシブルネーム。
  * Radix Dialog は DialogTitle 必須（無いとコンソールエラー + role="dialog" が無名になる）。 */
@@ -129,7 +141,7 @@ export function DialogContent({
       style={contentStyle}
       {...props}
     >
-      {children}
+      <DialogNestingContext.Provider value={true}>{children}</DialogNestingContext.Provider>
       {showCloseButton && (
         <BaseDialogClose className="absolute top-0 right-0 translate-x-[calc(50%-6px)] sm:translate-x-1/2 -translate-y-1/2 rounded-full bg-black p-2 text-white hover:bg-gray-800 transition-colors cursor-pointer">
           <XIcon className="size-6" />

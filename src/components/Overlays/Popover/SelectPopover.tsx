@@ -2,7 +2,7 @@
 
 "use client";
 
-import { type ReactNode, useState, useCallback, useMemo, useEffect } from "react";
+import { type ReactNode, useState, useCallback, useMemo } from "react";
 import { Search } from "lucide-react";
 
 import { cn } from "@/lib/cn";
@@ -182,13 +182,16 @@ export function SelectPopover({
     [isControlled, onOpenChange]
   );
 
-  // 開いた時に選択状態をリセット
-  useEffect(() => {
+  // 開いた時（open の false→true 遷移）にだけ選択状態をリセットする
+  // （ChecklistPopover と同じ構造。value が親の再レンダーで変わっても開いている最中は保持）
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (open) {
       setSelectedValue(value);
       setSearchQuery("");
     }
-  }, [open, value]);
+  }
 
   // フィルタリングされた選択肢
   const filteredOptions = useMemo(() => {

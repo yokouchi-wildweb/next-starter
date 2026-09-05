@@ -121,6 +121,9 @@ export function HoverCard({
             "bg-popover text-popover-foreground",
             "origin-(--radix-hover-card-content-transform-origin)",
             "rounded-md border p-4 shadow-md outline-hidden",
+            // 高さ上限: 配置側のビューポート残り高さを超えないようにし、内側ラッパーだけを
+            // スクロールさせる（Popover と同じ構造。矢印を切らないため Content には overflow を付けない）
+            "flex flex-col max-h-(--radix-hover-card-content-available-height)",
             // アニメーション
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -134,7 +137,7 @@ export function HoverCard({
             className
           )}
         >
-          {children}
+          <div className="min-h-0 overflow-y-auto">{children}</div>
           {showArrow && (
             <HoverCardPrimitive.Arrow className="fill-popover" />
           )}

@@ -7,6 +7,7 @@ import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { useIsNestedInDialog } from "@/components/Overlays/DialogPrimitives";
 
 // レイヤータイプ
 export type PopoverLayer =
@@ -37,49 +38,20 @@ const SIZE_CLASS: Record<PopoverSize, string> = {
   auto: "w-auto",
 };
 
-// 複数の ref を1つに束ねる（内部用）
-function mergeRefs<T>(
-  ...refs: (React.Ref<T> | undefined)[]
-): React.RefCallback<T> {
-  return (node: T) => {
-    for (const ref of refs) {
-      if (!ref) continue;
-      if (typeof ref === "function") ref(node);
-      else (ref as React.MutableRefObject<T | null>).current = node;
-    }
-  };
-}
-
-// Popover 内部コンテキスト（トリガーの DOM 位置を Content から参照するため）
-type PopoverContextValue = {
-  /** トリガー要素の ref（ダイアログ入れ子検出に使う） */
-  triggerRef: React.MutableRefObject<HTMLElement | null>;
-};
-
-const PopoverContext = React.createContext<PopoverContextValue | null>(null);
-
 // Popover Root
 function PopoverRoot({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-  const triggerRef = React.useRef<HTMLElement | null>(null);
-  return (
-    <PopoverContext.Provider value={{ triggerRef }}>
-      <PopoverPrimitive.Root data-slot="popover" {...props} />
-    </PopoverContext.Provider>
-  );
+  return <PopoverPrimitive.Root data-slot="popover" {...props} />;
 }
 
 // Popover Trigger
 function PopoverTrigger({
   className,
-  ref,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
-  const ctx = React.useContext(PopoverContext);
   return (
     <PopoverPrimitive.Trigger
-      ref={mergeRefs(ctx?.triggerRef, ref)}
       data-slot="popover-trigger"
       className={cn("cursor-pointer", className)}
       {...props}
@@ -265,11 +237,10 @@ function PopoverContent({
     [stopPropagation, onContextMenu]
   );
 
-  // ダイアログ/モーダル内に入れ子かどうかをトリガーの DOM 位置から判定
-  const ctx = React.useContext(PopoverContext);
-  const nestedInDialog =
-    typeof document !== "undefined" &&
-    Boolean(ctx?.triggerRef.current?.closest('[data-slot="dialog-content"]'));
+  // ダイアログ/モーダル内に入れ子かどうかを React ツリー（DialogContent の context）で判定。
+  // 旧実装はトリガーの DOM 位置を render 中に ref で読んでいたため、初回 render（defaultOpen 等）
+  // では null → ポータル側に振られ、後続 render で付け替わって中身が remount していた
+  const nestedInDialog = useIsNestedInDialog();
   // 明示指定があれば尊重、無ければ入れ子時のみ非ポータル（RemoveScroll対策）
   const effectivePortal = usePortal ?? !nestedInDialog;
 
@@ -288,6 +259,12 @@ function PopoverContent({
         "bg-popover text-popover-foreground",
         "origin-(--radix-popover-content-transform-origin)",
         "rounded-md border p-4 shadow-md outline-hidden",
+        // 高さ上限: Radix が算出する「配置側のビューポート残り高さ」を超えないようにし、
+        // 内側ラッパーだけをスクロールさせる（Content 自体に overflow を付けると外側に
+        // 張り出す矢印が切れるため、flex-col + min-h-0 の内側ラッパーで縮める）。
+        // 上限が無いと長いリスト + フッターのポップオーバーで確定ボタンが画面外に出て
+        // 到達不能になる
+        "flex flex-col max-h-(--radix-popover-content-available-height)",
         // アニメーション
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -302,7 +279,9 @@ function PopoverContent({
       {...props}
     >
       {showClose && <PopoverClose />}
-      {children}
+      <div data-slot="popover-scroll" className="min-h-0 overflow-y-auto">
+        {children}
+      </div>
       {showArrow && <PopoverArrow />}
     </PopoverPrimitive.Content>
   );

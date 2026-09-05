@@ -496,6 +496,9 @@ import { Popover } from "@/components/Overlays/Popover";
 | `showClose` | `boolean` | `false` | 閉じるボタン表示 |
 | `open` | `boolean` | - | 制御モード: 開閉状態 |
 | `onOpenChange` | `(open: boolean) => void` | - | 開閉状態変更コールバック |
+| `usePortal` | `boolean` | 自動判定 | 未指定時は Dialog / Modal の中に居るとき非ポータル（Radix Dialog のスクロールロックが body 直下ポータルの wheel/touch を食うため）。判定は DialogContent の React context で行われ、初回 render から確定する |
+
+**高さ（PopoverContent 共通）:** Radix が算出する配置側のビューポート残り高さ（`--radix-popover-content-available-height`）を上限とし、超える場合は内側のラッパーだけがスクロールする。長いリスト + フッターのポップオーバーでも確定ボタンが画面外に出ることはない。矢印（`showArrow`）はこの上限の外側に描画される。HoverCard も同じ構造。
 
 ---
 
@@ -668,7 +671,9 @@ import { ChecklistPopover } from "@/components/Overlays/Popover";
 | `searchable` | `boolean` | `false` | 検索機能を有効にする |
 | `showSelectAll` | `boolean` | `false` | 全選択/解除ボタンを表示 |
 | `maxSelections` | `number` | - | 最大選択数 |
-| `maxListHeight` | `number \| string` | `280` | リストの最大高さ（スクロール） |
+| `maxListHeight` | `number \| string` | `330` | リストの最大高さ（スクロール） |
+
+開いている最中に親が再レンダーして `value` の配列参照が変わっても、選択途中の状態と検索文字列は保持される（リセットは open の false→true 遷移時のみ）。
 
 **ChecklistOption:**
 
