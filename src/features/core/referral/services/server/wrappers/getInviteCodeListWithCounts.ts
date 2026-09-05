@@ -3,17 +3,28 @@
 // 一覧はサーバーページネーションのため、並び替えは SQL 側で全行を対象に行う。
 // 集計（紹介人数・報酬統計・段階別発動数）はすべて main クエリに LEFT JOIN した
 // grouped subquery で計算し、ORDER BY から参照できるようにしている。
+// 集計式の定義は inviterStatsAggregation.ts（getStatsByInviters と共有）に置く。
 
 import { db } from "@/lib/drizzle";
 import { CouponTable } from "@/features/core/coupon/entities/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
 import { ReferralTable } from "../../../entities/drizzle";
 import { ReferralRewardTable } from "@/features/core/referralReward/entities/drizzle";
-import { REFERRAL_REWARD_DEFINITIONS } from "@/features/core/referralReward/config";
+import {
+  buildReferralCountSubquery,
+  buildRewardSubquery,
+  inviterRewardScope,
+  resolveRewardStages,
+  rewardAmountExpr,
+  rewardSubqueryColumn,
+} from "./inviterStatsAggregation";
+import type { InviteRewardStage } from "./inviterStatsAggregation";
 import type { Coupon } from "@/features/core/coupon/entities/model";
 import type { SortState } from "@/lib/tableSuite";
-import { and, eq, isNull, sql, asc, desc, ilike, count as drizzleCount, countDistinct } from "drizzle-orm";
+import { and, eq, isNull, sql, asc, desc, ilike, count as drizzleCount } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
+
+export type { InviteRewardStage };
 
 export type InviteCodeWithCount = {
   coupon: Coupon;
@@ -25,14 +36,6 @@ export type InviteCodeWithCount = {
   totalRewardAmount: number;
   /** 段階（報酬グループ）ごとの発動済みユニーク referral 数（stages と同じ並び） */
   stageRewardedCounts: number[];
-};
-
-/** リワード段階（報酬グループ）のメタ情報 */
-export type InviteRewardStage = {
-  /** REFERRAL_REWARD_DEFINITIONS のグループキー */
-  groupKey: string;
-  /** グループ表示名 */
-  label: string;
 };
 
 /**
@@ -58,23 +61,6 @@ export type GetInviteCodeListResult = {
   /** リワード段階の一覧（定義順。items[].stageRewardedCounts と対応） */
   stages: InviteRewardStage[];
 };
-
-/**
- * REFERRAL_REWARD_DEFINITIONS から段階一覧を解決する
- * （各グループの inviter 向け reward_key を発動判定キーとする）
- */
-function resolveRewardStages(): Array<InviteRewardStage & { rewardKey: string }> {
-  return Object.entries(REFERRAL_REWARD_DEFINITIONS).flatMap(([groupKey, group]) => {
-    const inviterEntry = Object.entries(group.rewards).find(
-      ([, def]) => def.recipientRole === "inviter",
-    );
-    if (!inviterEntry) return [];
-    return [{ groupKey, label: group.label, rewardKey: inviterEntry[0] }];
-  });
-}
-
-// metadata.amount の安全な数値化（数値として解釈できない値は 0 扱い）
-const rewardAmountExpr = sql`CASE WHEN ${ReferralRewardTable.metadata}->>'amount' ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN (${ReferralRewardTable.metadata}->>'amount')::numeric ELSE 0 END`;
 
 /**
  * 招待コード（type='invite'）の一覧を取得し、各発行者の紹介人数・報酬集計を返す
@@ -108,42 +94,10 @@ export async function getInviteCodeListWithCounts(
     .from(CouponTable)
     .where(whereClause);
 
-  // 紹介人数（inviter 別）のサブクエリ
-  const referralCountSq = db
-    .select({
-      inviter_user_id: ReferralTable.inviter_user_id,
-      count: drizzleCount().as("referral_count"),
-    })
-    .from(ReferralTable)
-    .where(eq(ReferralTable.status, "active"))
-    .groupBy(ReferralTable.inviter_user_id)
-    .as("rc");
-
-  // 報酬集計（inviter 別）のサブクエリ。段階別カウントは FILTER 句で同一クエリ内に展開
-  const rewardSelect: Record<string, SQL.Aliased | typeof ReferralTable.inviter_user_id> = {
-    inviter_user_id: ReferralTable.inviter_user_id,
-    rewardedReferralCount: countDistinct(ReferralTable.id).as("rewarded_referral_count"),
-    totalRewardAmount: sql`COALESCE(SUM(${rewardAmountExpr}), 0)`.as("total_reward_amount"),
-  };
-  stageDefs.forEach((stage, i) => {
-    rewardSelect[`stage${i}`] = sql`COUNT(DISTINCT ${ReferralTable.id}) FILTER (WHERE ${ReferralRewardTable.reward_key} = ${stage.rewardKey})`.as(`stage_rewarded_${i}`);
-  });
-
-  const rewardSq = db
-    .select(rewardSelect)
-    .from(ReferralRewardTable)
-    .innerJoin(ReferralTable, eq(ReferralRewardTable.referral_id, ReferralTable.id))
-    .where(
-      and(
-        eq(ReferralRewardTable.status, "fulfilled"),
-        eq(ReferralRewardTable.recipient_user_id, ReferralTable.inviter_user_id),
-      ),
-    )
-    .groupBy(ReferralTable.inviter_user_id)
-    .as("rw");
-
-  const rewardCol = (key: string) =>
-    (rewardSq as unknown as Record<string, SQL.Aliased>)[key];
+  // 紹介人数（inviter 別）/ 報酬集計（inviter 別）のサブクエリ
+  const referralCountSq = buildReferralCountSubquery();
+  const rewardSq = buildRewardSubquery(stageDefs);
+  const rewardCol = (key: string) => rewardSubqueryColumn(rewardSq, key);
 
   const referralCountExpr = sql`COALESCE(${referralCountSq.count}, 0)`;
 
@@ -202,12 +156,7 @@ export async function getInviteCodeListWithCounts(
     .select({ value: sql<string>`COALESCE(SUM(${rewardAmountExpr}), 0)` })
     .from(ReferralRewardTable)
     .innerJoin(ReferralTable, eq(ReferralRewardTable.referral_id, ReferralTable.id))
-    .where(
-      and(
-        eq(ReferralRewardTable.status, "fulfilled"),
-        eq(ReferralRewardTable.recipient_user_id, ReferralTable.inviter_user_id),
-      ),
-    );
+    .where(inviterRewardScope());
 
   const items: InviteCodeWithCount[] = (rows as Array<Record<string, unknown>>).map((row) => ({
     coupon: row.coupon as Coupon,

@@ -29,6 +29,8 @@
 - `getInviteCodeListWithCounts(params?)`: 管理画面用。invite型クーポン一覧 + 各発行者の紹介人数・報酬集計（発動人数 / 合計金額 / 段階別発動数）を単一クエリで集計
   - `params.sort?: SortState`（`@/lib/tableSuite`）でサーバーサイドソート。キー: `referralCount` | `rewardedReferralCount` | `totalRewardAmount` | `stageRate{i}`（結果 `stages[i]` に対応する段階の発動率）。不明キーは既定ソート（referralCount desc, createdAt desc）にフォールバック
   - 報酬金額は `referral_rewards.metadata.amount`（数値）を集計する（オプトイン規約。詳細は referralReward README）。段階 = `REFERRAL_REWARD_DEFINITIONS` の各グループの inviter 向け reward_key（upstream は定義が空のため `stages: []` / 集計 0 で無害）
+- `getStatsByInviters(userIds)`: 指定ユーザー群の招待実績を userId キーで一括取得 → `Record<userId, { referralCount, rewardedReferralCount, totalRewardAmount }>`（型 `ReferralInviterStats`）。上記一覧の 3 カラムと同一の意味論。入力は重複排除、実績のないユーザーも 0 埋めで必ずキーに含まれる。内部で 200 件ずつ分割問い合わせするため呼び出し側の件数上限なし。ユーザー一覧へ招待実績カラムを付ける用途（審査・ユーザーハブ・セグメント等）向け
+  - 集計式の単一ソース: `wrappers/inviterStatsAggregation.ts`（`rewardAmountExpr` / `buildReferralCountSubquery` / `buildRewardSubquery` / `resolveRewardStages`）。両メソッドがこれを共有するため、集計定義の変更はこのファイルのみで行う
 
 ---
 
