@@ -13,7 +13,9 @@ type ImageViewerProviderProps = {
 };
 
 const DEFAULT_MAX_WIDTH = "90vw";
-const DEFAULT_MAX_HEIGHT = "90vh";
+// dvh: モバイルブラウザの URL バー表示中でも可視領域基準にする。vh だと大きい方の
+// ビューポート基準になり、上端外に張り出す閉じるボタンがブラウザ UI の下に隠れる
+const DEFAULT_MAX_HEIGHT = "90dvh";
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 const DEFAULT_SKELETON_WIDTH = "min(90vw, 600px)";
 
