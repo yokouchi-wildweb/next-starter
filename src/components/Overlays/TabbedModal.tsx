@@ -13,6 +13,12 @@ export type TabbedModalTab = {
   value: string;
   label: ReactNode;
   content: ReactNode;
+  /**
+   * このタブがアクティブなときだけ表示するフッター（Modal の footer と同じ常時表示アクションバー）。
+   * - 未指定（undefined）: モーダル全体の `footer` にフォールバック
+   * - `null`: このタブではフッターを表示しない（フォールバックしない）
+   */
+  footer?: ReactNode;
   disabled?: boolean;
   forceMount?: boolean;
   triggerClassName?: string;
@@ -86,6 +92,7 @@ export default function TabbedModal({
   tabContentClassName,
   minHeight = 360,
   open,
+  footer,
   ...modalProps
 }: TabbedModalProps) {
   const resolvedDefaultValue = defaultValue ?? tabs[0]?.value ?? "";
@@ -115,6 +122,11 @@ export default function TabbedModal({
   if (!tabs.length) {
     return null;
   }
+
+  // アクティブタブ固有の footer があればそれを、無ければモーダル全体の footer を表示する
+  // （null 指定はそのタブでフッター無し。Modal は footer == null で非表示にする）
+  const activeTab = tabs.find((tab) => tab.value === currentValue);
+  const resolvedFooter = activeTab?.footer !== undefined ? activeTab.footer : footer;
 
   const tabList = (
     <nav aria-label={ariaLabel} className="mt-1 w-full">
@@ -153,6 +165,7 @@ export default function TabbedModal({
         open={open}
         minHeight={minHeight}
         headerContent={tabList}
+        footer={resolvedFooter}
         bodyRef={bodyRef}
       >
         {tabs.map((tab) => (

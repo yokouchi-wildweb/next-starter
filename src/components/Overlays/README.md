@@ -281,7 +281,7 @@ import TabbedModal from "@/components/Overlays/TabbedModal";
 
 | Prop | 型 | デフォルト | 説明 |
 |------|-----|-----------|------|
-| `tabs` | `TabbedModalTab[]` | - | `{ value, label, content, disabled?, forceMount?, triggerClassName?, contentClassName? }` の配列 |
+| `tabs` | `TabbedModalTab[]` | - | `{ value, label, content, footer?, disabled?, forceMount?, triggerClassName?, contentClassName? }` の配列 |
 | `ariaLabel` | `string` | `"モーダル内のタブ"` | タブリストを囲う nav の aria-label |
 | `value` | `string` | - | 制御用の現在タブ |
 | `defaultValue` | `string` | `tabs[0].value` | 非制御時の初期タブ。モーダルを開くたびにこの値へ戻る |
@@ -293,6 +293,21 @@ import TabbedModal from "@/components/Overlays/TabbedModal";
 | `minHeight` | `number \| string` | `360` | コンテンツ部の最小高さ（Modal 経由で適用）。タブ切替で高さが揺れないための床で、箱の上限に当たる低いビューポートでは床より優先して本体が縮む。不要なら `minHeight={0}` |
 
 各タブの `forceMount` を `true` にすると非表示時も DOM を保持し、内部状態がリセットされない（モーダルが開いている間。閉じるとポータルごと unmount される）。
+
+**タブごとの footer:**
+
+```tsx
+<TabbedModal
+  footer={<Button variant="outline" onClick={close}>閉じる</Button>} // 共通（未指定タブで使われる）
+  tabs={[
+    { value: "edit", label: "編集", content: <Form />, footer: <SaveButtons /> }, // このタブだけ差し替え
+    { value: "history", label: "履歴", content: <History /> },                    // 共通 footer
+    { value: "preview", label: "プレビュー", content: <Preview />, footer: null }, // footer 無し
+  ]}
+/>
+```
+
+アクティブタブの `footer` が未指定ならモーダル全体の `footer` にフォールバックし、`null` ならそのタブではフッターを出さない。タブごとにフッターの高さが違う場合は切替時に箱の高さが変わるが、本体の `minHeight` は保たれる。
 
 **構造メモ:**
 - 本体スクロール領域は全タブで共有され、タブ切替時に先頭へ戻る（Modal の `bodyRef` 経由）。
