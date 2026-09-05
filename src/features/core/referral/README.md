@@ -63,7 +63,7 @@
 
 ### 管理画面
 - `components/AdminInviteList/`: `/admin/coupons/invite` で使用
-  - `index.tsx`: タブ + ヘッダー + テーブル
+  - `index.tsx`: タブ + ヘッダー + テーブル（タブは coupon の `buildCouponAdminSectionTabs()` 由来。downstream の追加セクションは `src/registry/couponAdminSectionTabsRegistry.ts` に登録）
   - `Header.tsx`: 検索ボックス + ページネーション
   - `Table.tsx`: 招待コード / 発行者ID / 紹介人数 / ステータス / 発行日
   - `ReferralListModal.tsx`: 行クリックで紹介済みユーザー一覧をモーダル表示（API都度取得）

@@ -1,19 +1,15 @@
 // 招待コード発行者一覧（管理画面用メインコンポーネント）
 
-import { CouponTypeOptions } from "@/features/core/coupon/constants/field";
+import { buildCouponAdminSectionTabs } from "@/features/core/coupon/lib/adminSectionTabs";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { SolidTabs, type PageTabItem } from "@/components/Navigation";
+import { SolidTabs } from "@/components/Navigation";
 import Header from "./Header";
 import Table from "./Table";
 import type { InviteCodeWithCount } from "../../services/server/wrappers/getInviteCodeListWithCounts";
 
-// CouponTypeOptions からタブアイテムを生成
-const couponTypeTabs: PageTabItem[] = CouponTypeOptions.map((opt) => ({
-  value: opt.value,
-  label: opt.label,
-  href: `/admin/coupons/${opt.value}`,
-}));
+// セクションタブ（core 3 タブ + downstream 登録分）
+const couponSectionTabs = buildCouponAdminSectionTabs();
 
 export type AdminInviteListProps = {
   items: InviteCodeWithCount[];
@@ -31,7 +27,7 @@ export default function AdminInviteList({
   return (
     <Section>
       <Stack space={6}>
-        <SolidTabs tabs={couponTypeTabs} ariaLabel="クーポン種別" />
+        <SolidTabs tabs={couponSectionTabs} ariaLabel="クーポン種別" />
         <Header page={page} perPage={perPage} total={total} />
         <Table items={items} />
       </Stack>

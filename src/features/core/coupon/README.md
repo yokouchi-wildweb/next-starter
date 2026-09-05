@@ -342,6 +342,37 @@ if (result.valid) {
 
 ---
 
+## 管理画面セクションタブの拡張
+
+`/admin/coupons/*` の上部タブ（公式プロモーション / アフィリエイト / ユーザー招待）は
+`CouponTypeOptions`（クーポン種別 enum）から生成される。ただし **種別 enum と画面セクションは別物**。
+downstream が種別に属さない派生クーポンの専用画面（例: フレンドクーポン、type は `affiliate` のまま）を
+`/admin/coupons/<slug>` に置く場合、レジストリに登録すれば core の全クーポン管理画面のタブに末尾追加される。
+
+- レジストリ: `src/registry/couponAdminSectionTabsRegistry.ts`（`extraCouponAdminSectionTabs: PageTabItem[]`、upstream は空 = 従来どおり 3 タブ）
+- 組み立て: `buildCouponAdminSectionTabs()`（`@/features/core/coupon/lib/adminSectionTabs`）= core 3 タブ + 登録分。value 重複は core 優先で除外
+- 消費側（core）: `AdminCouponList` / referral `AdminInviteList` / `app/admin/(protected)/coupons/affiliate/page.tsx`。ローカルでタブ配列を組まず必ずこの関数を使う
+- DB / enum 変更なし。派生クーポンの画面（一覧・絞り込みクエリ）自体は downstream 所有
+
+### downstream レシピ
+
+```typescript
+// 1. src/registry/couponAdminSectionTabsRegistry.ts
+export const extraCouponAdminSectionTabs: PageTabItem[] = [
+  { value: "friend-coupon", label: "フレンドクーポン", href: "/admin/coupons/friend-coupon" },
+];
+
+// 2. src/app/admin/(protected)/coupons/friend-coupon/page.tsx（downstream 実装）
+import { buildCouponAdminSectionTabs } from "@/features/core/coupon/lib/adminSectionTabs";
+const couponSectionTabs = buildCouponAdminSectionTabs();
+// ... <SolidTabs tabs={couponSectionTabs} ariaLabel="クーポン種別" />
+```
+
+downstream 所有の official / affiliate ページを差し替えている場合も、ローカルのタブ定義を捨てて
+`buildCouponAdminSectionTabs()` に寄せると core と downstream のタブ一覧が常に一致する。
+
+---
+
 ## 使用可否判定の理由一覧
 
 | reason | 説明 |
@@ -425,6 +456,9 @@ src/features/core/coupon/
 │   ├── registry.ts              # 登録・取得関数
 │   ├── init.ts                  # 全ハンドラーの import 集約
 │   └── index.ts
+│
+├── lib/
+│   └── adminSectionTabs.ts      # 管理画面セクションタブ組み立て（core 3 タブ + registry 登録分）
 │
 ├── services/
 │   ├── client/
