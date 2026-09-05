@@ -40,6 +40,10 @@ const OVERLAY_LAYER_CLASS: Record<DialogOverlayLayer, string> = {
   apex: "apex-layer",
 };
 
+/** title 省略時に Dialog / Modal が sr-only で描画する既定のアクセシブルネーム。
+ * Radix Dialog は DialogTitle 必須（無いとコンソールエラー + role="dialog" が無名になる）。 */
+export const FALLBACK_DIALOG_TITLE = "ダイアログ";
+
 const CONTENT_LAYER_CLASS: Record<DialogContentLayer, string> = {
   modal: "modal-layer",
   alert: "alert-layer",

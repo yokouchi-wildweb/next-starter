@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  FALLBACK_DIALOG_TITLE,
   type DialogContentLayer,
   type DialogOverlayLayer,
 } from "@/components/Overlays/DialogPrimitives";
@@ -41,17 +42,23 @@ export type DialogProps = {
   titleVariant?: TextVariant;
   titleAlign?: TextAlign;
   /**
-   * シンプルなテキスト用。DialogDescription（<p>タグ）でラップされる。
-   * children と排他的。children が指定された場合は無視される。
+   * 説明文。DialogDescription（<p>タグ）でラップされ、aria-describedby の対象になる。
+   * children と併用可（ヘッダ内で title の直下に描画され、children はその下の本体に入る）。
    */
   description?: ReactNode;
   descriptionVariant?: TextVariant;
   descriptionAlign?: TextAlign;
   /**
-   * 複雑なコンテンツ用。そのまま出力されるため、ブロック要素も使用可能。
-   * description と排他的。指定された場合は description より優先される。
+   * 複雑なコンテンツ用。そのまま本体（スクロール領域）に出力されるため、ブロック要素も使用可能。
    */
   children?: ReactNode;
+  /**
+   * 右上の ✕ ボタンを表示するか。
+   * @default false（確認ダイアログはフッターのボタンで閉じるのが基本）
+   * showCancelButton / showConfirmButton を両方 false にする場合は true にして、
+   * 目に見える閉じ手段を必ず残すこと。
+   */
+  showCloseButton?: boolean;
   /**
    * ダイアログのz-indexレイヤー。
    * モーダルの上に表示する確認ダイアログなどは "alert" を指定する。
@@ -85,6 +92,7 @@ export function Dialog({
   descriptionVariant = "default",
   descriptionAlign = "left",
   children,
+  showCloseButton = false,
   layer,
   overlayLayer,
   footerAlign = "right",
@@ -130,20 +138,30 @@ export function Dialog({
 
   return (
     <DialogPrimitives open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} layer={layer} overlayLayer={overlayLayer} onCloseAutoFocus={onCloseAutoFocus}>
-        {(title || (!children && description)) && (
-          <DialogHeader>
-            {title && (
-              <DialogTitle
-                className={cn(
-                  TEXT_VARIANT_CLASS[titleVariant],
-                  TEXT_ALIGN_CLASS[titleAlign],
-                )}
-              >
-                {title}
-              </DialogTitle>
-            )}
-            {!children && description && (
+      {/* 箱の高さは Modal と同じ「ビューポート - 上下 1rem」で上限。flex-col + 本体 min-h-0 により
+          長い description / children は本体だけがスクロールし、タイトルとボタン列は常に箱内に残る。
+          fixed + translate 中央配置なので、上限が無いと上下両方にはみ出してスクロールで到達できない。 */}
+      <DialogContent
+        showCloseButton={showCloseButton}
+        className="flex flex-col max-h-[calc(100dvh-2rem)]"
+        layer={layer}
+        overlayLayer={overlayLayer}
+        onCloseAutoFocus={onCloseAutoFocus}
+        // description 未指定を明示しないと Radix が警告を出す（指定時は Radix が自動で紐付ける）
+        {...(description ? {} : { "aria-describedby": undefined })}
+      >
+        {title || description ? (
+          <DialogHeader className="shrink-0">
+            <DialogTitle
+              srOnly={!title}
+              className={cn(
+                TEXT_VARIANT_CLASS[titleVariant],
+                TEXT_ALIGN_CLASS[titleAlign],
+              )}
+            >
+              {title || FALLBACK_DIALOG_TITLE}
+            </DialogTitle>
+            {description && (
               <DialogDescription
                 className={cn(
                   TEXT_VARIANT_CLASS[descriptionVariant],
@@ -154,10 +172,15 @@ export function Dialog({
               </DialogDescription>
             )}
           </DialogHeader>
+        ) : (
+          // title 省略時も role="dialog" にアクセシブルネームを必ず与える
+          <DialogTitle srOnly>{FALLBACK_DIALOG_TITLE}</DialogTitle>
         )}
-        {children}
+        {children != null && (
+          <div className="min-h-0 overflow-y-auto">{children}</div>
+        )}
         {showFooter && (
-          <DialogFooter className={cn("mt-4", footerAlignClass)}>
+          <DialogFooter className={cn("mt-4 shrink-0", footerAlignClass)}>
             {showCancelButton && (
               <Button
                 size="sm"

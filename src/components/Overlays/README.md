@@ -72,10 +72,11 @@ import { Dialog } from "@/components/Overlays/Dialog";
 | `title` | `ReactNode` | - | タイトル |
 | `titleVariant` | `TextVariant` | `"default"` | タイトルのスタイル |
 | `titleAlign` | `TextAlign` | `"left"` | タイトルの配置 |
-| `description` | `ReactNode` | - | 説明文 |
+| `description` | `ReactNode` | - | 説明文（`aria-describedby` の対象）。`children` と併用可。ヘッダ内で title の直下に描画される |
 | `descriptionVariant` | `TextVariant` | `"default"` | 説明文のスタイル |
 | `descriptionAlign` | `TextAlign` | `"left"` | 説明文の配置 |
-| `children` | `ReactNode` | - | 複雑なコンテンツ用。指定時は `description` より優先される。 |
+| `children` | `ReactNode` | - | 複雑なコンテンツ用。本体（スクロール領域）に描画される |
+| `showCloseButton` | `boolean` | `false` | 右上の ✕ ボタン。`showCancelButton` / `showConfirmButton` を両方 false にする場合は必ず true にして閉じ手段を残す |
 | `layer` | `DialogContentLayer` | `"modal"` | コンテンツのレイヤー（`modal`/`alert`/`super`/`ultimate`/`apex`） |
 | `overlayLayer` | `DialogOverlayLayer` | `"modal"` | オーバーレイのレイヤー（`backdrop`/`modal`/`overlay`/`alert`/`super`/`ultimate`/`apex`） |
 | `footerAlign` | `TextAlign` | `"right"` | フッター（ボタン）の配置 |
@@ -95,6 +96,8 @@ import { Dialog } from "@/components/Overlays/Dialog";
 type TextVariant = "default" | "primary" | "secondary" | "accent" | "sr-only";
 type TextAlign = "left" | "center" | "right";
 ```
+
+**高さ:** 箱は Modal と同じ `max-h-[calc(100dvh-2rem)]` で上限され、長い `children` は本体だけがスクロールする（title / description / ボタン列は常に箱内）。`title` 省略時も sr-only の既定タイトルが入り、`role="dialog"` のアクセシブルネームが欠けることはない。
 
 ---
 
@@ -120,7 +123,7 @@ import Modal from "@/components/Overlays/Modal";
 |------|-----|-----------|------|
 | `open` | `boolean` | - | 表示状態 |
 | `onOpenChange` | `(open: boolean) => void` | - | 状態変更コールバック |
-| `title` | `ReactNode` | - | タイトル |
+| `title` | `ReactNode` | - | タイトル。省略時は sr-only の既定タイトル（「ダイアログ」）が入る（Radix の DialogTitle 必須要件 + アクセシブルネーム確保） |
 | `titleSrOnly` | `boolean` | - | タイトルをスクリーンリーダー専用にする |
 | `headerContent` | `ReactNode` | - | ヘッダーに追加するコンテンツ |
 | `children` | `ReactNode` | - | モーダル本体のコンテンツ |
@@ -129,15 +132,21 @@ import Modal from "@/components/Overlays/Modal";
 | `showCloseButton` | `boolean` | `true` | 閉じるボタンの表示 |
 | `maxWidth` | `number \| string` | `640` | 最大幅 |
 | `className` | `string` | - | コンテナに付与するクラス |
-| `minHeight` | `number \| string` | - | 最小高さ（指定すると内部がスクロール領域でラップされる） |
-| `maxHeight` | `number \| string \| null` | `"calc(100dvh - 8rem)"` | 最大高さ。指定するとコンテンツが overflow-y-auto でラップされる。デフォルト値を超える指定は内部でクランプされる。`null` を渡すと制限を解除できる。 |
-| `height` | `number \| string` | - | 高さ（指定すると内部がスクロール領域でラップされる）。デフォルト最大高さを超える指定は内部でクランプされる |
+| `minHeight` | `number \| string` | - | 本体の最小高さ（短い内容でも高さが揺れないための床）。指定すると内部がスクロール領域でラップされる。箱の上限に当たる場合は床より優先して縮む（下記「高さの仕組み」） |
+| `maxHeight` | `number \| string \| null` | `"calc(100dvh - 2rem)"` | 本体の最大高さ。指定するとコンテンツが overflow-y-auto でラップされる。デフォルト値（= 箱の上限）を超える指定は内部でクランプされる。`null` を渡すと制限を解除できる。 |
+| `height` | `number \| string` | - | 本体の高さ（指定すると内部がスクロール領域でラップされる）。デフォルト最大高さを超える指定は内部でクランプされる |
 | `scrollable` | `boolean` | `true` | `false` で固定高コンテナモード：本体ラッパーがスクロールせず（overflow-clip）、consumer が用意した内側領域だけをスクロールさせる。詳細は下記 |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 
 デフォルトで `maxHeight` が設定されているため、長いコンテンツは常にビューポート内に収まり内部スクロールされる。タイトル部 (DialogHeader) は固定で、本体だけがスクロールする。デフォルトを無効化したい場合は `maxHeight={null}` を渡す。
 
-**高さのクランプ:** `maxHeight` / `height` にデフォルト最大高さ（`calc(100dvh - 8rem)`）を超える値（例: `90vh`）を渡しても、`min()` で自動的にクランプされるため close ボタンが画面外に出ることはない。さらにモーダルの箱全体にも `max-h-[calc(100dvh-2rem)]` の上限があり、footer やヘッダの実高が大きい場合は本体スクロール領域側が縮んで全体がビューポート内に収まる。`maxHeight={null}` を渡すとクランプごと解除される（従来挙動）。
+**高さの仕組み（単一の真のソース = 箱の上限）:**
+
+モーダルの箱（DialogContent）は `flex-col` + `max-h-[calc(100dvh-2rem)]`。ヘッダ（title + headerContent）と footer は `shrink-0`、本体ラッパーは `min-h-0` の flex 子。箱が上限に達すると**本体ラッパーだけが縮んでスクロール**するため、ヘッダ・タブ列・footer の実高がいくらであっても、close ボタンや footer が箱外・画面外に押し出されることは構造的に起きない。consumer が「クローム分の予算」を計算して `maxHeight` を調整する必要はない。
+
+- `maxHeight` / `height` に既定値（`calc(100dvh - 2rem)`）を超える値（例: `90vh`）を渡しても `min()` でクランプされる。既定値以下の値（`85vh` 等）はそのまま効く。`maxHeight={null}` を渡すとクランプも箱の上限も解除される。
+- `minHeight` はラッパーではなく本体内側の要素に付く。短い内容では本体が `minHeight` まで確保され（タブ切替で高さが揺れない）、箱の上限に当たる低いビューポートでは床より優先してラッパーが縮み、内側がスクロールする。
+- ❌ 旧実装（grid + 本体に「クローム 6rem 予算」）では grid の auto 行が箱の max-height で縮まず、TabbedModal + footer で本体と footer が箱の外に描画されていた。同種の予算計算を consumer 側で再発明しないこと。
 
 **scrollable（固定高コンテナモード）:**
 
@@ -161,7 +170,7 @@ import Modal from "@/components/Overlays/Modal";
 ```
 
 - 本体ラッパーが `overflow-y-auto` → `overflow-clip` になり、外側スクロールは構造的に発生しない（`overflow-hidden` でないのは、hidden だと scroll container として残り内部の focus 駆動 scrollIntoView で隠れスクロールが発火するため）。
-- `height` 未指定なら `maxHeight`（クランプ後）が `height` に自動補完され、箱の高さが確定する。既定 `maxHeight` が生きていれば `scrollable={false}` だけで常にビューポートいっぱいの固定高になる。低くしたい場合は `maxHeight` を明示する。
+- `height` 未指定なら `maxHeight`（クランプ後）が `height` に自動補完され、箱の高さが確定する。既定 `maxHeight` が生きていれば `scrollable={false}` だけで常にビューポートいっぱいの固定高になる。低くしたい場合は `maxHeight` を明示する。`minHeight` は `height` の下限として `max()` に畳み込まれる（ラッパーは flex 子として縮めるので、低いビューポートでも箱外にはみ出さない）。
 - スクロールさせたい内側領域には `min-h-0` + `overflow-y-auto` を自分で付与する（flex 子は `min-h-0` がないと縮まず溢れる）。
 - `maxHeight={null}` と併用した場合はラッパー自体が描画されず、高さ管理は consumer に委ねられる。
 - TabbedModal にもそのまま透過される（タブ + 固定高 + 内側テーブルの組み合わせが主用途）。
@@ -201,7 +210,7 @@ footer はスクロールラッパーの外側（DialogContent 直下）に描�
 
 `enabled` が true の間、ユーザー操作による閉じ（✕ ボタン / ESC / 背景クリック）を確認ダイアログ（`layer="alert"` でモーダルの上に表示）で遮り、承諾されたときだけ `onOpenChange(false)` が呼ばれる。文言は `title` / `message` / `confirmLabel` / `cancelLabel` で差し替え可能（既定: 「編集中の内容が保存されていません。閉じてもよろしいですか？」）。見た目は共有の `Overlays/Dialog` に追従する（テーマ/Dialog をカスタマイズしていればそれに従う）。
 
-注意: 親コンポーネントが `open` を直接 false にするプログラム的クローズ（保存完了後など）は遮らない。モーダル内に自前のキャンセルボタンを置く場合、そのボタンが親の state を直接 false にするとガードを通らないため、破棄確認が必要なら自前で確認を挟むか閉じる前に `enabled` を評価すること。TabbedModal にもそのまま透過される。
+注意: 親コンポーネントが `open` を直接 false にするプログラム的クローズ（保存完了後など）は遮らない。モーダル内に自前のキャンセルボタンを置く場合、そのボタンが親の state を直接 false にするとガードを通らないため、破棄確認が必要なら自前で確認を挟むか閉じる前に `enabled` を評価すること。確認ダイアログ表示中にプログラム的クローズが起きた場合、確認ダイアログは `open` の解除に同期して畳まれる（次回オープン時に取り残されない）。TabbedModal にもそのまま透過される。
 
 **API 凍結（upstream 方針）:** `confirmOnClose` は「文言4点の差し替え + 共有 Dialog の見た目」の定型ケース省力化として**この形で凍結**する。ボタン variant の変更・任意 JSX の埋め込み・確認 UI の差し替えといった拡張は今後も追加しない。それ以上のカスタムが必要な場合は `confirmOnClose` を使わず、下記の自前ガードレシピを使うこと。
 
@@ -280,7 +289,7 @@ import TabbedModal from "@/components/Overlays/TabbedModal";
 | `tabListClassName` | `string` | - | TabsList に付与するクラス |
 | `tabTriggerClassName` | `string` | - | 各 TabsTrigger に共通で付与するクラス |
 | `tabContentClassName` | `string` | - | TabsContent に共通で付与するクラス |
-| `minHeight` | `number \| string` | `360` | コンテンツ部の最小高さ（Modal 経由で適用） |
+| `minHeight` | `number \| string` | `360` | コンテンツ部の最小高さ（Modal 経由で適用）。タブ切替で高さが揺れないための床で、箱の上限に当たる低いビューポートでは床より優先して本体が縮む。不要なら `minHeight={0}` |
 
 各タブの `forceMount` を `true` にすると非表示時も DOM を保持し、内部状態がリセットされない。
 

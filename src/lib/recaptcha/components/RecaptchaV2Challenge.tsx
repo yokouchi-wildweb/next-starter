@@ -65,6 +65,7 @@ export function RecaptchaV2Challenge({
       description="セキュリティ確認のため、以下の認証を完了してください。"
       showCancelButton={false}
       showConfirmButton={false}
+      showCloseButton
     >
       <Flex direction="column" align="center" gap="sm" className="py-4">
         {error && (
