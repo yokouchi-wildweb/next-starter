@@ -2,7 +2,7 @@
 
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/_shadcn/tabs";
 import { cn } from "@/lib/cn";
@@ -21,7 +21,9 @@ export type TabbedModalTab = {
 
 type TabsPresentationProps = {
   /**
-   * Tabs.Root へ付与するクラス。レイアウト調整時に利用。
+   * Tabs.Root へ付与するクラス。
+   * Root は呼び出し元のツリーに `display: contents` で置かれレイアウトを持たないため、
+   * 余白・幅などのレイアウト系クラスは効かない（data 属性用途などに限る）。
    */
   tabsClassName?: string;
   /**
@@ -38,7 +40,7 @@ type TabsPresentationProps = {
   tabContentClassName?: string;
 };
 
-export type TabbedModalProps = Omit<ModalProps, "children" | "headerContent"> &
+export type TabbedModalProps = Omit<ModalProps, "children" | "headerContent" | "bodyRef"> &
   TabsPresentationProps & {
     tabs: TabbedModalTab[];
     /**
@@ -50,7 +52,7 @@ export type TabbedModalProps = Omit<ModalProps, "children" | "headerContent"> &
      */
     value?: string;
     /**
-     * 非制御時の初期タブ。
+     * 非制御時の初期タブ。モーダルを開くたびにこの値へ戻る。
      */
     defaultValue?: string;
     /**
@@ -62,6 +64,15 @@ export type TabbedModalProps = Omit<ModalProps, "children" | "headerContent"> &
 /**
  * モーダル内部で複数タブを切り替える UI。
  * 既存の Modal コンポーネントを包み、Tabs（Radix）でコンテンツを分割する。
+ *
+ * 構造メモ:
+ * - Tabs.Root は Modal（ポータル）の外側に置くが `display: contents` にして呼び出し元の
+ *   レイアウトに参加させない（旧実装は空の flex 子として Stack 等の gap を消費し、開閉で
+ *   ページが揺れていた）。TabsList / TabsContent はポータル内でも React context で Root に届く。
+ * - 閉じたときに null を返さない。Radix の閉じアニメーションとトリガーへのフォーカス復帰
+ *   （onCloseAutoFocus）を Modal に任せる。
+ * - 非制御時のアクティブタブは Modal を開くたびに defaultValue へ戻す（別レコードを開いたのに
+ *   前回のタブが残るのを防ぐ）。
  */
 export default function TabbedModal({
   tabs,
@@ -77,12 +88,34 @@ export default function TabbedModal({
   open,
   ...modalProps
 }: TabbedModalProps) {
-  // モーダルが閉じているときは空のTabs要素がDOMに残らないようにする
-  if (!open || !tabs.length) {
+  const resolvedDefaultValue = defaultValue ?? tabs[0]?.value ?? "";
+
+  // 非制御時のアクティブタブ。開くたびに defaultValue へ戻す（render 中の前回値比較パターン）
+  const [internalValue, setInternalValue] = useState(resolvedDefaultValue);
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (open) setInternalValue(resolvedDefaultValue);
+  }
+  const isControlled = value !== undefined;
+  const currentValue = isControlled ? value : internalValue;
+
+  // 本体スクロール領域は全タブで共有されるため、タブ切替時に先頭へ戻す
+  // （戻さないと長いタブの途中位置のまま別タブが表示される）
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const handleValueChange = useCallback(
+    (next: string) => {
+      if (!isControlled) setInternalValue(next);
+      onValueChange?.(next);
+      if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    },
+    [isControlled, onValueChange],
+  );
+
+  if (!tabs.length) {
     return null;
   }
 
-  const resolvedDefaultValue = defaultValue ?? tabs[0]!.value;
   const tabList = (
     <nav aria-label={ariaLabel} className="mt-1 w-full">
       <TabsList
@@ -111,16 +144,16 @@ export default function TabbedModal({
 
   return (
     <Tabs
-      value={value}
-      defaultValue={value === undefined ? resolvedDefaultValue : undefined}
-      onValueChange={onValueChange}
-      className={cn("w-full", tabsClassName)}
+      value={currentValue}
+      onValueChange={handleValueChange}
+      className={cn("contents", tabsClassName)}
     >
       <Modal
         {...modalProps}
         open={open}
         minHeight={minHeight}
         headerContent={tabList}
+        bodyRef={bodyRef}
       >
         {tabs.map((tab) => (
           <TabsContent

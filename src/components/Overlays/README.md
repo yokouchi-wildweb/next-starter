@@ -136,6 +136,7 @@ import Modal from "@/components/Overlays/Modal";
 | `maxHeight` | `number \| string \| null` | `"calc(100dvh - 2rem)"` | 本体の最大高さ。指定するとコンテンツが overflow-y-auto でラップされる。デフォルト値（= 箱の上限）を超える指定は内部でクランプされる。`null` を渡すと制限を解除できる。 |
 | `height` | `number \| string` | - | 本体の高さ（指定すると内部がスクロール領域でラップされる）。デフォルト最大高さを超える指定は内部でクランプされる |
 | `scrollable` | `boolean` | `true` | `false` で固定高コンテナモード：本体ラッパーがスクロールせず（overflow-clip）、consumer が用意した内側領域だけをスクロールさせる。詳細は下記 |
+| `bodyRef` | `Ref<HTMLDivElement>` | - | 本体ラッパー（スクロール領域）の DOM 参照。スクロール位置を操作したい場合に使う（TabbedModal はタブ切替時の先頭戻しに使用） |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 
 デフォルトで `maxHeight` が設定されているため、長いコンテンツは常にビューポート内に収まり内部スクロールされる。タイトル部 (DialogHeader) は固定で、本体だけがスクロールする。デフォルトを無効化したい場合は `maxHeight={null}` を渡す。
@@ -283,15 +284,20 @@ import TabbedModal from "@/components/Overlays/TabbedModal";
 | `tabs` | `TabbedModalTab[]` | - | `{ value, label, content, disabled?, forceMount?, triggerClassName?, contentClassName? }` の配列 |
 | `ariaLabel` | `string` | `"モーダル内のタブ"` | タブリストを囲う nav の aria-label |
 | `value` | `string` | - | 制御用の現在タブ |
-| `defaultValue` | `string` | `tabs[0].value` | 非制御時の初期タブ |
+| `defaultValue` | `string` | `tabs[0].value` | 非制御時の初期タブ。モーダルを開くたびにこの値へ戻る |
 | `onValueChange` | `(value: string) => void` | - | 制御／非制御共通の変更通知 |
-| `tabsClassName` | `string` | - | Tabs.Root に付与するクラス |
+| `tabsClassName` | `string` | - | Tabs.Root に付与するクラス。Root は `display: contents` でレイアウトを持たないため、レイアウト系クラスは効かない |
 | `tabListClassName` | `string` | - | TabsList に付与するクラス |
 | `tabTriggerClassName` | `string` | - | 各 TabsTrigger に共通で付与するクラス |
 | `tabContentClassName` | `string` | - | TabsContent に共通で付与するクラス |
 | `minHeight` | `number \| string` | `360` | コンテンツ部の最小高さ（Modal 経由で適用）。タブ切替で高さが揺れないための床で、箱の上限に当たる低いビューポートでは床より優先して本体が縮む。不要なら `minHeight={0}` |
 
-各タブの `forceMount` を `true` にすると非表示時も DOM を保持し、内部状態がリセットされない。
+各タブの `forceMount` を `true` にすると非表示時も DOM を保持し、内部状態がリセットされない（モーダルが開いている間。閉じるとポータルごと unmount される）。
+
+**構造メモ:**
+- 本体スクロール領域は全タブで共有され、タブ切替時に先頭へ戻る（Modal の `bodyRef` 経由）。
+- 閉じるときは Modal と同じく Radix の閉じアニメーションとトリガーへのフォーカス復帰が働く（`onCloseAutoFocus` 有効）。
+- `Tabs.Root` は呼び出し元ツリーに `display: contents` で置かれ、Stack 等の flex/gap レイアウトを消費しない。
 
 ---
 

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { type CSSProperties, ReactNode, useState } from "react";
+import { type CSSProperties, ReactNode, type Ref, useState } from "react";
 import {
   DialogPrimitives,
   DialogContent,
@@ -65,6 +65,10 @@ export type ModalProps = {
    * overflow-hidden でなく clip なのは、hidden は scroll container として残り
    * 内部の focus 駆動 scrollIntoView で隠れスクロールが発火するため。 */
   scrollable?: boolean;
+  /** 本体ラッパー（スクロール領域）の DOM 参照。タブ切替時に scrollTop を戻す等、
+   * consumer 側でスクロール位置を操作したい場合に使う。
+   * ラッパーが描画されない場合（maxHeight: null かつ minHeight / height 未指定）は null のまま。 */
+  bodyRef?: Ref<HTMLDivElement>;
   onCloseAutoFocus?: (event: Event) => void;
 };
 
@@ -105,6 +109,7 @@ export default function Modal({
   maxHeight = DEFAULT_MAX_HEIGHT,
   height,
   scrollable = true,
+  bodyRef,
   onCloseAutoFocus,
 }: ModalProps) {
   // 閉じ確認ダイアログの表示状態（confirmOnClose 用）
@@ -198,6 +203,7 @@ export default function Modal({
           )}
           {shouldWrapScrollable ? (
             <div
+              ref={bodyRef}
               className={cn("min-h-0", scrollable ? "overflow-y-auto" : "overflow-clip")}
               style={scrollableStyle}
             >
