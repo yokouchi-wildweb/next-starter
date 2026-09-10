@@ -145,6 +145,7 @@ lib: src/lib/fingerprint/ (domain-free collector: collectDeviceSignals/collectFi
 
 ## COUPON
 self-redeem of attribution coupons = always rejected in core (self_redeem_forbidden), never re-check per consumer | reason→message: coupon/constants/redeemReasonMessages.ts only | issuer payout / apply→approve→periodic self-issue = couponAttributionReward / couponIssuerGrant (data-layer only, UI downstream) | ref: src/features/core/coupon/README.md + couponAttributionReward/README.md + couponIssuerGrant/README.md
+recipient_dto: GET /api/me/coupon-attribution-rewards returns CouponAttributionRewardForRecipient (toCouponAttributionRewardForRecipient) — issuer never sees redeemer (drops redeemer_user_id/coupon_history_id/wallet_history_id/failure_reason) | metadata keys fail-closed via src/registry/couponAttributionRewardRecipientMetadataRegistry.ts (upstream empty) | admin/stats reads stay raw (hiddenColumns NOT used)
 admin_section_tabs: /admin/coupons/* tabs = buildCouponAdminSectionTabs() (coupon/lib/adminSectionTabs, core 3 from CouponTypeOptions + src/registry/couponAdminSectionTabsRegistry.ts extras appended, upstream empty) | render = app/admin/(protected)/coupons/_components/CouponSectionTabs {placement: body|header} placed by page.tsx (placement = page concern) — AdminCouponList/AdminInviteList do NOT render tabs | type enum ≠ screen section: downstream derived-coupon screens register a tab, never hardcode tab arrays in coupon admin screens
 
 ## COUNTING (which primitive — check BEFORE building any count/tracking feature)

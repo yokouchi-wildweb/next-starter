@@ -133,7 +133,7 @@ if (reward?.status === "fulfilled") {
 
 | メソッド | パス | 用途 |
 |---|---|---|
-| `GET` | `/api/me/coupon-attribution-rewards?page&limit` | 自分が受取人の報酬一覧（ページング必須、limit 上限 100） |
+| `GET` | `/api/me/coupon-attribution-rewards?page&limit` | 自分が受取人の報酬一覧（ページング必須、limit 上限 100）。**受取人向け DTO** を返す（下記） |
 | `GET` | `/api/me/coupon-attribution-rewards/summary` | 累計額 / 件数 / pending 額 |
 
 ```typescript
@@ -142,6 +142,27 @@ import { useMyAttributionRewards, useMyAttributionRewardSummary }
 
 const { items, hasMore, isLoading, sentinelRef } = useMyAttributionRewards(); // InfiniteScrollList に渡す
 const { summary } = useMyAttributionRewardSummary();
+```
+
+#### 受取人向け DTO（CouponAttributionRewardForRecipient）
+
+一覧 API は台帳の生行ではなく `toCouponAttributionRewardForRecipient(row, { metadataKeys })` の結果を返す。**発行者（受取人）は「誰が消込したか」を知れない**ことをデータ層で保証するため:
+
+- 含む: `id` / `coupon_id` / `wallet_type` / `amount` / `status` / `fulfilled_at` / `createdAt` / `metadata`（許可キーのみ）
+- 含まない: `redeemer_user_id` / `coupon_history_id` / `wallet_history_id`（消込者・購入へ辿れる ID）、`failure_reason`（運用者向け）、`updatedAt`、`recipient_user_id`（本人）
+- `metadata` は `src/registry/couponAttributionRewardRecipientMetadataRegistry.ts` の `RECIPIENT_VISIBLE_ATTRIBUTION_REWARD_METADATA_KEYS` に登録したキーだけ通す。**上流既定は空 = 常に `{}`**（fail-closed）。画面で率・購入金額を出すなら下流が `["rewardRate", "paymentAmount"]` 等を登録する。`purchaseRequestId` のような消込者の購入に辿れるキーは登録しない（管理側の追跡用に書き続けるのは可）
+- 管理側（serviceRegistry の `couponAttributionReward` 一覧、stats、analytics、`getRecipientSummary`）は生行のまま。hiddenColumns を使わないのは、管理側の読みまで null になってしまうため
+
+```typescript
+// 下流の履歴画面（例）
+const { items } = useMyAttributionRewards();
+items.map((item) => ({
+  date: item.fulfilled_at ?? item.createdAt,
+  amount: item.amount,
+  status: item.status,
+  rate: item.metadata.rewardRate,            // registry に "rewardRate" を登録した場合のみ届く
+  paymentAmount: item.metadata.paymentAmount, // 同上
+}));
 ```
 
 ### 運用

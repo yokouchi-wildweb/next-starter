@@ -8,8 +8,10 @@
 
 export type {
   CouponAttributionReward,
+  CouponAttributionRewardForRecipient,
   CouponAttributionRewardSummary,
 } from "./entities/model";
+export { toCouponAttributionRewardForRecipient } from "./entities/model";
 export {
   COUPON_ATTRIBUTION_REWARD_STATUSES,
   CouponAttributionRewardStatusOptions,
