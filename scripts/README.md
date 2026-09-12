@@ -27,6 +27,10 @@ pnpm db:clear:all
 
 # DB構築 + 全シード（初期セットアップ）
 pnpm db:setup
+
+# core ドメインの drizzle.ts が全て schemaRegistry に登録されているか検証
+# (登録漏れ = db:push でテーブルが作られない。core ドメイン追加時に実行)
+pnpm test:schema-registry
 ```
 
 詳細: [db/seed/README.md](./db/seed/README.md)

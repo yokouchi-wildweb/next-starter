@@ -37,6 +37,7 @@ export * from "@/features/fingerprintChallenge/entities/drizzle";
 export * from "@/features/cronCheckpoint/entities/drizzle";
 export * from "@/features/couponAttributionReward/entities/drizzle";
 export * from "@/features/couponIssuerGrant/entities/drizzle";
+export * from "@/features/core/userLoginEvent/entities/drizzle";
 
 // --- AUTO-GENERATED-START ---
 export * from "@/features/sample/entities/drizzle";

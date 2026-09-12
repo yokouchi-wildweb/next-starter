@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test:crud-hooks": "node --test src/lib/crud/hooks/internal/*.test.mjs",
+    "test:schema-registry": "node --test scripts/registry/check-schema-registry.test.mjs",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",
     "db:push": "cross-env APP_ENV=.env.development drizzle-kit push",
     "db:seed": "cross-env APP_ENV=.env.development npx tsx scripts/db/seed/run.ts",
