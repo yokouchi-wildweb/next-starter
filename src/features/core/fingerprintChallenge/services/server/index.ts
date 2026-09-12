@@ -8,12 +8,26 @@ export {
   submitChallenge,
   reviewChallenge,
   cancelChallenge,
+  markChallengeNotified,
   resolveEffectiveStatus,
   type IssueChallengeResult,
   type SubmitChallengeParams,
   type ReviewChallengeParams,
   type CancelChallengeParams,
+  type MarkChallengeNotifiedParams,
 } from "./challengeService";
+export {
+  recordChallengeView,
+  listChallengeAccessEvents,
+  type RecordChallengeViewInput,
+  type ListChallengeAccessEventsParams,
+  type ListChallengeAccessEventsResult,
+} from "./accessLog";
+export {
+  pruneExpiredChallengeAccessEvents,
+  type PruneOptions,
+  type PruneResult,
+} from "./pruning";
 
 import { fingerprintChallengeBase } from "./drizzleBase";
 

@@ -30,10 +30,25 @@ export const FingerprintChallengeUpdateSchema = z.object({
   reviewedAt: z.date().nullable().optional(),
   reviewedBy: z.string().uuid().nullable().optional(),
   reviewNote: z.string().max(4000).nullable().optional(),
+  notifiedAt: z.date().nullable().optional(),
+  notifiedChannels: z.array(z.string().min(1).max(32)).max(16).optional(),
+  // first/last_viewed_at / view_count は accessLog の raw SQL (atomic increment) でのみ更新し、
+  // parseUpdate 経路には載せない
   updatedAt: z.date().optional(),
 });
 
 export type FingerprintChallengeUpdateInput = z.infer<typeof FingerprintChallengeUpdateSchema>;
+
+/** 管理者による通知スタンプ (PATCH action "mark_notified") の入力 */
+export const MarkChallengeNotifiedSchema = z.object({
+  /** 案内に使ったチャネル (例: ["email"]。語彙は downstream 自由)。既存と和集合で保存 */
+  channels: z.array(z.string().min(1).max(32)).min(1).max(16),
+  /** 送信時刻。省略時は now */
+  notifiedAt: z.coerce.date().optional(),
+  note: z.string().max(4000).nullable().optional(),
+});
+
+export type MarkChallengeNotifiedInput = z.infer<typeof MarkChallengeNotifiedSchema>;
 
 /**
  * CRUD ベースの Insert 型パラメータ。create / update 双方で書き込む列の和集合。

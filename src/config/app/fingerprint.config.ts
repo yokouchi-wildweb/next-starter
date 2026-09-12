@@ -52,5 +52,27 @@ export const FINGERPRINT_CONFIG = {
 
     /** behavior (行動計測 payload JSONB) の保存上限バイト数。超過時は null に落とす */
     maxBehaviorBytes: 32768,
+
+    /**
+     * 「ユーザーがチャレンジを開いたか」の計測 (アクセスログ)。
+     * 本人向け取得ルート (GET /api/me/fingerprint-challenges/[token] | /pending) の
+     * 読み取り時に、first/last_viewed_at + view_count の更新と
+     * fingerprint_challenge_access_events (IP + UA のタイムライン) の追記を行う。
+     * デフォルト無効 (オプトイン)。有効化した時点以降のアクセスから蓄積される。
+     * 記録失敗は読み取りを阻害しない (fail-soft)。
+     */
+    accessLog: {
+      enabled: false,
+
+      /**
+       * 同一チャレンジへの連続アクセスをまとめる窓 (秒)。last_viewed_at からこの秒数以内の
+       * 再アクセスは view_count を増やさずイベントも追記しない (リロード連打の抑制)。
+       * 0 で全アクセスを記録。
+       */
+      dedupeSeconds: 60,
+
+      /** fingerprint_challenge_access_events 行の保持期間 (日)。IP を含むため無期限保持にしない */
+      retentionDays: 90,
+    },
   },
 } as const;

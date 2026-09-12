@@ -70,6 +70,17 @@
 - **レスポンス例**: `{ "ok": true, "deletedCount": 1200, "iterations": 2, "truncated": false }`
 - **詳細**: `src/features/core/deviceFingerprint/README.md`
 
+### `fingerprint-challenge-access-prune`
+
+`fingerprint_challenge_access_events` テーブル（本人がチャレンジを開いた日時 + IP + UA）の retention_days を超過した行をバッチ削除する。IP を含むため無期限保持にしない。親行の閲覧カウンタ（first/last_viewed_at / view_count）は集計値として残る。`FINGERPRINT_CONFIG.challenge.accessLog.enabled`（既定 false）を有効化していない環境では対象が存在せず no-op。
+
+- **API**: `GET /api/cron/fingerprint-challenge-access-prune`
+- **CLI**: `pnpm task fingerprint-challenge-access-prune`
+- **推奨スケジュール**: `20 4 * * *` （日次・深夜帯。他の prune 系と時刻を被らせない）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "deletedCount": 300, "iterations": 1, "truncated": false }`
+- **詳細**: `src/features/core/fingerprintChallenge/README.md`
+
 ### `wallet-expire-lots`
 
 有効期限切れウォレットロットの残額を没収（残高減算 + wallet_histories 記録）する。
@@ -119,6 +130,7 @@
     { "path": "/api/cron/audit-log-recover-dead-letter", "schedule": "0 * * * *" },
     { "path": "/api/cron/user-login-event-prune",        "schedule": "0 4 * * *" },
     { "path": "/api/cron/device-fingerprint-prune",      "schedule": "15 4 * * *" },
+    { "path": "/api/cron/fingerprint-challenge-access-prune", "schedule": "20 4 * * *" },
     { "path": "/api/cron/wallet-expire-lots",            "schedule": "30 4 * * *" },
     { "path": "/api/cron/wallet-lots-prune",             "schedule": "45 4 * * *" }
   ]

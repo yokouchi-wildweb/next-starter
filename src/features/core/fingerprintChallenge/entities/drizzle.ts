@@ -3,6 +3,8 @@
 import {
   foreignKey,
   index,
+  inet,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -36,6 +38,10 @@ export const FingerprintChallengeStatusEnum = pgEnum("fingerprint_challenge_stat
  *   token_hash は hiddenColumns でサービス境界から一切出さない。
  * - 監査は wrapper が意味づけした action (fingerprint.challenge.issued 等) で
  *   手動記録する (CRUD 自動監査は使わない)。
+ * - エンゲージメント計測 (通知 → 初回閲覧 → N 回閲覧 → 最終閲覧 → 提出) を 1 行で
+ *   追えるよう notified_at / first_viewed_at / last_viewed_at / view_count を持つ。
+ *   閲覧系は FINGERPRINT_CONFIG.challenge.accessLog.enabled (既定 false) の時だけ更新される。
+ *   per-access の IP + UA は FingerprintChallengeAccessEventTable (retention 付き)。
  */
 export const FingerprintChallengeTable = pgTable(
   "fingerprint_challenges",
@@ -61,6 +67,16 @@ export const FingerprintChallengeTable = pgTable(
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     reviewedBy: uuid("reviewed_by"),
     reviewNote: text("review_note"),
+    /** 管理者が案内を送った時刻 (初回のみ記録。再通知は audit_logs fingerprint.challenge.notified に残る) */
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    /** 案内に使ったチャネルの和集合 (例: ["email","in_app"]。語彙は downstream 自由) */
+    notifiedChannels: text("notified_channels").array().default([]).notNull(),
+    /** ユーザーが本人向け取得ルートで初めて開いた時刻 (accessLog 有効時のみ) */
+    firstViewedAt: timestamp("first_viewed_at", { withTimezone: true }),
+    /** 同・最後に開いた時刻 (dedupe 窓内の連続アクセスは更新しない) */
+    lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }),
+    /** 同・閲覧回数 (dedupe 済み)。pending の間だけ増える */
+    viewCount: integer("view_count").default(0).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -92,3 +108,49 @@ export const FingerprintChallengeTable = pgTable(
 // 生トークンの照合はサービス内部の専用経路のみで行い、token_hash は
 // HTTP レスポンスを含む全サービス返却で null 化する (fail-closed)
 defineHiddenColumns(FingerprintChallengeTable, ["tokenHash"]);
+
+/**
+ * チャレンジを本人向け取得ルートで開いた 1 回ごとのアクセス記録 (IP + UA のタイムライン)。
+ *
+ * 用途: 「提出前にどのネットワークから何度開いたか」の証拠。ログイン履歴 (userLoginEvent)
+ * と異なるネットワークからの閲覧、bot 的な UA、未提出のまま多数回閲覧、等の材料になる。
+ *
+ * 設計ポイント:
+ * - FINGERPRINT_CONFIG.challenge.accessLog.enabled が true の時だけ追記される (既定 false)。
+ * - dedupeSeconds 窓内の連続アクセスは 1 件にまとめる (親行の last_viewed_at で判定)。
+ * - IP を含むため行単位 retention_days + 日次 cron prune (userLoginEvent と同じ運用)。
+ * - 集計用の親行カウンタ (view_count 等) は fingerprint_challenges 側。本テーブルは詳細。
+ * - FK 名は 63 文字制限のため明示短縮名。
+ */
+export const FingerprintChallengeAccessEventTable = pgTable(
+  "fingerprint_challenge_access_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    challengeId: uuid("challenge_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    /** クライアント IP (取得できなかった場合は null。回数計測は IP 無しでも行う) */
+    ip: inet("ip"),
+    userAgent: text("user_agent"),
+    accessedAt: timestamp("accessed_at", { withTimezone: true }).defaultNow().notNull(),
+    retentionDays: integer("retention_days").notNull(),
+  },
+  (table) => ({
+    // チャレンジ別タイムライン (admin 詳細)
+    challengeIdx: index("fp_challenge_access_events_challenge_idx").on(
+      table.challengeId,
+      table.accessedAt,
+    ),
+    // retention pruning 用 (accessed_at + retention_days * INTERVAL で算出)
+    accessedAtIdx: index("fp_challenge_access_events_accessed_at_idx").on(table.accessedAt),
+    challengeFk: foreignKey({
+      columns: [table.challengeId],
+      foreignColumns: [FingerprintChallengeTable.id],
+      name: "fp_challenge_access_events_challenge_fk",
+    }).onDelete("cascade"),
+    userFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [UserTable.id],
+      name: "fp_challenge_access_events_user_fk",
+    }).onDelete("cascade"),
+  }),
+);

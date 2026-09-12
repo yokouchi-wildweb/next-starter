@@ -22,6 +22,7 @@ export const FINGERPRINT_CONFIG = {
     answerableStatuses: ["active", "suspended"], // 本人向けルートを通すユーザーステータス
     defaultExpiresInDays: 7,
     maxBehaviorBytes: 32768,
+    accessLog: { enabled: false, dedupeSeconds: 60, retentionDays: 90 }, // 閲覧計測（独立ゲート）
   },
 };
 ```
@@ -70,7 +71,8 @@ export const FINGERPRINT_CONFIG = {
 | 経路 | メソッド | 用途 |
 |---|---|---|
 | `/api/admin/fingerprint-challenges` | POST | 発行 → `{ challenge, token }` |
-| `/api/admin/fingerprint-challenges/[id]` | PATCH | `{action:"review"\|"cancel", note?}` |
+| `/api/admin/fingerprint-challenges/[id]` | PATCH | `{action:"review"\|"cancel", note?}` / `{action:"mark_notified", channels, notifiedAt?, note?}` |
+| `/api/admin/fingerprint-challenges/[id]/access-events` | GET | 閲覧イベント（日時 + IP + UA）新しい順 `?page&limit` → `{results,total,page,limit}` |
 | `/api/me/fingerprint-challenges/[token]` | GET | 本人向け取得（トークン経路） |
 | `/api/me/fingerprint-challenges/[token]/submit` | POST | 回答提出（トークン経路） |
 | `/api/me/fingerprint-challenges/pending` | GET | 本人の未回答・期限内の最新 → `{ challenge \| null }` |
@@ -87,6 +89,51 @@ hooks / client:
 - `useMyPendingFingerprintChallenge()` — 本人スコープ経路の取得（`data` は無ければ `null`）
 - `useSubmitFingerprintChallenge().submit(target, answers, behavior?)` —
   `target` は `{ token }` | `{ id }`（文字列を渡すと token 扱い）
+- admin: `useFingerprintChallengeAccessEvents(challengeId, {page,limit})` /
+  `markChallengeNotified(id, {channels})`（`services/client/adminChallengeClient.ts`）
+
+---
+
+## エンゲージメント計測（通知 → 閲覧 → 提出のタイムライン）
+
+管理者が「案内は届いたか・開いたか・何度開いたか・いつ提出したか」で追撃（リマインド・
+期限延長・エスカレーション）を判断できるよう、**1 行で追えるタイムライン**を持つ。
+
+| 列 | 書き手 | 意味 |
+|---|---|---|
+| `notified_at` / `notified_channels` | admin（`mark_notified`） | 案内を送った時刻（**初回のみ**）とチャネルの和集合。再通知は監査ログ `fingerprint.challenge.notified` に毎回残る |
+| `first_viewed_at` / `last_viewed_at` / `view_count` | 本人向け取得ルート（自動） | 本人が開いた初回 / 最終 / 回数。**`accessLog.enabled` の時だけ**更新される |
+| `submitted_at` | 本人（提出） | 従来どおり |
+
+閲覧計測（`accessLog`）の仕様:
+
+- 計装点は `getChallengeForUser`（トークン経路）と `getPendingChallengeForUser`（本人スコープ経路）。
+  IP / UA は routeFactory が ALS に注入した監査コンテキストから取る（route の配線不要）。
+- 1 UPDATE（`WHERE ... AND status='pending' AND (last_viewed_at IS NULL OR last_viewed_at < now - dedupeSeconds)`）
+  + 更新できた時だけ 1 INSERT。追加 SELECT なし。**`pending` の間だけ**カウントし、提出後・取り下げ後の
+  再閲覧は数えない（「未提出のまま N 回開いた」の語義を守るため）。
+- **fail-soft**: 記録失敗は `console.error` のみで読み取りは通す。per-view の audit_logs は書かない（量）。
+- `fingerprint_challenge_access_events`（IP + UA の詳細行）は `retentionDays` + 日次 cron
+  `fingerprint-challenge-access-prune` で削除。親行のカウンタは残る。
+- **本人向け DTO（`FingerprintChallengeForUser`）には閲覧カウンタも IP も出さない**（計測の存在を見せない）。
+- 信号はクライアント由来（IP はプロキシ次第、UA は自己申告）なので **参考証拠**。ログイン履歴
+  （userLoginEvent）と突き合わせ、「アカウントのログイン IP と別ネットワークから開いた」等の材料にする。
+
+admin 側の運用例:
+
+```ts
+// 発行直後にメールを送ったらスタンプ（notified_at はこの 1 回目が残る）
+await markChallengeNotified(challenge.id, { channels: ["email"] });
+// リマインド送信（notified_at は変わらず、channels は和集合、監査ログに毎回残る）
+await markChallengeNotified(challenge.id, { channels: ["email"], note: "リマインド 1 回目" });
+
+// 詳細画面: 閲覧タイムライン
+const { data } = useFingerprintChallengeAccessEvents(challenge.id, { page: 1, limit: 50 });
+// data.results: [{ accessedAt, ip, userAgent, ... }] 新しい順
+```
+
+一覧列の「開封状況」は汎用 `/api/fingerprint-challenge` search の行にそのまま
+`firstViewedAt / lastViewedAt / viewCount / notifiedAt` が載るので追加 API は不要。
 
 ---
 
@@ -216,9 +263,14 @@ export function PendingChallengeForm() {
 `fingerprint_challenges`（Neon）: `token_hash`(hiddenColumns) / `status`(enum) /
 `prompt`(jsonb 自由形式) / `answers`(jsonb) / `behavior`(jsonb) /
 `fingerprint_id`(FK→device_fingerprints) / `issued_by` / `expires_at` /
-`submitted_at` / `reviewed_by` / `review_note`。
+`submitted_at` / `reviewed_by` / `review_note` /
+`notified_at` / `notified_channels`(text[]) / `first_viewed_at` / `last_viewed_at` / `view_count`。
 
-FK 名は 63 文字制限のため明示短縮名（`fp_challenges_*_fk`）を付与済み。
+`fingerprint_challenge_access_events`: `challenge_id`(FK cascade) / `user_id`(FK cascade) /
+`ip`(inet, null 可) / `user_agent` / `accessed_at` / `retention_days`。
+index: `(challenge_id, accessed_at)` タイムライン、`accessed_at` prune 用。
+
+FK 名は 63 文字制限のため明示短縮名（`fp_challenges_*_fk` / `fp_challenge_access_events_*_fk`）を付与済み。
 
 ## 関連
 

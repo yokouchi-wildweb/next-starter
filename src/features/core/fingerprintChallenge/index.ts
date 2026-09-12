@@ -9,8 +9,10 @@
 export type {
   FingerprintChallenge,
   FingerprintChallengeForUser,
+  FingerprintChallengeAccessEvent,
   IssueChallengeInput,
   SubmitChallengeInput,
+  MarkChallengeNotifiedInput,
 } from "./entities";
 export {
   FINGERPRINT_CHALLENGE_STATUSES,

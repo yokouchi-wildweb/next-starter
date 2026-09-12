@@ -21,12 +21,14 @@ import { FingerprintChallengeTable } from "@/features/core/fingerprintChallenge/
 import {
   SubmitChallengeSchema,
   type IssueChallengeInput,
+  type MarkChallengeNotifiedInput,
 } from "@/features/core/fingerprintChallenge/entities/schema";
 import type {
   FingerprintChallenge,
   FingerprintChallengeForUser,
 } from "@/features/core/fingerprintChallenge/entities/model";
 import type { EffectiveChallengeStatus } from "@/features/core/fingerprintChallenge/constants";
+import { recordChallengeView } from "./accessLog";
 import { fingerprintChallengeBase } from "./drizzleBase";
 
 /** prompt (質問定義 JSONB) の保存上限バイト数 */
@@ -125,6 +127,7 @@ async function findByToken(token: string) {
  * 回答者本人向けのチャレンジ取得。
  * トークン一致 + セッションユーザー一致の二重検証。他人のトークンや存在しない
  * トークンは区別せず 404 (トークンの存在を漏らさない)。
+ * accessLog 有効時は閲覧を記録する (fail-soft、DTO には反映しない)。
  */
 export async function getChallengeForUser(
   token: string,
@@ -134,6 +137,7 @@ export async function getChallengeForUser(
   if (!row || row.userId !== userId) {
     throw new DomainError("チャレンジが見つかりません", { status: 404 });
   }
+  await recordChallengeView({ challengeId: row.id, userId });
   return toUserFacing(row as unknown as FingerprintChallenge);
 }
 
@@ -142,6 +146,7 @@ export async function getChallengeForUser(
  * トークンを持たない本人向け経路 (メールを紛失した場合や /restricted 等の着地ページ CTA)。
  * user_id でのみ絞るため他人のチャレンジは決して返らない。
  * 期限切れ pending は resolveEffectiveStatus と同じ基準 (expires_at > now) で除外する。
+ * accessLog 有効時は閲覧を記録する (fail-soft、DTO には反映しない)。
  */
 export async function getPendingChallengeForUser(
   userId: string,
@@ -160,6 +165,7 @@ export async function getPendingChallengeForUser(
     .limit(1);
   const row = rows[0] ?? null;
   if (!row) return null;
+  await recordChallengeView({ challengeId: row.id, userId });
   return toUserFacing(row as unknown as FingerprintChallenge);
 }
 
@@ -309,6 +315,59 @@ export async function reviewChallenge(
       action: "fingerprint.challenge.reviewed",
       before: { status: row.status },
       after: { status: "reviewed" },
+      reason: params.note ?? null,
+      tx,
+    });
+
+    return updated;
+  });
+}
+
+export type MarkChallengeNotifiedParams = MarkChallengeNotifiedInput & {
+  challengeId: string;
+  notifiedBy: string;
+};
+
+/**
+ * 管理者が本人へ案内を送ったことをスタンプする (admin 専用ルートから呼ばれる)。
+ * - notified_at は初回のみ設定 (first_viewed_at と同じ「初回」語義でタイムラインを揃える)。
+ *   再通知 (リマインド) の履歴は監査ログ fingerprint.challenge.notified に毎回残る。
+ * - notified_channels は既存との和集合。
+ * - 状態は問わない (提出後にレビュー結果を通知する用途も許容)。
+ */
+export async function markChallengeNotified(
+  params: MarkChallengeNotifiedParams,
+): Promise<FingerprintChallenge> {
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .select()
+      .from(FingerprintChallengeTable)
+      .where(eq(FingerprintChallengeTable.id, params.challengeId))
+      .for("update")
+      .limit(1);
+    const row = rows[0] ?? null;
+    if (!row) throw new DomainError("チャレンジが見つかりません", { status: 404 });
+
+    const notifiedAt = params.notifiedAt ?? new Date();
+    const channels = Array.from(new Set([...row.notifiedChannels, ...params.channels]));
+
+    const updated = (await fingerprintChallengeBase.update(
+      row.id,
+      {
+        notifiedAt: row.notifiedAt ?? notifiedAt,
+        notifiedChannels: channels,
+        updatedAt: new Date(),
+      },
+      tx,
+    )) as unknown as FingerprintChallenge;
+
+    await auditLogger.record({
+      targetType: "fingerprintChallenge",
+      targetId: row.id,
+      subjectUserId: row.userId,
+      action: "fingerprint.challenge.notified",
+      after: { channels: params.channels, notifiedAt: notifiedAt.toISOString() },
+      metadata: { notifiedBy: params.notifiedBy, isFirst: row.notifiedAt === null },
       reason: params.note ?? null,
       tx,
     });
