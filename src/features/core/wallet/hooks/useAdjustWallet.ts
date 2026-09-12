@@ -2,10 +2,7 @@
 
 "use client";
 
-import { useSWRConfig } from "swr";
-import useSWRMutation from "swr/mutation";
-
-import type { HttpError } from "@/lib/errors";
+import { useDomainMutation } from "@/lib/crud/hooks";
 import { walletClient } from "../services/client/walletClient";
 import type {
   WalletAdjustmentResult,
@@ -18,24 +15,19 @@ type AdjustWalletArgs = {
 };
 
 type UseAdjustWalletOptions = {
+  /** 成功時に再検証するキー（完全一致の文字列キー + 同プレフィックスの配列キー） */
   revalidateKeys?: string | string[];
 };
 
+/**
+ * ウォレット残高を調整するフック（管理者操作）
+ * 並列 trigger 安全（lib/crud/hooks/internal/useDomainMutation に準拠）
+ */
 export const useAdjustWallet = (options?: UseAdjustWalletOptions) => {
-  const { mutate } = useSWRConfig();
-
-  const mutation = useSWRMutation<WalletAdjustmentResult, HttpError, "wallet-adjust", AdjustWalletArgs>(
+  const mutation = useDomainMutation<WalletAdjustmentResult, AdjustWalletArgs>(
     "wallet-adjust",
-    (_key, { arg }) => walletClient.adjustBalance(arg.userId, arg.payload),
-    {
-      onSuccess: async () => {
-        if (!options?.revalidateKeys) return;
-        const keys = Array.isArray(options.revalidateKeys)
-          ? options.revalidateKeys
-          : [options.revalidateKeys];
-        await Promise.all(keys.filter(Boolean).map((key) => mutate(key)));
-      },
-    },
+    (args) => walletClient.adjustBalance(args.userId, args.payload),
+    options?.revalidateKeys,
   );
 
   return {
@@ -43,6 +35,6 @@ export const useAdjustWallet = (options?: UseAdjustWalletOptions) => {
     error: mutation.error,
     isLoading: mutation.isMutating,
     isMutating: mutation.isMutating,
-    trigger: (args: AdjustWalletArgs) => mutation.trigger(args),
+    trigger: mutation.trigger,
   };
 };

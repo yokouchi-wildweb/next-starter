@@ -2,32 +2,24 @@
 
 "use client";
 
-import { useSWRConfig } from "swr";
-import useSWRMutation from "swr/mutation";
-
-import type { HttpError } from "@/lib/errors";
+import { useDomainMutation } from "@/lib/crud/hooks";
 import { walletClient, type BulkAdjustByTypePayload } from "../services/client/walletClient";
 import type { BulkAdjustByTypeResult } from "@/features/core/wallet/services/types";
 
 type UseBulkAdjustWalletOptions = {
+  /** 成功時に再検証するキー（完全一致の文字列キー + 同プレフィックスの配列キー） */
   revalidateKeys?: string | string[];
 };
 
+/**
+ * ウォレット種別ごとの一括残高調整フック（管理者操作）
+ * 並列 trigger 安全（lib/crud/hooks/internal/useDomainMutation に準拠）
+ */
 export const useBulkAdjustWallet = (options?: UseBulkAdjustWalletOptions) => {
-  const { mutate } = useSWRConfig();
-
-  const mutation = useSWRMutation<BulkAdjustByTypeResult, HttpError, "wallet-bulk-adjust", BulkAdjustByTypePayload>(
+  const mutation = useDomainMutation<BulkAdjustByTypeResult, BulkAdjustByTypePayload>(
     "wallet-bulk-adjust",
-    (_key, { arg }) => walletClient.bulkAdjustByType(arg),
-    {
-      onSuccess: async () => {
-        if (!options?.revalidateKeys) return;
-        const keys = Array.isArray(options.revalidateKeys)
-          ? options.revalidateKeys
-          : [options.revalidateKeys];
-        await Promise.all(keys.filter(Boolean).map((key) => mutate(key)));
-      },
-    },
+    (payload) => walletClient.bulkAdjustByType(payload),
+    options?.revalidateKeys,
   );
 
   return {
@@ -35,6 +27,6 @@ export const useBulkAdjustWallet = (options?: UseBulkAdjustWalletOptions) => {
     error: mutation.error,
     isLoading: mutation.isMutating,
     isMutating: mutation.isMutating,
-    trigger: (payload: BulkAdjustByTypePayload) => mutation.trigger(payload),
+    trigger: mutation.trigger,
   };
 };

@@ -1,36 +1,32 @@
 "use client";
 
-import { useSWRConfig } from "swr";
-import useSWRMutation from "swr/mutation";
+import { useCallback } from "react";
 import type { BulkUpdateRecord, BulkUpdateResult } from "../types";
-import type { HttpError } from "@/lib/errors";
-import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
+import { useDomainMutation } from "./internal/useDomainMutation";
 
 /**
  * 複数レコードを一括で更新するフック
+ * 並列 trigger 安全（各 trigger は自分の結果で resolve/reject する。詳細: internal/concurrentMutation.ts）
  */
 export function useBulkUpdateDomain<T, U = Partial<T>>(
   key: string,
   bulkUpdateFn: (records: BulkUpdateRecord<U>[]) => Promise<BulkUpdateResult<T>>,
   revalidateKey?: string | string[],
 ) {
-  const { mutate } = useSWRConfig();
-
-  const mutation = useSWRMutation<BulkUpdateResult<T>, HttpError, string, BulkUpdateRecord<U>[]>(
+  const mutation = useDomainMutation<BulkUpdateResult<T>, BulkUpdateRecord<U>[]>(
     key,
-    (_key, { arg }) => bulkUpdateFn(arg),
-    {
-      onSuccess: async () => {
-        if (revalidateKey) {
-          await revalidateRelatedCaches(mutate, revalidateKey);
-        }
-      },
-    },
+    (records) => bulkUpdateFn(records),
+    revalidateKey,
+  );
+  const { trigger: run } = mutation;
+
+  const trigger = useCallback(
+    (records: BulkUpdateRecord<U>[]) => run(records),
+    [run],
   );
 
   return {
-    trigger: (records: BulkUpdateRecord<U>[]) =>
-      (mutation.trigger as (arg: BulkUpdateRecord<U>[]) => Promise<BulkUpdateResult<T>>)(records),
+    trigger,
     isMutating: mutation.isMutating,
     isLoading: mutation.isMutating,
     error: mutation.error,

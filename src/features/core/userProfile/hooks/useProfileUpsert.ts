@@ -1,37 +1,22 @@
 "use client";
 
-import { useSWRConfig } from "swr";
-import useSWRMutation from "swr/mutation";
-import type { HttpError } from "@/lib/errors";
-import { revalidateRelatedCaches } from "@/lib/crud/hooks/revalidateRelatedCaches";
+import { useDomainMutation } from "@/lib/crud/hooks";
 import { profileClient } from "../services/client/profileClient";
 
 /**
  * プロフィールをupsertするフック
+ * 並列 trigger 安全（lib/crud/hooks/internal/useDomainMutation に準拠）
  * @param role - ロールID（例: "contributor"）
  */
 export const useProfileUpsert = (role: string) => {
-  const { mutate } = useSWRConfig();
-  const revalidateKey = `profile:${role}/search`;
-
-  const mutation = useSWRMutation<
-    Record<string, unknown>,
-    HttpError,
-    string,
-    Record<string, unknown>
-  >(
+  const mutation = useDomainMutation<Record<string, unknown>, Record<string, unknown>>(
     `profile:${role}/upsert`,
-    (_key, { arg }) => profileClient.upsert(role, arg),
-    {
-      onSuccess: async () => {
-        await revalidateRelatedCaches(mutate, revalidateKey);
-      },
-    },
+    (data) => profileClient.upsert(role, data),
+    `profile:${role}/search`,
   );
 
   return {
-    trigger: (data: Record<string, unknown>) =>
-      (mutation.trigger as (arg: Record<string, unknown>) => Promise<Record<string, unknown>>)(data),
+    trigger: mutation.trigger,
     isMutating: mutation.isMutating,
     isLoading: mutation.isMutating,
     error: mutation.error,

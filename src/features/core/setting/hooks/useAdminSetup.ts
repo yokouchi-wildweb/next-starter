@@ -2,22 +2,24 @@
 
 "use client";
 
-import useSWRMutation from "swr/mutation";
-
 import type { User } from "@/features/core/user/entities";
-import type { HttpError } from "@/lib/errors";
+import { useDomainMutation } from "@/lib/crud/hooks";
 
 import { adminSetupClient } from "../services/client/adminSetupClient";
 import type { AdminSetupInput } from "../services/types";
 
+/**
+ * 管理者初期セットアップを実行するフック
+ * 並列 trigger 安全（lib/crud/hooks/internal/useDomainMutation に準拠）
+ */
 export const useAdminSetup = () => {
-  const mutation = useSWRMutation<User, HttpError, string, AdminSetupInput>(
+  const mutation = useDomainMutation<User, AdminSetupInput>(
     "setting/setup",
-    (_key, { arg }) => adminSetupClient.initialize(arg),
+    (input) => adminSetupClient.initialize(input),
   );
 
   return {
-    trigger: mutation.trigger as (arg: AdminSetupInput) => Promise<User>,
+    trigger: mutation.trigger,
     isMutating: mutation.isMutating,
     error: mutation.error,
   };

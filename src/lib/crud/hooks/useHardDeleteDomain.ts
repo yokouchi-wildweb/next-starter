@@ -1,34 +1,24 @@
 "use client";
 
-import { useSWRConfig } from "swr";
-import useSWRMutation from "swr/mutation";
-import type { HttpError } from "@/lib/errors";
-import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
+import { useCallback } from "react";
+import { useDomainMutation } from "./internal/useDomainMutation";
 
 /**
  * ドメインデータを完全削除（物理削除）するためのフック
+ * 並列 trigger 安全（各 trigger は自分の結果で resolve/reject する。詳細: internal/concurrentMutation.ts）
  */
 export function useHardDeleteDomain(
   key: string,
   hardDeleteFn: (id: string) => Promise<void>,
   revalidateKey?: string | string[],
 ) {
-  const { mutate } = useSWRConfig();
+  const mutation = useDomainMutation<void, string>(key, (id) => hardDeleteFn(id), revalidateKey);
+  const { trigger: run } = mutation;
 
-  const mutation = useSWRMutation<void, HttpError, string, string>(
-    key,
-    (_key, { arg }) => hardDeleteFn(arg),
-    {
-      onSuccess: async () => {
-        if (revalidateKey) {
-          await revalidateRelatedCaches(mutate, revalidateKey);
-        }
-      },
-    },
-  );
+  const trigger = useCallback((id: string) => run(id), [run]);
 
   return {
-    trigger: (id: string) => (mutation.trigger as (id: string) => Promise<void>)(id),
+    trigger,
     isMutating: mutation.isMutating,
     isLoading: mutation.isMutating,
     error: mutation.error,

@@ -14,6 +14,7 @@ src/lib/crud/
 ├── client/                   # クライアント層（createApiClient, イベント）
 ├── components/               # CRUD 用 UI ボタン群
 ├── hooks/                    # 汎用フック（dc:generate で各ドメインに展開）
+│   └── internal/             # mutation 共通実装（useDomainMutation / concurrentMutation + テスト）
 ├── presenters/               # カラムメタデータ・フォーマッタ
 ├── storageIntegration/       # ストレージ連携（ファイル削除・複製）
 ├── utils/                    # パス・スキーマユーティリティ
@@ -283,6 +284,27 @@ const inserted = await service.replaceByQuery(
 | `truncateAll()` | TRUNCATE CASCADE（中間テーブル含む） |
 | `getTruncateAffectedTables()` | 影響テーブル名のみ取得 |
 | `getTableName()` | テーブル名を返す |
+
+---
+
+## 汎用フック（hooks/）の mutation 契約
+
+`useCreateDomain` / `useUpdateDomain` / `useDeleteDomain` / `useUpsertDomain` / `useBulk*Domain` / `useDuplicateDomain` / `useRestoreDomain` / `useHardDeleteDomain` / `useReorderDomain` / `useReplaceByQueryDomain` は全て `hooks/internal/useDomainMutation.ts` の薄いラッパー。戻り値は `{ trigger, isMutating, isLoading, error }`（bulkUpdate 系は `data` も）。
+
+**同一インスタンスでの並列 trigger は安全**（`Promise.all(rows.map((r) => update.trigger(...)))` のような一括保存を想定）:
+
+- 失敗した trigger は必ずその error で reject する（並列数に依存しない）
+- 成功した trigger は必ず結果 T で resolve する（undefined は返さない）
+- `isMutating` は 1 件でも in-flight がある間 true、全件 settle で false
+- `error` / `data` は「直近に settle した trigger の結果」（逐次利用なら useSWRMutation と同じ）
+- 成功した trigger ごとに `revalidateRelatedCaches(revalidateKey)` を await してから resolve する。再検証自体の失敗は書き込み成功を reject に変えない（握って `console.error`）
+- `mutate(key, promise, { populateCache: false, throwOnError: true })` 経由なので、完了後の `key` 自身の再検証と SWR の mutation ウィンドウ（競合する revalidate の破棄）は従来どおり
+
+**useSWRMutation を使わない理由**: swr/mutation は「最後に開始した trigger」以外の結果を捨てる（`ditchMutationsUntilRef`）。並列時に先行分が成功でも失敗でも state 更新・onSuccess・throw を行わず undefined で resolve するため、一括保存の途中失敗が「全件成功」に見える無言のデータ欠損を起こす（tier3 本番で発生）。
+
+**テスト**: `pnpm test:crud-hooks`（node:test + Node 組み込みの TypeScript type stripping、追加依存なし）。React 非依存の中核 `concurrentMutation.ts` を検証する。
+
+**独自 mutation フックの作り方**: `useDomainMutation(key, fn, revalidateKey?)` を `@/lib/crud/hooks` から import して包む（core の useChangeUserRole / useAdjustWallet / useProfileUpsert / useAdminSetup 等が実例）。`useSWRMutation` の直接利用は禁止（同じ握りつぶしを再発させる）。
 
 ---
 

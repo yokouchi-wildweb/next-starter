@@ -1,10 +1,8 @@
 "use client";
 
-import { useSWRConfig } from "swr";
-import useSWRMutation from "swr/mutation";
-import type { HttpError } from "@/lib/errors";
+import { useCallback } from "react";
 import type { DuplicateOptions } from "../types";
-import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
+import { useDomainMutation } from "./internal/useDomainMutation";
 
 type DuplicateArg = {
   id: string;
@@ -13,30 +11,27 @@ type DuplicateArg = {
 
 /**
  * ドメインデータを複製するためのフック
+ * 並列 trigger 安全（各 trigger は自分の結果で resolve/reject する。詳細: internal/concurrentMutation.ts）
  */
 export function useDuplicateDomain<T>(
   key: string,
   duplicateFn: (id: string, options?: DuplicateOptions) => Promise<T>,
   revalidateKey?: string | string[],
 ) {
-  const { mutate } = useSWRConfig();
-
-  const mutation = useSWRMutation<T, HttpError, string, DuplicateArg>(
+  const mutation = useDomainMutation<T, DuplicateArg>(
     key,
-    (_key, { arg }) => {
-      return duplicateFn(arg.id, arg.options);
-    },
-    {
-      onSuccess: async () => {
-        if (revalidateKey) {
-          await revalidateRelatedCaches(mutate, revalidateKey);
-        }
-      },
-    },
+    (arg) => duplicateFn(arg.id, arg.options),
+    revalidateKey,
+  );
+  const { trigger: run } = mutation;
+
+  const trigger = useCallback(
+    (id: string, options?: DuplicateOptions) => run({ id, options }),
+    [run],
   );
 
   return {
-    trigger: (id: string, options?: DuplicateOptions) => mutation.trigger({ id, options }),
+    trigger,
     isMutating: mutation.isMutating,
     isLoading: mutation.isMutating,
     error: mutation.error,

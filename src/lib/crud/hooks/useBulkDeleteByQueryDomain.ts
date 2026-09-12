@@ -1,36 +1,29 @@
 "use client";
 
-import { useSWRConfig } from "swr";
-import useSWRMutation from "swr/mutation";
-import type { HttpError } from "@/lib/errors";
-import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
+import { useCallback } from "react";
 import type { WhereExpr } from "@/lib/crud/types";
+import { useDomainMutation } from "./internal/useDomainMutation";
 
 /**
  * where 条件での複数削除用フック
+ * 並列 trigger 安全（各 trigger は自分の結果で resolve/reject する。詳細: internal/concurrentMutation.ts）
  */
 export function useBulkDeleteByQueryDomain(
   key: string,
   bulkDeleteByQueryFn: (where: WhereExpr) => Promise<void>,
   revalidateKey?: string | string[],
 ) {
-  const { mutate } = useSWRConfig();
-
-  const mutation = useSWRMutation<void, HttpError, string, WhereExpr>(
+  const mutation = useDomainMutation<void, WhereExpr>(
     key,
-    (_key, { arg }) => bulkDeleteByQueryFn(arg),
-    {
-      onSuccess: async () => {
-        if (revalidateKey) {
-          await revalidateRelatedCaches(mutate, revalidateKey);
-        }
-      },
-    },
+    (where) => bulkDeleteByQueryFn(where),
+    revalidateKey,
   );
+  const { trigger: run } = mutation;
+
+  const trigger = useCallback((where: WhereExpr) => run(where), [run]);
 
   return {
-    trigger: (where: WhereExpr) =>
-      (mutation.trigger as (where: WhereExpr) => Promise<void>)(where),
+    trigger,
     isMutating: mutation.isMutating,
     isLoading: mutation.isMutating,
     error: mutation.error,

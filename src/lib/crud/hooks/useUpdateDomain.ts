@@ -1,36 +1,30 @@
 "use client";
 
-import { useSWRConfig } from "swr";
-import useSWRMutation from "swr/mutation";
-import type { HttpError } from "@/lib/errors";
-import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
+import { useCallback } from "react";
+import { useDomainMutation } from "./internal/useDomainMutation";
 
 /**
  * ドメインデータを更新するためのフック
+ * 並列 trigger 安全（各 trigger は自分の結果で resolve/reject する。詳細: internal/concurrentMutation.ts）
  */
 export function useUpdateDomain<T, U = Partial<T>>(
   key: string,
   updateFn: (id: string, data: U) => Promise<T>,
   revalidateKey?: string | string[],
 ) {
-  const { mutate } = useSWRConfig();
-
   type Arg = { id: string; data: U };
 
-  const mutation = useSWRMutation<T, HttpError, string, Arg>(
+  const mutation = useDomainMutation<T, Arg>(
     key,
-    (_key, { arg }) => updateFn(arg.id, arg.data),
-    {
-      onSuccess: async () => {
-        if (revalidateKey) {
-          await revalidateRelatedCaches(mutate, revalidateKey);
-        }
-      },
-    },
+    (arg) => updateFn(arg.id, arg.data),
+    revalidateKey,
   );
+  const { trigger: run } = mutation;
+
+  const trigger = useCallback((arg: Arg) => run(arg), [run]);
 
   return {
-    trigger: (arg: Arg) => (mutation.trigger as (arg: Arg) => Promise<T>)(arg),
+    trigger,
     isMutating: mutation.isMutating,
     isLoading: mutation.isMutating,
     error: mutation.error,

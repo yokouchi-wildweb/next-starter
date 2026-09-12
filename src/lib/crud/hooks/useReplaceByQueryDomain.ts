@@ -1,13 +1,12 @@
 "use client";
 
-import { useSWRConfig } from "swr";
-import useSWRMutation from "swr/mutation";
+import { useCallback } from "react";
 import type { ReplaceByQueryOptions, WhereExpr } from "../types";
-import type { HttpError } from "@/lib/errors";
-import { revalidateRelatedCaches } from "./revalidateRelatedCaches";
+import { useDomainMutation } from "./internal/useDomainMutation";
 
 /**
  * where 一致行を records で丸ごと置き換えるフック（単一トランザクション・Drizzle のみ）
+ * 並列 trigger 安全（各 trigger は自分の結果で resolve/reject する。詳細: internal/concurrentMutation.ts）
  */
 type ReplaceByQueryArg<A> = {
   where: WhereExpr;
@@ -24,27 +23,21 @@ export function useReplaceByQueryDomain<T, A = Partial<T>>(
   ) => Promise<T[]>,
   revalidateKey?: string | string[],
 ) {
-  const { mutate } = useSWRConfig();
-
-  const mutation = useSWRMutation<T[], HttpError, string, ReplaceByQueryArg<A>>(
+  const mutation = useDomainMutation<T[], ReplaceByQueryArg<A>>(
     key,
-    (_key, { arg }) => replaceByQueryFn(arg.where, arg.records, arg.options),
-    {
-      onSuccess: async () => {
-        if (revalidateKey) {
-          await revalidateRelatedCaches(mutate, revalidateKey);
-        }
-      },
-    },
+    (arg) => replaceByQueryFn(arg.where, arg.records, arg.options),
+    revalidateKey,
+  );
+  const { trigger: run } = mutation;
+
+  const trigger = useCallback(
+    (where: WhereExpr, records: A[], options?: ReplaceByQueryOptions) =>
+      run({ where, records, options }),
+    [run],
   );
 
   return {
-    trigger: (where: WhereExpr, records: A[], options?: ReplaceByQueryOptions) =>
-      (mutation.trigger as (arg: ReplaceByQueryArg<A>) => Promise<T[]>)({
-        where,
-        records,
-        options,
-      }),
+    trigger,
     isMutating: mutation.isMutating,
     isLoading: mutation.isMutating,
     error: mutation.error,
