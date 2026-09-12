@@ -17,9 +17,24 @@ false**。`deviceFingerprint` の `collection.enabled` とは **独立**（責�
 
 ```ts
 export const FINGERPRINT_CONFIG = {
-  challenge: { enabled: false, defaultExpiresInDays: 7, maxBehaviorBytes: 32768 },
+  challenge: {
+    enabled: false,
+    answerableStatuses: ["active", "suspended"], // 本人向けルートを通すユーザーステータス
+    defaultExpiresInDays: 7,
+    maxBehaviorBytes: 32768,
+  },
 };
 ```
+
+### 利用制限中のユーザーも回答できる（answerableStatuses）
+
+チャレンジの主対象は **処分保留（`suspended`）** のユーザー。通常の `/api/me/**` は
+`active` のみ通すが、本人向けチャレンジルートは `createMeRoute` の `allowStatuses` に
+`challenge.answerableStatuses`（既定 `["active","suspended"]`）を渡して通している。
+`banned` / `security_locked` / `withdrawn` は列挙しない限り 403（fail-closed）。
+
+回答ページ側も同じ語彙で開ける: `authGuard({ allowStatuses: ["active", "suspended"] })` を
+持つレイアウト配下に置く（`(user)/(protected)` は active 限定なので、その外に出す）。
 
 ---
 
@@ -39,9 +54,14 @@ export const FINGERPRINT_CONFIG = {
   読み取り時に `"expired"` として導出する（cron 不要）。
 - 生トークンは **発行レスポンスでのみ取得可能**。DB は SHA-256 のみ保存し、
   `token_hash` は `hiddenColumns` で全サービス返却から除外される。
-- 回答取得・提出は **本人ログイン + トークン一致の二重検証**。他人のトークンや
-  存在しないトークンは区別せず 404（トークンの存在を漏らさない）。
-- 監査: `fingerprint.challenge.issued / submitted / reviewed / canceled` を手動記録。
+- 回答取得・提出には **2 経路** ある（どちらも本人ログイン必須）:
+  - **トークン経路**（メールリンク）: トークン一致 + セッションユーザー一致の二重検証。
+    他人のトークンや存在しないトークンは区別せず 404（トークンの存在を漏らさない）。
+  - **本人スコープ経路**（トークン無し）: `GET /pending` でログイン本人の未回答チャレンジを
+    引き、その `id` で提出。`user_id` でのみ絞るため他人の行は決して返らない。
+    メール紛失時や `/restricted` 着地ページの CTA から誘導する用途。
+- 監査: `fingerprint.challenge.issued / submitted / reviewed / canceled` を手動記録
+  （どちらの経路でも同じ action 名）。
 
 ---
 
@@ -51,10 +71,22 @@ export const FINGERPRINT_CONFIG = {
 |---|---|---|
 | `/api/admin/fingerprint-challenges` | POST | 発行 → `{ challenge, token }` |
 | `/api/admin/fingerprint-challenges/[id]` | PATCH | `{action:"review"\|"cancel", note?}` |
-| `/api/me/fingerprint-challenges/[token]` | GET | 本人向け取得（質問・状態・期限） |
-| `/api/me/fingerprint-challenges/[token]/submit` | POST | 回答提出（fingerprint 必須添付） |
+| `/api/me/fingerprint-challenges/[token]` | GET | 本人向け取得（トークン経路） |
+| `/api/me/fingerprint-challenges/[token]/submit` | POST | 回答提出（トークン経路） |
+| `/api/me/fingerprint-challenges/pending` | GET | 本人の未回答・期限内の最新 → `{ challenge \| null }` |
+| `/api/me/fingerprint-challenges/by-id/[id]/submit` | POST | 回答提出（本人スコープ経路、`pending` の id で） |
 
 一覧・検索は汎用 `/api/fingerprint-challenge`（serviceRegistry `ADMIN_ONLY`）。
+
+> `by-id/` を挟むのは Next.js の制約（同一階層に `[token]` と `[id]` を共存させられない）。
+> `pending` は静的セグメントなので `[token]` より優先され、生トークンと衝突しない。
+
+hooks / client:
+
+- `useFingerprintChallenge(token)` — トークン経路の取得
+- `useMyPendingFingerprintChallenge()` — 本人スコープ経路の取得（`data` は無ければ `null`）
+- `useSubmitFingerprintChallenge().submit(target, answers, behavior?)` —
+  `target` は `{ token }` | `{ id }`（文字列を渡すと token 扱い）
 
 ---
 
@@ -148,8 +180,34 @@ const url = `${getAppBaseUrl()}/verify/${token}`;
 // getAppBaseUrl は @/lib/url（businessConfig.url 直参照は禁止）
 ```
 
-> ページguard: `/verify/[token]` を認証必須エリア（`(user)/(protected)` 配下）に置くと、
-> 未ログインなら proxy → authGuard がログインへ誘導し、提出時の本人検証と噛み合う。
+> ページguard: `/verify/[token]` は **`(user)/(protected)` の外** に置き、専用レイアウトで
+> `authGuard({ allowStatuses: ["active", "suspended"], redirectTo: "/login", returnBack: true })`
+> を掛ける。`(protected)` は active 限定のため、suspended ユーザーが回答に辿り着けない。
+
+### トークン無しの回答ページ（本人スコープ経路）
+
+メールを紛失したユーザーや `/restricted` に着地した suspended ユーザー向けに、
+トークンを URL に含めない回答ページも作れる。同じ `ChallengeForm` を id 経路で動かす:
+
+```tsx
+// app/(user)/verify/_components/PendingChallengeForm.tsx
+"use client";
+
+import { useMyPendingFingerprintChallenge } from "@/features/core/fingerprintChallenge/hooks/useMyPendingFingerprintChallenge";
+import { useSubmitFingerprintChallenge } from "@/features/core/fingerprintChallenge/hooks/useSubmitFingerprintChallenge";
+// ...
+
+export function PendingChallengeForm() {
+  const { data: challenge, isLoading } = useMyPendingFingerprintChallenge();
+  const { submit, isSubmitting } = useSubmitFingerprintChallenge();
+  // challenge === null → 「現在お願いしている確認はありません」
+  // 提出: await submit({ id: challenge.id }, { fullName }, behavior.getPayload());
+}
+```
+
+`/restricted` 着地ページの CTA は `useMyPendingFingerprintChallenge()` で `data` が非 null の
+ときだけ「本人確認フォームへ」を出す（`/restricted` は `(auth)` 配下 = 認証済みなら
+ステータス問わず表示できるが、API 側は `answerableStatuses` で絞られる）。
 
 ---
 

@@ -12,21 +12,36 @@
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { USER_AVAILABLE_STATUSES, getRoleCategory } from "@/features/core/user/constants";
+import type { UserStatus } from "@/features/core/user/types";
 import { DomainError } from "@/lib/errors";
 
 import { getSessionUser } from "./session/getSessionUser";
+
+export type RequireAuthenticatedOptions = {
+  /**
+   * 通過を許可するユーザーステータス。省略時は USER_AVAILABLE_STATUSES（active のみ）。
+   * 「利用制限中でも本人が完了すべき手続き」（不正疑いチャレンジの回答・異議申立て・
+   * 再有効化・KYC 等）のルートで suspended 等を明示列挙する。
+   * fail-closed: 列挙していないステータス（banned / security_locked / withdrawn 等）は常に 403。
+   * authGuard の allowStatuses と同じ語彙。
+   */
+  allowStatuses?: readonly UserStatus[];
+};
 
 /**
  * ログイン必須ガード。
  * 未認証なら 401、利用停止中（banned 等）なら 403 を throw する。
  * 成功時は DB 同期済みの SessionUser を返す。
  */
-export async function requireAuthenticated(): Promise<SessionUser> {
+export async function requireAuthenticated(
+  options: RequireAuthenticatedOptions = {},
+): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) {
     throw new DomainError("認証が必要です。", { status: 401 });
   }
-  if (!USER_AVAILABLE_STATUSES.includes(user.status)) {
+  const allowedStatuses = options.allowStatuses ?? USER_AVAILABLE_STATUSES;
+  if (!allowedStatuses.includes(user.status)) {
     throw new DomainError("この操作を行う権限がありません。", { status: 403 });
   }
   return user;

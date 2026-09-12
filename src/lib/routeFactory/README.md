@@ -105,6 +105,27 @@ export const GET = createMeRoute(
 );
 ```
 
+#### `allowStatuses` — 利用制限中でも本人が完了すべき手続き
+
+既定では `active` のユーザーだけ通す（`USER_AVAILABLE_STATUSES`）。「処分保留中でも回答が
+必要」な手続き（不正疑いチャレンジ・異議申立て・再有効化・KYC 等）は、そのルートに限って
+`allowStatuses` を明示する。列挙していないステータスは常に 403（fail-closed）。
+`authGuard` の `allowStatuses` と同じ語彙なので、ページ側の guard と揃えやすい。
+
+```ts
+export const POST = createMeRoute(
+  {
+    operation: "POST /api/me/fingerprint-challenges/[token]/submit",
+    operationType: "write",
+    allowStatuses: ["active", "suspended"], // config 定数から渡すのが望ましい
+  },
+  async (req, { user }) => { /* user.status は active か suspended */ },
+);
+```
+
+`requireAuthenticated({ allowStatuses })` も同じオプションを受ける（`createApiRoute` +
+`access: "custom"` で自前ガードする場合）。
+
 ---
 
 ## 使用例

@@ -7,6 +7,7 @@
 // skipForDemo: false — デモユーザーにチャレンジを発行する運用は想定しないが、
 // 誤発行時に「成功したように見えて何も記録されない」より明示エラーの方が安全なため
 // デモスキップに乗せず実処理に到達させる (所有者検証で 404 になる)。
+// allowStatuses: FINGERPRINT_CONFIG.challenge.answerableStatuses (既定 active + suspended)。
 
 import { createMeRoute } from "@/lib/routeFactory";
 import { DomainError } from "@/lib/errors";
@@ -20,6 +21,7 @@ export const POST = createMeRoute<Params>(
     operation: "POST /api/me/fingerprint-challenges/[token]/submit",
     operationType: "write",
     skipForDemo: false,
+    allowStatuses: FINGERPRINT_CONFIG.challenge.answerableStatuses,
   },
   async (req, { params, user }) => {
     if (!FINGERPRINT_CONFIG.challenge.enabled) {

@@ -17,6 +17,7 @@ export {
 export {
   createMeRoute,
   ownerWhere,
+  type MeRouteConfig,
   type MeRouteContext,
   type MeRouteHandler,
 } from "./createMeRoute";

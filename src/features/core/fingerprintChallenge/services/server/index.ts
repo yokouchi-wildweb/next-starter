@@ -4,6 +4,7 @@ export { fingerprintChallengeBase } from "./drizzleBase";
 export {
   issueChallenge,
   getChallengeForUser,
+  getPendingChallengeForUser,
   submitChallenge,
   reviewChallenge,
   cancelChallenge,

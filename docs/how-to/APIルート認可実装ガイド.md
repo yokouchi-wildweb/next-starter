@@ -137,6 +137,9 @@ export const GET = createMeRoute(
 ```
 
 - `access` は不要（createMeRoute が内部で認証を強制する）
+- 既定は `active` のユーザーのみ通す。利用制限中の本人が完了すべき手続き（不正疑いチャレンジの
+  回答等）だけ `allowStatuses: ["active", "suspended"]` を明示する（列挙外は 403、fail-closed。
+  `requireAuthenticated({ allowStatuses })` も同じ）
 - **オーナーシップは `ownerWhere(user)` でサーバー側スコープを固定する**（所有者カラムが `user_id` 以外なら
   `ownerWhere(user, "owner_id")`）。汎用 `/api/[domain]` はクライアント指定の `user_id` を信用してしまうため、
   ユーザー所有データは createMeRoute に集約する

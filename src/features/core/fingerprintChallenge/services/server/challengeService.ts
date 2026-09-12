@@ -3,11 +3,13 @@
 // チャレンジのライフサイクル操作 (発行 → 回答提出 → レビュー / 取り下げ)。
 // すべて server-only。HTTP からの入口は
 //   - 発行 / レビュー / 取り下げ: /api/admin/fingerprint-challenges/**
-//   - 回答取得 / 提出: /api/me/fingerprint-challenges/[token]/** (本人 + トークン二重検証)
+//   - 回答取得 / 提出 (トークン経路): /api/me/fingerprint-challenges/[token]/** (本人 + トークン二重検証)
+//   - 回答取得 / 提出 (本人スコープ経路): /api/me/fingerprint-challenges/pending, /[id]/submit
+//     (ログイン本人の user_id で絞る。生トークンを持たないログイン済み本人向け)
 
 import { createHash, randomBytes } from "node:crypto";
 
-import { eq } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
@@ -34,6 +36,8 @@ const MAX_ANSWERS_BYTES = 65536;
 
 const hashToken = (token: string): string =>
   createHash("sha256").update(token).digest("hex");
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** pending かつ期限超過の行を "expired" として導出する (DB には書かない) */
 export function resolveEffectiveStatus(challenge: {
@@ -133,16 +137,49 @@ export async function getChallengeForUser(
   return toUserFacing(row as unknown as FingerprintChallenge);
 }
 
+/**
+ * ログイン本人の「未回答かつ期限内」の最新チャレンジを返す (無ければ null)。
+ * トークンを持たない本人向け経路 (メールを紛失した場合や /restricted 等の着地ページ CTA)。
+ * user_id でのみ絞るため他人のチャレンジは決して返らない。
+ * 期限切れ pending は resolveEffectiveStatus と同じ基準 (expires_at > now) で除外する。
+ */
+export async function getPendingChallengeForUser(
+  userId: string,
+): Promise<FingerprintChallengeForUser | null> {
+  const rows = await db
+    .select()
+    .from(FingerprintChallengeTable)
+    .where(
+      and(
+        eq(FingerprintChallengeTable.userId, userId),
+        eq(FingerprintChallengeTable.status, "pending"),
+        gt(FingerprintChallengeTable.expiresAt, new Date()),
+      ),
+    )
+    .orderBy(desc(FingerprintChallengeTable.createdAt))
+    .limit(1);
+  const row = rows[0] ?? null;
+  if (!row) return null;
+  return toUserFacing(row as unknown as FingerprintChallenge);
+}
+
+/**
+ * 提出対象の行の引き方。
+ * - token: 生トークン一致 (メールリンク経路。トークン = 列挙防止)
+ * - id: チャレンジ id 一致 (ログイン本人スコープ経路)
+ * いずれも所有者一致 (row.userId === userId) を必ず追加検証する。
+ */
 export type SubmitChallengeParams = {
-  token: string;
   userId: string;
   /** リクエストボディ (Zod 検証はこの関数内で行う) */
   body: unknown;
-};
+} & ({ token: string; id?: never } | { id: string; token?: never });
 
 /**
  * 回答を提出する。デバイスフィンガープリント (必須) と行動計測 payload を
  * 同一トランザクションで記録・添付し、状態を submitted に遷移する。
+ * トークン経路 ({ token }) と本人スコープ経路 ({ id }) は行の引き方だけが異なり、
+ * 所有者検証・状態検証・記録処理は共通。
  */
 export async function submitChallenge(
   params: SubmitChallengeParams,
@@ -163,16 +200,27 @@ export async function submitChallenge(
       ? input.behavior
       : null;
 
+  // id 経路で UUID 形式外の値をそのまま uuid 列に投げると PG 22P02 (500) になるため、
+  // 事前に形式検証して「存在しない」と同じ 404 に揃える
+  if (params.token === undefined && !UUID_PATTERN.test(params.id)) {
+    throw new DomainError("チャレンジが見つかりません", { status: 404 });
+  }
+  const rowMatch =
+    params.token !== undefined
+      ? eq(FingerprintChallengeTable.tokenHash, hashToken(params.token))
+      : eq(FingerprintChallengeTable.id, params.id);
+
   const updated = await db.transaction(async (tx) => {
     // 二重提出の競合を防ぐため行ロックを取ってから状態を検証する
     const rows = await tx
       .select()
       .from(FingerprintChallengeTable)
-      .where(eq(FingerprintChallengeTable.tokenHash, hashToken(params.token)))
+      .where(rowMatch)
       .for("update")
       .limit(1);
     const row = rows[0] ?? null;
 
+    // 他人の行・存在しない行は区別せず 404 (トークン / id の存在を漏らさない)
     if (!row || row.userId !== params.userId) {
       throw new DomainError("チャレンジが見つかりません", { status: 404 });
     }

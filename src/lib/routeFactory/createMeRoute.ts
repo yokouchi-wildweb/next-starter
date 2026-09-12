@@ -14,6 +14,7 @@ import { NextRequest } from "next/server";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
+import type { UserStatus } from "@/features/core/user/types";
 import type { WhereExpr } from "@/lib/crud";
 
 import { createApiRoute, type ApiRouteConfig, type ApiRouteContext } from "./createApiRoute";
@@ -29,6 +30,16 @@ export type MeRouteHandler<TParams = Record<string, string>, TResult = unknown> 
   ctx: MeRouteContext<TParams>,
 ) => Promise<TResult>;
 
+export type MeRouteConfig = Omit<ApiRouteConfig, "access"> & {
+  /**
+   * 通過を許可するユーザーステータス。省略時は USER_AVAILABLE_STATUSES（active のみ = 現行動作）。
+   * 「利用制限中でも本人が完了すべき手続き」（不正疑いチャレンジの回答・異議申立て・
+   * 再有効化・KYC 等）のルートでのみ suspended 等を明示列挙する。
+   * fail-closed: 列挙していないステータスは常に 403。authGuard の allowStatuses と同じ語彙。
+   */
+  allowStatuses?: readonly UserStatus[];
+};
+
 /**
  * 認証済みユーザー専用ルートのファクトリー。
  * - 認証を強制（未認証→401 / 利用停止→403）
@@ -38,13 +49,14 @@ export type MeRouteHandler<TParams = Record<string, string>, TResult = unknown> 
  * config では受け取らない。
  */
 export function createMeRoute<TParams = Record<string, string>, TResult = unknown>(
-  config: Omit<ApiRouteConfig, "access">,
+  config: MeRouteConfig,
   handler: MeRouteHandler<TParams, TResult>,
 ) {
+  const { allowStatuses, ...apiConfig } = config;
   return createApiRoute<TParams, TResult>(
-    { ...config, access: "custom" },
+    { ...apiConfig, access: "custom" },
     async (req, ctx) => {
-      const user = await requireAuthenticated();
+      const user = await requireAuthenticated({ allowStatuses });
       return handler(req, { ...ctx, user });
     },
   );
