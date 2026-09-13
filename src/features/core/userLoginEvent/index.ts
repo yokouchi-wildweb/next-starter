@@ -12,6 +12,9 @@
 export type { UserLoginEvent, UserLoginEventCreateInput } from "./entities";
 export {
   USER_LOGIN_EVENT_TYPES,
+  SESSION_START_EVENT_TYPES,
+  SESSION_END_EVENT_TYPES,
   type UserLoginEventType,
   DEFAULT_LOGIN_EVENT_RETENTION_DAYS,
+  DEFAULT_SESSION_HANDOFF_WINDOW_MINUTES,
 } from "./constants";

@@ -29,7 +29,7 @@ export type RecordLoginEventInput = {
 };
 
 /**
- * ログイン / サインアップ成功を user_login_events に記録する。
+ * ログイン / サインアップ成功、および明示ログアウトを user_login_events に記録する。
  *
  * 設計上の取り決め:
  * - bestEffort: 書き込み失敗は呼び出し元のフロー (ログイン / 登録) を阻害しない。
@@ -68,4 +68,21 @@ export async function recordLoginEvent(input: RecordLoginEventInput): Promise<vo
       }),
     );
   }
+}
+
+/**
+ * ユーザー操作による明示的なセッション終了 (logout / pause / withdraw) を
+ * eventType "logout" として記録する。
+ *
+ * - 呼び出し元は「セッション Cookie を消す直前」= 該当操作のサービス処理が成功した後。
+ *   失敗時は Cookie も消えないため記録しない。
+ * - Cookie の自然失効 / ブラウザ閉鎖は記録できない (サーバーに到達しない) ことを
+ *   消費側は前提にすること。
+ * - recordLoginEvent と同じ bestEffort。ログアウト応答を阻害しない。
+ */
+export async function recordLogoutEvent(
+  userId: string,
+  input: Omit<RecordLoginEventInput, "userId" | "eventType"> = {},
+): Promise<void> {
+  await recordLoginEvent({ ...input, userId, eventType: "logout" });
 }

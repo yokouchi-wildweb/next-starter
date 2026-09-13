@@ -1,7 +1,18 @@
 // src/features/core/userLoginEvent/services/server/index.ts
 
 export { userLoginEventBase } from "./drizzleBase";
-export { recordLoginEvent, type RecordLoginEventInput } from "./recordLoginEvent";
+export {
+  recordLoginEvent,
+  recordLogoutEvent,
+  type RecordLoginEventInput,
+} from "./recordLoginEvent";
+export {
+  findSessionHandoffsByUser,
+  findSessionHandoffsByIp,
+  type SessionHandoffRow,
+  type SessionHandoffOptions,
+  type SessionStartEventType,
+} from "./sessionHandoff";
 export {
   countDistinctUsersByIp,
   findUsersBySameIp,
@@ -21,7 +32,8 @@ import { userLoginEventBase } from "./drizzleBase";
 
 /**
  * ユーザーログインイベント参照系サービス。
- * 書き込みは recordLoginEvent / IP 集計は ipAnalytics を直接使う。
+ * 書き込みは recordLoginEvent / recordLogoutEvent、IP 集計は ipAnalytics、
+ * 端末受け渡し検出は sessionHandoff を直接使う。
  */
 export const userLoginEventService = {
   ...userLoginEventBase,
