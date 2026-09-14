@@ -40,6 +40,8 @@
 |---|---|---|
 | `/api/referral/my-referrer` | GET | ログインユーザーの紹介元を取得 |
 | `/api/referral/my-referrals` | GET | ログインユーザーが招待した人の一覧 |
+| `/api/referral/pending-invite-code` | GET | 招待リンク由来の保留コード（cookie）を返す（公開） |
+| `/api/referral/validate-invite-code` | POST | 招待コードのログイン前検証（公開・レート制限あり）。`{ valid: true } \| { valid: false, message }` のみ返し、理由やクーポン情報は返さない（存在の列挙対策） |
 | `/api/admin/referral/by-inviter/[userId]` | GET | 管理者用: 指定ユーザーの紹介一覧 |
 
 ---
@@ -49,6 +51,9 @@
 ### ユーザー向け
 - `services/client/myReferrer.ts` → `hooks/useMyReferrer.ts`: 自分の紹介元
 - `services/client/myReferrals.ts` → `hooks/useMyReferrals.ts`: 自分が招待した人一覧（referrals + count）
+- `services/client/validateInviteCode.ts` → `hooks/useValidateInviteCode.ts`: 招待コードの明示的検証（手動トリガー。
+  coupon `useValidateCouponForCategory` と同型: `validate(code)` / `result` / `isLoading` / `error` / `reset`）。
+  auth の `useInviteCodeValidation` がこれを「適用」ボタン + 適用済み状態 + 送信ブロックとしてフォームに結線する
 
 ### 管理者向け
 - `services/client/referralsByInviter.ts`: 指定ユーザーの紹介一覧取得（モーダル表示用）
@@ -75,7 +80,17 @@
 ## サインアップフロー統合
 
 - `RegistrationSchema` に `inviteCode`（optional）を追加
-- Email / OAuth 両登録フォームに招待コード入力欄（`APP_FEATURES.marketing.referral.enabled` で表示制御）
+- Email / OAuth 両登録フォームに招待コード入力欄（`APP_FEATURES.marketing.referral.enabled` で表示制御）。
+  実体は auth `components/Registration/InviteCodeField.tsx`（共用部品）
+- **「適用」ボタンによる明示的検証**（購入ページのクーポン欄 wallet `CouponInput` と同じ操作モデル。入力中の自動通信はしない）:
+  入力欄 + 「適用」（Enter でも可）→ `POST /api/referral/validate-invite-code` → 有効なら緑の枠に「コード + 有効な招待コードです」と「取り消す」、
+  無効なら欄の下に赤文字。「取り消す」はフォーム値を `""` にする（プリフィル済みなら明示的拒否）。
+  送信時、入力欄に未適用の文字が残っていれば auth `useInviteCodeValidation.assertInviteCodeSubmittable` が欄にエラーを立てて止める
+  （「適用」を押すか空欄にしてもらう。通信はしない）。プリフィル値（招待リンク由来）はセット時に1回だけ自動で「適用」される
+- **受理するのは招待コード（type=invite）のみ**: サーバー `register()` は `INVITE_CODE_REDEEM_SCOPE`（`constants/inviteCodeScope.ts`）を
+  `redeemWithEffect` の scope に渡す。official / affiliate 等のコードが入力されても消込されず `type_mismatch` で不成立になる
+  （scope 無しだと使用回数だけ消費されて紹介関係も報酬も作られない事故になる。coupon README「入口スコープ」参照）
+- 登録レスポンスは `inviteCode: { applied, reason? } | null` を含む（null = 未指定）。登録自体は招待コードの成否でブロックしない
 - **招待リンク連携**: `?invite=CODE` 付き URL を踏むと専用 cookie（`pending_invite`、httpOnly・30日・
   last-touch 優先で上書き）にコードが保持され、登録フォームの招待コード欄へプリフィルされる。
   フォーム未指定（undefined）なら本登録時にフォールバック適用、プリフィルを消して送信したら
@@ -91,11 +106,10 @@
   `&invite=CODE` として埋め込み、開いた先のブラウザで proxy が cookie を焼き直す（email の別ブラウザ対策と同じ手法）。
   副次効果として紹介経由ユーザーの流入解析（source=invite）も開いた先のブラウザで復元される
 - サーバー `register()` 内の処理フロー:
-  1. `getCouponByCode(inviteCode)`
-  2. `redeem(inviteCode, userId)`
-  3. `createReferralFromRedemption(coupon, userId)`
-  4. `triggerRewards("signup_completed", referral)`
-- 全処理は try-catch で囲み、失敗時は warn ログのみ（登録はブロックしない）
+  1. `couponService.redeemWithEffect(inviteCode, userId, { entryPoint: "registration" }, undefined, { scope: INVITE_CODE_REDEEM_SCOPE })`
+     - 内部で `redeem`（検証 + 消込 + 履歴）→ referral ハンドラー `onRedeemed`
+  2. ハンドラー: `createReferralFromRedemption(coupon, userId)` → `triggerRewards("signup_completed", referral)`
+- 全処理は try-catch で囲み、失敗時は warn ログ + レスポンス `inviteCode.applied=false`（登録はブロックしない）
 
 ---
 
@@ -113,9 +127,12 @@
 
 ## coupon ドメインとの関係
 
-- 招待コード = coupon（type=`invite`, attribution_user_id=発行者）
+- 招待コード = coupon（type=`invite`, category=`referral`, attribution_user_id=発行者）
 - コード発行: `couponService.getOrCreateInviteCode(userId)`
-- コード使用: `couponService.redeem(code, userId)` → couponHistory に使用記録
+- コード使用: `couponService.redeemWithEffect(code, userId, meta, tx, { scope: INVITE_CODE_REDEEM_SCOPE })` → couponHistory に使用記録
+- ログイン前検証: `referralService.validateInviteCode(code)` = `isUsable(code, null, { scope: INVITE_CODE_REDEEM_SCOPE, skipRedeemerChecks: true })`
+  （招待コードは `max_uses_per_redeemer=1` のため使用者無しでは `user_id_required` になる。プレビューではこの判定を省き、本登録時の消込が全判定を再実行する）
+- 「何が招待コードか」（受理スコープ）は `constants/inviteCodeScope.ts` の単一定義。登録処理とログイン前検証の両方がこれを使う
 - referral ドメインは redeem 後の「関係管理」を担当。couponHistory は不変ログとして役割分離
 
 ---

@@ -10,6 +10,7 @@ import { evaluateMilestones } from "@/features/core/milestone/services/server/wr
 import { MILESTONE_TRIGGER_PURCHASE_COMPLETED } from "@/features/core/milestone/constants/triggers";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
+import { PURCHASE_DISCOUNT_CATEGORY } from "../../../types/couponEffect";
 import { commitQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
 import { getPurchaseCompleteHooks } from "../hooks/purchaseCompleteHookRegistry";
 import { markUserDirty } from "@/lib/userDirty";
@@ -147,11 +148,13 @@ export async function completePurchase(
       const couponSavepoint = "purchase_coupon_redeem";
       try {
         await tx.execute(sql.raw(`SAVEPOINT ${couponSavepoint}`));
+        // 購入入口は purchase_discount カテゴリのみ受理（招待コード等の取り違えは category_mismatch で不成立）
         await couponService.redeemWithEffect(
           purchaseRequest.coupon_code,
           purchaseRequest.user_id,
           { purchaseRequestId: purchaseRequest.id },
           tx,
+          { scope: { categories: [PURCHASE_DISCOUNT_CATEGORY] } },
         );
         await tx.execute(sql.raw(`RELEASE SAVEPOINT ${couponSavepoint}`));
       } catch (error) {

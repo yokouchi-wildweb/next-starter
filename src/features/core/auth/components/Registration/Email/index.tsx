@@ -16,6 +16,7 @@ import { EMAIL_SIGNUP_STORAGE_KEY } from "@/features/core/auth/constants/localSt
 import { REGISTRATION_ROLES } from "@/features/core/auth/constants/registration";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useInviteCodePrefill } from "@/features/core/auth/hooks/useInviteCodePrefill";
+import { useInviteCodeValidation } from "@/features/core/auth/hooks/useInviteCodeValidation";
 import { useRegistration } from "@/features/core/auth/hooks/useRegistration";
 import type { RegistrationInput } from "@/features/core/auth/hooks/useRegistration";
 import { useLocalStorage } from "@/lib/browserStorage";
@@ -39,6 +40,7 @@ import {
 } from "@/features/core/userProfile/components/common";
 import { REGISTRATION_PROFILES } from "../registrationProfiles";
 
+import { InviteCodeField } from "../InviteCodeField";
 import { RateLimitWarningModal } from "../RateLimitWarningModal";
 import { isSilentRateLimit } from "../RateLimitWarningContent";
 import { FormSchema, type FormValues, DefaultValues, isDoubleMode } from "./formEntities";
@@ -60,10 +62,16 @@ export function EmailRegistrationForm() {
   const { refreshSession } = useAuthSession();
   const [showRateLimitWarning, setShowRateLimitWarning] = useState(false);
 
-  // 招待リンク（?invite=CODE）由来のコードを招待コード欄へプリフィル
+  // 招待コード欄の「適用」検証（購入ページのクーポン欄と同じ操作モデル）+ 未適用のままの送信ブロック
+  const { state: inviteCodeState, assertInviteCodeSubmittable } = useInviteCodeValidation({ form });
+
+  // 招待リンク（?invite=CODE）由来のコードを招待コード欄へプリフィルし、1回だけ自動で「適用」する
   const { resolveInviteCodePayload } = useInviteCodePrefill({
     getInviteCode: () => form.getValues("inviteCode"),
-    setInviteCode: (code) => form.setValue("inviteCode", code),
+    setInviteCode: (code) => {
+      form.setValue("inviteCode", code);
+      void inviteCodeState.apply(code);
+    },
   });
 
   // v2チャレンジの状態管理
@@ -135,6 +143,9 @@ export function EmailRegistrationForm() {
           });
         }
 
+        // 未適用の招待コードを残したまま登録させない（サーバー側でも type=invite 限定で再判定される）
+        if (!assertInviteCodeSubmittable(inviteCode)) return;
+
         const idToken = await currentUser.getIdToken();
 
         // reCAPTCHA トークンを取得
@@ -193,7 +204,7 @@ export function EmailRegistrationForm() {
         form.setError("root", { type: "server", message });
       }
     },
-    [form, refreshSession, register, guardedPush, executeRecaptcha, handleV2ChallengeRequired, resolveInviteCodePayload],
+    [form, refreshSession, register, guardedPush, executeRecaptcha, handleV2ChallengeRequired, resolveInviteCodePayload, assertInviteCodeSubmittable],
   );
 
   const rootErrorMessage = form.formState.errors.root?.message ?? null;
@@ -287,17 +298,7 @@ export function EmailRegistrationForm() {
         />
 
         {showInviteCode && (
-          <ControlledField
-            control={form.control}
-            name="inviteCode"
-            label="招待コード"
-            renderInput={(field) => (
-              <TextInput
-                field={field}
-                placeholder="お持ちの場合は入力してください"
-              />
-            )}
-          />
+          <InviteCodeField control={form.control} state={inviteCodeState} />
         )}
 
         <ControlledField

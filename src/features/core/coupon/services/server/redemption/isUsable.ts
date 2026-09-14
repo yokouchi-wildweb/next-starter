@@ -3,7 +3,7 @@
 import { base } from "../drizzleBase";
 import { getUsageCount } from "./getUsageCount";
 import { validateCouponStatically } from "./utils";
-import type { UsabilityResult } from "../../../types/redeem";
+import type { UsabilityCheckOptions, UsabilityResult } from "../../../types/redeem";
 
 /**
  * クーポンの使用可否を判定する
@@ -12,6 +12,7 @@ import type { UsabilityResult } from "../../../types/redeem";
  * 1. code で coupon 取得 → not_found
  * 2. 静的バリデーション（validateCouponStatically と共通）
  *    - status !== 'active' → inactive
+ *    - scope 不一致 → type_mismatch / category_mismatch
  *    - valid_from > now → not_started
  *    - valid_until < now → expired
  *    - max_total_uses 到達 → max_total_reached
@@ -25,10 +26,12 @@ import type { UsabilityResult } from "../../../types/redeem";
  *
  * @param code クーポンコード
  * @param redeemerUserId 使用者のユーザーID（オプション。max_uses_per_redeemer 設定時は必須）
+ * @param options 入口スコープ / 使用者判定の省略（ログイン前プレビュー用）
  */
 export async function isUsable(
   code: string,
-  redeemerUserId?: string | null
+  redeemerUserId?: string | null,
+  options?: UsabilityCheckOptions
 ): Promise<UsabilityResult> {
   // 1. クーポン取得
   const result = await base.search({
@@ -42,13 +45,17 @@ export async function isUsable(
   }
 
   // 2. 静的バリデーション
-  const staticCheck = validateCouponStatically(coupon, redeemerUserId);
+  const staticCheck = validateCouponStatically(coupon, redeemerUserId, options);
   if (!staticCheck.valid) {
     return { usable: false, reason: staticCheck.reason, coupon };
   }
 
   // 3. ユーザー毎の使用回数上限チェック（DB アクセス必要）
-  if (coupon.max_uses_per_redeemer !== null && redeemerUserId) {
+  if (
+    !options?.skipRedeemerChecks &&
+    coupon.max_uses_per_redeemer !== null &&
+    redeemerUserId
+  ) {
     const userUsageCount = await getUsageCount(coupon.id, redeemerUserId);
     if (userUsageCount >= coupon.max_uses_per_redeemer) {
       return { usable: false, reason: "max_per_user_reached", coupon };

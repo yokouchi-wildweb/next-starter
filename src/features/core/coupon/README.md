@@ -19,6 +19,17 @@ if (result.usable) {
   // result.coupon にクーポン情報
 }
 
+// 入口スコープ付き（この入口で受理する種別 / カテゴリを絞る。不一致は type_mismatch / category_mismatch）
+const result = await couponService.isUsable("CODE123", userId, {
+  scope: { types: ["invite"] },
+});
+
+// ログイン前プレビュー（使用者未確定。自己消込 / ユーザー毎上限の判定を省略）
+const result = await couponService.isUsable("CODE123", null, {
+  scope: { types: ["invite"] },
+  skipRedeemerChecks: true,
+});
+
 // カテゴリ指定の検証（ハンドラー連携）
 const result = await couponService.validateForCategory(
   "CODE123",
@@ -43,10 +54,38 @@ if (result.success) {
 }
 
 // ハンドラー付き使用（redeem + ハンドラーの onRedeemed 実行）
-const result = await couponService.redeemWithEffect("CODE123", userId, {
-  purchaseRequestId: "xxx",
-});
+// 入口が受理する種別 / カテゴリは scope で必ず絞る（下記「入口スコープ」参照）
+const result = await couponService.redeemWithEffect(
+  "CODE123",
+  userId,
+  { purchaseRequestId: "xxx" },
+  undefined,
+  { scope: { categories: ["purchase_discount"] } },
+);
 ```
+
+### 入口スコープ（scope）— 種別 / カテゴリの取り違え防止
+
+クーポンコードを受け付ける「入口」（登録フォームの招待コード欄、購入画面のクーポン欄、汎用消込 API 等）は、
+その入口で受理する種別 / カテゴリを `scope` で必ず宣言する。基底検証（`validateCouponStatically`）が
+`scope.types` / `scope.categories` との一致を status の直後に判定し、不一致は消込せず `type_mismatch` / `category_mismatch` を返す。
+
+**scope 無しで消し込むと何が起きるか（下流で実際に発生した事故）**: 招待コード欄にアフィリエイトコードを入力
+→ 使用回数だけ消費され履歴も残るが、カテゴリ違いなので招待ハンドラーは走らず紹介関係も報酬も作られない。
+発行者側の月次枠は幻の使用で減る。フォームは無反応なので利用者も気づけない。
+
+| 入口 | scope | 備考 |
+|------|-------|------|
+| 本登録の招待コード欄（auth `register()`） | `INVITE_CODE_REDEEM_SCOPE` = `{ types: ["invite"] }` | referral/constants/inviteCodeScope.ts が単一定義 |
+| 購入完了（purchaseRequest `completePurchase`） | `{ categories: ["purchase_discount"] }` | validate-for-category と同じカテゴリ |
+| `POST /api/coupon/redeem`（汎用・ゲスト可） | `{ types: ["official"] }` | 帰属付き種別（invite / affiliate）は専用入口のみ |
+| `validateForCategory(code, category, ...)` | `{ categories: [category] }` を内部で付与 | 従来の category 一致判定は基底に統合済み |
+
+- `types` / `categories` は省略した軸を制限しない。両方指定すれば AND
+- 下流で新しい入口（issuer プログラムの申込欄など）を作るときは、その入口専用の scope 定数を消費側ドメインの constants に置き、
+  redeem / isUsable の両方に同じ定数を渡す（受理条件がズレる事故を構造的に防ぐ）
+- `skipRedeemerChecks: true` はログイン前プレビュー（`isUsable`）専用。`redeem` / `redeemWithEffect` の `RedeemOptions` は型でこれを受け付けない
+  （最終消込は必ず使用者付きで全判定を再実行する）
 
 ### クーポンを検証する（クライアント）
 
@@ -115,11 +154,12 @@ import { couponService } from "@/features/core/coupon/services/server/couponServ
 
 ```typescript
 // 基本チェック（DB アクセスあり、ユーザー毎の使用回数も確認）
-const result = await couponService.isUsable(code, userId?);
+// options: { scope?: { types?, categories? }, skipRedeemerChecks?: boolean }
+const result = await couponService.isUsable(code, userId?, options?);
 // → { usable: true, coupon } | { usable: false, reason, coupon? }
 
 // 静的チェック（DB アクセスなし、クーポンオブジェクトに対して実行）
-const result = couponService.validateCouponStatically(coupon, userId?);
+const result = couponService.validateCouponStatically(coupon, userId?, options?);
 // → { valid: true } | { valid: false, reason }
 ```
 
@@ -127,7 +167,8 @@ const result = couponService.validateCouponStatically(coupon, userId?);
 
 ```typescript
 // 基本使用（トランザクション内で SELECT FOR UPDATE → 検証 → カウント更新 → 履歴記録）
-const result = await couponService.redeem(code, userId?, additionalMetadata?, tx?);
+// options: { scope?: { types?, categories? } }（skipRedeemerChecks は型で不可）
+const result = await couponService.redeem(code, userId?, additionalMetadata?, tx?, options?);
 // → { success: true, history } | { success: false, reason }
 ```
 
@@ -142,8 +183,8 @@ const result = await couponService.validateForCategory(code, category, userId, m
 #### ハンドラー付き使用（ハンドラー連携）
 
 ```typescript
-// 基本 redeem + ハンドラーの onRedeemed を実行
-const result = await couponService.redeemWithEffect(code, userId, metadata?, tx?);
+// 基本 redeem + ハンドラーの onRedeemed を実行（options.scope で入口の種別 / カテゴリを必ず絞る）
+const result = await couponService.redeemWithEffect(code, userId, metadata?, tx?, options?);
 // → { success: true, history } | { success: false, reason }
 ```
 
@@ -391,7 +432,8 @@ CouponSectionTabs（内部で `buildCouponAdminSectionTabs()`）に寄せると 
 | `max_per_user_reached` | ユーザー毎の使用上限に到達 |
 | `user_id_required` | ユーザーIDが必要（`max_uses_per_redeemer` 設定時） |
 | `self_redeem_forbidden` | 帰属ユーザー（発行者）本人による使用（自己消込禁止） |
-| `category_mismatch` | カテゴリが一致しない |
+| `type_mismatch` | 入口スコープ（`scope.types`）と種別が一致しない |
+| `category_mismatch` | 入口スコープ（`scope.categories` / `validateForCategory` の category）とカテゴリが一致しない |
 | `handler_rejected` | ハンドラーの追加検証で拒否 |
 
 reason → ユーザー向け文言は `constants/redeemReasonMessages.ts` の `getCouponRedeemReasonMessage()` に一本化されている。API ルート（check-usability / redeem / validate-for-category）はすべてこれを使う。reason を追加したら `UsabilityReason` と `COUPON_REDEEM_REASON_MESSAGES` の両方を更新する（型で網羅を強制）。
@@ -435,7 +477,8 @@ import { useCouponCategories } from "@/features/core/coupon/hooks/useCouponCateg
 | メソッド | パス | 用途 |
 |---------|------|------|
 | `POST` | `/api/coupon/check-usability` | 使用可否チェック |
-| `POST` | `/api/coupon/redeem` | クーポン使用 |
+| `POST` | `/api/coupon/redeem` | クーポン使用（汎用・ゲスト可。受理は `official` のみ、帰属付き種別は専用入口） |
+| `POST` | `/api/referral/validate-invite-code` | 招待コードのログイン前検証（referral ドメイン。valid と文言のみ返す） |
 | `GET` | `/api/coupon/my-invite` | 自分の招待コード取得 |
 | `POST` | `/api/coupon/my-invite` | 自分の招待コード発行 |
 | `GET` | `/api/coupon/categories` | 登録済みカテゴリ一覧（settingsFields 含む） |

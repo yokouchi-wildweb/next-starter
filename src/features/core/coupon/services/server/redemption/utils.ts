@@ -3,7 +3,7 @@
 import { db } from "@/lib/drizzle";
 import { CouponTable } from "../../../entities/drizzle";
 import type { Coupon } from "../../../entities/model";
-import type { UsabilityReason } from "../../../types/redeem";
+import type { UsabilityCheckOptions, UsabilityReason } from "../../../types/redeem";
 import { eq } from "drizzle-orm";
 
 // トランザクション関連は共通モジュールから re-export
@@ -63,23 +63,41 @@ export async function getCouponById(
  *
  * チェック項目:
  * - status === 'active'
+ * - scope.types / scope.categories との一致（options.scope 指定時）
  * - valid_from <= now（設定時）
  * - valid_until >= now（設定時）
  * - current_total_uses < max_total_uses（設定時）
- * - max_uses_per_redeemer 設定時は userId 必須
- * - attribution_user_id 設定時は使用者本人でないこと（自己消込禁止）
+ * - max_uses_per_redeemer 設定時は userId 必須（skipRedeemerChecks 時は省略）
+ * - attribution_user_id 設定時は使用者本人でないこと（自己消込禁止、skipRedeemerChecks 時は省略）
  *
  * チェックしない項目（DB アクセス必要）:
  * - not_found（クーポン取得は呼び出し側で行う）
  * - max_per_user_reached（couponHistory へのクエリが必要）
+ *
+ * isUsable / redeem / validateForCategory はすべてここを通るため、判定条件の追加は
+ * このファイルにのみ行う（呼び出し側で個別に条件を足さないこと）。
  */
 export function validateCouponStatically(
   coupon: Coupon,
-  redeemerUserId?: string | null
+  redeemerUserId?: string | null,
+  options?: UsabilityCheckOptions
 ): StaticValidationResult {
   // ステータスチェック
   if (coupon.status !== "active") {
     return { valid: false, reason: "inactive" };
+  }
+
+  // 入口スコープチェック: 「招待コード欄にアフィリエイトコード」のような
+  // 種別/カテゴリの取り違えを、期限や上限より先に拒否する
+  const scope = options?.scope;
+  if (scope?.types && !scope.types.includes(coupon.type)) {
+    return { valid: false, reason: "type_mismatch" };
+  }
+  if (
+    scope?.categories &&
+    (coupon.category === null || !scope.categories.includes(coupon.category))
+  ) {
+    return { valid: false, reason: "category_mismatch" };
   }
 
   const now = new Date();
@@ -100,6 +118,12 @@ export function validateCouponStatically(
     coupon.current_total_uses >= coupon.max_total_uses
   ) {
     return { valid: false, reason: "max_total_reached" };
+  }
+
+  // 使用者に依存する判定はプレビュー（ログイン前検証）では省略できる。
+  // 最終的な redeem() は使用者付きで必ずここを通り直すため、省略しても消込の安全性は落ちない。
+  if (options?.skipRedeemerChecks) {
+    return { valid: true };
   }
 
   // ユーザー毎の使用回数上限が設定されている場合、userId 必須

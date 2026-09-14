@@ -23,6 +23,8 @@ import { getServerAuth } from "@/lib/firebase/server/app";
 import { signUserToken, SESSION_DEFAULT_MAX_AGE_SECONDS } from "@/lib/jwt";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
+import type { RegistrationInviteCodeResult } from "@/features/core/auth/entities/registration";
+import { INVITE_CODE_REDEEM_SCOPE } from "@/features/core/referral/constants/inviteCodeScope";
 import { recordSignupAcquisition } from "@/features/core/userAcquisition/services/server";
 import type {
   AcquisitionExtras,
@@ -40,6 +42,8 @@ export type RegistrationAcquisitionInput = {
   extras?: AcquisitionExtras | null;
 };
 
+export type { RegistrationInviteCodeResult };
+
 export type RegistrationResult = {
   user: User;
   sessionUser: SessionUser;
@@ -48,6 +52,7 @@ export type RegistrationResult = {
     expiresAt: Date;
     maxAge: number;
   };
+  inviteCode: RegistrationInviteCodeResult | null;
 };
 
 export async function register(
@@ -169,10 +174,29 @@ export async function register(
     inviteCode !== undefined
       ? inviteCode || undefined
       : pendingInviteCode ?? undefined;
+  // 受理するのは招待コード（type=invite）のみ。他種別（official / affiliate）は type_mismatch で不成立にする。
+  // スコープ無しで消し込むと、使用回数だけ消費されて referral ハンドラーが走らず、
+  // 招待報酬が両者とも恒久的に失われる（下流で実際に発生した事故）。
+  let inviteCodeResult: RegistrationInviteCodeResult | null = null;
   if (APP_FEATURES.marketing.referral.enabled && effectiveInviteCode) {
     try {
-      await couponService.redeemWithEffect(effectiveInviteCode, user.id);
+      const redeemResult = await couponService.redeemWithEffect(
+        effectiveInviteCode,
+        user.id,
+        { entryPoint: "registration" },
+        undefined,
+        { scope: INVITE_CODE_REDEEM_SCOPE },
+      );
+      inviteCodeResult = redeemResult.success
+        ? { applied: true }
+        : { applied: false, reason: redeemResult.reason };
+      if (!redeemResult.success) {
+        console.warn(
+          `[registration] 招待コードを適用できませんでした（登録は続行）: reason=${redeemResult.reason}`,
+        );
+      }
     } catch (error) {
+      inviteCodeResult = { applied: false, reason: "error" };
       console.warn("[registration] 招待コード処理に失敗しましたが登録は続行します:", error);
     }
   }
@@ -209,6 +233,7 @@ export async function register(
       expiresAt,
       maxAge,
     },
+    inviteCode: inviteCodeResult,
   };
 }
 

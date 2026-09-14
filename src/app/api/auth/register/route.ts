@@ -51,7 +51,7 @@ export const POST = createApiRoute(
       ? req.cookies.get(INVITE_LINK_COOKIE_NAME)?.value?.trim() || null
       : null;
 
-    const { user, session } = await register(
+    const { user, session, inviteCode } = await register(
       body,
       ip ?? undefined,
       acquisition,
@@ -63,6 +63,8 @@ export const POST = createApiRoute(
       session: {
         expiresAt: session.expiresAt.toISOString(),
       },
+      // 招待コードの適用結果（null = 未指定）。登録自体は成功している
+      inviteCode,
     });
 
     issueSessionCookie({

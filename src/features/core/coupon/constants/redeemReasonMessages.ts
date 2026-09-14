@@ -14,6 +14,7 @@ export const COUPON_REDEEM_REASON_MESSAGES: Record<UsabilityReason, string> = {
   max_per_user_reached: "このクーポンの使用上限に達しました。",
   user_id_required: "このクーポンを使用するにはログインが必要です。",
   self_redeem_forbidden: "ご自身が発行したクーポンは使用できません。",
+  type_mismatch: "このコードはここでは使用できません。",
   category_mismatch: "このクーポンはこの用途には使用できません。",
   handler_rejected: "このクーポンの使用条件を満たしていません。",
 };

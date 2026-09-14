@@ -7,11 +7,13 @@ import type { z } from "zod";
 
 import type { User } from "@/features/core/user/entities";
 import { RegistrationSchema } from "@/features/core/auth/entities";
+import type { RegistrationInviteCodeResult } from "@/features/core/auth/entities/registration";
 import { normalizeHttpError } from "@/lib/errors";
 
 const ENDPOINT = "/api/auth/register";
 
 export type RegistrationPayload = z.infer<typeof RegistrationSchema>;
+export type { RegistrationInviteCodeResult };
 
 export type RegistrationOptions = {
   /** reCAPTCHA v3 トークン */
@@ -25,6 +27,8 @@ export type RegistrationResponse = {
   session: {
     expiresAt: string;
   };
+  /** 招待コードの適用結果（null = 未指定 / referral 無効）。登録自体は成功している */
+  inviteCode: RegistrationInviteCodeResult | null;
 };
 
 export async function register(

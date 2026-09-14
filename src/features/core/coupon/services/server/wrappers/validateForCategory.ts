@@ -13,7 +13,7 @@ import type { CategoryValidationResult } from "../../../types/redeem";
  *
  * 検証順序:
  * 1. isUsable() — 基本検証（存在、ステータス、期限、使用回数）
- * 2. カテゴリ一致チェック
+ * 2. カテゴリ一致チェック（isUsable の scope.categories として基底で判定）
  * 3. ハンドラーの validateForUse() — ドメイン固有の追加検証
  * 4. ハンドラーの resolveEffect() — 効果のプレビュー計算
  *
@@ -28,18 +28,13 @@ export async function validateForCategory(
   userId: string,
   metadata?: Record<string, unknown>
 ): Promise<CategoryValidationResult> {
-  // 1. 基本検証
-  const usability = await isUsable(code, userId);
+  // 1. 基本検証 + 2. カテゴリ一致チェック（基底の scope 判定に統合。不一致は category_mismatch）
+  const usability = await isUsable(code, userId, { scope: { categories: [category] } });
   if (!usability.usable) {
     return { valid: false, reason: usability.reason, coupon: usability.coupon };
   }
 
   const { coupon } = usability;
-
-  // 2. カテゴリ一致チェック
-  if (coupon.category !== category) {
-    return { valid: false, reason: "category_mismatch", coupon };
-  }
 
   // 3. ハンドラーによる追加検証
   const handler = getCouponHandler(category);

@@ -6,11 +6,15 @@ import { getByInvitee } from "./wrappers/getByInvitee";
 import { getByInviter } from "./wrappers/getByInviter";
 import { getInviteCodeListWithCounts } from "./wrappers/getInviteCodeListWithCounts";
 import { getStatsByInviters } from "./wrappers/getStatsByInviters";
+import { validateInviteCode } from "./wrappers/validateInviteCode";
 
 export type { ReferralInviterStats } from "./wrappers/getStatsByInviters";
+export type { InviteCodeValidationResult } from "./wrappers/validateInviteCode";
 
 export const referralService = {
   ...base,
+  // 招待コードのログイン前検証（type=invite スコープ、使用者判定は省略）
+  validateInviteCode,
   // クーポン使用 → referral 作成
   createReferralFromRedemption,
   // 紹介元・紹介先の取得

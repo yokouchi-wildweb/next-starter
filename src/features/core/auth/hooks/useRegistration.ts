@@ -6,7 +6,10 @@ import { useCallback, useState } from "react";
 import type { z } from "zod";
 
 import { RegistrationSchema } from "@/features/core/auth/entities";
-import { register as registerService } from "@/features/core/auth/services/client/registration";
+import {
+  register as registerService,
+  type RegistrationInviteCodeResult,
+} from "@/features/core/auth/services/client/registration";
 import type { User } from "@/features/core/user/entities";
 import { isHttpError, type HttpError } from "@/lib/errors";
 
@@ -24,6 +27,8 @@ export type RegistrationResult = {
   session: {
     expiresAt: string;
   };
+  /** 招待コードの適用結果（null = 未指定 / referral 無効） */
+  inviteCode: RegistrationInviteCodeResult | null;
 };
 
 export function useRegistration() {

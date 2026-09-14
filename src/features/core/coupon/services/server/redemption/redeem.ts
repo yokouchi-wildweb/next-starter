@@ -10,7 +10,7 @@ import {
   getCouponByCode,
   validateCouponStatically,
 } from "./utils";
-import type { RedeemResult } from "../../../types/redeem";
+import type { RedeemOptions, RedeemResult } from "../../../types/redeem";
 import type { Coupon } from "../../../entities/model";
 
 /**
@@ -19,7 +19,7 @@ import type { Coupon } from "../../../entities/model";
  * 処理フロー:
  * 1. トランザクション内で:
  *    - SELECT FOR UPDATE でロック取得
- *    - 静的バリデーション
+ *    - 静的バリデーション（options.scope の入口スコープを含む）
  *    - ユーザー使用回数チェック（max_uses_per_redeemer 設定時）
  *    - current_total_uses をインクリメント
  *    - 履歴記録
@@ -29,12 +29,14 @@ import type { Coupon } from "../../../entities/model";
  * @param redeemerUserId 使用者のユーザーID（オプション。max_uses_per_redeemer 設定時は必須）
  * @param additionalMetadata 追加のメタデータ（履歴に記録）
  * @param tx 外部トランザクション（オプション）
+ * @param options 入口スコープ（types / categories）。不一致は消込せず type_mismatch / category_mismatch
  */
 export async function redeem(
   code: string,
   redeemerUserId?: string | null,
   additionalMetadata?: Record<string, unknown>,
-  tx?: TransactionClient
+  tx?: TransactionClient,
+  options?: RedeemOptions
 ): Promise<RedeemResult> {
   return runWithTransaction(tx, async (trx) => {
     // SELECT FOR UPDATE でロック取得
@@ -44,8 +46,10 @@ export async function redeem(
       return { success: false, reason: "not_found" as const };
     }
 
-    // 静的バリデーション
-    const staticCheck = validateCouponStatically(lockedCoupon, redeemerUserId);
+    // 静的バリデーション（消込では使用者判定を省略できない: skipRedeemerChecks は型で除外）
+    const staticCheck = validateCouponStatically(lockedCoupon, redeemerUserId, {
+      scope: options?.scope,
+    });
     if (!staticCheck.valid) {
       return { success: false, reason: staticCheck.reason };
     }
