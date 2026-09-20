@@ -11,9 +11,10 @@
 //      （既存残高を「実行日取得扱い」の初期ロット1本に変換する。これを忘れると消費時にエラーになる）
 //   3. スケジューラに wallet-expire-lots を登録（推奨: 日次深夜帯）
 // 詳細: src/features/core/wallet/README.md
-
 //
 // 失効通知（予告・本通知）もこのファイルで通貨ごとに設定する（デフォルトは全て送らない）。
+// 注意: wallet-lots-init は既存の全残高を同じ日に失効するロットに変換するため、最初の失効日には
+// 通知が全ユーザーぶん集中する。ユーザー数が多い場合は sendConcurrency と cron の実行間隔を見直すこと。
 // 文言だけ変えたい場合は「通知の文面」ブロックの文字列を編集すればよい（ロジックに触れる必要はない）。
 
 import type { WalletType } from "./currency.config";
@@ -148,9 +149,10 @@ export const WALLET_EXPIRATION_NOTICE_SETTINGS = {
   targetStatuses: ["active", "inactive"] as readonly string[],
   /**
    * 同時に送信する件数。1 = 1件ずつ順番に送る。
-   * 送信量が多くメール基盤の流量制限に余裕があるプロジェクトだけ上げる。
+   * 1件の送信には数秒かかる（メール基盤への通信 + 記録の書き込み）ため、1 では1回の実行で
+   * 送れるのが百件前後にとどまる。メール基盤の流量制限と DB 接続数に収まる範囲で調整する。
    */
-  sendConcurrency: 1,
+  sendConcurrency: 5,
   /** 文面の日付（{{expiresOn}} / {{expiredOn}}）を表示するタイムゾーン */
   dateTimeZone: "Asia/Tokyo",
 };

@@ -45,7 +45,7 @@ export type ExpirationNoticeCounts = {
   skippedDemo: number;
   /** 送れるチャネルが無かった件数（メールのみ指定でメール未登録 等） */
   skippedNoChannel: number;
-  /** ユーザーが存在しなかった件数 */
+  /** ユーザーが存在しない、または削除済み（deleted_at あり）だった件数 */
   skippedUserMissing: number;
   /** 送信に失敗した件数（再実行しても再送されない。message_dispatches で確認する） */
   failed: number;
@@ -147,13 +147,14 @@ export async function sendExpirationNoticeJobs(
   counts.alreadySent += jobs.length - pending.length;
   if (pending.length === 0) return;
 
-  // 2. 送信対象の絞り込み（ステータス・demo・送れるチャネル）
+  // 2. 送信対象の絞り込み（削除済み・ステータス・demo・送れるチャネル）
   const users = await db
     .select({
       id: UserTable.id,
       status: UserTable.status,
       email: UserTable.email,
       isDemo: UserTable.isDemo,
+      deletedAt: UserTable.deletedAt,
     })
     .from(UserTable)
     .where(inArray(UserTable.id, [...new Set(pending.map((job) => job.userId))]));
@@ -163,7 +164,8 @@ export async function sendExpirationNoticeJobs(
   const sendable: { job: ExpirationNoticeJob; channels: WalletExpirationNoticeChannel[] }[] = [];
   for (const job of pending) {
     const user = userById.get(job.userId);
-    if (!user) {
+    // 汎用の remove は deleted_at を入れるだけで status を変えないため、ステータスとは別に見る
+    if (!user || user.deletedAt) {
       counts.skippedUserMissing += 1;
       continue;
     }
