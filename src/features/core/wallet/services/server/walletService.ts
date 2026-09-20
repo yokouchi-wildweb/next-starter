@@ -18,9 +18,15 @@ import type {
   BulkAdjustByTypeResult,
   ExpiringLotsSummary,
   UserExpiringAmount,
+  FindUsersWithExpiringLotsParams,
+  FindUsersWithExpiringLotsResult,
+  ListExpirationResultsParams,
+  ListExpirationResultsResult,
 } from "@/features/core/wallet/services/types";
 import { base } from "./drizzleBase";
 import { getExpiringLots, getExpiringSummaryByUsers } from "./lots/getExpiringLots";
+import { findUsersWithExpiringLots } from "./lots/findUsersWithExpiringLots";
+import { listExpirationResults } from "./lots/listExpirationResults";
 import { adjustBalance } from "./wrappers/adjustBalance";
 import { bulkAdjustByType } from "./wrappers/bulkAdjustByType";
 import { bulkAdjustByUsers, type BulkAdjustByUsersParams } from "./wrappers/bulkAdjustByUsers";
@@ -108,4 +114,14 @@ export const walletService = {
     walletType: WalletTypeValue,
     withinDays: number,
   ): Promise<UserExpiringAmount[]> => getExpiringSummaryByUsers(userIds, walletType, withinDays),
+
+  /** 指定窓内に失効するロットを持つユーザーを keyset ページングで抽出（失効予告の通知バッチ用） */
+  findUsersWithExpiringLots: (
+    params: FindUsersWithExpiringLotsParams,
+  ): Promise<FindUsersWithExpiringLotsResult> => findUsersWithExpiringLots(params),
+
+  /** 失効スイープのユーザー単位の結果を keyset ページングで取得（失効後の通知バッチ用） */
+  listExpirationResults: (
+    params?: ListExpirationResultsParams,
+  ): Promise<ListExpirationResultsResult> => listExpirationResults(params),
 };

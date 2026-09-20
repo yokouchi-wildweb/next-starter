@@ -649,7 +649,91 @@ const { data } = useMyExpiringLots(userId, "regular_coin", 30);
 
 UI レシピ例（ダウンストリームで実装）:
 - 残高ページに「うち ○○ コインが ○月○日 に失効します」バナー → `useMyExpiringLots` の `lots[0]`
-- 失効7日前のメール通知バッチ → `getExpiringSummaryByUsers(userIds, type, 7)` で対象抽出
+- 失効前・失効後のユーザー通知 → 次節「失効通知バッチ」
+
+### 失効通知バッチ（対象抽出・スイープ結果のデータソース）
+
+`sweepEnabled: true` にするとスイープは残高を没収するが、**ユーザーへの通知はコアからは一切送られない**
+（履歴行が残るだけ）。通知の文面・チャネル・タイミングは運営ごとに異なるためダウンストリーム所有とし、
+コアは「誰に送るべきか」を取りこぼしなく取り出すデータレイヤを提供する。
+スイープを有効化する前に、少なくとも失効前通知を用意すること。
+
+```typescript
+// 失効前: 指定窓内に失効するロットを持つユーザー（userId の keyset ページング）
+const { items, nextCursor } = await walletService.findUsersWithExpiringLots({
+  walletType: "regular_coin",
+  expiresFrom, // 窓の下限（含む）
+  expiresTo,   // 窓の上限（含まない）
+  cursor,      // 前ページの nextCursor
+  limit: 500,
+});
+// items: [{ userId, totalExpiring, earliestExpiresAt }]
+
+// 失効後: スイープのユーザー単位の結果（(失効処理日時, historyId) の keyset ページング）
+const { items, nextCursor } = await walletService.listExpirationResults({
+  walletType: "regular_coin",
+  createdFrom, // 失効処理日時の下限（含む）
+  cursor,
+  limit: 500,
+});
+// items: [{ historyId, userId, walletType, expiredAmount, balanceBefore, balanceAfter, requestBatchId, expiredAt }]
+```
+
+設計上の決めごと:
+
+- **スイープ本体に通知フックは無い（意図的）**。commit 後に呼ぶフックはプロセス断・例外で通知が失われ再送できず、
+  通知処理の遅さが没収 cron の実行時間を圧迫する。失効の per-user 記録は同一TXで `wallet_histories` に
+  書かれているため、通知は**別 cron から pull する**（再実行可能・スイープのロックと実行時間に影響しない）
+- **窓は絶対時刻で渡す**。`NOW()` 起点の相対日数はページをまたぐたびに窓がずれ、境界のユーザーが欠落・重複する。
+  1回の実行の最初に窓を確定し、全ページで同じ値を渡すこと
+- `findUsersWithExpiringLots` は1ページごとに窓内のロット数ぶんの走査コストがかかる。**窓は狭く**（1日幅など）取る
+- `listExpirationResults` は `createdUntil` 省略時に直近5分の行を読まない（commit 前の行を追い越して
+  取りこぼすのを防ぐ安全ラグ）。`requestBatchId` 指定時はラグなし
+  （`sweepExpiredWalletLots` の戻り値 `requestBatchId` でその実行分だけを読む用途）
+- cursor はどちらも不透明な文字列として扱う（中身を組み立てない）
+
+#### レシピ: 通知バッチ cron（ダウンストリームで実装）
+
+進捗は `cron_checkpoints`、二重送信防止は `messagingService.send` の `idempotencyKey`（UNIQUE。同一キーの再実行は
+送信前に 409）で足りる。**通知済みテーブルを新設する必要はない**。
+
+```typescript
+// 失効前通知（例: 失効7日前）。チェックポイント = 「ここまでの expires_at は通知済み」の水位
+const NAME = "wallet-expiring-notice:regular_coin";
+const expiresTo = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+const expiresFrom = await getCheckpoint(NAME, new Date()); // 初回は導入時点以降のみ
+
+const result = await runBudgetedBatches({
+  deadline: createDeadline(budgetMs),
+  fetchNext: async (cursor?: string) => {
+    const page = await walletService.findUsersWithExpiringLots({
+      walletType: "regular_coin", expiresFrom, expiresTo, cursor,
+    });
+    if (page.items.length === 0) return null;
+    return { items: page.items, cursor: page.nextCursor ?? "", done: page.nextCursor === null };
+  },
+  processChunk: async (users) => {
+    for (const u of users) {
+      const expiresOn = u.earliestExpiresAt.toISOString().slice(0, 10);
+      await sendOnce({
+        idempotencyKey: `wallet-expiring:7d:${u.userId}:regular_coin:${expiresOn}`,
+        // ...文面・チャネルは下流で決める
+      });
+    }
+  },
+});
+// 窓を最後まで処理できた時だけ水位を進める（途中中断なら次回は同じ窓を再処理 → 冪等性キーが重複を吸収）
+if (result.exhausted) await advanceCheckpoint(NAME, expiresTo);
+```
+
+- cron を1日飛ばしても、次回の窓が「前回の水位〜現在+7日」に自動で広がって回収される
+- 失効後通知も同じ形: `getCheckpoint` を `createdFrom` に、`listExpirationResults` を `fetchNext` に、
+  冪等性キーを `wallet-expired:${historyId}` にする。水位は処理済みページ末尾の `expiredAt` を `onChunkDone` で前進
+  （`createdFrom` は「含む」かつチェックポイントはミリ秒精度のため境界行を再取得し得るが、冪等性キーが吸収する）
+- `sendOnce` は `messagingService.send` を呼び、409（同一キー送信済み）を成功扱いにする薄いラッパー。
+  キーの行は送信**前**に INSERT されるため、送信自体が失敗した分は再実行では再送されない
+  （`message_dispatches` に失敗として残るので運用で確認する）
+- ユーザー向け送信は必ず `messagingService` 経由（`lib/mail` 直呼び禁止）。新しい cron は OPS_TASKS の4点配線に従う
 
 ### 実装ファイル
 
@@ -657,6 +741,8 @@ UI レシピ例（ダウンストリームで実装）:
 - 失効スイープ: `services/server/lots/sweepExpiredLots.ts`
 - 初期化: `services/server/lots/initWalletLots.ts`
 - 照会: `services/server/lots/getExpiringLots.ts`
+- 通知バッチ用の対象抽出: `services/server/lots/findUsersWithExpiringLots.ts`
+- 通知バッチ用のスイープ結果照会: `services/server/lots/listExpirationResults.ts`
 - 消費済みロットの prune: `services/server/lots/pruneConsumedLots.ts`
 - 設定: `src/config/app/wallet-expiration.config.ts`
 

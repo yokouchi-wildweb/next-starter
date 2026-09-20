@@ -42,6 +42,12 @@ export type SweepExpiredLotsResult = {
   iterations: number;
   /** 上限到達で打ち切られた場合 true（次回 cron で残りを処理） */
   truncated: boolean;
+  /**
+   * この実行の識別子（wallet_histories.request_batch_id / audit の targetId と一致）。
+   * ユーザー単位の結果は listExpirationResults({ requestBatchId }) で照会できる。
+   * スイープ対象の通貨が無く no-op だった場合は null
+   */
+  requestBatchId: string | null;
 };
 
 type WalletSweepPlan = {
@@ -66,7 +72,13 @@ export async function sweepExpiredWalletLots(
   const sweepTypes = getSweepEnabledWalletTypes();
 
   if (sweepTypes.length === 0) {
-    return { sweptWallets: 0, expiredAmount: 0, iterations: 0, truncated: false };
+    return {
+      sweptWallets: 0,
+      expiredAmount: 0,
+      iterations: 0,
+      truncated: false,
+      requestBatchId: null,
+    };
   }
 
   return runAsSystem(async () => {
@@ -252,6 +264,7 @@ export async function sweepExpiredWalletLots(
       expiredAmount,
       iterations,
       truncated: hasMore && iterations >= maxIterations,
+      requestBatchId,
     };
   });
 }

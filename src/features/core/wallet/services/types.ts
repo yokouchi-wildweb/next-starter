@@ -143,6 +143,77 @@ export type UserExpiringAmount = {
   expiringAmount: number;
 };
 
+/** 失効間近ロットを持つユーザー1件（findUsersWithExpiringLots の結果要素） */
+export type ExpiringLotUser = {
+  userId: string;
+  /** 指定窓内に失効する合計額 */
+  totalExpiring: number;
+  /** 指定窓内で最も早い失効日時 */
+  earliestExpiresAt: Date;
+};
+
+export type FindUsersWithExpiringLotsParams = {
+  walletType: WalletTypeValue;
+  /**
+   * 失効日時の窓（下限・含む）。現在時刻より過去を指定しても、期限切れ済み（未スイープ）の
+   * ロットは対象外（getExpiringLots と同じ意味論）。
+   */
+  expiresFrom: Date;
+  /** 失効日時の窓（上限・含まない） */
+  expiresTo: Date;
+  /** 前ページの nextCursor（不透明な文字列として扱うこと） */
+  cursor?: string | null;
+  /** 1ページの件数（デフォルト 500、上限 1000） */
+  limit?: number;
+};
+
+export type FindUsersWithExpiringLotsResult = {
+  /** userId 昇順 */
+  items: ExpiringLotUser[];
+  /** 次ページが無ければ null */
+  nextCursor: string | null;
+};
+
+/** 失効スイープのユーザー単位の結果1件（listExpirationResults の結果要素） */
+export type WalletExpirationResultItem = {
+  /** wallet_histories.id（通知の冪等性キーに使える） */
+  historyId: string;
+  userId: string;
+  walletType: WalletTypeValue;
+  /** 失効（没収）した額 */
+  expiredAmount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  /** スイープ1実行の識別子（SweepExpiredLotsResult.requestBatchId と一致） */
+  requestBatchId: string | null;
+  /** 失効処理日時（wallet_histories.created_at） */
+  expiredAt: Date;
+};
+
+export type ListExpirationResultsParams = {
+  walletType?: WalletTypeValue;
+  /** 特定のスイープ実行に絞る */
+  requestBatchId?: string;
+  /** 失効処理日時の下限（含む） */
+  createdFrom?: Date;
+  /**
+   * 失効処理日時の上限（含まない）。
+   * 省略時: requestBatchId 指定なし = 現在時刻 − 安全ラグ / 指定あり = 上限なし。
+   */
+  createdUntil?: Date;
+  /** 前ページの nextCursor（不透明な文字列として扱うこと） */
+  cursor?: string | null;
+  /** 1ページの件数（デフォルト 500、上限 1000） */
+  limit?: number;
+};
+
+export type ListExpirationResultsResult = {
+  /** 失効処理日時昇順（同時刻は historyId 昇順） */
+  items: WalletExpirationResultItem[];
+  /** 次ページが無ければ null */
+  nextCursor: string | null;
+};
+
 /** GET /api/me/wallet/expiring のレスポンス（JSON 経由のため expiresAt は ISO 文字列） */
 export type ExpiringLotsPayload = {
   lots: { expiresAt: string; amount: number }[];

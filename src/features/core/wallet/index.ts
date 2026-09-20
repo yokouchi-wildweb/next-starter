@@ -21,6 +21,12 @@ export type {
   ExpiringLotsSummary,
   UserExpiringAmount,
   ExpiringLotsPayload,
+  ExpiringLotUser,
+  FindUsersWithExpiringLotsParams,
+  FindUsersWithExpiringLotsResult,
+  WalletExpirationResultItem,
+  ListExpirationResultsParams,
+  ListExpirationResultsResult,
 } from './services/types';
 
 // トランザクション関連の型
