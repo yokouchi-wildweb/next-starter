@@ -106,6 +106,21 @@
 - **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
 - **レスポンス例**: `{ "ok": true, "deletedCount": 8000, "iterations": 8, "truncated": false }`
 
+### `wallet-expiration-notice`
+
+ウォレットの失効通知（失効予告 + 失効時の本通知）をメール / サービス内通知で送る。
+`wallet-expiration.config.ts` の通貨ごとの `notice` を設定した場合のみ動作し、未設定（デフォルト）なら
+クエリを発行せず即終了の no-op。登録したままでも害はない。冪等（同じ対象には1回しか届かない）。
+時間予算（240秒）内で送りきれなかった分は次回実行が続きから処理する。
+
+- **API**: `GET /api/cron/wallet-expiration-notice`
+- **CLI**: `pnpm task wallet-expiration-notice`
+- **推奨スケジュール**: `10 * * * *` （毎時。送信量が多ければ頻度を上げる。メールを送る時間帯を絞るならスケジュール側で制限）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **レスポンス例**: `{ "ok": true, "skipped": false, "preExpiry": { "sent": 40, "alreadySent": 0, "failed": 0, "exhausted": true, ... }, "expired": { "sent": 120, ... }, "aborted": false }`
+- **監視**: `aborted: true` は送信の連続失敗による打ち切り（メール基盤の障害など）。`failed` が増えている場合は `message_dispatches` を確認
+- **詳細**: `src/features/core/wallet/README.md` の「失効通知」
+
 > **Note**: `pnpm task wallet-lots-init` はタスクランナーに登録されているが**定期実行してはいけない**
 > （ウォレット有効期限の導入時に1回だけ手動実行するデータ移行。再実行は全ユーザーの失効カウントをリセットする）。
 
@@ -132,7 +147,8 @@
     { "path": "/api/cron/device-fingerprint-prune",      "schedule": "15 4 * * *" },
     { "path": "/api/cron/fingerprint-challenge-access-prune", "schedule": "20 4 * * *" },
     { "path": "/api/cron/wallet-expire-lots",            "schedule": "30 4 * * *" },
-    { "path": "/api/cron/wallet-lots-prune",             "schedule": "45 4 * * *" }
+    { "path": "/api/cron/wallet-lots-prune",             "schedule": "45 4 * * *" },
+    { "path": "/api/cron/wallet-expiration-notice",      "schedule": "10 * * * *" }
   ]
 }
 ```

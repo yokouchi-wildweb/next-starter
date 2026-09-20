@@ -11,7 +11,7 @@
 //      メールを 1 通も送る前にここで 409 として拒否される
 // 2. completeDispatch: 送信処理の完走後、成功/失敗件数と status='completed' を UPDATE する。
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/drizzle";
 import { getAuditContext } from "@/lib/audit";
@@ -108,6 +108,22 @@ export async function completeDispatch(
       completed_at: new Date(),
     })
     .where(eq(MessageDispatchTable.id, params.dispatchId));
+}
+
+/**
+ * 渡した冪等性キーのうち、既に送信ジョブが存在するものを返す（単一クエリ）。
+ *
+ * バッチ送信が再実行で同じ対象を読み直したとき、1件ずつ send() を呼んで 409 を受ける代わりに
+ * ページ単位で送信済みを除外するためのもの。存在判定のみで、送信の成否は区別しない
+ * （冪等性キーの行は送信「前」に作られるため、送信に失敗した行も「存在する」側に入る）。
+ */
+export async function findExistingIdempotencyKeys(keys: string[]): Promise<Set<string>> {
+  if (keys.length === 0) return new Set();
+  const rows = await db
+    .select({ key: MessageDispatchTable.idempotency_key })
+    .from(MessageDispatchTable)
+    .where(inArray(MessageDispatchTable.idempotency_key, keys));
+  return new Set(rows.flatMap((row) => (row.key ? [row.key] : [])));
 }
 
 /**

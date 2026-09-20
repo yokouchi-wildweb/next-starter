@@ -114,6 +114,12 @@ const TASKS: Record<string, TaskFn> = {
     );
     return await sweepExpiredWalletLots();
   },
+  "wallet-expiration-notice": async () => {
+    const { sendWalletExpirationNotices } = await import(
+      "@/features/core/wallet/services/server/notification/sendWalletExpirationNotices"
+    );
+    return await sendWalletExpirationNotices();
+  },
   "wallet-lots-prune": async () => {
     const { pruneConsumedWalletLots } = await import(
       "@/features/core/wallet/services/server/lots/pruneConsumedLots"

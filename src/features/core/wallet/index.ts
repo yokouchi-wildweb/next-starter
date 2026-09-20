@@ -35,7 +35,14 @@ export type { TransactionClient } from './services/server/wrappers/utils';
 // 設定
 export { CURRENCY_CONFIG } from '@/config/app/currency.config';
 export { WALLET_EXPIRATION_CONFIG } from '@/config/app/wallet-expiration.config';
-export type { WalletExpirationConfig } from '@/config/app/wallet-expiration.config';
+export type {
+  WalletExpirationConfig,
+  WalletExpirationNoticeConfig,
+  WalletExpirationNoticeChannel,
+  WalletExpirationNoticeCopy,
+  WalletPreExpiryNoticeStage,
+  WalletExpiredNotice,
+} from '@/config/app/wallet-expiration.config';
 
 // 派生定数
 export { WalletTypeOptions } from './constants/currency';
@@ -57,5 +64,7 @@ export {
   isSweepEnabled,
   getExpirationEnabledWalletTypes,
   getSweepEnabledWalletTypes,
+  getPreExpiryNoticeStages,
+  getExpiredNotice,
   calcExpiresAt,
 } from './utils/expiration';

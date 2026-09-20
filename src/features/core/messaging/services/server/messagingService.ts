@@ -3,6 +3,7 @@
 // messaging ドメインの公開 API。本ファイルから import して使うのが基本（個別ファイル直接 import は避ける）。
 
 import { bulkSend } from "./bulkSend";
+import { findExistingIdempotencyKeys } from "./dispatch";
 import { send } from "./send";
 
 /**
@@ -21,6 +22,8 @@ import { send } from "./send";
 export const messagingService = {
   send,
   bulkSend,
+  /** 渡した冪等性キーのうち送信ジョブが既に存在するものを返す（バッチ送信の送信済み除外用） */
+  findExistingIdempotencyKeys,
 } as const;
 
 export type MessagingService = typeof messagingService;
