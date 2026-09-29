@@ -79,6 +79,10 @@ export type DialogProps = {
   confirmDisabled?: boolean;
   confirmVariant?: ButtonStyleProps["variant"];
   cancelVariant?: ButtonStyleProps["variant"];
+  /** 開いた直後の自動フォーカス制御（Radix の onOpenAutoFocus をそのまま透過）。
+   * 未指定時は Radix 既定（最初のフォーカス可能要素へフォーカス）。
+   * preventDefault() で抑止する場合は代替フォーカスを推奨（Overlays/README.md のレシピ参照）。 */
+  onOpenAutoFocus?: (event: Event) => void;
   onCloseAutoFocus?: (event: Event) => void;
 };
 
@@ -104,6 +108,7 @@ export function Dialog({
   confirmDisabled,
   confirmVariant = "primary",
   cancelVariant = "outline",
+  onOpenAutoFocus,
   onCloseAutoFocus,
 }: DialogProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -146,6 +151,7 @@ export function Dialog({
         className="flex flex-col max-h-[calc(100dvh-2rem)]"
         layer={layer}
         overlayLayer={overlayLayer}
+        onOpenAutoFocus={onOpenAutoFocus}
         onCloseAutoFocus={onCloseAutoFocus}
         // description 未指定を明示しないと Radix が警告を出す（指定時は Radix が自動で紐付ける）
         {...(description ? {} : { "aria-describedby": undefined })}

@@ -88,6 +88,7 @@ import { Dialog } from "@/components/Overlays/Dialog";
 | `confirmDisabled` | `boolean` | - | 確認ボタンの無効化 |
 | `confirmVariant` | `ButtonStyleProps["variant"]` | `"primary"` | 確認ボタンのスタイル |
 | `cancelVariant` | `ButtonStyleProps["variant"]` | `"outline"` | キャンセルボタンのスタイル |
+| `onOpenAutoFocus` | `(event: Event) => void` | - | 開いた直後の自動フォーカス制御（使い方は Modal の「onOpenAutoFocus の使用例」と同じ） |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 
 **型定義:**
@@ -137,6 +138,7 @@ import Modal from "@/components/Overlays/Modal";
 | `height` | `number \| string` | - | 本体の高さ（指定すると内部がスクロール領域でラップされる）。デフォルト最大高さを超える指定は内部でクランプされる |
 | `scrollable` | `boolean` | `true` | `false` で固定高コンテナモード：本体ラッパーがスクロールせず（overflow-clip）、consumer が用意した内側領域だけをスクロールさせる。詳細は下記 |
 | `bodyRef` | `Ref<HTMLDivElement>` | - | 本体ラッパー（スクロール領域）の DOM 参照。スクロール位置を操作したい場合に使う（TabbedModal はタブ切替時の先頭戻しに使用） |
+| `onOpenAutoFocus` | `(event: Event) => void` | - | 開いた直後の自動フォーカス制御。未指定時は Radix 既定（最初のフォーカス可能要素へフォーカス） |
 | `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御 |
 
 デフォルトで `maxHeight` が設定されているため、長いコンテンツは常にビューポート内に収まり内部スクロールされる。タイトル部 (DialogHeader) は固定で、本体だけがスクロールする。デフォルトを無効化したい場合は `maxHeight={null}` を渡す。
@@ -238,6 +240,42 @@ const [confirmOpen, setConfirmOpen] = useState(false);
 // confirmOpen に応じて任意の確認 UI を表示し、承諾時に setIsOpen(false) を呼ぶ
 ```
 
+**onOpenAutoFocus の使用例:**
+
+Radix は開いた直後に「最初のフォーカス可能要素」へ自動フォーカスする。先頭が入力欄のモーダルをタッチ端末で開くと、開くたびにソフトウェアキーボードや入力 UI が反応してしまう。これを避けたい場合に使う。
+
+```tsx
+// 推奨: 入力欄への自動フォーカスを止め、代わりにモーダルの箱自体へフォーカスを移す
+<Modal
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  title="来店登録"
+  onOpenAutoFocus={(e) => {
+    e.preventDefault(); // 既定の自動フォーカスを無効化
+    (e.currentTarget as HTMLElement | null)?.focus(); // 箱（role="dialog"）へ移す
+  }}
+>
+  <VisitForm />
+</Modal>
+
+// 特定の要素へ移す場合
+<Modal
+  open={isOpen}
+  onOpenChange={setIsOpen}
+  onOpenAutoFocus={(e) => {
+    e.preventDefault();
+    submitButtonRef.current?.focus();
+  }}
+>
+  {/* ... */}
+</Modal>
+```
+
+- イベントは箱（`role="dialog"` の要素、`tabIndex=-1`）上で発火するため、`e.currentTarget` が箱自体を指す。
+- `e.preventDefault()` だけでも抑止はできるが、フォーカスがモーダルの外（開いたトリガー）に残る。Radix のフォーカストラップ（Tab 移動の閉じ込め）は「フォーカスが一度箱の中に入ってから」効き始めるため、抑止だけだとキーボードの Tab が背面の要素へ流れ、スクリーンリーダーの起点もモーダル内に入らない。上記のように箱か内部要素へ移すことを推奨する（タッチ専用画面で割り切る場合のみ抑止単独でも可）。ESC での閉じは抑止単独でも機能する。
+- 未指定時の挙動は従来どおり（Radix 既定）。Dialog / TabbedModal / DetailModal でも同じ prop が使える。
+- Popover 系は `PopoverContent` の props をそのまま透過しているため、元から `onOpenAutoFocus` / `onCloseAutoFocus` を渡せる。
+
 **onCloseAutoFocus の使用例:**
 
 ```tsx
@@ -312,6 +350,7 @@ import TabbedModal from "@/components/Overlays/TabbedModal";
 **構造メモ:**
 - 本体スクロール領域は全タブで共有され、タブ切替時に先頭へ戻る（Modal の `bodyRef` 経由）。
 - 閉じるときは Modal と同じく Radix の閉じアニメーションとトリガーへのフォーカス復帰が働く（`onCloseAutoFocus` 有効）。
+- 開いた直後の自動フォーカスも Modal と同じく `onOpenAutoFocus` で制御できる（Modal の props を継承して透過）。
 - `Tabs.Root` は呼び出し元ツリーに `display: contents` で置かれ、Stack 等の flex/gap レイアウトを消費しない。
 
 ---
@@ -350,6 +389,8 @@ import DetailModal from "@/components/Overlays/DetailModal";
 | `rows` | `DetailModalRow[]` | - | `{ label, value }` の配列、または `ReactNode[]` によるカスタム行 |
 | `footer` | `ReactNode` | - | テーブル下に任意のフッターを配置 |
 | `className` | `string` | - | 追加クラス |
+| `onOpenAutoFocus` | `(event: Event) => void` | - | 開いた直後の自動フォーカス制御（Modal へ透過） |
+| `onCloseAutoFocus` | `(event: Event) => void` | - | 閉じた後のフォーカス制御（Modal へ透過） |
 
 `rows` へ `ReactNode[]` を渡すと、列幅を柔軟に変えたカスタム行を作成できる。
 

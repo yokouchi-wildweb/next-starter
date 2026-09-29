@@ -32,6 +32,8 @@ export default function DetailModal({
   rows,
   footer,
   className,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
 }: DetailModalProps) {
   // ヘッダー部分のタイトル要素を組み立てる
   const badgeText = badge?.text;
@@ -85,6 +87,8 @@ export default function DetailModal({
       title={modalTitle}
       titleSrOnly={titleSrOnly}
       className={cn("animate-[fade-in-scale] fill-both", className)}
+      onOpenAutoFocus={onOpenAutoFocus}
+      onCloseAutoFocus={onCloseAutoFocus}
     >
       <Block>
         {resolvedMediaNode}

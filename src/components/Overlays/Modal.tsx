@@ -69,6 +69,11 @@ export type ModalProps = {
    * consumer 側でスクロール位置を操作したい場合に使う。
    * ラッパーが描画されない場合（maxHeight: null かつ minHeight / height 未指定）は null のまま。 */
   bodyRef?: Ref<HTMLDivElement>;
+  /** 開いた直後の自動フォーカス制御（Radix の onOpenAutoFocus をそのまま透過）。
+   * 未指定時は Radix 既定（最初のフォーカス可能要素へフォーカス）。
+   * preventDefault() で抑止できるが、抑止だけだとフォーカスがモーダルの外に残るため、
+   * 箱自体へ移す等の代替フォーカスを推奨（Overlays/README.md のレシピ参照）。 */
+  onOpenAutoFocus?: (event: Event) => void;
   onCloseAutoFocus?: (event: Event) => void;
 };
 
@@ -110,6 +115,7 @@ export default function Modal({
   height,
   scrollable = true,
   bodyRef,
+  onOpenAutoFocus,
   onCloseAutoFocus,
 }: ModalProps) {
   // 閉じ確認ダイアログの表示状態（confirmOnClose 用）
@@ -189,6 +195,7 @@ export default function Modal({
           // grid → flex-col: 箱の max-h に対して本体ラッパー（min-h-0）だけが縮む構造にする
           className={cn("flex flex-col", clampEnabled && CONTENT_MAX_HEIGHT_CLASS, className)}
           maxWidth={maxWidth}
+          onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
           // Modal は description を持たない。未指定を明示しないと Radix が警告を出す
           aria-describedby={undefined}

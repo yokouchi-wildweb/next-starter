@@ -33,4 +33,8 @@ export type DetailModalProps = {
   rows?: DetailModalRow[];
   footer?: ReactNode;
   className?: string;
+  /** 開いた直後の自動フォーカス制御（Modal 経由で Radix に透過） */
+  onOpenAutoFocus?: (event: Event) => void;
+  /** 閉じた後のフォーカス制御（Modal 経由で Radix に透過） */
+  onCloseAutoFocus?: (event: Event) => void;
 };
