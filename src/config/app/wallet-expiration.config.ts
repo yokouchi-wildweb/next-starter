@@ -149,8 +149,9 @@ export const WALLET_EXPIRATION_NOTICE_SETTINGS = {
   targetStatuses: ["active", "inactive"] as readonly string[],
   /**
    * 同時に送信する件数。1 = 1件ずつ順番に送る。
-   * 1件の送信には数秒かかる（メール基盤への通信 + 記録の書き込み）ため、1 では1回の実行で
-   * 送れるのが百件前後にとどまる。メール基盤の流量制限と DB 接続数に収まる範囲で調整する。
+   * 1件の送信には1秒弱かかる（メール基盤への通信 + 記録の書き込み）ため、1 では1回の実行で
+   * 送れるのが数百件にとどまる。メール基盤の流量制限と DB 接続数に収まる範囲で調整する。
+   * 件数の目安: src/features/core/wallet/README.md「送信量の目安」
    */
   sendConcurrency: 5,
   /** 文面の日付（{{expiresOn}} / {{expiredOn}}）を表示するタイムゾーン */
