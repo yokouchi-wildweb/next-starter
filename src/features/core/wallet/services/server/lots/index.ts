@@ -13,6 +13,11 @@ export { sweepExpiredWalletLots } from "./sweepExpiredLots";
 export type { SweepExpiredLotsOptions, SweepExpiredLotsResult } from "./sweepExpiredLots";
 export { initWalletLots } from "./initWalletLots";
 export type { InitWalletLotsResult } from "./initWalletLots";
+export { initWalletLotsFromHistory } from "./initWalletLotsFromHistory";
+export type {
+  InitWalletLotsFromHistoryOptions,
+  InitWalletLotsFromHistoryResult,
+} from "./initWalletLotsFromHistory";
 export { getExpiringLots, getExpiringSummaryByUsers } from "./getExpiringLots";
 export { findUsersWithExpiringLots } from "./findUsersWithExpiringLots";
 export { listExpirationResults } from "./listExpirationResults";

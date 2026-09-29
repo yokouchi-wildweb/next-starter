@@ -604,11 +604,37 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
    ```typescript
    regular_coin: { expirationDays: 180, sweepEnabled: true },
    ```
-2. デプロイ後**すぐに**初期化を1回実行（既存残高を「実行日取得扱い」の初期ロット1本に変換）:
+2. デプロイ後**すぐに**初期化を1回実行する。方式は2つあり、**どちらか一方だけ**を実行する:
+
+   | 方式 | タスク | 既存残高の扱い | 導入直後の失効 |
+   |---|---|---|---|
+   | 導入日から数える | `wallet-lots-init` | 全額を「実行日取得扱い」の初期ロット1本に変換 | expirationDays の間は何も失効しない |
+   | 実際の付与日から数える | `wallet-lots-init-from-history` | 付与履歴（`wallet_histories`）からロットを復元 | 既に expirationDays を超えて残っている分は次回スイープで没収される |
+
    ```bash
+   # 導入日から数える
    pnpm task wallet-lots-init
+
+   # 実際の付与日から数える（先に dry-run で対象件数と没収見込み額を確認する）
+   pnpm task wallet-lots-init-from-history -- --dry-run
+   pnpm task wallet-lots-init-from-history
    ```
-   **注意**: config 有効化から初期化完了までの間、対象通貨の消費はロット不整合エラー（500）になる。低トラフィック帯に実施するか、メンテナンスモードを併用すること。
+   **注意**: config 有効化から初期化完了までの間、対象通貨の消費はロット不整合エラー（500）になる（どちらの方式でも同じ）。低トラフィック帯に実施するか、メンテナンスモードを併用すること。
+
+   `wallet-lots-init-from-history` を選ぶ場合の前提と注意:
+   - **直近 expirationDays ぶんの `wallet_histories` が欠けていないこと**。履歴を残さない残高変更
+     （`adjustBalance` の `skipHistory: true`、DB の直接更新など）があると、その分だけ復元結果がずれる
+     （履歴に無い付与は「期限を過ぎた分」として扱われる）
+   - 復元の規則: 消費は FIFO なので残高は新しい付与の側に残る。履歴を新しい順に辿り、残高を使い切るまで
+     付与額を割り当てる。SET はその時点で残り全額を取得した扱いにする（通常の SET と同じ解釈）。
+     `created_at` が NULL の履歴行は読み飛ばす
+   - 期限を過ぎた分は「実行開始時刻に失効するロット」1本になる。**初期化そのものは没収しない**。
+     没収は通常の失効スイープ（`wallet-expire-lots`）が行うため、履歴・audit・通知の経路は通常と同じ
+   - **`sweepEnabled: true` とセットで使うこと**。期限を過ぎたロットは失効間近の照会（`getExpiringLots` など）に
+     出ないため、`sweepEnabled: false` のままだと没収もされず画面にも出ない状態で残る
+   - **期限を過ぎた分には失効予告が届かない**（予告を送る猶予が無い）。本通知は、通知の cron が
+     スイープより前に1回以上動いていれば届く。規約の告知などで事前に周知しておくこと
+   - dry-run の `overdueAmount` は没収見込み額の上限。実際の没収額は locked_balance 保護によりこれ以下になる
 3. 失効スイープと prune のスケジュール登録を確認:
    ```
    30 4 * * *  → GET /api/cron/wallet-expire-lots （失効の没収）
@@ -630,7 +656,10 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
 ### 運用ルール
 
 - **wallet-lots-init の再実行は失効カウントをリセットする**。導入時の1回だけ実行し、再実行は障害復旧時に限る
-- **無効化→再有効化**: 無効化中は消費がロットに反映されないため、再有効化時は必ず `wallet-lots-init` を再実行して re-baseline すること
+- **wallet-lots-init-from-history の再実行は、その時点の残高と履歴からロットを作り直す**。既に没収された分は
+  残高から引かれているので二重に没収されることはない。導入時と違う方式で再実行すると失効日が変わる点に注意
+- **無効化→再有効化**: 無効化中は消費がロットに反映されないため、再有効化時は必ず初期化
+  （`wallet-lots-init` / `wallet-lots-init-from-history` のどちらか）を再実行して re-baseline すること
 - **sweepEnabled: false**: ロット記録と失効間近照会だけ先行させ、没収は行わない（規約告知期間などに使用）
 - **locked_balance 保護**: 失効額は利用可能残高（`balance - locked_balance`）が上限。予約中の分は失効せず次回スイープに持ち越し
 - 規約側の文言は「失効は取得が古い順に充当（FIFO）」前提になっているか確認すること
@@ -782,7 +811,9 @@ const { items, nextCursor } = await walletService.listExpirationResults({
 
 - ロット会計（全経路から呼ばれる）: `services/server/lots/lotAccounting.ts`
 - 失効スイープ: `services/server/lots/sweepExpiredLots.ts`
-- 初期化: `services/server/lots/initWalletLots.ts`
+- 初期化（導入日から数える）: `services/server/lots/initWalletLots.ts`
+- 初期化（実際の付与日から数える）: `services/server/lots/initWalletLotsFromHistory.ts`
+  （復元ロジックの純粋関数: `utils/lotPlanning.ts` / テスト: `pnpm test:wallet-lot-planning`）
 - 照会: `services/server/lots/getExpiringLots.ts`
 - 失効通知の cron 本体: `services/server/notification/sendWalletExpirationNotices.ts`
   （予告: `sendPreExpiryNotices.ts` / 本通知: `sendExpiredNotices.ts` / 共通の送信処理: `expirationNoticeSender.ts`）

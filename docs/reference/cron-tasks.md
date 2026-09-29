@@ -124,6 +124,11 @@
 > **Note**: `pnpm task wallet-lots-init` はタスクランナーに登録されているが**定期実行してはいけない**
 > （ウォレット有効期限の導入時に1回だけ手動実行するデータ移行。再実行は全ユーザーの失効カウントをリセットする）。
 
+> **Note**: `pnpm task wallet-lots-init-from-history` も one-shot タスクで**定期実行しない**
+> （`wallet-lots-init` の代替で、導入時に**どちらか一方だけ**を1回実行する。付与履歴から実際の付与日でロットを復元し、
+> 既に期限を過ぎている分は次回の `wallet-expire-lots` で没収される。`-- --dry-run` で対象件数と没収見込み額の事前確認が可能。
+> 詳細: `src/features/core/wallet/README.md` の「導入手順」）。
+
 > **Note**: `pnpm task user-name-dedup` も one-shot タスクで**定期実行しない**
 > （表示名の一意性 `USER_NAME_CONFIG.unique` を有効化する際に1回だけ実行し、既存の重複表示名へ
 > サフィックスを付与して解消する。冪等なので再実行は安全。`-- --dry-run` で対象の事前確認が可能。

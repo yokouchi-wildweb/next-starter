@@ -133,6 +133,16 @@ const TASKS: Record<string, TaskFn> = {
     );
     return await initWalletLots();
   },
+  // 導入時1回だけの初期化（定期実行しない。wallet-lots-init の代替でどちらか一方だけ実行する）:
+  // 付与履歴からロットを復元し、既に期限を過ぎた分を次回スイープの没収対象にする
+  // 使い方: pnpm task wallet-lots-init-from-history -- --dry-run で対象確認 → dry-run なしで実行
+  "wallet-lots-init-from-history": async () => {
+    const { initWalletLotsFromHistory } = await import(
+      "@/features/core/wallet/services/server/lots/initWalletLotsFromHistory"
+    );
+    const args = process.argv.slice(3);
+    return await initWalletLotsFromHistory({ dryRun: args.includes("--dry-run") });
+  },
   // 導入時1回だけの過去分復元（定期実行しない。冪等なので再実行は安全）
   "user-status-history-backfill": async () => {
     const { backfillStatusHistoryFromAuditLogs } = await import(
