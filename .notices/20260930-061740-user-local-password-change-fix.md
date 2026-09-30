@@ -1,0 +1,14 @@
+# DOWNSTREAM NOTICE id:20260930-061740-user-local-password-change-fix
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:683eadff (change ships in the commit that contains this notice)
+date: 2026-09-30T06:17:40Z
+severity: action-required
+change: BUGFIX — `userService.update(id, { newPassword })` now maps `newPassword` to the provider-specific store: `local` → `localPassword` (schema hash + lockout counter reset + session invalidation as before), `email` → Firebase Auth sync (unchanged), any other provider → DomainError 400 (was: silent success). New pure helper `planPasswordChange` (user/services/server/helpers/passwordChange.ts) + test `pnpm test:user-password-change`.
+why: Since 4a8e1393 (2026-02-15) the admin manage modal (AdminUserManageModal > auth tab) sends `{ newPassword }`, but the server only consumed it for Firebase `email` users. For `local` users (every admin created via createAdmin) the request returned `current` unchanged with a success toast: users.local_password not written, no session invalidation, no audit row, old password still valid. Any admin password re-issue done from that screen since then did NOT take effect.
+required_actions:
+1. grep -rn "newPassword" src --include=*.ts --include=*.tsx -l   # find downstream callers of userService.update / PATCH /api/user that send newPassword for providers other than "email"/"local" (OAuth/OIDC/SAML users). Those calls now get 400 instead of a silent no-op — remove the newPassword key for such providers or gate the UI on providerType.
+2. npx tsc --noEmit
+3. pnpm test:user-password-change
+verify: `pnpm test:user-password-change` passes (4 tests). Functional: sign in as admin → /admin users → open a `local` admin → auth tab → set a new password → `pnpm db:query "SELECT sessions_invalidated_at, failed_login_count FROM users WHERE id = '<id>'"` shows sessions_invalidated_at set and failed_login_count 0; login with the NEW password succeeds, OLD password fails.
+manual_steps: If any admin password was "changed" from the modal before this fix, the change never applied — re-issue those passwords once after merging (the old password is still the live one; there is no data migration that can recover the intended value).
+refs: src/features/core/user/services/server/wrappers/update.ts, src/features/core/user/services/server/helpers/passwordChange.ts (+ .test.ts), src/features/core/user/README.md (「パスワード変更の契約（newPassword）」), package.json (test:user-password-change), upstream-requests 20260930-151349-fix-admin-local-password-change-noop
+notes: No DB migration. Client contract unchanged (`{ newPassword }` stays provider-agnostic; UI must not know per-provider storage). The direct `localPassword` key path is untouched and still works. Non-admin self-update of local users is still rejected at update.ts (guard unchanged). If both `newPassword` and `localPassword` are sent for a local user, `newPassword` wins.

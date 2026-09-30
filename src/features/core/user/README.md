@@ -168,6 +168,8 @@ pnpm drizzle-kit push
 
 > **秘匿カラム（localPassword）**: `entities/drizzle.ts` の `defineHiddenColumns(UserTable, ["localPassword"])` 宣言により、`userService`（createCrudService）の全戻り値・他ドメインの `withRelations` 展開で **常に null 化** され、API レスポンスに乗ることはない。サーバー内部でハッシュを読む正規経路は `services/server/finders/findByIdWithSecrets.ts`（ID 指定・削除済み含む）と `findByLocalEmail.ts`（ローカルログイン用）の 2 つの直接 drizzle ファインダーのみ。これらの戻り値を HTTP レスポンスに乗せることは厳禁。仕組みの詳細は `src/lib/crud/README.md` の hiddenColumns 節を参照。
 >
+> **パスワード変更の契約（`newPassword`）**: `userService.update(id, { newPassword })` は **プロバイダー非依存の「このユーザーのパスワードをこれにする」** 契約。UI（`AdminUserManageModal` 認証タブ等）は保存先を知らず、`services/server/helpers/passwordChange.ts` の `planPasswordChange` がサーバー側で振り分ける: `local` → `localPassword` としてスキーマ入力にマージ（hash 変換・ロックアウトカウンタリセット・全セッション失効は既存経路がそのまま動く）| `email` → Firebase Auth へ同期 | それ以外（OAuth/OIDC/SAML 等）→ **DomainError 400**（パスワード経路が無いのに成功を返す「無言 no-op」を禁止）。`localPassword` を直接渡す旧経路も引き続き有効。回帰テスト: `pnpm test:user-password-change`。
+>
 > **IP データの所在に注意**: ログイン / サインアップの IP は `signupIp` 列・`metadata.loginHistory` (JSONB)・専用テーブル `user_login_events` の **3 箇所に併存** している。同一 IP のアカウント横断検索など IP 集計を行う場合は、JSONB をスキャンせず [`userLoginEvent` ドメイン](../userLoginEvent/README.md) の検索 API (`countDistinctUsersByIp` / `findUsersBySameIp` / `findUsersBySubnet`、端末受け渡し検出は `findSessionHandoffsByUser` / `findSessionHandoffsByIp`) を使うこと。明示ログアウト (logout / pause / withdraw) も同テーブルに `logout` 行として入る。併存の理由と移行方針は同 README を参照。
 
 ### Enum 定義

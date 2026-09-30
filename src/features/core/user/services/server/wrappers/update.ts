@@ -15,6 +15,7 @@ import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
 import { db } from "@/lib/drizzle";
 import { invalidateSessionsForUser } from "@/features/core/auth/services/server/sessionInvalidation";
 import { withUserNameGuard } from "../helpers/nameAvailability";
+import { planPasswordChange } from "../helpers/passwordChange";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
   const auth = getServerAuth();
@@ -72,8 +73,6 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
   }
 
   const { newPassword, profileData, user_tag_ids, ...restRawData } = rawData;
-  const normalizedNewPassword =
-    typeof newPassword === "string" ? newPassword.trim() : undefined;
 
   const sessionUser = await getSessionUser();
 
@@ -102,8 +101,21 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     );
   }
 
+  // newPassword (プロバイダー非依存の「パスワード設定」契約) を保存先へ振り分ける。
+  // local → localPassword としてスキーマ入力にマージ (hash 変換はスキーマが担当)
+  // email → Firebase Auth へ同期
+  // パスワード経路の無いプロバイダーに newPassword が来た場合はここで 400 (無言成功禁止)
+  const passwordPlan = planPasswordChange({
+    providerType: current.providerType,
+    newPassword,
+  });
+  const schemaInput =
+    passwordPlan.localPassword !== undefined
+      ? { ...restRawData, localPassword: passwordPlan.localPassword }
+      : restRawData;
+
   const schema = isAdmin ? UserUpdateByAdminSchema : UserSelfUpdateSchema;
-  const result = await schema.safeParseAsync(restRawData);
+  const result = await schema.safeParseAsync(schemaInput);
 
   if (!result.success) {
     const message = result.error.errors[0]?.message ?? "入力値が不正です";
@@ -125,13 +137,10 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     await updateFirebaseEmail(current.providerUid, rest.email as string);
   }
 
-  const shouldSyncFirebasePassword =
-    current.providerType === "email" &&
-    typeof normalizedNewPassword === "string" &&
-    normalizedNewPassword.length > 0;
+  const shouldSyncFirebasePassword = passwordPlan.firebasePassword !== undefined;
 
-  if (shouldSyncFirebasePassword) {
-    await updateFirebasePassword(current.providerUid, normalizedNewPassword);
+  if (passwordPlan.firebasePassword !== undefined) {
+    await updateFirebasePassword(current.providerUid, passwordPlan.firebasePassword);
   }
 
   // 電話番号の Firebase 同期（local はFirebase Auth不使用のためDB更新のみ）
