@@ -1,0 +1,15 @@
+# DOWNSTREAM NOTICE id:20260930-121656-bank-transfer-review-opt-in
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:45397cc9 (change ships in the commit that contains this notice)
+date: 2026-09-30T12:16:56+09:00
+severity: action-required
+change: inhouse bank transfer (payment method `bank_transfer_inhouse`) is now opt-in, default OFF. src/config/app/payment.config.ts sets it to status:"disabled". Admin menu "リクエスト管理 > 銀行振込レビュー" (src/config/ui/admin-global-menu.config.ts) and featureGate rule for /admin/bank-transfer-reviews + /api/admin/bank-transfer-reviews (src/proxies/featureGate.ts) are now derived from isPaymentMethodSelectable("bank_transfer_inhouse"). No new feature flag.
+why: upstream shipped the bank transfer review admin menu/screen/API unconditionally to every fork. Forks that do NOT use inhouse bank transfer get it hidden + 404 automatically after merge (no action). Forks that DO use inhouse bank transfer in production and never edited that config line will have the payment method AND its admin screen silently disabled by the merge, so they must re-enable it.
+required_actions:
+1. Decide: does this fork use inhouse bank transfer (payment method id `bank_transfer_inhouse`, provider `inhouse`)? Check src/config/app/payment.config.ts paymentMethods entry and whether table bank_transfer_reviews has rows (`pnpm db:count bank_transfer_reviews`). If NOT used → no code change, record notice as applied and stop.
+2. If used: in src/config/app/payment.config.ts, set the `bank_transfer_inhouse` entry to `status: "available"` (keep `provider: "inhouse"`, keep `providers.inhouse.enabled: true`). If the merge produced a conflict on that line, resolve keeping the fork's `available`.
+3. Do NOT add a separate feature flag or re-add an unconditional menu entry; the single source of truth is isPaymentMethodSelectable("bank_transfer_inhouse"). If the fork previously hardcoded its own gating for /admin/bank-transfer-reviews, remove it in favor of upstream's featureGate rule.
+4. Run `pnpm exec tsc --noEmit` and `pnpm exec eslint src/config/app/payment.config.ts src/config/ui/admin-global-menu.config.ts src/proxies/featureGate.ts`.
+verify: used-fork → admin sidebar shows "リクエスト管理 > 銀行振込レビュー" for admin role, and `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/admin/bank-transfer-reviews` returns 401/403 (auth), NOT 404. unused-fork → same curl returns 404 and the menu section is absent. Also check the purchase page still lists/omits "リアルタイム銀行振込" as intended.
+manual_steps: -
+refs: src/config/app/payment.config.ts | src/config/ui/admin-global-menu.config.ts | src/proxies/featureGate.ts | src/features/core/bankTransferReview/README.md (section 6 "有効化") | helper isPaymentMethodSelectable in payment.config.ts
+notes: user-side APIs (POST /api/wallet/purchase/[id]/bank-transfer/confirm, GET /api/wallet/purchase/bank-transfer/active) are NOT gated by featureGate; initiatePurchase already rejects non-selectable methods and the active endpoint returns { active: null }. Existing bank_transfer_reviews rows are untouched either way. No DB migration.

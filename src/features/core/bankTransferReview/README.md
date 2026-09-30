@@ -293,6 +293,18 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 
 ## 6. 設定
 
+### 有効化（オプトイン・既定オフ）
+
+本ドメインの管理画面（`/admin/bank-transfer-reviews/**`）・管理 API（`/api/admin/bank-transfer-reviews/**`）・管理メニュー「リクエスト管理 > 銀行振込レビュー」は、**決済方法 `bank_transfer_inhouse` が選択可能なときだけ露出する**。専用のフィーチャーフラグは持たず、`isPaymentMethodSelectable("bank_transfer_inhouse")`（`status === "available"` かつ `providers.inhouse.enabled`）を唯一の判定源とする。
+
+| 場所 | 無効時の挙動 |
+|---|---|
+| 管理メニュー (`src/config/ui/admin-global-menu.config.ts`) | 「リクエスト管理」セクションごと非表示 |
+| featureGate (`src/proxies/featureGate.ts`) | 管理画面は `/404` へ rewrite、管理 API は 404 |
+| ユーザー側 API（申告 / 進行中取得） | ゲート対象外。購入開始時点で選択不可メソッドが弾かれるため、進行中取得は `{ active: null }` を返すのみ |
+
+上流の既定値は `status: "disabled"`。利用する fork は `paymentConfig.paymentMethods` の `bank_transfer_inhouse` を `status: "available"` に変更する（これだけで購入画面・管理画面・API が揃って有効になる）。
+
 ### `paymentConfig.bankTransfer`
 
 ```ts
@@ -329,7 +341,7 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
   label: "...",
   description: "...",
   icon: "bank",
-  status: "available",
+  status: "disabled", // 上流既定。利用する fork は "available" に変更
   provider: "inhouse",
 }
 ```

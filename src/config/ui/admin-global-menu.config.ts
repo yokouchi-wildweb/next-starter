@@ -3,6 +3,7 @@
 import { adminDataMenu } from "@/registry/adminDataMenu";
 import type { UserRoleType } from "@/features/core/user/types";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+import { isPaymentMethodSelectable } from "@/config/app/payment.config";
 import { buildSettingMenuItems } from "@/features/core/setting/menu";
 import type { IconComponent } from "@/components/Icons";
 import {
@@ -88,15 +89,21 @@ export const adminMenu: AdminMenuSection[] = [
     icon: Database,
     items: adminDataMenu.filter((item) => item.href !== "/admin/user-tags"),
   },
-  {
-    title: "リクエスト管理",
-    href: null,
-    icon: Inbox,
-    items: [
-      { title: "銀行振込レビュー", href: "/admin/bank-transfer-reviews/pending-review", icon: Banknote },
-    ],
-    allowRoles: ["admin"],
-  },
+  // 銀行振込レビューは決済方法 bank_transfer_inhouse が選択可能なときだけ露出する。
+  // 現状このセクションは単一項目のため、無効時はセクションごと非表示にする。
+  ...(isPaymentMethodSelectable("bank_transfer_inhouse")
+    ? [
+        {
+          title: "リクエスト管理",
+          href: null,
+          icon: Inbox,
+          items: [
+            { title: "銀行振込レビュー", href: "/admin/bank-transfer-reviews/pending-review", icon: Banknote },
+          ],
+          allowRoles: ["admin"] as UserRoleType[],
+        },
+      ]
+    : []),
   {
     title: "ユーザー管理",
     href: null,

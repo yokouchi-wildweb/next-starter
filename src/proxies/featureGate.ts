@@ -2,6 +2,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+import { isPaymentMethodSelectable } from "@/config/app/payment.config";
 import type { ProxyHandler } from "./types";
 
 // ============================================
@@ -69,6 +70,14 @@ const FEATURE_GATE_RULES: FeatureGateRule[] = [
   {
     pathPatterns: ["/admin/notifications", "/api/notification/send"],
     isEnabled: () => APP_FEATURES.marketing.notification.enableAdminBroadcast,
+  },
+  // 銀行振込レビュー（管理画面 + 管理 API）
+  // 決済方法 bank_transfer_inhouse が選択可能（status=available かつ inhouse プロバイダ有効）な
+  // ときだけ露出する。管理メニュー（admin-global-menu.config.ts）と同じ判定で連動。
+  // ユーザー側 API（申告 / 進行中取得）は購入開始時点で選択不可メソッドが弾かれるため対象外。
+  {
+    pathPatterns: ["/admin/bank-transfer-reviews", "/api/admin/bank-transfer-reviews"],
+    isEnabled: () => isPaymentMethodSelectable("bank_transfer_inhouse"),
   },
 ];
 

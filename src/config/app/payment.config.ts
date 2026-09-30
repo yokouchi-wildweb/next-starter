@@ -256,8 +256,11 @@ export const paymentConfig = {
      * - 外部決済プロバイダを介さず、画面上に表示する自社の口座へ直接振り込んでもらう。
      * - 振込完了はユーザーが画面から自己申告（POST /api/wallet/purchase/[id]/bank-transfer/confirm）。
      * - fincode 仮想口座とは別メソッドとして並立。
+     * - 既定は disabled（オプトイン）。有効化する場合は status を "available" にする。
+     *   管理画面の「銀行振込レビュー」メニュー / 画面 / API は、この支払い方法が
+     *   選択可能（isPaymentMethodSelectable）なときだけ露出する（featureGate + 管理メニューが連動）。
      */
-    { id: "bank_transfer_inhouse", label: "リアルタイム銀行振込", description: "手続き後に即時反映されます", icon: "bank-realtime", status: "available", provider: "inhouse" },
+    { id: "bank_transfer_inhouse", label: "リアルタイム銀行振込", description: "手続き後に即時反映されます", icon: "bank-realtime", status: "disabled", provider: "inhouse" },
     { id: "credit_card", label: "クレジットカード", description: "VISA / Mastercard / JCB / AMEX / Diners", icon: "credit-card", status: "available", provider: "fincode" },
     { id: "convenience_store", label: "コンビニ決済", description: "セブン-イレブン / ファミリーマート / ローソン", icon: "store", status: "available", provider: "fincode" },
     // { id: "bank_transfer", label: "銀行振込（仮想口座）", description: "Fincode の仮想口座で受付", icon: "bank", status: "available", provider: "fincode" },
