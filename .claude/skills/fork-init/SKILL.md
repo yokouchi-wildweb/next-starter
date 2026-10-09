@@ -41,7 +41,7 @@ disable-model-invocation: true
 2. `git remote rename origin upstream` → `git remote add origin git@github.com:<owner>/<name>.git`。
 3. `pnpm install`(`node_modules` が無い場合のみ)。
 4. フォーク固有ファイルの書き換え(文書の手順 4 の順):
-   a. `.claude/rules/project.md`: 全面書き換え。節構成は文書「project.md の構成」どおり(overview / TIER / backend_status / direction / planned_tools または domains / dev_rules)。英語・箇条書き。
+   a. `.claude/rules/project.md`: 同じディレクトリの `project.template.md`(本スキルに同梱)をコピーし、`<...>` を事前確認で得た内容で埋めて置き換える。節の追加・削除はしない(未定の節は `TBD`)。先頭のコメントブロックは削除する。英語・箇条書き。
    b. `.notices/applied/<fork-id>.md`: `# APPLIED LEDGER fork:<origin url>` の1行のみ。
    c. `package.json`: `name` を `<name>` に。
    d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` を `<name>` ベースに。`domain` / `url` / `mail.defaultFrom` は確定していれば入れ、未定なら upstream の名前を含まない仮値(`example.com` 等)にする。
