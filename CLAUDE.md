@@ -268,6 +268,7 @@ fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe,
 
 ## DOWNSTREAM_NOTICES (上流追随)
 upstream変更の追随通知 = .notices/*.md (変更と同じcommit/PRで出荷、mergeで下流に届く) | 起票: /downreq | 受領・適用: /flux (merge→未適用検出→承認1回→適用・DB・検証・台帳・commitまで完走) | 台帳: .notices/applied/\<fork-id\>.md (forkごと別ファイル) | ref: .notices/README.md
+fork_bootstrap: 新規fork初期設定 = /fork-init (clone直後のリポ内で実行、承認1回でリポ作成〜初期commit/push) | spec(手順の正): docs/how-to/initial-setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## DOCS
 policy: colocation-first — primary docs in README.md next to code | docs/ = legacy, phasing out except !must-read/ (exception: standalone docs allowed when clearly superior)

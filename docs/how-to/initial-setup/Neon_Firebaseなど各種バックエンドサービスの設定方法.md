@@ -1,8 +1,8 @@
 # Neon Firebaseなど各種バックエンドサービスの設定方法
 
-このドキュメントでは、[クイックスタート: 環境構築からデプロイまでの方法](クイックスタート_環境構築からデプロイまでの方法.md) の関連として、
+このドキュメントでは、[新規プロジェクトの立ち上げ: フォークからデプロイまで](新規プロジェクトの立ち上げ_フォークからデプロイまで.md) の関連として、
 Firebase コンソールおよび関連する外部サービス（Neon など）の設定手順をまとめます。
-プロジェクト作成直後に行う初期設定をチームで統一し、`.env.*` や `apphosting.yaml` に正しい値を反映できるようにすることが目的です。
+プロジェクト作成直後に行う初期設定をチームで統一し、`.env.*` と Vercel の環境変数に正しい値を反映できるようにすることが目的です。
 
 ---
 
@@ -33,7 +33,7 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
 
 1. [Firebase コンソール](https://console.firebase.google.com/) で対象プロジェクトを開きます。
 2. サイドバーの **プロジェクト概要** > **アプリを追加** をクリックし、Web（`</>` アイコン）を選択します。
-3. アプリニックネームを入力し、Firebase Hosting を利用する場合は「このアプリで Firebase Hosting を設定する」にチェックを入れます。
+3. アプリニックネームを入力します。「このアプリで Firebase Hosting を設定する」はチェックしません（ホスティングは Vercel を使います）。
 4. **アプリを登録** を押すと、ブラウザ SDK 用の設定スニペットが表示されます。これが `NEXT_PUBLIC_FIREBASE_*` 系の値になります。
 5. この段階では SDK スニペットをコピーせず、次節の手順で個別に値を控えます。
 
@@ -52,8 +52,8 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
    - `storageBucket` → `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
    - `messagingSenderId` → `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
    - `appId` → `NEXT_PUBLIC_FIREBASE_APP_ID`
-4. `.env.development` / `.env.production` に上記キーを追記し、`.gitignore` の対象になっていることを再確認します。
-5. App Hosting を利用する場合は `apphosting.yaml` の `env` セクションにも同じ値を追加します。
+4. `.env.development` に上記キーを追記し、`.gitignore` の対象になっていることを再確認します。
+5. 本番・プレビュー用の値は Vercel ダッシュボードの Settings > Environment Variables に登録します。
 
 > `NEXT_PUBLIC_` プレフィックスはブラウザへ公開されるため、機密性の高い値を含めないよう注意してください。
 
@@ -107,38 +107,23 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
 1. **Authentication** > **サインイン方法** を開き、利用するプロバイダを有効化します。
 2. 例: Google ログインを有効にする場合はクライアント ID / シークレットを入力し、承認済みリダイレクト URI に `https://<project-id>.firebaseapp.com/__/auth/handler` を設定します。
 3. メール/パスワードを利用する場合は、追加でテンプレートメールの送信者名やサポートメールアドレスを設定します。
-4. 認証フローをカスタムドメインで運用する場合は Hosting 側にドメインマッピングを構成し、リダイレクト URI を再設定してください。
+4. 独自ドメインで運用する場合は **Authentication** > **設定** > **承認済みドメイン** に独自ドメインを追加し、各プロバイダのリダイレクト URI を再設定してください。
 5. 本番前にテストユーザーを作成し、`Authentication > ユーザー` から想定通りの属性が保存されているか確認します。
 
 ---
 
-## 8. Firebase App Hosting の設定
+## 8. 独自ドメインでホスティングする場合の追加設定
 
-Firebase App Hosting は、従来の Firebase Hosting + Cloud Functions 構成と異なり、Functions を併用せずに Next.js アプリを単独でホストできます。App Hosting が Cloud Run（コンテナ実行環境）上に自動でアプリをデプロイするため、SSR や API Routes をそのまま実行できる点がメリットです。
+ホスティングは Vercel です。ドメインの追加手順は [新規プロジェクトの立ち上げ: フォークからデプロイまで](新規プロジェクトの立ち上げ_フォークからデプロイまで.md) の「6. Vercel へのデプロイ」を参照してください。Firebase 側で必要になるのは次の 2 点だけです。
 
-1. Firebase CLI が最新であることを確認し、`firebase login` / `firebase use` で対象プロジェクトを選択しておきます。
-2. プロジェクトのルートで `firebase init` を実行し、表示されるサービス一覧から **App Hosting (Preview)** を有効化します。従来の Hosting とは別項目になっているので見逃さないよう注意してください。
-3. 対話形式でアプリ種別に「Web フレームワーク（Next.js）」を選択すると、`firebase.json` と `apphosting.yaml` が生成されます。Functions の設定は不要です。
-4. `apphosting.yaml` に環境変数を追記し、ビルドターゲットやリージョンなどを必要に応じて調整します。Web コンソール側での追加設定は不要で、CLI 経由の構成がそのまま反映されます。
-5. 準備が整ったら `firebase deploy --only apphosting` でデプロイをテストし、Next.js アプリが期待通りに動作するか確認してください。
-
-> 既に Firebase Hosting（静的サイト向け）を利用している場合でも、App Hosting を併用することで SSR/ISR 機能を活かした運用へ移行できます。
-
----
-
-## 9. 独自ドメインでホスティングする場合の追加設定
-
-1. Firebase コンソールの **App Hosting** > **カスタムドメイン** から **ドメインを追加** をクリックし、使用したい独自ドメインを入力します。
-2. 表示される DNS 設定ガイドに従い、ドメイン管理サービス（Google Domains や Route53 など）で TXT レコードを追加して所有権を確認します。
-3. 所有権が確認されたら、A レコード（`@`）および必要に応じて `www` サブドメインなどの CNAME レコードを Firebase が指定するエンドポイントへ向けます。App Hosting を利用する場合も Hosting のカスタムドメイン設定で同じレコードを使用します。
-4. DNS 伝播後、Firebase コンソール上でステータスが「接続済み」になると HTTPS 証明書が自動発行されます。証明書発行には数分～1時間ほどかかることがあります。
-5. 認証リダイレクトや OAuth クライアントを利用している場合は、Firebase Authentication や各種外部サービスの許可リダイレクト URI を独自ドメイン版へ更新することを忘れないでください。
+1. **Authentication** > **設定** > **承認済みドメイン** に独自ドメインを追加します。
+2. Google / X など OAuth プロバイダを使っている場合は、各サービス側の許可リダイレクト URI を独自ドメイン版へ更新します。
 
 > DNS の反映には時間がかかる場合があります。切り替え時は TTL を短く設定しておくとロールバックが容易です。
 
 ---
 
-## 10. Google Cloud IAM の確認
+## 9. Google Cloud IAM の確認
 
 - Firebase プロジェクトは同名の GCP プロジェクトと連動しています。追加のサービス（Cloud Functions、Cloud Run 等）を利用する場合は IAM 権限が必要です。
 - 詳細なロール割り当てやサービスアカウントのベストプラクティスは [GoogleCloud 側で必要な IAM ロールと設定方法](GoogleCloud側で必要なIAMロールと設定方法.md) を参照し、各メンバーが必要最低限の権限で運用してください。
@@ -146,7 +131,7 @@ Firebase App Hosting は、従来の Firebase Hosting + Cloud Functions 構成�
 
 ---
 
-## 11. チームで共有しておくと便利なメモ
+## 10. チームで共有しておくと便利なメモ
 
 - **環境変数シート**: `.env` のキーと値の保管場所を Notion や Spreadsheet で一覧化し、更新履歴を残すと onboarding がスムーズです。
 - **ローテーションスケジュール**: サービスアカウント鍵や OAuth クライアントシークレットのローテーション予定を決めておくと、緊急対応が減ります。

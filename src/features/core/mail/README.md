@@ -193,16 +193,15 @@ src/features/core/mail/constants/colors.ts (自動生成)
 - hex 形式に変換して `colors.ts` を自動生成
 - **テーマカラー変更時は手動でコマンド実行が必要**
 
-> ⚠️ **重要**: Firebase App Hostingの特殊なパス構造では`npx tsx`が動作しないため、
-> ビルド時の自動生成は無効化されています。テーマカラーを変更した場合は、
-> 必ず以下のコマンドを実行し、生成されたファイルをコミットしてください。
+> ⚠️ **重要**: ビルド時の自動生成は行っていません(`build` は `next build` のみ)。
+> テーマカラーを変更した場合は、必ず以下のコマンドを実行し、生成されたファイルをコミットしてください。
 
 ### テーマカラー変更時の手順
 
 1. `src/styles/theme.css` を編集
 2. 以下のコマンドを実行:
    ```bash
-   npm run mail:generate-colors
+   pnpm mail:generate-colors
    ```
 3. 生成された `src/features/core/mail/constants/colors.ts` をコミット
 
