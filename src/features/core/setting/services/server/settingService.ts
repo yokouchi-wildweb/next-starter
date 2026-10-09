@@ -3,6 +3,7 @@ import type { Setting } from "@/features/core/setting/entities";
 import type { User } from "@/features/core/user/entities";
 import { createAdmin } from "@/features/core/user/services/server/creation/console";
 import { checkAdminUserExists } from "@/features/core/user/services/server/finders/checkAdminUserExists";
+import { isDatabaseConfigured } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
 import { getZodDefaults } from "@/lib/zod";
 
@@ -39,17 +40,29 @@ const createDefaultSettingValues = (): Record<string, unknown> => ({
   ...getZodDefaults(settingExtendedSchema),
 });
 
+/** 行が保存されていない時に返す既定の Setting（DB 未構成時も同じ値） */
+const createUnsavedSetting = (defaultValues: Record<string, unknown>): Setting =>
+  ({
+    id: "global",
+    createdAt: null,
+    updatedAt: null,
+    ...defaultValues,
+  }) as Setting;
+
 async function getGlobalSetting(): Promise<Setting> {
-  const existing = await base.get("global");
   const defaultValues = createDefaultSettingValues();
 
+  // DATABASE_URL 未設定（クローン → env:init 直後）では「設定が保存されていない」のと
+  // 同じ扱いで既定値を返し、maintenanceProxy / (user) 配下のページ表示を止めない。
+  // 設定済みで接続できない場合はここを通らず従来どおり例外になる（障害を隠さない）。
+  if (!isDatabaseConfigured()) {
+    return createUnsavedSetting(defaultValues);
+  }
+
+  const existing = await base.get("global");
+
   if (!existing) {
-    return {
-      id: "global",
-      createdAt: null,
-      updatedAt: null,
-      ...defaultValues,
-    } as Setting;
+    return createUnsavedSetting(defaultValues);
   }
 
   const setting = flattenSettingRow(
