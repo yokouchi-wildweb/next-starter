@@ -26,10 +26,10 @@ export const businessConfig = {
   // === サービス基本情報 ===
 
   /** サービス名（正式名称） */
-  serviceName: "next-stater",
+  serviceName: "next-starter",
 
   /** サービス名（略称・ロゴ横やタイトルで使用） */
-  serviceNameShort: "next-stater",
+  serviceNameShort: "next-starter",
 
   /** サービスの説明文（meta descriptionなどで使用） */
   description: "next-starter is a Wildweb creation.",
@@ -95,7 +95,7 @@ export const businessConfig = {
 
   mail: {
     /** デフォルト送信元アドレス */
-    defaultFrom: "noreply@oripa-do.jp",
+    defaultFrom: "noreply@example.com",
 
     /** デフォルト送信者名 */
     defaultFromName: "next-starter",
