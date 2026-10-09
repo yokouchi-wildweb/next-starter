@@ -1,17 +1,19 @@
 // src/lib/firebase/client/analytics.ts
 
 import { Analytics, getAnalytics, logEvent } from "firebase/analytics";
-import { app } from "./app";
+import { app, isFirebaseClientConfigured } from "./app";
 
 let analytics: Analytics | null = null;
 
 /**
  * Firebase Analytics インスタンスを取得
  * - SSR環境では null を返す
+ * - Firebase クライアント自体が未設定の場合は null を返す
  * - NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID が未設定の場合は null を返す
  */
 export function getFirebaseAnalytics(): Analytics | null {
   if (typeof window === "undefined") return null;
+  if (!isFirebaseClientConfigured()) return null;
 
   const measurementId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID;
   if (!measurementId) return null;

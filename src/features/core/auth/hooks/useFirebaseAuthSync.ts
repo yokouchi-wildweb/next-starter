@@ -5,7 +5,7 @@
 import { useEffect, useRef } from "react";
 import { onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
 
-import { auth } from "@/lib/firebase/client/app";
+import { auth, isFirebaseClientConfigured } from "@/lib/firebase/client/app";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 
 /**
@@ -13,12 +13,17 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
  *
  * ローカル認証は成功しているが、Firebase Auth にサインインしていない場合（例: ログイン直後に
  * ブラウザがクラッシュした場合）に、カスタムトークンを再取得して自動的にサインインする。
+ *
+ * root layout（AuthSessionClientProvider）から全ページで呼ばれるため、Firebase 未設定時は
+ * 何もしない（`auth` は未設定時に触ると FirebaseNotConfiguredError を投げる Proxy）。
  */
 export function useFirebaseAuthSync(user: SessionUser | null) {
   // 同期処理中のフラグ（重複実行を防止）
   const isSyncingRef = useRef(false);
 
   useEffect(() => {
+    if (!isFirebaseClientConfigured()) return;
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       // ローカルセッションあり & Firebase Auth なし → 再サインインが必要
       if (user && !firebaseUser && !isSyncingRef.current) {

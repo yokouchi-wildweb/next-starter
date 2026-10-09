@@ -20,6 +20,26 @@ src/lib/firebase/
 
 ---
 
+## 未設定モード（Firebase なしで起動する）
+
+`pnpm env:init` 直後は `NEXT_PUBLIC_FIREBASE_*` と `MY_SERVICE_ACCOUNT_KEY` が全て空です。この状態でも dev サーバーが起動し、トップページや `/api/health` が表示できることを手順書（`docs/how-to/initial-setup` §3）で約束しています。そのための契約は次のとおりです。
+
+| 層 | 判定関数 | 未設定時の挙動 |
+|---|---|---|
+| client (`client/app.ts`) | `isFirebaseClientConfigured()`（API key と projectId が非空） | `app` / `fstore` / `storage` は従来どおり生成（空設定でも throw しない）。`auth` だけは `getAuth` を呼ばず、触れた瞬間に `FirebaseNotConfiguredError("client")` を投げる Proxy になる（`import { auth }` の形状は不変） |
+| server (`server/app.ts`) | `isFirebaseServerConfigured()`（`MY_SERVICE_ACCOUNT_KEY` が非空） | `getServerApp / getServerAuth / getServerFirestore / getServerStorage` が `FirebaseNotConfiguredError("server")` を投げる（遅延初期化なので import だけでは失敗しない） |
+
+ルール:
+
+- **判定は「未設定」のみ**。設定済みで初期化・接続に失敗した場合は従来どおり理由付きの Error / Firebase SDK のエラーになります。障害を未設定扱いで覆い隠しません（`DatabaseNotConfiguredError` と同じ線引き）。
+- **全ページに常時マウントされる経路は未設定でも落ちない**ことが契約です。`useFirebaseAuthSync`（root layout の `AuthSessionClientProvider` から呼ばれる）と `getFirebaseAnalytics` は `isFirebaseClientConfigured()` で明示的にスキップします。root layout に Firebase を触る消費者を新たに追加する場合は同じガードを入れてください。
+- **Firestore の `createCrudService`（`@/lib/crud/firestore`）は構築時に Firestore を解決しません**。初回メソッド呼び出し時に memoize します。これにより `serviceRegistry` 経由で全 API ルートが module 評価時に落ちることを防いでいます。
+- それ以外の消費者（ログイン hooks、メール送信、Storage 等）はガード不要です。未設定で呼べば即座に `FirebaseNotConfiguredError` になり、ユーザーには通常のエラー表示として出ます。
+
+未設定で動く範囲と、各機能に必要な設定の一覧は手順書の「機能別に必要なバックエンド」を参照してください。
+
+---
+
 ## Firebase Analytics
 
 Firebase Analytics を使ってページビューやカスタムイベントをトラッキングできます。

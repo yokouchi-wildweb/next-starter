@@ -5,6 +5,9 @@
 ## STACK
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
 
+## UNCONFIGURED_BACKENDS (env:init 直後 = DATABASE_URL / MY_SERVICE_ACCOUNT_KEY / NEXT_PUBLIC_FIREBASE_* 空でも起動する契約)
+detect: isDatabaseConfigured (@/lib/drizzle) | isFirebaseClientConfigured (@/lib/firebase/client/app) | isFirebaseServerConfigured (@/lib/firebase/server/app) — 判定は「未設定」のみ、設定済み接続不能は従来どおり例外 (障害を隠さない) | 未設定アクセス = DatabaseNotConfiguredError / FirebaseNotConfiguredError で即 fail-fast (接続待ちしない) | 常時マウント経路 (proxy / root layout / settingService.getGlobalSetting / createCrudService 構築) は未設定でも落ちない = 契約、新規追加時は同じガード | ref: src/lib/firebase/README.md 未設定モード
+
 ## BACKEND_DOCTRINE
 firestore = realtime delivery channel ONLY (new domains default dbEngine:"Neon"; Firestore only when realtime UX is the essential requirement) | crud firestore adapter FROZEN (no feature additions, current limits = spec) | firebase coupling surface capped at auth/storage/delivery (no business data in Firestore, no logic in Firebase Functions) | auth↔users sync paths = core asset (verify both sides on any change) | hot-path realtime (sustained ~1write/sec+ shared state, 100s+ subscriber fanout, single-TX threshold semantics) = realtimeRoom (SERVERS), NOT Firestore | ref: docs/!must-read/バックエンド構成ドクトリン.md
 

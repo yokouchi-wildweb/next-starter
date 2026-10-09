@@ -8,15 +8,29 @@ import { getStorage } from "firebase-admin/storage";
 
 import { normalizeJsonString } from "@/utils/json";
 
+import { FirebaseNotConfiguredError } from "../errors";
+
+/**
+ * サーバー側 Firebase Admin が設定済み（MY_SERVICE_ACCOUNT_KEY が非空）かどうか。
+ *
+ * `pnpm env:init` 直後は空で、その状態でも dev サーバーが起動することを手順書で約束している。
+ * Firebase Admin を要する処理に未設定で到達すると FirebaseNotConfiguredError("server") が
+ * 即座に投げられる（遅延初期化のため import だけでは失敗しない）。
+ * 判定は「未設定」のみ。設定済みで初期化に失敗した場合は従来どおり理由付きの Error になる。
+ */
+export const isFirebaseServerConfigured = (): boolean =>
+  (process.env.MY_SERVICE_ACCOUNT_KEY ?? "").trim().length > 0;
+
+/** 未設定エラーは各層の「理由付き再 throw」で包まず、型を保ったまま素通しする */
+function rethrowIfNotConfigured(error: unknown): void {
+  if (error instanceof FirebaseNotConfiguredError) throw error;
+}
+
 function loadRawServiceAccountKey(): string {
-  const serviceAccount = process.env.MY_SERVICE_ACCOUNT_KEY?.trim();
-  if (!serviceAccount) {
-    throw new Error(
-      `MY_SERVICE_ACCOUNT_KEY の内容が取得できません。` +
-        `環境変数 MY_SERVICE_ACCOUNT_KEY が未設定、または空文字です。`,
-    );
+  if (!isFirebaseServerConfigured()) {
+    throw new FirebaseNotConfiguredError("server");
   }
-  return serviceAccount;
+  return process.env.MY_SERVICE_ACCOUNT_KEY!.trim();
 }
 
 function createCredential() {
@@ -54,6 +68,7 @@ function ensureServerApp() {
   try {
     credential = createCredential();
   } catch (error) {
+    rethrowIfNotConfigured(error);
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(
       `Firebase Admin アプリの認証情報の準備に失敗しました。理由: ${reason}`,
@@ -97,6 +112,7 @@ export function getServerApp() {
     }
     return app;
   } catch (error) {
+    rethrowIfNotConfigured(error);
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Firebase Admin アプリの取得に失敗しました。理由: ${reason}`);
   }
@@ -107,6 +123,7 @@ export function getServerAuth() {
     const app = getServerApp();
     return getAuth(app);
   } catch (error) {
+    rethrowIfNotConfigured(error);
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Firebase Admin Auth の取得に失敗しました。理由: ${reason}`);
   }
@@ -121,6 +138,7 @@ export function getServerFirestore() {
     }
     return firestore;
   } catch (error) {
+    rethrowIfNotConfigured(error);
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Firebase Firestore の取得に失敗しました。理由: ${reason}`);
   }
@@ -135,6 +153,7 @@ export function getServerStorage() {
     }
     return storage;
   } catch (error) {
+    rethrowIfNotConfigured(error);
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Firebase Storage の取得に失敗しました。理由: ${reason}`);
   }

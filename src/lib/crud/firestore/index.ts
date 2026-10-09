@@ -47,8 +47,13 @@ export function createCrudService<
   T extends { id?: string; createdAt?: any; updatedAt?: any; deletedAt?: any },
   TCreate extends Record<string, any> = DefaultInsert<T>,
 >(collectionPath: string, options: CreateCrudServiceOptions<TCreate> = {}) {
-  const firestore = getServerFirestore();
-  const col = firestore.collection(collectionPath);
+  // Firestore の解決は構築時ではなく初回メソッド呼び出し時に行う（memoize）。
+  // createCrudService は serviceRegistry 経由で全 API ルートの module 評価時に走るため、
+  // 構築時に getServerFirestore() を呼ぶと Firebase 未設定（env:init 直後）で全ルートが落ちる。
+  // 設定済み時の挙動は従来と同一（初回アクセスで 1 回だけ初期化）。
+  let firestoreRef: FirebaseFirestore.Firestore | undefined;
+  const getDb = (): FirebaseFirestore.Firestore => (firestoreRef ??= getServerFirestore());
+  const getCol = (): FirebaseFirestore.CollectionReference => getDb().collection(collectionPath);
   type Select = T;
   type Insert = TCreate;
   const useSoftDelete = options.useSoftDelete ?? false;
@@ -68,11 +73,11 @@ export function createCrudService<
 
       let docRef: FirebaseFirestore.DocumentReference;
       if (options.idType === "manual" && insertData.id !== undefined) {
-        docRef = col.doc(String(insertData.id));
+        docRef = getCol().doc(String(insertData.id));
       } else if (insertData.id) {
-        docRef = col.doc(String(insertData.id));
+        docRef = getCol().doc(String(insertData.id));
       } else {
-        docRef = col.doc();
+        docRef = getCol().doc();
         insertData.id = docRef.id;
       }
 
@@ -90,7 +95,7 @@ export function createCrudService<
     },
 
     async list(): Promise<Select[]> {
-      let query: FirebaseFirestore.Query = col;
+      let query: FirebaseFirestore.Query = getCol();
       if (useSoftDelete) {
         query = query.where("deletedAt", "==", null);
       }
@@ -99,12 +104,12 @@ export function createCrudService<
     },
 
     async listWithDeleted(): Promise<Select[]> {
-      const snap = await col.get();
+      const snap = await getCol().get();
       return snap.docs.map((d) => convertTimestamps({ id: d.id, ...(d.data() as T) } as Select));
     },
 
     async get(id: string): Promise<Select | undefined> {
-      const snap = await col.doc(id).get();
+      const snap = await getCol().doc(id).get();
       if (!snap.exists) return undefined;
       const data = snap.data() as T;
       // ソフトデリート時は削除済みを除外
@@ -115,13 +120,13 @@ export function createCrudService<
     },
 
     async getWithDeleted(id: string): Promise<Select | undefined> {
-      const snap = await col.doc(id).get();
+      const snap = await getCol().doc(id).get();
       if (!snap.exists) return undefined;
       return convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select);
     },
 
     async update(id: string, data: Partial<Insert>): Promise<Select> {
-      const ref = col.doc(id);
+      const ref = getCol().doc(id);
       const parsed = options.parseUpdate ? await options.parseUpdate(data) : data;
       const updateData = {
         ...omitUndefined(parsed as Record<string, any>),
@@ -139,9 +144,9 @@ export function createCrudService<
     async remove(id: string): Promise<void> {
       if (useSoftDelete) {
         // ソフトデリート: deletedAt を現在時刻に設定
-        await col.doc(id).set({ deletedAt: new Date() }, { merge: true });
+        await getCol().doc(id).set({ deletedAt: new Date() }, { merge: true });
       } else {
-        await col.doc(id).delete();
+        await getCol().doc(id).delete();
       }
     },
 
@@ -149,7 +154,7 @@ export function createCrudService<
       if (!useSoftDelete) {
         throw new Error("restore() is only available when useSoftDelete is enabled.");
       }
-      const ref = col.doc(id);
+      const ref = getCol().doc(id);
       await ref.set({ deletedAt: null }, { merge: true });
       const snap = await ref.get();
       if (!snap.exists) {
@@ -159,11 +164,11 @@ export function createCrudService<
     },
 
     async hardDelete(id: string): Promise<void> {
-      await col.doc(id).delete();
+      await getCol().doc(id).delete();
     },
 
     async count(params: CountParams = {}): Promise<CountResult> {
-      let q = buildSearchQuery(col, params, options);
+      let q = buildSearchQuery(getCol(), params, options);
       if (useSoftDelete) {
         q = q.where("deletedAt", "==", null);
       }
@@ -172,7 +177,7 @@ export function createCrudService<
     },
 
     async countWithDeleted(params: CountParams = {}): Promise<CountResult> {
-      const q = buildSearchQuery(col, params, options);
+      const q = buildSearchQuery(getCol(), params, options);
       const snap = await q.count().get();
       return { total: snap.data().count };
     },
@@ -186,7 +191,7 @@ export function createCrudService<
      */
     async search(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
       const { page = 1, limit = 100 } = params;
-      let q = buildSearchQuery(col, params, options);
+      let q = buildSearchQuery(getCol(), params, options);
       if (useSoftDelete) {
         q = q.where("deletedAt", "==", null);
       }
@@ -202,7 +207,7 @@ export function createCrudService<
 
     async searchWithDeleted(params: SearchParams = {}): Promise<PaginatedResult<Select>> {
       const { page = 1, limit = 100 } = params;
-      const q = buildSearchQuery(col, params, options);
+      const q = buildSearchQuery(getCol(), params, options);
       const snap = await q.get();
       const docs = snap.docs;
       const total = docs.length;
@@ -214,12 +219,12 @@ export function createCrudService<
     },
 
     async bulkDeleteByIds(ids: string[]): Promise<void> {
-      const batch = firestore.batch();
+      const batch = getDb().batch();
       if (useSoftDelete) {
         // ソフトデリート
-        ids.forEach((id) => batch.set(col.doc(id), { deletedAt: new Date() }, { merge: true }));
+        ids.forEach((id) => batch.set(getCol().doc(id), { deletedAt: new Date() }, { merge: true }));
       } else {
-        ids.forEach((id) => batch.delete(col.doc(id)));
+        ids.forEach((id) => batch.delete(getCol().doc(id)));
       }
       await batch.commit();
     },
@@ -228,11 +233,11 @@ export function createCrudService<
       if (!where) {
         throw new Error("bulkDeleteByQuery requires a where condition.");
       }
-      const query = applyWhere(col, where);
+      const query = applyWhere(getCol(), where);
       const snap = await query.get();
       if (snap.empty) return;
 
-      const batch = firestore.batch();
+      const batch = getDb().batch();
       if (useSoftDelete) {
         // ソフトデリート
         snap.docs.forEach((doc) => batch.set(doc.ref, { deletedAt: new Date() }, { merge: true }));
@@ -243,8 +248,8 @@ export function createCrudService<
     },
 
     async bulkHardDeleteByIds(ids: string[]): Promise<void> {
-      const batch = firestore.batch();
-      ids.forEach((id) => batch.delete(col.doc(id)));
+      const batch = getDb().batch();
+      ids.forEach((id) => batch.delete(getCol().doc(id)));
       await batch.commit();
     },
 
@@ -272,7 +277,7 @@ export function createCrudService<
         insertData.updatedAt = new Date();
       }
 
-      const ref = col.doc(String(id));
+      const ref = getCol().doc(String(id));
       const sanitizedInsert = omitUndefined(insertData);
       await ref.set(sanitizedInsert, { merge: true });
       const snap = await ref.get();
@@ -300,7 +305,7 @@ export function createCrudService<
 
       for (let i = 0; i < records.length; i += BATCH_SIZE) {
         const chunk = records.slice(i, i + BATCH_SIZE);
-        const batch = firestore.batch();
+        const batch = getDb().batch();
         const refs: FirebaseFirestore.DocumentReference[] = [];
 
         for (const data of chunk) {
@@ -326,7 +331,7 @@ export function createCrudService<
             insertData.updatedAt = new Date();
           }
 
-          const ref = col.doc(String(id));
+          const ref = getCol().doc(String(id));
           const sanitizedInsert = omitUndefined(insertData);
           batch.set(ref, sanitizedInsert, { merge: true });
           refs.push(ref);
@@ -335,7 +340,7 @@ export function createCrudService<
         await batch.commit();
 
         // 結果を一括取得（N回の個別 get → 1回の getAll）
-        const snaps = await firestore.getAll(...refs);
+        const snaps = await getDb().getAll(...refs);
         for (const snap of snaps) {
           if (snap.exists) {
             results.push(convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select));
@@ -360,7 +365,7 @@ export function createCrudService<
       const ids = records.map((r) => r.id);
 
       // 存在するレコードを一括確認（N回の個別 get → 1回の getAll）
-      const existingDocs = await firestore.getAll(...ids.map((id) => col.doc(id)));
+      const existingDocs = await getDb().getAll(...ids.map((id) => getCol().doc(id)));
       const existingIds = new Set(
         existingDocs.filter((doc) => doc.exists).map((doc) => doc.id)
       );
@@ -378,7 +383,7 @@ export function createCrudService<
 
       for (let i = 0; i < validRecords.length; i += BATCH_SIZE) {
         const chunk = validRecords.slice(i, i + BATCH_SIZE);
-        const batch = firestore.batch();
+        const batch = getDb().batch();
         const refs: FirebaseFirestore.DocumentReference[] = [];
 
         for (const record of chunk) {
@@ -391,7 +396,7 @@ export function createCrudService<
             ...(options.useUpdatedAt && { updatedAt: new Date() }),
           }) as FirebaseFirestore.UpdateData<T>;
 
-          const ref = col.doc(record.id);
+          const ref = getCol().doc(record.id);
           batch.update(ref, updateData);
           refs.push(ref);
         }
@@ -399,7 +404,7 @@ export function createCrudService<
         await batch.commit();
 
         // 結果を一括取得（N回の個別 get → 1回の getAll）
-        const snaps = await firestore.getAll(...refs);
+        const snaps = await getDb().getAll(...refs);
         for (const snap of snaps) {
           if (snap.exists) {
             results.push(convertTimestamps({ id: snap.id, ...(snap.data() as T) } as Select));
