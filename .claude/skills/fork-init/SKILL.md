@@ -1,6 +1,6 @@
 ---
 name: fork-init
-description: upstream(next-starter 等)を clone した直後のリポジトリで、新規プロジェクトのフォーク初期設定を承認1回で完走する。GitHub リポ作成・リモート整理・pnpm install・フォーク固有ファイル(project.md / 台帳 / package 名 / business.config / README / .env.development)の書き換え・初期コミット・push まで
+description: upstream(next-starter 等)を clone した直後のリポジトリで、新規プロジェクトのフォーク初期設定を承認1回で完走する。GitHub リポ作成・リモート整理・pnpm install・フォーク固有ファイル(project.md / 台帳 / package 名 / business.config / .env.development)の書き換え・初期コミット・push まで
 argument-hint: "<name> [github-owner]  例: 88-base yokouchi-wildweb"
 disable-model-invocation: true
 ---
@@ -32,12 +32,12 @@ disable-model-invocation: true
 以下を箇条書きで提示し、承認を1回取る:
 - 作成するリポジトリ(`<owner>/<name>` private)/ スキップの場合はその旨
 - リモート: origin = 新リポ、upstream = 現 origin
-- 書き換えるファイルの一覧(文書の手順 4 チェックリストと同じ 6 項目)
+- 書き換えるファイルの一覧(文書の手順 4 チェックリストと同じ 5 項目。README は触らない)
 - 初期コミットの件名: `chore: <name> フォーク初期設定`
 - push 先: `origin main`
 
 ## 実行(承認後、途中確認なし)
-1. `gh repo create <owner>/<name> --private --description "<一言説明>"`(既存ならスキップ)。
+1. `gh repo create <owner>/<name> --private --description "<name>: <一言説明>"`(既存ならスキップ。既存で description が空なら `gh repo edit --description` で設定する。README は全リポ共通のため、GitHub 上のプロジェクト名はこの欄が担う)。
 2. `git remote rename origin upstream` → `git remote add origin git@github.com:<owner>/<name>.git`。
 3. `pnpm install`(`node_modules` が無い場合のみ)。
 4. フォーク固有ファイルの書き換え(文書の手順 4 の順):
@@ -45,7 +45,7 @@ disable-model-invocation: true
    b. `.notices/applied/<fork-id>.md`: `# APPLIED LEDGER fork:<origin url>` の1行のみ。
    c. `package.json`: `name` を `<name>` に。
    d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` を `<name>` ベースに。`domain` / `url` / `mail.defaultFrom` は確定していれば入れ、未定なら upstream の名前を含まない仮値(`example.com` 等)にする。
-   e. `README.md`: 冒頭の「プロジェクト概要」節を `<name>` の説明に置き換え、upstream 宣言の引用ブロックと「実案件へ適用する際は」の案内を削除する。開発ドキュメントへの導線は残す。
+   e. `README.md` は**触らない**(全リポ共通。固有情報は project.md と GitHub の description 欄)。
    f. `.env.development`: `pnpm env:init` で生成する(`.env.example` のコピーに `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` を自動設定。既存なら何もしない)。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
 5. `pnpm tsc --noEmit` 相当の型チェックは不要(設定ファイルのみの変更)。`git status --short` で意図したファイルだけが変更されていることを確認する。
 6. コミット: 件名 `chore: <name> フォーク初期設定` + 空行 + 本文(フォーク元、書き換えた項目、バックエンド未設定ならその旨)+ 環境指定の Co-Authored-By トレーラー。
