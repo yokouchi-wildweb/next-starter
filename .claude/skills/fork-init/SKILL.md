@@ -46,7 +46,7 @@ disable-model-invocation: true
    c. `package.json`: `name` を `<name>` に。
    d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` を `<name>` ベースに。`domain` / `url` / `mail.defaultFrom` は確定していれば入れ、未定なら upstream の名前を含まない仮値(`example.com` 等)にする。
    e. `README.md`: 冒頭の「プロジェクト概要」節を `<name>` の説明に置き換え、upstream 宣言の引用ブロックと「実案件へ適用する際は」の案内を削除する。開発ドキュメントへの導線は残す。
-   f. `.env.development`: `.env.example` をコピーし、`APP_BASE_URL=http://localhost:3000`、`AUTH_JWT_SECRET`(`openssl rand -base64 32`)、`ENCRYPTION_KEY`(`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)を埋める。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
+   f. `.env.development`: `pnpm env:init` で生成する(`.env.example` のコピーに `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` を自動設定。既存なら何もしない)。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
 5. `pnpm tsc --noEmit` 相当の型チェックは不要(設定ファイルのみの変更)。`git status --short` で意図したファイルだけが変更されていることを確認する。
 6. コミット: 件名 `chore: <name> フォーク初期設定` + 空行 + 本文(フォーク元、書き換えた項目、バックエンド未設定ならその旨)+ 環境指定の Co-Authored-By トレーラー。
 7. `git push -u origin main`。

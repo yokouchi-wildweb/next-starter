@@ -4,6 +4,21 @@
 
 ## コマンド一覧
 
+### 環境変数 (env)
+
+```bash
+# .env.example → .env.development を生成し、最小起動に必要な値を自動設定
+# (APP_BASE_URL=localhost / AUTH_JWT_SECRET / ENCRYPTION_KEY をランダム生成。既存なら何もしない)
+pnpm env:init
+
+# 別名のファイルを作る場合
+pnpm env:init .env.local
+```
+
+用途: フォーク直後やクローン直後の最初の一歩。Firebase / DB 未設定でも dev サーバーが起動する状態を作る。一次情報:
+
+➡ [新規プロジェクトの立ち上げ: フォークからデプロイまで](../docs/how-to/initial-setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md)
+
 ### データベース (db)
 
 ```bash
@@ -134,6 +149,7 @@ scripts/
 │   ├── seed/              # シーダー
 │   └── clear/             # データ削除
 ├── domain-config/         # ドメイン設定生成
+├── env/                   # .env 初期生成
 ├── mail/                  # メール関連
 └── room/                  # リアルタイムルーム基盤の init / deploy
 ```
