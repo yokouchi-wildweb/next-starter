@@ -1,22 +1,31 @@
-// hooks/useToggleScroll.ts
+// src/hooks/useDisableScroll.ts
 
 'use client'
 
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { acquireBodyScrollLock, releaseBodyScrollLock } from '@/utils/bodyScrollLock'
 
+/**
+ * body のスクロールを無効化するフック。
+ *
+ * - 複数インスタンスが同時にロックしても参照カウントで管理され、解放順に依存しない
+ *   (ロック管理の実体は utils/bodyScrollLock)
+ * - Radix Dialog 等、別機構のスクロールロックと重なっても body を永久ロックしない
+ * - unmount 時にこのインスタンスが保持しているロックは自動解放される
+ *   (consumer 側で enableScroll を呼び忘れても body が固まらない)
+ *
+ * @param lockToTop true: ロック時にページ先頭へスクロール / false: 現在位置を維持
+ */
 export const useDisableScroll = (lockToTop: boolean = true) => {
 
-  const isDisabled = useRef(false)
-  const originalOverflow = useRef<string | null>(null)
+  // 同期的な二重取得/二重解放ガード用 (render 中は参照しない)
+  const isDisabledRef = useRef(false)
+  // 利用側へ返すリアクティブな状態
+  const [isDisabled, setIsDisabled] = useState(false)
   const scrollPosition = useRef({ x: 0, y: 0 })
 
   const disableScroll = useCallback(() => {
-    if (typeof window === 'undefined' || isDisabled.current) return
-
-    const body = document.body
-    if (originalOverflow.current === null) {
-      originalOverflow.current = window.getComputedStyle(body).overflow
-    }
+    if (typeof window === 'undefined' || isDisabledRef.current) return
 
     if (!lockToTop) {
       scrollPosition.current = { x: window.scrollX, y: window.scrollY }
@@ -25,31 +34,36 @@ export const useDisableScroll = (lockToTop: boolean = true) => {
       window.scrollTo(0, 0)
     }
 
-    body.style.overflow = 'hidden'
-    isDisabled.current = true
+    acquireBodyScrollLock(document.body)
+    isDisabledRef.current = true
+    setIsDisabled(true)
   }, [lockToTop])
 
   const enableScroll = useCallback(() => {
-    if (typeof window === 'undefined' || !isDisabled.current) return
+    if (typeof window === 'undefined' || !isDisabledRef.current) return
 
-    const body = document.body
-    if (originalOverflow.current !== null) {
-      body.style.overflow = originalOverflow.current
-    }
-
-    isDisabled.current = false
+    releaseBodyScrollLock(document.body)
+    isDisabledRef.current = false
+    setIsDisabled(false)
   }, [])
 
   const toggleScroll = useCallback(() => {
-    if (isDisabled.current) {
+    if (isDisabledRef.current) {
       enableScroll()
     } else {
       disableScroll()
     }
   }, [disableScroll, enableScroll])
 
+  // unmount 時に保持中のロックを自動解放 (未保持なら no-op)
+  useEffect(() => {
+    return () => {
+      enableScroll()
+    }
+  }, [enableScroll])
+
   return {
-    isDisabled: isDisabled.current,
+    isDisabled,
     disableScroll,
     enableScroll,
     toggleScroll,
