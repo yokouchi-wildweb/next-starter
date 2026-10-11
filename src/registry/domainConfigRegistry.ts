@@ -57,6 +57,9 @@ export type DomainKey = keyof typeof domainConfigMap;
 type DomainConfigOptionals = {
   useSoftDelete?: boolean;
   searchFields?: string[];
+  // 関連度ランキング（searchRank: true 時のフィールド重み、Neon のみ）。
+  // 未宣言なら searchFields 等重み。詳細は src/lib/crud/README.md の searchRank 節を参照。
+  searchRank?: { fields?: Array<string | { field: string; weight?: number }> };
   defaultOrderBy?: string[][];
   tableFields?: string[];
   useDetailModal?: boolean;

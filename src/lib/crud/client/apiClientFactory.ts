@@ -94,6 +94,13 @@ export function createApiClient<T, CreateData = Partial<T>, UpdateData = Partial
           delete queryParams.relationWhere;
         }
 
+        // searchRank: boolean はそのまま、spec オブジェクトは JSON 化（axios のブラケット直列化を避ける）
+        if (params.searchRank === undefined) {
+          delete queryParams.searchRank;
+        } else if (typeof params.searchRank === "object") {
+          queryParams.searchRank = JSON.stringify(params.searchRank);
+        }
+
         return (await axios.get<PaginatedResult<T>>(`${baseUrl}/search`, { params: queryParams })).data;
       }),
     bulkDeleteByIds: (ids) =>

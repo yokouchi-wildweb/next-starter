@@ -51,8 +51,9 @@ createCrudService<TTable, TCreate>(table, {
 
   // 検索デフォルト
   defaultSearchFields?: string[],
-  defaultSearchPriorityFields?: string[],
-  prioritizeSearchHitsByDefault?: boolean,
+  defaultSearchRank?: SearchRankSpec,          // 関連度ランキングの重み既定（searchRank 節）
+  defaultSearchPriorityFields?: string[],      // @deprecated → searchRank
+  prioritizeSearchHitsByDefault?: boolean,     // @deprecated → searchRank
   defaultOrderBy?: OrderBySpec,
 
   // 入力パース
@@ -414,9 +415,64 @@ await service.search({
 
 ### テキスト検索（searchQuery）
 
-- `searchFields` の各カラムに対して `ILIKE %query%` を OR で結合
-- `searchPriorityFields` で `CASE WHEN col ILIKE pattern THEN 0 ELSE 1 END` による優先度ソートを生成
-- `prioritizeSearchHits: true` で優先度を `orderBy` より前に適用
+- `searchFields` の各カラムに対して `ILIKE %query%` を OR で結合（結果集合・count はこれだけで決まる）
+- 並び順は次の 2 経路。`searchRank` 指定時はこちらが優先される
+  - **searchRank（推奨）**: 後述の関連度ランキング
+  - **legacy**: `searchPriorityFields` で `CASE WHEN col ILIKE pattern THEN 0 ELSE 1 END` を生成、`prioritizeSearchHits: true` で `orderBy` より前に適用（互換維持のため残置、`@deprecated`）
+- SQL 片は `buildSearchWhere` / `buildSearchRankOrderBy` / `buildSearchPriorityOrderBy`（`@/lib/crud/drizzle`）として公開。`base.query()` で独自 JOIN を組む wrapper からも同じ順位付けを再利用できる
+
+### searchRank（関連度ランキング）
+
+ピッカー等のキーワード検索で「探している 1 件」を上に出すための並び替え。`searchQuery` があるときだけ ORDER BY の先頭に入り、結果集合・count・先読み一覧（searchQuery 無し）には影響しない。Drizzle 専用（Firestore では無視）。
+
+```typescript
+// 呼び出し側（SearchParams）
+searchRank?: boolean | { fields?: Array<string | { field: string; weight?: number }> }
+//  true  = サービスの defaultSearchRank、無ければ searchFields を等重み
+//  spec  = 呼び出しごとに重みを指定
+//  未指定 / false = legacy 経路（従来どおり）
+
+// サービス側（createCrudService オプション）— 「どう並べるか」の既定のみ。ON/OFF は呼び出し側が決める
+defaultSearchRank?: { fields: [{ field: "name", weight: 3 }, "email"] }
+// ビジネスドメインは domain.json の `searchRank` キーに同じ形で宣言 → dc:generate が drizzleBase に展開
+```
+
+採点式（フィールドごとに算出し合算。複数フィールド一致は合算で自然に加点）:
+
+```sql
+CASE
+  WHEN lower(col::text) = lower(q)      THEN 100  -- 完全一致
+  WHEN col::text ILIKE 'q%'             THEN 60   -- 前置一致
+  WHEN col::text ~* '(^|[\s@._/-])q'    THEN 40   -- 語頭一致（空白・@・.・_・-・/ の直後）
+  WHEN col::text ILIKE '%q%'            THEN 20   -- 部分一致
+  ELSE 0
+END * weight
+-- ORDER BY (sum) DESC, <orderBy / defaultOrderBy>, id
+```
+
+例: user は `name` weight 3。「ab」で検索すると name 前置一致 = 60×3 = 180、email ドメイン語頭一致（`foo@abc.com`）= 40×1 = 40 となり、名前が ab で始まるユーザーが先に並ぶ。
+
+ルール:
+
+- 採点対象は `searchFields ∩ 実在カラム` に限定（WHERE に参加しない列で並び替えない、fail-closed）。全て除外された場合は legacy 経路にフォールバック
+- weight は有限の正数のみ。HTTP 経由（`GET /api/[domain]/search?searchRank=...`）は `true|false|1|0` か `{"fields":[...]}` の JSON のみ受理、未知キー・weight 0〜100 外・20 フィールド超は 400
+- クエリ由来の値は全てバインドパラメータ。スコアと weight のみリテラル
+- `AsyncComboboxInput` / `AsyncMultiSelectInput` は既定で `searchRank: true` を送る（prop で `false` / spec に上書き可）。管理一覧など picker 以外の `search` 呼び出しは従来どおり
+- `%q%` の全走査コストはランキングでは変わらない。大規模テーブルでは下記のインデックスを検討
+
+#### 大規模テーブル向けインデックス推奨（pg_trgm、下流判断・[user-run]）
+
+`ILIKE '%q%'` は B-tree を使えない。users 等が数十万行を超える場合は pg_trgm の GIN インデックスで WHERE 側の走査を抑える（並び替え式はフィルタ後の行にしか評価されないため、ここが効けば全体が軽くなる）。
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS users_name_trgm_idx  ON users USING gin (lower(name)  gin_trgm_ops);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS users_email_trgm_idx ON users USING gin (lower(email) gin_trgm_ops);
+```
+
+- Neon は pg_trgm 利用可。拡張作成を含むため core には同梱せず、下流が必要なテーブルに対して手動で適用する
+- 式インデックスを使うため `lower(col) LIKE lower('%q%')` 形でないと当たらない点に注意（現行 `ILIKE` はプランナが trigram index に当てられる。EXPLAIN で確認すること）
+- 2 文字以下のクエリはトライグラム未満のため効果が薄い（既知の限界）
 
 ### ページネーション
 
@@ -565,7 +621,7 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 | extraWhere | 対応 | 非対応 |
 | or 条件 | 対応 | 非対応（エラー） |
 | 複数列 orderBy | 対応 | 単一列のみ |
-| searchPriorityFields | 対応 | 非対応 |
+| searchRank / searchPriorityFields | 対応 | 非対応（無視） |
 | ページネーション | LIMIT/OFFSET + COUNT(*) | page*limit 件取得 → slice |
 | withRelations / withCount | 対応 | 非対応 |
 | replaceByQuery | 対応 | 非対応 |

@@ -23,6 +23,7 @@
 | fields | Field[] | 🟢 Yes | フィールド定義 |
 | fieldGroups | FieldGroup[] | ⚪ No | 管理画面フォームのセクション分け（後述） |
 | searchFields | string[] | ⚪ No | 検索対象フィールド名の配列 |
+| searchRank | `{ fields: (string \| { field: string; weight?: number })[] }` | ⚪ No | 関連度ランキング（`searchRank: true` 時のフィールド重み、Neon のみ）。未宣言なら `searchFields` 等重みで「完全 > 前置 > 語頭 > 部分」一致順になる。例: `{ "fields": [{ "field": "name", "weight": 3 }, "email"] }`。詳細: `src/lib/crud/README.md` の searchRank 節 |
 | defaultOrderBy | [string, "ASC" \| "DESC"][] | ⚪ No | デフォルトソート順 |
 | tableFields | string[] | ⚪ No | 管理画面テーブルに表示するフィールド |
 | useDetailModal | boolean | ⚪ No | 詳細モーダルの有無 |

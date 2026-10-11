@@ -3,7 +3,7 @@
 import { db } from "@/lib/drizzle";
 import { stripDenylisted } from "@/lib/audit";
 import { omitUndefined } from "@/utils/object";
-import { eq, inArray, SQL, ilike, and, or, sql, isNull, asc, desc, getTableName, gt } from "drizzle-orm";
+import { eq, inArray, SQL, and, sql, isNull, asc, desc, getTableName, gt } from "drizzle-orm";
 import { generateSortKey, generateFirstSortKey, generateLastSortKey, generateLastSortKeys, generateInitialSortKeys } from "./fractionalSort";
 import { DomainError } from "@/lib/errors";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
@@ -24,7 +24,16 @@ import type {
   WithOptions,
   HasManyRelation,
 } from "../types";
-import { buildOrderBy, buildRelationWhere, buildWhere, runQuery } from "./query";
+import {
+  buildOrderBy,
+  buildRelationWhere,
+  buildWhere,
+  runQuery,
+  buildSearchWhere,
+  buildSearchRankOrderBy,
+  buildSearchPriorityOrderBy,
+  normalizeSearchRankSpec,
+} from "./query";
 import { applyInsertDefaults, buildColumnToPropertyMap, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
 import type { AuditConfig, BulkAuditMode, DrizzleCrudServiceOptions, DbTransaction, DbExecutor, ExtraWhereOption } from "./types";
 import {
@@ -1015,10 +1024,7 @@ export function createCrudService<
       }
 
       if (searchQuery && searchFields && searchFields.length) {
-        const pattern = `%${searchQuery}%`;
-        const searchConds = searchFields.map((field) => ilike((table as any)[field], pattern));
-        const searchWhere = or(...(searchConds as any[]));
-        finalWhere = and(finalWhere, searchWhere) as SQL;
+        finalWhere = and(finalWhere, buildSearchWhere(table, searchQuery, searchFields)) as SQL;
       }
 
       const totalQuery = db.select({ count: sql<number>`count(*)` }).from(table as any);
@@ -1063,23 +1069,19 @@ export function createCrudService<
         finalWhere = finalWhere ? and(finalWhere, softDeleteFilter) as SQL : softDeleteFilter;
       }
 
+      // 関連度ランキング（searchRank）。空配列なら旧 searchPriorityFields 経路にフォールバック
+      const rankFields = normalizeSearchRankSpec(params.searchRank, searchFields, serviceOptions.defaultSearchRank);
+      let rankOrderClause: SQL | undefined;
       let priorityOrderClauses: SQL[] = [];
       if (searchQuery && searchFields && searchFields.length) {
-        const pattern = `%${searchQuery}%`;
-        const searchConds = searchFields.map((field) => ilike((table as any)[field], pattern));
-        const searchWhere = or(...(searchConds as any[]));
-        finalWhere = and(finalWhere, searchWhere) as SQL;
+        finalWhere = and(finalWhere, buildSearchWhere(table, searchQuery, searchFields)) as SQL;
 
-        const priorityFields = (searchPriorityFields ?? searchFields).filter((field, index, array) => {
-          const exists = searchFields.includes(field);
-          return exists && array.indexOf(field) === index;
-        });
-
-        priorityOrderClauses = priorityFields.map((field) => {
-          const column = (table as any)[field];
-          if (!column) return undefined;
-          return sql`CASE WHEN ${column}::text ILIKE ${pattern} THEN 0 ELSE 1 END` as SQL;
-        }).filter((clause): clause is SQL => clause !== undefined);
+        if (rankFields.length) {
+          rankOrderClause = buildSearchRankOrderBy(table, searchQuery, rankFields);
+        }
+        if (!rankOrderClause) {
+          priorityOrderClauses = buildSearchPriorityOrderBy(table, searchQuery, searchFields, searchPriorityFields);
+        }
       }
 
       const baseQuery = db.select().from(table as any);
@@ -1089,9 +1091,11 @@ export function createCrudService<
       if (!hasIdInOrderBy) {
         orderByClauses.push(asc(table.id));
       }
-      const orderClauses = prioritizeSearchHits
-        ? [...priorityOrderClauses, ...orderByClauses]
-        : [...orderByClauses, ...priorityOrderClauses];
+      const orderClauses = rankOrderClause
+        ? [rankOrderClause, ...orderByClauses]
+        : prioritizeSearchHits
+          ? [...priorityOrderClauses, ...orderByClauses]
+          : [...orderByClauses, ...priorityOrderClauses];
       const result = await runQuery<Select>(table, baseQuery, {
         page,
         limit,
@@ -1132,10 +1136,7 @@ export function createCrudService<
       // ソフトデリートフィルターなし（削除済み含む）
 
       if (searchQuery && searchFields && searchFields.length) {
-        const pattern = `%${searchQuery}%`;
-        const searchConds = searchFields.map((field) => ilike((table as any)[field], pattern));
-        const searchWhere = or(...(searchConds as any[]));
-        finalWhere = and(finalWhere, searchWhere) as SQL;
+        finalWhere = and(finalWhere, buildSearchWhere(table, searchQuery, searchFields)) as SQL;
       }
 
       const totalQuery = db.select({ count: sql<number>`count(*)` }).from(table as any);
@@ -1174,23 +1175,19 @@ export function createCrudService<
           finalWhere = and(finalWhere, relationCondition) as SQL;
         }
       }
+      // 関連度ランキング（searchRank）。空配列なら旧 searchPriorityFields 経路にフォールバック
+      const rankFields = normalizeSearchRankSpec(params.searchRank, searchFields, serviceOptions.defaultSearchRank);
+      let rankOrderClause: SQL | undefined;
       let priorityOrderClauses: SQL[] = [];
       if (searchQuery && searchFields && searchFields.length) {
-        const pattern = `%${searchQuery}%`;
-        const searchConds = searchFields.map((field) => ilike((table as any)[field], pattern));
-        const searchWhere = or(...(searchConds as any[]));
-        finalWhere = and(finalWhere, searchWhere) as SQL;
+        finalWhere = and(finalWhere, buildSearchWhere(table, searchQuery, searchFields)) as SQL;
 
-        const priorityFields = (searchPriorityFields ?? searchFields).filter((field, index, array) => {
-          const exists = searchFields.includes(field);
-          return exists && array.indexOf(field) === index;
-        });
-
-        priorityOrderClauses = priorityFields.map((field) => {
-          const column = (table as any)[field];
-          if (!column) return undefined;
-          return sql`CASE WHEN ${column}::text ILIKE ${pattern} THEN 0 ELSE 1 END` as SQL;
-        }).filter((clause): clause is SQL => clause !== undefined);
+        if (rankFields.length) {
+          rankOrderClause = buildSearchRankOrderBy(table, searchQuery, rankFields);
+        }
+        if (!rankOrderClause) {
+          priorityOrderClauses = buildSearchPriorityOrderBy(table, searchQuery, searchFields, searchPriorityFields);
+        }
       }
 
       const baseQuery = db.select().from(table as any);
@@ -1200,9 +1197,11 @@ export function createCrudService<
       if (!hasIdInOrderBy) {
         orderByClauses.push(asc(table.id));
       }
-      const orderClauses = prioritizeSearchHits
-        ? [...priorityOrderClauses, ...orderByClauses]
-        : [...orderByClauses, ...priorityOrderClauses];
+      const orderClauses = rankOrderClause
+        ? [rankOrderClause, ...orderByClauses]
+        : prioritizeSearchHits
+          ? [...priorityOrderClauses, ...orderByClauses]
+          : [...orderByClauses, ...priorityOrderClauses];
       const result = await runQuery<Select>(table, baseQuery, {
         page,
         limit,

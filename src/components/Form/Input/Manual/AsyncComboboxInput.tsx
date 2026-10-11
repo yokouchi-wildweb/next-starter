@@ -44,7 +44,7 @@ import {
 } from "@/components/Form/utils";
 import { type Options } from "@/components/Form/types";
 import { cn } from "@/lib/cn";
-import { type SearchParams, type PaginatedResult } from "@/lib/crud/types";
+import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
 
 export type AsyncComboboxInputProps<T> = {
   /** 現在の値 */
@@ -61,6 +61,14 @@ export type AsyncComboboxInputProps<T> = {
   getOptionFromResult: (item: T) => Options;
   /** 検索対象フィールド */
   searchFields?: string[];
+  /**
+   * キーワード検索時の関連度ランキング（デフォルト: true）。
+   * true = サービス既定（defaultSearchRank、無ければ searchFields 等重み）で
+   * 「完全一致 > 前置一致 > 語頭一致 > 部分一致」の順に並べる。
+   * false = 従来の並び順（サービスの defaultOrderBy）。spec を渡すと重みを個別指定できる。
+   * 先読み一覧（searchQuery 無し）には影響しない。Firestore ドメインでは無視される。
+   */
+  searchRank?: boolean | SearchRankSpec;
 
   // ===== オプション =====
   /** 最低入力文字数（デフォルト: 1） */
@@ -141,6 +149,7 @@ export function AsyncComboboxInput<T>({
   searchFn,
   getOptionFromResult,
   searchFields,
+  searchRank = true,
   minChars = 1,
   limit = 20,
   preloadOnOpen = true,
@@ -206,6 +215,14 @@ export function AsyncComboboxInput<T>({
     [searchFn, limit, getOptionFromResult],
   );
 
+  // searchRank は spec オブジェクトがインラインで渡されることが多いため、内容で同一性を判定する
+  const searchRankKey = JSON.stringify(searchRank);
+  const resolvedSearchRank = useMemo<SearchParams["searchRank"]>(
+    () => searchRank,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [searchRankKey],
+  );
+
   const loadSearchPage = useCallback(
     async (page: number, replace: boolean, queryOverride?: string) => {
       const trimmed = (queryOverride ?? searchQuery).trim();
@@ -217,6 +234,7 @@ export function AsyncComboboxInput<T>({
         const result = await searchFn({
           searchQuery: trimmed,
           searchFields,
+          searchRank: resolvedSearchRank,
           page,
           limit,
         });
@@ -238,7 +256,7 @@ export function AsyncComboboxInput<T>({
         }));
       }
     },
-    [searchQuery, minChars, searchFn, searchFields, limit, getOptionFromResult],
+    [searchQuery, minChars, searchFn, searchFields, resolvedSearchRank, limit, getOptionFromResult],
   );
 
   // ---- 開閉 ----

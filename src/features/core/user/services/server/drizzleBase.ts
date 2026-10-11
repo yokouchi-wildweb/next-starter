@@ -24,6 +24,12 @@ export const baseOptions = {
   requestMemo: true,
   defaultOrderBy: [["createdAt", "DESC"]],
   defaultSearchFields: conf.searchFields,
+  // 関連度ランキング（searchRank: true 時の重み）。ピッカーで「ab」と打ったとき、
+  // 名前の前置一致がメールドメインの部分一致に埋もれないよう name を重くする。
+  // 採点対象は呼び出し側 searchFields との交差に限定される（picker 既定は name/email）。
+  defaultSearchRank: {
+    fields: [{ field: "name", weight: 3 }, "email", "phoneNumber"],
+  },
   useSoftDelete: true,
   belongsToManyRelations: [
     {

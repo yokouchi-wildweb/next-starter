@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test:crud-hooks": "node --test src/lib/crud/hooks/internal/*.test.mjs",
+    "test:crud-search-rank": "node --test src/lib/crud/drizzle/query/searchRank.test.mjs",
     "test:schema-registry": "node --test scripts/registry/check-schema-registry.test.mjs",
     "test:wallet-lot-planning": "npx tsx --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --test src/features/core/user/services/server/helpers/passwordChange.test.ts",

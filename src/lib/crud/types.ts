@@ -108,6 +108,26 @@ export type RelationFilter = BelongsToManyFilter | BelongsToFilter;
  */
 export type OrderBySpec = Array<[string, "ASC" | "DESC", ("FIRST" | "LAST")?]>;
 
+/**
+ * 関連度ランキングの対象フィールド。
+ * 文字列指定は weight 1 と同義。
+ */
+export type SearchRankField = string | { field: string; weight?: number };
+
+/**
+ * 関連度ランキング（searchRank）の仕様。
+ *
+ * フィールドごとに「完全一致 > 前置一致 > 語頭一致 > 部分一致」の階層スコアを算出し、
+ * weight を掛けて合算した値を ORDER BY の先頭に置く（複数フィールド一致は合算で自然に加点）。
+ * - fields 省略時は `searchFields` を等重みで使用する
+ * - fields は `searchFields` と実在カラムの交差に限定される（それ以外は無視、fail-closed）
+ * - WHERE 条件（結果集合・count）には影響しない。searchQuery 無しの呼び出しでは no-op
+ * - Drizzle 専用（Firestore では無視される）
+ */
+export type SearchRankSpec = {
+  fields?: SearchRankField[];
+};
+
 export type SearchParams = {
   page?: number;
   limit?: number;
@@ -115,11 +135,21 @@ export type SearchParams = {
   searchQuery?: string;
   searchFields?: string[];
   /**
+   * 関連度ランキングを有効にする。
+   * - `true`: サービスの `defaultSearchRank`、無ければ `searchFields` 等重み
+   * - `SearchRankSpec`: 呼び出しごとに重みを指定
+   * - 未指定 / `false`: 従来どおり（searchPriorityFields / prioritizeSearchHits の経路）
+   * 指定時は `searchPriorityFields` / `prioritizeSearchHits` より優先される。
+   */
+  searchRank?: boolean | SearchRankSpec;
+  /**
+   * @deprecated `searchRank` を使用すること（互換維持のため残置）。
    * 検索キーワードのヒット列に応じた並び替え優先度を指定する。
    * `prioritizeSearchHits` が `false` の場合は `orderBy` 適用後のタイブレークとして利用される。
    */
   searchPriorityFields?: string[];
   /**
+   * @deprecated `searchRank` を使用すること（互換維持のため残置）。
    * true の場合は検索ヒット優先度（searchPriorityFields）を orderBy よりも前に適用する。
    */
   prioritizeSearchHits?: boolean;
@@ -291,11 +321,20 @@ type BaseCrudServiceOptions = {
    */
   defaultSearchFields?: string[];
   /**
+   * 関連度ランキング（`searchRank: true`）時に使うフィールドと重みの既定値。
+   * 未設定なら `searchFields` を等重みで使用する。ランキングの ON/OFF は呼び出し側
+   * （`searchRank` パラメータ）が決める。この値は「どう並べるか」の既定のみ。
+   * Drizzle 専用。
+   */
+  defaultSearchRank?: SearchRankSpec;
+  /**
+   * @deprecated `defaultSearchRank` + 呼び出し側 `searchRank` を使用すること（互換維持のため残置）。
    * CASE WHEN による検索ヒット優先度を決めるフィールド順。
    * `search()` 実行時に `searchPriorityFields` が指定されていなければこちらが利用される。
    */
   defaultSearchPriorityFields?: string[];
   /**
+   * @deprecated `searchRank` を使用すること（互換維持のため残置）。
    * true の場合は検索ヒット優先度を orderBy よりも前に適用する。
    */
   prioritizeSearchHitsByDefault?: boolean;
