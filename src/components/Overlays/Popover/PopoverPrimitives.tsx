@@ -8,6 +8,7 @@ import { X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { useIsNestedInDialog } from "@/components/Overlays/DialogPrimitives";
+import { isDialogFocusRestoration } from "./isDialogFocusRestoration";
 
 // レイヤータイプ
 export type PopoverLayer =
@@ -162,6 +163,20 @@ function PopoverContent({
 
   const handleInteractOutside = React.useCallback(
     (event: InteractOutsideEvent) => {
+      // Dialog の FocusScope がコンテナ自身へプログラム的に focus を戻した focusin は dismiss にしない。
+      // Popover 内のボタンが「クリック → disabled + 中身差し替え」で activeElement を body に落とすと
+      // FocusScope の MutationObserver が DialogContent へ focus し、Popover の React ツリー外なので
+      // FOCUS_OUTSIDE として処理中の Popover が閉じていた。ユーザー意図のフォーカスではないため
+      // preventLayerDismiss とは無関係に常時抑止する（詳細: isDialogFocusRestoration.ts）。
+      if (
+        isDialogFocusRestoration({
+          originalEventType: event.detail.originalEvent.type,
+          target: event.target,
+        })
+      ) {
+        event.preventDefault();
+        return;
+      }
       if (preventLayerDismiss) {
         const target = event.target as HTMLElement | null;
         // ダイアログ「自身の dismiss chrome」（オーバーレイ/閉じるボタン）だけは

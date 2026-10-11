@@ -556,6 +556,8 @@ import { Popover } from "@/components/Overlays/Popover";
 
 **高さ（PopoverContent 共通）:** Radix が算出する配置側のビューポート残り高さ（`--radix-popover-content-available-height`）を上限とし、超える場合は内側のラッパーだけがスクロールする。長いリスト + フッターのポップオーバーでも確定ボタンが画面外に出ることはない。矢印（`showArrow`）はこの上限の外側に描画される。HoverCard も同じ構造。
 
+**Dialog / Modal 内での外側判定（PopoverContent 共通）:** 外側クリックで閉じる標準 UX は維持しつつ、次の 2 つだけは閉じない。(1) Dialog 自身の dismiss chrome（オーバーレイ / 閉じるボタン）への操作（`preventLayerDismiss`、既定 true）。(2) Dialog の FocusScope がコンテナ自身へプログラム的に focus を戻した `focusin`（常時）。(2) が無いと、Popover 内のボタンが「クリック → `disabled` + スピナー差し替え」でフォーカスを失った瞬間に Radix が DialogContent へ focus し、処理中の Popover が勝手に閉じる（非同期の確定ボタン全般で再現）。判定は `isDialogFocusRestoration.ts`（純粋関数、`pnpm test:popover-dismiss`）。空のモーダル本体クリックは pointerdown 側で従来どおり閉じる。
+
 ---
 
 ### ConfirmPopover
