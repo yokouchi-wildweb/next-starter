@@ -60,8 +60,10 @@ const ITEM_GAP = 8;
 /**
  * ドラッグ&ドロップで並び替え可能なリストコンポーネント
  *
- * 仮想スクロール（@tanstack/react-virtual）により、
+ * 既定（scroll="self"）では仮想スクロール（@tanstack/react-virtual）により、
  * 大量アイテムでもDOMノード数を最小限に保つ。
+ * scroll="parent" にするとスクロールコンテナを持たず全行を通常フローで描画し、
+ * 祖先（Modal 本体等）に単一のスクロール領域を委ねる（詳細: README.md）。
  *
  * @example
  * ```tsx
@@ -95,8 +97,10 @@ export default function SortableList<T extends SortableItemType>({
   itemHeight = "md",
   itemPaddingX = "sm",
   itemPaddingY = "none",
+  scroll = "self",
 }: SortableListProps<T>) {
   const mounted = useMounted();
+  const isSelfScroll = scroll === "self";
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -141,12 +145,15 @@ export default function SortableList<T extends SortableItemType>({
     [activeIndex]
   );
 
+  // scroll="parent" では全行を通常フローで描画するため仮想化を停止する
+  // （hooks の呼び出し順を保つため useVirtualizer 自体は常に呼ぶ）
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => estimatedItemSize,
     overscan: 5,
     rangeExtractor,
+    enabled: isSelfScroll,
   });
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -179,7 +186,8 @@ export default function SortableList<T extends SortableItemType>({
     setActiveId(null);
   }, []);
 
-  const resolvedMaxHeight = maxHeight ?? "70vh";
+  // scroll="parent" ではラッパーが高さ制約を持たない（maxHeight は無視）
+  const resolvedMaxHeight = isSelfScroll ? (maxHeight ?? "70vh") : undefined;
 
   /**
    * showHeader 時にカラムヘッダー行をスクロール領域の外・上に配置する。
@@ -236,76 +244,102 @@ export default function SortableList<T extends SortableItemType>({
     );
   }
 
+  /** 1行分の描画（self / parent 両モードで共通） */
+  const renderRow = (item: T, index: number) =>
+    isItemDisabled?.(item) ? (
+      <StaticItem
+        item={item}
+        columns={columns}
+        showDragHandle={showDragHandle}
+        rowClassName={resolveRowClassName(rowClassName, item, {
+          index,
+        })}
+        itemHeight={itemHeight}
+        itemPaddingX={itemPaddingX}
+        itemPaddingY={itemPaddingY}
+      />
+    ) : (
+      <SortableItem
+        item={item}
+        columns={columns}
+        showDragHandle={showDragHandle}
+        draggingClassName={draggingClassName}
+        rowClassName={resolveRowClassName(rowClassName, item, {
+          index,
+        })}
+        disabled={disabled}
+        itemHeight={itemHeight}
+        itemPaddingX={itemPaddingX}
+        itemPaddingY={itemPaddingY}
+      />
+    );
+
+  const dndBody = (children: React.ReactNode) => (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <SortableContext
+        items={sortableItemIds}
+        strategy={verticalListSortingStrategy}
+      >
+        {children}
+      </SortableContext>
+    </DndContext>
+  );
+
+  // scroll="parent": スクロールコンテナ・仮想化なしで全行を通常フローに並べる。
+  // 最寄りの祖先（Modal 本体等）が唯一のスクロール領域になる。
+  // dnd-kit の autoScroll は既定でスクロール可能な祖先を走査するため、
+  // ドラッグ中の端寄せスクロールも祖先側で機能する。
+  if (!isSelfScroll) {
+    return withHeader(
+      <div className={cn("w-full max-w-full flex flex-col gap-2", className)}>
+        {dndBody(
+          items.map((item, index) => (
+            <div key={item.id}>{renderRow(item, index)}</div>
+          ))
+        )}
+      </div>
+    );
+  }
+
   return withHeader(
     <div
       ref={scrollContainerRef}
       className={cn("w-full max-w-full overflow-y-auto", className)}
       style={{ maxHeight: resolvedMaxHeight }}
     >
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <SortableContext
-          items={sortableItemIds}
-          strategy={verticalListSortingStrategy}
+      {dndBody(
+        <div
+          style={{
+            height: virtualizer.getTotalSize(),
+            position: "relative",
+          }}
         >
-          <div
-            style={{
-              height: virtualizer.getTotalSize(),
-              position: "relative",
-            }}
-          >
-            {virtualizer.getVirtualItems().map((virtualRow) => {
-              const item = items[virtualRow.index];
-              const index = virtualRow.index;
-              return (
-                <div
-                  key={item.id}
-                  style={{
-                    position: "absolute",
-                    top: virtualRow.start,
-                    left: 0,
-                    width: "100%",
-                    height: rowHeightPx,
-                  }}
-                >
-                  {isItemDisabled?.(item) ? (
-                    <StaticItem
-                      item={item}
-                      columns={columns}
-                      showDragHandle={showDragHandle}
-                      rowClassName={resolveRowClassName(rowClassName, item, {
-                        index,
-                      })}
-                      itemHeight={itemHeight}
-                      itemPaddingX={itemPaddingX}
-                      itemPaddingY={itemPaddingY}
-                    />
-                  ) : (
-                    <SortableItem
-                      item={item}
-                      columns={columns}
-                      showDragHandle={showDragHandle}
-                      draggingClassName={draggingClassName}
-                      rowClassName={resolveRowClassName(rowClassName, item, {
-                        index,
-                      })}
-                      disabled={disabled}
-                      itemHeight={itemHeight}
-                      itemPaddingX={itemPaddingX}
-                      itemPaddingY={itemPaddingY}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </SortableContext>
-      </DndContext>
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const item = items[virtualRow.index];
+            const index = virtualRow.index;
+            return (
+              <div
+                key={item.id}
+                style={{
+                  position: "absolute",
+                  top: virtualRow.start,
+                  left: 0,
+                  width: "100%",
+                  height: rowHeightPx,
+                }}
+              >
+                {renderRow(item, index)}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

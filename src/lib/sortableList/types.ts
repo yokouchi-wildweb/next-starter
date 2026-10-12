@@ -41,6 +41,13 @@ export type SortableItem = {
 };
 
 /**
+ * SortableList のスクロール領域の持ち方
+ * - "self": リスト自身がスクロールコンテナ（仮想スクロールあり、従来挙動）
+ * - "parent": スクロールコンテナを持たず、祖先要素にスクロールを委ねる（仮想化なし）
+ */
+export type SortableListScrollMode = "self" | "parent";
+
+/**
  * SortableList のカラム定義
  */
 export type SortableListColumn<T> = {
@@ -107,8 +114,20 @@ export type SortableListProps<T extends SortableItem> = {
   className?: string;
   /**
    * テーブルラッパーの最大高さ。CSSの長さ表現で指定する。未指定時は 70vh。
+   * `scroll="parent"` のときは無視される（ラッパーが高さを持たないため）。
    */
   maxHeight?: string;
+  /**
+   * スクロール領域の持ち方。
+   * - `"self"`: リスト自身が `overflow-y-auto` + `maxHeight` のスクロールコンテナになり、
+   *   仮想スクロールで大量件数でも DOM ノード数を抑える（従来挙動）。
+   * - `"parent"`: リストはスクロールコンテナを持たず、全行を通常フローで描画する。
+   *   最寄りの祖先（Modal 本体・ページ等）が唯一のスクロール領域になるため、
+   *   スクロールする Modal / TabbedModal の中に数十行程度の編集リストを置くときの
+   *   二重スクロールバーを避けられる。仮想化は行われないので大量件数には向かない。
+   * @default "self"
+   */
+  scroll?: SortableListScrollMode;
   /**
    * 行単位で適用するクラス名。関数を渡すと行ごとに計算できる。
    */

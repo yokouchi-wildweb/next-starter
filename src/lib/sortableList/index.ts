@@ -7,5 +7,6 @@ export type {
   SortableItem as SortableItemType,
   SortableListColumn,
   SortableListProps,
+  SortableListScrollMode,
   ReorderResult,
 } from "./types";

@@ -249,7 +249,7 @@ reorderable={{
 - **getKey 必須**: reorderable 使用時は安定したレコードIDを返す `getKey` を必ず指定する（index フォールバックは並び替えに使えない）
 - **カラムソートと排他**: `sort` 適用中は表示順と保存順が一致しないため、ハンドルが自動で無効化される（title で理由を表示）
 - **ページネーション**: afterItemId 方式なのでページ内のドラッグは正しく保存されるが、ページ境界を越える移動はできない。本格的な並び替え運用は searchForSorting + 専用ソート画面を推奨
-- **SortableList との使い分け**: 大量件数の専用ソート画面 → `@/lib/sortableList`（仮想スクロールあり）／既存の一覧テーブルに並び替えを足したい → tableSuite `reorderable`
+- **SortableList との使い分け**: 大量件数の専用ソート画面 → `@/lib/sortableList`（仮想スクロールあり）／スクロールする Modal 内の数十行の編集リスト → `@/lib/sortableList` の `scroll="parent"`（仮想化なし・親スクロールに追従）／既存の一覧テーブルに並び替えを足したい → tableSuite `reorderable`
 
 ## 共通Props
 
