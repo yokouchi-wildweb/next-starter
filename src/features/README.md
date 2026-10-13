@@ -437,6 +437,12 @@ npx drizzle-kit push
 
 詳細手順は [Neon マイグレーション実行手順](../../docs/how-to/implementation/Neonのマイグレーション実行手順.md) を参照。push を忘れると、コード上は index 定義があってもクエリは全表スキャンのままで、本機能の目的 (検索/集計の高速化) を達成できない。
 
+#### ⚠️ push round-trip の確認（index を書いたら必須）
+
+drizzle-kit は特定の書き方の index を DB から正しく読み戻せず、**DB が既にスキーマどおりでも push のたびに DROP + CREATE する**（本番の大規模テーブルでは書き込みロック）。index を追加・変更したら `pnpm db:push` のあと `pnpm db:push:check` を実行し、差分ゼロを確認してからコミットする。
+
+手書き drizzle.ts での禁止事項: `sql\`${table.col} DESC\``（`.desc()` を使う）、通常列と SQL 式の混在（全列を `sql\`${table.col}\`` にする）。詳細なルールと理由: [scripts/registry/README.md](../../scripts/registry/README.md)
+
 ---
 
 ### core ドメインへの indexes 反映について

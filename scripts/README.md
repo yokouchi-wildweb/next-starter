@@ -46,7 +46,13 @@ pnpm db:setup
 # core ドメインの drizzle.ts が全て schemaRegistry に登録されているか検証
 # (登録漏れ = db:push でテーブルが作られない。core ドメイン追加時に実行)
 pnpm test:schema-registry
+
+# push の読み取り専用ドライラン: スキーマと DB を比較し、実行される SQL を表示 (1 文でもあれば exit 1)
+# (index を追加・変更したら db:push 後に差分ゼロを確認。APP_ENV=.env.production で本番の事前確認にも)
+pnpm db:push:check
 ```
+
+詳細: [registry/README.md](./registry/README.md)
 
 詳細: [db/seed/README.md](./db/seed/README.md)
 

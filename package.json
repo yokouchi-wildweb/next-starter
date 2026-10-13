@@ -15,6 +15,7 @@
     "test:user-password-change": "npx tsx --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",
     "db:push": "cross-env APP_ENV=.env.development drizzle-kit push",
+    "db:push:check": "npx tsx scripts/registry/check-schema-roundtrip.ts",
     "db:seed": "cross-env APP_ENV=.env.development npx tsx scripts/db/seed/run.ts",
     "db:seed:all": "cross-env APP_ENV=.env.development npx tsx scripts/db/seed/run.ts --all",
     "db:clear": "cross-env APP_ENV=.env.development npx tsx scripts/db/clear/run.ts",
@@ -73,7 +74,10 @@
       "protobufjs",
       "sharp",
       "unrs-resolver"
-    ]
+    ],
+    "patchedDependencies": {
+      "drizzle-kit@0.31.8": "patches/drizzle-kit@0.31.8.patch"
+    }
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
