@@ -8,7 +8,7 @@
 User/
 ├── Layout/          # レイアウトコンポーネント
 │   ├── UserLayout.tsx   # アプリ全体のレイアウト（Header + Footer + BottomNav + Provider）
-│   └── UserPage.tsx     # ページコンテナ
+│   └── UserPage.tsx     # ページコンテナ（fill / immersive モード）
 ├── Sections/        # セクション
 │   ├── Header/          # ヘッダーナビゲーション
 │   ├── HeaderCustom/    # カスタムヘッダー（プロジェクト固有）
@@ -266,6 +266,65 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 - BottomNavが**表示されている時だけ**高さを持つ
 - `HideBottomNav`で非表示にした場合、スペーサーも自動で0になる
 - SP/PCそれぞれの表示状態に連動
+
+---
+
+## UserPage - ページコンテナ
+
+`Main` の薄いラッパー。`containerType` / `padding` 等の Main の props をそのまま受け付ける。
+
+### fill - ビューポート充填モード
+
+ページ自体がスクロールしない「アプリ的」な画面（ゲーム、プレイヤー、エディタ、キオスク、楽器 UI 等）向け。
+固定ヘッダー直下からフッター / ボトムナビスペーサー直上までの残り高さちょうどにスナップし、内部スクロールは子に委譲する。
+
+```tsx
+import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+
+export default function PlayerPage() {
+  return (
+    <UserPage fill>
+      <Toolbar />                                   {/* 固有高さ */}
+      <Block className="flex-1 min-h-0 overflow-y-auto">
+        <Playlist />                                {/* ここだけスクロール */}
+      </Block>
+      <Keyboard />                                  {/* 固有高さ、常に見える */}
+    </UserPage>
+  );
+}
+```
+
+| 項目 | 内容 |
+|------|------|
+| 高さの契約 | 子は `flex-1 min-h-0` だけで残り高さを確保する。`calc(100dvh - ...)` やマジックナンバーは書かない |
+| 余白 | 既定 `padding="none"`（端まで使う用途が主）。Main の padding props で上書き可 |
+| ヘッダー | `--app-header-height`（実測値）で自動補正。`HideHeader` で隠せばその分 fill が広がる |
+| フッター / ボトムナビ | フロー内に残るので fill と高さを分け合う。隠せば fill が広がる（スペーサーも自動で 0） |
+| SSR | `--viewport-height` 設定前は `100dvh` にフォールバック |
+| `fill` 未指定 | 従来と完全に同一の出力 |
+
+仕組み: UserLayout の外枠 `[data-user-app-container]` は既定 `min-h` で中身ぶん伸びるが、配下に `data-user-fill` があると `src/styles/config.css` の `:has()` ルールで確定高さ + `overflow-clip` に切り替わる（AdminPage の fill と同じ手法）。
+
+### immersive - 没入モード
+
+`fill` + `HideHeader` + `HideFooter` + `HideBottomNav` を一発で有効化。ページ全体がビューポートちょうどになる。
+
+```tsx
+<UserPage immersive>
+  <AppBar />                                       {/* 必要なら downstream が先頭の子として置く */}
+  <Block className="flex-1 min-h-0"><Stage /></Block>
+</UserPage>
+```
+
+- `safeArea` を付けると `env(safe-area-inset-*)` ぶんのパディングを付与（横向きスマホのノッチ対策）
+- Hide* は useEffect 駆動のため、初回描画の一瞬だけヘッダー等が見える（既存コントロールと同じ）
+
+### fullscreen との使い分け
+
+| 欲しいもの | 使うもの |
+|-----------|---------|
+| フロー内に留まる非スクロールのページ土台（ヘッダー等と共存） | `<UserPage fill>` / `<UserPage immersive>` |
+| 画面全体を覆う一時的なオーバーレイ（スプラッシュ、背景演出） | `<Main containerType="fullscreen">`（FullScreen による fixed オーバーレイ、z 層指定、body スクロールロック） |
 
 ---
 

@@ -76,3 +76,21 @@
   flex-direction: column;
   min-height: 0;
 }
+
+/*
+ * ユーザーレイアウトの外枠（[data-user-app-container] = UserLayout の #user-app-container）
+ * の mode 切替。既定は min-height: var(--viewport-height) で中身ぶん伸び、body が
+ * スクロールする通常の Web ページ。
+ * <UserPage fill> が配下に data-user-fill を出している時だけ、外枠を確定高さ +
+ * overflow-clip の束縛モードへ切り替える。これにより #stretch-wrapper（flex-1 min-h-0）
+ * → UserPage（flex-1 min-h-0）の高さチェーンが成立し、ページは「ヘッダー下から
+ * フッター/ボトムナビスペーサー上まで」ちょうどに収まってスクロールしなくなる。
+ * Admin 側（[data-admin-main-wrapper]:has([data-admin-fill])）と同じ手法。
+ * overflow-hidden ではなく overflow-clip を使う理由は AdminOuterLayout のコメント参照
+ * （scroll container 化による focus 駆動スクロールの抑止）。
+ */
+[data-user-app-container]:has([data-user-fill]) {
+  height: var(--viewport-height, 100dvh);
+  min-height: 0;
+  overflow: clip;
+}
