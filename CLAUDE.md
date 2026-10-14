@@ -210,6 +210,7 @@ overlays (direct _shadcn/dialog or self-built overlay NG — pick from here): mo
 ref: src/components/Overlays/README.md
 
 UserPage: Main alias, wraps \<main\> with containerType, h1 not included
+kiosk (non-scrolling 1-screen pages outside UserLayout/AdminLayout): KioskFrame (AppFrames/Kiosk, viewport-fixed h-[--viewport-height] overflow-clip flex-col, children `flex-1 min-h-0`, safeArea/wakeLock) | fit-scale: ScaledStage (Layout, logical WxH → transform:scale contain/width/height, letterbox) + useFitScale(containerRef,{logicalWidth,logicalHeight,fit,minScale=0,maxScale=∞}) src/hooks | fluid: text-fluid-xs..5xl (theme.css clamp vmin) + Tailwind builtin portrait:/landscape: + short: | inside layouts use UserPage fill / AdminPage fill instead | ref: src/components/AppFrames/Kiosk/README.md
 
 ui_layers:
 - page: SSR entry, minimal tags, no hooks

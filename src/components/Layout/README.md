@@ -27,6 +27,7 @@
 | Section | section等 | セマンティックセクション（as propで要素変更可） |
 | Main | main | ページメインコンテンツ（containerTypeで幅制御） |
 | FullScreen | div | フルスクリーン表示（モバイル対応） |
+| ScaledStage | div | 固定の論理 W×H を transform:scale でコンテナにフィット（レターボックス） |
 | Hidden | div | 非表示要素（display: none） |
 
 ### 共通props
@@ -48,3 +49,6 @@
 
 #### FullScreen
 モバイルブラウザのアドレスバーを考慮した真のフルスクリーン表示。`layer` propでz-index層を指定。
+
+#### ScaledStage
+`logicalWidth` × `logicalHeight` の論理 px で組んだ子を、コンテナに収まる倍率で transform:scale する（`useFitScale` を内蔵、"use client"）。`fit`: `contain`（既定、レターボックス）/ `width` / `height`、`minScale` / `maxScale`、`align`、`overflow`。サイネージ・キオスク・固定比率の盤面など「カンプ忠実」が優先される画面向け。流体レイアウトとの使い分けと詳細は [AppFrames/Kiosk/README.md](../AppFrames/Kiosk/README.md)。
