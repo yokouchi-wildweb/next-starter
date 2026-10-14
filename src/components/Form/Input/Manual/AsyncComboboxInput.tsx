@@ -2,7 +2,8 @@
 
 // src/components/Form/Input/Manual/AsyncComboboxInput.tsx
 //
-// 非同期・単一選択コンボボックス。複数選択版(AsyncMultiSelectInput)と挙動を揃える:
+// 非同期・単一選択コンボボックス。取得エンジンは AsyncOptionSource/useAsyncOptionSource に共通化
+// （複数選択版 AsyncMultiSelectInput / モーダル版 Overlays/AsyncPickerModal と同じ挙動）:
 //  - open 時に検索クエリ無しで一覧を先読み表示（browse モード / preloadOnOpen）。
 //    Enter で検索（search モード）へ切替。クエリを空に戻すと browse へ復帰。
 //  - 候補リストはスクロール末尾近接で自動次ページ取得（無限スクロール）。
@@ -13,38 +14,34 @@
 import {
   type ComponentProps,
   type HTMLAttributes,
-  type KeyboardEvent,
-  type UIEvent,
+  type ReactNode,
   useState,
   useMemo,
   useCallback,
-  useRef,
 } from "react";
-import { Check, ChevronsUpDown, X, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/_shadcn/command";
+import { Command, CommandInput, CommandItem, CommandSeparator } from "@/components/_shadcn/command";
 import {
   PopoverContent,
   PopoverRoot,
   PopoverTrigger,
 } from "@/components/Overlays/Popover/PopoverPrimitives";
 import { Button } from "@/components/Form/Button/Button";
-import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
-import {
-  serializeOptionValue,
-  resolveOptionItemIdentity,
-  type OptionPrimitive,
-} from "@/components/Form/utils";
+import { serializeOptionValue, type OptionPrimitive } from "@/components/Form/utils";
 import { type Options } from "@/components/Form/types";
+import { Span } from "@/components/TextBlocks/Span";
 import { cn } from "@/lib/cn";
 import { type SearchParams, type PaginatedResult, type SearchRankSpec } from "@/lib/crud/types";
+
+import {
+  AsyncOptionInitialState,
+  AsyncOptionList,
+  AsyncOptionListFooter,
+  PendingOptionLabel,
+  isAsyncOptionInitialState,
+  useAsyncOptionSource,
+} from "./AsyncOptionSource";
 
 export type AsyncComboboxInputProps<T> = {
   /** 現在の値 */
@@ -116,31 +113,7 @@ export type AsyncComboboxInputProps<T> = {
   onOpenChange?: (open: boolean) => void;
 } & Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange">;
 
-// ---- 内部ステート型（browse / search 共通） ----
-type FetchStatus = "idle" | "loading" | "error";
-
-type FetchState = {
-  items: Options[];
-  page: number;
-  total: number;
-  status: FetchStatus;
-  errorMessage: string | null;
-};
-
-const INITIAL_FETCH_STATE: FetchState = {
-  items: [],
-  page: 0,
-  total: 0,
-  status: "idle",
-  errorMessage: null,
-};
-
-const SCROLL_LOAD_THRESHOLD_PX = 100;
-
-// ラベル未解決時の代替表示
-function PendingLabel() {
-  return <BaseSkeleton className="h-4 w-32 rounded" backgroundTone="subtle" />;
-}
+const EMPTY_VALUES: OptionPrimitive[] = [];
 
 export function AsyncComboboxInput<T>({
   value,
@@ -174,92 +147,24 @@ export function AsyncComboboxInput<T>({
   const isControlled = typeof open === "boolean";
   const resolvedOpen = isControlled ? open : internalOpen;
 
-  // ---- 検索 / browse ----
-  const [searchQuery, setSearchQuery] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
-  const [browseState, setBrowseState] = useState<FetchState>(INITIAL_FETCH_STATE);
-  const [searchState, setSearchState] = useState<FetchState>(INITIAL_FETCH_STATE);
-
-  // 選択済みアイテムのキャッシュ（検索結果が入れ替わってもラベルを保持するため）
-  const [selectedOptionCache, setSelectedOptionCache] = useState<Options | null>(null);
-
-  // ---- リクエスト ID（競合破棄用） ----
-  const browseRequestIdRef = useRef(0);
-  const searchRequestIdRef = useRef(0);
-
-  // ---- ロード（browse / search） ----
-  const loadBrowsePage = useCallback(
-    async (page: number, replace: boolean) => {
-      const myId = ++browseRequestIdRef.current;
-      setBrowseState((prev) => ({ ...prev, status: "loading", errorMessage: null }));
-      try {
-        const result = await searchFn({ page, limit });
-        if (browseRequestIdRef.current !== myId) return;
-        const newItems = result.results.map(getOptionFromResult);
-        setBrowseState((prev) => ({
-          items: replace ? newItems : [...prev.items, ...newItems],
-          page,
-          total: result.total,
-          status: "idle",
-          errorMessage: null,
-        }));
-      } catch (err) {
-        if (browseRequestIdRef.current !== myId) return;
-        setBrowseState((prev) => ({
-          ...prev,
-          status: "error",
-          errorMessage: err instanceof Error ? err.message : "読み込みに失敗しました",
-        }));
-      }
-    },
-    [searchFn, limit, getOptionFromResult],
+  // ---- 取得エンジン ----
+  // initialOption は毎 render 同じ参照とは限らないため、配列化は useMemo で固定する
+  const initialOptions = useMemo(
+    () => (initialOption ? [initialOption] : undefined),
+    [initialOption],
   );
-
-  // searchRank は spec オブジェクトがインラインで渡されることが多いため、内容で同一性を判定する
-  const searchRankKey = JSON.stringify(searchRank);
-  const resolvedSearchRank = useMemo<SearchParams["searchRank"]>(
-    () => searchRank,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [searchRankKey],
-  );
-
-  const loadSearchPage = useCallback(
-    async (page: number, replace: boolean, queryOverride?: string) => {
-      const trimmed = (queryOverride ?? searchQuery).trim();
-      if (trimmed.length < minChars) return;
-
-      const myId = ++searchRequestIdRef.current;
-      setSearchState((prev) => ({ ...prev, status: "loading", errorMessage: null }));
-      try {
-        const result = await searchFn({
-          searchQuery: trimmed,
-          searchFields,
-          searchRank: resolvedSearchRank,
-          page,
-          limit,
-        });
-        if (searchRequestIdRef.current !== myId) return;
-        const newItems = result.results.map(getOptionFromResult);
-        setSearchState((prev) => ({
-          items: replace ? newItems : [...prev.items, ...newItems],
-          page,
-          total: result.total,
-          status: "idle",
-          errorMessage: null,
-        }));
-      } catch (err) {
-        if (searchRequestIdRef.current !== myId) return;
-        setSearchState((prev) => ({
-          ...prev,
-          status: "error",
-          errorMessage: err instanceof Error ? err.message : "検索に失敗しました",
-        }));
-      }
-    },
-    [searchQuery, minChars, searchFn, searchFields, resolvedSearchRank, limit, getOptionFromResult],
-  );
+  const source = useAsyncOptionSource<T>({
+    searchFn,
+    getOptionFromResult,
+    searchFields,
+    searchRank,
+    minChars,
+    limit,
+    initialOptions,
+  });
 
   // ---- 開閉 ----
+  const { reset } = source;
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
       if (disabled) return;
@@ -268,119 +173,51 @@ export function AsyncComboboxInput<T>({
       onOpenChange?.(nextOpen);
 
       if (nextOpen) {
-        // 検索系を全リセット
-        setSearchQuery("");
-        setHasSearched(false);
-        searchRequestIdRef.current++;
-        setSearchState(INITIAL_FETCH_STATE);
-        // browse は毎回 fresh fetch（最新データ）
-        browseRequestIdRef.current++;
-        setBrowseState(INITIAL_FETCH_STATE);
-        if (preloadOnOpen) {
-          loadBrowsePage(1, true);
-        }
+        reset({ preload: preloadOnOpen });
       } else {
         // ポップオーバーが閉じた時に onBlur を発火
         onBlur?.();
       }
     },
-    [disabled, isControlled, onOpenChange, onBlur, preloadOnOpen, loadBrowsePage],
-  );
-
-  // ---- 検索 ----
-  const handleSearchQueryChange = useCallback((val: string) => {
-    setSearchQuery(val);
-    if (val.trim() === "") {
-      // クエリを空に戻したら browse へ復帰
-      setHasSearched(false);
-      searchRequestIdRef.current++;
-      setSearchState(INITIAL_FETCH_STATE);
-    }
-  }, []);
-
-  const handleSearch = useCallback(() => {
-    const trimmed = searchQuery.trim();
-    if (trimmed.length < minChars) return;
-    setHasSearched(true);
-    setSearchState(INITIAL_FETCH_STATE);
-    loadSearchPage(1, true);
-  }, [searchQuery, minChars, loadSearchPage]);
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleSearch();
-      }
-    },
-    [handleSearch],
+    [disabled, isControlled, onOpenChange, onBlur, preloadOnOpen, reset],
   );
 
   // ---- 選択 / 解除 ----
   const handleSelect = useCallback(
     (optionValue: OptionPrimitive) => {
-      // 選択したアイテムの Options をキャッシュに保存（ラベル永続化）
-      const serialized = serializeOptionValue(optionValue);
-      const option =
-        browseState.items.find((opt) => serializeOptionValue(opt.value) === serialized) ??
-        searchState.items.find((opt) => serializeOptionValue(opt.value) === serialized);
-      if (option) {
-        setSelectedOptionCache(option);
-      }
+      // ラベルは fetch 時に cache 済み（検索結果が入れ替わっても解決できる）
       onChange(optionValue);
       handleOpenChange(false);
     },
-    [onChange, handleOpenChange, browseState.items, searchState.items],
+    [onChange, handleOpenChange],
   );
 
   const handleDeselect = useCallback(() => {
     // ピン留め行クリックでの解除。popover は開いたままにして再選択を可能にする。
     onChange(null);
-    setSelectedOptionCache(null);
   }, [onChange]);
 
+  const { setSearchQuery } = source;
   const handleClear = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       onChange(null);
-      setSelectedOptionCache(null);
       setSearchQuery("");
-      setHasSearched(false);
-      searchRequestIdRef.current++;
-      setSearchState(INITIAL_FETCH_STATE);
     },
-    [onChange],
+    [onChange, setSearchQuery],
   );
 
-  // ---- 選択中のラベル解決: initialOption → cache → 取得済みリスト ----
-  const selectedLabel = useMemo(() => {
-    if (value === null || value === undefined) {
-      return null;
-    }
-    const serializedValue = serializeOptionValue(value);
-
-    if (initialOption && serializeOptionValue(initialOption.value) === serializedValue) {
-      return initialOption.label;
-    }
-    if (selectedOptionCache && serializeOptionValue(selectedOptionCache.value) === serializedValue) {
-      return selectedOptionCache.label;
-    }
-    const found =
-      browseState.items.find((opt) => serializeOptionValue(opt.value) === serializedValue) ??
-      searchState.items.find((opt) => serializeOptionValue(opt.value) === serializedValue);
-    return found?.label ?? null;
-  }, [value, initialOption, selectedOptionCache, browseState.items, searchState.items]);
-
+  // ---- 選択中のラベル解決: initialOption → cache（fetch 由来） ----
   const hasValue = value !== null && value !== undefined;
+  const { resolveOption } = source;
+  const selectedLabel = useMemo(
+    () =>
+      value !== null && value !== undefined ? (resolveOption(value)?.label ?? null) : null,
+    [value, resolveOption],
+  );
 
-  // ---- 現在モード（browse / search）の派生 ----
-  const mode: "browse" | "search" = hasSearched ? "search" : "browse";
-  const activeState = mode === "search" ? searchState : browseState;
-  const browseHasMore =
-    browseState.page > 0 && browseState.page * limit < browseState.total;
-  const searchHasMore =
-    searchState.page > 0 && searchState.page * limit < searchState.total;
-  const hasMore = mode === "search" ? searchHasMore : browseHasMore;
+  // ---- 現在モードの派生 ----
+  const { mode, activeState, hasMore, isBrowseLoaded } = source;
 
   // 選択中アイテムはピン留めで別表示するため、本体リストからは除外（二重表示防止）
   const serializedValue = hasValue ? serializeOptionValue(value) : null;
@@ -388,171 +225,73 @@ export function AsyncComboboxInput<T>({
     () =>
       serializedValue === null
         ? activeState.items
-        : activeState.items.filter(
-            (opt) => serializeOptionValue(opt.value) !== serializedValue,
-          ),
+        : activeState.items.filter((opt) => serializeOptionValue(opt.value) !== serializedValue),
     [activeState.items, serializedValue],
   );
 
-  // ---- 無限スクロール ----
-  const handleScroll = useCallback(
-    (e: UIEvent<HTMLDivElement>) => {
-      const el = e.currentTarget;
-      const distanceFromBottom = el.scrollHeight - (el.scrollTop + el.clientHeight);
-      if (distanceFromBottom > SCROLL_LOAD_THRESHOLD_PX) return;
-
-      if (mode === "search") {
-        if (searchHasMore && searchState.status === "idle") {
-          loadSearchPage(searchState.page + 1, false);
-        }
-      } else {
-        if (browseHasMore && browseState.status === "idle") {
-          loadBrowsePage(browseState.page + 1, false);
-        }
-      }
-    },
-    [
-      mode,
-      searchHasMore,
-      searchState.status,
-      searchState.page,
-      browseHasMore,
-      browseState.status,
-      browseState.page,
-      loadSearchPage,
-      loadBrowsePage,
-    ],
-  );
-
   // ---- 選択中のピン留め行 ----
-  const renderSelectedPinned = () => {
-    if (!hasValue) return null;
-    return (
-      <>
-        <CommandItem
-          value="__selected__"
-          onSelect={handleDeselect}
-          className="cursor-pointer items-center gap-1"
-        >
-          <Check className="mr-2 size-4 opacity-100" />
-          <span className="flex-1 truncate">{selectedLabel ?? <PendingLabel />}</span>
-          <X className="size-4 shrink-0 opacity-50 hover:opacity-100" />
-        </CommandItem>
-        <CommandSeparator className="my-1" />
-      </>
-    );
-  };
+  const pinnedRow = hasValue ? (
+    <>
+      <CommandItem
+        value="__selected__"
+        onSelect={handleDeselect}
+        className="cursor-pointer items-center gap-1"
+      >
+        <Check className="mr-2 size-4 opacity-100" />
+        <span className="flex-1 truncate">{selectedLabel ?? <PendingOptionLabel />}</span>
+        <X className="size-4 shrink-0 opacity-50 hover:opacity-100" />
+      </CommandItem>
+      <CommandSeparator className="my-1" />
+    </>
+  ) : null;
 
-  // ---- 候補リストの表示内容 ----
-  const renderListContent = () => {
-    const trimmed = searchQuery.trim();
+  // ---- 候補リストの状態表示（初回ロード / 初回エラー / ヒント / 末尾） ----
+  const isInitialState = isAsyncOptionInitialState(activeState);
+  const isHintState = mode === "browse" && !isBrowseLoaded;
 
-    // 初回ロード中（items 空）
-    if (activeState.items.length === 0 && activeState.status === "loading") {
+  const renderStatus = (): ReactNode => {
+    if (isInitialState) {
       return (
-        <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          {loadingMessage}
-        </div>
-      );
-    }
-
-    // 初回エラー
-    if (activeState.status === "error" && activeState.items.length === 0) {
-      return (
-        <div className="flex flex-col items-center gap-2 py-6">
-          <span className="text-sm text-destructive">{activeState.errorMessage}</span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (mode === "search") loadSearchPage(1, true);
-              else loadBrowsePage(1, true);
-            }}
-          >
-            再試行
-          </Button>
-        </div>
+        <AsyncOptionInitialState
+          state={activeState}
+          loadingMessage={loadingMessage}
+          onRetry={source.reloadFirstPage}
+        />
       );
     }
 
     // browse 未ロード（preloadOnOpen=false）かつ未検索 → ヒント類
-    if (mode === "browse" && browseState.page === 0 && browseState.status === "idle") {
-      if (trimmed.length === 0) {
-        return (
-          <div className="py-6 text-center text-sm text-muted-foreground">{hintMessage}</div>
-        );
-      }
-      if (trimmed.length < minChars) {
-        return (
-          <div className="py-6 text-center text-sm text-muted-foreground">
-            {minCharsMessage ?? `${minChars}文字以上入力してください`}
-          </div>
-        );
-      }
+    if (isHintState) {
+      const trimmed = source.searchQuery.trim();
+      const text =
+        trimmed.length === 0
+          ? hintMessage
+          : trimmed.length < minChars
+            ? (minCharsMessage ?? `${minChars}文字以上入力してください`)
+            : "Enterキーで検索";
       return (
-        <div className="py-6 text-center text-sm text-muted-foreground">Enterキーで検索</div>
+        <Span size="sm" tone="muted" align="center" className="block py-6">
+          {text}
+        </Span>
       );
     }
 
-    // 結果0件（選択中ピン留めのみ残る場合も含む）
-    if (listItems.length === 0 && activeState.status !== "loading") {
-      // 選択中アイテムだけが該当していた場合はピン留めで見えているので空表示は出さない
-      if (!hasValue || activeState.items.length === 0) {
-        return <CommandEmpty>{emptyMessage}</CommandEmpty>;
-      }
-    }
-
     return (
-      <>
-        {listItems.map((option, index) => {
-          const identity = resolveOptionItemIdentity(option, index);
-          return (
-            <CommandItem
-              key={identity}
-              value={identity}
-              onSelect={() => handleSelect(option.value)}
-              className="cursor-pointer"
-            >
-              <Check className="mr-2 size-4 opacity-0" />
-              <span className="truncate">{option.label}</span>
-            </CommandItem>
-          );
-        })}
-
-        {/* フッタ: 追加読み込み中 / これ以上なし / 追加読み込みエラー */}
-        {activeState.status === "loading" && activeState.items.length > 0 && (
-          <div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
-            <Loader2 className="size-3 animate-spin" />
-            読み込み中
-          </div>
-        )}
-        {activeState.status === "idle" && !hasMore && activeState.items.length > 0 && (
-          <div className="py-2 text-center text-xs text-muted-foreground">
-            これ以上ありません
-          </div>
-        )}
-        {activeState.status === "error" && activeState.items.length > 0 && (
-          <div className="flex items-center justify-center gap-2 py-2">
-            <span className="text-xs text-destructive">
-              {activeState.errorMessage ?? "追加読み込みに失敗しました"}
-            </span>
-            <button
-              type="button"
-              className="text-xs text-primary underline"
-              onClick={() => {
-                if (mode === "search") loadSearchPage(activeState.page + 1, false);
-                else loadBrowsePage(activeState.page + 1, false);
-              }}
-            >
-              再試行
-            </button>
-          </div>
-        )}
-      </>
+      <AsyncOptionListFooter
+        state={activeState}
+        hasMore={hasMore}
+        onRetry={source.retryLoadMore}
+      />
     );
   };
+
+  // 結果0件表示: 選択中アイテムだけが該当していた場合はピン留めで見えているので出さない
+  const showEmpty =
+    !isInitialState &&
+    !isHintState &&
+    listItems.length === 0 &&
+    activeState.status !== "loading" &&
+    (!hasValue || activeState.items.length === 0);
 
   return (
     <div className={cn("w-full", className)} {...rest}>
@@ -601,14 +340,21 @@ export function AsyncComboboxInput<T>({
             <CommandInput
               autoFocus
               placeholder={searchPlaceholder}
-              value={searchQuery}
-              onValueChange={handleSearchQueryChange}
-              onKeyDown={handleKeyDown}
+              value={source.searchQuery}
+              onValueChange={source.setSearchQuery}
+              onKeyDown={source.handleSearchKeyDown}
             />
-            <CommandList className="max-h-60" onScroll={handleScroll}>
-              {renderSelectedPinned()}
-              {renderListContent()}
-            </CommandList>
+            <AsyncOptionList
+              selectionMode="single"
+              options={isInitialState || isHintState ? [] : listItems}
+              selectedValues={EMPTY_VALUES}
+              onToggle={handleSelect}
+              emptyMessage={showEmpty ? emptyMessage : null}
+              header={pinnedRow}
+              footer={renderStatus()}
+              className="gap-0"
+              onScroll={source.handleScroll}
+            />
           </Command>
         </PopoverContent>
       </PopoverRoot>

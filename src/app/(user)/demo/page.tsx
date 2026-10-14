@@ -22,6 +22,7 @@ const DEMO_PAGES = [
   { path: "scroll-slider", label: "ScrollSlider", description: "横スクロール型スライダー" },
   { path: "fade-slider", label: "FadeSlider", description: "フェード型スライダー" },
   { path: "sortable-list", label: "Sortable List", description: "並び替え可能なリスト" },
+  { path: "async-picker-modal", label: "Async Picker Modal", description: "大量マスタから選ぶモーダル" },
   { path: "status-badge", label: "Status Badge", description: "ステータスバッジ" },
   { path: "tables", label: "Tables", description: "テーブルコンポーネント" },
 ] as const;

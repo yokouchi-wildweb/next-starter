@@ -360,6 +360,9 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | `ComboboxInput` | 単一選択（検索付き） |
 | `AsyncComboboxInput` | 単一選択（非同期検索） |
 | `MultiSelectInput` | 複数選択 |
+| `AsyncMultiSelectInput` | 複数選択（非同期検索） |
+
+`AsyncComboboxInput` / `AsyncMultiSelectInput` / `Overlays/AsyncPickerModal` の取得エンジン（browse ページング・Enter 検索・searchRank・無限スクロール・requestId 競合破棄・ラベル cache）は `Input/Manual/AsyncOptionSource/useAsyncOptionSource` に 1 本化されている。非同期候補を扱う新しいピッカーを作るときは、このフック + `AsyncOptionList` / `AsyncOptionInitialState` / `AsyncOptionListFooter` を消費し、取得ロジックを再実装しない。各コンポーネントが持つのは選択モデル（単一 / 複数 / session snapshot）とクロームだけ。アクションボタン起点で「マスタから N 件取り込む」用途はフォーム項目ではなく `Overlays/AsyncPickerModal` を使う。
 | `RadioGroupInput` | ラジオボタン |
 | `CheckGroupInput` | チェックボックスグループ |
 | `BooleanCheckboxInput` | 単一チェックボックス |
