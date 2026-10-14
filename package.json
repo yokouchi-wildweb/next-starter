@@ -11,6 +11,7 @@
     "test:crud-search-rank": "node --test src/lib/crud/drizzle/query/searchRank.test.mjs",
     "test:schema-registry": "node --test scripts/registry/check-schema-registry.test.mjs",
     "test:popover-dismiss": "node --test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs",
+    "test:cn": "node --test src/lib/cn/cn.test.mjs",
     "test:wallet-lot-planning": "npx tsx --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",

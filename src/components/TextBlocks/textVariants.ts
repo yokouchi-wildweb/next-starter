@@ -27,6 +27,15 @@ export const size = {
   xl: "text-xl",
   xxl: "text-2xl",
   xxxl: "text-3xl",
+  // 流体サイズ (theme.css --text-fluid-*、ビューポート短辺に比例。キオスク・サイネージ向け)
+  // 4xl / 5xl 相当は見出し用途なので className="text-fluid-4xl" 等で指定する
+  fluidXs: "text-fluid-xs",
+  fluidSm: "text-fluid-sm",
+  fluidMd: "text-fluid-base",
+  fluidLg: "text-fluid-lg",
+  fluidXl: "text-fluid-xl",
+  fluidXxl: "text-fluid-2xl",
+  fluidXxxl: "text-fluid-3xl",
 } as const;
 
 export const weight = {

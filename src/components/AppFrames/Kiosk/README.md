@@ -96,7 +96,8 @@ export function FullscreenToggle() {
 
 ### A. 流体レイアウトの規約
 
-- **文字**: 固定 px（`text-5xl` 等）ではなく `text-fluid-xs` 〜 `text-fluid-5xl`。`clamp(下限, N vmin, 上限)` なので短辺に比例して縮み、縦横どちらでも破綻しない（`src/styles/theme.css`）
+- **文字**: 固定 px（`text-5xl` 等）ではなく `text-fluid-xs` 〜 `text-fluid-5xl`。`clamp(下限, N vmin, 上限)` なので短辺に比例して縮み、縦横どちらでも破綻しない（`src/styles/theme.css`）。TextBlocks（Span / Para / SecTitle / PageTitle）は `size="fluidMd"` 等の variant でも指定できる（`fluidXs` 〜 `fluidXxxl`、4xl / 5xl は className）
+  - `text-fluid-*` は `src/lib/cn` で tailwind-merge の font-size グループに登録済み。`cn("text-primary-foreground text-fluid-base")` のように文字色と並べても両方残り、`text-base` 等の固定サイズとは後勝ちで置き換わる。**theme.css に新しい `--text-*` トークンを足す時は `src/lib/cn` の `FLUID_TEXT_SIZES` にも登録する**（未登録の `text-*` は文字色扱いになり、同じ要素の文字色を消してしまう。`pnpm test:cn` がドリフトを検出）
 - **向き**: Tailwind 組み込みの `portrait:` / `landscape:`（カスタムバリアント不要）。`landscape:grid-cols-2 portrait:grid-cols-1` のように書く。JS 側で同じ判定が必要なら `useViewportOrientation()`（matchMedia 由来なので CSS と一致する）
 - **高さ不足**: `short:`（max-height 500px、theme.css）で余白・文字を圧縮
 - **余白**: 共通スケールは固定していない。任意値で `p-[clamp(1rem,3vmin,2rem)]` / `gap-[clamp(0.5rem,2vmin,1.5rem)]` と書く
