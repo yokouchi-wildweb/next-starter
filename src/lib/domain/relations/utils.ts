@@ -22,9 +22,12 @@ export function getRelations(domain: string): RelationInfo[] {
   const relations: RelationInfo[] = [];
 
   for (const relation of config.relations || []) {
+    // `!== undefined` は relations[] に fieldType 有り/無し (hasMany) が混在するときの
+    // JSON import 型推論 (`fieldType?: undefined`) を絞り込むために必要
     if (
       (relation.relationType === "belongsTo" || relation.relationType === "belongsToMany") &&
-      "fieldType" in relation
+      "fieldType" in relation &&
+      relation.fieldType !== undefined
     ) {
       relations.push({
         domain: toSnakeCase(relation.domain),

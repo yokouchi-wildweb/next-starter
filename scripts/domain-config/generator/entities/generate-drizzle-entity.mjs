@@ -344,13 +344,28 @@ const relationTables = [];
   relationImports.set(relationDomainCamel, relationDomainPascal);
   const relationRoot = `${pascal}To${relationDomainPascal}`;
   const tableVar = `${relationRoot}Table`;
-  const tableName = toSnakeCase(relationRoot);
+  const junctionTableName = toSnakeCase(relationRoot);
+  // FK制約名の63文字超過判定はここ（import行の確定前）で済ませる。
+  // 後段の中間テーブル出力ループで imports.add しても import行は既に文字列化済みで反映されない
+  const baseColumnName = `${toSnakeCase(camel)}_id`;
+  const relationColumnName = `${toSnakeCase(relationDomainCamel)}_id`;
+  const baseFkTooLong = isFkNameTooLong(junctionTableName, baseColumnName, tableName);
+  const relationFkTooLong = isFkNameTooLong(
+    junctionTableName,
+    relationColumnName,
+    getForeignTableName(relationDomainCamel),
+  );
+  if (baseFkTooLong || relationFkTooLong) imports.add('foreignKey');
   relationTables.push({
     tableVar,
-    tableName,
+    tableName: junctionTableName,
     typeFn,
     domainCamel: relationDomainCamel,
     domainPascal: relationDomainPascal,
+    baseColumnName,
+    relationColumnName,
+    baseFkTooLong,
+    relationFkTooLong,
   });
 });
 
@@ -446,7 +461,9 @@ if (hasCompositeUniques) {
 // 非ユニークインデックス (domain.json の indexes 配列)
 // 検索・集計頻度の高いカラム向け。compositeUniques とは別物（こちらはユニーク制約なし）。
 // 形式: { fields: string[], where?: string, name?: string }
-//   - fields: TS プロパティ名 (createdAt 等の camelCase もそのまま)
+//   - fields: 生成後の entities/drizzle.ts に現れるプロパティ名で指定する
+//            業務フィールドは domain.json の name そのまま (例: "name_kana"、"nameKana" ではない)
+//            システム列は createdAt / updatedAt / deletedAt (camelCase)
 //   - where: 省略可。指定時は partial index になる (例: "deleted_at IS NULL")
 //   - name:  省略可。省略時は <table>_<col1>_<col2>_..._idx で自動命名
 if (hasExtraIndexes) {
@@ -503,14 +520,10 @@ if (hiddenColumns.length > 0) {
 }
 
 relationTables.forEach((t) => {
-  const baseColumnName = `${toSnakeCase(camel)}_id`;
-  const relationColumnName = `${toSnakeCase(t.domainCamel)}_id`;
+  // FK名の超過判定 (baseFkTooLong / relationFkTooLong) は relationTables 収集時に確定済み
+  const { baseColumnName, relationColumnName, baseFkTooLong, relationFkTooLong } = t;
   const baseColumn = buildColumn(t.typeFn, baseColumnName);
   const relationColumn = buildColumn(t.typeFn, relationColumnName);
-
-  const baseFkTooLong = isFkNameTooLong(t.tableName, baseColumnName, tableName);
-  const foreignRelationTableName = getForeignTableName(t.domainCamel);
-  const relationFkTooLong = isFkNameTooLong(t.tableName, relationColumnName, foreignRelationTableName);
 
   // カラム定義
   let baseColDef = `    ${camel}Id: ${baseColumn}\n      .notNull()`;
@@ -526,14 +539,12 @@ relationTables.forEach((t) => {
   const junctionCallbackItems = [];
   junctionCallbackItems.push(`pk: primaryKey({ columns: [table.${camel}Id, table.${t.domainCamel}Id] })`);
   if (baseFkTooLong) {
-    imports.add('foreignKey');
     const shortName = buildShortFkName(t.tableName, baseColumnName);
     junctionCallbackItems.push(
       `${camel}Fk: foreignKey({\n      name: "${shortName}",\n      columns: [table.${camel}Id],\n      foreignColumns: [${pascal}Table.id],\n    }).onDelete("cascade")`
     );
   }
   if (relationFkTooLong) {
-    imports.add('foreignKey');
     const shortName = buildShortFkName(t.tableName, relationColumnName);
     junctionCallbackItems.push(
       `${t.domainCamel}Fk: foreignKey({\n      name: "${shortName}",\n      columns: [table.${t.domainCamel}Id],\n      foreignColumns: [${t.domainPascal}Table.id],\n    }).onDelete("cascade")`

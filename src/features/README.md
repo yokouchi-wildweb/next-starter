@@ -409,7 +409,7 @@ mimeType, src, durationSec, durationFormatted
 
 | プロパティ | 型 | 必須 | 説明 |
 |---|---|---|---|
-| fields | string[] | 🟢 Yes | インデックス対象カラム（先頭から複合キー）。TS プロパティ名で指定 |
+| fields | string[] | 🟢 Yes | インデックス対象カラム（先頭から複合キー）。生成後の `entities/drizzle.ts` に現れるプロパティ名で指定する。業務フィールドは domain.json の `name` そのまま（例: `name_kana`。`nameKana` は存在せず型エラー）、システム列は `createdAt` / `updatedAt` / `deletedAt` |
 | where | string | ⚪ No | 部分インデックスの WHERE 句（SQL リテラル）。例: `"deleted_at IS NULL"` |
 | name | string | ⚪ No | インデックス名のオーバーライド。省略時は `{テーブル名}_{col1}_{col2}_..._idx` で自動命名 |
 
