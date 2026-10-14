@@ -1,64 +1,76 @@
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 
+import { Block } from "@/components/Layout/Block";
+import { Flex } from "@/components/Layout/Flex";
+import { Grid } from "@/components/Layout/Grid";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
-import { Main, PageTitle, Para } from "@/components/TextBlocks";
+import { Main, PageTitle, Para, SecTitle, Span } from "@/components/TextBlocks";
 
-const DEMO_PAGES = [
-  { path: "bank-transfer-vision", label: "Bank Transfer Vision", description: "AIによる銀行振込画像の事前判定" },
-  { path: "block-appearance", label: "Block Appearance", description: "ブロック要素の外観設定" },
-  { path: "check-env", label: "Check Env", description: "環境変数の確認" },
-  { path: "dummy-payment", label: "Dummy Payment", description: "ダミー決済フロー" },
-  { path: "field-layout", label: "Field Layout", description: "フィールドレイアウトのデモ" },
-  { path: "fingerprint", label: "Fingerprint", description: "デバイス信号の収集とフォーム行動計測" },
-  { path: "form-components", label: "Form Components", description: "フォームコンポーネント一覧" },
-  { path: "google-popup", label: "Google Popup", description: "Google認証（ポップアップ）" },
-  { path: "google-redirect", label: "Google Redirect", description: "Google認証（リダイレクト）" },
-  { path: "media-input", label: "Media Input", description: "メディアアップロード" },
-  { path: "overlay", label: "Overlay", description: "モーダル・ダイアログ" },
-  { path: "popover", label: "Popover", description: "ポップオーバー" },
-  { path: "seamless-video", label: "Seamless Video", description: "fmp4のMSE継ぎ目なし連結再生" },
-  { path: "seamless-av", label: "Seamless A/V", description: "音声付きフラグメントの連結再生(映像MSE+音声WebAudio)" },
-  { path: "scroll-slider", label: "ScrollSlider", description: "横スクロール型スライダー" },
-  { path: "fade-slider", label: "FadeSlider", description: "フェード型スライダー" },
-  { path: "sortable-list", label: "Sortable List", description: "並び替え可能なリスト" },
-  { path: "async-picker-modal", label: "Async Picker Modal", description: "大量マスタから選ぶモーダル" },
-  { path: "status-badge", label: "Status Badge", description: "ステータスバッジ" },
-  { path: "tables", label: "Tables", description: "テーブルコンポーネント" },
-] as const;
+import { demoHref, getDemoPagesByCategory, DEMO_PAGES } from "./_data/demoPages";
 
 export default function DemoIndexPage() {
+  const groups = getDemoPagesByCategory();
+
   return (
     <Main containerType="contentShell">
-      <Section>
-        <Stack space={6}>
-          <PageTitle size="xxl" className="font-semibold">
-            デモ一覧
-          </PageTitle>
-          <Para tone="muted" size="sm">
-            各コンポーネントのデモページへのリンク集です。
-          </Para>
-        </Stack>
-      </Section>
+      <Stack space={12} className="py-6 sm:py-10">
+        <Section>
+          <Stack space={3}>
+            <Span size="xs" weight="medium" tone="muted" className="uppercase tracking-[0.2em]">
+              Demo · {DEMO_PAGES.length} pages
+            </Span>
+            <PageTitle size="xxxl" className="font-semibold">
+              デモ一覧
+            </PageTitle>
+            <Para tone="muted" className="my-0 max-w-2xl">
+              このスターターに同梱されているコンポーネントと機能の動作確認ページです。
+              カテゴリごとにまとめています。
+            </Para>
+          </Stack>
+        </Section>
 
-      <Section>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {DEMO_PAGES.map((page) => (
-            <Link
-              key={page.path}
-              href={`/demo/${page.path}`}
-              className="group block rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-accent"
-            >
-              <Para weight="medium" className="text-foreground group-hover:text-accent-foreground">
-                {page.label}
-              </Para>
-              <Para size="sm" tone="muted" className="group-hover:text-accent-foreground">
-                {page.description}
-              </Para>
-            </Link>
-          ))}
-        </div>
-      </Section>
+        {groups.map((group) => (
+          <Section key={group.key} aria-labelledby={`demo-category-${group.key}`}>
+            <Stack space={4}>
+              <Flex align="center" gap="xs">
+                <SecTitle id={`demo-category-${group.key}`} size="lg" weight="semiBold">
+                  {group.label}
+                </SecTitle>
+                <Span size="xs" tone="muted" className="rounded-full border px-2 py-0.5 tabular-nums">
+                  {group.pages.length}
+                </Span>
+              </Flex>
+
+              <Grid gap="md" className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {group.pages.map((page) => (
+                  <Link
+                    key={page.path}
+                    href={demoHref(page)}
+                    className="group block rounded-xl border bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Block>
+                      <Flex align="center" justify="between" gap="xs">
+                        <Span weight="medium" className="truncate">
+                          {page.label}
+                        </Span>
+                        <ArrowUpRight
+                          aria-hidden="true"
+                          className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground"
+                        />
+                      </Flex>
+                      <Para size="sm" tone="muted" className="my-0 mt-1 line-clamp-2">
+                        {page.description}
+                      </Para>
+                    </Block>
+                  </Link>
+                ))}
+              </Grid>
+            </Stack>
+          </Section>
+        ))}
+      </Stack>
     </Main>
   );
 }

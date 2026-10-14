@@ -23,6 +23,12 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | `demo/` | 開発用デモ機能 | form-components, dummy-payment |
 | `maintenance/` | メンテナンス画面 | - |
 
+### トップページ（`(user)/page.tsx`）の差し替え
+
+`(user)/page.tsx` は 1 行のスイッチで、中身は `(user)/_components/StarterHome/`（上流所有のデモ用トップ）。
+下流は自前のトップページを `(user)/_components/<Name>/` に作り、page.tsx の import 先だけを差し替える。
+上流は page.tsx を今後編集しないため merge が衝突しない。`StarterHome/` は削除・編集しない（詳細: `(user)/_components/StarterHome/README.md`）。
+
 ## admin/ の構造
 
 | グループ | 用途 | 例 |
