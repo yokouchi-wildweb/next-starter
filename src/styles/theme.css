@@ -10,6 +10,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * 高さ基準ブレークポイント: 横向きスマホ (幅は十分だが高さ 350〜430px 程度) 向け。
+ * `short:p-2` のように使う。向き自体は Tailwind 組み込みの landscape: / portrait: を使う。
+ * ⚠️ 閾値は src/hooks/useViewportOrientation.ts の SHORT_HEIGHT_MAX_PX と手動同期
+ *    (Tailwind のメディアクエリは CSS 変数を参照できない)
+ */
+@custom-variant short (@media (max-height: 500px));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
