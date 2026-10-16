@@ -24,6 +24,7 @@
 @import "./animations.css";
 @import "./theme.css";
 @import "./palette.defaults.css";
+@import "./typography.defaults.css";
 @import "./gradient.css";
 @import "./config.css";
 @import "./z-layer.css";

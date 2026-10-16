@@ -1,9 +1,9 @@
 /*
  * src/styles/custom/typography.css — 書体・文字サイズの上書き(下流所有)
  *
- * (例) 書体を差し替える
+ * (例) Web フォントを使わず system フォントの並びだけ変える
  * :root {
- *   --font-geist-sans: "Noto Sans JP", system-ui, sans-serif;
+ *   --font-geist-sans: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
  * }
  *
  * (例) 流体文字サイズの上限を変える(theme.css の --text-fluid-* と同名で上書き)
@@ -11,5 +11,7 @@
  *   --text-fluid-5xl: clamp(2.5rem, 6vmin, 4rem);
  * }
  *
- * Web フォントの読み込み自体(next/font)は src/config/ui/fonts.config.ts で行います(導入予定)。
+ * Web フォントの読み込み(next/font)は src/config/ui/fonts.config.ts で行う。読み込んだ場合、
+ * typography.defaults.css のスタックが --font-sans-loaded を優先参照するので、ここに書く必要はない。
+ * ここで --font-geist-sans を上書きすると、その値が読み込んだ Web フォントより優先される点に注意。
  */

@@ -8,7 +8,7 @@
 | 変えたいもの | 書く場所 | それ以外 |
 |---|---|---|
 | 見た目の値(色・書体・影・余白) | `src/styles/custom/` | 触らない |
-| 振る舞いの設定(テーマ既定・エリアロック) | `src/config/ui/site-theme.config.ts` | 触らない |
+| 振る舞いの設定(テーマ既定・エリアロック・Web フォント読み込み) | `src/config/ui/site-theme.config.ts` / `fonts.config.ts` | 触らない |
 | 画面そのもの | `src/app/**/page.tsx` の 1 行スイッチ | core の画面部品は触らない |
 
 書かなければ upstream の既定値で動く。upstream がトークンや設定キーを足しても、下流は何も追記しなくてよい。
@@ -20,6 +20,7 @@ src/styles/
 ├── global.css              upstream  import の順序だけ。最後に ./custom/index.css
 ├── theme.css               upstream  @theme inline のトークン構造、@custom-variant、color-scheme。値は書かない
 ├── palette.defaults.css    upstream  :root / .dark の色の既定値(値だけ)
+├── typography.defaults.css upstream  書体スタックの既定値(--font-geist-sans/mono、loaded 変数へフォールバック参照)
 ├── config.css              upstream  レイアウト系トークン(幅・管理画面余白)
 ├── z-layer.css             upstream  z-index トークン
 ├── gradient.css            upstream  gradient:gen で生成(src/lib/gradient)
@@ -69,18 +70,41 @@ shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { 
 - `data-area` は `<html>` に付く(root layout が SSR 付与)。値は `site-theme.config.ts` のエリア key(既定: `user` / `admin`)
 - Dialog / Toast / Popover は body 直下にポータル描画されるが、`<html>` 属性なので自動で継承される
 
-### 書体・サイズ(typography.css)
+### 書体(fonts.config.ts と typography.css)
+
+書体は 2 段構え。既定では Web フォントを読み込まず system スタックで表示する(従来どおり)。
+
+| やりたいこと | 書く場所 |
+|---|---|
+| Web フォントを読み込む(Google Fonts / ローカルファイル) | `src/config/ui/fonts.config.ts`(next/font) |
+| Web フォントは使わず system フォントの並びを変える | `custom/typography.css` の `--font-geist-sans` |
+| 文字サイズ(流体サイズ等)を変える | `custom/typography.css` の `@theme` |
+
+仕組み: next/font のローダーを `variable: "--font-sans-loaded"`(mono は `"--font-mono-loaded"`)で呼び `defineFontsConfig({ sans })` に渡すと、root layout が `<html>` にクラスを当ててその変数を定義する。`typography.defaults.css` のスタックは `--font-geist-sans: var(--font-sans-loaded, "Inter", system-ui, ...)` と書かれているので、読み込まれていればそれを、無ければ system スタックを使う。theme.css と Tailwind の `font-sans` / `font-mono` は一切変えない。
+
+```ts
+// src/config/ui/fonts.config.ts
+import { Noto_Sans_JP } from "next/font/google";
+import { defineFontsConfig } from "@/lib/fonts";
+const sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-sans-loaded", display: "swap" });
+export const FONTS_CONFIG = defineFontsConfig({ sans });
+```
+
+next/font の制約: ローダーはモジュールのトップレベルで、引数はリテラル(変数や import 定数は不可)。`variable` 名は上の固定文字列をそのまま書く。Google Fonts はビルド時に取得されセルフホスト化される(実行時に Google への通信は発生しない)。
 
 ```css
+/* custom/typography.css */
 :root {
-  --font-geist-sans: "Noto Sans JP", system-ui, sans-serif;
+  --font-geist-sans: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;  /* system フォントの並びだけ変える */
 }
 @theme {
   --text-fluid-5xl: clamp(2.5rem, 6vmin, 4rem);   /* theme.css の流体サイズを同名で上書き */
 }
 ```
 
-Web フォントの読み込み(next/font)は `src/config/ui/fonts.config.ts` で行う(導入予定)。
+注意: `custom/typography.css` で `--font-geist-sans` を上書きすると、その値が `fonts.config.ts` で読み込んだ Web フォントより優先される(loaded 変数への参照を自分で消すことになる)。両方使う場合は `var(--font-sans-loaded, ...)` を含めて書く。
+
+メールテンプレートの書体は別系統(各テンプレートの inline `fontFamily`、メールクライアント向けの system スタック)で、この設定の影響を受けない。
 
 ### 影・角丸・イージング
 
@@ -168,7 +192,8 @@ defineSiteThemeConfig({ areas: [{ key: "kiosk", match: ["/kiosk"], mode: "dark" 
 | コマンド | 内容 |
 |---|---|
 | `pnpm test:site-theme` | 既定値の互換、エリア一致、ロック、bootstrap script と resolver の一致 |
-| `pnpm test:style-tokens` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / global.css の import 順 |
+| `pnpm test:style-tokens` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 書体変数が typography.defaults.css にある / global.css の import 順 |
+| `pnpm test:fonts` | defineFontsConfig の既定(読み込み無し)と variable クラス連結、typography.defaults.css の loaded 変数参照 |
 | `pnpm test:cn` | theme.css の `--text-*` と tailwind-merge 登録のドリフト |
 
 `custom/` は検証対象外(下流が自由に書く場所)。

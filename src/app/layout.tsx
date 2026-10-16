@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 
 import { SiteThemeSync } from "@/components/Fanctional/SiteThemeSync";
+import { FONTS_CONFIG } from "@/config/ui/fonts.config";
 import { SITE_THEME_CONFIG } from "@/config/ui/site-theme.config";
 import {
   buildSiteThemeBootstrapScript,
@@ -72,11 +73,15 @@ export default async function RootLayout({
     systemPrefersDark: false,
   });
 
+  // 書体: fonts.config.ts(next/font)で読み込んだフォントの variable クラスを <html> に当てる。
+  // 何も読み込んでいなければ空(typography.defaults.css の system スタックで表示)。
+  const htmlClassName = [isDark ? "dark" : "", FONTS_CONFIG.className].filter(Boolean).join(" ");
+
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={isDark ? "dark" : undefined}
+      className={htmlClassName || undefined}
       {...{ [SITE_THEME_AREA_ATTRIBUTE]: area.key }}
     >
       <head>

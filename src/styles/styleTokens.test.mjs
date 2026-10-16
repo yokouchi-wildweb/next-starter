@@ -92,11 +92,20 @@ test("palette.defaults.css は値だけを持つ(構造は theme.css に置く)"
   assert.equal(/@theme|@custom-variant|@layer|@import/.test(palette), false);
 });
 
+test("書体スタックは typography.defaults.css が持ち、palette.defaults.css には無い", () => {
+  const typography = collectBlockDefinitions(read("typography.defaults.css"), ":root");
+  assert.ok(typography.has("font-geist-sans") && typography.has("font-geist-mono"));
+  const palette = collectDefinitions(read("palette.defaults.css"));
+  const fontsInPalette = [...palette].filter((name) => name.startsWith("font-"));
+  assert.deepEqual(fontsInPalette, [], `palette.defaults.css に書体変数がある: ${fontsInPalette.join(", ")}`);
+});
+
 test("global.css は custom/index.css を最後に読み込む", () => {
   const imports = [...stripComments(read("global.css")).matchAll(/@import\s+"([^"]+)"/g)].map((m) => m[1]);
   assert.equal(imports.at(-1), "./custom/index.css");
   assert.ok(imports.includes("./palette.defaults.css"));
   assert.ok(imports.indexOf("./theme.css") < imports.indexOf("./palette.defaults.css"));
+  assert.ok(imports.indexOf("./palette.defaults.css") < imports.indexOf("./typography.defaults.css"));
 });
 
 test("theme.css に色の値が残っていない(値は palette.defaults.css へ)", () => {

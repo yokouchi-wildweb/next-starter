@@ -1,0 +1,16 @@
+/*
+ * src/styles/typography.defaults.css — 書体スタックの上流既定値(upstream 所有)
+ *
+ * ⚠️ 下流(fork)はこのファイルを編集しないでください。
+ *    - system フォントの並びを変えたい → src/styles/custom/typography.css に同名変数を書く(後勝ち)
+ *    - Web フォントを読み込みたい → src/config/ui/fonts.config.ts(next/font)。読み込まれると
+ *      --font-sans-loaded / --font-mono-loaded が <html> に定義され、下のフォールバックより優先される
+ *
+ * 既定で Web フォントは読み込まない(従来どおり system スタック)。
+ * 詳細: src/styles/README.md
+ */
+
+:root {
+  --font-geist-sans: var(--font-sans-loaded, "Inter", "system-ui", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  --font-geist-mono: var(--font-mono-loaded, "ui-monospace", "SFMono-Regular", "Menlo", "Consolas", monospace);
+}
