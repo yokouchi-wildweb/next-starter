@@ -1,0 +1,15 @@
+/*
+ * src/styles/custom/typography.css — 書体・文字サイズの上書き(下流所有)
+ *
+ * (例) 書体を差し替える
+ * :root {
+ *   --font-geist-sans: "Noto Sans JP", system-ui, sans-serif;
+ * }
+ *
+ * (例) 流体文字サイズの上限を変える(theme.css の --text-fluid-* と同名で上書き)
+ * @theme {
+ *   --text-fluid-5xl: clamp(2.5rem, 6vmin, 4rem);
+ * }
+ *
+ * Web フォントの読み込み自体(next/font)は src/config/ui/fonts.config.ts で行います(導入予定)。
+ */

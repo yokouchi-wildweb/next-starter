@@ -44,6 +44,8 @@ src/
 
 ## 🎨 カスタムテーマ追加（theme.css）
 
+> ⚠️ 2026-10 以降: 色の値は `theme.css` ではなく `src/styles/custom/palette.css`(下流所有)に書きます。`theme.css` は構造のみで upstream 所有です。最新の手順は `src/styles/README.md` を参照してください。以下は旧構成の説明です。
+
 ```css
 @theme {
   colors: {

@@ -1,4 +1,4 @@
 // stores/siteTheme/index.ts
 
-export { useSiteThemeStore } from "./useStore";
+export { useSiteThemeStore, useSiteThemeSync } from "./useStore";
 // internalStore は export しない

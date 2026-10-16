@@ -19,7 +19,7 @@
 | `AppStatusGuard/` | メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置 | - |
 | `Badge/` | バッジ（`SolidBadge`、`SoftBadge` など） | - |
 | `BulkSendEmail/` | 選択ユーザーへの一括メール送信モーダル | - |
-| `Fanctional/` | 動作をカプセル化した部品（`DarkModeSwitch`、`BodyPortal` / `HeadPortal`、`FirebaseAnalytics` など） | - |
+| `Fanctional/` | 動作をカプセル化した部品（`DarkModeSwitch` / `SiteThemeSync`（サイトテーマ、詳細: [styles/README.md](../styles/README.md)）、`BodyPortal` / `HeadPortal`、`FirebaseAnalytics` など） | - |
 | `Form/` | フォーム構築の全部品（Input / Field / `FieldRenderer` / `AppForm` / AutoSave） | [Form/README.md](./Form/README.md)・[Form/FieldRenderer/README.md](./Form/FieldRenderer/README.md)・[Form/AutoSave/README.md](./Form/AutoSave/README.md) |
 | `Icons/` | プロジェクト固有アイコンを Lucide 互換 API で一元管理 | [Icons/README.md](./Icons/README.md) |
 | `Layout/` | レイアウトラッパー（`Block` / `Flex` / `Grid` / `Stack` / `Main` / `Section` など）。raw HTML の代替 | [Layout/README.md](./Layout/README.md) |

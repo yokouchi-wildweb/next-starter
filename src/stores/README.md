@@ -71,32 +71,52 @@ hooks/useXxx（機能拡張フック）
 
 import { create } from "zustand";
 
-export type Theme = "light" | "dark" | "system";
-
-type SiteThemeState = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+type ThemeState = {
+  isDark: boolean;          // 初期値は SSR と一致させるため false 固定(SiteThemeSync が同期する)
+  areaKey: string | null;   // <html data-area>
+  synced: boolean;
+  setResolved: (next: { isDark: boolean; areaKey: string }) => void;
+  setDark: (isDark: boolean) => void;
 };
 
-export const internalStore = create<SiteThemeState>((set) => ({
-  theme: "system",
-  setTheme: (theme) => set({ theme }),
+export const internalStore = create<ThemeState>((set) => ({
+  isDark: false,
+  areaKey: null,
+  synced: false,
+  setResolved: ({ isDark, areaKey }) => set({ isDark, areaKey, synced: true }),
+  setDark: (isDark) => set({ isDark }),
 }));
 ```
 
 ### useStore.ts
+
+状態を返すフックと、副作用(DOM 同期)を持つ常駐フックを同じファイルに置く。
+internalStore を触るのはこのファイルだけ。
 
 ```typescript
 // stores/siteTheme/useStore.ts
 "use client";
 
 import { internalStore } from "./internalStore";
+import { applyThemeToDom, persistThemePreference, readThemeFromDom, resolveCurrentSiteTheme } from "@/utils/siteTheme";
 
+// 状態 + 切替操作(保存は利用者の操作時だけ。ロックされたエリアでは no-op)
 export function useSiteThemeStore() {
-  const theme = internalStore((s) => s.theme);
-  const setTheme = internalStore((s) => s.setTheme);
+  const isDark = internalStore((s) => s.isDark);
+  const areaKey = internalStore((s) => s.areaKey);
+  const setDarkState = internalStore((s) => s.setDark);
+  const switchable = getSiteThemeAreaByKey(SITE_THEME_CONFIG, areaKey).switchable;
+  const setDark = (next: boolean) => { if (!switchable) return; setDarkState(next); persistThemePreference(next); };
+  const toggle = () => setDark(!readThemeFromDom());
+  return { isDark, areaKey, switchable, toggle, setDark };
+}
 
-  return { theme, setTheme };
+// 常駐(SiteThemeSync が 1 箇所で呼ぶ): パス遷移ごとに再解決し、毎描画で store の値を DOM に反映する
+// (root layout の RSC 再描画で React が <html className> を SSR 近似値に戻すのを同じ commit 内で上書きするため、
+//  依存配列なしの useLayoutEffect。初回同期前は書かない)
+export function useSiteThemeSync() {
+  /* useEffect: usePathname → resolveCurrentSiteTheme → setResolved(+ OS 設定変化の購読)
+     useLayoutEffect(依存なし): synced なら applyThemeToDom(isDark, areaKey) */
 }
 ```
 
@@ -104,10 +124,11 @@ export function useSiteThemeStore() {
 
 ```typescript
 // stores/siteTheme/index.ts
-export { useSiteThemeStore } from "./useStore";
-export type { Theme } from "./internalStore";
+export { useSiteThemeStore, useSiteThemeSync } from "./useStore";
 // internalStore 自体は export しない
 ```
+
+実装の全体像(SSR / bootstrap script / SiteThemeSync の役割分担)は `src/styles/README.md` を参照。
 
 ---
 

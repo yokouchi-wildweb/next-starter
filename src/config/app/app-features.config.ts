@@ -85,7 +85,7 @@ export const APP_FEATURES = {
     enableUserTag: true,
   },
   adminConsole: {
-    enableDarkModeSwitch: true,
+    // ダークモード切替の可否は src/config/ui/site-theme.config.ts(areas.admin.switchable)へ移動
     enableSidebarResizing: true,
     /** ユーザー管理モーダルを有効にする（false の場合は削除ボタンのみ表示） */
     enableUserManagement: true,

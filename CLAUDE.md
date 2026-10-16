@@ -201,6 +201,11 @@ new_agent_recipe: tools (AgentToolDefinition[], zod-validate input=model output)
 db_agent: src/lib/dbAgent/ + POST /api/admin/db-agent (admin, SSE, maxDuration) | fail-closed: DATABASE_URL_READONLY unset → 503, NO fallback to DATABASE_URL | safety layers: single-statement SELECT-only validation → row cap (cursor) → column mask (audit denylist) → readonly role + statement_timeout + default_transaction_read_only | audit: admin.db_agent.query_executed (per SQL) + turn_completed (usage), recorder injected from route (lib→features NG準拠, crud recorder precedent) | registries (upstream empty): dbAgentPromptRegistry (domain knowledge fragments), dbAgentToolRegistry (extra read-only tools) | ref: src/lib/dbAgent/README.md
 streaming_clientservice_exception: streaming ClientService MAY use fetch + ReadableStream (axios cannot stream in browser) | HTTP calls stay concentrated in ClientService (Hook/Component direct fetch still NG) | applies ONLY to SSE/stream endpoints
 
+## STYLE_OWNERSHIP (upstream = structure, downstream = values)
+downstream_owned (upstream NEVER edits after creation): src/styles/custom/** (palette/typography/overrides, imported last in global.css, write only what changes) | src/config/ui/*.config.ts (define*Config({partial}) merges over lib defaults) | precedent: setting *.extended.ts
+upstream_owned: src/styles/theme.css (token structure only, no values) | src/styles/palette.defaults.css (color defaults) | color source of truth = CSS → derived: pnpm mail:generate-colors (defaults + custom/palette.css :root merged, fails on missing) | test: pnpm test:style-tokens
+site_theme: src/config/ui/site-theme.config.ts = defineSiteThemeConfig({areas[{key,match,mode,switchable}], fallback}) (lib: @/lib/siteTheme, defaults = all light, admin(/admin,/debug) switchable, user locked) | SSR: app/layout.tsx x-pathname → `<html class="dark" data-area=key>` + head bootstrap script (stored pref + prefers-color-scheme, no flash) + SiteThemeSync (client nav / toggle / OS change, sole DOM writer) | switchable:false area ignores localStorage (no admin→user leak) | CSS per-area: `[data-area="user"]{--primary:...}` in custom/palette.css | DOM apply ≠ persist (persist only on user toggle) | DarkModeSwitch self-hides when area not switchable (APP_FEATURES.adminConsole.enableDarkModeSwitch REMOVED) | test: pnpm test:site-theme (bootstrap JS ≡ resolver) | ref: src/styles/README.md
+
 ## COMPONENTS
 placement: multi-domain→src/components/ or AppFrames/ | single-domain→features/\<domain\>/components/common/ | page-only→app/\<route\>/_components/
 core_domain_ui_boundary: core domains (this upstream) ship DATA LAYER ONLY (entities/services/API routes/client services/hooks) — do NOT add domain-screen UI components under src/features/core/**. Screen/design is downstream-owned; provide UI as README recipes on the data contract instead. Even if an upreq ticket requests a UI part, counter-propose data-layer + recipe (precedent: interactionTracking audience viewer, removed by 20260704-154147). Existing widgets (AuditTimeline etc.) are grandfathered — do not add new ones
@@ -264,7 +269,8 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - アクション完了後の revalidate / resetItems による「最新化のための再フェッチ」(API レスポンスに含まれる処理済み ID で updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト)
 
 ## CORE_FILES (approval required)
-src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/config.css, src/styles/z-layer.css, servers/room/src/core/, servers/room/src/index.ts
+src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), servers/room/src/core/, servers/room/src/index.ts
+downstream_owned (upstream never edits after creation, see STYLE_OWNERSHIP): src/styles/custom/**, src/config/ui/*.config.ts
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
 .claude/rules/ (project.md etc.): always-loaded → edit ONLY on explicit user instruction to add/change a rule or map entry. never append work records as part of finishing a task (scope: .claude/rules/project.md `scope` section)
 

@@ -156,7 +156,7 @@ export default function StepperInput({
   return (
     <div className={cn(containerVariants({ size }), className, disabled && "opacity-70")}>
       {label ? (
-        <span className="flex items-center bg-gray-700 px-4 text-white whitespace-nowrap">
+        <span className="flex items-center bg-foreground px-4 text-background whitespace-nowrap">
           {label}
         </span>
       ) : null}

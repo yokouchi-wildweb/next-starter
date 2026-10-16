@@ -1,14 +1,25 @@
 /*
- * src/styles/theme.css
- * アプリ全体で利用する色やフォントなどのデザイントークンを定義します。
- * :root と .dark で値を設定し、`@theme inline` で Tailwind に渡します。
+ * src/styles/theme.css — デザイントークンの「構造」(upstream 所有)
  *
- * ⚠️ テーマカラーを変更した場合は、以下のコマンドを実行してください:
- *    npm run generate:mail-colors
- *    （メール用カラー定数を再生成し、コミットが必要です）
+ * `@theme inline` で CSS 変数を Tailwind のユーティリティ(bg-primary 等)に対応付けます。
+ * 色トークンの「値」はここには書きません(下の color-scheme は「どのクラスがダークか」という構造の一部):
+ *   - 上流既定値: src/styles/palette.defaults.css(色) ※ upstream 所有、下流は編集しない
+ *   - 下流の上書き: src/styles/custom/*.css ※ 下流所有、変えたい値だけ書く
+ *
+ * ダークモードは <html class="dark">(root layout が SSR で付与、bootstrap script と
+ * SiteThemeSync が補正)で切り替わります。エリアは <html data-area="...">。
+ * 設定: src/config/ui/site-theme.config.ts / 詳細: src/styles/README.md
  */
 
 @custom-variant dark (&:is(.dark *));
+
+/* フォーム部品・スクロールバー等のブラウザ標準描画をテーマに合わせる */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
 
 /*
  * 高さ基準ブレークポイント: 横向きスマホ (幅は十分だが高さ 350〜430px 程度) 向け。
@@ -97,99 +108,4 @@
   --text-fluid-4xl--line-height: 1.15;
   --text-fluid-5xl: clamp(3rem, 7vmin, 4.5rem);
   --text-fluid-5xl--line-height: 1.1;
-}
-
-:root {
-  --font-geist-sans: "Inter", "system-ui", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-geist-mono: "ui-monospace", "SFMono-Regular", "Menlo", "Consolas", monospace;
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --surface: oklch(0.946 0 89.876);
-  --surface-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.637 0.128 233.066);
-  --secondary-foreground: oklch(1 0 89.876);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.457 0.063 228.428);
-  --accent-foreground: oklch(1 0 89.876);
-  --destructive: oklch(0.577 0.245 27.325);
-  --success: oklch(0.753 0.208 149.357);
-  --success-foreground: oklch(0.985 0 0);
-  --info: oklch(0.6 0.2 240);
-  --info-foreground: oklch(0.985 0 0);
-  --warning: oklch(0.75 0.18 75);
-  --warning-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --header: oklch(1 0 0);
-  --header-foreground: oklch(0.145 0 0);
-  --footer: oklch(1 0 0);
-  --footer-foreground: oklch(0.145 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.6 0.2 255);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --surface: oklch(0.18 0 0);
-  --surface-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.637 0.128 233.066);
-  --secondary-foreground: oklch(1 0 89.876);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.457 0.063 228.428);
-  --accent-foreground: oklch(1 0 89.876);
-  --destructive: oklch(0.704 0.191 22.216);
-  --success: oklch(0.753 0.208 149.337);
-  --success-foreground: oklch(0.985 0 0);
-  --info: oklch(0.65 0.18 240);
-  --info-foreground: oklch(0.985 0 0);
-  --warning: oklch(0.78 0.16 75);
-  --warning-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(0.876 0 89.876);
-  --ring: oklch(0.556 0 0);
-  --header: oklch(0.205 0 0);
-  --header-foreground: oklch(0.985 0 0);
-  --footer: oklch(0.205 0 0);
-  --footer-foreground: oklch(0.985 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.6 0.2 255);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }

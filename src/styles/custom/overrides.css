@@ -1,0 +1,19 @@
+/*
+ * src/styles/custom/overrides.css — ユーティリティが触らない領域の上書き(下流所有)
+ *
+ * 用途はここに限定してください:
+ *   - 要素の既定スタイル(body の文字組み、a の下線、::selection、scrollbar など)
+ *   - @keyframes の追加
+ *   - エリア単位のグローバル調整: [data-area="admin"] body { ... }
+ *
+ * ⚠️ このファイルは Tailwind の @layer の外(無レイヤー)で読み込まれるため、
+ *    同じプロパティを書くとコンポーネント側の個別 className(utilities 層)より常に勝ちます。
+ *    ボタンの角丸や影などコンポーネントの variant を変えたい場合はここに書かず、
+ *    src/config/ui/variants.config.ts(導入予定)で TS 側の variant 文字列を差し替えてください。
+ *
+ * (例)
+ * ::selection { background: var(--primary); color: var(--primary-foreground); }
+ *
+ * 角丸(--radius)や config.css の余白トークンのように、上流が無レイヤーの :root で定義している変数は
+ * :root { --radius: 1rem; } のように同じ :root で上書きする(@theme では効かない)。
+ */

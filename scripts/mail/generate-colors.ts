@@ -1,17 +1,27 @@
 // scripts/mail/generate-colors.ts
-// theme.cssからテーマカラーを抽出し、メール用の定数ファイルを生成するスクリプト
+// 色トークン(CSS)からメール用のカラー定数ファイルを生成するスクリプト。
+//
+// 色の正は CSS(src/styles/palette.defaults.css + src/styles/custom/palette.css)。
+// 上流既定値を読み、下流の上書きを後勝ちで合成してから hex に変換する。
+// メールはエリア(data-area)もダークモードも持たないため、`:root` ブロックだけを対象にする。
 //
 // 使い方:
-//   npm run mail:generate-colors
+//   pnpm mail:generate-colors
 //
 // 出力先:
 //   src/features/core/mail/constants/colors.ts
+//
+// 必要な変数が 1 つでも欠けていれば、ファイルを書き出す前に失敗する(壊れた定数を出荷しない)。
 
 import * as fs from "fs";
 import * as path from "path";
 import { formatHex, parse } from "culori";
 
-const THEME_CSS_PATH = "src/styles/theme.css";
+/** 読み込み順 = 優先度(後のファイルが前を上書き) */
+const INPUT_CSS_PATHS = [
+  "src/styles/palette.defaults.css", // 上流既定値(必須)
+  "src/styles/custom/palette.css", // 下流の上書き(無ければ無視)
+] as const;
 const OUTPUT_PATH = "src/features/core/mail/constants/colors.ts";
 
 // 抽出対象のCSS変数名（メールで使用するもののみ）
@@ -51,27 +61,28 @@ function oklchToHex(oklchValue: string): string | null {
   }
 }
 
+/** コメントを除去する(custom/palette.css の説明コメントに書かれた例を拾わないため) */
+function stripComments(css: string): string {
+  return css.replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
 /**
- * CSSファイルから:rootセクションの変数を抽出
+ * CSS 文字列の全 `:root { ... }` ブロックから変数を抽出する(同名は後勝ち)。
+ * `.dark` や `[data-area=...]` のブロックは対象外。
  */
 function extractRootVariables(css: string): Map<string, string> {
   const variables = new Map<string, string>();
+  const source = stripComments(css);
 
-  // :root { ... } セクションを抽出
-  const rootMatch = css.match(/:root\s*\{([^}]+)\}/);
-  if (!rootMatch) {
-    console.error(":root セクションが見つかりませんでした");
-    return variables;
-  }
-
-  const rootContent = rootMatch[1];
-
-  // 各変数を抽出
-  const varRegex = /--([a-z-]+):\s*([^;]+);/g;
-  let match;
-  while ((match = varRegex.exec(rootContent)) !== null) {
-    const [, name, value] = match;
-    variables.set(name, value.trim());
+  const rootBlockRegex = /:root\s*\{([^}]*)\}/g;
+  let block: RegExpExecArray | null;
+  while ((block = rootBlockRegex.exec(source)) !== null) {
+    const varRegex = /--([a-z0-9-]+)\s*:\s*([^;]+);/g;
+    let match: RegExpExecArray | null;
+    while ((match = varRegex.exec(block[1])) !== null) {
+      const [, name, value] = match;
+      variables.set(name, value.trim());
+    }
   }
 
   return variables;
@@ -84,8 +95,8 @@ function generateColorsFile(colors: Map<string, string>): string {
   const lines: string[] = [
     "// src/features/core/mail/constants/colors.ts",
     "// このファイルは自動生成されます。直接編集しないでください。",
-    "// 生成元: src/styles/theme.css",
-    "// 生成コマンド: npm run mail:generate-colors",
+    `// 生成元: ${INPUT_CSS_PATHS.join(" + ")} (後者が前者を上書き)`,
+    "// 生成コマンド: pnpm mail:generate-colors",
     "",
     "export const MAIL_THEME_COLORS = {",
   ];
@@ -106,44 +117,56 @@ function generateColorsFile(colors: Map<string, string>): string {
 
 async function main() {
   console.log("=== メール用テーマカラー生成 ===");
-  console.log(`入力: ${THEME_CSS_PATH}`);
+  console.log(`入力: ${INPUT_CSS_PATHS.join(" → ")}`);
   console.log(`出力: ${OUTPUT_PATH}`);
   console.log("");
 
-  // CSSファイルを読み込み
-  const cssPath = path.resolve(process.cwd(), THEME_CSS_PATH);
-  if (!fs.existsSync(cssPath)) {
-    console.error(`エラー: ${THEME_CSS_PATH} が見つかりません`);
-    process.exit(1);
-  }
+  // 上流既定値 → 下流上書きの順に読み、後勝ちで合成する
+  const merged = new Map<string, string>();
+  INPUT_CSS_PATHS.forEach((relPath, index) => {
+    const cssPath = path.resolve(process.cwd(), relPath);
+    const isRequired = index === 0;
+    if (!fs.existsSync(cssPath)) {
+      if (isRequired) {
+        console.error(`エラー: ${relPath} が見つかりません`);
+        process.exit(1);
+      }
+      console.log(`  (${relPath} は無いのでスキップ)`);
+      return;
+    }
+    const vars = extractRootVariables(fs.readFileSync(cssPath, "utf-8"));
+    console.log(`  ${relPath}: ${vars.size}個の変数`);
+    for (const [name, value] of vars) merged.set(name, value);
+  });
+  console.log("");
 
-  const css = fs.readFileSync(cssPath, "utf-8");
-
-  // :rootから変数を抽出
-  const allVariables = extractRootVariables(css);
-  console.log(`抽出した変数: ${allVariables.size}個`);
-
-  // 対象の変数のみフィルタしてhexに変換
+  // 対象の変数のみ hex に変換。欠落・変換失敗はエラーとして収集し、書き出し前に失敗させる
   const colors = new Map<string, string>();
+  const errors: string[] = [];
 
   for (const varName of TARGET_VARIABLES) {
-    const oklchValue = allVariables.get(varName);
-    if (!oklchValue) {
-      console.warn(`警告: --${varName} が見つかりません`);
+    const cssValue = merged.get(varName);
+    if (!cssValue) {
+      errors.push(`--${varName} が :root に定義されていません`);
       continue;
     }
 
-    const hex = oklchToHex(oklchValue);
+    const hex = oklchToHex(cssValue);
     if (!hex) {
-      console.warn(`警告: --${varName} の変換に失敗しました: ${oklchValue}`);
+      errors.push(`--${varName} の変換に失敗しました: ${cssValue}`);
       continue;
     }
 
     colors.set(varName, hex);
-    console.log(`  --${varName}: ${oklchValue} → ${hex}`);
+    console.log(`  --${varName}: ${cssValue} → ${hex}`);
   }
 
   console.log("");
+  if (errors.length > 0) {
+    console.error("エラー: 以下の変数が解決できないため生成を中止しました(出力ファイルは更新していません)");
+    for (const e of errors) console.error(`  - ${e}`);
+    process.exit(1);
+  }
   console.log(`変換成功: ${colors.size}/${TARGET_VARIABLES.length}個`);
 
   // ファイルを生成

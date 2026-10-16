@@ -92,7 +92,9 @@ src/styles/
 | ファイル | 役割 | 主な内容 |
 | -------- | ---- | -------- |
 | `global.css` | Tailwind エントリーポイント | `@import "tailwindcss"` と各スタイルファイルの読み込みのみを記述します。CSS ルールは書きません。 |
-| `theme.css` | デザイントークンの定義 | `@theme inline` でカラー・フォント・spacing などの値を宣言します。必要に応じて `:root` / `.dark` で CSS カスタムプロパティも定義します。 |
+| `theme.css` | デザイントークンの構造(upstream 所有) | `@theme inline` で CSS 変数を Tailwind クラスに対応付けます。色の値は書きません。 |
+| `palette.defaults.css` | 色トークンの上流既定値(upstream 所有) | `:root` / `.dark` の値。下流は編集せず `custom/palette.css` で上書きします。 |
+| `custom/` | 下流(fork)所有の上書き | `palette.css` / `typography.css` / `overrides.css`。変えたい値だけ書く。所有権と書き方は `src/styles/README.md`。 |
 | `animations.css` | 共通アニメーション | `@theme` と `@keyframes` を組み合わせてアニメーションを登録し、`--animate-*` で使用宣言します。 |
 | `base.css` | 全体へ適用する初期化 | body の背景色・フォーム部品のリセットなど、アプリ全体で共有するスタイルを `@layer base` に記述します。 |
 | `components.css` | 共通 UI パターン | `.badge` など複数ページで再利用するスタイルを `@layer components` にまとめます。 |
@@ -116,10 +118,11 @@ Tailwind は、`theme`・`animations`・`base` のようにページ全体へ適
 
 ## 🧱 ファイル別の運用ポイント
 
-### `theme.css`
-- `@theme inline` で Tailwind のデザイントークンを宣言します。
-- `:root` / `.dark` のカスタムプロパティを更新するときは、同じキーを `@theme inline` へも登録し Tailwind クラスとして使えるようにします。
-- 新しいカラーやフォントを追加したら、影響範囲の大きい箇所（コンポーネント、ドキュメント）を確認してからコミットしてください。
+### `theme.css` / `palette.defaults.css` / `custom/`
+- `theme.css` は `@theme inline` で Tailwind のデザイントークンを宣言します(構造のみ、upstream 所有)。
+- 色の値は `palette.defaults.css`(上流既定値)にあり、下流は `custom/palette.css` に変えたい値だけ書いて上書きします。upstream は `custom/` を編集しません。
+- upstream で新しいトークンを追加するときは `palette.defaults.css` に既定値を、`theme.css` の `@theme inline` に対応付けを両方書きます(`pnpm test:style-tokens` が欠落を検出)。
+- 詳細(所有権、エリア別の色、サイトテーマ設定): `src/styles/README.md`
 
 ### `animations.css`
 - アニメーションを追加するときは `--animate-*` で使用宣言し、対応する `@keyframes` を同一ファイル内に書きます。

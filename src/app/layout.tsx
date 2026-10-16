@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import "@/styles/global.css";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 
+import { SiteThemeSync } from "@/components/Fanctional/SiteThemeSync";
+import { SITE_THEME_CONFIG } from "@/config/ui/site-theme.config";
+import {
+  buildSiteThemeBootstrapScript,
+  resolveSiteTheme,
+  SITE_THEME_AREA_ATTRIBUTE,
+} from "@/lib/siteTheme";
 import { GlobalScreenLoader } from "@/components/Overlays/Loading/GlobalScreenLoader";
 import { GlobalToast, RedirectToastProvider } from "@/lib/toast";
 import { RouteTransitionOverlay } from "@/components/Overlays/Loading/RouteTransition";
@@ -42,16 +50,41 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+// 設定は静的なので bootstrap script はモジュール評価時に 1 回だけ生成する
+const siteThemeBootstrapScript = buildSiteThemeBootstrapScript(SITE_THEME_CONFIG);
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // サイトテーマ: proxy.ts が付与した x-pathname からエリアを判定し、<html> に dark クラスと
+  // data-area を SSR で出力する(初回描画がエリアの既定で確定する)。保存値と OS 設定は SSR では
+  // 分からないので <head> の bootstrap script が body 描画前に補正し、以後は SiteThemeSync が
+  // クライアント遷移・切替操作・OS 設定変化のたびに再解決する。
+  // 判定ロジックは @/lib/siteTheme に一本化(設定: src/config/ui/site-theme.config.ts)。
+  // proxy ハンドラが rewrite で intercept した場合は x-pathname が無く fallback エリア扱いになるが、
+  // bootstrap script が location.pathname で描画前に補正するので実害はない。
+  const pathname = (await headers()).get("x-pathname") ?? "/";
+  const { area, isDark } = resolveSiteTheme(SITE_THEME_CONFIG, {
+    pathname,
+    stored: null,
+    systemPrefersDark: false,
+  });
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head />
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={isDark ? "dark" : undefined}
+      {...{ [SITE_THEME_AREA_ATTRIBUTE]: area.key }}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: siteThemeBootstrapScript }} />
+      </head>
 
       <body suppressHydrationWarning className="antialiased font-sans">
+        <SiteThemeSync />
         <Suspense fallback={null}>
           <FirebaseAnalytics />
         </Suspense>

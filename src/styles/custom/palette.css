@@ -1,0 +1,19 @@
+/*
+ * src/styles/custom/palette.css — 色トークンの上書き(下流所有)
+ *
+ * 変えたい変数だけを書きます。変数名の一覧と既定値は src/styles/palette.defaults.css を参照。
+ * 色を変えたら `pnpm mail:generate-colors` を実行してメール用定数を再生成・コミットしてください。
+ *
+ * (例)
+ * :root {
+ *   --primary: oklch(0.6 0.2 255);
+ *   --primary-foreground: oklch(0.985 0 0);
+ * }
+ * .dark {
+ *   --primary: oklch(0.7 0.18 255);
+ * }
+ * [data-area="user"] {            ← ユーザー側だけブランド色にする(管理画面は汎用色のまま)
+ *   --background: oklch(0.12 0.02 260);
+ * }
+ * .dark[data-area="user"] { ... } ← ユーザー側のダーク時だけ
+ */

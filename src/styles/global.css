@@ -23,6 +23,7 @@
 @import "tw-animate-css";
 @import "./animations.css";
 @import "./theme.css";
+@import "./palette.defaults.css";
 @import "./gradient.css";
 @import "./config.css";
 @import "./z-layer.css";
@@ -30,3 +31,9 @@
 @import "./components.css";
 @import "./utilities.css";
 @import "./admin.css";
+
+/*
+ * 下流(fork)所有の上書き。必ず最後に読み込む(後勝ちで上流既定値を上書きするため)。
+ * upstream はこの行より上を編集し、custom/ の中身は編集しない。
+ */
+@import "./custom/index.css";

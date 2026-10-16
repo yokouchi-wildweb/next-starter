@@ -1,47 +1,98 @@
 // src/utils/siteTheme.ts
+//
+// サイトテーマのブラウザ側実装(DOM への適用・保存値の読み書き)。
+// 判定ロジックは @/lib/siteTheme の純関数に委ね、ここは副作用だけを持つ。
+//
+// 「表示(DOM)」と「保存(localStorage)」は分離している:
+// - applyThemeToDom: <html> のクラスと data-area を更新するだけ。保存しない
+// - persistThemePreference: 利用者が切替操作をしたときだけ呼ぶ
+// 固定エリアの適用や OS 設定への追従で保存値を汚さないため。
 
-/**
- * ユーザーのテーマ設定を初期化するための関数
- * - localStorageに保存されたテーマがあればそれを使用
- * - なければライトモードを使用
- *
- * @returns boolean - ダークモードかどうか（true: dark, false: light）
- */
-export const getInitialTheme = (): boolean => {
-  // SSR環境など、windowが使えない場合はデフォルトfalse（light）
-  if (typeof window === "undefined") {
-    return false;
+import { SITE_THEME_CONFIG } from "@/config/ui/site-theme.config";
+import {
+  normalizeStoredPreference,
+  resolveSiteTheme,
+  SITE_THEME_AREA_ATTRIBUTE,
+  type ResolvedSiteTheme,
+  type StoredThemePreference,
+} from "@/lib/siteTheme";
+
+const DARK_CLASS = "dark";
+const SYSTEM_DARK_QUERY = "(prefers-color-scheme: dark)";
+
+const isBrowser = () => typeof window !== "undefined" && typeof document !== "undefined";
+
+/** 保存された利用者の選択を読む(SSR / アクセス不可時は null) */
+export const readStoredThemePreference = (): StoredThemePreference => {
+  if (!isBrowser()) return null;
+  try {
+    return normalizeStoredPreference(window.localStorage.getItem(SITE_THEME_CONFIG.storageKey));
+  } catch {
+    return null;
   }
+};
 
-  const stored = localStorage.getItem("theme");
+/** OS がダーク配色か(SSR / 非対応時は false) */
+export const readSystemPrefersDark = (): boolean => {
+  if (!isBrowser() || typeof window.matchMedia !== "function") return false;
+  return window.matchMedia(SYSTEM_DARK_QUERY).matches;
+};
 
-  // 保存されたテーマが "dark" の場合
-  if (stored === "dark") return true;
-
-  // 保存されたテーマが "light" の場合
-  if (stored === "light") return false;
-
-  // 保存がない場合は、現在のDOMの状態のみを参照し、なければライトモードにする
-  if (document.documentElement.classList.contains("dark")) return true;
-
-  return false;
+/** system モードの追従用。OS 設定の変化を購読し、解除関数を返す */
+export const subscribeSystemPrefersDark = (listener: (prefersDark: boolean) => void): (() => void) => {
+  if (!isBrowser() || typeof window.matchMedia !== "function") return () => {};
+  const query = window.matchMedia(SYSTEM_DARK_QUERY);
+  const handler = (event: MediaQueryListEvent) => listener(event.matches);
+  query.addEventListener("change", handler);
+  return () => query.removeEventListener("change", handler);
 };
 
 /**
- * テーマに応じてDOMとlocalStorageを更新する
- * - <html> 要素に `dark` クラスを追加/削除
- * - localStorage に "dark" または "light" を保存
- *
- * @param isDark boolean - ダークモードを有効にするかどうか
+ * 現在のパス・保存値・OS 設定からテーマを解決する。
+ * SSR では window が無いので fallback エリアの mode による既定値(system は light)を返す。
  */
-export const applyTheme = (isDark: boolean) => {
-  if (isDark) {
-    // ダークモードを有効化：クラス追加＋localStorage更新
-    document.documentElement.classList.add("dark");
-    localStorage.setItem("theme", "dark");
-  } else {
-    // ライトモードに変更：クラス削除＋localStorage更新
-    document.documentElement.classList.remove("dark");
-    localStorage.setItem("theme", "light");
+export const resolveCurrentSiteTheme = (pathname?: string): ResolvedSiteTheme => {
+  const path = pathname ?? (isBrowser() ? window.location.pathname : "/");
+  return resolveSiteTheme(SITE_THEME_CONFIG, {
+    pathname: path,
+    stored: readStoredThemePreference(),
+    systemPrefersDark: readSystemPrefersDark(),
+  });
+};
+
+/** <html> に dark クラスと data-area を反映する。保存はしない */
+export const applyThemeToDom = (isDark: boolean, areaKey?: string): void => {
+  if (!isBrowser()) return;
+  const root = document.documentElement;
+  root.classList.toggle(DARK_CLASS, isDark);
+  if (areaKey) root.setAttribute(SITE_THEME_AREA_ATTRIBUTE, areaKey);
+};
+
+/** DOM 上の現在値(bootstrap script / SSR が確定させた状態)を読む */
+export const readThemeFromDom = (): boolean => {
+  if (!isBrowser()) return false;
+  return document.documentElement.classList.contains(DARK_CLASS);
+};
+
+/** 利用者の選択を保存する。切替操作時のみ呼ぶこと */
+export const persistThemePreference = (isDark: boolean): void => {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.setItem(SITE_THEME_CONFIG.storageKey, isDark ? "dark" : "light");
+  } catch {
+    // プライベートモード等で保存できなくても表示は維持する
   }
+};
+
+/**
+ * @deprecated resolveCurrentSiteTheme().isDark を使う。互換のため残置
+ */
+export const getInitialTheme = (): boolean => resolveCurrentSiteTheme().isDark;
+
+/**
+ * @deprecated 表示と保存を同時に行う旧 API。applyThemeToDom + persistThemePreference に分けて使う
+ */
+export const applyTheme = (isDark: boolean): void => {
+  applyThemeToDom(isDark);
+  persistThemePreference(isDark);
 };

@@ -7,7 +7,6 @@ import { cn } from "@/lib/cn";
 import Link from "next/link";
 
 import { DarkModeSwitch } from "@/components/Fanctional/DarkModeSwitch";
-import { APP_FEATURES } from "@/config/app/app-features.config";
 import {
   APP_HEADER_ELEMENT_ID,
   ADMIN_HEADER_TITLE_SLOT_ID,
@@ -25,7 +24,6 @@ const headerContainer = cva(
 );
 
 export function Header() {
-  const showDarkModeSwitch = APP_FEATURES.adminConsole.enableDarkModeSwitch;
   const { isAuthenticated } = useAuthSession();
 
   return (
@@ -56,10 +54,11 @@ export function Header() {
         className="flex min-w-0 flex-1 items-center justify-center"
       />
 
-      {/* 右側: ポータルスロット + ダークモードスイッチ */}
+      {/* 右側: ポータルスロット + ダークモードスイッチ(エリアが switchable のときだけ描画される。
+          切替可否は src/config/ui/site-theme.config.ts の areas.admin.switchable) */}
       <div className="flex shrink-0 items-center gap-3">
         <div id={ADMIN_HEADER_RIGHT_SLOT_ID} className="flex items-center gap-3" />
-        {showDarkModeSwitch ? <DarkModeSwitch /> : null}
+        <DarkModeSwitch />
       </div>
     </header>
   );
