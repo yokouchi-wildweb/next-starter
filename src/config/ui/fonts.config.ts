@@ -10,7 +10,10 @@
  *   theme.css や Tailwind の font-sans / font-mono は何も変えずに新しい書体になります。
  *
  * ⚠️ next/font の制約: ローダー呼び出しはモジュールのトップレベルで、引数はリテラルで書くこと
- *   (変数や import した定数を渡すとビルドエラー)。`variable` は下記の固定名をそのまま書く。
+ *   (変数や import した定数を渡すとビルドエラー)。`variable` は下記の固定名をそのまま書く
+ *   (別名を書いても型・実行時では検知できず黙って効かなくなる。pnpm test:fonts が静的に検査する)。
+ * ⚠️ next/font/google / local は Next のコンパイラ外(scripts/、node --test 等)では動かない。
+ *   ローダーを追加した後、このファイルを Next 外のスクリプトから import しないこと。
  *
  * 例: Google Fonts(ビルド時に取得・セルフホスト化される)
  *   import { Noto_Sans_JP } from "next/font/google";

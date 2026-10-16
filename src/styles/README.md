@@ -90,7 +90,7 @@ const sans = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "700"], variable
 export const FONTS_CONFIG = defineFontsConfig({ sans });
 ```
 
-next/font の制約: ローダーはモジュールのトップレベルで、引数はリテラル(変数や import 定数は不可)。`variable` 名は上の固定文字列をそのまま書く。Google Fonts はビルド時に取得されセルフホスト化される(実行時に Google への通信は発生しない)。
+next/font の制約: ローダーはモジュールのトップレベルで、引数はリテラル(変数や import 定数は不可)。`variable` 名は上の固定文字列をそのまま書く。別名を書いても型や実行時では検知できず黙って効かなくなるため、`pnpm test:fonts` が `fonts.config.ts` のソースを静的に検査する。Google Fonts はビルド時に取得されセルフホスト化される(実行時に Google への通信は発生しない)。next/font は Next のコンパイラ外(scripts/ や node --test)では動かないので、ローダーを追加した後は `fonts.config.ts` を Next 外から import しない。
 
 ```css
 /* custom/typography.css */
