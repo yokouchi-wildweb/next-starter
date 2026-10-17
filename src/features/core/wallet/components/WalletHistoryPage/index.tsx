@@ -9,10 +9,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
-import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
-import { walletHistoryBatchClient } from "@/features/core/walletHistory/services/client/walletHistoryBatchClient";
-import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
-import type { WalletType } from "@/config/app/currency.config";
+import { useMyWalletHistoryBatches } from "@/features/core/walletHistory/hooks/useMyWalletHistoryBatches";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { HistoryListItem } from "./HistoryListItem";
 
@@ -25,21 +22,6 @@ const HISTORY_PAGE_SIZE = 20;
 
 export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
   const config = getCurrencyConfigBySlug(slug);
-
-  const fetcher = useCallback(
-    async ({ page, limit }: { page: number; limit: number }) => {
-      const result = await walletHistoryBatchClient.list({ page, limit });
-      // 該当のウォレットタイプでフィルタリング
-      const filtered = result.results.filter(
-        (item) => item.type === config?.walletType
-      );
-      return {
-        results: filtered,
-        total: filtered.length,
-      };
-    },
-    [config?.walletType]
-  );
 
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
@@ -63,10 +45,9 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
     error,
     hasMore,
     sentinelRef,
-  } = useInfiniteScrollQuery<WalletHistoryBatchSummarySerialized>({
-    fetcher,
+  } = useMyWalletHistoryBatches({
+    walletType: config?.walletType,
     limit: HISTORY_PAGE_SIZE,
-    deps: [config?.walletType],
     observerOptions,
   });
 

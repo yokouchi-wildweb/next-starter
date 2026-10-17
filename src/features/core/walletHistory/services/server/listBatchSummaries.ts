@@ -3,17 +3,28 @@
 import type { WalletHistory } from "@/features/core/walletHistory/entities";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import type { WalletHistoryBatchSummary } from "@/features/core/walletHistory/types/batch";
+import type { WalletType } from "@/config/app/currency.config";
 import { db } from "@/lib/drizzle";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 export type ListBatchSummariesParams = {
   userId: string;
+  /** 指定時はその通貨種別の履歴のみを対象にする(省略時は全通貨) */
+  walletType?: WalletType;
   limit?: number;
   page?: number;
 };
 
+/**
+ * ユーザーの履歴をバッチ(request_batch_id)単位に集約してページ分割する。
+ *
+ * 通貨別の画面は必ず walletType を渡すこと。クライアント側で取得後に通貨を絞ると
+ * ページ件数と total が食い違い、2 ページ目以降が取得されなくなる。
+ * 集約はメモリ上で行うため全件を読み込む(集約の SQL 化は別件)。
+ */
 export async function listBatchSummaries({
   userId,
+  walletType,
   limit = 20,
   page = 1,
 }: ListBatchSummariesParams): Promise<{ items: WalletHistoryBatchSummary[]; total: number }> {
@@ -24,7 +35,12 @@ export async function listBatchSummaries({
   const records = await db
     .select()
     .from(WalletHistoryTable)
-    .where(eq(WalletHistoryTable.user_id, userId))
+    .where(
+      and(
+        eq(WalletHistoryTable.user_id, userId),
+        walletType ? eq(WalletHistoryTable.type, walletType) : undefined,
+      ),
+    )
     .orderBy(desc(WalletHistoryTable.createdAt));
 
   if (!records.length) {
