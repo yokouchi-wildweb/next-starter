@@ -885,6 +885,8 @@ src/features/core/wallet/
 │   └── server/
 │       ├── walletService.ts  # メインサービス
 │       ├── drizzleBase.ts    # ベースCRUD
+│       ├── loaders/          # page 層(_screen/)が呼ぶ loader。公開契約(一覧: loaders/README.md)
+│       │   ├── walletIndex.ts / walletBalance.ts / walletHistory.ts
 │       ├── notification/
 │       │   ├── adjustmentNotificationTemplate.ts  # 通知テンプレート（文言カスタマイズ用）
 │       │   └── sendAdjustmentNotification.ts      # 残高変更通知の送信
@@ -903,6 +905,9 @@ src/features/core/wallet/
 ├── components/               # UIコンポーネント
 │   ├── common/
 │   │   └── CurrencyDisplay/
+│   ├── WalletIndexPage/      # セクションコンテナ(*Page は歴史的な名前。page 層ではない)
+│   ├── WalletBalancePage/    # 同上。部品は index.tsx から barrel export
+│   ├── WalletHistoryPage/    # 同上
 │   └── AdminWalletAdjustModal/
 │
 ├── types/

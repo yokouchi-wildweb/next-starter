@@ -1,40 +1,7 @@
-// src/app/(user)/(protected)/wallet/[slug]/page.tsx
+// src/app/(user)/(protected)/wallet/[slug]/page.tsx — 画面の差し替えスイッチ
+//
+// 上流(next-starter)はこのファイルを今後編集しない。既定画面は _screen/ 側で変更する。
+// 下流は自分の画面を _components/<Name>Screen.tsx に作り、下の 1 行の import 先だけを差し替える。
+// metadata / dynamic 等のページ設定もこのファイルに書いてよい。手順: src/lib/screens/README.md
 
-import { notFound } from "next/navigation";
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { Stack } from "@/components/Layout/Stack";
-import { WalletBalancePage } from "@/features/core/wallet/components/WalletBalancePage";
-import { getCurrencyConfigBySlug } from "@/features/core/wallet";
-import { requireCurrentUser } from "@/features/core/user/services/server/userService";
-
-type PageProps = {
-  params: Promise<{ slug: string }>;
-};
-
-export default async function WalletPageRoute({ params }: PageProps) {
-  const { slug } = await params;
-  const config = getCurrencyConfigBySlug(slug);
-
-  if (!config) {
-    notFound();
-  }
-
-  const user = await requireCurrentUser({
-    behavior: "redirect",
-    redirectTo: "/login",
-  });
-
-  return (
-    <UserPage containerType="narrowStack">
-      <Stack space={6}>
-        <UserPageTitle>{config.label}管理</UserPageTitle>
-        <WalletBalancePage
-          slug={slug}
-          phoneVerifiedAt={user.phoneVerifiedAt}
-          currentPhoneNumber={user.phoneNumber}
-        />
-      </Stack>
-    </UserPage>
-  );
-}
+export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";

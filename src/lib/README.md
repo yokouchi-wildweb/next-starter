@@ -62,6 +62,7 @@
 | `mediaInputSuite` | メディア入力（メタデータ取得→プレビュー→Storage アップロード） | ✓ |
 | `structuredDocument` | 構造化ドキュメント（文書タイプ別の構造定義 + レンダラー） | ✓ |
 | `transitionGuard` | ページ遷移ガード（フロー離脱時に最初からやり直させる） | ✓ |
+| `screens` | page 層の構造（page.tsx 1 行スイッチ + `_screen/` + loader）の型 `ScreenProps` と規律テスト `test:screens`。下流の画面差し替え手順 | ✓ |
 | `sortableList` | ドラッグ&ドロップの並べ替えリスト UI | |
 | `toast` | トースト通知システム（`GlobalToast` / `useToast`） | |
 | `seamlessVideo` | 変換済み fmp4 を MSE で継ぎ目なく連結再生（映像+音声・progressive・A/V同期・BGM・共有URL） | ✓ |

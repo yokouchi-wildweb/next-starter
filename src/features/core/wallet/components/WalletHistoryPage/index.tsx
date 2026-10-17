@@ -1,4 +1,6 @@
 // src/features/core/wallet/components/WalletHistoryPage/index.tsx
+// セクションコンテナ(履歴一覧)。page 層ではない(名前の *Page は歴史的なもの)。
+// 部品の import は絶対パス: 下流がこのファイルを _components/ に複製しても import を直さずに動く
 
 "use client";
 
@@ -11,9 +13,12 @@ import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { useMyWalletHistoryBatches } from "@/features/core/walletHistory/hooks/useMyWalletHistoryBatches";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
-import { HistoryListItem } from "./HistoryListItem";
+import { HistoryListItem } from "@/features/core/wallet/components/WalletHistoryPage/HistoryListItem";
 
-type WalletHistoryPageProps = {
+// 部品の barrel export: 下流が複製するときはここから import する
+export { HistoryListItem };
+
+export type WalletHistoryPageProps = {
   /** URLスラッグ */
   slug: string;
 };

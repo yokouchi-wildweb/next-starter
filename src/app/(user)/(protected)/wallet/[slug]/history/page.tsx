@@ -1,30 +1,7 @@
-// src/app/(user)/(protected)/wallet/[slug]/history/page.tsx
+// src/app/(user)/(protected)/wallet/[slug]/history/page.tsx — 画面の差し替えスイッチ
+//
+// 上流(next-starter)はこのファイルを今後編集しない。既定画面は _screen/ 側で変更する。
+// 下流は自分の画面を _components/<Name>Screen.tsx に作り、下の 1 行の import 先だけを差し替える。
+// metadata / dynamic 等のページ設定もこのファイルに書いてよい。手順: src/lib/screens/README.md
 
-import { notFound } from "next/navigation";
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { Stack } from "@/components/Layout/Stack";
-import { WalletHistoryPage } from "@/features/core/wallet/components/WalletHistoryPage";
-import { getCurrencyConfigBySlug } from "@/features/core/wallet";
-
-type PageProps = {
-  params: Promise<{ slug: string }>;
-};
-
-export default async function WalletHistoryPageRoute({ params }: PageProps) {
-  const { slug } = await params;
-  const config = getCurrencyConfigBySlug(slug);
-
-  if (!config) {
-    notFound();
-  }
-
-  return (
-    <UserPage containerType="narrowStack">
-      <Stack space={6}>
-        <UserPageTitle>{config.label}履歴</UserPageTitle>
-        <WalletHistoryPage slug={slug} />
-      </Stack>
-    </UserPage>
-  );
-}
+export { WalletHistoryScreen as default } from "./_screen/WalletHistoryScreen";

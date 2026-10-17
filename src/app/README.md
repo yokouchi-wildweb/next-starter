@@ -23,9 +23,24 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | `demo/` | 開発用デモ機能 | form-components, dummy-payment |
 | `maintenance/` | メンテナンス画面 | - |
 
+### 画面の構造（page.tsx スイッチ + `_screen/` + loader）
+
+上流が出荷するユーザー向けページは、次の構造で「下流が core を編集せずに画面を作り直せる」ようになっている（詳細と手順: `src/lib/screens/README.md`）。
+
+```
+src/app/(user)/(protected)/wallet/[slug]/
+├── page.tsx          1 行スイッチ(下流所有)。export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
+├── _screen/          既定画面(上流所有。下流は編集・削除しない)
+└── _components/      任意。下流の差し替え画面、page 専用の部品
+```
+
+- 差し替え: `_screen/` の Screen を `_components/` にコピーして page.tsx の 1 行を向ける。loader（`features/<domain>/services/server/loaders/`）はそのまま呼ぶ
+- 対象ルートの一覧: `src/lib/screens/screens.test.mjs` の `UPSTREAM_ROUTES`（現在: wallet 3 ルート。他は段階的に移行）
+- 上流がまだ移行していないルートは従来どおり page.tsx に本体がある。移行時に `.notices` で通知する
+
 ### トップページ（`(user)/page.tsx`）の差し替え
 
-`(user)/page.tsx` は 1 行のスイッチで、中身は `(user)/_components/StarterHome/`（上流所有のデモ用トップ）。
+`(user)/page.tsx` は 1 行のスイッチで、中身は `(user)/_components/StarterHome/`（上流所有のデモ用トップ。`_screen/` 方式への移行は後続ステップで `.notices` 付きで行う）。
 下流は自前のトップページを `(user)/_components/<Name>/` に作り、page.tsx の import 先だけを差し替える。
 上流は page.tsx を今後編集しないため merge が衝突しない。`StarterHome/` は削除・編集しない（詳細: `(user)/_components/StarterHome/README.md`）。
 
@@ -75,6 +90,18 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 4. デバッグ用（管理者 + デバッガーのみに見せたい）?
    - はい → debug/（layout が admin カテゴリ + debugger ロールで一括ガード）
 ```
+
+### 推奨する構造（ユーザー向けページ）
+
+```
+src/app/(user)/.../<route>/
+├── page.tsx                     export { XScreen as default } from "./_screen/XScreen";(metadata / dynamic もここ)
+└── _screen/XScreen.tsx          Server Component。load<X>Screen(props) を await してセクションコンテナを描く
+src/features/<domain>/services/server/loaders/<x>.ts   import "server-only" + cache()。redirect / notFound / 認可 / 取得
+```
+
+上流の core ページは必須（`pnpm test:screens` が検査）。下流の独自ページも同じ構造を推奨（強制ではない）。
+`_components/` は page 専用の部品や、下流が上流の画面を差し替えるときの置き場。
 
 ### Route Group の使い分け
 

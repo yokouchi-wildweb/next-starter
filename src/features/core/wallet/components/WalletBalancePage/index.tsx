@@ -1,4 +1,6 @@
 // src/features/core/wallet/components/WalletBalancePage/index.tsx
+// セクションコンテナ(残高・購入)。page 層ではない(名前の *Page は歴史的なもの)。
+// 部品の import は絶対パス: 下流がこのファイルを _components/ に複製しても import を直さずに動く
 
 "use client";
 
@@ -17,16 +19,17 @@ import { useMyWalletBalances } from "@/features/core/wallet/hooks/useMyWalletBal
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
 import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
-import { CouponInput } from "../WalletPurchasePage/CouponInput";
-
+import { CouponInput } from "@/features/core/wallet/components/WalletPurchasePage/CouponInput";
 import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
+import { PurchaseSuspended } from "@/features/core/wallet/components/common/PurchaseSuspended";
+import { BalanceCard } from "@/features/core/wallet/components/WalletBalancePage/BalanceCard";
+import { PurchaseList } from "@/features/core/wallet/components/WalletBalancePage/PurchaseList";
+import { PhoneVerificationRequired } from "@/features/core/wallet/components/WalletBalancePage/PhoneVerificationRequired";
 
-import { PurchaseSuspended } from "../common/PurchaseSuspended";
-import { BalanceCard } from "./BalanceCard";
-import { PurchaseList } from "./PurchaseList";
-import { PhoneVerificationRequired } from "./PhoneVerificationRequired";
+// 部品の barrel export: 下流が Screen やセクションコンテナを複製するときはここから import する
+export { BalanceCard, PurchaseList, PhoneVerificationRequired };
 
-type WalletBalancePageProps = {
+export type WalletBalancePageProps = {
   /** URLスラッグ */
   slug: string;
   /** 電話番号認証日時（認証済みの場合） */

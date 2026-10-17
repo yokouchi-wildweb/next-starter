@@ -28,7 +28,7 @@ deps: lib→lib OK | lib→features NG | features→features(UI): use target hoo
 ref: docs/!must-read/設計思想とアーキテクチャ.md
 
 ## ARCHITECTURE (8-layer)
-1.Page(app/**/page.tsx): SSR/SSG entry
+1.Page(app/**/page.tsx = 1-line switch → _screen/<Name>Screen.tsx): SSR/SSG entry, calls loader (ServerService) direct OK | ref: SCREENS
 2.Component(features/*/components): UI
 3.Hook(features/*/hooks): state, client only
 4.ClientService(services/client): HTTP via axios
@@ -100,7 +100,7 @@ ref: src/lib/routeFactory/README.md
 ## ROLES & PAGE_GUARD
 roles: 1 file per role src/features/core/user/roles/*.role.json (core: _admin/_user, _ prefix) → role:generate → src/registry/roleRegistry.ts (ALL_ROLES) → USER_ROLES → user_role enum | category: admin | user (getRoleCategory/getRolesByCategory @/features/core/user/constants) | debugger role: category user, purpose = maintenance bypass (maintenance.config.ts bypassRoles) + /debug area | ref: src/features/core/user/README.md
 page_guard (SSR layout/page): authGuard({allowRoles, allowStatuses, redirectTo, returnBack, statusRedirects}) @/features/core/auth/services/server/authorization — DB-synced getSessionUser, redirect on deny | guarded areas (layout-level, pages under them need no own guard): admin/(protected) + admin/insane (admin roles, redirect /admin/login) | (user)/(protected) (redirect /login) | debug/ (admin category + debugger, redirect /login)
-3-layer flow: proxy(redirectProxy, cookie JWT) → layout(authGuard) → page(requireCurrentUser: self record from DB, behavior notFound|redirect|null) | ref: docs/how-to/implementation/認証ガードとユーザー取得フローまとめ.md
+3-layer flow: proxy(redirectProxy, cookie JWT) → layout(authGuard: roles + statuses) → page / loader(requireCurrentUser: self record from DB, login only, behavior notFound|redirect|null) | ref: docs/how-to/implementation/認証ガードとユーザー取得フローまとめ.md
 debug_scaffold: /debug/** page area (src/app/debug/, layout enforces) + GET /api/debug/ping (copy source for debug APIs). add debug pages/APIs there, do NOT re-implement guards
 
 ## CRUD_SERVICE (createCrudService)
@@ -223,14 +223,14 @@ UserPage: Main alias, wraps \<main\> with containerType, h1 not included
 kiosk (non-scrolling 1-screen pages outside UserLayout/AdminLayout): KioskFrame (AppFrames/Kiosk, viewport-fixed h-[--viewport-height] overflow-clip flex-col, children `flex-1 min-h-0`, safeArea/wakeLock) | fit-scale: ScaledStage (Layout, logical WxH → transform:scale contain/width/height, letterbox) + useFitScale(containerRef,{logicalWidth,logicalHeight,fit,minScale=0,maxScale=∞}) src/hooks | fluid: text-fluid-xs..5xl (theme.css clamp vmin, TextBlocks size fluidXs..fluidXxxl) + Tailwind builtin portrait:/landscape: + short: | inside layouts use UserPage fill / AdminPage fill instead | ref: src/components/AppFrames/Kiosk/README.md
 cn_class_groups (MANDATORY): new `--text-*` token in theme.css → register in src/lib/cn FLUID_TEXT_SIZES (tailwind-merge treats unknown text-* as COLOR and drops the sibling text color) | test: pnpm test:cn (parses theme.css, fails on drift)
 
-ui_layers:
-- page: SSR entry, minimal tags, no hooks
-- section_container: \<section\> wrap, call hooks here
+ui_layers (EN=JA: page=ページ | section_container=セクションコンテナ | unit_item=ユニットアイテム | interaction_parts=インタラクション部品 | ref: docs/!must-read/UIレイヤーの概念とコンポーネント分割方法.md):
+- page: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx = SSR entry body (awaits loader, renders section containers, minimal tags, no hooks, no state) | detail: SCREENS
+- section_container: features/\<domain\>/components/\<Name\>/index.tsx (core `*Page` names ARE section containers, not page), \<section\> wrap, call hooks here, HTTP only via hooks (no ClientService direct call), part imports absolute + barrel from index
 - unit_item: display only, no hooks
 - interaction_parts: "use client", self-contained, minimal hooks OK
   rule: call hooks at upper layer, pass handlers via props
 
-page_controls: AppFrames/User/controls/ (header/footer/bottomMenu visibility, use in page.tsx)
+page_controls: AppFrames/User/controls/ (header/footer/bottomMenu visibility, use in the Screen)
 FieldRenderer: baseFields, fieldPatches, insertBefore/insertAfter, fieldGroups, inlineGroups | onMediaStateChange(MediaState) | UI slots: beforeAll/afterAll, beforeField/afterField(field-name key), beforeGroup/afterGroup(FieldGroup.key, UNGROUPED_GROUP_KEY="__ungrouped__" for ungrouped block, grouped path only, hidden when collapsed) | ref: src/components/Form/FieldRenderer/README.md
 FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, mediaUploaderMulti, hidden, custom, none
 mediaUploaderMulti: 複数枚アップロード(string[])。validationRule.maxItems(既定10)/minItems、reorderable(既定true)、画像/動画両対応(mediaTypePreset). DBは text[] NOT NULL DEFAULT [] (Neon)
@@ -242,6 +242,13 @@ async_feedback (MUST): client-side background通信(mutation/送信/同期)中�
 infinite_scroll: 無限スクロール画面は @/components/Widgets/InfiniteScrollList を使う (sentinel/初回ローダー/空表示/追加スピナー/完了メッセージを内包)。データ取得は @/hooks/useInfiniteScrollQuery 派生フックで、isInitialLoading / isFetchingMore / hasMore / updateItems / removeItems / revalidate を返却する
 action_optimistic: ステータス変更系の server logic (例: convertToCoins/requestShipping) は処理済み UserItem ID 配列を返す (例: convertedItemIds / requestedItemIds)。クライアントは hook の onSuccess でこの ID を受け、updateItems (status 書き換え) / removeItems (フィルタ済みリストから除去) でローカル即時反映する。完了後の revalidate(再フェッチ) は UX 退化 + 通信往復2回の二重コストになるため避ける
 ref: src/components/README.md
+
+## SCREENS (page 層の差し替え構造: 下流が core を編集せず画面を作り直す)
+route = page.tsx (downstream-owned 1-line switch `export { XScreen as default } from "./_screen/XScreen"`, metadata/dynamic OK) + _screen/\<Name\>Screen.tsx (default screen, owned by whoever created the route — upstream routes: upstream edits, downstream never edits/deletes) + _components/ (downstream screens, page-only parts) | 1 route = 1 Screen | only 2 new words: `_screen/` + loader, rest = ui_layers
+loader: features/\<domain\>/services/server/loaders/\<name\>.ts `load<Name>Screen(props: ScreenProps)` (@/lib/screens/types) = `import "server-only"` + React cache() keyed by resolved primitives (not props) + does redirect/notFound itself + calls requireCurrentUser itself + returns explicit minimal DTO | Screen never try/catch | per-domain loaders/README.md = loader list
+contracts (public; rename = keep old export + .notices, breaking = add new name): Screen entry (file + named export + props) | loader (name/args/DTO/redirect conditions) | hooks | section container top-level props | NOT contract: unit items / parts / Screen internals | no slot/registry injection
+downstream: replace = copy _screen → _components + point page.tsx, keep calling loader; copy section container only to change parts (part imports absolute → copy works); hooks-only for full redesign | new page = same structure recommended | deleted route in fork = re-delete on modify/delete conflict, drop from UPSTREAM_ROUTES
+upstream (MANDATORY): new core user-facing page → add to UPSTREAM_ROUTES in src/lib/screens/screens.test.mjs | never put logic back in page.tsx | test: pnpm test:screens | migrated: wallet 3 routes (purchase / mypage / legal / auth follow stepwise) | ref: src/lib/screens/README.md
 
 ## ERROR_HANDLING
 flow: ServerService throw DomainError → APIRoute JSON{status,message} → ClientService normalizeHttpError → Hook pass → UI err(error,fallback)
@@ -273,8 +280,8 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - アクション完了後の revalidate / resetItems による「最新化のための再フェッチ」(API レスポンスに含まれる処理済み ID で updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト)
 
 ## CORE_FILES (approval required)
-src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), servers/room/src/core/, servers/room/src/index.ts
-downstream_owned (upstream never edits after creation, see STYLE_OWNERSHIP): src/styles/custom/**, src/config/ui/*.config.ts
+src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** (upstream routes, see SCREENS), servers/room/src/core/, servers/room/src/index.ts
+downstream_owned (upstream never edits after creation, see STYLE_OWNERSHIP / SCREENS): src/styles/custom/**, src/config/ui/*.config.ts, src/app/**/page.tsx of switched routes (list: UPSTREAM_ROUTES in src/lib/screens/screens.test.mjs), src/app/**/_components/** of upstream routes
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
 .claude/rules/ (project.md etc.): always-loaded → edit ONLY on explicit user instruction to add/change a rule or map entry. never append work records as part of finishing a task (scope: .claude/rules/project.md `scope` section)
 
