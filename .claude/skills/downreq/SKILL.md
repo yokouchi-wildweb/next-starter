@@ -25,6 +25,7 @@ disable-model-invocation: true
    from: <upstream repo> | branch:<branch> | commit:<short sha>
    date: <ISO8601>
    severity: breaking | action-required | info
+   checkpoint: <label | ->
    change: <what changed upstream, one line>
    why: <why downstream must follow up>
    required_actions:
@@ -38,6 +39,10 @@ disable-model-invocation: true
    - `<slug>` は change から短いケバブ(英語)。
    - **required_actions は「下流の Claude が承認1回でノンストップ実行できる具体度」で書くことが必須**。DB マイグレーション・バックフィル・再生成・データ移行もすべてここに含める。対話プロンプトを出すコマンド(db push 等)だけ `[user-run]` を付ける。
    - 自動化できないことが明示された `manual_steps` 以外は、すべて下流の Claude が実行する前提(fail-auto)。
+   - **`checkpoint`(区切り) = 原則必ずラベルを入れる**(英語ケバブ。迷ったら `<slug>` をそのまま使う)。意味は「この notice まで適用すれば fork は整合した休憩点にある」。notice は追随作業の単位で出荷されるので、適用し終えた時点で fork が整合しているのが普通 = 1 notice が 1 休憩点。/flux はこの区切りごとに merge→適用→verify→commit→push を閉じるので、DB 規模が大きい fork や独自要素の多い fork でも 1 変更ずつ安全に進められる。
+     - **`-` は例外宣言**: 「後続の notice を適用しないと fork が動かない中間点」と断言できるときだけ。理由を `notes:` に書く(例: `notes: checkpoint:- because 20261020-... (step 2) is required for the build to pass`)。迷ったら `-` にしない。
+     - 追随作業は無いが区切りだけ置きたい commit には、`severity: info` + `required_actions: none` + `checkpoint: <label>` の notice を起票する。
+     - 下流は notice ファイルを追加した commit を git 履歴から導出して merge 先にする。よって **notice は、その区切りに含めたい変更本体と同じ commit か、それより後の commit** に含めること(先に出してはいけない)。
 3. **事前確認は取らず、そのままファイルを書き出す**。「この内容で起票していいですか?」等の承認待ち・AskUserQuestion は**禁止**(ただの md で、後から編集・削除で修正可能なため):
    - パス: `<リポジトリルート>/.notices/<ts>-<slug>.md`
 4. 日本語で報告: change / required_actions の要約(1〜3行)+ 保存パス + 次の案内:

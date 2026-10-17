@@ -295,7 +295,8 @@ db:query "SQL": execute SQL | db:tables: list tables | db:describe \<table\>: sh
 fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe, fs:query, fs:delete). run without args for usage
 
 ## DOWNSTREAM_NOTICES (上流追随)
-upstream変更の追随通知 = .notices/*.md (変更と同じcommit/PRで出荷、mergeで下流に届く) | 起票: /downreq | 受領・適用: /flux (merge→未適用検出→承認1回→適用・DB・検証・台帳・commitまで完走) | 台帳: .notices/applied/\<fork-id\>.md (forkごと別ファイル) | ref: .notices/README.md
+upstream変更の追随通知 = .notices/*.md (変更と同じcommit/PRで出荷、mergeで下流に届く) | 起票: /downreq | 受領・適用: /flux (fetch→未適用を区切りごとの区間に分割→承認1回→区間ごとに merge・適用・DB・検証・台帳・commit・push。`/flux next`=1区間のみ) | 台帳: .notices/applied/\<fork-id\>.md (forkごと別ファイル) | ref: .notices/README.md
+checkpoint (MANDATORY on notice): `checkpoint: <label>` = 既定 (notice 1件 = fork が整合する休憩点 1つ、/flux はここで merge→適用→commit→push を閉じる) | `checkpoint: -` = 例外宣言のみ (後続 notice なしでは fork が動かない中間点、理由を notes: に) | 大規模DB・独自要素の多い fork を 1 変更ずつ安全に進めるための仕組みなので、迷ったら `-` にしない
 fork_bootstrap: 新規fork初期設定 = /fork-init (clone直後のリポ内で実行、承認1回でリポ作成〜初期commit/push) | spec(手順の正): docs/how-to/initial-setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## DOCS
