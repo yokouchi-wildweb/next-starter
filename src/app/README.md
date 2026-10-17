@@ -35,8 +35,8 @@ src/app/(user)/(protected)/wallet/[slug]/
 ```
 
 - 差し替え: `_screen/` の Screen を `_components/` にコピーして page.tsx の 1 行を向ける。loader（`features/<domain>/services/server/loaders/`）はそのまま呼ぶ
-- 対象ルートの一覧: `src/lib/screens/screens.test.mjs` の `UPSTREAM_ROUTES`（現在: wallet 3 ルート。他は段階的に移行）
-- 上流がまだ移行していないルートは従来どおり page.tsx に本体がある。移行時に `.notices` で通知する
+- `pnpm test:screens` が `(user)/**` と `(marketing)/**` の page.tsx を自動検出して検査する（登録不要）。スイッチ形でない page.tsx は、理由付きの例外リスト（上流: `UPSTREAM_LEGACY_ROUTES`、fork: `src/registry/screenRoutesRegistry.ts`）に無ければ失敗する
+- 上流がまだ移行していないルート（現在 38。wallet 3 ルートは移行済み）は `UPSTREAM_LEGACY_ROUTES` に載っており、段階的に移行して `.notices` で通知する
 
 ### トップページ（`(user)/page.tsx`）の差し替え
 

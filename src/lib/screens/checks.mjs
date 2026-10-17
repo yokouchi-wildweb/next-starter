@@ -1,23 +1,72 @@
 // page 層の規律検査(純粋関数、副作用なし)。
-// screens.test.mjs がこれを使ってテストを登録する。fork が自前のテストを書くときは
-// screens.test.mjs ではなくこのモジュールを import する(screens.test.mjs は import した時点で
-// UPSTREAM_ROUTES / FORK_SCREEN_ROUTES のテストを登録してしまう)。
+// screens.test.mjs が src/app/**/page.tsx を自動検出してこれらを適用する。
+// fork が独自の検査を書くときもここを import する(screens.test.mjs は import した時点でテストを登録する)。
 // 設計: src/lib/screens/README.md
 
-/** コメントを除去する(行コメントとブロックコメント) */
-export const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-
-/** upstream(next-starter)の owner 正規表現。styleTokens.test.mjs の isUpstreamRepo と同じ判定 */
-export const UPSTREAM_OWNER = "[:/]yokouchi-wildweb/next-starter(\\.git)?/?$";
-
-/** このリポジトリがルートの所有者か(entry.owner が origin URL に一致するか) */
-export function isRouteOwner(entry, originUrl) {
-  return new RegExp(entry.owner).test(originUrl);
+/**
+ * コメントを除去する(行コメントとブロックコメント)。
+ * 文字列・テンプレートリテラルの中は触らず、行コメント内の「/」+「*」をブロックコメントの開始と誤認しない
+ * (正規表現 2 本の置換だと `// see /api/me/` + `**` の後ろを次の `*` + `/` まで飲み込む)。
+ * 行コメントは改行を残して消す(行番号を保つ)。
+ * 既知の限界: 正規表現リテラルは追跡しない。`//` や引用符・バッククォートを含む正規表現が
+ * page.tsx / Screen / loader にあると、その行以降の判定がずれることがある(検査対象のファイルでは稀)。
+ */
+export function stripComments(src) {
+  let out = "";
+  let i = 0;
+  const n = src.length;
+  while (i < n) {
+    const ch = src[i];
+    const next = src[i + 1];
+    // 文字列・テンプレートリテラル: 終端までそのまま出力
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const quote = ch;
+      out += ch;
+      i += 1;
+      while (i < n) {
+        const c = src[i];
+        out += c;
+        i += 1;
+        if (c === "\\") {
+          if (i < n) {
+            out += src[i];
+            i += 1;
+          }
+          continue;
+        }
+        if (c === quote) break;
+        if (quote !== "`" && c === "\n") break;
+      }
+      continue;
+    }
+    // 行コメント: 改行まで捨てる(改行は残す)
+    if (ch === "/" && next === "/") {
+      while (i < n && src[i] !== "\n") i += 1;
+      continue;
+    }
+    // ブロックコメント: 対応する終端まで捨てる(中の改行は残す)
+    if (ch === "/" && next === "*") {
+      i += 2;
+      while (i < n && !(src[i] === "*" && src[i + 1] === "/")) {
+        if (src[i] === "\n") out += "\n";
+        i += 1;
+      }
+      i += 2;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
 }
+
+/** page.tsx が Screen を置けるディレクトリ(既定画面 / 下流の差し替え画面) */
+export const SCREEN_DIRS = ["_screen", "_components"];
 
 /** Next.js が page.tsx で認める設定 export の名前(値は page.tsx 自体に書く。Next が静的解析するため re-export 不可) */
 const PAGE_CONFIG_EXPORTS = [
   "metadata",
+  "viewport",
   "dynamic",
   "revalidate",
   "dynamicParams",
@@ -27,8 +76,8 @@ const PAGE_CONFIG_EXPORTS = [
   "maxDuration",
 ];
 
-/** `./_screen/` から default と一緒に re-export してよい名前(Next が実行時に読む値・関数) */
-const REEXPORTABLE_FROM_SCREEN = ["metadata", "generateMetadata", "viewport", "generateViewport"];
+/** Screen のファイルから default と一緒に re-export してよい名前(Next が実行時に読む値・関数) */
+export const REEXPORTABLE_FROM_SCREEN = ["metadata", "generateMetadata", "viewport", "generateViewport"];
 
 /**
  * `start` 以降で最初に現れる open と対応する close の位置(括弧の釣り合い)を返す。
@@ -74,13 +123,16 @@ function stripConfigExport(src) {
     end = valueStart + (stop < 0 ? rest.length : stop) - 1;
   }
   let cut = end + 1;
+  // `{...} satisfies Metadata` / `{...} as const` の後置を一緒に消す
+  const suffix = /^\s*(satisfies|as)\s+[\w.<>]+/.exec(src.slice(cut));
+  if (suffix) cut += suffix[0].length;
   if (src[cut] === ";") cut += 1;
   return src.slice(0, m.index) + src.slice(cut);
 }
 
-/** `export async function generateMetadata(...) {...}` を 1 つ取り除く */
+/** `export async function generateMetadata(...) {...}` / `generateViewport` を 1 つ取り除く */
 function stripGenerateMetadata(src) {
-  const m = /export\s+(async\s+)?function\s+generateMetadata\s*\(/.exec(src);
+  const m = /export\s+(async\s+)?function\s+(generateMetadata|generateViewport)\s*\(/.exec(src);
   if (!m) return null;
   const parenStart = m.index + m[0].length - 1;
   const parenEnd = findBalancedEnd(src, parenStart, "(", ")");
@@ -114,38 +166,41 @@ function isAllowedImportSource(source) {
 }
 
 /**
- * page.tsx の本文を検査し、問題があれば理由の配列を返す(空配列 = 合格)。
- * 許されるもの: `./_screen/<screen>` からの `export { <screen> as default[, metadata, generateMetadata] }` 1 つ、
+ * page.tsx を解析し、スイッチ形かどうかと参照先を返す。
+ * 許されるもの: `./_screen/<X>` または `./_components/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
  * 設定 export(metadata / dynamic 等)、generateMetadata、それらに必要な import。
  * @param {string} source page.tsx の内容
- * @param {string} screen 期待する Screen 名
+ * @returns {{ problems: string[], target: { screenDir: string, file: string, name: string } | null }}
+ *   problems が空ならスイッチ形。target は参照先(screenDir = "_screen" | "_components"、file = import パスの末尾、name = default に束ねた export 名)
  */
-export function checkSwitchPage(source, screen) {
+export function parseSwitchPage(source) {
   const problems = [];
+  let target = null;
   let src = stripComments(source);
 
-  // 1. ./_screen/ からの re-export がちょうど 1 つ(default + 許可された名前のみ)
-  const reexports = [...src.matchAll(/export\s*\{([^}]*)\}\s*from\s*["']\.\/_screen\/(\w+)["']\s*;?/g)];
+  // 1. ./_screen/ または ./_components/ からの re-export がちょうど 1 つ(default + 許可された名前のみ)
+  const reexports = [...src.matchAll(/export\s*\{([^}]*)\}\s*from\s*["']\.\/(_screen|_components)\/([\w./-]+?)["']\s*;?/g)];
   if (reexports.length !== 1) {
-    problems.push(`./_screen/ からの \`export { X as default }\` が 1 つだけ必要(${reexports.length} 個)`);
+    problems.push(`./_screen/ または ./_components/ からの \`export { X as default }\` が 1 つだけ必要(${reexports.length} 個)`);
   } else {
-    const [whole, names, file] = reexports[0];
+    const [whole, names, screenDir, file] = reexports[0];
     const specifiers = names.split(",").map((s) => s.trim()).filter(Boolean);
     const defaultSpec = specifiers.find((s) => /\s+as\s+default$/.test(s));
     if (!defaultSpec) {
       problems.push("re-export に `X as default` が無い");
     } else {
       const name = defaultSpec.replace(/\s+as\s+default$/, "").trim();
-      if (name !== screen) problems.push(`re-export 名が ${screen} ではない(${name})`);
+      target = { screenDir, file: file.replace(/\.tsx?$/, ""), name };
     }
-    if (file !== screen) problems.push(`import 先が ./_screen/${screen} ではない(./_screen/${file})`);
     for (const spec of specifiers) {
       if (spec === defaultSpec) continue;
       if (REEXPORTABLE_FROM_SCREEN.includes(spec)) continue;
-      if (PAGE_CONFIG_EXPORTS.includes(spec)) {
-        problems.push(`\`${spec}\` は _screen/ から re-export できない(Next が静的解析するため page.tsx 自体に書く)`);
+      if (spec === "default") {
+        problems.push("Screen は default export しない。`export { XScreen as default } from ...` の形で束ねる");
+      } else if (PAGE_CONFIG_EXPORTS.includes(spec)) {
+        problems.push(`\`${spec}\` は Screen から re-export できない(Next が静的解析するため page.tsx 自体に書く)`);
       } else {
-        problems.push(`_screen/ から re-export できる名前は default と ${REEXPORTABLE_FROM_SCREEN.join(" / ")} だけ(${spec})`);
+        problems.push(`Screen から re-export できる名前は default と ${REEXPORTABLE_FROM_SCREEN.join(" / ")} だけ(${spec})`);
       }
     }
     src = src.replace(whole, "");
@@ -155,7 +210,7 @@ export function checkSwitchPage(source, screen) {
   for (let hit = stripImport(src); hit; hit = stripImport(src)) {
     src = hit.src;
     if (!isAllowedImportSource(hit.source)) {
-      problems.push(`page.tsx で import できない: "${hit.source}"(画面ロジックは _screen/ へ)`);
+      problems.push(`page.tsx で import できない: "${hit.source}"(画面ロジックは Screen へ)`);
     }
   }
 
@@ -168,35 +223,69 @@ export function checkSwitchPage(source, screen) {
   if (remainder) {
     problems.push(`許可されない記述が残っている: ${remainder.split("\n")[0].trim()}`);
   }
+  return { problems, target };
+}
+
+/**
+ * page.tsx の検査(互換 API)。問題があれば理由の配列を返す。
+ * @param {string} source page.tsx の内容
+ * @param {string} [screen] 期待する Screen 名(省略時は名前を問わない)。指定時は `./_screen/<screen>` への参照であること
+ */
+export function checkSwitchPage(source, screen) {
+  const { problems, target } = parseSwitchPage(source);
+  if (screen && target) {
+    if (target.screenDir !== "_screen" || target.file !== screen) {
+      problems.push(`import 先が ./_screen/${screen} ではない(./${target.screenDir}/${target.file})`);
+    }
+    if (target.name !== screen) problems.push(`re-export 名が ${screen} ではない(${target.name})`);
+  }
   return problems;
 }
 
 /**
- * `_screen/<screen>.tsx` の検査。問題があれば理由の配列を返す
+ * Screen ファイルの検査。問題があれば理由の配列を返す。
+ * - `<name>` を named export している(関数 / const / barrel の `export { name }` のいずれか)
+ * - default export しない(page.tsx が as default で再 export する)
+ * - `"use client"` を持たない(Screen は Server Component。hook を使う部分はセクションコンテナへ下ろす)
  * @param {string} source Screen ファイルの内容
- * @param {string} screen 期待する named export 名
+ * @param {string} name 期待する named export 名
  */
-export function checkScreenFile(source, screen) {
+export function checkScreenFile(source, name) {
   const problems = [];
   const src = stripComments(source);
-  if (!new RegExp(`export\\s+(async\\s+)?(function|const)\\s+${screen}\\b`).test(src)) {
-    problems.push(`\`export function ${screen}\` を持たない`);
+  const declared = new RegExp(`export\\s+(async\\s+)?(function|const)\\s+${name}\\b`).test(src);
+  const barrel = new RegExp(`export\\s*\\{[^}]*\\b${name}\\b[^}]*\\}`).test(src);
+  if (!declared && !barrel) {
+    problems.push(`\`export function ${name}\` を持たない`);
   }
   if (/export\s+default/.test(src)) {
     problems.push("default export しない(page.tsx が as default で再 export する)");
   }
+  if (/^\s*["']use client["']/m.test(src)) {
+    problems.push('"use client" を持つ(Screen は Server Component。hook を使う部分はセクションコンテナへ下ろす)');
+  }
   return problems;
 }
 
 /**
+ * Screen ファイルが barrel(`export { X } from "./Y"`)なら、実体のファイル名(拡張子なし)を返す。そうでなければ null
+ */
+export function barrelTarget(source, name) {
+  const src = stripComments(source);
+  const m = new RegExp(`export\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from\\s*["']\\./([\\w./-]+?)["']`).exec(src);
+  return m ? m[1].replace(/\.tsx?$/, "") : null;
+}
+
+/**
  * loader ファイルの検査。問題があれば理由の配列を返す
+ * - `import "server-only"` / React の `cache()` / `load<Xxx>` の export
  * @param {string} source loader の内容
  */
 export function checkLoaderFile(source) {
   const problems = [];
   const src = stripComments(source);
-  if (!/import\s+"server-only"/.test(src)) problems.push('import "server-only" が無い');
+  if (!/import\s+["']server-only["']/.test(src)) problems.push('import "server-only" が無い');
   if (!/\bcache\(/.test(src)) problems.push("React の cache() で包まれていない");
-  if (!/export\s+(const|async\s+function|function)\s+load\w+Screen\b/.test(src)) problems.push("load<Name>Screen を export していない");
+  if (!/export\s+(const|async\s+function|function)\s+load[A-Z]\w*/.test(src)) problems.push("load<Name> を export していない");
   return problems;
 }

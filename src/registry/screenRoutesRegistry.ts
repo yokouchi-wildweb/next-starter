@@ -1,29 +1,22 @@
 // src/registry/screenRoutesRegistry.ts
-// 中間 Tier の fork(自分もさらに下流の上流になるリポジトリ)が、自分のルートを
-// `pnpm test:screens` の検査対象に登録するためのレジストリ。
+// `pnpm test:screens` の例外リスト(fork 所有)。
 //
-// 設計思想:
-//  - upstream(next-starter)のルート一覧は src/lib/screens/screens.test.mjs の UPSTREAM_ROUTES が持つ。
-//    そこに fork のルートを足すと upstream の改修ごとに merge 衝突するので、fork はここに書く
-//  - 検査内容は UPSTREAM_ROUTES と同じ: `_screen/<Name>Screen.tsx` の存在と named export、
-//    loader の規律(server-only + cache())は全てのリポジトリで走り、
-//    page.tsx の「1 行スイッチ」検査は `owner` が git の origin URL に一致するリポジトリでだけ走る
-//    (page.tsx はそのルートの下流では下流所有なので検査しない)
-//  - upstream は空配列で出荷。葉の fork(さらに下流を持たない)は空のままでよい
-//  - このファイルは作成後 downstream 所有(upstream は今後編集しない。src/styles/custom/** と同じ扱い)
+// test:screens は src/app/(user)/** と (marketing)/**、dc:generate の管理画面ルートの page.tsx を
+// 自動検出し、全てが「1 行スイッチ(+ _screen/ または _components/ の Screen)」であることを検査する。
+// 新しいページを作るときに登録は不要(page.tsx 1 行 + _screen/<Name>Screen.tsx を置くだけで検査対象になる)。
 //
-// 登録例(Tier2 が自分のルートを守る):
-//   export const FORK_SCREEN_ROUTES: ScreenRouteEntry[] = [
-//     {
-//       dir: "src/app/(user)/(protected)/play",
-//       screen: "PlayScreen",
-//       loader: "src/features/gacha/services/server/loaders/play.ts",
-//       owner: "[:/]yokouchi-wildweb/oripa-do(\\.git)?/?$",   // 両端をアンカーする(README §10)
-//     },
+// ここに書くのは「まだ移行していないルート」だけ。理由を添えて明示する(黙って古いままにはできない)。
+// 移行が済んだらその行を外す(残っているとテストが「除外リストから外す」と指摘する)。
+// upstream は空で出荷し、以後このファイルを編集しない(src/styles/custom/** と同じ扱い)。
+// upstream 自身の未移行ルートは src/lib/screens/screens.test.mjs の UPSTREAM_LEGACY_ROUTES が持つ。
+//
+// 例:
+//   export const FORK_LEGACY_ROUTES: LegacyRouteEntry[] = [
+//     { dir: "src/app/(user)/(protected)/play", reason: "2026-11 のガチャ改修で移行予定" },
 //   ];
 //
-// 詳細: src/lib/screens/README.md(「中間 Tier の fork が自分のルートを守る」)
+// 詳細: src/lib/screens/README.md(「未移行ルートの扱い」)
 
-import type { ScreenRouteEntry } from "@/lib/screens/types";
+import type { LegacyRouteEntry } from "@/lib/screens/types";
 
-export const FORK_SCREEN_ROUTES: ScreenRouteEntry[] = [];
+export const FORK_LEGACY_ROUTES: LegacyRouteEntry[] = [];

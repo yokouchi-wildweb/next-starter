@@ -23,21 +23,14 @@ export type ScreenProps<
 };
 
 /**
- * `pnpm test:screens` が検査するルートの 1 件。
- * 上流の一覧は src/lib/screens/screens.test.mjs の UPSTREAM_ROUTES、
- * 中間 Tier の fork が自分のルートを登録する場所は src/registry/screenRoutesRegistry.ts。
+ * `pnpm test:screens` の例外リストの 1 件(まだ page.tsx スイッチ化していないルート)。
+ * 上流の未移行は src/lib/screens/screens.test.mjs の UPSTREAM_LEGACY_ROUTES、
+ * fork の未移行は src/registry/screenRoutesRegistry.ts の FORK_LEGACY_ROUTES に書く。
+ * 検査対象のルートは自動検出されるので、新しいページのための登録は不要。
  */
-export type ScreenRouteEntry = {
-  /** ルートディレクトリ(リポジトリ相対。例: "src/app/(user)/(protected)/wallet/[slug]") */
+export type LegacyRouteEntry = {
+  /** ルートディレクトリ(リポジトリ相対。例: "src/app/(user)/(protected)/mypage") */
   dir: string;
-  /** `_screen/<screen>.tsx` のファイル名 = named export 名(例: "WalletBalanceScreen") */
-  screen: string;
-  /** loader のパス(リポジトリ相対)。ロジックの無いページは省略 */
-  loader?: string;
-  /**
-   * このルートを所有するリポジトリ。git の origin URL に対する正規表現(文字列)。
-   * 一致するリポジトリでだけ page.tsx の「1 行スイッチ」検査が走る。
-   * 一致しない下流では page.tsx は下流所有なので検査しない(_screen と loader の検査は常に走る)
-   */
-  owner: string;
+  /** まだ移行していない理由と予定 */
+  reason: string;
 };
