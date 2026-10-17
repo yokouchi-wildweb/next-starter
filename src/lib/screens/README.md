@@ -9,7 +9,8 @@
 | ファイル | 役割 |
 |---|---|
 | `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形） |
-| `screens.test.mjs` | `pnpm test:screens` — 上流ルートの一覧 `UPSTREAM_ROUTES` と page 層の規律検査 |
+| `screens.test.mjs` | `pnpm test:screens` — 上流ルートの一覧 `UPSTREAM_ROUTES` と page 層の規律検査。検査関数 `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `registerRouteTests` を export |
+| `src/registry/screenRoutesRegistry.ts` | 中間 Tier の fork が自分のルートを同じ検査に登録する場所（upstream は空で出荷、作成後は下流所有。§10） |
 | `README.md` | この文書（手順・規則・コピーして動く例） |
 
 ---
@@ -35,7 +36,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 1 対 1 の意味:
 - 上流のユーザー向けページは必ず Screen を 1 つ持つ（0 も 2 以上も無し）。新ページは `screens.test.mjs` の `UPSTREAM_ROUTES` に追加する
-- 下流が自分のページを増やすときも **同じ構造を推奨**（page.tsx 1 行 + `_screen/` + 自ドメインの loader / hook）。強制はしない。テストは上流のルート一覧だけを検査する
+- 下流が自分のページを増やすときも **同じ構造を推奨**（page.tsx 1 行 + `_screen/` + 自ドメインの loader / hook）。強制はしない。テストは上流のルート一覧と、fork が `src/registry/screenRoutesRegistry.ts` に登録したルートを検査する（§10）
 - 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける。差し替え画面も 1 ページ 1 つ
 - Screen と loader は 1 対 0 か 1（ロジック無しページは loader を持たない）。Screen とセクションコンテナは 1 対 多
 - 管理画面（`/admin`）・デモ・API は対象外
@@ -234,14 +235,38 @@ src/features/points/services/server/loaders/points.ts   import "server-only" + c
 
 | 保護 | 方式 | 実行 |
 |---|---|---|
-| 上流が page.tsx を再び太らせない | `pnpm test:screens`: `UPSTREAM_ROUTES` の page.tsx が「`./_screen/` からの re-export 1 行 + 任意の `metadata` / `dynamic` 等の設定 export + `generateMetadata`」だけで、import は `next` / `@/lib/*` / `@/config/*` / `@/features/*/services/server/loaders/*` に限る（セクションコンテナ・hook・`next/navigation` は不可。`generateMetadata` の中身は検査しない） | 上流リポ限定（origin で判定、`styleTokens.test.mjs` と同じ） |
-| 既定 Screen の欠落 | 同テストで `_screen/<Name>Screen.tsx` の存在と named export | 下流でも実行（ルートごと消した fork は `UPSTREAM_ROUTES` から外す） |
-| loader の規律 | 同テストで `import "server-only"` と `cache(` と `load<Name>Screen` の export | 下流でも実行 |
+| ルートの所有者が page.tsx を再び太らせない | `pnpm test:screens`: page.tsx が「`./_screen/` からの re-export 1 行 + 任意の `metadata` / `dynamic` 等の設定 export + `generateMetadata`」だけで、import は `next` / `@/lib/*` / `@/config/*` / `@/features/*/services/server/loaders/*` に限る（セクションコンテナ・hook・`next/navigation` は不可。`generateMetadata` の中身は検査しない） | エントリの `owner`（origin URL の正規表現）が一致するリポジトリ限定。それ以外では skip（page.tsx は下流所有） |
+| 既定 Screen の欠落 | 同テストで `_screen/<Name>Screen.tsx` の存在と named export | 全リポジトリ（ルートごと消した fork は `UPSTREAM_ROUTES` / registry から外す） |
+| loader の規律 | 同テストで `import "server-only"` と `cache(` と `load<Name>Screen` の export | 全リポジトリ |
+
+検査対象 = `UPSTREAM_ROUTES`（テストファイル内。upstream のみ編集）+ `FORK_SCREEN_ROUTES`（`src/registry/screenRoutesRegistry.ts`。fork が編集）。テストは tsx ランナーで動く（registry の `.ts` を読むため）。
 | loader の client 混入 | `import "server-only"` | ビルド |
 
 pre-commit / CI ガードは置かない。
 
-## 10. 不採用の案（理由を残す）
+## 10. 中間 Tier の fork が自分のルートを守る
+
+自分もさらに下流（Tier3）の上流になる fork（Tier2）は、自分のルートに対して upstream と同じ保護を掛けられる。
+`src/registry/screenRoutesRegistry.ts` に登録するだけで、追加のテストファイルは要らない。
+
+```ts
+// src/registry/screenRoutesRegistry.ts(Tier2 で編集。upstream は空で出荷し、以後編集しない)
+export const FORK_SCREEN_ROUTES: ScreenRouteEntry[] = [
+  {
+    dir: "src/app/(user)/(protected)/play",
+    screen: "PlayScreen",
+    loader: "src/features/gacha/services/server/loaders/play.ts",   // ロジックの無いページは省略
+    owner: "yokouchi-wildweb/oripa-do(\\.git)?$",                     // origin URL に対する正規表現
+  },
+];
+```
+
+- Tier2 のリポジトリ（origin が `owner` に一致）では page.tsx の 1 行スイッチ検査が走る
+- Tier3 のリポジトリでは `_screen/` の存在と loader の規律だけが走り、page.tsx は Tier3 所有として検査しない（upstream のルートが Tier2 で検査されないのと同じ）
+- 葉の fork は空のままでよい
+- registry を使わず自前のテストを書きたい場合は、`screens.test.mjs` が export する `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `registerRouteTests(routes, origin)` を import する
+
+## 11. 不採用の案（理由を残す）
 
 - **slot / registry 注入**: セクションコンテナの複製で代替。契約を増やさない。後から足すのは追加なので可逆
 - **Screen を route 非依存の中央ディレクトリに置く**: 使わない Screen が中央に死蔵され、1 対 1 が構造から読めない

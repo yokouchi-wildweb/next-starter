@@ -17,7 +17,7 @@
     "test:style-tokens": "node --test src/styles/styleTokens.test.mjs",
     "test:style-lint": "node --test eslint-rules/style-tokens.test.mjs",
     "test:variant-overrides": "npx tsx --test src/lib/variantOverrides/variantOverrides.test.mjs",
-    "test:screens": "node --test src/lib/screens/screens.test.mjs",
+    "test:screens": "npx tsx --test src/lib/screens/screens.test.mjs",
     "test:wallet-lot-planning": "npx tsx --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",

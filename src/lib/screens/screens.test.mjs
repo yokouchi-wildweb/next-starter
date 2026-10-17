@@ -1,16 +1,18 @@
 // page 層(page.tsx スイッチ + _screen/ + loader)の規律テスト。
-// 実行: pnpm test:screens (node:test、追加依存なし)
+// 実行: pnpm test:screens (node:test + tsx。registry の .ts を読むため tsx ランナーを使う)
 //
 // 守りたい契約(設計: src/lib/screens/README.md):
-// 1. 上流ルートの page.tsx は「./_screen/<Name>Screen への 1 行の re-export」+ 任意のページ設定
+// 1. ルートを所有するリポジトリでは page.tsx が「./_screen/<Name>Screen への 1 行の re-export」+ 任意のページ設定
 //    (metadata / dynamic 等の export、generateMetadata、それらに必要な import)だけ。
-//    画面ロジック(JSX、セクションコンテナや next/navigation の import)を page.tsx に戻さない — 上流リポ限定の検査
-// 2. 上流ルートの _screen/<Name>Screen.tsx が存在し <Name>Screen を named export している
-//    — 下流 fork でも実行(削除すると将来 upstream 改修時に modify/delete 衝突になるため早期に検出)
-// 3. loader は `import "server-only"` と React の cache() を使い load<Name>Screen を export する
+//    画面ロジック(JSX、セクションコンテナや next/navigation の import)を page.tsx に戻さない
+//    — 所有者 = entry.owner(origin URL の正規表現)が一致するリポジトリ限定の検査
+// 2. `_screen/<Name>Screen.tsx` が存在し <Name>Screen を named export している
+//    — 全リポジトリで実行(削除すると将来 upstream 改修時に modify/delete 衝突になるため早期に検出)
+// 3. loader は `import "server-only"` と React の cache() を使い load<Name>Screen を export する — 全リポジトリ
 //
-// 上流で core のユーザー向けページを増やしたら UPSTREAM_ROUTES に追加する。
-// 下流でルートごと削除した場合はその行を外す(README「upstream の画面を使わない」)。
+// 検査対象 = UPSTREAM_ROUTES(upstream が出荷する core ルート。upstream で core のユーザー向けページを増やしたらここに追加)
+//          + FORK_SCREEN_ROUTES(src/registry/screenRoutesRegistry.ts。中間 Tier の fork が自分のルートを登録)
+// 下流でルートごと削除した場合は該当行を外す(README「upstream の画面を使わない」)。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -18,11 +20,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { FORK_SCREEN_ROUTES } from "../../registry/screenRoutesRegistry.ts";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const read = (path) => readFileSync(resolve(repoRoot, path), "utf8");
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
-/** origin の URL(取得できなければ空文字)。upstream 限定の検査の判定に使う */
+/** origin の URL(取得できなければ空文字)。所有者判定に使う */
 function originUrl() {
   try {
     return execFileSync("git", ["config", "--get", "remote.origin.url"], {
@@ -34,32 +38,43 @@ function originUrl() {
     return "";
   }
 }
-const isUpstreamRepo = /yokouchi-wildweb\/next-starter(\.git)?$/.test(originUrl());
+const origin = originUrl();
+
+/** upstream(next-starter)の owner 正規表現。styleTokens.test.mjs の isUpstreamRepo と同じ判定 */
+export const UPSTREAM_OWNER = "yokouchi-wildweb/next-starter(\\.git)?$";
 
 /**
- * 上流が出荷する core のユーザー向けルート。
- * dir: ルートディレクトリ(repo 相対) | screen: _screen/<screen>.tsx の named export | loader: 任意(repo 相対)
+ * 上流が出荷する core のユーザー向けルート(ScreenRouteEntry[])。
+ * dir: ルートディレクトリ(repo 相対) | screen: _screen/<screen>.tsx の named export | loader: 任意(repo 相対) | owner: origin の正規表現
  */
 export const UPSTREAM_ROUTES = [
   {
     dir: "src/app/(user)/(protected)/wallet",
     screen: "WalletIndexScreen",
     loader: "src/features/core/wallet/services/server/loaders/walletIndex.ts",
+    owner: UPSTREAM_OWNER,
   },
   {
     dir: "src/app/(user)/(protected)/wallet/[slug]",
     screen: "WalletBalanceScreen",
     loader: "src/features/core/wallet/services/server/loaders/walletBalance.ts",
+    owner: UPSTREAM_OWNER,
   },
   {
     dir: "src/app/(user)/(protected)/wallet/[slug]/history",
     screen: "WalletHistoryScreen",
     loader: "src/features/core/wallet/services/server/loaders/walletHistory.ts",
+    owner: UPSTREAM_OWNER,
   },
 ];
 
+/** このリポジトリがルートの所有者か(entry.owner が origin に一致するか) */
+export function isRouteOwner(entry, originUrlValue = origin) {
+  return new RegExp(entry.owner).test(originUrlValue);
+}
+
 // ---------------------------------------------------------------------------
-// page.tsx の検査(純粋関数。export しているのは検証スクリプトから呼べるようにするため)
+// page.tsx の検査(純粋関数。export しているのは fork が自前のテストから呼べるようにするため)
 // ---------------------------------------------------------------------------
 
 /** Next.js が page.tsx で認める設定 export の名前 */
@@ -197,41 +212,90 @@ export function checkSwitchPage(source, screen) {
   return problems;
 }
 
+/**
+ * `_screen/<screen>.tsx` の検査。問題があれば理由の配列を返す
+ * @param {string} source Screen ファイルの内容
+ * @param {string} screen 期待する named export 名
+ */
+export function checkScreenFile(source, screen) {
+  const problems = [];
+  const src = stripComments(source);
+  if (!new RegExp(`export\\s+(async\\s+)?(function|const)\\s+${screen}\\b`).test(src)) {
+    problems.push(`\`export function ${screen}\` を持たない`);
+  }
+  if (/export\s+default/.test(src)) {
+    problems.push("default export しない(page.tsx が as default で再 export する)");
+  }
+  return problems;
+}
+
+/**
+ * loader ファイルの検査。問題があれば理由の配列を返す
+ * @param {string} source loader の内容
+ */
+export function checkLoaderFile(source) {
+  const problems = [];
+  const src = stripComments(source);
+  if (!/import\s+"server-only"/.test(src)) problems.push('import "server-only" が無い');
+  if (!/\bcache\(/.test(src)) problems.push("React の cache() で包まれていない");
+  if (!/export\s+(const|async\s+function|function)\s+load\w+Screen\b/.test(src)) problems.push("load<Name>Screen を export していない");
+  return problems;
+}
+
 // ---------------------------------------------------------------------------
 // テスト本体
 // ---------------------------------------------------------------------------
 
-for (const route of UPSTREAM_ROUTES) {
-  const screenPath = `${route.dir}/_screen/${route.screen}.tsx`;
-  const pagePath = `${route.dir}/page.tsx`;
+/** 検査対象のルートに対してテストを登録する(UPSTREAM_ROUTES と FORK_SCREEN_ROUTES で共通) */
+export function registerRouteTests(routes, originUrlValue = origin) {
+  for (const route of routes) {
+    const screenPath = `${route.dir}/_screen/${route.screen}.tsx`;
+    const pagePath = `${route.dir}/page.tsx`;
 
-  test(`${route.dir}: _screen/${route.screen}.tsx が存在し ${route.screen} を named export している`, () => {
-    assert.ok(existsSync(resolve(repoRoot, screenPath)), `${screenPath} が無い。削除した場合は UPSTREAM_ROUTES から外す`);
-    const src = stripComments(read(screenPath));
-    const exported = new RegExp(`export\\s+(async\\s+)?(function|const)\\s+${route.screen}\\b`).test(src);
-    assert.ok(exported, `${screenPath} が \`export function ${route.screen}\` を持たない`);
-    assert.equal(/export\s+default/.test(src), false, `${screenPath} は default export しない(page.tsx が as default で再 export する)`);
-  });
-
-  test(`${route.dir}: page.tsx は _screen への 1 行スイッチ(上流リポ限定)`, (t) => {
-    if (!isUpstreamRepo) {
-      t.skip("下流 fork では page.tsx は下流所有のため検査しない");
-      return;
-    }
-    const problems = checkSwitchPage(read(pagePath), route.screen);
-    assert.deepEqual(problems, [], `${pagePath}: ${problems.join(" / ")}`);
-  });
-
-  if (route.loader) {
-    test(`${route.dir}: loader ${route.loader} は server-only + cache()`, () => {
-      assert.ok(existsSync(resolve(repoRoot, route.loader)), `${route.loader} が無い`);
-      const src = stripComments(read(route.loader));
-      assert.ok(/import\s+"server-only"/.test(src), `${route.loader} に import "server-only" が無い`);
-      assert.ok(/\bcache\(/.test(src), `${route.loader} が React の cache() で包まれていない`);
-      assert.ok(/export\s+(const|async\s+function|function)\s+load\w+Screen\b/.test(src), `${route.loader} が load<Name>Screen を export していない`);
+    test(`${route.dir}: _screen/${route.screen}.tsx が存在し ${route.screen} を named export している`, () => {
+      assert.ok(existsSync(resolve(repoRoot, screenPath)), `${screenPath} が無い。ルートごと削除した場合は一覧から外す`);
+      const problems = checkScreenFile(read(screenPath), route.screen);
+      assert.deepEqual(problems, [], `${screenPath}: ${problems.join(" / ")}`);
     });
+
+    test(`${route.dir}: page.tsx は _screen への 1 行スイッチ(所有リポジトリ限定)`, (t) => {
+      if (!isRouteOwner(route, originUrlValue)) {
+        t.skip(`このリポジトリはルートの所有者ではない(page.tsx は下流所有)。owner: ${route.owner}`);
+        return;
+      }
+      const problems = checkSwitchPage(read(pagePath), route.screen);
+      assert.deepEqual(problems, [], `${pagePath}: ${problems.join(" / ")}`);
+    });
+
+    if (route.loader) {
+      test(`${route.dir}: loader ${route.loader} は server-only + cache()`, () => {
+        assert.ok(existsSync(resolve(repoRoot, route.loader)), `${route.loader} が無い`);
+        const problems = checkLoaderFile(read(route.loader));
+        assert.deepEqual(problems, [], `${route.loader}: ${problems.join(" / ")}`);
+      });
+    }
   }
 }
+
+registerRouteTests(UPSTREAM_ROUTES);
+registerRouteTests(FORK_SCREEN_ROUTES);
+
+test("FORK_SCREEN_ROUTES の各エントリは dir / screen / owner を持つ", () => {
+  for (const entry of FORK_SCREEN_ROUTES) {
+    for (const key of ["dir", "screen", "owner"]) {
+      assert.equal(typeof entry[key], "string", `screenRoutesRegistry: ${JSON.stringify(entry)} に ${key} が無い`);
+    }
+    assert.doesNotThrow(() => new RegExp(entry.owner), `screenRoutesRegistry: owner "${entry.owner}" が正規表現として不正`);
+  }
+});
+
+test("isRouteOwner: owner の正規表現が origin に一致するときだけ所有者", () => {
+  const entry = { dir: "x", screen: "XScreen", owner: UPSTREAM_OWNER };
+  assert.equal(isRouteOwner(entry, "git@github.com:yokouchi-wildweb/next-starter.git"), true);
+  assert.equal(isRouteOwner(entry, "https://github.com/yokouchi-wildweb/next-starter"), true);
+  assert.equal(isRouteOwner(entry, "git@github.com:acme/shop.git"), false);
+  assert.equal(isRouteOwner({ ...entry, owner: "acme/shop(\\.git)?$" }, "git@github.com:acme/shop.git"), true);
+});
 
 test("checkSwitchPage: metadata / generateMetadata / loader import は許可し、画面ロジックは弾く", () => {
   const ok = `
