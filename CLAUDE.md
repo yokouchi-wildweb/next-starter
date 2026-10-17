@@ -60,7 +60,8 @@ features/\<domain\>/:
 - constants/, types/, presenters.ts, domain.json
 
 code_generation:
-- generated(no edit): entities/, services/drizzleBase, hooks/, Admin*/, registry/
+- generated(no edit): entities/, services/drizzleBase, hooks/, Admin*/, registry/, app/admin/(protected)/\<domains\>/**/_screen/ (regenerated every dc:generate)
+- write-once(generated when absent, never overwritten): app/admin/(protected)/\<domains\>/**/page.tsx (1-line switch; legacy fat page.tsx migrated once) | fork-owned: app/admin/(protected)/\<domains\>/**/_components/
 - customizable: wrappers/, components/**/formEntities.ts, constants/, presenters.ts
 
 shared_src: components(AppFrames/Form/Layout/TextBlocks/Skeleton/_shadcn), hooks, utils, stores, lib, config, registry, proxies
@@ -250,6 +251,7 @@ contracts (public; rename = keep old export + .notices, breaking = add new name)
 downstream: replace = copy _screen → _components + point page.tsx, keep calling loader; copy section container only to change parts (part imports absolute → copy works); hooks-only for full redesign | new page = same structure recommended | deleted route in fork = re-delete on modify/delete conflict, drop from UPSTREAM_ROUTES
 upstream (MANDATORY): new core user-facing page → add to UPSTREAM_ROUTES in src/lib/screens/screens.test.mjs | never put logic back in page.tsx | test: pnpm test:screens (tsx runner; page.tsx shape checked only where entry.owner regex matches git origin, _screen/loader checks everywhere) | migrated: wallet 3 routes (purchase / mypage / legal / auth follow stepwise) | ref: src/lib/screens/README.md
 middle_tier_forks: register own routes in src/registry/screenRoutesRegistry.ts FORK_SCREEN_ROUTES ({dir,screen,loader?,owner}) — upstream ships empty, downstream-owned after creation; leaf forks leave empty
+admin_generated (dc:generate admin routes): same structure — page.tsx write-once (`dynamic` stays in page.tsx, `metadata` re-exported from _screen) + _screen/Admin\<Domain\>{List,Create,Edit,Sort}Screen.tsx regenerated + SHARED loaders features/core/admin/services/server/loaders/ (loadAdminListScreen / loadAdminEditScreen / loadAdminSortScreen / loadAdminRelationLists; NO requireCurrentUser — admin layout authGuard covers) | not in UPSTREAM_ROUTES | ref: src/lib/screens/README.md §12
 
 ## ERROR_HANDLING
 flow: ServerService throw DomainError → APIRoute JSON{status,message} → ClientService normalizeHttpError → Hook pass → UI err(error,fallback)

@@ -9,7 +9,8 @@
 | ファイル | 役割 |
 |---|---|
 | `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形） |
-| `screens.test.mjs` | `pnpm test:screens` — 上流ルートの一覧 `UPSTREAM_ROUTES` と page 層の規律検査。検査関数 `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `registerRouteTests` を export |
+| `checks.mjs` | 検査関数 `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `isRouteOwner`（副作用なし。fork の自前テストはこれを import） |
+| `screens.test.mjs` | `pnpm test:screens` — 上流ルートの一覧 `UPSTREAM_ROUTES` + registry のルートに対して `checks.mjs` の検査を登録 |
 | `src/registry/screenRoutesRegistry.ts` | 中間 Tier の fork が自分のルートを同じ検査に登録する場所（upstream は空で出荷、作成後は下流所有。§10） |
 | `README.md` | この文書（手順・規則・コピーして動く例） |
 
@@ -239,8 +240,9 @@ src/features/points/services/server/loaders/points.ts   import "server-only" + c
 | 既定 Screen の欠落 | 同テストで `_screen/<Name>Screen.tsx` の存在と named export | 全リポジトリ（ルートごと消した fork は `UPSTREAM_ROUTES` / registry から外す） |
 | loader の規律 | 同テストで `import "server-only"` と `cache(` と `load<Name>Screen` の export | 全リポジトリ |
 
-検査対象 = `UPSTREAM_ROUTES`（テストファイル内。upstream のみ編集）+ `FORK_SCREEN_ROUTES`（`src/registry/screenRoutesRegistry.ts`。fork が編集）。テストは tsx ランナーで動く（registry の `.ts` を読むため）。
 | loader の client 混入 | `import "server-only"` | ビルド |
+
+検査対象 = `UPSTREAM_ROUTES`（テストファイル内。upstream のみ編集）+ `FORK_SCREEN_ROUTES`（`src/registry/screenRoutesRegistry.ts`。fork が編集）。テストは tsx ランナーで動く（registry の `.ts` を読むため）。検査関数の本体は `checks.mjs`（副作用なし）。
 
 pre-commit / CI ガードは置かない。
 
@@ -256,7 +258,7 @@ export const FORK_SCREEN_ROUTES: ScreenRouteEntry[] = [
     dir: "src/app/(user)/(protected)/play",
     screen: "PlayScreen",
     loader: "src/features/gacha/services/server/loaders/play.ts",   // ロジックの無いページは省略
-    owner: "yokouchi-wildweb/oripa-do(\\.git)?$",                     // origin URL に対する正規表現
+    owner: "[:/]yokouchi-wildweb/oripa-do(\\.git)?/?$",               // origin URL に対する正規表現
   },
 ];
 ```
@@ -264,7 +266,9 @@ export const FORK_SCREEN_ROUTES: ScreenRouteEntry[] = [
 - Tier2 のリポジトリ（origin が `owner` に一致）では page.tsx の 1 行スイッチ検査が走る
 - Tier3 のリポジトリでは `_screen/` の存在と loader の規律だけが走り、page.tsx は Tier3 所有として検査しない（upstream のルートが Tier2 で検査されないのと同じ）
 - 葉の fork は空のままでよい
-- registry を使わず自前のテストを書きたい場合は、`screens.test.mjs` が export する `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `registerRouteTests(routes, origin)` を import する
+- `owner` は両端をアンカーする（`[:/]org/repo(\\.git)?/?$`）。左を開けると `notacme/shop` が `acme/shop` に一致し、`/?` を忘れると末尾スラッシュ付きの https origin で検査が静かに skip される。大文字小文字は区別される
+- upstream のルート（`UPSTREAM_ROUTES` にあるもの）は登録しない（テストが拒否する）
+- registry を使わず自前のテストを書きたい場合は、`src/lib/screens/checks.mjs` の `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `isRouteOwner` を import する。`screens.test.mjs` を import すると upstream と registry のテストが一緒に登録されるので使わない
 
 ## 11. 不採用の案（理由を残す）
 
@@ -273,3 +277,29 @@ export const FORK_SCREEN_ROUTES: ScreenRouteEntry[] = [
 - **Screen / loader を `features/core/<domain>/screens/` に置く**: core に UI を置かない方針と衝突し誤読を招く
 - **セクションコンテナの改名（`*Page` → 別名）**: 下流の import を壊す
 - **page.tsx に loader 呼び出しを残す案**: 既定の構成を上流から更新できなくなり、差し替え手順が 2 通りに割れる
+
+## 12. 生成される管理画面ルート（dc:generate）
+
+`dc:generate` が出す管理画面ルート（`src/app/admin/(protected)/<domains>/`、`new/`、`[id]/edit/`、`sort/`）も同じ構造で生成される。
+テンプレートは `src/app/admin/_template/__domains__/`、生成器は `scripts/domain-config/generator/admin-routes/`。
+
+```
+src/app/admin/(protected)/samples/
+├── page.tsx                          write-once。初回だけ生成、以後 dc:generate は上書きしない(fork 所有)
+│                                     export const dynamic = "force-dynamic";
+│                                     export { AdminSampleListScreen as default, metadata } from "./_screen/AdminSampleListScreen";
+├── _screen/AdminSampleListScreen.tsx 毎回再生成(手で編集しない)。metadata もここ(ラベル変更が再生成で反映される)
+└── _components/                      fork 所有。生成器は触らない
+```
+
+| 所有 | 対象 | 生成器の扱い |
+|---|---|---|
+| fork（write-once） | `page.tsx` | 無ければ生成。既存なら保持。旧形式（本体を直接持つ `export default`）なら一度だけ 1 行スイッチへ移行してログを出す |
+| 生成物（編集しない） | `_screen/<Name>Screen.tsx` | 毎回上書き |
+| fork | `_components/` | 触らない |
+
+- `_screen/` はドメインごとの loader を持たず、`src/features/core/admin/services/server/loaders/` の**共有 loader**（`loadAdminListScreen(service, props)` / `loadAdminEditScreen(service, props, fallbackPath)` / `loadAdminSortScreen(service)` / `loadAdminRelationLists({...})`）を呼ぶ。一覧と規則は同ディレクトリの README
+- 共有 loader は `requireCurrentUser` を呼ばない（`admin/(protected)/layout.tsx` の `authGuard` が管理者を検査済み）。wallet の loader との違い
+- `dynamic` は page.tsx 自体に書く（Next が静的解析するため re-export 不可）。`metadata` は `_screen/` から re-export してよい（`checkSwitchPage` が許可する名前: `metadata` / `generateMetadata` / `viewport` / `generateViewport`）
+- 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `dc:generate` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される
+- 生成ルートは `UPSTREAM_ROUTES` / registry に載せない（page.tsx の所有者が「生成した fork」で、origin では判定できないため）。`_screen/` の存在は再生成で回復するので検査対象外

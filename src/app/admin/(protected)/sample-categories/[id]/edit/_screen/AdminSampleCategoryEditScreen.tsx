@@ -1,0 +1,42 @@
+// src/app/admin/(protected)/sample-categories/[id]/edit/_screen/AdminSampleCategoryEditScreen.tsx
+// このファイルは dc:generate が生成する(再生成で上書きされるため手で編集しない)。
+// 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
+
+import type { ScreenProps } from "@/lib/screens/types";
+import {
+  loadAdminEditScreen,
+  type AdminEditScreenParams,
+  type AdminEditScreenSearchParams,
+} from "@/features/core/admin/services/server/loaders/adminEdit";
+import { SWRConfig } from "swr";
+import { loadAdminRelationLists } from "@/features/core/admin/services/server/loaders/adminRelations";
+import { sampleService } from "@/features/sample/services/server/sampleService";
+import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
+import AdminSampleCategoryEdit from "@/features/sampleCategory/components/AdminSampleCategoryEdit";
+import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+
+export const metadata = {
+  title: "サンプルカテゴリ編集",
+};
+
+export async function AdminSampleCategoryEditScreen(props: ScreenProps<AdminEditScreenParams, AdminEditScreenSearchParams>) {
+  const [{ record: sampleCategory, redirectPath }, { samples }] = await Promise.all([
+    loadAdminEditScreen(sampleCategoryService, props, "/admin/sample-categories"),
+    loadAdminRelationLists({ samples: sampleService }),
+  ]);
+
+  return (
+  <SWRConfig
+    value={{
+      fallback: { samples },
+  }}
+  >
+
+    <AdminPage>
+      <PageTitle placement="header">サンプルカテゴリ編集</PageTitle>
+      <AdminSampleCategoryEdit sampleCategory={sampleCategory} redirectPath={redirectPath} />
+    </AdminPage>
+  </SWRConfig>
+  );
+}

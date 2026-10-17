@@ -1,22 +1,9 @@
+// src/app/admin/(protected)/__domainsSlug__/new/page.tsx — 画面の差し替えスイッチ
+//
+// dc:generate はこのファイルを初回だけ生成し、以後は上書きしない(write-once)。
+// 既定画面は _screen/ 側で、dc:generate のたびに再生成される(手で編集しない)。
+// 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
+// 手順: src/lib/screens/README.md
 export const dynamic = "force-dynamic";
 
-__RELATION_IMPORTS__
-import Admin__Domain__Create from "@/features/__domain__/components/Admin__Domain__Create";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-
-export const metadata = {
-  title: "__DomainLabel__追加",
-};
-
-export default __ASYNC__function Admin__Domain__CreatePage() {
-__LIST_FETCH__
-  return (
-__SWR_START__
-    <AdminPage>
-      <PageTitle placement="header">__DomainLabel__追加</PageTitle>
-      <Admin__Domain__Create redirectPath="/admin/__domainsSlug__" />
-    </AdminPage>
-__SWR_END__
-  );
-}
+export { Admin__Domain__CreateScreen as default, metadata } from "./_screen/Admin__Domain__CreateScreen";

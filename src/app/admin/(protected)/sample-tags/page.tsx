@@ -1,31 +1,9 @@
+// src/app/admin/(protected)/sample-tags/page.tsx — 画面の差し替えスイッチ
+//
+// dc:generate はこのファイルを初回だけ生成し、以後は上書きしない(write-once)。
+// 既定画面は _screen/ 側で、dc:generate のたびに再生成される(手で編集しない)。
+// 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
+// 手順: src/lib/screens/README.md
 export const dynamic = "force-dynamic";
 
-import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
-
-import { settingService } from "../../../../features/core/setting/services/server/settingService";
-import type { ListPageSearchParams } from "@/lib/crud";
-import AdminSampleTagList from "@/features/sampleTag/components/AdminSampleTagList";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-
-export const metadata = {
-  title: "サンプルタグ一覧",
-};
-
-type Props = {
-  searchParams: Promise<ListPageSearchParams>;
-};
-
-export default async function AdminSampleTagListPage({ searchParams }: Props) {
-  const { page: pageStr, searchQuery } = await searchParams;
-  const page = Number(pageStr ?? "1");
-  const limit = await settingService.getAdminListPerPage();
-  const { results: sampleTags, total } = await sampleTagService.search({ page, limit, searchQuery });
-
-  return (
-    <AdminPage>
-      <PageTitle placement="header">サンプルタグ管理</PageTitle>
-      <AdminSampleTagList sampleTags={sampleTags} page={page} perPage={limit} total={total} />
-    </AdminPage>
-  );
-}
+export { AdminSampleTagListScreen as default, metadata } from "./_screen/AdminSampleTagListScreen";

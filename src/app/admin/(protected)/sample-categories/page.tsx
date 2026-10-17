@@ -1,31 +1,9 @@
+// src/app/admin/(protected)/sample-categories/page.tsx — 画面の差し替えスイッチ
+//
+// dc:generate はこのファイルを初回だけ生成し、以後は上書きしない(write-once)。
+// 既定画面は _screen/ 側で、dc:generate のたびに再生成される(手で編集しない)。
+// 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
+// 手順: src/lib/screens/README.md
 export const dynamic = "force-dynamic";
 
-import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
-
-import { settingService } from "../../../../features/core/setting/services/server/settingService";
-import type { ListPageSearchParams } from "@/lib/crud";
-import AdminSampleCategoryList from "@/features/sampleCategory/components/AdminSampleCategoryList";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-
-export const metadata = {
-  title: "サンプルカテゴリ一覧",
-};
-
-type Props = {
-  searchParams: Promise<ListPageSearchParams>;
-};
-
-export default async function AdminSampleCategoryListPage({ searchParams }: Props) {
-  const { page: pageStr, searchQuery } = await searchParams;
-  const page = Number(pageStr ?? "1");
-  const limit = await settingService.getAdminListPerPage();
-  const { results: sampleCategories, total } = await sampleCategoryService.search({ page, limit, searchQuery });
-
-  return (
-    <AdminPage>
-      <PageTitle placement="header">サンプルカテゴリ管理</PageTitle>
-      <AdminSampleCategoryList sampleCategories={sampleCategories} page={page} perPage={limit} total={total} />
-    </AdminPage>
-  );
-}
+export { AdminSampleCategoryListScreen as default, metadata } from "./_screen/AdminSampleCategoryListScreen";

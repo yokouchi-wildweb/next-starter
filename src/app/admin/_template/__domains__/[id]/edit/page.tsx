@@ -1,35 +1,9 @@
+// src/app/admin/(protected)/__domainsSlug__/[id]/edit/page.tsx — 画面の差し替えスイッチ
+//
+// dc:generate はこのファイルを初回だけ生成し、以後は上書きしない(write-once)。
+// 既定画面は _screen/ 側で、dc:generate のたびに再生成される(手で編集しない)。
+// 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
+// 手順: src/lib/screens/README.md
 export const dynamic = "force-dynamic";
 
-__RELATION_IMPORTS__
-import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
-import Admin__Domain__Edit from "@/features/__domain__/components/Admin__Domain__Edit";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import type { __Domain__ } from "@/features/__domain__/entities";
-import { resolveReturnTo } from "@/lib/crud/utils";
-
-export const metadata = {
-  title: "__DomainLabel__編集",
-};
-
-type Props = {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ returnTo?: string }>;
-};
-
-export default async function Admin__Domain__EditPage({ params, searchParams }: Props) {
-  const { id } = await params;
-  const { returnTo } = await searchParams;
-  const redirectPath = resolveReturnTo(returnTo, "/admin/__domainsSlug__");
-
-__DOMAIN_AND_LIST_FETCH__
-
-  return (
-__SWR_START__
-    <AdminPage>
-      <PageTitle placement="header">__DomainLabel__編集</PageTitle>
-      <Admin__Domain__Edit __domain__={__domain__ as __Domain__} redirectPath={redirectPath} />
-    </AdminPage>
-__SWR_END__
-  );
-}
+export { Admin__Domain__EditScreen as default, metadata } from "./_screen/Admin__Domain__EditScreen";

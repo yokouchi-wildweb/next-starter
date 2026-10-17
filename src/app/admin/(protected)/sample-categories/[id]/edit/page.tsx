@@ -1,45 +1,9 @@
+// src/app/admin/(protected)/sample-categories/[id]/edit/page.tsx — 画面の差し替えスイッチ
+//
+// dc:generate はこのファイルを初回だけ生成し、以後は上書きしない(write-once)。
+// 既定画面は _screen/ 側で、dc:generate のたびに再生成される(手で編集しない)。
+// 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
+// 手順: src/lib/screens/README.md
 export const dynamic = "force-dynamic";
 
-import { SWRConfig } from "swr";
-import { sampleService } from "@/features/sample/services/server/sampleService";
-import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
-import AdminSampleCategoryEdit from "@/features/sampleCategory/components/AdminSampleCategoryEdit";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import type { SampleCategory } from "@/features/sampleCategory/entities";
-import { resolveReturnTo } from "@/lib/crud/utils";
-
-export const metadata = {
-  title: "サンプルカテゴリ編集",
-};
-
-type Props = {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ returnTo?: string }>;
-};
-
-export default async function AdminSampleCategoryEditPage({ params, searchParams }: Props) {
-  const { id } = await params;
-  const { returnTo } = await searchParams;
-  const redirectPath = resolveReturnTo(returnTo, "/admin/sample-categories");
-
-  const [sampleCategory, samples ] = await Promise.all([
-    sampleCategoryService.get(id),
-    sampleService.list()
-  ]);
-
-
-  return (
-  <SWRConfig
-    value={{
-      fallback: { samples },
-  }}
-  >
-
-    <AdminPage>
-      <PageTitle placement="header">サンプルカテゴリ編集</PageTitle>
-      <AdminSampleCategoryEdit sampleCategory={sampleCategory as SampleCategory} redirectPath={redirectPath} />
-    </AdminPage>
-  </SWRConfig>
-  );
-}
+export { AdminSampleCategoryEditScreen as default, metadata } from "./_screen/AdminSampleCategoryEditScreen";

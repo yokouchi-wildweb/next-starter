@@ -1,27 +1,9 @@
-// src/app/admin/(protected)/samples/sort/page.tsx
-
+// src/app/admin/(protected)/samples/sort/page.tsx — 画面の差し替えスイッチ
+//
+// dc:generate はこのファイルを初回だけ生成し、以後は上書きしない(write-once)。
+// 既定画面は _screen/ 側で、dc:generate のたびに再生成される(手で編集しない)。
+// 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
+// 手順: src/lib/screens/README.md
 export const dynamic = "force-dynamic";
 
-import { sampleService } from "@/features/sample/services/server/sampleService";
-import AdminSampleSort from "@/features/sample/components/AdminSampleSort";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-
-export const metadata = {
-  title: "サンプル並び替え",
-};
-
-export default async function AdminSampleSortPage() {
-  const { results: samples } = await sampleService.searchForSorting({
-    page: 1,
-    limit: 100,
-    orderBy: [["sort_order", "ASC", "LAST"]],
-  });
-
-  return (
-    <AdminPage>
-      <PageTitle placement="header">サンプル並び替え</PageTitle>
-      <AdminSampleSort initialSamples={samples} />
-    </AdminPage>
-  );
-}
+export { AdminSampleSortScreen as default, metadata } from "./_screen/AdminSampleSortScreen";

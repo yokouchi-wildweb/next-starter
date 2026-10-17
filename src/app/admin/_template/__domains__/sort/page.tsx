@@ -1,27 +1,9 @@
-// src/app/admin/(protected)/__domainsSlug__/sort/page.tsx
-
+// src/app/admin/(protected)/__domainsSlug__/sort/page.tsx — 画面の差し替えスイッチ
+//
+// dc:generate はこのファイルを初回だけ生成し、以後は上書きしない(write-once)。
+// 既定画面は _screen/ 側で、dc:generate のたびに再生成される(手で編集しない)。
+// 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
+// 手順: src/lib/screens/README.md
 export const dynamic = "force-dynamic";
 
-import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
-import Admin__Domain__Sort from "@/features/__domain__/components/Admin__Domain__Sort";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-
-export const metadata = {
-  title: "__DomainLabel__並び替え",
-};
-
-export default async function Admin__Domain__SortPage() {
-  const { results: __domains__ } = await __domain__Service.searchForSorting({
-    page: 1,
-    limit: 100,
-    orderBy: [["sort_order", "ASC", "LAST"]],
-  });
-
-  return (
-    <AdminPage>
-      <PageTitle placement="header">__DomainLabel__並び替え</PageTitle>
-      <Admin__Domain__Sort initial__Domains__={__domains__} />
-    </AdminPage>
-  );
-}
+export { Admin__Domain__SortScreen as default, metadata } from "./_screen/Admin__Domain__SortScreen";

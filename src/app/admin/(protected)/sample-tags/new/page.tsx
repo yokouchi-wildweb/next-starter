@@ -1,31 +1,9 @@
+// src/app/admin/(protected)/sample-tags/new/page.tsx — 画面の差し替えスイッチ
+//
+// dc:generate はこのファイルを初回だけ生成し、以後は上書きしない(write-once)。
+// 既定画面は _screen/ 側で、dc:generate のたびに再生成される(手で編集しない)。
+// 画面を差し替えるときは _components/<Name>Screen.tsx を作り、下の import 先を向ける。
+// 手順: src/lib/screens/README.md
 export const dynamic = "force-dynamic";
 
-import { SWRConfig } from "swr";
-import { sampleService } from "@/features/sample/services/server/sampleService";
-import AdminSampleTagCreate from "@/features/sampleTag/components/AdminSampleTagCreate";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-
-export const metadata = {
-  title: "サンプルタグ追加",
-};
-
-export default async function AdminSampleTagCreatePage() {
-  const [samples ] = await Promise.all([
-    sampleService.list()
-  ]);
-
-  return (
-  <SWRConfig
-    value={{
-      fallback: { samples },
-  }}
-  >
-
-    <AdminPage>
-      <PageTitle placement="header">サンプルタグ追加</PageTitle>
-      <AdminSampleTagCreate redirectPath="/admin/sample-tags" />
-    </AdminPage>
-  </SWRConfig>
-  );
-}
+export { AdminSampleTagCreateScreen as default, metadata } from "./_screen/AdminSampleTagCreateScreen";

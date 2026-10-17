@@ -18,7 +18,7 @@
 //       dir: "src/app/(user)/(protected)/play",
 //       screen: "PlayScreen",
 //       loader: "src/features/gacha/services/server/loaders/play.ts",
-//       owner: "yokouchi-wildweb/oripa-do(\\.git)?$",
+//       owner: "[:/]yokouchi-wildweb/oripa-do(\\.git)?/?$",   // 両端をアンカーする(README §10)
 //     },
 //   ];
 //
