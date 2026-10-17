@@ -17,7 +17,7 @@ export const SpNavOverlay = ({ onClose }: SpNavOverlayProps) => (
     id="header-sp-nav-overlay"
     type="button"
     aria-label="メニューを閉じる"
-    className="absolute inset-0 h-full w-full bg-black/50 below-header-layer"
+    className="absolute inset-0 h-full w-full bg-overlay/50 below-header-layer"
     onClick={onClose}
     variants={overlayVariants}
     initial="hidden"

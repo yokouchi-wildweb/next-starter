@@ -1,9 +1,10 @@
-// src/components/Admin/Elements/SelectFilter.tsx
+// src/components/AppFrames/Admin/Elements/SelectFilter.tsx
 
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/_shadcn/select";
+
+import { SelectInput } from "@/components/Form/Input/Manual/Select";
 
 type Option = { label: string; value: string };
 
@@ -38,18 +39,14 @@ export default function SelectFilter({
   };
 
   return (
-    <Select onValueChange={handleChange} value={selected ?? ALL_VALUE}>
-      <SelectTrigger size="sm" className="min-w-32">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL_VALUE}>{placeholder}</SelectItem>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SelectInput
+      size="sm"
+      className="min-w-32"
+      placeholder={placeholder}
+      options={[{ label: placeholder, value: ALL_VALUE }, ...options]}
+      value={selected ?? ALL_VALUE}
+      showPlaceholderOption={false}
+      onChange={(value) => handleChange(value == null ? "" : String(value))}
+    />
   );
 }

@@ -3,6 +3,7 @@ import nextConfig from "eslint-config-next";
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import routeAuthzPlugin from "./eslint-rules/route-authz.mjs";
+import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
 
 export default [
   ...nextConfig,
@@ -37,6 +38,26 @@ export default [
     plugins: { "route-authz": routeAuthzPlugin },
     rules: {
       "route-authz/require-authz": "warn",
+    },
+  },
+  // 生パレット色(bg-slate-900 / text-white / bg-[#fff] 等)の禁止。色はテーマトークンで書く
+  // (詳細: eslint-rules/style-tokens.mjs, src/styles/README.md)。
+  // 共有 UI は error。core ドメイン UI は色スイープ(Step 4)完了まで warn。下流固有 UI(features/<business>, app/)は対象外。
+  // 除外: _shadcn(vendored。見た目はラッパー側が上書きする) / Three(3D 演出) / gradient(トークン生成元)。
+  // ブランドロゴ色など正当な例外は理由付き eslint-disable-next-line で明示する。
+  {
+    files: ["src/components/**/*.{ts,tsx}", "src/lib/**/*.{ts,tsx}"],
+    ignores: ["src/components/_shadcn/**", "src/components/Three/**", "src/lib/gradient/**"],
+    plugins: { "style-tokens": styleTokensPlugin },
+    rules: {
+      "style-tokens/no-raw-palette": "error",
+    },
+  },
+  {
+    files: ["src/features/core/**/*.{ts,tsx}"],
+    plugins: { "style-tokens": styleTokensPlugin },
+    rules: {
+      "style-tokens/no-raw-palette": "warn",
     },
   },
   // ルームロジック (servers/room にバンドルされる) の純度制約。

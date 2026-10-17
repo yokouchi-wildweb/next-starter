@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
  * export function FullScreenOverlay() {
  *   return (
  *     <BodyPortal>
- *       <div className="fixed inset-0 z-50 bg-black/50" />
+ *       <div className="fixed inset-0 z-50 bg-overlay/50" />
  *     </BodyPortal>
  *   );
  * }

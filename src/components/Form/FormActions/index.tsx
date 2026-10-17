@@ -65,7 +65,7 @@ function FormErrorMessage() {
   const fieldErrors = Object.entries(errors).filter(([key]) => key !== "root");
 
   return (
-    <div className="flex items-center justify-center gap-1.5 text-sm text-destructive">
+    <div className="flex items-center justify-center gap-1.5 text-sm text-destructive-text">
       <AlertCircle className="size-4 shrink-0" />
       <span>入力内容にエラーがあります</span>
       {displayMode === "detailed" && fieldErrors.length > 0 && (

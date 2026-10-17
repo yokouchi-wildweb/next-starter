@@ -277,7 +277,7 @@ export function PromptPopover({
             />
           )}
           {error && (
-            <p className="mt-1 text-xs text-destructive">{error}</p>
+            <p className="mt-1 text-xs text-destructive-text">{error}</p>
           )}
           {multiline && (
             <p className="mt-1 text-xs text-muted-foreground">

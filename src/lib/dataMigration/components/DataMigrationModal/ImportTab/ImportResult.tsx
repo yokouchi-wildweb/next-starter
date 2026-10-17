@@ -20,7 +20,7 @@ export function ImportResult({ result }: ImportResultProps) {
     <Block className="mb-4">
       <Block
         className={`p-4 rounded-lg ${
-          result.failedChunks === 0 ? "bg-emerald-500/10" : "bg-amber-500/10"
+          result.failedChunks === 0 ? "bg-success/10" : "bg-warning/10"
         }`}
       >
         <p className="font-medium mb-2">
@@ -30,7 +30,7 @@ export function ImportResult({ result }: ImportResultProps) {
           <p>インポートされたレコード: {result.totalRecords}件</p>
           <p>成功したチャンク: {result.successfulChunks}</p>
           {result.failedChunks > 0 && (
-            <p className="text-destructive">失敗したチャンク: {result.failedChunks}</p>
+            <p className="text-destructive-text">失敗したチャンク: {result.failedChunks}</p>
           )}
         </Block>
 
@@ -45,7 +45,7 @@ export function ImportResult({ result }: ImportResultProps) {
                   <span>
                     {dr.totalRecords}件
                     {dr.failedChunks > 0 && (
-                      <span className="text-destructive ml-1">
+                      <span className="text-destructive-text ml-1">
                         (エラー: {dr.failedChunks}チャンク)
                       </span>
                     )}
@@ -64,7 +64,7 @@ export function ImportResult({ result }: ImportResultProps) {
           {result.chunkResults
             .filter((c) => !c.success)
             .map((c) => (
-              <p key={`${c.domain}-${c.chunkName}`} className="text-destructive">
+              <p key={`${c.domain}-${c.chunkName}`} className="text-destructive-text">
                 {result.isMultiDomain ? `[${c.domain}] ` : ""}
                 {c.chunkName}: {c.error}
               </p>

@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 
 import { BadgeCore } from "./BadgeCore";
 import {
+  badgeOverrideClasses,
   badgeSizeStyles,
   type BadgeVariant,
   type BadgeSize,
@@ -21,7 +22,7 @@ const SOLID_BASE =
 const solidVariantStyles: BadgeVariantStyles = {
   primary: "bg-primary text-primary-foreground",
   secondary: "bg-secondary text-secondary-foreground",
-  destructive: "bg-destructive text-white",
+  destructive: "bg-destructive text-destructive-foreground",
   success: "bg-success text-success-foreground",
   info: "bg-info text-info-foreground",
   warning: "bg-warning text-warning-foreground",
@@ -60,6 +61,7 @@ export const SolidBadge = React.forwardRef<HTMLSpanElement, SolidBadgeProps>(
           SOLID_BASE,
           solidVariantStyles[variant],
           badgeSizeStyles[size],
+          ...badgeOverrideClasses("solid", variant, size),
           className
         )}
         {...props}

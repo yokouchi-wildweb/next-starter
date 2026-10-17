@@ -291,7 +291,7 @@ function GradientDropdown(props: {
                   )}
                 >
                   <span
-                    className="h-5 w-8 shrink-0 rounded-sm border border-black/5"
+                    className="h-5 w-8 shrink-0 rounded-sm border border-foreground/5"
                     style={{ background: token.cssValue }}
                   />
                   <span className="truncate">{token.label}</span>

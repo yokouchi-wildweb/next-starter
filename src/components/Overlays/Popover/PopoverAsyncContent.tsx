@@ -36,7 +36,7 @@ function DefaultLoading() {
 function DefaultError({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center gap-2 py-4 text-center">
-      <p className="text-sm text-destructive">読み込みに失敗しました</p>
+      <p className="text-sm text-destructive-text">読み込みに失敗しました</p>
       <p className="text-xs text-muted-foreground">{error.message}</p>
       <button
         type="button"

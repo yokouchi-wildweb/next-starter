@@ -353,9 +353,9 @@ export function BulkSendEmailButton({
               <Stack space={2}>
                 <Flex align="center" gap="xs">
                   {result.notificationCreated ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle2 className="h-4 w-4 text-success-text" />
                   ) : (
-                    <AlertCircle className="h-4 w-4 text-red-500" />
+                    <AlertCircle className="h-4 w-4 text-destructive-text" />
                   )}
                   <span className="text-sm font-medium">サービス内お知らせ通知</span>
                 </Flex>
@@ -376,13 +376,13 @@ export function BulkSendEmailButton({
 
             {result.emailFailures.length > 0 && (
               <Stack space={2}>
-                <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                <span className="text-sm font-medium text-destructive-text">
                   メール送信に失敗したユーザー
                 </span>
                 <ul className="flex flex-col gap-1 rounded-md border border-border bg-muted/30 p-3 text-xs">
                   {result.emailFailures.map((f) => (
                     <li key={f.userId} className="flex items-start gap-2">
-                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" />
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive-text" />
                       <div>
                         <div className="font-mono">
                           {f.email ?? "(メール未登録)"}

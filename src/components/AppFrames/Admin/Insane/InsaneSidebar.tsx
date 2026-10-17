@@ -156,7 +156,7 @@ export function InsaneSidebar({
     <aside style={{ width }} className={cn(sidebarContainer(), "flex flex-col")}>
       {/* インセインモード表示バッジ */}
       <Stack space={2} className="w-full mb-0 border-b border-destructive/30">
-        <div className="px-4 py-2 bg-destructive/10 text-destructive text-xs font-bold text-center">
+        <div className="px-4 py-2 bg-destructive/10 text-destructive-text text-xs font-bold text-center">
           INSANE MODE
         </div>
       </Stack>

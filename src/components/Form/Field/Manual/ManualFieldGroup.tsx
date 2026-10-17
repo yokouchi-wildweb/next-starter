@@ -52,10 +52,10 @@ export type ManualFieldGroupProps = RequiredMarkOptions & {
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
 const DefaultRequiredMarkAfter = (
-  <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
+  <span className="text-destructive-text ml-0.5" aria-hidden="true">*</span>
 );
 const DefaultRequiredMarkBefore = (
-  <span className="text-destructive mr-0.5" aria-hidden="true">*</span>
+  <span className="text-destructive-text mr-0.5" aria-hidden="true">*</span>
 );
 
 /**
@@ -136,7 +136,7 @@ export function ManualFieldGroup({
       data-error={hasErrors}
       className={cn(
         hideLabel && "sr-only",
-        hasErrors && "text-destructive",
+        hasErrors && "text-destructive-text",
         isHorizontal && "pt-2 shrink-0", // 横並び時、入力フィールドと上端を揃える
         isResponsiveLayout && "md:pt-2 md:shrink-0", // レスポンシブ時、PC のみ横並びスタイル
         labelClass
@@ -165,7 +165,7 @@ export function ManualFieldGroup({
 
   // エラーメッセージ
   const errorElement = !hideError && uniqueErrors.length > 0 && (
-    <div data-slot="form-message" className="text-destructive text-sm">
+    <div data-slot="form-message" className="text-destructive-text text-sm">
       {uniqueErrors.map((error, index) => (
         <p key={index}>{error}</p>
       ))}

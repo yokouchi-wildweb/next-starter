@@ -47,7 +47,7 @@ export const useSampleViewModal = (sampleId: string | null) => {
     // ----- バッジの組み立て -----
     const badge: DetailModalBadge = {
       text: "badge",
-      colorClass: "bg-gray-500",
+      variant: "muted",
     };
 
     // ----- 画像情報の組み立て -----

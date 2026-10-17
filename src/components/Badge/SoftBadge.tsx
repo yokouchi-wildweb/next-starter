@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 
 import { BadgeCore } from "./BadgeCore";
 import {
+  badgeOverrideClasses,
   badgeSizeStyles,
   type BadgeVariant,
   type BadgeSize,
@@ -17,14 +18,14 @@ import {
 const SOFT_BASE =
   "relative inline-flex items-center justify-center rounded-full border font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:pointer-events-none transition-[color,box-shadow]";
 
-/** Soft固有のvariantスタイル */
+/** Soft固有のvariantスタイル(文字は塗り用トークンではなく本文用 -text トークン) */
 const softVariantStyles: BadgeVariantStyles = {
   primary: "bg-primary/10 border-primary text-primary",
   secondary: "bg-secondary/10 border-secondary text-secondary",
-  destructive: "bg-destructive/10 border-destructive text-destructive",
-  success: "bg-success/10 border-success text-success",
-  info: "bg-info/10 border-info text-info",
-  warning: "bg-warning/10 border-warning text-warning",
+  destructive: "bg-destructive/10 border-destructive text-destructive-text",
+  success: "bg-success/10 border-success text-success-text",
+  info: "bg-info/10 border-info text-info-text",
+  warning: "bg-warning/10 border-warning text-warning-text",
   accent: "bg-accent/10 border-accent text-accent",
   muted: "bg-muted border-muted-foreground/30 text-muted-foreground",
   outline: "bg-transparent border-border text-foreground",
@@ -64,6 +65,7 @@ export const SoftBadge = React.forwardRef<HTMLSpanElement, SoftBadgeProps>(
             SOFT_BASE,
             softVariantStyles[variant],
             badgeSizeStyles[size],
+            ...badgeOverrideClasses("soft", variant, size),
             className
           )}
           {...props}

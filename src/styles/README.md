@@ -8,7 +8,7 @@
 | 変えたいもの | 書く場所 | それ以外 |
 |---|---|---|
 | 見た目の値(色・書体・影・余白) | `src/styles/custom/` | 触らない |
-| 振る舞いの設定(テーマ既定・エリアロック・Web フォント読み込み) | `src/config/ui/site-theme.config.ts` / `fonts.config.ts` | 触らない |
+| 振る舞いと形の設定(テーマ既定・エリアロック・Web フォント読み込み・ボタン/バッジの形) | `src/config/ui/site-theme.config.ts` / `fonts.config.ts` / `variants.config.ts` | 触らない |
 | 画面そのもの | `src/app/**/page.tsx` の 1 行スイッチ | core の画面部品は触らない |
 
 書かなければ upstream の既定値で動く。upstream がトークンや設定キーを足しても、下流は何も追記しなくてよい。
@@ -69,6 +69,22 @@ shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { 
 - 変数名と既定値の一覧は `palette.defaults.css`
 - `data-area` は `<html>` に付く(root layout が SSR 付与)。値は `site-theme.config.ts` のエリア key(既定: `user` / `admin`)
 - Dialog / Toast / Popover は body 直下にポータル描画されるが、`<html>` 属性なので自動で継承される
+
+#### 意味色は 3 変数で 1 組(塗り / 塗りの上の文字 / 素の背景の文字)
+
+`success` / `info` / `warning` / `destructive` の 4 色は、用途の違う 3 変数を持つ。core の部品はこの区別で書かれているので、下流は役割ごとに値を決めるだけでよい。
+
+| 変数 | 用途 | Tailwind | 例 |
+|---|---|---|---|
+| `--success` | 塗り(背景・枠線・アイコンの台・スイッチ) | `bg-success` / `border-success` / `ring-success` | ボタン・ソリッドバッジの背景 |
+| `--success-foreground` | 塗りの上に載せる文字・アイコン | `text-success-foreground` | ボタンのラベル |
+| `--success-text` | 素の背景(ページ・カード)に置く文字・アイコン | `text-success-text` | 完了メッセージ、ソフトバッジの文字、`<Para tone="success">` |
+
+塗りを淡いパステルにしたいなら `--success` だけ変える。`--success-text` を変えなければ本文は読めるまま。塗り用トークンを文字色に使う(`text-success`)のは禁止(下流が塗りを淡くすると読めなくなる)。既定値はライトが従来の `<Para tone>` の文字色(amber-600 / red-600 / emerald-600 / sky-600 相当)、ダークがその 400 系(ダーク背景で読める明るさ)。`.dark { --success-text: ... }` で上書きできる。
+
+影の `shadow-[... rgba(...)]` リテラルは lint の対象外で、ブランド色に追従しない。追従させたい場合は `appearance.radiant` と同じ `color-mix(in oklch, var(--color-primary) 20%, transparent)` の形で書く。
+
+`--overlay` は画面を覆う幕(モーダル背景・SP ナビの背景)。`bg-overlay/50` のように透過率付きで使う(既定は黒)。
 
 ### 書体(fonts.config.ts と typography.css)
 
@@ -131,7 +147,41 @@ Tailwind v4 の名前空間をそのまま上書きする。独自トークン�
 `custom/` は Tailwind の `@layer` の外(無レイヤー)で読み込まれる。無レイヤー CSS は utilities 層より常に強いので、同じプロパティを書くとコンポーネントの個別 `className` が効かなくなる。
 
 - 書いてよいもの: 要素の既定(`body`、`a`、`::selection`、scrollbar)、`@keyframes`、`[data-area="admin"] body { ... }` のようなエリア単位の全体調整
-- 書いてはいけないもの: `[data-slot="button"] { border-radius: ... }` のような cva 基底クラスの上書き。ボタンの角丸や影などの variant は `src/config/ui/variants.config.ts`(導入予定)で TS 側の文字列を差し替える
+- 書いてはいけないもの: `[data-slot="button"] { border-radius: ... }` のような cva 基底クラスの上書き。ボタンの角丸や影などの variant は `src/config/ui/variants.config.ts`(次節)で TS 側の文字列を差し替える
+
+### variant オーバーライド(variants.config.ts)
+
+Button / Badge の形(角丸・影・枠線・寸法)は、core を編集せずに `src/config/ui/variants.config.ts` で差し替える。書いたクラスが cva の出力の後ろに結合され、同じプロパティは tailwind-merge で後勝ちする。各要素の `className` はさらにその後ろなので、個別指定は従来どおり勝つ。
+
+```ts
+// src/config/ui/variants.config.ts
+import { defineVariantOverrides } from "@/lib/variantOverrides";
+export const VARIANT_OVERRIDES = defineVariantOverrides({
+  button: {
+    base: "rounded-full shadow-none",      // 全 variant / size 共通
+    variant: { outline: "border-2" },      // variant 単位
+    size: { md: "h-11 px-5" },             // size 単位
+  },
+  badge: { size: { md: "px-2 py-0.5" }, solid: { base: "rounded-md" } },
+});
+```
+
+| キー | 対象 | variant / size 名の定義 |
+|---|---|---|
+| `button` | `Button` / `LinkButton` / `PseudoButton`(`buttonVariants` を使う全部品) | `src/components/Form/Button/button-variants.ts` |
+| `tabletButton` | `TabletButton` | `src/components/Form/Button/tablet-button-variants.ts` |
+| `badge.size` | `SolidBadge` / `SoftBadge` / `BookmarkTagBadge` 共通のサイズ | `src/components/Badge/badge-variants.ts` |
+| `badge.solid` / `badge.soft` / `badge.bookmarkTag` | 各バッジの `base` / `variant` | 同上 |
+
+- 結合順: cva 出力 → `base` → `variant[v]` → `size[s]` → 要素の `className`
+- 置き換えたいクラスと同じ修飾子を付ける(`hover:bg-primary/90` を変えるなら `hover:bg-primary/80`。`dark:` / `focus-visible:` も同様)
+- 色はここではなく `custom/palette.css` のトークンで変える(トークンなら全部品に効く)。ここは形の差し替え用
+- キーと variant / size 名は upstream が維持する契約。削除・改名時は `.notices` で通知する。upstream がキーを増やしても下流の設定は追記不要
+- 仕組み: `@/lib/variantOverrides` の `createOverridableVariants(base, cvaConfig, override)`(cva と同じ引数・同じ返り値型)。新しい primitive にも同じ 1 関数で配線する
+
+### 生パレット色の禁止(ESLint)
+
+`src/components` / `src/lib` では `bg-slate-900` / `text-red-600` / `bg-white` / `text-[#fff]` のような生パレット色クラスを ESLint(`style-tokens/no-raw-palette`)が error にする(`src/features/core` は warn、下流固有の UI は対象外)。生パレット色はブランド色に追従せず `dark:` 併記が要り、下流が core を直す動機になるため。白黒は `bg-background` / `text-foreground` / `bg-card`、幕は `bg-overlay/50`、意味色は上の 3 変数で書く。ブランドロゴ色など正当な例外は理由付き `// eslint-disable-next-line style-tokens/no-raw-palette -- 理由` で明示する。
 
 ### config.css の値を変えたいとき
 
@@ -192,8 +242,10 @@ defineSiteThemeConfig({ areas: [{ key: "kiosk", match: ["/kiosk"], mode: "dark" 
 | コマンド | 内容 |
 |---|---|
 | `pnpm test:site-theme` | 既定値の互換、エリア一致、ロック、bootstrap script と resolver の一致 |
-| `pnpm test:style-tokens` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 書体変数が typography.defaults.css にある / global.css の import 順 |
+| `pnpm test:style-tokens` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 意味色の 3 変数が揃っている / 書体変数が typography.defaults.css にある / global.css の import 順 |
 | `pnpm test:fonts` | defineFontsConfig の既定(読み込み無し)と variable クラス連結、typography.defaults.css の loaded 変数参照 |
 | `pnpm test:cn` | theme.css の `--text-*` と tailwind-merge 登録のドリフト |
+| `pnpm test:variant-overrides` | オーバーライド無しで cva と同一出力 / 結合順(cva → オーバーライド → className)/ 既定 variant の解決 / 出荷時の variants.config.ts が空 |
+| `pnpm test:style-lint` | 生パレット色検出規則の検出・非検出ケース |
 
 `custom/` は検証対象外(下流が自由に書く場所)。

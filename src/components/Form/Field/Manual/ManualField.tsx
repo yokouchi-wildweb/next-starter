@@ -43,10 +43,10 @@ export type ManualFieldProps = {
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
 const DefaultRequiredMarkAfter = (
-  <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
+  <span className="text-destructive-text ml-0.5" aria-hidden="true">*</span>
 );
 const DefaultRequiredMarkBefore = (
-  <span className="text-destructive mr-0.5" aria-hidden="true">*</span>
+  <span className="text-destructive-text mr-0.5" aria-hidden="true">*</span>
 );
 
 /**
@@ -97,7 +97,7 @@ export function ManualField({
       data-error={hasError}
       className={cn(
         hideLabel && "sr-only",
-        hasError && "text-destructive",
+        hasError && "text-destructive-text",
         isHorizontal && "pt-2 shrink-0", // 横並び時、入力フィールドと上端を揃える
         isResponsiveLayout && "md:pt-2 md:shrink-0", // レスポンシブ時、PC のみ横並びスタイル
         labelClass
@@ -126,7 +126,7 @@ export function ManualField({
 
   // エラーメッセージ
   const errorElement = !hideError && hasError && (
-    <p data-slot="form-message" className="text-destructive text-sm">
+    <p data-slot="form-message" className="text-destructive-text text-sm">
       {error}
     </p>
   );

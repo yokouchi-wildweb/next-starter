@@ -3,7 +3,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/_shadcn/select";
+
+import { SelectInput } from "@/components/Form/Input/Manual/Select";
 
 type SortOption = { label: string; value: string };
 
@@ -37,17 +38,13 @@ export default function SortSelect({
   };
 
   return (
-    <Select onValueChange={handleChange} value={selected ?? defaultValue}>
-      <SelectTrigger size="sm" className="min-w-24">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <SelectInput
+      size="sm"
+      className="min-w-24"
+      options={options}
+      value={selected ?? defaultValue}
+      showPlaceholderOption={false}
+      onChange={(value) => handleChange(value == null ? "" : String(value))}
+    />
   );
 }

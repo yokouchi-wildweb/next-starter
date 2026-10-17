@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 
 import { BadgeCore } from "./BadgeCore";
 import {
+  badgeOverrideClasses,
   badgeSizeStyles,
   type BadgeVariant,
   type BadgeSize,
@@ -21,7 +22,7 @@ const BOOKMARK_TAG_BASE =
 const bookmarkTagVariantStyles: BadgeVariantStyles = {
   primary: "bg-primary text-primary-foreground border-primary",
   secondary: "bg-secondary text-secondary-foreground border-secondary",
-  destructive: "bg-destructive text-white border-destructive",
+  destructive: "bg-destructive text-destructive-foreground border-destructive",
   success: "bg-success text-success-foreground border-success",
   info: "bg-info text-info-foreground border-info",
   warning: "bg-warning text-warning-foreground border-warning",
@@ -71,6 +72,7 @@ export const BookmarkTagBadge = React.forwardRef<
           BOOKMARK_TAG_BASE,
           bookmarkTagVariantStyles[effectiveVariant],
           badgeSizeStyles[size],
+          ...badgeOverrideClasses("bookmarkTag", effectiveVariant, size),
           className
         )}
         {...props}

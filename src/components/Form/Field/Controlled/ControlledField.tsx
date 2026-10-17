@@ -43,10 +43,10 @@ export type ControlledFieldProps<
 
 /** デフォルトの必須マーク（位置に応じてマージン方向を変える） */
 const DefaultRequiredMarkAfter = (
-  <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
+  <span className="text-destructive-text ml-0.5" aria-hidden="true">*</span>
 );
 const DefaultRequiredMarkBefore = (
-  <span className="text-destructive mr-0.5" aria-hidden="true">*</span>
+  <span className="text-destructive-text mr-0.5" aria-hidden="true">*</span>
 );
 
 export function ControlledField<

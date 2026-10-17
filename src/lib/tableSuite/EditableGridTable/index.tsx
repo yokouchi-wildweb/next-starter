@@ -91,7 +91,7 @@ export default function EditableGridTable<T>({
         return (
           <span
             aria-label="編集可能"
-            className="text-blue-500 text-[10px] leading-none flex items-center"
+            className="text-info-text text-[10px] leading-none flex items-center"
             title="この列は編集可能です"
           >
             <PencilLine aria-hidden="true" className="h-3 w-3" strokeWidth={2} />

@@ -55,42 +55,19 @@ const trackVariants = cva(
       { checked: true, activeColor: "accent", class: "bg-accent" },
       { checked: true, activeColor: "destructive", class: "bg-destructive" },
       { checked: true, activeColor: "muted", class: "bg-muted" },
-      {
-        checked: true,
-        activeColor: "success",
-        class: "bg-emerald-500 dark:bg-emerald-400",
-      },
-      {
-        checked: true,
-        activeColor: "error",
-        class: "bg-red-500 dark:bg-red-400",
-      },
-      {
-        checked: true,
-        activeColor: "warning",
-        class: "bg-orange-500 dark:bg-orange-400",
-      },
+      { checked: true, activeColor: "success", class: "bg-success" },
+      // error は destructive の互換エイリアス(@deprecated)
+      { checked: true, activeColor: "error", class: "bg-destructive" },
+      { checked: true, activeColor: "warning", class: "bg-warning" },
       // inactiveColor (checked: false)
       { checked: false, inactiveColor: "primary", class: "bg-primary" },
       { checked: false, inactiveColor: "secondary", class: "bg-secondary" },
       { checked: false, inactiveColor: "accent", class: "bg-accent" },
       { checked: false, inactiveColor: "destructive", class: "bg-destructive" },
       { checked: false, inactiveColor: "muted", class: "bg-muted" },
-      {
-        checked: false,
-        inactiveColor: "success",
-        class: "bg-emerald-500 dark:bg-emerald-400",
-      },
-      {
-        checked: false,
-        inactiveColor: "error",
-        class: "bg-red-500 dark:bg-red-400",
-      },
-      {
-        checked: false,
-        inactiveColor: "warning",
-        class: "bg-orange-500 dark:bg-orange-400",
-      },
+      { checked: false, inactiveColor: "success", class: "bg-success" },
+      { checked: false, inactiveColor: "error", class: "bg-destructive" },
+      { checked: false, inactiveColor: "warning", class: "bg-warning" },
     ],
   },
 );
@@ -146,7 +123,7 @@ export type SwitchInputProps<T = boolean> = {
    */
   size?: "sm" | "md" | "lg";
   /**
-   * スイッチがオンのときの背景色
+   * スイッチがオンのときの背景色(テーマトークン。`error` は `destructive` の互換エイリアス @deprecated)
    */
   activeColor?:
     | "primary"
@@ -158,7 +135,7 @@ export type SwitchInputProps<T = boolean> = {
     | "error"
     | "warning";
   /**
-   * スイッチがオフのときの背景色
+   * スイッチがオフのときの背景色(テーマトークン。`error` は `destructive` の互換エイリアス @deprecated)
    */
   inactiveColor?:
     | "primary"

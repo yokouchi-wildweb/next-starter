@@ -178,7 +178,7 @@ export function ActionPopover({
                     ? "cursor-not-allowed opacity-50"
                     : "cursor-pointer",
                   isDestructive
-                    ? "text-destructive hover:bg-destructive/10 hover:text-destructive focus-visible:bg-destructive/10"
+                    ? "text-destructive-text hover:bg-destructive/10 hover:text-destructive-text focus-visible:bg-destructive/10"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
                 )}
               >

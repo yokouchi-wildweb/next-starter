@@ -87,6 +87,25 @@ test("palette.defaults.css の .dark は :root に無い変数を持ち込まな
   assert.deepEqual(onlyInDark, [], `.dark にしか無い変数: ${onlyInDark.join(", ")}`);
 });
 
+test("意味色は 塗り / -foreground / -text の 3 変数で揃っている(片方だけ足した状態を出荷しない)", () => {
+  const palette = read("palette.defaults.css");
+  const theme = stripComments(read("theme.css"));
+  for (const name of ["success", "info", "warning", "destructive"]) {
+    for (const block of [":root", ".dark"]) {
+      const defined = collectBlockDefinitions(palette, block);
+      for (const suffix of ["", "-foreground", "-text"]) {
+        assert.ok(defined.has(`${name}${suffix}`), `palette.defaults.css ${block} に --${name}${suffix} が無い`);
+        assert.ok(
+          theme.includes(`--color-${name}${suffix}: var(--${name}${suffix});`),
+          `theme.css に --color-${name}${suffix} の対応付けが無い`,
+        );
+      }
+    }
+  }
+  assert.ok(collectBlockDefinitions(palette, ":root").has("overlay"), "palette.defaults.css に --overlay が無い");
+  assert.ok(theme.includes("--color-overlay: var(--overlay);"), "theme.css に --color-overlay の対応付けが無い");
+});
+
 test("palette.defaults.css は値だけを持つ(構造は theme.css に置く)", () => {
   const palette = stripComments(read("palette.defaults.css"));
   assert.equal(/@theme|@custom-variant|@layer|@import/.test(palette), false);

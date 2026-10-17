@@ -214,7 +214,7 @@ export const MediaInput = ({
           )}
         </div>
         {validationError ? (
-          <p className="text-xs text-destructive">{formatValidationError(validationError)}</p>
+          <p className="text-xs text-destructive-text">{formatValidationError(validationError)}</p>
         ) : null}
         <input
           ref={inputRef}

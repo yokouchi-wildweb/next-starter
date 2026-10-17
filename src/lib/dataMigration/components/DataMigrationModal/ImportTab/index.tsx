@@ -96,7 +96,7 @@ export function ImportTab({
 
       {/* エラー表示 */}
       {error && (
-        <Block className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded">
+        <Block className="mb-4 p-3 bg-destructive/10 text-destructive-text text-sm rounded">
           {error}
         </Block>
       )}

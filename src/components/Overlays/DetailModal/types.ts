@@ -2,6 +2,8 @@
 
 import { ReactNode } from "react";
 
+import type { BadgeVariant } from "@/components/Badge";
+
 export type DetailModalCell = {
   label: ReactNode;
   value: ReactNode;
@@ -11,6 +13,11 @@ export type DetailModalRow = DetailModalCell[] | ReactNode[];
 
 export type DetailModalBadge = {
   text: string;
+  /** バッジの色(SolidBadge の variant) @default "success" */
+  variant?: BadgeVariant;
+  /**
+   * @deprecated variant を使う。className として SolidBadge に渡される(生パレット色の bg-* を書くと文字色がテーマに追従しない)
+   */
   colorClass?: string;
 };
 

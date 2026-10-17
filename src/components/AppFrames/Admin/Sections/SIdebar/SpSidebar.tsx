@@ -25,7 +25,7 @@ export function SpSidebar({ width, isOpen, onClose }: SpSidebarProps) {
         <BaseSidebar width={width} onNavigate={onClose} submenuPlacement="left" submenuVariant="compact" />
       </div>
       {isOpen ? (
-        <div className="fixed inset-0 backdrop-layer bg-black/50 md:hidden" onClick={onClose} />
+        <div className="fixed inset-0 backdrop-layer bg-overlay/50 md:hidden" onClick={onClose} />
       ) : null}
     </Fragment>
   );

@@ -35,13 +35,24 @@
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.457 0.063 228.428);
   --accent-foreground: oklch(1 0 89.876);
+  /*
+   * 意味色は 3 変数で 1 組: --x(塗り: 背景・枠線・アイコン台) / --x-foreground(塗りの上に載る文字) /
+   * --x-text(素の背景に置く文字・アイコン)。塗りを淡くしても --x-text を変えなければ本文は読める。
+   */
   --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --destructive-text: oklch(0.577 0.245 27.325);
   --success: oklch(0.753 0.208 149.357);
   --success-foreground: oklch(0.985 0 0);
+  --success-text: oklch(0.596 0.145 163.225);
   --info: oklch(0.6 0.2 240);
   --info-foreground: oklch(0.985 0 0);
+  --info-text: oklch(0.588 0.158 241.966);
   --warning: oklch(0.75 0.18 75);
   --warning-foreground: oklch(0.985 0 0);
+  --warning-text: oklch(0.666 0.179 58.318);
+  /* 画面を覆う半透明の幕(モーダル背景・SP ナビの背景)。`bg-overlay/50` のように透過率付きで使う */
+  --overlay: oklch(0 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -81,13 +92,20 @@
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.457 0.063 228.428);
   --accent-foreground: oklch(1 0 89.876);
+  /* -text はダーク背景で読める明るさ(red-400 / emerald-400 / sky-400 / amber-400 相当) */
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --destructive-text: oklch(0.704 0.191 22.216);
   --success: oklch(0.753 0.208 149.337);
   --success-foreground: oklch(0.985 0 0);
+  --success-text: oklch(0.765 0.177 163.223);
   --info: oklch(0.65 0.18 240);
   --info-foreground: oklch(0.985 0 0);
+  --info-text: oklch(0.746 0.16 232.661);
   --warning: oklch(0.78 0.16 75);
   --warning-foreground: oklch(0.985 0 0);
+  --warning-text: oklch(0.828 0.189 84.429);
+  --overlay: oklch(0 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(0.876 0 89.876);
   --ring: oklch(0.556 0 0);

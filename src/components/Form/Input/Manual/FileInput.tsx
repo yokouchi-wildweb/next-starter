@@ -20,7 +20,7 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(
             {onRemove ? (
               <button
                 type="button"
-                className="text-xs text-destructive underline-offset-4 hover:underline"
+                className="text-xs text-destructive-text underline-offset-4 hover:underline"
                 onClick={onRemove}
               >
                 クリア

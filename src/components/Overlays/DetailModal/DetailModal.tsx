@@ -3,8 +3,8 @@
 // DetailModal コンポーネントの使い方
 // -----------------------------------
 // open と onOpenChange でモーダルの表示状態を制御します。
-// title にタイトル文字列を渡し、任意で badge に { text, colorClass } を
-// 指定するとタイトル横にバッジが表示されます。
+// title にタイトル文字列を渡し、任意で badge に { text, variant } を
+// 指定するとタイトル横にバッジ(SolidBadge)が表示されます。
 // media に { type, url, alt, poster } を指定すると画像/動画を表示できます。
 // rows には { label, value } の配列、または ReactNode[] を要素とする配列を渡し、
 // 各エントリがテーブルの1行として表示されます。
@@ -13,6 +13,7 @@
 
 "use client";
 
+import { SolidBadge } from "@/components/Badge";
 import { Block } from "@/components/Layout/Block";
 import { cn } from "@/lib/cn";
 
@@ -37,19 +38,17 @@ export default function DetailModal({
 }: DetailModalProps) {
   // ヘッダー部分のタイトル要素を組み立てる
   const badgeText = badge?.text;
-  const badgeColorClass = badge?.colorClass ?? "bg-green-500";
 
   const modalTitle = (
     <span className="flex items-center gap-2 text-2xl">
       {badgeText && (
-        <span
-          className={cn(
-            "inline-block rounded-full border bg-muted px-2 py-0.5 text-xs text-white",
-            badgeColorClass,
-          )}
+        <SolidBadge
+          size="sm"
+          variant={badge?.variant ?? "success"}
+          className={cn("border", badge?.colorClass)}
         >
           {badgeText}
-        </span>
+        </SolidBadge>
       )}
       {title ?? ""}
     </span>

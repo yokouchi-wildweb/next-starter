@@ -49,48 +49,48 @@ const VARIANT_CONFIG: Record<
   success: {
     defaultIcon: "success",
     bgClass: "bg-success/10",
-    iconClass: "text-success",
+    iconClass: "text-success-text",
     borderClass: "border-success/30",
   },
   error: {
     defaultIcon: "error",
     bgClass: "bg-destructive/10",
-    iconClass: "text-destructive",
+    iconClass: "text-destructive-text",
     borderClass: "border-destructive/30",
   },
   warning: {
     defaultIcon: "warning",
     bgClass: "bg-warning/10",
-    iconClass: "text-warning",
+    iconClass: "text-warning-text",
     borderClass: "border-warning/30",
   },
   info: {
     defaultIcon: "info",
     bgClass: "bg-info/10",
-    iconClass: "text-info",
+    iconClass: "text-info-text",
     borderClass: "border-info/30",
   },
   loading: {
     defaultIcon: "loading",
-    bgClass: "bg-gray-50 dark:bg-gray-950/50",
-    iconClass: "text-gray-600 dark:text-gray-400",
-    borderClass: "border-gray-200 dark:border-gray-800",
+    bgClass: "bg-muted/50",
+    iconClass: "text-muted-foreground",
+    borderClass: "border-border",
   },
   primary: {
     defaultIcon: "info",
-    bgClass: "relative bg-white dark:bg-gray-900 before:absolute before:inset-0 before:bg-primary/15 before:rounded-xl",
+    bgClass: "relative bg-popover before:absolute before:inset-0 before:bg-primary/15 before:rounded-xl",
     iconClass: "text-primary relative",
     borderClass: "border-primary/30",
   },
   secondary: {
     defaultIcon: "info",
-    bgClass: "relative bg-white dark:bg-gray-900 before:absolute before:inset-0 before:bg-secondary/15 before:rounded-xl",
+    bgClass: "relative bg-popover before:absolute before:inset-0 before:bg-secondary/15 before:rounded-xl",
     iconClass: "text-secondary relative",
     borderClass: "border-secondary/30",
   },
   accent: {
     defaultIcon: "info",
-    bgClass: "relative bg-white dark:bg-gray-900 before:absolute before:inset-0 before:bg-accent/15 before:rounded-xl",
+    bgClass: "relative bg-popover before:absolute before:inset-0 before:bg-accent/15 before:rounded-xl",
     iconClass: "text-accent relative",
     borderClass: "border-accent/30",
   },
@@ -211,7 +211,7 @@ export function ToastItem({ toast, onClose }: Props) {
       aria-live="assertive"
     >
       {/* 下層: 不透明な背景 */}
-      <div className="absolute inset-0 rounded-xl bg-white dark:bg-gray-900" />
+      <div className="absolute inset-0 rounded-xl bg-popover" />
       {/* 上層: 透過色背景 + コンテンツ */}
       {/* toast.style はこの可視レイヤーにも適用する（下層の不透明レイヤーに隠れず */}
       {/* 動的グラデ背景等が実際に見える。className と同じく root/コンテンツ両方に当てる挙動） */}

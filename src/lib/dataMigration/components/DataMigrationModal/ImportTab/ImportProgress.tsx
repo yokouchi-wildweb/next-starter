@@ -56,7 +56,7 @@ export function ImportProgress({ progress }: ImportProgressProps) {
         </Block>
         <p className="text-xs text-muted-foreground mt-2">処理中: {progress.currentChunkName}</p>
       </Block>
-      <Block className="mt-3 p-3 bg-amber-500/10 rounded text-sm text-amber-700">
+      <Block className="mt-3 p-3 bg-warning/10 rounded text-sm text-warning-text">
         インポート中はページを閉じないでください
       </Block>
     </Block>

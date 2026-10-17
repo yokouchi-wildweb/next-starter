@@ -168,7 +168,7 @@ export const MediaUploader = ({
         containerOverlay={overlay}
         clearButtonDisabled={Boolean(progress)}
       />
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {error ? <p className="text-xs text-destructive-text">{error}</p> : null}
     </div>
   );
 };

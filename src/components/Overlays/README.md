@@ -369,7 +369,7 @@ import DetailModal from "@/components/Overlays/DetailModal";
   open={isOpen}
   onOpenChange={setIsOpen}
   title="商品詳細"
-  badge={{ text: "公開中", colorClass: "bg-green-500" }}
+  badge={{ text: "公開中", variant: "success" }}
   media={{ type: "image", url: "/product.jpg", alt: "商品画像" }}
   rows={[
     { label: "商品名", value: "サンプル商品" },
@@ -387,7 +387,7 @@ import DetailModal from "@/components/Overlays/DetailModal";
 | `onOpenChange` | `(open: boolean) => void` | - | 状態変更コールバック |
 | `title` | `string` | - | タイトル |
 | `titleSrOnly` | `boolean` | - | タイトルをスクリーンリーダー専用にする |
-| `badge` | `{ text: string; colorClass?: string }` | `colorClass: "bg-green-500"` | タイトル横に表示するバッジ |
+| `badge` | `{ text: string; variant?: BadgeVariant; colorClass?: string }` | `variant: "success"` | タイトル横に表示するバッジ(`SolidBadge`)。`colorClass` は @deprecated(className として渡される。生パレット色の `bg-*` を書くと文字色がテーマに追従しない) |
 | `media` | `{ type?: "image" \| "video"; url: string; alt?: string; poster?: string }` | `type: "image"` | メディアプレビュー |
 | `rows` | `DetailModalRow[]` | - | `{ label, value }` の配列、または `ReactNode[]` によるカスタム行 |
 | `footer` | `ReactNode` | - | テーブル下に任意のフッターを配置 |

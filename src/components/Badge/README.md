@@ -61,8 +61,26 @@ import { SolidBadge, SoftBadge, BookmarkTagBadge } from "@/components/Badge";
 - `asChild` の子は **単一のReact要素** であること（テキストだけ・複数要素・Fragment は不可。Slotの仕様で実行時エラーになる）
 - `SoftBadge` は二層構造（下記）のためラッパー `span` が asChild 時も残る。スタイルとpropsは子要素にマージされる
 
+## 見た目の差し替え(下流)
+
+色は `src/styles/custom/palette.css` のトークン(`--success` / `--success-foreground` / `--success-text` 等)で変える。形(角丸・余白・枠線)は `src/config/ui/variants.config.ts` の `badge` キーで、このディレクトリを編集せずに差し替える:
+
+```ts
+defineVariantOverrides({
+  badge: {
+    size: { md: "px-2 py-0.5" },                 // 3 種共通のサイズ
+    solid: { base: "rounded-md", variant: { primary: "shadow-sm" } },
+    soft: { base: "rounded-md" },
+    bookmarkTag: { variant: { muted: "opacity-70" } },
+  },
+})
+```
+
+結合順は `BASE → variantStyles[variant] → badgeSizeStyles[size] → オーバーライド(base → variant → size) → className`。同じプロパティは後勝ち。詳細は `src/styles/README.md`「variant オーバーライド」。
+
 ## 内部構造
 
 - `BadgeCore.tsx`（内部用・バレル非公開）: asChild(Slot) と icon の描画を一元化する共通コア。icon と children の共存は Radix の `Slottable` で解決している。**新しいバッジを追加する場合は必ず BadgeCore に委譲し、Slot分岐を自前実装しないこと**（過去に3コンポーネントへ複製されたSlot分岐が全て同一バグを抱えた経緯がある）
-- `badge-variants.ts`: variant/size の型と共通サイズ定義。新バッジは `BadgeVariantStyles` を実装する
+- `badge-variants.ts`: variant/size の型と共通サイズ定義、下流オーバーライドの取り出し(`badgeOverrideClasses`)。新バッジは `BadgeVariantStyles` を実装し、`badgeOverrideClasses(kind, variant, size)` を className 結合に挟む(kind を `variants.config.ts` の型にも追加する)
+- 意味色の文字は本文用トークン(`text-success-text` 等)、塗りの上の文字は `-foreground`。塗り用トークン(`text-success`)を文字色に使わない(下流が塗りを淡くすると読めなくなる)
 - `SoftBadge` のみ二層構造: 透過色背景の下に不透明な下地 `span` を敷き、背後の色の透けを防ぐ。`ref` はラッパー `span` に付く
