@@ -31,8 +31,8 @@ export function EditPhone({ phoneNumber, phoneVerifiedAt }: EditPhoneProps) {
           {phoneVerifiedAt && !isChanging ? (
             <Stack space={4} className="text-center">
               <div className="flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                  <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+                  <CheckCircleIcon className="h-6 w-6 text-success-text" />
                 </div>
               </div>
               <Stack space={2}>

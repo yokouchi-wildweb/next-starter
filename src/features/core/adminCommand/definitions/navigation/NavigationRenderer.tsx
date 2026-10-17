@@ -13,7 +13,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/_shadcn/command";
+} from "@/components/Overlays/CommandPrimitives";
 import { cn } from "@/lib/cn";
 import type { CategoryRendererProps } from "@/features/core/adminCommand/base/types";
 import { filterSearchInput } from "../../utils";

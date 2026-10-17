@@ -238,7 +238,7 @@ function PhoneSection({ user, onSuccess }: SectionProps) {
         </Button>
       </Flex>
       {trimmed !== "" && !(/^\+[1-9]\d{1,14}$/.test(e164Value)) && (
-        <Para size="xs" tone="danger" className="mt-1">
+        <Para size="xs" tone="destructive" className="mt-1">
           有効な電話番号を入力してください（例: 09012345678）
         </Para>
       )}

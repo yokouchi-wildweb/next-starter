@@ -52,7 +52,7 @@ function ComingSoonBadge() {
   return (
     <Span
       size="xs"
-      className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-warning"
+      className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-warning-text"
     >
       準備中
     </Span>
@@ -63,7 +63,7 @@ function BlockedBadge({ label }: { label: string }) {
   return (
     <Span
       size="xs"
-      className="shrink-0 rounded-full bg-info/15 px-2 py-0.5 text-info"
+      className="shrink-0 rounded-full bg-info/15 px-2 py-0.5 text-info-text"
     >
       {label}
     </Span>
@@ -143,9 +143,9 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
 
   // アイコン色
   const iconColorClass = isBlocked
-    ? "text-info"
+    ? "text-info-text"
     : isComingSoon
-      ? "text-warning"
+      ? "text-warning-text"
       : isSelected
         ? "text-primary"
         : "text-muted-foreground";
@@ -182,7 +182,7 @@ function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps)
           <BlockedBadge label={blocked.badge ?? "進行中"} />
           {/* クリックで進行中セッションへ復帰できることを示すシェブロン */}
           {isBlockedClickable && (
-            <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-info/60" />
+            <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-info-text/60" />
           )}
         </Flex>
       ) : isComingSoon ? (

@@ -34,7 +34,7 @@ export function PurchaseButton({
     <Section>
       <Stack space={4}>
         {error && (
-          <Para tone="danger" size="sm" align="center">
+          <Para tone="destructive" size="sm" align="center">
             {error}
           </Para>
         )}

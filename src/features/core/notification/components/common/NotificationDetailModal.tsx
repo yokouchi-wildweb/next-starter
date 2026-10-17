@@ -36,9 +36,9 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
   individual: "個別指定",
 };
 
-const SENDER_TYPE_CONFIG: Record<string, { text: string; colorClass: string }> = {
-  admin: { text: "管理者", colorClass: "bg-blue-500" },
-  system: { text: "システム", colorClass: "bg-gray-500" },
+const SENDER_TYPE_CONFIG: Record<string, { text: string; variant: DetailModalBadge["variant"] }> = {
+  admin: { text: "管理者", variant: "info" },
+  system: { text: "システム", variant: "muted" },
 };
 
 export type NotificationDetailModalProps = {
@@ -54,7 +54,7 @@ function formatDateTime(value: Date | string | null | undefined): string {
 function buildBadge(notification: Notification): DetailModalBadge {
   const config =
     SENDER_TYPE_CONFIG[notification.sender_type] ?? SENDER_TYPE_CONFIG.system;
-  return { text: config.text, colorClass: config.colorClass };
+  return { text: config.text, variant: config.variant };
 }
 
 function buildMedia(notification: Notification, title: string): DetailModalMedia | undefined {

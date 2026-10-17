@@ -31,10 +31,10 @@ export function DummyPaymentForm() {
         direction="column"
         align="center"
         justify="center"
-        className="min-h-screen bg-gray-100"
+        className="min-h-screen bg-muted"
       >
         <Block appearance="surface" padding="lg" className="max-w-md rounded-lg">
-          <Para tone="danger" align="center">
+          <Para tone="destructive" align="center">
             必要なパラメータが不足しています。
           </Para>
           <Para tone="muted" size="sm" align="center">
@@ -84,13 +84,13 @@ export function DummyPaymentForm() {
       direction="column"
       align="center"
       justify="center"
-      className="min-h-screen bg-gray-100"
+      className="min-h-screen bg-muted"
     >
       <Block appearance="surface" padding="lg" className="w-full max-w-md rounded-lg">
         <Flex direction="column" gap="md">
           {/* ヘッダー */}
           <Flex direction="column" align="center" gap="sm">
-            <CreditCard className="h-12 w-12 text-blue-600" />
+            <CreditCard className="h-12 w-12 text-info-text" />
             <Para size="lg" weight="bold" align="center">
               ダミー決済ページ
             </Para>
@@ -135,7 +135,7 @@ export function DummyPaymentForm() {
 
           {/* エラー表示 */}
           {error && (
-            <Para tone="danger" size="sm" align="center">
+            <Para tone="destructive" size="sm" align="center">
               {error}
             </Para>
           )}

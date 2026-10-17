@@ -77,7 +77,7 @@ export function CancelTransferButton({ requestId }: Props) {
           type="button"
           variant="outline"
           size="sm"
-          className="border-destructive/40 text-destructive hover:bg-destructive/5"
+          className="border-destructive/40 text-destructive-text hover:bg-destructive/5"
           onClick={() => setOpen(true)}
         >
           振込による購入をキャンセル

@@ -48,8 +48,8 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
           {isSuccess ? (
             <Stack space={4} className="text-center">
               <div className="flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                  <MailIcon className="h-6 w-6 text-green-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+                  <MailIcon className="h-6 w-6 text-success-text" />
                 </div>
               </div>
               <Stack space={2}>
@@ -121,7 +121,7 @@ export function EditEmail({ currentEmail }: EditEmailProps) {
                 />
               </div>
               {error && (
-                <p className="text-sm text-destructive">{error}</p>
+                <p className="text-sm text-destructive-text">{error}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 新しいメールアドレス宛に確認メールが送信されます。

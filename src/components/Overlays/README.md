@@ -519,6 +519,16 @@ import {
 - `showCloseButton`（デフォルト `true`）: 右上の Close ボタンの表示有無
 - `maxWidth` / `minHeight` / `maxHeight` / `height`: サイズ調整。数値は `px` として解釈。
 
+### CommandPrimitives
+
+コマンドパレット（入力 + 候補リスト）を自前で組むための低レベル部品。`_shadcn/command` のプロジェクト向け入口で、`src/components` 外からは必ずここを経由する（直接 import は ESLint が止める）。
+
+```tsx
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/Overlays/CommandPrimitives";
+```
+
+フォームの選択入力には使わない。検索付き選択は `Form/Input/Manual` の `ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput`、大量マスタからの選択は `AsyncPickerModal`。実例: `src/features/core/adminCommand`。
+
 ---
 
 ## その他のオーバーレイ

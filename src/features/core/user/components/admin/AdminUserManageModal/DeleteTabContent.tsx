@@ -66,7 +66,7 @@ export function DeleteTabContent({ user, onClose }: Props) {
   const confirmContent = (
     <Flex direction="column" gap="md" className="mt-2">
       <Block className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
-        <Para size="sm" className="text-destructive">
+        <Para size="sm" className="text-destructive-text">
           <strong>{user.name ?? user.email}</strong> を削除します。
         </Para>
         <Para size="xs" tone="muted" className="mt-2">
@@ -88,7 +88,7 @@ export function DeleteTabContent({ user, onClose }: Props) {
         <UserInfoHeader user={user} />
         <Stack space={6} className="mt-4">
           <Block className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
-            <Para size="sm" className="font-medium text-destructive">
+            <Para size="sm" className="font-medium text-destructive-text">
               ユーザーを削除
             </Para>
             <Para size="xs" tone="muted" className="mt-1">

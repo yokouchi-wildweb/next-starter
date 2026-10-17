@@ -12,7 +12,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/_shadcn/command";
+} from "@/components/Overlays/CommandPrimitives";
 import { DialogPrimitives, DialogContent, DialogTitle } from "@/components/Overlays/DialogPrimitives";
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { getRoleCategory } from "@/features/core/user/constants";

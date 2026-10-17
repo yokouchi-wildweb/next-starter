@@ -117,7 +117,7 @@ export function EditProfile({ user, profileData }: EditProfileProps) {
               tag="selfEdit"
             />
             {error && (
-              <p className="text-sm text-destructive">{error}</p>
+              <p className="text-sm text-destructive-text">{error}</p>
             )}
             <Button
               type="submit"

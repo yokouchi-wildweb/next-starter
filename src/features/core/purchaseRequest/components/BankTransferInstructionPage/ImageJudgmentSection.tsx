@@ -294,9 +294,9 @@ function StrictCheckList({ checks }: { checks: StrictChecks }) {
       {items.map(({ label, confirmed }) => (
         <Flex key={label} gap="xs" align="center">
           {confirmed ? (
-            <CircleCheck aria-hidden className="h-4 w-4 shrink-0 text-success" />
+            <CircleCheck aria-hidden className="h-4 w-4 shrink-0 text-success-text" />
           ) : (
-            <CircleX aria-hidden className="h-4 w-4 shrink-0 text-destructive" />
+            <CircleX aria-hidden className="h-4 w-4 shrink-0 text-destructive-text" />
           )}
           <Span size="sm" tone={confirmed ? "default" : "destructive"}>
             {label}

@@ -153,7 +153,7 @@ export function VerificationEmailSendForm({
 
           {/* ルートエラーが存在する場合のみメッセージを表示する */}
           {rootErrorMessage ? (
-            <Para tone="error" size="sm">
+            <Para tone="destructive" size="sm">
               {rootErrorMessage}
             </Para>
           ) : null}

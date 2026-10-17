@@ -1,16 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useForm } from "react-hook-form";
+import { FormProvider as Form, useForm } from "react-hook-form";
 import { Lock, Mail } from "lucide-react";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/_shadcn/form";
 import { Button } from "@/components/Form/Button/Button";
 import {
   BooleanCheckboxInput,
@@ -30,6 +22,7 @@ import {
   TimeInput,
 } from "@/components/Form/Input/Controlled";
 import { StepperInput } from "@/components/Form/Input/Manual";
+import { Label } from "@/components/Form/Label";
 import { ControlledField } from "@/components/Form";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
@@ -348,42 +341,32 @@ export default function FormComponentsDemoPage() {
                     )}
                 />
 
-                <FormField
+                <ControlledField
                     control={form.control}
                     name="switch"
-                    render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>SwitchInput</FormLabel>
-                          <FormControl>
-                            <SwitchInput
-                                field={field}
-                                label="スイッチラベル"
-                                description="チェックボックスのラッパーです"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    label="SwitchInput"
+                    renderInput={(field) => (
+                        <SwitchInput
+                            field={field}
+                            label="スイッチラベル"
+                            description="チェックボックスのラッパーです"
+                        />
                     )}
                 />
 
-                <FormField
+                <ControlledField
                     control={form.control}
                     name="booleanCheckbox"
-                    render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>BooleanCheckboxInput</FormLabel>
-                          <FormControl>
-                            <BooleanCheckboxInput field={field} label="チェックボックスラベル" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    label="BooleanCheckboxInput"
+                    renderInput={(field) => (
+                        <BooleanCheckboxInput field={field} label="チェックボックスラベル" />
                     )}
                 />
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
                 <Stack space={4}>
-                  <FormLabel className="text-sm font-medium">StepperInput</FormLabel>
+                  <Label className="text-sm font-medium">StepperInput</Label>
                   <Para tone="muted" size="xs">
                     サイズ違いのバリエーションをまとめて確認できます。
                   </Para>

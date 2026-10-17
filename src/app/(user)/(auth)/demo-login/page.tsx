@@ -39,7 +39,7 @@ export default function DemoStartPage() {
             </Para>
 
             {error && (
-              <Para tone="danger" size="sm" className="mt-4">
+              <Para tone="destructive" size="sm" className="mt-4">
                 {err(error, "デモログインに失敗しました")}
               </Para>
             )}

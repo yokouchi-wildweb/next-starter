@@ -53,7 +53,7 @@ export function AdminLogin({ redirectTo }: AdminLoginProps = {}) {
             onChange={(event) => setPassword(event.target.value)}
           />
         </Stack>
-        {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+        {errorMessage && <p className="text-sm text-destructive-text">{errorMessage}</p>}
         <Button type="submit" disabled={isLoading} className="w-full mt-4">
           {isLoading ? "ログイン中..." : "ログイン"}
         </Button>

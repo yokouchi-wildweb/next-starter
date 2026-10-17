@@ -68,6 +68,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-warning-text: var(--warning-text);
   --color-overlay: var(--overlay);
+  --color-overlay-foreground: var(--overlay-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);

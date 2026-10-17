@@ -276,7 +276,7 @@ export default function GoogleRedirectAuthDemoPage() {
           </Para>
         ) : null}
         {errorMessage ? (
-          <Para tone="error" size="sm">
+          <Para tone="destructive" size="sm">
             {errorMessage}
           </Para>
         ) : null}

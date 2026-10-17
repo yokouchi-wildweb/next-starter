@@ -44,12 +44,12 @@ export function formatDeltaSummary(history: WalletHistoryBatchSummarySerialized)
  */
 export function formatBalanceClass(history: WalletHistoryBatchSummarySerialized): string {
   if (history.changeMethods.includes("SET")) {
-    return "text-blue-600";
+    return "text-info-text";
   }
   if (history.totalDelta < 0) {
-    return "text-red-600";
+    return "text-destructive-text";
   }
-  return "text-emerald-600";
+  return "text-success-text";
 }
 
 /**

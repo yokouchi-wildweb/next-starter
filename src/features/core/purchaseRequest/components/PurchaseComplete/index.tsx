@@ -78,7 +78,7 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
   if (error) {
     return (
       <Stack space={8}>
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           {error}
         </Para>
         <Flex justify="center">
@@ -93,7 +93,7 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
   return (
     <Stack space={8}>
       <Flex direction="column" align="center" gap="md">
-        <CheckCircle className="h-16 w-16 text-green-500" />
+        <CheckCircle className="h-16 w-16 text-success-text" />
 
         <Para align="center" size="lg" weight="bold">
           購入が完了しました

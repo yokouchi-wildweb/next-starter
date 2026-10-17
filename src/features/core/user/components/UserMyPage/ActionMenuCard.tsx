@@ -30,7 +30,7 @@ type ActionMenuCardProps = ActionMenuCardLinkProps | ActionMenuCardButtonProps;
 const variantStyles = {
   default: "border-border hover:bg-accent/50",
   muted: "border-border text-muted-foreground hover:bg-accent/50",
-  destructive: "border-destructive/30 text-destructive hover:bg-destructive/5",
+  destructive: "border-destructive/30 text-destructive-text hover:bg-destructive/5",
 };
 
 export function ActionMenuCard({

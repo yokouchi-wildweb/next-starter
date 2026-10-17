@@ -24,6 +24,7 @@ export function ThirdPartySignupOptions({ redirectTo }: ThirdPartySignupOptionsP
       key: "google" as const,
       label: "Googleでログインする",
       icon: FaGoogle,
+      // eslint-disable-next-line style-tokens/no-raw-palette -- 外部サービスのブランド色(テーマに追従させない)
       iconColor: "text-[#4285F4]",
       providerId: OAUTH_PROVIDER_IDS.google,
     },
@@ -31,6 +32,7 @@ export function ThirdPartySignupOptions({ redirectTo }: ThirdPartySignupOptionsP
       key: "yahoo" as const,
       label: "Yahoo! JAPANでログインする",
       icon: FaYahoo,
+      // eslint-disable-next-line style-tokens/no-raw-palette -- 外部サービスのブランド色
       iconColor: "text-[#FF0033]",
       providerId: OAUTH_PROVIDER_IDS.yahoo,
     },
@@ -38,6 +40,7 @@ export function ThirdPartySignupOptions({ redirectTo }: ThirdPartySignupOptionsP
       key: "facebook" as const,
       label: "Facebookでログインする",
       icon: FaFacebook,
+      // eslint-disable-next-line style-tokens/no-raw-palette -- 外部サービスのブランド色
       iconColor: "text-[#1877F2]",
       providerId: OAUTH_PROVIDER_IDS.facebook,
     },
@@ -45,7 +48,7 @@ export function ThirdPartySignupOptions({ redirectTo }: ThirdPartySignupOptionsP
       key: "twitter" as const,
       label: "Xでログインする",
       icon: FaXTwitter,
-      iconColor: "text-black dark:text-white",
+      iconColor: "text-foreground",
       providerId: OAUTH_PROVIDER_IDS.twitter,
     },
   ].filter((option) => thirdPartyConfig[option.key]);

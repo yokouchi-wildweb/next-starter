@@ -94,7 +94,7 @@ export function SaveBookmarkModal({ open, onOpenChange, title, url }: Props) {
           <Stack space={2}>
             <ActionRow
               icon={<Mail className="h-5 w-5" />}
-              iconAccent="bg-sky-500/10 text-sky-600"
+              iconAccent="bg-info/10 text-info-text"
               label="メールで送る"
               description="メールを自分宛てに送付して保管できます"
               onClick={handleEmail}

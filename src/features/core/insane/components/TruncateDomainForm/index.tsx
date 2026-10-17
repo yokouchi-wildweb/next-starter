@@ -7,7 +7,7 @@ import { AlertTriangleIcon, TrashIcon, LockIcon, RefreshCwIcon, CloudIcon } from
 
 import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout";
-import { Checkbox } from "@/components/_shadcn/checkbox";
+import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Dialog } from "@/components/Overlays/Dialog";
 import { Input } from "@/components/Form/Input/Manual/Input";
 import { useToast } from "@/lib/toast";
@@ -127,7 +127,7 @@ export function TruncateDomainForm() {
   if (loadError) {
     return (
       <div className="text-center py-12">
-        <p className="text-destructive mb-4">{loadError.message}</p>
+        <p className="text-destructive-text mb-4">{loadError.message}</p>
         <Button variant="outline" onClick={() => refetch()}>
           <RefreshCwIcon className="size-4 mr-2" />
           再読み込み
@@ -176,9 +176,9 @@ export function TruncateDomainForm() {
               ${domain.isCore ? "border-l-4 border-l-destructive" : ""}
             `}
           >
-            <Checkbox
-              checked={selectedDomains.includes(domain.key)}
-              onCheckedChange={() => handleToggle(domain.key)}
+            <BooleanCheckboxInput
+              value={selectedDomains.includes(domain.key)}
+              onChange={() => handleToggle(domain.key)}
             />
             <div className="flex-1">
               <span className="font-medium">{domain.label}</span>
@@ -190,7 +190,7 @@ export function TruncateDomainForm() {
               {domain.recordCount.toLocaleString()} 件
             </span>
             {domain.isCore && (
-              <span className="text-xs text-destructive flex items-center gap-1">
+              <span className="text-xs text-destructive-text flex items-center gap-1">
                 <AlertTriangleIcon className="size-3" />
                 コア
               </span>
@@ -203,9 +203,9 @@ export function TruncateDomainForm() {
       {selectedCoreDomains.length > 0 && (
         <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
           <Flex align="start" gap="sm">
-            <AlertTriangleIcon className="size-5 text-destructive shrink-0 mt-0.5" />
+            <AlertTriangleIcon className="size-5 text-destructive-text shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-destructive">
+              <p className="font-medium text-destructive-text">
                 コアドメインが選択されています
               </p>
               <p className="text-muted-foreground mt-1">
@@ -236,7 +236,7 @@ export function TruncateDomainForm() {
         onOpenChange={handleDialogClose}
         title={
           <span className="flex items-center gap-2">
-            <AlertTriangleIcon className="size-5 text-destructive" />
+            <AlertTriangleIcon className="size-5 text-destructive-text" />
             本当に削除しますか？
           </span>
         }
@@ -258,7 +258,7 @@ export function TruncateDomainForm() {
                 <li key={key}>
                   {domain?.label} ({key}) - {domain?.recordCount.toLocaleString()} 件
                   {domain?.isCore && (
-                    <span className="text-destructive ml-1">※コア</span>
+                    <span className="text-destructive-text ml-1">※コア</span>
                   )}
                 </li>
               );
@@ -296,7 +296,7 @@ export function TruncateDomainForm() {
               autoComplete="current-password"
             />
             {passwordError && (
-              <p className="text-sm text-destructive">{passwordError}</p>
+              <p className="text-sm text-destructive-text">{passwordError}</p>
             )}
           </div>
         </div>

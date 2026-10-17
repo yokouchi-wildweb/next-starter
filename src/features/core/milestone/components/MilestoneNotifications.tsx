@@ -56,7 +56,7 @@ export function MilestoneNotifications({ results }: MilestoneNotificationsProps)
       {inlineResults.length > 0 && (
         <Stack appearance="surface" padding="md" space={4} className="rounded-lg">
           <Flex align="center" gap="sm">
-            <Trophy className="h-5 w-5 text-yellow-500" />
+            <Trophy className="h-5 w-5 text-warning-text" />
             <Para size="sm" weight="bold">達成したマイルストーン</Para>
           </Flex>
           <Stack space={2}>

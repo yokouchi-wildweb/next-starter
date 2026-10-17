@@ -51,7 +51,7 @@ export function PurchaseList({ slug, config, couponEffect }: PurchaseListProps) 
               key={pkg.amount}
               justify="between"
               align="center"
-              className="border-b-2 border-gray-100 py-4 last:border-b-0"
+              className="border-b-2 border-border/60 py-4 last:border-b-0"
             >
               <Flex align="center" gap="xs">
                 <CurrencyDisplay

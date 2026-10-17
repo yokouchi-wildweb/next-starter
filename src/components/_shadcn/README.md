@@ -22,9 +22,9 @@
 | `input.tsx` | `Form/Input/Manual/*`(`Input` / `NumberInput` / `PasswordInput` / `FileInput` / `ColorInput` 等)または `Form/Input/Controlled/*` |
 | `textarea.tsx` | `Form/Input/Manual/Textarea` / `Controlled/Textarea` |
 | `select.tsx` | `Form/Input/Manual/Select`(`SelectInput`、ツールバー用は `size="sm"`)/ `Controlled/SelectInput` |
-| `checkbox.tsx` | `Form/Input/Manual/BooleanCheckboxInput` / `SingleCardCheckbox` / `CheckGroupInput`、一覧の選択は `Overlays/Popover/ChecklistPopover` |
+| `checkbox.tsx` | `Form/Input/Manual/BooleanCheckboxInput`(単独のチェックボックスもこれ。`value` / `onChange(boolean)`)/ `SingleCardCheckbox` / `CheckGroupInput`、一覧の選択は `Overlays/Popover/ChecklistPopover` |
 | `radio-group.tsx` | `Form/Input/Manual/RadioGroupInput` / `BooleanRadioGroupInput`、ポップオーバー内は `Overlays/Popover/SelectPopover` |
-| `command.tsx` | 単体ラッパー無し。検索付き選択は `Form/Input/Manual/ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput` / `AsyncMultiSelectInput`、大量マスタからの選択は `Overlays/AsyncPickerModal` |
+| `command.tsx` | 検索付き選択は `Form/Input/Manual/ComboboxInput` / `AsyncComboboxInput` / `MultiSelectInput` / `AsyncMultiSelectInput`、大量マスタからの選択は `Overlays/AsyncPickerModal`。コマンドパレットなど自前で組む場合は `Overlays/CommandPrimitives` |
 | `dialog.tsx` | `Overlays/`(`Dialog` / `Modal` / `TabbedModal` / `DetailModal` / `AsyncPickerModal`、低レベルは `DialogPrimitives`) |
 | `popover.tsx` | `Overlays/Popover`(radix 直接。_shadcn/popover は未使用) |
 | `tooltip.tsx` | `Overlays/Tooltip`(`Tooltip` / `HelpTip`。_shadcn/tooltip は未使用)、ホバーカードは `Overlays/HoverCard` |
@@ -32,11 +32,15 @@
 | `table.tsx` | `@/lib/tableSuite`(`DataTable` / `EditableGridTable` / `RecordSelectionTable`) |
 | `skeleton.tsx` | `Skeleton/BaseSkeleton`(`FormSkeleton` / `DetailModalSkeleton` 等) |
 | `label.tsx` | `Form/Label` |
-| `form.tsx` | `Form/Field/*`(`ControlledField` / `ConfiguredField` / `FieldRenderer`) |
+| `form.tsx` | `Form/Field/*`(`ControlledField` / `ConfiguredField` / `FieldRenderer`)。フォーム全体は `Form/AppForm`、Provider だけ要る場合は react-hook-form の `FormProvider`(_shadcn の `Form` はその別名) |
 | `calendar.tsx` | `Overlays/Calendar` |
 | `carousel.tsx` | `Widgets/ScrollSlider` |
 | `card.tsx` | ラッパー無し。`Layout/Block` 等の `appearance`(`surface` / `raised` / `outlined` ...)を使う |
 | `accordion.tsx` / `scroll-area.tsx` | 未使用。必要になったら `Overlays/` または `Layout/` にラッパーを作る |
+
+### 機械的な強制(ESLint)
+
+`src/components/**` と `src/lib/tableSuite/**`(table の指定ラッパー。セルエディタも primitive 層)以外からの `@/components/_shadcn/*` import は ESLint(`no-restricted-imports`、`eslint.config.mjs`)が error にする。下流固有の UI も対象。
 
 ### ラッパーが存在しない場合
 

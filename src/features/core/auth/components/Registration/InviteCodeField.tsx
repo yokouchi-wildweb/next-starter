@@ -45,7 +45,7 @@ export function InviteCodeField<TFieldValues extends FieldValues>({
         <Flex
           justify="between"
           align="center"
-          className="rounded-lg border border-green-200 bg-green-50 px-3 py-2"
+          className="rounded-lg border border-success/30 bg-success/10 px-3 py-2"
         >
           <Span size="sm" weight="medium">{appliedCode}</Span>
           <Span size="sm" tone="success" weight="bold">{INVITE_CODE_APPLIED_MESSAGE}</Span>
@@ -60,7 +60,7 @@ export function InviteCodeField<TFieldValues extends FieldValues>({
       control={control}
       name={name}
       label="招待コード"
-      description={errorMessage ? { text: errorMessage, tone: "danger", size: "sm" } : undefined}
+      description={errorMessage ? { text: errorMessage, tone: "destructive", size: "sm" } : undefined}
       renderInput={(field) => (
         <Flex gap="sm">
           <TextInput

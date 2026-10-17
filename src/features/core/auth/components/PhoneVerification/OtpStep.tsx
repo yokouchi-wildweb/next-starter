@@ -95,7 +95,7 @@ export function OtpStep({
           </Stack>
 
           {error && (
-            <Para tone="error" size="sm">
+            <Para tone="destructive" size="sm">
               {error.message}
             </Para>
           )}

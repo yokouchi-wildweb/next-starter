@@ -102,8 +102,10 @@ test("意味色は 塗り / -foreground / -text の 3 変数で揃っている(�
       }
     }
   }
-  assert.ok(collectBlockDefinitions(palette, ":root").has("overlay"), "palette.defaults.css に --overlay が無い");
-  assert.ok(theme.includes("--color-overlay: var(--overlay);"), "theme.css に --color-overlay の対応付けが無い");
+  for (const name of ["overlay", "overlay-foreground"]) {
+    assert.ok(collectBlockDefinitions(palette, ":root").has(name), `palette.defaults.css に --${name} が無い`);
+    assert.ok(theme.includes(`--color-${name}: var(--${name});`), `theme.css に --color-${name} の対応付けが無い`);
+  }
 });
 
 test("palette.defaults.css は値だけを持つ(構造は theme.css に置く)", () => {

@@ -31,8 +31,8 @@ export function ForgotPassword() {
       <section id="forgot-password" className="w-full">
         <Stack space={6} className="text-center">
           <div className="flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+              <CheckCircle className="h-8 w-8 text-success-text" />
             </div>
           </div>
           <Stack space={2}>
@@ -86,7 +86,7 @@ export function ForgotPassword() {
           </Stack>
 
           {error && (
-            <Para tone="error" size="sm">
+            <Para tone="destructive" size="sm">
               {error}
             </Para>
           )}

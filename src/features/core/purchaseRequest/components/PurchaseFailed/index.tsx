@@ -59,7 +59,7 @@ export function PurchaseFailed({ slug }: PurchaseFailedProps) {
   return (
     <Stack space={8}>
       <Flex direction="column" align="center" gap="md">
-        <XCircle className="h-16 w-16 text-red-500" />
+        <XCircle className="h-16 w-16 text-destructive-text" />
 
         <Para align="center" size="lg" weight="bold">
           購入に失敗しました

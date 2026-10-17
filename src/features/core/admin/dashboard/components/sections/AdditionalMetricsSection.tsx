@@ -1,10 +1,12 @@
 // src/features/core/admin/dashboard/components/sections/AdditionalMetricsSection.tsx
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/_shadcn/card";
 import { DeveloperMotivationChart } from "@/components/AppFrames/Admin/Elements/DeveloperMotivationChart";
+import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
+import { Stack } from "@/components/Layout/Stack";
 import SecTitle from "@/components/AppFrames/Admin/Elements/SecTitle";
+import { Span } from "@/components/TextBlocks";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 
 /**
@@ -28,18 +30,23 @@ export function AdditionalMetricsSection() {
       <SecTitle>追加の指標</SecTitle>
 
       <Flex wrap="wrap" gap="lg" justify="center" className="lg:justify-start">
-        <Card className="max-sm:p-4 max-sm:gap-0 w-full lg:w-1/2 text-slate-900 bg-gradient-to-br from-zinc-100 via-zinc-300/80 to-zinc-500/70 rounded-xl shadow-lg border border-white/30">
-          <CardHeader>
-            <CardTitle>グラフ指標サンプル</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Stack
+          space={6}
+          className="w-full rounded-xl border border-border bg-gradient-to-br from-muted via-muted-foreground/40 to-muted-foreground/70 py-6 text-foreground shadow-lg max-sm:gap-0 max-sm:p-4 lg:w-1/2"
+        >
+          <Block className="px-6">
+            <Span weight="semiBold" className="leading-none">
+              グラフ指標サンプル
+            </Span>
+          </Block>
+          <Block className="px-6">
             <Flex justify="center" align="center">
               <DeveloperMotivationChart
                 percentage={APP_FEATURES.adminConsole.dashboard.coffeeLevel}
               />
             </Flex>
-          </CardContent>
-        </Card>
+          </Block>
+        </Stack>
       </Flex>
     </Section>
   );

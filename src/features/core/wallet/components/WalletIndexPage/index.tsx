@@ -21,13 +21,13 @@ export function WalletIndexPage() {
           <Link
             key={walletType}
             href={`/wallet/${config.slug}`}
-            className="block border-b border-gray-100 last:border-b-0"
+            className="block border-b border-border last:border-b-0"
           >
             <Flex
               justify="between"
               align="center"
               padding="md"
-              className="transition-colors hover:bg-gray-50"
+              className="transition-colors hover:bg-muted/50"
             >
               <Flex align="center" gap="sm">
                 <Icon
@@ -38,7 +38,7 @@ export function WalletIndexPage() {
                   {config.label}
                 </Span>
               </Flex>
-              <ChevronRight className="size-5 text-gray-400" />
+              <ChevronRight className="size-5 text-muted-foreground" />
             </Flex>
           </Link>
         );

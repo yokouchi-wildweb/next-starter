@@ -13,7 +13,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/_shadcn/command";
+} from "@/components/Overlays/CommandPrimitives";
 import { useSetting } from "@/features/setting/hooks/useSetting";
 import { useUpdateSetting } from "@/features/setting/hooks/useUpdateSetting";
 import type { Setting } from "@/features/setting/entities";

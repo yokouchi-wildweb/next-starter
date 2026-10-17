@@ -33,7 +33,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         予期しないエラーが発生しました。
       </Para>
       {process.env.NODE_ENV === "development" && (
-        <Para tone="danger" size="sm">
+        <Para tone="destructive" size="sm">
           {error.message}
         </Para>
       )}

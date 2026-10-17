@@ -116,7 +116,7 @@ export function UserLogin({ redirectTo = DEFAULT_REDIRECT_PATH }: UserLoginProps
             </div>
           </Stack>
           {errorMessage && (
-            <Para tone="error" size="sm">
+            <Para tone="destructive" size="sm">
               {errorMessage}
             </Para>
           )}

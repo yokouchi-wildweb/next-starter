@@ -13,7 +13,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/_shadcn/command";
+} from "@/components/Overlays/CommandPrimitives";
 import type { CategoryRendererProps } from "@/features/core/adminCommand/base/types";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 import { useSessionRefresh } from "@/features/core/auth/hooks/useSessionRefresh";

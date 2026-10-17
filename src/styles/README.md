@@ -181,7 +181,7 @@ export const VARIANT_OVERRIDES = defineVariantOverrides({
 
 ### 生パレット色の禁止(ESLint)
 
-`src/components` / `src/lib` では `bg-slate-900` / `text-red-600` / `bg-white` / `text-[#fff]` のような生パレット色クラスを ESLint(`style-tokens/no-raw-palette`)が error にする(`src/features/core` は warn、下流固有の UI は対象外)。生パレット色はブランド色に追従せず `dark:` 併記が要り、下流が core を直す動機になるため。白黒は `bg-background` / `text-foreground` / `bg-card`、幕は `bg-overlay/50`、意味色は上の 3 変数で書く。ブランドロゴ色など正当な例外は理由付き `// eslint-disable-next-line style-tokens/no-raw-palette -- 理由` で明示する。
+upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/features/_template`)では `bg-slate-900` / `text-red-600` / `bg-white` / `text-[#fff]` のような生パレット色クラスを ESLint(`style-tokens/no-raw-palette`)が error にする(下流固有の UI は対象外。同じ規律を敷きたい fork は `eslint.config.mjs` の `files` にパスを足す)。あわせて `src/components` 外からの `_shadcn` 直接 import も error(`no-restricted-imports`、対応表は `src/components/_shadcn/README.md`)。生パレット色はブランド色に追従せず `dark:` 併記が要り、下流が core を直す動機になるため。白黒は `bg-background` / `text-foreground` / `bg-card`、幕は `bg-overlay/50`、意味色は上の 3 変数で書く。ブランドロゴ色など正当な例外は理由付き `// eslint-disable-next-line style-tokens/no-raw-palette -- 理由` で明示する。
 
 ### config.css の値を変えたいとき
 

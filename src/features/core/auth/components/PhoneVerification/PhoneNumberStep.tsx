@@ -101,7 +101,7 @@ export function PhoneNumberStep({
           </Stack>
 
           {displayError && (
-            <Para tone="error" size="sm">
+            <Para tone="destructive" size="sm">
               {displayError}
             </Para>
           )}

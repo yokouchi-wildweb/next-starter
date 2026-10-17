@@ -10,7 +10,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import Modal from "@/components/Overlays/Modal";
-import { Checkbox } from "@/components/_shadcn/checkbox";
+import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Para } from "@/components/TextBlocks";
 import { useWithdraw } from "@/features/core/auth/hooks/useWithdraw";
@@ -81,9 +81,9 @@ export function Withdraw() {
           </Para>
 
           <Label className="flex items-center gap-3 cursor-pointer">
-            <Checkbox
-              checked={isAgreed}
-              onCheckedChange={(checked) => setIsAgreed(Boolean(checked))}
+            <BooleanCheckboxInput
+              value={isAgreed}
+              onChange={(checked) => setIsAgreed(Boolean(checked))}
               disabled={isLoading}
             />
             <span className="text-sm">退会することに同意します</span>

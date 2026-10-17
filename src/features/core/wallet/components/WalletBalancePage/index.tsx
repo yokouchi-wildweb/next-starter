@@ -70,7 +70,7 @@ export function WalletBalancePage({
   if (!config) {
     return (
       <Block padding="lg">
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           無効な通貨タイプです。
         </Para>
       </Block>
@@ -90,7 +90,7 @@ export function WalletBalancePage({
   if (error) {
     return (
       <Block padding="lg">
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           残高情報の取得に失敗しました。
         </Para>
       </Block>

@@ -32,8 +32,8 @@ export function PurchaseSummaryCard({
   const hasDiscount = discountAmount != null && discountAmount > 0;
 
   return (
-    <Section className="-mx-4 bg-gray-100 px-4 py-4">
-      <Stack className="rounded-lg bg-white" padding="lg" space={4}>
+    <Section className="-mx-4 bg-muted px-4 py-4">
+      <Stack className="rounded-lg bg-card" padding="lg" space={4}>
         <Flex justify="between" align="center" className="py-2">
           <Span tone="muted">ご購入{config.label}</Span>
           <CurrencyDisplay
@@ -44,7 +44,7 @@ export function PurchaseSummaryCard({
             bold
           />
         </Flex>
-        <Flex justify="between" align="center" className="border-t border-gray-200 py-2">
+        <Flex justify="between" align="center" className="border-t border-border py-2">
           <Span tone="muted">お支払い金額</Span>
           {hasDiscount ? (
             <Stack space={1} className="items-end">
@@ -62,14 +62,14 @@ export function PurchaseSummaryCard({
           )}
         </Flex>
         {hasDiscount && (
-          <Flex justify="between" align="center" className="border-t border-gray-200 py-2">
+          <Flex justify="between" align="center" className="border-t border-border py-2">
             <Span tone="muted">クーポン割引</Span>
             <Span weight="bold" tone="success">
               -¥{discountAmount.toLocaleString()}
             </Span>
           </Flex>
         )}
-        <Flex justify="between" align="center" className="border-t border-gray-200 py-2">
+        <Flex justify="between" align="center" className="border-t border-border py-2">
           <Span tone="muted">購入後の{config.label}残高</Span>
           <CurrencyDisplay
             walletType={walletType}

@@ -14,7 +14,7 @@ import type { MilestoneRendererProps } from "./milestoneRendererRegistry";
 export function DefaultMilestoneNotification({ result }: MilestoneRendererProps) {
   return (
     <Flex align="center" gap="sm">
-      <Trophy className="h-4 w-4 text-yellow-500" />
+      <Trophy className="h-4 w-4 text-warning-text" />
       <Para size="sm">{result.milestoneKey}</Para>
     </Flex>
   );

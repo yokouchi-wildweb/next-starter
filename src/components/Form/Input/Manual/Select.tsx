@@ -40,6 +40,8 @@ export type SelectInputProps = {
    * @default "default"
    */
   size?: "default" | "sm";
+  /** トリガー要素の id(外部 Label の htmlFor 用) */
+  id?: string;
   /**
    * SelectTrigger に適用するクラス名。
    */
@@ -72,6 +74,7 @@ export function SelectInput({
   nullOptionLabel = "未選択（null）",
   showPlaceholderOption = true,
   size = "default",
+  id,
   className,
   contentClassName,
   disabled,
@@ -111,6 +114,7 @@ export function SelectInput({
       {...rest}
     >
       <SelectTrigger
+        id={id}
         size={size}
         className={cn(size === "default" && "!h-auto border-muted-foreground/50 py-3", className)}
       >

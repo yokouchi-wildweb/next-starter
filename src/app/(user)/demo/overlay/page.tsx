@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/Form/Button/Button";
-import { Input, NumberInput } from "@/components/Form/Input/Manual";
+import { BooleanCheckboxInput, Input, NumberInput, SelectInput, Textarea } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { type SpinnerVariant } from "@/components/Overlays/Loading/Spinner";
@@ -13,15 +13,6 @@ import { Dialog } from "@/components/Overlays/Dialog";
 import { ImageViewerProvider, ZoomableImage } from "@/components/Overlays/ImageViewer";
 import { useToast, type ToastVariant, type ToastPosition, type ToastMode, type ToastSize, type ToastIconPreset } from "@/lib/toast";
 import { logoPath } from "@/utils/assets";
-import { Checkbox } from "@/components/_shadcn/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/_shadcn/select";
-import { Textarea } from "@/components/_shadcn/textarea";
 import { Section } from "@/components/Layout/Section";
 import { PageTitle, Para, SecTitle } from "@/components/TextBlocks";
 
@@ -393,107 +384,67 @@ export default function OverlayDemoPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-variant">バリアント</Label>
-              <Select
+              <SelectInput
+                size="sm"
+                id="app-toast-variant"
+                className="w-full justify-between"
+                options={[...APP_TOAST_VARIANTS]}
                 value={appToastOptions.variant}
-                onValueChange={(value: ToastVariant) =>
-                  setAppToastOptions((prev) => ({ ...prev, variant: value }))
-                }
-              >
-                <SelectTrigger id="app-toast-variant" className="w-full justify-between">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APP_TOAST_VARIANTS.map((v) => (
-                    <SelectItem key={v.value} value={v.value}>
-                      {v.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                showPlaceholderOption={false}
+                onChange={(value) => setAppToastOptions((prev) => ({ ...prev, variant: value as ToastVariant }))}
+              />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-position">位置</Label>
-              <Select
+              <SelectInput
+                size="sm"
+                id="app-toast-position"
+                className="w-full justify-between"
+                options={[...APP_TOAST_POSITIONS]}
                 value={appToastOptions.position}
-                onValueChange={(value: ToastPosition) =>
-                  setAppToastOptions((prev) => ({ ...prev, position: value }))
-                }
-              >
-                <SelectTrigger id="app-toast-position" className="w-full justify-between">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APP_TOAST_POSITIONS.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                showPlaceholderOption={false}
+                onChange={(value) => setAppToastOptions((prev) => ({ ...prev, position: value as ToastPosition }))}
+              />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-mode">モード</Label>
-              <Select
+              <SelectInput
+                size="sm"
+                id="app-toast-mode"
+                className="w-full justify-between"
+                options={[...APP_TOAST_MODES]}
                 value={appToastOptions.mode}
-                onValueChange={(value: ToastMode) =>
-                  setAppToastOptions((prev) => ({ ...prev, mode: value }))
-                }
-              >
-                <SelectTrigger id="app-toast-mode" className="w-full justify-between">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APP_TOAST_MODES.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                showPlaceholderOption={false}
+                onChange={(value) => setAppToastOptions((prev) => ({ ...prev, mode: value as ToastMode }))}
+              />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-size">サイズ</Label>
-              <Select
+              <SelectInput
+                size="sm"
+                id="app-toast-size"
+                className="w-full justify-between"
+                options={[...APP_TOAST_SIZES]}
                 value={appToastOptions.size}
-                onValueChange={(value: ToastSize) =>
-                  setAppToastOptions((prev) => ({ ...prev, size: value }))
-                }
-              >
-                <SelectTrigger id="app-toast-size" className="w-full justify-between">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APP_TOAST_SIZES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                showPlaceholderOption={false}
+                onChange={(value) => setAppToastOptions((prev) => ({ ...prev, size: value as ToastSize }))}
+              />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="app-toast-icon">アイコン</Label>
-              <Select
+              <SelectInput
+                size="sm"
+                id="app-toast-icon"
+                className="w-full justify-between"
+                options={[...APP_TOAST_ICON_PRESETS]}
                 value={appToastOptions.iconPreset}
-                onValueChange={(value: "default" | ToastIconPreset) =>
-                  setAppToastOptions((prev) => ({ ...prev, iconPreset: value }))
-                }
-              >
-                <SelectTrigger id="app-toast-icon" className="w-full justify-between">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APP_TOAST_ICON_PRESETS.map((i) => (
-                    <SelectItem key={i.value} value={i.value}>
-                      {i.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                showPlaceholderOption={false}
+                onChange={(value) => setAppToastOptions((prev) => ({ ...prev, iconPreset: value as "default" | ToastIconPreset }))}
+              />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -525,9 +476,9 @@ export default function OverlayDemoPage() {
 
             <div className="flex items-end gap-2 pb-1">
               <Label className="flex items-center gap-2">
-                <Checkbox
-                  checked={appToastOptions.spinning}
-                  onCheckedChange={(checked) =>
+                <BooleanCheckboxInput
+                  value={appToastOptions.spinning}
+                  onChange={(checked) =>
                     setAppToastOptions((prev) => ({
                       ...prev,
                       spinning: Boolean(checked),
@@ -640,23 +591,15 @@ export default function OverlayDemoPage() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="mode">モード</Label>
-                <Select
+                <SelectInput
+                  size="sm"
+                  id="mode"
+                  className="w-full justify-between"
+                  options={[...MODES]}
                   value={options.mode}
-                  onValueChange={(value: LoadingOverlayMode) =>
-                    setOptions((prev) => ({ ...prev, mode: value }))
-                  }
-                >
-                  <SelectTrigger id="mode" className="w-full justify-between">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MODES.map((mode) => (
-                      <SelectItem key={mode.value} value={mode.value}>
-                        {mode.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  showPlaceholderOption={false}
+                  onChange={(value) => setOptions((prev) => ({ ...prev, mode: value as LoadingOverlayMode }))}
+                />
               </div>
 
               <div className="flex flex-col gap-2">
@@ -673,23 +616,15 @@ export default function OverlayDemoPage() {
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="spinner-variant">spinnerVariant</Label>
-                <Select
+                <SelectInput
+                  size="sm"
+                  id="spinner-variant"
+                  className="w-full justify-between"
+                  options={[...SPINNER_VARIANTS]}
                   value={options.spinnerVariant}
-                  onValueChange={(value: SpinnerVariant) =>
-                    setOptions((prev) => ({ ...prev, spinnerVariant: value }))
-                  }
-                >
-                  <SelectTrigger id="spinner-variant" className="w-full justify-between">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SPINNER_VARIANTS.map((variant) => (
-                      <SelectItem key={variant.value} value={variant.value}>
-                        {variant.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  showPlaceholderOption={false}
+                  onChange={(value) => setOptions((prev) => ({ ...prev, spinnerVariant: value as SpinnerVariant }))}
+                />
               </div>
 
               <div className="flex flex-col gap-2">
@@ -706,9 +641,9 @@ export default function OverlayDemoPage() {
 
               <div className="flex flex-col gap-2">
                 <Label className="gap-2">
-                  <Checkbox
-                    checked={options.showMessage}
-                    onCheckedChange={(checked) =>
+                  <BooleanCheckboxInput
+                    value={options.showMessage}
+                    onChange={(checked) =>
                       setOptions((prev) => ({
                         ...prev,
                         showMessage: Boolean(checked),

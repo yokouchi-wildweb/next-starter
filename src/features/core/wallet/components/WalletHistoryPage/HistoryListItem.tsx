@@ -40,7 +40,7 @@ export function HistoryListItem({ history, walletType }: HistoryListItemProps) {
   const reasonText = reasons.length > 0 ? reasons[0] : getSourceLabel(history.sourceTypes);
 
   return (
-    <Block className="border-b border-gray-100 py-4 last:border-b-0">
+    <Block className="border-b border-border py-4 last:border-b-0">
       <Flex justify="between" align="start" gap="md">
         {/* 左側: 日時と理由 */}
         <Flex direction="column" gap="xs" className="flex-1 min-w-0">
@@ -55,7 +55,7 @@ export function HistoryListItem({ history, walletType }: HistoryListItemProps) {
         {/* 右側: 金額変動 */}
         <Flex direction="column" align="end" gap="xs" className="flex-shrink-0">
           {isSet ? (
-            <Span size="sm" className="text-blue-600" weight="bold">
+            <Span size="sm" className="text-info-text" weight="bold">
               残高設定
             </Span>
           ) : (
@@ -63,7 +63,7 @@ export function HistoryListItem({ history, walletType }: HistoryListItemProps) {
               <Span
                 size="lg"
                 weight="bold"
-                className={isIncrease ? "text-emerald-600" : isDecrease ? "text-red-600" : ""}
+                className={isIncrease ? "text-success-text" : isDecrease ? "text-destructive-text" : ""}
               >
                 {isIncrease ? "+" : ""}
               </Span>

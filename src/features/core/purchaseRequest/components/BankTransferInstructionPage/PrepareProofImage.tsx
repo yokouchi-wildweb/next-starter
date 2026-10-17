@@ -150,8 +150,8 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
                 className="w-full max-h-80 rounded-md bg-muted object-contain"
               />
               {isUploading && (
-                <Block className="absolute inset-0 flex items-center justify-center rounded-md bg-black/40">
-                  <Spinner className="h-8 w-8 text-white" />
+                <Block className="absolute inset-0 flex items-center justify-center rounded-md bg-overlay/40">
+                  <Spinner className="h-8 w-8 text-overlay-foreground" />
                 </Block>
               )}
             </Block>

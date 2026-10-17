@@ -6,7 +6,7 @@ import { Para } from "@/components/TextBlocks";
 export function UnknownRegistrationForm() {
   return (
     <Block>
-      <Para tone="error" size="sm">
+      <Para tone="destructive" size="sm">
         不正な登録手続きです。
       </Para>
     </Block>

@@ -39,7 +39,7 @@ const columns: DataTableColumn<ReferralByInviterItem>[] = [
       <span
         className={
           item.status === "active"
-            ? "text-green-600"
+            ? "text-success-text"
             : "text-muted-foreground"
         }
       >
@@ -122,7 +122,7 @@ export default function ReferralListModal({
             <BaseSkeleton className="h-8 w-full" />
           </Stack>
         ) : error ? (
-          <Para tone="error">{error}</Para>
+          <Para tone="destructive">{error}</Para>
         ) : referrals.length === 0 ? (
           <Para tone="muted" className="py-8 text-center">
             まだ紹介実績がありません

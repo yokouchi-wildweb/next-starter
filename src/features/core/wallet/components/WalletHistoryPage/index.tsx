@@ -81,7 +81,7 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
   if (!config) {
     return (
       <Block padding="lg">
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           無効な通貨タイプです。
         </Para>
       </Block>
@@ -100,8 +100,8 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
       </Flex>
 
       {errorMessage ? (
-        <Block padding="lg" className="rounded-lg border border-red-200 bg-red-50">
-          <Para tone="danger" align="center">
+        <Block padding="lg" className="rounded-lg border border-destructive/30 bg-destructive/10">
+          <Para tone="destructive" align="center">
             {errorMessage}
           </Para>
         </Block>
@@ -139,7 +139,7 @@ export function WalletHistoryPage({ slug }: WalletHistoryPageProps) {
           </Flex>
         </div>
       ) : (
-        <Block padding="lg" className="rounded-lg border border-dashed border-gray-300">
+        <Block padding="lg" className="rounded-lg border border-dashed border-border">
           <Para tone="muted" align="center">
             履歴はまだありません
           </Para>

@@ -68,7 +68,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
               user.email ? (
                 <>
                   {user.email}
-                  <CheckCircleIcon className="h-3.5 w-3.5 text-green-600" />
+                  <CheckCircleIcon className="h-3.5 w-3.5 text-success-text" />
                 </>
               ) : (
                 "未設定"
@@ -84,7 +84,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
                 user.phoneVerifiedAt ? (
                   <>
                     {formatForDisplay(user.phoneNumber ?? "")}
-                    <CheckCircleIcon className="h-3.5 w-3.5 text-green-600" />
+                    <CheckCircleIcon className="h-3.5 w-3.5 text-success-text" />
                   </>
                 ) : (
                   "未認証"

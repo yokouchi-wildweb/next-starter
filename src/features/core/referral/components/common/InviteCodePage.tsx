@@ -67,7 +67,7 @@ export function InviteCodePage() {
                 >
                   {inviteCode.code}
                   {copied ? (
-                    <CheckIcon className="h-4 w-4 text-green-600" />
+                    <CheckIcon className="h-4 w-4 text-success-text" />
                   ) : (
                     <CopyIcon className="h-4 w-4 text-muted-foreground" />
                   )}
@@ -85,7 +85,7 @@ export function InviteCodePage() {
                   {isIssuing ? "発行中..." : "招待コードを発行"}
                 </Button>
                 {issueError && (
-                  <Para size="sm" tone="error">{issueError}</Para>
+                  <Para size="sm" tone="destructive">{issueError}</Para>
                 )}
               </Flex>
             )}

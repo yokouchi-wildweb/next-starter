@@ -6,7 +6,7 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
 import { Button } from "@/components/Form/Button/Button";
-import { Checkbox } from "@/components/_shadcn/checkbox";
+import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
 import type { ExportTabContentProps, ExportField } from "./types";
@@ -134,17 +134,17 @@ export function ExportTab({
       {/* エクスポートオプション */}
       <Block className="mb-4 pb-4 border-b border-border flex flex-col gap-3">
         <label className="flex items-center gap-2 cursor-pointer">
-          <Checkbox
-            checked={includeImages}
-            onCheckedChange={(checked) => setIncludeImages(checked === true)}
+          <BooleanCheckboxInput
+            value={includeImages}
+            onChange={(checked) => setIncludeImages(checked === true)}
           />
           <span className="text-sm">画像を含める（ZIP形式でダウンロード）</span>
         </label>
         {hasRelations && (
           <label className="flex items-center gap-2 cursor-pointer">
-            <Checkbox
-              checked={includeRelations}
-              onCheckedChange={(checked) => setIncludeRelations(checked === true)}
+            <BooleanCheckboxInput
+              value={includeRelations}
+              onChange={(checked) => setIncludeRelations(checked === true)}
             />
             <span className="text-sm">リレーションを含める（関連データも一緒にエクスポート）</span>
           </label>
@@ -155,9 +155,9 @@ export function ExportTab({
             <span className="text-xs text-muted-foreground">子データの選択:</span>
             {hasManyDomains.map((hm) => (
               <label key={hm.domain} className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={selectedHasManyDomains.includes(hm.domain)}
-                  onCheckedChange={() => handleToggleHasManyDomain(hm.domain)}
+                <BooleanCheckboxInput
+                  value={selectedHasManyDomains.includes(hm.domain)}
+                  onChange={() => handleToggleHasManyDomain(hm.domain)}
                 />
                 <span className="text-sm">{hm.label}</span>
               </label>
@@ -188,9 +188,9 @@ export function ExportTab({
         <Block className="flex flex-col gap-2 max-h-64 overflow-y-auto">
           {allFields.map((field) => (
             <label key={field.name} className="flex items-center gap-2 cursor-pointer py-1">
-              <Checkbox
-                checked={selectedFields.includes(field.name)}
-                onCheckedChange={() => handleToggleField(field.name)}
+              <BooleanCheckboxInput
+                value={selectedFields.includes(field.name)}
+                onChange={() => handleToggleField(field.name)}
               />
               <span className="text-sm">
                 {field.label}

@@ -320,7 +320,7 @@ export function EmailRegistrationForm() {
         />
 
         {rootErrorMessage ? (
-          <Para tone="error" size="sm">
+          <Para tone="destructive" size="sm">
             {rootErrorMessage}
           </Para>
         ) : null}

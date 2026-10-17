@@ -15,25 +15,26 @@ const ROLE_USER: UserRoleType = "user";
 
 const numberFormatter = new Intl.NumberFormat("ja-JP");
 
-const blueDecoration: MetricCardDecoration = {
-  gradient: "from-sky-500/25 via-sky-400/10 to-transparent",
-  glow: "bg-sky-300/40",
-  beam: "bg-sky-100/40",
-  shadow: "shadow-[0_18px_45px_-20px_rgba(14,165,233,0.55)]",
+// 装飾はテーマトークンで書く(secondary / chart-2 / chart-1 はブランドのパレットに追従する)
+const secondaryDecoration: MetricCardDecoration = {
+  gradient: "from-secondary/40 via-secondary/15 to-transparent",
+  glow: "bg-secondary/40",
+  beam: "bg-secondary/20",
+  shadow: "shadow-[0_18px_45px_-20px_color-mix(in_oklch,_var(--color-secondary)_55%,_transparent)]",
 };
 
-const cyanDecoration: MetricCardDecoration = {
-  gradient: "from-cyan-200/25 via-cyan-100/10 to-transparent",
-  glow: "bg-cyan-200/25",
-  beam: "bg-cyan-100/25",
-  shadow: "shadow-[0_18px_45px_-20px_rgba(14,165,233,0.55)]",
+const chart2Decoration: MetricCardDecoration = {
+  gradient: "from-chart-2/35 via-chart-2/10 to-transparent",
+  glow: "bg-chart-2/30",
+  beam: "bg-chart-2/20",
+  shadow: "shadow-[0_18px_45px_-20px_color-mix(in_oklch,_var(--color-chart-2)_55%,_transparent)]",
 };
 
-const violetDecoration: MetricCardDecoration = {
-  gradient: "from-violet-300/25 via-violet-100/10 to-transparent",
-  glow: "bg-violet-300/40",
-  beam: "bg-violet-100/40",
-  shadow: "shadow-[0_18px_45px_-20px_rgba(139,92,246,0.55)]",
+const chart1Decoration: MetricCardDecoration = {
+  gradient: "from-chart-1/35 via-chart-1/10 to-transparent",
+  glow: "bg-chart-1/35",
+  beam: "bg-chart-1/20",
+  shadow: "shadow-[0_18px_45px_-20px_color-mix(in_oklch,_var(--color-chart-1)_55%,_transparent)]",
 };
 
 /**
@@ -82,22 +83,22 @@ export async function MainMetricsSection() {
         <MetricCard
           title="ユーザー登録総数"
           value={numberFormatter.format(totalUserCount)}
-          decoration={blueDecoration}
+          decoration={secondaryDecoration}
         />
         <MetricCard
           title="本日のユーザー登録数"
           value={numberFormatter.format(todayUserCount)}
-          decoration={cyanDecoration}
+          decoration={chart2Decoration}
         />
         <MetricCard
           title="サンプル指標A"
           value="27,182"
-          decoration={violetDecoration}
+          decoration={chart1Decoration}
         />
         <MetricCard
           title="サンプル指標B"
           value="¥12,358"
-          decoration={violetDecoration}
+          decoration={chart1Decoration}
         />
       </Grid>
     </Section>

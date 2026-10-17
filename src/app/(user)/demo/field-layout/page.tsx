@@ -1,7 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { Form } from "@/components/_shadcn/form";
+import { FormProvider as Form, useForm } from "react-hook-form";
 import { ControlledField, ControlledFieldGroup } from "@/components/Form";
 import { ManualField } from "@/components/Form/Field/Manual";
 import {

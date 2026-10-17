@@ -51,8 +51,10 @@
   --warning: oklch(0.75 0.18 75);
   --warning-foreground: oklch(0.985 0 0);
   --warning-text: oklch(0.666 0.179 58.318);
-  /* 画面を覆う半透明の幕(モーダル背景・SP ナビの背景)。`bg-overlay/50` のように透過率付きで使う */
+  /* 画面や画像を覆う半透明の幕(モーダル背景・SP ナビの背景・画像上のホバー)。`bg-overlay/50` のように透過率付きで使う */
   --overlay: oklch(0 0 0);
+  /* 幕の上に載せる文字・アイコン(テーマに関わらず幕と対比する色) */
+  --overlay-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -106,6 +108,7 @@
   --warning-foreground: oklch(0.985 0 0);
   --warning-text: oklch(0.828 0.189 84.429);
   --overlay: oklch(0 0 0);
+  --overlay-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(0.876 0 89.876);
   --ring: oklch(0.556 0 0);

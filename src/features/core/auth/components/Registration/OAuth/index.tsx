@@ -292,7 +292,7 @@ export function OAuthRegistrationForm() {
         />
 
         {rootErrorMessage ? (
-          <Para tone="error" size="sm">
+          <Para tone="destructive" size="sm">
             {rootErrorMessage}
           </Para>
         ) : null}

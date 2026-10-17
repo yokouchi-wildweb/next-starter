@@ -106,7 +106,7 @@ export function RoleTabContent({ user, onClose }: Props) {
       </Block>
       {currentRoleHasProfile && deleteOldProfile && (
         <Block className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
-          <Para size="sm" className="text-destructive">
+          <Para size="sm" className="text-destructive-text">
             現在のロールのプロフィールデータを削除します
           </Para>
         </Block>

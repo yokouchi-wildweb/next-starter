@@ -86,7 +86,7 @@ function AvatarMenu({ onChangeImage, onRemoveImage, onClose }: AvatarMenuProps) 
       </button>
       <button
         type="button"
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-destructive transition-colors hover:bg-muted"
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-destructive-text transition-colors hover:bg-muted"
         onClick={() => {
           onRemoveImage();
           onClose();
@@ -237,11 +237,11 @@ export function AccountAvatarSection({
             )}
 
             {/* オーバーレイ */}
-            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40">
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-overlay/0 transition-colors group-hover:bg-overlay/40">
               {isBusy ? (
-                <LoaderIcon className="h-6 w-6 animate-spin text-white opacity-0 group-hover:opacity-100" />
+                <LoaderIcon className="h-6 w-6 animate-spin text-overlay-foreground opacity-0 group-hover:opacity-100" />
               ) : (
-                <CameraIcon className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                <CameraIcon className="h-6 w-6 text-overlay-foreground opacity-0 transition-opacity group-hover:opacity-100" />
               )}
             </span>
           </button>
@@ -263,7 +263,7 @@ export function AccountAvatarSection({
 
         {/* エラー表示 */}
         {error && (
-          <p className="text-xs text-destructive">{error}</p>
+          <p className="text-xs text-destructive-text">{error}</p>
         )}
       </div>
 

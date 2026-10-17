@@ -32,7 +32,7 @@ export const useUserViewModal = (userId: string | null) => {
     // ----- バッジの組み立て -----
     const badge: DetailModalBadge = {
       text: user.role,
-      colorClass: "bg-gray-500",
+      variant: "muted",
     };
 
     // ----- 画像情報の組み立て -----

@@ -69,7 +69,7 @@ export function RecaptchaV2Challenge({
     >
       <Flex direction="column" align="center" gap="sm" className="py-4">
         {error && (
-          <Para size="sm" tone="error">{error}</Para>
+          <Para size="sm" tone="destructive">{error}</Para>
         )}
 
         {open && (

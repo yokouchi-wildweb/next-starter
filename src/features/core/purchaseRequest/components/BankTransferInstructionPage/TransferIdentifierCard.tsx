@@ -32,7 +32,7 @@ export function TransferIdentifierCard({ identifier }: Props) {
     <Block padding="sm" className="rounded-lg border-2 border-destructive/40 bg-destructive/5">
       <Stack space={2}>
         <Flex gap="xs" align="center">
-          <AlertTriangle aria-hidden className="h-4 w-4 shrink-0 text-destructive" />
+          <AlertTriangle aria-hidden className="h-4 w-4 shrink-0 text-destructive-text" />
           <Span weight="semiBold" size="md" tone="destructive">
             振込人名（末尾に数字を付与）
           </Span>

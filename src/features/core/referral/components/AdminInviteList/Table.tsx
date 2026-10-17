@@ -43,7 +43,7 @@ const columns: DataTableColumn<InviteCodeWithCount>[] = [
       <span
         className={
           item.coupon.status === "active"
-            ? "text-green-600"
+            ? "text-success-text"
             : "text-muted-foreground"
         }
       >

@@ -49,10 +49,10 @@ const variantStyles = {
   destructive: {
     card: "border-destructive/30 hover:bg-destructive/5",
     iconBg: "bg-destructive/10",
-    iconColor: "text-destructive",
-    title: "text-destructive",
-    description: "text-destructive/70",
-    chevron: "text-destructive/50",
+    iconColor: "text-destructive-text",
+    title: "text-destructive-text",
+    description: "text-destructive-text/70",
+    chevron: "text-destructive-text/50",
   },
 };
 

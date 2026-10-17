@@ -102,7 +102,7 @@ export function CouponInput({ paymentAmount, purchaseAmount, onApply, onClear }:
           <Flex
             justify="between"
             align="center"
-            className="rounded-lg border border-green-200 bg-green-50 px-3 py-2"
+            className="rounded-lg border border-success/30 bg-success/10 px-3 py-2"
           >
             <Span size="sm" weight="medium">{appliedCode}</Span>
             <Span size="sm" tone="success" weight="bold">
@@ -149,7 +149,7 @@ export function CouponInput({ paymentAmount, purchaseAmount, onApply, onClear }:
           </Button>
         </Flex>
         {errorMessage && (
-          <Para tone="danger" size="sm">
+          <Para tone="destructive" size="sm">
             {errorMessage}
           </Para>
         )}

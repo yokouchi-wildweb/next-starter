@@ -24,7 +24,7 @@ export function PurchaseCallback({ slug }: PurchaseCallbackProps) {
   if (error) {
     return (
       <Stack space={8}>
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           {error}
         </Para>
         <Flex justify="center">
@@ -39,7 +39,7 @@ export function PurchaseCallback({ slug }: PurchaseCallbackProps) {
   return (
     <Stack space={8}>
       <Flex direction="column" align="center" gap="md">
-        <Spinner className="h-12 w-12 text-blue-600" />
+        <Spinner className="h-12 w-12 text-info-text" />
         <Para align="center" size="lg">
           決済結果を確認中です...
         </Para>

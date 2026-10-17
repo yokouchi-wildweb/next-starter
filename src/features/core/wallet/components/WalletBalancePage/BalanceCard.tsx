@@ -15,8 +15,8 @@ type BalanceCardProps = {
 
 export function BalanceCard({ balance, config }: BalanceCardProps) {
   return (
-    <Section className="-mx-4 bg-gray-100 px-4 py-4">
-      <Block className="rounded-lg bg-white" padding="lg">
+    <Section className="-mx-4 bg-muted px-4 py-4">
+      <Block className="rounded-lg bg-card" padding="lg">
         <Flex direction="column" align="center" gap="xs">
           <Span size="sm" tone="muted">
             保有{config.label}
@@ -29,7 +29,7 @@ export function BalanceCard({ balance, config }: BalanceCardProps) {
             bold
           />
         </Flex>
-        <Block className="mt-4 border-t border-gray-200 pt-4">
+        <Block className="mt-4 border-t border-border pt-4">
           <Flex justify="between" align="center">
             <Span size="sm" tone="muted">
               {config.label}

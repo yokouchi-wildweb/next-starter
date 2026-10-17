@@ -17,9 +17,9 @@ const TYPE_LABELS: Record<string, string> = {
   invite: "ユーザー招待",
 };
 
-const STATUS_CONFIG: Record<string, { text: string; colorClass: string }> = {
-  active: { text: "有効", colorClass: "bg-green-500" },
-  inactive: { text: "無効", colorClass: "bg-gray-500" },
+const STATUS_CONFIG: Record<string, { text: string; variant: DetailModalBadge["variant"] }> = {
+  active: { text: "有効", variant: "success" },
+  inactive: { text: "無効", variant: "muted" },
 };
 
 export type CouponViewModal = {
@@ -45,7 +45,7 @@ export const useCouponViewModal = (couponId: string | null) => {
     const statusConfig = STATUS_CONFIG[coupon.status] ?? STATUS_CONFIG.inactive;
     const badge: DetailModalBadge = {
       text: statusConfig.text,
-      colorClass: statusConfig.colorClass,
+      variant: statusConfig.variant,
     };
 
     // ----- 画像情報の組み立て -----

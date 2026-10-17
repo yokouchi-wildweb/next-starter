@@ -95,7 +95,7 @@ export function DiffView({ before, after }: Props) {
           <span className="shrink-0 text-muted-foreground">→</span>
           <div className="flex-1 min-w-0 truncate">
             {diff.type === "removed" ? (
-              <span className="text-destructive italic">（削除）</span>
+              <span className="text-destructive-text italic">（削除）</span>
             ) : (
               <code className="rounded bg-muted/50 px-1.5 py-0.5 border border-border">
                 {formatValue(diff.after)}

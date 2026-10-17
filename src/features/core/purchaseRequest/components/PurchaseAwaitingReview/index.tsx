@@ -76,7 +76,7 @@ export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
   if (error) {
     return (
       <Stack space={8}>
-        <Para tone="danger" align="center">
+        <Para tone="destructive" align="center">
           {error}
         </Para>
         <Flex justify="center">
@@ -91,7 +91,7 @@ export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
   return (
     <Stack space={8}>
       <Flex direction="column" align="center" gap="md">
-        <Clock className="h-16 w-16 text-warning" />
+        <Clock className="h-16 w-16 text-warning-text" />
 
         <Para align="center" size="lg" weight="bold">
           振込完了の申告を受け付けました

@@ -210,7 +210,7 @@ export default function GooglePopupAuthDemoPage() {
           ) : null}
         </div>
         {errorMessage ? (
-          <Para tone="error" size="sm">
+          <Para tone="destructive" size="sm">
             {errorMessage}
           </Para>
         ) : null}
