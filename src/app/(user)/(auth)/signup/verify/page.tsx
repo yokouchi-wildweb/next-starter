@@ -1,14 +1,4 @@
 // src/app/(user)/(auth)/signup/verify/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { Verification } from "@/features/core/auth/components/Verification";
-
-export default function SignUpVerifyPage() {
-  return (
-    <UserPage containerType="narrowStack" className="text-center items-center">
-      <UserPageTitle>メール認証</UserPageTitle>
-      <Verification />
-    </UserPage>
-  );
-}
+export { SignupVerifyScreen as default } from "./_screen/SignupVerifyScreen";

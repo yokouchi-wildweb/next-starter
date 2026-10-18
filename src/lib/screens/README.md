@@ -117,7 +117,7 @@ export async function loadWalletBalanceScreen(props: ScreenProps<WalletBalanceSc
 - `import "server-only"` 必須（client component から import するとビルドで止まる）
 - `cache()` で包むのは**中身が純粋でも必須**（URL 解釈だけ・redirect だけでも）。一律にしておけば、後からその loader に取得処理を足したとき `generateMetadata` と Screen の二重取得が黙って起きない。コストは 1 行
 - 本人スコープのデータを取る loader は、親 layout の `authGuard` に依存せず自分でも `requireCurrentUser` を呼ぶ（`cache()` 済みで重複コスト無し。機密データの取得をログイン確認なしに行わない）。これは**ログイン確認（セッション + DB レコードの存在）だけ**で、status / role の判定は `(protected)/layout.tsx` の `authGuard` が担う。サーバー側で何も取得しないページは loader 自体を持たない（guard だけの loader は作らない）
-- **どのセッション関数を使うかはルートグループで決まる（ページごとに判断しない）**: `(protected)` 配下（`(user)/(protected)`、`admin/(protected)`）でユーザーが要る loader は `requireCurrentUser({ behavior: "redirect", redirectTo })` のみ（ユーザーが要らない loader、例えば共有の管理画面 loader は何も呼ばない）。`redirectTo` はそのグループの layout の `authGuard` と同じリテラル（user 側 `/login`、admin 側 `/admin/login`）。`getSessionUser()`（nullable）は公開ルートで「ログインしていれば出し分ける」任意パーソナライズ専用。protected 配下で「セッションが無ければ既定値で描く」分岐を書かない（layout が既に redirect した後なので到達しない死にコード）。所有権や存在の秘匿（他人のリクエストは 404）はユーザーを取った後の判定として `notFound()` で行う。`checkLoaderFile` が `(protected)` を含むパスの loader の `getSessionUser` import を失敗にする
+- **どのセッション関数を使うかはルートグループで決まる（ページごとに判断しない）**: `(protected)` 配下（`(user)/(protected)`、`admin/(protected)`）でユーザーが要る loader は `requireCurrentUser({ behavior: "redirect", redirectTo })` のみ（ユーザーが要らない loader、例えば共有の管理画面 loader は何も呼ばない）。`redirectTo` はそのグループの layout の `authGuard` と同じリテラル（user 側 `/login`、admin 側 `/admin/login`）。`getSessionUser()`（nullable）は公開ルート専用: 「ログインしていれば出し分ける」任意パーソナライズと、`(protected)` の外にあるためログイン判定を loader 自身が行うルート（`(auth)` の `/login` のログイン済み redirect、`/restricted` / `/reactivate` の status 分岐。authGuard が通さない status のユーザーを案内する画面なので `(protected)` に置けない）の 2 つ。protected 配下で「セッションが無ければ既定値で描く」分岐を書かない（layout が既に redirect した後なので到達しない死にコード）。所有権や存在の秘匿（他人のリクエストは 404）はユーザーを取った後の判定として `notFound()` で行う。`checkLoaderFile` が `(protected)` を含むパスの loader の `getSessionUser` import を失敗にする
 - 新しいパスリテラルを増やさない。既存の定数・設定に寄せる
 - 複数ルートで共通する判定はドメインの `utils/` に置き、各ルートの loader が呼ぶ。多数のルートが丸ごと同じ loader を使う場合だけ共有 loader（§12）にする
 
@@ -292,7 +292,7 @@ export const FORK_SCAN_EXCLUDES: string[] = [];
 
 | リポジトリ | 場所 |
 |---|---|
-| upstream（core の未移行ルート） | `src/lib/screens/screens.test.mjs` の `UPSTREAM_LEGACY_ROUTES`（Step 5b〜5e で縮め、最後は空） |
+| upstream（core の未移行ルート） | `src/lib/screens/screens.test.mjs` の `UPSTREAM_LEGACY_ROUTES`（Step 5e で空になった。新しい core ルートはスイッチ形で作るので原則増えない） |
 | fork | `src/registry/screenRoutesRegistry.ts` の `FORK_LEGACY_ROUTES`（upstream は空で出荷、作成後は下流所有。同じファイルの `FORK_SCAN_ROOTS` / `FORK_SCAN_EXCLUDES` は走査範囲、§9） |
 
 ```ts

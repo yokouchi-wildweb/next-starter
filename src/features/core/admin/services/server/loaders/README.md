@@ -15,7 +15,6 @@ page.tsx 1 行スイッチ + `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen
 | `loadAdminEditScreen(service, props, fallbackPath)` | 編集 | `service.get`、`props.params.id`、`props.searchParams.returnTo` | `{ id, record, redirectPath }` | レコード無し → 404 |
 | `loadAdminSortScreen(service, sortOrderColumn?)` | 並び替え | `service.searchForSorting` | `{ results }`（sort_order 昇順、NULL 末尾、先頭 100 件） | なし |
 | `loadAdminRelationOptions(domainConfig)` | 追加・編集（全件取得する関連があるとき） | domain.json（`relations` を読む） | `{ [SWR キー]: { [関連先ドメイン]: 全件配列 } }`（`SWRConfig` の fallback にそのまま渡す。対象が無ければ `{}`） | なし |
-| `loadAdminRelationLists({ key: service, ... })` | **非推奨**（旧。fallback のキーがフォームと一致せず使われていなかった） | — | — | checkpoint admin-relation-options-prefetch の次で削除 |
 
 `service` の型は構造的（`search` / `get` / `searchForSorting` を持てばよい）。`createCrudService` の service をそのまま渡せる。
 

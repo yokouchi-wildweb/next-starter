@@ -14,7 +14,7 @@
 // 2. 参照先の Screen が存在し、その名前を named export していて、default export も "use client" も持たない
 // 3. loader は `import "server-only"` と React の cache() を使い load<Xxx> を export する(ルート内・共有とも同じ)
 // 4. まだスイッチ化していない page.tsx は、理由付きで例外リストに載せる(黙って古いままにしない):
-//    upstream = 下の UPSTREAM_LEGACY_ROUTES(Step 5b〜5e で縮め、最後は空)
+//    upstream = 下の UPSTREAM_LEGACY_ROUTES(Step 5e で空になった。新しい core ルートはスイッチ形で作る)
 //    fork     = src/registry/screenRoutesRegistry.ts の FORK_LEGACY_ROUTES
 //    移行が済んだのに残っている行も失敗にする(一覧が縮む方向にしか動かない)
 //
@@ -50,27 +50,11 @@ const read = (path) => readFileSync(resolve(repoRoot, path), "utf8");
 const exists = (path) => existsSync(resolve(repoRoot, path));
 
 /**
- * upstream がまだスイッチ化していない core ルート(理由 = 移行予定のステップ)。
- * 各ステップで移行したら行を外す。全て空になった時点で Step 5 完了
+ * upstream がまだスイッチ化していない core ルート(理由を添える)。
+ * Step 5 完了時点(5e)で空。新しい core ルートはスイッチ形で作るので、原則ここに行は増えない
+ * (やむを得ず残す場合だけ { dir, reason } を足し、移行したら外す。移行済みの行が残っていると失敗する)
  */
-export const UPSTREAM_LEGACY_ROUTES = [
-  { dir: "src/app/(user)/(auth)/demo-login", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/email/verify", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/forgot-password", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/login", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/logout", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/password/reset", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/reactivate", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/reactivate/complete", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/restricted", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/signup", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/signup-closed", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/signup/complete", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/signup/email-sent", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/signup/oauth", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/signup/register", reason: "Step 5e で移行" },
-  { dir: "src/app/(user)/(auth)/signup/verify", reason: "Step 5e で移行" },
-];
+export const UPSTREAM_LEGACY_ROUTES = [];
 
 // ---------------------------------------------------------------------------
 // 検出
@@ -509,7 +493,7 @@ test("例外リストの鮮度: _components への差し替えは移行済み扱
 });
 
 test("checkLoaderFile: 共有 loader(load<Xxx>)も個別 loader(load<Name>Screen)も通る。void loader も純粋な解釈だけの loader も cache() は必須", () => {
-  const good = `import "server-only";\nimport { cache } from "react";\nconst r = cache(async () => 1);\nexport async function loadAdminRelationLists() { return r(); }`;
+  const good = `import "server-only";\nimport { cache } from "react";\nconst r = cache(async () => 1);\nexport async function loadAdminRelationOptions() { return r(); }`;
   assert.deepEqual(checkLoaderFile(good), []);
   const voidLoader = `import "server-only";\nimport { cache } from "react";\nimport { redirect } from "next/navigation";\nexport const loadFriendCouponScreen = cache(async (): Promise<void> => { if (!enabled()) redirect("/mypage"); });`;
   assert.deepEqual(checkLoaderFile(voidLoader), []);

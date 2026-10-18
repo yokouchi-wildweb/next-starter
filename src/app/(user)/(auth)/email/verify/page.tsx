@@ -1,15 +1,4 @@
 // src/app/(user)/(auth)/email/verify/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-
-import { EmailChangeVerification } from "./_components/EmailChangeVerification";
-
-export default function EmailVerifyPage() {
-  return (
-    <UserPage containerType="narrowStack" className="text-center items-center">
-      <UserPageTitle>メールアドレス変更</UserPageTitle>
-      <EmailChangeVerification />
-    </UserPage>
-  );
-}
+export { EmailVerifyScreen as default } from "./_screen/EmailVerifyScreen";

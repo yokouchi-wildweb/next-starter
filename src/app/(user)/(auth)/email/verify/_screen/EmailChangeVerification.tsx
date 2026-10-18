@@ -1,4 +1,6 @@
-// src/app/(user)/(auth)/email/verify/_components/EmailChangeVerification.tsx
+// src/app/(user)/(auth)/email/verify/_screen/EmailChangeVerification.tsx
+// メールアドレス変更の検証部品(既定 Screen 専用、契約外)。oobCode は URL から client 側で読み、
+// 検証と変更は hook(useEmailChangeVerification)が行う。差し替え Screen は ../_screen/EmailChangeVerification を import するか、hook 直結で作り直す
 
 "use client";
 

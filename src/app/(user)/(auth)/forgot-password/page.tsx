@@ -1,17 +1,4 @@
 // src/app/(user)/(auth)/forgot-password/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { Flex } from "@/components/Layout/Flex";
-import { ForgotPassword } from "@/features/core/auth/components/ForgotPassword";
-
-export default function ForgotPasswordPage() {
-  return (
-    <UserPage containerType="narrowStack">
-      <Flex direction="column" justify="center" align="center" gap="md">
-        <UserPageTitle>パスワードをリセット</UserPageTitle>
-        <ForgotPassword />
-      </Flex>
-    </UserPage>
-  );
-}
+export { ForgotPasswordScreen as default } from "./_screen/ForgotPasswordScreen";
