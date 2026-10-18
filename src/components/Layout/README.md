@@ -38,6 +38,7 @@
 
 #### Section
 `as` propで出力要素を変更可能: `section`（default）, `article`, `aside`, `nav`, `header`, `footer`
+選び方は HTML の意味で決める（独立した単位 → `article`、補足 → `aside`、ナビ → `nav`、それ以外 → `section`。生タグは書かない）: `docs/!must-read/UIレイヤーの概念とコンポーネント分割方法.md` §4
 
 #### Main
 `containerType`で幅を制御:

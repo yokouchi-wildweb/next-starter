@@ -2,7 +2,7 @@
 
 上流（next-starter）が出荷するユーザー向けページを、下流 fork が **core を編集せずに** 作り直すための仕組みです。
 新しく覚える語は **2 つだけ**: `_screen/`（page 層の本体を置く場所）と **loader**（page 層が呼ぶサーバー側ロジック）。
-残りは既存の UI レイヤー（ページ / セクションコンテナ / ユニットアイテム / インタラクション部品）そのままです。
+残りは既存の UI レイヤー（ページ / セクションコンテナ / 部品）そのままです。
 
 この構造は上流のルートだけでなく、**fork が作るユーザー向けページにも原則として適用**します（§7）。登録作業はありません。page.tsx を 1 行にして `_screen/` に本体を置けば、`pnpm test:screens` が自動で検出して検査します。
 
@@ -37,7 +37,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | 既定 Screen 専用の部品 | `src/app/<route>/_screen/<Part>.tsx` または `_screen/<dir>/` | ルートを作った側 | 契約外。そのルートの既定 Screen だけが使う部品（例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`、`maintenance/_screen/MaintenanceAutoRedirect.tsx`）。Screen からは相対 import。テストは Screen と `loader.ts` 以外を検査しない。複数ルートで使う部品はドメインの `components/` へ |
 | 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 既存の app-local 置き場。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
 | 共有 loader | `src/features/core/admin/services/server/loaders/` | 上流 | 多数のルートが同じ処理を使うときだけ（dc:generate の管理画面）。ルート 1 つのための loader をここに置かない |
-| セクションコンテナ / ユニットアイテム / インタラクション部品 | `src/features/<domain>/components/` | ドメインの所有者 | 既存どおり |
+| セクションコンテナ / 部品 | `src/features/<domain>/components/` | ドメインの所有者 | 既存どおり |
 | hook / client service | `src/features/<domain>/hooks/`、`services/client/` | ドメインの所有者 | **契約**（既存） |
 
 1 対 1 の意味:
@@ -51,11 +51,10 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 | UI レイヤー（CLAUDE.md `ui_layers` / must-read） | 実体 | 補足 |
 |---|---|---|
-| page / ページ | `page.tsx`（1 行スイッチ）+ `_screen/<Name>Screen.tsx`（本体） | 「SSR の入口、最小限のタグ、hook なし」は不変。ServerService 呼び出しは loader 経由 |
-| section_container / セクションコンテナ | `features/<domain>/components/<Name>/index.tsx`（例: `WalletBalancePage`） | **core の `*Page` という名前のコンポーネントはセクションコンテナ**（page 層ではない。改名は下流の import を壊すので行わない）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格） |
-| unit_item / ユニットアイテム | 同ディレクトリの表示部品（例: `BalanceCard`） | 表示のみ、hook なし |
-| interaction_parts / インタラクション部品 | 通信や router を持つ部品（例: `CouponInput`、`PhoneVerificationRequired`） | `"use client"`、自己完結 |
-| （新規）loader | `src/app/<route>/_screen/loader.ts` | page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる） |
+| page / ページ | `page.tsx`（1 行スイッチ）+ `_screen/<Name>Screen.tsx`（本体） | 「SSR の入口、最小限のタグ、hook なし」は不変。ServerService 呼び出しは loader 経由。hook が要る部分は `_screen/` の `"use client"` 部品へ |
+| section_container / セクションコンテナ | **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`） | 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし。**core の `*Page` という名前の 6 件はセクションコンテナ**（page 層ではない。次の checkpoint で接尾辞なしに改名、旧名は再 export で 1 checkpoint 残す）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）。Screen が import するのは `components/<Name>` まで（検査は次の checkpoint で `pnpm test:screens` に追加） |
+| part / 部品 | コンテナの内側の要素（例: `BalanceCard`、`CouponInput`）。ドメイン共有なら `common/` | 契約外。表示専用でも自己完結した操作付きでもよい。hook を呼ぶのは自己完結するときだけ |
+| （新規）loader | `src/app/<route>/_screen/loader.ts` | page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる）。初回描画に見えるデータは loader が取り `initial<Name>` props で渡す（must-read §3） |
 
 ## 3. 契約（公開 API）と変更規則
 
@@ -66,7 +65,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | C. hook | `features/<domain>/hooks/` の export | 下流のセクションコンテナが直接呼ぶ |
 | D. セクションコンテナのトップレベル props | 例: `WalletBalancePage` の `slug / phoneVerifiedAt / currentPhoneNumber` | 下流の Screen が既定のセクションコンテナを描く |
 
-契約外: ユニットアイテム / インタラクション部品の props とファイル配置、Screen の中身、セクションコンテナの内部構造。
+契約外: 部品の props とファイル配置、Screen の中身、セクションコンテナの内部構造。
 
 変更規則:
 - **追加**（新 loader / 新 hook / 返り値や props のフィールド追加 / optional 引数の追加）は自由
@@ -146,17 +145,19 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 ```
 
 - Next は default export に page props をそのまま渡すので、re-export で `params` / `searchParams` が Screen に届く
-- **Screen は Server Component**。`"use client"` は付けない（テストが弾く）。hook や状態が必要な部分は client のセクションコンテナ / インタラクション部品に下ろし、Screen はそれを描くだけにする
+- **Screen は Server Component**。`"use client"` は付けない（テストが弾く）。hook や状態が必要な部分は client のセクションコンテナか `_screen/` の client 部品に下ろし、Screen はそれを描くだけにする
 - グループごとに形が違う: `mypage` 配下は layout が `UserPage` + `Stack` + `PageTransition` を巻くので Screen は fragment を返す。`wallet` は Screen が `UserPage` を持つ
 - 親 layout の役割（`(protected)/layout.tsx` の認可、root layout の `AuthSessionProvider`）は Screen が前提にする。差し替えは「同じルート内」が基本条件
 - `metadata` は Screen 側に書いて page.tsx から `export { XScreen as default, metadata } from "./_screen/XScreen"` と re-export してもよい（`generateMetadata` / `viewport` も同様）。`dynamic` 等のセグメント設定は Next が静的解析するため page.tsx 自体に書く
 
 ## 6. セクションコンテナの条件（契約 D）
 
+- Screen から見える公開パスは `features/<domain>/components/<Name>` まで（`<Name>/index.tsx` または `<Name>.tsx`）。`<Name>/<Part>` と `common/<X>` は部品なので Screen から読まない（検査は次の checkpoint で `pnpm test:screens` に追加）
 - 内部の部品 import は絶対パス（`@/features/core/wallet/components/WalletBalancePage/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を複製しても import を触らずに動く
 - `index.tsx` が `"use client"` のとき、barrel 経由の部品は client 境界になる（Server Component から使いたい部品は部品ファイルを直接 import する）
 - client service の直叩きは hook に昇格する
-- `"use client"` の位置はセクションコンテナ以下。`server-only` な loader を呼ぶのは Screen だけ
+- 初回描画に見えるデータを loader が取るときは、任意の `initial<Name>` props で受け取り hook の `fallbackData` に流す（must-read §3）。props が無ければ hook が取る
+- `"use client"` の位置はセクションコンテナ以下（または `_screen/` の client 部品）。`server-only` な loader を呼ぶのは Screen だけ
 
 ---
 

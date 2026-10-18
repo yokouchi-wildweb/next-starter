@@ -1,5 +1,5 @@
 // src/features/core/user/components/UserMyPage/AccountAvatarSection.tsx
-// インタラクション部品(アバターの変更・削除)。HTTP は useUpdateMyProfile 経由(client service を直接呼ばない)
+// 自己完結した部品(アバターの変更・削除)。HTTP は useUpdateMyProfile 経由(client service を直接呼ばない)
 
 "use client";
 
