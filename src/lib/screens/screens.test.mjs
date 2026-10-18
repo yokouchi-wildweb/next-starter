@@ -54,12 +54,6 @@ const exists = (path) => existsSync(resolve(repoRoot, path));
  * 各ステップで移行したら行を外す。全て空になった時点で Step 5 完了
  */
 export const UPSTREAM_LEGACY_ROUTES = [
-  { dir: "src/app/(user)/(protected)/wallet/[slug]/purchase", reason: "Step 5b で移行" },
-  { dir: "src/app/(user)/(protected)/wallet/[slug]/purchase/awaiting-review", reason: "Step 5b で移行" },
-  { dir: "src/app/(user)/(protected)/wallet/[slug]/purchase/bank-transfer/[requestId]", reason: "Step 5b で移行" },
-  { dir: "src/app/(user)/(protected)/wallet/[slug]/purchase/callback", reason: "Step 5b で移行" },
-  { dir: "src/app/(user)/(protected)/wallet/[slug]/purchase/complete", reason: "Step 5b で移行" },
-  { dir: "src/app/(user)/(protected)/wallet/[slug]/purchase/failed", reason: "Step 5b で移行" },
   { dir: "src/app/(user)/(protected)/mypage", reason: "Step 5c で移行" },
   { dir: "src/app/(user)/(protected)/mypage/account", reason: "Step 5c で移行" },
   { dir: "src/app/(user)/(protected)/mypage/account/email", reason: "Step 5c で移行" },
@@ -393,14 +387,23 @@ test("検出範囲: wallet ルート(あれば)と生成された管理画面ル
   assert.equal([...pageDirs].some((d) => d.startsWith("src/app/(user)/demo")), false);
 });
 
-test("検出範囲: ルート内 loader(wallet 3 件、あれば)が検出され、旧パスの再 export shim は共有 loader に数えない", () => {
+test("検出範囲: ルート内 loader(wallet 配下 9 件、あれば)が検出され、共有 loader は admin のものが検出される", () => {
   if (hasWallet) {
-    assert.ok(routeLoaders.includes(`${walletDir}/_screen/loader.ts`));
-    assert.ok(routeLoaders.includes(`${walletDir}/[slug]/_screen/loader.ts`));
-    assert.ok(routeLoaders.includes(`${walletDir}/[slug]/history/_screen/loader.ts`));
+    for (const route of [
+      "",
+      "/[slug]",
+      "/[slug]/history",
+      "/[slug]/purchase",
+      "/[slug]/purchase/awaiting-review",
+      "/[slug]/purchase/bank-transfer/[requestId]",
+      "/[slug]/purchase/callback",
+      "/[slug]/purchase/complete",
+      "/[slug]/purchase/failed",
+    ]) {
+      assert.ok(routeLoaders.includes(`${walletDir}${route}/_screen/loader.ts`), `${walletDir}${route} の loader が検出されていない`);
+    }
   }
   const shared = discoverSharedLoaders();
-  assert.equal(shared.some((l) => l.startsWith("src/features/core/wallet/")), false, "wallet の旧パス shim が loader 扱いになっている");
   assert.ok(shared.some((l) => l.startsWith("src/features/core/admin/services/server/loaders/")), "管理画面の共有 loader が検出されていない");
 });
 
@@ -423,7 +426,8 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
   const ok = `
     import type { Metadata } from "next";
     import { createMetadata } from "@/lib/metadata";
-    import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "@/features/core/wallet/services/server/loaders/walletBalance";
+    import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "./_screen/loader";
+    import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
     import type { ScreenProps } from "@/lib/screens/types";
 
     export const dynamic = "force-dynamic";

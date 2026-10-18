@@ -18,7 +18,6 @@
 
 import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import { mutate as swrMutate } from "swr";
 
 import Modal from "@/components/Overlays/Modal";
 import { Block } from "@/components/Layout/Block";
@@ -33,10 +32,8 @@ import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors/httpError";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 
-import { submitBankTransferProof } from "@/features/core/bankTransferReview";
-
-/** useActiveBankTransfer の SWR key と一致させる */
-const ACTIVE_BANK_TRANSFER_KEY = "/api/wallet/purchase/bank-transfer/active";
+// HTTP は useSubmitBankTransferProof 経由（client service を直接呼ばない）。active 振込のキャッシュ無効化も hook が行う
+import { useSubmitBankTransferProof } from "@/features/core/bankTransferReview/hooks/useSubmitBankTransferProof";
 
 /**
  * サーバーから受け取った redirectUrl が「同一オリジン内の相対 URL」かを検証する。
@@ -79,6 +76,7 @@ export function ConfirmTransferModal({
   const [agreed, setAgreed] = useState(false);
   const [unverifiedNote, setUnverifiedNote] = useState("");
   const { showToast } = useToast();
+  const { trigger: submitProof } = useSubmitBankTransferProof();
 
   // 不承認申告ではメモ（空白のみは不可）が必須。サーバー側でも同条件で 400 になる。
   const noteFilled = unverifiedNote.trim() !== "";
@@ -93,16 +91,14 @@ export function ConfirmTransferModal({
       // 通貨付与の有無に応じてサーバー側が redirectUrl を返す:
       //   - 付与済み (即時モード) → /wallet/[slug]/purchase/complete?...
       //   - 未付与 (確認待ち / 不承認申告の要確認) → /wallet/[slug]/purchase/awaiting-review
-      const result = await submitBankTransferProof({
+      // 申告完了で active 状態（pending_review / pre_submit）が変わるため hook が SWR キャッシュを無効化する。
+      // 通常は直後の window.location.href で full reload されるが、redirectUrl が空のフォールバック
+      // パスや別タブでバナーを表示中のケースをカバーする。
+      const result = await submitProof({
         purchaseRequestId: requestId,
         proofImageUrl,
         ...(judgmentFailed ? { unverifiedNote: unverifiedNote.trim() } : {}),
       });
-
-      // 申告完了で active 状態（pending_review / pre_submit）が変わるため SWR キャッシュを無効化。
-      // 通常は直後の window.location.href で full reload されるが、redirectUrl が空のフォールバック
-      // パスや別タブでバナーを表示中のケースをカバーする。
-      await swrMutate(ACTIVE_BANK_TRANSFER_KEY);
 
       if (result.redirectUrl) {
         if (!isSafeRelativeRedirect(result.redirectUrl)) {

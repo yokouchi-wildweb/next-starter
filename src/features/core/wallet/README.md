@@ -885,7 +885,6 @@ src/features/core/wallet/
 │   └── server/
 │       ├── walletService.ts  # メインサービス
 │       ├── drizzleBase.ts    # ベースCRUD
-│       ├── loaders/          # 旧パスの再 export だけ(削除予定)。loader 本体は各ルートの _screen/loader.ts(src/app/(user)/(protected)/wallet/**)
 │       ├── notification/
 │       │   ├── adjustmentNotificationTemplate.ts  # 通知テンプレート（文言カスタマイズ用）
 │       │   └── sendAdjustmentNotification.ts      # 残高変更通知の送信

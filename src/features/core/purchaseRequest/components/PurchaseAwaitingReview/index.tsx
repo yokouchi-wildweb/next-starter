@@ -6,10 +6,11 @@
 //   - AI 判定不承認のままの申告（needs_check / 運営による入金確認待ち）
 // 申告済みであることと「確認後に付与される」ことを伝え、購入情報を再掲する。
 // 万一通貨付与まで完了していた場合（リロードや古いリンクからの再訪）は完了画面へ誘導する。
+// セクションコンテナ。HTTP は usePurchaseStatus 経由(client service を直接呼ばない)
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Clock } from "lucide-react";
 import { Stack } from "@/components/Layout/Stack";
@@ -17,13 +18,10 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
-import {
-  getPurchaseStatus,
-  type PurchaseStatusResponse,
-} from "../../services/client/purchaseRequestClient";
+import { usePurchaseStatus } from "@/features/core/purchaseRequest/hooks/usePurchaseStatus";
 import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/features/core/wallet";
 
-type PurchaseAwaitingReviewProps = {
+export type PurchaseAwaitingReviewProps = {
   /** URLスラッグ */
   slug: string;
 };
@@ -34,36 +32,22 @@ export function PurchaseAwaitingReview({ slug }: PurchaseAwaitingReviewProps) {
   const searchParams = useSearchParams();
   const requestId = searchParams.get("request_id");
 
-  const [purchaseInfo, setPurchaseInfo] = useState<PurchaseStatusResponse | null>(null);
-  // requestId 無しは取得を試みないため、初期 loading も false から始める
-  const [loading, setLoading] = useState(requestId !== null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  // requestId 欠落は state ではなく描画時に導出する（effect 内での同期 setState を避ける）
-  const error = !requestId ? "リクエストIDが指定されていません。" : fetchError;
+  const { data: purchaseInfo, error: fetchError, isLoading } = usePurchaseStatus(requestId);
+  // 既に付与済み（確認が完了した後の再訪等）なら完了画面に差し替える
+  const completed = purchaseInfo?.status === "completed";
+  // requestId 欠落は描画時に導出する(取得は行わない)
+  const error = !requestId
+    ? "リクエストIDが指定されていません。"
+    : fetchError
+      ? "購入情報の取得に失敗しました。"
+      : null;
+  // 完了画面へ遷移する場合は、遷移までスピナーを出し続ける
+  const loading = requestId !== null && (isLoading || completed);
 
   useEffect(() => {
-    if (!requestId) return;
-
-    const fetchStatus = async () => {
-      try {
-        const status = await getPurchaseStatus(requestId);
-        // 既に付与済み（確認が完了した後の再訪等）なら完了画面に差し替える。
-        // この場合 loading は true のままにして遷移までスピナーを出し続ける。
-        if (status.status === "completed") {
-          router.replace(`/wallet/${slug}/purchase/complete?request_id=${requestId}`);
-          return;
-        }
-        setPurchaseInfo(status);
-        setLoading(false);
-      } catch (err) {
-        console.error("Failed to fetch purchase status:", err);
-        setFetchError("購入情報の取得に失敗しました。");
-        setLoading(false);
-      }
-    };
-
-    fetchStatus();
-  }, [requestId, router, slug]);
+    if (!requestId || !completed) return;
+    router.replace(`/wallet/${slug}/purchase/complete?request_id=${requestId}`);
+  }, [completed, requestId, router, slug]);
 
   if (loading) {
     return (

@@ -11,11 +11,12 @@
 //   二重送信ガードは Dialog 側に委ねている。
 // - redirectUrl はサーバー側で組み立てたものを信頼する（Open Redirect 防御として
 //   "/" 始まりの相対 URL であることだけ確認）。
+// - HTTP は useCancelPurchase 経由（client service を直接呼ばない）。active 振込の
+//   キャッシュ無効化も hook が行う。
 
 "use client";
 
 import { useState } from "react";
-import { mutate as swrMutate } from "swr";
 
 import { Dialog } from "@/components/Overlays/Dialog";
 import { Flex } from "@/components/Layout/Flex";
@@ -25,10 +26,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors/httpError";
 
-import { cancelPurchase } from "@/features/core/purchaseRequest/services/client/purchaseRequestClient";
-
-/** useActiveBankTransfer の SWR key と一致させる */
-const ACTIVE_BANK_TRANSFER_KEY = "/api/wallet/purchase/bank-transfer/active";
+import { useCancelPurchase } from "@/features/core/purchaseRequest/hooks/useCancelPurchase";
 
 /**
  * サーバーから受け取った redirectUrl が「同一オリジン内の相対 URL」かを検証する
@@ -47,13 +45,11 @@ type Props = {
 export function CancelTransferButton({ requestId }: Props) {
   const [open, setOpen] = useState(false);
   const { showToast } = useToast();
+  const { trigger: cancel } = useCancelPurchase();
 
   const handleConfirm = async () => {
     try {
-      const result = await cancelPurchase(requestId);
-
-      // active 状態（pending_review / pre_submit）が消えるはずなのでキャッシュ無効化
-      await swrMutate(ACTIVE_BANK_TRANSFER_KEY);
+      const result = await cancel(requestId);
 
       if (result.redirectUrl && isSafeRelativeRedirect(result.redirectUrl)) {
         window.location.href = result.redirectUrl;

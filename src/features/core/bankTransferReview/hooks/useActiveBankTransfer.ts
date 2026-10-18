@@ -21,9 +21,13 @@ import {
   type ActiveBankTransferResponse,
 } from "@/features/core/bankTransferReview";
 
-/** SWR のキャッシュキー（API パスをそのまま採用して衝突を避ける） */
-const SWR_KEY = "/api/wallet/purchase/bank-transfer/active";
+/**
+ * SWR のキャッシュキー（API パスをそのまま採用して衝突を避ける）。
+ * active 状態を変える mutation フック（useCancelPurchase / useSubmitBankTransferProof）が
+ * revalidateKey として import する。文字列を複製しない
+ */
+export const ACTIVE_BANK_TRANSFER_KEY = "/api/wallet/purchase/bank-transfer/active";
 
 export function useActiveBankTransfer() {
-  return useSWR<ActiveBankTransferResponse>(SWR_KEY, () => getActiveBankTransfer());
+  return useSWR<ActiveBankTransferResponse>(ACTIVE_BANK_TRANSFER_KEY, () => getActiveBankTransfer());
 }

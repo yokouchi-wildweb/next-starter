@@ -8,6 +8,9 @@
 // - true:  ① 口座 → ② 画像 → ③ AI 判定 → ④ 申告
 // - false: ① 口座 → ② 画像 → ③ 申告（AI 判定セクション非表示）
 // ステップ番号は親で動的計算し、各セクションに step props で渡す。
+//
+// セクションコンテナ(名前の *Page は歴史的なもの)。部品の import は絶対パス:
+// 下流がこのファイルを _components/ に複製しても import を直さずに動く
 
 "use client";
 
@@ -16,20 +19,34 @@ import { useState } from "react";
 import { Stack } from "@/components/Layout/Stack";
 import type { BankTransferConfig } from "@/config/app/payment.config";
 
-import { AccountInfoCard } from "./AccountInfoCard";
-import { AmountDisplay } from "./AmountDisplay";
-import { CancelTransferButton } from "./CancelTransferButton";
-import { ConfirmTransferCTA } from "./ConfirmTransferCTA";
+import { AccountInfoCard } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/AccountInfoCard";
+import { AmountDisplay } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/AmountDisplay";
+import { CancelTransferButton } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/CancelTransferButton";
+import { ConfirmTransferCTA } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/ConfirmTransferCTA";
 import {
   ImageJudgmentSection,
   isJudgmentPassed,
   type JudgmentResult,
-} from "./ImageJudgmentSection";
-import { PrepareProofImage } from "./PrepareProofImage";
-import { SaveBookmarkButton } from "./SaveBookmarkButton";
-import { StepConnector } from "./StepConnector";
-import { StrictModeNoticeDialog } from "./StrictModeNoticeDialog";
-import { UnverifiedSubmitNoticeDialog } from "./UnverifiedSubmitNoticeDialog";
+} from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/ImageJudgmentSection";
+import { PrepareProofImage } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/PrepareProofImage";
+import { SaveBookmarkButton } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/SaveBookmarkButton";
+import { StepConnector } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/StepConnector";
+import { StrictModeNoticeDialog } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/StrictModeNoticeDialog";
+import { UnverifiedSubmitNoticeDialog } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage/UnverifiedSubmitNoticeDialog";
+
+// 部品の barrel export: 下流が Screen やセクションコンテナを複製するときはここから import する
+export {
+  AccountInfoCard,
+  AmountDisplay,
+  CancelTransferButton,
+  ConfirmTransferCTA,
+  ImageJudgmentSection,
+  PrepareProofImage,
+  SaveBookmarkButton,
+  StepConnector,
+  StrictModeNoticeDialog,
+  UnverifiedSubmitNoticeDialog,
+};
 
 export type BankTransferInstructionPageProps = {
   /** purchase_request の ID（画像アップロードのパスに使用） */

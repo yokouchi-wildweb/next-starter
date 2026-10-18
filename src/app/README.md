@@ -36,7 +36,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 - 差し替え: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
 - `pnpm test:screens` が `(user)/**` と `(marketing)/**` の page.tsx を自動検出して検査する（登録不要）。fork が `src/app` 直下に作った独自エリア（`store/` 等）はエリア単位で `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_ROOTS` に 1 行書く（未登録のまま置くとテストが指摘する）。スイッチ形でない page.tsx は、理由付きの例外リスト（上流: `UPSTREAM_LEGACY_ROUTES`、fork: 同 registry の `FORK_LEGACY_ROUTES`）に無ければ失敗する
-- 上流がまだ移行していないルート（現在 38。wallet 3 ルートは移行済み）は `UPSTREAM_LEGACY_ROUTES` に載っており、段階的に移行して `.notices` で通知する
+- 上流がまだ移行していないルート（現在 32。wallet 配下 9 ルートは移行済み）は `UPSTREAM_LEGACY_ROUTES` に載っており、段階的に移行して `.notices` で通知する
 
 ### トップページ（`(user)/page.tsx`）の差し替え
 

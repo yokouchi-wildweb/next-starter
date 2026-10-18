@@ -1,4 +1,6 @@
 // src/features/core/wallet/components/WalletPurchasePage/index.tsx
+// セクションコンテナ(購入・決済方法選択)。page 層ではない(名前の *Page は歴史的なもの)。
+// 部品の import は絶対パス: 下流がこのファイルを _components/ に複製しても import を直さずに動く
 
 "use client";
 
@@ -15,10 +17,13 @@ import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/co
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
 
-import { PurchaseSuspended } from "../common/PurchaseSuspended";
-import { CurrencyPurchase } from "./CurrencyPurchase";
+import { PurchaseSuspended } from "@/features/core/wallet/components/common/PurchaseSuspended";
+import { CurrencyPurchase } from "@/features/core/wallet/components/WalletPurchasePage/CurrencyPurchase";
 
-type WalletPurchasePageProps = {
+// 部品の barrel export: 下流が Screen やセクションコンテナを複製するときはここから import する
+export { CurrencyPurchase };
+
+export type WalletPurchasePageProps = {
   /** URLスラッグ */
   slug: string;
 };

@@ -1,8 +1,9 @@
 // src/features/core/purchaseRequest/components/PurchaseComplete/index.tsx
+// セクションコンテナ(購入完了)。HTTP は usePurchaseStatus 経由(client service を直接呼ばない)
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle } from "lucide-react";
 import { Stack } from "@/components/Layout/Stack";
@@ -10,16 +11,13 @@ import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
-import {
-  getPurchaseStatus,
-  type PurchaseStatusResponse,
-} from "../../services/client/purchaseRequestClient";
+import { usePurchaseStatus } from "@/features/core/purchaseRequest/hooks/usePurchaseStatus";
 import { CurrencyDisplay, getCurrencyConfigBySlug } from "@/features/core/wallet";
 import { useGoogleAdsConversion } from "@/lib/googleTag";
 import { MilestoneNotifications } from "@/features/core/milestone/components/MilestoneNotifications";
 import type { PersistedMilestoneResult } from "@/features/core/milestone/types/milestone";
 
-type PurchaseCompleteProps = {
+export type PurchaseCompleteProps = {
   /** URLスラッグ */
   slug: string;
 };
@@ -29,9 +27,14 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
   const searchParams = useSearchParams();
   const requestId = searchParams.get("request_id");
 
-  const [purchaseInfo, setPurchaseInfo] = useState<PurchaseStatusResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: purchaseInfo, error: fetchError, isLoading } = usePurchaseStatus(requestId);
+  // requestId 欠落は描画時に導出する(取得は行わない)
+  const error = !requestId
+    ? "リクエストIDが指定されていません。"
+    : fetchError
+      ? "購入情報の取得に失敗しました。"
+      : null;
+  const loading = requestId !== null && isLoading;
 
   // コイン購入完了コンバージョン（status==="completed" 時のみ・transaction_id で dedup。env 未設定なら no-op）
   const { fire } = useGoogleAdsConversion();
@@ -44,28 +47,6 @@ export function PurchaseComplete({ slug }: PurchaseCompleteProps) {
       transactionId: requestId,
     });
   }, [purchaseInfo, requestId, fire]);
-
-  useEffect(() => {
-    if (!requestId) {
-      setError("リクエストIDが指定されていません。");
-      setLoading(false);
-      return;
-    }
-
-    const fetchStatus = async () => {
-      try {
-        const status = await getPurchaseStatus(requestId);
-        setPurchaseInfo(status);
-      } catch (err) {
-        console.error("Failed to fetch purchase status:", err);
-        setError("購入情報の取得に失敗しました。");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStatus();
-  }, [requestId]);
 
   if (loading) {
     return (
