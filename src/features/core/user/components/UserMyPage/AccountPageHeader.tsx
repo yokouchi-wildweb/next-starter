@@ -1,20 +1,3 @@
 // src/features/core/user/components/UserMyPage/AccountPageHeader.tsx
-
-import { SecTitle } from "@/components/TextBlocks";
-
-import { AccountBackButton } from "./AccountBackButton";
-
-type AccountPageHeaderProps = {
-  title: string;
-  backHref: string;
-  backDisabled?: boolean;
-};
-
-export function AccountPageHeader({ title, backHref, backDisabled }: AccountPageHeaderProps) {
-  return (
-    <div className="flex items-center gap-3">
-      <AccountBackButton href={backHref} disabled={backDisabled} />
-      <SecTitle as="h2" className="!mt-0">{title}</SecTitle>
-    </div>
-  );
-}
+// @deprecated 旧パス互換の shim(checkpoint ui-layers-rename で改名)。次の checkpoint で削除する。import 先を @/features/core/user/components/common/AccountPageHeader に直す
+export * from "@/features/core/user/components/common/AccountPageHeader";

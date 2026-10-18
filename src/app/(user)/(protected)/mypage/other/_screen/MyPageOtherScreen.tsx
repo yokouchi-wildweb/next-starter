@@ -6,7 +6,7 @@
 // mypage 配下は layout が UserPage を巻くので fragment を返す
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { OtherActions } from "@/features/core/user/components/UserMyPage/OtherActions";
+import { OtherActions } from "@/features/core/user/components/OtherActions";
 
 export function MyPageOtherScreen() {
   return (

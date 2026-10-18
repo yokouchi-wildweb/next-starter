@@ -903,9 +903,9 @@ src/features/core/wallet/
 ├── components/               # UIコンポーネント
 │   ├── common/
 │   │   └── CurrencyDisplay/
-│   ├── WalletIndexPage/      # セクションコンテナ(*Page は歴史的な名前。page 層ではない)
-│   ├── WalletBalancePage/    # 同上。部品は index.tsx から barrel export
-│   ├── WalletHistoryPage/    # 同上
+│   ├── WalletList/           # セクションコンテナ(ウォレット一覧)
+│   ├── WalletBalance/    # 同上。部品は index.tsx から barrel export
+│   ├── WalletHistory/    # 同上
 │   └── AdminWalletAdjustModal/
 │
 ├── types/

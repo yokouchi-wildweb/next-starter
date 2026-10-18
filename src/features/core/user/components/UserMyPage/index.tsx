@@ -1,9 +1,9 @@
 // src/features/core/user/components/UserMyPage/index.tsx
-
-export { MainMenu } from "./MainMenu";
-export { AccountDetails } from "./AccountDetails";
-export { OtherActions } from "./OtherActions";
-export { EditProfile } from "./EditProfile";
-export { EditEmail } from "./EditEmail";
-export { EditPassword } from "./EditPassword";
-export { EditPhone } from "./EditPhone";
+// @deprecated 旧パス互換の shim(旧 barrel。checkpoint ui-layers-rename で各コンテナを src/features/core/user/components/<Name> へ昇格)。次の checkpoint で削除する
+export { MainMenu } from "@/features/core/user/components/MainMenu";
+export { AccountDetails } from "@/features/core/user/components/AccountDetails";
+export { OtherActions } from "@/features/core/user/components/OtherActions";
+export { EditProfile } from "@/features/core/user/components/EditProfile";
+export { EditEmail } from "@/features/core/user/components/EditEmail";
+export { EditPassword } from "@/features/core/user/components/EditPassword";
+export { EditPhone } from "@/features/core/user/components/EditPhone";

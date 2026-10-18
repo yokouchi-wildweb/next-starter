@@ -7,7 +7,7 @@ import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens/types";
-import { BankTransferInstructionPage } from "@/features/core/purchaseRequest/components/BankTransferInstructionPage";
+import { BankTransferInstruction } from "@/features/core/purchaseRequest/components/BankTransferInstruction";
 
 import {
   loadWalletPurchaseBankTransferScreen,
@@ -23,7 +23,7 @@ export async function WalletPurchaseBankTransferScreen(
     <UserPage containerType="narrowStack">
       <Stack space={3}>
         <UserPageTitle>銀行振込のご案内</UserPageTitle>
-        <BankTransferInstructionPage
+        <BankTransferInstruction
           requestId={data.requestId}
           paymentAmount={data.paymentAmount}
           account={data.account}

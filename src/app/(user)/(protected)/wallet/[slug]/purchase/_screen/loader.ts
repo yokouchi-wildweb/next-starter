@@ -3,7 +3,7 @@
 // 規則と差し替え手順: src/lib/screens/README.md §4
 //
 // 仕様: 未知の slug は notFound。サーバー側の取得は無く、通貨設定(表示名)を解決して返すだけ。
-// 本人の残高や進行中の振込はセクションコンテナ(WalletPurchasePage)が hook で取得する。
+// 本人の残高や進行中の振込はセクションコンテナ(WalletPurchase)が hook で取得する。
 
 import "server-only";
 import { cache } from "react";

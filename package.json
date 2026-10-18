@@ -16,6 +16,7 @@
     "test:fonts": "npx tsx --test src/lib/fonts/fonts.test.mjs",
     "test:style-tokens": "node --test src/styles/styleTokens.test.mjs",
     "test:style-lint": "node --test eslint-rules/style-tokens.test.mjs",
+    "test:deprecated-imports": "node --test eslint-rules/deprecated-imports.test.mjs",
     "test:variant-overrides": "npx tsx --test src/lib/variantOverrides/variantOverrides.test.mjs",
     "test:screens": "npx tsx --test src/lib/screens/screens.test.mjs",
     "test:relation-options": "node --test src/lib/domain/relations/relationOptions.test.mjs",

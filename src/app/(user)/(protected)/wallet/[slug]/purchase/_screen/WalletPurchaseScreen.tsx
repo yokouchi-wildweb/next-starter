@@ -7,7 +7,7 @@ import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens/types";
-import { WalletPurchasePage } from "@/features/core/wallet/components/WalletPurchasePage";
+import { WalletPurchase } from "@/features/core/wallet/components/WalletPurchase";
 
 import { loadWalletPurchaseScreen, type WalletPurchaseScreenParams } from "./loader";
 
@@ -18,7 +18,7 @@ export async function WalletPurchaseScreen(props: ScreenProps<WalletPurchaseScre
     <UserPage containerType="narrowStack">
       <Stack space={6}>
         <UserPageTitle>{data.label}購入</UserPageTitle>
-        <WalletPurchasePage slug={data.slug} />
+        <WalletPurchase slug={data.slug} />
       </Stack>
     </UserPage>
   );

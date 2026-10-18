@@ -52,7 +52,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | UI レイヤー（CLAUDE.md `ui_layers` / must-read） | 実体 | 補足 |
 |---|---|---|
 | page / ページ | `page.tsx`（1 行スイッチ）+ `_screen/<Name>Screen.tsx`（本体） | 「SSR の入口、最小限のタグ、hook なし」は不変。ServerService 呼び出しは loader 経由。hook が要る部分は `_screen/` の `"use client"` 部品へ |
-| section_container / セクションコンテナ | **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`） | 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし。**core の `*Page` という名前の 6 件はセクションコンテナ**（page 層ではない。次の checkpoint で接尾辞なしに改名、旧名は再 export で 1 checkpoint 残す）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）。Screen が import するのは `components/<Name>` まで（検査は次の checkpoint で `pnpm test:screens` に追加） |
+| section_container / セクションコンテナ | **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`） | 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（旧 `*Page` 名は checkpoint ui-layers-rename で改名済み。旧パスの shim は次の checkpoint で削除）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）。Screen が import するのは `components/<Name>` まで（`pnpm test:screens` が検査） |
 | part / 部品 | コンテナの内側の要素（例: `BalanceCard`、`CouponInput`）。ドメイン共有なら `common/` | 契約外。表示専用でも自己完結した操作付きでもよい。hook を呼ぶのは自己完結するときだけ |
 | （新規）loader | `src/app/<route>/_screen/loader.ts` | page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる）。初回描画に見えるデータは loader が取り `initial<Name>` props で渡す（must-read §3） |
 
@@ -63,7 +63,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | A. Screen の入口 | `_screen/<Name>Screen.tsx` のファイル名と named export `<Name>Screen`、受け取る props（`ScreenProps`） | page.tsx が下流所有になった瞬間、上流は変えられない |
 | B. loader | `_screen/loader.ts` の `load<Name>Screen(props)` の名前・引数・返り値型・redirect / notFound 条件。入力型 `<Name>ScreenParams` / `<Name>ScreenSearchParams` と返り値型 `<Name>ScreenData` は loader が定義して export する | 下流の Screen が直接呼ぶ。型の所有者が契約の所有者 |
 | C. hook | `features/<domain>/hooks/` の export | 下流のセクションコンテナが直接呼ぶ |
-| D. セクションコンテナのトップレベル props | 例: `WalletBalancePage` の `slug / phoneVerifiedAt / currentPhoneNumber` | 下流の Screen が既定のセクションコンテナを描く |
+| D. セクションコンテナのトップレベル props | 例: `WalletBalance` の `slug / phoneVerifiedAt / currentPhoneNumber` | 下流の Screen が既定のセクションコンテナを描く |
 
 契約外: 部品の props とファイル配置、Screen の中身、セクションコンテナの内部構造。
 
@@ -132,7 +132,7 @@ export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreen
     <UserPage containerType="narrowStack">
       <Stack space={6}>
         <UserPageTitle>{data.label}管理</UserPageTitle>
-        <WalletBalancePage slug={data.slug} phoneVerifiedAt={data.phoneVerifiedAt} currentPhoneNumber={data.phoneNumber} />
+        <WalletBalance slug={data.slug} phoneVerifiedAt={data.phoneVerifiedAt} currentPhoneNumber={data.phoneNumber} />
       </Stack>
     </UserPage>
   );
@@ -152,8 +152,8 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 
 ## 6. セクションコンテナの条件（契約 D）
 
-- Screen から見える公開パスは `features/<domain>/components/<Name>` まで（`<Name>/index.tsx` または `<Name>.tsx`）。`<Name>/<Part>` と `common/<X>` は部品なので Screen から読まない（検査は次の checkpoint で `pnpm test:screens` に追加）
-- 内部の部品 import は絶対パス（`@/features/core/wallet/components/WalletBalancePage/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を複製しても import を触らずに動く
+- Screen から見える公開パスは `features/<domain>/components/<Name>` まで（`<Name>/index.tsx` または `<Name>.tsx`）。`<Name>/<Part>` と `common/<X>` は部品なので Screen から読まない（`pnpm test:screens` が検査）
+- 内部の部品 import は絶対パス（`@/features/core/wallet/components/WalletBalance/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を複製しても import を触らずに動く
 - `index.tsx` が `"use client"` のとき、barrel 経由の部品は client 境界になる（Server Component から使いたい部品は部品ファイルを直接 import する）
 - client service の直叩きは hook に昇格する
 - 初回描画に見えるデータを loader が取るときは、任意の `initial<Name>` props で受け取り hook の `fallbackData` に流す（must-read §3）。props が無ければ hook が取る
@@ -218,7 +218,7 @@ import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens/types";
-import { WalletBalancePage } from "@/features/core/wallet/components/WalletBalancePage";
+import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
 
 import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "../_screen/loader"; // 上流の loader をそのまま呼ぶ
 
@@ -228,7 +228,7 @@ export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreen
     <UserPage containerType="wideShowcase">
       <Stack space={10}>
         <UserPageTitle>{data.label}</UserPageTitle>
-        <WalletBalancePage slug={data.slug} phoneVerifiedAt={data.phoneVerifiedAt} currentPhoneNumber={data.phoneNumber} />
+        <WalletBalance slug={data.slug} phoneVerifiedAt={data.phoneVerifiedAt} currentPhoneNumber={data.phoneNumber} />
       </Stack>
     </UserPage>
   );
@@ -242,16 +242,16 @@ export { WalletBalanceScreen as default } from "./_components/WalletBalanceScree
 
 ### 8.2 セクションコンテナも複製して部品を 1 つ差し替える
 
-`src/features/core/wallet/components/WalletBalancePage/index.tsx` を `src/app/(user)/(protected)/wallet/[slug]/_components/WalletBalancePage.tsx` にコピーし、差し替えたい部品の import だけを自分のものに変える。残りの部品と hook は core から絶対パスで import されたまま動く。
+`src/features/core/wallet/components/WalletBalance/index.tsx` を `src/app/(user)/(protected)/wallet/[slug]/_components/WalletBalance.tsx` にコピーし、差し替えたい部品の import だけを自分のものに変える。残りの部品と hook は core から絶対パスで import されたまま動く。
 
 ```tsx
 // 変更前(core からそのまま)
-import { BalanceCard } from "@/features/core/wallet/components/WalletBalancePage/BalanceCard";
+import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";
 // 変更後(自作の残高カード)
 import { BalanceCard } from "./BalanceCard";
 ```
 
-8.1 の Screen で `WalletBalancePage` の import 先を `./WalletBalancePage` に変える。
+8.1 の Screen で `WalletBalance` の import 先を `./WalletBalance` に変える。
 
 ---
 

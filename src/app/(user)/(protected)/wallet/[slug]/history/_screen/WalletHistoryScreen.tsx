@@ -7,7 +7,7 @@ import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens/types";
-import { WalletHistoryPage } from "@/features/core/wallet/components/WalletHistoryPage";
+import { WalletHistory } from "@/features/core/wallet/components/WalletHistory";
 
 import { loadWalletHistoryScreen, type WalletHistoryScreenParams } from "./loader";
 
@@ -18,7 +18,7 @@ export async function WalletHistoryScreen(props: ScreenProps<WalletHistoryScreen
     <UserPage containerType="narrowStack">
       <Stack space={6}>
         <UserPageTitle>{data.label}履歴</UserPageTitle>
-        <WalletHistoryPage slug={data.slug} />
+        <WalletHistory slug={data.slug} />
       </Stack>
     </UserPage>
   );

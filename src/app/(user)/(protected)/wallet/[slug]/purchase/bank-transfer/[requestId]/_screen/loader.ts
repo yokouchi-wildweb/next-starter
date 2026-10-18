@@ -30,7 +30,7 @@ import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 
 export type WalletPurchaseBankTransferScreenParams = { slug: string; requestId: string };
 
-/** 振込案内に必要な最小のデータ(= BankTransferInstructionPage の props) */
+/** 振込案内に必要な最小のデータ(= BankTransferInstruction の props) */
 export type WalletPurchaseBankTransferScreenData = {
   /** 通貨の表示名(ストリクトモードの注意喚起文言に使用) */
   currencyLabel: string;

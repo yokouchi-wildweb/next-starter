@@ -4,7 +4,7 @@
 // 手順: src/lib/screens/README.md。mypage 配下は layout が UserPage を巻くので fragment を返す
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { InviteCodePage } from "@/features/core/referral/components/common/InviteCodePage";
+import { InviteCode } from "@/features/core/referral/components/InviteCode";
 
 import { loadMyPageInviteScreen } from "./loader";
 
@@ -14,7 +14,7 @@ export async function MyPageInviteScreen() {
   return (
     <>
       <UserPageTitle srOnly>招待コード</UserPageTitle>
-      <InviteCodePage />
+      <InviteCode />
     </>
   );
 }

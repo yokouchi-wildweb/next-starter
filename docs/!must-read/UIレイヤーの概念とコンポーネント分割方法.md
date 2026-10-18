@@ -9,7 +9,7 @@
 
 > 🚨 **注意**: `CLAUDE.md` の `ARCHITECTURE`（8 層: Page / Component / Hook / ClientService / APIRoute / ServerService / Entity / Database）の「層」とは別の概念です。UI レイヤーは ARCHITECTURE の 1（Page）と 2（Component）の内側の分類です。
 
-> 📝 2026-10 の改訂: 旧版の 4 レイヤー（ページ / セクションコンテナ / ユニットアイテム / インタラクション部品）を 3 レイヤーに整理しました。ユニットアイテムとインタラクション部品は「部品」に統合し、セクションコンテナは「書き方」（`<Section>` タグ、フォルダ）ではなく「役割」で定義します。core の `*Page` という名前のセクションコンテナ 6 件は次の checkpoint で接尾辞なしに改名します（§8）。
+> 📝 2026-10 の改訂: 旧版の 4 レイヤー（ページ / セクションコンテナ / ユニットアイテム / インタラクション部品）を 3 レイヤーに整理しました。ユニットアイテムとインタラクション部品は「部品」に統合し、セクションコンテナは「書き方」（`<Section>` タグ、フォルダ）ではなく「役割」で定義します。core の `*Page` という名前のセクションコンテナ 6 件は接尾辞なしに改名済みです（§8）。
 
 ---
 
@@ -29,7 +29,7 @@
 - **処理や状態を握るのはできるだけ上位**（セクションコンテナ）
 - **下位の要素で行う処理は上位から props で渡す**
 - **副作用（API 操作、通知表示など）をコンポーネントと混在させない**
-- **Screen が import してよいのは `features/<domain>/components/<Name>` まで**（部品を直接読まない。検査は次の checkpoint で `pnpm test:screens` に追加）
+- **Screen が import してよいのは `features/<domain>/components/<Name>` まで**（部品を直接読まない。`pnpm test:screens` が検査）
 
 ---
 
@@ -72,7 +72,7 @@ export async function WalletBalanceScreen(props: ScreenProps<{ slug: string }>) 
           slug={data.slug}
           phoneVerifiedAt={data.phoneVerifiedAt}
           currentPhoneNumber={data.phoneNumber}
-          initialBalances={data.balances}
+          initialWallets={data.wallets}
         />
       </Stack>
     </UserPage>
@@ -101,8 +101,9 @@ const resolveWalletBalanceScreen = cache(async (slug: string) => {
   const config = getCurrencyConfigBySlug(slug);
   if (!config) notFound();
   const user = await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" });
-  const balances = await walletService.getBalances(user.id);
-  return { slug, walletType: config.walletType, label: config.label, phoneVerifiedAt: user.phoneVerifiedAt, phoneNumber: user.phoneNumber, balances };
+  // /api/me/wallet と同じ ServerService 呼び出し(業務ロジックは二重化しない)
+  const balances = await walletService.search({ where: { field: "user_id", op: "eq", value: user.id } });
+  return { slug, walletType: config.walletType, label: config.label, phoneVerifiedAt: user.phoneVerifiedAt, phoneNumber: user.phoneNumber, wallets: balances.results ?? [] };
 });
 
 export async function loadWalletBalanceScreen(props: ScreenProps<{ slug: string }>) {
@@ -110,8 +111,6 @@ export async function loadWalletBalanceScreen(props: ScreenProps<{ slug: string 
   return resolveWalletBalanceScreen(slug);
 }
 ```
-
-> 📝 §2 の Screen / loader の例と §3 の例は改名 checkpoint 後の形です。現行のコードは `WalletBalancePage` で、`initialBalances` と `walletService.getBalances` はまだありません（§8 の改名予定を参照）。
 
 規則: `import "server-only"` / `cache()` で包む（キーは解決済みのプリミティブ。中身が純粋でも必須） / `redirect` と `notFound` は loader の責務で Screen は try/catch しない（遷移制御だけなら `Promise<void>` 可） / 本人スコープのデータを取るときは自分で `requireCurrentUser` を呼ぶ（ログイン確認のみ。status / role は layout の `authGuard`） / 返り値は画面が必要とする最小の DTO を明示的に組み立てる / 1 画面 1 loader、共通判定はドメインの `utils/` へ。
 サーバー側ロジックの無いページ（法的文書、クライアントが hook で取るだけのページ）は loader を持ちません。
@@ -136,30 +135,37 @@ loader とセクションコンテナの hook の両方がデータを取れる�
 // セクションコンテナ
 export type WalletBalanceProps = {
   slug: string;
-  /** loader が取った初期データ。無ければ hook が取る */
-  initialBalances?: WalletBalances;
+  /** loader がサーバーで取った本人の全ウォレット(初回描画用)。無ければ hook が取る */
+  initialWallets?: Wallet[];
 };
 
-export function WalletBalance({ slug, initialBalances }: WalletBalanceProps) {
-  const { data } = useMyWalletBalances({ fallbackData: initialBalances });
+export function WalletBalance({ slug, initialWallets }: WalletBalanceProps) {
+  const { user } = useAuthSession();
+  const { data } = useMyWalletBalances(user?.userId, {
+    fallbackData: initialWallets ? { wallets: initialWallets } : undefined,
+  });
   // ...
 }
 ```
 
 ```ts
 // hook
-export function useMyWalletBalances({ fallbackData }: { fallbackData?: WalletBalances } = {}) {
-  return useSWR(KEY, fetcher, {
+export const useMyWalletBalances = (userId?: string | null, { fallbackData }: { fallbackData?: WalletBalanceResult } = {}) => {
+  const { cache } = useSWRConfig();
+  const key = userId ? `my-wallet-balances:${userId}` : null;
+  const hasCachedData = key !== null && cache.get(key)?.data !== undefined;
+  return useSWR<WalletBalanceResult>(key, () => walletClient.getMyBalances(), {
     fallbackData,
-    // 初期データがあるときはマウント時の再検証をしない(往復 1 回を削る。更新は mutation 後の mutate と focus 再検証で足りる)
-    revalidateOnMount: fallbackData === undefined,
+    // 初期データがありキャッシュが空なら、マウント時の再検証をしない(往復 1 回を削る)。
+    // キャッシュが既にあるとき(クライアント遷移で戻ったとき)は SWR がキャッシュを優先して描くので従来どおり取り直す
+    revalidateOnMount: fallbackData === undefined || hasCachedData,
   });
-}
+};
 ```
 
-- 上の例は目標の形で、`WalletBalance` と `useMyWalletBalances({ fallbackData })` は改名 checkpoint で最初の前例として実装します（現行の hook は `useMyWalletBalances(userId)`）
+- 実装の前例: `wallet/[slug]/_screen/loader.ts` → `WalletBalanceScreen` → `WalletBalance`（`initialWallets`）→ `useMyWalletBalances`。SSR 時も `AuthSessionProvider` が cookie からユーザーを初期値で渡すので hook のキーが揃い、初回描画からデータが出る
 - `revalidateOnMount` は明示が必要です。未指定だと SWR は `revalidateIfStale`（既定 true）に従い、`fallbackData` があってもマウント時に取り直します
-- 注意: SWR はキャッシュにその key のデータが既にあればそちらを優先します（`data = cached ?? fallbackData`）。クライアント遷移で同じ画面に戻ったときは loader の新しい初期データではなくキャッシュが表示され、マウント時の再検証も走りません。更新経路は mutation 後の `mutate` と focus 再検証です。これが問題になる画面では `revalidateOnMount` を true に戻します
+- SWR はキャッシュにその key のデータが既にあればそちらを `fallbackData` より優先します（`data = cached ?? fallbackData`）。クライアント遷移で同じ画面に戻ったときは loader の新しい初期データではなくキャッシュが表示されるので、**キャッシュがあるときはマウント時に再検証する**（上の `hasCachedData`）。初回ロード（キャッシュ空）だけが「往復なし」になります
 - loader は API route と同じ ServerService を呼びます。業務ロジックは二重化しません（どのデータを取るかの判断だけが loader に移る）
 - 初期データ props は **任意**。無いときは従来どおり hook が取るので、既存の呼び出し元は壊れません
 - `SWRConfig` の `fallback`（キー共有方式）は hook とキーを共有する結合が強いので標準にしません（生成される管理画面の関連先読みは例外として既存）
@@ -174,7 +180,7 @@ export function useMyWalletBalances({ fallbackData }: { fallbackData?: WalletBal
 **Screen が直接配置するコンポーネント**です。hook と状態を握り、部品を組み立てます。これ以外の条件（`<Section>` タグの有無、フォルダの有無）は定義に含みません。逆に、`components/` 直下の `AdminWalletAdjustModal/` のように `dir/index.tsx` の形でも、Screen が直接描かなければ部品です。
 1 つのルート（Screen）に対して 1 つ以上のセクションコンテナを配置します。同じセクションコンテナを別のルートから呼び出すことも許可されます。
 
-### Screen から見える公開パス（次の checkpoint で `pnpm test:screens` に検査を追加）
+### Screen から見える公開パス（`pnpm test:screens` が検査）
 
 Screen が import してよいのは **`features/<domain>/components/<Name>`** までです。実体は次のどちらかです。
 
@@ -185,9 +191,9 @@ Screen が import してよいのは **`features/<domain>/components/<Name>`** �
 
 ### 下流が複製できる条件（core のセクションコンテナ）
 
-- 内部の部品 import は**絶対パス**（`@/features/core/wallet/components/WalletBalancePage/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を `_components/` に複製しても import を触らずに動く
+- 内部の部品 import は**絶対パス**（`@/features/core/wallet/components/WalletBalance/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を `_components/` に複製しても import を触らずに動く
 - HTTP は hook 経由のみ。client service の直叩きは hook に昇格する
-- トップレベルの props（例: `WalletBalancePage` の `slug / phoneVerifiedAt / currentPhoneNumber`）は公開契約。追加は自由（§3 の `initial<Name>` も追加）、改名・必須化は `.notices` で通知
+- トップレベルの props（例: `WalletBalance` の `slug / phoneVerifiedAt / currentPhoneNumber / initialWallets`）は公開契約。追加は自由（§3 の `initial<Name>` も追加）、改名・必須化は `.notices` で通知
 
 ### 見出しとセクショニング要素
 
@@ -296,7 +302,7 @@ page.tsx → _screen/XScreen.tsx     ← Server(loader を await)
 | 部品 | 役割名 | `BalanceCard`、`CouponInput` |
 | レイアウト部品 | `UserPage` / `AdminPage` だけが `*Page`（`<main>` の枠）。コンテナには使わない | — |
 
-> 📝 改名予定: core の `WalletIndexPage` / `WalletBalancePage` / `WalletHistoryPage` / `WalletPurchasePage` / `BankTransferInstructionPage` / `InviteCodePage` は歴史的な命名で、次の checkpoint で接尾辞なしに改名します（旧名は 1 checkpoint の間 `@deprecated` の再 export で残し、`.notices` で通知）。同じ checkpoint で `user/components/UserMyPage/` 直下のコンテナ（`AccountDetails` 等）を `user/components/<Name>` に昇格します。
+> 📝 改名の記録（checkpoint ui-layers-rename）: 旧 `WalletIndexPage` / `WalletBalancePage` / `WalletHistoryPage` / `WalletPurchasePage` / `BankTransferInstructionPage` / `InviteCodePage` は `WalletList` / `WalletBalance` / `WalletHistory` / `WalletPurchase` / `BankTransferInstruction` / `InviteCode` に改名し、`user/components/UserMyPage/` 直下のコンテナは `user/components/<Name>` に昇格した。旧パスには `@deprecated` の再 export（shim）を 1 checkpoint だけ残し、`deprecated-imports/no-deprecated-path`（eslint）が旧パス import を警告する。次の checkpoint で shim を削除する。
 
 ---
 

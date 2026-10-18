@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import type { EnvApiError, EnvSummary, KeyValuePair } from "./api/envSummary";
 import { buildEnvSummary } from "./api/envSummary";
 import { Block } from "@/components/Layout/Block";
+import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { ClientApiResultSection } from "./ClientApiResult";
 
@@ -12,12 +13,12 @@ const Page = async () => {
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-10 p-8">
-      <header className="flex flex-col gap-2">
+      <Section as="header" className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold">Firebase 環境変数チェックデモ</h1>
         <p className="text-sm text-muted-foreground">
           Firebase 関連の環境変数とアプリ環境を SSR と API で取得して比較するデモページです。
         </p>
-      </header>
+      </Section>
 
       <section className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="text-2xl font-semibold">SSR で取得した値</h2>

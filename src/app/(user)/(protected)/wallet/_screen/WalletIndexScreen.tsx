@@ -6,7 +6,7 @@
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
-import { WalletIndexPage } from "@/features/core/wallet/components/WalletIndexPage";
+import { WalletList } from "@/features/core/wallet/components/WalletList";
 
 import { loadWalletIndexScreen } from "./loader";
 
@@ -17,7 +17,7 @@ export async function WalletIndexScreen() {
     <UserPage containerType="narrowStack">
       <Stack space={6}>
         <UserPageTitle>ウォレット</UserPageTitle>
-        <WalletIndexPage wallets={data.wallets} />
+        <WalletList wallets={data.wallets} />
       </Stack>
     </UserPage>
   );

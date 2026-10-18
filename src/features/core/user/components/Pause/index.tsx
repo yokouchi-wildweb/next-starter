@@ -14,7 +14,7 @@ import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Para } from "@/components/TextBlocks";
 import { usePause } from "@/features/core/auth/hooks/usePause";
-import { AccountPageHeader } from "@/features/core/user/components/UserMyPage/AccountPageHeader";
+import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
 
 import { PauseDescription } from "./PauseDescription";
 

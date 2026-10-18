@@ -7,7 +7,7 @@ import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
 import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens/types";
-import { WalletBalancePage } from "@/features/core/wallet/components/WalletBalancePage";
+import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
 
 import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "./loader";
 
@@ -18,10 +18,11 @@ export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreen
     <UserPage containerType="narrowStack">
       <Stack space={6}>
         <UserPageTitle>{data.label}管理</UserPageTitle>
-        <WalletBalancePage
+        <WalletBalance
           slug={data.slug}
           phoneVerifiedAt={data.phoneVerifiedAt}
           currentPhoneNumber={data.phoneNumber}
+          initialWallets={data.wallets}
         />
       </Stack>
     </UserPage>

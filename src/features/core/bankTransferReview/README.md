@@ -373,7 +373,7 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 | 画面 / コンポーネント | パス | 役割 | 実装状況 |
 |---|---|---|---|
 | 振込案内ページ | `src/app/(user)/(protected)/wallet/[slug]/purchase/bank-transfer/[requestId]/page.tsx` | 振込先口座・識別子・期限の表示 + 申告 CTA | 実装済 |
-| 案内ページ本体コンポーネント | `src/features/core/purchaseRequest/components/BankTransferInstructionPage/` | 3 ステップ UI（口座情報 → 画像添付 → 申告） | 実装済 |
+| 案内ページ本体コンポーネント | `src/features/core/purchaseRequest/components/BankTransferInstruction/` | 3 ステップ UI（口座情報 → 画像添付 → 申告） | 実装済 |
 | 画像アップロードフック | `src/features/core/purchaseRequest/hooks/useBankTransferProofUpload.ts` | 固定パスへの上書きアップロード | 実装済 |
 | 進行中振込バナー | `src/features/core/bankTransferReview/components/ActiveTransferBanner/` | ウォレットトップに表示する未完了振込の案内 | 実装済 |
 | バナー用フック | `src/features/core/bankTransferReview/hooks/useActiveBankTransfer.ts` | `getActiveBankTransfer` のラッパー | 実装済 |

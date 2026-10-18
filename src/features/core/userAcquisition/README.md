@@ -77,7 +77,7 @@ import {
 
 ### 招待リンクの生成レシピ（downstream 実装用）
 
-core は招待コード文字列のコピー UI（InviteCodePage）までを提供する。リンク化は downstream で:
+core は招待コード文字列のコピー UI（InviteCode）までを提供する。リンク化は downstream で:
 
 ```ts
 import { getAppBaseUrl } from "@/lib/url";

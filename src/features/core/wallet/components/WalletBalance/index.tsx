@@ -1,0 +1,156 @@
+// src/features/core/wallet/components/WalletBalance/index.tsx
+// セクションコンテナ(残高・購入)。
+// 部品の import は絶対パス: 下流がこのファイルを _components/ に複製しても import を直さずに動く
+
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Block } from "@/components/Layout/Block";
+import { Stack } from "@/components/Layout/Stack";
+import { Flex } from "@/components/Layout/Flex";
+import { Para } from "@/components/TextBlocks/Para";
+import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { APP_FEATURES } from "@/config/app/app-features.config";
+import { isPurchaseSuspended, getPurchaseSuspensionMessage } from "@/features/core/wallet/utils/purchaseSuspension";
+import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
+import { useMyWalletBalances } from "@/features/core/wallet/hooks/useMyWalletBalances";
+import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
+import { setActiveCoupon, clearActiveCoupon } from "@/features/core/wallet/utils/couponParam";
+import type { PurchaseDiscountEffect } from "@/features/core/purchaseRequest/types/couponEffect";
+import type { Wallet } from "@/features/core/wallet/entities";
+import { CouponInput } from "@/features/core/wallet/components/WalletPurchase/CouponInput";
+import { ActiveTransferBanner } from "@/features/core/bankTransferReview/components/ActiveTransferBanner";
+import { PurchaseSuspended } from "@/features/core/wallet/components/common/PurchaseSuspended";
+import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";
+import { PurchaseList } from "@/features/core/wallet/components/WalletBalance/PurchaseList";
+import { PhoneVerificationRequired } from "@/features/core/wallet/components/WalletBalance/PhoneVerificationRequired";
+
+// 部品の barrel export: 下流が Screen やセクションコンテナを複製するときはここから import する
+export { BalanceCard, PurchaseList, PhoneVerificationRequired };
+
+export type WalletBalanceProps = {
+  /** URLスラッグ */
+  slug: string;
+  /** 電話番号認証日時（認証済みの場合） */
+  phoneVerifiedAt?: Date | null;
+  /** 現在の電話番号 */
+  currentPhoneNumber?: string | null;
+  /** loader がサーバーで取った本人の全ウォレット(初回描画用)。無ければ hook が取る */
+  initialWallets?: Wallet[];
+};
+
+export function WalletBalance({
+  slug,
+  phoneVerifiedAt,
+  currentPhoneNumber,
+  initialWallets,
+}: WalletBalanceProps) {
+  const searchParams = useSearchParams();
+  const config = getCurrencyConfigBySlug(slug);
+  const { user } = useAuthSession();
+  const { data, isLoading, error } = useMyWalletBalances(user?.userId, {
+    fallbackData: initialWallets ? { wallets: initialWallets } : undefined,
+  });
+
+  // クーポン状態管理
+  const [couponEffect, setCouponEffect] = useState<PurchaseDiscountEffect | null>(null);
+
+  const handleCouponApply = useCallback((code: string, effect: PurchaseDiscountEffect) => {
+    setCouponEffect(effect);
+    setActiveCoupon(code);
+  }, []);
+
+  const handleCouponClear = useCallback(() => {
+    setCouponEffect(null);
+    clearActiveCoupon();
+  }, []);
+
+  // URLパラメータ ?coupon=CODE をアクティブクーポンとして保存
+  useEffect(() => {
+    const coupon = searchParams.get("coupon");
+    if (coupon) {
+      setActiveCoupon(coupon);
+    }
+  }, [searchParams]);
+
+  // 無効なスラッグ
+  if (!config) {
+    return (
+      <Block padding="lg">
+        <Para tone="destructive" align="center">
+          無効な通貨タイプです。
+        </Para>
+      </Block>
+    );
+  }
+
+  // ローディング中
+  if (isLoading) {
+    return (
+      <Flex justify="center" padding="lg">
+        <Spinner className="h-8 w-8" />
+      </Flex>
+    );
+  }
+
+  // エラー
+  if (error) {
+    return (
+      <Block padding="lg">
+        <Para tone="destructive" align="center">
+          残高情報の取得に失敗しました。
+        </Para>
+      </Block>
+    );
+  }
+
+  // 該当ウォレットの残高を取得
+  const wallet = data?.wallets.find((w) => w.type === config.walletType);
+  const currentBalance = wallet?.balance ?? 0;
+
+  // 購入一時停止チェック
+  const purchaseSuspended = isPurchaseSuspended();
+
+  // 購入制限チェック: SMS認証が必要かどうか
+  const requiresPhoneVerification =
+    APP_FEATURES.wallet.purchaseRestriction === "phoneVerified" && !phoneVerifiedAt;
+
+  // 購入セクションの表示判定
+  const renderPurchaseSection = () => {
+    if (purchaseSuspended) {
+      return <PurchaseSuspended message={getPurchaseSuspensionMessage()} />;
+    }
+    if (requiresPhoneVerification) {
+      return <PhoneVerificationRequired currentPhoneNumber={currentPhoneNumber} />;
+    }
+    return (
+      <>
+        <CouponInput
+          onApply={handleCouponApply}
+          onClear={handleCouponClear}
+        />
+        <PurchaseList
+          slug={slug}
+          config={config}
+          couponEffect={couponEffect}
+        />
+      </>
+    );
+  };
+
+  return (
+    <Stack space={6}>
+      {/* 進行中の自社銀行振込バナー（active が null なら自動的に非描画） */}
+      <ActiveTransferBanner />
+      <Flex justify="end">
+        <LinkButton href={`/wallet/${slug}/history`} variant="outline" size="sm">
+          履歴
+        </LinkButton>
+      </Flex>
+      <BalanceCard balance={currentBalance} config={config} />
+      {renderPurchaseSection()}
+    </Stack>
+  );
+}

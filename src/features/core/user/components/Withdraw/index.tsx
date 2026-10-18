@@ -14,7 +14,7 @@ import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Label } from "@/components/Form/Label";
 import { Para } from "@/components/TextBlocks";
 import { useWithdraw } from "@/features/core/auth/hooks/useWithdraw";
-import { AccountPageHeader } from "@/features/core/user/components/UserMyPage/AccountPageHeader";
+import { AccountPageHeader } from "@/features/core/user/components/common/AccountPageHeader";
 
 import { WithdrawDescription } from "./WithdrawDescription";
 

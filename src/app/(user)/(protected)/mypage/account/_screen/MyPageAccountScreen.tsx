@@ -4,7 +4,7 @@
 // 手順: src/lib/screens/README.md。mypage 配下は layout が UserPage を巻くので fragment を返す
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { AccountDetails } from "@/features/core/user/components/UserMyPage/AccountDetails";
+import { AccountDetails } from "@/features/core/user/components/AccountDetails";
 
 import { loadMyPageAccountScreen } from "./loader";
 

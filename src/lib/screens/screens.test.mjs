@@ -34,13 +34,14 @@ import {
   barrelTarget,
   checkLoaderFile,
   checkScreenFile,
+  checkScreenImports,
   checkSwitchPage,
   isReexportOnlyFile,
   parseSwitchPage,
   stripComments,
 } from "./checks.mjs";
 
-export { checkLoaderFile, checkScreenFile, checkSwitchPage, isReexportOnlyFile, parseSwitchPage, stripComments };
+export { checkLoaderFile, checkScreenFile, checkScreenImports, checkSwitchPage, isReexportOnlyFile, parseSwitchPage, stripComments };
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const FORK_LEGACY_ROUTES = registry.FORK_LEGACY_ROUTES ?? [];
@@ -276,10 +277,11 @@ for (const page of pages) {
   });
 
   if (problems.length === 0 && target) {
-    test(`${dir}: ${target.screenDir}/${target.file} が ${target.name} を named export する Server Component`, () => {
+    test(`${dir}: ${target.screenDir}/${target.file} が ${target.name} を named export する Server Component で、features の import は components/<Name> まで`, () => {
       const file = resolveScreenFile(dir, target);
       assert.ok(file, `${dir}/${target.screenDir}/${target.file}(.tsx | /index.tsx) が無い`);
-      const screenProblems = checkScreenFile(read(file), target.name);
+      const source = read(file);
+      const screenProblems = [...checkScreenFile(source, target.name), ...checkScreenImports(source)];
       assert.deepEqual(screenProblems, [], `${file}: ${screenProblems.join(" / ")}`);
     });
   }
@@ -454,10 +456,10 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
   assert.ok(parseSwitchPage(navigation).problems.some((p) => p.includes("next/navigation")));
 
   const sectionContainer = `
-    import { WalletBalancePage } from "@/features/core/wallet/components/WalletBalancePage";
+    import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
     export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
   `;
-  assert.ok(parseSwitchPage(sectionContainer).problems.some((p) => p.includes("components/WalletBalancePage")));
+  assert.ok(parseSwitchPage(sectionContainer).problems.some((p) => p.includes("components/WalletBalance")));
 
   // generateMetadata がルート内 loader を呼ぶ形(_screen / _components どちらの loader も可)
   const routeLoader = `
@@ -472,6 +474,22 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
   assert.deepEqual(parseSwitchPage(routeLoader).problems, []);
   assert.deepEqual(parseSwitchPage(routeLoader.replace("./_screen/loader", "./_components/loader")).problems, []);
   assert.ok(parseSwitchPage(routeLoader.replace("./_screen/loader", "./_screen/utils")).problems.length > 0, "loader 以外の相対 import は不可");
+});
+
+test("checkScreenImports: features の import は components/<Name> まで。部品(<Name>/<Part>)と common/ は弾く", () => {
+  const ok = `
+    import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
+    import { Signup } from "@/features/auth/components/Signup";
+    import { AdminSampleList } from "@/features/sample/components/AdminSampleList/index";
+    import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+    import { loadXScreen } from "./loader";
+    import { Part } from "./Part";
+  `;
+  assert.deepEqual(checkScreenImports(ok), []);
+  assert.ok(checkScreenImports(`import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";`).length === 1);
+  assert.ok(checkScreenImports(`import { AccountDetails } from "@/features/user/components/UserMyPage/AccountDetails";`).length === 1);
+  assert.ok(checkScreenImports(`import { InviteCodePage } from "@/features/core/referral/components/common/InviteCodePage";`).some((p) => p.includes("common/")));
+  assert.ok(checkScreenImports(`export { X } from "@/features/core/x/components/Y/Z";`).length === 1);
 });
 
 test("checkScreenFile: named export / barrel を認め、default export と \"use client\" を弾く", () => {

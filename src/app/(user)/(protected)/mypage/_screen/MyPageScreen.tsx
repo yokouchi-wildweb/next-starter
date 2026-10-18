@@ -6,7 +6,7 @@
 // mypage 配下は layout が UserPage + Stack + PageTransition を巻くので Screen は fragment を返す。
 
 import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { MainMenu } from "@/features/core/user/components/UserMyPage/MainMenu";
+import { MainMenu } from "@/features/core/user/components/MainMenu";
 
 export function MyPageScreen() {
   return (

@@ -1,5 +1,7 @@
 // src/features/core/auth/components/Registration/RegistrationSteps.tsx
 
+import { Section } from "@/components/Layout/Section";
+
 import type { RegistrationMethod } from "./index";
 
 type Step = {
@@ -32,7 +34,7 @@ export function RegistrationSteps({
   const remainingSteps = 1;
 
   return (
-    <nav aria-label="登録の進捗" className="flex flex-col gap-4">
+    <Section as="nav" aria-label="登録の進捗" className="flex flex-col gap-4">
       <p className="text-center text-sm text-muted-foreground">
         完了まで 残り{remainingSteps}ステップ
       </p>
@@ -109,6 +111,6 @@ export function RegistrationSteps({
           );
         })}
       </ol>
-    </nav>
+    </Section>
   );
 }

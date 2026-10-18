@@ -272,6 +272,32 @@ export function checkScreenFile(source, name) {
 }
 
 /**
+ * Screen が `@/features/<domain>/components/` 配下から import してよいのは `components/<Name>`(= セクションコンテナ)まで。
+ * `<Name>/<Part>` や `common/<X>` は部品(契約外)なので Screen から直接読まない(must-read §4)。
+ * `<Name>/index` は `<Name>` と同じ扱い。features 以外(components/ lib/ など)と相対 import は対象外
+ * @returns {string[]} 違反した import 元の説明(空なら合格)
+ */
+export function checkScreenImports(source) {
+  const problems = [];
+  const src = stripComments(source);
+  const re = /(?:import|export)\s[^;]*?\sfrom\s*["']([^"']+)["']/g;
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    const spec = m[1];
+    const path = /^@\/features\/(?:core\/)?[^/]+\/components\/(.+)$/.exec(spec);
+    if (!path) continue;
+    const segments = path[1].split("/");
+    if (segments[segments.length - 1] === "index") segments.pop();
+    if (segments[0] === "common") {
+      problems.push(`${spec}: common/ の部品を Screen から直接読んでいる(セクションコンテナに組み込む)`);
+    } else if (segments.length > 1) {
+      problems.push(`${spec}: セクションコンテナの内側(部品)を Screen から直接読んでいる(読んでよいのは components/<Name> まで)`);
+    }
+  }
+  return problems;
+}
+
+/**
  * Screen ファイルが barrel(`export { X } from "./Y"`)なら、実体のファイル名(拡張子なし)を返す。そうでなければ null
  */
 export function barrelTarget(source, name) {

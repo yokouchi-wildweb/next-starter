@@ -38,7 +38,7 @@ const resolveWalletHistoryScreen = cache(async (slug: string): Promise<WalletHis
 /**
  * 履歴画面のデータ。
  * 未知の slug は notFound、未ログインは /login へ redirect する。
- * 履歴本体はセクションコンテナ(WalletHistoryPage)が hook(useMyWalletHistoryBatches)で取得する。
+ * 履歴本体はセクションコンテナ(WalletHistory)が hook(useMyWalletHistoryBatches)で取得する。
  */
 export async function loadWalletHistoryScreen(
   props: ScreenProps<WalletHistoryScreenParams>,

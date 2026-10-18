@@ -246,14 +246,14 @@ export default function GoogleRedirectAuthDemoPage() {
 
   return (
     <Stack className="py-8" space={10}>
-      <header className="flex flex-col gap-3">
+      <Section as="header" className="flex flex-col gap-3">
         <PageTitle size="xxxl" className="font-semibold tracking-tight">
           Google リダイレクト認証デモ
         </PageTitle>
         <Para tone="muted">
           Firebase Authentication の Google プロバイダーをリダイレクト方式で呼び出し、戻り先の画面で認証結果をそのまま確認できるデモです。
         </Para>
-      </header>
+      </Section>
 
       <Section className="flex flex-col gap-4">
         <SecTitle as="h2">操作</SecTitle>

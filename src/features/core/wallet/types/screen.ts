@@ -3,7 +3,7 @@
 
 import type { WalletType } from "@/config/app/currency.config";
 
-/** ウォレット一覧の 1 行分。loadWalletIndexScreen の返り値と WalletIndexPage の props が共有する */
+/** ウォレット一覧の 1 行分。loadWalletIndexScreen の返り値と WalletList の props が共有する */
 export type WalletIndexEntry = {
   walletType: WalletType;
   slug: string;

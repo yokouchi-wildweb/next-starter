@@ -63,7 +63,7 @@
 ## UI コンポーネント
 
 ### ユーザー向け
-- `components/common/InviteCodePage.tsx`: マイページ招待コードページ
+- `components/InviteCode/index.tsx`: マイページ招待コードのセクションコンテナ(`/mypage/invite` の Screen が配置)。部品 `InviteBenefitsSection` は同ディレクトリ
   - 招待コード表示/発行（coupon ドメインのフックを利用）
   - コピーボタン（clipboard API）
   - 招待実績（○人招待済み）表示
@@ -142,6 +142,6 @@
 - エンティティ: `entities/drizzle.ts`, `entities/schema.ts`, `entities/model.ts`
 - サーバーサービス: `services/server/referralService.ts`, `services/server/wrappers/*`
 - クライアント: `services/client/*`, `hooks/*`
-- UI: `components/common/InviteCodePage.tsx`, `components/AdminInviteList/*`
+- UI: `components/InviteCode/*`, `components/AdminInviteList/*`
 - ページ: `app/(user)/(protected)/mypage/invite/page.tsx`, `app/admin/(protected)/coupons/invite/page.tsx`
 - 設定: `config/app/app-features.config.ts`（marketing.referral.enabled）
