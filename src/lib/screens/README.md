@@ -60,7 +60,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | 契約 | 内容 | 根拠 |
 |---|---|---|
 | A. Screen の入口 | `_screen/<Name>Screen.tsx` のファイル名と named export `<Name>Screen`、受け取る props（`ScreenProps`） | page.tsx が下流所有になった瞬間、上流は変えられない |
-| B. loader | `_screen/loader.ts` の `load<Name>Screen(props)` の名前・引数・返り値型・redirect / notFound 条件 | 下流の Screen が直接呼ぶ |
+| B. loader | `_screen/loader.ts` の `load<Name>Screen(props)` の名前・引数・返り値型・redirect / notFound 条件。入力型 `<Name>ScreenParams` / `<Name>ScreenSearchParams` と返り値型 `<Name>ScreenData` は loader が定義して export する | 下流の Screen が直接呼ぶ。型の所有者が契約の所有者 |
 | C. hook | `features/<domain>/hooks/` の export | 下流のセクションコンテナが直接呼ぶ |
 | D. セクションコンテナのトップレベル props | 例: `WalletBalancePage` の `slug / phoneVerifiedAt / currentPhoneNumber` | 下流の Screen が既定のセクションコンテナを描く |
 
@@ -83,12 +83,15 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import type { ScreenProps } from "@/lib/screens/types";
 
+/** URL の形。Screen も同じ型を import して署名に使う */
+export type WalletBalanceScreenParams = { slug: string };
+
 /** 画面が必要とする最小のデータ。明示的に組み立てる(Pick は実行時に余分なフィールドを落とさない) */
 export type WalletBalanceScreenData = { slug: string; walletType: WalletType; label: string; phoneVerifiedAt: Date | null; phoneNumber: string | null };
 
 // cache() のキーは引数の同一性。Next は page と generateMetadata に別の props オブジェクトを渡すため、
 // props ではなく解決済みのプリミティブ(slug)でメモ化する
-const resolve = cache(async (slug: string): Promise<WalletBalanceScreenData> => {
+const resolveWalletBalanceScreen = cache(async (slug: string): Promise<WalletBalanceScreenData> => {
   const config = getCurrencyConfigBySlug(slug);
   if (!config) notFound();
   const user = await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" });
@@ -96,12 +99,14 @@ const resolve = cache(async (slug: string): Promise<WalletBalanceScreenData> => 
 });
 
 /** 未知の slug は notFound、未ログインは /login へ。既定 Screen も下流 Screen も generateMetadata もこれを呼ぶ */
-export async function loadWalletBalanceScreen(props: ScreenProps<{ slug: string }>) {
+export async function loadWalletBalanceScreen(props: ScreenProps<WalletBalanceScreenParams>) {
   const { slug } = await props.params;
-  return resolve(slug);
+  return resolveWalletBalanceScreen(slug);
 }
 ```
 
+- 命名: 公開関数は `load<Name>Screen(props)`、`cache()` で包む内側は `resolve<Name>Screen(primitives)`。`cache()` が引数の同一性でキーを取るため、props ではなく解決済みのプリミティブで内側をメモ化する（引数が無い loader は `load<Name>Screen` 自体を `cache()` で包んでよい）
+- **DTO 型は loader が所有する**: 返り値型 `<Name>ScreenData`、入力型 `<Name>ScreenParams` / `<Name>ScreenSearchParams` は loader で定義して export し、Screen も部品も loader から `import type` する（`./loader` / `../_screen/loader`。client 部品から server-only モジュールを `import type` するのはコンパイル時に消えるので問題ない）。**loader は `_components/` や Screen から import しない**（型だけでも不可。契約の返り値型を契約外の部品が決める逆転になり、部品を差し替えた下流が loader の型を変えてしまう）。`checkLoaderFile` が検査する（相対 import は loader の位置から解決するので、`_components/loader.ts` からの `./Part` も `_components/` 内と判定される）
 - 置き場は**そのルートの `_screen/loader.ts`**（ファイル名固定、1 ルート 1 loader）。Screen からは `./loader` で import する。どのドメインにも置かない（複数ドメインを組み合わせるページも、何も取得せず redirect だけするページも同じ）
 - 入力は Next の page props（`params` / `searchParams` の Promise）。`searchParams` は未解釈のまま受け、loader 内で検証する。optional catch-all は `ScreenProps<{ status?: string[] }>`
 - `redirect` / `notFound` は loader の責務。結果型を返す方式は Screen が処理を忘れると fail-open になるため採らない。**Screen 側で loader を try/catch しない**
@@ -110,6 +115,7 @@ export async function loadWalletBalanceScreen(props: ScreenProps<{ slug: string 
 - `import "server-only"` 必須（client component から import するとビルドで止まる）
 - `cache()` で包むのは**中身が純粋でも必須**（URL 解釈だけ・redirect だけでも）。一律にしておけば、後からその loader に取得処理を足したとき `generateMetadata` と Screen の二重取得が黙って起きない。コストは 1 行
 - 本人スコープのデータを取る loader は、親 layout の `authGuard` に依存せず自分でも `requireCurrentUser` を呼ぶ（`cache()` 済みで重複コスト無し。機密データの取得をログイン確認なしに行わない）。これは**ログイン確認（セッション + DB レコードの存在）だけ**で、status / role の判定は `(protected)/layout.tsx` の `authGuard` が担う。サーバー側で何も取得しないページは loader 自体を持たない（guard だけの loader は作らない）
+- **どのセッション関数を使うかはルートグループで決まる（ページごとに判断しない）**: `(protected)` 配下（`(user)/(protected)`、`admin/(protected)`）でユーザーが要る loader は `requireCurrentUser({ behavior: "redirect", redirectTo })` のみ（ユーザーが要らない loader、例えば共有の管理画面 loader は何も呼ばない）。`redirectTo` はそのグループの layout の `authGuard` と同じリテラル（user 側 `/login`、admin 側 `/admin/login`）。`getSessionUser()`（nullable）は公開ルートで「ログインしていれば出し分ける」任意パーソナライズ専用。protected 配下で「セッションが無ければ既定値で描く」分岐を書かない（layout が既に redirect した後なので到達しない死にコード）。所有権や存在の秘匿（他人のリクエストは 404）はユーザーを取った後の判定として `notFound()` で行う。`checkLoaderFile` が `(protected)` を含むパスの loader の `getSessionUser` import を失敗にする
 - 新しいパスリテラルを増やさない。既存の定数・設定に寄せる
 - 複数ルートで共通する判定はドメインの `utils/` に置き、各ルートの loader が呼ぶ。多数のルートが丸ごと同じ loader を使う場合だけ共有 loader（§12）にする
 
@@ -117,7 +123,9 @@ export async function loadWalletBalanceScreen(props: ScreenProps<{ slug: string 
 
 ```tsx
 // src/app/(user)/(protected)/wallet/[slug]/_screen/WalletBalanceScreen.tsx
-export async function WalletBalanceScreen(props: ScreenProps<{ slug: string }>) {
+import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "./loader";
+
+export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreenParams>) {
   const data = await loadWalletBalanceScreen(props);
   return (
     <UserPage containerType="narrowStack">
@@ -258,7 +266,7 @@ import { BalanceCard } from "./BalanceCard";
 |---|---|---|
 | page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>` からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader` / 共有 loader）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
 | Screen の欠落・形 | `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx` → barrel 1 段）が存在し、名前を named export、default export と `"use client"` を持たない | 失敗 |
-| loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export。ルート内 loader も共有 loader も同じ検査（補助関数は `utils/` へ） | 失敗 |
+| loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）、`(protected)` 配下なら `getSessionUser` の import 無し。ルート内 loader も共有 loader も同じ検査（補助関数は `utils/` へ） | 失敗 |
 | 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
 
 テストは tsx ランナーで動く（例外リストの `.ts` を読むため）。pre-commit / CI ガードは置かない。

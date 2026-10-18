@@ -292,17 +292,52 @@ export function isReexportOnlyFile(source) {
   return !/\bexport\b/.test(rest);
 }
 
+/** 相対 import(`./x` / `../x`)を from ファイルの位置から解決する(node:path に依存しない。`/` 区切り、`\` は `/` に正規化) */
+function resolveRelative(fromFile, source) {
+  const segments = fromFile.replace(/\\/g, "/").split("/").slice(0, -1);
+  for (const seg of source.split("/")) {
+    if (seg === "..") segments.pop();
+    else if (seg !== ".") segments.push(seg);
+  }
+  return segments.join("/");
+}
+
+/**
+ * loader が import してはいけない相手: `_components/`(契約外の部品)と Screen ファイル。型だけの import も不可(契約の型を契約外が決める逆転になる)。
+ * 相対 import は loader の場所(path)から解決して判定する(`_components/loader.ts` からの `./Part` は `_components/` 内を指す)。
+ * Screen 名の判定は相対 import か `_screen/` / `_components/` 配下に限る(`features/<domain>/types/XScreen` のような型ファイルを誤検出しない)
+ */
+function isInvertedLoaderImport(source, loaderPath) {
+  const resolved = /^\.\.?\//.test(source) && loaderPath ? resolveRelative(loaderPath, source) : source;
+  if (/(^|\/)_components(\/|$)/.test(resolved)) return true;
+  const screenLike = /(^\.\.?\/|\/_screen\/|\/_components\/)/.test(source);
+  return screenLike && /(^|\/)[A-Z]\w*Screen(\.tsx?|\/index(\.tsx?)?)?$/.test(source);
+}
+
 /**
  * loader ファイルの検査。問題があれば理由の配列を返す
  * - `import "server-only"` / React の `cache()` / `load<Xxx>` の export
  * - `cache()` は中身が純粋(URL 解釈だけ・redirect だけ)でも必須。一律にして「後から取得を足したときの付け忘れ」を無くす
+ * - DTO 型は loader が所有する: `_components/` や Screen からの import(type 含む)は不可
+ * - `(protected)` 配下の loader は `requireCurrentUser` のみ。`getSessionUser`(nullable)の import は不可
+ *   (layout の authGuard が未ログインを弾いた後なので null 分岐は到達しない。公開ルートの任意パーソナライズ専用)
  * @param {string} source loader の内容
+ * @param {{ path?: string }} [options] path = repo 相対パス(protected 判定に使う。省略時はその検査を行わない)
  */
-export function checkLoaderFile(source) {
+export function checkLoaderFile(source, options) {
+  const { path = "" } = options ?? {};
   const problems = [];
   const src = stripComments(source);
   if (!/import\s+["']server-only["']/.test(src)) problems.push('import "server-only" が無い');
   if (!/\bcache\(/.test(src)) problems.push("React の cache() で包まれていない");
   if (!/export\s+(const|async\s+function|function)\s+load[A-Z]\w*/.test(src)) problems.push("load<Name> を export していない");
+  for (const m of src.matchAll(/\b(?:import|export)\b[^"'`;]*?\bfrom\s*["']([^"']+)["']/g)) {
+    if (isInvertedLoaderImport(m[1], path)) problems.push(`${m[1]} を import している(DTO 型は loader が定義し、部品・Screen 側が loader から import する)`);
+  }
+  const importsGetSessionUser =
+    /import\s*(type\s*)?\{[^}]*\bgetSessionUser\b[^}]*\}\s*from/.test(src) || /\bfrom\s*["'][^"']*\/getSessionUser["']/.test(src);
+  if (/\(protected\)/.test(path) && importsGetSessionUser) {
+    problems.push("(protected) 配下の loader が getSessionUser を import している(requireCurrentUser({ behavior: \"redirect\", redirectTo }) を使う。redirectTo は layout の authGuard と同じ)");
+  }
   return problems;
 }

@@ -249,8 +249,8 @@ for (const page of pages) {
 
 const routeLoaders = discoverRouteLoaders(pageDirs);
 for (const loader of [...routeLoaders, ...discoverSharedLoaders()]) {
-  test(`${loader}: loader は server-only + cache() + load<Xxx>`, () => {
-    const problems = checkLoaderFile(read(loader));
+  test(`${loader}: loader は server-only + cache() + load<Xxx>、_components / Screen を import しない、(protected) なら getSessionUser を使わない`, () => {
+    const problems = checkLoaderFile(read(loader), { path: loader });
     assert.deepEqual(problems, [], `${loader}: ${problems.join(" / ")}`);
   });
 }
@@ -439,6 +439,43 @@ test("checkLoaderFile: 共有 loader(load<Xxx>)も個別 loader(load<Name>Screen
   assert.ok(checkLoaderFile(noCache).some((p) => p.includes("cache()")));
   const bad = `import { cache } from "react";\nexport const helper = 1;`;
   assert.ok(checkLoaderFile(bad).length >= 2);
+});
+
+test("checkLoaderFile: DTO 型は loader が所有する(_components / Screen からの import は type でも不可)", () => {
+  const base = `import "server-only";\nimport { cache } from "react";\n`;
+  const ok = `${base}import type { ScreenProps } from "@/lib/screens/types";\nimport { userService } from "@/features/core/user/services/server/userService";\nexport type WinReportScreenData = { reports: string[] };\nexport const loadWinReportScreen = cache(async () => ({ reports: [] }));`;
+  assert.deepEqual(checkLoaderFile(ok, { path: "src/app/(user)/(protected)/win-reports/_screen/loader.ts" }), []);
+  const fromParts = `${base}import type { WinReportData } from "../_components/WinReportList";\nexport const loadWinReportScreen = cache(async (): Promise<WinReportData[]> => []);`;
+  assert.ok(checkLoaderFile(fromParts).some((p) => p.includes("../_components/WinReportList")));
+  const fromScreen = `${base}import type { Props } from "./WinReportScreen";\nexport const loadWinReportScreen = cache(async (): Promise<Props> => ({}));`;
+  assert.ok(checkLoaderFile(fromScreen).some((p) => p.includes("./WinReportScreen")));
+  const reexport = `${base}export type { X } from "../_components/X";\nexport const loadXScreen = cache(async () => 1);`;
+  assert.ok(checkLoaderFile(reexport).some((p) => p.includes("../_components/X")));
+  // 下流の _components/loader.ts が既定 loader(../_screen/loader)を呼ぶのは正しい方向
+  const forkLoader = `${base}import { loadWalletBalanceScreen } from "../_screen/loader";\nexport const loadWalletBalanceExtra = cache(async (slug: string) => ({ slug }));`;
+  const forkLoaderPath = "src/app/(user)/(protected)/wallet/[slug]/_components/loader.ts";
+  assert.deepEqual(checkLoaderFile(forkLoader, { path: forkLoaderPath }), []);
+  // _components/loader.ts からの ./Part は _components/ 内(相対 import を loader の位置から解決する)
+  const forkFromPart = `${base}import type { WinReportData } from "./WinReportList";\nexport const loadWinReportExtra = cache(async (): Promise<WinReportData[]> => []);`;
+  assert.ok(checkLoaderFile(forkFromPart, { path: forkLoaderPath }).some((p) => p.includes("./WinReportList")));
+  // Screen 名の判定は相対 import か _screen/ / _components/ 配下だけ(ドメインの型ファイルは誤検出しない)
+  const typesFile = `${base}import type { WalletIndexScreen } from "@/features/core/wallet/types/WalletIndexScreen";\nexport const loadWalletIndexScreen = cache(async (): Promise<WalletIndexScreen> => ({}));`;
+  assert.deepEqual(checkLoaderFile(typesFile), []);
+  const dirScreen = `${base}import type { Props } from "../_screen/WinReportScreen/index";\nexport const loadWinReportScreen = cache(async (): Promise<Props> => ({}));`;
+  assert.ok(checkLoaderFile(dirScreen).some((p) => p.includes("WinReportScreen")));
+  assert.deepEqual(checkLoaderFile(ok, null), [], "options に null を渡しても落ちない");
+});
+
+test("checkLoaderFile: (protected) 配下の loader は getSessionUser を使わない(requireCurrentUser のみ)。公開ルートでは可", () => {
+  const tolerant = `import "server-only";\nimport { cache } from "react";\nimport { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";\nexport const loadPlayScreen = cache(async () => { const s = await getSessionUser(); return { userId: s?.userId ?? null }; });`;
+  assert.ok(checkLoaderFile(tolerant, { path: "src/app/(user)/(protected)/play/[batchId]/_screen/loader.ts" }).some((p) => p.includes("getSessionUser")));
+  assert.ok(checkLoaderFile(tolerant, { path: "src/app/admin/(protected)/floor-tables/_screen/loader.ts" }).some((p) => p.includes("getSessionUser")));
+  assert.deepEqual(checkLoaderFile(tolerant, { path: "src/app/(marketing)/gacha/[id]/_screen/loader.ts" }), []);
+  assert.deepEqual(checkLoaderFile(tolerant), [], "path 省略時は protected 判定をしない(checker 単体の互換)");
+  const namespaced = `import "server-only";\nimport { cache } from "react";\nimport * as session from "@/features/core/auth/services/server/session/getSessionUser";\nexport const loadPlayScreen = cache(async () => ({ s: await session.getSessionUser() }));`;
+  assert.ok(checkLoaderFile(namespaced, { path: "src/app/(user)/(protected)/play/_screen/loader.ts" }).some((p) => p.includes("getSessionUser")), "namespace import も import 元で検出");
+  const strict = `import "server-only";\nimport { cache } from "react";\nimport { requireCurrentUser } from "@/features/core/user/services/server/userService";\nexport const loadPlayScreen = cache(async () => { const u = await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" }); return { userId: u.id }; });`;
+  assert.deepEqual(checkLoaderFile(strict, { path: "src/app/(user)/(protected)/play/[batchId]/_screen/loader.ts" }), []);
 });
 
 test("isReexportOnlyFile: 再 export だけのファイル(旧パス shim / barrel)を見分ける", () => {
