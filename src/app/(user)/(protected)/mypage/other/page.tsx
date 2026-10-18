@@ -1,16 +1,4 @@
 // src/app/(user)/(protected)/mypage/other/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { OtherActions } from "@/features/core/user/components/UserMyPage/OtherActions";
-import { requireCurrentUser } from "@/features/core/user/services/server/userService";
-
-export default async function OtherActionsPage() {
-  await requireCurrentUser({ behavior: "redirect", redirectTo: "/mypage" });
-
-  return (
-    <>
-      <UserPageTitle srOnly>その他の操作</UserPageTitle>
-      <OtherActions />
-    </>
-  );
-}
+export { MyPageOtherScreen as default } from "./_screen/MyPageOtherScreen";

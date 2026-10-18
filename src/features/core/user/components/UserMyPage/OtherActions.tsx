@@ -8,8 +8,8 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 
-import { AccountPageHeader } from "./AccountPageHeader";
-import { RichMenuCard } from "./RichMenuCard";
+import { AccountPageHeader } from "@/features/core/user/components/UserMyPage/AccountPageHeader";
+import { RichMenuCard } from "@/features/core/user/components/UserMyPage/RichMenuCard";
 
 export function OtherActions() {
   return (

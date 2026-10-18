@@ -1,16 +1,4 @@
 // src/app/(user)/(protected)/mypage/withdraw/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { Withdraw } from "@/features/core/user/components/Withdraw";
-import { requireCurrentUser } from "@/features/core/user/services/server/userService";
-
-export default async function WithdrawPage() {
-  await requireCurrentUser({ behavior: "redirect", redirectTo: "/mypage" });
-
-  return (
-    <>
-      <UserPageTitle srOnly>退会</UserPageTitle>
-      <Withdraw />
-    </>
-  );
-}
+export { MyPageWithdrawScreen as default } from "./_screen/MyPageWithdrawScreen";

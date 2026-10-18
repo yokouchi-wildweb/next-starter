@@ -10,7 +10,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 
-import { RichMenuCard } from "./RichMenuCard";
+import { RichMenuCard } from "@/features/core/user/components/UserMyPage/RichMenuCard";
 
 export function MainMenu() {
   const { logout, isLoading: isLoggingOut } = useLogout();

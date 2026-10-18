@@ -1,4 +1,5 @@
 // src/features/core/user/components/UserMyPage/AccountDetails.tsx
+// セクションコンテナ(アカウント基本情報)。部品の import は絶対パス: 下流が複製しても import を直さずに動く
 
 import Link from "next/link";
 import { UserPenIcon, MailIcon, LockIcon, CheckCircleIcon, PhoneIcon, ChevronRightIcon } from "lucide-react";
@@ -9,10 +10,10 @@ import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { User } from "@/features/core/user/entities";
 import { formatForDisplay } from "@/features/core/user/utils/phoneNumber";
 
-import { AccountAvatarSection } from "./AccountAvatarSection";
-import { AccountPageHeader } from "./AccountPageHeader";
+import { AccountAvatarSection } from "@/features/core/user/components/UserMyPage/AccountAvatarSection";
+import { AccountPageHeader } from "@/features/core/user/components/UserMyPage/AccountPageHeader";
 
-type AccountDetailsProps = {
+export type AccountDetailsProps = {
   user: User;
 };
 

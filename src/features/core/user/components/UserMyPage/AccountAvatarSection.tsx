@@ -1,4 +1,5 @@
 // src/features/core/user/components/UserMyPage/AccountAvatarSection.tsx
+// インタラクション部品(アバターの変更・削除)。HTTP は useUpdateMyProfile 経由(client service を直接呼ばない)
 
 "use client";
 
@@ -7,8 +8,7 @@ import { CameraIcon, ImageIcon, LoaderIcon, Trash2Icon, UserIcon } from "lucide-
 
 import { Stack } from "@/components/Layout/Stack";
 import { clientUploader } from "@/lib/storage/client/clientUploader";
-import { normalizeHttpError } from "@/lib/errors";
-import { userClient } from "@/features/core/user/services/client/userClient";
+import { useUpdateMyProfile } from "@/features/core/user/hooks/useUpdateMyProfile";
 import type { User } from "@/features/core/user/entities";
 
 // --- 型定義 ---
@@ -119,8 +119,10 @@ export function AccountAvatarSection({
   const [isUploading, setIsUploading] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // ローカルの error はファイル検証・アップロード失敗用。API 失敗は hook の error を併せて表示する
   const [error, setError] = useState<string | null>(null);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(user.avatarUrl);
+  const { updateProfile, error: updateError, reset: resetUpdateError } = useUpdateMyProfile();
 
   const lockRef = useRef(false);
   const isBusy = isUploading || isRemoving;
@@ -145,23 +147,24 @@ export function AccountAvatarSection({
     if (lockRef.current) return;
     lockRef.current = true;
     setError(null);
+    resetUpdateError();
     setIsRemoving(true);
 
     try {
-      const updatedUser = await userClient.updateMyProfile({
+      // 失敗時は null が返り、hook の error にメッセージが入る
+      const updatedUser = await updateProfile({
         name: user.name ?? "",
         avatarUrl: null,
       });
-      setCurrentAvatarUrl(null);
-      onAvatarUpdated?.(updatedUser);
-    } catch (err) {
-      const normalized = normalizeHttpError(err);
-      setError(normalized.message);
+      if (updatedUser) {
+        setCurrentAvatarUrl(null);
+        onAvatarUpdated?.(updatedUser);
+      }
     } finally {
       lockRef.current = false;
       setIsRemoving(false);
     }
-  }, [user.name, onAvatarUpdated]);
+  }, [user.name, onAvatarUpdated, updateProfile, resetUpdateError]);
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,21 +186,22 @@ export function AccountAvatarSection({
       }
 
       setError(null);
+      resetUpdateError();
       setIsUploading(true);
 
       clientUploader.upload(file, {
         basePath: storagePath,
         onComplete: async ({ url }) => {
           try {
-            const updatedUser = await userClient.updateMyProfile({
+            // 失敗時は null が返り、hook の error にメッセージが入る
+            const updatedUser = await updateProfile({
               name: user.name ?? "",
               avatarUrl: url,
             });
-            setCurrentAvatarUrl(url);
-            onAvatarUpdated?.(updatedUser);
-          } catch (err) {
-            const normalized = normalizeHttpError(err);
-            setError(normalized.message);
+            if (updatedUser) {
+              setCurrentAvatarUrl(url);
+              onAvatarUpdated?.(updatedUser);
+            }
           } finally {
             setIsUploading(false);
           }
@@ -208,7 +212,7 @@ export function AccountAvatarSection({
         },
       });
     },
-    [acceptTypes, maxFileSize, storagePath, user.name, onAvatarUpdated],
+    [acceptTypes, maxFileSize, storagePath, user.name, onAvatarUpdated, updateProfile, resetUpdateError],
   );
 
   return (
@@ -262,8 +266,8 @@ export function AccountAvatarSection({
         </p>
 
         {/* エラー表示 */}
-        {error && (
-          <p className="text-xs text-destructive-text">{error}</p>
+        {(error ?? updateError) && (
+          <p className="text-xs text-destructive-text">{error ?? updateError}</p>
         )}
       </div>
 

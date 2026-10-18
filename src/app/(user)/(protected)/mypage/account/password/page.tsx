@@ -1,26 +1,4 @@
 // src/app/(user)/(protected)/mypage/account/password/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import { redirect } from "next/navigation";
-
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { EditPassword } from "@/features/core/user/components/UserMyPage/EditPassword";
-import { requireCurrentUser } from "@/features/core/user/services/server/userService";
-
-export default async function EditPasswordPage() {
-  const user = await requireCurrentUser({
-    behavior: "redirect",
-    redirectTo: "/mypage",
-  });
-
-  // パスワード変更はメール認証ユーザーのみ
-  if (user.providerType !== "email" || !user.email) {
-    redirect("/mypage/account");
-  }
-
-  return (
-    <>
-      <UserPageTitle srOnly>パスワードを変更</UserPageTitle>
-      <EditPassword email={user.email} />
-    </>
-  );
-}
+export { MyPageAccountPasswordScreen as default } from "./_screen/MyPageAccountPasswordScreen";

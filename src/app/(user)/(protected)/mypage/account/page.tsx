@@ -1,19 +1,4 @@
 // src/app/(user)/(protected)/mypage/account/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { AccountDetails } from "@/features/core/user/components/UserMyPage/AccountDetails";
-import { requireCurrentUser } from "@/features/core/user/services/server/userService";
-
-export default async function AccountPage() {
-  const user = await requireCurrentUser({
-    behavior: "redirect",
-    redirectTo: "/mypage",
-  });
-
-  return (
-    <>
-      <UserPageTitle srOnly>アカウント基本情報</UserPageTitle>
-      <AccountDetails user={user} />
-    </>
-  );
-}
+export { MyPageAccountScreen as default } from "./_screen/MyPageAccountScreen";

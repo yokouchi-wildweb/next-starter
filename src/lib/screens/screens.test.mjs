@@ -54,16 +54,6 @@ const exists = (path) => existsSync(resolve(repoRoot, path));
  * 各ステップで移行したら行を外す。全て空になった時点で Step 5 完了
  */
 export const UPSTREAM_LEGACY_ROUTES = [
-  { dir: "src/app/(user)/(protected)/mypage", reason: "Step 5c で移行" },
-  { dir: "src/app/(user)/(protected)/mypage/account", reason: "Step 5c で移行" },
-  { dir: "src/app/(user)/(protected)/mypage/account/email", reason: "Step 5c で移行" },
-  { dir: "src/app/(user)/(protected)/mypage/account/password", reason: "Step 5c で移行" },
-  { dir: "src/app/(user)/(protected)/mypage/account/phone", reason: "Step 5c で移行" },
-  { dir: "src/app/(user)/(protected)/mypage/account/profile", reason: "Step 5c で移行" },
-  { dir: "src/app/(user)/(protected)/mypage/invite", reason: "Step 5c で移行" },
-  { dir: "src/app/(user)/(protected)/mypage/other", reason: "Step 5c で移行" },
-  { dir: "src/app/(user)/(protected)/mypage/pause", reason: "Step 5c で移行" },
-  { dir: "src/app/(user)/(protected)/mypage/withdraw", reason: "Step 5c で移行" },
   { dir: "src/app/(user)/(legal)/privacy-policy", reason: "Step 5d で移行" },
   { dir: "src/app/(user)/(legal)/terms", reason: "Step 5d で移行" },
   { dir: "src/app/(user)/(legal)/tradelaw", reason: "Step 5d で移行" },
