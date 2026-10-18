@@ -1,1 +1,0 @@
-export { StarterHome } from "./StarterHome";
