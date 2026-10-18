@@ -4,6 +4,7 @@ import {
   toPascalCase,
   toKebabCase,
 } from '../../../../src/utils/stringCase.mjs';
+import { getStaticRelations } from '../../../../src/lib/domain/relations/relationOptions.mjs';
 
 export { toPlural, toCamelCase, toPascalCase, toKebabCase };
 
@@ -29,17 +30,20 @@ export function replaceTokens(
 const ADMIN_LOADERS = '@/features/core/admin/services/server/loaders';
 
 // 関連ドメイン定義から _screen/ テンプレートのトークン文字列を生成
-//  - imports: SWRConfig / 関連 service / loadAdminRelationLists の import
+//  - imports: SWRConfig / loadAdminRelationOptions / domain.json の import
 //  - async: 追加画面を async にするか(関連の取得があるとき)
-//  - relationFetchNew: 追加画面での関連一覧の取得(SWR fallback 用)
-//  - editFetch: 編集画面での対象レコード + 関連一覧の取得(loadAdminEditScreen + loadAdminRelationLists)
+//  - relationFetchNew: 追加画面での関連選択肢の先読み(SWR fallback 用)
+//  - editFetch: 編集画面での対象レコード + 関連選択肢の先読み(loadAdminEditScreen + loadAdminRelationOptions)
 //  - swrStart / swrEnd: SWRConfig の fallback で画面を包む
+// 先読みするのは「選択肢を全件取得する関連」(getStaticRelations: async / custom / 逆側を除く)が 1 つ以上あるときだけ。
+// どの関連を読むかは loader が domain.json から同じ helper で判定し、service は serviceRegistry から解決するので、
+// 生成物は関連先の service を import しない
 export function buildRelationTokens(relations, tokens) {
   const { camel, kebabPlural } = tokens;
   const editCall = `loadAdminEditScreen(${camel}Service, props, "/admin/${kebabPlural}")`;
 
-  // 関連が無い場合は編集レコードの取得だけ
-  if (!relations || relations.length === 0) {
+  // 先読みする関連が無い場合は編集レコードの取得だけ
+  if (getStaticRelations({ relations }).length === 0) {
     return {
       imports: '',
       async: '',
@@ -50,37 +54,25 @@ export function buildRelationTokens(relations, tokens) {
     };
   }
 
-  const importLines = [
+  // 各トークンは行単位(末尾に改行を含める)。index.mjs の render がトークン行ごと置換する
+  const imports = [
     'import { SWRConfig } from "swr";',
-    `import { loadAdminRelationLists } from "${ADMIN_LOADERS}/adminRelations";`,
-  ];
-  const varNames = [];
-  const serviceEntries = [];
-
-  relations.forEach((rel) => {
-    const dom = toCamelCase(rel.domain) || rel.domain;
-    importLines.push(`import { ${dom}Service } from "@/features/${dom}/services/server/${dom}Service";`);
-    const plural = toPlural(dom);
-    varNames.push(plural);
-    serviceEntries.push(`${plural}: ${dom}Service`);
-  });
-
-  const imports = importLines.join('\n');
+    `import { loadAdminRelationOptions } from "${ADMIN_LOADERS}/adminRelationOptions";`,
+    `import domainConfig from "@/features/${camel}/domain.json";`,
+  ].join('\n') + '\n';
   const asyncKeyword = 'async ';
-  const relationCall = `loadAdminRelationLists({ ${serviceEntries.join(', ')} })`;
+  const relationCall = 'loadAdminRelationOptions(domainConfig)';
 
-  const relationFetchNew =
-    `  const { ${varNames.join(', ')} } = await ${relationCall};\n`;
+  const relationFetchNew = `  const relationFallback = await ${relationCall};\n`;
 
   const editFetch =
-    `  const [{ record: ${camel}, redirectPath }, { ${varNames.join(', ')} }] = await Promise.all([\n` +
+    `  const [{ record: ${camel}, redirectPath }, relationFallback] = await Promise.all([\n` +
     `    ${editCall},\n` +
     `    ${relationCall},\n` +
     `  ]);\n`;
 
-  const swrStart =
-    `  <SWRConfig\n    value={{\n      fallback: { ${varNames.join(', ')} },\n  }}\n  >\n`;
-  const swrEnd = '  </SWRConfig>';
+  const swrStart = '  <SWRConfig value={{ fallback: relationFallback }}>\n';
+  const swrEnd = '  </SWRConfig>\n';
 
   return {
     imports,

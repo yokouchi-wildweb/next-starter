@@ -100,6 +100,7 @@ hasMany リレーションを定義すると、`dc:generate` 時に drizzleBase.
 - `custom`: UI は自分で実装。スキーマには含まれるが、自動 UI 描画なし
 
 `asyncCombobox` / `asyncMultiSelect` を指定した場合、リレーション先の `searchFields`（domain.json）が自動的に検索対象として使用される。
+全件取得する関連（`async*` と `custom` 以外。省略時の `select` / `checkbox` を含む）は、生成された管理画面（追加・編集）がサーバーで先読みして SWR の fallback に渡す。`async` / `custom` の関連と `includeRelationTable: false` の belongsToMany（逆側）は先読みしない。判定は `src/lib/domain/relations/relationOptions.mjs` に集約（`useRelationOptions` / `loadAdminRelationOptions` / 生成器が共有）。
 
 `custom` を指定した場合、データ取得は行われず FieldConfig のみ生成される。
 `beforeField` / `afterField` で独自コンポーネントを注入する（通常フィールドの `custom` と同じ仕組み）。

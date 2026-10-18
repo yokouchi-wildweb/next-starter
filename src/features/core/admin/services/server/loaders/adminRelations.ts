@@ -1,6 +1,8 @@
 // src/features/core/admin/services/server/loaders/adminRelations.ts
-// dc:generate が生成する管理画面(追加・編集)が関連ドメインの選択肢を SWR fallback として
-// 事前取得するための共有 helper。一覧・規則: ./README.md
+// @deprecated 旧 loader。fallback のキー(use<Domain>List のキー)がフォームの useRelationOptions の
+// キーと一致せず、先読みが使われていなかった。生成器は loadAdminRelationOptions(./adminRelationOptions.ts)を
+// 使う。checkpoint admin-relation-options-prefetch の次の checkpoint で削除する(.notices 参照)。
+// 一覧・規則: ./README.md
 
 import "server-only";
 import { cache } from "react";

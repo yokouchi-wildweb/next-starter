@@ -9,9 +9,8 @@ import {
   type AdminEditScreenSearchParams,
 } from "@/features/core/admin/services/server/loaders/adminEdit";
 import { SWRConfig } from "swr";
-import { loadAdminRelationLists } from "@/features/core/admin/services/server/loaders/adminRelations";
-import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
-import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
+import { loadAdminRelationOptions } from "@/features/core/admin/services/server/loaders/adminRelationOptions";
+import domainConfig from "@/features/sample/domain.json";
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import AdminSampleEdit from "@/features/sample/components/AdminSampleEdit";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
@@ -22,18 +21,12 @@ export const metadata = {
 };
 
 export async function AdminSampleEditScreen(props: ScreenProps<AdminEditScreenParams, AdminEditScreenSearchParams>) {
-  const [{ record: sample, redirectPath }, { sampleCategories, sampleTags }] = await Promise.all([
+  const [{ record: sample, redirectPath }, relationFallback] = await Promise.all([
     loadAdminEditScreen(sampleService, props, "/admin/samples"),
-    loadAdminRelationLists({ sampleCategories: sampleCategoryService, sampleTags: sampleTagService }),
+    loadAdminRelationOptions(domainConfig),
   ]);
-
   return (
-  <SWRConfig
-    value={{
-      fallback: { sampleCategories, sampleTags },
-  }}
-  >
-
+  <SWRConfig value={{ fallback: relationFallback }}>
     <AdminPage>
       <PageTitle placement="header">サンプル編集</PageTitle>
       <AdminSampleEdit sample={sample} redirectPath={redirectPath} />

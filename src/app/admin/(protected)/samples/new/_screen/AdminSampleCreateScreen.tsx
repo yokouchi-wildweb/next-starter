@@ -3,9 +3,8 @@
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
 import { SWRConfig } from "swr";
-import { loadAdminRelationLists } from "@/features/core/admin/services/server/loaders/adminRelations";
-import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
-import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
+import { loadAdminRelationOptions } from "@/features/core/admin/services/server/loaders/adminRelationOptions";
+import domainConfig from "@/features/sample/domain.json";
 import AdminSampleCreate from "@/features/sample/components/AdminSampleCreate";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
 import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
@@ -15,15 +14,9 @@ export const metadata = {
 };
 
 export async function AdminSampleCreateScreen() {
-  const { sampleCategories, sampleTags } = await loadAdminRelationLists({ sampleCategories: sampleCategoryService, sampleTags: sampleTagService });
-
+  const relationFallback = await loadAdminRelationOptions(domainConfig);
   return (
-  <SWRConfig
-    value={{
-      fallback: { sampleCategories, sampleTags },
-  }}
-  >
-
+  <SWRConfig value={{ fallback: relationFallback }}>
     <AdminPage>
       <PageTitle placement="header">サンプル追加</PageTitle>
       <AdminSampleCreate redirectPath="/admin/samples" />

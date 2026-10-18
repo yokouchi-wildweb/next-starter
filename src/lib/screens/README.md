@@ -337,7 +337,7 @@ src/app/admin/(protected)/samples/
 | 生成物（編集しない） | `_screen/<Name>Screen.tsx` | 毎回上書き |
 | fork | `_components/` | 触らない |
 
-- `_screen/` はルートごとの `loader.ts` を持たず、`src/features/core/admin/services/server/loaders/` の**共有 loader**（`loadAdminListScreen(service, props)` / `loadAdminEditScreen(service, props, fallbackPath)` / `loadAdminSortScreen(service, sortOrderColumn)` / `loadAdminRelationLists({...})`）を呼ぶ。多数のルートが丸ごと同じ処理を使う唯一の例で、一覧と規則は同ディレクトリの README
+- `_screen/` はルートごとの `loader.ts` を持たず、`src/features/core/admin/services/server/loaders/` の**共有 loader**（`loadAdminListScreen(service, props, options?)` / `loadAdminEditScreen(service, props, fallbackPath)` / `loadAdminSortScreen(service, sortOrderColumn)` / `loadAdminRelationOptions(domainConfig)`）を呼ぶ。多数のルートが丸ごと同じ処理を使う唯一の例で、一覧と規則は同ディレクトリの README
 - 共有 loader は `requireCurrentUser` を呼ばない（`admin/(protected)/layout.tsx` の `authGuard` が管理者を検査済み）。本人スコープのデータを取るユーザー向け loader との違い
 - 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `dc:generate` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く
 - 生成ルートも `test:screens` が自動検出して検査する（domain.json から導出）

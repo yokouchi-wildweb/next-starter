@@ -8,9 +8,6 @@ import {
   type AdminEditScreenParams,
   type AdminEditScreenSearchParams,
 } from "@/features/core/admin/services/server/loaders/adminEdit";
-import { SWRConfig } from "swr";
-import { loadAdminRelationLists } from "@/features/core/admin/services/server/loaders/adminRelations";
-import { sampleService } from "@/features/sample/services/server/sampleService";
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 import AdminSampleTagEdit from "@/features/sampleTag/components/AdminSampleTagEdit";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
@@ -21,22 +18,11 @@ export const metadata = {
 };
 
 export async function AdminSampleTagEditScreen(props: ScreenProps<AdminEditScreenParams, AdminEditScreenSearchParams>) {
-  const [{ record: sampleTag, redirectPath }, { samples }] = await Promise.all([
-    loadAdminEditScreen(sampleTagService, props, "/admin/sample-tags"),
-    loadAdminRelationLists({ samples: sampleService }),
-  ]);
-
+  const { record: sampleTag, redirectPath } = await loadAdminEditScreen(sampleTagService, props, "/admin/sample-tags");
   return (
-  <SWRConfig
-    value={{
-      fallback: { samples },
-  }}
-  >
-
     <AdminPage>
       <PageTitle placement="header">サンプルタグ編集</PageTitle>
       <AdminSampleTagEdit sampleTag={sampleTag} redirectPath={redirectPath} />
     </AdminPage>
-  </SWRConfig>
   );
 }

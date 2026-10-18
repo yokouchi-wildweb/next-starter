@@ -1,6 +1,8 @@
 // scripts/domain-config/generator/components/utils/fields.mjs
 // ドメインのフォームフィールドコンポーネントを生成するユーティリティ
 
+import { getFormRelations } from "../../../../../src/lib/domain/relations/relationOptions.mjs";
+
 /**
  * domain.json の config からフィールドコンポーネントを生成
  * リレーションがある場合は useRelationOptions を使用して自動取得
@@ -8,12 +10,8 @@
 function generateFieldsFromConfig(config) {
   if (!config) return null;
 
-  // リレーションの有無を確認（belongsTo または belongsToMany で includeRelationTable !== false のもの）
-  const hasRelations = (config.relations || []).some(
-    (rel) =>
-      rel.relationType === "belongsTo" ||
-      (rel.relationType === "belongsToMany" && rel.includeRelationTable !== false)
-  );
+  // フォームに出るリレーションの有無(判定は useRelationOptions と同じ helper)
+  const hasRelations = getFormRelations(config).length > 0;
 
   // リレーションがある場合の import
   const useRelationImport = hasRelations

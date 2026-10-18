@@ -8,9 +8,6 @@ import {
   type AdminEditScreenParams,
   type AdminEditScreenSearchParams,
 } from "@/features/core/admin/services/server/loaders/adminEdit";
-import { SWRConfig } from "swr";
-import { loadAdminRelationLists } from "@/features/core/admin/services/server/loaders/adminRelations";
-import { sampleService } from "@/features/sample/services/server/sampleService";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import AdminSampleCategoryEdit from "@/features/sampleCategory/components/AdminSampleCategoryEdit";
 import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
@@ -21,22 +18,11 @@ export const metadata = {
 };
 
 export async function AdminSampleCategoryEditScreen(props: ScreenProps<AdminEditScreenParams, AdminEditScreenSearchParams>) {
-  const [{ record: sampleCategory, redirectPath }, { samples }] = await Promise.all([
-    loadAdminEditScreen(sampleCategoryService, props, "/admin/sample-categories"),
-    loadAdminRelationLists({ samples: sampleService }),
-  ]);
-
+  const { record: sampleCategory, redirectPath } = await loadAdminEditScreen(sampleCategoryService, props, "/admin/sample-categories");
   return (
-  <SWRConfig
-    value={{
-      fallback: { samples },
-  }}
-  >
-
     <AdminPage>
       <PageTitle placement="header">サンプルカテゴリ編集</PageTitle>
       <AdminSampleCategoryEdit sampleCategory={sampleCategory} redirectPath={redirectPath} />
     </AdminPage>
-  </SWRConfig>
   );
 }

@@ -11,6 +11,13 @@ import type { InsertFieldsMap, FieldConfig } from "@/components/Form/FieldRender
 import type { FormInputType } from "@/components/Form/Field/types";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { getDomainConfig, hasDomainConfig } from "@/lib/domain/config";
+import {
+  getFormRelations,
+  getStaticRelations,
+  isAsyncRelationFormInput,
+  isCustomRelationFormInput,
+  relationOptionsKey,
+} from "@/lib/domain/relations/relationOptions.mjs";
 
 /**
  * domain.json の relations の型
@@ -43,26 +50,19 @@ type RelationData = {
   name: string;
 };
 
+// 「どの関連がフォームに出るか」「どれを全件取得するか」「SWR キー」の判定は
+// src/lib/domain/relations/relationOptions.mjs に集約してある(SSR 先読みの loader と生成器も同じものを使う)。
+// ここに判定を書き足さない
+
 /** 非同期検索対応の formInput かどうかを判定 */
-const ASYNC_FORM_INPUTS = new Set(["asyncCombobox", "asyncMultiSelect"]);
-
 function isAsyncFormInput(formInput?: string): formInput is "asyncCombobox" | "asyncMultiSelect" {
-  return formInput != null && ASYNC_FORM_INPUTS.has(formInput);
-}
-
-/** custom formInput かどうかを判定 */
-function isCustomFormInput(formInput?: string): boolean {
-  return formInput === "custom";
-}
-
-/** データの全件取得が必要なリレーションかどうかを判定 */
-function needsDataFetch(formInput?: string): boolean {
-  return !isAsyncFormInput(formInput) && !isCustomFormInput(formInput);
+  return isAsyncRelationFormInput(formInput);
 }
 
 /**
  * 複数のリレーション先データを並列取得するための fetcher
- * （非同期検索のリレーションは除外して呼び出される）
+ * （非同期検索のリレーションは除外して呼び出される）。
+ * 結果は relation.domain をキーにする。SSR 先読み(adminRelationOptions loader)も同じ形で fallback を渡す
  */
 async function fetchRelationData(
   relations: RelationConfig[]
@@ -209,26 +209,17 @@ export type UseRelationOptionsResult = {
 export function useRelationOptions(
   domainConfig: DomainConfig
 ): UseRelationOptionsResult {
-  // belongsTo と belongsToMany のみを対象（hasMany は除外）
-  const relations = (domainConfig.relations ?? []).filter((rel) => {
-    if (rel.relationType === "belongsTo") return true;
-    if (rel.relationType === "belongsToMany") {
-      // includeRelationTable が false の場合は除外
-      return (rel as RelationConfig & { includeRelationTable?: boolean }).includeRelationTable !== false;
-    }
-    return false;
-  });
+  // フォームに出る関連(belongsTo と表側の belongsToMany。hasMany と逆側は除外)
+  const relations = getFormRelations(domainConfig) as RelationConfig[];
 
   // 同期取得が必要なリレーション（async / custom 以外）
-  const staticRelations = relations.filter((rel) => needsDataFetch(rel.formInput));
+  const staticRelations = getStaticRelations(domainConfig) as RelationConfig[];
 
   const hasStaticRelations = staticRelations.length > 0;
   const hasRelations = relations.length > 0;
 
-  // SWR キーを生成（同期取得が必要なリレーションのみ）
-  const swrKey = hasStaticRelations
-    ? ["relationOptions", staticRelations.map((r) => r.domain).join(",")]
-    : null;
+  // SWR キー(同期取得が必要なリレーションのみ)。生成された管理画面はサーバーで同じキーの fallback を渡す
+  const swrKey = relationOptionsKey(staticRelations);
 
   const { data, error, isLoading } = useSWR(
     swrKey,
@@ -250,7 +241,7 @@ export function useRelationOptions(
 
     // 元の relations 配列の順序を保持しつつ FieldConfig を生成
     const fieldConfigs: FieldConfig[] = relations.map((relation) => {
-      if (isCustomFormInput(relation.formInput)) {
+      if (isCustomRelationFormInput(relation.formInput)) {
         return buildCustomRelationFieldConfig(relation);
       }
       if (isAsyncFormInput(relation.formInput)) {

@@ -132,14 +132,22 @@ function readTemplate(templateRelative) {
 
 function render(templateRelative) {
   const content = replaceTokens(readTemplate(templateRelative), tokens);
-  return content
-    .replace(/__RELATION_IMPORTS__/g, relTokens.imports)
+  // 行単位のトークン(改行込みで置換)は、空のとき行ごと消す(生成物に空行を残さない)。行末の空白は許容
+  const rendered = content
+    .replace(/__RELATION_IMPORTS__[ \t]*\n/g, relTokens.imports)
     .replace(/__ASYNC__/g, relTokens.async)
-    .replace(/__RELATION_FETCH__/g, relTokens.relationFetchNew)
-    .replace(/__EDIT_FETCH__/g, relTokens.editFetch)
-    .replace(/__SWR_START__/g, relTokens.swrStart)
-    .replace(/__SWR_END__/g, relTokens.swrEnd)
+    .replace(/__RELATION_FETCH__[ \t]*\n/g, relTokens.relationFetchNew)
+    .replace(/__EDIT_FETCH__[ \t]*\n/g, relTokens.editFetch)
+    .replace(/__SWR_START__[ \t]*\n/g, relTokens.swrStart)
+    .replace(/__SWR_END__[ \t]*\n/g, relTokens.swrEnd)
     .replace(/__SORT_ORDER_FIELD__/g, domainConfig?.sortOrderField ?? "sort_order");
+  // 置換されなかったトークンを黙って出力しない(テンプレートの崩れを即座に検出する)
+  const leftover = rendered.match(/__[A-Z_]+__/);
+  if (leftover) {
+    console.error(`テンプレートのトークンが置換されていません: ${leftover[0]} (${templateRelative})`);
+    process.exit(1);
+  }
+  return rendered;
 }
 
 function outputPath(templateRelative) {
