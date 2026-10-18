@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
@@ -19,6 +20,10 @@ import {
 } from "@/features/core/auditLog/presenters";
 
 import { DiffView } from "./DiffView";
+
+// ビューポート基準で末尾の 160px 手前から次ページを先読みする(root は指定しない。
+// スクロールしない wrapper を root にすると sentinel が常時交差扱いになり loadMore が連射される)
+const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 
 type Fetcher = (args: { page: number; limit: number }) => Promise<PaginatedResult<AuditLog>>;
 
@@ -66,34 +71,15 @@ export function AuditLogListView({
     [fetcher],
   );
 
-  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const [detailLog, setDetailLog] = useState<AuditLog | null>(null);
 
-  const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
-    setScrollContainer(node);
-  }, []);
-
-  const observerOptions = useMemo<IntersectionObserverInit | undefined>(() => {
-    if (!scrollContainer) return undefined;
-    return {
-      root: scrollContainer,
-      rootMargin: "0px 0px 160px 0px",
-      threshold: 0.1,
-    };
-  }, [scrollContainer]);
-
-  const { items: logs, total, isLoading, error, hasMore, sentinelRef } =
+  const { items: logs, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } =
     useInfiniteScrollQuery<AuditLog>({
       fetcher: stableFetcher,
       limit: pageSize,
       deps,
-      observerOptions,
+      observerOptions: OBSERVER_OPTIONS,
     });
-
-  const handleBottomSentinelRef = useCallback(
-    (node: HTMLDivElement | null) => sentinelRef(node),
-    [sentinelRef],
-  );
 
   const columns: DataTableColumn<AuditLog>[] = [
     { header: "日時", render: (log) => formatAuditDate(log.createdAt) },
@@ -108,9 +94,6 @@ export function AuditLogListView({
       render: (log) => `${log.targetType}/${log.targetId}`,
     });
   }
-
-  const hasLogs = logs.length > 0;
-  const errorMessage = error ? "履歴の取得に失敗しました" : null;
 
   const detailRows = useMemo<DetailModalRow[]>(() => {
     if (!detailLog) return [];
@@ -173,42 +156,42 @@ export function AuditLogListView({
         <Para size="xs" tone="muted">
           {total ? `合計 ${total} 件` : "履歴 0 件"}
         </Para>
-        {errorMessage ? (
-          <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-destructive/40 bg-destructive/5">
-            <Para tone="destructive">{errorMessage}</Para>
-          </div>
-        ) : isLoading && !hasLogs ? (
-          <div className="flex min-h-[160px] items-center justify-center">
-            <Para tone="muted">履歴を読込中...</Para>
-          </div>
-        ) : hasLogs ? (
-          <>
+        <InfiniteScrollList
+          items={logs}
+          isInitialLoading={isInitialLoading}
+          isFetchingMore={isFetchingMore}
+          hasMore={hasMore}
+          error={error}
+          sentinelRef={sentinelRef}
+          completedText="すべて読み込み済み"
+          initialLoadingNode={
+            <div className="flex min-h-[160px] items-center justify-center">
+              <Para tone="muted">履歴を読込中...</Para>
+            </div>
+          }
+          errorNode={
+            <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-destructive/40 bg-destructive/5">
+              <Para tone="destructive">履歴の取得に失敗しました</Para>
+            </div>
+          }
+          emptyNode={
+            <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border py-6">
+              <Para tone="muted">操作履歴はまだありません</Para>
+            </div>
+          }
+        >
+          {(items) => (
             <DataTable
-              items={logs}
+              items={items}
               columns={columns}
               className="rounded-lg border border-border bg-card"
               maxHeight="none"
               getKey={(item) => item.id}
               emptyValueFallback="-"
               onRowClick={setDetailLog}
-              scrollContainerRef={handleScrollContainerRef}
-              bottomSentinelRef={handleBottomSentinelRef}
             />
-            <div className="mt-2 flex items-center justify-center">
-              {isLoading ? (
-                <Para tone="muted" size="xs">追加の履歴を読込中...</Para>
-              ) : hasMore ? (
-                <Para tone="muted" size="xs">下までスクロールすると自動で読み込みます</Para>
-              ) : (
-                <Para tone="muted" size="xs">すべて読み込み済み</Para>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border py-6">
-            <Para tone="muted">操作履歴はまだありません</Para>
-          </div>
-        )}
+          )}
+        </InfiniteScrollList>
       </Stack>
       <DetailModal
         open={Boolean(detailLog)}

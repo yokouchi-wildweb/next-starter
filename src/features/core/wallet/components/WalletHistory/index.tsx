@@ -4,13 +4,13 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
 import { Block } from "@/components/Layout/Block";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
+import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { useMyWalletHistoryBatches } from "@/features/core/walletHistory/hooks/useMyWalletHistoryBatches";
 import { getCurrencyConfigBySlug } from "@/features/core/wallet/utils/currency";
 import { HistoryListItem } from "@/features/core/wallet/components/WalletHistory/HistoryListItem";
@@ -25,43 +25,25 @@ export type WalletHistoryProps = {
 
 const HISTORY_PAGE_SIZE = 20;
 
+// ビューポート基準で末尾の 160px 手前から次ページを先読みする(root は指定しない。
+// スクロールしない wrapper を root にすると sentinel が常時交差扱いになり loadMore が連射される)
+const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
+
 export function WalletHistory({ slug }: WalletHistoryProps) {
   const config = getCurrencyConfigBySlug(slug);
 
-  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
-  const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
-    setScrollContainer(node);
-  }, []);
-
-  const observerOptions = useMemo<IntersectionObserverInit | undefined>(() => {
-    if (!scrollContainer) {
-      return undefined;
-    }
-    return {
-      root: scrollContainer,
-      rootMargin: "0px 0px 160px 0px",
-      threshold: 0.1,
-    };
-  }, [scrollContainer]);
-
   const {
     items: histories,
-    isLoading,
+    isInitialLoading,
+    isFetchingMore,
     error,
     hasMore,
     sentinelRef,
   } = useMyWalletHistoryBatches({
     walletType: config?.walletType,
     limit: HISTORY_PAGE_SIZE,
-    observerOptions,
+    observerOptions: OBSERVER_OPTIONS,
   });
-
-  const handleBottomSentinelRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      sentinelRef(node);
-    },
-    [sentinelRef]
-  );
 
   // 無効なスラッグ
   if (!config) {
@@ -74,9 +56,6 @@ export function WalletHistory({ slug }: WalletHistoryProps) {
     );
   }
 
-  const hasHistories = histories.length > 0;
-  const errorMessage = error ? "履歴の取得に失敗しました" : null;
-
   return (
     <Stack space={6}>
       <Flex justify="end">
@@ -85,52 +64,42 @@ export function WalletHistory({ slug }: WalletHistoryProps) {
         </LinkButton>
       </Flex>
 
-      {errorMessage ? (
-        <Block padding="lg" className="rounded-lg border border-destructive/30 bg-destructive/10">
-          <Para tone="destructive" align="center">
-            {errorMessage}
-          </Para>
-        </Block>
-      ) : isLoading && !hasHistories ? (
-        <Flex justify="center" padding="lg">
-          <Spinner className="h-8 w-8" />
-        </Flex>
-      ) : hasHistories ? (
-        <div ref={handleScrollContainerRef}>
-          <Stack space={0}>
-            {histories.map((history) => (
-              <HistoryListItem
-                key={history.batchId}
-                history={history}
-                walletType={config.walletType}
-              />
-            ))}
-            <div ref={handleBottomSentinelRef} />
-          </Stack>
-
-          <Flex justify="center" padding="sm">
-            {isLoading ? (
-              <Para tone="muted" size="sm">
-                読み込み中...
-              </Para>
-            ) : hasMore ? (
-              <Para tone="muted" size="sm">
-                スクロールで続きを読み込みます
-              </Para>
-            ) : (
-              <Para tone="muted" size="sm">
-                すべて表示しました
-              </Para>
-            )}
+      <InfiniteScrollList
+        items={histories}
+        isInitialLoading={isInitialLoading}
+        isFetchingMore={isFetchingMore}
+        hasMore={hasMore}
+        error={error}
+        sentinelRef={sentinelRef}
+        completedText="すべて表示しました"
+        initialLoadingNode={
+          <Flex justify="center" padding="lg">
+            <Spinner className="h-8 w-8" />
           </Flex>
-        </div>
-      ) : (
-        <Block padding="lg" className="rounded-lg border border-dashed border-border">
-          <Para tone="muted" align="center">
-            履歴はまだありません
-          </Para>
-        </Block>
-      )}
+        }
+        errorNode={
+          <Block padding="lg" className="rounded-lg border border-destructive/30 bg-destructive/10">
+            <Para tone="destructive" align="center">
+              履歴の取得に失敗しました
+            </Para>
+          </Block>
+        }
+        emptyNode={
+          <Block padding="lg" className="rounded-lg border border-dashed border-border">
+            <Para tone="muted" align="center">
+              履歴はまだありません
+            </Para>
+          </Block>
+        }
+      >
+        {(items) => (
+          <Stack space={0}>
+            {items.map((history) => (
+              <HistoryListItem key={history.batchId} history={history} walletType={config.walletType} />
+            ))}
+          </Stack>
+        )}
+      </InfiniteScrollList>
     </Stack>
   );
 }

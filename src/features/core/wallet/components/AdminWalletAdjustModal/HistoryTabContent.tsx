@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
+import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
@@ -33,6 +34,10 @@ type WalletHistoryTabContentProps = {
 
 const HISTORY_PAGE_SIZE = 20;
 
+// ビューポート基準で末尾の 160px 手前から次ページを先読みする(root は指定しない。
+// スクロールしない wrapper を root にすると sentinel が常時交差扱いになり loadMore が連射される)
+const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
+
 export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps) {
   const fetcher = useCallback(
     async ({ page, limit }: { page: number; limit: number }) => {
@@ -41,36 +46,15 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
     [userId],
   );
 
-  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const [detailHistory, setDetailHistory] = useState<WalletHistoryBatchSummarySerialized | null>(null);
-  const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
-    setScrollContainer(node);
-  }, []);
-  const observerOptions = useMemo<IntersectionObserverInit | undefined>(() => {
-    if (!scrollContainer) {
-      return undefined;
-    }
-    return {
-      root: scrollContainer,
-      rootMargin: "0px 0px 160px 0px",
-      threshold: 0.1,
-    };
-  }, [scrollContainer]);
 
-  const { items: histories, total, isLoading, error, hasMore, sentinelRef } = useInfiniteScrollQuery<
-    WalletHistoryBatchSummarySerialized
-  >({
-    fetcher,
-    limit: HISTORY_PAGE_SIZE,
-    deps: [userId],
-    observerOptions,
-  });
-  const handleBottomSentinelRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      sentinelRef(node);
-    },
-    [sentinelRef],
-  );
+  const { items: histories, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } =
+    useInfiniteScrollQuery<WalletHistoryBatchSummarySerialized>({
+      fetcher,
+      limit: HISTORY_PAGE_SIZE,
+      deps: [userId],
+      observerOptions: OBSERVER_OPTIONS,
+    });
 
   const columns: DataTableColumn<WalletHistoryBatchSummarySerialized>[] = [
     {
@@ -108,8 +92,6 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
     },
   ];
 
-  const hasHistories = histories.length > 0;
-  const errorMessage = error ? "履歴の取得に失敗しました" : null;
   const detailRows = useMemo<DetailModalRow[]>(() => {
     if (!detailHistory) {
       return [];
@@ -151,48 +133,42 @@ export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps
       <Para size="xs" tone="muted">
         {total ? `合計 ${total} 件` : "履歴 0 件"}
       </Para>
-      {errorMessage ? (
-        <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-destructive/40 bg-destructive/5">
-          <Para tone="destructive">{errorMessage}</Para>
-        </div>
-      ) : isLoading && !hasHistories ? (
-        <div className="flex min-h-[160px] items-center justify-center">
-          <Para tone="muted">履歴を読込中...</Para>
-        </div>
-      ) : hasHistories ? (
-        <>
+      <InfiniteScrollList
+        items={histories}
+        isInitialLoading={isInitialLoading}
+        isFetchingMore={isFetchingMore}
+        hasMore={hasMore}
+        error={error}
+        sentinelRef={sentinelRef}
+        completedText="すべて読み込み済み"
+        initialLoadingNode={
+          <div className="flex min-h-[160px] items-center justify-center">
+            <Para tone="muted">履歴を読込中...</Para>
+          </div>
+        }
+        errorNode={
+          <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-destructive/40 bg-destructive/5">
+            <Para tone="destructive">履歴の取得に失敗しました</Para>
+          </div>
+        }
+        emptyNode={
+          <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border py-6">
+            <Para tone="muted">履歴はまだありません</Para>
+          </div>
+        }
+      >
+        {(items) => (
           <DataTable
-            items={histories}
+            items={items}
             columns={columns}
             className="rounded-lg border border-border bg-card"
             maxHeight="none"
             getKey={(item) => item.batchId}
             emptyValueFallback="-"
             onRowClick={setDetailHistory}
-            scrollContainerRef={handleScrollContainerRef}
-            bottomSentinelRef={handleBottomSentinelRef}
           />
-          <div className="mt-2 flex items-center justify-center">
-            {isLoading ? (
-              <Para tone="muted" size="xs">
-                追加の履歴を読込中...
-              </Para>
-            ) : hasMore ? (
-              <Para tone="muted" size="xs">
-                下までスクロールすると自動で読み込みます
-              </Para>
-            ) : (
-              <Para tone="muted" size="xs">
-                すべて読み込み済み
-              </Para>
-            )}
-          </div>
-        </>
-      ) : (
-        <div className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-border py-6">
-          <Para tone="muted">履歴はまだありません</Para>
-        </div>
-      )}
+        )}
+      </InfiniteScrollList>
     </Stack>
     <DetailModal
       open={Boolean(detailHistory)}
