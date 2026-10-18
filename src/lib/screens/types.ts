@@ -26,7 +26,8 @@ export type ScreenProps<
  * `pnpm test:screens` の例外リストの 1 件(まだ page.tsx スイッチ化していないルート)。
  * 上流の未移行は src/lib/screens/screens.test.mjs の UPSTREAM_LEGACY_ROUTES、
  * fork の未移行は src/registry/screenRoutesRegistry.ts の FORK_LEGACY_ROUTES に書く。
- * 検査対象のルートは自動検出されるので、新しいページのための登録は不要。
+ * 検査対象のルートは自動検出されるので、新しいページのための登録は不要
+ * (fork の独自エリアだけ同 registry の FORK_SCAN_ROOTS にエリア単位で足す)。
  */
 export type LegacyRouteEntry = {
   /** ルートディレクトリ(リポジトリ相対。例: "src/app/(user)/(protected)/mypage") */

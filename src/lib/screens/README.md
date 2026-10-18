@@ -258,7 +258,7 @@ import { BalanceCard } from "./BalanceCard";
 
 | 検出 | 範囲 |
 |---|---|
-| page.tsx | `src/app/(user)/**` と `src/app/(marketing)/**`（`(user)/demo/**` と `_` で始まるディレクトリを除く）+ dc:generate の管理画面ルート（`src/features/*/domain.json` の `generateFiles.adminRoutes` が false でないドメインの `src/app/admin/(protected)/<domains>/**`） |
+| page.tsx | `src/app/(user)/**` と `src/app/(marketing)/**`（`(user)/demo/**` と `_` で始まるディレクトリを除く）+ fork が `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_ROOTS` に足したエリア（`FORK_SCAN_EXCLUDES` で除外）+ dc:generate の管理画面ルート（`src/features/*/domain.json` の `generateFiles.adminRoutes` が false でないドメインの `src/app/admin/(protected)/<domains>/**`） |
 | ルート内 loader | 検出した各ルートの `_screen/loader.ts` と `_components/loader.ts`（あるものだけ） |
 | 共有 loader | `src/features` 配下の `services/server/loaders/*.ts`（`index.ts` / `types.ts` / 再 export だけのファイルを除く） |
 
@@ -268,6 +268,18 @@ import { BalanceCard } from "./BalanceCard";
 | Screen の欠落・形 | `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx` → barrel 1 段）が存在し、名前を named export、default export と `"use client"` を持たない | 失敗 |
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）、`(protected)` 配下なら `getSessionUser` の import 無し。ルート内 loader も共有 loader も同じ検査（補助関数は `utils/` へ） | 失敗 |
 | 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
+| 走査範囲の鮮度 | `FORK_SCAN_ROOTS` / `FORK_SCAN_EXCLUDES` の登録がディレクトリとして存在し重複がないこと。`FORK_SCAN_ROOTS` はさらに、upstream の走査範囲（`SCAN_ROOTS` と生成された管理画面ルート）や他の fork root に含まれず、upstream のエリア（`src/app/admin` 等）を丸ごと含まず、除外の中にないこと | 失敗 |
+| 独自エリアの登録忘れ | `src/app` 直下で page.tsx を含むディレクトリは、走査範囲（そのエリア自身か中のどこかが登録されている）・upstream 既知のエリア（`admin` / `debug` / `api`）・除外のどれかに属すること（`route.ts` だけのディレクトリと `.` 始まりは対象外） | 失敗（登録する 1 行を促す） |
+
+fork の独自エリア（`src/app/store/**`、`src/app/terminal/**`、`src/app/admin/(protected)/floor-tables/**` のような upstream の走査範囲の外）は、`FORK_SCAN_ROOTS` に**エリア単位で 1 行**書く。登録したエリアの page.tsx は upstream のルートと同じ検査を受け、`FORK_LEGACY_ROUTES` も効く。fork がローカルに screens テストの写しを持つ必要はない。
+
+```ts
+// src/registry/screenRoutesRegistry.ts(fork で編集)
+export const FORK_SCAN_ROOTS: string[] = ["src/app/store", "src/app/terminal", "src/app/admin/(protected)/floor-tables"];
+export const FORK_SCAN_EXCLUDES: string[] = [];
+```
+
+限界: 登録忘れの検出は `src/app` 直下だけを見る。upstream のエリアの中に作ったサブディレクトリ（`src/app/admin/(protected)/floor-tables` 等）は登録しなければ黙って走査されないので、upstream エリア内に独自ルートを作ったら登録を忘れない。
 
 テストは tsx ランナーで動く（例外リストの `.ts` を読むため）。pre-commit / CI ガードは置かない。
 既知の限界: `stripComments` は正規表現リテラルを追跡しない。`//` や引用符・バッククォートを含む正規表現が page.tsx / Screen / loader にあると判定がずれることがある（検査対象のファイルでは稀。必要なら正規表現を `utils/` に逃がす）。
@@ -279,7 +291,7 @@ import { BalanceCard } from "./BalanceCard";
 | リポジトリ | 場所 |
 |---|---|
 | upstream（core の未移行ルート） | `src/lib/screens/screens.test.mjs` の `UPSTREAM_LEGACY_ROUTES`（Step 5b〜5e で縮め、最後は空） |
-| fork | `src/registry/screenRoutesRegistry.ts` の `FORK_LEGACY_ROUTES`（upstream は空で出荷、作成後は下流所有） |
+| fork | `src/registry/screenRoutesRegistry.ts` の `FORK_LEGACY_ROUTES`（upstream は空で出荷、作成後は下流所有。同じファイルの `FORK_SCAN_ROOTS` / `FORK_SCAN_EXCLUDES` は走査範囲、§9） |
 
 ```ts
 // src/registry/screenRoutesRegistry.ts(fork で編集)
@@ -300,6 +312,7 @@ export const FORK_LEGACY_ROUTES: LegacyRouteEntry[] = [
 - **セクションコンテナの改名（`*Page` → 別名）**: 下流の import を壊す
 - **page.tsx に loader 呼び出しを残す案**: 既定の構成を上流から更新できなくなり、差し替え手順が 2 通りに割れる
 - **ルートを 1 件ずつ登録する方式（初版の `UPSTREAM_ROUTES` / `FORK_SCREEN_ROUTES` + `owner`）**: 登録を忘れると検査が黙って抜け、ページを増やすたびに手間が要る。自動検出 + 例外リストに置き換えた（2026-10-17）
+- **`src/app` 全体を走査する方式**: fork の独自エリアを登録なしで拾えるが、upstream の手書き管理画面と debug の page.tsx（37 件）が全て例外リスト入りになり Step 5 の範囲が膨らむ。fork はエリア単位で `FORK_SCAN_ROOTS` に 1 行書き、`src/app` 直下の未登録ディレクトリをテストで指摘する方式にした（2026-10-18）
 - **loader を `features/<domain>/services/server/loaders/` に置く方式（初版）**: 複数ドメインを組み合わせるページの loader に置き場が無く、fork がエンティティの無い「loader 置き場ドメイン」を作ることになった（oripa-do の `features/mypage/`）。ルートの `_screen/loader.ts` に統一し、置き場の判断自体を無くした（2026-10-18）。多数ルートが共有する loader（§12）だけ features に残る
 - **`cache()` 不要の印（コメントマーカー）**: 覚える印が増え、印を付けたまま取得処理を足すと二重取得が黙って起きる。一律に包む
 - **差し替え画面専用のディレクトリ名（`_override/` 等）**: 新語が 3 つになり、fork 自身の部品と画面が別フォルダに割れる。`_components/<Name>Screen.tsx` の命名で区別する
