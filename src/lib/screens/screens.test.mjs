@@ -249,6 +249,16 @@ export function resolveScreenFile(pageDir, target) {
   return found;
 }
 
+/**
+ * `@/features/.../components/<a>` が部品を持つセクションコンテナ(index.tsx を持つディレクトリ)か。
+ * `@/features/<d>` は tsconfig paths と同じく core ドメインなら src/features/core/<d> に解決する
+ */
+export function isContainerDir(dirSpec) {
+  const rest = dirSpec.replace(/^@\/features\//, "");
+  const dir = rest.startsWith("core/") || !isDir(`src/features/core/${rest.split("/")[0]}`) ? `src/features/${rest}` : `src/features/core/${rest}`;
+  return exists(`${dir}/index.tsx`);
+}
+
 // ---------------------------------------------------------------------------
 // テスト本体
 // ---------------------------------------------------------------------------
@@ -281,7 +291,7 @@ for (const page of pages) {
       const file = resolveScreenFile(dir, target);
       assert.ok(file, `${dir}/${target.screenDir}/${target.file}(.tsx | /index.tsx) が無い`);
       const source = read(file);
-      const screenProblems = [...checkScreenFile(source, target.name), ...checkScreenImports(source)];
+      const screenProblems = [...checkScreenFile(source, target.name), ...checkScreenImports(source, { isContainerDir })];
       assert.deepEqual(screenProblems, [], `${file}: ${screenProblems.join(" / ")}`);
     });
   }
@@ -476,7 +486,7 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
   assert.ok(parseSwitchPage(routeLoader.replace("./_screen/loader", "./_screen/utils")).problems.length > 0, "loader 以外の相対 import は不可");
 });
 
-test("checkScreenImports: features の import は components/<Name> まで。部品(<Name>/<Part>)と common/ は弾く", () => {
+test("checkScreenImports: index.tsx を持つコンテナの内側(部品)は弾き、グループ分けのディレクトリは名前空間として通す", () => {
   const ok = `
     import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
     import { Signup } from "@/features/auth/components/Signup";
@@ -486,10 +496,28 @@ test("checkScreenImports: features の import は components/<Name> まで。部
     import { Part } from "./Part";
   `;
   assert.deepEqual(checkScreenImports(ok), []);
-  assert.ok(checkScreenImports(`import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";`).length === 1);
-  assert.ok(checkScreenImports(`import { AccountDetails } from "@/features/user/components/UserMyPage/AccountDetails";`).length === 1);
-  assert.ok(checkScreenImports(`import { InviteCodePage } from "@/features/core/referral/components/common/InviteCodePage";`).some((p) => p.includes("common/")));
+  // 述語を省略すると入れ子は全て違反(厳しい側)
   assert.ok(checkScreenImports(`export { X } from "@/features/core/x/components/Y/Z";`).length === 1);
+
+  const containers = new Set(["@/features/core/wallet/components/WalletBalance", "@/features/shop/components/Admin/OrderList"]);
+  const opts = { isContainerDir: (d) => containers.has(d) };
+  assert.ok(checkScreenImports(`import { BalanceCard } from "@/features/core/wallet/components/WalletBalance/BalanceCard";`, opts).length === 1);
+  assert.ok(checkScreenImports(`import { Row } from "@/features/shop/components/Admin/OrderList/Row";`, opts).length === 1, "グループ内のコンテナの部品も弾く");
+  const grouped = `
+    import { OrderList } from "@/features/shop/components/Admin/OrderList";
+    import { OrderList as L } from "@/features/shop/components/Admin/OrderList/index";
+    import { GachaList } from "@/features/shop/components/common/GachaList";
+    import { Picker } from "@/features/shop/components/Mobile/sub/Picker";
+  `;
+  assert.deepEqual(checkScreenImports(grouped, opts), []);
+});
+
+test("isContainerDir: index.tsx を持つディレクトリだけをコンテナとみなす(core の別名を解決、index.ts だけの barrel は名前空間)", () => {
+  assert.equal(isContainerDir("@/features/auth/components/Signup"), true);
+  assert.equal(isContainerDir("@/features/core/auth/components/Signup"), true);
+  assert.equal(isContainerDir("@/features/user/components/admin"), false);
+  assert.equal(isContainerDir("@/features/userProfile/components/common"), false, "common/index.ts は barrel");
+  assert.equal(isContainerDir("@/features/no-such-domain/components/X"), false);
 });
 
 test("checkScreenFile: named export / barrel を認め、default export と \"use client\" を弾く", () => {

@@ -272,26 +272,36 @@ export function checkScreenFile(source, name) {
 }
 
 /**
- * Screen が `@/features/<domain>/components/` 配下から import してよいのは `components/<Name>`(= セクションコンテナ)まで。
- * `<Name>/<Part>` や `common/<X>` は部品(契約外)なので Screen から直接読まない(must-read §4)。
+ * Screen は `@/features/<domain>/components/` 配下のセクションコンテナを読み、その内側(部品、契約外)を直接読まない(must-read §4)。
+ * 「部品を持つコンテナ」= `index.tsx` を持つディレクトリ。import 先の途中のディレクトリがコンテナなら違反。
+ * コンテナでないディレクトリ(`Admin/` `common/` などのグループ分け、`index.ts` だけの barrel)は名前空間として通す。
  * `<Name>/index` は `<Name>` と同じ扱い。features 以外(components/ lib/ など)と相対 import は対象外
+ * @param {string} source
+ * @param {{ isContainerDir?: (dirSpec: string) => boolean }} [options]
+ *   isContainerDir: `@/features/.../components/<a>`(import 指定子の形、末尾 / 無し)がコンテナか。
+ *   ファイルシステムを見るのは呼び出し側(この関数は純粋)。省略時は全てコンテナ扱い(入れ子の import は全て違反)
  * @returns {string[]} 違反した import 元の説明(空なら合格)
  */
-export function checkScreenImports(source) {
+export function checkScreenImports(source, options) {
+  const isContainerDir = options?.isContainerDir ?? (() => true);
   const problems = [];
   const src = stripComments(source);
   const re = /(?:import|export)\s[^;]*?\sfrom\s*["']([^"']+)["']/g;
   let m;
   while ((m = re.exec(src)) !== null) {
     const spec = m[1];
-    const path = /^@\/features\/(?:core\/)?[^/]+\/components\/(.+)$/.exec(spec);
+    const path = /^(@\/features\/(?:core\/)?[^/]+\/components)\/(.+)$/.exec(spec);
     if (!path) continue;
-    const segments = path[1].split("/");
+    const segments = path[2].split("/");
     if (segments[segments.length - 1] === "index") segments.pop();
-    if (segments[0] === "common") {
-      problems.push(`${spec}: common/ の部品を Screen から直接読んでいる(セクションコンテナに組み込む)`);
-    } else if (segments.length > 1) {
-      problems.push(`${spec}: セクションコンテナの内側(部品)を Screen から直接読んでいる(読んでよいのは components/<Name> まで)`);
+    for (let i = 1; i < segments.length; i++) {
+      const dirSpec = `${path[1]}/${segments.slice(0, i).join("/")}`;
+      if (isContainerDir(dirSpec)) {
+        problems.push(
+          `${spec}: セクションコンテナ ${segments.slice(0, i).join("/")}(index.tsx を持つ)の内側(部品)を Screen から直接読んでいる(コンテナ自体を読む)`,
+        );
+        break;
+      }
     }
   }
   return problems;

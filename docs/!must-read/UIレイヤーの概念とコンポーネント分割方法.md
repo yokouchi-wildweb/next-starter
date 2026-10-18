@@ -182,12 +182,18 @@ export const useMyWalletBalances = (userId?: string | null, { fallbackData }: { 
 
 ### Screen から見える公開パス（`pnpm test:screens` が検査）
 
-Screen が import してよいのは **`features/<domain>/components/<Name>`** までです。実体は次のどちらかです。
+Screen が import するのは **セクションコンテナそのもの** です。実体は次のどちらかです。
 
 - `<Name>/index.tsx`: 部品を持つコンテナ。`index.tsx` が本体で、部品は同じディレクトリに置く
 - `<Name>.tsx`: 部品を持たないコンテナ。単一ファイルでよい
 
-`<Name>/<Part>` や `common/<X>` は部品なので、Screen から直接読みません。部品が要るなら、コンテナが組み立てて描きます。
+コンテナの内側（`<Name>/<Part>`）は部品なので、Screen から直接読みません。部品が要るなら、コンテナが組み立てて描きます。
+
+検査の判定は **「`index.tsx` を持つディレクトリ = 部品を持つコンテナ」** です。import 先の途中にそういうディレクトリがあれば違反です。`index.tsx` を持たないディレクトリは名前空間（グループ分け）なので、その下のコンテナは読めます。
+
+- 上流は `components/<Name>` に平たく並べ、ドメイン共有の部品は `common/` に置きます（配置の慣習）
+- 利用者や画面面でグループ分けしてもかまいません（`components/Admin/<Name>`、`components/Mobile/<Name>` など。上流にも `user/components/admin/<Name>` があります）。`Admin/<Name>/<Part>` は、`Admin/<Name>/index.tsx` があれば違反です
+- `index.ts` だけを持つディレクトリ（barrel）は名前空間として扱います。部品を持つコンテナは本体を `index.tsx` に書きます
 
 ### 下流が複製できる条件（core のセクションコンテナ）
 

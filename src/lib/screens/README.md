@@ -52,7 +52,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | UI レイヤー（CLAUDE.md `ui_layers` / must-read） | 実体 | 補足 |
 |---|---|---|
 | page / ページ | `page.tsx`（1 行スイッチ）+ `_screen/<Name>Screen.tsx`（本体） | 「SSR の入口、最小限のタグ、hook なし」は不変。ServerService 呼び出しは loader 経由。hook が要る部分は `_screen/` の `"use client"` 部品へ |
-| section_container / セクションコンテナ | **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`） | 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（旧 `*Page` 名は checkpoint ui-layers-rename で改名済み。旧パスの shim は次の checkpoint で削除）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）。Screen が import するのは `components/<Name>` まで（`pnpm test:screens` が検査） |
+| section_container / セクションコンテナ | **Screen が直接配置するコンポーネント**。`features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx`、無ければ `<Name>.tsx`） | 役割で定義（タグやフォルダでは決めない）。名前は接尾辞なし（旧 `*Page` 名は checkpoint ui-layers-rename で改名済み。旧パスの shim は次の checkpoint で削除）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格）。Screen はコンテナ自体を import し、内側は読まない（`pnpm test:screens` が検査。§6） |
 | part / 部品 | コンテナの内側の要素（例: `BalanceCard`、`CouponInput`）。ドメイン共有なら `common/` | 契約外。表示専用でも自己完結した操作付きでもよい。hook を呼ぶのは自己完結するときだけ |
 | （新規）loader | `src/app/<route>/_screen/loader.ts` | page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる）。初回描画に見えるデータは loader が取り `initial<Name>` props で渡す（must-read §3） |
 
@@ -152,7 +152,7 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 
 ## 6. セクションコンテナの条件（契約 D）
 
-- Screen から見える公開パスは `features/<domain>/components/<Name>` まで（`<Name>/index.tsx` または `<Name>.tsx`）。`<Name>/<Part>` と `common/<X>` は部品なので Screen から読まない（`pnpm test:screens` が検査）
+- Screen が import するのはコンテナ自体（`<Name>/index.tsx` または `<Name>.tsx`）。内側の `<Name>/<Part>` は部品なので Screen から読まない（`pnpm test:screens` の `checkScreenImports` が検査）。判定 = `index.tsx` を持つディレクトリがコンテナで、import 先の途中にあれば違反。`index.tsx` を持たないディレクトリ（`Admin/` `Mobile/` `common/` などのグループ分け、`index.ts` だけの barrel）は名前空間として通す。上流の配置は平たい `components/<Name>` + 共有部品は `common/`（慣習）。fork が `components/Admin/<Name>` のようにグループ分けするのは自由
 - 内部の部品 import は絶対パス（`@/features/core/wallet/components/WalletBalance/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を複製しても import を触らずに動く
 - `index.tsx` が `"use client"` のとき、barrel 経由の部品は client 境界になる（Server Component から使いたい部品は部品ファイルを直接 import する）
 - client service の直叩きは hook に昇格する
@@ -269,6 +269,7 @@ import { BalanceCard } from "./BalanceCard";
 |---|---|---|
 | page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>` からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader` / 共有 loader）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
 | Screen の欠落・形 | `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx` → barrel 1 段）が存在し、名前を named export、default export と `"use client"` を持たない | 失敗 |
+| Screen が部品を直接読まない | `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（§6）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す | 失敗 |
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）、`(protected)` 配下なら `getSessionUser` の import 無し。ルート内 loader も共有 loader も同じ検査（補助関数は `utils/` へ） | 失敗 |
 | 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
 | 走査範囲の鮮度 | `FORK_SCAN_ROOTS` / `FORK_SCAN_EXCLUDES` の登録がディレクトリとして存在し重複がないこと。`FORK_SCAN_ROOTS` はさらに、upstream の走査範囲（`SCAN_ROOTS` と生成された管理画面ルート）や他の fork root に含まれず、upstream のエリア（`src/app/admin` 等）を丸ごと含まず、除外の中にないこと | 失敗 |
