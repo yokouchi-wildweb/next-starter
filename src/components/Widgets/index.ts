@@ -4,6 +4,9 @@ export type { ScrollSliderProps, ScrollSlideState, ResponsiveSlideSize } from ".
 export { FadeSlider } from "./FadeSlider"
 export type { FadeSliderProps, FadeSlideState, FadeTransition } from "./FadeSlider"
 
+export { InfiniteScrollList } from "./InfiniteScrollList"
+export type { InfiniteScrollListProps } from "./InfiniteScrollList"
+
 // 共有 UI 部品（下流が独自スライダーを組むときに再利用可能）
 export { SliderArrow } from "./_shared/SliderArrow"
 export { SliderDots } from "./_shared/SliderDots"

@@ -30,7 +30,7 @@
 | `Skeleton/` | `BaseSkeleton` を基盤としたローディングプレースホルダー | [Skeleton/README.md](./Skeleton/README.md) |
 | `TextBlocks/` | 文章構造コンポーネント（`PageTitle` / `SecTitle` / `Para` / `Span`）。見出し・段落の raw HTML の代替 | - |
 | `Three/` | three.js を利用した 3D 表現 | - |
-| `Widgets/` | 完成品ウィジェット（`FadeSlider`、`ScrollSlider` など） | [Widgets/FadeSlider/README.md](./Widgets/FadeSlider/README.md)・[Widgets/ScrollSlider/README.md](./Widgets/ScrollSlider/README.md) |
+| `Widgets/` | 完成品ウィジェット（`FadeSlider`、`ScrollSlider`、`InfiniteScrollList` など） | [Widgets/FadeSlider/README.md](./Widgets/FadeSlider/README.md)・[Widgets/ScrollSlider/README.md](./Widgets/ScrollSlider/README.md)・[Widgets/InfiniteScrollList/README.md](./Widgets/InfiniteScrollList/README.md) |
 | `_shadcn/` | shadcn/ui からインストールした原本。**直接インポート禁止**（ラッパー経由で使用） | [_shadcn/README.md](./_shadcn/README.md) |
 
 ## 共通ルール

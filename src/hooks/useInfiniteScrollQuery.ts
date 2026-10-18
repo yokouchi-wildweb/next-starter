@@ -46,7 +46,23 @@ type UseInfiniteScrollQueryOptions<TItem, TParams extends Record<string, unknown
 type UseInfiniteScrollQueryResult<TItem> = {
   items: TItem[];
   total: number;
+  /**
+   * いずれかの fetch が in-flight (初回 or 追加)。
+   * 「初回」と「追加」を区別したい場合は `isInitialLoading` / `isFetchingMore` を使うこと。
+   * 呼び出し側で `if (isLoading) return <FullScreenLoader />` のように early return すると、
+   * 追加ロード時にも全画面ローダーで覆われて既存のリストが消えるアンチパターンになるため非推奨。
+   */
   isLoading: boolean;
+  /**
+   * 初回ロード中 (まだ items が空でこれから埋まる、または reset 直後)。
+   * 全画面スケルトン / 全画面ローダーの出し分け用。
+   */
+  isInitialLoading: boolean;
+  /**
+   * センチネル発火による追加ロード中 (既に items が表示されている)。
+   * リスト末尾のインラインインジケータ表示用。
+   */
+  isFetchingMore: boolean;
   error: unknown;
   hasMore: boolean;
   /** 次に `loadMore` / `retry` で取得されるページ番号。 */
@@ -54,8 +70,32 @@ type UseInfiniteScrollQueryResult<TItem> = {
   loadMore: () => void;
   /** エラー復帰用: 直近失敗したページを再取得する。`hasMore=false` でも動作する。 */
   retry: () => void;
-  /** 全状態を初期状態に戻し、`initialPage` から再取得する。 */
+  /**
+   * 全状態を初期状態に戻し、`initialPage` から再取得する。
+   * items / hasFetchedOnce もリセットされるため、UI 側は「初回ロード中」表示に戻る。
+   * アクション完了後の最新化用途では `revalidate()` を使うこと。
+   */
   reset: () => void;
+  /**
+   * items を維持したまま 1 ページ目から再フェッチして完了時に上書きする。
+   * アクション完了後の最新化など、リスト表示を中断させたくないケース用。
+   */
+  revalidate: () => void;
+  /**
+   * predicate に該当する items を updater で書き換える (オプティミスティック更新)。
+   * total / hasMore / hasFetchedOnce は変更しない。
+   * サーバーが処理完了 ID を返すアクション (status 変更等) を即時 UI 反映する用途。
+   */
+  updateItems: (
+    predicate: (item: TItem) => boolean,
+    updater: (item: TItem) => TItem,
+  ) => void;
+  /**
+   * predicate に該当する items をリストから削除する (オプティミスティック更新)。
+   * total は連動して減算される。hasMore は変更しない。
+   * フィルタ済みリスト (例: status="pending" タブ) で別 status に遷移した item を即時除去する用途。
+   */
+  removeItems: (predicate: (item: TItem) => boolean) => void;
   sentinelRef: (node: HTMLElement | null) => void;
 };
 
@@ -179,6 +219,10 @@ export function useInfiniteScrollQuery<
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<unknown>(null);
   const [hasMore, setHasMore] = useState<boolean>(initialHasMore);
+  // 初回 fetch が完了したか (成功/失敗を問わない)。initialData があれば最初から true。
+  // isLoading だけでは mount 直後の useEffect 発火前 1 フレームをカバーできず、
+  // 上位コンポーネントが「fetch 前の空 items」を「結果なし」と誤判定するため必要。
+  const [hasFetchedOnce, setHasFetchedOnce] = useState<boolean>(hasInitialData);
 
   // fetch トリガ: tick が変化すると useEffect が fetchPage(pendingPageRef) を走らせる。
   // state + ref の組合せにする理由: setState(同値) では useEffect が再発火せず
@@ -262,6 +306,7 @@ export function useInfiniteScrollQuery<
       if (currentRequestId === requestIdRef.current) {
         setIsLoading(false);
         isLoadingRef.current = false;
+        setHasFetchedOnce(true);
       }
     }
   }, []);
@@ -319,6 +364,9 @@ export function useInfiniteScrollQuery<
     setHasMore(nextHasMore);
     setError(null);
     setIsLoading(false);
+    // initialData が無い reset では「これから初回 fetch を改めて行う」状態に戻す。
+    // initialData があれば既に取得済み扱い。
+    setHasFetchedOnce(hasInit);
 
     pendingPageRef.current = hasInit ? nextLastFetched + 1 : initialPageRef.current;
     skipNextFetchRef.current = hasInit;
@@ -328,6 +376,50 @@ export function useInfiniteScrollQuery<
   const reset = useCallback(() => {
     applyReset(undefined);
   }, [applyReset]);
+
+  /**
+   * items / hasFetchedOnce を維持したまま、現在のクエリで 1 ページ目から再フェッチする。
+   * アクション完了後の UI 最新化用 (SWR の mutate に近い用途)。
+   *
+   * 中間状態は古い items が表示されたまま、下端センチネルが回る (isFetchingMore=true) 見え方になる。
+   * 完了時に setItems で新しいリストに上書きされる。
+   *
+   * 多ページ取得済みでも 1 ページ目だけ取り直して以降は loadMore で改めて取得し直す形に戻る。
+   * 「アクション直後はリスト維持、裏で最新化したい」要件の標準 API。
+   */
+  const revalidate = useCallback(() => {
+    if (!enabledRef.current) return;
+    // in-flight 無効化
+    requestIdRef.current += 1;
+    // pagination だけ初期に戻す (items / hasFetchedOnce / total は据え置き)
+    pendingPageRef.current = initialPageRef.current;
+    lastFetchedPageRef.current = initialPageRef.current - 1;
+    skipNextFetchRef.current = false;
+    setFetchTick((tick) => tick + 1);
+  }, []);
+
+  const updateItems = useCallback(
+    (
+      predicate: (item: TItem) => boolean,
+      updater: (item: TItem) => TItem,
+    ) => {
+      const nextItems = itemsRef.current.map((item) =>
+        predicate(item) ? updater(item) : item,
+      );
+      itemsRef.current = nextItems;
+      setItems(nextItems);
+    },
+    [],
+  );
+
+  const removeItems = useCallback((predicate: (item: TItem) => boolean) => {
+    const nextItems = itemsRef.current.filter((item) => !predicate(item));
+    const removedCount = itemsRef.current.length - nextItems.length;
+    if (removedCount === 0) return;
+    itemsRef.current = nextItems;
+    setItems(nextItems);
+    setTotal((prev) => Math.max(0, prev - removedCount));
+  }, []);
 
   // deps 変化での再初期化
   useEffect(() => {
@@ -387,12 +479,21 @@ export function useInfiniteScrollQuery<
     items,
     total,
     isLoading,
+    // 初回ロード = 「まだ一度も fetch が完了していない (enabled=true 前提)」または
+    // 「fetch in-flight で items が空 (reset 直後など)」。
+    // mount 直後の useEffect 発火前 1 フレームでも true になるよう hasFetchedOnce で判定する。
+    // enabled=false の場合はそもそも fetch しないので false (上位はローダーを出さない)。
+    isInitialLoading: enabled && (!hasFetchedOnce || (isLoading && items.length === 0)),
+    isFetchingMore: isLoading && items.length > 0,
     error,
     hasMore,
     nextPage: lastFetchedPageRef.current + 1,
     loadMore,
     retry,
     reset,
+    revalidate,
+    updateItems,
+    removeItems,
     sentinelRef,
   };
 }

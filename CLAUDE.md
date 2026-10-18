@@ -240,8 +240,8 @@ async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async
 device_hooks (src/hooks/, domain-free, SSR-safe, unsupported→supported:false never throw): useWakeLock(enabled) screen sleep suppress | useFullscreen(ref?) Fullscreen API toggle+state | useViewportOrientation() landscape/portrait + isShortHeight(max-height 500px, matchMedia = same judgment as CSS `short:` variant in theme.css, keep threshold in sync) | useMediaQuery(query) generic
 async_guard: useAsyncAction(src/hooks/) — useRefベースの排他ロックで非同期アクションの二重発火を防止。Dialog/ConfirmPopoverはonConfirmがPromiseを返すと自動でloading管理+ロック
 async_feedback (MUST): client-side background通信(mutation/送信/同期)中は必ずローディング状態を可視化 — ボタン内スピナー/ScreenLoader(local)/persistent toast(variant:loading)のいずれか。無反応UI禁止。Dialog/ConfirmPopoverのPromise自動loading・useAsyncActionのpending活用を優先 | 例外: fire-and-forget計測(trackInteraction等)
-infinite_scroll: 無限スクロール画面は @/components/Widgets/InfiniteScrollList を使う (sentinel/初回ローダー/空表示/追加スピナー/完了メッセージを内包)。データ取得は @/hooks/useInfiniteScrollQuery 派生フックで、isInitialLoading / isFetchingMore / hasMore / updateItems / removeItems / revalidate を返却する
-action_optimistic: ステータス変更系の server logic (例: convertToCoins/requestShipping) は処理済み UserItem ID 配列を返す (例: convertedItemIds / requestedItemIds)。クライアントは hook の onSuccess でこの ID を受け、updateItems (status 書き換え) / removeItems (フィルタ済みリストから除去) でローカル即時反映する。完了後の revalidate(再フェッチ) は UX 退化 + 通信往復2回の二重コストになるため避ける
+infinite_scroll: 無限スクロール画面は @/components/Widgets/InfiniteScrollList を使う (sentinel/初回ローダー/エラー/空表示/追加スピナー/完了メッセージを内包)。データ取得は @/hooks/useInfiniteScrollQuery (または派生フック) の isInitialLoading / isFetchingMore / hasMore / error / sentinelRef をそのまま渡す | ref: src/components/Widgets/InfiniteScrollList/README.md
+action_optimistic: 一覧の項目を変えるアクション (status 変更等) の server logic は処理済み ID 配列を返す。クライアントは hook の onSuccess でこの ID を受け、useInfiniteScrollQuery の updateItems (書き換え) / removeItems (フィルタ済みリストから除去) でローカル即時反映する | 再取得が本当に要るとき (レスポンスから反映内容を作れない) だけ revalidate (一覧を表示したまま 1 ページ目から取り直す)。reset は一覧を空に戻すので最新化に使わない
 ref: src/components/README.md
 
 ## SCREENS (page 層の差し替え構造: 下流が core を編集せず画面を作り直す)
@@ -280,7 +280,7 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - direct businessConfig.url for runtime base URL (decision: use getAppBaseUrl() from @/lib/url). businessConfig.url is "事業者の正式URL" (mail/SEO等). 実行環境のオリジン (決済コールバック・メールリンク等) は getAppBaseUrl() 経由のみ。リクエストヘッダ (Host/X-Forwarded-Host) からの組み立ては Host Header Injection になるため禁止
 - direct lib/mail.send() for user-facing messages: 管理者→ユーザー向けメッセージ送信は必ず messagingService.send / bulkSend (@/features/messaging) 経由。lib/mail 直接呼び出しはシステムメール (PWリセット、メール認証、登録完了等のテンプレート系) に限定。理由: 受信者単位の audit_logs 記録と本文を保持する message_dispatches 行を漏れなく永続化するため
 - 自前で無限スクロール sentinel / 全画面ローダー early return を組む (use @/components/Widgets/InfiniteScrollList。isLoading 単独で early return すると追加ロード時に既存リストが消える既知の落とし穴を再発させる)
-- アクション完了後の revalidate / resetItems による「最新化のための再フェッチ」(API レスポンスに含まれる処理済み ID で updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト)
+- アクション完了後、API レスポンスの処理済み ID で反映できるのに revalidate / reset で再フェッチする (updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト。reset は一覧が消えるので最新化に使わない)
 
 ## CORE_FILES (approval required)
 src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** (upstream routes, see SCREENS), servers/room/src/core/, servers/room/src/index.ts
