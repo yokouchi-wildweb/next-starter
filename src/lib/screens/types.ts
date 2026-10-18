@@ -11,11 +11,11 @@ export type ScreenSearchParams = Record<string, string | string[] | undefined>;
 
 /**
  * Screen と loader の入力。
- * @template P 動的セグメント(例: `{ slug: string }`)。無いルートは省略
+ * @template P 動的セグメント(例: `{ slug: string }`、optional catch-all なら `{ status?: string[] }`)。無いルートは省略
  * @template S searchParams の形。省略時は未解釈のまま
  */
 export type ScreenProps<
-  P extends Record<string, string | string[]> = Record<string, never>,
+  P extends Record<string, string | string[] | undefined> = Record<string, never>,
   S extends ScreenSearchParams = ScreenSearchParams,
 > = {
   params: Promise<P>;

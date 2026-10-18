@@ -2,8 +2,10 @@
 
 `dc:generate` が出す管理画面ルート（`src/app/admin/(protected)/<domains>/{,new/,[id]/edit/,sort/}`）は
 page.tsx 1 行スイッチ + `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` の構造で生成されます（`src/lib/screens/README.md` §12）。
-生成された `_screen/` はドメインごとの loader を持たず、ここにある **共有 loader** を service を渡して呼びます。
-ドメインごとに loader を生成しない理由: ドメイン数 × 3 の生成物が増え、各ドメインの `loaders/README.md` 一覧と衝突するため。
+生成された `_screen/` はルートごとの `loader.ts` を持たず、ここにある **共有 loader** を service を渡して呼びます。
+ルートごとに loader を生成しない理由: ドメイン数 × 3 の生成物が増えるだけで中身が同じになるため。
+ユーザー向けページの loader は各ルートの `_screen/loader.ts` に置くのが規則（`src/lib/screens/README.md` §4）で、
+`features/` に loader を置くのは、このように多数のルートが丸ごと同じ処理を使う場合だけです。
 
 ## 一覧（公開契約）
 
@@ -16,10 +18,10 @@ page.tsx 1 行スイッチ + `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen
 
 `service` の型は構造的（`search` / `get` / `searchForSorting` / `list` を持てばよい）。`createCrudService` の service をそのまま渡せる。
 
-## wallet の loader との違い
+## ユーザー向けページの loader（`_screen/loader.ts`）との違い
 
 - **認可を行わない。** `admin/(protected)/layout.tsx` の `authGuard` が管理者ロールを検査済みなので、`requireCurrentUser` を重ねない（従来の page.tsx と同じ挙動）
-- ドメイン横断で共有するため `load<Name>Screen` の `<Name>` は画面種別（List / Edit / Sort）。ドメイン固有の判定が必要になったら、そのドメインの `services/server/loaders/` に専用 loader を作り、`_screen/` を `_components/` に複製してそちらを呼ぶ（生成物は触らない）
+- ドメイン横断で共有するため `load<Name>Screen` の `<Name>` は画面種別（List / Edit / Sort）。ドメイン固有の判定が必要になったら、そのルートの `_components/loader.ts` に専用 loader を書き、`_screen/` を `_components/` に複製してそちらを呼ぶ（生成物は触らない）
 
 ## 規則
 

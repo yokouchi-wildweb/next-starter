@@ -39,9 +39,10 @@
 ```
 src/app/(user)/(protected)/wallet/[slug]/
 ├── page.tsx          1 行スイッチ。出荷時は _screen を指す。上流は初回作成後に編集しない(下流所有)
-├── _screen/          既定画面(ページ層の本体)。ルートを作った側が所有。上流のルートでは下流は編集・削除しない
-│   └── WalletBalanceScreen.tsx
-└── _components/      任意。下流の差し替え画面、page 専用の部品
+├── _screen/          既定画面(ページ層の本体)と loader。ルートを作った側が所有。上流のルートでは下流は編集・削除しない
+│   ├── WalletBalanceScreen.tsx
+│   └── loader.ts     サーバー側ロジック(あるときだけ)
+└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、page 専用の部品
 ```
 
 ### page.tsx（1 行スイッチ）
@@ -84,11 +85,12 @@ export async function WalletBalanceScreen(props: ScreenProps<{ slug: string }>) 
 ### loader（ページ層が呼ぶサーバー側ロジック）
 
 page.tsx に書いていたサーバー側ロジック（params の解決、認可、取得、`redirect` / `notFound`）は
-`features/<domain>/services/server/loaders/<name>.ts` の `load<Name>Screen(props)` にまとめます。
-ARCHITECTURE の ServerService（第 6 層）に属するページ入口向けの関数で、既定の Screen も下流が差し替えた Screen も同じ loader を呼びます。
+**同じルートの `_screen/loader.ts`** の `load<Name>Screen(props)` にまとめます（ファイル名固定、1 ルート 1 loader）。
+ServerService（第 6 層）を呼んで画面用に組み立てるページ入口向けの関数で、既定の Screen も下流が差し替えた Screen も同じ loader を呼びます。
+どのドメインにも置きません。複数ドメインを組み合わせるページも、redirect だけのページも、ルートの中に閉じます（`features/<domain>/` に loader を置くのは、多数のルートが丸ごと同じ処理を使う共有 loader だけ）。
 
 ```ts
-// src/features/core/wallet/services/server/loaders/walletBalance.ts
+// src/app/(user)/(protected)/wallet/[slug]/_screen/loader.ts
 import "server-only";
 import { cache } from "react";
 
@@ -105,10 +107,10 @@ export async function loadWalletBalanceScreen(props: ScreenProps<{ slug: string 
 }
 ```
 
-規則: `import "server-only"` / `cache()` で包む（キーは解決済みのプリミティブ） / `redirect` と `notFound` は loader の責務で Screen は try/catch しない / 保護ページでも自分で `requireCurrentUser` を呼ぶ（ログイン確認のみ。status / role は layout の `authGuard`） / 返り値は画面が必要とする最小の DTO を明示的に組み立てる / 1 画面 1 loader。
-ロジックの無いページ（法的文書など）は loader を持ちません。
+規則: `import "server-only"` / `cache()` で包む（キーは解決済みのプリミティブ。中身が純粋でも必須） / `redirect` と `notFound` は loader の責務で Screen は try/catch しない（遷移制御だけなら `Promise<void>` 可） / 本人スコープのデータを取るときは自分で `requireCurrentUser` を呼ぶ（ログイン確認のみ。status / role は layout の `authGuard`） / 返り値は画面が必要とする最小の DTO を明示的に組み立てる / 1 画面 1 loader、共通判定はドメインの `utils/` へ。
+サーバー側ロジックの無いページ（法的文書、クライアントが hook で取るだけのページ）は loader を持ちません。
 
-詳細な規則・契約・下流の差し替え手順: `src/lib/screens/README.md`、各ドメインの `services/server/loaders/README.md`
+詳細な規則・契約・下流の差し替え手順: `src/lib/screens/README.md`
 
 ---
 
@@ -150,12 +152,11 @@ App Router の 1 つのルート（Screen）につき 1 つのフォルダを、
 ```
 src/app/(user)/(protected)/wallet/[slug]/
 ├── page.tsx                                 # 1 行スイッチ
-└── _screen/WalletBalanceScreen.tsx          # ページ層の本体(loader を呼び、下のセクションコンテナを描く)
+└── _screen/
+    ├── WalletBalanceScreen.tsx              # ページ層の本体(loader を呼び、下のセクションコンテナを描く)
+    └── loader.ts                            # loadWalletBalanceScreen(公開契約。仕様はファイル先頭のコメント)
 
 src/features/core/wallet/
-├── services/server/loaders/
-│   ├── README.md                            # loader 一覧(公開契約)
-│   └── walletBalance.ts                     # loadWalletBalanceScreen
 └── components/
     ├── common/                              # ドメイン全体で使い回す共通 UI パーツ
     │   ├── CurrencyDisplay/

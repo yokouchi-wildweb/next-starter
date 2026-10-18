@@ -1,31 +1,6 @@
-// src/features/core/wallet/services/server/loaders/walletIndex.ts
-// /wallet の loader。一覧・返り値・規則: ./README.md
+// 旧パス(互換用)。本体は src/app/(user)/(protected)/wallet/_screen/loader.ts に移動した(2026-10-18、notice 20261018-160000)。
+// この再 export は次の checkpoint 以降に削除する。新しいコードはルート内の loader を直接 import する。
 
 import "server-only";
-import { cache } from "react";
 
-import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
-import { requireCurrentUser } from "@/features/core/user/services/server/userService";
-import type { WalletIndexEntry } from "@/features/core/wallet/types/screen";
-
-export type WalletIndexScreenData = {
-  /** 設定順の通貨一覧 */
-  wallets: WalletIndexEntry[];
-};
-
-/**
- * ウォレット一覧画面のデータ。
- * 未ログイン(または DB にユーザーが無い)は /login へ redirect する。
- * 既定 Screen も下流の Screen もこれを呼ぶ。
- */
-export const loadWalletIndexScreen = cache(async (): Promise<WalletIndexScreenData> => {
-  await requireCurrentUser({ behavior: "redirect", redirectTo: "/login" });
-
-  const wallets = (Object.keys(CURRENCY_CONFIG) as WalletType[]).map((walletType) => ({
-    walletType,
-    slug: CURRENCY_CONFIG[walletType].slug,
-    label: CURRENCY_CONFIG[walletType].label,
-  }));
-
-  return { wallets };
-});
+export { loadWalletIndexScreen, type WalletIndexScreenData } from "@/app/(user)/(protected)/wallet/_screen/loader";

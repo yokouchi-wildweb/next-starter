@@ -11,7 +11,7 @@
 | ファイル | 役割 |
 |---|---|
 | `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形）。`LegacyRouteEntry` — 例外リストの型 |
-| `checks.mjs` | 検査関数 `parseSwitchPage` / `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `stripComments`（副作用なし。fork が独自の検査を書くときはこれを import） |
+| `checks.mjs` | 検査関数 `parseSwitchPage` / `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`（副作用なし。fork が独自の検査を書くときはこれを import） |
 | `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査。上流の未移行ルート一覧 `UPSTREAM_LEGACY_ROUTES` を持つ |
 | `src/registry/screenRoutesRegistry.ts` | fork の未移行ルートの例外リスト `FORK_LEGACY_ROUTES`（upstream は空で出荷、作成後は下流所有。§10） |
 
@@ -22,24 +22,27 @@
 ```
 src/app/(user)/(protected)/wallet/[slug]/
 ├── page.tsx          1 行スイッチ。出荷時は _screen を指す。上流は初回作成後に編集しない(下流所有)
-├── _screen/          既定画面(page 層の本体)。ルートを作った側が所有。上流のルートでは下流は編集・削除しない
-│   └── WalletBalanceScreen.tsx
-└── _components/      任意。下流の差し替え画面、page 専用の部品。上流のルートでは上流は触らない
+├── _screen/          既定画面(page 層の本体)と loader。ルートを作った側が所有。上流のルートでは下流は編集・削除しない
+│   ├── WalletBalanceScreen.tsx
+│   └── loader.ts     サーバー側ロジック(あるときだけ)。既定 Screen も差し替え Screen もこれを呼ぶ
+└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、page 専用の部品。上流のルートでは上流は触らない
 ```
 
 | 対象 | 置き場 | 所有 | 規則 |
 |---|---|---|---|
 | page.tsx | `src/app/<route>/page.tsx` | 下流 | `export { XScreen as default } from "./_screen/XScreen";` の 1 行。`dynamic` 等のセグメント設定は page.tsx に書く。`metadata` / `generateMetadata` は page.tsx に書くか Screen から re-export する |
 | 既定画面（page 層） | `src/app/<route>/_screen/<Name>Screen.tsx` | ルートを作った側 | 1 ルート 1 Screen。Server Component（`"use client"` 不可）。loader を await してセクションコンテナを描く。状態を持たない |
-| 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 既存の app-local 置き場 |
-| loader | `src/features/<domain>/services/server/loaders/<name>.ts` | ドメインの所有者 | **契約**。page 入口向けの ServerService（core では上流） |
+| loader | `src/app/<route>/_screen/loader.ts` | ルートを作った側 | **契約**。page 入口向けのサーバー側ロジック（ドメインのサービスを呼んで組み立てる・redirect / notFound）。ルートの付属物なので Screen の隣に置く |
+| 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 既存の app-local 置き場。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
+| 共有 loader | `src/features/core/admin/services/server/loaders/` | 上流 | 多数のルートが同じ処理を使うときだけ（dc:generate の管理画面）。ルート 1 つのための loader をここに置かない |
 | セクションコンテナ / ユニットアイテム / インタラクション部品 | `src/features/<domain>/components/` | ドメインの所有者 | 既存どおり |
 | hook / client service | `src/features/<domain>/hooks/`、`services/client/` | ドメインの所有者 | **契約**（既存） |
 
 1 対 1 の意味:
 - ユーザー向けページは必ず Screen を 1 つ持つ（0 も 2 以上も無し）。上流も fork も同じ
 - 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける。差し替え画面も 1 ページ 1 つ
-- Screen と loader は 1 対 0 か 1（ロジック無しページは loader を持たない）。Screen とセクションコンテナは 1 対 多
+- Screen と loader は 1 対 0 か 1（サーバー側ロジックの無いページは loader を持たない）。Screen とセクションコンテナは 1 対 多
+- loader はルートの中に閉じる。複数のドメインを組み合わせるページ（user + userProfile など）でも、どのドメインにも置かずそのルートの `_screen/loader.ts` に書く。複数ルートで共通する判定はドメインの `utils/` に置いて各 loader から呼ぶ
 - 対象外: デモ（`(user)/demo/**`）、上流が手書きした管理画面（`/admin/**` のうち dc:generate 由来でないもの）、API
 
 ## 2. 既存の UI レイヤーとの対応
@@ -50,14 +53,14 @@ src/app/(user)/(protected)/wallet/[slug]/
 | section_container / セクションコンテナ | `features/<domain>/components/<Name>/index.tsx`（例: `WalletBalancePage`） | **core の `*Page` という名前のコンポーネントはセクションコンテナ**（page 層ではない。改名は下流の import を壊すので行わない）。hook はここで呼ぶ。client service の直叩きは禁止（hook に昇格） |
 | unit_item / ユニットアイテム | 同ディレクトリの表示部品（例: `BalanceCard`） | 表示のみ、hook なし |
 | interaction_parts / インタラクション部品 | 通信や router を持つ部品（例: `CouponInput`、`PhoneVerificationRequired`） | `"use client"`、自己完結 |
-| （新規）loader | `services/server/loaders/` | page 層が呼ぶ ServerService の特化。レイヤーではなく page 層の付属物 |
+| （新規）loader | `src/app/<route>/_screen/loader.ts` | page 層が呼ぶサーバー側ロジック。レイヤーではなく page 層の付属物（業務ロジックは ServerService に置き、loader はそれを呼んで組み立てる） |
 
 ## 3. 契約（公開 API）と変更規則
 
 | 契約 | 内容 | 根拠 |
 |---|---|---|
 | A. Screen の入口 | `_screen/<Name>Screen.tsx` のファイル名と named export `<Name>Screen`、受け取る props（`ScreenProps`） | page.tsx が下流所有になった瞬間、上流は変えられない |
-| B. loader | `load<Name>Screen(props)` の名前・引数・返り値型・redirect / notFound 条件 | 下流の Screen が直接呼ぶ |
+| B. loader | `_screen/loader.ts` の `load<Name>Screen(props)` の名前・引数・返り値型・redirect / notFound 条件 | 下流の Screen が直接呼ぶ |
 | C. hook | `features/<domain>/hooks/` の export | 下流のセクションコンテナが直接呼ぶ |
 | D. セクションコンテナのトップレベル props | 例: `WalletBalancePage` の `slug / phoneVerifiedAt / currentPhoneNumber` | 下流の Screen が既定のセクションコンテナを描く |
 
@@ -69,12 +72,12 @@ src/app/(user)/(protected)/wallet/[slug]/
 - **非互換変更**（引数・返り値・必須 props）: 旧契約は残し、新名で追加する。旧を消す場合は改名と同じ手順
 - **挙動変更**（loader の redirect 先・notFound 条件）: `.notices` に明記
 - **セクションコンテナの子構成変更**（部品の追加・削除・並び替え）: 契約外だが、複製した fork が追随判断できるよう informational な `.notices` に含める
-- 各ドメインの `services/server/loaders/README.md` に loader 一覧・返り値・使う hook を置く
+- loader の仕様（ルート・返り値・redirect 条件・使う hook）はファイル先頭のコメントに書く。一覧 README は共有 loader のディレクトリにだけ置く
 
 ## 4. loader の書き方
 
 ```ts
-// src/features/core/wallet/services/server/loaders/walletBalance.ts
+// src/app/(user)/(protected)/wallet/[slug]/_screen/loader.ts
 import "server-only";
 import { cache } from "react";
 import { notFound } from "next/navigation";
@@ -99,13 +102,16 @@ export async function loadWalletBalanceScreen(props: ScreenProps<{ slug: string 
 }
 ```
 
-- 入力は Next の page props（`params` / `searchParams` の Promise）。`searchParams` は未解釈のまま受け、loader 内で検証する
+- 置き場は**そのルートの `_screen/loader.ts`**（ファイル名固定、1 ルート 1 loader）。Screen からは `./loader` で import する。どのドメインにも置かない（複数ドメインを組み合わせるページも、何も取得せず redirect だけするページも同じ）
+- 入力は Next の page props（`params` / `searchParams` の Promise）。`searchParams` は未解釈のまま受け、loader 内で検証する。optional catch-all は `ScreenProps<{ status?: string[] }>`
 - `redirect` / `notFound` は loader の責務。結果型を返す方式は Screen が処理を忘れると fail-open になるため採らない。**Screen 側で loader を try/catch しない**
-- 許容する副作用は画面遷移制御のみ。業務上の更新処理は入れない
+- 遷移制御だけの loader（機能フラグを見て redirect するだけ等）は `Promise<void>` を返してよい。URL の解釈だけの loader も可
+- 許容する副作用は画面遷移制御のみ。業務上の更新処理は入れない。DB は ServerService 経由で触る（loader に drizzle を直接書かない）
 - `import "server-only"` 必須（client component から import するとビルドで止まる）
-- 保護ページでも親 layout の `authGuard` に依存せず、自分でも `requireCurrentUser` を呼ぶ（`cache()` 済みで重複コスト無し）。これは**ログイン確認（セッション + DB レコードの存在）だけ**で、status / role の判定は `(protected)/layout.tsx` の `authGuard` が担う
+- `cache()` で包むのは**中身が純粋でも必須**（URL 解釈だけ・redirect だけでも）。一律にしておけば、後からその loader に取得処理を足したとき `generateMetadata` と Screen の二重取得が黙って起きない。コストは 1 行
+- 本人スコープのデータを取る loader は、親 layout の `authGuard` に依存せず自分でも `requireCurrentUser` を呼ぶ（`cache()` 済みで重複コスト無し。機密データの取得をログイン確認なしに行わない）。これは**ログイン確認（セッション + DB レコードの存在）だけ**で、status / role の判定は `(protected)/layout.tsx` の `authGuard` が担う。サーバー側で何も取得しないページは loader 自体を持たない（guard だけの loader は作らない）
 - 新しいパスリテラルを増やさない。既存の定数・設定に寄せる
-- 1 画面 1 loader。共通判定は `utils/` に置き loader が呼ぶ
+- 複数ルートで共通する判定はドメインの `utils/` に置き、各ルートの loader が呼ぶ。多数のルートが丸ごと同じ loader を使う場合だけ共有 loader（§12）にする
 
 ## 5. Screen の書き方
 
@@ -151,8 +157,9 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 ```
 src/app/(user)/(protected)/points/
 ├── page.tsx                      export { PointsScreen as default } from "./_screen/PointsScreen";
-└── _screen/PointsScreen.tsx      loadPointsScreen(props) を await → 自ドメインのセクションコンテナを描く
-src/features/points/services/server/loaders/points.ts   import "server-only" + cache()(サーバー側ロジックがあるとき)
+└── _screen/
+    ├── PointsScreen.tsx          loadPointsScreen(props) を await → 自ドメインのセクションコンテナを描く
+    └── loader.ts                 import "server-only" + cache()(サーバー側ロジックがあるときだけ)
 ```
 
 登録は不要。`pnpm test:screens` が page.tsx を自動検出し、スイッチ形であること・Screen が存在し Server Component であること・loader の規律を検査する。
@@ -160,17 +167,19 @@ src/features/points/services/server/loaders/points.ts   import "server-only" + c
 
 ### 上流の画面を変えたい（例: `/wallet/[slug]`）
 
-1. `_screen/WalletBalanceScreen.tsx` を同じルートの `_components/WalletBalanceScreen.tsx` にコピーする
-2. `page.tsx` の 1 行を自分のファイルに向ける
+1. `_screen/WalletBalanceScreen.tsx` を同じルートの `_components/WalletBalanceScreen.tsx` にコピーする（差し替え画面は `<Name>Screen.tsx` と命名し、同じ `_components/` に置く部品と区別する）
+2. コピーの loader import を `./loader` から `../_screen/loader` に直す（loader は上流の `_screen/` に残したまま呼び続ける）
+3. `page.tsx` の 1 行を自分のファイルに向ける
    ```tsx
    export { WalletBalanceScreen as default } from "./_components/WalletBalanceScreen";
    ```
-3. コピーした Screen の中を変える。loader（`load<Name>Screen`）はそのまま呼ぶ
+4. コピーした Screen の中を変える。loader（`load<Name>Screen`）はそのまま呼ぶ
    - レイアウトやタイトルだけ → セクションコンテナ（`<Name>Page`）はそのまま描く
    - 部品の並びや一部の部品 → セクションコンテナも `_components/` にコピーし、部品と hook は core から import する
    - 見た目を全部作り直す → hook だけ使って自作
+   - 上流の loader に無いサーバー側データが要る → `_components/loader.ts` に自分の loader を書く（上流の `_screen/loader.ts` は編集しない。両方呼んでよい）
 
-`_components/` に置いた Screen もテストが検出して検査する（`_components/<Name>/index.tsx` のディレクトリ形式も可）。
+`_components/` に置いた Screen と `_components/loader.ts` もテストが検出して検査する（`_components/<Name>/index.tsx` のディレクトリ形式も可）。
 
 ### 上流の画面を使わない
 
@@ -178,9 +187,10 @@ src/features/points/services/server/loaders/points.ts   import "server-only" + c
 
 ### やってはいけないこと
 
-- 上流のルートの `_screen/` と `features/core` のコンポーネントを編集しない
+- 上流のルートの `_screen/`（Screen も loader も）と `features/core` のコンポーネントを編集しない
 - loader を try/catch しない / client component から import しない
 - Screen に `"use client"` を付けない（hook はセクションコンテナへ）
+- loader を `features/<domain>/` に置かない（ルートの `_screen/loader.ts` へ。エンティティの無い「loader 置き場ドメイン」を作らない）
 
 ### 注意
 
@@ -198,10 +208,8 @@ import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens/types";
 import { WalletBalancePage } from "@/features/core/wallet/components/WalletBalancePage";
-import {
-  loadWalletBalanceScreen,
-  type WalletBalanceScreenParams,
-} from "@/features/core/wallet/services/server/loaders/walletBalance";
+
+import { loadWalletBalanceScreen, type WalletBalanceScreenParams } from "../_screen/loader"; // 上流の loader をそのまま呼ぶ
 
 export async function WalletBalanceScreen(props: ScreenProps<WalletBalanceScreenParams>) {
   const data = await loadWalletBalanceScreen(props); // 404 / 未ログインは loader が処理する
@@ -243,13 +251,14 @@ import { BalanceCard } from "./BalanceCard";
 | 検出 | 範囲 |
 |---|---|
 | page.tsx | `src/app/(user)/**` と `src/app/(marketing)/**`（`(user)/demo/**` と `_` で始まるディレクトリを除く）+ dc:generate の管理画面ルート（`src/features/*/domain.json` の `generateFiles.adminRoutes` が false でないドメインの `src/app/admin/(protected)/<domains>/**`） |
-| loader | `src/features` 配下の `services/server/loaders/*.ts` |
+| ルート内 loader | 検出した各ルートの `_screen/loader.ts` と `_components/loader.ts`（あるものだけ） |
+| 共有 loader | `src/features` 配下の `services/server/loaders/*.ts`（`index.ts` / `types.ts` / 再 export だけのファイルを除く） |
 
 | 保護 | 検査 | 結果 |
 |---|---|---|
-| page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>` からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `@/features/*/services/server/loaders/*`）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
+| page.tsx を太らせない | `parseSwitchPage`: `./_screen/<X>` または `./_components/<X>` からの re-export 1 つ（default + `metadata` / `generateMetadata` / `viewport` / `generateViewport` のみ）+ 任意の設定 export + `generateMetadata` + それらに必要な import（`next` / `@/lib/*` / `@/config/*` / `./_screen/loader` / `./_components/loader` / 共有 loader）。JSX・セクションコンテナ・hook・`next/navigation` の import は不可 | スイッチ形でなければ**失敗**（例外リストにあれば skip） |
 | Screen の欠落・形 | `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx` → barrel 1 段）が存在し、名前を named export、default export と `"use client"` を持たない | 失敗 |
-| loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export。`loaders/` 直下の `.ts` は全て loader とみなす（`index.ts` と `types.ts` を除く。補助関数は `utils/` へ） | 失敗 |
+| loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export。ルート内 loader も共有 loader も同じ検査（補助関数は `utils/` へ） | 失敗 |
 | 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
 
 テストは tsx ランナーで動く（例外リストの `.ts` を読むため）。pre-commit / CI ガードは置かない。
@@ -283,6 +292,9 @@ export const FORK_LEGACY_ROUTES: LegacyRouteEntry[] = [
 - **セクションコンテナの改名（`*Page` → 別名）**: 下流の import を壊す
 - **page.tsx に loader 呼び出しを残す案**: 既定の構成を上流から更新できなくなり、差し替え手順が 2 通りに割れる
 - **ルートを 1 件ずつ登録する方式（初版の `UPSTREAM_ROUTES` / `FORK_SCREEN_ROUTES` + `owner`）**: 登録を忘れると検査が黙って抜け、ページを増やすたびに手間が要る。自動検出 + 例外リストに置き換えた（2026-10-17）
+- **loader を `features/<domain>/services/server/loaders/` に置く方式（初版）**: 複数ドメインを組み合わせるページの loader に置き場が無く、fork がエンティティの無い「loader 置き場ドメイン」を作ることになった（oripa-do の `features/mypage/`）。ルートの `_screen/loader.ts` に統一し、置き場の判断自体を無くした（2026-10-18）。多数ルートが共有する loader（§12）だけ features に残る
+- **`cache()` 不要の印（コメントマーカー）**: 覚える印が増え、印を付けたまま取得処理を足すと二重取得が黙って起きる。一律に包む
+- **差し替え画面専用のディレクトリ名（`_override/` 等）**: 新語が 3 つになり、fork 自身の部品と画面が別フォルダに割れる。`_components/<Name>Screen.tsx` の命名で区別する
 
 ## 12. 生成される管理画面ルート（dc:generate）
 
@@ -304,7 +316,7 @@ src/app/admin/(protected)/samples/
 | 生成物（編集しない） | `_screen/<Name>Screen.tsx` | 毎回上書き |
 | fork | `_components/` | 触らない |
 
-- `_screen/` はドメインごとの loader を持たず、`src/features/core/admin/services/server/loaders/` の**共有 loader**（`loadAdminListScreen(service, props)` / `loadAdminEditScreen(service, props, fallbackPath)` / `loadAdminSortScreen(service, sortOrderColumn)` / `loadAdminRelationLists({...})`）を呼ぶ。一覧と規則は同ディレクトリの README
-- 共有 loader は `requireCurrentUser` を呼ばない（`admin/(protected)/layout.tsx` の `authGuard` が管理者を検査済み）。wallet の loader との違い
-- 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `dc:generate` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される
+- `_screen/` はルートごとの `loader.ts` を持たず、`src/features/core/admin/services/server/loaders/` の**共有 loader**（`loadAdminListScreen(service, props)` / `loadAdminEditScreen(service, props, fallbackPath)` / `loadAdminSortScreen(service, sortOrderColumn)` / `loadAdminRelationLists({...})`）を呼ぶ。多数のルートが丸ごと同じ処理を使う唯一の例で、一覧と規則は同ディレクトリの README
+- 共有 loader は `requireCurrentUser` を呼ばない（`admin/(protected)/layout.tsx` の `authGuard` が管理者を検査済み）。本人スコープのデータを取るユーザー向け loader との違い
+- 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `dc:generate` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く
 - 生成ルートも `test:screens` が自動検出して検査する（domain.json から導出）

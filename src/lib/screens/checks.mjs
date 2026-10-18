@@ -151,15 +151,19 @@ function stripImport(src) {
   return { src: src.slice(0, m.index) + src.slice(m.index + m[0].length), source: m[2] };
 }
 
+/** ルート内 loader のファイル名(拡張子なし)。`<route>/_screen/loader.ts`(下流の差し替えなら `_components/loader.ts`) */
+export const ROUTE_LOADER_FILE = "loader";
+
 /**
  * page.tsx が許される import 元か。
- * 設定 export(metadata / generateMetadata)に必要なもの: next(型)、lib、config、ドメインの loader。
+ * 設定 export(metadata / generateMetadata)に必要なもの: next(型)、lib、config、ルート内 loader、共有 loader。
  * 画面ロジックに当たるもの(セクションコンテナ・hook・next/navigation 等)は不可
  */
 function isAllowedImportSource(source) {
   if (source === "next") return true;
   if (/^@\/lib\//.test(source)) return true;
   if (/^@\/config\//.test(source)) return true;
+  if (SCREEN_DIRS.some((dir) => source === `./${dir}/${ROUTE_LOADER_FILE}`)) return true;
   if (/^@\/features\/[^/]+\/services\/server\/loaders\//.test(source)) return true;
   if (/^@\/features\/core\/[^/]+\/services\/server\/loaders\//.test(source)) return true;
   return false;
@@ -277,8 +281,21 @@ export function barrelTarget(source, name) {
 }
 
 /**
+ * 再 export しか持たないファイルか(barrel / 旧パス互換の shim)。
+ * 全ての export 文が `from` 句付き(`export { X } from` / `export type { X } from` / `export * from` / `export * as ns from`)なら true。
+ * 宣言や `export { local }`(from 無し)が 1 つでもあれば false。loader の検査対象から外すために使う(本体は別の場所にある)
+ */
+export function isReexportOnlyFile(source) {
+  const src = stripComments(source);
+  if (!/\bexport\b/.test(src)) return false;
+  const rest = src.replace(/export\s+(type\s+)?(\*(\s+as\s+[\w$]+)?|\{[^}]*\})\s*from\s*["'][^"']+["']\s*;?/g, "");
+  return !/\bexport\b/.test(rest);
+}
+
+/**
  * loader ファイルの検査。問題があれば理由の配列を返す
  * - `import "server-only"` / React の `cache()` / `load<Xxx>` の export
+ * - `cache()` は中身が純粋(URL 解釈だけ・redirect だけ)でも必須。一律にして「後から取得を足したときの付け忘れ」を無くす
  * @param {string} source loader の内容
  */
 export function checkLoaderFile(source) {

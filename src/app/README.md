@@ -30,11 +30,11 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 ```
 src/app/(user)/(protected)/wallet/[slug]/
 ├── page.tsx          1 行スイッチ(下流所有)。export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
-├── _screen/          既定画面(上流所有。下流は編集・削除しない)
-└── _components/      任意。下流の差し替え画面、page 専用の部品
+├── _screen/          既定画面と loader.ts(上流所有。下流は編集・削除しない)
+└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、page 専用の部品
 ```
 
-- 差し替え: `_screen/` の Screen を `_components/` にコピーして page.tsx の 1 行を向ける。loader（`features/<domain>/services/server/loaders/`）はそのまま呼ぶ
+- 差し替え: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
 - `pnpm test:screens` が `(user)/**` と `(marketing)/**` の page.tsx を自動検出して検査する（登録不要）。スイッチ形でない page.tsx は、理由付きの例外リスト（上流: `UPSTREAM_LEGACY_ROUTES`、fork: `src/registry/screenRoutesRegistry.ts`）に無ければ失敗する
 - 上流がまだ移行していないルート（現在 38。wallet 3 ルートは移行済み）は `UPSTREAM_LEGACY_ROUTES` に載っており、段階的に移行して `.notices` で通知する
 
@@ -96,11 +96,13 @@ src/app/(user)/(protected)/wallet/[slug]/
 ```
 src/app/(user)/.../<route>/
 ├── page.tsx                     export { XScreen as default } from "./_screen/XScreen";(metadata / dynamic もここ)
-└── _screen/XScreen.tsx          Server Component。load<X>Screen(props) を await してセクションコンテナを描く
-src/features/<domain>/services/server/loaders/<x>.ts   import "server-only" + cache()。redirect / notFound / 認可 / 取得
+└── _screen/
+    ├── XScreen.tsx              Server Component。load<X>Screen(props) を await してセクションコンテナを描く
+    └── loader.ts                import "server-only" + cache()。redirect / notFound / 認可 / 取得(サーバー側ロジックがあるときだけ)
 ```
 
-上流の core ページは必須（`pnpm test:screens` が検査）。下流の独自ページも同じ構造を推奨（強制ではない）。
+上流の core ページも下流の独自ページも原則この構造（`pnpm test:screens` が自動検出して検査。未移行は理由付きで例外リストへ）。
+loader はドメインの features ではなくルートの中に置く（複数ドメインを組み合わせるページでも同じ）。
 `_components/` は page 専用の部品や、下流が上流の画面を差し替えるときの置き場。
 
 ### Route Group の使い分け

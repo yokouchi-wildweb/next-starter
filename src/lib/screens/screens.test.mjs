@@ -4,13 +4,14 @@
 // 登録は不要。検査対象は自動検出する:
 //   - src/app/(user)/** と src/app/(marketing)/** の page.tsx(demo/ を除く)
 //   - dc:generate が生成する管理画面ルート(src/features/*/domain.json の adminRoutes が false でないドメイン)
-//   - src/features/**/services/server/loaders/*.ts(loader)
+//   - 検出した各ルートの _screen/loader.ts と _components/loader.ts(ルート内 loader)
+//   - src/features/**/services/server/loaders/*.ts(多数のルートが共有する loader。再 export だけのファイルは除く)
 //
 // 守りたい契約(設計: src/lib/screens/README.md):
 // 1. page.tsx は「./_screen/<X> または ./_components/<X> からの 1 行 re-export」+ 任意のページ設定
 //    (metadata / dynamic 等の export、generateMetadata、それらに必要な import)だけ。画面ロジックを page.tsx に置かない
 // 2. 参照先の Screen が存在し、その名前を named export していて、default export も "use client" も持たない
-// 3. loader は `import "server-only"` と React の cache() を使い load<Xxx> を export する
+// 3. loader は `import "server-only"` と React の cache() を使い load<Xxx> を export する(ルート内・共有とも同じ)
 // 4. まだスイッチ化していない page.tsx は、理由付きで例外リストに載せる(黙って古いままにしない):
 //    upstream = 下の UPSTREAM_LEGACY_ROUTES(Step 5b〜5e で縮め、最後は空)
 //    fork     = src/registry/screenRoutesRegistry.ts の FORK_LEGACY_ROUTES
@@ -26,15 +27,18 @@ import { fileURLToPath } from "node:url";
 import { FORK_LEGACY_ROUTES } from "../../registry/screenRoutesRegistry.ts";
 import { toCamelCase, toKebabCase, toPlural } from "../../utils/stringCase.mjs";
 import {
+  ROUTE_LOADER_FILE,
+  SCREEN_DIRS,
   barrelTarget,
   checkLoaderFile,
   checkScreenFile,
   checkSwitchPage,
+  isReexportOnlyFile,
   parseSwitchPage,
   stripComments,
 } from "./checks.mjs";
 
-export { checkLoaderFile, checkScreenFile, checkSwitchPage, parseSwitchPage, stripComments };
+export { checkLoaderFile, checkScreenFile, checkSwitchPage, isReexportOnlyFile, parseSwitchPage, stripComments };
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const read = (path) => readFileSync(resolve(repoRoot, path), "utf8");
@@ -139,8 +143,26 @@ export function discoverPages() {
   return [...new Set(pages)].sort();
 }
 
-/** 検査対象の loader 一覧(src/features 配下の services/server/loaders/ にある .ts) */
-export function discoverLoaders() {
+/**
+ * ルート内 loader の一覧(検出した各ルートの _screen/loader.ts と _components/loader.ts のうち存在するもの)。
+ * ルートの loader は必ずここに置く(README §4)。features 側は多数のルートが共有する loader だけ
+ */
+export function discoverRouteLoaders(pageDirs) {
+  const out = [];
+  for (const dir of pageDirs) {
+    for (const screenDir of SCREEN_DIRS) {
+      const rel = `${dir}/${screenDir}/${ROUTE_LOADER_FILE}.ts`;
+      if (exists(rel)) out.push(rel);
+    }
+  }
+  return out.sort();
+}
+
+/**
+ * 共有 loader の一覧(src/features 配下の services/server/loaders/ にある .ts)。
+ * 再 export だけのファイル(旧パス互換の shim、barrel)は本体が別にあるので対象外
+ */
+export function discoverSharedLoaders() {
   const out = [];
   const walk = (dirRel) => {
     const abs = resolve(repoRoot, dirRel);
@@ -154,9 +176,10 @@ export function discoverLoaders() {
         /\/services\/server\/loaders\/[^/]+\.ts$/.test(`/${rel}`) &&
         !/\.test\.ts$/.test(entry) &&
         entry !== "index.ts" &&
-        entry !== "types.ts"
+        entry !== "types.ts" &&
+        !isReexportOnlyFile(read(rel))
       ) {
-        // loaders/ 直下の .ts は全て loader とみなす(barrel の index.ts と types.ts を除く。補助関数は utils/ へ)
+        // loaders/ 直下の .ts は全て loader とみなす(index.ts / types.ts / 再 export だけのファイルを除く。補助関数は utils/ へ)
         out.push(rel);
       }
     }
@@ -164,6 +187,9 @@ export function discoverLoaders() {
   walk("src/features");
   return out.sort();
 }
+
+/** 互換 API: 共有 loader の一覧 */
+export const discoverLoaders = discoverSharedLoaders;
 
 /**
  * page.tsx の参照先 Screen を実ファイルに解決する。
@@ -221,7 +247,8 @@ for (const page of pages) {
   }
 }
 
-for (const loader of discoverLoaders()) {
+const routeLoaders = discoverRouteLoaders(pageDirs);
+for (const loader of [...routeLoaders, ...discoverSharedLoaders()]) {
   test(`${loader}: loader は server-only + cache() + load<Xxx>`, () => {
     const problems = checkLoaderFile(read(loader));
     assert.deepEqual(problems, [], `${loader}: ${problems.join(" / ")}`);
@@ -262,12 +289,29 @@ test("FORK_LEGACY_ROUTES: 移行済み・存在しないルートが残ってお
   assert.deepEqual(dup, [], `例外リストに重複(upstream の一覧にあるものは登録不要): ${dup.join(", ")}`);
 });
 
-test("検出範囲: wallet 3 ルートと生成された管理画面ルートが含まれ、demo は含まれない", () => {
-  assert.ok(pageDirs.has("src/app/(user)/(protected)/wallet"));
-  assert.ok(pageDirs.has("src/app/(user)/(protected)/wallet/[slug]/history"));
+// wallet ルートは fork が削除してよい(README §7)ので、ディレクトリがあるときだけ「検出されること」を検査する
+const walletDir = "src/app/(user)/(protected)/wallet";
+const hasWallet = exists(`${walletDir}/page.tsx`);
+
+test("検出範囲: wallet ルート(あれば)と生成された管理画面ルートが含まれ、demo は含まれない", () => {
+  if (hasWallet) {
+    assert.ok(pageDirs.has(walletDir));
+    assert.ok(pageDirs.has(`${walletDir}/[slug]/history`));
+  }
   assert.ok(pageDirs.has("src/app/(user)"), "トップページ(_components/StarterHome 方式)が検出されていない");
   assert.ok([...pageDirs].some((d) => d.startsWith("src/app/admin/(protected)/")), "生成された管理画面ルートが検出されていない");
   assert.equal([...pageDirs].some((d) => d.startsWith("src/app/(user)/demo")), false);
+});
+
+test("検出範囲: ルート内 loader(wallet 3 件、あれば)が検出され、旧パスの再 export shim は共有 loader に数えない", () => {
+  if (hasWallet) {
+    assert.ok(routeLoaders.includes(`${walletDir}/_screen/loader.ts`));
+    assert.ok(routeLoaders.includes(`${walletDir}/[slug]/_screen/loader.ts`));
+    assert.ok(routeLoaders.includes(`${walletDir}/[slug]/history/_screen/loader.ts`));
+  }
+  const shared = discoverSharedLoaders();
+  assert.equal(shared.some((l) => l.startsWith("src/features/core/wallet/")), false, "wallet の旧パス shim が loader 扱いになっている");
+  assert.ok(shared.some((l) => l.startsWith("src/features/core/admin/services/server/loaders/")), "管理画面の共有 loader が検出されていない");
 });
 
 // ---------------------------------------------------------------------------
@@ -352,6 +396,20 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
     export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
   `;
   assert.ok(parseSwitchPage(sectionContainer).problems.some((p) => p.includes("components/WalletBalancePage")));
+
+  // generateMetadata がルート内 loader を呼ぶ形(_screen / _components どちらの loader も可)
+  const routeLoader = `
+    import type { Metadata } from "next";
+    import { loadWalletBalanceScreen } from "./_screen/loader";
+    export async function generateMetadata(props: ScreenProps<{ slug: string }>): Promise<Metadata> {
+      const { label } = await loadWalletBalanceScreen(props);
+      return { title: label };
+    }
+    export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
+  `;
+  assert.deepEqual(parseSwitchPage(routeLoader).problems, []);
+  assert.deepEqual(parseSwitchPage(routeLoader.replace("./_screen/loader", "./_components/loader")).problems, []);
+  assert.ok(parseSwitchPage(routeLoader.replace("./_screen/loader", "./_screen/utils")).problems.length > 0, "loader 以外の相対 import は不可");
 });
 
 test("checkScreenFile: named export / barrel を認め、default export と \"use client\" を弾く", () => {
@@ -372,9 +430,24 @@ test("例外リストの鮮度: _components への差し替えは移行済み扱
   assert.equal(parseSwitchPage(upstreamMigrated).target.screenDir, "_screen");
 });
 
-test("checkLoaderFile: 共有 loader(load<Xxx>)も個別 loader(load<Name>Screen)も通る", () => {
+test("checkLoaderFile: 共有 loader(load<Xxx>)も個別 loader(load<Name>Screen)も通る。void loader も純粋な解釈だけの loader も cache() は必須", () => {
   const good = `import "server-only";\nimport { cache } from "react";\nconst r = cache(async () => 1);\nexport async function loadAdminRelationLists() { return r(); }`;
   assert.deepEqual(checkLoaderFile(good), []);
+  const voidLoader = `import "server-only";\nimport { cache } from "react";\nimport { redirect } from "next/navigation";\nexport const loadFriendCouponScreen = cache(async (): Promise<void> => { if (!enabled()) redirect("/mypage"); });`;
+  assert.deepEqual(checkLoaderFile(voidLoader), []);
+  const noCache = `import "server-only";\nexport async function loadItemListScreen(props) { const { status } = await props.params; return { status }; }`;
+  assert.ok(checkLoaderFile(noCache).some((p) => p.includes("cache()")));
   const bad = `import { cache } from "react";\nexport const helper = 1;`;
   assert.ok(checkLoaderFile(bad).length >= 2);
+});
+
+test("isReexportOnlyFile: 再 export だけのファイル(旧パス shim / barrel)を見分ける", () => {
+  assert.equal(isReexportOnlyFile(`import "server-only";\nexport { loadXScreen, type XData } from "@/app/x/_screen/loader";`), true);
+  assert.equal(isReexportOnlyFile(`import "server-only";\nexport type { XData } from "./loader";\nexport {\n  loadXScreen,\n} from "./loader";`), true);
+  assert.equal(isReexportOnlyFile(`export * from "./a";\nexport * as ns from "./n";\nexport { b } from "./b";`), true);
+  assert.equal(isReexportOnlyFile(`import "server-only";\nexport const loadXScreen = cache(async () => 1);`), false);
+  assert.equal(isReexportOnlyFile(`const loadXScreen = cache(async () => 1);\nexport { loadXScreen };`), false, "from 無しの export { local } は宣言扱い");
+  assert.equal(isReexportOnlyFile(`export type X = { a: 1 };\nexport { y } from "./y";`), false);
+  assert.equal(isReexportOnlyFile(`export default 1;`), false);
+  assert.equal(isReexportOnlyFile(`const a = 1;`), false);
 });
