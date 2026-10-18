@@ -24,8 +24,9 @@ src/app/(user)/(protected)/wallet/[slug]/
 ├── page.tsx          1 行スイッチ。出荷時は _screen を指す。上流は初回作成後に編集しない(下流所有)
 ├── _screen/          既定画面(page 層の本体)と loader。ルートを作った側が所有。上流のルートでは下流は編集・削除しない
 │   ├── WalletBalanceScreen.tsx
-│   └── loader.ts     サーバー側ロジック(あるときだけ)。既定 Screen も差し替え Screen もこれを呼ぶ
-└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、page 専用の部品。上流のルートでは上流は触らない
+│   ├── loader.ts     サーバー側ロジック(あるときだけ)。既定 Screen も差し替え Screen もこれを呼ぶ
+│   └── <部品>        既定 Screen 専用の部品(あるときだけ。直下でもサブディレクトリでも可。契約外)
+└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、下流の page 専用の部品。上流のルートでは上流は何も置かない
 ```
 
 | 対象 | 置き場 | 所有 | 規則 |
@@ -33,6 +34,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 | page.tsx | `src/app/<route>/page.tsx` | 下流 | `export { XScreen as default } from "./_screen/XScreen";` の 1 行。`dynamic` 等のセグメント設定は page.tsx に書く。`metadata` / `generateMetadata` は page.tsx に書くか Screen から re-export する |
 | 既定画面（page 層） | `src/app/<route>/_screen/<Name>Screen.tsx` | ルートを作った側 | 1 ルート 1 Screen。Server Component（`"use client"` 不可）。loader を await してセクションコンテナを描く。状態を持たない |
 | loader | `src/app/<route>/_screen/loader.ts` | ルートを作った側 | **契約**。page 入口向けのサーバー側ロジック（ドメインのサービスを呼んで組み立てる・redirect / notFound）。ルートの付属物なので Screen の隣に置く |
+| 既定 Screen 専用の部品 | `src/app/<route>/_screen/<Part>.tsx` または `_screen/<dir>/` | ルートを作った側 | 契約外。そのルートの既定 Screen だけが使う部品（例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`、`maintenance/_screen/MaintenanceAutoRedirect.tsx`）。Screen からは相対 import。テストは Screen と `loader.ts` 以外を検査しない。複数ルートで使う部品はドメインの `components/` へ |
 | 下流の画面・page 専用部品 | `src/app/<route>/_components/` | 下流 | 既存の app-local 置き場。差し替え画面は `<Name>Screen.tsx` と命名する（部品の命名は自由。既存の部品を改名する必要はない） |
 | 共有 loader | `src/features/core/admin/services/server/loaders/` | 上流 | 多数のルートが同じ処理を使うときだけ（dc:generate の管理画面）。ルート 1 つのための loader をここに置かない |
 | セクションコンテナ / ユニットアイテム / インタラクション部品 | `src/features/<domain>/components/` | ドメインの所有者 | 既存どおり |
@@ -176,7 +178,7 @@ src/app/(user)/(protected)/points/
 ### 上流の画面を変えたい（例: `/wallet/[slug]`）
 
 1. `_screen/WalletBalanceScreen.tsx` を同じルートの `_components/WalletBalanceScreen.tsx` にコピーする（差し替え画面は `<Name>Screen.tsx` と命名し、同じ `_components/` に置く部品と区別する）
-2. コピーの loader import を `./loader` から `../_screen/loader` に直す（loader は上流の `_screen/` に残したまま呼び続ける）
+2. コピーの loader import を `./loader` から `../_screen/loader` に直す（loader は上流の `_screen/` に残したまま呼び続ける）。`_screen/` の部品を使い続けるならその import も `../_screen/<Part>` に直す（部品は契約外なので、上流が改名・削除したら自分の `_components/` にコピーして持つ）
 3. `page.tsx` の 1 行を自分のファイルに向ける
    ```tsx
    export { WalletBalanceScreen as default } from "./_components/WalletBalanceScreen";

@@ -1,3 +1,6 @@
+// src/app/(user)/maintenance/_screen/MaintenanceAutoRedirect.tsx
+// メンテナンス画面専用のインタラクション部品(契約外)。終了時刻は loader が渡す
+
 "use client";
 
 import { useEffect } from "react";

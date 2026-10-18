@@ -1,28 +1,4 @@
-import { HideHeaderNav, HideFooter, HideBottomNav } from "@/components/AppFrames/User/controls";
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { Stack } from "@/components/Layout/Stack";
-import { Para } from "@/components/TextBlocks";
+// src/app/(user)/maintenance/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import { MaintenanceGuard } from "./_components/MaintenanceGuard";
-
-export default function MaintenancePage() {
-  return (
-    <MaintenanceGuard>
-      <UserPage>
-        <HideHeaderNav />
-        <HideFooter />
-        <HideBottomNav />
-        <Stack space={8} className="text-center py-12">
-          <UserPageTitle>ただいま準備中です</UserPageTitle>
-          <Para tone="muted">
-            現在サイトを準備しております。
-          </Para>
-          <Para tone="muted">
-            サービス開始までしばらくお待ちください。
-          </Para>
-        </Stack>
-      </UserPage>
-    </MaintenanceGuard>
-  );
-}
+export { MaintenanceScreen as default } from "./_screen/MaintenanceScreen";

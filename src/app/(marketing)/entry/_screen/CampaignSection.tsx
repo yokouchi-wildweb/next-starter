@@ -1,4 +1,4 @@
-// src/app/(marketing)/entry/_components/CampaignSection.tsx
+// src/app/(marketing)/entry/_screen/CampaignSection.tsx
 // 事前登録キャンペーン情報セクション（プレースホルダー）
 
 import { Section } from "@/components/Layout/Section";

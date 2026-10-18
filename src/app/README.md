@@ -36,13 +36,14 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 - 差し替え: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
 - `pnpm test:screens` が `(user)/**` と `(marketing)/**` の page.tsx を自動検出して検査する（登録不要）。fork が `src/app` 直下に作った独自エリア（`store/` 等）はエリア単位で `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_ROOTS` に 1 行書く（未登録のまま置くとテストが指摘する）。スイッチ形でない page.tsx は、理由付きの例外リスト（上流: `UPSTREAM_LEGACY_ROUTES`、fork: 同 registry の `FORK_LEGACY_ROUTES`）に無ければ失敗する
-- 上流がまだ移行していないルート（現在 22。wallet 配下 9 ルートと mypage 配下 10 ルートは移行済み）は `UPSTREAM_LEGACY_ROUTES` に載っており、段階的に移行して `.notices` で通知する
+- 上流がまだ移行していないルート（現在 16 = `(auth)` 配下のみ。wallet 9 / mypage 10 / legal 3 / services / maintenance / entry / トップは移行済み）は `UPSTREAM_LEGACY_ROUTES` に載っており、段階的に移行して `.notices` で通知する
+- `_screen/` には Screen と loader のほかに、既定 Screen 専用の部品を置いてよい（直下でもサブディレクトリでも。例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`）。部品は契約外。`_components/` は下流の場所で、上流のルートでは上流が何も置かない
 
 ### トップページ（`(user)/page.tsx`）の差し替え
 
-`(user)/page.tsx` は 1 行のスイッチで、中身は `(user)/_components/StarterHome/`（上流所有のデモ用トップ。`_screen/` 方式への移行は後続ステップで `.notices` 付きで行う）。
-下流は自前のトップページを `(user)/_components/<Name>/` に作り、page.tsx の import 先だけを差し替える。
-上流は page.tsx を今後編集しないため merge が衝突しない。`StarterHome/` は削除・編集しない（詳細: `(user)/_components/StarterHome/README.md`）。
+`(user)/page.tsx` は 1 行のスイッチで、既定画面は `(user)/_screen/StarterHomeScreen.tsx`（上流所有のデモ用トップ。部品は `_screen/StarterHome/`）。
+下流は自前のトップページを `(user)/_components/<Name>Screen.tsx` に作り、page.tsx の import 先だけを差し替える。
+上流は page.tsx を今後編集しないため merge が衝突しない。`_screen/` は削除・編集しない（詳細: `(user)/_screen/README.md`）。
 
 ## admin/ の構造
 

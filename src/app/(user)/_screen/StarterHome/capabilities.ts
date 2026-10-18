@@ -1,4 +1,4 @@
-// src/app/(user)/_components/StarterHome/capabilities.ts
+// src/app/(user)/_screen/StarterHome/capabilities.ts
 // トップページに並べる「このスターターに最初から入っているもの」の一覧。
 
 import type { LucideIcon } from "lucide-react";

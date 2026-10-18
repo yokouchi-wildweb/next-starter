@@ -54,12 +54,6 @@ const exists = (path) => existsSync(resolve(repoRoot, path));
  * 各ステップで移行したら行を外す。全て空になった時点で Step 5 完了
  */
 export const UPSTREAM_LEGACY_ROUTES = [
-  { dir: "src/app/(user)/(legal)/privacy-policy", reason: "Step 5d で移行" },
-  { dir: "src/app/(user)/(legal)/terms", reason: "Step 5d で移行" },
-  { dir: "src/app/(user)/(legal)/tradelaw", reason: "Step 5d で移行" },
-  { dir: "src/app/(user)/(public)/services", reason: "Step 5d で移行" },
-  { dir: "src/app/(user)/maintenance", reason: "Step 5d で移行" },
-  { dir: "src/app/(marketing)/entry", reason: "Step 5d で移行" },
   { dir: "src/app/(user)/(auth)/demo-login", reason: "Step 5e で移行" },
   { dir: "src/app/(user)/(auth)/email/verify", reason: "Step 5e で移行" },
   { dir: "src/app/(user)/(auth)/forgot-password", reason: "Step 5e で移行" },
@@ -372,7 +366,7 @@ test("検出範囲: wallet ルート(あれば)と生成された管理画面ル
     assert.ok(pageDirs.has(walletDir));
     assert.ok(pageDirs.has(`${walletDir}/[slug]/history`));
   }
-  assert.ok(pageDirs.has("src/app/(user)"), "トップページ(_components/StarterHome 方式)が検出されていない");
+  assert.ok(pageDirs.has("src/app/(user)"), "トップページ(_screen/StarterHomeScreen)が検出されていない");
   assert.ok([...pageDirs].some((d) => d.startsWith("src/app/admin/(protected)/")), "生成された管理画面ルートが検出されていない");
   assert.equal([...pageDirs].some((d) => d.startsWith("src/app/(user)/demo")), false);
 });

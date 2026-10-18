@@ -1,4 +1,4 @@
-// src/app/(user)/_components/StarterHome/Capabilities.tsx
+// src/app/(user)/_screen/StarterHome/Capabilities.tsx
 // 「最初から入っているもの」のコンパクトなカードグリッド。1 画面に収めるため縦方向を詰めている。
 
 import { Block } from "@/components/Layout/Block";

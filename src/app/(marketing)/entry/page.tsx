@@ -1,18 +1,4 @@
 // src/app/(marketing)/entry/page.tsx
-// 事前登録専用ページ
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import { Main } from "@/components/Layout/Main";
-import { PageTitle } from "@/components/TextBlocks";
-
-import { CampaignSection } from "./_components/CampaignSection";
-import { EntrySignupSection } from "./_components/EntrySignupSection";
-
-export default async function EntryPage() {
-  return (
-    <Main containerType="contentShell" padding="md">
-      <PageTitle srOnly>事前登録</PageTitle>
-      <CampaignSection />
-      <EntrySignupSection />
-    </Main>
-  );
-}
+export { EntryScreen as default } from "./_screen/EntryScreen";

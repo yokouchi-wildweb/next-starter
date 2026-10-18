@@ -1,11 +1,11 @@
-// src/app/(user)/_components/StarterHome/StarterHome.tsx
-// 上流(next-starter)のデモ用トップページ本体。Server Component。
-// 下流プロジェクトはこのディレクトリを編集せず、自前のトップページを別ディレクトリに作って
-// src/app/(user)/page.tsx の import 先を差し替える（README.md 参照）。
+// src/app/(user)/_screen/StarterHomeScreen.tsx
+// トップページ(/)の既定画面(page 層の本体)。上流 next-starter のデモ用トップ。Server Component。
+// 上流所有。下流は編集・削除せず、自前のトップページを ../_components/<Name>Screen.tsx に作って
+// ../page.tsx の import 先を差し替える(README.md 参照)。部品は ./StarterHome/ にある(Screen 専用、契約外)。
 //
 // レイアウト: <UserPage fill> でヘッダー下〜フッター上の残り高さちょうどに収め、
 // ページ自体はスクロールしない。内容が収まらない小さな画面では内側だけがスクロールする。
-// 背景は FullScreen layer="background" でビューポート全体に敷く（コンテナ幅に閉じない）。
+// 背景は FullScreen layer="background" でビューポート全体に敷く(コンテナ幅に閉じない)。
 
 import Link from "next/link";
 
@@ -18,16 +18,16 @@ import { Stack } from "@/components/Layout/Stack";
 import { Span } from "@/components/TextBlocks";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 
-import { Backdrop } from "./Backdrop";
-import { Capabilities } from "./Capabilities";
-import { Hero } from "./Hero";
+import { Backdrop } from "./StarterHome/Backdrop";
+import { Capabilities } from "./StarterHome/Capabilities";
+import { Hero } from "./StarterHome/Hero";
 
 const RESOURCE_LINKS = [
   { href: "https://nextjs.org/docs", label: "Next.js Docs" },
   { href: "https://wildweb.tokyo", label: "Wildweb Tokyo" },
 ] as const;
 
-export function StarterHome() {
+export function StarterHomeScreen() {
   const demoEnabled = APP_FEATURES.demo.samplePages;
 
   return (

@@ -1,8 +1,5 @@
-// src/app/(user)/page.tsx — トップページの差し替えスイッチ
-//
-// 上流(next-starter)はこのファイルを今後編集しない。トップページの中身は
-// _components/StarterHome/ 側で変更する。下流プロジェクトは自前のトップページを
-// _components/<Name>/ に作り、下の 1 行の import 先だけを差し替える。
-// 手順と注意点: src/app/(user)/_components/StarterHome/README.md
+// src/app/(user)/page.tsx — トップページ(/)の 1 行スイッチ(下流所有)
+// 上流の既定トップは ./_screen/StarterHomeScreen(デモ用)。ほぼ全ての下流は自前のトップページを
+// ./_components/<Name>Screen.tsx に作り、下の 1 行の import 先だけを差し替える。手順: ./_screen/README.md
 
-export { StarterHome as default } from "./_components/StarterHome";
+export { StarterHomeScreen as default } from "./_screen/StarterHomeScreen";

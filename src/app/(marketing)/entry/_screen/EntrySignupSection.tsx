@@ -1,4 +1,4 @@
-// src/app/(marketing)/entry/_components/EntrySignupSection.tsx
+// src/app/(marketing)/entry/_screen/EntrySignupSection.tsx
 // 事前登録フォームセクション
 
 import Link from "next/link";

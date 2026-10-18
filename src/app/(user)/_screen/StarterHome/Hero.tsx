@@ -1,4 +1,4 @@
-// src/app/(user)/_components/StarterHome/Hero.tsx
+// src/app/(user)/_screen/StarterHome/Hero.tsx
 
 import { ArrowRight } from "lucide-react";
 

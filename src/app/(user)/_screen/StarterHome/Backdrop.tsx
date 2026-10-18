@@ -1,4 +1,4 @@
-// src/app/(user)/_components/StarterHome/Backdrop.tsx
+// src/app/(user)/_screen/StarterHome/Backdrop.tsx
 // トップページの背景。テーマトークンだけで組んだ薄いグラデーション + ドットグリッド。
 // JS もアニメーションも持たないので軽く、ダークモードにも自動追従する。
 
