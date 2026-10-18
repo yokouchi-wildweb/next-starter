@@ -308,7 +308,7 @@ page.tsx → _screen/XScreen.tsx     ← Server(loader を await)
 | 部品 | 役割名 | `BalanceCard`、`CouponInput` |
 | レイアウト部品 | `UserPage` / `AdminPage` だけが `*Page`（`<main>` の枠）。コンテナには使わない | — |
 
-> 📝 改名の記録（checkpoint ui-layers-rename）: 旧 `WalletIndexPage` / `WalletBalancePage` / `WalletHistoryPage` / `WalletPurchasePage` / `BankTransferInstructionPage` / `InviteCodePage` は `WalletList` / `WalletBalance` / `WalletHistory` / `WalletPurchase` / `BankTransferInstruction` / `InviteCode` に改名し、`user/components/UserMyPage/` 直下のコンテナは `user/components/<Name>` に昇格した。旧パスには `@deprecated` の再 export（shim）を 1 checkpoint だけ残し、`deprecated-imports/no-deprecated-path`（eslint）が旧パス import を警告する。次の checkpoint で shim を削除する。
+> 📝 改名の記録（checkpoint ui-layers-rename）: 旧 `WalletIndexPage` / `WalletBalancePage` / `WalletHistoryPage` / `WalletPurchasePage` / `BankTransferInstructionPage` / `InviteCodePage` は `WalletList` / `WalletBalance` / `WalletHistory` / `WalletPurchase` / `BankTransferInstruction` / `InviteCode` に改名し、`user/components/UserMyPage/` 直下のコンテナは `user/components/<Name>` に昇格した。旧パスの `@deprecated` 再 export（shim）は 1 checkpoint だけ残し、checkpoint ui-layers-shim-removal で削除した（旧パスの import は `tsc` が止める）。`deprecated-imports/no-deprecated-path`（eslint）は次の改名のために仕組みだけ残している。
 
 ---
 

@@ -83,7 +83,8 @@ export default [
   // 改名・移動済み module の旧パス import を警告する(詳細: eslint-rules/deprecated-imports.mjs)。
   // upstream が改名したとき、旧パスには再 export の shim が 1 checkpoint だけ残る。warn の間に新パスへ直す
   // (次の checkpoint で shim が消えると tsc が止める)。下流が自分の改名で使ってもよい(paths に足す)。
-  // 現在の一覧 = checkpoint ui-layers-rename(セクションコンテナの接尾辞なし化 + mypage コンテナの昇格)。次の checkpoint で空にする
+  // 現在の一覧 = 空(ui-layers-rename の旧パスは checkpoint ui-layers-shim-removal で shim ごと削除済み)。
+  // 書式: { from: "@/features/...", to: "@/features/...", until: "checkpoint <label> の次" }
   {
     files: ["src/**/*.{ts,tsx}"],
     plugins: { "deprecated-imports": deprecatedImportsPlugin },
@@ -91,48 +92,7 @@ export default [
       "deprecated-imports/no-deprecated-path": [
         "warn",
         {
-          paths: [
-            ...[
-              ["WalletIndexPage", "WalletList"],
-              ["WalletBalancePage", "WalletBalance"],
-              ["WalletHistoryPage", "WalletHistory"],
-              ["WalletPurchasePage", "WalletPurchase"],
-            ].map(([from, to]) => ({
-              from: `@/features/core/wallet/components/${from}`,
-              to: `@/features/core/wallet/components/${to}`,
-              until: "checkpoint ui-layers-rename の次",
-            })),
-            {
-              from: "@/features/core/purchaseRequest/components/BankTransferInstructionPage",
-              to: "@/features/core/purchaseRequest/components/BankTransferInstruction",
-              until: "checkpoint ui-layers-rename の次",
-            },
-            {
-              from: "@/features/core/referral/components/common/InviteCodePage",
-              to: "@/features/core/referral/components/InviteCode",
-              until: "checkpoint ui-layers-rename の次",
-            },
-            {
-              from: "@/features/core/referral/components/common/InviteBenefitsSection",
-              to: "@/features/core/referral/components/InviteCode/InviteBenefitsSection",
-              until: "checkpoint ui-layers-rename の次",
-            },
-            ...["MainMenu", "AccountDetails", "OtherActions", "EditProfile", "EditEmail", "EditPassword", "EditPhone"].map((name) => ({
-              from: `@/features/core/user/components/UserMyPage/${name}`,
-              to: `@/features/core/user/components/${name}`,
-              until: "checkpoint ui-layers-rename の次",
-            })),
-            ...["AccountPageHeader", "AccountBackButton", "AccountAvatarSection", "ActionMenuCard", "RichMenuCard", "UserInfoTable"].map((name) => ({
-              from: `@/features/core/user/components/UserMyPage/${name}`,
-              to: `@/features/core/user/components/common/${name}`,
-              until: "checkpoint ui-layers-rename の次",
-            })),
-            ...["@/features/core/user/components/UserMyPage/index", "@/features/core/user/components/UserMyPage"].map((from) => ({
-              from,
-              to: "@/features/core/user/components/<Name>(MainMenu / AccountDetails / ... を個別に import)",
-              until: "checkpoint ui-layers-rename の次",
-            })),
-          ],
+          paths: [],
         },
       ],
     },
