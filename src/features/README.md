@@ -592,10 +592,4 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 
 ## 関連コマンド
 
-| コマンド | 説明 |
-|----------|------|
-| `npm run dc:init` | 対話形式で domain.json を作成 |
-| `npm run dc:generate -- <Domain>` | ファイル生成 |
-| `npm run dc:generate:all` | 全ドメイン一括生成 |
-| `npm run dc:add -- <Domain>` | フィールド追加 |
-| `npm run dc:delete -- <Domain>` | ドメイン削除 |
+`pnpm dc:init` / `dc:generate <Domain>` / `dc:generate:all` / `dc:add <Domain>` / `dc:delete <Domain>`。生成モード・生成物と上書きの扱い・典型的な流れは [`scripts/domain-config/README.md`](../../scripts/domain-config/README.md)。

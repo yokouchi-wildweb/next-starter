@@ -1,0 +1,132 @@
+# ドメイン生成 CLI（dc:*）
+
+> `src/features/<domain>/domain.json` を元に、ドメイン一式（entities / services / hooks / 管理画面 / レジストリ登録）を生成する CLI のリファレンスです。
+> `domain.json` のスキーマ（キー・型・リレーション・generateFiles 等）は [`src/features/README.md`](../../src/features/README.md) が正です。
+
+- 対象: `src/features/` 直下で `domain.json` を持つディレクトリ（ビジネスドメイン）。core ドメイン（`src/features/core/`）は対象外で、手で保守する
+- 生成元テンプレート: `src/features/_template/`（ドメイン側）、`src/app/admin/_template/`（管理画面ルート）
+- 実行はリポジトリのルートで行う
+
+---
+
+## コマンド
+
+| コマンド | 実体 | 用途 |
+|---|---|---|
+| `pnpm dc:init` | `index.mjs --init` | 対話で `domain.json` を新規作成し、続けて生成するか確認する |
+| `pnpm dc:generate <Domain>` | `index.mjs --generate` | 1 ドメインを生成・再生成する。`<Domain>` 省略時は一覧から選ぶ |
+| `pnpm dc:generate:all` | `index.mjs --generate --all` | 選んだ複数ドメインを一括で再生成する |
+| `pnpm dc:add <Domain>` | `add-field.mjs` | 既存 `domain.json` の `fields` 末尾に対話でフィールドを足す（生成はしない） |
+| `pnpm dc:delete <Domain>` | `index.mjs --delete` | 生成物とレジストリ登録を削除する |
+| `pnpm dc:generate:hook` / `:component` / `:service` | `generate-*.mjs` | カテゴリ内のファイルを個別に選んで生成する（複数ドメイン可） |
+
+> **`--` を付けない**: `pnpm dc:generate -- Sample` は pnpm が `--` をそのまま渡すため、`--` がドメイン名として扱われ `src/features/--/domain.json` を探して失敗する（`dc:add` / `dc:delete` も同じ）。`pnpm dc:generate Sample` と書く。
+> `<Domain>` は snake_case / camelCase / PascalCase のどれでもよい（内部で正規化し、`src/features/<camelCase>/` を見る）。
+
+---
+
+## `dc:init`
+
+質問の順（`init.mjs`、各質問は `questions/`）:
+
+1. ドメイン名（snake_case）・複数形・表示名（`name.mjs`）
+2. DB（Neon / Firestore）と ID の種類（`basics.mjs`）
+3. リレーション（`relations.mjs`）
+4. `createdAt` / `updatedAt` / ソフトデリートの有無（`base-fields.mjs`）
+5. name フィールドの有無・必須（`name-field.mjs`）
+6. フィールド定義（`fields.mjs`。mediaUploader 系は保存パス・ファイル種別・最大サイズも聞く）
+7. 複合ユニーク（`composite-uniques.mjs`）
+8. 一覧・管理画面の設定: 検索対象、並び順、表示列、詳細モーダル、複製ボタン、インポート/エクスポート、データ管理メニュー追加、オートセーブ（`view-config.mjs`）
+9. 汎用 API の読み取り / 書き込みの公開範囲（`api-access.mjs` → `apiAccess`）
+10. 生成カテゴリ（`generate-files.mjs` → `generateFiles`）
+
+`src/features/<camelCase>/domain.json` を書き出したあと「今すぐファイルを生成しますか?」（既定 Yes）で `dc:generate` に進む。
+
+## `dc:generate <Domain>`
+
+1. 生成方法を選ぶ（`generate.mjs`）
+   - `domain.json の設定に基づいて生成`（既定）… `generateFiles` で true のカテゴリだけ
+   - `生成カテゴリを手動で選択` … 今回だけカテゴリを選ぶ。選択を `domain.json` に保存するかも聞かれる
+   - `すべてのファイルを生成` … 全カテゴリ
+2. 「既存の関係ファイルはすべて上書きされます。生成を実行しますか？」で Yes
+3. カテゴリごとのジェネレーター（`generator/`）が順に走る
+
+## `dc:generate:all`
+
+ドメインを複数選び（既定は全件）、各 `domain.json` の `generateFiles` で生成する。途中で「ファイル種別を手動で選択しますか？」に Yes と答えると、選んだカテゴリを全ドメインに適用する（`domain.json` には保存しない）。テンプレートを変えたあとの一括反映に使う。
+
+## `dc:add <Domain>`
+
+`dc:init` のフィールド質問だけを走らせ、既存の `fields` の末尾に追記する。ファイルは生成しないので、続けて `dc:generate` を実行する。
+
+## `dc:delete <Domain>`
+
+1. 確認のためドメイン名（snake_case）を入力する。一致しなければ中止
+2. `src/app/` 配下で名前が一致する追加ディレクトリがあれば、削除するものを選ぶ
+3. `domain.json` も消すか選ぶ（既定 No = `domain.json` だけ残してドメインディレクトリの中身を消す）
+4. 削除対象の一覧を確認して実行
+
+削除するもの: `src/features/<domain>/`、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDataMenu.ts` / `schemaRegistry.ts` / `serviceRegistry.ts` / `domainConfigRegistry.ts` の該当行を消す。DB のテーブルは消さない。
+
+---
+
+## 生成されるもの
+
+`generateFiles` のカテゴリと出力先（`<domain>` = camelCase 単数、`<domains>` = kebab-case 複数）。
+
+| カテゴリ | 出力 |
+|---|---|
+| `entities` | `entities/{model,form,schema,index}.ts` + `drizzle.ts`（Firestore なら `firestore.ts`） |
+| `components` | `components/Admin<Domain>{Create,Edit,List}/`、`components/common/{Create<Domain>Form,Edit<Domain>Form,<Domain>Form,<Domain>Fields}.tsx`。`useDetailModal` で `<Domain>DetailModal.tsx`、`sortOrderField` で `Admin<Domain>Sort/` |
+| `hooks` | `hooks/use*<Domain>.ts`（どれが生成されるかは [`src/lib/crud/hooks/README.md`](../../src/lib/crud/hooks/README.md)） |
+| `clientServices` | `services/client/<domain>Client.ts` |
+| `serverServices` | `services/server/drizzleBase.ts`（Firestore なら `firestoreBase.ts`）、`services/server/<domain>Service.ts`、`wrappers/`（無ければ作成）。mediaUploader フィールドがあれば `wrappers/duplicate.ts` |
+| `fieldConstants` | `constants/field.ts` と `types/field.ts`（`options` を持つフィールドがあるときだけ） |
+| `adminRoutes` | `src/app/admin/(protected)/<domains>/` の一覧・`new/`・`[id]/edit/`（`sortOrderField` で `sort/`） |
+| `registry` | `src/registry/` の `domainConfigRegistry.ts` / `serviceRegistry.ts`（`apiAccess` を `access` に展開）/ `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts` |
+| `presenters` | `presenters.ts`（ドメイン直下。一覧・詳細表示のフォーマッタ） |
+
+### 上書きの扱い
+
+| 扱い | 対象 |
+|---|---|
+| 毎回上書き（編集しない） | 上表のうち、そのカテゴリが有効なときのファイル全部。`<domain>Service.ts`・`presenters.ts`・`constants/field.ts`・`<Domain>Fields.tsx` も含む |
+| 初回だけ生成（write-once） | 管理画面ルートの `page.tsx`（1 行スイッチ）。既存なら保持し、旧形式（本体を直接持つ）なら一度だけスイッチ形へ移行する |
+| 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
+| 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
+| 未登録なら追記 | `src/registry/` の各ファイル。ただし `serviceRegistry.ts` の該当ドメイン行は毎回 `apiAccess` から書き直す（手で変えた `access` は消える。`apiAccess` 未宣言なら fail-closed = admin 限定で登録して警告） |
+
+管理画面ルートの構造（`page.tsx` / `_screen/` / 共有 loader）は [`src/lib/screens/README.md`](../../src/lib/screens/README.md) §12。
+
+### 生成物を変えたいとき（生成ファイルは編集しない）
+
+- **項目・選択肢・表示列など** → `domain.json` を直して再生成する（`fieldGroups` などもここ）
+- **フォームに独自項目・差し込み UI** → 生成された `<Domain>Form` / `<Domain>Fields` は FieldRenderer の props（`fieldPatches` / `insertBefore` / `insertAfter` / `fieldGroups` / `beforeField` 等）を受け取る。fork 所有の `_components/` に置いたフォーム・画面から渡す（[`src/components/Form/FieldRenderer/README.md`](../../src/components/Form/FieldRenderer/README.md)）。MediaUploader の commit/reset は `<Domain>Form` の `onMediaStateChange` で受ける
+- **管理画面のレイアウト** → `_screen/` を同じルートの `_components/` にコピーして `page.tsx` を向ける（以後の再生成は `_screen/` だけを更新する）
+- **CRUD の振る舞い** → `services/server/wrappers/` に置く。ただし `<domain>Service.ts` は `serverServices` 再生成で上書きされるので、そこに足した import / 上書きは再生成後に `git diff` で確認して戻す
+- 手を入れたカテゴリを再生成から外したいときは `domain.json` の `generateFiles` でそのカテゴリを false にする
+
+---
+
+## 典型的な流れ
+
+新規ドメイン:
+
+1. `pnpm dc:init` → 質問に答え、そのまま生成
+2. `git status` / `git diff` で生成物を確認
+3. Neon ドメインはテーブル作成のため `pnpm db:push`（index を足したら `pnpm db:push:check` で差分ゼロを確認。CLAUDE.md DOMAINS push_roundtrip）
+
+フィールド追加:
+
+1. `pnpm dc:add <Domain>`（または `domain.json` を直接編集）
+2. `pnpm dc:generate <Domain>` → 通常は `domain.json の設定に基づいて生成`
+3. 差分を確認し、Neon なら `pnpm db:push`
+
+テンプレート（`_template/`）や生成器を変えたとき: `pnpm dc:generate:all` で全ドメインへ反映し、差分を確認する。
+
+## よくある失敗
+
+- `設定ファイルが見つかりません: .../src/features/--/domain.json` → `--` を付けている。外す
+- `domain.json` が壊れている（JSON として読めない） → 直してから再実行
+- `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
+- MediaUploader の追加質問が出ない → フォーム入力の種類を `mediaUploader` / `mediaUploaderMulti` にしたフィールドでだけ出る

@@ -50,7 +50,7 @@ export const PurchaseRequestTable = pgTable("purchase_requests", {
   // purchase_type ごとの固有情報（例: direct_sale_id, subscription_plan_id, seat_number 等）を格納する用途。
   // コアロジックはこのフィールドの中身を解釈しない（opaque）。
   // 外部キーや検索軸になるデータはサイドテーブルを作る方が推奨。
-  // 詳細は docs/concepts/purchase-type-migration.md を参照。
+  // 詳細は src/features/core/purchaseRequest/README.md「6.3 metadata」を参照。
   metadata: jsonb("metadata"),
   completed_at: timestamp("completed_at", { withTimezone: true }),
   paid_at: timestamp("paid_at", { withTimezone: true }),

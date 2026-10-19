@@ -59,21 +59,14 @@ pnpm db:push:check
 ### ドメイン設定 (dc)
 
 ```bash
-# domain.json テンプレート作成
-pnpm dc:init -- <Domain>
-
-# ファイル生成
-pnpm dc:generate -- <Domain>
-
-# 全ドメイン生成（ファイル選択）
-pnpm dc:generate:all
-
-# ドメイン削除
-pnpm dc:delete -- <Domain>
-
-# フィールド追加
-pnpm dc:add -- <Domain>
+pnpm dc:init                # domain.json を対話で作成
+pnpm dc:generate <Domain>   # ファイル生成（`--` は付けない）
+pnpm dc:generate:all        # 複数ドメイン一括生成
+pnpm dc:add <Domain>        # フィールド追加
+pnpm dc:delete <Domain>     # ドメイン削除
 ```
+
+詳細: [domain-config/README.md](./domain-config/README.md)
 
 ### メール (mail)
 

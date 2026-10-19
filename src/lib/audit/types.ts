@@ -50,7 +50,7 @@ export type AuditRecordInput = {
    * - bulk aggregate / システム設定変更 / 対象ユーザーが特定できない操作: 省略可（NULL）
    *
    * 規約として「ユーザーに紐づく操作」では必ず設定すること。詳細は
-   * docs/how-to/監査ログ採用ガイド.md の "actor vs subject" セクション参照。
+   * src/features/core/auditLog/README.md の "actor / subject / target" セクション参照。
    */
   subjectUserId?: string | null;
   /** action 名（規約: "<domain>.<entity>.<verb_past>"。例: "user.email.changed"） */

@@ -4,7 +4,7 @@
 
 外部決済プロバイダ（Square / Fincode / Stripe）は Webhook を起点に通貨付与が走るが、自社銀行振込は Webhook を持たず、ユーザー自身の自己申告と管理者による事後／事前確認で完結させる。本ドメインはその「申告レコードと審査ワークフロー」を独立した責務として管理する。
 
-> **関連ドキュメント**: 共通の購入リクエスト基盤（外部決済プロバイダ・Webhook・楽観ロック等）は [docs/concepts/コイン購入時の決済フローと外部決済連携に関する処理方針.md](../../../../docs/concepts/コイン購入時の決済フローと外部決済連携に関する処理方針.md) を参照。
+> **関連ドキュメント**: 共通の購入リクエスト基盤（外部決済プロバイダ・Webhook・楽観ロック等）は [purchaseRequest README](../purchaseRequest/README.md) を、プロバイダ実装の契約は [payment/README.md](../purchaseRequest/services/server/payment/README.md) を参照。
 
 ---
 

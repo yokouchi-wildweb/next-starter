@@ -571,13 +571,13 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
 
 ### 保持期間（retention_days）
 
-ウォレット系 audit は **730 日（2 年）** を採用。コンプライアンス対象ドメインとしての推奨値（[監査ログ採用ガイド](../../../../docs/how-to/監査ログ採用ガイド.md) 参照）。
+ウォレット系 audit は **730 日（2 年）** を採用。コンプライアンス対象ドメインとしての推奨値（[auditLog/README.md](../auditLog/README.md) 参照）。
 
 各 wrapper 内で `WALLET_AUDIT_RETENTION_DAYS = 730` として定数化されている。
 
 ### 横展開：他ドメインで判断するとき
 
-同じ「介入 vs 業務」の判断軸は他のドメイン（`userItem`、`couponGrant`、`subscription` 等）でも適用できる。詳しくは [監査ログ採用ガイド](../../../../docs/how-to/監査ログ採用ガイド.md) を参照。
+同じ「介入 vs 業務」の判断軸は他のドメイン（`userItem`、`couponGrant`、`subscription` 等）でも適用できる。詳しくは [auditLog/README.md](../auditLog/README.md) を参照。
 
 ---
 
@@ -950,5 +950,5 @@ src/features/core/wallet/
 
 ## 関連ドキュメント
 
-- [コイン購入時の決済フローと外部決済連携](../../../docs/concepts/コイン購入時の決済フローと外部決済連携に関する処理方針.md)
+- [purchaseRequest ドメイン（コイン購入の決済フロー・外部決済連携）](../purchaseRequest/README.md)
 - [WalletHistory ドメイン](../walletHistory/README.md)

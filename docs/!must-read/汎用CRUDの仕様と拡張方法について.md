@@ -147,5 +147,5 @@ relationWhere: [
 
 - コアスペック詳細: `src/lib/crud/README.md`
 - DB 別差異: `src/lib/crud/README.md`「Firestore 版との差異」
-- ドメイン生成: `docs/how-to/utility/ドメインファイル自動生成に関するコマンド使用方法.md`
-- フック使用方法: `docs/how-to/implementation/汎用CRUDのフック使用方法.md`
+- ドメイン生成: `scripts/domain-config/README.md`
+- フック使用方法: `src/lib/crud/hooks/README.md`

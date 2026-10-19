@@ -302,6 +302,8 @@ const inserted = await service.replaceByQuery(
 
 ## 汎用フック（hooks/）の mutation 契約
 
+> 生成フックごとの使い方（命名・条件付き生成・取得/更新の使用例）は [`hooks/README.md`](./hooks/README.md)。
+
 `useCreateDomain` / `useUpdateDomain` / `useDeleteDomain` / `useUpsertDomain` / `useBulk*Domain` / `useDuplicateDomain` / `useRestoreDomain` / `useHardDeleteDomain` / `useReorderDomain` / `useReplaceByQueryDomain` は全て `hooks/internal/useDomainMutation.ts` の薄いラッパー。戻り値は `{ trigger, isMutating, isLoading, error }`（bulkUpdate 系は `data` も）。
 
 **同一インスタンスでの並列 trigger は安全**（`Promise.all(rows.map((r) => update.trigger(...)))` のような一括保存を想定）:

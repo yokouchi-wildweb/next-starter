@@ -14,7 +14,7 @@ export const AuditActorTypeEnum = pgEnum("audit_actor_type", [...AUDIT_ACTOR_TYP
  * - target_type / target_id: 監査対象の domain と record（target_id は uuid 以外も許容するため text）
  * - subject_user_id: 「この操作が誰のユーザーに対するものか」を示す concept。target_* がエンティティ
  *   識別子なのに対し、subject はユーザー軸の集約キー。"actor (誰がやったか) vs subject (誰に対する
- *   操作か)" を概念分離するために導入。詳細は docs/how-to/監査ログ採用ガイド.md 参照。
+ *   操作か)" を概念分離するために導入。詳細は src/features/core/auditLog/README.md 参照。
  * - action: "<domain>.<entity>.<verb>" 規約（例: "user.email.changed"）
  * - before / after: 変更されたフィールドのみ（trackedFields でフィルタ済みの想定）
  * - context: actor 以外の付随情報（ip, user_agent, session_id, request_id）

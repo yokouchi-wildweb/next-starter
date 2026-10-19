@@ -241,4 +241,4 @@ IP に関するデータは現在 **3 箇所に併存** している。本テー
 
 - ユーザードメイン本体: [`user/README.md`](../user/README.md)
 - cron タスクカタログ: [`src/lib/cron/README.md`](../../../lib/cron/README.md#cron-タスクカタログ)
-- 監査ログ (別の IP 記録経路 = `context.ip`): [`docs/how-to/監査ログ採用ガイド.md`](../../../../docs/how-to/監査ログ採用ガイド.md)
+- 監査ログ (別の IP 記録経路 = `context.ip`): [`auditLog/README.md`](../auditLog/README.md)
