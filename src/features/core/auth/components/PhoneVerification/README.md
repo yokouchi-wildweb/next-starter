@@ -2,7 +2,7 @@
 
 電話番号SMS認証コンポーネント。Firebase Phone Authenticationを使用。
 
-Firebase 側の設定（Phone プロバイダ有効化・reCAPTCHA 等）は [SMS認証（電話番号認証）のセットアップ方法](../../../../../../docs/how-to/initial-setup/SMS認証（電話番号認証）のセットアップ方法.md) を参照。機能の有効化は `APP_FEATURES.user.phoneVerificationEnabled`。auth ドメイン全体は [auth README](../../README.md)。
+Firebase 側の設定（Phone プロバイダ有効化・reCAPTCHA 等）は [SMS認証（電話番号認証）のセットアップ方法](../../../../../../docs/setup/SMS認証（電話番号認証）のセットアップ方法.md) を参照。機能の有効化は `APP_FEATURES.user.phoneVerificationEnabled`。auth ドメイン全体は [auth README](../../README.md)。
 
 ## コンポーネント
 

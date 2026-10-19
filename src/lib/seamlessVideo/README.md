@@ -218,7 +218,7 @@ URL ソースの再生は MSE(`appendBuffer`)/ Web Audio(`decodeAudioData`)が�
 これは seamlessVideo 固有ではなく **「別ドメインの Storage バイトを読む全機能の共通基盤前提」** で、
 設定は `pnpm storage:setup-cors` で一度きり。**判定ルール・前提(権限/env)・手順・トラブルシュートは一次情報を参照**:
 
-➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../../../docs/how-to/initial-setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
+➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../../../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
 
 seamlessVideo 固有の補足:
 

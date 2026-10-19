@@ -12,7 +12,7 @@ Next.js サーバー側での Firebase Admin SDK 使用時に、GCP プロジェ
 ## 包括的に付与すべき IAM ロール
 
 Firebase を用いたアプリ開発で **最初に包括的に付与しておくと良い IAM ロール** は以下の通りです。  
-これらを Firebase Admin SDK 用サービスアカウントに付与することで、Firestore・Storage・Functions・Hosting・Auth など主要な Firebase サービスへのアクセス権限が揃います。
+これらを Firebase Admin SDK 用サービスアカウントに付与することで、本テンプレートが使う Auth・Storage・Firestore へのアクセス権限が揃います（ホスティングは Vercel、Cloud Functions は使わない前提）。
 
 ### 1. Service Usage ユーザー（roles/serviceusage.serviceUsageConsumer）
 
@@ -32,7 +32,6 @@ Firebase を用いたアプリ開発で **最初に包括的に付与してお�
     - Firestore への読み書き（`datastore.entities.create/update/delete`）
     - 認証ユーザーの管理（`firebaseauth.users.*`）
     - Storage バケットの CRUD 操作
-    - Hosting / Functions のデプロイ操作など
 - 基本的にこのロール 1 つで Next.js + Firebase Admin SDK の主要操作をすべてカバー可能。
 
 ---
@@ -54,8 +53,6 @@ Firebase を用いたアプリ開発で **最初に包括的に付与してお�
 | **Firestore** | `roles/datastore.owner` or `roles/datastore.user` | Firestore（Datastore モード）の読み書き権限 |
 | **Firebase Storage** | `roles/firebasestorage.admin` | バケット・オブジェクトの管理権限 |
 | **Firebase Authentication** | `roles/firebaseauth.admin` | ユーザー管理、メール送信、プロバイダ設定 |
-| **Firebase Hosting** | `roles/firebasehosting.admin` | サイトとチャネルの管理権限（SSR/API に必要な場合あり） |
-| **Cloud Functions** | `roles/cloudfunctions.admin` | 関数のデプロイ・更新・閲覧権限（Invoker権限のみでも可） |
 | **Firebase Rules** | `roles/firebaserules.admin` | Firestore/Storage のセキュリティルール管理権限 |
 
 ---
@@ -65,7 +62,7 @@ Firebase を用いたアプリ開発で **最初に包括的に付与してお�
 - 新規 Firebase プロジェクトではデフォルト権限が付与されないため、初期設定として以下を付与するのがおすすめ：
     - ✅ `roles/serviceusage.serviceUsageConsumer`
     - ✅ `roles/firebase.admin`
-- これにより、Firestore / Auth / Storage / Functions / Hosting などを Next.js サーバーから安全かつ包括的に利用可能。
+- これにより、Auth / Storage / Firestore を Next.js サーバーから利用可能。
 - 開発初期は包括的ロールで構築し、本番リリース時に必要最小限ロールへ絞り込むのが現実的な運用方針。
 
 ---
@@ -74,4 +71,3 @@ Firebase を用いたアプリ開発で **最初に包括的に付与してお�
 
 - [Firebase IAM ロール一覧（公式）](https://firebase.google.com/docs/projects/iam/roles-predefined)
 - [Cloud IAM ロールと権限（Google Cloud）](https://cloud.google.com/iam/docs/understanding-roles)
-- [権限不足エラーの対処（Zenn 記事）](https://zenn.dev)  

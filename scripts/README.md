@@ -17,7 +17,7 @@ pnpm env:init .env.local
 
 用途: フォーク直後やクローン直後の最初の一歩。Firebase / DB 未設定でも dev サーバーが起動する状態を作る。一次情報:
 
-➡ [新規プロジェクトの立ち上げ: フォークからデプロイまで](../docs/how-to/initial-setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md)
+➡ [新規プロジェクトの立ち上げ: フォークからデプロイまで](../docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md)
 
 ### データベース (db)
 
@@ -99,7 +99,7 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 
 用途: 別ドメインの Storage バイトをブラウザで読む全機能(MSE / `fetch()` / `<video crossOrigin>`→canvas / Web Audio)の共通基盤前提。バケット単位・一度きりの設定。判定ルール・トラブルシュート・前提(権限/env)は一次情報に集約:
 
-➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/how-to/initial-setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
+➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
 
 事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 

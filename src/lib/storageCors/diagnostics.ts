@@ -17,7 +17,7 @@
 
 /** 一次ドキュメント(設定手順・前提・判定ルール・トラブルシュートの集約先)。 */
 export const STORAGE_CORS_DOC_PATH =
-  "docs/how-to/initial-setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md";
+  "docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md";
 
 /** CORS 設定コマンド(引数なしで origin "*"、ドメイン指定で本番限定)。 */
 export const STORAGE_CORS_SETUP_COMMAND = "pnpm storage:setup-cors";

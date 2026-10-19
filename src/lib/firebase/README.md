@@ -24,7 +24,7 @@ src/lib/firebase/
 
 ## 未設定モード（Firebase なしで起動する）
 
-`pnpm env:init` 直後は `NEXT_PUBLIC_FIREBASE_*` と `MY_SERVICE_ACCOUNT_KEY` が全て空です。この状態でも dev サーバーが起動し、トップページや `/api/health` が表示できることを手順書（`docs/how-to/initial-setup` §3）で約束しています。そのための契約は次のとおりです。
+`pnpm env:init` 直後は `NEXT_PUBLIC_FIREBASE_*` と `MY_SERVICE_ACCOUNT_KEY` が全て空です。この状態でも dev サーバーが起動し、トップページや `/api/health` が表示できることを手順書（`docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md` §3）で約束しています。そのための契約は次のとおりです。
 
 | 層 | 判定関数 | 未設定時の挙動 |
 |---|---|---|

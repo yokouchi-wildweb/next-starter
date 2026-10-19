@@ -77,5 +77,5 @@ console.log(`
   - DATABASE_URL                 Neon 等の接続文字列 → pnpm db:push
   - NEXT_PUBLIC_FIREBASE_*       Firebase Auth / Storage / Firestore
   - MY_SERVICE_ACCOUNT_KEY       Firebase Admin SDK
-手順: docs/how-to/initial-setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md
+手順: docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md
 `);
