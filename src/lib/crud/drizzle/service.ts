@@ -32,6 +32,7 @@ import {
   buildSearchWhere,
   buildSearchRankOrderBy,
   normalizeSearchRankSpec,
+  withIdTiebreak,
 } from "./query";
 import { applyInsertDefaults, buildColumnToPropertyMap, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
 import type { AuditConfig, BulkAuditMode, DrizzleCrudServiceOptions, DbTransaction, DbExecutor, ExtraWhereOption } from "./types";
@@ -1076,13 +1077,11 @@ export function createCrudService<
       }
 
       const baseQuery = db.select().from(table as any);
-      const orderByClauses = buildOrderBy(table, orderBy);
-      // セカンダリキーとしてidを追加（既にidが含まれていない場合のみ、ソート順の安定性を保証）
-      const hasIdInOrderBy = orderBy?.some(([field]) => field === "id");
-      if (!hasIdInOrderBy) {
-        orderByClauses.push(asc(table.id));
-      }
-      const orderClauses = rankOrderClause ? [rankOrderClause, ...orderByClauses] : orderByClauses;
+      // セカンダリキーとして id を末尾に足す（既に含まれていない場合のみ、ソート順の安定性を保証）
+      const orderClauses = withIdTiebreak(table, orderBy, [
+        ...(rankOrderClause ? [rankOrderClause] : []),
+        ...buildOrderBy(table, orderBy),
+      ]);
       const result = await runQuery<Select>(table, baseQuery, {
         page,
         limit,
@@ -1170,13 +1169,11 @@ export function createCrudService<
       }
 
       const baseQuery = db.select().from(table as any);
-      const orderByClauses = buildOrderBy(table, orderBy);
-      // セカンダリキーとしてidを追加（既にidが含まれていない場合のみ、ソート順の安定性を保証）
-      const hasIdInOrderBy = orderBy?.some(([field]) => field === "id");
-      if (!hasIdInOrderBy) {
-        orderByClauses.push(asc(table.id));
-      }
-      const orderClauses = rankOrderClause ? [rankOrderClause, ...orderByClauses] : orderByClauses;
+      // セカンダリキーとして id を末尾に足す（既に含まれていない場合のみ、ソート順の安定性を保証）
+      const orderClauses = withIdTiebreak(table, orderBy, [
+        ...(rankOrderClause ? [rankOrderClause] : []),
+        ...buildOrderBy(table, orderBy),
+      ]);
       const result = await runQuery<Select>(table, baseQuery, {
         page,
         limit,

@@ -448,6 +448,13 @@ sql`CASE WHEN ${t.completedAt} >= ${range.dateFrom.toISOString()} THEN 'current'
 - `searchFields` の各カラムに対して `ILIKE %query%` を OR で結合（結果集合・count はこれだけで決まる）
 - 並び順: `searchRank` 指定時は後述の関連度ランキングを `orderBy` の前に置く。未指定なら `orderBy` のみ
 - SQL 片は `buildSearchWhere` / `buildSearchRankOrderBy`（`@/lib/crud/drizzle`）として公開。`base.query()` で独自 JOIN を組む wrapper からも同じ順位付けを再利用できる
+- 並び順の最後は `withIdTiebreak(table, orderBy, clauses)`（`@/lib/crud/drizzle`）で閉じる。`orderBy` に id が無ければ `asc(id)` を末尾に足す（base `search()` と同じ規則）。wrapper で `buildOrderBy` の結果だけを使うと、同順位の行の並びが DB 任せになり、ページをまたいで入れ替わる・重複する
+  ```ts
+  const orderClauses = withIdTiebreak(table, orderBy, [
+    ...(rankOrderClause ? [rankOrderClause] : []),
+    ...buildOrderBy(table, orderBy),
+  ]);
+  ```
 
 ### searchRank（関連度ランキング）
 
