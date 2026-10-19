@@ -404,8 +404,8 @@ export const extraCouponAdminSectionTabs: PageTabItem[] = [
   { value: "friend-coupon", label: "フレンドクーポン", href: "/admin/coupons/friend-coupon" },
 ];
 
-// 2. src/app/admin/(protected)/coupons/friend-coupon/page.tsx（downstream 実装）
-import { CouponSectionTabs } from "../_components/CouponSectionTabs";
+// 2. src/app/admin/(protected)/coupons/friend-coupon/_screen/AdminFriendCouponScreen.tsx（downstream 実装）
+import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";
 // ...
 <AdminPage>
   <PageTitle placement="header">クーポン管理</PageTitle>
