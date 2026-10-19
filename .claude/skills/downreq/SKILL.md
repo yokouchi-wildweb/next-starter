@@ -26,6 +26,7 @@ disable-model-invocation: true
    date: <ISO8601>
    severity: breaking | action-required | info
    checkpoint: <label | ->
+   moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit the line otherwise)
    change: <what changed upstream, one line>
    why: <why downstream must follow up>
    required_actions:
@@ -39,6 +40,10 @@ disable-model-invocation: true
    - `<slug>` は change から短いケバブ(英語)。
    - **required_actions は「下流の Claude が承認1回でノンストップ実行できる具体度」で書くことが必須**。DB マイグレーション・バックフィル・再生成・データ移行もすべてここに含める。対話プロンプトを出すコマンド(db push 等)だけ `[user-run]` を付ける。
    - 自動化できないことが明示された `manual_steps` 以外は、すべて下流の Claude が実行する前提(fail-auto)。
+   - **ファイル・ディレクトリを移動・改名したら `moved:` を必ず書く**(リポジトリルートからの相対パス、ディレクトリ可、`;` 区切り)。移動の全組を `git diff --name-status -M <変更前> <変更後>` で洗い出して漏れなく載せる(git が改名と認識しない「新規作成 + 旧パス shim」でも書く)。下流の /flux はこれを使って fork の編集を新しいパスへ移植する。
+   - **特定の fork への影響を書くときは推測しない**。その fork のリポジトリで、この変更が触るファイルについて fork 側の編集を差分で取り、結果をそのまま書く:
+     `git -C <fork の作業ディレクトリ> diff --name-only $(git -C <fork> merge-base HEAD <fork 内の upstream remote>/<branch>) HEAD -- <この変更が追加・変更・削除・移動するファイル>`
+     (移動元のパスも含める)。出力が空なら「上流ファイルの編集なし」、空でなければファイル名と `--stat` の規模を書く。fork 自身のファイル(fork が足したページ等)の確認はこれとは別に行い、混同しない。調べていない fork は `not checked` と書く。
    - **上流が core のコンポーネント・hook・service の呼び出し側(`_screen/*` の Screen など)を足す/切り替える変更では、verify に次の標準行を入れる**: `pnpm tsc --noEmit passes including upstream _screen/* default screens even where your page.tsx points to _components/; a failure there = your fork's core edit is not backward compatible (CLAUDE.md CORE_FILES fork_core_edit_compat) — fix the core side, do not edit the upstream Screen`
    - **`checkpoint`(区切り) = 原則必ずラベルを入れる**(英語ケバブ。迷ったら `<slug>` をそのまま使う)。意味は「この notice まで適用すれば fork は整合した休憩点にある」。notice は追随作業の単位で出荷されるので、適用し終えた時点で fork が整合しているのが普通 = 1 notice が 1 休憩点。/flux はこの区切りごとに merge→適用→verify→commit→push を閉じるので、DB 規模が大きい fork や独自要素の多い fork でも 1 変更ずつ安全に進められる。
      - **`-` は例外宣言**: 「後続の notice を適用しないと fork が動かない中間点」と断言できるときだけ。理由を `notes:` に書く(例: `notes: checkpoint:- because 20261020-... (step 2) is required for the build to pass`)。迷ったら `-` にしない。
