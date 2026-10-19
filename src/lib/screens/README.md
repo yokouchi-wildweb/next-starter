@@ -185,7 +185,7 @@ src/app/(user)/(protected)/points/
    export { WalletBalanceScreen as default } from "./_components/WalletBalanceScreen";
    ```
 4. コピーした Screen の中を変える。loader（`load<Name>Screen`）はそのまま呼ぶ
-   - レイアウトやタイトルだけ → セクションコンテナ（`<Name>Page`）はそのまま描く
+   - レイアウトやタイトルだけ → セクションコンテナ（`features/<domain>/components/<Name>`）はそのまま描く
    - 部品の並びや一部の部品 → セクションコンテナも `_components/` にコピーし、部品と hook は core から import する
    - 見た目を全部作り直す → hook だけ使って自作
    - 上流の loader に無いサーバー側データが要る → `_components/loader.ts` に自分の loader を書く（上流の `_screen/loader.ts` は編集しない。両方呼んでよい）
@@ -202,6 +202,15 @@ src/app/(user)/(protected)/points/
 - loader を try/catch しない / client component から import しない
 - Screen に `"use client"` を付けない（hook はセクションコンテナへ）
 - loader を `features/<domain>/` に置かない（ルートの `_screen/loader.ts` へ。エンティティの無い「loader 置き場ドメイン」を作らない）
+
+### それでも core を編集したとき（上流の呼び出し側と互換を保つ）
+
+page.tsx を `_components/` に向けて上流の既定 Screen を使っていなくても、`_screen/*` のファイルは残るので **fork の `tsc` の検査対象のまま**になる。core のコンポーネント・hook・service を非互換に変えると、上流がそれを呼ぶ Screen を足したり切り替えたりした merge で `tsc` が落ちる。
+
+- fork が core に足した props / 引数は**省略可能**にし、空の既定値を持たせる（例: `GeneralUserList` に足した集計 map は `= {}`、`AdminInviteList` に足した合計値は省略時 0）
+- 使わない core のコードは**削除しない**（使わないまま残す）。例: 管理画面ダッシュボードを自作に差し替えても `features/core/admin/dashboard` は消さない。上流の `_screen/AdminHomeScreen` が import している
+- シグネチャを変えたいときは新しい名前を足し、古い名前は残す
+- merge 後に、使っていない上流の `_screen/*` で `tsc` が落ちたら、それは fork 側の core 編集の非互換。直すのは core 側（props を省略可能に戻す・消したものを上流から戻す）で、上流の Screen は編集しない
 
 ### 注意
 

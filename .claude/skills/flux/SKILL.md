@@ -84,6 +84,7 @@ notice は次のいずれかに該当すれば対象外、残りが**未適用**
    - 通常ステップ: Claude が実行(コード修正、`pnpm dc:generate` 等のコマンド、バックフィル task、データ移行)。
    - `[user-run]` ステップ: 「プロンプトに `! <コマンド>` と打ってください」と依頼して待つ。`!` プレフィックスはセッション内実行で出力が会話に流れ込むので、**出力を確認し、成功を判定してから**後続を再開する。失敗していたら取り繕わず対処を提示する。
    - notice の `verify:` を自分で実行して確認する。
+   - `tsc` が**自 fork では使っていない上流の `_screen/*` 既定 Screen**(page.tsx を `_components/` に向けているルート等)で落ちたら、原因は自 fork の core 編集の非互換(必須 props の追加・使わない core コードの削除など)。直すのは core 側(足した props を省略可能+空の既定値に戻す、消したものを上流から戻す)で、上流の Screen は編集しない(CLAUDE.md CORE_FILES `fork_core_edit_compat`、`src/lib/screens/README.md` §7)。台帳の notes に何を戻したかを書く。
 7. **記録とコミット**(途中確認なしで連続実行):
    a. 自 fork 台帳 `.notices/applied/<fork-id>.md` に追記(無ければヘッダごと作成。英語):
       ```
