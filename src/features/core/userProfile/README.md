@@ -333,6 +333,8 @@ const result = await profileBase.query(baseQuery, { page: 1, limit: 20 });
 
 `services/client/profileClient.ts` はロールをパラメータに取る汎用クライアント。
 
+UI（コンポーネント・Screen）からは直接呼ばず、下の「hooks」節のフック（`useProfileSearch` など）を使う（lint `client-service-boundary/no-direct-import` が検出する）。以下はフックを実装する側の呼び方。
+
 ```typescript
 import { profileClient } from "@/features/core/userProfile/services/client/profileClient";
 

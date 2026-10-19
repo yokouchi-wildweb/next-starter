@@ -33,8 +33,8 @@
 
 | 層 | 主な責務 | 禁止事項の例 |
 | --- | --- | --- |
-| ページ層 (`app/**/page.tsx`) | SSR/SSG、リダイレクト、初期データ整形。サーバーサービスを直接呼び出しても良い。 | クライアントフックの直接利用、DB の操作（サーバーサービスを利用すべき）。 |
-| UIコンポーネント層 (`features/<domain>/components`) | 表示とイベント定義。例えば `features/<domain>/components/XxxSection/index.tsx` をエントリーポイントに据え、`XxxSection` フォルダ直下へセクション構造と子部品をまとめる。 | axios や DB への直接アクセス、ビジネスロジックの混在。 |
+| ページ層 (`app/**/page.tsx` → `_screen/`) | `page.tsx` は `_screen/<Name>Screen.tsx` への 1 行スイッチ。Screen は loader の結果を受けてセクションコンテナを配置し、`_screen/loader.ts` が SSR のデータ取得・redirect / notFound を担う（サーバーサービスを直接呼んでよい）。 | page.tsx へのロジック記述、Screen でのクライアントフック利用、DB の操作（サーバーサービスを利用すべき）。 |
+| UIコンポーネント層 (`features/<domain>/components`) | 表示とイベント定義。セクションコンテナは `features/<domain>/components/<Name>`（部品を持つなら `<Name>/index.tsx` + 子部品、無ければ `<Name>.tsx`。名前に `Page` / `Screen` / `Section` を付けない）。通信はフック経由のみ。 | axios や DB への直接アクセス、クライアントサービスの直接 import（lint `client-service-boundary` が検出）、ビジネスロジックの混在。 |
 | フック層 (`features/<domain>/hooks`) | クライアントでの状態管理とクライアントサービス呼び出し。 | HTTP クライアントの直接利用、`toast()` など UI 通知の埋め込み、`HttpError` の throw。 |
 | クライアントサービス層 (`features/<domain>/services/client`) | axios で通信の一元化、`normalizeHttpError` によるエラー正規化、その他 API の利用。 | React 状態の保持、UI ロジック、`fetch` の利用（通信は全て axios を使用）。 |
 | APIルート層 (`app/api/**`) | HTTP I/F の整形とサーバーサービス呼び出し。 | Drizzle/Firestore の直接操作、DomainError の新規 throw。 |
@@ -44,7 +44,7 @@
 
 **クロスカットポリシー**
 
-- クライアント通信は axios を必須とし、`features/<domain>/services/client` 以外で HTTP クライアントを生成しない。
+- クライアント通信は axios を必須とし、`features/<domain>/services/client` 以外で HTTP クライアントを生成しない。UI はクライアントサービスを直接 import せず、`hooks/` のフックだけを呼ぶ（eslint `client-service-boundary/no-direct-import`）。
 - DB へのアクセスは必ずサーバーサービス層を経由し、API ルートから直接 Drizzle/Firestore を操作しない。
 - エンティティ層では共通スキーマと型のみ保持し、個別性の高い定義はコンポーネント配下へ隔離することで肥大化を防ぐ。
 
@@ -60,7 +60,7 @@
 - UI 通知（トーストなど）はコンポーネント側で制御し、フック内へ埋め込まない。`"use client"` 宣言は必要最小限とし、基本はサーバーコンポーネントで構築する。
 - 文書構成要素やボタンなどは `src/components/TextBlocks`・`src/components/Form` にある汎用部品を優先利用し、生の HTML 要素を直接使用しない。
 
-判断基準と実装パターンの詳細は [コンポーネントの設計と切り分け方.md](UIレイヤーの概念とコンポーネント分割方法.md) を必ず参照してください。
+判断基準と実装パターンの詳細は [UIレイヤーの概念とコンポーネント分割方法.md](./UIレイヤーの概念とコンポーネント分割方法.md) を必ず参照してください。
 
 ---
 
