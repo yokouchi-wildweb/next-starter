@@ -13,7 +13,6 @@ export type {
   ManualFieldProps,
   ManualFieldDescription,
   ManualFieldGroupProps,
-  ManualFieldGroupDescription,
   ManualFieldControllerProps,
 } from "./Manual";
 

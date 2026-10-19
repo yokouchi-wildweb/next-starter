@@ -45,7 +45,7 @@ export default function DetailModal({
         <SolidBadge
           size="sm"
           variant={badge?.variant ?? "success"}
-          className={cn("border", badge?.colorClass)}
+          className="border"
         >
           {badgeText}
         </SolidBadge>

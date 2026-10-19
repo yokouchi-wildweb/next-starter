@@ -9,7 +9,7 @@
 | ページング (`page`/`limit`) | SQL の `LIMIT` / `OFFSET` を直接利用。 | `page * limit` 件まで取得した配列に対して `slice` で疑似ページング。取得件数がそのまま `total` に入る。 |
 | ソート (`orderBy`) | 任意列・複数列を `ORDER BY` で適用。 | 先頭 1 列のみ適用。複数列ソートは未対応。 |
 | 検索キーワード (`searchQuery` + `searchFields`) | `ILIKE` による部分一致を全フィールドへ OR 連結。ヒット列ごとの重み付けも可能。 | 先頭フィールドのみ前方一致検索を実行。複数フィールド検索は未対応。 |
-| 検索優先度 (`searchPriorityFields` / `prioritizeSearchHits`) | `CASE WHEN` を用いたランキングをサーバーで実現。 | 未使用。検索ヒット優先度の調整はできない。 |
+| 関連度ランキング (`searchRank`) | `CASE WHEN` の一致度スコアで並べ替えをサーバーで実現。 | 未使用。検索ヒット優先度の調整はできない。 |
 | 条件句 (`where`) | `and` / `or` のネスト、`like` を含む主要オペレーターをサポート。 | `and` のみ対応。`or` を含むと例外。 |
 | 多対多リレーション | `belongsToManyRelations` により中間テーブルを自動同期。生成直後から CRUD で利用可能。 | 非対応（domain-config でも選択不可）。複雑なリレーションが必要な場合は Drizzle へ切り替える。 |
 
@@ -24,8 +24,8 @@
 
 ### 2.2 ソートと検索優先度
 
-- Neon: `orderBy` 配列をそのままクエリに展開し、`searchPriorityFields` を指定すると検索ヒット行を `CASE WHEN` で持ち上げられます。検索順位を制御したい場合に有効です。
-- Firestore: `orderBy` は最初の 1 件しか適用されず、`searchPriorityFields` も無視されます。Firestore の検索結果を UI 側で並べ替えたい場合は、追加のソート処理をクライアントで実装する必要があります。
+- Neon: `orderBy` 配列をそのままクエリに展開し、`searchRank` を指定すると一致度の高い行を `CASE WHEN` のスコアで上に並べられます。検索順位を制御したい場合に有効です。
+- Firestore: `orderBy` は最初の 1 件しか適用されず、`searchRank` も無視されます。Firestore の検索結果を UI 側で並べ替えたい場合は、追加のソート処理をクライアントで実装する必要があります。
 
 ### 2.3 検索キーワードと条件句
 

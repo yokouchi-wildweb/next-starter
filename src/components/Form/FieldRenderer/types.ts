@@ -97,7 +97,7 @@ export type InlineFieldGroup = {
   /** 説明テキスト */
   description?: {
     text: string;
-    tone?: "muted" | "danger" | "warning" | "success";
+    tone?: "muted" | "destructive" | "warning" | "success";
     size?: "sm" | "xs";
     placement?: "before" | "after";
   };

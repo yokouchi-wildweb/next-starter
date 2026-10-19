@@ -19,19 +19,6 @@ import {
 } from "@/lib/domain";
 import { toSnakeCase } from "@/utils/stringCase.mjs";
 
-// ドメインライブラリから再エクスポート（後方互換性のため）
-export {
-  getRelations,
-  getHasManyRelations,
-  resolveJunctionTableName,
-  resolveJunctionFieldName,
-  type RelationType,
-  type RelationInfo,
-  type HasManyRelationInfo,
-  type JunctionTableInfo,
-  type DomainFieldInfo,
-};
-
 /** エクスポート対象ドメイン情報 */
 export type ExportDomainInfo = {
   /** ドメイン名（snake_case） */

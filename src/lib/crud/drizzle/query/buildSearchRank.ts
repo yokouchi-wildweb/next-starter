@@ -3,7 +3,6 @@
 // テキスト検索（searchQuery）に関する SQL 片の生成。
 // - buildSearchWhere: 従来どおりの `ILIKE %q%` OR（結果集合を決める）
 // - buildSearchRankOrderBy: 関連度スコア（完全 > 前置 > 語頭 > 部分 × weight の合算）の ORDER BY 片
-// - buildSearchPriorityOrderBy: 旧 searchPriorityFields 経路の CASE WHEN（互換維持）
 //
 // base.query() で独自 JOIN を組む wrapper からも同じ順位付けを再利用できるよう
 // `@/lib/crud/drizzle` から公開している。
@@ -98,26 +97,3 @@ export const buildSearchRankOrderBy = (
   return sql`(${sql.join(terms, sql` + `)}) DESC`;
 };
 
-/**
- * 旧経路（searchPriorityFields）の優先度 CASE 句。
- * `CASE WHEN col ILIKE %q% THEN 0 ELSE 1 END` をフィールド順に並べる（互換維持のため挙動不変）。
- */
-export const buildSearchPriorityOrderBy = (
-  table: PgTable,
-  searchQuery: string,
-  searchFields: string[],
-  priorityFields?: string[],
-): SQL[] => {
-  const pattern = `%${searchQuery}%`;
-  const fields = (priorityFields ?? searchFields).filter((field, index, array) => {
-    const exists = searchFields.includes(field);
-    return exists && array.indexOf(field) === index;
-  });
-  return fields
-    .map((field) => {
-      const column = resolveColumn(table, field);
-      if (column === undefined) return undefined;
-      return sql`CASE WHEN ${column}::text ILIKE ${pattern} THEN 0 ELSE 1 END` as SQL;
-    })
-    .filter((clause): clause is SQL => clause !== undefined);
-};

@@ -52,8 +52,6 @@ createCrudService<TTable, TCreate>(table, {
   // 検索デフォルト
   defaultSearchFields?: string[],
   defaultSearchRank?: SearchRankSpec,          // 関連度ランキングの重み既定（searchRank 節）
-  defaultSearchPriorityFields?: string[],      // @deprecated → searchRank
-  prioritizeSearchHitsByDefault?: boolean,     // @deprecated → searchRank
   defaultOrderBy?: OrderBySpec,
 
   // 入力パース
@@ -416,10 +414,8 @@ await service.search({
 ### テキスト検索（searchQuery）
 
 - `searchFields` の各カラムに対して `ILIKE %query%` を OR で結合（結果集合・count はこれだけで決まる）
-- 並び順は次の 2 経路。`searchRank` 指定時はこちらが優先される
-  - **searchRank（推奨）**: 後述の関連度ランキング
-  - **legacy**: `searchPriorityFields` で `CASE WHEN col ILIKE pattern THEN 0 ELSE 1 END` を生成、`prioritizeSearchHits: true` で `orderBy` より前に適用（互換維持のため残置、`@deprecated`）
-- SQL 片は `buildSearchWhere` / `buildSearchRankOrderBy` / `buildSearchPriorityOrderBy`（`@/lib/crud/drizzle`）として公開。`base.query()` で独自 JOIN を組む wrapper からも同じ順位付けを再利用できる
+- 並び順: `searchRank` 指定時は後述の関連度ランキングを `orderBy` の前に置く。未指定なら `orderBy` のみ
+- SQL 片は `buildSearchWhere` / `buildSearchRankOrderBy`（`@/lib/crud/drizzle`）として公開。`base.query()` で独自 JOIN を組む wrapper からも同じ順位付けを再利用できる
 
 ### searchRank（関連度ランキング）
 
@@ -621,7 +617,7 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 | extraWhere | 対応 | 非対応 |
 | or 条件 | 対応 | 非対応（エラー） |
 | 複数列 orderBy | 対応 | 単一列のみ |
-| searchRank / searchPriorityFields | 対応 | 非対応（無視） |
+| searchRank | 対応 | 非対応（無視） |
 | ページネーション | LIMIT/OFFSET + COUNT(*) | page*limit 件取得 → slice |
 | withRelations / withCount | 対応 | 非対応 |
 | replaceByQuery | 対応 | 非対応 |

@@ -8,9 +8,6 @@ import { Para } from "@/components/TextBlocks/Para";
 import { cn } from "@/lib/cn";
 import type { FieldItemDescription, RequiredMarkOptions } from "../types";
 
-/** @deprecated FieldItemDescription を使用してください */
-export type ManualFieldGroupDescription = FieldItemDescription;
-
 /**
  * 各インプットの設定
  */

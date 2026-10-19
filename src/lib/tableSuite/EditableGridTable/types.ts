@@ -8,8 +8,8 @@ import type {
   ColumnSortProps,
   RowReorderProps,
   PaddingSize,
+  CellAction,
 } from "../types";
-import type { CellAction } from "../DataTable";
 
 export type EditableGridEditorType =
   | "text"

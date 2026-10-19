@@ -38,9 +38,6 @@ import {
   groupFullWidthRowsByIndex,
 } from "../types";
 
-// 後方互換性のため再エクスポート
-export type { CellAction } from "../types";
-
 export type DataTableColumn<T> = {
   header: React.ReactNode;
   /**

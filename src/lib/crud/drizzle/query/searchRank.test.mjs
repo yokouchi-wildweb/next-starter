@@ -8,7 +8,6 @@ import { normalizeSearchRankSpec } from "./searchRankSpec.ts";
 import {
   buildSearchRankOrderBy,
   buildSearchWhere,
-  buildSearchPriorityOrderBy,
   buildWordStartRegex,
   escapeRegex,
 } from "./buildSearchRank.ts";
@@ -121,14 +120,6 @@ test("buildSearchRankOrderBy は階層 CASE × weight を合算し DESC で返�
 
 test("buildSearchRankOrderBy は解決できるカラムが無ければ undefined", () => {
   assert.equal(buildSearchRankOrderBy(UsersTable, "ab", [{ field: "unknown", weight: 1 }]), undefined);
-});
-
-test("buildSearchPriorityOrderBy（旧経路）は挙動不変: searchFields との交差・重複除去・CASE 0/1", () => {
-  const clauses = buildSearchPriorityOrderBy(UsersTable, "ab", ["name", "email"], ["email", "email", "phoneNumber"]);
-  assert.equal(clauses.length, 1);
-  const { sql, params } = toSql(clauses[0]);
-  assert.match(sql, /CASE WHEN "users"\."email"::text ILIKE \$1 THEN 0 ELSE 1 END/);
-  assert.deepEqual(params, ["%ab%"]);
 });
 
 // ---- HTTP パーサ（fail-closed） ----

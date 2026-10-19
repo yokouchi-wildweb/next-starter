@@ -5,7 +5,6 @@ export { runQuery } from "./runQuery";
 export {
   buildSearchWhere,
   buildSearchRankOrderBy,
-  buildSearchPriorityOrderBy,
   SEARCH_RANK_TIER_SCORES,
 } from "./buildSearchRank";
 export { normalizeSearchRankSpec } from "./searchRankSpec";

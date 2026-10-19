@@ -13,7 +13,6 @@
 // - className: コンポーネント全体（ラッパー要素）に適用。レイアウト・幅制御
 //   （max-w-* / w-* など）はここで指定する。
 // - inputClassName: 内部の <input> 要素に直接適用（border / bg / shadow など内側スタイル拡張用）
-// - containerClassName: 廃止予定（@deprecated）。後方互換のため className とマージされる。
 
 "use client";
 
@@ -52,8 +51,6 @@ export type DateInputProps = BaseProps & {
   onValueChange?: (value: string) => void;
   /** 内部 <input> 要素に追加適用するクラス */
   inputClassName?: string;
-  /** @deprecated `className` を使用してください（後方互換のためマージされます）*/
-  containerClassName?: string;
   onChange?: ChangeEventHandler<HTMLInputElement>;
 };
 
@@ -74,7 +71,6 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
     value,
     defaultValue,
     onValueChange,
-    containerClassName,
     className,
     inputClassName,
     onBlur,
@@ -155,7 +151,7 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>((props, fo
   };
 
   return (
-    <div className={cn("relative flex h-fit items-center", containerClassName, className)}>
+    <div className={cn("relative flex h-fit items-center", className)}>
       <Input
         {...rest}
         ref={assignRef}

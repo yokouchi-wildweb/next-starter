@@ -31,7 +31,6 @@ import {
   runQuery,
   buildSearchWhere,
   buildSearchRankOrderBy,
-  buildSearchPriorityOrderBy,
   normalizeSearchRankSpec,
 } from "./query";
 import { applyInsertDefaults, buildColumnToPropertyMap, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
@@ -1047,10 +1046,6 @@ export function createCrudService<
         hasManyLimit,
       } = params;
 
-      const searchPriorityFields = params.searchPriorityFields ?? serviceOptions.defaultSearchPriorityFields;
-      const prioritizeSearchHits =
-        params.prioritizeSearchHits ?? serviceOptions.prioritizeSearchHitsByDefault ?? false;
-
       let finalWhere = buildWhere(table, where);
       // extraWhere（Drizzle SQL条件）を合成
       if (extraWhere) {
@@ -1069,18 +1064,14 @@ export function createCrudService<
         finalWhere = finalWhere ? and(finalWhere, softDeleteFilter) as SQL : softDeleteFilter;
       }
 
-      // 関連度ランキング（searchRank）。空配列なら旧 searchPriorityFields 経路にフォールバック
+      // 関連度ランキング（searchRank）。指定時のみ orderBy の前に置く
       const rankFields = normalizeSearchRankSpec(params.searchRank, searchFields, serviceOptions.defaultSearchRank);
       let rankOrderClause: SQL | undefined;
-      let priorityOrderClauses: SQL[] = [];
       if (searchQuery && searchFields && searchFields.length) {
         finalWhere = and(finalWhere, buildSearchWhere(table, searchQuery, searchFields)) as SQL;
 
         if (rankFields.length) {
           rankOrderClause = buildSearchRankOrderBy(table, searchQuery, rankFields);
-        }
-        if (!rankOrderClause) {
-          priorityOrderClauses = buildSearchPriorityOrderBy(table, searchQuery, searchFields, searchPriorityFields);
         }
       }
 
@@ -1091,11 +1082,7 @@ export function createCrudService<
       if (!hasIdInOrderBy) {
         orderByClauses.push(asc(table.id));
       }
-      const orderClauses = rankOrderClause
-        ? [rankOrderClause, ...orderByClauses]
-        : prioritizeSearchHits
-          ? [...priorityOrderClauses, ...orderByClauses]
-          : [...orderByClauses, ...priorityOrderClauses];
+      const orderClauses = rankOrderClause ? [rankOrderClause, ...orderByClauses] : orderByClauses;
       const result = await runQuery<Select>(table, baseQuery, {
         page,
         limit,
@@ -1159,10 +1146,6 @@ export function createCrudService<
         hasManyLimit,
       } = params;
 
-      const searchPriorityFields = params.searchPriorityFields ?? serviceOptions.defaultSearchPriorityFields;
-      const prioritizeSearchHits =
-        params.prioritizeSearchHits ?? serviceOptions.prioritizeSearchHitsByDefault ?? false;
-
       let finalWhere = buildWhere(table, where);
       // extraWhere（Drizzle SQL条件）を合成
       if (extraWhere) {
@@ -1175,18 +1158,14 @@ export function createCrudService<
           finalWhere = and(finalWhere, relationCondition) as SQL;
         }
       }
-      // 関連度ランキング（searchRank）。空配列なら旧 searchPriorityFields 経路にフォールバック
+      // 関連度ランキング（searchRank）。指定時のみ orderBy の前に置く
       const rankFields = normalizeSearchRankSpec(params.searchRank, searchFields, serviceOptions.defaultSearchRank);
       let rankOrderClause: SQL | undefined;
-      let priorityOrderClauses: SQL[] = [];
       if (searchQuery && searchFields && searchFields.length) {
         finalWhere = and(finalWhere, buildSearchWhere(table, searchQuery, searchFields)) as SQL;
 
         if (rankFields.length) {
           rankOrderClause = buildSearchRankOrderBy(table, searchQuery, rankFields);
-        }
-        if (!rankOrderClause) {
-          priorityOrderClauses = buildSearchPriorityOrderBy(table, searchQuery, searchFields, searchPriorityFields);
         }
       }
 
@@ -1197,11 +1176,7 @@ export function createCrudService<
       if (!hasIdInOrderBy) {
         orderByClauses.push(asc(table.id));
       }
-      const orderClauses = rankOrderClause
-        ? [rankOrderClause, ...orderByClauses]
-        : prioritizeSearchHits
-          ? [...priorityOrderClauses, ...orderByClauses]
-          : [...orderByClauses, ...priorityOrderClauses];
+      const orderClauses = rankOrderClause ? [rankOrderClause, ...orderByClauses] : orderByClauses;
       const result = await runQuery<Select>(table, baseQuery, {
         page,
         limit,

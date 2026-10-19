@@ -6,7 +6,7 @@
 
 ```
 structuredDocument/
-├── index.ts          # 共通エクスポート + 後方互換エイリアス
+├── index.ts          # 共通エクスポート
 ├── shared/           # 共通ユーティリティ
 │   ├── index.ts
 │   └── variables.ts  # 変数置換

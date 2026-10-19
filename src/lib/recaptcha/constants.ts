@@ -100,8 +100,3 @@ export const RECAPTCHA_V2_INTERNALS = {
     return this.hasSiteKey && this.hasSecretKey;
   },
 } as const;
-
-/**
- * @deprecated RECAPTCHA_V3_INTERNALS を使用してください
- */
-export const RECAPTCHA_INTERNALS = RECAPTCHA_V3_INTERNALS;

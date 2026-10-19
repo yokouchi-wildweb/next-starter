@@ -16,9 +16,6 @@ import { FieldGroupSection } from "./FieldGroupSection";
 import { UNGROUPED_GROUP_KEY } from "./types";
 import type { FieldGroup, GroupContentMap, InlineFieldGroup, MediaState, MediaHandleEntry, InsertFieldsMap } from "./types";
 
-// 型を re-export（後方互換性のため）
-export type { MediaState, MediaHandleEntry } from "./types";
-
 export type FieldRendererProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues, any, TFieldValues>;
   methods: UseFormReturn<TFieldValues>;

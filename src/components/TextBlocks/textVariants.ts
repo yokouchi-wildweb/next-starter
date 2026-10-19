@@ -5,9 +5,6 @@ import { cva } from "class-variance-authority";
 /**
  * 文字色。意味色は本文用トークン(text-{x}-text)を使う(塗り用トークンを文字色にしない)。
  * 色の値は src/styles/palette.defaults.css(既定)/ custom/palette.css(下流)で決まる。
- *
- * 互換エイリアス(@deprecated、同じトークンに解決): notice / caution → warning、error / danger → destructive。
- * 新規コードでは warning / destructive を使う。削除時は .notices で通知する。
  */
 export const tone = {
   inherit: "text-inherit",
@@ -20,14 +17,6 @@ export const tone = {
   success: "text-success-text",
   info: "text-info-text",
   warning: "text-warning-text",
-  /** @deprecated warning を使う */
-  notice: "text-warning-text",
-  /** @deprecated warning を使う */
-  caution: "text-warning-text",
-  /** @deprecated destructive を使う */
-  error: "text-destructive-text",
-  /** @deprecated destructive を使う */
-  danger: "text-destructive-text",
 } as const;
 
 export const size = {

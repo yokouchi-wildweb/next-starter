@@ -78,10 +78,6 @@ export function parseSearchFields(values: string[]): string[] | undefined {
   return parseStringList(values);
 }
 
-export function parseSearchPriorityFields(values: string[]): string[] | undefined {
-  return parseStringList(values);
-}
-
 // searchRank の 1 フィールドあたりの weight 上限（クライアント指定の暴走抑止。サービス側は正数なら受理）
 const SEARCH_RANK_MAX_WEIGHT = 100;
 const SEARCH_RANK_MAX_FIELDS = 20;

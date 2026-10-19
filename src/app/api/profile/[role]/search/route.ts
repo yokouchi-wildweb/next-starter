@@ -12,7 +12,6 @@ import {
   parseBooleanFlag,
   parseWithRelations,
   parseSearchFields,
-  parseSearchPriorityFields,
   parseSearchRank,
   parseWhere,
 } from "@/app/api/[domain]/search/utils";
@@ -39,11 +38,6 @@ export const GET = createApiRoute<Params>(
       const limit = parsePositiveInteger(query.get("limit"), "limit");
       const orderBy = parseOrderBy(query.getAll("orderBy"));
       const searchFields = parseSearchFields(query.getAll("searchFields"));
-      const searchPriorityFields = parseSearchPriorityFields(query.getAll("searchPriorityFields"));
-      const prioritizeSearchHits = parseBooleanFlag(
-        query.get("prioritizeSearchHits"),
-        "prioritizeSearchHits",
-      );
       const searchRank = parseSearchRank(query.get("searchRank"));
       const where = parseWhere(query.get("where"));
       const searchQuery = query.get("searchQuery") ?? undefined;
@@ -58,9 +52,6 @@ export const GET = createApiRoute<Params>(
       if (searchQuery) searchParams.searchQuery = searchQuery;
       if (searchFields) searchParams.searchFields = searchFields;
       if (where) searchParams.where = where;
-      if (searchPriorityFields) searchParams.searchPriorityFields = searchPriorityFields;
-      if (typeof prioritizeSearchHits === "boolean")
-        searchParams.prioritizeSearchHits = prioritizeSearchHits;
       if (searchRank !== undefined) searchParams.searchRank = searchRank;
       if (withRelations) searchParams.withRelations = withRelations;
       if (withCount) searchParams.withCount = withCount;

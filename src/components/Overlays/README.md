@@ -387,7 +387,7 @@ import DetailModal from "@/components/Overlays/DetailModal";
 | `onOpenChange` | `(open: boolean) => void` | - | 状態変更コールバック |
 | `title` | `string` | - | タイトル |
 | `titleSrOnly` | `boolean` | - | タイトルをスクリーンリーダー専用にする |
-| `badge` | `{ text: string; variant?: BadgeVariant; colorClass?: string }` | `variant: "success"` | タイトル横に表示するバッジ(`SolidBadge`)。`colorClass` は @deprecated(className として渡される。生パレット色の `bg-*` を書くと文字色がテーマに追従しない) |
+| `badge` | `{ text: string; variant?: BadgeVariant }` | `variant: "success"` | タイトル横に表示するバッジ(`SolidBadge`) |
 | `media` | `{ type?: "image" \| "video"; url: string; alt?: string; poster?: string }` | `type: "image"` | メディアプレビュー |
 | `rows` | `DetailModalRow[]` | - | `{ label, value }` の配列、または `ReactNode[]` によるカスタム行 |
 | `footer` | `ReactNode` | - | テーブル下に任意のフッターを配置 |

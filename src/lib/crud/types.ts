@@ -138,21 +138,9 @@ export type SearchParams = {
    * 関連度ランキングを有効にする。
    * - `true`: サービスの `defaultSearchRank`、無ければ `searchFields` 等重み
    * - `SearchRankSpec`: 呼び出しごとに重みを指定
-   * - 未指定 / `false`: 従来どおり（searchPriorityFields / prioritizeSearchHits の経路）
-   * 指定時は `searchPriorityFields` / `prioritizeSearchHits` より優先される。
+   * - 未指定 / `false`: ランキングなし（orderBy のみ）
    */
   searchRank?: boolean | SearchRankSpec;
-  /**
-   * @deprecated `searchRank` を使用すること（互換維持のため残置）。
-   * 検索キーワードのヒット列に応じた並び替え優先度を指定する。
-   * `prioritizeSearchHits` が `false` の場合は `orderBy` 適用後のタイブレークとして利用される。
-   */
-  searchPriorityFields?: string[];
-  /**
-   * @deprecated `searchRank` を使用すること（互換維持のため残置）。
-   * true の場合は検索ヒット優先度（searchPriorityFields）を orderBy よりも前に適用する。
-   */
-  prioritizeSearchHits?: boolean;
   where?: WhereExpr;
   /**
    * リレーション経由のフィルタリング（belongsToMany / belongsTo 両対応）。
@@ -327,17 +315,6 @@ type BaseCrudServiceOptions = {
    * Drizzle 専用。
    */
   defaultSearchRank?: SearchRankSpec;
-  /**
-   * @deprecated `defaultSearchRank` + 呼び出し側 `searchRank` を使用すること（互換維持のため残置）。
-   * CASE WHEN による検索ヒット優先度を決めるフィールド順。
-   * `search()` 実行時に `searchPriorityFields` が指定されていなければこちらが利用される。
-   */
-  defaultSearchPriorityFields?: string[];
-  /**
-   * @deprecated `searchRank` を使用すること（互換維持のため残置）。
-   * true の場合は検索ヒット優先度を orderBy よりも前に適用する。
-   */
-  prioritizeSearchHitsByDefault?: boolean;
   /**
    * Default sort order applied by `list()` and `search()` when
    * no explicit order is provided.

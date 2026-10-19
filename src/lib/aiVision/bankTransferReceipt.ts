@@ -2,7 +2,7 @@
 
 import "server-only";
 
-import { getAnthropicClient } from "./client";
+import { getAnthropicClient } from "@/lib/ai/client";
 import {
   BANK_TRANSFER_RECEIPT_PROMPT,
   buildBankTransferReceiptStrictPrompt,

@@ -83,16 +83,3 @@ export const persistThemePreference = (isDark: boolean): void => {
     // プライベートモード等で保存できなくても表示は維持する
   }
 };
-
-/**
- * @deprecated resolveCurrentSiteTheme().isDark を使う。互換のため残置
- */
-export const getInitialTheme = (): boolean => resolveCurrentSiteTheme().isDark;
-
-/**
- * @deprecated 表示と保存を同時に行う旧 API。applyThemeToDom + persistThemePreference に分けて使う
- */
-export const applyTheme = (isDark: boolean): void => {
-  applyThemeToDom(isDark);
-  persistThemePreference(isDark);
-};

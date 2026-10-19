@@ -81,8 +81,8 @@ export const SampleSearchResult = ({ keyword, status }: { keyword: string; statu
     limit: 20,
     searchQuery: keyword,
     searchFields: ["name", "description"],
-    // `searchPriorityFields` でキーワードヒット時に優先したい列を指定可能
-    searchPriorityFields: ["name", "code"],
+    // `searchRank: true` でキーワードの一致度が高い順に並べる（src/lib/crud/README.md の searchRank 節）
+    searchRank: true,
     where: {
       and: [
         status ? { field: "status", op: "eq", value: status } : { field: "status", op: "ne", value: "archived" },
@@ -126,7 +126,7 @@ export const SampleSearchResult = ({ keyword, status }: { keyword: string; statu
 };
 ```
 
-> 💡 `searchPriorityFields` を指定すると、まず `orderBy` で定義した優先順位で並び替えた上で、同一順位内にあるレコードだけ `searchPriorityFields` のヒット状況で再並び替えします。キーワード検索と通常のソート条件を両立させたいケースで活用できます。
+> 💡 `searchRank` を指定すると、一致度（完全 > 前置 > 語頭 > 部分）のスコア順に並べ、同点は `orderBy` で並べます。
 
 > 💡 `where` 句は `{ and: [...] }`・`{ or: [...] }` をネストでき、`searchQuery` や `orderBy` と自由に組み合わせられます。サーバー側で用意した結合・集計ロジックも `search` から呼び出せるため、複雑な検索要件を UI からもそのまま活用できます。
 
@@ -183,7 +183,7 @@ const { items, hasMore, sentinelRef } = useInfiniteScrollQuery({
 - `items.length >= limit` かつ倍数であれば複数ページ相当の事前取得も許容 (例: `limit=100`, `items.length=200` は pages 1..2 事前取得済みとして扱う)。
 - `total` が upstream の都合で不正確でも、本フックは「直近バッチが `limit` 未満 / 0 件」を別途終端条件として持つため、無限ループに陥らずに停止する。
 
-> ⚠️ **Firestore バックエンドを利用する場合**: 現行実装では `orderBy` の複数列指定、`searchFields` による複数フィールド検索、`where` の `or` 条件、`searchPriorityFields` を使った検索ヒット優先度は未対応です。Firestore で検索機能を提供する際は、単一列ソートと AND 条件を前提としたシンプルなクエリ構成に留めてください。
+> ⚠️ **Firestore バックエンドを利用する場合**: 現行実装では `orderBy` の複数列指定、`searchFields` による複数フィールド検索、`where` の `or` 条件、`searchRank` による関連度ランキングは未対応です。Firestore で検索機能を提供する際は、単一列ソートと AND 条件を前提としたシンプルなクエリ構成に留めてください。
 
 ---
 
@@ -357,7 +357,7 @@ export const SampleDetailModal = ({ sampleId }: { sampleId: string | null }) => 
   return (
     <dialog open>
       <h2>{viewModel.title}</h2>
-      {viewModel.badge && <span className={`badge ${viewModel.badge.colorClass}`}>{viewModel.badge.text}</span>}
+      {viewModel.badge && <span className={`badge badge-${viewModel.badge.variant ?? "success"}`}>{viewModel.badge.text}</span>}
       {viewModel.media &&
         (viewModel.media.type === "video" ? (
           <video controls poster={viewModel.media.poster} aria-label={viewModel.media.alt}>

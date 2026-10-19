@@ -27,19 +27,3 @@ export type {
   LegalSectionNumbering,
 } from "./legal";
 export { LegalDocumentRenderer } from "./legal";
-
-// --- 後方互換性のためのエイリアス（非推奨） ---
-// 新規コードでは legal/ から直接インポートしてください
-
-/** @deprecated LegalDocument を使用してください */
-export type { LegalDocument as StructuredDocument } from "./legal";
-/** @deprecated LegalSection を使用してください */
-export type { LegalSection as DocumentSection } from "./legal";
-/** @deprecated LegalSectionNumbering を使用してください */
-export type { LegalSectionNumbering as SectionNumbering } from "./legal";
-/** @deprecated LegalRenderMode を使用してください */
-export type { LegalRenderMode as RenderMode } from "./legal";
-/** @deprecated LegalDocumentRendererProps を使用してください */
-export type { LegalDocumentRendererProps as StructuredDocumentRendererProps } from "./legal";
-/** @deprecated LegalDocumentRenderer を使用してください */
-export { LegalDocumentRenderer as StructuredDocumentRenderer } from "./legal";
