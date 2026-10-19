@@ -102,3 +102,32 @@ ruleTester.run("no-raw-palette", plugin.rules["no-raw-palette"], {
     },
   ],
 });
+
+ruleTester.run("span-in-heading", plugin.rules["span-in-heading"], {
+  valid: [
+    'const a = <UserPageTitle><Span size="inherit" weight="inherit">見出し</Span></UserPageTitle>;',
+    'const b = <SecTitle><Span size="sm" weight="normal">補足</Span></SecTitle>;',
+    "const c = <PageTitle><Span {...rest}>見出し</Span></PageTitle>;",
+    "const d = <Para><Span>本文中の強調</Span></Para>;",
+    "const e = <UserPageTitle><Flex><Span>入れ子は対象外</Span></Flex></UserPageTitle>;",
+    "const f = <Span>単独</Span>;",
+  ],
+  invalid: [
+    {
+      code: '<UserPageTitle><Span className="bg-clip-text">メンテナンス中</Span></UserPageTitle>;',
+      errors: [{ messageId: "spanInHeading", data: { heading: "UserPageTitle", missing: "size / weight" } }],
+    },
+    {
+      code: '<SecTitle as="h3"><Span size="inherit">見出し</Span></SecTitle>;',
+      errors: [{ messageId: "spanInHeading", data: { heading: "SecTitle", missing: "weight" } }],
+    },
+    {
+      code: "<h2><Span weight=\"bold\">生の見出し</Span></h2>;",
+      errors: [{ messageId: "spanInHeading", data: { heading: "h2", missing: "size" } }],
+    },
+    {
+      code: "<Admin.PageTitle><Span>名前空間付き</Span></Admin.PageTitle>;",
+      errors: [{ messageId: "spanInHeading", data: { heading: "PageTitle", missing: "size / weight" } }],
+    },
+  ],
+});

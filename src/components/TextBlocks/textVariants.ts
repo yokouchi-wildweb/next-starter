@@ -19,7 +19,11 @@ export const tone = {
   warning: "text-warning-text",
 } as const;
 
+// inherit = クラスを出さない(親の値がそのまま効く)。見出しの中の Span、中央寄せの親の中の Para などに使う。
+// size / weight / align の既定値は各コンポーネント側で決める(Span / Para は md / normal、Para の align は left)。
+
 export const size = {
+  inherit: "",
   xs: "text-xs",
   sm: "text-sm",
   md: "text-base",
@@ -39,6 +43,7 @@ export const size = {
 } as const;
 
 export const weight = {
+  inherit: "",
   thin: "font-thin",
   extraLight: "font-extralight",
   light: "font-light",
@@ -51,6 +56,7 @@ export const weight = {
 } as const;
 
 export const align = {
+  inherit: "",
   left: "text-left",
   center: "text-center",
   right: "text-right",

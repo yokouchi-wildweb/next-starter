@@ -24,6 +24,8 @@ export function Span({
     <span
       className={cn(
         spanVariants({ tone, size, align, weight, srOnly }),
+        // size="inherit" では行間も親に合わせる(base の leading-relaxed を打ち消す)
+        size === "inherit" && "leading-[inherit]",
         className,
       )}
       {...props}

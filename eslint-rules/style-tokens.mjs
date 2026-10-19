@@ -71,6 +71,62 @@ const noRawPaletteRule = {
   },
 };
 
+// ---- span-in-heading ----
+// 見出し(PageTitle / UserPageTitle / SecTitle 等、および生の h1〜h6)の直下に置いた <Span> が
+// size / weight を書いていないと、Span の既定(text-base font-normal leading-relaxed)が見出しの
+// 大きさ・太さ・行間を上書きして文字が小さくなる。生の <span> を Span に置き換えたときに起きやすい。
+// 親に合わせるなら size="inherit" weight="inherit"(行間も親に合わせる)、意図して変えるなら値を明示する。
+// 対象: JSX の子として直接置かれた Span のみ(式や別コンポーネント経由は静的に判定しない)。
+//   {...props} を持つ Span は size / weight が渡っている可能性があるので対象外。
+
+const HEADING_NAME = /^(?:h[1-6]|[A-Za-z]*(?:PageTitle|SecTitle))$/;
+
+const jsxName = (nameNode) => {
+  if (!nameNode) return null;
+  if (nameNode.type === "JSXIdentifier") return nameNode.name;
+  if (nameNode.type === "JSXMemberExpression") return nameNode.property.name;
+  return null;
+};
+
+export function isHeadingName(name) {
+  return typeof name === "string" && HEADING_NAME.test(name);
+}
+
+const spanInHeadingRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "見出しの直下の <Span> に size / weight を書かせる(Span の既定が見出しの大きさ・太さを上書きするため)",
+    },
+    messages: {
+      spanInHeading:
+        '見出し <{{heading}}> の直下の <Span> に {{missing}} がありません。Span の既定(text-base font-normal)が見出しの大きさ・太さを上書きします。親に合わせるなら size="inherit" weight="inherit"、変えるなら値を明示してください',
+    },
+    schema: [],
+  },
+  create(context) {
+    return {
+      JSXElement(node) {
+        if (jsxName(node.openingElement.name) !== "Span") return;
+        const parent = node.parent;
+        if (parent?.type !== "JSXElement") return;
+        const heading = jsxName(parent.openingElement.name);
+        if (!isHeadingName(heading)) return;
+        const attrs = node.openingElement.attributes;
+        if (attrs.some((attr) => attr.type === "JSXSpreadAttribute")) return;
+        const has = (prop) => attrs.some((attr) => attr.type === "JSXAttribute" && attr.name?.name === prop);
+        const missing = ["size", "weight"].filter((prop) => !has(prop));
+        if (missing.length === 0) return;
+        context.report({
+          node: node.openingElement,
+          messageId: "spanInHeading",
+          data: { heading, missing: missing.join(" / ") },
+        });
+      },
+    };
+  },
+};
+
 /**
  * Flat config 用プラグインオブジェクト。
  * eslint.config.mjs から `plugins: { "style-tokens": <this> }` で登録する。
@@ -82,6 +138,7 @@ const plugin = {
   },
   rules: {
     "no-raw-palette": noRawPaletteRule,
+    "span-in-heading": spanInHeadingRule,
   },
 };
 

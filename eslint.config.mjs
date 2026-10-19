@@ -42,6 +42,16 @@ export default [
       "route-authz/require-authz": "warn",
     },
   },
+  // 見出しの直下の <Span> に size / weight を書かせる(Span の既定 text-base font-normal が見出しを上書きするため。
+  // 詳細: eslint-rules/style-tokens.mjs span-in-heading, src/components/TextBlocks/README.md)。
+  // 下流の画面(app/ と features/<business>)は warn。upstream 所有の UI は下の style-tokens ブロックで error に上書きする。
+  {
+    files: ["src/app/**/*.tsx", "src/features/**/*.tsx"],
+    plugins: { "style-tokens": styleTokensPlugin },
+    rules: {
+      "style-tokens/span-in-heading": "warn",
+    },
+  },
   // 生パレット色(bg-slate-900 / text-white / bg-[#fff] 等)の禁止。色はテーマトークンで書く
   // (詳細: eslint-rules/style-tokens.mjs, src/styles/README.md)。
   // upstream 所有の UI(共有 UI・core ドメイン・ドメイン雛形)は error。下流固有 UI(features/<business>, app/)は対象外
@@ -59,6 +69,7 @@ export default [
     plugins: { "style-tokens": styleTokensPlugin },
     rules: {
       "style-tokens/no-raw-palette": "error",
+      "style-tokens/span-in-heading": "error",
     },
   },
   // _shadcn の直接 import 禁止(CLAUDE.md PROHIBITED)。ラッパーは src/components に置く。
