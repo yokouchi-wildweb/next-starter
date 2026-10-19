@@ -19,11 +19,11 @@ setup/deploy/secret/ops + SDK usage: servers/room/README.md + src/lib/realtimeRo
 
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities
-library: src/lib/\<name\>/, all except entities
+library: src/lib/\<name\>/, all except entities | ownership per library (package-like), recorded in src/lib/CATALOG.md: one section per owner repo (owner id = origin path joined by `--`, same as .notices fork-id; sections upstream-first), one line `- src/lib/<name> — <one-line purpose>` | new lib (any tier) → add the line to YOUR section, never edit other sections | upstream libs: use via public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /upreq | fork lib proven generic → promote upstream, then drop own copy + line | test: pnpm test:lib-catalog (missing / stale / duplicate = name collision or promoted leftover) | ref: src/lib/README.md
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
 
 decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only→app/\<route\>/_components/
-reuse_check: new utility/feature → confirm no equivalent in existing domains/features before create (indexes: src/lib/README.md, src/features/core/README.md)
+reuse_check: new utility/feature → confirm no equivalent in existing domains/features before create (indexes: src/lib/CATALOG.md, src/features/core/README.md)
 deps: lib→lib OK | lib→features NG | features→features(UI): use target hooks (no self-create) | features→features(server): direct OK (no circular)
 ref: docs/!must-read/設計思想とアーキテクチャ.md
 
@@ -286,7 +286,7 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - アクション完了後、API レスポンスの処理済み ID で反映できるのに revalidate / reset で再フェッチする (updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト。reset は一覧が消えるので最新化に使わない)
 
 ## CORE_FILES (approval required)
-src/lib/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** (upstream routes, see SCREENS), servers/room/src/core/, servers/room/src/index.ts
+src/lib/ libraries in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned), src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** (upstream routes, see SCREENS), servers/room/src/core/, servers/room/src/index.ts
 downstream_owned (upstream never edits after creation, see STYLE_OWNERSHIP / SCREENS): src/styles/custom/**, src/config/ui/*.config.ts, src/app/**/page.tsx of switched routes (1-line switch; upstream never edits after creation), src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES)
 fork_core_edit_compat (downstream, when a fork edits core paths at all — default is don't, see SCREENS): stay backward compatible with upstream callers | props/args a fork adds to a core component/hook/service = optional with an empty default | never delete core code the fork does not use (leave it unused) | signature change = add a new name, keep the old | why: upstream default `_screen/*` Screens and other upstream callers stay in the fork's tsc scope even when its page.tsx points to `_components/` → a non-compatible core edit fails tsc at the next upstream merge | fix side = the fork's core edit, never the upstream Screen | ref: src/lib/screens/README.md §7
 src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval

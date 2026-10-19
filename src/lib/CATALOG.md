@@ -1,0 +1,61 @@
+# src/lib 目録
+
+`src/lib` 直下のライブラリを、どのリポジトリが作ったかの一覧。管理方法は [README.md](./README.md)。
+
+- 節 = 所有者(作ったリポジトリ)。見出しは所有者 ID(origin URL のパス部分を `--` 連結・小文字化。`.notices/applied/` の fork-id と同じ)。節は上流から順に並べる(先頭 = Tier1)
+- 1 行 = 1 ライブラリ: `- src/lib/<name> — <一行説明>`
+- ライブラリを足したら**自分の節に 1 行足す**(自分の節が無ければ末尾に作る)。他の節は編集しない
+- 検査: `pnpm test:lib-catalog`(実在との不一致・重複・説明の欠落で失敗する)
+
+## yokouchi-wildweb--next-starter
+- src/lib/ai — Claude API を使う汎用エージェント基盤(runAgent のツール実行ループ、型付きイベント、SSE)
+- src/lib/aiVision — Claude Vision による画像の事前判定ユーティリティ
+- src/lib/audit — 監査ログ基盤(ALS コンテキスト・diff・denylist)
+- src/lib/browserStorage — localStorage / sessionStorage のクライアントと React フック
+- src/lib/clarity — Microsoft Clarity 解析タグ
+- src/lib/cn — Tailwind className 結合(clsx + tailwind-merge、独自トークンのクラス群登録)
+- src/lib/cron — /api/cron/* 定期タスク基盤と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches
+- src/lib/crud — createCrudService 汎用 CRUD(サービス・フック・クエリ構築)
+- src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)
+- src/lib/csv — CSV ダウンロードとヘッダ付きパース
+- src/lib/dataMigration — CSV + ZIP のエクスポート / インポート(管理画面・チャンク処理)
+- src/lib/date — dayjs ラッパと柔軟な日付パース
+- src/lib/dbAgent — 自然言語で PostgreSQL を調べる管理者向け DB 調査エージェントのデータレイヤ
+- src/lib/domain — domain.json 設定の読み取り、フィールド・リレーション抽出
+- src/lib/drizzle — PostgreSQL(Neon)クライアントとトランザクションヘルパ、未設定判定
+- src/lib/errors — DomainError / HttpError の定義と正規化
+- src/lib/fingerprint — ブラウザのデバイス信号収集・ハッシュ化とフォーム操作の行動計測(ドメイン非依存)
+- src/lib/firebase — Firebase SDK のクライアント / サーバー初期化とユーティリティ、未設定判定
+- src/lib/firestore — Firestore のクライアント操作レイヤー
+- src/lib/folderCatalog — フォルダ目録(CATALOG.md)の読み込み・検査・所有判定
+- src/lib/fonts — Web フォントの設定(defineFontsConfig、既定はシステムフォント)
+- src/lib/googleTag — Google tag(gtag.js)と Google Ads コンバージョン計測(env 駆動、未設定なら no-op)
+- src/lib/gradient — グラデーションのデザイントークン(TS と CSS の単一ソース)とカラー値モデル
+- src/lib/jwt — JWT の署名・検証・Cookie 抽出の薄いラッパ
+- src/lib/line — LINE 連携(Push 通知・Bot 応答・LIFF・Webhook 検証)
+- src/lib/mail — メール送信(Resend / SendGrid)と React Email テンプレート
+- src/lib/mediaInputSuite — メディア入力(メタデータ取得 → プレビュー → Storage アップロード)
+- src/lib/mediaProbe — Storage 上のメディアをサーバーで解析しストリーム構成を返す(エンジン差し替え可)
+- src/lib/metadata — Next.js の generateMetadata 生成ヘルパ(createMetadata)
+- src/lib/realtimeRoom — ホットパス・リアルタイム基盤の SDK(servers/room 接続、購読フック、サーバー dispatch)
+- src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策
+- src/lib/request — リクエスト情報の取得(getClientIp)
+- src/lib/requestMemo — リクエストスコープの無効化可能なメモ化(同一リクエスト内の重複読み取りを圧縮)
+- src/lib/routeFactory — 全 API ルートの生成ファクトリ(認可を構造的に強制)
+- src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト
+- src/lib/seamlessVideo — 変換済み fmp4 を MSE で継ぎ目なく連結再生(映像 + 音声・A/V 同期・BGM)
+- src/lib/siteTheme — エリア別のライト / ダーク解決と SSR 時のちらつき防止(defineSiteThemeConfig)
+- src/lib/sortableList — ドラッグ & ドロップの並べ替えリスト UI
+- src/lib/spamGuard — 使い捨てメール / Hide My Email 等の検出とガード
+- src/lib/storage — Firebase Storage の共通サービスレイヤー(client / server / hooks)
+- src/lib/storageCors — 別ドメインの Storage バイト読み取りの CORS 未設定を開発時に自己診断・案内
+- src/lib/structuredDocument — 構造化ドキュメント(文書タイプ別の構造定義とレンダラー、利用規約など)
+- src/lib/tableSuite — テーブル系 UI(DataTable / EditableGridTable / RecordSelectionTable)
+- src/lib/toast — トースト通知(GlobalToast / useToast)
+- src/lib/transitionGuard — ページ遷移ガード(フロー離脱時に最初からやり直させる)
+- src/lib/url — 実行環境のオリジン取得(getAppBaseUrl)
+- src/lib/userDirty — コミット後の再計算回収口(ALS で対象 user_id を集め post-commit で flush)
+- src/lib/variantOverrides — cva 互換のバリアント上書き(下流が形状だけを上書きする defineVariantOverrides)
+- src/lib/webAudio — Web Audio の共有エンジン(効果音・ループ SE・BGM・デコードキャッシュ)
+- src/lib/x — X(Twitter)API(認証・投稿・メディア・Webhook 検証)
+- src/lib/zod — Zod スキーマからの既定値抽出(getZodDefaults)

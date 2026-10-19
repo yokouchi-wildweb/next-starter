@@ -20,6 +20,7 @@
     "test:client-service-boundary": "node --test eslint-rules/client-service-boundary.test.mjs",
     "test:variant-overrides": "npx tsx --test src/lib/variantOverrides/variantOverrides.test.mjs",
     "test:screens": "npx tsx --test src/lib/screens/screens.test.mjs",
+    "test:lib-catalog": "node --test src/lib/folderCatalog/catalog.test.mjs",
     "test:relation-options": "node --test src/lib/domain/relations/relationOptions.test.mjs",
     "test:wallet-lot-planning": "npx tsx --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --test src/features/core/user/services/server/helpers/passwordChange.test.ts",

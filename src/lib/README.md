@@ -1,77 +1,41 @@
-# src/lib ライブラリ目次
+# src/lib — ライブラリ
 
-`src/lib/` に存在する共通ライブラリの一覧（目次）。
-「必要なものが既にあるか」を一瞬で判断するための索引です。
-**各ライブラリの詳細な仕様・使い方は、サブフォルダ内の `README.md` を参照**（README 欄 ✓ のもの）。
+ドメインに属さない、汎用で単体で完結した部品の置き場。どのプロジェクトに持っていっても使えるものを置く（エンティティが要るならドメイン = `src/features/`）。
 
-> 新しいユーティリティ/基盤を作る前に、まずこの表で同等品が無いか確認すること（重複実装の防止）。
+**何があるか・誰が作ったかは [CATALOG.md](./CATALOG.md)（目録）を見る。** 新しいユーティリティや基盤を作る前に、目録で同等品が無いか確認する（重複実装の防止）。各ライブラリの詳しい仕様は、そのディレクトリの `README.md`。
 
-## API / サーバー基盤
+## ライブラリは「パッケージのような単位」
 
-| ライブラリ | 用途 | README |
-|---|---|---|
-| `routeFactory` | 全 API ルートの生成ファクトリ。認可を構造的に強制（直書きハンドラは禁止） | ✓ |
-| `crud` | `createCrudService` 汎用 CRUD。サービス/フック/管理UIを生成 | ✓ |
-| `domain` | `domain.json` 設定の読取・フィールド/リレーション抽出（`getDomainConfig` 等） | |
-| `cron` | `/api/cron/*` 定期タスク基盤。CLI からも同タスクを実行。`runBudgetedBatches` 時間予算付き再開可能ループ（チェックポイントは features/cronCheckpoint、差分更新の完成品は features/incrementalRefresh） | ✓ |
-| `audit` | 監査ログ基盤（ALS コンテキスト・diff・denylist） | |
-| `userDirty` | コミット後の再計算回収口。ALS で対象 user_id を収集し post-commit で flush | |
-| `errors` | `DomainError` / `HttpError` 定義 | |
-| `request` | リクエスト情報取得（`getClientIp`） | |
-| `url` | 実行環境オリジン取得（`getAppBaseUrl`） | |
+所有はフォルダ（`src/lib`）ではなく、**ライブラリ 1 つずつ**に付く。持ち主 = そのライブラリを作ったリポジトリ（Tier1 の upstream か、fork か）。目録の節がそれを表す。
 
-## DB / データ
+- **上流のライブラリ**（自分以外の節にあるもの）
+  - 公開している入口（`index.ts` などの export）を通して使う。**中身は編集しない・ディレクトリを削除しない**（使わないなら置いたまま。import されなければバンドルに入らない）
+  - 挙動を変えたいときは、オプション・設定で変えられるよう上流に依頼する（`/upreq`）。急ぎで手を入れたら、互換を保ったうえで修正を上流に返す（CLAUDE.md CORE_FILES `fork_core_edit_compat`）
+- **自分のライブラリ**（自分の節にあるもの）: 完全に自分のもの。上流は触らない
+- **入口は契約**: 上流は公開 API を改名するとき古い名前を残し、`.notices` で予告してから消す
+- **昇格**: fork のライブラリが汎用的だと分かったら上流へ引き上げる（`/upreq`）。上流の節に行が入ってきたら、fork は自分の複製と自分の節の行を消す（残っているとテストが「重複」で知らせる）
 
-| ライブラリ | 用途 | README |
-|---|---|---|
-| `drizzle` | PostgreSQL（Neon）クライアント + トランザクションヘルパ | |
-| `firestore` | Firestore のクライアント操作レイヤー | ✓ |
-| `realtimeRoom` | ホットパス・リアルタイム基盤の SDK（servers/room 接続。購読フック / サーバー dispatch / callback 検証） | ✓ |
-| `dataMigration` | CSV+ZIP のエクスポート/インポート（管理画面・チャンク処理） | ✓ |
-| `csv` | CSV ダウンロード / ヘッダ付きパース | |
-| `zod` | Zod スキーマからのデフォルト値抽出（`getZodDefaults`） | |
+## ライブラリを足すとき
 
-## 認証 / セキュリティ
+1. `src/lib/<name>/` を作る（名前は camelCase。入口は `index.ts` を推奨）
+2. [CATALOG.md](./CATALOG.md) の**自分の節**に `- src/lib/<name> — <一行説明>` を足す。自分の節が無ければ末尾に `## <自分の所有者 ID>` を作る。他の節は編集しない
+3. `pnpm test:lib-catalog` を通す
 
-| ライブラリ | 用途 | README |
-|---|---|---|
-| `jwt` | JWT の署名 / 検証 / Cookie 抽出の薄いラッパ | ✓ |
-| `crypto` | AES-256-GCM 対称暗号化（トークン・機密データの暗号化保存） | ✓ |
-| `recaptcha` | Google reCAPTCHA v3/v2 ハイブリッドのボット対策 | ✓ |
-| `spamGuard` | 使い捨てメール / Hide My Email 等の検出・ガード | |
+所有者 ID = origin URL のパス部分を `--` で連結して小文字にしたもの（`git@github.com:acme/shop.git` → `acme--shop`）。`.notices/applied/<fork-id>.md` の fork-id と同じ。
 
-## 外部サービス連携
+## 目録の検査（`pnpm test:lib-catalog`）
 
-| ライブラリ | 用途 | README |
-|---|---|---|
-| `firebase` | Firebase SDK のクライアント/サーバー初期化・ユーティリティ | ✓ |
-| `storage` | Firebase Storage の共通サービスレイヤー（client/server/hooks） | ✓ |
-| `storageCors` | 別ドメインの Storage バイト読取（fetch/canvas）の CORS 未設定を開発時に自己診断・案内 | ✓ |
-| `mail` | メール送信（Resend / SendGrid）+ React Email テンプレート | |
-| `line` | LINE 連携（Push通知・Bot応答・LIFF・Webhook 検証） | ✓ |
-| `x` | X(Twitter) API（認証・投稿・メディア・Webhook 検証） | ✓ |
-| `aiVision` | Claude Vision による画像の事前判定ユーティリティ | ✓ |
-| `mediaProbe` | Storage 上のメディアをサーバーで解析しストリーム構成（音声トラック有無等）を返す。エンジン差し替え可（WASM/ffprobe） | ✓ |
-| `clarity` | Microsoft Clarity 解析タグ | |
+- `src/lib` 直下のディレクトリがすべて目録に載っている（載せ忘れ）
+- 目録のパスがすべて実在する（上流のライブラリを消していないことの保証も兼ねる）
+- 同じパスが 2 回載っていない（上流が後から同じ名前を足した = 名前の衝突、または昇格後の行の消し忘れ）
+- 説明が空でない・節の見出しが所有者 ID の形式
 
-## UI / コンポーネント
+検査と所有判定の実装は [`folderCatalog/`](./folderCatalog/README.md)。
 
-| ライブラリ | 用途 | README |
-|---|---|---|
-| `tableSuite` | テーブル系 UI（DataTable / EditableGridTable / RecordSelectionTable） | ✓ |
-| `mediaInputSuite` | メディア入力（メタデータ取得→プレビュー→Storage アップロード） | ✓ |
-| `structuredDocument` | 構造化ドキュメント（文書タイプ別の構造定義 + レンダラー） | ✓ |
-| `transitionGuard` | ページ遷移ガード（フロー離脱時に最初からやり直させる） | ✓ |
-| `screens` | page 層の構造（page.tsx 1 行スイッチ + `_screen/` + loader）の型 `ScreenProps` と規律テスト `test:screens`。下流の画面差し替え手順 | ✓ |
-| `sortableList` | ドラッグ&ドロップの並べ替えリスト UI | |
-| `toast` | トースト通知システム（`GlobalToast` / `useToast`） | |
-| `seamlessVideo` | 変換済み fmp4 を MSE で継ぎ目なく連結再生（映像+音声・progressive・A/V同期・BGM・共有URL） | ✓ |
+## lint の扱い
 
-## ユーティリティ
+所有で厳しさが変わる規則（style-tokens の `no-raw-palette` / `span-in-heading`）は、目録で判定する。
 
-| ライブラリ | 用途 | README |
-|---|---|---|
-| `cn` | Tailwind className 結合（clsx + tailwind-merge） | |
-| `date` | dayjs ラッパ + 柔軟な日付パース | |
-| `metadata` | Next.js `generateMetadata` 生成ヘルパ（`createMetadata`） | |
-| `browserStorage` | localStorage / sessionStorage の React フック | |
+- 上流のライブラリ: error
+- 自分のライブラリ: warn（自分が先頭の節 = Tier1 のときは error。upstream として自分のライブラリも契約どおりに保つ）
+- origin が無い・目録が読めない: すべて error（安全側）

@@ -6,6 +6,13 @@ import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import routeAuthzPlugin from "./eslint-rules/route-authz.mjs";
 import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
+import { loadCatalogOwnership } from "./src/lib/folderCatalog/catalog.mjs";
+
+// src/lib のライブラリの所有(src/lib/CATALOG.md の節)。自分の origin の節 = 自分のライブラリ。
+// 自分が先頭の節(Tier1)でなければ、自分のライブラリは「下流の UI」と同じく warn に落とす(上流のライブラリは error のまま)。
+// origin が無い・目録が読めないときは自分の所有なし = 全部 error(安全側)。
+const libOwnership = loadCatalogOwnership({ repoRoot: import.meta.dirname, folder: "src/lib" });
+const forkOwnedLibFiles = libOwnership.isRoot ? [] : libOwnership.ownPaths.map((path) => `${path}/**/*.{ts,tsx}`);
 
 export default [
   ...nextConfig,
@@ -90,6 +97,18 @@ export default [
       "style-tokens/span-in-heading": "error",
     },
   },
+  // fork が足したライブラリ(src/lib/CATALOG.md の自分の節)は warn(上の error を上書き)。Tier1 自身では空
+  ...(forkOwnedLibFiles.length > 0
+    ? [
+        {
+          files: forkOwnedLibFiles,
+          rules: {
+            "style-tokens/no-raw-palette": "warn",
+            "style-tokens/span-in-heading": "warn",
+          },
+        },
+      ]
+    : []),
   // _shadcn の直接 import 禁止(CLAUDE.md PROHIBITED)。ラッパーは src/components に置く。
   // 許可: src/components(ラッパー本体) / src/lib/tableSuite(table の指定ラッパー。セルエディタも primitive 層)。
   {
