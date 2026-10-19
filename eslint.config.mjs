@@ -15,7 +15,25 @@ export default [
       ".firebase/**",
       ".next/**",
       "node_modules/**",
+      // 生成器テンプレートのうち、プレースホルダー(__ASYNC__function / __RelationTableImports__import 等)が
+      // TypeScript として構文エラーになるファイルだけを除外する(パースできないので lint しようがない)。
+      // 他のテンプレートは lint 対象のまま(生パレット色・ClientService 直接 import 等の検査を生成元で効かせる)。
+      // 新しいテンプレートがパースエラーを出したらここに足す。
+      "src/app/admin/_template/__domains__/[[]id]/edit/_screen/Admin__Domain__EditScreen.tsx",
+      "src/app/admin/_template/__domains__/new/_screen/Admin__Domain__CreateScreen.tsx",
+      "src/features/_template/components/Admin__Domain__List/Table.tsx",
+      "src/features/_template/components/Admin__Domain__List/Table.withDetailModal.tsx",
+      "src/features/_template/services/server/drizzleBase.ts",
     ],
+  },
+  // テンプレートのフックは名前がプレースホルダー(use__Domain__)でフックの命名規則を満たせないため、
+  // react-hooks の規則だけ外す。生成後のフックは sample 系ドメインで通常どおり検査される。
+  {
+    files: ["src/features/_template/hooks/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/rules-of-hooks": "off",
+      "react-hooks/exhaustive-deps": "off",
+    },
   },
   // 監査ログの action 命名規約 (`<domain>.<entity>.<verb>`) を静的に強制する。
   // 動的に組み立てる必要がある正当なケースは個別 eslint-disable で許可する。
