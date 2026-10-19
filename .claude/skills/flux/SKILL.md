@@ -1,7 +1,7 @@
 ---
 name: flux
 description: 下流(fork)側で upstream の変更取り込みと DOWNSTREAM NOTICE への追随対応を全自動で行う。fetch→未適用noticeをcheckpointごとの区間に分割→適用計画→承認1回→区間ごとに merge/コード修正/DB/バックフィル/検証/台帳記録/コミット/push。いつ実行しても自forkの対応状況を正確に把握できる
-argument-hint: "[status | next | notice id (省略で全区間を merge + 適用)]"
+argument-hint: "[status | status --chain | next | notice id (省略で全区間を merge + 適用)]"
 disable-model-invocation: true
 ---
 
@@ -36,6 +36,7 @@ disable-model-invocation: true
 2. fork-id 導出: URL のパス部分(ホスト以降)から `.git` を除去し、`/` を `--` に置換、小文字化。例: `git@github.com:acme/shop.git` → `acme--shop`。origin が無ければ `local--<ディレクトリ名>`。
 3. 自 fork 台帳 = `.notices/applied/<fork-id>.md`。無ければ未適用ゼロ記録として扱う(初回適用時に作成)。
 4. `.notices/applied/` 内の他の fork-id のファイルは中間 Tier や他 fork の台帳(merge で流れてきたもの)。**自分の状態と混同しない**。参考情報として読むのは可。
+5. **中間 fork-id** = 直上 upstream の URL から同じ規則で導出した fork-id。`<upstream>/<branch>` に `.notices/applied/<中間 fork-id>.md` があれば、直上 Tier は自分自身も下流として上流を追随している中間 Tier(下記「中継」で使う)。無ければ直上 upstream は最上流で、祖父 notice は存在しない。
 
 ## upstream の特定
 1. `git remote -v` で origin 以外の remote(通常 `upstream`)を探す。
@@ -55,6 +56,7 @@ fork は最新コードごと clone して始まるため、**fork 成立点の�
 - **空(既定)**: フルフロー(下記)。全区間を順に完走する。
 - **`next`**: フルフローと同じだが、**最初の 1 区間だけ**処理して止まる(区間 0 があればそれ、無ければ区間 1)。残りの区間を見通しとして報告して終了。手動でペースを刻みたいとき・区間の合間にアプリを確認したいとき用。
 - **`status`**: 状態報告のみ。fetch + 未マージコミット数 + 区間の見通し(区間番号 / merge 先 / 含まれる notice / checkpoint ラベル)+ 継承済み・台帳突合の結果を一覧表示して終了。**merge も適用も一切しない**。
+- **`status --chain`**: 状態報告のみ(`status` と同じく merge も適用もしない)。祖父 notice(下記「中継」)ごとに 1 行: `<id> | 中間 Tier: applied <台帳記録 commit 短 sha> / not applied | relay: covered by <id> / not relayed | me: applied / unapplied / inherited`。最後に、自分が中間 Tier として中継していない件数(下記「中継漏れの報告」)を 1 行。中間 Tier が無い(直上 upstream が最上流)なら「祖父 notice なし」とだけ出す。
 - **notice id / ファイル名**: その notice だけを対象に、フルフローの手順 5 以降を行う(merge は行わない。既にツリーに存在する notice が対象。区間分割もしない)。
 
 ## 未適用判定(ツリー内・流入予定の両方に同じ規則を適用)
@@ -62,17 +64,26 @@ notice は次のいずれかに該当すれば対象外、残りが**未適用**
 - `from:` の repo URL が自分の origin と一致(ssh/https 表記差・`.git` 有無は無視)→ 自分が上流として起票したもの。
 - 継承済み集合(上記の自動判定)に含まれる → 適用済み扱い。
 - 自 fork 台帳に id が記録済み → 適用済み。
+- covered 側の id(下記「中継」)は、covers 側 notice が適用済みなら適用済み。covers 側が未適用なら未適用のまま covers 側の区間に吸収される(単独では適用しない)。
+
+## 中継(3 段以上の Tier)
+仕様: `.notices/README.md`「中継(relay)」。
+- **祖父 notice** = `from:` の repo が自分の origin とも直上 upstream の URL とも一致しない notice(URL 比較は未適用判定と同じく表記差を無視)。中間 fork-id の台帳が無いときは祖父 notice を判定しない(従来どおり)。
+- **covers 索引**: ツリー内と流入予定のすべての notice(自分の origin のものを除く)の `covers:` を読み、`covered id → covers 側 id` の対応を作る。同じ id を複数の notice が covers していたら、履歴上最も早い covers 側を採る。
+- **祖父 notice の区切り点** = 中間 Tier の台帳にその id が記録された commit: `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 fork-id>.md` の最古(`--reverse` で先頭)。台帳の `commit:` 欄は使わない。見つからなければ追加 commit を区切り点とし、計画に「中間 Tier が未適用: T1 の生 commit で区切る」と警告する。
+- 祖父 notice で covered されていないものは、計画に「<直上 upstream> からの中継 notice なし。required_actions は中間 Tier の状態を前提に書かれている」と注記し、中間 Tier の台帳の `notes:`(その id の行)を読んで自 fork の実情へ写像する。
 
 ## 区間の組み立て
 1. 未適用 notice を 2 群に分ける: **ツリー内**(`.notices/` 直下の `*.md`、`done/` と `applied/` は除外。前回の部分実行で merge 済みだが未適用のもの)と**流入予定**(`git diff --name-only HEAD...<upstream>/<branch> -- .notices/` のうち直下の `*.md`。内容は `git show <upstream>/<branch>:.notices/<id>.md` で読む)。
-2. 流入予定の各 notice に**追加 commit** を対応づける: `git log --diff-filter=A --format=%H <upstream>/<branch> -- .notices/<id>.md`(通常 1 件。複数なら最古)。`from: commit:` 欄は参考情報で、判定には使わない。
-3. 流入予定 notice を追加 commit の履歴順に並べる(`git rev-list --reverse --topo-order HEAD..<upstream>/<branch>` 上の位置)。
-4. 区間を切る:
+2. 流入予定の各 notice に**区切り点 commit** を対応づける: 通常は追加 commit `git log --diff-filter=A --format=%H <upstream>/<branch> -- .notices/<id>.md`(通常 1 件。複数なら最古)。祖父 notice は上記「中継」の区切り点(中間 Tier の台帳記録 commit)。`from: commit:` 欄は参考情報で、判定には使わない。
+3. covered 側の notice(covers 索引にある id)を流入予定の並びから外し、covers 側 notice の区間に入れる(区切り点にしない)。covers 側が既に適用済みなら covered 側も適用済み扱い(上記「未適用判定」)。covers 側がまだ届いていない祖父 notice は covered と分からないので、通常の祖父 notice として扱う(区切り点 = 中間 Tier の台帳記録 commit)。
+4. 残りの流入予定 notice を区切り点 commit の履歴順に並べる(`git rev-list --reverse --topo-order HEAD..<upstream>/<branch>` 上の位置。区切り点が既に HEAD の祖先なら区間 0 扱い)。
+5. 区間を切る:
    - **区間 0** = ツリー内の未適用 notice(merge 不要)。空なら無し。
-   - 以降、流入予定を履歴順に走査し、**区切り notice**(`checkpoint:` が `-` 以外、または欄が無い旧 schema)の**直後で区間を閉じる**。閉じた区間の merge 先 = その区切り notice の追加 commit。`checkpoint: -` の notice は次の区切りまで同じ区間に入る(上流の例外宣言。理由は notes: にある)。
+   - 以降、流入予定を履歴順に走査し、**区切り notice**(`checkpoint:` が `-` 以外、または欄が無い旧 schema)の**直後で区間を閉じる**。閉じた区間の merge 先 = その区切り notice の区切り点 commit。covers 側 notice の区間には、それが covers する id も「covered」として並べる。`checkpoint: -` の notice は次の区切りまで同じ区間に入る(上流の例外宣言。理由は notes: にある)。
    - 最後の区切り以降の notice(無ければ空)+ 残りのコミットが**末尾区間**。merge 先 = `<upstream>/<branch>`。notice が無くても未マージコミットがあれば末尾区間は存在する(merge のみ)。
    - 結果として通常は notice 1 件 = 1 区間。同じ commit で出荷された複数 notice は merge 先が同じ区間が連続する(merge は 1 回目で完了し、2 回目以降は「既に最新」になるだけ。正常)。
-5. 区間ごとに持つ情報: 番号 / merge 先(短 sha と、checkpoint ラベル or `HEAD`)/ 含まれる notice id / そこまでのコミット数 / 衝突の予測と移動元の編集(下記「衝突の事前予測」)。
+6. 区間ごとに持つ情報: 番号 / merge 先(短 sha と、checkpoint ラベル or `HEAD`)/ 含まれる notice id(covered id・祖父 notice はその旨を添える)/ そこまでのコミット数 / 衝突の予測と移動元の編集(下記「衝突の事前予測」)。
 
 ## 衝突の事前予測(計画時、読み取りのみ)
 区間ごとに、その区間の merge で衝突しそうなファイルを承認前に出す。index・作業ツリーは変更しない。
@@ -84,7 +95,8 @@ notice は次のいずれかに該当すれば対象外、残りが**未適用**
 
 ## 移動・改名の移植(`moved:`)
 上流が `git mv` ではなく「新規作成 + 古いパスを shim に置換」で移動すると、git は改名と認識せず、fork が古いパスで行った編集は shim との衝突になるか上流版で上書きされる。notice の `moved: <old> -> <new>; ...` を使って /flux が移植する(仕様: `.notices/README.md`「移動・改名(moved)」)。
-1. **計画時**: 区間内の notice の `moved:` の各組について `git diff --name-only <base> HEAD -- <old>` を取り、空でなければ計画に「fork が編集した移動元: <old> → <new>(ファイル数・規模)」と出す。
+0. 対象の組 = 区間内の notice(covers 側・covered 側の両方)の `moved:` を合わせたもの(同じ組は 1 つにまとめる)。
+1. **計画時**: 対象の各組について `git diff --name-only <base> HEAD -- <old>` を取り、空でなければ計画に「fork が編集した移動元: <old> → <new>(ファイル数・規模)」と出す。
 2. **merge 前**(手順 5 の直前): 編集のある各組について fork 側の差分を保存する: `git diff --binary <base> HEAD -- <old> > <scratch>/moved-<n>.patch`。
 3. **merge 後**: 古いパスの衝突は上流版を採る(`git checkout --theirs -- <old>`、上流で削除済みなら `git rm`)。保存した差分のパス(`diff --git a/<old>... b/<old>...`・`--- a/`・`+++ b/` 行)を `<new>` に書き換え(ディレクトリはプレフィックスを置換)、`git apply --3way <書き換えた patch>` で当てる。
 4. 当たらなかった hunk は衝突マーカーとして残る。上流側の変更と fork の意図を両立できる形で解消し、自明でなければ停止条件として止める。
@@ -108,11 +120,20 @@ notice は次のいずれかに該当すれば対象外、残りが**未適用**
       # APPLIED LEDGER fork:<own origin url>
       - id:<notice id> | date:<ISO8601> | commit:<short sha or -> | notes:<deviations from required_actions, or ->
       ```
+      covers 側 notice を記録したら、その covered id も 1 行ずつ記録する(`notes:covered by <covers 側 id>`。既に台帳にある id は重ねない)。
    b. 差分(適用実装+台帳)をコミット & プッシュ。メッセージ: 1行サマリ + 空行 + `downstream-notice: <id>`(区間内の全 id、1 行ずつ)+ 環境指定の Co-Authored-By トレーラー。ブランチ運用は自リポの方針に従う。push できない場合は取り繕わず報告し、台帳の `notes:` に正直に反映する。
    c. その区間の merge コミットも未 push なら一緒に push する。
-8. **報告**(日本語): 区間ごとに merge 結果(取り込みコミット数)/ 適用した notice と verify 結果 / コミット sha。`next` なら残りの区間の見通しを添える。`manual_steps` があれば**まとめてチェックリストとして提示**(ここだけは人間の宿題)。最後に「**上流への所見**」(上記、無ければ「なし」)。停止条件で止まった場合も同じ構成で、止まった区間と理由・選択肢を先頭に置く。
+8. **報告**(日本語): 区間ごとに merge 結果(取り込みコミット数)/ 適用した notice と verify 結果 / コミット sha。`next` なら残りの区間の見通しを添える。`manual_steps` があれば**まとめてチェックリストとして提示**(ここだけは人間の宿題)。下記「中継漏れの報告」の行。最後に「**上流への所見**」(上記、無ければ「なし」)。停止条件で止まった場合も同じ構成で、止まった区間と理由・選択肢を先頭に置く。
+
+## 中継漏れの報告(中間 Tier として)
+自分が上流として振る舞った fork(ツリー内に `from:` が自分の origin の notice が 1 件以上ある)だけが対象。末端 fork では出さない。
+- 中継していない id = 自台帳の id のうち、`from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも含まれないもの(継承済み・done/ 移動済みで notice ファイルが無い id は除く)。
+- 1 件以上あれば報告に 1 行: 「下流への中継 notice が必要です(未中継 N 件: <id>, ...)。`/downreq relay` で下書きできます」。0 件なら何も出さない。
 
 ## エッジケース
+- `covers:` の id が merge 後のツリー(現役・`done/`)のどこにも無い: その id を報告に含める(黙って飛ばさない)。covers 側 notice の適用自体は続け、その id は台帳に記録しない。
+- 祖父 notice の中間 Tier 台帳記録 commit が covers 側 notice の追加 commit より後: covers 側の区間の merge 先をその記録 commit まで伸ばす(区間内で最も後の点を merge 先にする)。
+- 自分の origin の notice が `covers:` を持つ(自分が出した中継 notice): 未適用判定の対象外なのは従来どおり。covers 索引には入れず、中継漏れの報告にだけ使う。
 - 上流に `.notices/` が無い(この仕組み導入前の上流): 通常の merge として完走し、その旨だけ報告。
 - notice のスキーマが読めない/欠損: その notice はスキップして報告に含める(黙殺しない)。
 - 台帳にあるがツリーに無い id(上流が done/ へ移動済み): 正常。何もしない。

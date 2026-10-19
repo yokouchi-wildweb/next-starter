@@ -1,7 +1,7 @@
 ---
 name: downreq
 description: 上流リポの変更に伴い、下流fork群で追随作業(コード修正・DBマイグレーション・バックフィル等)が必要になるとき、DOWNSTREAM NOTICE を .notices/ に起票する。T1→T2 / T2→T3 など任意の上流→下流で使用可
-argument-hint: "[補足メモ(任意)]"
+argument-hint: "[relay | 補足メモ(任意)]"
 disable-model-invocation: true
 ---
 
@@ -27,6 +27,7 @@ disable-model-invocation: true
    severity: breaking | action-required | info
    checkpoint: <label | ->
    moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit the line otherwise)
+   covers: <upstream notice id>, ...   (relay mode only; omit the line otherwise)
    change: <what changed upstream, one line>
    why: <why downstream must follow up>
    required_actions:
@@ -55,6 +56,29 @@ disable-model-invocation: true
    - 「**変更本体と同じコミット/PR に含めて出荷してください**(merge と通知がセットで届くのはこのときだけ保証されます)。変更が既にコミット済みなら notice 単独のコミットでも届きます」
    - 「下流側は upstream merge 後(または `/flux` 実行時の自動 merge で)検出されます。修正があればこのファイルを直接編集します(言ってください)」
    - コミット自体はこのリポの通常の運用(明示指示)に従う。勝手にコミットしない。
+
+## relay モード($ARGUMENTS が `relay` で始まるとき)
+中間 Tier(T2 など)が、自分が `/flux` で適用した上流 notice を下流(T3)へ中継する notice を下書きする。仕様: `.notices/README.md`「中継(relay)」。上記「手順」の 1・3・4 はそのまま使い、2 の材料を次で置き換える(`relay` 以降の文字列は補足メモ扱い)。
+1. **自 fork 台帳を特定**: fork-id は `/flux` と同じ規則(origin URL のパス部分、`.git` 除去、`/`→`--`、小文字化)。台帳 = `.notices/applied/<fork-id>.md`。無ければ「中継対象なし」と報告して終了。
+2. **未中継 id を求める**: 台帳の id のうち、notice ファイル(`.notices/<id>.md` または `done/<id>.md`)の `from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも含まれないもの。0 件なら「未中継の notice はありません」と報告して終了(書き出さない)。
+3. **id ごとに材料を集める**(推測しない):
+   - 上流 notice 本文(change / required_actions / moved / verify)
+   - 自台帳のその id の行の `notes:`(逸脱・移植した移動・解消した衝突・足した hook 等)
+   - 台帳に記録した commit: `git log -S"id:<id>" --reverse --format=%h HEAD -- .notices/applied/<fork-id>.md` の先頭。その commit とその直前の merge commit が、下流が受け取る「解消済みの点」
+   - 自分が上流ファイルに加えている編集のうち、その notice が触ったファイルに当たるもの: `git diff --stat <upstream>/<branch> HEAD -- <notice が触ったファイル>`(下流がこの fork の版を受け取る箇所)
+4. **合成**(スキーマは上記と同じ。英語):
+   - `covers:` = 未中継 id 全件(履歴順)。追随作業の無い上流 notice も含める(閉じるため)。
+   - `moved:` = covered 全件の `moved:` + 自分が中継対象の作業で行った移動(台帳 notes と `git diff -M --name-status` で確認)を合わせたもの。
+   - `change:` = 「<自分> applied N <上流> notices: <id> in <sha>, ...」+ 下流に影響する自分側の差分(移植先・自分固有の移動・新しい拡張点)。
+   - `why:` = 下流から見て何が残っているか(上流のコード作業はこの fork で済んでいる。残りは下流自身のカスタマイズと旧パス参照等)。
+   - `required_actions:` の先頭 2 行は**必ず**次を入れる(`covers:` を知らない旧 /flux 向けの互換。新 /flux では no-op):
+     `1. Merge <自分の repo> up to THIS notice's commit in ONE segment; do NOT stop at the covered notices' commits (<covered 側の上流 commit 短 sha 列>) — they are raw <上流> commits without <自分>'s conflict resolutions.`
+     `2. Record THIS notice and the covered ids (<id>, ...) in your own ledger .notices/applied/<your-fork-id>.md (notes for covered ids: "covered by <this id>"); do not edit .notices/applied/<fork-id>.md.`
+     以降に、上流 notice の required_actions のうち下流にも残る作業を、この fork の状態(移植先・自分固有のパス)に合わせて書き直したもの。
+   - `verify:` = covered 側の verify のうち下流で意味があるもの + この fork の検証結果(実際に取った数値のみ)。
+   - `checkpoint:` = ラベル必須(中継 notice は下流にとって 1 つの休憩点)。
+   - `refs:` = covered の上流 notice パス、台帳記録 commit、自台帳パス。
+5. 書き出し・報告は上記手順 3・4 のとおり(事前確認なし)。報告に「中身は台帳 notes と commit から組み立てた下書きなので、確認・編集してからコミットしてください」と添える。
 
 ## 完了追跡について
 - 下流 fork の適用記録は**各 fork のリポジトリ内** `.notices/applied/<fork-id>.md` に残る(fork ごとの台帳)。台帳は上流へは流れてこないため、上流側での追跡コマンドは設けない(往復不要)。
