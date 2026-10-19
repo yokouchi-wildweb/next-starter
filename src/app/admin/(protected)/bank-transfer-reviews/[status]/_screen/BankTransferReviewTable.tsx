@@ -1,4 +1,4 @@
-// src/app/admin/(protected)/bank-transfer-reviews/_components/BankTransferReviewTable.tsx
+// src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewTable.tsx
 //
 // 銀行振込レビュー一覧テーブル。
 // 行クリックで複数行を選択でき、選択時はバルクアクション「メール一斉送信」を

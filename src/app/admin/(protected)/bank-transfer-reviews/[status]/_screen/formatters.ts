@@ -1,4 +1,4 @@
-// src/app/admin/(protected)/bank-transfer-reviews/_components/formatters.ts
+// src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/formatters.ts
 //
 // 銀行振込レビュー管理画面 専用の表示整形ヘルパー。
 

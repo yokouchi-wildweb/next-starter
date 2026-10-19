@@ -1,4 +1,4 @@
-// src/app/admin/(protected)/bank-transfer-reviews/_components/StatusTabs.tsx
+// src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/StatusTabs.tsx
 //
 // status 切替タブ。動的ルート /admin/bank-transfer-reviews/[status] と連動し、
 // 切替で URL ごと遷移する。SolidTabs の useActiveTab が pathname を見て

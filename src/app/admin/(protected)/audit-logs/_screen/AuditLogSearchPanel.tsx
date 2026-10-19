@@ -1,4 +1,4 @@
-// src/app/admin/(protected)/audit-logs/_components/AuditLogSearchPanel.tsx
+// src/app/admin/(protected)/audit-logs/_screen/AuditLogSearchPanel.tsx
 
 "use client";
 

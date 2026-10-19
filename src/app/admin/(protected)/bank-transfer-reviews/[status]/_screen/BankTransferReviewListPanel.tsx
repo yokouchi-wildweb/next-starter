@@ -1,4 +1,4 @@
-// src/app/admin/(protected)/bank-transfer-reviews/_components/BankTransferReviewListPanel.tsx
+// src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewListPanel.tsx
 //
 // 銀行振込レビュー管理画面のメインコンテナ。
 // status タブ・ページング・モーダル開閉などの状態を一括で管理する。

@@ -66,3 +66,16 @@ export function maskPhoneNumber(phoneNumber: string): string {
   const masked = "*".repeat(phoneNumber.length - 4);
   return masked + visible;
 }
+
+/**
+ * 検索語が国内形式の電話番号(0 始まりの数字。ハイフン・空白・括弧は無視)なら E.164 に直す。それ以外はそのまま返す。
+ * users.phone_number は E.164 で保存しているので、管理画面の検索で「090-1234-5678」を当てるために使う
+ */
+export function normalizePhoneSearchQuery(query: string | undefined): string | undefined {
+  if (!query) return query;
+  const cleaned = query.replace(/[-\s()]/g, "");
+  if (/^0\d+$/.test(cleaned)) {
+    return formatToE164(query);
+  }
+  return query;
+}

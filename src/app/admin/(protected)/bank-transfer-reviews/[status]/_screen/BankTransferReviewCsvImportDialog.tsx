@@ -1,4 +1,4 @@
-// src/app/admin/(protected)/bank-transfer-reviews/_components/BankTransferReviewCsvImportDialog.tsx
+// src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewCsvImportDialog.tsx
 //
 // 銀行振込明細 CSV を一括取り込みするダイアログ。
 //

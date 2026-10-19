@@ -1,20 +1,5 @@
 // src/app/admin/(protected)/audit-logs/page.tsx
-
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Section } from "@/components/Layout/Section";
-
-import { AuditLogSearchPanel } from "./_components/AuditLogSearchPanel";
-
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 export const dynamic = "force-dynamic";
 
-export default function AdminAuditLogsPage() {
-  return (
-    <AdminPage>
-      <PageTitle placement="header">監査ログ</PageTitle>
-      <Section>
-        <AuditLogSearchPanel />
-      </Section>
-    </AdminPage>
-  );
-}
+export { AdminAuditLogsScreen as default, metadata } from "./_screen/AdminAuditLogsScreen";

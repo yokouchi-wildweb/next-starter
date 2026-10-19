@@ -25,7 +25,7 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 
 ### 画面の構造（page.tsx スイッチ + `_screen/` + loader）
 
-上流が出荷するユーザー向けページは、次の構造で「下流が core を編集せずに画面を作り直せる」ようになっている（詳細と手順: `src/lib/screens/README.md`）。
+上流が出荷するページ（ユーザー向け・管理画面とも）は、次の構造で「下流が core を編集せずに画面を作り直せる」ようになっている（詳細と手順: `src/lib/screens/README.md`）。
 
 ```
 src/app/(user)/(protected)/wallet/[slug]/
@@ -35,8 +35,8 @@ src/app/(user)/(protected)/wallet/[slug]/
 ```
 
 - 差し替え: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
-- `pnpm test:screens` が `(user)/**` と `(marketing)/**` の page.tsx を自動検出して検査する（登録不要）。fork が `src/app` 直下に作った独自エリア（`store/` 等）はエリア単位で `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_ROOTS` に 1 行書く（未登録のまま置くとテストが指摘する）。スイッチ形でない page.tsx は、理由付きの例外リスト（上流: `UPSTREAM_LEGACY_ROUTES`、fork: 同 registry の `FORK_LEGACY_ROUTES`）に無ければ失敗する
-- 上流の core ルートは全て移行済み（wallet 9 / mypage 10 / legal 3 / services / maintenance / entry / トップ / auth 16）。`UPSTREAM_LEGACY_ROUTES` は空で、新しい core ルートはスイッチ形で作る
+- `pnpm test:screens` が `(user)/**` と `(marketing)/**` と `admin/**` の page.tsx を自動検出して検査する（登録不要。`admin/(protected)/<dir>` に fork が足した管理画面も対象）。fork が `src/app` 直下に作った独自エリア（`store/` 等）はエリア単位で `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_ROOTS` に 1 行書く（未登録のまま置くとテストが指摘する）。スイッチ形でない page.tsx は、理由付きの例外リスト（上流: `UPSTREAM_LEGACY_ROUTES`、fork: 同 registry の `FORK_LEGACY_ROUTES`）に無ければ失敗する
+- 上流の core ルートは全て移行済み（wallet 9 / mypage 10 / legal 3 / services / maintenance / entry / トップ / auth 16 / 手書きの管理画面 33）。`UPSTREAM_LEGACY_ROUTES` は空で、新しい core ルートはスイッチ形で作る
 - `_screen/` には Screen と loader のほかに、既定 Screen 専用の部品を置いてよい（直下でもサブディレクトリでも。例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`）。部品は契約外。`_components/` は下流の場所で、上流のルートでは上流が何も置かない
 
 ### トップページ（`(user)/page.tsx`）の差し替え
@@ -50,10 +50,11 @@ src/app/(user)/(protected)/wallet/[slug]/
 | グループ | 用途 | 例 |
 |----------|------|-----|
 | `(protected)/` | 認証必須ページ | users, samples, settings |
-| `(insane)/` | 特殊権限ページ | insane |
+| `insane/` | 特殊権限ページ | insane |
 | `login/` | ログインページ | - |
 | `setup/` | 初期設定 | - |
 | `_template/` | コード生成テンプレート | - |
+| `(protected)/tabs-demo/` | タブのデモ（`test:screens` の対象外） | - |
 
 ## api/ の構造
 

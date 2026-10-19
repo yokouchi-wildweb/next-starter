@@ -1,22 +1,5 @@
+// src/app/admin/(protected)/chat-rooms/new/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 export const dynamic = "force-dynamic";
 
-
-import AdminChatRoomCreate from "@/features/core/chatRoom/components/AdminChatRoomCreate";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-
-export const metadata = {
-  title: "チャットルーム追加",
-};
-
-export default function AdminChatRoomCreatePage() {
-
-  return (
-
-    <AdminPage>
-      <PageTitle placement="header">チャットルーム追加</PageTitle>
-      <AdminChatRoomCreate redirectPath="/admin/chat-rooms" />
-    </AdminPage>
-
-  );
-}
+export { AdminChatRoomCreateScreen as default, metadata } from "./_screen/AdminChatRoomCreateScreen";

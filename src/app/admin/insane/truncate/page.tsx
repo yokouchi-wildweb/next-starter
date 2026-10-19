@@ -1,17 +1,4 @@
 // src/app/admin/insane/truncate/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import { SecTitle } from "@/components/TextBlocks";
-import { TruncateDomainForm } from "@/features/core/insane/components/TruncateDomainForm";
-
-export default function TruncatePage() {
-  return (
-    <AdminPage>
-      <SecTitle>ドメイン全削除（TRUNCATE）</SecTitle>
-      <p className="text-sm text-muted-foreground mb-6">
-        選択したドメインの全データを物理削除します。この操作は取り消せません。
-      </p>
-      <TruncateDomainForm />
-    </AdminPage>
-  );
-}
+export { InsaneTruncateScreen as default } from "./_screen/InsaneTruncateScreen";

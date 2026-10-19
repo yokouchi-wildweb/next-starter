@@ -1,12 +1,4 @@
 // src/app/admin/insane/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import { SecTitle } from "@/components/TextBlocks";
-
-export default function InsaneDashboardPage() {
-  return (
-    <AdminPage>
-      <SecTitle>インセインモード</SecTitle>
-    </AdminPage>
-  );
-}
+export { InsaneDashboardScreen as default } from "./_screen/InsaneDashboardScreen";

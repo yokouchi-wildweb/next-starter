@@ -1,4 +1,4 @@
-// src/app/admin/(protected)/bank-transfer-reviews/_components/BankTransferReviewDetailModal.tsx
+// src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/BankTransferReviewDetailModal.tsx
 //
 // 銀行振込レビューの詳細モーダル。
 // 詳細情報の表示と、status=pending_review 時の承認/拒否アクションをまとめて担う。

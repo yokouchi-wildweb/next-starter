@@ -1,22 +1,5 @@
-// src/app/admin/users/general/new/page.tsx
-
+// src/app/admin/(protected)/users/general/new/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 export const dynamic = "force-dynamic";
 
-import GeneralUserCreate from "@/features/core/user/components/admin/GeneralUserCreate";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-
-export const metadata = {
-  title: "一般ユーザー追加",
-};
-
-const REDIRECT_PATH = "/admin/users/general";
-
-export default function AdminGeneralUserCreatePage() {
-  return (
-    <AdminPage>
-      <PageTitle placement="header">一般ユーザー追加</PageTitle>
-      <GeneralUserCreate redirectPath={REDIRECT_PATH} />
-    </AdminPage>
-  );
-}
+export { AdminGeneralUserCreateScreen as default, metadata } from "./_screen/AdminGeneralUserCreateScreen";

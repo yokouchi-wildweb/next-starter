@@ -2,9 +2,9 @@
 // 実行: pnpm test:screens (node:test + tsx。registry の .ts を読むため tsx ランナーを使う)
 //
 // 登録は不要。検査対象は自動検出する:
-//   - src/app/(user)/** と src/app/(marketing)/** の page.tsx(demo/ を除く)
+//   - src/app/(user)/** と src/app/(marketing)/** と src/app/admin/** の page.tsx((user)/demo/ と admin/(protected)/tabs-demo/ を除く)
 //   - fork が src/registry/screenRoutesRegistry.ts の FORK_SCAN_ROOTS に足したエリア(エリア単位で 1 行、ページ単位ではない)
-//   - dc:generate が生成する管理画面ルート(src/features/*/domain.json の adminRoutes が false でないドメイン)
+//   - dc:generate が生成する管理画面ルート(src/features/*/domain.json の adminRoutes が false でないドメイン。src/app/admin/** に含まれる)
 //   - 検出した各ルートの _screen/loader.ts と _components/loader.ts(ルート内 loader)
 //   - src/features/**/services/server/loaders/*.ts(多数のルートが共有する loader。再 export だけのファイルは除く)
 //
@@ -62,10 +62,10 @@ export const UPSTREAM_LEGACY_ROUTES = [];
 // ---------------------------------------------------------------------------
 
 /** 走査するルート群(repo 相対)と除外プレフィックス。fork は registry の FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES で足す */
-export const SCAN_ROOTS = ["src/app/(user)", "src/app/(marketing)"];
-export const SCAN_EXCLUDES = ["src/app/(user)/demo"];
-/** src/app 直下にある upstream のエリアのうち走査しないもの(手書きの管理画面・debug・API)。fork の独自エリアはここに無いので登録を促す */
-export const UPSTREAM_KNOWN_AREAS = ["src/app/admin", "src/app/debug", "src/app/api"];
+export const SCAN_ROOTS = ["src/app/(user)", "src/app/(marketing)", "src/app/admin"];
+export const SCAN_EXCLUDES = ["src/app/(user)/demo", "src/app/admin/(protected)/tabs-demo"];
+/** src/app 直下にある upstream のエリアのうち走査しないもの(debug・API)。fork の独自エリアはここに無いので登録を促す */
+export const UPSTREAM_KNOWN_AREAS = ["src/app/debug", "src/app/api"];
 
 // 形式違いの登録(文字列以外・ファイル)は走査から外し、鮮度テストだけが指摘する(走査で落ちてスイート全体が止まらないように)
 const isDir = (rel) => {
@@ -132,7 +132,7 @@ export function discoverPages() {
  * その中のどこかが登録されていればよい)にも、upstream 既知のエリア・fork の除外(エリア自身がその中にあるときだけ)にも
  * 属さないもの。fork が独自エリアを作って登録を忘れた状態を黙って通さないために使う。
  * page.tsx の無いディレクトリ(route.ts だけの sitemap.xml/ 等)と . 始まりは対象外。
- * 限界: upstream エリアの中(src/app/admin/(protected)/<fork-dir> 等)は見ない
+ * 限界: upstream の走査しないエリアの中(src/app/debug/<fork-dir> 等)は見ない
  */
 export function unknownTopLevelAreas() {
   const appDir = resolve(repoRoot, "src/app");
@@ -357,7 +357,7 @@ test("src/app 直下に、走査範囲にも既知のエリアにも属さない
 const walletDir = "src/app/(user)/(protected)/wallet";
 const hasWallet = exists(`${walletDir}/page.tsx`);
 
-test("検出範囲: wallet ルート(あれば)と生成された管理画面ルートが含まれ、demo は含まれない", () => {
+test("検出範囲: wallet ルート(あれば)と管理画面ルート(生成・手書き)が含まれ、demo と生成テンプレートは含まれない", () => {
   if (hasWallet) {
     assert.ok(pageDirs.has(walletDir));
     assert.ok(pageDirs.has(`${walletDir}/[slug]/history`));
@@ -365,6 +365,12 @@ test("検出範囲: wallet ルート(あれば)と生成された管理画面ル
   assert.ok(pageDirs.has("src/app/(user)"), "トップページ(_screen/StarterHomeScreen)が検出されていない");
   assert.ok([...pageDirs].some((d) => d.startsWith("src/app/admin/(protected)/")), "生成された管理画面ルートが検出されていない");
   assert.equal([...pageDirs].some((d) => d.startsWith("src/app/(user)/demo")), false);
+  // 手書きの管理画面(dc:generate 由来でない)も検出し、管理画面のデモと生成テンプレートは外す
+  for (const dir of ["src/app/admin/(protected)", "src/app/admin/login", "src/app/admin/(protected)/users/general"]) {
+    assert.ok(pageDirs.has(dir), `${dir} が検出されていない`);
+  }
+  assert.equal([...pageDirs].some((d) => d.startsWith("src/app/admin/(protected)/tabs-demo")), false);
+  assert.equal([...pageDirs].some((d) => d.startsWith("src/app/admin/_template")), false);
 });
 
 test("検出範囲: ルート内 loader(wallet 配下 9 件、あれば)が検出され、共有 loader は admin のものが検出される", () => {

@@ -45,7 +45,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 - 下流が上流のルートを差し替えるときは `_components/` に自分の画面を置き、page.tsx を向ける。差し替え画面も 1 ページ 1 つ
 - Screen と loader は 1 対 0 か 1（サーバー側ロジックの無いページは loader を持たない）。Screen とセクションコンテナは 1 対 多
 - loader はルートの中に閉じる。複数のドメインを組み合わせるページ（user + userProfile など）でも、どのドメインにも置かずそのルートの `_screen/loader.ts` に書く。複数ルートで共通する判定はドメインの `utils/` に置いて各 loader から呼ぶ
-- 対象外: デモ（`(user)/demo/**`）、上流が手書きした管理画面（`/admin/**` のうち dc:generate 由来でないもの）、API
+- 対象外: デモ（`(user)/demo/**`、`admin/(protected)/tabs-demo/**`）、API。管理画面（`/admin/**`）は手書きのものも dc:generate 由来のものも対象
 
 ## 2. 既存の UI レイヤーとの対応
 
@@ -261,7 +261,7 @@ import { BalanceCard } from "./BalanceCard";
 
 | 検出 | 範囲 |
 |---|---|
-| page.tsx | `src/app/(user)/**` と `src/app/(marketing)/**`（`(user)/demo/**` と `_` で始まるディレクトリを除く）+ fork が `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_ROOTS` に足したエリア（`FORK_SCAN_EXCLUDES` で除外）+ dc:generate の管理画面ルート（`src/features/*/domain.json` の `generateFiles.adminRoutes` が false でないドメインの `src/app/admin/(protected)/<domains>/**`） |
+| page.tsx | `src/app/(user)/**` と `src/app/(marketing)/**` と `src/app/admin/**`（`(user)/demo/**`・`admin/(protected)/tabs-demo/**` と `_` で始まるディレクトリを除く。`admin/_template` もこれで外れる）+ fork が `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_ROOTS` に足したエリア（`FORK_SCAN_EXCLUDES` で除外）+ dc:generate の管理画面ルート（`src/features/*/domain.json` の `generateFiles.adminRoutes` が false でないドメインの `src/app/admin/(protected)/<domains>/**`。`src/app/admin/**` に含まれるが、鮮度検査が「登録不要」の判定に使う） |
 | ルート内 loader | 検出した各ルートの `_screen/loader.ts` と `_components/loader.ts`（あるものだけ） |
 | 共有 loader | `src/features` 配下の `services/server/loaders/*.ts`（`index.ts` / `types.ts` / 再 export だけのファイルを除く） |
 
@@ -272,18 +272,20 @@ import { BalanceCard } from "./BalanceCard";
 | Screen が部品を直接読まない | `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（§6）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す | 失敗 |
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）、`(protected)` 配下なら `getSessionUser` の import 無し。ルート内 loader も共有 loader も同じ検査（補助関数は `utils/` へ） | 失敗 |
 | 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
-| 走査範囲の鮮度 | `FORK_SCAN_ROOTS` / `FORK_SCAN_EXCLUDES` の登録がディレクトリとして存在し重複がないこと。`FORK_SCAN_ROOTS` はさらに、upstream の走査範囲（`SCAN_ROOTS` と生成された管理画面ルート）や他の fork root に含まれず、upstream のエリア（`src/app/admin` 等）を丸ごと含まず、除外の中にないこと | 失敗 |
-| 独自エリアの登録忘れ | `src/app` 直下で page.tsx を含むディレクトリは、走査範囲（そのエリア自身か中のどこかが登録されている）・upstream 既知のエリア（`admin` / `debug` / `api`）・除外のどれかに属すること（`route.ts` だけのディレクトリと `.` 始まりは対象外） | 失敗（登録する 1 行を促す） |
+| 走査範囲の鮮度 | `FORK_SCAN_ROOTS` / `FORK_SCAN_EXCLUDES` の登録がディレクトリとして存在し重複がないこと。`FORK_SCAN_ROOTS` はさらに、upstream の走査範囲（`SCAN_ROOTS` と生成された管理画面ルート）や他の fork root に含まれず、upstream のエリア（`src/app/debug` 等）を丸ごと含まず、除外の中にないこと | 失敗 |
+| 独自エリアの登録忘れ | `src/app` 直下で page.tsx を含むディレクトリは、走査範囲（そのエリア自身か中のどこかが登録されている）・upstream 既知のエリア（`debug` / `api`）・除外のどれかに属すること（`route.ts` だけのディレクトリと `.` 始まりは対象外） | 失敗（登録する 1 行を促す） |
 
-fork の独自エリア（`src/app/store/**`、`src/app/terminal/**`、`src/app/admin/(protected)/floor-tables/**` のような upstream の走査範囲の外）は、`FORK_SCAN_ROOTS` に**エリア単位で 1 行**書く。登録したエリアの page.tsx は upstream のルートと同じ検査を受け、`FORK_LEGACY_ROUTES` も効く。fork がローカルに screens テストの写しを持つ必要はない。
+fork の独自エリア（`src/app/store/**`、`src/app/terminal/**` のような upstream の走査範囲の外）は、`FORK_SCAN_ROOTS` に**エリア単位で 1 行**書く。登録したエリアの page.tsx は upstream のルートと同じ検査を受け、`FORK_LEGACY_ROUTES` も効く。fork がローカルに screens テストの写しを持つ必要はない。
 
 ```ts
 // src/registry/screenRoutesRegistry.ts(fork で編集)
-export const FORK_SCAN_ROOTS: string[] = ["src/app/store", "src/app/terminal", "src/app/admin/(protected)/floor-tables"];
+export const FORK_SCAN_ROOTS: string[] = ["src/app/store", "src/app/terminal"];
 export const FORK_SCAN_EXCLUDES: string[] = [];
 ```
 
-限界: 登録忘れの検出は `src/app` 直下だけを見る。upstream のエリアの中に作ったサブディレクトリ（`src/app/admin/(protected)/floor-tables` 等）は登録しなければ黙って走査されないので、upstream エリア内に独自ルートを作ったら登録を忘れない。
+管理画面（`src/app/admin/**`）は upstream が丸ごと走査するので、fork が `admin/(protected)/<dir>` に足した管理画面も登録なしで検査される（登録すると「登録不要」で失敗する）。検査したくない fork の管理画面は `FORK_SCAN_EXCLUDES` に、未移行のものは `FORK_LEGACY_ROUTES` に書く。
+
+限界: 登録忘れの検出は `src/app` 直下だけを見る（`debug` / `api` の中は見ない）。
 
 テストは tsx ランナーで動く（例外リストの `.ts` を読むため）。pre-commit / CI ガードは置かない。
 既知の限界: `stripComments` は正規表現リテラルを追跡しない。`//` や引用符・バッククォートを含む正規表現が page.tsx / Screen / loader にあると判定がずれることがある（検査対象のファイルでは稀。必要なら正規表現を `utils/` に逃がす）。

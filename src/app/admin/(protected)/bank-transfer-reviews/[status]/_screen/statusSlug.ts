@@ -1,4 +1,4 @@
-// src/app/admin/(protected)/bank-transfer-reviews/_components/statusSlug.ts
+// src/app/admin/(protected)/bank-transfer-reviews/[status]/_screen/statusSlug.ts
 //
 // URL に出すスラッグ (kebab-case) と、API/型で扱う status enum 値 (snake_case) の対応表。
 // server / client 両方から使うため、副作用も "use client" 指示も持たない純粋なユーティリティ。

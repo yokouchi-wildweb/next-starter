@@ -1,20 +1,4 @@
 // src/app/admin/(protected)/users/demo/new/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import DemoUserCreate from "@/features/core/user/components/admin/DemoUserCreate";
-
-export const metadata = {
-  title: "デモユーザー作成",
-};
-
-const LIST_PATH = "/admin/users/demo";
-
-export default function AdminDemoUserCreatePage() {
-  return (
-    <AdminPage>
-      <PageTitle placement="header">デモユーザー作成</PageTitle>
-      <DemoUserCreate redirectPath={LIST_PATH} />
-    </AdminPage>
-  );
-}
+export { AdminDemoUserCreateScreen as default, metadata } from "./_screen/AdminDemoUserCreateScreen";

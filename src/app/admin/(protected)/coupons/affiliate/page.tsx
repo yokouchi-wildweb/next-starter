@@ -1,42 +1,5 @@
+// src/app/admin/(protected)/coupons/affiliate/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 export const dynamic = "force-dynamic";
 
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Section } from "@/components/Layout/Section";
-import { Stack } from "@/components/Layout/Stack";
-import ListTop from "@/components/AppFrames/Admin/Elements/ListTop";
-import { Para } from "@/components/TextBlocks/Para";
-import { Construction } from "lucide-react";
-import { CouponSectionTabs } from "../_components/CouponSectionTabs";
-
-export const metadata = {
-  title: "クーポン一覧（アフィリエイト）",
-};
-
-export default async function AdminCouponAffiliateListPage() {
-  return (
-    <AdminPage>
-      <PageTitle placement="header">クーポン管理</PageTitle>
-      <CouponSectionTabs placement="header" />
-      <Section>
-        <Stack space={6}>
-          <ListTop title="発行済みのアフィリエイトクーポン" />
-          <Para tone="muted">
-            インフルエンサーにコードを配布し、プロモーションを行うことができます。
-          </Para>
-          <Stack
-            appearance="surface"
-            padding="lg"
-            space={4}
-            className="items-center justify-center py-12"
-          >
-            <Construction className="size-12 text-muted-foreground" />
-            <Para tone="muted" className="text-center">
-              このページは準備中です
-            </Para>
-          </Stack>
-        </Stack>
-      </Section>
-    </AdminPage>
-  );
-}
+export { AdminCouponAffiliateListScreen as default, metadata } from "./_screen/AdminCouponAffiliateListScreen";

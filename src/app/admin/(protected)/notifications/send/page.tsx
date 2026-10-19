@@ -1,16 +1,4 @@
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import AdminNotificationSend from "@/features/notification/components/AdminNotificationSend";
+// src/app/admin/(protected)/notifications/send/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 
-export const metadata = {
-  title: "お知らせ送信",
-};
-
-export default function AdminNotificationSendPage() {
-  return (
-    <AdminPage>
-      <PageTitle placement="header">お知らせ送信</PageTitle>
-      <AdminNotificationSend />
-    </AdminPage>
-  );
-}
+export { AdminNotificationSendScreen as default, metadata } from "./_screen/AdminNotificationSendScreen";

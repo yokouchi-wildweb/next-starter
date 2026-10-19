@@ -1,8 +1,8 @@
 // src/features/coupon/components/AdminCouponList/index.tsx
 
 // セクションタブ（official / affiliate / invite ...）はここでは描画しない。
-// 配置はページの関心事なので page.tsx が CouponSectionTabs を置く
-// （src/app/admin/(protected)/coupons/_components/CouponSectionTabs.tsx）。
+// 配置はページの関心事なので Screen が CouponSectionTabs を置く
+// （src/app/admin/(protected)/coupons/_screen/CouponSectionTabs.tsx）。
 
 import type { Coupon } from "@/features/core/coupon/entities";
 import Header from "./Header";

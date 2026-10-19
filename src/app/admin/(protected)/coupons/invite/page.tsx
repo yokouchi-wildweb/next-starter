@@ -1,49 +1,5 @@
+// src/app/admin/(protected)/coupons/invite/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 export const dynamic = "force-dynamic";
 
-import { APP_FEATURES } from "@/config/app/app-features.config";
-import { referralService } from "@/features/core/referral/services/server/referralService";
-import { settingService } from "@/features/core/setting/services/server/settingService";
-import type { ListPageSearchParams } from "@/lib/crud";
-import AdminInviteList from "@/features/core/referral/components/AdminInviteList";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { Para } from "@/components/TextBlocks/Para";
-import { CouponSectionTabs } from "../_components/CouponSectionTabs";
-
-export const metadata = {
-  title: "クーポン一覧（ユーザー招待）",
-};
-
-type Props = {
-  searchParams: Promise<ListPageSearchParams>;
-};
-
-export default async function AdminCouponInviteListPage({ searchParams }: Props) {
-  if (!APP_FEATURES.marketing.referral.enabled) {
-    return (
-      <AdminPage>
-        <PageTitle placement="header">クーポン管理</PageTitle>
-        <CouponSectionTabs placement="header" />
-        <Para>ユーザーの紹介機能が無効です</Para>
-      </AdminPage>
-    );
-  }
-
-  const { page: pageStr, searchQuery } = await searchParams;
-  const page = Number(pageStr ?? "1");
-  const limit = await settingService.getAdminListPerPage();
-
-  const { items, total } = await referralService.getInviteCodeListWithCounts({
-    page,
-    limit,
-    searchQuery,
-  });
-
-  return (
-    <AdminPage>
-      <PageTitle placement="header">クーポン管理</PageTitle>
-      <CouponSectionTabs placement="header" />
-      <AdminInviteList items={items} page={page} perPage={limit} total={total} />
-    </AdminPage>
-  );
-}
+export { AdminCouponInviteListScreen as default, metadata } from "./_screen/AdminCouponInviteListScreen";

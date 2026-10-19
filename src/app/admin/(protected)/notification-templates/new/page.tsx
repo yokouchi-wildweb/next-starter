@@ -1,22 +1,5 @@
+// src/app/admin/(protected)/notification-templates/new/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 export const dynamic = "force-dynamic";
 
-
-import AdminNotificationTemplateCreate from "@/features/core/notificationTemplate/components/AdminNotificationTemplateCreate";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-
-export const metadata = {
-  title: "お知らせテンプレート追加",
-};
-
-export default function AdminNotificationTemplateCreatePage() {
-
-  return (
-
-    <AdminPage>
-      <PageTitle placement="header">お知らせテンプレート追加</PageTitle>
-      <AdminNotificationTemplateCreate redirectPath="/admin/notification-templates" />
-    </AdminPage>
-
-  );
-}
+export { AdminNotificationTemplateCreateScreen as default, metadata } from "./_screen/AdminNotificationTemplateCreateScreen";

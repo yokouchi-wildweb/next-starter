@@ -1,38 +1,5 @@
+// src/app/admin/(protected)/coupons/official/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 export const dynamic = "force-dynamic";
 
-import { couponService } from "@/features/core/coupon/services/server/couponService";
-
-import { settingService } from "@/features/core/setting/services/server/settingService";
-import type { ListPageSearchParams } from "@/lib/crud";
-import AdminCouponList from "@/features/core/coupon/components/AdminCouponList";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import { CouponSectionTabs } from "../_components/CouponSectionTabs";
-
-export const metadata = {
-  title: "クーポン一覧",
-};
-
-type Props = {
-  searchParams: Promise<ListPageSearchParams>;
-};
-
-export default async function AdminCouponListPage({ searchParams }: Props) {
-  const { page: pageStr, searchQuery } = await searchParams;
-  const page = Number(pageStr ?? "1");
-  const limit = await settingService.getAdminListPerPage();
-  const { results: coupons, total } = await couponService.search({
-    page,
-    limit,
-    searchQuery,
-    where: { field: "type", op: "eq", value: "official" },
-  });
-
-  return (
-    <AdminPage>
-      <PageTitle placement="header">クーポン管理</PageTitle>
-      <CouponSectionTabs placement="header" />
-      <AdminCouponList coupons={coupons} page={page} perPage={limit} total={total} />
-    </AdminPage>
-  );
-}
+export { AdminCouponOfficialListScreen as default, metadata } from "./_screen/AdminCouponOfficialListScreen";

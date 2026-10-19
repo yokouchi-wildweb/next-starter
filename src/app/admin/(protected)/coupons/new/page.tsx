@@ -1,22 +1,5 @@
+// src/app/admin/(protected)/coupons/new/page.tsx
+// 1 行スイッチ(下流所有)。画面を差し替えるときは import 先を ./_components/<Name>Screen に向ける
 export const dynamic = "force-dynamic";
 
-
-import AdminCouponCreate from "@/features/core/coupon/components/AdminCouponCreate";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-
-export const metadata = {
-  title: "クーポン追加",
-};
-
-export default function AdminCouponCreatePage() {
-
-  return (
-
-    <AdminPage>
-      <PageTitle placement="header">クーポン追加</PageTitle>
-      <AdminCouponCreate redirectPath="/admin/coupons/official" />
-    </AdminPage>
-
-  );
-}
+export { AdminCouponCreateScreen as default, metadata } from "./_screen/AdminCouponCreateScreen";
