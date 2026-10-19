@@ -306,4 +306,4 @@ fork_bootstrap: 新規fork初期設定 = /fork-init (clone直後のリポ内で�
 policy: colocation-first — primary docs in README.md next to code | docs/ = legacy, phasing out except !must-read/ (exception: standalone docs allowed when clearly superior)
 stale_README: full rewrite over partial patch when README contradicts actual code
 dated_records (incident narrative / verification log / decision history / "記録して"): docs/journal/<YYYY-MM-DD>-<slug>.md — not auto-loaded, never .claude/rules/ or CLAUDE.md. distilled rule (1 line) may go to project.md if fork-specific
-location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, self-evaluation/, journal/
+location: docs/ | structure: !must-read/, concepts/, how-to/, core-specs/, troubleshooting/, reference/, journal/

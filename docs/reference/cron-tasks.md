@@ -121,6 +121,37 @@
 - **監視**: `aborted: true` は送信の連続失敗による打ち切り（メール基盤の障害など）。`failed` が増えている場合は `message_dispatches` を確認
 - **詳細**: `src/features/core/wallet/README.md` の「失効通知」
 
+### `analytics-rollup-daily`
+
+`analyticsRollupRegistry` に登録された全メトリクスについて、昨日を含む直近数日の日次ロールアップ（`analytics_daily_rollups`）を冪等に再計算する。
+遅延到着データと実行漏れを自己修復する。当日の部分バケットは書き込まない（読み取り側がライブ計算でマージ）。
+
+- **API**: `GET /api/cron/analytics-rollup-daily`
+- **CLI**: `pnpm task analytics-rollup-daily`
+- **推奨スケジュール**: `15 0 * * *` （日次・日付確定後）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **詳細**: `src/features/core/analytics/README.md` の「運用（cron / バックフィル）」
+
+### `interaction-event-prune`
+
+インタラクション明細（interactionTracking のイベント行）を保持期限経過後に削除する。累計・日次集計は消えない。
+
+- **API**: `GET /api/cron/interaction-event-prune`
+- **CLI**: `pnpm task interaction-event-prune`
+- **推奨スケジュール**: `30 3 * * *` （日次・深夜帯）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **詳細**: `src/features/core/interactionTracking/README.md` の「cron の配線」
+
+### `user-daily-counter-prune`
+
+userCounter の日次行を保持期限経過後に削除する。累計（user_counters）は消えない。
+
+- **API**: `GET /api/cron/user-daily-counter-prune`
+- **CLI**: `pnpm task user-daily-counter-prune`
+- **推奨スケジュール**: `45 3 * * *` （日次・深夜帯）
+- **必要環境変数**: `CRON_SECRET`（本番/preview のみ）
+- **詳細**: `src/features/core/userCounter/README.md` の「cron（日次カウンタの prune）」
+
 > **Note**: `pnpm task wallet-lots-init` はタスクランナーに登録されているが**定期実行してはいけない**
 > （ウォレット有効期限の導入時に1回だけ手動実行するデータ移行。再実行は全ユーザーの失効カウントをリセットする）。
 
@@ -148,6 +179,9 @@
     { "path": "/api/cron/expire-pending-purchases",      "schedule": "*/15 * * * *" },
     { "path": "/api/cron/audit-log-prune",               "schedule": "0 3 * * *" },
     { "path": "/api/cron/audit-log-recover-dead-letter", "schedule": "0 * * * *" },
+    { "path": "/api/cron/analytics-rollup-daily",        "schedule": "15 0 * * *" },
+    { "path": "/api/cron/interaction-event-prune",       "schedule": "30 3 * * *" },
+    { "path": "/api/cron/user-daily-counter-prune",      "schedule": "45 3 * * *" },
     { "path": "/api/cron/user-login-event-prune",        "schedule": "0 4 * * *" },
     { "path": "/api/cron/device-fingerprint-prune",      "schedule": "15 4 * * *" },
     { "path": "/api/cron/fingerprint-challenge-access-prune", "schedule": "20 4 * * *" },

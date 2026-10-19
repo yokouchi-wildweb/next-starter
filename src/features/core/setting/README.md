@@ -280,4 +280,3 @@ setting.sections.ts
 
 - `src/lib/zod/getZodDefaults.ts` — Zod スキーマからデフォルト値を抽出
 - `src/components/Form/FieldRenderer/` — セクションフィールドを描画する汎用レンダラ
-- `docs/how-to/システム設定セクションの追加方法.md` — 旧構造からの移行ガイドと追加手順
