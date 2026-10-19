@@ -39,6 +39,7 @@ ref: docs/!must-read/設計思想とアーキテクチャ.md
 
 boundary: Hook → ClientService → HTTP → APIRoute → ServerService | Page(SSR) → ServerService direct OK | Hook → ServerService NG | Hook → APIRoute (axios直叩き) NG
 rules: client axios only | server fetch OK | DB access via ServerService only | HTTP呼び出しは必ず ClientService に集約 (Hook/Component は ClientService 経由のみ)
+lint: client-service-boundary/no-direct-import = UI (components/, app/ screens) importing services/client or a domain barrel's *Client → error in upstream UI (src/components, features/core, _template), warn in downstream UI | wrap in a hooks/ hook (derived useInfiniteScrollQuery / useDomainMutation / SWR) | legit exception = reasoned eslint-disable (AuthSessionClientProvider precedent) | test: pnpm test:client-service-boundary
 
 ## PROXY (replaces middleware)
 entry: src/proxy.ts (default export, receives NextRequest) | handlers: src/proxies/
@@ -236,7 +237,7 @@ FieldRenderer: baseFields, fieldPatches, insertBefore/insertAfter, fieldGroups, 
 FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, mediaUploaderMulti, hidden, custom, none
 mediaUploaderMulti: 複数枚アップロード(string[])。validationRule.maxItems(既定10)/minItems、reorderable(既定true)、画像/動画両対応(mediaTypePreset). DBは text[] NOT NULL DEFAULT [] (Neon)
 programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schema, own UI) | none = excluded from schema entirely, NOT for programmatic use
-async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. engine = Form/Input/Manual/AsyncOptionSource (useAsyncOptionSource + AsyncOptionList/states), shared with Overlays/AsyncPickerModal — new async picker MUST consume it, never re-implement browse/search paging. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel
+async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. engine = Form/Input/Manual/AsyncOptionSource (useAsyncOptionSource + AsyncOptionList/states), shared with Overlays/AsyncPickerModal — new async picker MUST consume it, never re-implement browse/search paging. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel | data source = useUserAsyncOptionSource (user/hooks, searchFn + initial label resolve) for custom user pickers
 device_hooks (src/hooks/, domain-free, SSR-safe, unsupported→supported:false never throw): useWakeLock(enabled) screen sleep suppress | useFullscreen(ref?) Fullscreen API toggle+state | useViewportOrientation() landscape/portrait + isShortHeight(max-height 500px, matchMedia = same judgment as CSS `short:` variant in theme.css, keep threshold in sync) | useMediaQuery(query) generic
 async_guard: useAsyncAction(src/hooks/) — useRefベースの排他ロックで非同期アクションの二重発火を防止。Dialog/ConfirmPopoverはonConfirmがPromiseを返すと自動でloading管理+ロック
 async_feedback (MUST): client-side background通信(mutation/送信/同期)中は必ずローディング状態を可視化 — ボタン内スピナー/ScreenLoader(local)/persistent toast(variant:loading)のいずれか。無反応UI禁止。Dialog/ConfirmPopoverのPromise自動loading・useAsyncActionのpending活用を優先 | 例外: fire-and-forget計測(trackInteraction等)

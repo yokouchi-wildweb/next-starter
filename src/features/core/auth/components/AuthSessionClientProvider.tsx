@@ -6,6 +6,9 @@ import { useCallback, useMemo, useState } from "react";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { useFirebaseAuthSync } from "@/features/core/auth/hooks/useFirebaseAuthSync";
 import { useDauTracker } from "@/features/core/analytics/hooks/useDauTracker";
+// このコンポーネントはセッション状態の持ち主(Context の提供元)で、refreshSession はその状態更新そのもの
+// (フック層に相当する)。利用側は useAuthSession / useSessionRefresh 経由で呼ぶので、例外として直接呼ぶ
+// eslint-disable-next-line client-service-boundary/no-direct-import
 import { fetchSession } from "@/features/core/auth/services/client/session";
 
 import type { AuthSessionValue } from "./AuthSessionContext";

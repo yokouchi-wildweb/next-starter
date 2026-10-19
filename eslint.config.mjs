@@ -1,6 +1,7 @@
 import nextConfig from "eslint-config-next";
 
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
+import clientServiceBoundaryPlugin from "./eslint-rules/client-service-boundary.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import routeAuthzPlugin from "./eslint-rules/route-authz.mjs";
@@ -95,6 +96,29 @@ export default [
           paths: [],
         },
       ],
+    },
+  },
+  // UI から ClientService を直接 import しない(HTTP は Hook → ClientService。詳細: eslint-rules/client-service-boundary.mjs)。
+  // 下流の UI(features/<business>/components, app/ の画面)は warn、upstream 所有の UI は error(後のブロックが上書き)。
+  // 除外: app/api(UI ではない) / demo(エンジンに fetcher を渡す使い方の見本)。
+  // セッション状態の持ち主の Provider など正当な例外は理由付き eslint-disable で明示する。
+  {
+    files: ["src/features/**/components/**/*.{ts,tsx}", "src/app/**/*.{ts,tsx}"],
+    ignores: ["src/app/api/**", "src/app/(user)/demo/**"],
+    plugins: { "client-service-boundary": clientServiceBoundaryPlugin },
+    rules: {
+      "client-service-boundary/no-direct-import": "warn",
+    },
+  },
+  {
+    files: [
+      "src/components/**/*.{ts,tsx}",
+      "src/features/core/**/components/**/*.{ts,tsx}",
+      "src/features/_template/**/components/**/*.{ts,tsx}",
+    ],
+    plugins: { "client-service-boundary": clientServiceBoundaryPlugin },
+    rules: {
+      "client-service-boundary/no-direct-import": "error",
     },
   },
   // ルームロジック (servers/room にバンドルされる) の純度制約。
