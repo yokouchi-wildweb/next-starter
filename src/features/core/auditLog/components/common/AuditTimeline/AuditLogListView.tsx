@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
@@ -10,8 +10,6 @@ import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
-import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
-import type { PaginatedResult } from "@/lib/crud/types";
 import type { AuditLog } from "@/features/core/auditLog/entities";
 import {
   formatActionLabel,
@@ -22,30 +20,33 @@ import {
 import { DiffView } from "./DiffView";
 
 // ビューポート基準で末尾の 160px 手前から次ページを先読みする(root は指定しない。
-// スクロールしない wrapper を root にすると sentinel が常時交差扱いになり loadMore が連射される)
-const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
+// スクロールしない wrapper を root にすると sentinel が常時交差扱いになり loadMore が連射される)。
+// 取得フックを呼ぶ上位(AuditTimeline / UserActivityTimeline)がフックに渡す。
+export const AUDIT_LOG_OBSERVER_OPTIONS: IntersectionObserverInit = {
+  rootMargin: "0px 0px 160px 0px",
+  threshold: 0.1,
+};
 
-type Fetcher = (args: { page: number; limit: number }) => Promise<PaginatedResult<AuditLog>>;
+/** 取得フック(useAuditLogsByTarget 等 = useInfiniteScrollQuery)の返り値のうち表示に使う分 */
+export type AuditLogListQuery = {
+  items: AuditLog[];
+  total: number;
+  isInitialLoading: boolean;
+  isFetchingMore: boolean;
+  hasMore: boolean;
+  error: unknown;
+  sentinelRef: (node: HTMLElement | null) => void;
+};
 
 type Props = {
-  /**
-   * 1 ページ取得の fetcher。呼び出し側で auditLogClient.searchByTarget /
-   * searchBySubjectUser 等を bind して渡す。
-   */
-  fetcher: Fetcher;
-  /**
-   * useInfiniteScrollQuery の deps。fetcher が依存するキーを文字列化して渡す。
-   * 切り替え（targetId 変更や subjectUserId 切替時）で再フェッチが走る。
-   */
-  deps: ReadonlyArray<string>;
+  /** 取得フックの返り値。フックは上位が呼ぶ(このビューは HTTP を知らない) */
+  query: AuditLogListQuery;
   /**
    * 「対象」列（target_type / target_id）を表示するか。
    * - AuditTimeline（targetId 指定の単一レコードビュー）: false
    * - 横断検索 / UserActivityTimeline: true
    */
   showTargetColumn: boolean;
-  /** 1 ページあたりの件数。既定: 20 */
-  pageSize?: number;
   /** 親側からの追加クラス（container に付与） */
   className?: string;
 };
@@ -53,33 +54,16 @@ type Props = {
 /**
  * 監査ログタイムラインの内部レンダラー（共通）。
  *
- * AuditTimeline / UserActivityTimeline 等の上位コンポーネントから fetcher を受け取り、
+ * AuditTimeline / UserActivityTimeline 等の上位コンポーネントから取得フックの返り値を受け取り、
  * 無限スクロール表示・行クリックでの詳細モーダル・差分表示の責務を担う。
  *
  * ここに直接 import せず、必ず公開コンポーネント (AuditTimeline / UserActivityTimeline)
  * 経由で利用する。
  */
-export function AuditLogListView({
-  fetcher,
-  deps,
-  showTargetColumn,
-  pageSize = 20,
-  className,
-}: Props) {
-  const stableFetcher = useCallback(
-    async ({ page, limit }: { page: number; limit: number }) => fetcher({ page, limit }),
-    [fetcher],
-  );
-
+export function AuditLogListView({ query, showTargetColumn, className }: Props) {
   const [detailLog, setDetailLog] = useState<AuditLog | null>(null);
 
-  const { items: logs, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } =
-    useInfiniteScrollQuery<AuditLog>({
-      fetcher: stableFetcher,
-      limit: pageSize,
-      deps,
-      observerOptions: OBSERVER_OPTIONS,
-    });
+  const { items: logs, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } = query;
 
   const columns: DataTableColumn<AuditLog>[] = [
     { header: "日時", render: (log) => formatAuditDate(log.createdAt) },

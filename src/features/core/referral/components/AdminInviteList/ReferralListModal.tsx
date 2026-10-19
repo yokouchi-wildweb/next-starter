@@ -2,16 +2,13 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
 import Modal from "@/components/Overlays/Modal";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
-import {
-  getReferralsByInviter,
-  type ReferralByInviterItem,
-} from "../../services/client/referralsByInviter";
+import { useReferralsByInviter } from "@/features/core/referral/hooks/useReferralsByInviter";
+import type { ReferralByInviterItem } from "@/features/core/referral/services/client/referralsByInviter";
 import { formatDateJa } from "@/utils/date";
 import { SolidBadge } from "@/components/Badge";
 
@@ -86,21 +83,9 @@ export default function ReferralListModal({
   open,
   onOpenChange,
 }: ReferralListModalProps) {
-  const [referrals, setReferrals] = useState<ReferralByInviterItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open || !inviterUserId) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    getReferralsByInviter(inviterUserId)
-      .then((res) => setReferrals(res.referrals))
-      .catch(() => setError("紹介一覧の取得に失敗しました。"))
-      .finally(() => setIsLoading(false));
-  }, [open, inviterUserId]);
+  const { referrals = [], isLoading, error } = useReferralsByInviter(inviterUserId, {
+    enabled: open,
+  });
 
   const title = inviteCode
     ? `紹介一覧 — ${inviteCode}`
@@ -122,7 +107,7 @@ export default function ReferralListModal({
             <BaseSkeleton className="h-8 w-full" />
           </Stack>
         ) : error ? (
-          <Para tone="destructive">{error}</Para>
+          <Para tone="destructive">紹介一覧の取得に失敗しました。</Para>
         ) : referrals.length === 0 ? (
           <Para tone="muted" className="py-8 text-center">
             まだ紹介実績がありません

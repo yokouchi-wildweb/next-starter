@@ -3,7 +3,6 @@
 // src/features/core/user/components/common/UserAsyncCombobox.tsx
 
 import { type ReactNode, useMemo } from "react";
-import useSWR from "swr";
 
 import {
   AsyncComboboxInput,
@@ -13,12 +12,8 @@ import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
 import type { WhereExpr } from "@/lib/crud/types";
 
-import {
-  createUserSearchFn,
-  getUserOption,
-  DEFAULT_USER_SEARCH_FIELDS,
-} from "./userSelectUtils";
-import { userClient } from "@/features/core/user/services/client/userClient";
+import { useUserAsyncOptionSource } from "@/features/core/user/hooks/useUserAsyncOptionSource";
+import { DEFAULT_USER_SEARCH_FIELDS } from "@/features/core/user/utils/userOption";
 
 type OmittedProps =
   | "searchFn"
@@ -52,31 +47,14 @@ export function UserAsyncCombobox({
   initialId,
   ...rest
 }: UserAsyncComboboxProps) {
-  const searchFn = useMemo(
-    () => createUserSearchFn(role, where),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [role, JSON.stringify(where)],
-  );
-
-  const getOptionFromResult = useMemo(
-    () => (user: User) => getUserOption(user, formatLabel),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [formatLabel],
-  );
-
-  // 編集時: 既存IDのラベルを解決
-  const { data: initialOption } = useSWR(
-    initialId ? ["userAsyncCombobox:initial", initialId] : null,
-    async () => {
-      const { results } = await userClient.search!({
-        where: { field: "id", op: "eq", value: initialId },
-        limit: 1,
-      });
-      if (results.length === 0) return undefined;
-      return getUserOption(results[0], formatLabel);
-    },
-    { revalidateOnFocus: false, revalidateOnReconnect: false },
-  );
+  const initialIds = useMemo(() => (initialId ? [initialId] : undefined), [initialId]);
+  const { searchFn, getOptionFromResult, initialOptions } = useUserAsyncOptionSource({
+    role,
+    where,
+    formatLabel,
+    initialIds,
+  });
+  const initialOption = initialOptions?.[0];
 
   return (
     <AsyncComboboxInput<User>

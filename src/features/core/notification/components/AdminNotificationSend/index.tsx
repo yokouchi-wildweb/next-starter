@@ -25,7 +25,7 @@ import { Section } from "@/components/Layout/Section";
 import { useToast } from "@/lib/toast";
 import { useLoadingToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
-import { sendNotification } from "@/features/notification/services/client/userNotificationClient";
+import { useSendNotification } from "@/features/notification/hooks/useSendNotification";
 import { getAllRoleOptions } from "@/features/core/user/utils/roleHelpers";
 import { UserAsyncMultiSelect } from "@/features/user/components/common/UserAsyncMultiSelect";
 import { Send } from "lucide-react";
@@ -92,7 +92,7 @@ const roleOptions = getAllRoleOptions().map((role) => ({
 export default function AdminNotificationSend() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [isSending, setIsSending] = useState(false);
+  const { trigger: sendNotification, isMutating: isSending } = useSendNotification();
   const [isUploading, setIsUploading] = useState(false);
   useLoadingToast(isSending, "送信中です…");
 
@@ -116,7 +116,6 @@ export default function AdminNotificationSend() {
 
   const handleSubmit = useCallback(
     async (data: SendFormValues) => {
-      setIsSending(true);
       try {
         await sendNotification({
           title: data.title || null,
@@ -137,11 +136,9 @@ export default function AdminNotificationSend() {
         router.push("/admin/notifications");
       } catch (error) {
         showToast(err(error, "送信に失敗しました"), "error");
-      } finally {
-        setIsSending(false);
       }
     },
-    [router, showToast]
+    [router, showToast, sendNotification]
   );
 
   return (

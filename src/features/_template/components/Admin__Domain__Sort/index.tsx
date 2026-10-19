@@ -10,7 +10,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Button } from "@/components/Form/Button/Button";
-import { __domain__Client } from "@/features/__domain__/services/client/__domain__Client";
+import { useReorder__Domain__ } from "@/features/__domain__/hooks/useReorder__Domain__";
 import { useLoadingToast } from "@/lib/toast/useLoadingToast";
 
 type Props = {
@@ -22,7 +22,7 @@ type Props = {
  */
 export default function Admin__Domain__Sort({ initial__Domains__ }: Props) {
   const [items, setItems] = useState(initial__Domains__);
-  const [isReordering, setIsReordering] = useState(false);
+  const { trigger: reorder, isMutating: isReordering } = useReorder__Domain__();
   const [error, setError] = useState<string | null>(null);
 
   const handleReorder = async (result: ReorderResult) => {
@@ -38,15 +38,12 @@ export default function Admin__Domain__Sort({ initial__Domains__ }: Props) {
     });
 
     // サーバーに並び替えを送信
-    setIsReordering(true);
     try {
-      await __domain__Client.reorder?.(result.itemId, result.afterItemId);
+      await reorder(result.itemId, result.afterItemId);
     } catch (err) {
       // エラー時は元の状態に戻す
       setItems(previous);
       setError(err instanceof Error ? err.message : "並び替えに失敗しました");
-    } finally {
-      setIsReordering(false);
     }
   };
 

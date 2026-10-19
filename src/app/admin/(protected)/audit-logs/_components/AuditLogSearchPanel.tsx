@@ -3,7 +3,7 @@
 "use client";
 
 import type * as React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
@@ -14,15 +14,14 @@ import { Manual } from "@/components/Form/Input";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
-import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import {
-  auditLogClient,
   formatActionLabel,
   formatActorTypeLabel,
   formatAuditDate,
   type AuditLog,
 } from "@/features/core/auditLog";
 import type { WhereExpr } from "@/lib/crud";
+import { useAuditLogSearch } from "@/features/core/auditLog/hooks/useAuditLogSearch";
 
 import { DiffView } from "@/features/core/auditLog/components/common/AuditTimeline/DiffView";
 
@@ -80,11 +79,7 @@ export function AuditLogSearchPanel() {
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const [detailLog, setDetailLog] = useState<AuditLog | null>(null);
 
-  const fetcher = useCallback(
-    async ({ page, limit }: { page: number; limit: number }) =>
-      auditLogClient.search({ page, limit, where: buildWhere(applied) }),
-    [applied],
-  );
+  const where = useMemo(() => buildWhere(applied), [applied]);
 
   // ページ全体がスクロールするレイアウト (DataTable maxHeight="none") のため
   // IntersectionObserver の root はビューポートに任せる。
@@ -96,12 +91,7 @@ export function AuditLogSearchPanel() {
   );
 
   const { items: logs, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } =
-    useInfiniteScrollQuery<AuditLog>({
-      fetcher,
-      limit: PAGE_SIZE,
-      deps: [JSON.stringify(applied)],
-      observerOptions,
-    });
+    useAuditLogSearch({ where, limit: PAGE_SIZE, observerOptions });
 
   const columns: DataTableColumn<AuditLog>[] = [
     { header: "日時", render: (log) => formatAuditDate(log.createdAt) },

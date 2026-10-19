@@ -1,11 +1,11 @@
-// src/features/core/user/components/common/userSelectUtils.ts
+// src/features/core/user/utils/userOption.ts
+// ユーザー選択 UI(UserAsyncCombobox / UserAsyncMultiSelect)向けの純粋ヘルパー
 
 import type { ReactNode } from "react";
 import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
 import type { Options } from "@/components/Form/types";
-import type { SearchParams, PaginatedResult, WhereExpr } from "@/lib/crud/types";
-import { userClient } from "@/features/core/user/services/client/userClient";
+import type { WhereExpr } from "@/lib/crud/types";
 
 /**
  * デフォルトのラベル生成: 名前（メール） / メール / id
@@ -43,7 +43,7 @@ function buildRoleWhere(role: UserRoleType | UserRoleType[]): WhereExpr {
 /**
  * role と where を結合して最終的な WhereExpr を生成
  */
-function mergeWhereConditions(
+export function mergeUserWhere(
   role?: UserRoleType | UserRoleType[],
   where?: WhereExpr,
 ): WhereExpr | undefined {
@@ -59,30 +59,6 @@ function mergeWhereConditions(
   if (conditions.length === 0) return undefined;
   if (conditions.length === 1) return conditions[0];
   return { and: conditions };
-}
-
-/**
- * userClient.search をラップし、role/where 条件をマージする検索関数を返す
- */
-export function createUserSearchFn(
-  role?: UserRoleType | UserRoleType[],
-  where?: WhereExpr,
-): (params: SearchParams) => Promise<PaginatedResult<User>> {
-  const mergedWhere = mergeWhereConditions(role, where);
-
-  return (params: SearchParams) => {
-    const finalWhere = (() => {
-      if (!mergedWhere && !params.where) return undefined;
-      if (!mergedWhere) return params.where;
-      if (!params.where) return mergedWhere;
-      return { and: [mergedWhere, params.where] };
-    })();
-
-    return userClient.search!({
-      ...params,
-      where: finalWhere,
-    });
-  };
 }
 
 /** デフォルトの検索フィールド */

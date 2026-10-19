@@ -2,16 +2,15 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks/Para";
 import { InfiniteScrollList } from "@/components/Widgets/InfiniteScrollList";
 import { DataTable, type DataTableColumn } from "@/lib/tableSuite";
-import { useInfiniteScrollQuery } from "@/hooks/useInfiniteScrollQuery";
 import DetailModal from "@/components/Overlays/DetailModal/DetailModal";
 import type { DetailModalRow } from "@/components/Overlays/DetailModal/types";
-import { walletHistoryBatchClient } from "@/features/core/walletHistory/services/client/walletHistoryBatchClient";
+import { useAdminWalletHistoryBatches } from "@/features/core/walletHistory/hooks/useAdminWalletHistoryBatches";
 import type { WalletHistoryBatchSummarySerialized } from "@/features/core/walletHistory/types/batch";
 import { CurrencyDisplay } from "@/features/core/wallet/components/common/CurrencyDisplay";
 import { formatDate, formatNumber } from "@/features/core/wallet/utils/formatters";
@@ -39,20 +38,12 @@ const HISTORY_PAGE_SIZE = 20;
 const OBSERVER_OPTIONS: IntersectionObserverInit = { rootMargin: "0px 0px 160px 0px", threshold: 0.1 };
 
 export function WalletHistoryTabContent({ userId }: WalletHistoryTabContentProps) {
-  const fetcher = useCallback(
-    async ({ page, limit }: { page: number; limit: number }) => {
-      return walletHistoryBatchClient.list({ userId, page, limit });
-    },
-    [userId],
-  );
-
   const [detailHistory, setDetailHistory] = useState<WalletHistoryBatchSummarySerialized | null>(null);
 
   const { items: histories, total, isInitialLoading, isFetchingMore, error, hasMore, sentinelRef } =
-    useInfiniteScrollQuery<WalletHistoryBatchSummarySerialized>({
-      fetcher,
+    useAdminWalletHistoryBatches({
+      userId,
       limit: HISTORY_PAGE_SIZE,
-      deps: [userId],
       observerOptions: OBSERVER_OPTIONS,
     });
 

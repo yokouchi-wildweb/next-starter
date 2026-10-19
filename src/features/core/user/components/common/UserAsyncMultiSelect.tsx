@@ -2,8 +2,7 @@
 
 // src/features/core/user/components/common/UserAsyncMultiSelect.tsx
 
-import { type ReactNode, useMemo } from "react";
-import useSWR from "swr";
+import type { ReactNode } from "react";
 
 import {
   AsyncMultiSelectInput,
@@ -13,12 +12,8 @@ import type { User } from "@/features/core/user/entities";
 import type { UserRoleType } from "@/features/core/user/types";
 import type { WhereExpr } from "@/lib/crud/types";
 
-import {
-  createUserSearchFn,
-  getUserOption,
-  DEFAULT_USER_SEARCH_FIELDS,
-} from "./userSelectUtils";
-import { userClient } from "@/features/core/user/services/client/userClient";
+import { useUserAsyncOptionSource } from "@/features/core/user/hooks/useUserAsyncOptionSource";
+import { DEFAULT_USER_SEARCH_FIELDS } from "@/features/core/user/utils/userOption";
 
 type OmittedProps =
   | "searchFn"
@@ -52,32 +47,12 @@ export function UserAsyncMultiSelect({
   initialIds,
   ...rest
 }: UserAsyncMultiSelectProps) {
-  const searchFn = useMemo(
-    () => createUserSearchFn(role, where),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [role, JSON.stringify(where)],
-  );
-
-  const getOptionFromResult = useMemo(
-    () => (user: User) => getUserOption(user, formatLabel),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [formatLabel],
-  );
-
-  // 編集時: 既存ID配列のラベルを解決
-  const { data: initialOptions } = useSWR(
-    initialIds && initialIds.length > 0
-      ? ["userAsyncMultiSelect:initial", initialIds.join(",")]
-      : null,
-    async () => {
-      const { results } = await userClient.search!({
-        where: { field: "id", op: "in", value: initialIds },
-        limit: initialIds!.length,
-      });
-      return results.map((user) => getUserOption(user, formatLabel));
-    },
-    { revalidateOnFocus: false, revalidateOnReconnect: false },
-  );
+  const { searchFn, getOptionFromResult, initialOptions } = useUserAsyncOptionSource({
+    role,
+    where,
+    formatLabel,
+    initialIds,
+  });
 
   return (
     <AsyncMultiSelectInput<User>

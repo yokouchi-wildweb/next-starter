@@ -10,7 +10,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
 import { Button } from "@/components/Form/Button/Button";
-import { sampleClient } from "@/features/sample/services/client/sampleClient";
+import { useReorderSample } from "@/features/sample/hooks/useReorderSample";
 import { useLoadingToast } from "@/lib/toast/useLoadingToast";
 
 type Props = {
@@ -22,7 +22,7 @@ type Props = {
  */
 export default function AdminSampleSort({ initialSamples }: Props) {
   const [items, setItems] = useState(initialSamples);
-  const [isReordering, setIsReordering] = useState(false);
+  const { trigger: reorder, isMutating: isReordering } = useReorderSample();
   const [error, setError] = useState<string | null>(null);
 
   const handleReorder = async (result: ReorderResult) => {
@@ -38,15 +38,12 @@ export default function AdminSampleSort({ initialSamples }: Props) {
     });
 
     // サーバーに並び替えを送信
-    setIsReordering(true);
     try {
-      await sampleClient.reorder?.(result.itemId, result.afterItemId);
+      await reorder(result.itemId, result.afterItemId);
     } catch (err) {
       // エラー時は元の状態に戻す
       setItems(previous);
       setError(err instanceof Error ? err.message : "並び替えに失敗しました");
-    } finally {
-      setIsReordering(false);
     }
   };
 

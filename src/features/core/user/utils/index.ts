@@ -5,3 +5,4 @@ export * from "./roleHelpers";
 export * from "./phoneNumber";
 export * from "./phoneVerificationGuard";
 export * from "./userName";
+export * from "./userOption";

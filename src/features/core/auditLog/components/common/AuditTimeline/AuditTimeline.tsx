@@ -2,11 +2,9 @@
 
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useAuditLogsByTarget } from "@/features/core/auditLog/hooks/useAuditLogsByTarget";
 
-import { auditLogClient } from "@/features/core/auditLog/services/client/auditLogClient";
-
-import { AuditLogListView } from "./AuditLogListView";
+import { AUDIT_LOG_OBSERVER_OPTIONS, AuditLogListView } from "./AuditLogListView";
 
 type Props = {
   /**
@@ -49,21 +47,14 @@ export function AuditTimeline({
   pageSize = 20,
   className,
 }: Props) {
-  const fetcher = useCallback(
-    ({ page, limit }: { page: number; limit: number }) =>
-      auditLogClient.searchByTarget(targetType, { page, limit, targetId }),
-    [targetType, targetId],
-  );
-
-  const deps = useMemo(() => [targetType, targetId ?? "*"], [targetType, targetId]);
+  const query = useAuditLogsByTarget({
+    targetType,
+    targetId,
+    limit: pageSize,
+    observerOptions: AUDIT_LOG_OBSERVER_OPTIONS,
+  });
 
   return (
-    <AuditLogListView
-      fetcher={fetcher}
-      deps={deps}
-      showTargetColumn={!targetId}
-      pageSize={pageSize}
-      className={className}
-    />
+    <AuditLogListView query={query} showTargetColumn={!targetId} className={className} />
   );
 }
