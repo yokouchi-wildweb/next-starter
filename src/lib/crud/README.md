@@ -1,7 +1,8 @@
 # 汎用 CRUD ライブラリ仕様
 
 > このドキュメントは `createCrudService` を中心としたライブラリ内部のコアスペックです。
-> 使い方・拡張判断のガイドは `docs/!must-read/汎用CRUDの仕様と拡張方法について.md` を参照してください。
+> 拡張するときは次の順で、手前で足りるならそこで止める: ① 提供メソッド → ② `relationWhere` → ③ `extraWhere` / `extraOrderBy` → ④ `base.query()` + `wrappers/` → ⑤ 独自サービス。
+> フックの使い方は [hooks/README.md](./hooks/README.md)。
 
 ---
 
@@ -678,6 +679,13 @@ PostgreSQL 制約違反を `DomainError` に変換:
 | 23505 | UNIQUE | 409 | 値が重複 |
 
 ---
+
+## よくある失敗
+
+- 中間テーブルを手で操作し、`belongsToMany` の管理と二重になる → `belongsToManyRelations` に任せる
+- ページングを自前で実装し、`total` の仕様が汎用 search とずれる → `search()` / `base.query()` を使う
+- 生成ファイルを直接編集し、次の `dc:generate` で上書きされる → `wrappers/` で拡張する
+- Firestore で `or` を使って例外になる → 上の「Firestore 版との差異」を先に確認する
 
 ## ライブラリ拡張時の注意事項
 

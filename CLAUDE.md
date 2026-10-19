@@ -23,7 +23,7 @@ library: src/lib/\<name\>/, all except entities
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
 
 decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only→app/\<route\>/_components/
-reuse_check: new utility/feature → confirm no equivalent in existing domains/features before create
+reuse_check: new utility/feature → confirm no equivalent in existing domains/features before create (indexes: src/lib/README.md, src/features/core/README.md)
 deps: lib→lib OK | lib→features NG | features→features(UI): use target hooks (no self-create) | features→features(server): direct OK (no circular)
 ref: docs/!must-read/設計思想とアーキテクチャ.md
 
@@ -40,6 +40,7 @@ ref: docs/!must-read/設計思想とアーキテクチャ.md
 boundary: Hook → ClientService → HTTP → APIRoute → ServerService | Page(SSR) → ServerService direct OK | Hook → ServerService NG | Hook → APIRoute (axios直叩き) NG
 rules: client axios only | server fetch OK | DB access via ServerService only | HTTP呼び出しは必ず ClientService に集約 (Hook/Component は ClientService 経由のみ)
 lint: client-service-boundary/no-direct-import = UI (components/, app/ screens) importing services/client or a domain barrel's *Client → error in upstream UI (src/components, features/core, _template), warn in downstream UI | wrap in a hooks/ hook (derived useInfiniteScrollQuery / useDomainMutation / SWR) | legit exception = reasoned eslint-disable (AuthSessionClientProvider precedent) | test: pnpm test:client-service-boundary
+ref: docs/!must-read/アプリ構築における構成層.md
 
 ## PROXY (replaces middleware)
 entry: src/proxy.ts (default export, receives NextRequest) | handlers: src/proxies/
@@ -75,7 +76,7 @@ rules: state-only (logic in services) | UI side-effects in useStore useEffect | 
 ref: src/stores/README.md
 
 ## DOMAINS
-core: src/features/core/, no domain.json, manual. examples: auth, user, wallet, setting, mail
+core: src/features/core/, hand-maintained (domain.json may exist as config source, but NOT a dc:generate target). examples: auth, user, wallet, setting, mail | index (1 line per core domain → README): src/features/core/README.md
 business: src/features/, has domain.json, dc:generate. examples: sample, sampleCategory, sampleTag
 path_alias: tsconfig paths maps @/features/\<coreDomain\>/* → @/features/core/\<coreDomain\>/*. omit core/ in imports (preferred)
 schema_registry (MANDATORY): src/registry/schemaRegistry.ts = sole drizzle-kit push entry. business domains auto-registered by dc:generate | core domain with new entities/drizzle.ts → add `export *` to CORE DOMAINS block by hand + run `pnpm test:schema-registry` (fails on any unregistered core drizzle.ts) + ship .notices with [user-run] db:push. unregistered = table never created, bestEffort writes fail silently (precedent: userLoginEvent)
@@ -109,7 +110,7 @@ debug_scaffold: /debug/** page area (src/app/debug/, layout enforces) + GET /api
 operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulkDeleteByIds, bulkDeleteByQuery, bulkUpsert, bulkUpdate | drizzle-only: belongsToMany, reorder(id,afterId), searchForSorting(auto-init NULL sort_order), replaceByQuery(where,records = atomic delete+insert 1tx, scope-guard 422, child-list wholesale replace) | sorting requires: sortOrderColumn option
 conditional: duplicate(useDuplicateButton), restore/hardDelete(useSoftDelete), reorder/searchForSorting(sortOrderField)
 note: list is a subset of search — use only for simple full-fetch. for relations, filtering, pagination → use search. count returns { total } without fetching records
-hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (conditional ops generate only when enabled) | mutation hooks = concurrent-trigger safe (each trigger resolves/rejects with its OWN result, isMutating true until all settle; useSWRMutation PROHIBITED — custom mutation hooks MUST build on useDomainMutation from @/lib/crud/hooks) | test: pnpm test:crud-hooks
+hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (conditional ops generate only when enabled) | mutation hooks = concurrent-trigger safe (each trigger resolves/rejects with its OWN result, isMutating true until all settle; useSWRMutation PROHIBITED — custom mutation hooks MUST build on useDomainMutation from @/lib/crud/hooks) | test: pnpm test:crud-hooks | detail: src/lib/crud/hooks/README.md
 hook_naming_exceptions: get→use\<Domain\>, list→use\<Domain\>List, remove→useDelete\<Domain\>, count→useCount\<Domain\>
 server-only(no hook): query, belongsToMany, systemUpdate, bulkUpdateByQuery, systemBulkUpdateByQuery
 system_write (Drizzle only): systemUpdate(id,data,tx?) / systemBulkUpdateByQuery(where,data,tx?) — parseUpdate bypass for Zod-excluded system columns (ended_at etc.), fail-closed allowlist via systemColumns option (domain.json key for business domains), sql`` values OK (atomic increment/CASE). service-layer ONLY, never wire to HTTP routes | bulkUpdateByQuery(where,data,tx?)→{count} = update counterpart of bulkDeleteByQuery (parseUpdate path) | audit/requestMemo hooks fire like update | detail: src/lib/crud/README.md
@@ -256,7 +257,7 @@ upstream (MANDATORY): never put logic back in page.tsx | new core route = switch
 admin_generated (dc:generate admin routes): same structure — page.tsx write-once (`dynamic` stays in page.tsx, `metadata` re-exported from _screen) + _screen/Admin\<Domain\>{List,Create,Edit,Sort}Screen.tsx regenerated + SHARED loaders features/core/admin/services/server/loaders/ (loadAdminListScreen(service, props, options?: withRelations/hasManyLimit/orderBy/where/relationWhere — JSON-able only, extraWhere → _components/loader.ts) / loadAdminEditScreen / loadAdminSortScreen / loadAdminRelationOptions(domainConfig) = SSR prefetch of form relation options into SWRConfig fallback, same key + same "which relations" judgment as useRelationOptions via src/lib/domain/relations/relationOptions.mjs (every form relation except async*/custom — default select/checkbox included; async/custom/inverse belongsToMany/hasMany never prefetched), services resolved from serviceRegistry so generated Screens import no relation services; NO requireCurrentUser — admin layout authGuard covers) | relation-options judgment lives ONLY in relationOptions.mjs (hook + loader + generator import it) | auto-discovered by test:screens | ref: src/lib/screens/README.md §12
 
 ## ERROR_HANDLING
-flow: ServerService throw DomainError → APIRoute JSON{status,message} → ClientService normalizeHttpError → Hook pass → UI err(error,fallback)
+flow: ServerService throw DomainError → APIRoute JSON{message} + HTTP status → ClientService normalizeHttpError → Hook pass → UI err(error,fallback) | ref: docs/!must-read/エラーハンドリング方針.md (why) + src/lib/errors/README.md (API)
 
 ## NAMING
 components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only

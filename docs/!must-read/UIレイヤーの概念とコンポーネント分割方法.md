@@ -1,4 +1,6 @@
-# 📚 UI レイヤーの概念とコンポーネント分割方法
+# UI レイヤーの概念とコンポーネント分割方法
+
+> **この文書が裏付ける CLAUDE.md の節**: COMPONENTS（ui_layers / data_seam）/ SCREENS
 
 コンポーネントの作成と子コンポーネントの切り分け方、フォルダ構成、フックの呼び出し位置など、
 責務に関するガイドラインです。プロジェクト内では役割の異なる複数種類のコンポーネントを使い、
@@ -9,11 +11,11 @@
 
 > 🚨 **注意**: `CLAUDE.md` の `ARCHITECTURE`（8 層: Page / Component / Hook / ClientService / APIRoute / ServerService / Entity / Database）の「層」とは別の概念です。UI レイヤーは ARCHITECTURE の 1（Page）と 2（Component）の内側の分類です。
 
-> 📝 2026-10 の改訂: 旧版の 4 レイヤー（ページ / セクションコンテナ / ユニットアイテム / インタラクション部品）を 3 レイヤーに整理しました。ユニットアイテムとインタラクション部品は「部品」に統合し、セクションコンテナは「書き方」（`<Section>` タグ、フォルダ）ではなく「役割」で定義します。core の `*Page` という名前のセクションコンテナ 6 件は接尾辞なしに改名済みです（§8）。
+> 旧版（4 レイヤー）からの改訂の経緯は `docs/journal/2026-10-18-ui-layers-revision.md`。
 
 ---
 
-## 1. 🧱 3 つの UI レイヤーと責務
+## 1. 3 つの UI レイヤーと責務
 
 レイヤーは **役割** で決まります。タグの種類やフォルダの有無では決まりません。
 
@@ -23,7 +25,7 @@
 | セクションコンテナ | **Screen が直接配置するコンポーネント**。hook と状態を握り、部品を組み立てる | `features/<domain>/components/<Name>`（`<Name>/index.tsx` または `<Name>.tsx`）。接尾辞なし（例: `Signup`、`AdminCouponList`） | トップレベルの props | ✅（hook はここで呼ぶ。client service の直叩きは禁止） | ⬜ 両対応（hook を使うなら Client） |
 | 部品 | セクションコンテナの内側の要素。表示専用のものも、自己完結した操作を持つものもある | コンテナのディレクトリ内（`<Name>/<Part>.tsx`）、ドメイン共有なら `common/` | なし（契約外） | △（原則なし。自己完結するときだけ可、§5） | ⬜ 両対応 |
 
-### ✅ 原則
+### 原則
 
 - **ページ層は loader の呼び出し、最小限のタグ出力、セクションコンテナの配置のみ**
 - **処理や状態を握るのはできるだけ上位**（セクションコンテナ）
@@ -33,7 +35,7 @@
 
 ---
 
-## 2. 🥨 ページ層の構造（page.tsx スイッチ + `_screen/` + loader）
+## 2. ページ層の構造（page.tsx スイッチ + `_screen/` + loader）
 
 ページ層は 2 ファイルで構成します。覚える新語は **`_screen/`** と **loader** の 2 つだけです。
 
@@ -112,14 +114,19 @@ export async function loadWalletBalanceScreen(props: ScreenProps<{ slug: string 
 }
 ```
 
-規則: `import "server-only"` / `cache()` で包む（キーは解決済みのプリミティブ。中身が純粋でも必須） / `redirect` と `notFound` は loader の責務で Screen は try/catch しない（遷移制御だけなら `Promise<void>` 可） / 本人スコープのデータを取るときは自分で `requireCurrentUser` を呼ぶ（ログイン確認のみ。status / role は layout の `authGuard`） / 返り値は画面が必要とする最小の DTO を明示的に組み立てる / 1 画面 1 loader、共通判定はドメインの `utils/` へ。
+loader の形を固定している理由:
+
+- **`cache()` で包む**: Screen と `generateMetadata` など、同じリクエスト内で loader が複数回呼ばれても取得を 1 回にするため
+- **redirect / notFound は loader が行う**: 下流が Screen を差し替えても、アクセス制御とページの有無の判断が変わらないようにするため（Screen 側に書くと、差し替えた Screen が写し忘れる）
+- **返り値は画面が必要とする最小の DTO**: サービスの戻り値をそのまま渡すと、Screen とセクションコンテナがサービスの内部の形に依存し、サービスの変更が画面まで波及するため。DTO の型は loader で定義し、Screen と部品は `import type` で使う
+
 サーバー側ロジックの無いページ（法的文書、クライアントが hook で取るだけのページ）は loader を持ちません。
 
-詳細な規則・契約・下流の差し替え手順: `src/lib/screens/README.md`
+具体的な規則（`server-only`、`cache()` のキー、`requireCurrentUser` の使い分け、命名）・契約・下流の差し替え手順: `src/lib/screens/README.md`
 
 ---
 
-## 3. 🚰 loader がどこまで取るか（取得の境目）
+## 3. loader がどこまで取るか（取得の境目）
 
 loader とセクションコンテナの hook の両方がデータを取れるので、境目を決めておきます。
 
@@ -169,11 +176,11 @@ export const useMyWalletBalances = (userId?: string | null, { fallbackData }: { 
 - loader は API route と同じ ServerService を呼びます。業務ロジックは二重化しません（どのデータを取るかの判断だけが loader に移る）
 - 初期データ props は **任意**。無いときは従来どおり hook が取るので、既存の呼び出し元は壊れません
 - `SWRConfig` の `fallback`（キー共有方式）は hook とキーを共有する結合が強いので標準にしません（生成される管理画面の関連先読みは例外として既存）
-- 無限スクロールの最初のページは `useInfiniteScrollQuery` に初期データの口が無いため、現時点では対象外です
+- 無限スクロールの最初のページは、現時点ではこの標準の対象外です。`useInfiniteScrollQuery` 自体は `initialData` を受け取れますが、loader → セクションコンテナ → 派生フックへ渡す型（DTO の形・`limit` の一致・再マウント時の扱い）をまだ標準として決めていないためです
 
 ---
 
-## 4. 🧩 セクションコンテナ
+## 4. セクションコンテナ
 
 ### 定義
 
@@ -228,21 +235,21 @@ return (
 
 ---
 
-## 5. 🔁 部品とフックの呼び出し位置
+## 5. 部品とフックの呼び出し位置
 
 ### 部品の定義
 
 セクションコンテナの内側の要素です。表示だけのもの（`BalanceCard`、`HistoryListItem`）も、自己完結した操作を持つもの（`CouponInput`、`LogoutButton`）も、同じ「部品」です。
 contract ではないので、上流は自由に改名・分割できます（セクションコンテナの子構成変更として informational な `.notices` に含める）。
 
-### ✅ 原則: フックは状態を管理する上位コンポーネント（セクションコンテナ）が呼び出す
+### 原則: フックは状態を管理する上位コンポーネント（セクションコンテナ）が呼び出す
 
 - `useDeleteSample` などの副作用系は `AdminSampleList/index.tsx` など上位で使う
 - 下位にはイベントハンドラ（例: `onDelete`）だけを渡す
 - 処理後にルート制御が必要なら遷移先を上位から props で指定する
 - ページ層（Screen）では hook を呼ばない。ページ層のデータは loader が返す
 
-### ✅ 例外: 自己完結した部品
+### 例外: 自己完結した部品
 
 下記をすべて満たすなら部品でフック呼び出しも許可されます。
 
@@ -254,7 +261,7 @@ contract ではないので、上流は自由に改名・分割できます（�
 
 ---
 
-## 6. 🔔 UI 通知（トーストなど）の責務について
+## 6. UI 通知（トーストなど）の責務について
 
 フック側に `toast()` や `confirm()` など **UI ロジックを埋め込むことは NG** です。
 表示の責務は呼び出し側または UI コンポーネントで制御します。
@@ -282,7 +289,7 @@ const handleDelete = async () => {
 
 ---
 
-## 7. 🧠 クライアント / サーバーの分離指針
+## 7. クライアント / サーバーの分離指針
 
 - できるだけ Server Component をデフォルトに
 - フックなどを使う場合だけ `"use client"` を使用
@@ -298,7 +305,7 @@ page.tsx → _screen/XScreen.tsx     ← Server(loader を await)
 
 ---
 
-## 8. 🌐 命名
+## 8. 命名
 
 | 対象 | 規則 | 例 |
 |---|---|---|
@@ -308,11 +315,11 @@ page.tsx → _screen/XScreen.tsx     ← Server(loader を await)
 | 部品 | 役割名 | `BalanceCard`、`CouponInput` |
 | レイアウト部品 | `UserPage` / `AdminPage` だけが `*Page`（`<main>` の枠）。コンテナには使わない | — |
 
-> 📝 改名の記録（checkpoint ui-layers-rename）: 旧 `WalletIndexPage` / `WalletBalancePage` / `WalletHistoryPage` / `WalletPurchasePage` / `BankTransferInstructionPage` / `InviteCodePage` は `WalletList` / `WalletBalance` / `WalletHistory` / `WalletPurchase` / `BankTransferInstruction` / `InviteCode` に改名し、`user/components/UserMyPage/` 直下のコンテナは `user/components/<Name>` に昇格した。旧パスの `@deprecated` 再 export（shim）は 1 checkpoint だけ残し、checkpoint ui-layers-shim-removal で削除した（旧パスの import は `tsc` が止める）。`deprecated-imports/no-deprecated-path`（eslint）は次の改名のために仕組みだけ残している。
+> 旧 `*Page` 名からの改名の記録は `docs/journal/2026-10-18-ui-layers-revision.md`。
 
 ---
 
-## 9. 📝 まとめ: 切り分け方の判断基準
+## 9. まとめ: 切り分け方の判断基準
 
 - レイヤーは役割で決める: Screen が置くものがセクションコンテナ、その内側が部品
 - ページ層は page.tsx（1 行）+ `_screen/`（loader を await して配置）の 2 ファイル。ロジックは loader へ

@@ -590,6 +590,17 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 
 ---
 
+## エンティティとフォームスキーマ
+
+- `entities/schema.ts`: サーバー処理の正規形（`XxxBaseSchema` / `XxxCreateSchema` / `XxxUpdateSchema`）。フォーム固有の都合を持ち込まない
+- `entities/form.ts`: `schema.ts` を `z.infer` した型だけを公開する。追加のスキーマは書かない。フォーム側で足したい項目は、空の型との交差で広げる（`XxxCreateFields = z.infer<typeof XxxCreateSchema> & XxxCreateAdditional`）
+- フォーム固有の入力（確認用パスワード、一時的に分けた入力欄など）は、そのフォームの隣の `formEntities.ts` に置く。使う範囲が限られるので短い名前でよい: `FormSchema`（resolver に渡す Zod スキーマ。`schema.ts` を拡張して作るのが基本）/ `FormValues`（`useForm` の型）/ `DefaultValues`
+- 同じ構造のフォームが複数要るときは、スキーマではなくフォームコンポーネントを再利用する
+
+business ドメインの `entities/` は `dc:generate` が生成するので手で編集しない。上の規約は主に core ドメインと `formEntities.ts` を書くときに使う。
+
+---
+
 ## 関連コマンド
 
 `pnpm dc:init` / `dc:generate <Domain>` / `dc:generate:all` / `dc:add <Domain>` / `dc:delete <Domain>`。生成モード・生成物と上書きの扱い・典型的な流れは [`scripts/domain-config/README.md`](../../scripts/domain-config/README.md)。

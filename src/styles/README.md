@@ -34,6 +34,14 @@ src/styles/
 
 同じ考え方の前例: `src/features/core/setting/entities/*.extended.ts`(upstream の基底に下流が拡張を足し、upstream は extended 側を触らない)。
 
+upstream 側のファイルの役割(upstream でスタイルを足すときの置き場所):
+
+- `@import "tailwindcss"` は `global.css` の 1 か所だけ。他の CSS は `global.css` 経由で読まれるので個別に import しない(プラグインも `global.css` にまとめる)
+- `animations.css`: `--animate-*` の宣言と、対応する `@keyframes` を同じファイルに書く
+- `base.css`: リセットと HTML 要素の基本スタイルだけ。ページ固有のスタイルは書かない
+- `components.css` / `admin.css`: 再利用する UI パターンを `@layer components` に(`admin.css` は管理画面専用)。先にコンポーネントの variant で表現できないかを検討する
+- `utilities.css`: Tailwind のユーティリティで表現しづらい 1 プロパティ完結のクラス
+
 ### 色の正は CSS
 
 色の唯一の正は `palette.defaults.css`(既定)と `custom/palette.css`(上書き)。派生物はそこから生成する:
