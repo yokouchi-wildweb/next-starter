@@ -186,8 +186,37 @@ firebase, local
 
 **user_status:**
 ```
-pending, active, paused, withdrawn
+pending, active, inactive, suspended, banned, security_locked, withdrawn
 ```
+
+定義元は `constants/status.ts` の `USER_STATUSES`（意味は [ユーザーステータス](#ユーザーステータス) を参照）。
+
+## ユーザーステータス
+
+ユーザーのビジネス上の状態は `users.status` 1列で一元管理する（ラベルは `USER_STATUS_LABELS`）。
+
+| ステータス | ラベル | 意味 | 主な遷移元 |
+|-----------|--------|------|-----------|
+| `pending` | 仮登録 | 認証プロバイダ側の登録は済んだが本登録（プロフィール入力等）前 | 新規サインアップ / `withdrawn` からの再入会（`registration/preRegisterFromAuth.ts`） |
+| `active` | 有効 | 通常利用可能 | `pending`・`withdrawn` から本登録（`registration/activate.ts`）、`inactive` から復帰（`reactivate.ts`） |
+| `inactive` | 休会中 | ユーザー自身による一時休止 | `active` から本人操作（`pause.ts`） |
+| `suspended` | 処分保留 | 管理者による一時的な利用制限（復帰可能） | 管理者のステータス変更 |
+| `banned` | 永久追放 | 規約違反等による恒久的な利用停止 | 管理者のステータス変更 |
+| `security_locked` | セキュリティロック | 不正ログイン試行の検知等によるロック | ローカルログインのロックアウト（`wrappers/lockoutPolicy.ts`）等 |
+| `withdrawn` | 退会済み | 退会済み（再サインアップで `pending` に戻り再入会できる） | `active` から本人退会（`withdraw.ts`）、管理者のソフトデリート |
+
+### ステータスグループ（`constants/status.ts`）
+
+| 定数 | 値 | 用途 |
+|------|-----|------|
+| `USER_AVAILABLE_STATUSES` | `active` | サービス利用可能 = ログイン済みとして扱うステータス。`authGuard` の `allowStatuses` 既定値、API の認可（`requireRole` / `apiAccess`）が参照 |
+| `USER_REGISTERED_STATUSES` | `active` / `inactive` / `suspended` / `banned` / `security_locked` | 本登録済み = 再登録不可。サインアップ時の既存ユーザー判定（`auth/services/server/registration.ts`）が参照 |
+
+「利用不可」グループは `!USER_AVAILABLE_STATUSES.includes(status)` で表現できるため定義しない。
+
+`active` 以外でログインした場合の扱いは画面側の `authGuard` が `statusRedirects` で振り分ける（`(user)/(protected)/layout.tsx`: `inactive` → `/reactivate`、`suspended` / `banned` / `security_locked` → `/restricted`、`pending` / `withdrawn` → ログアウトしてサインアップへ）。ログイン時点で拒否されるステータスの詳細は auth ドメインの `localLogin.ts` / `firebaseSession.ts` を参照。
+
+ステータス遷移の記録は [ステータス遷移履歴](#ステータス遷移履歴user_status_histories)、操作の監査は audit_logs（`user.withdrew` / `user.status.changed` 等）が担う。
 
 ## バリデーションスキーマ
 
@@ -401,6 +430,71 @@ const result = await userClient.searchWithProfile("contributor", {
 
 > API エンドポイント: `GET /api/admin/user/search-with-profile?role=contributor&searchQuery=田中&profileWhere={"field":"prefecture","op":"eq","value":"東京都"}`
 > 検索対象のプロフィールフィールドは `profile.json` の `searchFields` で設定する。`profileWhere` の DSL 詳細は `src/features/core/userProfile/README.md` を参照。
+
+## 退会と削除
+
+### 2 段階削除（ソフトデリート → 物理削除）
+
+| 操作 | 実装 | 内容 |
+|------|------|------|
+| 本人退会 | `withdraw.ts`（`active` のみ可） | status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.withdrew`（1 トランザクション）。行は残る |
+| ソフトデリート（管理者） | `wrappers/softDelete.ts` / `POST /api/admin/user/[userId]/delete` | `deleted_at` 設定 + status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.soft_deleted`（1 トランザクション） |
+| 復元 | `wrappers/restore.ts`（汎用 `/api/user/[id]/restore`） | `deleted_at` を戻す（表示名衝突時は自動サフィックス） |
+| 物理削除（管理者） | `wrappers/hardDelete.ts` / `DELETE /api/admin/user/[userId]/hard-delete` | 削除前のユーザー情報全体を `before` に入れた監査ログ `user.hard_deleted` を記録 → user カテゴリなら Firebase Auth も削除 → DB 行を物理削除 |
+
+物理削除を分けている理由:
+
+- 管理画面の通常一覧から外す用途（ソフトデリート）と、DB から消す用途（物理削除）を分離し、誤操作による完全削除を防ぐ。ソフトデリートは復元可能な猶予期間として機能する
+- 物理削除が必要なのは、開発・QA・審査・デモ用アカウントの後始末や、GDPR 等の削除要求・法的命令といった限られたケース
+
+> 物理削除の前にソフトデリートを経ることはコード上強制していない（`hardDelete` は削除済み・未削除どちらの行も対象にする）。「削除済み一覧から復元 or 完全削除」する画面構成は上流に同梱していないため、必要ならダウンストリームで用意する。
+
+物理削除後に残るもの / 消えるもの:
+
+- 残る: `audit_logs`（`target_id` は text で FK なし。物理削除時の全情報も `user.hard_deleted` の `before` に残る）、`wallet_histories`（`user_id` に FK なし）
+- 消える: `user_status_histories` など `users` に `onDelete: "cascade"` で FK を張っているテーブル
+
+### 退会時のクリーンアップハンドラ（userCleanupRegistry）
+
+退会・ソフトデリート時に、他ドメインのリソース後始末を実行する仕組み。
+
+```
+src/registry/userCleanupRegistry.ts           ← ハンドラの登録（UserCleanupHandler 型もここ）
+services/server/executeCleanup.ts             ← 実行エンジン
+```
+
+- `withdraw.ts` / `wrappers/softDelete.ts` の両方がトランザクション内で `executeCleanup(userId, tx)` を呼ぶ
+- ステータス変更（`withdrawn` への更新）はレジストリの責務外。呼び出し元が自前で行う（softDelete は `setStatusWithdrawn`）
+
+| 種類 | 失敗時の挙動 | 上流の登録 |
+|------|-------------|-----------|
+| `requiredHandlers` | 例外をそのまま投げ、トランザクション全体（ステータス変更・監査ログ含む）をロールバック | `clearWalletBalance`（全ウォレットの balance / locked_balance を 0 にクリア + 履歴記録） |
+| `optionalHandlers` | `console.error` に記録して続行 | `cancelPendingPurchaseRequests`（pending / processing の購入リクエストを expired に。onExpire を持つ purchase_type は per-row でフック呼び出し） |
+
+いずれも記載順に逐次実行され、required → optional の順。
+
+**ハンドラの追加手順**
+
+1. 対象ドメインの `services/server/` に `UserCleanupHandler` 型 `(userId: string, tx: DbTransaction) => Promise<void>` の関数を作る
+   - DB 操作は必ず渡された `tx` で行う（独自にトランザクションを開始しない）
+2. `src/registry/userCleanupRegistry.ts` の `requiredHandlers` か `optionalHandlers` に追加する
+
+```typescript
+// src/features/<domain>/services/server/cleanupOnWithdraw.ts
+import type { DbTransaction } from "@/lib/crud/drizzle/types";
+
+export async function cleanupOnWithdraw(userId: string, tx: DbTransaction): Promise<void> {
+  // userId に紐づくリソースを tx で後始末する
+}
+```
+
+**required / optional の判断基準**
+
+- 失敗したときにデータ不整合が起きる → `required`（例: 残高・ポイントのクリア）
+- 失敗しても許容できるベストエフォート → `optional`（例: 通知送信、外部 API への連携通知）
+- 未処理リクエストのキャンセルのような中間的なものはケースバイケース。**迷ったら `required`**（データ整合性を優先）
+
+> optional でも、ハンドラ内の SQL が失敗すると PostgreSQL のトランザクション自体が aborted 状態になり、後続の処理（監査ログ記録等）も失敗して結局ロールバックされる（`executeCleanup` は SAVEPOINT を張らない）。DB 書き込みの失敗まで許容したい optional ハンドラは、内部の DB 操作を `tx.transaction(...)`（ネストトランザクション = SAVEPOINT）で囲むこと。
 
 ## ステータス遷移履歴（user_status_histories）
 

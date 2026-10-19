@@ -67,6 +67,8 @@ const columns: EditableGridColumn<Item>[] = [
 
 editorType: `text` | `number` | `select` | `multi-select` | `date` | `time` | `datetime` | `readonly` | `switch` | `action`
 
+セルの内部構造・カラムのカスタマイズ（validator / onToggleRequest / renderDisplay 等）・エディター型の追加手順は [EditableGridTable/README.md](./EditableGridTable/README.md)。
+
 ## カラムソート
 
 3つのテーブル（DataTable / RecordSelectionTable / EditableGridTable）で共通のヘッダークリックソートを提供する。

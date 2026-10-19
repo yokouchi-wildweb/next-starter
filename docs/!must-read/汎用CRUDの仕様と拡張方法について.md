@@ -121,7 +121,7 @@ relationWhere: [
 | ページネーション | LIMIT/OFFSET + COUNT(*) | 疑似実装 |
 | extraWhere | 対応 | 非対応 |
 
-多対多・複雑検索が必要なら Drizzle を選択する。詳細: `docs/core-specs/DB種別の違いによる機能の差異.md`
+多対多・複雑検索が必要なら Drizzle を選択する。詳細: `src/lib/crud/README.md`「Firestore 版との差異」
 
 ---
 
@@ -146,6 +146,6 @@ relationWhere: [
 ## 参照リンク
 
 - コアスペック詳細: `src/lib/crud/README.md`
-- DB 別差異: `docs/core-specs/DB種別の違いによる機能の差異.md`
+- DB 別差異: `src/lib/crud/README.md`「Firestore 版との差異」
 - ドメイン生成: `docs/how-to/utility/ドメインファイル自動生成に関するコマンド使用方法.md`
 - フック使用方法: `docs/how-to/implementation/汎用CRUDのフック使用方法.md`

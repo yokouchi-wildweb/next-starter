@@ -520,7 +520,7 @@ await initiatePurchase({
 pnpm task expire-pending-purchases
 ```
 
-詳細なセットアップ例は `docs/reference/cron-tasks.md` を参照。
+詳細なセットアップ例は `src/lib/cron/README.md` の「スケジュールのセットアップ」を参照。
 
 ### パフォーマンス特性（`expirePendingRequests` / `cancelPending`）
 

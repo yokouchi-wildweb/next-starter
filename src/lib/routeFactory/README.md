@@ -10,6 +10,30 @@
 1. **共通処理の一元管理**: 認証、エラーハンドリング、デモモード制御などを一箇所で管理
 2. **将来の拡張性**: 新しい共通処理（ログ、レート制限等）を追加する際にファクトリーのみ修正すればよい
 3. **一貫性の担保**: すべてのAPIルートが同じ構造・挙動を持つ
+4. **認可の構造的強制**: 3 ファクトリーのいずれも、認可を宣言しない（`access` の書き忘れ等）と
+   型エラー or fail-closed で弾かれる。「認可を考えずにルートを書く」ことができない
+
+---
+
+## どのファクトリーを使うか
+
+```
+新しい API を作りたい
+│
+├─ ドメインの標準 CRUD で足りる？
+│   └─ YES → createDomainRoute（手書き不要。serviceRegistry の access で宣言）
+│
+├─ 自分（ログインユーザー本人）のデータだけを扱う？
+│   └─ YES → createMeRoute（/api/me/**）
+│
+└─ それ以外（独自ロジック・特殊入出力）→ createApiRoute。access を必ず宣言:
+        ├─ 未認証で正当（ログイン前・公開マスタ・webhook）→ "public"
+        │     webhook はハンドラ内で署名/トークンを検証する（実例: api/webhook/payment）
+        ├─ ログインユーザーなら誰でも                     → "authenticated"
+        ├─ 管理者のみ                                     → { roleCategories: ["admin"] }
+        ├─ 管理者 + デバッガー（デバッグ用）              → ADMIN_OR_DEBUGGER_RULE
+        └─ 宣言的ルールに乗らない独自認可（条件付き等）  → "custom"（ハンドラ内で自前に守る）
+```
 
 ---
 
@@ -44,7 +68,10 @@ export const GET = createApiRoute(
 | `access` | `RouteAccess` | **必須**。`"public" \| "authenticated" \| "custom" \| { roles?, roleCategories? }`。`"custom"` 以外は factory が認可を強制。型必須のため宣言漏れはコンパイルエラー |
 | `skipForDemo` | `boolean \| undefined` | デモユーザー時のスキップ制御 |
 
-`access` の選び方・パターンは [APIルート認可実装ガイド](../../../docs/how-to/APIルート認可実装ガイド.md) を参照。
+`access` の選び方は上記「どのファクトリーを使うか」を参照。`"custom"` のハンドラでは
+`@/features/core/auth/services/server/requireRole` の `requireAdmin()` / `requireAuthenticated()` で守る
+（失敗時 `DomainError` を throw し factory が 401/403 に変換。ロール判定は DB 同期の `getSessionUser`）。
+デバッグ用ルートの雛形は `src/app/api/debug/ping/route.ts`（`access: ADMIN_OR_DEBUGGER_RULE`）。
 
 #### `skipForDemo` の挙動
 
@@ -76,14 +103,55 @@ export const GET = createDomainRoute<any, Params>(
 );
 ```
 
+#### アクセスポリシー（serviceRegistry の `access`）
+
 アクセスポリシーは serviceRegistry の登録エントリ（`{ service, access }`）で宣言する（型必須）。
+
+```ts
+// src/registry/serviceRegistry.ts
+sample: {
+  service: sampleService,
+  access: {
+    read: "public",
+    write: { roleCategories: ["admin"] },
+    operations: { update: "authenticated", reorder: "authenticated" },
+  },
+},
+```
+
+- 編集元: 自動生成ドメインは domain.json の `apiAccess`（`dc:init` が対話で確認し、`dc:generate` が registry に展開）。
+  手動登録のコアドメインは registry に直接書く。ルール値・スキーマは `src/features/README.md`「ApiAccess」
+- 解決順: `operations[操作名]` → `read` / `write` → `defaultRule`（`resolveAccessRule`、`src/lib/domain/config/apiAccess.ts`）。
+  空 `{}` や部分宣言でも `defaultRule`（admin カテゴリのみ、`src/config/app/domain-api-access.config.ts`）に倒れる（fail-closed）
+- 判定（`enforceAccess.ts`）: registry 未登録 / `"none"` → 404（text/plain）| 未認証 → 401 | 権限不足・利用不可ステータス
+  （`USER_AVAILABLE_STATUSES` 外）→ 403。`"public"` / `"none"` ではセッション取得（DB 引き）をしない
+- プリセット（同 config）: `ADMIN_ONLY` / `PUBLIC_READ`（公開読み取り + 管理者書き込み）/ `ADMIN_OR_DEBUGGER`。
+  単一ルール版 `ADMIN_OR_DEBUGGER_RULE` は `operations` の上書きや `createApiRoute` の `access` にも使える
+- **公開 read の判断基準**: `"public"` にしてよいのは「全レコードが公開情報」のドメインのみ（公開記事・商品マスタ等）。
+  search / count / withRelations 展開も含めて全件見える前提で判断する
+- **`authenticated` はオーナーシップを守らない**: where の `user_id` がクライアント任せなので他人のレコードも読める。
+  ユーザー所有データの汎用 API は admin 限定にし、本人向けは createMeRoute で出す
+- **sample ドメインの例外**: `/demo` ページ（`sortable-list` の reorder、`tables` のインライン update）が使うため、
+  `src/features/sample/domain.json` の `apiAccess.operations` で `update` / `reorder` のみ `authenticated` に緩和している。
+  フォーク先で demo ページを削除する場合はこの緩和も削除する
 
 > **注意（よくある誤解）**: `/api/<domain>/` に独自の静的サブルート（例 `/api/coupon/redeem`）が
 > あっても、汎用 `/api/[domain]/**` は**そのまま動く**。「静的フォルダが汎用ルートをシャドーして 404 に
-> なる」ことは**無い**（Next.js はフルパスでマッチし、静的は完全一致パスだけを占有する）。ミラールートの
-> ような対策は不要。client で setting 等が読めない場合はルーティングではなく**アクセス制御**（例:
-> setting は `ADMIN_ONLY`）を疑う。詳細と検証手順:
-> [docs/troubleshooting/APIルートの静的フォルダは汎用domainルートをシャドーしない.md](../../../docs/troubleshooting/APIルートの静的フォルダは汎用domainルートをシャドーしない.md)
+> なる」ことは**無い**（Next.js はフルパスでマッチし、静的は完全一致パスだけを占有する。
+> `/api/users/[id]` と `/api/users/export` が同居できるのと同じ理屈）。ミラールートのような対策は不要。
+> client で setting 等が読めない場合はルーティングではなく**アクセス制御**（例: setting は `ADMIN_ONLY` のため
+> 非管理者の `useSetting()` は 401）を疑う。非管理者に読ませたい設定は専用の読み取りルートを用意する。
+>
+> 確認は推測でなく、dev サーバーへ未認証で `curl -i` を投げて**ステータスと content-type** で判定する:
+>
+> - `401` / `403` の JSON（例 `{"message":"認証が必要です。"}`）→ 汎用ルートに**到達している**（認可で弾かれただけ）
+> - `404` + `content-type: text/plain`（本文 `Not Found`）→ `[domain]` ハンドラには到達。registry 未登録 or `access` が `"none"`
+> - `404` + `content-type: text/html`（Next の 404 ページ）→ **本物のルーティング欠落**
+>
+> ```
+> curl -i http://localhost:3000/api/setting/global          # 401 JSON（静的 setting/setup があっても到達）
+> curl -i -X POST http://localhost:3000/api/coupon/count    # 401 JSON
+> ```
 
 ---
 
@@ -139,7 +207,7 @@ export const GET = createMeRoute(
 );
 ```
 
-### 管理者限定の書き込み（createApiRoute + access）
+### ログイン必須の書き込み（createApiRoute + access）
 
 ```ts
 export const POST = createApiRoute(
@@ -148,7 +216,21 @@ export const POST = createApiRoute(
     operationType: "write",
     access: "authenticated",
   },
-  async (req) => storageService.upload(req), // 認可は factory が処理済み
+  async (req) => storageService.upload(req), // 未認証→401 / 利用停止→403 は factory が処理済み
+);
+```
+
+### 署名検証付き webhook（access: "public"）
+
+```ts
+export const POST = createApiRoute(
+  {
+    operation: "POST /api/webhook/payment",
+    operationType: "write",
+    access: "public",       // 未認証で叩かれるのが正当。正当性は署名で担保する
+    skipForDemo: false,
+  },
+  async (req) => { /* 署名検証 → 処理 */ },
 );
 ```
 
@@ -156,29 +238,64 @@ export const POST = createApiRoute(
 
 ```ts
 export const POST = createApiRoute(
-  {
-    operation: "POST /api/webhook/payment",
-    operationType: "write",
-    access: "custom",       // 署名検証など独自ガードを自前で行う
-    skipForDemo: false,
+  { operation: "POST /api/example", operationType: "write", access: "custom" },
+  async (req) => {
+    const user = await requireAuthenticated(); // 条件付き認可などをハンドラ内で行う
+    /* ... */
   },
-  async (req) => { /* 署名検証 → 処理 */ },
 );
 ```
 
 ---
 
-## 禁止事項
+## lint（route-authz/require-authz）
+
+`eslint-rules/route-authz.mjs` が `src/app/api/**/route.ts` の `createApiRoute` 呼び出しを検査する（warn）。
+
+- `access` 宣言済み（`"custom"` 以外）→ OK
+- `access: "custom"` なのにファイル内に認可の痕跡（`getSessionUser` / `requireAdmin` / `requireAuthenticated` /
+  `session` 参照 等）が無い → 警告
+- `access` 未宣言 → 警告（型必須のため通常はコンパイルエラーが先に出る）
+
+フォーク先で独自の認可ヘルパーを足した場合は `route-authz.mjs` の `AUTH_SIGNALS` に関数名を追加する。
+
+---
+
+## 禁止事項・アンチパターン
 
 - ファクトリーを経由せずに直接ハンドラをエクスポートすること
 - `operationType` / `access` を省略すること（access は型必須）
 - ユーザー所有データを汎用 `/api/[domain]` で出すこと（オーナーシップを強制できない。createMeRoute を使う）
 - デモスキップの判断をハンドラ内で行うこと（ファクトリーに委譲する）
+- **ハンドラの `ctx.session` でロール判定する**: token-only セッションのためロール剥奪・利用停止が即時反映されない。
+  factory の `access` か `requireAdmin` / `requireAuthenticated`（DB 同期の `getSessionUser`）に任せる
+- **`operationType: "write"` を認可と勘違いする**: デモスキップ・監査用で認可とは無関係
+- **オーナーシップをロールだけで代替する**: `authenticated` でも他人のレコードは見える。`ownerWhere(user)` で絞る
+- **`access: "custom"` で実際には何も守らない**: custom は「自前で守る」宣言。守らないなら適切な access を宣言する
+
+---
+
+## PR 前チェックリスト
+
+- [ ] 汎用 CRUD で足りるなら手書きせず createDomainRoute（serviceRegistry の access）で宣言したか
+- [ ] 本人専用データは createMeRoute（/api/me）にし、`ownerWhere(user)` でサーバー側スコープしたか
+- [ ] `access: "custom"` のルートはハンドラ内で実際に認可しているか
+- [ ] webhook はハンドラ内で署名/トークン検証しているか
+- [ ] `pnpm tsc --noEmit` と `pnpm lint`（route-authz 警告 0）が通るか
+
+---
+
+## トラブルシューティング
+
+- **管理画面の一覧が 403**: 対象ドメインの registry `access` が admin 限定で、ログイン中ユーザーのロールカテゴリが admin でない
+- **公開ページの一覧取得が 401**: registry の `read` が `"public"` でない。公開してよいデータか（上記判断基準）を確認してから宣言する
+- **wallet 等で本人のデータが取れない**: 汎用 `/api/[domain]` ではなく `/api/me/**`（createMeRoute）を使う
+- **静的サブルートを持つドメインの汎用パスが 404 / 401**: シャドーイングではない。上記「注意（よくある誤解）」の curl で判定する
 
 ---
 
 ## 関連ドキュメント
 
-- [APIルート認可実装ガイド](../../../docs/how-to/APIルート認可実装ガイド.md) - access / 3 ファクトリーの実装手順
-- [汎用APIアクセス制御ガイド](../../../docs/how-to/汎用APIアクセス制御ガイド.md) - 設計思想・仕組み
+- `src/features/README.md`「ApiAccess」 - domain.json の `apiAccess` スキーマ（generator が registry へ展開）
+- `src/features/core/auth/services/server/requireRole.ts` - 認可ヘルパー（custom ルート用）
 - `docs/!must-read/アプリ構築における構成層.md` - 全体アーキテクチャ

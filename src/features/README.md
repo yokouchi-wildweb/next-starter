@@ -76,6 +76,22 @@
 
 > ⚠️ **hasMany の FK 生成ルール**: 子テーブル側の外部キーカラム名は `親のsingular + "_id"` で自動決定される。例: 親が `gacha_machine` なら子テーブルの FK は `gacha_machine_id`。fieldName の値は直接使われない。
 
+#### onDelete（削除時の挙動）
+
+belongsTo の外部キーに付く参照先削除時の挙動。`dc:generate` が `entities/drizzle.ts` の `.references()` 第2引数（FK 名が 63 文字を超える場合は短縮名の `foreignKey(...).onDelete()`）に出力する（`scripts/domain-config/generator/entities/generate-drizzle-entity.mjs` の `getOnDeleteBehavior` / `buildOnDeleteOption`）。
+
+| 値 | 参照先が削除されたとき | 生成される Drizzle 設定 |
+|---|---|---|
+| `RESTRICT`（既定） | 参照があれば削除を拒否（エラー → トランザクション全体がロールバック） | `onDelete: "restrict"` |
+| `CASCADE` | このレコードも削除 | `onDelete: "cascade"` |
+| `SET_NULL` | 外部キーを NULL にする | `onDelete: "set null"` |
+
+- 適用対象は belongsTo のみ（FK が自テーブルにあるため）。hasOne / hasMany は FK が相手側なので設定しない。belongsToMany の中間テーブルは両側 CASCADE 固定
+- 解決順: `onDelete` があればそれ → 旧形式 `onDeleteCascade: true` なら CASCADE → それ以外（`onDeleteCascade: false` / 未指定）は RESTRICT
+- 既定を RESTRICT にしているのは、意図しない連鎖削除を防ぎ、CASCADE / SET_NULL を明示的な選択にするため
+- `SET_NULL` と `required: true` は矛盾する（NOT NULL 列を NULL にできない）ため、`dc:generate` がエラー終了する
+- FK 制約が働くのは物理削除のみ。ソフトデリート（`deleted_at` 設定）では onDelete は発火しない
+
 #### hasMany と withRelations
 
 hasMany リレーションを定義すると、`dc:generate` 時に drizzleBase.ts へ `hasManyRelations` 設定が自動生成される。これにより `withRelations: 1` で子レコード配列が親に展開される。
@@ -433,10 +449,10 @@ PostgreSQL の識別子上限 (63 文字) を超える場合は generator がエ
 `indexes` を追加・変更しても、それだけでは実 DB にインデックスは作成されない。Drizzle スキーマ定義 (`entities/drizzle.ts`) に反映後、必ず以下を実行する:
 
 ```bash
-npx drizzle-kit push
+pnpm db:push
 ```
 
-詳細手順は [Neon マイグレーション実行手順](../../docs/how-to/implementation/Neonのマイグレーション実行手順.md) を参照。push を忘れると、コード上は index 定義があってもクエリは全表スキャンのままで、本機能の目的 (検索/集計の高速化) を達成できない。
+詳細手順は [scripts/registry/README.md の「スキーマ変更を DB に反映する（push）」](../../scripts/registry/README.md) を参照。push を忘れると、コード上は index 定義があってもクエリは全表スキャンのままで、本機能の目的 (検索/集計の高速化) を達成できない。
 
 #### ⚠️ push round-trip の確認（index を書いたら必須）
 
@@ -482,7 +498,7 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 > **実行時ソースは serviceRegistry**: domain.json の `apiAccess` は editing source で、
 > `dc:generate` が serviceRegistry エントリの `access` に展開する（`{ service, access }`、型必須）。
 > 実行時の認可は registry の access を参照する。手動登録のコアドメインは registry に直接 access を書く。
-> 詳細: docs/how-to/汎用APIアクセス制御ガイド.md
+> 詳細: `src/lib/routeFactory/README.md`「アクセスポリシー（serviceRegistry の `access`）」
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|

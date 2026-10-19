@@ -2,8 +2,7 @@
 
 管理者・システムからユーザーへお知らせを送信する仕組み。全体/ロール別/個別送信、既読管理、スケジュール配信を提供。ユーザー側UIはフック・APIのみ提供し、ダウンストリーム側で自由に構成する。
 
-設計思想・計算量特性・大規模化したときの拡張判断基準は
-[通知機能の設計方針とスケーリング指針](../../../../docs/concepts/通知機能の設計方針とスケーリング指針.md) を参照。
+設計思想・計算量特性・大規模化したときの拡張判断基準は [設計方針とスケーリング指針](#設計方針とスケーリング指針) を参照。
 
 ---
 
@@ -14,6 +13,7 @@ src/features/core/notification/
 ├── entities/
 │   ├── drizzle.ts              # notifications テーブル定義
 │   ├── notificationRead.ts     # notification_reads テーブル定義（手動、複合PK）
+│   ├── notificationReadState.ts # notification_read_states テーブル定義（既読ウォーターマーク、手動）
 │   ├── schema.ts               # Zod バリデーション
 │   └── model.ts                # TypeScript 型定義
 ├── services/
@@ -33,7 +33,9 @@ src/features/core/notification/
 │   │       ├── getUnreadCount.ts    # 未読数取得（getMyNotificationsCountのラッパ）
 │   │       ├── markAsRead.ts        # 個別既読
 │   │       ├── markAllAsRead.ts     # 全既読
-│   │       ├── queryHelpers.ts      # 共通WHERE条件 / 未読条件
+│   │       ├── queryHelpers.ts      # 可視性 WHERE 条件（buildVisibilityWhere）
+│   │       ├── readState.ts         # 既読判定の単一集約点（個別既読 + ウォーターマーク / 未読条件）
+│   │       ├── viewer.ts            # 閲覧者コンテキスト（NotificationViewer）
 │   │       └── resolveNotificationImage.ts # 通知画像リゾルバ（汎用）
 │   └── client/
 │       ├── notificationClient.ts        # 標準CRUDクライアント（生成）
@@ -78,7 +80,15 @@ src/features/core/notification/
 | user_id | uuid | FK → users |
 | read_at | timestamptz | 既読日時 |
 
-複合PK: (notification_id, user_id)。レコードなし = 未読。
+複合PK: (notification_id, user_id)。個別既読の記録。未読判定はこれ単独ではなく下記ウォーターマークと併せて行う（[既読のハイブリッド方式](#既読のハイブリッド方式)）。
+
+### notification_read_states テーブル
+
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| user_id | uuid | PK / FK → users（cascade） |
+| read_watermark_at | timestamptz | この時刻以前に公開された通知は既読扱い。NULL = 全既読を一度も実行していない |
+| updated_at | timestamptz | 更新日時 |
 
 ## 可視性ルール（誰にどの通知が見えるか）
 
@@ -109,6 +119,55 @@ const notifications = await notificationService.getMyNotifications(viewer, { unr
 2. `buildVisibilityWhere()` に WHERE 句を1つ追加
 
 この2箇所だけで、全消費者（一覧 / ページ / 件数 / 既読化）へ一貫して反映される。呼び出し側のシグネチャは変わらない。
+
+---
+
+## 設計方針とスケーリング指針
+
+「いま何が効いていて、負荷が出たら次に何を入れるか」を downstream が判断するための節。
+
+### 基本設計：配信レコードを持たない（query-time fan-out）
+
+- 通知1件 = `notifications` 1行（`target_type` と対象情報のみ）。ユーザーごとの配信行は作らず、[可視性ルール](#可視性ルール誰にどの通知が見えるか) で読み取り時に対象者を計算する
+- 利点: **配信（書き込み）が O(1)**。`target_type='all'` でも 1行 INSERT で、ユーザー数に依存しない
+- トレードオフ: コストは読み取り側に寄る（以下の対策はすべて読み取り側）
+- 得意: all / role 中心のブロードキャスト（本テンプレートの想定主用途）
+- 不得意: 巨大なユーザー集合への `individual` 配信（`target_user_ids` が単一行の巨大配列になる）、動的な任意セグメント配信 → 主用途になるなら下記 recipient モデルを検討
+
+### 既読のハイブリッド方式
+
+既読は2系統を併用し、判定は `readState.ts` の1モジュールに集約されている（各クエリは viewer を渡して呼ぶだけで、どちらの系統で既読かを意識しない）。既読セマンティクスを変えるときは `readState.ts` だけを変更する。
+
+1. **個別既読** … `notification_reads`（通知1件ごとの行）
+2. **既読ウォーターマーク** … `notification_read_states.read_watermark_at`。この時刻以前に公開された通知は既読扱い
+
+- 未読の単一定義（`unreadConditions`）= 個別既読が無い AND サイレントでない AND `published_at > COALESCE(watermark, '-infinity')`（watermark 未設定で全件既読になる罠を回避）
+- 表示用 readAt（`effectiveReadAtExpr`）= 個別既読の read_at → サイレントは published_at → watermark 以前なら watermark 時刻 → いずれでもなければ NULL
+- watermark は相関のないスカラサブクエリで引くため PG では1回だけ評価される
+- **全既読は O(1)**: `markAllAsRead` は未読を1件ずつ INSERT せず、watermark を `now()` に 1行 upsert。同一トランザクションで watermark 以前の個別既読行を prune し `notification_reads` の増殖を抑える（可視通知は必ず `published_at <= now()` なので prune しても既読状態は失われない）
+- 注意: `published_at` を既存ユーザーの watermark より過去に backdate して配信した通知は「最初から既読」になる。通常運用（即時 or 予約）では問題にならない
+
+### 計算量とインデックス
+
+| 操作 | 方式 | 計算量 |
+|------|------|--------|
+| 配信（all/role/individual） | 1行 INSERT | O(1) |
+| 一覧ページ取得（無限スクロール） | keyset(cursor) ページネーション | O(page) |
+| 全既読 | watermark upsert + prune | O(1) + prune |
+| 未読カウント | watermark 以降を COUNT | watermark 以降の件数に比例 |
+
+- インデックス `notifications_published_at_id_idx`（`published_at, id`）が keyset の `(published_at, id) < cursor` + `ORDER BY published_at DESC, id DESC` を処理し、左端プレフィックスで可視性判定の `published_at` 範囲フィルタにも効く
+- ページ取得は `total` を返さない（keyset では安価に出せない）。件数が必要なら `/api/notification/my/count` を併用
+
+追加インフラ不要の対策（複合インデックス / ウォーターマーク / keyset）は導入済みで、all/role 中心の用途では読み取りパスの主要な対策は出し切っている。
+
+### これ以上スケールが必要になったとき
+
+以下はインフラ追加またはアーキテクチャ変更を伴う。実測で必要になってから opt-in で導入する。
+
+- **未読カウントのキャッシュ化** — トリガー: バッジ用 `unread-count` のポーリング QPS が DB を圧迫。手段: 短 TTL キャッシュ（Redis 等）、または SWR の `dedupingInterval` / ポーリング間隔で頻度を抑える。**per-user カウンタ列は不可**（ブロードキャストのたびに全ユーザー分の fan-out 更新が必要になり、配信 O(1) を失う）
+- **リアルタイム配信** — トリガー: ポーリングでは即時性が足りない。手段: SSE / WebSocket / Web Push（transport インフラ追加、スケールというより機能要件）
+- **recipient / inbox モデル** — トリガー: 巨大集合への individual 配信、動的セグメント配信、配信時点の凍結（送信後に role が変わっても見え方を固定）、多チャネル・配信停止・配信分析のいずれかが主用途になったとき。手段: `notification_recipients (notification_id, user_id, delivered_at, read_at, ...)` を導入し配信を「計算」から「事実」へ（キュー/ジョブで fan-out）。コスト: 配信が O(対象ユーザー数) になる大きな変更。可視性判定が `buildVisibilityWhere` / `NotificationViewer` に集約されているため移行時の影響範囲は限定しやすい
 
 ---
 

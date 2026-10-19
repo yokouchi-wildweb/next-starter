@@ -11,7 +11,7 @@ import type {
  *
  * 各ドメインのアクセスポリシーは serviceRegistry の登録エントリ（access）で宣言する。
  * ここでは、access に当該操作のルールが宣言されていない場合のフォールバック（fail-closed）を定義する。
- * 詳細: docs/how-to/APIルート認可実装ガイド.md
+ * 詳細: src/lib/routeFactory/README.md
  */
 export const DOMAIN_API_ACCESS_CONFIG = {
   /**

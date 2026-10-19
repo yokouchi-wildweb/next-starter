@@ -95,7 +95,7 @@ const requireAuthzRule = {
       missingAccess:
         "createApiRoute に access の宣言がありません。アクセスポリシーを宣言してください" +
         "（public / authenticated / custom / { roleCategories } など）。" +
-        "詳細: docs/how-to/APIルート認可実装ガイド.md",
+        "詳細: src/lib/routeFactory/README.md（どのファクトリーを使うか）",
       customNoGuard:
         "access: \"custom\"（自前認可）と宣言されていますが、ハンドラ内に認可の痕跡" +
         "（getSessionUser / requireAdmin / requireAuthenticated / session 参照 等）が見当たりません。" +

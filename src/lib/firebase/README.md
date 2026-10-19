@@ -9,10 +9,12 @@ src/lib/firebase/
 ├── client/
 │   ├── app.ts              # クライアント側 Firebase 初期化
 │   ├── analytics.ts        # Firebase Analytics ユーティリティ
+│   ├── applyEmailChange.ts
 │   ├── checkActionCodeValidity.ts
 │   └── signInWithEmailLinkClient.ts
 ├── server/
 │   ├── app.ts              # サーバー側 Admin SDK 初期化
+│   ├── authAdmin.ts        # Firebase Auth ユーザー操作（Admin SDK）
 │   └── storage.ts          # Storage 操作ヘルパー
 ├── errors.ts               # Firebase 関連エラー定義
 └── README.md               # このファイル
@@ -37,6 +39,33 @@ src/lib/firebase/
 - それ以外の消費者（ログイン hooks、メール送信、Storage 等）はガード不要です。未設定で呼べば即座に `FirebaseNotConfiguredError` になり、ユーザーには通常のエラー表示として出ます。
 
 未設定で動く範囲と、各機能に必要な設定の一覧は手順書の「機能別に必要なバックエンド」を参照してください。
+
+---
+
+## サーバー側ヘルパー（Admin SDK）
+
+すべて Admin SDK ベースで、セキュリティルールを経由しません。呼び出し側で認可を済ませてから使ってください。
+未設定時は下記すべてが `FirebaseNotConfiguredError("server")` になります（上記「未設定モード」）。
+
+`server/app.ts`（シングルトン・遅延初期化。サービスアカウントは `MY_SERVICE_ACCOUNT_KEY` の JSON、`projectId` / `storageBucket` はクライアントと同じ `NEXT_PUBLIC_FIREBASE_*` を使用）
+
+- `getServerApp()` / `getServerAuth()` / `getServerFirestore()` / `getServerStorage()`
+
+`server/storage.ts`（Storage 操作）
+
+- `uploadFileServer(path, buffer, contentType?)` — Buffer を保存し、公開化して公開 URL を返す（`cacheControl: public, max-age=31536000, immutable`）
+- `deleteFileServer(path)` — ファイルを削除する
+- `copyFileServer(sourcePath, destPath)` — 複製して公開化し、複製先の公開 URL を返す
+- `getReadSignedUrl(path, ttlSec = 120)` — 読み取り用 V4 署名付き URL（Range 部分取得したい用途向け）
+- `getFileMetadata(path)` — `{ sizeBytes, contentType }`（取得不能な項目は null）
+- `getPathFromStorageUrl(url)` — `firebasestorage.googleapis.com` / `storage.googleapis.com` の URL から Storage パスを取り出す（`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` 以外のバケットや解析不能な URL は `undefined`）。クライアント用の同名関数（`src/lib/storage/client/directStorageClient.ts`）と同じ挙動
+
+業務コードからのアップロード / 削除は通常 `src/lib/storage`（[Storage の使い方](../storage/README.md)）経由で行い、これらは直接呼ばないでください。
+
+`server/authAdmin.ts`（Firebase Auth ユーザー操作。`uid` は users の providerUid）
+
+- `getAuthUser(uid)` — 存在しなければ null
+- `deleteAuthUser(uid)` / `disableAuthUser(uid)` / `enableAuthUser(uid)` / `revokeAuthTokens(uid)` — 対象ユーザーが既に存在しない場合は警告ログのみで正常終了
 
 ---
 
@@ -212,7 +241,5 @@ useEffect(() => {
 
 ## その他の Firebase 機能
 
-Auth、Firestore、Storage については以下を参照してください。
-
-- [Firebase 統合についての説明](../../../docs/how-to/initial-setup/firebase統合についての説明.md)
-- [Storage の使い方](../storage/README.md)
+- Storage: [Storage の使い方](../storage/README.md)
+- サーバー側（Admin SDK）: 本 README の「サーバー側ヘルパー（Admin SDK）」

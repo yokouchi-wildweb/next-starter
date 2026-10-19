@@ -643,7 +643,7 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
    両タスクは `vercel.json.example` に登録済みのため、これをコピーした `vercel.json` を持つ
    Vercel プロジェクトでは**追加作業なしで自動実行される**（未オプトインでも no-op なので害はない）。
    古い `vercel.json` を使っている場合は2行を追記する。Vercel 以外は任意のスケジューラから登録
-   （`docs/reference/cron-tasks.md` 参照）。
+   （[cron 基盤 README](../../../lib/cron/README.md#スケジュールのセットアップ) 参照）。
 
    失効通知を送る場合は `wallet-expiration-notice`（毎時）も必要。設定は「失効通知」節を参照。
    **通知の cron は最初の失効日より前に1回以上動かしておくこと**（本通知は初回実行で開始位置を記録するだけで、

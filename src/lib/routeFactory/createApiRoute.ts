@@ -104,7 +104,7 @@ export type ApiRouteConfig = {
    * - "public" / "authenticated" / { roles?, roleCategories? }: factory が認可
    * - "custom": ハンドラ内で自前認可する明示宣言（webhook 署名検証・オーナーシップ等）
    * 型必須のため、宣言し忘れるとコンパイルが通らない（fail-closed by construction）。
-   * 詳細: docs/how-to/APIルート認可実装ガイド.md
+   * 詳細: src/lib/routeFactory/README.md
    */
   access: RouteAccess;
   /**

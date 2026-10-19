@@ -7,6 +7,17 @@
 | `pnpm test:schema-registry` | core ドメインの `entities/drizzle.ts` が全て schemaRegistry に登録されているか（登録漏れ = テーブルが作られない） | 不要 |
 | `pnpm db:push:check` | schemaRegistry と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1 | 必要・読み取り専用 |
 
+## スキーマ変更を DB に反映する（push）
+
+このリポジトリはマイグレーションファイルを使わない。`pnpm db:push`（`drizzle-kit push`）が schemaRegistry と実 DB を直接比較し、差分の SQL をその場で実行する（`drizzle-kit generate` → SQL ファイル適用、という手順は取らない）。
+
+1. `entities/drizzle.ts` を変更する（business ドメインは `domain.json` → `pnpm dc:generate`。新しいドメインは schemaRegistry に自動登録される）
+2. core ドメインに `entities/drizzle.ts` を新設した場合は schemaRegistry の CORE DOMAINS ブロックに `export *` を手で追加し、`pnpm test:schema-registry` を通す
+3. `pnpm db:push` で開発 DB に反映する（`.env.development` 固定。DB に書き込む操作なので実行者が手で行う）
+4. index を追加・変更した場合は `pnpm db:push:check` が差分ゼロになることを確認する（下記）
+
+他環境への push は `pnpm db:push` ではなく `APP_ENV=<env ファイル> pnpm exec drizzle-kit push`（`db:push` スクリプトは `APP_ENV=.env.development` を固定で設定するため）。本番 push のタイミングは下記「運用方針」に従う。
+
 ## db:push:check（push の読み取り専用ドライラン）
 
 ```bash

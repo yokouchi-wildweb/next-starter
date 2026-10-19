@@ -201,7 +201,7 @@ core は画面を同梱しない。ユーザー詳細 (admin) に載せる場合
 
 - デフォルト保持期間: `DEFAULT_LOGIN_EVENT_RETENTION_DAYS = 365` (日)
 - 削除タスク: `pruneExpiredUserLoginEvents()` (`pruning.ts`)
-- cron: `user-login-event-prune` … 詳細は [cron タスクカタログ](../../../../docs/reference/cron-tasks.md) を参照
+- cron: `user-login-event-prune` … 詳細は [cron タスクカタログ](../../../lib/cron/README.md#cron-タスクカタログ) を参照
 
 IP は個人情報のため、無期限保持にせず retention で自動削除する設計にしている。下流プロジェクトで保持期間を変えたい場合は記録時の `retentionDays` または定数を調整する。
 
@@ -240,5 +240,5 @@ IP に関するデータは現在 **3 箇所に併存** している。本テー
 ## 関連ファイル
 
 - ユーザードメイン本体: [`user/README.md`](../user/README.md)
-- cron タスクカタログ: [`docs/reference/cron-tasks.md`](../../../../docs/reference/cron-tasks.md)
+- cron タスクカタログ: [`src/lib/cron/README.md`](../../../lib/cron/README.md#cron-タスクカタログ)
 - 監査ログ (別の IP 記録経路 = `context.ip`): [`docs/how-to/監査ログ採用ガイド.md`](../../../../docs/how-to/監査ログ採用ガイド.md)

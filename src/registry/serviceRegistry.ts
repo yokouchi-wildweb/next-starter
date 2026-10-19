@@ -3,7 +3,7 @@
 // ドメイン登録のみを記載するファイル。
 // 値は { service, access }（access は型必須 = 認可ポリシーの宣言漏れを構造的に防止）。
 // 型: DomainRegistryEntry / プリセット: ADMIN_ONLY・PUBLIC_READ・ADMIN_OR_DEBUGGER
-// 詳細: docs/how-to/APIルート認可実装ガイド.md
+// 詳細: src/lib/routeFactory/README.md
 
 import type { DomainRegistryEntry } from "@/lib/domain/types";
 import { ADMIN_ONLY, PUBLIC_READ } from "@/config/app/domain-api-access.config";

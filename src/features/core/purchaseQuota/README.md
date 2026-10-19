@@ -163,6 +163,7 @@ pnpm task purchase-quota-cleanup
 ```
 - 推奨スケジュール: `0 4 * * *` (audit-log-prune と同様の時間帯)
 - 90 日より古い ledger 行を物理削除
+- CLI 専用タスク（`/api/cron/*` ルートと `vercel.json.example` には未登録）。スケジューラの組み方は [cron 基盤 README](../../../lib/cron/README.md#cron-タスクカタログ) を参照
 
 ---
 
@@ -171,7 +172,7 @@ pnpm task purchase-quota-cleanup
 新規テーブル `purchase_quota_ledger` を追加する。
 
 ```bash
-pnpm drizzle-kit push
+pnpm db:push
 ```
 
 既存テーブルへの変更は無いため、稼働中プロジェクトもダウンタイム無しで導入可能。
@@ -184,4 +185,17 @@ pnpm drizzle-kit push
 - **整合性**: reserveQuota は呼び出し側の購入 tx に必ず相乗りする (rollback で台帳も巻き戻る)
 - **監査ログ**: クォータ超過拒否のみ記録 (reserve/commit/release は高頻度のため不記録)。`purchase_quota.reservation.exceeded` action は `auditLogger.record` で `bestEffort: true` を指定し、AuditContext 未設定時も dead-letter 経由で残る
 - **並行制御**: 同一ユーザーの並行 reserve は `pg_advisory_xact_lock(hashtext(userId))` で直列化
-- **rate limit との違い**: rateLimit は「リクエスト回数」、purchaseQuota は「累積金額」を制御する。両方とも independent に動作する
+
+---
+
+## rateLimit との違い
+
+| | rateLimit (`src/features/core/rateLimit`) | purchaseQuota (本機能) |
+|---|---|---|
+| 制御対象 | リクエスト**回数** | 累積**金額** |
+| 識別子 | 呼び出し側が渡す識別子（routeFactory の `rateLimit` / `rateLimitSubnet` は IP / サブネット） | userId |
+| 上限の種類 | `maxRequests` | `maxAmount` (円) |
+| 適用箇所 | routeFactory の `rateLimit` / `rateLimitSubnet` オプション等 | `initiatePurchase` 内 (固定組込) |
+| ロールバック | 不要 | 失敗・キャンセル・期限切れ時に release |
+
+2 つは独立して動作し、両方同時に有効化できる。

@@ -12,7 +12,7 @@ import type { DomainApiAccessConfig } from "./apiAccess";
  * このエントリの access を唯一の実行時ソースとして認可する。
  * access を空 {} にした場合も defaultRule（admin 限定）にフォールバックし安全側に倒れる。
  *
- * 詳細: docs/how-to/APIルート認可実装ガイド.md
+ * 詳細: src/lib/routeFactory/README.md
  */
 export type DomainRegistryEntry = {
   // サービスの型はドメインごとに異なるため any で受ける（既存 Record<string, any> 挙動を踏襲）

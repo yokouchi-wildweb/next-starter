@@ -83,6 +83,20 @@ createCrudService<TTable, TCreate>(table, {
 })
 ```
 
+### 型パラメーター（TCreate / DefaultInsert）と upsert の要求型
+
+- `TCreate` = サービスが受け取る作成データ型。省略時は `DefaultInsert<TTable>`
+  （= `InferInsertModel<TTable>` から `id` / `createdAt` / `updatedAt` を除いた型、`drizzle/service.ts`）。
+  `entities/drizzle.ts` のテーブル定義変更がそのまま型に連動する
+- 作成用型を差し替える場合は `createCrudService<MyTable, CustomCreate>(...)` と第 2 型引数を明示する
+- `defaultUpsertConflictFields` / `upsert` の `conflictFields` は `TCreate` のキーからしか選べない。
+  解決順: 呼び出しの `conflictFields` → `defaultUpsertConflictFields` → `id`（`resolveConflictTarget`）
+- `upsert(data: Insert & { id?: string })` は **完全な Insert 形状**を要求する。
+  同じ値を `insert ... values` と `onConflictDoUpdate.set`（`id` のみ除去）の両方に使う
+  1 ステートメント実装のため、型レベルでは「新規作成できるデータ」でなければならない。
+  各フィールドをオプショナルにした部分更新用スキーマは `upsert` に渡せない
+- 既存レコードの部分更新は `update(id, Partial<Insert>)` を使う（`undefined` は除去されて送られる）
+
 ### requestMemo（リクエストスコープメモ化）
 
 `requestMemo: true` にすると、`get(id)`（オプションなし呼び出しのみ）が同一サーバー
@@ -411,6 +425,21 @@ await service.search({
 });
 ```
 
+#### 落とし穴: `sql` テンプレートに Date を直接渡さない
+
+`extraWhere` / `extraOrderBy` / `systemUpdate` の SQL 式など、`sql` テンプレートリテラル全般に共通（lint ガードなし、過去に複数回発生）。
+
+- 症状: JS の `Date` を `${...}` に直接埋め込むと PostgreSQL 側でパースに失敗し 500 エラー
+- 原因: `sql` 内のパラメータは `Date.toString()` 相当（`"Sun Mar 01 2026 23:59:59 GMT+0900 (...)"`）で渡り、`::timestamptz` キャストを付けても解析できない
+- 対処: `.toISOString()` で文字列化してから渡す。Drizzle の組み込みオペレータ（`eq` / `gt` / `lt` / `gte` / `lte` / `between` 等）は Date を正しくシリアライズするので変換不要
+
+```typescript
+// NG
+sql`CASE WHEN ${t.completedAt} >= ${range.dateFrom} THEN 'current' ELSE 'previous' END`
+// OK
+sql`CASE WHEN ${t.completedAt} >= ${range.dateFrom.toISOString()} THEN 'current' ELSE 'previous' END`
+```
+
 ### テキスト検索（searchQuery）
 
 - `searchFields` の各カラムに対して `ILIKE %query%` を OR で結合（結果集合・count はこれだけで決まる）
@@ -617,8 +646,9 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 | extraWhere | 対応 | 非対応 |
 | or 条件 | 対応 | 非対応（エラー） |
 | 複数列 orderBy | 対応 | 単一列のみ |
+| テキスト検索（searchQuery） | `searchFields` 全カラムに `ILIKE %q%` を OR | `searchFields` の **先頭 1 カラムのみ** 前方一致（`>= q` かつ `<= q + "\uf8ff"`） |
 | searchRank | 対応 | 非対応（無視） |
-| ページネーション | LIMIT/OFFSET + COUNT(*) | page*limit 件取得 → slice |
+| ページネーション | LIMIT/OFFSET + COUNT(*) | page*limit 件取得 → slice。`search` の `total` は取得件数（最大 page*limit）で実総数ではない（実総数は `count()`） |
 | withRelations / withCount | 対応 | 非対応 |
 | replaceByQuery | 対応 | 非対応 |
 | 並び替え | Fractional Indexing | 非対応 |

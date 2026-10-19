@@ -766,6 +766,38 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
 
 これにより、ルーム一覧で最新メッセージが常に正しく表示され、送信者自身に未読バッジが付くことを防ぐ。
 
+### 設計判断の理由
+
+**lastMessageSnapshot をクライアント writeBatch で更新する（Cloud Functions トリガーを使わない）**
+
+- メッセージ作成と snapshot 更新が同一バッチでアトミックに確定し、送信直後に一覧へ反映される（Functions トリガーは非同期で遅延が出る）
+- 整合性はセキュリティルールのフィールド検証で強制できる
+- BACKEND_DOCTRINE の「Firebase Functions にロジックを置かない」とも一致する
+
+**未読管理を chatRoom 内の `readAt` map に統合する**
+
+- 一覧購読だけで未読判定が完結し、ルームごとの追加読取が発生しない
+- `readAt` の更新はチャット画面側（`useReadAt` の入室・滞在中の新着・退出時）と自分の送信時のみ。一覧のリアルタイムリスナーでは更新しない（書き込みコスト抑制）
+- 代償: 参加者が多いと同一ドキュメントへの同時書き込み競合が起きうる。`MAX_PARTICIPANTS`（30）程度では実害はない
+- **100 人超のグループが必要になったら** `chat_rooms/{roomId}/members/{userId}` サブコレクションへ readAt を分離する。一覧での未読判定が追加読取になるトレードオフと引き換えに書き込み競合を回避する
+
+**タイピング表示（未実装）は Firestore ではなく Realtime Database を使う**
+
+- Firestore は書き込み回数課金で、数秒おきに発生する typing 状態更新には不向き。RTDB は高頻度な小さい値の更新に向き、`onDisconnect` で切断時の自動クリアもできる
+- 構造案: `chatTyping/{roomId}/{userId}: { isTyping, updatedAt }`。クライアント側で `updatedAt` が数秒以上古ければ表示しないフェイルセーフを入れる
+- RTDB は必要になった時点で導入する（上流は未導入）
+
+**セキュリティルールの方針（ルールファイルは上流に同梱しない。ダウンストリームでデプロイする）**
+
+- ルールはドキュメント単位で評価されるため、各ドキュメントのフィールド値検証で制約を担保する
+- `chat_rooms` の update は 1 つの allow 式で「どのフィールドが変わったか」を分岐判定する。少なくとも次の経路を区別する:
+  - 既読更新: `readAt` の自分のキーのみ変更
+  - メッセージ送信: `lastMessageSnapshot` / `updatedAt` / 自分の `readAt` のみ変更、かつ `lastMessageSnapshot.senderId == request.auth.uid`、`content` が `MESSAGE_MAX_LENGTH` 以内
+  - 編集（最新メッセージ時）: `lastMessageSnapshot.content` / `updatedAt` のみ変更
+  - 参加者管理・ルーム名変更等: 用途に応じた権限条件
+- `messages` は親ルームの `participants` に含まれることを read/create の条件にし、create は `senderId == request.auth.uid`。編集・論理削除を使う場合は送信者本人のみに update を許可する
+- Storage のチャット添付は Firestore の `participants` を直接参照しにくいため、Custom Claims か API ルート経由アップロードで制御する
+
 ### 未読判定のロジック
 
 `isRoomUnread(room, uid)` は以下の条件で未読と判定する:
@@ -857,5 +889,5 @@ chatRoom/
 - **リプライ**: `ChatMessage` に `replyTo: { messageId, content, senderId }` を追加
 - **メンション**: `ChatMessage` に `mentions: string[]` を追加
 - **リアクション**: サブコレクション `messages/{messageId}/reactions` を新設
-- **タイピング表示**: 別コレクション or Realtime Database を使用
+- **タイピング表示**: Realtime Database を使用（[設計判断の理由](#設計判断の理由)参照）
 - **既読レシート**: 既存の `readAt` マップを活用
