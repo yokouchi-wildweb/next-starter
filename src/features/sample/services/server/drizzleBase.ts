@@ -8,7 +8,7 @@ import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entiti
 import { extractStorageFields } from "@/lib/crud/storageIntegration/extractStorageFields";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import type { IdType, OrderBySpec } from "@/lib/crud/types";
+import type { IdType, OrderBySpec, SearchRankSpec } from "@/lib/crud/types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
@@ -25,6 +25,8 @@ export const baseOptions = {
   useUpdatedAt: conf.useUpdatedAt,
   useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
+  // 関連度ランキング（searchRank: true 時のフィールド重み。未宣言なら searchFields 等重み）
+  defaultSearchRank: conf.searchRank as SearchRankSpec | undefined,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
   // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（未宣言なら無効）
   systemColumns: conf.systemColumns,

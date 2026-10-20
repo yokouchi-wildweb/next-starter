@@ -105,7 +105,9 @@
 | 初回だけ生成（write-once） | 管理画面ルートの `page.tsx`（1 行スイッチ）。既存なら保持し、旧形式（本体を直接持つ）なら一度だけスイッチ形へ移行する |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
-| 未登録なら追記 | `src/registry/` の各ファイル。ただし `serviceRegistry.ts` の該当ドメイン行は毎回 `apiAccess` から書き直す（手で変えた `access` は消える。`apiAccess` 未宣言なら fail-closed = admin 限定で登録して警告） |
+| 未登録なら追記 | `src/registry/` の各ファイル（引用符・空白違いの既存行も登録済みとみなす）。ただし `serviceRegistry.ts` の該当ドメインのエントリは毎回 `apiAccess` から 1 行で書き直す（手で変えた `access` や複数行の整形は消える。`apiAccess` 未宣言なら fail-closed = admin 限定で登録して警告） |
+
+`serviceRegistry.ts` の書き直しは `serviceRegistry` オブジェクト直下のキーだけを見て、複数行のエントリも `{` から対応する `}` まで丸ごと置き換える（`generator/registry/utils/objectEntry.mjs`）。`AUTO-GENERATED` ブロック外に置いた直下エントリも置き換え、無ければ `AUTO-GENERATED-END` の直前に追加する。Prettier で整形しても壊れないが、再生成で 1 行に戻る。テスト: `pnpm test:dc-registry`。
 
 管理画面ルートの構造（`page.tsx` / `_screen/` / 共有 loader）は [`src/lib/screens/README.md`](../../src/lib/screens/README.md) §12。
 
@@ -133,11 +135,12 @@
 2. `pnpm dc:generate <Domain>` → 通常は `domain.json の設定に基づいて生成`
 3. 差分を確認し、Neon なら `pnpm db:push`
 
-テンプレート（`_template/`）や生成器を変えたとき: `pnpm dc:generate:all` で全ドメインへ反映し、差分を確認する。
+テンプレート（`_template/`）や生成器を変えたとき: `pnpm dc:generate:all --yes` で全ドメインへ反映し、差分を確認してサンプルの再生成結果も一緒にコミットする。
+
+サンプルの陳腐化検査: `pnpm test:dc-sample-drift` は `sample` / `sampleCategory` / `sampleTag` を一時ディレクトリへ複製したうえで再生成し、コミット済みの生成物と 1 バイトでも違えば落ちる（作業ツリーは書き換えない）。fork が手本にするサンプルを、テンプレートの変更に追従させるための検査。生成物（`serviceRegistry.ts` の `AUTO-GENERATED` ブロックを含む）を手で整形すると落ちる。存在しないサンプルドメインは対象から外し、全部無ければスキップする（サンプルを消した fork では何もしない）。
 
 ## よくある失敗
 
-- `設定ファイルが見つかりません: .../src/features/--/domain.json` → `--` を付けている。外す
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - MediaUploader の追加質問が出ない → フォーム入力の種類を `mediaUploader` / `mediaUploaderMulti` にしたフィールドでだけ出る

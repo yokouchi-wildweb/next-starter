@@ -15,8 +15,9 @@ export default function updateSchemaRegistry({ rootDir, camel, dbEngine }) {
   const marker = lines.findIndex((l) => l.includes('// --- AUTO-GENERATED-END ---'));
   const exportIndex = marker !== -1 ? marker : lines.findIndex((l) => l.trim() === 'export {};');
   const newLine = `export * from "@/features/${camel}/entities/drizzle";`;
-  // 既に登録済みなら処理しない
-  if (lines.includes(newLine)) {
+  // 既に登録済みなら処理しない（引用符・空白の違いは同一とみなす）
+  const existingPattern = new RegExp(`^\\s*export\\s*\\*\\s*from\\s*["']@/features/${camel}/entities/drizzle["']`);
+  if (lines.some((l) => existingPattern.test(l))) {
     console.log(`スキップしました（既に存在）: ${schemaPath}`);
     return;
   }

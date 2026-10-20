@@ -13,6 +13,9 @@ export default function updateDomainConfigRegistry({ rootDir, camel }) {
 
   const importLine = `import ${camel}Config from "@/features/${camel}/domain.json";`;
   const mapEntry = `  ${snake}: ${camel}Config,`;
+  // 引用符・空白の違い（Prettier 整形等）があっても登録済みとみなす
+  const importPattern = new RegExp(`^\\s*import\\s+${camel}Config\\s+from\\s*["']@/features/${camel}/domain\\.json["']`);
+  const mapPattern = new RegExp(`^\\s*["']?${snake}["']?\\s*:\\s*${camel}Config\\b`);
 
   // 最後の import 行を探す
   let lastImport = -1;
@@ -21,7 +24,7 @@ export default function updateDomainConfigRegistry({ rootDir, camel }) {
   }
 
   // 未登録であれば import 行を挿入
-  if (!content.includes(importLine)) {
+  if (!content.some((l) => importPattern.test(l))) {
     content.splice(lastImport + 1, 0, importLine);
   }
 
@@ -34,7 +37,7 @@ export default function updateDomainConfigRegistry({ rootDir, camel }) {
   }
 
   // まだ登録されていなければマップに追加
-  if (!content.some((l) => l.includes(`${snake}: ${camel}Config`))) {
+  if (!content.some((l) => mapPattern.test(l))) {
     content.splice(insertIndex, 0, mapEntry);
   }
 

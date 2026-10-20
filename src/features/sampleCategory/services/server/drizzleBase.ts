@@ -5,9 +5,10 @@ import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle"
 import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/drizzle";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 import { SampleCategoryCreateSchema, SampleCategoryUpdateSchema } from "@/features/sampleCategory/entities/schema";
+import { extractStorageFields } from "@/lib/crud/storageIntegration/extractStorageFields";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
-import type { IdType, OrderBySpec } from "@/lib/crud/types";
+import type { IdType, OrderBySpec, SearchRankSpec } from "@/lib/crud/types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { z } from "zod";
 
@@ -24,7 +25,11 @@ export const baseOptions = {
   useUpdatedAt: conf.useUpdatedAt,
   useSoftDelete: conf.useSoftDelete,
   defaultSearchFields: conf.searchFields,
+  // 関連度ランキング（searchRank: true 時のフィールド重み。未宣言なら searchFields 等重み）
+  defaultSearchRank: conf.searchRank as SearchRankSpec | undefined,
   defaultOrderBy: conf.defaultOrderBy as OrderBySpec,
+  // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（未宣言なら無効）
+  systemColumns: conf.systemColumns,
   hasManyRelations: [
     {
       field: "samples",
@@ -65,9 +70,14 @@ export const sampleCategoryServiceOptions = baseOptions;
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/sampleCategory/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
+// mediaUploader / mediaUploaderMulti 列が参照する Storage ファイルを、物理削除時に
+// 自動クリーンアップする。media を持たないドメインでは [] となり no-op。
+const storageCleanupFields = extractStorageFields(conf);
+
 export const base = createCrudService(SampleCategoryTable, {
   ...baseOptions,
   sortOrderColumn,
+  storageCleanupFields,
   parseCreate: (data) => SampleCategoryCreateSchema.parse(data),
   parseUpdate: (data) => SampleCategoryUpdateSchema.parse(data),
   parseUpsert: (data) => SampleCategoryCreateSchema.parse(data),

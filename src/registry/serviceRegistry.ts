@@ -77,16 +77,9 @@ export const serviceRegistry: Record<string, DomainRegistryEntry> = {
   couponIssuerGrant: { service: couponIssuerGrantService, access: ADMIN_ONLY },
 
   // --- AUTO-GENERATED-START ---
-  sample: {
-    service: sampleService,
-    access: {
-      read: "public",
-      write: { roleCategories: ["admin"] },
-      operations: { update: "authenticated", reorder: "authenticated" },
-    },
-  },
-  sampleCategory: { service: sampleCategoryService, access: PUBLIC_READ },
-  sampleTag: { service: sampleTagService, access: PUBLIC_READ },
+  sample: { service: sampleService, access: {"read":"public","write":{"roleCategories":["admin"]},"operations":{"update":"authenticated","reorder":"authenticated"}} },
+  sampleCategory: { service: sampleCategoryService, access: {"read":"public","write":{"roleCategories":["admin"]}} },
+  sampleTag: { service: sampleTagService, access: {"read":"public","write":{"roleCategories":["admin"]}} },
   // --- AUTO-GENERATED-END ---
 
 };
