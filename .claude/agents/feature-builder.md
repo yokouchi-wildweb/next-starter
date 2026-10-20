@@ -53,9 +53,9 @@ docs/!must-read/設計思想とアーキテクチャ.md
 
 1. まず `domain.json` のみを作成する
 2. ユーザーに以下を依頼する:
-   - ファイル自動生成コマンドの実行: `npm run dc:generate -- <DomainName>`
-   - データベースマイグレーションの実行: `npm run db:push` または `npm run db:migrate`
-3. 自動生成完了後、必要に応じてカスタマイズ（wrappers/, constants/, presenters.ts 等）を行う
+   - ファイル自動生成コマンドの実行: `pnpm dc:generate <DomainName>`（`--` は付けない）
+   - データベースへの反映: `pnpm db:push`
+3. 自動生成完了後、必要に応じてカスタマイズを行う。手で書くのは `wrappers/` に足すファイル、`formEntities.ts`、自分で足したファイルだけ。`presenters.ts`・`constants/field.ts` などの生成物は再生成で上書きされるので、手を入れるなら先に `domain.json` の `generateFiles` でそのカテゴリを false にする（CLAUDE.md DIRECTORY_STRUCTURE code_generation）
 
 **重要:** ビジネスドメインでは entities/, services/, hooks/, components/Admin*/ は自動生成されるため、手動で作成しない。
 

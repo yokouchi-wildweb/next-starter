@@ -1,7 +1,7 @@
 # 汎用 CRUD ライブラリ仕様
 
 > このドキュメントは `createCrudService` を中心としたライブラリ内部のコアスペックです。
-> 拡張するときは次の順で、手前で足りるならそこで止める: ① 提供メソッド → ② `relationWhere` → ③ `extraWhere` / `extraOrderBy` → ④ `base.query()` + `wrappers/` → ⑤ 独自サービス。
+> 拡張するときは次の順で、手前で足りるならそこで止める: ① 提供メソッド → ② `relationWhere` → ③ `extraWhere` → ④ `base.query()` + `wrappers/` → ⑤ 独自サービス。
 > フックの使い方は [hooks/README.md](./hooks/README.md)。
 
 ---
@@ -430,7 +430,7 @@ await service.search({
 
 #### 落とし穴: `sql` テンプレートに Date を直接渡さない
 
-`extraWhere` / `extraOrderBy` / `systemUpdate` の SQL 式など、`sql` テンプレートリテラル全般に共通（lint ガードなし、過去に複数回発生）。
+`extraWhere` / `systemUpdate` の SQL 式など、`sql` テンプレートリテラル全般に共通（lint ガードなし、過去に複数回発生）。
 
 - 症状: JS の `Date` を `${...}` に直接埋め込むと PostgreSQL 側でパースに失敗し 500 エラー
 - 原因: `sql` 内のパラメータは `Date.toString()` 相当（`"Sun Mar 01 2026 23:59:59 GMT+0900 (...)"`）で渡り、`::timestamptz` キャストを付けても解析できない

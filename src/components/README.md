@@ -8,7 +8,7 @@
 
 - 複数ドメインで使う汎用 UI → ここ（`src/components/`）
 - 特定ドメイン専用 UI → `src/features/<domain>/components/common/`
-- 特定ページ専用 UI → `app/<route>/_components/`
+- 特定ページ専用 UI → ルートの既定 Screen の部品なら `app/<route>/_screen/`(ルートを作った側)、fork が足す部品や差し替え Screen なら `app/<route>/_components/`(CLAUDE.md SCREENS)
 
 ## カテゴリ一覧
 

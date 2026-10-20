@@ -20,16 +20,16 @@ setup/deploy/secret/ops + SDK usage: servers/room/README.md + src/lib/realtimeRo
 
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities
-library: src/lib/\<name\>/, all except entities | ownership per library (package-like), recorded in src/lib/CATALOG.md: one section per owner repo (owner id = origin path joined by `--`, same as .notices fork-id; sections upstream-first), one line `- src/lib/<name> — <one-line purpose>` | new lib (any tier) → add the line to YOUR section, never edit other sections | upstream libs: use via public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /upreq | fork lib proven generic → promote upstream, then drop own copy + line | test: pnpm test:lib-catalog (missing / stale / duplicate = name collision or promoted leftover) | ref: src/lib/README.md
+library: src/lib/\<name\>/, all except entities | ownership per library (package-like), recorded in src/lib/CATALOG.md: one section per owner repo (owner id = origin path joined by `--`, same as .notices fork-id; sections upstream-first), one line `- src/lib/<name> — <one-line purpose>` | new lib (any tier) → add the line to YOUR section, never edit other sections | libs owned by an ancestor repo (another section of CATALOG.md): use via public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /upreq | fork lib proven generic → promote upstream, then drop own copy + line | test: pnpm test:lib-catalog (missing / stale / duplicate = name collision or promoted leftover) | ref: src/lib/README.md
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
 
-decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only→app/\<route\>/_components/
+decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only: private part of a route's default Screen→app/\<route\>/_screen/ (route creator), fork page-only part or replacement Screen→app/\<route\>/_components/ (see SCREENS)
 reuse_check: new utility/feature → confirm no equivalent in existing domains/features before create (indexes: src/lib/CATALOG.md, src/features/core/README.md)
 deps: lib→lib OK | lib→features NG | features→features(UI): use target hooks (no self-create) | features→features(server): direct OK (no circular)
 ref: docs/!must-read/設計思想とアーキテクチャ.md
 
 ## ARCHITECTURE (8-layer)
-1.Page(app/**/page.tsx = 1-line switch → _screen/<Name>Screen.tsx): SSR/SSG entry, calls _screen/loader.ts (which calls ServerService direct) | ref: SCREENS
+1.Page: app/**/page.tsx (1-line switch) → _screen/<Name>Screen.tsx (SSR/SSG entry) → _screen/loader.ts → ServerService direct | ref: SCREENS
 2.Component(features/*/components): UI
 3.Hook(features/*/hooks): state, client only
 4.ClientService(services/client): HTTP via axios
@@ -48,8 +48,8 @@ entry: src/proxy.ts (default export, receives NextRequest) | handlers: src/proxi
 pattern: handler chain — each ProxyHandler returns Response (intercept) or void (pass-through). Final fallback: NextResponse.next()
 handlers: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy (order matters)
 headers: proxy.ts sets x-pathname on request headers → server components read via headers().get("x-pathname")
-adding_handler: create src/proxies/\<name\>.ts implementing ProxyHandler → register in src/proxies/index.ts
-decorators: ProxyResponseDecorator (request,response)=>void — side-effect (cookie write etc.) on pass-through NextResponse.next() | register in proxyResponseDecorators (src/proxies/index.ts) | NOT executed when a handler intercepts | current: attributionDecorator (USER_ACQUISITION)
+adding_handler: create src/proxies/\<name\>.ts implementing ProxyHandler → register in src/proxies/index.ts | in a fork, registering edits core src/proxies/index.ts → approval + fork_core_edit_compat (append, keep upstream entries)
+decorators: ProxyResponseDecorator (request,response)=>void — side-effect (cookie write etc.) on pass-through NextResponse.next() | register in proxyResponseDecorators (src/proxies/index.ts = the current list) | NOT executed when a handler intercepts
 note: Next.js 16 uses proxy (src/proxy.ts), NOT middleware (middleware.ts)
 
 ## DIRECTORY_STRUCTURE
@@ -63,11 +63,13 @@ features/\<domain\>/:
 - constants/, types/, presenters.ts, domain.json
 
 code_generation:
-- generated(no edit): entities/, services/drizzleBase, hooks/, Admin*/, registry/, app/admin/(protected)/\<domains\>/**/_screen/ (regenerated every dc:generate)
-- write-once(generated when absent, never overwritten): app/admin/(protected)/\<domains\>/**/page.tsx (1-line switch; legacy fat page.tsx migrated once) | fork-owned: app/admin/(protected)/\<domains\>/**/_components/
-- customizable: wrappers/, components/**/formEntities.ts, constants/, presenters.ts
+- generated (no edit; overwritten on every dc:generate while its generateFiles category is on): entities/, components/Admin*/, components/common/ generated forms/fields/detail modal, hooks/use*\<Domain\>.ts, services/client/\<domain\>Client.ts, services/server/{drizzleBase,\<domain\>Service}.ts, constants/field.ts, types/field.ts, presenters.ts, app/admin/(protected)/\<domains\>/**/_screen/
+- registry: dc:generate appends missing entries to src/registry/ files and rewrites the domain's serviceRegistry line from apiAccess every run | everything else in src/registry/ (CORE DOMAINS block of schemaRegistry.ts, extension registries) = hand-edited
+- write-once (generated when absent, never overwritten): app/admin/(protected)/\<domains\>/**/page.tsx (1-line switch)
+- hand-owned (never overwritten): files you add under wrappers/, formEntities.ts, any other file you add (other constants/ files, hooks with non-generated names), app/admin/(protected)/\<domains\>/**/_components/
+- must hand-edit a generated file → first set its category to false in domain.json generateFiles | ref: scripts/domain-config/README.md (上書きの扱い)
 
-shared_src: components(AppFrames/Form/Layout/TextBlocks/Skeleton/_shadcn), hooks, utils, stores, lib, config, registry, proxies
+shared_src: components (index: src/components/README.md), hooks, utils, stores, lib, config, registry, proxies
 
 ## STORES (zustand)
 placement: src/stores/ = app-wide only | domain-specific → features/\<domain\>/stores/
@@ -81,9 +83,9 @@ core: src/features/core/, hand-maintained (domain.json may exist as config sourc
 business: src/features/, has domain.json, dc:generate. examples: sample, sampleCategory, sampleTag
 path_alias: tsconfig paths maps @/features/\<coreDomain\>/* → @/features/core/\<coreDomain\>/*. omit core/ in imports (preferred)
 schema_registry (MANDATORY): src/registry/schemaRegistry.ts = sole drizzle-kit push entry. business domains auto-registered by dc:generate | core domain with new entities/drizzle.ts → add `export *` to CORE DOMAINS block by hand + run `pnpm test:schema-registry` (fails on any unregistered core drizzle.ts) + ship .notices with [user-run] db:push. unregistered = table never created, bestEffort writes fail silently (precedent: userLoginEvent)
-push_roundtrip (MANDATORY when adding/changing an index): `pnpm db:push` → `pnpm db:push:check` must report zero statements (read-only dry-run, APP_ENV-aware). non-round-trip index = DROP+CREATE on EVERY push = write lock on large prod tables | never `sql\`${col} DESC\`` (use .desc()), never mix plain columns + sql expressions in one index (all-expression or none) | drizzle-kit patched via pnpm patchedDependencies (pushSchema params, empty-array/jsonb default normalization) | ops doctrine: push may lock tables → choose timing (maintenance/low traffic), no per-push judgment | ref: scripts/registry/README.md
+push_roundtrip (MANDATORY when adding/changing an index): `pnpm db:push` (the user runs it) → `pnpm db:push:check` must report zero statements (read-only dry-run that never writes, APP_ENV-aware; the agent may run it). non-round-trip index = DROP+CREATE on EVERY push = write lock on large prod tables | never `sql\`${col} DESC\`` (use .desc()), never mix plain columns + sql expressions in one index (all-expression or none) | drizzle-kit patched via pnpm patchedDependencies (pushSchema params, empty-array/jsonb default normalization) | ops doctrine: push may lock tables → choose timing (maintenance/low traffic), no per-push judgment | ref: scripts/registry/README.md
 
-commands: dc:init | dc:generate -- \<Domain\> | dc:generate:all | dc:delete -- \<Domain\> | dc:add -- \<Domain\>
+commands: dc:init | dc:generate \<Domain\> | dc:generate:all | dc:delete \<Domain\> | dc:add \<Domain\> (never `--`: pnpm passes it through as the domain name)
 config_utils: src/lib/domain/ | getDomainConfig(domain), extractFields(config), getRelations(domain) | client: index.ts, server: server.ts
 new_domain_json: MUST read src/features/README.md before creating or editing any domain.json to verify schema format
 ref: src/features/README.md
@@ -108,7 +110,7 @@ page_guard (SSR layout/page): authGuard({allowRoles, allowStatuses, redirectTo, 
 debug_scaffold: /debug/** page area (src/app/debug/, layout enforces) + GET /api/debug/ping (copy source for debug APIs). add debug pages/APIs there, do NOT re-implement guards
 
 ## CRUD_SERVICE (createCrudService)
-operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulkDeleteByIds, bulkDeleteByQuery, bulkUpsert, bulkUpdate | drizzle-only: belongsToMany, reorder(id,afterId), searchForSorting(auto-init NULL sort_order), replaceByQuery(where,records = atomic delete+insert 1tx, scope-guard 422, child-list wholesale replace) | sorting requires: sortOrderColumn option
+operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulkDeleteByIds, bulkDeleteByQuery, bulkUpsert, bulkUpdate, bulkUpdateByIds | drizzle-only: belongsToMany, reorder(id,afterId), searchForSorting(auto-init NULL sort_order), replaceByQuery(where,records = atomic delete+insert 1tx, scope-guard 422, child-list wholesale replace) | sorting requires: sortOrderColumn option
 conditional: duplicate(useDuplicateButton), restore/hardDelete(useSoftDelete), reorder/searchForSorting(sortOrderField)
 note: list is a subset of search — use only for simple full-fetch. for relations, filtering, pagination → use search. count returns { total } without fetching records
 hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (conditional ops generate only when enabled) | mutation hooks = concurrent-trigger safe (each trigger resolves/rejects with its OWN result, isMutating true until all settle; useSWRMutation PROHIBITED — custom mutation hooks MUST build on useDomainMutation from @/lib/crud/hooks) | test: pnpm test:crud-hooks | detail: src/lib/crud/hooks/README.md
@@ -118,7 +120,7 @@ system_write (Drizzle only): systemUpdate(id,data,tx?) / systemBulkUpdateByQuery
 hook-only: use\<Domain\>ViewModal(useDetailModal)
 relationWhere: search/searchWithDeleted/searchForSorting/count accept `relationWhere?: RelationFilter[]` for filtering by relations (Drizzle only). Two variants: BelongsToManyFilter(targetIds+mode:any|all|none) for M2M | BelongsToFilter(where:WhereExpr) for belongsTo. Discriminated by targetIds vs where. Type: RelationFilter from @/lib/crud/types
 extraWhere: search/searchWithDeleted/searchForSorting/count accept `extraWhere?: SQL` (Drizzle only) for conditions beyond WhereExpr DSL (subqueries, EXISTS, JSONB, etc.). Type: ExtraWhereOption from @/lib/crud/drizzle
-extraOrderBy: search/searchWithDeleted accept `extraOrderBy?: SQL[]` (Drizzle only) for SQL-expression ordering (COALESCE/CASE etc.) beyond column-name OrderBySpec. Takes precedence over orderBy (orderBy becomes tiebreak). Type: ExtraOrderByOption from @/lib/crud/drizzle
+sql_template_date (MANDATORY, no lint guard): never embed a JS Date in a raw sql`` template (Postgres cannot parse it → 500) → pass .toISOString() | Drizzle operators (eq/gt/lt/between etc.) take Date as is | ref: src/lib/crud/README.md
 searchRank (relevance ranking, Drizzle only): search/searchWithDeleted accept `searchRank?: boolean | {fields:[{field,weight}]}` → ORDER BY head = sum of per-field CASE (exact 100 > prefix 60 > word-start 40 > substring 20) × weight, then orderBy, id. WHERE/count unchanged. `true` = service `defaultSearchRank` (domain.json `searchRank` key for business domains) else searchFields equal weight. fields fail-closed to searchFields ∩ columns. AsyncComboboxInput/AsyncMultiSelectInput send `searchRank:true` by default (prop override) — every picker ranked, lists untouched. wrappers reuse buildSearchWhere/buildSearchRankOrderBy from @/lib/crud/drizzle, never re-implement CASE, and close ORDER BY with withIdTiebreak(table, orderBy, clauses) (appends asc(id) like base search; without it ties reorder across pages). `%q%` scan cost unchanged → pg_trgm recipe in src/lib/crud/README.md | test: pnpm test:crud-search-rank
 withRelations: `withRelations?: boolean | number`. true/1 = 1 level, 2+ = recursive nested relation fetch (requires nested config on relation definition, max depth=3). Expands belongsTo(FK→object), belongsToMany(IDs→objects), hasMany(parent→child array). use\<Domain\>/use\<Domain\>List hooks do NOT accept WithOptions — use useSearch\<Domain\> (search hook) which passes WithOptions through params
 hasManyLimit: `hasManyLimit?: number` in WithOptions. Per-parent child record limit for hasMany expansion (default: 100). Passed via query param from client→API→service
@@ -126,7 +128,7 @@ extension: 1.check base methods → 2.relationWhere for relation filtering → 3
 files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
 requestMemo: option requestMemo:true → get(id) request-scoped memoized + all write methods auto-invalidate | enabled: user, setting | Drizzle only
 requestMemo_rule (MANDATORY): raw SQL write to enabled table → base.invalidateRequestMemo() right after | detail: src/lib/requestMemo/README.md
-hiddenColumns (secrets never leave service): defineHiddenColumns(table, props) in entities/drizzle.ts → ALL service returns + other domains' withRelations embeds null the cols (Drizzle only, fail-closed) | business domains: domain.json hiddenColumns key → dc:generate emits declaration | enabled: users.localPassword | internal secret read = dedicated finder (user findByIdWithSecrets) ONLY, never return over HTTP | detail: src/lib/crud/README.md
+hiddenColumns (secrets never leave service): defineHiddenColumns(table, props) in entities/drizzle.ts → ALL service returns + other domains' withRelations embeds null the cols (Drizzle only, fail-closed) | business domains: domain.json hiddenColumns key → dc:generate emits declaration | e.g. users.localPassword (current list: grep defineHiddenColumns src) | internal secret read = dedicated finder (user findByIdWithSecrets) ONLY, never return over HTTP | detail: src/lib/crud/README.md
 firestore_limits: no or | single orderBy | no belongsToMany
 
 ## AUDIT
@@ -262,7 +264,7 @@ flow: ServerService throw DomainError → APIRoute JSON{message} + HTTP status �
 
 ## NAMING
 components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only
-db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates FK names as `{table}_{column}_{reftable}_{refcolumn}_fk` — long table/column names trigger `42622` NOTICE on db:push and the name gets truncated, which can collide. When adding tables/columns, keep names short enough so generated FK names stay ≤63 chars. If unavoidable, set an explicit shorter FK name via Drizzle's `foreignKey({...}, "shortname_fk")`.
+db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates FK names as `{table}_{column}_{reftable}_{refcolumn}_fk` — long table/column names trigger `42622` NOTICE on db:push and the name gets truncated, which can collide. When adding tables/columns, keep names short enough so generated FK names stay ≤63 chars. If unavoidable, set an explicit shorter FK name via Drizzle's `foreignKey({ name: "shortname_fk", columns: [...], foreignColumns: [...] })`.
 
 ## PROHIBITED
 - client fetch (use axios) — exception: streaming ClientService (SSE) may use fetch + ReadableStream (see AI_AGENT) | realtimeRoom useRoomState may use native WebSocket (see SERVERS)
@@ -282,7 +284,7 @@ db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates
 - unpaginated full-fetch of user-scale data (ユーザーに紐づくデータをbase.search()等でlimit未指定の全件取得するのは禁止。必ずページネーション(page/limit)を使い、UIは無限スクロール等で段階取得すること。base.searchのデフォルトlimit=100は安全策ではなくデータ欠損の原因になる)
 - utility functions in config files (src/config/): config files are values only, place logic in relevant domain utils or lib
 - direct businessConfig.url for runtime base URL (decision: use getAppBaseUrl() from @/lib/url). businessConfig.url is "事業者の正式URL" (mail/SEO等). 実行環境のオリジン (決済コールバック・メールリンク等) は getAppBaseUrl() 経由のみ。リクエストヘッダ (Host/X-Forwarded-Host) からの組み立ては Host Header Injection になるため禁止
-- direct lib/mail.send() for user-facing messages: 管理者→ユーザー向けメッセージ送信は必ず messagingService.send / bulkSend (@/features/messaging) 経由。lib/mail 直接呼び出しはシステムメール (PWリセット、メール認証、登録完了等のテンプレート系) に限定。理由: 受信者単位の audit_logs 記録と本文を保持する message_dispatches 行を漏れなく永続化するため
+- direct lib/mail.send() for user-facing messages: 管理者→ユーザー向けメッセージ送信は必ず messagingService.send / bulkSend (@/features/messaging/services/server) 経由。lib/mail 直接呼び出しはシステムメール (PWリセット、メール認証、登録完了等のテンプレート系) に限定。理由: 受信者単位の audit_logs 記録と本文を保持する message_dispatches 行を漏れなく永続化するため
 - 自前で無限スクロール sentinel / 全画面ローダー early return を組む (use @/components/Widgets/InfiniteScrollList。isLoading 単独で early return すると追加ロード時に既存リストが消える既知の落とし穴を再発させる)
 - アクション完了後、API レスポンスの処理済み ID で反映できるのに revalidate / reset で再フェッチする (updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト。reset は一覧が消えるので最新化に使わない)
 
