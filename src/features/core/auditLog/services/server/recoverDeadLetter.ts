@@ -51,10 +51,14 @@ export type RecoverResult = {
  * `batchId` は recordMany / recordManyDiff 経由のバッチ記録のみに付与され、
  * 単件 record / recordDiff 由来の payload では undefined / null。復旧時はその値を
  * そのまま新しい行の `batch_id` 列に書き戻し、同一バッチを再結合可能にする。
+ *
+ * `subjectUserId` は buildPayload が常に含めるが、対象ユーザーが特定できない記録では null。
+ * 復旧時に落とすと subject 軸のタイムライン（UserActivityTimeline）から消えるため必ず書き戻す。
  */
 type AuditLogInsertPayload = {
   targetType: string;
   targetId: string;
+  subjectUserId?: string | null;
   actorId: string | null;
   actorType: string;
   action: string;
@@ -73,7 +77,7 @@ type AuditLogInsertPayload = {
  * - context 解決失敗時の dead-letter には raw `RecordOptions` が入っている可能性がある
  *   (auditLogService.record の context 解決失敗パス参照)
  * - 形が合わないものは早期に failed としてカウントし、再投入を試みない（無限再試行防止）
- * - batchId は optional（旧 payload との後方互換のため必須にしない）
+ * - batchId / subjectUserId は optional（旧 payload との後方互換のため必須にしない）
  */
 function isAuditLogPayload(value: unknown): value is AuditLogInsertPayload {
   if (!value || typeof value !== "object") return false;
@@ -145,6 +149,7 @@ export async function recoverDeadLetterAuditLogs(
       await db.insert(AuditLogTable).values({
         targetType: payload.targetType,
         targetId: payload.targetId,
+        subjectUserId: payload.subjectUserId ?? null,
         actorId: payload.actorId ?? null,
         actorType: payload.actorType as never,
         action: payload.action,

@@ -309,7 +309,7 @@ registerActionLabels({
 
 - 配線: `src/app/api/cron/<task>/`（task.ts + route.ts）。`vercel.json` のエントリは `pnpm cron:generate` が生成する。手動は `pnpm task <task>`
 - dead-letter が減らない場合は `audit_logs_failed.error_message` を確認する（schema 不整合・payload 形状不一致など）
-- 制約: 現行の `recoverDeadLetterAuditLogs` は再投入時に `subject_user_id` を復元しない（payload に値があっても NULL で入る）
+- 再投入時は payload の `subjectUserId` / `batchId` も書き戻す（キーの無い旧 payload は NULL）
 
 ### 緊急停止
 
