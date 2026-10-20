@@ -1,0 +1,15 @@
+# DOWNSTREAM NOTICE id:20261020-040849-per-project-rules-ownership
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:(change ships in the commit that contains this notice)
+date: 2026-10-20T04:08:49Z
+severity: action-required
+checkpoint: per-project-rules-ownership
+change: File ownership is now stated once at the top of CLAUDE.md. ROLE = CLAUDE.md is the architecture contract shared by every downstream project and is NEVER edited downstream (gap → /upreq). New PER_PROJECT line = .claude/rules/project.md (map / architecture delta / decision rules) and .claude/rules/behavior.md (work rules) are per-project files that downstream edits freely; both always-loaded → standing rules only, no change logs / dates / incident stories. The `## scope` section of project.md is retired (removed from upstream project.md and from .claude/skills/fork-init/project.template.md), and the CORE_FILES line `.claude/rules/ ... edit ONLY on explicit user instruction` is removed (normal approval rules in behavior.md apply). /flux now resolves merge conflicts in project.md / behavior.md by keeping the fork side. CLAUDE.md DOCS also gained `memory` / `durable_info` (auto-memory = in-progress handoff only; durable info goes to its repo home or is dropped). .claude/README.md and docs/setup fork guide updated to match.
+why: The same 8-line scope text was copied into every fork's project.md, so every upstream wording change conflicted in every fork, and the "edit only on instruction" rule contradicted the intent that forks customize project.md / behavior.md freely. One short rule in the shared, never-edited CLAUDE.md replaces it.
+required_actions:
+1. Merge upstream.
+2. In the fork's `.claude/rules/project.md`, delete the whole `## scope (keep this section; it defines what this file is)` section (from that heading up to the next `## ` heading). Keep every other section unchanged. If the section is absent (fork never applied 20261014-115300-project-md-scope), do nothing. If a later notice (e.g. 20261019-153000-journal-owner-naming step 2) is still pending and edits that section, treat that step as done.
+3. If the fork has its own lines in project.md that only restated the retired scope rules (e.g. "edit project.md only on instruction"), delete them; fork-specific rules stay.
+verify: `grep -n "^## scope" .claude/rules/project.md` returns nothing; `head -4 CLAUDE.md` shows the ROLE and PER_PROJECT lines; `pnpm tsc --noEmit` not needed (docs only).
+manual_steps: -
+refs: CLAUDE.md (ROLE, PER_PROJECT, DOCS memory / durable_info), .claude/README.md, .claude/skills/flux/SKILL.md (merge step), .claude/skills/fork-init/project.template.md, .notices/20261014-115300-project-md-scope.md (superseded step 1)
+notes: 20261014-115300-project-md-scope steps 2-5 (moving work logs out of project.md into docs/journal/) remain valid; only its step 1 (insert scope) is superseded by this notice. Memory cleanup of existing forks will ship later with a dedicated skill; no action on auto-memory now.

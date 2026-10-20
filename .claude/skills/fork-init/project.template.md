@@ -3,19 +3,9 @@
 <!--
   fork 用 project.md 雛形。/fork-init がコピーして <...> を埋め、.claude/rules/project.md を置き換える。
   手動でフォークする場合もこのファイルをコピーして使う。
-  記述ルール: 英語・箇条書き・キーバリュー (.claude/README.md 参照)。
-  scope 節は削除・改変しない(このファイルの存在意義と肥大化防止の規約)。
+  記述ルール: 英語・箇条書き・キーバリュー (.claude/README.md 参照)。何を書くかは CLAUDE.md 冒頭の PER_PROJECT。
   埋め終わったらこのコメントブロックは削除する。
 -->
-
-## scope (keep this section; it defines what this file is)
-purpose: per-fork delta from upstream CLAUDE.md. loaded every session → every line costs context every time
-write: (1) architecture where this fork differs from upstream conventions (2) map: domains + where key files/docs live (3) decision rules not derivable from code (feature-addition criteria, external constraints, business intent)
-never: implementation details of a change, per-screen UI/style changes, verification results, incident narratives, dated status/progress, ideas under consideration
-instead: change details → commit body | feature spec/lesson → README next to code | dated record (incident, verification, decision history) → docs/journal/<YYYY-MM-DD>--<owner>--<slug>.md (not auto-loaded)
-distill: incident → 1 rule line here only if fork-specific; the story → journal | lesson about upstream core component → /upreq, not here
-budget: ~100 lines. over budget → re-ask "needed every session?" and move content out
-edit: only when the user asks to add/change a rule or map entry. never append as part of finishing a task
 
 ## overview
 - name: <project name>
