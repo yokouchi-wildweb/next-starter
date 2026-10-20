@@ -220,4 +220,4 @@ export const directSaleStrategy: PurchaseCompletionStrategy = {
 
 `services/server/hooks/definitions/` にフックを定義して `index.ts` から副作用 import する（`registerPurchaseCompleteHook({ key, handler })`）。`walletResult.history` は非ウォレット型で `null` になるため、ウォレット加算前提のフックは冒頭で `if (purchaseRequest.purchase_type !== "wallet_topup") return;` とする。
 
-`purchase_type` 導入時（2026-04）の下流移行手順の記録: [docs/journal/2026-04-21-purchase-type-migration.md](../../../../docs/journal/2026-04-21-purchase-type-migration.md)
+`purchase_type` 導入時（2026-04）の下流移行手順の記録: [docs/journal/2026-04-21--next-starter--purchase-type-migration.md](../../../../docs/journal/2026-04-21--next-starter--purchase-type-migration.md)

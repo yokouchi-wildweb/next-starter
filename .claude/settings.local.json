@@ -27,7 +27,10 @@
       "Bash(rm -f /home/yokouchi/.claude/commands/outbox.md)",
       "Read(//home/yokouchi/.claude/commands/**)",
       "Bash(mkdir -p /home/yokouchi/.claude/upstream-requests/done)",
-      "Bash(mv /home/yokouchi/.claude/upstream-requests/20260625-231351-webaudio-loop-se-primitive.md /home/yokouchi/.claude/upstream-requests/done/)"
+      "Bash(mv /home/yokouchi/.claude/upstream-requests/20260625-231351-webaudio-loop-se-primitive.md /home/yokouchi/.claude/upstream-requests/done/)",
+      "Bash(sed *)",
+      "Bash(sed -i 's#\\(\\\\.claude/rules/README\\\\.md 参照\\)#\\(.claude/README.md 参照\\)#' .claude/skills/fork-init/project.template.md)",
+      "Bash(echo \"exit=$?\")"
     ],
     "deny": [
       "Bash(sudo:*)",

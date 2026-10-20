@@ -11,7 +11,7 @@
 
 > 🚨 **注意**: `CLAUDE.md` の `ARCHITECTURE`（8 層: Page / Component / Hook / ClientService / APIRoute / ServerService / Entity / Database）の「層」とは別の概念です。UI レイヤーは ARCHITECTURE の 1（Page）と 2（Component）の内側の分類です。
 
-> 旧版（4 レイヤー）からの改訂の経緯は `docs/journal/2026-10-18-ui-layers-revision.md`。
+> 旧版（4 レイヤー）からの改訂の経緯は `docs/journal/2026-10-18--next-starter--ui-layers-revision.md`。
 
 ---
 
@@ -315,7 +315,7 @@ page.tsx → _screen/XScreen.tsx     ← Server(loader を await)
 | 部品 | 役割名 | `BalanceCard`、`CouponInput` |
 | レイアウト部品 | `UserPage` / `AdminPage` だけが `*Page`（`<main>` の枠）。コンテナには使わない | — |
 
-> 旧 `*Page` 名からの改名の記録は `docs/journal/2026-10-18-ui-layers-revision.md`。
+> 旧 `*Page` 名からの改名の記録は `docs/journal/2026-10-18--next-starter--ui-layers-revision.md`。
 
 ---
 

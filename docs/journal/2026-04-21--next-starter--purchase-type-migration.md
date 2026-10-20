@@ -1,5 +1,7 @@
 # 2026-04-21 purchaseRequest への purchase_type 導入と下流移行手順
 
+> owner: next-starter
+
 導入コミット: `63e25bbb`（PurchaseRequest に purchase_type ディスクリミネータと完了戦略レジストリを導入）。現行の仕様・拡張方法は [src/features/core/purchaseRequest/README.md](../../src/features/core/purchaseRequest/README.md)「6. purchase_type と完了戦略」が正。本ファイルは当時の変更内容と、下流 fork 向けの一回限りの移行手順の記録。
 
 ## 変更内容（当時）
