@@ -2,6 +2,7 @@
 
 import "server-only";
 import { v7 as uuidv7 } from "uuid";
+import { getDomainConfig, hasDomainConfig } from "@/lib/domain";
 import { getServiceOrThrow, getJunctionTable } from "@/lib/domain/server";
 import { uploadFileServer } from "@/lib/firebase/server/storage";
 import { toCamelCase } from "@/utils/stringCase.mjs";
@@ -323,6 +324,15 @@ export async function importChunk(
       success: false,
       chunkName,
       error: `Invalid domain: ${domain}`,
+    };
+  }
+
+  // domain.json で useImportExport: false のドメインはサーバー側でも拒否する (UI 非表示だけに頼らない)
+  if (hasDomainConfig(domain) && getDomainConfig(domain).useImportExport === false) {
+    return {
+      success: false,
+      chunkName,
+      error: `Domain ${domain} does not support import (useImportExport: false)`,
     };
   }
 

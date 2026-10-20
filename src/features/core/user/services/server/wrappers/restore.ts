@@ -1,16 +1,16 @@
 // src/features/user/services/server/wrappers/restore.ts
 
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
 import type { User } from "@/features/core/user/entities";
 import { UserTable } from "@/features/core/user/entities/drizzle";
-import { normalizeUserNameForComparison } from "@/features/core/user/utils/userName";
 import { db } from "@/lib/drizzle";
 import { base } from "../drizzleBase";
 import {
   findAvailableSuffixedUserName,
   isUserNameTaken,
+  lockUserName,
 } from "../helpers/nameAvailability";
 
 /**
@@ -39,10 +39,8 @@ export async function restore(id: string): Promise<User> {
   }
 
   return db.transaction(async (tx) => {
-    // 同名の同時書き込みと直列化 (helpers/nameAvailability.ts の withUserNameGuard と同じロックキー)
-    await tx.execute(
-      sql`SELECT pg_advisory_xact_lock(hashtext(${normalizeUserNameForComparison(name)}))`,
-    );
+    // 同名の同時書き込みと直列化 (withUserNameGuard と同じロックキー)
+    await lockUserName(tx, name);
 
     const restored = await base.restore(id, tx);
 
@@ -50,7 +48,11 @@ export async function restore(id: string): Promise<User> {
       return restored;
     }
 
-    const fallback = await findAvailableSuffixedUserName(name, { executor: tx });
+    // サフィックス候補もロックしてから判定する (同じ候補を取りに来た同時書き込みとの重複を防ぐ)
+    const fallback = await findAvailableSuffixedUserName(name, {
+      executor: tx,
+      lockCandidates: true,
+    });
     return base.update(id, { name: fallback } as Parameters<typeof base.update>[1], tx);
   });
 }

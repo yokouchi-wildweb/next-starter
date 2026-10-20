@@ -1,12 +1,13 @@
 import { z } from "zod";
 
 import type { User } from "@/features/user/entities";
+import { UserNameFormSchema } from "@/features/core/user/entities/userName";
 import {
   createProfileDataValidator,
   getProfilesByCategory,
 } from "@/features/core/userProfile/utils";
 
-const nameSchema = z.string();
+const nameSchema = UserNameFormSchema;
 
 // profileData バリデーション関数（adminEdit タグでフィルタリング）
 const validateProfileData = createProfileDataValidator(getProfilesByCategory("admin"), "adminEdit");

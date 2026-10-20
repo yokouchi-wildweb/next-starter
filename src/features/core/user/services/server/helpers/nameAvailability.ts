@@ -134,6 +134,45 @@ export async function assertUserNameAvailable(
 }
 
 /**
+ * 正規化名をキーにした advisory lock を取得する (トランザクション終了時に自動解放)。
+ * withUserNameGuard / restore / サフィックス採番で同じキーを使い、同名の同時書き込みを直列化する。
+ */
+export async function lockUserName(executor: DbExecutor, name: string): Promise<void> {
+  await executor.execute(
+    sql`SELECT pg_advisory_xact_lock(hashtext(${normalizeUserNameForComparison(name)}))`,
+  );
+}
+
+/**
+ * 更新時に一意性ガードへ渡す表示名を決める (ガード不要なら null)。
+ * - 表示名が変わる場合
+ * - デモ → 通常 (isDemo true→false) の場合: 名前は変わらなくても占有判定の対象に入るため、
+ *   既存の同名ユーザーとの重複を検証する
+ */
+export function resolveUserNameForGuard(
+  current: { name: string | null; isDemo: boolean },
+  payload: { name?: string | null; isDemo?: boolean },
+): string | null {
+  const nameChanged = typeof payload.name === "string" && payload.name !== current.name;
+  const leavingDemo = current.isDemo && payload.isDemo === false;
+
+  if (!nameChanged && !leavingDemo) {
+    return null;
+  }
+
+  return typeof payload.name === "string" ? payload.name : current.name;
+}
+
+/**
+ * サフィックス付き表示名の候補を作る ("名前_n")。maxLength を超える場合はベース名を切り詰める。
+ */
+export function buildSuffixedUserName(baseName: string, n: number, maxLength: number): string {
+  const suffix = `_${n}`;
+  const budget = maxLength - suffix.length;
+  return `${[...baseName.trim()].slice(0, Math.max(budget, 1)).join("")}${suffix}`;
+}
+
+/**
  * 表示名の可用性チェックと書き込みを同一トランザクションで直列化して実行する。
  *
  * check→write 間に同名の同時書き込みが滑り込む TOCTOU レースを、正規化名をキーにした
@@ -152,8 +191,7 @@ export async function withUserNameGuard<T>(
   }
 
   return db.transaction(async (tx) => {
-    const lockKey = normalizeUserNameForComparison(name);
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+    await lockUserName(tx, name);
 
     if (await isUserNameTaken(name, { excludeUserId, executor: tx })) {
       throw new DomainError("この表示名は既に使用されています", { status: 409 });
@@ -168,24 +206,27 @@ export async function withUserNameGuard<T>(
  * maxLength を超える場合はベース名を切り詰めて収める。
  * 復元 (restore) や既存重複の一括解消 (nameDedup) で使用する。
  * `reserved` には同一処理内で既に割り当て済みの正規化名を渡す (DB 未反映分との衝突回避)。
+ * `lockCandidates` を true にすると、各候補の判定前に lockUserName で候補名をロックし、
+ * 同じ候補を取りに来た同時書き込みと直列化する (executor はトランザクションであること)。
  */
 export async function findAvailableSuffixedUserName(
   baseName: string,
   {
     executor = db,
     reserved,
-  }: { executor?: DbExecutor; reserved?: Set<string> } = {},
+    lockCandidates = false,
+  }: { executor?: DbExecutor; reserved?: Set<string>; lockCandidates?: boolean } = {},
 ): Promise<string> {
-  const trimmed = baseName.trim();
-
   for (let n = 2; n < 1000; n++) {
-    const suffix = `_${n}`;
-    const budget = USER_NAME_CONFIG.maxLength - suffix.length;
-    const candidate = `${[...trimmed].slice(0, Math.max(budget, 1)).join("")}${suffix}`;
+    const candidate = buildSuffixedUserName(baseName, n, USER_NAME_CONFIG.maxLength);
     const normalized = normalizeUserNameForComparison(candidate);
 
     if (reserved?.has(normalized)) {
       continue;
+    }
+
+    if (lockCandidates) {
+      await lockUserName(executor, candidate);
     }
 
     if (!(await isUserNameTaken(candidate, { executor }))) {

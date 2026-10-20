@@ -14,7 +14,7 @@ import { userProfileService } from "@/features/core/userProfile/services/server/
 import { syncBelongsToManyRelations } from "@/lib/crud/drizzle/belongsToMany";
 import { db } from "@/lib/drizzle";
 import { invalidateSessionsForUser } from "@/features/core/auth/services/server/sessionInvalidation";
-import { withUserNameGuard } from "../helpers/nameAvailability";
+import { resolveUserNameForGuard, withUserNameGuard } from "../helpers/nameAvailability";
 import { planPasswordChange } from "../helpers/passwordChange";
 
 async function updateFirebaseEmail(uid: string, email: string): Promise<void> {
@@ -173,11 +173,8 @@ export async function update(id: string, rawData?: UpdateUserInput): Promise<Use
     updatePayload.phoneVerifiedAt = phoneNumber ? new Date() : null;
   }
 
-  // ユーザー情報の更新 (表示名が変わる場合は一意性ガードを通す)
-  const nameForGuard =
-    typeof updatePayload.name === "string" && updatePayload.name !== current.name
-      ? updatePayload.name
-      : null;
+  // ユーザー情報の更新 (表示名が変わる場合・デモから通常に戻す場合は一意性ガードを通す)
+  const nameForGuard = resolveUserNameForGuard(current, updatePayload);
   const updatedUser =
     Object.keys(updatePayload).length === 0
       ? current

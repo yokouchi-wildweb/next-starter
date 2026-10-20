@@ -24,6 +24,7 @@
     "test:relation-options": "node --test src/lib/domain/relations/relationOptions.test.mjs",
     "test:wallet-lot-planning": "npx tsx --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
+    "test:user-name-availability": "npx tsx --test src/features/core/user/services/server/helpers/nameAvailability.test.ts",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",
     "db:push": "cross-env APP_ENV=.env.development drizzle-kit push",
     "db:push:check": "npx tsx scripts/registry/check-schema-roundtrip.ts",

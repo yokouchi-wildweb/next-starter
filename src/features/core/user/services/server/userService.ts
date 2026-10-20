@@ -33,8 +33,21 @@ export {
   type FailedLoginOutcome,
 } from "./wrappers/lockoutPolicy";
 
+// 一括書き込み・複製系は update ラッパー (表示名の一意性ガード / ステータス履歴 / Firebase 同期 /
+// セッション失効) を通らないため公開しない。汎用 /api/user/** の該当ルートは 404、CSV インポートも拒否される。
+// サービス内部で必要な場合は base を直接使う (例: registration/setPending.ts の base.upsert)。
+const {
+  upsert: _upsert,
+  bulkUpsert: _bulkUpsert,
+  bulkUpdate: _bulkUpdate,
+  bulkUpdateByIds: _bulkUpdateByIds,
+  replaceByQuery: _replaceByQuery,
+  duplicate: _duplicate,
+  ...exposedBase
+} = base;
+
 export const userService = {
-  ...base,
+  ...exposedBase,
   create,
   remove,
   hardDelete,

@@ -239,6 +239,8 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 ### バリデーション（常時適用）
 
 共有スキーマ `entities/userName.ts` を全書き込み経路（サインアップ・本登録・マイページ・管理画面）で使用する。
+デモユーザーの作成経路（`createDemoUser` / `createGuestDemoUser` / `scripts/db/seed/data/demoUser.ts`）は
+`isDemo = true` で一意性の判定スコープ外のため、一意性ガードを通さない（意図した設計）。
 
 | スキーマ | 用途 |
 |---------|------|
@@ -266,10 +268,17 @@ pending, active, inactive, suspended, banned, security_locked, withdrawn
 | 経路 | 実装 |
 |------|------|
 | サインアップ本登録・再入会 | `registration/activate.ts` |
-| マイページ・管理画面の更新 | `wrappers/update.ts`（name 変更時のみ） |
+| マイページ・管理画面の更新 | `wrappers/update.ts`（name 変更時と、デモ → 通常（`isDemo` true→false）の切替時） |
 | 管理画面からのユーザー作成 | `creation/console/createGeneralUser.ts` / `createAdmin.ts` |
 | 管理画面からの再登録（名前指定あり） | `creation/console/restore.ts`（衝突時 409） |
-| 汎用 restore（`/api/user/[id]/restore`） | `wrappers/restore.ts`（衝突時はブロックせず「名前_2」等へ自動付替） |
+| 汎用 restore（`/api/user/[id]/restore`） | `wrappers/restore.ts`（衝突時はブロックせず「名前_2」等へ自動付替。候補名もロックしてから判定） |
+
+ガードを通らない一括書き込み・複製系（`upsert` / `bulkUpsert` / `bulkUpdate` / `bulkUpdateByIds` /
+`replaceByQuery` / `duplicate`）は `userService` から公開しない。汎用 `/api/user/**` の該当ルートは 404、
+CSV インポートも拒否される（`domain.json` も `useImportExport: false`）。サービス内部で必要な場合は
+`base` を直接使い、表示名・ステータス履歴の整合は呼び出し側で担保する。
+
+テスト: `pnpm test:user-name-availability`（DB 不要な判定ロジックのみ。同時実行の直列化と SQL の判定スコープは対象外）
 
 一括判定が必要な場合（候補名リストのフィルタリング等）は `isUserNamesTaken(names[]) => Set<使用中の入力文字列>`
 を使う（単一クエリ + 同一の判定条件。`isUserNameTaken` はこの単発版）。

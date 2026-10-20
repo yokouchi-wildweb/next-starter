@@ -29,7 +29,7 @@
 | useDetailModal | boolean | ⚪ No | 詳細モーダルの有無 |
 | addToAdminDataMenu | boolean | ⚪ No | adminDataMenu への自動追加 |
 | useDuplicateButton | boolean | ⚪ No | 複製ボタンの有無 |
-| useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式） |
+| useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式）。`false` はサーバー側のインポート処理も拒否する |
 | useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | indexes | Index[] | ⚪ No | 非ユニーク検索/集計用インデックス（Neon のみ） |
