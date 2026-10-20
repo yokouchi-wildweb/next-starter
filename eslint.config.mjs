@@ -109,7 +109,7 @@ export default [
         },
       ]
     : []),
-  // _shadcn の直接 import 禁止(CLAUDE.md PROHIBITED)。ラッパーは src/components に置く。
+  // _shadcn の直接 import 禁止(CLAUDE.md COMPONENTS wrappers)。ラッパーは src/components に置く。
   // 許可: src/components(ラッパー本体) / src/lib/tableSuite(table の指定ラッパー。セルエディタも primitive 層)。
   {
     files: ["src/**/*.{ts,tsx}"],

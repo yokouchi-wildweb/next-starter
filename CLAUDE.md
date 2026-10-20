@@ -1,318 +1,203 @@
 # CLAUDE.md
 
-> **FORMAT_RULE**: AI agent optimized. No tables, no verbose prose. Use key:value, inline separators (|, ,), bullet points. Keep additions in this style.
+> **FORMAT_RULE** (this file and .claude/rules/): agent-optimized, English only (code comments and READMEs follow behavior.md). One decision per item; a line over ~400 chars → split into sub-bullets. key: value. ` | ` (spaced) separates items, `a|b` (unspaced) or "or" = alternatives. No tables, no history / precedent / dates. Here = the rule + when to read the README; detail lives in the colocated README
 > **ROLE**: CLAUDE.md = architecture contract shared by this base and every downstream project. NEVER edit it downstream (gap → /upreq)
 > **PER_PROJECT** (downstream edits freely): .claude/rules/project.md = map / architecture delta / decision rules | .claude/rules/behavior.md = work rules | both always-loaded → standing rules only, no change logs / dates / incident stories (→ commit body / docs/journal/)
 
 ## STACK
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
 
-## UNCONFIGURED_BACKENDS (env:init 直後 = DATABASE_URL / MY_SERVICE_ACCOUNT_KEY / NEXT_PUBLIC_FIREBASE_* 空でも起動する契約)
-detect: isDatabaseConfigured (@/lib/drizzle) | isFirebaseClientConfigured (@/lib/firebase/client/app) | isFirebaseServerConfigured (@/lib/firebase/server/app) — 判定は「未設定」のみ、設定済み接続不能は従来どおり例外 (障害を隠さない) | 未設定アクセス = DatabaseNotConfiguredError / FirebaseNotConfiguredError で即 fail-fast (接続待ちしない) | 常時マウント経路 (proxy / root layout / settingService.getGlobalSetting / createCrudService 構築) は未設定でも落ちない = 契約、新規追加時は同じガード | ref: src/lib/firebase/README.md 未設定モード
-
-## BACKEND_DOCTRINE
-firestore = realtime delivery channel ONLY (new domains default dbEngine:"Neon"; Firestore only when realtime UX is the essential requirement) | crud firestore adapter FROZEN (no feature additions, current limits = spec) | firebase coupling surface capped at auth/storage/delivery (no business data in Firestore, no logic in Firebase Functions) | auth↔users sync paths = core asset (verify both sides on any change) | hot-path realtime (sustained ~1write/sec+ shared state, 100s+ subscriber fanout, single-TX threshold semantics) = realtimeRoom (SERVERS), NOT Firestore | ref: docs/!must-read/バックエンド構成ドクトリン.md
-
-## SERVERS (Next外側の常駐サーバープログラム区画)
-placement: standalone server programs deployed outside Next/Vercel → servers/\<name\>/ (own package.json, NOT in pnpm workspace) | current: servers/room/ = realtime room authority (Cloudflare Durable Objects, opt-in default OFF, all paths fail-closed)
-rules: servers→src imports = lib/realtimeRoom/protocol + features/*/room ONLY | src→servers forbidden | room reducer = features/\<domain\>/room/ (PURE, lint realtime-room/purity) | economy/authority actions = server dispatch (createRoomClient) ONLY, PG stays authoritative | protocol breaking change → bump ROOM_PROTOCOL_VERSION
-setup/deploy/secret/ops + SDK usage: servers/room/README.md + src/lib/realtimeRoom/README.md (MUST read before touching servers/ or enabling room)
+## CORE_FILES (ownership: who edits what)
+core (approval required): src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** of upstream routes, servers/room/src/core/, servers/room/src/index.ts, src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
+downstream_owned (upstream never edits after creation): src/styles/custom/**, src/config/ui/*.config.ts, page.tsx of switched routes, src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES)
+config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
+fork_core_edit_compat (a fork edits a core path; default = don't, prefer /upreq):
+- stay backward compatible with upstream callers: props/args the fork adds = optional with an empty default | never delete core code the fork does not use | signature change = add a new name, keep the old
+- why: upstream `_screen/*` Screens stay in the fork's tsc scope even when its page.tsx points to `_components/` → an incompatible core edit fails tsc at the next merge | fix the fork's edit, never the upstream Screen | ref: src/lib/screens/README.md §7
 
 ## CODE_PLACEMENT (3-tier)
 domain: src/features/, all including entities
-library: src/lib/\<name\>/, all except entities | ownership per library (package-like), recorded in src/lib/CATALOG.md: one section per owner repo (owner id = origin path joined by `--`, same as .notices fork-id; sections upstream-first), one line `- src/lib/<name> — <one-line purpose>` | new lib (any tier) → add the line to YOUR section, never edit other sections | libs owned by an ancestor repo (another section of CATALOG.md): use via public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /upreq | fork lib proven generic → promote upstream, then drop own copy + line | test: pnpm test:lib-catalog (missing / stale / duplicate = name collision or promoted leftover) | ref: src/lib/README.md
+library: src/lib/\<name\>/, all except entities | owner per library in src/lib/CATALOG.md (one section per owner repo; format: src/lib/README.md; test: pnpm test:lib-catalog)
+- new lib (any tier): add its line to YOUR section only | fork lib proven generic → promote upstream, then drop own copy + line
+- lib owned by an ancestor repo: public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /upreq
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
-
-decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only: private part of a route's default Screen→app/\<route\>/_screen/ (route creator), fork page-only part or replacement Screen→app/\<route\>/_components/ (see SCREENS)
-reuse_check: new utility/feature → confirm no equivalent in existing domains/features before create (indexes: src/lib/CATALOG.md, src/features/core/README.md)
-deps: lib→lib OK | lib→features NG | features→features(UI): use target hooks (no self-create) | features→features(server): direct OK (no circular)
+decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only: private part of a route's default Screen → app/\<route\>/_screen/ (route creator), fork page-only part or replacement Screen → app/\<route\>/_components/ (see SCREENS)
+reuse_check: before creating a utility/feature → confirm no equivalent exists (indexes: src/lib/CATALOG.md, src/features/core/README.md)
+deps: lib→lib OK | lib→features NG | features→features (UI): use the target's hooks | features→features (server): direct OK, no cycles
 ref: docs/!must-read/設計思想とアーキテクチャ.md
 
 ## ARCHITECTURE (8-layer)
-1.Page: app/**/page.tsx (1-line switch) → _screen/<Name>Screen.tsx (SSR/SSG entry) → _screen/loader.ts → ServerService direct | ref: SCREENS
-2.Component(features/*/components): UI
-3.Hook(features/*/hooks): state, client only
-4.ClientService(services/client): HTTP via axios
-5.APIRoute(app/api/**): HTTP interface
-6.ServerService(services/server): business logic + DB
-7.Entity(features/*/entities): schema, types, drizzle
-8.Database: PostgreSQL | Firestore
-
-boundary: Hook → ClientService → HTTP → APIRoute → ServerService | Page(SSR) → ServerService direct OK | Hook → ServerService NG | Hook → APIRoute (axios直叩き) NG
-rules: client axios only | server fetch OK | DB access via ServerService only | HTTP呼び出しは必ず ClientService に集約 (Hook/Component は ClientService 経由のみ)
-lint: client-service-boundary/no-direct-import = UI (components/, app/ screens) importing services/client or a domain barrel's *Client → error in upstream UI (src/components, features/core, _template), warn in downstream UI | wrap in a hooks/ hook (derived useInfiniteScrollQuery / useDomainMutation / SWR) | legit exception = reasoned eslint-disable (AuthSessionClientProvider precedent) | test: pnpm test:client-service-boundary
+layers: 1.Page = app/**/page.tsx (1-line switch) → _screen/\<Name\>Screen.tsx (SSR entry) → _screen/loader.ts | 2.Component (features/*/components) | 3.Hook (features/*/hooks, client only) | 4.ClientService (services/client) | 5.APIRoute (app/api/**) | 6.ServerService (services/server, business logic + DB) | 7.Entity (features/*/entities) | 8.DB (PostgreSQL or Firestore)
+boundary: Hook → ClientService → HTTP → APIRoute → ServerService | Page/loader (SSR) → ServerService direct OK | Hook → ServerService NG | Hook/Component → APIRoute or axios/fetch directly NG | DB access only inside ServerService (never in API routes)
+http: client HTTP = axios inside ClientService only, always through normalizeHttpError | exceptions: streaming ClientService (SSE) may use fetch + ReadableStream; realtimeRoom useRoomState may use native WebSocket | server side: fetch OK
+lint: client-service-boundary/no-direct-import = UI importing services/client or a barrel's *Client → error in upstream UI, warn downstream → wrap in a hooks/ hook (useInfiniteScrollQuery / useDomainMutation / SWR) | legit exception = reasoned eslint-disable | test: pnpm test:client-service-boundary
 ref: docs/!must-read/アプリ構築における構成層.md
 
-## PROXY (replaces middleware)
-entry: src/proxy.ts (default export, receives NextRequest) | handlers: src/proxies/
-pattern: handler chain — each ProxyHandler returns Response (intercept) or void (pass-through). Final fallback: NextResponse.next()
-handlers: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy (order matters)
-headers: proxy.ts sets x-pathname on request headers → server components read via headers().get("x-pathname")
-adding_handler: create src/proxies/\<name\>.ts implementing ProxyHandler → register in src/proxies/index.ts | in a fork, registering edits core src/proxies/index.ts → approval + fork_core_edit_compat (append, keep upstream entries)
-decorators: ProxyResponseDecorator (request,response)=>void — side-effect (cookie write etc.) on pass-through NextResponse.next() | register in proxyResponseDecorators (src/proxies/index.ts = the current list) | NOT executed when a handler intercepts
-note: Next.js 16 uses proxy (src/proxy.ts), NOT middleware (middleware.ts)
+## PROHIBITED
+- re-implement what base CRUD already provides | manual m2m when belongsToMany is available
+- edit generated files (use wrappers; see DIRECTORY_STRUCTURE code_generation)
+- form schemas in entities/schema.ts (→ formEntities.ts next to the form)
+- direct asset paths (use utils/assets: assetPath, imgPath, videoPath, logoPath)
+- space-y/space-x classes (use Layout/Stack, `space` prop = Tailwind spacing scale)
+- unpaginated full-fetch of user-scale data (base.search without limit; the default limit 100 silently drops rows) → page/limit + infinite scroll | list() only for small fixed master data
+- businessConfig.url as runtime origin (it is the official business URL for mail/SEO) → getAppBaseUrl() from @/lib/url | never build an origin from Host / X-Forwarded-Host (host header injection)
+- lib/mail send() for admin→user messages → messagingService.send / bulkSend (@/features/messaging/services/server), which persists per-recipient audit + message_dispatches | lib/mail direct = system template mail only (password reset, verification, registration)
+
+## UNCONFIGURED_BACKENDS (the app boots with DATABASE_URL / MY_SERVICE_ACCOUNT_KEY / NEXT_PUBLIC_FIREBASE_* empty)
+detect: isDatabaseConfigured (@/lib/drizzle) | isFirebaseClientConfigured (@/lib/firebase/client/app) | isFirebaseServerConfigured (@/lib/firebase/server/app) | these detect "not configured" only: configured-but-unreachable still throws (never hide outages)
+contract: access while unconfigured → DatabaseNotConfiguredError / FirebaseNotConfiguredError immediately (no connect wait) | always-mounted paths (proxy, root layout, settingService.getGlobalSetting, createCrudService construction) must not crash while unconfigured → new always-mounted code uses the same guard | ref: src/lib/firebase/README.md
+
+## BACKEND_DOCTRINE
+- new domains default dbEngine "Neon" | Firestore = realtime delivery channel only, chosen only when realtime UX is the essential requirement | no business data in Firestore, no logic in Firebase Functions (Firebase = auth / storage / delivery)
+- crud Firestore adapter FROZEN (no additions) | limits: no `or`, single orderBy, no belongsToMany
+- auth↔users sync paths = core asset → verify both sides on any change
+- hot-path realtime (sustained ~1 write/sec+ shared state, 100s+ subscribers, single-TX threshold semantics) → realtimeRoom (SERVERS), not Firestore | ref: docs/!must-read/バックエンド構成ドクトリン.md
+
+## SERVERS (standalone programs outside Next/Vercel)
+placement: servers/\<name\>/ (own package.json, NOT in the pnpm workspace) | current: servers/room/ = realtime room authority (Cloudflare Durable Objects, opt-in default OFF, fail-closed)
+rules: servers→src imports = lib/realtimeRoom/protocol + features/*/room ONLY | src→servers forbidden | room reducer = features/\<domain\>/room/ (pure, lint realtime-room/purity) | economy/authority actions = server dispatch (createRoomClient) ONLY, Postgres stays authoritative | protocol breaking change → bump ROOM_PROTOCOL_VERSION
+before touching servers/ or enabling room → MUST read servers/room/README.md + src/lib/realtimeRoom/README.md
+
+## PROXY (Next.js 16 proxy, NOT middleware.ts)
+entry: src/proxy.ts | handler chain in src/proxies/index.ts: each ProxyHandler returns Response (intercept) or void (pass) → fallback NextResponse.next() | order matters: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy
+x-pathname: proxy.ts sets it on request headers → server components read headers().get("x-pathname")
+add: handler = src/proxies/\<name\>.ts + register in index.ts | decorator (side effect such as a cookie on pass-through, skipped when a handler intercepts) = register in proxyResponseDecorators | in a fork, registering edits core index.ts → approval + fork_core_edit_compat (append, keep upstream entries)
 
 ## DIRECTORY_STRUCTURE
-all paths under src/
-
-features/\<domain\>/:
-- components/Admin{List,Create,Edit}/ (generated), common/
-- entities/: schema.ts(XxxBaseSchema,XxxCreateSchema,XxxUpdateSchema), form.ts(z.infer types), model.ts(TS types), drizzle.ts(DB table)
-- services/client/, services/server/{drizzleBase(generated), wrappers/, xxxService.ts}
-- hooks/ (generated, ref: CRUD_SERVICE)
-- constants/, types/, presenters.ts, domain.json
-
+features/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json
+shared_src: components (index: src/components/README.md), hooks, utils, stores, lib, config, registry, proxies
 code_generation:
 - generated (no edit; overwritten on every dc:generate while its generateFiles category is on): entities/, components/Admin*/, components/common/ generated forms/fields/detail modal, hooks/use*\<Domain\>.ts, services/client/\<domain\>Client.ts, services/server/{drizzleBase,\<domain\>Service}.ts, constants/field.ts, types/field.ts, presenters.ts, app/admin/(protected)/\<domains\>/**/_screen/
 - registry: dc:generate appends missing entries to src/registry/ files and rewrites the domain's serviceRegistry line from apiAccess every run | everything else in src/registry/ (CORE DOMAINS block of schemaRegistry.ts, extension registries) = hand-edited
 - write-once (generated when absent, never overwritten): app/admin/(protected)/\<domains\>/**/page.tsx (1-line switch)
 - hand-owned (never overwritten): files you add under wrappers/, formEntities.ts, any other file you add (other constants/ files, hooks with non-generated names), app/admin/(protected)/\<domains\>/**/_components/
-- must hand-edit a generated file → first set its category to false in domain.json generateFiles | ref: scripts/domain-config/README.md (上書きの扱い)
-
-shared_src: components (index: src/components/README.md), hooks, utils, stores, lib, config, registry, proxies
+- must hand-edit a generated file → first set its category to false in domain.json generateFiles | ref: scripts/domain-config/README.md
 
 ## STORES (zustand)
-placement: src/stores/ = app-wide only | domain-specific → features/\<domain\>/stores/
-structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts}
-hierarchy: internalStore → useStore → hooks/useXxx(optional)
-rules: state-only (logic in services) | UI side-effects in useStore useEffect | internalStore accessed only from useStore.ts
-ref: src/stores/README.md
+placement: src/stores/ = app-wide only | domain-specific → features/\<domain\>/stores/ | structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts}, internalStore → useStore → hooks/useXxx (optional)
+rules: state only (logic in services) | UI side effects in useStore's useEffect | internalStore accessed only from useStore.ts | ref: src/stores/README.md
 
 ## DOMAINS
-core: src/features/core/, hand-maintained (domain.json may exist as config source, but NOT a dc:generate target). examples: auth, user, wallet, setting, mail | index (1 line per core domain → README): src/features/core/README.md
-business: src/features/, has domain.json, dc:generate. examples: sample, sampleCategory, sampleTag
-path_alias: tsconfig paths maps @/features/\<coreDomain\>/* → @/features/core/\<coreDomain\>/*. omit core/ in imports (preferred)
-schema_registry (MANDATORY): src/registry/schemaRegistry.ts = sole drizzle-kit push entry. business domains auto-registered by dc:generate | core domain with new entities/drizzle.ts → add `export *` to CORE DOMAINS block by hand + run `pnpm test:schema-registry` (fails on any unregistered core drizzle.ts) + ship .notices with [user-run] db:push. unregistered = table never created, bestEffort writes fail silently (precedent: userLoginEvent)
-push_roundtrip (MANDATORY when adding/changing an index): `pnpm db:push` (the user runs it) → `pnpm db:push:check` must report zero statements (read-only dry-run that never writes, APP_ENV-aware; the agent may run it). non-round-trip index = DROP+CREATE on EVERY push = write lock on large prod tables | never `sql\`${col} DESC\`` (use .desc()), never mix plain columns + sql expressions in one index (all-expression or none) | drizzle-kit patched via pnpm patchedDependencies (pushSchema params, empty-array/jsonb default normalization) | ops doctrine: push may lock tables → choose timing (maintenance/low traffic), no per-push judgment | ref: scripts/registry/README.md
-
-commands: dc:init | dc:generate \<Domain\> | dc:generate:all | dc:delete \<Domain\> | dc:add \<Domain\> (never `--`: pnpm passes it through as the domain name)
-config_utils: src/lib/domain/ | getDomainConfig(domain), extractFields(config), getRelations(domain) | client: index.ts, server: server.ts
-new_domain_json: MUST read src/features/README.md before creating or editing any domain.json to verify schema format
-ref: src/features/README.md
-
-## SETTING (core domain)
-singleton: id="global" | extend: just add Zod fields to setting.extended.ts (no DB migration needed)
-ref: src/features/core/setting/README.md
+core: src/features/core/, hand-maintained (a domain.json there is config source only, NOT a dc:generate target) | index: src/features/core/README.md | imports omit core/ (@/features/\<coreDomain\>/* → features/core/)
+business: src/features/\<domain\>/ with domain.json → dc:generate | before creating or editing any domain.json → MUST read src/features/README.md
+commands: pnpm dc:init (create domain.json interactively) | dc:add \<Domain\> (append fields to an existing domain.json) | dc:generate \<Domain\> / dc:generate:all (generate files) | dc:delete \<Domain\> | never `--` (pnpm passes it as the domain name) | ref: scripts/domain-config/README.md
+schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only drizzle-kit push entry | business domains: auto-registered | core domain with a new entities/drizzle.ts → add `export *` to the CORE DOMAINS block by hand + `pnpm test:schema-registry` + ship .notices with `[user-run] db:push` | unregistered = table never created, best-effort writes fail silently
+push_roundtrip (MANDATORY when adding/changing an index): user runs `pnpm db:push` → `pnpm db:push:check` must report zero statements (read-only dry run, the agent may run it) | ref: scripts/registry/README.md
+- a non-round-trip index = DROP+CREATE on every push = write lock on large tables → never `sql\`${col} DESC\`` (use .desc()), never mix plain columns and sql expressions in one index | push may lock tables → run at maintenance / low traffic
+setting (core): singleton id "global" | extend = add Zod fields to setting.extended.ts (no DB migration) | ref: src/features/core/setting/README.md
+config_utils: src/lib/domain/ (getDomainConfig, extractFields, getRelations; client index.ts, server server.ts)
 
 ## API_ROUTES
-required: every route uses one of 3 factories (createDomainRoute / createApiRoute / createMeRoute). each enforces authz structurally
-generic: GET|POST / (list|create) | GET|PATCH|DELETE /[id] (get|update|soft-delete) | POST /search, /search-for-sorting, /count, /upsert, /bulk/delete-by-ids, /bulk/delete-by-query, /bulk/update (per-id {id,data}[] = bulkUpdate, NOT same-payload-only), /bulk/update-by-ids (same data for all ids), /bulk/upsert, /bulk/replace-by-query (atomic delete-where+insert, 1 tx), /[id]/duplicate, /[id]/restore, /[id]/reorder | DELETE /[id]/hard-delete
-generic_access_control: serviceRegistry entry { service, access } (access TYPE-REQUIRED) → createDomainRoute enforces. access runtime source = registry (domain.json apiAccess is editing source, dc:generate expands it into registry; core domains write access directly in registry) | rules: public | authenticated | none | {roles,roleCategories}, per-op override via operations | not covered → fail-closed (admin only, default: src/config/app/domain-api-access.config.ts) | presets (same file): ADMIN_ONLY | PUBLIC_READ | ADMIN_OR_DEBUGGER (+single-rule ADMIN_OR_DEBUGGER_RULE for createApiRoute access / per-op override) | role check uses DB-synced getSessionUser | ref: src/lib/routeFactory/README.md (アクセスポリシー)
-custom_route_authz: createApiRoute requires `access` (TYPE-REQUIRED, fail-closed by construction): "public"|"authenticated"|{roles,roleCategories}|"custom". non-custom → factory enforces. "custom" → guard in handler yourself (webhook sig etc.) via requireAdmin()/requireAuthenticated() (@/features/core/auth/services/server/requireRole, throws DomainError→401/403, DB-synced getSessionUser) | lint route-authz/require-authz: warns if access:"custom" lacks an in-handler guard
-ownership_routes: user-owned data ("self only") → createMeRoute (/api/me/**). enforces auth, passes DB-synced `user` to handler. scope by user.userId server-side (never trust client-supplied id). generic /api/[domain] canNOT enforce ownership (where user_id is client-controlled) → keep admin-only | ref: src/lib/routeFactory/README.md (createMeRoute)
-domain-specific: auth/, admin/, wallet/, webhook/, storage/, me/, debug/ (ADMIN_OR_DEBUGGER_RULE, template: api/debug/ping)
-ref: src/lib/routeFactory/README.md
+required: every route uses one of createDomainRoute / createApiRoute / createMeRoute (each enforces authz structurally) | before writing a route → read src/lib/routeFactory/README.md
+generic: /api/[domain]/** exposes the CRUD operations (list: src/app/api/[domain]/) | access = serviceRegistry entry { service, access } (TYPE-REQUIRED; domain.json apiAccess → dc:generate; core domains write it in the registry)
+- access rules: public | authenticated | none | {roles, roleCategories}, per-op override | not covered → fail-closed admin only | presets: ADMIN_ONLY, PUBLIC_READ, ADMIN_OR_DEBUGGER, plus the single rule ADMIN_OR_DEBUGGER_RULE for createApiRoute or a per-op override (src/config/app/domain-api-access.config.ts)
+custom_route_authz: createApiRoute `access` is TYPE-REQUIRED: "public" | "authenticated" | {roles, roleCategories} | "custom" | "custom" → guard inside the handler via requireAdmin() / requireAuthenticated() (@/features/core/auth/services/server/requireRole) | lint route-authz/require-authz warns on an unguarded "custom"
+ownership_routes: user-owned ("self only") data → createMeRoute (/api/me/**), scope by the passed `user.userId` server-side, never trust a client-supplied id | generic /api/[domain] cannot enforce ownership → keep it admin-only
+role checks always use the DB-synced getSessionUser | debug APIs: copy GET /api/debug/ping (ADMIN_OR_DEBUGGER_RULE)
 
 ## ROLES & PAGE_GUARD
-roles: 1 file per role src/features/core/user/roles/*.role.json (core: _admin/_user, _ prefix) → role:generate → src/registry/roleRegistry.ts (ALL_ROLES) → USER_ROLES → user_role enum | category: admin | user (getRoleCategory/getRolesByCategory @/features/core/user/constants) | debugger role: category user, purpose = maintenance bypass (maintenance.config.ts bypassRoles) + /debug area | ref: src/features/core/user/README.md
-page_guard (SSR layout/page): authGuard({allowRoles, allowStatuses, redirectTo, returnBack, statusRedirects}) @/features/core/auth/services/server/authorization — DB-synced getSessionUser, redirect on deny | guarded areas (layout-level, pages under them need no own guard): admin/(protected) + admin/insane (admin roles, redirect /admin/login) | (user)/(protected) (redirect /login) | debug/ (admin category + debugger, redirect /login)
-3-layer flow: proxy(redirectProxy, cookie JWT) → layout(authGuard: roles + statuses) → page / loader(requireCurrentUser: self record from DB, login only, behavior throw(default)|redirect|notFound|returnNull) | ref: src/features/core/auth/README.md
-debug_scaffold: /debug/** page area (src/app/debug/, layout enforces) + GET /api/debug/ping (copy source for debug APIs). add debug pages/APIs there, do NOT re-implement guards
+roles: src/features/core/user/roles/*.role.json (core = `_` prefix) → pnpm role:generate → src/registry/roleRegistry.ts | category = admin or user | debugger role = user category, bypasses maintenance + opens /debug
+page_guard: authGuard({allowRoles, allowStatuses, redirectTo, ...}) in layouts (@/features/core/auth/services/server/authorization) | already guarded at layout level (pages need no own guard): admin/(protected) + admin/insane (admin roles → /admin/login) | (user)/(protected) (→ /login) | debug/ (admin category + debugger → /login)
+flow: proxy (redirectProxy, cookie JWT) → layout (authGuard: roles + statuses) → loader (requireCurrentUser = own DB record) | debug pages go under src/app/debug/, never re-implement guards | ref: src/features/core/auth/README.md
 
 ## CRUD_SERVICE (createCrudService)
-operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulkDeleteByIds, bulkDeleteByQuery, bulkUpsert, bulkUpdate, bulkUpdateByIds | drizzle-only: belongsToMany, reorder(id,afterId), searchForSorting(auto-init NULL sort_order), replaceByQuery(where,records = atomic delete+insert 1tx, scope-guard 422, child-list wholesale replace) | sorting requires: sortOrderColumn option
-conditional: duplicate(useDuplicateButton), restore/hardDelete(useSoftDelete), reorder/searchForSorting(sortOrderField)
-note: list is a subset of search — use only for simple full-fetch. for relations, filtering, pagination → use search. count returns { total } without fetching records
-hooks: each operation auto-generates a corresponding use\<Op\>\<Domain\> hook (conditional ops generate only when enabled) | mutation hooks = concurrent-trigger safe (each trigger resolves/rejects with its OWN result, isMutating true until all settle; useSWRMutation PROHIBITED — custom mutation hooks MUST build on useDomainMutation from @/lib/crud/hooks) | test: pnpm test:crud-hooks | detail: src/lib/crud/hooks/README.md
-hook_naming_exceptions: get→use\<Domain\>, list→use\<Domain\>List, remove→useDelete\<Domain\>, count→useCount\<Domain\>
-server-only(no hook): query, belongsToMany, systemUpdate, bulkUpdateByQuery, systemBulkUpdateByQuery
-system_write (Drizzle only): systemUpdate(id,data,tx?) / systemBulkUpdateByQuery(where,data,tx?) — parseUpdate bypass for Zod-excluded system columns (ended_at etc.), fail-closed allowlist via systemColumns option (domain.json key for business domains), sql`` values OK (atomic increment/CASE). service-layer ONLY, never wire to HTTP routes | bulkUpdateByQuery(where,data,tx?)→{count} = update counterpart of bulkDeleteByQuery (parseUpdate path) | audit/requestMemo hooks fire like update | detail: src/lib/crud/README.md
-hook-only: use\<Domain\>ViewModal(useDetailModal)
-relationWhere: search/searchWithDeleted/searchForSorting/count accept `relationWhere?: RelationFilter[]` for filtering by relations (Drizzle only). Two variants: BelongsToManyFilter(targetIds+mode:any|all|none) for M2M | BelongsToFilter(where:WhereExpr) for belongsTo. Discriminated by targetIds vs where. Type: RelationFilter from @/lib/crud/types
-extraWhere: search/searchWithDeleted/searchForSorting/count accept `extraWhere?: SQL` (Drizzle only) for conditions beyond WhereExpr DSL (subqueries, EXISTS, JSONB, etc.). Type: ExtraWhereOption from @/lib/crud/drizzle
-sql_template_date (MANDATORY, no lint guard): never embed a JS Date in a raw sql`` template (Postgres cannot parse it → 500) → pass .toISOString() | Drizzle operators (eq/gt/lt/between etc.) take Date as is | ref: src/lib/crud/README.md
-searchRank (relevance ranking, Drizzle only): search/searchWithDeleted accept `searchRank?: boolean | {fields:[{field,weight}]}` → ORDER BY head = sum of per-field CASE (exact 100 > prefix 60 > word-start 40 > substring 20) × weight, then orderBy, id. WHERE/count unchanged. `true` = service `defaultSearchRank` (domain.json `searchRank` key for business domains) else searchFields equal weight. fields fail-closed to searchFields ∩ columns. AsyncComboboxInput/AsyncMultiSelectInput send `searchRank:true` by default (prop override) — every picker ranked, lists untouched. wrappers reuse buildSearchWhere/buildSearchRankOrderBy from @/lib/crud/drizzle, never re-implement CASE, and close ORDER BY with withIdTiebreak(table, orderBy, clauses) (appends asc(id) like base search; without it ties reorder across pages). `%q%` scan cost unchanged → pg_trgm recipe in src/lib/crud/README.md | test: pnpm test:crud-search-rank
-withRelations: `withRelations?: boolean | number`. true/1 = 1 level, 2+ = recursive nested relation fetch (requires nested config on relation definition, max depth=3). Expands belongsTo(FK→object), belongsToMany(IDs→objects), hasMany(parent→child array). use\<Domain\>/use\<Domain\>List hooks do NOT accept WithOptions — use useSearch\<Domain\> (search hook) which passes WithOptions through params
-hasManyLimit: `hasManyLimit?: number` in WithOptions. Per-parent child record limit for hasMany expansion (default: 100). Passed via query param from client→API→service
-extension: 1.check base methods → 2.relationWhere for relation filtering → 3.extraWhere for SQL injection → 4.base.query()+wrappers → 5.custom service
-files: xxxService.ts(import only) | wrappers/(CRUD override) | \<other\>/(domain-specific)
-requestMemo: option requestMemo:true → get(id) request-scoped memoized + all write methods auto-invalidate | enabled: user, setting | Drizzle only
-requestMemo_rule (MANDATORY): raw SQL write to enabled table → base.invalidateRequestMemo() right after | detail: src/lib/requestMemo/README.md
-hiddenColumns (secrets never leave service): defineHiddenColumns(table, props) in entities/drizzle.ts → ALL service returns + other domains' withRelations embeds null the cols (Drizzle only, fail-closed) | business domains: domain.json hiddenColumns key → dc:generate emits declaration | e.g. users.localPassword (current list: grep defineHiddenColumns src) | internal secret read = dedicated finder (user findByIdWithSecrets) ONLY, never return over HTTP | detail: src/lib/crud/README.md
-firestore_limits: no or | single orderBy | no belongsToMany
+before adding or changing CRUD calls, search options or raw SQL → read src/lib/crud/README.md (hooks: src/lib/crud/hooks/README.md)
+operations: create, list, get, update, remove, search, count, query, upsert, duplicate, restore, hardDelete, bulk* (DeleteByIds, DeleteByQuery, Upsert, Update, UpdateByIds) | Drizzle-only: belongsToMany, reorder, searchForSorting, replaceByQuery | conditional on domain flags: duplicate, restore/hardDelete, reorder/searchForSorting
+search: list = simple full fetch only → relations / filters / pagination use search | options: relationWhere, extraWhere (SQL), searchRank, withRelations (depth ≤ 3), hasManyLimit | wrappers that order search results reuse buildSearchWhere / buildSearchRankOrderBy and close ORDER BY with withIdTiebreak (else ties reorder across pages)
+extension: 1.base methods → 2.relationWhere → 3.extraWhere → 4.base.query() + wrappers → 5.custom service | files: \<domain\>Service.ts (import only), wrappers/ (CRUD overrides), \<other\>/ (domain-specific)
+hooks: one use\<Op\>\<Domain\> per operation | custom mutation hooks MUST build on useDomainMutation (@/lib/crud/hooks); useSWRMutation PROHIBITED | test: pnpm test:crud-hooks
+system_write: systemUpdate / systemBulkUpdateByQuery bypass Zod for allowlisted systemColumns → service layer ONLY, never wire to HTTP routes
+sql_template_date (MANDATORY, no lint guard): never embed a JS Date in a raw sql`` template (Postgres cannot parse it → 500) → pass .toISOString() | Drizzle operators (eq / gt / between …) take Date as is
+requestMemo_rule (MANDATORY): a raw SQL write to a requestMemo-enabled table (user, setting) → call base.invalidateRequestMemo() right after
+hiddenColumns: secrets declared with defineHiddenColumns (business: domain.json hiddenColumns) are nulled in every service return and relation embed | read them only through a dedicated finder (e.g. user findByIdWithSecrets), never return them over HTTP
 
 ## AUDIT
-tables: audit_logs (append-only) | audit_logs_failed (dead-letter)
-columns: target_type, target_id(text), actor_id, actor_type(system|admin|user|api_key|webhook), action, before_value, after_value, context, metadata, reason, retention_days, created_at
-action_naming: \<domain\>.\<entity\>.\<verb_past\> | e.g. user.email.changed | ESLint-enforced (eslint-rules/audit-action-naming.mjs)
-context: ALS auto-injected by routeFactory (actor_id, actor_type, ip, user_agent, request_id) | wrappers omit actorId param
+action_naming: \<domain\>.\<entity\>.\<verb_past\> (e.g. user.email.changed, ESLint-enforced)
+usage: auto = createCrudService audit option | manual = auditLogger.record({..., tx}) from @/features/core/auditLog/services/server (server-only) | pass tx for rollback consistency
+context: routeFactory injects actor / ip / request id | cron / CLI do NOT → wrap recording in runAsSystem (else "AuditContext is not set")
+user_visibility: GET /api/me/audit-logs returns only actions allow-listed in src/registry/userVisibleAuditActionsRegistry.ts (upstream empty = always empty) | covert admin actions stay invisible to the target user
+secrets: tracked fields pass the cross-domain denylist (src/lib/audit/denylist.ts) | auditLog = compliance record, never reuse it for behavior aggregation | ref: src/features/core/auditLog/README.md
 
-usage: A(auto)+B(manual), combinable
-- A: createCrudService with audit:{ enabled, targetType, actionPrefix, trackedFields, bulkMode, recorder:auditLogger } → CRUD lifecycle auto-recorded
-- B: import { auditLogger } from "@/features/core/auditLog/services/server" (server-only; barrel exports client-safe only) → auditLogger.record({ targetType, targetId, action, before, after, tx }) | tx required for rollback consistency
+## COUNTING (check BEFORE building any count / tracking feature)
+matrix: user × key (login only) → userCounter | content × action (anonymous OK) → interactionTracking | user × day "visited?" (DAU / active days / most active users) → analytics DAU (user_daily_activities), not a userCounter key | userCounter and interactionTracking both keep lifetime + daily counts (per-user daily = userCounter bumpDaily)
+userCounter is server-internal only (no client route) | interactionTracking public ingest is fail-closed via src/registry/interactionTargetRegistry.ts
+NOT_for: game telemetry, scroll / mousemove streams, tens of millions of events per day → separate pipeline, never retrofit these domains
+ref: src/features/core/{userCounter,interactionTracking,analytics}/README.md
 
-bulkMode: aggregate(default,1-row) | detail(per-record) | off
-strict: default true → throw+rollback | false → dead-letter
-trackedFields: omit = denylist-applied all fields | denylist: src/lib/audit/denylist.ts (password/token/secret cross-domain)
-retention_days: per-row | default 365 | compliance 730+ | cron auto-prunes
-emergency_stop: AUDIT_MODE=disabled → all audit no-op
-
-user_visibility: GET /api/me/audit-logs is fail-closed — returns ONLY actions allow-listed in src/registry/userVisibleAuditActionsRegistry.ts (USER_VISIBLE_AUDIT_ACTIONS, upstream default empty = always empty results). exact name or "prefix.*" | covert admin actions stay invisible to the target user by default | admin routes/AuditTimeline unaffected
-non_http_context: runAsSystem(fn) | runWithAuditContext(ctx, fn) | cron/CLI do NOT auto-set context → wrap recording code in runAsSystem (else throws AuditContext is not set)
-ui: \<AuditTimeline targetType targetId /\> | /admin/audit-logs cross-search | registerActionLabels({...}) for i18n
-cron: pnpm task audit-log-prune (0 3 * * *) | pnpm task audit-log-recover-dead-letter (0 * * * *)
-ref: src/features/core/auditLog/README.md
-
-## FINGERPRINT (browser device fingerprint + fraud challenge, opt-in default OFF)
-lib: src/lib/fingerprint/ (domain-free collector: collectDeviceSignals/collectFingerprintPayload + useBehavioralCapture headless form hook) | deviceFingerprint = device-axis cross-user match (sibling of userLoginEvent IP-axis), fingerprintChallenge = issue form to suspected user, force-collect fingerprint+behavior on submit | config: src/config/app/fingerprint.config.ts (collection.enabled / challenge.enabled independent gates) | UI = downstream (core ships data-layer + README recipes only) | signals are client-declared/spoofable = reference evidence NOT proof | ref: src/features/core/deviceFingerprint/README.md + fingerprintChallenge/README.md
-challenge_engagement: me-routes allow challenge.answerableStatuses (default active+suspended, via createMeRoute allowStatuses) + token-less owner path GET /api/me/fingerprint-challenges/pending → POST by-id/[id]/submit | notified→viewed→submitted timeline on fingerprint_challenges (mark_notified action, first/last_viewed_at+view_count auto in read path, accessLog.enabled default OFF, per-access IP+UA events retention+cron fingerprint-challenge-access-prune) | FingerprintChallengeForUser NEVER exposes view counters/IP
-
-## COUPON
-self-redeem of attribution coupons = always rejected in core (self_redeem_forbidden), never re-check per consumer | reason→message: coupon/constants/redeemReasonMessages.ts only |
-entry_scope (MANDATORY): every code-accepting entry passes `scope:{types?,categories?}` to isUsable/redeem/redeemWithEffect (mismatch = type_mismatch/category_mismatch, no consume). wired: register()=INVITE_CODE_REDEEM_SCOPE (referral/constants, type invite only) | completePurchase=purchase_discount | POST /api/coupon/redeem=official only | pre-login invite check = POST /api/referral/validate-invite-code (valid+message only, rateLimited) via isUsable skipRedeemerChecks (preview-only, RedeemOptions rejects it) | new entry (issuer program etc.) = own scope const in consumer domain, same const for check+redeem | issuer payout / apply→approve→periodic self-issue = couponAttributionReward / couponIssuerGrant (data-layer only, UI downstream) | ref: src/features/core/coupon/README.md + couponAttributionReward/README.md + couponIssuerGrant/README.md
-recipient_dto: GET /api/me/coupon-attribution-rewards returns CouponAttributionRewardForRecipient (toCouponAttributionRewardForRecipient) — issuer never sees redeemer (drops redeemer_user_id/coupon_history_id/wallet_history_id/failure_reason) | metadata keys fail-closed via src/registry/couponAttributionRewardRecipientMetadataRegistry.ts (upstream empty) | admin/stats reads stay raw (hiddenColumns NOT used)
-admin_section_tabs: /admin/coupons/* tabs = buildCouponAdminSectionTabs() (coupon/lib/adminSectionTabs, core 3 from CouponTypeOptions + src/registry/couponAdminSectionTabsRegistry.ts extras appended, upstream empty) | render = app/admin/(protected)/coupons/_screen/CouponSectionTabs {placement: body|header} placed by the Screen (placement = page concern) — AdminCouponList/AdminInviteList do NOT render tabs | type enum ≠ screen section: downstream derived-coupon screens register a tab, never hardcode tab arrays in coupon admin screens
-
-## COUNTING (which primitive — check BEFORE building any count/tracking feature)
-matrix: user×key(login-only) → userCounter | content×action(anonymous OK) → interactionTracking | user×day "visited?"(DAU/active-days) → analytics DAU base | userCounter/interactionTracking have lifetime + daily
-userCounter: bump(lifetime) / bumpDaily(lifetime+daily same-tx) / getTodayCount(daily-limit check) / getDailySeries. server-internal only (no client route) | ref: src/features/core/userCounter/README.md (decision guide)
-dau: user_daily_activities (1 row per user per day, permanent, analytics-OWNED source-of-truth ingest) | ingest: useDauTracker → POST /api/activity/dau → dauService.recordDailyActivity (server contexts call directly) | reads: dauAnalytics getDauDaily(day=DAU/week=WAU/month=MAU) / getDauSummary / getDauRanking(active-days top-N, paginated) + userId param = per-user drill-down (active days, 0/1 calendar series) | hooks: useDauDaily/useDauSummary/useDauRanking | "did user visit day X / days visited per user / most active users" → HERE, NOT a userCounter key
-interactionTracking: public ingest POST /api/interactions (fail-closed via src/registry/interactionTargetRegistry.ts) + batch ingest POST /api/interactions/batch (impressions etc: registry batchActions only, counters-only no detail) + server record()/recordBatch(). reads: getCounts / getCountsBulk(admin list columns) / getDailySeries(marketing time-series, permanent) / getAudience+getAudienceSummary(who-clicked, admin PII) | client: trackInteraction() fire-and-forget, useImpressionTracker()(viewport→buffered batch send) | ref: src/features/core/interactionTracking/README.md
-lifetime counters + content-daily + dau: permanent | event detail + user-daily: retention_days + prune cron
-NOT_for: game telemetry, scroll/mousemove streams, sustained tens-of-millions events/day → needs separate queue/external pipeline, do NOT retrofit these domains
-adjacent: auditLog = mutation history/compliance (behavioral reuse prohibited) | analytics = aggregation reads over existing tables + OWNS the DAU ingest above (user_daily_activities = first-party record, NOT derived; analytics_daily_rollups = recomputable pre-aggregation cache, NOT source of truth — see ANALYTICS_PERF)
-
-## USER_ACQUISITION (signup attribution, multi-touch)
-flow: proxy decorator (src/proxies/attribution.ts) accumulates utm/click-ID/external-referrer touches into httpOnly cookie (no DB write pre-signup) → /api/auth/register reads cookie server-side → user_acquisitions (1:1 first/last summary) + user_acquisition_touches (1:N timeline) | config: src/config/app/acquisition.config.ts (opt-in, default disabled — downstream enables when needed, no retroactive data)
-rules: users table gets NO analytics columns — per-concern satellite tables (this domain is the precedent) | aggregation axes = typed columns, long-tail = extras jsonb | dashboard aggregation → ANALYTICS_PERF
-referral_link: ?invite=CODE (param vocab shared via config referralParam) | TWO independent tracks: analytics = touch w/ source/medium=invite (gated by acquisition enabled) | function = dedicated pending_invite cookie (referral/lib/inviteLinkCookie.ts + src/proxies/inviteLink.ts, gated by marketing.referral.enabled ONLY) → signup form prefill (GET /api/referral/pending-invite-code → auth useInviteCodePrefill) + register fallback | register inviteCode semantics: non-empty=use | ""=explicit decline, no fallback | undefined=fallback to cookie | cross-browser (in-app browser → default browser via email): send-email-link embeds pending code into continueUrl → proxy re-bakes cookie in the opening browser. multi-touch history does NOT survive browser switch (known limit, invite only) | GA4 alignment: googleTag lib auto-sets campaign_source/medium=invite + ignore_referrer on invite-only landings (GA cannot classify custom params itself)
-ref: src/features/core/userAcquisition/README.md (cookie spec, read API, aggregation recipes, invite-link recipe)
-
-## USER_NAME (display name = ユーザー名/表示名 = users.name | validation + optional uniqueness)
-config: src/config/app/user-name.config.ts (maxLength + unique.enabled default false + caseInsensitive) | shared schema: user/entities/userName.ts (UserNameSchema required | UserNameNullishSchema entity nullable | UserNameFormSchema RHF empty-OK) — ALL name write paths MUST use these, never redefine name rules inline
-unique: app-layer check (user/services/server/helpers/nameAvailability.ts), NOT db unique constraint (late-enable + soft-delete + normalization reasons) | scope: deleted_at IS NULL AND is_demo=false | TOCTOU race closed via pg_advisory_xact_lock (withUserNameGuard wraps check+write in one tx, pass tx to base.create/update/restore) | lookup index: users_name_norm_idx lower(btrim(name)) (non-unique, always-on) | violation → DomainError 409 | bulk: isUserNamesTaken(names[]) → Set<taken inputs> (single query, same semantics)
-reserved_names: src/registry/reservedUserNamesRegistry.ts (downstream registers ReservedUserNameProvider, upstream ships empty) — non-user names (bots/NPC/synthetic entries/reserved words like 運営・admin) join the uniqueness check + suffix allocation avoids them | provider contract: filterReserved(normalizedNames)→reserved subset, fast local DB reads ONLY (runs inside advisory-lock tx), normalization = normalizeUserNameForComparison
-write points wired: registration/activate, wrappers/update (name change only), console/createGeneralUser+createAdmin+restore, wrappers/restore (generic /[id]/restore: collision → auto-suffix "name_2", not blocked)
-enable flow: unique.enabled=true deploy → pnpm task user-name-dedup -- --dry-run → pnpm task user-name-dedup (one-shot, idempotent, oldest keeps name) | ref: src/features/core/user/README.md
-
-## USER_STATUS_HISTORY (withdraw/pause/ban timing aggregation)
-user_status_histories: all users.status transitions, permanent (no prune), always-on | write: recordStatusTransition (user/services/server/statusHistory.ts) — MANDATORY when adding any status-writing code (from===to auto-skips) | agg: withdrawals/day = to_status='withdrawn' GROUP BY changed_at, exclude demo via users JOIN | backfill: pnpm task user-status-history-backfill (one-shot, idempotent, restores from audit_logs within retention) | audit_logs reuse for aggregation prohibited | ref: src/features/core/user/README.md
-
-## OPS_TASKS (task runner + cron)
-runner: pnpm task \<name\> (scripts/tasks/run.ts) = unified CLI for ALL ops tasks — scheduled (cron) AND one-shot (backfill/migration). one-shot DB ops go HERE, not ad-hoc scripts
-scheduler not built-in: downstream copies vercel.json.example → Vercel auto-runs /api/cron/* | new scheduled task = wire ALL 3: api/cron route + scripts/tasks/run.ts TASKS + vercel.json.example (+ catalog entry in src/lib/cron/README.md)
-one-shot migration task (e.g. wallet-lots-init): TASKS entry only, never scheduled | design: idempotent, batched+SKIP LOCKED, no-op unless opted-in | ref: src/lib/cron/README.md
-budgeted_cron (MANDATORY for unbounded-growth sweeps — whole-table in 1 invocation = timeout-killed forever): runBudgetedBatches({deadline,fetchNext,processChunk,onChunkDone}) + createDeadline(budgetMs) @/lib/cron (pure, deadline checked between chunks) | checkpoint: getCheckpoint/advanceCheckpoint (cron_checkpoints, monotonic GREATEST, resetCheckpoint=ops rewind only) @/features/cronCheckpoint | read-model differential refresh: createIncrementalRefresh({name,sources[{table,idColumn,updatedAtColumn}],recompute,trickle}) @/features/incrementalRefresh = dirty-scan(updated_at watermark, keyset paging, per-chunk checkpoint capped at run start) + trickle sweep(oldest computed_at, safety net) within budgetMs. 3 layers = userDirty hooks(realtime) + dirty-scan(15min cron) + trickle | ref: src/features/core/incrementalRefresh/README.md
-
-## ANALYTICS_PERF (heavy dashboard reads — check BEFORE adding per-domain caching/snapshot tables)
-cache: withAnalyticsCache({key,range}, fn) — closed(past-only) range=12h TTL, includes today=60s, auto-judged | per-instance memory | NOT immutable: call invalidateAnalyticsCache() after rewriting closed buckets | escape: ANALYTICS_CACHE=disabled
-rollup: analytics_daily_rollups + src/registry/analyticsRollupRegistry.ts (downstream registers RollupMetricConfig, upstream ships none) | kind: flow(sum) | snapshot(closing value, baseline=1-row lookup → fixes running-balance full-history scans) | read: readRolledDailySeries (closed=rollup rows, today=live merge) | cron analytics-rollup-daily + backfill CLI (idempotent; backfill re-run = recompute path for retroactive fixes)
-decision: simple GROUP BY still fast → cache only | unbounded-growth scan → rollup | composable (cache front, rollup behind)
-ref: src/features/core/analytics/README.md
-
-## AI_AGENT (generic agent foundation + DB inspection agent)
-foundation: src/lib/ai/ — domain-free agent runtime. runAgent({system,tools,messages,signal})→AsyncGenerator<AgentEvent> | shared Anthropic client (@/lib/ai/client, aiVision re-exports) | SSE: createAgentSSEResponse (server) + parseAgentEventStream (client) | config: src/config/app/ai-agent.config.ts (model default claude-opus-4-8, maxIterations, maxTokensPerStep)
-contract (versioned, downstream UI binds to it): AgentEvent v:1 = agent.text_delta | tool_call_started | tool_result | blocks | done{usage} | error (done ALWAYS last) | AgentBlock = text|stat|table|chart|entity_link|sql | present_result built-in tool → agent.blocks | breaking change → bump AGENT_PROTOCOL_VERSION, keep old types
-new_agent_recipe: tools (AgentToolDefinition[], zod-validate input=model output) + system prompt (stable part first, cache) + service wrapping runAgent + routeFactory route returning createAgentSSEResponse + streaming ClientService | per-agent safety boundary is the agent author's job (foundation only guarantees "nothing beyond given tools") | ref: src/lib/ai/README.md
-db_agent: src/lib/dbAgent/ + POST /api/admin/db-agent (admin, SSE, maxDuration) | fail-closed: DATABASE_URL_READONLY unset → 503, NO fallback to DATABASE_URL | safety layers: single-statement SELECT-only validation → row cap (cursor) → column mask (audit denylist) → readonly role + statement_timeout + default_transaction_read_only | audit: admin.db_agent.query_executed (per SQL) + turn_completed (usage), recorder injected from route (lib→features NG準拠, crud recorder precedent) | registries (upstream empty): dbAgentPromptRegistry (domain knowledge fragments), dbAgentToolRegistry (extra read-only tools) | ref: src/lib/dbAgent/README.md
-streaming_clientservice_exception: streaming ClientService MAY use fetch + ReadableStream (axios cannot stream in browser) | HTTP calls stay concentrated in ClientService (Hook/Component direct fetch still NG) | applies ONLY to SSE/stream endpoints
+## FEATURES (each line = a rule that applies even when you are not editing that feature; read its README before working in it)
+- users_table: no analytics columns on users → per-concern satellite tables (aggregation axes = typed columns, long tail = jsonb extras)
+- user_acquisition: signup attribution, opt-in default disabled | invite links run on their own pending_invite cookie gated by the referral flag, independent of acquisition | ref: src/features/core/userAcquisition/README.md, src/features/core/referral/README.md
+- user_name: every write path to users.name MUST use the shared schemas (user/entities/userName.ts) and withUserNameGuard, never redefine name rules inline | uniqueness = app-layer check, not a DB constraint | ref: src/features/core/user/README.md
+- user_status_history (MANDATORY): any code that writes users.status → recordStatusTransition (user/services/server/statusHistory.ts) | ref: src/features/core/user/README.md
+- coupon_entry_scope (MANDATORY): every code-accepting entry passes `scope` to isUsable / redeem / redeemWithEffect, same scope const for check and redeem | ref: src/features/core/coupon/README.md
+- coupon: self-redeem of attribution coupons is rejected in core, never re-check | reason messages only from coupon/constants/redeemReasonMessages.ts | recipients get CouponAttributionRewardForRecipient (never the redeemer) | admin coupon tabs via buildCouponAdminSectionTabs + registry, never hardcoded
+- fingerprint: opt-in default OFF, collection and challenge gated independently | signals are spoofable = reference evidence, never proof | user-facing DTOs never expose view counters or IP | ref: src/features/core/{deviceFingerprint,fingerprintChallenge}/README.md
+- ops_tasks: every ops task (scheduled and one-shot backfill / migration) = `pnpm task <name>` (scripts/tasks/run.ts), never ad-hoc scripts | new scheduled task → wire api/cron route + TASKS + vercel.json.example + catalog | ref: src/lib/cron/README.md
+- budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh | ref: src/lib/cron/README.md, src/features/core/incrementalRefresh/README.md
+- analytics_perf: before adding per-domain caches or snapshot tables → withAnalyticsCache (call invalidateAnalyticsCache after rewriting closed buckets) or analytics rollups | ref: src/features/core/analytics/README.md
+- ai_agent: generic runtime src/lib/ai/ (runAgent, SSE helpers, versioned AgentEvent contract: breaking change → bump AGENT_PROTOCOL_VERSION) | each agent owns its safety boundary | db agent is fail-closed without DATABASE_URL_READONLY (no fallback) | ref: src/lib/ai/README.md, src/lib/dbAgent/README.md
 
 ## STYLE_OWNERSHIP (upstream = structure, downstream = values)
-downstream_owned (upstream NEVER edits after creation): src/styles/custom/** (palette/typography/overrides, imported last in global.css, write only what changes) | src/config/ui/*.config.ts (define*Config({partial}) merges over lib defaults) | precedent: setting *.extended.ts
-upstream_owned: src/styles/theme.css (token structure only, no values) | src/styles/palette.defaults.css (color defaults) | src/styles/typography.defaults.css (font stacks, `var(--font-sans-loaded, <system stack>)`) | color source of truth = CSS → derived: pnpm mail:generate-colors (defaults + custom/palette.css :root merged, fails on missing) | test: pnpm test:style-tokens
-semantic_colors (success|info|warning|destructive = 3 vars each): `bg-x`/`border-x` fill | `text-x-foreground` text ON fill | `text-x-text` text on plain bg (Para tone, messages, SoftBadge). NEVER `text-x` (fill token as text) | scrim = `bg-overlay/NN` | white/black → background/foreground/card tokens | overlay text = `text-overlay-foreground` | lint: style-tokens/no-raw-palette (eslint-rules/style-tokens.mjs) error in src/components+src/lib+src/features/core+src/features/_template, downstream UI not covered; exceptions = reasoned eslint-disable (3rd-party brand colors, user-picked fixed palettes like userTag) | test: pnpm test:style-lint
-variants: src/config/ui/variants.config.ts = defineVariantOverrides({button|tabletButton|badge.{size,solid,soft,bookmarkTag}: {base?,variant?,size?}}) (lib: @/lib/variantOverrides, createOverridableVariants(base, cvaConfig, override) = cva-compatible fn, order: cva → base → variant[v] → size[s] → className) | shape only (radius/shadow/border/dimensions), colors via palette tokens | new primitive wraps its cva with the same fn + adds key to VariantOverridesInput | variant/size names = public contract (rename → .notices) | test: pnpm test:variant-overrides
-fonts: src/config/ui/fonts.config.ts = defineFontsConfig({sans?, mono?}) (lib: @/lib/fonts) | default = NO webfont (system stack, unchanged look) | downstream: next/font loader with literal `variable: "--font-sans-loaded"` / `"--font-mono-loaded"` → root layout puts `.variable` class on `<html>` → typography.defaults.css stack picks it up, theme.css/font-sans untouched | system-font reorder only → custom/typography.css `--font-geist-sans` | test: pnpm test:fonts
-site_theme: src/config/ui/site-theme.config.ts = defineSiteThemeConfig({areas[{key,match,mode,switchable}], fallback}) (lib: @/lib/siteTheme, defaults = all light, admin(/admin,/debug) switchable, user locked) | SSR: app/layout.tsx x-pathname → `<html class="dark" data-area=key>` + head bootstrap script (stored pref + prefers-color-scheme, no flash) + SiteThemeSync (client nav / toggle / OS change, sole DOM writer) | switchable:false area ignores localStorage (no admin→user leak) | CSS per-area: `[data-area="user"]{--primary:...}` in custom/palette.css | DOM apply ≠ persist (persist only on user toggle) | DarkModeSwitch self-hides when area not switchable (APP_FEATURES.adminConsole.enableDarkModeSwitch REMOVED) | test: pnpm test:site-theme (bootstrap JS ≡ resolver) | ref: src/styles/README.md
+ownership: see CORE_FILES (src/styles/custom/**, src/config/ui/*.config.ts = downstream) | color source of truth = CSS
+semantic_colors: success|info|warning|destructive → `bg-x` / `border-x` = fill | `text-x-foreground` = text on the fill | `text-x-text` = text on a plain background | NEVER `text-x` | scrim `bg-overlay/NN` | no raw white/black (background / foreground / card tokens) | lint style-tokens/no-raw-palette (exception = reasoned eslint-disable)
+config: variants / fonts / site theme are set through src/config/ui/*.config.ts define*Config({partial}) | variant and size names are public contract (rename → .notices) | before changing tokens, variants, fonts or theme → read src/styles/README.md
 
 ## COMPONENTS
-placement: multi-domain→src/components/ or AppFrames/ | single-domain section container→features/\<domain\>/components/\<Name\> | single-domain shared part→features/\<domain\>/components/common/ | default-Screen-only part→app/\<route\>/_screen/ | fork page-only→app/\<route\>/_components/
-core_domain_ui_boundary: core domains (this upstream) ship DATA LAYER ONLY (entities/services/API routes/client services/hooks) — do NOT add domain-screen UI components under src/features/core/**. Screen/design is downstream-owned; provide UI as README recipes on the data contract instead. Even if an upreq ticket requests a UI part, counter-propose data-layer + recipe (precedent: interactionTracking audience viewer, removed by 20260704-154147). Existing widgets (AuditTimeline etc.) are grandfathered — do not add new ones
-
-wrappers (raw HTML NG): div→Layout/{Block,Flex,Grid,Stack} | main→Layout/Main or UserPage | section→Layout/Section | button→Form/Button | input→Form/Input | p→TextBlocks/Para | h2→TextBlocks/SecTitle | skeleton→Skeleton/BaseSkeleton | img→Media/AppImage (direct next/image NG too; encapsulates fill/sizes/fallback + unregistered-host crash guard, ref: src/components/Media/AppImage/README.md)
-text_blocks_inherit: TextBlocks defaults (md / normal / Para align left) do NOT inherit like raw tags | Span directly inside a heading → `size="inherit" weight="inherit"` (else text-base font-normal shrinks the heading; lint style-tokens/span-in-heading: error upstream UI, warn downstream) | Para inside a centered parent → `align="center"` or `"inherit"` (not linted) | ref: src/components/TextBlocks/README.md
-
-badge: Badge/{SolidBadge,SoftBadge,BookmarkTagBadge} (variant 10 × size 3; _shadcn/badge unused) | DetailModal badge = `{text, variant}`
-overlays (direct _shadcn/dialog or self-built overlay NG — pick from here): modal-confirm→Overlays/Dialog | generic modal→Overlays/Modal | tabbed modal→Overlays/TabbedModal | media+rows detail→Overlays/DetailModal | pick N records from large master (search+infinite scroll, action-button entry)→Overlays/AsyncPickerModal (NOT Modal wrapping AsyncMultiSelectInput) | inline confirm→Overlays/Popover/ConfirmPopover | text/number prompt→Overlays/Popover/PromptPopover | action menu→Overlays/Popover/ActionPopover | multi-select list→Overlays/Popover/ChecklistPopover | help/info bubble(click)→Overlays/Popover/InfoPopover | label+?icon hover help→Overlays/Tooltip/HelpTip | generic popover→Overlays/Popover | hover hint→Overlays/Tooltip (shared TooltipProvider mounted in app/layout.tsx — per-instance skipDelayDuration falls back to local Provider) | hover preview card→Overlays/HoverCard | image zoom→Overlays/ImageViewer | loading overlay→Overlays/Loading/ScreenLoader | toast→@/lib/toast (GlobalToast+useToast) | low-level only→Overlays/DialogPrimitives | command palette (input+list, not a form picker)→Overlays/CommandPrimitives
-ref: src/components/Overlays/README.md
-
-UserPage: Main alias, wraps \<main\> with containerType, h1 not included
-kiosk (non-scrolling 1-screen pages outside UserLayout/AdminLayout): KioskFrame (AppFrames/Kiosk, viewport-fixed h-[--viewport-height] overflow-clip flex-col, children `flex-1 min-h-0`, safeArea/wakeLock) | fit-scale: ScaledStage (Layout, logical WxH → transform:scale contain/width/height, letterbox) + useFitScale(containerRef,{logicalWidth,logicalHeight,fit,minScale=0,maxScale=∞}) src/hooks | fluid: text-fluid-xs..5xl (theme.css clamp vmin, TextBlocks size fluidXs..fluidXxxl) + Tailwind builtin portrait:/landscape: + short: | inside layouts use UserPage fill / AdminPage fill instead | ref: src/components/AppFrames/Kiosk/README.md
-cn_class_groups (MANDATORY): new `--text-*` token in theme.css → register in src/lib/cn FLUID_TEXT_SIZES (tailwind-merge treats unknown text-* as COLOR and drops the sibling text color) | test: pnpm test:cn (parses theme.css, fails on drift)
-
-ui_layers (EN=JA: page=ページ | section_container=セクションコンテナ | part=部品 | defined by ROLE, not by tag/folder | ref: docs/!must-read/UIレイヤーの概念とコンポーネント分割方法.md):
-- page: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx = SSR entry body (awaits loader, places section containers, minimal tags, no hooks, no state; hook-bound bits → "use client" part in _screen/) | detail: SCREENS
-- section_container: = what a Screen places directly. features/\<domain\>/components/\<Name\> (\<Name\>/index.tsx when it has parts, \<Name\>.tsx when not), name = role WITHOUT suffix (no *Page/*Screen/*Section), call hooks here, HTTP only via hooks (no ClientService direct call), top-level props = contract, part imports absolute + barrel from index | Screen imports the container itself, never inside it (test:screens: dir with index.tsx = container, its inside = parts → fail; dirs without index.tsx = namespaces, e.g. `components/Admin/<Name>` grouping OK; upstream layout = flat `components/<Name>` + shared parts in `common/`) | h1 = Screen only, h2+ inside; `<Section>` recommended when semantically a section (as="article|aside|nav" by HTML meaning), not mandatory
-- part: everything inside a container (display-only or self-contained interactive), NOT contract; shared within a domain → components/common/ (dir/index form still a part if no Screen places it) | hooks in a part ONLY when self-contained (state update inside hook, works anywhere, onSuccess/onError injectable) → then "use client"
-  rule: call hooks at upper layer, pass handlers via props
-  data_seam: first-paint data (balance, first page, record detail, form initial values) = loader → container prop `initial<Name>` → hook option `fallbackData` + `revalidateOnMount: fallbackData === undefined || <SWR cache already has the key>` (cache beats fallbackData, so a re-mount must still revalidate; only a fresh load skips the request) | background data (badges, polling, modal contents) = hook only | prop optional (no prop → hook fetches as before) | loader calls the same ServerService as the API route | SWRConfig key-sharing fallback NOT the standard (admin relation prefetch = existing exception) | infinite-scroll first page out of scope for now
-
-page_controls: AppFrames/User/controls/ (header/footer/bottomMenu visibility, use in the Screen)
-FieldRenderer: baseFields, fieldPatches, insertBefore/insertAfter, fieldGroups, inlineGroups | onMediaStateChange(MediaState) | UI slots: beforeAll/afterAll, beforeField/afterField(field-name key), beforeGroup/afterGroup(FieldGroup.key, UNGROUPED_GROUP_KEY="__ungrouped__" for ungrouped block, grouped path only, hidden when collapsed) | ref: src/components/Form/FieldRenderer/README.md
-FormInputType: textInput, numberInput, textarea, select, multiSelect, combobox, radio, checkbox, stepperInput, switchInput, dateInput, timeInput, datetimeInput, emailInput, passwordInput, colorInput, mediaUploader, mediaUploaderMulti, hidden, custom, none
-mediaUploaderMulti: 複数枚アップロード(string[])。validationRule.maxItems(既定10)/minItems、reorderable(既定true)、画像/動画両対応(mediaTypePreset). DBは text[] NOT NULL DEFAULT [] (Neon)
-programmatic_value: hidden(in schema, no UI, value submitted) or custom(in schema, own UI) | none = excluded from schema entirely, NOT for programmatic use
-async_select: AsyncComboboxInput(single), AsyncMultiSelectInput(multi) — async search+select. engine = Form/Input/Manual/AsyncOptionSource (useAsyncOptionSource + AsyncOptionList/states), shared with Overlays/AsyncPickerModal — new async picker MUST consume it, never re-implement browse/search paging. User-specific: UserAsyncCombobox/UserAsyncMultiSelect (features/core/user/components/common/) — props: role, where, initialId(s), formatLabel | data source = useUserAsyncOptionSource (user/hooks, searchFn + initial label resolve) for custom user pickers
-device_hooks (src/hooks/, domain-free, SSR-safe, unsupported→supported:false never throw): useWakeLock(enabled) screen sleep suppress | useFullscreen(ref?) Fullscreen API toggle+state | useViewportOrientation() landscape/portrait + isShortHeight(max-height 500px, matchMedia = same judgment as CSS `short:` variant in theme.css, keep threshold in sync) | useMediaQuery(query) generic
-async_guard: useAsyncAction(src/hooks/) — useRefベースの排他ロックで非同期アクションの二重発火を防止。Dialog/ConfirmPopoverはonConfirmがPromiseを返すと自動でloading管理+ロック
-async_feedback (MUST): client-side background通信(mutation/送信/同期)中は必ずローディング状態を可視化 — ボタン内スピナー/ScreenLoader(local)/persistent toast(variant:loading)のいずれか。無反応UI禁止。Dialog/ConfirmPopoverのPromise自動loading・useAsyncActionのpending活用を優先 | 例外: fire-and-forget計測(trackInteraction等)
-infinite_scroll: 無限スクロール画面は @/components/Widgets/InfiniteScrollList を使う (sentinel/初回ローダー/エラー/空表示/追加スピナー/完了メッセージを内包)。データ取得は @/hooks/useInfiniteScrollQuery (または派生フック) の isInitialLoading / isFetchingMore / hasMore / error / sentinelRef をそのまま渡す | ref: src/components/Widgets/InfiniteScrollList/README.md
-action_optimistic: 一覧の項目を変えるアクション (status 変更等) の server logic は処理済み ID 配列を返す。クライアントは hook の onSuccess でこの ID を受け、useInfiniteScrollQuery の updateItems (書き換え) / removeItems (フィルタ済みリストから除去) でローカル即時反映する | 再取得が本当に要るとき (レスポンスから反映内容を作れない) だけ revalidate (一覧を表示したまま 1 ページ目から取り直す)。reset は一覧を空に戻すので最新化に使わない
+placement: multi-domain → src/components/ or AppFrames/ | single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only → app/\<route\>/_components/
+core_domain_ui_boundary: core domains ship the data layer only (entities, services, API routes, client services, hooks) | never add domain-screen UI under src/features/core/**; give a README recipe instead, even when an upreq asks for UI | existing widgets (AuditTimeline etc.) stay, add no new ones
+wrappers (raw HTML NG): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
+- never import _shadcn directly (wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)
+text_blocks_inherit: TextBlocks do not inherit like raw tags → Span directly inside a heading = `size="inherit" weight="inherit"` | Para in a centered parent = `align="center"` | ref: src/components/TextBlocks/README.md
+overlays (never a raw _shadcn dialog or a self-built overlay; all under Overlays/, ref: src/components/Overlays/README.md):
+- modal: confirm → Dialog | generic → Modal | tabs → TabbedModal | media + rows → DetailModal | pick N from a large master → AsyncPickerModal
+- inline: confirm / prompt / actions / checklist / info → Popover/{Confirm,Prompt,Action,Checklist,Info}Popover | hover → Tooltip, Tooltip/HelpTip, HoverCard | image zoom → ImageViewer | loading → Loading/ScreenLoader | toast → @/lib/toast
+ui_layers (page / section_container / part, defined by role; ref: docs/!must-read/UIレイヤーの概念とコンポーネント分割方法.md):
+- page = page.tsx switch + Screen (see SCREENS): no hooks, no state, h1 only here
+- section_container = what a Screen places directly: features/\<domain\>/components/\<Name\> (no *Page/*Screen/*Section suffix) | calls hooks, HTTP only via hooks | top-level props = contract | a Screen imports the container, never its inside
+- part = everything inside a container, not contract | hooks in a part only when fully self-contained | call hooks at the upper layer, pass handlers via props
+- data_seam: first-paint data = loader → container prop `initial<Name>` → hook `fallbackData` + `revalidateOnMount: fallbackData === undefined || <SWR cache has the key>` | background data = hook only
+forms: FieldRenderer (ref: src/components/Form/FieldRenderer/README.md) | programmatic value = input type hidden (no UI) or custom (own UI); none = excluded from the schema
+async_select: async pickers MUST consume Form/Input/Manual/AsyncOptionSource (never re-implement browse/search paging) | form field → AsyncComboboxInput / AsyncMultiSelectInput (users: UserAsyncCombobox / UserAsyncMultiSelect) | modal opened from an action button → AsyncPickerModal (users: useUserAsyncOptionSource, features/core/user)
+async_feedback (MUST): every client background request (mutation / submit / sync) shows loading: button spinner, local ScreenLoader or loading toast | prefer Dialog / ConfirmPopover Promise handling and useAsyncAction (src/hooks, double-fire lock) | exception: fire-and-forget tracking
+infinite_scroll: use @/components/Widgets/InfiniteScrollList fed by @/hooks/useInfiniteScrollQuery | never build your own sentinel or an isLoading early return (it blanks the list on load-more)
+action_optimistic: an action that changes list items returns the processed IDs → onSuccess calls updateItems / removeItems | revalidate only when the response cannot describe the change | never reset to refresh (it empties the list)
+cn_class_groups (MANDATORY): a new `--text-*` token in theme.css → register it in src/lib/cn FLUID_TEXT_SIZES (test: pnpm test:cn)
+kiosk / device hooks: non-scrolling one-screen pages and src/hooks device hooks (wake lock, fullscreen, orientation, useMediaQuery) → read src/components/AppFrames/Kiosk/README.md | page_controls: AppFrames/User/controls/ (used in the Screen)
 ref: src/components/README.md
 
-## SCREENS (page 層の差し替え構造: 下流が core を編集せず画面を作り直す)
-route = page.tsx (downstream-owned 1-line switch `export { XScreen as default } from "./_screen/XScreen"`, metadata/dynamic OK) + _screen/\<Name\>Screen.tsx (default screen, owned by whoever created the route — upstream routes: upstream edits, downstream never edits/deletes) + _components/ (downstream screens, downstream page-only parts; upstream puts NOTHING there on its own routes) | _screen/ may also hold the default Screen's private parts (flat or sub-dir, e.g. (user)/_screen/StarterHome/, entry/_screen/CampaignSection.tsx; not contract, imported relatively, a copied Screen re-points to ../_screen/<Part>) | 1 route = 1 Screen | only 2 new words: `_screen/` + loader, rest = ui_layers
-loader: src/app/\<route\>/_screen/loader.ts (fixed name, 1 route = 0..1 loader, owned with the Screen; NEVER in features/\<domain\> — multi-domain composition / redirect-only / param-parse pages all go here, shared judgments → domain utils/) `load<Name>Screen(props: ScreenProps)` (@/lib/screens/types) = `import "server-only"` + React cache() keyed by resolved primitives (not props; required even when body is pure) + does redirect/notFound itself (Promise<void> OK for navigation-only) + calls requireCurrentUser itself when it reads user-scoped data (no fetch → no loader) + returns explicit minimal DTO | DTO types (<Name>ScreenData / <Name>ScreenParams / <Name>ScreenSearchParams) are DEFINED in the loader, Screen + parts `import type` from it; loader never imports from _components/ or a Screen (type included) | session helper = by route group: a loader that needs the user under (protected) uses ONLY requireCurrentUser({behavior:"redirect", redirectTo = same literal as the group layout authGuard}), getSessionUser (nullable) = public routes with optional personalization only, no "no session → defaults" branch under (protected) (dead code) | naming: public load<Name>Screen(props), cache()'d inner resolve<Name>Screen(primitives) | Screen never try/catch | spec = header comment in the file (no per-domain README) | features/ loaders only for SHARED loaders used by many routes (admin_generated)
-contracts (public; rename = keep old export + .notices, breaking = add new name): Screen entry (file + named export + props) | loader (name/args/DTO/redirect conditions) | hooks | section container top-level props | NOT contract: parts / Screen internals | no slot/registry injection
-downstream (DEFAULT RULE, not optional): every fork user-facing page = same structure (page.tsx 1-line switch + _screen/ + _screen/loader.ts when it has server logic); existing fork routes migrate when next touched or in a planned sweep; not-yet-migrated routes MUST be listed with a reason in src/registry/screenRoutesRegistry.ts FORK_LEGACY_ROUTES (test:screens fails otherwise; list only shrinks) | replace upstream screen = copy _screen/<X>Screen → _components/<X>Screen.tsx (name it *Screen to tell it from parts) + re-point loader import to ../_screen/loader + point page.tsx, keep calling loader (own extra server data → _components/loader.ts); copy section container only to change parts (part imports absolute → copy works); hooks-only for full redesign | deleted route in fork = re-delete on modify/delete conflict
-test (NO registration): pnpm test:screens auto-discovers page.tsx under src/app/(user)/** + (marketing)/** + admin/** (hand-written + dc:generate; (user)/demo + admin/(protected)/tabs-demo excluded) + fork areas listed in src/registry/screenRoutesRegistry.ts FORK_SCAN_ROOTS (one line per AREA, e.g. "src/app/store"; FORK_SCAN_EXCLUDES to skip; unregistered top-level dir under src/app = FAIL; stale/duplicate/upstream-covered entry = FAIL, so fork admin/(protected)/<x> dirs are NOT registered) + each route's _screen/loader.ts / _components/loader.ts + shared src/features/**/services/server/loaders/*.ts (re-export-only shims skipped) | checks: page.tsx = switch to ./_screen/X or ./_components/X (+ metadata/generateMetadata re-export OK, segment config stays in page.tsx, generateMetadata may import ./_screen/loader) | Screen exists, named export, no default export, NO "use client" (hooks go to section containers) | loader server-only + cache() + load<Xxx> + no import from _components/ or *Screen + no getSessionUser under (protected) | non-switch page.tsx = FAIL unless in a legacy list with reason (upstream: UPSTREAM_LEGACY_ROUTES in screens.test.mjs, empty since 5e; fork: FORK_LEGACY_ROUTES in registry); migrated-but-still-listed = FAIL | checkers in src/lib/screens/checks.mjs (pure) | tsx runner
-upstream (MANDATORY): never put logic back in page.tsx | new core route = switch form from the start (UPSTREAM_LEGACY_ROUTES is empty, keep it so) | migrated: ALL core routes (wallet 9 + mypage 10 + legal 3 + services + maintenance + entry + top page + auth 16 + hand-written admin 33: users / user-tags / chat-rooms / notification-templates / notifications / settings / coupons / audit-logs / bank-transfer-reviews / dashboard / login / setup / insane) | core domains with domain.json are NOT dc:generate targets (generate-service skips core/) → their admin routes are hand-maintained in the generated shape (shared loaders, no route loader) | route-private parts of upstream admin routes live in _screen/ (coupons/_screen/CouponSectionTabs is shared by coupons/* Screens, fork coupon Screens import it relatively) | a Screen with no server fetch and no navigation control has NO loader (mypage / other / withdraw precedent; layout authGuard covers login) | (auth) routes outside (protected) that need login/status (login / restricted / reactivate) do the redirect in their loader via getSessionUser (public-route helper) | hook-bound page bodies (demo-login / logout / signup/complete) = "use client" part in _screen/, Screen stays server | ref: src/lib/screens/README.md
-admin_generated (dc:generate admin routes): same structure — page.tsx write-once (`dynamic` stays in page.tsx, `metadata` re-exported from _screen) + _screen/Admin\<Domain\>{List,Create,Edit,Sort}Screen.tsx regenerated + SHARED loaders features/core/admin/services/server/loaders/ (loadAdminListScreen(service, props, options?: withRelations/hasManyLimit/orderBy/where/relationWhere — JSON-able only, extraWhere → _components/loader.ts) / loadAdminEditScreen / loadAdminSortScreen / loadAdminRelationOptions(domainConfig) = SSR prefetch of form relation options into SWRConfig fallback, same key + same "which relations" judgment as useRelationOptions via src/lib/domain/relations/relationOptions.mjs (every form relation except async*/custom — default select/checkbox included; async/custom/inverse belongsToMany/hasMany never prefetched), services resolved from serviceRegistry so generated Screens import no relation services; NO requireCurrentUser — admin layout authGuard covers) | relation-options judgment lives ONLY in relationOptions.mjs (hook + loader + generator import it) | auto-discovered by test:screens | ref: src/lib/screens/README.md §12
+## SCREENS (page layer that downstream replaces without editing core)
+before adding or replacing a page, Screen or loader → read src/lib/screens/README.md
+route_groups: (user)/(protected) = login required | (user)/(public) = public pages | (user)/(auth) = login / signup flows | (user)/(legal) = legal pages | (marketing)/ = landing pages outside the user layout | admin/ | debug/ | ref: src/app/README.md
+route: page.tsx = downstream-owned 1-line switch `export { XScreen as default } from "./_screen/XScreen"` (metadata / dynamic OK) | _screen/\<Name\>Screen.tsx = default Screen, owned by the route creator (downstream never edits/deletes upstream ones) | _screen/ may hold the default Screen's private parts | _components/ = downstream Screens and parts only | 1 route = 1 Screen
+screen: server component, named export, no default export, NO "use client", never try/catch | hook-bound bits → a "use client" part in _screen/ or a section container
+loader: src/app/\<route\>/_screen/loader.ts, never in features/\<domain\> (shared admin loaders excepted) | `load<Name>Screen(props)` = `import "server-only"` + React cache() keyed by resolved primitives + does redirect / notFound itself + returns an explicit minimal DTO whose types it defines | never imports from _components/ or a Screen
+session: under (protected) the loader uses only requireCurrentUser({behavior:"redirect", redirectTo = the group's authGuard literal}) | getSessionUser (nullable) only outside (protected): optional personalization, or (auth) pages that redirect by login / status
+contracts (rename = keep the old export + .notices): Screen entry, loader (name / args / DTO / redirects), hooks, section container top-level props | not contract: parts, Screen internals
+downstream (default rule): every fork user-facing page uses this structure | unmigrated fork routes MUST be listed with a reason in FORK_LEGACY_ROUTES (the list only shrinks) | replace an upstream Screen = copy it to _components/\<X\>Screen.tsx, keep calling the upstream loader, point page.tsx at it | a route deleted in the fork = re-delete on modify/delete conflict
+upstream (MANDATORY): never put logic back in page.tsx | new core route = switch form from the start, UPSTREAM_LEGACY_ROUTES stays empty
+test: pnpm test:screens auto-discovers routes; fork areas outside the scanned roots → register them in FORK_SCAN_ROOTS
+admin_generated: dc:generate admin routes use the same structure with shared loaders in features/core/admin/services/server/loaders/ | ref: src/lib/screens/README.md §12
 
 ## ERROR_HANDLING
-flow: ServerService throw DomainError → APIRoute JSON{message} + HTTP status → ClientService normalizeHttpError → Hook pass → UI err(error,fallback) | ref: docs/!must-read/エラーハンドリング方針.md (why) + src/lib/errors/README.md (API)
+flow: ServerService throws DomainError → APIRoute JSON {message} + status → ClientService normalizeHttpError → Hook → UI err(error, fallback) | ref: docs/!must-read/エラーハンドリング方針.md, src/lib/errors/README.md
 
 ## NAMING
 components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only
-db_identifiers: PostgreSQL 63-char limit (NAMEDATALEN-1). Drizzle auto-generates FK names as `{table}_{column}_{reftable}_{refcolumn}_fk` — long table/column names trigger `42622` NOTICE on db:push and the name gets truncated, which can collide. When adding tables/columns, keep names short enough so generated FK names stay ≤63 chars. If unavoidable, set an explicit shorter FK name via Drizzle's `foreignKey({ name: "shortname_fk", columns: [...], foreignColumns: [...] })`.
-
-## PROHIBITED
-- client fetch (use axios) — exception: streaming ClientService (SSE) may use fetch + ReadableStream (see AI_AGENT) | realtimeRoom useRoomState may use native WebSocket (see SERVERS)
-- direct DB in API routes (use ServerService)
-- raw HTML when wrapper exists
-- direct _shadcn imports (use wrappers: button→Form/Button, input→Form/Input/*, skeleton→Skeleton/BaseSkeleton, checkbox→Form/Input/Manual/BooleanCheckboxInput, command→Overlays/CommandPrimitives, full table: src/components/_shadcn/README.md | no wrapper? → propose creating one | lint: no-restricted-imports outside src/components + src/lib/tableSuite)
-- form schemas in entities/schema.ts (use formEntities.ts)
-- Hook calling ServerService
-- Hook/Component calling APIRoute directly (axios/fetch を Hook 内で直叩き禁止。HTTP 呼び出しは必ず ClientService に集約)
-- skip normalizeHttpError in ClientService
-- manual m2m when belongsToMany available
-- re-implement when base CRUD suffices
-- edit generated files (use wrappers)
-- API routes without routeFactory
-- direct asset paths (use utils/assets: assetPath, imgPath, videoPath, logoPath)
-- space-y/space-x classes (use Layout/Stack instead. Stack: flex flex-col with gap, space prop accepts Tailwind spacing scale numbers)
-- unpaginated full-fetch of user-scale data (ユーザーに紐づくデータをbase.search()等でlimit未指定の全件取得するのは禁止。必ずページネーション(page/limit)を使い、UIは無限スクロール等で段階取得すること。base.searchのデフォルトlimit=100は安全策ではなくデータ欠損の原因になる)
-- utility functions in config files (src/config/): config files are values only, place logic in relevant domain utils or lib
-- direct businessConfig.url for runtime base URL (decision: use getAppBaseUrl() from @/lib/url). businessConfig.url is "事業者の正式URL" (mail/SEO等). 実行環境のオリジン (決済コールバック・メールリンク等) は getAppBaseUrl() 経由のみ。リクエストヘッダ (Host/X-Forwarded-Host) からの組み立ては Host Header Injection になるため禁止
-- direct lib/mail.send() for user-facing messages: 管理者→ユーザー向けメッセージ送信は必ず messagingService.send / bulkSend (@/features/messaging/services/server) 経由。lib/mail 直接呼び出しはシステムメール (PWリセット、メール認証、登録完了等のテンプレート系) に限定。理由: 受信者単位の audit_logs 記録と本文を保持する message_dispatches 行を漏れなく永続化するため
-- 自前で無限スクロール sentinel / 全画面ローダー early return を組む (use @/components/Widgets/InfiniteScrollList。isLoading 単独で early return すると追加ロード時に既存リストが消える既知の落とし穴を再発させる)
-- アクション完了後、API レスポンスの処理済み ID で反映できるのに revalidate / reset で再フェッチする (updateItems / removeItems を呼ぶこと。再フェッチは UX 退化 + 通信往復の二重コスト。reset は一覧が消えるので最新化に使わない)
-
-## CORE_FILES (approval required)
-src/lib/ libraries in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned), src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** (upstream routes, see SCREENS), servers/room/src/core/, servers/room/src/index.ts
-downstream_owned (upstream never edits after creation, see STYLE_OWNERSHIP / SCREENS): src/styles/custom/**, src/config/ui/*.config.ts, src/app/**/page.tsx of switched routes (1-line switch; upstream never edits after creation), src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES)
-fork_core_edit_compat (downstream, when a fork edits core paths at all — default is don't, see SCREENS): stay backward compatible with upstream callers | props/args a fork adds to a core component/hook/service = optional with an empty default | never delete core code the fork does not use (leave it unused) | signature change = add a new name, keep the old | why: upstream default `_screen/*` Screens and other upstream callers stay in the fork's tsc scope even when its page.tsx points to `_components/` → a non-compatible core edit fails tsc at the next upstream merge | fix side = the fork's core edit, never the upstream Screen | ref: src/lib/screens/README.md §7
-src/config/: value changes OK | structure changes (add/remove keys, type change, rename) require approval
-
-## TOOLS
-playwright-mcp: available | use only when explicitly instructed by user
+db_identifiers: PostgreSQL names ≤ 63 chars | drizzle auto FK name `{table}_{column}_{reftable}_{refcolumn}_fk` gets truncated and can collide → keep table/column names short, or name the FK: `foreignKey({ name: "shortname_fk", columns: [...], foreignColumns: [...] })`
 
 ## SCRIPTS
-ref: scripts/README.md | claude:test: API connection check (requires ANTHROPIC_API_KEY)
-db:query "SQL": execute SQL | db:tables: list tables | db:describe \<table\>: show structure | db:count [table]: row counts
-fs: Firestore equivalent of db: commands (fs:collections, fs:count, fs:describe, fs:query, fs:delete). run without args for usage
+ref: scripts/README.md | db:query "SQL" | db:tables | db:describe \<table\> | db:count [table] | fs:* = the Firestore equivalents (run without args for usage) | claude:test = Anthropic API connection check
 
-## DOWNSTREAM_NOTICES (上流追随)
-upstream変更の追随通知 = .notices/*.md (変更と同じcommit/PRで出荷、mergeで下流に届く) | 起票: /downreq | 受領・適用: /flux (fetch→未適用を区切りごとの区間に分割→承認1回→区間ごとに merge・適用・DB・検証・台帳・commit・push。`/flux next`=1区間のみ) | 台帳: .notices/applied/\<fork-id\>.md (forkごと別ファイル) | ref: .notices/README.md
-relay (3+ tiers): grandparent notices (from ≠ own origin ≠ upstream) segment at the intermediate tier's ledger-record commit, never at the raw upstream add-commit | mid tier relays applied upstream notices via `/downreq relay` (notice `covers: <ids>` = covered ids applied with it, ledger auto-records them) | /flux reports unrelayed count, `/flux status --chain` shows per-id chain | ref: .notices/README.md 中継(relay)
-checkpoint (MANDATORY on notice): `checkpoint: <label>` = 既定 (notice 1件 = fork が整合する休憩点 1つ、/flux はここで merge→適用→commit→push を閉じる) | `checkpoint: -` = 例外宣言のみ (後続 notice なしでは fork が動かない中間点、理由を notes: に) | 大規模DB・独自要素の多い fork を 1 変更ずつ安全に進めるための仕組みなので、迷ったら `-` にしない
-fork_bootstrap: 新規fork初期設定 = /fork-init (clone直後のリポ内で実行、承認1回でリポ作成〜初期commit/push) | spec(手順の正): docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
+## DOWNSTREAM_NOTICES
+notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit | file with /downreq, apply with /flux | ledger: .notices/applied/\<fork-id\>.md | ref: .notices/README.md
+checkpoint (MANDATORY on every notice): `checkpoint: <label>` = default (one notice = one point where the fork is consistent) | `checkpoint: -` only when the fork cannot work without the next notice (reason in notes:)
+relay: a mid tier relays applied upstream notices with `/downreq relay` (covers: ids) | ref: .notices/README.md
+fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## DOCS
-policy: colocation-first — primary docs in README.md next to code | docs/ = cross-cutting only, 3 folders fixed: !must-read/ (principles) | setup/ (external-service console setup, not derivable from code) | journal/ (dated records) | no other docs/ subfolders; topic/domain docs → colocated README (agent-answerable how-tos need no doc)
-stale_README: full rewrite over partial patch when README contradicts actual code
-claude_md_additions: CLAUDE.md is loaded every session → per feature max ~2 lines (existence 1 line + mandatory rule not derivable from code) | mechanism / criteria / caveats → colocated README | prefer a line in an existing section over a new section
-dated_records (incident narrative / verification log / decision history / "記録して"): docs/journal/<YYYY-MM-DD>--<owner>--<slug>.md — not auto-loaded, never .claude/rules/ or CLAUDE.md. distilled rule (1 line) may go to project.md if fork-specific
+policy: colocation-first, primary docs = README.md next to the code | docs/ has exactly 3 folders: !must-read/ (principles), setup/ (external service setup), journal/ (dated records) | topic docs → colocated README
+stale_README: full rewrite over partial patch when a README contradicts the code
+claude_md_additions: CLAUDE.md is loaded every session → a feature adds its existence + MANDATORY rules + when to read its README (`before X → read <README>`) | one decision per item | API, options, mechanism, caveats → colocated README | prefer a line in an existing section
+dated_records (incident narrative / verification log / decision history / "記録して"): docs/journal/\<YYYY-MM-DD\>--\<owner\>--\<slug\>.md (owner rule: docs/journal/README.md) | never .claude/rules/ or CLAUDE.md | a distilled fork-specific rule (1 line) may go to project.md
 memory: auto-memory = per-directory, personal, unreviewed → handoff of in-progress work ONLY (state / next step / pointer to drafts / end condition checkable by a file, commit or user decision / absolute dates, delete when done), write it freely | never durable rules / knowledge / environment facts
 durable_info: write it to its repo home at that moment with approval (behavior.md / project.md / colocated README / docs/journal; upstream-owned paths in a fork → /upreq) or drop it | corrections are not saved to memory: behavior changes normally come as explicit user instructions to edit behavior.md; offer to record one only when it clearly deserves a rule
-location: docs/ | structure: !must-read/, setup/, journal/
