@@ -1,7 +1,6 @@
 # CLAUDE.md
-
-> **FORMAT_RULE** (this file and .claude/rules/): agent-optimized, English only (code comments and READMEs follow behavior.md). One decision per item; a line over ~400 chars → split into sub-bullets. key: value. ` | ` (spaced) separates items, `a|b` (unspaced) or "or" = alternatives. No tables, no history / precedent / dates. Here = the rule + when to read the README; detail lives in the colocated README
-> **ROLE**: CLAUDE.md = architecture contract shared by this base and every downstream project. NEVER edit it downstream (gap → /upreq)
+> **FORMAT_RULE** (this file and .claude/rules/): agent-optimized, English only (code comments and READMEs follow behavior.md). One decision per item; a line over ~400 chars → split into sub-bullets. key: value. ` | ` (spaced) separates items, `a|b` (unspaced) or "or" = alternatives. Short headings. No tables, history, precedent or dates
+> **ROLE**: CLAUDE.md = architecture contract shared by this base and every downstream project. NEVER edit it downstream (gap → /upreq) | holds the rule + when to read the README; detail lives in the colocated README
 > **PER_PROJECT** (downstream edits freely): .claude/rules/project.md = map / architecture delta / decision rules | .claude/rules/behavior.md = work rules | both always-loaded → standing rules only, no change logs / dates / incident stories (→ commit body / docs/journal/)
 
 ## STACK
@@ -23,17 +22,16 @@ library: src/lib/\<name\>/, all except entities | owner per library in src/lib/C
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
 decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only: private part of a route's default Screen → app/\<route\>/_screen/ (route creator), fork page-only part or replacement Screen → app/\<route\>/_components/ (see SCREENS)
 reuse_check: before creating a utility/feature → confirm no equivalent exists (indexes: src/lib/CATALOG.md, src/features/core/README.md)
-deps: lib→lib OK | lib→features NG | features→features (UI): use the target's hooks | features→features (server): direct OK, no cycles
-ref: docs/!must-read/設計思想とアーキテクチャ.md
+deps: lib→lib OK | lib→features NG | features→features (UI): use the target's hooks | features→features (server): direct OK, no cycles | ref: docs/!must-read/設計思想とアーキテクチャ.md
 
 ## ARCHITECTURE (8-layer)
 layers: 1.Page = app/**/page.tsx (1-line switch) → _screen/\<Name\>Screen.tsx (SSR entry) → _screen/loader.ts | 2.Component (features/*/components) | 3.Hook (features/*/hooks, client only) | 4.ClientService (services/client) | 5.APIRoute (app/api/**) | 6.ServerService (services/server, business logic + DB) | 7.Entity (features/*/entities) | 8.DB (PostgreSQL or Firestore)
 boundary: Hook → ClientService → HTTP → APIRoute → ServerService | Page/loader (SSR) → ServerService direct OK | Hook → ServerService NG | Hook/Component → APIRoute or axios/fetch directly NG | DB access only inside ServerService (never in API routes)
 http: client HTTP = axios inside ClientService only, always through normalizeHttpError | exceptions: streaming ClientService (SSE) may use fetch + ReadableStream; realtimeRoom useRoomState may use native WebSocket | server side: fetch OK
-lint: client-service-boundary/no-direct-import = UI importing services/client or a barrel's *Client → error in upstream UI, warn downstream → wrap in a hooks/ hook (useInfiniteScrollQuery / useDomainMutation / SWR) | legit exception = reasoned eslint-disable | test: pnpm test:client-service-boundary
-ref: docs/!must-read/アプリ構築における構成層.md
+lint: client-service-boundary/no-direct-import = UI importing services/client or a barrel's *Client → error in upstream UI, warn downstream → wrap in a hooks/ hook (useInfiniteScrollQuery / useDomainMutation / SWR) | legit exception = reasoned eslint-disable | test: pnpm test:client-service-boundary | ref: docs/!must-read/アプリ構築における構成層.md
 
 ## PROHIBITED
+scope: cross-cutting bans only | area bans sit with their rule: ARCHITECTURE boundary/http, COMPONENTS wrappers/overlays/infinite_scroll, CRUD_SERVICE hooks/system_write, PROXY, SCREENS
 - re-implement what base CRUD already provides | manual m2m when belongsToMany is available
 - edit generated files (use wrappers; see DIRECTORY_STRUCTURE code_generation)
 - form schemas in entities/schema.ts (→ formEntities.ts next to the form)
@@ -43,7 +41,8 @@ ref: docs/!must-read/アプリ構築における構成層.md
 - businessConfig.url as runtime origin (it is the official business URL for mail/SEO) → getAppBaseUrl() from @/lib/url | never build an origin from Host / X-Forwarded-Host (host header injection)
 - lib/mail send() for admin→user messages → messagingService.send / bulkSend (@/features/messaging/services/server), which persists per-recipient audit + message_dispatches | lib/mail direct = system template mail only (password reset, verification, registration)
 
-## UNCONFIGURED_BACKENDS (the app boots with DATABASE_URL / MY_SERVICE_ACCOUNT_KEY / NEXT_PUBLIC_FIREBASE_* empty)
+## UNCONFIGURED_BACKENDS (boots with DB / Firebase env empty)
+env: DATABASE_URL, MY_SERVICE_ACCOUNT_KEY, NEXT_PUBLIC_FIREBASE_* may all be empty right after env:init
 detect: isDatabaseConfigured (@/lib/drizzle) | isFirebaseClientConfigured (@/lib/firebase/client/app) | isFirebaseServerConfigured (@/lib/firebase/server/app) | these detect "not configured" only: configured-but-unreachable still throws (never hide outages)
 contract: access while unconfigured → DatabaseNotConfiguredError / FirebaseNotConfiguredError immediately (no connect wait) | always-mounted paths (proxy, root layout, settingService.getGlobalSetting, createCrudService construction) must not crash while unconfigured → new always-mounted code uses the same guard | ref: src/lib/firebase/README.md
 
@@ -86,6 +85,7 @@ push_roundtrip (MANDATORY when adding/changing an index): user runs `pnpm db:pus
 - a non-round-trip index = DROP+CREATE on every push = write lock on large tables → never `sql\`${col} DESC\`` (use .desc()), never mix plain columns and sql expressions in one index | push may lock tables → run at maintenance / low traffic
 setting (core): singleton id "global" | extend = add Zod fields to setting.extended.ts (no DB migration) | ref: src/features/core/setting/README.md
 config_utils: src/lib/domain/ (getDomainConfig, extractFields, getRelations; client index.ts, server server.ts)
+inspect: pnpm db:query "SQL" | db:tables | db:describe \<table\> | db:count [table] | fs:* = Firestore equivalents (no args = usage) | claude:test = Anthropic API check | ref: scripts/README.md
 
 ## API_ROUTES
 required: every route uses one of createDomainRoute / createApiRoute / createMeRoute (each enforces authz structurally) | before writing a route → read src/lib/routeFactory/README.md
@@ -121,10 +121,10 @@ secrets: tracked fields pass the cross-domain denylist (src/lib/audit/denylist.t
 ## COUNTING (check BEFORE building any count / tracking feature)
 matrix: user × key (login only) → userCounter | content × action (anonymous OK) → interactionTracking | user × day "visited?" (DAU / active days / most active users) → analytics DAU (user_daily_activities), not a userCounter key | userCounter and interactionTracking both keep lifetime + daily counts (per-user daily = userCounter bumpDaily)
 userCounter is server-internal only (no client route) | interactionTracking public ingest is fail-closed via src/registry/interactionTargetRegistry.ts
-NOT_for: game telemetry, scroll / mousemove streams, tens of millions of events per day → separate pipeline, never retrofit these domains
-ref: src/features/core/{userCounter,interactionTracking,analytics}/README.md
+NOT_for: game telemetry, scroll / mousemove streams, tens of millions of events per day → separate pipeline, never retrofit these domains | ref: src/features/core/{userCounter,interactionTracking,analytics}/README.md
 
-## FEATURES (each line = a rule that applies even when you are not editing that feature; read its README before working in it)
+## FEATURES
+scope: each line = a rule that applies even when you are not editing that feature | read its README before working in it
 - users_table: no analytics columns on users → per-concern satellite tables (aggregation axes = typed columns, long tail = jsonb extras)
 - user_acquisition: signup attribution, opt-in default disabled | invite links run on their own pending_invite cookie gated by the referral flag, independent of acquisition | ref: src/features/core/userAcquisition/README.md, src/features/core/referral/README.md
 - user_name: every write path to users.name MUST use the shared schemas (user/entities/userName.ts) and withUserNameGuard, never redefine name rules inline | uniqueness = app-layer check, not a DB constraint | ref: src/features/core/user/README.md
@@ -143,7 +143,7 @@ semantic_colors: success|info|warning|destructive → `bg-x` / `border-x` = fill
 config: variants / fonts / site theme are set through src/config/ui/*.config.ts define*Config({partial}) | variant and size names are public contract (rename → .notices) | before changing tokens, variants, fonts or theme → read src/styles/README.md
 
 ## COMPONENTS
-placement: multi-domain → src/components/ or AppFrames/ | single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only → app/\<route\>/_components/
+placement: multi-domain → src/components/ or AppFrames/ | single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only → app/\<route\>/_components/ | ref: src/components/README.md
 core_domain_ui_boundary: core domains ship the data layer only (entities, services, API routes, client services, hooks) | never add domain-screen UI under src/features/core/**; give a README recipe instead, even when an upreq asks for UI | existing widgets (AuditTimeline etc.) stay, add no new ones
 wrappers (raw HTML NG): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
 - never import _shadcn directly (wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)
@@ -163,7 +163,6 @@ infinite_scroll: use @/components/Widgets/InfiniteScrollList fed by @/hooks/useI
 action_optimistic: an action that changes list items returns the processed IDs → onSuccess calls updateItems / removeItems | revalidate only when the response cannot describe the change | never reset to refresh (it empties the list)
 cn_class_groups (MANDATORY): a new `--text-*` token in theme.css → register it in src/lib/cn FLUID_TEXT_SIZES (test: pnpm test:cn)
 kiosk / device hooks: non-scrolling one-screen pages and src/hooks device hooks (wake lock, fullscreen, orientation, useMediaQuery) → read src/components/AppFrames/Kiosk/README.md | page_controls: AppFrames/User/controls/ (used in the Screen)
-ref: src/components/README.md
 
 ## SCREENS (page layer that downstream replaces without editing core)
 before adding or replacing a page, Screen or loader → read src/lib/screens/README.md
@@ -184,9 +183,6 @@ flow: ServerService throws DomainError → APIRoute JSON {message} + status → 
 ## NAMING
 components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: camelCase.ts | entities: lowercase files, PascalCase types | routes: kebab-case or (group) | constants: UPPER_SNAKE_CASE | index.ts: re-export only
 db_identifiers: PostgreSQL names ≤ 63 chars | drizzle auto FK name `{table}_{column}_{reftable}_{refcolumn}_fk` gets truncated and can collide → keep table/column names short, or name the FK: `foreignKey({ name: "shortname_fk", columns: [...], foreignColumns: [...] })`
-
-## SCRIPTS
-ref: scripts/README.md | db:query "SQL" | db:tables | db:describe \<table\> | db:count [table] | fs:* = the Firestore equivalents (run without args for usage) | claude:test = Anthropic API connection check
 
 ## DOWNSTREAM_NOTICES
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit | file with /downreq, apply with /flux | ledger: .notices/applied/\<fork-id\>.md | ref: .notices/README.md
