@@ -18,6 +18,7 @@ downstream: many derivative projects depend on this as their base
 - changes propagate to all downstream forks; high blast radius
 - favor generality and extensibility over project-specific shortcuts
 - preserve extension points; avoid hardcoding for any single use case
+- new lib/core API with symmetric variants (plain/diff, single/many, sync/async) → ship the full set at once, never half (no "YAGNI, later" option, don't ask which half)
 
 ## TIER (multi-tier hierarchy)
 this_repo: Tier1 (canonical upstream). Hierarchy: Tier1 → Tier2 → Tier3.

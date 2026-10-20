@@ -155,6 +155,7 @@ export { WalletBalanceScreen as default } from "./_screen/WalletBalanceScreen";
 - Screen が import するのはコンテナ自体（`<Name>/index.tsx` または `<Name>.tsx`）。内側の `<Name>/<Part>` は部品なので Screen から読まない（`pnpm test:screens` の `checkScreenImports` が検査）。判定 = `index.tsx` を持つディレクトリがコンテナで、import 先の途中にあれば違反。`index.tsx` を持たないディレクトリ（`Admin/` `Mobile/` `common/` などのグループ分け、`index.ts` だけの barrel）は名前空間として通す。上流の配置は平たい `components/<Name>` + 共有部品は `common/`（慣習）。fork が `components/Admin/<Name>` のようにグループ分けするのは自由
 - 内部の部品 import は絶対パス（`@/features/core/wallet/components/WalletBalance/BalanceCard`）。`index.tsx` から部品を barrel export する。下流が `index.tsx` を複製しても import を触らずに動く
 - `index.tsx` が `"use client"` のとき、barrel 経由の部品は client 境界になる（Server Component から使いたい部品は部品ファイルを直接 import する）
+- `"use client"` のファイルからは関数（コンポーネント・hook）だけを export する。定数やオブジェクトを Screen・loader（server）から import すると client reference になり undefined で届く（型検査も lint も通る。例: スラッグ表が undefined で常に `notFound()`）。server と共有する値は `"use client"` の無い中立ファイルに置く
 - client service の直叩きは hook に昇格する
 - 初回描画に見えるデータを loader が取るときは、任意の `initial<Name>` props で受け取り hook の `fallbackData` に流す（must-read §3）。props が無ければ hook が取る
 - `"use client"` の位置はセクションコンテナ以下（または `_screen/` の client 部品）。`server-only` な loader を呼ぶのは Screen だけ

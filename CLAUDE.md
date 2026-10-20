@@ -309,5 +309,6 @@ fork_bootstrap: 新規fork初期設定 = /fork-init (clone直後のリポ内で�
 ## DOCS
 policy: colocation-first — primary docs in README.md next to code | docs/ = cross-cutting only, 3 folders fixed: !must-read/ (principles) | setup/ (external-service console setup, not derivable from code) | journal/ (dated records) | no other docs/ subfolders; topic/domain docs → colocated README (agent-answerable how-tos need no doc)
 stale_README: full rewrite over partial patch when README contradicts actual code
+claude_md_additions: CLAUDE.md is loaded every session → per feature max ~2 lines (existence 1 line + mandatory rule not derivable from code) | mechanism / criteria / caveats → colocated README | prefer a line in an existing section over a new section
 dated_records (incident narrative / verification log / decision history / "記録して"): docs/journal/<YYYY-MM-DD>-<slug>.md — not auto-loaded, never .claude/rules/ or CLAUDE.md. distilled rule (1 line) may go to project.md if fork-specific
 location: docs/ | structure: !must-read/, setup/, journal/

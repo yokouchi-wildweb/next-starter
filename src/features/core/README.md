@@ -72,3 +72,21 @@ README があるものはリンク先が一次資料。README が無いものは
 | [adminCommand](adminCommand/README.md) | 管理者用コマンドパレット |
 | admin | 管理画面の共有 loader（`services/server/loaders/`。生成される管理画面が使う） |
 | insane | 管理者用の危険操作（ドメインのテーブル全消去など） |
+
+## エンティティに列を追加・変更するとき
+
+core ドメインは手で保守するため、`entities/drizzle.ts` だけを変えると型・検証・画面が取り残される（業務ドメインは `dc:generate` が同期するので対象外）。先に `grep -rln "<エンティティ名>" src/` で使っている場所を全部洗い出し、次を確かめる。
+
+1. `entities/drizzle.ts`（テーブル定義）
+2. `entities/model.ts`（TypeScript の型）
+3. `entities/schema.ts`（Zod の Create / Update スキーマ）
+4. `entities/form.ts`（あれば。フォームの型）
+5. `presenters.ts`（表示の整形）
+6. `services/server/wrappers/` と独自サービス（列名を直接書いたクエリ）
+7. `components/common/`（詳細モーダル・タイムライン等で見せるべきか）
+8. 管理画面 `src/app/admin/(protected)/<route>/_screen/`（一覧の列・検索フィルタに入れるべきか）
+9. `src/app/api/**/route.ts`（レスポンスの型が推論で追従しているか）
+10. 他ドメインからの呼び出し元（任意の列なら変更不要のことが多い）
+11. 秘密の列なら `defineHiddenColumns` と監査の denylist（`src/lib/audit/denylist.ts`）
+
+新しいテーブルの schemaRegistry 登録と、index を変えたときの db:push 往復確認は CLAUDE.md の DOMAINS を参照。
