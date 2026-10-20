@@ -8,7 +8,7 @@ next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), fir
 
 ## CORE_FILES (ownership: who edits what)
 core (approval required): src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** of upstream routes, servers/room/src/core/, servers/room/src/index.ts, src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
-downstream_owned (upstream never edits after creation): src/styles/custom/**, src/config/ui/*.config.ts, page.tsx of switched routes, src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES), src/registry/forkCronTaskRegistry.ts
+downstream_owned (upstream never edits after creation): src/styles/custom/**, src/config/ui/*.config.ts, page.tsx of switched routes, src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES)
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_core_edit_compat (a fork edits a core path; default = don't, prefer /upreq):
 - stay backward compatible with upstream callers: props/args the fork adds = optional with an empty default | never delete core code the fork does not use | signature change = add a new name, keep the old
@@ -132,8 +132,7 @@ scope: each line = a rule that applies even when you are not editing that featur
 - coupon_entry_scope (MANDATORY): every code-accepting entry passes `scope` to isUsable / redeem / redeemWithEffect, same scope const for check and redeem | ref: src/features/core/coupon/README.md
 - coupon: self-redeem of attribution coupons is rejected in core, never re-check | reason messages only from coupon/constants/redeemReasonMessages.ts | recipients get CouponAttributionRewardForRecipient (never the redeemer) | admin coupon tabs via buildCouponAdminSectionTabs + registry, never hardcoded
 - fingerprint: opt-in default OFF, collection and challenge gated independently | signals are spoofable = reference evidence, never proof | user-facing DTOs never expose view counters or IP | ref: src/features/core/{deviceFingerprint,fingerprintChallenge}/README.md
-- ops_tasks: every ops task (scheduled and one-shot backfill / migration) = `pnpm task <name>` (scripts/tasks/run.ts), never ad-hoc scripts | ref: src/lib/cron/README.md
-- cron_wiring (MANDATORY): new scheduled task = entry in src/registry/cronTaskRegistry.ts (fork: forkCronTaskRegistry.ts) + 1-line route `createCronTaskRoute(getCronTask(name))` + catalog line | vercel.json holds only the dispatcher (`pnpm cron:generate --plan hobby|pro`), never per-task entries | test: pnpm test:cron-wiring
+- ops_tasks: every ops task = `pnpm task <name>`, never ad-hoc scripts | cron_wiring (MANDATORY): 1 scheduled task = 1 folder src/app/api/cron/\<name\>/ (task.ts → domain function + 1-line route.ts), no list file | vercel.json crons = `pnpm cron:generate` output only (Vercel build fails on mismatch) | upstream add/remove → notice with cron:generate | ref: src/lib/cron/README.md
 - budgeted_cron (MANDATORY): sweeps over unbounded-growth tables use runBudgetedBatches + createDeadline (@/lib/cron); read models refresh via createIncrementalRefresh | ref: src/lib/cron/README.md, src/features/core/incrementalRefresh/README.md
 - analytics_perf: before adding per-domain caches or snapshot tables → withAnalyticsCache (call invalidateAnalyticsCache after rewriting closed buckets) or analytics rollups | ref: src/features/core/analytics/README.md
 - ai_agent: generic runtime src/lib/ai/ (runAgent, SSE helpers, versioned AgentEvent contract: breaking change → bump AGENT_PROTOCOL_VERSION) | each agent owns its safety boundary | db agent is fail-closed without DATABASE_URL_READONLY (no fallback) | ref: src/lib/ai/README.md, src/lib/dbAgent/README.md
@@ -186,10 +185,9 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 db_identifiers: PostgreSQL names ≤ 63 chars | drizzle auto FK name `{table}_{column}_{reftable}_{refcolumn}_fk` gets truncated and can collide → keep table/column names short, or name the FK: `foreignKey({ name: "shortname_fk", columns: [...], foreignColumns: [...] })`
 
 ## DOWNSTREAM_NOTICES
-notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit | file with /downreq, apply with /flux | ledger: .notices/applied/\<fork-id\>.md | ref: .notices/README.md
+notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | file with /downreq, apply with /flux | ledger: .notices/applied/\<fork-id\>.md | ref: .notices/README.md
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = default (one notice = one point where the fork is consistent) | `checkpoint: -` only when the fork cannot work without the next notice (reason in notes:)
 relay: a mid tier relays applied upstream notices with `/downreq relay` (covers: ids) | ref: .notices/README.md
-delete_or_move (MANDATORY): deleting / moving a file forks may extend (docs, READMEs, registries, configs) → ship its notice (moved: or the deletion in notes:) in the SAME commit, never later
 fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## DOCS

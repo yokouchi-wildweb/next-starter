@@ -3,7 +3,7 @@
 // 統合デプロイ (pnpm deploy:all)。手動デプロイ運用の標準コマンド。
 // アプリ (Vercel) とルームサーバー (Cloudflare Workers) を 1 コマンドで揃えてデプロイする。
 //
-// 事前検査: pnpm cron:check（vercel.json に cron の dispatcher が無ければ何もデプロイせず止まる）
+// 事前検査: pnpm cron:check（vercel.json の crons が src/app/api/cron/*/task.ts と食い違えば何もデプロイせず止まる）
 //
 // 順序: Worker → アプリ。
 //   アプリ側はプロトコル不一致を明示エラーにするため (ROOM_PROTOCOL_VERSION)、
@@ -27,7 +27,7 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 
 console.log("=== deploy:all (room → app) ===\n");
 
-// --- 0. 事前検査: cron の配線（vercel.json に dispatcher が登録されているか） ---
+// --- 0. 事前検査: cron の配線（vercel.json の crons が全タスクの生成結果と一致するか） ---
 // 配線漏れのまま本番に出すと prune 系が動かずテーブルが無制限に増えるため、デプロイ前に止める
 try {
   execSync("pnpm cron:check", { cwd: repoRoot, stdio: "inherit" });

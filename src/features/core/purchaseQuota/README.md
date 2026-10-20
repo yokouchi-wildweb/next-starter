@@ -163,7 +163,7 @@ pnpm task purchase-quota-cleanup
 ```
 - 推奨: 1 日 1 回（深夜帯）
 - 90 日より古い ledger 行を物理削除
-- CLI 専用タスク（cron レジストリと `/api/cron/*` ルートには未登録 = dispatcher は起動しない）。定期実行したい fork は `src/registry/forkCronTaskRegistry.ts` に別名で登録する。手順は [cron 基盤 README](../../../lib/cron/README.md#新しい定期タスクを追加する) を参照
+- CLI 専用タスク（`/api/cron/*` には無い = 定期実行されない）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す。手順は [cron 基盤 README](../../../lib/cron/README.md#新しい定期タスクを追加する) を参照
 
 ---
 

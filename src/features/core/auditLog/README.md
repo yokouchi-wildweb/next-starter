@@ -307,7 +307,7 @@ registerActionLabels({
 | `audit-log-prune` | daily | `created_at + retention_days` を過ぎた行を削除。1000 件 × 最大 100 反復 / 回、`FOR UPDATE SKIP LOCKED`。上限到達時は `truncated: true` で次回に持ち越し |
 | `audit-log-recover-dead-letter` | hourly | `audit_logs_failed` を古い順に最大 500 件再投入し、成功分を削除 |
 
-- 配線: `src/registry/cronTaskRegistry.ts` に登録済み。dispatcher が自動起動する（`vercel.json` への個別登録は不要）。手動は `pnpm task <task>`
+- 配線: `src/app/api/cron/<task>/`（task.ts + route.ts）。`vercel.json` のエントリは `pnpm cron:generate` が生成する。手動は `pnpm task <task>`
 - dead-letter が減らない場合は `audit_logs_failed.error_message` を確認する（schema 不整合・payload 形状不一致など）
 - 制約: 現行の `recoverDeadLetterAuditLogs` は再投入時に `subject_user_id` を復元しない（payload に値があっても NULL で入る）
 

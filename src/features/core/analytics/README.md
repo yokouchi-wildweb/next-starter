@@ -233,7 +233,7 @@ export const analyticsRollupMetrics: RollupMetricConfig[] = [
 
 ### 運用（cron / バックフィル）
 
-- 日次: dispatcher が日次で自動起動（`vercel.json` への登録は不要）。手動は `pnpm task analytics-rollup-daily` または `GET /api/cron/analytics-rollup-daily`。昨日を含む直近3日を冪等に再計算し、遅延到着データと実行漏れを自己修復する
+- 日次: Vercel Cron が 1 日 1 回呼ぶ（`vercel.json` のエントリは `pnpm cron:generate` が生成）。手動は `pnpm task analytics-rollup-daily` または `GET /api/cron/analytics-rollup-daily`。昨日を含む直近3日を冪等に再計算し、遅延到着データと実行漏れを自己修復する
 - 新規メトリクス登録時・遡及修正時: `pnpm task analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]`（from 省略時 = `backfillFrom`、to 省略時 = 昨日）
 - **集計除外の遡及適用**: 専用機構はない。compute が除外を織り込んでいる前提で、該当期間のバックフィルを再実行すれば整合する（書き込みは日単位 delete → insert の冪等 upsert）
 - 書き込み後は同一インスタンスの `withAnalyticsCache` キャッシュを自動 invalidate する（他インスタンスは TTL 満了で追随）

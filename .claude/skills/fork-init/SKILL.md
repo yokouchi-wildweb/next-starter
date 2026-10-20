@@ -26,7 +26,7 @@ disable-model-invocation: true
    - Tier: 既定は「フォーク元の Tier + 1、下流なし」
    - バックエンド: Firebase / Neon を今設定するか、未設定で始めるか(既定: 未設定)
    - 予定ドメイン・方向性(無ければ「TBD」で可)
-   - Vercel プラン: hobby / pro(既定: hobby。cron の dispatcher の本数が変わる。後から再生成できる)
+   - Vercel プラン: hobby / pro(既定: hobby。hobby は全 cron が 1 日 1 回になる。後から再生成できる)
 6. fork-id を導出する: origin になる URL のパス部分から `.git` を除去、`/` を `--` に置換、小文字化。
 
 ## 計画提示(承認を取る)
@@ -47,7 +47,7 @@ disable-model-invocation: true
    b. `.notices/applied/<fork-id>.md`: `# APPLIED LEDGER fork:<origin url>` の1行のみ。
    c. `package.json`: `name` を `<name>` に。
    d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` を `<name>` ベースに。`domain` / `url` / `mail.defaultFrom` は確定していれば入れ、未定なら upstream の名前を含まない仮値(`example.com` 等)にする。
-   e. `vercel.json`: `pnpm cron:generate --plan <hobby|pro>` で生成し、`pnpm cron:check` が通ることを確認する(cron の dispatcher だけを登録した形。upstream の全定期タスクがここから起動される)。
+   e. `vercel.json`: `pnpm cron:generate --plan <hobby|pro>` で生成し、`pnpm cron:check` が通ることを確認する(`src/app/api/cron/*/task.ts` の全タスクがエントリになる。手で編集しない)。
    f. `README.md` は**触らない**(全リポ共通。固有情報は project.md と GitHub の description 欄)。
    g. `.env.development`: `pnpm env:init` で生成する(`.env.example` のコピーに `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` を自動設定。既存なら何もしない)。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
 5. `pnpm tsc --noEmit` 相当の型チェックは不要(設定ファイルのみの変更)。`git status --short` で意図したファイルだけが変更されていることを確認する。

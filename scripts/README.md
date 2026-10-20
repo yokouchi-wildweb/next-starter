@@ -111,15 +111,15 @@ pnpm task <task-name>
 pnpm task --list               # 一覧(頻度・有効/無効・説明)
 pnpm task --cadence daily      # 頻度区分(15m|hourly|daily|all)の定期タスクを順に全部実行(Vercel 以外のスケジューラ用)
 
-# vercel.json の crons を cron の dispatcher だけの形で生成(crons 以外のキーは保持)
-pnpm cron:generate --plan hobby   # Vercel Hobby: 日次 1 本
-pnpm cron:generate --plan pro     # Vercel Pro: 15m / hourly / daily の 3 本
+# vercel.json の crons を src/app/api/cron/*/task.ts から生成(crons 以外のキーは保持。タスク増減・プラン変更のたびに実行)
+pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスク 1 日 1 回
+pnpm cron:generate --plan pro     # Vercel Pro: task.ts の cadence どおり
 
-# vercel.json の cron 配線を検査(deploy:all がデプロイ前に実行)
+# vercel.json の crons が task.ts と一致するか検査(deploy:all と Vercel 上の pnpm build が先に実行)
 pnpm cron:check
 ```
 
-定期タスクは `src/registry/cronTaskRegistry.ts`(fork は `forkCronTaskRegistry.ts`)に登録する。一次情報:
+定期タスクは 1 タスク 1 フォルダ `src/app/api/cron/<name>/`(task.ts + route.ts)。一次情報:
 
 ➡ [src/lib/cron/README.md](../src/lib/cron/README.md)
 
@@ -132,7 +132,7 @@ pnpm deploy:all
 pnpm deploy:all -- --target=preview
 ```
 
-事前に `pnpm cron:check` を実行し、`vercel.json` に cron の dispatcher が無ければ何もデプロイせず止まる。
+事前に `pnpm cron:check` を実行し、`vercel.json` の crons が `task.ts` と食い違えば何もデプロイせず止まる。
 
 ※ vercel CLI に `--preview` フラグは無い(`--prod` は `--target=production` の短縮形)。プレビューは `--target=preview` を明示する
 

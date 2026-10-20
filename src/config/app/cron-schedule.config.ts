@@ -2,8 +2,9 @@
 // 定期タスクの頻度区分ごとの実行時刻（cron 式・UTC）
 // ※ダウンストリームで編集対象：値を書き換えたら `pnpm cron:generate --plan hobby|pro` で vercel.json を再生成する
 //
-// どのタスクがどの区分かは src/registry/cronTaskRegistry.ts が決める。
-// Vercel Hobby（--plan hobby）は daily の時刻に全区分のタスクをまとめて 1 日 1 回起動する。
+// どのタスクがどの区分かは各タスクの src/app/api/cron/<name>/task.ts（cadence）が決める。
+// 毎時・毎日のタスクは名前順に 5 分ずつずらして割り振られる。
+// Vercel Hobby（--plan hobby）は全タスクを daily の時刻から 5 分ずつずらして 1 日 1 回にする。
 // 詳細: src/lib/cron/README.md
 
 import type { CronScheduleConfig } from "@/lib/cron/vercelCrons";

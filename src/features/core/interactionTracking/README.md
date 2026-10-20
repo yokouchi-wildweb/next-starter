@@ -178,7 +178,7 @@ UI 実装時の注意（表示側で必ず考慮すること）:
 
 - CLI: `pnpm task interaction-event-prune`
 - HTTP: `GET /api/cron/interaction-event-prune`（Bearer `CRON_SECRET`）
-- スケジュール: dispatcher が日次で自動起動（`vercel.json` への登録は不要）
+- スケジュール: 日次（`vercel.json` のエントリは `pnpm cron:generate` が生成）
 - 削除対象は**明細のみ**。累計・日次集計は消えない
 
 ### 7. DB 反映

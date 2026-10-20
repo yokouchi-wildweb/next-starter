@@ -184,8 +184,8 @@ async function fetchTrickleBatch(trickle: TrickleSweepConfig, limit: number): Pr
 /**
  * 差分更新タスクのランナーを生成する。
  *
- * 戻り値の関数を cron レジストリ（src/registry/cronTaskRegistry.ts）のタスクの run から呼ぶ
- * （個別ルート・dispatcher・CLI が同じ定義を使う）。設定の検証は生成時に行い、誤設定は起動時に露見させる。
+ * 戻り値の関数を cron タスク定義（src/app/api/cron/<name>/task.ts）の run から呼ぶ
+ * （API ルートと CLI が同じ定義を使う）。設定の検証は生成時に行い、誤設定は起動時に露見させる。
  */
 export function createIncrementalRefresh(config: IncrementalRefreshConfig): IncrementalRefreshRunner {
   validateConfig(config);

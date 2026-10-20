@@ -119,11 +119,13 @@ import { createIncrementalRefresh } from "@/features/incrementalRefresh/services
 export const runUserMetricsRefresh = createIncrementalRefresh({ ...上記... });
 ```
 
-### 4. cron レジストリ + 個別ルート（`src/lib/cron/README.md`「新しい定期タスクを追加する」）
+### 4. cron タスクのフォルダ（`src/lib/cron/README.md`「新しい定期タスクを追加する」）
 
 ```ts
-// src/registry/forkCronTaskRegistry.ts（upstream なら cronTaskRegistry.ts の CORE_CRON_TASKS）
-{
+// src/app/api/cron/user-metrics-refresh/task.ts
+import type { CronTaskDefinition } from "@/lib/cron";
+
+export const cronTask: CronTaskDefinition = {
   name: "user-metrics-refresh",
   description: "ユーザー指標の read-model を差分更新する",
   cadence: "15m",
@@ -131,20 +133,20 @@ export const runUserMetricsRefresh = createIncrementalRefresh({ ...上記... });
     const { runUserMetricsRefresh } = await import("@/features/userMetrics/services/server/refresh");
     return await runUserMetricsRefresh({ budgetMs: 240_000 });
   },
-},
+};
 ```
 
 ```ts
 // src/app/api/cron/user-metrics-refresh/route.ts
 import { createCronTaskRoute } from "@/lib/cron";
-import { getCronTask } from "@/registry/cronTaskRegistry";
+import { cronTask } from "./task";
 
 export const maxDuration = 300;
 
-export const GET = createCronTaskRoute(getCronTask("user-metrics-refresh"));
+export const GET = createCronTaskRoute(cronTask);
 ```
 
-`vercel.json` は触らない（dispatcher が `cadence` に従って起動する）。`pnpm task user-metrics-refresh` も登録した時点で使える。
+フォルダを足したら `pnpm cron:generate --plan <hobby|pro>` で `vercel.json` を再生成する。`pnpm task user-metrics-refresh` はフォルダを置いた時点で使える。
 
 ### 5. 既存の全件再計算からの移行
 

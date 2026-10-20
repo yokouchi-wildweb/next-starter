@@ -11,18 +11,21 @@
 //
 // Vercel 以外のホスティング（Docker / AWS / オンプレ）では、
 // 各社スケジューラ（EventBridge / Kubernetes CronJob / 自前 cron）から
-// `pnpm task --cadence <区分>` を区分ごとに 1 本ずつ叩く（Vercel の dispatcher と同じ役割）。
+// `pnpm task --cadence <区分>` を区分ごとに 1 本ずつ叩く。
 //
-// 定期タスクは src/registry/cronTaskRegistry.ts（fork は forkCronTaskRegistry.ts）に登録する
-// （ここには書かない。API ルート・dispatcher と同じ定義を読み込む）。
+// 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
 // 下記 ONE_SHOT_TASKS はワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスク。
 
-import type { CronDispatchCadence } from "@/lib/cron/types";
-import { CRON_TASKS } from "@/registry/cronTaskRegistry";
+import path from "node:path";
+
+import type { CronCadence, CronTaskDefinition } from "@/lib/cron/types";
+import { loadCronTasks } from "../cron/discover";
 
 type TaskFn = () => Promise<Record<string, unknown>>;
 
-const CADENCE_VALUES: readonly CronDispatchCadence[] = ["15m", "hourly", "daily", "all"];
+type CadenceArg = CronCadence | "all";
+
+const CADENCE_VALUES: readonly CadenceArg[] = ["15m", "hourly", "daily", "all"];
 
 /**
  * ワンショット・任意タスク
@@ -95,18 +98,15 @@ const ONE_SHOT_TASKS: Record<string, TaskFn> = {
   },
 };
 
-const scheduledNames = new Set(CRON_TASKS.map((task) => task.name));
-for (const name of Object.keys(ONE_SHOT_TASKS)) {
-  if (scheduledNames.has(name)) {
-    throw new Error(`タスク名 "${name}" が cron レジストリと ONE_SHOT_TASKS の両方にあります`);
-  }
-}
-
 /** pnpm task <name> で実行できる全タスク（定期 + ワンショット） */
-const TASKS: Record<string, TaskFn> = {
-  ...Object.fromEntries(CRON_TASKS.map((task) => [task.name, task.run])),
-  ...ONE_SHOT_TASKS,
-};
+function buildTaskMap(cronTasks: CronTaskDefinition[]): Record<string, TaskFn> {
+  for (const task of cronTasks) {
+    if (task.name in ONE_SHOT_TASKS) {
+      throw new Error(`タスク名 "${task.name}" が src/app/api/cron/ と ONE_SHOT_TASKS の両方にあります`);
+    }
+  }
+  return { ...Object.fromEntries(cronTasks.map((task) => [task.name, task.run])), ...ONE_SHOT_TASKS };
+}
 
 function log(level: "info" | "error", payload: Record<string, unknown>) {
   const line = JSON.stringify({ level, scope: "task-cli", ...payload });
@@ -114,9 +114,9 @@ function log(level: "info" | "error", payload: Record<string, unknown>) {
   else console.error(line);
 }
 
-function printList() {
-  console.log("Scheduled tasks (src/registry/cronTaskRegistry.ts):");
-  for (const task of CRON_TASKS) {
+function printList(cronTasks: CronTaskDefinition[]) {
+  console.log("Scheduled tasks (src/app/api/cron/*/task.ts):");
+  for (const task of cronTasks) {
     const disabled = task.enabled && !task.enabled() ? " [disabled]" : "";
     console.log(`  - ${task.name} (${task.cadence})${disabled}: ${task.description}`);
   }
@@ -140,12 +140,12 @@ async function runTask(name: string, task: TaskFn): Promise<boolean> {
 }
 
 /**
- * 頻度区分の定期タスクを順に実行する（Vercel 以外のスケジューラ向けの dispatcher）。
+ * 頻度区分の定期タスクを順に実行する（Vercel 以外のスケジューラ向け）。
  * 1 つ失敗しても残りは実行し、最後に exit 1 で失敗を知らせる。
  */
-async function runCadence(cadence: CronDispatchCadence) {
+async function runCadence(cronTasks: CronTaskDefinition[], cadence: CadenceArg) {
   let failed = 0;
-  for (const task of CRON_TASKS) {
+  for (const task of cronTasks) {
     if (cadence !== "all" && task.cadence !== cadence) continue;
     if (task.enabled && !task.enabled()) {
       log("info", { task: task.name, ok: true, skipped: true });
@@ -160,9 +160,11 @@ async function main() {
   // pnpm は "--" をそのまま渡してくることがあるため除去する
   const args = process.argv.slice(2).filter((arg) => arg !== "--");
   const taskName = args[0];
+  const cronTasks = await loadCronTasks(path.resolve(import.meta.dirname, "../.."));
+  const TASKS = buildTaskMap(cronTasks);
 
   if (!taskName || taskName === "--list" || taskName === "-l") {
-    printList();
+    printList(cronTasks);
     if (!taskName) {
       console.log("\nUsage: pnpm task <task-name> | pnpm task --cadence <15m|hourly|daily|all>");
       process.exit(1);
@@ -171,12 +173,12 @@ async function main() {
   }
 
   if (taskName === "--cadence") {
-    const cadence = args[1] as CronDispatchCadence | undefined;
+    const cadence = args[1] as CadenceArg | undefined;
     if (!cadence || !CADENCE_VALUES.includes(cadence)) {
       console.error(`Usage: pnpm task --cadence <${CADENCE_VALUES.join("|")}>`);
       process.exit(1);
     }
-    await runCadence(cadence);
+    await runCadence(cronTasks, cadence);
     return;
   }
 
@@ -190,4 +192,7 @@ async function main() {
   process.exit((await runTask(taskName, task)) ? 0 : 1);
 }
 
-main();
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});

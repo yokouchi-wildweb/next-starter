@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "pnpm cron:check --vercel-build && next build",
     "start": "next start",
     "lint": "eslint .",
     "test:crud-hooks": "node --test src/lib/crud/hooks/internal/*.test.mjs",
@@ -21,7 +21,7 @@
     "test:variant-overrides": "npx tsx --test src/lib/variantOverrides/variantOverrides.test.mjs",
     "test:screens": "npx tsx --test src/lib/screens/screens.test.mjs",
     "test:lib-catalog": "node --test src/lib/folderCatalog/catalog.test.mjs",
-    "test:cron-wiring": "npx tsx --test src/lib/cron/cronWiring.test.mjs",
+    "test:cron-wiring": "npx tsx --test scripts/cron/cronWiring.test.mjs",
     "test:relation-options": "node --test src/lib/domain/relations/relationOptions.test.mjs",
     "test:wallet-lot-planning": "npx tsx --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
@@ -194,6 +194,7 @@
     "eslint-config-next": "^16.0.0",
     "prettier": "^3.6.1",
     "shadcn": "^2.7.0",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

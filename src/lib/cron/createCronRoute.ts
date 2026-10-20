@@ -4,13 +4,13 @@
 // 全ての /api/cron/* ルートはこのファクトリを使うことで、
 // 認証・ログ・エラーハンドリング・レスポンス形式を統一する。
 //
-// レジストリ（src/registry/cronTaskRegistry.ts）に登録したタスクは createCronTaskRoute で 1 行にする:
+// 定期タスクは同じフォルダの task.ts に定義を置き、route.ts は createCronTaskRoute で 1 行にする:
 // ```ts
 // // src/app/api/cron/expire-pending-purchases/route.ts
 // import { createCronTaskRoute } from "@/lib/cron";
-// import { getCronTask } from "@/registry/cronTaskRegistry";
+// import { cronTask } from "./task";
 //
-// export const GET = createCronTaskRoute(getCronTask("expire-pending-purchases"));
+// export const GET = createCronTaskRoute(cronTask);
 // ```
 
 import { NextResponse } from "next/server";
@@ -81,7 +81,7 @@ export function createCronRoute<T extends Record<string, unknown> = Record<strin
 }
 
 /**
- * レジストリのタスク定義から cron API ルートハンドラを生成する（createCronRoute の薄いラッパー）
+ * task.ts のタスク定義から cron API ルートハンドラを生成する（createCronRoute の薄いラッパー）
  */
 export function createCronTaskRoute<T extends Record<string, unknown>>(task: CronTaskDefinition<T>) {
   return createCronRoute<T>({ name: task.name, handler: task.run, enabled: task.enabled });

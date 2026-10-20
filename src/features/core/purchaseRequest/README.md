@@ -135,7 +135,7 @@ wrappers/
 ### 3.6 期限切れ
 
 - `expirePendingRequests()`: `status='pending' AND expires_at < now` を `expired` に（`processing` は対象外）+ `releaseQuota`
-- 実行: dispatcher が 15 分ごとに `GET /api/cron/expire-pending-purchases`（`CRON_SECRET` 認証）を起動する（Vercel Hobby では 1 日 1 回）。手動は `pnpm task expire-pending-purchases`。セットアップは [src/lib/cron/README.md](../../../lib/cron/README.md)「スケジュールのセットアップ」
+- 実行: Vercel Cron が 15 分ごとに `GET /api/cron/expire-pending-purchases`（`CRON_SECRET` 認証）を呼ぶ（Vercel Hobby では 1 日 1 回。`vercel.json` のエントリは `pnpm cron:generate` が生成）。手動は `pnpm task expire-pending-purchases`。セットアップは [src/lib/cron/README.md](../../../lib/cron/README.md)「スケジュールのセットアップ」
 
 ---
 
