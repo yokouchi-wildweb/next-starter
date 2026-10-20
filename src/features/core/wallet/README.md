@@ -635,15 +635,10 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
    - **期限を過ぎた分には失効予告が届かない**（予告を送る猶予が無い）。本通知は、通知の cron が
      スイープより前に1回以上動いていれば届く。規約の告知などで事前に周知しておくこと
    - dry-run の `overdueAmount` は没収見込み額の上限。実際の没収額は locked_balance 保護によりこれ以下になる
-3. 失効スイープと prune のスケジュール登録を確認:
-   ```
-   30 4 * * *  → GET /api/cron/wallet-expire-lots （失効の没収）
-   45 4 * * *  → GET /api/cron/wallet-lots-prune  （消費済みロットの掃除）
-   ```
-   両タスクは `vercel.json.example` に登録済みのため、これをコピーした `vercel.json` を持つ
-   Vercel プロジェクトでは**追加作業なしで自動実行される**（未オプトインでも no-op なので害はない）。
-   古い `vercel.json` を使っている場合は2行を追記する。Vercel 以外は任意のスケジューラから登録
-   （[cron 基盤 README](../../../lib/cron/README.md#スケジュールのセットアップ) 参照）。
+3. 失効スイープと prune のスケジュール: `wallet-expire-lots`（失効の没収）と `wallet-lots-prune`（消費済みロットの掃除）は
+   cron レジストリに登録済みで、1 で `expirationDays` / `sweepEnabled` を設定した時点から dispatcher が日次で起動する
+   （**追加作業なし**。設定前は起動されない）。前提は dispatcher の配線（`vercel.json` を `pnpm cron:generate` で生成済み、
+   Vercel 以外は `pnpm task --cadence daily`。[cron 基盤 README](../../../lib/cron/README.md#スケジュールのセットアップ) 参照）。
 
    失効通知を送る場合は `wallet-expiration-notice`（毎時）も必要。設定は「失効通知」節を参照。
    **通知の cron は最初の失効日より前に1回以上動かしておくこと**（本通知は初回実行で開始位置を記録するだけで、
@@ -715,8 +710,8 @@ regular_coin: {
   段ごと・通貨ごとに文面を変えたい場合は、同じ形の定数を増やして `copy` に指定する
 - 全体設定 `WALLET_EXPIRATION_NOTICE_SETTINGS`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
   `sendConcurrency`（同時送信数。既定 5）、`dateTimeZone`（文面の日付と予告の日境界。既定 Asia/Tokyo）
-- スケジューラに `wallet-expiration-notice` を登録する（`vercel.json.example` に登録済み。推奨: 毎時）。
-  メールを送る時間帯を絞りたい場合は cron のスケジュール側で制限する
+- スケジュール登録は不要: `wallet-expiration-notice` は `notice` を設定した時点から dispatcher が毎時起動する（Vercel Hobby では 1 日 1 回）。
+  メールを送る時間帯を絞りたい場合は `src/config/app/cron-schedule.config.ts` の `hourly` を変えて `pnpm cron:generate` で再生成する（同じ区分の他タスクにも効く）
 
 | sweepEnabled | preExpiry | expired | 挙動 |
 |---|---|---|---|

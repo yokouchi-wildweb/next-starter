@@ -132,7 +132,7 @@ await db.transaction(async (tx) => {
 
 - CLI: `pnpm task user-daily-counter-prune`
 - HTTP: `GET /api/cron/user-daily-counter-prune`（Bearer `CRON_SECRET`）
-- 推奨スケジュール: `45 3 * * *`（1 日 1 回・深夜帯）
+- スケジュール: dispatcher が日次で自動起動（`vercel.json` への登録は不要）
 - 削除対象は**日次行のみ**。累計（user_counters）は消えない
 
 ## マイグレーション

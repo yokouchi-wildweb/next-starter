@@ -7,83 +7,34 @@
 //   pnpm task <task-name>
 //   pnpm task expire-pending-purchases
 //   pnpm task --list            # 登録済みタスク一覧
+//   pnpm task --cadence daily   # 頻度区分（15m / hourly / daily / all）の定期タスクを順に全部実行
 //
 // Vercel 以外のホスティング（Docker / AWS / オンプレ）では、
-// 各社スケジューラ（EventBridge / Kubernetes CronJob / 自前 cron）
-// から直接このスクリプトを叩く構成が可能。
+// 各社スケジューラ（EventBridge / Kubernetes CronJob / 自前 cron）から
+// `pnpm task --cadence <区分>` を区分ごとに 1 本ずつ叩く（Vercel の dispatcher と同じ役割）。
 //
-// 新しいタスクを追加する場合は、下記 TASKS マップにエントリを追加するだけ。
-// 定期実行するタスクは API ルート (src/app/api/cron/*) と CLI を
-// 同じビジネスロジック関数に接続すること。ワンショットタスクは TASKS のみでよい。
+// 定期タスクは src/registry/cronTaskRegistry.ts（fork は forkCronTaskRegistry.ts）に登録する
+// （ここには書かない。API ルート・dispatcher と同じ定義を読み込む）。
+// 下記 ONE_SHOT_TASKS はワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスク。
+
+import type { CronDispatchCadence } from "@/lib/cron/types";
+import { CRON_TASKS } from "@/registry/cronTaskRegistry";
 
 type TaskFn = () => Promise<Record<string, unknown>>;
 
+const CADENCE_VALUES: readonly CronDispatchCadence[] = ["15m", "hourly", "daily", "all"];
+
 /**
- * 登録済み運用タスク
- * ここに追加 = pnpm task <name> で実行可能になる
+ * ワンショット・任意タスク
+ * ここに追加 = pnpm task <name> で実行可能になる（定期実行はされない）
  */
-const TASKS: Record<string, TaskFn> = {
-  "expire-pending-purchases": async () => {
-    const { expirePendingRequests } = await import(
-      "@/features/core/purchaseRequest/services/server/wrappers/purchaseService"
-    );
-    const expired = await expirePendingRequests();
-    return { expired };
-  },
-  "audit-log-prune": async () => {
-    const { pruneExpiredAuditLogs } = await import(
-      "@/features/core/auditLog/services/server"
-    );
-    return await pruneExpiredAuditLogs();
-  },
-  "audit-log-recover-dead-letter": async () => {
-    const { recoverDeadLetterAuditLogs } = await import(
-      "@/features/core/auditLog/services/server"
-    );
-    return await recoverDeadLetterAuditLogs();
-  },
-  "user-login-event-prune": async () => {
-    const { pruneExpiredUserLoginEvents } = await import(
-      "@/features/core/userLoginEvent/services/server"
-    );
-    return await pruneExpiredUserLoginEvents();
-  },
-  "device-fingerprint-prune": async () => {
-    const { pruneExpiredDeviceFingerprints } = await import(
-      "@/features/core/deviceFingerprint/services/server"
-    );
-    return await pruneExpiredDeviceFingerprints();
-  },
-  "fingerprint-challenge-access-prune": async () => {
-    const { pruneExpiredChallengeAccessEvents } = await import(
-      "@/features/core/fingerprintChallenge/services/server"
-    );
-    return await pruneExpiredChallengeAccessEvents();
-  },
-  "user-daily-counter-prune": async () => {
-    const { pruneExpiredUserDailyCounters } = await import(
-      "@/features/core/userCounter/services/server/pruning"
-    );
-    return await pruneExpiredUserDailyCounters();
-  },
-  "interaction-event-prune": async () => {
-    const { pruneExpiredInteractionEvents } = await import(
-      "@/features/core/interactionTracking/services/server"
-    );
-    return await pruneExpiredInteractionEvents();
-  },
+const ONE_SHOT_TASKS: Record<string, TaskFn> = {
   "purchase-quota-cleanup": async () => {
     const { cleanupOldLedger } = await import(
       "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper"
     );
     const deleted = await cleanupOldLedger();
     return { deleted };
-  },
-  "analytics-rollup-daily": async () => {
-    const { runDailyRollup } = await import(
-      "@/features/core/analytics/services/server/rollup"
-    );
-    return await runDailyRollup();
   },
   // 使い方: pnpm task analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]
   "analytics-rollup-backfill": async () => {
@@ -107,24 +58,6 @@ const TASKS: Record<string, TaskFn> = {
       from: readFlag("from"),
       to: readFlag("to"),
     });
-  },
-  "wallet-expire-lots": async () => {
-    const { sweepExpiredWalletLots } = await import(
-      "@/features/core/wallet/services/server/lots/sweepExpiredLots"
-    );
-    return await sweepExpiredWalletLots();
-  },
-  "wallet-expiration-notice": async () => {
-    const { sendWalletExpirationNotices } = await import(
-      "@/features/core/wallet/services/server/notification/sendWalletExpirationNotices"
-    );
-    return await sendWalletExpirationNotices();
-  },
-  "wallet-lots-prune": async () => {
-    const { pruneConsumedWalletLots } = await import(
-      "@/features/core/wallet/services/server/lots/pruneConsumedLots"
-    );
-    return await pruneConsumedWalletLots();
   },
   // 導入時1回だけの初期化（定期実行しない。再実行は全ユーザーの失効カウントをリセットするので注意）
   "wallet-lots-init": async () => {
@@ -160,21 +93,90 @@ const TASKS: Record<string, TaskFn> = {
     const args = process.argv.slice(3);
     return await dedupUserNames({ dryRun: args.includes("--dry-run") });
   },
-  // 今後の cron タスクはここに追加
 };
 
+const scheduledNames = new Set(CRON_TASKS.map((task) => task.name));
+for (const name of Object.keys(ONE_SHOT_TASKS)) {
+  if (scheduledNames.has(name)) {
+    throw new Error(`タスク名 "${name}" が cron レジストリと ONE_SHOT_TASKS の両方にあります`);
+  }
+}
+
+/** pnpm task <name> で実行できる全タスク（定期 + ワンショット） */
+const TASKS: Record<string, TaskFn> = {
+  ...Object.fromEntries(CRON_TASKS.map((task) => [task.name, task.run])),
+  ...ONE_SHOT_TASKS,
+};
+
+function log(level: "info" | "error", payload: Record<string, unknown>) {
+  const line = JSON.stringify({ level, scope: "task-cli", ...payload });
+  if (level === "info") console.log(line);
+  else console.error(line);
+}
+
+function printList() {
+  console.log("Scheduled tasks (src/registry/cronTaskRegistry.ts):");
+  for (const task of CRON_TASKS) {
+    const disabled = task.enabled && !task.enabled() ? " [disabled]" : "";
+    console.log(`  - ${task.name} (${task.cadence})${disabled}: ${task.description}`);
+  }
+  console.log("\nOne-shot / optional tasks (scripts/tasks/run.ts):");
+  for (const name of Object.keys(ONE_SHOT_TASKS)) {
+    console.log(`  - ${name}`);
+  }
+}
+
+async function runTask(name: string, task: TaskFn): Promise<boolean> {
+  const startedAt = Date.now();
+  try {
+    const result = await task();
+    log("info", { task: name, ok: true, durationMs: Date.now() - startedAt, ...result });
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log("error", { task: name, ok: false, durationMs: Date.now() - startedAt, error: message });
+    return false;
+  }
+}
+
+/**
+ * 頻度区分の定期タスクを順に実行する（Vercel 以外のスケジューラ向けの dispatcher）。
+ * 1 つ失敗しても残りは実行し、最後に exit 1 で失敗を知らせる。
+ */
+async function runCadence(cadence: CronDispatchCadence) {
+  let failed = 0;
+  for (const task of CRON_TASKS) {
+    if (cadence !== "all" && task.cadence !== cadence) continue;
+    if (task.enabled && !task.enabled()) {
+      log("info", { task: task.name, ok: true, skipped: true });
+      continue;
+    }
+    if (!(await runTask(task.name, task.run))) failed += 1;
+  }
+  process.exit(failed > 0 ? 1 : 0);
+}
+
 async function main() {
-  const taskName = process.argv[2];
+  // pnpm は "--" をそのまま渡してくることがあるため除去する
+  const args = process.argv.slice(2).filter((arg) => arg !== "--");
+  const taskName = args[0];
 
   if (!taskName || taskName === "--list" || taskName === "-l") {
-    console.log("Available tasks:");
-    for (const name of Object.keys(TASKS)) {
-      console.log(`  - ${name}`);
-    }
+    printList();
     if (!taskName) {
-      console.log("\nUsage: pnpm task <task-name>");
+      console.log("\nUsage: pnpm task <task-name> | pnpm task --cadence <15m|hourly|daily|all>");
       process.exit(1);
     }
+    return;
+  }
+
+  if (taskName === "--cadence") {
+    const cadence = args[1] as CronDispatchCadence | undefined;
+    if (!cadence || !CADENCE_VALUES.includes(cadence)) {
+      console.error(`Usage: pnpm task --cadence <${CADENCE_VALUES.join("|")}>`);
+      process.exit(1);
+    }
+    await runCadence(cadence);
     return;
   }
 
@@ -185,22 +187,7 @@ async function main() {
     process.exit(1);
   }
 
-  const startedAt = Date.now();
-  try {
-    const result = await task();
-    const durationMs = Date.now() - startedAt;
-    console.log(
-      JSON.stringify({ level: "info", scope: "task-cli", task: taskName, ok: true, durationMs, ...result }),
-    );
-    process.exit(0);
-  } catch (error) {
-    const durationMs = Date.now() - startedAt;
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(
-      JSON.stringify({ level: "error", scope: "task-cli", task: taskName, ok: false, durationMs, error: message }),
-    );
-    process.exit(1);
-  }
+  process.exit((await runTask(taskName, task)) ? 0 : 1);
 }
 
 main();

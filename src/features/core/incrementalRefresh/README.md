@@ -119,34 +119,32 @@ import { createIncrementalRefresh } from "@/features/incrementalRefresh/services
 export const runUserMetricsRefresh = createIncrementalRefresh({ ...上記... });
 ```
 
-### 4. cron ルート + CLI + スケジュール（`src/lib/cron/README.md` の 4 点セット）
+### 4. cron レジストリ + 個別ルート（`src/lib/cron/README.md`「新しい定期タスクを追加する」）
 
 ```ts
-// src/app/api/cron/user-metrics-refresh/route.ts
-import { createCronRoute } from "@/lib/cron";
-import { runUserMetricsRefresh } from "@/features/userMetrics/services/server/refresh";
-
-export const maxDuration = 300;
-
-export const GET = createCronRoute({
+// src/registry/forkCronTaskRegistry.ts（upstream なら cronTaskRegistry.ts の CORE_CRON_TASKS）
+{
   name: "user-metrics-refresh",
-  handler: () => runUserMetricsRefresh({ budgetMs: 240_000 }),
-});
-```
-
-```ts
-// scripts/tasks/run.ts
-"user-metrics-refresh": async () => {
-  const { runUserMetricsRefresh } = await import("@/features/userMetrics/services/server/refresh");
-  return await runUserMetricsRefresh({ budgetMs: 240_000 });
+  description: "ユーザー指標の read-model を差分更新する",
+  cadence: "15m",
+  run: async () => {
+    const { runUserMetricsRefresh } = await import("@/features/userMetrics/services/server/refresh");
+    return await runUserMetricsRefresh({ budgetMs: 240_000 });
+  },
 },
 ```
 
-```json
-{ "path": "/api/cron/user-metrics-refresh", "schedule": "*/15 * * * *" }
+```ts
+// src/app/api/cron/user-metrics-refresh/route.ts
+import { createCronTaskRoute } from "@/lib/cron";
+import { getCronTask } from "@/registry/cronTaskRegistry";
+
+export const maxDuration = 300;
+
+export const GET = createCronTaskRoute(getCronTask("user-metrics-refresh"));
 ```
 
-`vercel.json` の `functions` で該当ルートの `maxDuration` も 300 にする。
+`vercel.json` は触らない（dispatcher が `cadence` に従って起動する）。`pnpm task user-metrics-refresh` も登録した時点で使える。
 
 ### 5. 既存の全件再計算からの移行
 

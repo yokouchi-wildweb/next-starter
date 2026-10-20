@@ -1,22 +1,11 @@
 // src/app/api/cron/audit-log-prune/route.ts
 // 期限切れ監査ログ (audit_logs) を定期削除する cron タスク
-//
-// 各行の retention_days を尊重し、期限を過ぎた行のみ削除する。
-// バッチ + SKIP LOCKED で進めるため、書き込み tx の長時間ブロッキングは発生しない。
-//
-// 推奨スケジュール: 1日1回（深夜帯）
-//   0 3 * * *
+// 本体・頻度・有効条件は src/registry/cronTaskRegistry.ts（スケジュール登録は不要。dispatcher が起動する）
 //
 // 認証: Authorization: Bearer ${CRON_SECRET}
 //   development では認証バイパス（src/lib/cron/auth.ts 参照）
 
-import { createCronRoute } from "@/lib/cron";
-import { pruneExpiredAuditLogs } from "@/features/core/auditLog/services/server";
+import { createCronTaskRoute } from "@/lib/cron";
+import { getCronTask } from "@/registry/cronTaskRegistry";
 
-export const GET = createCronRoute({
-  name: "audit-log-prune",
-  handler: async () => {
-    const result = await pruneExpiredAuditLogs();
-    return result;
-  },
-});
+export const GET = createCronTaskRoute(getCronTask("audit-log-prune"));

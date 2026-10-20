@@ -42,6 +42,7 @@ disable-model-invocation: true
    - **required_actions は「下流の Claude が承認1回でノンストップ実行できる具体度」で書くことが必須**。DB マイグレーション・バックフィル・再生成・データ移行もすべてここに含める。対話プロンプトを出すコマンド(db push 等)だけ `[user-run]` を付ける。
    - 自動化できないことが明示された `manual_steps` 以外は、すべて下流の Claude が実行する前提(fail-auto)。
    - **ファイル・ディレクトリを移動・改名したら `moved:` を必ず書く**(リポジトリルートからの相対パス、ディレクトリ可、`;` 区切り)。移動の全組を `git diff --name-status -M <変更前> <変更後>` で洗い出して漏れなく載せる(git が改名と認識しない「新規作成 + 旧パス shim」でも書く)。下流の /flux はこれを使って fork の編集を新しいパスへ移植する。
+   - **削除・移動は notice と同じ commit で出荷する**(後の commit に回さない。区間がずれて fork に案内の無い modify/delete コンフリクトが届く)。`git diff --name-status --diff-filter=DR <変更前> <変更後>` で削除・改名を全て洗い出し、改名は `moved:`、移動先の無い削除は `notes:` に削除パスと fork 独自内容の移し先を書く。変更本体が既にコミット済み(未 push)なら、notice は本体の直後の commit にし(間に他の notice の commit を挟まない = 同じ区間に入る)、その旨をユーザーに伝える(仕様: `.notices/README.md`「削除・移動は notice と同じ commit で出す」)。
    - **特定の fork への影響を書くときは推測しない**。その fork のリポジトリで、この変更が触るファイルについて fork 側の編集を差分で取り、結果をそのまま書く:
      `git -C <fork の作業ディレクトリ> diff --name-only $(git -C <fork> merge-base HEAD <fork 内の upstream remote>/<branch>) HEAD -- <この変更が追加・変更・削除・移動するファイル>`
      (移動元のパスも含める)。出力が空なら「上流ファイルの編集なし」、空でなければファイル名と `--stat` の規模を書く。fork 自身のファイル(fork が足したページ等)の確認はこれとは別に行い、混同しない。調べていない fork は `not checked` と書く。

@@ -1,6 +1,6 @@
 ---
 name: fork-init
-description: upstream(next-starter 等)を clone した直後のリポジトリで、新規プロジェクトのフォーク初期設定を承認1回で完走する。GitHub リポ作成・リモート整理・pnpm install・フォーク固有ファイル(project.md / 台帳 / package 名 / business.config / .env.development)の書き換え・初期コミット・push まで
+description: upstream(next-starter 等)を clone した直後のリポジトリで、新規プロジェクトのフォーク初期設定を承認1回で完走する。GitHub リポ作成・リモート整理・pnpm install・フォーク固有ファイル(project.md / 台帳 / package 名 / business.config / vercel.json / .env.development)の書き換え・初期コミット・push まで
 argument-hint: "<name> [github-owner]  例: 88-base yokouchi-wildweb"
 disable-model-invocation: true
 ---
@@ -26,13 +26,15 @@ disable-model-invocation: true
    - Tier: 既定は「フォーク元の Tier + 1、下流なし」
    - バックエンド: Firebase / Neon を今設定するか、未設定で始めるか(既定: 未設定)
    - 予定ドメイン・方向性(無ければ「TBD」で可)
+   - Vercel プラン: hobby / pro(既定: hobby。cron の dispatcher の本数が変わる。後から再生成できる)
 6. fork-id を導出する: origin になる URL のパス部分から `.git` を除去、`/` を `--` に置換、小文字化。
 
 ## 計画提示(承認を取る)
 以下を箇条書きで提示し、承認を1回取る:
 - 作成するリポジトリ(`<owner>/<name>` private)/ スキップの場合はその旨
 - リモート: origin = 新リポ、upstream = 現 origin
-- 書き換えるファイルの一覧(文書の手順 4 チェックリストと同じ 5 項目。README は触らない)
+- 書き換えるファイルの一覧(文書の手順 4 チェックリストと同じ 6 項目。README は触らない)
+- `vercel.json` の Vercel プラン(hobby / pro)
 - 初期コミットの件名: `chore: <name> フォーク初期設定`
 - push 先: `origin main`
 
@@ -45,8 +47,9 @@ disable-model-invocation: true
    b. `.notices/applied/<fork-id>.md`: `# APPLIED LEDGER fork:<origin url>` の1行のみ。
    c. `package.json`: `name` を `<name>` に。
    d. `src/config/business.config.ts`: `serviceName` / `serviceNameShort` / `description` / `descriptionShort` / `mail.defaultFromName` を `<name>` ベースに。`domain` / `url` / `mail.defaultFrom` は確定していれば入れ、未定なら upstream の名前を含まない仮値(`example.com` 等)にする。
-   e. `README.md` は**触らない**(全リポ共通。固有情報は project.md と GitHub の description 欄)。
-   f. `.env.development`: `pnpm env:init` で生成する(`.env.example` のコピーに `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` を自動設定。既存なら何もしない)。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
+   e. `vercel.json`: `pnpm cron:generate --plan <hobby|pro>` で生成し、`pnpm cron:check` が通ることを確認する(cron の dispatcher だけを登録した形。upstream の全定期タスクがここから起動される)。
+   f. `README.md` は**触らない**(全リポ共通。固有情報は project.md と GitHub の description 欄)。
+   g. `.env.development`: `pnpm env:init` で生成する(`.env.example` のコピーに `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` を自動設定。既存なら何もしない)。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
 5. `pnpm tsc --noEmit` 相当の型チェックは不要(設定ファイルのみの変更)。`git status --short` で意図したファイルだけが変更されていることを確認する。
 6. コミット: 件名 `chore: <name> フォーク初期設定` + 空行 + 本文(フォーク元、書き換えた項目、バックエンド未設定ならその旨)+ 環境指定の Co-Authored-By トレーラー。
 7. `git push -u origin main`。
@@ -54,7 +57,7 @@ disable-model-invocation: true
 ## 報告(日本語)
 - 作成したリポジトリ URL、リモート構成、コミット sha
 - `.env.development` に生成した値は**表示しない**(ファイルにあることだけ伝える)
-- 次にユーザーがやること: `pnpm dev` で起動確認。以降の作業は新リポのディレクトリで別セッションを開くよう案内する
+- 次にユーザーがやること: `pnpm dev` で起動確認。Vercel にデプロイする前に環境変数 `CRON_SECRET` を登録する(未登録だと定期タスクが全部 401 で止まる。必須の次作業として明示する)。以降の作業は新リポのディレクトリで別セッションを開くよう案内する
 - バックエンドを後で接続する場合の導線: 文書の手順 3「機能別に必要なバックエンド」と `Neon_Firebaseなど各種バックエンドサービスの設定方法.md`
 
 ## 言語ルール

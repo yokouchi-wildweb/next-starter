@@ -71,6 +71,13 @@ notes: <anything else>
 - /flux は計画時に、各組について fork が移動元を編集しているか(`git diff <merge-base> HEAD -- <old>`)を調べて計画に出す。merge 後、その差分のパスを新しいパスに書き換えて `git apply --3way` で当て直す。古いパス側の衝突は上流版(shim または削除)を採る。当て直せなかった部分は停止条件として止まる。
 - 欄が無い旧 notice・`moved:` を知らない旧 /flux では今までどおりの動作(merge するだけ)。
 
+### 削除・移動は notice と同じ commit で出す(必須)
+
+fork が手を入れうるファイル(docs・README・registry・config 等)を削除・移動する commit には、その notice(移動なら `moved:`、移動先の無い削除なら `notes:` に削除したパスと「fork 独自の内容の移し先」)を**同じ commit に含める**。後の commit で notice を出すと、/flux はその notice の追加 commit で区間を切るため、削除だけが先の区間で fork に届き、fork は案内の無い modify/delete コンフリクトを自力で解くことになる。
+
+- 起票前に `git diff --name-status --diff-filter=DR <変更前> <変更後>` で削除・改名を全て洗い出し、notice に漏れなく載せる(/downreq が行う)
+- fork が編集していないと分かっているファイル(upstream 専用の内部実装等)だけの削除なら notice は不要
+
 ## 中継(relay)— 3 段以上の Tier
 
 T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2 のツリーに入り、T3 が T2 を merge すると T3 にも届く。T3 から見るとこれは `from:` が自分の origin でも直上 upstream(T2)でもない notice(= **祖父 notice**)で、そのままでは未適用と判定される。しかも追加 commit は T1 の生 commit(T2 の衝突解消を含まない)なので、そこで区間を切ると T3 は T2 が解いた衝突をもう一度解くことになり、さらに T2 の merge commit とも衝突する。そこで次の 2 つで扱う。

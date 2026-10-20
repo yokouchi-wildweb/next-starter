@@ -173,7 +173,7 @@ index: `(user_id, composite_hash)` UNIQUE / `composite_hash` / 強成分別 / `(
 ## retention と cron
 
 IP 同様に個人へ紐づく識別情報のため無期限保持にせず、行単位 `retention_days` +
-日次 cron `device-fingerprint-prune`（`15 4 * * *`）で自動削除する
+日次 cron `device-fingerprint-prune`（dispatcher が日次で起動）で自動削除する
 （`userLoginEvent` / `audit_logs` と同じバッチ + SKIP LOCKED パターン）。
 
 ---

@@ -14,7 +14,7 @@
 - src/lib/browserStorage — localStorage / sessionStorage のクライアントと React フック
 - src/lib/clarity — Microsoft Clarity 解析タグ
 - src/lib/cn — Tailwind className 結合(clsx + tailwind-merge、独自トークンのクラス群登録)
-- src/lib/cron — /api/cron/* 定期タスク基盤と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches
+- src/lib/cron — /api/cron/* 定期タスク基盤(レジストリ駆動の dispatcher・vercel.json 生成/検査)と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches
 - src/lib/crud — createCrudService 汎用 CRUD(サービス・フック・クエリ構築)
 - src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)
 - src/lib/csv — CSV ダウンロードとヘッダ付きパース

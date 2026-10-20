@@ -4,23 +4,18 @@
 // 全ての /api/cron/* ルートはこのファクトリを使うことで、
 // 認証・ログ・エラーハンドリング・レスポンス形式を統一する。
 //
-// 使い方:
+// レジストリ（src/registry/cronTaskRegistry.ts）に登録したタスクは createCronTaskRoute で 1 行にする:
 // ```ts
 // // src/app/api/cron/expire-pending-purchases/route.ts
-// import { createCronRoute } from "@/lib/cron";
-// import { expirePendingRequests } from "...";
+// import { createCronTaskRoute } from "@/lib/cron";
+// import { getCronTask } from "@/registry/cronTaskRegistry";
 //
-// export const GET = createCronRoute({
-//   name: "expire-pending-purchases",
-//   handler: async () => {
-//     const expired = await expirePendingRequests();
-//     return { expired };
-//   },
-// });
+// export const GET = createCronTaskRoute(getCronTask("expire-pending-purchases"));
 // ```
 
 import { NextResponse } from "next/server";
 import { verifyCronRequest } from "./auth";
+import type { CronTaskDefinition } from "./types";
 
 export type CronHandler<T extends Record<string, unknown> = Record<string, unknown>> = () => Promise<T>;
 
@@ -35,6 +30,11 @@ export type CreateCronRouteOptions<T extends Record<string, unknown>> = {
    * throw した場合は 500 で返される（スケジューラ側でリトライ可能）。
    */
   handler: CronHandler<T>;
+  /**
+   * 機能が有効か。false なら handler を呼ばずに 200 { ok: true, skipped: true } を返す。
+   * 省略時は常に有効。
+   */
+  enabled?: () => boolean;
 };
 
 /**
@@ -42,6 +42,7 @@ export type CreateCronRouteOptions<T extends Record<string, unknown>> = {
  *
  * - GET メソッドハンドラとして export できる形を返す
  * - 認証失敗: 401
+ * - 機能無効: 200 { ok: true, skipped: true, reason: "disabled" }
  * - 実行成功: 200 { ok: true, ...result }
  * - 実行失敗: 500 { ok: false, error }
  *
@@ -53,6 +54,11 @@ export function createCronRoute<T extends Record<string, unknown> = Record<strin
   return async (req: Request): Promise<Response> => {
     if (!verifyCronRequest(req)) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (options.enabled && !options.enabled()) {
+      console.log(JSON.stringify({ level: "info", scope: "cron", task: options.name, ok: true, skipped: true }));
+      return NextResponse.json({ ok: true, skipped: true, reason: "disabled" });
     }
 
     const startedAt = Date.now();
@@ -72,4 +78,11 @@ export function createCronRoute<T extends Record<string, unknown> = Record<strin
       return NextResponse.json({ ok: false, error: message }, { status: 500 });
     }
   };
+}
+
+/**
+ * レジストリのタスク定義から cron API ルートハンドラを生成する（createCronRoute の薄いラッパー）
+ */
+export function createCronTaskRoute<T extends Record<string, unknown>>(task: CronTaskDefinition<T>) {
+  return createCronRoute<T>({ name: task.name, handler: task.run, enabled: task.enabled });
 }

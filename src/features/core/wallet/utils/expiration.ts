@@ -101,6 +101,18 @@ export function getExpiredNotice(walletType: WalletTypeValue): WalletExpiredNoti
 }
 
 /**
+ * いずれかの通貨に失効通知（予告・本通知）の設定があるか。
+ * 設定値の有無だけを見る（検証しない）ため throw しない。cron の起動要否の判定に使う。
+ * 設定不備の検出は送信側（getPreExpiryNoticeStages / getExpiredNotice）が行う。
+ */
+export function hasAnyExpirationNoticeConfig(): boolean {
+  return (Object.keys(WALLET_EXPIRATION_CONFIG) as WalletType[]).some((type) => {
+    const notice = WALLET_EXPIRATION_CONFIG[type]?.notice;
+    return notice != null && (notice.expired != null || (notice.preExpiry?.length ?? 0) > 0);
+  });
+}
+
+/**
  * 付与時刻から失効日時を計算する。
  */
 export function calcExpiresAt(grantedAt: Date, expirationDays: number): Date {
