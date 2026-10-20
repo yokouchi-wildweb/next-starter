@@ -79,6 +79,9 @@
 
 削除するもの: `src/features/<domain>/`、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDataMenu.ts` / `schemaRegistry.ts` / `serviceRegistry.ts` / `domainConfigRegistry.ts` の該当行を消す。DB のテーブルは消さない。
 
+- `serviceRegistry` / `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`removeObjectEntry`。`tag` を消しても core の `user_tag` は残る）。キーは実在したドメインディレクトリ名から決める
+- レジストリの更新に失敗してもディレクトリ削除は済んでいるため止めず、最後に手で直すファイルを表示して終了コード 1 で終わる
+
 ---
 
 ## 生成されるもの

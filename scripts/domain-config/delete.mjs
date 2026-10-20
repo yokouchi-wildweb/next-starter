@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
 import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from '../../src/utils/stringCase.mjs';
 import { getCliArgs } from './utils/cliArgs.mjs';
+import { removeObjectEntry } from './generator/registry/utils/objectEntry.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..', '..');
@@ -115,6 +116,20 @@ function removeLineContaining(filePath, keyword) {
   const filtered = lines.filter((l) => !l.includes(keyword));
   fs.writeFileSync(filePath, filtered.join('\n'));
   console.log(`更新しました: ${filePath}`);
+}
+
+// レジストリのオブジェクト直下から key のエントリを丸ごと削除する（複数行可・キー完全一致）。
+// 失敗してもディレクトリ削除は済んでいるため止めず、failures に積んで最後に報告する。
+function removeRegistryEntry(filePath, objectName, key, failures) {
+  if (!fs.existsSync(filePath)) return;
+  try {
+    const { text, removed } = removeObjectEntry(fs.readFileSync(filePath, 'utf8'), { objectName, key });
+    if (!removed) return;
+    fs.writeFileSync(filePath, text);
+    console.log(`更新しました: ${filePath}`);
+  } catch (err) {
+    failures.push(`${path.relative(rootDir, filePath)}: ${objectName}.${key} を削除できませんでした（${err.message}）`);
+  }
 }
 
 function removeLinesByHref(filePath, hrefs) {
@@ -283,25 +298,32 @@ export default async function removeDomain(domain) {
     removeLineContaining(schemaPath, `@/features/${candidate}/entities/drizzle`);
   }
 
+  // レジストリのエントリは、実在したドメインディレクトリ名（無ければ入力の camelCase）から決めたキーだけを消す。
+  // 候補名（単数形推定など）を広く使うと、別ドメインのエントリを消しかねないため
+  const registryCamel = toCamelCase(canonicalSingular) || camel;
+  const registrySnake = toSnakeCase(registryCamel) || normalizedSnake;
+  const failures = [];
+
   const servicePath = path.join(rootDir, 'src', 'registry', 'serviceRegistry.ts');
-  const serviceNames = new Set();
   for (const candidate of featureCandidateSet) {
     const camelCandidate = toCamelCase(candidate);
-    serviceNames.add(camelCandidate);
     removeLineContaining(servicePath, `@/features/${candidate}/services/server/${camelCandidate}Service`);
   }
-  for (const serviceName of serviceNames) {
-    removeLineContaining(servicePath, `${serviceName}: ${serviceName}Service`);
-  }
+  removeRegistryEntry(servicePath, 'serviceRegistry', registryCamel, failures);
 
   const domainConfigPath = path.join(rootDir, 'src', 'registry', 'domainConfigRegistry.ts');
   for (const candidate of featureCandidateSet) {
     // import行の削除
     removeLineContaining(domainConfigPath, `@/features/${candidate}/domain.json`);
   }
-  // マップエントリの削除（snake_case形式）
-  removeLineContaining(domainConfigPath, `${normalizedSnake}:`);
+  removeRegistryEntry(domainConfigPath, 'domainConfigMap', registrySnake, failures);
 
+  if (failures.length > 0) {
+    console.error('以下のレジストリは自動で更新できませんでした。手で該当エントリを削除してください:');
+    failures.forEach((f) => console.error(` - ${f}`));
+    process.exitCode = 1;
+    return;
+  }
   console.log('削除が完了しました。');
 }
 

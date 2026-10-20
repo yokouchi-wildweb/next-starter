@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { scanObjectEntries, upsertObjectEntry } from "./utils/objectEntry.mjs";
+import { removeObjectEntry, scanObjectEntries, upsertObjectEntry } from "./utils/objectEntry.mjs";
 import updateServiceRegistry from "./updateServiceRegistry.mjs";
 import updateSchemaRegistry from "./updateSchemaRegistry.mjs";
 import updateDomainConfigRegistry from "./updateDomainConfigRegistry.mjs";
@@ -97,6 +97,40 @@ test("upsertObjectEntry: クォート付きキー・末尾カンマ無し・マ�
   assert.match(added, /  b: 2,\n  c: 4,\n\};/);
   const quoted = upsertObjectEntry(text, { objectName: "serviceRegistry", key: "a", value: "5" });
   assert.match(quoted, /^  a: 5,$/m);
+});
+
+test("removeObjectEntry: 複数行エントリを行ごと丸ごと削除する", () => {
+  const { text, removed } = removeObjectEntry(SERVICE_REGISTRY, { objectName: "serviceRegistry", key: "sample" });
+  assert.equal(removed, true);
+  assert.match(text, /\/\/ --- AUTO-GENERATED-START ---\n  \/\/ --- AUTO-GENERATED-END ---/);
+  assert.match(text, /user: \{ service: userService, access: ADMIN_ONLY \},/);
+});
+
+test("removeObjectEntry: キー完全一致のみ（tag を消しても user_tag は残る）", () => {
+  const map = `export const domainConfigMap = {
+  user_tag: userTagConfig,
+  // --- AUTO-GENERATED-START ---
+  tag: tagConfig,
+  my_tag: myTagConfig,
+  // --- AUTO-GENERATED-END ---
+} as const;
+`;
+  const { text } = removeObjectEntry(map, { objectName: "domainConfigMap", key: "tag" });
+  assert.equal(
+    text,
+    map.replace("  tag: tagConfig,\n", ""),
+  );
+});
+
+test("removeObjectEntry: 無いキーは何も変えない・末尾カンマ無しの最後のエントリも消せる", () => {
+  const text = `export const serviceRegistry = {
+  a: 1,
+  b: 2
+};
+`;
+  assert.deepEqual(removeObjectEntry(text, { objectName: "serviceRegistry", key: "zz" }), { text, removed: false });
+  const { text: out } = removeObjectEntry(text, { objectName: "serviceRegistry", key: "b" });
+  assert.equal(out, "export const serviceRegistry = {\n  a: 1,\n};\n");
 });
 
 test("updateServiceRegistry: 複数行エントリを壊さず 1 行に置換し、import を重複させない", () => {

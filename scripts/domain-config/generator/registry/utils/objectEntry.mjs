@@ -140,3 +140,27 @@ export function upsertObjectEntry(text, { objectName, key, value, indent = "  " 
   }
   return inserted;
 }
+
+/**
+ * オブジェクト直下の `key` エントリを（複数行でも）丸ごと削除する。キーは完全一致のみ（`tag` で `user_tag` は消えない）。
+ * エントリだけの行は行ごと消し、同じ行に他の記述があればエントリ部分だけを消す。
+ * @param {string} text ファイル全体
+ * @param {{ objectName: string, key: string }} options
+ * @returns {{ text: string, removed: boolean }} 見つからなければ text は元のまま
+ */
+export function removeObjectEntry(text, { objectName, key }) {
+  const { entries } = scanObjectEntries(text, objectName);
+  const existing = entries.find((e) => e.key === key);
+  if (!existing) return { text, removed: false };
+
+  let start = existing.start;
+  let end = existing.end;
+  const lineStart = lineStartOf(text, start);
+  const lineEnd = text.indexOf("\n", end);
+  const afterEnd = lineEnd === -1 ? text.length : lineEnd;
+  if (/^\s*$/.test(text.slice(lineStart, start)) && /^\s*$/.test(text.slice(end, afterEnd))) {
+    start = lineStart;
+    end = lineEnd === -1 ? text.length : lineEnd + 1;
+  }
+  return { text: text.slice(0, start) + text.slice(end), removed: true };
+}
