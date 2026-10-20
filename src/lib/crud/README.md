@@ -1,7 +1,7 @@
 # 汎用 CRUD ライブラリ仕様
 
 > このドキュメントは `createCrudService` を中心としたライブラリ内部のコアスペックです。
-> 拡張するときは次の順で、手前で足りるならそこで止める: ① 提供メソッド → ② `relationWhere` → ③ `extraWhere` → ④ `base.query()` + `wrappers/` → ⑤ 独自サービス。
+> 拡張するときは次の順で、手前で足りるならそこで止める: ① 提供メソッド → ② `relationWhere` → ③ `extraWhere` / `extraOrderBy` → ④ `base.query()` + `wrappers/` → ⑤ 独自サービス。
 > フックの使い方は [hooks/README.md](./hooks/README.md)。
 
 ---
@@ -212,7 +212,7 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 
 | メソッド | 引数 | 戻り値 | 備考 |
 |----------|------|--------|------|
-| `search(params?)` | SearchParams & WithOptions & ExtraWhereOption | PaginatedResult | メインの検索メソッド |
+| `search(params?)` | SearchParams & WithOptions & ExtraWhereOption & ExtraOrderByOption | PaginatedResult | メインの検索メソッド |
 | `searchWithDeleted(params?)` | 同上 | PaginatedResult | 論理削除レコードも含む |
 | `count(params?)` | CountParams & ExtraWhereOption | CountResult | 件数のみ取得（レコード不要時に最適） |
 | `countWithDeleted(params?)` | 同上 | CountResult | 論理削除レコードも含めた件数 |
@@ -428,9 +428,28 @@ await service.search({
 });
 ```
 
+### extraOrderBy
+
+`OrderBySpec`（カラム名ベース）で表現できない並び順を Drizzle SQL 式で注入する（COALESCE で nullable な日時を寄せる、CASE で優先度バケットを作る、JSONB の値で並べる等）。`search` / `searchWithDeleted` 専用。
+
+```typescript
+import { sql } from "drizzle-orm";
+await service.search({
+  // 実効終了時刻 = ended_at が無ければ sale_end_at
+  extraOrderBy: [sql`COALESCE(${t.endedAt}, ${t.saleEndAt}) DESC`],
+  orderBy: [["createdAt", "DESC"]], // extraOrderBy の同順位を並べ分けるタイブレーク
+});
+```
+
+- ORDER BY 合成順: `searchRank` の句（searchQuery 指定時のみ）→ `extraOrderBy` → `orderBy`（未指定なら defaultOrderBy）→ `id`（`orderBy` に id が無い場合のみ）。合成は `composeSearchOrderBy`（`@/lib/crud/drizzle`）
+- 未指定なら従来と完全に同じ並び順
+- サーバー専用。SQL オブジェクトは HTTP で渡せないため `/api/[domain]/search` には出さない（ルートは受け付けるパラメータを個別に組み立てる許可リスト方式）
+- `count` / `countWithDeleted` は並び順を持たないので受け付けない。`searchForSorting` は sort_order 専用のため対象外
+- 式の中で Date を埋め込むときは下の落とし穴に従う
+
 #### 落とし穴: `sql` テンプレートに Date を直接渡さない
 
-`extraWhere` / `systemUpdate` の SQL 式など、`sql` テンプレートリテラル全般に共通（lint ガードなし、過去に複数回発生）。
+`extraWhere` / `extraOrderBy` / `systemUpdate` の SQL 式など、`sql` テンプレートリテラル全般に共通（lint ガードなし、過去に複数回発生）。
 
 - 症状: JS の `Date` を `${...}` に直接埋め込むと PostgreSQL 側でパースに失敗し 500 エラー
 - 原因: `sql` 内のパラメータは `Date.toString()` 相当（`"Sun Mar 01 2026 23:59:59 GMT+0900 (...)"`）で渡り、`::timestamptz` キャストを付けても解析できない
@@ -446,14 +465,15 @@ sql`CASE WHEN ${t.completedAt} >= ${range.dateFrom.toISOString()} THEN 'current'
 ### テキスト検索（searchQuery）
 
 - `searchFields` の各カラムに対して `ILIKE %query%` を OR で結合（結果集合・count はこれだけで決まる）
-- 並び順: `searchRank` 指定時は後述の関連度ランキングを `orderBy` の前に置く。未指定なら `orderBy` のみ
+- 並び順: `searchRank` 指定時は後述の関連度ランキングを `extraOrderBy` / `orderBy` の前に置く。未指定なら `extraOrderBy`（あれば）→ `orderBy`
 - SQL 片は `buildSearchWhere` / `buildSearchRankOrderBy`（`@/lib/crud/drizzle`）として公開。`base.query()` で独自 JOIN を組む wrapper からも同じ順位付けを再利用できる
-- 並び順の最後は `withIdTiebreak(table, orderBy, clauses)`（`@/lib/crud/drizzle`）で閉じる。`orderBy` に id が無ければ `asc(id)` を末尾に足す（base `search()` と同じ規則）。wrapper で `buildOrderBy` の結果だけを使うと、同順位の行の並びが DB 任せになり、ページをまたいで入れ替わる・重複する
+- 並び順の最後は `withIdTiebreak(table, orderBy, clauses)`（`@/lib/crud/drizzle`）で閉じる。`orderBy` に id が無ければ `asc(id)` を末尾に足す（base `search()` と同じ規則）。wrapper で `buildOrderBy` の結果だけを使うと、同順位の行の並びが DB 任せになり、ページをまたいで入れ替わる・重複する。base と同じ合成順（rank → extraOrderBy → orderBy → id）でよければ `composeSearchOrderBy` を使う
   ```ts
-  const orderClauses = withIdTiebreak(table, orderBy, [
-    ...(rankOrderClause ? [rankOrderClause] : []),
-    ...buildOrderBy(table, orderBy),
-  ]);
+  const orderClauses = composeSearchOrderBy(table, orderBy, {
+    rank: rankOrderClause,
+    extra: extraOrderBy,
+    base: buildOrderBy(table, orderBy),
+  });
   ```
 
 ### searchRank（関連度ランキング）
@@ -482,7 +502,7 @@ CASE
   WHEN col::text ILIKE '%q%'            THEN 20   -- 部分一致
   ELSE 0
 END * weight
--- ORDER BY (sum) DESC, <orderBy / defaultOrderBy>, id
+-- ORDER BY (sum) DESC, <extraOrderBy>, <orderBy / defaultOrderBy>, id
 ```
 
 例: user は `name` weight 3。「ab」で検索すると name 前置一致 = 60×3 = 180、email ドメイン語頭一致（`foo@abc.com`）= 40×1 = 40 となり、名前が ab で始まるユーザーが先に並ぶ。
@@ -654,6 +674,7 @@ afterItemId = "xxx" → xxx の直後に配置（generateSortKey(xxx.sort_order,
 | belongsToMany | 自動同期 + hydrate | 非対応 |
 | relationWhere | 対応 | 非対応 |
 | extraWhere | 対応 | 非対応 |
+| extraOrderBy | 対応 | 非対応 |
 | or 条件 | 対応 | 非対応（エラー） |
 | 複数列 orderBy | 対応 | 単一列のみ |
 | テキスト検索（searchQuery） | `searchFields` 全カラムに `ILIKE %q%` を OR | `searchFields` の **先頭 1 カラムのみ** 前方一致（`>= q` かつ `<= q + "\uf8ff"`） |

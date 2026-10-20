@@ -32,10 +32,10 @@ import {
   buildSearchWhere,
   buildSearchRankOrderBy,
   normalizeSearchRankSpec,
-  withIdTiebreak,
+  composeSearchOrderBy,
 } from "./query";
 import { applyInsertDefaults, buildColumnToPropertyMap, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
-import type { AuditConfig, BulkAuditMode, DrizzleCrudServiceOptions, DbTransaction, DbExecutor, ExtraWhereOption } from "./types";
+import type { AuditConfig, BulkAuditMode, DrizzleCrudServiceOptions, DbTransaction, DbExecutor, ExtraWhereOption, ExtraOrderByOption } from "./types";
 import {
   assignLocalRelationValues,
   hydrateBelongsToManyRelations,
@@ -1032,7 +1032,7 @@ export function createCrudService<
       return { total: Number(count) };
     },
 
-    async search(params: SearchParams & WithOptions & ExtraWhereOption = {}): Promise<PaginatedResult<Select>> {
+    async search(params: SearchParams & WithOptions & ExtraWhereOption & ExtraOrderByOption = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
         limit = 100,
@@ -1041,6 +1041,7 @@ export function createCrudService<
         searchFields = serviceOptions.defaultSearchFields,
         where,
         extraWhere,
+        extraOrderBy,
         relationWhere,
         withRelations,
         withCount,
@@ -1077,11 +1078,12 @@ export function createCrudService<
       }
 
       const baseQuery = db.select().from(table as any);
-      // セカンダリキーとして id を末尾に足す（既に含まれていない場合のみ、ソート順の安定性を保証）
-      const orderClauses = withIdTiebreak(table, orderBy, [
-        ...(rankOrderClause ? [rankOrderClause] : []),
-        ...buildOrderBy(table, orderBy),
-      ]);
+      // rank → extraOrderBy（SQL 式）→ orderBy の順に並べ、末尾に id を足す（既に含まれていない場合のみ、ソート順の安定性を保証）
+      const orderClauses = composeSearchOrderBy(table, orderBy, {
+        rank: rankOrderClause,
+        extra: extraOrderBy,
+        base: buildOrderBy(table, orderBy),
+      });
       const result = await runQuery<Select>(table, baseQuery, {
         page,
         limit,
@@ -1130,7 +1132,7 @@ export function createCrudService<
       return { total: Number(count) };
     },
 
-    async searchWithDeleted(params: SearchParams & WithOptions & ExtraWhereOption = {}): Promise<PaginatedResult<Select>> {
+    async searchWithDeleted(params: SearchParams & WithOptions & ExtraWhereOption & ExtraOrderByOption = {}): Promise<PaginatedResult<Select>> {
       const {
         page = 1,
         limit = 100,
@@ -1139,6 +1141,7 @@ export function createCrudService<
         searchFields = serviceOptions.defaultSearchFields,
         where,
         extraWhere,
+        extraOrderBy,
         relationWhere,
         withRelations,
         withCount,
@@ -1169,11 +1172,12 @@ export function createCrudService<
       }
 
       const baseQuery = db.select().from(table as any);
-      // セカンダリキーとして id を末尾に足す（既に含まれていない場合のみ、ソート順の安定性を保証）
-      const orderClauses = withIdTiebreak(table, orderBy, [
-        ...(rankOrderClause ? [rankOrderClause] : []),
-        ...buildOrderBy(table, orderBy),
-      ]);
+      // rank → extraOrderBy（SQL 式）→ orderBy の順に並べ、末尾に id を足す（既に含まれていない場合のみ、ソート順の安定性を保証）
+      const orderClauses = composeSearchOrderBy(table, orderBy, {
+        rank: rankOrderClause,
+        extra: extraOrderBy,
+        base: buildOrderBy(table, orderBy),
+      });
       const result = await runQuery<Select>(table, baseQuery, {
         page,
         limit,

@@ -29,3 +29,25 @@ export const withIdTiebreak = (
   if (orderBy?.some(([field]) => field === "id")) return [...clauses];
   return [...clauses, asc(idColumn as Parameters<typeof asc>[0])];
 };
+
+/**
+ * base.search() / searchWithDeleted() の ORDER BY を合成する。
+ * 順序: searchRank の句 → extraOrderBy（SQL 式）→ orderBy（buildOrderBy の結果）→ id（withIdTiebreak）。
+ * rank / extra が無ければ従来どおり orderBy → id になる。
+ *
+ * @param table - 対象テーブル
+ * @param orderBy - 呼び出し側の OrderBySpec（id を含むかの判定にだけ使う）
+ * @param parts.rank - searchRank の句（searchQuery 指定時のみ）
+ * @param parts.extra - extraOrderBy（呼び出し側が渡した Drizzle SQL 式）
+ * @param parts.base - buildOrderBy(table, orderBy) の結果
+ */
+export const composeSearchOrderBy = (
+  table: PgTable,
+  orderBy: OrderBySpecLike | undefined,
+  parts: { rank?: SQL; extra?: SQL[]; base: SQL[] },
+): SQL[] =>
+  withIdTiebreak(table, orderBy, [
+    ...(parts.rank ? [parts.rank] : []),
+    ...(parts.extra ?? []),
+    ...parts.base,
+  ]);

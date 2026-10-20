@@ -61,6 +61,17 @@ export type ExtraWhereOption = {
 };
 
 /**
+ * Drizzle固有の追加ORDER BY条件オプション。
+ * search / searchWithDeleted で OrderBySpec（カラム名ベース）では表現できない
+ * Drizzle SQL式（COALESCE、CASE等の計算式）によるソートを注入する。
+ * 指定時は orderBy より優先され、orderBy はタイブレークとして後続に適用される（searchRank の句があればその後ろ、末尾は id）。
+ * サーバー専用（SQL オブジェクトは HTTP で渡せないため /api/[domain]/search には出さない）。
+ */
+export type ExtraOrderByOption = {
+  extraOrderBy?: SQL[];
+};
+
+/**
  * bulk 系操作（bulkDeleteByIds / bulkDeleteByQuery / bulkUpdateByIds / bulkUpdate / bulkUpsert）の
  * 監査ログ記録モード。
  *

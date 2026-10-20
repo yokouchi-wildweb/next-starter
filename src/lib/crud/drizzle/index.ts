@@ -10,6 +10,7 @@ export type {
   DbTransaction,
   DbExecutor,
   ExtraWhereOption,
+  ExtraOrderByOption,
   AuditConfig,
   BulkAuditMode,
 } from "./types";
