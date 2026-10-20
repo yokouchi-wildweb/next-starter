@@ -117,6 +117,7 @@ upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:gen
 - cron のフォルダに `task.ts` と `route.ts` があり、`route.ts` が `./task` の `cronTask` を `createCronTaskRoute` で読む
 - `task.ts` の `name` = フォルダ名・ケバブケース、`schedule` が正しい cron 式、`description` あり、`enabled` が boolean を返す
 - `override.ts`（あれば）が `schedule` / `disabled` だけを持ち、`schedule` が正しい cron 式で、同じフォルダに `task.ts` がある
+- README と `task.ts` / `override.ts` が `@/lib/cron` から import する名前を、`src/lib/cron/index.ts` がすべて export している
 - `vercel.json`（あれば）が task.ts（+ override.ts）からの生成結果と一致する
 
 ## upstream のタスクを外す・時刻を変える（fork）

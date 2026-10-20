@@ -4,7 +4,7 @@
 export { verifyCronRequest } from "./auth";
 export { createCronRoute, createCronTaskRoute } from "./createCronRoute";
 export type { CronHandler, CreateCronRouteOptions } from "./createCronRoute";
-export type { CronTaskDefinition, CronTaskResult } from "./types";
+export type { CronTaskDefinition, CronTaskOverride, CronTaskResult } from "./types";
 export { isAtMostDailySchedule, isValidCronExpression, matchesCronExpression } from "./cronExpression";
 export {
   CRON_PATH_PREFIX,

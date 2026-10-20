@@ -6,7 +6,8 @@
 // 2. route.ts は ./task の cronTask を createCronTaskRoute で読む(定義を route.ts に二重に書かない)
 // 3. タスク名はケバブケース、schedule は正しい cron 式、description あり、enabled は throw せず boolean を返す
 // 4. fork の override.ts(任意)は schedule の差し替えと disabled だけを持ち、task.ts の無いフォルダには置けない
-// 5. vercel.json(あれば)は task.ts(+ override.ts)からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)
+// 5. README と task.ts / override.ts が @/lib/cron から import する名前は、すべて src/lib/cron/index.ts が export している
+// 6. vercel.json(あれば)は task.ts(+ override.ts)からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -46,6 +47,35 @@ test("task.ts の定義: name = フォルダ名・ケバブケース・正しい
     assert.ok(task.description?.trim(), `${task.name}: description を書く`);
     if (task.enabled) assert.equal(typeof task.enabled(), "boolean", `${task.name}: enabled は boolean を返す`);
   }
+});
+
+test("README と task.ts / override.ts が @/lib/cron から import する名前は index.ts が export している", () => {
+  const indexSource = readFileSync(join(repoRoot, "src/lib/cron/index.ts"), "utf8");
+  const exported = new Set();
+  for (const [, names] of indexSource.matchAll(/export\s+(?:type\s+)?\{([^}]*)\}/g)) {
+    for (const name of names.split(",")) {
+      const trimmed = name.trim().replace(/^type\s+/, "");
+      if (trimmed) exported.add(trimmed.split(/\s+as\s+/).pop());
+    }
+  }
+  const sources = [join(repoRoot, "src/lib/cron/README.md")];
+  for (const dir of listCronTaskDirs(repoRoot)) {
+    for (const file of ["task.ts", "override.ts", "route.ts"]) {
+      const path = join(repoRoot, CRON_ROUTE_DIR, dir, file);
+      if (existsSync(path)) sources.push(path);
+    }
+  }
+  const missing = [];
+  for (const path of sources) {
+    const text = readFileSync(path, "utf8");
+    for (const [, names] of text.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+"@\/lib\/cron"/g)) {
+      for (const name of names.split(",")) {
+        const trimmed = name.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
+        if (trimmed && !exported.has(trimmed)) missing.push(`${path.replace(repoRoot + "/", "")}: ${trimmed}`);
+      }
+    }
+  }
+  assert.deepEqual(missing, [], "src/lib/cron/index.ts に export を足す(README の例どおりに書くと型エラーになる)");
 });
 
 test("vercel.json(あれば)は task.ts からの生成結果と一致する", async (t) => {
