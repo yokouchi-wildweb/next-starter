@@ -4,6 +4,7 @@ import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import inquirer from 'inquirer';
 import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from '../../src/utils/stringCase.mjs';
+import { getCliArgs } from './utils/cliArgs.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..', '..');
@@ -305,7 +306,7 @@ export default async function removeDomain(domain) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const domain = process.argv[2];
+  const domain = getCliArgs()[0];
   if (!domain) {
     console.error('使い方: node scripts/domain-config/delete.mjs <Domain>');
     process.exit(1);

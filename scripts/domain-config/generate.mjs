@@ -9,6 +9,7 @@ import { toCamelCase, toSnakeCase } from "../../src/utils/stringCase.mjs";
 import formatDomainConfig from "./utils/formatConfig.mjs";
 import { DOMAIN_CONFIG_VERSION } from "./version.mjs";
 import { findDomainDirectories } from "./generate-all.mjs";
+import { getCliArgs } from "./utils/cliArgs.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -32,7 +33,12 @@ function runGenerator(script, domain, plural, dbEngine) {
   const args = [scriptPath, domain];
   if (plural) args.push("--plural", plural);
   if (dbEngine) args.push("--dbEngine", dbEngine);
-  spawnSync("node", args, { stdio: "inherit" });
+  const result = spawnSync("node", args, { stdio: "inherit" });
+  // 個別ジェネレーターの失敗を握りつぶさず、呼び出し側（CLI）の終了コードに伝える
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`ジェネレーターが失敗しました（exit ${result.status}）: ${script}`);
+  }
 }
 
 async function resolveGenerateTargets(config, configPath, options = {}) {
@@ -108,14 +114,12 @@ async function resolveGenerateTargets(config, configPath, options = {}) {
 export default async function generate(domain, options = {}) {
   const input = (domain || "").trim();
   if (!input) {
-    console.error("ドメイン名を指定してください。");
-    return;
+    throw new Error("ドメイン名を指定してください。");
   }
   const camel = toCamelCase(input) || input;
   const configPath = path.join(rootDir, "src", "features", camel, "domain.json");
   if (!fs.existsSync(configPath)) {
-    console.error(`設定ファイルが見つかりません: ${configPath}`);
-    return;
+    throw new Error(`設定ファイルが見つかりません: ${configPath}`);
   }
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
   config.domainConfigVersion = DOMAIN_CONFIG_VERSION;
@@ -163,7 +167,7 @@ export default async function generate(domain, options = {}) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  let domain = process.argv[2];
+  let domain = getCliArgs()[0];
   if (!domain) {
     const domains = findDomainDirectories();
     if (domains.length === 0) {

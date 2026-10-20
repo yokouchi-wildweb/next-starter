@@ -14,14 +14,25 @@
 | コマンド | 実体 | 用途 |
 |---|---|---|
 | `pnpm dc:init` | `index.mjs --init` | 対話で `domain.json` を新規作成し、続けて生成するか確認する |
-| `pnpm dc:generate <Domain>` | `index.mjs --generate` | 1 ドメインを生成・再生成する。`<Domain>` 省略時は一覧から選ぶ |
-| `pnpm dc:generate:all` | `index.mjs --generate --all` | 選んだ複数ドメインを一括で再生成する |
+| `pnpm dc:generate <Domain>` | `index.mjs --generate` | 1 ドメインを生成・再生成する。`<Domain>` 省略時は一覧から選ぶ。`--yes` でプロンプトなし |
+| `pnpm dc:generate:all` | `index.mjs --generate --all` | 選んだ複数ドメインを一括で再生成する。`--yes` でプロンプトなし（全ドメイン） |
 | `pnpm dc:add <Domain>` | `add-field.mjs` | 既存 `domain.json` の `fields` 末尾に対話でフィールドを足す（生成はしない） |
 | `pnpm dc:delete <Domain>` | `index.mjs --delete` | 生成物とレジストリ登録を削除する |
 | `pnpm dc:generate:hook` / `:component` / `:service` | `generate-*.mjs` | カテゴリ内のファイルを個別に選んで生成する（複数ドメイン可） |
 
-> **`--` を付けない**: `pnpm dc:generate -- Sample` は pnpm が `--` をそのまま渡すため、`--` がドメイン名として扱われ `src/features/--/domain.json` を探して失敗する（`dc:add` / `dc:delete` も同じ）。`pnpm dc:generate Sample` と書く。
+> **`--` は任意**: pnpm は `pnpm dc:generate -- Sample` の `--` をそのままスクリプトへ渡すが、スクリプト側（`utils/cliArgs.mjs`）が単独の `--` を捨てるので `pnpm dc:generate Sample` と同じ動きになる（`dc:add` / `dc:delete` も同じ）。
 > `<Domain>` は snake_case / camelCase / PascalCase のどれでもよい（内部で正規化し、`src/features/<camelCase>/` を見る）。
+> 失敗（`domain.json` が無い、個別ジェネレーターの異常終了など）は終了コード 1 になる。
+
+## 対話なし実行（`--yes`）
+
+エージェント（/flux）や CI から生成するときに使う。
+
+- `pnpm dc:generate <Domain> --yes` … 対話で「domain.json の設定に基づいて生成」を選び、上書き確認に Yes と答えたのと同じ結果になる（同じ分岐を通る）。`<Domain>` が必要で、省略するとエラー終了する
+- `pnpm dc:generate:all --yes` … `domain.json` を持つ全ドメインを、それぞれの `generateFiles` で生成する
+- 「すべてのファイルを生成」「手動選択」には対応しない。`generateFiles` を false にして手で編集しているファイルを、確認なしで上書きさせないため（必要なら対話で実行する）
+- `dc:delete` / `dc:add` には `--yes` は無い（削除の名前入力は安全装置、フィールド追加は入力そのものが目的）
+- `.notices` の再生成手順は `pnpm dc:generate <Domain> --yes` と書き、`[user-run]` を付けない
 
 ---
 

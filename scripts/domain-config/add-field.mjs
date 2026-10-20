@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import askFields from "./questions/fields.mjs";
 import formatDomainConfig from "./utils/formatConfig.mjs";
 import { toCamelCase } from "../../src/utils/stringCase.mjs";
+import { getCliArgs } from "./utils/cliArgs.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -14,10 +15,9 @@ function resolveDomainPath(domain) {
 }
 
 async function addField() {
-  const args = process.argv.slice(2);
-  const domain = args[0];
+  const domain = getCliArgs()[0];
   if (!domain) {
-    console.error("使い方: npm run dc:add -- <Domain>");
+    console.error("使い方: pnpm dc:add <Domain>");
     process.exit(1);
   }
 

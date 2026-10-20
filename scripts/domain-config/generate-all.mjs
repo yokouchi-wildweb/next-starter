@@ -21,10 +21,18 @@ export function findDomainDirectories() {
     .sort();
 }
 
-export default async function generateAllDomains() {
+/**
+ * @param {{ yes?: boolean }} [options] yes = プロンプトを出さず、全ドメインを各 domain.json の generateFiles どおりに生成する
+ */
+export default async function generateAllDomains(options = {}) {
   const domains = findDomainDirectories();
   if (domains.length === 0) {
     console.log("domain.json を含むドメインが存在しません。");
+    return;
+  }
+
+  if (options.yes) {
+    await runGenerateAll(domains, null);
     return;
   }
 
@@ -73,6 +81,10 @@ export default async function generateAllDomains() {
     return;
   }
 
+  await runGenerateAll(selectedDomains, manualGenerate);
+}
+
+async function runGenerateAll(selectedDomains, manualGenerate) {
   for (const domain of selectedDomains) {
     console.log(`\n[${domain}] の生成を開始します。`);
     await generate(domain, {
