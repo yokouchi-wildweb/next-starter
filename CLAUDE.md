@@ -311,4 +311,6 @@ policy: colocation-first — primary docs in README.md next to code | docs/ = cr
 stale_README: full rewrite over partial patch when README contradicts actual code
 claude_md_additions: CLAUDE.md is loaded every session → per feature max ~2 lines (existence 1 line + mandatory rule not derivable from code) | mechanism / criteria / caveats → colocated README | prefer a line in an existing section over a new section
 dated_records (incident narrative / verification log / decision history / "記録して"): docs/journal/<YYYY-MM-DD>--<owner>--<slug>.md — not auto-loaded, never .claude/rules/ or CLAUDE.md. distilled rule (1 line) may go to project.md if fork-specific
+memory: auto-memory = per-directory, personal, unreviewed → handoff of in-progress work ONLY (state / next step / pointer to drafts / end condition / absolute dates, delete when done), write it freely | never durable rules / knowledge / environment facts
+durable_info: write it to its repo home at that moment with approval (behavior.md / project.md / colocated README / docs/journal; upstream-owned paths in a fork → /upreq) or drop it | corrections are not saved to memory: behavior changes normally come as explicit user instructions to edit behavior.md; offer to record one only when it clearly deserves a rule
 location: docs/ | structure: !must-read/, setup/, journal/
