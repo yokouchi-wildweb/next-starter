@@ -1,6 +1,6 @@
 # CLAUDE.md
 > **FORMAT_RULE** (this file and .claude/rules/): agent-optimized, English only (code comments and READMEs follow behavior.md). One decision per item; a line over ~400 chars → split into sub-bullets. key: value. ` | ` (spaced) separates items, `a|b` (unspaced) or "or" = alternatives. Short headings. No tables, history, precedent or dates
-> **ROLE**: CLAUDE.md = architecture contract shared by this base and every downstream project. NEVER edit it downstream (gap → /upreq) | holds the rule + when to read the README; detail lives in the colocated README
+> **ROLE**: CLAUDE.md = architecture contract shared by this base and every downstream project. NEVER edit it downstream (gap → /upreq) | holds the rule + when to read the README; detail lives in the colocated README | MUST stay under 200 lines (Claude Code warns above it, adherence drops) → fold into existing lines or move detail to READMEs, never delete blank lines to fit
 > **PER_PROJECT** (downstream edits freely): .claude/rules/project.md = map / architecture delta / decision rules | .claude/rules/behavior.md = work rules | both always-loaded → standing rules only, no change logs / dates / incident stories (→ commit body / docs/journal/)
 
 ## STACK
