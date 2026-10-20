@@ -48,9 +48,11 @@
 
 - **ゲート対象のドメインにルートやテーブルを足したら、同じルールに追記する。** `pnpm test:feature-gate` が次を検査する:
   - `tables` の名前が schemaRegistry に実在する
-  - そのテーブルを定義するドメインを import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、そのルールの `pathPatterns` で閉じている。意図的に閉じないルートはテスト内の `ROUTE_EXCEPTIONS` に理由付きで書く
-  - そのドメインの汎用 CRUD（`/api/<domain>`）が閉じている
-  - 外すテーブルを、残すテーブルが外部キーで参照していない（全機能 false でも成立する）
+  - **今 `enabled: false` のルールについて**、そのテーブルを定義するドメインを import するルート（route.ts / page.tsx と `_screen/` `_components/` 配下）が、そのルールの `pathPatterns` で閉じている
+  - 同じく、そのドメインの汎用 CRUD（`/api/<domain>`）が閉じている
+  - 現在のフラグで、外すテーブルを残すテーブルが外部キーで参照していない
+- **有効な機能のルートは検査しない。** 開いていて正しいので、その機能を土台にした fork（コイン経済のサービス等）は何も宣言しなくてよい。機能を切ると、その機能に依存するルートと外部キーがテストで一覧になる（= 切る前に直す場所）。
+- **upstream は `FEATURE_GATE_CHECK=all pnpm test:feature-gate` で検査する。** upstream は全機能が有効なので、既定の検査では新しい core ルートの書き漏れに気づけない。`all` は全ルールを無効とみなし、全機能 false でスキーマゲートが成立することも検査する。意図的に閉じない upstream のルートはテスト内の `ROUTE_EXCEPTIONS` に理由付きで書く。
 - **他の機能からの呼び出しは、呼び出し側でフラグを見る。** ゲートが閉じるのはその機能自身のルートとテーブルだけ。常に通るコード経路（登録・退会・管理画面の一覧・集計・cron）から無効な機能のサービスを呼ぶと、テーブルが無くて 500 になる。現在の例:
   - 退会時の後片付け（`src/registry/userCleanupRegistry.ts`）
   - 登録時の招待コード消し込み（`auth/services/server/registration.ts`）
@@ -62,4 +64,5 @@
 ### fork での使い方
 
 - upstream の機能を使わない: その機能のフラグを false にする。ルートは 404、テーブルは作られない。コードは削除しない。
-- fork 自身の機能を閉じたい: `featureGateRules` に 1 ルール足す（`src/config/` の値の変更なので core 編集ではない）。
+- fork 自身の機能を閉じたい: `featureGateRules` に 1 ルール足す（`src/config/` の値の変更なので core 編集ではない）。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: payment に依存する fork 機能 = `enabled: APP_FEATURES.payment.enabled`）。upstream のルールの `pathPatterns` / `tables` に fork のものを書き足さない（merge で衝突する）。
+- 機能を切ったら `pnpm test:feature-gate` が列挙するルート・テーブルを、上の fork ルールに入れるか、呼び出し側でフラグを見る。

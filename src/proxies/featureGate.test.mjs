@@ -3,11 +3,16 @@
 //
 // 定義: src/config/app/feature-gate.config.ts / 設計: src/proxies/README.md
 //
+// 検査の対象は「今 enabled: false のルール」だけ。有効な機能のルートは開いていて正しく、
+// 機能を切ったときに初めて「テーブルが無いのに開いているルート」が問題になるため。
+// upstream は全機能が有効なので、ゲート対象ドメインを触るときは FEATURE_GATE_CHECK=all で全ルールを無効とみなして検査する:
+//   FEATURE_GATE_CHECK=all pnpm test:feature-gate
+//
 // 守りたい契約:
 // 1. tables に書いたテーブル名は schemaRegistry に実在する
-// 2. tables を持つルールのドメイン（そのテーブルを entities/drizzle.ts で定義するドメイン）を
+// 2. 無効なルールのドメイン（そのテーブルを entities/drizzle.ts で定義するドメイン）を
 //    import するルート（route.ts / page.tsx と、その _screen/ _components/ 配下）は、そのルールの pathPatterns で閉じている
-//    （新しいルートを足して定義に書き忘れると失敗する）。意図的に閉じないルートは ROUTE_EXCEPTIONS に理由付きで書く
+//    （新しいルートを足して定義に書き忘れると失敗する）。意図的に閉じないルートは ROUTE_EXCEPTIONS に理由付きで書く（upstream 用）
 // 3. 同じドメインの汎用 CRUD（/api/<domain>）も閉じている
 // 4. 現在のフラグの組み合わせでスキーマゲートが成立する（外すテーブルを残すテーブルが外部キーで参照しない）
 //    外部キーに現れない機能間の前提（紹介 → クーポン）も満たす
@@ -34,8 +39,12 @@ const ROOT = resolve(import.meta.dirname, "../..");
 const APP_DIR = join(ROOT, "src/app");
 const FEATURES_DIR = join(ROOT, "src/features");
 
-// 対象ドメインを import するが、意図的にゲートで閉じないルート（src/app 相対 → 理由）
+// 対象ドメインを import するが、意図的にゲートで閉じないルート（src/app 相対 → 理由）。upstream のルート用
 const ROUTE_EXCEPTIONS = {};
+
+// FEATURE_GATE_CHECK=all: 全ルールを無効とみなして検査する（upstream 用）
+const CHECK_ALL = process.env.FEATURE_GATE_CHECK === "all";
+const CHECK_ALL_ONLY = "FEATURE_GATE_CHECK=all のときだけ実行（upstream 用）";
 
 const walk = (dir, out = []) => {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -78,6 +87,8 @@ const patternCoversRoute = (pattern, routeSegments) => {
 };
 
 const rulesWithTables = featureGateRules.filter((rule) => (rule.tables ?? []).length > 0);
+// ルートの被覆を検査するルール（無効なもの。CHECK_ALL なら全部）
+const checkedRules = rulesWithTables.filter((rule) => CHECK_ALL || !rule.enabled);
 const schemaTableNames = new Set(
   Object.values(schema)
     .filter((value) => is(value, PgTable))
@@ -89,13 +100,13 @@ test("tables に書いたテーブル名は schemaRegistry に実在する", () 
   assert.deepEqual(unknown, [], `schemaRegistry に無いテーブル名: ${unknown.join(", ")}`);
 });
 
-test("ゲート対象ドメインを import するルートは、そのドメインのルールで閉じている", () => {
+test("無効な機能のドメインを import するルートは、そのドメインのルールで閉じている", () => {
   const owners = tableOwnerDomains();
   // route.ts / page.tsx だけでなく、そのルートの Screen / loader / 部品（_screen/ _components/）も見る
   const routeFiles = walk(APP_DIR).filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f));
   const problems = [];
 
-  for (const rule of rulesWithTables) {
+  for (const rule of checkedRules) {
     const domains = new Set(rule.tables.map((name) => owners.get(name)).filter(Boolean));
     for (const file of routeFiles) {
       const rel = relative(APP_DIR, file).split(sep).join("/");
@@ -114,10 +125,10 @@ test("ゲート対象ドメインを import するルートは、そのドメイ
   assert.deepEqual(problems, [], `pathPatterns に追加するか ROUTE_EXCEPTIONS に理由付きで書く:\n${problems.join("\n")}`);
 });
 
-test("ゲート対象ドメインの汎用 CRUD（/api/<domain>）は閉じている", () => {
+test("無効な機能のドメインの汎用 CRUD（/api/<domain>）は閉じている", () => {
   const owners = tableOwnerDomains();
   const problems = [];
-  for (const rule of rulesWithTables) {
+  for (const rule of checkedRules) {
     for (const name of rule.tables) {
       const domain = owners.get(name);
       if (!domain || !(domain in serviceRegistry)) continue;
@@ -152,12 +163,12 @@ test("紹介機能はクーポン機能を前提にする（招待コードの�
   );
 });
 
-test("全機能を無効にしてもスキーマゲートが成立する（外部キーが無効な機能の外へ出ていない）", () => {
+test("全機能を無効にしてもスキーマゲートが成立する（外部キーが無効な機能の外へ出ていない）", { skip: !CHECK_ALL && CHECK_ALL_ONLY }, () => {
   const allDisabled = featureGateRules.map((rule) => ({ ...rule, enabled: false }));
   assert.doesNotThrow(() => applySchemaGate(schema, allDisabled));
 });
 
-test("スキーマゲートは無効なテーブルを両側から外し、enum は残す", () => {
+test("スキーマゲートは無効なテーブルを両側から外し、enum は残す", { skip: !CHECK_ALL && CHECK_ALL_ONLY }, () => {
   const rules = featureGateRules.map((rule) => ({ ...rule, enabled: false }));
   const gate = applySchemaGate(schema, rules);
   const gatedNames = rules.flatMap((rule) => rule.tables ?? []);
