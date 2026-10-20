@@ -13,7 +13,8 @@ export type CronTaskDefinition<T extends CronTaskResult = CronTaskResult> = {
   description: string;
   /**
    * 実行時刻の cron 式（5 フィールド・UTC。例: "* * * * *" = 毎分、"55 14 * * *" = 毎日 JST 23:55）。
-   * vercel.json にはこの式がそのまま入る（upstream のタスクの時刻を fork から上書きする仕組みは無い）。
+   * vercel.json にはこの式がそのまま入る。fork が upstream のタスクの時刻を変える・外すときは同じフォルダの
+   * override.ts（CronTaskOverride）を使う（task.ts は編集しない）。
    * Vercel Hobby では 1 日 1 回より細かい式を生成時に 1 日 1 回へ直す（src/lib/cron/README.md）。
    */
   schedule: string;
@@ -28,4 +29,15 @@ export type CronTaskDefinition<T extends CronTaskResult = CronTaskResult> = {
    * （task.ts を読むだけで DB などの依存を読み込まないため。vercel.json の生成は task.ts を読む）
    */
   run: () => Promise<T>;
+};
+
+/**
+ * fork によるタスクの上書き。src/app/api/cron/<name>/override.ts が `cronOverride` として export する。
+ * override.ts は fork 所有で、upstream は作らない（upstream の task.ts を編集せずに済ませるため）。
+ */
+export type CronTaskOverride = {
+  /** task.ts の schedule の代わりに使う cron 式（5 フィールド・UTC） */
+  schedule?: string;
+  /** true なら定期実行しない（vercel.json に載らず、pnpm task --due でも動かない。pnpm task <name> の手動実行は可） */
+  disabled?: boolean;
 };

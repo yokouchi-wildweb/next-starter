@@ -18,7 +18,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { checkVercelCrons } from "@/lib/cron/vercelCrons";
-import { loadCronTasks } from "./discover";
+import { loadCronTasks, scheduledCronTasks } from "./discover";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -29,7 +29,7 @@ async function main() {
   }
 
   const repoRoot = path.resolve(import.meta.dirname, "../..");
-  const tasks = await loadCronTasks(repoRoot);
+  const tasks = scheduledCronTasks(await loadCronTasks(repoRoot));
   const file = path.join(repoRoot, "vercel.json");
 
   if (!existsSync(file)) {

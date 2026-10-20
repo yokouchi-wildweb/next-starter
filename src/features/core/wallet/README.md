@@ -711,7 +711,7 @@ regular_coin: {
 - 全体設定 `WALLET_EXPIRATION_NOTICE_SETTINGS`: `targetStatuses`（送信対象のユーザーステータス。既定 active / inactive）、
   `sendConcurrency`（同時送信数。既定 5）、`dateTimeZone`（文面の日付と予告の日境界。既定 Asia/Tokyo）
 - スケジュール登録は不要: `wallet-expiration-notice` は配線済みで、`notice` を設定した時点から毎時動く（Vercel Hobby では 1 日 1 回）。
-  時刻は upstream の `src/app/api/cron/wallet-expiration-notice/task.ts`（毎時 15 分）で決まっており、fork から上書きする仕組みは無い
+  時刻は `src/app/api/cron/wallet-expiration-notice/task.ts`（毎時 15 分）。変えるなら同じフォルダに `override.ts` を置く（[cron 基盤 README](../../../lib/cron/README.md)「upstream のタスクを外す・時刻を変える」）
 
 | sweepEnabled | preExpiry | expired | 挙動 |
 |---|---|---|---|

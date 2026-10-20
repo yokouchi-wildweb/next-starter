@@ -6,8 +6,8 @@
 //   pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
 //   pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の schedule どおり
 //
-// 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule を変えたとき・
-// プランを変えたとき。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
+// 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule や override.ts を
+// 変えたとき・プランを変えたとき。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
 // 詳細: src/lib/cron/README.md
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -21,7 +21,7 @@ import {
   listHobbyDowngradedTasks,
   validateCronSchedules,
 } from "@/lib/cron/vercelCrons";
-import { loadCronTasks } from "./discover";
+import { loadCronTasks, scheduledCronTasks } from "./discover";
 
 const VERCEL_SCHEMA_URL = "https://openapi.vercel.sh/vercel.json";
 
@@ -52,7 +52,8 @@ async function main() {
     }
   }
 
-  const tasks = await loadCronTasks(repoRoot);
+  const allTasks = await loadCronTasks(repoRoot);
+  const tasks = scheduledCronTasks(allTasks);
   const scheduleErrors = validateCronSchedules(tasks);
   if (scheduleErrors.length > 0) {
     for (const error of scheduleErrors) console.error(`✗ ${error}`);
@@ -80,6 +81,10 @@ async function main() {
       `  ⚠ Hobby は 1 日 1 回しか動かせないため、次のタスクを 1 日 1 回にしました: ${downgraded.join(", ")}\n` +
         "    本来の頻度で動かすには Vercel Pro にして pnpm cron:generate --plan pro で再生成する",
     );
+  }
+  const disabled = allTasks.filter((task) => task.disabled).map((task) => task.name);
+  if (disabled.length > 0) {
+    console.log(`  override.ts で外したタスク（vercel.json に載せない）: ${disabled.join(", ")}`);
   }
   if (kept.length > 0) {
     console.log(`  /api/cron/ 以外のエントリ ${kept.length} 件はそのまま残しています`);

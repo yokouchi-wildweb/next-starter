@@ -20,7 +20,7 @@ CLI 側のランナーは `pnpm task <task-name>`（`scripts/tasks/run.ts`）。
 - `runBudgetedBatches.ts` — 時間予算付き・再開可能バッチランナー（下記）
 - `index.ts` — 公開エントリ
 
-周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）/
+周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）・`override.ts`（fork の上書き、任意）/
 `scripts/cron/`（`discover.ts` = フォルダ走査、`cron:generate` / `cron:check`、`cronWiring.test.mjs` = `pnpm test:cron-wiring`）
 
 ## 仕組み
@@ -37,7 +37,8 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 - **処理本体はドメインに置く**: task.ts は「どの関数をいつ呼ぶか」の配線だけ。業務ロジックは `features/**/services/server` に置く
 - **schedule**: 5 フィールドの cron 式（UTC）を自由に書く（毎分 `* * * * *`、固定時刻 `55 14 * * *` = JST 23:55 など）。
   vercel.json にはそのまま入る。upstream の日次タスクは 18:00 UTC（03:00 JST）から 5 分ずつずらしてある
-- **時刻の上書きはしない**: upstream のタスクの schedule は upstream の task.ts が決める（fork が task.ts を書き換えると merge で衝突する）
+- **fork による上書き**: upstream のタスクの時刻を変える・外すときは、同じフォルダに fork が `override.ts` を置く（下記「upstream のタスクを外す・時刻を変える」）。
+  upstream の task.ts は編集しない（merge で衝突する）
 - **毎分など短い間隔のタスク**: 実行中（最大 maxDuration）に次の回が始まりうる。同じ対象を二重に処理しない作りにする
   （処理対象を DB の条件付き更新や次回実行時刻で取り合う等）。1 分より短い間隔は Vercel Cron では書けない（realtimeRoom 等の領域）
 - **enabled**: config だけを見る同期関数（DB に触れない）。false のときルートは本体を呼ばず `{ ok: true, skipped: true }` を返す。
@@ -115,7 +116,31 @@ upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:gen
 
 - cron のフォルダに `task.ts` と `route.ts` があり、`route.ts` が `./task` の `cronTask` を `createCronTaskRoute` で読む
 - `task.ts` の `name` = フォルダ名・ケバブケース、`schedule` が正しい cron 式、`description` あり、`enabled` が boolean を返す
-- `vercel.json`（あれば）が task.ts からの生成結果と一致する
+- `override.ts`（あれば）が `schedule` / `disabled` だけを持ち、`schedule` が正しい cron 式で、同じフォルダに `task.ts` がある
+- `vercel.json`（あれば）が task.ts（+ override.ts）からの生成結果と一致する
+
+## upstream のタスクを外す・時刻を変える（fork）
+
+upstream のタスクのフォルダに `override.ts` を置く。upstream は `override.ts` を作らない（fork 所有。`_components/` と同じ扱い）ので、
+merge で衝突しない。上書きしたいタスクの分だけ置けばよい。
+
+```ts
+// src/app/api/cron/audit-log-prune/override.ts
+import type { CronTaskOverride } from "@/lib/cron";
+
+export const cronOverride: CronTaskOverride = {
+  schedule: "0 20 * * *", // task.ts の schedule の代わりに使う（UTC）
+  // disabled: true,      // 定期実行しない
+};
+```
+
+- `schedule`: vercel.json と `pnpm task --due` はこちらの時刻を使う
+- `disabled: true`: vercel.json に載らず、`pnpm task --due` でも動かない。`pnpm task <name>` の手動実行はできる
+- 置いた・変えたら `pnpm cron:generate --plan <hobby|pro>` で再生成する（忘れると Vercel のビルドで止まる）
+- upstream がそのタスクを消すと `override.ts` だけが残り、`cron:check` / `test:cron-wiring` が失敗する → `override.ts` も消す
+- 個人情報を含むデータの削除タスク（`audit-log-prune` / `user-login-event-prune` / `device-fingerprint-prune` /
+  `fingerprint-challenge-access-prune`）を外すと保持期限が守られなくなる。外すのは、その機能を使っておらず対象テーブルが空のときだけ
+- `pnpm task --list` に上書きの状態（`(override.ts)` / `[off: override.ts]`）が出る
 
 ## タスク一覧
 
@@ -147,7 +172,7 @@ pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の schedule どおり
 Vercel の環境変数に `CRON_SECRET` を登録する（Vercel Cron は `Authorization: Bearer ${CRON_SECRET}` を自動で付ける）。
 新規 fork は `/fork-init` がこれを済ませる。upstream は `vercel.json` を持たない（各リポジトリが自分のフォルダから生成する）。
 
-- **再生成が要るとき**: タスクのフォルダが増減したとき・schedule を変えたとき（どちらも upstream からの merge を含む）・プランを変えたとき
+- **再生成が要るとき**: タスクのフォルダが増減したとき・schedule を変えたとき（どちらも upstream からの merge を含む）・`override.ts` を置いた・変えたとき・プランを変えたとき
 - **検査**: `pnpm cron:check` が `vercel.json` と生成結果を突き合わせる（無い・エントリの漏れ・消えたタスクの残骸・時刻の手書き → 失敗）。
   `pnpm build` は Vercel 上（`VERCEL=1`）でだけ冒頭にこれを実行し、`pnpm deploy:all` もデプロイ前に実行する。
   定期タスクを意図して 1 本も動かさないデプロイ（デモ環境等）だけは環境変数 `SKIP_CRON_CHECK=1` で外す

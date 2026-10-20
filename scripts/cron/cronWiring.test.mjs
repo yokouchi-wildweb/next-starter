@@ -5,14 +5,16 @@
 // 1. cron のフォルダには route.ts と task.ts がある。task.ts は cronTask を export し、name = フォルダ名
 // 2. route.ts は ./task の cronTask を createCronTaskRoute で読む(定義を route.ts に二重に書かない)
 // 3. タスク名はケバブケース、schedule は正しい cron 式、description あり、enabled は throw せず boolean を返す
-// 4. vercel.json(あれば)は task.ts からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)
+// 4. fork の override.ts(任意)は schedule の差し替えと disabled だけを持ち、task.ts の無いフォルダには置けない
+// 5. vercel.json(あれば)は task.ts(+ override.ts)からの生成結果と一致する(配線漏れ・消えたタスクの残骸・手書きの時刻を検出)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { CRON_ROUTE_DIR, listCronTaskDirs, loadCronTasks } from "./discover.ts";
+import { CRON_ROUTE_DIR, listCronTaskDirs, loadCronTasks, scheduledCronTasks } from "./discover.ts";
 import { buildVercelCrons, checkVercelCrons, listHobbyDowngradedTasks } from "../../src/lib/cron/vercelCrons.ts";
 import {
   isAtMostDailySchedule,
@@ -52,9 +54,70 @@ test("vercel.json(あれば)は task.ts からの生成結果と一致する", a
     t.skip("vercel.json なし(Vercel にデプロイするリポジトリは pnpm cron:generate --plan hobby|pro で生成する)");
     return;
   }
-  const tasks = await loadCronTasks(repoRoot);
+  const tasks = scheduledCronTasks(await loadCronTasks(repoRoot));
   const { errors } = checkVercelCrons(JSON.parse(readFileSync(file, "utf8")).crons ?? [], tasks);
   assert.deepEqual(errors, []);
+});
+
+// ---- override.ts(一時ディレクトリに cron フォルダを作って検査) ----
+
+async function withCronFixture(files, fn) {
+  const root = mkdtempSync(join(tmpdir(), "cron-wiring-"));
+  try {
+    for (const [rel, body] of Object.entries(files)) {
+      const file = join(root, CRON_ROUTE_DIR, rel);
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, body);
+    }
+    return await fn(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+const taskSource = (name, schedule) =>
+  `export const cronTask = { name: "${name}", description: "d", schedule: "${schedule}", run: async () => ({}) };\n`;
+
+test("override.ts: schedule を差し替え、disabled のタスクは定期実行から外す", async () => {
+  await withCronFixture(
+    {
+      "a-task/task.ts": taskSource("a-task", "0 18 * * *"),
+      "a-task/override.ts": 'export const cronOverride = { schedule: "0 20 * * *" };\n',
+      "b-task/task.ts": taskSource("b-task", "5 18 * * *"),
+      "b-task/override.ts": "export const cronOverride = { disabled: true };\n",
+      "c-task/task.ts": taskSource("c-task", "10 18 * * *"),
+    },
+    async (root) => {
+      const tasks = await loadCronTasks(root);
+      assert.deepEqual(
+        tasks.map(({ name, schedule, disabled, overridden }) => ({ name, schedule, disabled, overridden })),
+        [
+          { name: "a-task", schedule: "0 20 * * *", disabled: false, overridden: true },
+          { name: "b-task", schedule: "5 18 * * *", disabled: true, overridden: true },
+          { name: "c-task", schedule: "10 18 * * *", disabled: false, overridden: false },
+        ],
+      );
+      assert.deepEqual(
+        buildVercelCrons(scheduledCronTasks(tasks), "pro").map((entry) => entry.path),
+        ["/api/cron/a-task", "/api/cron/c-task"],
+      );
+    },
+  );
+});
+
+test("override.ts: 不正な cron 式・未知の項目・task.ts の無いフォルダは失敗", async () => {
+  await withCronFixture(
+    { "a-task/task.ts": taskSource("a-task", "0 18 * * *"), "a-task/override.ts": 'export const cronOverride = { schedule: "daily" };\n' },
+    async (root) => assert.rejects(loadCronTasks(root), /override\.ts の schedule/),
+  );
+  await withCronFixture(
+    { "a-task/task.ts": taskSource("a-task", "0 18 * * *"), "a-task/override.ts": "export const cronOverride = { enabled: false };\n" },
+    async (root) => assert.rejects(loadCronTasks(root), /未知の項目/),
+  );
+  await withCronFixture(
+    { "gone/override.ts": "export const cronOverride = { disabled: true };\n" },
+    async (root) => assert.rejects(loadCronTasks(root), /override\.ts だけが残っている/),
+  );
 });
 
 // ---- 純関数の単体テスト ----

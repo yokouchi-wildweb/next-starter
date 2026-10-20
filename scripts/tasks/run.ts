@@ -19,8 +19,7 @@
 import path from "node:path";
 
 import { matchesCronExpression } from "@/lib/cron/cronExpression";
-import type { CronTaskDefinition } from "@/lib/cron/types";
-import { loadCronTasks } from "../cron/discover";
+import { type LoadedCronTask, loadCronTasks } from "../cron/discover";
 
 type TaskFn = () => Promise<Record<string, unknown>>;
 
@@ -96,7 +95,7 @@ const ONE_SHOT_TASKS: Record<string, TaskFn> = {
 };
 
 /** pnpm task <name> で実行できる全タスク（定期 + ワンショット） */
-function buildTaskMap(cronTasks: CronTaskDefinition[]): Record<string, TaskFn> {
+function buildTaskMap(cronTasks: LoadedCronTask[]): Record<string, TaskFn> {
   for (const task of cronTasks) {
     if (task.name in ONE_SHOT_TASKS) {
       throw new Error(`タスク名 "${task.name}" が src/app/api/cron/ と ONE_SHOT_TASKS の両方にあります`);
@@ -111,11 +110,12 @@ function log(level: "info" | "error", payload: Record<string, unknown>) {
   else console.error(line);
 }
 
-function printList(cronTasks: CronTaskDefinition[]) {
+function printList(cronTasks: LoadedCronTask[]) {
   console.log("Scheduled tasks (src/app/api/cron/*/task.ts):");
   for (const task of cronTasks) {
-    const disabled = task.enabled && !task.enabled() ? " [disabled]" : "";
-    console.log(`  - ${task.name} [${task.schedule}]${disabled}: ${task.description}`);
+    const state = task.disabled ? " [off: override.ts]" : task.enabled && !task.enabled() ? " [disabled]" : "";
+    const overridden = task.overridden && !task.disabled ? " (override.ts)" : "";
+    console.log(`  - ${task.name} [${task.schedule}]${overridden}${state}: ${task.description}`);
   }
   console.log("\nOne-shot / optional tasks (scripts/tasks/run.ts):");
   for (const name of Object.keys(ONE_SHOT_TASKS)) {
@@ -140,11 +140,11 @@ async function runTask(name: string, task: TaskFn): Promise<boolean> {
  * 今の分（UTC）に schedule が一致する定期タスクを順に実行する（Vercel 以外のスケジューラから毎分呼ぶ）。
  * 1 つ失敗しても残りは実行し、最後に exit 1 で失敗を知らせる。
  */
-async function runDue(cronTasks: CronTaskDefinition[]) {
+async function runDue(cronTasks: LoadedCronTask[]) {
   const now = new Date();
   let failed = 0;
   for (const task of cronTasks) {
-    if (!matchesCronExpression(task.schedule, now)) continue;
+    if (task.disabled || !matchesCronExpression(task.schedule, now)) continue;
     if (task.enabled && !task.enabled()) {
       log("info", { task: task.name, ok: true, skipped: true });
       continue;
