@@ -128,7 +128,7 @@ import type { CronTaskDefinition } from "@/lib/cron";
 export const cronTask: CronTaskDefinition = {
   name: "user-metrics-refresh",
   description: "ユーザー指標の read-model を差分更新する",
-  cadence: "15m",
+  schedule: "*/15 * * * *",
   run: async () => {
     const { runUserMetricsRefresh } = await import("@/features/userMetrics/services/server/refresh");
     return await runUserMetricsRefresh({ budgetMs: 240_000 });

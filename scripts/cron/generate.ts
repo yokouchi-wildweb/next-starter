@@ -4,17 +4,23 @@
 //
 // 使い方:
 //   pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
-//   pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の cadence どおり（15m / hourly / daily）
+//   pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の schedule どおり
 //
-// 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・プランを変えたとき・
-// src/config/app/cron-schedule.config.ts の値を変えたとき。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
+// 再生成が要るとき: タスクのフォルダが増減したとき（upstream からの merge を含む）・task.ts の schedule を変えたとき・
+// プランを変えたとき。忘れると Vercel のビルド前検査（pnpm cron:check）で止まる。
 // 詳細: src/lib/cron/README.md
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { CRON_SCHEDULE_CONFIG } from "@/config/app/cron-schedule.config";
-import { CRON_PATH_PREFIX, CRON_PLANS, buildVercelCrons, isCronPlan } from "@/lib/cron/vercelCrons";
+import {
+  CRON_PATH_PREFIX,
+  CRON_PLANS,
+  buildVercelCrons,
+  isCronPlan,
+  listHobbyDowngradedTasks,
+  validateCronSchedules,
+} from "@/lib/cron/vercelCrons";
 import { loadCronTasks } from "./discover";
 
 const VERCEL_SCHEMA_URL = "https://openapi.vercel.sh/vercel.json";
@@ -47,7 +53,12 @@ async function main() {
   }
 
   const tasks = await loadCronTasks(repoRoot);
-  const crons = buildVercelCrons(tasks, plan, CRON_SCHEDULE_CONFIG);
+  const scheduleErrors = validateCronSchedules(tasks);
+  if (scheduleErrors.length > 0) {
+    for (const error of scheduleErrors) console.error(`✗ ${error}`);
+    process.exit(1);
+  }
+  const crons = buildVercelCrons(tasks, plan);
   const before = Array.isArray(config.crons) ? config.crons : [];
   // /api/cron/ の外のエントリは fork 独自のものとして残す
   const kept = before.filter(
@@ -62,6 +73,13 @@ async function main() {
   console.log(`✓ vercel.json の crons を生成しました（plan: ${plan}、${crons.length} タスク）`);
   for (const entry of crons) {
     console.log(`    ${entry.schedule.padEnd(14)} ${entry.path}`);
+  }
+  const downgraded = plan === "hobby" ? listHobbyDowngradedTasks(tasks) : [];
+  if (downgraded.length > 0) {
+    console.warn(
+      `  ⚠ Hobby は 1 日 1 回しか動かせないため、次のタスクを 1 日 1 回にしました: ${downgraded.join(", ")}\n` +
+        "    本来の頻度で動かすには Vercel Pro にして pnpm cron:generate --plan pro で再生成する",
+    );
   }
   if (kept.length > 0) {
     console.log(`  /api/cron/ 以外のエントリ ${kept.length} 件はそのまま残しています`);

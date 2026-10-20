@@ -2,30 +2,32 @@
 // vercel.json の crons をタスク定義から生成・検査する純関数（next / DB / fs 非依存）
 //
 // 利用者: scripts/cron/generate.ts（pnpm cron:generate）, scripts/cron/check.ts（pnpm cron:check / Vercel ビルド前の検査）,
-//         scripts/cron/cronWiring.test.mjs（pnpm test:cron-wiring）
+//         scripts/tasks/run.ts（pnpm task --due）, scripts/cron/cronWiring.test.mjs（pnpm test:cron-wiring）
 //
 // vercel.json の crons は「src/app/api/cron/<name>/task.ts 1 つにつき 1 エントリ」で、人は手で書かない。
-// - pro:   task.ts の cadence に従う（15m / hourly / daily）
-// - hobby: 全タスクを 1 日 1 回にする（Vercel Hobby は 1 日 1 回より細かい cron でデプロイが失敗するため）
-// 同じ時刻に集中しないよう、毎時・毎日のタスクは名前順に STAGGER_MINUTES ずつずらす。
+// 各エントリの時刻 = task.ts の schedule。
+// - pro:   その時刻をそのまま使う
+// - hobby: 1 日 1 回より細かい式だけ HOBBY_FALLBACK_SCHEDULE（名前順に STAGGER_MINUTES ずつずらす）で 1 日 1 回にする
+//          （Vercel Hobby は 1 日 1 回より細かい cron でデプロイが失敗するため）
 
-import type { CronCadence, CronTaskDefinition } from "./types";
+import { isAtMostDailySchedule, isValidCronExpression } from "./cronExpression";
+import type { CronTaskDefinition } from "./types";
 
 export const CRON_PLANS = ["hobby", "pro"] as const;
 
 export type CronPlan = (typeof CRON_PLANS)[number];
 
-/** 頻度区分ごとの基準の cron 式（UTC）。値は src/config/app/cron-schedule.config.ts が持つ */
-export type CronScheduleConfig = Record<CronCadence, string>;
-
 export type VercelCronEntry = { path: string; schedule: string };
 
 /** 生成・検査に必要なタスク情報（task.ts の定義の一部） */
-export type CronTaskScheduleSource = Pick<CronTaskDefinition, "name" | "cadence">;
+export type CronTaskScheduleSource = Pick<CronTaskDefinition, "name" | "schedule">;
 
 export const CRON_PATH_PREFIX = "/api/cron/";
 
-/** 毎時・毎日のタスクを名前順にずらす間隔（分） */
+/** Vercel Hobby で 1 日 1 回より細かいタスクを動かす時刻（19:00 UTC = 04:00 JST） */
+export const HOBBY_FALLBACK_SCHEDULE = "0 19 * * *";
+
+/** Hobby で 1 日 1 回に直すタスクを名前順にずらす間隔（分） */
 export const STAGGER_MINUTES = 5;
 
 export function isCronPlan(value: string): value is CronPlan {
@@ -36,47 +38,44 @@ export function cronTaskPath(name: string): string {
   return `${CRON_PATH_PREFIX}${name}`;
 }
 
-/** 「1 日 1 回以下」の cron 式か（分と時が固定の数値、日・月・曜日は自由） */
-export function isAtMostDailySchedule(schedule: string): boolean {
-  const fields = schedule.trim().split(/\s+/);
-  return fields.length === 5 && /^\d+$/.test(fields[0]) && /^\d+$/.test(fields[1]);
+/** task.ts の schedule の誤り（cron 式として不正）を返す */
+export function validateCronSchedules(tasks: readonly CronTaskScheduleSource[]): string[] {
+  return tasks
+    .filter((task) => !isValidCronExpression(task.schedule))
+    .map((task) => `${task.name}: task.ts の schedule "${task.schedule}" が cron 式（5 フィールド・UTC）として不正です`);
 }
 
-/**
- * 基準の cron 式を offsetMinutes だけ後ろにずらす。
- * 毎時（"M * * * *"）は分だけ、1 日 1 回以下（"M H ..."）は時分をずらす。それ以外の形はそのまま返す。
- */
-function shiftSchedule(cadence: CronCadence, base: string, offsetMinutes: number): string {
-  if (offsetMinutes === 0 || cadence === "15m") return base;
-  const fields = base.trim().split(/\s+/);
-  if (fields.length !== 5 || !/^\d+$/.test(fields[0])) return base;
-  const minute = Number(fields[0]);
-  if (fields[1] === "*") {
-    return [String((minute + offsetMinutes) % 60), ...fields.slice(1)].join(" ");
-  }
-  if (!/^\d+$/.test(fields[1])) return base;
-  const total = Number(fields[1]) * 60 + minute + offsetMinutes;
+/** Hobby で 1 日 1 回に直されるタスク名（名前順） */
+export function listHobbyDowngradedTasks(tasks: readonly CronTaskScheduleSource[]): string[] {
+  return tasks
+    .filter((task) => !isAtMostDailySchedule(task.schedule))
+    .map((task) => task.name)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+/** 1 日 1 回の cron 式を offsetMinutes だけ後ろにずらす（日付をまたいだら時を 0 に戻す） */
+function shiftDailySchedule(schedule: string, offsetMinutes: number): string {
+  const fields = schedule.trim().split(/\s+/);
+  const total = Number(fields[1]) * 60 + Number(fields[0]) + offsetMinutes;
   return [String(total % 60), String(Math.floor(total / 60) % 24), ...fields.slice(2)].join(" ");
 }
 
 /**
- * タスク定義とプランから vercel.json の crons を返す（名前順）
+ * タスク定義とプランから vercel.json の crons を返す（名前順）。schedule の誤りは validateCronSchedules で先に確かめる
  */
 export function buildVercelCrons(
   tasks: readonly CronTaskScheduleSource[],
   plan: CronPlan,
-  schedules: CronScheduleConfig,
 ): VercelCronEntry[] {
   const sorted = [...tasks].sort((a, b) => a.name.localeCompare(b.name));
-  const indexByCadence: Partial<Record<CronCadence, number>> = {};
+  let fallbackIndex = 0;
   return sorted.map((task) => {
-    const cadence: CronCadence = plan === "hobby" ? "daily" : task.cadence;
-    const index = indexByCadence[cadence] ?? 0;
-    indexByCadence[cadence] = index + 1;
-    return {
-      path: cronTaskPath(task.name),
-      schedule: shiftSchedule(cadence, schedules[cadence], index * STAGGER_MINUTES),
-    };
+    let schedule = task.schedule;
+    if (plan === "hobby" && !isAtMostDailySchedule(schedule)) {
+      schedule = shiftDailySchedule(HOBBY_FALLBACK_SCHEDULE, fallbackIndex * STAGGER_MINUTES);
+      fallbackIndex += 1;
+    }
+    return { path: cronTaskPath(task.name), schedule };
   });
 }
 
@@ -91,6 +90,7 @@ const entryKey = (entry: VercelCronEntry) => `${entry.path} ${entry.schedule}`;
 /**
  * vercel.json の crons（/api/cron/ 配下）が、今のタスク定義からの生成結果と一致するか検査する
  *
+ * - task.ts の schedule に誤りがあれば、まずそれを errors に出す
  * - hobby / pro どちらかの生成結果と完全一致すれば OK
  * - 一致しなければ、近い方のプラン（1 日 1 回より細かいエントリがあれば pro）との差分を errors に出す
  *   （task.ts があるのにエントリが無い = 配線漏れ、task.ts が無いのにエントリがある = 消えたタスク、時刻のずれ）
@@ -99,8 +99,10 @@ const entryKey = (entry: VercelCronEntry) => `${entry.path} ${entry.schedule}`;
 export function checkVercelCrons(
   crons: unknown,
   tasks: readonly CronTaskScheduleSource[],
-  schedules: CronScheduleConfig,
 ): VercelCronsCheckResult {
+  const scheduleErrors = validateCronSchedules(tasks);
+  if (scheduleErrors.length > 0) return { plan: null, errors: scheduleErrors };
+
   if (!Array.isArray(crons)) {
     return { plan: null, errors: ["crons が配列ではありません（pnpm cron:generate --plan hobby|pro で生成してください）"] };
   }
@@ -118,14 +120,14 @@ export function checkVercelCrons(
 
   const actualKeys = actual.map(entryKey).sort();
   for (const plan of CRON_PLANS) {
-    const expectedKeys = buildVercelCrons(tasks, plan, schedules).map(entryKey).sort();
+    const expectedKeys = buildVercelCrons(tasks, plan).map(entryKey).sort();
     if (expectedKeys.length === actualKeys.length && expectedKeys.every((key, i) => key === actualKeys[i])) {
       return { plan, errors: [] };
     }
   }
 
   const guess: CronPlan = actual.some((entry) => !isAtMostDailySchedule(entry.schedule)) ? "pro" : "hobby";
-  const expected = buildVercelCrons(tasks, guess, schedules);
+  const expected = buildVercelCrons(tasks, guess);
   const actualByPath = new Map<string, VercelCronEntry[]>();
   for (const entry of actual) actualByPath.set(entry.path, [...(actualByPath.get(entry.path) ?? []), entry]);
 

@@ -12,31 +12,34 @@ CLI 側のランナーは `pnpm task <task-name>`（`scripts/tasks/run.ts`）。
 
 ## 構成
 
-- `types.ts` — タスク定義の型 `CronTaskDefinition` と頻度区分 `CRON_CADENCES`（`15m` / `hourly` / `daily`）
+- `types.ts` — タスク定義の型 `CronTaskDefinition`
+- `cronExpression.ts` — cron 式の検証・照合（`isValidCronExpression` / `isAtMostDailySchedule` / `matchesCronExpression`）
 - `auth.ts` — 共通認証（`CRON_SECRET` の Bearer 検証）
 - `createCronRoute.ts` — API ルート生成ファクトリ（`createCronRoute`、task.ts の定義から作る `createCronTaskRoute`）
 - `vercelCrons.ts` — `vercel.json` の crons の生成・検査（純関数）
 - `runBudgetedBatches.ts` — 時間予算付き・再開可能バッチランナー（下記）
 - `index.ts` — 公開エントリ
 
-周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）/ `src/config/app/cron-schedule.config.ts`（頻度区分ごとの基準時刻）/
+周辺: `src/app/api/cron/<name>/{task.ts,route.ts}`（各タスク）/
 `scripts/cron/`（`discover.ts` = フォルダ走査、`cron:generate` / `cron:check`、`cronWiring.test.mjs` = `pnpm test:cron-wiring`）
 
 ## 仕組み
 
 ```
 src/app/api/cron/<name>/
-  task.ts   … cronTask = { name, description, cadence, enabled?, run }（run はドメインの関数を動的 import で呼ぶだけ）
+  task.ts   … cronTask = { name, description, schedule, enabled?, run }（run はドメインの関数を動的 import で呼ぶだけ）
   route.ts  … export const GET = createCronTaskRoute(cronTask)
 
 pnpm cron:generate ── フォルダを走査 ──▶ vercel.json の crons（タスクごとに 1 エントリ）
 Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
 ```
 
-- **処理本体はドメインに置く**: task.ts は「どの関数をどの頻度で呼ぶか」の配線だけ。業務ロジックは `features/**/services/server` に置く
-- **頻度区分**: task.ts は `cadence`（`15m` / `hourly` / `daily`）だけを宣言し、時刻は持たない。区分ごとの基準時刻は
-  `src/config/app/cron-schedule.config.ts`（UTC。既定: 15 分ごと / 毎時 10 分 / 毎日 18:00 UTC = 03:00 JST）。
-  生成時に、毎時・毎日のタスクは名前順に 5 分ずつずらして割り振る（同時刻に集中させない）
+- **処理本体はドメインに置く**: task.ts は「どの関数をいつ呼ぶか」の配線だけ。業務ロジックは `features/**/services/server` に置く
+- **schedule**: 5 フィールドの cron 式（UTC）を自由に書く（毎分 `* * * * *`、固定時刻 `55 14 * * *` = JST 23:55 など）。
+  vercel.json にはそのまま入る。upstream の日次タスクは 18:00 UTC（03:00 JST）から 5 分ずつずらしてある
+- **時刻の上書きはしない**: upstream のタスクの schedule は upstream の task.ts が決める（fork が task.ts を書き換えると merge で衝突する）
+- **毎分など短い間隔のタスク**: 実行中（最大 maxDuration）に次の回が始まりうる。同じ対象を二重に処理しない作りにする
+  （処理対象を DB の条件付き更新や次回実行時刻で取り合う等）。1 分より短い間隔は Vercel Cron では書けない（realtimeRoom 等の領域）
 - **enabled**: config だけを見る同期関数（DB に触れない）。false のときルートは本体を呼ばず `{ ok: true, skipped: true }` を返す。
   vercel.json には常に載る（機能を有効にしても再生成は要らない）。個人情報の retention prune は機能を後から無効にしても
   既存行を消し続ける必要があるため enabled を付けない
@@ -74,7 +77,7 @@ import { MY_FEATURE_CONFIG } from "@/config/app/my-feature.config";
 export const cronTask: CronTaskDefinition = {
   name: "my-task", // フォルダ名と同じ
   description: "何をするタスクか（pnpm task --list に出る）",
-  cadence: "daily",
+  schedule: "0 18 * * *", // UTC。毎日 03:00 JST
   enabled: () => MY_FEATURE_CONFIG.enabled, // 任意。config だけを見る
   run: async () => {
     const { runMyTask } = await import("@/features/myDomain/services/server/myTask");
@@ -111,12 +114,12 @@ upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:gen
 ### `pnpm test:cron-wiring` が検査すること
 
 - cron のフォルダに `task.ts` と `route.ts` があり、`route.ts` が `./task` の `cronTask` を `createCronTaskRoute` で読む
-- `task.ts` の `name` = フォルダ名・ケバブケース、既知の `cadence`、`description` あり、`enabled` が boolean を返す
+- `task.ts` の `name` = フォルダ名・ケバブケース、`schedule` が正しい cron 式、`description` あり、`enabled` が boolean を返す
 - `vercel.json`（あれば）が task.ts からの生成結果と一致する
 
 ## タスク一覧
 
-`pnpm task --list` が `src/app/api/cron/*/task.ts` から一覧（頻度・有効/無効・説明）を出す。各タスクの詳細と運用上の注意は、
+`pnpm task --list` が `src/app/api/cron/*/task.ts` から一覧（schedule・有効/無効・説明）を出す。各タスクの詳細と運用上の注意は、
 処理本体があるドメインの README（`src/features/core/{auditLog,userLoginEvent,deviceFingerprint,fingerprintChallenge,interactionTracking,userCounter,analytics,purchaseRequest,wallet}/README.md`）を見る。
 
 ## CLI 専用タスク（定期実行しない）
@@ -137,51 +140,34 @@ upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:gen
 
 ```bash
 pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスクを 1 日 1 回
-pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の cadence どおり
+pnpm cron:generate --plan pro     # Vercel Pro:   task.ts の schedule どおり
 ```
 
 `vercel.json` の `crons` だけを書き換える（他のキーと `/api/cron/` の外のエントリは残す）。生成した `vercel.json` をコミットし、
 Vercel の環境変数に `CRON_SECRET` を登録する（Vercel Cron は `Authorization: Bearer ${CRON_SECRET}` を自動で付ける）。
 新規 fork は `/fork-init` がこれを済ませる。upstream は `vercel.json` を持たない（各リポジトリが自分のフォルダから生成する）。
 
-- **再生成が要るとき**: タスクのフォルダが増減したとき（upstream からの merge を含む）・プランを変えたとき・
-  `cron-schedule.config.ts` の値を変えたとき
+- **再生成が要るとき**: タスクのフォルダが増減したとき・schedule を変えたとき（どちらも upstream からの merge を含む）・プランを変えたとき
 - **検査**: `pnpm cron:check` が `vercel.json` と生成結果を突き合わせる（無い・エントリの漏れ・消えたタスクの残骸・時刻の手書き → 失敗）。
   `pnpm build` は Vercel 上（`VERCEL=1`）でだけ冒頭にこれを実行し、`pnpm deploy:all` もデプロイ前に実行する。
   定期タスクを意図して 1 本も動かさないデプロイ（デモ環境等）だけは環境変数 `SKIP_CRON_CHECK=1` で外す
 - **上限**: Vercel の cron は 1 プロジェクト 100 本まで（全プラン共通）。Hobby は 1 日 1 回より細かい式でデプロイが失敗し、
-  起動時刻も指定時刻から最大 59 分ずれる。`15m` / `hourly` のタスクも 1 日 1 回になる
-  （`expire-pending-purchases` の期限切れ反映や `wallet-expiration-notice` の送信が最大 1 日遅れる）。困るなら Pro にする
+  起動時刻も指定時刻から最大 59 分ずれる。`--plan hobby` は 1 日 1 回より細かいタスクを 19:00 UTC から 5 分ずつずらして 1 日 1 回にし、
+  生成時に警告を出す（`expire-pending-purchases` の期限切れ反映や `wallet-expiration-notice` の送信が最大 1 日遅れる）。困るなら Pro にする
 - **確認**: デプロイ後、Vercel の Cron Jobs タブにタスクごとのエントリが出ていること（手動実行もそこからできる）
 
 ### Vercel 以外（CLI）
 
-任意のスケジューラから頻度区分ごとに `pnpm task --cadence <区分>` を呼ぶ（API ルートを経由しないので `CRON_SECRET` は不要、
-DB 等の環境変数は必要）。区分内のタスクは順に実行され、1 つ失敗しても残りは実行して最後に exit 1。
+任意のスケジューラから `pnpm task --due` を**毎分 1 本**だけ呼ぶ。今の分（UTC）に `schedule` が一致するタスクを CLI が判定して順に実行する
+（API ルートを経由しないので `CRON_SECRET` は不要、DB 等の環境変数は必要）。1 つ失敗しても残りは実行して最後に exit 1。
 
 ```cron
 # Docker + cron
-*/15 * * * * cd /app && pnpm task --cadence 15m
-10 * * * *   cd /app && pnpm task --cadence hourly
-0 18 * * *   cd /app && pnpm task --cadence daily
+* * * * * cd /app && pnpm task --due
 ```
 
-```yaml
-# GitHub Actions（日次だけ回す例。--cadence all なら全区分を 1 回で）
-on:
-  schedule:
-    - cron: "0 18 * * *"
-jobs:
-  daily:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: pnpm install && pnpm task --cadence daily
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-```
-
-登録済みタスクの一覧（頻度・有効/無効・説明つき）は `pnpm task --list`。
+毎分起動できないスケジューラ（GitHub Actions は最短 5 分）では `--due` は使えない。個別に `pnpm task <name>` を登録する。
+登録済みタスクの一覧（schedule・有効/無効・説明つき）は `pnpm task --list`。
 
 ## 認証
 

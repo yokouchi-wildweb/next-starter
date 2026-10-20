@@ -7,25 +7,22 @@
 //   pnpm task <task-name>
 //   pnpm task expire-pending-purchases
 //   pnpm task --list            # 登録済みタスク一覧
-//   pnpm task --cadence daily   # 頻度区分（15m / hourly / daily / all）の定期タスクを順に全部実行
+//   pnpm task --due             # 今の分（UTC）に schedule が一致する定期タスクを順に実行
 //
 // Vercel 以外のホスティング（Docker / AWS / オンプレ）では、
 // 各社スケジューラ（EventBridge / Kubernetes CronJob / 自前 cron）から
-// `pnpm task --cadence <区分>` を区分ごとに 1 本ずつ叩く。
+// `pnpm task --due` を毎分 1 本だけ叩く（各タスクの schedule は CLI が判定する）。
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
 // 下記 ONE_SHOT_TASKS はワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスク。
 
 import path from "node:path";
 
-import type { CronCadence, CronTaskDefinition } from "@/lib/cron/types";
+import { matchesCronExpression } from "@/lib/cron/cronExpression";
+import type { CronTaskDefinition } from "@/lib/cron/types";
 import { loadCronTasks } from "../cron/discover";
 
 type TaskFn = () => Promise<Record<string, unknown>>;
-
-type CadenceArg = CronCadence | "all";
-
-const CADENCE_VALUES: readonly CadenceArg[] = ["15m", "hourly", "daily", "all"];
 
 /**
  * ワンショット・任意タスク
@@ -118,7 +115,7 @@ function printList(cronTasks: CronTaskDefinition[]) {
   console.log("Scheduled tasks (src/app/api/cron/*/task.ts):");
   for (const task of cronTasks) {
     const disabled = task.enabled && !task.enabled() ? " [disabled]" : "";
-    console.log(`  - ${task.name} (${task.cadence})${disabled}: ${task.description}`);
+    console.log(`  - ${task.name} [${task.schedule}]${disabled}: ${task.description}`);
   }
   console.log("\nOne-shot / optional tasks (scripts/tasks/run.ts):");
   for (const name of Object.keys(ONE_SHOT_TASKS)) {
@@ -140,13 +137,14 @@ async function runTask(name: string, task: TaskFn): Promise<boolean> {
 }
 
 /**
- * 頻度区分の定期タスクを順に実行する（Vercel 以外のスケジューラ向け）。
+ * 今の分（UTC）に schedule が一致する定期タスクを順に実行する（Vercel 以外のスケジューラから毎分呼ぶ）。
  * 1 つ失敗しても残りは実行し、最後に exit 1 で失敗を知らせる。
  */
-async function runCadence(cronTasks: CronTaskDefinition[], cadence: CadenceArg) {
+async function runDue(cronTasks: CronTaskDefinition[]) {
+  const now = new Date();
   let failed = 0;
   for (const task of cronTasks) {
-    if (cadence !== "all" && task.cadence !== cadence) continue;
+    if (!matchesCronExpression(task.schedule, now)) continue;
     if (task.enabled && !task.enabled()) {
       log("info", { task: task.name, ok: true, skipped: true });
       continue;
@@ -166,19 +164,14 @@ async function main() {
   if (!taskName || taskName === "--list" || taskName === "-l") {
     printList(cronTasks);
     if (!taskName) {
-      console.log("\nUsage: pnpm task <task-name> | pnpm task --cadence <15m|hourly|daily|all>");
+      console.log("\nUsage: pnpm task <task-name> | pnpm task --due");
       process.exit(1);
     }
     return;
   }
 
-  if (taskName === "--cadence") {
-    const cadence = args[1] as CadenceArg | undefined;
-    if (!cadence || !CADENCE_VALUES.includes(cadence)) {
-      console.error(`Usage: pnpm task --cadence <${CADENCE_VALUES.join("|")}>`);
-      process.exit(1);
-    }
-    await runCadence(cronTasks, cadence);
+  if (taskName === "--due") {
+    await runDue(cronTasks);
     return;
   }
 

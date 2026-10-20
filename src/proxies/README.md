@@ -56,7 +56,7 @@
   - 登録時の招待コード消し込み（`auth/services/server/registration.ts`）
   - コイン創出サマリーのソース（`src/registry/coinIssuanceRegistry.ts`）
   - 管理画面ユーザー一覧の残高調整（`user/components/admin/*UserList/Table.tsx`）
-  - cron タスクの `enabled`（`src/app/api/cron/<name>/task.ts`。CLI の `pnpm task --cadence` は proxy を通らないため）
+  - cron タスクの `enabled`（`src/app/api/cron/<name>/task.ts`。CLI の `pnpm task` は proxy を通らないため）
 - **機能どうしの前提**: payment は wallet を前提にする（`purchase_requests` → `wallet_histories` の外部キー。push 時に例外になる）。referral は coupon を前提にする（招待コードの実体はクーポン。テストで検査）。
 
 ### fork での使い方

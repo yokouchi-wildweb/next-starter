@@ -9,7 +9,7 @@
 // 失敗する条件:
 // - vercel.json が無い（cron タスクがあるのに本番で 1 本も動かない）
 // - task.ts があるのにエントリが無い（upstream から merge したタスクの配線漏れ等）/ 消えたタスクのエントリが残っている /
-//   時刻が生成結果と違う（手で書き換えた、cron-schedule.config.ts を変えて再生成していない）
+//   時刻が生成結果と違う（手で書き換えた、task.ts の schedule を変えて再生成していない）/ task.ts の schedule が不正
 // 直し方はどれも `pnpm cron:generate --plan hobby|pro`。
 // 定期タスクを意図して 1 本も動かさないデプロイ（デモ環境等）だけは環境変数 SKIP_CRON_CHECK=1 で検査を外す。
 // 詳細: src/lib/cron/README.md
@@ -17,7 +17,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { CRON_SCHEDULE_CONFIG } from "@/config/app/cron-schedule.config";
 import { checkVercelCrons } from "@/lib/cron/vercelCrons";
 import { loadCronTasks } from "./discover";
 
@@ -51,7 +50,7 @@ async function main() {
     process.exit(1);
   }
 
-  const { plan, errors } = checkVercelCrons(config.crons ?? [], tasks, CRON_SCHEDULE_CONFIG);
+  const { plan, errors } = checkVercelCrons(config.crons ?? [], tasks);
   if (errors.length > 0) {
     console.error("✗ vercel.json の cron 配線が src/app/api/cron/*/task.ts と一致しません:");
     for (const error of errors) console.error(`  - ${error}`);

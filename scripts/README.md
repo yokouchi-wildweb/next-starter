@@ -109,11 +109,11 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 # 運用タスクを CLI から実行(定期タスク + ワンショット)
 pnpm task <task-name>
 pnpm task --list               # 一覧(頻度・有効/無効・説明)
-pnpm task --cadence daily      # 頻度区分(15m|hourly|daily|all)の定期タスクを順に全部実行(Vercel 以外のスケジューラ用)
+pnpm task --due                # 今の分(UTC)に schedule が一致する定期タスクを実行(Vercel 以外のスケジューラから毎分呼ぶ)
 
 # vercel.json の crons を src/app/api/cron/*/task.ts から生成(crons 以外のキーは保持。タスク増減・プラン変更のたびに実行)
 pnpm cron:generate --plan hobby   # Vercel Hobby: 全タスク 1 日 1 回
-pnpm cron:generate --plan pro     # Vercel Pro: task.ts の cadence どおり
+pnpm cron:generate --plan pro     # Vercel Pro: task.ts の schedule どおり
 
 # vercel.json の crons が task.ts と一致するか検査(deploy:all と Vercel 上の pnpm build が先に実行)
 pnpm cron:check
