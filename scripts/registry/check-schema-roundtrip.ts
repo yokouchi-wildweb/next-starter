@@ -66,7 +66,7 @@ const main = async () => {
     console.log("");
     console.log(`対象: ${envFile}`);
     if (gate.gatedTables.length > 0) {
-      console.log(`無効な機能のため対象外: ${gate.gatedTables.join(", ")}`);
+      console.log(`FeatureGate によるスキップ: ${gate.gatedTables.length} テーブル`);
     }
     for (const w of result.warnings as string[]) {
       console.log(`warning: ${w}`);

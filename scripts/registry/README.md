@@ -78,20 +78,21 @@ drizzle-kit push の index 比較キーは `名前; 列ごとに (式なら "" /
 
 ## drizzle-kit へのパッチ（patches/drizzle-kit@\<version\>.patch）
 
-`pnpm.patchedDependencies` で drizzle-kit に 3 点の修正を当てている。`pnpm install` で自動適用されるので fork 側の作業は不要。
+`pnpm.patchedDependencies` で drizzle-kit に 4 点の修正を当てている。`pnpm install` で自動適用されるので fork 側の作業は不要。
 
 1. **`pushSchema`（api.js / api.mjs）のバインドパラメータ欠落**: 内部アダプタが `execute(sql.raw(query))` でパラメータを捨てるため、複合 PK を持つテーブルがあると introspection が失敗する（または誤った DROP CONSTRAINT を提案する）。`$client.unsafe(query, params)`（postgres-js）/ `$client.query(query, params)`（pg）に差し替え。`db:push` と `db:push:check` の前提。
 2. **空配列 default の誤正規化（api.js / api.mjs / bin.cjs）**: DB 側 `'{}'::text[]` を `'{""}'` に変換していたのを `'{}'` に。
 3. **jsonb default のキー順（api.js / api.mjs / bin.cjs）**: スキーマ側の `JSON.stringify` を PostgreSQL の jsonb 正規キー順（キー長 → UTF-8 バイト順、再帰）で出力。
+4. **複合 PK の列順（api.js / api.mjs / bin.cjs）**: DB から複合 PK の列を読むクエリ（information_schema の結合）が順序を保証せず、PostgreSQL 18 ではアルファベット順で返る。スキーマ側の列順と食い違い、正しい PK を push のたびに DROP CONSTRAINT + ADD CONSTRAINT していた（PK = ユニーク index の再構築 = テーブルロック）。PK 名を取るクエリで `pg_constraint.conkey` の順に列名も取り、その順を使う。PostgreSQL 17 以前は定義順で返っていたため顕在化していなかった。
 
-いずれも比較用テキストの正規化のみで、DB に書く default の実効値は変わらない。`pnpm db:push` は api.js の `pushSchema` を使うので 1 の修正も前提になる。bin.cjs（drizzle-kit CLI）にも当てているため、CLI 経由でも無駄な SET DEFAULT は出ない。
+いずれも比較用の読み取り・正規化のみで、DB に書く default や PK の実効値は変わらない。`pnpm db:push` は api.js の `pushSchema` を使うので 1 の修正も前提になる。bin.cjs（drizzle-kit CLI）にも当てているため、CLI 経由でも無駄な SET DEFAULT は出ない。
 
 ### drizzle-kit を更新するとき
 
 パッチは `drizzle-kit@0.31.8` に紐づく。バージョンを上げる場合:
 
-1. `pnpm patch drizzle-kit@<new>` → 表示された編集ディレクトリの api.js / api.mjs / bin.cjs に同じ 3 修正を当て直す（`[next-starter patch]` コメントで検索）→ `pnpm patch-commit <dir>`。
+1. `pnpm patch drizzle-kit@<new>` → 表示された編集ディレクトリの api.js / api.mjs / bin.cjs に同じ 4 修正を当て直す（`[next-starter patch]` コメントで検索）→ `pnpm patch-commit <dir>`。
 2. package.json の `patchedDependencies` キーを新バージョンに差し替え、旧 patch ファイルを削除。
 3. `pnpm db:push` → `pnpm db:push:check` で差分ゼロを確認。
 
-上流で修正済みのバージョンなら該当項目のパッチを落とす。0.31.11 時点では 3 点とも未修正。
+上流で修正済みのバージョンなら該当項目のパッチを落とす。0.31.11 時点では 4 点とも未修正。4 は 1.0 系（1.0.0-rc.4 で確認）で読み取り処理が作り直され解消済み（conkey 順）。1.0 へ移るときは 4 を落とせる。

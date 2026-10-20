@@ -1,5 +1,5 @@
 diff --git a/api.js b/api.js
-index c536cc779e6fc18150707a4b236cab1c1945c7e6..6e76e4013a61b10629bfda64d68f62155e9e00e1 100644
+index c536cc779e6fc18150707a4b236cab1c1945c7e6..6126bac1d65f3e7bbb56cd80632d81edaa000347 100644
 --- a/api.js
 +++ b/api.js
 @@ -1,4 +1,24 @@
@@ -45,7 +45,30 @@ index c536cc779e6fc18150707a4b236cab1c1945c7e6..6e76e4013a61b10629bfda64d68f6215
                    } else if (column6.default instanceof Date) {
                      if (sqlTypeLowered === "date") {
                        columnToSet.default = `'${column6.default.toISOString().split("T")[0]}'`;
-@@ -23725,6 +23745,9 @@ WHERE
+@@ -23298,8 +23318,12 @@ WHERE
+               );
+               const cprimaryKey = tableConstraints.filter((mapRow) => mapRow.constraint_type === "PRIMARY KEY");
+               if (cprimaryKey.length > 1) {
++                // [next-starter patch] 複合 PK の列を PK 定義順（conkey）で読む。information_schema の結合は順序を保証せず、
++                // PostgreSQL 18 ではアルファベット順で返るため、正しい PK を毎回 DROP + ADD していた。
+                 const tableCompositePkName = await db.query(
+-                  `SELECT conname AS primary_key
++                  `SELECT conname AS primary_key,
++              array(SELECT a.attname::text FROM unnest(conkey) WITH ORDINALITY AS k(attnum, ord)
++                JOIN pg_attribute a ON a.attrelid = conrelid AND a.attnum = k.attnum ORDER BY k.ord) AS pk_columns
+             FROM   pg_constraint join pg_class on (pg_class.oid = conrelid)
+             WHERE  contype = 'p' 
+             AND    connamespace = $1::regnamespace  
+@@ -23308,7 +23332,7 @@ WHERE
+                 );
+                 primaryKeys[tableCompositePkName[0].primary_key] = {
+                   name: tableCompositePkName[0].primary_key,
+-                  columns: cprimaryKey.map((c5) => c5.column_name)
++                  columns: Array.isArray(tableCompositePkName[0].pk_columns) && tableCompositePkName[0].pk_columns.length > 0 ? tableCompositePkName[0].pk_columns : cprimaryKey.map((c5) => c5.column_name)
+                 };
+               }
+               let columnTypeMapped = columnType;
+@@ -23725,6 +23749,9 @@ WHERE
        column6.column_default = column6.column_default.replace(/::(.*?)(?<![^\w"])(?=$)/, "");
        const columnDefaultAsString = column6.column_default.toString();
        if (isArray) {
@@ -55,7 +78,7 @@ index c536cc779e6fc18150707a4b236cab1c1945c7e6..6e76e4013a61b10629bfda64d68f6215
          return `'{${columnDefaultAsString.slice(2, -2).split(/\s*,\s*/g).map((value) => {
            if (["integer", "smallint", "bigint", "double precision", "real"].includes(column6.data_type.slice(0, -2))) {
              return value;
-@@ -75146,8 +75169,19 @@ var pushSchema = async (imports, drizzleInstance, schemaFilters, tablesFilter, e
+@@ -75146,8 +75173,19 @@ var pushSchema = async (imports, drizzleInstance, schemaFilters, tablesFilter, e
    );
    const db = {
      query: async (query, params) => {
@@ -77,7 +100,7 @@ index c536cc779e6fc18150707a4b236cab1c1945c7e6..6e76e4013a61b10629bfda64d68f6215
    };
    const cur = generateDrizzleJson(imports);
 diff --git a/api.mjs b/api.mjs
-index 416b46c1ecaa0c414d050d57f90506c1d239403b..f59acd3f13aa3c5c107e84e19e4c8c7456a2cf5e 100644
+index 416b46c1ecaa0c414d050d57f90506c1d239403b..f245cc05bce2c6c7a566dd851ec0e23fa7485c65 100644
 --- a/api.mjs
 +++ b/api.mjs
 @@ -1,4 +1,24 @@
@@ -123,7 +146,30 @@ index 416b46c1ecaa0c414d050d57f90506c1d239403b..f59acd3f13aa3c5c107e84e19e4c8c74
                    } else if (column6.default instanceof Date) {
                      if (sqlTypeLowered === "date") {
                        columnToSet.default = `'${column6.default.toISOString().split("T")[0]}'`;
-@@ -23742,6 +23762,9 @@ WHERE
+@@ -23315,8 +23335,12 @@ WHERE
+               );
+               const cprimaryKey = tableConstraints.filter((mapRow) => mapRow.constraint_type === "PRIMARY KEY");
+               if (cprimaryKey.length > 1) {
++                // [next-starter patch] 複合 PK の列を PK 定義順（conkey）で読む。information_schema の結合は順序を保証せず、
++                // PostgreSQL 18 ではアルファベット順で返るため、正しい PK を毎回 DROP + ADD していた。
+                 const tableCompositePkName = await db.query(
+-                  `SELECT conname AS primary_key
++                  `SELECT conname AS primary_key,
++              array(SELECT a.attname::text FROM unnest(conkey) WITH ORDINALITY AS k(attnum, ord)
++                JOIN pg_attribute a ON a.attrelid = conrelid AND a.attnum = k.attnum ORDER BY k.ord) AS pk_columns
+             FROM   pg_constraint join pg_class on (pg_class.oid = conrelid)
+             WHERE  contype = 'p' 
+             AND    connamespace = $1::regnamespace  
+@@ -23325,7 +23349,7 @@ WHERE
+                 );
+                 primaryKeys[tableCompositePkName[0].primary_key] = {
+                   name: tableCompositePkName[0].primary_key,
+-                  columns: cprimaryKey.map((c5) => c5.column_name)
++                  columns: Array.isArray(tableCompositePkName[0].pk_columns) && tableCompositePkName[0].pk_columns.length > 0 ? tableCompositePkName[0].pk_columns : cprimaryKey.map((c5) => c5.column_name)
+                 };
+               }
+               let columnTypeMapped = columnType;
+@@ -23742,6 +23766,9 @@ WHERE
        column6.column_default = column6.column_default.replace(/::(.*?)(?<![^\w"])(?=$)/, "");
        const columnDefaultAsString = column6.column_default.toString();
        if (isArray) {
@@ -133,7 +179,7 @@ index 416b46c1ecaa0c414d050d57f90506c1d239403b..f59acd3f13aa3c5c107e84e19e4c8c74
          return `'{${columnDefaultAsString.slice(2, -2).split(/\s*,\s*/g).map((value) => {
            if (["integer", "smallint", "bigint", "double precision", "real"].includes(column6.data_type.slice(0, -2))) {
              return value;
-@@ -75179,8 +75202,19 @@ var pushSchema = async (imports, drizzleInstance, schemaFilters, tablesFilter, e
+@@ -75179,8 +75206,19 @@ var pushSchema = async (imports, drizzleInstance, schemaFilters, tablesFilter, e
    );
    const db = {
      query: async (query, params) => {
@@ -155,7 +201,7 @@ index 416b46c1ecaa0c414d050d57f90506c1d239403b..f59acd3f13aa3c5c107e84e19e4c8c74
    };
    const cur = generateDrizzleJson(imports);
 diff --git a/bin.cjs b/bin.cjs
-index 289fd467b9b9334640e9211536d32ed0ab9cd45e..1a9ac3865087ea0633929e121d709e015b55854e 100755
+index 289fd467b9b9334640e9211536d32ed0ab9cd45e..804afc25931147242579fb883f6b5c5e55f43841 100755
 --- a/bin.cjs
 +++ b/bin.cjs
 @@ -1,5 +1,25 @@
@@ -202,7 +248,30 @@ index 289fd467b9b9334640e9211536d32ed0ab9cd45e..1a9ac3865087ea0633929e121d709e01
                    } else if (column11.default instanceof Date) {
                      if (sqlTypeLowered === "date") {
                        columnToSet.default = `'${column11.default.toISOString().split("T")[0]}'`;
-@@ -20033,6 +20053,9 @@ WHERE
+@@ -19604,8 +19624,12 @@ WHERE
+               );
+               const cprimaryKey = tableConstraints.filter((mapRow) => mapRow.constraint_type === "PRIMARY KEY");
+               if (cprimaryKey.length > 1) {
++                // [next-starter patch] 複合 PK の列を PK 定義順（conkey）で読む。information_schema の結合は順序を保証せず、
++                // PostgreSQL 18 ではアルファベット順で返るため、正しい PK を毎回 DROP + ADD していた。
+                 const tableCompositePkName = await db.query(
+-                  `SELECT conname AS primary_key
++                  `SELECT conname AS primary_key,
++              array(SELECT a.attname::text FROM unnest(conkey) WITH ORDINALITY AS k(attnum, ord)
++                JOIN pg_attribute a ON a.attrelid = conrelid AND a.attnum = k.attnum ORDER BY k.ord) AS pk_columns
+             FROM   pg_constraint join pg_class on (pg_class.oid = conrelid)
+             WHERE  contype = 'p' 
+             AND    connamespace = $1::regnamespace  
+@@ -19614,7 +19638,7 @@ WHERE
+                 );
+                 primaryKeys[tableCompositePkName[0].primary_key] = {
+                   name: tableCompositePkName[0].primary_key,
+-                  columns: cprimaryKey.map((c3) => c3.column_name)
++                  columns: Array.isArray(tableCompositePkName[0].pk_columns) && tableCompositePkName[0].pk_columns.length > 0 ? tableCompositePkName[0].pk_columns : cprimaryKey.map((c3) => c3.column_name)
+                 };
+               }
+               let columnTypeMapped = columnType;
+@@ -20033,6 +20057,9 @@ WHERE
        column11.column_default = column11.column_default.replace(/::(.*?)(?<![^\w"])(?=$)/, "");
        const columnDefaultAsString = column11.column_default.toString();
        if (isArray) {

@@ -72,7 +72,7 @@ const main = async () => {
     console.log("");
     console.log(`対象: ${envFile}`);
     if (gate.gatedTables.length > 0) {
-      console.log(`無効な機能のため対象外（作成も削除もしない）: ${gate.gatedTables.join(", ")}`);
+      console.log(`FeatureGate によるスキップ: ${gate.gatedTables.length} テーブル`);
     }
     if (statements.length === 0) {
       console.log("差分なし: 何も実行しません。");
