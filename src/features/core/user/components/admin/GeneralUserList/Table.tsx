@@ -153,7 +153,7 @@ export default function GeneralUserListTable({ users, editBasePath }: Props) {
   const { showToast } = useToast();
   const { trigger: triggerDelete, isMutating } = useSoftDeleteUser();
 
-  const enableWalletAdjust = APP_FEATURES.wallet.enableAdminBalanceAdjust;
+  const enableWalletAdjust = APP_FEATURES.wallet.enabled && APP_FEATURES.wallet.enableAdminBalanceAdjust;
   const enableUserManagement = APP_FEATURES.adminConsole.enableUserManagement;
   const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
   const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;

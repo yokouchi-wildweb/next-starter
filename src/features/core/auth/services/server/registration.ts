@@ -178,7 +178,12 @@ export async function register(
   // スコープ無しで消し込むと、使用回数だけ消費されて referral ハンドラーが走らず、
   // 招待報酬が両者とも恒久的に失われる（下流で実際に発生した事故）。
   let inviteCodeResult: RegistrationInviteCodeResult | null = null;
-  if (APP_FEATURES.marketing.referral.enabled && effectiveInviteCode) {
+  // 招待コードの実体はクーポン。クーポン無効時はテーブルが無い場合があるため触らない
+  if (
+    APP_FEATURES.marketing.referral.enabled &&
+    APP_FEATURES.marketing.coupon.enabled &&
+    effectiveInviteCode
+  ) {
     try {
       const redeemResult = await couponService.redeemWithEffect(
         effectiveInviteCode,

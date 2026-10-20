@@ -1,7 +1,7 @@
 // scripts/registry/check-schema-roundtrip.ts
 //
-// drizzle-kit push の「読み取り専用ドライラン」。
-// schemaRegistry (TypeScript 側) と DATABASE_URL の実 DB を drizzle-kit の push モードで比較し、
+// pnpm db:push の「読み取り専用ドライラン」。
+// schemaRegistry (TypeScript 側、スキーマゲート適用後) と DATABASE_URL の実 DB を drizzle-kit の push モードで比較し、
 // 提案される SQL を表示する。1 文でもあれば exit 1。DB には一切書き込まない。
 //
 // 用途:
@@ -40,25 +40,34 @@ const main = async () => {
   }
 
   // env ロード後に読み込む (schemaRegistry 側の import が env に依存しないよう動的 import)
-  const [{ default: postgres }, { drizzle }, { pushSchema }, schema] = await Promise.all([
-    import("postgres"),
-    import("drizzle-orm/postgres-js"),
-    import("drizzle-kit/api"),
-    import("@/registry/schemaRegistry"),
-  ]);
+  const [{ default: postgres }, { drizzle }, { pushSchema }, schema, { featureGateRules }, { applySchemaGate }] =
+    await Promise.all([
+      import("postgres"),
+      import("drizzle-orm/postgres-js"),
+      import("drizzle-kit/api"),
+      import("@/registry/schemaRegistry"),
+      import("@/config/app/feature-gate.config"),
+      import("./schemaGate"),
+    ]);
+
+  // db:push と同じスキーマゲートを掛ける (無効な機能のテーブルは比較対象外)
+  const gate = applySchemaGate(schema, featureGateRules);
 
   const client = postgres(databaseUrl, { prepare: false, max: 1 });
   const db = drizzle(client);
 
   try {
     // pushSchema は差分計算のみ。返される apply() は呼ばない (読み取り専用)
-    const result = await pushSchema(schema, db);
+    const result = await pushSchema(gate.imports, db, undefined, gate.tablesFilter);
     const statements: string[] = result.statementsToExecute;
     const ignored = allowDefaults ? statements.filter((s) => DEFAULT_STATEMENT.test(s)) : [];
     const remaining = statements.filter((s) => !ignored.includes(s));
 
     console.log("");
     console.log(`対象: ${envFile}`);
+    if (gate.gatedTables.length > 0) {
+      console.log(`無効な機能のため対象外: ${gate.gatedTables.join(", ")}`);
+    }
     for (const w of result.warnings as string[]) {
       console.log(`warning: ${w}`);
     }

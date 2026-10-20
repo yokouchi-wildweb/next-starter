@@ -2,7 +2,7 @@
 
 // アプリ全体で利用する機能トグルを定義します。
 // ここで定義された値を参照することで、UI や機能を環境ごとに切り替えられるようにします。
-// ルートのブロックは featureGate (src/proxies/featureGate.ts) で自動制御されます。
+// ルートのブロックとテーブル作成の抑止は src/config/app/feature-gate.config.ts の定義で自動制御されます。
 
 import type { EmailCheckMode, HideMyEmailAction, SelectionBehavior, SignupMode, WalletPurchaseRestriction } from "./types";
 
@@ -118,8 +118,21 @@ export const APP_FEATURES = {
       coffeeLevel: 180,
     },
   },
+  payment: {
+    /**
+     * 決済機能（購入・決済プロバイダ webhook・銀行振込・購入上限）を有効にする
+     * false: 関連ルートは 404、関連テーブルは db:push で作られない（既存テーブルは消さない）
+     * true にする場合は wallet.enabled も true が必要（購入リクエストがウォレット履歴を参照するため）
+     * @see src/config/app/feature-gate.config.ts
+     */
+    enabled: true,
+  },
   wallet: {
-    /** ウォレット機能を有効にする */
+    /**
+     * ウォレット機能を有効にする
+     * false: 関連ルートは 404、関連テーブルは db:push で作られない（既存テーブルは消さない）
+     * @see src/config/app/feature-gate.config.ts
+     */
     enabled: true,
     /** 管理者による残高調整ボタンを有効にする */
     enableAdminBalanceAdjust: false,
@@ -162,7 +175,7 @@ export const APP_FEATURES = {
       enabled: true,
     },
     referral: {
-      /** 紹介機能を有効にする */
+      /** 紹介機能を有効にする（招待コードの実体はクーポンなので coupon.enabled も true が必要） */
       enabled: true,
     },
     notification: {

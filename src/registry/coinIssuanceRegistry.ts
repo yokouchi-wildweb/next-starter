@@ -22,6 +22,7 @@
 // 詳細な実装ガイドは src/features/core/analytics/README.md の
 // 「コイン創出サマリーへの参加方法」セクションを参照。
 
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import { purchaseBonusGapSource } from "@/features/core/analytics/services/server/coinIssuance/sources/purchaseBonusGap";
 import { referralRewardSource } from "@/features/core/analytics/services/server/coinIssuance/sources/referralReward";
 import { couponAttributionRewardSource } from "@/features/core/analytics/services/server/coinIssuance/sources/couponAttributionReward";
@@ -40,9 +41,10 @@ import type { CoinIssuanceSource } from "@/features/core/analytics/services/serv
  */
 export const coinIssuanceSources: CoinIssuanceSource[] = [
   // --- CORE (upstream-provided) ---
-  purchaseBonusGapSource,
+  // 機能が無効ならテーブルが無い場合があるため、ソースごと外す（src/config/app/feature-gate.config.ts）
+  ...(APP_FEATURES.payment.enabled ? [purchaseBonusGapSource] : []),
   referralRewardSource,
-  couponAttributionRewardSource,
+  ...(APP_FEATURES.marketing.coupon.enabled ? [couponAttributionRewardSource] : []),
 
   // --- DOWNSTREAM (downstream で追加) ---
   // 例: gachaProfitSource, winningReportRewardSource, winningCommentRewardSource, ...

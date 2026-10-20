@@ -8,6 +8,10 @@
 // - プロバイダ別の API 名変換は providers[*].methodMapping で表現。
 // - ダウンストリームでプロバイダや支払い方法を追加する場合は、このファイルの
 //   paymentMethods および providers を拡張する（コードロジックの変更は不要）。
+// - 決済機能全体の有効/無効は APP_FEATURES.payment.enabled（false でルート 404 + テーブル未作成。
+//   src/config/app/feature-gate.config.ts）。
+
+import { APP_FEATURES } from "./app-features.config";
 
 /**
  * 支払い方法のステータス
@@ -295,9 +299,12 @@ export function getPaymentMethodById(methodId: string): PaymentMethodConfig | un
 }
 
 /**
- * 支払い方法 ID が選択可能か（status="available" かつ provider が enabled）を判定
+ * 支払い方法 ID が選択可能か（決済機能が有効 かつ status="available" かつ provider が enabled）を判定
  */
 export function isPaymentMethodSelectable(methodId: string): boolean {
+  if (!APP_FEATURES.payment.enabled) {
+    return false;
+  }
   const method = getPaymentMethodById(methodId);
   if (!method || method.status !== "available" || !method.provider) {
     return false;

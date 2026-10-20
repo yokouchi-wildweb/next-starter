@@ -105,7 +105,7 @@ const createColumns = (
 
 export default function DemoUserListTable({ users }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<User | null>(null);
-  const enableWalletAdjust = APP_FEATURES.wallet.enableAdminBalanceAdjust;
+  const enableWalletAdjust = APP_FEATURES.wallet.enabled && APP_FEATURES.wallet.enableAdminBalanceAdjust;
   const enableUserMemo = APP_FEATURES.adminConsole.enableUserMemo;
   const { enableSelectionTable, selectionBehavior, bulkActionsAlwaysVisible } = APP_FEATURES.adminConsole.userListPage;
   const useSelectionTable = enableSelectionTable.demo;

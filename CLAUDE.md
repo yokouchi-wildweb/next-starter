@@ -58,8 +58,8 @@ rules: servers→src imports = lib/realtimeRoom/protocol + features/*/room ONLY 
 before touching servers/ or enabling room → MUST read servers/room/README.md + src/lib/realtimeRoom/README.md
 
 ## PROXY (Next.js 16 proxy, NOT middleware.ts)
-entry: src/proxy.ts | handler chain in src/proxies/index.ts: each ProxyHandler returns Response (intercept) or void (pass) → fallback NextResponse.next() | order matters: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy
-x-pathname: proxy.ts sets it on request headers → server components read headers().get("x-pathname")
+entry: src/proxy.ts | handler chain in src/proxies/index.ts: each ProxyHandler returns Response (intercept) or void (pass) → fallback NextResponse.next() | order matters: maintenanceProxy → demoModeProxy → featureGateProxy → redirectProxy | x-pathname: proxy.ts sets it on request headers → server components read headers().get("x-pathname")
+feature_gate (MANDATORY): rules = src/config/app/feature-gate.config.ts (enabled false → pathPatterns 404, tables skipped by pnpm db:push: never created, never dropped) | new route/table of a gated domain → add it to its rule (test: pnpm test:feature-gate) | always-mounted callers check the flag themselves | push only via pnpm db:push | ref: src/proxies/README.md
 add: handler = src/proxies/\<name\>.ts + register in index.ts | decorator (side effect such as a cookie on pass-through, skipped when a handler intercepts) = register in proxyResponseDecorators | in a fork, registering edits core index.ts → approval + fork_core_edit_compat (append, keep upstream entries)
 
 ## DIRECTORY_STRUCTURE
@@ -80,7 +80,7 @@ rules: state only (logic in services) | UI side effects in useStore's useEffect 
 core: src/features/core/, hand-maintained (a domain.json there is config source only, NOT a dc:generate target) | index: src/features/core/README.md | imports omit core/ (@/features/\<coreDomain\>/* → features/core/)
 business: src/features/\<domain\>/ with domain.json → dc:generate | before creating or editing any domain.json → MUST read src/features/README.md
 commands: pnpm dc:init (create domain.json interactively) | dc:add \<Domain\> (append fields to an existing domain.json) | dc:generate \<Domain\> / dc:generate:all (generate files) | dc:delete \<Domain\> | never `--` (pnpm passes it as the domain name) | ref: scripts/domain-config/README.md
-schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only drizzle-kit push entry | business domains: auto-registered | core domain with a new entities/drizzle.ts → add `export *` to the CORE DOMAINS block by hand + `pnpm test:schema-registry` + ship .notices with `[user-run] db:push` | unregistered = table never created, best-effort writes fail silently
+schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entry (pnpm db:push) | business domains: auto-registered | core domain with a new entities/drizzle.ts → add `export *` to the CORE DOMAINS block by hand + `pnpm test:schema-registry` + ship .notices with `[user-run] db:push` | unregistered = table never created, best-effort writes fail silently
 push_roundtrip (MANDATORY when adding/changing an index): user runs `pnpm db:push` → `pnpm db:push:check` must report zero statements (read-only dry run, the agent may run it) | ref: scripts/registry/README.md
 - a non-round-trip index = DROP+CREATE on every push = write lock on large tables → never `sql\`${col} DESC\`` (use .desc()), never mix plain columns and sql expressions in one index | push may lock tables → run at maintenance / low traffic
 setting (core): singleton id "global" | extend = add Zod fields to setting.extended.ts (no DB migration) | ref: src/features/core/setting/README.md

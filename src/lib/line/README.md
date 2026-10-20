@@ -48,7 +48,7 @@ LIFF_ID=your_liff_id
 ### 3. DBマイグレーション
 
 `user_line_profiles` テーブルが新規追加されている（`users` テーブルとは 1:1 リレーション）。
-`drizzle-kit push` でスキーマを反映する。
+`pnpm db:push` でスキーマを反映する。
 
 ```
 user_line_profiles

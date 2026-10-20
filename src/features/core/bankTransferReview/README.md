@@ -295,12 +295,12 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 
 ### 有効化（オプトイン・既定オフ）
 
-本ドメインの管理画面（`/admin/bank-transfer-reviews/**`）・管理 API（`/api/admin/bank-transfer-reviews/**`）・管理メニュー「リクエスト管理 > 銀行振込レビュー」は、**決済方法 `bank_transfer_inhouse` が選択可能なときだけ露出する**。専用のフィーチャーフラグは持たず、`isPaymentMethodSelectable("bank_transfer_inhouse")`（`status === "available"` かつ `providers.inhouse.enabled`）を唯一の判定源とする。
+本ドメインの管理画面（`/admin/bank-transfer-reviews/**`）・管理 API（`/api/admin/bank-transfer-reviews/**`）・管理メニュー「リクエスト管理 > 銀行振込レビュー」は、**決済方法 `bank_transfer_inhouse` が選択可能なときだけ露出する**。専用のフィーチャーフラグは持たず、`isPaymentMethodSelectable("bank_transfer_inhouse")`（`APP_FEATURES.payment.enabled` かつ `status === "available"` かつ `providers.inhouse.enabled`）を唯一の判定源とする。
 
 | 場所 | 無効時の挙動 |
 |---|---|
 | 管理メニュー (`src/config/ui/admin-global-menu.config.ts`) | 「リクエスト管理」セクションごと非表示 |
-| featureGate (`src/proxies/featureGate.ts`) | 管理画面は `/404` へ rewrite、管理 API は 404 |
+| Feature Gate (`src/config/app/feature-gate.config.ts`。詳細 `src/proxies/README.md`) | 管理画面は `/404` へ rewrite、管理 API は 404。決済機能（`APP_FEATURES.payment.enabled`）が無効ならテーブル `bank_transfer_reviews` も作られない |
 | ユーザー側 API（申告 / 進行中取得） | ゲート対象外。購入開始時点で選択不可メソッドが弾かれるため、進行中取得は `{ active: null }` を返すのみ |
 
 上流の既定値は `status: "disabled"`。利用する fork は `paymentConfig.paymentMethods` の `bank_transfer_inhouse` を `status: "available"` に変更する（これだけで購入画面・管理画面・API が揃って有効になる）。

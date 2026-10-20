@@ -75,7 +75,7 @@ ENCRYPTION_KEY=
 ### 3. DB マイグレーション
 
 `user_x_profiles` テーブルが新規追加されている（`users` テーブルとは 1:1 リレーション）。
-`drizzle-kit push` でスキーマを反映する。
+`pnpm db:push` でスキーマを反映する。
 
 ```
 user_x_profiles

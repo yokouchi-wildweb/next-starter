@@ -102,7 +102,7 @@ export default async function generateProfile(roleIdArg) {
 
   console.log("\n=== 次のステップ ===\n");
   console.log("データベースに反映:");
-  console.log("  pnpm drizzle-kit push\n");
+  console.log("  pnpm db:push\n");
 
   return selectedRoleId;
 }

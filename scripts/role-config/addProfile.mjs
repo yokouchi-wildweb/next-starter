@@ -177,13 +177,13 @@ export default async function addProfile() {
     await generate(selectedRoleId, { profileOnly: true });
     console.log("\n=== 次のステップ ===\n");
     console.log("データベースに反映:");
-    console.log("  pnpm drizzle-kit push\n");
+    console.log("  pnpm db:push\n");
   } else {
     console.log("\n=== 次のステップ ===\n");
     console.log("1. ジェネレータースクリプトを実行:");
     console.log(`   pnpm role:generate ${selectedRoleId}\n`);
     console.log("2. データベースに反映:");
-    console.log("   pnpm drizzle-kit push\n");
+    console.log("   pnpm db:push\n");
   }
 
   return selectedRoleId;

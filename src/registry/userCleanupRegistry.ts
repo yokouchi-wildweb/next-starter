@@ -1,8 +1,11 @@
 // src/registry/userCleanupRegistry.ts
 
+import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import { clearBalance as clearWalletBalance } from "@/features/core/wallet/services/server/clearBalance";
 import { cancelPending as cancelPendingPurchaseRequests } from "@/features/core/purchaseRequest/services/server/cancelPending";
+
+// 機能が無効ならテーブルが無い場合があるため、そのハンドラは登録しない（src/config/app/feature-gate.config.ts）
 
 /**
  * ユーザー退会・ソフトデリート時に実行されるリソースクリーンナップハンドラの型
@@ -16,7 +19,7 @@ export type UserCleanupHandler = (userId: string, tx: DbTransaction) => Promise<
  */
 export const requiredHandlers: UserCleanupHandler[] = [
   // 全ウォレットの残高（balance / locked_balance）を0にクリア + 履歴記録
-  clearWalletBalance,
+  ...(APP_FEATURES.wallet.enabled ? [clearWalletBalance] : []),
 ];
 
 /**
@@ -25,5 +28,5 @@ export const requiredHandlers: UserCleanupHandler[] = [
  */
 export const optionalHandlers: UserCleanupHandler[] = [
   // 未処理の購入リクエスト（pending / processing）を expired にキャンセル
-  cancelPendingPurchaseRequests,
+  ...(APP_FEATURES.payment.enabled ? [cancelPendingPurchaseRequests] : []),
 ];

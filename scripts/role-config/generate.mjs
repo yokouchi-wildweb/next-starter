@@ -208,7 +208,7 @@ export default async function generate(roleId, options = {}) {
 
   console.log(`\n=== 生成完了 ===\n`);
   console.log("次のステップ:");
-  console.log("  pnpm drizzle-kit push  # データベースに反映\n");
+  console.log("  pnpm db:push  # データベースに反映\n");
 }
 
 // 直接実行された場合

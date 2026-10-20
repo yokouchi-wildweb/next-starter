@@ -43,7 +43,7 @@ roles/index.ts (ALL_ROLES)
 constants/role.ts (USER_ROLES)
        ↓ import
 entities/drizzle.ts (UserRoleEnum)
-       ↓ drizzle-kit push
+       ↓ pnpm db:push
 PostgreSQL (user_role enum)
 ```
 
@@ -141,7 +141,7 @@ export const UserTable = pgTable("users", {
 
 ```bash
 # スキーマ変更を DB に反映
-pnpm drizzle-kit push
+pnpm db:push
 ```
 
 ## ユーザーテーブル
@@ -359,7 +359,7 @@ DB 制約を使わないため、既存データに重複があっても有効�
 
 3. **DB スキーマ反映**
    ```bash
-   pnpm drizzle-kit push
+   pnpm db:push
    ```
 
 4. **hasProfile: true の場合**
