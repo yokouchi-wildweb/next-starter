@@ -64,6 +64,9 @@ next-env.d.ts
 # Claude Code が生成する一時 worktree（リポジトリにコミットしない）
 .claude/worktrees/
 
+# Claude Code の個人用設定（マシンごと。許可モードは ~/.claude/settings.json で設定する）
+.claude/settings.local.json
+
 # etc
 TODO.md
 .tmpref
