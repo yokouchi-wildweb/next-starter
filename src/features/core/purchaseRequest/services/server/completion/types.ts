@@ -115,7 +115,9 @@ export type FailureContext = LifecycleContext & {
  *                  ため、握りつぶすか upsert/idempotent な処理にすること推奨。
  *
  *   onExpire:      expirePendingRequests で status=expired に遷移した直後・同一tx内で呼ばれる。
- *                  cancelPending（ユーザー削除時の一括 expire）からも呼ばれる。
+ *                  cancelPending（ユーザー削除時の一括 expire）、cancelPurchase（ユーザー取消）、
+ *                  expireStaleClientSdkSessions（放置 client_sdk の掃除）からも呼ばれる。
+ *                  pending / processing のどちらからの遷移もあり得る。
  *                  onExpire を定義した purchase_type は per-row 処理となり、
  *                  未定義の type は従来の bulk UPDATE のまま（性能互換）。
  *                  onFail と同じく idempotent を要求。

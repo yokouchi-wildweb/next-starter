@@ -21,7 +21,9 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
+import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
 import { releaseQuota } from "@/features/core/purchaseQuota/services/server/wrappers/purchaseQuotaHelper";
+import { getPurchaseCompletionStrategy } from "../completion";
 import { getPaymentProvider, type PaymentProviderName } from "../payment";
 import { transitionStatus } from "./transitionStatus";
 
@@ -29,7 +31,7 @@ import { transitionStatus } from "./transitionStatus";
  * 同一ユーザーの放置された client_sdk processing リクエストを expired にする（best-effort）。
  *
  * initiatePurchase の新規作成（create）経路の直前に呼ぶ。失敗しても新規購入はブロックしない
- * （ログのみ）。expire できた分はクォータ台帳も released に戻す。
+ * （ログのみ）。expire できた分は戦略の onExpire を呼び、クォータ台帳も released に戻す。
  */
 export async function expireStaleClientSdkSessions(userId: string): Promise<void> {
   const rows = await db
@@ -59,14 +61,26 @@ export async function expireStaleClientSdkSessions(userId: string): Promise<void
     if (!isClientSdk) continue;
 
     try {
-      const moved = await transitionStatus({
-        id: row.id,
-        to: "expired",
-        from: ["processing"],
+      // 遷移・onExpire・クォータ解放を 1 tx にまとめる（expirePendingRequests と同じ契約）。
+      // onExpire が throw した行は expire 自体も戻り、次回の新規購入時に再試行される
+      const strategy = getPurchaseCompletionStrategy(row.purchase_type);
+      await db.transaction(async (tx) => {
+        const moved = await transitionStatus({
+          id: row.id,
+          to: "expired",
+          from: ["processing"],
+          tx,
+        });
+        if (!moved) return; // 他プロセスで既に遷移済み
+
+        if (strategy?.onExpire) {
+          await strategy.onExpire({
+            purchaseRequest: { ...row, status: "expired" } as PurchaseRequest,
+            tx,
+          });
+        }
+        await releaseQuota(row.id, tx);
       });
-      if (moved) {
-        await releaseQuota(row.id);
-      }
     } catch (error) {
       // 1 件の失敗で新規購入を止めないためログのみ
       console.error(`[expireStaleClientSdkSessions] 遷移に失敗: id=${row.id}`, error);

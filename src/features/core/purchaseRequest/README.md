@@ -202,9 +202,8 @@ export const directSaleStrategy: PurchaseCompletionStrategy = {
 
 - `afterInitiate`: 新規作成と同一 tx。throw すると purchase_request ごとロールバック（= 購入が始まらない、意図通り）。pending 再利用時は呼ばれないので冪等性不要
 - `onFail`: `failPurchase` の `failed` 遷移と同一 tx。throw すると失敗マークも戻り塩漬けになる → 戦略側で握りつぶすか冪等な upsert で書く。ユーザーキャンセルとの区別は `errorCode === PAYMENT_ERROR_CODES.PAYMENT_CANCELLED`
-- `onExpire`: `expirePendingRequests`（per-row tx、失敗はログしてスキップ）と `cancelPending`（呼び出し元 tx）から呼ばれる
+- `onExpire`: `expired` への遷移すべてと同一 tx で呼ばれる = `expirePendingRequests`（per-row tx、失敗はログしてスキップ）| `cancelPending`（呼び出し元 tx）| `cancelPurchase`（ユーザー取消。throw すると取消ごとロールバック = ユーザーにエラー）| `expireStaleClientSdkSessions`（per-row tx、失敗はログしてスキップ）。遷移元は pending / processing のどちらもあり得る
 - `onFail` / `onExpire` は Webhook リトライ・並行処理で複数回呼ばれ得るため idempotent に実装する（終端状態ならスキップするガード等）
-- `cancelPurchase`（ユーザー取消 → `expired`）は戦略フックを呼ばない。取消時に副次テーブルの掃除が要る型はこの点に注意
 - 性能: `onExpire` 未定義の型は bulk UPDATE 1 本、定義した型だけ per-row tx になる
 
 ### 6.3 metadata（JSONB）

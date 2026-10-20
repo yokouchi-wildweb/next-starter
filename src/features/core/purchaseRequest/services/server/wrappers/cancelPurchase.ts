@@ -6,6 +6,7 @@
 // 処理:
 // 1. 認可 + status 検証 (pending / processing のみ受付)
 // 2. purchase_request.status を expired に遷移 (楽観ロック付き)
+//    戦略に onExpire があれば同一 tx 内で呼ぶ (副次テーブルの掃除。expire cron と同じ契約)
 // 3. 関連 bank_transfer_review が pending_review なら status='rejected' に遷移
 //    (システム理由として reject_reason に「ユーザー操作によるキャンセル」を記録)
 // 4. 監査ログを記録 (purchase_request.status.cancelled +
@@ -28,6 +29,7 @@ import { DomainError } from "@/lib/errors/domainError";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/model";
 import { BankTransferReviewTable } from "@/features/bankTransferReview/entities/drizzle";
+import { getPurchaseCompletionStrategy } from "../completion";
 
 export type CancelPurchaseParams = {
   purchaseRequestId: string;
@@ -98,6 +100,17 @@ export async function cancelPurchase(
         "リクエストの更新に失敗しました。既に処理済みの可能性があります。",
         { status: 409 },
       );
+    }
+
+    // 3a'. 戦略の onExpire を同一 tx 内で呼ぶ (未定義なら何もしない)
+    //      expired は終端状態のため、後続の expire cron が同じ行で二重に呼ぶことはない。
+    //      throw するとキャンセル全体がロールバックされる (failPurchase の onFail と同じ扱い)
+    const strategy = getPurchaseCompletionStrategy(current.purchase_type);
+    if (strategy?.onExpire) {
+      await strategy.onExpire({
+        purchaseRequest: updated as PurchaseRequest,
+        tx,
+      });
     }
 
     // 3b. 関連 bank_transfer_review が pending_review なら rejected に遷移
