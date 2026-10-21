@@ -27,6 +27,8 @@ import type {
 import type { DbTransaction } from "@/lib/crud/drizzle";
 import { db } from "@/lib/drizzle";
 
+import { isValidScopePattern } from "@/features/core/pairedDevice/utils/scopeContains";
+
 import { pairedDeviceBase } from "./drizzleBase";
 import { isIdleExpired, resolveIdleRevokeDays } from "./deviceToken";
 import {
@@ -250,6 +252,120 @@ export async function revokePairedDevice(
     const row = rows[0];
     return { ...row, tokenHash: null } as PairedDevice;
   });
+}
+
+export type PairedDeviceScopeQuery = {
+  /** 対象の種類。省略時はすべての種類 */
+  kind?: string;
+  /**
+   * scope の部分オブジェクト（JSONB の @> と同じ包含判定。例: { storeId, tableId }）。
+   * キーを 1 つ以上持ち、値が JSON に損失なく往復できること（{} や undefined を含む指定は 400）。
+   * 全件を対象にする指定は受け付けない（一括失効の事故を防ぐため）
+   */
+  scope: Record<string, unknown>;
+};
+
+function buildScopeQueryWhere(query: PairedDeviceScopeQuery, includeRevoked: boolean): SQL {
+  if (!isValidScopePattern(query.scope)) {
+    throw new PairedDeviceError(
+      "invalid_scope",
+      "scope の指定が不正です（キーを 1 つ以上持ち、値に undefined などを含まないこと）",
+      400,
+    );
+  }
+  const clauses: SQL[] = [sql`${PairedDeviceTable.scope} @> ${JSON.stringify(query.scope)}::jsonb`];
+  if (query.kind) clauses.push(eq(PairedDeviceTable.kind, query.kind));
+  if (!includeRevoked) clauses.push(isNull(PairedDeviceTable.revokedAt));
+  return and(...clauses) as SQL;
+}
+
+/**
+ * scope を含む端末の一覧（一括失効の対象の確認・プレビュー用。ページングなし）。
+ * actor がユーザーなら、管理できない端末が 1 台でも含まれると forbidden（403）。
+ */
+export async function listPairedDevicesByScope(
+  query: PairedDeviceScopeQuery & { includeRevoked?: boolean },
+  options: { actor: PairedDeviceActor; tx?: DbTransaction },
+): Promise<PairedDeviceForAdmin[]> {
+  assertPairedDeviceEnabled();
+  const executor = options.tx ?? db;
+  const rows = await executor
+    .select()
+    .from(PairedDeviceTable)
+    .where(buildScopeQueryWhere(query, query.includeRevoked ?? false));
+  for (const row of rows) {
+    await assertActorCanManage(options.actor, row.kind, row.scope);
+  }
+  const now = new Date();
+  return rows.map((row) => toPairedDeviceForAdmin({ ...row, tokenHash: null } as PairedDevice, now));
+}
+
+/**
+ * scope を含む端末をまとめて失効させる。次のリクエストから認証に失敗する。
+ *
+ * 用途: downstream のデータ変更（テーブルの削除・別店舗への移動等）で scope が古くなった端末を、
+ * その変更と同じトランザクションの中で止める（kind.verify で毎回 DB を引かずに済む）。
+ * 端末を別の場所に移すだけなら、失効ではなく updatePairedDevice で scope を付け替えてもよい。
+ *
+ * - tx を渡すとその中で実行する（呼び出し側の削除・移動と一緒にロールバックされる）
+ * - actor がユーザーなら、対象の全端末を管理できなければ forbidden（403）で何も失効させない
+ * - 1 台ずつ paired_device.device.revoked を監査ログに残す（metadata.bulk = true）
+ * - 未使用のペアリングコードも取り消す。失効済みの端末は対象外
+ */
+export async function revokePairedDevicesByScope(
+  query: PairedDeviceScopeQuery & { reason?: string | null },
+  options: { actor: PairedDeviceActor; tx?: DbTransaction },
+): Promise<{ count: number; deviceIds: string[] }> {
+  assertPairedDeviceEnabled();
+  const run = async (tx: DbTransaction) => {
+    const targets = await tx
+      .select({ id: PairedDeviceTable.id, kind: PairedDeviceTable.kind, scope: PairedDeviceTable.scope })
+      .from(PairedDeviceTable)
+      .where(buildScopeQueryWhere(query, false));
+    for (const target of targets) {
+      await assertActorCanManage(options.actor, target.kind, target.scope);
+    }
+    if (targets.length === 0) return { count: 0, deviceIds: [] };
+
+    const ids = targets.map((target) => target.id);
+    const now = new Date();
+    const revoked = await tx
+      .update(PairedDeviceTable)
+      .set({
+        tokenHash: null,
+        tokenExpiresAt: null,
+        revokedAt: now,
+        revokedBy: actorUserId(options.actor),
+        updatedAt: now,
+      })
+      .where(and(inArray(PairedDeviceTable.id, ids), isNull(PairedDeviceTable.revokedAt)))
+      .returning({ id: PairedDeviceTable.id });
+    const revokedIds = revoked.map((row) => row.id);
+    if (revokedIds.length === 0) return { count: 0, deviceIds: [] };
+
+    await tx
+      .update(DevicePairingTable)
+      .set({ status: "canceled" })
+      .where(
+        and(
+          inArray(DevicePairingTable.deviceId, revokedIds),
+          inArray(DevicePairingTable.status, ["pending", "approved"]),
+        ),
+      );
+
+    await auditLogger.recordMany(
+      revokedIds.map((id) => ({
+        targetType: PAIRED_DEVICE_AUDIT_TARGET,
+        targetId: id,
+        action: "paired_device.device.revoked",
+        reason: query.reason ?? null,
+        metadata: { bulk: true, kind: query.kind ?? null, scope: query.scope },
+        tx,
+      })),
+    );
+    return { count: revokedIds.length, deviceIds: revokedIds };
+  };
+  return options.tx ? run(options.tx) : db.transaction(run);
 }
 
 /**
