@@ -32,6 +32,8 @@ export {
   revokePairedDevice,
   getManagedPairedDevice,
   listPairedDevices,
+  unpairPairedDevice,
+  listManageablePairedDeviceKinds,
   resolvePairedDeviceState,
   toPairedDeviceForAdmin,
   type PairedDeviceActor,

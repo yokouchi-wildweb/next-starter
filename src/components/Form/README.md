@@ -374,6 +374,7 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | `DatetimeInput` | 日時 |
 | `EmailInput` | メールアドレス |
 | `PasswordInput` | パスワード |
+| `OneTimeCodeInput` | ワンタイムコード（大文字化・ハイフン区切りの自動整形、`length` 文字そろうと `onComplete`。ペアリングコード・確認コード用） |
 | `StepperInput` | 数値ステッパー |
 | `FileInput` | ファイル選択 |
 

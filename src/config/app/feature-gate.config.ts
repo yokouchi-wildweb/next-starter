@@ -123,7 +123,11 @@ export const featureGateRules: FeatureGateRule[] = [
   },
   // 登録端末（共有端末のペアリングと端末トークン認証）
   {
-    pathPatterns: ["/api/paired-device", "/api/admin/paired-devices", "/api/cron/paired-device-pairings-prune"],
+    pathPatterns: [
+      "/api/paired-device",
+      "/api/paired-devices",
+      "/api/cron/paired-device-pairings-prune",
+    ],
     tables: ["paired_devices", "device_pairings"],
     enabled: PAIRED_DEVICE_CONFIG.enabled,
   },

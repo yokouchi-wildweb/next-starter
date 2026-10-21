@@ -33,3 +33,4 @@ export {
   type PairedDeviceManageableScopes,
   type PairedDeviceVerifyContext,
 } from "./types/kind";
+export { getPairedDeviceErrorReason } from "./utils/errorReason";

@@ -32,7 +32,9 @@ import {
   assertPairedDeviceEnabled,
   buildManageableDevicesWhere,
   getPairedDeviceKind,
+  listPairedDeviceKinds,
   parseDeviceScope,
+  resolveManageableScopes,
 } from "./kinds";
 
 /** 操作者。HTTP ルートはセッションユーザー、CLI・cron は "system" */
@@ -244,6 +246,44 @@ export async function revokePairedDevice(
     const row = rows[0];
     return { ...row, tokenHash: null } as PairedDevice;
   });
+}
+
+/**
+ * 端末自身が登録を解除する（端末の画面の「この端末の登録を解除」）。
+ * トークンを消すだけで失効にはしない（管理者は再ペアリングで戻せる）。呼び出し側で Cookie も消す。
+ */
+export async function unpairPairedDevice(deviceId: string): Promise<void> {
+  assertPairedDeviceEnabled();
+  await db.transaction(async (tx) => {
+    const rows = await tx
+      .update(PairedDeviceTable)
+      .set({ tokenHash: null, tokenExpiresAt: null, updatedAt: new Date() })
+      .where(eq(PairedDeviceTable.id, deviceId))
+      .returning({ id: PairedDeviceTable.id });
+    if (rows.length === 0) return;
+    await auditLogger.record({
+      targetType: PAIRED_DEVICE_AUDIT_TARGET,
+      targetId: deviceId,
+      action: "paired_device.device.unpaired",
+      tx,
+    });
+  });
+}
+
+/** このユーザーが管理できる端末の種類（登録画面の選択肢用） */
+export async function listManageablePairedDeviceKinds(
+  actor: PairedDeviceActor,
+): Promise<Array<{ kind: string; label: string }>> {
+  assertPairedDeviceEnabled();
+  const result: Array<{ kind: string; label: string }> = [];
+  for (const kind of listPairedDeviceKinds()) {
+    if (actor !== "system") {
+      const scopes = await resolveManageableScopes(actor, kind);
+      if (scopes !== "all" && scopes.length === 0) continue;
+    }
+    result.push({ kind, label: getPairedDeviceKind(kind)?.label ?? kind });
+  }
+  return result;
 }
 
 export type ListPairedDevicesResult = {

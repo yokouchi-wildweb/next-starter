@@ -116,6 +116,34 @@ export const RATE_LIMIT_CONFIG = {
     windowSeconds: 60,
     maxRequests: 120,
   },
+
+  /**
+   * 登録端末: ペアリングコードの入力（POST /api/paired-device/pairing/claim）
+   * 同一IPから10分に20回まで。コードの総当たり対策（コードは8文字・10分で失効）。
+   * 店舗の端末は同じIPから来るが、ペアリングは端末の設置時にしか行わないので足りる
+   */
+  pairedDeviceClaim: {
+    windowSeconds: 600,
+    maxRequests: 20,
+  },
+
+  /**
+   * 登録端末: 端末側からのペアリング開始（POST /api/paired-device/pairing/start）
+   * 同一IPから10分に20回まで。承認待ちの行を大量に作られないための制限
+   */
+  pairedDevicePairingStart: {
+    windowSeconds: 600,
+    maxRequests: 20,
+  },
+
+  /**
+   * 登録端末: 承認の確認（POST /api/paired-device/pairing/status）
+   * 同一IPから1分に120回まで（既定の確認間隔3秒の端末が数台同時にペアリングしても足りる）
+   */
+  pairedDevicePairingPoll: {
+    windowSeconds: 60,
+    maxRequests: 120,
+  },
 } as const;
 
 export type RateLimitCategory = keyof typeof RATE_LIMIT_CONFIG;
