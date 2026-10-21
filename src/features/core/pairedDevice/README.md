@@ -140,6 +140,62 @@ const device = await requireCurrentDevice({
   ```
 - 任意の場所で端末を取りたいときは `getSessionDevice()`（無ければ null）
 
+### ページ: 端末またはユーザー（`principalGuard` / `requireCurrentPrincipal`）
+
+共有タブレットとスタッフ本人のスマホの両方から開くページ（店舗のスタッフ画面・POS 等）。
+API の `createDeviceRoute`（`kinds` + `orUser`）と同じ語彙で、端末を先に判定し、端末でなければユーザーをルールで判定する。
+
+```ts
+// src/app/store/(protected)/layout.tsx
+import { principalGuard } from "@/features/core/pairedDevice/services/server/session";
+
+await principalGuard({
+  kinds: ["staff_tablet"],
+  orUser: { roles: ["staff"] },         // "authenticated" / { roles?, roleCategories?, allowStatuses? }
+  redirectTo: "/store/login",          // 省略時は 404
+});
+
+// src/app/store/(protected)/tables/_screen/loader.ts
+const principal = await requireCurrentPrincipal({
+  kinds: ["staff_tablet"],
+  orUser: { roles: ["staff"] },
+  behavior: "redirect",
+  redirectTo: "/store/login",          // layout と同じ値
+});
+const storeId =
+  principal.principal === "device" ? principal.device.scope.storeId : await resolveStaffStore(principal.user.userId);
+```
+
+- 同じリクエストで layout と loader が同じルールで呼んでも、判定は 1 回にまとまる
+- ユーザーのステータスは `allowStatuses`（省略時は利用可能なステータスだけ）で、`authGuard` と同じ語彙
+- 端末だけなら `deviceGuard`、ユーザーだけなら `authGuard` を使う（どちらも挙動は変わらない）
+
+## scope が古くなった端末を止める（一括失効）
+
+scope の中身（店舗・テーブル等）は downstream のデータなので、テーブルの削除や別店舗への移動があっても端末はそのまま認証し続ける。
+`verify` で毎回 DB を引くと、短い間隔でポーリングする端末では負荷が増える。downstream の削除・移動の処理の中で止める:
+
+```ts
+import { listPairedDevicesByScope, revokePairedDevicesByScope } from "@/features/core/pairedDevice/services/server";
+
+await db.transaction(async (tx) => {
+  await tableService.remove(tableId, tx);
+  // 同じトランザクションで、そのテーブルの端末を失効させる（削除がロールバックされれば失効も戻る）
+  await revokePairedDevicesByScope(
+    { kind: "table_terminal", scope: { tableId }, reason: "テーブルの削除" },
+    { actor: "system", tx },
+  );
+});
+
+// 確認画面で対象を見せる（ページングなし）
+const targets = await listPairedDevicesByScope({ scope: { storeId } }, { actor: user });
+```
+
+- scope は部分一致（JSONB の `@>`）。キーを 1 つ以上持ち、値に `undefined` などを含まないこと（`{}` は 400。全件の失効はできない）
+- `actor` がユーザーなら、対象の全端末を管理できなければ 403 で何も失効させない。`"system"` は判定を省く
+- 1 台ずつ `paired_device.device.revoked`（metadata の `bulk: true`）を監査ログに残し、未使用のペアリングコードも取り消す
+- 端末を別の場所に移すだけなら、失効ではなく `updatePairedDevice(id, { scope })` で付け替えてもよい（再ペアリング不要）
+
 ## ペアリング（端末を登録する 2 つの方式）
 
 | 方式 | 流れ | 向いている場面 |

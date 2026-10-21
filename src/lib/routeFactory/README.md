@@ -215,7 +215,43 @@ export const POST = createDeviceRoute(
 - `orUser: "authenticated" | { roles?, roleCategories? }` を付けると、ルールに合うログインユーザーも通る（`ctx.principal` で分岐）
 - `rateLimit` は端末 id / ユーザー id 単位（店内の端末は同じ IP から来るため IP 単位にしない）
 - 端末の Cookie はユーザーの認可に影響しない（端末で `createMeRoute` や `"authenticated"` のルートは通らない）
-- 詳細・ペアリング・ページ側のガード（`deviceGuard`）: `src/features/core/pairedDevice/README.md`
+- 詳細・ペアリング・ページ側のガード（`deviceGuard` / `principalGuard`）: `src/features/core/pairedDevice/README.md`
+- `createApiRoute` の `access` に端末は足さない（ハンドラが `device` を受け取らない形だと、下の scope 確認を書き忘れる）。
+  汎用 CRUD（`createDomainRoute` / serviceRegistry）も端末を通さない（scope で絞れないため）
+
+#### 既存の `createApiRoute` を端末でも通すようにする（移行）
+
+差し替えは 2 行。ただし **scope の確認を必ず足す**。今の `{ roleCategories: ["admin"] }` は「全店舗を触れる人」前提なので、
+`params.id` の行をそのまま操作すると、店舗 A の端末が店舗 B の行を id 指定で操作できてしまう。
+
+```ts
+// 前
+export const POST = createApiRoute<Params>(
+  { operation: "POST /api/visitGroup/[id]/finish", operationType: "write", access: { roleCategories: ["admin"] } },
+  async (_req, { params }) => visitGroupService.finish(params.id),
+);
+
+// 後
+export const POST = createDeviceRoute<"staff_tablet", Params>(
+  {
+    operation: "POST /api/visitGroup/[id]/finish",
+    operationType: "write",
+    kinds: ["staff_tablet"],                  // ← access の代わり
+    orUser: { roleCategories: ["admin"] },    // ← 今までのルール（スタッフ本人のスマホ等）
+  },
+  async (_req, ctx) => {
+    const group = await visitGroupService.get(ctx.params.id);
+    // 端末なら、対象がその端末の店舗のものかを確かめる（ユーザー側も店舗で絞るならここで同様に）
+    if (ctx.principal === "device" && group?.storeId !== ctx.device.scope.storeId) {
+      throw new DomainError("見つかりません", { status: 404 });
+    }
+    return visitGroupService.finish(ctx.params.id);
+  },
+);
+```
+
+- ハンドラが `{ params }`（と `req`）だけを使っているなら、中身は変えずに型が通る。`session` を使っていたら `ctx.principal` で分岐する
+- `rateLimit` は IP ではなく端末 id / ユーザー id 単位になる。`recaptcha` は使えない（端末向けの API には不要）
 
 ---
 
