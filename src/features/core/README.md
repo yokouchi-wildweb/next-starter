@@ -17,6 +17,7 @@ README があるものはリンク先が一次資料。README が無いものは
 | [userProfile](userProfile/README.md) | ロール別プロフィール |
 | userTag | ユーザーへのタグ付け（管理用） |
 | userLineProfile / userXProfile | LINE / X アカウント連携のプロフィール（ログイン手段ではなく紐付け。auth README 参照） |
+| [pairedDevice](pairedDevice/README.md) | 共有端末（店舗タブレット・キオスク）をユーザーとは別の認証主体として登録し、端末トークンで動かす（createDeviceRoute / deviceGuard） |
 | [userLoginEvent](userLoginEvent/README.md) | ログイン・サインアップ・ログアウトの記録（IP 軸の突き合わせ） |
 | [userAcquisition](userAcquisition/README.md) | サインアップまでの流入経路（UTM・広告 ID・リファラー） |
 | [referral](referral/README.md) | 招待コードと紹介関係 |

@@ -10,7 +10,7 @@
 1. **共通処理の一元管理**: 認証、エラーハンドリング、デモモード制御などを一箇所で管理
 2. **将来の拡張性**: 新しい共通処理（ログ、レート制限等）を追加する際にファクトリーのみ修正すればよい
 3. **一貫性の担保**: すべてのAPIルートが同じ構造・挙動を持つ
-4. **認可の構造的強制**: 3 ファクトリーのいずれも、認可を宣言しない（`access` の書き忘れ等）と
+4. **認可の構造的強制**: どのファクトリーも、認可を宣言しない（`access` の書き忘れ等）と
    型エラー or fail-closed で弾かれる。「認可を考えずにルートを書く」ことができない
 
 ---
@@ -25,6 +25,9 @@
 │
 ├─ 自分（ログインユーザー本人）のデータだけを扱う？
 │   └─ YES → createMeRoute（/api/me/**）
+│
+├─ 登録端末（店舗タブレット・キオスク）が主体？
+│   └─ YES → createDeviceRoute（端末 + 任意でユーザーも通す orUser）
 │
 └─ それ以外（独自ロジック・特殊入出力）→ createApiRoute。access を必ず宣言:
         ├─ 未認証で正当（ログイン前・公開マスタ・webhook）→ "public"
@@ -193,6 +196,26 @@ export const POST = createMeRoute(
 
 `requireAuthenticated({ allowStatuses })` も同じオプションを受ける（`createApiRoute` +
 `access: "custom"` で自前ガードする場合）。
+
+### 4. `createDeviceRoute` - 登録端末専用ファクトリー
+
+登録端末（pairedDevice）を主体にするルート。端末の認証を強制し、ハンドラに **認証済みの `device`**
+（`kind` ごとに型の付いた `scope`）を渡す。店舗・テーブル等の所属は `device.scope` から取り、クライアントが送る id は使わない。
+
+```ts
+import { createDeviceRoute } from "@/lib/routeFactory";
+
+export const POST = createDeviceRoute(
+  { operation: "POST /api/terminal/lending", operationType: "write", kinds: ["table_terminal"] },
+  async (req, { device }) => lendingService.request({ tableId: device.scope.tableId }),
+);
+```
+
+- 端末でない → 401、kind 違い → 403。監査ログの actor は `device`
+- `orUser: "authenticated" | { roles?, roleCategories? }` を付けると、ルールに合うログインユーザーも通る（`ctx.principal` で分岐）
+- `rateLimit` は端末 id / ユーザー id 単位（店内の端末は同じ IP から来るため IP 単位にしない）
+- 端末の Cookie はユーザーの認可に影響しない（端末で `createMeRoute` や `"authenticated"` のルートは通らない）
+- 詳細・ペアリング・ページ側のガード（`deviceGuard`）: `src/features/core/pairedDevice/README.md`
 
 ---
 

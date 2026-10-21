@@ -72,7 +72,7 @@ audit_logs は **介入 (intervention)** だけを記録する。**業務 (busin
 
 | 軸 | カラム | 意味 | index |
 |---|---|---|---|
-| actor | `actor_id` / `actor_type` | 操作した主体（`system` / `admin` / `user` / `api_key` / `webhook`） | `audit_logs_actor_idx` |
+| actor | `actor_id` / `actor_type` | 操作した主体（`system` / `admin` / `user` / `api_key` / `webhook` / `device`。`device` は登録端末で、actor_id は端末の id） | `audit_logs_actor_idx` |
 | subject | `subject_user_id` | 操作対象のユーザー（data subject） | `audit_logs_subject_user_id_idx`（`IS NOT NULL` の partial） |
 | target | `target_type` / `target_id` | 操作対象の **レコード**（`target_id` は text） | `audit_logs_target_idx` |
 

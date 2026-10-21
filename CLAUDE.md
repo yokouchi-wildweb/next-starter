@@ -88,11 +88,11 @@ config_utils: src/lib/domain/ (getDomainConfig, extractFields, getRelations; cli
 inspect: pnpm db:query "SQL" | db:tables | db:describe \<table\> | db:count [table] | fs:* = Firestore equivalents (no args = usage) | claude:test = Anthropic API check | ref: scripts/README.md
 
 ## API_ROUTES
-required: every route uses one of createDomainRoute / createApiRoute / createMeRoute (each enforces authz structurally) | before writing a route → read src/lib/routeFactory/README.md
+required: every route uses one of createDomainRoute / createApiRoute / createMeRoute / createDeviceRoute (each enforces authz structurally) | before writing a route → read src/lib/routeFactory/README.md
 generic: /api/[domain]/** exposes the CRUD operations (list: src/app/api/[domain]/) | access = serviceRegistry entry { service, access } (TYPE-REQUIRED; domain.json apiAccess → dc:generate; core domains write it in the registry)
 - access rules: public | authenticated | none | {roles, roleCategories}, per-op override | not covered → fail-closed admin only | presets: ADMIN_ONLY, PUBLIC_READ, ADMIN_OR_DEBUGGER, plus the single rule ADMIN_OR_DEBUGGER_RULE for createApiRoute or a per-op override (src/config/app/domain-api-access.config.ts)
 custom_route_authz: createApiRoute `access` is TYPE-REQUIRED: "public" | "authenticated" | {roles, roleCategories} | "custom" | "custom" → guard inside the handler via requireAdmin() / requireAuthenticated() (@/features/core/auth/services/server/requireRole) | lint route-authz/require-authz warns on an unguarded "custom"
-ownership_routes: user-owned ("self only") data → createMeRoute (/api/me/**), scope by the passed `user.userId` server-side, never trust a client-supplied id | generic /api/[domain] cannot enforce ownership → keep it admin-only
+ownership_routes: user-owned ("self only") → createMeRoute (/api/me/**), scope by the passed `user.userId` server-side, never trust a client-supplied id | generic /api/[domain] cannot enforce ownership → keep it admin-only | shared kiosk / store device → pairedDevice (opt-in): createDeviceRoute / deviceGuard, scope from `device.scope` | ref: src/features/core/pairedDevice/README.md
 role checks always use the DB-synced getSessionUser | debug APIs: copy GET /api/debug/ping (ADMIN_OR_DEBUGGER_RULE)
 
 ## ROLES & PAGE_GUARD
