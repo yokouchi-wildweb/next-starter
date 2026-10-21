@@ -101,9 +101,9 @@ export const featureGateRules: FeatureGateRule[] = [
     pathPatterns: ["/demo", "/api/demo"],
     enabled: APP_FEATURES.demo.samplePages,
   },
-  // デモログイン
+  // デモログイン（画面と、その裏のゲストログイン API）
   {
-    pathPatterns: ["/demo-login"],
+    pathPatterns: ["/demo-login", "/api/auth/guest-login"],
     enabled: APP_FEATURES.demo.login,
   },
   // マーケティング > 紹介
