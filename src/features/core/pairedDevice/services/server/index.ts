@@ -53,3 +53,4 @@ export {
   type StartedDevicePairing,
   type DevicePairingPollResult,
 } from "./pairingService";
+export { pairedDeviceErrorResponse, withPairedDeviceErrors } from "./http";

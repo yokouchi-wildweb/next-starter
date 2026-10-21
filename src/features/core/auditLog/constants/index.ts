@@ -30,4 +30,5 @@ export const ACTOR_TYPE_LABELS: Record<AuditActorType, string> = {
   user: "ユーザー",
   api_key: "API キー",
   webhook: "Webhook",
+  device: "登録端末",
 };

@@ -7,15 +7,16 @@
  * - user: 一般ユーザー本人による操作
  * - api_key: 外部システムからの API キー認証経由
  * - webhook: Webhook ドリブンの自動処理
+ * - device: 登録端末（pairedDevice）による操作。actorId は端末の id
  */
-export const AUDIT_ACTOR_TYPES = ["system", "admin", "user", "api_key", "webhook"] as const;
+export const AUDIT_ACTOR_TYPES = ["system", "admin", "user", "api_key", "webhook", "device"] as const;
 export type AuditActorType = (typeof AUDIT_ACTOR_TYPES)[number];
 
 /**
  * リクエスト単位の監査コンテキスト。
  * routeFactory が ALS に注入し、recorder が暗黙参照する。
  *
- * - actorId: 操作者の userId（system / 認証なしの場合は null）
+ * - actorId: 操作者の userId（actorType が device のときは端末の id。system / 認証なしの場合は null）
  * - actorType: 操作者種別
  * - ip / userAgent: HTTP リクエストヘッダから抽出
  * - sessionId: 認証済みセッションの識別子（持っていない場合は null）

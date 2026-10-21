@@ -20,6 +20,8 @@
 //
 // 詳細: src/features/core/pairedDevice/README.md
 
+import type { z } from "zod";
+
 import type { PairedDeviceKindDefinition } from "@/features/core/pairedDevice/types/kind";
 
 export const pairedDeviceKindRegistry = {
@@ -28,3 +30,11 @@ export const pairedDeviceKindRegistry = {
 
 /** 登録済みの kind 名 */
 export type PairedDeviceKind = Extract<keyof typeof pairedDeviceKindRegistry, string>;
+
+/** kind ごとの scope の型（scopeSchema から推論） */
+export type PairedDeviceScopeOf<K extends PairedDeviceKind> =
+  (typeof pairedDeviceKindRegistry)[K] extends { scopeSchema: infer S }
+    ? S extends z.ZodTypeAny
+      ? z.infer<S>
+      : unknown
+    : unknown;

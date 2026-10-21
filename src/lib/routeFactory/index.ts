@@ -21,3 +21,12 @@ export {
   type MeRouteContext,
   type MeRouteHandler,
 } from "./createMeRoute";
+export {
+  createDeviceRoute,
+  type DeviceRouteConfig,
+  type DeviceOrUserRouteConfig,
+  type DeviceRouteHandler,
+  type DeviceOrUserRouteHandler,
+  type DevicePrincipalContext,
+  type UserPrincipalContext,
+} from "./createDeviceRoute";
