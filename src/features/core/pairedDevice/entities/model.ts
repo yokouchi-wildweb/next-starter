@@ -93,5 +93,10 @@ export type DevicePairingRequestForApprover = {
   expiresAt: Date;
   requestIp: string | null;
   requestUserAgent: string | null;
+  /**
+   * 承認者と端末が同じ公開 IP から来ているか（参考情報。取れなければ null）。
+   * 認可の条件にはしない。違う場合は「その場の端末に出ているコードか」を確かめてもらう
+   */
+  sameNetworkAsApprover: boolean | null;
   createdAt: Date;
 };

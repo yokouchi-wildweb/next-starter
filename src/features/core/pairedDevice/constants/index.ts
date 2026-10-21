@@ -30,6 +30,8 @@ export type DevicePairingStatus = (typeof DEVICE_PAIRING_STATUSES)[number];
  * - forbidden: その端末を管理する権限がない
  * - invalid_scope: scope が kind のスキーマに合わない、または kind が未登録
  * - disabled: 機能が無効
+ * - device_active: 稼働中（トークン有効）の端末への割り当て。置き換えるなら replaceActive を付けて再送する
+ * - flow_not_allowed: その kind ではこのペアリング方式を許可していない（kind の pairingFlows）
  */
 export const PAIRED_DEVICE_ERROR_REASONS = [
   "not_found",
@@ -39,6 +41,8 @@ export const PAIRED_DEVICE_ERROR_REASONS = [
   "forbidden",
   "invalid_scope",
   "disabled",
+  "device_active",
+  "flow_not_allowed",
 ] as const;
 export type PairedDeviceErrorReason = (typeof PAIRED_DEVICE_ERROR_REASONS)[number];
 

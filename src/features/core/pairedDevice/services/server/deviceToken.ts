@@ -14,7 +14,7 @@ import type { DbTransaction } from "@/lib/crud/drizzle";
 import { generateSecretToken, hashSecretToken } from "@/lib/crypto";
 import { db, isDatabaseConfigured } from "@/lib/drizzle";
 
-import { getPairedDeviceKind, safeParseDeviceScope } from "./kinds";
+import { getPairedDeviceKind, runDeviceVerify, safeParseDeviceScope } from "./kinds";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -169,21 +169,14 @@ export async function authenticateDeviceToken(
   if (!parsed) return null;
   if (isIdleExpired(row.lastSeenAt, resolveIdleRevokeDays(parsed.definition), now)) return null;
 
-  if (parsed.definition.verify) {
-    try {
-      const ok = await parsed.definition.verify({
-        deviceId: row.id,
-        kind: row.kind,
-        scope: parsed.scope,
-        ip: request.ip,
-        userAgent: request.userAgent,
-      });
-      if (!ok) return null;
-    } catch (error) {
-      console.warn("[pairedDevice] verify hook threw:", error);
-      return null;
-    }
-  }
+  const verified = await runDeviceVerify(parsed.definition, {
+    deviceId: row.id,
+    kind: row.kind,
+    scope: parsed.scope,
+    ip: request.ip,
+    userAgent: request.userAgent,
+  });
+  if (!verified) return null;
 
   const tokenExpiresAt = await touchDevice(row.id, {
     tokenHash: row.tokenHash as string,

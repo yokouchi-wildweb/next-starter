@@ -75,7 +75,15 @@ export type ClaimPairingCodeInput = z.infer<typeof ClaimPairingCodeSchema>;
  * 既存の端末を割り当てるか（deviceId）、その場で端末を登録するか（device）のどちらか。
  */
 export const ApproveDevicePairingSchema = z.union([
-  z.object({ code: PairingCodeSchema, deviceId: z.string().uuid() }),
+  z.object({
+    code: PairingCodeSchema,
+    deviceId: z.string().uuid(),
+    /**
+     * 稼働中（トークン有効）の端末に割り当てるときは true が必要（今の端末は使えなくなる）。
+     * 省略すると 409 device_active で止まる（取り違えで稼働中の端末を締め出さないため）
+     */
+    replaceActive: z.boolean().optional(),
+  }),
   z.object({ code: PairingCodeSchema, device: CreatePairedDeviceSchema }),
 ]);
 export type ApproveDevicePairingInput = z.infer<typeof ApproveDevicePairingSchema>;

@@ -36,9 +36,20 @@ import {
 import { createDeadline, runBudgetedBatches, type RunBudgetedBatchesResult } from "@/lib/cron";
 import { db } from "@/lib/drizzle";
 
-import { createPairedDevice, getManagedPairedDevice, type PairedDeviceActor } from "./deviceService";
+import {
+  createPairedDevice,
+  getManagedPairedDevice,
+  resolvePairedDeviceState,
+  type PairedDeviceActor,
+} from "./deviceService";
 import { issueDeviceToken, type DeviceRequestInfo } from "./deviceToken";
-import { PairedDeviceError, assertPairedDeviceEnabled, safeParseDeviceScope } from "./kinds";
+import {
+  PairedDeviceError,
+  assertPairedDeviceEnabled,
+  assertPairingFlowAllowed,
+  runDeviceVerify,
+  safeParseDeviceScope,
+} from "./kinds";
 
 const MINUTE_MS = 60 * 1000;
 
@@ -126,6 +137,7 @@ export async function issuePairingCode(
   actor: PairedDeviceActor,
 ): Promise<IssuedPairingCode> {
   const device = await getManagedPairedDevice(deviceId, actor);
+  assertPairingFlowAllowed(device.kind, "admin_issued");
   const rawCode = generateShortCode(PAIRED_DEVICE_CONFIG.pairing.codeLength);
   const expiresAt = newExpiry();
 
@@ -186,6 +198,18 @@ async function completePairing(
   const parsed = safeParseDeviceScope(device.kind, device.scope);
   if (!parsed) {
     throw new PairedDeviceError("invalid_scope", "端末の設定が不正です。管理者に確認してください", 409);
+  }
+  // 発行の直前にも kind の verify を通す（例: 店舗の回線以外で受け取らせない）。
+  // 失敗してもペアリングは消費しない（正しい場所からやり直せる）
+  const verified = await runDeviceVerify(parsed.definition, {
+    deviceId: device.id,
+    kind: device.kind,
+    scope: parsed.scope,
+    ip: request.ip,
+    userAgent: request.userAgent,
+  });
+  if (!verified) {
+    throw new PairedDeviceError("forbidden", "この場所・機材ではこの端末を登録できません", 403);
   }
 
   return db.transaction(async (tx) => {
@@ -275,7 +299,10 @@ export async function startDevicePairing(request: DeviceRequestInfo): Promise<St
  * B. 承認画面用に、端末側から始めたペアリングの情報を返す（承認者が端末を確かめる材料）。
  * 権限の確認は承認時に行う（この時点では割り当て先の端末が決まっていない）。
  */
-export async function getDevicePairingRequest(code: string): Promise<DevicePairingRequestForApprover> {
+export async function getDevicePairingRequest(
+  code: string,
+  approver: { ip: string | null } = { ip: null },
+): Promise<DevicePairingRequestForApprover> {
   assertPairedDeviceEnabled();
   const row = await findPairingByCode(code, "device_initiated");
   if (!row) {
@@ -287,6 +314,9 @@ export async function getDevicePairingRequest(code: string): Promise<DevicePairi
     expiresAt: row.expiresAt,
     requestIp: row.requestIp,
     requestUserAgent: row.requestUserAgent,
+    // 参考情報（認可条件にはしない）。店内の同じ回線から承認しているかの目安
+    sameNetworkAsApprover:
+      row.requestIp && approver.ip ? row.requestIp === approver.ip : null,
     createdAt: row.createdAt,
   };
 }
@@ -307,6 +337,16 @@ export async function approveDevicePairing(
   assertUsable(resolvePairingStatus(row), "pending");
 
   const existing = "deviceId" in input ? await getManagedPairedDevice(input.deviceId, actor) : null;
+  assertPairingFlowAllowed(existing ? existing.kind : "device" in input ? input.device.kind : "", "device_initiated");
+  // 稼働中の端末に割り当てると今の端末は使えなくなる。取り違えを防ぐため明示を求める
+  const replacedActive = !!existing && resolvePairedDeviceState(existing) === "active";
+  if (replacedActive && !("replaceActive" in input && input.replaceActive)) {
+    throw new PairedDeviceError(
+      "device_active",
+      "この端末は稼働中です。置き換える場合は確認のうえやり直してください",
+      409,
+    );
+  }
 
   return db.transaction(async (tx) => {
     const device =
@@ -351,7 +391,7 @@ export async function approveDevicePairing(
       targetType: DEVICE_PAIRING_AUDIT_TARGET,
       targetId: row.id,
       action: "paired_device.pairing.approved",
-      after: { deviceId: device.id, flow: "device_initiated" },
+      after: { deviceId: device.id, flow: "device_initiated", replacedActive },
       metadata: { requestIp: row.requestIp, requestUserAgent: row.requestUserAgent },
       tx,
     });

@@ -5,6 +5,8 @@
 
 import type { z } from "zod";
 
+import type { DevicePairingFlow } from "@/features/core/pairedDevice/constants";
+
 import type { SessionUser } from "@/features/core/auth/entities/session";
 
 /** verify フックに渡す端末とリクエストの情報 */
@@ -51,6 +53,12 @@ export type PairedDeviceKindDefinition<TScope = unknown> = {
    * 例: 店舗の IP からのアクセスだけ通す
    */
   verify?: (ctx: PairedDeviceVerifyContext<TScope>) => boolean | Promise<boolean>;
+  /**
+   * 許可するペアリング方式。省略時は ["admin_issued"]（管理者がコードを発行する方式だけ）。
+   * 端末側から始める方式（device_initiated）は、攻撃者が自分の端末に出したコードを管理者に
+   * 承認させる誘導が成り立つので、使う kind だけ明示的に足す
+   */
+  pairingFlows?: readonly DevicePairingFlow[];
   /** 端末トークンの有効期間（日）。省略時は PAIRED_DEVICE_CONFIG.token.maxAgeDays */
   tokenMaxAgeDays?: number;
   /** 最後のアクセスからこの日数で無効にする（null = 無効化しない）。省略時は config の値 */

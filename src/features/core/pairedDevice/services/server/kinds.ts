@@ -7,6 +7,7 @@ import { and, eq, or, sql, type SQL } from "drizzle-orm";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import {
   PAIRED_DEVICE_SCOPE_MAX_BYTES,
+  type DevicePairingFlow,
   type PairedDeviceErrorReason,
 } from "@/features/core/pairedDevice/constants";
 import { PairedDeviceTable } from "@/features/core/pairedDevice/entities/drizzle";
@@ -49,6 +50,44 @@ const registry = pairedDeviceKindRegistry as Record<string, PairedDeviceKindDefi
 /** 登録済みの kind 定義。未登録は null */
 export function getPairedDeviceKind(kind: string): PairedDeviceKindDefinition | null {
   return Object.prototype.hasOwnProperty.call(registry, kind) ? (registry[kind] ?? null) : null;
+}
+
+/** 既定で許可するペアリング方式 */
+const DEFAULT_PAIRING_FLOWS: readonly DevicePairingFlow[] = ["admin_issued"];
+
+/** kind が許可するペアリング方式（未登録の kind は空） */
+export function getAllowedPairingFlows(kind: string): readonly DevicePairingFlow[] {
+  const definition = getPairedDeviceKind(kind);
+  if (!definition) return [];
+  return definition.pairingFlows ?? DEFAULT_PAIRING_FLOWS;
+}
+
+/** kind がそのペアリング方式を許可していなければ flow_not_allowed（403）を投げる */
+export function assertPairingFlowAllowed(kind: string, flow: DevicePairingFlow): void {
+  if (!getAllowedPairingFlows(kind).includes(flow)) {
+    throw new PairedDeviceError(
+      "flow_not_allowed",
+      "この種類の端末では、このペアリング方式は使えません",
+      403,
+    );
+  }
+}
+
+/**
+ * kind の verify フックを実行する。未定義なら true。false・例外は false（fail-closed）。
+ * 認証のたびのほか、ペアリング完了（トークン発行）の直前にも呼ぶ
+ */
+export async function runDeviceVerify(
+  definition: PairedDeviceKindDefinition,
+  ctx: { deviceId: string; kind: string; scope: unknown; ip: string | null; userAgent: string | null },
+): Promise<boolean> {
+  if (!definition.verify) return true;
+  try {
+    return (await definition.verify(ctx)) === true;
+  } catch (error) {
+    console.warn("[pairedDevice] verify hook threw:", error);
+    return false;
+  }
 }
 
 /** 登録済みの kind 名の一覧 */

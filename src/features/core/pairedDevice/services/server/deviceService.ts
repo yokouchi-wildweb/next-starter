@@ -9,7 +9,10 @@ import { and, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import { PAIRED_DEVICE_AUDIT_TARGET } from "@/features/core/pairedDevice/constants";
+import {
+  PAIRED_DEVICE_AUDIT_TARGET,
+  type DevicePairingFlow,
+} from "@/features/core/pairedDevice/constants";
 import { DevicePairingTable, PairedDeviceTable } from "@/features/core/pairedDevice/entities/drizzle";
 import type {
   PairedDevice,
@@ -31,6 +34,7 @@ import {
   assertCanManagePairedDevice,
   assertPairedDeviceEnabled,
   buildManageableDevicesWhere,
+  getAllowedPairingFlows,
   getPairedDeviceKind,
   listPairedDeviceKinds,
   parseDeviceScope,
@@ -273,15 +277,19 @@ export async function unpairPairedDevice(deviceId: string): Promise<void> {
 /** このユーザーが管理できる端末の種類（登録画面の選択肢用） */
 export async function listManageablePairedDeviceKinds(
   actor: PairedDeviceActor,
-): Promise<Array<{ kind: string; label: string }>> {
+): Promise<Array<{ kind: string; label: string; pairingFlows: readonly DevicePairingFlow[] }>> {
   assertPairedDeviceEnabled();
-  const result: Array<{ kind: string; label: string }> = [];
+  const result: Array<{ kind: string; label: string; pairingFlows: readonly DevicePairingFlow[] }> = [];
   for (const kind of listPairedDeviceKinds()) {
     if (actor !== "system") {
       const scopes = await resolveManageableScopes(actor, kind);
       if (scopes !== "all" && scopes.length === 0) continue;
     }
-    result.push({ kind, label: getPairedDeviceKind(kind)?.label ?? kind });
+    result.push({
+      kind,
+      label: getPairedDeviceKind(kind)?.label ?? kind,
+      pairingFlows: getAllowedPairingFlows(kind),
+    });
   }
   return result;
 }

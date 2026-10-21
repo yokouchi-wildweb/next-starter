@@ -17,6 +17,7 @@ import type {
   ListPairedDevicesInput,
   UpdatePairedDeviceInput,
 } from "@/features/core/pairedDevice/entities/schema";
+import type { DevicePairingFlow } from "@/features/core/pairedDevice/constants";
 import { normalizeHttpError } from "@/lib/errors";
 
 const BASE = "/api/paired-devices";
@@ -142,7 +143,12 @@ export async function approveDevicePairing(
   }
 }
 
-export type ManageablePairedDeviceKind = { kind: string; label: string };
+export type ManageablePairedDeviceKind = {
+  kind: string;
+  label: string;
+  /** 許可するペアリング方式（管理画面で「コード発行」「端末から承認」のどちらを出すかに使う） */
+  pairingFlows: DevicePairingFlow[];
+};
 
 export async function listManageablePairedDeviceKinds(): Promise<ManageablePairedDeviceKind[]> {
   try {
