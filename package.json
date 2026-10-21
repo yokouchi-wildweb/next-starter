@@ -28,6 +28,7 @@
     "test:dc-sample-drift": "node --test scripts/domain-config/sampleDrift.test.mjs",
     "test:wallet-lot-planning": "npx tsx --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
+    "test:paired-device": "npx tsx --test src/features/core/pairedDevice/pairedDevice.test.ts",
     "test:user-name-availability": "npx tsx --test src/features/core/user/services/server/helpers/nameAvailability.test.ts",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",
     "db:push": "cross-env APP_ENV=.env.development npx tsx scripts/registry/push.ts",

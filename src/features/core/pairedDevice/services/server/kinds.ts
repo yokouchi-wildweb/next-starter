@@ -1,0 +1,152 @@
+// src/features/core/pairedDevice/services/server/kinds.ts
+//
+// kind 定義（pairedDeviceKindRegistry）の解決、scope の検証、管理権限の判定。
+
+import { and, eq, or, sql, type SQL } from "drizzle-orm";
+
+import type { SessionUser } from "@/features/core/auth/entities/session";
+import {
+  PAIRED_DEVICE_SCOPE_MAX_BYTES,
+  type PairedDeviceErrorReason,
+} from "@/features/core/pairedDevice/constants";
+import { PairedDeviceTable } from "@/features/core/pairedDevice/entities/drizzle";
+import type {
+  PairedDeviceKindDefinition,
+  PairedDeviceManageableScopes,
+} from "@/features/core/pairedDevice/types/kind";
+import { scopeContains } from "@/features/core/pairedDevice/utils/scopeContains";
+import { getRoleCategory } from "@/features/core/user/constants";
+import { DomainError } from "@/lib/errors";
+import { pairedDeviceKindRegistry } from "@/registry/pairedDeviceKindRegistry";
+import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
+
+/**
+ * 理由（reason）付きの DomainError。API はこれを { message, reason } で返す。
+ */
+export class PairedDeviceError extends DomainError {
+  readonly reason: PairedDeviceErrorReason;
+
+  constructor(reason: PairedDeviceErrorReason, message: string, status: number) {
+    super(message, { status });
+    this.name = "PairedDeviceError";
+    this.reason = reason;
+  }
+}
+
+export function isPairedDeviceError(error: unknown): error is PairedDeviceError {
+  return error instanceof PairedDeviceError;
+}
+
+/** 機能が無効なら 404 を投げる（feature-gate の外から呼ばれた場合の保険） */
+export function assertPairedDeviceEnabled(): void {
+  if (!PAIRED_DEVICE_CONFIG.enabled) {
+    throw new PairedDeviceError("disabled", "この機能は無効です", 404);
+  }
+}
+
+const registry = pairedDeviceKindRegistry as Record<string, PairedDeviceKindDefinition | undefined>;
+
+/** 登録済みの kind 定義。未登録は null */
+export function getPairedDeviceKind(kind: string): PairedDeviceKindDefinition | null {
+  return Object.prototype.hasOwnProperty.call(registry, kind) ? (registry[kind] ?? null) : null;
+}
+
+/** 登録済みの kind 名の一覧 */
+export function listPairedDeviceKinds(): string[] {
+  return Object.keys(registry);
+}
+
+/**
+ * scope を kind の scopeSchema で検証し、検証後の値を返す。
+ * kind 未登録・形の不一致・サイズ超過は invalid_scope（400）。
+ */
+export function parseDeviceScope(kind: string, scope: unknown): unknown {
+  const definition = getPairedDeviceKind(kind);
+  if (!definition) {
+    throw new PairedDeviceError("invalid_scope", `未登録の端末の種類です: ${kind}`, 400);
+  }
+  const result = definition.scopeSchema.safeParse(scope ?? {});
+  if (!result.success) {
+    throw new PairedDeviceError("invalid_scope", "端末の scope が不正です", 400);
+  }
+  if (JSON.stringify(result.data ?? {}).length > PAIRED_DEVICE_SCOPE_MAX_BYTES) {
+    throw new PairedDeviceError("invalid_scope", "端末の scope が大きすぎます", 400);
+  }
+  return result.data;
+}
+
+/** 認証時用。kind 未登録・形の不一致なら null（例外を投げない） */
+export function safeParseDeviceScope(
+  kind: string,
+  scope: unknown,
+): { definition: PairedDeviceKindDefinition; scope: unknown } | null {
+  const definition = getPairedDeviceKind(kind);
+  if (!definition) return null;
+  const result = definition.scopeSchema.safeParse(scope ?? {});
+  return result.success ? { definition, scope: result.data } : null;
+}
+
+const isAdminCategory = (user: SessionUser): boolean => getRoleCategory(user.role) === "admin";
+
+/** このユーザーが管理できる、kind の端末の範囲 */
+export async function resolveManageableScopes(
+  user: SessionUser,
+  kind: string,
+): Promise<PairedDeviceManageableScopes> {
+  const definition = getPairedDeviceKind(kind);
+  if (!definition) return [];
+  if (isAdminCategory(user)) return "all";
+  if (!definition.manageableScopes) return [];
+  return definition.manageableScopes(user);
+}
+
+/** このユーザーが kind / scope の端末を管理できるか */
+export async function canManagePairedDevice(
+  user: SessionUser,
+  kind: string,
+  scope: unknown,
+): Promise<boolean> {
+  const scopes = await resolveManageableScopes(user, kind);
+  if (scopes === "all") return true;
+  return scopes.some((pattern) => scopeContains(scope, pattern));
+}
+
+/** 管理できなければ forbidden（403）を投げる */
+export async function assertCanManagePairedDevice(
+  user: SessionUser,
+  kind: string,
+  scope: unknown,
+): Promise<void> {
+  if (!(await canManagePairedDevice(user, kind, scope))) {
+    throw new PairedDeviceError("forbidden", "この端末を管理する権限がありません", 403);
+  }
+}
+
+/**
+ * このユーザーが管理できる端末だけに絞る WHERE 句。
+ * kind を指定しないときは登録済みのすべての kind を対象にする。管理できる端末が無ければ常に偽。
+ */
+export async function buildManageableDevicesWhere(
+  user: SessionUser,
+  kind?: string,
+): Promise<SQL> {
+  const kinds = kind ? [kind] : listPairedDeviceKinds();
+  const clauses: SQL[] = [];
+  for (const k of kinds) {
+    const scopes = await resolveManageableScopes(user, k);
+    if (scopes === "all") {
+      clauses.push(eq(PairedDeviceTable.kind, k));
+      continue;
+    }
+    for (const pattern of scopes) {
+      clauses.push(
+        and(
+          eq(PairedDeviceTable.kind, k),
+          sql`${PairedDeviceTable.scope} @> ${JSON.stringify(pattern)}::jsonb`,
+        ) as SQL,
+      );
+    }
+  }
+  if (clauses.length === 0) return sql`false`;
+  return (clauses.length === 1 ? clauses[0] : or(...clauses)) as SQL;
+}

@@ -16,7 +16,7 @@
 - src/lib/cn — Tailwind className 結合(clsx + tailwind-merge、独自トークンのクラス群登録)
 - src/lib/cron — /api/cron/* 定期タスク基盤(1 タスク 1 フォルダの task.ts から vercel.json を生成・検査)と CLI 実行、時間予算付きの再開可能ループ runBudgetedBatches
 - src/lib/crud — createCrudService 汎用 CRUD(サービス・フック・クエリ構築)
-- src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)
+- src/lib/crypto — AES-256-GCM 対称暗号化(トークン・機密データの暗号化保存)と、ハッシュ照合用のランダムトークン・短いコード生成
 - src/lib/csv — CSV ダウンロードとヘッダ付きパース
 - src/lib/dataMigration — CSV + ZIP のエクスポート / インポート(管理画面・チャンク処理)
 - src/lib/date — dayjs ラッパと柔軟な日付パース

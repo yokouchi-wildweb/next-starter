@@ -9,6 +9,7 @@
 
 import { APP_FEATURES } from "./app-features.config";
 import { CURRENCY_CONFIG } from "./currency.config";
+import { PAIRED_DEVICE_CONFIG } from "./paired-device.config";
 import { isPaymentMethodSelectable } from "./payment.config";
 
 export type FeatureGateRule = {
@@ -119,5 +120,11 @@ export const featureGateRules: FeatureGateRule[] = [
   {
     pathPatterns: ["/admin/notifications", "/api/notification/send"],
     enabled: APP_FEATURES.marketing.notification.enableAdminBroadcast,
+  },
+  // 登録端末（共有端末のペアリングと端末トークン認証）
+  {
+    pathPatterns: ["/api/paired-device", "/api/admin/paired-devices", "/api/cron/paired-device-pairings-prune"],
+    tables: ["paired_devices", "device_pairings"],
+    enabled: PAIRED_DEVICE_CONFIG.enabled,
   },
 ];

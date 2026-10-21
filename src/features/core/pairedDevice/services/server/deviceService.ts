@@ -1,0 +1,285 @@
+// src/features/core/pairedDevice/services/server/deviceService.ts
+//
+// 端末の登録・変更・失効・一覧（管理者側の操作）。すべて server-only。
+// 権限は kind の manageableScopes で判定する（admin カテゴリは常に全件）。
+// actor に "system" を渡すと権限判定を省く（CLI・cron 用。HTTP ルートからは必ずユーザーを渡す）。
+
+import { and, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
+
+import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
+import { auditLogger } from "@/features/core/auditLog/services/server";
+import type { SessionUser } from "@/features/core/auth/entities/session";
+import { PAIRED_DEVICE_AUDIT_TARGET } from "@/features/core/pairedDevice/constants";
+import { DevicePairingTable, PairedDeviceTable } from "@/features/core/pairedDevice/entities/drizzle";
+import type {
+  PairedDevice,
+  PairedDeviceForAdmin,
+  PairedDeviceState,
+} from "@/features/core/pairedDevice/entities/model";
+import type {
+  CreatePairedDeviceInput,
+  ListPairedDevicesInput,
+  UpdatePairedDeviceInput,
+} from "@/features/core/pairedDevice/entities/schema";
+import type { DbTransaction } from "@/lib/crud/drizzle";
+import { db } from "@/lib/drizzle";
+
+import { pairedDeviceBase } from "./drizzleBase";
+import { isIdleExpired, resolveIdleRevokeDays } from "./deviceToken";
+import {
+  PairedDeviceError,
+  assertCanManagePairedDevice,
+  assertPairedDeviceEnabled,
+  buildManageableDevicesWhere,
+  getPairedDeviceKind,
+  parseDeviceScope,
+} from "./kinds";
+
+/** 操作者。HTTP ルートはセッションユーザー、CLI・cron は "system" */
+export type PairedDeviceActor = SessionUser | "system";
+
+const actorUserId = (actor: PairedDeviceActor): string | null =>
+  actor === "system" ? null : actor.userId;
+
+async function assertActorCanManage(
+  actor: PairedDeviceActor,
+  kind: string,
+  scope: unknown,
+): Promise<void> {
+  if (actor === "system") return;
+  await assertCanManagePairedDevice(actor, kind, scope);
+}
+
+/** 端末の状態を導出する */
+export function resolvePairedDeviceState(
+  device: Pick<PairedDevice, "kind" | "revokedAt" | "tokenExpiresAt" | "lastSeenAt">,
+  now: Date = new Date(),
+): PairedDeviceState {
+  if (device.revokedAt) return "revoked";
+  if (!device.tokenExpiresAt) return "unpaired";
+  if (device.tokenExpiresAt.getTime() <= now.getTime()) return "expired";
+  const idleDays = resolveIdleRevokeDays(getPairedDeviceKind(device.kind));
+  if (isIdleExpired(device.lastSeenAt, idleDays, now)) return "expired";
+  return "active";
+}
+
+/** 管理者向けの形に変換する（トークン関連の内部値を落とし、状態とオンライン判定を付ける） */
+export function toPairedDeviceForAdmin(
+  device: PairedDevice,
+  now: Date = new Date(),
+): PairedDeviceForAdmin {
+  const state = resolvePairedDeviceState(device, now);
+  const online =
+    state === "active" &&
+    !!device.lastSeenAt &&
+    now.getTime() - device.lastSeenAt.getTime() <= PAIRED_DEVICE_CONFIG.onlineThresholdSeconds * 1000;
+  return {
+    id: device.id,
+    label: device.label,
+    kind: device.kind,
+    scope: device.scope,
+    state,
+    online,
+    tokenExpiresAt: device.tokenExpiresAt,
+    pairedAt: device.pairedAt,
+    pairedUserAgent: device.pairedUserAgent,
+    lastSeenAt: device.lastSeenAt,
+    lastSeenIp: device.lastSeenIp,
+    createdBy: device.createdBy,
+    revokedAt: device.revokedAt,
+    revokedBy: device.revokedBy,
+    createdAt: device.createdAt,
+    updatedAt: device.updatedAt,
+  };
+}
+
+/** 端末を 1 件取得する（存在しなければ 404） */
+async function findDeviceOrThrow(id: string): Promise<PairedDevice> {
+  const device = (await pairedDeviceBase.get(id).catch(() => null)) as PairedDevice | null;
+  if (!device) {
+    throw new PairedDeviceError("not_found", "端末が見つかりません", 404);
+  }
+  return device;
+}
+
+/**
+ * 管理対象の端末を取得する。存在しない・管理権限がないは区別せず 404
+ * （管理できない端末の存在を漏らさない）。
+ */
+export async function getManagedPairedDevice(
+  id: string,
+  actor: PairedDeviceActor,
+): Promise<PairedDevice> {
+  assertPairedDeviceEnabled();
+  const device = await findDeviceOrThrow(id);
+  try {
+    await assertActorCanManage(actor, device.kind, device.scope);
+  } catch {
+    throw new PairedDeviceError("not_found", "端末が見つかりません", 404);
+  }
+  return device;
+}
+
+/** 端末を登録する（未ペアリングの状態で作られる。続けてペアリングコードを発行する） */
+export async function createPairedDevice(
+  input: CreatePairedDeviceInput,
+  actor: PairedDeviceActor,
+  tx?: DbTransaction,
+): Promise<PairedDevice> {
+  assertPairedDeviceEnabled();
+  const scope = parseDeviceScope(input.kind, input.scope);
+  await assertActorCanManage(actor, input.kind, scope);
+
+  const run = async (executor: DbTransaction) => {
+    const created = (await pairedDeviceBase.create(
+      { label: input.label, kind: input.kind, scope, createdBy: actorUserId(actor) },
+      executor,
+    )) as unknown as PairedDevice;
+
+    await auditLogger.record({
+      targetType: PAIRED_DEVICE_AUDIT_TARGET,
+      targetId: created.id,
+      action: "paired_device.device.created",
+      after: { label: created.label, kind: created.kind, scope: created.scope },
+      tx: executor,
+    });
+    return created;
+  };
+
+  return tx ? run(tx) : db.transaction(run);
+}
+
+/** 端末の名前変更・scope の付け替え（再ペアリングは不要。次のリクエストから新しい scope が効く） */
+export async function updatePairedDevice(
+  id: string,
+  input: UpdatePairedDeviceInput,
+  actor: PairedDeviceActor,
+): Promise<PairedDevice> {
+  const device = await getManagedPairedDevice(id, actor);
+  const nextScope =
+    input.scope !== undefined ? parseDeviceScope(device.kind, input.scope) : undefined;
+  if (nextScope !== undefined) {
+    // 付け替え先も管理できる範囲でなければならない
+    await assertActorCanManage(actor, device.kind, nextScope);
+  }
+
+  return db.transaction(async (tx) => {
+    const updated = (await pairedDeviceBase.update(
+      id,
+      {
+        ...(input.label !== undefined ? { label: input.label } : {}),
+        ...(nextScope !== undefined ? { scope: nextScope } : {}),
+      },
+      tx,
+    )) as unknown as PairedDevice;
+
+    if (input.label !== undefined && input.label !== device.label) {
+      await auditLogger.record({
+        targetType: PAIRED_DEVICE_AUDIT_TARGET,
+        targetId: id,
+        action: "paired_device.device.renamed",
+        before: { label: device.label },
+        after: { label: updated.label },
+        tx,
+      });
+    }
+    if (nextScope !== undefined && JSON.stringify(nextScope) !== JSON.stringify(device.scope)) {
+      await auditLogger.record({
+        targetType: PAIRED_DEVICE_AUDIT_TARGET,
+        targetId: id,
+        action: "paired_device.device.scope_changed",
+        before: { scope: device.scope },
+        after: { scope: updated.scope },
+        tx,
+      });
+    }
+    return updated;
+  });
+}
+
+/**
+ * 端末を失効させる。次のリクエストから認証に失敗する。
+ * トークンを消し、未使用のペアリングコードも取り消す。再ペアリングすれば再び使える。
+ */
+export async function revokePairedDevice(
+  id: string,
+  actor: PairedDeviceActor,
+  options: { reason?: string | null } = {},
+): Promise<PairedDevice> {
+  const device = await getManagedPairedDevice(id, actor);
+  if (device.revokedAt) return device;
+
+  return db.transaction(async (tx) => {
+    const now = new Date();
+    const rows = await tx
+      .update(PairedDeviceTable)
+      .set({
+        tokenHash: null,
+        tokenExpiresAt: null,
+        revokedAt: now,
+        revokedBy: actorUserId(actor),
+        updatedAt: now,
+      })
+      .where(eq(PairedDeviceTable.id, id))
+      .returning();
+
+    await tx
+      .update(DevicePairingTable)
+      .set({ status: "canceled" })
+      .where(
+        and(
+          eq(DevicePairingTable.deviceId, id),
+          inArray(DevicePairingTable.status, ["pending", "approved"]),
+        ),
+      );
+
+    await auditLogger.record({
+      targetType: PAIRED_DEVICE_AUDIT_TARGET,
+      targetId: id,
+      action: "paired_device.device.revoked",
+      reason: options.reason ?? null,
+      tx,
+    });
+
+    const row = rows[0];
+    return { ...row, tokenHash: null } as PairedDevice;
+  });
+}
+
+export type ListPairedDevicesResult = {
+  results: PairedDeviceForAdmin[];
+  total: number;
+};
+
+/**
+ * 管理できる端末の一覧（ページング付き）。
+ * kind / scope（JSONB の包含）で絞り込める。失効済みは includeRevoked を付けたときだけ含める。
+ */
+export async function listPairedDevices(
+  input: ListPairedDevicesInput,
+  actor: PairedDeviceActor,
+): Promise<ListPairedDevicesResult> {
+  assertPairedDeviceEnabled();
+  const clauses: SQL[] = [];
+  if (actor !== "system") {
+    clauses.push(await buildManageableDevicesWhere(actor, input.kind));
+  }
+  if (input.kind) clauses.push(eq(PairedDeviceTable.kind, input.kind));
+  if (input.scope) {
+    clauses.push(sql`${PairedDeviceTable.scope} @> ${JSON.stringify(input.scope)}::jsonb`);
+  }
+  if (!input.includeRevoked) clauses.push(isNull(PairedDeviceTable.revokedAt));
+
+  const result = await pairedDeviceBase.search({
+    page: input.page ?? 1,
+    limit: input.limit ?? 50,
+    extraWhere: clauses.length > 0 ? (and(...clauses) as SQL) : undefined,
+  });
+  const now = new Date();
+  return {
+    results: (result.results as unknown as PairedDevice[]).map((device) =>
+      toPairedDeviceForAdmin(device, now),
+    ),
+    total: result.total,
+  };
+}

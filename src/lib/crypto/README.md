@@ -71,7 +71,26 @@ import {
 - **改ざん検知**: AuthTag による完全性検証。暗号文が改ざんされていると復号時にエラー
 - **バージョン管理**: フォーマットにバージョンプレフィックスを含むため、既存データを壊さずにアルゴリズム移行が可能
 
+## 照合用トークン・短いコード（secretToken.ts）
+
+暗号化とは別に、「生の値はクライアントに 1 回だけ渡し、DB にはハッシュだけ保存して照合する」用途の
+ヘルパーを持つ（端末トークン・ワンタイムコード・招待トークン等）。復号はできない。
+
+```ts
+import {
+  generateSecretToken, // ランダムトークン（既定 32 バイト、base64url）
+  hashSecretToken,     // SHA-256 hex。DB にはこちらだけ保存する
+  generateShortCode,   // 人が入力する短いコード（Crockford Base32、既定 8 文字）
+  normalizeShortCode,  // 入力の正規化（空白・ハイフン除去、大文字化、I/L→1・O→0）。不正文字は null
+  formatShortCode,     // 表示用の区切り（"ABCD2345" → "ABCD-2345"）
+} from "@/lib/crypto";
+```
+
+- SHA-256 は十分なエントロピーのあるランダム値の照合用。パスワードは `src/utils/hash.ts`（scrypt）を使う
+- 短いコードは 8 文字で 40 bit しかない。有効期限とレート制限を必ず併用する
+
 ## 使用箇所
 
 - `src/features/core/userXProfile/` — X OAuth トークンの暗号化保存
+- `src/features/core/pairedDevice/` — 端末トークン・ペアリングコード（secretToken.ts）
 - 今後追加される外部サービスのトークン保存にも使用可能
