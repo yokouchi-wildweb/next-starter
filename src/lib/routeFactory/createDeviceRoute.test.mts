@@ -1,0 +1,96 @@
+// src/lib/routeFactory/createDeviceRoute.test.mts
+// createDeviceRoute の主体判定の回帰テスト（端末認証・ユーザーセッションをモックして実際のファクトリーを動かす）
+// 実行: pnpm test:device-route
+
+import assert from "node:assert/strict";
+import { mock, test } from "node:test";
+
+import { NextRequest } from "next/server";
+
+type FakeDevice = { deviceId: string; kind: string; label: string; scope: unknown };
+
+let currentDevice: FakeDevice | null = null;
+let currentUser: { userId: string; role: string; status: string; isDemo: boolean } | null = null;
+let tokenOnlyIsDemo = false;
+
+mock.module("@/features/core/pairedDevice/services/server/session", {
+  namedExports: {
+    authenticateRequestDevice: async () =>
+      currentDevice ? { device: currentDevice, tokenExpiresAt: new Date(Date.now() + 86_400_000) } : null,
+    syncPairedDeviceCookie: (response: Response) => {
+      response.headers.set("x-test-cookie-synced", "1");
+      return response;
+    },
+  },
+});
+mock.module("@/features/core/auth/services/server/session/getTokenOnlySession", {
+  namedExports: {
+    getTokenOnlySession: async () =>
+      tokenOnlyIsDemo ? { userId: "demo", role: "user", status: "active", isDemo: true } : null,
+  },
+});
+mock.module("@/features/core/auth/services/server/session/getSessionUser", {
+  namedExports: { getSessionUser: async () => currentUser },
+});
+mock.module("./enforceAccess.ts", {
+  namedExports: { enforceAccessRule: async () => (currentUser ? null : Response.json({}, { status: 401 })) },
+});
+
+const { createDeviceRoute } = await import("./createDeviceRoute.ts");
+
+const call = (route: (req: NextRequest, ctx: { params: Promise<object> }) => Promise<Response>) =>
+  route(new NextRequest("http://localhost/api/test", { method: "POST" }), { params: Promise.resolve({}) });
+
+test("デモユーザーの Cookie があっても、端末として通った書き込みはハンドラまで届く", async () => {
+  currentDevice = { deviceId: "d1", kind: "table_terminal", label: "T1", scope: {} };
+  currentUser = null;
+  tokenOnlyIsDemo = true;
+  let handled = 0;
+  const route = createDeviceRoute({ operation: "POST /api/test", operationType: "write" }, async () => {
+    handled += 1;
+    return { ok: true };
+  });
+  const res = await call(route);
+  assert.equal(handled, 1);
+  assert.deepEqual(await res.json(), { ok: true });
+  assert.equal(res.headers.get("x-test-cookie-synced"), "1", "端末への応答は Cookie を書き直す");
+});
+
+test("orUser の user 枝では、デモユーザーの書き込みは従来どおりスキップされる", async () => {
+  currentDevice = null;
+  currentUser = { userId: "u1", role: "admin", status: "active", isDemo: true };
+  tokenOnlyIsDemo = true;
+  let handled = 0;
+  const route = createDeviceRoute(
+    { operation: "POST /api/test", operationType: "write", orUser: "authenticated" },
+    async () => {
+      handled += 1;
+      return { ok: true };
+    },
+  );
+  const res = await call(route);
+  assert.equal(handled, 0);
+  assert.deepEqual(await res.json(), { success: true, demo: true });
+});
+
+test("端末の応答はハンドラのエラーでも Cookie を書き直す", async () => {
+  currentDevice = { deviceId: "d1", kind: "table_terminal", label: "T1", scope: {} };
+  currentUser = null;
+  tokenOnlyIsDemo = false;
+  const { DomainError } = await import("@/lib/errors");
+  const route = createDeviceRoute({ operation: "POST /api/test", operationType: "write" }, async () => {
+    throw new DomainError("だめ", { status: 409 });
+  });
+  const res = await call(route);
+  assert.equal(res.status, 409);
+  assert.equal(res.headers.get("x-test-cookie-synced"), "1");
+});
+
+test("端末でもユーザーでもなければ 401", async () => {
+  currentDevice = null;
+  currentUser = null;
+  tokenOnlyIsDemo = false;
+  const route = createDeviceRoute({ operation: "POST /api/test", operationType: "write" }, async () => ({}));
+  const res = await call(route);
+  assert.equal(res.status, 401);
+});

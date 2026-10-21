@@ -19,12 +19,13 @@ import { getSessionUser } from "@/features/core/auth/services/server/session/get
 import { pairedDeviceErrorResponse } from "@/features/core/pairedDevice/services/server/http";
 import {
   authenticateRequestDevice,
-  readPairedDeviceToken,
-  setPairedDeviceCookie,
+  syncPairedDeviceCookie,
   type SessionDeviceOf,
 } from "@/features/core/pairedDevice/services/server/session";
 import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
 import { getAuditContext, runWithAuditContext } from "@/lib/audit";
+import { isDomainError } from "@/lib/errors";
+import { runWithUserDirtyTracking } from "@/lib/userDirty";
 import type { PairedDeviceKind } from "@/registry/pairedDeviceKindRegistry";
 
 import { createApiRoute, type ApiRouteConfig, type RouteAccess } from "./createApiRoute";
@@ -65,7 +66,10 @@ type BaseDeviceRouteConfig<K extends string> = Omit<
   rateLimit?: RateLimitCategory;
 };
 
-export type DeviceRouteConfig<K extends string> = BaseDeviceRouteConfig<K>;
+export type DeviceRouteConfig<K extends string> = BaseDeviceRouteConfig<K> & {
+  /** 端末専用（orUser を付けるとハンドラに user が渡るので DeviceOrUserRouteHandler の形になる） */
+  orUser?: never;
+};
 
 export type DeviceOrUserRouteConfig<K extends string> = BaseDeviceRouteConfig<K> & {
   /** 端末でない場合に、このルールに合うログインユーザーを通す（"authenticated" またはロール指定） */
@@ -111,7 +115,8 @@ async function rateLimited(category: RateLimitCategory | undefined, identifier: 
  * - 端末の認証を強制（Cookie なし・失効・期限切れ → 401 / kind 違い → 403）
  * - ハンドラに認証済みの device（scope 検証済み）を渡す
  * - 監査ログの actor は端末（actorType "device"、actorId = 端末 id）
- * - 端末トークンの有効期限を延長した場合は、レスポンスの Cookie を書き直す
+ * - 端末として通った応答では、毎回 Cookie の期限を DB の期限に合わせて書き直す（必要なら延長）
+ * - デモユーザーの書き込みスキップ（skipForDemo）は orUser の user 枝だけに効く
  *
  * @example
  *   export const POST = createDeviceRoute(
@@ -141,66 +146,85 @@ export function createDeviceRoute<K extends PairedDeviceKind, TParams, TResult>(
 ) {
   // user のコンテキストは orUser 指定時（= DeviceOrUserRouteHandler のオーバーロード）にしか渡さない
   const handler = rawHandler as DeviceOrUserRouteHandler<K, TParams, TResult>;
-  const { kinds, rateLimit, orUser, ...apiConfig } = config as DeviceRouteConfig<K> &
+  const { kinds, rateLimit, orUser, skipForDemo, ...apiConfig } = config as DeviceRouteConfig<K> &
     Partial<Pick<DeviceOrUserRouteConfig<K>, "orUser">>;
+  // デモユーザーの書き込みスキップは user 枝だけに適用する（createApiRoute と同じ既定）
+  const shouldSkipForDemo = skipForDemo ?? apiConfig.operationType === "write";
 
-  return createApiRoute<TParams, unknown>({ ...apiConfig, access: "custom" }, async (req, { params }) => {
-    const authenticated = await authenticateRequestDevice(req);
-    const kindMatches = !!authenticated && (!kinds || kinds.includes(authenticated.device.kind as K));
+  // createApiRoute のデモ分岐は主体の判定より前に返るため、ここでは無効にする。
+  // そのままだと、デモユーザーの Cookie を持つブラウザ（公開の guest-login で誰でも作れる）の
+  // 端末で、端末の認証も処理も通らずに書き込みが 200 で捨てられる
+  return createApiRoute<TParams, unknown>(
+    { ...apiConfig, access: "custom", skipForDemo: false },
+    async (req, { params }) => {
+      const authenticated = await authenticateRequestDevice(req);
+      const kindMatches =
+        !!authenticated && (!kinds || kinds.includes(authenticated.device.kind as K));
 
-    if (authenticated && kindMatches) {
-      const { device } = authenticated;
-      const limited = await rateLimited(rateLimit, `device:${device.deviceId}`);
-      if (limited) return limited;
+      if (authenticated && kindMatches) {
+        const { device } = authenticated;
+        // 認証済みの端末への応答は、エラー・429 を含めて毎回 Cookie の期限を DB に合わせる
+        const respond = (body: unknown) =>
+          syncPairedDeviceCookie(
+            body instanceof NextResponse ? body : NextResponse.json(body ?? null),
+            req,
+            authenticated,
+          );
 
-      const baseContext = getAuditContext();
-      const run = () =>
-        handler(req, {
-          params,
-          principal: "device",
-          device: device as SessionDeviceOf<K>,
-          user: null,
-          operator: null,
-        });
+        const limited = await rateLimited(rateLimit, `device:${device.deviceId}`);
+        if (limited) return respond(limited);
 
-      let result: unknown;
-      try {
-        result = baseContext
-          ? await runWithAuditContext(
-              { ...baseContext, actorId: device.deviceId, actorType: "device" },
-              run,
-            )
-          : await run();
-      } catch (error) {
-        const response = pairedDeviceErrorResponse(error);
-        if (response) return response;
-        throw error;
+        const run = () =>
+          handler(req, {
+            params,
+            principal: "device",
+            device: device as SessionDeviceOf<K>,
+            user: null,
+            operator: null,
+          });
+        // 監査の主体を端末にする。userDirty の flush も端末の context の中で終わるよう、内側で敷き直す
+        const baseContext = getAuditContext();
+        const runAsDevice = () => runWithUserDirtyTracking(run);
+
+        try {
+          const result = baseContext
+            ? await runWithAuditContext(
+                { ...baseContext, actorId: device.deviceId, actorType: "device" },
+                runAsDevice,
+              )
+            : await runAsDevice();
+          return respond(result);
+        } catch (error) {
+          const response = pairedDeviceErrorResponse(error);
+          if (response) return respond(response);
+          if (isDomainError(error)) {
+            console.error(`${apiConfig.operation} failed:`, error);
+            return respond(NextResponse.json({ message: error.message }, { status: error.status }));
+          }
+          throw error;
+        }
       }
 
-      if (!authenticated.refreshedExpiresAt) return result;
-      // 有効期限を延長したので Cookie を書き直す（トークンの値は同じ）
-      const response = result instanceof NextResponse ? result : NextResponse.json(result ?? null);
-      const token = readPairedDeviceToken(req.cookies);
-      if (token) setPairedDeviceCookie(response.cookies, token, authenticated.refreshedExpiresAt);
-      return response;
-    }
-
-    if (orUser) {
-      const denied = await enforceAccessRule(orUser);
-      if (denied) return denied;
-      const user = await getSessionUser();
-      if (!user) return unauthenticated();
-      const limited = await rateLimited(rateLimit, `user:${user.userId}`);
-      if (limited) return limited;
-      try {
-        return await handler(req, { params, principal: "user", device: null, user, operator: null });
-      } catch (error) {
-        const response = pairedDeviceErrorResponse(error);
-        if (response) return response;
-        throw error;
+      if (orUser) {
+        const denied = await enforceAccessRule(orUser);
+        if (denied) return denied;
+        const user = await getSessionUser();
+        if (!user) return unauthenticated();
+        if (shouldSkipForDemo && user.isDemo) {
+          return NextResponse.json({ success: true, demo: true });
+        }
+        const limited = await rateLimited(rateLimit, `user:${user.userId}`);
+        if (limited) return limited;
+        try {
+          return await handler(req, { params, principal: "user", device: null, user, operator: null });
+        } catch (error) {
+          const response = pairedDeviceErrorResponse(error);
+          if (response) return response;
+          throw error;
+        }
       }
-    }
 
-    return authenticated ? forbidden() : unauthenticated();
-  });
+      return authenticated ? forbidden() : unauthenticated();
+    },
+  );
 }
