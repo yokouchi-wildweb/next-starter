@@ -36,6 +36,10 @@ export type PairedDeviceKindDefinition<TScope = unknown> = {
    *   例: 店長は自分の店舗だけ → async (user) => (await myStoreIds(user.userId)).map((storeId) => ({ storeId }))
    * - 空配列: 管理できない
    *
+   * 各パターンはキーを 1 つ以上持つプレーンオブジェクトで、値は JSON に損失なく往復できるものに限る。
+   * `{}` や `{ storeId: undefined }` は全件に一致しかねないため、パターンごと無視される（警告が出る）。
+   * 全件を許すときは "all" を返す。
+   *
    * admin カテゴリのロールは常に "all"（このフックは呼ばれない）。省略時は admin 以外は管理できない。
    * 一覧の絞り込みと、1 件ごとの権限判定の両方がこの 1 つの宣言から決まる。
    */

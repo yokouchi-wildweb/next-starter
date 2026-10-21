@@ -14,7 +14,7 @@ import type {
   PairedDeviceKindDefinition,
   PairedDeviceManageableScopes,
 } from "@/features/core/pairedDevice/types/kind";
-import { scopeContains } from "@/features/core/pairedDevice/utils/scopeContains";
+import { isValidScopePattern, scopeContains } from "@/features/core/pairedDevice/utils/scopeContains";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { DomainError } from "@/lib/errors";
 import { pairedDeviceKindRegistry } from "@/registry/pairedDeviceKindRegistry";
@@ -97,7 +97,27 @@ export async function resolveManageableScopes(
   if (isAdminCategory(user)) return "all";
   const definition = getPairedDeviceKind(kind);
   if (!definition?.manageableScopes) return [];
-  return definition.manageableScopes(user);
+  return sanitizeManageableScopes(kind, await definition.manageableScopes(user));
+}
+
+/**
+ * manageableScopes の戻り値を検証する。一覧の SQL（@>）と 1 件ごとの判定（scopeContains）は
+ * 必ずこの検証済みの値を使う（両者の判定がずれると、一覧にだけ他の範囲の端末が出る）。
+ * 不正なパターンは捨てて警告する（fail-closed: 捨てた分は管理できない側に倒れる）。
+ */
+function sanitizeManageableScopes(kind: string, raw: unknown): PairedDeviceManageableScopes {
+  if (raw === "all") return "all";
+  if (!Array.isArray(raw)) {
+    console.warn(`[pairedDevice] manageableScopes of "${kind}" must return "all" or an array`);
+    return [];
+  }
+  const valid = raw.filter(isValidScopePattern);
+  if (valid.length !== raw.length) {
+    console.warn(
+      `[pairedDevice] manageableScopes of "${kind}" returned invalid patterns (empty object, undefined or non-JSON values); they were ignored`,
+    );
+  }
+  return valid;
 }
 
 /** このユーザーが kind / scope の端末を管理できるか */
