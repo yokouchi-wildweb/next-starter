@@ -16,6 +16,9 @@ export {
   canManagePairedDevice,
   assertCanManagePairedDevice,
   buildManageableDevicesWhere,
+  getAllowedPairingFlows,
+  assertPairingFlowAllowed,
+  runDeviceVerify,
 } from "./kinds";
 export {
   authenticateDeviceToken,
@@ -55,4 +58,9 @@ export {
   type StartedDevicePairing,
   type DevicePairingPollResult,
 } from "./pairingService";
-export { pairedDeviceErrorResponse, withPairedDeviceErrors } from "./http";
+export {
+  pairedDeviceErrorResponse,
+  withPairedDeviceErrors,
+  checkPairedDeviceRateLimit,
+  rejectCrossSiteRequest,
+} from "./http";

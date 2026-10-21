@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { ClaimPairingCodeSchema } from "@/features/core/pairedDevice/entities/schema";
 import {
   claimPairingCode,
+  rejectCrossSiteRequest,
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
 import {
@@ -27,6 +28,8 @@ export const POST = createApiRoute(
   },
   async (req) =>
     withPairedDeviceErrors(async () => {
+      const crossSite = rejectCrossSiteRequest(req);
+      if (crossSite) return crossSite;
       const parsed = ClaimPairingCodeSchema.safeParse(await req.json().catch(() => null));
       if (!parsed.success) {
         throw new DomainError("コードを入力してください", { status: 400 });

@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  rejectCrossSiteRequest,
   unpairPairedDevice,
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
@@ -41,6 +42,8 @@ export const DELETE = createApiRoute(
   },
   async (req) =>
     withPairedDeviceErrors(async () => {
+      const crossSite = rejectCrossSiteRequest(req);
+      if (crossSite) return crossSite;
       const authenticated = await authenticateRequestDevice(req);
       if (authenticated) await unpairPairedDevice(authenticated.device.deviceId);
       const response = NextResponse.json({ ok: true });

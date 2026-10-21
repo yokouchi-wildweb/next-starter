@@ -16,13 +16,15 @@ import { NextRequest, NextResponse } from "next/server";
 import type { RateLimitCategory } from "@/config/app/rate-limit.config";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { pairedDeviceErrorResponse } from "@/features/core/pairedDevice/services/server/http";
+import {
+  checkPairedDeviceRateLimit,
+  pairedDeviceErrorResponse,
+} from "@/features/core/pairedDevice/services/server/http";
 import {
   authenticateRequestDevice,
   syncPairedDeviceCookie,
   type SessionDeviceOf,
 } from "@/features/core/pairedDevice/services/server/session";
-import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
 import { getAuditContext, runWithAuditContext } from "@/lib/audit";
 import { isDomainError } from "@/lib/errors";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
@@ -97,17 +99,7 @@ const forbidden = () =>
 
 async function rateLimited(category: RateLimitCategory | undefined, identifier: string) {
   if (!category) return null;
-  const limit = await checkRateLimit(category, identifier);
-  if (limit.allowed) return null;
-  const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
-  return NextResponse.json(
-    {
-      message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
-      reason: "rate_limited",
-      resetAt: limit.resetAt,
-    },
-    { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } },
-  );
+  return checkPairedDeviceRateLimit(category, identifier);
 }
 
 /**

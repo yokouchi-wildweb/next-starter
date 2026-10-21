@@ -6,9 +6,12 @@
 import { NextResponse } from "next/server";
 
 import {
+  checkPairedDeviceRateLimit,
   pollDevicePairing,
+  rejectCrossSiteRequest,
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
+import { hashSecretToken } from "@/lib/crypto";
 import {
   clearPendingPairingCookie,
   readDeviceRequestInfo,
@@ -25,14 +28,22 @@ export const POST = createApiRoute(
     skipForDemo: false,
     // 公開: ペアリングを始めた端末だけが持つ照合トークン（httpOnly Cookie）で照合する
     access: "public",
-    rateLimit: "pairedDevicePairingPoll",
+    // IP 単位は緩い上限だけ（店内の端末は同じ IP）。主な制限は照合トークン単位（下）
+    rateLimit: "pairedDevicePairingPollIp",
   },
   async (req) =>
     withPairedDeviceErrors(async () => {
-      const result = await pollDevicePairing(
-        readPendingPairingToken(req.cookies) ?? "",
-        readDeviceRequestInfo(req.headers),
-      );
+      const crossSite = rejectCrossSiteRequest(req);
+      if (crossSite) return crossSite;
+      const pendingToken = readPendingPairingToken(req.cookies) ?? "";
+      if (pendingToken) {
+        const limited = await checkPairedDeviceRateLimit(
+          "pairedDevicePairingPoll",
+          `pending:${hashSecretToken(pendingToken)}`,
+        );
+        if (limited) return limited;
+      }
+      const result = await pollDevicePairing(pendingToken, readDeviceRequestInfo(req.headers));
       if (result.status !== "completed") {
         const response = NextResponse.json({ status: result.status, expiresAt: result.expiresAt });
         if (result.status !== "pending") clearPendingPairingCookie(response.cookies);

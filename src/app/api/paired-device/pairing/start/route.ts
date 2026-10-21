@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 
 import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
 import {
+  rejectCrossSiteRequest,
   startDevicePairing,
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
@@ -27,6 +28,8 @@ export const POST = createApiRoute(
   },
   async (req) =>
     withPairedDeviceErrors(async () => {
+      const crossSite = rejectCrossSiteRequest(req);
+      if (crossSite) return crossSite;
       const started = await startDevicePairing(readDeviceRequestInfo(req.headers));
       const response = NextResponse.json({
         code: started.code,
