@@ -27,7 +27,10 @@
 ```ts
 // src/registry/pairedDeviceKindRegistry.ts
 import { z } from "zod";
-import { definePairedDeviceKind } from "@/features/core/pairedDevice/types/kind";
+import {
+  definePairedDeviceKind,
+  type PairedDeviceKindDefinition,
+} from "@/features/core/pairedDevice/types/kind";
 
 export const pairedDeviceKindRegistry = {
   table_terminal: definePairedDeviceKind({
@@ -57,7 +60,7 @@ export const pairedDeviceKindRegistry = {
 | `verify(ctx)` | 認証のたびに実行する追加検証。false か例外で認証失敗 |
 | `pairingFlows` | 許可するペアリング方式。既定は `["admin_issued"]`。端末から始める方式（B）は、攻撃者が自分の端末に出したコードを管理者に承認させる誘導が成り立つので、使う kind だけ `"device_initiated"` を足す |
 | `tokenMaxAgeDays` | 端末トークンの有効期間（既定 400 日。主要ブラウザの Cookie 上限。0 以下・400 超は無視される） |
-| `idleRevokeDays` | 最後のアクセスからこの日数で無効にする（`null` = 無効化しない） |
+| `idleRevokeDays` | 最後のサーバーへの要求（ページ表示を含む）からこの日数で無効にする（`null` = 無効化しない） |
 
 登録すると `kinds` の指定に型が付き、ハンドラの `device.scope` も kind ごとの型になる（未登録の kind はコンパイルエラー）。
 
@@ -216,8 +219,13 @@ export function DevicePairing() {
 
   return (
     <Stack space={4}>
-      <OneTimeCodeInput value={code} onChange={setCode} onComplete={(value) => claim.trigger(value)} />
-      <Button onClick={() => claim.trigger(code)} disabled={claim.isMutating}>
+      {/* 結果は claim.data / claim.errorReason で受け取るので、trigger の reject は握りつぶしてよい */}
+      <OneTimeCodeInput
+        value={code}
+        onChange={setCode}
+        onComplete={(value) => claim.trigger(value).catch(() => undefined)}
+      />
+      <Button onClick={() => claim.trigger(code).catch(() => undefined)} disabled={claim.isMutating}>
         {claim.isMutating ? "登録中…" : "登録する"}
       </Button>
       {claim.errorReason && claim.errorReason in REASON_MESSAGES && (
@@ -314,10 +322,14 @@ server-only の API は `@/features/core/pairedDevice/services/server`（サー�
 
 - **iOS のホーム画面に追加したアプリは Safari と Cookie が別**。ペアリングは実際に使う形（ホーム画面のアプリ / ブラウザ）の中で行う
 - キオスク用ブラウザ・アプリは Cookie を保持する設定にする（終了時に消す設定だと毎回ペアリングが要る）
-- Cookie は `Secure` 付き。本番は HTTPS で配信する（開発の `localhost` は HTTP でも動く）
+- Cookie は `Secure` 付き。本番は HTTPS で配信する。開発の `localhost` は HTTP でも動くが、
+  **LAN の IP（`http://192.168.x.x:3000`）でタブレットから開くと Cookie が保存されない**。実機の確認は HTTPS（トンネル等）で行う
 - ブラウザは Cookie の寿命を約 400 日で打ち切る。端末の API か heartbeat（上記）を呼び続けている端末は延長されるので切れない
 - 端末の Cookie を別の機材にコピーされると同じ端末として通る。気になる場合は `verify`（店舗 IP 等）を足す
 - 端末からリアルタイム機能（realtimeRoom / Firestore）を使う認証は未対応
+- 端末への応答は `Cache-Control: private, no-store`（Set-Cookie を含むので共有キャッシュに載せない）
+- 端末のルートからお知らせ（notification）を送ると、送信者の種別は既存の慣習どおり admin として残る
+  （system 以外は admin 扱い）。端末からの送信を区別したい場合は metadata に端末 id を入れる
 
 ## 監査ログ
 
