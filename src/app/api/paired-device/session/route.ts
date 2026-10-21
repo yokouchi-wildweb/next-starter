@@ -12,8 +12,7 @@ import {
 import {
   authenticateRequestDevice,
   clearPairedDeviceCookie,
-  readPairedDeviceToken,
-  setPairedDeviceCookie,
+  syncPairedDeviceCookie,
 } from "@/features/core/pairedDevice/services/server/session";
 import { createApiRoute } from "@/lib/routeFactory";
 
@@ -27,11 +26,8 @@ export const GET = createApiRoute(
   async (req) => {
     const authenticated = await authenticateRequestDevice(req);
     const response = NextResponse.json({ device: authenticated?.device ?? null });
-    const token = readPairedDeviceToken(req.cookies);
-    if (authenticated?.refreshedExpiresAt && token) {
-      setPairedDeviceCookie(response.cookies, token, authenticated.refreshedExpiresAt);
-    }
-    return response;
+    // 表示専用の端末は、このルートを定期的に呼ぶ（heartbeat）ことで Cookie の期限を保つ
+    return authenticated ? syncPairedDeviceCookie(response, req, authenticated) : response;
   },
 );
 

@@ -81,7 +81,8 @@ export const POST = createDeviceRoute(
 ```
 
 - Cookie なし・失効・期限切れ → 401、kind 違い → 403（いずれも `{ message, reason }`）
-- 端末トークンの有効期限を延長したときは、レスポンスの Cookie を自動で書き直す
+- 端末として通った応答では、エラーや 429 を含めて毎回 Cookie の期限を DB に合わせて書き直す（残りが短ければ延長もする）
+- デモユーザーの書き込みスキップ（`skipForDemo`）は `orUser` のユーザーとして通ったときだけ効く（端末はデモ扱いしない）
 - **端末またはスタッフ本人**のどちらでも通す API は `orUser` を付け、`ctx.principal` で分岐する
 
 ```ts
@@ -123,8 +124,14 @@ const device = await requireCurrentDevice({
 
 - `redirectTo` を省くと 404（端末向けページの存在を明かさない）
 - 端末向けページはユーザーの `(protected)` グループの外に置く（ユーザーのログインを要求しないため）
-- Server Component からは Cookie を書けないので、ページ表示だけでは Cookie の期限は延びない
-  （DB 側の期限は延びる。端末が API を呼んだときに `createDeviceRoute` が Cookie を書き直す）
+- Server Component からは Cookie を書けないので、ページ表示では期限を延ばさない（DB と Cookie の期限をずらさないため）。
+  延長は Cookie を書ける API 応答（`createDeviceRoute` のルート・`GET /api/paired-device/session`）で行う。
+  **API を呼ばない表示専用の端末には heartbeat を置く**:
+
+  ```tsx
+  // 端末ページのどこか（"use client" の part）。1 日 1 回程度で十分（期限は 400 日、残り 30 日で延長）
+  useSessionDevice({ refreshInterval: 6 * 60 * 60 * 1000 });
+  ```
 - 任意の場所で端末を取りたいときは `getSessionDevice()`（無ければ null）
 
 ## ペアリング（端末を登録する 2 つの方式）
@@ -289,7 +296,7 @@ server-only の API は `@/features/core/pairedDevice/services/server`（サー�
 - **iOS のホーム画面に追加したアプリは Safari と Cookie が別**。ペアリングは実際に使う形（ホーム画面のアプリ / ブラウザ）の中で行う
 - キオスク用ブラウザ・アプリは Cookie を保持する設定にする（終了時に消す設定だと毎回ペアリングが要る）
 - Cookie は `Secure` 付き。本番は HTTPS で配信する（開発の `localhost` は HTTP でも動く）
-- ブラウザは Cookie の寿命を約 400 日で打ち切る。使われ続けている端末は延長されるので切れない
+- ブラウザは Cookie の寿命を約 400 日で打ち切る。端末の API か heartbeat（上記）を呼び続けている端末は延長されるので切れない
 - 端末の Cookie を別の機材にコピーされると同じ端末として通る。気になる場合は `verify`（店舗 IP 等）を足す
 - 端末からリアルタイム機能（realtimeRoom / Firestore）を使う認証は未対応
 

@@ -4,6 +4,7 @@ export {
   getSessionDevice,
   authenticateRequestDevice,
   readDeviceRequestInfo,
+  syncPairedDeviceCookie,
 } from "./getSessionDevice";
 export { deviceGuard, requireCurrentDevice, type SessionDeviceOf } from "./deviceGuard";
 export {
