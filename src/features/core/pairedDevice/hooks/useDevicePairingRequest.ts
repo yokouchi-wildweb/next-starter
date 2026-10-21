@@ -4,7 +4,7 @@
 
 import useSWR, { type SWRConfiguration } from "swr";
 
-import type { DevicePairingRequestForApprover } from "@/features/core/pairedDevice/entities/model";
+import type { DevicePairingRequestForApproverDto } from "@/features/core/pairedDevice/entities/model";
 import { fetchDevicePairingRequest } from "@/features/core/pairedDevice/services/client/pairedDeviceManageClient";
 
 import { DEVICE_PAIRING_REQUEST_KEY } from "./keys";
@@ -15,9 +15,9 @@ import { DEVICE_PAIRING_REQUEST_KEY } from "./keys";
  */
 export function useDevicePairingRequest(
   code: string | null,
-  config?: SWRConfiguration<DevicePairingRequestForApprover>,
+  config?: SWRConfiguration<DevicePairingRequestForApproverDto>,
 ) {
-  return useSWR<DevicePairingRequestForApprover>(
+  return useSWR<DevicePairingRequestForApproverDto>(
     code ? ([DEVICE_PAIRING_REQUEST_KEY, code] as const) : null,
     () => fetchDevicePairingRequest(code as string),
     { shouldRetryOnError: false, ...config },

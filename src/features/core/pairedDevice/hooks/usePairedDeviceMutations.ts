@@ -5,7 +5,7 @@
 // 管理側の mutation フック。成功すると一覧・詳細（pairedDevices/*）を再検証する。
 // 失敗の理由は getPairedDeviceErrorReason(error) で取り出せる。
 
-import type { PairedDeviceForAdmin } from "@/features/core/pairedDevice/entities/model";
+import type { PairedDeviceForAdminDto } from "@/features/core/pairedDevice/entities/model";
 import type {
   ApproveDevicePairingInput,
   CreatePairedDeviceInput,
@@ -26,7 +26,7 @@ import { PAIRED_DEVICES_KEY } from "./keys";
 
 /** 端末を登録する（未ペアリングの状態で作られる。続けて useIssuePairingCode でコードを出す） */
 export function useCreatePairedDevice() {
-  return useDomainMutation<PairedDeviceForAdmin, CreatePairedDeviceInput>(
+  return useDomainMutation<PairedDeviceForAdminDto, CreatePairedDeviceInput>(
     "pairedDevices/create",
     (input) => createPairedDevice(input),
     PAIRED_DEVICES_KEY,
@@ -35,7 +35,7 @@ export function useCreatePairedDevice() {
 
 /** 名前の変更・scope の付け替え（再ペアリング不要） */
 export function useUpdatePairedDevice() {
-  return useDomainMutation<PairedDeviceForAdmin, { id: string; input: UpdatePairedDeviceInput }>(
+  return useDomainMutation<PairedDeviceForAdminDto, { id: string; input: UpdatePairedDeviceInput }>(
     "pairedDevices/update",
     ({ id, input }) => updatePairedDevice(id, input),
     PAIRED_DEVICES_KEY,
@@ -44,7 +44,7 @@ export function useUpdatePairedDevice() {
 
 /** 端末を失効させる（次のリクエストから使えなくなる。再ペアリングで戻せる） */
 export function useRevokePairedDevice() {
-  return useDomainMutation<PairedDeviceForAdmin, { id: string; reason?: string | null }>(
+  return useDomainMutation<PairedDeviceForAdminDto, { id: string; reason?: string | null }>(
     "pairedDevices/revoke",
     ({ id, reason }) => revokePairedDevice(id, reason),
     PAIRED_DEVICES_KEY,
@@ -77,7 +77,7 @@ export function useCancelDevicePairing() {
  * その場で登録する（{ code, device: { label, kind, scope } }）。
  */
 export function useApproveDevicePairing() {
-  return useDomainMutation<PairedDeviceForAdmin, ApproveDevicePairingInput>(
+  return useDomainMutation<PairedDeviceForAdminDto, ApproveDevicePairingInput>(
     "pairedDevices/approvePairing",
     (input) => approveDevicePairing(input),
     PAIRED_DEVICES_KEY,

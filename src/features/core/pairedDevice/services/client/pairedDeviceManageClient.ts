@@ -7,9 +7,9 @@
 import axios from "axios";
 
 import type {
-  DevicePairing,
-  DevicePairingRequestForApprover,
-  PairedDeviceForAdmin,
+  DevicePairingDto,
+  DevicePairingRequestForApproverDto,
+  PairedDeviceForAdminDto,
 } from "@/features/core/pairedDevice/entities/model";
 import type {
   ApproveDevicePairingInput,
@@ -23,7 +23,7 @@ import { normalizeHttpError } from "@/lib/errors";
 const BASE = "/api/paired-devices";
 const deviceEndpoint = (id: string) => `${BASE}/${encodeURIComponent(id)}`;
 
-export type ListPairedDevicesResponse = { results: PairedDeviceForAdmin[]; total: number };
+export type ListPairedDevicesResponse = { results: PairedDeviceForAdminDto[]; total: number };
 
 export async function listPairedDevices(
   params: ListPairedDevicesInput = {},
@@ -45,9 +45,9 @@ export async function listPairedDevices(
 }
 
 export type PairedDeviceDetailResponse = {
-  device: PairedDeviceForAdmin;
+  device: PairedDeviceForAdminDto;
   /** 未使用のペアリングコード（発行中なら 1 件） */
-  activePairings: DevicePairing[];
+  activePairings: DevicePairingDto[];
 };
 
 export async function fetchPairedDevice(id: string): Promise<PairedDeviceDetailResponse> {
@@ -59,9 +59,9 @@ export async function fetchPairedDevice(id: string): Promise<PairedDeviceDetailR
   }
 }
 
-export async function createPairedDevice(input: CreatePairedDeviceInput): Promise<PairedDeviceForAdmin> {
+export async function createPairedDevice(input: CreatePairedDeviceInput): Promise<PairedDeviceForAdminDto> {
   try {
-    const res = await axios.post<{ device: PairedDeviceForAdmin }>(BASE, input);
+    const res = await axios.post<{ device: PairedDeviceForAdminDto }>(BASE, input);
     return res.data.device;
   } catch (error) {
     throw normalizeHttpError(error, "端末の登録に失敗しました");
@@ -71,9 +71,9 @@ export async function createPairedDevice(input: CreatePairedDeviceInput): Promis
 export async function updatePairedDevice(
   id: string,
   input: UpdatePairedDeviceInput,
-): Promise<PairedDeviceForAdmin> {
+): Promise<PairedDeviceForAdminDto> {
   try {
-    const res = await axios.patch<{ device: PairedDeviceForAdmin }>(deviceEndpoint(id), input);
+    const res = await axios.patch<{ device: PairedDeviceForAdminDto }>(deviceEndpoint(id), input);
     return res.data.device;
   } catch (error) {
     throw normalizeHttpError(error, "端末の変更に失敗しました");
@@ -83,9 +83,9 @@ export async function updatePairedDevice(
 export async function revokePairedDevice(
   id: string,
   reason?: string | null,
-): Promise<PairedDeviceForAdmin> {
+): Promise<PairedDeviceForAdminDto> {
   try {
-    const res = await axios.post<{ device: PairedDeviceForAdmin }>(`${deviceEndpoint(id)}/revoke`, {
+    const res = await axios.post<{ device: PairedDeviceForAdminDto }>(`${deviceEndpoint(id)}/revoke`, {
       reason: reason ?? null,
     });
     return res.data.device;
@@ -118,9 +118,9 @@ export async function cancelDevicePairing(pairingId: string): Promise<void> {
   }
 }
 
-export async function fetchDevicePairingRequest(code: string): Promise<DevicePairingRequestForApprover> {
+export async function fetchDevicePairingRequest(code: string): Promise<DevicePairingRequestForApproverDto> {
   try {
-    const res = await axios.get<{ request: DevicePairingRequestForApprover }>(`${BASE}/pairing-requests`, {
+    const res = await axios.get<{ request: DevicePairingRequestForApproverDto }>(`${BASE}/pairing-requests`, {
       params: { code },
     });
     return res.data.request;
@@ -131,9 +131,9 @@ export async function fetchDevicePairingRequest(code: string): Promise<DevicePai
 
 export async function approveDevicePairing(
   input: ApproveDevicePairingInput,
-): Promise<PairedDeviceForAdmin> {
+): Promise<PairedDeviceForAdminDto> {
   try {
-    const res = await axios.post<{ device: PairedDeviceForAdmin }>(
+    const res = await axios.post<{ device: PairedDeviceForAdminDto }>(
       `${BASE}/pairing-requests/approve`,
       input,
     );

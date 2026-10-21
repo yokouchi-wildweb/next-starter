@@ -100,3 +100,18 @@ export type DevicePairingRequestForApprover = {
   sameNetworkAsApprover: boolean | null;
   createdAt: Date;
 };
+
+/**
+ * JSON で受け取った形（Date は ISO 文字列になる）。ClientService / hooks が返すのはこの形。
+ * サーバー側の型（Date）をそのままクライアントで使うと、文字列を Date として扱ってしまう
+ */
+export type Jsonified<T> = {
+  [K in keyof T]: T[K] extends Date ? string : T[K] extends Date | null ? string | null : T[K];
+};
+
+/** 管理 API が返す端末（JSON） */
+export type PairedDeviceForAdminDto = Jsonified<PairedDeviceForAdmin>;
+/** 管理 API が返すペアリング（JSON） */
+export type DevicePairingDto = Jsonified<DevicePairing>;
+/** 承認画面用の情報（JSON） */
+export type DevicePairingRequestForApproverDto = Jsonified<DevicePairingRequestForApprover>;
