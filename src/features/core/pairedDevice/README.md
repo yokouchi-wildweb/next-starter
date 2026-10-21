@@ -40,6 +40,8 @@ export const pairedDeviceKindRegistry = {
     verify: ({ ip, scope }) => storeNetworkService.isStoreIp(scope.storeId, ip),
     // 客用端末は 30 日アクセスがなければ無効にする（任意。既定は config の値）
     idleRevokeDays: 30,
+    // キーボードのない客用端末なので、端末から始めるペアリング（B）も許可する（既定は A だけ）
+    pairingFlows: ["admin_issued", "device_initiated"],
   }),
   staff_tablet: definePairedDeviceKind({
     label: "スタッフ用タブレット",
@@ -53,7 +55,8 @@ export const pairedDeviceKindRegistry = {
 | `scopeSchema` | scope の形。登録・変更時と、端末の認証のたびに検証する（合わなくなった端末は認証に失敗する） |
 | `manageableScopes(user)` | そのユーザーが管理（登録・変更・失効・ペアリング）できる範囲。`"all"` か、scope の部分オブジェクトの配列（JSONB の `@>` と同じ包含判定）。**一覧の絞り込みと 1 件ごとの権限判定の両方がこの 1 つから決まる**。admin カテゴリは常に `"all"` |
 | `verify(ctx)` | 認証のたびに実行する追加検証。false か例外で認証失敗 |
-| `tokenMaxAgeDays` | 端末トークンの有効期間（既定 400 日。主要ブラウザの Cookie 上限） |
+| `pairingFlows` | 許可するペアリング方式。既定は `["admin_issued"]`。端末から始める方式（B）は、攻撃者が自分の端末に出したコードを管理者に承認させる誘導が成り立つので、使う kind だけ `"device_initiated"` を足す |
+| `tokenMaxAgeDays` | 端末トークンの有効期間（既定 400 日。主要ブラウザの Cookie 上限。0 以下・400 超は無視される） |
 | `idleRevokeDays` | 最後のアクセスからこの日数で無効にする（`null` = 無効化しない） |
 
 登録すると `kinds` の指定に型が付き、ハンドラの `device.scope` も kind ごとの型になる（未登録の kind はコンパイルエラー）。
@@ -145,7 +148,14 @@ const device = await requireCurrentDevice({
 - 同じ端末に新しいコードを出すと、古い未使用コードは取り消される
 - 失効済みの端末にもコードを出せる（ペアリングが成立すると失効が解除される = 再ペアリング）
 - B では、コードを見ただけの第三者はトークンを受け取れない（開始した端末だけが持つ照合用 Cookie で受け取る）
-- 総当たりはレート制限（`pairedDeviceClaim` / `pairedDevicePairingStart` / `pairedDevicePairingPoll`）で防ぐ
+- B は kind の `pairingFlows` に `"device_initiated"` を足した kind でだけ使える（承認時に判定。許可していなければ reason `flow_not_allowed`）
+- 端末トークンを発行する直前（A の claim・B の完了）にも kind の `verify` を通す。通らなければ発行せず、コードも消費しない
+- 稼働中（トークン有効）の端末への B の承認は、`replaceActive: true` を付けないと 409（reason `device_active`）で止まる（取り違えで今の端末を締め出さないため）
+- 公開のペアリング POST はクロスサイトからの送信を拒否する（`Sec-Fetch-Site` / `Origin`）
+- 総当たりはレート制限で防ぐ。店内の端末は同じ IP から来るので、IP 単位は緩い上限だけにして主な制限は別の単位でかける
+  - コード入力 `pairedDeviceClaim`（IP 単位 100 回 / 10 分）、端末からの開始 `pairedDevicePairingStart`（IP 単位 20 回 / 10 分）
+  - 承認の確認 `pairedDevicePairingPoll`（ペアリング単位 60 回 / 分）+ `pairedDevicePairingPollIp`（IP 単位 600 回 / 分）
+  - 承認・承認情報 `pairedDeviceManage`（ユーザー単位 60 回 / 10 分）+ `pairedDeviceManageIp`（IP 単位 300 回 / 10 分）
 
 管理画面を作る前の最初の 1 台や復旧には CLI を使う:
 
@@ -164,7 +174,7 @@ hooks はすべて `@/features/core/pairedDevice/hooks`。失敗の理由は `er
 | この端末が登録済みか | `useSessionDevice()`（未登録は `data === null`） |
 | A. コード入力 | `useClaimDevicePairing({ autoClaimCode })` + `OneTimeCodeInput`（`@/components/Form/Input/Manual`） |
 | QR から開いたときのコード | `useDevicePairingCodeFromUrl(param = "code")`（Suspense の内側で使う） |
-| B. 端末側の表示と承認待ち | `useStartDevicePairing()`（`phase` / `code` / `restart`） |
+| B. 端末側の表示と承認待ち | `useStartDevicePairing()`（`phase` / `code` / `lastError` / `restart`）。一時的な失敗では止まらず確認を続ける |
 | B. 承認画面 | `useDevicePairingRequest(code)` + `useApproveDevicePairing()` |
 | この端末の登録解除 | `useUnpairThisDevice()` |
 | 管理一覧・詳細 | `usePairedDevices(params)` / `usePairedDevice(id)` / `usePairedDeviceKinds()` |
@@ -221,13 +231,19 @@ export function DevicePairing() {
 export function DevicePairingByQr() {
   const pairing = useStartDevicePairing();
   if (pairing.phase === "completed") return <Para>登録しました</Para>;
-  if (pairing.phase === "expired" || pairing.phase === "error") {
+  if (pairing.phase === "expired" || pairing.phase === "canceled" || pairing.phase === "error") {
     return <Button onClick={pairing.restart}>新しいコードを表示</Button>;
   }
   if (!pairing.code) return <Para>準備中…</Para>;
-  const approveUrl = `${location.origin}/device-approve?code=${pairing.code}`;
   // QR は好きなライブラリで描く（例: qrcode.react の <QRCodeSVG value={approveUrl} />）
-  return <Para>管理者のスマホで読み取ってください: {pairing.code}</Para>;
+  const approveUrl = `${location.origin}/device-approve?code=${pairing.code}`;
+  return (
+    <Stack space={2}>
+      <Para>管理者のスマホで読み取ってください: {pairing.code}</Para>
+      {/* QR: approveUrl */}
+      {pairing.lastError ? <Para>接続を確認しています…</Para> : null}
+    </Stack>
+  );
 }
 ```
 
@@ -238,10 +254,13 @@ Screen（`page.tsx` → `_screen` or `_components`）の置き方は src/lib/scr
 
 ```tsx
 const code = useDevicePairingCodeFromUrl();
-const { data: request, error } = useDevicePairingRequest(code); // User-Agent・IP・期限を見せて確かめてもらう
+// User-Agent・IP・期限を見せて確かめてもらう。sameNetworkAsApprover が false なら
+// 「目の前の端末に出ているコードか」を確認してもらう（参考情報。認可の条件ではない）
+const { data: request, error } = useDevicePairingRequest(code);
 const approve = useApproveDevicePairing();
-// 既存の端末を割り当てる
+// 既存の端末を割り当てる（稼働中の端末なら 409 device_active → 確認のうえ replaceActive: true で再送）
 await approve.trigger({ code: code!, deviceId });
+await approve.trigger({ code: code!, deviceId, replaceActive: true });
 // その場で登録する
 await approve.trigger({ code: code!, device: { label: "3番テーブル", kind: "table_terminal", scope: { storeId, tableId } } });
 ```
