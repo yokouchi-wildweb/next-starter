@@ -93,10 +93,10 @@ export async function resolveManageableScopes(
   user: SessionUser,
   kind: string,
 ): Promise<PairedDeviceManageableScopes> {
-  const definition = getPairedDeviceKind(kind);
-  if (!definition) return [];
+  // admin は kind が registry から外れた端末（残骸）も一覧・失効できるよう、定義より先に判定する
   if (isAdminCategory(user)) return "all";
-  if (!definition.manageableScopes) return [];
+  const definition = getPairedDeviceKind(kind);
+  if (!definition?.manageableScopes) return [];
   return definition.manageableScopes(user);
 }
 
@@ -130,6 +130,10 @@ export async function buildManageableDevicesWhere(
   user: SessionUser,
   kind?: string,
 ): Promise<SQL> {
+  // admin は全件（kind が registry から外れた端末を含む）
+  if (isAdminCategory(user)) {
+    return kind ? eq(PairedDeviceTable.kind, kind) : sql`true`;
+  }
   const kinds = kind ? [kind] : listPairedDeviceKinds();
   const clauses: SQL[] = [];
   for (const k of kinds) {
