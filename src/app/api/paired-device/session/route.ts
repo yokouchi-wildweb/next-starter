@@ -15,6 +15,7 @@ import {
   clearPairedDeviceCookie,
   syncPairedDeviceCookie,
 } from "@/features/core/pairedDevice/services/server/session";
+import { getAuditContext, runWithAuditContext } from "@/lib/audit";
 import { createApiRoute } from "@/lib/routeFactory";
 
 export const GET = createApiRoute(
@@ -45,7 +46,16 @@ export const DELETE = createApiRoute(
       const crossSite = rejectCrossSiteRequest(req);
       if (crossSite) return crossSite;
       const authenticated = await authenticateRequestDevice(req);
-      if (authenticated) await unpairPairedDevice(authenticated.device.deviceId);
+      if (authenticated) {
+        // 端末自身の操作なので、監査の主体を端末にする（同じブラウザのユーザー Cookie に左右されない）
+        const { deviceId } = authenticated.device;
+        const base = getAuditContext();
+        await (base
+          ? runWithAuditContext({ ...base, actorId: deviceId, actorType: "device" }, () =>
+              unpairPairedDevice(deviceId),
+            )
+          : unpairPairedDevice(deviceId));
+      }
       const response = NextResponse.json({ ok: true });
       clearPairedDeviceCookie(response.cookies);
       return response;

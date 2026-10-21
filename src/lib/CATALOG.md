@@ -39,7 +39,7 @@
 - src/lib/metadata — Next.js の generateMetadata 生成ヘルパ(createMetadata)
 - src/lib/realtimeRoom — ホットパス・リアルタイム基盤の SDK(servers/room 接続、購読フック、サーバー dispatch)
 - src/lib/recaptcha — Google reCAPTCHA v3 / v2 ハイブリッドのボット対策
-- src/lib/request — リクエスト情報の取得(getClientIp)
+- src/lib/request — リクエスト情報の取得(getClientIp、ヘッダーを受け取る純粋版 readClientIp)
 - src/lib/requestMemo — リクエストスコープの無効化可能なメモ化(同一リクエスト内の重複読み取りを圧縮)
 - src/lib/routeFactory — 全 API ルートの生成ファクトリ(認可を構造的に強制)
 - src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト

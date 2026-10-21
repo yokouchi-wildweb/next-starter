@@ -8,6 +8,8 @@
  * - api_key: 外部システムからの API キー認証経由
  * - webhook: Webhook ドリブンの自動処理
  * - device: 登録端末（pairedDevice）による操作。actorId は端末の id
+ *
+ * 値は DB の enum（audit_actor_type）になるので、末尾への追加だけにする（並べ替え・削除・改名をしない）
  */
 export const AUDIT_ACTOR_TYPES = ["system", "admin", "user", "api_key", "webhook", "device"] as const;
 export type AuditActorType = (typeof AUDIT_ACTOR_TYPES)[number];

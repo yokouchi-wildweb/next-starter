@@ -8,16 +8,17 @@ import { cookies, headers } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 
 import type { SessionDevice } from "@/features/core/pairedDevice/entities/model";
+import { readClientIp } from "@/lib/request";
 
 import { authenticateDeviceToken, type AuthenticatedDevice, type DeviceRequestInfo } from "../deviceToken";
 import { readPairedDeviceToken, setPairedDeviceCookie } from "./cookies";
 
 type HeaderReader = { get(name: string): string | null };
 
-/** リクエストヘッダーから IP（x-forwarded-for の先頭）と User-Agent を取り出す */
+/** リクエストヘッダーから IP（getClientIp と同じ順序で読む）と User-Agent を取り出す */
 export function readDeviceRequestInfo(headerList: HeaderReader): DeviceRequestInfo {
   return {
-    ip: headerList.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
+    ip: readClientIp(headerList),
     userAgent: headerList.get("user-agent") || null,
   };
 }
@@ -62,5 +63,9 @@ export function syncPairedDeviceCookie(
 ): NextResponse {
   const token = readPairedDeviceToken(req.cookies);
   if (token) setPairedDeviceCookie(response.cookies, token, authenticated.tokenExpiresAt);
+  // 端末ごとの応答（Set-Cookie を含む）を共有キャッシュに載せない
+  if (!response.headers.has("Cache-Control")) {
+    response.headers.set("Cache-Control", "private, no-store");
+  }
   return response;
 }

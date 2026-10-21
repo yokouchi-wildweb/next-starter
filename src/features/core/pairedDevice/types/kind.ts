@@ -28,7 +28,9 @@ export type PairedDeviceKindDefinition<TScope = unknown> = {
   label?: string;
   /**
    * scope の形（例: z.object({ storeId: z.string().uuid(), tableId: z.string() })）。
-   * 登録・更新時と、端末の認証のたびに検証する（合わなくなった端末は認証に失敗する）
+   * 登録・更新時と、端末の認証のたびに検証する（合わなくなった端末は認証に失敗する）。
+   * 認証時は JSONB に保存した値（JSON に往復した値）を検証するので、往復後も通る形にする
+   * （transform で Date やクラスを作る scopeSchema は不可。登録時に invalid_scope で止まる）
    */
   scopeSchema: z.ZodType<TScope>;
   /**

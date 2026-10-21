@@ -6,6 +6,7 @@ import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 
 import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { getAuditContext } from "@/lib/audit";
 import { PAIRED_DEVICE_AUDIT_TARGET } from "@/features/core/pairedDevice/constants";
 import { PairedDeviceTable } from "@/features/core/pairedDevice/entities/drizzle";
 import type { SessionDevice } from "@/features/core/pairedDevice/entities/model";
@@ -103,12 +104,17 @@ export async function issueDeviceToken(
     })
     .where(eq(PairedDeviceTable.id, params.deviceId));
 
+  // トークン発行は端末の未認証リクエスト（コード・照合トークン）が起点なので主体は system に固定する。
+  // 同じブラウザにユーザーの Cookie があっても、その人の操作として残さない
+  // （誰が許可したかは paired_device.pairing.issued / approved で追える）
+  const base = getAuditContext();
   await auditLogger.record({
     targetType: PAIRED_DEVICE_AUDIT_TARGET,
     targetId: params.deviceId,
     action: "paired_device.device.paired",
     after: { tokenExpiresAt: expiresAt.toISOString() },
     metadata: { pairingId: params.pairingId, ip: params.ip, userAgent: params.userAgent },
+    ...(base ? { context: { ...base, actorId: null, actorType: "system" as const } } : {}),
     tx,
   });
 

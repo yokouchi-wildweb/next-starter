@@ -108,10 +108,22 @@ export function parseDeviceScope(kind: string, scope: unknown): unknown {
   if (!result.success) {
     throw new PairedDeviceError("invalid_scope", "端末の scope が不正です", 400);
   }
-  if (JSON.stringify(result.data ?? {}).length > PAIRED_DEVICE_SCOPE_MAX_BYTES) {
+  const serialized = JSON.stringify(result.data ?? {});
+  if (serialized.length > PAIRED_DEVICE_SCOPE_MAX_BYTES) {
     throw new PairedDeviceError("invalid_scope", "端末の scope が大きすぎます", 400);
   }
-  return result.data;
+  // scope は JSONB に保存し、認証のたびに保存した値を scopeSchema で検証し直す。
+  // transform で Date を作る等、JSON に往復すると通らなくなる scopeSchema だと、
+  // 登録はできても端末が一度も認証できない。登録の時点で往復後の値を検証して止める
+  const stored: unknown = JSON.parse(serialized);
+  if (!definition.scopeSchema.safeParse(stored).success) {
+    throw new PairedDeviceError(
+      "invalid_scope",
+      "端末の scope が保存後に scopeSchema に合いません（JSON に往復できる形にしてください）",
+      400,
+    );
+  }
+  return stored;
 }
 
 /** 認証時用。kind 未登録・形の不一致なら null（例外を投げない） */

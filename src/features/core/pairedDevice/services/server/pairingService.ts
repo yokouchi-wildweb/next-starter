@@ -12,7 +12,7 @@
 // コードの総当たりは、有効期限（ttlMinutes）とルートのレート制限で防ぐ。
 // 同じ端末に新しいコードを発行すると、その端末の未使用コードは取り消される。
 
-import { and, eq, gt, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lt } from "drizzle-orm";
 
 import { PAIRED_DEVICE_CONFIG } from "@/config/app/paired-device.config";
 import { auditLogger } from "@/features/core/auditLog/services/server";
@@ -101,16 +101,16 @@ async function findPairingByCode(
     .select()
     .from(DevicePairingTable)
     .where(and(eq(DevicePairingTable.codeHash, codeHash), eq(DevicePairingTable.flow, flow)))
-    .orderBy(DevicePairingTable.createdAt)
+    .orderBy(desc(DevicePairingTable.createdAt))
     .limit(5);
-  // 同じコードが過去に使われていた場合に備え、使える行を優先する
+  // 同じコードが過去に使われていた場合に備え、新しい順に見て使える行を優先する（無ければ最新の行）
   const now = new Date();
   return (
     rows.find((row) => {
       const status = resolvePairingStatus(row, now);
       return status === "pending" || status === "approved";
     }) ??
-    rows[rows.length - 1] ??
+    rows[0] ??
     null
   );
 }

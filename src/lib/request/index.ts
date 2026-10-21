@@ -1,3 +1,3 @@
 // src/lib/request/index.ts
 
-export { getClientIp } from "./getClientIp";
+export { getClientIp, readClientIp } from "./getClientIp";

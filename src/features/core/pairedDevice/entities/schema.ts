@@ -31,7 +31,7 @@ export const PairedDeviceUpdateSchema = z.object({
 export type PairedDeviceWriteInput = z.infer<typeof PairedDeviceCreateSchema> &
   Partial<z.infer<typeof PairedDeviceUpdateSchema>>;
 
-/** 端末の登録（POST /api/admin/paired-devices）の入力 */
+/** 端末の登録（POST /api/paired-devices）の入力 */
 export const CreatePairedDeviceSchema = z.object({
   label: LabelSchema,
   kind: KindSchema,
@@ -40,7 +40,7 @@ export const CreatePairedDeviceSchema = z.object({
 });
 export type CreatePairedDeviceInput = z.infer<typeof CreatePairedDeviceSchema>;
 
-/** 端末の変更（PATCH /api/admin/paired-devices/[id]）の入力。名前の変更と scope の付け替え */
+/** 端末の変更（PATCH /api/paired-devices/[id]）の入力。名前の変更と scope の付け替え */
 export const UpdatePairedDeviceSchema = z
   .object({
     label: LabelSchema.optional(),
@@ -51,7 +51,7 @@ export const UpdatePairedDeviceSchema = z
   });
 export type UpdatePairedDeviceInput = z.infer<typeof UpdatePairedDeviceSchema>;
 
-/** 端末の一覧（GET /api/admin/paired-devices）の絞り込み */
+/** 端末の一覧（GET /api/paired-devices）の絞り込み */
 export const ListPairedDevicesSchema = z.object({
   kind: KindSchema.optional(),
   /** scope の部分一致（JSONB の包含。例: { storeId: "..." }） */
@@ -71,7 +71,7 @@ export const ClaimPairingCodeSchema = z.object({
 export type ClaimPairingCodeInput = z.infer<typeof ClaimPairingCodeSchema>;
 
 /**
- * 端末側から始めたペアリングを管理者が承認する（POST /api/admin/paired-devices/pairing-requests/approve）入力。
+ * 端末側から始めたペアリングを管理者が承認する（POST /api/paired-devices/pairing-requests/approve）入力。
  * 既存の端末を割り当てるか（deviceId）、その場で端末を登録するか（device）のどちらか。
  */
 export const ApproveDevicePairingSchema = z.union([
