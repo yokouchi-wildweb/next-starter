@@ -15,7 +15,7 @@
 // このモジュールは entities/drizzle.ts から import されるため、
 // 依存は drizzle-orm のみに限定する（@/lib/drizzle への循環 import を避ける）。
 
-import { getTableColumns } from "drizzle-orm";
+import { getTableColumns, sql, type SQL } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 
 /** テーブルオブジェクト → 秘匿カラム（プロパティ名）集合 */
@@ -58,6 +58,33 @@ export function stripHiddenColumnsForTable(
       }
     }
   }
+}
+
+/**
+ * 生 drizzle の select / returning に渡す「秘匿カラムを null に置き換えた」カラム集合を返す。
+ *
+ * 生 SQL（db.select / insert().returning() 等）は createCrudService を経由しないため
+ * hiddenColumns の自動除去が効かない。行を丸ごと取りたい生クエリはこれを使い、
+ * 秘匿値を DB から取り出さないようにする（戻り値の形はサービス経由の null 置換と同じ）。
+ * 秘匿カラムの宣言が無いテーブルでは getTableColumns と同じ。
+ *
+ * 例: db.insert(UserTable).values(values).returning(getPublicColumns(UserTable))
+ *     db.select(getPublicColumns(UserTable)).from(UserTable)
+ *
+ * 検出: lint hidden-columns/no-raw-select（eslint-rules/hidden-columns.mjs）
+ */
+export function getPublicColumns<T extends PgTable>(table: T): T["_"]["columns"] {
+  // 型は元のカラム集合のまま（秘匿カラムの実値は常に null。エンティティ型を nullable に
+  // しておく hiddenColumns の規約により、型と実態は一致する）
+  const columns = getTableColumns(table);
+  const hidden = hiddenColumnsRegistry.get(table);
+  if (!hidden?.size) return columns;
+  const result: Record<string, unknown> = { ...columns };
+  for (const prop of hidden) {
+    const nullExpr: SQL.Aliased<null> = sql<null>`null`.as(columns[prop].name);
+    result[prop] = nullExpr;
+  }
+  return result as T["_"]["columns"];
 }
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {

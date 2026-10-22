@@ -30,6 +30,7 @@ import type {
 import type { EffectiveChallengeStatus } from "@/features/core/fingerprintChallenge/constants";
 import { recordChallengeView } from "./accessLog";
 import { fingerprintChallengeBase } from "./drizzleBase";
+import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 
 /** prompt (質問定義 JSONB) の保存上限バイト数 */
 const MAX_PROMPT_BYTES = 16384;
@@ -116,7 +117,7 @@ export async function issueChallenge(
 /** 生トークンから行を引く内部専用ヘルパー (token_hash は外に出さない) */
 async function findByToken(token: string) {
   const rows = await db
-    .select()
+    .select(getPublicColumns(FingerprintChallengeTable))
     .from(FingerprintChallengeTable)
     .where(eq(FingerprintChallengeTable.tokenHash, hashToken(token)))
     .limit(1);
@@ -152,7 +153,7 @@ export async function getPendingChallengeForUser(
   userId: string,
 ): Promise<FingerprintChallengeForUser | null> {
   const rows = await db
-    .select()
+    .select(getPublicColumns(FingerprintChallengeTable))
     .from(FingerprintChallengeTable)
     .where(
       and(
@@ -219,7 +220,7 @@ export async function submitChallenge(
   const updated = await db.transaction(async (tx) => {
     // 二重提出の競合を防ぐため行ロックを取ってから状態を検証する
     const rows = await tx
-      .select()
+      .select(getPublicColumns(FingerprintChallengeTable))
       .from(FingerprintChallengeTable)
       .where(rowMatch)
       .for("update")
@@ -285,7 +286,7 @@ export async function reviewChallenge(
 ): Promise<FingerprintChallenge> {
   return db.transaction(async (tx) => {
     const rows = await tx
-      .select()
+      .select(getPublicColumns(FingerprintChallengeTable))
       .from(FingerprintChallengeTable)
       .where(eq(FingerprintChallengeTable.id, params.challengeId))
       .for("update")
@@ -340,7 +341,7 @@ export async function markChallengeNotified(
 ): Promise<FingerprintChallenge> {
   return db.transaction(async (tx) => {
     const rows = await tx
-      .select()
+      .select(getPublicColumns(FingerprintChallengeTable))
       .from(FingerprintChallengeTable)
       .where(eq(FingerprintChallengeTable.id, params.challengeId))
       .for("update")
@@ -388,7 +389,7 @@ export async function cancelChallenge(
 ): Promise<FingerprintChallenge> {
   return db.transaction(async (tx) => {
     const rows = await tx
-      .select()
+      .select(getPublicColumns(FingerprintChallengeTable))
       .from(FingerprintChallengeTable)
       .where(eq(FingerprintChallengeTable.id, params.challengeId))
       .for("update")

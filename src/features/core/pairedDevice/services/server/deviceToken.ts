@@ -16,6 +16,7 @@ import { generateSecretToken, hashSecretToken } from "@/lib/crypto";
 import { db, isDatabaseConfigured } from "@/lib/drizzle";
 
 import { getPairedDeviceKind, runDeviceVerify, safeParseDeviceScope } from "./kinds";
+import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -160,10 +161,11 @@ export async function authenticateDeviceToken(
   if (!PAIRED_DEVICE_CONFIG.enabled || !isDatabaseConfigured()) return null;
   if (!token) return null;
 
+  const tokenHash = hashSecretToken(token);
   const rows = await db
-    .select()
+    .select(getPublicColumns(PairedDeviceTable))
     .from(PairedDeviceTable)
-    .where(eq(PairedDeviceTable.tokenHash, hashSecretToken(token)))
+    .where(eq(PairedDeviceTable.tokenHash, tokenHash))
     .limit(1);
   const row = rows[0];
   if (!row || row.revokedAt || !row.tokenExpiresAt) return null;
@@ -185,7 +187,7 @@ export async function authenticateDeviceToken(
   if (!verified) return null;
 
   const tokenExpiresAt = await touchDevice(row.id, {
-    tokenHash: row.tokenHash as string,
+    tokenHash,
     lastSeenAt: row.lastSeenAt,
     tokenExpiresAt: row.tokenExpiresAt,
     maxAgeDays: resolveTokenMaxAgeDays(parsed.definition),

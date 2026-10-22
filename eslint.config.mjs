@@ -3,6 +3,7 @@ import nextConfig from "eslint-config-next";
 import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
 import clientServiceBoundaryPlugin from "./eslint-rules/client-service-boundary.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
+import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import routeAuthzPlugin from "./eslint-rules/route-authz.mjs";
 import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
@@ -167,6 +168,21 @@ export default [
     plugins: { "client-service-boundary": clientServiceBoundaryPlugin },
     rules: {
       "client-service-boundary/no-direct-import": "error",
+    },
+  },
+  // 秘匿カラム (defineHiddenColumns) を生 drizzle の select / returning で取り出さない。
+  // 生 SQL は hiddenColumns の自動除去を通らず、行を HTTP / Client Component に渡すと漏れるため、
+  // upstream・下流とも error。行を丸ごと取るなら getPublicColumns(<Table>)、秘匿値そのものが要るなら
+  // services/server/finders/ の専用ファインダー(対象外)。詳細: eslint-rules/hidden-columns.mjs
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/**/services/server/finders/**", "src/**/entities/**"],
+    plugins: { "hidden-columns": hiddenColumnsPlugin },
+    rules: {
+      "hidden-columns/no-raw-select": [
+        "error",
+        { hiddenColumns: collectHiddenColumns(`${import.meta.dirname}/src`) },
+      ],
     },
   },
   // ルームロジック (servers/room にバンドルされる) の純度制約。

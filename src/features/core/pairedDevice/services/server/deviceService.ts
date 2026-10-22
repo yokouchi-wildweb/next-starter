@@ -42,6 +42,7 @@ import {
   parseDeviceScope,
   resolveManageableScopes,
 } from "./kinds";
+import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 
 /** 操作者。HTTP ルートはセッションユーザー、CLI・cron は "system" */
 export type PairedDeviceActor = SessionUser | "system";
@@ -229,7 +230,7 @@ export async function revokePairedDevice(
         updatedAt: now,
       })
       .where(eq(PairedDeviceTable.id, id))
-      .returning();
+      .returning(getPublicColumns(PairedDeviceTable));
 
     await tx
       .update(DevicePairingTable)
@@ -290,7 +291,7 @@ export async function listPairedDevicesByScope(
   assertPairedDeviceEnabled();
   const executor = options.tx ?? db;
   const rows = await executor
-    .select()
+    .select(getPublicColumns(PairedDeviceTable))
     .from(PairedDeviceTable)
     .where(buildScopeQueryWhere(query, query.includeRevoked ?? false));
   for (const row of rows) {

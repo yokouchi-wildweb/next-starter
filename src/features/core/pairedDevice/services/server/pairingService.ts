@@ -50,6 +50,7 @@ import {
   runDeviceVerify,
   safeParseDeviceScope,
 } from "./kinds";
+import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 
 const MINUTE_MS = 60 * 1000;
 
@@ -98,7 +99,7 @@ async function findPairingByCode(
   const codeHash = hashCode(code);
   if (!codeHash) return null;
   const rows = await db
-    .select()
+    .select(getPublicColumns(DevicePairingTable))
     .from(DevicePairingTable)
     .where(and(eq(DevicePairingTable.codeHash, codeHash), eq(DevicePairingTable.flow, flow)))
     .orderBy(desc(DevicePairingTable.createdAt))
@@ -163,7 +164,7 @@ export async function issuePairingCode(
         expiresAt,
         createdBy: actor === "system" ? null : actor.userId,
       })
-      .returning();
+      .returning(getPublicColumns(DevicePairingTable));
 
     await auditLogger.record({
       targetType: DEVICE_PAIRING_AUDIT_TARGET,
@@ -382,7 +383,7 @@ export async function approveDevicePairing(
           gt(DevicePairingTable.expiresAt, now),
         ),
       )
-      .returning();
+      .returning(getPublicColumns(DevicePairingTable));
     if (updated.length === 0) {
       throw new PairedDeviceError("used", "このコードは使用済みか取り消されています", 410);
     }
@@ -417,7 +418,7 @@ export async function pollDevicePairing(
     throw new PairedDeviceError("not_found", "ペアリングが見つかりません", 404);
   }
   const rows = await db
-    .select()
+    .select(getPublicColumns(DevicePairingTable))
     .from(DevicePairingTable)
     .where(
       and(
@@ -450,7 +451,7 @@ export async function cancelDevicePairing(
 ): Promise<void> {
   assertPairedDeviceEnabled();
   const rows = await db
-    .select()
+    .select(getPublicColumns(DevicePairingTable))
     .from(DevicePairingTable)
     .where(eq(DevicePairingTable.id, pairingId))
     .limit(1);
@@ -495,7 +496,7 @@ export async function listActivePairingsForDevice(
   await getManagedPairedDevice(deviceId, actor);
   const now = new Date();
   const rows = await db
-    .select()
+    .select(getPublicColumns(DevicePairingTable))
     .from(DevicePairingTable)
     .where(
       and(

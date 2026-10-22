@@ -109,7 +109,7 @@ hooks: one use\<Op\>\<Domain\> per operation | custom mutation hooks MUST build 
 system_write: systemUpdate / systemBulkUpdateByQuery bypass Zod for allowlisted systemColumns → service layer ONLY, never wire to HTTP routes
 sql_template_date (MANDATORY, no lint guard): never embed a JS Date in a raw sql`` template (Postgres cannot parse it → 500) → pass .toISOString() | Drizzle operators (eq / gt / between …) take Date as is
 requestMemo_rule (MANDATORY): a raw SQL write to a requestMemo-enabled table (user, setting) → call base.invalidateRequestMemo() right after
-hiddenColumns: secrets declared with defineHiddenColumns (business: domain.json hiddenColumns) are nulled in every service return and relation embed | read them only through a dedicated finder (e.g. user findByIdWithSecrets), never return them over HTTP
+hiddenColumns: secrets declared with defineHiddenColumns (business: domain.json hiddenColumns) are nulled in every service return and relation embed | read them only through a dedicated finder (e.g. user findByIdWithSecrets), never return them over HTTP | raw drizzle select / returning bypasses this → full rows via getPublicColumns(<Table>) (lint hidden-columns/no-raw-select = error)
 
 ## AUDIT
 action_naming: \<domain\>.\<entity\>.\<verb_past\> (e.g. user.email.changed, ESLint-enforced)

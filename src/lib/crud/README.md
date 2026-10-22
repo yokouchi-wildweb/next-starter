@@ -193,6 +193,33 @@ defineHiddenColumns(UserTable, ["localPassword"]);
 - 未宣言のテーブルにはラッパー自体が適用されず、性能影響ゼロ
 - Firestore アダプタは対象外（FROZEN。ドクトリン上 Firestore に秘匿情報は置かない）
 
+#### 生 drizzle（select / returning）では効かない
+
+`db.select()` / `insert().returning()` など `createCrudService` を経由しない生クエリは
+自動除去を通らない。その行を HTTP レスポンスや Client Component の props（RSC payload）に
+載せると秘匿値がそのまま漏れる（例: 並び替え用の生 select を持つ一覧 loader）。
+
+- 行を丸ごと取りたい生クエリは `getPublicColumns(<Table>)` を select / returning に渡す。
+  秘匿カラムは SQL 上 `null as "<column>"` になり、DB から取り出されない
+  （戻り値の形はサービス経由の null 置換と同じ。未宣言テーブルでは `getTableColumns` と同じ）
+
+  ```typescript
+  import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
+
+  const [user] = await db.insert(UserTable).values(values).returning(getPublicColumns(UserTable));
+  const rows = await db.select(getPublicColumns(UserTable)).from(UserTable).where(...);
+  ```
+
+- 必要な列だけを明示 select するなら、秘匿カラムを並べない
+- where / orderBy での参照（`eq(Table.tokenHash, hash)` 等）は問題ない
+- **lint `hidden-columns/no-raw-select`（error、上流・下流とも）** が次を検出する（`eslint-rules/hidden-columns.mjs`）:
+  - select / returning の引数に `<Table>.<秘匿カラム>` や `getTableColumns(<Table>)` を書いている
+  - 秘匿カラムを持つテーブルへの引数なし `select().from(<Table>)` / `insert|update|delete(<Table>)…returning()`
+  - 対象テーブルは `src/**/entities/drizzle.ts` の `defineHiddenColumns` 宣言から自動で集める（手書きの一覧なし）
+  - `services/server/finders/` と `entities/` は対象外。それ以外の正当な例外は理由付き eslint-disable
+  - 限界: テーブルは識別子名で照合（import 別名・変数経由は追わない）、relational query（`db.query.*`）は対象外
+- テスト: `pnpm test:hidden-columns-lint`
+
 ---
 
 ## 提供メソッド一覧

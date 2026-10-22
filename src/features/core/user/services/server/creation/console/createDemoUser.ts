@@ -21,6 +21,7 @@ import { userProfileService } from "@/features/core/userProfile/services/server/
 import type { CreateDemoUserInput } from "../../../types";
 import { base } from "../../drizzleBase";
 import { restoreSoftDeletedUser } from "./restore";
+import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 
 /**
  * デモユーザーを登録する。
@@ -88,7 +89,7 @@ async function createDemoAdmin(data: CreateDemoUserInput): Promise<User> {
     isDemo: true,
   });
 
-  const [user] = await db.insert(UserTable).values(values).returning();
+  const [user] = await db.insert(UserTable).values(values).returning(getPublicColumns(UserTable));
   base.invalidateRequestMemo();
 
   await recordStatusTransition({
@@ -151,7 +152,7 @@ async function createDemoGeneralUser(data: CreateDemoUserInput): Promise<User> {
     isDemo: true,
   });
 
-  const [user] = await db.insert(UserTable).values(values).returning();
+  const [user] = await db.insert(UserTable).values(values).returning(getPublicColumns(UserTable));
   base.invalidateRequestMemo();
 
   await recordStatusTransition({

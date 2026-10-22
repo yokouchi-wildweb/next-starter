@@ -8,6 +8,7 @@ import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { recordStatusTransition } from "@/features/core/user/services/server/statusHistory";
 import { db } from "@/lib/drizzle";
 import { base } from "../drizzleBase";
+import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 
 const DEMO_USER_PROVIDER_TYPE = "custom";
 
@@ -31,7 +32,7 @@ export async function createGuestDemoUser(): Promise<User> {
     name: "デモユーザー",
   });
 
-  const [user] = await db.insert(UserTable).values(values).returning();
+  const [user] = await db.insert(UserTable).values(values).returning(getPublicColumns(UserTable));
   base.invalidateRequestMemo();
 
   await recordStatusTransition({
