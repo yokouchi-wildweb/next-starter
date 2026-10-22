@@ -180,6 +180,15 @@ export const RATE_LIMIT_CONFIG = {
     windowSeconds: 3600,
     maxRequests: 10,
   },
+
+  /**
+   * ファイルのアップロード権の発行（POST /api/me/storage/uploads）
+   * 同一IPから1分に30回まで。未完了の数は用途ごとの maxPending でも別に絞る
+   */
+  storageIssue: {
+    windowSeconds: 60,
+    maxRequests: 30,
+  },
 } as const;
 
 export type RateLimitCategory = keyof typeof RATE_LIMIT_CONFIG;

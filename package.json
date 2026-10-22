@@ -23,6 +23,7 @@
     "test:variant-overrides": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/variantOverrides/variantOverrides.test.mjs",
     "test:screens": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/screens/screens.test.mjs",
     "test:lib-catalog": "node --test src/lib/folderCatalog/catalog.test.mjs",
+    "test:storage-ref": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/storage/storageRef.test.ts",
     "test:cron-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/cron/cronWiring.test.mjs",
     "test:feature-gate": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/proxies/featureGate.test.mjs",
     "test:relation-options": "node --test src/lib/domain/relations/relationOptions.test.mjs",
