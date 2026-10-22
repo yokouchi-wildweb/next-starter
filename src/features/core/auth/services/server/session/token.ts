@@ -6,7 +6,13 @@ import type { SessionUser, TokenPayload } from "@/features/core/auth/entities/se
 import { SessionUserSchema, TokenPayloadSchema } from "@/features/core/auth/entities/session";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
 import { findUserById } from "@/features/core/user/services/server/finders/findUserById";
-import { signUserToken, verifyUserToken, type SessionTokenClaims } from "@/lib/jwt";
+import {
+  SESSION_DEFAULT_MAX_AGE_SECONDS,
+  signUserToken,
+  verifyUserToken,
+  type SessionTokenClaims,
+} from "@/lib/jwt";
+import { APP_FEATURES } from "@/config/app/app-features.config";
 
 // JWT クレームを Auth ドメインのセッション情報として扱うためのユーティリティ群。
 //
@@ -153,11 +159,21 @@ export async function resolveSessionUserFromTokenOnly(
   return toSessionUserFromTokenPayload(payload);
 }
 
+/**
+ * SessionUser から新しいトークンを発行し、レスポンス用の Cookie ストアへ書き込む。
+ *
+ * user は必ず DB の現在値 (resolveSessionUser / DB 行) から組み立てること。
+ * 旧トークンのクレームをそのまま渡すと、強制失効 (sessions_invalidated_at) を
+ * すり抜けた新トークンを発行してしまう。
+ * デモユーザーは短いセッション時間 (demoMaxAgeSeconds) を維持する。
+ */
 export async function refreshSessionCookie(
   cookiesStore: ResponseCookies,
   user: SessionUser,
-): Promise<void> {
-  // ユーザー情報から新しいトークンを発行し、レスポンス用の Cookie ストアへ書き込む。
+): Promise<{ expiresAt: Date }> {
+  const maxAge = user.isDemo
+    ? APP_FEATURES.auth.session.demoMaxAgeSeconds
+    : SESSION_DEFAULT_MAX_AGE_SECONDS;
   const { token, expiresAt } = await signUserToken({
     subject: user.userId,
     claims: {
@@ -168,11 +184,15 @@ export async function refreshSessionCookie(
       providerUid: user.providerUid,
       name: user.name,
     },
+    options: { maxAge },
   });
 
   issueSessionCookie({
     cookies: cookiesStore,
     token,
     expiresAt,
+    maxAge,
   });
+
+  return { expiresAt };
 }

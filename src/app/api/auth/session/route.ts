@@ -3,16 +3,18 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
-import { SessionUserSchema, TokenPayloadSchema } from "@/features/core/auth/entities/session";
-import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
 import { clearSessionCookie } from "@/features/core/auth/services/server/session/clearSessionCookie";
 import {
-  parseSessionCookie,
-  signUserToken,
-  verifyUserToken,
-  SESSION_DEFAULT_MAX_AGE_SECONDS,
-} from "@/lib/jwt";
-import { APP_FEATURES } from "@/config/app/app-features.config";
+  refreshSessionCookie,
+  resolveSessionUser,
+} from "@/features/core/auth/services/server/session/token";
+import { parseSessionCookie } from "@/lib/jwt";
+
+function unauthorized(message: string): NextResponse {
+  const response = NextResponse.json({ message }, { status: 401 });
+  clearSessionCookie({ cookies: response.cookies });
+  return response;
+}
 
 export const GET = createApiRoute(
   {
@@ -25,80 +27,31 @@ export const GET = createApiRoute(
     const token = parseSessionCookie(req.cookies);
 
     if (!token) {
-      const response = NextResponse.json(
-        { message: "セッションが見つかりません" },
-        { status: 401 },
-      );
-      clearSessionCookie({ cookies: response.cookies });
-      return response;
+      return unauthorized("セッションが見つかりません");
     }
 
-    // 受け取ったトークンを検証し、クレームをセッションユーザー情報へ変換する。
-    const verification = await verifyUserToken(token, {
-      claimsParser: (claims) => {
-        const candidate = {
-          ...claims,
-          sub: typeof claims.sub === "string" ? claims.sub : "",
-        };
+    // JWT 検証 + DB 照合 (ユーザー存在・sessions_invalidated_at による強制失効) を通し、
+    // DB の現在値で SessionUser を組み立てる。旧トークンのクレームで再署名すると
+    // 失効済みトークンを新しい有効トークンへ洗浄できてしまうため、必ずこの経路を通す。
+    const sessionUser = await resolveSessionUser(token);
 
-        const parsed = TokenPayloadSchema.safeParse(candidate);
-        if (!parsed.success) {
-          return null;
-        }
-
-        return SessionUserSchema.parse({
-          userId: parsed.data.sub,
-          role: parsed.data.role,
-          status: parsed.data.status,
-          isDemo: parsed.data.isDemo,
-          providerType: parsed.data.providerType,
-          providerUid: parsed.data.providerUid,
-          name: parsed.data.name ?? null,
-        });
-      },
-    });
-
-    if (!verification) {
-      const response = NextResponse.json(
-        { message: "セッションの検証に失敗しました" },
-        { status: 401 },
-      );
-      clearSessionCookie({ cookies: response.cookies });
-      return response;
+    if (!sessionUser) {
+      return unauthorized("セッションの検証に失敗しました");
     }
 
-    const sessionUser = verification.claims;
-    // デモユーザーは短いセッション時間を維持
-    const maxAge = sessionUser.isDemo
-      ? APP_FEATURES.auth.session.demoMaxAgeSeconds
-      : SESSION_DEFAULT_MAX_AGE_SECONDS;
-    const { token: newToken, expiresAt } = await signUserToken({
-      subject: sessionUser.userId,
-      claims: {
-        role: sessionUser.role,
-        status: sessionUser.status,
-        isDemo: sessionUser.isDemo,
-        providerType: sessionUser.providerType,
-        providerUid: sessionUser.providerUid,
-        name: sessionUser.name,
+    // レスポンス本文に新トークンの expiresAt を含めるため、先に Cookie を書いた
+    // ヘッダーを作ってから本文付きレスポンスへ引き継ぐ。
+    const cookieCarrier = new NextResponse(null);
+    const { expiresAt } = await refreshSessionCookie(cookieCarrier.cookies, sessionUser);
+
+    return NextResponse.json(
+      {
+        user: sessionUser,
+        session: {
+          expiresAt: expiresAt.toISOString(),
+        },
       },
-      options: { maxAge },
-    });
-
-    const response = NextResponse.json({
-      user: sessionUser,
-      session: {
-        expiresAt: expiresAt.toISOString(),
-      },
-    });
-
-    issueSessionCookie({
-      cookies: response.cookies,
-      token: newToken,
-      expiresAt,
-      maxAge,
-    });
-
-    return response;
+      { headers: cookieCarrier.headers },
+    );
   },
 );
