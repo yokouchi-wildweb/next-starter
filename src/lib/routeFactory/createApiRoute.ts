@@ -19,6 +19,9 @@ import { isDomainError } from "@/lib/errors";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
 import { enforceAccessRule } from "./enforceAccess";
 
+/** DomainError 以外の例外で返す汎用メッセージ（内部情報をクライアントへ出さない） */
+const INTERNAL_ERROR_MESSAGE = "サーバーでエラーが発生しました";
+
 /**
  * リクエストヘッダ + session から AuditContext を組み立てる。
  *
@@ -352,11 +355,10 @@ export function createApiRoute<TParams = Record<string, string>, TResult = unkno
         return NextResponse.json({ message: error.message }, { status: error.status });
       }
 
-      if (error instanceof Error && error.message) {
-        return NextResponse.json({ message: error.message }, { status: 500 });
-      }
-
-      return new NextResponse("Internal Server Error", { status: 500 });
+      // 想定外の例外（ライブラリ・DB・コードの不具合）の message は SQL やライブラリの内部情報を
+      // 含み得るため、クライアントには汎用文言だけを返す（詳細は上の console.error でサーバーログへ）。
+      // 方針: docs/!must-read/エラーハンドリング方針.md §3
+      return NextResponse.json({ message: INTERNAL_ERROR_MESSAGE }, { status: 500 });
     }
   };
 }

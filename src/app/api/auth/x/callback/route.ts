@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { sanitizeRedirectPath } from "@/lib/url";
 import { exchangeXCodeForToken } from "@/lib/x";
 import {
   X_OAUTH_STATE_COOKIE,
@@ -60,7 +61,8 @@ export const GET = createApiRoute(
           const statePayload = JSON.parse(
             Buffer.from(parsed.stateValue, "base64url").toString("utf-8"),
           ) as { redirectAfter?: string };
-          redirectAfter = statePayload.redirectAfter ?? "/";
+          // 念のため同一オリジンのパスに限定する（login でも検証済み）
+          redirectAfter = sanitizeRedirectPath(statePayload.redirectAfter);
         }
       } catch {
         // パースに失敗した場合はルートにリダイレクト
@@ -68,8 +70,9 @@ export const GET = createApiRoute(
     }
 
     // state の検証（OAuth プロバイダから返された state と cookie の state を照合）
+    // 検証に失敗した state の戻り先は信用せず、ルートへ戻す
     if (!oauthState || !stateParam || oauthState !== stateParam) {
-      return errorRedirect(redirectAfter, req.nextUrl.origin, "invalid_state");
+      return errorRedirect("/", req.nextUrl.origin, "invalid_state");
     }
 
     if (!codeVerifier) {
@@ -124,8 +127,9 @@ export const GET = createApiRoute(
       response.cookies.delete(X_OAUTH_CODE_VERIFIER_COOKIE);
       return response;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "unknown_error";
-      return errorRedirect(redirectAfter, req.nextUrl.origin, message);
+      // 例外メッセージは内部情報を含み得るため URL に載せず、サーバーログにだけ残す
+      console.error("GET /api/auth/x/callback failed:", err);
+      return errorRedirect(redirectAfter, req.nextUrl.origin, "callback_failed");
     }
   },
 );

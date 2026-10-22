@@ -53,7 +53,7 @@
 - src/lib/tableSuite — テーブル系 UI(DataTable / EditableGridTable / RecordSelectionTable)
 - src/lib/toast — トースト通知(GlobalToast / useToast)
 - src/lib/transitionGuard — ページ遷移ガード(フロー離脱時に最初からやり直させる)
-- src/lib/url — 実行環境のオリジン取得(getAppBaseUrl)
+- src/lib/url — 実行環境のオリジン取得(getAppBaseUrl)、リダイレクト先の同一オリジン検証(sanitizeRedirectPath)
 - src/lib/userDirty — コミット後の再計算回収口(ALS で対象 user_id を集め post-commit で flush)
 - src/lib/variantOverrides — cva 互換のバリアント上書き(下流が形状だけを上書きする defineVariantOverrides)
 - src/lib/webAudio — Web Audio の共有エンジン(効果音・ループ SE・BGM・デコードキャッシュ)

@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { sanitizeRedirectPath } from "@/lib/url";
 import { processCallback } from "@/lib/line/oauth";
 import { LINE_OAUTH_NONCE_COOKIE } from "@/lib/line/constants";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
@@ -52,7 +53,8 @@ export const GET = createApiRoute(
         const statePayload = JSON.parse(
           Buffer.from(stateParam, "base64url").toString("utf-8"),
         ) as { redirectAfter?: string; nonce?: string };
-        redirectAfter = statePayload.redirectAfter ?? "/";
+        // state はクライアントを経由して戻ってくる値なので、必ず同一オリジンのパスに限定する
+        redirectAfter = sanitizeRedirectPath(statePayload.redirectAfter);
         stateNonce = statePayload.nonce;
       } catch {
         // state のパースに失敗した場合はルートにリダイレクト
@@ -61,8 +63,9 @@ export const GET = createApiRoute(
 
     // nonce の CSRF 検証
     const cookieNonce = req.cookies.get(LINE_OAUTH_NONCE_COOKIE)?.value;
+    // 検証に失敗した state の戻り先は信用せず、ルートへ戻す
     if (!stateNonce || !cookieNonce || stateNonce !== cookieNonce) {
-      return errorRedirect(redirectAfter, req.nextUrl.origin, "invalid_state");
+      return errorRedirect("/", req.nextUrl.origin, "invalid_state");
     }
 
     // エラーパラメータのチェック（ユーザーが認可を拒否した場合等）
@@ -103,8 +106,9 @@ export const GET = createApiRoute(
       response.cookies.delete(LINE_OAUTH_NONCE_COOKIE);
       return response;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "unknown_error";
-      return errorRedirect(redirectAfter, req.nextUrl.origin, message);
+      // 例外メッセージは内部情報を含み得るため URL に載せず、サーバーログにだけ残す
+      console.error("GET /api/auth/line/callback failed:", err);
+      return errorRedirect(redirectAfter, req.nextUrl.origin, "callback_failed");
     }
   },
 );

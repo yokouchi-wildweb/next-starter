@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { sanitizeRedirectPath } from "@/lib/url";
 import { buildXAuthorizationUrl, X_SCOPES } from "@/lib/x";
 import {
   X_OAUTH_STATE_COOKIE,
@@ -26,10 +27,18 @@ export const GET = createApiRoute(
     access: "public",
   },
   async (req) => {
-    const redirectAfter = req.nextUrl.searchParams.get("redirect_after");
-    if (!redirectAfter) {
+    const redirectAfterParam = req.nextUrl.searchParams.get("redirect_after");
+    if (!redirectAfterParam) {
       return NextResponse.json(
         { message: "redirect_after パラメータが必要です" },
+        { status: 400 },
+      );
+    }
+    // オープンリダイレクト対策: 同一オリジンの相対パス以外は state に入れない
+    const redirectAfter = sanitizeRedirectPath(redirectAfterParam, "");
+    if (!redirectAfter) {
+      return NextResponse.json(
+        { message: "redirect_after はサイト内のパスで指定してください" },
         { status: 400 },
       );
     }

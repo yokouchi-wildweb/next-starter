@@ -94,3 +94,23 @@ test("端末でもユーザーでもなければ 401", async () => {
   const res = await call(route);
   assert.equal(res.status, 401);
 });
+
+test("DomainError 以外の例外は内部の文言を返さず、汎用メッセージの 500 にする（createApiRoute 共通の catch）", async () => {
+  currentDevice = { deviceId: "d1", kind: "table_terminal", label: "T1", scope: {} };
+  currentUser = null;
+  tokenOnlyIsDemo = false;
+  const originalConsoleError = console.error;
+  console.error = () => {};
+  try {
+    const route = createDeviceRoute({ operation: "POST /api/test", operationType: "write" }, async () => {
+      throw new Error('relation "users" does not exist: SELECT local_password FROM users');
+    });
+    const res = await call(route);
+    assert.equal(res.status, 500);
+    const body = await res.json();
+    assert.equal(body.message, "サーバーでエラーが発生しました");
+    assert.doesNotMatch(JSON.stringify(body), /local_password|SELECT/);
+  } finally {
+    console.error = originalConsoleError;
+  }
+});

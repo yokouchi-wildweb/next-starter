@@ -1,5 +1,6 @@
 // src/lib/crud/utils/paths.ts
 
+import { sanitizeRedirectPath } from "@/lib/url/sanitizeRedirectPath";
 import { toKebabCase } from "@/utils/stringCase.mjs";
 
 /**
@@ -61,14 +62,12 @@ export function getAdminPaths(slugPlural: string): CrudPaths {
 /**
  * returnToパラメータを検証し、安全なリダイレクト先を返す
  *
- * オープンリダイレクト対策として、内部パス（"/"始まり、"//"でない）のみ許可する。
+ * オープンリダイレクト対策として、同一オリジンの相対パスのみ許可する（判定は sanitizeRedirectPath）。
  * 不正な値の場合はfallbackを返す。
  *
  * @param returnTo - URLから取得したreturnToパラメータ
  * @param fallback - returnToが無効な場合のデフォルトパス
  */
 export function resolveReturnTo(returnTo: string | undefined, fallback: string): string {
-  return returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
-    ? returnTo
-    : fallback;
+  return sanitizeRedirectPath(returnTo, fallback);
 }

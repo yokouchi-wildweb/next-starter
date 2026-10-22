@@ -31,6 +31,7 @@
     "test:user-password-change": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
     "test:paired-device": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/pairedDevice/pairedDevice.test.ts",
     "test:device-route": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/lib/routeFactory/createDeviceRoute.test.mts src/features/core/pairedDevice/services/server/session/principalGuard.test.mts",
+    "test:sanitize-redirect": "npx tsx --test src/lib/url/sanitizeRedirectPath.test.mts",
     "test:auth-session-refresh": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/app/api/auth/session/route.test.mts",
     "test:user-name-availability": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/nameAvailability.test.ts",
     "db:generate": "cross-env APP_ENV=.env.development drizzle-kit generate",
