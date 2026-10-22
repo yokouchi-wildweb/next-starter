@@ -50,7 +50,7 @@ disable-model-invocation: true
    e. `vercel.json`: `pnpm cron:generate --plan <hobby|pro>` で生成し、`pnpm cron:check` が通ることを確認する(`src/app/api/cron/*/task.ts` の全タスクがエントリになる。手で編集しない)。
    f. `README.md` は**触らない**(全リポ共通。固有情報は project.md と GitHub の description 欄)。
    g. `.env.development`: `pnpm env:init` で生成する(`.env.example` のコピーに `APP_BASE_URL` / `AUTH_JWT_SECRET` / `ENCRYPTION_KEY` を自動設定。既存なら何もしない)。gitignore 対象であることを `git status` で確認し、**コミットに含めない**。
-5. `pnpm tsc --noEmit` 相当の型チェックは不要(設定ファイルのみの変更)。`git status --short` で意図したファイルだけが変更されていることを確認する。
+5. `pnpm typecheck` の型チェックは不要(設定ファイルのみの変更)。`git status --short` で意図したファイルだけが変更されていることを確認する。
 6. コミット: 件名 `chore: <name> フォーク初期設定` + 空行 + 本文(フォーク元、書き換えた項目、バックエンド未設定ならその旨)+ 環境指定の Co-Authored-By トレーラー。
 7. `git push -u origin main`。
 

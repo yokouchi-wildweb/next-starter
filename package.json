@@ -7,6 +7,7 @@
     "build": "pnpm cron:check --vercel-build && next build",
     "start": "next start",
     "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
     "test:crud-hooks": "node --test src/lib/crud/hooks/internal/*.test.mjs",
     "test:crud-search-rank": "node --test src/lib/crud/drizzle/query/searchRank.test.mjs src/lib/crud/drizzle/query/withIdTiebreak.test.mjs",
     "test:schema-registry": "node --test scripts/registry/check-schema-registry.test.mjs",
