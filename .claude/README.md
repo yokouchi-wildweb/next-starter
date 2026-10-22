@@ -8,6 +8,8 @@
 
 - **`CLAUDE.md`**: このベースと全下流プロジェクトで共有するアーキテクチャの契約。下流では編集しない（足りなければ `/upreq`）
 - **`.claude/rules/project.md` / `behavior.md`**: プロジェクトごとのファイル。下流で自由に書き換える。上流の merge で衝突したら下流側を採る
+- **`.claude/rules/shortcuts.md` / `term-aliases.md`**: 全員共通の合言葉・用語の読み替え。末尾の `fork entries below` マーカーより上を上流、下を下流が書く（merge で衝突したら上は上流側、下は下流側を採る）
+- **合言葉（`shortcuts.md`）**: メッセージがその単語だけのときに発動する短い指示。1 項目 1 行で書き、1 行に収まらないものはスキル（`.claude/skills/`）にする
 - 何を書き何を書かないかの規則は `CLAUDE.md` 冒頭の `PER_PROJECT` が正
 
 ## 重要：記述フォーマット
@@ -48,5 +50,6 @@
 └── rules/
     ├── project.md      # 地図・アーキテクチャの差分・判断基準
     ├── behavior.md     # 作業ルール
-    └── term-aliases.md # 用語の読み替え（任意。ファイルを足すのは自由だが毎セッションのコストになる）
+    ├── shortcuts.md    # 合言葉（マーカーより下が下流の追記欄）
+    └── term-aliases.md # 用語の読み替え（マーカーより下が下流の追記欄）
 ```
