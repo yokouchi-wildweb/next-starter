@@ -16,7 +16,7 @@ export function ReactivateCompleteScreen() {
   return (
     <UserPage containerType="narrowStack" className="text-center items-center">
       <UserPageTitle>復帰が完了しました</UserPageTitle>
-      <Para>おかえりなさい。引き続きサービスをお楽しみください。</Para>
+      <Para align="center">おかえりなさい。引き続きサービスをお楽しみください。</Para>
 
       <Flex direction="column" gap="sm">
         <Button asChild>

@@ -52,7 +52,7 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
           <div className="flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-          <Para>リンクを確認しています...</Para>
+          <Para align="center">リンクを確認しています...</Para>
         </Stack>
       </section>
     );
@@ -70,7 +70,7 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
           </div>
           <Stack space={2}>
             <h2 className="text-xl font-semibold">リンクが無効です</h2>
-            <Para size="sm" className="text-muted-foreground">
+            <Para align="center" size="sm" className="text-muted-foreground">
               {error || "このリンクは無効か、有効期限が切れています。"}
             </Para>
           </Stack>
@@ -96,7 +96,7 @@ export function ResetPassword({ oobCode }: ResetPasswordProps) {
           </div>
           <Stack space={2}>
             <h2 className="text-xl font-semibold">パスワードを変更しました</h2>
-            <Para size="sm" className="text-muted-foreground">
+            <Para align="center" size="sm" className="text-muted-foreground">
               新しいパスワードでログインできるようになりました。
             </Para>
           </Stack>

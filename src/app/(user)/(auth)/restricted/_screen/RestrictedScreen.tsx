@@ -20,17 +20,17 @@ export async function RestrictedScreen() {
       {isSuspended ? (
         <>
           <UserPageTitle>アカウントを確認中です</UserPageTitle>
-          <Para>
+          <Para align="center">
             ご利用状況の確認のため、現在アカウントのご利用を一時的に停止しております。
           </Para>
-          <Para>
+          <Para align="center">
             確認が完了次第、改めてご案内いたします。お急ぎの場合や心当たりがない場合は、お手数ですがサポートまでお問い合わせください。
           </Para>
         </>
       ) : (
         <>
           <UserPageTitle>アカウント制限中</UserPageTitle>
-          <Para>現在このアカウントはご利用になれません。</Para>
+          <Para align="center">現在このアカウントはご利用になれません。</Para>
         </>
       )}
     </UserPage>

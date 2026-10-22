@@ -27,8 +27,8 @@ export async function MaintenanceScreen() {
         <HideBottomNav />
         <Stack space={8} className="text-center py-12">
           <UserPageTitle>ただいま準備中です</UserPageTitle>
-          <Para tone="muted">現在サイトを準備しております。</Para>
-          <Para tone="muted">サービス開始までしばらくお待ちください。</Para>
+          <Para align="center" tone="muted">現在サイトを準備しております。</Para>
+          <Para align="center" tone="muted">サービス開始までしばらくお待ちください。</Para>
         </Stack>
       </UserPage>
     </>

@@ -34,7 +34,7 @@ export function CompleteStep({ phoneNumber, onComplete, mode = "register" }: Com
           <h2 className="text-xl font-semibold">
             {isChangeMode ? "電話番号の変更が完了しました" : "電話番号認証が完了しました"}
           </h2>
-          <Para size="sm" className="text-muted-foreground">
+          <Para align="center" size="sm" className="text-muted-foreground">
             {isChangeMode
               ? `電話番号が ${displayPhoneNumber} に変更されました。`
               : `${displayPhoneNumber} の認証が完了しました。`}

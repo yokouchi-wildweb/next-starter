@@ -37,11 +37,11 @@ export function ForgotPassword() {
           </div>
           <Stack space={2}>
             <h2 className="text-xl font-semibold">メールを送信しました</h2>
-            <Para size="sm" className="text-muted-foreground">
+            <Para align="center" size="sm" className="text-muted-foreground">
               {email} 宛にパスワードリセット用のメールを送信しました。
               メール内のリンクをクリックして、新しいパスワードを設定してください。
             </Para>
-            <Para size="sm" className="text-muted-foreground">
+            <Para align="center" size="sm" className="text-muted-foreground">
               メールが届かない場合は、迷惑メールフォルダをご確認ください。
             </Para>
           </Stack>

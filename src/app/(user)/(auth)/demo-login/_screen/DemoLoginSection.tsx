@@ -29,15 +29,15 @@ export function DemoLoginSection({ redirectTo }: Props) {
   return (
     <Block appearance="surface" padding="xl" className="max-w-md w-full text-center">
       <SecTitle>デモモード</SecTitle>
-      <Para tone="muted" className="mt-4">
+      <Para align="center" tone="muted" className="mt-4">
         デモユーザーとしてログインし、アプリケーションの機能をお試しいただけます。
       </Para>
-      <Para tone="muted" size="sm" className="mt-2">
+      <Para align="center" tone="muted" size="sm" className="mt-2">
         デモモードでは、データベースへの書き込みはスキップされます。
       </Para>
 
       {error && (
-        <Para tone="destructive" size="sm" className="mt-4">
+        <Para align="center" tone="destructive" size="sm" className="mt-4">
           {err(error, "デモログインに失敗しました")}
         </Para>
       )}
