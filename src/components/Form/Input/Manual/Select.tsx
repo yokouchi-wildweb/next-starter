@@ -130,7 +130,7 @@ export function SelectInput({
           const serialized = serializeValue(op.value);
           const key = serialized || `option-${index}`;
           return (
-            <SelectItem key={key} value={serialized}>
+            <SelectItem key={key} value={serialized} disabled={op.disabled}>
               {op.label}
             </SelectItem>
           );

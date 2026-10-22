@@ -95,12 +95,17 @@ export function RadioGroupInput({
 
           return (
             <div key={optionId} className="flex items-center gap-2">
-              <RadioGroupItem id={optionId} value={serialized} className="border-muted-foreground" />
+              <RadioGroupItem
+                id={optionId}
+                value={serialized}
+                disabled={op.disabled}
+                className="border-muted-foreground"
+              />
               <Label
                 htmlFor={optionId}
                 className={cn(
                   "text-sm font-normal cursor-pointer",
-                  disabled && "cursor-not-allowed opacity-50"
+                  (disabled || op.disabled) && "cursor-not-allowed opacity-50"
                 )}
               >
                 {op.label}
@@ -128,7 +133,12 @@ export function RadioGroupInput({
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
         const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
 
-        const handleSelect = () => handleChange(op.value);
+        // option.disabled は表示のみ。選択済みでもそのまま残る
+        const optionDisabled = disabled || op.disabled === true;
+        const handleSelect = () => {
+          if (optionDisabled) return;
+          handleChange(op.value);
+        };
 
         const key = optionSerialized || String(op.label ?? op.value);
 
@@ -141,7 +151,7 @@ export function RadioGroupInput({
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}
-              disabled={disabled}
+              disabled={optionDisabled}
               role="radio"
               aria-checked={selected}
             >
@@ -159,7 +169,7 @@ export function RadioGroupInput({
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}
-              disabled={disabled}
+              disabled={optionDisabled}
               role="radio"
               aria-checked={selected}
             >
@@ -179,7 +189,7 @@ export function RadioGroupInput({
               size={buttonSize}
               className={standardButtonBorderClass}
               onClick={handleSelect}
-              disabled={disabled}
+              disabled={optionDisabled}
               role="radio"
               aria-checked={selected}
             >
@@ -195,7 +205,7 @@ export function RadioGroupInput({
             variant={selected ? resolvedSelectedVariant : resolvedUnselectedVariant}
             size={buttonSize}
             onClick={handleSelect}
-            disabled={disabled}
+            disabled={optionDisabled}
             role="radio"
             aria-checked={selected}
           >

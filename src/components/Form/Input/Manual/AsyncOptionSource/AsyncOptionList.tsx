@@ -5,7 +5,7 @@
 // 非同期候補リスト（cmdk CommandList ベース）。
 //  - multiple: チェックボックス付き行。クリック / チェックで onToggle
 //  - single: チェックマーク付き行。クリックで onToggle（確定は消費者側）
-//  - disabledValues: 選択不可の行（追加済み等）。表示は残し、label の後ろに disabledLabelSuffix を付ける
+//  - disabledValues / option.disabled: 選択不可の行（追加済み等）。表示は残し、label の後ろに disabledLabelSuffix を付ける
 //  - renderOption: 行の表示を差し替える（name + かな の 2 行表示など）
 
 import { type ReactNode, type UIEvent } from "react";
@@ -30,7 +30,7 @@ export type AsyncOptionListProps = {
   onToggle: (value: OptionPrimitive) => void;
   /** multiple = チェックボックス行（既定） | single = チェックマーク行 */
   selectionMode?: AsyncOptionListSelectionMode;
-  /** 選択不可にする値（行は表示する） */
+  /** 選択不可にする値（行は表示する）。option.disabled と OR で判定 */
   disabledValues?: OptionPrimitive[];
   /** 選択不可行の label の後ろに付ける表示 */
   disabledLabelSuffix?: ReactNode;
@@ -73,7 +73,8 @@ export function AsyncOptionList({
       {options.map((option, index) => {
         const identity = resolveOptionItemIdentity(option, index);
         const selected = includesOptionValue(selectedValues, option.value);
-        const disabled = includesOptionValue(disabledValues, option.value);
+        const disabled =
+          option.disabled === true || includesOptionValue(disabledValues, option.value);
         const handleToggle = () => {
           if (disabled) return;
           onToggle(option.value);

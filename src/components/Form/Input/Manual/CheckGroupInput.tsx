@@ -72,8 +72,10 @@ export function CheckGroupInput({
 }: CheckGroupInputProps) {
   const groupId = useId();
 
-  const handleToggle = (optionValue: OptionPrimitive) => {
-    onChange(toggleOptionValue(value, optionValue));
+  const handleToggle = (option: Options) => {
+    // option.disabled は表示のみ。選択済みでもこの項目からは解除できない
+    if (disabled || option.disabled) return;
+    onChange(toggleOptionValue(value, option.value));
     onBlur?.();
   };
 
@@ -99,14 +101,15 @@ export function CheckGroupInput({
           const serialized = serializeOptionValue(op.value);
           const id = `${groupId}-${serialized}`;
           const selected = includesOptionValue(value, op.value);
+          const optionDisabled = disabled || op.disabled === true;
 
           return (
             <div key={serialized} className="flex items-center gap-2">
               <Checkbox
                 id={id}
                 checked={selected}
-                onCheckedChange={() => handleToggle(op.value)}
-                disabled={disabled}
+                onCheckedChange={() => handleToggle(op)}
+                disabled={optionDisabled}
                 aria-checked={selected}
                 className="border-muted-foreground"
               />
@@ -114,7 +117,7 @@ export function CheckGroupInput({
                 htmlFor={id}
                 className={cn(
                   "text-sm font-normal cursor-pointer",
-                  disabled && "cursor-not-allowed opacity-50"
+                  optionDisabled && "cursor-not-allowed opacity-50"
                 )}
               >
                 {op.label}
@@ -139,7 +142,8 @@ export function CheckGroupInput({
         const resolvedSelectedVariant = selectedButtonVariant ?? buttonVariant ?? "default";
         const resolvedUnselectedVariant = unselectedButtonVariant ?? buttonVariant ?? "outline";
         const serialized = serializeOptionValue(op.value);
-        const handleSelect = () => handleToggle(op.value);
+        const optionDisabled = disabled || op.disabled === true;
+        const handleSelect = () => handleToggle(op);
 
         if (displayType === "bookmark") {
           const tagColor = op.color && colorMap ? colorMap[op.color] : undefined;
@@ -152,7 +156,7 @@ export function CheckGroupInput({
               variant={buttonVariant}
               size={buttonSize}
               onClick={handleSelect}
-              disabled={disabled}
+              disabled={optionDisabled}
               aria-pressed={selected}
             >
               {op.label}
@@ -173,7 +177,7 @@ export function CheckGroupInput({
               size={buttonSize}
               className={standardButtonBorderClass}
               onClick={handleSelect}
-              disabled={disabled}
+              disabled={optionDisabled}
               aria-pressed={selected}
             >
               {op.label}
@@ -189,7 +193,7 @@ export function CheckGroupInput({
             variant={buttonVariant}
             size={buttonSize}
             onClick={handleSelect}
-            disabled={disabled}
+            disabled={optionDisabled}
             aria-pressed={selected}
           >
             {op.label}

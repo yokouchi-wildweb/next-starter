@@ -380,6 +380,26 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 
 ---
 
+## 選択肢の無効化（Options.disabled）
+
+「表示はするが選べない」選択肢（使用中・在庫切れ・権限なし・上限到達など）は、`Options` に `disabled: true` を付ける。
+
+```tsx
+const tableOptions: Options[] = tables.map((t) => ({
+  value: t.id,
+  label: t.occupied ? `${t.name} (使用中)` : t.name,
+  disabled: t.occupied,
+}));
+```
+
+- 対応: `SelectInput` / `ComboboxInput` / `MultiSelectInput` / `RadioGroupInput` / `CheckGroupInput`（全 displayType） / `AsyncOptionList` 系（`getOptionFromResult` で `disabled` を返す。既存の `disabledValues` とは OR）
+- 既に選択済みの値は選択されたまま残り、その項目からは解除できない（値は勝手に書き換えない）
+- 「(使用中)」等の文言は core が付けない → `label` に含める（`AsyncOptionList` のみ `disabledLabelSuffix` も使える）
+- UX 用の表示制御のみ。Zod もサーバーも拒否しないので、選べてはいけない値は ServerService 側で必ず検証する
+- FieldRenderer / 設定駆動フィールド: `FieldConfig.options` の各要素に `disabled` を付ければそのまま渡る（domain.json には定義しない。実行時の状態なので、画面側で options を組み立てて渡す）
+
+---
+
 ## AutoSave（自動保存）
 
 編集フォームで自動保存を有効にする方法については、[AutoSave/README.md](./AutoSave/README.md) を参照。

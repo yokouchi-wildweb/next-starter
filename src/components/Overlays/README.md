@@ -444,7 +444,7 @@ const [open, setOpen] = useState(false);
 | `searchFields` / `searchRank` / `minChars` / `limit` | - | `AsyncMultiSelectInput` と同じ | 検索系オプション |
 | `value` | `OptionPrimitive[]` | `[]` | open 時の初期選択値 |
 | `initialOptions` | `Options[]` | - | `value` のラベルヒント（未解決時は Skeleton 表示） |
-| `disabledValues` | `OptionPrimitive[]` | - | 選択不可にする値。行は表示され `disabledLabelSuffix` が付く |
+| `disabledValues` | `OptionPrimitive[]` | - | 選択不可にする値。行は表示され `disabledLabelSuffix` が付く（`getOptionFromResult` が返す `Options.disabled` とも OR） |
 | `disabledLabelSuffix` | `ReactNode` | `"（追加済み）"` | 選択不可行の接尾表示 |
 | `multiple` | `boolean` | `true` | `false` = 単一選択。行クリックで即 `onConfirm([value], [item])` |
 | `onConfirm` | `(values, items: T[]) => void \| Promise<void>` | - | 確定。Promise を返すとボタンがローディングになり、resolve 後にモーダルが閉じる。reject は呼び出し元へ伝搬（閉じない） |

@@ -84,6 +84,8 @@ export type FieldDataTypeFirestore =
 export type FieldOption = {
   value: string | number | boolean;
   label: string;
+  /** 表示はするが選択できない選択肢（Options.disabled と同じ意味） */
+  disabled?: boolean;
 };
 
 /**

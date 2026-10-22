@@ -173,8 +173,12 @@ export function ComboboxInput({
                     key={identity}
                     value={identity}
                     keywords={[resolveOptionSearchText(option)]}
-                    onSelect={() => handleSelect(option.value)}
-                    className="cursor-pointer"
+                    disabled={option.disabled}
+                    onSelect={() => {
+                      if (option.disabled) return;
+                      handleSelect(option.value);
+                    }}
+                    className={cn("cursor-pointer", option.disabled && "cursor-not-allowed")}
                   >
                     <Check
                       className={cn(

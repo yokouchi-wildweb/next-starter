@@ -23,7 +23,7 @@ import {
   Textarea,
   TimeInput,
 } from "@/components/Form/Input/Controlled";
-import type { FieldConfig, FormInputType } from "../types";
+import type { FieldConfig, FieldOption, FormInputType } from "../types";
 import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
 import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/CheckGroupInput";
 
@@ -244,8 +244,8 @@ export function renderInputByFormType<
  * readonly 配列も受け入れる
  */
 function normalizeOptions(
-  options?: readonly { value: string | number | boolean; label: string }[] | { value: string | number | boolean; label: string }[]
-): { value: string | number | boolean; label: string }[] {
+  options?: readonly FieldOption[] | FieldOption[]
+): FieldOption[] {
   if (!options) return [];
   return [...options];
 }
@@ -255,8 +255,8 @@ function normalizeOptions(
  * boolean 値の文字列表現も適切に変換
  */
 function normalizeRadioOptions(
-  options?: readonly { value: string | number | boolean; label: string }[] | { value: string | number | boolean; label: string }[]
-): { value: string | number | boolean; label: string }[] {
+  options?: readonly FieldOption[] | FieldOption[]
+): FieldOption[] {
   if (!options) return [];
   return options.map((option) => {
     let normalizedValue: string | number | boolean = option.value;
@@ -265,9 +265,10 @@ function normalizeRadioOptions(
     } else if (option.value === false || option.value === "false") {
       normalizedValue = false;
     }
+    // value 以外（disabled 等）は引き継ぐ
     return {
+      ...option,
       value: normalizedValue,
-      label: option.label,
     };
   });
 }

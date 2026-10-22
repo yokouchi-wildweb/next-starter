@@ -9,6 +9,7 @@ import {
   type OptionPrimitive,
 } from "@/components/Form/utils";
 import { type Options } from "@/components/Form/types";
+import { cn } from "@/lib/cn";
 
 type Props = {
   options: Options[];
@@ -29,17 +30,31 @@ export function MultiSelectOptionList({
       {options.map((option, index) => {
         const identity = resolveOptionItemIdentity(option, index);
         const selected = includesOptionValue(selectedValues, option.value);
-        const handleToggle = () => onToggle(option.value);
+        // disabled は表示のみ。選択済みでもこの行からは解除できない
+        const disabled = option.disabled === true;
+        const handleToggle = () => {
+          if (disabled) return;
+          onToggle(option.value);
+        };
 
         return (
           <CommandItem
             key={identity}
             value={identity}
             keywords={[resolveOptionSearchText(option)]}
+            disabled={disabled}
             onSelect={handleToggle}
-            className="cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
+            className={cn(
+              "cursor-pointer items-center gap-2 rounded-md px-2 py-1.5",
+              disabled && "cursor-not-allowed",
+            )}
           >
-            <Checkbox checked={selected} onCheckedChange={handleToggle} aria-checked={selected} />
+            <Checkbox
+              checked={selected}
+              disabled={disabled}
+              onCheckedChange={handleToggle}
+              aria-checked={selected}
+            />
             <span className="truncate">{option.label}</span>
           </CommandItem>
         );
