@@ -417,7 +417,9 @@ mimeType, src, durationSec, durationFormatted
     { "fields": ["status"] },
     { "fields": ["status", "fulfilled_at"] },
     { "fields": ["status"], "where": "deleted_at IS NULL" },
-    { "fields": ["external_id"], "name": "custom_short_idx" }
+    { "fields": ["external_id"], "name": "custom_short_idx" },
+    { "fields": ["title"], "using": "gin", "opclass": { "title": "gin_trgm_ops" } },
+    { "fields": ["metadata"], "using": "gin", "opclass": { "metadata": "jsonb_path_ops" } }
   ]
 }
 ```
@@ -429,13 +431,25 @@ mimeType, src, durationSec, durationFormatted
 | fields | string[] | 🟢 Yes | インデックス対象カラム（先頭から複合キー）。生成後の `entities/drizzle.ts` に現れるプロパティ名で指定する。業務フィールドは domain.json の `name` そのまま（例: `name_kana`。`nameKana` は存在せず型エラー）、システム列は `createdAt` / `updatedAt` / `deletedAt` |
 | where | string | ⚪ No | 部分インデックスの WHERE 句（SQL リテラル）。例: `"deleted_at IS NULL"` |
 | name | string | ⚪ No | インデックス名のオーバーライド。省略時は `{テーブル名}_{col1}_{col2}_..._idx` で自動命名 |
+| using | string | ⚪ No | インデックス方式（`gin` / `gist` / `brin` / `hash` など）。省略・`"btree"` は従来どおり `.on(...)`、それ以外は `.using("<方式>", ...)` を出力する |
+| opclass | `{ [field]: string }` | ⚪ No | 列ごとの演算子クラス。キーは `fields` に含まれる列（含まれなければ生成エラー）。例: `{ "title": "gin_trgm_ops" }` → `table.title.op("gin_trgm_ops")`。btree の演算子クラス（`text_pattern_ops` 等）にも使える |
+
+`using` / `opclass` の値は生成コードにそのまま入るため、識別子の形（`^[a-z_][a-z0-9_]*$`）以外は生成エラーになる。
 
 #### 名前の自動命名規則
 
 省略時: `{テーブル名}_{col1}_{col2}_..._idx`
 例: `indexes: [{ "fields": ["status", "fulfilled_at"] }]` → `referral_rewards_status_fulfilled_at_idx`
 
+`using` が btree 以外のとき: `{テーブル名}_{col1}_..._{using}_idx`（同じ列に btree と GIN を両方張っても衝突しない）。例: `games_title_gin_idx`。既存の名前を保ちたいときは `name` で指定する
+
 PostgreSQL の識別子上限 (63 文字) を超える場合は generator がエラーで停止する。その場合は `name` で短縮指定する。
+
+#### using / opclass を使うときの注意
+
+- **拡張機能は前提**: `gin_trgm_ops` は `pg_trgm`、ベクトル系は `vector` などの拡張が DB に入っている必要がある。dc:generate / db:push は拡張を作らないので、先にユーザーが `pnpm db:query "CREATE EXTENSION IF NOT EXISTS pg_trgm"` を実行する（無いと push が失敗する）
+- **演算子クラスは push で比較されない**: drizzle-kit の index 比較キーに opclass は含まれない（`using` = 方式は含まれる。`scripts/registry/README.md` の round-trip 節）。宣言済みの opclass を後から変えても DB は作り直されないので、変えるときは `name` も変えて別 index として作り直す
+- 典型例: 部分一致検索（`ILIKE '%…%'`）= `gin` + `gin_trgm_ops` | jsonb の包含検索（`@>`）= `gin` + `jsonb_path_ops`（既定の `jsonb_ops` なら opclass 不要） | 前方一致（`LIKE 'abc%'`、C 以外の照合順序）= btree + `text_pattern_ops`
 
 #### compositeUniques との使い分け
 

@@ -82,6 +82,10 @@ type DomainConfigOptionals = {
     fields: string[];
     where?: string;
     name?: string;
+    // インデックス方式（gin / gist など）。省略 = btree
+    using?: string;
+    // 列ごとの演算子クラス（例: { title: "gin_trgm_ops" }）
+    opclass?: Record<string, string>;
   }>;
   sortOrderField?: string | null;
   // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（Neon のみ）。

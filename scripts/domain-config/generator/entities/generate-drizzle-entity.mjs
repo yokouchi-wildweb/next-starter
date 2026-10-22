@@ -404,7 +404,7 @@ if (hiddenColumns.length > 0) {
 }
 
 // 非ユニークインデックス (config.indexes) の有無と sql 句使用判定
-// 形式: indexes: [{ fields: string[], where?: string, name?: string }]
+// 形式: indexes: [{ fields: string[], where?: string, name?: string, using?: string, opclass?: Record<string, string> }]
 // where は sql テンプレート内に挿入される（partial index 用）
 const extraIndexes = Array.isArray(config.indexes) ? config.indexes : [];
 const hasExtraIndexes = extraIndexes.length > 0;
@@ -460,25 +460,57 @@ if (hasCompositeUniques) {
 
 // 非ユニークインデックス (domain.json の indexes 配列)
 // 検索・集計頻度の高いカラム向け。compositeUniques とは別物（こちらはユニーク制約なし）。
-// 形式: { fields: string[], where?: string, name?: string }
+// 形式: { fields: string[], where?: string, name?: string, using?: string, opclass?: Record<string, string> }
 //   - fields: 生成後の entities/drizzle.ts に現れるプロパティ名で指定する
 //            業務フィールドは domain.json の name そのまま (例: "name_kana"、"nameKana" ではない)
 //            システム列は createdAt / updatedAt / deletedAt (camelCase)
 //   - where: 省略可。指定時は partial index になる (例: "deleted_at IS NULL")
-//   - name:  省略可。省略時は <table>_<col1>_<col2>_..._idx で自動命名
+//   - name:  省略可。省略時は <table>_<col1>_<col2>_..._idx で自動命名（btree 以外は <table>_<cols>_<using>_idx）
+//   - using: 省略可。インデックス方式（gin / gist / brin など）。省略・"btree" は .on(...)、それ以外は .using("<method>", ...)
+//   - opclass: 省略可。{ <field>: <演算子クラス> }（例: { "title": "gin_trgm_ops" }）。該当列に .op("<opclass>") を付ける
+//     using / opclass の値は生成コードにそのまま入るため識別子の形だけを許す
+const SQL_IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
 if (hasExtraIndexes) {
   extraIndexes.forEach((idx) => {
     if (!Array.isArray(idx.fields) || idx.fields.length === 0) return;
+    const label = idx.name || `[${idx.fields.join(', ')}]`;
+    const method = idx.using ?? 'btree';
+    if (typeof method !== 'string' || !SQL_IDENTIFIER.test(method)) {
+      console.error(`エラー: indexes ${label} の using "${method}" が不正です（例: "gin" / "gist" / "btree"）`);
+      process.exit(1);
+    }
+    const opclass = idx.opclass ?? {};
+    if (typeof opclass !== 'object' || opclass === null || Array.isArray(opclass)) {
+      console.error(`エラー: indexes ${label} の opclass は { "<field>": "<演算子クラス>" } の形で指定してください`);
+      process.exit(1);
+    }
+    for (const [field, op] of Object.entries(opclass)) {
+      if (!idx.fields.includes(field)) {
+        console.error(`エラー: indexes ${label} の opclass のキー "${field}" が fields にありません`);
+        process.exit(1);
+      }
+      if (typeof op !== 'string' || !SQL_IDENTIFIER.test(op)) {
+        console.error(`エラー: indexes ${label} の opclass "${field}": "${op}" が不正です（例: "gin_trgm_ops"）`);
+        process.exit(1);
+      }
+    }
+    const isDefaultMethod = method === 'btree';
     const snakeFields = idx.fields.map((f) => toSnakeCase(f));
-    const indexName = idx.name || `${tableName}_${snakeFields.join('_')}_idx`;
+    const methodSuffix = isDefaultMethod ? '' : `_${method}`;
+    const indexName = idx.name || `${tableName}_${snakeFields.join('_')}${methodSuffix}_idx`;
     if (indexName.length > PG_MAX_IDENTIFIER_LENGTH) {
       console.error(`エラー: インデックス名 "${indexName}" が ${PG_MAX_IDENTIFIER_LENGTH} 文字を超えています`);
       console.error('  domain.json の indexes 要素に "name" を指定して短くしてください');
       process.exit(1);
     }
-    const fieldsOnClause = idx.fields.map((f) => `table.${f}`).join(', ');
-    let indexDef = `  // インデックス: [${idx.fields.join(', ')}]\n`;
-    indexDef += `  index("${indexName}").on(${fieldsOnClause})`;
+    const fieldsOnClause = idx.fields
+      .map((f) => (opclass[f] ? `table.${f}.op("${opclass[f]}")` : `table.${f}`))
+      .join(', ');
+    let indexDef = `  // インデックス: [${idx.fields.join(', ')}]${isDefaultMethod ? '' : ` (${method})`}\n`;
+    // btree は既定の方式なので .on(...) のまま（using 無しの既存出力と同一にする）
+    indexDef += isDefaultMethod
+      ? `  index("${indexName}").on(${fieldsOnClause})`
+      : `  index("${indexName}").using("${method}", ${fieldsOnClause})`;
     if (typeof idx.where === 'string' && idx.where.length > 0) {
       indexDef += `.where(sql\`${idx.where}\`)`;
     }
