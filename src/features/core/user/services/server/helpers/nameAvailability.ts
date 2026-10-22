@@ -4,6 +4,7 @@ import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 
 import { USER_NAME_CONFIG } from "@/config/app/user-name.config";
 import { UserTable } from "@/features/core/user/entities/drizzle";
+import type { ReservedUserNameProvider } from "@/features/core/user/types";
 import { normalizeUserNameForComparison } from "@/features/core/user/utils/userName";
 import type { DbExecutor, DbTransaction } from "@/lib/crud/drizzle/types";
 import { db } from "@/lib/drizzle";
@@ -14,6 +15,8 @@ export type UserNameAvailabilityParams = {
   /** 自分自身を重複判定から除外する (更新・復元時に指定) */
   excludeUserId?: string;
   executor?: DbExecutor;
+  /** 照会する予約名プロバイダ (省略時は reservedUserNamesRegistry。テストで差し替える用) */
+  reservedProviders?: readonly ReservedUserNameProvider[];
 };
 
 /**
@@ -23,11 +26,12 @@ export type UserNameAvailabilityParams = {
 async function filterReservedUserNames(
   normalizedNames: string[],
   ctx: { executor?: DbExecutor },
+  providers: readonly ReservedUserNameProvider[],
 ): Promise<Set<string>> {
   const reserved = new Set<string>();
   let pending = normalizedNames;
 
-  for (const provider of RESERVED_USER_NAME_PROVIDERS) {
+  for (const provider of providers) {
     if (pending.length === 0) break;
     const hits = await provider.filterReserved(pending, ctx);
     for (const hit of hits) {
@@ -48,7 +52,11 @@ async function filterReservedUserNames(
  */
 export async function isUserNamesTaken(
   names: string[],
-  { excludeUserId, executor = db }: UserNameAvailabilityParams = {},
+  {
+    excludeUserId,
+    executor = db,
+    reservedProviders = RESERVED_USER_NAME_PROVIDERS,
+  }: UserNameAvailabilityParams = {},
 ): Promise<Set<string>> {
   const taken = new Set<string>();
 
@@ -95,6 +103,7 @@ export async function isUserNamesTaken(
     const reserved = await filterReservedUserNames(
       remaining.map((candidate) => candidate.normalized),
       { executor },
+      reservedProviders,
     );
     for (const candidate of remaining) {
       if (reserved.has(candidate.normalized)) {

@@ -1,6 +1,7 @@
 // src/features/core/user/services/server/helpers/nameAvailability.test.ts
 // 表示名の一意性ガードのうち DB なしで検証できる部分の単体テスト
-// (ガード要否の判定 / サフィックス採番の長さ予算 / isUserNamesTaken の JS 側厳密判定)
+// (ガード要否の判定 / サフィックス採番の長さ予算 / isUserNamesTaken の JS 側厳密判定と予約名プロバイダの連鎖)
+// isUserNamesTaken は reservedProviders を明示して、下流がレジストリに登録したプロバイダから切り離す
 // 同時書き込みの直列化と SQL の判定スコープ (退会済み・デモ除外) は実 PostgreSQL が必要なため対象外
 // 実行: pnpm test:user-name-availability
 
@@ -11,6 +12,7 @@ import {
   isUserNamesTaken,
   resolveUserNameForGuard,
 } from "./nameAvailability";
+import type { ReservedUserNameProvider } from "@/features/core/user/types";
 import type { DbExecutor } from "@/lib/crud/drizzle/types";
 
 /** select().from().where() の結果だけを差し替える executor */
@@ -68,8 +70,33 @@ test("buildSuffixedUserName: 予算が尽きてもベース名を最低 1 文字
 test("isUserNamesTaken: 前後空白と大文字小文字を無視して使用中を判定する", async () => {
   const taken = await isUserNamesTaken(["taro", "  TARO ", "Hanako"], {
     executor: fakeExecutor(["Taro", null]),
+    reservedProviders: [],
   });
   assert.deepEqual([...taken].sort(), ["  TARO ", "taro"]);
+});
+
+test("isUserNamesTaken: users で空きの名前だけを予約名プロバイダへ順に照会する", async () => {
+  const calls: Record<string, string[]> = {};
+  const provider = (key: string, reservedNames: string[]): ReservedUserNameProvider => ({
+    key,
+    filterReserved: async (names) => {
+      calls[key] = names;
+      return names.filter((name) => reservedNames.includes(name));
+    },
+  });
+
+  const taken = await isUserNamesTaken(["Taro", "  運営 ", "admin", "Hanako"], {
+    executor: fakeExecutor(["Taro"]),
+    reservedProviders: [provider("first", ["運営"]), provider("second", ["admin", "運営"])],
+  });
+
+  assert.deepEqual([...taken].sort(), ["  運営 ", "Taro", "admin"].sort());
+  // users で使用中の Taro はプロバイダに渡らない (正規化済みの名前が渡る)
+  assert.ok(!calls.first.some((name) => name.toLowerCase() === "taro"));
+  assert.ok(calls.first.includes("運営"));
+  // 先のプロバイダで予約と判明した名前は後続に渡らない
+  assert.ok(!calls.second.includes("運営"));
+  assert.ok(calls.second.includes("admin"));
 });
 
 test("isUserNamesTaken: 空・空白のみの名前は DB を引かず使用中にしない", async () => {
