@@ -79,7 +79,7 @@
 
 削除するもの: `src/features/<domain>/`、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDataMenu.ts` / `schemaRegistry.ts` / `serviceRegistry.ts` / `domainConfigRegistry.ts` の該当行を消す。DB のテーブルは消さない。
 
-- `serviceRegistry` / `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`removeObjectEntry`。`tag` を消しても core の `user_tag` は残る）。キーは実在したドメインディレクトリ名から決める
+- `serviceRegistry` / `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`removeObjectEntry`。`tag` を消しても core の `user_tag` は残る）。キーは実在したドメインディレクトリ名から決める。消した後、`serviceRegistry.ts` のプリセット import を dc:generate と同じく使用中の名前に揃える
 - レジストリの更新に失敗してもディレクトリ削除は済んでいるため止めず、最後に手で直すファイルを表示して終了コード 1 で終わる
 
 ---
@@ -108,9 +108,9 @@
 | 初回だけ生成（write-once） | 管理画面ルートの `page.tsx`（1 行スイッチ）。既存なら保持し、旧形式（本体を直接持つ）なら一度だけスイッチ形へ移行する |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
-| 未登録なら追記 | `src/registry/` の各ファイル（引用符・空白違いの既存行も登録済みとみなす）。ただし `serviceRegistry.ts` の該当ドメインのエントリは毎回 `apiAccess` から 1 行で書き直す（手で変えた `access` や複数行の整形は消える。`apiAccess` 未宣言なら fail-closed = admin 限定で登録して警告） |
+| 未登録なら追記 | `src/registry/` の各ファイル（引用符・空白違いの既存行も登録済みとみなす）。ただし `serviceRegistry.ts` の該当ドメインのエントリは毎回 `apiAccess` から 1 行で書き直す（手で変えた `access` や複数行の整形は消える。`apiAccess` がプリセット（`ADMIN_ONLY` / `PUBLIC_READ` / `ADMIN_OR_DEBUGGER`）と一致すればプリセット名、一致しなければ JSON リテラルで書く。`apiAccess` 未宣言なら fail-closed = `ADMIN_ONLY` で登録し、初回登録時だけ警告） |
 
-`serviceRegistry.ts` の書き直しは `serviceRegistry` オブジェクト直下のキーだけを見て、複数行のエントリも `{` から対応する `}` まで丸ごと置き換える（`generator/registry/utils/objectEntry.mjs`）。`AUTO-GENERATED` ブロック外に置いた直下エントリも置き換え、無ければ `AUTO-GENERATED-END` の直前に追加する。Prettier で整形しても壊れないが、再生成で 1 行に戻る。テスト: `pnpm test:dc-registry`。
+`serviceRegistry.ts` の書き直しは `serviceRegistry` オブジェクト直下のキーだけを見て、複数行のエントリも `{` から対応する `}` まで丸ごと置き換える（`generator/registry/utils/objectEntry.mjs`）。`AUTO-GENERATED` ブロック外に置いた直下エントリも置き換え、無ければ `AUTO-GENERATED-END` の直前に追加する。Prettier で整形しても壊れないが、再生成で 1 行に戻る。書き直しの後、`@/config/app/domain-api-access.config` からの import 行をファイル内で使われている名前だけに揃える（使われなくなった名前は外し、要る名前は足す。fork が手で足した名前も使われている限り残す。集合が変わらなければ行に触れない。`generator/registry/utils/presetAccess.mjs`）。プリセットの値は `domain-api-access.config.ts` の写しで、一致はテストが検証する（プリセットを変えたら写しも変える）。テスト: `pnpm test:dc-registry`。
 
 管理画面ルートの構造（`page.tsx` / `_screen/` / 共有 loader）は [`src/lib/screens/README.md`](../../src/lib/screens/README.md) §12。
 

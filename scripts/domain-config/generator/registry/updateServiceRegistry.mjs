@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { upsertObjectEntry } from './utils/objectEntry.mjs';
+import { scanObjectEntries, upsertObjectEntry } from './utils/objectEntry.mjs';
+import { ACCESS_PRESETS, serializeAccess, syncPresetImport } from './utils/presetAccess.mjs';
 
-// fail-closed 既定（apiAccess 未宣言ドメイン用）。serviceRegistry の ADMIN_ONLY と同義。
-const FAIL_CLOSED_ACCESS = { read: { roleCategories: ['admin'] }, write: { roleCategories: ['admin'] } };
+// fail-closed 既定（apiAccess 未宣言ドメイン用）。出力は ADMIN_ONLY になる。
+const FAIL_CLOSED_ACCESS = ACCESS_PRESETS.ADMIN_ONLY;
 
 // domain.json の apiAccess を読み取る。無ければ null。
 function readApiAccess(rootDir, camel) {
@@ -17,14 +18,10 @@ function readApiAccess(rootDir, camel) {
   }
 }
 
-// access オブジェクトを 1 行の TS リテラルとして直列化する（JSON は有効な TS オブジェクトリテラル）。
-function serializeAccess(access) {
-  return JSON.stringify(access);
-}
-
 // サービス登録ファイルに新しいサービスを追記する。
-// 値は { service, access } 形式（access は型必須）。access は domain.json の apiAccess を展開し、
-// 未宣言の場合は fail-closed（admin 限定）を出力して警告する。
+// 値は { service, access } 形式（access は型必須）。access は domain.json の apiAccess を
+// プリセット名（一致時）か JSON リテラルで出力し、未宣言の場合は fail-closed（ADMIN_ONLY）を出力する。
+// 最後にプリセットの import をファイル内で使われている名前に揃える。
 export default function updateServiceRegistry({ rootDir, camel }) {
   const servicePath = path.join(rootDir, 'src', 'registry', 'serviceRegistry.ts');
   // レジストリが無ければ何もしない
@@ -47,10 +44,16 @@ export default function updateServiceRegistry({ rootDir, camel }) {
   let apiAccess = readApiAccess(rootDir, camel);
   if (!apiAccess) {
     apiAccess = FAIL_CLOSED_ACCESS;
-    console.warn(
-      `[serviceRegistry] ${camel}: domain.json に apiAccess が無いため fail-closed（admin 限定）で登録します。` +
-        `公開範囲を変えるには domain.json の apiAccess を宣言して再生成してください。`,
-    );
+    const registered = scanObjectEntries(content.join('\n'), 'serviceRegistry').entries.some((e) => e.key === camel);
+    if (registered) {
+      // 再生成のたびに警告を繰り返さない（初回登録時に警告済み）
+      console.log(`[serviceRegistry] ${camel}: apiAccess 未宣言 → ADMIN_ONLY`);
+    } else {
+      console.warn(
+        `[serviceRegistry] ${camel}: domain.json に apiAccess が無いため fail-closed（ADMIN_ONLY）で登録します。` +
+          `公開範囲を変えるには domain.json の apiAccess を宣言して再生成してください。`,
+      );
+    }
   }
   // serviceRegistry 直下の同一ドメインのエントリ（旧 `${camel}: ${camel}Service,` 形式・複数行整形を含む）を
   // 丸ごと置換 or AUTO-GENERATED-END の直前へ追加
@@ -59,6 +62,6 @@ export default function updateServiceRegistry({ rootDir, camel }) {
     key: camel,
     value: `{ service: ${camel}Service, access: ${serializeAccess(apiAccess)} }`,
   });
-  fs.writeFileSync(servicePath, updated);
+  fs.writeFileSync(servicePath, syncPresetImport(updated));
   console.log(`更新しました: ${servicePath}`);
 }

@@ -6,6 +6,7 @@ import inquirer from 'inquirer';
 import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from '../../src/utils/stringCase.mjs';
 import { getCliArgs } from './utils/cliArgs.mjs';
 import { removeObjectEntry } from './generator/registry/utils/objectEntry.mjs';
+import { syncPresetImport } from './generator/registry/utils/presetAccess.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..', '..');
@@ -310,6 +311,12 @@ export default async function removeDomain(domain) {
     removeLineContaining(servicePath, `@/features/${candidate}/services/server/${camelCandidate}Service`);
   }
   removeRegistryEntry(servicePath, 'serviceRegistry', registryCamel, failures);
+  // 消したエントリだけが使っていたプリセットの import を残さない
+  if (fs.existsSync(servicePath)) {
+    const before = fs.readFileSync(servicePath, 'utf8');
+    const after = syncPresetImport(before);
+    if (after !== before) fs.writeFileSync(servicePath, after);
+  }
 
   const domainConfigPath = path.join(rootDir, 'src', 'registry', 'domainConfigRegistry.ts');
   for (const candidate of featureCandidateSet) {
