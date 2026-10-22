@@ -61,7 +61,7 @@ disable-model-invocation: true
 ## relay モード($ARGUMENTS が `relay` で始まるとき)
 中間 Tier(T2 など)が、自分が `/flux` で適用した上流 notice を下流(T3)へ中継する notice を下書きする。仕様: `.notices/README.md`「中継(relay)」。上記「手順」の 1・3・4 はそのまま使い、2 の材料を次で置き換える(`relay` 以降の文字列は補足メモ扱い)。
 - 通常の中継は `/flux` が区間ごとに差分で判定し、必要な区間だけ下書きまで行う(`.claude/skills/flux/relay.md`「中継判定」)。このモードは、その仕組み導入前に適用した**未判定**の旧 notice の後始末用。
-- 下記の手順 3〜4(材料集めと合成)は `/flux` の中継判定から呼ばれる共通の合成規則でもある。`/flux` から使うときは、`covers:` は `/flux` が渡す id(その区間で差分ありの id と、その covered id)に置き換え、手順 1・2・5 は使わない。
+- 下記の手順 3〜4(材料集めと合成)は `/flux` の中継判定から呼ばれる共通の合成規則でもある。`/flux` から使うときは、`covers:` は `/flux` が渡す id(その区間で中継が必要と判定した id と、その covered id)に置き換え、手順 1・2・5 は使わない。
 1. **自 fork 台帳を特定**: fork-id は `/flux` と同じ規則(origin URL のパス部分、`.git` 除去、`/`→`--`、小文字化)。台帳 = `.notices/applied/<fork-id>.md`。無ければ「中継対象なし」と報告して終了。
 2. **未判定 id を求める**: 台帳の id のうち、その行に `relay:` 欄が無く、notice ファイル(`.notices/<id>.md` または `done/<id>.md`)の `from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも含まれないもの。0 件なら「未判定の notice はありません」と報告して終了(書き出さない)。
 3. **id ごとに材料を集める**(推測しない):

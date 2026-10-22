@@ -102,12 +102,16 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
 - 状態の見える化: `/flux status --chain` が祖父 notice ごとに「中間 Tier が適用済みか → 中継 notice に covered されているか(または `relay:none`)→ 自分が適用済みか」を 1 行ずつ出す。
 
 ### 3. 中継判定(中間 Tier の /flux が区間ごとに行う)
-中継が要るかどうかは文面の解釈ではなく **git の差分だけ**で決める。下流に補足が要るのは「上流が変えたファイルの中身が、上流と中間 Tier で食い違うとき」だけで、食い違いが無ければ下流が中間 Tier から受け取るコードは上流と同じになり、上流 notice どおりの作業で済むため。
+中継が要るかどうかは文面の解釈ではなく **git の差分と適用の事実だけ**で決める。下流に補足が要るのは「上流が変えた箇所が中間 Tier で食い違う」「中間 Tier が適用作業で上流の外まで変えた」「中間 Tier が手順から外れた」ときだけで、どれも無ければ下流が中間 Tier から受け取るコードと作業は上流 notice どおりで済むため。
 - 対象 fork: `.claude/rules/project.md` の TIER 節に下流を持つと書かれている fork。末端 fork は判定しない。
 - 対象 notice: 区間内で適用した、`from:` が自分の origin でない notice(covered id は covers 側と一緒に判定)。
-- 判定(区間の verify 後、commit 前): `Q` = その notice の区切り点、`P` = 上流履歴上で直前の notice の区切り点(無ければ fork 成立点)。上流が変えたファイル = `git diff --name-only <P> <Q> -- . ':!.notices'` を、`git diff --quiet <Q> -- <files>`(作業ツリーとの比較)で突き合わせる。差分なし = 中継不要、差分あり = 中継が必要。
+- 判定(区間の verify 後、commit 前): `Q` = その notice の区切り点、`P` = 上流履歴上で直前の notice の区切り点(無ければ fork 成立点)、`A` = 区間の merge 直後の HEAD。次のどれか 1 つで中継が必要、どれも無ければ中継不要(①② は `.claude/skills/flux/relay-check.mjs` が出す。詳細と限界は `.claude/skills/flux/relay.md`「中継判定」):
+  - ① ハンクの重なり: 上流が P→Q で変えた行範囲と、作業ツリーが Q と食い違う行範囲が重なるか接する。同じファイルでも離れた場所の fork 独自の追加は数えない。
+  - ② 適用作業での上流変更ファイル外の変更: A から作業ツリーまでに、上流が変えていないファイルを変えた(掃討・改名など)。
+  - ③ required_actions からの逸脱: 手順を実行しなかった・変えて実行した(台帳 `notes:` に書く逸脱)。差分の有無を問わない。
+  - `.notices/` と lock ファイルは ①② の対象外。
 - 結果は台帳の各行の `relay:` 欄に明示する: `relay:none`(中継不要)/ `relay:<中継 notice id>`(中継した)。欄が無い = 判定導入前の未判定。
-- 差分ありの notice が区間に 1 件以上あれば、/flux がその区間で中継 notice を 1 件下書きし(合成規則は `/downreq relay` と共通、差分のあったファイルと `--stat` を `notes:` に載せる)、区間の適用コミットに含める。中継 notice の追加 commit と台帳記録 commit が同じになるので、下流の区切り点がぶれない。
+- 中継が必要な notice が区間に 1 件以上あれば、/flux がその区間で中継 notice を 1 件下書きし(合成規則は `/downreq relay` と共通、判定の根拠 = ①② の該当ファイル・行範囲と ③ の逸脱を `notes:` に載せる)、区間の適用コミットに含める。中継 notice の追加 commit と台帳記録 commit が同じになるので、下流の区切り点がぶれない。
 - 中身の無い中継 notice は作らない。中継不要の notice は `relay:none` だけで閉じる。
 - 未判定の旧台帳行(`relay:` 欄が無く、どの `covers:` にも無い)は /flux が件数を報告し、`/downreq relay` でまとめて中継 notice に covers して閉じる(基準点が古く差分判定できないため)。
 

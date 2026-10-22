@@ -123,7 +123,7 @@ notice は次のいずれかに該当すれば対象外、残りが**未適用**
    - 掃討: 計画に載せた fork 固有コードも同じ区間で新仕様へ揃え、旧 API の呼び出し・互換 shim への依存・不要になった独自実装を残さない。揃え方に fork 固有の判断が要るものは停止条件として止める。notice に目印が無く掃討しきれなかったものは「上流への所見」(b) に出す。
    - `[user-run]` ステップ: 「プロンプトに `! <コマンド>` と打ってください」と依頼して待つ。`!` プレフィックスはセッション内実行で出力が会話に流れ込むので、**出力を確認し、成功を判定してから**後続を再開する。失敗していたら取り繕わず対処を提示する。
    - notice の `verify:` を自分で実行して確認する。`moved:` を移植した区間は新しいパス側の確認も行う(→ moved.md 手順 5)。
-   - 下流を持つ fork なら、verify の後に中継判定を行う(→ relay.md「中継判定」。差分ありなら中継 notice の下書きまでこの区間で作る)。
+   - 下流を持つ fork なら、verify の後に中継判定を行う(→ relay.md「中継判定」。中継が必要なら中継 notice の下書きまでこの区間で作る)。
    - 型チェックは `pnpm typecheck` で行う。古い notice の `verify:` が `tsc --noEmit` と書いていても `pnpm typecheck` に読み替える(`tsc --noEmit` は dev サーバーが残した古い `.next/**/validator.ts` で TS2307 を出すため。`.notices/README.md` 参照)。
    - `pnpm typecheck` が**自 fork では使っていない上流の `_screen/*` 既定 Screen**(page.tsx を `_components/` に向けているルート等)で落ちたら、原因は自 fork の core 編集の非互換(必須 props の追加・使わない core コードの削除など)。直すのは core 側(足した props を省略可能+空の既定値に戻す、消したものを上流から戻す)で、上流の Screen は編集しない(CLAUDE.md CORE_FILES `fork_core_edit_compat`、`src/lib/screens/README.md` §7)。台帳の notes に何を戻したかを書く。
 7. **記録とコミット**(途中確認なしで連続実行):

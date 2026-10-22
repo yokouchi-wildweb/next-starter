@@ -32,6 +32,7 @@
     "test:dc-server-service": "node --test scripts/domain-config/generator/serverServiceWriteOnce.test.mjs",
     "test:dc-drizzle-indexes": "node --test scripts/domain-config/generator/entities/drizzleIndexes.test.mjs",
     "test:dc-sample-drift": "node --test scripts/domain-config/sampleDrift.test.mjs",
+    "test:flux-relay": "node --test .claude/skills/flux/relay-check.test.mjs",
     "test:wallet-lot-planning": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
     "test:paired-device": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/pairedDevice/pairedDevice.test.ts",
