@@ -30,21 +30,11 @@ import { Para, Span } from "@/components/TextBlocks";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors/httpError";
+import { sanitizeRedirectPath } from "@/lib/url";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 // HTTP は useSubmitBankTransferProof 経由（client service を直接呼ばない）。active 振込のキャッシュ無効化も hook が行う
 import { useSubmitBankTransferProof } from "@/features/core/bankTransferReview/hooks/useSubmitBankTransferProof";
-
-/**
- * サーバーから受け取った redirectUrl が「同一オリジン内の相対 URL」かを検証する。
- * - 先頭が "/" で始まる
- * - "//evil.com" のようなプロトコル相対 URL を排除
- * 万が一サーバー応答が改竄された場合の Open Redirect への defense-in-depth。
- */
-function isSafeRelativeRedirect(url: string): boolean {
-  if (typeof url !== "string" || url === "") return false;
-  return url.startsWith("/") && !url.startsWith("//");
-}
 
 /** 振込人名等メモの最大文字数。confirm API 側の上限と同期 */
 const UNVERIFIED_NOTE_MAX_LENGTH = 500;
@@ -101,11 +91,14 @@ export function ConfirmTransferModal({
       });
 
       if (result.redirectUrl) {
-        if (!isSafeRelativeRedirect(result.redirectUrl)) {
+        // 万が一サーバー応答が改竄された場合の Open Redirect への defense-in-depth。
+        // 同一オリジンの相対パス以外（"//evil.com" / "/\evil.com" 等）は "" になる
+        const redirectPath = sanitizeRedirectPath(result.redirectUrl, "");
+        if (!redirectPath) {
           showToast("リダイレクト URL が不正です。", "error");
           return;
         }
-        window.location.href = result.redirectUrl;
+        window.location.href = redirectPath;
         return;
       }
       showToast("申告を受け付けました", "success");

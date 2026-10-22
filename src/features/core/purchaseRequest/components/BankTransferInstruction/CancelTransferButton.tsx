@@ -9,8 +9,8 @@
 // - 不可逆操作（既振込み済みの場合の事故防止）のため Dialog で必ず一度確認を挟む。
 // - Dialog の onConfirm は Promise を返すと自動でロック + ローディング管理されるため、
 //   二重送信ガードは Dialog 側に委ねている。
-// - redirectUrl はサーバー側で組み立てたものを信頼する（Open Redirect 防御として
-//   "/" 始まりの相対 URL であることだけ確認）。
+// - redirectUrl はサーバー側で組み立てたものを信頼しつつ、Open Redirect への
+//   defense-in-depth として sanitizeRedirectPath で同一オリジンの相対パスに限定する。
 // - HTTP は useCancelPurchase 経由（client service を直接呼ばない）。active 振込の
 //   キャッシュ無効化も hook が行う。
 
@@ -25,17 +25,9 @@ import { Para } from "@/components/TextBlocks";
 import { Stack } from "@/components/Layout/Stack";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors/httpError";
+import { sanitizeRedirectPath } from "@/lib/url";
 
 import { useCancelPurchase } from "@/features/core/purchaseRequest/hooks/useCancelPurchase";
-
-/**
- * サーバーから受け取った redirectUrl が「同一オリジン内の相対 URL」かを検証する
- * （Open Redirect への defense-in-depth）。
- */
-function isSafeRelativeRedirect(url: string): boolean {
-  if (typeof url !== "string" || url === "") return false;
-  return url.startsWith("/") && !url.startsWith("//");
-}
 
 type Props = {
   /** キャンセル対象の purchase_request の ID */
@@ -51,8 +43,10 @@ export function CancelTransferButton({ requestId }: Props) {
     try {
       const result = await cancel(requestId);
 
-      if (result.redirectUrl && isSafeRelativeRedirect(result.redirectUrl)) {
-        window.location.href = result.redirectUrl;
+      // 不正・空なら "" が返る
+      const redirectPath = sanitizeRedirectPath(result.redirectUrl, "");
+      if (redirectPath) {
+        window.location.href = redirectPath;
         return;
       }
 
