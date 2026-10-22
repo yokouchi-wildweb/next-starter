@@ -11,6 +11,12 @@
 
 いずれのレイヤーも、Firebase SDK 自体に依存するのではなく、`/api/storage` 経由でアプリ共通の振る舞いを提供することが目的です。
 
+## ⚠️ `/api/storage/*` は暫定で管理者専用
+
+- `/api/storage/upload`・`/api/storage/delete`（= `useAppStorage` / `appStorageClient` の経路）は、保存先・所有者の検証を持たないため、管理者カテゴリのみに制限している（未ログイン 401 / 一般ユーザー 403）
+- 一般ユーザー向けの画面からこの経路を使わない。一般ユーザーのアップロード・削除の権限設計（ポリシー定義・署名付き URL・エンジン抽象化）は再設計中: council `20261022-121853-storage-authority-policy-redesign`
+- クライアント直経路（`clientUploader` / `directStorageClient` / `useDirectStorage`）の権限は Firebase Storage ルールだけが判定する。ルールは upstream に同梱していないため、各環境で書き込み先のパスを絞ること（`request.auth != null` だけでは、ログインユーザーなら誰でも任意のファイルを上書き・削除できる）
+
 ## `src/lib/firebase/*` との違い
 
 `src/lib/firebase` 配下は Firebase SDK を直接操作するための低レイヤーラッパーであり、保存先パスを受け取りアップロード／削除するだけの最小限の責務を担います。

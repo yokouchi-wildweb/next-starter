@@ -169,7 +169,7 @@ export type SubmitBankTransferProofParams = {
   purchaseRequestId: string;
   /**
    * Firebase Storage にアップロード済みの振込明細画像 URL。
-   * 事前に POST /api/storage/upload でアップロードして得た URL を渡す。
+   * 事前に useBankTransferProofUpload（purchaseRequest/hooks）でアップロードして得た URL を渡す。
    */
   proofImageUrl: string;
   /**

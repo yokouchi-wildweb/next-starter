@@ -27,7 +27,7 @@ type Params = { id: string };
 const ConfirmBodySchema = z.object({
   /**
    * 振込明細の画像 URL（Firebase Storage にアップロード済みのもの）。
-   * 事前に POST /api/storage/upload でアップロードして得た URL を渡す。
+   * 事前に useBankTransferProofUpload（purchaseRequest/hooks）でアップロードして得た URL を渡す。
    */
   proofImageUrl: z
     .string()
