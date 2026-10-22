@@ -482,7 +482,7 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 | components | boolean | 管理画面コンポーネント |
 | hooks | boolean | CRUD フック |
 | clientServices | boolean | axios クライアント |
-| serverServices | boolean | サーバーサービス |
+| serverServices | boolean | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` は無いときだけ生成） |
 | adminRoutes | boolean | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/` + 共有 loader の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` §12） |
 | registry | boolean | レジストリへの登録 |
 | fieldConstants | boolean | options を持つフィールドの定数/型 |

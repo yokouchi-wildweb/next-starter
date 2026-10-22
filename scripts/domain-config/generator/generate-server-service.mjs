@@ -696,9 +696,10 @@ function buildRelationTableImports(relationDomainImports, selfDomain = "") {
  * @param {boolean} [options.targets.base] - drizzleBase.ts / firestoreBase.ts を生成
  * @param {boolean} [options.targets.service] - xxxService.ts を生成
  * @param {boolean} [options.targets.duplicateWrapper] - wrappers/duplicate.ts を生成
+ * @param {boolean} [options.overwriteService] - 既存の xxxService.ts も上書きする（既定 false = 無いときだけ生成）
  */
 export default function generateServerService(domain, options = {}) {
-  const { plural: pluralArg, dbEngine: dbEngineArg, targets } = options;
+  const { plural: pluralArg, dbEngine: dbEngineArg, targets, overwriteService = false } = options;
 
   // targets が指定されていない場合は全て生成
   const generateBase = targets?.base ?? true;
@@ -792,6 +793,20 @@ export default function generateServerService(domain, options = {}) {
       ? replaceTokens("__domain__Service.ts")
       : replaceTokens(file);
     const outputFile = path.join(outputDir, outputFileName);
+
+    // <domain>Service.ts は書き捨て（無いときだけ生成）。ラッパーや独自処理を組み込む手書きの場所なので、
+    // 再生成で上書きしない。dc:generate:service で明示的に選んだとき（overwriteService）だけ上書きする。
+    const isServiceFile = file === serviceTemplate;
+    if (isServiceFile && fs.existsSync(outputFile) && !overwriteService) {
+      console.log(`既存のため生成しません（書き捨て）: ${outputFile}`);
+      if (hasMediaUploader && !fs.readFileSync(outputFile, "utf8").includes("./wrappers/duplicate")) {
+        console.warn(
+          `[${camel}] mediaUploader フィールドがありますが ${outputFileName} が wrappers/duplicate を組み込んでいません。` +
+            `ファイル複製のため \`import { duplicate } from "./wrappers/duplicate";\` と \`duplicate,\` を手で追加してください。`,
+        );
+      }
+      continue;
+    }
 
     if (!fs.existsSync(templatePath)) {
       console.error(`テンプレートが見つかりません: ${templatePath}`);

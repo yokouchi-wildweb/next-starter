@@ -18,7 +18,7 @@ const prompt = inquirer.createPromptModule();
 // サービス選択肢の定義
 const SERVICE_CHOICES = [
   { name: "xxxClient.ts（クライアントサービス）", value: "clientService" },
-  { name: "xxxService.ts（サーバーサービス）", value: "serverService" },
+  { name: "xxxService.ts（サーバーサービス・既存も上書き）", value: "serverService" },
   { name: "drizzleBase.ts / firestoreBase.ts（ベースサービス）", value: "baseService" },
   { name: "wrappers/duplicate.ts（複製ラッパー）", value: "duplicateWrapper" },
 ];
@@ -72,7 +72,8 @@ function generateServices(domainPath, selectedServices) {
 
   // サーバー関連のいずれかが選択されている場合のみ実行
   if (serverTargets.base || serverTargets.service || serverTargets.duplicateWrapper) {
-    generateServerService(camel, { plural, dbEngine, targets: serverTargets });
+    // 個別生成で serverService を明示的に選んだときは、書き捨ての xxxService.ts も上書きする
+    generateServerService(camel, { plural, dbEngine, targets: serverTargets, overwriteService: serverTargets.service });
   }
 }
 

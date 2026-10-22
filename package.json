@@ -28,6 +28,7 @@
     "test:dc-registry": "node --test scripts/domain-config/generator/registry/registry.test.mjs",
     "test:dc-domain-folder": "node --test scripts/domain-config/utils/domainFolder.test.mjs",
     "test:dc-only": "node --test scripts/domain-config/utils/onlyOption.test.mjs",
+    "test:dc-server-service": "node --test scripts/domain-config/generator/serverServiceWriteOnce.test.mjs",
     "test:dc-sample-drift": "node --test scripts/domain-config/sampleDrift.test.mjs",
     "test:wallet-lot-planning": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
