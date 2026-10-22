@@ -39,7 +39,7 @@ scope: cross-cutting bans only | area bans sit with their rule: ARCHITECTURE bou
 - space-y/space-x classes (use Layout/Stack, `space` prop = Tailwind spacing scale)
 - unpaginated full-fetch of user-scale data (base.search without limit; the default limit 100 silently drops rows) → page/limit + infinite scroll | list() only for small fixed master data
 - businessConfig.url as runtime origin (it is the official business URL for mail/SEO) → getAppBaseUrl() from @/lib/url | never build an origin from Host / X-Forwarded-Host (host header injection)
-- lib/mail send() for admin→user messages → messagingService.send / bulkSend (@/features/messaging/services/server), which persists per-recipient audit + message_dispatches | lib/mail direct = system template mail only (password reset, verification, registration)
+- lib/mail send() for admin→user messages → messagingService.send / bulkSend (@/features/messaging/services/server), which persists per-recipient audit + message_dispatches | lib/mail direct = system template mail only (password reset, verification, registration) | ref: src/features/core/messaging/README.md
 
 ## UNCONFIGURED_BACKENDS (boots with DB / Firebase env empty)
 env: DATABASE_URL, MY_SERVICE_ACCOUNT_KEY, NEXT_PUBLIC_FIREBASE_* may all be empty right after env:init

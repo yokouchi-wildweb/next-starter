@@ -43,7 +43,7 @@ README があるものはリンク先が一次資料。README が無いものは
 |---|---|
 | [notification](notification/README.md) | お知らせ（全体 / ロール別 / 個別、既読、予約） |
 | notificationTemplate | お知らせのテンプレート（管理用） |
-| messaging | 管理者からユーザーへのメッセージ送信。`messagingService.send` / `bulkSend` 経由が必須（受信者単位の監査と本文の保存のため。CLAUDE.md PROHIBITED） |
+| [messaging](messaging/README.md) | 管理者からユーザーへのメッセージ送信。`messagingService.send` / `bulkSend` 経由が必須（受信者単位の監査と本文の保存のため。CLAUDE.md PROHIBITED） |
 | [mail](mail/README.md) | メール送信（Resend）。システムメール用 |
 | [chatRoom](chatRoom/README.md) | Firestore ベースのリアルタイムチャット |
 
