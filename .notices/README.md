@@ -18,7 +18,7 @@
 ## 使い方
 
 - **起票(上流側)**: `/downreq` スキル。会話文脈から notice を合成して `.notices/<id>.md` に書き出す。変更本体と同じコミット/PR に含めて出荷する。
-- **中継(中間 Tier)**: `/downreq relay`。自分が適用した上流 notice を `covers:` にまとめた中継 notice を下書きする(下記「中継(relay)」)。
+- **中継(中間 Tier)**: 下流を持つ fork の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。`/downreq relay` はこの判定の導入前に適用した未判定の旧 notice の後始末用。
 - **受領・適用(下流側)**: `/flux` スキル。upstream の fetch → 未適用 notice を checkpoint ごとの区間に分割 → 適用計画提示 → 承認1回で区間ごとに merge・コード修正・DB 操作・検証・台帳記録・コミット・push を完走する。`/flux status` で状態確認のみ、`/flux next` で次の 1 区間だけ。承認後でも、取り込む変更がその fork を壊す・db 差分が破壊的・notice と実態が食い違う等の**停止条件**に当たれば区間を commit せずに止まって選択肢を示す(押し切らない)。最終報告には「上流への所見」(上流のバグ・notice のズレ・/upreq 候補)を常設。
 - 対応が不要な通常の変更には notice を作らない。ただコミットされて merge で流れていくだけでよい。
 
@@ -80,24 +80,35 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
 
 ## 中継(relay)— 3 段以上の Tier
 
-T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2 のツリーに入り、T3 が T2 を merge すると T3 にも届く。T3 から見るとこれは `from:` が自分の origin でも直上 upstream(T2)でもない notice(= **祖父 notice**)で、そのままでは未適用と判定される。しかも追加 commit は T1 の生 commit(T2 の衝突解消を含まない)なので、そこで区間を切ると T3 は T2 が解いた衝突をもう一度解くことになり、さらに T2 の merge commit とも衝突する。そこで次の 2 つで扱う。
+T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2 のツリーに入り、T3 が T2 を merge すると T3 にも届く。T3 から見るとこれは `from:` が自分の origin でも直上 upstream(T2)でもない notice(= **祖父 notice**)で、そのままでは未適用と判定される。しかも追加 commit は T1 の生 commit(T2 の衝突解消を含まない)なので、そこで区間を切ると T3 は T2 が解いた衝突をもう一度解くことになり、さらに T2 の merge commit とも衝突する。そこで次の 3 つで扱う。
 
 ### 1. 祖父 notice の区切り(中継 notice が無くても常に効く)
 - 判定: `from:` の repo が自分の origin とも直上 upstream の URL とも一致しない notice = 祖父 notice。
 - **祖父 notice の追加 commit は区切りにしない**。代わりに、直上 Tier の台帳(`.notices/applied/<中間 fork-id>.md`、merge で流れてくる)にその id が記録された commit を区切り点とする: `git log -S"id:<id>" --format=%H <upstream>/<branch> -- .notices/applied/<中間 fork-id>.md` の最古。台帳の `commit:` 欄は `-` のことが多いので使わない。これで、中間 Tier が衝突を解いて適用し終えた点まで merge される。
 - 直上 Tier の台帳に記録が無い(中間 Tier が手動 merge だけして未適用等)祖父 notice は、従来どおり追加 commit を区切りとし、/flux が警告を出す。
-- 中継 notice(下記)に covered されていない祖父 notice は、required_actions が中間 Tier の状態を前提に書かれている。/flux は計画にその旨を注記し、中間 Tier の台帳 `notes:` を参考に自 fork の実情へ写像する。
+- 中継 notice(下記)に covered されていない祖父 notice は、中間 Tier の台帳のその id の行の `relay:` 欄で扱いを分ける:
+  - `relay:none`: 中間 Tier が差分で「中継不要」と判定済み(下記 3)。下流が受け取るコードは上流と同じなので、上流 notice をそのまま適用する。
+  - 欄が無い(判定導入前の旧台帳): required_actions が中間 Tier の状態を前提に書かれている。/flux は計画にその旨を注記し、中間 Tier の台帳 `notes:` を参考に自 fork の実情へ写像する。
 
 ### 2. `covers:`(中間 Tier が書く中継 notice)
-- 中間 Tier は、自分が適用した上流 notice のうち下流にも追随作業が要るものを、自分の変更・衝突解消・移動の内容とあわせて 1 件の notice にまとめて起票する(`/downreq relay`)。`covers: <id>, <id>` にまとめた上流 notice の id を書く。
+- 中間 Tier は、下記 3 の判定で中継が必要になった上流 notice を、自分の変更・衝突解消・移動の内容とあわせて区間ごとに 1 件の notice にまとめる(/flux が下書きする)。`covers: <id>, <id>` にまとめた上流 notice の id を書く。
 - /flux の扱い:
   - covered された id は、covers 側の notice を適用した時点で適用済みになる。台帳には covered id も `notes: covered by <covers 側 id>` で自動記録する。
   - covered された notice の追加 commit・台帳記録 commit は区切りにしない。区間は covers 側 notice の追加 commit まで伸び、covered notice が履歴上先に届いていても単独の区間を作らない。
   - 区間内の covers 側・covered 側の `moved:` はすべて合わせて移植に使う(中継 notice 側にも合わせたものを書くのが原則だが、書き漏れの保険)。
   - `covers:` に書かれた id が merge 後のツリー(現役・`done/`)のどこにも無ければ報告する(黙って飛ばさない)。
-- 中間 Tier の /flux は、全区間の後に「適用済みだが中継していない」id(自台帳の id のうち、`from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも無いもの)を数えて報告する。ツリー内に自分の origin の notice が 1 件以上ある(= 上流として振る舞った)fork だけが対象で、末端 fork には出さない。追随作業の無い上流 notice も、中継 notice の `covers:` に含めて閉じる(`required_actions` の該当箇所は none でよい)。
 - 後方互換: `covers:` を知らない旧 /flux でも中継 notice が安全に動くよう、`/downreq relay` は中継 notice の required_actions に「この notice の commit まで 1 区間で merge し、covered notice の commit で止まらない」「covered id を台帳に記録する」の 2 行を必ず入れる(新 /flux では no-op)。
-- 状態の見える化: `/flux status --chain` が祖父 notice ごとに「中間 Tier が適用済みか → 中継 notice に covered されているか → 自分が適用済みか」を 1 行ずつ出す。
+- 状態の見える化: `/flux status --chain` が祖父 notice ごとに「中間 Tier が適用済みか → 中継 notice に covered されているか(または `relay:none`)→ 自分が適用済みか」を 1 行ずつ出す。
+
+### 3. 中継判定(中間 Tier の /flux が区間ごとに行う)
+中継が要るかどうかは文面の解釈ではなく **git の差分だけ**で決める。下流に補足が要るのは「上流が変えたファイルの中身が、上流と中間 Tier で食い違うとき」だけで、食い違いが無ければ下流が中間 Tier から受け取るコードは上流と同じになり、上流 notice どおりの作業で済むため。
+- 対象 fork: `.claude/rules/project.md` の TIER 節に下流を持つと書かれている fork。末端 fork は判定しない。
+- 対象 notice: 区間内で適用した、`from:` が自分の origin でない notice(covered id は covers 側と一緒に判定)。
+- 判定(区間の verify 後、commit 前): `Q` = その notice の区切り点、`P` = 上流履歴上で直前の notice の区切り点(無ければ fork 成立点)。上流が変えたファイル = `git diff --name-only <P> <Q> -- . ':!.notices'` を、`git diff --quiet <Q> -- <files>`(作業ツリーとの比較)で突き合わせる。差分なし = 中継不要、差分あり = 中継が必要。
+- 結果は台帳の各行の `relay:` 欄に明示する: `relay:none`(中継不要)/ `relay:<中継 notice id>`(中継した)。欄が無い = 判定導入前の未判定。
+- 差分ありの notice が区間に 1 件以上あれば、/flux がその区間で中継 notice を 1 件下書きし(合成規則は `/downreq relay` と共通、差分のあったファイルと `--stat` を `notes:` に載せる)、区間の適用コミットに含める。中継 notice の追加 commit と台帳記録 commit が同じになるので、下流の区切り点がぶれない。
+- 中身の無い中継 notice は作らない。中継不要の notice は `relay:none` だけで閉じる。
+- 未判定の旧台帳行(`relay:` 欄が無く、どの `covers:` にも無い)は /flux が件数を報告し、`/downreq relay` でまとめて中継 notice に covers して閉じる(基準点が古く差分判定できないため)。
 
 ## 適用状態の考え方
 
@@ -105,7 +116,7 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
 
 > ツリー内の現役 notice(done/ 以外)− 継承済み notice(fork 成立点から自動判定)− 自 fork 台帳に記録済みの id = 未適用
 
-(covered id は covers 側の適用時に台帳へ自動記録されるので、この式のままで扱える。)
+(covered id は covers 側の適用時に台帳へ自動記録されるので、この式のままで扱える。中継の要否(`relay:` 欄)は適用状態とは別の記録で、この式には影響しない。)
 
 このため、merge を誰がどの経路で行ったか(手動 / GitHub / /flux)に関係なく、いつ実行しても正確な未対応リストが得られる。
 

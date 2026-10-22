@@ -187,7 +187,7 @@ db_identifiers: PostgreSQL names ≤ 63 chars | drizzle auto FK name `{table}_{c
 ## DOWNSTREAM_NOTICES
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | file with /downreq, apply with /flux | ledger: .notices/applied/\<fork-id\>.md | ref: .notices/README.md
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = default (one notice = one point where the fork is consistent) | `checkpoint: -` only when the fork cannot work without the next notice (reason in notes:)
-relay: a mid tier relays applied upstream notices with `/downreq relay` (covers: ids) | ref: .notices/README.md
+relay: a mid tier's /flux judges per segment by git diff whether each applied upstream notice needs relaying (ledger `relay:none` or a drafted relay notice with covers: ids) | `/downreq relay` = only for legacy unjudged ids | ref: .notices/README.md
 fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## DOCS

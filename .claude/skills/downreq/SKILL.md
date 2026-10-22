@@ -60,15 +60,17 @@ disable-model-invocation: true
 
 ## relay モード($ARGUMENTS が `relay` で始まるとき)
 中間 Tier(T2 など)が、自分が `/flux` で適用した上流 notice を下流(T3)へ中継する notice を下書きする。仕様: `.notices/README.md`「中継(relay)」。上記「手順」の 1・3・4 はそのまま使い、2 の材料を次で置き換える(`relay` 以降の文字列は補足メモ扱い)。
+- 通常の中継は `/flux` が区間ごとに差分で判定し、必要な区間だけ下書きまで行う(`.claude/skills/flux/SKILL.md`「中継判定」)。このモードは、その仕組み導入前に適用した**未判定**の旧 notice の後始末用。
+- 下記の手順 3〜4(材料集めと合成)は `/flux` の中継判定から呼ばれる共通の合成規則でもある。`/flux` から使うときは、`covers:` は `/flux` が渡す id(その区間で差分ありの id と、その covered id)に置き換え、手順 1・2・5 は使わない。
 1. **自 fork 台帳を特定**: fork-id は `/flux` と同じ規則(origin URL のパス部分、`.git` 除去、`/`→`--`、小文字化)。台帳 = `.notices/applied/<fork-id>.md`。無ければ「中継対象なし」と報告して終了。
-2. **未中継 id を求める**: 台帳の id のうち、notice ファイル(`.notices/<id>.md` または `done/<id>.md`)の `from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも含まれないもの。0 件なら「未中継の notice はありません」と報告して終了(書き出さない)。
+2. **未判定 id を求める**: 台帳の id のうち、その行に `relay:` 欄が無く、notice ファイル(`.notices/<id>.md` または `done/<id>.md`)の `from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも含まれないもの。0 件なら「未判定の notice はありません」と報告して終了(書き出さない)。
 3. **id ごとに材料を集める**(推測しない):
    - 上流 notice 本文(change / required_actions / moved / verify)
    - 自台帳のその id の行の `notes:`(逸脱・移植した移動・解消した衝突・足した hook 等)
    - 台帳に記録した commit: `git log -S"id:<id>" --reverse --format=%h HEAD -- .notices/applied/<fork-id>.md` の先頭。その commit とその直前の merge commit が、下流が受け取る「解消済みの点」
    - 自分が上流ファイルに加えている編集のうち、その notice が触ったファイルに当たるもの: `git diff --stat <upstream>/<branch> HEAD -- <notice が触ったファイル>`(下流がこの fork の版を受け取る箇所)
 4. **合成**(スキーマは上記と同じ。英語):
-   - `covers:` = 未中継 id 全件(履歴順)。追随作業の無い上流 notice も含める(閉じるため)。
+   - `covers:` = 未判定 id 全件(履歴順)。旧 notice は差分判定の基準点が古く機械判定できないため、追随作業の無いものも含めて閉じる。
    - `moved:` = covered 全件の `moved:` + 自分が中継対象の作業で行った移動(台帳 notes と `git diff -M --name-status` で確認)を合わせたもの。
    - `change:` = 「<自分> applied N <上流> notices: <id> in <sha>, ...」+ 下流に影響する自分側の差分(移植先・自分固有の移動・新しい拡張点)。
    - `why:` = 下流から見て何が残っているか(上流のコード作業はこの fork で済んでいる。残りは下流自身のカスタマイズと旧パス参照等)。
