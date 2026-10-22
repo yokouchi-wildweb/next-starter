@@ -7,6 +7,7 @@ import { onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
 
 import { auth, isFirebaseClientConfigured } from "@/lib/firebase/client/app";
 import type { SessionUser } from "@/features/core/auth/entities/session";
+import { fetchFirebaseCustomToken } from "@/features/core/auth/services/client/firebaseToken";
 
 /**
  * Firebase Auth の状態を監視し、ローカルセッションとの不整合を自動修復するフック。
@@ -30,12 +31,8 @@ export function useFirebaseAuthSync(user: SessionUser | null) {
         isSyncingRef.current = true;
 
         try {
-          const res = await fetch("/api/auth/firebase-token", { method: "POST" });
-
-          if (res.ok) {
-            const { firebaseCustomToken } = await res.json();
-            await signInWithCustomToken(auth, firebaseCustomToken);
-          }
+          const firebaseCustomToken = await fetchFirebaseCustomToken();
+          await signInWithCustomToken(auth, firebaseCustomToken);
         } catch {
           // サイレントに失敗。Storage 使用時にエラーが表示される。
         } finally {

@@ -1,9 +1,11 @@
-// src/features/auth/services/server/requireRole.ts
+// src/features/core/auth/services/server/requireRole.ts
 //
 // カスタム API ルート（createApiRoute 直接利用）でハンドラ先頭に置く認可ガード。
 //
-// createApiRoute は認可を強制しない（fail-open）ため、認証・認可が必要なルートでは
-// ハンドラ内でこれらを明示的に呼ぶ。失敗時は DomainError を throw すると、
+// createApiRoute の access は型必須で（宣言し忘れはコンパイルエラー）、"public" /
+// "authenticated" / { roles, roleCategories } なら factory が認可を強制する。
+// access: "custom" を選んだルートは認可をハンドラに委ねるので、ハンドラ先頭でこれらを
+// 明示的に呼ぶ（呼ばないと lint route-authz/require-authz が警告する）。失敗時は DomainError を throw すると、
 // createApiRoute のエラーハンドラが status / message を持つ JSON レスポンスに変換する。
 //
 // ロール判定は DB 同期される getSessionUser を使う（ctx.session は token-only 由来で
