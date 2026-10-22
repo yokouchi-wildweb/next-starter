@@ -26,6 +26,7 @@
     "test:feature-gate": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/proxies/featureGate.test.mjs",
     "test:relation-options": "node --test src/lib/domain/relations/relationOptions.test.mjs",
     "test:dc-registry": "node --test scripts/domain-config/generator/registry/registry.test.mjs",
+    "test:dc-domain-folder": "node --test scripts/domain-config/utils/domainFolder.test.mjs",
     "test:dc-sample-drift": "node --test scripts/domain-config/sampleDrift.test.mjs",
     "test:wallet-lot-planning": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/passwordChange.test.ts",

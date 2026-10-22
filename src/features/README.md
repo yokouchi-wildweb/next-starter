@@ -11,7 +11,7 @@
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
 | domainConfigVersion | string | 🟢 Yes | 設定バージョン（現在 `"1.3"`） |
-| singular | string | 🟢 Yes | ドメイン名単数形（snake_case、例: `sample_category`） |
+| singular | string | 🟢 Yes | ドメイン名単数形（snake_case、例: `sample_category`）。ドメインフォルダ名はこの camelCase（例: `sampleCategory/`）でなければならず、ずれていると dc:generate が止まる |
 | plural | string | 🟢 Yes | ドメイン名複数形（snake_case、例: `sample_categories`） |
 | label | string | 🟢 Yes | 管理画面での表示名（日本語可） |
 | dbEngine | `"Neon"` \| `"Firestore"` | 🟢 Yes | 使用するDB。原則 `"Neon"`。`"Firestore"` はリアルタイム配信が本質要件のドメインのみ（`docs/!must-read/バックエンド構成ドクトリン.md`） |

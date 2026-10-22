@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import generate from "./generate.mjs";
 import askGenerateFiles from "./questions/generate-files.mjs";
+import { assertDomainFolderNames } from "./utils/domainFolder.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -85,6 +86,8 @@ export default async function generateAllDomains(options = {}) {
 }
 
 async function runGenerateAll(selectedDomains, manualGenerate) {
+  // 途中のドメインで止まって生成が半端に残らないよう、ループの前に全件を検査する
+  assertDomainFolderNames(featuresDir, selectedDomains);
   for (const domain of selectedDomains) {
     console.log(`\n[${domain}] の生成を開始します。`);
     await generate(domain, {

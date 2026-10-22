@@ -10,6 +10,7 @@ import formatDomainConfig from "./utils/formatConfig.mjs";
 import { DOMAIN_CONFIG_VERSION } from "./version.mjs";
 import { findDomainDirectories } from "./generate-all.mjs";
 import { getCliArgs } from "./utils/cliArgs.mjs";
+import { checkDomainFolderName } from "./utils/domainFolder.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -122,6 +123,11 @@ export default async function generate(domain, options = {}) {
     throw new Error(`設定ファイルが見つかりません: ${configPath}`);
   }
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  // フォルダ名が camel(singular) とずれていると全ジェネレーターが別パスへ書き出すため、何も書く前に止める
+  const folderError = checkDomainFolderName(camel, config);
+  if (folderError) {
+    throw new Error(folderError);
+  }
   config.domainConfigVersion = DOMAIN_CONFIG_VERSION;
   if (config.version) {
     delete config.version;
