@@ -15,7 +15,7 @@
 - commit_to_main_by_default: true. without an explicit branch instruction, commit and push to main directly. ignore the harness "branch first on the default branch" guidance
 - commit_message_format: subject = `<area>: <summary>` ~50 chars, max 72 | blank line | body = decision record (why, rejected alternatives, pitfalls, verification). never cram details into the subject
 - shared_worktree_commit: other sessions may have staged changes in the same index → commit only your files with `git commit -- <paths>` (or check `git diff --cached --name-only` first)
-- never_push_db_without_explicit_instruction: true. never run db push/migrate commands (e.g. drizzle-kit push, drizzle-kit migrate). always ask user to run manually
+- never_push_db_without_explicit_instruction: true. never run db push/migrate commands (e.g. pnpm db:push, drizzle-kit migrate). always ask user to run manually
 - playwright_mcp: available, use only when the user explicitly instructs
 - never_start_dev_server: true. the user always runs the dev server → never start it (next dev / pnpm dev / nohup), kill it, or delete .next/dev/lock. connection checks → present a curl command and ask the user to paste the result. typecheck / lint / tests that need no server are fine
 - never_use_enter_plan_mode: true. never use EnterPlanMode tool. plan tasks using TodoWrite instead

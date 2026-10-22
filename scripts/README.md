@@ -160,6 +160,18 @@ pnpm room:dev
 
 ➡ [servers/room/README.md](../servers/room/README.md)
 
+### テスト (tsx で動かすもの)
+
+tsx で動かすテスト（`*.test.ts` / `*.test.mts`、TypeScript を import する `*.test.mjs`）の package.json スクリプトは、必ず `--import ./scripts/test/serverOnlyStub.mjs` を付ける。
+
+```bash
+npx tsx --import ./scripts/test/serverOnlyStub.mjs --test <テストファイル>
+```
+
+- 理由: `import "server-only"` は Next のバンドラーだけが解決する。テストが serviceRegistry などから server コードへ import をたどると、素の tsx では `Cannot find module 'server-only'` で全件落ちる（依存の import 連鎖次第なので、今通っているテストもドメイン追加で落ち始める）。
+- preload はテスト実行時だけ `server-only` を空モジュールに差し替える。ソース側の `import "server-only"` は消さない。
+- `server-only` を devDependencies に入れても解決しない（本物は react-server 条件以外では import 時に throw する）。
+
 ## ディレクトリ構成
 
 ```
@@ -174,5 +186,6 @@ scripts/
 ├── env/                   # .env 初期生成
 ├── mail/                  # メール関連
 ├── room/                  # リアルタイムルーム基盤の init / deploy
+├── test/                  # テスト実行用の preload (server-only の差し替え)
 └── tasks/                 # 運用タスクの CLI ランナー (pnpm task)
 ```
