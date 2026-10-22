@@ -171,6 +171,15 @@ export const RATE_LIMIT_CONFIG = {
     windowSeconds: 600,
     maxRequests: 300,
   },
+
+  /**
+   * 管理者の初回セットアップ（POST /api/setting/setup。未認証・管理者が1人でもいれば 409）
+   * 同一IPから1時間に10回まで。入力ミスでも回数を消費するため signupRegister（3回）より緩くする
+   */
+  adminSetup: {
+    windowSeconds: 3600,
+    maxRequests: 10,
+  },
 } as const;
 
 export type RateLimitCategory = keyof typeof RATE_LIMIT_CONFIG;

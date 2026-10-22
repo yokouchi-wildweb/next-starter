@@ -348,9 +348,11 @@ const count = await notificationService.getUnreadCount(viewer);
 ### markAsRead / markAllAsRead — 既読マーク
 
 ```typescript
-await notificationService.markAsRead(notificationId, userId);
+await notificationService.markAsRead(notificationId, viewer);
 await notificationService.markAllAsRead(viewer);
 ```
+
+- `markAsRead` は一覧・件数と同じ可視性（`buildVisibilityWhere`）で判定し、閲覧者に見えない通知・存在しない通知・uuid 形式でない ID は `DomainError` 404。他人宛て通知の既読行は作れない
 
 ---
 

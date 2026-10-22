@@ -4,6 +4,7 @@
 import { createApiRoute } from "@/lib/routeFactory";
 import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
+import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
 
 type Params = { id: string };
 
@@ -19,7 +20,7 @@ export const POST = createApiRoute<Params>(
     }
 
     const { id } = await params;
-    await notificationService.markAsRead(id, session.userId);
+    await notificationService.markAsRead(id, notificationViewerFromSession(session));
     return { success: true };
   }
 );

@@ -9,10 +9,12 @@ export const POST = createApiRoute(
     operationType: "write",
     access: "public",
     skipForDemo: false,
+    rateLimit: "adminSetup",
   },
   async (req) => {
     const body = await req.json();
-    const user = await initializeAdminSetup(body.data);
-    return user;
+    // 作成したユーザー行は返さない（未認証ルートのため、UI が必要とする成否だけを返す）
+    await initializeAdminSetup(body.data);
+    return { success: true };
   },
 );
