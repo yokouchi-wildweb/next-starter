@@ -8,6 +8,7 @@
  *   --generate --all    domain.json を持つ複数ドメインを一括で生成します。
  *   --delete <Domain>   指定したドメインに関連する生成物を削除します。
  *   --yes               --generate と併用。プロンプトを出さず domain.json の generateFiles どおりに生成します。
+ *   --only <categories> --generate と併用。generateFiles で true のカテゴリをさらに絞り込みます（例: --only registry）。
  *
  * 単独の `--` は無視します（`pnpm dc:generate -- User` を許容するため）。
  * 失敗時は終了コード 1 で終了します。
@@ -17,6 +18,7 @@
  *   node scripts/domain-config/index.mjs --init
  *   node scripts/domain-config/index.mjs --generate User
  *   node scripts/domain-config/index.mjs --generate User --yes
+ *   node scripts/domain-config/index.mjs --generate --all --yes --only registry
  *   node scripts/domain-config/index.mjs --delete User
  *
  * さらに、package.json の "bin" フィールドに設定することで
@@ -30,12 +32,21 @@ import generate from "./generate.mjs";
 import generateAll, { findDomainDirectories } from "./generate-all.mjs";
 import removeDomain from "./delete.mjs";
 import { getCliArgs } from "./utils/cliArgs.mjs";
+import { parseOnlyOption } from "./utils/onlyOption.mjs";
 import inquirer from "inquirer";
 
 const prompt = inquirer.createPromptModule();
 
 async function main() {
-  const args = getCliArgs();
+  let args;
+  let only;
+  try {
+    // `--only` の値（例: registry）をドメイン名と取り違えないよう、先に取り除く
+    ({ only, rest: args } = parseOnlyOption(getCliArgs()));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
   const hasInit = args.includes("--init");
   const hasGenerate = args.includes("--generate");
   const hasAll = args.includes("--all");
@@ -45,7 +56,11 @@ async function main() {
   const positionalDomain = args.find((arg) => !arg.startsWith("--"));
 
   if (!hasInit && !hasGenerate && !hasDelete) {
-    console.error("使い方: node scripts/domain-config/index.mjs --init | --generate <Domain> [--yes] | --generate --all [--yes] | --delete <Domain>");
+    console.error("使い方: node scripts/domain-config/index.mjs --init | --generate <Domain> [--yes] [--only <categories>] | --generate --all [--yes] [--only <categories>] | --delete <Domain>");
+    process.exit(1);
+  }
+  if (only && !hasGenerate) {
+    console.error("--only は --generate と併用してください");
     process.exit(1);
   }
 
@@ -68,7 +83,7 @@ async function main() {
 
     if (hasGenerate) {
       if (hasAll) {
-        await generateAll({ yes: hasYes });
+        await generateAll({ yes: hasYes, only });
         return;
       }
       let domain = positionalDomain;
@@ -90,7 +105,7 @@ async function main() {
         });
         domain = selectedDomain;
       }
-      await generate(domain, hasYes ? { mode: "config", interactive: false, shouldGenerate: true } : {});
+      await generate(domain, hasYes ? { mode: "config", interactive: false, shouldGenerate: true, only } : { only });
       return;
     }
 

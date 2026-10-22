@@ -11,23 +11,14 @@ import { DOMAIN_CONFIG_VERSION } from "./version.mjs";
 import { findDomainDirectories } from "./generate-all.mjs";
 import { getCliArgs } from "./utils/cliArgs.mjs";
 import { checkDomainFolderName } from "./utils/domainFolder.mjs";
+import { GENERATE_CATEGORIES, narrowGenerateTargets } from "./utils/onlyOption.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = path.resolve(__dirname, "..", "..");
 const prompt = inquirer.createPromptModule();
 
-const ALL_GENERATE_OPTIONS = {
-  entities: true,
-  components: true,
-  hooks: true,
-  clientServices: true,
-  serverServices: true,
-  fieldConstants: true,
-  adminRoutes: true,
-  registry: true,
-  presenters: true,
-};
+const ALL_GENERATE_OPTIONS = Object.fromEntries(GENERATE_CATEGORIES.map((category) => [category, true]));
 
 function runGenerator(script, domain, plural, dbEngine) {
   const scriptPath = path.join(__dirname, "generator", script);
@@ -134,7 +125,11 @@ export default async function generate(domain, options = {}) {
   }
   const normalizedDomain = toSnakeCase(config.singular) || toSnakeCase(input) || camel;
   const normalizedPlural = toSnakeCase(config.plural || "") || "";
-  const gen = await resolveGenerateTargets(config, configPath, options);
+  // options.only（--only）は generateFiles を広げず、true のカテゴリを絞り込むだけ
+  const { gen, skipped } = narrowGenerateTargets(await resolveGenerateTargets(config, configPath, options), options.only ?? null);
+  if (skipped.length > 0) {
+    console.log(`[${camel}] generateFiles で無効のためスキップ: ${skipped.join(", ")}`);
+  }
 
   let shouldGenerate = options.shouldGenerate;
   if (typeof shouldGenerate !== "boolean") {

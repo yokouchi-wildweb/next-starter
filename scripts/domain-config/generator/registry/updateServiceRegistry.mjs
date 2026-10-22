@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { scanObjectEntries, upsertObjectEntry } from './utils/objectEntry.mjs';
-import { ACCESS_PRESETS, serializeAccess, syncPresetImport } from './utils/presetAccess.mjs';
+import { ACCESS_PRESETS, describeAccessChange, serializeAccess, syncPresetImport } from './utils/presetAccess.mjs';
 
 // fail-closed 既定（apiAccess 未宣言ドメイン用）。出力は ADMIN_ONLY になる。
 const FAIL_CLOSED_ACCESS = ACCESS_PRESETS.ADMIN_ONLY;
@@ -18,10 +18,29 @@ function readApiAccess(rootDir, camel) {
   }
 }
 
+// serviceRegistry 直下の既存エントリから access の値の式を取り出す。
+// 無い（未登録・旧 `${camel}: ${camel}Service,` 形式など）ときは null。
+export function readRegisteredAccessExpression(text, camel) {
+  const entry = scanObjectEntries(text, 'serviceRegistry').entries.find((e) => e.key === camel);
+  if (!entry) return null;
+  const entryText = text.slice(entry.start, entry.end);
+  const value = entryText.slice(entryText.indexOf(':') + 1).replace(/,\s*$/, '');
+  const wrapped = `const __entry = ${value}`;
+  try {
+    const access = scanObjectEntries(wrapped, '__entry').entries.find((e) => e.key === 'access');
+    if (!access) return null;
+    const accessText = wrapped.slice(access.start, access.end);
+    return accessText.slice(accessText.indexOf(':') + 1).replace(/,\s*$/, '').trim();
+  } catch {
+    return null;
+  }
+}
+
 // サービス登録ファイルに新しいサービスを追記する。
 // 値は { service, access } 形式（access は型必須）。access は domain.json の apiAccess を
 // プリセット名（一致時）か JSON リテラルで出力し、未宣言の場合は fail-closed（ADMIN_ONLY）を出力する。
 // 最後にプリセットの import をファイル内で使われている名前に揃える。
+// 既存エントリの access の値（書き方ではなく中身）が変わるときは、変更前後を警告に出す（書き換えは止めない）。
 export default function updateServiceRegistry({ rootDir, camel }) {
   const servicePath = path.join(rootDir, 'src', 'registry', 'serviceRegistry.ts');
   // レジストリが無ければ何もしない
@@ -54,6 +73,14 @@ export default function updateServiceRegistry({ rootDir, camel }) {
           `公開範囲を変えるには domain.json の apiAccess を宣言して再生成してください。`,
       );
     }
+  }
+  const registeredAccess = readRegisteredAccessExpression(content.join('\n'), camel);
+  const accessChange = registeredAccess === null ? null : describeAccessChange(registeredAccess, apiAccess);
+  if (accessChange) {
+    console.warn(
+      `[serviceRegistry] ${camel}: ${accessChange}\n` +
+        `  domain.json の apiAccess で上書きしました。意図した値でなければ domain.json の apiAccess を直して再生成してください。`,
+    );
   }
   // serviceRegistry 直下の同一ドメインのエントリ（旧 `${camel}: ${camel}Service,` 形式・複数行整形を含む）を
   // 丸ごと置換 or AUTO-GENERATED-END の直前へ追加

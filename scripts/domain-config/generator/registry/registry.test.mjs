@@ -6,8 +6,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { removeObjectEntry, scanObjectEntries, upsertObjectEntry } from "./utils/objectEntry.mjs";
-import { ACCESS_PRESETS, PRESET_RULES, serializeAccess, syncPresetImport } from "./utils/presetAccess.mjs";
-import updateServiceRegistry from "./updateServiceRegistry.mjs";
+import { ACCESS_PRESETS, PRESET_RULES, describeAccessChange, serializeAccess, syncPresetImport } from "./utils/presetAccess.mjs";
+import updateServiceRegistry, { readRegisteredAccessExpression } from "./updateServiceRegistry.mjs";
 import updateSchemaRegistry from "./updateSchemaRegistry.mjs";
 import updateDomainConfigRegistry from "./updateDomainConfigRegistry.mjs";
 
@@ -257,4 +257,46 @@ export const domainConfigRegistry = {
   const root = makeRoot({ "src/registry/domainConfigRegistry.ts": original });
   updateDomainConfigRegistry({ rootDir: root, camel: "sampleCategory" });
   assert.equal(read(root, "src/registry/domainConfigRegistry.ts"), original);
+});
+
+test("describeAccessChange: 書き方だけの違いは null、値が変わる・評価できないときは変更前後を返す", () => {
+  // 複数行の手書き → プリセット名（中身は同じ）
+  assert.equal(describeAccessChange(`{\n  read: "public",\n  write: { roleCategories: ["admin"] },\n}`, API_ACCESS), null);
+  // プリセット名どうし
+  assert.equal(describeAccessChange("PUBLIC_READ", ACCESS_PRESETS.PUBLIC_READ), null);
+  // 単一ルール名を使った手書き
+  assert.equal(
+    describeAccessChange("{ read: ADMIN_OR_DEBUGGER_RULE, write: ADMIN_OR_DEBUGGER_RULE }", ACCESS_PRESETS.ADMIN_OR_DEBUGGER),
+    null,
+  );
+  // 値が変わる
+  assert.equal(describeAccessChange("PUBLIC_READ", ACCESS_PRESETS.ADMIN_ONLY), "access が変わります: PUBLIC_READ → ADMIN_ONLY");
+  // fork 独自の定数は評価できない
+  assert.match(describeAccessChange("AUTHENTICATED_READ", ACCESS_PRESETS.ADMIN_ONLY), /評価できない.*AUTHENTICATED_READ → ADMIN_ONLY/);
+});
+
+test("readRegisteredAccessExpression: 1 行・複数行のエントリから access の式を取り出し、旧形式・未登録は null", () => {
+  assert.equal(readRegisteredAccessExpression(SERVICE_REGISTRY, "user"), "ADMIN_ONLY");
+  assert.match(readRegisteredAccessExpression(SERVICE_REGISTRY, "sample"), /^\{\s*read: "public",\s*write: \{ roleCategories: \["admin"\] \},\s*\}$/);
+  assert.equal(readRegisteredAccessExpression(SERVICE_REGISTRY, "missing"), null);
+  const legacy = `export const serviceRegistry = {\n  sample: sampleService,\n};\n`;
+  assert.equal(readRegisteredAccessExpression(legacy, "sample"), null);
+});
+
+test("updateServiceRegistry: access の値が変わるときだけ警告し、書き換えは行う", (t) => {
+  const warn = t.mock.method(console, "warn", () => {});
+  t.mock.method(console, "log", () => {});
+  const root = makeRoot({
+    "src/registry/serviceRegistry.ts": SERVICE_REGISTRY,
+    "src/features/sample/domain.json": JSON.stringify({ apiAccess: API_ACCESS }),
+  });
+  // 複数行 → PUBLIC_READ は書き方だけの違い
+  updateServiceRegistry({ rootDir: root, camel: "sample" });
+  assert.equal(warn.mock.callCount(), 0);
+  // domain.json を admin-only に変えると値が変わる
+  fs.writeFileSync(path.join(root, "src/features/sample/domain.json"), JSON.stringify({ apiAccess: ACCESS_PRESETS.ADMIN_ONLY }));
+  updateServiceRegistry({ rootDir: root, camel: "sample" });
+  assert.equal(warn.mock.callCount(), 1);
+  assert.match(warn.mock.calls[0].arguments[0], /sample: access が変わります: PUBLIC_READ → ADMIN_ONLY/);
+  assert.match(read(root, "src/registry/serviceRegistry.ts"), /sample: \{ service: sampleService, access: ADMIN_ONLY \}/);
 });

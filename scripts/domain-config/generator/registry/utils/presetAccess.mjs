@@ -95,3 +95,36 @@ export function syncPresetImport(text) {
   const at = firstImport ? firstImport.index : 0;
   return text.slice(0, at) + line + text.slice(at);
 }
+
+/**
+ * レジストリに書かれた access 式（プリセット名・JSON リテラル・手書きの TS オブジェクト）を評価する。
+ * 使えるのはプリセット名と単一ルール名だけ。fork 独自の定数など他の識別子を含むと評価できず null を返す。
+ * 評価するのはリポジトリ内のレジストリファイルの式だけ（生成 CLI 内でのみ使う）。
+ * @param {string} expr access の値の式
+ * @returns {unknown | null}
+ */
+export function evaluateAccessExpression(expr) {
+  const scope = { ...ACCESS_PRESETS, ...PRESET_RULES };
+  try {
+    return new Function(...Object.keys(scope), `"use strict"; return (${expr});`)(...Object.values(scope));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 既存の access 式を新しい access で置き換えるとき、値（中身）が変わるかを判定する。
+ * 書き方だけの違い（複数行 → 1 行、JSON → プリセット名など）は変化とみなさない。
+ * @param {string} oldExpr 既存の access の値の式
+ * @param {unknown} newAccess 新しい access
+ * @returns {string | null} 値が変わる（または比較できない）ときは警告文、同じなら null
+ */
+export function describeAccessChange(oldExpr, newAccess) {
+  const next = serializeAccess(newAccess);
+  if (oldExpr.trim() === next) return null;
+  const previous = evaluateAccessExpression(oldExpr);
+  if (previous !== null && deepEqual(previous, newAccess)) return null;
+  const compact = oldExpr.replace(/\s+/g, ' ').trim();
+  const note = previous === null ? '（既存の式を評価できないため値を比較できません）' : '';
+  return `access が変わります${note}: ${compact} → ${next}`;
+}

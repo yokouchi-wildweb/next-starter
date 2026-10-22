@@ -23,7 +23,8 @@ export function findDomainDirectories() {
 }
 
 /**
- * @param {{ yes?: boolean }} [options] yes = プロンプトを出さず、全ドメインを各 domain.json の generateFiles どおりに生成する
+ * @param {{ yes?: boolean, only?: string[] | null }} [options] yes = プロンプトを出さず、全ドメインを各 domain.json の generateFiles どおりに生成する
+ *   only = 生成カテゴリを絞り込む（--only。generateFiles で false のカテゴリは生成しない）
  */
 export default async function generateAllDomains(options = {}) {
   const domains = findDomainDirectories();
@@ -33,7 +34,7 @@ export default async function generateAllDomains(options = {}) {
   }
 
   if (options.yes) {
-    await runGenerateAll(domains, null);
+    await runGenerateAll(domains, null, options.only ?? null);
     return;
   }
 
@@ -82,10 +83,10 @@ export default async function generateAllDomains(options = {}) {
     return;
   }
 
-  await runGenerateAll(selectedDomains, manualGenerate);
+  await runGenerateAll(selectedDomains, manualGenerate, options.only ?? null);
 }
 
-async function runGenerateAll(selectedDomains, manualGenerate) {
+async function runGenerateAll(selectedDomains, manualGenerate, only) {
   // 途中のドメインで止まって生成が半端に残らないよう、ループの前に全件を検査する
   assertDomainFolderNames(featuresDir, selectedDomains);
   for (const domain of selectedDomains) {
@@ -95,6 +96,7 @@ async function runGenerateAll(selectedDomains, manualGenerate) {
       manualGenerate: manualGenerate ?? undefined,
       interactive: false,
       shouldGenerate: true,
+      only,
     });
   }
 

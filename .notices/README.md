@@ -43,7 +43,7 @@ refs: <upstream files / commits / docs>
 notes: <anything else>
 ```
 
-- `required_actions` は下流の Claude が承認1回でノンストップ実行できる具体度で書く(fail-auto)。対話プロンプトを出すコマンドのみ `[user-run]` マーカーを付け、/flux がセッション内ユーザー実行(`!` プレフィックス)で合流する。ドメイン再生成は `pnpm dc:generate <Domain> --yes` / `pnpm dc:generate:all --yes` で対話なしに実行できるので `[user-run]` を付けない(scripts/domain-config/README.md)。
+- `required_actions` は下流の Claude が承認1回でノンストップ実行できる具体度で書く(fail-auto)。対話プロンプトを出すコマンドのみ `[user-run]` マーカーを付け、/flux がセッション内ユーザー実行(`!` プレフィックス)で合流する。ドメイン再生成は `pnpm dc:generate <Domain> --yes` / `pnpm dc:generate:all --yes` で対話なしに実行できるので `[user-run]` を付けない(scripts/domain-config/README.md)。再生成は必要なカテゴリだけを `--only` で指定する(例: レジストリ書き換え = `pnpm dc:generate:all --yes --only registry`)。全カテゴリ再生成は手編集した生成物を上書きするため、避けられない場合は一時 worktree での実行を指示する。
 - 人間にしかできない作業(Vercel 環境変数、外部ダッシュボード等)だけ `manual_steps` に分離する。
 - `moved` はファイル・ディレクトリを移動・改名する notice では**必須**(それ以外は欄ごと省略)。下記「移動・改名(moved)」参照。
 - `covers` は中間 Tier が上流の notice を下流へ中継する notice(relay notice)でだけ書く(それ以外は欄ごと省略)。下記「中継(relay)」参照。
