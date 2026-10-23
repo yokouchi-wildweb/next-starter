@@ -9,9 +9,20 @@
 
 ### 前提
 
-- サービスアカウント（`MY_SERVICE_ACCOUNT_KEY`）に「Storage 管理者」（`roles/storage.admin`）。足りないと HTTP 401 / 403 で止まり、その旨を表示する
+- サービスアカウント（`MY_SERVICE_ACCOUNT_KEY`）に「Storage 管理者」（`roles/storage.admin`、プロジェクト単位）。手順は下の「サービスアカウントへの役割の付与」
 - バケット名は GCS 全体で一意。プロジェクト ID を含めた名前にすると衝突しにくい（例 `<project-id>-pub` / `<project-id>-priv`）
 - 新しい 2 バケットは Firebase に登録しない（クライアント SDK からの経路を作らない）
+
+### サービスアカウントへの役割の付与
+
+- Firebase が用意する既定の管理用サービスアカウント（`firebase-adminsdk-…@<project-id>.iam.gserviceaccount.com`）は「Storage 管理者」を持たない。新しい fork では付与しないと HTTP 403 で止まる
+- 足りないまま実行すると（`--dry-run` でも）、値を埋めた付与の 1 行と GCP コンソールの IAM ページの URL を表示して止まる。スクリプトは付与を実行しない
+- サービスアカウントは自分に役割を付けられない。プロジェクトのオーナーの資格（gcloud のログイン）で表示された 1 行を実行する。gcloud が無ければ GCP コンソールの Cloud Shell で実行できる
+  - 形: `gcloud projects add-iam-policy-binding <project-id> --member=serviceAccount:<サービスアカウントのメール> --role=roles/storage.admin`
+  - `<project-id>` は `NEXT_PUBLIC_FIREBASE_PROJECT_ID`（無ければキーの `project_id`）、メールはキーの `client_email`。バケットはこのプロジェクトに作られる
+- 付けた後は `--dry-run` からやり直す（反映に 1〜2 分かかることがある）
+- 役割の幅: バケットの作成・IAM の設定・CORS の更新（`storage.buckets.create` / `setIamPolicy` / `update`）と、アプリのオブジェクトの読み書きをまとめて持つ定義済みの役割が `roles/storage.admin`。より狭くするにはカスタムロールが要る
+- HTTP 401 で止まった場合はキーそのものが無効・失効している。役割の付与では直らないので、キーを発行し直して設定する
 
 ### 実行
 
@@ -65,4 +76,5 @@ pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> 
   - `STORAGE_PUBLIC_PREFIX` / `STORAGE_PRIVATE_PREFIX`（任意。バケット内の置き場所の接頭辞）
   - `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`（公開ファイルの配信元。例 `https://storage.googleapis.com/<公開バケット>`、`STORAGE_PUBLIC_PREFIX` を使うならそれも含める）
 - `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` はビルド時に埋め込まれ、`next.config.ts` の画像の許可リスト（remotePatterns）でも読むので、設定・変更したら再ビルド / 開発サーバーの再起動が必要
+- GCP プロジェクトに Firebase の既定バケットが無い fork（Firebase の Storage を一度も始めていない。バケットが 0 個）は、旧バケットの全拒否ルールの反映（N2 notice の manual_steps ③ `firebase deploy --only storage`）が不要。守る旧バケットが無い
 - env が未設定のままでも起動はする。アップロードなどファイルの経路を使った時点で `StorageNotConfiguredError` になる（旧バケットへの読み替えはしない）

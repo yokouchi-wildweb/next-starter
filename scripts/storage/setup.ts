@@ -15,13 +15,16 @@
 // - pub: allUsers に roles/storage.legacyObjectReader（オブジェクトの get のみ。一覧は不可）、公開アクセス防止は inherited
 // - priv: 公開アクセス防止を enforced、allUsers / allAuthenticatedUsers の権限なし
 // 旧バケット（Firebase の既定バケット）には触れない。新しい 2 バケットは Firebase に登録しない。
-// 必要な権限: サービスアカウント（MY_SERVICE_ACCOUNT_KEY）に「Storage 管理者」。詳細: scripts/storage/README.md
+// 必要な権限: サービスアカウント（MY_SERVICE_ACCOUNT_KEY）に「Storage 管理者」。
+// 足りず HTTP 403 で止まったときは、値を埋めた付与の 1 行（gcloud）を表示する（実行はしない）。詳細: scripts/storage/README.md
 
 import dotenv from "dotenv";
 
 dotenv.config({ path: process.env.APP_ENV || ".env.development", quiet: true });
 
 import { getServerStorage } from "@/lib/firebase/server/app";
+
+import { formatIamGrantGuide, resolveIamGrantTarget } from "./iamGrant";
 
 const PUBLIC_READER_ROLE = "roles/storage.legacyObjectReader";
 const PUBLIC_MEMBERS = ["allUsers", "allAuthenticatedUsers"];
@@ -220,9 +223,12 @@ main().catch((error: unknown) => {
     process.exit(1);
   }
   const code = errorCode(error);
-  if (code === 401 || code === 403) {
+  if (code === 403) {
+    console.error(`\n${formatIamGrantGuide(resolveIamGrantTarget(process.env))}`);
+  } else if (code === 401) {
+    // 401 はキーそのものが無効・失効している。役割を付けても直らない
     console.error(
-      `\n権限が足りないため止めました（HTTP ${code}）。サービスアカウント（MY_SERVICE_ACCOUNT_KEY）に「Storage 管理者」を付けてください。`,
+      "\n認証に失敗したため止めました（HTTP 401）。MY_SERVICE_ACCOUNT_KEY のキーが無効か失効しています。新しいキーを発行して設定し直してください。",
     );
   } else {
     console.error("\n失敗しました:", error instanceof Error ? error.message : error);

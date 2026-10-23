@@ -26,6 +26,7 @@
     "test:screens": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/screens/screens.test.mjs",
     "test:route-map": "node --test src/lib/screens/routeMap.test.mjs",
     "test:lib-catalog": "node --test src/lib/folderCatalog/catalog.test.mjs",
+    "test:storage-setup": "npx tsx --test scripts/storage/iamGrant.test.ts",
     "test:storage-ref": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/storage/storageRef.test.ts",
     "test:media-probe": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/mediaProbe/server/mediaSource.test.ts",
     "test:storage-client": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/storage/client/uploadToStorage.test.ts src/lib/storage/client/privateMediaRecovery.test.ts src/lib/mediaInputSuite/hooks/pendingUploadTracker.test.ts",
