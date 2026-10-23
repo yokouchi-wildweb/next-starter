@@ -251,6 +251,15 @@ describe("fake ポート", () => {
     assert.throws(() => fake.simulateUpload(third.url, new Uint8Array(1)), (e: FakeStorageError) => e.code === 403);
   });
 
+  test("セッションを中止すると URI は使えない（再中止も成功）", async () => {
+    const fake = createFakeStoragePort();
+    const { sessionUrl } = await fake.issueSession(loc, { contentType: "image/webp", size: 1 });
+    await fake.cancelSession(sessionUrl);
+    await fake.cancelSession(sessionUrl);
+    assert.throws(() => fake.simulateUpload(sessionUrl, new Uint8Array(1)), (e: FakeStorageError) => e.code === 403);
+    assert.equal(await fake.head(loc), null);
+  });
+
   test("HTML を送ると attachment で保存される", async () => {
     const fake = createFakeStoragePort();
     const htmlLoc = { bucket: "priv-bucket", path: "chatRoom.file/x.bin" };

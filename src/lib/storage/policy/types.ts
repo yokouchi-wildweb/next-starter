@@ -3,9 +3,17 @@
 // アップロード用途（purpose）の型（client-safe）。
 // 用途の登録表は src/registry/storagePurposeRegistry.ts、判定の実装は features/core/storageObject が持つ。
 // 旧 src/lib/storage/types.ts と名前が重ならないよう policy/ に置いている（旧ファイルは N2 で削除）。
+// lib は features に依存しないため、判定関数に渡す利用者は最小限の StorageActor で表す
+// （SessionUser からの変換は features/core/storageObject の policy.ts が行う）。
 
-import type { SessionUser } from "@/features/core/auth/entities/session";
 import type { DomainApiAccessRule } from "@/lib/domain";
+
+/** 判定関数に渡す利用者（DB と同期したセッションから作る） */
+export type StorageActor = {
+  userId: string;
+  role: string;
+  status: string;
+};
 
 export type StorageVisibility = "public" | "private";
 
@@ -27,14 +35,14 @@ export type StorageObjectView = {
  */
 export type StorageUploadRule = {
   allow: Exclude<DomainApiAccessRule, "public">;
-  check?: (context: { actor: SessionUser; scopeId: string | null }) => boolean | Promise<boolean>;
+  check?: (context: { actor: StorageActor; scopeId: string | null }) => boolean | Promise<boolean>;
 };
 
 /** 既存ファイルへの操作（読み取り・削除）の条件。allow と check は AND */
 export type StorageObjectRule = {
   allow: DomainApiAccessRule;
   check?: (context: {
-    actor: SessionUser | null;
+    actor: StorageActor | null;
     object: StorageObjectView;
   }) => boolean | Promise<boolean>;
 };

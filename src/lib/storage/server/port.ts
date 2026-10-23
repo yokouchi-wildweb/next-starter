@@ -79,6 +79,8 @@ export interface StoragePort {
   issuePut(location: ObjectLocation, options: IssuePutOptions): Promise<IssuedPut>;
   /** 再開可能セッションを開始し、その URI を返す（URI 自体がアップロード権になる） */
   issueSession(location: ObjectLocation, options: IssueSessionOptions): Promise<IssuedSession>;
+  /** 再開可能セッションを中止し、URI を使えなくする（無い・完了済み・中止済みも成功扱い） */
+  cancelSession(sessionUrl: string): Promise<void>;
   /** オブジェクトの実体情報。無ければ null */
   head(location: ObjectLocation): Promise<HeadResult | null>;
   /** 指定した世代の Cache-Control を書き換える */

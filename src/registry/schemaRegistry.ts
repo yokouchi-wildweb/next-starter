@@ -39,6 +39,7 @@ export * from "@/features/couponAttributionReward/entities/drizzle";
 export * from "@/features/couponIssuerGrant/entities/drizzle";
 export * from "@/features/core/userLoginEvent/entities/drizzle";
 export * from "@/features/core/pairedDevice/entities/drizzle";
+export * from "@/features/core/storageObject/entities/drizzle";
 
 // --- AUTO-GENERATED-START ---
 export * from "@/features/sample/entities/drizzle";

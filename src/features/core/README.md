@@ -67,6 +67,7 @@ README があるものはリンク先が一次資料。README が無いものは
 |---|---|
 | [auditLog](auditLog/README.md) | 監査ログ（誰が・いつ・何を・何が変わったか） |
 | [setting](setting/README.md) | アプリ全体の設定（シングルトン、Zod で拡張） |
+| [storageObject](storageObject/README.md) | ファイル台帳（アップロード権の発行・commit・取り消し・非公開ファイルの都度認可の読み取り・業務行への紐付け） |
 | [batchJob](batchJob/README.md) | 大量データのチャンク分割処理 |
 | [cronCheckpoint](cronCheckpoint/README.md) | 差分 cron / 再開可能バッチのチェックポイント |
 | [incrementalRefresh](incrementalRefresh/README.md) | 派生テーブル（read-model）の差分再計算 |

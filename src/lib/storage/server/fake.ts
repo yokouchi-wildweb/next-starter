@@ -138,6 +138,11 @@ export function createFakeStoragePort(options: { now?: () => Date } = {}): FakeS
       return { sessionUrl };
     },
 
+    async cancelSession(sessionUrl) {
+      const grant = grants.get(sessionUrl);
+      if (grant?.kind === "session") grants.delete(sessionUrl);
+    },
+
     async head(location) {
       const object = objects.get(keyOf(location));
       return object ? headOf(object) : null;

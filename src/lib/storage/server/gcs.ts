@@ -93,6 +93,13 @@ export function createGcsStoragePort(): StoragePort {
       return { sessionUrl };
     },
 
+    async cancelSession(sessionUrl) {
+      // GCS は中止に 499 を返す。404 / 410 = 既に無い・完了済み
+      const response = await fetch(sessionUrl, { method: "DELETE", headers: { "Content-Length": "0" } });
+      if ([200, 204, 404, 410, 499].includes(response.status)) return;
+      throw new Error(`再開可能セッションの中止に失敗しました（HTTP ${response.status}）`);
+    },
+
     async head(location) {
       return headOf(fileOf(location));
     },
