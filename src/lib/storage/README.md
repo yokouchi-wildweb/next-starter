@@ -41,6 +41,12 @@
 | `server/stores.ts` | server | 保存先 → バケット・prefix の解決、`StorageNotConfiguredError` |
 | `server/purposes.ts` | server | 用途表からの引き当て、形式の検査 |
 | `server/legacy.ts` | server | 旧バケットの旧 URL → 位置の変換 |
+| `client/index.ts` | client | クライアントの入口（`uploadToStorage` ほか） |
+| `client/uploadToStorage.ts` | client | 描き直し → 発行 → 転送 → commit の流れ、中止・失敗時の取り消し |
+| `client/storageClient.ts` | client | アプリのルート（発行・commit・取り消し・削除）の HTTP クライアント |
+| `client/drivers/put.ts` / `client/drivers/gcsSession.ts` | client | GCS への直接転送（単発 PUT / 再開可能セッション） |
+| `client/reencodeImage.ts` | client | 画像の描き直し（EXIF を落とす） |
+| `client/transferTypes.ts` | client | 進捗・中止の型、ルートの応答の形、`StorageUploadError` |
 
 ## ref（業務行に保存する値）
 
@@ -168,6 +174,40 @@ type StoragePurpose = {
 - allow（既存の DomainApiAccessRule の語彙）と check（任意の判定関数）は AND。暗黙に判定を通る道（admin・system の素通し）は無い
 - `resolveStoragePurpose(map, id)` は、未登録なら `StoragePurposeNotFoundError`（400）を投げる
 - `listStoragePurposeProblems(map)` は用途表の形式を検査する。用途の登録表との結線は `src/registry/storagePurposeRegistry.ts` で行う
+
+## クライアント: `uploadToStorage`
+
+```ts
+import { uploadToStorage, isStorageUploadCanceled } from "@/lib/storage/client";
+
+const { cancel } = uploadToStorage(file, {
+  purpose: "user.avatar",           // 用途 ID
+  scopeId,                          // 用途の check が使う範囲（任意）
+  reencodeImage: true,              // 既定 true
+  onProgress: ({ percent }) => setPercent(percent),
+  onComplete: ({ ref, objectId, src }) => setValue(ref), // 業務行には ref を保存する
+  onError: (error) => isStorageUploadCanceled(error) || toast.error(error.message),
+});
+```
+
+- **流れ**: 画像の描き直し → アップロード権の発行（`POST /api/me/storage/uploads`）→ 種類に合うドライバーで GCS へ直接送る → commit
+  - ドライバーはサーバーが決める（`STORAGE_CONFIG.sessionThresholdBytes` = 16MiB 以下は単発 PUT、超えると GCS セッション）
+  - 単発 PUT: 署名に含めたヘッダーをそのまま付けて送る。上書き不可・サイズ上限・型は署名で GCS が強制する
+  - GCS セッション: 8MiB ずつ `Content-Range` を付けて送る（途中は 308）。通信が途切れたら `bytes */<total>` で状態を照会し、続きから再開する（最大 3 回）。応答のある失敗（4xx / 5xx）は再開しない
+- **中止・失敗**
+  - `cancel()` や失敗のときは、発行済みなら取り消し（`DELETE /api/me/storage/uploads/[id]`）を試みる。セッションの URI はサーバーが中止する
+  - 中止は `onError` に code `storage/canceled` の `StorageUploadError` を渡す（旧 clientUploader と同じコード）
+- **画像の描き直し**（`reencodeImage`）: jpeg / png / webp を描き直して EXIF（撮影位置など）を落とす
+  - 向きは EXIF に従って補正する
+  - gif・svg・その他はそのまま
+  - 描き直した方が大きくても、描き直した方を使う
+  - 描き直せない環境（`createImageBitmap` / canvas が無い）では元のまま送る
+  - サーバーでは強制しない
+- **HTTP**
+  - アプリのルートは `storageClient`（axios + `normalizeHttpError`）
+  - GCS への直接転送も axios で行う（ブラウザでは XHR になり、`onUploadProgress` で進捗、`AbortSignal` で中止）。アプリの Cookie は送らない（`withCredentials: false`）
+- **ルートの応答の形**（`IssueUploadResponse` / `CommitUploadResponse`）: features/core/storageObject の `storageObjectService` と揃えて `transferTypes.ts` に持つ（lib は features に依存しない）
+- **テスト**: `pnpm test:storage-client`。axios の adapter を差し替えて、ルートと GCS を偽物にする。本物のブラウザ（XHR の進捗・中止、canvas）は MediaUploader の切替のときに確かめる
 
 ## メディア列のスキーマ: `storageMediaValueSchema`
 

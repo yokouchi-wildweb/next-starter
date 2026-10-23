@@ -76,6 +76,8 @@ export const StorageObjectTable = pgTable(
     recordIdx: index("storage_objects_record_idx").on(table.recordType, table.recordId),
     // 未採用 ready の掃除
     statusReadyIdx: index("storage_objects_status_ready_idx").on(table.status, table.readyAt),
+    // 実物の削除が済んでいない deleted 行の再試行（掃除の pendingRemoval）
+    removalIdx: index("storage_objects_removal_idx").on(table.status, table.objectRemovedAt),
   }),
 );
 
