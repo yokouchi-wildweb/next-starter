@@ -4,6 +4,7 @@ import auditPlugin from "./eslint-rules/audit-action-naming.mjs";
 import clientServiceBoundaryPlugin from "./eslint-rules/client-service-boundary.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
+import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import routeAuthzPlugin from "./eslint-rules/route-authz.mjs";
 import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
@@ -185,6 +186,41 @@ export default [
         "error",
         { hiddenColumns: collectHiddenColumns(`${import.meta.dirname}/src`) },
       ],
+    },
+  },
+  // layout はサーバー側でデータを取らない(M4。詳細: eslint-rules/page-authz.mjs, src/features/core/auth/README.md)。
+  // layout は並列に描かれ、ガードの内側の layout も守られないため、取得は loader へ。許すのは authorization の関数だけ。
+  // _layout/guard.ts は方針の定義場所なので対象外。セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。
+  {
+    files: ["src/app/**/layout.{ts,tsx}", "src/app/**/_layout/**/*.{ts,tsx}"],
+    ignores: ["src/app/**/_layout/guard.ts"],
+    plugins: { "page-authz": pageAuthzPlugin },
+    rules: {
+      "page-authz/layout-no-server-data": "error",
+    },
+  },
+  // セッション・ガード API(authGuard・getSessionUser・requireCurrentUser 等)を呼べる場所を役割で限る(M3)。
+  // 対象 = src/app(api を除く)と UI 側。許可 = layout・_layout/(組み立てと guard.ts)・loader.ts(下の ignores)。
+  // AuthSessionProvider は認証基盤の名前付き例外(Cookie からセッションを解決して client に渡す root layout の Provider)。
+  // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。詳細: eslint-rules/page-authz.mjs
+  {
+    files: [
+      "src/app/**/*.{ts,tsx}",
+      "src/components/**/*.{ts,tsx}",
+      "src/features/**/components/**/*.{ts,tsx}",
+      "src/features/**/hooks/**/*.{ts,tsx}",
+      "src/hooks/**/*.{ts,tsx}",
+    ],
+    ignores: [
+      "src/app/api/**",
+      "src/app/**/layout.{ts,tsx}",
+      "src/app/**/_layout/**",
+      "src/app/**/loader.ts",
+      "src/features/core/auth/components/AuthSessionProvider.tsx",
+    ],
+    plugins: { "page-authz": pageAuthzPlugin },
+    rules: {
+      "page-authz/session-api-callsite": "error",
     },
   },
   // ルームロジック (servers/room にバンドルされる) の純度制約。

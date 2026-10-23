@@ -5,8 +5,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { InsaneProtectedLayout } from "@/components/AppFrames/Admin/Insane";
-import { authGuard } from "@/features/core/auth/services/server/authorization";
-import { userService } from "@/features/core/user/services/server/userService";
+import { authGuard, hasAdminUser } from "@/features/core/auth/services/server/authorization";
 import type { UserRoleType } from "@/features/core/user/types";
 
 export default async function InsaneLayout({
@@ -14,13 +13,10 @@ export default async function InsaneLayout({
 }: Readonly<{ children: ReactNode }>) {
 
   const ROLE_ADMIN: UserRoleType = "admin";
-  const { total: adminUserCount } = await userService.search({
-    limit: 1,
-    where: { field: "role", op: "eq", value: ROLE_ADMIN },
-  });
 
-  // 管理者ユーザーが未作成の環境では、初期セットアップへリダイレクト
-  if (adminUserCount === 0) redirect("/admin/setup");
+  // 管理者ユーザー(ロール admin)が未作成の環境では、初期セットアップへリダイレクト
+  // (layout はデータを取らないので、判定は authorization の hasAdminUser に任せる)
+  if (!(await hasAdminUser([ROLE_ADMIN]))) redirect("/admin/setup");
 
   await authGuard({ allowRoles: ["admin"], redirectTo: "/admin/login", returnBack: true });
 

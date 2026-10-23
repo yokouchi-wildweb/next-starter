@@ -98,7 +98,7 @@ role checks always use the DB-synced getSessionUser | debug APIs: copy GET /api/
 ## ROLES & PAGE_GUARD
 roles: src/features/core/user/roles/*.role.json (core = `_` prefix) → pnpm role:generate → src/registry/roleRegistry.ts | category = admin or user | debugger role = user category, bypasses maintenance + opens /debug
 page_guard: authGuard({allowRoles, allowStatuses, redirectTo, ...}) in layouts (@/features/core/auth/services/server/authorization) | already guarded at layout level (pages need no own guard): admin/(protected) + admin/insane (admin roles → /admin/login) | (user)/(protected) (→ /login) | debug/ (admin category + debugger → /login)
-flow: proxy (redirectProxy, cookie JWT) → layout (authGuard: roles + statuses) → loader (requireCurrentUser = own DB record) | debug pages go under src/app/debug/, never re-implement guards | ref: src/features/core/auth/README.md
+flow: proxy (redirectProxy, cookie JWT) → layout (authGuard) → loader (requireCurrentUser = own DB record) | debug pages go under src/app/debug/, never re-implement guards | lint page-authz (error, every tier): layouts fetch no server data (authorization fns only) | session / guard APIs only in layout, _layout/, loader.ts, shared admin loaders | ref: src/features/core/auth/README.md
 
 ## CRUD_SERVICE (createCrudService)
 before adding or changing CRUD calls, search options or raw SQL → read src/lib/crud/README.md (hooks: src/lib/crud/hooks/README.md)

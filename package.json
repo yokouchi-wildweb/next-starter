@@ -21,6 +21,7 @@
     "test:deprecated-imports": "node --test eslint-rules/deprecated-imports.test.mjs",
     "test:client-service-boundary": "node --test eslint-rules/client-service-boundary.test.mjs",
     "test:hidden-columns-lint": "node --test eslint-rules/hidden-columns.test.mjs",
+    "test:page-authz-lint": "node --test eslint-rules/page-authz.test.mjs",
     "test:variant-overrides": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/variantOverrides/variantOverrides.test.mjs",
     "test:screens": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/screens/screens.test.mjs",
     "test:route-map": "node --test src/lib/screens/routeMap.test.mjs",

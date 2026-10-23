@@ -131,6 +131,8 @@ loader はドメインの features ではなくルートの中に置く（複数
     └── layout.tsx      ← 公開ページ用レイアウト
 ```
 
+- layout はサーバー側でデータを取らない（services/server・DB・loader を import しない。認可は authorization の関数だけ）。取得は loader で行う。lint `page-authz`、詳細: [auth README「置き場所の検査」](../features/core/auth/README.md)
+
 ### API ルート追加
 
 - 汎用CRUD: `api/[domain]/` で自動対応（routeFactory使用）

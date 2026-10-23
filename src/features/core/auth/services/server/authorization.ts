@@ -5,7 +5,8 @@ import { headers } from "next/headers";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { USER_AVAILABLE_STATUSES } from "@/features/core/user/constants";
+import { USER_AVAILABLE_STATUSES, getRolesByCategory } from "@/features/core/user/constants";
+import { hasActiveUserWithRoles } from "@/features/core/user/services/server/finders/hasActiveUserWithRoles";
 import type { UserRoleType, UserStatus } from "@/features/core/user/types";
 
 /** proxy.ts で付与された x-pathname ヘッダーから現在のパスを取得する */
@@ -76,4 +77,17 @@ export async function authGuard(options: AuthGuardOptions = {}): Promise<Session
   }
 
   return sessionUser;
+}
+
+/**
+ * 管理者が 1 人以上いるかを返す(初期セットアップ誘導の判定用。真偽値だけを返す専用の取得口)。
+ *
+ * layout はサーバー側でデータを取らない(lint page-authz/layout-no-server-data)ため、
+ * 管理画面の layout は userService を直接呼ばずにこれを呼ぶ。
+ * roles 省略時は admin カテゴリの全ロール。論理削除済みのユーザーは数えない。
+ */
+export async function hasAdminUser(
+  roles: readonly UserRoleType[] = getRolesByCategory("admin"),
+): Promise<boolean> {
+  return hasActiveUserWithRoles(roles);
 }
