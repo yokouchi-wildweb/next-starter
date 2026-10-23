@@ -2,6 +2,7 @@
 // mediaSource の単体テスト（fetch を差し替え、StoragePort は fake）。
 // - Range に 200（全体）が返ったとき、要求した長さを超える全体は読まずに中止する（R03）
 // - 旧バケットだけを署名し、pub / priv の保存先と重なる位置・storage ref は lib で扱わない
+// - Next のサーバー内の fetch（signal の無い GET の応答を tee する dedupe-fetch）でも止まらない。期限で通信を打ち切る
 // 実行: pnpm test:media-probe
 
 import { afterEach, beforeEach, describe, test } from "node:test";
@@ -11,6 +12,8 @@ import { __setStoragePortForTest, createFakeStoragePort } from "@/lib/storage/se
 
 import { createMediaSource, fetchRangeRaw } from "./mediaSource";
 import { ProbeEngineError } from "./engine/types";
+import type { ProbeEngine } from "./engine/types";
+import { probeMedia } from "./probeMedia";
 
 const ENV_KEYS = ["NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET", "STORAGE_PRIVATE_BUCKET", "STORAGE_PRIVATE_PREFIX", "STORAGE_PUBLIC_BUCKET"] as const;
 const savedEnv: Record<string, string | undefined> = {};
@@ -47,10 +50,49 @@ function useFetch(respond: (call: FetchCall) => Response) {
   }) as typeof fetch;
 }
 
+/** tee の保持側（GC で閉じられないよう参照を持ち続ける） */
+let retained: ReadableStream<Uint8Array>[] = [];
+/** 各 fetch に渡された signal（無ければ null） */
+let signals: (AbortSignal | null)[] = [];
+
+/**
+ * Next のサーバー内の fetch を模す（next/dist/server/lib/dedupe-fetch.js）。
+ * signal の無い GET は応答の本体を tee し、片方を保持して閉じない。保持側があるとき、
+ * もう片方の cancel() は両方が閉じるまで解決しない。signal があれば tee しない。
+ */
+function useDedupeFetch(respond: (call: FetchCall) => Response) {
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const headers = new Headers(init?.headers);
+    const call = { url: String(input), range: headers.get("range") };
+    calls.push(call);
+    signals.push(init?.signal ?? null);
+    const res = respond(call);
+    if (init?.signal || !res.body) return res;
+    const [mine, kept] = res.body.tee();
+    retained.push(kept);
+    return new Response(mine, { status: res.status, statusText: res.statusText, headers: res.headers });
+  }) as typeof fetch;
+}
+
+/** ms 以内に終わらなければ失敗にする（止まる不具合を期限で検出する） */
+async function within<T>(ms: number, promise: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${ms}ms 以内に終わらなかった（止まっている）`)), ms);
+  });
+  try {
+    return await Promise.race([promise, deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 beforeEach(() => {
   for (const key of ENV_KEYS) savedEnv[key] = process.env[key];
   calls = [];
   pulled = 0;
+  retained = [];
+  signals = [];
 });
 
 afterEach(() => {
@@ -163,5 +205,85 @@ describe("createMediaSource の参照の解決", () => {
       createMediaSource({ downloadUrl: "storage://priv/chatRoom.video/01920000-0000-7000-8000-000000000001.mp4" }, 120, PREFETCH),
       isFetchFailed,
     );
+  });
+});
+
+describe("Next のサーバー内の fetch（応答の tee）でも止まらない", () => {
+  const PREFETCH = { headBytes: 0, tailBytes: 0 };
+
+  test("authorizedUrl・大きさ無しのサイズ確認（bytes=0-0）が止まらない", async () => {
+    useDedupeFetch(() => new Response(streamOf(1), { status: 206, headers: { "content-range": "bytes 0-0/1234" } }));
+    const source = await within(1000, createMediaSource({ authorizedUrl: "https://signed.test/a" }, 120, PREFETCH));
+    assert.equal(source.sizeBytes, 1234);
+  });
+
+  test("200 で content-length が大きいとき、読まずにすぐ中止する", async () => {
+    const size = 50 * 1024 * 1024;
+    useDedupeFetch(() => new Response(streamOf(size), { status: 200, headers: { "content-length": String(size) } }));
+    await assert.rejects(within(1000, fetchRangeRaw("https://x.test/a", 0, 1024 * 1024)), isFetchFailed);
+  });
+
+  test("200 で読みながら長さを超えたとき、すぐ中止する", async () => {
+    useDedupeFetch(() => new Response(streamOf(50 * 1024 * 1024), { status: 200 }));
+    await assert.rejects(within(1000, fetchRangeRaw("https://x.test/a", 0, 1024 * 1024)), isFetchFailed);
+  });
+
+  test("サイズ確認・プリフェッチ・窓外の読み取りのすべての fetch に signal を渡す", async () => {
+    useDedupeFetch((call) => {
+      const [start, end] = (call.range ?? "bytes=0-0").slice("bytes=".length).split("-").map(Number);
+      return new Response(new Uint8Array(end - start + 1), {
+        status: 206,
+        headers: { "content-range": `bytes ${start}-${end}/100000` },
+      });
+    });
+    const source = await within(1000, createMediaSource({ authorizedUrl: "https://signed.test/a" }, 120, { headBytes: 100, tailBytes: 100 }));
+    await within(1000, source.readChunk(50_000, 10));
+    assert.equal(signals.length, 4);
+    assert.ok(signals.every((signal) => signal !== null));
+  });
+});
+
+describe("probeMedia の期限", () => {
+  test("期限で通信を打ち切り、timeout を返す", async () => {
+    // 応答を返さず、signal が abort されたときだけ失敗する fetch
+    globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) => {
+      signals.push(init?.signal ?? null);
+      return new Promise<Response>((_, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+      });
+    }) as typeof fetch;
+    const engine: ProbeEngine = {
+      name: "test",
+      probe: async () => {
+        throw new Error("呼ばれない");
+      },
+    };
+
+    const result = await within(1000, probeMedia({ authorizedUrl: "https://signed.test/a" }, { engine, timeoutMs: 50 }));
+    assert.equal(result.ok, false);
+    assert.equal(result.ok ? null : result.error.code, "timeout");
+    assert.equal(signals.length, 1);
+    assert.equal(signals[0]?.aborted, true);
+  });
+
+  test("tee される fetch でも、大きさ無しの authorizedUrl を解析できる", async () => {
+    useDedupeFetch((call) => {
+      const [start, end] = (call.range ?? "bytes=0-0").slice("bytes=".length).split("-").map(Number);
+      return new Response(streamOf(end - start + 1), {
+        status: 206,
+        headers: { "content-range": `bytes ${start}-${end}/2048` },
+      });
+    });
+    const engine: ProbeEngine = {
+      name: "test",
+      probe: async (source) => {
+        const head = await source.readChunk(0, 16);
+        assert.equal(head.byteLength, 16);
+        return { container: "mp4", durationSec: 1, hasVideoTrack: true, hasAudioTrack: false, video: null, audio: null };
+      },
+    };
+
+    const result = await within(1000, probeMedia({ authorizedUrl: "https://signed.test/a" }, { engine, timeoutMs: 5000 }));
+    assert.equal(result.ok, true);
   });
 });

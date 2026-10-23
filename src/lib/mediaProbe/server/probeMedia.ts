@@ -35,12 +35,22 @@ class TimeoutError extends Error {
   }
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+/**
+ * 期限付きで実行する。期限が来たら TimeoutError で reject し、同時に signal を abort して
+ * 下の処理（fetch・ストリーム）を打ち切る（待つのをやめるだけにしない）。
+ */
+function withTimeout<T>(
+  run: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number,
+  controller: AbortController,
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new TimeoutError(`メディア解析がタイムアウトしました (${timeoutMs}ms)`));
+      const error = new TimeoutError(`メディア解析がタイムアウトしました (${timeoutMs}ms)`);
+      reject(error);
+      controller.abort(error);
     }, timeoutMs);
-    promise.then(
+    run(controller.signal).then(
       (value) => {
         clearTimeout(timer);
         resolve(value);
@@ -79,18 +89,23 @@ export async function probeMedia(ref: MediaRef, opts: ProbeOptions = {}): Promis
     tailBytes: opts.prefetchTailBytes ?? DEFAULT_PREFETCH_TAIL_BYTES,
   };
 
+  const controller = new AbortController();
   try {
     const engine = getProbeEngine(opts.engine);
     // ソース解決（署名URL・メタデータ・プリフェッチ）も含め end-to-end をタイムアウトで締め切る。
     const facts = await withTimeout(
-      (async () => {
-        const source = await createMediaSource(ref, signedUrlTtlSec, prefetch);
+      async (signal) => {
+        const source = await createMediaSource(ref, signedUrlTtlSec, prefetch, signal);
         return engine.probe(source);
-      })(),
+      },
       timeoutMs,
+      controller,
     );
     return { ok: true, ...facts };
   } catch (e) {
     return toFailure(e);
+  } finally {
+    // 終わった後に残った通信（読み残しのストリーム等）を閉じる
+    controller.abort();
   }
 }

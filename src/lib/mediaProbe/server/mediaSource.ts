@@ -12,6 +12,12 @@
 //   された場合のみ追加 Range フェッチへフォールバックする。これにより mediainfo の
 //   seek 駆動ループが発生させる多数の直列往復を、定数回の並列往復へ収束させる。
 //   プリフェッチは best-effort（失敗時はバッファ無しで従来のチャンク取得へ劣化）。
+//
+// fetch の約束（Next のサーバー内で止まらないため）:
+//   Next は globalThis.fetch を差し替え、signal の無い GET の応答を tee して片方を保持する
+//   （next/dist/server/lib/dedupe-fetch.js）。保持側は閉じられないので、もう片方の cancel() は解決しない。
+//   そのため、すべての fetch に signal を渡し（tee されない）、本体の cancel は待たない。
+//   signal は probeMedia の期限と連動し、期限で通信・ストリームを打ち切る。
 
 import { isStorageRef } from "@/lib/storage";
 import { getStoragePort, legacyLocationOfPath, parseLegacyStorageUrl } from "@/lib/storage/server";
@@ -23,6 +29,28 @@ import { ProbeEngineError } from "./engine/types";
 
 function errMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
+}
+
+/** 本体の読み取りをやめる。待たない（tee された本体の cancel は解決しないことがある）。 */
+function discard(stream: { cancel(): Promise<void> } | null | undefined): void {
+  void stream?.cancel().catch(() => undefined);
+}
+
+/**
+ * Range 付きで GET する。signal は常に渡す（Next の dedupe-fetch の tee を避ける）。
+ * 呼び出し元の signal が abort されたら、その理由（probeMedia の期限）をそのまま投げる。
+ */
+async function rangeFetch(url: string, range: string, signal: AbortSignal | undefined): Promise<Response> {
+  try {
+    return await fetch(url, {
+      headers: { Range: range },
+      cache: "no-store",
+      signal: signal ?? new AbortController().signal,
+    });
+  } catch (e) {
+    if (signal?.aborted) throw signal.reason;
+    throw new ProbeEngineError("fetch_failed", `メディアの取得に失敗しました: ${errMessage(e)}`);
+  }
 }
 
 /** head+tail プリフェッチの窓サイズ（バイト）。0 でその窓を無効化。 */
@@ -42,7 +70,7 @@ type RangeBytes = { bytes: Uint8Array; isFull: boolean };
 async function readBodyAtMost(res: Response, maxBytes: number): Promise<Uint8Array | null> {
   const declared = Number(res.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > maxBytes) {
-    await res.body?.cancel().catch(() => undefined);
+    discard(res.body);
     return null;
   }
   if (!res.body) return new Uint8Array(await res.arrayBuffer());
@@ -55,7 +83,7 @@ async function readBodyAtMost(res: Response, maxBytes: number): Promise<Uint8Arr
     if (done) break;
     total += value.byteLength;
     if (total > maxBytes) {
-      await reader.cancel().catch(() => undefined);
+      discard(reader);
       return null;
     }
     chunks.push(value);
@@ -82,15 +110,16 @@ function rangeIgnored(): ProbeEngineError {
  * isFull=true（呼び出し側で先頭からのスライスが必要）。ただし全体が length を超えるなら
  * 読み込みを中止して throw する（大きな全体応答をメモリに読まない）。取得不能も throw する。
  */
-export async function fetchRangeRaw(url: string, offset: number, length: number): Promise<RangeBytes> {
+export async function fetchRangeRaw(
+  url: string,
+  offset: number,
+  length: number,
+  signal?: AbortSignal,
+): Promise<RangeBytes> {
   const end = offset + length - 1;
-  let res: Response;
-  try {
-    res = await fetch(url, { headers: { Range: `bytes=${offset}-${end}` } });
-  } catch (e) {
-    throw new ProbeEngineError("fetch_failed", `メディアの取得に失敗しました: ${errMessage(e)}`);
-  }
+  const res = await rangeFetch(url, `bytes=${offset}-${end}`, signal);
   if (res.status !== 206 && res.status !== 200) {
+    discard(res.body);
     throw new ProbeEngineError(
       "fetch_failed",
       `メディアの取得に失敗しました (HTTP ${res.status})`,
@@ -110,14 +139,11 @@ export async function fetchRangeRaw(url: string, offset: number, length: number)
 /** Range bytes=0-0 でサイズ・Content-Type を確認する（メタデータ取得不能時のフォールバック）。 */
 async function fetchSizeAndType(
   url: string,
+  signal: AbortSignal | undefined,
 ): Promise<{ sizeBytes: number | null; contentType: string | null }> {
-  let res: Response;
-  try {
-    res = await fetch(url, { headers: { Range: "bytes=0-0" } });
-  } catch (e) {
-    throw new ProbeEngineError("fetch_failed", `メディアの取得に失敗しました: ${errMessage(e)}`);
-  }
+  const res = await rangeFetch(url, "bytes=0-0", signal);
   if (res.status !== 206 && res.status !== 200) {
+    discard(res.body);
     throw new ProbeEngineError(
       "fetch_failed",
       `メディアの取得に失敗しました (HTTP ${res.status})`,
@@ -137,7 +163,7 @@ async function fetchSizeAndType(
     }
   }
   // ボディは読まずに破棄（200 で全体が返っても読み込まない。接続を解放）
-  await res.body?.cancel().catch(() => undefined);
+  discard(res.body);
   return { sizeBytes, contentType: res.headers.get("content-type") };
 }
 
@@ -151,7 +177,11 @@ async function signLegacy(location: ObjectLocation, ttlSec: number): Promise<Res
 }
 
 /** MediaRef を 署名 URL + メタデータ へ解決する。 */
-async function resolve(ref: MediaRef, signedUrlTtlSec: number): Promise<ResolvedSource> {
+async function resolve(
+  ref: MediaRef,
+  signedUrlTtlSec: number,
+  signal: AbortSignal | undefined,
+): Promise<ResolvedSource> {
   let url: string;
   let sizeBytes: number | null = null;
   let contentType: string | null = null;
@@ -191,7 +221,7 @@ async function resolve(ref: MediaRef, signedUrlTtlSec: number): Promise<Resolved
   }
 
   if (sizeBytes == null) {
-    const fallback = await fetchSizeAndType(url);
+    const fallback = await fetchSizeAndType(url, signal);
     sizeBytes = fallback.sizeBytes;
     contentType = contentType ?? fallback.contentType;
   }
@@ -207,6 +237,7 @@ async function prefetchSegments(
   url: string,
   size: number,
   cfg: PrefetchConfig,
+  signal: AbortSignal | undefined,
 ): Promise<Segment[]> {
   const headLen = Math.min(Math.max(cfg.headBytes, 0), size);
   const tailStart = Math.max(headLen, size - Math.max(cfg.tailBytes, 0));
@@ -217,7 +248,7 @@ async function prefetchSegments(
   if (headLen > 0) {
     tasks.push(
       // 206 は要求どおり先頭から headLen バイト。200（全件）も先頭からなので、いずれも start=0。
-      fetchRangeRaw(url, 0, headLen).then(
+      fetchRangeRaw(url, 0, headLen, signal).then(
         ({ bytes }) => ({ start: 0, bytes }),
         () => null,
       ),
@@ -225,7 +256,7 @@ async function prefetchSegments(
   }
   if (tailLen > 0) {
     tasks.push(
-      fetchRangeRaw(url, tailStart, tailLen).then(
+      fetchRangeRaw(url, tailStart, tailLen, signal).then(
         ({ bytes, isFull }) =>
           // 200 のときは bytes が先頭からの全件なので start=0。206 は要求した tailStart から。
           isFull ? { start: 0, bytes } : { start: tailStart, bytes },
@@ -250,18 +281,22 @@ function readFromSegments(segments: Segment[], offset: number, length: number): 
   return null;
 }
 
-/** MediaRef から MediaSource を構築する（head+tail プリフェッチ付き）。 */
+/**
+ * MediaRef から MediaSource を構築する（head+tail プリフェッチ付き）。
+ * signal を abort すると、サイズ確認・プリフェッチ・readChunk の通信を打ち切る（probeMedia の期限）。
+ */
 export async function createMediaSource(
   ref: MediaRef,
   signedUrlTtlSec: number,
   prefetch: PrefetchConfig,
+  signal?: AbortSignal,
 ): Promise<MediaSource> {
-  const { url, sizeBytes, contentType } = await resolve(ref, signedUrlTtlSec);
+  const { url, sizeBytes, contentType } = await resolve(ref, signedUrlTtlSec, signal);
 
   // サイズが判明していれば先頭/末尾をプリフェッチ。失敗・サイズ不明時は空（=従来のチャンク取得）。
   const segments =
     sizeBytes != null && sizeBytes > 0
-      ? await prefetchSegments(url, sizeBytes, prefetch).catch(() => [])
+      ? await prefetchSegments(url, sizeBytes, prefetch, signal).catch(() => [])
       : [];
 
   return {
@@ -272,7 +307,7 @@ export async function createMediaSource(
       const hit = readFromSegments(segments, offset, length);
       if (hit) return hit;
       // 窓外: 追加 Range フェッチ。200（全件）が返った場合は要求オフセットへスライス。
-      const { bytes, isFull } = await fetchRangeRaw(url, offset, length);
+      const { bytes, isFull } = await fetchRangeRaw(url, offset, length, signal);
       return isFull ? bytes.subarray(offset, offset + length) : bytes;
     },
   };

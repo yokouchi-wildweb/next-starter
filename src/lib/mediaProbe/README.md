@@ -125,6 +125,7 @@ pub / priv の保存先と重なる位置は扱わない。
 - プリフェッチは best-effort。失敗・サイズ不明時はバッファ無しで従来のチャンク取得へ劣化する。
 - 窓サイズは `ProbeOptions.prefetchHeadBytes` / `prefetchTailBytes`（各既定 4MB、0 で無効化）。
 - Range 非対応プロキシ等で `200`（全件）が返ったとき: 全体が要求した長さに収まる小さなファイルなら、要求オフセットへスライスして返す。それより大きい全体は読み込みを中止して `fetch_failed`（大容量の全体をメモリに読まない）。
+- Next のサーバー内の fetch（MANDATORY）: Next は `globalThis.fetch` を差し替え、signal の無い GET の応答を tee して片方を保持する（`next/dist/server/lib/dedupe-fetch.js`）。保持側は閉じられないので、もう片方の `body.cancel()` / `reader.cancel()` は解決しない。そのため mediaSource の fetch には**必ず signal を渡し**（tee されない）、本体の cancel は**待たない**。signal は probeMedia の期限と連動し、期限で通信・ストリームを打ち切る（`createMediaSource` / `fetchRangeRaw` の省略可の `signal`）。fetch を足すときも同じにする。残る例外: 開発時のページ描画中（server action を含む）に Range を無視した `200` が返ると、Next の HMR キャッシュの経路（`patch-fetch.js` の createCachedDynamicResponse）が tee して片方を全部読むため、本体がメモリに読まれ得る（止まらない。期限の abort で切れる。本番・route handler は該当しない）。
 
 ### WASM インスタンスの再利用
 
