@@ -8,10 +8,16 @@
 // NOTE: 自バケット判定は lib/storage/client の getPathFromStorageUrl と同等だが、
 //       あちらは firebase client SDK の初期化を伴うモジュールに同居しているため、
 //       純粋な URL 判定だけが必要な UI プリミティブからは依存せず自前で持つ。
+//       新基盤（storage://）の判定は lib/storage/ref の純関数を使う（firebase SDK を伴わない）。
+
+import { isPrivateObjectPath, isPublicStorageUrl } from "@/lib/storage/ref";
 
 export function isOptimizableSrc(src: string): boolean {
   // プロトコル相対 URL は外部ホスト扱い
   if (src.startsWith("//")) return false;
+  // 非公開ファイルの固定 URL は都度認可して短期署名 URL へ 302 する。最適化を通すと
+  // 認可済みの画像が最適化キャッシュに残って他の利用者へ配られうるため、必ず外す（"/" 判定より先）
+  if (isPrivateObjectPath(src)) return false;
   // ローカルアセット(public/ 配下)は常に最適化可能
   if (src.startsWith("/")) return true;
 
@@ -23,6 +29,9 @@ export function isOptimizableSrc(src: string): boolean {
     return false;
   }
   if (url.protocol !== "https:") return false;
+
+  // 新しい公開バケット（NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL の配下）。remotePatterns と同じく base の前方一致
+  if (isPublicStorageUrl(src)) return true;
 
   // remotePatterns(next.config.ts)と同じ「自バケットのみ」判定
   const bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;

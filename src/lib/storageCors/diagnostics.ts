@@ -14,13 +14,20 @@
 //     あくまで「可能性」として案内する。
 //   - 本番では何もしない / ブラウザ以外でも何もしない(CORS はブラウザのフェッチ/canvas の概念)。
 //   - 一次情報(設定手順・判定ルール・前提)は docs の CORS 設定ガイドに集約し、ここからは参照のみ。
+//   - 新基盤の 2 バケットも診断する: 公開バケットは publicStorageHosts / 公開 base(lib/storage/ref)から、
+//     非公開バケットは固定 URL /api/storage/objects/<id>(同一 origin だが 302 で非公開バケットへ飛ぶ)から判別する。
+
+import { isPrivateObjectPath, isPublicStorageUrl, publicStorageHosts } from "@/lib/storage/ref";
 
 /** 一次ドキュメント(設定手順・前提・判定ルール・トラブルシュートの集約先)。 */
 export const STORAGE_CORS_DOC_PATH =
   "docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md";
 
-/** CORS 設定コマンド(引数なしで origin "*"、ドメイン指定で本番限定)。 */
+/** CORS 設定コマンド(旧バケット用。引数なしで origin "*"、ドメイン指定で本番限定)。 */
 export const STORAGE_CORS_SETUP_COMMAND = "pnpm storage:setup-cors";
+
+/** 新基盤の公開・非公開バケットの準備コマンド(CORS を含む。origin はアプリの origin)。 */
+export const STORAGE_SETUP_COMMAND = "pnpm storage:setup -- --origin <アプリの origin>";
 
 /** Firebase Storage と判別しやすくするためのホストヒント(案内文の文言調整に使用)。 */
 const FIREBASE_STORAGE_HOST_HINTS = [
@@ -54,6 +61,38 @@ function looksLikeFirebaseStorageHost(host: string): boolean {
   );
 }
 
+/** 取得元がどのバケットか(案内文の対処を出し分ける) */
+export type StorageUrlKind = "public" | "private" | "legacy" | "other";
+
+function resolveUrl(url: string): URL | null {
+  try {
+    return new URL(url, isBrowser() ? window.location.href : undefined);
+  } catch {
+    return null;
+  }
+}
+
+function isSameOrigin(parsed: URL): boolean {
+  return isBrowser() && parsed.origin === window.location.origin;
+}
+
+/**
+ * URL の取得元を判別する。
+ * - private: 同一 origin の非公開ファイル固定 URL(302 先が非公開バケット)
+ * - public: 公開 base の配下、または公開 base の独自ホスト(CDN 等)
+ * - legacy: 旧 Firebase Storage のホスト(公開 base 配下以外。非公開バケットの署名 URL もここに入る)
+ */
+export function classifyStorageUrl(url: string): StorageUrlKind {
+  const parsed = resolveUrl(url);
+  if (!parsed) return "other";
+  if ((isSameOrigin(parsed) || !isBrowser()) && isPrivateObjectPath(parsed.pathname)) return "private";
+  // 共有ホスト(storage.googleapis.com)は base の前方一致でだけ公開と判定し、ホスト一致は旧バケットの判定より後に置く
+  if (isPublicStorageUrl(parsed.href)) return "public";
+  if (looksLikeFirebaseStorageHost(parsed.host)) return "legacy";
+  if (publicStorageHosts().includes(parsed.host)) return "public";
+  return "other";
+}
+
 /**
  * fetch の失敗が CORS / ネットワーク系の TypeError かどうかの判定。
  * ブラウザごとに文言が異なる(Chromium: Failed to fetch / Firefox: NetworkError / Safari: Load failed)。
@@ -74,14 +113,12 @@ export function isCorsLikeFetchError(error: unknown): boolean {
  * 同一オリジンなら CORS は原因になり得ないので除外する。相対 URL 等は判定不能として false。
  */
 export function isLikelyCrossOriginStorageUrl(url: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(url, isBrowser() ? window.location.href : undefined);
-  } catch {
-    return false;
-  }
+  const parsed = resolveUrl(url);
+  if (!parsed) return false;
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
-  if (isBrowser() && parsed.origin === window.location.origin) return false;
+  // 非公開ファイルの固定 URL は同一 origin でも、302 先の非公開バケットで CORS が効く
+  if (isPrivateObjectPath(parsed.pathname)) return true;
+  if (isSameOrigin(parsed)) return false;
   return true;
 }
 
@@ -98,21 +135,38 @@ export function diagnoseStorageFetchError(error: unknown, url?: string): void {
   emitOnce(`fetch:${url ?? ""}`, buildFetchGuidance(url));
 }
 
-function buildFetchGuidance(url?: string): string[] {
-  let target = "別ドメイン";
-  if (url) {
-    try {
-      const host = new URL(url, isBrowser() ? window.location.href : undefined).host;
-      target = looksLikeFirebaseStorageHost(host) ? `Firebase Storage(${host})` : host;
-    } catch {
-      /* host 解決不能時は既定の文言のまま */
-    }
+/** 取得元の表示名(案内文の文言) */
+function describeTarget(url?: string): string {
+  if (!url) return "別ドメイン";
+  const parsed = resolveUrl(url);
+  if (!parsed) return "別ドメイン";
+  switch (classifyStorageUrl(url)) {
+    case "private":
+      return "非公開バケット(固定 URL の 302 先)";
+    case "public":
+      return `公開バケット(${parsed.host})`;
+    case "legacy":
+      return `Firebase Storage(${parsed.host})`;
+    default:
+      return parsed.host;
   }
+}
+
+/** 対処の案内(新基盤の 2 バケットは storage:setup、それ以外は旧バケット用の設定コマンド) */
+function setupGuidance(url?: string): string {
+  const kind = url ? classifyStorageUrl(url) : "other";
+  if (kind === "public" || kind === "private") {
+    return `  対処: ${STORAGE_SETUP_COMMAND} を実行し、公開・非公開バケットに CORS を設定してください(src/lib/storage/README.md)`;
+  }
+  return `  対処: ${STORAGE_CORS_SETUP_COMMAND} を一度だけ実行し、バケットに CORS を設定してください`;
+}
+
+function buildFetchGuidance(url?: string): string[] {
   return [
-    `[Storage CORS 診断] ${target} からのバイト読み取り(fetch)に失敗しました。`,
+    `[Storage CORS 診断] ${describeTarget(url)} からのバイト読み取り(fetch)に失敗しました。`,
     "  原因の可能性: Storage バケットに CORS 設定が無い",
     "    ※ ネットワーク断 / URL 誤り / 認証失敗でも同じエラーになります(断定ではありません)",
-    `  対処: ${STORAGE_CORS_SETUP_COMMAND} を一度だけ実行し、バケットに CORS を設定してください`,
+    setupGuidance(url),
     `  詳細(判定ルール・前提・手順): ${STORAGE_CORS_DOC_PATH}`,
     ...(url ? [`  取得元: ${url}`] : []),
   ];
@@ -148,7 +202,7 @@ function buildCanvasGuidance(sourceUrl?: string): string[] {
     "[Storage CORS 診断] canvas からの書き出し(toBlob/toDataURL/getImageData)に失敗しました(tainted canvas)。",
     "  原因の可能性: 別ドメインのメディアを CORS 未許可で canvas に取り込んだため汚染された",
     "  対処1: 取り込み元の <img>/<video> に crossOrigin=\"anonymous\" を付与する",
-    `  対処2: ${STORAGE_CORS_SETUP_COMMAND} を一度だけ実行し、バケットに CORS を設定する`,
+    setupGuidance(sourceUrl).replace("  対処:", "  対処2:"),
     `  詳細(判定ルール・前提・手順): ${STORAGE_CORS_DOC_PATH}`,
     ...(sourceUrl ? [`  取り込み元: ${sourceUrl}`] : []),
   ];

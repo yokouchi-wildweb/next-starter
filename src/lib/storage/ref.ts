@@ -77,9 +77,20 @@ export function objectKeyOf(ref: string | StorageRef): string {
   return `${parsed.purposeId}/${parsed.ledgerId}.${parsed.ext}`;
 }
 
+/** 非公開ファイルの固定 URL の接頭辞 */
+export const PRIVATE_OBJECT_PATH_PREFIX = "/api/storage/objects/";
+
 /** 非公開ファイルの固定 URL（都度認可して署名 URL へ 302 するルート） */
 export function privateObjectPath(ledgerId: string): string {
-  return `/api/storage/objects/${ledgerId}`;
+  return `${PRIVATE_OBJECT_PATH_PREFIX}${ledgerId}`;
+}
+
+/**
+ * 表示用 URL が非公開ファイルの固定 URL かどうか（query 付きも含む）。
+ * next/image の最適化を必ず外す・動画の復帰処理を働かせる判定に使う。
+ */
+export function isPrivateObjectPath(src: string | null | undefined): boolean {
+  return typeof src === "string" && src.startsWith(PRIVATE_OBJECT_PATH_PREFIX);
 }
 
 export type ResolveStorageSrcOptions = {
@@ -125,6 +136,21 @@ export function resolveStorageSrc(
 
   if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("/")) return trimmed;
   return null;
+}
+
+/**
+ * 公開ファイルの base URL（末尾の / は除く）。未設定なら null。
+ * ホストが共有（storage.googleapis.com など）の場合、ホストだけでは自分の公開バケットか判別できないため、
+ * next/image の許可判定はこの base の前方一致で行う。
+ */
+export function publicStorageBaseUrl(options?: ResolveStorageSrcOptions): string | null {
+  return readPublicBaseUrl(options);
+}
+
+/** URL が公開 base の配下か（base + "/" の前方一致）。base が未設定なら false */
+export function isPublicStorageUrl(src: string, options?: ResolveStorageSrcOptions): boolean {
+  const base = readPublicBaseUrl(options);
+  return base !== null && src.startsWith(`${base}/`);
 }
 
 /**

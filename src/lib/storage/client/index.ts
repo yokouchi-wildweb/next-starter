@@ -8,3 +8,9 @@ export { storageClient, createStorageClient } from "./storageClient";
 export type { StorageClient, IssueUploadInput } from "./storageClient";
 export { reencodeImage, shouldReencode, browserImageCodec } from "./reencodeImage";
 export type { ImageCodec } from "./reencodeImage";
+export {
+  usePrivateMediaRecovery,
+  withMediaRetryQuery,
+  MEDIA_RETRY_QUERY,
+} from "./usePrivateMediaRecovery";
+export type { PrivateMediaRecovery, PrivateMediaRecoveryStatus } from "./usePrivateMediaRecovery";

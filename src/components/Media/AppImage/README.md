@@ -61,9 +61,18 @@ import { AppImage } from "@/components/Media/AppImage";
 - `src` が空(`undefined` / `null` / `""`)のとき、および読み込みエラー時に `fallbackSrc` へ切り替わります
 - `fallbackSrc` も無い場合、fill モードは箱だけ描画(レイアウト維持)、intrinsic モードは何も描画しません
 
+## 保存値(storage:// の ref)
+
+- `src` / `fallbackSrc` に `storage://` の ref を渡すと、`resolveStorageSrc`(src/lib/storage/README.md「表示」)で表示用 URL に解決します
+  - 公開(`storage://pub/...`)は公開 base の URL、非公開(`storage://priv/...`)は固定 URL `/api/storage/objects/<id>`
+  - 解析できない ref・公開 base 未設定の公開 ref は `fallbackSrc` に落ちます
+- ref 以外の値(旧 URL・`/` 始まり・`blob:` / `data:`)は従来どおりそのまま使います
+- 固定 URL(`/api/storage/` 宛て)は、`unoptimized={false}` を渡しても**必ず最適化を外します**(認可済みの画像を最適化キャッシュに載せないため)
+- 判定は純関数 `source.ts` の `resolveAppImageSource`(テスト: `pnpm test:storage-ref`)
+
 ## クラッシュガード(unoptimized の自動判定)
 
-`src` を見て「ローカルパス(`/...`)または自バケットの Firebase Storage URL」以外(外部ホスト・`data:`・`blob:` 等)には、自動で per-image の `unoptimized` を付与します。これにより `IMAGE_OPTIMIZATION=enabled` にした後も、`remotePatterns` 未登録の画像は**最適化なしで表示される**だけで、エラーにはなりません。
+`src` を見て「ローカルパス(`/...`)、自バケットの Firebase Storage URL、新しい公開バケット(公開 base の配下)」以外(外部ホスト・`data:`・`blob:` 等)には、自動で per-image の `unoptimized` を付与します。これにより `IMAGE_OPTIMIZATION=enabled` にした後も、`remotePatterns` 未登録の画像は**最適化なしで表示される**だけで、エラーにはなりません。
 
 独自 CDN 等を `next.config.ts` の `remotePatterns` に追加したフォークは、`unoptimized={false}` を明示すれば自動判定を上書きして最適化を通せます。
 

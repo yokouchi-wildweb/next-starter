@@ -30,7 +30,7 @@
 | ファイル | 実行環境 | 役割 |
 |---|---|---|
 | `index.ts` | client-safe | 入口（ref・配信規則・スキーマ・用途の型） |
-| `ref.ts` | client-safe | ref の組み立て・解析、`resolveStorageSrc`、`publicStorageHosts` |
+| `ref.ts` | client-safe | ref の組み立て・解析、`resolveStorageSrc`、公開 base・固定 URL の判定（`publicStorageBaseUrl` / `isPublicStorageUrl` / `isPrivateObjectPath` / `publicStorageHosts`） |
 | `contentTypes.ts` | client-safe | 型の照合、拡張子の対応表、inline / attachment の判定 |
 | `schema.ts` | client-safe | メディア列の値の zod スキーマ `storageMediaValueSchema` |
 | `policy/types.ts` | client-safe | 用途の型 `StoragePurpose` ほか |
@@ -47,6 +47,7 @@
 | `client/drivers/put.ts` / `client/drivers/gcsSession.ts` | client | GCS への直接転送（単発 PUT / 再開可能セッション） |
 | `client/reencodeImage.ts` | client | 画像の描き直し（EXIF を落とす） |
 | `client/transferTypes.ts` | client | 進捗・中止の型、ルートの応答の形、`StorageUploadError` |
+| `client/usePrivateMediaRecovery.ts` | client | 非公開の動画・音声の、署名期限後の読み込み失敗からの復帰 |
 
 ## ref（業務行に保存する値）
 
@@ -87,7 +88,32 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
   - `STORAGE_PUBLIC_PREFIX` を使うなら、それも含める
   - 例 `https://storage.googleapis.com/<公開バケット>`
 - 公開 base はアプリの cookie を持たない別ドメイン（GCS 直配信）にする。アプリと同じ origin の base は推奨しない
-- `publicStorageHosts()` は公開 base のホストを返す。next/image の許可と CORS 診断の判定に使う
+- `publicStorageHosts()` は公開 base のホストを返す。CORS 診断の表示に使う
+- next/image の許可は `isPublicStorageUrl(src)`（公開 base + `/` の前方一致）で判定する
+  - `storage.googleapis.com` のようにホストが共有のとき、ホストだけで許可すると他のバケットの URL まで最適化に通ってしまうため
+  - `next.config.ts` の remotePatterns も同じ base のパス配下に限る
+
+### 表示側の配線
+
+- `AppImage`（src/components/Media/AppImage）は src が ref なら `resolveStorageSrc` を通す。ref 以外の値は従来どおりそのまま
+- 固定 URL（`/api/storage/` で始まる値）は、呼び出し側の指定に関わらず next/image の最適化を外す
+  - 認可済みの画像が最適化キャッシュに残り、他の利用者に配られるのを防ぐ
+- 公開 base は `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` から next/image の remotePatterns に入る。旧バケットの 2 パターンも残る
+
+### 非公開の動画・音声: `usePrivateMediaRecovery(src, mediaRef)`
+
+固定 URL は 302 で短期署名 URL（動画・音声は `readTtlSec.video` / `audio`）へ飛ぶ。ブラウザは 302 先の署名 URL を使い回して Range 取得するため、期限後のシークで読み込みに失敗することがある。
+
+- 失敗すると、位置・再生中かどうか・速度を覚え、固定 URL に非永続の再取得 query（`_r`）を付けて読み直し、同じ位置へ戻す
+- 自動復帰は 1 回の失敗に 1 回だけ。復帰直後にまた失敗したら `status: "failed"` で止まる
+  - 呼び出し側はエラーと「再開」操作を出し、`resume()` を呼ぶ
+- **許可を失った場合（logout・退室・削除で 401/404）は、自動では再試行しない**
+  - HTTP の状態は見ない（ブラウザで 302 を追わずに状態を知るには fetch が要り、client HTTP は axios だけという規約に例外を作らないため）
+  - 自動復帰 1 回の後は `failed` で止まる。再開しても許可が無ければ、また `failed` に戻る
+- src が固定 URL でなければ何もしない（旧 URL・公開 URL はそのまま）
+- 配線済み: `VideoPreview`（lib/mediaInputSuite）、`DetailModal` の動画（`DetailModalVideo`）。props の追加は無い
+- 全ページの署名更新の仕組みは作らない
+- 要素の `src` 属性で渡す。`<source>` 子要素だと読み込み失敗の error が `<source>` 側に出て、media 要素の onError に届かない
 
 ## 配信規則（inline / attachment）
 

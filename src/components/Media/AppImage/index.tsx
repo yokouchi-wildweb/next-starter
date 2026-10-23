@@ -6,11 +6,14 @@ import { useState } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { isOptimizableSrc } from "./optimizable";
 import { resolveSizes, type AppImageSizesPreset } from "./sizes";
+import { resolveAppImageSource } from "./source";
 
 type CommonProps = {
-  /** 画像 URL。空(undefined/null/"")なら fallbackSrc、それも無ければ画像なしで描画 */
+  /**
+   * 画像 URL または保存値(storage:// の ref)。空(undefined/null/"")なら fallbackSrc、それも無ければ画像なしで描画。
+   * ref は resolveStorageSrc で表示用 URL に解決する(非公開は /api/storage/objects/<id>)。ref 以外の値はそのまま使う
+   */
   src: string | null | undefined;
   alt: string;
   /** 読み込み失敗・src 欠損時に表示する代替画像 */
@@ -21,7 +24,8 @@ type CommonProps = {
    * 最適化の明示制御。省略時は src から自動判定
    * (ローカルパス・自バケットの Firebase Storage URL のみ最適化を通し、
    *  それ以外は per-image unoptimized にしてクラッシュを防ぐ)。
-   * remotePatterns に独自ホストを追加したフォークは false の明示で自動判定を上書きできる
+   * remotePatterns に独自ホストを追加したフォークは false の明示で自動判定を上書きできる。
+   * 非公開ファイル(/api/storage/ 宛て)は認可済みの画像を最適化キャッシュに載せないため、指定に関わらず unoptimized
    */
   unoptimized?: boolean;
 };
@@ -77,9 +81,12 @@ export function AppImage(props: AppImageProps) {
   // src プロップが変われば自動的にリトライ状態へ戻る(useEffect でのリセット不要)
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const errored = src != null && src === failedSrc;
-  const displaySrc = (!src || errored ? fallbackSrc : src) || undefined;
-
-  const resolvedUnoptimized = displaySrc ? (unoptimized ?? !isOptimizableSrc(displaySrc)) : undefined;
+  const { displaySrc, unoptimized: resolvedUnoptimized } = resolveAppImageSource({
+    src,
+    fallbackSrc,
+    unoptimized,
+    failed: errored,
+  });
 
   const handleError = () => {
     if (src && !errored) setFailedSrc(src);

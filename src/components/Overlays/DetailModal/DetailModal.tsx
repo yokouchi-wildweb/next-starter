@@ -18,6 +18,7 @@ import { Block } from "@/components/Layout/Block";
 import { cn } from "@/lib/cn";
 
 import Modal from "../Modal";
+import DetailModalVideo from "./DetailModalVideo";
 import DetailTable from "./DetailTable";
 import type { DetailModalProps } from "./types";
 
@@ -61,15 +62,7 @@ export default function DetailModal({
   const generatedMediaNode =
     media &&
     (mediaType === "video" ? (
-      <video
-        controls
-        poster={media.poster}
-        aria-label={media.alt}
-        className="mx-auto w-full max-w-md max-h-80 rounded-md object-contain shadow"
-      >
-        <source src={media.url} />
-        {media.alt ?? "video preview"}
-      </video>
+      <DetailModalVideo media={media} />
     ) : (
       <img
         src={media.url}

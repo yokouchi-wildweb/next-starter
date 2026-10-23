@@ -6,6 +6,8 @@
 export {
   STORAGE_CORS_DOC_PATH,
   STORAGE_CORS_SETUP_COMMAND,
+  STORAGE_SETUP_COMMAND,
+  classifyStorageUrl,
   isCorsLikeFetchError,
   isLikelyCrossOriginStorageUrl,
   isTaintedCanvasError,
@@ -14,3 +16,4 @@ export {
   fetchStorageBytes,
   canvasToBlobSafe,
 } from "./diagnostics";
+export type { StorageUrlKind } from "./diagnostics";

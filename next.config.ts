@@ -16,8 +16,10 @@ const imageOptimizationEnabled = process.env.IMAGE_OPTIMIZATION === "enabled";
 // next/image で外部画像を扱うための許可リスト。
 // 自プロジェクトの Firebase Storage バケットのパスに限定する
 // （ホスト全体を許可すると、第三者のファイル最適化に自プロジェクトの課金枠を使われる踏み台になるため）。
+type ImageRemotePatterns = NonNullable<NonNullable<NextConfig["images"]>["remotePatterns"]>;
+
 const firebaseStorageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-const imageRemotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = firebaseStorageBucket
+const legacyStorageRemotePatterns: ImageRemotePatterns = firebaseStorageBucket
   ? [
       {
         protocol: "https",
@@ -31,6 +33,35 @@ const imageRemotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] =
       },
     ]
   : [];
+
+// 新しい公開バケット（storage://pub の ref の配信先。src/lib/storage/README.md「表示」）。
+// 旧バケットと同じく base のパス配下に限定する。非公開バケットは /api/storage/ 経由で常に unoptimized のため載せない。
+// base が未設定・不正な URL なら追加しない（起動は止めない）。
+function publicStorageRemotePatterns(): ImageRemotePatterns {
+  const raw = process.env.NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL?.trim();
+  if (!raw) return [];
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return [];
+  }
+  if (url.protocol !== "https:") return [];
+  const basePath = url.pathname.replace(/\/+$/, "");
+  return [
+    {
+      protocol: "https",
+      hostname: url.hostname,
+      ...(url.port ? { port: url.port } : {}),
+      pathname: `${basePath}/**`,
+    },
+  ];
+}
+
+const imageRemotePatterns: ImageRemotePatterns = [
+  ...legacyStorageRemotePatterns,
+  ...publicStorageRemotePatterns(),
+];
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {

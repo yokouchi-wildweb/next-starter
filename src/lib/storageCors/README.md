@@ -30,8 +30,15 @@ fetch 側 / canvas 側で対称な「診断プリミティブ + ラッパー」�
 | fetch ラッパー(失敗時に自動診断→再 throw) | `fetchStorageBytes(url, init?)` |
 | tainted canvas を診断(catch 内で呼ぶ) | `diagnoseTaintedCanvasError(error, sourceUrl?)` |
 | canvas.toBlob ラッパー(汚染時に自動診断→reject) | `canvasToBlobSafe(canvas, type?, quality?, sourceUrl?)` |
-| 判定ヘルパ | `isCorsLikeFetchError` / `isLikelyCrossOriginStorageUrl` / `isTaintedCanvasError` |
-| 参照用定数 | `STORAGE_CORS_DOC_PATH` / `STORAGE_CORS_SETUP_COMMAND` |
+| 判定ヘルパ | `isCorsLikeFetchError` / `isLikelyCrossOriginStorageUrl` / `isTaintedCanvasError` / `classifyStorageUrl` |
+| 参照用定数 | `STORAGE_CORS_DOC_PATH` / `STORAGE_CORS_SETUP_COMMAND`(旧バケット) / `STORAGE_SETUP_COMMAND`(新しい公開・非公開バケット) |
+
+### 新しい 2 バケットの判別(`classifyStorageUrl`)
+
+- `private`: 同一 origin の固定 URL `/api/storage/objects/<id>`。302 先が非公開バケットなので、同一 origin でも診断の対象にする
+- `public`: 公開 base(`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`)の配下、または公開 base の独自ホスト(`publicStorageHosts`)
+- `legacy`: 旧 Firebase Storage のホスト(公開 base の配下以外。非公開バケットの署名 URL を直接渡した場合もここ)
+- 案内の対処は `public` / `private` なら `pnpm storage:setup`、それ以外は旧バケット用の `pnpm storage:setup-cors`
 
 ## 使い方
 
