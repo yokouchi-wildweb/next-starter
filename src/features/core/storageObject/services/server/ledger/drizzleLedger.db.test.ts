@@ -130,6 +130,64 @@ describe("drizzleLedger（実 DB）", { skip }, () => {
     assert.equal(detached[0].reason, "replaced");
   });
 
+  test("期限切れの put pending は数える前に deleted（expired）になって枠が戻る。session は戻らない（L1.13）", async () => {
+    await cleanup();
+    const now = new Date();
+    const past = new Date(now.getTime() - 60 * 1000);
+    const expiredPut = pending({ expiresAt: past, createdAt: new Date(now.getTime() - 20 * 60 * 1000) });
+    assert.equal(await ledger.insertPendingWithinLimit(expiredPut, 5, past), true);
+    assert.equal(await ledger.insertPendingWithinLimit(pending(), 1, now), true, "期限切れの put は枠を占めない");
+    const row = await ledger.findById(expiredPut.id);
+    assert.equal(row?.status, "deleted");
+    assert.equal(row?.reason, "expired");
+    assert.equal(row?.objectRemovedAt, null);
+
+    await cleanup();
+    const expiredSession = pending({ transferKind: "session", expiresAt: past });
+    assert.equal(await ledger.insertPendingWithinLimit(expiredSession, 5, past), true);
+    assert.equal(await ledger.insertPendingWithinLimit(pending(), 1, now), false, "期限切れの session は掃除まで枠を占める");
+    assert.equal((await ledger.findById(expiredSession.id))?.status, "pending");
+  });
+
+  test("掃除の対象の取り出し（種類・猶予・除外・keyset）と、条件付きの採用不可", async () => {
+    await cleanup();
+    const now = new Date();
+    const past = new Date(now.getTime() - 60 * 1000);
+    // put の期限切れは同じ利用者・用途の次の発行で deleted になる（L1.13）ので、遷移しない session の行で確かめる
+    const expired = pending({ expiresAt: past, transferKind: "session" });
+    await ledger.insertPendingWithinLimit(expired, 10, past);
+    const ready = pending();
+    await ledger.insertPendingWithinLimit(ready, 10, now);
+    await ledger.markReady(ready.id, { size: 3, contentType: "image/png", generation: "1", readyAt: past });
+    const chat = pending({ purpose: "test.chatFile", key: `test.chatFile/${randomUUID()}.png` });
+    await ledger.insertPendingWithinLimit(chat, 10, now);
+    await ledger.markReady(chat.id, { size: 3, contentType: "image/png", generation: "1", readyAt: past });
+
+    const input = { now, readyBefore: now, excludePurposes: ["test.chatFile"], afterId: null, limit: 10 };
+    const mine = (ids: string[]) => ids.filter((id) => [expired.id, ready.id, chat.id].includes(id));
+    assert.deepEqual(mine(await ledger.listSweepTargets("expiredPending", input)), [expired.id]);
+    assert.deepEqual(mine(await ledger.listSweepTargets("unattachedReady", input)), [ready.id]);
+    assert.deepEqual(mine(await ledger.listSweepTargets("unattachedReady", { ...input, readyBefore: new Date(past.getTime() - 1000) })), []);
+
+    // 期限前の put の取り消しは再試行の対象にならず、session はなる
+    const putDeleted = pending();
+    await ledger.insertPendingWithinLimit(putDeleted, 10, now);
+    await ledger.markDeleted(putDeleted.id, { reason: "discarded", at: now }, { statuses: ["pending"] });
+    const sessionDeleted = pending({ transferKind: "session" });
+    await ledger.insertPendingWithinLimit(sessionDeleted, 10, now);
+    await ledger.markDeleted(sessionDeleted.id, { reason: "discarded", at: now }, { statuses: ["pending"] });
+    const removal = await ledger.listSweepTargets("pendingRemoval", input);
+    assert.equal(removal.includes(putDeleted.id), false);
+    assert.equal(removal.includes(sessionDeleted.id), true);
+
+    // 条件付きの採用不可: 紐付いた後は掃除の markDeleted が通らない
+    await ledger.attach({ id: ready.id, purpose: PURPOSE, store: "priv", key: ready.key, ownerUserId: OWNER, recordType: "t", recordId: "r", recordField: "f" });
+    assert.equal(
+      await ledger.markDeleted(ready.id, { reason: "expired", at: now }, { statuses: ["ready"], unattachedOnly: true, readyBefore: now }),
+      null,
+    );
+  });
+
   test("session_uri は findById だけが返し、更新の戻り値には出ない", async () => {
     await cleanup();
     const row = pending({ transferKind: "session" });

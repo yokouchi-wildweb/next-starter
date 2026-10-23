@@ -39,6 +39,8 @@ Vercel Cron ── 時刻どおりに各 /api/cron/<name> を直接呼ぶ
   vercel.json にはそのまま入る。upstream の日次タスクは 18:00 UTC（03:00 JST）から 5 分ずつずらしてある
 - **fork による上書き**: upstream のタスクの時刻を変える・外すときは、同じフォルダに fork が `override.ts` を置く（下記「upstream のタスクを外す・時刻を変える」）。
   upstream の task.ts は編集しない（merge で衝突する）
+- **期限つきのものを片付けるタスク**: `--plan hobby` では 1 日 1 回になるので、「期限直後に必ず消える」と説明しない
+  （例: `storage-sweep`。ファイルのアップロード権はアプリの期限後も cloud 側でしばらく生きうる。src/features/core/storageObject/README.md「掃除」）
 - **毎分など短い間隔のタスク**: 実行中（最大 maxDuration）に次の回が始まりうる。同じ対象を二重に処理しない作りにする
   （処理対象を DB の条件付き更新や次回実行時刻で取り合う等）。1 分より短い間隔は Vercel Cron では書けない（realtimeRoom 等の領域）
 - **enabled**: config だけを見る同期関数（DB に触れない）。false のときルートは本体を呼ばず `{ ok: true, skipped: true }` を返す。

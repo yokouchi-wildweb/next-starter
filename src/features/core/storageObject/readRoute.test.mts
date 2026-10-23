@@ -29,6 +29,9 @@ mock.module("@/features/core/storageObject/services/server/storageObjectService"
 mock.module("@/features/core/storageObject/services/server/purposeSource", {
   namedExports: { getStoragePurposes: () => ({}) },
 });
+mock.module("@/features/core/storageObject/services/server/sweep", {
+  namedExports: { runStorageSweep: async () => null },
+});
 mock.module("@/features/core/storageObject/services/server/crudBinding", {
   namedExports: { storageBindingFor: () => null },
 });

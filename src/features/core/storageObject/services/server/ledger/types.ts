@@ -48,6 +48,29 @@ export type MarkDeletedCondition = {
   unattachedOnly?: boolean;
   /** 指定すれば、この利用者がアップロードした行だけ */
   ownerUserId?: string;
+  /** 指定すれば、expires_at がこの時刻以前の行だけ（期限切れの掃除） */
+  expiresBefore?: Date;
+  /** 指定すれば、ready_at がこの時刻以前の行だけ（未採用の猶予切れの掃除） */
+  readyBefore?: Date;
+};
+
+/**
+ * 掃除の対象の種類。
+ * - expiredPending: 期限切れの pending
+ * - unattachedReady: 業務行に紐付かないまま猶予を過ぎた ready（attach:false の用途を除く）
+ * - pendingRemoval: deleted だが実物の削除が済んでいない行（put は期限後だけ。session はいつでも）
+ */
+export type SweepTarget = "expiredPending" | "unattachedReady" | "pendingRemoval";
+
+export type ListSweepTargetsInput = {
+  now: Date;
+  /** unattachedReady: ready_at がこれ以前 */
+  readyBefore: Date;
+  /** unattachedReady: 対象から外す用途（attach:false） */
+  excludePurposes: readonly string[];
+  /** keyset ページングの続き（この id より後） */
+  afterId: string | null;
+  limit: number;
 };
 
 export type AttachInput = {
@@ -78,9 +101,14 @@ export interface StorageLedger {
    * 未完了数が上限未満のときだけ pending の行を作る（並行する発行でも上限を超えない）。
    * 数える対象 = 同じ利用者・同じ用途の pending と、deleted でも実物の削除が済まず期限内の行
    * （取り消せないアップロード権がまだ使える間は枠を返さない）。
+   * 数える前に、同じ lock の中で、その利用者・用途の期限切れの put pending を deleted（reason expired、
+   * object_removed_at null）にする。期限後の署名 URL は使えないので枠を返してよい。実物の削除は掃除が行う。
+   * session の pending は cloud 側で URI が生きているので、掃除が URI を中止するまで数え続ける。
    * 作れたら true、上限に達していたら false。
    */
   insertPendingWithinLimit(row: NewPendingObject, maxPending: number, now: Date): Promise<boolean>;
+  /** 掃除の対象の id を id 順に返す（keyset ページング） */
+  listSweepTargets(target: SweepTarget, input: ListSweepTargetsInput): Promise<string[]>;
   /** サーバー内の書き込み・複製で、照合済みの ready の行を作る */
   insertReady(row: NewReadyObject): Promise<void>;
   /** 1 行を読む（session_uri を含む。サービス内部だけで使う） */

@@ -404,6 +404,14 @@ export function createCrudService<
       }
       props.add(prop);
     }
+    // メディア列（storage オプションの列）は特権書き込みの対象にできない。台帳との紐付けを
+    // 経由しない書き込みになり、ref と台帳の対応が崩れるため（メディア列の書き込みは storage オプション経由だけ）
+    const mediaColumns = (serviceOptions.storage?.fields ?? []).map((field) => field.name).filter((name) => props.has(name));
+    if (mediaColumns.length > 0) {
+      throw new Error(
+        `systemColumns: media column(s) "${mediaColumns.join(", ")}" on table "${getTableName(table)}" are bound by the storage option and cannot be system-written.`,
+      );
+    }
     return props;
   })();
 

@@ -2,6 +2,7 @@
 // - 登録表の全用途（手書きの CORE / FORK を含む）が ID の形式・型・規則に合う
 // - 全 domain.json（business と core の設定源）のメディア項目に、対応する用途が登録されている
 // - 生成器の導出（visibility の必須化・上限の既定値・AUTO ブロックだけの upsert）
+// - storage オプションのメディア列は systemColumns にできない（登録済みの全サービスが作れることも確かめる）
 // 実行: pnpm test:storage-purposes
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
@@ -211,5 +212,30 @@ describe("登録表の書き換え（AUTO ブロックだけ）", () => {
     const { entries, errors } = buildStoragePurposeEntries({ camel: "sample", config, roleCategories: ROLE_CATEGORIES });
     assert.deepEqual(errors, []);
     assert.equal(applyStoragePurposeEntries(registryText, { camel: "sample", entries }).text, registryText);
+  });
+});
+
+describe("メディア列と systemColumns（特権書き込み）", () => {
+  test("storage オプションの列を systemColumns に入れると、サービスを作る時点で throw", async () => {
+    const { pgTable, text, uuid } = await import("drizzle-orm/pg-core");
+    const { createCrudService } = await import("../../src/lib/crud/drizzle/service.ts");
+    const table = pgTable("check_storage_system_columns", { id: uuid("id").primaryKey(), photo: text("photo"), note: text("note") });
+    const binding = {
+      fields: [{ name: "photo", purpose: "item.photo" }],
+      afterWrite: async () => null,
+      afterHardDelete: async () => null,
+      duplicateValues: async () => ({}),
+      afterCommit: async () => {},
+    };
+    assert.throws(
+      () => createCrudService(table, { storage: binding, systemColumns: ["photo"] }),
+      /media column\(s\) "photo"/,
+    );
+    assert.doesNotThrow(() => createCrudService(table, { storage: binding, systemColumns: ["note"] }));
+  });
+
+  test("serviceRegistry に登録された全サービスが作れる（違反があれば読み込みで throw する）", async () => {
+    const { serviceRegistry } = await import("../../src/registry/serviceRegistry.ts");
+    assert.ok(Object.keys(serviceRegistry).length > 0);
   });
 });

@@ -21,6 +21,17 @@ export function createMemoryLedger(): MemoryLedger {
     rows,
 
     async insertPendingWithinLimit(row, maxPending, now) {
+      for (const r of rows.values()) {
+        if (
+          r.ownerUserId === row.ownerUserId &&
+          r.purpose === row.purpose &&
+          r.status === "pending" &&
+          r.transferKind === "put" &&
+          r.expiresAt <= now
+        ) {
+          Object.assign(r, { status: "deleted", reason: "expired", deletedAt: now });
+        }
+      }
       const count = [...rows.values()].filter(
         (r) =>
           r.ownerUserId === row.ownerUserId &&
@@ -67,6 +78,31 @@ export function createMemoryLedger(): MemoryLedger {
       });
     },
 
+    async listSweepTargets(target, input) {
+      const matches = (r: StorageObject) => {
+        if (target === "expiredPending") return r.status === "pending" && r.expiresAt <= input.now;
+        if (target === "unattachedReady") {
+          return (
+            r.status === "ready" &&
+            r.recordId === null &&
+            r.readyAt !== null &&
+            r.readyAt <= input.readyBefore &&
+            !input.excludePurposes.includes(r.purpose)
+          );
+        }
+        return (
+          r.status === "deleted" &&
+          r.objectRemovedAt === null &&
+          (r.transferKind === "session" || r.expiresAt <= input.now)
+        );
+      };
+      return [...rows.values()]
+        .filter((r) => matches(r) && (input.afterId === null || r.id > input.afterId))
+        .map((r) => r.id)
+        .sort()
+        .slice(0, input.limit);
+    },
+
     async findById(id) {
       const row = rows.get(id);
       return row ? { ...row } : null;
@@ -89,6 +125,8 @@ export function createMemoryLedger(): MemoryLedger {
       if (!row || !condition.statuses.includes(row.status)) return null;
       if (condition.unattachedOnly && row.recordId !== null) return null;
       if (condition.ownerUserId !== undefined && row.ownerUserId !== condition.ownerUserId) return null;
+      if (condition.expiresBefore && row.expiresAt > condition.expiresBefore) return null;
+      if (condition.readyBefore && (row.readyAt === null || row.readyAt > condition.readyBefore)) return null;
       Object.assign(row, { status: "deleted", reason: values.reason, deletedAt: values.at });
       return publicCopy(row);
     },

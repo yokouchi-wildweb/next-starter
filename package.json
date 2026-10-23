@@ -25,7 +25,7 @@
     "test:screens": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/screens/screens.test.mjs",
     "test:lib-catalog": "node --test src/lib/folderCatalog/catalog.test.mjs",
     "test:storage-ref": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/storage/storageRef.test.ts",
-    "test:storage-object": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/storageObject/storageObject.test.ts src/features/core/storageObject/crudBinding.test.ts src/features/core/storageObject/readRoute.test.mts",
+    "test:storage-object": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/features/core/storageObject/storageObject.test.ts src/features/core/storageObject/crudBinding.test.ts src/features/core/storageObject/sweep.test.ts src/features/core/storageObject/readRoute.test.mts",
     "test:storage-binding-db": "cross-env APP_ENV=.env.development npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/storageObject/crudBinding.db.test.ts",
     "test:storage-object-db": "cross-env APP_ENV=.env.development npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/storageObject/services/server/ledger/drizzleLedger.db.test.ts",
     "test:cron-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/cron/cronWiring.test.mjs",

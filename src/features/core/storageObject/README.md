@@ -10,10 +10,7 @@
 
 ファイル本体はブラウザから GCS へ直接送ります。誰が何をしてよいかは、アプリのサーバーだけが判定します。部品（ref・ポート・配信規則・保存先）は [`src/lib/storage`](../../../lib/storage/README.md) にあり、このドメインはそれを使って判定と記録を行います。
 
-> **移行中（N1）**: 用途の登録表（`src/registry/storagePurposeRegistry.ts`）はまだありません。`getStoragePurposes()` は空の表を返すので、今はすべての用途が未登録（400）になります。次の 3 つは後続の歩で入ります。
-> - クライアント `uploadToStorage`
-> - createCrudService の `storage` オプション（attach / detach の呼び出し元）
-> - 掃除 cron
+> **移行中（N1）**: 用途は登録表 `src/registry/storagePurposeRegistry.ts`（`getStoragePurposes()` が返す）、業務行との連動は createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除は cron `storage-sweep`。クライアント `uploadToStorage` と読み取りの配線（AppImage など）は後続の歩で入ります。既存ドメインの配線は N2 で切り替えます。
 
 ## 流れ
 
@@ -50,6 +47,8 @@ commit は**ファイルの中身を検査しません**。照合するのは si
     - 数える対象は、同じ利用者・同じ用途の次の 2 つ
       - pending の行
       - deleted だが実物の削除が済んでおらず、期限内の行
+    - 数える前に、同じ lock の中で、その利用者・用途の期限切れの put pending を deleted（reason `expired`、`object_removed_at` null）にする。期限後の署名 URL は使えないので枠を返してよい（実物は掃除が消す）
+    - 期限切れの session pending は、cloud 側で URI がまだ生きているので、掃除が URI を中止するまで数え続ける
     - 数え上げと INSERT は、利用者 × 用途ごとの advisory lock（`pg_advisory_xact_lock`）を取った TX の中で行う。並行して発行しても上限を超えない
   - `sessionThresholdBytes`（16MiB）を超えるファイルは、単発 PUT ではなく GCS の再開可能セッションで送る
 - **commit**
@@ -92,6 +91,25 @@ commit は**ファイルの中身を検査しません**。照合するのは si
   - そのため、期限内は `object_removed_at` を埋めずに枠も保持する。期限後にもう一度消して完了にする（掃除 cron の役目）
 - 失敗はログだけ残して握りつぶす。`deleted` で `object_removed_at` が null の行は、掃除 cron が拾う
 
+## 掃除（cron `storage-sweep`）
+
+`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep`）。`runBudgetedBatches` + `createDeadline(STORAGE_CONFIG.sweep.budgetMs)` で、次の 3 種類を id 順に片付ける。
+
+| 種類 | 対象 | 処理 |
+|---|---|---|
+| expiredPending | 期限切れの pending | deleted（reason `expired`）にしてから実物を片付ける。session は URI を中止してから削除、put は期限後なのでそのまま完了 |
+| unattachedReady | 業務行に紐付かないまま `unattachedGraceSec`（既定 24h）を過ぎた ready | deleted（reason `expired`）にして削除。`attach: false` の用途（チャット添付）は対象外。duplicate の失敗で残った複製もここで回収される |
+| pendingRemoval | deleted で `object_removed_at` が null の行 | 実物の削除を再試行する。put は期限後だけ（期限内の署名 URL で再送されうるため）、session はいつでも |
+
+- 紐付いた行と旧 URL（台帳に無い）は対象にならない
+- 物理削除の前に条件付き UPDATE で採用できない状態にする。掃除の取得と削除の間に attach が成功しても、採用された物は消えない
+- GCS の 404 は成功扱い。重ねて・並行に実行しても、時間予算で途中終了しても安全（次回に続きを拾う）
+- schedule は毎時。`pnpm cron:generate --plan hobby` では 1 日 1 回になる
+- **アップロード権はアプリの期限後も cloud 側でしばらく生きうる**
+  - session URI は約 1 週間
+  - 単発 PUT の署名 URL は期限まで、削除後の同じ key への再送も通る（実機で確認）
+  - 「期限直後に必ず消える」とは説明しない。Hobby の掃除は 1 日 1 回
+
 ## 台帳 `storage_objects`
 
 - **列**
@@ -123,6 +141,7 @@ commit は**ファイルの中身を検査しません**。照合するのは si
 - `pnpm test:storage-object`: memoryLedger と fake ポートを使った単体テスト。読み取りルートのヘッダーのテストも含む
   - 往復: issue → commit → attach → detach → 掃除対象化
   - 発行・commit・取り消し・読み取りの受入項目
+  - storage オプションの規則（`crudBinding.test.ts`）、掃除と期限切れ put pending の枠返却（`sweep.test.ts`）
 - `pnpm test:storage-object-db`: 実 DB で、条件付き INSERT / UPDATE が並行実行でも一方だけ成功することを確かめる
   - 開発 DB に `test.*` の行を作り、終了時に消す
   - DATABASE_URL が無ければ skip する

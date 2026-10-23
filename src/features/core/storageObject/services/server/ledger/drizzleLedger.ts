@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lte, notInArray, or, sql } from "drizzle-orm";
 
 import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 import { db } from "@/lib/drizzle";
@@ -30,6 +30,19 @@ export const drizzleLedger: StorageLedger = {
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtextextended(${`storage_objects:${row.ownerUserId}:${row.purpose}`}, 0))`,
       );
+      // 期限切れの put pending は、署名 URL がもう使えないので枠を返す（実物の削除は掃除が行う）
+      await tx
+        .update(T)
+        .set({ status: "deleted", reason: "expired", deletedAt: now })
+        .where(
+          and(
+            eq(T.ownerUserId, row.ownerUserId),
+            eq(T.purpose, row.purpose),
+            eq(T.status, "pending"),
+            eq(T.transferKind, "put"),
+            lte(T.expiresAt, now),
+          ),
+        );
       const inserted = await tx.execute(sql`
         insert into storage_objects
           (id, purpose, status, store, key, owner_user_id, scope_id, declared_size, content_type,
@@ -72,6 +85,31 @@ export const drizzleLedger: StorageLedger = {
     });
   },
 
+  async listSweepTargets(target, input) {
+    const condition =
+      target === "expiredPending"
+        ? and(eq(T.status, "pending"), lte(T.expiresAt, input.now))
+        : target === "unattachedReady"
+          ? and(
+              eq(T.status, "ready"),
+              isNull(T.recordId),
+              lte(T.readyAt, input.readyBefore),
+              input.excludePurposes.length > 0 ? notInArray(T.purpose, [...input.excludePurposes]) : undefined,
+            )
+          : and(
+              eq(T.status, "deleted"),
+              isNull(T.objectRemovedAt),
+              or(eq(T.transferKind, "session"), lte(T.expiresAt, input.now)),
+            );
+    const rows = await db
+      .select({ id: T.id })
+      .from(T)
+      .where(and(condition, input.afterId ? gt(T.id, input.afterId) : undefined))
+      .orderBy(asc(T.id))
+      .limit(input.limit);
+    return rows.map((r) => r.id);
+  },
+
   findById: findStorageObjectById,
 
   async setSessionUri(id, sessionUri) {
@@ -103,6 +141,8 @@ export const drizzleLedger: StorageLedger = {
           inArray(T.status, [...condition.statuses]),
           condition.unattachedOnly ? isNull(T.recordId) : undefined,
           condition.ownerUserId !== undefined ? eq(T.ownerUserId, condition.ownerUserId) : undefined,
+          condition.expiresBefore ? lte(T.expiresAt, condition.expiresBefore) : undefined,
+          condition.readyBefore ? lte(T.readyAt, condition.readyBefore) : undefined,
         ),
       )
       .returning(getPublicColumns(T));
