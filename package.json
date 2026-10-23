@@ -84,6 +84,7 @@
     "gradient:gen": "npx tsx scripts/styles/generate-gradient-css.ts",
     "claude:test": "cross-env APP_ENV=.env.development npx tsx scripts/test-claude-api.ts",
     "storage:setup-cors": "cross-env APP_ENV=.env.development npx tsx scripts/storage/setup-cors.ts",
+    "storage:setup": "npx tsx scripts/storage/setup.ts",
     "task": "cross-env APP_ENV=.env.development npx tsx scripts/tasks/run.ts",
     "cron:generate": "npx tsx scripts/cron/generate.ts",
     "cron:check": "npx tsx scripts/cron/check.ts",

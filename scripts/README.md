@@ -103,6 +103,32 @@ pnpm storage:setup-cors https://your-app.com https://www.your-app.com
 
 事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 
+### Storage (新しい 2 バケットの用意)
+
+```bash
+# 予定だけを表示(読み取りのみ。何も変えない)
+pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://your-app.com --dry-run
+
+# 実行(冪等。2 回目以降は「変更なし」)
+pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://your-app.com [--origin ...] [--location asia-northeast1]
+```
+
+ファイル保存の新基盤([src/lib/storage/README.md](../src/lib/storage/README.md))が使う、新しい公開バケット(pub)と非公開バケット(priv)を用意する。旧バケット(Firebase の既定バケット)には触れず、新しい 2 バケットは Firebase に登録しない。
+
+- 用意する状態
+  - 共通: UBLA 有効、CORS(`--origin`、GET / HEAD / PUT、署名 PUT と再開可能アップロードのヘッダー)
+  - pub: allUsers に `roles/storage.legacyObjectReader`(オブジェクトの get のみ。一覧は不可)
+  - priv: 公開アクセス防止を enforced。公開の権限なし
+- バケットが無ければ作る(location の既定は `asia-northeast1`)
+- 既にあれば次の項目を比べ、食い違えば**上書きせずに差分を表示して止まる**
+  - location / UBLA / 公開アクセス防止 / CORS
+  - priv の公開権限、pub の想定外の公開権限
+  - pub の公開読み取りの権限は、無ければ足す(足すだけなので止まらない)
+- `--pub` / `--priv` を省略すると env の `STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET` を使う。env ファイルは書き換えない。`APP_ENV` で読む env ファイルを変えられる(既定 `.env.development`)
+- 旧バケット(`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`)の名前は指定できない。`--origin "*"` も受け付けない
+- 権限が足りないと止まる。サービスアカウント(`MY_SERVICE_ACCOUNT_KEY`)に「Storage 管理者」を付ける
+- 組織のポリシー(公開アクセスの禁止など)で pub を公開できない場合も、エラーで止まる。その場合は public の切替を保留する(既存の ACL を変えて回避しない)
+
 ### 定期タスク (task / cron)
 
 ```bash
