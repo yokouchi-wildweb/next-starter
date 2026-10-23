@@ -332,6 +332,9 @@ import { ControlledField } from "@/components/Form/Field";
 | validationRule.maxSizeBytes | number | ⚪ No | 最大ファイルサイズ（バイト） |
 | helperText | string | ⚪ No | ヘルパーテキスト（アップロード欄に表示される説明文） |
 | metadataBinding | object | ⚪ No | メタデータを別フィールドに保存 |
+| storage | object | ⚪ No | ファイル用途の設定（下の「ファイルの保存（storage）」） |
+| storage.visibility | `"public"` \| `"private"` | ⚪ No | 公開・非公開。**一般利用者がアップロードできる項目では必須**（省略すると dc:generate がエラーで止まる） |
+| storage.upload | アクセスルール（`"public"` 以外） | ⚪ No | アップロードしてよい人。省略時は apiAccess の create と update の許可者の和 |
 
 #### metadataBinding キー
 
@@ -339,6 +342,24 @@ import { ControlledField } from "@/components/Form/Field";
 sizeBytes, width, height, aspectRatio, orientation,
 mimeType, src, durationSec, durationFormatted
 ```
+
+#### ファイルの保存（storage）
+
+dc:generate は、メディア項目ごとにファイル用途（`<domain>.<field>`）を `src/registry/storagePurposeRegistry.ts` の AUTO ブロックへ書き込む（`--only registry` でも書き込む）。登録表に無い用途は、アップロードも読み取りも拒否される。用途の型と規則は [src/lib/storage/README.md](../lib/storage/README.md)、台帳は [core/storageObject/README.md](core/storageObject/README.md) を参照。
+
+- 用途 ID は `<domain>.<field>`。ref とオブジェクトのパスに入るため、使い始めた後はドメイン名・項目名を変えない
+- contentTypes は accept から作る
+- maxBytes は `validationRule.maxSizeBytes` を使う。無ければ `src/config/app/storage.config.ts` の `defaultMaxBytesByPreset.<mediaTypePreset>` を参照する式を書き、警告を出す
+- upload.allow は `storage.upload` を使う。無ければ apiAccess の create と update の許可者の和にする
+  - どちらかが `"public"` か `"authenticated"` なら `"authenticated"`（アップロードは常にログインが要る）
+  - ロールの規則どうしは roles / roleCategories を合わせる。`"none"` は数えない
+- visibility は `storage.visibility` を使う。無いときは次のとおり
+  - **一般利用者（admin 以外のカテゴリ）がアップロードできる項目 → 生成エラー**（公開か非公開かを人が決めるため）
+  - 管理者だけがアップロードできる項目 → apiAccess の get が `"public"` なら public、それ以外は private
+- private の用途には read.allow として apiAccess の get の規則を付ける
+- AUTO ブロックの外（手書きの FORK ブロック）に同じ ID があれば上書きせず、警告だけを出す。手書きの定義（check 関数付きなど）が優先される
+- 項目を消して再生成すると、AUTO ブロックから消える。dc:delete はそのドメインの AUTO エントリを消す
+- core ドメインの domain.json（notification / coupon）は dc:generate の対象外なので、`src/registry/storagePurposes/core.ts` に手で書く。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかを確かめる
 
 ---
 

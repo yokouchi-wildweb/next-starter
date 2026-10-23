@@ -560,11 +560,21 @@ describe("未設定（保存先の env が空）", () => {
     }
   });
 
-  test("既定のサービスは import できる（用途表は空なので発行は 400）", async () => {
-    const { storageObjectService } = await import("./services/server/storageObjectService");
-    await assert.rejects(
-      storageObjectService.issue(alice, { purpose: "user.avatar", contentType: "image/png", size: 1 }),
-      rejectsWith(400),
-    );
+  test("既定のサービスは import でき、未登録の用途は 400、登録済みの用途は保存先の未設定で即失敗", async () => {
+    const saved = process.env.STORAGE_PUBLIC_BUCKET;
+    delete process.env.STORAGE_PUBLIC_BUCKET;
+    try {
+      const { storageObjectService } = await import("./services/server/storageObjectService");
+      await assert.rejects(
+        storageObjectService.issue(alice, { purpose: "user.cover", contentType: "image/png", size: 1 }),
+        rejectsWith(400),
+      );
+      await assert.rejects(
+        storageObjectService.issue(alice, { purpose: "user.avatar", contentType: "image/png", size: 1 }),
+        StorageNotConfiguredError,
+      );
+    } finally {
+      if (saved !== undefined) process.env.STORAGE_PUBLIC_BUCKET = saved;
+    }
   });
 });

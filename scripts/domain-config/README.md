@@ -41,7 +41,7 @@
 
 - `generateFiles` を**上書きしない**。true のカテゴリのうち `--only` に含まれるものだけを生成する（false のカテゴリは指定しても生成せず「スキップ」と表示）。どの組み合わせでも、指定なしより多くのファイルは書き換わらない
 - 対話モード・`--yes`・`:all` のどれとも併用できる。不明なカテゴリ名は終了コード 1
-- `--only registry` が書くのは `src/registry/` の serviceRegistry / schemaRegistry / domainConfigRegistry / adminDataMenu だけ
+- `--only registry` が書くのは `src/registry/` の serviceRegistry / schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）
 - serviceRegistry の再生成で既存エントリの access の値（書き方ではなく中身）が変わるときは、変更前後を警告に出す（書き換えは止めない。domain.json の `apiAccess` が正）。fork 独自の定数など評価できない式は「比較できません」として警告する
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --yes --only registry`）。全カテゴリの再生成が避けられないときは、一時的な git worktree で実行して必要な差分だけを取り込むよう案内する
 

@@ -25,6 +25,10 @@ mock.module("@/features/core/storageObject/services/server/storageObjectService"
     },
   },
 });
+// 用途の登録表（server-only と各ドメインの判定関数を読む）はこのテストでは使わない
+mock.module("@/features/core/storageObject/services/server/purposeSource", {
+  namedExports: { getStoragePurposes: () => ({}) },
+});
 mock.module("@/features/core/auth/services/server/session/getSessionUser", {
   namedExports: { getSessionUser: async () => null },
 });

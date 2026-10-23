@@ -116,13 +116,14 @@ function lineStartOf(text, index) {
 
 /**
  * オブジェクト直下の `key` エントリを `key: value,` に置換する。無ければ追加する。
+ * キーに `.` などを含み引用符が要るときは、照合用の key（引用符なし）と書き出す keyLiteral（例 `"user.avatar"`）を分けて渡す。
  * @param {string} text ファイル全体
- * @param {{ objectName: string, key: string, value: string, indent?: string }} options
+ * @param {{ objectName: string, key: string, keyLiteral?: string, value: string, indent?: string }} options
  * @returns {string} 更新後のファイル全体
  */
-export function upsertObjectEntry(text, { objectName, key, value, indent = "  " }) {
+export function upsertObjectEntry(text, { objectName, key, keyLiteral, value, indent = "  " }) {
   const { entries, close } = scanObjectEntries(text, objectName);
-  const entry = `${key}: ${value},`;
+  const entry = `${keyLiteral ?? key}: ${value},`;
   const existing = entries.find((e) => e.key === key);
 
   if (existing) {

@@ -272,6 +272,10 @@ async function askSingleField(config) {
     if (!Number.isNaN(parsedMax) && parsedMax > 0) {
       maxSizeBytes = Math.round(parsedMax * 1024 * 1024);
     }
+    console.log(
+      '  ※ 一般利用者がアップロードできる項目は、domain.json のこの項目に "storage": { "visibility": "public" | "private" } を書いてください' +
+        '（無いと dc:generate が止まります。詳細: src/features/README.md「ファイルの保存（storage）」）',
+    );
 
     if (normalizedInput === 'mediaUploaderMulti') {
       const maxItemsAnswer = await prompt({

@@ -129,6 +129,9 @@
       "slug": "main",
       "mediaTypePreset": "imagesAndVideos",
       "accept": "image/*,video/*",
+      "storage": {
+        "visibility": "public"
+      },
       "validationRule": {
         "maxSizeBytes": 104857600
       }
@@ -143,6 +146,9 @@
       "slug": "sub",
       "mediaTypePreset": "imagesAndVideos",
       "accept": "image/*,video/*",
+      "storage": {
+        "visibility": "public"
+      },
       "validationRule": {
         "maxSizeBytes": 104857600
       }
@@ -157,6 +163,9 @@
       "slug": "gallery",
       "mediaTypePreset": "imagesAndVideos",
       "accept": "image/*,video/*",
+      "storage": {
+        "visibility": "public"
+      },
       "reorderable": true,
       "validationRule": {
         "maxSizeBytes": 10485760,

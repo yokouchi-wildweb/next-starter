@@ -6,6 +6,7 @@ import inquirer from 'inquirer';
 import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from '../../src/utils/stringCase.mjs';
 import { getCliArgs } from './utils/cliArgs.mjs';
 import { removeObjectEntry } from './generator/registry/utils/objectEntry.mjs';
+import { removeStoragePurposesForDomain } from './generator/registry/updateStoragePurposeRegistry.mjs';
 import { syncPresetImport } from './generator/registry/utils/presetAccess.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -324,6 +325,15 @@ export default async function removeDomain(domain) {
     removeLineContaining(domainConfigPath, `@/features/${candidate}/domain.json`);
   }
   removeRegistryEntry(domainConfigPath, 'domainConfigMap', registrySnake, failures);
+
+  // ファイル用途（AUTO ブロックのうち <domain>.* だけ。手書きの FORK 定義は残す）
+  try {
+    if (removeStoragePurposesForDomain({ rootDir, camel: registryCamel })) {
+      console.log(`更新しました: ${path.join(rootDir, 'src', 'registry', 'storagePurposeRegistry.ts')}`);
+    }
+  } catch (err) {
+    failures.push(`src/registry/storagePurposeRegistry.ts: ${registryCamel}.* を削除できませんでした（${err.message}）`);
+  }
 
   if (failures.length > 0) {
     console.error('以下のレジストリは自動で更新できませんでした。手で該当エントリを削除してください:');

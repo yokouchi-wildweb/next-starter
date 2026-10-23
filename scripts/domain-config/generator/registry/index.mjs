@@ -6,6 +6,7 @@ import updateAdminDataMenu from './updateAdminDataMenu.mjs';
 import updateDomainConfigRegistry from './updateDomainConfigRegistry.mjs';
 import updateSchemaRegistry from './updateSchemaRegistry.mjs';
 import updateServiceRegistry from './updateServiceRegistry.mjs';
+import updateStoragePurposeRegistry from './updateStoragePurposeRegistry.mjs';
 import { toCamelCase, toPascalCase, toPlural } from '../../../../src/utils/stringCase.mjs';
 
 const args = process.argv.slice(2);
@@ -49,3 +50,4 @@ if (addToAdminDataMenu) {
 updateDomainConfigRegistry({ rootDir, camel });
 updateSchemaRegistry({ rootDir, camel, dbEngine });
 updateServiceRegistry({ rootDir, camel });
+updateStoragePurposeRegistry({ rootDir, camel });

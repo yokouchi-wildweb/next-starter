@@ -1,12 +1,10 @@
 // src/features/core/storageObject/services/server/purposeSource.ts
 //
-// 用途表の取得口。storageObjectService とルートはここからだけ用途表を得る。
-// 用途の登録表（src/registry/storagePurposeRegistry.ts）ができるまでは空で、すべての用途が未登録（400）になる。
+// 用途表の取得口。storageObjectService はここからだけ用途表を得る（登録表: src/registry/storagePurposeRegistry.ts）。
 
 import type { StoragePurposeMap } from "@/lib/storage";
-
-const EMPTY_PURPOSES: StoragePurposeMap = Object.freeze({});
+import { storagePurposeRegistry } from "@/registry/storagePurposeRegistry";
 
 export function getStoragePurposes(): StoragePurposeMap {
-  return EMPTY_PURPOSES;
+  return storagePurposeRegistry;
 }

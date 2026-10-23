@@ -11,6 +11,7 @@
     "test:crud-hooks": "node --test src/lib/crud/hooks/internal/*.test.mjs",
     "test:crud-search-rank": "node --test src/lib/crud/drizzle/query/searchRank.test.mjs src/lib/crud/drizzle/query/withIdTiebreak.test.mjs",
     "test:schema-registry": "node --test scripts/registry/check-schema-registry.test.mjs",
+    "test:storage-purposes": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/check-storage-purposes.test.mjs",
     "test:popover-dismiss": "node --test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs",
     "test:cn": "node --test src/lib/cn/cn.test.mjs",
     "test:site-theme": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/siteTheme/siteTheme.test.mjs",
