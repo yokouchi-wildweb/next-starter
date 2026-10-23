@@ -169,7 +169,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 - pub / priv の env が無ければ `StorageNotConfiguredError` ですぐに失敗する
 - **既定バケットへの読み替え（暗黙の fallback）はしない**。旧バケットには移行期間中も緩いルールが残るので、新しいファイルを置かない
 - 新しい 2 つのバケットは Firebase に登録しない（クライアント SDK からの経路を作らない）
-- バケットの作成・権限・CORS の手順は、N1 の出荷時に docs/setup と `pnpm storage:setup` で用意する
+- バケットの作成・権限・CORS は `pnpm storage:setup` で行う。手順・必要な権限・組織のポリシーで止まる場合・location の注意: [scripts/storage/README.md](../../../scripts/storage/README.md)
 
 ## 旧 URL: `server/legacy.ts`
 
