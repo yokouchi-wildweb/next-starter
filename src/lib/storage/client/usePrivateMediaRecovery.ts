@@ -95,7 +95,9 @@ export function usePrivateMediaRecovery(
   const savedRef = useRef<SavedPlayback | null>(null);
   const restoringRef = useRef(false);
   const autoUsedRef = useRef(false);
-  const loadStartedAtRef = useRef<number | null>(null);
+  // 読み込み開始の時刻。どの src のものかも持つ（src が変わったときに effect で消すと、
+  // 新しい src の loadstart が effect より先に届いた場合にその時刻まで消してしまうため）
+  const loadStartRef = useRef<{ src: string | null | undefined; at: number } | null>(null);
 
   // src が変わったら最初の状態に戻す（別のファイル）
   const [trackedSrc, setTrackedSrc] = useState(src);
@@ -108,7 +110,6 @@ export function usePrivateMediaRecovery(
     savedRef.current = null;
     restoringRef.current = false;
     autoUsedRef.current = false;
-    loadStartedAtRef.current = null;
   }, [src]);
 
   // 再取得 query を付けたら読み直す。要素の src 属性の差し替えはブラウザが自動で読み直すが、
@@ -167,18 +168,20 @@ export function usePrivateMediaRecovery(
   }, []);
 
   const handleLoadStart = useCallback(() => {
-    loadStartedAtRef.current = Date.now();
-  }, []);
+    loadStartRef.current = { src, at: Date.now() };
+  }, [src]);
 
   const handlePlaybackIntent = useCallback(
     (event: SyntheticEvent<HTMLMediaElement>) => {
       if (!enabled || restoringRef.current) return;
       const media = event.currentTarget;
-      if (!isSignedReadStale(loadStartedAtRef.current, Date.now(), readTtlSecOf(media))) return;
+      const loadStart = loadStartRef.current;
+      const started = loadStart && loadStart.src === src ? loadStart.at : null;
+      if (!isSignedReadStale(started, Date.now(), readTtlSecOf(media))) return;
       // seeking の時点で currentTime は移動先なので、その位置で読み直す
       reload(media);
     },
-    [enabled, reload],
+    [enabled, reload, src],
   );
 
   const resume = useCallback(() => {
