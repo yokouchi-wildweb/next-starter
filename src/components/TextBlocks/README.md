@@ -9,7 +9,7 @@
 | `Para` | `p` | inherit / md / normal / left | `my-2 leading-relaxed` |
 | `Span` | `span` | inherit / md / normal / なし | `inline-block leading-relaxed` |
 
-画面の h1 は `AppFrames/User/Elements/PageTitle`（`UserPageTitle`）など、フレーム側のタイトル部品を使う。
+画面の h1 は `src/app/(user)/_layout/PageTitle`（`UserPageTitle`）など、フレーム側のタイトル部品を使う。
 
 ## バリアント
 

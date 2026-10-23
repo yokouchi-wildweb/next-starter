@@ -8,8 +8,8 @@
 
 import { HideBottomNav } from "@/components/AppFrames/User/controls/BottomNavControl";
 import { HideFooter } from "@/components/AppFrames/User/controls/FooterControl";
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
 
 import { DemoLoginSection } from "./DemoLoginSection";

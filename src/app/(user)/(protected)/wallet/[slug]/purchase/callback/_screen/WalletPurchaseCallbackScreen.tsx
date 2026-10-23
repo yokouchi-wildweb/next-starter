@@ -3,7 +3,7 @@
 // 差し替えるときは同じルートの _components/ に自分の Screen を作り page.tsx を向ける(loader の import は ../_screen/loader に直す)。
 // 手順: src/lib/screens/README.md
 
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens/types";
 import { PurchaseCallback } from "@/features/core/purchaseRequest/components/PurchaseCallback";

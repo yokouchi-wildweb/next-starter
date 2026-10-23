@@ -4,8 +4,8 @@
 //
 // loader は無い(静的な案内のみ。ここへの誘導は登録フロー側が行う)。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { LinkButton } from "@/components/Form/Button/LinkButton";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";

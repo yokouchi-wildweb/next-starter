@@ -7,7 +7,7 @@
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload (lib/storage) | http: axios (client), fetch (server)
 
 ## CORE_FILES (ownership: who edits what)
-core (approval required): src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** of upstream routes, servers/room/src/core/, servers/room/src/index.ts, src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
+core (approval required): src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/{_screen,_layout}/** of upstream routes (dot-named files beside them = fork-owned), servers/room/src/core/, servers/room/src/index.ts, src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
 downstream_owned (upstream never edits after creation): src/styles/custom/**, src/config/ui/*.config.ts, page.tsx of switched routes, src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES), src/app/api/cron/*/override.ts
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_core_edit_compat (a fork edits a core path; default = don't, prefer /upreq):
@@ -64,7 +64,7 @@ add: handler = src/proxies/\<name\>.ts + register in index.ts | decorator (side 
 
 ## DIRECTORY_STRUCTURE
 features/\<domain\>/: components/{Admin*/, common/} | entities/{schema,form,model,drizzle}.ts | services/{client/, server/{drizzleBase, wrappers/, \<domain\>Service}} | hooks/ | constants/, types/, presenters.ts, domain.json
-shared_src: components (index: src/components/README.md), hooks, utils, stores, lib, config, registry, proxies
+shared_src: components (index: src/components/README.md), hooks, utils, stores, lib, config, registry, proxies | layout frame parts are not shared_src: they live beside their layout in src/app/\<route\>/_layout/
 code_generation:
 - generated (no edit; overwritten on every dc:generate while its generateFiles category is on): entities/, components/Admin*/, components/common/ generated forms/fields/detail modal, hooks/use*\<Domain\>.ts, services/client/\<domain\>Client.ts, services/server/drizzleBase.ts, constants/field.ts, types/field.ts, presenters.ts, app/admin/(protected)/\<domains\>/**/_screen/
 - registry: dc:generate appends missing entries to src/registry/ files and rewrites the domain's serviceRegistry line from apiAccess every run | everything else in src/registry/ (CORE DOMAINS block of schemaRegistry.ts, extension registries) = hand-edited
@@ -143,7 +143,7 @@ semantic_colors: success|info|warning|destructive → `bg-x` / `border-x` = fill
 config: variants / fonts / site theme are set through src/config/ui/*.config.ts define*Config({partial}) | variant and size names are public contract (rename → .notices) | before changing tokens, variants, fonts or theme → read src/styles/README.md
 
 ## COMPONENTS
-placement: multi-domain → src/components/ or AppFrames/ | single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only → app/\<route\>/_components/ | ref: src/components/README.md
+placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; AppFrames/ = not moved yet) | single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only → app/\<route\>/_components/ | ref: src/components/README.md
 core_domain_ui_boundary: core domains ship the data layer only (entities, services, API routes, client services, hooks) | never add domain-screen UI under src/features/core/**; give a README recipe instead, even when an upreq asks for UI | existing widgets (AuditTimeline etc.) stay, add no new ones
 wrappers (raw HTML NG): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
 - never import _shadcn directly (wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)

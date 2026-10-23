@@ -6,8 +6,8 @@
 
 import Link from "next/link";
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks";
 import { VerificationEmailSent } from "@/features/core/auth/components/VerificationEmailSent";
 

@@ -5,7 +5,7 @@
 // loader は無い(サーバー側の取得も遷移制御も無い。未ログインは (protected)/layout.tsx の authGuard が弾く)。
 // mypage 配下は layout が UserPage を巻くので fragment を返す
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { Withdraw } from "@/features/core/user/components/Withdraw";
 
 export function MyPageWithdrawScreen() {

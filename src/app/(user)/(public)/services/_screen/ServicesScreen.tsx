@@ -4,8 +4,8 @@
 //
 // loader は無い(静的な文言だけ)。ログイン状態に関わらず表示される公開ページ。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks";
 
 export function ServicesScreen() {

@@ -9,7 +9,7 @@
 
 import Link from "next/link";
 
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import FullScreen from "@/components/Layout/FullScreen";

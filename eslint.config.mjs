@@ -87,14 +87,22 @@ export default [
   // (下流が同じ規律を敷きたい場合は files にパスを足す)。
   // 除外: _shadcn(vendored。見た目はラッパー側が上書きする) / Three(3D 演出) / gradient(トークン生成元)。
   // ブランドロゴ色・ユーザーが選ぶ固定パレットなど正当な例外は理由付き eslint-disable で明示する。
+  // 枠の既定部品(src/app/**/_layout/。AppFrames から移した物)も upstream 所有の UI として error。
+  // 隣に置く fork のカスタム(ドット区切り名 <Name>.<project>.tsx)は ignores で外し、上の app/ の warn に従う。
   {
     files: [
       "src/components/**/*.{ts,tsx}",
       "src/lib/**/*.{ts,tsx}",
       "src/features/core/**/*.{ts,tsx}",
       "src/features/_template/**/*.{ts,tsx}",
+      "src/app/**/_layout/**/*.{ts,tsx}",
     ],
-    ignores: ["src/components/_shadcn/**", "src/components/Three/**", "src/lib/gradient/**"],
+    ignores: [
+      "src/components/_shadcn/**",
+      "src/components/Three/**",
+      "src/lib/gradient/**",
+      "src/app/**/_layout/**/*.*.{ts,tsx}",
+    ],
     plugins: { "style-tokens": styleTokensPlugin },
     rules: {
       "style-tokens/no-raw-palette": "error",
@@ -136,7 +144,8 @@ export default [
   // 改名・移動済み module の旧パス import を警告する(詳細: eslint-rules/deprecated-imports.mjs)。
   // upstream が改名したとき、旧パスには再 export の shim が 1 checkpoint だけ残る。warn の間に新パスへ直す
   // (次の checkpoint で shim が消えると tsc が止める)。下流が自分の改名で使ってもよい(paths に足す)。
-  // 現在の一覧 = 空(ui-layers-rename の旧パスは checkpoint ui-layers-shim-removal で shim ごと削除済み)。
+  // 現在の一覧 = User 枠の移動(checkpoint frame-move-user。AppFrames/User → src/app/(user)/_layout)。
+  // shim と一覧は旧入口撤去の区切りで削除する。
   // 書式: { from: "@/features/...", to: "@/features/...", until: "checkpoint <label> の次" }
   {
     files: ["src/**/*.{ts,tsx}"],
@@ -145,7 +154,48 @@ export default [
       "deprecated-imports/no-deprecated-path": [
         "warn",
         {
-          paths: [],
+          paths: [
+            {
+              from: "@/components/AppFrames/User/Layout/UserLayout",
+              to: "@/app/(user)/_layout/UserLayout",
+              until: "旧入口撤去の区切り",
+            },
+            {
+              from: "@/components/AppFrames/User/Layout/BackgroundLayer",
+              to: "@/app/(user)/_layout/BackgroundLayer",
+              until: "旧入口撤去の区切り",
+            },
+            {
+              from: "@/components/AppFrames/User/Layout/UserPage",
+              to: "@/app/(user)/_layout/UserPage",
+              until: "旧入口撤去の区切り",
+            },
+            {
+              from: "@/components/AppFrames/User/Elements/PageTitle",
+              to: "@/app/(user)/_layout/PageTitle",
+              until: "旧入口撤去の区切り",
+            },
+            {
+              from: "@/components/AppFrames/User/Sections/Header",
+              to: "@/app/(user)/_layout/Header",
+              until: "旧入口撤去の区切り",
+            },
+            {
+              from: "@/components/AppFrames/User/Sections/Footer",
+              to: "@/app/(user)/_layout/Footer",
+              until: "旧入口撤去の区切り",
+            },
+            {
+              from: "@/components/AppFrames/User/Sections/BottomNav",
+              to: "@/app/(user)/_layout/BottomNav",
+              until: "旧入口撤去の区切り",
+            },
+            {
+              from: "@/components/AppFrames/User/hooks",
+              to: "@/app/(user)/_layout/hooks",
+              until: "旧入口撤去の区切り",
+            },
+          ],
         },
       ],
     },
@@ -167,7 +217,10 @@ export default [
       "src/components/**/*.{ts,tsx}",
       "src/features/core/**/components/**/*.{ts,tsx}",
       "src/features/_template/**/components/**/*.{ts,tsx}",
+      "src/app/**/_layout/**/*.{ts,tsx}",
     ],
+    // 枠の既定部品は upstream 所有の UI。隣のドット区切り名(fork のカスタム)は上の app/ の warn
+    ignores: ["src/app/**/_layout/**/*.*.{ts,tsx}"],
     plugins: { "client-service-boundary": clientServiceBoundaryPlugin },
     rules: {
       "client-service-boundary/no-direct-import": "error",

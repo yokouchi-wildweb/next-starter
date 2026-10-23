@@ -4,8 +4,8 @@
 //
 // loader は無い(サーバー側の取得も遷移制御も無い。送信はセクションコンテナ ForgotPassword が hook で行う)。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
 import { ForgotPassword } from "@/features/core/auth/components/ForgotPassword";
 

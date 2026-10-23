@@ -63,6 +63,23 @@ export function stripComments(src) {
 /** page.tsx が Screen を置けるディレクトリ(既定画面 / 下流の差し替え画面) */
 export const SCREEN_DIRS = ["_screen", "_components"];
 
+/** 提供者(upstream)の既定の実装を置くディレクトリ。fork のカスタムは隣にドット区切り名で置く(W) */
+export const DEFAULT_IMPL_DIRS = ["_screen", "_layout"];
+
+/**
+ * DEFAULT_IMPL_DIRS 配下のドット区切り名のファイル(拡張子を除いた名前に "." を含む: `UserLayout.custom.tsx`)を返す。
+ * ドット区切り名 = fork のカスタムの印なので、upstream はこれを作らない(test:screens が Tier1 でだけ検査する)
+ * @param {string[]} files repo 相対パス
+ */
+export function findDotNamedFiles(files) {
+  return files.filter((file) => {
+    const segments = file.split("/");
+    const base = segments.pop();
+    if (!segments.some((segment) => DEFAULT_IMPL_DIRS.includes(segment))) return false;
+    return base.replace(/\.[^.]+$/, "").includes(".");
+  });
+}
+
 /** Next.js が page.tsx で認める設定 export の名前(値は page.tsx 自体に書く。Next が静的解析するため re-export 不可) */
 const PAGE_CONFIG_EXPORTS = [
   "metadata",

@@ -4,8 +4,8 @@
 
 import Link from "next/link";
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Para } from "@/components/TextBlocks";
 import { Button } from "@/components/Form/Button/Button";
 import { Block } from "@/components/Layout/Block";

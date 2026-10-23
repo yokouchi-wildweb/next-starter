@@ -5,8 +5,8 @@
 //
 // ログイン後の遷移先とログイン済みの redirect は loader が担う。フォームはセクションコンテナ UserLogin。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
 import { UserLogin } from "@/features/core/auth/components/UserLogin";
 import type { ScreenProps } from "@/lib/screens/types";

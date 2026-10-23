@@ -6,8 +6,8 @@
 // loader は無い。oobCode の読み取り・ログイン要求・変更の実行は client 部品 EmailChangeVerification が hook で行う
 // (ログイン後に同じ URL へ戻る必要があるため pathname と合わせて client で扱う)。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 
 import { EmailChangeVerification } from "./EmailChangeVerification";
 

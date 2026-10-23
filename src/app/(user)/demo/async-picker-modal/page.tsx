@@ -1,7 +1,7 @@
 // src/app/(user)/demo/async-picker-modal/page.tsx
 
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { Para } from "@/components/TextBlocks";
 
 import { SamplePickerDemo } from "./_components/SamplePickerDemo";

@@ -4,8 +4,8 @@
 //
 // loader は無い(文書は設定 src/config/documents から読むだけ)。文言を変えるのは設定側、構成を変えるのは差し替え Screen で行う。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import { documentVariables, tradelawConfig } from "@/config/documents";
 import { LegalDocumentRenderer } from "@/lib/structuredDocument/legal";

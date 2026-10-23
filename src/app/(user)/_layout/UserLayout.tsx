@@ -1,0 +1,79 @@
+"use client";
+
+import { type CSSProperties, type ReactNode } from "react";
+
+import { Flex } from "@/components/Layout/Flex";
+import { useHeaderHeight } from "@/hooks/useHeaderHeight";
+import UnreadNotificationModal from "@/features/notification/components/common/UnreadNotificationModal";
+
+import { BottomNavVisibilityProvider } from "@/components/AppFrames/User/contexts/BottomNavVisibilityContext";
+import { BackgroundLayer } from "./BackgroundLayer";
+import { FooterVisibilityProvider } from "@/components/AppFrames/User/contexts/FooterVisibilityContext";
+import { HeaderVisibilityProvider } from "@/components/AppFrames/User/contexts/HeaderVisibilityContext";
+import { HeaderNavVisibilityProvider } from "@/components/AppFrames/User/contexts/HeaderNavVisibilityContext";
+import { UserBottomNav } from "./BottomNav";
+import { BottomNavSpacer } from "./BottomNav/BottomNavSpacer";
+import { UserFooter } from "@/config/ui/user-footer.config";
+import { UserNavigation } from "@/config/ui/user-header.config";
+
+type LayoutStyle = CSSProperties & {
+  "--app-header-height"?: string;
+};
+
+export type UserAppLayoutProps = {
+  readonly children: ReactNode;
+  /** 背景画像のURL */
+  readonly backgroundImageUrl?: string;
+  /** オーバーレイの色（任意のCSS色形式: "#000", "black", "rgb(0,0,0)"など） */
+  readonly overlayColor?: string;
+  /** オーバーレイの透明度（0-1） */
+  readonly overlayOpacity?: number;
+};
+
+export const UserAppLayout = ({
+  children,
+  backgroundImageUrl,
+  overlayColor,
+  overlayOpacity,
+}: UserAppLayoutProps) => {
+  const headerHeight = useHeaderHeight();
+
+  const layoutStyle: LayoutStyle = {
+    "--app-header-height": `${headerHeight}px`,
+  };
+
+  return (
+    <HeaderVisibilityProvider>
+      <HeaderNavVisibilityProvider>
+        <FooterVisibilityProvider>
+          <BottomNavVisibilityProvider>
+            <BackgroundLayer
+              imageUrl={backgroundImageUrl}
+              overlayColor={overlayColor}
+              overlayOpacity={overlayOpacity}
+            />
+            {/* data-user-app-container: <UserPage fill> が配下にある時だけ
+                styles/config.css の :has() ルールで確定高さ + overflow-clip に
+                切り替わる（既定は min-h で伸びる通常ページ）。 */}
+            <Flex
+              id="user-app-container"
+              data-user-app-container=""
+              direction="column"
+              className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
+              style={layoutStyle}
+            >
+              <UserNavigation />
+              <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
+                {children}
+              </div>
+              <UserFooter />
+              <BottomNavSpacer />
+              <UserBottomNav />
+              <UnreadNotificationModal />
+            </Flex>
+          </BottomNavVisibilityProvider>
+        </FooterVisibilityProvider>
+      </HeaderNavVisibilityProvider>
+    </HeaderVisibilityProvider>
+  );
+};

@@ -5,7 +5,7 @@
 //
 // 遷移先の解釈は loader、ログアウトの実行は client 部品 LogoutSection。
 
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
 import type { ScreenProps } from "@/lib/screens/types";
 

@@ -1,15 +1,2 @@
-/**
- * User AppFrames 共通フック
- *
- * カスタムヘッダー・フッター作成時に使用するフックを提供
- */
-
-export { useHeaderData } from "./useHeaderData";
-export type {
-  HeaderNavItem,
-  DeviceVisibility,
-  UseHeaderDataReturn,
-} from "./useHeaderData";
-
-export { useFooterData } from "./useFooterData";
-export type { UseFooterDataReturn } from "./useFooterData";
+// @deprecated 旧パス互換: @/app/(user)/_layout/hooks へ移動(撤去の区切りで削除)
+export * from "@/app/(user)/_layout/hooks";

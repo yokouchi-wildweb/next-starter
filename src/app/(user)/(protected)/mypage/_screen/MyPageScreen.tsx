@@ -5,7 +5,7 @@
 // loader は無い(サーバー側の取得も遷移制御も無い。未ログインと DB 未登録は (protected)/layout.tsx の authGuard が弾く)。
 // mypage 配下は layout が UserPage + Stack + PageTransition を巻くので Screen は fragment を返す。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { MainMenu } from "@/features/core/user/components/MainMenu";
 
 export function MyPageScreen() {

@@ -6,7 +6,7 @@
 // loader は無い。/signup/register からの正当な遷移かどうかは referer ベースの client 側ガード
 // (useTransitionGuard)で判定するため、サーバー側の遷移制御は持たない。
 
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 
 import { SignupCompleteSection } from "./SignupCompleteSection";
 

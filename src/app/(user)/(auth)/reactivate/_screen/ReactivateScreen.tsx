@@ -5,8 +5,8 @@
 //
 // 機能フラグ・ログイン・status の遷移制御は loader、復帰操作はセクションコンテナ Reactivate。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Flex } from "@/components/Layout/Flex";
 import { Reactivate } from "@/features/core/user/components/Reactivate";
 

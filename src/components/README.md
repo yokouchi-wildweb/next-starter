@@ -15,7 +15,7 @@
 | ディレクトリ | 役割 | 詳細ドキュメント |
 |---|---|---|
 | `Animation/` | アニメーション演出（`CountUp`、`PageTransition` など） | - |
-| `AppFrames/` | 管理者用・ユーザー用アプリのレイアウトフレーム（ヘッダー / フッター / メニュー、ページ単位の表示制御）、キオスク用のビューポート固定枠 | [AppFrames/User/README.md](./AppFrames/User/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md) |
+| `AppFrames/` | 管理者用アプリのレイアウトフレーム、ユーザー側の枠のうち未移動の物（ページ単位の表示制御 controls・contexts、HeaderCustom / FooterCustom）、キオスク用のビューポート固定枠。ユーザー側の枠の部品（Layout・Header・Footer・BottomNav・UserPage・PageTitle）は `src/app/(user)/_layout/` へ移動済み | [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md) |
 | `AppStatusGuard/` | メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置 | - |
 | `Badge/` | バッジ（`SolidBadge`、`SoftBadge` など） | - |
 | `BulkSendEmail/` | 選択ユーザーへの一括メール送信モーダル | - |

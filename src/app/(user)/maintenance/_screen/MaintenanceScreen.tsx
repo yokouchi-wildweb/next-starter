@@ -7,8 +7,8 @@
 // MaintenanceAutoRedirect(client 部品)が時刻到来で遷移する。
 
 import { HideHeaderNav, HideFooter, HideBottomNav } from "@/components/AppFrames/User/controls";
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import { Para } from "@/components/TextBlocks";
 

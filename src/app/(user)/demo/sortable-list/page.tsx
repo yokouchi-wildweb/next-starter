@@ -3,8 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import { sampleService } from "@/features/sample/services/server/sampleService";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { SampleSortableList } from "./_components/SampleSortableList";
 
 export const metadata = {

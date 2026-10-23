@@ -5,8 +5,8 @@
 //
 // method の解釈は loader、フォームはセクションコンテナ Registration。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Registration } from "@/features/core/auth/components/Registration";
 import type { ScreenProps } from "@/lib/screens/types";
 

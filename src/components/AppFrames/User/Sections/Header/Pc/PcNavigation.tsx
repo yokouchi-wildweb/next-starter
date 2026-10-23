@@ -1,21 +1,2 @@
-/**
- * PC用ナビゲーション
- *
- * sm:640px 以上で表示
- */
-
-import { PcMenuItem } from "./PcMenuItem";
-import type { NavigationMenuItem } from "../types";
-
-export type PcNavigationProps = {
-  readonly items: readonly NavigationMenuItem[];
-  readonly showIcons?: boolean;
-};
-
-export const PcNavigation = ({ items, showIcons = true }: PcNavigationProps) => (
-  <nav id="header-pc-nav" className="hidden items-stretch text-sm font-medium sm:flex">
-    {items.map((item) => (
-      <PcMenuItem key={item.key} item={item} showIcon={showIcons} />
-    ))}
-  </nav>
-);
+// @deprecated 旧パス互換: @/app/(user)/_layout/Header/Pc/PcNavigation へ移動(撤去の区切りで削除)
+export * from "@/app/(user)/_layout/Header/Pc/PcNavigation";

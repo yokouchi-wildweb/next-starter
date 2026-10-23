@@ -229,8 +229,8 @@ page.tsx を `_components/` に向けて上流の既定 Screen を使ってい�
 
 ```tsx
 // src/app/(user)/(protected)/wallet/[slug]/_components/WalletBalanceScreen.tsx
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { Stack } from "@/components/Layout/Stack";
 import type { ScreenProps } from "@/lib/screens/types";
 import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";

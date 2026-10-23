@@ -5,8 +5,8 @@
 //
 // provider / returnTo の解釈は loader、認証フローの実行はセクションコンテナ OAuth。
 
-import { UserPageTitle } from "@/components/AppFrames/User/Elements/PageTitle";
-import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
+import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { OAuth } from "@/features/core/auth/components/OAuth";
 import type { ScreenProps } from "@/lib/screens/types";
 

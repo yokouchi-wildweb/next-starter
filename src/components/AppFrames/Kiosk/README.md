@@ -56,7 +56,7 @@ export default function TerminalLayout({ children }: Readonly<{ children: ReactN
 
 | 欲しいもの | 使うもの |
 |-----------|---------|
-| UserLayout 内で、ヘッダー等と共存する非スクロールのページ土台 | `<UserPage fill>` / `<UserPage immersive>`（[AppFrames/User/README.md](../User/README.md)） |
+| UserLayout 内で、ヘッダー等と共存する非スクロールのページ土台 | `<UserPage fill>` / `<UserPage immersive>`（[src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md)） |
 | AdminLayout 内で、サイドバー等と共存する非スクロールのページ土台 | `<AdminPage fill>` |
 | **レイアウトを持たない独立ルート群**のビューポート固定ページ枠 | `<KioskFrame>` |
 | 画面全体を覆う一時的なオーバーレイ（スプラッシュ・背景演出） | `<Main containerType="fullscreen">`（fixed オーバーレイ、z 層、body スクロールロック） |

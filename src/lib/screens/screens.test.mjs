@@ -35,11 +35,13 @@ import {
   checkScreenFile,
   checkScreenImports,
   checkSwitchPage,
+  findDotNamedFiles,
   isReexportOnlyFile,
   parseSwitchPage,
   stripComments,
 } from "./checks.mjs";
 import { discoverRoutes, listAppFiles } from "./routeTree.mjs";
+import { loadCatalogOwnership } from "../folderCatalog/catalog.mjs";
 
 export { checkLoaderFile, checkScreenFile, checkScreenImports, checkSwitchPage, isReexportOnlyFile, parseSwitchPage, stripComments };
 
@@ -391,7 +393,7 @@ test("parseSwitchPage: _screen / _components / metadata re-export を許可し�
   assert.ok(parseSwitchPage(dynamicReexport).problems.some((p) => p.includes("dynamic")));
 
   const jsx = `
-    import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+    import { UserPage } from "@/app/(user)/_layout/UserPage";
     export default function Page() { return <UserPage />; }
   `;
   assert.ok(parseSwitchPage(jsx).problems.length > 0);
@@ -428,7 +430,7 @@ test("checkScreenImports: index.tsx を持つコンテナの内側(部品)は弾
     import { WalletBalance } from "@/features/core/wallet/components/WalletBalance";
     import { Signup } from "@/features/auth/components/Signup";
     import { AdminSampleList } from "@/features/sample/components/AdminSampleList/index";
-    import { UserPage } from "@/components/AppFrames/User/Layout/UserPage";
+    import { UserPage } from "@/app/(user)/_layout/UserPage";
     import { loadXScreen } from "./loader";
     import { Part } from "./Part";
   `;
@@ -532,4 +534,36 @@ test("isReexportOnlyFile: 再 export だけのファイル(旧パス shim / barr
   assert.equal(isReexportOnlyFile(`export type X = { a: 1 };\nexport { y } from "./y";`), false);
   assert.equal(isReexportOnlyFile(`export default 1;`), false);
   assert.equal(isReexportOnlyFile(`const a = 1;`), false);
+});
+
+// upstream は _screen/・_layout/ にドット区切り名のファイルを作らない(報告書 §2 W: ドット区切り名 = fork のカスタム)。
+// fork はそこへ自分のカスタムを置く側なので、Tier1(src/lib/CATALOG.md の先頭節の持ち主 = 自分)でだけ検査する。
+// 判定は eslint.config.mjs の fork 所有ライブラリと同じ isRoot(origin が分からないときは skip = 検査しない)。
+const isUpstreamRoot = loadCatalogOwnership({ repoRoot, folder: "src/lib" }).isRoot;
+test(
+  "upstream は _screen/・_layout/ にドット区切り名のファイルを作らない(Tier1 のみ)",
+  { skip: isUpstreamRoot ? false : "fork(Tier1 以外)ではドット区切り名のカスタムを置くので検査しない" },
+  () => {
+    assert.deepEqual(findDotNamedFiles(listAppFiles(repoRoot)), []);
+  },
+);
+
+test("findDotNamedFiles: _screen/・_layout/ 配下のドット区切り名だけを拾う", () => {
+  const files = [
+    "src/app/(user)/_layout/UserLayout.tsx",
+    "src/app/(user)/_layout/UserLayout.custom.tsx",
+    "src/app/(user)/_layout/Header/index.acme.tsx",
+    "src/app/(user)/_layout/hooks/useHeaderData.ts",
+    "src/app/admin/(protected)/_layout/guard.ts",
+    "src/app/(user)/wallet/_screen/WalletScreen.tsx",
+    "src/app/(user)/wallet/_screen/WalletScreen.custom.tsx",
+    "src/app/(user)/wallet/_components/WalletScreen.custom.tsx",
+    "src/app/(user)/wallet/page.tsx",
+    "src/app/route-map.txt",
+  ];
+  assert.deepEqual(findDotNamedFiles(files), [
+    "src/app/(user)/_layout/UserLayout.custom.tsx",
+    "src/app/(user)/_layout/Header/index.acme.tsx",
+    "src/app/(user)/wallet/_screen/WalletScreen.custom.tsx",
+  ]);
 });
