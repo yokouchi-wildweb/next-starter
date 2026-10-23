@@ -17,7 +17,7 @@ export const MediaUploadDemo = () => {
         onUrlChange={(url) => {
           setUrl(url);
         }}
-        uploadPath="uploads/demo"
+        purpose="demo.media"
         helperText="アップロード先: uploads/demo"
       />
       <div className="flex flex-col gap-2 text-sm">

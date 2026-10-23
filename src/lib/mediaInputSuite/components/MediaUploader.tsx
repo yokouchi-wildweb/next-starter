@@ -3,20 +3,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { MediaInput, type MediaInputProps } from "./MediaInput";
-import type { FileValidationError, FileValidationRule, SelectedMediaMetadata } from "../types";
-import { clientUploader, type UploadProgress } from "@/lib/storage/client/clientUploader";
-import { directStorageClient, getPathFromStorageUrl } from "@/lib/storage/client/directStorageClient";
+import type { FileValidationError, FileValidationRule } from "../types";
+import { isStorageUploadCanceled, uploadToStorage, type UploadProgress } from "@/lib/storage/client";
 import { Para } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 
-const isStorageCanceledError = (error: unknown): error is { code?: string } => {
-  if (typeof error !== "object" || error === null) return false;
-  const code = (error as { code?: unknown }).code;
-  return typeof code === "string" && code === "storage/canceled";
-};
-
 export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "previewUrl" | "statusOverlay" | "clearButtonDisabled"> & {
-  uploadPath: string;
+  /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名） */
+  purpose: string;
+  /** 画像を描き直して EXIF を落とすか（既定 true。jpeg / png / webp が対象。false で送られたまま） */
+  reencodeImage?: boolean;
+  /** 値（storage ref、または移行前の旧 URL）。プレビュー（MediaPreview）が ref を表示用 URL にする */
   initialUrl?: string | null;
   onUrlChange?: (url: string | null) => void;
   validationRule?: FileValidationRule;
@@ -27,7 +24,8 @@ export type MediaUploaderProps = Omit<MediaInputProps, "onFileChange" | "preview
 };
 
 export const MediaUploader = ({
-  uploadPath,
+  purpose,
+  reencodeImage = true,
   initialUrl = null,
   onUrlChange,
   onMetadataChange,
@@ -44,11 +42,8 @@ export const MediaUploader = ({
   const [error, setError] = useState<string | null>(null);
   const [inputResetSignal, setInputResetSignal] = useState(0);
   const uploadHandleRef = useRef<{ cancel: () => void } | null>(null);
-  const uploadedPathRef = useRef<string | null>(initialUrl ? getPathFromStorageUrl(initialUrl) ?? null : null);
-
   useEffect(() => {
     setCurrentUrl(initialUrl);
-    uploadedPathRef.current = initialUrl ? getPathFromStorageUrl(initialUrl) ?? null : null;
   }, [initialUrl]);
 
   const updateUrl = useCallback(
@@ -59,8 +54,9 @@ export const MediaUploader = ({
     [onUrlChange],
   );
 
+  // 値を外すだけ。このセッションで上げた未採用分の discard は pending 管理（usePendingMediaUploads）、
+  // 採用済みの旧物の削除は業務保存の detach が担う（クライアントから消さない）
   const removeUploadedFile = useCallback(async () => {
-    uploadedPathRef.current = null;
     updateUrl(null);
   }, [updateUrl]);
 
@@ -72,21 +68,22 @@ export const MediaUploader = ({
       setError(null);
       onUploadingChange?.(true);
       void removeUploadedFile();
-      uploadHandleRef.current = clientUploader.upload(file, {
-        basePath: uploadPath,
+      setProgress({ loaded: 0, total: file.size, percent: 0 });
+      uploadHandleRef.current = uploadToStorage(file, {
+        purpose,
+        reencodeImage,
         onProgress: (p) => setProgress(p),
-        onComplete: ({ url, path }) => {
+        onComplete: ({ ref }) => {
           uploadHandleRef.current = null;
-          uploadedPathRef.current = path;
           setProgress(null);
           onUploadingChange?.(false);
-          onRegisterPendingUpload?.(url);
-          updateUrl(url);
+          onRegisterPendingUpload?.(ref);
+          updateUrl(ref);
         },
         onError: (err) => {
           uploadHandleRef.current = null;
           setProgress(null);
-          if (isStorageCanceledError(err)) {
+          if (isStorageUploadCanceled(err)) {
             setError("アップロードをキャンセルしました。");
           } else {
             setError(err.message);
@@ -95,7 +92,7 @@ export const MediaUploader = ({
         },
       });
     },
-    [removeUploadedFile, updateUrl, uploadPath, onUploadingChange, onRegisterPendingUpload],
+    [removeUploadedFile, updateUrl, purpose, reencodeImage, onUploadingChange, onRegisterPendingUpload],
   );
 
   const cancelUpload = useCallback((options?: { notify?: boolean }) => {
@@ -116,7 +113,7 @@ export const MediaUploader = ({
     (file: File | null) => {
       if (!file) {
         onUploadingChange?.(true);
-        const previousUrl = uploadedPathRef.current ? currentUrl : initialUrl;
+        const previousUrl = currentUrl ?? initialUrl;
         if (previousUrl) {
           onRegisterPendingDelete?.(previousUrl);
         }
@@ -125,7 +122,7 @@ export const MediaUploader = ({
       }
       beginUpload(file);
     },
-    [beginUpload, cancelUpload, progress, currentUrl, initialUrl, onRegisterPendingDelete],
+    [beginUpload, cancelUpload, progress, currentUrl, initialUrl, onRegisterPendingDelete, onUploadingChange],
   );
 
   const overlay = useMemo(() => {

@@ -6,3 +6,4 @@ export * from "./usePendingMediaUploads";
 export * from "./usePendingMediaDeletion";
 export * from "./useMediaMetadataBinding";
 export * from "./useMediaMetadataActions";
+export * from "./pendingUploadTracker";

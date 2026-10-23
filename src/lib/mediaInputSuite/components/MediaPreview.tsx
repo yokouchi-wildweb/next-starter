@@ -7,9 +7,11 @@ import { ImagePreview, type ImagePreviewProps } from "./ImagePreview";
 import { VideoPreview, type VideoPreviewProps } from "./VideoPreview";
 import { UnsupportedPreview, type UnsupportedPreviewProps } from "./UnsupportedPreview";
 import { detectMediaType } from "../types";
+import { isStorageRef, resolveStorageSrc } from "@/lib/storage/ref";
 
 export type MediaPreviewProps = {
   file?: File | null;
+  /** 表示する URL。storage ref（storage://…）も受け付け、種類は ref の拡張子で判定して resolveStorageSrc で表示する */
   src?: string | null;
   mimeType?: string | null;
   className?: string;
@@ -67,8 +69,10 @@ export const MediaPreview = ({
     };
   }, [file]);
 
-  const resolvedSrc = useMemo(() => src ?? objectUrl, [src, objectUrl]);
-  const mediaType = detectMediaType({ file, src: resolvedSrc, mimeType });
+  const rawSrc = src ?? objectUrl;
+  // 非公開の ref は拡張子の無い固定 URL（/api/storage/objects/<id>）になるため、種類は ref のまま判定する
+  const resolvedSrc = useMemo(() => (isStorageRef(rawSrc) ? resolveStorageSrc(rawSrc) : rawSrc), [rawSrc]);
+  const mediaType = detectMediaType({ file, src: rawSrc, mimeType });
 
   if (!resolvedSrc) {
     return <UnsupportedPreview className={className} style={style} {...unsupportedProps} />;

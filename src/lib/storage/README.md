@@ -47,7 +47,7 @@
 | `client/drivers/put.ts` / `client/drivers/gcsSession.ts` | client | GCS への直接転送（単発 PUT / 再開可能セッション） |
 | `client/reencodeImage.ts` | client | 画像の描き直し（EXIF を落とす） |
 | `client/transferTypes.ts` | client | 進捗・中止の型、ルートの応答の形、`StorageUploadError` |
-| `client/usePrivateMediaRecovery.ts` | client | 非公開の動画・音声の、署名期限後の読み込み失敗からの復帰 |
+| `client/usePrivateMediaRecovery.ts` | client | 非公開の動画・音声の、署名期限後の読み込み失敗からの復帰と先回りの読み直し |
 
 ## ref（業務行に保存する値）
 
@@ -110,8 +110,13 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 - **許可を失った場合（logout・退室・削除で 401/404）は、自動では再試行しない**
   - HTTP の状態は見ない（ブラウザで 302 を追わずに状態を知るには fetch が要り、client HTTP は axios だけという規約に例外を作らないため）
   - 自動復帰 1 回の後は `failed` で止まる。再開しても許可が無ければ、また `failed` に戻る
+- **先回りの読み直し**: 読み込み開始（`loadstart`）から `readTtlSec(video|audio) − 30 秒`（`PROACTIVE_RELOAD_MARGIN_SEC`）を過ぎた要素で再生・シークが起きたら、失敗を待たずに同じ手順で読み直す
+  - Chrome は期限後のシークで約 27 秒待ってからエラーを出すため、待たせずに済むようにする
+  - 失敗ではないので自動復帰の回数は使わない。ブラウザの判別はしない
+  - 署名は読み込み開始より後に発行されるので、開始時刻から数えると早めに倒れる
 - src が固定 URL でなければ何もしない（旧 URL・公開 URL はそのまま）
 - 配線済み: `VideoPreview`（lib/mediaInputSuite）、`DetailModal` の動画（`DetailModalVideo`）。props の追加は無い
+- 独自のプレーヤーに配線するとき: `recovery.src` を要素の `src` に、`handleError` / `handleLoadedMetadata` / `handleCanPlay` / `handleLoadStart` を同名のイベントに、`handlePlaybackIntent` を `onPlay` と `onSeeking` に渡し、`status === "failed"` でエラーと `resume()` の操作を出す
 - 全ページの署名更新の仕組みは作らない
 - 要素の `src` 属性で渡す。`<source>` 子要素だと読み込み失敗の error が `<source>` 側に出て、media 要素の onError に届かない
 
@@ -219,7 +224,12 @@ const { cancel } = uploadToStorage(file, {
 - **流れ**: 画像の描き直し → アップロード権の発行（`POST /api/me/storage/uploads`）→ 種類に合うドライバーで GCS へ直接送る → commit
   - ドライバーはサーバーが決める（`STORAGE_CONFIG.sessionThresholdBytes` = 16MiB 以下は単発 PUT、超えると GCS セッション）
   - 単発 PUT: 署名に含めたヘッダーをそのまま付けて送る。上書き不可・サイズ上限・型は署名で GCS が強制する
-  - GCS セッション: 8MiB ずつ `Content-Range` を付けて送る（途中は 308）。通信が途切れたら `bytes */<total>` で状態を照会し、続きから再開する（最大 3 回）。応答のある失敗（4xx / 5xx）は再開しない
+  - GCS セッション: 8MiB ずつ `Content-Range` を付けて送る（途中は 308）
+    - 通信が途切れたら、すぐ `bytes */<total>` で状態を照会し、続きから再開する
+    - GCS が再試行を勧める応答（408 / 429 / 500 / 502 / 503 / 504）は、1s・2s・4s の指数 + 0〜500ms の揺らぎで待ってから同じく照会して続きから送る
+    - 通信の途切れと合わせて連続 3 回まで（前進すれば数え直す）。照会自体の失敗も同じ回数に数える
+    - それ以外の応答のある失敗（400 / 403 など）は再試行しない
+  - 単発 PUT は再試行しない（失敗したら取り消して `onError`）
 - **中止・失敗**
   - `cancel()` や失敗のときは、発行済みなら取り消し（`DELETE /api/me/storage/uploads/[id]`）を試みる。セッションの URI はサーバーが中止する
   - 中止は `onError` に code `storage/canceled` の `StorageUploadError` を渡す（旧 clientUploader と同じコード）
@@ -233,7 +243,10 @@ const { cancel } = uploadToStorage(file, {
   - アプリのルートは `storageClient`（axios + `normalizeHttpError`）
   - GCS への直接転送も axios で行う（ブラウザでは XHR になり、`onUploadProgress` で進捗、`AbortSignal` で中止）。アプリの Cookie は送らない（`withCredentials: false`）
 - **ルートの応答の形**（`IssueUploadResponse` / `CommitUploadResponse`）: features/core/storageObject の `storageObjectService` と揃えて `transferTypes.ts` に持つ（lib は features に依存しない）
-- **テスト**: `pnpm test:storage-client`。axios の adapter を差し替えて、ルートと GCS を偽物にする。本物のブラウザ（XHR の進捗・中止、canvas）は MediaUploader の切替のときに確かめる
+- **呼び出す場所**: lib の部品（`MediaUploader` / `MediaUploaderMulti`、lib/mediaInputSuite）と、各ドメインの hook（チャット送信など）から呼ぶ
+  - features・app の UI 部品から直接呼ばない。フォームの項目は `MediaUploader` 系の部品（FieldRenderer・MediaHandler 経由を含む）、それ以外は送信を受け持つドメインの hook を使う
+  - lint（client-service-boundary）は `@/lib/storage/client` を対象にしないため、この規約は README で持つ
+- **テスト**: `pnpm test:storage-client`。axios の adapter を差し替えて、ルートと GCS を偽物にする。先回りの読み直しの判定（`isSignedReadStale`）と、MediaUploader の未採用分の追跡（lib/mediaInputSuite の `pendingUploadTracker`）も同じコマンドで走る。本物のブラウザ（XHR の進捗・中止、canvas、動画の読み直し）は手で確かめる
 
 ## メディア列のスキーマ: `storageMediaValueSchema`
 

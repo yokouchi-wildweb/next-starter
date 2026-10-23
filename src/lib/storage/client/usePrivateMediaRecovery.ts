@@ -10,12 +10,17 @@
 // - 復帰直後にまた失敗したら status "failed" で止まる（無限に再試行しない）。呼び出し側はエラーと再開操作を出し、
 //   再開操作で resume() を呼ぶ（読み直して再生できる状態に戻れば、自動復帰 1 回分が戻る）
 // - 許可を失った場合（logout・退室・削除で 401/404）も HTTP 状態は見ずに同じ扱いになる: 自動では再試行せず止まる
-// - 全ページの署名更新の仕組みは作らない（失敗したその要素だけを読み直す）
+// - 先回り: 読み込み開始（loadstart）から readTtlSec(video|audio) − 30 秒を過ぎた要素で play / seeking が起きたら、
+//   失敗を待たずに同じ手順で読み直す（Chrome は期限後のシークで約 27 秒待ってからエラーを出すため）。
+//   失敗ではないので自動復帰の回数は使わない。ブラウザの判別はしない
+// - 全ページの署名更新の仕組みは作らない（再生・シークされたその要素だけを読み直す）
 
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject, SyntheticEvent } from "react";
+
+import { STORAGE_CONFIG } from "@/config/app/storage.config";
 
 import { isPrivateObjectPath } from "../ref";
 
@@ -23,6 +28,29 @@ import { isPrivateObjectPath } from "../ref";
 export const MEDIA_RETRY_QUERY = "_r";
 
 export type PrivateMediaRecoveryStatus = "idle" | "recovering" | "failed";
+
+/** 署名の期限より何秒前から先回りで読み直すか */
+export const PROACTIVE_RELOAD_MARGIN_SEC = 30;
+
+/**
+ * 読み込み開始からの経過で、302 先の署名 URL が期限切れ（または間近）とみなせるか。
+ * 署名は読み込み開始より後に発行されるので、開始時刻から数えれば早めに倒れる（期限を過ぎたまま使うことはない）
+ */
+export function isSignedReadStale(
+  loadStartedAtMs: number | null,
+  nowMs: number,
+  ttlSec: number,
+  marginSec: number = PROACTIVE_RELOAD_MARGIN_SEC,
+): boolean {
+  if (loadStartedAtMs === null) return false;
+  const thresholdSec = Math.max(ttlSec - marginSec, 0);
+  return nowMs - loadStartedAtMs >= thresholdSec * 1000;
+}
+
+/** 要素の種類に合う署名 GET の有効期間（秒）。サーバーは用途の型で選ぶ（video / audio） */
+function readTtlSecOf(media: HTMLMediaElement): number {
+  return media.tagName === "AUDIO" ? STORAGE_CONFIG.readTtlSec.audio : STORAGE_CONFIG.readTtlSec.video;
+}
 
 type SavedPlayback = { currentTime: number; paused: boolean; playbackRate: number };
 
@@ -45,6 +73,10 @@ export type PrivateMediaRecovery = {
   handleLoadedMetadata: (event: SyntheticEvent<HTMLMediaElement>) => void;
   /** media 要素の onCanPlay から呼ぶ（復帰が済んだら次の失敗に備えて自動復帰を戻す） */
   handleCanPlay: () => void;
+  /** media 要素の onLoadStart から呼ぶ（署名の経過を数え始める） */
+  handleLoadStart: () => void;
+  /** media 要素の onPlay と onSeeking から呼ぶ（署名の期限が近ければ先回りで読み直す） */
+  handlePlaybackIntent: (event: SyntheticEvent<HTMLMediaElement>) => void;
   /** status "failed" からの再開操作。最後に覚えた位置で読み直す（それが失敗したらまた "failed" で止まる） */
   resume: () => void;
 };
@@ -63,6 +95,7 @@ export function usePrivateMediaRecovery(
   const savedRef = useRef<SavedPlayback | null>(null);
   const restoringRef = useRef(false);
   const autoUsedRef = useRef(false);
+  const loadStartedAtRef = useRef<number | null>(null);
 
   // src が変わったら最初の状態に戻す（別のファイル）
   const [trackedSrc, setTrackedSrc] = useState(src);
@@ -75,6 +108,7 @@ export function usePrivateMediaRecovery(
     savedRef.current = null;
     restoringRef.current = false;
     autoUsedRef.current = false;
+    loadStartedAtRef.current = null;
   }, [src]);
 
   // 再取得 query を付けたら読み直す。要素の src 属性の差し替えはブラウザが自動で読み直すが、
@@ -132,6 +166,21 @@ export function usePrivateMediaRecovery(
     setStatus("idle");
   }, []);
 
+  const handleLoadStart = useCallback(() => {
+    loadStartedAtRef.current = Date.now();
+  }, []);
+
+  const handlePlaybackIntent = useCallback(
+    (event: SyntheticEvent<HTMLMediaElement>) => {
+      if (!enabled || restoringRef.current) return;
+      const media = event.currentTarget;
+      if (!isSignedReadStale(loadStartedAtRef.current, Date.now(), readTtlSecOf(media))) return;
+      // seeking の時点で currentTime は移動先なので、その位置で読み直す
+      reload(media);
+    },
+    [enabled, reload],
+  );
+
   const resume = useCallback(() => {
     if (!enabled) return;
     autoUsedRef.current = true;
@@ -140,5 +189,14 @@ export function usePrivateMediaRecovery(
 
   const resolvedSrc = src ? (enabled && retryKey !== null ? withMediaRetryQuery(src, retryKey) : src) : undefined;
 
-  return { src: resolvedSrc, status, handleError, handleLoadedMetadata, handleCanPlay, resume };
+  return {
+    src: resolvedSrc,
+    status,
+    handleError,
+    handleLoadedMetadata,
+    handleCanPlay,
+    handleLoadStart,
+    handlePlaybackIntent,
+    resume,
+  };
 }

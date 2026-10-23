@@ -15,6 +15,7 @@ import { useAutoSaveContext } from "@/components/Form/AutoSave";
 import type { FieldConfig, FieldCommonProps } from "../types";
 import type { SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
+import { MissingPurposeNotice } from "./MissingPurposeNotice";
 
 /**
  * メディアフィールド用の拡張設定
@@ -109,7 +110,8 @@ export function ConfiguredMediaField<
     methods,
     name: fieldName,
     uploaderProps: {
-      uploadPath: fieldConfig.uploadPath ?? "",
+      // purpose が無い項目は入力を出さない（下の renderInput）。hook は常に呼ぶため空文字を渡す
+      purpose: fieldConfig.purpose ?? "",
       accept: fieldConfig.accept,
       helperText: fieldConfig.helperText,
       validationRule: fieldConfig.validationRule,
@@ -193,7 +195,7 @@ export function ConfiguredMediaField<
       layout={layout}
       labelClass={labelClass}
       blurMode="none"  // メディアは独自のオートセーブ処理（onUrlChange）を持つ
-      renderInput={mediaHandle.render}
+      renderInput={fieldConfig.purpose ? mediaHandle.render : () => <MissingPurposeNotice name={String(fieldName)} />}
     />
   );
 }

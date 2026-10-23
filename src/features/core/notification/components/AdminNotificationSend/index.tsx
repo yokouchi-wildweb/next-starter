@@ -167,7 +167,7 @@ export default function AdminNotificationSend() {
             renderInput={(field) => (
               <ControlledMediaUploader
                 field={field}
-                uploadPath="notification/image"
+                purpose="notification.image"
                 accept="image/*"
                 onUploadingChange={setIsUploading}
               />

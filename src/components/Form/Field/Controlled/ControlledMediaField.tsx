@@ -21,7 +21,10 @@ export type ControlledMediaFieldProps<
   methods: UseFormReturn<TFieldValues>;
   name: TName;
   label?: ReactNode;
-  uploadPath: string;
+  /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名） */
+  purpose: string;
+  /** 画像を描き直して EXIF を落とすか（既定 true） */
+  reencodeImage?: boolean;
   accept?: string;
   helperText?: string;
   validationRule?: FileValidationRule;
@@ -42,7 +45,7 @@ export type ControlledMediaFieldProps<
  *     methods={methods}
  *     name="imageUrl"
  *     label="画像"
- *     uploadPath="images"
+ *     purpose="foo.image"
  *     accept="image/*"
  *   />
  * </AppForm>
@@ -57,7 +60,8 @@ export function ControlledMediaField<
   name,
   label,
   description,
-  uploadPath,
+  purpose,
+  reencodeImage,
   accept,
   helperText,
   validationRule,
@@ -79,7 +83,8 @@ export function ControlledMediaField<
     methods,
     name,
     uploaderProps: {
-      uploadPath,
+      purpose,
+      reencodeImage,
       accept,
       helperText,
       validationRule,

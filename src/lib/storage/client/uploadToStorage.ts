@@ -3,6 +3,7 @@
 // ファイルを用途（purpose）にアップロードする。
 //   (画像の描き直し) → アップロード権の発行 → 種類に合うドライバーで GCS へ直接送る → commit
 // 中止・失敗のときは、発行済みなら取り消し（discard）を試みる（session はサーバーが URI を中止する）。
+// セッション送信は通信の途切れと GCS の 408 / 429 / 5xx を連続 3 回まで再試行する（drivers/gcsSession.ts）。単発 PUT は再試行しない。
 // 中止は onError に code "storage/canceled" の StorageUploadError を渡す（旧 clientUploader と同じコード）。
 //
 //   const { cancel } = uploadToStorage(file, {
@@ -46,6 +47,8 @@ export type UploaderDeps = {
   /** GCS への直接転送に使う axios（アプリの Cookie を送らない） */
   transferHttp: AxiosInstance;
   codec: ImageCodec;
+  /** セッション送信の再試行までの待ち時間（テスト用。既定は drivers/gcsSession の sessionRetryDelayMs） */
+  sessionRetryDelayMs?: (attempt: number) => number;
 };
 
 export function createUploader(deps: UploaderDeps) {
@@ -91,6 +94,7 @@ export function createUploader(deps: UploaderDeps) {
             body,
             signal: controller.signal,
             onProgress: options.onProgress,
+            retryDelayMs: deps.sessionRetryDelayMs,
           });
         }
       } catch (error) {

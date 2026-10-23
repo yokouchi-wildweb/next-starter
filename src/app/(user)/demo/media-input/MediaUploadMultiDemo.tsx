@@ -22,7 +22,7 @@ export const MediaUploadMultiDemo = () => {
       </label>
 
       <MediaUploaderMulti
-        uploadPath="uploads/demo-multi"
+        purpose="demo.media"
         accept="image/*,video/*"
         helperText="アップロード先: uploads/demo-multi（画像/動画 OK、最大 5 件）"
         reorderable={reorderable}

@@ -1,33 +1,22 @@
-import { useCallback, useRef } from "react";
+// src/lib/mediaInputSuite/hooks/usePendingMediaDeletion.ts
+//
+// 採用済みファイルの「保存時に削除」の予約。新しい storage 基盤では、採用済みのファイルはクライアントから消さない。
+// 値の差し替え・削除を業務保存すると、サーバーの CRUD 連動（detach）が台帳を deleted にして実物を消す。
+// 呼び出し側の互換のため API（markDelete / commit / revert）は残し、何もしない。
 
-import { directStorageClient, getPathFromStorageUrl } from "@/lib/storage/client/directStorageClient";
+import { useCallback } from "react";
 
 export const usePendingMediaDeletion = () => {
-  const pendingDeleteRef = useRef<Set<string>>(new Set());
-
-  const markDelete = useCallback((url: string | null) => {
-    if (!url) return;
-    pendingDeleteRef.current.add(url);
+  const markDelete = useCallback((_url: string | null) => {
+    // 何もしない（削除は業務保存の detach が担う）
   }, []);
 
   const commit = useCallback(async () => {
-    const urls = Array.from(pendingDeleteRef.current);
-    pendingDeleteRef.current.clear();
-    await Promise.all(
-      urls.map(async (url) => {
-        const path = getPathFromStorageUrl(url);
-        if (!path) return;
-        try {
-          await directStorageClient.remove(path);
-        } catch (error) {
-          console.error(error);
-        }
-      }),
-    );
+    // 何もしない
   }, []);
 
   const revert = useCallback(() => {
-    pendingDeleteRef.current.clear();
+    // 何もしない
   }, []);
 
   return { markDelete, commit, revert } as const;

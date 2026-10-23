@@ -18,18 +18,12 @@ import { Button } from "@/components/Form/Button/Button";
 import { Para } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 import { cn } from "@/lib/cn";
-import { clientUploader, type UploadProgress } from "@/lib/storage/client/clientUploader";
+import { isStorageUploadCanceled, uploadToStorage, type UploadProgress } from "@/lib/storage/client";
 
 import { MediaPreview } from "./MediaPreview";
 import { MediaThumbGrid } from "./MediaThumbGrid";
 import type { FileValidationError, FileValidationRule } from "../types";
 import { validateFile } from "../utils";
-
-const isStorageCanceledError = (error: unknown): error is { code?: string } => {
-  if (typeof error !== "object" || error === null) return false;
-  const code = (error as { code?: unknown }).code;
-  return typeof code === "string" && code === "storage/canceled";
-};
 
 /**
  * 複数枚アップローダ用の追加バリデーション
@@ -43,7 +37,11 @@ export type MediaUploaderMultiValidationRule = FileValidationRule & {
 };
 
 export type MediaUploaderMultiProps = {
-  uploadPath: string;
+  /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名） */
+  purpose: string;
+  /** 画像を描き直して EXIF を落とすか（既定 true。jpeg / png / webp が対象。false で送られたまま） */
+  reencodeImage?: boolean;
+  /** 値（storage ref、または移行前の旧 URL）の配列。プレビュー（MediaPreview）が ref を表示用 URL にする */
   initialUrls?: string[] | null;
   onUrlsChange?: (urls: string[]) => void;
   onUploadingChange?: (isUploading: boolean) => void;
@@ -78,7 +76,8 @@ const slotIsUploading = (slot: SlotState): slot is Extract<SlotState, { kind: "u
   slot.kind === "uploading";
 
 export const MediaUploaderMulti = ({
-  uploadPath,
+  purpose,
+  reencodeImage = true,
   initialUrls,
   onUrlsChange,
   onUploadingChange,
@@ -163,8 +162,9 @@ export const MediaUploaderMulti = ({
 
   const beginUpload = useCallback(
     (file: File, slotId: string) => {
-      const handle = clientUploader.upload(file, {
-        basePath: uploadPath,
+      const handle = uploadToStorage(file, {
+        purpose,
+        reencodeImage,
         onProgress: (p) => {
           setSlots((prev) =>
             prev.map((s) =>
@@ -172,7 +172,7 @@ export const MediaUploaderMulti = ({
             ),
           );
         },
-        onComplete: ({ url }) => {
+        onComplete: ({ ref: url }) => {
           setSlots((prev) => {
             const target = prev.find((s) => s.id === slotId);
             if (target && target.kind !== "uploaded") {
@@ -193,7 +193,7 @@ export const MediaUploaderMulti = ({
             prev.map((s) => {
               if (s.id !== slotId) return s;
               if (s.kind !== "uploading") return s;
-              const message = isStorageCanceledError(err)
+              const message = isStorageUploadCanceled(err)
                 ? "アップロードをキャンセルしました。"
                 : err.message;
               return { kind: "error", id: slotId, file: s.file, message, objectUrl: s.objectUrl };
@@ -206,7 +206,7 @@ export const MediaUploaderMulti = ({
         prev.map((s) => (s.id === slotId && s.kind === "uploading" ? { ...s, cancel: () => handle.cancel() } : s)),
       );
     },
-    [uploadPath, onRegisterPendingUpload],
+    [purpose, reencodeImage, onRegisterPendingUpload],
   );
 
   const enqueueFiles = useCallback(
@@ -437,7 +437,7 @@ const ThumbCell = ({
   onRemove,
 }: ThumbCellProps) => {
   const previewSrc =
-    slot.kind === "uploaded" ? slot.url : slot.kind === "uploading" ? slot.objectUrl : slot.objectUrl;
+    slot.kind === "uploaded" ? slot.url : slot.objectUrl;
   const previewFile = slot.kind === "uploaded" ? null : slot.file;
 
   return (

@@ -13,6 +13,7 @@ import { useAppFormMedia } from "@/components/Form/AppForm";
 import { useAutoSaveContext } from "@/components/Form/AutoSave";
 import type { FieldConfig, FieldCommonProps } from "../types";
 import type { MediaHandleEntry } from "@/components/Form/FieldRenderer/types";
+import { MissingPurposeNotice } from "./MissingPurposeNotice";
 
 export type ConfiguredMediaMultiFieldProps<
   TFieldValues extends FieldValues,
@@ -69,7 +70,8 @@ export function ConfiguredMediaMultiField<
     methods,
     name: fieldName,
     uploaderProps: {
-      uploadPath: fieldConfig.uploadPath ?? "",
+      // purpose が無い項目は入力を出さない（下の renderInput）。hook は常に呼ぶため空文字を渡す
+      purpose: fieldConfig.purpose ?? "",
       accept: fieldConfig.accept,
       helperText: fieldConfig.helperText,
       validationRule: fieldConfig.validationRule,
@@ -123,7 +125,7 @@ export function ConfiguredMediaMultiField<
       layout={layout}
       labelClass={labelClass}
       blurMode="none"
-      renderInput={mediaHandle.render}
+      renderInput={fieldConfig.purpose ? mediaHandle.render : () => <MissingPurposeNotice name={String(fieldName)} />}
     />
   );
 }

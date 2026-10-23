@@ -34,6 +34,7 @@ export const VideoPreview = ({
   const [loading, setLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   // 非公開ファイルの固定 URL(/api/storage/objects/)だけ、署名期限後の読み込み失敗から位置を保って復帰する
+  // (期限が近い状態での再生・シークは先回りで読み直す)
   const recovery = usePrivateMediaRecovery(src, videoRef);
   const { handleLoadedMetadata: restorePlayback, handleError: recoverFromError } = recovery;
 
@@ -71,6 +72,9 @@ export const VideoPreview = ({
         onLoadedMetadata={handleLoadedMetadata}
         onError={handleError}
         onCanPlay={recovery.handleCanPlay}
+        onLoadStart={recovery.handleLoadStart}
+        onPlay={recovery.handlePlaybackIntent}
+        onSeeking={recovery.handlePlaybackIntent}
       />
       {loading ? <span>読み込み中...</span> : null}
       {recovery.status === "failed" ? (

@@ -1,35 +1,31 @@
+// src/lib/mediaInputSuite/hooks/usePendingMediaUploads.ts
+//
+// 編集中にアップロードして、まだ業務保存で採用されていないファイルを追跡し、cleanup で discard する。
+// 追跡・discard の規則は pendingUploadTracker.ts（storage ref だけ・最終値に残ったものは消さない）。
+
 import { useCallback, useEffect, useRef } from "react";
 
-import { directStorageClient, getPathFromStorageUrl } from "@/lib/storage/client/directStorageClient";
+import { storageClient } from "@/lib/storage/client/storageClient";
+
+import { createPendingUploadTracker, type PendingUploadTracker } from "./pendingUploadTracker";
 
 export const usePendingMediaUploads = (options?: { cleanupOnUnmount?: boolean }) => {
   const { cleanupOnUnmount = true } = options ?? {};
-  const pendingUrlsRef = useRef(new Set<string>());
+  const trackerRef = useRef<PendingUploadTracker | null>(null);
+  if (trackerRef.current == null) {
+    trackerRef.current = createPendingUploadTracker({ discard: (objectId) => storageClient.discard(objectId) });
+  }
 
   const register = useCallback((url: string | null) => {
-    if (!url) return;
-    pendingUrlsRef.current.add(url);
+    trackerRef.current?.register(url);
   }, []);
 
   const commit = useCallback((url: string | null) => {
-    if (!url) return;
-    pendingUrlsRef.current.delete(url);
+    trackerRef.current?.commit(url);
   }, []);
 
   const cleanup = useCallback(async () => {
-    const urls = Array.from(pendingUrlsRef.current);
-    pendingUrlsRef.current.clear();
-    await Promise.all(
-      urls.map(async (url) => {
-        const path = getPathFromStorageUrl(url);
-        if (!path) return;
-        try {
-          await directStorageClient.remove(path);
-        } catch (error) {
-          console.error(error);
-        }
-      }),
-    );
+    await trackerRef.current?.cleanup();
   }, []);
 
   useEffect(() => {

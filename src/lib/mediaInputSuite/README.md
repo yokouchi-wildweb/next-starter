@@ -1,6 +1,6 @@
 # mediaInputSuite 利用ガイド
 
-本ドキュメントは `src/lib/mediaInputSuite` のコンポーネント/フックの役割と、フォーム連携時の使い分けをまとめたものです。**メタデータ取得 → プレビュー → Firebase Storage へのアップロード** を一貫して扱うためのリファレンスとして活用してください。
+本ドキュメントは `src/lib/mediaInputSuite` のコンポーネント/フックの役割と、フォーム連携時の使い分けをまとめたものです。**メタデータ取得 → プレビュー → storage 基盤（`src/lib/storage`）へのアップロード** を一貫して扱うためのリファレンスとして活用してください。
 
 > このフォルダはライブラリ本体です。RHF 連携のラッパー (`src/components/Form/MediaHandler`) や FieldRenderer 連携 (`src/components/Form/FieldRenderer`) は別フォルダにあります。
 
@@ -25,6 +25,7 @@ src/lib/mediaInputSuite
   hooks/useMediaMetadataActions.ts
   hooks/useMediaUploaderField.tsx
   hooks/usePendingMediaUploads.ts
+  hooks/pendingUploadTracker.ts
   hooks/usePendingMediaDeletion.ts
   hooks/useMockUploader.ts
   types.ts
@@ -48,14 +49,17 @@ src/lib/mediaInputSuite
 
 ### 2.2 MediaUploader (`src/lib/mediaInputSuite/components/MediaUploader.tsx`)
 
-- `MediaInput` を内包し、`clientUploader` 経由で Firebase Storage にアップロード。
-- `uploadPath` を基準に保存先パスを生成。
-- 進捗オーバーレイとキャンセルを内蔵。
+- `MediaInput` を内包し、`uploadToStorage`（`@/lib/storage/client`）でアップロードする。
+- `purpose`（必須）: ファイルの用途 ID `<domain>.<field>`。`src/registry/storagePurposeRegistry.ts` に登録した名前。保存先・型・サイズ上限・アップロードできる人は用途で決まる（旧 `uploadPath` は廃止）。
+- `reencodeImage`（既定 `true`）: jpeg / png / webp を描き直して EXIF（撮影位置など）を落とす。`false` で送られたまま。
+- 値（`onUrlChange` に渡る・`initialUrl` で受ける）は storage ref（`storage://…`）。移行前の旧 URL もそのまま表示・保持できる。プレビューは `MediaPreview` が ref を表示用 URL にする。
+- 進捗オーバーレイとキャンセルを内蔵（選択直後から出る）。キャンセルすると発行済みのアップロードは取り消される（discard）。
+- 16MiB を超えるファイルは GCS のセッションで分けて送る（通信の途切れや一時的な 5xx は再試行。詳細: `src/lib/storage/README.md`）。
 - `onRegisterPendingUpload` / `onRegisterPendingDelete` を使うと、アップロード完了後や削除時に pending 管理へ通知できる。
 
 ### 2.3 MediaUploaderMulti (`src/lib/mediaInputSuite/components/MediaUploaderMulti.tsx`)
 
-- 複数枚アップロード版。`value: string[]` を扱う。
+- 複数枚アップロード版。`value: string[]`（storage ref の配列）を扱う。`purpose`（必須）・`reencodeImage` は単一版と同じ。
 - 並列アップロード（スロット毎の進捗・キャンセル）、追加スロット、削除、ドラッグ並び替え（`reorderable` で切替）。
 - `validationRule.maxItems`（既定 10） / `minItems` で件数制約。
 - 表示は正方形グリッド（`MediaThumbGrid` を内包）。動画は controls 非表示の第1フレーム表示。
@@ -70,6 +74,7 @@ src/lib/mediaInputSuite
 ### 2.5 MediaPreview (`src/lib/mediaInputSuite/components/MediaPreview.tsx`)
 
 - `detectMediaType` で image/video/unknown を判定。
+- `src` に storage ref を渡せる。種類は ref の拡張子で判定し、表示は `resolveStorageSrc`（非公開は固定 URL `/api/storage/objects/<id>`）。
 - `ImagePreview` / `VideoPreview` / `UnsupportedPreview` に振り分け。
 
 ---
@@ -83,14 +88,22 @@ src/lib/mediaInputSuite
 | `useMediaMetadataBinding` | メタデータを RHF フィールドへ自動反映 | `SelectedMediaMetadata` を受け取り `setValue` |
 | `useMediaMetadataActions` | メタデータ値ごとの任意アクション | 取得失敗時は `null` を通知 |
 | `useMediaUploaderField` | RHF と `ControlledMediaUploader` のブリッジ | `render` / `isUploading` / `commit` / `reset` を返す |
-| `usePendingMediaUploads` | pending upload の登録/確定/掃除 | `cleanupOnUnmount` 既定 `true` |
-| `usePendingMediaDeletion` | pending delete の登録/確定/取消 | `commit` で実削除 |
+| `usePendingMediaUploads` | 編集中にアップロードした未採用分の登録/確定/取り消し | `cleanupOnUnmount` 既定 `true`。中身は `pendingUploadTracker` |
+| `usePendingMediaDeletion` | 互換のために残した空の実装 | 何もしない（下記） |
 | `useMockUploader` | デモ/検証用の擬似アップロード | 進捗・エラーを擬似再現 |
 
 ### `useMediaUploaderField` の挙動
 
-- `commit()` は **pending upload の確定 + pending delete の実行 + pending upload の cleanup** をまとめて行う。
-- `reset()` は pending を破棄し、元の URL に戻す。
+- `commit()` は **最終値の確定 + 残りの未採用分の取り消し（discard）** をまとめて行う（業務保存の成功後に呼ばれる）。
+- `reset()` は未採用分を取り消し、元の値に戻す。
+
+### アップロードと保存の分担
+
+- このセッションでアップロードした ref のうち、保存した最終値に残らなかったもの（差し替え前・削除したもの）は、`commit()` / `reset()` / unmount で discard する。
+  - discard するのは storage ref だけ。旧 URL・初期値（保存済みの値）は送らない。サーバーも本人・未紐付けのものしか受け付けない
+  - 送れなかった分（ページ遷移で途切れた等）は掃除 cron（storage-sweep）が猶予期間の後に消す
+- 採用済み（業務行に保存済み）のファイルはクライアントから消さない。値を差し替え・削除して業務保存すると、サーバーの CRUD 連動（detach）が台帳を deleted にして実物を消す。そのため `usePendingMediaDeletion` は API だけを残した空の実装。
+- アップロード（`uploadToStorage`）は features・app の UI 部品から直接呼ばない。フォームではこの部品（FieldRenderer・MediaHandler 経由を含む）を使う（`src/lib/storage/README.md`「呼び出す場所」）。
 
 ---
 
@@ -151,12 +164,13 @@ export function FooFields({ methods, onMediaStateChange }) {
    - RHF なら `ControlledMediaUploader` or `useMediaUploaderField`
 
 3. **FieldRenderer で自動生成フォーム**
-   - `FieldRenderer` + `baseFields`（domain.json から読み込み）
+   - `FieldRenderer` + `baseFields`（domain.json から読み込み）。メディア項目には `purpose` が要る（生成の `<Domain>Fields` が付ける）
 
 ---
 
 ## 6. 注意点
 
 - `onMetadataChange` は選択中ファイルのみ対象。既存 URL のみの場合は発火しない。
-- `usePendingMediaUploads` は unmount 時に自動 cleanup が既定。長寿命フォームでは `cleanupOnUnmount: false` を検討。
+- `usePendingMediaUploads` は unmount 時に自動 cleanup（未採用分の discard）が既定。長寿命フォームでは `cleanupOnUnmount: false` を検討。
+- `purpose` の用途が受け付けない型・サイズは、発行の時点でサーバーが 400 にする。`validationRule` は画面での先回りの検査。
 - MIME/拡張子/サイズの制御は `validationRule` と `formatValidationError` に集約。

@@ -1,7 +1,7 @@
 // src/components/Overlays/DetailModal/DetailModalVideo.tsx
 //
 // DetailModal の media(type: "video")の表示。非公開ファイルの固定 URL(/api/storage/objects/)は、
-// 署名期限後の読み込み失敗から位置を保って復帰する(usePrivateMediaRecovery)。それ以外の URL は従来どおり。
+// 署名期限後の読み込み失敗から位置を保って復帰し、期限が近い状態での再生・シークは先回りで読み直す(usePrivateMediaRecovery)。それ以外の URL は従来どおり。
 
 "use client";
 
@@ -31,6 +31,9 @@ export default function DetailModalVideo({ media }: { media: DetailModalMedia })
         onError={recovery.handleError}
         onLoadedMetadata={recovery.handleLoadedMetadata}
         onCanPlay={recovery.handleCanPlay}
+        onLoadStart={recovery.handleLoadStart}
+        onPlay={recovery.handlePlaybackIntent}
+        onSeeking={recovery.handlePlaybackIntent}
       >
         {media.alt ?? "video preview"}
       </video>
