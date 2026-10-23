@@ -19,6 +19,6 @@ this_repo: Tier1 (canonical upstream). Hierarchy: Tier1 → Tier2 → Tier3.
 note: downstream forks maintain their OWN project.md and overwrite this declaration per-fork.
 rule: generic/foundational capabilities live HERE (Tier1); downstream must not hardcode them locally — escalate instead.
 request_protocol (shared mailbox: ~/.team/upstream-requests/ — never under ~/.claude/: Claude Code always prompts for Write/Edit there, allow rules cannot suppress it):
-- downstream: file a generic-capability request with /upreq (writes a structured ticket to the mailbox)
-- Tier1 (here): handle incoming tickets with /inbox → record a RESOLUTION, then move to done/
-- downstream: track status of its own filed requests with /wen (open vs resolved)
+- inbox per receiving repo: ~/.team/upstream-requests/<fork-id>/ (+ done/) | the filer picks the target tier itself (`to:` line) | skills ship in .claude/skills/{upreq,inbox,wen}, layout: .claude/skills/upreq/SKILL.md
+- downstream: file a request with /upreq (any ancestor tier, not only Tier1) | track own requests with /wen
+- any repo with downstream forks (here = Tier1): handle its own inbox with /inbox → RESOLUTION, then move to its done/ | a request owned by a higher tier → relay it up from /inbox

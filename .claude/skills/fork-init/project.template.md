@@ -17,9 +17,10 @@
 ## TIER (multi-tier hierarchy)
 this_repo: Tier<N> (direct fork of <upstream name> = Tier<N-1>). <no Tier<N+1> downstream planned for now | downstream forks: ...>
 rule: generic/foundational capabilities (domain-independent infra, UI primitives, CRUD base, auth) live in Tier1. do NOT hardcode them here — file /upreq instead. <domain> code lives HERE
-request_protocol (shared mailbox: ~/.team/upstream-requests/):
-- file a generic-capability request with /upreq
+request_protocol (shared mailbox: ~/.team/upstream-requests/, one inbox per receiving repo):
+- file a request with /upreq (it picks the target tier: generic → Tier1, <domain>-specific → the tier that owns it)
 - track own requests with /wen
+- <if this fork has downstream forks: handle requests addressed to this repo with /inbox>
 - receive upstream notices with /flux (ledger: .notices/applied/<fork-id>.md)
 
 ## backend_status
