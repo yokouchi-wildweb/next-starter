@@ -9,7 +9,24 @@ import { Button } from "@/components/Form/Button/Button";
 import { BooleanCheckboxInput } from "@/components/Form/Input/Manual";
 import { Flex } from "@/components/Layout/Flex";
 import { Block } from "@/components/Layout/Block";
+import { useToast } from "@/lib/toast";
+import { MEDIA_SKIPPED_EXAMPLES_HEADER, MEDIA_SKIPPED_HEADER } from "../../media";
 import type { ExportTabContentProps, ExportField } from "./types";
+
+/** ZIP に入らなかったメディア値のヘッダを読む（件数 0 なら null） */
+function readMediaSkipped(headers: Record<string, unknown>): { count: number; examples: string[] } | null {
+  const count = Number(headers[MEDIA_SKIPPED_HEADER.toLowerCase()] ?? 0);
+  if (!Number.isFinite(count) || count <= 0) return null;
+  let examples: string[] = [];
+  try {
+    const raw = headers[MEDIA_SKIPPED_EXAMPLES_HEADER.toLowerCase()];
+    const parsed: unknown = typeof raw === "string" ? JSON.parse(decodeURIComponent(raw)) : [];
+    if (Array.isArray(parsed)) examples = parsed.filter((v): v is string => typeof v === "string");
+  } catch {
+    // 例が読めなくても件数は出す
+  }
+  return { count, examples };
+}
 
 /**
  * エクスポートタブのコンテンツ
@@ -42,6 +59,7 @@ export function ExportTab({
   const [selectedHasManyDomains, setSelectedHasManyDomains] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const isAllSelected = selectedFields.length === allFieldNames.length;
   const isNoneSelected = selectedFields.length === 0;
@@ -108,6 +126,17 @@ export function ExportTab({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
+      // 取得できなかったメディア（読み取り権限のない非公開ファイルなど）は ZIP に入らず、CSV に元の値が残る
+      const skipped = readMediaSkipped(response.headers as Record<string, unknown>);
+      if (skipped) {
+        const examples = skipped.examples.length > 0 ? `（例: ${skipped.examples.join(", ")}）` : "";
+        showToast({
+          message: `${skipped.count} 件のファイルを ZIP に含められませんでした。CSV には元の値が残っています${examples}`,
+          variant: "warning",
+          duration: 10000,
+        });
+      }
+
       onOpenChange(false);
     } catch (err) {
       console.error("Export failed:", err);
@@ -127,7 +156,7 @@ export function ExportTab({
     } finally {
       setIsExporting(false);
     }
-  }, [domain, selectedFields, includeImages, searchParams, imageFieldNames, onOpenChange, includeRelations, selectedHasManyDomains]);
+  }, [domain, selectedFields, includeImages, searchParams, imageFieldNames, onOpenChange, includeRelations, selectedHasManyDomains, showToast]);
 
   return (
     <Block className="p-4">

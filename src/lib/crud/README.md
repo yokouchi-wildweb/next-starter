@@ -398,6 +398,7 @@ createCrudService(SampleTable, {
   - tx を渡された場合は、外側の TX がまだ commit されていないので消さない
   - どちらの場合も、消し残しは台帳に deleted・`object_removed_at` null として残り、掃除 cron が片付ける
 - **actor**: routeFactory が敷く AuditContext の actorId。`runAsSystem` の中では null（所有者 null のサーバー内の書き込みだけが紐付く）
+- **storageFields**: storage を指定したサービスは、binding の列の宣言（`name` / `purpose` / `multi` / `scope`）を読み取り専用の `service.storageFields` で出す。指定しないサービスでは undefined。どの列がメディア列かを知る正本で、dataMigration の import / export が使う（クライアントの申告は信用しない）
 
 ## Storage 連携クリーンアップ
 

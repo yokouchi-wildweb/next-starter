@@ -31,10 +31,8 @@ import { storageObjectService, type StorageObjectService } from "./storageObject
 
 type Row = Record<string, unknown>;
 
-export type StorageBindingField = CrudStorageField & {
-  /** 用途の範囲（scope_id）と一致を求めるときに、行から値を取り出す */
-  scope?: (row: Row) => string | null;
-};
+/** メディア列 1 つ分の宣言（scope = 用途の範囲を行から取り出す。型は lib/crud の CrudStorageField） */
+export type StorageBindingField = CrudStorageField;
 
 export type StorageBindingOptions = {
   /** 業務行の物理削除で何をするか。keep = 何もしない（ユーザーの物理削除など。台帳と実物を残す） */

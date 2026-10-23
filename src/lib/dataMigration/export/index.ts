@@ -4,13 +4,21 @@ import "server-only";
 import { getServiceOrThrow, getJunctionTable } from "@/lib/domain/server";
 import { getDataMigrationConfig, CHUNK_SIZE } from "../config";
 import { generateCsv, csvToBuffer } from "./generateCsv";
-import { createZip, downloadChunkImages, type ZipEntry } from "./createZip";
+import {
+  createZip,
+  downloadChunkMedia,
+  mergeMediaSkipped,
+  type ExportMediaField,
+  type ZipEntry,
+} from "./createZip";
 import {
   collectExportDomains,
   type ExportDomainInfo,
 } from "../relations";
 import { db } from "@/lib/drizzle";
 import { toCamelCase } from "@/utils/stringCase.mjs";
+import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
+import type { DataMigrationMediaResolver, MediaSkipped } from "../media";
 
 export type ExportOptions = {
   /** ドメイン名 */
@@ -21,8 +29,13 @@ export type ExportOptions = {
   includeImages: boolean;
   /** 検索パラメータ（URL クエリ文字列形式） */
   searchParams?: string;
-  /** 画像フィールド名のリスト */
+  /**
+   * 画像フィールド名のリスト（storage オプションの無いサービスだけで使う旧来の指定）。
+   * storage オプション付きのサービスは storageFields（multi を含む）が正本で、この値は使わない
+   */
   imageFields?: string[];
+  /** ファイル台帳の操作（API ルートが実行者で作って注入する。ref の解決に使う） */
+  media: DataMigrationMediaResolver;
   /** リレーションを含めるか（default: false） */
   includeRelations?: boolean;
   /** エクスポートする hasMany ドメインのリスト（snake_case） */
@@ -35,6 +48,8 @@ export type ExportResult = {
   filename: string;
   recordCount: number;
   chunkCount: number;
+  /** ZIP に入らなかったメディア値（CSV には元の値が残る） */
+  mediaSkipped: MediaSkipped;
 };
 
 /**
@@ -47,6 +62,8 @@ export type ExportManifestV1 = {
   totalRecords: number;
   chunkCount: number;
   fields: string[];
+  /** ZIP に入らなかったメディア値（画像を含める export のときだけ） */
+  mediaSkipped?: MediaSkipped;
 };
 
 /**
@@ -73,6 +90,8 @@ export type ExportManifestV1_1 = {
   includeRelations: true;
   mainDomain: string;
   domains: ManifestDomainInfo[];
+  /** ZIP に入らなかったメディア値（画像を含める export のときだけ） */
+  mediaSkipped?: MediaSkipped;
 };
 
 /**
@@ -123,12 +142,30 @@ function parseSearchParams(searchParams?: string): Record<string, string> {
 }
 
 /**
+ * export するメディア列。storage オプション付きのサービスは storageFields（正本）、無ければ旧来の imageFields（単一値）
+ */
+function exportMediaFieldsOf(service: any, fallbackImageFields: readonly string[]): ExportMediaField[] {
+  const storageFields = service.storageFields as readonly CrudStorageField[] | undefined;
+  if (storageFields) return storageFields.map((field) => ({ name: field.name, multi: Boolean(field.multi) }));
+  return fallbackImageFields.map((name) => ({ name, multi: false }));
+}
+
+/** export の取得用 URL: http(s) の値はそのまま、ref は注入された resolver で解決、それ以外は取得しない */
+function exportUrlResolver(media: DataMigrationMediaResolver): (value: string) => Promise<string | null> {
+  return async (value) => {
+    if (/^https?:\/\//i.test(value)) return value;
+    if (value.startsWith("storage://")) return media.resolveExportUrl(value);
+    return null;
+  };
+}
+
+/**
  * データをエクスポート
  */
 export async function exportData(
   options: ExportOptions
 ): Promise<ExportResult | ExportError> {
-  const { domain, selectedFields, includeImages, searchParams, imageFields = [], includeRelations = false } = options;
+  const { domain, selectedFields, includeImages, searchParams, imageFields = [], includeRelations = false, media } = options;
 
   // リレーションを含める場合は別関数で処理
   if (includeRelations) {
@@ -140,7 +177,7 @@ export async function exportData(
   // サービスを取得
   let service: any;
   try {
-    service = getServiceOrThrow(domain);
+    service = getServiceOrThrow(toCamelCase(domain));
   } catch {
     return {
       success: false,
@@ -170,6 +207,8 @@ export async function exportData(
 
     // ZIP エントリを作成
     const zipEntries: ZipEntry[] = [];
+    const mediaFields = exportMediaFieldsOf(service, imageFields).filter((field) => orderedFields.includes(field.name));
+    const mediaSkipped: MediaSkipped = { count: 0, examples: [] };
 
     // レコードをチャンクごとに取得・処理（削除済み含む）
     let page = 1;
@@ -226,10 +265,14 @@ export async function exportData(
 
       // 画像を含める場合、並列ダウンロードして CSV のパスを置き換える
       let recordsForCsv = chunkRecords;
-      if (includeImages && imageFields.length > 0) {
-        const imageResult = await downloadChunkImages(chunkRecords, imageFields, chunkFolderName);
-        recordsForCsv = imageResult.modifiedRecords;
-        zipEntries.push(...imageResult.zipEntries);
+      if (includeImages && mediaFields.length > 0) {
+        const mediaResult = await downloadChunkMedia(chunkRecords, mediaFields, chunkFolderName, {
+          domain,
+          resolveUrl: exportUrlResolver(media),
+        });
+        recordsForCsv = mediaResult.modifiedRecords;
+        zipEntries.push(...mediaResult.zipEntries);
+        mergeMediaSkipped(mediaSkipped, mediaResult.skipped);
       }
 
       // このチャンクの CSV を生成（画像パスは assets/... に置換済み）
@@ -275,6 +318,7 @@ export async function exportData(
       totalRecords: totalRecordCount,
       chunkCount: finalChunkCount,
       fields: orderedFields,
+      ...(includeImages ? { mediaSkipped } : {}),
     };
 
     zipEntries.unshift({
@@ -297,6 +341,7 @@ export async function exportData(
       filename,
       recordCount: totalRecordCount,
       chunkCount: finalChunkCount,
+      mediaSkipped,
     };
   } catch (error) {
     console.error("Export error:", error);
@@ -316,12 +361,14 @@ async function exportDomainRecords(
   domainInfo: ExportDomainInfo,
   config: { maxRecordLimit: number },
   includeImages: boolean,
+  media: DataMigrationMediaResolver,
   searchParams?: string
 ): Promise<{
   success: true;
   records: Record<string, unknown>[];
   chunkCount: number;
   zipEntries: ZipEntry[];
+  mediaSkipped: MediaSkipped;
 } | {
   success: false;
   error: string;
@@ -334,6 +381,7 @@ async function exportDomainRecords(
 
   const zipEntries: ZipEntry[] = [];
   const allRecords: Record<string, unknown>[] = [];
+  const mediaSkipped: MediaSkipped = { count: 0, examples: [] };
 
   // 中間テーブルの場合
   if (type === "junction") {
@@ -389,7 +437,7 @@ async function exportDomainRecords(
     }
 
     const chunkCount = allRecords.length === 0 ? 1 : Math.ceil(allRecords.length / CHUNK_SIZE);
-    return { success: true, records: allRecords, chunkCount, zipEntries };
+    return { success: true, records: allRecords, chunkCount, zipEntries, mediaSkipped };
   }
 
   // 通常ドメインの場合
@@ -419,6 +467,7 @@ async function exportDomainRecords(
 
   const parsedParams = parseSearchParams(searchParams);
   const searchQuery = parsedParams.searchQuery;
+  const mediaFields = exportMediaFieldsOf(service, imageFields).filter((field) => fieldNames.includes(field.name));
 
   let page = 1;
   let chunkIndex = 1;
@@ -462,10 +511,14 @@ async function exportDomainRecords(
 
     // 画像を含める場合、並列ダウンロードして CSV のパスを置き換える
     let recordsForCsv = chunkRecords;
-    if (includeImages && imageFields.length > 0) {
-      const imageResult = await downloadChunkImages(chunkRecords, imageFields, `${domain}/${chunkFolderName}`);
-      recordsForCsv = imageResult.modifiedRecords;
-      zipEntries.push(...imageResult.zipEntries);
+    if (includeImages && mediaFields.length > 0) {
+      const mediaResult = await downloadChunkMedia(chunkRecords, mediaFields, `${domain}/${chunkFolderName}`, {
+        domain,
+        resolveUrl: exportUrlResolver(media),
+      });
+      recordsForCsv = mediaResult.modifiedRecords;
+      zipEntries.push(...mediaResult.zipEntries);
+      mergeMediaSkipped(mediaSkipped, mediaResult.skipped);
     }
 
     // このチャンクの CSV を生成（画像パスは assets/... に置換済み）
@@ -496,7 +549,7 @@ async function exportDomainRecords(
   }
 
   const chunkCount = allRecords.length === 0 ? 1 : chunkIndex - 1;
-  return { success: true, records: allRecords, chunkCount, zipEntries };
+  return { success: true, records: allRecords, chunkCount, zipEntries, mediaSkipped };
 }
 
 /**
@@ -505,7 +558,7 @@ async function exportDomainRecords(
 export async function exportDataWithRelations(
   options: ExportOptions
 ): Promise<ExportResult | ExportError> {
-  const { domain, includeImages, searchParams, selectedHasManyDomains } = options;
+  const { domain, includeImages, searchParams, selectedHasManyDomains, media } = options;
   const config = getDataMigrationConfig();
 
   try {
@@ -518,6 +571,7 @@ export async function exportDataWithRelations(
     const zipEntries: ZipEntry[] = [];
     const manifestDomains: ManifestDomainInfo[] = [];
     let totalRecordCount = 0;
+    const mediaSkipped: MediaSkipped = { count: 0, examples: [] };
 
     // 各ドメインをエクスポート
     for (const domainInfo of domainInfos) {
@@ -530,6 +584,7 @@ export async function exportDataWithRelations(
         domainInfo,
         config,
         includeImages,
+        media,
         domainSearchParams
       );
 
@@ -539,6 +594,7 @@ export async function exportDataWithRelations(
 
       zipEntries.push(...result.zipEntries);
       totalRecordCount += result.records.length;
+      mergeMediaSkipped(mediaSkipped, result.mediaSkipped);
 
       // マニフェスト用ドメイン情報
       const fieldNames = domainInfo.fields.map((f) => f.name);
@@ -576,6 +632,7 @@ export async function exportDataWithRelations(
       includeRelations: true,
       mainDomain: domain,
       domains: manifestDomains,
+      ...(includeImages ? { mediaSkipped } : {}),
     };
 
     zipEntries.unshift({
@@ -600,6 +657,7 @@ export async function exportDataWithRelations(
       filename,
       recordCount: mainDomainInfo?.totalRecords || 0,
       chunkCount: mainDomainInfo?.chunkCount || 0,
+      mediaSkipped,
     };
   } catch (error) {
     console.error("Export error:", error);

@@ -1,8 +1,10 @@
 // src/app/api/data-migration/import-chunk/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { createApiRoute } from "@/lib/routeFactory";
 import { importChunk } from "@/lib/dataMigration/import/importChunk";
+import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
 
 export const POST = createApiRoute(
   {
@@ -11,13 +13,17 @@ export const POST = createApiRoute(
     access: { roleCategories: ["admin"] },
   },
   async (req: NextRequest) => {
+    // ファイル台帳の操作の実行者（DB と同期した管理者）
+    const admin = await requireAdmin();
+
     // FormData からチャンクデータを取得
     const formData = await req.formData();
 
     const domain = formData.get("domain") as string | null;
     const chunkName = formData.get("chunkName") as string | null;
     const csvContent = formData.get("csvContent") as string | null;
-    const imageFieldsRaw = formData.get("imageFields") as string | null;
+    // imageFields（旧クライアントが送る）は読まない。メディア列はサービスの storageFields で決める
+    const uploadedRefsRaw = formData.get("uploadedRefs") as string | null;
     const updateImagesRaw = formData.get("updateImages") as string | null;
     const fieldsRaw = formData.get("fields") as string | null;
     const domainType = formData.get("domainType") as "main" | "related" | "junction" | null;
@@ -45,22 +51,28 @@ export const POST = createApiRoute(
     }
 
     // オプションをパース
-    const imageFields = imageFieldsRaw ? JSON.parse(imageFieldsRaw) : [];
+    const uploadedRefs: unknown = uploadedRefsRaw ? JSON.parse(uploadedRefsRaw) : [];
+    if (!Array.isArray(uploadedRefs) || uploadedRefs.some((ref) => typeof ref !== "string")) {
+      return NextResponse.json(
+        { error: "uploadedRefs must be a string array", code: "VALIDATION_ERROR" },
+        { status: 400 }
+      );
+    }
     const updateImages = updateImagesRaw !== "false";
     const fields = fieldsRaw ? JSON.parse(fieldsRaw) : [];
 
     // アセットファイルを取得（画像など）
-    const assets = new Map<string, Buffer>();
+    const assets = new Map<string, Uint8Array>();
     for (const [key, value] of formData.entries()) {
       // File は Blob を継承しているので Blob チェックで両方対応
       if (key.startsWith("asset:") && value instanceof Blob) {
         const assetPath = key.replace("asset:", "");
         const arrayBuffer = await value.arrayBuffer();
-        assets.set(assetPath, Buffer.from(arrayBuffer));
+        assets.set(assetPath, new Uint8Array(arrayBuffer));
       }
     }
 
-    console.log(`[Import] Assets received: ${assets.size} files, imageFields: ${JSON.stringify(imageFields)}`);
+    console.log(`[Import] Assets received: ${assets.size} files, uploadedRefs: ${uploadedRefs.length}`);
 
     // チャンクをインポート
     const result = await importChunk({
@@ -68,10 +80,11 @@ export const POST = createApiRoute(
       chunkName,
       csvContent,
       assets,
-      imageFields,
+      uploadedRefs: uploadedRefs as string[],
       updateImages,
       fields,
       domainType: domainType || undefined,
+      media: createDataMigrationMediaResolver(admin),
     });
 
     if (!result.success) {

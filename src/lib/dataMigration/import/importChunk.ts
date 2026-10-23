@@ -1,14 +1,23 @@
 // src/lib/dataMigration/import/importChunk.ts
 
+// メディア列（サービスの storageFields）は bulkUpsert で書かない。値は TX の外で先に解決し（mediaValues.ts）、
+// チャンクごとの 1 つの TX の中で bulkUpsert（メディア列を外す）→ 行ごとの update（binding が attach / detach）の順に書く。
+// 1 行でも失敗すればチャンク全体を巻き戻す。
+
 import "server-only";
-import { v7 as uuidv7 } from "uuid";
 import { getDomainConfig, hasDomainConfig } from "@/lib/domain";
 import { getServiceOrThrow, getJunctionTable } from "@/lib/domain/server";
-import { uploadFileServer } from "@/lib/firebase/server/storage";
+import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { parseCsv } from "./parseCsv";
 import { db } from "@/lib/drizzle";
-import type { FieldTypeInfo } from "./index";
+import type { DataMigrationMediaResolver } from "../media";
+import { MediaValueError, resolveMediaRow } from "./mediaValues";
+
+export type FieldTypeInfo = {
+  name: string;
+  fieldType?: string;
+};
 
 export type ImportChunkOptions = {
   /** ドメイン名 */
@@ -17,12 +26,17 @@ export type ImportChunkOptions = {
   chunkName: string;
   /** CSV コンテンツ（文字列） */
   csvContent: string;
-  /** アセットファイル（画像など） */
-  assets: Map<string, Buffer>;
-  /** 画像フィールド名のリスト */
-  imageFields?: string[];
-  /** 画像を更新するか（default: true） */
+  /** ZIP に同梱されたファイル（`assets/` 以降のパス → 中身）。サーバー ZIP 経路で使う */
+  assets?: Map<string, Uint8Array>;
+  /** 今回クライアントがアップロードした ref（CSV の `assets/…` を置き換えたもの） */
+  uploadedRefs?: Iterable<string>;
+  /**
+   * メディア列を取り込むか（default: true）。false = メディア列に触らない（CSV の値は無視）。
+   * どの列がメディア列かはサービスの storageFields が正本（クライアントの申告は使わない）
+   */
   updateImages?: boolean;
+  /** ファイル台帳の操作（API ルートが実行者で作って注入する） */
+  media: DataMigrationMediaResolver;
   /** フィールド型情報（型変換用） */
   fields?: FieldTypeInfo[];
   /** ドメインタイプ（main/related/junction/hasMany） */
@@ -81,41 +95,8 @@ function extractErrorInfo(error: unknown): Record<string, unknown> {
 }
 
 /**
- * MIME タイプを拡張子から推測
- */
-function getMimeType(filename: string): string {
-  const ext = filename.split(".").pop()?.toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    gif: "image/gif",
-    webp: "image/webp",
-    svg: "image/svg+xml",
-    pdf: "application/pdf",
-  };
-  return mimeTypes[ext || ""] || "application/octet-stream";
-}
-
-/**
- * 画像をアップロードして URL を取得
- */
-async function uploadImage(
-  domain: string,
-  fieldName: string,
-  filename: string,
-  buffer: Buffer
-): Promise<string> {
-  const ext = filename.includes(".") ? filename.substring(filename.lastIndexOf(".")) : "";
-  const path = `${domain}/${fieldName}/${uuidv7()}${ext}`;
-  const mimeType = getMimeType(filename);
-  return uploadFileServer(path, buffer, mimeType);
-}
-
-/**
- * 画像フィールドのプレースホルダー値
- * bulkUpsert 時に画像フィールドに設定し、アップロード完了後に実際の URL で更新する。
- * アップロード失敗時は null に変換される。
+ * @deprecated 旧 import の「画像列に仮の値を入れて後で置き換える」流れの値。今の import は使わない
+ * （メディア列は bulkUpsert で書かず、行ごとの update で書く）。外部の参照のために残している
  */
 export const PENDING_IMAGE_PLACEHOLDER = "__PENDING_IMAGE_UPLOAD__";
 
@@ -292,22 +273,20 @@ async function importJunctionChunk(options: {
   }
 }
 
+/** 書き込み先の既存行（削除済みも含む）。無ければ null */
+async function findExisting(service: any, id: string): Promise<Record<string, unknown> | null> {
+  const finder = typeof service.getWithDeleted === "function" ? service.getWithDeleted : service.get;
+  const row = await finder.call(service, id);
+  return (row as Record<string, unknown> | undefined) ?? null;
+}
+
 /**
  * チャンク単位でデータをインポート
  */
 export async function importChunk(
   options: ImportChunkOptions
 ): Promise<ImportChunkResult> {
-  const {
-    domain,
-    chunkName,
-    csvContent,
-    assets,
-    imageFields = [],
-    updateImages = true,
-    fields = [],
-    domainType,
-  } = options;
+  const { domain, chunkName, csvContent, domainType } = options;
 
   // 中間テーブルの場合は直接 DB 挿入
   if (domainType === "junction") {
@@ -335,6 +314,27 @@ export async function importChunk(
       error: `Domain ${domain} does not support import (useImportExport: false)`,
     };
   }
+
+  return importServiceChunk(service, options);
+}
+
+/**
+ * 解決済みのサービスにチャンクを取り込む（importChunk の本体。実 DB テストは専用表のサービスを直接渡す）
+ */
+export async function importServiceChunk(
+  service: any,
+  options: Omit<ImportChunkOptions, "domain" | "domainType"> & { domain?: string },
+): Promise<ImportChunkResult> {
+  const {
+    domain = "",
+    chunkName,
+    csvContent,
+    assets = new Map<string, Uint8Array>(),
+    uploadedRefs = [],
+    updateImages = true,
+    fields = [],
+    media,
+  } = options;
 
   // bulkUpsert が存在するか確認
   if (typeof service.bulkUpsert !== "function") {
@@ -366,10 +366,15 @@ export async function importChunk(
       };
     }
 
+    // メディア列（storage オプションの列）。bulkUpsert では常に外す
+    const storageFields: readonly CrudStorageField[] = service.storageFields ?? [];
+    const mediaNames = new Set(storageFields.map((field) => field.name));
+    const importedMediaFields = updateImages ? storageFields : [];
+
     // フィールド型情報を取得
     const { arrayFields, dateFields, numberFields } = getFieldTypes(fields);
 
-    // 画像フィールドにプレースホルダーを設定し、型変換を適用してレコードを準備
+    // 型変換を適用してレコードを準備（メディア列は外す）
     // deletedAt は parseUpsert で削除されるが、drizzle-orm が DEFAULT を使用するのを防ぐため
     // 明示的に null を設定する。実際の値は後で復元する。
     const deletedAtMap = new Map<number, string | null>(); // index -> deletedAt 値
@@ -386,13 +391,9 @@ export async function importChunk(
           }
           continue; // ループ後に明示的に設定
         }
-        // 画像フィールドはプレースホルダーを設定（updateImages が true の場合）
-        // UPDATE 時は excludeFromUpdate で既存値を保持するため、INSERT 時のみ適用される
-        if (updateImages && imageFields.includes(key)) {
-          cleanRecord[key] = PENDING_IMAGE_PLACEHOLDER;
-        } else {
-          cleanRecord[key] = value;
-        }
+        // メディア列は bulkUpsert で書かない（行ごとの update で binding を通す）
+        if (mediaNames.has(key)) continue;
+        cleanRecord[key] = value;
       }
       // deletedAt を明示的に null として設定（drizzle-orm が DEFAULT を使用するのを防ぐ）
       // CSV に deletedAt 列がない場合も含めて確実に設定
@@ -401,63 +402,59 @@ export async function importChunk(
       return cleanRecord;
     });
 
-    // bulkUpsert 実行（画像フィールドは UPDATE SET から除外して既存値を保持）
-    const upsertResult = await service.bulkUpsert(
-      recordsForUpsert,
-      updateImages && imageFields.length > 0
-        ? { excludeFromUpdate: imageFields }
-        : undefined
-    );
-    const upsertedRecords = upsertResult.results as Record<string, unknown>[];
-
-    // 画像アップロード、プレースホルダークリーンアップ、deletedAt 復元を統合
-    // 各レコードに対して1回の update で処理
-
-    for (let i = 0; i < records.length; i++) {
-      const originalRecord = records[i];
-      const upsertedRecord = upsertedRecords[i];
-      if (!upsertedRecord) continue;
-
-      const recordId = String(upsertedRecord.id);
-      const updates: Record<string, unknown> = {};
-
-      // 画像アップロード処理
-      if (updateImages && imageFields.length > 0) {
-        for (const imageField of imageFields) {
-          const csvValue = originalRecord[imageField];
-
-          // CSV に assets/ パスが記載されている場合 → アップロード
-          if (typeof csvValue === "string" && csvValue.startsWith("assets/")) {
-            const assetPath = csvValue.replace(/^assets\//, "");
-            const assetBuffer = assets.get(assetPath);
-
-            if (assetBuffer) {
-              const filename = assetPath.split("/").pop() || "image";
-              const newUrl = await uploadImage(domain, imageField, filename, assetBuffer);
-              updates[imageField] = newUrl;
-            } else if (upsertedRecord[imageField] === PENDING_IMAGE_PLACEHOLDER) {
-              // アセットが見つからずプレースホルダーが残っている場合は null に
-              updates[imageField] = null;
-            }
-          } else if (upsertedRecord[imageField] === PENDING_IMAGE_PLACEHOLDER) {
-            // プレースホルダーが残っている場合は null に変換
-            updates[imageField] = null;
-          }
-        }
-      }
-
-      // deletedAt の復元（ソフトデリートされたレコードの場合）
-      // drizzle スキーマは camelCase プロパティ名を期待するため deletedAt を使用
-      const deletedAtValue = deletedAtMap.get(i);
-      if (deletedAtValue !== undefined) {
-        updates["deletedAt"] = deletedAtValue;
-      }
-
-      // 更新が必要な場合のみ update を実行
-      if (Object.keys(updates).length > 0) {
-        await service.update(recordId, updates);
+    // メディア列の値を TX の外で先に解決する（putFromServer / copy は時間がかかるため）
+    const mediaUpdates: (Record<string, unknown> | null)[] = [];
+    if (importedMediaFields.some((field) => records.some((record) => field.name in record))) {
+      const uploaded = new Set(uploadedRefs);
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        const id = typeof record.id === "string" && record.id.trim() !== "" ? record.id.trim() : null;
+        const existing = id ? await findExisting(service, id) : null;
+        const resolved = await resolveMediaRow({
+          rowNumber: i + 1,
+          record,
+          existing,
+          scopeRow: { ...(existing ?? {}), ...recordsForUpsert[i] },
+          fields: importedMediaFields,
+          assets,
+          uploadedRefs: uploaded,
+          media,
+        });
+        mediaUpdates.push(Object.keys(resolved).length > 0 ? resolved : null);
       }
     }
+
+    // チャンクの書き込みは 1 つの TX（1 行でも失敗すればチャンク全体を巻き戻す）
+    await db.transaction(async (tx) => {
+      // bulkUpsert 実行（メディア列は UPDATE SET からも外し、既存の値を保つ）
+      const upsertResult = await service.bulkUpsert(
+        recordsForUpsert,
+        mediaNames.size > 0 ? { excludeFromUpdate: [...mediaNames] } : undefined,
+        tx,
+      );
+      const upsertedRecords = upsertResult.results as Record<string, unknown>[];
+
+      // メディア列の書き込みと deletedAt の復元を、各レコード 1 回の update で行う
+      // （メディア列を含む update では binding が同じ TX で attach / detach する）
+      for (let i = 0; i < records.length; i++) {
+        const upsertedRecord = upsertedRecords[i];
+        if (!upsertedRecord) continue;
+
+        const updates: Record<string, unknown> = { ...(mediaUpdates[i] ?? {}) };
+
+        // deletedAt の復元（ソフトデリートされたレコードの場合）
+        // drizzle スキーマは camelCase プロパティ名を期待するため deletedAt を使用
+        const deletedAtValue = deletedAtMap.get(i);
+        if (deletedAtValue !== undefined) {
+          updates["deletedAt"] = deletedAtValue;
+        }
+
+        // 更新が必要な場合のみ update を実行
+        if (Object.keys(updates).length > 0) {
+          await service.update(String(upsertedRecord.id), updates, tx);
+        }
+      }
+    });
 
     return {
       success: true,
@@ -465,6 +462,10 @@ export async function importChunk(
       recordCount: records.length,
     };
   } catch (error) {
+    if (error instanceof MediaValueError) {
+      console.error(`[Import] ❌ Chunk ${chunkName} failed: ${error.message}`);
+      return { success: false, chunkName, error: error.message };
+    }
     // エラー情報を構造化して出力
     const errorInfo = extractErrorInfo(error);
     console.error(`[Import] ❌ Chunk ${chunkName} failed:`, JSON.stringify(errorInfo, null, 2));

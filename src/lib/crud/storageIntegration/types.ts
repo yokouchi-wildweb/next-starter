@@ -15,6 +15,16 @@ export type CrudStorageField = {
   purpose: string;
   /** true = 値が配列（mediaUploaderMulti） */
   multi?: boolean;
+  /** 用途の範囲（scope_id）と一致を求めるときに、行から値を取り出す */
+  scope?: (row: Record<string, unknown>) => string | null;
+};
+
+/**
+ * storage オプション付きのサービスが出す読み取り専用の宣言（どの列がメディア列か・用途・multi）。
+ * dataMigration などがメディア列を知る正本。storage を指定しないサービスでは undefined
+ */
+export type StorageFieldsAugmented = {
+  readonly storageFields?: readonly CrudStorageField[];
 };
 
 /**

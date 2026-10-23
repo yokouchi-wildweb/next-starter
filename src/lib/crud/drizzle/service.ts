@@ -47,6 +47,7 @@ import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateHasMany, DEFAULT_
 import { applyRequestMemo } from "./requestMemo";
 import { applyHiddenColumns } from "./hiddenColumns";
 import { applyStorageBinding } from "../storageIntegration/applyStorageBinding";
+import type { StorageFieldsAugmented } from "../storageIntegration/types";
 
 const resolveRecordId = (value: unknown): string | number | undefined => {
   if (typeof value === "string" || typeof value === "number") {
@@ -2496,8 +2497,8 @@ export function createCrudService<
   // 無効時も invalidateRequestMemo (no-op) を公開し、サービスの形を一定に保つ。
   // hiddenColumns: テーブルに defineHiddenColumns() の宣言があれば、最外層で
   // 全メソッドの戻り値から秘匿カラムを null 化する（audit / memo は生値で動作済み）。
-  // storage: ファイル台帳との連動。指定したサービスだけ書き込み系メソッドを包む（未指定なら service そのまま）。
-  const withStorage = serviceOptions.storage
+  // storage: ファイル台帳との連動。指定したサービスだけ書き込み系メソッドを包み、storageFields を出す（未指定なら service そのまま）。
+  const withStorage: typeof service & StorageFieldsAugmented = serviceOptions.storage
     ? applyStorageBinding(service, {
         table,
         binding: serviceOptions.storage,

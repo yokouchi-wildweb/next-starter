@@ -1,8 +1,10 @@
 // src/app/api/data-migration/import/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { createApiRoute } from "@/lib/routeFactory";
 import { importData } from "@/lib/dataMigration/import";
+import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
 
 export const POST = createApiRoute(
   {
@@ -11,12 +13,15 @@ export const POST = createApiRoute(
     access: { roleCategories: ["admin"] },
   },
   async (req: NextRequest) => {
+    // ファイル台帳の操作の実行者（DB と同期した管理者）
+    const admin = await requireAdmin();
+
     // FormData から ZIP ファイルを取得
     const formData = await req.formData();
 
     const file = formData.get("file") as File | null;
     const domain = formData.get("domain") as string | null;
-    const imageFieldsRaw = formData.get("imageFields") as string | null;
+    // imageFields（旧クライアントが送る）は読まない。メディア列はサービスの storageFields で決める
     const updateImagesRaw = formData.get("updateImages") as string | null;
     const fieldsRaw = formData.get("fields") as string | null;
 
@@ -40,7 +45,6 @@ export const POST = createApiRoute(
     const zipBuffer = Buffer.from(arrayBuffer);
 
     // オプションをパース
-    const imageFields = imageFieldsRaw ? JSON.parse(imageFieldsRaw) : [];
     const updateImages = updateImagesRaw !== "false";
     const fields = fieldsRaw ? JSON.parse(fieldsRaw) : [];
 
@@ -48,9 +52,9 @@ export const POST = createApiRoute(
     const result = await importData({
       domain,
       zipBuffer,
-      imageFields,
       updateImages,
       fields,
+      media: createDataMigrationMediaResolver(admin),
     });
 
     if (!result.success) {

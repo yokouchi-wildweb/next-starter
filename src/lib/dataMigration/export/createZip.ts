@@ -3,6 +3,8 @@
 import "server-only";
 import archiver from "archiver";
 import { PassThrough } from "stream";
+import { parseStorageRef } from "@/lib/storage";
+import { MEDIA_SKIPPED_EXAMPLE_LIMIT, type MediaSkipped } from "../media";
 
 export type ZipEntry = {
   /** ZIP 内のパス（例: "data.csv", "assets/main_image/xxx.png"） */
@@ -67,82 +69,112 @@ export async function downloadImage(url: string): Promise<Buffer | null> {
   }
 }
 
+/** export するメディア列（サービスの storageFields。multi = 値が配列） */
+export type ExportMediaField = { name: string; multi: boolean };
+
+export type DownloadChunkMediaOptions = {
+  /** skipped の例に出すドメイン名 */
+  domain: string;
+  /**
+   * 値を取得用の URL にする。http(s) の値はそのまま、ref は DataMigrationMediaResolver.resolveExportUrl で解決する。
+   * 取得できない値（権限なし・解釈できない値など）は null
+   */
+  resolveUrl: (value: string) => Promise<string | null>;
+};
+
 /**
- * チャンク内の画像を並列ダウンロードし、レコードのURLをアセットパスに置換する
- * @param records チャンク内のレコード配列
- * @param imageFields 画像フィールド名のリスト
+ * チャンク内のメディアを並列ダウンロードし、レコードの値を ZIP 内のパス（assets/<列>/<ファイル名>）に置換する。
+ * - 単一列は `<レコード ID>.<拡張子>`、multi は `<レコード ID>_<n>.<拡張子>`（n は 1 始まり）
+ * - 取得できなかった値は元の値（ref / URL）のまま CSV に残し、skipped に数える（黙って成功にしない）
  * @param pathPrefix ZIP 内のパスプレフィックス（例: "chunk_001" or "domain/chunk_001"）
- * @returns 置換済みレコードと ZIP エントリ
  */
-export async function downloadChunkImages(
+export async function downloadChunkMedia(
   records: Record<string, unknown>[],
-  imageFields: string[],
+  mediaFields: readonly ExportMediaField[],
   pathPrefix: string,
-): Promise<{ modifiedRecords: Record<string, unknown>[]; zipEntries: ZipEntry[] }> {
-  type Task = { recordIndex: number; imageField: string; url: string; recordId: string };
+  options: DownloadChunkMediaOptions,
+): Promise<{ modifiedRecords: Record<string, unknown>[]; zipEntries: ZipEntry[]; skipped: MediaSkipped }> {
+  type Task = { recordIndex: number; field: ExportMediaField; itemIndex: number; value: string; recordId: string };
   const tasks: Task[] = [];
+  const skipped: MediaSkipped = { count: 0, examples: [] };
+  const skip = (task: Task) => {
+    skipped.count++;
+    if (skipped.examples.length < MEDIA_SKIPPED_EXAMPLE_LIMIT) {
+      const item = task.field.multi ? `[${task.itemIndex + 1}]` : "";
+      skipped.examples.push(`${options.domain}/${task.recordId}/${task.field.name}${item}`);
+    }
+  };
 
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
     const recordId = String(record.id || "unknown");
-    for (const imageField of imageFields) {
-      const imageUrl = record[imageField];
-      if (typeof imageUrl === "string" && imageUrl.startsWith("http")) {
-        tasks.push({ recordIndex: i, imageField, url: imageUrl, recordId });
-      }
+    for (const field of mediaFields) {
+      const raw = record[field.name];
+      const values = field.multi ? (Array.isArray(raw) ? raw : []) : [raw];
+      values.forEach((value, itemIndex) => {
+        if (typeof value === "string" && value.trim() !== "") {
+          tasks.push({ recordIndex: i, field, itemIndex, value: value.trim(), recordId });
+        }
+      });
     }
   }
 
-  if (tasks.length === 0) {
-    return { modifiedRecords: records, zipEntries: [] };
-  }
-
   const modifiedRecords = records.map((r) => ({ ...r }));
+  for (const field of mediaFields) {
+    if (!field.multi) continue;
+    for (const record of modifiedRecords) {
+      if (Array.isArray(record[field.name])) record[field.name] = [...(record[field.name] as unknown[])];
+    }
+  }
   const zipEntries: ZipEntry[] = [];
   const CONCURRENCY = 5;
 
   for (let i = 0; i < tasks.length; i += CONCURRENCY) {
     const batch = tasks.slice(i, i + CONCURRENCY);
     const results = await Promise.all(
-      batch.map(async (task) => ({
-        ...task,
-        imageBuffer: await downloadImage(task.url),
-      })),
+      batch.map(async (task) => {
+        const url = await options.resolveUrl(task.value);
+        return { task, url, buffer: url ? await downloadImage(url) : null };
+      }),
     );
 
-    for (const result of results) {
-      if (result.imageBuffer) {
-        const filename = extractFilename(result.url, result.recordId);
-        const assetPath = `assets/${result.imageField}/${filename}`;
-        zipEntries.push({
-          path: `${pathPrefix}/${assetPath}`,
-          content: result.imageBuffer,
-        });
-        modifiedRecords[result.recordIndex] = {
-          ...modifiedRecords[result.recordIndex],
-          [result.imageField]: assetPath,
-        };
+    for (const { task, url, buffer } of results) {
+      if (!url || !buffer) {
+        skip(task);
+        continue;
       }
+      const ext = extensionOf(task.value, url);
+      const filename = task.field.multi ? `${task.recordId}_${task.itemIndex + 1}.${ext}` : `${task.recordId}.${ext}`;
+      const assetPath = `assets/${task.field.name}/${filename}`;
+      zipEntries.push({ path: `${pathPrefix}/${assetPath}`, content: buffer });
+      const record = modifiedRecords[task.recordIndex];
+      if (task.field.multi) (record[task.field.name] as unknown[])[task.itemIndex] = assetPath;
+      else record[task.field.name] = assetPath;
     }
   }
 
-  return { modifiedRecords, zipEntries };
+  return { modifiedRecords, zipEntries, skipped };
 }
 
-/**
- * URL からファイル名を抽出
- * @param url 画像の URL
- * @param recordId レコード ID
- * @returns ファイル名（例: "xxx.png"）
- */
-export function extractFilename(url: string, recordId: string): string {
+/** 拡張子: ref はその拡張子、URL はパスの末尾から（取れなければ bin） */
+function extensionOf(value: string, url: string): string {
+  const ref = parseStorageRef(value);
+  if (ref) return ref.ext;
   try {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname;
-    const ext = pathname.split(".").pop() || "bin";
-    return `${recordId}.${ext}`;
+    const last = new URL(url).pathname.split("/").pop() ?? "";
+    const dot = last.lastIndexOf(".");
+    const ext = dot >= 0 ? last.slice(dot + 1) : "";
+    return /^[A-Za-z0-9]{1,8}$/.test(ext) ? ext.toLowerCase() : "bin";
   } catch {
-    // URL パースに失敗した場合はレコード ID をそのまま使用
-    return `${recordId}.bin`;
+    return "bin";
+  }
+}
+
+/** 複数の skipped を合わせる（例は先頭から MEDIA_SKIPPED_EXAMPLE_LIMIT 件） */
+export function mergeMediaSkipped(target: MediaSkipped, source: MediaSkipped): void {
+  target.count += source.count;
+  for (const example of source.examples) {
+    if (target.examples.length >= MEDIA_SKIPPED_EXAMPLE_LIMIT) break;
+    target.examples.push(example);
   }
 }

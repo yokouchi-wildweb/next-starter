@@ -1,8 +1,11 @@
 // src/app/api/data-migration/export/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { createApiRoute } from "@/lib/routeFactory";
 import { exportData } from "@/lib/dataMigration/export";
+import { MEDIA_SKIPPED_EXAMPLES_HEADER, MEDIA_SKIPPED_HEADER } from "@/lib/dataMigration/media";
+import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
 
 type ExportRequestBody = {
   domain: string;
@@ -21,6 +24,9 @@ export const POST = createApiRoute(
     access: { roleCategories: ["admin"] },
   },
   async (req: NextRequest) => {
+    // 非公開ファイルの read 判定に使う実行者（DB と同期した管理者）
+    const admin = await requireAdmin();
+
     const body = (await req.json()) as ExportRequestBody;
 
     const { domain, selectedFields, includeImages, searchParams, imageFields, includeRelations, selectedHasManyDomains } = body;
@@ -47,6 +53,7 @@ export const POST = createApiRoute(
       includeImages: includeImages ?? true,
       searchParams,
       imageFields: imageFields ?? [],
+      media: createDataMigrationMediaResolver(admin),
       includeRelations: includeRelations ?? false,
       selectedHasManyDomains: selectedHasManyDomains ?? [],
     });
@@ -70,6 +77,9 @@ export const POST = createApiRoute(
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="${result.filename}"`,
         "X-Record-Count": String(result.recordCount),
+        // ZIP に入らなかったメディア値（件数と例。詳細は manifest.json の mediaSkipped）
+        [MEDIA_SKIPPED_HEADER]: String(result.mediaSkipped.count),
+        [MEDIA_SKIPPED_EXAMPLES_HEADER]: encodeURIComponent(JSON.stringify(result.mediaSkipped.examples)),
       },
     });
   }

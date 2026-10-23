@@ -6,8 +6,9 @@
 import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import JSZip from "jszip";
-import { v7 as uuidv7 } from "uuid";
-import { directStorageClient } from "@/lib/storage/client/directStorageClient";
+import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage/client";
+import { toCamelCase } from "@/utils/stringCase.mjs";
+import { contentTypeFromFilename, mediaPurposeOf } from "../../../../media";
 import type {
   ChunkResult,
   ImportResultData,
@@ -20,7 +21,9 @@ import type {
 export type UseImportHandlerOptions = {
   /** ドメイン名 */
   domain: string;
-  /** 画像フィールド名の配列 */
+  /**
+   * 画像フィールド名の配列（ログ用。アップロード対象は ZIP の assets/<列>/ から決め、メディア列の判定はサーバーが行う）
+   */
   imageFields: string[];
   /** フィールド情報 */
   fields: ExportField[];
@@ -48,41 +51,63 @@ export type UseImportHandlerReturn = {
 /** デバッグログ出力用のプレフィックス */
 const LOG_PREFIX = "[Import]";
 
+/** 1 ファイルを用途にアップロードする（uploadToStorage を Promise にしたもの） */
+function uploadOne(file: Blob, purpose: string): Promise<UploadedFile> {
+  return new Promise((resolve, reject) => {
+    uploadToStorage(file, {
+      purpose,
+      // export した画像をそのまま戻す（描き直さない）
+      reencodeImage: false,
+      onComplete: resolve,
+      onError: reject,
+    });
+  });
+}
+
+/** 取り込みに使わなかったアップロードを取り消す（失敗しても未採用のファイルは掃除で消える） */
+async function discardUploads(uploads: readonly UploadedFile[]): Promise<void> {
+  await Promise.all(
+    uploads.map((upload) =>
+      storageClient.discard(upload.objectId).catch((err) => {
+        console.error(`${LOG_PREFIX} 取り消しに失敗しました（未採用のファイルは掃除で消えます）: ${upload.ref}`, err);
+      }),
+    ),
+  );
+}
+
 /**
- * 画像ファイルを直接Firebase Storageにアップロードし、パス→URL のマップを返す
+ * 同梱ファイルを用途 `<ドメイン>.<列>` にアップロードし、`assets/<列>/<ファイル名>` → ref のマップを返す。
+ * 1 件でも失敗したら、このチャンクで上げた分を取り消して throw する（黙って空にしない）
  */
-async function uploadAssetsDirectly(
+async function uploadAssets(
   assets: Map<string, ArrayBuffer>,
   domain: string,
   onProgress?: (uploaded: number, total: number) => void
-): Promise<Map<string, string>> {
-  const urlMap = new Map<string, string>();
+): Promise<{ refMap: Map<string, string>; uploads: UploadedFile[] }> {
+  const refMap = new Map<string, string>();
+  const uploads: UploadedFile[] = [];
   const entries = Array.from(assets.entries());
-  let uploaded = 0;
+  const camelDomain = toCamelCase(domain);
 
   for (const [assetPath, buffer] of entries) {
+    // フィールド名を取得（例: main_image/xxx.jpg → main_image）
+    const fieldName = assetPath.split("/")[0] || "assets";
+    const filename = assetPath.split("/").pop() || assetPath;
     try {
-      // パスから拡張子を取得
-      const ext = assetPath.includes(".") ? assetPath.substring(assetPath.lastIndexOf(".")) : "";
-      // フィールド名を取得（例: main_image/xxx.jpg → main_image）
-      const fieldName = assetPath.split("/")[0] || "assets";
-      // ストレージパスを生成
-      const storagePath = `${domain}/${fieldName}/${uuidv7()}${ext}`;
-      // Blobに変換してアップロード
-      const blob = new Blob([buffer]);
-      const url = await directStorageClient.upload(storagePath, blob);
-      // assets/main_image/xxx.jpg 形式でマップに保存
-      urlMap.set(`assets/${assetPath}`, url);
-      uploaded++;
-      onProgress?.(uploaded, entries.length);
+      const blob = new Blob([buffer], { type: contentTypeFromFilename(filename) });
+      const uploaded = await uploadOne(blob, mediaPurposeOf(camelDomain, fieldName));
+      uploads.push(uploaded);
+      refMap.set(`assets/${assetPath}`, uploaded.ref);
+      onProgress?.(uploads.length, entries.length);
     } catch (err) {
       console.error(`${LOG_PREFIX} 画像アップロード失敗: ${assetPath}`, err);
-      // 失敗した場合は空文字を設定（後でnullに変換される）
-      urlMap.set(`assets/${assetPath}`, "");
+      await discardUploads(uploads);
+      const reason = err instanceof Error ? err.message : "不明なエラー";
+      throw new Error(`画像のアップロードに失敗しました: ${assetPath}（${reason}）`);
     }
   }
 
-  return urlMap;
+  return { refMap, uploads };
 }
 
 /**
@@ -195,17 +220,15 @@ export function useImportHandler({
         }
         let csvContent = await csvFile.async("string");
 
-        // メインドメインの場合のみ画像フィールドを処理
-        const domainImageFields = domainName === domain ? imageFields : [];
-
-        // アセットファイルを収集して直接Firebase Storageにアップロード
-        const assetsFolder = zip.folder(`${chunkPath}/assets`);
-        if (assetsFolder && domainImageFields.length > 0) {
-          const assetFiles = assetsFolder.filter(() => true);
-          const actualAssetFiles = assetFiles.filter((f) => !f.dir);
+        // 同梱ファイル（assets/<列>/…）を用途 `<ドメイン>.<列>` にアップロードし、CSV の値を ref に置き換える
+        // （メイン以外のドメインも同じ。中間テーブルはメディア列を持たない）
+        let uploads: UploadedFile[] = [];
+        const assetsFolder = domainType === "junction" ? null : zip.folder(`${chunkPath}/assets`);
+        if (assetsFolder) {
+          const actualAssetFiles = assetsFolder.filter(() => true).filter((f) => !f.dir);
 
           if (actualAssetFiles.length > 0) {
-            console.log(`${LOG_PREFIX}     🖼️ 画像を直接アップロード: ${actualAssetFiles.length} ファイル`, {
+            console.log(`${LOG_PREFIX}     🖼️ 画像をアップロード: ${actualAssetFiles.length} ファイル`, {
               path: `${chunkPath}/assets`,
             });
 
@@ -217,18 +240,21 @@ export function useImportHandler({
               assets.set(assetPath, assetBuffer);
             }
 
-            // 直接Firebase Storageにアップロード
-            const urlMap = await uploadAssetsDirectly(
-              assets,
-              domainName,
-              (uploaded, total) => {
-                console.log(`${LOG_PREFIX}       📤 アップロード進捗: ${uploaded}/${total}`);
-              }
-            );
-
-            // CSVの画像パスをURLに置換
-            csvContent = replaceAssetPathsInCsv(csvContent, urlMap);
-            console.log(`${LOG_PREFIX}     ✅ 画像アップロード完了、CSVを更新`);
+            try {
+              const uploaded = await uploadAssets(assets, domainName, (done, total) => {
+                console.log(`${LOG_PREFIX}       📤 アップロード進捗: ${done}/${total}`);
+              });
+              uploads = uploaded.uploads;
+              // CSVの画像パスを ref に置換
+              csvContent = replaceAssetPathsInCsv(csvContent, uploaded.refMap);
+              console.log(`${LOG_PREFIX}     ✅ 画像アップロード完了、CSVを更新`);
+            } catch (err) {
+              const errorMsg = err instanceof Error ? err.message : "画像のアップロードに失敗しました";
+              console.error(`${LOG_PREFIX}   ❌ チャンク失敗: ${chunkName}`, { domain: domainName, error: errorMsg });
+              results.push({ chunkName, domain: domainName, success: false, recordCount: 0, error: errorMsg });
+              failed++;
+              continue;
+            }
           }
         }
 
@@ -237,9 +263,8 @@ export function useImportHandler({
         formData.append("domain", domainName);
         formData.append("chunkName", chunkName);
         formData.append("csvContent", csvContent);
-        formData.append("imageFields", JSON.stringify(domainImageFields));
-        // 画像は既にアップロード済みなので、サーバー側での画像処理をスキップ
-        formData.append("updateImages", "false");
+        // 今回アップロードした ref（サーバーはこれをそのまま紐付ける。それ以外の ref・旧 URL は複製する）
+        formData.append("uploadedRefs", JSON.stringify(uploads.map((upload) => upload.ref)));
         // メインドメインのみフィールド型情報を送る
         formData.append("fields", JSON.stringify(domainName === domain ? fieldTypeInfo : []));
         // ドメインタイプを送る
@@ -298,6 +323,8 @@ export function useImportHandler({
             error: errorMsg,
           });
           failed++;
+          // チャンクは巻き戻っているので、このチャンクで上げたファイルは使われない
+          await discardUploads(uploads);
         }
       }
 
@@ -309,7 +336,7 @@ export function useImportHandler({
 
       return { records, successful, failed, results };
     },
-    [domain, fields, imageFields]
+    [domain, fields]
   );
 
   /**

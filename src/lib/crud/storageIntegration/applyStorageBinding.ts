@@ -7,6 +7,7 @@
 // - soft delete・restore: 何もしない（restore で戻せるように紐付けを残す）
 // - duplicate: TX の外で先に duplicateValues（複製）→ 新しい行の create（そこで紐付け）
 // - bulkUpdate* / bulkUpsert: メディア列を変える呼び出しは DomainError（行ごとの差分計算は初版の範囲外）
+// - storageFields: binding の列の宣言をそのまま読み取り専用で出す（dataMigration がメディア列を知る正本）
 // - 呼び出し元が tx を渡さなければ内部で TX を張り、commit 後に afterCommit で実物を片付ける。
 //   tx を渡された場合は外側の TX がまだ commit されていないので片付けず、掃除 cron に任せる
 
@@ -20,7 +21,7 @@ import type { DuplicateOptions, UpsertOptions, WhereExpr } from "@/lib/crud/type
 import type { DbTransaction } from "../drizzle/types";
 import { buildWhere } from "../drizzle/query";
 import { buildDuplicateData } from "../drizzle/utils";
-import type { CrudStorageBinding, CrudStorageCleanup } from "./types";
+import type { CrudStorageBinding, CrudStorageCleanup, CrudStorageField } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -52,7 +53,7 @@ type StorageAwareService = {
 export function applyStorageBinding<TService extends StorageAwareService>(
   service: TService,
   context: ApplyStorageBindingContext,
-): TService {
+): TService & { readonly storageFields: readonly CrudStorageField[] } {
   const { table, binding, useSoftDelete } = context;
   const idColumn = table.id;
   const fieldNames = binding.fields.map((field) => field.name);
@@ -120,8 +121,10 @@ export function applyStorageBinding<TService extends StorageAwareService>(
       return { result: undefined, cleanups: [cleanup] };
     });
 
-  const wrapped: TService = {
+  const wrapped: TService & { readonly storageFields: readonly CrudStorageField[] } = {
     ...service,
+
+    storageFields: binding.fields,
 
     async create(data, tx) {
       return runInTx(tx, async (executor) => {

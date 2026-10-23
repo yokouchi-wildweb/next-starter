@@ -12,8 +12,8 @@ import type { DomainConfig } from "../config";
  * const imageFields = extractImageFields(config);
  * // ["thumbnail", "images"]
  *
- * NOTE: mediaUploaderMulti (string[]) は data migration の export/import が
- * 単一値前提のため対象外。将来的に dataMigration が配列フィールド対応した時点で含める。
+ * NOTE: mediaUploaderMulti (string[]) は対象外。dataMigration の export / import は
+ * この関数ではなくサービスの storageFields（Multi を含む）でメディア列を決める（src/lib/dataMigration/README.md）。
  */
 export function extractImageFields(config: DomainConfig): string[] {
   return config.fields
