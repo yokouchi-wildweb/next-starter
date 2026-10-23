@@ -76,7 +76,6 @@
       "fieldType": "mediaUploader",
       "formInput": "mediaUploader",
       "required": false,
-      "uploadPath": "coupon/image",
       "slug": "image",
       "mediaTypePreset": "images",
       "accept": "image/*"

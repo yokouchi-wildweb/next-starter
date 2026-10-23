@@ -39,7 +39,6 @@
       "fieldType": "mediaUploader",
       "formInput": "mediaUploader",
       "required": false,
-      "uploadPath": "notification/image",
       "slug": "notificationImage",
       "mediaTypePreset": "images",
       "accept": "image/*"

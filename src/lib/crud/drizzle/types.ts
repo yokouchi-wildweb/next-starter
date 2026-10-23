@@ -144,24 +144,11 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    */
   audit?: AuditConfig;
   /**
-   * Storage連携クリーンアップ対象のフィールド名一覧
-   * （mediaUploader=単一/string, mediaUploaderMulti=複数/string[] の両方）。
-   * 指定すると、レコードが「物理削除」される操作で対象フィールドが参照する
-   * Storage 上のファイルを自動削除する（best-effort）。
-   * 対象操作:
-   * - hardDelete（常に物理削除）
-   * - remove / bulkDeleteByIds / bulkDeleteByQuery（useSoftDelete=false のときのみ物理削除）
-   * ソフトデリート（deletedAt 設定）では復元可能性を保つためファイルは保持し、
-   * hardDelete 時にのみ削除する。
-   * 通常は drizzleBase が `extractStorageFields(conf)` の結果を渡す。
-   */
-  storageCleanupFields?: string[];
-  /**
    * ファイル台帳との連動（storage:// の ref を持つメディア列）。features/core/storageObject の
    * storageBindingFor(...) を渡す。指定すると、create / update / upsert / 物理削除 / duplicate で
    * 業務行の書き込みと同じ TX の中で台帳に紐付け・解除し、bulkUpdate* / bulkUpsert でメディア列を
    * 変える呼び出しを拒否する。指定しないサービスの挙動は変わらない。
-   * 旧 storageCleanupFields とは別の経路（N2 で置き換わる）。詳細: src/lib/crud/README.md「storage オプション」
+   * 詳細: src/lib/crud/README.md「storage オプション」
    */
   storage?: CrudStorageBinding;
   /**

@@ -77,12 +77,18 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
 
 ### 6.1 Storage（バケット）
 
-1. Firebase コンソールの **Storage** を開き、「開始する」からバケットを作成します。
-2. 本番運用ではリージョンを `asia-northeast1` などアプリの利用地域に合わせて選択します。
-3. 初期アクセスルールは `allow read, write: if false;` となっていることが多いため、開発用途では暫定的に `request.auth != null` を条件にするなど最小限の許可に留めます。
-4. ルール編集後は **公開** をクリックしてデプロイします。
-5. バケット名は `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` と一致する必要があるため、設定を変更した場合は環境変数も更新します。
-6. **CORS 設定（リモートメディアをブラウザで読む場合は必須）**: 別ドメインの Storage バイトをブラウザで読み取る機能（動画の MSE 連結再生・`fetch()` 読み取り・`<video crossOrigin>`→canvas でのサムネ生成・Web Audio など）を使う場合、バケットに CORS 設定が必要です。バケット単位・一度きりの設定で、判定ルール・前提・手順は [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](StorageのCORS設定（リモートメディア読み取りの基盤前提）.md) に集約しています。
+ファイルの保存・読み取り・削除はアプリのサーバーが判定し、ブラウザは署名付き URL で GCS に直接送ります（[src/lib/storage/README.md](../../src/lib/storage/README.md)）。Firebase Storage のクライアント SDK の経路は使いません。
+
+1. **バケット（既定 = 新しい公開バケット + 新しい非公開バケット）**: `pnpm storage:setup` で 2 つを用意します。UBLA・公開側の allUsers 読み取り（get のみ）・非公開側の公開アクセス防止・CORS まで冪等に設定します。手順・前提（サービスアカウントに Storage 管理者）・組織のポリシーで止まった場合・location の選び方は [scripts/storage/README.md](../../scripts/storage/README.md) にあります。新しい 2 バケットは Firebase に登録しません。
+2. **環境変数**: `STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET`（必須）、`STORAGE_PUBLIC_PREFIX` / `STORAGE_PRIVATE_PREFIX`（任意）、`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`（公開ファイルの配信元）をローカルの env と Vercel に設定します（雛形は `.env.example`）。`NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` はビルド時に埋め込まれるので、変えたら再ビルド / 再起動します。未設定でも起動はしますが、アップロードなどファイルの経路は `StorageNotConfiguredError` で止まります。
+3. **旧バケット（Firebase の既定バケット）**: `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`。新しいファイルは置かず、過去の URL の読み取りと、サーバー内部の旧位置（import・複製のコピー元など）としてだけ使います。
+   - 代替: 旧バケットを新しいバケットの代わりに再利用するのは、匿名で取得できないこと・既存の設定が変わらないことを確かめた場合だけにします。組織のポリシーで公開できない場合は、公開側の切替を保留します（個別の ACL や `makePublic` で回避しない）。
+4. **ルール**: リポ直下の `storage.rules`（全拒否）と `firebase.json` を配備します。クライアント SDK の get / list / create / update / delete がすべて拒否され、旧 URL（ダウンロードトークン付き URL・公開 URL）と新しい経路は影響を受けません。
+   ```bash
+   firebase deploy --only storage --project <project-id>
+   ```
+5. **配備の順序（既存のプロジェクトを切り替えるとき。順序厳守）**: ① アプリを配備 → ② 本番で新しい経路のアップロード・表示・削除・中止を各 1 回確かめる → ③ `storage.rules` を配備 → ④ 旧 URL のサンプルが表示されることを確かめる。③ を ① より先にすると、旧アプリのクライアント SDK の経路がその時点で止まります。新規プロジェクトでは ③ を最初に行って構いません。
+6. **CORS**: 新しい 2 バケットは `pnpm storage:setup` が設定します（追加の作業なし）。旧 URL のバイトをブラウザで読む機能（動画の MSE 連結再生・`fetch()` 読み取りなど）を使う場合だけ、旧バケットに `pnpm storage:setup-cors` を行います。判定ルールは [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](StorageのCORS設定（リモートメディア読み取りの基盤前提）.md) にあります。
 
 ### 6.2 Firestore
 
@@ -100,7 +106,7 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
    }
    ```
 4. 本番ローンチ前にはドメイン要件に合わせた細かいセキュリティルールへ更新し、Pull Request でレビューを受けるよう運用します。
-5. `firestore.rules` / `storage.rules` を更新した場合は `firebase deploy --only firestore:rules,storage:rules` で同期してください。
+5. `firestore.rules` を更新した場合は `firebase deploy --only firestore:rules` で同期してください（`firestore.rules` は fork ごとの手元ファイルです。使う場合は fork の `firebase.json` に `"firestore"` の設定を足します）。`storage.rules` は upstream が同梱する全拒否のまま変えません（6.1）。
 
 ---
 
@@ -127,7 +133,7 @@ Firebase コンソールおよび関連する外部サービス（Neon など）
 
 ## 9. Google Cloud IAM の確認
 
-- Firebase プロジェクトは同名の GCP プロジェクトと連動しています。Admin SDK 用サービスアカウントに必要なロールが付与されていないと、サーバー側の Auth / Storage 操作が権限エラーになります。
+- Firebase プロジェクトは同名の GCP プロジェクトと連動しています。Admin SDK 用サービスアカウントに必要なロールが付与されていないと、サーバー側の Auth / Storage 操作が権限エラーになります。`pnpm storage:setup`（バケットの作成と IAM の設定）には Storage 管理者（`roles/storage.admin`）が要ります。
 - 付与すべきロールは [GoogleCloud 側で必要な IAM ロールと設定方法](GoogleCloud側で必要なIAMロールと設定方法.md) を参照してください。
 - 本テンプレートは Firebase を認証・Storage・リアルタイム配信に限定して使います（`docs/!must-read/バックエンド構成ドクトリン.md`）。Cloud Functions 等にロジックを置く前提の設定は不要です。
 

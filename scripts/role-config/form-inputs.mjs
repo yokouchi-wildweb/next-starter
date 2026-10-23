@@ -4,7 +4,8 @@
 
 /**
  * プロフィールフィールドで利用可能な fieldType と formInput の組み合わせ
- * ドメインJSON の FORM_INPUTS.Neon と同期
+ * ドメインJSON の FORM_INPUTS.Neon と同期。ただし mediaUploader は除く
+ * （プロフィールのテーブルはファイル台帳への紐付け(storage binding)に未対応。src/features/core/userProfile/README.md）
  * @see scripts/domain-config/form-inputs.mjs
  */
 export const PROFILE_FORM_INPUTS = {
@@ -13,7 +14,6 @@ export const PROFILE_FORM_INPUTS = {
   float: ["number input", "stepper input", "select", "radio", "hidden", "none"],
   boolean: ["checkbox", "radio", "switch input", "hidden", "none"],
   enum: ["select", "radio", "hidden", "none"],
-  mediaUploader: ["media uploader", "hidden", "none"],
   date: ["date input", "text input", "hidden", "none"],
   time: ["time input", "text input", "hidden", "none"],
   "timestamp With Time Zone": ["datetime input", "hidden", "none"],

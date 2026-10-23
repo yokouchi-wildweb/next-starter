@@ -3,7 +3,6 @@
 // createCrudService の `storage` オプション（ファイル台帳との連動）の型。
 // lib/crud は features に依存しないので、ここは型と呼び出しの約束だけを持つ。
 // 実装（台帳への attach / detach / copy）は features/core/storageObject の storageBindingFor が差し込む。
-// 旧来の storageCleanupFields（cleanupFiles / duplicateFiles / extractStorageFields）とは別の経路で、N2 で置き換わる。
 
 import type { DbTransaction } from "../drizzle/types";
 

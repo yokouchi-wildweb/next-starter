@@ -27,12 +27,11 @@
 /.firebase/
 firebase-service-acount.json
 .firebaserc
-firebase.json
 firebase-debug.log
 firestore.indexes.json
 apphosting.yaml
-storage.rules
 firestore.rules
+# firebase.json と storage.rules は upstream が同梱する（Storage は全拒否のルール。src/lib/storage/README.md）
 
 # production
 /build

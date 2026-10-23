@@ -237,7 +237,7 @@ inputLayout 未指定時のデフォルトは `layout` に連動します。
 
 | 目的 | コンポーネント | 入力 | 使いどころ | 注意点 |
 |---|---|---|---|---|
-| 単独配置 | `ControlledMediaField` | `uploadPath` など | 単体フォームに手動で配置 | RHF の `methods` が必要 |
+| 単独配置 | `ControlledMediaField` | `purpose` など | 単体フォームに手動で配置 | RHF の `methods` が必要 |
 | 設定駆動 | `ConfiguredMediaField` | `MediaUploaderFieldConfig` | 設定ベースで配置 | `fieldConfig` を渡す |
 
 ---
@@ -273,14 +273,14 @@ inputLayout 未指定時のデフォルトは `layout` に連動します。
     methods={methods}
     name="mainImage"
     label="メイン画像"
-    uploadPath="images/main"
+    purpose="sample.main_image"
   />
   <ControlledMediaField
     control={control}
     methods={methods}
     name="subImage"
     label="サブ画像"
-    uploadPath="images/sub"
+    purpose="sample.sub_image"
   />
   <Button type="submit">送信</Button>
 </AppForm>

@@ -27,7 +27,6 @@ src/lib/mediaInputSuite
   hooks/usePendingMediaUploads.ts
   hooks/pendingUploadTracker.ts
   hooks/usePendingMediaDeletion.ts
-  hooks/useMockUploader.ts
   types.ts
   utils.ts
 ```
@@ -50,7 +49,7 @@ src/lib/mediaInputSuite
 ### 2.2 MediaUploader (`src/lib/mediaInputSuite/components/MediaUploader.tsx`)
 
 - `MediaInput` を内包し、`uploadToStorage`（`@/lib/storage/client`）でアップロードする。
-- `purpose`（必須）: ファイルの用途 ID `<domain>.<field>`。`src/registry/storagePurposeRegistry.ts` に登録した名前。保存先・型・サイズ上限・アップロードできる人は用途で決まる（旧 `uploadPath` は廃止）。
+- `purpose`（必須）: ファイルの用途 ID `<domain>.<field>`。`src/registry/storagePurposeRegistry.ts` に登録した名前。保存先・型・サイズ上限・アップロードできる人は用途で決まる（保存先パスの指定は無い）。
 - `reencodeImage`（既定 `true`）: jpeg / png / webp を描き直して EXIF（撮影位置など）を落とす。`false` で送られたまま。
 - 値（`onUrlChange` に渡る・`initialUrl` で受ける）は storage ref（`storage://…`）。移行前の旧 URL もそのまま表示・保持できる。プレビューは `MediaPreview` が ref を表示用 URL にする。
 - 進捗オーバーレイとキャンセルを内蔵（選択直後から出る）。キャンセルすると発行済みのアップロードは取り消される（discard）。
@@ -91,7 +90,6 @@ src/lib/mediaInputSuite
 | `useMediaUploaderField` | RHF と `ControlledMediaUploader` のブリッジ | `render` / `isUploading` / `commit` / `reset` を返す |
 | `usePendingMediaUploads` | 編集中にアップロードした未採用分の登録/確定/取り消し | `cleanupOnUnmount` 既定 `true`。中身は `pendingUploadTracker` |
 | `usePendingMediaDeletion` | 互換のために残した空の実装 | 何もしない（下記） |
-| `useMockUploader` | デモ/検証用の擬似アップロード | 進捗・エラーを擬似再現 |
 
 ### `useMediaUploaderField` の挙動
 

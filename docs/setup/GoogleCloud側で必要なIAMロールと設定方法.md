@@ -63,6 +63,7 @@ Firebase を用いたアプリ開発で **最初に包括的に付与してお�
     - ✅ `roles/serviceusage.serviceUsageConsumer`
     - ✅ `roles/firebase.admin`
 - これにより、Auth / Storage / Firestore を Next.js サーバーから利用可能。
+- ファイル保存のバケットを `pnpm storage:setup` で作る場合は `roles/storage.admin`（Storage 管理者）も付与する（バケットの作成・IAM・公開アクセス防止・CORS の設定。手順: `scripts/storage/README.md`）。
 - 開発初期は包括的ロールで構築し、本番リリース時に必要最小限ロールへ絞り込むのが現実的な運用方針。
 
 ---

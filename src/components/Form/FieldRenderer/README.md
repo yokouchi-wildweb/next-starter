@@ -98,5 +98,4 @@
 - 保存先は `FieldConfig.purpose`（ファイルの用途 ID `<domain>.<field>`、`src/registry/storagePurposeRegistry.ts` の登録名）で決まる。生成の `<Domain>Fields` が domain.json のメディア項目に付ける
 - 手書きのフォームでメディア項目を足すときは、用途を登録し、`fieldPatches` などで `purpose` を渡す
 - `purpose` の無いメディア項目は入力を出さず、未設定のメッセージを出す（アップロード先が決まらないため）
-- `FieldConfig.uploadPath` は旧経路の名残で、どこからも読まない（@deprecated）
 - フォームの値は storage ref（`storage://…`）。保存時の採用・差し替え・削除はサーバーの CRUD 連動が行う（詳細: src/lib/mediaInputSuite/README.md）

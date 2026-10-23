@@ -65,4 +65,4 @@ pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> 
   - `STORAGE_PUBLIC_PREFIX` / `STORAGE_PRIVATE_PREFIX`（任意。バケット内の置き場所の接頭辞）
   - `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL`（公開ファイルの配信元。例 `https://storage.googleapis.com/<公開バケット>`、`STORAGE_PUBLIC_PREFIX` を使うならそれも含める）
 - `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` はビルド時に埋め込まれ、`next.config.ts` の画像の許可リスト（remotePatterns）でも読むので、設定・変更したら再ビルド / 開発サーバーの再起動が必要
-- env が未設定のままでも起動と旧経路は壊れない。新しい経路を使った時点で `StorageNotConfiguredError` になる
+- env が未設定のままでも起動はする。アップロードなどファイルの経路を使った時点で `StorageNotConfiguredError` になる（旧バケットへの読み替えはしない）

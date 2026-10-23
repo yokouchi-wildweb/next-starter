@@ -4,7 +4,7 @@
 > **PER_PROJECT** (downstream edits freely): .claude/rules/project.md = map / architecture delta / decision rules | .claude/rules/behavior.md = work rules | both always-loaded → standing rules only, no change logs / dates / incident stories (→ commit body / docs/journal/) | marker files (.claude/rules/shortcuts.md, term-aliases.md): upstream above the `fork entries below` marker, fork below it
 
 ## STACK
-next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: firebase-storage | http: axios (client), fetch (server)
+next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload (lib/storage) | http: axios (client), fetch (server)
 
 ## CORE_FILES (ownership: who edits what)
 core (approval required): src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/_screen/** of upstream routes, servers/room/src/core/, servers/room/src/index.ts, src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
@@ -47,7 +47,7 @@ detect: isDatabaseConfigured (@/lib/drizzle) | isFirebaseClientConfigured (@/lib
 contract: access while unconfigured → DatabaseNotConfiguredError / FirebaseNotConfiguredError immediately (no connect wait) | always-mounted paths (proxy, root layout, settingService.getGlobalSetting, createCrudService construction) must not crash while unconfigured → new always-mounted code uses the same guard | ref: src/lib/firebase/README.md
 
 ## BACKEND_DOCTRINE
-- new domains default dbEngine "Neon" | Firestore = realtime delivery channel only, chosen only when realtime UX is the essential requirement | no business data in Firestore, no logic in Firebase Functions (Firebase = auth / storage / delivery)
+- new domains default dbEngine "Neon" | Firestore = realtime delivery channel only, chosen only when realtime UX is the essential requirement | no business data in Firestore, no logic in Firebase Functions (Firebase = auth / delivery | files = GCS via lib/storage, Firebase Storage rules = shipped deny-all)
 - crud Firestore adapter FROZEN (no additions) | limits: no `or`, single orderBy, no belongsToMany
 - auth↔users sync paths = core asset → verify both sides on any change
 - hot-path realtime (sustained ~1 write/sec+ shared state, 100s+ subscribers, single-TX threshold semantics) → realtimeRoom (SERVERS), not Firestore | ref: docs/!must-read/バックエンド構成ドクトリン.md
@@ -107,8 +107,8 @@ search: list = simple full fetch only → relations / filters / pagination use s
 extension: 1.base methods → 2.relationWhere → 3.extraWhere → 4.base.query() + wrappers → 5.custom service | files: \<domain\>Service.ts (import only), wrappers/ (CRUD overrides), \<other\>/ (domain-specific)
 hooks: one use\<Op\>\<Domain\> per operation | custom mutation hooks MUST build on useDomainMutation (@/lib/crud/hooks); useSWRMutation PROHIBITED | test: pnpm test:crud-hooks
 system_write: systemUpdate / systemBulkUpdateByQuery bypass Zod for allowlisted systemColumns → service layer ONLY, never wire to HTTP routes
-sql_template_date (MANDATORY, no lint guard): never embed a JS Date in a raw sql`` template (Postgres cannot parse it → 500) → pass .toISOString() | Drizzle operators (eq / gt / between …) take Date as is
-requestMemo_rule (MANDATORY): a raw SQL write to a requestMemo-enabled table (user, setting) → call base.invalidateRequestMemo() right after
+raw_sql (MANDATORY, no lint guard): never embed a JS Date in a raw sql`` template (Postgres cannot parse it → 500) → pass .toISOString(), Drizzle operators (eq / gt / between …) take Date as is | a raw SQL write to a requestMemo-enabled table (user, setting) → call base.invalidateRequestMemo() right after
+media_columns (MANDATORY): media (storage:// ref) columns are written only through the createCrudService storage binding or storageObjectService.attach | raw SQL, systemUpdate and copying a ref into another table are prohibited (share = copy) | before uploading / reading / deleting files → read src/lib/storage/README.md
 hiddenColumns: secrets declared with defineHiddenColumns (business: domain.json hiddenColumns) are nulled in every service return and relation embed | read them only through a dedicated finder (e.g. user findByIdWithSecrets), never return them over HTTP | raw drizzle select / returning bypasses this → full rows via getPublicColumns(<Table>) (lint hidden-columns/no-raw-select = error)
 
 ## AUDIT

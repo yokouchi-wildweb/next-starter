@@ -8,7 +8,6 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
 } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 
 import { FirebaseNotConfiguredError } from "../errors";
 
@@ -37,7 +36,7 @@ export const isFirebaseClientConfigured = (): boolean =>
   (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "").trim().length > 0;
 
 // Initialize Firebase (client side)
-// initializeApp / initializeFirestore / getStorage は設定が空でも throw しない（遅延評価）。
+// initializeApp / initializeFirestore は設定が空でも throw しない（遅延評価）。
 // getAuth だけは apiKey が空だと同期的に auth/invalid-api-key を投げるため、未設定時は呼ばない。
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
@@ -69,6 +68,5 @@ try {
 } catch {
   fstore = getFirestore(app);
 }
-const storage = getStorage(app);
 
-export { app, auth, fstore, storage };
+export { app, auth, fstore };

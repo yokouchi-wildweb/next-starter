@@ -10,7 +10,7 @@
 
 ファイル本体はブラウザから GCS へ直接送ります。誰が何をしてよいかは、アプリのサーバーだけが判定します。部品（ref・ポート・配信規則・保存先）は [`src/lib/storage`](../../../lib/storage/README.md) にあり、このドメインはそれを使って判定と記録を行います。
 
-> **移行中（N1）**: 用途は登録表 `src/registry/storagePurposeRegistry.ts`（`getStoragePurposes()` が返す）、業務行との連動は createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除は cron `storage-sweep`。クライアント `uploadToStorage` と読み取りの配線（AppImage など）は後続の歩で入ります。既存ドメインの配線は N2 で切り替えます。
+> 用途は登録表 `src/registry/storagePurposeRegistry.ts`（`getStoragePurposes()` が返す）、業務行との連動は createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除は cron `storage-sweep`。クライアントは `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）。
 
 ## 流れ
 

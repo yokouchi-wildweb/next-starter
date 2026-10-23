@@ -197,7 +197,6 @@ async function askSingleField(config) {
   const isEnumField = fieldType === 'enum';
   const isNumericField = isNumericFieldType(fieldType);
 
-  let uploadPath;
   let slug;
   let mediaTypePreset;
   let acceptValue;
@@ -209,18 +208,6 @@ async function askSingleField(config) {
   const isMediaField =
     normalizedInput === 'mediaUploader' || normalizedInput === 'mediaUploaderMulti';
   if (isMediaField) {
-    const domainSlug = toCamelCase(config.singular ?? '') || 'domain';
-    const uploadExample = `${domainSlug}/main`;
-    while (true) {
-      const up = await prompt({
-        type: 'input',
-        name: 'uploadPath',
-        message: `画像の保存パス（例: ${uploadExample}）:`,
-      });
-      uploadPath = typeof up.uploadPath === 'string' ? up.uploadPath.trim() : '';
-      if (uploadPath) break;
-      console.log('画像の保存パスは必須です。空で続行することはできません。');
-    }
     const camelName = toCamelCase(trimmedName);
     const baseSlug = camelName
       .replace(/ImageUrl$/, '')
@@ -424,7 +411,6 @@ async function askSingleField(config) {
     formInput: normalizedInput,
     ...(READONLY_SUPPORTED_FORM_INPUTS.has(normalizedInput) ? { readonly: false } : {}),
     required: isArrayField ? false : requiredAnswer.required,
-    ...(uploadPath ? { uploadPath } : {}),
     ...(slug ? { slug } : {}),
     ...(mediaTypePreset ? { mediaTypePreset } : {}),
     ...(acceptValue ? { accept: acceptValue } : {}),

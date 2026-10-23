@@ -102,47 +102,17 @@ pnpm claude:test
 
 事前設定: `.env.development` に `ANTHROPIC_API_KEY` を設定
 
-### Storage (CORS)
+### Storage (バケット)
 
 ```bash
-# Firebase Storage バケットに CORS を設定(origin は "*")
-pnpm storage:setup-cors
-
-# origin を実ドメインに限定(本番推奨)
-pnpm storage:setup-cors https://your-app.com https://www.your-app.com
-```
-
-用途: 別ドメインの Storage バイトをブラウザで読む全機能(MSE / `fetch()` / `<video crossOrigin>`→canvas / Web Audio)の共通基盤前提。バケット単位・一度きりの設定。判定ルール・トラブルシュート・前提(権限/env)は一次情報に集約:
-
-➡ [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)
-
-事前設定: `MY_SERVICE_ACCOUNT_KEY`(storage.buckets.update 権限) と `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
-
-### Storage (新しい 2 バケットの用意)
-
-```bash
-# 予定だけを表示(読み取りのみ。何も変えない)
+# ファイル保存の新しい公開バケット(pub)と非公開バケット(priv)を冪等に用意(UBLA・公開設定・CORS まで)
 pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://your-app.com --dry-run
 
-# 実行(冪等。2 回目以降は「変更なし」)
-pnpm storage:setup -- --pub <公開バケット> --priv <非公開バケット> --origin https://your-app.com [--origin ...] [--location asia-northeast1]
+# 旧バケット(Firebase の既定バケット)の CORS。旧 URL のバイトをブラウザで読む機能を使う場合だけ
+pnpm storage:setup-cors https://your-app.com
 ```
 
-ファイル保存の新基盤([src/lib/storage/README.md](../src/lib/storage/README.md))が使う、新しい公開バケット(pub)と非公開バケット(priv)を用意する。旧バケット(Firebase の既定バケット)には触れず、新しい 2 バケットは Firebase に登録しない。
-
-- 用意する状態
-  - 共通: UBLA 有効、CORS(`--origin`、GET / HEAD / PUT、署名 PUT と再開可能アップロードのヘッダー)
-  - pub: allUsers に `roles/storage.legacyObjectReader`(オブジェクトの get のみ。一覧は不可)
-  - priv: 公開アクセス防止を enforced。公開の権限なし
-- バケットが無ければ作る(location の既定は `asia-northeast1`)
-- 既にあれば次の項目を比べ、食い違えば**上書きせずに差分を表示して止まる**
-  - location / UBLA / 公開アクセス防止 / CORS
-  - priv の公開権限、pub の想定外の公開権限
-  - pub の公開読み取りの権限は、無ければ足す(足すだけなので止まらない)
-- `--pub` / `--priv` を省略すると env の `STORAGE_PUBLIC_BUCKET` / `STORAGE_PRIVATE_BUCKET` を使う。env ファイルは書き換えない。`APP_ENV` で読む env ファイルを変えられる(既定 `.env.development`)
-- 旧バケット(`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`)の名前は指定できない。`--origin "*"` も受け付けない
-- 権限が足りないと止まる。サービスアカウント(`MY_SERVICE_ACCOUNT_KEY`)に「Storage 管理者」を付ける
-- 組織のポリシー(公開アクセスの禁止など)で pub を公開できない場合も、エラーで止まる。その場合は public の切替を保留する(既存の ACL を変えて回避しない)
+手順・前提(サービスアカウントに Storage 管理者)・冪等性・組織のポリシーで止まる場合・location は [scripts/storage/README.md](storage/README.md)、CORS の判定ルールは [Storage の CORS 設定（リモートメディア読み取りの基盤前提）](../docs/setup/StorageのCORS設定（リモートメディア読み取りの基盤前提）.md)。
 
 ### 定期タスク (task / cron)
 

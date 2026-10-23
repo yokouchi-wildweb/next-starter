@@ -12,7 +12,7 @@
 
 誰がアップロード・読み取り・削除してよいかの判定と台帳は、`src/features/core/storageObject` が持つ。この lib は features に依存しない。
 
-> **移行中**: 新しい基盤（この README の大半）は追加の段階（N1 `storage-foundation`）。旧 API（`client/` の 3 ファイル・`hooks/`・`server/storageService.ts`・`server/wrappers/`・`types.ts`）はまだ動いており、N2 `storage-cutover` で削除する。新しいコードは旧 API を使わない。旧 API の注意点は末尾の「旧 API」を参照。
+> ファイルのアップロード・読み取り・削除は、すべてこの基盤（とドメインの binding / `storageObjectService`）を通す。旧 API（Firebase クライアント SDK の経路・旧アップロード / 削除ルート・createCrudService の旧削除連動オプション）は N2 `storage-cutover` で削除した。Firebase Storage のルールはリポ直下の `storage.rules`（全拒否）で、クライアント SDK からは何もできない。
 
 ## 全体の流れ
 
@@ -172,7 +172,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 
 - `locationOf(store, objectKey)` で物理位置（`{ bucket, path }`）を得る
 - pub / priv の env が無ければ `StorageNotConfiguredError` ですぐに失敗する
-- **既定バケットへの読み替え（暗黙の fallback）はしない**。旧バケットには移行期間中も緩いルールが残るので、新しいファイルを置かない
+- **既定バケットへの読み替え（暗黙の fallback）はしない**。旧バケットには新しいファイルを置かない（配備の順序によっては旧バケットに緩いルールが残っている期間がある）
 - 新しい 2 つのバケットは Firebase に登録しない（クライアント SDK からの経路を作らない）
 - バケットの作成・権限・CORS は `pnpm storage:setup` で行う。手順・必要な権限・組織のポリシーで止まる場合・location の注意: [scripts/storage/README.md](../../../scripts/storage/README.md)
 
@@ -235,7 +235,7 @@ const { cancel } = uploadToStorage(file, {
   - 単発 PUT は再試行しない（失敗したら取り消して `onError`）
 - **中止・失敗**
   - `cancel()` や失敗のときは、発行済みなら取り消し（`DELETE /api/me/storage/uploads/[id]`）を試みる。セッションの URI はサーバーが中止する
-  - 中止は `onError` に code `storage/canceled` の `StorageUploadError` を渡す（旧 clientUploader と同じコード）
+  - 中止は `onError` に code `storage/canceled` の `StorageUploadError` を渡す
 - **画像の描き直し**（`reencodeImage`）: jpeg / png / webp を描き直して EXIF（撮影位置など）を落とす
   - 向きは EXIF に従って補正する
   - gif・svg・その他はそのまま
@@ -298,10 +298,8 @@ const { cancel } = uploadToStorage(file, {
 - 旧 URL の解析
 - 用途の引き当て
 
-## 旧 API（N2 で削除）
+## Firebase Storage のルール（全拒否）
 
-- 対象: `client/{appStorageClient,clientUploader,directStorageClient}.ts`、`hooks/`、`server/storageService.ts`、`server/wrappers/`、`types.ts`
-- 旧 API の権限
-  - `/api/storage/upload`・`/api/storage/delete`（`useAppStorage` / `appStorageClient`）は、保存先・所有者の検証を持たないため、管理者カテゴリのみに制限している（未ログイン 401 / 一般ユーザー 403）
-  - クライアント直経路（`clientUploader` / `directStorageClient` / `useDirectStorage`）の権限は Firebase Storage ルールだけが判定する。`request.auth != null` だけでは、ログインユーザーなら誰でも任意のファイルを上書き・削除できるので、各環境で書き込み先のパスを絞ること
-- 新しい画面・ドメインはこれらを使わない。切替の手順は N2 の notice で出す
+- リポ直下の `storage.rules` と `firebase.json` を upstream が同梱する。業務のポリシーは一切持たない（判定はアプリのサーバーだけ）
+- 配備: `firebase deploy --only storage --project <project-id>`。既存のプロジェクトでは、アプリの配備 → 新しい経路の確認 → ルールの配備 → 旧 URL の確認、の順（docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md §6.1）
+- 旧 URL（ダウンロードトークン付き URL・公開 URL）はルールを通らないので、配備後も読める

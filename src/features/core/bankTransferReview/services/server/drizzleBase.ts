@@ -26,7 +26,7 @@ const baseOptions = {
 
 // 振込明細画像（ref）をファイル台帳に紐付ける。紐付けは「アップロードした本人」かつ
 // 「アップロード時の scopeId（purchase_request.id）がこの行の purchase_request_id と同じ」ときだけ通る
-// （他人の画像・別の依頼の画像の流用を防ぐ。旧 validateProofImageUrl の役割）
+// （他人の画像・別の依頼の画像の流用を防ぐ）
 export const storageBinding = storageBindingFor("bankTransferReview", [
   {
     name: "proof_image_url",

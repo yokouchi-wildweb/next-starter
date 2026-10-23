@@ -292,7 +292,7 @@ const inserted = await service.replaceByQuery(
   （NULL は searchForSorting の自動初期化に委ねる）。
 - **削除フェーズ**: `bulkDeleteByQuery` と同じ分岐。`useSoftDelete` テーブルはソフトマーク
   （旧行が残るため、同一 id を records で再送すると PK 衝突する点に注意）、物理削除は
-  制約エラー変換 + Storage クリーンアップ（コミット後 best-effort）を行う。
+  制約エラー変換を行う（storage オプションの binding があればメディア列の紐付けも外す）。
 - **belongsToMany 非対応**: records の M2M フィールドに**非空の値**が入っている場合は throw。
   空配列 / 未指定は Zod default（`[]`）由来のケースがあるため黙って無視する（M2M 同期は行わない）。
   リレーション同期が必要な場合は `create()` を個別に使う。
@@ -356,7 +356,7 @@ const inserted = await service.replaceByQuery(
 
 ## storage オプション（ファイル台帳との連動）
 
-`storage://` の ref を保存するメディア列を、ファイル台帳（[features/core/storageObject](../../features/core/storageObject/README.md)）と同じ TX で連動させる。下の旧「Storage 連携クリーンアップ」（`storageCleanupFields`）とは別の経路。dc:generate はメディア列を持つドメインの drizzleBase にこの binding を出す（purpose = `<domain>.<field>`、旧 `wrappers/duplicate.ts` は生成しない）。指定しないサービスの挙動は変わらない。
+`storage://` の ref を保存するメディア列を、ファイル台帳（[features/core/storageObject](../../features/core/storageObject/README.md)）と同じ TX で連動させる。メディア列の書き込みはこの binding か `storageObjectService.attach` だけで行い、生 SQL・systemUpdate・ref の別表への複写はしない（共有は copy）。dc:generate はメディア列を持つドメインの drizzleBase にこの binding を出す（purpose = `<domain>.<field>`）。指定しないサービスの挙動は変わらない。
 
 ```ts
 import { storageBindingFor } from "@/features/core/storageObject/services/server";
@@ -399,20 +399,6 @@ createCrudService(SampleTable, {
   - どちらの場合も、消し残しは台帳に deleted・`object_removed_at` null として残り、掃除 cron が片付ける
 - **actor**: routeFactory が敷く AuditContext の actorId。`runAsSystem` の中では null（所有者 null のサーバー内の書き込みだけが紐付く）
 - **storageFields**: storage を指定したサービスは、binding の列の宣言（`name` / `purpose` / `multi` / `scope`）を読み取り専用の `service.storageFields` で出す。指定しないサービスでは undefined。どの列がメディア列かを知る正本で、dataMigration の import / export が使う（クライアントの申告は信用しない）
-
-## Storage 連携クリーンアップ
-
-`mediaUploader`（単一 / string）および `mediaUploaderMulti`（複数 / string[]）列が参照する
-Storage 上のファイルは、レコードが **物理削除** されるタイミングで `createCrudService` が
-自動削除する（best-effort）。ドメイン側でラッパーを書く必要はない。
-
-- 有効化: `createCrudService` の `storageCleanupFields` に対象フィールド名を渡す。
-  生成される `drizzleBase.ts` はもう渡さない（上の `storage` オプションに切り替え済み）。
-- 対象操作: `hardDelete` / `bulkHardDeleteByIds`（常に物理削除）、および
-  `remove` / `bulkDeleteByIds` / `bulkDeleteByQuery`（`useSoftDelete=false` のときのみ物理削除）。
-- ソフトデリート（`deletedAt` 設定）では復元可能性を保つためファイルは保持し、`hardDelete` 時にのみ削除する。
-- `duplicate` は `storageIntegration/createStorageAwareDuplicate` を使ったラッパー（`wrappers/duplicate.ts`）で
-  上書きしていた（生成器はもう生成しない。`storage` オプションと併用すると複製した旧 URL が 400 になる）。
 
 ---
 

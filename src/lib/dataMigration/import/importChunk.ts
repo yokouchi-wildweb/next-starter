@@ -95,12 +95,6 @@ function extractErrorInfo(error: unknown): Record<string, unknown> {
 }
 
 /**
- * @deprecated 旧 import の「画像列に仮の値を入れて後で置き換える」流れの値。今の import は使わない
- * （メディア列は bulkUpsert で書かず、行ごとの update で書く）。外部の参照のために残している
- */
-export const PENDING_IMAGE_PLACEHOLDER = "__PENDING_IMAGE_UPLOAD__";
-
-/**
  * fieldType に基づいてフィールドタイプを判定
  */
 function getFieldTypes(fields: FieldTypeInfo[]): {

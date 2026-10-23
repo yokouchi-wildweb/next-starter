@@ -128,11 +128,6 @@ export type FieldConfig = {
   /** プレースホルダー */
   placeholder?: string;
   // === MediaUploader 追加プロパティ ===
-  /**
-   * @deprecated 旧アップロード先パス。新しい storage 基盤では読まない（保存先は purpose の用途で決まる）。
-   * domain.json・生成の質問に残る値のための型で、旧経路の削除（N2）でなくす
-   */
-  uploadPath?: string;
   /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名。生成 Fields コンポーネントが付ける） */
   purpose?: string;
   /** ハンドラ識別子（camelCase） */

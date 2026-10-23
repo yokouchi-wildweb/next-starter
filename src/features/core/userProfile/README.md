@@ -149,6 +149,11 @@ roles/
 - `userService.searchWithProfile()` でのプロフィール横断検索にも使用される
 - 未指定の場合、keyword 検索は無効
 
+**メディア項目（mediaUploader）は使えない:**
+- プロフィールのテーブル（createProfileBase）はファイル台帳への紐付け（createCrudService の `storage` オプション）に対応していない。上げたファイルが業務行に紐付かず、掃除 cron で消える
+- そのため `pnpm role:config` はメディア項目を選択肢に出さない。手書きの role.json に mediaUploader 項目があっても、フォームには purpose が渡らず「用途が未設定」の表示になる（アップロード欄は出ない）
+- プロフィールに画像が要る場合は、用途を登録した別ドメインの列に置くか、プロフィールの binding 対応を upstream に依頼する（/upreq）
+
 ### リレーション設定
 
 `profile.json` に `relations` を追加することで、プロフィールテーブルにリレーションを設定できる。

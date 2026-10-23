@@ -322,9 +322,10 @@ import { ControlledField } from "@/components/Form/Field";
 
 ### MediaUploader フィールド追加プロパティ
 
+保存先は項目ごとに自動で決まる用途 `<domain>.<field>`（purpose）で決まる。保存先パスの指定（旧 `uploadPath`）は無い。
+
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| uploadPath | string | 🟢 Yes | アップロード先パス（例: `sample/main`） |
 | slug | string | 🟢 Yes | ハンドラ識別子（camelCase） |
 | mediaTypePreset | `"images"` \| `"videos"` \| `"imagesAndVideos"` \| `"all"` | 🟢 Yes | 許可ファイル種別 |
 | accept | string | 🟢 Yes | accept 属性値（例: `image/*,video/*`） |

@@ -51,7 +51,6 @@ function toFieldConfig(
     displayType: field.displayType,
     helperText: field.helperText,
     // MediaUploader 関連
-    uploadPath: field.uploadPath,
     slug: field.slug,
     mediaTypePreset: field.mediaTypePreset,
     accept: field.accept,

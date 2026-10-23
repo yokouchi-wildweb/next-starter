@@ -75,7 +75,9 @@ console.log(`
 この状態で pnpm dev が起動します (Firebase / DB 未接続)。
 必要になったら以下を設定してください:
   - DATABASE_URL                 Neon 等の接続文字列 → pnpm db:push
-  - NEXT_PUBLIC_FIREBASE_*       Firebase Auth / Storage / Firestore
+  - NEXT_PUBLIC_FIREBASE_*       Firebase Auth / Firestore
   - MY_SERVICE_ACCOUNT_KEY       Firebase Admin SDK
+  - STORAGE_PUBLIC_BUCKET / STORAGE_PRIVATE_BUCKET
+                                 ファイル保存のバケット → pnpm storage:setup (scripts/storage/README.md)
 手順: docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md
 `);

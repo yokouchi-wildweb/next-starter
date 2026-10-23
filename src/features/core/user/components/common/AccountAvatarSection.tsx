@@ -16,10 +16,6 @@ import type { User } from "@/features/core/user/entities";
 
 type AccountAvatarSectionProps = {
   user: User;
-  /**
-   * @deprecated 使われない（保存先は用途 user.avatar で決まる）。互換のため受け取るだけ
-   */
-  storagePath?: string;
   /** アバターのサイズ（px） */
   size?: number;
   /** 許可するMIMEタイプ */

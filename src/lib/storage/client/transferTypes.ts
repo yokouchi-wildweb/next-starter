@@ -1,7 +1,6 @@
 // src/lib/storage/client/transferTypes.ts
 //
 // クライアントのアップロードの型と、アプリのルート（/api/me/storage/**）の応答の形。
-// UploadProgress / UploadTaskHandle は旧クライアントと同じ名前・形（旧ファイルは N2 で削除）。
 // ルートの応答の形は features/core/storageObject の storageObjectService（IssueResult / CommitResult）と揃える
 // （lib は features に依存しないので、ここに wire の形として持つ）。
 

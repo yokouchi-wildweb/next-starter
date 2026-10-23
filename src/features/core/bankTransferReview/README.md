@@ -466,10 +466,6 @@ src/features/core/bankTransferReview/
 │   ├── form.ts               # フォーム型
 │   ├── model.ts              # TS 型
 │   └── index.ts
-├── constants/
-│   └── storage.ts            # 旧: 固定パス prefix（validateProofImageUrl と一緒に削除予定）
-├── utils/
-│   └── validateProofImageUrl.ts  # 旧: 画像 URL 検証（使われていない。削除予定）
 ├── components/               # UI コンポーネント
 │   └── ActiveTransferBanner/ # 進行中振込バナー
 ├── hooks/

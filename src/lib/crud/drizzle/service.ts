@@ -220,28 +220,6 @@ export function createCrudService<
   const belongsToManyRelations = serviceOptions.belongsToManyRelations ?? [];
   const useSoftDelete = serviceOptions.useSoftDelete ?? false;
 
-  // ===== Storage連携クリーンアップ =====
-  // mediaUploader 列が参照する Storage 上のファイルを、レコードが物理削除される
-  // タイミングで自動削除する。ソフトデリートでは保持し hardDelete でのみ削除する。
-  const storageCleanupFields = serviceOptions.storageCleanupFields ?? [];
-  const hasStorageCleanup = storageCleanupFields.length > 0;
-
-  /**
-   * 渡されたレコード群の Storage ファイルを best-effort で削除する。
-   * DB 操作の成功後に呼ぶこと（削除されたレコードのファイルのみを対象にするため）。
-   * cleanupStorageFiles は内部で個別エラーを握りつぶすため throw しない。
-   */
-  const cleanupStorageForRecords = async (
-    records: Array<Record<string, unknown> | undefined | null>,
-  ): Promise<void> => {
-    if (!hasStorageCleanup) return;
-    const valid = records.filter((r): r is Record<string, unknown> => Boolean(r));
-    if (!valid.length) return;
-    // firebase-storage 依存は実際にクリーンアップが必要なときだけ読み込む（dynamic import）
-    const { cleanupStorageFiles } = await import("@/lib/crud/storageIntegration/cleanupFiles");
-    await Promise.all(valid.map((record) => cleanupStorageFiles(record, storageCleanupFields)));
-  };
-
   // ===== 監査ログ（audit）統合 =====
   // serviceOptions.audit が指定された場合、CRUD 操作を audit_logs に自動記録する。
   // recorder は features/core/auditLog 側から DI される（lib→features 違反回避）。
@@ -905,16 +883,6 @@ export function createCrudService<
     },
 
     async remove(id: string, tx?: DbTransaction): Promise<void> {
-      // 物理削除（useSoftDelete=false）のときのみ Storage ファイルを削除する。
-      // 削除前に対象レコードのファイル参照値を取得しておく。
-      const shouldCleanupStorage = hasStorageCleanup && !deletedAtColumn;
-      let cleanupRecord: Record<string, unknown> | undefined;
-      if (shouldCleanupStorage) {
-        cleanupRecord = (await (tx ?? db).select().from(table as any).where(eq(idColumn, id)))[0] as
-          | Record<string, unknown>
-          | undefined;
-      }
-
       // audit 用に before を同一 tx で取得 → 削除 → audit 記録
       const performRemove = async (executor: DbExecutor): Promise<void> => {
         const before = audit
@@ -943,10 +911,6 @@ export function createCrudService<
         await db.transaction(async (innerTx) => performRemove(innerTx));
       } else {
         await performRemove(tx ?? db);
-      }
-
-      if (shouldCleanupStorage) {
-        await cleanupStorageForRecords([cleanupRecord]);
       }
     },
 
@@ -978,14 +942,6 @@ export function createCrudService<
     },
 
     async hardDelete(id: string, tx?: DbTransaction): Promise<void> {
-      // hardDelete は常に物理削除なので、削除前にファイル参照値を取得しておく。
-      let cleanupRecord: Record<string, unknown> | undefined;
-      if (hasStorageCleanup) {
-        cleanupRecord = (await (tx ?? db).select().from(table as any).where(eq(idColumn, id)))[0] as
-          | Record<string, unknown>
-          | undefined;
-      }
-
       const performHardDelete = async (executor: DbExecutor): Promise<void> => {
         const before = audit
           ? ((await executor.select().from(table as any).where(eq(idColumn, id)))[0] as Record<string, unknown> | undefined)
@@ -1002,10 +958,6 @@ export function createCrudService<
         await db.transaction(async (innerTx) => performHardDelete(innerTx));
       } else {
         await performHardDelete(tx ?? db);
-      }
-
-      if (hasStorageCleanup) {
-        await cleanupStorageForRecords([cleanupRecord]);
       }
     },
 
@@ -1228,16 +1180,6 @@ export function createCrudService<
     async bulkDeleteByIds(ids: string[], tx?: DbTransaction): Promise<void> {
       const isHard = !deletedAtColumn;
 
-      // 物理削除のときのみ、削除前に対象レコードのファイル参照値を取得しておく。
-      const shouldCleanupStorage = hasStorageCleanup && isHard;
-      let cleanupRecords: Record<string, unknown>[] = [];
-      if (shouldCleanupStorage && ids.length) {
-        cleanupRecords = (await (tx ?? db)
-          .select()
-          .from(table as any)
-          .where(inArray(idColumn, ids))) as Record<string, unknown>[];
-      }
-
       const performBulk = async (executor: DbExecutor): Promise<void> => {
         // detail モード: 各レコードの before を取得してから削除
         let beforeSnapshots: Map<string, Record<string, unknown>> | undefined;
@@ -1276,10 +1218,6 @@ export function createCrudService<
         await db.transaction(async (innerTx) => performBulk(innerTx));
       } else {
         await performBulk(tx ?? db);
-      }
-
-      if (shouldCleanupStorage) {
-        await cleanupStorageForRecords(cleanupRecords);
       }
     },
 
@@ -1393,16 +1331,6 @@ export function createCrudService<
       const condition = buildWhere(table, where);
       const isHard = !deletedAtColumn;
 
-      // 物理削除のときのみ、削除前に対象レコードのファイル参照値を取得しておく。
-      const shouldCleanupStorage = hasStorageCleanup && isHard;
-      let cleanupRecords: Record<string, unknown>[] = [];
-      if (shouldCleanupStorage) {
-        cleanupRecords = (await (tx ?? db)
-          .select()
-          .from(table as any)
-          .where(condition)) as Record<string, unknown>[];
-      }
-
       const performBulk = async (executor: DbExecutor): Promise<void> => {
         // 影響対象の ID 群を audit のために事前取得（aggregate なら count のみ、detail なら全レコード）
         let affectedIds: string[] = [];
@@ -1456,10 +1384,6 @@ export function createCrudService<
         await db.transaction(async (innerTx) => performBulk(innerTx));
       } else {
         await performBulk(tx ?? db);
-      }
-
-      if (shouldCleanupStorage) {
-        await cleanupStorageForRecords(cleanupRecords);
       }
     },
 
@@ -1526,15 +1450,6 @@ export function createCrudService<
     },
 
     async bulkHardDeleteByIds(ids: string[], tx?: DbTransaction): Promise<void> {
-      // bulkHardDeleteByIds は常に物理削除なので、削除前にファイル参照値を取得しておく。
-      let cleanupRecords: Record<string, unknown>[] = [];
-      if (hasStorageCleanup && ids.length) {
-        cleanupRecords = (await (tx ?? db)
-          .select()
-          .from(table as any)
-          .where(inArray(idColumn, ids))) as Record<string, unknown>[];
-      }
-
       const performBulk = async (executor: DbExecutor): Promise<void> => {
         let beforeSnapshots: Map<string, Record<string, unknown>> | undefined;
         if (audit && auditBulkMode === "detail") {
@@ -1562,10 +1477,6 @@ export function createCrudService<
         await db.transaction(async (innerTx) => performBulk(innerTx));
       } else {
         await performBulk(tx ?? db);
-      }
-
-      if (hasStorageCleanup) {
-        await cleanupStorageForRecords(cleanupRecords);
       }
     },
 
@@ -1859,7 +1770,6 @@ export function createCrudService<
 
       const condition = buildWhere(table, where);
       const isHard = !deletedAtColumn;
-      const shouldCleanupStorage = hasStorageCleanup && isHard;
 
       // where の eq 制約（and 直下含む）をスコープ制約として収集する。
       // or 分岐内の eq は「全行に必ず成立する制約」ではないため対象外。
@@ -1948,10 +1858,9 @@ export function createCrudService<
           });
         }
 
-        // 物理削除の Storage クリーンアップ / audit detail 用の削除前スナップショット
+        // audit detail 用の削除前スナップショット
         let deletedRows: Record<string, unknown>[] = [];
-        const needsDeletedRows =
-          shouldCleanupStorage || (audit && auditBulkMode === "detail");
+        const needsDeletedRows = audit && auditBulkMode === "detail";
 
         const perform = async (executor: DbExecutor): Promise<Select[]> => {
           if (needsDeletedRows) {
@@ -2015,10 +1924,6 @@ export function createCrudService<
         const results = tx
           ? await perform(tx)
           : await db.transaction(async (innerTx) => perform(innerTx));
-
-        if (shouldCleanupStorage) {
-          await cleanupStorageForRecords(deletedRows);
-        }
         return results;
       });
     },

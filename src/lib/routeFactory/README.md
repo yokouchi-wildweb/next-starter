@@ -271,11 +271,11 @@ export const GET = createMeRoute(
 ```ts
 export const POST = createApiRoute(
   {
-    operation: "POST /api/storage/upload",
+    operation: "POST /api/feedback",
     operationType: "write",
     access: "authenticated",
   },
-  async (req) => storageService.upload(req), // 未認証→401 / 利用停止→403 は factory が処理済み
+  async (req) => feedbackService.submit(req), // 未認証→401 / 利用停止→403 は factory が処理済み
 );
 ```
 

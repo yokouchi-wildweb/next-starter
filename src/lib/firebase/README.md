@@ -14,8 +14,7 @@ src/lib/firebase/
 │   └── signInWithEmailLinkClient.ts
 ├── server/
 │   ├── app.ts              # サーバー側 Admin SDK 初期化
-│   ├── authAdmin.ts        # Firebase Auth ユーザー操作（Admin SDK）
-│   └── storage.ts          # Storage 操作ヘルパー
+│   └── authAdmin.ts        # Firebase Auth ユーザー操作（Admin SDK）
 ├── errors.ts               # Firebase 関連エラー定義
 └── README.md               # このファイル
 ```
@@ -28,7 +27,7 @@ src/lib/firebase/
 
 | 層 | 判定関数 | 未設定時の挙動 |
 |---|---|---|
-| client (`client/app.ts`) | `isFirebaseClientConfigured()`（API key と projectId が非空） | `app` / `fstore` / `storage` は従来どおり生成（空設定でも throw しない）。`auth` だけは `getAuth` を呼ばず、触れた瞬間に `FirebaseNotConfiguredError("client")` を投げる Proxy になる（`import { auth }` の形状は不変） |
+| client (`client/app.ts`) | `isFirebaseClientConfigured()`（API key と projectId が非空） | `app` / `fstore` は従来どおり生成（空設定でも throw しない）。`auth` だけは `getAuth` を呼ばず、触れた瞬間に `FirebaseNotConfiguredError("client")` を投げる Proxy になる（`import { auth }` の形状は不変） |
 | server (`server/app.ts`) | `isFirebaseServerConfigured()`（`MY_SERVICE_ACCOUNT_KEY` が非空） | `getServerApp / getServerAuth / getServerFirestore / getServerStorage` が `FirebaseNotConfiguredError("server")` を投げる（遅延初期化なので import だけでは失敗しない） |
 
 ルール:
@@ -51,16 +50,7 @@ src/lib/firebase/
 
 - `getServerApp()` / `getServerAuth()` / `getServerFirestore()` / `getServerStorage()`
 
-`server/storage.ts`（Storage 操作）
-
-- `uploadFileServer(path, buffer, contentType?)` — Buffer を保存し、公開化して公開 URL を返す（`cacheControl: public, max-age=31536000, immutable`）
-- `deleteFileServer(path)` — ファイルを削除する
-- `copyFileServer(sourcePath, destPath)` — 複製して公開化し、複製先の公開 URL を返す
-- `getReadSignedUrl(path, ttlSec = 120)` — 読み取り用 V4 署名付き URL（Range 部分取得したい用途向け）
-- `getFileMetadata(path)` — `{ sizeBytes, contentType }`（取得不能な項目は null）
-- `getPathFromStorageUrl(url)` — `firebasestorage.googleapis.com` / `storage.googleapis.com` の URL から Storage パスを取り出す（`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` 以外のバケットや解析不能な URL は `undefined`）。クライアント用の同名関数（`src/lib/storage/client/directStorageClient.ts`）と同じ挙動
-
-業務コードからのアップロード / 削除は通常 `src/lib/storage`（[Storage の使い方](../storage/README.md)）経由で行い、これらは直接呼ばないでください。
+ファイルの保存・読み取り・削除は `src/lib/storage`（[Storage の使い方](../storage/README.md)）を使います。`getServerStorage()` はその GCS 実装（`src/lib/storage/server/gcs.ts`）と `scripts/storage/` が使うだけで、業務コードから直接バケットを操作しません。Firebase Storage のクライアント SDK の経路はありません（リポ直下の `storage.rules` は全拒否）。
 
 `server/authAdmin.ts`（Firebase Auth ユーザー操作。`uid` は users の providerUid）
 

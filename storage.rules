@@ -1,0 +1,14 @@
+rules_version = '2';
+
+// Firebase Storage のルール（全拒否）。upstream が同梱し、fork でも変えない。
+// ファイルの保存・読み取り・削除の判定はアプリのサーバーだけが行う（src/lib/storage/README.md）。
+// クライアント SDK からの get / list / create / update / delete はすべて拒否する。
+// 既存の旧 URL（ダウンロードトークン付き URL・公開 URL）はルールを通らないので、このルールの影響を受けない。
+// 配備: firebase deploy --only storage --project <project-id>（順序は docs/setup/Neon_Firebaseなど各種バックエンドサービスの設定方法.md §6.1）
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
