@@ -83,7 +83,7 @@ export const REEXPORTABLE_FROM_SCREEN = ["metadata", "generateMetadata", "viewpo
  * `start` 以降で最初に現れる open と対応する close の位置(括弧の釣り合い)を返す。
  * 文字列リテラル・テンプレートリテラル内の括弧は数えない。見つからなければ -1
  */
-function findBalancedEnd(src, start, open, close) {
+export function findBalancedEnd(src, start, open, close) {
   let depth = 0;
   let quote = null;
   for (let i = start; i < src.length; i += 1) {

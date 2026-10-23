@@ -1,10 +1,10 @@
 // page 層(page.tsx スイッチ + Screen + loader)の規律テスト。
 // 実行: pnpm test:screens (node:test + tsx。registry の .ts を読むため tsx ランナーを使う)
 //
-// 登録は不要。検査対象は自動検出する:
-//   - src/app/(user)/** と src/app/(marketing)/** と src/app/admin/** の page.tsx((user)/demo/ と admin/(protected)/tabs-demo/ を除く)
-//   - fork が src/registry/screenRoutesRegistry.ts の FORK_SCAN_ROOTS に足したエリア(エリア単位で 1 行、ページ単位ではない)
-//   - dc:generate が生成する管理画面ルート(src/features/*/domain.json の adminRoutes が false でないドメイン。src/app/admin/** に含まれる)
+// 登録は不要。検査対象は自動検出する(M1):
+//   - src/app 全体のページ(./routeTree.mjs の discoverRoutes。`_` で始まるフォルダと src/app/api を除く、@slot は含む)から、
+//     SCAN_EXCLUDES と fork の FORK_SCAN_EXCLUDES(src/registry/screenRoutesRegistry.ts)の配下を除いたもの
+//     (除外は構造の検査だけ。ルート地図 src/app/route-map.txt には除外したページも載る)
 //   - 検出した各ルートの _screen/loader.ts と _components/loader.ts(ルート内 loader)
 //   - src/features/**/services/server/loaders/*.ts(多数のルートが共有する loader。再 export だけのファイルは除く)
 //
@@ -27,7 +27,6 @@ import { fileURLToPath } from "node:url";
 
 // fork の merge で export が欠けても import 時に落ちず、鮮度テストが指摘できるよう namespace import にする
 import * as registry from "../../registry/screenRoutesRegistry.ts";
-import { toCamelCase, toKebabCase, toPlural } from "../../utils/stringCase.mjs";
 import {
   ROUTE_LOADER_FILE,
   SCREEN_DIRS,
@@ -40,6 +39,7 @@ import {
   parseSwitchPage,
   stripComments,
 } from "./checks.mjs";
+import { discoverRoutes, listAppFiles } from "./routeTree.mjs";
 
 export { checkLoaderFile, checkScreenFile, checkScreenImports, checkSwitchPage, isReexportOnlyFile, parseSwitchPage, stripComments };
 
@@ -61,13 +61,13 @@ export const UPSTREAM_LEGACY_ROUTES = [];
 // 検出
 // ---------------------------------------------------------------------------
 
-/** 走査するルート群(repo 相対)と除外プレフィックス。fork は registry の FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES で足す */
-export const SCAN_ROOTS = ["src/app/(user)", "src/app/(marketing)", "src/app/admin"];
+/**
+ * 構造の検査から外すディレクトリとその配下(repo 相対)。fork は registry の FORK_SCAN_EXCLUDES で足す。
+ * デモは動く見本を優先して 1 ファイルに書いているので外す。ルート地図からは外さない(認可の一覧に例外を作らない)
+ */
 export const SCAN_EXCLUDES = ["src/app/(user)/demo", "src/app/admin/(protected)/tabs-demo"];
-/** src/app 直下にある upstream のエリアのうち走査しないもの(debug・API)。fork の独自エリアはここに無いので登録を促す */
-export const UPSTREAM_KNOWN_AREAS = ["src/app/debug", "src/app/api"];
 
-// 形式違いの登録(文字列以外・ファイル)は走査から外し、鮮度テストだけが指摘する(走査で落ちてスイート全体が止まらないように)
+// 形式違いの登録(文字列以外・ファイル)は鮮度テストだけが指摘する(走査で落ちてスイート全体が止まらないように)
 const isDir = (rel) => {
   try {
     return statSync(resolve(repoRoot, rel)).isDirectory();
@@ -75,109 +75,45 @@ const isDir = (rel) => {
     return false;
   }
 };
-const validEntries = (list) => list.filter((x) => typeof x === "string" && isDir(x));
-const scanRoots = [...SCAN_ROOTS, ...validEntries(FORK_SCAN_ROOTS)];
 const scanExcludes = [...SCAN_EXCLUDES, ...FORK_SCAN_EXCLUDES.filter((x) => typeof x === "string")];
 /** rel が prefix そのものか、その配下(セグメント単位。`src/app/store` は `src/app/storefront` を含まない) */
 const isUnder = (rel, prefix) => rel === prefix || rel.startsWith(`${prefix}/`);
 
-/** 再帰的に page.tsx を集める(_ で始まるディレクトリと除外プレフィックスは入らない) */
-function collectPages(dirRel) {
-  const out = [];
-  const abs = resolve(repoRoot, dirRel);
-  if (!isDir(dirRel)) return out;
-  for (const entry of readdirSync(abs)) {
-    const rel = join(dirRel, entry);
-    if (scanExcludes.some((ex) => isUnder(rel, ex))) continue;
-    const full = resolve(repoRoot, rel);
-    if (statSync(full).isDirectory()) {
-      // _ = プライベートフォルダ、@ = 並列ルートのスロット(page 層の対象外)
-      if (entry.startsWith("_") || entry.startsWith("@")) continue;
-      out.push(...collectPages(rel));
-    } else if (entry === "page.tsx") {
-      out.push(rel);
-    }
-  }
-  return out;
+/** src/app 全体のページ(ルート地図と同じ発見)。同じ URL のページが 2 つあれば throw(Next もビルドで失敗する構成) */
+function discoverAllRoutes() {
+  const { routes, problems } = discoverRoutes(listAppFiles(repoRoot));
+  if (problems.length > 0) throw new Error(problems.join("\n"));
+  return routes;
 }
 
-/** dc:generate が管理画面ルートを生成するドメインのディレクトリ(domain.json から導出) */
-export function generatedAdminRouteDirs() {
-  const featuresDir = resolve(repoRoot, "src/features");
-  const dirs = [];
-  for (const name of readdirSync(featuresDir)) {
-    const configPath = join(featuresDir, name, "domain.json");
-    if (!existsSync(configPath)) continue;
-    const config = JSON.parse(readFileSync(configPath, "utf8"));
-    const generateBlock = Object.values(config).find((v) => v && typeof v === "object" && !Array.isArray(v) && "adminRoutes" in v);
-    const adminRoutes = generateBlock?.adminRoutes ?? config.adminRoutes ?? true;
-    if (adminRoutes === false) continue;
-    // 生成器と同じ導出: plural があればそれ、無ければ toPlural(camel)
-    const camelPlural = config.plural ? toCamelCase(config.plural) : toPlural(toCamelCase(name) || name);
-    dirs.push(`src/app/admin/(protected)/${toKebabCase(camelPlural)}`);
-  }
-  return dirs;
-}
-
-/** 検査対象の page.tsx 一覧(repo 相対パス、ソート済み) */
+/** 検査対象のページファイル一覧(repo 相対パス、ソート済み。除外の配下を除く) */
 export function discoverPages() {
-  const pages = [];
-  for (const root of scanRoots) pages.push(...collectPages(root));
-  for (const dir of generatedAdminRouteDirs()) pages.push(...collectPages(dir));
-  return [...new Set(pages)].sort();
+  return discoverAllRoutes()
+    .map((r) => r.page)
+    .filter((page) => !scanExcludes.some((ex) => isUnder(page, ex)))
+    .sort();
 }
 
 /**
- * src/app 直下のディレクトリのうち page.tsx を含み、走査範囲(SCAN_ROOTS / FORK_SCAN_ROOTS。エリア自身か
- * その中のどこかが登録されていればよい)にも、upstream 既知のエリア・fork の除外(エリア自身がその中にあるときだけ)にも
- * 属さないもの。fork が独自エリアを作って登録を忘れた状態を黙って通さないために使う。
- * page.tsx の無いディレクトリ(route.ts だけの sitemap.xml/ 等)と . 始まりは対象外。
- * 限界: upstream の走査しないエリアの中(src/app/debug/<fork-dir> 等)は見ない
- */
-export function unknownTopLevelAreas() {
-  const appDir = resolve(repoRoot, "src/app");
-  const skipped = [...UPSTREAM_KNOWN_AREAS, ...scanExcludes];
-  const out = [];
-  for (const entry of readdirSync(appDir)) {
-    if (entry.startsWith("_") || entry.startsWith("@") || entry.startsWith(".")) continue;
-    const rel = `src/app/${entry}`;
-    if (!isDir(rel)) continue;
-    if (scanRoots.some((c) => isUnder(c, rel) || isUnder(rel, c))) continue;
-    if (skipped.some((c) => isUnder(rel, c))) continue;
-    if (collectPages(rel).length === 0) continue;
-    out.push(rel);
-  }
-  return out.sort();
-}
-
-/**
- * FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES の鮮度。形式違い(文字列でない・src/app/ 始まりでない・末尾 /)、
- * 存在しないディレクトリ(ファイルも不可)、重複、upstream の走査範囲(SCAN_ROOTS / 生成された管理画面ルート)に
- * 既に含まれる root、upstream のエリアを丸ごと含む root(サブディレクトリ単位で登録する)、除外の中にある root(走査されない)、
- * 他の fork root の中にある root(登録不要)を返す
+ * FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES の鮮度。
+ * FORK_SCAN_ROOTS は src/app 全体の走査(M1)で不要になったので、行が残っていれば外すよう指摘する(export は互換のため残す)。
+ * FORK_SCAN_EXCLUDES は形式違い(文字列でない・src/app/ 始まりでない・末尾 /)、存在しないディレクトリ(ファイルも不可)、
+ * 重複、他の除外の中にある登録を返す
  */
 export function staleScanEntries() {
   const stale = [];
-  const upstreamCovered = [...SCAN_ROOTS, ...generatedAdminRouteDirs()];
-  const checkShape = (list, name) => {
-    for (const [i, dir] of list.entries()) {
-      if (typeof dir !== "string" || !dir.startsWith("src/app/") || dir.endsWith("/")) stale.push(`${name}: ${JSON.stringify(dir)}(repo 相対の src/app/... を末尾 / 無しで書く)`);
-      else if (!isDir(dir)) stale.push(`${name}: ${dir}(ディレクトリとして存在しない。削除済みなら行を外す)`);
-      if (list.indexOf(dir) !== i) stale.push(`${name}: ${dir}(重複)`);
-    }
-  };
-  checkShape(FORK_SCAN_ROOTS, "FORK_SCAN_ROOTS");
-  checkShape(FORK_SCAN_EXCLUDES, "FORK_SCAN_EXCLUDES");
   for (const dir of FORK_SCAN_ROOTS) {
-    if (typeof dir !== "string") continue;
-    const by = upstreamCovered.find((c) => isUnder(dir, c));
-    if (by) stale.push(`FORK_SCAN_ROOTS: ${dir}(${by} で既に走査される。登録不要)`);
-    const contains = [...UPSTREAM_KNOWN_AREAS, ...upstreamCovered].find((c) => c !== dir && isUnder(c, dir));
-    if (contains) stale.push(`FORK_SCAN_ROOTS: ${dir}(upstream のエリア ${contains} を丸ごと含む。独自のサブディレクトリ単位で登録する)`);
-    const excluded = scanExcludes.find((ex) => isUnder(dir, ex));
-    if (excluded) stale.push(`FORK_SCAN_ROOTS: ${dir}(除外 ${excluded} の中にあり走査されない)`);
-    const outer = FORK_SCAN_ROOTS.find((o) => typeof o === "string" && o !== dir && isUnder(dir, o));
-    if (outer) stale.push(`FORK_SCAN_ROOTS: ${dir}(${outer} で既に走査される。登録不要)`);
+    stale.push(`FORK_SCAN_ROOTS: ${JSON.stringify(dir)}(src/app 全体を走査するようになったので登録不要。行を外す)`);
+  }
+  for (const [i, dir] of FORK_SCAN_EXCLUDES.entries()) {
+    if (typeof dir !== "string" || !dir.startsWith("src/app/") || dir.endsWith("/")) {
+      stale.push(`FORK_SCAN_EXCLUDES: ${JSON.stringify(dir)}(repo 相対の src/app/... を末尾 / 無しで書く)`);
+      continue;
+    }
+    if (!isDir(dir)) stale.push(`FORK_SCAN_EXCLUDES: ${dir}(ディレクトリとして存在しない。削除済みなら行を外す)`);
+    if (FORK_SCAN_EXCLUDES.indexOf(dir) !== i) stale.push(`FORK_SCAN_EXCLUDES: ${dir}(重複)`);
+    const outer = scanExcludes.find((ex) => ex !== dir && isUnder(dir, ex));
+    if (outer) stale.push(`FORK_SCAN_EXCLUDES: ${dir}(${outer} で既に除外される。登録不要)`);
   }
   return stale;
 }
@@ -266,7 +202,8 @@ export function isContainerDir(dirSpec) {
 const legacyEntries = [...UPSTREAM_LEGACY_ROUTES, ...FORK_LEGACY_ROUTES];
 const legacyDirs = new Map(legacyEntries.map((e) => [e.dir, e.reason]));
 const pages = discoverPages();
-const pageDirs = new Set(pages.map((p) => dirname(p)));
+const pageByDir = new Map(pages.map((p) => [dirname(p), p]));
+const pageDirs = new Set(pageByDir.keys());
 
 for (const page of pages) {
   const dir = dirname(page);
@@ -320,7 +257,7 @@ function staleLegacyEntries(entries, { ownerEditable }) {
       if (ownerEditable) stale.push(`${entry.dir}(検査対象に無い。削除済みか走査範囲外)`);
       continue;
     }
-    const { problems, target } = parseSwitchPage(read(`${entry.dir}/page.tsx`));
+    const { problems, target } = parseSwitchPage(read(pageByDir.get(entry.dir)));
     if (problems.length === 0 && target?.screenDir === "_screen") stale.push(`${entry.dir}(移行済み。例外リストから外す)`);
   }
   return stale;
@@ -339,25 +276,16 @@ test("FORK_LEGACY_ROUTES: 移行済み・存在しないルートが残ってお
   assert.deepEqual(dup, [], `例外リストに重複(upstream の一覧にあるものは登録不要): ${dup.join(", ")}`);
 });
 
-test("FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES: 存在しない・upstream が既に走査する・重複した登録が無い", () => {
+test("FORK_SCAN_ROOTS / FORK_SCAN_EXCLUDES: 不要になった FORK_SCAN_ROOTS の行・存在しない・重複した除外が無い", () => {
   const stale = staleScanEntries();
   assert.deepEqual(stale, [], `src/registry/screenRoutesRegistry.ts を更新する:\n${stale.join("\n")}`);
-});
-
-test("src/app 直下に、走査範囲にも既知のエリアにも属さないディレクトリが無い(fork の独自エリアは FORK_SCAN_ROOTS に登録する)", () => {
-  const unknown = unknownTopLevelAreas();
-  assert.deepEqual(
-    unknown,
-    [],
-    `src/registry/screenRoutesRegistry.ts に 1 行足す(検査するなら FORK_SCAN_ROOTS、検査しないなら FORK_SCAN_EXCLUDES):\n${unknown.join("\n")}`,
-  );
 });
 
 // wallet ルートは fork が削除してよい(README §7)ので、ディレクトリがあるときだけ「検出されること」を検査する
 const walletDir = "src/app/(user)/(protected)/wallet";
 const hasWallet = exists(`${walletDir}/page.tsx`);
 
-test("検出範囲: wallet ルート(あれば)と管理画面ルート(生成・手書き)が含まれ、demo と生成テンプレートは含まれない", () => {
+test("検出範囲: src/app 全体(wallet(あれば)・管理画面・debug)が含まれ、demo と生成テンプレートは含まれない", () => {
   if (hasWallet) {
     assert.ok(pageDirs.has(walletDir));
     assert.ok(pageDirs.has(`${walletDir}/[slug]/history`));
@@ -371,6 +299,9 @@ test("検出範囲: wallet ルート(あれば)と管理画面ルート(生成�
   }
   assert.equal([...pageDirs].some((d) => d.startsWith("src/app/admin/(protected)/tabs-demo")), false);
   assert.equal([...pageDirs].some((d) => d.startsWith("src/app/admin/_template")), false);
+  // 固定の走査範囲の外だった区域も検出する(M1)
+  assert.ok(pageDirs.has("src/app/debug"), "src/app/debug が検出されていない");
+  assert.equal([...pageDirs].some((d) => d.startsWith("src/app/api")), false);
 });
 
 test("検出範囲: ルート内 loader(wallet 配下 9 件、あれば)が検出され、共有 loader は admin のものが検出される", () => {

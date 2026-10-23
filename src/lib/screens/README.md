@@ -12,8 +12,12 @@
 |---|---|
 | `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形）。`LegacyRouteEntry` — 例外リストの型 |
 | `checks.mjs` | 検査関数 `parseSwitchPage` / `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`（副作用なし。fork が独自の検査を書くときはこれを import） |
+| `routeTree.mjs` | `discoverRoutes` / `listAppFiles` — `src/app` 全体のページの発見（URL・@slot・祖先の layout）。test:screens とルート地図が共有する（§9・§13） |
+| `routeMap.mjs` | ルート地図の生成（方針の出どころの抽出と整形。純粋関数）。CLI は `scripts/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
 | `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査。上流の未移行ルート一覧 `UPSTREAM_LEGACY_ROUTES` を持つ |
-| `src/registry/screenRoutesRegistry.ts` | fork の未移行ルートの例外リスト `FORK_LEGACY_ROUTES`（upstream は空で出荷、作成後は下流所有。§10） |
+| `routeMap.test.mjs` | `pnpm test:route-map` — 生成器の fixture テストと、コミットされた地図のずれ検査（§13） |
+| `src/app/route-map.txt` | ルート地図（生成物。手で編集しない。§13） |
+| `src/registry/screenRoutesRegistry.ts` | fork の未移行ルートの例外リスト `FORK_LEGACY_ROUTES` と構造の検査の除外 `FORK_SCAN_EXCLUDES`（upstream は空で出荷、作成後は下流所有。§9・§10） |
 
 ---
 
@@ -271,7 +275,7 @@ import { BalanceCard } from "./BalanceCard";
 
 | 検出 | 範囲 |
 |---|---|
-| page.tsx | `src/app/(user)/**` と `src/app/(marketing)/**` と `src/app/admin/**`（`(user)/demo/**`・`admin/(protected)/tabs-demo/**` と `_` で始まるディレクトリを除く。`admin/_template` もこれで外れる）+ fork が `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_ROOTS` に足したエリア（`FORK_SCAN_EXCLUDES` で除外）+ dc:generate の管理画面ルート（`src/features/*/domain.json` の `generateFiles.adminRoutes` が false でないドメインの `src/app/admin/(protected)/<domains>/**`。`src/app/admin/**` に含まれるが、鮮度検査が「登録不要」の判定に使う） |
+| page.tsx | **`src/app` 全体**のページ（`page.tsx` / `.ts` / `.jsx` / `.js` / `.mdx`。`routeTree.mjs` の `discoverRoutes`、ルート地図と同じ発見）。外れるのは `_` で始まるディレクトリ（`admin/_template` 等）と `src/app/api` だけで、`@slot`（parallel routes）は含む。そこから構造の検査の除外（upstream の `SCAN_EXCLUDES` = `(user)/demo/**`・`admin/(protected)/tabs-demo/**`、fork の `FORK_SCAN_EXCLUDES`）の配下を外す。除外したページもルート地図には載る。fork の独自エリア（`store/`・`terminal/`・`m/` 等）も登録なしで検査される |
 | ルート内 loader | 検出した各ルートの `_screen/loader.ts` と `_components/loader.ts`（あるものだけ） |
 | 共有 loader | `src/features` 配下の `services/server/loaders/*.ts`（`index.ts` / `types.ts` / 再 export だけのファイルを除く） |
 
@@ -282,20 +286,15 @@ import { BalanceCard } from "./BalanceCard";
 | Screen が部品を直接読まない | `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（§6）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す | 失敗 |
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）、`(protected)` 配下なら `getSessionUser` の import 無し。ルート内 loader も共有 loader も同じ検査（補助関数は `utils/` へ） | 失敗 |
 | 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
-| 走査範囲の鮮度 | `FORK_SCAN_ROOTS` / `FORK_SCAN_EXCLUDES` の登録がディレクトリとして存在し重複がないこと。`FORK_SCAN_ROOTS` はさらに、upstream の走査範囲（`SCAN_ROOTS` と生成された管理画面ルート）や他の fork root に含まれず、upstream のエリア（`src/app/debug` 等）を丸ごと含まず、除外の中にないこと | 失敗 |
-| 独自エリアの登録忘れ | `src/app` 直下で page.tsx を含むディレクトリは、走査範囲（そのエリア自身か中のどこかが登録されている）・upstream 既知のエリア（`debug` / `api`）・除外のどれかに属すること（`route.ts` だけのディレクトリと `.` 始まりは対象外） | 失敗（登録する 1 行を促す） |
+| 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
+| URL の重複 | 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成） | 失敗 |
 
-fork の独自エリア（`src/app/store/**`、`src/app/terminal/**` のような upstream の走査範囲の外）は、`FORK_SCAN_ROOTS` に**エリア単位で 1 行**書く。登録したエリアの page.tsx は upstream のルートと同じ検査を受け、`FORK_LEGACY_ROUTES` も効く。fork がローカルに screens テストの写しを持つ必要はない。
+fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に、未移行のページは `FORK_LEGACY_ROUTES` に書く。fork がローカルに screens テストの写しを持つ必要はない。
 
 ```ts
 // src/registry/screenRoutesRegistry.ts(fork で編集)
-export const FORK_SCAN_ROOTS: string[] = ["src/app/store", "src/app/terminal"];
-export const FORK_SCAN_EXCLUDES: string[] = [];
+export const FORK_SCAN_EXCLUDES: string[] = ["src/app/lab"];
 ```
-
-管理画面（`src/app/admin/**`）は upstream が丸ごと走査するので、fork が `admin/(protected)/<dir>` に足した管理画面も登録なしで検査される（登録すると「登録不要」で失敗する）。検査したくない fork の管理画面は `FORK_SCAN_EXCLUDES` に、未移行のものは `FORK_LEGACY_ROUTES` に書く。
-
-限界: 登録忘れの検出は `src/app` 直下だけを見る（`debug` / `api` の中は見ない）。
 
 テストは tsx ランナーで動く（例外リストの `.ts` を読むため）。pre-commit / CI ガードは置かない。
 既知の限界: `stripComments` は正規表現リテラルを追跡しない。`//` や引用符・バッククォートを含む正規表現が page.tsx / Screen / loader にあると判定がずれることがある（検査対象のファイルでは稀。必要なら正規表現を `utils/` に逃がす）。
@@ -307,7 +306,7 @@ export const FORK_SCAN_EXCLUDES: string[] = [];
 | リポジトリ | 場所 |
 |---|---|
 | upstream（core の未移行ルート） | `src/lib/screens/screens.test.mjs` の `UPSTREAM_LEGACY_ROUTES`（Step 5e で空になった。新しい core ルートはスイッチ形で作るので原則増えない） |
-| fork | `src/registry/screenRoutesRegistry.ts` の `FORK_LEGACY_ROUTES`（upstream は空で出荷、作成後は下流所有。同じファイルの `FORK_SCAN_ROOTS` / `FORK_SCAN_EXCLUDES` は走査範囲、§9） |
+| fork | `src/registry/screenRoutesRegistry.ts` の `FORK_LEGACY_ROUTES`（upstream は空で出荷、作成後は下流所有。同じファイルの `FORK_SCAN_EXCLUDES` は構造の検査の除外、§9） |
 
 ```ts
 // src/registry/screenRoutesRegistry.ts(fork で編集)
@@ -328,7 +327,7 @@ export const FORK_LEGACY_ROUTES: LegacyRouteEntry[] = [
 - **セクションコンテナの改名（`*Page` → 別名）**: 下流の import を壊す
 - **page.tsx に loader 呼び出しを残す案**: 既定の構成を上流から更新できなくなり、差し替え手順が 2 通りに割れる
 - **ルートを 1 件ずつ登録する方式（初版の `UPSTREAM_ROUTES` / `FORK_SCREEN_ROUTES` + `owner`）**: 登録を忘れると検査が黙って抜け、ページを増やすたびに手間が要る。自動検出 + 例外リストに置き換えた（2026-10-17）
-- **`src/app` 全体を走査する方式**: fork の独自エリアを登録なしで拾えるが、upstream の手書き管理画面と debug の page.tsx（37 件）が全て例外リスト入りになり Step 5 の範囲が膨らむ。fork はエリア単位で `FORK_SCAN_ROOTS` に 1 行書き、`src/app` 直下の未登録ディレクトリをテストで指摘する方式にした（2026-10-18）
+- **固定の走査範囲（`SCAN_ROOTS` + fork の `FORK_SCAN_ROOTS` + `UPSTREAM_KNOWN_AREAS`）**: 2026-10-18 に、全体走査だと upstream の手書き管理画面と debug の 37 件が例外リスト入りになるため採った。管理画面の移行でその理由は消えた（残った非スイッチは debug のインデックス 1 件で、スイッチ形に直した）。一方で、固定リストには 2 つの問題が残っていた。リストの外のページ（upstream の区域の中に fork が足した debug ページ等）が黙って検査から抜けること、そして認可の一覧（§13 のルート地図）が全ページを見られないこと。そこで `src/app` 全体の走査に替えた（M1、2026-10-23、評議会 20261019-213253 §4）。登録は除外（`FORK_SCAN_EXCLUDES`）だけになった
 - **loader を `features/<domain>/services/server/loaders/` に置く方式（初版）**: 複数ドメインを組み合わせるページの loader に置き場が無く、fork がエンティティの無い「loader 置き場ドメイン」を作ることになった（oripa-do の `features/mypage/`）。ルートの `_screen/loader.ts` に統一し、置き場の判断自体を無くした（2026-10-18）。多数ルートが共有する loader（§12）だけ features に残る
 - **`cache()` 不要の印（コメントマーカー）**: 覚える印が増え、印を付けたまま取得処理を足すと二重取得が黙って起きる。一律に包む
 - **差し替え画面専用のディレクトリ名（`_override/` 等）**: 新語が 3 つになり、fork 自身の部品と画面が別フォルダに割れる。`_components/<Name>Screen.tsx` の命名で区別する
@@ -357,3 +356,41 @@ src/app/admin/(protected)/samples/
 - 共有 loader は `requireCurrentUser` を呼ばない（`admin/(protected)/layout.tsx` の `authGuard` が管理者を検査済み）。本人スコープのデータを取るユーザー向け loader との違い
 - 生成された管理画面を変えたい fork: `_screen/` を `_components/` にコピーして page.tsx を向ける。以後の `dc:generate` は `_screen/` を更新し続け、page.tsx と `_components/` は保持される。ドメイン固有のサーバー側判定が要るなら `_components/loader.ts` に書く
 - 生成ルートも `test:screens` が自動検出して検査する（domain.json から導出）
+
+## 13. ルート地図（`src/app/route-map.txt`）
+
+全ページの「URL → 方針の出どころ + 要約」を 1 ページ 1 行で並べた生成物で、コミットする。ページ・layout・loader のガードを変えると、その差分がレビューで見える。発見は §9 と同じ `discoverRoutes`（`src/app` 全体、構造の検査の除外も含めて全ページ）。
+
+| コマンド | 用途 |
+|---|---|
+| `pnpm routes:map` | 地図を書き出す。ページの追加・削除、layout / loader のガードを変えたら実行してコミットする |
+| `pnpm routes:map --check` | 地図が生成結果と一致するか検査する（ずれていれば exit 1） |
+| `pnpm test:route-map` | 生成器の fixture テスト + 同じずれ検査 |
+| `pnpm routes:show [<URL 接頭辞>]` | コミットしない詳細を表示する: 祖先の layout の列、ガード呼び出しの引数の全文、ルート内 loader、ガード以外の redirect / notFound / `*Service.xxx` 呼び出し（管理者数 0 → `/admin/setup` 等） |
+
+行の形（区切りはタブ）:
+
+```
+<URL>[ @slot]	<状態>	<方針の出どころ: 祖先 → 葉、AND>
+/admin/users/general	legacy-unverified	layout:admin/(protected) authGuard#011b5585 > layout:admin/(protected)/users authGuard#2fddae7c
+/mypage/account	legacy-unverified	layout:(user)/(protected) authGuard#aa610870 > loader:_screen requireCurrentUser#a6167f9f
+/login	legacy-unverified	loader:_screen getSessionUser#00000000
+/	legacy-unverified	none
+```
+
+- URL: route group `(x)` と `@slot` を落とす。動的セグメント（`[slug]`）と intercepting の印（`(.)x`）はそのまま残す。`@slot` の中のページは `<URL> @slot` の別の行になり、方針は親ページと同じ祖先の layout（+ slot 内の layout）から作る
+- 方針の出どころ（loader Factory の前の方式）: 祖先の `layout.*` と、ルート内 loader（`_screen/loader.ts` = `loader:_screen`、`_components/loader.ts` = `loader:_components`）の中のガード関数の呼び出しを拾う。対象は `authGuard`・`principalGuard`・`deviceGuard`・`requireCurrentUser`・`getSessionUser`・`requireAdmin`・`requireAuthenticated`
+  - 1 つの呼び出しは `関数名#hash` で表す。hash は引数の全文（文字列の外の空白・末尾カンマ・コメントを除いて正規化）の sha256 の先頭 8 桁で、引数なしなら `00000000`
+  - 引数が変われば hash が変わるので、配下の全ページの行が差分に出る
+  - 出どころは祖先 → 葉の順に ` > ` でつなぐ（親子は AND）。ガード呼び出しのない layout は行に出さない
+  - フォルダ名（`(protected)` 等）は読まない
+- 状態: 今は全行 `legacy-unverified`。layout のガードと loader で守っていても、機械が方針を検証していない、という意味。ガードが見つからない行は `none` と書き、`public` とは書かない（未検証のものを公開と誤読させない）。loader Factory（access の型必須）の導入後に、Factory の方針を読む状態を足し、未解決・旧方式の行を失敗にする予定（評議会 20261019-213253 §7「F2 の後」）
+- 既知の限界: hash は呼び出しの引数の字面だけを見る。`authGuard({ allowRoles: adminRoles })` の `adminRoles` の定義が変わっても、地図には出ない。layout から呼ばれる関数の中のガードや、Screen・部品の中の呼び出しも拾わない（これらの置き場を 1 か所に寄せるのは loader Factory / guard.ts の仕事）
+- fork の merge で地図が衝突したら、どちらの版も採らずに `pnpm routes:map` で作り直してコミットする（地図は生成物なので、手で解決しない）
+
+決定の経緯（評議会 20261019-213253 §4 M1・§7、legate order 01）:
+
+- **採った形 = 認可だけの薄い地図をコミットし、詳細はコマンドで見る**: コミットする情報を「方針の出どころ + 引数の hash」に絞った。理由は 2 つある。layout の構成や見た目の変更でページの行が揺れないこと（方針が変わったときだけ差分が出る）、そして fork の merge で衝突する面を小さくすること
+- **不採用: 全情報（layout の列・引数の全文・loader のパス）をコミットする**: 行が長く、方針と関係のない変更（見た目の layout の追加等）で大量の差分が出て、レビューで方針の変化が埋もれる
+- **不採用: 地図をコミットしない（コマンドで見るだけ）**: ガードの付け外しがレビューの差分に出ず、ずれ検査（前例 `pnpm cron:check` と vercel.json）も作れない
+- **不採用: 固定リストの走査（`SCAN_ROOTS` 等）**: リストの外のページが黙って地図から抜ける（§11）

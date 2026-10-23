@@ -35,7 +35,8 @@ src/app/(user)/(protected)/wallet/[slug]/
 ```
 
 - 差し替え: `_screen/` の Screen を `_components/<Name>Screen.tsx` にコピーし、loader の import を `../_screen/loader` に直して page.tsx の 1 行を向ける。loader はそのまま呼ぶ
-- `pnpm test:screens` が `(user)/**` と `(marketing)/**` と `admin/**` の page.tsx を自動検出して検査する（登録不要。`admin/(protected)/<dir>` に fork が足した管理画面も対象）。fork が `src/app` 直下に作った独自エリア（`store/` 等）はエリア単位で `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_ROOTS` に 1 行書く（未登録のまま置くとテストが指摘する）。スイッチ形でない page.tsx は、理由付きの例外リスト（上流: `UPSTREAM_LEGACY_ROUTES`、fork: 同 registry の `FORK_LEGACY_ROUTES`）に無ければ失敗する
+- `pnpm test:screens` が `src/app` 全体のページ（`_` で始まるディレクトリと `api/` を除く）を自動検出して検査する（登録不要。fork の独自エリアや debug / admin に足したページも対象）。検査から外すディレクトリだけ `src/registry/screenRoutesRegistry.ts` の `FORK_SCAN_EXCLUDES` に書く。スイッチ形でない page.tsx は、理由付きの例外リスト（上流: `UPSTREAM_LEGACY_ROUTES`、fork: 同 registry の `FORK_LEGACY_ROUTES`）に無ければ失敗する
+- ルート地図 `route-map.txt`（このディレクトリ直下）は全ページの「URL → 方針の出どころ」の生成物。ページを足す・消す、layout / loader のガードを変えたら `pnpm routes:map` で作り直してコミットする（ずれは `pnpm test:route-map` が失敗にする。merge で衝突したら作り直す。詳細は `pnpm routes:show`、仕様は src/lib/screens/README.md §13）
 - 上流の core ルートは全て移行済み（wallet 9 / mypage 10 / legal 3 / services / maintenance / entry / トップ / auth 16 / 手書きの管理画面 33）。`UPSTREAM_LEGACY_ROUTES` は空で、新しい core ルートはスイッチ形で作る
 - `_screen/` には Screen と loader のほかに、既定 Screen 専用の部品を置いてよい（直下でもサブディレクトリでも。例: `(user)/_screen/StarterHome/`、`(marketing)/entry/_screen/CampaignSection.tsx`）。部品は契約外。`_components/` は下流の場所で、上流のルートでは上流が何も置かない
 

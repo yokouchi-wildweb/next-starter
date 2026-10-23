@@ -42,7 +42,7 @@
 - src/lib/request — リクエスト情報の取得(getClientIp、ヘッダーを受け取る純粋版 readClientIp)
 - src/lib/requestMemo — リクエストスコープの無効化可能なメモ化(同一リクエスト内の重複読み取りを圧縮)
 - src/lib/routeFactory — 全 API ルートの生成ファクトリ(認可を構造的に強制)
-- src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト
+- src/lib/screens — page 層の構造(1 行スイッチ + _screen/ + loader)の型 ScreenProps と規律テスト、src/app 全体のページ発見とルート地図(routes:map)
 - src/lib/seamlessVideo — 変換済み fmp4 を MSE で継ぎ目なく連結再生(映像 + 音声・A/V 同期・BGM)
 - src/lib/siteTheme — エリア別のライト / ダーク解決と SSR 時のちらつき防止(defineSiteThemeConfig)
 - src/lib/sortableList — ドラッグ & ドロップの並べ替えリスト UI
