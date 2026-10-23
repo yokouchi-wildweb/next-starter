@@ -18,6 +18,9 @@ export type ControlledMediaUploaderMultiProps<
   onRegisterPendingDelete?: (url: string | null) => void;
 };
 
+// field.value が配列でないときの代わり。毎回新しい [] を渡すと MediaUploaderMulti の再同期が描画のたびに走る
+const EMPTY_URLS: string[] = [];
+
 /**
  * RHF の Controller と MediaUploaderMulti をブリッジする
  * field.value は string[] を想定（mediaUploaderMulti スキーマで配列）
@@ -35,7 +38,7 @@ export const ControlledMediaUploaderMulti = <
   ...uploaderProps
 }: ControlledMediaUploaderMultiProps<TFieldValues, TName>) => {
   const fieldValue = (Array.isArray(field.value) ? field.value : null) as string[] | null;
-  const resolvedInitialUrls = fieldValue ?? defaultUrls ?? [];
+  const resolvedInitialUrls = fieldValue ?? defaultUrls ?? EMPTY_URLS;
 
   const handleUrlsChange = useCallback(
     (urls: string[]) => {

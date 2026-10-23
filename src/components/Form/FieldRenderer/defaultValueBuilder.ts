@@ -4,7 +4,8 @@ type DomainField = {
   name: string;
   fieldType: string;
   formInput?: string;
-  defaultValue?: string | number | boolean;
+  // domain.json の defaultValue は JSON の値（jsonb 列では object / array もある）
+  defaultValue?: unknown;
   options?: { value: string | number | boolean; label: string }[];
 };
 
@@ -47,7 +48,12 @@ function getDefaultValueForType(field: DomainField): unknown {
     case "enum":
       return undefined;
     case "array":
+    case "mediaUploaderMulti":
       return [];
+    // jsonb / map は値なし。schema の .default() や DB の既定値に任せる（"" だと record / object の schema で落ちる）
+    case "jsonb":
+    case "map":
+      return undefined;
     case "timestamp":
     case "timestamp With Time Zone":
       return undefined;

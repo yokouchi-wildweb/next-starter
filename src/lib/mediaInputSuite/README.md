@@ -62,6 +62,7 @@ src/lib/mediaInputSuite
 - 複数枚アップロード版。`value: string[]`（storage ref の配列）を扱う。`purpose`（必須）・`reencodeImage` は単一版と同じ。
 - 並列アップロード（スロット毎の進捗・キャンセル）、追加スロット、削除、ドラッグ並び替え（`reorderable` で切替）。
 - `validationRule.maxItems`（既定 10） / `minItems` で件数制約。
+- `onUrlsChange` は利用者の操作（追加・削除・並べ替え・アップロード完了）で確定済 URL が変わったときだけ呼ばれる。初期値（mount 時）や外から `initialUrls` を入れ直したときは呼ばない（AutoSave が開いただけで保存しないため）。
 - 表示は正方形グリッド（`MediaThumbGrid` を内包）。動画は controls 非表示の第1フレーム表示。
 - `image/*,video/*` 等の `accept` で動画も許可可能。
 

@@ -72,6 +72,9 @@ type SlotState =
   | { kind: "uploading"; id: string; file: File; progress: UploadProgress | null; cancel: () => void; objectUrl: string }
   | { kind: "error"; id: string; file: File; message: string; objectUrl: string };
 
+// URL 配列の比較用キー（URL に含まれない制御文字で連結）
+const toUrlsKey = (urls: readonly string[]): string => urls.join("\u0001");
+
 const slotIsUploading = (slot: SlotState): slot is Extract<SlotState, { kind: "uploading" }> =>
   slot.kind === "uploading";
 
@@ -102,36 +105,45 @@ export const MediaUploaderMulti = ({
   const maxItems = validationRule?.maxItems ?? DEFAULT_MAX_ITEMS;
 
   // initialUrls の変更で外側からの再同期に追随する（フォーム再初期化等）
-  // 同内容なら何もしない（onUrlsChange → field 更新 → initialUrls 再供給のループで ID が振り直される事故を防ぐ）
-  useEffect(() => {
-    if (!initialUrls) return;
-    setSlots((prev) => {
-      const prevUploaded = prev
-        .filter((s): s is Extract<SlotState, { kind: "uploaded" }> => s.kind === "uploaded")
-        .map((s) => s.url);
-      const sameContent =
-        prevUploaded.length === initialUrls.length &&
-        prevUploaded.every((u, i) => u === initialUrls[i]);
-      if (sameContent) return prev;
-      const uploadingOrError = prev.filter((s) => s.kind !== "uploaded");
+  // 内容で比較し、同内容なら何もしない（onUrlsChange → field 更新 → initialUrls 再供給のループで ID が振り直される事故を防ぐ）
+  // useEffect + setState は react-hooks/set-state-in-effect に反するため、前回値と比較して render 中に setState する
+  const initialKey = initialUrls ? toUrlsKey(initialUrls) : null;
+  const [syncedInitialKey, setSyncedInitialKey] = useState<string | null>(initialKey);
+  if (initialUrls && initialKey !== syncedInitialKey) {
+    setSyncedInitialKey(initialKey);
+    const prevUploaded = slots
+      .filter((s): s is Extract<SlotState, { kind: "uploaded" }> => s.kind === "uploaded")
+      .map((s) => s.url);
+    if (toUrlsKey(prevUploaded) !== initialKey) {
+      const uploadingOrError = slots.filter((s) => s.kind !== "uploaded");
       const uploaded: SlotState[] = initialUrls.map((url) => ({ kind: "uploaded", id: uuidv7(), url }));
-      return [...uploaded, ...uploadingOrError];
-    });
-  }, [initialUrls]);
+      setSlots([...uploaded, ...uploadingOrError]);
+    }
+  }
 
   const uploadedUrls = useMemo(
     () => slots.filter((s): s is Extract<SlotState, { kind: "uploaded" }> => s.kind === "uploaded").map((s) => s.url),
     [slots],
   );
 
-  // 確定済 URL 配列が変わったら通知
-  const lastNotifiedRef = useRef<string>("");
+  // 確定済 URL 配列が利用者の操作で変わったら通知
+  // 初期値（mount 時）と外からの再同期で入った値は通知しない（mount 時に通知すると AutoSave が保存を走らせるため）
+  // 外からの値は、同期キーが変わった直後の 1 回だけ通知済みとして取り込む（initialUrls が固定のままの利用で、並べ替えて元に戻した操作は通知する）
+  const lastNotifiedRef = useRef<string>(initialKey ?? "");
+  const absorbedInitialKeyRef = useRef<string | null>(initialKey);
   useEffect(() => {
-    const key = uploadedUrls.join("");
+    const key = toUrlsKey(uploadedUrls);
+    if (syncedInitialKey !== absorbedInitialKeyRef.current) {
+      absorbedInitialKeyRef.current = syncedInitialKey;
+      if (key === syncedInitialKey) {
+        lastNotifiedRef.current = key;
+        return;
+      }
+    }
     if (key === lastNotifiedRef.current) return;
     lastNotifiedRef.current = key;
     onUrlsChange?.(uploadedUrls);
-  }, [uploadedUrls, onUrlsChange]);
+  }, [uploadedUrls, onUrlsChange, syncedInitialKey]);
 
   // アップロード中の有無を通知
   const isUploading = useMemo(() => slots.some(slotIsUploading), [slots]);

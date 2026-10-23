@@ -99,3 +99,13 @@
 - 手書きのフォームでメディア項目を足すときは、用途を登録し、`fieldPatches` などで `purpose` を渡す
 - `purpose` の無いメディア項目は入力を出さず、未設定のメッセージを出す（アップロード先が決まらないため）
 - フォームの値は storage ref（`storage://…`）。保存時の採用・差し替え・削除はサーバーの CRUD 連動が行う（詳細: src/lib/mediaInputSuite/README.md）
+
+## フォームの既定値（buildFormDefaultValues）
+
+`buildFormDefaultValues(domainConfig, entity?)` が domain.json から `useForm` の `defaultValues` を作る。生成の Create / Edit フォームが使う（実行時に domain.json を読むので、既定値の変更に再生成は要らない）。
+
+- 優先順: 編集時は `entity` の値（null / undefined なら下の既定値）→ フィールドの `defaultValue`（object / array も可）→ fieldType ごとの既定値
+- fieldType ごとの既定値: `array` / `mediaUploaderMulti` = `[]` | `jsonb` / `map` = `undefined`（値なし。schema の `.default()` や DB の既定値に任せる）| `boolean` = `false`（radio または options ありは `undefined`）| 数値・`enum`・timestamp = `undefined` | それ以外（文字列系・`mediaUploader`）= `""`
+- 既定値は schema の型に合わせる。zod の `.default()` は `undefined` のときだけ効くので、配列や object の schema に `""` を渡すと送信が落ちる
+- 必須の jsonb を画面に出さない（formInput `none`）作成フォームでは、既定値が `undefined` なので必須チェックで落ちる → domain.json の `defaultValue` か、フォーム側で値を入れる
+- テスト: `pnpm test:form-defaults`
