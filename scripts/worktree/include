@@ -1,0 +1,11 @@
+# ワークツリーへ持ち込む gitignore 対象ファイル (書式は .gitignore と同じ、パスはリポジトリのルートから)
+# 「ここに一致し、かつ gitignore 対象」のファイルだけが本体から複製される (git 管理のファイルは対象外)。
+# 読み手: pnpm worktree:new / worktree:sync。node_modules は入れない (worktree:new が pnpm install する)
+# 詳細: scripts/worktree/README.md
+
+# upstream
+.env*
+!.env.example
+.claude/settings.local.json
+.vercel/
+# --- fork entries below ---
