@@ -10,6 +10,7 @@ import {
 } from "../../../src/utils/stringCase.mjs";
 import { resolveFeaturePath, resolveFeatureTemplatePath, resolveFeaturesDir } from "./utils/pathHelpers.mjs";
 import { resolveFieldName, resolveOrderByFields, resolveSearchFields } from "./utils/fieldName.mjs";
+import { checkMediaFieldsEngine, collectMediaFields } from "../utils/mediaFields.mjs";
 
 // ドメインの設定を取得
 function getDomainConfig(domainPath) {
@@ -629,6 +630,29 @@ function hasEmptyCreateSchema(config) {
 /**
  * 空スキーマ時に drizzleBase テンプレートから parse/satisfies/不要 import を除去する
  */
+function buildStorageBindingImport(mediaFields) {
+  if (mediaFields.length === 0) return "";
+  return 'import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";\n';
+}
+
+/**
+ * drizzleBase の createCrudService に渡す storage binding（メディア列 ↔ ファイル台帳）。
+ * purpose は registry の AUTO 登録と同じ `<camel>.<field>`。メディア列が無ければ何も出さない
+ */
+function buildStorageBindingOption(camel, mediaFields) {
+  if (mediaFields.length === 0) return "";
+  const entries = mediaFields
+    .map((f) => `    { name: "${f.name}", purpose: "${camel}.${f.name}", multi: ${f.multi} },`)
+    .join("\n");
+  return [
+    "  // メディア列の値（storage ref）をファイル台帳に紐付ける。複製・物理削除時のファイル処理もここで行う",
+    `  storage: storageBindingFor("${camel}", [`,
+    entries,
+    "  ]),",
+    "",
+  ].join("\n");
+}
+
 function stripDrizzleBaseForEmptySchema(content) {
   // スキーマのインポートを削除
   content = content.replace(/import \{ \w+CreateSchema, \w+UpdateSchema \} from [^\n]+;\n/, "");
@@ -695,7 +719,6 @@ function buildRelationTableImports(relationDomainImports, selfDomain = "") {
  * @param {Object} [options.targets] - 生成対象の指定（未指定時は全て生成）
  * @param {boolean} [options.targets.base] - drizzleBase.ts / firestoreBase.ts を生成
  * @param {boolean} [options.targets.service] - xxxService.ts を生成
- * @param {boolean} [options.targets.duplicateWrapper] - wrappers/duplicate.ts を生成
  * @param {boolean} [options.overwriteService] - 既存の xxxService.ts も上書きする（既定 false = 無いときだけ生成）
  */
 export default function generateServerService(domain, options = {}) {
@@ -704,7 +727,6 @@ export default function generateServerService(domain, options = {}) {
   // targets が指定されていない場合は全て生成
   const generateBase = targets?.base ?? true;
   const generateService = targets?.service ?? true;
-  const generateDuplicateWrapper = targets?.duplicateWrapper ?? true;
 
   const normalized = toSnakeCase(domain) || domain;
   const camel = toCamelCase(normalized) || normalized;
@@ -722,7 +744,7 @@ export default function generateServerService(domain, options = {}) {
   let relationImports = [];
   let belongsToManyLiteral = "";
   let relationDomainImports = [];
-  let hasMediaUploader = false;
+  let mediaFields = [];
   let isEmptyCreateSchema = false;
   let domainConfig = null;
 
@@ -734,7 +756,7 @@ export default function generateServerService(domain, options = {}) {
     relationImports = composed.relationTableImports;
     belongsToManyLiteral = composed.belongsToManyLiteral;
     relationDomainImports = composed.relationDomainImports || [];
-    hasMediaUploader = Array.isArray(domainConfig.fields) && domainConfig.fields.some((f) => f.fieldType === "mediaUploader");
+    mediaFields = collectMediaFields(domainConfig);
     isEmptyCreateSchema = hasEmptyCreateSchema(domainConfig);
   }
 
@@ -751,8 +773,12 @@ export default function generateServerService(domain, options = {}) {
   const outputDir = path.join(camelDir, "services", "server");
   const wrapperDir = path.join(outputDir, "wrappers");
 
+  // ファイル台帳との連動（storage binding）は Drizzle 専用。Firestore adapter は凍結のため、メディア列は生成エラーで止める
+  const mediaEngineError = checkMediaFieldsEngine(camel, domainConfig, dbEngine);
+  if (mediaEngineError) throw new Error(mediaEngineError);
+
   const baseFile = dbEngine === "Firestore" ? "firestoreBase.ts" : "drizzleBase.ts";
-  const serviceTemplate = hasMediaUploader ? "__domain__Service.withStorage.ts" : "__domain__Service.ts";
+  const serviceTemplate = "__domain__Service.ts";
 
   // 生成対象のテンプレートを構築
   const templates = [];
@@ -772,7 +798,9 @@ export default function generateServerService(domain, options = {}) {
       .replace(/__serviceOptions__/g, serviceOptionsLiteral)
       .replace(/__DrizzleEntityImports__/g, drizzleEntityImports)
       .replace(/__belongsToManyRelations__/g, belongsToManyLiteral)
-      .replace(/__RelationTableImports__/g, relationTableImportsText);
+      .replace(/__RelationTableImports__/g, relationTableImportsText)
+      .replace(/__StorageBindingImport__/g, buildStorageBindingImport(mediaFields))
+      .replace(/__storageBinding__/g, buildStorageBindingOption(camel, mediaFields));
   }
 
   // 出力先ディレクトリが無ければ作成
@@ -799,10 +827,11 @@ export default function generateServerService(domain, options = {}) {
     const isServiceFile = file === serviceTemplate;
     if (isServiceFile && fs.existsSync(outputFile) && !overwriteService) {
       console.log(`既存のため生成しません（書き捨て）: ${outputFile}`);
-      if (hasMediaUploader && !fs.readFileSync(outputFile, "utf8").includes("./wrappers/duplicate")) {
+      if (mediaFields.length > 0 && fs.readFileSync(outputFile, "utf8").includes("./wrappers/duplicate")) {
         console.warn(
-          `[${camel}] mediaUploader フィールドがありますが ${outputFileName} が wrappers/duplicate を組み込んでいません。` +
-            `ファイル複製のため \`import { duplicate } from "./wrappers/duplicate";\` と \`duplicate,\` を手で追加してください。`,
+          `[${camel}] ${outputFileName} が wrappers/duplicate（旧ファイル複製）を組み込んでいます。` +
+            `複製は drizzleBase の storage binding が行うため、\`import { duplicate } from "./wrappers/duplicate";\` と \`duplicate,\` を外してください` +
+            `（残すと複製した旧 URL の保存が binding に拒否されます）。`,
         );
       }
       continue;
@@ -825,39 +854,6 @@ export default function generateServerService(domain, options = {}) {
 
     fs.writeFileSync(outputFile, content);
     console.log(`サーバーサービスを生成しました: ${outputFile}`);
-  }
-
-  // mediaUploaderがある場合はwrappersも生成（個別にフラグで制御）
-  // NOTE: 削除系（remove / bulkDeleteByIds / bulkDeleteByQuery / hardDelete）の Storage
-  // クリーンアップは drizzleBase が createCrudService に storageCleanupFields を渡すことで
-  // base 側に内蔵されているため、ラッパー生成は不要。duplicate のみファイル複製のため生成する。
-  if (hasMediaUploader) {
-    const wrapperTemplates = [];
-    if (generateDuplicateWrapper) wrapperTemplates.push("wrappers/duplicate.ts");
-
-    for (const wrapperFile of wrapperTemplates) {
-      const templatePath = path.join(templateDir, wrapperFile);
-      const outputFile = path.join(outputDir, wrapperFile);
-
-      if (!fs.existsSync(templatePath)) {
-        console.error(`テンプレートが見つかりません: ${templatePath}`);
-        return;
-      }
-
-      const template = fs.readFileSync(templatePath, "utf8");
-      const content = replaceTokens(template);
-
-      fs.writeFileSync(outputFile, content);
-      console.log(`ラッパーを生成しました: ${outputFile}`);
-    }
-
-    // .gitkeep があれば削除（少なくとも1つのラッパーを生成した場合）
-    if (wrapperTemplates.length > 0) {
-      const keepFile = path.join(wrapperDir, ".gitkeep");
-      if (fs.existsSync(keepFile)) {
-        fs.unlinkSync(keepFile);
-      }
-    }
   }
 }
 

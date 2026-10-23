@@ -19,6 +19,17 @@ import rawDomainConfig from "@/features/sample/domain.json";
 
 const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
+// メディア列の用途 ID（src/registry/storagePurposeRegistry.ts の登録名）
+const STORAGE_PURPOSES: Record<string, string> = {
+  main_image: "sample.main_image",
+  sub_image: "sample.sub_image",
+  gallery_images: "sample.gallery_images",
+};
+
+const baseFields = (domainConfig.fields ?? []).map((field) =>
+  field.name in STORAGE_PURPOSES ? { ...field, purpose: STORAGE_PURPOSES[field.name] } : field,
+) as FieldConfig[];
+
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   onMediaStateChange?: (state: MediaState | null) => void;
@@ -78,7 +89,7 @@ export function SampleFields<TFieldValues extends FieldValues>({
     <FieldRenderer
       control={methods.control}
       methods={methods}
-      baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
+      baseFields={baseFields}
       fieldPatches={fieldPatches}
       insertBefore={mergedInsertBefore}
       insertAfter={insertAfter}

@@ -3,7 +3,6 @@
 import { base } from "./drizzleBase";
 import { create } from "./wrappers/create";
 import { update } from "./wrappers/update";
-import { duplicate } from "./wrappers/duplicate";
 import { sendDirect } from "./notification/sendDirect";
 import {
   sendToUser,
@@ -31,9 +30,7 @@ export const notificationService = {
   ...base,
   create,
   update,
-  // remove / bulkDeleteByIds / hardDelete 等の削除系は base が storageCleanupFields を
-  // 受け取り Storage クリーンアップまで行うため、個別ラッパーは不要。
-  duplicate,
+  // 複製（画像のコピー）と削除系のファイル処理は base の storage binding（drizzleBase）が行うため、個別ラッパーは不要。
   sendDirect,
   sendToUser,
   sendToUsers,

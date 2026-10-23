@@ -5,7 +5,7 @@ import { SampleTable, SampleToSampleTagTable } from "@/features/sample/entities/
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
-import { extractStorageFields } from "@/lib/crud/storageIntegration/extractStorageFields";
+import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec, SearchRankSpec } from "@/lib/crud/types";
@@ -76,14 +76,15 @@ export const sampleServiceOptions = baseOptions;
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/sample/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
-// mediaUploader / mediaUploaderMulti 列が参照する Storage ファイルを、物理削除時に
-// 自動クリーンアップする。media を持たないドメインでは [] となり no-op。
-const storageCleanupFields = extractStorageFields(conf);
-
 export const base = createCrudService(SampleTable, {
   ...baseOptions,
   sortOrderColumn,
-  storageCleanupFields,
+  // メディア列の値（storage ref）をファイル台帳に紐付ける。複製・物理削除時のファイル処理もここで行う
+  storage: storageBindingFor("sample", [
+    { name: "main_image", purpose: "sample.main_image", multi: false },
+    { name: "sub_image", purpose: "sample.sub_image", multi: false },
+    { name: "gallery_images", purpose: "sample.gallery_images", multi: true },
+  ]),
   parseCreate: (data) => SampleCreateSchema.parse(data),
   parseUpdate: (data) => SampleUpdateSchema.parse(data),
   parseUpsert: (data) => SampleCreateSchema.parse(data),

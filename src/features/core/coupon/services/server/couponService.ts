@@ -18,8 +18,8 @@ import { redeemWithEffect } from "./wrappers/redeemWithEffect";
 
 export const couponService = {
   ...base,
-  // remove / bulkDeleteByIds / hardDelete 等の削除系は base が storageCleanupFields を
-  // 受け取り Storage クリーンアップまで行うため、個別ラッパーは不要。
+  // 削除系のファイル処理は base の storage binding（drizzleBase）が行う。
+  // duplicate はコードの再発行・使用回数のリセットのため独自（画像のコピーは binding の duplicateValues）。
   duplicate,
   // 使用処理
   redeem,

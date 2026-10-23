@@ -11,6 +11,7 @@ import { DOMAIN_CONFIG_VERSION } from "./version.mjs";
 import { findDomainDirectories } from "./generate-all.mjs";
 import { getCliArgs } from "./utils/cliArgs.mjs";
 import { checkDomainFolderName } from "./utils/domainFolder.mjs";
+import { checkMediaFieldsEngine } from "./utils/mediaFields.mjs";
 import { GENERATE_CATEGORIES, narrowGenerateTargets } from "./utils/onlyOption.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -118,6 +119,11 @@ export default async function generate(domain, options = {}) {
   const folderError = checkDomainFolderName(camel, config);
   if (folderError) {
     throw new Error(folderError);
+  }
+  // Firestore ドメインのメディア列は binding を持てないため、何も書く前に止める
+  const mediaEngineError = checkMediaFieldsEngine(camel, config);
+  if (mediaEngineError) {
+    throw new Error(mediaEngineError);
   }
   config.domainConfigVersion = DOMAIN_CONFIG_VERSION;
   if (config.version) {

@@ -356,7 +356,7 @@ const inserted = await service.replaceByQuery(
 
 ## storage オプション（ファイル台帳との連動）
 
-`storage://` の ref を保存するメディア列を、ファイル台帳（[features/core/storageObject](../../features/core/storageObject/README.md)）と同じ TX で連動させる。下の旧「Storage 連携クリーンアップ」（`storageCleanupFields`）とは別の経路で、N2 で置き換わる。指定しないサービスの挙動は変わらない。
+`storage://` の ref を保存するメディア列を、ファイル台帳（[features/core/storageObject](../../features/core/storageObject/README.md)）と同じ TX で連動させる。下の旧「Storage 連携クリーンアップ」（`storageCleanupFields`）とは別の経路。dc:generate はメディア列を持つドメインの drizzleBase にこの binding を出す（purpose = `<domain>.<field>`、旧 `wrappers/duplicate.ts` は生成しない）。指定しないサービスの挙動は変わらない。
 
 ```ts
 import { storageBindingFor } from "@/features/core/storageObject/services/server";
@@ -406,13 +406,12 @@ Storage 上のファイルは、レコードが **物理削除** されるタイ
 自動削除する（best-effort）。ドメイン側でラッパーを書く必要はない。
 
 - 有効化: `createCrudService` の `storageCleanupFields` に対象フィールド名を渡す。
-  生成される `drizzleBase.ts` が `extractStorageFields(conf)` の結果を自動的に渡すため、
-  `mediaUploader` を持つドメインは設定不要で有効になる。
+  生成される `drizzleBase.ts` はもう渡さない（上の `storage` オプションに切り替え済み）。
 - 対象操作: `hardDelete` / `bulkHardDeleteByIds`（常に物理削除）、および
   `remove` / `bulkDeleteByIds` / `bulkDeleteByQuery`（`useSoftDelete=false` のときのみ物理削除）。
 - ソフトデリート（`deletedAt` 設定）では復元可能性を保つためファイルは保持し、`hardDelete` 時にのみ削除する。
-- `duplicate` のみファイル複製が必要なため、`storageIntegration/createStorageAwareDuplicate` を使った
-  ラッパー（`wrappers/duplicate.ts`）で上書きする（生成器が自動生成）。
+- `duplicate` は `storageIntegration/createStorageAwareDuplicate` を使ったラッパー（`wrappers/duplicate.ts`）で
+  上書きしていた（生成器はもう生成しない。`storage` オプションと併用すると複製した旧 URL が 400 になる）。
 
 ---
 

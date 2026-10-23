@@ -2,6 +2,7 @@
 // ドメインのフォームフィールドコンポーネントを生成するユーティリティ
 
 import { getFormRelations } from "../../../../../src/lib/domain/relations/relationOptions.mjs";
+import { collectMediaFields } from "../../../utils/mediaFields.mjs";
 
 /**
  * domain.json の config からフィールドコンポーネントを生成
@@ -38,6 +39,23 @@ import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
 `
     : "";
 
+  // メディア列には用途 ID（`<domain>.<field>`。registry の AUTO 登録と同じ）を付けて FieldRenderer に渡す
+  const mediaFields = collectMediaFields(config);
+  const baseFieldsBlock = mediaFields.length
+    ? `
+// メディア列の用途 ID（src/registry/storagePurposeRegistry.ts の登録名）
+const STORAGE_PURPOSES: Record<string, string> = {
+${mediaFields.map((f) => `  ${f.name}: "__domain__.${f.name}",`).join("\n")}
+};
+
+const baseFields = (domainConfig.fields ?? []).map((field) =>
+  field.name in STORAGE_PURPOSES ? { ...field, purpose: STORAGE_PURPOSES[field.name] } : field,
+) as FieldConfig[];
+`
+    : `
+const baseFields = (domainConfig.fields ?? []) as FieldConfig[];
+`;
+
   // FieldRenderer に渡す insertBefore の値
   const insertBeforeValue = hasRelations ? "mergedInsertBefore" : "insertBeforeProp";
 
@@ -59,7 +77,7 @@ ${useRelationImport}import { normalizeDomainJsonConfig } from "@/lib/domain/conf
 import rawDomainConfig from "@/features/__domain__/domain.json";
 
 const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
-
+${baseFieldsBlock}
 export type __Domain__FieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   onMediaStateChange?: (state: MediaState | null) => void;
@@ -106,7 +124,7 @@ export function __Domain__Fields<TFieldValues extends FieldValues>({
     <FieldRenderer
       control={methods.control}
       methods={methods}
-      baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
+      baseFields={baseFields}
       fieldPatches={fieldPatches}
       insertBefore={${insertBeforeValue}}
       insertAfter={insertAfter}

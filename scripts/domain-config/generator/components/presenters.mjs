@@ -80,13 +80,12 @@ const buildFormatter = (field) => {
   if (formInput === "dateInput") {
     return `formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
   }
-  // mediaUploader / mediaUploaderMulti / fileUploader は renderValue のフォールバック処理で画像表示するため除外
-  if (
-    formInput === "mediaUploader" ||
-    formInput === "mediaUploaderMulti" ||
-    formInput === "fileUploader"
-  ) {
-    return null;
+  // メディア列: 値（storage ref・旧 URL）を resolveStorageSrc で解決してサムネイル表示する
+  if (fieldType === "mediaUploaderMulti" || formInput === "mediaUploaderMulti") {
+    return `formatMediaThumbnails(value)`;
+  }
+  if (fieldType === "mediaUploader" || formInput === "mediaUploader" || formInput === "fileUploader") {
+    return `formatMediaThumbnail(value)`;
   }
 
   return `formatString(value)`;
@@ -95,13 +94,8 @@ const buildFormatter = (field) => {
 const presenterEntries = (config.fields ?? [])
   .map((field) => {
     const formatter = buildFormatter(field);
-    // formatter が null の場合は除外（renderValue にフォールバックさせる）
-    if (formatter === null) {
-      return null;
-    }
     return `  ${resolveFieldName(field.name, dbEngine)}: ({ value, field, record }) => ${formatter},`;
-  })
-  .filter((entry) => entry !== null);
+  });
 
 if (config.useCreatedAt) {
   presenterEntries.push(

@@ -130,6 +130,8 @@ export type FieldConfig = {
   // === MediaUploader 追加プロパティ ===
   /** アップロード先パス（例: sample/main） */
   uploadPath?: string;
+  /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名。生成 Fields コンポーネントが付ける） */
+  purpose?: string;
   /** ハンドラ識別子（camelCase） */
   slug?: string;
   /** 許可ファイル種別 */

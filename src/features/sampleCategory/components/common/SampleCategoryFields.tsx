@@ -17,6 +17,8 @@ import rawDomainConfig from "@/features/sampleCategory/domain.json";
 
 const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 
+const baseFields = (domainConfig.fields ?? []) as FieldConfig[];
+
 export type SampleCategoryFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   onMediaStateChange?: (state: MediaState | null) => void;
@@ -63,7 +65,7 @@ export function SampleCategoryFields<TFieldValues extends FieldValues>({
     <FieldRenderer
       control={methods.control}
       methods={methods}
-      baseFields={(domainConfig.fields ?? []) as FieldConfig[]}
+      baseFields={baseFields}
       fieldPatches={fieldPatches}
       insertBefore={insertBeforeProp}
       insertAfter={insertAfter}

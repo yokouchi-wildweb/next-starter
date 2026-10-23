@@ -2,6 +2,7 @@
 
 import { emptyToNull } from "@/utils/string";
 import { nullableDatetime } from "@/lib/crud/utils";
+import { storageMediaValueSchema } from "@/lib/storage/schema";
 import { z } from "zod";
 
 export const SampleBaseSchema = z.object({
@@ -21,10 +22,12 @@ export const SampleBaseSchema = z.object({
   time: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   main_image: z.string().trim().nullish()
-    .transform((value) => emptyToNull(value)),
+    .transform((value) => emptyToNull(value))
+    .pipe(storageMediaValueSchema.nullish()),
   sub_image: z.string().trim().nullish()
-    .transform((value) => emptyToNull(value)),
-  gallery_images: z.array(z.string().trim().min(1)).max(8, { message: "ギャラリー画像は8件以下にしてください。" }).default([]),
+    .transform((value) => emptyToNull(value))
+    .pipe(storageMediaValueSchema.nullish()),
+  gallery_images: z.array(storageMediaValueSchema).max(8, { message: "ギャラリー画像は8件以下にしてください。" }).default([]),
   description: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   sort_order: z.string().trim().nullish()

@@ -1,6 +1,7 @@
 // src/features/coupon/entities/schemaRegistry.ts
 
 import { emptyToNull } from "@/utils/string";
+import { storageMediaValueSchema } from "@/lib/storage/schema";
 import { z } from "zod";
 
 export const CouponBaseSchema = z.object({
@@ -13,7 +14,8 @@ export const CouponBaseSchema = z.object({
   description: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   image_url: z.string().trim().nullish()
-    .transform((value) => emptyToNull(value)),
+    .transform((value) => emptyToNull(value))
+    .pipe(storageMediaValueSchema.nullish()),
   admin_label: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   admin_note: z.string().trim().nullish()

@@ -9,6 +9,8 @@ import {
   formatStringArray,
   formatEnumLabel,
   formatDateValue,
+  formatMediaThumbnail,
+  formatMediaThumbnails,
 } from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";
 

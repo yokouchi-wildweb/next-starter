@@ -9,6 +9,8 @@ import {
   formatStringArray,
   formatEnumLabel,
   formatDateValue,
+  formatMediaThumbnail,
+  formatMediaThumbnails,
 } from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";
 
@@ -25,6 +27,9 @@ export const presenters: Record<string, SampleFieldPresenter> = {
   sale_start_at: ({ value, field, record }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   date: ({ value, field, record }) => formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),
   time: ({ value, field, record }) => formatString(value),
+  main_image: ({ value, field, record }) => formatMediaThumbnail(value),
+  sub_image: ({ value, field, record }) => formatMediaThumbnail(value),
+  gallery_images: ({ value, field, record }) => formatMediaThumbnails(value),
   description: ({ value, field, record }) => formatString(value),
   sort_order: ({ value, field, record }) => formatString(value),
   createdAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),

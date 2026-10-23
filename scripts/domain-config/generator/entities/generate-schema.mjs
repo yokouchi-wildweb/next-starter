@@ -102,8 +102,22 @@ function isPasswordField(fieldType) {
   return fieldType === 'password';
 }
 
+let usesStorageMediaValue = false;
+
 function fieldLine({ name, label, type, required, fieldType, defaultValue, validationRule }) {
+  // メディア列: 値は storage ref または http(s)（凍結した旧 URL）。新しい行に旧 URL を書けるかは CRUD 連動（storage binding）が判定する
+  if (fieldType === 'mediaUploader') {
+    usesStorageMediaValue = true;
+    const resolvedLabel = label || name;
+    if (required) {
+      return `  ${name}: z.string().trim().min(1, { message: "${resolvedLabel}は必須です。" }).pipe(storageMediaValueSchema),`;
+    }
+    usesEmptyToNull = true;
+    return `  ${name}: z.string().trim().nullish()\n    .transform((value) => emptyToNull(value))\n    .pipe(storageMediaValueSchema.nullish()),`;
+  }
+
   if (fieldType === 'mediaUploaderMulti') {
+    usesStorageMediaValue = true;
     // 複数枚アップローダ: 常に default([])。required は min(1) として表現
     const resolvedLabel = label || name;
     const minItems =
@@ -114,7 +128,7 @@ function fieldLine({ name, label, type, required, fieldType, defaultValue, valid
           : 0;
     const maxItems =
       typeof validationRule?.maxItems === 'number' ? validationRule.maxItems : 10;
-    const segments = [`  ${name}: z.array(z.string().trim().min(1))`];
+    const segments = [`  ${name}: z.array(storageMediaValueSchema)`];
     if (minItems > 0) {
       segments.push(`.min(${minItems}, { message: "${resolvedLabel}は${minItems}件以上必要です。" })`);
     }
@@ -262,6 +276,10 @@ if (usesNullableDatetime || usesRequiredDatetime) {
   if (usesNullableDatetime) datetimeImports.push('nullableDatetime');
   if (usesRequiredDatetime) datetimeImports.push('requiredDatetime');
   importStatements.push(`import { ${datetimeImports.join(', ')} } from "@/lib/crud/utils";`);
+}
+
+if (usesStorageMediaValue) {
+  importStatements.push('import { storageMediaValueSchema } from "@/lib/storage/schema";');
 }
 
 importStatements.push('import { z } from "zod";');

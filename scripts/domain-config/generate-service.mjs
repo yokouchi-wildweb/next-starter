@@ -20,7 +20,6 @@ const SERVICE_CHOICES = [
   { name: "xxxClient.ts（クライアントサービス）", value: "clientService" },
   { name: "xxxService.ts（サーバーサービス・既存も上書き）", value: "serverService" },
   { name: "drizzleBase.ts / firestoreBase.ts（ベースサービス）", value: "baseService" },
-  { name: "wrappers/duplicate.ts（複製ラッパー）", value: "duplicateWrapper" },
 ];
 
 // domain.json を持つディレクトリを検索（core配下は除外）
@@ -63,15 +62,14 @@ function generateServices(domainPath, selectedServices) {
     generateClientService(camel);
   }
 
-  // サーバー関連（baseService, serverService, wrappers）
+  // サーバー関連（baseService, serverService）
   const serverTargets = {
     base: selectedServices.includes("baseService"),
     service: selectedServices.includes("serverService"),
-    duplicateWrapper: selectedServices.includes("duplicateWrapper"),
   };
 
   // サーバー関連のいずれかが選択されている場合のみ実行
-  if (serverTargets.base || serverTargets.service || serverTargets.duplicateWrapper) {
+  if (serverTargets.base || serverTargets.service) {
     // 個別生成で serverService を明示的に選んだときは、書き捨ての xxxService.ts も上書きする
     generateServerService(camel, { plural, dbEngine, targets: serverTargets, overwriteService: serverTargets.service });
   }

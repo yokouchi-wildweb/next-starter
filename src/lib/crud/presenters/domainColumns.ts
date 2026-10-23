@@ -1,8 +1,8 @@
-import React from "react";
 import type { DataTableColumn } from "@/lib/tableSuite";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";
 import type { FieldPresenter } from "./formatters";
+import { formatMediaThumbnail, formatMediaThumbnails } from "./media";
 
 type FieldOption = {
   value: string | number | boolean;
@@ -114,46 +114,11 @@ function renderValue({
   }
 
   if (inputType === "mediaUploader" || inputType === "fileUploader") {
-    return value
-      ? React.createElement("img", {
-          src: String(value),
-          alt: "",
-          className: "mx-auto h-12 w-12 object-cover",
-        })
-      : null;
+    return formatMediaThumbnail(value);
   }
 
   if (inputType === "mediaUploaderMulti") {
-    if (!Array.isArray(value) || value.length === 0) return null;
-    const visible = value.slice(0, 3);
-    const remaining = value.length - visible.length;
-    return React.createElement(
-      "div",
-      { className: "flex items-center justify-center" },
-      [
-        ...visible.map((url, index) =>
-          React.createElement("img", {
-            key: `thumb-${index}`,
-            src: String(url),
-            alt: "",
-            className:
-              "size-10 rounded border border-background object-cover" +
-              (index === 0 ? "" : " -ml-3"),
-          }),
-        ),
-        remaining > 0
-          ? React.createElement(
-              "span",
-              {
-                key: "remaining",
-                className:
-                  "ml-1 inline-flex items-center justify-center rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground",
-              },
-              `+${remaining}`,
-            )
-          : null,
-      ].filter(Boolean),
-    );
+    return formatMediaThumbnails(value);
   }
 
   return String(value ?? "");

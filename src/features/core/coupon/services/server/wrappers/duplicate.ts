@@ -1,18 +1,9 @@
 // src/features/core/coupon/services/server/wrappers/duplicate.ts
 
-import { getDomainConfig } from "@/lib/domain";
-import {
-  extractStorageFieldsWithPath,
-  duplicateStorageFiles,
-} from "@/lib/crud/storageIntegration";
-import { base } from "../drizzleBase";
+import { base, storageBinding } from "../drizzleBase";
 import { generateCouponCode } from "../../../utils/generateCode";
 
 export async function duplicate(id: string): Promise<Record<string, unknown>> {
-  const storageFieldsInfo = extractStorageFieldsWithPath(
-    getDomainConfig("coupon")
-  );
-
   const record = await base.get(id);
   if (!record) {
     throw new Error(`Record not found: ${id}`);
@@ -25,7 +16,7 @@ export async function duplicate(id: string): Promise<Record<string, unknown>> {
     ...rest
   } = record;
 
-  let newData: Record<string, unknown> = { ...rest };
+  const newData: Record<string, unknown> = { ...rest };
 
   // nameフィールドがあれば「_コピー」を追加
   if (typeof newData.name === "string") {
@@ -38,10 +29,9 @@ export async function duplicate(id: string): Promise<Record<string, unknown>> {
   // クーポン固有: 使用回数をリセット
   newData.current_total_uses = 0;
 
-  if (storageFieldsInfo.length) {
-    const newUrls = await duplicateStorageFiles(record, storageFieldsInfo);
-    newData = { ...newData, ...newUrls };
-  }
+  // 画像は copy で新しい ref にする（1 件でも失敗したら throw して複製全体を失敗にする）。
+  // 業務 TX の外で先に済ませ、紐付けは base.create（storage binding）が同じ TX で行う
+  const copiedValues = await storageBinding.duplicateValues(record);
 
-  return base.create(newData as Parameters<typeof base.create>[0]);
+  return base.create({ ...newData, ...copiedValues } as Parameters<typeof base.create>[0]);
 }

@@ -4,7 +4,7 @@ import { getDomainConfig, type DomainConfig } from "@/lib/domain";
 import { NotificationTable } from "@/features/notification/entities/drizzle";
 import { NotificationTemplateTable } from "@/features/notificationTemplate/entities/drizzle";
 import { NotificationCreateSchema, NotificationUpdateSchema } from "@/features/notification/entities/schema";
-import { extractStorageFields } from "@/lib/crud/storageIntegration/extractStorageFields";
+import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec } from "@/lib/crud/types";
@@ -47,13 +47,15 @@ export const notificationServiceOptions = baseOptions;
 // ドメイン固有のロジック（外部サービス連携や判定処理など）は
 // src/features/notification/services/server/wrappers/ 以下にラップを作成して差し替えること。
 
-// mediaUploader 列が参照する Storage ファイルを、物理削除時に自動クリーンアップする
-const storageCleanupFields = extractStorageFields(conf);
+// メディア列の値（storage ref）をファイル台帳に紐付ける。複製・物理削除時のファイル処理もここで行う
+export const storageBinding = storageBindingFor("notification", [
+  { name: "image", purpose: "notification.image", multi: false },
+]);
 
 export const base = createCrudService(NotificationTable, {
   ...baseOptions,
   sortOrderColumn,
-  storageCleanupFields,
+  storage: storageBinding,
   parseCreate: (data) => NotificationCreateSchema.parse(data),
   parseUpdate: (data) => NotificationUpdateSchema.parse(data),
   parseUpsert: (data) => NotificationCreateSchema.parse(data),

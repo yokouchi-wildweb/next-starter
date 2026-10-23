@@ -1,4 +1,5 @@
 // dc:generate の serverServices: <domain>Service.ts は書き捨て（無いときだけ生成）、drizzleBase.ts は毎回生成する回帰テスト。
+// メディア列の storage binding 出力（Firestore は生成エラー）もここで見る。
 // 実行: pnpm test:dc-server-service
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -60,21 +61,64 @@ test("既存の <domain>Service.ts は上書きせず、drizzleBase.ts は作り
   assert.match(result.stdout, /既存のため生成しません/);
 });
 
-test("mediaUploader があるのに既存の <domain>Service.ts が duplicate を組み込んでいなければ警告する", () => {
+test("既存の <domain>Service.ts が旧 wrappers/duplicate を組み込んでいれば外すよう警告し、ラッパーは生成しない", () => {
   const root = makeProject(["sample"]);
   const dir = serverDir(root, "sample");
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, "sampleService.ts"), 'import { base } from "./drizzleBase";\n\nexport const sampleService = { ...base };\n');
-  const result = run(root, "sample");
-  assert.match(result.stderr, /wrappers\/duplicate を組み込んでいません/);
-  // duplicate ラッパー自体は毎回生成する
-  assert.ok(fs.existsSync(path.join(dir, "wrappers", "duplicate.ts")));
-
-  // 組み込み済みなら警告しない
-  run(root, "sample");
   fs.writeFileSync(
     path.join(dir, "sampleService.ts"),
     'import { base } from "./drizzleBase";\nimport { duplicate } from "./wrappers/duplicate";\n\nexport const sampleService = { ...base, duplicate };\n',
   );
-  assert.doesNotMatch(run(root, "sample").stderr, /組み込んでいません/);
+  const result = run(root, "sample");
+  assert.match(result.stderr, /wrappers\/duplicate（旧ファイル複製）を組み込んでいます/);
+  assert.ok(!fs.existsSync(path.join(dir, "wrappers", "duplicate.ts")));
+
+  // 外していれば警告しない
+  fs.writeFileSync(path.join(dir, "sampleService.ts"), 'import { base } from "./drizzleBase";\n\nexport const sampleService = { ...base };\n');
+  assert.doesNotMatch(run(root, "sample").stderr, /旧ファイル複製/);
+});
+
+test("メディア列があれば drizzleBase に storage binding を出し、storageCleanupFields は出さない", () => {
+  const root = makeProject(["sample", "sampleTag"]);
+  run(root, "sample");
+  run(root, "sampleTag");
+  const base = fs.readFileSync(path.join(serverDir(root, "sample"), "drizzleBase.ts"), "utf8");
+  assert.match(base, /import \{ storageBindingFor \} from "@\/features\/core\/storageObject\/services\/server\/crudBinding";/);
+  assert.match(base, /storage: storageBindingFor\("sample", \[/);
+  assert.match(base, /\{ name: "main_image", purpose: "sample\.main_image", multi: false \}/);
+  assert.match(base, /\{ name: "gallery_images", purpose: "sample\.gallery_images", multi: true \}/);
+  assert.doesNotMatch(base, /storageCleanupFields|extractStorageFields/);
+  // Service は binding が複製を担うので duplicate ラッパーを組み込まない
+  assert.doesNotMatch(fs.readFileSync(path.join(serverDir(root, "sample"), "sampleService.ts"), "utf8"), /duplicate/);
+
+  // メディア列の無いドメインには何も出さない
+  const tagBase = fs.readFileSync(path.join(serverDir(root, "sampleTag"), "drizzleBase.ts"), "utf8");
+  assert.doesNotMatch(tagBase, /storageBindingFor|storageCleanupFields|__storageBinding__|__StorageBindingImport__/);
+});
+
+test("mediaUploaderMulti だけのドメインにも binding を出す", () => {
+  const root = makeProject([]);
+  const domainDir = path.join(root, "src", "features", "album");
+  fs.mkdirSync(domainDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(domainDir, "domain.json"),
+    JSON.stringify({ singular: "album", plural: "albums", dbEngine: "Neon", idType: "uuid", fields: [{ name: "photos", fieldType: "mediaUploaderMulti", formInput: "mediaUploaderMulti" }] }),
+  );
+  run(root, "album");
+  const base = fs.readFileSync(path.join(serverDir(root, "album"), "drizzleBase.ts"), "utf8");
+  assert.match(base, /\{ name: "photos", purpose: "album\.photos", multi: true \}/);
+});
+
+test("Firestore ドメインにメディア列があれば生成エラーで止める", () => {
+  const root = makeProject([]);
+  const domainDir = path.join(root, "src", "features", "memo");
+  fs.mkdirSync(domainDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(domainDir, "domain.json"),
+    JSON.stringify({ singular: "memo", plural: "memos", dbEngine: "Firestore", idType: "uuid", fields: [{ name: "image", fieldType: "mediaUploader", formInput: "mediaUploader" }] }),
+  );
+  const result = spawnSync("node", [generator, "memo"], { cwd: root, encoding: "utf8" });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Firestore ドメインにはメディア列/);
+  assert.ok(!fs.existsSync(path.join(serverDir(root, "memo"), "firestoreBase.ts")));
 });

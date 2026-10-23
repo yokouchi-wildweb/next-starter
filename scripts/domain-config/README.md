@@ -105,11 +105,11 @@
 | `components` | `components/Admin<Domain>{Create,Edit,List}/`、`components/common/{Create<Domain>Form,Edit<Domain>Form,<Domain>Form,<Domain>Fields}.tsx`。`useDetailModal` で `<Domain>DetailModal.tsx`、`sortOrderField` で `Admin<Domain>Sort/` |
 | `hooks` | `hooks/use*<Domain>.ts`（どれが生成されるかは [`src/lib/crud/hooks/README.md`](../../src/lib/crud/hooks/README.md)） |
 | `clientServices` | `services/client/<domain>Client.ts` |
-| `serverServices` | `services/server/drizzleBase.ts`（Firestore なら `firestoreBase.ts`）、`services/server/<domain>Service.ts`（無いときだけ）、`wrappers/`（無ければ作成）。mediaUploader フィールドがあれば `wrappers/duplicate.ts` |
+| `serverServices` | `services/server/drizzleBase.ts`（Firestore なら `firestoreBase.ts`）、`services/server/<domain>Service.ts`（無いときだけ）、`wrappers/`（無ければ作成）。メディア列（mediaUploader / mediaUploaderMulti）があれば drizzleBase に `storage: storageBindingFor("<domain>", [{ name, purpose: "<domain>.<field>", multi }])`（ファイル台帳との連動。複製・物理削除のファイル処理もここ。[src/lib/crud/README.md](../../src/lib/crud/README.md)「storage オプション」）。Firestore ドメインのメディア列は生成エラー |
 | `fieldConstants` | `constants/field.ts` と `types/field.ts`（`options` を持つフィールドがあるときだけ） |
 | `adminRoutes` | `src/app/admin/(protected)/<domains>/` の一覧・`new/`・`[id]/edit/`（`sortOrderField` で `sort/`） |
 | `registry` | `src/registry/` の `domainConfigRegistry.ts` / `serviceRegistry.ts`（`apiAccess` を `access` に展開）/ `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts` |
-| `presenters` | `presenters.ts`（ドメイン直下。一覧・詳細表示のフォーマッタ） |
+| `presenters` | `presenters.ts`（ドメイン直下。一覧・詳細表示のフォーマッタ。メディア列は `formatMediaThumbnail(s)` で ref を表示用 URL に解決） |
 
 ### 上書きの扱い
 
@@ -117,7 +117,7 @@
 |---|---|
 | 毎回上書き（編集しない） | 上表のうち、そのカテゴリが有効なときのファイル全部（`<domain>Service.ts` を除く）。`drizzleBase.ts`・`presenters.ts`・`constants/field.ts`・`<Domain>Fields.tsx` も含む |
 | 初回だけ生成（write-once） | 管理画面ルートの `page.tsx`（1 行スイッチ）。既存なら保持し、旧形式（本体を直接持つ）なら一度だけスイッチ形へ移行する |
-| 初回だけ生成（write-once） | `services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所）。`serverServices` が有効でも既存なら触らない（`drizzleBase.ts` は毎回作り直す）。mediaUploader フィールドがあるのに既存ファイルが `wrappers/duplicate` を組み込んでいなければ警告する。`dc:generate:service` で `xxxService.ts` を明示的に選んだときだけ上書きする。テスト: `pnpm test:dc-server-service` |
+| 初回だけ生成（write-once） | `services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所）。`serverServices` が有効でも既存なら触らない（`drizzleBase.ts` は毎回作り直す）。既存ファイルが旧 `wrappers/duplicate`（旧ファイル複製）を組み込んでいれば、外すよう警告する（複製は binding が行い、旧ラッパーが複製した旧 URL は binding に拒否される）。`dc:generate:service` で `xxxService.ts` を明示的に選んだときだけ上書きする。テスト: `pnpm test:dc-server-service` |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
 | 未登録なら追記 | `src/registry/` の各ファイル（引用符・空白違いの既存行も登録済みとみなす）。ただし `serviceRegistry.ts` の該当ドメインのエントリは毎回 `apiAccess` から 1 行で書き直す（手で変えた `access` や複数行の整形は消える。`apiAccess` がプリセット（`ADMIN_ONLY` / `PUBLIC_READ` / `ADMIN_OR_DEBUGGER`）と一致すればプリセット名、一致しなければ JSON リテラルで書く。`apiAccess` 未宣言なら fail-closed = `ADMIN_ONLY` で登録し、初回登録時だけ警告） |
