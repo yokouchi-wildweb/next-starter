@@ -128,7 +128,7 @@ Firestore SDK を直接操作する。管理画面向けには自動生成の CR
 | フィールド | 型 | 説明 |
 |---|---|---|
 | `type` | `"text" \| "image" \| "video" \| "file" \| "system"` | メッセージ種別 |
-| `content` | `string` | テキスト本文 / ファイル URL |
+| `content` | `string` | テキスト本文 / ファイルの ref（`storage://priv/chatRoom.<image\|video\|file>/…`。旧メッセージは旧 URL のまま） |
 | `senderId` | `string` | 送信者の userId |
 | `metadata` | `MessageMetadata \| null` | ファイル情報（下記参照） |
 | `createdAt` | `Date` | 作成日時 |
@@ -537,9 +537,9 @@ import { sendTextMessage, sendFileMessage, generateMessageId } from "@/features/
 // テキスト
 const messageId = await sendTextMessage({ roomId, content: "Hello", senderId: uid });
 
-// ファイル（アップロード済みURLを渡す）
+// ファイル（uploadToStorage で上げた ref を渡す。通常は useChatMessageSender.sendFile を使う）
 const messageId = await sendFileMessage({
-  roomId, content: downloadUrl, type: "image", senderId: uid,
+  roomId, content: ref, type: "image", senderId: uid,
   metadata: { fileName: "photo.jpg", fileSize: 1024 },
 });
 ```
@@ -796,7 +796,19 @@ function CustomChatScreen({ roomId, uid }: { roomId: string; uid: string }) {
   - 編集（最新メッセージ時）: `lastMessageSnapshot.content` / `updatedAt` のみ変更
   - 参加者管理・ルーム名変更等: 用途に応じた権限条件
 - `messages` は親ルームの `participants` に含まれることを read/create の条件にし、create は `senderId == request.auth.uid`。編集・論理削除を使う場合は送信者本人のみに update を許可する
-- Storage のチャット添付は Firestore の `participants` を直接参照しにくいため、Custom Claims か API ルート経由アップロードで制御する
+- チャット添付は Firebase Storage を使わない（下の「ファイル添付」。発行と読み取りはアプリのサーバーが participants で判定する）
+
+### ファイル添付
+
+- `sendFile` は種類ごとの用途 `chatRoom.image` / `chatRoom.video` / `chatRoom.file`（private）に `scopeId = roomId` で上げ、`content` に ref を入れる（用途: src/registry/storagePurposes/core.ts）
+  - 上げられるのも読めるのも、そのルームの現参加者だけ（`isChatParticipant`）。退室すると次の読み取りから署名が出ない
+  - チャットの用途は業務行に紐付けない（`attach: false`）。送信済みの添付は掃除の対象外
+  - 送信に失敗した添付は `dismiss` / `cancelUpload` / `retry`（再アップロード）のときに取り消す（discard）。送信済みのものは取り消さない
+- 表示は `resolveStorageSrc(content)`（`@/lib/storage`）で固定 URL `/api/storage/objects/<id>` にする。`content` が旧 URL（http(s)）ならそのまま返る
+  - 画像: `<AppImage src={message.content} … />`（ref をそのまま渡せる。非公開は最適化を通らない）
+  - 動画: `<VideoPreview src={resolveStorageSrc(message.content)} />`（期限後の再読み込みは自動）。自前のプレイヤーは `usePrivateMediaRecovery`（src/lib/storage/README.md）
+  - ファイル: `<a href={resolveStorageSrc(message.content)}>`（配信は attachment）
+- `lastMessageSnapshot.content` にも ref が入る。ルーム一覧のプレビューは `type` で「画像」「動画」「ファイル」などに出し分ける（ref を文字として出さない）
 
 ### 未読判定のロジック
 

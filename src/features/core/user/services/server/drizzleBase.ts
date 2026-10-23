@@ -4,6 +4,7 @@ import { UserTable, UserToUserTagTable } from "@/features/core/user/entities/dri
 import { UserTagTable } from "@/features/core/userTag/entities/drizzle";
 import { UserCoreSchema } from "@/features/core/user/entities/schema";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import { getDomainConfig } from "@/lib/domain";
@@ -70,6 +71,10 @@ export const baseOptions = {
     retentionDays: 730,
     recorder: auditLogger,
   },
+  // アバター（ref）をファイル台帳に紐付ける。ユーザーを物理削除してもファイルは残す（台帳の行もそのまま）
+  storage: storageBindingFor("user", [{ name: "avatarUrl", purpose: "user.avatar", multi: false }], {
+    onHardDelete: "keep",
+  }),
 } satisfies DrizzleCrudServiceOptions<z.infer<typeof UserCoreSchema>>;
 
 export const base = createCrudService(UserTable, baseOptions);

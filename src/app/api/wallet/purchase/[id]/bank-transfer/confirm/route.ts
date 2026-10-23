@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
+import { storageMediaValueSchema } from "@/lib/storage";
 import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
 import { purchaseRequestService } from "@/features/purchaseRequest/services/server/purchaseRequestService";
 import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
@@ -26,13 +27,14 @@ type Params = { id: string };
 
 const ConfirmBodySchema = z.object({
   /**
-   * 振込明細の画像 URL（Firebase Storage にアップロード済みのもの）。
-   * 事前に useBankTransferProofUpload（purchaseRequest/hooks）でアップロードして得た URL を渡す。
+   * 振込明細画像の storage ref（用途 purchaseRequest.bankProof）。
+   * 事前に useBankTransferProofUpload（purchaseRequest/hooks）でアップロードして得た ref を渡す。
+   * 保存時に bankTransferReview の storage binding が「本人・同じ依頼・未紐付け」を確かめて紐付ける。
    */
   proofImageUrl: z
     .string()
     .min(1, { message: "振込明細画像が指定されていません。" })
-    .url({ message: "画像 URL の形式が不正です。" }),
+    .pipe(storageMediaValueSchema),
   /**
    * AI 判定が不承認のまま申告する場合の、入金確認のための振込人名等メモ。
    * 必須かどうかはサーバー保存の判定結果に基づき submitReview 側で検証する

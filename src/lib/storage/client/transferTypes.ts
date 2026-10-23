@@ -1,7 +1,7 @@
 // src/lib/storage/client/transferTypes.ts
 //
 // クライアントのアップロードの型と、アプリのルート（/api/me/storage/**）の応答の形。
-// UploadProgress / UploadTaskHandle は旧 clientUploader と同じ名前・形（旧ファイルは N2 で削除）。
+// UploadProgress / UploadTaskHandle は旧クライアントと同じ名前・形（旧ファイルは N2 で削除）。
 // ルートの応答の形は features/core/storageObject の storageObjectService（IssueResult / CommitResult）と揃える
 // （lib は features に依存しないので、ここに wire の形として持つ）。
 
@@ -42,7 +42,7 @@ export type UploadedFile = {
 
 export type StorageUploadErrorCode = "storage/canceled" | "storage/failed";
 
-/** アップロードの失敗。中止は code "storage/canceled"（旧 clientUploader の Firebase エラーコードと同じ文字列） */
+/** アップロードの失敗。中止は code "storage/canceled"（旧クライアントの Firebase エラーコードと同じ文字列） */
 export class StorageUploadError extends Error {
   readonly code: StorageUploadErrorCode;
 

@@ -18,6 +18,7 @@ import { Button } from "@/components/Form/Button";
 import { Manual } from "@/components/Form/Input";
 import { SoftBadge } from "@/components/Badge/SoftBadge";
 import { ZoomableImage } from "@/components/Overlays/ImageViewer";
+import { resolveStorageSrc } from "@/lib/storage";
 import { useToast } from "@/lib/toast";
 import { err } from "@/lib/errors";
 import {
@@ -290,8 +291,9 @@ function ProofImageSection({ proofImageUrl }: { proofImageUrl: string | undefine
   }
   return (
     <Stack space={1}>
+      {/* proofImageUrl は storage ref（非公開）。固定 URL に解決し、302 → 短期署名で表示する */}
       <ZoomableImage
-        src={proofImageUrl}
+        src={resolveStorageSrc(proofImageUrl) ?? ""}
         alt="振込明細画像"
         className="block h-auto w-auto max-h-[260px] max-w-full rounded-md border border-border object-contain"
       />

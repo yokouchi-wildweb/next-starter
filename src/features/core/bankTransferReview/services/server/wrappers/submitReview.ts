@@ -4,7 +4,7 @@
 //
 // 動作:
 // - 既存レビューが無ければ pending_review で新規作成
-// - 既存レビューが pending_review なら画像 URL を差し替えて再申告として扱う
+// - 既存レビューが pending_review なら画像を差し替えて再申告として扱う
 // - 既存レビューが confirmed / rejected なら 400 (既に判定済み)
 // - mode は paymentConfig.bankTransfer.autoComplete から決定し、
 //   レコード作成時に固定する（後で設定が変わっても既存レビューの semantics は不変）
@@ -42,7 +42,6 @@ import type {
   BankTransferReviewMode,
   BankTransferReviewNeedsCheckContext,
 } from "@/features/bankTransferReview/entities/model";
-import { validateProofImageUrl } from "@/features/bankTransferReview/utils/validateProofImageUrl";
 
 import { base } from "../drizzleBase";
 import { findByPurchaseRequest } from "./findHelpers";
@@ -92,12 +91,6 @@ export async function submitReview(
       { status: 400 },
     );
   }
-
-  // 2.5. 振込明細画像 URL の検証
-  //      Firebase Storage の正規 URL かつパスが本リクエスト専用の固定パスと完全一致するか
-  //      確認する。任意の外部 URL の保存と他ユーザー画像の URL 流用を同時に防ぐ。
-  //      認可・メソッド整合チェック後に実施することで、URL 検証による情報漏洩を回避。
-  validateProofImageUrl(proofImageUrl, purchaseRequestId);
 
   // 3. status 検証
   //    - processing: 通常の申告対象（immediate / approval_required どちらも）
@@ -167,7 +160,11 @@ export async function submitReview(
   };
 
   // 6. レビューを作成または更新 + 監査ログ記録（同一トランザクションで atomic）
-  //    再申告時は画像 URL を差し替えて submitted_at を更新する。
+  //    再申告時は画像を差し替えて submitted_at を更新する。
+  //    振込明細画像（ref）の検証は base の storage binding が同じ TX で行う（drizzleBase.ts）:
+  //    アップロードした本人・scopeId = この purchase_request・未紐付けの ref だけが紐付き、
+  //    それ以外（外部 URL・他人や別の依頼の画像・新しい旧 URL）は 400 で TX ごと巻き戻る。
+  //    差し替えで外れた前の画像は deleted になり、実物は storage-sweep が消す（tx を渡しているため）。
   //    base.update / base.create の型は drizzle DefaultInsert ベースで enum 列等を絞り込めない
   //    ため、purchaseRequest 側と同じく any キャストで通す。
   const review = await db.transaction(async (tx) => {

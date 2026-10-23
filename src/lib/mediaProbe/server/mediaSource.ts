@@ -1,7 +1,10 @@
 // src/lib/mediaProbe/server/mediaSource.ts
 //
-// MediaRef（storagePath / downloadUrl）から MediaSource を構築する。
+// MediaRef（authorizedUrl / storagePath / downloadUrl）から MediaSource を構築する。
 // フルダウンロードせず、署名付き URL に対する Range リクエストでバイトを取得する。
+// Range を無視して 200（全体）を返すサーバーには、要求した長さを超えた時点で読むのをやめて失敗にする
+// （大きなファイルの全体をメモリに読み込まない）。
+// 旧バケットの位置だけをここで署名する（lib/storage/server の legacy 判定。pub / priv の管理下の物は扱わない）。
 //
 // 取得戦略（head+tail プリフェッチ）:
 //   コンテナの「目次」（ftyp/moov 等）は先頭・末尾に集中する。生成時に先頭/末尾の窓を
@@ -10,11 +13,9 @@
 //   seek 駆動ループが発生させる多数の直列往復を、定数回の並列往復へ収束させる。
 //   プリフェッチは best-effort（失敗時はバッファ無しで従来のチャンク取得へ劣化）。
 
-import {
-  getFileMetadata,
-  getPathFromStorageUrl,
-  getReadSignedUrl,
-} from "@/lib/firebase/server/storage";
+import { isStorageRef } from "@/lib/storage";
+import { getStoragePort, legacyLocationOfPath, parseLegacyStorageUrl } from "@/lib/storage/server";
+import type { ObjectLocation } from "@/lib/storage/server";
 
 import type { MediaRef } from "../types";
 import type { MediaSource } from "./engine/types";
@@ -36,11 +37,52 @@ type Segment = { start: number; bytes: Uint8Array };
 type RangeBytes = { bytes: Uint8Array; isFull: boolean };
 
 /**
+ * 応答の本体を最大 maxBytes まで読む。超えたら読み取りを中止して null（全体を読み込まない）。
+ */
+async function readBodyAtMost(res: Response, maxBytes: number): Promise<Uint8Array | null> {
+  const declared = Number(res.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    await res.body?.cancel().catch(() => undefined);
+    return null;
+  }
+  if (!res.body) return new Uint8Array(await res.arrayBuffer());
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let position = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, position);
+    position += chunk.byteLength;
+  }
+  return bytes;
+}
+
+function rangeIgnored(): ProbeEngineError {
+  return new ProbeEngineError(
+    "fetch_failed",
+    "メディアの取得に失敗しました（Range に対して全体が返されたため、読み込みを中止しました）",
+  );
+}
+
+/**
  * Range で [offset, offset+length) を取得する。
  * 206 のときは要求どおりの区間が返る。Range 非対応プロキシ等で 200（全件）が返った場合は
- * isFull=true（呼び出し側で先頭からのスライスが必要）。取得不能は throw する。
+ * isFull=true（呼び出し側で先頭からのスライスが必要）。ただし全体が length を超えるなら
+ * 読み込みを中止して throw する（大きな全体応答をメモリに読まない）。取得不能も throw する。
  */
-async function fetchRangeRaw(url: string, offset: number, length: number): Promise<RangeBytes> {
+export async function fetchRangeRaw(url: string, offset: number, length: number): Promise<RangeBytes> {
   const end = offset + length - 1;
   let res: Response;
   try {
@@ -54,7 +96,15 @@ async function fetchRangeRaw(url: string, offset: number, length: number): Promi
       `メディアの取得に失敗しました (HTTP ${res.status})`,
     );
   }
-  return { bytes: new Uint8Array(await res.arrayBuffer()), isFull: res.status === 200 };
+  if (res.status === 200) {
+    // 全体が要求した長さに収まる小さなファイルだけ受け入れる（それより大きい全体は読まない）
+    const bytes = await readBodyAtMost(res, length);
+    if (!bytes) throw rangeIgnored();
+    return { bytes, isFull: true };
+  }
+  const bytes = await readBodyAtMost(res, length);
+  if (!bytes) throw rangeIgnored();
+  return { bytes, isFull: false };
 }
 
 /** Range bytes=0-0 でサイズ・Content-Type を確認する（メタデータ取得不能時のフォールバック）。 */
@@ -86,13 +136,18 @@ async function fetchSizeAndType(
       if (Number.isFinite(n)) sizeBytes = n;
     }
   }
-  // ボディは破棄（接続を解放）
-  try {
-    await res.arrayBuffer();
-  } catch {
-    // noop
-  }
+  // ボディは読まずに破棄（200 で全体が返っても読み込まない。接続を解放）
+  await res.body?.cancel().catch(() => undefined);
   return { sizeBytes, contentType: res.headers.get("content-type") };
+}
+
+/** 旧バケットの位置を、その世代の短期署名 URL + メタデータへ解決する。 */
+async function signLegacy(location: ObjectLocation, ttlSec: number): Promise<ResolvedSource> {
+  const port = getStoragePort();
+  const head = await port.head(location);
+  if (!head) throw new ProbeEngineError("fetch_failed", "メディアが見つかりません");
+  const url = await port.signRead(location, { generation: head.generation, ttlSec });
+  return { url, sizeBytes: head.size, contentType: head.contentType };
 }
 
 /** MediaRef を 署名 URL + メタデータ へ解決する。 */
@@ -102,20 +157,28 @@ async function resolve(ref: MediaRef, signedUrlTtlSec: number): Promise<Resolved
   let contentType: string | null = null;
 
   try {
-    if ("storagePath" in ref) {
-      url = await getReadSignedUrl(ref.storagePath, signedUrlTtlSec);
-      const meta = await getFileMetadata(ref.storagePath).catch(() => null);
-      sizeBytes = meta?.sizeBytes ?? null;
-      contentType = meta?.contentType ?? null;
+    if ("authorizedUrl" in ref) {
+      // 呼び出し元が認可して作った短期 URL
+      url = ref.authorizedUrl;
+      sizeBytes = ref.sizeBytes ?? null;
+      contentType = ref.contentType ?? null;
+    } else if ("storagePath" in ref) {
+      const location = legacyLocationOfPath(ref.storagePath);
+      if (!location) {
+        throw new ProbeEngineError("fetch_failed", "旧バケット内のパスだけを解析できます");
+      }
+      ({ url, sizeBytes, contentType } = await signLegacy(location, signedUrlTtlSec));
+    } else if (isStorageRef(ref.downloadUrl)) {
+      throw new ProbeEngineError(
+        "fetch_failed",
+        "storage の ref は呼び出し元で認可し、authorizedUrl で渡してください",
+      );
     } else {
-      const path = getPathFromStorageUrl(ref.downloadUrl);
-      if (path) {
-        url = await getReadSignedUrl(path, signedUrlTtlSec);
-        const meta = await getFileMetadata(path).catch(() => null);
-        sizeBytes = meta?.sizeBytes ?? null;
-        contentType = meta?.contentType ?? null;
+      const location = parseLegacyStorageUrl(ref.downloadUrl);
+      if (location) {
+        ({ url, sizeBytes, contentType } = await signLegacy(location, signedUrlTtlSec));
       } else {
-        // Storage 由来でない URL はそのまま Range 取得する
+        // 旧バケット由来でない URL はそのまま Range 取得する
         url = ref.downloadUrl;
       }
     }

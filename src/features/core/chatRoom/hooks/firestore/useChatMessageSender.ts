@@ -1,17 +1,22 @@
 // src/features/chatRoom/hooks/firestore/useChatMessageSender.ts
 //
 // メッセージ送信の統合 Hook。
-// Store（送信状態管理）+ ClientService（実送信）+ clientUploader（アップロード）を
+// Store（送信状態管理）+ ClientService（実送信）+ uploadToStorage（アップロード）を
 // 一つのインターフェースで提供する。
+// ファイルは種類ごとの用途 chatRoom.image / video / file に、scopeId = roomId で上げ、メッセージの content に ref を入れる
+// （用途の read はルームの現参加者だけ。表示は resolveStorageSrc(content)。README「ファイル添付」）。
 // 手動実装。
 
 "use client";
 
 import { useCallback, useRef } from "react";
 
-import type { UploadTaskHandle } from "@/lib/storage/client/clientUploader";
-import { clientUploader } from "@/lib/storage/client/clientUploader";
-import { directStorageClient } from "@/lib/storage/client/directStorageClient";
+import {
+  isStorageUploadCanceled,
+  storageClient,
+  uploadToStorage,
+  type UploadTaskHandle,
+} from "@/lib/storage/client";
 
 import type { MessageMetadata, MessageType } from "@/features/chatRoom/entities/message";
 import {
@@ -23,6 +28,13 @@ import { useMessageSendingStore } from "@/features/chatRoom/stores/messageSendin
 import type { PendingMessage } from "@/features/chatRoom/stores/messageSending";
 import { validateChatFile, validateTextMessage } from "@/features/chatRoom/utils/validation";
 import type { ValidationResult } from "@/features/chatRoom/utils/validation";
+
+/** メッセージの種類 → ファイル用途（src/registry/storagePurposes/core.ts） */
+const CHAT_STORAGE_PURPOSES = {
+  image: "chatRoom.image",
+  video: "chatRoom.video",
+  file: "chatRoom.file",
+} as const satisfies Record<Extract<MessageType, "image" | "video" | "file">, string>;
 
 export type UseChatMessageSenderReturn = {
   /** 指定ルームの pending メッセージ一覧 */
@@ -75,17 +87,17 @@ export function useChatMessageSender(
 
   // アクティブなアップロードタスク（キャンセル用）
   const uploadTasksRef = useRef<Map<string, UploadTaskHandle>>(new Map());
-  // アップロード済みファイルパス（クリーンアップ用）
-  const uploadedPathsRef = useRef<Map<string, string>>(new Map());
+  // アップロード済み・メッセージ未送信のファイル（取り消し用。pendingId → objectId）
+  const uploadedObjectsRef = useRef<Map<string, string>>(new Map());
 
-  /** アップロード済みファイルを Storage から削除する */
+  /** 送らなかったファイルを取り消す（本人の未採用分だけが対象。送信済みのものは呼ばない） */
   const cleanupFile = useCallback((pendingId: string) => {
-    const path = uploadedPathsRef.current.get(pendingId);
-    if (path) {
-      directStorageClient.remove(path).catch((err) => {
+    const objectId = uploadedObjectsRef.current.get(pendingId);
+    if (objectId) {
+      storageClient.discard(objectId).catch((err) => {
         console.error("[useChatMessageSender] cleanup error", err);
       });
-      uploadedPathsRef.current.delete(pendingId);
+      uploadedObjectsRef.current.delete(pendingId);
     }
   }, []);
 
@@ -163,36 +175,38 @@ export function useChatMessageSender(
 
       addPending(pending);
 
-      const basePath = `chat/${roomId}`;
-      const task = clientUploader.upload(file, {
-        basePath,
+      const task = uploadToStorage(file, {
+        purpose: CHAT_STORAGE_PURPOSES[type],
+        scopeId: roomId,
         onProgress: (progress) => {
           updateProgress(messageId, progress);
         },
         onComplete: async (result) => {
           uploadTasksRef.current.delete(messageId);
-          uploadedPathsRef.current.set(messageId, result.path);
+          uploadedObjectsRef.current.set(messageId, result.objectId);
 
           updateStatus(messageId, "sending");
 
           try {
             await sendFileMessage({
               roomId: roomId!,
-              content: result.url,
+              content: result.ref,
               type,
               senderId: senderId!,
               metadata,
               messageId,
             });
             updateStatus(messageId, "sent");
-            uploadedPathsRef.current.delete(messageId);
+            uploadedObjectsRef.current.delete(messageId);
           } catch {
+            // 上げたファイルは retry（再アップロード）か dismiss のときに取り消す
             updateStatus(messageId, "failed");
           }
         },
         onError: (err) => {
+          // 中止・失敗のときは uploadToStorage が自分で取り消す
           uploadTasksRef.current.delete(messageId);
-          if ("code" in err && (err as any).code === "storage/canceled") {
+          if (isStorageUploadCanceled(err)) {
             return;
           }
           updateStatus(messageId, "failed");
@@ -234,7 +248,8 @@ export function useChatMessageSender(
           updateStatus(pendingId, "failed");
         }
       } else if (pending.file) {
-        // ファイル再送（再アップロードから）
+        // ファイル再送（再アップロードから）。前回上げて送れなかったファイルは取り消す
+        cleanupFile(pendingId);
         removePending(pendingId);
         sendFile(pending.file, message.type as Extract<MessageType, "image" | "video" | "file">);
       } else if (message.content) {
@@ -250,14 +265,13 @@ export function useChatMessageSender(
             messageId: pendingId,
           });
           updateStatus(pendingId, "sent");
-  
-          uploadedPathsRef.current.delete(pendingId);
+          uploadedObjectsRef.current.delete(pendingId);
         } catch {
           updateStatus(pendingId, "failed");
         }
       }
     },
-    [roomId, senderId, pendingMessages, updateStatus, removePending, sendFile],
+    [roomId, senderId, pendingMessages, updateStatus, removePending, sendFile, cleanupFile],
   );
 
   // -----------------------------------------------------------------------

@@ -4,7 +4,7 @@
 //   (画像の描き直し) → アップロード権の発行 → 種類に合うドライバーで GCS へ直接送る → commit
 // 中止・失敗のときは、発行済みなら取り消し（discard）を試みる（session はサーバーが URI を中止する）。
 // セッション送信は通信の途切れと GCS の 408 / 429 / 5xx を連続 3 回まで再試行する（drivers/gcsSession.ts）。単発 PUT は再試行しない。
-// 中止は onError に code "storage/canceled" の StorageUploadError を渡す（旧 clientUploader と同じコード）。
+// 中止は onError に code "storage/canceled" の StorageUploadError を渡す（旧クライアントと同じコード）。
 //
 //   const { cancel } = uploadToStorage(file, {
 //     purpose: "user.avatar",

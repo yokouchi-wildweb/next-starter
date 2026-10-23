@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { emptyToNull } from "@/utils/string";
+import { storageMediaValueSchema } from "@/lib/storage/schema";
 import { nullableDatetime } from "@/lib/crud/utils";
 
 export const BANK_TRANSFER_REVIEW_STATUSES = [
@@ -53,11 +54,12 @@ export const BankTransferReviewBaseSchema = z.object({
   user_id: z.string().trim().min(1, { message: "ユーザーは必須です。" }),
   status: z.enum(BANK_TRANSFER_REVIEW_STATUSES).default("pending_review"),
   mode: z.enum(BANK_TRANSFER_REVIEW_MODES),
+  // storage ref（用途 purchaseRequest.bankProof）。凍結した旧 URL の行は同じ値のまま保持できる
   proof_image_url: z
     .string()
     .trim()
-    .min(1, { message: "振込明細画像 URL は必須です。" })
-    .url({ message: "振込明細画像 URL の形式が不正です。" }),
+    .min(1, { message: "振込明細画像は必須です。" })
+    .pipe(storageMediaValueSchema),
   submitted_at: nullableDatetime.nullish(),
   reviewed_by: z
     .string()

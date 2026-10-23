@@ -3,6 +3,7 @@
 import { USER_PROVIDER_TYPES, USER_ROLES, USER_STATUSES } from "@/features/core/user/constants";
 import { UserNameSchema, UserNameNullishSchema } from "@/features/core/user/entities/userName";
 import { createHashPreservingNullish } from "@/utils/hash";
+import { storageMediaValueSchema } from "@/lib/storage/schema";
 import { emptyToNull } from "@/utils/string";
 import { z } from "zod";
 
@@ -31,7 +32,7 @@ export const UserCoreSchema = z.object({
     .regex(/^\+[1-9]\d{1,14}$/, { message: "電話番号はE.164形式で入力してください" })
     .nullish(),
   phoneVerifiedAt: z.coerce.date().nullish(),
-  avatarUrl: z.string().url().nullish(),
+  avatarUrl: storageMediaValueSchema.nullish(),
   signupIp: z.string().nullish(),
   metadata: z.record(z.unknown()).default({}),
   deletedAt: z.coerce.date().nullish(),
@@ -63,6 +64,9 @@ export const UserOptionalSchema = UserCoreSchema.partial().extend({
 /**
  * 管理者がユーザー情報を更新する際のスキーマ。
  * 許可するフィールドをホワイトリストで明示的に指定。
+ * avatarUrl: 管理者が自分のアバターを /api/me/profile で変える経路にも使われるため含める
+ * （update ラッパーは操作者が admin ならこのスキーマを使う）。書けるのは storage binding が通す
+ * 「操作者本人が上げた未紐付けの ref」か同じ値・null だけで、他人の画像は 400 になる。
  */
 export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
   name: true,
@@ -73,6 +77,7 @@ export const UserUpdateByAdminSchema = UserOptionalSchema.pick({
   isDemo: true,
   phoneNumber: true,
   adminMemo: true,
+  avatarUrl: true,
 });
 
 /**

@@ -37,9 +37,10 @@ export default function MediaInputDemoPage() {
 
         <Section>
           <Stack space={4}>
-            <SecTitle>MediaUpload デモ（モックアップロード）</SecTitle>
+            <SecTitle>MediaUpload デモ</SecTitle>
             <Para tone="muted" size="sm">
-              uploads/demo へアップロードするモック処理で、進捗バーと完了時の URL 表示を確認できます。
+              用途 demo.media（公開・管理者のみアップロード可）へ実際にアップロードし、進捗バーと完了時の値（storage ref）を確認できます。
+              デモで上げたファイルは業務データに保存されないため、24 時間ほどで掃除（storage-sweep）により消えます。
             </Para>
             <MediaUploadDemo />
           </Stack>
@@ -50,6 +51,7 @@ export default function MediaInputDemoPage() {
             <SecTitle>MediaUploaderMulti デモ（複数枚アップロード）</SecTitle>
             <Para tone="muted" size="sm">
               複数枚アップロード版。並列アップロード、正方形クロッププレビュー、ドラッグ並び替え、件数上限の動作を確認できます。
+              こちらも用途 demo.media へのアップロードで、24 時間ほどで消えます。
             </Para>
             <MediaUploadMultiDemo />
           </Stack>

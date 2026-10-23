@@ -1,6 +1,6 @@
 // src/features/chatRoom/stores/messageSending/types.ts
 
-import type { UploadProgress } from "@/lib/storage/client/clientUploader";
+import type { UploadProgress } from "@/lib/storage/client";
 
 import type { ChatMessage } from "@/features/chatRoom/entities/message";
 

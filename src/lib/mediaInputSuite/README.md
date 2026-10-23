@@ -56,6 +56,7 @@ src/lib/mediaInputSuite
 - 進捗オーバーレイとキャンセルを内蔵（選択直後から出る）。キャンセルすると発行済みのアップロードは取り消される（discard）。
 - 16MiB を超えるファイルは GCS のセッションで分けて送る（通信の途切れや一時的な 5xx は再試行。詳細: `src/lib/storage/README.md`）。
 - `onRegisterPendingUpload` / `onRegisterPendingDelete` を使うと、アップロード完了後や削除時に pending 管理へ通知できる。
+- 上げたファイルは、業務の保存（storage binding）で紐付くまで「未採用」。紐付けないまま猶予（既定 24 時間）を過ぎると storage-sweep が消す。デモ（`/demo/media-input`、用途 `demo.media`）で上げたファイルも同じく消える。
 
 ### 2.3 MediaUploaderMulti (`src/lib/mediaInputSuite/components/MediaUploaderMulti.tsx`)
 

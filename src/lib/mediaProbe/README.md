@@ -23,8 +23,11 @@
 ```ts
 import { probeMedia, isSilentVideo } from "@/lib/mediaProbe";
 
-// storagePath 推奨（内部で短命の署名付き URL を払い出す）。downloadUrl も可。
-const result = await probeMedia({ storagePath: "uploads/xxx.mp4" });
+// 管理下のファイル（storage:// の ref）: 呼び出し元が用途の read で認可し、短期 URL を authorizedUrl で渡す
+// （lib は ref を解決しない。lib/mediaProbe は features を import しないため）
+const result = await probeMedia({ authorizedUrl: signedUrl });
+// 旧バケットのファイル: storagePath（内部で短命の署名付き URL を払い出す）か downloadUrl
+const legacy = await probeMedia({ storagePath: "uploads/xxx.mp4" });
 
 if (!result.ok) {
   // result.error.code: "fetch_failed" | "unsupported_container" | "probe_failed" | "timeout"
@@ -48,8 +51,12 @@ if (!isSilentVideo(probe)) throw new DomainError("音声トラックを含む動
 
 ### 内部 API（任意・admin 限定）
 
-`POST /api/media/probe` body: `{ storagePath }` または `{ downloadUrl }`。
+`POST /api/media/probe` body: `{ ref }`・`{ storagePath }`・`{ downloadUrl }` のどれか。
 別ランタイム/クライアントからの事前検証用。失敗コードを HTTP ステータスへマップして返す。
+
+- `ref`（storage://。`downloadUrl` に ref を入れても同じ）: priv は用途の read を、その管理者で `storageObjectService.resolveRead(id, { use: "probe" })` が判定する。admin でも read 規則が許さない用途（チャット添付など）は 404（暗黙の通過なし）。pub は公開 URL
+- `storagePath`: 旧バケット内のパスだけ。pub / priv の保存先と重なるパスは 400
+- `downloadUrl`: 自分の旧バケットの URL は旧バケットの位置で署名、それ以外はそのまま Range 取得
 
 ---
 
@@ -103,9 +110,11 @@ setDefaultProbeEngine("ffprobe");
 
 ## 取得方式（head+tail プリフェッチ）
 
-フルダウンロードしない。Firebase Storage の path を短命の署名付き URL に変換し、
-HTTP Range で「目次（ftyp/moov 等）」付近のみ取得する。サイズはメタデータ
-（不能時は `bytes=0-0` の Content-Range）から得る。
+フルダウンロードしない。呼び出し元が渡した認可済み URL、または旧バケットの path を短命の署名付き URL に
+変換したものに対し、HTTP Range で「目次（ftyp/moov 等）」付近のみ取得する。サイズはメタデータ
+（不能時は `bytes=0-0` の Content-Range。本体は読まずに捨てる）から得る。
+旧バケットの位置は `@/lib/storage/server`（`legacyLocationOfPath` / `parseLegacyStorageUrl` と StoragePort）で解決し、
+pub / priv の保存先と重なる位置は扱わない。
 
 コンテナのメタデータは先頭・末尾に集中するため、`createMediaSource` は生成時に
 **先頭窓・末尾窓を並列 Range 2 本でメモリへプリフェッチ**する。`readChunk` は要求区間が
@@ -115,7 +124,7 @@ HTTP Range で「目次（ftyp/moov 等）」付近のみ取得する。サイ�
   発生させる**多数の直列往復**を、**定数回の並列往復**へ収束させる。
 - プリフェッチは best-effort。失敗・サイズ不明時はバッファ無しで従来のチャンク取得へ劣化する。
 - 窓サイズは `ProbeOptions.prefetchHeadBytes` / `prefetchTailBytes`（各既定 4MB、0 で無効化）。
-- 堅牢化: Range 非対応プロキシ等で `200`（全件）が返っても、要求オフセットへスライスして返す。
+- Range 非対応プロキシ等で `200`（全件）が返ったとき: 全体が要求した長さに収まる小さなファイルなら、要求オフセットへスライスして返す。それより大きい全体は読み込みを中止して `fetch_failed`（大容量の全体をメモリに読まない）。
 
 ### WASM インスタンスの再利用
 
@@ -131,7 +140,7 @@ WASM（約 2.5MB）の compile+instantiate はコールド時に秒単位を要�
 
 - `src/lib/seamlessVideo/probe/`: **変換後 fmp4 フラグメント**の検証用 ISO BMFF パーサ。
   入力（変換前の任意アップロード）も目的（用途別検証）も異なる別物。混同しないこと。
-- `src/lib/storage/`, `src/lib/firebase/server/storage.ts`: ストレージ参照の解決元。
+- `src/lib/storage/`: ストレージ参照の解決元（旧バケットの位置と署名）。管理下の ref の認可は呼び出し元（`/api/media/probe` は storageObjectService）。
 
 ## 対応範囲・上限
 

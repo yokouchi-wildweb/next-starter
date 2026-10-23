@@ -3,7 +3,7 @@
 
 import { create } from "zustand";
 
-import type { UploadProgress } from "@/lib/storage/client/clientUploader";
+import type { UploadProgress } from "@/lib/storage/client";
 
 import type { MessageSendingStatus, PendingMessage } from "./types";
 

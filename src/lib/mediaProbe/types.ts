@@ -55,7 +55,14 @@ export type ProbeResult = ProbeSuccess | ProbeFailure;
 
 /**
  * 解析対象メディアの参照。
- * - storagePath: Firebase Storage 内のパス（推奨。署名 URL を内部で払い出す）
- * - downloadUrl: ダウンロード URL（Storage 由来ならパスへ正規化、それ以外は URL を直接 Range 取得）
+ * - authorizedUrl: 呼び出し元が認可済みの短期 URL（storage:// の ref は呼び出し元が用途の read で判定して
+ *   署名 URL にしてから渡す。lib は ref を解決しない）。サイズ・型が分かっていれば添える
+ * - storagePath: 旧バケット（Firebase Storage）内のパス。署名 URL を内部で払い出す。
+ *   pub / priv の保存先と重なるパスは受け付けない（lib/storage/server の legacyLocationOfPath）
+ * - downloadUrl: ダウンロード URL（自分の旧バケットの URL なら位置へ正規化、それ以外は URL を直接 Range 取得。
+ *   storage:// の ref は受け付けない）
  */
-export type MediaRef = { storagePath: string } | { downloadUrl: string };
+export type MediaRef =
+  | { authorizedUrl: string; sizeBytes?: number | null; contentType?: string | null }
+  | { storagePath: string }
+  | { downloadUrl: string };

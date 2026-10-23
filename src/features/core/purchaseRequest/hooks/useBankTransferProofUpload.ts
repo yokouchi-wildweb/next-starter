@@ -1,50 +1,68 @@
 // src/features/core/purchaseRequest/hooks/useBankTransferProofUpload.ts
 //
-// 自社銀行振込（inhouse プロバイダ）の振込明細画像を Firebase Storage に
-// アップロードする小フック。
+// 自社銀行振込（inhouse プロバイダ）の振込明細画像をアップロードする小フック。
 //
 // 設計:
-// - 同一 purchase_request に対して固定パスへ上書きアップロードする。
-//   Firebase Storage の uploadBytes は同パス指定で上書き挙動になるため、
-//   再アップロード時も Storage 上のファイルは常に最新の 1 件のみ残る。
-// - 申告せず離脱したユーザーの孤児ファイルも requestId 単位で 1 件以下に
-//   抑制できる（後続でバックエンド担当者が cron による定期削除を実装する想定）。
-// - ランダム UUID を付与する useAppStorage / useDirectStorage では同パス上書きが
-//   できないため、こちらは directStorageClient を直接呼ぶ。
-//
-// パスは `purchase-requests/bank-transfer-proofs/{requestId}` 固定（拡張子なし）。
-// 拡張子を付けると jpg/png/heic 等の差し替え時にパスが変わって上書きされなくなるため、
-// 明細画像は拡張子レスで保管する（content-type は Firebase Storage が保持）。
+// - 用途 purchaseRequest.bankProof（private）に scopeId = requestId で上げ、ref を返す。
+//   発行時に「本人の・申告可能な振込依頼か」をサーバーが判定する（isOwnPendingPurchaseRequest）。
+// - 申告（/confirm → submitReview）で ref を保存すると、bankTransferReview の storage binding が
+//   同じ TX で台帳に紐付ける（本人・同じ requestId・未紐付けの ref だけが通る）。
+// - 差し替え・クリアで使わなくなった前の画像は discard で取り消す（申告しなかった画像は掃除でも消える）。
 
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 
-import { directStorageClient } from "@/lib/storage/client/directStorageClient";
+import { storageClient, uploadToStorage, type UploadedFile } from "@/lib/storage/client";
 
-const PROOF_BASE_PATH = "purchase-requests/bank-transfer-proofs";
+export const BANK_TRANSFER_PROOF_PURPOSE = "purchaseRequest.bankProof";
 
 export type BankTransferProofUpload = {
   /**
-   * 画像を固定パスへアップロードし、ダウンロード URL を返す。
-   * 同一 requestId で複数回呼ぶと Storage 上のファイルは上書きされる。
+   * 画像をアップロードし、申告に渡す ref と表示用 src を返す。
+   * 前に上げてまだ申告していない画像は取り消す。
    */
-  upload: (file: File | Blob) => Promise<string>;
+  upload: (file: File | Blob) => Promise<UploadedFile>;
+  /** 上げた画像を使わないことにしたとき（クリア）に取り消す */
+  discardCurrent: () => void;
 };
 
 /**
  * 振込明細画像のアップロードフック。
  *
- * @param requestId purchase_request.id（パスの一部）
+ * @param requestId purchase_request.id（用途の scopeId）
  */
 export function useBankTransferProofUpload(requestId: string): BankTransferProofUpload {
+  // 最後に上げた（まだ申告していない）画像
+  const currentRef = useRef<string | null>(null);
+
+  const discardCurrent = useCallback(() => {
+    const objectId = currentRef.current;
+    currentRef.current = null;
+    if (!objectId) return;
+    storageClient.discard(objectId).catch((error) => {
+      // 申告済み（紐付け済み）なら取り消されない。失敗しても掃除で消える
+      console.error("[useBankTransferProofUpload] 取り消しに失敗しました", error);
+    });
+  }, []);
+
   const upload = useCallback(
-    async (file: File | Blob): Promise<string> => {
-      const path = `${PROOF_BASE_PATH}/${requestId}`;
-      return directStorageClient.upload(path, file);
+    (file: File | Blob) => {
+      discardCurrent();
+      return new Promise<UploadedFile>((resolve, reject) => {
+        uploadToStorage(file, {
+          purpose: BANK_TRANSFER_PROOF_PURPOSE,
+          scopeId: requestId,
+          onComplete: (result) => {
+            currentRef.current = result.objectId;
+            resolve(result);
+          },
+          onError: reject,
+        });
+      });
     },
-    [requestId],
+    [requestId, discardCurrent],
   );
 
-  return { upload };
+  return { upload, discardCurrent };
 }

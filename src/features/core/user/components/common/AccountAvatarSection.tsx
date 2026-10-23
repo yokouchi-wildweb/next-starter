@@ -1,5 +1,5 @@
 // src/features/core/user/components/common/AccountAvatarSection.tsx
-// 自己完結した部品(アバターの変更・削除)。HTTP は useUpdateMyProfile 経由(client service を直接呼ばない)
+// 自己完結した部品(アバターの変更・削除)。HTTP は useAvatarUpload / useUpdateMyProfile 経由(client service を直接呼ばない)
 
 "use client";
 
@@ -7,7 +7,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraIcon, ImageIcon, LoaderIcon, Trash2Icon, UserIcon } from "lucide-react";
 
 import { Stack } from "@/components/Layout/Stack";
-import { clientUploader } from "@/lib/storage/client/clientUploader";
+import { AppImage } from "@/components/Media/AppImage";
+import { useAvatarUpload } from "@/features/core/user/hooks/useAvatarUpload";
 import { useUpdateMyProfile } from "@/features/core/user/hooks/useUpdateMyProfile";
 import type { User } from "@/features/core/user/entities";
 
@@ -15,7 +16,9 @@ import type { User } from "@/features/core/user/entities";
 
 type AccountAvatarSectionProps = {
   user: User;
-  /** アバター画像の保存先パス（Firebase Storage） */
+  /**
+   * @deprecated 使われない（保存先は用途 user.avatar で決まる）。互換のため受け取るだけ
+   */
   storagePath?: string;
   /** アバターのサイズ（px） */
   size?: number;
@@ -101,14 +104,12 @@ function AvatarMenu({ onChangeImage, onRemoveImage, onClose }: AvatarMenuProps) 
 
 // --- メインコンポーネント ---
 
-const DEFAULT_STORAGE_PATH = "avatars";
 const DEFAULT_SIZE = 80;
 const DEFAULT_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 const DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export function AccountAvatarSection({
   user,
-  storagePath = DEFAULT_STORAGE_PATH,
   size = DEFAULT_SIZE,
   acceptTypes = DEFAULT_ACCEPT,
   maxFileSize = DEFAULT_MAX_FILE_SIZE,
@@ -123,6 +124,7 @@ export function AccountAvatarSection({
   const [error, setError] = useState<string | null>(null);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(user.avatarUrl);
   const { updateProfile, error: updateError, reset: resetUpdateError } = useUpdateMyProfile();
+  const { upload, discard } = useAvatarUpload();
 
   const lockRef = useRef(false);
   const isBusy = isUploading || isRemoving;
@@ -189,30 +191,28 @@ export function AccountAvatarSection({
       resetUpdateError();
       setIsUploading(true);
 
-      clientUploader.upload(file, {
-        basePath: storagePath,
-        onComplete: async ({ url }) => {
-          try {
-            // 失敗時は null が返り、hook の error にメッセージが入る
-            const updatedUser = await updateProfile({
-              name: user.name ?? "",
-              avatarUrl: url,
-            });
-            if (updatedUser) {
-              setCurrentAvatarUrl(url);
-              onAvatarUpdated?.(updatedUser);
-            }
-          } finally {
-            setIsUploading(false);
+      void (async () => {
+        try {
+          const uploaded = await upload(file);
+          // 失敗時は null が返り、hook の error にメッセージが入る
+          const updatedUser = await updateProfile({
+            name: user.name ?? "",
+            avatarUrl: uploaded.ref,
+          });
+          if (updatedUser) {
+            setCurrentAvatarUrl(uploaded.ref);
+            onAvatarUpdated?.(updatedUser);
+          } else {
+            await discard(uploaded.objectId);
           }
-        },
-        onError: (err) => {
-          setError(err.message || "アップロードに失敗しました");
+        } catch (err) {
+          setError((err instanceof Error && err.message) || "アップロードに失敗しました");
+        } finally {
           setIsUploading(false);
-        },
-      });
+        }
+      })();
     },
-    [acceptTypes, maxFileSize, storagePath, user.name, onAvatarUpdated, updateProfile, resetUpdateError],
+    [acceptTypes, maxFileSize, user.name, onAvatarUpdated, updateProfile, resetUpdateError, upload, discard],
   );
 
   return (
@@ -228,12 +228,14 @@ export function AccountAvatarSection({
             aria-label="アバター画像を変更"
           >
             {currentAvatarUrl ? (
-              <img
-                src={currentAvatarUrl}
-                alt={user.name ?? "アバター"}
-                className="rounded-full object-cover"
-                style={{ width: size, height: size }}
-              />
+              <span className="block overflow-hidden rounded-full" style={{ width: size, height: size }}>
+                <AppImage
+                  src={currentAvatarUrl}
+                  alt={user.name ?? "アバター"}
+                  sizes={`${size}px`}
+                  className="h-full w-full"
+                />
+              </span>
             ) : renderFallback ? (
               renderFallback(user, size)
             ) : (

@@ -5,10 +5,8 @@
 // AppImage はこの判定で per-image unoptimized を自動付与し、
 // IMAGE_OPTIMIZATION を ON にした瞬間に未登録ホストでクラッシュする事故を防ぐ。
 //
-// NOTE: 自バケット判定は lib/storage/client の getPathFromStorageUrl と同等だが、
-//       あちらは firebase client SDK の初期化を伴うモジュールに同居しているため、
-//       純粋な URL 判定だけが必要な UI プリミティブからは依存せず自前で持つ。
-//       新基盤（storage://）の判定は lib/storage/ref の純関数を使う（firebase SDK を伴わない）。
+// NOTE: 旧バケット（凍結した旧 URL）のホスト判定は、firebase SDK を伴わない純粋な URL 判定として自前で持つ。
+//       新基盤（storage://・公開 base・非公開の固定 URL）の判定は lib/storage/ref の純関数を使う。
 
 import { isPrivateObjectPath, isPublicStorageUrl } from "@/lib/storage/ref";
 

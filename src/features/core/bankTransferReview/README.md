@@ -127,20 +127,22 @@
 
 確認モードの拒否は元から通貨未付与のため `failPurchase` でクリーンに失敗させる。
 
-### なぜ画像 URL のパス完全一致まで検証するか
+### 振込明細画像をどう守るか
 
-UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-transfer-proofs/{requestId}` への上書きアップロード方針を採る。この前提を逆手に取って、サーバー側でパス完全一致まで踏み込んで検証する:
+画像は非公開の用途 `purchaseRequest.bankProof`（src/registry/storagePurposes/core.ts）に置き、`proof_image_url` には storage ref を保存する。
 
-1. `getPathFromStorageUrl(url)` で Firebase Storage の正規 URL かを判定（任意の外部 URL 投入を防ぐ）
-2. 抽出パスが本リクエスト専用パスと完全一致するかを判定（他ユーザーの画像 URL 流用を防ぐ）
+1. アップロード（`useBankTransferProofUpload`）: `scopeId = requestId` で発行を求め、サーバーが「本人の・申告できる振込依頼か」を判定する（`isOwnPendingPurchaseRequest`）
+2. 申告（`submitReview`）: base の storage binding（`services/server/drizzleBase.ts`）が保存と同じ TX で台帳に紐付ける。通るのは「アップロードした本人」「scopeId = この行の purchase_request_id」「未紐付け」の ref だけで、外れたら 400 で TX ごと巻き戻る
+3. 閲覧: 固定 URL `/api/storage/objects/<id>` → 用途の read（依頼者本人か管理者）を毎回判定して短期署名へ 302
 
-これにより以下の攻撃を遮断:
+これにより以下を遮断する:
 
-- 任意の外部 URL を `proofImageUrl` として渡される
-- 他ユーザーの振込画像 URL を流用される
-- 別の自分の購入リクエストの画像 URL を使い回される
+- 任意の外部 URL・新しい旧 URL を `proofImageUrl` として渡される（binding が ref 以外の新しい値を拒否）
+- 他ユーザーの画像を流用される（本人以外の ref は紐付かない）
+- 別の自分の購入リクエストの画像を使い回される（scopeId が一致しない）
 
-検証は `validateProofImageUrl()` (`utils/validateProofImageUrl.ts`) に集約。
+- 再申告で差し替えた前の画像は deleted になり、実物は storage-sweep が消す
+- 移行前に保存された旧 URL（Firebase Storage の URL）の行は、同じ値のまま保持できる（表示も従来どおり）
 
 ### なぜ inhouseProvider 側で並行リクエストをブロックするか
 
@@ -161,7 +163,7 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 | `user_id` | uuid (FK) | 申告ユーザー。検索高速化と権限照合用に保持 |
 | `status` | enum | `pending_review` / `confirmed` / `rejected` |
 | `mode` | enum | `immediate` / `approval_required`（作成時固定） |
-| `proof_image_url` | text (NOT NULL) | 振込明細画像の Firebase Storage URL |
+| `proof_image_url` | text (NOT NULL) | 振込明細画像の storage ref（`storage://priv/purchaseRequest.bankProof/…`。移行前の行は旧 Firebase Storage URL のまま） |
 | `submitted_at` | timestamp | ユーザー申告日時 |
 | `reviewed_by` | uuid (FK, ON DELETE SET NULL) | レビュー実施管理者。退職時もレビュー履歴は残す |
 | `reviewed_at` | timestamp (nullable) | レビュー実施日時 |
@@ -195,7 +197,7 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 #### `POST /api/wallet/purchase/[id]/bank-transfer/confirm`
 振込完了をユーザーが申告する。
 
-**リクエスト**: `{ proofImageUrl: string }` (Firebase Storage の URL)
+**リクエスト**: `{ proofImageUrl: string }` (`useBankTransferProofUpload` で上げた storage ref)
 
 **レスポンス**:
 ```ts
@@ -374,7 +376,7 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 |---|---|---|---|
 | 振込案内ページ | `src/app/(user)/(protected)/wallet/[slug]/purchase/bank-transfer/[requestId]/page.tsx` | 振込先口座・識別子・期限の表示 + 申告 CTA | 実装済 |
 | 案内ページ本体コンポーネント | `src/features/core/purchaseRequest/components/BankTransferInstruction/` | 3 ステップ UI（口座情報 → 画像添付 → 申告） | 実装済 |
-| 画像アップロードフック | `src/features/core/purchaseRequest/hooks/useBankTransferProofUpload.ts` | 固定パスへの上書きアップロード | 実装済 |
+| 画像アップロードフック | `src/features/core/purchaseRequest/hooks/useBankTransferProofUpload.ts` | 非公開の用途 purchaseRequest.bankProof へのアップロード（差し替え時は前の画像を取り消す） | 実装済 |
 | 進行中振込バナー | `src/features/core/bankTransferReview/components/ActiveTransferBanner/` | ウォレットトップに表示する未完了振込の案内 | 実装済 |
 | バナー用フック | `src/features/core/bankTransferReview/hooks/useActiveBankTransfer.ts` | `getActiveBankTransfer` のラッパー | 実装済 |
 | 確認待ちページ | `src/app/(user)/(protected)/wallet/[slug]/purchase/awaiting-review/page.tsx` | 確認モードでの申告完了画面（管理者承認待ち / AI 判定不承認の要確認） | 実装済 |
@@ -406,13 +408,11 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 
 - `auditLogger.record()`: 各アクションで呼ばれる
 
-### lib/firebase
+### storageObject ドメイン / lib/storage
 
-- `getPathFromStorageUrl()` (`src/lib/firebase/server/storage.ts`): 画像 URL 検証で使用
-
-### lib/storage
-
-- `directStorageClient.upload()`: 固定パス上書きアップロード（UI 側）
+- `storageBindingFor()` (`features/core/storageObject`): `proof_image_url` の紐付け（drizzleBase）
+- `uploadToStorage()` (`@/lib/storage/client`): 振込明細画像のアップロード（UI 側、`useBankTransferProofUpload` 経由）
+- `resolveStorageSrc()` (`@/lib/storage`): 管理画面の表示で固定 URL に解決
 
 ---
 
@@ -430,9 +430,9 @@ UI 側 (`useBankTransferProofUpload`) は固定パス `purchase-requests/bank-tr
 
 ### 孤児画像ファイルのクリーンアップ
 
-`useBankTransferProofUpload` は固定パス上書き運用なので、申告完了したリクエストの画像は最新 1 件のみ Storage に残る。ただし「申告せず離脱したユーザーの画像」は孤児ファイルとして残る可能性がある。
+申告されなかった画像（差し替え前・申告せず離脱）は台帳上「未紐付けの ready」として残り、猶予（既定 24 時間）を過ぎると storage-sweep cron が消す。差し替え・クリア時は `useBankTransferProofUpload` がその場で取り消す。再申告で外れた前の画像も sweep が実物を消す。
 
-→ **TODO**: cron で定期削除する仕組みを後追い実装する想定（現状未実装）。判定条件は「purchase_requests が `expired` or `failed` で、対応する画像が `purchase-requests/bank-transfer-proofs/{requestId}` に存在」。
+移行前の固定パス `purchase-requests/bank-transfer-proofs/{requestId}` の旧画像は凍結（移行・削除しない）。
 
 ### `autoComplete` 切替時の影響
 
@@ -467,9 +467,9 @@ src/features/core/bankTransferReview/
 │   ├── model.ts              # TS 型
 │   └── index.ts
 ├── constants/
-│   └── storage.ts            # 固定パス prefix（UI 側と共通化用）
+│   └── storage.ts            # 旧: 固定パス prefix（validateProofImageUrl と一緒に削除予定）
 ├── utils/
-│   └── validateProofImageUrl.ts  # 画像 URL 検証
+│   └── validateProofImageUrl.ts  # 旧: 画像 URL 検証（使われていない。削除予定）
 ├── components/               # UI コンポーネント
 │   └── ActiveTransferBanner/ # 進行中振込バナー
 ├── hooks/

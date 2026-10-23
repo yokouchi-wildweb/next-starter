@@ -1,10 +1,14 @@
 // src/features/core/notification/services/server/notification/sendDirect.ts
 // 自由入力によるお知らせ送信
+// image（storage ref）は insert と同じ TX で、drizzleBase の storage binding によりファイル台帳に紐付ける
+// （base.create を通らない直接 insert なので、ここで明示的に呼ぶ）。アップロードした本人（送信した管理者）の
+// 未紐付けの ref だけが通り、新しい旧 URL・外部 URL は 400。null はそのまま
 
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors/domainError";
 import { NotificationTable } from "@/features/core/notification/entities/drizzle";
 import type { Notification } from "@/features/core/notification/entities/model";
+import { storageBinding } from "@/features/core/notification/services/server/drizzleBase";
 
 export type SendDirectInput = {
   title?: string | null;
@@ -24,24 +28,27 @@ export async function sendDirect(input: SendDirectInput): Promise<Notification> 
   // target_type に応じたバリデーション
   validateTarget(input);
 
-  const [created] = await db
-    .insert(NotificationTable)
-    .values({
-      title: input.title ?? null,
-      body: input.body,
-      image: input.image ?? null,
-      target_type: input.targetType,
-      target_user_ids: input.targetType === "individual" ? input.targetUserIds : null,
-      target_roles: input.targetType === "role" ? input.targetRoles : null,
-      sender_type: input.senderType,
-      created_by_id: input.createdById ?? null,
-      metadata: input.metadata ?? null,
-      is_silent: input.silent ?? false,
-      published_at: input.publishedAt ?? new Date(),
-    })
-    .returning();
+  return db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(NotificationTable)
+      .values({
+        title: input.title ?? null,
+        body: input.body,
+        image: input.image ?? null,
+        target_type: input.targetType,
+        target_user_ids: input.targetType === "individual" ? input.targetUserIds : null,
+        target_roles: input.targetType === "role" ? input.targetRoles : null,
+        sender_type: input.senderType,
+        created_by_id: input.createdById ?? null,
+        metadata: input.metadata ?? null,
+        is_silent: input.silent ?? false,
+        published_at: input.publishedAt ?? new Date(),
+      })
+      .returning();
 
-  return created as Notification;
+    await storageBinding.afterWrite(tx, null, created as Record<string, unknown>);
+    return created as Notification;
+  });
 }
 
 function validateTarget(input: SendDirectInput): void {

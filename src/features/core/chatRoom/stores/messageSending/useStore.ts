@@ -3,7 +3,7 @@
 
 import { useCallback, useMemo } from "react";
 
-import type { UploadProgress } from "@/lib/storage/client/clientUploader";
+import type { UploadProgress } from "@/lib/storage/client";
 
 import { internalStore } from "./internalStore";
 import type { MessageSendingStatus, PendingMessage } from "./types";

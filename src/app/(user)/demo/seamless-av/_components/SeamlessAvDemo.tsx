@@ -15,7 +15,7 @@ import {
   type ReelManifestFragment,
   type ReelValidationReport,
 } from "@/lib/seamlessVideo";
-import { clientUploader } from "@/lib/storage/client/clientUploader";
+import { uploadToStorage } from "@/lib/storage/client";
 import { useToast } from "@/lib/toast";
 import { Button, buttonVariants } from "@/components/Form/Button";
 import { Block } from "@/components/Layout/Block";
@@ -32,12 +32,18 @@ type Slot = {
   audioFile?: File;
 };
 
-const UPLOAD_BASE_PATH = "seamless-av-demo";
+/** デモの用途（公開・管理者のみ）。業務行に紐付けないので、上げたファイルは猶予後に掃除で消える */
+const UPLOAD_PURPOSE = "demo.media";
 
-/** clientUploader(ブラウザ→Firebase 直)を Promise でラップ。 */
-function uploadFile(file: File, basePath: string): Promise<{ url: string; path: string }> {
+/** uploadToStorage(ブラウザ→GCS 直)を Promise でラップし、マニフェストに入れる公開 URL を返す。 */
+function uploadFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    clientUploader.upload(file, { basePath, onComplete: resolve, onError: reject });
+    uploadToStorage(file, {
+      purpose: UPLOAD_PURPOSE,
+      onComplete: ({ src }) =>
+        src ? resolve(src) : reject(new Error("公開 URL を作れません(NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL が未設定)")),
+      onError: reject,
+    });
   });
 }
 
@@ -224,18 +230,17 @@ export function SeamlessAvDemo() {
       const manifestFragments: ReelManifestFragment[] = [];
 
       for (const slot of savableSlots) {
-        const video = await uploadFile(slot.videoFile!, UPLOAD_BASE_PATH);
+        const videoUrl = await uploadFile(slot.videoFile!);
         done += 1;
         setSaveMsg(`アップロード中 ${done}/${total}`);
 
         let audioUrl: string | undefined;
         if (slot.audioFile) {
-          const audio = await uploadFile(slot.audioFile, UPLOAD_BASE_PATH);
+          audioUrl = await uploadFile(slot.audioFile);
           done += 1;
           setSaveMsg(`アップロード中 ${done}/${total}`);
-          audioUrl = audio.url;
         }
-        manifestFragments.push({ video: video.url, audio: audioUrl });
+        manifestFragments.push({ video: videoUrl, audio: audioUrl });
       }
 
       setSaveMsg("マニフェストを保存中...");
@@ -291,6 +296,7 @@ export function SeamlessAvDemo() {
           <li>映像: 統一プロファイルの fragmented MP4(H.264・無音推奨・先頭IDR・解像度/fps統一)</li>
           <li>音声: wav 推奨(m4a/aac/mp3 も可)。映像と同じ尺に揃える</li>
           <li>音声は別レイヤー(Web Audio)で再生されるため、映像側は常にミュートされます</li>
+          <li>アップロード先は用途 demo.media(管理者のみ)。業務データに保存しないため、24 時間ほどでファイルが掃除され、保存したマニフェストは再生できなくなります</li>
         </ul>
       </Block>
 

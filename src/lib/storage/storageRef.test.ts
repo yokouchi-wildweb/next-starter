@@ -30,7 +30,7 @@ import {
 import { storageMediaValueSchema } from "./schema";
 import type { StoragePurposeMap } from "./policy/types";
 import { __setStoragePortForTest, createFakeStoragePort, FakeStorageError } from "./server/fake";
-import { parseLegacyStorageUrl } from "./server/legacy";
+import { isLegacyLocation, parseLegacyStorageUrl } from "./server/legacy";
 import { getStoragePort, ISSUED_CACHE_CONTROL } from "./server/port";
 import {
   listStoragePurposeProblems,
@@ -345,6 +345,23 @@ describe("legacy（旧 URL の解析）", () => {
     assert.equal(parseLegacyStorageUrl("https://example.com/old/a.png"), null);
     assert.equal(parseLegacyStorageUrl("https://firebasestorage.googleapis.com/v0/b/old/o/a%2F..%2Fb.png?alt=media"), null);
     assert.equal(parseLegacyStorageUrl(PUB_REF), null);
+  });
+
+  test("pub / priv の保存先と重なる位置は旧 URL と見なさない", () => {
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "old";
+    process.env.STORAGE_PRIVATE_BUCKET = "old";
+    process.env.STORAGE_PRIVATE_PREFIX = "priv";
+    process.env.STORAGE_PUBLIC_BUCKET = "pub-bucket";
+    const managed = "https://firebasestorage.googleapis.com/v0/b/old/o/priv%2FchatRoom.image%2Fa.png?alt=media";
+    assert.equal(parseLegacyStorageUrl(managed), null);
+    assert.equal(isLegacyLocation({ bucket: "old", path: "priv/chatRoom.image/a.png" }), false);
+    assert.deepEqual(parseLegacyStorageUrl("https://storage.googleapis.com/old/chat/a.png"), { bucket: "old", path: "chat/a.png" });
+    assert.equal(isLegacyLocation({ bucket: "pub-bucket", path: "x.png" }), false);
+
+    // prefix "" で同じバケット → 旧バケット全体が対象外
+    process.env.STORAGE_PRIVATE_PREFIX = "";
+    assert.equal(parseLegacyStorageUrl("https://storage.googleapis.com/old/chat/a.png"), null);
+    assert.equal(isLegacyLocation({ bucket: "old", path: "chat/a.png" }), false);
   });
 });
 

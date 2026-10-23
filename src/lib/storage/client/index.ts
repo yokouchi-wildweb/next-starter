@@ -1,5 +1,5 @@
 // src/lib/storage/client/index.ts
-// クライアントのアップロードの入口（新基盤）。旧 clientUploader / directStorageClient / appStorageClient は個別のファイルから import する（N2 で削除）
+// クライアントのアップロードの入口（新基盤）。旧クライアントの 3 ファイルは個別のファイルに残る（N2 で削除）
 
 export * from "./transferTypes";
 export { uploadToStorage, createUploader } from "./uploadToStorage";

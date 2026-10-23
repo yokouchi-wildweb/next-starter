@@ -3,14 +3,14 @@
 // ② 振込明細の画像を用意するセクション。
 // HTML 標準の <input type="file" accept="image/*"> を経由して、
 // iOS / Android のネイティブシート（カメラ起動 or フォトライブラリ）で画像を取得する。
-// 取得後は即時に Firebase Storage へ上書きアップロードし、URL を親に通知する。
+// 取得後は即時に非公開の用途 purchaseRequest.bankProof へアップロードし、ref を親に通知する。
 //
 // 実装ポリシー:
 // - アップロードタイミング: 添付直後（即時）
-// - パス: useBankTransferProofUpload が固定パスを生成（同 requestId は常に上書き）
+// - 保存先: useBankTransferProofUpload（scopeId = requestId。差し替え時は前の未申告の画像を取り消す）
 // - プレビュー: ローカルの blob URL（即時表示）。アップロード完了後も blob URL を維持
-//   （親に渡す URL は Firebase Storage の URL）
-// - 削除: ローカル state のみリセット。Storage 側のファイルは消さない（次の上書き / cron でクリーンアップ）
+//   （親に渡すのは storage の ref）
+// - 削除: ローカル state をリセットし、上げた画像を取り消す（申告済みの画像は取り消されない）
 
 "use client";
 
@@ -24,6 +24,7 @@ import { Stack } from "@/components/Layout/Stack";
 import { Button } from "@/components/Form/Button/Button";
 import { Para, Span } from "@/components/TextBlocks";
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
+import { resolveStorageSrc } from "@/lib/storage";
 import { useToast } from "@/lib/toast";
 
 import { useBankTransferProofUpload } from "@/features/core/purchaseRequest/hooks/useBankTransferProofUpload";
@@ -35,18 +36,18 @@ type Props = {
   step: number;
   /** purchase_request の ID（アップロードパスの一部に使用） */
   requestId: string;
-  /** アップロード済み画像 URL。null = 未添付 */
+  /** アップロード済み画像の ref（または表示できる URL）。null = 未添付 */
   imageUrl: string | null;
   /**
    * アップロード成功 / クリア時のコールバック。
-   * - url: Firebase Storage の永続 URL（Step④ 申告 API に渡す）
+   * - url: 画像の storage ref（Step④ 申告 API に渡す）
    * - file: 選択された File オブジェクト（Step③ の AI 判定 API へ multipart で渡す）。クリア時は null。
    */
   onChange: (url: string | null, file: File | null) => void;
 };
 
 export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props) {
-  const { upload } = useBankTransferProofUpload(requestId);
+  const { upload, discardCurrent } = useBankTransferProofUpload(requestId);
   const { showToast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -83,8 +84,8 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
     setIsUploading(true);
 
     try {
-      const url = await upload(file);
-      onChange(url, file);
+      const { ref } = await upload(file);
+      onChange(ref, file);
     } catch {
       showToast("画像のアップロードに失敗しました", "error");
       URL.revokeObjectURL(localUrl);
@@ -96,6 +97,7 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
   };
 
   const handleClear = () => {
+    discardCurrent();
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
@@ -104,7 +106,8 @@ export function PrepareProofImage({ step, requestId, imageUrl, onChange }: Props
   };
 
   const hasAttached = imageUrl !== null || previewUrl !== null;
-  const displayUrl = previewUrl ?? imageUrl ?? "";
+  // blob プレビューが無いとき（親が値だけ持っているとき）は ref を表示用 URL に解決する
+  const displayUrl = previewUrl ?? resolveStorageSrc(imageUrl) ?? "";
 
   return (
     <Block padding="md" className="rounded-lg border border-border bg-card">

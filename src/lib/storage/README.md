@@ -182,9 +182,12 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 - `parseLegacyStorageUrl(url)` は、自分の旧バケットの URL を位置に変換する
   - 対象は Firebase のトークン付きダウンロード URL と、`storage.googleapis.com/<bucket>/...`
   - 外部 URL・他バケットの URL・旧バケットが未設定なら null
-- 使ってよいのは次の 2 つだけ
+  - pub / priv の保存先と重なる位置（同じバケットで prefix 配下）も null。管理下の物を旧 URL として copy・削除・probe させないため。`isLegacyLocation(location)` が同じ判定
+  - 旧バケットを pub / priv と共有し prefix が `""` の構成では、旧バケットのどの URL も旧 URL として扱われない（旧物の copy・削除連動・probe ができない。安全側）
+- 使ってよいのは次の 3 つだけ
   - 業務行の物理削除に連動する削除
   - 管理者による複製（copy で新しい ref にする）
+  - 管理者のメディア解析（`/api/media/probe` の storagePath / downloadUrl）
 - 利用者による旧ファイルの個別削除・上書きには使わない
 
 ## 用途（purpose）の型: `policy/types.ts`

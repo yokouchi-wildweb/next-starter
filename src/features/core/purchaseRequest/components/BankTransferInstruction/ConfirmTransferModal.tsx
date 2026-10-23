@@ -21,6 +21,7 @@ import { AlertTriangle } from "lucide-react";
 
 import Modal from "@/components/Overlays/Modal";
 import { Block } from "@/components/Layout/Block";
+import { AppImage } from "@/components/Media/AppImage";
 import { Flex } from "@/components/Layout/Flex";
 import { Stack } from "@/components/Layout/Stack";
 import { Button } from "@/components/Form/Button/Button";
@@ -43,7 +44,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   requestId: string;
-  /** ② で添付した振込明細画像の Storage URL */
+  /** ② で添付した振込明細画像の storage ref */
   proofImageUrl: string;
   /**
    * AI 判定が不承認のままの申告か。
@@ -138,14 +139,15 @@ export function ConfirmTransferModal({
           <Block className="overflow-hidden rounded-md border border-border bg-muted/30">
             {/*
               縦長画像（ネットバンキングのスクショ等）でモーダルが伸び過ぎないよう
-              max-h-44 (176px) で頭打ち。object-contain でアスペクト比は維持し、
-              余白は bg-muted で埋める。
+              高さ 176px (h-44) の箱に object-contain で収め、余白は bg-muted で埋める。
+              proofImageUrl は storage の ref（非公開）。AppImage が固定 URL に解決し、最適化は通さない。
             */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <AppImage
               src={proofImageUrl}
               alt="振込明細"
-              className="mx-auto max-h-44 w-full bg-muted object-contain"
+              sizes="card"
+              objectFit="contain"
+              className="h-44 w-full bg-muted"
             />
           </Block>
         </Stack>
