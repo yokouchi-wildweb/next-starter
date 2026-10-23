@@ -13,8 +13,8 @@ import { loadAdminRelationOptions } from "@/features/core/admin/services/server/
 import domainConfig from "@/features/sample/domain.json";
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import AdminSampleEdit from "@/features/sample/components/AdminSampleEdit";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "サンプル編集",

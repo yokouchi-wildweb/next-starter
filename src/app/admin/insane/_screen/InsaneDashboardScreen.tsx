@@ -4,7 +4,7 @@
 //
 // loader は無い(サーバー側の取得も遷移制御も無い。管理者判定は insane/layout.tsx)。
 
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import AdminPage from "@/app/admin/_layout/AdminPage";
 import { SecTitle } from "@/components/TextBlocks";
 
 export function InsaneDashboardScreen() {

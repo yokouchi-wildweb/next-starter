@@ -10,7 +10,7 @@ import Link from "next/link";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
 import { Main } from "@/components/TextBlocks";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 import { AdminLogin } from "@/features/core/auth/components/AdminLogin";
 import type { ScreenProps } from "@/lib/screens/types";
 

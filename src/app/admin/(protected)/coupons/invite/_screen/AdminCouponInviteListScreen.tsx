@@ -6,8 +6,8 @@
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminInviteList from "@/features/core/referral/components/AdminInviteList";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 import { Para } from "@/components/TextBlocks/Para";
 
 import { CouponSectionTabs } from "../../_screen/CouponSectionTabs";

@@ -5,8 +5,8 @@
 import { loadAdminSortScreen } from "@/features/core/admin/services/server/loaders/adminSort";
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import AdminSampleSort from "@/features/sample/components/AdminSampleSort";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
 
 export const metadata = {
   title: "サンプル並び替え",

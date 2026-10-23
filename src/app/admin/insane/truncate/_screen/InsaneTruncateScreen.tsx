@@ -4,7 +4,7 @@
 //
 // loader は無い(サーバー側の取得も遷移制御も無い。削除はセクションコンテナ TruncateDomainForm が行う)。
 
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Para, SecTitle } from "@/components/TextBlocks";
 import { TruncateDomainForm } from "@/features/core/insane/components/TruncateDomainForm";
 

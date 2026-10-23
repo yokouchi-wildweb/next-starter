@@ -4,8 +4,8 @@
 //
 // loader は無い(ダッシュボードのウィジェットはそれぞれ自分で取得する。管理者判定は layout の authGuard)。
 
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
 import { Stack } from "@/components/Layout/Stack";
 import { AdminDashboard } from "@/features/admin/dashboard";
 

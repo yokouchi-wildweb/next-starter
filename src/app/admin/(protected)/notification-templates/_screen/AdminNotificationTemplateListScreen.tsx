@@ -9,8 +9,8 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
 import { notificationTemplateService } from "@/features/core/notificationTemplate/services/server/notificationTemplateService";
 import AdminNotificationTemplateList from "@/features/core/notificationTemplate/components/AdminNotificationTemplateList";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "お知らせテンプレート一覧",

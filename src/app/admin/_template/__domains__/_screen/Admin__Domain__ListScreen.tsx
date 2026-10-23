@@ -7,8 +7,8 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
 import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
 import Admin__Domain__List from "@/features/__domain__/components/Admin__Domain__List";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "__DomainLabel__一覧",

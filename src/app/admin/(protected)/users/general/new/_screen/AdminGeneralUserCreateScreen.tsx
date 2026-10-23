@@ -5,8 +5,8 @@
 // loader は無い(サーバー側の取得も遷移制御も無い)。
 
 import GeneralUserCreate from "@/features/core/user/components/admin/GeneralUserCreate";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "一般ユーザー追加",

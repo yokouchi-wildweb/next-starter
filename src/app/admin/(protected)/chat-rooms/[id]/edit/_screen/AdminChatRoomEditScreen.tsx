@@ -13,8 +13,8 @@ import {
 } from "@/features/core/admin/services/server/loaders/adminEdit";
 import { chatRoomService } from "@/features/core/chatRoom/services/server/chatRoomService";
 import AdminChatRoomEdit from "@/features/core/chatRoom/components/AdminChatRoomEdit";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "チャットルーム編集",

@@ -5,8 +5,8 @@
 //
 // status タブは URL 遷移で切り替える(StatusTabs)。部品はこの _screen/ に置いてある(BankTransferReviewListPanel ほか)。
 
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 import { Section } from "@/components/Layout/Section";
 import type { ScreenProps } from "@/lib/screens/types";
 

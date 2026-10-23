@@ -6,7 +6,7 @@
 import { Stack } from "@/components/Layout/Stack";
 import { Section } from "@/components/Layout/Section";
 import { Main, Para } from "@/components/TextBlocks";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 import AdminSetupForm from "@/features/core/setting/components/AdminSetup";
 
 import { loadAdminSetupScreen } from "./loader";

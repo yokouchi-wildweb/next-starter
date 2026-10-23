@@ -10,8 +10,8 @@ import {
 } from "@/features/core/admin/services/server/loaders/adminEdit";
 import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
 import AdminSampleTagEdit from "@/features/sampleTag/components/AdminSampleTagEdit";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "サンプルタグ編集",

@@ -4,8 +4,8 @@
 //
 // loader は無い(サーバー側の取得も遷移制御も無い。送信はセクションコンテナ AdminNotificationSend が hook で行う)。
 
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 import AdminNotificationSend from "@/features/core/notification/components/AdminNotificationSend";
 
 export const metadata = {

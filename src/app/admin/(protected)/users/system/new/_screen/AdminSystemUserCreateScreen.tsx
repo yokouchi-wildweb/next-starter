@@ -5,8 +5,8 @@
 // loader は無い(サーバー側の取得も遷移制御も無い)。
 
 import ManagerialUserCreate from "@/features/core/user/components/admin/ManagerialUserCreate";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "システム管理者追加",

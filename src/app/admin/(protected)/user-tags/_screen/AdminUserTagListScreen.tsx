@@ -9,8 +9,8 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
 import { userTagService } from "@/features/core/userTag/services/server/userTagService";
 import AdminUserTagList from "@/features/core/userTag/components/AdminUserTagList";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "ユーザータグ一覧",

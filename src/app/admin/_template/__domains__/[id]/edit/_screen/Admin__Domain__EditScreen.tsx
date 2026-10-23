@@ -11,8 +11,8 @@ import {
 __RELATION_IMPORTS__
 import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
 import Admin__Domain__Edit from "@/features/__domain__/components/Admin__Domain__Edit";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "__DomainLabel__編集",

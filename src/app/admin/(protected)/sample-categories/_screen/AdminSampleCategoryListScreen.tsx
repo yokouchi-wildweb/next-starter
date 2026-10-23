@@ -7,8 +7,8 @@ import type { ScreenProps } from "@/lib/screens/types";
 import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
 import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
 import AdminSampleCategoryList from "@/features/sampleCategory/components/AdminSampleCategoryList";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "サンプルカテゴリ一覧",

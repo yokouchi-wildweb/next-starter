@@ -73,7 +73,7 @@ code_generation:
 - must hand-edit a generated file → first set its category to false in domain.json generateFiles | ref: scripts/domain-config/README.md
 
 ## STORES (zustand)
-placement: src/stores/ = app-wide only | domain-specific → features/\<domain\>/stores/ | structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts}, internalStore → useStore → hooks/useXxx (optional)
+placement: src/stores/ = app-wide only | domain-specific → features/\<domain\>/stores/ | one-frame-only → app/\<route\>/_layout/stores/ | structure: stores/\<name\>/{index.ts, internalStore.ts, useStore.ts}, internalStore → useStore → hooks/useXxx (optional)
 rules: state only (logic in services) | UI side effects in useStore's useEffect | internalStore accessed only from useStore.ts | ref: src/stores/README.md
 
 ## DOMAINS

@@ -1,15 +1,2 @@
-// src/components/Admin/Sections/SIdebar/PcSidebar.tsx
-
-import { BaseSidebar } from "./BaseSidebar";
-
-type PcSidebarProps = {
-  width: number;
-};
-
-export function PcSidebar({ width }: PcSidebarProps) {
-  return (
-    <div className="hidden md:block h-full" style={{ width }}>
-      <BaseSidebar width={width} />
-    </div>
-  );
-}
+// @deprecated 旧パス互換: @/app/admin/(protected)/_layout/Sidebar/PcSidebar へ移動(撤去の区切りで削除)
+export * from "@/app/admin/(protected)/_layout/Sidebar/PcSidebar";

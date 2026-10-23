@@ -5,8 +5,8 @@
 
 import type { Metadata } from "next";
 
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminSettingSectionEdit from "@/features/core/setting/components/AdminSettingSectionEdit";
 import { settingSections } from "@/features/core/setting/setting.sections";

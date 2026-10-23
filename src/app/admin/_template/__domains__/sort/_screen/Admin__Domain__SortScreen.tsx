@@ -5,8 +5,8 @@
 import { loadAdminSortScreen } from "@/features/core/admin/services/server/loaders/adminSort";
 import { __domain__Service } from "@/features/__domain__/services/server/__domain__Service";
 import Admin__Domain__Sort from "@/features/__domain__/components/Admin__Domain__Sort";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
 
 export const metadata = {
   title: "__DomainLabel__並び替え",

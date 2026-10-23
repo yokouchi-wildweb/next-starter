@@ -6,8 +6,8 @@ import { SWRConfig } from "swr";
 import { loadAdminRelationOptions } from "@/features/core/admin/services/server/loaders/adminRelationOptions";
 import domainConfig from "@/features/sample/domain.json";
 import AdminSampleCreate from "@/features/sample/components/AdminSampleCreate";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "サンプル追加",

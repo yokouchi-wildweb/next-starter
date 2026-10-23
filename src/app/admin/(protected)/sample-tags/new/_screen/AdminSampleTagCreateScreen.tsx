@@ -3,8 +3,8 @@
 // 画面を変えるときは _components/ にコピーして page.tsx の import 先を向ける。
 
 import AdminSampleTagCreate from "@/features/sampleTag/components/AdminSampleTagCreate";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 export const metadata = {
   title: "サンプルタグ追加",

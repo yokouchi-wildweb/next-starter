@@ -28,7 +28,7 @@ test("classifyLayoutImport: services/server・DB・loader を止め、authorizat
   assert.equal(classifyLayoutImport("@/features/core/auth/services/server/authorization"), null);
   assert.equal(classifyLayoutImport("@/features/core/user/services/server/userService", true), null);
   assert.equal(classifyLayoutImport("@/features/core/user/constants"), null);
-  assert.equal(classifyLayoutImport("@/components/AppFrames/Admin/Layout/AdminProtectedLayout"), null);
+  assert.equal(classifyLayoutImport("@/app/admin/(protected)/_layout/AdminProtectedLayout"), null);
   assert.equal(classifyLayoutImport("@/features/core/auth/components/AuthSessionProvider"), null);
   assert.equal(classifyLayoutImport("@/lib/firebase/client/app"), null);
   assert.equal(classifyLayoutImport("./uploader"), null);

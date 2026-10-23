@@ -5,8 +5,8 @@
 
 import type { ScreenProps } from "@/lib/screens/types";
 import ManagerialUserEdit from "@/features/core/user/components/admin/ManagerialUserEdit";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 
 import { loadAdminSystemUserEditScreen, type AdminSystemUserEditScreenParams } from "./loader";
 

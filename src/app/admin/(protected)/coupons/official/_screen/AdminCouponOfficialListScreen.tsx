@@ -8,8 +8,8 @@
 import type { ListPageSearchParams } from "@/lib/crud";
 import type { ScreenProps } from "@/lib/screens/types";
 import AdminCouponList from "@/features/core/coupon/components/AdminCouponList";
-import AdminPage from "@/components/AppFrames/Admin/Layout/AdminPage";
-import PageTitle from "@/components/AppFrames/Admin/Elements/PageTitle";
+import AdminPage from "@/app/admin/_layout/AdminPage";
+import PageTitle from "@/app/admin/_layout/PageTitle";
 import { loadAdminListScreen } from "@/features/core/admin/services/server/loaders/adminList";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 
