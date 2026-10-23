@@ -23,6 +23,8 @@ export default [
       ".firebase/**",
       ".next/**",
       "node_modules/**",
+      // Claude Code が作るワークツリー (リポジトリ丸ごとの複製)。lint するとファイルが二重になる
+      ".claude/worktrees/**",
       // 生成器テンプレートのうち、プレースホルダー(__ASYNC__function / __RelationTableImports__import 等)が
       // TypeScript として構文エラーになるファイルだけを除外する(パースできないので lint しようがない)。
       // 他のテンプレートは lint 対象のまま(生パレット色・ClientService 直接 import 等の検査を生成元で効かせる)。

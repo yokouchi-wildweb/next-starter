@@ -19,6 +19,21 @@ pnpm env:init .env.local
 
 ➡ [新規プロジェクトの立ち上げ: フォークからデプロイまで](../docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md)
 
+### ワークツリー (worktree)
+
+```bash
+# 本体の隣 (../<repo名>.wt-<branch>) にワークツリーを作り、env 等を複製して pnpm install
+pnpm worktree:new <branch> [--from <base>] [--path <dir>]
+
+# 既存ワークツリーへ env 等を入れ直す (既定は上書きしない。--force で上書き)
+pnpm worktree:sync [path] [--force]
+
+# 未コミットの変更が無いことを確かめて外す (ブランチは残す)
+pnpm worktree:remove <path>
+```
+
+複製するファイルの一覧は `scripts/worktree/include`。DB は本体と共有になる点に注意。詳細: [worktree/README.md](./worktree/README.md)
+
 ### データベース (db)
 
 ```bash
@@ -213,5 +228,6 @@ scripts/
 ├── mail/                  # メール関連
 ├── room/                  # リアルタイムルーム基盤の init / deploy
 ├── test/                  # テスト実行用の preload (server-only の差し替え)
+├── worktree/              # ワークツリーの作成・env 複製・片付け
 └── tasks/                 # 運用タスクの CLI ランナー (pnpm task)
 ```

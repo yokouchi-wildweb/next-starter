@@ -1,0 +1,16 @@
+# DOWNSTREAM NOTICE id:20261023-134923-upreq-per-repo-inbox
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-10-23T13:49:23+09:00
+severity: action-required
+checkpoint: upreq-per-repo-inbox
+change: /upreq, /inbox and /wen now ship as repo skills (.claude/skills/upreq/ with helper mailbox.mjs, .claude/skills/inbox/, .claude/skills/wen/) instead of machine-local ~/.claude/commands files. The mailbox ~/.team/upstream-requests/ now has one inbox per receiving repo (<fork-id>/ + <fork-id>/done/, fork-id = same rule as /flux). /upreq picks the target tier itself (any ancestor, not only Tier1) and writes `to:` + `routing:` lines. /inbox reads only the own repo's inbox and can relay a request up to a higher tier (status: relayed). /wen follows own requests across all inboxes. Old root-level tickets (no `to:`) are still read as addressed to the top of the chain.
+why: every request used to land in the Tier1 mailbox, so a Tier3 → Tier2 request (e.g. a domain-specific fix for the mid tier) reached Tier1 and could be shipped to unrelated branches. The project.md request_protocol line of each fork still describes the old single mailbox.
+required_actions:
+1. Merge upstream (adds .claude/skills/upreq/, .claude/skills/inbox/, .claude/skills/wen/).
+2. In .claude/rules/project.md, find the request_protocol block (grep: `upstream-requests`). Replace its /upreq and /wen bullets with the block from .claude/skills/fork-init/project.template.md (`request_protocol (shared mailbox: ~/.team/upstream-requests/, one inbox per receiving repo):`). Fill `<domain>` with this fork's domain. Keep fork-specific bullets such as the /flux ledger line.
+3. If this fork has downstream forks of its own (a mid tier), keep the `/inbox` bullet from the template; otherwise delete it. If the TIER section names who owns what (e.g. `responsibility_boundary`), leave it as is: /upreq reads it to pick the target.
+4. If the fork has its own copies named upreq / inbox / wen under .claude/commands/ or .claude/skills/ (other than the merged skills), delete them so only the upstream skills remain.
+verify: `node .claude/skills/upreq/mailbox.mjs chain` (run at the repo root) lists every ancestor up to `chain_end: root` (or `not-cloned` when an ancestor has no local checkout next to this repo) | `grep -n "one inbox per receiving repo" .claude/rules/project.md` hits once
+manual_steps: On each machine that still has ~/.claude/commands/upreq.md, inbox.md or wen.md (the old machine-local commands), delete them after merging, so the repo skills are the only ones used.
+refs: .claude/skills/upreq/SKILL.md (mailbox layout, routing rule), .claude/skills/upreq/mailbox.mjs, .claude/skills/inbox/SKILL.md (relay / reject), .claude/skills/wen/SKILL.md, .claude/skills/fork-init/project.template.md
+notes: The mailbox is a local folder (~/.team), so requests still travel only between repos on the same machine. | mailbox.mjs finds an ancestor's checkout among the sibling directories of already known repos (matched by origin); an ancestor cloned elsewhere ends the chain with `not-cloned`, and /upreq picks from the ancestors it found. | Council edict / legate folders stay at the mailbox root and are routed by their `project:` path. | Fork-specific impact: not checked.
