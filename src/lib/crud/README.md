@@ -81,6 +81,9 @@ createCrudService<TTable, TCreate>(table, {
 
   // リクエストスコープメモ化（既定: false）
   requestMemo?: boolean,
+
+  // ファイル台帳との連動（Drizzle のみ、後述「storage オプション」）
+  storage?: CrudStorageBinding,
 })
 ```
 
@@ -350,6 +353,51 @@ const inserted = await service.replaceByQuery(
 **独自 mutation フックの作り方**: `useDomainMutation(key, fn, revalidateKey?)` を `@/lib/crud/hooks` から import して包む（core の useChangeUserRole / useAdjustWallet / useProfileUpsert / useAdminSetup 等が実例）。`useSWRMutation` の直接利用は禁止（同じ握りつぶしを再発させる）。
 
 ---
+
+## storage オプション（ファイル台帳との連動）
+
+`storage://` の ref を保存するメディア列を、ファイル台帳（[features/core/storageObject](../../features/core/storageObject/README.md)）と同じ TX で連動させる。下の旧「Storage 連携クリーンアップ」（`storageCleanupFields`）とは別の経路で、N2 で置き換わる。指定しないサービスの挙動は変わらない。
+
+```ts
+import { storageBindingFor } from "@/features/core/storageObject/services/server";
+
+createCrudService(SampleTable, {
+  storage: storageBindingFor("sample", [
+    { name: "main_image", purpose: "sample.main_image" },
+    { name: "gallery_images", purpose: "sample.gallery_images", multi: true },
+  ]),
+});
+```
+
+- lib/crud が持つのは型（`storageIntegration/types.ts` の `CrudStorageBinding`）と呼び出し口（`applyStorageBinding.ts`）だけ。台帳の操作は features 側の `storageBindingFor` が差し込む（lib → features の依存を作らない）
+- **create / update / upsert**
+  - 業務行を書いた直後に、同じ TX の中で `afterWrite` を呼ぶ。update / upsert は、書く前の行を `FOR UPDATE` で読む
+  - 新しく現れた ref は attach する。紐付くのは次のときだけで、それ以外は 400 で TX ごと巻き戻る
+    - 台帳の行が ready で、まだ紐付いていない
+    - 用途と ref が一致する
+    - 保存者がアップロードした本人である
+  - 外れた ref は deleted（reason `replaced`）にし、実物は commit 後に消す
+  - メディア列に触れない update は、台帳を連動させない
+- **旧 URL（http(s)）**
+  - update で前と同じ値のときだけ保持できる。新しい値と、create での保存は 400
+  - import や複製では、`storageObjectService.copy` / `putFromServer` で新しい ref にする
+  - 置換で外れた旧 URL の実物は消さない
+- **物理削除**
+  - 対象は `hardDelete` と、soft delete を使わない表の `remove` / `bulkDeleteByIds` / `bulkDeleteByQuery`
+  - 削除する行を `FOR UPDATE` で読み、同じ TX で ref を deleted（reason `record_removed`）にする
+  - 自分の旧バケットの旧 URL は、commit 後に実物ごと消す
+  - `storageBindingFor(..., { onHardDelete: "keep" })` にすると何もしない（ユーザーの物理削除など）
+- **soft delete・restore**: 何もしない。紐付けを残すので、restore で戻せる
+- **duplicate**
+  - TX の外で先に、メディア列を copy で新しい ref にする。所有者は実行者になる
+  - そのあと新しい行を create し、そこで紐付ける
+  - 1 件でも複製に失敗したら、複製全体を失敗にする（元行はそのまま）
+- **bulkUpdateByIds / bulkUpdateByQuery / bulkUpdate / bulkUpsert**: メディア列を変える呼び出しは DomainError 400（行ごとの差分計算は初版の範囲外）。行ごとに update を使う
+- **TX と後片付け**
+  - 呼び出し元が tx を渡さなければ、内部で TX を張る。commit 後に `afterCommit` で実物を消す（ベストエフォート）
+  - tx を渡された場合は、外側の TX がまだ commit されていないので消さない
+  - どちらの場合も、消し残しは台帳に deleted・`object_removed_at` null として残り、掃除 cron が片付ける
+- **actor**: routeFactory が敷く AuditContext の actorId。`runAsSystem` の中では null（所有者 null のサーバー内の書き込みだけが紐付く）
 
 ## Storage 連携クリーンアップ
 

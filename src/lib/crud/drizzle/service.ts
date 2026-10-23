@@ -34,7 +34,7 @@ import {
   normalizeSearchRankSpec,
   composeSearchOrderBy,
 } from "./query";
-import { applyInsertDefaults, buildColumnToPropertyMap, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
+import { applyInsertDefaults, buildColumnToPropertyMap, buildDuplicateData, coerceEmptyArraysToNull, isBulkValueEqual, normalizeRecordKeys, resolveConflictTarget } from "./utils";
 import type { AuditConfig, BulkAuditMode, DrizzleCrudServiceOptions, DbTransaction, DbExecutor, ExtraWhereOption, ExtraOrderByOption } from "./types";
 import {
   assignLocalRelationValues,
@@ -46,6 +46,7 @@ import {
 import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateHasMany, DEFAULT_HAS_MANY_LIMIT, hydrateCount } from "./relations";
 import { applyRequestMemo } from "./requestMemo";
 import { applyHiddenColumns } from "./hiddenColumns";
+import { applyStorageBinding } from "../storageIntegration/applyStorageBinding";
 
 const resolveRecordId = (value: unknown): string | number | undefined => {
   if (typeof value === "string" || typeof value === "number") {
@@ -2202,19 +2203,7 @@ export function createCrudService<
         throw new Error(`Record not found: ${id}`);
       }
 
-      const {
-        id: _id,
-        createdAt: _createdAt,
-        updatedAt: _updatedAt,
-        deletedAt: _deletedAt,
-        ...rest
-      } = record as Select & { id: unknown; createdAt?: unknown; updatedAt?: unknown; deletedAt?: unknown };
-
-      const newData = rest as Record<string, unknown>;
-      if (typeof newData.name === "string") {
-        newData.name = options?.name ?? `${newData.name}_コピー`;
-      }
-
+      const newData = buildDuplicateData(record as Record<string, unknown>, options);
       return this.create(newData as unknown as Insert, tx);
     },
 
@@ -2499,5 +2488,14 @@ export function createCrudService<
   // 無効時も invalidateRequestMemo (no-op) を公開し、サービスの形を一定に保つ。
   // hiddenColumns: テーブルに defineHiddenColumns() の宣言があれば、最外層で
   // 全メソッドの戻り値から秘匿カラムを null 化する（audit / memo は生値で動作済み）。
-  return applyHiddenColumns(applyRequestMemo(service, serviceOptions.requestMemo === true), table);
+  // storage: ファイル台帳との連動。指定したサービスだけ書き込み系メソッドを包む（未指定なら service そのまま）。
+  const withStorage = serviceOptions.storage
+    ? applyStorageBinding(service, {
+        table,
+        binding: serviceOptions.storage,
+        useSoftDelete: Boolean(deletedAtColumn),
+        conflictTarget: (upsertOptions) => resolveConflictTarget(table, serviceOptions, upsertOptions),
+      })
+    : service;
+  return applyHiddenColumns(applyRequestMemo(withStorage, serviceOptions.requestMemo === true), table);
 }

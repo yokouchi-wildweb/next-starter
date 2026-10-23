@@ -12,6 +12,8 @@ import type {
 } from "@/lib/crud/types";
 import type { db } from "@/lib/drizzle";
 
+import type { CrudStorageBinding } from "../storageIntegration/types";
+
 /**
  * Drizzle トランザクション型。
  * db.transaction() のコールバック引数から推論。
@@ -154,6 +156,14 @@ export type DrizzleCrudServiceOptions<TData extends Record<string, any>> = Creat
    * 通常は drizzleBase が `extractStorageFields(conf)` の結果を渡す。
    */
   storageCleanupFields?: string[];
+  /**
+   * ファイル台帳との連動（storage:// の ref を持つメディア列）。features/core/storageObject の
+   * storageBindingFor(...) を渡す。指定すると、create / update / upsert / 物理削除 / duplicate で
+   * 業務行の書き込みと同じ TX の中で台帳に紐付け・解除し、bulkUpdate* / bulkUpsert でメディア列を
+   * 変える呼び出しを拒否する。指定しないサービスの挙動は変わらない。
+   * 旧 storageCleanupFields とは別の経路（N2 で置き換わる）。詳細: src/lib/crud/README.md「storage オプション」
+   */
+  storage?: CrudStorageBinding;
   /**
    * systemUpdate / systemBulkUpdateByQuery（特権書き込み）で書き込みを許可する
    * カラムの宣言（fail-closed allowlist）。

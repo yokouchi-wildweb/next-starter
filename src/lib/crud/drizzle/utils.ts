@@ -1,7 +1,7 @@
 // src/lib/crud/drizzle/utils.ts
 
 import { omitUndefined } from "@/utils/object";
-import type { CreateCrudServiceOptions, UpsertOptions } from "@/lib/crud/types";
+import type { CreateCrudServiceOptions, DuplicateOptions, UpsertOptions } from "@/lib/crud/types";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
 
@@ -147,4 +147,19 @@ export function isBulkValueEqual(a: unknown, b: unknown): boolean {
     return JSON.stringify(a) === JSON.stringify(b);
   }
   return false;
+}
+
+/**
+ * duplicate の新しい行の値を作る（id・作成日時・更新日時・削除日時を外し、name に「_コピー」を付ける）。
+ */
+export function buildDuplicateData(
+  record: Record<string, unknown>,
+  options?: DuplicateOptions,
+): Record<string, unknown> {
+  const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, deletedAt: _deletedAt, ...rest } = record;
+  const newData = rest as Record<string, unknown>;
+  if (typeof newData.name === "string") {
+    newData.name = options?.name ?? `${newData.name}_コピー`;
+  }
+  return newData;
 }
