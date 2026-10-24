@@ -111,6 +111,22 @@ export const featureGateRules: FeatureGateRule[] = [
     pathPatterns: ["/mypage/invite", "/api/referral", "/api/admin/referral"],
     enabled: APP_FEATURES.marketing.referral.enabled,
   },
+  // 休会（画面と API。休会中ユーザーの復帰 /reactivate・/api/auth/reactivate は塞がない:
+  // 後から無効にしても既に休会中のユーザーが戻れるように。/reactivate 画面は loader 側で判定する）
+  {
+    pathPatterns: ["/mypage/pause", "/api/auth/pause"],
+    enabled: APP_FEATURES.user.pauseEnabled,
+  },
+  // 退会（画面と API）
+  {
+    pathPatterns: ["/mypage/withdraw", "/api/auth/withdraw"],
+    enabled: APP_FEATURES.user.withdrawEnabled,
+  },
+  // その他の操作（休会・退会の入口。どちらも無効なら中身が無い）
+  {
+    pathPatterns: ["/mypage/other"],
+    enabled: APP_FEATURES.user.pauseEnabled || APP_FEATURES.user.withdrawEnabled,
+  },
   // ユーザータグ
   {
     pathPatterns: ["/admin/user-tags", "/api/userTag"],

@@ -45,14 +45,17 @@ export function MainMenu() {
           onClick={handleLogout}
           disabled={isLoggingOut}
         />
-        <RichMenuCard
-          icon={EllipsisIcon}
-          title="その他の操作"
-          description="アカウントに関するその他の操作"
-          href="/mypage/other"
-          variant="muted"
-          showChevron
-        />
+        {/* 中身(休会・退会)がどちらも無効なら入口も出さない(/mypage/other は featureGate で 404) */}
+        {(APP_FEATURES.user.pauseEnabled || APP_FEATURES.user.withdrawEnabled) && (
+          <RichMenuCard
+            icon={EllipsisIcon}
+            title="その他の操作"
+            description="アカウントに関するその他の操作"
+            href="/mypage/other"
+            variant="muted"
+            showChevron
+          />
+        )}
       </Stack>
     </Section>
   );
