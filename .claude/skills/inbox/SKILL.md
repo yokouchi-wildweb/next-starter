@@ -4,22 +4,21 @@ description: 自リポ宛てに届いた単発の指令(/order・/upreq。自分
 argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 ---
 
-あなたは今、自リポ宛てに届いた **ORDER**（`/order`・`/upreq` で起票された単発の指令。旧形式の `# UPSTREAM REQUEST` も同じ扱い）と評議会の束を捌きます。誰から来たかは指令書の `from:` で分かる（リポ = origin URL、評議会 = `council <議題id>`、自リポ = 自分宛ての予約）。どの指令も、自リポの役目に照らして受理するかを考えてから動く。
+あなたは今、自リポ宛てに届いた **ORDER**（`/order`・`/upreq` で起票された単発の指令。見出しが `# UPSTREAM REQUEST` の古い指令書も同じ扱い）と評議会の束を捌きます。誰から来たかは指令書の `from:` で分かる（リポ = origin URL、評議会 = `council <議題id>`、自リポ = 自分宛ての予約）。どの指令も、自リポの役目に照らして受理するかを考えてから動く。
 
-メールボックス: `~/.team/upstream-requests/`（共有フォルダ。git 管理外。構成の説明は `.claude/skills/order/SKILL.md`）
-- **自リポの受信箱** = `~/.team/upstream-requests/<自リポの repo-id>/`。場所と中身は `node .claude/skills/order/mailbox.mjs inbox`（リポのルートで実行）で取得する。他のリポの受信箱は読まない
+メールボックス: `~/.team/orders/`（共有フォルダ。実際の場所は `mailbox.mjs self` の `root:`。git 管理外。構成の説明は `.claude/skills/order/SKILL.md`）
+- **自リポの受信箱** = `<置き場>/<自リポの repo-id>/`。場所と中身は `node .claude/skills/order/mailbox.mjs inbox`（リポのルートで実行）で取得する。他のリポの受信箱は読まない
 - 未対応 = 受信箱直下の `*.md` | 対応済み = 受信箱の `done/` に移動
-- **旧形式**（`~/.team/upstream-requests/` 直下の `*.md`、`to:` 欄なし）= 受信箱がリポごとになる前の依頼で、最上流宛て。mailbox.mjs は自リポが最上流（`upstream` リモートが無い）のときだけ `open(legacy)` として出す。扱いは受信箱の依頼と同じで、完了時は自リポの受信箱の `done/` へ移す
 - 未対応のうち `waiting_on:` 行がある指令 = 自リポが別のリポに依頼して結果を待っているもの（下記「中継」の依頼して待つ）。mailbox.mjs は待ちの先が開いていれば `waiting`、すべて対応済みなら `resumable` と出す
 - 指令の `to:` が自リポでない（宛先違いで入った）ときは、着手せず下記「中継 / 差し戻す / 取り下げる」に従う
-- **評議会の束** = `~/.team/upstream-requests/` 直下の `edict-*/`・`legate-*/` のうち、`00-index.md` の `project:` が自リポのパスのもの（mailbox.mjs が `council <path>` として出す。`project:` の無い古い束は最上流宛て）
+- **評議会の束** = 置き場の直下の `edict-*/`・`legate-*/` のうち、`00-index.md` の `project:` が自リポのパスのもの（mailbox.mjs が `council <path>` として出す。`project:` の無い古い束は最上流宛て）
 - **評議会の発行束（edict）** = 直下の `edict-<議題id>.<k>/` フォルダ。評議会が報告書から発行した修正チケットの束で、`00-index.md`（目次: 各チケットの依存と状態）・`report.snapshot.md`（元の報告書）・`NN-<slug>.md`（チケット本体）を持つ。束の中は連続した一連の作業なので、**依存（`depends:`）の解けた順に1件ずつ**対応する。完了した束は `done/edict-<議題id>.<k>/` に移る。
 - **評議会の特使（legate）** = 直下の `legate-<議題id>.<k>/` フォルダ。評議会が**指令を1件ずつ**出し、その実行者が対応した後、評議会が議長タブの `check` で検証してから次の指令を出す往復型。指令はそれぞれ `executor:`（実行者。省略 = inbox）・`where:`・`output:`（push | commit | none。省略 = push）・`done_when:` を宣言する。`00-index.md`（目次: state / mission / outlook / 指令ごとの状態と評議会の判定）・`report.snapshot.md`・`NN-<slug>.md`（指令本体）を持つ。このセッションが対応できるのは、**`## ORDERS` の `status:open` の行のうち `exec:` が inbox を含むもの（`exec:` の無い古い行は inbox 扱い）**だけ。human / research / watch の指令は評議会側で結果を記録する。`exec:envoy` の指令は評議会の実装役タブ（Envoy）が議長の合図で処理するので、このセッションでは着手しない（/inbox の legate モードは、Envoy を置かない legate — fork や外部が作業場所、人が自分のセッションで進めたい場合 — のための手段）。指令の実行手順の正本は `~/.team/_bin/council.d/execution.md`（Envoy と共通）で、下の手順と食い違ったら execution.md に従う。指令ファイルは対応後も同じフォルダに残し、フォルダの移動は評議会が行う。
 
 対象指定: $ARGUMENTS
 
 ## $ARGUMENTS が空のとき（一覧モード）
-1. `node .claude/skills/order/mailbox.mjs inbox` で、自リポ宛ての未対応（`open` / `open(legacy)` / `waiting` / `resumable`）と評議会の束（`council`）を取得する。
+1. `node .claude/skills/order/mailbox.mjs inbox` で、自リポ宛ての未対応（`open` / `waiting` / `resumable`）と評議会の束（`council`）を取得する。
 2. 指令は出力の `need:`・`from:` を使い、**1行サマリ（id / need / from）**を日本語で一覧表示（from が自リポなら「自分宛て」と書く）。`waiting` は「待ち（<待っている先>）」、`resumable` は「再開可」と添える。発行束は各 `00-index.md` を読み、**束ごとに1行**（束名 / `summary:` / 完了数/件数 / 次に着手できるチケット番号）で、通常の依頼とは分けて表示する。`state:` が `drafting`（評議会が起草中）・`abandoned` の束は一覧から外す。
    - 次に着手できるチケット = `## TICKETS` の行のうち `status:open` で、`depends:` の番号がすべて `done`（または `withdrawn`）のもの。上から最初の1件。
    - 特使は各 `00-index.md` を読み、**特使ごとに1行**（フォルダ名 / `mission:` / 状態）で、さらに分けて表示する。状態 = `status:open` で `exec:` が inbox を含む（または `exec:` 無し）行がある → 「指令 NN 対応可」、`status:open` が inbox 以外だけ → 「<executor> の指令 NN 進行中（評議会側）」、`status:done` で `check:-` → 「評議会の検証待ち（議長タブで check）」、それ以外・`state: halted` → 「評議会の次の指令待ち」。`state:` が `drafting` の特使は外す。
@@ -54,7 +53,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 4. ユーザーが「対応完了」と言ったら（**完了報告とコミット&プッシュは必ずセットで実行する**。「対応完了」がコミット/プッシュへの明示的な指示を兼ねる。**以下 a〜d は途中でユーザーへの確認・質問・AskUserQuestion を一切挟まず連続実行する** — 「対応完了」が唯一かつ十分な承認であり、追加の承認待ちは禁止）:
    a. **実装差分を自リポにコミット & プッシュ**する（RESOLUTION を出す前に実体を確定させ、commit sha を正確にするため）:
       - `git status --short` で実装差分を確認する。
-      - 未コミットの実装差分があればステージしてコミットする。メールボックス(`~/.team/upstream-requests/`)は git 管理外なので対象外。コミット対象は自リポ本体の実装のみ。確認・調査だけで差分の無い指令は commit を作らず、RESOLUTION を `commit:- | pushed:-` にする。
+      - 未コミットの実装差分があればステージしてコミットする。メールボックスは git 管理外なので対象外。コミット対象は自リポ本体の実装のみ。確認・調査だけで差分の無い指令は commit を作らず、RESOLUTION を `commit:- | pushed:-` にする。
         - コミットメッセージ: 1行サマリ（実装内容を反映） + 空行 + `order: <id>`（指令の id を必ず含める）。
         - 末尾に環境指定の Co-Authored-By トレーラーを付ける。
         - ブランチ運用はチーム/通常フローに従う（既にフィーチャーブランチ上ならそのまま。チームセッションなら orchestrator のブランチ方針に従う）。
@@ -86,10 +85,10 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
       verify: <指令の done_when をどう満たしたか: 実行したコマンド/テストとその結果。確かめていないことは「未確認」と書く>
       ```
    c. 処理済みへ移動:
-      `mkdir -p <自リポの受信箱>/done` → `mv <該当ファイル> <自リポの受信箱>/done/`（旧形式の依頼も自リポの受信箱の `done/` へ）
+      `mkdir -p <自リポの受信箱>/done` → `mv <該当ファイル> <自リポの受信箱>/done/`
       **発行束のチケットのときは代わりに**（評議会が再開時にこの目次で進捗を知るので、必ず行う）:
       1. `00-index.md` の該当行の `status:open` を `status:done sha:<a の short sha>` に書き換え、`## LOG` に `- <ISO8601> NN done by /inbox commit:<sha>` を1行追記する。
-      2. `mkdir -p ~/.team/upstream-requests/done/<束名>` → `mv <チケット> ~/.team/upstream-requests/done/<束名>/`（評議会の束は受信箱ではなく直下の `done/` が置き場）
+      2. `mkdir -p <置き場>/done/<束名>` → `mv <チケット> <置き場>/done/<束名>/`（評議会の束は受信箱ではなく直下の `done/` が置き場）
       3. 目次に `status:open` の行が残っていなければ、束の残り（`00-index.md`・`report.snapshot.md`・withdrawn のチケット）も `done/<束名>/` に移し、空になったフォルダを `rmdir` する。
       **特使の指令のときは代わりに**（評議会の `check` がこの目次で完了を知るので、必ず行う）: `00-index.md` の該当行の `status:open` を `status:done sha:<a の short sha | ->` に書き換え（`check:-` はそのまま。`exec:` が `human+inbox` のような組み合わせなら、自分の分を RESOLUTION に書くだけで行は open のまま残し、評議会が他の分を記録してから done にする）、`## LOG` に `- <ISO8601> NN done by /inbox commit:<sha>` を1行追記する。**指令ファイルもフォルダも移動しない**（評議会が読む。完了時の移動は評議会が行う）。
    d. 日本語で報告（**冒頭に downstream 取り込み判定（実測）を 1 行**: 見込みと同じ書式で、実際の差分から判定し直す。見込みから変わったら理由を添える）: コミット sha / プッシュ先ブランチ / RESOLUTION 追記済み・done/ 移動済みであることを伝える。push できなかった場合はその旨も明示する。発行束のときは、束の進み具合（完了数/件数）と次に着手できるチケットも伝える。特使のときは findings の要点、`output: commit` なら保留中のブランチ名（push していないこと）と、「評議会の議長タブで `check` と打つと検証と次の指令が出ます（議長タブを閉じていれば別ターミナルで `council <議題id>` を実行して再開し、`check`）」と伝え、次の指令を自分で先取りしない。

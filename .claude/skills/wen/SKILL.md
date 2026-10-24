@@ -10,13 +10,13 @@ argument-hint: "[指令の id / ファイルパス(省略でこのセッショ�
 
 ## 対象を決める
 - 引数が空: この会話の中で `/order`・`/upreq` が書き出した指令のパス(起票の報告に書いたフルパス)をすべて拾う。1 件も無ければ「このセッションで起票した指令はありません(別のセッションで出したものは `/wen <id か パス>` で確かめられます)」の一行で終える
-- 引数あり: その id かパスの 1 件。id だけなら `~/.team/upstream-requests/*/` と `*/done/` から `<id>.md` を探す
+- 引数あり: その id かパスの 1 件。id だけなら置き場(`node .claude/skills/order/mailbox.mjs self` の `root:`)の `*/` と `*/done/` から `<id>.md` を探す
 
 ## 状態の確かめ方(1 件ごと)
 - 起票したパスにファイルがある → **未対応**(まだ…)。宛先と need を 1 行で示す
 - 起票したパスの隣の `done/<同じ名前>` にある → **対応済み**。本文を Read して RESOLUTION を示す:
   - `status: done`: implemented / consume / notes を要約する。`pushed: no` なら「宛先がまだ push していない」と添える
-  - `status: relayed`: 宛先が別のリポへ引き渡した。`relayed_to:` の先(`~/.team/upstream-requests/<relayed_to>`)を同じ方法で確かめ、その状況を合わせて示す
+  - `status: relayed`: 宛先が別のリポへ引き渡した。`relayed_to:` の先(`<置き場>/<relayed_to>`)を同じ方法で確かめ、その状況を合わせて示す
   - `status: rejected`: 差し戻し。`notes:` の理由と、自リポでどう持つかを示す
   - `status: withdrawn`: 取り下げ(自分宛ての予定が不要になった)。`notes:` の理由を示す
 - どちらにも無い → 「見つからない(手で移動・削除された可能性)」と伝える

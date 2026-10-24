@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 // 指令メールボックスの補助スクリプト（/order・/upreq・/inbox 共通）
-// 置き場: $TEAM_UPSTREAM_REQUESTS（既定 ~/.team/upstream-requests）
+// 置き場: $TEAM_ORDERS（既定 ~/.team/orders）
 //   <root>/<repo-id>/*.md      = そのリポ宛ての未対応の指令
 //   <root>/<repo-id>/done/*.md = 対応済み
-//   <root>/*.md, <root>/done/*.md = 旧形式（宛先欄なし = 最上流宛て）。移し替えまでの互換
 //   <root>/edict-*/, <root>/legate-*/ = council の束（00-index.md の project: で宛先を判定）
 // 使い方:
 //   node mailbox.mjs self    自リポの repo-id と受信箱
@@ -14,7 +13,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
-const ROOT = process.env.TEAM_UPSTREAM_REQUESTS || join(homedir(), ".team", "upstream-requests");
+const ROOT = process.env.TEAM_ORDERS || join(homedir(), ".team", "orders");
 
 function git(cwd, args) {
   try {
@@ -136,10 +135,10 @@ function orderState(path) {
   return { state: "missing", path: cur };
 }
 
-function printOrder(path, legacy) {
+function printOrder(path) {
   const text = readFileSync(path, "utf8");
   const waits = fields(text, "waiting_on").map(orderState);
-  let state = legacy ? "open(legacy)" : "open";
+  let state = "open";
   if (waits.length) state = waits.every((w) => w.state === "done") ? "resumable" : "waiting";
   console.log(`${state} ${path}\n  from: ${field(text, "from").split(" | ")[0]}\n  need: ${field(text, "need")}`);
   for (const w of waits) console.log(`  waiting_on: ${w.state} ${w.path}`);
@@ -161,9 +160,7 @@ if (cmd === "self") {
   }
 } else if (cmd === "inbox") {
   console.log(`box: ${boxOf(self.repoId)}`);
-  for (const p of mdFiles(boxOf(self.repoId))) printOrder(p, false);
-  // 旧形式の直下の依頼は最上流（upstream リモートが無いリポ）宛て
-  if (!self.upstream) for (const p of mdFiles(ROOT)) printOrder(p, true);
+  for (const p of mdFiles(boxOf(self.repoId))) printOrder(p);
   for (const d of councilDirs(self)) console.log(`council ${d}`);
 } else {
   console.error("usage: node mailbox.mjs self | repos | inbox");
