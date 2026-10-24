@@ -38,7 +38,7 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。ここ
   - **① ハンクの重なり**: 上流が P→Q で変えた行範囲と、作業ツリーが Q と食い違う行範囲が、同じファイルで重なるか接している。接触も数えるのは git の 3-way merge が衝突とみなす基準と揃えるため。上流が追加・削除したファイル、バイナリはファイル全体を範囲とみなす。同じファイルでも離れた場所にある fork 独自の追加(package.json の fork スクリプト、registry の fork エントリ等)は数えない。
   - **② 適用作業での上流変更ファイル外の変更**: `A` から作業ツリー(未追跡を含む)までに変わったファイルのうち、上流が P→Q で変えていないもの(この区間の掃討・改名など)。区間の notice すべてを該当にする(区間は通常 notice 1 件)。
   - **③ required_actions からの逸脱**: この区間で、その notice の required_actions のどれかを実行しなかった、または変えて実行した(手順 7a で台帳 `notes:` に書く逸脱そのもの)。差分の有無を問わない。逸脱が無ければ下流は上流 notice どおりの作業で済むが、逸脱があると下流は上流の手順をそのまま実行してしまうため。`covered by` や push 失敗の記録は逸脱に数えない。
-  - 対象外: `.notices/` と lock ファイル(`pnpm-lock.yaml` 等。package.json から生成される派生物)は ①② で数えない。
+  - 対象外: `.notices/`、lock ファイル(`pnpm-lock.yaml` 等。package.json から生成される派生物)、fork ごとの規約ファイル(`.claude/rules/project.md`・`behavior.md`。各 fork が自分の版を持ち、下流へは届かない)は ①② で数えない。印付きファイル(`shortcuts.md`・`term-aliases.md`)は印より上を上流と共有するので数える。
 - **中継 notice の下書き**(区間内に中継が必要な notice が 1 件以上): 区間につき 1 件、`.notices/<ts>-relay-<slug>.md` に書き出す。合成規則は `.claude/skills/downreq/SKILL.md`「relay モード」の手順 3〜4(`covers:` = この区間で中継が必要な id と、その covered id)。加えて `notes:` に判定の根拠をそのまま載せる: ① はスクリプトの `overlap:` 行(ファイルと行範囲)、② は `outside:` 行、③ は台帳 `notes:` に書く逸脱。下書きはこの区間の適用コミットに含める(中継 notice の追加 commit = 台帳記録 commit になり、下流の区切り点が一致する)。
 - **台帳**: 手順 7a で各 id の行に `relay:none` か `relay:<中継 notice id>` を書く。
 - **報告**: 判定した notice ごとに 1 行「<id>: 中継不要」/「<id>: 中継 notice <中継 id> を作成(根拠: ①<files> / ②<files> / ③逸脱)」。作成した中継 notice は「中身は判定根拠・台帳 notes から組み立てた下書き。下流へ出す前に確認・編集してよい」と添える。

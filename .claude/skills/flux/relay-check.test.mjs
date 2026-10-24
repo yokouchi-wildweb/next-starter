@@ -165,6 +165,31 @@ test("lock ファイルと .notices/ だけの差分 → 中継不要", () => {
   }
 });
 
+test("fork ごとの規約ファイルだけが重なる → 中継不要、印付きファイルの重なりは数える", () => {
+  const r = setupRepo();
+  try {
+    r.write(".claude/rules/project.md", lines(30));
+    r.write(".claude/rules/behavior.md", lines(10));
+    r.write(".claude/rules/shortcuts.md", lines(10));
+    const p = r.commit("P");
+    r.edit(".claude/rules/project.md", replaceLine(22, "upstream tier1 line"));
+    r.edit(".claude/rules/behavior.md", replaceLine(3, "upstream rule"));
+    const q = r.commit("Q");
+    r.edit(".claude/rules/project.md", replaceLine(22, "fork tier2 line"));
+    const a = r.commit("A (fork keeps its own project.md)");
+    r.edit(".claude/rules/behavior.md", replaceLine(3, "fork rule while applying"));
+    const result = relayCheck({ cwd: r.dir, p, q, appliedFrom: a });
+    assert.equal(result.needed, false);
+    assert.deepEqual(result.overlaps, []);
+    assert.deepEqual(result.outside, []);
+
+    r.edit(".claude/rules/shortcuts.md", replaceLine(2, "fork shortcut"));
+    assert.deepEqual(relayCheck({ cwd: r.dir, p, q, appliedFrom: a }).outside, [".claude/rules/shortcuts.md"]);
+  } finally {
+    r.cleanup();
+  }
+});
+
 test("上流が削除したファイルを fork が残している → 中継が必要(①、ファイル全体)", () => {
   const r = setupRepo();
   try {
