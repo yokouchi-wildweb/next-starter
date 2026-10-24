@@ -5,18 +5,21 @@
 // - create / update / upsert: 書いた直後に afterWrite（update / upsert は書く前の行を FOR UPDATE で読む）
 // - 物理削除（hardDelete と、soft delete を使わない表の remove / bulkDeleteByIds / bulkDeleteByQuery）: afterHardDelete
 // - soft delete・restore: 何もしない（restore で戻せるように紐付けを残す）
+// - replaceByQuery: 対象の旧行を FOR UPDATE で読み、置き換えた直後に afterReplace（旧行全体と新しい行全体の差分）。
+//   afterReplace の無い binding では DomainError（台帳を通らない置き換えをさせない）
 // - duplicate: TX の外で先に duplicateValues（複製）→ 新しい行の create（そこで紐付け）
 // - bulkUpdate* / bulkUpsert: メディア列を変える呼び出しは DomainError（行ごとの差分計算は初版の範囲外）
 // - storageFields: binding の列の宣言をそのまま読み取り専用で出す（dataMigration がメディア列を知る正本）
+// - storageCascadeForeignKeys: 親の削除で DB が行を消す FK（onDelete cascade）。binding を通らないので空であるべき
 // - 呼び出し元が tx を渡さなければ内部で TX を張り、commit 後に afterCommit で実物を片付ける。
 //   tx を渡された場合は外側の TX がまだ commit されていないので片付けず、掃除 cron に任せる
 
 import { eq, getTableColumns, inArray, and, type SQL } from "drizzle-orm";
-import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
+import { getTableConfig, type AnyPgColumn, type PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
-import type { DuplicateOptions, UpsertOptions, WhereExpr } from "@/lib/crud/types";
+import type { DuplicateOptions, ReplaceByQueryOptions, UpsertOptions, WhereExpr } from "@/lib/crud/types";
 
 import type { DbTransaction } from "../drizzle/types";
 import { buildWhere } from "../drizzle/query";
@@ -24,6 +27,22 @@ import { buildDuplicateData } from "../drizzle/utils";
 import type { CrudStorageBinding, CrudStorageCleanup, CrudStorageField } from "./types";
 
 type Row = Record<string, unknown>;
+
+type StorageBindingAugmented = {
+  readonly storageFields: readonly CrudStorageField[];
+  readonly storageCascadeForeignKeys: readonly string[];
+};
+
+/** この表から親へ向かう FK のうち onDelete cascade のもの（`<列名> → <参照先の表>`） */
+function cascadeForeignKeysOf(table: PgTable): string[] {
+  return getTableConfig(table)
+    .foreignKeys.filter((foreignKey) => foreignKey.onDelete === "cascade")
+    .map((foreignKey) => {
+      const reference = foreignKey.reference();
+      const columns = reference.columns.map((column) => column.name).join(", ");
+      return `${columns} → ${getTableConfig(reference.foreignTable).name}`;
+    });
+}
 
 type ApplyStorageBindingContext = {
   table: PgTable & { id: AnyPgColumn };
@@ -46,6 +65,7 @@ type StorageAwareService = {
   bulkUpdateByQuery(where: WhereExpr, data: any, tx?: DbTransaction): Promise<any>;
   bulkUpdate(records: { id: string; data: any }[], tx?: DbTransaction): Promise<any>;
   bulkUpsert(records: any[], options?: any, tx?: DbTransaction): Promise<any>;
+  replaceByQuery(where: WhereExpr, records: any[], replaceOptions?: ReplaceByQueryOptions, tx?: DbTransaction): Promise<any[]>;
   duplicate(id: string, options?: DuplicateOptions, tx?: DbTransaction): Promise<any>;
   get(id: string): Promise<any>;
 };
@@ -53,7 +73,7 @@ type StorageAwareService = {
 export function applyStorageBinding<TService extends StorageAwareService>(
   service: TService,
   context: ApplyStorageBindingContext,
-): TService & { readonly storageFields: readonly CrudStorageField[] } {
+): TService & StorageBindingAugmented {
   const { table, binding, useSoftDelete } = context;
   const idColumn = table.id;
   const fieldNames = binding.fields.map((field) => field.name);
@@ -121,10 +141,14 @@ export function applyStorageBinding<TService extends StorageAwareService>(
       return { result: undefined, cleanups: [cleanup] };
     });
 
-  const wrapped: TService & { readonly storageFields: readonly CrudStorageField[] } = {
+  const wrapped: TService & StorageBindingAugmented = {
     ...service,
 
     storageFields: binding.fields,
+
+    get storageCascadeForeignKeys() {
+      return binding.onHardDelete === "keep" ? [] : cascadeForeignKeysOf(table);
+    },
 
     async create(data, tx) {
       return runInTx(tx, async (executor) => {
@@ -191,6 +215,28 @@ export function applyStorageBinding<TService extends StorageAwareService>(
     async bulkUpsert(records, options, tx) {
       if (records.some((record) => touchesStorage(record))) rejectBulkWrite("bulkUpsert");
       return service.bulkUpsert(records, options, tx);
+    },
+
+    async replaceByQuery(where, records, replaceOptions, tx) {
+      const { afterReplace } = binding;
+      if (!afterReplace) {
+        throw new DomainError(
+          `replaceByQuery はファイルの列（${fieldNames.join(", ")}）を持つ表では使えません（binding が afterReplace に対応していません）`,
+          { status: 400 },
+        );
+      }
+      // where 無しは本体が throw する。論理削除の表で records がメディア列に触れなければ、台帳は何も変わらない
+      if (!where || (useSoftDelete && !records.some((record) => touchesStorage(record)))) {
+        return service.replaceByQuery(where, records, replaceOptions, tx);
+      }
+      return runInTx(tx, async (executor) => {
+        const before = await lockRows(executor, buildWhere(table, where));
+        const inserted = await service.replaceByQuery(where, records, replaceOptions, executor);
+        const cleanup = await afterReplace.call(binding, executor, before, inserted as Row[], {
+          softDeleted: useSoftDelete,
+        });
+        return { result: inserted, cleanups: [cleanup] };
+      });
     },
 
     async duplicate(id, options, tx) {

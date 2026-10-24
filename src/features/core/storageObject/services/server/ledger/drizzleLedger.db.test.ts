@@ -118,6 +118,21 @@ describe("drizzleLedger（実 DB）", { skip }, () => {
     const results = await Promise.all([ledger.attach(attachInput), ledger.attach(attachInput)]);
     assert.equal(results.filter(Boolean).length, 1, "並行の二重採用は 1 件だけ");
 
+    const rebindInput = {
+      id: row.id,
+      purpose: PURPOSE,
+      recordType: "test_record",
+      fromRecordId: "r-1",
+      toRecordId: "r-2",
+      recordField: "file",
+    };
+    assert.equal(await ledger.rebind({ ...rebindInput, fromRecordId: "r-x" }), false, "いまの紐付け先が違えば付け替えない");
+    assert.equal(await ledger.rebind({ ...rebindInput, recordType: "other" }), false, "種類が違えば付け替えない");
+    assert.equal(await ledger.rebind(rebindInput), true);
+    assert.equal((await ledger.findById(row.id))?.recordId, "r-2");
+    assert.equal(await ledger.rebind(rebindInput), false, "付け替えた後は元の行からは動かせない");
+    await ledger.rebind({ ...rebindInput, fromRecordId: "r-2", toRecordId: "r-1" });
+
     const detached = await ledger.detach({
       ids: [row.id],
       recordType: "test_record",

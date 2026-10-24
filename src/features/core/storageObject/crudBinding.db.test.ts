@@ -234,6 +234,58 @@ describe("storage オプション（実 DB の TX）", { skip }, () => {
     assert.equal(await countItems(), before + 1, "失敗した複製の行は残らない（元行だけ）");
   });
 
+  test("replaceByQuery は同じ TX で、残る ref の付け替え・新しい ref の紐付け・消えた ref の record_removed を行う", async () => {
+    const scope = { field: "name", op: "eq", value: `replace-${randomUUID()}` } as const;
+    const kept = await readyRef(ALICE);
+    const moved = await readyRef(ALICE);
+    const removed = await readyRef(ALICE, "testItem.gallery");
+    const r1 = await runAs(ALICE, () => hard.create({ name: scope.value, photo: kept }));
+    await runAs(ALICE, () => hard.create({ name: scope.value, photo: moved, gallery: [removed] }));
+
+    const added = await readyRef(ALICE);
+    const inserted = await runAs(ALICE, () =>
+      hard.replaceByQuery(scope, [{ id: r1.id, photo: kept }, { id: randomUUID(), photo: moved }, { id: randomUUID(), photo: added }]),
+    );
+    assert.equal(inserted.length, 3);
+    assert.equal((await ledgerRow(kept))?.recordId, r1.id);
+    assert.equal((await ledgerRow(moved))?.recordId, inserted[1].id);
+    assert.equal((await ledgerRow(moved))?.status, "ready");
+    assert.equal((await ledgerRow(added))?.recordId, inserted[2].id);
+    const gone = await ledgerRow(removed);
+    assert.equal(gone?.reason, "record_removed");
+    assert.equal(fake.objects.has(`pub-bucket/${gone?.key}`), false, "commit 後に実物を消す");
+
+    // 紐付けに失敗すると、削除も挿入も台帳も元のまま
+    const others = await readyRef(BOB);
+    await assert.rejects(
+      runAs(ALICE, () => hard.replaceByQuery(scope, [{ id: randomUUID(), photo: moved }, { id: randomUUID(), photo: others }])),
+      (e) => status(e) === 400,
+    );
+    assert.equal((await ledgerRow(moved))?.recordId, inserted[1].id);
+    assert.equal((await hard.get(inserted[2].id))?.photo, added);
+
+    // 同じ ref を 2 行に入れると 400
+    await assert.rejects(
+      runAs(ALICE, () => hard.replaceByQuery(scope, [{ id: randomUUID(), photo: added }, { id: randomUUID(), photo: added }])),
+      (e) => status(e) === 400,
+    );
+  });
+
+  test("replaceByQuery（soft delete）は旧行の紐付けを残し、旧行の ref を新しい行に入れると 400", async () => {
+    const scope = { field: "name", op: "eq", value: `soft-replace-${randomUUID()}` } as const;
+    const ref = await readyRef(ALICE);
+    const item = await runAs(ALICE, () => soft.create({ name: scope.value, photo: ref }));
+    await assert.rejects(
+      runAs(ALICE, () => soft.replaceByQuery(scope, [{ id: randomUUID(), photo: ref }])),
+      (e) => status(e) === 400,
+    );
+    const added = await readyRef(ALICE);
+    const [inserted] = await runAs(ALICE, () => soft.replaceByQuery(scope, [{ id: randomUUID(), photo: added }]));
+    assert.equal((await ledgerRow(ref))?.recordId, item.id);
+    assert.equal((await ledgerRow(ref))?.status, "ready");
+    assert.equal((await ledgerRow(added))?.recordId, inserted.id);
+  });
+
   test("bulkUpdate* でメディア列を変える呼び出しは 400", async () => {
     const item = await runAs(ALICE, () => hard.create({ name: "bulk" }));
     await assert.rejects(hard.bulkUpdateByIds([item.id], { photo: null }), (e) => status(e) === 400);

@@ -546,6 +546,38 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
       );
     },
 
+    /**
+     * 業務行に紐付いた ref を、同じ種類の別の業務行へ付け替える（replaceByQuery で新しい行に残る ref。業務保存と同じ TX の中で呼ぶ）。
+     * ready・用途と ref の一致・いまの紐付け先 = from のときだけ成功し、それ以外は DomainError 400（TX ごと巻き戻る）。
+     */
+    async rebind(
+      input: {
+        ref: string;
+        purpose: string;
+        scopeId?: string | null;
+        record: { type: string; fromId: string; toId: string; field: string };
+      },
+      tx?: TransactionClient,
+    ): Promise<void> {
+      const parsed = parseStorageRef(input.ref);
+      if (!parsed || parsed.purposeId !== input.purpose) {
+        throw new DomainError("ファイルの参照が不正です", { status: 400 });
+      }
+      const rebound = await ledger.rebind(
+        {
+          id: parsed.ledgerId,
+          purpose: input.purpose,
+          scopeId: input.scopeId,
+          recordType: input.record.type,
+          fromRecordId: input.record.fromId,
+          toRecordId: input.record.toId,
+          recordField: input.record.field,
+        },
+        tx,
+      );
+      if (!rebound) throw new DomainError("このファイルは使用できません", { status: 400 });
+    },
+
     cleanupDeletedObject,
   };
 }

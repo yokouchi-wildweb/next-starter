@@ -24,6 +24,12 @@ export type CrudStorageField = {
  */
 export type StorageFieldsAugmented = {
   readonly storageFields?: readonly CrudStorageField[];
+  /**
+   * この表から親へ向かう FK のうち onDelete cascade のもの（`<列名> → <参照先の表>`）。
+   * 親の削除で DB が行を消すと binding を通らず、台帳の紐付けが残り続ける（実物が漏れる）。
+   * binding が onHardDelete: "keep" なら空（物理削除でも台帳を残す方針のため）。test:storage-purposes が空であることを確かめる
+   */
+  readonly storageCascadeForeignKeys?: readonly string[];
 };
 
 /**
@@ -34,14 +40,39 @@ export type CrudStorageCleanup = unknown;
 
 type Row = Record<string, unknown>;
 
+/** afterReplace に渡す、replaceByQuery の削除フェーズの扱い */
+export type CrudStorageReplaceContext = {
+  /** true = 旧行は論理削除で残る（紐付けを残す。旧行の値を新しい行に入れたら throw） */
+  softDeleted: boolean;
+};
+
 export interface CrudStorageBinding {
   readonly fields: readonly CrudStorageField[];
+  /**
+   * 業務行の物理削除で台帳をどうするか。keep = 何もしない（台帳と実物を残す）。省略 = detach。
+   * DB の FK cascade で行が消えても困らないのは keep だけ（applyStorageBinding の storageCascadeForeignKeys が見る）
+   */
+  readonly onHardDelete?: "detach" | "keep";
   /**
    * create / update / upsert で業務行を書いた直後に、同じ TX の中で呼ぶ。
    * 新しい ref を紐付け（失敗は throw → TX ごと巻き戻る）、外れた ref を deleted にする。
    * @param before 書く前の行（create では null。update / upsert は FOR UPDATE で読んだ行）
    */
   afterWrite(tx: DbTransaction, before: Row | null, after: Row): Promise<CrudStorageCleanup>;
+  /**
+   * replaceByQuery で旧行の削除と新しい行の挿入を済ませた直後に、同じ TX の中で呼ぶ。
+   * ref ごとに旧行全体と新しい行全体を比べ、新しく現れた ref は attach、別の行に残った ref は付け替え、
+   * 消えた ref は detach する（失敗は throw → TX ごと巻き戻る）。
+   * 省略した binding のサービスでは replaceByQuery を DomainError 400 で拒否する（台帳を壊さないため）。
+   * @param before 削除フェーズの対象になった旧行（FOR UPDATE で読んだ行）
+   * @param after 挿入した新しい行
+   */
+  afterReplace?(
+    tx: DbTransaction,
+    before: readonly Row[],
+    after: readonly Row[],
+    context: CrudStorageReplaceContext,
+  ): Promise<CrudStorageCleanup>;
   /** 物理削除の直前に、同じ TX の中で呼ぶ（削除される行を渡す） */
   afterHardDelete(tx: DbTransaction, rows: readonly Row[]): Promise<CrudStorageCleanup>;
   /**

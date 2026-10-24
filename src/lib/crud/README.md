@@ -292,7 +292,7 @@ const inserted = await service.replaceByQuery(
   （NULL は searchForSorting の自動初期化に委ねる）。
 - **削除フェーズ**: `bulkDeleteByQuery` と同じ分岐。`useSoftDelete` テーブルはソフトマーク
   （旧行が残るため、同一 id を records で再送すると PK 衝突する点に注意）、物理削除は
-  制約エラー変換を行う（storage オプションの binding があればメディア列の紐付けも外す）。
+  制約エラー変換を行う。storage オプション付きのサービスでは台帳も連動する（後述「storage オプション」の replaceByQuery）。
 - **belongsToMany 非対応**: records の M2M フィールドに**非空の値**が入っている場合は throw。
   空配列 / 未指定は Zod default（`[]`）由来のケースがあるため黙って無視する（M2M 同期は行わない）。
   リレーション同期が必要な場合は `create()` を個別に使う。
@@ -392,6 +392,16 @@ createCrudService(SampleTable, {
   - TX の外で先に、メディア列を copy で新しい ref にする。所有者は実行者になる
   - そのあと新しい行を create し、そこで紐付ける
   - 1 件でも複製に失敗したら、複製全体を失敗にする（元行はそのまま）
+- **replaceByQuery**
+  - where に合う旧行を `FOR UPDATE` で読み、置き換えた直後に同じ TX の中で `afterReplace` を呼ぶ
+  - 値ごとに、旧行全体と新しい行全体を比べる
+    - 新しい行にだけある値: create と同じ規則で attach（旧 URL・他人の ref などは 400）
+    - 同じ id の行に残る値: 何もしない（records に旧行の id を入れて送れば、紐付けはそのまま）
+    - 別の id の行に移った ref: 台帳の紐付け先を新しい行へ付け替える（`storageObjectService.rebind`）。旧 URL は残すだけ
+    - 旧行にだけある値: 物理削除と同じ扱い（ref は `record_removed`、自分の旧バケットの旧 URL は実物ごと消す。`onHardDelete: "keep"` なら残す）
+  - 同じ値を新しい行の 2 か所に入れたら 400（共有は copy）
+  - soft delete の表: 旧行は値を持ったまま残るので、紐付けも残す。旧行の値を新しい行に入れたら 400（restore で同じファイルを 2 行が指さないため）。records がメディア列に触れなければ台帳は連動させない
+  - `afterReplace` を持たない binding（`storageBindingFor` 以外の自作）では、replaceByQuery を DomainError 400 で拒否する
 - **bulkUpdateByIds / bulkUpdateByQuery / bulkUpdate / bulkUpsert**: メディア列を変える呼び出しは DomainError 400（行ごとの差分計算は初版の範囲外）。行ごとに update を使う
 - **TX と後片付け**
   - 呼び出し元が tx を渡さなければ、内部で TX を張る。commit 後に `afterCommit` で実物を消す（ベストエフォート）
@@ -399,6 +409,11 @@ createCrudService(SampleTable, {
   - どちらの場合も、消し残しは台帳に deleted・`object_removed_at` null として残り、掃除 cron が片付ける
 - **actor**: routeFactory が敷く AuditContext の actorId。`runAsSystem` の中では null（所有者 null のサーバー内の書き込みだけが紐付く）
 - **storageFields**: storage を指定したサービスは、binding の列の宣言（`name` / `purpose` / `multi` / `scope`）を読み取り専用の `service.storageFields` で出す。指定しないサービスでは undefined。どの列がメディア列かを知る正本で、dataMigration の import / export が使う（クライアントの申告は信用しない）
+- **FK cascade（MANDATORY）**: メディア列を持つ表の行を、親の削除に伴う DB の `onDelete: "cascade"` で消さない
+  - DB が消した行は binding を通らないので、台帳の紐付けが残り続け、実物が漏れる
+  - 子の表の FK は `onDelete: "restrict"` にし、親のサービスの削除（remove / hardDelete の wrapper）の中で、同じ tx を渡して子のサービスの削除（`bulkDeleteByQuery` など）を先に呼ぶ
+  - `service.storageCascadeForeignKeys` が、この表から親へ向かう cascade の FK を出す（`onHardDelete: "keep"` なら空）
+  - `pnpm test:storage-purposes` が、serviceRegistry と全ドメインの `services/server/drizzleBase.ts` のサービスについて空であることを確かめる。既存の例外はテスト内の `STORAGE_CASCADE_EXCEPTIONS`（理由付き。増やさない）
 
 ---
 

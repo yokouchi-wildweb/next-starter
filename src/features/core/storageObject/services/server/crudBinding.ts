@@ -14,6 +14,11 @@
 // - 置換で外れた旧 URL の実物は消さない（利用者による旧ファイルの個別削除にあたるため）
 // - 物理削除では ref を detach（reason record_removed）し、旧 URL は自分の旧バケットのものだけを実物ごと消す
 // - duplicate は ref・旧 URL とも copy で新しい ref にする（1 件でも失敗したら throw）
+// - replaceByQuery は旧行全体と新しい行全体を値で比べる。新しい値は create と同じく attach、
+//   別の行に残った ref は付け替え（同じ id の行に残れば何もしない）、消えた値は物理削除と同じ扱い
+//   （ref は detach reason record_removed、自分の旧バケットの旧 URL は実物ごと消す）。
+//   同じ値を新しい行の 2 か所に入れたら 400（共有はコピー）。論理削除の表は旧行が値を持ち続けるので、
+//   旧行の値を新しい行に入れたら 400（restore で同じファイルを 2 行が指さないため）
 // actor は routeFactory が敷く AuditContext の actorId（runAsSystem の中では null）。
 
 import { getAuditContext } from "@/lib/audit";
@@ -67,6 +72,7 @@ export function storageBindingFor(
 
   return {
     fields,
+    onHardDelete,
 
     async afterWrite(tx, before, after): Promise<CrudStorageCleanup> {
       const actorUserId = actorId();
@@ -98,6 +104,88 @@ export function storageBindingFor(
         if (removedRefs.length > 0) {
           const detached = await service.detach(
             { refs: removedRefs, record: { type: recordType, id: recordId }, reason: "replaced" },
+            tx,
+          );
+          cleanup.objectIds.push(...detached.map((row) => row.id));
+        }
+      }
+      return cleanup;
+    },
+
+    async afterReplace(tx, beforeRows, afterRows, { softDeleted }): Promise<CrudStorageCleanup> {
+      const actorUserId = actorId();
+      const cleanup: Cleanup = { objectIds: [], legacy: [] };
+
+      for (const field of fields) {
+        // 値 → いまその値を持つ旧行の id（同じ値の旧行が複数あれば最初の行）
+        const previousOwner = new Map<string, string>();
+        for (const row of beforeRows) {
+          for (const value of valuesOf(row, field)) {
+            if (!previousOwner.has(value)) previousOwner.set(value, String(row.id));
+          }
+        }
+        const used = new Set<string>();
+
+        for (const row of afterRows) {
+          const recordId = String(row.id);
+          const scopeId = field.scope ? field.scope(row) : undefined;
+          for (const value of valuesOf(row, field)) {
+            if (used.has(value)) {
+              throw new DomainError(`${field.name}: 同じファイルを複数の行で使うことはできません`, { status: 400 });
+            }
+            used.add(value);
+
+            const ownerId = previousOwner.get(value);
+            if (ownerId === undefined) {
+              // 新しい値（旧 URL・外部 URL・その他は新しく書き込めない）
+              if (!isStorageRef(value)) throw invalidValue(field);
+              await service.attach(
+                {
+                  ref: value,
+                  purpose: field.purpose,
+                  actorUserId,
+                  scopeId,
+                  record: { type: recordType, id: recordId, field: field.name },
+                },
+                tx,
+              );
+              continue;
+            }
+            if (softDeleted) {
+              throw new DomainError(
+                `${field.name}: 論理削除の表では、置き換える前の行のファイルを新しい行で使えません（コピーしてください）`,
+                { status: 400 },
+              );
+            }
+            // 旧 URL は台帳に無いので、残すだけ。ref は紐付け先を新しい行へ移す
+            if (ownerId === recordId || !isStorageRef(value)) continue;
+            await service.rebind(
+              {
+                ref: value,
+                purpose: field.purpose,
+                scopeId,
+                record: { type: recordType, fromId: ownerId, toId: recordId, field: field.name },
+              },
+              tx,
+            );
+          }
+        }
+
+        // 論理削除の旧行は値を持ち続ける（restore で戻せるように紐付けを残す）。keep は物理削除でも残す
+        if (softDeleted || onHardDelete === "keep") continue;
+        const removedByOwner = new Map<string, string[]>();
+        for (const [value, ownerId] of previousOwner) {
+          if (used.has(value)) continue;
+          if (isStorageRef(value)) {
+            removedByOwner.set(ownerId, [...(removedByOwner.get(ownerId) ?? []), value]);
+            continue;
+          }
+          const legacy = parseLegacyStorageUrl(value);
+          if (legacy) cleanup.legacy.push(legacy);
+        }
+        for (const [ownerId, refs] of removedByOwner) {
+          const detached = await service.detach(
+            { refs, record: { type: recordType, id: ownerId }, reason: "record_removed" },
             tx,
           );
           cleanup.objectIds.push(...detached.map((row) => row.id));

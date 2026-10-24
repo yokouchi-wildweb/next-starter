@@ -77,6 +77,10 @@ commit は**ファイルの中身を検査しません**。照合するのは si
     - scopeId を指定した場合は、それも一致する
   - 満たさなければ DomainError 400 を投げ、業務の TX ごと巻き戻す
 - **detach**: 業務行に紐付いた ready を deleted（reason `replaced` / `record_removed`）にする。実物は TX の commit 後に `cleanupDeletedObject` で消す
+- **rebind**: 業務行に紐付いた ready の紐付け先を、同じ種類の別の業務行へ移す（replaceByQuery で新しい行に残る ref）
+  - 行が ready で、ref の purpose が一致し、いまの紐付け先が移す元の行のときだけ成功する（scopeId を指定した場合はそれも一致）
+  - 満たさなければ DomainError 400 を投げ、業務の TX ごと巻き戻す
+- **FK cascade**: メディア列を持つ表の行を DB の cascade で消すと、detach されずに紐付けが残る（実物が漏れる）。子の表は restrict にし、子のサービスで消す（[lib/crud README「storage オプション」](../../../lib/crud/README.md)）
 - **サーバー内の書き込み**: putFromServer / copy の所有者は呼び出し側が渡す
   - cron・system の書き込みは `null`
   - 利用者・管理者が起点なら、実際の利用者

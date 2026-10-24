@@ -175,5 +175,21 @@ export function createMemoryLedger(): MemoryLedger {
       }
       return detached;
     },
+
+    async rebind(input) {
+      const row = rows.get(input.id);
+      if (
+        !row ||
+        row.status !== "ready" ||
+        row.purpose !== input.purpose ||
+        row.recordType !== input.recordType ||
+        row.recordId !== input.fromRecordId ||
+        (input.scopeId !== undefined && row.scopeId !== input.scopeId)
+      ) {
+        return false;
+      }
+      Object.assign(row, { recordId: input.toRecordId, recordField: input.recordField });
+      return true;
+    },
   };
 }

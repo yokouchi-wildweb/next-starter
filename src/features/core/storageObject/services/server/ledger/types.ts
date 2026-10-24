@@ -96,6 +96,19 @@ export type DetachInput = {
   at: Date;
 };
 
+export type RebindInput = {
+  id: string;
+  /** ref から取り出した値。行の purpose と一致しなければ付け替えない */
+  purpose: string;
+  /** 指定すれば scope_id も一致を求める */
+  scopeId?: string | null;
+  recordType: string;
+  /** いま紐付いている業務行。紐付け先がこれと違えば付け替えない */
+  fromRecordId: string;
+  toRecordId: string;
+  recordField: string;
+};
+
 export interface StorageLedger {
   /**
    * 未完了数が上限未満のときだけ pending の行を作る（並行する発行でも上限を超えない）。
@@ -131,4 +144,6 @@ export interface StorageLedger {
   attach(input: AttachInput, tx?: TransactionClient): Promise<boolean>;
   /** 業務行に紐付いた ready の行を deleted にし、対象になった行を返す */
   detach(input: DetachInput, tx?: TransactionClient): Promise<StorageObject[]>;
+  /** 業務行に紐付いた ready の行を、同じ種類の別の業務行へ付け替える（replaceByQuery で残る ref）。付け替えたら true */
+  rebind(input: RebindInput, tx?: TransactionClient): Promise<boolean>;
 }

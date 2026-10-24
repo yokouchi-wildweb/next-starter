@@ -195,4 +195,27 @@ export const drizzleLedger: StorageLedger = {
       .returning(getPublicColumns(T));
     return rows as StorageObject[];
   },
+
+  async rebind(input, tx?: TransactionClient) {
+    const executor = tx ?? db;
+    const rows = await executor
+      .update(T)
+      .set({ recordId: input.toRecordId, recordField: input.recordField })
+      .where(
+        and(
+          eq(T.id, input.id),
+          eq(T.status, "ready"),
+          eq(T.purpose, input.purpose),
+          eq(T.recordType, input.recordType),
+          eq(T.recordId, input.fromRecordId),
+          input.scopeId !== undefined
+            ? input.scopeId === null
+              ? isNull(T.scopeId)
+              : eq(T.scopeId, input.scopeId)
+            : undefined,
+        ),
+      )
+      .returning({ id: T.id });
+    return rows.length > 0;
+  },
 };

@@ -213,6 +213,116 @@ describe("afterHardDelete", () => {
   });
 });
 
+describe("afterReplace（replaceByQuery）", () => {
+  const HARD = { softDeleted: false };
+  const SOFT = { softDeleted: true };
+
+  test("同じ id の行に残る ref はそのまま、別の行へ移る ref は付け替え、新しい ref は紐付け、消えた ref は record_removed", async () => {
+    const h = setup();
+    const kept = await readyRef(h, alice);
+    const moved = await readyRef(h, alice);
+    const removed = await readyRef(h, alice, "item.gallery");
+    const added = await readyRef(h, alice);
+    await as(alice, () => h.binding.afterWrite(TX, null, { id: "r-1", photo: kept }));
+    await as(alice, () => h.binding.afterWrite(TX, null, { id: "r-2", photo: moved, gallery: [removed] }));
+
+    const cleanup = await as(alice, () =>
+      h.binding.afterReplace!(
+        TX,
+        [
+          { id: "r-1", photo: kept, gallery: null },
+          { id: "r-2", photo: moved, gallery: [removed] },
+        ],
+        [
+          { id: "r-1", photo: kept, gallery: null },
+          { id: "r-3", photo: moved, gallery: null },
+          { id: "r-4", photo: added, gallery: null },
+        ],
+        HARD,
+      ),
+    );
+    assert.equal(h.ledger.rows.get(idOf(kept))?.recordId, "r-1");
+    assert.equal(h.ledger.rows.get(idOf(moved))?.recordId, "r-3");
+    assert.equal(h.ledger.rows.get(idOf(moved))?.status, "ready");
+    assert.equal(h.ledger.rows.get(idOf(added))?.recordId, "r-4");
+    assert.equal(h.ledger.rows.get(idOf(removed))?.reason, "record_removed");
+
+    await h.binding.afterCommit([cleanup]);
+    assert.equal(h.fake.objects.has(`pub-bucket/item.gallery/${idOf(removed)}.png`), false);
+    assert.equal(h.fake.objects.has(`pub-bucket/item.photo/${idOf(moved)}.png`), true);
+  });
+
+  test("同じ値を新しい行の 2 か所に入れると 400（残す行と別の行への共有も不可）", async () => {
+    const h = setup();
+    const ref = await readyRef(h, alice);
+    await as(alice, () => h.binding.afterWrite(TX, null, { id: "r-1", photo: ref }));
+    await assert.rejects(
+      as(alice, () =>
+        h.binding.afterReplace!(TX, [{ id: "r-1", photo: ref }], [{ id: "r-1", photo: ref }, { id: "r-2", photo: ref }], HARD),
+      ),
+      rejects400,
+    );
+    const fresh = await readyRef(h, alice);
+    await assert.rejects(
+      as(alice, () => h.binding.afterReplace!(TX, [], [{ id: "r-3", photo: fresh }, { id: "r-4", photo: fresh }], HARD)),
+      rejects400,
+    );
+  });
+
+  test("新しい値は create と同じ規則（他人の ref・旧 URL は 400）。旧行にあった旧 URL は残せる", async () => {
+    const h = setup();
+    const others = await readyRef(h, bob);
+    await assert.rejects(as(alice, () => h.binding.afterReplace!(TX, [], [{ id: "r-1", photo: others }], HARD)), rejects400);
+    const legacy = "https://storage.googleapis.com/old/items/a.png";
+    await assert.rejects(as(alice, () => h.binding.afterReplace!(TX, [], [{ id: "r-1", photo: legacy }], HARD)), rejects400);
+    await as(alice, () => h.binding.afterReplace!(TX, [{ id: "r-1", photo: legacy }], [{ id: "r-2", photo: legacy }], HARD));
+  });
+
+  test("消えた旧 URL は、自分の旧バケットのものだけ実物ごと消す", async () => {
+    const saved = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "old";
+    try {
+      const h = setup();
+      await h.fake.put({ bucket: "old", path: "items/legacy.png" }, new Uint8Array(1), { contentType: "image/png", cacheControl: "x" });
+      const cleanup = await h.binding.afterReplace!(
+        TX,
+        [{ id: "r-1", gallery: ["https://storage.googleapis.com/old/items/legacy.png", "https://example.com/x.png"] }],
+        [],
+        HARD,
+      );
+      await h.binding.afterCommit([cleanup]);
+      assert.equal(h.fake.objects.has("old/items/legacy.png"), false);
+    } finally {
+      if (saved === undefined) delete process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+      else process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = saved;
+    }
+  });
+
+  test("論理削除の表は旧行の紐付けを残し、旧行の値を新しい行に入れると 400", async () => {
+    const h = setup();
+    const ref = await readyRef(h, alice);
+    await as(alice, () => h.binding.afterWrite(TX, null, { id: "r-1", photo: ref }));
+    const added = await readyRef(h, alice);
+    await as(alice, () => h.binding.afterReplace!(TX, [{ id: "r-1", photo: ref }], [{ id: "r-2", photo: added }], SOFT));
+    assert.equal(h.ledger.rows.get(idOf(ref))?.recordId, "r-1");
+    assert.equal(h.ledger.rows.get(idOf(ref))?.status, "ready");
+    assert.equal(h.ledger.rows.get(idOf(added))?.recordId, "r-2");
+    await assert.rejects(
+      as(alice, () => h.binding.afterReplace!(TX, [{ id: "r-1", photo: ref }], [{ id: "r-3", photo: ref }], SOFT)),
+      rejects400,
+    );
+  });
+
+  test("onHardDelete: keep は消えた ref を残す（付け替えと新しい紐付けは行う）", async () => {
+    const h = setup({ onHardDelete: "keep" });
+    const removed = await readyRef(h, alice);
+    await as(alice, () => h.binding.afterWrite(TX, null, { id: "r-1", photo: removed }));
+    await as(alice, () => h.binding.afterReplace!(TX, [{ id: "r-1", photo: removed }], [], HARD));
+    assert.equal(h.ledger.rows.get(idOf(removed))?.status, "ready");
+    assert.equal(h.ledger.rows.get(idOf(removed))?.recordId, "r-1");
+  });
+});
+
 describe("duplicateValues", () => {
   test("ref を copy で新しい ref にする（所有者 = 実行者）", async () => {
     const h = setup();
@@ -270,6 +380,23 @@ describe("applyStorageBinding（bulk の拒否と素通し）", () => {
     await assert.rejects(wrapped.bulkUpdateByQuery({ field: "id", op: "eq", value: "a" } as never, { gallery: [] }), rejects400);
     await assert.rejects(wrapped.bulkUpdate([{ id: "a", data: { photo: null } }]), rejects400);
     await assert.rejects(wrapped.bulkUpsert([{ id: "a", photo: "x" }]), rejects400);
+  });
+
+  test("afterReplace の無い binding では replaceByQuery を 400 で拒否する", async () => {
+    const { afterReplace: _omit, ...legacyBinding } = h.binding;
+    const noReplace = applyStorageBinding(
+      { ...base, replaceByQuery: async () => [] } as unknown as Parameters<typeof applyStorageBinding>[0],
+      { table: { id: {} } as never, binding: legacyBinding, useSoftDelete: true, conflictTarget: () => ({}) as never },
+    );
+    await assert.rejects(noReplace.replaceByQuery({ field: "id", op: "eq", value: "a" } as never, []), rejects400);
+  });
+
+  test("論理削除の表でメディア列に触れない replaceByQuery は、そのまま通す", async () => {
+    const replaced = applyStorageBinding(
+      { ...base, replaceByQuery: async () => [{ id: "b" }] } as unknown as Parameters<typeof applyStorageBinding>[0],
+      { table: { id: {} } as never, binding: h.binding, useSoftDelete: true, conflictTarget: () => ({}) as never },
+    );
+    assert.deepEqual(await replaced.replaceByQuery({ field: "id", op: "eq", value: "a" } as never, [{ name: "x" }]), [{ id: "b" }]);
   });
 
   test("メディア列に触れない bulk と、soft delete の削除はそのまま通す", async () => {
