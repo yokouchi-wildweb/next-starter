@@ -8,10 +8,14 @@
 //   node mailbox.mjs self    自リポの repo-id と受信箱
 //   node mailbox.mjs repos   手元のリポ（自リポと同じ親ディレクトリにあるもの）と各受信箱
 //   node mailbox.mjs inbox   自リポ宛ての未対応の指令（waiting_on: の待ち状態つき）
+//   node mailbox.mjs resolve <指令ファイル> --status=<done|partial|relayed|rejected|withdrawn> --body=<ファイル>
+//                            [--commit=<sha|->] [--pushed=<yes|no|...>] [--branch=<名前>]
+//                            指令に答える: RESOLUTION を末尾に追記して done/ へ移す（/inbox 手順 4 と guild close の共通の書き手）
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const ROOT = process.env.TEAM_ORDERS || join(homedir(), ".team", "orders");
 
@@ -117,6 +121,49 @@ function orderState(path) {
   return { state: "missing", path: cur };
 }
 
+// RESOLUTION の本文（--body）に status ごとに要る行。評議会からの指令（from: council …）の done / partial は findings / verify も
+const REQUIRED = {
+  done: ["implemented", "consume", "propagate", "notice", "notes"],
+  partial: ["implemented", "consume", "propagate", "notice", "notes"],
+  relayed: ["relayed_to", "notes"],
+  rejected: ["notes"],
+  withdrawn: ["notes"],
+};
+
+function isoNow(d = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? "+" : "-";
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`;
+}
+
+// 指令に答える: 確かめてから RESOLUTION を追記し、done/ へ移す。足りないものがあれば何も書かずに throw する。
+// by = { repoId, origin, branch, commit, pushed }。戻り値 = 移した先のパス
+export function resolveOrder(orderPath, { status, body, by, now = isoNow() }) {
+  if (!REQUIRED[status]) throw new Error(`--status は ${Object.keys(REQUIRED).join(" | ")} のどれか（${status || "なし"}）`);
+  if (!existsSync(orderPath)) throw new Error(`指令がありません: ${orderPath}（対応済みなら done/ にあります）`);
+  if (basename(dirname(orderPath)) === "done") throw new Error(`done/ の指令には答えません: ${orderPath}`);
+  const text = readFileSync(orderPath, "utf8");
+  if (/^## RESOLUTION$/m.test(text)) throw new Error(`すでに RESOLUTION があります: ${orderPath}`);
+  const lines = body.split("\n").map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
+  const want = [...REQUIRED[status]];
+  if ((status === "done" || status === "partial") && field(text, "from").startsWith("council ")) want.push("findings", "verify");
+  const missing = want.filter((k) => !lines.some((l) => l.startsWith(`${k}:`)));
+  if (missing.length) throw new Error(`RESOLUTION の本文に ${missing.map((k) => `${k}:`).join(" ")} の行がありません`);
+  const full = status === "done" || status === "partial";
+  if (full && !by.pushed) throw new Error("--pushed が要ります（yes | no と理由。commit しなかったなら -）");
+  const byLine = full
+    ? `by: ${by.repoId} | ${by.origin || "-"} | branch:${by.branch || "-"} | commit:${by.commit || "-"} | pushed:${by.pushed}`
+    : `by: ${by.repoId} | commit:- | pushed:-`;
+  const block = ["", "## RESOLUTION", `resolved: ${now}   status: ${status}`, byLine, ...lines, ""].join("\n");
+  appendFileSync(orderPath, (text.endsWith("\n") ? "" : "\n") + block);
+  const doneDir = join(dirname(orderPath), "done");
+  mkdirSync(doneDir, { recursive: true });
+  const dest = join(doneDir, basename(orderPath));
+  renameSync(orderPath, dest);
+  return dest;
+}
+
 function printOrder(path) {
   const text = readFileSync(path, "utf8");
   const waits = fields(text, "waiting_on").map(orderState);
@@ -126,24 +173,52 @@ function printOrder(path) {
   for (const w of waits) console.log(`  waiting_on: ${w.state} ${w.path}`);
 }
 
-const self = repoInfo(process.cwd());
-if (!self) {
-  console.error("not inside a git repository");
-  process.exit(1);
-}
-const cmd = process.argv[2];
+// 直接実行されたときだけ CLI として動く（テストは resolveOrder を import する）
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
 
-if (cmd === "self") {
-  console.log(`self: ${self.repoId}\norigin: ${self.origin || "-"}\ntop: ${self.top}\nbox: ${boxOf(self.repoId)}\nroot: ${ROOT}`);
-} else if (cmd === "repos") {
-  for (const r of localRepos(self)) {
-    const mark = r.repoId === self.repoId ? " (self)" : "";
-    console.log(`repo: ${r.repoId}${mark}\n  url: ${r.origin || "-"}\n  path: ${r.paths.join(", ")}\n  rules: ${rulesPath(r.paths[0])}\n  box: ${boxOf(r.repoId)}`);
+function opt(args, name) {
+  const a = args.find((x) => x.startsWith(`--${name}=`));
+  return a === undefined ? undefined : a.slice(name.length + 3);
+}
+
+function main() {
+  const self = repoInfo(process.cwd());
+  if (!self) {
+    console.error("not inside a git repository");
+    process.exit(1);
   }
-} else if (cmd === "inbox") {
-  console.log(`box: ${boxOf(self.repoId)}`);
-  for (const p of mdFiles(boxOf(self.repoId))) printOrder(p);
-} else {
-  console.error("usage: node mailbox.mjs self | repos | inbox");
-  process.exit(1);
+  const cmd = process.argv[2];
+
+  if (cmd === "self") {
+    console.log(`self: ${self.repoId}\norigin: ${self.origin || "-"}\ntop: ${self.top}\nbox: ${boxOf(self.repoId)}\nroot: ${ROOT}`);
+  } else if (cmd === "repos") {
+    for (const r of localRepos(self)) {
+      const mark = r.repoId === self.repoId ? " (self)" : "";
+      console.log(`repo: ${r.repoId}${mark}\n  url: ${r.origin || "-"}\n  path: ${r.paths.join(", ")}\n  rules: ${rulesPath(r.paths[0])}\n  box: ${boxOf(r.repoId)}`);
+    }
+  } else if (cmd === "inbox") {
+    console.log(`box: ${boxOf(self.repoId)}`);
+    for (const p of mdFiles(boxOf(self.repoId))) printOrder(p);
+  } else if (cmd === "resolve") {
+    const args = process.argv.slice(3);
+    const file = args.find((a) => !a.startsWith("--"));
+    const bodyFile = opt(args, "body");
+    try {
+      if (!file || !bodyFile) throw new Error("usage: node mailbox.mjs resolve <指令ファイル> --status=… --body=<ファイル> [--commit=] [--pushed=] [--branch=]");
+      const commit = opt(args, "commit") ?? (git(self.top, ["rev-parse", "--short", "HEAD"]) || "-");
+      const branch = opt(args, "branch") ?? (git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]) || "-");
+      const dest = resolveOrder(file.replace(/^~(?=\/)/, homedir()), {
+        status: opt(args, "status"),
+        body: readFileSync(bodyFile, "utf8"),
+        by: { repoId: self.repoId, origin: self.origin, branch, commit, pushed: opt(args, "pushed") },
+      });
+      console.log(`resolved: ${dest}`);
+    } catch (e) {
+      console.error(`resolve: ${e.message}`);
+      process.exit(1);
+    }
+  } else {
+    console.error("usage: node mailbox.mjs self | repos | inbox | resolve <指令ファイル> --status=… --body=<ファイル>");
+    process.exit(1);
+  }
 }

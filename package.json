@@ -49,6 +49,7 @@
     "test:dc-sample-drift": "node --test scripts/domain-config/sampleDrift.test.mjs",
     "test:dc-storage-output": "node --test scripts/domain-config/generator/storageOutput.test.mjs",
     "test:flux-relay": "node --test .claude/skills/flux/relay-check.test.mjs",
+    "test:order-mailbox": "node --test .claude/skills/order/mailbox.test.mjs",
     "test:wallet-lot-planning": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/lotPlanning.test.ts",
     "test:user-password-change": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/user/services/server/helpers/passwordChange.test.ts",
     "test:paired-device": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/pairedDevice/pairedDevice.test.ts",

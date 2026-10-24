@@ -11,7 +11,7 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
 - **受信箱はリポごと**: `<置き場>/<repo-id>/`(未対応)と `<repo-id>/done/`(対応済み)。repo-id は `/flux` の fork-id と同じ導出(origin URL のホスト以降から `.git` を除き `/` → `--`、小文字。origin が無ければ `local--<ディレクトリ名>`)
 - 受信箱に入るのは単発の指令だけ。連続した・グループ化された指令は council の legate の中で扱う
 - 宛先リポは自分の受信箱を `/inbox` で読む。起票したセッションは `/wen` で状況を確かめる
-- 補助スクリプト: `node .claude/skills/order/mailbox.mjs <self | repos | inbox>`(リポのルートで実行)
+- 補助スクリプト: `node .claude/skills/order/mailbox.mjs <self | repos | inbox | resolve>`(リポのルートで実行。`resolve` = 指令に答える: RESOLUTION の追記と done/ への移動。手順は `.claude/skills/inbox/SKILL.md` の 4)
 
 ## 使う材料
 - ここまでの会話の文脈(=何をしてほしいかは既に議論済みのはず)
