@@ -150,6 +150,8 @@ function PasswordSection({ user, onSuccess }: SectionProps) {
       <Flex gap="sm" align="center">
         <div className="flex-1">
           <PasswordInput
+            // 対象ユーザーのパスワードを設定する欄。管理者自身の保存済みパスワードを自動入力させない
+            autoComplete="new-password"
             value={password}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             placeholder="新しいパスワード（8文字以上）"

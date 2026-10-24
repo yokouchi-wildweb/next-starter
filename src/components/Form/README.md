@@ -373,7 +373,7 @@ import { FieldRenderer } from "@/components/Form/FieldRenderer";
 | `TimeInput` | 時刻 |
 | `DatetimeInput` | 日時 |
 | `EmailInput` | メールアドレス |
-| `PasswordInput` | パスワード |
+| `PasswordInput` | パスワード（`autoComplete` 必須: 登録済みを入れる欄 = `"current-password"`、新しく決める欄・管理者が他人に設定する欄 = `"new-password"`。未指定だと Safari 等が管理者自身の保存済みパスワードを自動入力する） |
 | `OneTimeCodeInput` | ワンタイムコード（大文字化・ハイフン区切りの自動整形、`length` 文字そろうと `onComplete`。ペアリングコード・確認コード用） |
 | `StepperInput` | 数値ステッパー |
 | `FileInput` | ファイル選択 |

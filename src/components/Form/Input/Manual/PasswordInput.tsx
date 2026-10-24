@@ -8,9 +8,20 @@ import { Button } from "@/components/Form/Button/Button";
 
 type InputProps = ComponentProps<typeof Input>;
 
-export type PasswordInputProps = Omit<InputProps, "leftIcon"> & {
+/**
+ * パスワード欄の autoComplete(必須)
+ * - "current-password": 登録済みのパスワードを入れる欄(ログイン、変更画面の「現在のパスワード」)
+ * - "new-password": 新しく決める欄(新規登録、再設定、変更後、管理者が他人のパスワードを設定する欄)
+ * 未指定だとブラウザ(特に Safari)が役割を推測し、管理画面で管理者自身の保存済みパスワードが
+ * 自動入力されるなどの事故になるため、型で必須にしている
+ */
+export type PasswordAutoComplete = "current-password" | "new-password";
+
+export type PasswordInputProps = Omit<InputProps, "leftIcon" | "autoComplete"> & {
   /** 左側に表示するアイコン */
   leftIcon?: ReactNode;
+  /** 欄の役割(必須)。PasswordAutoComplete を参照 */
+  autoComplete: PasswordAutoComplete;
 };
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>((props, ref) => {

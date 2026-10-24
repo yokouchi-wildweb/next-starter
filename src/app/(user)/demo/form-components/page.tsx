@@ -201,6 +201,7 @@ export default function FormComponentsDemoPage() {
                     renderInput={(field) => (
                         <PasswordInput
                             field={field}
+                            autoComplete="current-password"
                             placeholder="ご登録のパスワード"
                             leftIcon={<Lock className="size-4" />}
                         />

@@ -25,6 +25,7 @@ export { Textarea } from "./Textarea";
 export { FileInput } from "./FileInput";
 export type { FileInputProps } from "./FileInput";
 export { PasswordInput } from "./PasswordInput";
+export type { PasswordAutoComplete } from "./PasswordInput";
 export { OneTimeCodeInput } from "./OneTimeCodeInput";
 export type { OneTimeCodeInputProps } from "./OneTimeCodeInput";
 export { ComboboxInput } from "./ComboboxInput";

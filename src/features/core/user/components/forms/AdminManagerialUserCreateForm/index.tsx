@@ -100,7 +100,7 @@ export default function ManagerialUserCreateForm({
         control={control}
         name="localPassword"
         label="パスワード"
-        renderInput={(field) => <PasswordInput field={field} />}
+        renderInput={(field) => <PasswordInput field={field} autoComplete="new-password" />}
       />
       <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("admin")} />
       <div className="flex justify-center gap-3">

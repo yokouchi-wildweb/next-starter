@@ -102,7 +102,7 @@ export default function GeneralUserCreateForm({ redirectPath = "/" }: Props) {
         control={control}
         name="localPassword"
         label="パスワード"
-        renderInput={(field) => <PasswordInput field={field} />}
+        renderInput={(field) => <PasswordInput field={field} autoComplete="new-password" />}
       />
       <RoleProfileFields methods={methods} role={selectedRole} profiles={getProfilesByCategory("user")} />
       <div className="flex justify-center gap-3">

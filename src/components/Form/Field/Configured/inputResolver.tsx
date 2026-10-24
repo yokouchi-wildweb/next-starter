@@ -191,7 +191,8 @@ export function renderInputByFormType<
       return <EmailInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "passwordInput":
-      return <PasswordInput field={field} placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
+      // ドメインのパスワード項目は管理画面で他人の値を設定する欄。保存済みパスワードを自動入力させない
+      return <PasswordInput field={field} autoComplete="new-password" placeholder={fieldConfig.placeholder} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;
 
     case "colorInput":
       return <ColorInput field={field} readOnly={readOnly} disabled={fieldConfig.disabled} className={inputClassName} />;

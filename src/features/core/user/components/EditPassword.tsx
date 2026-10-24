@@ -74,6 +74,7 @@ export function EditPassword({ email }: EditPasswordProps) {
                 </Label>
                 <PasswordInput
                   id="current-password"
+                  autoComplete="current-password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="現在のパスワードを入力"
@@ -86,6 +87,7 @@ export function EditPassword({ email }: EditPasswordProps) {
                 </Label>
                 <PasswordInput
                   id="new-password"
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="新しいパスワードを入力"

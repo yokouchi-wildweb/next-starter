@@ -94,7 +94,7 @@ export default function DemoUserCreateForm({ redirectPath = "/admin/users/demo" 
         control={control}
         name="localPassword"
         label="パスワード"
-        renderInput={(field) => <PasswordInput field={field} />}
+        renderInput={(field) => <PasswordInput field={field} autoComplete="new-password" />}
       />
       <RoleProfileFields
         methods={methods}
