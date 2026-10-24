@@ -1,5 +1,7 @@
 # dataMigration の storage 切り替え 画面確認（2026-10-23）
 
+> owner: next-starter
+
 legate 指令 14（N2 T10 の残り）。worktree（legate ブランチ）の開発サーバー（localhost:3000、試験バケット）で、/admin/samples の「ファイル入出力」を Playwright（Chromium）で操作した。目視の表示確認は人。
 
 ## 手順と結果
