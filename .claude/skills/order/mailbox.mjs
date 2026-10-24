@@ -6,6 +6,7 @@
 //   council の legate は council 自身のフォルダ（~/.team/_council/legates/）にあり、ここには単発の指令（from: council <議題id>）だけが入る
 // 使い方:
 //   node mailbox.mjs self    自リポの repo-id と受信箱
+//   node mailbox.mjs from    起票する指令の from: 行（チームのタブなら発行元はそのチーム。下記 fromLine）
 //   node mailbox.mjs repos   手元のリポ（自リポと同じ親ディレクトリにあるもの）と各受信箱
 //   node mailbox.mjs inbox   自リポ宛ての未対応の指令（waiting_on: の待ち状態つき）
 //   node mailbox.mjs resolve <指令ファイル> --status=<done|partial|relayed|rejected|withdrawn> --body=<ファイル>
@@ -82,6 +83,30 @@ function localRepos(self) {
   return [...byId.values()].sort((a, b) => a.repoId.localeCompare(b.repoId));
 }
 
+// 起票する指令の from: の値。チームのタブ（起動スクリプトが TK_TEAM 等を export する）では発行元 = そのチームで、
+// 動いていたリポは repo: に参考として残す。評議会の legate の `council <議題id> | instance:…` と同じく先頭が発行元
+//   チーム: <team> <instance> | role:<役職名> | repo:<origin> | branch:<b> | cwd:<path>
+//   それ以外: <origin> | branch:<b> | cwd:<path>
+export function fromLine(env, { origin, repoId, branch, cwd }) {
+  const repo = origin || repoId;
+  if (env.TK_TEAM && env.TK_INSTANCE) {
+    const role = env.TK_LABEL || env.TK_ROLE || "-";   // TK_LABEL が無いのは、それを渡す前に起動したタブ
+    return `${env.TK_TEAM} ${env.TK_INSTANCE} | role:${role} | repo:${repo} | branch:${branch || "-"} | cwd:${cwd}`;
+  }
+  return `${repo} | branch:${branch || "-"} | cwd:${cwd}`;
+}
+
+// 指令の発行元（from: の値）を読む。先頭が発行元
+//   council = 評議会の legate（`council <議題id> | …`、role: 欄なし）| team = チームの役職（role: 欄あり）| repo = リポのセッション
+// 戻り値 { kind, label（一覧に出す名前）, repo（発行元のリポ。council は null）}
+export function requester(from) {
+  const [head = "", ...rest] = from.split(" | ").map((x) => x.trim());
+  const kv = Object.fromEntries(rest.map((x) => [x.slice(0, x.indexOf(":")), x.slice(x.indexOf(":") + 1)]).filter(([k]) => k));
+  if (kv.role) return { kind: "team", label: `${head} ${kv.role}`, repo: kv.repo || null };
+  if (head.startsWith("council ")) return { kind: "council", label: head, repo: null };
+  return { kind: "repo", label: head, repo: head };
+}
+
 function field(text, name) {
   const line = text.split("\n").find((l) => l.startsWith(`${name}:`));
   return line ? line.slice(name.length + 1).trim() : "";
@@ -121,7 +146,7 @@ function orderState(path) {
   return { state: "missing", path: cur };
 }
 
-// RESOLUTION の本文（--body）に status ごとに要る行。評議会からの指令（from: council …）の done / partial は findings / verify も
+// RESOLUTION の本文（--body）に status ごとに要る行。評議会の legate からの指令（requester が council）の done / partial は findings / verify も
 const REQUIRED = {
   done: ["implemented", "consume", "propagate", "notice", "notes"],
   partial: ["implemented", "consume", "propagate", "notice", "notes"],
@@ -147,7 +172,7 @@ export function resolveOrder(orderPath, { status, body, by, now = isoNow() }) {
   if (/^## RESOLUTION$/m.test(text)) throw new Error(`すでに RESOLUTION があります: ${orderPath}`);
   const lines = body.split("\n").map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
   const want = [...REQUIRED[status]];
-  if ((status === "done" || status === "partial") && field(text, "from").startsWith("council ")) want.push("findings", "verify");
+  if ((status === "done" || status === "partial") && requester(field(text, "from")).kind === "council") want.push("findings", "verify");
   const missing = want.filter((k) => !lines.some((l) => l.startsWith(`${k}:`)));
   if (missing.length) throw new Error(`RESOLUTION の本文に ${missing.map((k) => `${k}:`).join(" ")} の行がありません`);
   const full = status === "done" || status === "partial";
@@ -169,11 +194,11 @@ function printOrder(path) {
   const waits = fields(text, "waiting_on").map(orderState);
   let state = "open";
   if (waits.length) state = waits.every((w) => w.state === "done") ? "resumable" : "waiting";
-  console.log(`${state} ${path}\n  from: ${field(text, "from").split(" | ")[0]}\n  need: ${field(text, "need")}`);
+  console.log(`${state} ${path}\n  from: ${requester(field(text, "from")).label}\n  need: ${field(text, "need")}`);
   for (const w of waits) console.log(`  waiting_on: ${w.state} ${w.path}`);
 }
 
-// 直接実行されたときだけ CLI として動く（テストは resolveOrder を import する）
+// 直接実行されたときだけ CLI として動く（テストは resolveOrder などを import する）
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
 
 function opt(args, name) {
@@ -191,6 +216,9 @@ function main() {
 
   if (cmd === "self") {
     console.log(`self: ${self.repoId}\norigin: ${self.origin || "-"}\ntop: ${self.top}\nbox: ${boxOf(self.repoId)}\nroot: ${ROOT}`);
+  } else if (cmd === "from") {
+    const branch = git(self.top, ["rev-parse", "--abbrev-ref", "HEAD"]);
+    console.log(`from: ${fromLine(process.env, { origin: self.origin, repoId: self.repoId, branch, cwd: process.cwd() })}`);
   } else if (cmd === "repos") {
     for (const r of localRepos(self)) {
       const mark = r.repoId === self.repoId ? " (self)" : "";
@@ -218,7 +246,7 @@ function main() {
       process.exit(1);
     }
   } else {
-    console.error("usage: node mailbox.mjs self | repos | inbox | resolve <指令ファイル> --status=… --body=<ファイル>");
+    console.error("usage: node mailbox.mjs self | from | repos | inbox | resolve <指令ファイル> --status=… --body=<ファイル>");
     process.exit(1);
   }
 }

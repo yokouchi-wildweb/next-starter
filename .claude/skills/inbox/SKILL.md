@@ -4,7 +4,7 @@ description: 自リポ宛てに届いた単発の指令(/order・/upreq・評議
 argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 ---
 
-あなたは今、自リポ宛てに届いた **ORDER**（`/order`・`/upreq` で起票された単発の指令。評議会の legate が出したものも同じ形）を捌きます。誰から来たかは指令書の `from:` で分かる（リポ = origin URL、評議会 = `council <議題id>`、自リポ = 自分宛ての予約）。どの指令も、自リポの役目に照らして受理するかを考えてから動く。
+あなたは今、自リポ宛てに届いた **ORDER**（`/order`・`/upreq` で起票された単発の指令。評議会の legate が出したものも同じ形）を捌きます。誰から来たかは指令書の `from:` の先頭で分かる（リポ = origin URL、自リポ = 自分宛ての予約、チームの役職 = `<team> <instance> | role:<役職名> | repo:…`（fleet の提督・guild のアーキテクトなど。発行元はそのチームで、repo: は動いていたリポ）、評議会 = `council <議題id>`。書き方は `.claude/skills/order/SKILL.md` 手順 3）。どの指令も、自リポの役目に照らして受理するかを考えてから動く。
 
 メールボックス: `~/.team/orders/`（共有フォルダ。実際の場所は `mailbox.mjs self` の `root:`。git 管理外。構成の説明は `.claude/skills/order/SKILL.md`）
 - **自リポの受信箱** = `<置き場>/<自リポの repo-id>/`。場所と中身は `node .claude/skills/order/mailbox.mjs inbox`（リポのルートで実行）で取得する。他のリポの受信箱は読まない
@@ -17,7 +17,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 
 ## $ARGUMENTS が空のとき（一覧モード）
 1. `node .claude/skills/order/mailbox.mjs inbox` で、自リポ宛ての未対応（`open` / `waiting` / `resumable`）を取得する。
-2. 指令は出力の `need:`・`from:` を使い、**1行サマリ（id / need / from）**を日本語で一覧表示（from が自リポなら「自分宛て」と書く）。`waiting` は「待ち（<待っている先>）」、`resumable` は「再開可」と添える。
+2. 指令は出力の `need:`・`from:` を使い、**1行サマリ（id / need / from）**を日本語で一覧表示（from がリポで自リポなら「自分宛て」、チームの役職なら「fleet の提督から」のようにチームと役職名を書く。mailbox.mjs の一覧はチームの指令を `from: <team> <instance> <役職名>` と出す。リポで動いていても自分宛てとは書かない）。`waiting` は「待ち（<待っている先>）」、`resumable` は「再開可」と添える。
 3. 件数で分岐（`waiting` は数えない）:
    - 0件: 「未対応の依頼はありません」と伝える。
    - **1件: 「どれに着手しますか？」とは聞かず、そのままその指令の対応モード（下記 1〜3）に進む**（全文読込 → 要約 → 実装方針提案まで。実装はしない）。
@@ -58,7 +58,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
       notice: <.notices/<id>.md — apply with /flux | ->
       notes: <anything the requester needs>
       ```
-      - `propagate:` の書き方: 依頼元が自リポの下流 fork = `pushed to origin — fetch & merge upstream into your fork to receive it` | 自分宛て = `-` | それ以外 = 依頼元への届き方（依頼元に影響が無ければ `-`）
+      - `propagate:` の書き方（依頼元のリポ = from: の先頭、チームの役職からの指令なら `repo:`）: 依頼元が自リポの下流 fork = `pushed to origin — fetch & merge upstream into your fork to receive it` | 自分宛て = `-` | それ以外 = 依頼元への届き方（依頼元に影響が無ければ `-`）
       **評議会からの指令のときは**、`status:` を `done | partial`（partial = 指令の一部で止めた。理由を findings に書く）とし、`notes:` の後に次の2行を必ず足す（評議会の検証の主な材料。日本語可）:
       ```
       findings: <作業中に見つけた問題・指令とのずれ・範囲外として残したこと・未確認の点 | none>
@@ -84,7 +84,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
   b. 元の指令に答える: 本文（`relayed_to: <宛先の repo-id>/<新しい id>.md` と `notes: <なぜ宛先の持ち物と判断したか>`）を一時ファイルに書き、`node .claude/skills/order/mailbox.mjs resolve <元の指令> --status=relayed --body=<ファイル>`（`by: <self repo-id> | commit:- | pushed:-` を書いて `done/` へ移す）
   c. 日本語で報告: 引き渡した先と新しい指令のパス。
 - **依頼して待つ**（元の指令は開いたまま）:
-  a. `.claude/skills/order/SKILL.md` の手順で、宛先の受信箱に新しい指令を書く。`from:` は自リポ、`need:` は宛先にやってほしい部分だけ、`refs:` に元の指令のパスを入れる。
+  a. `.claude/skills/order/SKILL.md` の手順で、宛先の受信箱に新しい指令を書く。`from:` は `mailbox.mjs from` の値（自リポ。チームのタブならそのチーム）、`need:` は宛先にやってほしい部分だけ、`refs:` に元の指令のパスを入れる。
   b. 元の指令の末尾に `waiting_on: <新しい指令のフルパス>` を 1 行足す。待つ先が複数なら行を増やす。元の指令は受信箱に残す（`done/` に移さない）。
   c. 日本語で報告: 依頼した先と新しい指令のパス、元の指令は待ちとして一覧に出ること。待つ先がすべて対応済みになると、一覧で「再開可」になる。
   d. 再開するときは対応モードで、`waiting_on:` の先の RESOLUTION を読んでから方針を出す。中継先が差し戻した・取り下げたときは、元の指令をどうするか（別の宛先に頼む・自リポでやる・差し戻す）を提案し直す。

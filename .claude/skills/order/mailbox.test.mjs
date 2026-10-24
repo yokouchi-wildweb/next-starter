@@ -1,4 +1,4 @@
-// mailbox.mjs の resolve（指令に答える共通の書き手）の契約テスト。
+// mailbox.mjs の resolve（指令に答える共通の書き手）と from（発行元の書き方・読み方）の契約テスト。
 // 実行: pnpm test:order-mailbox （node:test。一時ディレクトリに受信箱と git リポジトリを作って確かめる。追加依存なし）
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { resolveOrder } from "./mailbox.mjs";
+import { fromLine, requester, resolveOrder } from "./mailbox.mjs";
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "mailbox.mjs");
 const BY = { repoId: "acme--app", origin: "git@x:Acme/App.git", branch: "main", commit: "abc1234", pushed: "yes" };
@@ -87,4 +87,41 @@ test("CLI: by の repo-id・branch・commit は実行したリポから取る", 
   const bad = box();
   assert.throws(() => execFileSync("node", [SCRIPT, "resolve", bad.file, "--status=done", `--body=${bodyFile}`], { cwd: repo, stdio: "pipe" }));
   assert.equal(existsSync(bad.file), true);
+});
+
+test("from: チームのタブでは発行元 = そのチーム、リポは repo: に残す", () => {
+  const where = { origin: "git@x:Acme/App.git", repoId: "acme--app", branch: "main", cwd: "/w/app" };
+  assert.equal(fromLine({}, where), "git@x:Acme/App.git | branch:main | cwd:/w/app");
+  assert.equal(fromLine({}, { ...where, origin: "" }), "acme--app | branch:main | cwd:/w/app");
+  const tab = { TK_TEAM: "fleet", TK_INSTANCE: "20261024-220119", TK_ROLE: "orchestrator", TK_LABEL: "Admiral" };
+  assert.equal(fromLine(tab, where), "fleet 20261024-220119 | role:Admiral | repo:git@x:Acme/App.git | branch:main | cwd:/w/app");
+  const { TK_LABEL, ...old } = tab;   // TK_LABEL を渡す前に起動したタブは役職 id
+  assert.match(fromLine(old, where), /^fleet 20261024-220119 \| role:orchestrator \| /);
+});
+
+test("requester: 先頭が発行元。council（legate）/ team / repo を見分ける", () => {
+  assert.deepEqual(requester("git@x:Acme/App.git | branch:main | cwd:/w/app"), { kind: "repo", label: "git@x:Acme/App.git", repo: "git@x:Acme/App.git" });
+  assert.deepEqual(requester("council q1 | legate:l1 order:01"), { kind: "council", label: "council q1", repo: null });
+  assert.deepEqual(requester("council q1 | instance:i1 | cwd:/w/app").kind, "council");
+  assert.deepEqual(requester("guild g1 | role:Architect | repo:git@x:Acme/App.git | branch:main | cwd:/w/app"), { kind: "team", label: "guild g1 Architect", repo: "git@x:Acme/App.git" });
+  // 評議会のタブ（議長など）が /order で書いた指令は legate のものではない: findings / verify は要らない
+  assert.equal(requester("council c1 | role:Chair | repo:git@x:Acme/App.git").kind, "team");
+  const { file } = box("council c1 | role:Chair | repo:git@x:Acme/App.git | branch:main | cwd:/w/app");
+  resolveOrder(file, { status: "done", body: BODY, by: BY });
+});
+
+test("CLI: from はチームの環境変数を読み、inbox の一覧は発行元の名前を出す", () => {
+  const repo = mkdtempSync(join(tmpdir(), "mailbox-repo-"));
+  const run = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo, encoding: "utf8" }).trim();
+  run("init", "-q", "-b", "main");
+  run("remote", "add", "origin", "git@github.com:Acme/App.git");
+  run("commit", "-q", "--allow-empty", "-m", "x");
+  const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("TK_")));
+  const cli = (env, ...args) => execFileSync("node", [SCRIPT, ...args], { cwd: repo, encoding: "utf8", env: { ...clean, ...env } });
+  assert.equal(cli({}, "from"), `from: git@github.com:Acme/App.git | branch:main | cwd:${repo}\n`);
+  assert.equal(cli({ TK_TEAM: "guild", TK_INSTANCE: "g1", TK_ROLE: "orchestrator", TK_LABEL: "Architect" }, "from"),
+    `from: guild g1 | role:Architect | repo:git@github.com:Acme/App.git | branch:main | cwd:${repo}\n`);
+  const { dir } = box("fleet f1 | role:Admiral | repo:git@github.com:Acme/App.git | branch:main | cwd:/w/app");
+  const out = cli({ TEAM_ORDERS: dirname(dir) }, "inbox");
+  assert.match(out, /\n  from: fleet f1 Admiral\n  need: do x\n/);
 });
