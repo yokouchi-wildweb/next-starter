@@ -4,7 +4,7 @@ description: 自リポ宛てに届いた単発の指令(/order・/upreq。自分
 argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 ---
 
-あなたは今、自リポ宛てに届いた **ORDER**（`/order`・`/upreq` で起票された単発の指令。見出しが `# UPSTREAM REQUEST` の古い指令書も同じ扱い）と評議会の束を捌きます。誰から来たかは指令書の `from:` で分かる（リポ = origin URL、評議会 = `council <議題id>`、自リポ = 自分宛ての予約）。どの指令も、自リポの役目に照らして受理するかを考えてから動く。
+あなたは今、自リポ宛てに届いた **ORDER**（`/order`・`/upreq` で起票された単発の指令）と評議会の束を捌きます。誰から来たかは指令書の `from:` で分かる（リポ = origin URL、評議会 = `council <議題id>`、自リポ = 自分宛ての予約）。どの指令も、自リポの役目に照らして受理するかを考えてから動く。
 
 メールボックス: `~/.team/orders/`（共有フォルダ。実際の場所は `mailbox.mjs self` の `root:`。git 管理外。構成の説明は `.claude/skills/order/SKILL.md`）
 - **自リポの受信箱** = `<置き場>/<自リポの repo-id>/`。場所と中身は `node .claude/skills/order/mailbox.mjs inbox`（リポのルートで実行）で取得する。他のリポの受信箱は読まない
