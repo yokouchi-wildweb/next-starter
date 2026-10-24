@@ -8,10 +8,17 @@
 //
 // registerHooks（同期フック）を使うのは、package.json に "type": "module" が無く .ts が CJS の require でも
 // 読まれるため。非同期の register() は import にしか効かない。
-import { registerHooks } from "node:module";
+//
+// さらに Module._resolveFilename も包む。--experimental-test-module-mocks を付けると CJS の require が
+// テストランナーの mock ローダー経由になり、registerHooks の resolve を通らずに元の _resolveFilename へ届くため。
+// この preload は tsx の登録より後に読まれるので、ここで包めば一番外側になり mock ローダー経由も拾える。
+// pnpm task（scripts/tasks/run.ts）も同じ理由でこの preload を読む。
+import Module, { registerHooks } from "node:module";
+import { fileURLToPath } from "node:url";
 
 // CJS の require は data: URL を読めないため、実ファイルの空モジュールを返す
 const STUB_URL = new URL("./serverOnlyEmpty.cjs", import.meta.url).href;
+const STUB_PATH = fileURLToPath(STUB_URL);
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -21,3 +28,9 @@ registerHooks({
     return nextResolve(specifier, context);
   },
 });
+
+const originalResolveFilename = Module._resolveFilename;
+Module._resolveFilename = function resolveFilenameWithServerOnlyStub(request, ...rest) {
+  if (request === "server-only") return STUB_PATH;
+  return originalResolveFilename.call(this, request, ...rest);
+};

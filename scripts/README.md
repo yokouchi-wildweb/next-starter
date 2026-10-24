@@ -130,6 +130,9 @@ pnpm cron:generate --plan pro     # Vercel Pro: task.ts の schedule どおり
 pnpm cron:check
 ```
 
+- `pnpm task` は env ファイルを読む（`APP_ENV`、既定 `.env.development`。設定済みの環境変数は上書きしない、ファイルが無ければそのまま進む）。
+- タスクは `import "server-only"` を持つ server コードに届くため、`task` スクリプトもテストと同じ preload（`scripts/test/serverOnlyStub.mjs`、下記「テスト」）を付けている。
+
 定期タスクは 1 タスク 1 フォルダ `src/app/api/cron/<name>/`(task.ts + route.ts)。一次情報:
 
 ➡ [src/lib/cron/README.md](../src/lib/cron/README.md)
@@ -182,6 +185,8 @@ npx tsx --import ./scripts/test/serverOnlyStub.mjs --test <テストファイル
 - 理由: `import "server-only"` は Next のバンドラーだけが解決する。テストが serviceRegistry などから server コードへ import をたどると、素の tsx では `Cannot find module 'server-only'` で全件落ちる（依存の import 連鎖次第なので、今通っているテストもドメイン追加で落ち始める）。
 - preload はテスト実行時だけ `server-only` を空モジュールに差し替える。ソース側の `import "server-only"` は消さない。
 - `server-only` を devDependencies に入れても解決しない（本物は react-server 条件以外では import 時に throw する）。
+- `--experimental-test-module-mocks`（`mock.module`）を使うテストでも同じ preload で足りる。module mocks を有効にすると CJS の require が import のフックを通らないため、preload は `Module._resolveFilename` も包んでいる。回帰テスト: `pnpm test:server-only-stub`。
+- `mock.module` は後から読み込むモジュールにしか効かない。モックの影響を受けるモジュールは `mock.module` の後に動的 import する（例: `src/features/core/storageObject/callsites.test.mts`）。
 
 ## ディレクトリ構成
 

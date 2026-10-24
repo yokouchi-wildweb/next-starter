@@ -15,8 +15,17 @@
 //
 // 定期タスクは src/app/api/cron/<name>/task.ts を走査して読み込む（ここには書かない。API ルートと同じ定義を使う）。
 // 下記 ONE_SHOT_TASKS はワンショット（バックフィル・データ移行）と、スケジュールに載せない任意タスク。
+//
+// package.json の task スクリプトは scripts/test/serverOnlyStub.mjs を preload する
+// （タスクが `import "server-only"` を持つ server コードに届くため。テストと同じ理由）。
 
 import path from "node:path";
+
+import dotenv from "dotenv";
+
+// env ファイルを読む（APP_ENV で指定、既定 .env.development）。タスク本体は動的 import なので、ここで読めば間に合う。
+// 既に設定済みの環境変数は上書きしない。ファイルが無い環境（本番ホストで env を直接渡す場合）はそのまま進む。
+dotenv.config({ path: process.env.APP_ENV || ".env.development", quiet: true });
 
 import { matchesCronExpression } from "@/lib/cron/cronExpression";
 import { type LoadedCronTask, loadCronTasks } from "../cron/discover";

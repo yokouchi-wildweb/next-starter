@@ -1,47 +1,67 @@
-// src/features/core/storageObject/callsites.test.ts
+// src/features/core/storageObject/callsites.test.mts
 // upstream の呼び出し箇所の受入テスト（memoryLedger + fake ポート）。
 // - core 用途（src/registry/storagePurposes/core.ts の実物）での private read の代表: 本人 / 明示 admin / 現参加者、
 //   退室・logout の後は新しい署名が出ない、admin でもチャット添付は読めない（暗黙の通過なし）
 // - 業務行の公開状態を見る private 用途: 非公開化の後は新しい署名が出ない
 // - core の保存（アバター・振込明細）が新 ref の検査を迂回しない: 実際の drizzleBase の binding 設定（fields / scope）を使う
-// 判定先（Firestore の参加者・振込依頼）は check の差し替えで再現する（下の注記）。
+// core.ts の check は本物の判定関数（isChatParticipant / isOwnPendingPurchaseRequest）を通す。
+// 判定関数が読むデータ源（Firestore のルーム・購入リクエスト・振込レビュー）だけをモックする（下の注記）。
 // 実行: pnpm test:storage-object
 
-import { describe, test } from "node:test";
+import { describe, mock, test } from "node:test";
 import assert from "node:assert/strict";
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import { UserSelfUpdateSchema, UserUpdateByAdminSchema } from "@/features/core/user/entities/schema";
-import { baseOptions as userBaseOptions } from "@/features/core/user/services/server/drizzleBase";
-import { storageBinding as bankTransferReviewBinding } from "@/features/core/bankTransferReview/services/server/drizzleBase";
-import { storageBinding as notificationBinding } from "@/features/core/notification/services/server/drizzleBase";
-import { runWithAuditContext, type AuditContext } from "@/lib/audit";
+import type { AuditContext } from "@/lib/audit";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
-import type { StoragePurpose, StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, type FakeStoragePort } from "@/lib/storage/server/fake";
-import { CORE_STORAGE_PURPOSES } from "@/registry/storagePurposes/core";
+import type { StoragePurposeMap } from "@/lib/storage";
+import type { FakeStoragePort } from "@/lib/storage/server/fake";
 
-import { storageBindingFor } from "./services/server/crudBinding";
-import { createMemoryLedger } from "./services/server/ledger/memoryLedger";
-import { createStorageObjectService } from "./services/server/storageObjectService";
-
-// 判定先: ルーム → 参加者、振込依頼 → 依頼者。
-// core.ts の check は Firestore / DB を読む判定関数（isChatParticipant / isOwnPendingPurchaseRequest）を呼ぶため、
-// ここでは core 用途の allow・visibility・型・上限はそのまま使い、check だけを同じ意味の判定に差し替える
-// （mock.module を使うと CJS の require が server-only の解決フックを通らなくなるため、モジュールのモックはしない）。
+// 判定先: ルーム → 参加者、振込依頼 → 依頼者（自社銀行振込・処理中・レビュー未判定）。
+// モックは判定関数が読む先にだけ掛け、core.ts の配線と判定関数の条件は実物を動かす。
+// mock.module は後から読み込むモジュールにしか効かないため、判定関数に届くモジュールは下で動的 import する。
 const ROOM_MEMBERS: Record<string, string[]> = {};
 const REQUEST_OWNERS: Record<string, string> = {};
 
-const isMember = (roomId: string | null, actor: { userId: string } | null) =>
-  Boolean(roomId && actor && (ROOM_MEMBERS[roomId] ?? []).includes(actor.userId));
-
-const chat = (purpose: StoragePurpose): StoragePurpose => ({
-  ...purpose,
-  upload: { ...purpose.upload, check: ({ actor, scopeId }) => isMember(scopeId, actor) },
-  read: { ...purpose.read!, check: ({ actor, object }) => isMember(object.scopeId, actor) },
+mock.module("@/features/core/chatRoom/services/server/chatRoomService", {
+  namedExports: {
+    chatRoomService: {
+      get: async (roomId: string) => (roomId in ROOM_MEMBERS ? { id: roomId, participants: ROOM_MEMBERS[roomId] } : null),
+    },
+  },
+});
+mock.module("@/features/core/purchaseRequest/services/server/drizzleBase", {
+  namedExports: {
+    base: {
+      get: async (id: string) =>
+        id in REQUEST_OWNERS
+          ? {
+              id,
+              user_id: REQUEST_OWNERS[id],
+              payment_provider: "inhouse",
+              payment_method: "bank_transfer_inhouse",
+              status: "processing",
+            }
+          : null,
+    },
+  },
+});
+mock.module("@/features/core/bankTransferReview/services/server/wrappers/findHelpers", {
+  namedExports: { findByPurchaseRequest: async () => null, findActiveByUser: async () => null },
 });
 
-const CORE = CORE_STORAGE_PURPOSES as StoragePurposeMap;
+const { UserSelfUpdateSchema, UserUpdateByAdminSchema } = await import("@/features/core/user/entities/schema");
+const { baseOptions: userBaseOptions } = await import("@/features/core/user/services/server/drizzleBase");
+const { storageBinding: bankTransferReviewBinding } = await import(
+  "@/features/core/bankTransferReview/services/server/drizzleBase"
+);
+const { storageBinding: notificationBinding } = await import("@/features/core/notification/services/server/drizzleBase");
+const { runWithAuditContext } = await import("@/lib/audit");
+const { createFakeStoragePort } = await import("@/lib/storage/server/fake");
+const { CORE_STORAGE_PURPOSES } = await import("@/registry/storagePurposes/core");
+const { storageBindingFor } = await import("./services/server/crudBinding");
+const { createMemoryLedger } = await import("./services/server/ledger/memoryLedger");
+const { createStorageObjectService } = await import("./services/server/storageObjectService");
 
 const TX = undefined as unknown as DbTransaction;
 
@@ -57,15 +77,7 @@ const admin = user("33333333-3333-4333-8333-333333333333", "admin");
 const PUBLISHED: Record<string, boolean> = {};
 
 const PURPOSES: StoragePurposeMap = {
-  ...CORE,
-  "chatRoom.image": chat(CORE["chatRoom.image"]),
-  "purchaseRequest.bankProof": {
-    ...CORE["purchaseRequest.bankProof"],
-    upload: {
-      ...CORE["purchaseRequest.bankProof"].upload,
-      check: ({ actor, scopeId }) => Boolean(scopeId && REQUEST_OWNERS[scopeId] === actor.userId),
-    },
-  },
+  ...(CORE_STORAGE_PURPOSES as StoragePurposeMap),
   "item.photo": {
     visibility: "private",
     maxBytes: 10,
@@ -113,7 +125,7 @@ const read = (h: Harness, objectId: string, actor: SessionUser | null) =>
 function contextOf(actor: SessionUser | null): AuditContext {
   return { actorId: actor?.userId ?? null, actorType: actor ? "user" : "system", ip: null, userAgent: null, sessionId: null, requestId: "test" };
 }
-const as = <T>(actor: SessionUser | null, fn: () => Promise<T>) => runWithAuditContext(contextOf(actor), fn);
+const as = <T,>(actor: SessionUser | null, fn: () => Promise<T>) => runWithAuditContext(contextOf(actor), fn);
 const statusOf = (error: unknown) => (error as { status?: number } | null)?.status;
 const rejects400 = (error: unknown) => statusOf(error) === 400;
 
