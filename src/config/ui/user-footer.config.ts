@@ -13,7 +13,9 @@ import { FaFacebook, FaInstagram, FaTiktok, FaXTwitter } from "react-icons/fa6";
 
 /**
  * フッターコンポーネント
- * カスタム版を使用する場合は以下のようにコメントを切り替えてください：
+ * @deprecated フッターの差し替えは UserLayout の footer slot で行う(手順: src/app/(user)/_layout/README.md)。
+ * この re-export と FooterCustom への切り替えは旧入口撤去の区切りで削除する。
+ * それまでは旧来の切り替え(UserLayout が footer slot 省略時にここの UserFooter を描く)も動く：
  *
  * export { UserFooter } from "@/components/AppFrames/User/Sections/FooterCustom";
  */

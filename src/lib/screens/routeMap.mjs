@@ -4,7 +4,7 @@
 // 設計と決定の経緯: src/lib/screens/README.md §13
 import { createHash } from "node:crypto";
 
-import { findBalancedEnd, stripComments } from "./checks.mjs";
+import { findBalancedEnd, parseSwitchLayout, stripComments } from "./checks.mjs";
 import { APP_DIR, discoverRoutes } from "./routeTree.mjs";
 
 /** 地図に書き出すファイル(repo 相対) */
@@ -95,6 +95,20 @@ export function extractNotableCalls(source) {
   return [...src.matchAll(NOTABLE_CALL_RE)].map((m) => m[1]);
 }
 
+/**
+ * layout.tsx が `./_layout/<X>` への 1 行スイッチなら、スイッチ先のファイル(repo 相対)を返す。スイッチでない・見つからなければ null
+ * @param {string} layoutFile layout.tsx の repo 相対パス
+ * @param {string} source layout.tsx の内容
+ * @param {Set<string>} fileSet
+ */
+export function resolveLayoutSwitchTarget(layoutFile, source, fileSet) {
+  const { problems, target } = parseSwitchLayout(source);
+  if (problems.length > 0 || !target) return null;
+  const dir = layoutFile.slice(0, layoutFile.lastIndexOf("/"));
+  const base = `${dir}/${target.screenDir}/${target.file}`;
+  return [`${base}.tsx`, `${base}.ts`, `${base}/index.tsx`].find((candidate) => fileSet.has(candidate)) ?? null;
+}
+
 const appRelative = (dir) => (dir === APP_DIR ? "/" : dir.slice(APP_DIR.length + 1));
 
 /**
@@ -110,11 +124,20 @@ export function buildRouteMap({ files, read }) {
   const rows = routes.map((route) => {
     const sources = route.layouts.map((file) => {
       const source = read(file);
+      const calls = extractGuardCalls(source);
+      const notable = extractNotableCalls(source);
+      // 1 行スイッチの layout はスイッチ先の _layout/<X> の組み立てのガードも同じ出どころとして拾う(1 段だけ。README §13)
+      const switchTarget = resolveLayoutSwitchTarget(file, source, fileSet);
+      if (switchTarget) {
+        const targetSource = read(switchTarget);
+        calls.push(...extractGuardCalls(targetSource));
+        notable.push(...extractNotableCalls(targetSource));
+      }
       return {
         label: `layout:${appRelative(file.slice(0, file.lastIndexOf("/")))}`,
         file,
-        calls: extractGuardCalls(source),
-        notable: extractNotableCalls(source),
+        calls,
+        notable,
       };
     });
     for (const loader of ROUTE_LOADERS) {

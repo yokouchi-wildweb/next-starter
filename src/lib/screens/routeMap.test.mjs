@@ -202,6 +202,29 @@ test("buildRouteMap: layout のガードの引数を変えると、その配下�
   assert.deepEqual(changed, ["/debug", "/debug/tools"]);
 });
 
+test("buildRouteMap: 1 行スイッチの layout はスイッチ先の _layout/<X> のガードを同じ出どころとして拾う(1 段だけ)", () => {
+  const { rows } = buildRouteMap(
+    tree({
+      "src/app/(user)/layout.tsx": `export { AcmeLayout as default } from "./_layout/UserLayout.acme";`,
+      "src/app/(user)/_layout/UserLayout.acme.tsx": guardLayout(`{ allowRoles: ["user"] }`),
+      "src/app/(user)/page.tsx": PAGE,
+      "src/app/plain/layout.tsx": `export { PlainLayout as default } from "./_layout/PlainLayout";`,
+      "src/app/plain/_layout/PlainLayout.tsx": "export function PlainLayout({ children }) { return children; }",
+      "src/app/plain/page.tsx": PAGE,
+      "src/app/missing/layout.tsx": `export { Gone as default } from "./_layout/Gone";`,
+      "src/app/missing/page.tsx": PAGE,
+    }),
+  );
+  const line = (key) => formatSources(rows.find((r) => r.key === key).sources);
+  assert.match(line("/"), /^layout:\(user\) authGuard#[0-9a-f]{8}$/);
+  assert.equal(line("/plain"), "none");
+  assert.equal(line("/missing"), "none", "スイッチ先が無ければ layout.tsx の本文だけ");
+  const direct = buildRouteMap(
+    tree({ "src/app/(user)/layout.tsx": guardLayout(`{ allowRoles: ["user"] }`), "src/app/(user)/page.tsx": PAGE }),
+  ).rows;
+  assert.equal(line("/"), formatSources(direct[0].sources), "layout.tsx に直接書いたガードと同じ行になる");
+});
+
 test("formatRouteMap: ヘッダー + key 順の 1 ページ 1 行で、入力の順序に依らず同じ結果になる", () => {
   const entries = {
     "src/app/b/page.tsx": PAGE,

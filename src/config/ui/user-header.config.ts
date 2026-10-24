@@ -16,7 +16,9 @@ import type { IconComponent } from "@/components/Icons";
 
 /**
  * ヘッダーコンポーネント
- * カスタム版を使用する場合は以下のようにコメントを切り替えてください：
+ * @deprecated ヘッダーの差し替えは UserLayout の header slot で行う(手順: src/app/(user)/_layout/README.md)。
+ * この re-export と HeaderCustom への切り替えは旧入口撤去の区切りで削除する。
+ * それまでは旧来の切り替え(UserLayout が header slot 省略時にここの UserNavigation を描く)も動く：
  *
  * export { UserNavigation } from "@/components/AppFrames/User/Sections/HeaderCustom";
  */

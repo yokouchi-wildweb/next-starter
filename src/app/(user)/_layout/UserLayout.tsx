@@ -13,29 +13,47 @@ import { HeaderVisibilityProvider } from "@/components/AppFrames/User/contexts/H
 import { HeaderNavVisibilityProvider } from "@/components/AppFrames/User/contexts/HeaderNavVisibilityContext";
 import { UserBottomNav } from "./BottomNav";
 import { BottomNavSpacer } from "./BottomNav/BottomNavSpacer";
+// header / footer の既定は config の旧切替の経路を通す(upstream では既定部品の re-export。旧入口撤去の区切りで直接 import へ)
 import { UserFooter } from "@/config/ui/user-footer.config";
 import { UserNavigation } from "@/config/ui/user-header.config";
+import {
+  BACKGROUND_IMAGE_URL,
+  BACKGROUND_OVERLAY_COLOR,
+  BACKGROUND_OVERLAY_OPACITY,
+} from "@/config/ui/user-layout.config";
 
 type LayoutStyle = CSSProperties & {
   "--app-header-height"?: string;
 };
 
-export type UserAppLayoutProps = {
+/**
+ * slot の約束(5 つ共通): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く。
+ * fork は layout.tsx をドット区切り名のカスタム(例 `UserLayout.<project>.tsx`)へ向け、そこで既定の UserLayout に slot を渡す。
+ * 経緯と手順: ./README.md
+ */
+export type UserLayoutProps = {
   readonly children: ReactNode;
-  /** 背景画像のURL */
-  readonly backgroundImageUrl?: string;
-  /** オーバーレイの色（任意のCSS色形式: "#000", "black", "rgb(0,0,0)"など） */
-  readonly overlayColor?: string;
-  /** オーバーレイの透明度（0-1） */
-  readonly overlayOpacity?: number;
+  /** ヘッダー。既定 = config/ui/user-header.config の UserNavigation(旧切替の経路。upstream では既定 Header) */
+  readonly header?: ReactNode;
+  /** フッター。既定 = config/ui/user-footer.config の UserFooter(旧切替の経路。upstream では既定 Footer) */
+  readonly footer?: ReactNode;
+  /** ボトムナビ(高さ分のスペーサーを含む)。既定 = BottomNavSpacer + UserBottomNav */
+  readonly bottomNav?: ReactNode;
+  /** 最背面の背景。既定 = BackgroundLayer(config/ui/user-layout.config の 3 値) */
+  readonly background?: ReactNode;
+  /** 未読お知らせのモーダル。既定 = UnreadNotificationModal */
+  readonly notificationModal?: ReactNode;
 };
 
-export const UserAppLayout = ({
+/** ユーザー側の枠の既定の組み立て。src/app/(user)/layout.tsx が 1 行スイッチで default に束ねる */
+export function UserLayout({
   children,
-  backgroundImageUrl,
-  overlayColor,
-  overlayOpacity,
-}: UserAppLayoutProps) => {
+  header,
+  footer,
+  bottomNav,
+  background,
+  notificationModal,
+}: UserLayoutProps) {
   const headerHeight = useHeaderHeight();
 
   const layoutStyle: LayoutStyle = {
@@ -47,11 +65,15 @@ export const UserAppLayout = ({
       <HeaderNavVisibilityProvider>
         <FooterVisibilityProvider>
           <BottomNavVisibilityProvider>
-            <BackgroundLayer
-              imageUrl={backgroundImageUrl}
-              overlayColor={overlayColor}
-              overlayOpacity={overlayOpacity}
-            />
+            {background === undefined ? (
+              <BackgroundLayer
+                imageUrl={BACKGROUND_IMAGE_URL || undefined}
+                overlayColor={BACKGROUND_OVERLAY_COLOR}
+                overlayOpacity={BACKGROUND_OVERLAY_OPACITY}
+              />
+            ) : (
+              background
+            )}
             {/* data-user-app-container: <UserPage fill> が配下にある時だけ
                 styles/config.css の :has() ルールで確定高さ + overflow-clip に
                 切り替わる（既定は min-h で伸びる通常ページ）。 */}
@@ -62,18 +84,57 @@ export const UserAppLayout = ({
               className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
               style={layoutStyle}
             >
-              <UserNavigation />
+              {header === undefined ? <UserNavigation /> : header}
               <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
                 {children}
               </div>
-              <UserFooter />
-              <BottomNavSpacer />
-              <UserBottomNav />
-              <UnreadNotificationModal />
+              {footer === undefined ? <UserFooter /> : footer}
+              {bottomNav === undefined ? (
+                <>
+                  <BottomNavSpacer />
+                  <UserBottomNav />
+                </>
+              ) : (
+                bottomNav
+              )}
+              {notificationModal === undefined ? <UnreadNotificationModal /> : notificationModal}
             </Flex>
           </BottomNavVisibilityProvider>
         </FooterVisibilityProvider>
       </HeaderNavVisibilityProvider>
     </HeaderVisibilityProvider>
   );
+}
+
+/** @deprecated 旧 props の互換。背景は config/ui/user-layout.config か background slot へ(旧入口撤去の区切りで削除) */
+export type UserAppLayoutProps = {
+  readonly children: ReactNode;
+  /** 背景画像のURL */
+  readonly backgroundImageUrl?: string;
+  /** オーバーレイの色（任意のCSS色形式: "#000", "black", "rgb(0,0,0)"など） */
+  readonly overlayColor?: string;
+  /** オーバーレイの透明度（0-1） */
+  readonly overlayOpacity?: number;
 };
+
+/**
+ * @deprecated 旧 export 名の互換。UserLayout を使う(旧 props は background slot に写す)。旧入口撤去の区切りで削除
+ */
+export const UserAppLayout = ({
+  children,
+  backgroundImageUrl,
+  overlayColor,
+  overlayOpacity,
+}: UserAppLayoutProps) => (
+  <UserLayout
+    background={
+      <BackgroundLayer
+        imageUrl={backgroundImageUrl}
+        overlayColor={overlayColor}
+        overlayOpacity={overlayOpacity}
+      />
+    }
+  >
+    {children}
+  </UserLayout>
+);

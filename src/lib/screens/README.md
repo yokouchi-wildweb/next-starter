@@ -11,7 +11,7 @@
 | ファイル | 役割 |
 |---|---|
 | `types.ts` | `ScreenProps<P, S>` — Screen と loader が受け取る props（Next が page に渡す props と同じ形）。`LegacyRouteEntry` — 例外リストの型 |
-| `checks.mjs` | 検査関数 `parseSwitchPage` / `checkSwitchPage` / `checkScreenFile` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`（副作用なし。fork が独自の検査を書くときはこれを import） |
+| `checks.mjs` | 検査関数 `parseSwitchPage` / `parseSwitchLayout` / `checkSwitchPage` / `checkScreenFile` / `checkLayoutTarget` / `checkLoaderFile` / `isReexportOnlyFile` / `stripComments`（副作用なし。fork が独自の検査を書くときはこれを import。page.tsx と layout.tsx のスイッチは同じ本体で検査する） |
 | `routeTree.mjs` | `discoverRoutes` / `listAppFiles` — `src/app` 全体のページの発見（URL・@slot・祖先の layout）。test:screens とルート地図が共有する（§9・§13） |
 | `routeMap.mjs` | ルート地図の生成（方針の出どころの抽出と整形。純粋関数）。CLI は `scripts/routes/map.mjs`（`pnpm routes:map` / `routes:show`） |
 | `screens.test.mjs` | `pnpm test:screens` — page.tsx と loader を自動検出して検査。上流の未移行ルート一覧 `UPSTREAM_LEGACY_ROUTES` を持つ |
@@ -43,6 +43,18 @@ src/app/(user)/(protected)/wallet/[slug]/
 | 共有 loader | `src/features/core/admin/services/server/loaders/` | 上流 | 多数のルートが同じ処理を使うときだけ（dc:generate の管理画面）。ルート 1 つのための loader をここに置かない |
 | セクションコンテナ / 部品 | `src/features/<domain>/components/` | ドメインの所有者 | 既存どおり |
 | hook / client service | `src/features/<domain>/hooks/`、`services/client/` | ドメインの所有者 | **契約**（既存） |
+
+枠を描く layout.tsx も同じ形（Screen と Layout は対: page.tsx ↔ layout.tsx、`_screen/` ↔ `_layout/`）:
+
+```
+src/app/(user)/
+├── layout.tsx        1 行スイッチ `export { UserLayout as default } from "./_layout/UserLayout";`。採用者(下流)所有・write-once
+└── _layout/          既定の組み立て(UserLayout = 部品を省略可能な props = slot で受ける)と枠の部品。提供者所有
+    └── UserLayout.<project>.tsx   下流のカスタム(ドット区切り名、隣に置く)。layout.tsx をこちらへ向ける
+```
+
+- 対象は upstream の枠を描く layout.tsx（今は `(user)/layout.tsx`・`(user)/(protected)/mypage/layout.tsx`）。ガードと同居する layout（`admin/(protected)`・`admin/insane`）は提供者所有のまま（評議会 20261019-213253 §7）
+- slot の一覧と fork の手順は `src/app/(user)/_layout/README.md`
 
 1 対 1 の意味:
 - ユーザー向けページは必ず Screen を 1 つ持つ（0 も 2 以上も無し）。上流も fork も同じ
@@ -286,6 +298,7 @@ import { BalanceCard } from "./BalanceCard";
 | Screen の欠落・形 | `checkScreenFile`: 参照先（`<X>.tsx` → `<X>/index.tsx` → barrel 1 段）が存在し、名前を named export、default export と `"use client"` を持たない | 失敗 |
 | Screen が部品を直接読まない | `checkScreenImports`: `@/features/**/components/` の import 先の途中に `index.tsx` を持つディレクトリ（= コンテナ）があれば違反（§6）。ファイルの有無は test 側の `isContainerDir` が見て、checker には述語で渡す | 失敗 |
 | loader の規律 | `checkLoaderFile`: `import "server-only"`、`cache(`、`load<Xxx>` の export、`_components/` / Screen からの import 無し（型含む）、`(protected)` 配下なら `getSessionUser` の import 無し。ルート内 loader も共有 loader も同じ検査（補助関数は `utils/` へ） | 失敗 |
+| 枠の layout.tsx を太らせない | `parseSwitchLayout`（`parseSwitchPage` と同じ本体。参照先は `./_layout/<X>`）: `FRAME_LAYOUTS`（screens.test.mjs、upstream の枠を描く layout.tsx）と、`./_layout/` を指す re-export を持つ全ての layout.tsx。参照先は `checkLayoutTarget`（named export あり・default export なし。`"use client"` は可）。全 Tier で検査（fork も採用者所有のスイッチを持つ。fork がルートを消してファイルが無ければ対象外） | 失敗 |
 | 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
 | 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
 | URL の重複 | 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成） | 失敗 |
@@ -380,13 +393,13 @@ src/app/admin/(protected)/samples/
 ```
 
 - URL: route group `(x)` と `@slot` を落とす。動的セグメント（`[slug]`）と intercepting の印（`(.)x`）はそのまま残す。`@slot` の中のページは `<URL> @slot` の別の行になり、方針は親ページと同じ祖先の layout（+ slot 内の layout）から作る
-- 方針の出どころ（loader Factory の前の方式）: 祖先の `layout.*` と、ルート内 loader（`_screen/loader.ts` = `loader:_screen`、`_components/loader.ts` = `loader:_components`）の中のガード関数の呼び出しを拾う。対象は `authGuard`・`principalGuard`・`deviceGuard`・`requireCurrentUser`・`getSessionUser`・`requireAdmin`・`requireAuthenticated`
+- 方針の出どころ（loader Factory の前の方式）: 祖先の `layout.*`（`./_layout/<X>` への 1 行スイッチなら、スイッチ先の組み立ての中の呼び出しも同じ `layout:<dir>` の出どころとして拾う。辿るのは 1 段だけ）と、ルート内 loader（`_screen/loader.ts` = `loader:_screen`、`_components/loader.ts` = `loader:_components`）の中のガード関数の呼び出しを拾う。対象は `authGuard`・`principalGuard`・`deviceGuard`・`requireCurrentUser`・`getSessionUser`・`requireAdmin`・`requireAuthenticated`
   - 1 つの呼び出しは `関数名#hash` で表す。hash は引数の全文（文字列の外の空白・末尾カンマ・コメントを除いて正規化）の sha256 の先頭 8 桁で、引数なしなら `00000000`
   - 引数が変われば hash が変わるので、配下の全ページの行が差分に出る
   - 出どころは祖先 → 葉の順に ` > ` でつなぐ（親子は AND）。ガード呼び出しのない layout は行に出さない
   - フォルダ名（`(protected)` 等）は読まない
 - 状態: 今は全行 `legacy-unverified`。layout のガードと loader で守っていても、機械が方針を検証していない、という意味。ガードが見つからない行は `none` と書き、`public` とは書かない（未検証のものを公開と誤読させない）。loader Factory（access の型必須）の導入後に、Factory の方針を読む状態を足し、未解決・旧方式の行を失敗にする予定（評議会 20261019-213253 §7「F2 の後」）
-- 既知の限界: hash は呼び出しの引数の字面だけを見る。`authGuard({ allowRoles: adminRoles })` の `adminRoles` の定義が変わっても、地図には出ない。layout から呼ばれる関数の中のガードや、Screen・部品の中の呼び出しも拾わない（これらの置き場を 1 か所に寄せるのは loader Factory / guard.ts の仕事）
+- 既知の限界: hash は呼び出しの引数の字面だけを見る。`authGuard({ allowRoles: adminRoles })` の `adminRoles` の定義が変わっても、地図には出ない。layout から呼ばれる関数の中のガード（スイッチ先の組み立てがさらに import する先を含む）や、Screen・部品の中の呼び出しも拾わない（これらの置き場を 1 か所に寄せるのは loader Factory / guard.ts の仕事）
 - fork の merge で地図が衝突したら、どちらの版も採らずに `pnpm routes:map` で作り直してコミットする（地図は生成物なので、手で解決しない）
 
 決定の経緯（評議会 20261019-213253 §4 M1・§7、legate order 01）:

@@ -68,7 +68,8 @@ export const DEFAULT_IMPL_DIRS = ["_screen", "_layout"];
 
 /**
  * DEFAULT_IMPL_DIRS 配下のドット区切り名のファイル(拡張子を除いた名前に "." を含む: `UserLayout.custom.tsx`)を返す。
- * ドット区切り名 = fork のカスタムの印なので、upstream はこれを作らない(test:screens が Tier1 でだけ検査する)
+ * ドット区切り名 = fork のカスタムの印なので、upstream はこれを作らない(test:screens が Tier1 でだけ検査する)。
+ * `*.test.*` は除く(test はカスタムではない)
  * @param {string[]} files repo 相対パス
  */
 export function findDotNamedFiles(files) {
@@ -76,7 +77,10 @@ export function findDotNamedFiles(files) {
     const segments = file.split("/");
     const base = segments.pop();
     if (!segments.some((segment) => DEFAULT_IMPL_DIRS.includes(segment))) return false;
-    return base.replace(/\.[^.]+$/, "").includes(".");
+    const stem = base.replace(/\.[^.]+$/, "");
+    // test(`UserLayout.test.tsx`)はカスタムではない(既定の隣に置いてよい)
+    if (/\.test$/.test(stem)) return false;
+    return stem.includes(".");
   });
 }
 
@@ -186,23 +190,36 @@ function isAllowedImportSource(source) {
   return false;
 }
 
+/** layout.tsx のスイッチ先のディレクトリ(既定の組み立て `_layout/<Name>Layout.tsx`、fork のカスタムはその隣のドット区切り名) */
+export const LAYOUT_DIRS = ["_layout"];
+
+/** スイッチの種類ごとの文言(page と layout は同じ検査関数を共有する。報告書 §2「Screen と Layout は同じ概念の対」) */
+const SWITCH_KINDS = {
+  page: { file: "page.tsx", dirs: SCREEN_DIRS, target: "Screen", example: "XScreen" },
+  layout: { file: "layout.tsx", dirs: LAYOUT_DIRS, target: "組み立て", example: "XLayout" },
+};
+
 /**
- * page.tsx を解析し、スイッチ形かどうかと参照先を返す。
- * 許されるもの: `./_screen/<X>` または `./_components/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
+ * page.tsx / layout.tsx を解析し、1 行スイッチ形かどうかと参照先を返す(共通の本体)。
+ * 許されるもの: `./<dir>/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
  * 設定 export(metadata / dynamic 等)、generateMetadata、それらに必要な import。
- * @param {string} source page.tsx の内容
+ * @param {string} source ファイルの内容
+ * @param {"page" | "layout"} kind
  * @returns {{ problems: string[], target: { screenDir: string, file: string, name: string } | null }}
- *   problems が空ならスイッチ形。target は参照先(screenDir = "_screen" | "_components"、file = import パスの末尾、name = default に束ねた export 名)
+ *   problems が空ならスイッチ形。target は参照先(screenDir = 参照先のディレクトリ名、file = import パスの末尾、name = default に束ねた export 名)
  */
-export function parseSwitchPage(source) {
+function parseSwitchModule(source, kind) {
+  const { file: fileLabel, dirs, target: targetLabel, example } = SWITCH_KINDS[kind];
+  const dirLabel = dirs.map((dir) => `./${dir}/`).join(" または ");
   const problems = [];
   let target = null;
   let src = stripComments(source);
 
-  // 1. ./_screen/ または ./_components/ からの re-export がちょうど 1 つ(default + 許可された名前のみ)
-  const reexports = [...src.matchAll(/export\s*\{([^}]*)\}\s*from\s*["']\.\/(_screen|_components)\/([\w./-]+?)["']\s*;?/g)];
+  // 1. 許されたディレクトリからの re-export がちょうど 1 つ(default + 許可された名前のみ)
+  const reexportRe = new RegExp(`export\\s*\\{([^}]*)\\}\\s*from\\s*["']\\.\\/(${dirs.join("|")})\\/([\\w./-]+?)["']\\s*;?`, "g");
+  const reexports = [...src.matchAll(reexportRe)];
   if (reexports.length !== 1) {
-    problems.push(`./_screen/ または ./_components/ からの \`export { X as default }\` が 1 つだけ必要(${reexports.length} 個)`);
+    problems.push(`${dirLabel} からの \`export { X as default }\` が 1 つだけ必要(${reexports.length} 個)`);
   } else {
     const [whole, names, screenDir, file] = reexports[0];
     const specifiers = names.split(",").map((s) => s.trim()).filter(Boolean);
@@ -217,11 +234,11 @@ export function parseSwitchPage(source) {
       if (spec === defaultSpec) continue;
       if (REEXPORTABLE_FROM_SCREEN.includes(spec)) continue;
       if (spec === "default") {
-        problems.push("Screen は default export しない。`export { XScreen as default } from ...` の形で束ねる");
+        problems.push(`${targetLabel} は default export しない。\`export { ${example} as default } from ...\` の形で束ねる`);
       } else if (PAGE_CONFIG_EXPORTS.includes(spec)) {
-        problems.push(`\`${spec}\` は Screen から re-export できない(Next が静的解析するため page.tsx 自体に書く)`);
+        problems.push(`\`${spec}\` は ${targetLabel} から re-export できない(Next が静的解析するため ${fileLabel} 自体に書く)`);
       } else {
-        problems.push(`Screen から re-export できる名前は default と ${REEXPORTABLE_FROM_SCREEN.join(" / ")} だけ(${spec})`);
+        problems.push(`${targetLabel} から re-export できる名前は default と ${REEXPORTABLE_FROM_SCREEN.join(" / ")} だけ(${spec})`);
       }
     }
     src = src.replace(whole, "");
@@ -231,7 +248,7 @@ export function parseSwitchPage(source) {
   for (let hit = stripImport(src); hit; hit = stripImport(src)) {
     src = hit.src;
     if (!isAllowedImportSource(hit.source)) {
-      problems.push(`page.tsx で import できない: "${hit.source}"(画面ロジックは Screen へ)`);
+      problems.push(`${fileLabel} で import できない: "${hit.source}"(${kind === "page" ? "画面ロジックは Screen へ" : "枠の組み立ては _layout/ へ"})`);
     }
   }
 
@@ -245,6 +262,44 @@ export function parseSwitchPage(source) {
     problems.push(`許可されない記述が残っている: ${remainder.split("\n")[0].trim()}`);
   }
   return { problems, target };
+}
+
+/**
+ * page.tsx を解析し、スイッチ形かどうかと参照先を返す。
+ * 許されるもの: `./_screen/<X>` または `./_components/<X>` からの `export { <Name> as default[, metadata, generateMetadata] }` 1 つ、
+ * 設定 export(metadata / dynamic 等)、generateMetadata、それらに必要な import。
+ * @param {string} source page.tsx の内容
+ * @returns {{ problems: string[], target: { screenDir: string, file: string, name: string } | null }}
+ *   problems が空ならスイッチ形。target は参照先(screenDir = "_screen" | "_components"、file = import パスの末尾、name = default に束ねた export 名)
+ */
+export function parseSwitchPage(source) {
+  return parseSwitchModule(source, "page");
+}
+
+/**
+ * 枠を描く layout.tsx を解析し、1 行スイッチ形かどうかと参照先を返す(page.tsx と同じ検査。参照先は `./_layout/<X>`)。
+ * 例: `export { UserLayout as default } from "./_layout/UserLayout";`
+ * @param {string} source layout.tsx の内容
+ * @returns {{ problems: string[], target: { screenDir: string, file: string, name: string } | null }} screenDir は常に "_layout"
+ */
+export function parseSwitchLayout(source) {
+  return parseSwitchModule(source, "layout");
+}
+
+/**
+ * layout のスイッチ先(`_layout/<X>.tsx`)の検査。`<name>` を named export し、default export しない。
+ * Screen と違い "use client" は可(枠は Provider や表示状態を持つ client の組み立てになりうる)
+ * @param {string} source スイッチ先の内容
+ * @param {string} name 期待する named export 名
+ */
+export function checkLayoutTarget(source, name) {
+  const problems = [];
+  const src = stripComments(source);
+  const declared = new RegExp(`export\\s+(async\\s+)?(function|const)\\s+${name}\\b`).test(src);
+  const barrel = new RegExp(`export\\s*\\{[^}]*\\b${name}\\b[^}]*\\}`).test(src);
+  if (!declared && !barrel) problems.push(`\`export function ${name}\` を持たない`);
+  if (/export\s+default/.test(src)) problems.push("default export しない(layout.tsx が as default で再 export する)");
+  return problems;
 }
 
 /**

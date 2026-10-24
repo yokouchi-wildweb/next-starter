@@ -17,6 +17,8 @@
 //    upstream = 下の UPSTREAM_LEGACY_ROUTES(Step 5e で空になった。新しい core ルートはスイッチ形で作る)
 //    fork     = src/registry/screenRoutesRegistry.ts の FORK_LEGACY_ROUTES
 //    移行が済んだのに残っている行も失敗にする(一覧が縮む方向にしか動かない)
+// 5. 枠を描く layout.tsx(FRAME_LAYOUTS)と ./_layout/ を指す layout.tsx は page.tsx と同じ 1 行スイッチ形
+//    (参照先は ./_layout/<X>、採用者所有・write-once)。全 Tier で検査する
 //
 // 検査関数の本体は ./checks.mjs(副作用なし)。
 import { test } from "node:test";
@@ -34,9 +36,11 @@ import {
   checkLoaderFile,
   checkScreenFile,
   checkScreenImports,
+  checkLayoutTarget,
   checkSwitchPage,
   findDotNamedFiles,
   isReexportOnlyFile,
+  parseSwitchLayout,
   parseSwitchPage,
   stripComments,
 } from "./checks.mjs";
@@ -58,6 +62,12 @@ const exists = (path) => existsSync(resolve(repoRoot, path));
  * (やむを得ず残す場合だけ { dir, reason } を足し、移行したら外す。移行済みの行が残っていると失敗する)
  */
 export const UPSTREAM_LEGACY_ROUTES = [];
+
+/**
+ * upstream の枠を描く layout.tsx(1 行スイッチ形であること。ファイルが無ければ = fork がルートを消した → 検査しない)。
+ * ガードと同居する admin/(protected)・insane の layout.tsx は提供者所有のまま(報告書 §7)なので載せない
+ */
+export const FRAME_LAYOUTS = ["src/app/(user)/layout.tsx", "src/app/(user)/(protected)/mypage/layout.tsx"];
 
 // ---------------------------------------------------------------------------
 // 検出
@@ -235,6 +245,42 @@ for (const page of pages) {
     });
   }
 }
+
+// 枠の layout.tsx: FRAME_LAYOUTS と、./_layout/ を指す re-export を持つ layout.tsx(fork が自分で作ったスイッチも同じ規則)
+const layoutFiles = listAppFiles(repoRoot).filter((file) => file.endsWith("/layout.tsx"));
+const switchLayouts = layoutFiles.filter(
+  (file) => FRAME_LAYOUTS.includes(file) || /from\s*["']\.\/_layout\//.test(stripComments(read(file))),
+);
+for (const layout of switchLayouts) {
+  const dir = dirname(layout);
+  const { problems, target } = parseSwitchLayout(read(layout));
+  test(`${layout}: 枠の layout.tsx は _layout/ の組み立てへの 1 行スイッチ`, () => {
+    assert.deepEqual(
+      problems,
+      [],
+      `${layout}: ${problems.join(" / ")}\n→ layout.tsx を \`export { XLayout as default } from "./_layout/XLayout"\` にし、` +
+        `fork の差分は slot / config / ドット区切り名のカスタム(_layout/XLayout.<project>.tsx)へ移す`,
+    );
+  });
+  if (problems.length === 0 && target) {
+    test(`${layout}: ${target.screenDir}/${target.file} が ${target.name} を named export する`, () => {
+      const file = [".tsx", ".ts", "/index.tsx"].map((ext) => `${dir}/${target.screenDir}/${target.file}${ext}`).find(exists);
+      assert.ok(file, `${dir}/${target.screenDir}/${target.file}(.tsx | .ts | /index.tsx) が無い`);
+      const targetProblems = checkLayoutTarget(read(file), target.name);
+      assert.deepEqual(targetProblems, [], `${file}: ${targetProblems.join(" / ")}`);
+    });
+  }
+}
+
+test("FRAME_LAYOUTS: upstream の枠の layout.tsx が検査対象に入っている(Tier1 では全て存在する)", (t) => {
+  const missing = FRAME_LAYOUTS.filter((file) => !exists(file));
+  if (missing.length > 0 && !isUpstreamRoot) {
+    t.skip(`fork で削除されたルート: ${missing.join(", ")}`);
+    return;
+  }
+  assert.deepEqual(missing, []);
+  for (const file of FRAME_LAYOUTS) assert.ok(switchLayouts.includes(file), `${file} が検査対象に無い`);
+});
 
 const routeLoaders = discoverRouteLoaders(pageDirs);
 for (const loader of [...routeLoaders, ...discoverSharedLoaders()]) {
@@ -548,10 +594,11 @@ test(
   },
 );
 
-test("findDotNamedFiles: _screen/・_layout/ 配下のドット区切り名だけを拾う", () => {
+test("findDotNamedFiles: _screen/・_layout/ 配下のドット区切り名だけを拾う(*.test.* は除く)", () => {
   const files = [
     "src/app/(user)/_layout/UserLayout.tsx",
     "src/app/(user)/_layout/UserLayout.custom.tsx",
+    "src/app/(user)/_layout/UserLayout.test.tsx",
     "src/app/(user)/_layout/Header/index.acme.tsx",
     "src/app/(user)/_layout/hooks/useHeaderData.ts",
     "src/app/admin/(protected)/_layout/guard.ts",
@@ -566,4 +613,26 @@ test("findDotNamedFiles: _screen/・_layout/ 配下のドット区切り名だ�
     "src/app/(user)/_layout/Header/index.acme.tsx",
     "src/app/(user)/wallet/_screen/WalletScreen.custom.tsx",
   ]);
+});
+
+test("parseSwitchLayout: ./_layout/ への 1 行スイッチだけを許し、JSX 直書き・_screen 向き・複数の re-export を弾く", () => {
+  const ok = `export { UserLayout as default } from "./_layout/UserLayout";\n`;
+  assert.deepEqual(parseSwitchLayout(ok).problems, []);
+  assert.deepEqual(parseSwitchLayout(ok).target, { screenDir: "_layout", file: "UserLayout", name: "UserLayout" });
+  const custom = `// fork のカスタムへ\nexport { AcmeUserLayout as default } from "./_layout/UserLayout.acme";\n`;
+  assert.deepEqual(parseSwitchLayout(custom).target, { screenDir: "_layout", file: "UserLayout.acme", name: "AcmeUserLayout" });
+  const withMetadata = `import type { Metadata } from "next";\nexport const metadata: Metadata = { title: "x" };\nexport { XLayout as default } from "./_layout/XLayout";`;
+  assert.deepEqual(parseSwitchLayout(withMetadata).problems, []);
+  const jsx = `import type { ReactNode } from "react";\nimport { UserAppLayout } from "@/app/(user)/_layout/UserLayout";\nexport default function L({ children }: { children: ReactNode }) {\n  return <UserAppLayout>{children}</UserAppLayout>;\n}`;
+  assert.ok(parseSwitchLayout(jsx).problems.length > 0);
+  assert.ok(parseSwitchLayout(`export { XScreen as default } from "./_screen/XScreen";`).problems.length > 0, "layout は _screen を指さない");
+  assert.ok(parseSwitchLayout(`${ok}export { YLayout } from "./_layout/YLayout";`).problems.length > 0);
+  assert.ok(parseSwitchLayout(`export { default } from "./_layout/XLayout";`).problems.some((p) => p.includes("default export しない")));
+});
+
+test("checkLayoutTarget: named export を要求し、default export を弾き、\"use client\" は許す", () => {
+  assert.deepEqual(checkLayoutTarget(`"use client";\nexport function UserLayout() { return null; }`, "UserLayout"), []);
+  assert.deepEqual(checkLayoutTarget(`export const MyPageLayout = () => null;`, "MyPageLayout"), []);
+  assert.ok(checkLayoutTarget(`export function Other() { return null; }`, "UserLayout").length > 0);
+  assert.ok(checkLayoutTarget(`export function UserLayout() { return null; }\nexport default UserLayout;`, "UserLayout").length > 0);
 });

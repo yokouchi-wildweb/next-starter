@@ -9,7 +9,7 @@ next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), fir
 
 ## CORE_FILES (ownership: who edits what)
 core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/{_screen,_layout}/** of upstream routes (dot-named files beside them = fork-owned), servers/room/src/core/, servers/room/src/index.ts, src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
-downstream_owned (upstream never edits after creation): src/styles/custom/**, src/config/ui/*.config.ts, page.tsx of switched routes, src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES), src/app/api/cron/*/override.ts
+downstream_owned (upstream never edits after creation): src/styles/custom/**, src/config/ui/*.config.ts, page.tsx / frame layout.tsx of switched routes, src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES), src/app/api/cron/*/override.ts
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_core_edit_compat (a fork edits a core path; default = don't, prefer /upreq):
 - stay backward compatible with upstream callers: props/args the fork adds = optional with an empty default | never delete core code the fork does not use | signature change = add a new name, keep the old
@@ -131,7 +131,7 @@ overlays (never a raw _shadcn dialog or a self-built overlay; all under Overlays
 detail (wrapper table, ui_layers, data_seam, forms, async_select, optimistic updates, kiosk) → .claude/rules/core/components.md (loaded with any .tsx)
 
 ## SCREENS (page layer that downstream replaces without editing core)
-before adding or replacing a page, Screen or loader → read src/lib/screens/README.md
+before adding or replacing a page, frame layout, Screen or loader → read src/lib/screens/README.md
 route_groups: (user)/(protected) = login required | (user)/(public) = public pages | (user)/(auth) = login / signup flows | (user)/(legal) = legal pages | (marketing)/ = landing pages outside the user layout | admin/ | debug/ | ref: src/app/README.md
 route: page.tsx = 1-line switch → _screen/\<Name\>Screen.tsx (server, default Screen) + _screen/loader.ts | 1 route = 1 Screen | fork replaces = copy to _components/\<X\>Screen.tsx, keep calling the upstream loader, point page.tsx at it, never edit upstream _screen/ | src/app/route-map.txt generated (pnpm routes:map)
 detail (Screen / loader / session rules, contracts, downstream / upstream rules, tests, admin_generated) → .claude/rules/core/screens.md
