@@ -26,7 +26,7 @@
     "test:variant-overrides": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/variantOverrides/variantOverrides.test.mjs",
     "test:screens": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/screens/screens.test.mjs",
     "test:route-map": "node --test src/lib/screens/routeMap.test.mjs",
-    "test:user-layout": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test \"src/app/(user)/_layout/UserLayout.test.tsx\"",
+    "test:user-layout": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test \"src/app/(user)/_layout/UserLayout.test.tsx\" \"src/app/(user)/_layout/UserParts.test.tsx\" \"src/app/(user)/_layout/UserPageDefault.test.tsx\"",
     "test:lib-catalog": "node --test src/lib/folderCatalog/catalog.test.mjs",
     "test:core-rules": "node --test scripts/claude-rules/coreRules.test.mjs",
     "test:storage-setup": "npx tsx --test scripts/storage/iamGrant.test.ts",

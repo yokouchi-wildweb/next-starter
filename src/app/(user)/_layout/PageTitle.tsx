@@ -1,4 +1,4 @@
-// src/components/AppFrames/User/Elements/PageTitle.tsx
+// src/app/(user)/_layout/PageTitle.tsx
 
 import { Section } from "@/components/Layout/Section";
 import { PageTitle as BasePageTitle, type PageTitleProps } from "@/components/TextBlocks";

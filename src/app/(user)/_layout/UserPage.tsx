@@ -1,6 +1,7 @@
-// src/components/AppFrames/User/Layout/UserPage.tsx
+// src/app/(user)/_layout/UserPage.tsx
 
 import { Main, type MainProps } from "@/components/TextBlocks";
+import { USER_PAGE_CONTAINER_TYPE } from "@/config/ui/user-layout.config";
 import { cn } from "@/lib/cn";
 
 import { HideBottomNav, HideFooter, HideHeader } from "@/components/AppFrames/User/controls";
@@ -55,13 +56,15 @@ export function UserPage({
   safeArea = false,
   className,
   padding,
+  containerType,
   ...props
 }: UserPageProps) {
   const isFill = fill || immersive;
 
   if (!isFill) {
+    // 幅の既定は config/ui/user-layout.config の USER_PAGE_CONTAINER_TYPE(明示があればそちら)
     return (
-      <Main className={className} padding={padding} {...props}>
+      <Main className={className} padding={padding} containerType={containerType ?? USER_PAGE_CONTAINER_TYPE} {...props}>
         {children}
       </Main>
     );
@@ -78,7 +81,7 @@ export function UserPage({
       )}
       <Main
         data-user-fill=""
-        containerType="plain"
+        containerType={containerType ?? "plain"}
         padding={padding ?? "none"}
         className={cn(
           "flex min-h-0 flex-1 flex-col overflow-clip overscroll-none",

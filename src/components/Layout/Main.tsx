@@ -33,6 +33,12 @@ export type MainProps = ComponentPropsWithoutRef<"main"> &
     fullscreenLayer?: FullScreenLayer;
     /** 二重コンテナ構造時の内側コンテナのクラス名 */
     innerClassName?: string;
+    /**
+     * コンテンツの縦位置(Main:layout を持つ型 = plain・fullscreen 以外で効く)。
+     * - "center"(既定): 余白があれば縦中央寄せ(ログイン・エラー等の短いページ向け、従来の挙動)
+     * - "start": 上揃え(縦に長いコンテンツのページ向け。中央寄せ由来の上の余白を出さない)
+     */
+    verticalAlign?: "center" | "start";
   };
 
 export function Main({
@@ -48,11 +54,15 @@ export function Main({
   children,
   fullscreenLayer,
   innerClassName,
+  verticalAlign = "center",
   id = "main",
   ...props
 }: MainProps) {
 
   const effectiveContainerType = containerType ?? "contentShell";
+
+  // 縦位置のクラス。先頭に置き、center のときの class 文字列を従来と同じ並びに保つ
+  const verticalAlignClass = verticalAlign === "center" ? "my-auto" : "mt-0 mb-auto";
 
   if (effectiveContainerType === "plain") {
     return (
@@ -112,7 +122,8 @@ export function Main({
           data-component="Main:layout"
           id={`${id}-layout`}
           className={cn(
-            "my-auto mx-auto w-full max-w-screen overflow-clip bg-surface",
+            verticalAlignClass,
+            "mx-auto w-full max-w-screen overflow-clip bg-surface",
             mainLayoutVariants({
               appearance,
               padding,
@@ -145,7 +156,7 @@ export function Main({
       <div
         data-component="Main:layout"
         id={`${id}-layout`}
-        className="my-auto mx-auto w-full max-w-screen overflow-clip"
+        className={cn(verticalAlignClass, "mx-auto w-full max-w-screen overflow-clip")}
         style={
           layoutMaxWidths[effectiveContainerType]
             ? { maxWidth: layoutMaxWidths[effectiveContainerType] }

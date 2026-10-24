@@ -8,15 +8,17 @@
 src/app/(user)/_layout/
 ├── UserLayout.tsx       # 枠全体の既定の組み立て(export UserLayout = slot 付き、互換の UserAppLayout)。(user)/layout.tsx の 1 行スイッチ先
 ├── UserLayout.test.tsx  # slot と「props なしの描画が 1 行スイッチ化の前と同じ」の検査(pnpm test:user-layout)
+├── UserParts.test.tsx   # 部品の slot / props と「props なしの描画が部品 slot 化の前と同じ」の検査(同上)
+├── UserPageDefault.test.tsx # UserPage の幅の既定が config に従うことの検査(同上)
 ├── BackgroundLayer.tsx  # 背景画像・オーバーレイ
-├── UserPage.tsx         # ページコンテナ(fill / immersive モード)。Screen が使う
+├── UserPage.tsx         # ページコンテナ(fill / immersive モード、幅の既定は config)。Screen が使う
 ├── PageTitle.tsx        # ページの h1(export UserPageTitle)。Screen が使う
-├── Header/              # ヘッダーナビゲーション(既定。export UserNavigation)
+├── Header/              # ヘッダーナビゲーション(既定。export UserNavigation、slot = leading / actions / menuActions)
 │   ├── index.tsx / Brand.tsx / HeaderShell.tsx / MenuItemLabel.tsx / MenuItemLink.tsx / animations.ts / types.ts
 │   ├── Pc/              # PcNavigation・PcMenuItem
 │   └── Sp/              # SpNavigation・SpNavPanel・SpNavOverlay・SpNavSwitch・SpMenuItem
 ├── Footer/index.tsx     # フッター(既定。export UserFooter)
-├── BottomNav/           # スマホ用ボトムナビ(index・BottomNavItem・BottomNavSpacer・types・useBottomNavItems)
+├── BottomNav/           # スマホ用ボトムナビ(index・BottomNavItem・BottomNavMenu・BottomNavSpacer・types・useBottomNavItems)
 └── hooks/               # useHeaderData・useFooterData(ヘッダー・フッターの表示データと状態)
 ```
 
@@ -178,6 +180,27 @@ export const GUEST_MENU_ITEMS: HeaderMenuItem[] = [...];
 | `GUEST_MENU_ITEMS` | 未ログインユーザー用メニュー |
 | `SHOW_LOGOUT_BUTTON` | ログアウトボタンの表示 |
 
+### 部品の slot(UserNavigation の props)
+
+既定ヘッダー `UserNavigation`(`@/app/(user)/_layout/Header`)は 3 つの props を受ける。約束は UserLayout の slot と同じ(省略 = 既定 / `null` = 描かない / 要素 = それを描く)。
+
+| prop | 既定 | 描く位置 |
+|------|------|---------|
+| `leading` | なし | `#header-left` の先頭(ブランドの前)。例: 戻るボタン |
+| `actions` | PC だけに出る「お問い合わせ」 | `#header-right`(SP メニューの開閉ボタンの前)。要素はそのまま描くので SP のヘッダーにも出る。PC だけにするなら要素側で `hidden sm:flex` 等 |
+| `menuActions` | 幅いっぱいの「お問い合わせ」 | SP メニューのパネル下部(`#header-sp-nav-footer`)。`null` で下部の領域ごと描かない |
+
+fork はドット区切り名のカスタムで header slot に渡す(戻るボタン・通知ベル・設定リンク等を Header のファイルを編集せずに足せる):
+
+```tsx
+// src/app/(user)/_layout/UserLayout.acme.tsx
+<UserLayout header={<UserNavigation leading={<BackButton />} actions={<NotificationBell />} menuActions={null} />}>
+  {children}
+</UserLayout>
+```
+
+slot を持つのは既定の UserNavigation だけ(廃止予定の HeaderCustom には無い)。slot で足りない構造の違いはドット区切り名のコピーで持つ。
+
 ---
 
 ## Footer - フッター
@@ -243,9 +266,10 @@ export const COPYRIGHT_FORMAT = "simple";
 export const BOTTOM_NAV_ENABLED = true;
 export const BOTTOM_NAV_HEIGHT = 64;
 
-// メニュー設定
+// メニュー設定(type 省略 = リンク項目)
 export const AUTHENTICATED_MENU_ITEMS: BottomNavItem[] = [
   { key: "home", label: "ホーム", href: "/", icon: Home },
+  { type: "menu", key: "create", label: "作成", icon: Plus, menu: [{ key: "post", label: "投稿", href: "/posts/new" }] },
   { key: "mypage", label: "マイページ", href: "/mypage", icon: User },
 ];
 
@@ -263,6 +287,17 @@ export const GUEST_MENU_ITEMS: BottomNavItem[] = [
 | `BOTTOM_NAV_HEIGHT` | ナビの高さ（px） |
 | `AUTHENTICATED_MENU_ITEMS` | ログイン中ユーザー用メニュー |
 | `GUEST_MENU_ITEMS` | 未ログインユーザー用メニュー |
+
+### 項目の型(type: "link" | "menu")
+
+項目の型(`BottomNavItem` = `BottomNavLinkItem | BottomNavMenuItem`、`BottomNavMenuAction`)は config(`user-bottom-menu.config.ts`)で定義し、`_layout/BottomNav/types.ts` は re-export と判別関数 `isBottomNavMenuItem` だけを持つ(config → app の依存を作らない。HeaderMenuItem と同じ向き)。
+
+| type | 必須 | 描き方 |
+|------|------|-------|
+| 省略 / `"link"` | key・label・href・icon(任意: matchPaths・badge) | リンク。カレントは色が変わる |
+| `"menu"` | key・label・icon・menu(`{ key, label, href, icon? }[]`)(任意: menuTitle・badge) | ボタン。タップで上向きのアクションメニュー(Overlays の ActionPopover)を開き、各アクションは遷移だけ。カレントにはならない |
+
+menu 型の項目を独自の型・判別で実装していた場合は、`type: "menu"` に置き換えて独自の型・判別を削除する。
 
 ### カレントページ判定
 
@@ -291,7 +326,12 @@ BottomNavは固定表示のため、フッターなど下部コンテンツが�
 
 ## UserPage - ページコンテナ
 
-`Main` の薄いラッパー。`containerType` / `padding` 等の Main の props をそのまま受け付ける。
+`Main` の薄いラッパー。`containerType` / `padding` / `verticalAlign` 等の Main の props をそのまま受け付ける。
+
+### 幅の既定と縦位置
+
+- `containerType` を渡さないときの幅は `src/config/ui/user-layout.config.ts` の `USER_PAGE_CONTAINER_TYPE`(既定 `"contentShell"` = Main の既定と同じ)。値はアプリ全体で 1 つ(layout ごとの既定は持たない)。ページが `containerType` を渡せばそちらが勝つ。fill / immersive は従来どおり `plain`
+- 縦位置は Main の `verticalAlign`: `"center"`(既定、余白があれば縦中央)/ `"start"`(上揃え、縦に長いページ向け)。`<UserPage verticalAlign="start">` で渡せる
 
 ### fill - ビューポート充填モード
 
@@ -356,7 +396,7 @@ export default function PlayerPage() {
 - 移し方: 最初の区切り(notice frame-move-user)は移動だけ。中身は移動で壊れる相対 import の行だけを書き換え、旧パス 27 か所に `@deprecated 旧パス互換` の re-export shim を残した(`grep -rl "@deprecated 旧パス互換" src`)。fork が旧パスで編集していた差分は /flux が notice の `moved:` で新パスへ当て直す。中身の変更(1 行スイッチ・slot 化・config を値だけにする等)は後の区切りで、新パス上の普通の変更として入る
 - shim と eslint `deprecated-imports/no-deprecated-path` の旧パス一覧は、区切り 2 を全 fork が取り込んだことを確かめた後の「旧入口撤去」の区切りで削除する(前例: ui-layers-rename → ui-layers-shim-removal)
 - 採用者所有のファイル(`src/app/(user)/layout.tsx`・`(protected)/mypage/layout.tsx`・`src/config/ui/user-*.config.ts`)は、移動の区切りでは旧パスのまま(shim 経由)にし、次の区切り(notice frame-slots-user)で扱った
-- `Header/index.tsx` が自分の Pc / Sp 部品を旧パスの絶対 import で読んでいるのは、移動の区切りで中身を変えないため(fork の差分が当たりやすい)。後の区切りで新パスへ直す
+- `Header/index.tsx` が自分の Pc / Sp 部品を旧パスの絶対 import で読んでいたのは、移動の区切りで中身を変えないため(fork の差分が当たりやすい)。部品の slot の区切り(notice frame-parts-user)で相対 import に直した
 
 ## 1 行スイッチと slot の経緯(notice frame-slots-user)
 
@@ -365,7 +405,25 @@ export default function PlayerPage() {
 - 背景の 3 値は layout.tsx が 1 行になるので `src/config/ui/user-layout.config.ts`(枠全体の値の受け皿として新設)へ移した
 - 移行の間の形: header / footer は config の経路を通して描くので、config を HeaderCustom に切り替えている fork も見た目が変わらない。UserAppLayout も旧 props のまま動く。どちらも旧入口撤去の区切りで削除する
 - ルート地図(src/lib/screens/routeMap.mjs)は layout.tsx の本文しか読んでいなかったので、スイッチ先の `_layout/` を 1 段辿るようにした(fork がカスタムの組み立てに書いたガードを地図から落とさないため)
-- 部品そのものの slot(Header の actions / leading、BottomNav の項目の type)・banner・寸法の CSS 変数は後の区切りで入る
+- 部品そのものの slot は次の区切り(notice frame-parts-user)、banner・寸法の CSS 変数はその後の区切りで入る
+
+## 部品の slot の経緯(notice frame-parts-user)
+
+- fork は部品の中を編集していた: ヘッダー右の CTA の差し替え、戻るボタン・通知ベル・設定リンクの追加、menu 型のボトムナビ項目の自前実装、Main の縦揃えと UserPage の既定幅。どれも upstream の部品の変更と衝突した
+- Header: `leading` / `actions` / `menuActions` を UserNavigation の props に。PC 右と SP メニュー下部を別々に上書き・片方だけ外せる
+- BottomNav: 項目に判別キー `type`(省略 = link)。名前(menu・menuTitle・BottomNavMenuAction)は fork の既存の自前実装に揃え、fork の書き換えを項目に `type: "menu"` を足すだけにした。項目の型は config へ移した(config → app の依存を作らない)
+- Main(core)に `verticalAlign`。名前と値は fork の既存の実装と同じ(fork の衝突は上流版を採るだけ)。center の class 文字列は従来と同じ並び
+- UserPage の幅の既定は config の値 `USER_PAGE_CONTAINER_TYPE`
+- props を渡さない既定の DOM は前と同じ(id・class を含む。`UserParts.test.tsx` に前の HTML を固定)
+
+## 採らなかった案(部品の slot)
+
+- Header の actions を `{ pc, sp }` の 1 つの object で受ける: 平らな 2 つの props の方が「省略 = 既定 / null = なし」をそのまま書ける
+- actions を PC 専用の入れ物で包む: 通知ベル等を SP のヘッダー右に出せなくなる
+- UserPage の幅の既定を layout から context・CSS 変数・UserLayout の props で配る: UserPage は server component(Screen が server で描く)で useContext が使えない。CSS 変数は Main の inline の maxWidth を変える = 既定の DOM が変わる。UserLayout の props は Screen の子へ届かない。枠全体の値の受け皿(user-layout.config.ts)の 1 値にした
+- BottomNavItem 型を `_layout` に置いたまま config が import する: config → app の依存になる
+- menu の判別を `menu?: undefined` で行う: `type` キーなら省略時 link を型で表せ、判別が 1 か所に集まる
+- Main の `overflow-clip` を `overflow-x-clip` に同時に変える: 既定の class が変わる。必要が示されたら別に扱う
 
 ## 採らなかった案(1 行スイッチと slot)
 

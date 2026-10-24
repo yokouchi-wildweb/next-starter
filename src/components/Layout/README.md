@@ -48,6 +48,10 @@
 - `wideShowcase`: 広い幅
 - `fullscreen`: フルスクリーン
 
+`verticalAlign`でコンテンツの縦位置を制御(`plain`・`fullscreen` 以外の型で効く):
+- `center`: 余白があれば縦中央寄せ（default。ログイン・エラー等の短いページ向け）
+- `start`: 上揃え（縦に長いコンテンツのページ向け）
+
 #### FullScreen
 モバイルブラウザのアドレスバーを考慮した真のフルスクリーン表示。`layer` propでz-index層を指定。
 

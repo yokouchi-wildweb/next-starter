@@ -1,16 +1,34 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { Button } from "@/components/Form/Button/Button";
 
 import { useHeaderData } from "../hooks";
 import { Brand } from "./Brand";
 import { HeaderShell } from "./HeaderShell";
-import { PcNavigation } from "@/components/AppFrames/User/Sections/Header/Pc/PcNavigation";
-import { SpNavigation } from "@/components/AppFrames/User/Sections/Header/Sp/SpNavigation";
-import { SpNavSwitch } from "@/components/AppFrames/User/Sections/Header/Sp/SpNavSwitch";
+import { PcNavigation } from "./Pc/PcNavigation";
+import { SpNavigation } from "./Sp/SpNavigation";
+import { SpNavSwitch } from "./Sp/SpNavSwitch";
 
-export const UserNavigation = () => {
+/**
+ * slot の約束(3 つ共通、UserLayout の slot と同じ): 省略(undefined) = 既定 / null = 描かない / 要素 = それを描く。
+ * fork は UserLayout の header slot に `<UserNavigation leading={…} actions={…} menuActions={…} />` を渡す。手順: ../README.md
+ */
+export type UserNavigationProps = {
+  /** ブランドの前(#header-left の先頭)。例: 戻るボタン。既定 = なし */
+  readonly leading?: ReactNode;
+  /**
+   * ヘッダー右(SP メニューの開閉ボタンの前)。既定 = PC だけに出る「お問い合わせ」。
+   * 要素はそのまま描く = SP のヘッダーにも出る(PC だけにするなら要素側で `hidden sm:flex` 等)
+   */
+  readonly actions?: ReactNode;
+  /** SP メニューのパネル下部。既定 = 幅いっぱいの「お問い合わせ」。null でパネル下部の領域ごと描かない */
+  readonly menuActions?: ReactNode;
+};
+
+export const UserNavigation = ({ leading, actions, menuActions }: UserNavigationProps = {}) => {
   const {
     enabled,
     navItems,
@@ -42,14 +60,23 @@ export const UserNavigation = () => {
       className={`fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-header text-header-foreground ${visibilityClass}`}
     >
       <HeaderShell
-        left={<Brand />}
+        left={
+          <>
+            {leading}
+            <Brand />
+          </>
+        }
         center={showPcNav && <PcNavigation items={navItems} showIcons={showIcons} />}
         right={
           <>
-            {/* PC版: ヘッダー右側にCTAボタン */}
-            <Button variant="default" size="sm" className="hidden sm:inline-flex">
-              お問い合わせ
-            </Button>
+            {actions === undefined ? (
+              /* PC版: ヘッダー右側にCTAボタン */
+              <Button variant="default" size="sm" className="hidden sm:inline-flex">
+                お問い合わせ
+              </Button>
+            ) : (
+              actions
+            )}
             {showSpNav && <SpNavSwitch isMenuOpen={isMenuOpen} onToggle={toggleMenu} />}
           </>
         }
@@ -63,10 +90,14 @@ export const UserNavigation = () => {
           onClose={closeMenu}
           headerOffset={headerOffset}
           footer={
-            /* SP版: メニュー下部にCTAボタン */
-            <Button variant="default" className="w-full">
-              お問い合わせ
-            </Button>
+            menuActions === undefined ? (
+              /* SP版: メニュー下部にCTAボタン */
+              <Button variant="default" className="w-full">
+                お問い合わせ
+              </Button>
+            ) : (
+              menuActions
+            )
           }
         />
       )}

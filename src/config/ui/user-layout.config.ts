@@ -5,6 +5,8 @@
  * 部品の差し替えは config ではなく UserLayout の slot で行う(src/app/(user)/_layout/README.md)
  */
 
+import type { MainProps } from "@/components/Layout/Main";
+
 // ============================================
 // 背景設定
 // ============================================
@@ -17,3 +19,13 @@ export const BACKGROUND_OVERLAY_COLOR: string = "#000";
 
 /** オーバーレイの透明度（0-1） */
 export const BACKGROUND_OVERLAY_OPACITY: number = 0;
+
+// ============================================
+// ページ幅設定
+// ============================================
+
+/**
+ * UserPage の containerType の既定(fill / immersive 以外。ページが containerType を渡せばそちらが勝つ)。
+ * 値は Layout/Main の containerType。アプリ全体で 1 つ(layout ごとの既定は持たない)
+ */
+export const USER_PAGE_CONTAINER_TYPE: NonNullable<MainProps["containerType"]> = "contentShell";
