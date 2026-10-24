@@ -6,7 +6,8 @@ import type { ReactNode } from "react";
 import type { Control, ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { ControlledField } from "../Controlled";
-import { FormField, FormItem, FormControl, FormMessage } from "@/components/_shadcn/form";
+import { FormField, FormItem, FormMessage } from "@/components/_shadcn/form";
+import { FieldControl } from "../FieldControl";
 import { useAutoSaveContext } from "@/components/Form/AutoSave";
 import type { FieldConfig, FieldCommonProps } from "../types";
 import {
@@ -133,9 +134,9 @@ export function ConfiguredField<
           const wrappedField = wrapFieldWithAutoSave(field);
           return (
             <FormItem className={className}>
-              <FormControl>
+              <FieldControl hasMessage={!hideError}>
                 {renderInputByFormType(formInput, wrappedField, fieldConfig, inputClassName)}
-              </FormControl>
+              </FieldControl>
               {!hideError && <FormMessage />}
             </FormItem>
           );

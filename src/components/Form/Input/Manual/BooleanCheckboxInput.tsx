@@ -1,6 +1,6 @@
 // @/components/Form/Input/Manual/BooleanCheckboxInput.tsx
 
-import type { ComponentProps, ReactNode } from "react";
+import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Checkbox } from "@/components/_shadcn/checkbox";
@@ -40,7 +40,9 @@ export type BooleanCheckboxInputProps = {
 } & Omit<ComponentProps<typeof Checkbox>, "checked" | "defaultChecked" | "onCheckedChange" | "value" | "name" | "disabled">;
 
 export function BooleanCheckboxInput({ value, name, onChange, onBlur, label, id, className, size, disabled, ...rest }: BooleanCheckboxInputProps) {
-  const checkboxId = id ?? name ?? undefined;
+  // id も name も無いときも label と結び付くよう、予備の ID を使う
+  const fallbackId = useId();
+  const checkboxId = id ?? name ?? fallbackId;
   const checkbox = (
     <Checkbox
       id={checkboxId}
@@ -65,7 +67,7 @@ export function BooleanCheckboxInput({ value, name, onChange, onBlur, label, id,
       <Label
         htmlFor={checkboxId}
         className={cn(
-          checkboxId ? "cursor-pointer" : undefined,
+          "cursor-pointer",
           disabled && "cursor-not-allowed opacity-50"
         )}
       >

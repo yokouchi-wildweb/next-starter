@@ -102,6 +102,9 @@ const [notify, setNotify] = useState(false);
 </form>
 ```
 
+- 見えるラベルを出さないスイッチ・チェックボックス(一覧の行内トグル等)は `aria-label="〇〇を有効にする"` を渡して読み上げ用の名前を付ける(input にそのまま渡る)。Field 経由なら FormLabel が名前になるので不要
+- Field(ControlledField / ConfiguredField)の入力の `aria-describedby` は、実際に描画した説明文(`description`)とエラーだけを指す(`Form/Field/FieldControl.tsx`)。`_shadcn/form` の `FormControl` を直接使わない
+
 ---
 
 ## 2. Field を使う（標準的なフォーム）

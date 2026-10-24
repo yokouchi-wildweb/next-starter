@@ -5,10 +5,8 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from "@/components/_shadcn/form";
-import { Para } from "@/components/TextBlocks/Para";
 import { cn } from "@/lib/cn";
 import {
   type Control,
@@ -16,6 +14,7 @@ import {
   type FieldValues,
   type ControllerRenderProps,
 } from "react-hook-form";
+import { FieldControl, FieldDescription } from "../FieldControl";
 import type { FieldCommonProps } from "../types";
 import { useAutoSaveContext } from "@/components/Form/AutoSave";
 
@@ -114,23 +113,28 @@ export function ControlledField<
 
         // 説明テキスト（before）
         const descBefore = descPlacement === "before" && description && (
-          <Para tone={description.tone} size={description.size} className="mb-0">
+          <FieldDescription tone={description.tone} size={description.size} className="mb-0">
             {description.text}
-          </Para>
+          </FieldDescription>
         );
 
         // 説明テキスト（after）
         const descAfter = descPlacement === "after" && description && (
-          <Para tone={description.tone} size={description.size} className="mt-0">
+          <FieldDescription tone={description.tone} size={description.size} className="mt-0">
             {description.text}
-          </Para>
+          </FieldDescription>
         );
 
         // エラーメッセージ
         const errorElement = !hideError && <FormMessage />;
 
         // 入力コンポーネント
-        const inputElement = <FormControl>{renderInput(wrappedField, inputClassName)}</FormControl>;
+        // aria-describedby は実際に描画する説明文・エラーだけを指す
+        const inputElement = (
+          <FieldControl hasDescription={Boolean(description)} hasMessage={!hideError}>
+            {renderInput(wrappedField, inputClassName)}
+          </FieldControl>
+        );
 
         // 横並びレイアウト
         if (isHorizontal) {

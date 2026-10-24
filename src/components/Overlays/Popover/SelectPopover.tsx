@@ -2,7 +2,7 @@
 
 "use client";
 
-import { type ReactNode, useState, useCallback, useMemo } from "react";
+import { type ReactNode, useState, useCallback, useId, useMemo } from "react";
 import { Search } from "lucide-react";
 
 import { cn } from "@/lib/cn";
@@ -162,6 +162,8 @@ export function SelectPopover({
   className,
   ...contentProps
 }: SelectPopoverProps) {
+  // 各ラジオと label を htmlFor で明示的に結び付けるための ID の接頭辞
+  const radioIdPrefix = useId();
   const [internalOpen, setInternalOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState<string | undefined>(value);
   const [searchQuery, setSearchQuery] = useState("");
@@ -297,20 +299,22 @@ export function SelectPopover({
             >
               {clearable && (
                 <label
+                  htmlFor={`${radioIdPrefix}-clear`}
                   className={cn(
                     "flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5",
                     "hover:bg-accent hover:text-accent-foreground transition-colors"
                   )}
                 >
-                  <RadioGroupItem value={CLEAR_VALUE} className="mt-0.5" />
+                  <RadioGroupItem id={`${radioIdPrefix}-clear`} value={CLEAR_VALUE} className="mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-muted-foreground">{clearLabel}</div>
                   </div>
                 </label>
               )}
-              {filteredOptions.map((option) => (
+              {filteredOptions.map((option, index) => (
                 <label
                   key={option.value}
+                  htmlFor={`${radioIdPrefix}-${index}`}
                   className={cn(
                     "flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5",
                     "hover:bg-accent hover:text-accent-foreground transition-colors",
@@ -318,6 +322,7 @@ export function SelectPopover({
                   )}
                 >
                   <RadioGroupItem
+                    id={`${radioIdPrefix}-${index}`}
                     value={option.value}
                     disabled={option.disabled}
                     className="mt-0.5"
