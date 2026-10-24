@@ -3,11 +3,11 @@
 // 置き場: $TEAM_ORDERS（既定 ~/.team/orders）
 //   <root>/<repo-id>/*.md      = そのリポ宛ての未対応の指令
 //   <root>/<repo-id>/done/*.md = 対応済み
-//   <root>/edict-*/, <root>/legate-*/ = council の束（00-index.md の project: で宛先を判定）
+//   council の legate は council 自身のフォルダ（~/.team/_council/legates/）にあり、ここには単発の指令（from: council <議題id>）だけが入る
 // 使い方:
 //   node mailbox.mjs self    自リポの repo-id と受信箱
 //   node mailbox.mjs repos   手元のリポ（自リポと同じ親ディレクトリにあるもの）と各受信箱
-//   node mailbox.mjs inbox   自リポ宛ての未対応の指令（waiting_on: の待ち状態つき）と council の束
+//   node mailbox.mjs inbox   自リポ宛ての未対応の指令（waiting_on: の待ち状態つき）
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -102,24 +102,6 @@ function mdFiles(dir) {
   }
 }
 
-function councilDirs(self) {
-  try {
-    return readdirSync(ROOT, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && /^(edict|legate)-/.test(e.name))
-      .map((e) => join(ROOT, e.name))
-      .filter((d) => {
-        const index = join(d, "00-index.md");
-        if (!existsSync(index)) return false;
-        const m = readFileSync(index, "utf8").match(/project:(\S+)/);
-        // project: の無い古い束は最上流宛て扱い
-        return m ? m[1] === self.top : !self.upstream;
-      })
-      .sort();
-  } catch {
-    return [];
-  }
-}
-
 // waiting_on: の先の状態。受信箱にあれば open、done/ にあれば done。
 // 引き渡しで中継されていれば（relayed_to:）中継先をたどる
 function orderState(path) {
@@ -161,7 +143,6 @@ if (cmd === "self") {
 } else if (cmd === "inbox") {
   console.log(`box: ${boxOf(self.repoId)}`);
   for (const p of mdFiles(boxOf(self.repoId))) printOrder(p);
-  for (const d of councilDirs(self)) console.log(`council ${d}`);
 } else {
   console.error("usage: node mailbox.mjs self | repos | inbox");
   process.exit(1);
