@@ -2,6 +2,7 @@
 //
 // DetailModal の media(type: "video")の表示。非公開ファイルの固定 URL(/api/storage/objects/)は、
 // 署名期限後の読み込み失敗から位置を保って復帰し、期限が近い状態での再生・シークは先回りで読み直す(usePrivateMediaRecovery)。それ以外の URL は従来どおり。
+// url / poster の storage:// の ref は表示用 URL に直してから使う(非公開の ref も復帰の対象になる)。
 
 "use client";
 
@@ -11,12 +12,13 @@ import { Button } from "@/components/Form/Button/Button";
 import { Flex } from "@/components/Layout/Flex";
 import { Para } from "@/components/TextBlocks/Para";
 import { usePrivateMediaRecovery } from "@/lib/storage/client/usePrivateMediaRecovery";
+import { toStorageDisplaySrc } from "@/lib/storage/ref";
 
 import type { DetailModalMedia } from "./types";
 
 export default function DetailModalVideo({ media }: { media: DetailModalMedia }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const recovery = usePrivateMediaRecovery(media.url, videoRef);
+  const recovery = usePrivateMediaRecovery(toStorageDisplaySrc(media.url), videoRef);
 
   return (
     <>
@@ -25,7 +27,7 @@ export default function DetailModalVideo({ media }: { media: DetailModalMedia })
         ref={videoRef}
         src={recovery.src}
         controls
-        poster={media.poster}
+        poster={toStorageDisplaySrc(media.poster) ?? undefined}
         aria-label={media.alt}
         className="mx-auto w-full max-w-md max-h-80 rounded-md object-contain shadow"
         onError={recovery.handleError}

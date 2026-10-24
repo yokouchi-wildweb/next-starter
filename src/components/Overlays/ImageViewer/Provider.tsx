@@ -6,6 +6,7 @@ import { useState, useCallback, useMemo, type ReactNode, type CSSProperties } fr
 import { XIcon } from "lucide-react";
 import { DialogPrimitives, DialogClose, DialogContent, DialogTitle } from "@/components/Overlays/DialogPrimitives";
 import { BaseSkeleton } from "@/components/Skeleton/BaseSkeleton";
+import { toStorageDisplaySrc } from "@/lib/storage/ref";
 import { ImageViewerContext, type ImageViewerContextValue, type ImageViewerOptions } from "./context";
 
 type ImageViewerProviderProps = {
@@ -73,6 +74,9 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
   }, [options]);
 
   const showSkeleton = options.showSkeleton && !isImageLoaded;
+  // storage:// の ref は表示用 URL に直す（それ以外の値はそのまま）。state には渡された値を持ち、
+  // 非公開ファイルの署名 URL を開いている間より長く保持しない
+  const displaySrc = toStorageDisplaySrc(imageSrc);
 
   return (
     <ImageViewerContext.Provider value={contextValue}>
@@ -96,7 +100,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
           <DialogTitle className="sr-only">
             {imageAlt || "画像プレビュー"}
           </DialogTitle>
-          {imageSrc && (
+          {displaySrc && (
             <div data-slot="image-viewer-content" className="relative inline-block mx-auto">
               {showSkeleton ? (
                 <BaseSkeleton
@@ -108,7 +112,7 @@ export function ImageViewerProvider({ children }: ImageViewerProviderProps) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 data-slot="image-viewer-image"
-                src={imageSrc}
+                src={displaySrc}
                 alt={imageAlt}
                 className="block object-contain"
                 style={{

@@ -139,6 +139,22 @@ export function resolveStorageSrc(
 }
 
 /**
+ * 表示部品（AppImage・ImageViewer・DetailModal 等）が src に渡す前に使う。例外は投げない。
+ * - storage:// の ref → resolveStorageSrc で表示用 URL（解析できなければ null）
+ * - null / 空 → null
+ * - それ以外の値 → そのまま（旧 URL・"/" 始まり・blob: / data: のプレビュー等。解決済みの URL を二重に変換しない）
+ * 保存値として許すかの判定ではない（それは resolveStorageSrc / storageMediaValueSchema）。
+ */
+export function toStorageDisplaySrc(
+  value: string | null | undefined,
+  options?: ResolveStorageSrcOptions,
+): string | null {
+  if (!value) return null;
+  if (value.trim().startsWith(STORAGE_REF_SCHEME)) return resolveStorageSrc(value, options);
+  return value;
+}
+
+/**
  * 公開ファイルの base URL（末尾の / は除く）。未設定なら null。
  * ホストが共有（storage.googleapis.com など）の場合、ホストだけでは自分の公開バケットか判別できないため、
  * next/image の許可判定はこの base の前方一致で行う。

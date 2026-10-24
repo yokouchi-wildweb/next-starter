@@ -26,6 +26,7 @@ import {
   publicStorageBaseUrl,
   publicStorageHosts,
   resolveStorageSrc,
+  toStorageDisplaySrc,
 } from "./ref";
 import { storageMediaValueSchema } from "./schema";
 import type { StoragePurposeMap } from "./policy/types";
@@ -160,6 +161,34 @@ describe("resolveStorageSrc", () => {
     assert.deepEqual(publicStorageHosts(base), ["storage.example.test"]);
     assert.deepEqual(publicStorageHosts({ publicBaseUrl: null }), []);
     assert.deepEqual(publicStorageHosts({ publicBaseUrl: "not a url" }), []);
+  });
+});
+
+describe("toStorageDisplaySrc（表示部品が src に渡す前）", () => {
+  const base = { publicBaseUrl: "https://storage.example.test/pub-bucket/" };
+
+  test("ref は resolveStorageSrc と同じ表示用 URL（解析できなければ null）", () => {
+    assert.equal(toStorageDisplaySrc(PUB_REF, base), resolveStorageSrc(PUB_REF, base));
+    assert.equal(toStorageDisplaySrc(PRIV_REF, base), `/api/storage/objects/${LEDGER_ID}`);
+    assert.equal(toStorageDisplaySrc("storage://pub/broken", base), null);
+  });
+
+  test("ref 以外は値のまま（プレビュー・解決済みの URL を二重に変換しない）", () => {
+    for (const value of [
+      "https://storage.example.test/pub-bucket/user.avatar/a.webp",
+      `/api/storage/objects/${LEDGER_ID}`,
+      "/images/default.png",
+      "blob:http://localhost:3000/0f0e",
+      "data:image/png;base64,AAAA",
+    ]) {
+      assert.equal(toStorageDisplaySrc(value, base), value);
+    }
+  });
+
+  test("null・undefined・空は null", () => {
+    assert.equal(toStorageDisplaySrc(null, base), null);
+    assert.equal(toStorageDisplaySrc(undefined, base), null);
+    assert.equal(toStorageDisplaySrc("", base), null);
   });
 });
 

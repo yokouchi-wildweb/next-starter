@@ -3,6 +3,9 @@
 "use client";
 
 import { type ComponentPropsWithoutRef, type MouseEvent } from "react";
+
+import { toStorageDisplaySrc } from "@/lib/storage/ref";
+
 import { useImageViewer, type ImageViewerOptions } from "./context";
 
 type ZoomableImageProps = ComponentPropsWithoutRef<"img"> & {
@@ -31,7 +34,7 @@ export function ZoomableImage({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       data-component="zoomable-image"
-      src={src}
+      src={toStorageDisplaySrc(src) ?? undefined}
       alt={alt}
       style={{ ...style, cursor: "zoom-in" }}
       onClick={handleClick}

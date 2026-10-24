@@ -30,7 +30,7 @@
 | ファイル | 実行環境 | 役割 |
 |---|---|---|
 | `index.ts` | client-safe | 入口（ref・配信規則・スキーマ・用途の型） |
-| `ref.ts` | client-safe | ref の組み立て・解析、`resolveStorageSrc`、公開 base・固定 URL の判定（`publicStorageBaseUrl` / `isPublicStorageUrl` / `isPrivateObjectPath` / `publicStorageHosts`） |
+| `ref.ts` | client-safe | ref の組み立て・解析、`resolveStorageSrc`・`toStorageDisplaySrc`、公開 base・固定 URL の判定（`publicStorageBaseUrl` / `isPublicStorageUrl` / `isPrivateObjectPath` / `publicStorageHosts`） |
 | `contentTypes.ts` | client-safe | 型の照合、拡張子の対応表、inline / attachment の判定 |
 | `schema.ts` | client-safe | メディア列の値の zod スキーマ `storageMediaValueSchema` |
 | `policy/types.ts` | client-safe | 用途の型 `StoragePurpose` ほか |
@@ -95,7 +95,9 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
 
 ### 表示側の配線
 
-- `AppImage`（src/components/Media/AppImage）は src が ref なら `resolveStorageSrc` を通す。ref 以外の値は従来どおりそのまま
+- 表示部品が src に渡す前は `toStorageDisplaySrc(value)` を通す: ref だけを `resolveStorageSrc` で表示用 URL にし、ref 以外の値（旧 URL・`/` 始まり・`blob:` / `data:` のプレビュー・解決済みの URL）はそのまま返す
+  - `resolveStorageSrc` を直接使うと `blob:` / `data:` が null になり、アップロード前のプレビューが消える
+  - 使っている部品: `AppImage`（src/components/Media/AppImage）、`ImageViewer`（`openImage` / `ZoomableImage`）、`DetailModal`（media の url・poster）。呼び出し側は ref をそのまま渡してよい
 - 固定 URL（`/api/storage/` で始まる値）は、呼び出し側の指定に関わらず next/image の最適化を外す
   - 認可済みの画像が最適化キャッシュに残り、他の利用者に配られるのを防ぐ
 - 公開 base は `NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL` から next/image の remotePatterns に入る。旧バケットの 2 パターンも残る

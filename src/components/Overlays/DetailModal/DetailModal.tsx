@@ -16,6 +16,7 @@
 import { SolidBadge } from "@/components/Badge";
 import { Block } from "@/components/Layout/Block";
 import { cn } from "@/lib/cn";
+import { toStorageDisplaySrc } from "@/lib/storage/ref";
 
 import Modal from "../Modal";
 import DetailModalVideo from "./DetailModalVideo";
@@ -65,7 +66,7 @@ export default function DetailModal({
       <DetailModalVideo media={media} />
     ) : (
       <img
-        src={media.url}
+        src={toStorageDisplaySrc(media.url) ?? undefined}
         alt={media.alt ?? ""}
         className="mx-auto w-full max-w-md max-h-80 rounded-md object-contain shadow"
       />

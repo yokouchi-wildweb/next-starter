@@ -397,6 +397,8 @@ import DetailModal from "@/components/Overlays/DetailModal";
 
 `rows` へ `ReactNode[]` を渡すと、列幅を柔軟に変えたカスタム行を作成できる。
 
+`media.url` / `media.poster` には `storage://` の ref をそのまま渡してよい（`toStorageDisplaySrc` で表示用 URL に直す。非公開の動画は署名期限切れから復帰する）。
+
 ---
 
 ### AsyncPickerModal
@@ -553,6 +555,8 @@ function Example() {
   );
 }
 ```
+
+`openImage(src)` と `ZoomableImage` の `src` には `storage://` の ref をそのまま渡してよい（`toStorageDisplaySrc` で表示用 URL に直す。ref 以外の値はそのまま）。
 
 ---
 

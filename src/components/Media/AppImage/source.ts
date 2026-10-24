@@ -1,10 +1,11 @@
 // src/components/Media/AppImage/source.ts
 //
 // AppImage が next/image に渡す src と unoptimized を決める純関数。
-// storage:// の ref だけを resolveStorageSrc で表示用 URL にし、それ以外の値（旧 URL・"/" 始まり・blob: / data: の
-// プレビュー等）は従来どおりそのまま渡す。非公開ファイルの固定 URL（/api/storage/）は呼び出し側の指定に関わらず unoptimized。
+// storage:// の ref だけを表示用 URL にし、それ以外の値（旧 URL・"/" 始まり・blob: / data: の
+// プレビュー等）は従来どおりそのまま渡す（toStorageDisplaySrc。overlays と同じ規則）。
+// 非公開ファイルの固定 URL（/api/storage/）は呼び出し側の指定に関わらず unoptimized。
 
-import { isPrivateObjectPath, resolveStorageSrc, STORAGE_REF_SCHEME } from "@/lib/storage/ref";
+import { isPrivateObjectPath, toStorageDisplaySrc } from "@/lib/storage/ref";
 
 import { isOptimizableSrc } from "./optimizable";
 
@@ -22,16 +23,9 @@ export type AppImageSource = {
   unoptimized: boolean | undefined;
 };
 
-/** ref なら表示用 URL（解析できなければ null）、それ以外は値のまま（空は null） */
-function toDisplayUrl(value: string | null | undefined): string | null {
-  if (!value) return null;
-  if (value.trim().startsWith(STORAGE_REF_SCHEME)) return resolveStorageSrc(value);
-  return value;
-}
-
 export function resolveAppImageSource(input: AppImageSourceInput): AppImageSource {
-  const resolved = input.failed ? null : toDisplayUrl(input.src);
-  const displaySrc = resolved ?? toDisplayUrl(input.fallbackSrc) ?? undefined;
+  const resolved = input.failed ? null : toStorageDisplaySrc(input.src);
+  const displaySrc = resolved ?? toStorageDisplaySrc(input.fallbackSrc) ?? undefined;
   if (!displaySrc) return { displaySrc: undefined, unoptimized: undefined };
 
   // 認可済みの画像を最適化キャッシュに載せない（呼び出し側の unoptimized={false} でも外す）
