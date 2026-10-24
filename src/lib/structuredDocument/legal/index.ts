@@ -30,6 +30,7 @@ export type {
   LegalDocument,
   LegalDocumentDates,
   LegalDocumentRendererProps,
+  LegalEnactedAtFormat,
   LegalRenderMode,
   LegalSection,
   LegalSectionNumbering,

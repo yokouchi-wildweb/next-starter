@@ -59,6 +59,20 @@ export type LegalRenderMode = "rich" | "plain";
 /**
  * レンダラーのプロパティ
  */
+/**
+ * 制定日・最終改定日の行の文言テンプレート。
+ * {enactedAt} / {lastUpdatedAt} を文書の値で置き換える(日付そのものの書式は文書側の文字列で決める)。
+ * 文字列だけなのでサーバーコンポーネントの Screen からも渡せる
+ */
+export type LegalEnactedAtFormat = {
+  /** 両方あるとき(既定: "制定日：{enactedAt} / 最終改定日：{lastUpdatedAt}") */
+  both?: string;
+  /** 制定日だけのとき(既定: "【{enactedAt}制定】") */
+  enactedOnly?: string;
+  /** 最終改定日だけのとき(既定: "最終改定日：{lastUpdatedAt}") */
+  updatedOnly?: string;
+};
+
 export type LegalDocumentRendererProps = {
   /** 描画する文書 */
   document: LegalDocument;
@@ -70,6 +84,8 @@ export type LegalDocumentRendererProps = {
   showTitle?: boolean;
   /** 制定日を表示するか（デフォルト: true） */
   showEnactedAt?: boolean;
+  /** 制定日・最終改定日の行の文言(省略したキーは既定の文言) */
+  enactedAtFormat?: LegalEnactedAtFormat;
   /** スクロール領域として表示する場合の最大高さ */
   maxHeight?: string;
   /** カスタムクラス名 */

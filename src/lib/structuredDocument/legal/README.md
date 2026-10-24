@@ -46,6 +46,7 @@ import {
 | `mode` | `"rich" \| "plain"` | `"rich"` | 描画モード |
 | `showTitle` | `boolean` | `true` | タイトル表示 |
 | `showEnactedAt` | `boolean` | `true` | 制定日表示 |
+| `enactedAtFormat` | `LegalEnactedAtFormat` | - | 制定日・最終改定日の行の文言。`{ both?, enactedOnly?, updatedOnly? }` の各テンプレートで `{enactedAt}` / `{lastUpdatedAt}` を置換（省略したキーは既定の文言）。文字列だけなのでサーバーの Screen から渡せる。日付そのものの書式は文書側（`business.config.ts` 等）の文字列で決める |
 | `maxHeight` | `string` | - | スクロール領域の最大高さ |
 | `className` | `string` | - | カスタムクラス |
 

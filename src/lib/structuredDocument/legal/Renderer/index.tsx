@@ -2,9 +2,34 @@
 
 import { Para } from "@/components/TextBlocks";
 
-import type { LegalDocumentRendererProps } from "../definition";
+import type { LegalDocumentRendererProps, LegalEnactedAtFormat } from "../definition";
 import { PlainRenderer } from "./PlainRenderer";
 import { RichRenderer } from "./RichRenderer";
+
+const DEFAULT_ENACTED_AT_FORMAT: Required<LegalEnactedAtFormat> = {
+  both: "制定日：{enactedAt} / 最終改定日：{lastUpdatedAt}",
+  enactedOnly: "【{enactedAt}制定】",
+  updatedOnly: "最終改定日：{lastUpdatedAt}",
+};
+
+function formatEnactedAtLine(
+  enactedAt: string | undefined,
+  lastUpdatedAt: string | undefined,
+  format: LegalEnactedAtFormat | undefined,
+): string | null {
+  const resolved = { ...DEFAULT_ENACTED_AT_FORMAT, ...format };
+  const template = enactedAt && lastUpdatedAt
+    ? resolved.both
+    : enactedAt
+      ? resolved.enactedOnly
+      : lastUpdatedAt
+        ? resolved.updatedOnly
+        : null;
+  if (template === null) return null;
+  return template
+    .replaceAll("{enactedAt}", enactedAt ?? "")
+    .replaceAll("{lastUpdatedAt}", lastUpdatedAt ?? "");
+}
 
 /**
  * リーガルドキュメントレンダラー
@@ -32,10 +57,14 @@ export function LegalDocumentRenderer({
   variables = {},
   showTitle = true,
   showEnactedAt = true,
+  enactedAtFormat,
   maxHeight,
   className,
 }: LegalDocumentRendererProps) {
   const numbering = document.sectionNumbering ?? "none";
+  const enactedAtLine = showEnactedAt
+    ? formatEnactedAtLine(document.enactedAt, document.lastUpdatedAt, enactedAtFormat)
+    : null;
 
   const content = (
     <>
@@ -54,13 +83,9 @@ export function LegalDocumentRenderer({
       )}
 
       {/* 制定日・最終更新日 */}
-      {showEnactedAt && (document.enactedAt || document.lastUpdatedAt) && (
+      {enactedAtLine && (
         <Para tone="muted" size="sm">
-          {document.enactedAt && document.lastUpdatedAt
-            ? `制定日：${document.enactedAt} / 最終改定日：${document.lastUpdatedAt}`
-            : document.enactedAt
-              ? `【${document.enactedAt}制定】`
-              : `最終改定日：${document.lastUpdatedAt}`}
+          {enactedAtLine}
         </Para>
       )}
     </>
