@@ -140,6 +140,8 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
+  // 画面端に密着・はみ出さないよう、端から 8px 内側に収める(Radix の既定は 0)
+  collisionPadding = 8,
   size = "md",
   layer = "overlay",
   showArrow = false,
@@ -264,6 +266,7 @@ function PopoverContent({
       data-slot="popover-content"
       align={align}
       sideOffset={sideOffset}
+      collisionPadding={collisionPadding}
       onInteractOutside={handleInteractOutside}
       onPointerDown={handlePointerDown}
       onMouseDown={handleMouseDown}

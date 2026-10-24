@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 
 import {
   Tabs,
@@ -81,27 +81,34 @@ export function StateTabs({
   triggerClassName = "rounded-sm data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm",
   activeLabelClassName = "text-primary-foreground",
 }: StateTabsProps) {
+  // 非制御モードでも現在値をここで持つ(アクティブなラベルのクラスを現在値で決めるため)
+  const [internalValue, setInternalValue] = useState(defaultValue ?? tabs[0]?.value)
+  const isControlled = value !== undefined
+  const currentValue = isControlled ? value : internalValue
+
   if (!tabs.length) {
     return null
   }
 
-  const resolvedDefaultValue = defaultValue ?? tabs[0]?.value
   const sizeClassName = STATE_TAB_SIZE_STYLES[size]
+
+  const handleValueChange = (nextValue: string) => {
+    if (!isControlled) {
+      setInternalValue(nextValue)
+    }
+    onValueChange?.(nextValue)
+  }
 
   return (
     <Tabs
-      value={value}
-      defaultValue={value === undefined ? resolvedDefaultValue : undefined}
-      onValueChange={onValueChange}
+      value={currentValue}
+      onValueChange={handleValueChange}
       className={cn("w-full", className)}
     >
       <nav aria-label={ariaLabel}>
         <TabsList className={cn("w-full", listAppearanceClassName, listClassName)}>
           {tabs.map((tab) => {
-            const isControlled = value !== undefined
-            const isActive = isControlled
-              ? tab.value === value
-              : tab.value === resolvedDefaultValue
+            const isActive = tab.value === currentValue
 
             return (
               <TabsTrigger
