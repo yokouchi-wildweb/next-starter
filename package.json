@@ -15,6 +15,7 @@
     "test:popover-dismiss": "node --test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs",
     "test:cn": "node --test src/lib/cn/cn.test.mjs",
     "test:site-theme": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/siteTheme/siteTheme.test.mjs",
+    "test:transition-guard": "npx tsx --test src/lib/transitionGuard/matchTargetPath.test.mjs",
     "test:fonts": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/fonts/fonts.test.mjs",
     "test:style-tokens": "node --test src/styles/styleTokens.test.mjs",
     "test:style-lint": "node --test eslint-rules/style-tokens.test.mjs",

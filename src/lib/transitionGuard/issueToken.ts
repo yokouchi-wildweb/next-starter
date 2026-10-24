@@ -1,4 +1,5 @@
 import { DEFAULT_TOKEN_TTL_MS } from "./constants";
+import { toGuardPath } from "./matchTargetPath";
 import type { IssueTokenOptions, TransitionToken } from "./types";
 
 /**
@@ -11,7 +12,8 @@ export function issueToken(
   const now = Date.now();
   const token: TransitionToken = {
     id: crypto.randomUUID(),
-    targetPath,
+    // 照合はパス名で行うため、クエリ・# を外して保存する
+    targetPath: toGuardPath(targetPath),
     expiresAt: now + (options?.ttl ?? DEFAULT_TOKEN_TTL_MS),
     createdAt: now,
   };

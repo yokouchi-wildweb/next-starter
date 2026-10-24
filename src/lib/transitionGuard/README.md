@@ -149,4 +149,5 @@ const { status, isChecking, isValidTransition } = useTransitionGuard(config);
 - クライアントサイドのみの検証のため、セキュリティガードではなくUXガードとして使用
 - 遷移先ページは `"use client"` が必須
 - トークンの有効期限はデフォルト5分（`DEFAULT_TOKEN_TTL_MS`）
+- 遷移先の照合はパス名の完全一致。`guardedPush("/signup/register?method=thirdParty")` のように付けたクエリ・`#` は無視する（遷移先の `usePathname()` がパス名だけのため）。前方一致はしない（`matchTargetPath.ts`、テスト: `pnpm test:transition-guard`）
 - sessionStorageを使用するため、タブ間で共有されない

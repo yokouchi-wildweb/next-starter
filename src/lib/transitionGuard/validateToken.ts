@@ -1,3 +1,4 @@
+import { matchesTargetPath } from "./matchTargetPath";
 import { consumeToken } from "./storage";
 import type { GuardResult, TransitionGuardConfig } from "./types";
 
@@ -39,7 +40,8 @@ export function validateGuard(
       return { passed: false, reason: "expired" };
     }
 
-    if (token.targetPath !== currentPath) {
+    // パス名で照合する(遷移先に付けたクエリ・# は無視)
+    if (!matchesTargetPath(token.targetPath, currentPath)) {
       return { passed: false, reason: "path_mismatch" };
     }
 
