@@ -111,5 +111,7 @@ export default function OnboardingPage() {
 | `<HideHeader sp pc />` | 非表示 | 非表示 |
 
 - **props未指定で両方非表示**（`<HideHeader />`で両方非表示）
-- ページ遷移時に自動リセット（アンマウント時にデフォルトに戻る）
+- アンマウント時は**そのコンポーネントの指定だけ**を外す（他の Hide* の指定は残る）。退出アニメーション中の旧ページの Hide* が新ページの Hide* より後に外れても、新ページの指定が効いたまま
+- 複数の Hide* が同時にあるときは、後からマウントした方の指定が優先
+- 自作の表示制御は `useHeaderVisibility()` 等の `setOverride(id, partial)` / `clearOverride(id)`（id は `useId()`）を使う。`setVisibility` / `reset` は基本の値を操作するもので、`reset` は Hide* の指定を消さない（実装: `contexts/createVisibilityContext.tsx`）
 - ブレークポイント: `sm`（640px）を境界としてSP/PCを判定

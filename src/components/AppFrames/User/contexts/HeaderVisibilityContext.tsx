@@ -1,67 +1,14 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useMemo,
-  type ReactNode,
-} from "react";
+import { createVisibilityContext, type DeviceVisibility } from "./createVisibilityContext";
 
-export type HeaderVisibility = {
-  sp: boolean;
-  pc: boolean;
-};
+export type HeaderVisibility = DeviceVisibility;
 
-type HeaderVisibilityContextValue = {
-  visibility: HeaderVisibility;
-  setVisibility: (visibility: Partial<HeaderVisibility>) => void;
-  reset: () => void;
-};
-
-const DEFAULT_VISIBILITY: HeaderVisibility = {
+const { Provider, useVisibility } = createVisibilityContext<HeaderVisibility>("Header", {
   sp: true,
   pc: true,
-};
+});
 
-const HeaderVisibilityContext =
-  createContext<HeaderVisibilityContextValue | null>(null);
+export const HeaderVisibilityProvider = Provider;
 
-export const HeaderVisibilityProvider = ({
-  children,
-}: {
-  children: ReactNode;
-}) => {
-  const [visibility, setVisibilityState] =
-    useState<HeaderVisibility>(DEFAULT_VISIBILITY);
-
-  const setVisibility = useCallback((partial: Partial<HeaderVisibility>) => {
-    setVisibilityState((prev) => ({ ...prev, ...partial }));
-  }, []);
-
-  const reset = useCallback(() => {
-    setVisibilityState(DEFAULT_VISIBILITY);
-  }, []);
-
-  const value = useMemo(
-    () => ({ visibility, setVisibility, reset }),
-    [visibility, setVisibility, reset]
-  );
-
-  return (
-    <HeaderVisibilityContext.Provider value={value}>
-      {children}
-    </HeaderVisibilityContext.Provider>
-  );
-};
-
-export const useHeaderVisibility = (): HeaderVisibilityContextValue => {
-  const context = useContext(HeaderVisibilityContext);
-  if (!context) {
-    throw new Error(
-      "useHeaderVisibility must be used within HeaderVisibilityProvider"
-    );
-  }
-  return context;
-};
+export const useHeaderVisibility = useVisibility;

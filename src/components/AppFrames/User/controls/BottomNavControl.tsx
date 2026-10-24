@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 
 import {
   useBottomNavVisibility,
@@ -30,14 +30,16 @@ export type HideBottomNavProps = {
  * // → useBottomNavVisibilityを直接使用してください
  */
 export const HideBottomNav = ({ sp, pc }: HideBottomNavProps) => {
-  const { setVisibility, reset } = useBottomNavVisibility();
+  // 自分の上書きとして登録し、アンマウント時は自分の分だけ外す(他ページの Hide* を巻き込まない)
+  const id = useId();
+  const { setOverride, clearOverride } = useBottomNavVisibility();
 
   useEffect(() => {
     // 両方未指定の場合は両方非表示
     const hideAll = sp === undefined && pc === undefined;
 
     if (hideAll) {
-      setVisibility({ sp: false, pc: false });
+      setOverride(id, { sp: false, pc: false });
     } else {
       // 指定されたものだけを変更（未指定のものはデフォルトを維持）
       const updates: Partial<BottomNavVisibility> = {};
@@ -47,13 +49,13 @@ export const HideBottomNav = ({ sp, pc }: HideBottomNavProps) => {
       if (pc !== undefined) {
         updates.pc = !pc;
       }
-      setVisibility(updates);
+      setOverride(id, updates);
     }
 
     return () => {
-      reset();
+      clearOverride(id);
     };
-  }, [sp, pc, setVisibility, reset]);
+  }, [id, sp, pc, setOverride, clearOverride]);
 
   return null;
 };

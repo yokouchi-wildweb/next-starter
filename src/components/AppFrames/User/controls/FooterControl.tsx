@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useFooterVisibility } from "../contexts/FooterVisibilityContext";
 
 export type HideFooterProps = {
@@ -26,7 +26,9 @@ export type HideFooterProps = {
  * <HideFooter pc />
  */
 export const HideFooter = ({ sp, pc }: HideFooterProps) => {
-  const { setVisibility, reset } = useFooterVisibility();
+  // 自分の上書きとして登録し、アンマウント時は自分の分だけ外す(他ページの Hide* を巻き込まない)
+  const id = useId();
+  const { setOverride, clearOverride } = useFooterVisibility();
 
   useEffect(() => {
     // 両方未指定の場合は両方非表示
@@ -34,15 +36,15 @@ export const HideFooter = ({ sp, pc }: HideFooterProps) => {
     const hideSp = hideAll || sp === true;
     const hidePc = hideAll || pc === true;
 
-    setVisibility({
+    setOverride(id, {
       sp: !hideSp,
       pc: !hidePc,
     });
 
     return () => {
-      reset();
+      clearOverride(id);
     };
-  }, [sp, pc, setVisibility, reset]);
+  }, [id, sp, pc, setOverride, clearOverride]);
 
   return null;
 };

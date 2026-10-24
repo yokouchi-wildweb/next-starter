@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useHeaderNavVisibility } from "../contexts/HeaderNavVisibilityContext";
 
 export type HideHeaderNavProps = {
@@ -27,7 +27,9 @@ export type HideHeaderNavProps = {
  * <HideHeaderNav pc />
  */
 export const HideHeaderNav = ({ sp, pc }: HideHeaderNavProps) => {
-  const { setVisibility, reset } = useHeaderNavVisibility();
+  // 自分の上書きとして登録し、アンマウント時は自分の分だけ外す(他ページの Hide* を巻き込まない)
+  const id = useId();
+  const { setOverride, clearOverride } = useHeaderNavVisibility();
 
   useEffect(() => {
     // 両方未指定の場合は両方非表示
@@ -35,15 +37,15 @@ export const HideHeaderNav = ({ sp, pc }: HideHeaderNavProps) => {
     const hideSp = hideAll || sp === true;
     const hidePc = hideAll || pc === true;
 
-    setVisibility({
+    setOverride(id, {
       sp: !hideSp,
       pc: !hidePc,
     });
 
     return () => {
-      reset();
+      clearOverride(id);
     };
-  }, [sp, pc, setVisibility, reset]);
+  }, [id, sp, pc, setOverride, clearOverride]);
 
   return null;
 };
