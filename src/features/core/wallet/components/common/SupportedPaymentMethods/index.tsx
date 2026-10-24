@@ -44,10 +44,6 @@ const PAYMENT_ICON_MAP: Record<string, LucideIcon> = {
   paypal: Wallet,
 };
 
-function resolveIcon(iconId: string): LucideIcon {
-  return PAYMENT_ICON_MAP[iconId] ?? Wallet;
-}
-
 function ComingSoonBadge() {
   return (
     <Span
@@ -92,7 +88,8 @@ type CardProps = {
 };
 
 function PaymentMethodCard({ method, isSelected, blocked, onSelect }: CardProps) {
-  const Icon = resolveIcon(method.icon);
+  // モジュール定数の参照で決める(関数の戻り値だと react-hooks/static-components に掛かる)
+  const Icon = PAYMENT_ICON_MAP[method.icon] ?? Wallet;
   const isComingSoon = method.status === "coming_soon";
   const isBlocked = blocked !== undefined;
   // 「ブロック中だがクリックで進行中セッションへ戻れる」モード（redirectUrl 指定時）

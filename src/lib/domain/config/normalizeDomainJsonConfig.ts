@@ -19,7 +19,6 @@ const resolveField = (name: string) => toCamelCase(name) || name;
 export function normalizeDomainJsonConfig<T extends RawDomainConfig>(config: T): T {
   if (config.dbEngine !== "Firestore") return config;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: Record<string, any> = { ...config };
 
   if (Array.isArray(result.fields)) {

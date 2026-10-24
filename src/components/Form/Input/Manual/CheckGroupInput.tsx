@@ -93,7 +93,6 @@ export function CheckGroupInput({
       <div
         className={cn(layoutClass, className)}
         role="group"
-        aria-orientation={resolvedOrientation}
         aria-disabled={disabled}
         {...restDivProps}
       >
@@ -133,7 +132,6 @@ export function CheckGroupInput({
     <div
       className={cn(layoutClass, className, disabled && "opacity-70")}
       role="group"
-      aria-orientation={resolvedOrientation}
       aria-disabled={disabled}
       {...restDivProps}
     >

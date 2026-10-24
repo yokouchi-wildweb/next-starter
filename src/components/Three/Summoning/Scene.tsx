@@ -64,16 +64,19 @@ export default function Scene() {
     (circleMaterial as THREE.ShaderMaterial).uniforms.color.value.set(settings.ring.startColor);
     (cylinderMaterial as THREE.ShaderMaterial).uniforms.color.value.set(settings.cylinder.startColor);
     (overlay.current?.material as THREE.MeshBasicMaterial)?.color.set(settings.overlay.startColor);
-  }, []);
+  }, [starMaterial, circleMaterial, cylinderMaterial]);
 
   // 毎フレーム実行されるアニメーション処理
   // 時刻 t を基に各オブジェクトの状態を更新します
   useFrame(({ camera }) => {
     const t = (performance.now() - start.current) / 1000;
+    // three.js のマテリアルの uniform は毎フレーム命令的に書き換える(react-three-fiber の通常の使い方)
+    /* eslint-disable react-hooks/immutability */
     (starMaterial as THREE.ShaderMaterial).uniforms.time.value = t;
     (lightningMaterial as THREE.ShaderMaterial).uniforms.time.value = t;
     (circleMaterial as THREE.ShaderMaterial).uniforms.time.value = t;
     (cylinderMaterial as THREE.ShaderMaterial).uniforms.time.value = t;
+    /* eslint-enable react-hooks/immutability */
 
     updateCamera(camera, overlay.current, t);
     // 星空の回転軸方向は settings で指定できます

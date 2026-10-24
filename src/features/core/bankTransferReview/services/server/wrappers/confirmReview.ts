@@ -124,7 +124,6 @@ export async function confirmReview(
         reviewed_at: new Date(),
         // 承認の入力経路を確定記録。以後 UI/監査でこの 1 列だけで判別できる。
         approval_source: source,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       tx,
     )) as BankTransferReview;

@@ -16,13 +16,11 @@ async function main() {
   const schema = await import("@/registry/schemaRegistry");
 
   // schemaRegistry から PgTable オブジェクトを抽出
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tables: { name: string; table: any }[] = [];
   for (const [key, value] of Object.entries(schema)) {
     // "Table" で終わる名前のエクスポートを対象
     if (key.endsWith("Table") && value && typeof value === "object") {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const tableName = getTableName(value as any);
         if (tableName) {
           tables.push({ name: tableName, table: value });

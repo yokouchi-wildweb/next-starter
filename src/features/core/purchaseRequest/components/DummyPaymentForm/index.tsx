@@ -63,9 +63,9 @@ export function DummyPaymentForm() {
 
       // 成功または失敗のURLへリダイレクト
       if (success) {
-        window.location.href = successUrl;
+        window.location.assign(successUrl);
       } else {
-        window.location.href = `${cancelUrl}&error_code=PAYMENT_FAILED`;
+        window.location.assign(`${cancelUrl}&error_code=PAYMENT_FAILED`);
       }
     } catch (err) {
       console.error("Payment webhook call failed:", err);

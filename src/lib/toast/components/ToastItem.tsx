@@ -132,20 +132,12 @@ export function ToastItem({ toast, onClose }: Props) {
   const isNotification = toast.mode === "notification";
 
   // アイコンコンポーネントの決定
-  const getIconComponent = () => {
-    if (toast.icon === undefined) {
-      // 未指定 → variantのデフォルト
-      return ICON_PRESETS[variantConfig.defaultIcon];
-    }
-    if (isIconPreset(toast.icon)) {
-      // プリセット文字列
-      return ICON_PRESETS[toast.icon];
-    }
-    // ReactNode → null（後で直接レンダリング）
-    return null;
-  };
-
-  const IconComponent = getIconComponent();
+  // 未指定 → variantのデフォルト / プリセット文字列 → そのプリセット / ReactNode → null（後で直接レンダリング）
+  // 関数呼び出しの戻り値をコンポーネントにすると React Compiler が「render 中に作られたコンポーネント」と
+  // みなす(react-hooks/static-components)ため、モジュール定数 ICON_PRESETS の参照で決める
+  const iconPreset =
+    toast.icon === undefined ? variantConfig.defaultIcon : isIconPreset(toast.icon) ? toast.icon : null;
+  const IconComponent = iconPreset ? ICON_PRESETS[iconPreset] : null;
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [opacity, setOpacity] = useState(1);
 

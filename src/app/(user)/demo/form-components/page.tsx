@@ -120,6 +120,9 @@ export default function FormComponentsDemoPage() {
   const [submitted, setSubmitted] = useState<DemoSnapshot | null>(null);
   const [stepperValues, setStepperValues] = useState<StepperInputValues>(createStepperDefaults);
 
+  // フォーム全体の現在値を表示するデモ。useWatch だと型が DeepPartial になるため watch() のまま使う
+  // (React Compiler の最適化対象から外れるだけで動作は変わらない)
+  // eslint-disable-next-line react-hooks/incompatible-library
   const currentValues = form.watch();
   const currentSnapshot: DemoSnapshot = {
     ...currentValues,

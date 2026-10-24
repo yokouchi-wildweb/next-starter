@@ -46,6 +46,8 @@ export const ImagePreview = ({
       className={className}
       style={{ ...style, display: "flex", alignItems: "center", justifyContent: "center" }}
     >
+      {/* 選択直後のローカルファイル(blob: URL)のプレビューも表示するため素の img を使う */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt={alt}

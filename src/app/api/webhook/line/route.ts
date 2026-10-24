@@ -16,7 +16,6 @@ export type LineWebhookHandler = (event: LineWebhookEvent) => Promise<void>;
  * デフォルトのイベントハンドラ（何もしない）。
  * ダウンストリームで上書きする場合はこのファイルを差し替える。
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const handleEvent: LineWebhookHandler = async (_event) => {
   // ダウンストリームでイベント処理を実装する
   // 例:

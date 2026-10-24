@@ -107,6 +107,8 @@ export function ConfiguredMediaMultiField<
         appFormMedia.unregisterMediaHandle(String(fieldName));
       };
     }
+    // mediaHandle は毎 render 新しいオブジェクトになるため、使うメンバーだけを依存に並べる(丸ごと入れると毎 render 登録し直す)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fieldName, mediaHandle.isUploading, mediaHandle.commit, mediaHandle.reset, onHandleChange, appFormMedia]);
 
   return (

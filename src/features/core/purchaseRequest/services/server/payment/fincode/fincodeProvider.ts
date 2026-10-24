@@ -359,7 +359,6 @@ export class FincodePaymentProvider implements PaymentProvider {
       //   3. paid         — (旧仕様、後方互換用)
       // いずれも "YYYY/MM/DD HH:mm:ss.sss" 形式
       let paidAt: Date | undefined;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawDate = (data as any).process_date || (data as any).updated || data.paid;
       if (rawDate && typeof rawDate === "string") {
         const parsed = new Date(rawDate.replace(/\//g, "-"));

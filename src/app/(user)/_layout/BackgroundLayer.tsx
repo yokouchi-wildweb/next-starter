@@ -72,6 +72,8 @@ export const BackgroundLayer = ({
     <div style={containerStyle} aria-hidden="true">
       {imageUrl ? (
         <>
+          {/* 全面背景。style で配置と fetchPriority を直接指定するため素の img を使う */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imageUrl}
             alt=""

@@ -3,7 +3,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CouponUpdateSchema } from "@/features/core/coupon/entities/schema";
 import type { CouponUpdateFields } from "@/features/core/coupon/entities/form";
@@ -49,9 +49,9 @@ export default function EditCouponForm({ coupon, redirectPath = "/" }: Props) {
     defaultValues: buildFormDefaultValues(domainConfig, coupon) as CouponUpdateFields,
   });
 
-  const selectedCategory = methods.watch("category" as any) as string | undefined;
+  const selectedCategory = useWatch({ control: methods.control, name: "category" as any }) as string | undefined;
 
-  const discountMode = methods.watch("settings.discountMode" as any) as string | undefined;
+  const discountMode = useWatch({ control: methods.control, name: "settings.discountMode" as any }) as string | undefined;
 
   // 選択中カテゴリの settingsFields を settings.{name} にプレフィックス変換
   // discountMode に応じて表示フィールドをフィルタリング

@@ -14,7 +14,6 @@ import { ContributorProfileTable } from "@/features/core/userProfile/generated/c
  * ロール → プロフィールテーブルのマッピング
  * searchWithProfile 等でプロフィールテーブルを動的に参照するために使用
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const PROFILE_TABLE_MAP: Record<string, PgTable & Record<string, any>> = {
   contributor: ContributorProfileTable,
 };

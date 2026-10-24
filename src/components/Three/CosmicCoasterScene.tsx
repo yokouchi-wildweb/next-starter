@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 import { cn } from "@/lib/cn";
@@ -147,7 +147,7 @@ function StarTunnel() {
   const depth = 120;
   const radius = 24;
 
-  const positions = useMemo(() => {
+  const [positions] = useState(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -160,15 +160,15 @@ function StarTunnel() {
       arr[i * 3 + 2] = z;
     }
     return arr;
-  }, [count, depth, radius]);
+  });
 
-  const speeds = useMemo(() => {
+  const [speeds] = useState(() => {
     const arr = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       arr[i] = 24 + Math.random() * 36;
     }
     return arr;
-  }, [count]);
+  });
 
   useFrame((_, delta) => {
     const points = ref.current;
@@ -211,7 +211,7 @@ function VelocityTrails() {
   const ref = useRef<THREE.InstancedMesh>(null);
   const count = 48;
 
-  const basePositions = useMemo(() => {
+  const [basePositions] = useState(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       arr[i * 3] = (Math.random() - 0.5) * 18;
@@ -219,23 +219,23 @@ function VelocityTrails() {
       arr[i * 3 + 2] = -Math.random() * 90;
     }
     return arr;
-  }, [count]);
+  });
 
-  const speeds = useMemo(() => {
+  const [speeds] = useState(() => {
     const arr = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       arr[i] = 32 + Math.random() * 24;
     }
     return arr;
-  }, [count]);
+  });
 
-  const lengths = useMemo(() => {
+  const [lengths] = useState(() => {
     const arr = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       arr[i] = 1.4 + Math.random() * 0.6;
     }
     return arr;
-  }, [count]);
+  });
 
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
@@ -244,6 +244,8 @@ function VelocityTrails() {
 
     for (let i = 0; i < count; i++) {
       const index = i * 3;
+      // basePositions は毎フレーム書き換えるアニメーション用のバッファ(描画には使わない)。React の state として扱わない
+      // eslint-disable-next-line react-hooks/immutability
       basePositions[index + 2] += speeds[i] * delta;
       if (basePositions[index + 2] > 5) {
         basePositions[index] = (Math.random() - 0.5) * 20;
@@ -296,6 +298,8 @@ function CosmicCoasterSceneContent() {
   const camera = useThree((state) => state.camera);
 
   useEffect(() => {
+    // three.js のカメラは命令的に設定して updateProjectionMatrix で反映する(react-three-fiber の通常の使い方)
+    // eslint-disable-next-line react-hooks/immutability
     camera.near = 0.1;
     camera.far = 500;
     camera.updateProjectionMatrix();

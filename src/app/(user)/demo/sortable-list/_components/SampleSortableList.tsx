@@ -60,6 +60,8 @@ export function SampleSortableList({ initialSamples }: Props) {
       render: (item) => (
         <Flex gap="sm" align="center" className="min-w-0 flex-1">
           {item.main_image ? (
+            // デモ用の簡易サムネイル
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={item.main_image}
               alt=""

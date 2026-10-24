@@ -16,7 +16,7 @@ import { loadCatalogOwnership } from "./src/lib/folderCatalog/catalog.mjs";
 const libOwnership = loadCatalogOwnership({ repoRoot: import.meta.dirname, folder: "src/lib" });
 const forkOwnedLibFiles = libOwnership.isRoot ? [] : libOwnership.ownPaths.map((path) => `${path}/**/*.{ts,tsx}`);
 
-export default [
+const config = [
   ...nextConfig,
   {
     ignores: [
@@ -352,3 +352,5 @@ export default [
     },
   },
 ];
+
+export default config;

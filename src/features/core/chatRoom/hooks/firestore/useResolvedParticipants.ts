@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ChatRoom } from "@/features/chatRoom/entities";
 import type { ParticipantProfile, ParticipantResolver } from "@/features/chatRoom/entities/message";
@@ -64,15 +64,13 @@ export function useResolvedParticipants(
     return Array.from(allUids);
   }, [rooms, currentUid]);
 
-  const stableResolver = useCallback(resolver, [resolver]);
-
   useEffect(() => {
     if (unresolvedUids.length === 0) return;
 
     let isActive = true;
     setIsLoading(true);
 
-    stableResolver(unresolvedUids)
+    resolver(unresolvedUids)
       .then((resolved) => {
         if (!isActive) return;
 
@@ -102,7 +100,7 @@ export function useResolvedParticipants(
     return () => {
       isActive = false;
     };
-  }, [unresolvedUids, stableResolver]);
+  }, [unresolvedUids, resolver]);
 
   return { profileMap, isLoading };
 }

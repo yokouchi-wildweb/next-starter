@@ -65,6 +65,8 @@ export default function DetailModal({
     (mediaType === "video" ? (
       <DetailModalVideo media={media} />
     ) : (
+      // 実寸不明の画像を max-h と object-contain で収める。AppImage(fill)は箱の寸法が要り見た目が変わるため未移行
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={toStorageDisplaySrc(media.url) ?? undefined}
         alt={media.alt ?? ""}

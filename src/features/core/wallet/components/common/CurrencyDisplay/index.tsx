@@ -7,7 +7,7 @@ import { Span } from "@/components/TextBlocks";
 import { cn } from "@/lib/cn";
 import type { WalletType } from "@/config/app/currency.config";
 import { getCurrencyConfig } from "@/features/core/wallet/utils/currency";
-import { getCurrencyIcon } from "@/features/core/wallet/components/common/currencyIcons";
+import { currencyIcons } from "@/features/core/wallet/components/common/currencyIcons";
 
 /** テキストサイズ */
 const TEXT_SIZE_CONFIG = {
@@ -124,7 +124,7 @@ export function CurrencyDisplay({
   preserveValue = true,
 }: CurrencyDisplayProps) {
   const config = getCurrencyConfig(walletType);
-  const Icon = getCurrencyIcon(walletType);
+  const Icon = currencyIcons[walletType];
   const textSizeClass = TEXT_SIZE_CONFIG[size];
   const iconSizeClass = ICON_SIZE_CONFIG[iconSize ?? size];
   const gapClass = GAP_CONFIG[gap];

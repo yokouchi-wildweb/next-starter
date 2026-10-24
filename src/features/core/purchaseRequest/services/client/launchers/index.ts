@@ -23,7 +23,6 @@ export type { LaunchContext, LaunchHandler, LaunchResult } from "./types";
 /**
  * LaunchInstruction.type → 対応する LaunchHandler のレジストリ。
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const launchHandlers: Record<LaunchInstruction["type"], LaunchHandler<any>> = {
   redirect: redirectHandler,
   client_sdk: clientSdkHandler,

@@ -1,13 +1,14 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 function StarTunnel() {
   const { camera, gl } = useThree();
 
-  const stars = useMemo(() => {
+  // 乱数で作る初期値は useState の初期化関数で 1 回だけ作る(useMemo 内の Math.random は react-hooks/purity に掛かる)
+  const [stars] = useState(() => {
     const geom = new THREE.BufferGeometry();
     const num = 1500;
     const pos = new Float32Array(num * 3);
@@ -18,7 +19,7 @@ function StarTunnel() {
     }
     geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     return geom;
-  }, []);
+  });
 
   const path = useMemo(() => {
     const pts: THREE.Vector3[] = [];

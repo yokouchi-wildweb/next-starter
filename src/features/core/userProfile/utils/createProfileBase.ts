@@ -30,7 +30,6 @@ type CreateProfileBaseOptions = {
  * @returns ProfileBase インターフェースを実装したオブジェクト
  */
 export function createProfileBase(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   table: any,
   options?: CreateProfileBaseOptions,
 ): ProfileBase {

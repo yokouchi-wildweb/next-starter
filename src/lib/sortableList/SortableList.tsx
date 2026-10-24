@@ -147,6 +147,8 @@ export default function SortableList<T extends SortableItemType>({
 
   // scroll="parent" では全行を通常フローで描画するため仮想化を停止する
   // （hooks の呼び出し順を保つため useVirtualizer 自体は常に呼ぶ）
+  // TanStack Virtual は React Compiler 非対応の警告が出る(代替なし)。このコンポーネントは最適化対象から外れるだけで動作は変わらない
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,

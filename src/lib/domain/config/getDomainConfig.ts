@@ -23,7 +23,6 @@ const normalizeDomainKey = (domain: string) => {
  * ランタイムで変換する。
  */
 function normalizeFieldNames(config: DomainConfig): DomainConfig {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw = config as Record<string, any>;
   if (raw.dbEngine !== "Firestore") return config;
 

@@ -104,7 +104,7 @@ function UnreadNotificationModalInner() {
     setCurrentIndex(0);
     setOpen(true);
     isModalOpenRef.current = true;
-  }, [user, isLoading, notifications, pathname]);
+  }, [user, isLoading, notifications, pathname, setOpen]);
 
   const total = displayNotifications?.length ?? 0;
   const current = displayNotifications?.[currentIndex] ?? null;
@@ -145,7 +145,7 @@ function UnreadNotificationModalInner() {
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, displayNotifications, markAllAsRead, markAsConfirmed]);
+  }, [isProcessing, displayNotifications, markAllAsRead, markAsConfirmed, setOpen]);
 
   if (!current) return null;
 
@@ -163,6 +163,8 @@ function UnreadNotificationModalInner() {
       <Stack space={1}>
         {/* 画像 */}
         {current.image && (
+          // 実寸不明の画像を横幅いっぱいに表示する。AppImage(fill)は箱の寸法が要り見た目が変わるため未移行
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={current.image}
             alt={current.title ?? "お知らせ画像"}

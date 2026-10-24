@@ -519,7 +519,7 @@ export function useImportHandler({
         setProgress(null);
       }
     },
-    [domain, onImportSuccess, processChunksForDomain]
+    [domain, imageFields, fields.length, onImportSuccess, processChunksForDomain]
   );
 
   const resetResult = useCallback(() => {

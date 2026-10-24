@@ -111,7 +111,6 @@ export async function rejectReview(
         reviewed_by: reviewedBy,
         reviewed_at: new Date(),
         reject_reason: rejectReason,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       tx,
     )) as BankTransferReview;

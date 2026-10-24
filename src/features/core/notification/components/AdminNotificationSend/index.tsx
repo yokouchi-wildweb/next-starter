@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useCallback } from "react";
@@ -111,8 +111,8 @@ export default function AdminNotificationSend() {
     },
   });
 
-  const targetType = methods.watch("targetType");
-  const sendTiming = methods.watch("sendTiming");
+  const targetType = useWatch({ control: methods.control, name: "targetType" });
+  const sendTiming = useWatch({ control: methods.control, name: "sendTiming" });
 
   const handleSubmit = useCallback(
     async (data: SendFormValues) => {

@@ -53,5 +53,7 @@ export function useLoadingToast(
         toastIdRef.current = null;
       }
     };
+    // messageOrOptions はオブジェクトだと毎 render 別物になるため、文言(message)の変化だけで出し直す
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flag, message, show, hideById]);
 }

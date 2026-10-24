@@ -10,8 +10,11 @@ import type { WalletType } from "@/config/app/currency.config";
  * 通貨種別 → アイコンコンポーネントのマッピング
  *
  * [!!] currency.config.ts に通貨を追加・削除した場合はここも更新すること
+ *
+ * コンポーネントの render 内では getCurrencyIcon ではなくこの定数を直接参照する
+ * (関数の戻り値をコンポーネントにすると react-hooks/static-components に掛かる)
  */
-const currencyIcons: Record<WalletType, LucideIcon> = {
+export const currencyIcons: Record<WalletType, LucideIcon> = {
   regular_coin: CircleDollarSign,
   regular_point: Coins,
 };
