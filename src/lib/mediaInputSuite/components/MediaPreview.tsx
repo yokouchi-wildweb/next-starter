@@ -41,6 +41,8 @@ export const MediaPreview = ({
         URL.revokeObjectURL(objectUrlRef.current);
       }
       objectUrlRef.current = null;
+      // object URL(ブラウザの外部リソース)の作成・解放に合わせて表示用 URL を切り替える
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setObjectUrl(null);
       objectUrlFileRef.current = null;
       return;

@@ -2,9 +2,7 @@
 
 import {
   useCallback,
-  useEffect,
   useMemo,
-  useState,
   type CSSProperties,
   type ReactNode,
 } from "react";
@@ -27,6 +25,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
+import { useIsClient } from "@/hooks/useIsClient";
 import { cn } from "@/lib/cn";
 
 /**
@@ -120,10 +119,7 @@ type SortableAreaProps = {
 };
 
 function SortableArea({ itemIds, disabled, onReorder, children }: SortableAreaProps) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),

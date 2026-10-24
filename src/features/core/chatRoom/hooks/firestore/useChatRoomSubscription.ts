@@ -35,6 +35,8 @@ export function useChatRoomSubscription(roomId: string | null): UseChatRoomSubsc
 
   useEffect(() => {
     if (!roomId) {
+      // Firestore 購読の開始・解除に合わせて表示状態を切り替える(外部システムとの同期)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRoom(null);
       setIsLoading(false);
       return;

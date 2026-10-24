@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useIsClient } from "@/hooks/useIsClient";
 import { cn } from "@/lib/cn";
 import { useToastStore } from "../stores";
 import { TOAST_EXIT_ANIMATION_DURATION } from "../constants";
@@ -64,14 +65,10 @@ const LAYER_CLASSES: Record<ToastLayer, string> = {
  */
 export function GlobalToast() {
   const { toast: storeToast, hide: storeHide } = useToastStore();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [displayedToast, setDisplayedToast] = useState<Toast | null>(null);
   const [isExiting, setIsExiting] = useState(false);
   const exitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // storeのtoast変化を監視
   useEffect(() => {
@@ -81,6 +78,9 @@ export function GlobalToast() {
         clearTimeout(exitTimeoutRef.current);
         exitTimeoutRef.current = null;
       }
+      // store(外部)のトーストを表示用 state に写し、退出アニメーションのタイマーと組み合わせて切り替える。
+      // 表示中のトーストは store から消えた後もアニメーションの間だけ残すため、render 中の導出では書けない
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsExiting(false);
       setDisplayedToast(storeToast);
     } else if (!storeToast && displayedToast && !isExiting) {

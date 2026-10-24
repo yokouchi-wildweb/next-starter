@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Stack } from "@/components/Layout/Stack";
 import { useCoinPurchase } from "@/features/core/purchaseRequest/hooks/useCoinPurchase";
 import type { WalletType } from "@/config/app/currency.config";
@@ -63,11 +63,10 @@ export function CurrencyPurchase({
   }, [activeRedirectUrl]);
 
   // 選択中のメソッドが後からブロック対象になった場合は未選択に戻す（押下できないボタンが選択状態のまま残るのを防ぐ）
-  useEffect(() => {
-    if (selectedPaymentMethod && blockedMethods.some((b) => b.id === selectedPaymentMethod)) {
-      setSelectedPaymentMethod(null);
-    }
-  }, [blockedMethods, selectedPaymentMethod]);
+  // render 中に調整する(effect で戻すと、ブロック済みのメソッドが選択された状態で 1 度描画される)
+  if (selectedPaymentMethod && blockedMethods.some((b) => b.id === selectedPaymentMethod)) {
+    setSelectedPaymentMethod(null);
+  }
 
   // 実際の支払い金額（割引適用後）
   const actualPaymentAmount = couponEffect?.finalPaymentAmount ?? paymentAmount;

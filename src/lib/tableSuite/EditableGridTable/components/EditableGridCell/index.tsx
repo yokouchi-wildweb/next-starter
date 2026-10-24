@@ -54,6 +54,7 @@ export function EditableGridCell<T>({
     column,
     onValidChange,
   });
+  const { inputRef, cellRef } = refs;
 
   // 開発時警告: readonly 以外で cellAction を指定した場合
   React.useEffect(() => {
@@ -103,7 +104,7 @@ export function EditableGridCell<T>({
     ),
     paddingClass,
     textAlignClass,
-    inputRef: refs.inputRef,
+    inputRef,
     onCommit: handlers.handleCommit,
     onCancel: handlers.handleCancel,
     onDraftChange: handlers.setDraftValue,
@@ -187,7 +188,7 @@ export function EditableGridCell<T>({
         flags.isReadOnly || flags.isSwitchEditor ? undefined : handlers.handleDoubleClick
       }
       aria-readonly={flags.isReadOnly || undefined}
-      ref={refs.cellRef}
+      ref={cellRef}
     >
       {/* アクティブ/編集中の枠線 */}
       <div

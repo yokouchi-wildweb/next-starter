@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
 
 import {
@@ -30,13 +30,15 @@ export function AdminCommandPalette({ open, onOpenChange }: AdminCommandPaletteP
   const [view, setView] = useState<PaletteView>({ type: "root" });
   const [searchValue, setSearchValue] = useState("");
 
-  // ダイアログが閉じたら状態をリセット
-  useEffect(() => {
+  // ダイアログが閉じたら状態をリセット(前回の render の open と比べて render 中に調整する)
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (!open) {
       setView({ type: "root" });
       setSearchValue("");
     }
-  }, [open]);
+  }
 
   // 検索入力のハンドラ（半角英数字のみに変換）
   const handleSearchChange = useCallback((value: string) => {

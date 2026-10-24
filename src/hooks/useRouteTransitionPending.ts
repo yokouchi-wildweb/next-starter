@@ -26,9 +26,13 @@ export function useRouteTransitionPending(options: { enabled?: boolean } = {}) {
     enabled,
   );
 
+  // 無効化されたら遷移中の表示を解除する(render 中に調整する)
+  if (!enabled && isPending) {
+    setIsPending(false);
+  }
+
   useEffect(() => {
     if (!enabled) {
-      setIsPending(false);
       return;
     }
 

@@ -69,6 +69,8 @@ export function useTransitionGuard(
   useEffect(() => {
     // disabled時は検証をスキップ
     if (config.disabled) {
+      // 検証はトークン(sessionStorage)を消費する副作用を伴うため render 中には行えない。結果を effect で反映する
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus("passed");
       return;
     }

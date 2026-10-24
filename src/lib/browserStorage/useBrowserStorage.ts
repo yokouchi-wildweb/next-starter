@@ -30,6 +30,8 @@ export function useBrowserStorage(
     try {
       const storedValue = client.load(key);
       if (storedValue !== null) {
+        // Web Storage はサーバーで読めないため、ハイドレーション後に読み込んで反映する(SSR とハイドレーションは fallbackValue)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setValue(storedValue);
         return;
       }

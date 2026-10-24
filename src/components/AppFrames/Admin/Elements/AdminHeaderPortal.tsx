@@ -57,6 +57,8 @@ export function AdminHeaderPortal({ slot, children }: Props) {
   useEffect(() => {
     const slotId = SLOT_ID_MAP[slot];
     const element = document.getElementById(slotId);
+    // 差し込み先はヘッダー側が描画する別の DOM 要素。コミット後でないと取得できないため effect で読む
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTargetElement(element);
   }, [slot]);
 

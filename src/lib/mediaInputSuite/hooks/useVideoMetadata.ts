@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { MediaSource, VideoMetadata } from "../types";
 import { resolveMediaOrientation } from "../types";
@@ -38,11 +38,16 @@ export function useVideoMetadata({ source }: UseVideoMetadataOptions = {}): UseV
     setMetadata(null);
   }, []);
 
-  useEffect(() => {
-    if (!source?.file && !source?.src) {
+  // ソースが空になったらメタデータを消す(前回の render のソースと比べて render 中に調整する)
+  const sourceFile = source?.file;
+  const sourceSrc = source?.src;
+  const [prevSource, setPrevSource] = useState({ file: sourceFile, src: sourceSrc });
+  if (prevSource.file !== sourceFile || prevSource.src !== sourceSrc) {
+    setPrevSource({ file: sourceFile, src: sourceSrc });
+    if (!sourceFile && !sourceSrc) {
       setMetadata(null);
     }
-  }, [source?.file, source?.src]);
+  }
 
   const handleVideoMetadata = useCallback(
     (element: HTMLVideoElement) => {

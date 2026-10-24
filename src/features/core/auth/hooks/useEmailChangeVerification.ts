@@ -39,6 +39,8 @@ export function useEmailChangeVerification({
   useEffect(() => {
     // oobCode がない場合はエラー
     if (!oobCode) {
+      // リンク検証(Firebase への非同期処理)の入口。前提を満たさない場合はここで結果を確定する
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError("無効なリンクです。");
       setPhase("error");
       return;

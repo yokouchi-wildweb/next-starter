@@ -2,7 +2,7 @@
 
 "use client";
 
-import { type ReactNode, useState, useEffect, useCallback, useRef } from "react";
+import { type ReactNode, useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
 
 import { Spinner } from "@/components/Overlays/Loading/Spinner";
 
@@ -100,8 +100,11 @@ export function PopoverAsyncContent<T>({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // 最新の fetcher を参照する(fetcher が変わっても再取得はしない)。render 中ではなくコミット時に書き込む
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
+  useLayoutEffect(() => {
+    fetcherRef.current = fetcher;
+  });
   const isMountedRef = useRef(true);
 
   // データ取得
@@ -159,6 +162,8 @@ export function PopoverAsyncContent<T>({
   // エラー
   if (error) {
     if (typeof errorContent === "function") {
+      // retry はボタン等のハンドラとして渡すもので、render 中には呼ばれない(呼ぶと ref を読むため、コンパイラが保守的に止める)
+      // eslint-disable-next-line react-hooks/refs
       return <>{errorContent(error, retry)}</>;
     }
     return <>{errorContent ?? <DefaultError error={error} onRetry={retry} />}</>;

@@ -4,7 +4,7 @@
 // チャット画面の入室時・滞在中・退出時に readAt を更新する。
 // 手動実装。
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 import { updateReadAt } from "@/features/chatRoom/services/client/firestoreClient";
 
@@ -41,8 +41,11 @@ export function useReadAt(
   // cleanup 時に最新の値を参照するため ref で保持
   const roomIdRef = useRef(roomId);
   const uidRef = useRef(uid);
-  roomIdRef.current = roomId;
-  uidRef.current = uid;
+  // render 中ではなくコミット時に書き込む(下の effect より先に走る)
+  useLayoutEffect(() => {
+    roomIdRef.current = roomId;
+    uidRef.current = uid;
+  });
 
   // 入室時 + 退出時
   useEffect(() => {

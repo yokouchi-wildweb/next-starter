@@ -2,9 +2,9 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useIsClient } from "@/hooks/useIsClient";
 import { ScreenLoader } from "@/components/Overlays/Loading/ScreenLoader";
 import { useGlobalLoaderStore } from "@/stores/globalLoader";
 
@@ -24,11 +24,7 @@ import { useGlobalLoaderStore } from "@/stores/globalLoader";
  */
 export function GlobalScreenLoader() {
   const { isVisible, options } = useGlobalLoaderStore();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   if (!mounted || !isVisible) {
     return null;

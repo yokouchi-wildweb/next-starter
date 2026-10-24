@@ -60,6 +60,8 @@ export function usePurchaseStatusPolling({
     isMountedRef.current = true;
 
     if (!requestId) {
+      // ポーリング(外部 API との同期)の入口。リクエスト ID が無い場合はここで結果を確定する
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError("リクエストIDが指定されていません。");
       setIsPolling(false);
       return;

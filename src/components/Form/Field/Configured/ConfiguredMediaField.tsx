@@ -4,7 +4,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useWatch } from "react-hook-form";
 import type { Control, FieldPath, FieldValues, UseFormReturn } from "react-hook-form";
 
@@ -128,8 +128,10 @@ export function ConfiguredMediaField<
       : undefined,
   });
 
-  // refを更新（onUrlChange内で使用）
-  mediaHandleRef.current = mediaHandle;
+  // refを更新（onUrlChange内で使用）。render 中ではなくコミット時に書き込む
+  useLayoutEffect(() => {
+    mediaHandleRef.current = mediaHandle;
+  });
 
   // onHandleChange が渡されている場合はそちらを使用（FieldRenderer 経由）
   // そうでない場合は AppForm の Context に登録

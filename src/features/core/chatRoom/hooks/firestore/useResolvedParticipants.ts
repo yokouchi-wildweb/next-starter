@@ -51,12 +51,12 @@ export function useResolvedParticipants(
   const resolvedUidsRef = useRef<Set<string>>(new Set());
 
   // 全ルームから一意な他者 UID を収集
-  const unresolvedUids = useMemo(() => {
+  const participantUids = useMemo(() => {
     const allUids = new Set<string>();
     for (const room of rooms) {
       if (!room.participants) continue;
       for (const uid of room.participants) {
-        if (uid !== currentUid && !resolvedUidsRef.current.has(uid)) {
+        if (uid !== currentUid) {
           allUids.add(uid);
         }
       }
@@ -65,9 +65,13 @@ export function useResolvedParticipants(
   }, [rooms, currentUid]);
 
   useEffect(() => {
+    // 取得済みの除外は effect の中で行う(ref は render 中に読まない)
+    const unresolvedUids = participantUids.filter((uid) => !resolvedUidsRef.current.has(uid));
     if (unresolvedUids.length === 0) return;
 
     let isActive = true;
+    // 非同期のプロフィール取得の開始を表示に反映する
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
 
     resolver(unresolvedUids)
@@ -100,7 +104,7 @@ export function useResolvedParticipants(
     return () => {
       isActive = false;
     };
-  }, [unresolvedUids, resolver]);
+  }, [participantUids, resolver]);
 
   return { profileMap, isLoading };
 }

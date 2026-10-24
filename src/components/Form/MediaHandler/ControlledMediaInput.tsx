@@ -1,6 +1,6 @@
  "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import type { ControllerRenderProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { MediaInput, type MediaInputProps } from "@/lib/mediaInputSuite";
@@ -25,16 +25,15 @@ export const ControlledMediaInput = <
 }: ControlledMediaInputProps<TFieldValues, TName>) => {
   const { value, onChange, onBlur } = field;
   const [internalResetSignal, setInternalResetSignal] = useState(0);
-  const previousValueRef = useRef<File | null | undefined>(value as File | null | undefined);
-
-  useEffect(() => {
-    const currentValue = value as File | null | undefined;
-    const previous = previousValueRef.current;
-    if (previous && !currentValue) {
+  // 値がファイルから空に変わったら入力をリセットする(前回の render の値と比べて render 中に調整する)
+  const currentValue = value as File | null | undefined;
+  const [previousValue, setPreviousValue] = useState(currentValue);
+  if (previousValue !== currentValue) {
+    setPreviousValue(currentValue);
+    if (previousValue && !currentValue) {
       setInternalResetSignal((signal) => signal + 1);
     }
-    previousValueRef.current = currentValue ?? null;
-  }, [value]);
+  }
 
   const handleFileChange = useCallback(
     (file: File | null) => {

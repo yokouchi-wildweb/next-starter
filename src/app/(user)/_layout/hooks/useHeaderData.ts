@@ -107,10 +107,12 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     setIsMenuOpen((prev) => !prev);
   }, []);
 
-  // パス変更時にメニューを閉じる
-  useEffect(() => {
-    closeMenu();
-  }, [closeMenu, pathname]);
+  // パス変更時にメニューを閉じる(前回の render の pathname と比べて render 中に調整する)
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setIsMenuOpen(false);
+  }
 
   // PCサイズになったらメニューを閉じる
   useEffect(() => {

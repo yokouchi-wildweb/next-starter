@@ -1,6 +1,6 @@
  "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { MediaInput, type MediaInputProps } from "@/lib/mediaInputSuite";
 
@@ -19,19 +19,15 @@ export const ManualMediaInput = ({
   ...mediaInputProps
 }: ManualMediaInputProps) => {
   const [internalResetSignal, setInternalResetSignal] = useState(0);
-  const previousValueRef = useRef<File | null | undefined>(value);
-
-  useEffect(() => {
-    if (typeof value === "undefined") {
-      previousValueRef.current = value ?? null;
-      return;
-    }
-    const previous = previousValueRef.current;
-    if (previous && !value) {
+  // 値がファイルから null に変わったら入力をリセットする(undefined = 非制御は対象外)。
+  // 前回の render の値と比べて render 中に調整する
+  const [previousValue, setPreviousValue] = useState(value);
+  if (previousValue !== value) {
+    setPreviousValue(value);
+    if (typeof value !== "undefined" && previousValue && !value) {
       setInternalResetSignal((signal) => signal + 1);
     }
-    previousValueRef.current = value ?? null;
-  }, [value]);
+  }
 
   const handleFileChange = useCallback(
     (file: File | null) => {

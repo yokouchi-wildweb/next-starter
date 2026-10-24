@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useContext, useRef, type ReactNode } from "react";
+import { useContext, useState, type ReactNode } from "react";
 import { LayoutRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 /**
@@ -11,7 +11,8 @@ import { LayoutRouterContext } from "next/dist/shared/lib/app-router-context.sha
  */
 export function FrozenRouter({ children }: { children: ReactNode }) {
   const context = useContext(LayoutRouterContext);
-  const frozen = useRef(context).current;
+  // 最初の render の値を保持し続ける(以後のコンテキスト変化は反映しない)
+  const [frozen] = useState(context);
 
   return (
     <LayoutRouterContext.Provider value={frozen}>

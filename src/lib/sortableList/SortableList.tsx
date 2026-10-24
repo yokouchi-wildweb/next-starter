@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -23,6 +23,7 @@ import {
   defaultRangeExtractor,
   type Range,
 } from "@tanstack/react-virtual";
+import { useIsClient } from "@/hooks/useIsClient";
 import { cn } from "@/lib/cn";
 import { HeaderRow, SortableItem, StaticItem } from "./components";
 import type {
@@ -33,17 +34,8 @@ import { resolveRowClassName } from "./types";
 import { computeReorderResult } from "./utils";
 import type { RowHeight } from "./variants";
 
-/**
- * @dnd-kit はサーバーとクライアントで異なる aria-describedby ID を生成するため、
- * ハイドレーションエラーを防ぐためにマウント後にのみ DndContext をレンダリングする
- */
-function useMounted() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  return mounted;
-}
+// @dnd-kit はサーバーとクライアントで異なる aria-describedby ID を生成するため、
+// ハイドレーションエラーを防ぐためにハイドレーション後にのみ DndContext をレンダリングする(useIsClient)
 
 /** ROW_HEIGHT_CLASS (h-XX) に対応するピクセル値 */
 const ROW_HEIGHT_PX: Record<RowHeight, number> = {
@@ -99,7 +91,7 @@ export default function SortableList<T extends SortableItemType>({
   itemPaddingY = "none",
   scroll = "self",
 }: SortableListProps<T>) {
-  const mounted = useMounted();
+  const mounted = useIsClient();
   const isSelfScroll = scroll === "self";
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState<string | null>(null);

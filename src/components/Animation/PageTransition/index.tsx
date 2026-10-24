@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -48,15 +48,14 @@ type PageTransitionProps = {
 export function PageTransition({ children, duration = 0.3 }: PageTransitionProps) {
   const pathname = usePathname();
   const currentDepth = getDepth(pathname);
-  const prevDepthRef = useRef(currentDepth);
-
   // 深さの差分でスライド方向を決定（1=前進, -1=後退）
-  const direction = currentDepth >= prevDepthRef.current ? 1 : -1;
-
-  // レンダー後に ref を更新（レンダー中の書き換えは Strict Mode で二重実行される）
-  useEffect(() => {
-    prevDepthRef.current = currentDepth;
-  }, [currentDepth]);
+  // pathname が変わった render で前回の深さと比べて決め、次の遷移まで保持する(render 中に調整する)
+  const [transition, setTransition] = useState({ pathname, depth: currentDepth, direction: 1 });
+  let direction = transition.direction;
+  if (transition.pathname !== pathname) {
+    direction = currentDepth >= transition.depth ? 1 : -1;
+    setTransition({ pathname, depth: currentDepth, direction });
+  }
 
   return (
     <div className="overflow-hidden" style={{ contain: "layout paint" }}>
