@@ -57,9 +57,21 @@ type FormValues = {
 type EditProfileProps = {
   user: User;
   profileData?: Record<string, unknown>;
+  /** 見出し(タイトル + 戻るボタン)を出すか。モーダル内や独自の見出しがある画面では false(既定: true) */
+  showHeader?: boolean;
+  /** 保存後の遷移先(既定: "/mypage/account") */
+  afterSaveHref?: string;
+  /** 見出しの戻るボタンの遷移先(既定: afterSaveHref) */
+  backHref?: string;
 };
 
-export function EditProfile({ user, profileData }: EditProfileProps) {
+export function EditProfile({
+  user,
+  profileData,
+  showHeader = true,
+  afterSaveHref = "/mypage/account",
+  backHref = afterSaveHref,
+}: EditProfileProps) {
   const router = useRouter();
   const { updateProfile, isLoading, error } = useUpdateMyProfile();
 
@@ -87,21 +99,23 @@ export function EditProfile({ user, profileData }: EditProfileProps) {
         profileData: values.profileData,
       });
       if (result) {
-        router.push("/mypage/account");
+        router.push(afterSaveHref);
         router.refresh();
       }
     },
-    [updateProfile, router]
+    [updateProfile, router, afterSaveHref]
   );
 
   return (
     <Section>
       <Stack space={4}>
-        <AccountPageHeader
-          title="プロフィール編集"
-          backHref="/mypage/account"
-          backDisabled={loading}
-        />
+        {showHeader && (
+          <AccountPageHeader
+            title="プロフィール編集"
+            backHref={backHref}
+            backDisabled={loading}
+          />
+        )}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <AppForm methods={methods} onSubmit={handleSubmit} pending={loading} fieldSpace={6}>
             <ControlledField
