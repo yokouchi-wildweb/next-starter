@@ -90,8 +90,15 @@ const BEFORE = {
 const CTA = "お問い合わせ";
 const count = (html: string, part: string) => html.split(part).length - 1;
 
-test("props なしの UserNavigation は slot 化の前と同じ DOM を描く", () => {
-  assert.equal(render(<UserNavigation />), BEFORE.header);
+/**
+ * 寸法変数の区切り(notice frame-dims)で既定の Header に入った差分はこの 1 か所だけ:
+ * top-0 → top-[var(--app-banner-height,0px)](banner が無い時の計算値は同じ 0)
+ */
+const BEFORE_HEADER_DIMS = BEFORE.header.replace(" top-0 ", " top-[var(--app-banner-height,0px)] ");
+
+test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(差分は banner 分の top だけ)", () => {
+  assert.notEqual(BEFORE_HEADER_DIMS, BEFORE.header);
+  assert.equal(render(<UserNavigation />), BEFORE_HEADER_DIMS);
 });
 
 test("leading はブランドの前(#header-left の先頭)に描く", () => {

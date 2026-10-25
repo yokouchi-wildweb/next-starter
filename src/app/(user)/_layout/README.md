@@ -11,6 +11,7 @@ src/app/(user)/_layout/
 ├── UserParts.test.tsx   # 部品の slot / props と「props なしの描画が部品 slot 化の前と同じ」の検査(同上)
 ├── UserPageDefault.test.tsx # UserPage の幅の既定が config に従うことの検査(同上)
 ├── BackgroundLayer.tsx  # 背景画像・オーバーレイ
+├── Banner.tsx           # banner slot の殻(ヘッダーより上の固定の帯。自分の高さを測って UserLayout に返す)
 ├── UserPage.tsx         # ページコンテナ(fill / immersive モード、幅の既定は config)。Screen が使う
 ├── PageTitle.tsx        # ページの h1(export UserPageTitle)。Screen が使う
 ├── Header/              # ヘッダーナビゲーション(既定。export UserNavigation、slot = leading / actions / menuActions)
@@ -48,12 +49,28 @@ src/app/(user)/_layout/
 | slot | 既定(省略時) | 位置 |
 |------|----------------|------|
 | `background` | `BackgroundLayer`(値は `src/config/ui/user-layout.config.ts`) | 最背面(枠の外側の兄弟) |
+| `banner` | なし(省略と `null` は同じ) | `#user-app-container` の先頭、header の前。`#app-banner`(fixed・top-0)の中に描く |
 | `header` | config/ui/user-header.config の `UserNavigation`(upstream では既定 Header) | `#user-app-container` の先頭 |
 | `footer` | config/ui/user-footer.config の `UserFooter`(upstream では既定 Footer) | `#stretch-wrapper` の後 |
 | `bottomNav` | `BottomNavSpacer` + `UserBottomNav`(スペーサーごと差し替える) | フッターの後 |
 | `notificationModal` | `UnreadNotificationModal` | 末尾 |
 
-- slot の約束: 省略(undefined) = 既定の部品 / `null` = 描かない / 要素 = それを描く。props なしの描画(DOM・id・順序)は 1 行スイッチ化の前と同じ(test で固定)
+- slot の約束: 省略(undefined) = 既定の部品 / `null` = 描かない / 要素 = それを描く。props なしの描画(DOM・id・順序)は 1 行スイッチ化の前と同じ(test で固定。寸法変数の区切りで入った差分 2 か所は下の「寸法の CSS 変数」)
+- banner を渡すと、帯の実測の高さを外枠の `--app-banner-height` に書き、ヘッダーの top と本文(`#stretch-wrapper` の前のスペーサー)をその分押し下げる。SP メニューもヘッダーの下から開く。差し替えたヘッダーは `top-0` の代わりに `top-[var(--app-banner-height,0px)]` を使う(使わないと帯に被る)
+
+### 寸法の CSS 変数
+
+| 変数 | 値 | 書く所 |
+|------|----|--------|
+| `--app-header-height` | ヘッダー(`#header`)の実測の高さ | UserLayout・AdminLayout の外枠の inline |
+| `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
+| `--app-bottom-nav-height` | `BOTTOM_NAV_HEIGHT`(`src/config/ui/user-bottom-menu.config.ts`)。既定のボトムナビを描き `BOTTOM_NAV_ENABLED` の時と、bottomNav に要素を渡した時。`bottomNav={null}` と無効の時は書かない(0px) | UserLayout の外枠の inline |
+| `--app-safe-area-top/right/bottom/left` | `env(safe-area-inset-*, 0px)` | `src/styles/config.css` の `:root` |
+
+- 既定値(0px と safe-area)は `src/styles/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ
+- 外枠の配下(ページ・その中の fixed 要素)は px を直書きせずこれらを使う(例 `bottom-[calc(var(--app-bottom-nav-height)+8px)]`)。`--app-*-height` は inline が勝つので `src/styles/custom/` からは上書きできない
+- 部品を Hide* で隠した時に 0 にする扱いはまだ無い(後の区切り)。BottomNav・BottomNavSpacer・UserPage の safe-area はまだ自分の値(`style` の height・`env()` の直書き)を使っている
+- 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:64px`。どちらも banner が無い時の計算値・見た目は同じ
 - header / footer の決め方は「slot → config の旧切替の経路 → 既定」の順。config が既定部品を re-export しているので、HeaderCustom / FooterCustom に切り替えた fork もそのまま動く。config の部品 re-export は廃止予定(@deprecated のコメント)で、旧入口撤去の区切りで UserLayout は既定部品を直接 import する
 - `UserAppLayout`(旧 export 名・旧 props backgroundImageUrl / overlayColor / overlayOpacity)は互換部品。旧 props を background slot に写して UserLayout を描く。旧入口撤去の区切りで削除する
 
@@ -405,7 +422,7 @@ export default function PlayerPage() {
 - 背景の 3 値は layout.tsx が 1 行になるので `src/config/ui/user-layout.config.ts`(枠全体の値の受け皿として新設)へ移した
 - 移行の間の形: header / footer は config の経路を通して描くので、config を HeaderCustom に切り替えている fork も見た目が変わらない。UserAppLayout も旧 props のまま動く。どちらも旧入口撤去の区切りで削除する
 - ルート地図(src/lib/screens/routeMap.mjs)は layout.tsx の本文しか読んでいなかったので、スイッチ先の `_layout/` を 1 段辿るようにした(fork がカスタムの組み立てに書いたガードを地図から落とさないため)
-- 部品そのものの slot は次の区切り(notice frame-parts-user)、banner・寸法の CSS 変数はその後の区切りで入る
+- 部品そのものの slot は次の区切り(notice frame-parts-user)、banner・寸法の CSS 変数はその後の区切り(notice frame-dims)で入った
 
 ## 部品の slot の経緯(notice frame-parts-user)
 
@@ -415,6 +432,25 @@ export default function PlayerPage() {
 - Main(core)に `verticalAlign`。名前と値は fork の既存の実装と同じ(fork の衝突は上流版を採るだけ)。center の class 文字列は従来と同じ並び
 - UserPage の幅の既定は config の値 `USER_PAGE_CONTAINER_TYPE`
 - props を渡さない既定の DOM は前と同じ(id・class を含む。`UserParts.test.tsx` に前の HTML を固定)
+
+## banner と寸法変数の経緯(notice frame-dims)
+
+- 報告書 §2(D1・D7)の slot 一覧の banner(ヘッダーより上の帯、押し下げ、既定なし、高さは寸法変数)と、寸法の CSS 変数 header / bottomNav / banner / safe-area
+- fork はヘッダーより上の帯を root layout から fixed で出したり、ボトムナビを避ける位置を `bottom-[72px]` のような px で書いたりしていた。upstream がヘッダーやボトムナビの高さを変えると黙ってずれる
+- 帯は fixed で出して自分の高さを測る(Banner.tsx)。測り方は useElementSize(ResizeObserver)。useHeaderHeight は要素が見つかるまで requestAnimationFrame を回し続けるので、banner の無い画面で回りっぱなしになるため使わない。Banner は banner がある時だけ描くので、測定もその時だけ
+- 本文はスペーサー(`h-[var(--app-banner-height,0px)]`)で押し下げる。`#stretch-wrapper` の padding-top(ヘッダー分)の class を変えずに済み、fill の高さの連鎖にもそのまま乗る(BottomNavSpacer と同じ考え方)
+- bottomNav の高さは TS の config の値なので、CSS の :root では持てない(写すと二重になり、fork が config を変えても追随しない)。外枠の inline に書く
+
+## 採らなかった案(banner と寸法変数)
+
+- banner を flow に置くだけ: スクロールで帯が流れ、固定ヘッダーとの間に隙間ができる
+- banner と header を一つの fixed の箱に入れる: header が fixed をやめることになり、既定の DOM が大きく変わる。差し替えたヘッダーも作り直しになる
+- Header の class を変えず、config.css に `[data-user-app-container] #header { top: … }` を書く: core の CSS が部品の位置を裏から上書きする形になり、部品を読んでも気づけない
+- `--app-bottom-nav-height` を :root に 64px で持つ: config の BOTTOM_NAV_HEIGHT と二重になる
+- `#stretch-wrapper` の padding-top を header + banner の calc にする: 既定の class が変わる。スペーサーなら banner が無い時の DOM が変わらない
+- AdminLayout にも同じ変数を inline で書く: Admin には banner も bottomNav も無く、:root の 0px と同じ値を書くだけ(既定の DOM が変わる)
+- Admin の banner slot: 要る例が無い(報告書の banner は User の slot)
+- BottomNav・UserPage を同時に変数へ寄せる: 既定の DOM が変わる。部品の非表示で 0 にする扱いと一緒に後の区切りで
 
 ## 採らなかった案(部品の slot)
 

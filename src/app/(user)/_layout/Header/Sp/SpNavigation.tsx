@@ -18,6 +18,7 @@ export type SpNavigationProps = {
   readonly items: readonly NavigationMenuItem[];
   readonly showIcons?: boolean;
   readonly onClose: () => void;
+  /** ヘッダーの実測の高さ(px)。banner がある時はその分(--app-banner-height)を足した位置から開く */
   readonly headerOffset: number;
   /** パネル下部に表示するコンテンツ（CTAボタンなど） */
   readonly footer?: ReactNode;
@@ -35,7 +36,7 @@ export const SpNavigation = ({
     <AnimatePresence>
       {isOpen ? (
         <motion.div id="header-sp-nav" key="mobile-navigation" className="sm:hidden">
-          <div id="header-sp-nav-container" className="fixed inset-x-0 bottom-0" style={{ top: headerOffset }}>
+          <div id="header-sp-nav-container" className="fixed inset-x-0 bottom-0" style={{ top: `calc(var(--app-banner-height, 0px) + ${headerOffset}px)` }}>
             <SpNavOverlay onClose={onClose} />
             <SpNavPanel items={items} showIcons={showIcons} onNavigate={onClose} footer={footer} />
           </div>

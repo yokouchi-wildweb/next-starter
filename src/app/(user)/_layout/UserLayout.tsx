@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useState } from "react";
 
 import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
@@ -8,6 +8,7 @@ import UnreadNotificationModal from "@/features/notification/components/common/U
 
 import { BottomNavVisibilityProvider } from "@/components/AppFrames/User/contexts/BottomNavVisibilityContext";
 import { BackgroundLayer } from "./BackgroundLayer";
+import { Banner } from "./Banner";
 import { FooterVisibilityProvider } from "@/components/AppFrames/User/contexts/FooterVisibilityContext";
 import { HeaderVisibilityProvider } from "@/components/AppFrames/User/contexts/HeaderVisibilityContext";
 import { HeaderNavVisibilityProvider } from "@/components/AppFrames/User/contexts/HeaderNavVisibilityContext";
@@ -16,6 +17,7 @@ import { BottomNavSpacer } from "./BottomNav/BottomNavSpacer";
 // header / footer の既定は config の旧切替の経路を通す(upstream では既定部品の re-export。旧入口撤去の区切りで直接 import へ)
 import { UserFooter } from "@/config/ui/user-footer.config";
 import { UserNavigation } from "@/config/ui/user-header.config";
+import { BOTTOM_NAV_ENABLED, BOTTOM_NAV_HEIGHT } from "@/config/ui/user-bottom-menu.config";
 import {
   BACKGROUND_IMAGE_URL,
   BACKGROUND_OVERLAY_COLOR,
@@ -24,15 +26,22 @@ import {
 
 type LayoutStyle = CSSProperties & {
   "--app-header-height"?: string;
+  "--app-banner-height"?: string;
+  "--app-bottom-nav-height"?: string;
 };
 
 /**
- * slot の約束(5 つ共通): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く。
+ * slot の約束(6 つ共通): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く。
  * fork は layout.tsx をドット区切り名のカスタム(例 `UserLayout.<project>.tsx`)へ向け、そこで既定の UserLayout に slot を渡す。
  * 経緯と手順: ./README.md
  */
 export type UserLayoutProps = {
   readonly children: ReactNode;
+  /**
+   * ヘッダーより上に固定で出す帯。既定 = なし(省略と null は同じ)。
+   * 実測の高さを --app-banner-height に書き、ヘッダーの top と本文(#stretch-wrapper の前のスペーサー)をその分押し下げる
+   */
+  readonly banner?: ReactNode;
   /** ヘッダー。既定 = config/ui/user-header.config の UserNavigation(旧切替の経路。upstream では既定 Header) */
   readonly header?: ReactNode;
   /** フッター。既定 = config/ui/user-footer.config の UserFooter(旧切替の経路。upstream では既定 Footer) */
@@ -48,6 +57,7 @@ export type UserLayoutProps = {
 /** ユーザー側の枠の既定の組み立て。src/app/(user)/layout.tsx が 1 行スイッチで default に束ねる */
 export function UserLayout({
   children,
+  banner,
   header,
   footer,
   bottomNav,
@@ -55,9 +65,16 @@ export function UserLayout({
   notificationModal,
 }: UserLayoutProps) {
   const headerHeight = useHeaderHeight();
+  const [bannerHeight, setBannerHeight] = useState(0);
+  const hasBanner = banner !== undefined && banner !== null;
+  // ボトムナビの高さは config の値。既定のボトムナビが無効な時と bottomNav={null} の時は書かない(:root の 0px)。
+  // Hide* で隠した時の 0 はまだ扱わない(styles/config.css のコメント参照)
+  const hasBottomNav = bottomNav === undefined ? BOTTOM_NAV_ENABLED : bottomNav !== null;
 
   const layoutStyle: LayoutStyle = {
     "--app-header-height": `${headerHeight}px`,
+    ...(hasBottomNav ? { "--app-bottom-nav-height": `${BOTTOM_NAV_HEIGHT}px` } : {}),
+    ...(hasBanner ? { "--app-banner-height": `${bannerHeight}px` } : {}),
   };
 
   return (
@@ -84,7 +101,10 @@ export function UserLayout({
               className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
               style={layoutStyle}
             >
+              {hasBanner && <Banner onHeightChange={setBannerHeight}>{banner}</Banner>}
               {header === undefined ? <UserNavigation /> : header}
+              {/* banner の高さ分だけ本文を押し下げる(ヘッダーの分は #stretch-wrapper の padding-top) */}
+              {hasBanner && <div aria-hidden="true" className="shrink-0 h-[var(--app-banner-height,0px)]" />}
               <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
                 {children}
               </div>

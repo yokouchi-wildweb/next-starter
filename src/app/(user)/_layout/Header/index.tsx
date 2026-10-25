@@ -57,7 +57,7 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
     <header
       id={APP_HEADER_ELEMENT_ID}
       ref={headerRef}
-      className={`fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-header text-header-foreground ${visibilityClass}`}
+      className={`fixed shadow inset-x-0 top-[var(--app-banner-height,0px)] header-layer border-b border-border bg-header text-header-foreground ${visibilityClass}`}
     >
       <HeaderShell
         left={

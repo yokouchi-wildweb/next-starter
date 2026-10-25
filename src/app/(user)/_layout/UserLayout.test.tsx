@@ -46,14 +46,22 @@ const BEFORE_SWITCH =
   '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">CHILD</div>' +
   "<x-footer></x-footer><x-spacer></x-spacer><x-bottomnav></x-bottomnav><x-modal></x-modal></div>";
 
+/**
+ * 寸法変数の区切り(notice frame-dims)で既定の DOM に入った差分はこの 1 か所だけ:
+ * 外枠の inline style に --app-bottom-nav-height(config の BOTTOM_NAV_HEIGHT。既定のボトムナビが有効な時)
+ */
+const withBottomNavVar = (html: string) =>
+  html.replace('style="--app-header-height:0px"', 'style="--app-header-height:0px;--app-bottom-nav-height:64px"');
+const BEFORE_DIMS = withBottomNavVar(BEFORE_SWITCH);
+
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
-test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は config/ui/user-layout.config の既定値)", () => {
-  assert.equal(render(<UserLayout>CHILD</UserLayout>), BEFORE_SWITCH);
+test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は config/ui/user-layout.config の既定値。差分は外枠の --app-bottom-nav-height だけ)", () => {
+  assert.equal(render(<UserLayout>CHILD</UserLayout>), BEFORE_DIMS);
 });
 
 test("互換の UserAppLayout は旧 props のまま同じ DOM を描き、backgroundImageUrl を背景に写す", () => {
-  assert.equal(render(<UserAppLayout overlayColor="#000" overlayOpacity={0}>CHILD</UserAppLayout>), BEFORE_SWITCH);
+  assert.equal(render(<UserAppLayout overlayColor="#000" overlayOpacity={0}>CHILD</UserAppLayout>), BEFORE_DIMS);
   const withImage = render(
     <UserAppLayout backgroundImageUrl="/bg.jpg" overlayColor="red" overlayOpacity={0.5}>
       CHILD
@@ -91,9 +99,9 @@ test("slot に要素を渡すと既定の代わりにそれを同じ位置に描
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が既定と違う");
 });
 
-test("slot に null を渡すとその部品を描かない(bottomNav はスペーサーごと)", () => {
+test("slot に null を渡すとその部品を描かない(bottomNav はスペーサーごと、--app-bottom-nav-height も書かない)", () => {
   const html = render(
-    <UserLayout header={null} footer={null} bottomNav={null} background={null} notificationModal={null}>
+    <UserLayout banner={null} header={null} footer={null} bottomNav={null} background={null} notificationModal={null}>
       CHILD
     </UserLayout>,
   );
@@ -102,5 +110,35 @@ test("slot に null を渡すとその部品を描かない(bottomNav はスペ�
     '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
       'id="user-app-container" data-user-app-container="" style="--app-header-height:0px">' +
       '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">CHILD</div></div>',
+  );
+});
+
+test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT", () => {
+  const html = render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>);
+  assert.ok(html.includes('style="--app-header-height:0px;--app-bottom-nav-height:64px"'));
+});
+
+test("banner の省略と null は同じ(既定なし): 帯・スペーサー・--app-banner-height を描かない", () => {
+  assert.equal(render(<UserLayout banner={null}>CHILD</UserLayout>), BEFORE_DIMS);
+  assert.equal(render(<UserLayout>CHILD</UserLayout>).includes("app-banner"), false);
+});
+
+test("banner に要素を渡すとヘッダーより前の固定の帯に描き、本文の前にその高さのスペーサーを置く", () => {
+  const html = render(<UserLayout banner={<p id="promo">PROMO</p>}>CHILD</UserLayout>);
+  // 静的描画では実測前なので 0px(ブラウザでは ResizeObserver の実測値)
+  assert.ok(
+    html.includes('style="--app-header-height:0px;--app-bottom-nav-height:64px;--app-banner-height:0px"'),
+    "外枠に --app-banner-height が無い",
+  );
+  const banner = '<div id="app-banner" class="fixed inset-x-0 top-0 header-layer"><p id="promo">PROMO</p></div>';
+  const spacer = '<div aria-hidden="true" class="shrink-0 h-[var(--app-banner-height,0px)]"></div>';
+  const order = ['id="user-app-container"', banner, "<x-header></x-header>", spacer, 'id="stretch-wrapper"'];
+  const positions = order.map((part) => html.indexOf(part));
+  assert.ok(positions.every((p) => p >= 0), `見つからない: ${order.filter((_, i) => positions[i] < 0).join(", ")}`);
+  assert.deepEqual([...positions].sort((a, b) => a - b), positions, "並び順が違う");
+  // banner なしの HTML に帯とスペーサーと変数を足しただけ(他は変わらない)
+  assert.equal(
+    html.replace(banner, "").replace(spacer, "").replace(";--app-banner-height:0px", ""),
+    BEFORE_DIMS,
   );
 });
