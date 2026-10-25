@@ -15,9 +15,9 @@ import { CORE_STORAGE_PURPOSES } from "./storagePurposes/core";
 export const storagePurposeRegistry = {
   ...CORE_STORAGE_PURPOSES,
   // --- AUTO-GENERATED-START ---
-  "sample.main_image": { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], upload: { allow: "authenticated" } },
-  "sample.sub_image": { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], upload: { allow: "authenticated" } },
-  "sample.gallery_images": { visibility: "public", maxBytes: 10485760, contentTypes: ["image/*", "video/*"], upload: { allow: "authenticated" } },
+  "sample.main_image": { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], metadata: "strip", upload: { allow: "authenticated" } },
+  "sample.sub_image": { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], metadata: "strip", upload: { allow: "authenticated" } },
+  "sample.gallery_images": { visibility: "public", maxBytes: 10485760, contentTypes: ["image/*", "video/*"], metadata: "strip", upload: { allow: "authenticated" } },
   // --- AUTO-GENERATED-END ---
   // --- FORK (手書き) ---
 } satisfies StoragePurposeMap;

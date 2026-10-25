@@ -16,6 +16,19 @@ const PURPOSE_ID_PATTERN = /^[A-Za-z][A-Za-z0-9]*\.[A-Za-z][A-Za-z0-9_]*$/;
 const ADMIN_RULE = { roleCategories: ['admin'] };
 const VISIBILITIES = new Set(['public', 'private']);
 const PRESETS = new Set(['images', 'videos', 'imagesAndVideos', 'all']);
+const METADATA_VALUES = new Set(['strip', 'keep']);
+// strip の用途で受け付ける画像の型（src/lib/storage/metadata.ts の STRIP_IMAGE_TYPES と同じ。"image/*" はこの集合に読み替えられる）
+const STRIP_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
+
+function isImagePattern(contentType) {
+  return contentType.toLowerCase().startsWith('image/');
+}
+
+// strip で描き直せない画像の型（image/heic・image/svg+xml など）。"image/*" と STRIP_IMAGE_TYPES は描き直せる
+function isUnprocessableImagePattern(contentType) {
+  const normalized = contentType.toLowerCase();
+  return isImagePattern(normalized) && normalized !== 'image/*' && !STRIP_IMAGE_TYPES.has(normalized);
+}
 
 function registryPath(rootDir) {
   return path.join(rootDir, 'src', 'registry', 'storagePurposeRegistry.ts');
@@ -142,6 +155,26 @@ export function buildStoragePurposeEntries({ camel, config, roleCategories = new
       continue;
     }
 
+    if (storage.metadata !== undefined && !METADATA_VALUES.has(storage.metadata)) {
+      errors.push(`${id}: storage.metadata は "strip" か "keep" にしてください`);
+      continue;
+    }
+    // 画像を含む項目の省略 = strip（登録表には明示値で書き出す）。画像の無い項目には書き出さない
+    const hasImage = contentTypes.some(isImagePattern);
+    const metadata = hasImage ? (storage.metadata ?? 'strip') : undefined;
+    if (!hasImage && storage.metadata === 'strip') {
+      errors.push(`${id}: 画像の型が accept に無い項目に storage.metadata: "strip" は書けません（strip は画像にだけ効きます）`);
+      continue;
+    }
+    const unprocessable = metadata === 'strip' ? contentTypes.filter(isUnprocessableImagePattern) : [];
+    if (unprocessable.length > 0) {
+      errors.push(
+        `${id}: storage.metadata が strip（省略時を含む）の項目の accept に、サーバーで描き直せない画像の型 ${unprocessable.join(', ')} があります` +
+          `（受け付けられるのは ${[...STRIP_IMAGE_TYPES].join(' / ')}。原本のまま受けるなら storage.metadata: "keep"）`,
+      );
+      continue;
+    }
+
     const uploadAllow =
       storage.upload ?? unionUploadRules([resolveOperationRule(apiAccess, 'create'), resolveOperationRule(apiAccess, 'update')]);
     const getRule = resolveOperationRule(apiAccess, 'get');
@@ -161,6 +194,7 @@ export function buildStoragePurposeEntries({ camel, config, roleCategories = new
       `visibility: ${JSON.stringify(visibility)}`,
       `maxBytes: ${maxBytes}`,
       `contentTypes: ${serializeStringArray(contentTypes)}`,
+      ...(metadata ? [`metadata: ${JSON.stringify(metadata)}`] : []),
       `upload: { allow: ${serializeRule(uploadAllow)} }`,
     ];
     if (visibility === 'private') parts.push(`read: { allow: ${serializeRule(getRule)} }`);

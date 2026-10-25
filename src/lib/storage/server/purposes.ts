@@ -7,6 +7,7 @@ import "server-only";
 
 import { DomainError } from "@/lib/errors";
 
+import { STRIP_IMAGE_TYPES } from "../metadata";
 import { isValidStoragePurposeId } from "../ref";
 import type { StoragePurpose, StoragePurposeMap } from "../policy/types";
 
@@ -40,6 +41,9 @@ export function resolveStoragePurpose(map: StoragePurposeMap, purposeId: string)
  * - maxBytes が 1 以上の整数、contentTypes が 1 件以上
  * - private の用途に read がある
  * - maxPending を指定するなら 1 以上の整数
+ * - metadata を指定するなら "strip" か "keep"。画像の型が contentTypes に無い用途には strip を書かない
+ * - strip の用途（省略を含む）の contentTypes に、サーバーで描き直せない画像の型（image/heic など）を書かない
+ * - user.avatar は keep にしない（D29: 常に strip。実行時も purposeSource が strip に固定する）
  */
 export function listStoragePurposeProblems(map: StoragePurposeMap): string[] {
   const problems: string[] = [];
@@ -58,6 +62,37 @@ export function listStoragePurposeProblems(map: StoragePurposeMap): string[] {
     ) {
       problems.push(`${id}: maxPending は 1 以上の整数にしてください`);
     }
+    problems.push(...listMetadataProblems(id, purpose));
+  }
+  return problems;
+}
+
+const STRIP_IMAGE_SET = new Set<string>(STRIP_IMAGE_TYPES);
+
+/** keep にできない用途（D29。実行時の固定は features/core/storageObject の FIXED_STRIP_PURPOSES） */
+const STRIP_ONLY_PURPOSE_IDS = ["user.avatar"];
+
+function listMetadataProblems(id: string, purpose: StoragePurpose): string[] {
+  const problems: string[] = [];
+  const metadata: unknown = purpose.metadata;
+  if (metadata !== undefined && metadata !== "strip" && metadata !== "keep") {
+    problems.push(`${id}: metadata は "strip" か "keep" にしてください`);
+    return problems;
+  }
+  const imageTypes = purpose.contentTypes.map((v) => v.trim().toLowerCase()).filter((v) => v.startsWith("image/"));
+  if (metadata === "strip" && imageTypes.length === 0) {
+    problems.push(`${id}: 画像の型が contentTypes に無い用途に metadata: "strip" は書けません`);
+  }
+  if ((metadata ?? "strip") === "strip") {
+    const unprocessable = imageTypes.filter((v) => v !== "image/*" && !STRIP_IMAGE_SET.has(v));
+    if (unprocessable.length > 0) {
+      problems.push(
+        `${id}: strip の用途（metadata 省略を含む）の contentTypes に、サーバーで描き直せない画像の型 ${unprocessable.join(", ")} があります（受けるなら metadata: "keep"）`,
+      );
+    }
+  }
+  if (metadata === "keep" && STRIP_ONLY_PURPOSE_IDS.includes(id)) {
+    problems.push(`${id}: この用途は keep にできません（常に strip）`);
   }
   return problems;
 }

@@ -1,7 +1,8 @@
 // ファイル用途の登録表（src/registry/storagePurposeRegistry.ts）と生成器の検査。
 // - 登録表の全用途（手書きの CORE / FORK を含む）が ID の形式・型・規則に合う
 // - 全 domain.json（business と core の設定源）のメディア項目に、対応する用途が登録されている
-// - 生成器の導出（visibility の必須化・上限の既定値・AUTO ブロックだけの upsert）
+// - 生成器の導出（visibility の必須化・上限の既定値・metadata の検査と書き出し・AUTO ブロックだけの upsert）
+// - 用途の metadata（strip / keep）の規則と、user.avatar が keep でないこと（D29）
 // - storage オプションのメディア列は systemColumns にできない（登録済みの全サービスが作れることも確かめる）
 // - storage オプションの表のうち、親の削除で DB が行を消す FK（onDelete cascade）を持つものを警告で出す（失敗にはしない）
 //   （serviceRegistry と、全ドメインの services/server/drizzleBase.ts が export するサービス）
@@ -25,6 +26,7 @@ const MEDIA_FIELD_TYPES = new Set(["mediaUploader", "mediaUploaderMulti"]);
 const { storagePurposeRegistry } = await import("../../src/registry/storagePurposeRegistry.ts");
 const { listStoragePurposeProblems } = await import("../../src/lib/storage/server/purposes.ts");
 const { isValidStoragePurposeId } = await import("../../src/lib/storage/ref.ts");
+const { FIXED_STRIP_PURPOSES } = await import("../../src/features/core/storageObject/services/server/purposeSource.ts");
 
 /** src/features/<domain>/domain.json と src/features/core/<domain>/domain.json（ドメイン名 = フォルダ名） */
 function listDomainConfigs() {
@@ -72,6 +74,45 @@ describe("登録表", () => {
     ]) {
       assert.ok(id in storagePurposeRegistry, id);
     }
+  });
+
+  test("user.avatar は keep でない（D29）", () => {
+    assert.notEqual(storagePurposeRegistry["user.avatar"].metadata, "keep");
+    for (const id of FIXED_STRIP_PURPOSES) {
+      assert.notEqual(storagePurposeRegistry[id]?.metadata, "keep", id);
+    }
+  });
+});
+
+describe("用途の metadata の検査（listStoragePurposeProblems）", () => {
+  const base = { visibility: "public", maxBytes: 10, upload: { allow: "authenticated" } };
+  const problemsOf = (id, purpose) => listStoragePurposeProblems({ [id]: { ...base, ...purpose } });
+
+  test("strip / keep / 省略はどれも通る（画像の型は image/* と 5 型）", () => {
+    for (const metadata of ["strip", "keep", undefined]) {
+      assert.deepEqual(problemsOf("item.photo", { contentTypes: ["image/*", "image/png", "image/avif", "video/*"], metadata }), [], String(metadata));
+    }
+  });
+
+  test("strip / keep 以外の値は問題", () => {
+    assert.match(problemsOf("item.photo", { contentTypes: ["image/*"], metadata: "remove" })[0], /item\.photo: metadata は "strip" か "keep"/);
+  });
+
+  test("strip の用途（省略を含む）に描き直せない画像の型を書くと問題、keep なら通る", () => {
+    assert.match(problemsOf("item.photo", { contentTypes: ["image/*", "image/heic"] })[0], /image\/heic/);
+    assert.match(problemsOf("item.photo", { contentTypes: ["image/svg+xml"], metadata: "strip" })[0], /image\/svg\+xml/);
+    assert.deepEqual(problemsOf("item.photo", { contentTypes: ["image/heic", "image/svg+xml"], metadata: "keep" }), []);
+  });
+
+  test("画像の型の無い用途に strip を書くと問題（省略・keep は通る）", () => {
+    assert.match(problemsOf("item.video", { contentTypes: ["video/*"], metadata: "strip" })[0], /画像の型が contentTypes に無い/);
+    assert.deepEqual(problemsOf("item.video", { contentTypes: ["video/*"] }), []);
+    assert.deepEqual(problemsOf("item.video", { contentTypes: ["video/*"], metadata: "keep" }), []);
+  });
+
+  test("user.avatar を keep にすると問題（D29）", () => {
+    assert.match(problemsOf("user.avatar", { contentTypes: ["image/*"], metadata: "keep" })[0], /user\.avatar: この用途は keep にできません/);
+    assert.deepEqual(problemsOf("user.avatar", { contentTypes: ["image/*"], metadata: "strip" }), []);
   });
 });
 
@@ -124,7 +165,7 @@ describe("生成器の導出", () => {
     assert.deepEqual(errors, []);
     assert.equal(
       entries[0].value,
-      '{ visibility: "public", maxBytes: 1000, contentTypes: ["image/*"], upload: { allow: "authenticated" } }',
+      '{ visibility: "public", maxBytes: 1000, contentTypes: ["image/*"], metadata: "strip", upload: { allow: "authenticated" } }',
     );
   });
 
@@ -137,7 +178,7 @@ describe("生成器の導出", () => {
     assert.deepEqual(priv.errors, []);
     assert.equal(
       priv.entries[0].value,
-      '{ visibility: "private", maxBytes: 1000, contentTypes: ["image/*"], upload: { allow: { roles: ["editor"], roleCategories: ["admin"] } }, read: { allow: { roles: ["editor"] } } }',
+      '{ visibility: "private", maxBytes: 1000, contentTypes: ["image/*"], metadata: "strip", upload: { allow: { roles: ["editor"], roleCategories: ["admin"] } }, read: { allow: { roles: ["editor"] } } }',
     );
 
     // apiAccess 未宣言は管理者のみ・private（fail-closed）
@@ -156,6 +197,58 @@ describe("生成器の導出", () => {
     assert.match(build({}, mediaField({ storage: { upload: "public" } })).errors[0], /storage\.upload/);
     assert.match(build({}, mediaField({ storage: { visibility: "secret" } })).errors[0], /storage\.visibility/);
     assert.match(build({}, mediaField({ accept: "" })).errors[0], /accept/);
+  });
+});
+
+describe("生成器の metadata", () => {
+  const PUBLIC_ADMIN = { read: "public", write: ADMIN };
+  const valueOf = (field) => {
+    const { entries, errors } = build(PUBLIC_ADMIN, mediaField(field));
+    assert.deepEqual(errors, []);
+    return entries[0].value;
+  };
+
+  test("画像を含む項目は省略でも metadata: \"strip\" を明示値で書き出し、keep はそのまま書き出す", () => {
+    assert.match(valueOf({}), /contentTypes: \["image\/\*"\], metadata: "strip", upload:/);
+    assert.match(valueOf({ accept: "image/*,video/*" }), /metadata: "strip"/);
+    assert.match(valueOf({ storage: { metadata: "strip" } }), /metadata: "strip"/);
+    assert.match(valueOf({ accept: "image/heic,image/png", storage: { metadata: "keep" } }), /metadata: "keep"/);
+  });
+
+  test("画像の型の無い項目には書き出さない（keep を書いても出さない）", () => {
+    assert.doesNotMatch(valueOf({ accept: "video/*" }), /metadata/);
+    assert.doesNotMatch(valueOf({ accept: "application/pdf", storage: { metadata: "keep" } }), /metadata/);
+  });
+
+  test("contentTypes は accept のまま（image/* を読み替えない）", () => {
+    assert.match(valueOf({ accept: "image/*, image/png" }), /contentTypes: \["image\/\*", "image\/png"\]/);
+  });
+
+  test("strip / keep 以外の値はエラー", () => {
+    assert.match(build(PUBLIC_ADMIN, mediaField({ storage: { metadata: "remove" } })).errors[0], /item\.photo: storage\.metadata は "strip" か "keep"/);
+  });
+
+  test("strip（省略を含む）で描き直せない画像の型を accept に書くとエラー", () => {
+    assert.match(build(PUBLIC_ADMIN, mediaField({ accept: "image/*,image/heic" })).errors[0], /item\.photo:.*image\/heic/);
+    assert.match(
+      build(PUBLIC_ADMIN, mediaField({ accept: "image/svg+xml", storage: { metadata: "strip" } })).errors[0],
+      /image\/svg\+xml/,
+    );
+  });
+
+  test("画像の型の無い項目に strip を明示するとエラー", () => {
+    assert.match(
+      build(PUBLIC_ADMIN, mediaField({ accept: "video/*", storage: { metadata: "strip" } })).errors[0],
+      /item\.photo: 画像の型が accept に無い/,
+    );
+  });
+
+  test("生成した値は登録表の検査も通る", () => {
+    // 生成器と listStoragePurposeProblems の規則が食い違っていないこと（値の文字列を評価して確かめる）
+    for (const field of [{}, { accept: "image/png,video/*" }, { accept: "image/heic", storage: { metadata: "keep" } }, { accept: "video/*" }]) {
+      const purpose = new Function(`return (${valueOf(field)});`)();
+      assert.deepEqual(listStoragePurposeProblems({ "item.photo": purpose }), [], JSON.stringify(field));
+    }
   });
 });
 

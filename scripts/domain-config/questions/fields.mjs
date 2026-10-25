@@ -263,6 +263,10 @@ async function askSingleField(config) {
       '  ※ 一般利用者がアップロードできる項目は、domain.json のこの項目に "storage": { "visibility": "public" | "private" } を書いてください' +
         '（無いと dc:generate が止まります。詳細: src/features/README.md「ファイルの保存（storage）」）',
     );
+    console.log(
+      '  ※ 画像は既定でサーバーが位置情報などのメタデータを消して保存します（jpeg / png / webp / gif / avif のみ受付）。' +
+        '原本のまま残す項目（書類・明細など）は "storage": { "metadata": "keep" } を書いてください',
+    );
 
     if (normalizedInput === 'mediaUploaderMulti') {
       const maxItemsAnswer = await prompt({
