@@ -14,6 +14,7 @@ import "server-only";
 import { contentDispositionFor } from "../contentTypes";
 import {
   ISSUED_CACHE_CONTROL,
+  StorageReadTooLargeError,
   setStoragePortOverride,
   type HeadResult,
   type ObjectLocation,
@@ -157,6 +158,18 @@ export function createFakeStoragePort(options: { now?: () => Date } = {}): FakeS
       object.cacheControl = value;
     },
 
+    async read(location, opts) {
+      const object = objects.get(keyOf(location));
+      if (!object) throw new FakeStorageError(404, `見つかりません: ${keyOf(location)}`);
+      if (opts.generation && object.generation !== opts.generation) {
+        throw new FakeStorageError(404, `指定の世代がありません: ${keyOf(location)}`);
+      }
+      if (object.body.byteLength > opts.maxBytes) {
+        throw new StorageReadTooLargeError(location, object.body.byteLength, opts.maxBytes);
+      }
+      return new Uint8Array(object.body);
+    },
+
     async put(location, body, opts) {
       return create(location, body, opts.contentType, opts.cacheControl);
     },
@@ -208,6 +221,18 @@ export function createFakeStoragePort(options: { now?: () => Date } = {}): FakeS
       return head;
     },
   };
+}
+
+/**
+ * 描き直しの差し替え（テスト専用）。中身をそのまま返す。
+ * strip の流れ（受け取り領域 → 本来の位置）を、画像でないダミーのバイト列で通すときに
+ * createStorageObjectService の stripImage に渡す。描き直しそのものは imageStrip.test.ts が確かめる
+ */
+export async function passThroughImageStrip(
+  body: Uint8Array,
+  contentType: string,
+): Promise<{ body: Uint8Array; contentType: string }> {
+  return { body, contentType };
 }
 
 /** getStoragePort() が返すポートを差し替える（テスト専用）。null で GCS 実装に戻す */

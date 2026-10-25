@@ -16,6 +16,13 @@ export type StorageActor = {
 
 export type StorageVisibility = "public" | "private";
 
+/**
+ * 画像のメタデータ（EXIF の位置情報など）の扱い。
+ * - strip: commit 時にサーバーが描き直し、メタデータを全て除いた物だけを保存する（画像を含む用途の既定）
+ * - keep: 受け取ったまま保存する（原本を渡す用途。明示したときだけ）
+ */
+export type StorageMetadataPolicy = "strip" | "keep";
+
 /** 判定関数に渡す台帳行の見え方 */
 export type StorageObjectView = {
   id: string;
@@ -62,6 +69,11 @@ export type StoragePurpose = {
   maxPending?: number;
   /** false = 業務行に紐付けない用途（チャット添付など）。未採用の掃除の対象外になる */
   attach?: false;
+  /**
+   * 画像のメタデータの扱い。省略 = strip。画像以外の型（動画・音声など）には効かない（受け取ったまま保存する）。
+   * 判定は metadata.ts の resolvePurposeMetadata / requiresStrip
+   */
+  metadata?: StorageMetadataPolicy;
 };
 
 /** 用途 ID（`<domain>.<field>`）→ 用途 */

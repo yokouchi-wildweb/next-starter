@@ -13,7 +13,7 @@ import { runWithAuditContext, type AuditContext } from "@/lib/audit";
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, type FakeStoragePort } from "@/lib/storage/server/fake";
+import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server/fake";
 
 import { storageBindingFor } from "./services/server/crudBinding";
 import { createMemoryLedger, type MemoryLedger } from "./services/server/ledger/memoryLedger";
@@ -66,6 +66,7 @@ function setup(): Harness {
     locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
     now: () => new Date(),
     newId: () => `01920000-0000-7000-8000-${String(++counter).padStart(12, "0")}`,
+    stripImage: passThroughImageStrip,
   });
   const binding = storageBindingFor("sample", SAMPLE_FIELDS, { service, port: () => fake });
   return { service, ledger, fake, binding };

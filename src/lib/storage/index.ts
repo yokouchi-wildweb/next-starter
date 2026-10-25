@@ -3,5 +3,6 @@
 
 export * from "./ref";
 export * from "./contentTypes";
+export * from "./metadata";
 export * from "./schema";
 export type * from "./policy/types";

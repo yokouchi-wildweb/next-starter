@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, type FakeStoragePort } from "@/lib/storage/server/fake";
+import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server/fake";
 
 import { createMemoryLedger, type MemoryLedger } from "./services/server/ledger/memoryLedger";
 import type { StorageLedger } from "./services/server/ledger/types";
@@ -66,6 +66,7 @@ function setup(): Harness {
     locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
     now: () => clock.now,
     newId: () => `01920000-0000-7000-8000-${String(++counter).padStart(12, "0")}`,
+    stripImage: passThroughImageStrip,
   });
   const sweep: Harness["sweep"] = (options, ledgerOverride) =>
     createStorageSweep({ ledger: ledgerOverride ?? ledger, service, purposes: () => PURPOSES, now: () => clock.now }).run({

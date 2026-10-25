@@ -54,7 +54,7 @@ describe("storage オプション（実 DB の TX）", { skip }, () => {
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
     ({ drizzleLedger: ledger } = await import("./services/server/ledger/drizzleLedger"));
-    const { createFakeStoragePort } = await import("@/lib/storage/server/fake");
+    const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server/fake");
     const { createStorageObjectService } = await import("./services/server/storageObjectService");
     const { storageBindingFor } = await import("./services/server/crudBinding");
     const { createCrudService } = await import("@/lib/crud/drizzle");
@@ -74,6 +74,7 @@ describe("storage オプション（実 DB の TX）", { skip }, () => {
       locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
       now: () => new Date(),
       newId: uuidv7,
+      stripImage: passThroughImageStrip,
     });
     const binding = storageBindingFor("test_item", FIELDS, { service: storageService, port: () => fake });
     hard = createCrudService(TestItemTable as never, { idType: "uuid", storage: binding });

@@ -1,20 +1,25 @@
 // src/features/core/storageObject/storageObject.test.ts
 // ファイル台帳サービスの単体テスト（memoryLedger + fake ポート）。
 // issue → commit → attach → detach → 掃除対象化の往復と、発行・commit・取り消し・読み取りの受入項目。
+// 描き直しは既定で passThroughImageStrip（中身をそのまま返す）に差し替える。実 sharp で描き直す strip の流れは
+// 末尾の「metadata: strip の受け入れ」で確かめる。
 // SQL の原子性は test:storage-object-db（実 DB）で別に確かめる。
 // 実行: pnpm test:storage-object
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
+import sharp from "sharp";
+
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, type FakeStoragePort } from "@/lib/storage/server/fake";
-import { StorageNotConfiguredError, locationOf } from "@/lib/storage/server";
+import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server/fake";
+import { StorageNotConfiguredError, locationOf, type StoragePort } from "@/lib/storage/server";
 
 import { issueUploadInputSchema } from "./services/server/http";
 import { createMemoryLedger, type MemoryLedger } from "./services/server/ledger/memoryLedger";
+import { getStoragePurposes, withFixedStripPurposes } from "./services/server/purposeSource";
 import {
   createStorageObjectService,
   PUBLIC_IMMUTABLE_CACHE_CONTROL,
@@ -49,6 +54,14 @@ const PURPOSES: StoragePurposeMap = {
     upload: { allow: "authenticated" },
     maxPending: 2,
   },
+  // keep の用途（受け取ったまま本来の位置に直送する経路の照合を見る）
+  "sample.original": {
+    visibility: "public",
+    maxBytes: MiB,
+    contentTypes: ["image/*"],
+    upload: { allow: "authenticated" },
+    metadata: "keep",
+  },
   "purchaseRequest.bankProof": {
     visibility: "private",
     maxBytes: 10,
@@ -59,6 +72,7 @@ const PURPOSES: StoragePurposeMap = {
       check: ({ actor, object }) => object.ownerUserId === actor?.userId || actor?.role === "admin",
     },
     maxPending: 3,
+    metadata: "keep",
   },
   "chatRoom.file": {
     visibility: "private",
@@ -73,6 +87,7 @@ const PURPOSES: StoragePurposeMap = {
       check: ({ actor, object }) => (ROOM_MEMBERS[object.scopeId ?? ""] ?? []).includes(actor?.userId ?? ""),
     },
     attach: false,
+    metadata: "keep",
   },
   "notification.image": {
     visibility: "public",
@@ -89,6 +104,21 @@ const PURPOSES: StoragePurposeMap = {
     read: { allow: "public" },
     maxPending: 1,
   },
+  // strip の受け入れテスト用（実際の画像が入る大きさ）
+  "profile.photo": {
+    visibility: "public",
+    maxBytes: MiB,
+    contentTypes: ["image/*"],
+    upload: { allow: "authenticated" },
+  },
+  "album.photo": {
+    visibility: "private",
+    maxBytes: MiB,
+    contentTypes: ["image/*", "video/*"],
+    upload: { allow: "authenticated" },
+    read: { allow: "authenticated" },
+    metadata: "strip",
+  },
 };
 
 type Harness = {
@@ -98,18 +128,20 @@ type Harness = {
   clock: { now: Date };
 };
 
-function setup(): Harness {
+function setup(options: { realStrip?: boolean; port?: (fake: FakeStoragePort) => StoragePort } = {}): Harness {
   const ledger = createMemoryLedger();
   const fake = createFakeStoragePort({ now: () => clock.now });
+  const port = options.port ? options.port(fake) : fake;
   const clock = { now: new Date("2026-10-22T00:00:00Z") };
   let counter = 0;
   const service = createStorageObjectService({
     ledger,
-    port: () => fake,
+    port: () => port,
     purposes: () => PURPOSES,
     locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
     now: () => clock.now,
     newId: () => `01920000-0000-7000-8000-${String(++counter).padStart(12, "0")}`,
+    ...(options.realStrip ? {} : { stripImage: passThroughImageStrip }),
   });
   return { service, ledger, fake, clock };
 }
@@ -301,17 +333,17 @@ describe("commit", () => {
 
   test("サイズ・型が申告と違えば 422 で deleted、その世代を消す", async () => {
     const h = setup();
-    const bySize = await h.service.issue(alice, { purpose: "user.avatar", contentType: "image/png", size: 3 });
+    const bySize = await h.service.issue(alice, { purpose: "sample.original", contentType: "image/png", size: 3 });
     if (bySize.transfer.kind !== "put") throw new Error("put expected");
     h.fake.simulateUpload(bySize.transfer.url, new Uint8Array(5));
     await assert.rejects(h.service.commit(alice, bySize.objectId), rejectsWith(422));
     assert.equal(h.ledger.rows.get(bySize.objectId)?.reason, "size_mismatch");
-    assert.equal(h.fake.objects.has(`pub-bucket/user.avatar/${bySize.objectId}.png`), false);
+    assert.equal(h.fake.objects.has(`pub-bucket/sample.original/${bySize.objectId}.png`), false);
 
-    const byType = await h.service.issue(alice, { purpose: "user.avatar", contentType: "image/png", size: 3 });
+    const byType = await h.service.issue(alice, { purpose: "sample.original", contentType: "image/png", size: 3 });
     // 署名を通らない経路で中身の型が差し替わった場合を再現する
     await h.fake.put(
-      { bucket: "pub-bucket", path: `user.avatar/${byType.objectId}.png` },
+      { bucket: "pub-bucket", path: `sample.original/${byType.objectId}.png` },
       new Uint8Array(3),
       { contentType: "text/html", cacheControl: "no-store" },
     );
@@ -321,7 +353,7 @@ describe("commit", () => {
 
   test("再送・並行実行は同じ ref、記録は HEAD の値", async () => {
     const h = setup();
-    const issued = await upload(h, alice, { purpose: "user.avatar" });
+    const issued = await upload(h, alice, { purpose: "sample.original" });
     const [a, b] = await Promise.all([h.service.commit(alice, issued.objectId), h.service.commit(alice, issued.objectId)]);
     const again = await h.service.commit(alice, issued.objectId);
     assert.equal(a.ref, issued.ref);
@@ -576,5 +608,229 @@ describe("未設定（保存先の env が空）", () => {
     } finally {
       if (saved !== undefined) process.env.STORAGE_PUBLIC_BUCKET = saved;
     }
+  });
+});
+
+describe("metadata: strip の受け入れ（実 sharp）", () => {
+  /** 位置情報（GPS）入りの EXIF を持つ JPEG */
+  async function gpsJpeg(): Promise<Uint8Array> {
+    const buffer = await sharp({ create: { width: 24, height: 16, channels: 3, background: { r: 200, g: 40, b: 40 } } })
+      .jpeg()
+      .withExif({ IFD3: { GPSLatitudeRef: "N", GPSLatitude: "35/1 41/1 22/1", GPSLongitudeRef: "E", GPSLongitude: "139/1 41/1 30/1" } })
+      .toBuffer();
+    assert.ok((await sharp(buffer).metadata()).exif, "前提: 入力に EXIF が入っている");
+    return new Uint8Array(buffer);
+  }
+
+  async function exifOf(body: Uint8Array | undefined) {
+    assert.ok(body, "保存された物がありません");
+    return (await sharp(body).metadata()).exif;
+  }
+
+  async function issueAndSend(h: Harness, purpose: string, body: Uint8Array, contentType = "image/jpeg") {
+    const issued = await h.service.issue(alice, { purpose, contentType, size: body.byteLength });
+    if (issued.transfer.kind !== "put") throw new Error("put expected");
+    h.fake.simulateUpload(issued.transfer.url, body);
+    return issued;
+  }
+
+  const incomingOf = (purpose: string, id: string, store = "pub") => `priv-bucket/incoming/${store}/${purpose}/${id}.jpg`;
+
+  test("非公開の受け取り領域へ送らせ、commit で描き直した物だけを本来の位置に書き、原本を消す", async () => {
+    const h = setup({ realStrip: true });
+    const body = await gpsJpeg();
+    const issued = await issueAndSend(h, "profile.photo", body);
+    const finalPath = `pub-bucket/profile.photo/${issued.objectId}.jpg`;
+
+    // 応答の ref は最終の ref（予定値）。受け取り中の行は priv の incoming/… を指す
+    assert.equal(issued.ref, `storage://pub/profile.photo/${issued.objectId}.jpg`);
+    const pending = h.ledger.rows.get(issued.objectId);
+    assert.equal(pending?.store, "priv");
+    assert.equal(pending?.key, `incoming/pub/profile.photo/${issued.objectId}.jpg`);
+    assert.ok(h.fake.objects.has(incomingOf("profile.photo", issued.objectId)));
+    assert.equal(h.fake.objects.has(finalPath), false);
+
+    const committed = await h.service.commit(alice, issued.objectId);
+    assert.equal(committed.ref, issued.ref);
+    assert.equal(h.fake.objects.has(incomingOf("profile.photo", issued.objectId)), false);
+    const stored = h.fake.objects.get(finalPath);
+    assert.equal(await exifOf(stored?.body), undefined);
+    assert.equal(stored?.cacheControl, PUBLIC_IMMUTABLE_CACHE_CONTROL);
+
+    const row = h.ledger.rows.get(issued.objectId);
+    assert.equal(row?.status, "ready");
+    assert.equal(row?.store, "pub");
+    assert.equal(row?.key, `profile.photo/${issued.objectId}.jpg`);
+    assert.equal(row?.size, stored?.body.byteLength);
+    assert.equal(row?.generation, stored?.generation);
+
+    // 再 commit は同じ ref。確定した ref は今までどおり紐付けられる
+    assert.equal((await h.service.commit(alice, issued.objectId)).ref, issued.ref);
+    await h.service.attach({
+      ref: issued.ref,
+      purpose: "profile.photo",
+      actorUserId: alice.userId,
+      record: { type: "profile", id: "p1", field: "photo" },
+    });
+  });
+
+  test("非公開の strip 用途は priv に確定し、読み取りは処理後の世代を署名する", async () => {
+    const h = setup({ realStrip: true });
+    const issued = await issueAndSend(h, "album.photo", await gpsJpeg());
+    await h.service.commit(alice, issued.objectId);
+    const stored = h.fake.objects.get(`priv-bucket/album.photo/${issued.objectId}.jpg`);
+    assert.equal(await exifOf(stored?.body), undefined);
+    const read = await h.service.resolveRead(issued.objectId, { loadUser: async () => alice });
+    assert.equal(read.kind, "redirect");
+    if (read.kind === "redirect") assert.match(read.url, new RegExp(`generation=${stored?.generation}`));
+  });
+
+  test("本来の位置まで書いて止まった commit は、再 commit で描き直さずに確定する", async () => {
+    let failIncomingDelete = true;
+    const h = setup({
+      realStrip: true,
+      port: (fake) => ({
+        ...fake,
+        async delete(location, options) {
+          if (failIncomingDelete && location.path.startsWith("incoming/")) throw new Error("一時的な失敗");
+          return fake.delete(location, options);
+        },
+      }),
+    });
+    const issued = await issueAndSend(h, "profile.photo", await gpsJpeg());
+    await assert.rejects(h.service.commit(alice, issued.objectId), /一時的な失敗/);
+    const finalPath = `pub-bucket/profile.photo/${issued.objectId}.jpg`;
+    const written = h.fake.objects.get(finalPath);
+    assert.ok(written, "本来の位置に処理済みの物がある");
+    assert.equal(h.ledger.rows.get(issued.objectId)?.status, "pending");
+
+    failIncomingDelete = false;
+    const committed = await h.service.commit(alice, issued.objectId);
+    assert.equal(committed.ref, issued.ref);
+    assert.equal(h.fake.objects.get(finalPath)?.generation, written.generation);
+    assert.equal(h.fake.objects.has(incomingOf("profile.photo", issued.objectId)), false);
+    assert.equal(h.ledger.rows.get(issued.objectId)?.generation, written.generation);
+  });
+
+  test("途中で止まった行の取り消し・期限切れは、受け取り領域と本来の位置の両方を消す", async () => {
+    const h = setup({
+      realStrip: true,
+      port: (fake) => ({
+        ...fake,
+        async delete(location, options) {
+          if (location.path.startsWith("incoming/") && options?.generation) throw new Error("一時的な失敗");
+          return fake.delete(location, options);
+        },
+      }),
+    });
+    const discarded = await issueAndSend(h, "profile.photo", await gpsJpeg());
+    await assert.rejects(h.service.commit(alice, discarded.objectId));
+    await h.service.discard(alice, discarded.objectId);
+    assert.equal(h.fake.objects.has(`pub-bucket/profile.photo/${discarded.objectId}.jpg`), false);
+    assert.equal(h.fake.objects.has(incomingOf("profile.photo", discarded.objectId)), false);
+
+    const expired = await issueAndSend(h, "profile.photo", await gpsJpeg());
+    await assert.rejects(h.service.commit(alice, expired.objectId));
+    h.clock.now = new Date(h.clock.now.getTime() + 60 * 60 * 1000);
+    await assert.rejects(h.service.commit(alice, expired.objectId), rejectsWith(410));
+    assert.equal(h.ledger.rows.get(expired.objectId)?.reason, "expired");
+    assert.equal(h.fake.objects.has(`pub-bucket/profile.photo/${expired.objectId}.jpg`), false);
+    assert.equal(h.fake.objects.has(incomingOf("profile.photo", expired.objectId)), false);
+  });
+
+  test("実際の形式が申告と違えば type_mismatch、画像として読めなければ process_failed。どちらも 422 で何も残さない", async () => {
+    const h = setup({ realStrip: true });
+    const png = new Uint8Array(await sharp({ create: { width: 4, height: 4, channels: 3, background: "red" } }).png().toBuffer());
+    const byType = await issueAndSend(h, "profile.photo", png, "image/jpeg");
+    await assert.rejects(h.service.commit(alice, byType.objectId), rejectsWith(422));
+    assert.equal(h.ledger.rows.get(byType.objectId)?.reason, "type_mismatch");
+
+    const broken = await issueAndSend(h, "profile.photo", new Uint8Array([0xff, 0xd8, 1, 2, 3]));
+    await assert.rejects(h.service.commit(alice, broken.objectId), rejectsWith(422));
+    assert.equal(h.ledger.rows.get(broken.objectId)?.reason, "process_failed");
+
+    for (const id of [byType.objectId, broken.objectId]) {
+      assert.equal(h.fake.objects.has(`pub-bucket/profile.photo/${id}.jpg`), false);
+      assert.equal(h.fake.objects.has(incomingOf("profile.photo", id)), false);
+    }
+  });
+
+  test("strip の用途は描き直せない画像型（HEIC・SVG）を発行で拒否し、keep の用途は受け付ける", async () => {
+    const h = setup({ realStrip: true });
+    for (const contentType of ["image/heic", "image/svg+xml", "image/tiff"]) {
+      await assert.rejects(h.service.issue(alice, { purpose: "profile.photo", contentType, size: 3 }), rejectsWith(400));
+    }
+    const kept = await h.service.issue(alice, { purpose: "sample.original", contentType: "image/heic", size: 3 });
+    assert.equal(h.ledger.rows.get(kept.objectId)?.key, `sample.original/${kept.objectId}.heic`);
+  });
+
+  test("keep の用途と、strip の用途の画像以外（動画）は、本来の位置へ直送して中身を変えない", async () => {
+    const h = setup({ realStrip: true });
+    const body = await gpsJpeg();
+    const kept = await issueAndSend(h, "sample.original", body);
+    assert.equal(h.ledger.rows.get(kept.objectId)?.key, `sample.original/${kept.objectId}.jpg`);
+    await h.service.commit(alice, kept.objectId);
+    assert.deepEqual(h.fake.objects.get(`pub-bucket/sample.original/${kept.objectId}.jpg`)?.body, body);
+
+    const video = new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70]);
+    const issued = await issueAndSend(h, "album.photo", video, "video/mp4");
+    assert.equal(h.ledger.rows.get(issued.objectId)?.key, `album.photo/${issued.objectId}.mp4`);
+    await h.service.commit(alice, issued.objectId);
+    assert.deepEqual(h.fake.objects.get(`priv-bucket/album.photo/${issued.objectId}.mp4`)?.body, video);
+  });
+
+  test("putFromServer・copy は宛先が strip の画像なら描き直す（元が strip の用途でも毎回）。keep 宛ては GCS 内の複製", async () => {
+    const h = setup({ realStrip: true });
+    const body = await gpsJpeg();
+
+    const put = await h.service.putFromServer({ purpose: "profile.photo", body, contentType: "image/jpeg", ownerUserId: null });
+    assert.equal(await exifOf(h.fake.objects.get(`pub-bucket/profile.photo/${put.objectId}.jpg`)?.body), undefined);
+
+    const original = await h.service.putFromServer({ purpose: "sample.original", body, contentType: "image/jpeg", ownerUserId: null });
+    assert.ok(await exifOf(h.fake.objects.get(`pub-bucket/sample.original/${original.objectId}.jpg`)?.body), "keep は原本のまま");
+
+    const copied = await h.service.copy({ source: original.ref, purpose: "profile.photo", ownerUserId: null });
+    const copiedObject = h.fake.objects.get(`pub-bucket/profile.photo/${copied.objectId}.jpg`);
+    assert.equal(await exifOf(copiedObject?.body), undefined);
+    assert.equal(h.ledger.rows.get(copied.objectId)?.size, copiedObject?.body.byteLength);
+
+    const again = await h.service.copy({ source: put.ref, purpose: "profile.photo", ownerUserId: null });
+    assert.ok(h.fake.objects.has(`pub-bucket/profile.photo/${again.objectId}.jpg`));
+
+    const toKeep = await h.service.copy({ source: original.ref, purpose: "sample.original", ownerUserId: null });
+    assert.deepEqual(h.fake.objects.get(`pub-bucket/sample.original/${toKeep.objectId}.jpg`)?.body, body);
+
+    await assert.rejects(
+      h.service.putFromServer({ purpose: "profile.photo", body: new Uint8Array([1, 2, 3]), contentType: "image/png", ownerUserId: null }),
+      rejectsWith(422),
+    );
+  });
+
+  test("user.avatar は登録表で keep に上書きしても strip で扱う", async () => {
+    const overridden = withFixedStripPurposes({
+      "user.avatar": { ...PURPOSES["profile.photo"], metadata: "keep" },
+      "sample.original": PURPOSES["sample.original"],
+    });
+    assert.equal(overridden["user.avatar"]?.metadata, "strip");
+    assert.equal(overridden["sample.original"]?.metadata, "keep");
+    assert.equal(getStoragePurposes()["user.avatar"]?.metadata, "strip");
+
+    const ledger = createMemoryLedger();
+    const fake = createFakeStoragePort();
+    const service = createStorageObjectService({
+      ledger,
+      port: () => fake,
+      purposes: () => overridden,
+      locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
+      now: () => new Date(),
+      newId: () => "01920000-0000-7000-8000-000000000001",
+    });
+    const body = await gpsJpeg();
+    const issued = await service.issue(alice, { purpose: "user.avatar", contentType: "image/jpeg", size: body.byteLength });
+    assert.equal(ledger.rows.get(issued.objectId)?.key, `incoming/pub/user.avatar/${issued.objectId}.jpg`);
+    if (issued.transfer.kind !== "put") throw new Error("put expected");
+    fake.simulateUpload(issued.transfer.url, body);
+    await service.commit(alice, issued.objectId);
+    assert.equal(await exifOf(fake.objects.get(`pub-bucket/user.avatar/${issued.objectId}.jpg`)?.body), undefined);
   });
 });

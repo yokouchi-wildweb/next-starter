@@ -16,6 +16,7 @@ import { getServerStorage } from "@/lib/firebase/server/app";
 import { contentDispositionFor } from "../contentTypes";
 import {
   ISSUED_CACHE_CONTROL,
+  StorageReadTooLargeError,
   type HeadResult,
   type ObjectLocation,
   type StoragePort,
@@ -106,6 +107,15 @@ export function createGcsStoragePort(): StoragePort {
 
     async setCacheControl(location, generation, value) {
       await fileOf(location).setMetadata({ cacheControl: value }, { ifGenerationMatch: generation });
+    },
+
+    async read(location, options) {
+      const file = fileOf(location, options.generation);
+      const head = await headOf(file);
+      if (!head) throw new Error(`読み取り対象が見つかりません: ${location.bucket}/${location.path}`);
+      if (head.size > options.maxBytes) throw new StorageReadTooLargeError(location, head.size, options.maxBytes);
+      const [contents] = await file.download();
+      return new Uint8Array(contents.buffer, contents.byteOffset, contents.byteLength);
     },
 
     async put(location, body, options) {

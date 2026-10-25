@@ -14,6 +14,8 @@ export const STORAGE_OBJECT_DELETE_REASONS = [
   "expired",
   "size_mismatch",
   "type_mismatch",
+  /** metadata: "strip" の用途で、画像を描き直せなかった（読めない・画素数の上限超え） */
+  "process_failed",
   "discarded",
   "replaced",
   "record_removed",

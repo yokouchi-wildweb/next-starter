@@ -116,7 +116,16 @@ export function createMemoryLedger(): MemoryLedger {
     async markReady(id, values) {
       const row = rows.get(id);
       if (!row || row.status !== "pending") return null;
-      Object.assign(row, { status: "ready", ...values });
+      const { store, key, ...rest } = values;
+      if (
+        (store !== undefined || key !== undefined) &&
+        [...rows.values()].some(
+          (r) => r.id !== id && r.store === (store ?? row.store) && r.key === (key ?? row.key),
+        )
+      ) {
+        throw new Error("duplicate key: storage_objects_store_key_idx");
+      }
+      Object.assign(row, { status: "ready", ...rest }, store !== undefined ? { store } : {}, key !== undefined ? { key } : {});
       return publicCopy(row);
     },
 

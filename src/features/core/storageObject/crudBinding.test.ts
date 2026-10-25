@@ -12,7 +12,7 @@ import { applyStorageBinding } from "@/lib/crud/storageIntegration/applyStorageB
 import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import { DomainError } from "@/lib/errors";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort, type FakeStoragePort } from "@/lib/storage/server/fake";
+import { createFakeStoragePort, passThroughImageStrip, type FakeStoragePort } from "@/lib/storage/server/fake";
 import type { StoragePort } from "@/lib/storage/server";
 
 import { storageBindingFor } from "./services/server/crudBinding";
@@ -57,6 +57,7 @@ function setup(options: { onHardDelete?: "detach" | "keep"; port?: () => Storage
     locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
     now: () => new Date(),
     newId: () => `01920000-0000-7000-8000-${String(++counter).padStart(12, "0")}`,
+    stripImage: passThroughImageStrip,
   });
   const binding = storageBindingFor("item", FIELDS, {
     service,

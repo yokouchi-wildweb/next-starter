@@ -127,10 +127,20 @@ export interface StorageLedger {
   /** 1 行を読む（session_uri を含む。サービス内部だけで使う） */
   findById(id: string): Promise<StorageObject | null>;
   setSessionUri(id: string, sessionUri: string): Promise<void>;
-  /** pending の行だけを ready にする。他の要求が先に進めていたら null */
+  /**
+   * pending の行だけを ready にする。他の要求が先に進めていたら null。
+   * store / key を渡せば位置も書き換える（strip の用途で、受け取り領域から本来の位置へ移した行）
+   */
   markReady(
     id: string,
-    values: { size: number; contentType: string; generation: string; readyAt: Date },
+    values: {
+      size: number;
+      contentType: string;
+      generation: string;
+      readyAt: Date;
+      store?: StorageObjectStore;
+      key?: string;
+    },
   ): Promise<StorageObject | null>;
   /** 条件に合う行だけを deleted にする。合わなければ null */
   markDeleted(

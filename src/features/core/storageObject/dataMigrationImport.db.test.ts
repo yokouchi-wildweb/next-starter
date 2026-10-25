@@ -61,7 +61,7 @@ describe("dataMigration import（実 DB の TX）", { skip }, () => {
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = LEGACY_BUCKET;
     ({ db } = await import("@/lib/drizzle"));
     ({ drizzleLedger: ledger } = await import("./services/server/ledger/drizzleLedger"));
-    const { createFakeStoragePort } = await import("@/lib/storage/server/fake");
+    const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server/fake");
     const { createStorageObjectService } = await import("./services/server/storageObjectService");
     const { storageBindingFor } = await import("./services/server/crudBinding");
     const { createCrudService } = await import("@/lib/crud/drizzle");
@@ -76,6 +76,12 @@ describe("dataMigration import（実 DB の TX）", { skip }, () => {
       if (failCopies) throw new Error("cloud down");
       return realCopy(source, destination, options);
     };
+    // strip の用途の複製は元を読んで描き直すので、読み取りも同じく失敗させる
+    const realRead = fake.read.bind(fake);
+    fake.read = async (location, options) => {
+      if (failCopies) throw new Error("cloud down");
+      return realRead(location, options);
+    };
     storageService = createStorageObjectService({
       ledger,
       port: () => fake,
@@ -83,6 +89,7 @@ describe("dataMigration import（実 DB の TX）", { skip }, () => {
       locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
       now: () => new Date(),
       newId: uuidv7,
+      stripImage: passThroughImageStrip,
     });
     const binding = storageBindingFor("test_dm_item", FIELDS, { service: storageService, port: () => fake });
     const crud = createCrudService(TestItemTable as never, { idType: "uuid", useSoftDelete: true, storage: binding }) as any;

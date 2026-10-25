@@ -87,6 +87,46 @@ describe("drizzleLedger（実 DB）", { skip }, () => {
     assert.equal(await ledger.insertPendingWithinLimit(pending(), 2, now), true);
   });
 
+  test("markReady は store / key を渡せば本来の位置へ書き換える（strip の受け取り領域から確定する行）", async () => {
+    await cleanup();
+    const id = randomUUID();
+    const finalKey = `${PURPOSE}/${id}.jpg`;
+    const row = pending({ id, store: "priv", key: `incoming/pub/${finalKey}`, contentType: "image/jpeg" });
+    await ledger.insertPendingWithinLimit(row, 5, new Date());
+
+    const ready = await ledger.markReady(id, {
+      store: "pub",
+      key: finalKey,
+      size: 2,
+      contentType: "image/jpeg",
+      generation: "7",
+      readyAt: new Date(),
+    });
+    assert.equal(ready?.status, "ready");
+    assert.equal(ready?.store, "pub");
+    assert.equal(ready?.key, finalKey);
+    assert.equal(ready?.size, 2);
+    assert.equal(ready?.generation, "7");
+    const found = await ledger.findById(id);
+    assert.equal(found?.store, "pub");
+    assert.equal(found?.key, finalKey);
+
+    // 書き換えた位置で ref と同じく紐付く
+    assert.equal(
+      await ledger.attach({
+        id,
+        purpose: PURPOSE,
+        store: "pub",
+        key: finalKey,
+        ownerUserId: OWNER,
+        recordType: "test_record",
+        recordId: "r-strip",
+        recordField: "file",
+      }),
+      true,
+    );
+  });
+
   test("ready・用途・所有者の一致で 1 回だけ紐付き、detach で deleted になる", async () => {
     await cleanup();
     const row = pending();

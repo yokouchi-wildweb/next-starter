@@ -57,7 +57,7 @@ const { storageBinding: bankTransferReviewBinding } = await import(
 );
 const { storageBinding: notificationBinding } = await import("@/features/core/notification/services/server/drizzleBase");
 const { runWithAuditContext } = await import("@/lib/audit");
-const { createFakeStoragePort } = await import("@/lib/storage/server/fake");
+const { createFakeStoragePort, passThroughImageStrip } = await import("@/lib/storage/server/fake");
 const { CORE_STORAGE_PURPOSES } = await import("@/registry/storagePurposes/core");
 const { storageBindingFor } = await import("./services/server/crudBinding");
 const { createMemoryLedger } = await import("./services/server/ledger/memoryLedger");
@@ -107,6 +107,7 @@ function setup(): Harness {
     locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
     now: () => new Date(),
     newId: () => `01920000-0000-7000-8000-${String(++counter).padStart(12, "0")}`,
+    stripImage: passThroughImageStrip,
   });
   return { service, fake };
 }

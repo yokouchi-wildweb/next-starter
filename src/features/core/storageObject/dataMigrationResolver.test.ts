@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { createDataMigrationMediaResolver } from "@/app/api/data-migration/_shared/mediaResolver";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import type { StoragePurposeMap } from "@/lib/storage";
-import { createFakeStoragePort } from "@/lib/storage/server/fake";
+import { createFakeStoragePort, passThroughImageStrip } from "@/lib/storage/server/fake";
 
 import { createMemoryLedger } from "./services/server/ledger/memoryLedger";
 import { createStorageObjectService } from "./services/server/storageObjectService";
@@ -64,6 +64,7 @@ function setup() {
     locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
     now: () => new Date(),
     newId: () => `01920000-0000-7000-8000-${String(++counter).padStart(12, "0")}`,
+    stripImage: passThroughImageStrip,
   });
   return { ledger, fake, service, media: createDataMigrationMediaResolver(admin, service) };
 }

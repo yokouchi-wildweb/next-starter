@@ -125,6 +125,8 @@ export const drizzleLedger: StorageLedger = {
         contentType: values.contentType,
         generation: values.generation,
         readyAt: values.readyAt,
+        ...(values.store !== undefined ? { store: values.store } : {}),
+        ...(values.key !== undefined ? { key: values.key } : {}),
       })
       .where(and(eq(T.id, id), eq(T.status, "pending")))
       .returning(getPublicColumns(T));

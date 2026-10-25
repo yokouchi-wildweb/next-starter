@@ -10,6 +10,10 @@
 //   公開ファイルは commit の照合後に setCacheControl で、その generation だけを長期 cache にする
 // - 書き込み先は ifGenerationMatch:0（既存オブジェクトがあれば失敗 = 上書き不可）
 // - generation を受ける操作は、指定があればその世代だけを対象にする
+// - read は maxBytes を超えるオブジェクトを読み込む前に失敗させる（StorageReadTooLargeError）
+//
+// metadata: "strip" の用途の描き直し（features/core/storageObject）は、受け取った原本を read で読み、
+// 処理後の物を put で本来の位置に書き、原本を delete で消す（専用の書き込み・削除は持たない）
 
 import "server-only";
 
@@ -66,6 +70,26 @@ export type DeleteOptions = {
   generation?: string;
 };
 
+export type ReadOptions = {
+  /** 指定すればその世代だけを読む */
+  generation?: string;
+  /** これを超えるサイズのオブジェクトは読み込まずに StorageReadTooLargeError */
+  maxBytes: number;
+};
+
+/** read の対象が maxBytes を超えていた */
+export class StorageReadTooLargeError extends Error {
+  readonly size: number;
+  readonly maxBytes: number;
+
+  constructor(location: ObjectLocation, size: number, maxBytes: number) {
+    super(`読み取りの上限を超えています（${size} > ${maxBytes}）: ${location.bucket}/${location.path}`);
+    this.name = "StorageReadTooLargeError";
+    this.size = size;
+    this.maxBytes = maxBytes;
+  }
+}
+
 export type SignReadOptions = {
   ttlSec: number;
   /** 指定すればその世代だけを読ませる */
@@ -85,6 +109,8 @@ export interface StoragePort {
   head(location: ObjectLocation): Promise<HeadResult | null>;
   /** 指定した世代の Cache-Control を書き換える */
   setCacheControl(location: ObjectLocation, generation: string, value: string): Promise<void>;
+  /** 中身をサーバーに読み込む（無い・指定の世代が無ければ失敗） */
+  read(location: ObjectLocation, options: ReadOptions): Promise<Uint8Array>;
   /** サーバーから直接書き込む */
   put(location: ObjectLocation, body: Uint8Array, options: PutOptions): Promise<HeadResult>;
   /** 複製する（宛先は既存オブジェクトがあれば失敗） */

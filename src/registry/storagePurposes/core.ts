@@ -4,6 +4,8 @@
 // dc:generate が書き換える storagePurposeRegistry.ts の AUTO ブロックから切り離すためにここへ置く。
 // core の domain.json（notification / coupon）は dc:generate の対象外なので、その用途もここに書く。
 // 用途 ID は改名できない（ref とオブジェクトのパスに入るため）。型と規則: src/lib/storage/README.md
+// metadata（画像のメタデータの扱い）は画像を受け付ける用途に明示する。user.avatar は keep にしても strip で扱われる
+// （features/core/storageObject の purposeSource.ts）。
 
 import "server-only";
 
@@ -44,10 +46,12 @@ export const CORE_STORAGE_PURPOSES = {
     contentTypes: ["image/*"],
     upload: { allow: "authenticated" },
     maxPending: 5,
+    metadata: "strip",
   },
-  "chatRoom.image": { ...chatAttachment, maxBytes: IMAGE_MAX_SIZE, contentTypes: ["image/*"] },
+  "chatRoom.image": { ...chatAttachment, maxBytes: IMAGE_MAX_SIZE, contentTypes: ["image/*"], metadata: "strip" },
   "chatRoom.video": { ...chatAttachment, maxBytes: VIDEO_MAX_SIZE, contentTypes: ["video/*"] },
-  "chatRoom.file": { ...chatAttachment, maxBytes: FILE_MAX_SIZE, contentTypes: ANY_FILE_TYPES },
+  // 「ファイルとして送る」は原本のまま渡す用途（.heic・.svg も送れる）
+  "chatRoom.file": { ...chatAttachment, maxBytes: FILE_MAX_SIZE, contentTypes: ANY_FILE_TYPES, metadata: "keep" },
   "purchaseRequest.bankProof": {
     visibility: "private",
     maxBytes: 10 * MiB,
@@ -61,18 +65,22 @@ export const CORE_STORAGE_PURPOSES = {
       check: ({ actor, object }) => object.ownerUserId === actor?.userId || isAdmin(actor),
     },
     maxPending: 3,
+    // 振込明細は管理者が照合する非公開の原本として受け取ったまま保存する
+    metadata: "keep",
   },
   "notification.image": {
     visibility: "public",
     maxBytes: STORAGE_CONFIG.defaultMaxBytesByPreset.images,
     contentTypes: ["image/*"],
     upload: { allow: ADMIN },
+    metadata: "strip",
   },
   "coupon.image_url": {
     visibility: "public",
     maxBytes: STORAGE_CONFIG.defaultMaxBytesByPreset.images,
     contentTypes: ["image/*"],
     upload: { allow: ADMIN },
+    metadata: "strip",
   },
   "demo.media": {
     visibility: "public",
