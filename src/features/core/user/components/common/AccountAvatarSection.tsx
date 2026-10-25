@@ -8,6 +8,7 @@ import { CameraIcon, ImageIcon, LoaderIcon, Trash2Icon, UserIcon } from "lucide-
 
 import { Stack } from "@/components/Layout/Stack";
 import { AppImage } from "@/components/Media/AppImage";
+import { STRIP_IMAGE_TYPES } from "@/lib/storage";
 import { useAvatarUpload } from "@/features/core/user/hooks/useAvatarUpload";
 import { useUpdateMyProfile } from "@/features/core/user/hooks/useUpdateMyProfile";
 import type { User } from "@/features/core/user/entities";
@@ -101,7 +102,8 @@ function AvatarMenu({ onChangeImage, onRemoveImage, onClose }: AvatarMenuProps) 
 // --- メインコンポーネント ---
 
 const DEFAULT_SIZE = 80;
-const DEFAULT_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
+// user.avatar（strip）で受け付ける画像の型（STRIP_IMAGE_TYPES）。具体型の列挙なので iOS は HEIC を JPEG にして渡す
+const DEFAULT_ACCEPT = STRIP_IMAGE_TYPES.join(",");
 const DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export function AccountAvatarSection({

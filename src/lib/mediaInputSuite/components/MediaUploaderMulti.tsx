@@ -18,7 +18,8 @@ import { Button } from "@/components/Form/Button/Button";
 import { Para } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 import { cn } from "@/lib/cn";
-import { isStorageUploadCanceled, uploadToStorage, type UploadProgress } from "@/lib/storage/client";
+import { isStorageUploadCanceled, pickerAcceptFor, uploadToStorage, type UploadProgress } from "@/lib/storage/client";
+import type { StorageMetadataPolicy } from "@/lib/storage";
 
 import { MediaPreview } from "./MediaPreview";
 import { MediaThumbGrid } from "./MediaThumbGrid";
@@ -39,7 +40,12 @@ export type MediaUploaderMultiValidationRule = FileValidationRule & {
 export type MediaUploaderMultiProps = {
   /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名） */
   purpose: string;
-  /** 画像を描き直して EXIF を落とすか（既定 true。jpeg / png / webp が対象。false で送られたまま） */
+  /**
+   * 用途の metadata（登録表の値と揃える。省略 = strip）。strip: accept の image/* を受け付ける画像の型の列挙にし、
+   * HEIC などは端末で JPEG にして送る。keep: 選ばれたまま送る（uploadToStorage の metadata）
+   */
+  metadata?: StorageMetadataPolicy;
+  /** 送る前にブラウザで画像を描き直すか（既定 false。通信量を減らす任意の前処理。位置情報の除去の保証はサーバー） */
   reencodeImage?: boolean;
   /** 値（storage ref、または移行前の旧 URL）の配列。プレビュー（MediaPreview）が ref を表示用 URL にする */
   initialUrls?: string[] | null;
@@ -80,7 +86,8 @@ const slotIsUploading = (slot: SlotState): slot is Extract<SlotState, { kind: "u
 
 export const MediaUploaderMulti = ({
   purpose,
-  reencodeImage = true,
+  metadata,
+  reencodeImage,
   initialUrls,
   onUrlsChange,
   onUploadingChange,
@@ -176,6 +183,7 @@ export const MediaUploaderMulti = ({
     (file: File, slotId: string) => {
       const handle = uploadToStorage(file, {
         purpose,
+        metadata,
         reencodeImage,
         onProgress: (p) => {
           setSlots((prev) =>
@@ -218,7 +226,7 @@ export const MediaUploaderMulti = ({
         prev.map((s) => (s.id === slotId && s.kind === "uploading" ? { ...s, cancel: () => handle.cancel() } : s)),
       );
     },
-    [purpose, reencodeImage, onRegisterPendingUpload],
+    [purpose, metadata, reencodeImage, onRegisterPendingUpload],
   );
 
   const enqueueFiles = useCallback(
@@ -420,7 +428,7 @@ export const MediaUploaderMulti = ({
         id={inputId}
         type="file"
         multiple
-        accept={accept}
+        accept={pickerAcceptFor(accept, metadata)}
         className="sr-only"
         disabled={disabled}
         onChange={handleInputChange}

@@ -56,7 +56,8 @@ function uploadOne(file: Blob, purpose: string): Promise<UploadedFile> {
   return new Promise((resolve, reject) => {
     uploadToStorage(file, {
       purpose,
-      // export した画像をそのまま戻す（描き直さない）
+      // export した画像をそのまま戻す（端末で描き直さない。strip の用途ならサーバーが commit で描き直す）
+      metadata: "keep",
       reencodeImage: false,
       onComplete: resolve,
       onError: reject,

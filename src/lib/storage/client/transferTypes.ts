@@ -39,9 +39,12 @@ export type UploadedFile = {
   src: string | null;
 };
 
-export type StorageUploadErrorCode = "storage/canceled" | "storage/failed";
+export type StorageUploadErrorCode = "storage/canceled" | "storage/failed" | "storage/unsupported-image";
 
-/** アップロードの失敗。中止は code "storage/canceled"（旧クライアントの Firebase エラーコードと同じ文字列） */
+/**
+ * アップロードの失敗。中止は code "storage/canceled"（旧クライアントの Firebase エラーコードと同じ文字列）。
+ * "storage/unsupported-image" = strip の用途に、端末で開けない形式の画像（HEIC を開けないブラウザなど）を選んだ。発行の前に止める
+ */
 export class StorageUploadError extends Error {
   readonly code: StorageUploadErrorCode;
 
@@ -54,4 +57,8 @@ export class StorageUploadError extends Error {
 
 export function isStorageUploadCanceled(error: unknown): boolean {
   return (error as { code?: unknown })?.code === "storage/canceled";
+}
+
+export function isStorageUnsupportedImage(error: unknown): boolean {
+  return (error as { code?: unknown })?.code === "storage/unsupported-image";
 }

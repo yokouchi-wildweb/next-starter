@@ -168,6 +168,7 @@ export default function AdminNotificationSend() {
               <ControlledMediaUploader
                 field={field}
                 purpose="notification.image"
+                metadata="strip"
                 accept="image/*"
                 onUploadingChange={setIsUploading}
               />

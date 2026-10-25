@@ -1,6 +1,7 @@
 // src/lib/storage/client/uploadToStorage.test.ts
 // uploadToStorage（T4）の単体テスト。axios の adapter を差し替えて、アプリのルートと GCS を偽物にする。
-// put と session の往復・中止 → discard・失敗 → discard・再開・画像の描き直し（偽の codec）を確かめる。
+// put と session の往復・中止 → discard・失敗 → discard・再開・画像の扱い（strip の HEIC 変換・keep・任意の描き直し。偽の codec）を確かめる。
+// 位置情報などの除去の保証はサーバー（commit の描き直し。storageObject のテスト）で、ここでは確かめない。
 // 本物のブラウザ（XHR の進捗・中止、canvas の描き直し）は MediaUploader の切替（T9）で確かめる。
 // 実行: pnpm test:storage-client
 
@@ -14,7 +15,14 @@ import { HttpError } from "@/lib/errors";
 import { nextOffsetFromRange, sessionRetryDelayMs } from "./drivers/gcsSession";
 import { reencodeImage, type ImageCodec } from "./reencodeImage";
 import { createStorageClient } from "./storageClient";
-import { isStorageUploadCanceled, type UploadedFile, type UploadProgress } from "./transferTypes";
+import { UNSUPPORTED_IMAGE_MESSAGE } from "./prepareStripImage";
+import {
+  isStorageUnsupportedImage,
+  isStorageUploadCanceled,
+  StorageUploadError,
+  type UploadedFile,
+  type UploadProgress,
+} from "./transferTypes";
 import { createUploader } from "./uploadToStorage";
 
 const MiB = 1024 * 1024;
@@ -277,34 +285,114 @@ describe("中止と失敗", () => {
   });
 });
 
-describe("画像の描き直し", () => {
-  test("jpeg / png / webp は描き直した方を送る。小さい画像も通る", async () => {
-    const redrawn: string[] = [];
+describe("画像の扱い（位置情報などの除去の保証はサーバー）", () => {
+  // strip の用途の画像は commit でサーバーが描き直す。端末は既定で描き直さず、
+  // サーバーが描き直せない形式（HEIC など）だけを JPEG にして送る
+  const recordingCodec = (result?: (type: string) => Blob | Promise<Blob>) => {
+    const calls: string[] = [];
     const codec: ImageCodec = {
       available: () => true,
       redraw: async (_file, type) => {
-        redrawn.push(type);
-        return new Blob([new Uint8Array(5)], { type });
+        calls.push(type);
+        return result ? result(type) : new Blob([new Uint8Array(5)], { type });
       },
     };
-    const h = harness({}, codec);
-    const { error } = await h.run(new Blob([new Uint8Array(1)], { type: "image/jpeg" }));
-    assert.equal(error, undefined);
-    assert.deepEqual(redrawn, ["image/jpeg"]);
-    assert.equal(h.server.bodies[0]?.size, 5, "描き直した方（EXIF なし）を送る");
-  });
+    return { calls, codec };
+  };
+  const issuedTypes = (h: ReturnType<typeof harness>) =>
+    h.server.calls.filter((c) => c.method === "POST" && c.url === "/api/me/storage/uploads").length;
 
-  test("gif は素通し、reencodeImage:false なら描き直さない", async () => {
-    const calls: string[] = [];
-    const codec: ImageCodec = { available: () => true, redraw: async (file, type) => (calls.push(type), file) };
-    const gif = new Blob([new Uint8Array(4)], { type: "image/gif" });
-    assert.equal(await reencodeImage(gif, codec), gif);
+  test("既定（strip）では jpeg / png / webp / gif / avif を描き直さず、そのまま送る", async () => {
+    const { calls, codec } = recordingCodec();
     const h = harness({}, codec);
-    await h.run(png(), { reencodeImage: false });
+    for (const type of ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]) {
+      const file = new Blob([new Uint8Array(3)], { type });
+      const { error } = await h.run(file);
+      assert.equal(error, undefined);
+      assert.equal(h.server.bodies.at(-1), file, `${type} は元のまま送る`);
+    }
     assert.deepEqual(calls, []);
   });
 
-  test("描き直せない環境では元のまま送る", async () => {
+  test("strip で HEIC を端末で開ければ JPEG にして送る（任意の描き直しは重ねない）", async () => {
+    const { calls, codec } = recordingCodec();
+    const h = harness({}, codec);
+    const { error } = await h.run(new Blob([new Uint8Array(3)], { type: "image/heic" }), { reencodeImage: true });
+    assert.equal(error, undefined);
+    assert.deepEqual(calls, ["image/jpeg"], "変換の 1 回だけ");
+    assert.equal(h.server.bodies[0]?.type, "image/jpeg");
+    assert.equal(h.server.bodies[0]?.size, 5);
+    const issue = h.server.calls.find((c) => c.method === "POST" && c.url === "/api/me/storage/uploads");
+    assert.ok(issue);
+  });
+
+  test("型が空でも拡張子が .heic / .heif なら変換する", async () => {
+    const { calls, codec } = recordingCodec();
+    const h = harness({}, codec);
+    const file = new File([new Uint8Array(3)], "IMG_0001.HEIC", { type: "" });
+    const { error } = await h.run(file);
+    assert.equal(error, undefined);
+    assert.deepEqual(calls, ["image/jpeg"]);
+  });
+
+  test("strip で HEIC を開けなければ storage/unsupported-image で止め、発行しない", async () => {
+    const failing: ImageCodec = { available: () => true, redraw: async () => Promise.reject(new Error("decode failed")) };
+    const h = harness({}, failing);
+    const { error } = await h.run(new Blob([new Uint8Array(3)], { type: "image/heif" }));
+    assert.ok(error instanceof StorageUploadError);
+    assert.equal((error as StorageUploadError).code, "storage/unsupported-image");
+    assert.equal(isStorageUnsupportedImage(error), true);
+    assert.equal(error?.message, UNSUPPORTED_IMAGE_MESSAGE);
+    assert.deepEqual(h.server.calls, [], "発行も取り消しもしない");
+
+    const unavailable: ImageCodec = { available: () => false, redraw: async () => assert.fail("呼ばれない") };
+    const h2 = harness({}, unavailable);
+    const second = await h2.run(new Blob([new Uint8Array(3)], { type: "image/heic" }));
+    assert.equal((second.error as StorageUploadError).code, "storage/unsupported-image");
+    assert.equal(issuedTypes(h2), 0);
+  });
+
+  test("書き出しが受け付けない型になったら storage/unsupported-image", async () => {
+    const { codec } = recordingCodec(() => new Blob([new Uint8Array(5)], { type: "image/bmp" }));
+    const h = harness({}, codec);
+    const { error } = await h.run(new Blob([new Uint8Array(3)], { type: "image/heic" }));
+    assert.equal((error as StorageUploadError).code, "storage/unsupported-image");
+    assert.equal(issuedTypes(h), 0);
+  });
+
+  test("keep では HEIC も変換せず、元のまま送る", async () => {
+    const { calls, codec } = recordingCodec();
+    const h = harness({}, codec);
+    const heic = new Blob([new Uint8Array(3)], { type: "image/heic" });
+    const { error } = await h.run(heic, { purpose: "chatRoom.file", metadata: "keep" });
+    assert.equal(error, undefined);
+    assert.deepEqual(calls, []);
+    assert.equal(h.server.bodies[0], heic);
+  });
+
+  test("画像以外のファイルは strip でも何もしない", async () => {
+    const { calls, codec } = recordingCodec();
+    const h = harness({}, codec);
+    const pdf = new Blob([new Uint8Array(3)], { type: "application/pdf" });
+    await h.run(pdf);
+    assert.deepEqual(calls, []);
+    assert.equal(h.server.bodies[0], pdf);
+  });
+
+  test("reencodeImage:true なら従来どおり jpeg / png / webp を描き直した方を送る。gif は素通し", async () => {
+    const { calls, codec } = recordingCodec();
+    const h = harness({}, codec);
+    const { error } = await h.run(new Blob([new Uint8Array(1)], { type: "image/jpeg" }), { reencodeImage: true });
+    assert.equal(error, undefined);
+    assert.deepEqual(calls, ["image/jpeg"]);
+    assert.equal(h.server.bodies[0]?.size, 5, "描き直した方を送る");
+    const gif = new Blob([new Uint8Array(4)], { type: "image/gif" });
+    assert.equal(await reencodeImage(gif, codec), gif);
+    await h.run(new Blob([new Uint8Array(1)], { type: "image/png" }), { reencodeImage: true, metadata: "keep" });
+    assert.deepEqual(calls, ["image/jpeg", "image/png"], "keep でも reencodeImage:true は効く");
+  });
+
+  test("描き直せない環境では reencodeImage:true でも元のまま送る", async () => {
     const codec: ImageCodec = { available: () => false, redraw: async () => assert.fail("呼ばれない") };
     const file = new Blob([new Uint8Array(4)], { type: "image/webp" });
     const original = console.warn;

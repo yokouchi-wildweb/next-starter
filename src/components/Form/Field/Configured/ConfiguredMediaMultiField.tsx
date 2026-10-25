@@ -72,6 +72,7 @@ export function ConfiguredMediaMultiField<
     uploaderProps: {
       // purpose が無い項目は入力を出さない（下の renderInput）。hook は常に呼ぶため空文字を渡す
       purpose: fieldConfig.purpose ?? "",
+      metadata: fieldConfig.storage?.metadata,
       accept: fieldConfig.accept,
       helperText: fieldConfig.helperText,
       validationRule: fieldConfig.validationRule,

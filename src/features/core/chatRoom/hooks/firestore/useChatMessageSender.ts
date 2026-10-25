@@ -17,6 +17,7 @@ import {
   uploadToStorage,
   type UploadTaskHandle,
 } from "@/lib/storage/client";
+import type { StorageMetadataPolicy } from "@/lib/storage";
 
 import type { MessageMetadata, MessageType } from "@/features/chatRoom/entities/message";
 import {
@@ -35,6 +36,13 @@ const CHAT_STORAGE_PURPOSES = {
   video: "chatRoom.video",
   file: "chatRoom.file",
 } as const satisfies Record<Extract<MessageType, "image" | "video" | "file">, string>;
+
+/** メッセージの種類 → 用途の metadata（core.ts の値と揃える。「ファイルとして送る」は原本のまま） */
+const CHAT_STORAGE_METADATA = {
+  image: "strip",
+  video: "strip",
+  file: "keep",
+} as const satisfies Record<keyof typeof CHAT_STORAGE_PURPOSES, StorageMetadataPolicy>;
 
 export type UseChatMessageSenderReturn = {
   /** 指定ルームの pending メッセージ一覧 */
@@ -177,6 +185,7 @@ export function useChatMessageSender(
 
       const task = uploadToStorage(file, {
         purpose: CHAT_STORAGE_PURPOSES[type],
+        metadata: CHAT_STORAGE_METADATA[type],
         scopeId: roomId,
         onProgress: (progress) => {
           updateProgress(messageId, progress);

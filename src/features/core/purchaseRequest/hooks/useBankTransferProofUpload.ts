@@ -52,6 +52,8 @@ export function useBankTransferProofUpload(requestId: string): BankTransferProof
       return new Promise<UploadedFile>((resolve, reject) => {
         uploadToStorage(file, {
           purpose: BANK_TRANSFER_PROOF_PURPOSE,
+          // 用途は keep（原本のまま。core.ts）。HEIC も変換せずに送る
+          metadata: "keep",
           scopeId: requestId,
           onComplete: (result) => {
             currentRef.current = result.objectId;

@@ -1,11 +1,12 @@
 // src/lib/storage/client/reencodeImage.ts
 //
-// アップロード前に画像をブラウザで描き直し、EXIF（撮影位置など）を落とす。既定で ON（uploadToStorage の reencodeImage）。
+// アップロード前に画像をブラウザで描き直す任意の前処理。既定で OFF（uploadToStorage の reencodeImage: true で使う）。
+// 通信量を減らすためのもので、位置情報の除去の保証には数えない（保証はサーバー: strip の用途の画像は commit で描き直される）。
 // - 対象: image/jpeg・image/png・image/webp。gif（アニメーション）・svg・その他はそのまま返す
 // - 向きは createImageBitmap が EXIF に従って補正してから描く（imageOrientation: "from-image"）
-// - 描き直した方が元より大きくても、EXIF を落とす約束を優先して描き直した方を使う
+// - 描き直した方が元より大きくても、描き直した方を使う
 // - ブラウザに createImageBitmap / canvas が無いときは、描き直さずにそのまま返す（console に警告）
-// サーバーでは強制しない（迂回できる。報告書の決定）。
+// ImageCodec は strip の用途の HEIC などの JPEG 変換（prepareStripImage.ts）でも使う。
 
 "use client";
 
@@ -53,7 +54,7 @@ export async function reencodeImage(file: Blob, codec: ImageCodec = browserImage
   const type = file.type.toLowerCase();
   if (!shouldReencode(type)) return file;
   if (!codec.available()) {
-    console.warn("[storage] この環境では画像を描き直せないため、EXIF を落とさずにアップロードします");
+    console.warn("[storage] この環境では画像を描き直せないため、そのままアップロードします");
     return file;
   }
   const quality = type === "image/png" ? 1 : JPEG_WEBP_QUALITY;
