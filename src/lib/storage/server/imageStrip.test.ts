@@ -7,6 +7,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
 import sharp from "sharp";
+import type { Metadata, Sharp } from "sharp";
 
 import { ImageStripError, stripImageMetadata, type ImageStripOptions } from "./imageStrip";
 
@@ -24,7 +25,7 @@ const GPS_EXIF = {
 const XMP = `<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:creator>secret-creator</dc:creator></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>`;
 
 /** 単色（左半分と右半分で色を変える）の RGBA 画像 */
-function twoTone(width: number, height: number, left: number[], right: number[]): sharp.Sharp {
+function twoTone(width: number, height: number, left: number[], right: number[]): Sharp {
   const raw = Buffer.alloc(width * height * 4);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -77,7 +78,7 @@ function assertColor(actual: number[], expected: number[]) {
   );
 }
 
-function assertNoMetadata(meta: sharp.Metadata) {
+function assertNoMetadata(meta: Metadata) {
   assert.equal(meta.exif, undefined, "EXIF が残っている");
   assert.equal(meta.xmp, undefined, "XMP が残っている");
   assert.equal(meta.iptc, undefined, "IPTC が残っている");
@@ -115,9 +116,9 @@ describe("メタデータの全除去", () => {
 
   test("PNG・WebP・AVIF の EXIF も消え、形式は入力のまま", async () => {
     for (const [type, format, encode] of [
-      ["image/png", "png", (p: sharp.Sharp) => p.png()],
-      ["image/webp", "webp", (p: sharp.Sharp) => p.webp()],
-      ["image/avif", "heif", (p: sharp.Sharp) => p.avif()],
+      ["image/png", "png", (p: Sharp) => p.png()],
+      ["image/webp", "webp", (p: Sharp) => p.webp()],
+      ["image/avif", "heif", (p: Sharp) => p.avif()],
     ] as const) {
       const input = await encode(twoTone(16, 16, RED, BLUE)).withExif(GPS_EXIF).toBuffer();
       assert.ok((await sharp(input).metadata()).exif, `前提: ${type} に EXIF が入っている`);

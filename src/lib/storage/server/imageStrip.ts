@@ -16,7 +16,7 @@
 
 import "server-only";
 
-import type sharp from "sharp";
+import type { Metadata, Sharp, SharpOptions } from "sharp";
 
 import { STORAGE_CONFIG } from "@/config/app/storage.config";
 
@@ -52,7 +52,7 @@ type StripImageType = (typeof STRIP_IMAGE_TYPES)[number];
 const STRIP_TYPE_SET = new Set<string>(STRIP_IMAGE_TYPES);
 
 /** sharp の metadata が、申告の型と同じ形式か */
-function formatMatches(type: StripImageType, metadata: sharp.Metadata): boolean {
+function formatMatches(type: StripImageType, metadata: Metadata): boolean {
   switch (type) {
     case "image/jpeg":
       return metadata.format === "jpeg";
@@ -71,11 +71,11 @@ function formatMatches(type: StripImageType, metadata: sharp.Metadata): boolean 
 type Animation = { loop?: number; delay?: number[] };
 
 function encode(
-  pipeline: sharp.Sharp,
+  pipeline: Sharp,
   type: StripImageType,
   quality: ImageStripOptions["quality"],
   animation: Animation = {},
-): sharp.Sharp {
+): Sharp {
   switch (type) {
     case "image/jpeg":
       return pipeline.jpeg({ quality: quality.jpeg });
@@ -95,15 +95,15 @@ function encode(
  * 2（左右反転）は全体にかけてよい。3・4 は上下を返すので、フレームごとに補正して並べ直す
  */
 async function orientAnimated(
-  sharpOf: (options: sharp.SharpOptions) => sharp.Sharp,
-  build: (frames: Buffer[]) => sharp.Sharp,
-  metadata: sharp.Metadata,
-): Promise<{ pipeline: sharp.Sharp; rebuilt: boolean }> {
+  sharpOf: (options: SharpOptions) => Sharp,
+  build: (frames: Buffer[]) => Sharp,
+  metadata: Metadata,
+): Promise<{ pipeline: Sharp; rebuilt: boolean }> {
   const perFrame =
     metadata.orientation === 3
-      ? (frame: sharp.Sharp) => frame.rotate(180)
+      ? (frame: Sharp) => frame.rotate(180)
       : metadata.orientation === 4
-        ? (frame: sharp.Sharp) => frame.flip()
+        ? (frame: Sharp) => frame.flip()
         : null;
   if (!perFrame) {
     const whole = sharpOf({ animated: true });
@@ -133,7 +133,7 @@ export async function stripImageMetadata(
   const stripType = type as StripImageType;
   const { default: sharp } = await import("sharp");
 
-  let metadata: sharp.Metadata;
+  let metadata: Metadata;
   try {
     // ヘッダーだけを読む（画素は展開しない）。上限はこの値で先に判定する
     metadata = await sharp(input, { animated: true, limitInputPixels: false }).metadata();
@@ -154,8 +154,8 @@ export async function stripImageMetadata(
   }
 
   try {
-    const sharpOf = (extra: sharp.SharpOptions) => sharp(input, { limitInputPixels: options.maxTotalPixels, ...extra });
-    let pipeline: sharp.Sharp;
+    const sharpOf = (extra: SharpOptions) => sharp(input, { limitInputPixels: options.maxTotalPixels, ...extra });
+    let pipeline: Sharp;
     let animation: Animation = {};
     if (pages > 1) {
       const oriented = await orientAnimated(
