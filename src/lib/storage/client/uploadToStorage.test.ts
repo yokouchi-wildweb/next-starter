@@ -1,6 +1,7 @@
 // src/lib/storage/client/uploadToStorage.test.ts
 // uploadToStorage（T4）の単体テスト。axios の adapter を差し替えて、アプリのルートと GCS を偽物にする。
-// put と session の往復・中止 → discard・失敗 → discard・再開・画像の扱い（strip の HEIC 変換・keep・任意の描き直し。偽の codec）を確かめる。
+// put と session の往復・中止 → discard・失敗 → discard・再開・画像の扱い（用途の方針はサーバーに問い合わせる。strip の HEIC 変換・keep・
+// 方針を得られないとき・任意の描き直し。偽の codec）を確かめる。
 // 位置情報などの除去の保証はサーバー（commit の描き直し。storageObject のテスト）で、ここでは確かめない。
 // 本物のブラウザ（XHR の進捗・中止、canvas の描き直し）は MediaUploader の切替（T9）で確かめる。
 // 実行: pnpm test:storage-client
@@ -34,6 +35,8 @@ type FakeServer = {
   calls: Call[];
   /** 送られてきた本体（PUT の Blob） */
   bodies: Blob[];
+  /** 発行の要求の本体（JSON 文字列） */
+  issueBodies: string[];
   options: {
     putStatus?: number;
     commitStatus?: number;
@@ -44,6 +47,10 @@ type FakeServer = {
     sessionChunkStatuses?: Record<number, number>;
     /** PUT を中止されるまで待たせる */
     holdPut?: boolean;
+    /** 用途の方針（GET /api/storage/purposes/[purpose]）。無い用途は 404 */
+    policies?: Record<string, "strip" | "keep">;
+    /** 用途の方針の問い合わせを失敗させる状態 */
+    policyStatus?: number;
   };
 };
 
@@ -59,7 +66,7 @@ function sizeOf(data: unknown): number | null {
 }
 
 function fakeServer(options: FakeServer["options"] = {}) {
-  const server: FakeServer = { calls: [], bodies: [], options };
+  const server: FakeServer = { calls: [], bodies: [], issueBodies: [], options };
   let sessionReceived = 0;
   let sessionChunk = 0;
 
@@ -69,7 +76,15 @@ function fakeServer(options: FakeServer["options"] = {}) {
     server.calls.push({ method, url, headers: { ...(config.headers ?? {}) }, size: sizeOf(config.data) });
     if (config.signal?.aborted) throw new axios.CanceledError();
 
+    if (method === "GET" && url.startsWith("/api/storage/purposes/")) {
+      if (options.policyStatus) return respond(config, options.policyStatus, { message: "失敗" });
+      const purpose = decodeURIComponent(url.slice("/api/storage/purposes/".length));
+      const policies = options.policies ?? { "user.avatar": "strip", "chatRoom.file": "keep" };
+      const metadata = policies[purpose];
+      return metadata ? respond(config, 200, { metadata }) : respond(config, 404, { message: "登録されていないアップロード用途です" });
+    }
     if (method === "POST" && url === "/api/me/storage/uploads") {
+      server.issueBodies.push(String(config.data));
       if (options.issueStatus) return respond(config, options.issueStatus, { message: "未完了のアップロードが多すぎます" });
       const input = JSON.parse(config.data as string) as { purpose: string; contentType: string; size: number };
       const objectId = "01920000-0000-7000-8000-000000000001";
@@ -287,7 +302,7 @@ describe("中止と失敗", () => {
 
 describe("画像の扱い（位置情報などの除去の保証はサーバー）", () => {
   // strip の用途の画像は commit でサーバーが描き直す。端末は既定で描き直さず、
-  // サーバーが描き直せない形式（HEIC など）だけを JPEG にして送る
+  // サーバーが描き直せない形式（HEIC など）を選んだときだけ用途の方針をサーバーに問い合わせ、strip なら JPEG にして送る
   const recordingCodec = (result?: (type: string) => Blob | Promise<Blob>) => {
     const calls: string[] = [];
     const codec: ImageCodec = {
@@ -301,8 +316,14 @@ describe("画像の扱い（位置情報などの除去の保証はサーバー�
   };
   const issuedTypes = (h: ReturnType<typeof harness>) =>
     h.server.calls.filter((c) => c.method === "POST" && c.url === "/api/me/storage/uploads").length;
+  const policyCalls = (h: ReturnType<typeof harness>) =>
+    h.server.calls.filter((c) => c.method === "GET" && c.url.startsWith("/api/storage/purposes/")).map((c) => c.url);
+  const issuedContentType = (h: ReturnType<typeof harness>) => {
+    const body = h.server.issueBodies.at(-1);
+    return body ? (JSON.parse(body) as { contentType: string }).contentType : null;
+  };
 
-  test("既定（strip）では jpeg / png / webp / gif / avif を描き直さず、そのまま送る", async () => {
+  test("jpeg / png / webp / gif / avif は描き直さず、用途の方針も問い合わせずに送る", async () => {
     const { calls, codec } = recordingCodec();
     const h = harness({}, codec);
     for (const type of ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]) {
@@ -312,21 +333,22 @@ describe("画像の扱い（位置情報などの除去の保証はサーバー�
       assert.equal(h.server.bodies.at(-1), file, `${type} は元のまま送る`);
     }
     assert.deepEqual(calls, []);
+    assert.deepEqual(policyCalls(h), [], "普通の画像では往復を増やさない");
   });
 
-  test("strip で HEIC を端末で開ければ JPEG にして送る（任意の描き直しは重ねない）", async () => {
+  test("strip の用途で HEIC を端末で開ければ JPEG にして送る（任意の描き直しは重ねない）", async () => {
     const { calls, codec } = recordingCodec();
     const h = harness({}, codec);
     const { error } = await h.run(new Blob([new Uint8Array(3)], { type: "image/heic" }), { reencodeImage: true });
     assert.equal(error, undefined);
+    assert.deepEqual(policyCalls(h), ["/api/storage/purposes/user.avatar"]);
     assert.deepEqual(calls, ["image/jpeg"], "変換の 1 回だけ");
     assert.equal(h.server.bodies[0]?.type, "image/jpeg");
     assert.equal(h.server.bodies[0]?.size, 5);
-    const issue = h.server.calls.find((c) => c.method === "POST" && c.url === "/api/me/storage/uploads");
-    assert.ok(issue);
+    assert.equal(issuedContentType(h), "image/jpeg");
   });
 
-  test("型が空でも拡張子が .heic / .heif なら変換する", async () => {
+  test("型が空でも拡張子が .heic / .heif なら strip の用途では変換する", async () => {
     const { calls, codec } = recordingCodec();
     const h = harness({}, codec);
     const file = new File([new Uint8Array(3)], "IMG_0001.HEIC", { type: "" });
@@ -335,7 +357,7 @@ describe("画像の扱い（位置情報などの除去の保証はサーバー�
     assert.deepEqual(calls, ["image/jpeg"]);
   });
 
-  test("strip で HEIC を開けなければ storage/unsupported-image で止め、発行しない", async () => {
+  test("strip の用途で HEIC を開けなければ storage/unsupported-image で止め、発行しない", async () => {
     const failing: ImageCodec = { available: () => true, redraw: async () => Promise.reject(new Error("decode failed")) };
     const h = harness({}, failing);
     const { error } = await h.run(new Blob([new Uint8Array(3)], { type: "image/heif" }));
@@ -343,7 +365,8 @@ describe("画像の扱い（位置情報などの除去の保証はサーバー�
     assert.equal((error as StorageUploadError).code, "storage/unsupported-image");
     assert.equal(isStorageUnsupportedImage(error), true);
     assert.equal(error?.message, UNSUPPORTED_IMAGE_MESSAGE);
-    assert.deepEqual(h.server.calls, [], "発行も取り消しもしない");
+    assert.equal(issuedTypes(h), 0, "発行しない");
+    assert.equal(h.server.calls.filter((c) => c.method === "DELETE").length, 0, "取り消しもしない");
 
     const unavailable: ImageCodec = { available: () => false, redraw: async () => assert.fail("呼ばれない") };
     const h2 = harness({}, unavailable);
@@ -360,23 +383,60 @@ describe("画像の扱い（位置情報などの除去の保証はサーバー�
     assert.equal(issuedTypes(h), 0);
   });
 
-  test("keep では HEIC も変換せず、元のまま送る", async () => {
+  test("keep の用途では、呼び出し側が何も指定しなくても HEIC を変換も拒否もせず元のまま送る", async () => {
     const { calls, codec } = recordingCodec();
     const h = harness({}, codec);
     const heic = new Blob([new Uint8Array(3)], { type: "image/heic" });
-    const { error } = await h.run(heic, { purpose: "chatRoom.file", metadata: "keep" });
+    const { error } = await h.run(heic, { purpose: "chatRoom.file" });
     assert.equal(error, undefined);
+    assert.deepEqual(policyCalls(h), ["/api/storage/purposes/chatRoom.file"]);
     assert.deepEqual(calls, []);
     assert.equal(h.server.bodies[0], heic);
+    assert.equal(issuedContentType(h), "image/heic");
   });
 
-  test("画像以外のファイルは strip でも何もしない", async () => {
+  test("keep の用途で型が空の .heic / .heif は image/heic・image/heif として申告する", async () => {
+    const { calls, codec } = recordingCodec();
+    const h = harness({}, codec);
+    for (const [name, expected] of [["IMG_0001.HEIC", "image/heic"], ["photo.heif", "image/heif"]] as const) {
+      const { error } = await h.run(new File([new Uint8Array(3)], name, { type: "" }), { purpose: "chatRoom.file" });
+      assert.equal(error, undefined);
+      assert.equal(issuedContentType(h), expected);
+      assert.equal(h.server.bodies.at(-1)?.type, expected);
+    }
+    assert.deepEqual(calls, []);
+  });
+
+  test("同じ用途の方針は 1 回だけ問い合わせる（記憶）", async () => {
+    const { codec } = recordingCodec();
+    const h = harness({}, codec);
+    await h.run(new Blob([new Uint8Array(3)], { type: "image/heic" }));
+    await h.run(new Blob([new Uint8Array(3)], { type: "image/heic" }));
+    await h.run(new Blob([new Uint8Array(3)], { type: "image/heic" }), { purpose: "chatRoom.file" });
+    assert.deepEqual(policyCalls(h), ["/api/storage/purposes/user.avatar", "/api/storage/purposes/chatRoom.file"]);
+  });
+
+  test("用途の方針を得られなければ変換せず元の型で発行する（keep の用途を誤って変えない。strip ならサーバーが拒否する）", async () => {
+    const { calls, codec } = recordingCodec();
+    const h = harness({ policyStatus: 503 }, codec);
+    const heic = new Blob([new Uint8Array(3)], { type: "image/heic" });
+    const { error } = await h.run(heic);
+    assert.equal(error, undefined, "偽のサーバーは発行を拒否しないので完了する");
+    assert.deepEqual(calls, []);
+    assert.equal(issuedContentType(h), "image/heic");
+    // 失敗は記憶しない（次の呼び出しで取り直す）
+    await h.run(heic);
+    assert.equal(policyCalls(h).length, 2);
+  });
+
+  test("画像以外のファイルは何もせず、方針も問い合わせない", async () => {
     const { calls, codec } = recordingCodec();
     const h = harness({}, codec);
     const pdf = new Blob([new Uint8Array(3)], { type: "application/pdf" });
     await h.run(pdf);
     assert.deepEqual(calls, []);
     assert.equal(h.server.bodies[0], pdf);
+    assert.deepEqual(policyCalls(h), []);
   });
 
   test("reencodeImage:true なら従来どおり jpeg / png / webp を描き直した方を送る。gif は素通し", async () => {
@@ -388,8 +448,8 @@ describe("画像の扱い（位置情報などの除去の保証はサーバー�
     assert.equal(h.server.bodies[0]?.size, 5, "描き直した方を送る");
     const gif = new Blob([new Uint8Array(4)], { type: "image/gif" });
     assert.equal(await reencodeImage(gif, codec), gif);
-    await h.run(new Blob([new Uint8Array(1)], { type: "image/png" }), { reencodeImage: true, metadata: "keep" });
-    assert.deepEqual(calls, ["image/jpeg", "image/png"], "keep でも reencodeImage:true は効く");
+    await h.run(new Blob([new Uint8Array(1)], { type: "image/png" }), { purpose: "chatRoom.file", reencodeImage: true });
+    assert.deepEqual(calls, ["image/jpeg", "image/png"], "keep の用途でも reencodeImage:true は効く");
   });
 
   test("描き直せない環境では reencodeImage:true でも元のまま送る", async () => {

@@ -1,6 +1,6 @@
 // src/lib/storage/client/transferTypes.ts
 //
-// クライアントのアップロードの型と、アプリのルート（/api/me/storage/**）の応答の形。
+// クライアントのアップロードの型と、アプリのルート（/api/me/storage/**・/api/storage/purposes/**）の応答の形。
 // ルートの応答の形は features/core/storageObject の storageObjectService（IssueResult / CommitResult）と揃える
 // （lib は features に依存しないので、ここに wire の形として持つ）。
 
@@ -30,6 +30,11 @@ export type CommitUploadResponse = {
   src: string | null;
   size: number;
   contentType: string;
+};
+
+/** GET /api/storage/purposes/[purpose] の応答（用途の方針） */
+export type PurposePolicyResponse = {
+  metadata: "strip" | "keep";
 };
 
 /** uploadToStorage の完了時に渡す値 */

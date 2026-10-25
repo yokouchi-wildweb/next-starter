@@ -12,7 +12,6 @@ import { useMediaUploaderField } from "@/components/Form/MediaHandler/useMediaUp
 import { useAppFormMedia } from "@/components/Form/AppForm";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { FieldCommonProps } from "../types";
-import type { StorageMetadataPolicy } from "@/lib/storage";
 
 export type ControlledMediaFieldProps<
   TFieldValues extends FieldValues,
@@ -24,8 +23,6 @@ export type ControlledMediaFieldProps<
   label?: ReactNode;
   /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名） */
   purpose: string;
-  /** 用途の metadata（登録表の値と揃える。省略 = strip）。MediaUploader の metadata */
-  metadata?: StorageMetadataPolicy;
   /** 送る前にブラウザで画像を描き直すか（既定 false。任意の前処理。位置情報の除去の保証はサーバー） */
   reencodeImage?: boolean;
   accept?: string;
@@ -64,7 +61,6 @@ export function ControlledMediaField<
   label,
   description,
   purpose,
-  metadata,
   reencodeImage,
   accept,
   helperText,
@@ -88,7 +84,6 @@ export function ControlledMediaField<
     name,
     uploaderProps: {
       purpose,
-      metadata,
       reencodeImage,
       accept,
       helperText,

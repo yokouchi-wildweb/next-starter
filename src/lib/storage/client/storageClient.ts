@@ -1,6 +1,6 @@
 // src/lib/storage/client/storageClient.ts
 //
-// アプリのルート（アップロード権の発行・commit・取り消し・削除）の HTTP クライアント。axios + normalizeHttpError。
+// アプリのルート（アップロード権の発行・commit・取り消し・削除・用途の方針）の HTTP クライアント。axios + normalizeHttpError。
 // GCS への直接転送は drivers/ が行う。
 
 "use client";
@@ -9,7 +9,7 @@ import axios, { type AxiosInstance } from "axios";
 
 import { normalizeHttpError } from "@/lib/errors";
 
-import type { CommitUploadResponse, IssueUploadResponse } from "./transferTypes";
+import type { CommitUploadResponse, IssueUploadResponse, PurposePolicyResponse } from "./transferTypes";
 
 export type IssueUploadInput = {
   purpose: string;
@@ -44,6 +44,16 @@ export function createStorageClient(http: AxiosInstance = axios) {
         await http.delete(`/api/me/storage/uploads/${objectId}`);
       } catch (error) {
         throw normalizeHttpError(error, "アップロードの取り消しに失敗しました");
+      }
+    },
+
+    /** 用途の方針（metadata: strip / keep）。未登録の用途は 404 */
+    async policy(purpose: string): Promise<PurposePolicyResponse> {
+      try {
+        const { data } = await http.get<PurposePolicyResponse>(`/api/storage/purposes/${encodeURIComponent(purpose)}`);
+        return data;
+      } catch (error) {
+        throw normalizeHttpError(error, "アップロード用途の確認に失敗しました");
       }
     },
 

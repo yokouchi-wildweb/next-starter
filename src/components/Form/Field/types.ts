@@ -4,7 +4,6 @@
 import type { ReactNode } from "react";
 import type { FileValidationRule, SelectedMediaMetadata } from "@/lib/mediaInputSuite";
 import type { ParaProps } from "@/components/TextBlocks/Para";
-import type { StorageMetadataPolicy } from "@/lib/storage";
 
 /**
  * フォーム入力種別（domain.json formInput）
@@ -137,11 +136,6 @@ export type FieldConfig = {
   mediaTypePreset?: "images" | "videos" | "imagesAndVideos" | "all";
   /** accept 属性値（例: image/*,video/*） */
   accept?: string;
-  /**
-   * domain.json の storage（ここで読むのは metadata だけ）。metadata = 用途の strip / keep（省略 = strip）。
-   * メディア入力が accept の置き換えと HEIC などの端末変換に使う
-   */
-  storage?: { metadata?: StorageMetadataPolicy };
   /** バリデーション設定 */
   validationRule?: MediaValidationRule;
   /** ヘルパーテキスト */

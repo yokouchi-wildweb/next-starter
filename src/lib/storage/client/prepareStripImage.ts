@@ -5,6 +5,7 @@
 // - 端末で開ければ JPEG に描き直して送る（iPhone の写真を Safari 以外で選んだ場合など）
 // - 開けなければ発行の前に StorageUploadError("storage/unsupported-image") で止める（サーバーも 400 で受け付けない）
 // - jpeg / png / webp / gif / avif と、画像以外のファイルはそのまま返す（描き直さない）
+// 用途が strip かどうかは端末では決めない（uploadToStorage がサーバーの用途の方針で決めてから呼ぶ）。
 
 "use client";
 
@@ -22,6 +23,18 @@ const HEIC_EXTENSION = /\.(heic|heif)$/i;
 
 export const UNSUPPORTED_IMAGE_MESSAGE =
   "この画像の形式は使えません。JPEG・PNG で保存し直すか、スマートフォンの写真から直接選んでください。";
+
+/**
+ * 型が空で、拡張子で HEIC / HEIF と分かるファイルに型を付ける（image/heic・image/heif）。
+ * keep の用途へ送るとき、application/octet-stream ではなく画像として申告するため。それ以外は元の file
+ */
+export function withInferredImageType(file: Blob): Blob {
+  if (normalizeContentType(file.type)) return file;
+  const name = (file as Partial<File>).name;
+  const match = typeof name === "string" ? HEIC_EXTENSION.exec(name) : null;
+  if (!match) return file;
+  return new Blob([file], { type: `image/${match[1].toLowerCase()}` });
+}
 
 /** strip の用途で、端末で JPEG に変えてから送る画像か（STRIP_IMAGE_TYPES 以外の画像） */
 export function needsClientConversion(file: Blob): boolean {

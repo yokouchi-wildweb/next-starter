@@ -23,11 +23,14 @@ import {
   objectKeyOf,
   parseStorageRef,
   requiresStrip,
+  resolvePurposeMetadata,
   resolveStorageSrc,
+  type StorageMetadataPolicy,
   type StoragePurpose,
   type StoragePurposeMap,
 } from "@/lib/storage";
 import {
+  findStoragePurpose,
   getStoragePort,
   ImageStripError,
   locationOf,
@@ -74,6 +77,11 @@ export type CommitResult = {
   src: string | null;
   size: number;
   contentType: string;
+};
+
+/** GET /api/storage/purposes/[purpose] の応答（用途の方針。端末が変換の要否と写真選択の accept を決める） */
+export type PurposePolicyResult = {
+  metadata: StorageMetadataPolicy;
 };
 
 export type ReadResolution =
@@ -309,6 +317,16 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
   }
 
   return {
+    /**
+     * 用途の方針を返す（GET /api/storage/purposes/[purpose]）。誰が聞いても同じ答え（user.avatar の strip 固定を含む）。
+     * 未登録・ID の形式違いは 404
+     */
+    describePurpose(purposeId: string): PurposePolicyResult {
+      const purpose = findStoragePurpose(purposes(), purposeId);
+      if (!purpose) throw new DomainError("登録されていないアップロード用途です", { status: 404 });
+      return { metadata: resolvePurposeMetadata(purpose) };
+    },
+
     /** アップロード権を発行する（POST /api/me/storage/uploads） */
     async issue(user: SessionUser, input: IssueInput): Promise<IssueResult> {
       const purpose = resolveStoragePurpose(purposes(), input.purpose);

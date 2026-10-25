@@ -18,8 +18,13 @@ import { Button } from "@/components/Form/Button/Button";
 import { Para } from "@/components/TextBlocks";
 import { PseudoButton } from "@/components/Form/Button/PseudoButton";
 import { cn } from "@/lib/cn";
-import { isStorageUploadCanceled, pickerAcceptFor, uploadToStorage, type UploadProgress } from "@/lib/storage/client";
-import type { StorageMetadataPolicy } from "@/lib/storage";
+import {
+  isStorageUploadCanceled,
+  pickerAcceptFor,
+  uploadToStorage,
+  usePurposeMetadata,
+  type UploadProgress,
+} from "@/lib/storage/client";
 
 import { MediaPreview } from "./MediaPreview";
 import { MediaThumbGrid } from "./MediaThumbGrid";
@@ -40,11 +45,6 @@ export type MediaUploaderMultiValidationRule = FileValidationRule & {
 export type MediaUploaderMultiProps = {
   /** ファイルの用途 ID（`<domain>.<field>`。src/registry/storagePurposeRegistry.ts の登録名） */
   purpose: string;
-  /**
-   * 用途の metadata（登録表の値と揃える。省略 = strip）。strip: accept の image/* を受け付ける画像の型の列挙にし、
-   * HEIC などは端末で JPEG にして送る。keep: 選ばれたまま送る（uploadToStorage の metadata）
-   */
-  metadata?: StorageMetadataPolicy;
   /** 送る前にブラウザで画像を描き直すか（既定 false。通信量を減らす任意の前処理。位置情報の除去の保証はサーバー） */
   reencodeImage?: boolean;
   /** 値（storage ref、または移行前の旧 URL）の配列。プレビュー（MediaPreview）が ref を表示用 URL にする */
@@ -86,7 +86,6 @@ const slotIsUploading = (slot: SlotState): slot is Extract<SlotState, { kind: "u
 
 export const MediaUploaderMulti = ({
   purpose,
-  metadata,
   reencodeImage,
   initialUrls,
   onUrlsChange,
@@ -104,6 +103,8 @@ export const MediaUploaderMulti = ({
 }: MediaUploaderMultiProps) => {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // 用途の方針（サーバーから。分かるまでは accept を狭めない）。strip なら accept の image/* を受け付ける画像の型に狭める
+  const metadata = usePurposeMetadata(purpose);
   const [slots, setSlots] = useState<SlotState[]>(() =>
     (initialUrls ?? []).map((url) => ({ kind: "uploaded", id: uuidv7(), url })),
   );
@@ -183,7 +184,6 @@ export const MediaUploaderMulti = ({
     (file: File, slotId: string) => {
       const handle = uploadToStorage(file, {
         purpose,
-        metadata,
         reencodeImage,
         onProgress: (p) => {
           setSlots((prev) =>
@@ -226,7 +226,7 @@ export const MediaUploaderMulti = ({
         prev.map((s) => (s.id === slotId && s.kind === "uploading" ? { ...s, cancel: () => handle.cancel() } : s)),
       );
     },
-    [purpose, metadata, reencodeImage, onRegisterPendingUpload],
+    [purpose, reencodeImage, onRegisterPendingUpload],
   );
 
   const enqueueFiles = useCallback(
@@ -428,7 +428,7 @@ export const MediaUploaderMulti = ({
         id={inputId}
         type="file"
         multiple
-        accept={pickerAcceptFor(accept, metadata)}
+        accept={pickerAcceptFor(accept, metadata ?? "keep")}
         className="sr-only"
         disabled={disabled}
         onChange={handleInputChange}

@@ -313,6 +313,31 @@ describe("issue", () => {
   });
 });
 
+describe("describePurpose（用途の方針。GET /api/storage/purposes/[purpose]）", () => {
+  test("strip / keep / 省略（= strip）を返し、未登録・ID の形式違いは 404", () => {
+    const h = setup();
+    assert.deepEqual(h.service.describePurpose("album.photo"), { metadata: "strip" });
+    assert.deepEqual(h.service.describePurpose("profile.photo"), { metadata: "strip" }, "省略は strip");
+    assert.deepEqual(h.service.describePurpose("chatRoom.file"), { metadata: "keep" });
+    assert.deepEqual(h.service.describePurpose("purchaseRequest.bankProof"), { metadata: "keep" });
+    assert.throws(() => h.service.describePurpose("user.cover"), rejectsWith(404));
+    assert.throws(() => h.service.describePurpose("../etc"), rejectsWith(404));
+    assert.throws(() => h.service.describePurpose("toString"), rejectsWith(404));
+  });
+
+  test("user.avatar は登録表で keep に上書きしても strip と答える", () => {
+    const service = createStorageObjectService({
+      ledger: createMemoryLedger(),
+      port: () => createFakeStoragePort(),
+      purposes: () => withFixedStripPurposes({ "user.avatar": { ...PURPOSES["profile.photo"], metadata: "keep" } }),
+      locate: (store, key) => ({ bucket: `${store}-bucket`, path: key }),
+      now: () => new Date(),
+      newId: () => "01920000-0000-7000-8000-000000000001",
+    });
+    assert.deepEqual(service.describePurpose("user.avatar"), { metadata: "strip" });
+  });
+});
+
 describe("commit", () => {
   test("他人の ID・存在しない ID は 404、未送信は 409 で pending のまま", async () => {
     const h = setup();
