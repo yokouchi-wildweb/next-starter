@@ -10,6 +10,8 @@ export const domainEntries = {
   // 銀行振込の確認。操作は専用ルート（/api/admin/bank-transfer-reviews）だけ。登録表に載せるのはサーバー内部でドメイン名から表を引くため。
   bankTransferReview: {
     service: () => import("./bankTransferReviewService").then((m) => m.bankTransferReviewService),
+    table: "bank_transfer_reviews",
+    idColumn: "id",
     access: INTERNAL_ONLY,
   },
 } satisfies DomainEntries;

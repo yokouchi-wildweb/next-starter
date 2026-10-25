@@ -10,6 +10,8 @@ export const domainEntries = {
   // LINE 連携プロフィール。本人・管理の操作は専用ルートだけ（汎用 API・全件削除・データ移行には出さない）。
   userLineProfile: {
     service: () => import("./userLineProfileService").then((m) => m.userLineProfileService),
+    table: "user_line_profiles",
+    idColumn: "id",
     access: INTERNAL_ONLY,
   },
 } satisfies DomainEntries;

@@ -12,6 +12,8 @@ export const domainEntries = {
   // 類似照合は /api/admin/device-fingerprint/similar・compare を使う。
   deviceFingerprint: {
     service: () => import("./index").then((m) => m.deviceFingerprintService),
+    table: "device_fingerprints",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

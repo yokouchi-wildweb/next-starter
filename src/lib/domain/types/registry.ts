@@ -65,6 +65,16 @@ export type DomainService = {
 export type DomainRegistryEntry = {
   service: () => Promise<DomainService>;
   access: DomainApiAccessConfig;
+  /**
+   * 表の物理名（サービスを読み込まずに引くため。サービスの getTableName() と同じ値）。
+   * null は表を持たない Firestore 版のドメインだけ。生成器の対応の後で必須にする
+   */
+  table?: string | null;
+  /**
+   * 主キー列の物理名（サービスの getIdColumnName() と同じ値。論理名は常に lib/crud の CRUD_ID_FIELD = "id"）。
+   * null は表を持たない Firestore 版のドメインだけ。生成器の対応の後で必須にする
+   */
+  idColumn?: string | null;
 };
 
 /** domainEntry.ts の export（`export const domainEntries = { ... } satisfies DomainEntries`） */

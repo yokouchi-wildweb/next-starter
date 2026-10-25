@@ -11,6 +11,8 @@ export const domainEntries = {
   // サービスのオブジェクトは無い（deviceService.ts は関数の集まり）ので createCrudService の戻り値 pairedDeviceBase を載せる。
   pairedDevice: {
     service: () => import("./drizzleBase").then((m) => m.pairedDeviceBase),
+    table: "paired_devices",
+    idColumn: "id",
     access: INTERNAL_ONLY,
   },
 } satisfies DomainEntries;

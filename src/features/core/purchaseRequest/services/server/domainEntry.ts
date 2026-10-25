@@ -10,6 +10,8 @@ export const domainEntries = {
   // ユーザー所有データ。汎用 API は admin 限定（wallet と同じ）。
   purchaseRequest: {
     service: () => import("./purchaseRequestService").then((m) => m.purchaseRequestService),
+    table: "purchase_requests",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

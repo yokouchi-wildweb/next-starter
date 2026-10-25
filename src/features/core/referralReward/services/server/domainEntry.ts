@@ -10,6 +10,8 @@ export const domainEntries = {
   // import は閉じる（domain.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者
   referralReward: {
     service: () => import("./referralRewardService").then((m) => m.referralRewardService),
+    table: "referral_rewards",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: { ...ADMIN_DATA_OPERATIONS, import: "none" } },
   },
 } satisfies DomainEntries;

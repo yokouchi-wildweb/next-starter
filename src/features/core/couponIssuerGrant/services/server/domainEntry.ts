@@ -11,6 +11,8 @@ export const domainEntries = {
   // の専用アクション、本人操作は /api/me/coupon-issuer。汎用 API は admin の一覧・検索。
   couponIssuerGrant: {
     service: () => import("./index").then((m) => m.couponIssuerGrantService),
+    table: "coupon_issuer_grants",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

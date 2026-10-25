@@ -11,6 +11,8 @@ export const domainEntries = {
   // import は閉じる（domain.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者
   user: {
     service: () => import("./userService").then((m) => m.userService),
+    table: "users",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: { ...ADMIN_DATA_OPERATIONS, import: "none" } },
   },
 } satisfies DomainEntries;

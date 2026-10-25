@@ -9,6 +9,8 @@ import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/config/app/domain-api-acces
 export const domainEntries = {
   notificationTemplate: {
     service: () => import("./notificationTemplateService").then((m) => m.notificationTemplateService),
+    table: "notification_templates",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

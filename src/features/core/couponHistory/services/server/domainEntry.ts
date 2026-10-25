@@ -9,6 +9,8 @@ import { ADMIN_DATA_OPERATIONS, ADMIN_ONLY } from "@/config/app/domain-api-acces
 export const domainEntries = {
   couponHistory: {
     service: () => import("./couponHistoryService").then((m) => m.couponHistoryService),
+    table: "coupon_histories",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

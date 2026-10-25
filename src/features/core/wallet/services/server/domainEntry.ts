@@ -10,6 +10,8 @@ export const domainEntries = {
   // ユーザー所有データ。オーナーシップ強制の /api/me/ 専用ルートへ移行するまで汎用 API は admin 限定に維持する。
   wallet: {
     service: () => import("./walletService").then((m) => m.walletService),
+    table: "wallets",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

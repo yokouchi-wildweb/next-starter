@@ -12,10 +12,14 @@ export const domainEntries = {
   // auditLogFailed = 記録に失敗した監査ログの退避表（復旧は cron audit-log-recover-dead-letter）。
   auditLog: {
     service: () => import("./index").then((m) => m.auditLogService),
+    table: "audit_logs",
+    idColumn: "id",
     access: INTERNAL_ONLY,
   },
   auditLogFailed: {
     service: () => import("./drizzleBase").then((m) => m.auditLogFailedBase),
+    table: "audit_logs_failed",
+    idColumn: "id",
     access: INTERNAL_ONLY,
   },
 } satisfies DomainEntries;

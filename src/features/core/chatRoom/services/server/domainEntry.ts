@@ -10,6 +10,9 @@ export const domainEntries = {
   // Firestore 版（truncateAll / getTableName を持たないので全件削除の一覧には出ない。operations の truncateAll は形を揃えるための明示）。
   chatRoom: {
     service: () => import("./chatRoomService").then((m) => m.chatRoomService),
+    // Firestore 版は表を持たない
+    table: null,
+    idColumn: null,
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

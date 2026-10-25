@@ -10,6 +10,8 @@ export const domainEntries = {
   // import は閉じる（domain.json の useImportExport: false。今までの挙動と同じ）。export / 全件削除は管理者
   userTag: {
     service: () => import("./userTagService").then((m) => m.userTagService),
+    table: "user_tags",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: { ...ADMIN_DATA_OPERATIONS, import: "none" } },
   },
 } satisfies DomainEntries;

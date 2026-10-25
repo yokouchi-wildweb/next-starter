@@ -12,6 +12,8 @@ export const domainEntries = {
   // 各ドメインが /api/me/<feature> を薄く生やして提供する（README 参照）。
   userCounter: {
     service: () => import("./counterService").then((m) => m.counterService),
+    table: "user_counters",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

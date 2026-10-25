@@ -12,6 +12,8 @@ export const domainEntries = {
   // 調査・閲覧のみに限定（fail-closed）。汎用 CRUD での直接挿入はカウンタを加算しない。
   interactionEvent: {
     service: () => import("./interactionService").then((m) => m.interactionService),
+    table: "interaction_events",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

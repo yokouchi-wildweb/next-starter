@@ -11,6 +11,8 @@ export const domainEntries = {
   // 本人の回答は /api/me/fingerprint-challenges/[token]。汎用 API は admin の一覧・検索のみ。
   fingerprintChallenge: {
     service: () => import("./index").then((m) => m.fingerprintChallengeService),
+    table: "fingerprint_challenges",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

@@ -11,6 +11,8 @@ export const domainEntries = {
   // 本人の閲覧は /api/me/coupon-attribution-rewards。汎用 API は admin の一覧・検索・補正。
   couponAttributionReward: {
     service: () => import("./index").then((m) => m.couponAttributionRewardService),
+    table: "coupon_attribution_rewards",
+    idColumn: "id",
     access: { ...ADMIN_ONLY, operations: ADMIN_DATA_OPERATIONS },
   },
 } satisfies DomainEntries;

@@ -10,6 +10,8 @@ export const domainEntries = {
   // ログインイベント。閲覧は専用ルート（/api/admin/user-hub/[id]/login-events）、記録は recordLoginEvent（サーバー内部）。
   userLoginEvent: {
     service: () => import("./index").then((m) => m.userLoginEventService),
+    table: "user_login_events",
+    idColumn: "id",
     access: INTERNAL_ONLY,
   },
 } satisfies DomainEntries;
