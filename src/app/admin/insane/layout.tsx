@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { redirect } from "next/navigation";
 
-import { InsaneProtectedLayout } from "@/components/AppFrames/Admin/Insane";
+import { InsaneProtectedLayout } from "./_layout";
 import { authGuard, hasAdminUser } from "@/features/core/auth/services/server/authorization";
 import type { UserRoleType } from "@/features/core/user/types";
 

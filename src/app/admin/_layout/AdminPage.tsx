@@ -1,17 +1,19 @@
-// src/components/Admin/Layout/AdminPage.tsx
+// src/app/admin/_layout/AdminPage.tsx
 
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 
 import { Main } from "@/components/TextBlocks";
 
 export type AdminPageProps = PropsWithChildren<{
+  /** 本文の前に描くタブ(下に余白 mb-6)。省略 = 無し。fill でも同じ位置 */
+  tabs?: ReactNode;
   /**
    * ビューポート充填モード（opt-in、既定 false）。
    *
    * true にすると、固定ヘッダー直下に残る高さちょうどにスナップし、
    * ページ自体はスクロールしない土台になる。内部スクロールは子に委譲する。
    *
-   * 仕組み: AdminOuterLayout の子領域は既に `flex flex-col`（h-[100dvh] の
+   * 仕組み: AdminLayout の子領域は既に `flex flex-col`（h-[100dvh] の
    * ヘッダー下 flex-1 min-h-0 overflow-clip 領域）なので、ここに
    * `flex-1 min-h-0` を付けるだけで残り高さを占有する。ResizeObserver も
    * calc(100dvh - Nrem) のマジックナンバーも不要で、ヘッダー密度や画面内
@@ -29,7 +31,7 @@ export type AdminPageProps = PropsWithChildren<{
   fill?: boolean;
 }>;
 
-export default function AdminPage({ children, fill = false }: AdminPageProps) {
+export default function AdminPage({ tabs, children, fill = false }: AdminPageProps) {
   if (fill) {
     return (
       <Main
@@ -39,6 +41,7 @@ export default function AdminPage({ children, fill = false }: AdminPageProps) {
         paddingBlock="none"
         className="flex min-h-0 flex-1 flex-col px-[var(--admin-page-padding-inline)] py-[var(--admin-page-padding-block)]"
       >
+        {tabs && <div className="mb-6">{tabs}</div>}
         {children}
       </Main>
     );
@@ -46,6 +49,7 @@ export default function AdminPage({ children, fill = false }: AdminPageProps) {
 
   return (
     <Main containerType="plain" padding="lg" paddingBlock="xl">
+      {tabs && <div className="mb-6">{tabs}</div>}
       {children}
     </Main>
   );

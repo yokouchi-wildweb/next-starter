@@ -17,7 +17,7 @@ export async function AdminSetupScreen() {
   return (
     <Main containerType="narrowStack">
       <Section id="admin-setup">
-        <PageTitle>管理コンソールへようこそ！</PageTitle>
+        <PageTitle placement="page">管理コンソールへようこそ！</PageTitle>
         <Para>最初の管理ユーザーを登録し、管理設定を初期化します。</Para>
         <Stack marginBlock="lg" space={0} padding="none">
           <AdminSetupForm />

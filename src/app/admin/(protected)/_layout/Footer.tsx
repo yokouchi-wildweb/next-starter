@@ -1,4 +1,4 @@
-// src/components/Admin/Sections/Footer.tsx
+// src/app/admin/(protected)/_layout/Footer.tsx
 
 import { cva } from "class-variance-authority";
 

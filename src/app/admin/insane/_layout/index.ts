@@ -1,6 +1,6 @@
-// src/components/AppFrames/Admin/Insane/index.ts
+// src/app/admin/insane/_layout/index.ts
 
-export { InsaneProtectedLayout } from "./InsaneProtectedLayout";
+export { InsaneProtectedLayout, type InsaneProtectedLayoutProps } from "./InsaneProtectedLayout";
 export { InsaneResizableArea } from "./InsaneResizableArea";
 export { InsaneSidebar } from "./InsaneSidebar";
 export { InsanePcSidebar } from "./InsanePcSidebar";

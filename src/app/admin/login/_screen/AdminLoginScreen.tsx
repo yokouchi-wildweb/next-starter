@@ -23,7 +23,7 @@ export async function AdminLoginScreen(props: ScreenProps<Record<string, never>,
     <Main containerType="narrowStack">
       <Flex direction="column" justify="center" align="center" gap="xl">
         <Section as="header" className="w-full">
-          <PageTitle marginBottom="xs">管理者ログイン</PageTitle>
+          <PageTitle placement="page" marginBottom="xs">管理者ログイン</PageTitle>
         </Section>
         <AdminLogin redirectTo={redirectTo} />
         <Link href="/">サービストップへ戻る</Link>

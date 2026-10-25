@@ -1,4 +1,4 @@
-// src/components/AppFrames/Admin/Insane/InsaneSidebar.tsx
+// src/app/admin/insane/_layout/InsaneSidebar.tsx
 
 "use client";
 

@@ -1,4 +1,4 @@
-// src/components/Admin/Elements/PageTitle.tsx
+// src/app/admin/_layout/PageTitle.tsx
 
 import type { ReactNode } from "react";
 
@@ -38,9 +38,10 @@ export type AdminPageTitleProps = PageTitleProps &
   VariantProps<typeof adminPageTitleVariants> & {
     /**
      * タイトルの表示位置を指定します。
-     * - "page": ページ本文上部に大見出しとして表示（デフォルト）
-     * - "header": 管理画面ヘッダーのロゴ右隣に圧縮表示。
+     * - "header": 管理画面ヘッダーのロゴ右隣に圧縮表示（デフォルト）。
      *   モバイル（sm 未満）では自動的にページ内表示にフォールバックします。
+     *   ヘッダーにタイトルの受け口（./HeaderSlots の AdminHeaderSlots）が無いと sm 以上では表示されません。
+     * - "page": ページ本文上部に大見出しとして表示
      */
     placement?: "page" | "header";
   };
@@ -50,7 +51,7 @@ export default function PageTitle({
   marginBottom,
   className,
   size,
-  placement = "page",
+  placement = "header",
   children,
   ...props
 }: AdminPageTitleProps) {

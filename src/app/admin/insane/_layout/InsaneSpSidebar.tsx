@@ -1,8 +1,9 @@
-// src/components/AppFrames/Admin/Insane/InsaneSpSidebar.tsx
+// src/app/admin/insane/_layout/InsaneSpSidebar.tsx
 
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
+import { AdminSidebarFrameProvider } from "@/app/admin/_layout/Sidebar/AdminSidebarFrame";
 
 import { InsaneSidebar } from "./InsaneSidebar";
 
@@ -10,9 +11,13 @@ type InsaneSpSidebarProps = {
   width: number;
   isOpen: boolean;
   onClose?: () => void;
+  /** 殻の中身。省略 = InsaneSidebar */
+  content?: ReactNode;
 };
 
-export function InsaneSpSidebar({ width, isOpen, onClose }: InsaneSpSidebarProps) {
+const noop = () => {};
+
+export function InsaneSpSidebar({ width, isOpen, onClose, content }: InsaneSpSidebarProps) {
   return (
     <Fragment>
       <div
@@ -22,7 +27,13 @@ export function InsaneSpSidebar({ width, isOpen, onClose }: InsaneSpSidebarProps
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
-        <InsaneSidebar width={width} onNavigate={onClose} submenuPlacement="left" submenuVariant="compact" />
+        <AdminSidebarFrameProvider value={{ placement: "sp", width, close: onClose ?? noop }}>
+          {content === undefined ? (
+            <InsaneSidebar width={width} onNavigate={onClose} submenuPlacement="left" submenuVariant="compact" />
+          ) : (
+            content
+          )}
+        </AdminSidebarFrameProvider>
       </div>
       {isOpen ? (
         <div className="fixed inset-0 backdrop-layer bg-overlay/50 md:hidden" onClick={onClose} />

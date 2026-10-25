@@ -1,4 +1,4 @@
-// src/components/Admin/Sections/BaseSidebar/BaseSidebar.tsx
+// src/app/admin/(protected)/_layout/Sidebar/BaseSidebar.tsx
 
 "use client";
 

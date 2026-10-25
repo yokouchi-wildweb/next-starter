@@ -17,8 +17,9 @@
 //    upstream = 下の UPSTREAM_LEGACY_ROUTES(Step 5e で空になった。新しい core ルートはスイッチ形で作る)
 //    fork     = src/registry/screenRoutesRegistry.ts の FORK_LEGACY_ROUTES
 //    移行が済んだのに残っている行も失敗にする(一覧が縮む方向にしか動かない)
-// 5. 枠を描く layout.tsx(FRAME_LAYOUTS)と ./_layout/ を指す layout.tsx は page.tsx と同じ 1 行スイッチ形
-//    (参照先は ./_layout/<X>、採用者所有・write-once)。全 Tier で検査する
+// 5. 枠を描く layout.tsx(FRAME_LAYOUTS)と ./_layout/ を指す re-export を持つ layout.tsx は page.tsx と同じ 1 行スイッチ形
+//    (参照先は ./_layout/<X>、採用者所有・write-once)。全 Tier で検査する。ガード付きの layout.tsx が ./_layout/ の枠を
+//    素の import で描くのはスイッチではない(提供者所有、検査対象外)
 //
 // 検査関数の本体は ./checks.mjs(副作用なし)。
 import { test } from "node:test";
@@ -67,7 +68,14 @@ export const UPSTREAM_LEGACY_ROUTES = [];
  * upstream の枠を描く layout.tsx(1 行スイッチ形であること。ファイルが無ければ = fork がルートを消した → 検査しない)。
  * ガードと同居する admin/(protected)・insane の layout.tsx は提供者所有のまま(報告書 §7)なので載せない
  */
-export const FRAME_LAYOUTS = ["src/app/(user)/layout.tsx", "src/app/(user)/(protected)/mypage/layout.tsx"];
+export const FRAME_LAYOUTS = [
+  "src/app/(user)/layout.tsx",
+  "src/app/(user)/(protected)/mypage/layout.tsx",
+  "src/app/admin/layout.tsx",
+];
+
+/** スイッチの印 = ./_layout/ を指す re-export(`export { X as default } from "./_layout/X"`)。素の import はガード付き layout の枠の描画 */
+const SWITCH_REEXPORT = /export\s*\{[^}]*\}\s*from\s*["']\.\/_layout\//;
 
 // ---------------------------------------------------------------------------
 // 検出
@@ -249,7 +257,7 @@ for (const page of pages) {
 // 枠の layout.tsx: FRAME_LAYOUTS と、./_layout/ を指す re-export を持つ layout.tsx(fork が自分で作ったスイッチも同じ規則)
 const layoutFiles = listAppFiles(repoRoot).filter((file) => file.endsWith("/layout.tsx"));
 const switchLayouts = layoutFiles.filter(
-  (file) => FRAME_LAYOUTS.includes(file) || /from\s*["']\.\/_layout\//.test(stripComments(read(file))),
+  (file) => FRAME_LAYOUTS.includes(file) || SWITCH_REEXPORT.test(stripComments(read(file))),
 );
 for (const layout of switchLayouts) {
   const dir = dirname(layout);
@@ -271,6 +279,17 @@ for (const layout of switchLayouts) {
     });
   }
 }
+
+test("スイッチの検出: ./_layout/ への re-export だけを拾い、ガード付き layout.tsx の素の import は拾わない", () => {
+  assert.ok(SWITCH_REEXPORT.test(`export { AdminLayout as default } from "./_layout/AdminLayout";`));
+  assert.ok(SWITCH_REEXPORT.test(`export { default } from "./_layout/XLayout";`), "形の誤りは検出して parseSwitchLayout で落とす");
+  const guarded = `import { redirect } from "next/navigation";\nimport { AdminProtectedLayout } from "./_layout/AdminProtectedLayout";\n` +
+    `export default async function L({ children }) {\n  await authGuard({});\n  return <AdminProtectedLayout>{children}</AdminProtectedLayout>;\n}`;
+  assert.equal(SWITCH_REEXPORT.test(guarded), false);
+  for (const file of ["src/app/admin/(protected)/layout.tsx", "src/app/admin/insane/layout.tsx"]) {
+    if (exists(file)) assert.equal(switchLayouts.includes(file), false, `${file} はガード付き(スイッチの検査対象外)`);
+  }
+});
 
 test("FRAME_LAYOUTS: upstream の枠の layout.tsx が検査対象に入っている(Tier1 では全て存在する)", (t) => {
   const missing = FRAME_LAYOUTS.filter((file) => !exists(file));

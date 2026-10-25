@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { redirect } from "next/navigation";
 
-import { AdminProtectedLayout } from "@/components/AppFrames/Admin/Layout/AdminProtectedLayout";
+import { AdminProtectedLayout } from "./_layout/AdminProtectedLayout";
 import { authGuard, hasAdminUser } from "@/features/core/auth/services/server/authorization";
 import { getRolesByCategory } from "@/features/core/user/constants";
 

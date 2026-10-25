@@ -1,11 +1,11 @@
-// stores/adminLayout/useStore.ts
+// src/app/admin/_layout/stores/adminLayout/useStore.ts
 
 "use client";
 
 import { internalStore } from "./internalStore";
 
 /**
- * AdminOuterLayout に追加クラスを適用するためのストア
+ * AdminLayout に追加クラスを適用するためのストア
  * 子コンポーネントから親レイアウトのスタイルを制御する用途
  */
 export function useAdminLayoutStore() {

@@ -1,4 +1,4 @@
-// stores/adminLayout/internalStore.ts
+// src/app/admin/_layout/stores/adminLayout/internalStore.ts
 
 "use client";
 

@@ -1,4 +1,4 @@
-// src/components/Admin/Sections/BaseSidebar/MenuButton.tsx
+// src/app/admin/_layout/Sidebar/MenuButton.tsx
 
 "use client";
 

@@ -1,4 +1,4 @@
-// src/components/Admin/layout/ResizableArea.tsx
+// src/app/admin/(protected)/_layout/ResizableArea.tsx
 
 "use client";
 
@@ -12,17 +12,24 @@ export function ResizableArea({
   children,
   isSidebarOpen = false,
   onSidebarClose,
+  sidebar,
+  footer,
 }: {
   children: ReactNode;
   isSidebarOpen?: boolean;
   onSidebarClose?: () => void;
+  /** サイドバーの中身(AdminProtectedLayout の sidebar slot)。省略 = BaseSidebar / null = サイドバーとリサイズのつまみを描かない */
+  sidebar?: ReactNode;
+  /** スクロール領域の末尾(AdminProtectedLayout の footer slot)。省略 = Footer / null = 描かない */
+  footer?: ReactNode;
 }) {
+  const hasSidebar = sidebar !== null;
   const [sidebarWidth, setSidebarWidth] = useState(192); // default 192px
   const dragging = useRef(false);
   const isSidebarResizable = APP_FEATURES.adminConsole.enableSidebarResizing;
 
   useEffect(() => {
-    if (!isSidebarResizable) {
+    if (!isSidebarResizable || !hasSidebar) {
       return;
     }
 
@@ -41,14 +48,18 @@ export function ResizableArea({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", stopDragging);
     };
-  }, [isSidebarResizable]);
+  }, [isSidebarResizable, hasSidebar]);
 
   return (
     <div className="flex h-full min-h-0 relative">
-      <SpSidebar width={sidebarWidth} isOpen={isSidebarOpen} onClose={onSidebarClose} />
-      <PcSidebar width={sidebarWidth} />
+      {hasSidebar ? (
+        <>
+          <SpSidebar width={sidebarWidth} isOpen={isSidebarOpen} onClose={onSidebarClose} content={sidebar} />
+          <PcSidebar width={sidebarWidth} content={sidebar} />
+        </>
+      ) : null}
 
-      {isSidebarResizable ? (
+      {hasSidebar && isSidebarResizable ? (
         <div
           onMouseDown={() => {
             dragging.current = true;
@@ -75,7 +86,7 @@ export function ResizableArea({
         <div data-admin-main-wrapper className="flex-1">
           {children}
         </div>
-        <Footer />
+        {footer === undefined ? <Footer /> : footer}
       </div>
     </div>
   );

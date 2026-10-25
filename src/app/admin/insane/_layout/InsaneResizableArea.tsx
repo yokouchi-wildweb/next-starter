@@ -1,4 +1,4 @@
-// src/components/AppFrames/Admin/Insane/InsaneResizableArea.tsx
+// src/app/admin/insane/_layout/InsaneResizableArea.tsx
 
 "use client";
 
@@ -11,17 +11,24 @@ export function InsaneResizableArea({
   children,
   isSidebarOpen = false,
   onSidebarClose,
+  sidebar,
+  footer,
 }: {
   children: ReactNode;
   isSidebarOpen?: boolean;
   onSidebarClose?: () => void;
+  /** サイドバーの中身(InsaneProtectedLayout の sidebar slot)。省略 = InsaneSidebar / null = サイドバーとリサイズのつまみを描かない */
+  sidebar?: ReactNode;
+  /** スクロール領域の末尾(InsaneProtectedLayout の footer slot)。省略 = 無し(今の insane はフッターを持たない) / 要素 = それ */
+  footer?: ReactNode;
 }) {
+  const hasSidebar = sidebar !== null;
   const [sidebarWidth, setSidebarWidth] = useState(192);
   const dragging = useRef(false);
   const isSidebarResizable = APP_FEATURES.adminConsole.enableSidebarResizing;
 
   useEffect(() => {
-    if (!isSidebarResizable) {
+    if (!isSidebarResizable || !hasSidebar) {
       return;
     }
 
@@ -40,14 +47,18 @@ export function InsaneResizableArea({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", stopDragging);
     };
-  }, [isSidebarResizable]);
+  }, [isSidebarResizable, hasSidebar]);
 
   return (
     <div className="flex flex-1 min-h-0 relative">
-      <InsaneSpSidebar width={sidebarWidth} isOpen={isSidebarOpen} onClose={onSidebarClose} />
-      <InsanePcSidebar width={sidebarWidth} />
+      {hasSidebar ? (
+        <>
+          <InsaneSpSidebar width={sidebarWidth} isOpen={isSidebarOpen} onClose={onSidebarClose} content={sidebar} />
+          <InsanePcSidebar width={sidebarWidth} content={sidebar} />
+        </>
+      ) : null}
 
-      {isSidebarResizable ? (
+      {hasSidebar && isSidebarResizable ? (
         <div
           onMouseDown={() => {
             dragging.current = true;
@@ -57,9 +68,12 @@ export function InsaneResizableArea({
         />
       ) : null}
 
-      {/* メイン領域: 縦スクロールはここで担う。AdminOuterLayout 側は overflow-hidden に変更されたため、
+      {/* メイン領域: 縦スクロールはここで担う。AdminLayout 側は overflow-hidden に変更されたため、
           insane 配下でコンテンツが画面高を超える場合のスクロール責務はこのコンテナが持つ。 */}
-      <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">{children}</div>
+      <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">
+        {children}
+        {footer}
+      </div>
     </div>
   );
 }
