@@ -9,6 +9,7 @@
 // 5. core 7 キー（auditLog・auditLogFailed・bankTransferReview・pairedDevice・userLineProfile・userLoginEvent・userXProfile）は
 //    登録されているが、全件削除の一覧・データ移行・汎用 API（/api/<key>）のどれにも出ない
 // 6. useImportExport: false の core（user・coupon・userTag・referral・referralReward・milestone）は import だけ閉じ、export / truncateAll は管理者
+// 5・6 の core の既定値は domainEntry.ts（上書き前）で確かめる。fork が domainEntry.override.ts で access を変えても、このテストは編集せずに通る
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -29,6 +30,16 @@ import { getDomainList } from "../../../src/lib/domain/service/server/getDomainL
 import { getService, hasService, lookupDomainService } from "../../../src/lib/domain/service/server/getService.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+
+/** 各 domainEntry.ts の domainEntries（fork の domainEntry.override.ts を当てる前の既定値）をキーで引く */
+async function loadDefaultEntries() {
+  const entries = {};
+  for (const domain of discoverDomainEntries(repoRoot).filter((item) => item.entryPath)) {
+    const mod = await import(path.join(repoRoot, domain.entryPath));
+    Object.assign(entries, mod.domainEntries);
+  }
+  return entries;
+}
 
 const INTERNAL_KEYS = ["auditLog", "auditLogFailed", "bankTransferReview", "pairedDevice", "userLineProfile", "userLoginEvent", "userXProfile"];
 const NO_IMPORT_KEYS = ["user", "coupon", "userTag", "referral", "referralReward", "milestone"];
@@ -77,10 +88,21 @@ test("登録された全エントリは service() でオブジェクトを返し
   }
 });
 
-test("core 7 キーは登録されているが、汎用 API・全件削除の一覧・データ移行のどれにも出ない", async () => {
+test("登録表の access は、上書きの無いキーでは domainEntry.ts の既定値そのもの", async () => {
+  const defaults = await loadDefaultEntries();
+  const overridden = new Set(discoverDomainEntries(repoRoot).flatMap((domain) => domain.overrideKeys));
+  assert.deepEqual(Object.keys(serviceRegistry).sort(), Object.keys(defaults).sort());
+  for (const [key, entry] of Object.entries(serviceRegistry)) {
+    assert.equal(entry.service, defaults[key].service, `${key}: service は domainEntry.ts のもの（上書きでも変わらない）`);
+    if (!overridden.has(key)) assert.equal(entry.access, defaults[key].access, `${key}: 上書きが無いのに access が既定値と違う`);
+  }
+});
+
+test("core 7 キーは登録されているが、汎用 API・全件削除の一覧・データ移行のどれにも出ない（既定値）", async () => {
+  const defaults = await loadDefaultEntries();
   for (const key of INTERNAL_KEYS) {
     assert.ok(hasService(serviceRegistry, key), `${key} が登録表に無い`);
-    const { access } = serviceRegistry[key];
+    const { access } = defaults[key];
     assert.deepEqual(access, INTERNAL_ONLY, `${key}: INTERNAL_ONLY で登録する`);
     assert.ok(isGenericApiClosed(access), `${key}: 汎用 CRUD（/api/${key}/**）が閉じていない`);
     for (const operation of DOMAIN_DATA_OPERATIONS) {
@@ -95,15 +117,16 @@ test("core 7 キーは登録されているが、汎用 API・全件削除の一
   for (const key of INTERNAL_KEYS) {
     const inList = listed.includes(key);
     assert.ok(inList, `${key}: truncateAll を持つので一覧の候補には出る（ルートが access で除く）`);
-    assert.equal(resolveAccessRule(serviceRegistry[key].access, "truncateAll", "write"), "none");
+    assert.equal(resolveAccessRule(defaults[key].access, "truncateAll", "write"), "none");
   }
   // chatRoom（Firestore）は truncateAll を持たないので候補にも出ない
   assert.ok(!listed.includes("chatRoom"));
 });
 
-test("useImportExport: false の core は import だけ閉じ、export / truncateAll は管理者（今までの挙動）", () => {
+test("useImportExport: false の core は import だけ閉じ、export / truncateAll は管理者（今までの挙動。既定値）", async () => {
+  const defaults = await loadDefaultEntries();
   for (const key of NO_IMPORT_KEYS) {
-    const { access } = serviceRegistry[key];
+    const { access } = defaults[key];
     assert.equal(resolveAccessRule(access, "import", "write"), "none", `${key}: import`);
     assert.deepEqual(resolveAccessRule(access, "export", "write"), ADMIN_RULE, `${key}: export`);
     assert.deepEqual(resolveAccessRule(access, "truncateAll", "write"), ADMIN_RULE, `${key}: truncateAll`);
@@ -112,7 +135,7 @@ test("useImportExport: false の core は import だけ閉じ、export / truncat
   // それ以外の既存 core 行はデータ操作 3 つとも管理者
   for (const key of ["setting", "wallet", "walletHistory", "purchaseRequest", "couponHistory", "userCounter", "interactionEvent", "notification", "notificationTemplate", "chatRoom", "deviceFingerprint", "fingerprintChallenge", "couponAttributionReward", "couponIssuerGrant"]) {
     for (const operation of DOMAIN_DATA_OPERATIONS) {
-      assert.deepEqual(resolveAccessRule(serviceRegistry[key].access, operation, "write"), ADMIN_RULE, `${key}: ${operation}`);
+      assert.deepEqual(resolveAccessRule(defaults[key].access, operation, "write"), ADMIN_RULE, `${key}: ${operation}`);
     }
   }
   // 業務ドメイン: sample は useImportExport: true、sampleTag は false

@@ -6,6 +6,7 @@ import inquirer from "inquirer";
 import generate from "./generate.mjs";
 import askGenerateFiles from "./questions/generate-files.mjs";
 import { assertDomainFolderNames } from "./utils/domainFolder.mjs";
+import { generateServiceRegistry } from "../registry/serviceRegistry/generate.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -89,15 +90,24 @@ export default async function generateAllDomains(options = {}) {
 async function runGenerateAll(selectedDomains, manualGenerate, only) {
   // 途中のドメインで止まって生成が半端に残らないよう、ループの前に全件を検査する
   assertDomainFolderNames(featuresDir, selectedDomains);
+  let registryGenerated = false;
   for (const domain of selectedDomains) {
     console.log(`\n[${domain}] の生成を開始します。`);
-    await generate(domain, {
+    const result = await generate(domain, {
       mode: manualGenerate ? "manual" : "config",
       manualGenerate: manualGenerate ?? undefined,
       interactive: false,
       shouldGenerate: true,
       only,
+      deferServiceRegistry: true,
     });
+    if (result?.registry) registryGenerated = true;
+  }
+
+  // serviceRegistry.ts は全ドメインの domainEntry.ts を書いた後に 1 回だけ作り直す（失敗 = 手書き行・override・record_type などの不整合。メッセージの直し方に従う）
+  if (registryGenerated) {
+    console.log("");
+    generateServiceRegistry(rootDir);
   }
 
   console.log("\nすべてのドメインのファイル生成が完了しました。");

@@ -12,6 +12,9 @@ import { generateServiceRegistry } from '../../../registry/serviceRegistry/gener
 
 const args = process.argv.slice(2);
 const domain = args[0];
+// 一括生成（dc:generate:all）から呼ばれたときは serviceRegistry.ts を作り直さない（全ドメインの domainEntry.ts を書いた後に呼び手が 1 回だけ作る。
+// ドメインごとに作り直すと、まだ domainEntry.ts の無い他のドメインで検査が失敗して途中で止まる）
+const deferServiceRegistry = args.includes('--defer-service-registry');
 
 // ドメイン名が指定されていない場合は使い方を表示して終了
 if (!domain) {
@@ -53,9 +56,11 @@ updateSchemaRegistry({ rootDir, camel, dbEngine });
 writeDomainEntry({ rootDir, camel });
 updateStoragePurposeRegistry({ rootDir, camel });
 // 登録表はこのドメインの domainEntry.ts を含めて丸ごと作り直す（失敗 = 他の domainEntry.ts や手書き行の不整合。メッセージの直し方に従う）
-try {
-  generateServiceRegistry(rootDir);
-} catch (error) {
-  console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
+if (!deferServiceRegistry) {
+  try {
+    generateServiceRegistry(rootDir);
+  } catch (error) {
+    console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
 }

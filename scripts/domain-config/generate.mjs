@@ -21,11 +21,12 @@ const prompt = inquirer.createPromptModule();
 
 const ALL_GENERATE_OPTIONS = Object.fromEntries(GENERATE_CATEGORIES.map((category) => [category, true]));
 
-function runGenerator(script, domain, plural, dbEngine) {
+function runGenerator(script, domain, plural, dbEngine, extraArgs = []) {
   const scriptPath = path.join(__dirname, "generator", script);
   const args = [scriptPath, domain];
   if (plural) args.push("--plural", plural);
   if (dbEngine) args.push("--dbEngine", dbEngine);
+  args.push(...extraArgs);
   const result = spawnSync("node", args, { stdio: "inherit" });
   // 個別ジェネレーターの失敗を握りつぶさず、呼び出し側（CLI）の終了コードに伝える
   if (result.error) throw result.error;
@@ -148,7 +149,7 @@ export default async function generate(domain, options = {}) {
   }
   if (!shouldGenerate) {
     console.log("ファイル生成をスキップしました。");
-    return;
+    return { registry: false };
   }
 
   const hasOptionFields = (config.fields || []).some(
@@ -168,9 +169,12 @@ export default async function generate(domain, options = {}) {
     runGenerator(path.join("admin-routes", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
   if (gen.entities)
     runGenerator(path.join("entities", "index.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
-  if (gen.registry) runGenerator("registry/index.mjs", normalizedDomain);
+  // deferServiceRegistry = 一括生成（generate-all）が全ドメインの domainEntry.ts を書いた後に serviceRegistry.ts を 1 回だけ作り直す
+  if (gen.registry)
+    runGenerator("registry/index.mjs", normalizedDomain, undefined, undefined, options.deferServiceRegistry ? ["--defer-service-registry"] : []);
   if (gen.presenters)
     runGenerator(path.join("components", "presenters.mjs"), normalizedDomain, normalizedPlural, config.dbEngine);
+  return { registry: Boolean(gen.registry) };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

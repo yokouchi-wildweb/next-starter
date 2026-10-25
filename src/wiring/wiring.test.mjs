@@ -109,7 +109,8 @@ function reachesServicesServer(file) {
     if (seen.has(current)) continue;
     seen.add(current);
     const rel = toPosix(relative(srcDir, current));
-    if (/\/services\/server\//.test(rel) && !rel.endsWith("/domainEntry.ts")) return { reached: true, path: [...path, rel] };
+    // domainEntry.ts と fork の domainEntry.override.ts は services/server に置く登録の宣言（サービス本体ではない）なので、届いた扱いにせず先を辿る
+    if (/\/services\/server\//.test(rel) && !/\/domainEntry(\.override)?\.ts$/.test(rel)) return { reached: true, path: [...path, rel] };
     for (const { source } of listImportSources(readFileSync(current, "utf8"))) {
       const target = resolveSource(current, source);
       if (target && !seen.has(target)) stack.push({ file: target, path: [...path, rel] });
