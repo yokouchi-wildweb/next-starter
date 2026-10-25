@@ -62,10 +62,18 @@ export const STORAGE_CONFIG = {
    * 掃除 cron（storage-sweep）の時間予算。
    * - budgetMs: 1 回の実行で使う時間（createDeadline に渡す）
    * - chunkSize: 1 チャンクで扱う台帳の行数
+   * - reconcile: 紐付け先の行が消えた台帳行の照合（DB の cascade 等でアプリを通らずに消えた行の片付け）
+   *   - maxDetachPerRun: 1 回の実行で片付けてよい行数の上限。達したら照合を止めて警告する
+   *   - massMissingMin: 1 つの束で同じ record_type の ID がこの数以上あって 1 件も見つからなければ、
+   *     表の取り違え・誤った全消去を疑い、その record_type は消さずに警告する
    */
   sweep: {
     budgetMs: 45_000,
     chunkSize: 100,
+    reconcile: {
+      maxDetachPerRun: 1000,
+      massMissingMin: 50,
+    },
   },
 
   /**

@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import { and, asc, eq, gt, inArray, isNull, lte, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNotNull, isNull, lte, notInArray, or, sql } from "drizzle-orm";
 
 import { getPublicColumns } from "@/lib/crud/drizzle/hiddenColumns";
 import { db } from "@/lib/drizzle";
@@ -108,6 +108,24 @@ export const drizzleLedger: StorageLedger = {
       .orderBy(asc(T.id))
       .limit(input.limit);
     return rows.map((r) => r.id);
+  },
+
+  async listAttached(input) {
+    // 主キーの順に走査する（照合は一巡に時間がかかってよいので、専用の index は足さない）
+    const rows = await db
+      .select({ id: T.id, recordType: T.recordType, recordId: T.recordId })
+      .from(T)
+      .where(
+        and(
+          eq(T.status, "ready"),
+          isNotNull(T.recordType),
+          isNotNull(T.recordId),
+          input.afterId ? gt(T.id, input.afterId) : undefined,
+        ),
+      )
+      .orderBy(asc(T.id))
+      .limit(input.limit);
+    return rows.map((r) => ({ id: r.id, recordType: r.recordType!, recordId: r.recordId! }));
   },
 
   findById: findStorageObjectById,

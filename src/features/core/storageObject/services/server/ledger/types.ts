@@ -73,6 +73,19 @@ export type ListSweepTargetsInput = {
   limit: number;
 };
 
+/** 照合（紐付け先の行がまだあるか）の対象: 業務行に紐付いた ready の行 */
+export type AttachedObjectRef = {
+  id: string;
+  recordType: string;
+  recordId: string;
+};
+
+export type ListAttachedInput = {
+  /** keyset ページングの続き（この id より後） */
+  afterId: string | null;
+  limit: number;
+};
+
 export type AttachInput = {
   id: string;
   /** ref から取り出した値。行の purpose / store / key と一致しなければ紐付けない（改変 ref の拒否） */
@@ -122,6 +135,8 @@ export interface StorageLedger {
   insertPendingWithinLimit(row: NewPendingObject, maxPending: number, now: Date): Promise<boolean>;
   /** 掃除の対象の id を id 順に返す（keyset ページング） */
   listSweepTargets(target: SweepTarget, input: ListSweepTargetsInput): Promise<string[]>;
+  /** 業務行に紐付いた ready の行を id 順に返す（照合用。keyset ページング） */
+  listAttached(input: ListAttachedInput): Promise<AttachedObjectRef[]>;
   /** サーバー内の書き込み・複製で、照合済みの ready の行を作る */
   insertReady(row: NewReadyObject): Promise<void>;
   /** 1 行を読む（session_uri を含む。サービス内部だけで使う） */
