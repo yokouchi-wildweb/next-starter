@@ -409,11 +409,11 @@ createCrudService(SampleTable, {
   - どちらの場合も、消し残しは台帳に deleted・`object_removed_at` null として残り、掃除 cron が片付ける
 - **actor**: routeFactory が敷く AuditContext の actorId。`runAsSystem` の中では null（所有者 null のサーバー内の書き込みだけが紐付く）
 - **storageFields**: storage を指定したサービスは、binding の列の宣言（`name` / `purpose` / `multi` / `scope`）を読み取り専用の `service.storageFields` で出す。指定しないサービスでは undefined。どの列がメディア列かを知る正本で、dataMigration の import / export が使う（クライアントの申告は信用しない）
-- **FK cascade（MANDATORY）**: メディア列を持つ表の行を、親の削除に伴う DB の `onDelete: "cascade"` で消さない
-  - DB が消した行は binding を通らないので、台帳の紐付けが残り続け、実物が漏れる
-  - 子の表の FK は `onDelete: "restrict"` にし、親のサービスの削除（remove / hardDelete の wrapper）の中で、同じ tx を渡して子のサービスの削除（`bulkDeleteByQuery` など）を先に呼ぶ
+- **FK cascade（推奨）**: メディア列を持つ表に、親の削除に伴う DB の `onDelete: "cascade"` を付けてよい
+  - DB が消した行は binding を通らないので、台帳の紐付けが残り、実物も残る（台帳との照合で片付ける仕組みを後で入れる予定）
+  - すぐ片付けたい表は、子の表の FK を `onDelete: "restrict"` にし、親のサービスの削除（remove / hardDelete の wrapper）の中で、同じ tx を渡して子のサービスの削除（`bulkDeleteByQuery` など）を先に呼ぶ（任意）
   - `service.storageCascadeForeignKeys` が、この表から親へ向かう cascade の FK を出す（`onHardDelete: "keep"` なら空）
-  - `pnpm test:storage-purposes` が、serviceRegistry と全ドメインの `services/server/drizzleBase.ts` のサービスについて空であることを確かめる。既存の例外はテスト内の `STORAGE_CASCADE_EXCEPTIONS`（理由付き。増やさない）
+  - `pnpm test:storage-purposes` は、serviceRegistry と全ドメインの `services/server/drizzleBase.ts` のサービスにある cascade を警告で並べる（失敗にはしない）
 
 ---
 
