@@ -5,13 +5,13 @@
 // 1 行でも失敗すればチャンク全体を巻き戻す。
 
 import "server-only";
-import { getDomainConfig, hasDomainConfig } from "@/lib/domain";
-import { getServiceOrThrow, getJunctionTable } from "@/lib/domain/server";
+import { getJunctionTable } from "@/lib/domain/server";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { parseCsv } from "./parseCsv";
 import { db } from "@/lib/drizzle";
 import type { DataMigrationMediaResolver } from "../media";
+import type { DataMigrationServiceResolver } from "../serviceResolver";
 import { MediaValueError, resolveMediaRow } from "./mediaValues";
 
 export type FieldTypeInfo = {
@@ -37,6 +37,8 @@ export type ImportChunkOptions = {
   updateImages?: boolean;
   /** ファイル台帳の操作（API ルートが実行者で作って注入する） */
   media: DataMigrationMediaResolver;
+  /** ドメイン名からサービスを引く（API ルートが src/wiring/domains.ts の getService を注入する） */
+  services: DataMigrationServiceResolver;
   /** フィールド型情報（型変換用） */
   fields?: FieldTypeInfo[];
   /** ドメインタイプ（main/related/junction/hasMany） */
@@ -280,32 +282,21 @@ async function findExisting(service: any, id: string): Promise<Record<string, un
 export async function importChunk(
   options: ImportChunkOptions
 ): Promise<ImportChunkResult> {
-  const { domain, chunkName, csvContent, domainType } = options;
+  const { domain, chunkName, csvContent, domainType, services } = options;
 
   // 中間テーブルの場合は直接 DB 挿入
   if (domainType === "junction") {
     return importJunctionChunk({ domain, chunkName, csvContent });
   }
 
-  // サービスを取得（serviceRegistry は camelCase キーのため変換）
-  const serviceDomainKey = toCamelCase(domain);
-  let service: any;
-  try {
-    service = getServiceOrThrow(serviceDomainKey);
-  } catch {
+  // サービスを取得（登録表のキーは camelCase）。import を許すかは API ルートが domainEntry.ts の access（import）で判定済み
+  // （旧: domain.json の useImportExport を lib で見ていた。今は dc:generate が useImportExport を access の export / import に写す）
+  const service: any = await services(toCamelCase(domain));
+  if (!service) {
     return {
       success: false,
       chunkName,
       error: `Invalid domain: ${domain}`,
-    };
-  }
-
-  // domain.json で useImportExport: false のドメインはサーバー側でも拒否する (UI 非表示だけに頼らない)
-  if (hasDomainConfig(domain) && getDomainConfig(domain).useImportExport === false) {
-    return {
-      success: false,
-      chunkName,
-      error: `Domain ${domain} does not support import (useImportExport: false)`,
     };
   }
 
@@ -317,7 +308,7 @@ export async function importChunk(
  */
 export async function importServiceChunk(
   service: any,
-  options: Omit<ImportChunkOptions, "domain" | "domainType"> & { domain?: string },
+  options: Omit<ImportChunkOptions, "domain" | "domainType" | "services"> & { domain?: string },
 ): Promise<ImportChunkResult> {
   const {
     domain = "",

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createApiRoute, type OperationType, type ApiRouteContext } from "./createApiRoute";
 import { enforceAccessRule } from "./enforceAccess";
-import { resolveAccessRule, type DomainApiOperation } from "@/lib/domain";
+import { resolveAccessRule, type DomainCrudOperation } from "@/lib/domain";
 import { serviceRegistry } from "@/registry/serviceRegistry";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 
@@ -18,9 +18,9 @@ export type DomainRouteConfig<TService> = {
   operationType: OperationType;
   /**
    * CRUD 操作名（アクセス制御用）
-   * domain.json の apiAccess.operations のキーと対応する
+   * domain.json の apiAccess.operations のキーと対応する（管理データ操作 truncateAll / export / import は汎用ルートに無い）
    */
-  crudOp: DomainApiOperation;
+  crudOp: DomainCrudOperation;
   /** サービスが特定のメソッドをサポートしているか確認 */
   supports?: keyof TService | Array<keyof TService>;
   /**
@@ -53,8 +53,6 @@ export type DomainRouteHandler<TService, TParams, TResult = unknown> = (
  */
 type DomainParams = { domain: string };
 type DomainIdParams = { domain: string; id: string };
-
-const services = serviceRegistry;
 
 /**
  * サービスが指定されたメソッドをサポートしているか確認
@@ -96,23 +94,26 @@ export function createDomainRoute<
       const { domain } = ctx.params;
       // ドメイン名を正規化（snake_case → camelCase）
       const normalizedDomain = toCamelCase(domain);
-      const entry = services[normalizedDomain];
+      const entry = Object.prototype.hasOwnProperty.call(serviceRegistry, normalizedDomain)
+        ? serviceRegistry[normalizedDomain]
+        : undefined;
 
       if (!entry) {
         return new NextResponse("Not Found", { status: 404 });
       }
 
-      const service = entry.service as TService;
+      // ===== アクセス制御（domainEntry.ts の access 宣言に基づく。登録表 serviceRegistry が実行時ソース） =====
+      // access が当該操作をカバーしない場合は fail-closed（admin カテゴリのみ）に倒れる。
+      // サービスの読み込み（遅延 import）より先に判定し、拒否される要求でサービスを読み込まない。
+      const rule = resolveAccessRule(entry.access, config.crudOp, config.operationType);
+      const denied = await enforceAccessRule(rule);
+      if (denied) return denied;
+
+      const service = (await entry.service()) as TService;
 
       if (!ensureSupports(service, config.supports)) {
         return new NextResponse("Not Found", { status: 404 });
       }
-
-      // ===== アクセス制御（serviceRegistry エントリの access 宣言に基づく） =====
-      // access が当該操作をカバーしない場合は fail-closed（admin カテゴリのみ）に倒れる。
-      const rule = resolveAccessRule(entry.access, config.crudOp, config.operationType);
-      const denied = await enforceAccessRule(rule);
-      if (denied) return denied;
 
       const domainCtx: DomainRouteContext<TService, TParams> = {
         ...ctx,

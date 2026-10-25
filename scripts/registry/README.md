@@ -7,6 +7,7 @@
 | `pnpm db:push` | schemaRegistry（スキーマゲート適用後）を実 DB に反映する（`scripts/registry/push.ts`） | 必要・書き込む |
 | `pnpm test:schema-registry` | core ドメインの `entities/drizzle.ts` が全て schemaRegistry に登録されているか（登録漏れ = テーブルが作られない） | 不要 |
 | `pnpm db:push:check` | schemaRegistry（スキーマゲート適用後）と実 DB を drizzle-kit の push モードで比較し、提案される SQL を表示する。1 文でもあれば exit 1 | 必要・読み取り専用 |
+| `pnpm registry:generate` / `pnpm registry:check` | `src/registry/serviceRegistry.ts`（ドメイン名 → サービス）を各ドメインの `services/server/domainEntry.ts` から生成・検査する（`scripts/registry/serviceRegistry/`。仕組みは `src/lib/domain/README.md`） | 不要 |
 
 ## スキーマ変更を DB に反映する（push）
 

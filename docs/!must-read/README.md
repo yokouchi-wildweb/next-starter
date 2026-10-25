@@ -73,7 +73,7 @@ Supabase への一本化を検討したうえで採らなかった理由と、�
 | API ルートのファクトリー（routeFactory） | すべての API ルートを 3 つのファクトリーのどれかで作り、認可・エラー変換・監査のコンテキストを強制する。認可の指定漏れは許可ではなく拒否に倒れる | `src/lib/routeFactory/README.md` |
 | エラーの流れ | サーバーは `DomainError`、クライアントは `HttpError` の 2 種類だけ。ユーザー向けの文言はサーバーサービスが決め、UI はそれを表示するだけ | [エラーハンドリング方針](エラーハンドリング方針.md) |
 | 認証と認可ガード | JWT セッションと、proxy → layout → loader の 3 段のガード。ロール・ステータスによる判定は必ず DB と同期した値（`getSessionUser` / `authGuard`）で行う。JWT だけの軽い取得（`getTokenOnlySession`）は監査の記録者やデモ判定など、拒否に使わない用途に限る。JWT の中身は発行後に古くなり得るため | `src/features/core/auth/README.md` |
-| 登録口（registry） | lib や core が「下流が中身を足す場所」を `src/registry/` に用意し、下流はそこに登録するだけで拡張できる。上流のコードを編集させないための仕組みで、多くは出荷時に空 | 各 registry ファイルの冒頭コメント、利用側の README |
+| 登録表（registry） | `src/registry/` は「業務ドメインを全体で扱うため、ドメインを 1 つ作ると 1 行増える一覧」（serviceRegistry・schemaRegistry・domainConfigRegistry など。生成物か、core は手書き）。serviceRegistry はドメイン名からサービス・表・主キーを引く正式な仕組みで、各ドメインの `services/server/domainEntry.ts` から生成する。特定ドメインの拡張口（下流が追記するもの）も同じフォルダにあるが、役割は別 | `src/lib/domain/README.md`、各 registry ファイルの冒頭コメント |
 | proxy | リクエストごとの前処理（メンテナンス・デモモード・機能ゲート・リダイレクト）をハンドラの連鎖で行う | `CLAUDE.md` PROXY、`src/proxies/` |
 | 監査ログ・定期処理・集計 | 監査ログ（`auditLog`）、cron とタスクランナー（`lib/cron`）、カウンタ・DAU・集計キャッシュ（`userCounter` / `interactionTracking` / `analytics`）など、運用に必要な基盤 | 各ドメインの README、`CLAUDE.md` の該当節 |
 
@@ -88,7 +88,7 @@ Supabase への一本化を検討したうえで採らなかった理由と、�
 | 画面 | 既定の画面（`_screen/`）、loader | `page.tsx` の向き先、差し替えた画面と専用部品（`_components/`） |
 | スタイル | トークンの構造（`theme.css`）と既定値（`*.defaults.css`） | 変えたい値だけ（`src/styles/custom/**`） |
 | UI の設定 | 部品の既定値とその型 | 上書きする値（`src/config/ui/*.config.ts`） |
-| 拡張 | 登録口（`src/registry/*`。下流向けのものは出荷時は空） | 登録する中身 |
+| 拡張 | 登録表の構造と生成器（`src/registry/*`）、core の `domainEntry.ts` | 業務ドメインの `domain.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、特定ドメインの拡張口に登録する中身 |
 | ルール | `CLAUDE.md`（全 fork 共通） | `.claude/rules/project.md`（fork ごとの差分） |
 
 core ドメイン（`src/features/core/`）は画面部品を持たず、データレイヤーまでにとどめる（理由は [設計思想とアーキテクチャ](設計思想とアーキテクチャ.md) §3.1）。

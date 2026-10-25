@@ -2,7 +2,8 @@
 //
 // 帰属報酬台帳（coupon_attribution_rewards.metadata）のうち、受取人本人へ開示してよい
 // metadata キーの許可リスト。userVisibleAuditActionsRegistry と同じ
-// 「中央レジストリを下流が編集する」方式（サーバー専用）。
+// 特定ドメイン（couponAttributionReward）の拡張口。下流がここに追記する（サーバー専用）。
+// serviceRegistry（ドメインを作ると 1 行増える一覧。生成物）とは役割が違う。
 //
 // GET /api/me/coupon-attribution-rewards は、ここに登録されたキーだけを
 // metadata に残して返す（toCouponAttributionRewardForRecipient）。

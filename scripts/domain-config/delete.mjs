@@ -7,7 +7,7 @@ import { toCamelCase, toKebabCase, toPascalCase, toSnakeCase } from '../../src/u
 import { getCliArgs } from './utils/cliArgs.mjs';
 import { removeObjectEntry } from './generator/registry/utils/objectEntry.mjs';
 import { removeStoragePurposesForDomain } from './generator/registry/updateStoragePurposeRegistry.mjs';
-import { syncPresetImport } from './generator/registry/utils/presetAccess.mjs';
+import { generateServiceRegistry } from '../registry/serviceRegistry/generate.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..', '..');
@@ -306,17 +306,11 @@ export default async function removeDomain(domain) {
   const registrySnake = toSnakeCase(registryCamel) || normalizedSnake;
   const failures = [];
 
-  const servicePath = path.join(rootDir, 'src', 'registry', 'serviceRegistry.ts');
-  for (const candidate of featureCandidateSet) {
-    const camelCandidate = toCamelCase(candidate);
-    removeLineContaining(servicePath, `@/features/${candidate}/services/server/${camelCandidate}Service`);
-  }
-  removeRegistryEntry(servicePath, 'serviceRegistry', registryCamel, failures);
-  // 消したエントリだけが使っていたプリセットの import を残さない
-  if (fs.existsSync(servicePath)) {
-    const before = fs.readFileSync(servicePath, 'utf8');
-    const after = syncPresetImport(before);
-    if (after !== before) fs.writeFileSync(servicePath, after);
+  // serviceRegistry.ts は domainEntry.ts（ドメインのフォルダごと消えた）から丸ごと作り直す
+  try {
+    generateServiceRegistry(rootDir);
+  } catch (err) {
+    failures.push(`src/registry/serviceRegistry.ts: 再生成できませんでした（${err.message}）`);
   }
 
   const domainConfigPath = path.join(rootDir, 'src', 'registry', 'domainConfigRegistry.ts');

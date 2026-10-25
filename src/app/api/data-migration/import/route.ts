@@ -4,7 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { createApiRoute } from "@/lib/routeFactory";
 import { importData } from "@/lib/dataMigration/import";
+import { getService } from "@/wiring/domains";
 import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
+import { denyUnlessDomainDataOperationAllowed } from "../_shared/domainAccess";
 
 export const POST = createApiRoute(
   {
@@ -40,6 +42,10 @@ export const POST = createApiRoute(
       );
     }
 
+    // domainEntry.ts の access（import）を評価する（ルートの admin 門に加えて AND）
+    const denied = await denyUnlessDomainDataOperationAllowed([domain], "import");
+    if (denied) return denied;
+
     // ZIP ファイルを Buffer に変換
     const arrayBuffer = await file.arrayBuffer();
     const zipBuffer = Buffer.from(arrayBuffer);
@@ -55,6 +61,7 @@ export const POST = createApiRoute(
       updateImages,
       fields,
       media: createDataMigrationMediaResolver(admin),
+      services: getService,
     });
 
     if (!result.success) {

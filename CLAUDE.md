@@ -9,7 +9,7 @@ next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), fir
 
 ## CORE_FILES (ownership: who edits what)
 core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/*.css (except custom/), src/app/**/{_screen,_layout}/** of upstream routes (dot-named files beside them = fork-owned), servers/room/src/core/, servers/room/src/index.ts, src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
-downstream_owned (upstream never edits after creation): src/styles/custom/**, src/config/ui/*.config.ts, page.tsx / frame layout.tsx of switched routes, src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES), src/app/api/cron/*/override.ts
+downstream_owned (upstream never edits after creation): src/styles/custom/**, src/config/ui/*.config.ts, page.tsx / frame layout.tsx of switched routes, src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES), src/app/api/cron/*/override.ts, src/features/**/services/server/domainEntry.override.ts
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
 fork_core_edit_compat (a fork edits a core path; default = don't, prefer /upreq):
 - stay backward compatible with upstream callers: props/args the fork adds = optional with an empty default | never delete core code the fork does not use | signature change = add a new name, keep the old
@@ -73,6 +73,7 @@ core: src/features/core/, hand-maintained (a domain.json there is config source 
 business: src/features/\<domain\>/ with domain.json → dc:generate | before creating or editing any domain.json → MUST read src/features/README.md
 commands: pnpm dc:init (create domain.json interactively) | dc:add \<Domain\> (append fields to an existing domain.json) | dc:generate \<Domain\> / dc:generate:all (generate files) | dc:delete \<Domain\> | `--` optional | agents / CI / notices: `--yes` = no prompts, generates per domain.json generateFiles (no [user-run]) | ref: scripts/domain-config/README.md
 schema_registry (MANDATORY): src/registry/schemaRegistry.ts = the only push entry (pnpm db:push) | business domains: auto-registered | core domain with a new entities/drizzle.ts → add `export *` to the CORE DOMAINS block by hand + `pnpm test:schema-registry` + ship .notices with `[user-run] db:push` | unregistered = table never created, best-effort writes fail silently
+service_registry (MANDATORY): serviceRegistry = the one way to resolve a domain name → service / table / id column (never add a per-feature map) | src/registry/serviceRegistry.ts = generated (pnpm registry:generate, checked at build by registry:check) from each domain's services/server/domainEntry.ts (business: dc:generate writes it; core: hand-write it, lazy `service: () => import(...)`, access INTERNAL_ONLY when not for the generic API) | server callers → src/wiring/domains.ts | registry = a list that grows one line per domain, not a downstream extension point | ref: src/lib/domain/README.md
 push_roundtrip (MANDATORY when adding/changing an index): user runs `pnpm db:push` → `pnpm db:push:check` must report zero statements (read-only dry run, the agent may run it) | ref: scripts/registry/README.md
 - a non-round-trip index = DROP+CREATE on every push = write lock on large tables → never `sql\`${col} DESC\`` (use .desc()), never mix plain columns and sql expressions in one index | push may lock tables → run at maintenance / low traffic
 setting (core): singleton id "global" | extend = add Zod fields to setting.extended.ts (no DB migration) | ref: src/features/core/setting/README.md
@@ -81,7 +82,7 @@ inspect: pnpm db:query "SQL" | db:tables | db:describe \<table\> | db:count [tab
 
 ## API_ROUTES
 required: every route uses one of createDomainRoute / createApiRoute / createMeRoute / createDeviceRoute (each enforces authz structurally) | before writing a route → read src/lib/routeFactory/README.md
-generic: /api/[domain]/** = CRUD ops, access = serviceRegistry { service, access } (TYPE-REQUIRED, not covered → fail-closed admin only) | access rules, presets, createApiRoute `access` / "custom" guards → .claude/rules/core/api-routes.md
+generic: /api/[domain]/** = CRUD ops, access = the domain's domainEntry.ts { service, access } (TYPE-REQUIRED, not covered → fail-closed admin only; truncateAll / export / import open only when named) | access rules, presets, createApiRoute `access` / "custom" guards → .claude/rules/core/api-routes.md
 ownership_routes: user-owned ("self only") → createMeRoute (/api/me/**), scope by the passed `user.userId` server-side, never trust a client-supplied id | generic /api/[domain] cannot enforce ownership → keep it admin-only | shared kiosk / store device → pairedDevice (opt-in): createDeviceRoute / deviceGuard, scope from `device.scope` | ref: src/features/core/pairedDevice/README.md
 role checks always use the DB-synced getSessionUser
 

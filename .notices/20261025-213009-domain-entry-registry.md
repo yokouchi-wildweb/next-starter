@@ -1,0 +1,28 @@
+# DOWNSTREAM NOTICE id:20261025-213009-domain-entry-registry
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:-
+date: 2026-10-25T23:30:00+09:00
+severity: breaking
+checkpoint: domain-entry-registry
+change: src/registry/serviceRegistry.ts は手書きの表から「各ドメインの services/server/domainEntry.ts を走査して pnpm registry:generate が丸ごと生成する生成物」になった。サービスは遅延読み込み（service: () => import(...)）、getService 系は非同期（await）。管理データ操作（全件削除 truncateAll・データ移行 export / import）は access.operations に明示したときだけ開く（未指定 = none）。core の auditLog・auditLogFailed・bankTransferReview・pairedDevice・userLineProfile・userLoginEvent・userXProfile が INTERNAL_ONLY（汎用 API・全件削除・データ移行に出ない）で登録表に載った。registry:check が pnpm build の冒頭で必ず走る。src/wiring/ を新設（登録表を結んだ getService 系。import できるのは src/app・src/proxies・src/proxy.ts、cron は task.ts だけ）
+why: serviceRegistry.ts を手で編集していた fork は merge が衝突し、手書き行が残ったままだと registry:check がビルドを止める。getService / getServiceOrThrow / getDomainList / getInvalidDomainKeys を使うコードは await に直さないと型が通らない。useImportExport: false の fork ドメインは export も閉じる（今までは import だけ拒否）。全件削除の一覧に出るドメインが access で絞られる
+required_actions:
+1. merge で src/registry/serviceRegistry.ts が衝突したら upstream 側（生成物）を取る。fork が serviceRegistry.ts で手で変えていた access は、業務ドメインなら domain.json の apiAccess（と useImportExport）へ、core ドメインなら隣に src/features/core/<domain>/services/server/domainEntry.override.ts（`export const domainEntryOverrides = { <key>: <access> } satisfies DomainEntryOverrides`、access を丸ごと置き換え）へ移す。fork が core パス（src/features/core/<x>）に作ったドメインは services/server/domainEntry.ts を手書きする（形: src/lib/domain/README.md。静的 import は @/lib/domain/types と @/config/app/domain-api-access.config だけ）
+2. `pnpm dc:generate:all --yes --only registry` を実行する（各業務ドメインに services/server/domainEntry.ts が生成され、最後に serviceRegistry.ts が作り直される。手書き行が残っていると失敗してキーと移し先を出すので、手順 1 に戻る）
+3. `pnpm registry:generate` → `pnpm registry:check` を実行し、OK になるまで手順 1〜2 を繰り返す
+4. fork のコードで `getService` / `getServiceOrThrow` / `getDomainList` / `getDomainListWithCount` / `isValidDomainKey` / `getInvalidDomainKeys`（@/lib/domain/server）を使っている所を探し（grep: `getServiceOrThrow\|getService(\|getDomainList\|getInvalidDomainKeys\|isValidDomainKey`）、src/app・src/proxies からは `@/wiring/domains` の同名関数（await）に、lib / features からはルートが注入する形に直す。`serviceRegistry[key].service` を直接読んでいる所（grep: `serviceRegistry\[`）は `await serviceRegistry[key].service()` に
+5. fork の lib/dataMigration の呼び手（exportData / importData / importChunk を自前のルートから呼んでいる場合）は `services: getService`（@/wiring/domains）を渡す。upstream の 3 route を使っているだけなら何もしない
+6. createStorageSweep / runStorageSweep を自前で呼んでいる fork は deps に `lookupService`（@/wiring/domains の lookupDomainService）を渡す。upstream の cron task.ts を使っているだけなら何もしない
+7. 全件削除・データ移行の対象にしたい fork の core ドメインがあれば、domainEntry.override.ts の access に `operations: ADMIN_DATA_OPERATIONS`（または必要な操作だけ）を書く。業務ドメインは domain.json の useImportExport（export / import）で決まり、truncateAll は常に管理者
+8. `pnpm typecheck` / `pnpm lint` を通す
+verify: `pnpm registry:check` が OK | `pnpm registry:generate` をもう一度実行して差分が出ない | `pnpm typecheck` `pnpm lint` が通る | `pnpm test:service-registry` `pnpm test:wiring` `pnpm test:dc-registry` `pnpm test:feature-gate` `pnpm test:storage-purposes` `pnpm test:storage-object` `pnpm test:data-migration` が通る
+manual_steps: -
+refs: src/lib/domain/README.md, src/wiring/README.md, src/lib/routeFactory/README.md「アクセスポリシー」, src/features/README.md「ApiAccess」, scripts/domain-config/README.md, scripts/registry/serviceRegistry/{discover,generate,check}.mjs, src/config/app/domain-api-access.config.ts（INTERNAL_ONLY・ADMIN_RULE・ADMIN_DATA_OPERATIONS）, CLAUDE.md DOMAINS service_registry / CORE_FILES downstream_owned, .claude/rules/core/api-routes.md
+notes:
+- db:push は不要（スキーマは変わらない）
+- 削除: scripts/domain-config/generator/registry/updateServiceRegistry.mjs（upsert 方式の生成器）、presetAccess.mjs の syncPresetImport / describeAccessChange / evaluateAccessExpression。objectEntry.mjs の upsertObjectEntry / removeObjectEntry は storagePurposeRegistry / domainConfigRegistry 用に残る
+- 追加: src/wiring/{domains.ts,README.md,wiring.test.mjs}、scripts/registry/serviceRegistry/、src/lib/domain/README.md、src/app/api/data-migration/_shared/domainAccess.ts、src/lib/dataMigration/serviceResolver.ts、core 26 ファイルの domainEntry.ts、package.json の registry:generate / registry:check / test:service-registry / test:wiring、build スクリプトの冒頭に registry:check
+- API の変化: @/lib/domain/server の getService / getServiceOrThrow / getDomainList / getDomainListWithCount / isValidDomainKey / getInvalidDomainKeys は第 1 引数に登録表を取り、非同期になった（lib は登録表を import しない）。hasService（同期）・lookupDomainService（found / unregistered / load_failed / unsupported）・withRecordCounts を追加。DomainRegistryEntry.service は `() => Promise<DomainService>`。DomainApiOperation に truncateAll / export / import が増え、createDomainRoute の crudOp は DomainCrudOperation に
+- Drizzle 版 createCrudService に getIdColumnName()（主キー列の物理名）、@/lib/crud に CRUD_ID_FIELD = "id" を追加。Firestore 版は不変
+- 挙動の変化: (a) 全件削除の一覧と実行は access.operations.truncateAll が許可した行だけ（既存 core 20 行と業務ドメインは管理者で明示したので今までと同じ。INTERNAL_ONLY の 7 キーは出ない）。1 つでも拒否なら 403 で全体却下 (b) データ移行は export / import とも access で判定。useImportExport: false は export も閉じる（今までは import だけ拒否）。関連を含める export は選んだ hasMany の子ドメインの export も評価する (c) core の user・coupon・userTag・referral・referralReward・milestone は import: none（今までの挙動を保つ）、export / truncateAll は管理者 (d) featureGate の検査は汎用 CRUD が全 none の行を対象外にする
+- 旧 serviceRegistry.ts の CORE DOMAINS ブロックにあったコメント（userCounter・interactionEvent 等の運用注意）は各 domainEntry.ts に移した
+- fork の状態: not checked

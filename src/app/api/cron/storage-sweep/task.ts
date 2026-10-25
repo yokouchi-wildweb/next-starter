@@ -10,6 +10,8 @@ export const cronTask: CronTaskDefinition = {
   schedule: "35 * * * *", // 毎時 35 分（--plan hobby では 1 日 1 回になる）
   run: async () => {
     const { runStorageSweep } = await import("@/features/core/storageObject/services/server/sweep");
-    return await runStorageSweep();
+    // 台帳の record_type から業務行のサービスを引く口は、登録表を結んだ wiring から渡す（features は登録表を直接引かない）
+    const { lookupDomainService } = await import("@/wiring/domains");
+    return await runStorageSweep({ lookupService: lookupDomainService });
   },
 };

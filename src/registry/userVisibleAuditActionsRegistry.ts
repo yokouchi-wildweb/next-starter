@@ -1,7 +1,8 @@
 // src/registry/userVisibleAuditActionsRegistry.ts
 //
 // 監査ログ action の「ユーザー本人への開示」許可リスト。
-// interactionTargetRegistry と同じ「中央レジストリを下流が編集する」方式（サーバー専用）。
+// 特定ドメイン（auditLog）の拡張口。interactionTargetRegistry と同じく下流がここに追記する（サーバー専用）。
+// serviceRegistry（ドメインを作ると 1 行増える一覧。生成物）とは役割が違う。
 //
 // GET /api/me/audit-logs は、ここに登録された action のログのみを本人に返す。
 //

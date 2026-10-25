@@ -1,7 +1,8 @@
 // src/registry/pairedDeviceKindRegistry.ts
 //
 // 登録端末（pairedDevice）の種類（kind）の登録簿。サーバー専用。
-// interactionTargetRegistry と同じ「中央レジストリを下流が編集する」方式。
+// 特定ドメイン（pairedDevice）の拡張口。interactionTargetRegistry と同じく下流がここに追記する。
+// serviceRegistry（ドメインを作ると 1 行増える一覧。生成物）とは役割が違う。
 //
 // fail-closed: ここに登録されていない kind の端末は作成できず、認証にも失敗する。
 // scope はアップストリームから見て中身を持たない JSONB で、形は kind ごとの scopeSchema が決める。

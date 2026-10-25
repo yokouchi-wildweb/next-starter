@@ -41,9 +41,9 @@
 
 - `generateFiles` を**上書きしない**。true のカテゴリのうち `--only` に含まれるものだけを生成する（false のカテゴリは指定しても生成せず「スキップ」と表示）。どの組み合わせでも、指定なしより多くのファイルは書き換わらない
 - 対話モード・`--yes`・`:all` のどれとも併用できる。不明なカテゴリ名は終了コード 1
-- `--only registry` が書くのは `src/registry/` の serviceRegistry / schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）
+- `--only registry` が書くのは `services/server/domainEntry.ts`（ドメイン内）と `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）。最後に `pnpm registry:generate` が serviceRegistry.ts を丸ごと作り直す
   - storagePurposeRegistry には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../src/features/README.md)「ファイルの保存（storage）」）
-- serviceRegistry の再生成で既存エントリの access の値（書き方ではなく中身）が変わるときは、変更前後を警告に出す（書き換えは止めない。domain.json の `apiAccess` が正）。fork 独自の定数など評価できない式は「比較できません」として警告する
+- domainEntry.ts は毎回 domain.json から書き直す（domain.json の `apiAccess` / `useImportExport` が正。手で変えた access は消える。手で持ちたいなら `generateFiles.registry` を false）
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --yes --only registry`）。全カテゴリの再生成が避けられないときは、一時的な git worktree で実行して必要な差分だけを取り込むよう案内する
 
 ---
@@ -89,9 +89,9 @@
 3. `domain.json` も消すか選ぶ（既定 No = `domain.json` だけ残してドメインディレクトリの中身を消す）
 4. 削除対象の一覧を確認して実行
 
-削除するもの: `src/features/<domain>/`、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDataMenu.ts` / `schemaRegistry.ts` / `serviceRegistry.ts` / `domainConfigRegistry.ts` の該当行を消す。DB のテーブルは消さない。
+削除するもの: `src/features/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDataMenu.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm registry:generate` で作り直す。DB のテーブルは消さない。
 
-- `serviceRegistry` / `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`removeObjectEntry`。`tag` を消しても core の `user_tag` は残る）。キーは実在したドメインディレクトリ名から決める。消した後、`serviceRegistry.ts` のプリセット import を dc:generate と同じく使用中の名前に揃える
+- `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`removeObjectEntry`。`tag` を消しても core の `user_tag` は残る）。キーは実在したドメインディレクトリ名から決める
 - レジストリの更新に失敗してもディレクトリ削除は済んでいるため止めず、最後に手で直すファイルを表示して終了コード 1 で終わる
 
 ---
@@ -109,7 +109,7 @@
 | `serverServices` | `services/server/drizzleBase.ts`（Firestore なら `firestoreBase.ts`）、`services/server/<domain>Service.ts`（無いときだけ）、`wrappers/`（無ければ作成）。メディア列（mediaUploader / mediaUploaderMulti）があれば drizzleBase に `storage: storageBindingFor("<domain>", [{ name, purpose: "<domain>.<field>", multi }])`（ファイル台帳との連動。複製・物理削除のファイル処理もここ。[src/lib/crud/README.md](../../src/lib/crud/README.md)「storage オプション」）。Firestore ドメインのメディア列は生成エラー |
 | `fieldConstants` | `constants/field.ts` と `types/field.ts`（`options` を持つフィールドがあるときだけ） |
 | `adminRoutes` | `src/app/admin/(protected)/<domains>/` の一覧・`new/`・`[id]/edit/`（`sortOrderField` で `sort/`） |
-| `registry` | `src/registry/` の `domainConfigRegistry.ts` / `serviceRegistry.ts`（`apiAccess` を `access` に展開）/ `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts` |
+| `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開。`src/registry/serviceRegistry.ts` はここから `registry:generate` が生成）、`src/registry/` の `domainConfigRegistry.ts` / `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts` |
 | `presenters` | `presenters.ts`（ドメイン直下。一覧・詳細表示のフォーマッタ。メディア列は `formatMediaThumbnail(s)` で ref を表示用 URL に解決） |
 
 ### 上書きの扱い
@@ -121,9 +121,10 @@
 | 初回だけ生成（write-once） | `services/server/<domain>Service.ts`（`base` にラッパー・独自処理を組み込む手書きの場所）。`serverServices` が有効でも既存なら触らない（`drizzleBase.ts` は毎回作り直す）。既存ファイルが旧 `wrappers/duplicate`（旧ファイル複製）を組み込んでいれば、外すよう警告する（複製は binding が行い、旧ラッパーが複製した旧 URL は binding に拒否される）。`dc:generate:service` で `xxxService.ts` を明示的に選んだときだけ上書きする。テスト: `pnpm test:dc-server-service` |
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
-| 未登録なら追記 | `src/registry/` の各ファイル（引用符・空白違いの既存行も登録済みとみなす）。ただし `serviceRegistry.ts` の該当ドメインのエントリは毎回 `apiAccess` から 1 行で書き直す（手で変えた `access` や複数行の整形は消える。`apiAccess` がプリセット（`ADMIN_ONLY` / `PUBLIC_READ` / `ADMIN_OR_DEBUGGER`）と一致すればプリセット名、一致しなければ JSON リテラルで書く。`apiAccess` 未宣言なら fail-closed = `ADMIN_ONLY` で登録し、初回登録時だけ警告） |
+| 未登録なら追記 | `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（引用符・空白違いの既存行も登録済みとみなす） |
+| 毎回上書き（生成物） | `services/server/domainEntry.ts`（domain.json の `apiAccess`（無ければ fail-closed = `...ADMIN_ONLY`、初回は警告）と `useImportExport`（偽なら `export` / `import` を `"none"`）から書く。read / write がプリセットと一致すれば `...PUBLIC_READ` のように spread で、一致しなければリテラルで書く）。`src/registry/serviceRegistry.ts`（全 domainEntry.ts から `pnpm registry:generate` が丸ごと生成。dc:generate の最後に自動で走り、手書き行が残っていれば失敗して移し先を出す。`scripts/registry/serviceRegistry/`、仕組みは `src/lib/domain/README.md`） |
 
-`serviceRegistry.ts` の書き直しは `serviceRegistry` オブジェクト直下のキーだけを見て、複数行のエントリも `{` から対応する `}` まで丸ごと置き換える（`generator/registry/utils/objectEntry.mjs`）。`AUTO-GENERATED` ブロック外に置いた直下エントリも置き換え、無ければ `AUTO-GENERATED-END` の直前に追加する。Prettier で整形しても壊れないが、再生成で 1 行に戻る。書き直しの後、`@/config/app/domain-api-access.config` からの import 行をファイル内で使われている名前だけに揃える（使われなくなった名前は外し、要る名前は足す。fork が手で足した名前も使われている限り残す。集合が変わらなければ行に触れない。`generator/registry/utils/presetAccess.mjs`）。プリセットの値は `domain-api-access.config.ts` の写しで、一致はテストが検証する（プリセットを変えたら写しも変える）。テスト: `pnpm test:dc-registry`。
+テスト: `pnpm test:dc-registry`（domainEntry.ts の生成）、`pnpm test:service-registry`（serviceRegistry.ts の生成と検査）。
 
 管理画面ルートの構造（`page.tsx` / `_screen/` / 共有 loader）は [`src/lib/screens/README.md`](../../src/lib/screens/README.md) §12。
 

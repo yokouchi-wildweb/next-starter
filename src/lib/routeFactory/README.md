@@ -21,7 +21,7 @@
 新しい API を作りたい
 │
 ├─ ドメインの標準 CRUD で足りる？
-│   └─ YES → createDomainRoute（手書き不要。serviceRegistry の access で宣言）
+│   └─ YES → createDomainRoute（手書き不要。domainEntry.ts の access で宣言）
 │
 ├─ 自分（ログインユーザー本人）のデータだけを扱う？
 │   └─ YES → createMeRoute（/api/me/**）
@@ -91,7 +91,7 @@ export const GET = createApiRoute(
 ### 2. `createDomainRoute` - 汎用CRUDファクトリー
 
 `/api/[domain]/**` 配下の汎用CRUDルート専用のファクトリーです。
-serviceRegistryからドメインサービスを自動取得し、ハンドラに渡します。
+serviceRegistry（各ドメインの `services/server/domainEntry.ts` から生成した登録表）からドメインサービスを遅延読み込みで取得し、ハンドラに渡します。認可はサービスの読み込みより先に判定します。
 
 ```ts
 import { createDomainRoute } from "@/lib/routeFactory";
@@ -106,30 +106,34 @@ export const GET = createDomainRoute<any, Params>(
 );
 ```
 
-#### アクセスポリシー（serviceRegistry の `access`）
+#### アクセスポリシー（domainEntry.ts の `access`）
 
-アクセスポリシーは serviceRegistry の登録エントリ（`{ service, access }`）で宣言する（型必須）。
+アクセスポリシーは各ドメインの `services/server/domainEntry.ts` の登録エントリ（`{ service, access }`）で宣言する（型必須）。
+`src/registry/serviceRegistry.ts` はそれらから `pnpm registry:generate` が生成する登録表で、実行時のソース（編集しない）。
 
 ```ts
-// src/registry/serviceRegistry.ts
-sample: {
-  service: sampleService,
-  access: {
-    read: "public",
-    write: { roleCategories: ["admin"] },
-    operations: { update: "authenticated", reorder: "authenticated" },
+// src/features/sample/services/server/domainEntry.ts（業務ドメインは dc:generate が domain.json から生成）
+export const domainEntries = {
+  sample: {
+    service: () => import("./sampleService").then((m) => m.sampleService),
+    access: {
+      ...PUBLIC_READ,
+      operations: { update: "authenticated", reorder: "authenticated", truncateAll: ADMIN_RULE, export: ADMIN_RULE, import: ADMIN_RULE },
+    },
   },
-},
+} satisfies DomainEntries;
 ```
 
-- 編集元: 自動生成ドメインは domain.json の `apiAccess`（`dc:init` が対話で確認し、`dc:generate` が registry に展開）。
-  手動登録のコアドメインは registry に直接書く。ルール値・スキーマは `src/features/README.md`「ApiAccess」
+- 編集元: 自動生成ドメインは domain.json の `apiAccess` / `useImportExport`（`dc:init` が対話で確認し、`dc:generate` が domainEntry.ts に展開）。
+  コアドメインは domainEntry.ts を手書き、fork が core の access を変えるときは隣に `domainEntry.override.ts`。ルール値・スキーマは `src/features/README.md`「ApiAccess」、仕組みは `src/lib/domain/README.md`
+- 管理データ操作 `truncateAll` / `export` / `import` は `operations` に明示したときだけ開く（未指定 = `"none"`。read / write / defaultRule に倒れない）。
+  全件削除・データ移行のルートは自分の門（admin + パスワード / `requireAdmin`）に加えて同じ `resolveAccessRule` で評価する（AND）
 - 解決順: `operations[操作名]` → `read` / `write` → `defaultRule`（`resolveAccessRule`、`src/lib/domain/config/apiAccess.ts`）。
   空 `{}` や部分宣言でも `defaultRule`（admin カテゴリのみ、`src/config/app/domain-api-access.config.ts`）に倒れる（fail-closed）
 - 判定（`enforceAccess.ts`）: registry 未登録 / `"none"` → 404（text/plain）| 未認証 → 401 | 権限不足・利用不可ステータス
   （`USER_AVAILABLE_STATUSES` 外）→ 403。`"public"` / `"none"` ではセッション取得（DB 引き）をしない
-- プリセット（同 config）: `ADMIN_ONLY` / `PUBLIC_READ`（公開読み取り + 管理者書き込み）/ `ADMIN_OR_DEBUGGER`。
-  単一ルール版 `ADMIN_OR_DEBUGGER_RULE` は `operations` の上書きや `createApiRoute` の `access` にも使える
+- プリセット（同 config）: `ADMIN_ONLY` / `PUBLIC_READ`（公開読み取り + 管理者書き込み）/ `ADMIN_OR_DEBUGGER` / `INTERNAL_ONLY`（汎用 API・管理データ操作とも閉じる。登録表には載せる）。
+  単一ルール版 `ADMIN_RULE` / `ADMIN_OR_DEBUGGER_RULE` は `operations` の上書きや `createApiRoute` の `access` にも使える。`ADMIN_DATA_OPERATIONS` = 管理データ操作 3 つを管理者に開く断片
 - **公開 read の判断基準**: `"public"` にしてよいのは「全レコードが公開情報」のドメインのみ（公開記事・商品マスタ等）。
   search / count / withRelations 展開も含めて全件見える前提で判断する
 - **`authenticated` はオーナーシップを守らない**: where の `user_id` がクライアント任せなので他人のレコードも読める。
@@ -217,7 +221,7 @@ export const POST = createDeviceRoute(
 - 端末の Cookie はユーザーの認可に影響しない（端末で `createMeRoute` や `"authenticated"` のルートは通らない）
 - 詳細・ペアリング・ページ側のガード（`deviceGuard` / `principalGuard`）: `src/features/core/pairedDevice/README.md`
 - `createApiRoute` の `access` に端末は足さない（ハンドラが `device` を受け取らない形だと、下の scope 確認を書き忘れる）。
-  汎用 CRUD（`createDomainRoute` / serviceRegistry）も端末を通さない（scope で絞れないため）
+  汎用 CRUD（`createDomainRoute` / domainEntry.ts の access）も端末を通さない（scope で絞れないため）
 
 #### 既存の `createApiRoute` を端末でも通すようにする（移行）
 
@@ -336,7 +340,7 @@ export const POST = createApiRoute(
 
 ## PR 前チェックリスト
 
-- [ ] 汎用 CRUD で足りるなら手書きせず createDomainRoute（serviceRegistry の access）で宣言したか
+- [ ] 汎用 CRUD で足りるなら手書きせず createDomainRoute（domainEntry.ts の access）で宣言したか
 - [ ] 本人専用データは createMeRoute（/api/me）にし、`ownerWhere(user)` でサーバー側スコープしたか
 - [ ] `access: "custom"` のルートはハンドラ内で実際に認可しているか
 - [ ] webhook はハンドラ内で署名/トークン検証しているか

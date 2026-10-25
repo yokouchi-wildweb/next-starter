@@ -3,10 +3,10 @@
 // チャンクごとの処理は importChunk（UI のチャンク import と同じ中核）に任せる。
 
 import "server-only";
-import { getServiceOrThrow } from "@/lib/domain/server";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { getDataMigrationConfig } from "../config";
 import type { DataMigrationMediaResolver } from "../media";
+import type { DataMigrationServiceResolver } from "../serviceResolver";
 import { parseZip } from "./parseZip";
 import { importChunk, type FieldTypeInfo } from "./importChunk";
 
@@ -23,6 +23,8 @@ export type ImportOptions = {
   fields?: FieldTypeInfo[];
   /** ファイル台帳の操作（API ルートが実行者で作って注入する） */
   media: DataMigrationMediaResolver;
+  /** ドメイン名からサービスを引く（API ルートが src/wiring/domains.ts の getService を注入する） */
+  services: DataMigrationServiceResolver;
 };
 
 export type ChunkResult = {
@@ -65,14 +67,12 @@ export type ImportError = {
 export async function importData(
   options: ImportOptions
 ): Promise<ImportResult | ImportError> {
-  const { domain, zipBuffer, updateImages = true, fields = [], media } = options;
+  const { domain, zipBuffer, updateImages = true, fields = [], media, services } = options;
   const config = getDataMigrationConfig();
 
-  // サービスを取得
-  let service: any;
-  try {
-    service = getServiceOrThrow(toCamelCase(domain));
-  } catch {
+  // サービスを取得（登録表のキーは camelCase。未登録なら INVALID_DOMAIN）
+  const service: any = await services(toCamelCase(domain));
+  if (!service) {
     return {
       success: false,
       error: `Invalid domain: ${domain}`,
@@ -136,6 +136,7 @@ export async function importData(
       fields,
       domainType: "main",
       media,
+      services,
     });
     const result: ChunkResult = chunkResult.success
       ? { chunkName: chunkResult.chunkName, success: true, recordCount: chunkResult.recordCount }

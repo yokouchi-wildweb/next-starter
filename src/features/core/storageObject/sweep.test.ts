@@ -69,7 +69,13 @@ function setup(): Harness {
     stripImage: passThroughImageStrip,
   });
   const sweep: Harness["sweep"] = (options, ledgerOverride) =>
-    createStorageSweep({ ledger: ledgerOverride ?? ledger, service, purposes: () => PURPOSES, now: () => clock.now }).run({
+    createStorageSweep({
+      ledger: ledgerOverride ?? ledger,
+      service,
+      purposes: () => PURPOSES,
+      now: () => clock.now,
+      lookupService: async () => ({ status: "unregistered" }),
+    }).run({
       budgetMs: 60_000,
       ...options,
     });

@@ -5,7 +5,9 @@ import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { createApiRoute } from "@/lib/routeFactory";
 import { exportData } from "@/lib/dataMigration/export";
 import { MEDIA_SKIPPED_EXAMPLES_HEADER, MEDIA_SKIPPED_HEADER } from "@/lib/dataMigration/media";
+import { getService } from "@/wiring/domains";
 import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
+import { denyUnlessDomainDataOperationAllowed } from "../_shared/domainAccess";
 
 type ExportRequestBody = {
   domain: string;
@@ -46,6 +48,14 @@ export const POST = createApiRoute(
       );
     }
 
+    // domainEntry.ts の access（export）をドメインごとに評価する（ルートの admin 門に加えて AND）。
+    // 関連を含める export は、選んだ hasMany の子ドメインも書き出すので子も評価する（1 つでも拒否なら全体を拒否）
+    const denied = await denyUnlessDomainDataOperationAllowed(
+      [domain, ...(includeRelations && Array.isArray(selectedHasManyDomains) ? selectedHasManyDomains : [])],
+      "export",
+    );
+    if (denied) return denied;
+
     // エクスポート実行
     const result = await exportData({
       domain,
@@ -54,6 +64,7 @@ export const POST = createApiRoute(
       searchParams,
       imageFields: imageFields ?? [],
       media: createDataMigrationMediaResolver(admin),
+      services: getService,
       includeRelations: includeRelations ?? false,
       selectedHasManyDomains: selectedHasManyDomains ?? [],
     });

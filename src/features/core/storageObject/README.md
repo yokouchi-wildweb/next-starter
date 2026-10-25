@@ -120,7 +120,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 ## 掃除（cron `storage-sweep`）
 
-`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep`）。`runBudgetedBatches` + `createDeadline(STORAGE_CONFIG.sweep.budgetMs)` で、次の 3 種類を id 順に片付ける。
+`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(STORAGE_CONFIG.sweep.budgetMs)` で、次の 3 種類を id 順に片付ける。`lookupService`（task.ts が `src/wiring/domains.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、紐付いた行がまだあるかの照合はこれから書く（引けない = `unregistered` / `load_failed` / `unsupported` は「行なし」と区別できる）。
 
 | 種類 | 対象 | 処理 |
 |---|---|---|

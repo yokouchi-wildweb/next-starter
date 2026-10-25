@@ -332,6 +332,10 @@ describe("メディア列と systemColumns（特権書き込み）", () => {
   test("serviceRegistry に登録された全サービスが作れる（違反があれば読み込みで throw する）", async () => {
     const { serviceRegistry } = await import("../../src/registry/serviceRegistry.ts");
     assert.ok(Object.keys(serviceRegistry).length > 0);
+    // サービスは遅延読み込み（domainEntry.ts）なので、1 つずつ読み込んで createCrudService を走らせる
+    for (const [key, entry] of Object.entries(serviceRegistry)) {
+      assert.equal(typeof (await entry.service()), "object", `${key}: service がオブジェクトを返さない`);
+    }
   });
 });
 
@@ -423,7 +427,7 @@ describe("メディア列と FK cascade", () => {
   test("storage オプション付きサービスの cascade の FK を警告で出す（serviceRegistry と全 drizzleBase.ts）", async () => {
     const found = [];
     const { serviceRegistry } = await import("../../src/registry/serviceRegistry.ts");
-    for (const [domain, entry] of Object.entries(serviceRegistry)) collectStorageCascades(found, domain, entry.service);
+    for (const [domain, entry] of Object.entries(serviceRegistry)) collectStorageCascades(found, domain, await entry.service());
     for (const { domain, file } of listDrizzleBaseFiles()) {
       const exported = await import(file);
       for (const value of Object.values(exported)) collectStorageCascades(found, domain, value);

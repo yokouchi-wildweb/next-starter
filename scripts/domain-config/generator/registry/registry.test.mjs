@@ -1,4 +1,5 @@
-// dc:generate のレジストリ更新（serviceRegistry / schemaRegistry / domainConfigRegistry）の回帰テスト。
+// dc:generate のレジストリ更新（domainEntry.ts の生成 / schemaRegistry / domainConfigRegistry）の回帰テスト。
+// serviceRegistry.ts 自体の生成・検査は scripts/registry/serviceRegistry/serviceRegistry.test.mjs（pnpm test:service-registry）。
 // 実行: pnpm test:dc-registry
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -6,8 +7,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { removeObjectEntry, scanObjectEntries, upsertObjectEntry } from "./utils/objectEntry.mjs";
-import { ACCESS_PRESETS, PRESET_RULES, describeAccessChange, serializeAccess, syncPresetImport } from "./utils/presetAccess.mjs";
-import updateServiceRegistry, { readRegisteredAccessExpression } from "./updateServiceRegistry.mjs";
+import { ACCESS_PRESETS, PRESET_RULES, serializeAccess, serializeRule } from "./utils/presetAccess.mjs";
+import writeDomainEntry, { buildDomainEntryAccess, renderDomainEntry } from "./writeDomainEntry.mjs";
 import updateSchemaRegistry from "./updateSchemaRegistry.mjs";
 import updateDomainConfigRegistry from "./updateDomainConfigRegistry.mjs";
 
@@ -134,38 +135,6 @@ test("removeObjectEntry: 無いキーは何も変えない・末尾カンマ無�
   assert.equal(out, "export const serviceRegistry = {\n  a: 1,\n};\n");
 });
 
-test("updateServiceRegistry: 複数行エントリを壊さず 1 行に置換し、import を重複させない", () => {
-  const root = makeRoot({
-    "src/registry/serviceRegistry.ts": SERVICE_REGISTRY.replace(
-      'import { sampleService } from "@/features/sample/services/server/sampleService";',
-      "import { sampleService } from '@/features/sample/services/server/sampleService';",
-    ),
-    "src/features/sample/domain.json": JSON.stringify({ apiAccess: API_ACCESS }),
-  });
-  updateServiceRegistry({ rootDir: root, camel: "sample" });
-  const out = read(root, "src/registry/serviceRegistry.ts");
-  assert.match(out, /\n  sample: \{ service: sampleService, access: PUBLIC_READ \},\n  \/\/ --- AUTO-GENERATED-END ---/);
-  assert.equal(out.match(/sampleService } from/g).length, 1);
-  assert.doesNotMatch(out, /^\s+service: sampleService,$/m);
-});
-
-const PRESET_IMPORT_REGISTRY = `// プリセット: ADMIN_ONLY・PUBLIC_READ・ADMIN_OR_DEBUGGER
-import type { DomainRegistryEntry } from "@/lib/domain/types";
-import { ADMIN_ONLY, PUBLIC_READ } from "@/config/app/domain-api-access.config";
-
-import { userService } from "@/features/core/user/services/server/userService";
-import { sampleService } from "@/features/sample/services/server/sampleService";
-
-export const serviceRegistry: Record<string, DomainRegistryEntry> = {
-  user: { service: userService, access: ADMIN_ONLY },
-
-  // --- AUTO-GENERATED-START ---
-  sample: { service: sampleService, access: {"read":"public","write":{"roleCategories":["admin"]},"operations":{"update":"authenticated"}} },
-  // --- AUTO-GENERATED-END ---
-
-};
-`;
-
 test("presetAccess: プリセットの写しが domain-api-access.config.ts と一致する", async () => {
   const { tsImport } = await import("tsx/esm/api");
   const config = await tsImport(
@@ -175,64 +144,6 @@ test("presetAccess: プリセットの写しが domain-api-access.config.ts と�
   for (const [name, value] of Object.entries({ ...ACCESS_PRESETS, ...PRESET_RULES })) {
     assert.deepEqual(value, config[name], `${name} が TS 側と食い違っています`);
   }
-});
-
-test("serializeAccess: プリセットと一致すれば名前、一致しなければ JSON リテラル（キー順は問わない）", () => {
-  assert.equal(serializeAccess({ write: { roleCategories: ["admin"] }, read: "public" }), "PUBLIC_READ");
-  assert.equal(serializeAccess(ACCESS_PRESETS.ADMIN_ONLY), "ADMIN_ONLY");
-  assert.equal(
-    serializeAccess({ read: { roleCategories: ["admin"], roles: ["debugger"] }, write: PRESET_RULES.ADMIN_OR_DEBUGGER_RULE }),
-    "ADMIN_OR_DEBUGGER",
-  );
-  const custom = { read: "public", write: { roleCategories: ["admin"] }, operations: { update: "authenticated" } };
-  assert.equal(serializeAccess(custom), JSON.stringify(custom));
-});
-
-test("syncPresetImport: 使われていない名前を外し、ヘッダーコメントの名前は数えない", () => {
-  const out = syncPresetImport(PRESET_IMPORT_REGISTRY);
-  assert.match(out, /^import \{ ADMIN_ONLY \} from "@\/config\/app\/domain-api-access\.config";$/m);
-  assert.equal(syncPresetImport(out), out);
-});
-
-test("syncPresetImport: 使用中の名前が無ければ import 行を消し、必要なら型 import の直後に足す", () => {
-  const none = PRESET_IMPORT_REGISTRY.replace("access: ADMIN_ONLY", 'access: {"read":"public"}');
-  const removed = syncPresetImport(none);
-  assert.doesNotMatch(removed, /domain-api-access\.config/);
-  const restored = syncPresetImport(removed.replace('access: {"read":"public"}', "access: ADMIN_OR_DEBUGGER"));
-  assert.match(
-    restored,
-    /@\/lib\/domain\/types";\nimport \{ ADMIN_OR_DEBUGGER \} from "@\/config\/app\/domain-api-access\.config";\n\nimport \{ userService \}/,
-  );
-});
-
-test("syncPresetImport: fork が足した使用中の名前と、集合が同じときの既存の整形を保つ", () => {
-  const forked = PRESET_IMPORT_REGISTRY.replace(
-    'import { ADMIN_ONLY, PUBLIC_READ } from "@/config/app/domain-api-access.config";',
-    "import {\n  ADMIN_OR_DEBUGGER_RULE,\n  ADMIN_ONLY,\n} from '@/config/app/domain-api-access.config';",
-  ).replace('"operations":{"update":"authenticated"}', '"operations":{"update":ADMIN_OR_DEBUGGER_RULE}');
-  assert.equal(syncPresetImport(forked), forked);
-});
-
-test("updateServiceRegistry: apiAccess 未宣言は ADMIN_ONLY、プリセット外の access は JSON のまま、再実行で差分なし", () => {
-  const root = makeRoot({
-    "src/registry/serviceRegistry.ts": PRESET_IMPORT_REGISTRY,
-    "src/features/sample/domain.json": JSON.stringify({
-      apiAccess: { read: "public", write: { roleCategories: ["admin"] }, operations: { update: "authenticated" } },
-    }),
-    "src/features/save/domain.json": JSON.stringify({}),
-  });
-  updateServiceRegistry({ rootDir: root, camel: "sample" });
-  // プリセット外の行は変わらず、未使用の PUBLIC_READ だけが import から外れる
-  assert.equal(
-    read(root, "src/registry/serviceRegistry.ts"),
-    PRESET_IMPORT_REGISTRY.replace("import { ADMIN_ONLY, PUBLIC_READ }", "import { ADMIN_ONLY }"),
-  );
-  updateServiceRegistry({ rootDir: root, camel: "save" });
-  const afterSave = read(root, "src/registry/serviceRegistry.ts");
-  assert.match(afterSave, /\n  save: \{ service: saveService, access: ADMIN_ONLY \},\n  \/\/ --- AUTO-GENERATED-END ---/);
-  updateServiceRegistry({ rootDir: root, camel: "sample" });
-  updateServiceRegistry({ rootDir: root, camel: "save" });
-  assert.equal(read(root, "src/registry/serviceRegistry.ts"), afterSave);
 });
 
 test("updateSchemaRegistry: 引用符違いの既存 export を登録済みとみなす", () => {
@@ -259,44 +170,61 @@ export const domainConfigRegistry = {
   assert.equal(read(root, "src/registry/domainConfigRegistry.ts"), original);
 });
 
-test("describeAccessChange: 書き方だけの違いは null、値が変わる・評価できないときは変更前後を返す", () => {
-  // 複数行の手書き → プリセット名（中身は同じ）
-  assert.equal(describeAccessChange(`{\n  read: "public",\n  write: { roleCategories: ["admin"] },\n}`, API_ACCESS), null);
-  // プリセット名どうし
-  assert.equal(describeAccessChange("PUBLIC_READ", ACCESS_PRESETS.PUBLIC_READ), null);
-  // 単一ルール名を使った手書き
-  assert.equal(
-    describeAccessChange("{ read: ADMIN_OR_DEBUGGER_RULE, write: ADMIN_OR_DEBUGGER_RULE }", ACCESS_PRESETS.ADMIN_OR_DEBUGGER),
-    null,
-  );
-  // 値が変わる
-  assert.equal(describeAccessChange("PUBLIC_READ", ACCESS_PRESETS.ADMIN_ONLY), "access が変わります: PUBLIC_READ → ADMIN_ONLY");
-  // fork 独自の定数は評価できない
-  assert.match(describeAccessChange("AUTHENTICATED_READ", ACCESS_PRESETS.ADMIN_ONLY), /評価できない.*AUTHENTICATED_READ → ADMIN_ONLY/);
+test("serializeRule / serializeAccess: 単一ルールは名前、read/write がプリセットなら spread、operations は 1 行ずつ", () => {
+  assert.equal(serializeRule({ roleCategories: ["admin"] }), "ADMIN_RULE");
+  assert.equal(serializeRule("none"), '"none"');
+  assert.equal(serializeRule({ roles: ["editor"] }), '{"roles":["editor"]}');
+  const { lines, names } = serializeAccess({
+    write: { roleCategories: ["admin"] },
+    read: "public",
+    operations: { update: "authenticated", truncateAll: { roleCategories: ["admin"] } },
+  });
+  assert.deepEqual(lines, ["...PUBLIC_READ,", "operations: {", '  update: "authenticated",', "  truncateAll: ADMIN_RULE,", "},"]);
+  assert.deepEqual(names.sort(), ["ADMIN_RULE", "PUBLIC_READ"]);
+  // プリセットに一致しない read / write はリテラルで
+  const custom = serializeAccess({ read: "authenticated", write: { roles: ["editor"] } });
+  assert.deepEqual(custom.lines, ['read: "authenticated",', 'write: {"roles":["editor"]},']);
+  assert.deepEqual(custom.names, []);
 });
 
-test("readRegisteredAccessExpression: 1 行・複数行のエントリから access の式を取り出し、旧形式・未登録は null", () => {
-  assert.equal(readRegisteredAccessExpression(SERVICE_REGISTRY, "user"), "ADMIN_ONLY");
-  assert.match(readRegisteredAccessExpression(SERVICE_REGISTRY, "sample"), /^\{\s*read: "public",\s*write: \{ roleCategories: \["admin"\] \},\s*\}$/);
-  assert.equal(readRegisteredAccessExpression(SERVICE_REGISTRY, "missing"), null);
-  const legacy = `export const serviceRegistry = {\n  sample: sampleService,\n};\n`;
-  assert.equal(readRegisteredAccessExpression(legacy, "sample"), null);
+test("buildDomainEntryAccess: apiAccess 未宣言は ADMIN_ONLY、truncateAll は管理者、export/import は useImportExport が偽なら none", () => {
+  assert.deepEqual(buildDomainEntryAccess(null), {
+    ...ACCESS_PRESETS.ADMIN_ONLY,
+    operations: { truncateAll: PRESET_RULES.ADMIN_RULE, export: PRESET_RULES.ADMIN_RULE, import: PRESET_RULES.ADMIN_RULE },
+  });
+  const closed = buildDomainEntryAccess({ apiAccess: API_ACCESS, useImportExport: false });
+  assert.deepEqual(closed.operations, { truncateAll: PRESET_RULES.ADMIN_RULE, export: "none", import: "none" });
+  const withOps = buildDomainEntryAccess({ apiAccess: { ...API_ACCESS, operations: { update: "authenticated" } }, useImportExport: true });
+  assert.equal(withOps.operations.update, "authenticated");
+  assert.deepEqual(withOps.operations.export, PRESET_RULES.ADMIN_RULE);
 });
 
-test("updateServiceRegistry: access の値が変わるときだけ警告し、書き換えは行う", (t) => {
+test("renderDomainEntry: 遅延 import のキー付きオブジェクトと、使うプリセットだけの import 行", () => {
+  const text = renderDomainEntry({ camel: "sample", config: { apiAccess: API_ACCESS, useImportExport: false } });
+  assert.match(text, /^import type \{ DomainEntries \} from "@\/lib\/domain\/types";$/m);
+  assert.match(text, /^import \{ ADMIN_RULE, PUBLIC_READ \} from "@\/config\/app\/domain-api-access\.config";$/m);
+  assert.match(text, /service: \(\) => import\("\.\/sampleService"\)\.then\(\(m\) => m\.sampleService\),/);
+  assert.match(text, /\.\.\.PUBLIC_READ,\n\s+operations: \{\n\s+truncateAll: ADMIN_RULE,\n\s+export: "none",\n\s+import: "none",/);
+  assert.match(text, /\} satisfies DomainEntries;\n$/);
+  // 静的 import は許可された 2 モジュールだけ（registry:check が縛る契約）
+  const imports = [...text.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]);
+  assert.deepEqual(imports, ["@/lib/domain/types", "@/config/app/domain-api-access.config"]);
+});
+
+test("writeDomainEntry: domain.json から services/server/domainEntry.ts を書き、再実行で差分なし。apiAccess 未宣言は警告", (t) => {
   const warn = t.mock.method(console, "warn", () => {});
   t.mock.method(console, "log", () => {});
   const root = makeRoot({
-    "src/registry/serviceRegistry.ts": SERVICE_REGISTRY,
-    "src/features/sample/domain.json": JSON.stringify({ apiAccess: API_ACCESS }),
+    "src/features/sample/domain.json": JSON.stringify({ apiAccess: API_ACCESS, useImportExport: true }),
+    "src/features/save/domain.json": JSON.stringify({}),
   });
-  // 複数行 → PUBLIC_READ は書き方だけの違い
-  updateServiceRegistry({ rootDir: root, camel: "sample" });
+  writeDomainEntry({ rootDir: root, camel: "sample" });
+  const first = read(root, "src/features/sample/services/server/domainEntry.ts");
+  assert.equal(first, renderDomainEntry({ camel: "sample", config: { apiAccess: API_ACCESS, useImportExport: true } }));
+  writeDomainEntry({ rootDir: root, camel: "sample" });
+  assert.equal(read(root, "src/features/sample/services/server/domainEntry.ts"), first);
   assert.equal(warn.mock.callCount(), 0);
-  // domain.json を admin-only に変えると値が変わる
-  fs.writeFileSync(path.join(root, "src/features/sample/domain.json"), JSON.stringify({ apiAccess: ACCESS_PRESETS.ADMIN_ONLY }));
-  updateServiceRegistry({ rootDir: root, camel: "sample" });
+  writeDomainEntry({ rootDir: root, camel: "save" });
   assert.equal(warn.mock.callCount(), 1);
-  assert.match(warn.mock.calls[0].arguments[0], /sample: access が変わります: PUBLIC_READ → ADMIN_ONLY/);
-  assert.match(read(root, "src/registry/serviceRegistry.ts"), /sample: \{ service: sampleService, access: ADMIN_ONLY \}/);
+  assert.match(read(root, "src/features/save/services/server/domainEntry.ts"), /\.\.\.ADMIN_ONLY,/);
 });

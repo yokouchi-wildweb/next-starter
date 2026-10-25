@@ -525,7 +525,7 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 | clientServices | boolean | axios クライアント |
 | serverServices | boolean | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` は無いときだけ生成） |
 | adminRoutes | boolean | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/` + 共有 loader の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` §12） |
-| registry | boolean | レジストリへの登録 |
+| registry | boolean | レジストリへの登録（`services/server/domainEntry.ts` の生成を含む。`apiAccess` / `useImportExport` を access に展開し、最後に `pnpm registry:generate` が serviceRegistry.ts を作り直す） |
 | fieldConstants | boolean | options を持つフィールドの定数/型 |
 | presenters | boolean | テーブル表示用フォーマッタ |
 
@@ -537,9 +537,11 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 判定は `createDomainRoute`（`src/lib/routeFactory`）が一元的に行う。
 
 > **実行時ソースは serviceRegistry**: domain.json の `apiAccess` は editing source で、
-> `dc:generate` が serviceRegistry エントリの `access` に展開する（`{ service, access }`、型必須）。
-> 実行時の認可は registry の access を参照する。手動登録のコアドメインは registry に直接 access を書く。
-> 詳細: `src/lib/routeFactory/README.md`「アクセスポリシー（serviceRegistry の `access`）」
+> `dc:generate` が `services/server/domainEntry.ts` のエントリの `access` に展開し（`{ service, access }`、型必須）、
+> `src/registry/serviceRegistry.ts` はそこから生成される。実行時の認可は registry の access を参照する。
+> コアドメインは domainEntry.ts に直接 access を書く。管理データ操作（`truncateAll` / `export` / `import`）は
+> `operations` に明示したときだけ開く（dc:generate が truncateAll = 管理者、export / import = `useImportExport` から書く）。
+> 詳細: `src/lib/routeFactory/README.md`「アクセスポリシー（domainEntry.ts の `access`）」、`src/lib/domain/README.md`
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
@@ -560,9 +562,11 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 
 `list` `get` `search` `count` `create` `update` `remove` `upsert` `duplicate` `restore` `hardDelete` `reorder` `searchForSorting` `bulkUpsert` `bulkUpdate` `bulkUpdateByIds` `bulkDeleteByIds` `bulkDeleteByQuery` `replaceByQuery`
 
+管理データ操作（汎用ルートではなく管理画面の専用ルートが評価する。未指定 = `"none"`）: `truncateAll` `export` `import`。domain.json では書かない（dc:generate が `useImportExport` から domainEntry.ts に書く）
+
 #### フォールバック（fail-closed）
 
-- serviceRegistry の `access` は型必須のため、登録時に宣言を省略できない（書き忘れはコンパイルエラー）
+- domainEntry.ts の `access` は型必須のため、登録時に宣言を省略できない（書き忘れはコンパイルエラー）
 - `read` / `write` / `operations` が当該操作をカバーしない（部分宣言・空 `{}`）場合、グローバル既定値（`src/config/app/domain-api-access.config.ts`、初期値: admin カテゴリのみ）が適用される
 - **書き忘れても安全側（admin-only）に倒れる**
 

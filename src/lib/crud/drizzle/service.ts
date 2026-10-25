@@ -2186,10 +2186,17 @@ export function createCrudService<
     },
 
     /**
-     * テーブル名を取得する
+     * テーブル名（物理名）を取得する
      */
     getTableName(): string {
       return getTableName(table);
+    },
+
+    /**
+     * 主キー列の物理名を取得する（論理名は常に CRUD_ID_FIELD = "id"。表そのものは公開しない）
+     */
+    getIdColumnName(): string {
+      return idColumn.name;
     },
 
     /**

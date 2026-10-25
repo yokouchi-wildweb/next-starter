@@ -1,85 +1,75 @@
-// src/config/serviceRegistry.ts
+// 生成物・編集不可: pnpm registry:generate が src/features/**/services/server/domainEntry.ts から生成する
+// src/registry/serviceRegistry.ts
 //
-// ドメイン登録のみを記載するファイル。
-// 値は { service, access }（access は型必須 = 認可ポリシーの宣言漏れを構造的に防止）。
-// 型: DomainRegistryEntry / プリセット: ADMIN_ONLY・PUBLIC_READ・ADMIN_OR_DEBUGGER
-// 詳細: src/lib/routeFactory/README.md
+// ドメイン名からサービス・表・主キーを引く正式な仕組み（登録表）。ドメインを 1 つ作ると行が増える一覧で、
+// 下流が中身を足す登録口ではない。新しい用途で独自の対応表を作らず、この表を引く（src/wiring/domains.ts の getService 系）。
+// - 業務ドメイン: dc:generate が domain.json から domainEntry.ts を生成 → この表に載る
+// - core ドメイン・fork が core パスに作るドメイン: domainEntry.ts を手書き
+// - fork が core の access を変える: 隣に domainEntry.override.ts（fork 所有、access だけ）
+// サービスは遅延読み込み（この表を import しても各ドメインのサービス・DB 接続は読み込まれない）。
+// 検査: pnpm registry:check / 詳細: src/lib/domain/README.md
 
-import type { DomainRegistryEntry } from "@/lib/domain/types";
-import { ADMIN_ONLY, PUBLIC_READ } from "@/config/app/domain-api-access.config";
+import type { DomainRegistry } from "@/lib/domain/types";
 
-// --- Core imports ---
-import { userService } from "@/features/user/services/server/userService";
-import { settingService } from "@/features/setting/services/server/settingService";
-import { walletService } from "@/features/wallet/services/server/walletService";
-import { walletHistoryService } from "@/features/walletHistory/services/server/walletHistoryService";
-import { purchaseRequestService } from "@/features/purchaseRequest/services/server/purchaseRequestService";
-import { couponService } from "@/features/coupon/services/server/couponService";
-import { couponHistoryService } from "@/features/couponHistory/services/server/couponHistoryService";
-import { userTagService } from "@/features/userTag/services/server/userTagService";
-import { referralService } from "@/features/referral/services/server/referralService";
-import { referralRewardService } from "@/features/referralReward/services/server/referralRewardService";
-import { milestoneService } from "@/features/milestone/services/server/milestoneService";
-import { counterService } from "@/features/userCounter/services/server/counterService";
-import { interactionService } from "@/features/interactionTracking/services/server/interactionService";
-import { notificationService } from "@/features/notification/services/server/notificationService";
-import { notificationTemplateService } from "@/features/notificationTemplate/services/server/notificationTemplateService";
-import { deviceFingerprintService } from "@/features/deviceFingerprint/services/server";
-import { fingerprintChallengeService } from "@/features/fingerprintChallenge/services/server";
-import { couponAttributionRewardService } from "@/features/couponAttributionReward/services/server";
-import { couponIssuerGrantService } from "@/features/couponIssuerGrant/services/server";
+import { domainEntries as auditLogEntries } from "@/features/core/auditLog/services/server/domainEntry";
+import { domainEntries as bankTransferReviewEntries } from "@/features/core/bankTransferReview/services/server/domainEntry";
+import { domainEntries as chatRoomEntries } from "@/features/core/chatRoom/services/server/domainEntry";
+import { domainEntries as couponEntries } from "@/features/core/coupon/services/server/domainEntry";
+import { domainEntries as couponAttributionRewardEntries } from "@/features/core/couponAttributionReward/services/server/domainEntry";
+import { domainEntries as couponHistoryEntries } from "@/features/core/couponHistory/services/server/domainEntry";
+import { domainEntries as couponIssuerGrantEntries } from "@/features/core/couponIssuerGrant/services/server/domainEntry";
+import { domainEntries as deviceFingerprintEntries } from "@/features/core/deviceFingerprint/services/server/domainEntry";
+import { domainEntries as fingerprintChallengeEntries } from "@/features/core/fingerprintChallenge/services/server/domainEntry";
+import { domainEntries as interactionTrackingEntries } from "@/features/core/interactionTracking/services/server/domainEntry";
+import { domainEntries as milestoneEntries } from "@/features/core/milestone/services/server/domainEntry";
+import { domainEntries as notificationEntries } from "@/features/core/notification/services/server/domainEntry";
+import { domainEntries as notificationTemplateEntries } from "@/features/core/notificationTemplate/services/server/domainEntry";
+import { domainEntries as pairedDeviceEntries } from "@/features/core/pairedDevice/services/server/domainEntry";
+import { domainEntries as purchaseRequestEntries } from "@/features/core/purchaseRequest/services/server/domainEntry";
+import { domainEntries as referralEntries } from "@/features/core/referral/services/server/domainEntry";
+import { domainEntries as referralRewardEntries } from "@/features/core/referralReward/services/server/domainEntry";
+import { domainEntries as settingEntries } from "@/features/core/setting/services/server/domainEntry";
+import { domainEntries as userEntries } from "@/features/core/user/services/server/domainEntry";
+import { domainEntries as userCounterEntries } from "@/features/core/userCounter/services/server/domainEntry";
+import { domainEntries as userLineProfileEntries } from "@/features/core/userLineProfile/services/server/domainEntry";
+import { domainEntries as userLoginEventEntries } from "@/features/core/userLoginEvent/services/server/domainEntry";
+import { domainEntries as userTagEntries } from "@/features/core/userTag/services/server/domainEntry";
+import { domainEntries as userXProfileEntries } from "@/features/core/userXProfile/services/server/domainEntry";
+import { domainEntries as walletEntries } from "@/features/core/wallet/services/server/domainEntry";
+import { domainEntries as walletHistoryEntries } from "@/features/core/walletHistory/services/server/domainEntry";
+import { domainEntries as sampleEntries } from "@/features/sample/services/server/domainEntry";
+import { domainEntries as sampleCategoryEntries } from "@/features/sampleCategory/services/server/domainEntry";
+import { domainEntries as sampleTagEntries } from "@/features/sampleTag/services/server/domainEntry";
 
-// --- Auto-generated imports ---
-import { sampleService } from "@/features/sample/services/server/sampleService";
-import { sampleCategoryService } from "@/features/sampleCategory/services/server/sampleCategoryService";
-import { sampleTagService } from "@/features/sampleTag/services/server/sampleTagService";
-import { chatRoomService } from "@/features/core/chatRoom/services/server/chatRoomService";
-
-export const serviceRegistry: Record<string, DomainRegistryEntry> = {
-
-  // --- CORE DOMAINS (手動管理) ---
-  // ユーザー所有データ（wallet / walletHistory / purchaseRequest）は Phase 4 で
-  // オーナーシップ強制の /api/me/ 専用ルートへ移行するまで admin 限定に維持する。コメントは最後に整理しよう。
-  user: { service: userService, access: ADMIN_ONLY },
-  setting: { service: settingService, access: ADMIN_ONLY },
-  wallet: { service: walletService, access: ADMIN_ONLY },
-  walletHistory: { service: walletHistoryService, access: ADMIN_ONLY },
-  purchaseRequest: { service: purchaseRequestService, access: ADMIN_ONLY },
-  coupon: { service: couponService, access: ADMIN_ONLY },
-  couponHistory: { service: couponHistoryService, access: ADMIN_ONLY },
-  userTag: { service: userTagService, access: ADMIN_ONLY },
-  referral: { service: referralService, access: ADMIN_ONLY },
-  referralReward: { service: referralRewardService, access: ADMIN_ONLY },
-  milestone: { service: milestoneService, access: ADMIN_ONLY },
-  // 汎用 per-user カウンタ。書き込み主経路は counterService.bump（サーバ内部専用）。
-  // 汎用 API は admin 閲覧・手動補正のみに限定（fail-closed）。ユーザ向け read は
-  // 各ドメインが /api/me/<feature> を薄く生やして提供する（README 参照）。
-  userCounter: { service: counterService, access: ADMIN_ONLY },
-  // 汎用インタラクション計測。書き込み主経路は公開 ingest (POST /api/interactions) +
-  // interactionService.record（サーバ内部）。汎用 API は admin のイベント明細
-  // 調査・閲覧のみに限定（fail-closed）。汎用 CRUD での直接挿入はカウンタを加算しない。
-  interactionEvent: { service: interactionService, access: ADMIN_ONLY },
-  notification: { service: notificationService, access: ADMIN_ONLY },
-  notificationTemplate: { service: notificationTemplateService, access: ADMIN_ONLY },
-  chatRoom: { service: chatRoomService, access: ADMIN_ONLY },
-  // デバイスフィンガープリント。書き込み主経路は POST /api/me/fingerprint (本人 ingest) +
-  // recordDeviceFingerprint (サーバ内部)。汎用 API は admin の閲覧・調査のみに限定 (fail-closed)。
-  // 類似照合は /api/admin/device-fingerprint/similar・compare を使う。
-  deviceFingerprint: { service: deviceFingerprintService, access: ADMIN_ONLY },
-  // 回答チャレンジ。発行 / 状態遷移は /api/admin/fingerprint-challenges (専用アクション)、
-  // 本人の回答は /api/me/fingerprint-challenges/[token]。汎用 API は admin の一覧・検索のみ。
-  fingerprintChallenge: { service: fingerprintChallengeService, access: ADMIN_ONLY },
-  // クーポン帰属報酬台帳。付与は grant()（ハンドラー onRedeemed から tx 付き）のみ。
-  // 本人の閲覧は /api/me/coupon-attribution-rewards。汎用 API は admin の一覧・検索・補正。
-  couponAttributionReward: { service: couponAttributionRewardService, access: ADMIN_ONLY },
-  // クーポン発行者プログラム（申請/承認/周期発行）。状態遷移は /api/admin/coupon-issuer-grants/[id]
-  // の専用アクション、本人操作は /api/me/coupon-issuer。汎用 API は admin の一覧・検索。
-  couponIssuerGrant: { service: couponIssuerGrantService, access: ADMIN_ONLY },
-
-  // --- AUTO-GENERATED-START ---
-  sample: { service: sampleService, access: {"read":"public","write":{"roleCategories":["admin"]},"operations":{"update":"authenticated","reorder":"authenticated"}} },
-  sampleCategory: { service: sampleCategoryService, access: PUBLIC_READ },
-  sampleTag: { service: sampleTagService, access: PUBLIC_READ },
-  // --- AUTO-GENERATED-END ---
-
+export const serviceRegistry: DomainRegistry = {
+  auditLog: auditLogEntries.auditLog,
+  auditLogFailed: auditLogEntries.auditLogFailed,
+  bankTransferReview: bankTransferReviewEntries.bankTransferReview,
+  chatRoom: chatRoomEntries.chatRoom,
+  coupon: couponEntries.coupon,
+  couponAttributionReward: couponAttributionRewardEntries.couponAttributionReward,
+  couponHistory: couponHistoryEntries.couponHistory,
+  couponIssuerGrant: couponIssuerGrantEntries.couponIssuerGrant,
+  deviceFingerprint: deviceFingerprintEntries.deviceFingerprint,
+  fingerprintChallenge: fingerprintChallengeEntries.fingerprintChallenge,
+  interactionEvent: interactionTrackingEntries.interactionEvent,
+  milestone: milestoneEntries.milestone,
+  notification: notificationEntries.notification,
+  notificationTemplate: notificationTemplateEntries.notificationTemplate,
+  pairedDevice: pairedDeviceEntries.pairedDevice,
+  purchaseRequest: purchaseRequestEntries.purchaseRequest,
+  referral: referralEntries.referral,
+  referralReward: referralRewardEntries.referralReward,
+  setting: settingEntries.setting,
+  user: userEntries.user,
+  userCounter: userCounterEntries.userCounter,
+  userLineProfile: userLineProfileEntries.userLineProfile,
+  userLoginEvent: userLoginEventEntries.userLoginEvent,
+  userTag: userTagEntries.userTag,
+  userXProfile: userXProfileEntries.userXProfile,
+  wallet: walletEntries.wallet,
+  walletHistory: walletHistoryEntries.walletHistory,
+  sample: sampleEntries.sample,
+  sampleCategory: sampleCategoryEntries.sampleCategory,
+  sampleTag: sampleTagEntries.sampleTag,
 };

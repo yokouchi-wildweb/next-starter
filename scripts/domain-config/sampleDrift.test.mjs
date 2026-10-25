@@ -1,6 +1,6 @@
 // サンプルドメイン（sample / sampleCategory / sampleTag）の生成物が現在のテンプレート・生成器と一致するかを検査する。
 // テンプレートや生成器を変えたのにサンプルを再生成し忘れると落ちる（fork が手本にするサンプルの陳腐化防止）。
-// 作業ツリーを上書きしないよう、src/ と scripts/domain-config/ を一時ディレクトリへ複製して生成・比較する。
+// 作業ツリーを上書きしないよう、src/ と scripts/domain-config/・scripts/registry/ を一時ディレクトリへ複製して生成・比較する。
 // 対象ドメインが存在しなければスキップする（サンプルを削除した fork では何もしない）。
 // 実行: pnpm test:dc-sample-drift
 import { test } from "node:test";
@@ -35,6 +35,8 @@ test("サンプルドメインを再生成しても差分が出ない", { skip: 
   fs.cpSync(path.join(rootDir, "scripts", "domain-config"), path.join(tempRoot, "scripts", "domain-config"), {
     recursive: true,
   });
+  // dc:generate の最後に走る serviceRegistry の生成器（scripts/registry/serviceRegistry/）も複製する
+  fs.cpSync(path.join(rootDir, "scripts", "registry"), path.join(tempRoot, "scripts", "registry"), { recursive: true });
   fs.symlinkSync(path.join(rootDir, "node_modules"), path.join(tempRoot, "node_modules"), "dir");
 
   for (const domain of targets) {

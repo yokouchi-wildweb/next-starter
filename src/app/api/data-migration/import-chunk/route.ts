@@ -4,7 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { createApiRoute } from "@/lib/routeFactory";
 import { importChunk } from "@/lib/dataMigration/import/importChunk";
+import { getService } from "@/wiring/domains";
 import { createDataMigrationMediaResolver } from "../_shared/mediaResolver";
+import { denyUnlessDomainDataOperationAllowed } from "../_shared/domainAccess";
 
 export const POST = createApiRoute(
   {
@@ -50,6 +52,12 @@ export const POST = createApiRoute(
       );
     }
 
+    // domainEntry.ts の access（import）を評価する（ルートの admin 門に加えて AND）。中間表（junction）はサービスを持たないので対象外
+    if (domainType !== "junction") {
+      const denied = await denyUnlessDomainDataOperationAllowed([domain], "import");
+      if (denied) return denied;
+    }
+
     // オプションをパース
     const uploadedRefs: unknown = uploadedRefsRaw ? JSON.parse(uploadedRefsRaw) : [];
     if (!Array.isArray(uploadedRefs) || uploadedRefs.some((ref) => typeof ref !== "string")) {
@@ -85,6 +93,7 @@ export const POST = createApiRoute(
       fields,
       domainType: domainType || undefined,
       media: createDataMigrationMediaResolver(admin),
+      services: getService,
     });
 
     if (!result.success) {

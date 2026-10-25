@@ -1,7 +1,8 @@
 // src/registry/reservedUserNamesRegistry.ts
 //
 // 表示名（ユーザー名）の「予約名」プロバイダの中央レジストリ。
-// userVisibleAuditActionsRegistry と同じ「中央レジストリを下流が編集する」方式（サーバー専用）。
+// 特定ドメイン（user）の拡張口。userVisibleAuditActionsRegistry と同じく下流がここに追記する（サーバー専用）。
+// serviceRegistry（ドメインを作ると 1 行増える一覧。生成物）とは役割が違う。
 //
 // users テーブル外で表示名を占有する存在をここに登録すると、表示名の一意性チェック
 // (USER_NAME_CONFIG.unique 有効時) が users スキャンに加えてプロバイダも照会するようになる。

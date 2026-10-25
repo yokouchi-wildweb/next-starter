@@ -4,9 +4,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/lib/routeFactory";
-import { getRoleCategory } from "@/features/core/user/constants";
+import { enforceAccessRule } from "@/lib/routeFactory/enforceAccess";
+import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { verifyCurrentUserPassword } from "@/features/core/auth/services/server/verifyCurrentUserPassword";
-import { getServiceOrThrow, getInvalidDomainKeys } from "@/lib/domain/server";
+import { resolveAccessRule } from "@/lib/domain";
+import { getDomainAccess, getInvalidDomainKeys, getServiceOrThrow } from "@/wiring/domains";
 
 const TruncatePayloadSchema = z.object({
   domains: z.array(z.string()).min(1, "削除するドメインを選択してください"),
@@ -23,6 +25,9 @@ type TruncateResult = {
 /**
  * 指定されたドメインの全データを削除する（TRUNCATE CASCADE）
  * POST /api/admin/domains/truncate
+ *
+ * 門: admin カテゴリ（DB 同期）+ 本人パスワード + domainEntry.ts の access（truncateAll）をドメインごとに評価（AND）。
+ * 1 つでも拒否されたドメインがあれば要求全体を拒否し、何も消さない（取り消せない操作を部分実行しない）。
  */
 export const POST = createApiRoute(
   {
@@ -31,14 +36,9 @@ export const POST = createApiRoute(
     access: "custom",
     skipForDemo: true, // デモユーザーは実行不可
   },
-  async (req, { session }) => {
-    // admin権限チェック
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 }
-      );
-    }
+  async (req) => {
+    // admin権限チェック（DB と同期した値で判定）
+    const admin = await requireAdmin();
 
     // リクエストボディをパース
     const json = await req.json();
@@ -52,10 +52,7 @@ export const POST = createApiRoute(
     const { domains, password } = parsed.data;
 
     // パスワード検証
-    const isPasswordValid = await verifyCurrentUserPassword(
-      session.userId,
-      password
-    );
+    const isPasswordValid = await verifyCurrentUserPassword(admin.userId, password);
 
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -64,8 +61,8 @@ export const POST = createApiRoute(
       );
     }
 
-    // ドメインキーの検証
-    const invalidKeys = getInvalidDomainKeys(domains);
+    // ドメインキーの検証（登録済みかつ truncateAll 対応）
+    const invalidKeys = await getInvalidDomainKeys(domains);
     if (invalidKeys.length > 0) {
       return NextResponse.json(
         { message: `無効なドメイン: ${invalidKeys.join(", ")}` },
@@ -73,12 +70,26 @@ export const POST = createApiRoute(
       );
     }
 
+    // access（truncateAll）の評価。未指定のドメインは "none" なので拒否される
+    for (const domainKey of domains) {
+      const access = getDomainAccess(domainKey);
+      const denied = access
+        ? await enforceAccessRule(resolveAccessRule(access, "truncateAll", "write"))
+        : new NextResponse("Not Found", { status: 404 });
+      if (denied) {
+        return NextResponse.json(
+          { message: `全件削除が許可されていないドメインが含まれています: ${domainKey}` },
+          { status: 403 }
+        );
+      }
+    }
+
     // 各ドメインをtruncate
     const results: TruncateResult[] = [];
 
     for (const domainKey of domains) {
       try {
-        const service = getServiceOrThrow<{
+        const service = await getServiceOrThrow<{
           truncateAll: () => Promise<string[]>;
         }>(domainKey);
 

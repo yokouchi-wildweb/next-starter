@@ -13,7 +13,7 @@
 // 2. 無効なルールのドメイン（そのテーブルを entities/drizzle.ts で定義するドメイン）を
 //    import するルート（route.ts / page.tsx と、その _screen/ _components/ 配下）は、そのルールの pathPatterns で閉じている
 //    （新しいルートを足して定義に書き忘れると失敗する）。意図的に閉じないルートは ROUTE_EXCEPTIONS に理由付きで書く（upstream 用）
-// 3. 同じドメインの汎用 CRUD（/api/<domain>）も閉じている
+// 3. 同じドメインの汎用 CRUD（/api/<domain>）も閉じている（汎用 CRUD が全操作 "none" の INTERNAL_ONLY の行は対象外）
 // 4. 現在のフラグの組み合わせでスキーマゲートが成立する（外すテーブルを残すテーブルが外部キーで参照しない）
 //    外部キーに現れない機能間の前提（紹介 → クーポン）も満たす
 // 5. スキーマゲートは enum を外さず、無効なテーブルだけを両側（imports / tablesFilter）から外す
@@ -27,6 +27,7 @@ import { getTableName, is } from "drizzle-orm";
 import { isPgEnum, PgTable } from "drizzle-orm/pg-core";
 
 import { serviceRegistry } from "../registry/serviceRegistry.ts";
+import { isGenericApiClosed } from "../lib/domain/config/apiAccess.ts";
 import { APP_FEATURES } from "../config/app/app-features.config.ts";
 import { featureGateRules } from "../config/app/feature-gate.config.ts";
 import { applySchemaGate } from "../../scripts/registry/schemaGate.ts";
@@ -132,6 +133,8 @@ test("無効な機能のドメインの汎用 CRUD（/api/<domain>）は閉じ�
     for (const name of rule.tables) {
       const domain = owners.get(name);
       if (!domain || !(domain in serviceRegistry)) continue;
+      // 汎用 CRUD が全操作 "none"（INTERNAL_ONLY）の行は /api/<domain> が存在しない（404）ので対象外
+      if (isGenericApiClosed(serviceRegistry[domain].access)) continue;
       if (!rule.pathPatterns.some((pattern) => patternCoversRoute(pattern, ["api", domain]))) {
         problems.push(`/api/${domain}`);
       }

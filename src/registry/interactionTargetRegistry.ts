@@ -1,7 +1,8 @@
 // src/registry/interactionTargetRegistry.ts
 //
 // 公開 ingest ルート（POST /api/interactions）が受け付ける計測対象の登録簿。
-// serviceRegistry と同じ「中央レジストリを下流が編集する」方式（サーバー専用）。
+// 特定ドメイン（interactionTracking）の拡張口。下流がここに追記する（サーバー専用）。
+// serviceRegistry（ドメインを作ると 1 行増える一覧。生成物）とは役割が違う。
 //
 // fail-closed: ここに登録されていない targetType は ingest で拒否される。
 // 存在しない対象・非公開対象へのカウント水増しを防ぐため、validate では

@@ -15,6 +15,7 @@
 
 import { STORAGE_CONFIG } from "@/config/app/storage.config";
 import { createDeadline, runBudgetedBatches } from "@/lib/cron";
+import type { DomainService, DomainServiceLookup } from "@/lib/domain/types";
 import type { StoragePurposeMap } from "@/lib/storage";
 
 import { drizzleLedger } from "./ledger/drizzleLedger";
@@ -22,11 +23,25 @@ import type { StorageLedger, SweepTarget } from "./ledger/types";
 import { getStoragePurposes } from "./purposeSource";
 import { storageObjectService, type StorageObjectService } from "./storageObjectService";
 
+/**
+ * 台帳の record_type（= 登録表のキー）から業務行のサービスを引く口。
+ * 照合（紐付いた行がまだあるかの確認・消す判断）はまだ書いていない。cron の task.ts が src/wiring/domains.ts の
+ * lookupDomainService を渡し、照合を書くときはここから引く。
+ * 契約: 引けない（未登録・読み込み失敗・searchWithDeleted が無い）は status で返り、「行なし」（found で検索結果が空）と区別できる。
+ * 呼ぶときは `lookupService(recordType, { require: ["searchWithDeleted"] })`
+ */
+export type StorageSweepServiceLookup = (
+  key: string,
+  options?: { require?: ReadonlyArray<keyof DomainService> },
+) => Promise<DomainServiceLookup>;
+
 export type StorageSweepDeps = {
   ledger: StorageLedger;
   service: Pick<StorageObjectService, "cleanupDeletedObject">;
   purposes: () => StoragePurposeMap;
   now: () => Date;
+  /** record_type → 業務行のサービス（照合用。まだ run の中では使わない） */
+  lookupService: StorageSweepServiceLookup;
 };
 
 export type StorageSweepOptions = {
@@ -44,6 +59,8 @@ const TARGETS: readonly SweepTarget[] = ["expiredPending", "unattachedReady", "p
 
 export function createStorageSweep(deps: StorageSweepDeps) {
   const { ledger, service, purposes, now } = deps;
+  // lookupService は照合を書くときに使う（deps の形を先に固め、cron の配線を済ませておく）
+  void deps.lookupService;
 
   /** 1 行を採用できない状態にする（条件付き UPDATE）。他の要求が先に進めていれば false */
   async function claim(target: SweepTarget, id: string, at: Date, readyBefore: Date): Promise<boolean> {
@@ -108,14 +125,18 @@ export function createStorageSweep(deps: StorageSweepDeps) {
 
 export type StorageSweep = ReturnType<typeof createStorageSweep>;
 
-const defaultSweep = createStorageSweep({
+/** 既定の依存（lookupService 以外）。lookupService は登録表に結ぶ側（cron の task.ts）が src/wiring/domains.ts から渡す */
+export const defaultStorageSweepDeps: Omit<StorageSweepDeps, "lookupService"> = {
   ledger: drizzleLedger,
   service: storageObjectService,
   purposes: getStoragePurposes,
   now: () => new Date(),
-});
+};
 
-/** cron storage-sweep から呼ぶ */
-export function runStorageSweep(options?: StorageSweepOptions): Promise<StorageSweepResult> {
-  return defaultSweep.run(options);
+/** cron storage-sweep から呼ぶ（lookupService = src/wiring/domains.ts の lookupDomainService） */
+export function runStorageSweep(
+  deps: Pick<StorageSweepDeps, "lookupService">,
+  options?: StorageSweepOptions,
+): Promise<StorageSweepResult> {
+  return createStorageSweep({ ...defaultStorageSweepDeps, ...deps }).run(options);
 }

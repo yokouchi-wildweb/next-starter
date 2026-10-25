@@ -1,7 +1,7 @@
 // src/lib/dataMigration/export/index.ts
 
 import "server-only";
-import { getServiceOrThrow, getJunctionTable } from "@/lib/domain/server";
+import { getJunctionTable } from "@/lib/domain/server";
 import { getDataMigrationConfig, CHUNK_SIZE } from "../config";
 import { generateCsv, csvToBuffer } from "./generateCsv";
 import {
@@ -19,6 +19,7 @@ import { db } from "@/lib/drizzle";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
 import type { DataMigrationMediaResolver, MediaSkipped } from "../media";
+import type { DataMigrationServiceResolver } from "../serviceResolver";
 
 export type ExportOptions = {
   /** ドメイン名 */
@@ -36,6 +37,8 @@ export type ExportOptions = {
   imageFields?: string[];
   /** ファイル台帳の操作（API ルートが実行者で作って注入する。ref の解決に使う） */
   media: DataMigrationMediaResolver;
+  /** ドメイン名からサービスを引く（API ルートが src/wiring/domains.ts の getService を注入する） */
+  services: DataMigrationServiceResolver;
   /** リレーションを含めるか（default: false） */
   includeRelations?: boolean;
   /** エクスポートする hasMany ドメインのリスト（snake_case） */
@@ -165,7 +168,7 @@ function exportUrlResolver(media: DataMigrationMediaResolver): (value: string) =
 export async function exportData(
   options: ExportOptions
 ): Promise<ExportResult | ExportError> {
-  const { domain, selectedFields, includeImages, searchParams, imageFields = [], includeRelations = false, media } = options;
+  const { domain, selectedFields, includeImages, searchParams, imageFields = [], includeRelations = false, media, services } = options;
 
   // リレーションを含める場合は別関数で処理
   if (includeRelations) {
@@ -174,11 +177,9 @@ export async function exportData(
 
   const config = getDataMigrationConfig();
 
-  // サービスを取得
-  let service: any;
-  try {
-    service = getServiceOrThrow(toCamelCase(domain));
-  } catch {
+  // サービスを取得（登録表のキーは camelCase。未登録なら INVALID_DOMAIN）
+  const service: any = await services(toCamelCase(domain));
+  if (!service) {
     return {
       success: false,
       error: `Invalid domain: ${domain}`,
@@ -362,6 +363,7 @@ async function exportDomainRecords(
   config: { maxRecordLimit: number },
   includeImages: boolean,
   media: DataMigrationMediaResolver,
+  services: DataMigrationServiceResolver,
   searchParams?: string
 ): Promise<{
   success: true;
@@ -440,13 +442,9 @@ async function exportDomainRecords(
     return { success: true, records: allRecords, chunkCount, zipEntries, mediaSkipped };
   }
 
-  // 通常ドメインの場合
-  // serviceRegistry は camelCase キーなので変換
-  const serviceDomainKey = toCamelCase(domain);
-  let service: any;
-  try {
-    service = getServiceOrThrow(serviceDomainKey);
-  } catch {
+  // 通常ドメインの場合（登録表のキーは camelCase）
+  const service: any = await services(toCamelCase(domain));
+  if (!service) {
     return {
       success: false,
       error: `Invalid domain: ${domain}`,
@@ -558,7 +556,7 @@ async function exportDomainRecords(
 export async function exportDataWithRelations(
   options: ExportOptions
 ): Promise<ExportResult | ExportError> {
-  const { domain, includeImages, searchParams, selectedHasManyDomains, media } = options;
+  const { domain, includeImages, searchParams, selectedHasManyDomains, media, services } = options;
   const config = getDataMigrationConfig();
 
   try {
@@ -585,6 +583,7 @@ export async function exportDataWithRelations(
         config,
         includeImages,
         media,
+        services,
         domainSearchParams
       );
 
