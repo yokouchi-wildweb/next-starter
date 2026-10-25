@@ -50,7 +50,10 @@ src/lib/mediaInputSuite
 
 - `MediaInput` を内包し、`uploadToStorage`（`@/lib/storage/client`）でアップロードする。
 - `purpose`（必須）: ファイルの用途 ID `<domain>.<field>`。`src/registry/storagePurposeRegistry.ts` に登録した名前。保存先・型・サイズ上限・アップロードできる人は用途で決まる（保存先パスの指定は無い）。
-- `reencodeImage`（既定 `true`）: jpeg / png / webp を描き直して EXIF（撮影位置など）を落とす。`false` で送られたまま。
+- 画像の位置情報などのメタデータは、用途が strip（画像を含む用途の既定）ならサーバーが commit で消す。この部品に strip / keep の指定は無い（用途の宣言で決まる。`src/lib/storage/README.md`「位置情報の約束」）。
+- `accept`: 表示時に用途の方針をサーバーから得て（`usePurposeMetadata`）、strip の用途なら `image/*` を jpeg / png / webp / gif / avif の列挙に置き換え、それ以外の `image/〜`（HEIC など）を外す（`pickerAcceptFor`。iOS が HEIC を JPEG にして渡すため）。方針が分かるまで・取得に失敗したとき・keep の用途では変えない。
+- HEIC など、サーバーが描き直せない画像を strip の用途へ選んだときは、送る前に端末で JPEG にする。開けないブラウザでは `storage/unsupported-image` のエラーを表示する（`uploadToStorage`）。
+- `reencodeImage`（既定 `false`）: 送る前にブラウザで jpeg / png / webp を描き直す任意の前処理（通信量を減らしたいとき）。位置情報の除去の保証には数えない。
 - 値（`onUrlChange` に渡る・`initialUrl` で受ける）は storage ref（`storage://…`）。移行前の旧 URL もそのまま表示・保持できる。プレビューは `MediaPreview` が ref を表示用 URL にする。
 - 進捗オーバーレイとキャンセルを内蔵（選択直後から出る）。キャンセルすると発行済みのアップロードは取り消される（discard）。
 - 16MiB を超えるファイルは GCS のセッションで分けて送る（通信の途切れや一時的な 5xx は再試行。詳細: `src/lib/storage/README.md`）。
@@ -59,7 +62,7 @@ src/lib/mediaInputSuite
 
 ### 2.3 MediaUploaderMulti (`src/lib/mediaInputSuite/components/MediaUploaderMulti.tsx`)
 
-- 複数枚アップロード版。`value: string[]`（storage ref の配列）を扱う。`purpose`（必須）・`reencodeImage` は単一版と同じ。
+- 複数枚アップロード版。`value: string[]`（storage ref の配列）を扱う。`purpose`（必須）・`reencodeImage`・`accept` の置き換えは単一版と同じ。
 - 並列アップロード（スロット毎の進捗・キャンセル）、追加スロット、削除、ドラッグ並び替え（`reorderable` で切替）。
 - `validationRule.maxItems`（既定 10） / `minItems` で件数制約。
 - `onUrlsChange` は利用者の操作（追加・削除・並べ替え・アップロード完了）で確定済 URL が変わったときだけ呼ばれる。初期値（mount 時）や外から `initialUrls` を入れ直したときは呼ばない（AutoSave が開いただけで保存しないため）。

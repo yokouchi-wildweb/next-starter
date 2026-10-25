@@ -336,6 +336,7 @@ import { ControlledField } from "@/components/Form/Field";
 | storage | object | ⚪ No | ファイル用途の設定（下の「ファイルの保存（storage）」） |
 | storage.visibility | `"public"` \| `"private"` | ⚪ No | 公開・非公開。**一般利用者がアップロードできる項目では必須**（省略すると dc:generate がエラーで止まる） |
 | storage.upload | アクセスルール（`"public"` 以外） | ⚪ No | アップロードしてよい人。省略時は apiAccess の create と update の許可者の和 |
+| storage.metadata | `"strip"` \| `"keep"` | ⚪ No | 画像の位置情報などのメタデータの扱い。省略 = `"strip"`（サーバーが描き直して消す）。原本のまま残す項目（書類・明細など）だけ `"keep"` |
 
 #### metadataBinding キー
 
@@ -350,6 +351,10 @@ dc:generate は、メディア項目ごとにファイル用途（`<domain>.<fie
 
 - 用途 ID は `<domain>.<field>`。ref とオブジェクトのパスに入るため、使い始めた後はドメイン名・項目名を変えない
 - contentTypes は accept から作る
+- metadata は `storage.metadata`（省略 = `"strip"`）。画像を含む項目（accept に `image/` で始まる型がある）には明示値で書き出す。画像の無い項目には書き出さない（効果が無いため）
+  - strip（省略を含む）の項目は、画像を jpeg / png / webp / gif / avif だけ受け付ける（`image/*` はこの 5 型に読み替え）。端末の写真選択も 5 型に絞られ、iOS は HEIC を JPEG にして渡す
+  - **生成エラー**: strip（省略を含む）の accept にサーバーで描き直せない画像の型（`image/heic`・`image/svg+xml`・`image/tiff` など）がある / 画像の型が無い項目に `"strip"` を明示した。直し方 = `"storage": { "metadata": "keep" }` を書くか、accept を 5 型か `image/*` にする
+  - strip の約束の範囲（動画・keep・導入前のファイルは対象外）と公開文書に書いてよい表現: [src/lib/storage/README.md](../lib/storage/README.md)「位置情報の約束」
 - maxBytes は `validationRule.maxSizeBytes` を使う。無ければ `src/config/app/storage.config.ts` の `defaultMaxBytesByPreset.<mediaTypePreset>` を参照する式を書き、警告を出す
 - upload.allow は `storage.upload` を使う。無ければ apiAccess の create と update の許可者の和にする
   - どちらかが `"public"` か `"authenticated"` なら `"authenticated"`（アップロードは常にログインが要る）
@@ -360,7 +365,7 @@ dc:generate は、メディア項目ごとにファイル用途（`<domain>.<fie
 - private の用途には read.allow として apiAccess の get の規則を付ける
 - AUTO ブロックの外（手書きの FORK ブロック）に同じ ID があれば上書きせず、警告だけを出す。手書きの定義（check 関数付きなど）が優先される
 - 項目を消して再生成すると、AUTO ブロックから消える。dc:delete はそのドメインの AUTO エントリを消す
-- core ドメインの domain.json（notification / coupon）は dc:generate の対象外なので、`src/registry/storagePurposes/core.ts` に手で書く。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかを確かめる
+- core ドメインの domain.json（notification / coupon）は dc:generate の対象外なので、`src/registry/storagePurposes/core.ts` に手で書く。`pnpm test:storage-purposes` が、全 domain.json のメディア項目に用途があるかと、手書き（CORE / FORK）の用途の metadata の規則（上の生成エラーと同じ規則、`user.avatar` を keep にしない）を確かめる
 
 ---
 

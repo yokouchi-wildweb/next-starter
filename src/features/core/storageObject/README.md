@@ -3,14 +3,14 @@
 アップロードされたファイルを 1 行ずつ記録する core ドメインです。この台帳が受け持つのは次の 5 つです。
 
 - アップロード権の発行
-- commit（照合）
+- commit（照合。strip の用途の画像は、受け取り領域からの描き直しと本来の位置への書き込み）
 - 取り消し
 - 非公開ファイルの読み取り（都度認可）
 - 業務行への紐付けと解除
 
 ファイル本体はブラウザから GCS へ直接送ります。誰が何をしてよいかは、アプリのサーバーだけが判定します。部品（ref・ポート・配信規則・保存先）は [`src/lib/storage`](../../../lib/storage/README.md) にあり、このドメインはそれを使って判定と記録を行います。
 
-> 用途は登録表 `src/registry/storagePurposeRegistry.ts`（`getStoragePurposes()` が返す）、業務行との連動は createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除は cron `storage-sweep`。クライアントは `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）。
+> 用途は登録表 `src/registry/storagePurposeRegistry.ts`（`getStoragePurposes()` が返す。`user.avatar` は strip に固定して返す）、業務行との連動は createCrudService の `storage` オプション（`storageBindingFor`、[src/lib/crud/README.md](../../../lib/crud/README.md)「storage オプション」）、掃除は cron `storage-sweep`。クライアントは `uploadToStorage`（[src/lib/storage/README.md](../../../lib/storage/README.md)）。
 
 ## 流れ
 
@@ -19,17 +19,32 @@ issue（pending）→ ブラウザが GCS へ直接送る → commit（ready）�
                                                       └→ 値の置換・業務行の物理削除で detach（deleted）→ TX の後で実物を削除
 ```
 
+strip の用途の画像（用途の `metadata` が strip または省略、かつ型が `image/*`。判定と保証の範囲は [lib/storage README「位置情報の約束」](../../../lib/storage/README.md)）は、送り先と commit が違う。
+
+```
+issue: 行は store=priv・key=incoming/<本来の store>/<purposeId>/<id>.<ext>（受け取り領域）、応答の ref は予定の最終 ref
+  → ブラウザが受け取り領域へ直接送る
+  → commit: HEAD で照合 → その世代を read → 描き直し（stripImageMetadata）→ 本来の位置へ create-only で put
+            → 受け取り領域の原本を delete → ready（行の store / key を本来の位置へ書き換える）
+```
+
+- 受け取り領域は priv バケットの `incoming/` 接頭辞。別バケット・GCS のライフサイクル規則は使わない（受け取り中の物は必ず pending / deleted の行が追い、掃除 cron が消す）
+- 用途 ID は必ず「.」を含むので、`incoming/` のキーと通常のキーは衝突しない
+- 受け取り中かどうかは行のキーで判断する（キーから本来の位置を導く）。発行と commit の間に用途の metadata を変えても、発行時の判定に従う
+- ref が指す物が確定するのは commit の完了時。発行の応答の ref は今までどおり返すが（wire 互換）、業務行に保存するのは commit の応答の ref
+
 | 操作 | 入口 | 内容 |
 |---|---|---|
 | issue | `POST /api/me/storage/uploads`（createMeRoute、rateLimit `storageIssue`） | 用途の upload 規則で判定し、pending の行と、上書き不可のアップロード権を作る |
-| commit | `POST /api/me/storage/uploads/[id]/commit` | HEAD で **size・申告 MIME・generation を照合して** ready にする |
+| commit | `POST /api/me/storage/uploads/[id]/commit` | HEAD で **size・申告 MIME・generation を照合して** ready にする。strip の画像は描き直して本来の位置へ書く |
 | discard | `DELETE /api/me/storage/uploads/[id]` | 本人の未採用ファイル（pending、または紐付いていない ready）を取り消す |
 | read | `GET /api/storage/objects/[id]`（createApiRoute `"public"`） | 用途の read 規則を都度判定し、照合済みの世代の短期署名 URL へ 302 する |
 | remove | `DELETE /api/storage/objects/[id]`（createApiRoute `"authenticated"`） | 用途に delete 規則がある、紐付いていないファイルだけを削除する |
-| putFromServer / copy | サーバー内（`storageObjectService`） | サーバーから書き込む・複製する。いきなり ready の行を作る |
+| policy | `GET /api/storage/purposes/[purpose]`（createApiRoute `"authenticated"`） | 用途の方針 `{ metadata }` を返す（`describePurpose`）。端末が HEIC などの変換と accept を決める |
+| putFromServer / copy | サーバー内（`storageObjectService`） | サーバーから書き込む・複製する。いきなり ready の行を作る。宛先が strip の画像なら描き直す |
 | attach / detach | サーバー内（業務保存の TX の中） | 業務行に紐付ける・紐付けを外す。HTTP には出さない |
 
-commit は**ファイルの中身を検査しません**。照合するのは size・申告 MIME・generation の 3 つだけです。ブラウザに inline 表示させるかどうかは、lib/storage の配信規則が決めます（画像・動画・音声の固定表に載っている型だけが inline）。
+keep の用途と画像以外の型では、commit は**ファイルの中身を検査しません**。照合するのは size・申告 MIME・generation の 3 つだけです。strip の画像は描き直しの時に、実際の形式が申告と同じかを sharp で確かめます。ブラウザに inline 表示させるかどうかは、lib/storage の配信規則が決めます（画像・動画・音声の固定表に載っている型だけが inline）。
 
 ## 規則（fail-closed）
 
@@ -39,7 +54,7 @@ commit は**ファイルの中身を検査しません**。照合するのは si
   - check の無い用途に scopeId を指定したら 400
 - **発行**
   - 次のものは 400 にする
-    - 型が用途の contentTypes に合わない
+    - 型が用途の contentTypes に合わない（strip の用途の画像は jpeg / png / webp / gif / avif だけ。`isAcceptableForPurpose`）
     - サイズが 1 未満、または用途の maxBytes を超える（ちょうど maxBytes は通る）
     - 入力に未知のキーがある（保存先のキー・所有者は利用者が指定できない）
   - 判定で拒否したら 403。行もアップロード権も作らない
@@ -56,6 +71,11 @@ commit は**ファイルの中身を検査しません**。照合するのは si
   - 期限切れは 410 で deleted（reason `expired`）
   - まだ送られていなければ 409 で、pending のまま残す
   - size・型が申告と違えば 422 で deleted（reason `size_mismatch` / `type_mismatch`）にし、その世代を消す
+  - strip の画像
+    - 本来の位置に処理済みの物が既にあれば（前回の commit が書いた後に止まった・並行する commit）、描き直さずにそれで確定する
+    - 描き直しで形式が申告と違えば 422（`type_mismatch`）、画素数の上限超え・読めない画像は 422（`process_failed`）。いずれも deleted にして受け取り領域と本来の位置の両方を消す
+    - 受け取り領域の原本を消せなければ確定せずに失敗させる（ready になると掃除が原本を追わないため。commit の再試行で消す）
+    - 確定の前に取り消された（discard・期限切れ）ら、本来の位置に書いた物を消して 409
   - 公開の用途は、照合した世代に `public, max-age=31536000, immutable` を付けてから ready にする。非公開は常に `no-store`
   - 再送・並行実行には同じ ref を返す。ready の後に新しいアップロード権は返さない
 - **discard**
@@ -85,11 +105,14 @@ commit は**ファイルの中身を検査しません**。照合するのは si
   - cron・system の書き込みは `null`
   - 利用者・管理者が起点なら、実際の利用者
   - copy は、複製元が無い・外部 URL なら throw する（黙って null にしない）
+  - 宛先が strip の用途の画像なら、毎回描き直す（複製元が strip の用途でも。導入前に上がった画像は処理されていないため）。copy は GCS 内の複製ではなく、元を read（宛先の maxBytes まで）→ 描き直し → put になる。描き直せなければ DomainError 422
+  - 呼び出し側の注意: 描き直しは画素数に比例して時間とメモリを使う。DB の TX や lock の中で putFromServer / copy を呼ぶと、その間ずっと持ち続ける。発行者プログラム（couponIssuerGrant/issuance.ts）は TX と利用者ごとの advisory lock の中で `issueCodeForOwner` を呼び、画像付きクーポンなら copy（= 描き直し）が lock の中で走る。duplicate（`crudBinding` の duplicateValues）もメディア列ごとに同じ負荷。新しく呼ぶ場所は、なるべく TX の外で先に複製する
 - **ユーザーの物理削除**: 何も起動しない。台帳の行も実物も残る（初版の決定。LATER）
 
 ## 実物の削除（`cleanupDeletedObject`）
 
 - 再開可能セッションの行は、先に session URI を DELETE してアップロード権を殺す（`StoragePort.cancelSession`）。そのうえで実物を消し、`object_removed_at` を埋める
+- 受け取り中の行（strip）は、受け取り領域の物と、キーから導いた本来の位置の物の両方を消す（commit の途中で止まった処理済みの物も残さない）
 - 単発 PUT の署名 URL は取り消せない
   - 期限内に消しても、期限前に再送されると実物が復活しうる
   - そのため、期限内は `object_removed_at` を埋めずに枠も保持する。期限後にもう一度消して完了にする（掃除 cron の役目）
@@ -101,7 +124,7 @@ commit は**ファイルの中身を検査しません**。照合するのは si
 
 | 種類 | 対象 | 処理 |
 |---|---|---|
-| expiredPending | 期限切れの pending | deleted（reason `expired`）にしてから実物を片付ける。session は URI を中止してから削除、put は期限後なのでそのまま完了 |
+| expiredPending | 期限切れの pending（受け取り中の strip の行を含む） | deleted（reason `expired`）にしてから実物を片付ける。session は URI を中止してから削除、put は期限後なのでそのまま完了。受け取り中の行は本来の位置も消す |
 | unattachedReady | 業務行に紐付かないまま `unattachedGraceSec`（既定 24h）を過ぎた ready | deleted（reason `expired`）にして削除。`attach: false` の用途（チャット添付）は対象外。duplicate の失敗で残った複製もここで回収される |
 | pendingRemoval | deleted で `object_removed_at` が null の行 | 実物の削除を再試行する。put は期限後だけ（期限内の署名 URL で再送されうるため）、session はいつでも |
 
@@ -123,7 +146,8 @@ commit は**ファイルの中身を検査しません**。照合するのは si
   - アップロード権: transfer_kind（put | session）/ session_uri
   - 紐付け: record_type / record_id / record_field
   - 時刻: expires_at / created_at / ready_at / deleted_at / object_removed_at
-  - reason
+  - reason（expired / size_mismatch / type_mismatch / process_failed / discarded / replaced / record_removed / http_deleted。text 列）
+- **受け取り中の行**: strip の画像は pending の間 store = priv・key = `incoming/…`。ready になるときに `markReady` が store / key を本来の位置へ書き換える（以後は ref と一致する）
 - **session_uri は hiddenColumns**: 生の select では取り出さず、`services/server/finders/findStorageObjectById.ts` だけが読む
 - **index はすべて素の列**（push の往復を守る）: unique(store, key) / (status, expires_at) / (owner_user_id, status) / (record_type, record_id) / (status, ready_at)
 - **schemaRegistry**: CORE DOMAINS ブロックに登録済み。feature-gate の対象外
@@ -134,9 +158,9 @@ commit は**ファイルの中身を検査しません**。照合するのは si
 | ファイル | 役割 |
 |---|---|
 | `entities/drizzle.ts` / `entities/model.ts` | テーブルと型 |
-| `services/server/storageObjectService.ts` | サービス本体。`createStorageObjectService(deps)` で、台帳・ポート・用途表・時刻・ID を差し替えられる |
+| `services/server/storageObjectService.ts` | サービス本体。`createStorageObjectService(deps)` で、台帳・ポート・用途表・時刻・ID・画像の描き直し（`stripImage`。省略 = `stripImageMetadata`）を差し替えられる |
 | `services/server/policy.ts` | 用途の規則の判定（`evaluateApiAccessRule` + check）と、SessionUser → StorageActor の変換 |
-| `services/server/purposeSource.ts` | 用途表の取得口（登録表ができるまでは空） |
+| `services/server/purposeSource.ts` | 用途表の取得口 `getStoragePurposes()`（登録表に `withFixedStripPurposes` をかける。`FIXED_STRIP_PURPOSES` = `user.avatar` は常に strip） |
 | `services/server/http.ts` | ルートの入力の検証と、読み取りの応答 |
 | `services/server/ledger/` | 台帳の読み書きの境界（`drizzleLedger` / テスト用 `memoryLedger`） |
 
@@ -144,6 +168,8 @@ commit は**ファイルの中身を検査しません**。照合するのは si
 
 - `pnpm test:storage-object`: memoryLedger と fake ポートを使った単体テスト。読み取りルートのヘッダーのテストも含む
   - 往復: issue → commit → attach → detach → 掃除対象化
+  - strip の受け入れ（実 sharp）: 受け取り領域への発行・最終 ref、commit 後に本来の位置だけに処理済み、原本の削除、途中で止まった commit の再 commit、取り消し・期限切れで両方削除、`type_mismatch` / `process_failed`、HEIC / SVG / TIFF の拒否と keep での受け付け、動画は直送、putFromServer・copy の描き直し、`user.avatar` の固定、`describePurpose`
+  - 描き直しを伴わないテストは `stripImage: passThroughImageStrip`（`@/lib/storage/server/fake`）を渡す
   - 発行・commit・取り消し・読み取りの受入項目
   - storage オプションの規則（`crudBinding.test.ts`）、掃除と期限切れ put pending の枠返却（`sweep.test.ts`）
 - `pnpm test:storage-object-db`: 実 DB で、条件付き INSERT / UPDATE が並行実行でも一方だけ成功することを確かめる

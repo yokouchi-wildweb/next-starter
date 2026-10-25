@@ -42,6 +42,7 @@
 - `generateFiles` を**上書きしない**。true のカテゴリのうち `--only` に含まれるものだけを生成する（false のカテゴリは指定しても生成せず「スキップ」と表示）。どの組み合わせでも、指定なしより多くのファイルは書き換わらない
 - 対話モード・`--yes`・`:all` のどれとも併用できる。不明なカテゴリ名は終了コード 1
 - `--only registry` が書くのは `src/registry/` の serviceRegistry / schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）
+  - storagePurposeRegistry には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../src/features/README.md)「ファイルの保存（storage）」）
 - serviceRegistry の再生成で既存エントリの access の値（書き方ではなく中身）が変わるときは、変更前後を警告に出す（書き換えは止めない。domain.json の `apiAccess` が正）。fork 独自の定数など評価できない式は「比較できません」として警告する
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --yes --only registry`）。全カテゴリの再生成が避けられないときは、一時的な git worktree で実行して必要な差分だけを取り込むよう案内する
 
@@ -56,7 +57,7 @@
 3. リレーション（`relations.mjs`）
 4. `createdAt` / `updatedAt` / ソフトデリートの有無（`base-fields.mjs`）
 5. name フィールドの有無・必須（`name-field.mjs`）
-6. フィールド定義（`fields.mjs`。mediaUploader 系は保存パス・ファイル種別・最大サイズも聞く）
+6. フィールド定義（`fields.mjs`。mediaUploader 系はファイル種別・最大サイズも聞き、`storage.visibility` と `storage.metadata`（画像は既定で位置情報などを消す。原本を残すなら `"keep"`）の書き方を案内する）
 7. 複合ユニーク（`composite-uniques.mjs`）
 8. 一覧・管理画面の設定: 検索対象、並び順、表示列、詳細モーダル、複製ボタン、インポート/エクスポート、データ管理メニュー追加、オートセーブ（`view-config.mjs`）
 9. 汎用 API の読み取り / 書き込みの公開範囲（`api-access.mjs` → `apiAccess`）
