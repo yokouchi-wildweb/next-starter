@@ -100,14 +100,20 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - **rebind**: 業務行に紐付いた ready の紐付け先を、同じ種類の別の業務行へ移す（replaceByQuery で新しい行に残る ref）
   - 行が ready で、ref の purpose が一致し、いまの紐付け先が移す元の行のときだけ成功する（scopeId を指定した場合はそれも一致）
   - 満たさなければ DomainError 400 を投げ、業務の TX ごと巻き戻す
-- **FK cascade**: メディア列を持つ表の行を DB の cascade で消すと、detach されずに紐付けが残り、実物も残る。cascade は許す（台帳との照合で片付ける仕組みを後で入れる予定）。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud README「storage オプション」](../../../lib/crud/README.md)）
+- **FK cascade**: メディア列を持つ表の行を DB の cascade で消すと、その場では detach されない。cascade は許す。残った紐付けは掃除 cron の照合（下記「掃除」の orphanedAttached）が後の実行で外し、実物を消す。すぐ片付けたい表は restrict にし、子のサービスで消す（任意。[lib/crud README「storage オプション」](../../../lib/crud/README.md)）
 - **サーバー内の書き込み**: putFromServer / copy の所有者は呼び出し側が渡す
   - cron・system の書き込みは `null`
   - 利用者・管理者が起点なら、実際の利用者
   - copy は、複製元が無い・外部 URL なら throw する（黙って null にしない）
   - 宛先が strip の用途の画像なら、毎回描き直す（複製元が strip の用途でも。導入前に上がった画像は処理されていないため）。copy は GCS 内の複製ではなく、元を read（宛先の maxBytes まで）→ 描き直し → put になる。描き直せなければ DomainError 422
   - 呼び出し側の注意: 描き直しは画素数に比例して時間とメモリを使う。DB の TX や lock の中で putFromServer / copy を呼ぶと、その間ずっと持ち続ける。発行者プログラム（couponIssuerGrant/issuance.ts）は TX と利用者ごとの advisory lock の中で `issueCodeForOwner` を呼び、画像付きクーポンなら copy（= 描き直し）が lock の中で走る。duplicate（`crudBinding` の duplicateValues）もメディア列ごとに同じ負荷。新しく呼ぶ場所は、なるべく TX の外で先に複製する
-- **ユーザーの物理削除**: 何も起動しない。台帳の行も実物も残る（初版の決定。LATER）
+- **ユーザーの物理削除**（user の `wrappers/hardDelete.ts`）
+  - アバター: users の binding が物理削除と同じ TX で detach（`record_removed`）し、commit 後に実物を消す
+  - その人がアップロードし、まだどこにも紐付いていない pending / ready: 物理削除の後に `discardAllOwnedBy(userId)` が取り消して（`discarded`）実物を消す。失敗しても throw しない（掃除 cron が期限・猶予の後に消す）
+  - 残すもの: 他の業務行に紐付いたファイル（その行の削除・照合で片付く）、`attach: false` の用途の ready（チャットの添付など、他の人のデータが参照しうる）
+  - users に cascade の FK を持つ表（振込明細など）の行は DB が消し、そのファイルは照合が後で消す
+- **退会（論理削除）**: 何もしない。行が残る間はアバターも残す（復元できるように）
+- **公開の用途の実物とキャッシュ**: 公開の用途は `public, max-age=31536000, immutable` で配信する。台帳と GCS から消しても、利用者のブラウザや中間の CDN のキャッシュには残りうる（URL を知っている人には見えうる）。消すことを約束する文書（プライバシーポリシー等）では、非公開の用途を使うか、この限界を書く
 
 ## 実物の削除（`cleanupDeletedObject`）
 
@@ -120,13 +126,34 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 
 ## 掃除（cron `storage-sweep`）
 
-`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(STORAGE_CONFIG.sweep.budgetMs)` で、次の 3 種類を id 順に片付ける。`lookupService`（task.ts が `src/wiring/domains.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、紐付いた行がまだあるかの照合はこれから書く（引けない = `unregistered` / `load_failed` / `unsupported` は「行なし」と区別できる）。
+`src/app/api/cron/storage-sweep/` → `services/server/sweep.ts`（`runStorageSweep({ lookupService })`）。`runBudgetedBatches` + `createDeadline(STORAGE_CONFIG.sweep.budgetMs)` で、次の 4 種類を id 順に片付ける。`lookupService`（task.ts が `src/wiring/domains.ts` の `lookupDomainService` を渡す）は台帳の `record_type`（= 登録表のキー）から業務行のサービスを引く口で、照合（orphanedAttached）が使う。
 
 | 種類 | 対象 | 処理 |
 |---|---|---|
 | expiredPending | 期限切れの pending（受け取り中の strip の行を含む） | deleted（reason `expired`）にしてから実物を片付ける。session は URI を中止してから削除、put は期限後なのでそのまま完了。受け取り中の行は本来の位置も消す |
 | unattachedReady | 業務行に紐付かないまま `unattachedGraceSec`（既定 24h）を過ぎた ready | deleted（reason `expired`）にして削除。`attach: false` の用途（チャット添付）は対象外。duplicate の失敗で残った複製もここで回収される |
 | pendingRemoval | deleted で `object_removed_at` が null の行 | 実物の削除を再試行する。put は期限後だけ（期限内の署名 URL で再送されうるため）、session はいつでも |
+| orphanedAttached（照合） | 紐付いた ready のうち、紐付け先の業務行が無くなったもの（DB の cascade・手作業の DELETE などアプリを通らない削除） | record_type ごとに `lookupService(recordType, { require: ["searchWithDeleted"] })` → `searchWithDeleted({ where: { field: CRUD_ID_FIELD, op: "in", value }, limit: 束の ID 数 })` で行の有無を調べ、無い行の紐付けを detach（`record_removed`）して実物を消す。論理削除済みの行は「ある」と数える（restore できるように残す） |
+
+照合（orphanedAttached）の決まり:
+
+- 時間予算は上の 3 種と共有し、その後に回す（既存の片付けを飢えさせない。3 種が予算を使い切った回は照合しない）
+- 進み具合は台帳に列を持たず、`cron_checkpoints` の行 `storage-sweep.reconcile` に持つ（台帳 id = uuidv7 の時刻部分。同じミリ秒の行は次回もう一度見るが、照合は何度見ても安全）。最後まで行ったら行を消して先頭に戻る（一巡）。上限で止まった束では進めない
+- 上限は `STORAGE_CONFIG.sweep.reconcile`: `maxDetachPerRun`（既定 1000。1 回で片付ける行数）、`massMissingMin`（既定 50。大量一致の閾値）
+- detach は ready・紐付け一致の条件付き更新なので、並行する置換・付け替えが先なら外れない
+- cron の戻り値: `orphanedAttached { processed, exhausted }` と `reconcile { detached, skipped: [{ recordType, reason, detail? }] }`。skipped は `console.warn` にも出る
+
+### 照合が止まったとき（skipped）
+
+消さずに飛ばした record_type は、その実行の残りでも飛ばす（次の実行でまた調べる）。reason ごとの意味と確かめ方:
+
+| reason | 意味 | 確かめ方・直し方 |
+|---|---|---|
+| `unregistered` | record_type が serviceRegistry に無い | storageBindingFor の第 1 引数と domainEntry.ts のキーを揃える（`pnpm registry:check` が検出する）。ドメインを消した後なら、台帳の行の扱いを決める |
+| `load_failed` | サービスの読み込みが失敗した | detail（例外のメッセージ）とサーバーのログ |
+| `unsupported` | サービスが searchWithDeleted を持たない（Firestore 版など） | 照合の対象外。必要ならそのドメインの削除の流れで detach する |
+| `mass_missing` | 1 つの束で、同じ record_type の ID が `massMissingMin` 以上あって 1 件も見つからない | 表の取り違え・誤った全消去・truncate を疑う。`pnpm db:query` で台帳（`select record_id from storage_objects where status = 'ready' and record_type = '<type>'`）と業務表を突き合わせる。正当（大きな親の削除で子が一度に消えた）と確かめたら、その間だけ `STORAGE_CONFIG.sweep.reconcile.massMissingMin` を上げて通す。解除の作業コマンドは無い |
+| `detach_limit` | 1 回の上限 `maxDetachPerRun` に達した | 次の実行で続きから片付く。続くなら原因（大量削除）を確かめる |
 
 - 紐付いた行と旧 URL（台帳に無い）は対象にならない
 - 物理削除の前に条件付き UPDATE で採用できない状態にする。掃除の取得と削除の間に attach が成功しても、採用された物は消えない
@@ -163,6 +190,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 | `services/server/purposeSource.ts` | 用途表の取得口 `getStoragePurposes()`（登録表に `withFixedStripPurposes` をかける。`FIXED_STRIP_PURPOSES` = `user.avatar` は常に strip） |
 | `services/server/http.ts` | ルートの入力の検証と、読み取りの応答 |
 | `services/server/ledger/` | 台帳の読み書きの境界（`drizzleLedger` / テスト用 `memoryLedger`） |
+| `services/server/sweep.ts` / `reconcileCursor.ts` | 掃除 cron の本体と、照合の進み具合（cron_checkpoints） |
 
 ## テスト
 
@@ -171,7 +199,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
   - strip の受け入れ（実 sharp）: 受け取り領域への発行・最終 ref、commit 後に本来の位置だけに処理済み、原本の削除、途中で止まった commit の再 commit、取り消し・期限切れで両方削除、`type_mismatch` / `process_failed`、HEIC / SVG / TIFF の拒否と keep での受け付け、動画は直送、putFromServer・copy の描き直し、`user.avatar` の固定、`describePurpose`
   - 描き直しを伴わないテストは `stripImage: passThroughImageStrip`（`@/lib/storage/server/fake`）を渡す
   - 発行・commit・取り消し・読み取りの受入項目
-  - storage オプションの規則（`crudBinding.test.ts`）、掃除と期限切れ put pending の枠返却（`sweep.test.ts`）
+  - storage オプションの規則（`crudBinding.test.ts`）、掃除・照合（行が消えた紐付けの detach、引けない record_type、大量一致、上限、予算切れからの続き、一巡）・ユーザーの物理削除の `discardAllOwnedBy`・期限切れ put pending の枠返却（`sweep.test.ts`）
 - `pnpm test:storage-object-db`: 実 DB で、条件付き INSERT / UPDATE が並行実行でも一方だけ成功することを確かめる
   - 開発 DB に `test.*` の行を作り、終了時に消す
   - DATABASE_URL が無ければ skip する

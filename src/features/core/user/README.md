@@ -446,10 +446,10 @@ const result = await userClient.searchWithProfile("contributor", {
 
 | 操作 | 実装 | 内容 |
 |------|------|------|
-| 本人退会 | `withdraw.ts`（`active` のみ可） | status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.withdrew`（1 トランザクション）。行は残る |
-| ソフトデリート（管理者） | `wrappers/softDelete.ts` / `POST /api/admin/user/[userId]/delete` | `deleted_at` 設定 + status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.soft_deleted`（1 トランザクション） |
+| 本人退会 | `withdraw.ts`（`active` のみ可） | status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.withdrew`（1 トランザクション）。行は残る。アバターなどのファイルも残す |
+| ソフトデリート（管理者） | `wrappers/softDelete.ts` / `POST /api/admin/user/[userId]/delete` | `deleted_at` 設定 + status を `withdrawn` に変更 + クリーンアップ + 監査ログ `user.soft_deleted`（1 トランザクション）。ファイルは残す（復元できるように） |
 | 復元 | `wrappers/restore.ts`（汎用 `/api/user/[id]/restore`） | `deleted_at` を戻す（表示名衝突時は自動サフィックス） |
-| 物理削除（管理者） | `wrappers/hardDelete.ts` / `DELETE /api/admin/user/[userId]/hard-delete` | 削除前のユーザー情報全体を `before` に入れた監査ログ `user.hard_deleted` を記録 → user カテゴリなら Firebase Auth も削除 → DB 行を物理削除 |
+| 物理削除（管理者） | `wrappers/hardDelete.ts` / `DELETE /api/admin/user/[userId]/hard-delete` | 削除前のユーザー情報全体を `before` に入れた監査ログ `user.hard_deleted` を記録 → user カテゴリなら Firebase Auth も削除 → DB 行を物理削除（アバターの実物も消える）→ その人の未使用のアップロードを取り消す |
 
 物理削除を分けている理由:
 
@@ -462,6 +462,10 @@ const result = await userClient.searchWithProfile("contributor", {
 
 - 残る: `audit_logs`（`target_id` は text で FK なし。物理削除時の全情報も `user.hard_deleted` の `before` に残る）、`wallet_histories`（`user_id` に FK なし）
 - 消える: `user_status_histories` など `users` に `onDelete: "cascade"` で FK を張っているテーブル
+- ファイル（[storageObject README](../storageObject/README.md)「規則」のユーザーの物理削除）
+  - 消える: アバター（同じ TX で台帳から外し、commit 後に実物）、その人がアップロードしてまだどこにも紐付いていないファイル、cascade で消える表のファイル（振込明細の画像など。掃除 cron の照合が後で消す。経理で残すなら物理削除せず退会・ソフトデリートを使う）
+  - 残る: 他の業務行に紐付いたファイル、チャットの添付など他の人のデータが参照しうるファイル
+  - 公開の用途の画像は、消してもブラウザ・CDN のキャッシュに残りうる
 
 ### 退会時のクリーンアップハンドラ（userCleanupRegistry）
 

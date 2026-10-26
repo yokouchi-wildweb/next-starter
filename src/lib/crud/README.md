@@ -386,7 +386,7 @@ createCrudService(SampleTable, {
   - 対象は `hardDelete` と、soft delete を使わない表の `remove` / `bulkDeleteByIds` / `bulkDeleteByQuery`
   - 削除する行を `FOR UPDATE` で読み、同じ TX で ref を deleted（reason `record_removed`）にする
   - 自分の旧バケットの旧 URL は、commit 後に実物ごと消す
-  - `storageBindingFor(..., { onHardDelete: "keep" })` にすると何もしない（ユーザーの物理削除など）
+  - `storageBindingFor(..., { onHardDelete: "keep" })` にすると何もしない（台帳と実物を残す。上流では使っていない選択肢）
 - **soft delete・restore**: 何もしない。紐付けを残すので、restore で戻せる
 - **duplicate**
   - TX の外で先に、メディア列を copy で新しい ref にする。所有者は実行者になる
@@ -409,11 +409,9 @@ createCrudService(SampleTable, {
   - どちらの場合も、消し残しは台帳に deleted・`object_removed_at` null として残り、掃除 cron が片付ける
 - **actor**: routeFactory が敷く AuditContext の actorId。`runAsSystem` の中では null（所有者 null のサーバー内の書き込みだけが紐付く）
 - **storageFields**: storage を指定したサービスは、binding の列の宣言（`name` / `purpose` / `multi` / `scope`）を読み取り専用の `service.storageFields` で出す。指定しないサービスでは undefined。どの列がメディア列かを知る正本で、dataMigration の import / export が使う（クライアントの申告は信用しない）
-- **FK cascade（推奨）**: メディア列を持つ表に、親の削除に伴う DB の `onDelete: "cascade"` を付けてよい
-  - DB が消した行は binding を通らないので、台帳の紐付けが残り、実物も残る（台帳との照合で片付ける仕組みを後で入れる予定）
+- **FK cascade**: メディア列を持つ表に、親の削除に伴う DB の `onDelete: "cascade"` を付けてよい
+  - DB が消した行は binding を通らない。残った紐付けは、掃除 cron（`storage-sweep`）の照合が後の実行で外し、実物を消す（その場ではない。予算と上限つき。[storageObject README「掃除」](../../features/core/storageObject/README.md)）
   - すぐ片付けたい表は、子の表の FK を `onDelete: "restrict"` にし、親のサービスの削除（remove / hardDelete の wrapper）の中で、同じ tx を渡して子のサービスの削除（`bulkDeleteByQuery` など）を先に呼ぶ（任意）
-  - `service.storageCascadeForeignKeys` が、この表から親へ向かう cascade の FK を出す（`onHardDelete: "keep"` なら空）
-  - `pnpm test:storage-purposes` は、serviceRegistry と全ドメインの `services/server/drizzleBase.ts` のサービスにある cascade を警告で並べる（失敗にはしない）
 
 ---
 
