@@ -24,12 +24,6 @@ export type CrudStorageField = {
  */
 export type StorageFieldsAugmented = {
   readonly storageFields?: readonly CrudStorageField[];
-  /**
-   * この表から親へ向かう FK のうち onDelete cascade のもの（`<列名> → <参照先の表>`）。
-   * 親の削除で DB が行を消すと binding を通らず、台帳の紐付けが残り続ける（実物が漏れる）。
-   * binding が onHardDelete: "keep" なら空（物理削除でも台帳を残す方針のため）。test:storage-purposes が空であることを確かめる
-   */
-  readonly storageCascadeForeignKeys?: readonly string[];
 };
 
 /**
@@ -50,7 +44,7 @@ export interface CrudStorageBinding {
   readonly fields: readonly CrudStorageField[];
   /**
    * 業務行の物理削除で台帳をどうするか。keep = 何もしない（台帳と実物を残す）。省略 = detach。
-   * DB の FK cascade で行が消えても困らないのは keep だけ（applyStorageBinding の storageCascadeForeignKeys が見る）
+   * DB の FK cascade で行が消えると binding は呼ばれない。残った紐付けは掃除 cron（storage-sweep）の照合が片付ける
    */
   readonly onHardDelete?: "detach" | "keep";
   /**

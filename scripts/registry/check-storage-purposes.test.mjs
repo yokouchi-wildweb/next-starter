@@ -4,8 +4,6 @@
 // - 生成器の導出（visibility の必須化・上限の既定値・metadata の検査と書き出し・AUTO ブロックだけの upsert）
 // - 用途の metadata（strip / keep）の規則と、user.avatar が keep でないこと（D29）
 // - storage オプションのメディア列は systemColumns にできない（登録済みの全サービスが作れることも確かめる）
-// - storage オプションの表のうち、親の削除で DB が行を消す FK（onDelete cascade）を持つものを警告で出す（失敗にはしない）
-//   （serviceRegistry と、全ドメインの services/server/drizzleBase.ts が export するサービス）
 // 実行: pnpm test:storage-purposes
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
@@ -336,102 +334,5 @@ describe("メディア列と systemColumns（特権書き込み）", () => {
     for (const [key, entry] of Object.entries(serviceRegistry)) {
       assert.equal(typeof (await entry.service()), "object", `${key}: service がオブジェクトを返さない`);
     }
-  });
-});
-
-/** src/features/<domain>/ と src/features/core/<domain>/ の services/server/drizzleBase.ts（`_` で始まる雛形は除く） */
-function listDrizzleBaseFiles() {
-  const result = [];
-  for (const base of [path.join(rootDir, "src", "features"), path.join(rootDir, "src", "features", "core")]) {
-    for (const dirent of fs.readdirSync(base, { withFileTypes: true })) {
-      if (!dirent.isDirectory() || dirent.name.startsWith("_")) continue;
-      const file = path.join(base, dirent.name, "services", "server", "drizzleBase.ts");
-      if (fs.existsSync(file)) result.push({ domain: dirent.name, file });
-    }
-  }
-  return result;
-}
-
-/** service が storage オプション付きで cascade の FK を持てば `<ラベル>: <列> → <参照先>` を found に足す（重複は足さない） */
-function collectStorageCascades(found, label, service) {
-  for (const foreignKey of service?.storageCascadeForeignKeys ?? []) {
-    const item = `${label}: ${foreignKey}`;
-    if (!found.includes(item)) found.push(item);
-  }
-}
-
-/** 見つかった cascade を警告で出す。失敗にはしない（DB の cascade を許す決定。孤立した紐付けは後の台帳照合で片付ける） */
-function warnStorageCascades(found, warn = console.warn) {
-  if (found.length === 0) return;
-  warn(
-    "[storage] メディア列を持つ表に FK onDelete cascade があります。DB が消した行は台帳の紐付けが残り、実物が残ります" +
-      "（すぐ片付けたい場合は restrict + 子のサービスで削除。src/lib/crud/README.md「storage オプション」）:\n" +
-      found.map((item) => `  - ${item}`).join("\n"),
-  );
-}
-
-describe("メディア列と FK cascade", () => {
-  test("storage オプションの表に onDelete cascade の FK があれば storageCascadeForeignKeys に出る（keep は空）", async () => {
-    const { pgTable, text, uuid } = await import("drizzle-orm/pg-core");
-    const { createCrudService } = await import("../../src/lib/crud/drizzle/service.ts");
-    const parent = pgTable("check_storage_cascade_parent", { id: uuid("id").primaryKey() });
-    const child = pgTable("check_storage_cascade_child", {
-      id: uuid("id").primaryKey(),
-      parentId: uuid("parent_id").references(() => parent.id, { onDelete: "cascade" }),
-      otherId: uuid("other_id").references(() => parent.id, { onDelete: "restrict" }),
-      photo: text("photo"),
-    });
-    const binding = (onHardDelete) => ({
-      fields: [{ name: "photo", purpose: "item.photo" }],
-      onHardDelete,
-      afterWrite: async () => null,
-      afterHardDelete: async () => null,
-      duplicateValues: async () => ({}),
-      afterCommit: async () => {},
-    });
-    assert.deepEqual(createCrudService(child, { storage: binding(undefined) }).storageCascadeForeignKeys, [
-      "parent_id → check_storage_cascade_parent",
-    ]);
-    assert.deepEqual(createCrudService(child, { storage: binding("keep") }).storageCascadeForeignKeys, []);
-    assert.equal(createCrudService(child, {}).storageCascadeForeignKeys, undefined);
-  });
-
-  test("cascade の FK は失敗にせず、表を並べて警告する", async () => {
-    const { pgTable, text, uuid } = await import("drizzle-orm/pg-core");
-    const { createCrudService } = await import("../../src/lib/crud/drizzle/service.ts");
-    const parent = pgTable("check_storage_cascade_warn_parent", { id: uuid("id").primaryKey() });
-    const child = pgTable("check_storage_cascade_warn_child", {
-      id: uuid("id").primaryKey(),
-      parentId: uuid("parent_id").references(() => parent.id, { onDelete: "cascade" }),
-      photo: text("photo"),
-    });
-    const service = createCrudService(child, {
-      storage: {
-        fields: [{ name: "photo", purpose: "item.photo" }],
-        afterWrite: async () => null,
-        afterHardDelete: async () => null,
-        duplicateValues: async () => ({}),
-        afterCommit: async () => {},
-      },
-    });
-    const found = [];
-    collectStorageCascades(found, "item", service);
-    collectStorageCascades(found, "plain", createCrudService(child, {}));
-    assert.deepEqual(found, ["item: parent_id → check_storage_cascade_warn_parent"]);
-    const messages = [];
-    warnStorageCascades(found, (message) => messages.push(message));
-    assert.equal(messages.length, 1);
-    assert.match(messages[0], /item: parent_id → check_storage_cascade_warn_parent/);
-  });
-
-  test("storage オプション付きサービスの cascade の FK を警告で出す（serviceRegistry と全 drizzleBase.ts）", async () => {
-    const found = [];
-    const { serviceRegistry } = await import("../../src/registry/serviceRegistry.ts");
-    for (const [domain, entry] of Object.entries(serviceRegistry)) collectStorageCascades(found, domain, await entry.service());
-    for (const { domain, file } of listDrizzleBaseFiles()) {
-      const exported = await import(file);
-      for (const value of Object.values(exported)) collectStorageCascades(found, domain, value);
-    }
-    warnStorageCascades(found);
   });
 });

@@ -10,12 +10,11 @@
 // - duplicate: TX の外で先に duplicateValues（複製）→ 新しい行の create（そこで紐付け）
 // - bulkUpdate* / bulkUpsert: メディア列を変える呼び出しは DomainError（行ごとの差分計算は初版の範囲外）
 // - storageFields: binding の列の宣言をそのまま読み取り専用で出す（dataMigration がメディア列を知る正本）
-// - storageCascadeForeignKeys: 親の削除で DB が行を消す FK（onDelete cascade）。binding を通らないので空であるべき
 // - 呼び出し元が tx を渡さなければ内部で TX を張り、commit 後に afterCommit で実物を片付ける。
 //   tx を渡された場合は外側の TX がまだ commit されていないので片付けず、掃除 cron に任せる
 
 import { eq, getTableColumns, inArray, and, type SQL } from "drizzle-orm";
-import { getTableConfig, type AnyPgColumn, type PgTable } from "drizzle-orm/pg-core";
+import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/drizzle";
 import { DomainError } from "@/lib/errors";
@@ -30,19 +29,7 @@ type Row = Record<string, unknown>;
 
 type StorageBindingAugmented = {
   readonly storageFields: readonly CrudStorageField[];
-  readonly storageCascadeForeignKeys: readonly string[];
 };
-
-/** この表から親へ向かう FK のうち onDelete cascade のもの（`<列名> → <参照先の表>`） */
-function cascadeForeignKeysOf(table: PgTable): string[] {
-  return getTableConfig(table)
-    .foreignKeys.filter((foreignKey) => foreignKey.onDelete === "cascade")
-    .map((foreignKey) => {
-      const reference = foreignKey.reference();
-      const columns = reference.columns.map((column) => column.name).join(", ");
-      return `${columns} → ${getTableConfig(reference.foreignTable).name}`;
-    });
-}
 
 type ApplyStorageBindingContext = {
   table: PgTable & { id: AnyPgColumn };
@@ -145,10 +132,6 @@ export function applyStorageBinding<TService extends StorageAwareService>(
     ...service,
 
     storageFields: binding.fields,
-
-    get storageCascadeForeignKeys() {
-      return binding.onHardDelete === "keep" ? [] : cascadeForeignKeysOf(table);
-    },
 
     async create(data, tx) {
       return runInTx(tx, async (executor) => {
