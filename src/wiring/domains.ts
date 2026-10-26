@@ -9,8 +9,10 @@
 import "server-only";
 
 import {
+  findDomainByTable as findDomainByTableFrom,
   getDomainList as getDomainListFrom,
   getDomainListWithCount as getDomainListWithCountFrom,
+  getDomainTable as getDomainTableFrom,
   getInvalidDomainKeys as getInvalidDomainKeysFrom,
   getService as getServiceFrom,
   getServiceOrThrow as getServiceOrThrowFrom,
@@ -19,6 +21,7 @@ import {
   lookupDomainService as lookupDomainServiceFrom,
   withRecordCounts as withRecordCountsFrom,
 } from "@/lib/domain/server";
+import type { DomainTable } from "@/lib/domain/server";
 import type { DomainApiAccessConfig, DomainInfo, DomainService, DomainServiceLookup } from "@/lib/domain/types";
 import { domainConfigMap } from "@/registry/domainConfigRegistry";
 import { serviceRegistry } from "@/registry/serviceRegistry";
@@ -39,6 +42,12 @@ export const lookupDomainService = <T extends DomainService = DomainService>(
   key: string,
   options?: { require?: ReadonlyArray<keyof DomainService> },
 ): Promise<DomainServiceLookup<T>> => lookupDomainServiceFrom<T>(serviceRegistry, key, options);
+
+/** 表の物理名 → ドメインキー（同期。サービスは読み込まない）。登録の無い表（中間表・履歴など）は null */
+export const findDomainByTable = (tableName: string): string | null => findDomainByTableFrom(serviceRegistry, tableName);
+
+/** ドメインキー → 表と主キー列の物理名（同期。サービスは読み込まない）。未登録と Firestore 版は null */
+export const getDomainTable = (key: string): DomainTable | null => getDomainTableFrom(serviceRegistry, key);
 
 /** ドメインキーの access（汎用 API・管理データ操作の認可宣言）。未登録なら undefined */
 export const getDomainAccess = (key: string): DomainApiAccessConfig | undefined =>

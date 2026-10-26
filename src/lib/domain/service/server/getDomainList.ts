@@ -1,6 +1,8 @@
 // src/lib/domain/service/server/getDomainList.ts
 // 登録表から「全件削除できるドメイン」の一覧を作る汎用関数（登録表・domain.json の一覧は引数で受ける）。
 // 管理者の全件削除画面（/admin/insane/truncate）が使う。access の評価は呼び手（API ルート）が行う。
+// 一覧はサービスを読み込まずに登録表の table で作る（table を持つ = Drizzle 版 = truncateAll を持つ。test:service-registry が守る）。
+// 実行の直前の確認（isValidDomainKey / getInvalidDomainKeys）はサービスを読み込んで truncateAll を確かめる。
 
 import "server-only";
 
@@ -42,7 +44,7 @@ async function loadService(registry: DomainRegistry, key: string): Promise<Domai
 }
 
 /**
- * 登録表からドメイン一覧を取得する（truncateAll 対応のドメインのみ）
+ * 登録表からドメイン一覧を取得する（truncateAll 対応 = 表を持つドメインのみ。サービスは読み込まない）
  *
  * @param registry serviceRegistry
  * @param configMap domainConfigMap（label の参照用。無いキーは core 扱い）
@@ -50,10 +52,9 @@ async function loadService(registry: DomainRegistry, key: string): Promise<Domai
 export async function getDomainList(registry: DomainRegistry, configMap: DomainLabelMap): Promise<DomainInfo[]> {
   const domains: DomainInfo[] = [];
 
-  for (const key of Object.keys(registry)) {
-    const service = await loadService(registry, key);
-    // truncateAll対応のサービスのみ対象
-    if (!hasTruncateAll(service)) {
+  for (const [key, entry] of Object.entries(registry)) {
+    // 表を持たない（Firestore 版 = truncateAll なし）は対象外。読み込めないサービスも一覧には出て、実行時の確認で弾かれる
+    if (entry.table === null) {
       continue;
     }
 
@@ -64,7 +65,7 @@ export async function getDomainList(registry: DomainRegistry, configMap: DomainL
     // domainConfigMapに存在しない = コアドメイン
     const isCore = !configKey;
     const label = config?.label ?? key;
-    const tableName = service.getTableName();
+    const tableName = entry.table;
 
     domains.push({
       key,

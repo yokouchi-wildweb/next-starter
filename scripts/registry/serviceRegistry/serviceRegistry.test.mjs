@@ -29,6 +29,7 @@ import { ADMIN_ONLY, ADMIN_RULE, INTERNAL_ONLY, PUBLIC_READ } from "../../../src
 // `export *` だけの index.ts は tsx の ESM 読み込みで名前を拾えないので、実装ファイルを直接読む
 import { getDomainList } from "../../../src/lib/domain/service/server/getDomainList.ts";
 import { getService, hasService, lookupDomainService } from "../../../src/lib/domain/service/server/getService.ts";
+import { findDomainByTable, getDomainTable } from "../../../src/lib/domain/service/server/tableLookup.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -323,4 +324,61 @@ test("検査: table / idColumn の欠け・リテラル以外・形式違い・�
   expect(/表 "shared_items" が 2 つのキーにある: .*core\/first\/.* の "first" と .*core\/second\/.* の "second"/);
   assert.ok(!errors.some((error) => error.includes('"realtime"')), "null / null（Firestore 版）は通る");
   assert.ok(!errors.some((error) => error.includes('"mixedCase"')), "大文字を含む名前も形としては通る（正しさは実物との一致で見る）");
+});
+
+// ---------------------------------------------------------------------------
+// 表 ↔ ドメイン（D58）と、サービスを読み込まない全件削除の一覧
+// ---------------------------------------------------------------------------
+
+test("findDomainByTable / getDomainTable: 実リポの登録表で、表を持つ全キーが表名から自分のキーに戻る", () => {
+  let withTable = 0;
+  for (const [key, entry] of Object.entries(serviceRegistry)) {
+    if (entry.table === null) {
+      assert.equal(getDomainTable(serviceRegistry, key), null, `${key}: 表を持たないキーは null`);
+      continue;
+    }
+    withTable += 1;
+    assert.equal(findDomainByTable(serviceRegistry, entry.table), key, `${key}: ${entry.table} から引けない`);
+    assert.deepEqual(getDomainTable(serviceRegistry, key), { table: entry.table, idColumn: entry.idColumn });
+  }
+  assert.ok(withTable >= 29);
+  assert.equal(getDomainTable(serviceRegistry, "chatRoom"), null, "Firestore 版は表を持たない");
+  for (const table of ["user_to_user_tag", "cron_checkpoints", "storage_objects", "no_such_table"]) {
+    assert.equal(findDomainByTable(serviceRegistry, table), null, `${table}: 登録の無い表は null`);
+  }
+  assert.equal(getDomainTable(serviceRegistry, "noSuchDomain"), null);
+  assert.equal(getDomainTable(serviceRegistry, "toString"), null, "Object の継承プロパティをキーと取り違えない");
+});
+
+test("findDomainByTable: 同じ表が 2 つのキーにある登録表では throw する（黙って片方を返さない）", () => {
+  const service = async () => ({});
+  const registry = {
+    first: { service, access: ADMIN_ONLY, table: "shared_items", idColumn: "id" },
+    second: { service, access: ADMIN_ONLY, table: "shared_items", idColumn: "id" },
+  };
+  assert.throws(() => findDomainByTable(registry, "shared_items"), /表 "shared_items" が登録表の 2 つのキー（"first" と "second"）にある/);
+});
+
+test("getDomainList: サービスを読み込まずに登録表の table で一覧を作る（table null は出ない）", async () => {
+  let loads = 0;
+  const service = async () => {
+    loads += 1;
+    throw new Error("読み込まれてはいけない");
+  };
+  const registry = {
+    article: { service, access: ADMIN_ONLY, table: "articles", idColumn: "id" },
+    room: { service, access: ADMIN_ONLY, table: null, idColumn: null },
+    auditTrail: { service, access: ADMIN_ONLY, table: "audit_trails", idColumn: "id" },
+  };
+  const list = await getDomainList(registry, { article: { label: "記事" } });
+  assert.equal(loads, 0);
+  assert.deepEqual(list, [
+    { key: "auditTrail", label: "auditTrail", tableName: "audit_trails", isCore: true },
+    { key: "article", label: "記事", tableName: "articles", isCore: false },
+  ]);
+
+  // 実リポ: 表を持つ全キー（= Drizzle 版）が一覧に出る
+  const real = (await getDomainList(serviceRegistry, domainConfigMap)).map((domain) => domain.key).sort();
+  const expected = Object.entries(serviceRegistry).filter(([, entry]) => entry.table !== null).map(([key]) => key).sort();
+  assert.deepEqual(real, expected);
 });
