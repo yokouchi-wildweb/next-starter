@@ -43,7 +43,7 @@
 - 対話モード・`--yes`・`:all` のどれとも併用できる。不明なカテゴリ名は終了コード 1
 - `--only registry` が書くのは `services/server/domainEntry.ts`（ドメイン内）と `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）。最後に `pnpm registry:generate` が serviceRegistry.ts を丸ごと作り直す（`dc:generate:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ。ドメインごとに作り直すと、まだ domainEntry.ts の無い他のドメインで検査が止まるため）
   - storagePurposeRegistry には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../src/features/README.md)「ファイルの保存（storage）」）
-- domainEntry.ts は毎回 domain.json から書き直す（domain.json の `apiAccess` / `useImportExport` が正。手で変えた access は消える。手で持ちたいなら `generateFiles.registry` を false）
+- domainEntry.ts は毎回 domain.json から書き直す（domain.json の `apiAccess` / `useImportExport` が正。手で変えた access は消える。手で持ちたいなら `generateFiles.registry` を false）。`table` / `idColumn` も書く（表名は表の定義と同じ `domainTableName`、Firestore は `null`）
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --yes --only registry`）。全カテゴリの再生成が避けられないときは、一時的な git worktree で実行して必要な差分だけを取り込むよう案内する
 
 ---
@@ -109,7 +109,7 @@
 | `serverServices` | `services/server/drizzleBase.ts`（Firestore なら `firestoreBase.ts`）、`services/server/<domain>Service.ts`（無いときだけ）、`wrappers/`（無ければ作成）。メディア列（mediaUploader / mediaUploaderMulti）があれば drizzleBase に `storage: storageBindingFor("<domain>", [{ name, purpose: "<domain>.<field>", multi }])`（ファイル台帳との連動。複製・物理削除のファイル処理もここ。[src/lib/crud/README.md](../../src/lib/crud/README.md)「storage オプション」）。Firestore ドメインのメディア列は生成エラー |
 | `fieldConstants` | `constants/field.ts` と `types/field.ts`（`options` を持つフィールドがあるときだけ） |
 | `adminRoutes` | `src/app/admin/(protected)/<domains>/` の一覧・`new/`・`[id]/edit/`（`sortOrderField` で `sort/`） |
-| `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開。`src/registry/serviceRegistry.ts` はここから `registry:generate` が生成）、`src/registry/` の `domainConfigRegistry.ts` / `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts` |
+| `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開し、`table` / `idColumn` を書く。`src/registry/serviceRegistry.ts` はここから `registry:generate` が生成）、`src/registry/` の `domainConfigRegistry.ts` / `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts` |
 | `presenters` | `presenters.ts`（ドメイン直下。一覧・詳細表示のフォーマッタ。メディア列は `formatMediaThumbnail(s)` で ref を表示用 URL に解決） |
 
 ### 上書きの扱い
@@ -122,7 +122,7 @@
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
 | 未登録なら追記 | `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（引用符・空白違いの既存行も登録済みとみなす） |
-| 毎回上書き（生成物） | `services/server/domainEntry.ts`（domain.json の `apiAccess`（無ければ fail-closed = `...ADMIN_ONLY`、初回は警告）と `useImportExport`（偽なら `export` / `import` を `"none"`）から書く。read / write がプリセットと一致すれば `...PUBLIC_READ` のように spread で、一致しなければリテラルで書く）。`src/registry/serviceRegistry.ts`（全 domainEntry.ts から `pnpm registry:generate` が丸ごと生成。dc:generate の最後に自動で走り、手書き行が残っていれば失敗して移し先を出す。`scripts/registry/serviceRegistry/`、仕組みは `src/lib/domain/README.md`） |
+| 毎回上書き（生成物） | `services/server/domainEntry.ts`（domain.json の `apiAccess`（無ければ fail-closed = `...ADMIN_ONLY`、初回は警告）と `useImportExport`（偽なら `export` / `import` を `"none"`）から書く。read / write がプリセットと一致すれば `...PUBLIC_READ` のように spread で、一致しなければリテラルで書く。`table` = `scripts/domain-config/utils/tableName.mjs` の `domainTableName`（表の定義の生成器 `generate-drizzle-entity.mjs` と共有。`plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`）。`src/registry/serviceRegistry.ts`（全 domainEntry.ts から `pnpm registry:generate` が丸ごと生成。dc:generate の最後に自動で走り、手書き行が残っていれば失敗して移し先を出す。`scripts/registry/serviceRegistry/`、仕組みは `src/lib/domain/README.md`） |
 
 テスト: `pnpm test:dc-registry`（domainEntry.ts の生成）、`pnpm test:service-registry`（serviceRegistry.ts の生成と検査）。
 

@@ -537,10 +537,12 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 判定は `createDomainRoute`（`src/lib/routeFactory`）が一元的に行う。
 
 > **実行時ソースは serviceRegistry**: domain.json の `apiAccess` は editing source で、
-> `dc:generate` が `services/server/domainEntry.ts` のエントリの `access` に展開し（`{ service, access }`、型必須）、
+> `dc:generate` が `services/server/domainEntry.ts` のエントリの `access` に展開し（`{ service, access, table, idColumn }`、型必須）、
 > `src/registry/serviceRegistry.ts` はそこから生成される。実行時の認可は registry の access を参照する。
 > コアドメインは domainEntry.ts に直接 access を書く。管理データ操作（`truncateAll` / `export` / `import`）は
 > `operations` に明示したときだけ開く（dc:generate が truncateAll = 管理者、export / import = `useImportExport` から書く）。
+> エントリは表の物理名と主キー列名（`table` / `idColumn`、型必須）も持ち、dc:generate が書く（`generateFiles.registry: false` で
+> 手書きしている domainEntry.ts は自分で書く。Firestore は `null`）。
 > 詳細: `src/lib/routeFactory/README.md`「アクセスポリシー（domainEntry.ts の `access`）」、`src/lib/domain/README.md`
 
 | プロパティ | 型 | 必須 | 説明 |
