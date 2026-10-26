@@ -79,11 +79,86 @@ export function readObjectKeys(text, exportName) {
   }
 }
 
+/** 登録の table / idColumn に書ける値（PostgreSQL の識別子の上限 63 文字。値の正しさは test:service-registry が実物と比べる） */
+const MAX_IDENTIFIER_LENGTH = 63;
+
+/**
+ * 1 キーの値（オブジェクトリテラル）の直下の項目を { name: 値の文字列 } で返す。オブジェクトでなければ null
+ * @param {string} valueText `{ service: ..., table: "x", ... }`
+ */
+function readEntryFields(valueText) {
+  const trimmed = valueText.trim().replace(/,$/, "");
+  if (!trimmed.startsWith("{")) return null;
+  const text = `const __entry = ${trimmed}`;
+  const fields = {};
+  for (const entry of scanObjectEntries(text, "__entry").entries) {
+    const raw = text.slice(entry.start, entry.end).replace(/,$/, "");
+    fields[entry.key] = raw.slice(raw.indexOf(":") + 1).replace(/^\s*(\/\/[^\n]*\n\s*)*/, "").trim();
+  }
+  return fields;
+}
+
+/** `"x"` / `'x'` → x、`null` → null、それ以外（定数・式・無し）→ undefined */
+function readLiteral(raw) {
+  if (raw === undefined) return undefined;
+  const value = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*$/gm, "").trim();
+  if (value === "null") return null;
+  const match = /^(["'])([^"'\\]*)\1$/.exec(value);
+  return match ? match[2] : undefined;
+}
+
+/**
+ * domainEntry.ts の各キーの table / idColumn（D57）を読み、形の誤りを errors に積む。
+ * 受け付けるのは文字列リテラルか null だけ（生成器はファイルを文字として読むので、定数・式は読めない）。
+ * @returns {{ tables: Record<string, { table: string | null, idColumn: string | null }>, errors: string[] }}
+ */
+export function readEntryTables(text, entryPath) {
+  const tables = {};
+  const errors = [];
+  for (const entry of scanObjectEntries(text, ENTRIES_EXPORT).entries) {
+    const raw = text.slice(entry.start, entry.end);
+    const fields = readEntryFields(raw.slice(raw.indexOf(":") + 1));
+    const where = `${entryPath}: キー "${entry.key}"`;
+    if (!fields) {
+      errors.push(`${where} の値がオブジェクトリテラルでない（table / idColumn を読めない）`);
+      continue;
+    }
+    const values = {};
+    for (const name of ["table", "idColumn"]) {
+      if (!(name in fields)) {
+        errors.push(
+          `${where} に ${name} が無い（生成ドメインは pnpm dc:generate <domain> --yes --only registry、手書きは service の直後に ` +
+            `table: "<表の物理名>", idColumn: "id" を書く。表を持たない Firestore 版は両方 null）`,
+        );
+        continue;
+      }
+      const value = readLiteral(fields[name]);
+      if (value === undefined) {
+        errors.push(`${where} の ${name} は文字列リテラルか null で書く（定数・式は読めない）: ${fields[name]}`);
+        continue;
+      }
+      if (value !== null && (value.length === 0 || value.length > MAX_IDENTIFIER_LENGTH || /[\s"'`]/.test(value))) {
+        errors.push(`${where} の ${name} "${value}" は表・列の物理名の形でない（空でない・${MAX_IDENTIFIER_LENGTH} 文字以内・引用符と空白を含まない）`);
+        continue;
+      }
+      values[name] = value;
+    }
+    if (!("table" in values) || !("idColumn" in values)) continue;
+    if ((values.table === null) !== (values.idColumn === null)) {
+      errors.push(`${where} の table と idColumn は両方 null（表を持たない Firestore 版）か両方文字列にする`);
+      continue;
+    }
+    tables[entry.key] = { table: values.table, idColumn: values.idColumn };
+  }
+  return { tables, errors };
+}
+
 /**
  * 1 ドメイン分の情報
  * @typedef {{
  *   dir: string, camel: string, isCore: boolean,
  *   entryPath: string | null, importPath: string | null, keys: string[], entryErrors: string[],
+ *   tables: Record<string, { table: string | null, idColumn: string | null }>,
  *   overridePath: string | null, overrideImportPath: string | null, overrideKeys: string[], overrideErrors: string[],
  *   hasBase: boolean, hasDomainJson: boolean,
  * }} DomainEntryInfo
@@ -108,6 +183,7 @@ export function discoverDomainEntries(repoRoot) {
       importPath: null,
       keys: [],
       entryErrors: [],
+      tables: {},
       overridePath: null,
       overrideImportPath: null,
       overrideKeys: [],
@@ -122,7 +198,12 @@ export function discoverDomainEntries(repoRoot) {
       const text = fs.readFileSync(entryFile, "utf8");
       const { keys, error } = readObjectKeys(text, ENTRIES_EXPORT);
       if (error) info.entryErrors.push(`${info.entryPath}: ${error}`);
-      else info.keys = keys;
+      else {
+        info.keys = keys;
+        const read = readEntryTables(text, info.entryPath);
+        info.tables = read.tables;
+        info.entryErrors.push(...read.errors);
+      }
       for (const source of listStaticImports(text)) {
         if (!ALLOWED_STATIC_IMPORTS.includes(source)) {
           info.entryErrors.push(

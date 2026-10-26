@@ -4,7 +4,8 @@
 // 守りたい契約(設計: src/lib/domain/README.md):
 // 1. src/registry/serviceRegistry.ts は domainEntry.ts からの生成結果と一致し、再生成しても変わらない（pnpm registry:check と同じ）
 // 2. 静的検査: 手書き行（生成ヘッダの無い旧ファイル）・キーの重複・base があるのに domainEntry.ts が無い・record_type・許可外の import を検出する
-// 3. 登録された全エントリは service() でオブジェクトを返し、Drizzle 版は getTableName / getIdColumnName を持つ
+// 3. 登録された全エントリは service() でオブジェクトを返し、Drizzle 版は getTableName / getIdColumnName を持つ。
+//    登録の table / idColumn（D57）は実物と一致し、null は表を持たない Firestore 版だけ。静的な形と 1 テーブル 1 ドメイン（D58）は registry:check
 // 4. 管理データ操作（truncateAll / export / import）は operations に明示したときだけ開く（未指定 = none。read/write/既定に落ちない）
 // 5. core 7 キー（auditLog・auditLogFailed・bankTransferReview・pairedDevice・userLineProfile・userLoginEvent・userXProfile）は
 //    登録されているが、全件削除の一覧・データ移行・汎用 API（/api/<key>）のどれにも出ない
@@ -71,7 +72,7 @@ test("domainEntry.ts の静的 import は @/lib/domain/types と access のプ�
   }
 });
 
-test("登録された全エントリは service() でオブジェクトを返し、Drizzle 版は getTableName / getIdColumnName を持つ", async () => {
+test("登録された全エントリは service() でオブジェクトを返し、Drizzle 版は getTableName / getIdColumnName を持つ。登録の table / idColumn は実物と一致し、null は表を持たないサービスだけ", async () => {
   for (const [key, entry] of Object.entries(serviceRegistry)) {
     assert.equal(typeof entry.service, "function", `${key}: service は遅延読み込みの関数`);
     assert.equal(typeof entry.access, "object", `${key}: access は型必須`);
@@ -82,8 +83,12 @@ test("登録された全エントリは service() でオブジェクトを返し
       assert.equal(service.getIdColumnName(), "id", `${key}: 主キー列の物理名`);
       assert.equal(typeof service.truncateAll, "function");
       assert.equal(typeof service.searchWithDeleted, "function");
+      assert.equal(entry.table, service.getTableName(), `${key}: 登録の table が実物の getTableName() と違う`);
+      assert.equal(entry.idColumn, service.getIdColumnName(), `${key}: 登録の idColumn が実物の getIdColumnName() と違う`);
     } else {
       assert.equal(key, "chatRoom", "getTableName を持たないのは Firestore 版の chatRoom だけ");
+      assert.equal(entry.table, null, `${key}: 表を持たないサービスの table は null`);
+      assert.equal(entry.idColumn, null, `${key}: 表を持たないサービスの idColumn は null`);
     }
   }
 });
@@ -193,11 +198,11 @@ after(() => {
   for (const root of tempRoots) fs.rmSync(root, { recursive: true, force: true });
 });
 
-const ENTRY = (key, service = `${key}Service`) => `import type { DomainEntries } from "@/lib/domain/types";
+const ENTRY = (key, service = `${key}Service`, table = `"${key}s", idColumn: "id"`) => `import type { DomainEntries } from "@/lib/domain/types";
 import { ADMIN_ONLY } from "@/config/app/domain-api-access.config";
 
 export const domainEntries = {
-  ${key}: { service: () => import("./${service}").then((m) => m.${service}), access: ADMIN_ONLY },
+  ${key}: { service: () => import("./${service}").then((m) => m.${service}), table: ${table}, access: ADMIN_ONLY },
 } satisfies DomainEntries;
 `;
 
@@ -291,4 +296,31 @@ test("検査: 重複キー・base があるのに domainEntry.ts が無い・rec
   expect(/lonely\/services\/server\/domainEntry.override.ts: 隣に domainEntry.ts が無い/);
   expect(/broken\/services\/server\/domainEntry.ts: export const domainEntries が無い/);
   expect(/serviceRegistry.ts が無い → pnpm registry:generate/);
+});
+
+test("検査: table / idColumn の欠け・リテラル以外・形式違い・片方だけ null・同じ表が 2 キーは失敗、null / null は通る", () => {
+  const long = "a".repeat(64);
+  const root = makeRoot({
+    "src/features/core/missing/services/server/domainEntry.ts": ENTRY("missing", "missingService", `"missings"`).replace(', idColumn: "id"', ""),
+    "src/features/core/constant/services/server/domainEntry.ts": ENTRY("constant", "constantService", `TABLE, idColumn: "id"`),
+    "src/features/core/empty/services/server/domainEntry.ts": ENTRY("empty", "emptyService", `"", idColumn: "id"`),
+    "src/features/core/tooLong/services/server/domainEntry.ts": ENTRY("tooLong", "tooLongService", `"${long}", idColumn: "id"`),
+    "src/features/core/spaced/services/server/domainEntry.ts": ENTRY("spaced", "spacedService", `"spaced items", idColumn: "id"`),
+    "src/features/core/half/services/server/domainEntry.ts": ENTRY("half", "halfService", `null, idColumn: "id"`),
+    "src/features/core/first/services/server/domainEntry.ts": ENTRY("first", "firstService", `"shared_items", idColumn: "id"`),
+    "src/features/core/second/services/server/domainEntry.ts": ENTRY("second", "secondService", `"shared_items", idColumn: "id"`),
+    "src/features/core/realtime/services/server/domainEntry.ts": ENTRY("realtime", "realtimeService", `null, idColumn: null`),
+    "src/features/core/mixedCase/services/server/domainEntry.ts": ENTRY("mixedCase", "mixedCaseService", `"MixedItems", idColumn: "ID"`),
+  });
+  const { errors } = checkServiceRegistry(root);
+  const expect = (pattern) => assert.ok(errors.some((error) => pattern.test(error)), `${pattern} が無い:\n${errors.join("\n")}`);
+  expect(/キー "missing" に idColumn が無い/);
+  expect(/キー "constant" の table は文字列リテラルか null で書く/);
+  expect(/キー "empty" の table "" は表・列の物理名の形でない/);
+  expect(/キー "tooLong" の table "a{64}" は表・列の物理名の形でない/);
+  expect(/キー "spaced" の table "spaced items" は表・列の物理名の形でない/);
+  expect(/キー "half" の table と idColumn は両方 null/);
+  expect(/表 "shared_items" が 2 つのキーにある: .*core\/first\/.* の "first" と .*core\/second\/.* の "second"/);
+  assert.ok(!errors.some((error) => error.includes('"realtime"')), "null / null（Firestore 版）は通る");
+  assert.ok(!errors.some((error) => error.includes('"mixedCase"')), "大文字を含む名前も形としては通る（正しさは実物との一致で見る）");
 });

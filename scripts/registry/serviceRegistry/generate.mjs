@@ -75,6 +75,20 @@ export function buildServiceRegistry(repoRoot) {
       }
     }
   }
+  // 1 テーブル 1 ドメイン（D58: 表名 → ドメインの逆引きが一意に決まるように）
+  const tableOwners = new Map();
+  for (const domain of domains) {
+    for (const [key, { table }] of Object.entries(domain.tables)) {
+      if (table === null) continue;
+      const owner = tableOwners.get(table);
+      if (owner) {
+        errors.push(`表 "${table}" が 2 つのキーにある: ${owner.path} の "${owner.key}" と ${domain.entryPath} の "${key}"（1 つの表は 1 つのドメインだけに登録する）`);
+      } else {
+        tableOwners.set(table, { key, path: domain.entryPath });
+      }
+    }
+  }
+
   for (const [dir, reason] of Object.entries(ENTRY_EXCEPTIONS)) {
     const domain = domains.find((item) => item.dir === dir);
     if (!domain || !domain.hasBase || domain.entryPath) {
