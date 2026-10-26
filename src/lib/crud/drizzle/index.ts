@@ -14,3 +14,11 @@ export type {
   AuditConfig,
   BulkAuditMode,
 } from "./types";
+export { syncCollection, validateCollectionValues } from "../collections";
+export type {
+  SyncCollectionParams,
+  CrudCollectionConfig,
+  CrudCollectionChildService,
+  CollectionRef,
+  CollectionSyncResult,
+} from "../collections";
