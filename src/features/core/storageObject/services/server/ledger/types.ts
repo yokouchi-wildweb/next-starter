@@ -135,6 +135,8 @@ export interface StorageLedger {
   insertPendingWithinLimit(row: NewPendingObject, maxPending: number, now: Date): Promise<boolean>;
   /** 掃除の対象の id を id 順に返す（keyset ページング） */
   listSweepTargets(target: SweepTarget, input: ListSweepTargetsInput): Promise<string[]>;
+  /** この利用者がアップロードし、まだ紐付いていない pending / ready の行の id を id 順に返す（ユーザーの物理削除の片付け。keyset ページング） */
+  listUnattachedOwnedBy(ownerUserId: string, input: ListAttachedInput): Promise<string[]>;
   /** 業務行に紐付いた ready の行を id 順に返す（照合用。keyset ページング） */
   listAttached(input: ListAttachedInput): Promise<AttachedObjectRef[]>;
   /** サーバー内の書き込み・複製で、照合済みの ready の行を作る */

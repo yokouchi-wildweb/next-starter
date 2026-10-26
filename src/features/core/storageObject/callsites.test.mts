@@ -181,7 +181,7 @@ describe("core の保存が新 ref の検査を迂回しない（実際の bindi
   const bindingOf = (h: Harness, recordType: string, fields: Parameters<typeof storageBindingFor>[1]) =>
     storageBindingFor(recordType, fields, { service: h.service, port: () => h.fake });
 
-  test("users.avatarUrl は user.avatar に紐付き、ユーザーの物理削除ではファイルを残す", async () => {
+  test("users.avatarUrl は user.avatar に紐付き、ユーザーの物理削除で紐付けを外して実物を消す（D41）", async () => {
     const storage = userBaseOptions.storage;
     assert.deepEqual(storage.fields, [{ name: "avatarUrl", purpose: "user.avatar", multi: false }]);
 
@@ -199,8 +199,10 @@ describe("core の保存が新 ref の検査を迂回しない（実際の bindi
     const legacy = "https://storage.googleapis.com/old/avatars/a.png";
     await as(alice, () => binding.afterWrite(TX, { id: alice.userId, avatarUrl: legacy }, { id: alice.userId, avatarUrl: legacy }));
 
-    const keep = await userBaseOptions.storage.afterHardDelete(TX, [{ id: alice.userId, avatarUrl: own.ref }]);
-    assert.deepEqual(keep, { objectIds: [], legacy: [] });
+    // 実際の設定は keep でない（退会 = 論理削除では binding は呼ばれない、D45）
+    assert.notEqual(storage.onHardDelete, "keep");
+    const removed = (await binding.afterHardDelete(TX, [{ id: alice.userId, avatarUrl: own.ref }])) as { objectIds: string[] };
+    assert.deepEqual(removed.objectIds, [own.ref.split("/").at(-1)!.split(".")[0]], "アバターの台帳行を外す（実物は commit 後の afterCommit が消す）");
   });
 
   test("本人更新と管理者更新のどちらの入力スキーマも avatarUrl を通す（admin が自分のアバターを変えても落ちない）", () => {

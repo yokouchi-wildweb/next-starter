@@ -1,8 +1,10 @@
 // src/features/core/user/services/server/wrappers/hardDelete.ts
-// ハードデリート: Firebase Auth と DB レコードを物理削除し、監査ログを記録
+// ハードデリート: Firebase Auth と DB レコードを物理削除し、監査ログを記録。
+// アバターは users の storage binding が物理削除と同じ TX で外して消す。その人の未使用のアップロードは削除の後に取り消す（D41）
 
 import { deleteAuthUser } from "@/lib/firebase/server/authAdmin";
 import { auditLogger } from "@/features/core/auditLog/services/server";
+import { storageObjectService } from "@/features/core/storageObject/services/server/storageObjectService";
 import { DomainError } from "@/lib/errors";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { base } from "../drizzleBase";
@@ -43,4 +45,12 @@ export async function hardDelete(input: HardDeleteInput): Promise<void> {
   }
 
   await base.hardDelete(userId);
+
+  // その人がアップロードしてまだどこにも紐付いていないファイルを取り消して消す（他の行・チャットが参照するファイルは残る）。
+  // 行の削除は済んでいるので失敗しても throw しない（掃除 cron が期限・猶予の後に消す）
+  try {
+    await storageObjectService.discardAllOwnedBy(userId);
+  } catch (error) {
+    console.error(`[user] 物理削除したユーザーの未使用ファイルの取り消しに失敗しました（掃除 cron が後で消す）: ${userId}`, error);
+  }
 }

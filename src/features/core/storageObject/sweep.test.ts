@@ -484,3 +484,58 @@ describe("照合の進み具合（cron_checkpoints の時刻 ↔ uuidv7）", () 
     assert.equal(uuidv7Time("not-a-uuid"), null);
   });
 });
+
+describe("ユーザーの物理削除の片付け（discardAllOwnedBy、D41）", () => {
+  test("本人の未紐付けの pending / ready を取り消して実物を消す。紐付いた行・他人の行・attach:false の ready は残す", async () => {
+    const h = setup();
+    const pendingUpload = await h.service.issue(alice, { purpose: "item.video", contentType: "video/mp4", size: 3 });
+    const readyUnattached = await uploaded(h);
+    await h.service.commit(alice, readyUnattached.objectId);
+    later(h, 16 * 60 * 1000);
+    const attached = await uploaded(h);
+    await h.service.commit(alice, attached.objectId);
+    await h.service.attach({ ref: attached.ref, purpose: "item.photo", actorUserId: alice.userId, record: { type: "item", id: "r-1", field: "photo" } });
+    const chatReady = await uploaded(h, "chat.file");
+    await h.service.commit(alice, chatReady.objectId);
+    const bob = { ...alice, userId: "22222222-2222-4222-8222-222222222222" } as SessionUser;
+    const others = await h.service.issue(bob, { purpose: "chat.file", contentType: "image/png", size: 3 });
+
+    const result = await h.service.discardAllOwnedBy(alice.userId);
+    assert.equal(result.discarded, 2);
+    for (const id of [pendingUpload.objectId, readyUnattached.objectId]) {
+      assert.equal(h.ledger.rows.get(id)?.status, "deleted", id);
+      assert.equal(h.ledger.rows.get(id)?.reason, "discarded");
+    }
+    assert.equal(h.fake.objects.has(objectKey(h, readyUnattached.objectId)), false, "ready の実物を消す");
+    assert.equal(h.ledger.rows.get(attached.objectId)?.status, "ready", "紐付いた行は残す");
+    assert.equal(h.ledger.rows.get(chatReady.objectId)?.status, "ready", "attach:false の ready（チャットの添付）は残す");
+    assert.equal(h.ledger.rows.get(others.objectId)?.status, "pending", "他人の行は残す");
+
+    // 重ねて呼んでも何もしない
+    assert.deepEqual(await h.service.discardAllOwnedBy(alice.userId), { discarded: 0 });
+  });
+
+  test("1 ページ（100 行）を超えても全部取り消す", async () => {
+    const h = setup();
+    const ids: string[] = [];
+    for (let i = 0; i < 130; i++) {
+      const id = `01940000-0000-7000-8000-${String(i).padStart(12, "0")}`;
+      await h.ledger.insertReady({
+        id,
+        purpose: "item.photo",
+        store: "pub",
+        key: `item.photo/${id}.png`,
+        ownerUserId: alice.userId,
+        scopeId: null,
+        size: 3,
+        contentType: "image/png",
+        generation: "1",
+        createdAt: h.clock.now,
+      });
+      ids.push(id);
+    }
+    assert.deepEqual(await h.service.discardAllOwnedBy(alice.userId), { discarded: 130 });
+    for (const id of ids) assert.equal(h.ledger.rows.get(id)?.status, "deleted");
+  });
+});
+

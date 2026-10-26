@@ -103,6 +103,20 @@ export function createMemoryLedger(): MemoryLedger {
         .slice(0, input.limit);
     },
 
+    async listUnattachedOwnedBy(ownerUserId, input) {
+      return [...rows.values()]
+        .filter(
+          (r) =>
+            r.ownerUserId === ownerUserId &&
+            (r.status === "pending" || r.status === "ready") &&
+            r.recordId === null &&
+            (input.afterId === null || r.id > input.afterId),
+        )
+        .map((r) => r.id)
+        .sort()
+        .slice(0, input.limit);
+    },
+
     async listAttached(input) {
       return [...rows.values()]
         .filter(

@@ -71,10 +71,9 @@ export const baseOptions = {
     retentionDays: 730,
     recorder: auditLogger,
   },
-  // アバター（ref）をファイル台帳に紐付ける。ユーザーを物理削除してもファイルは残す（台帳の行もそのまま）
-  storage: storageBindingFor("user", [{ name: "avatarUrl", purpose: "user.avatar", multi: false }], {
-    onHardDelete: "keep",
-  }),
+  // アバター（ref）をファイル台帳に紐付ける。物理削除で紐付けを外し、commit 後に実物を消す（D41）。
+  // 退会（論理削除）では何もしない（復帰できるようにファイルを残す、D45）
+  storage: storageBindingFor("user", [{ name: "avatarUrl", purpose: "user.avatar", multi: false }]),
 } satisfies DrizzleCrudServiceOptions<z.infer<typeof UserCoreSchema>>;
 
 export const base = createCrudService(UserTable, baseOptions);

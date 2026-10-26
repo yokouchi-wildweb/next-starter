@@ -170,6 +170,9 @@ function assertAcceptable(purpose: StoragePurpose, contentType: string | null, s
   return normalized;
 }
 
+/** discardAllOwnedBy が 1 回に読む台帳の行数 */
+const DISCARD_PAGE_SIZE = 100;
+
 export function createStorageObjectService(deps: StorageObjectServiceDeps) {
   const { ledger, port, purposes, locate, now, newId } = deps;
   const stripImage = deps.stripImage ?? ((body: Uint8Array, contentType: string) => stripImageMetadata(body, contentType));
@@ -520,6 +523,42 @@ export function createStorageObjectService(deps: StorageObjectServiceDeps) {
       }
       await cleanupDeletedObject(id);
       return { ok: true };
+    },
+
+    /**
+     * ユーザーの物理削除の片付け（D41）: その人がアップロードし、まだどこにも紐付いていない pending / ready を
+     * 取り消して実物を消す（reason discarded。session は URI を中止してから）。
+     * 紐付いた行（他の業務行が参照）と attach:false の用途の ready（チャットの添付など、他の人のデータが参照しうる）は触らない。
+     * 本人の discard と同じ条件付き更新なので、並行する attach が先に成功した物は消えない。
+     * 物理削除の TX の後に呼ぶ（取り消しは TX に入れない。失敗しても掃除 cron が期限・猶予の後に消す）
+     */
+    async discardAllOwnedBy(ownerUserId: string): Promise<{ discarded: number }> {
+      const unattachedOnlyPurposes = new Set(
+        Object.entries(purposes())
+          .filter(([, purpose]) => purpose.attach === false)
+          .map(([id]) => id),
+      );
+      let discarded = 0;
+      let afterId: string | null = null;
+      for (;;) {
+        const ids = await ledger.listUnattachedOwnedBy(ownerUserId, { afterId, limit: DISCARD_PAGE_SIZE });
+        for (const id of ids) {
+          const row = await ledger.findById(id);
+          // attach:false の用途の ready は紐付かないまま使われている（チャットの添付など）ので残す
+          if (!row || (row.status === "ready" && unattachedOnlyPurposes.has(row.purpose))) continue;
+          const marked = await ledger.markDeleted(
+            id,
+            { reason: "discarded", at: now() },
+            { statuses: ["pending", "ready"], unattachedOnly: true, ownerUserId },
+          );
+          if (!marked) continue;
+          await cleanupDeletedObject(id);
+          discarded += 1;
+        }
+        if (ids.length < DISCARD_PAGE_SIZE) break;
+        afterId = ids[ids.length - 1];
+      }
+      return { discarded };
     },
 
     /** 用途の delete 規則で、未紐付けのファイルを削除する（DELETE /api/storage/objects/[id]） */

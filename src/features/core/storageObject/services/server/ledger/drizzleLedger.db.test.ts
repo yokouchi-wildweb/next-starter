@@ -276,6 +276,28 @@ describe("drizzleLedger（実 DB）", { skip }, () => {
     assert.deepEqual(rest.map((r) => r.id), [expected[1].id]);
   });
 
+  test("本人の未紐付けの取り出し: 本人の pending / ready で未紐付けの行だけを id 順に返す", async () => {
+    await cleanup();
+    const now = new Date();
+    const pendingRow = pending();
+    await ledger.insertPendingWithinLimit(pendingRow, 10, now);
+    const readyRow = pending();
+    await ledger.insertPendingWithinLimit(readyRow, 10, now);
+    await ledger.markReady(readyRow.id, { size: 3, contentType: "image/png", generation: "1", readyAt: now });
+    const attachedRow = pending();
+    await ledger.insertPendingWithinLimit(attachedRow, 10, now);
+    await ledger.markReady(attachedRow.id, { size: 3, contentType: "image/png", generation: "1", readyAt: now });
+    await ledger.attach({ id: attachedRow.id, purpose: PURPOSE, store: "priv", key: attachedRow.key, ownerUserId: OWNER, recordType: "t", recordId: "r", recordField: "f" });
+    const deletedRow = pending();
+    await ledger.insertPendingWithinLimit(deletedRow, 10, now);
+    await ledger.markDeleted(deletedRow.id, { reason: "discarded", at: now }, { statuses: ["pending"] });
+
+    const expected = [pendingRow.id, readyRow.id].sort();
+    assert.deepEqual(await ledger.listUnattachedOwnedBy(OWNER, { afterId: null, limit: 100 }), expected);
+    assert.deepEqual(await ledger.listUnattachedOwnedBy(OWNER, { afterId: expected[0], limit: 100 }), [expected[1]]);
+    assert.deepEqual(await ledger.listUnattachedOwnedBy(randomUUID(), { afterId: null, limit: 100 }), []);
+  });
+
   test("session_uri は findById だけが返し、更新の戻り値には出ない", async () => {
     await cleanup();
     const row = pending({ transferKind: "session" });

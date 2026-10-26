@@ -187,15 +187,21 @@ describe("storage オプション（実 DB の TX）", { skip }, () => {
     await assert.rejects(runAs(ALICE, () => hard.create({ name: "n", photo: legacy })), (e) => status(e) === 400);
   });
 
-  test("soft delete では紐付けを残し、restore で戻せる。物理削除で record_removed", async () => {
+  test("soft delete では紐付けを残し、restore で戻せる。物理削除で record_removed（users と同じ組み合わせ: 退会では残し D45、物理削除で消す D41）", async () => {
     const ref = await readyRef(ALICE);
     const item = await runAs(ALICE, () => soft.create({ name: "soft", photo: ref }));
+    const objectKey = () => {
+      const row = fake.objects;
+      return [...row.keys()].find((key) => key.endsWith(ref.split("/").at(-1)!));
+    };
     await soft.remove(item.id);
     assert.equal((await ledgerRow(ref))?.recordId, item.id);
+    assert.ok(objectKey(), "論理削除では実物を残す");
     await soft.restore(item.id);
     assert.equal((await ledgerRow(ref))?.status, "ready");
     await soft.hardDelete(item.id);
     assert.equal((await ledgerRow(ref))?.reason, "record_removed");
+    assert.equal(objectKey(), undefined, "物理削除の commit 後に実物を消す");
   });
 
   test("実物の削除に失敗しても、台帳は deleted のまま掃除の対象に残る", async () => {

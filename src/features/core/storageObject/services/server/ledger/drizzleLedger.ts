@@ -110,6 +110,23 @@ export const drizzleLedger: StorageLedger = {
     return rows.map((r) => r.id);
   },
 
+  async listUnattachedOwnedBy(ownerUserId, input) {
+    const rows = await db
+      .select({ id: T.id })
+      .from(T)
+      .where(
+        and(
+          eq(T.ownerUserId, ownerUserId),
+          inArray(T.status, ["pending", "ready"]),
+          isNull(T.recordId),
+          input.afterId ? gt(T.id, input.afterId) : undefined,
+        ),
+      )
+      .orderBy(asc(T.id))
+      .limit(input.limit);
+    return rows.map((r) => r.id);
+  },
+
   async listAttached(input) {
     // 主キーの順に走査する（照合は一巡に時間がかかってよいので、専用の index は足さない）
     const rows = await db
