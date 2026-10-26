@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { toCamelCase, toPascalCase, toSnakeCase } from '../../../../src/utils/stringCase.mjs';
+import { domainTableName } from '../../utils/tableName.mjs';
 
 // Drizzle entity generator
 // Usage:
@@ -30,7 +31,7 @@ if (!fs.existsSync(configPath)) {
 
 
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-const tableName = toSnakeCase(config.plural || normalized);
+const tableName = domainTableName(normalized, config);
 
 function mapType(t) {
   switch (t) {

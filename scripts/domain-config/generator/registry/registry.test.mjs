@@ -9,6 +9,7 @@ import path from "node:path";
 import { removeObjectEntry, scanObjectEntries, upsertObjectEntry } from "./utils/objectEntry.mjs";
 import { ACCESS_PRESETS, PRESET_RULES, serializeAccess, serializeRule } from "./utils/presetAccess.mjs";
 import writeDomainEntry, { buildDomainEntryAccess, renderDomainEntry } from "./writeDomainEntry.mjs";
+import { domainTableName } from "../../utils/tableName.mjs";
 import updateSchemaRegistry from "./updateSchemaRegistry.mjs";
 import updateDomainConfigRegistry from "./updateDomainConfigRegistry.mjs";
 
@@ -209,6 +210,30 @@ test("renderDomainEntry: 遅延 import のキー付きオブジェクトと、�
   // 静的 import は許可された 2 モジュールだけ（registry:check が縛る契約）
   const imports = [...text.matchAll(/^import .* from "([^"]+)";$/gm)].map((m) => m[1]);
   assert.deepEqual(imports, ["@/lib/domain/types", "@/config/app/domain-api-access.config"]);
+});
+
+test("renderDomainEntry: table / idColumn を service の直後に書く（表名は domain.json の plural、無ければドメイン名の snake_case。Firestore は null）", () => {
+  const withPlural = renderDomainEntry({ camel: "sampleCategory", config: { apiAccess: API_ACCESS, plural: "sample_categories", dbEngine: "Neon" } });
+  assert.match(
+    withPlural,
+    /service: \(\) => import\("\.\/sampleCategoryService"\)\.then\(\(m\) => m\.sampleCategoryService\),\n\s+table: "sample_categories",\n\s+idColumn: "id",\n\s+access: \{/,
+  );
+  const camelPlural = renderDomainEntry({ camel: "blogPost", config: { apiAccess: API_ACCESS, plural: "blogPosts" } });
+  assert.match(camelPlural, /table: "blog_posts",/);
+  const noPlural = renderDomainEntry({ camel: "blogPost", config: { apiAccess: API_ACCESS } });
+  assert.match(noPlural, /table: "blog_post",/);
+  const noConfig = renderDomainEntry({ camel: "blogPost", config: null });
+  assert.match(noConfig, /table: "blog_post",\n\s+idColumn: "id",/);
+  const firestore = renderDomainEntry({ camel: "chatLog", config: { apiAccess: API_ACCESS, dbEngine: "Firestore" } });
+  assert.match(firestore, /table: null,\n\s+idColumn: null,/);
+  assert.doesNotMatch(firestore, /table: "/);
+});
+
+test("domainTableName: 表の定義の生成器と同じ式（plural 優先、snake_case）", () => {
+  assert.equal(domainTableName("sample", { plural: "samples" }), "samples");
+  assert.equal(domainTableName("sampleTag", { plural: "sample_tags" }), "sample_tags");
+  assert.equal(domainTableName("sampleTag", {}), "sample_tag");
+  assert.equal(domainTableName("sample_tag", null), "sample_tag");
 });
 
 test("writeDomainEntry: domain.json から services/server/domainEntry.ts を書き、再実行で差分なし。apiAccess 未宣言は警告", (t) => {

@@ -9,6 +9,8 @@ import { ADMIN_RULE, PUBLIC_READ } from "@/config/app/domain-api-access.config";
 export const domainEntries = {
   sample: {
     service: () => import("./sampleService").then((m) => m.sampleService),
+    table: "samples",
+    idColumn: "id",
     access: {
       ...PUBLIC_READ,
       operations: {
