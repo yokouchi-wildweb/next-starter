@@ -11,6 +11,7 @@
     "test:crud-hooks": "node --test src/lib/crud/hooks/internal/*.test.mjs",
     "test:crud-search-rank": "node --test src/lib/crud/drizzle/query/searchRank.test.mjs src/lib/crud/drizzle/query/withIdTiebreak.test.mjs",
     "test:crud-collections-db": "cross-env APP_ENV=.env.development npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/crud/collections/collections.db.test.ts",
+    "test:crud-sort-collation-db": "cross-env APP_ENV=.env.development npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/crud/drizzle/fractionalSort/sortCollation.db.test.ts",
     "test:schema-registry": "node --test scripts/registry/check-schema-registry.test.mjs",
     "test:service-registry": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/serviceRegistry/serviceRegistry.test.mjs",
     "test:wiring": "node --test src/wiring/wiring.test.mjs",

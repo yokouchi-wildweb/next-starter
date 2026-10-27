@@ -8,6 +8,7 @@
 import { getTableColumns, getTableName, sql, type SQL } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
+import { isTextSortKey, sortKeyExpr } from "../drizzle/fractionalSort/sortKeyOrder";
 import type { CrudCollectionConfig } from "./types";
 
 /** 並び順を作るのに要る集まりの列（collections の宣言をそのまま渡せる） */
@@ -34,7 +35,7 @@ export function resolveCollectionOrder(columns: CollectionColumns, label?: strin
   if (sortType !== "string" && sortType !== "number") {
     throw new Error(`${name}: sortColumn must be a text (fractional key) or integer column.`);
   }
-  return { childTable, childId, textSort: sortType === "string" };
+  return { childTable, childId, textSort: isTextSortKey(columns.sortColumn) };
 }
 
 /**
@@ -47,7 +48,6 @@ export function qualifiedColumn(column: AnyPgColumn): SQL {
 
 /** 集まりの ORDER BY の式（並びの列 [COLLATE "C"] ASC NULLS LAST, id ASC） */
 export function collectionOrderBy(columns: CollectionColumns, resolved: ResolvedCollectionOrder): SQL[] {
-  const sortColumn = qualifiedColumn(columns.sortColumn);
-  const sort = resolved.textSort ? sql`${sortColumn} collate "C" asc nulls last` : sql`${sortColumn} asc nulls last`;
-  return [sort, sql`${qualifiedColumn(resolved.childId)} asc`];
+  const sort = sortKeyExpr(columns.sortColumn, qualifiedColumn(columns.sortColumn));
+  return [sql`${sort} asc nulls last`, sql`${qualifiedColumn(resolved.childId)} asc`];
 }

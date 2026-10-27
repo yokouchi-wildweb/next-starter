@@ -1,9 +1,10 @@
 // src/lib/crud/drizzle/fractionalSort/server.ts
 
 import { db } from "@/lib/drizzle";
-import { eq, gt, asc, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { PgTable, AnyPgColumn } from "drizzle-orm/pg-core";
 import { generateSortKey, generateFirstSortKey } from "./index";
+import { sortKeyAsc, sortKeyDesc, sortKeyGt } from "./sortKeyOrder";
 
 type SortOrderRecord = { sortOrder: string | null };
 
@@ -44,7 +45,7 @@ export async function calculateNewSortOrder<TTable extends PgTable>(
     const firstResults = await db
       .select({ sortOrder: sortOrderColumn })
       .from(table as any)
-      .orderBy(asc(sortOrderColumn))
+      .orderBy(sortKeyAsc(sortOrderColumn))
       .limit(1) as SortOrderRecord[];
 
     const firstSortOrder = firstResults[0]?.sortOrder ?? null;
@@ -69,8 +70,8 @@ export async function calculateNewSortOrder<TTable extends PgTable>(
   const nextResults = await db
     .select({ sortOrder: sortOrderColumn })
     .from(table as any)
-    .where(gt(sortOrderColumn, afterSortOrder))
-    .orderBy(asc(sortOrderColumn))
+    .where(sortKeyGt(sortOrderColumn, afterSortOrder))
+    .orderBy(sortKeyAsc(sortOrderColumn))
     .limit(1) as SortOrderRecord[];
 
   const nextSortOrder = nextResults[0]?.sortOrder ?? null;
@@ -92,7 +93,7 @@ export async function calculateLastSortOrder<TTable extends PgTable>(
   const results = await db
     .select({ sortOrder: sortOrderColumn })
     .from(table as any)
-    .orderBy(desc(sortOrderColumn))
+    .orderBy(sortKeyDesc(sortOrderColumn))
     .limit(1) as SortOrderRecord[];
 
   const lastSortOrder = results[0]?.sortOrder ?? null;

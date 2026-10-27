@@ -48,6 +48,7 @@ import { applyRequestMemo } from "./requestMemo";
 import { applyHiddenColumns } from "./hiddenColumns";
 import { applyStorageBinding } from "../storageIntegration/applyStorageBinding";
 import { applyCollectionDuplicate, applyCollections } from "../collections/applyCollections";
+import { sortKeyAsc, sortKeyDesc, sortKeyGt } from "./fractionalSort/sortKeyOrder";
 import type { CollectionDuplicateResult, CollectionFieldsAugmented } from "../collections/types";
 import type { StorageFieldsAugmented } from "../storageIntegration/types";
 
@@ -600,7 +601,7 @@ export function createCrudService<
             const firstResults = await executor
               .select({ sortOrder: sortOrderColumn })
               .from(table as any)
-              .orderBy(asc(sortOrderColumn))
+              .orderBy(sortKeyAsc(sortOrderColumn))
               .limit(1) as { sortOrder: string | null }[];
             const firstSortOrder = firstResults[0]?.sortOrder ?? null;
             (finalInsert as Record<string, any>)[sortOrderFieldName] = generateFirstSortKey(firstSortOrder);
@@ -660,7 +661,7 @@ export function createCrudService<
       let query: any = db.select().from(table as any);
       const softDeleteFilter = buildSoftDeleteFilter();
       if (softDeleteFilter) query = query.where(softDeleteFilter);
-      const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
+      const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy, { sortKeyColumn: sortOrderColumn });
       if (orderClauses.length) query = query.orderBy(...orderClauses);
       query = query.limit(limit);
       const results = (await query) as Select[];
@@ -678,7 +679,7 @@ export function createCrudService<
 
     async listWithDeleted(options?: WithOptions): Promise<Select[]> {
       let query: any = db.select().from(table as any);
-      const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy);
+      const orderClauses = buildOrderBy(table, serviceOptions.defaultOrderBy, { sortKeyColumn: sortOrderColumn });
       if (orderClauses.length) query = query.orderBy(...orderClauses);
       const results = (await query) as Select[];
 
@@ -1046,7 +1047,7 @@ export function createCrudService<
       const orderClauses = composeSearchOrderBy(table, orderBy, {
         rank: rankOrderClause,
         extra: extraOrderBy,
-        base: buildOrderBy(table, orderBy),
+        base: buildOrderBy(table, orderBy, { sortKeyColumn: sortOrderColumn }),
       });
       const result = await runQuery<Select>(table, baseQuery, {
         page,
@@ -1140,7 +1141,7 @@ export function createCrudService<
       const orderClauses = composeSearchOrderBy(table, orderBy, {
         rank: rankOrderClause,
         extra: extraOrderBy,
-        base: buildOrderBy(table, orderBy),
+        base: buildOrderBy(table, orderBy, { sortKeyColumn: sortOrderColumn }),
       });
       const result = await runQuery<Select>(table, baseQuery, {
         page,
@@ -2247,7 +2248,7 @@ export function createCrudService<
         const firstResults = await executor
           .select({ sortOrder: sortOrderColumn })
           .from(table as any)
-          .orderBy(asc(sortOrderColumn))
+          .orderBy(sortKeyAsc(sortOrderColumn))
           .limit(1) as { sortOrder: string | null }[];
 
         const firstSortOrder = firstResults[0]?.sortOrder ?? null;
@@ -2270,8 +2271,8 @@ export function createCrudService<
           const nextResults = await executor
             .select({ sortOrder: sortOrderColumn })
             .from(table as any)
-            .where(gt(sortOrderColumn, afterSortOrder))
-            .orderBy(asc(sortOrderColumn))
+            .where(sortKeyGt(sortOrderColumn, afterSortOrder))
+            .orderBy(sortKeyAsc(sortOrderColumn))
             .limit(1) as { sortOrder: string | null }[];
 
           const nextSortOrder = nextResults[0]?.sortOrder ?? null;
@@ -2325,7 +2326,7 @@ export function createCrudService<
         .select({ sortOrder: sortOrderColumn })
         .from(table as any)
         .where(sql`${sortOrderColumn} IS NOT NULL`)
-        .orderBy(desc(sortOrderColumn))
+        .orderBy(sortKeyDesc(sortOrderColumn))
         .limit(1) as { sortOrder: string | null }[];
 
       const prevKey = maxResults[0]?.sortOrder ?? null;
@@ -2400,7 +2401,7 @@ export function createCrudService<
         .select({ id: idColumn })
         .from(table as any)
         .where(inArray(idColumn, nullIds))
-        .orderBy(...buildOrderBy(table, initOrderBy)) as { id: string }[];
+        .orderBy(...buildOrderBy(table, initOrderBy, { sortKeyColumn: sortOrderColumn })) as { id: string }[];
 
       const orderedNullIds = orderedNullItems.map((item) => String(item.id));
 
