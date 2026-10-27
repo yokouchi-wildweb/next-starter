@@ -14,7 +14,13 @@ export type {
   AuditConfig,
   BulkAuditMode,
 } from "./types";
-export { syncCollection, validateCollectionValues, firstInCollection, firstInCollectionSql } from "../collections";
+export {
+  syncCollection,
+  validateCollectionValues,
+  firstInCollection,
+  firstInCollectionSql,
+  duplicateWithCollections,
+} from "../collections";
 export type {
   SyncCollectionParams,
   CrudCollectionConfig,
@@ -24,4 +30,7 @@ export type {
   CollectionColumns,
   FirstInCollectionOptions,
   FirstInCollectionSqlOptions,
+  CollectionDuplicateParentService,
+  CollectionDuplicateResult,
+  DuplicateWithCollectionsParams,
 } from "../collections";

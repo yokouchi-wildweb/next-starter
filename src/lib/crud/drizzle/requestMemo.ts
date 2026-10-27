@@ -16,6 +16,7 @@ const WRITE_METHOD_NAMES = [
   "hardDelete",
   "upsert",
   "duplicate",
+  "duplicateWithIdMap",
   "reorder",
   "initializeSortOrder",
   // searchForSorting は NULL sort_order の自動初期化で書き込みが発生し得る

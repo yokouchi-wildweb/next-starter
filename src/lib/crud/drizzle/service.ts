@@ -47,7 +47,8 @@ import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateHasMany, DEFAULT_
 import { applyRequestMemo } from "./requestMemo";
 import { applyHiddenColumns } from "./hiddenColumns";
 import { applyStorageBinding } from "../storageIntegration/applyStorageBinding";
-import { applyCollections } from "../collections/applyCollections";
+import { applyCollectionDuplicate, applyCollections } from "../collections/applyCollections";
+import type { CollectionDuplicateResult } from "../collections/types";
 import type { StorageFieldsAugmented } from "../storageIntegration/types";
 
 const resolveRecordId = (value: unknown): string | number | undefined => {
@@ -2123,6 +2124,18 @@ export function createCrudService<
     },
 
     /**
+     * duplicate と同じ複製をし、集まりの項目ごとの「複製元の従属の id → 複製した従属の id」の対応表も返す。
+     * collections オプションの無いサービスでは idMaps は空（複製は duplicate のまま）
+     */
+    async duplicateWithIdMap(
+      id: string,
+      options?: DuplicateOptions,
+      tx?: DbTransaction,
+    ): Promise<CollectionDuplicateResult<Select>> {
+      return { record: await this.duplicate(id, options, tx), idMaps: {} };
+    },
+
+    /**
      * テーブルの全データを物理削除する（TRUNCATE CASCADE）
      * belongsToMany中間テーブルも削除対象となる
      *
@@ -2427,5 +2440,10 @@ export function createCrudService<
         conflictTarget: (upsertOptions) => resolveConflictTarget(table, serviceOptions, upsertOptions),
       })
     : withCollections;
-  return applyHiddenColumns(applyRequestMemo(withStorage, serviceOptions.requestMemo === true), table);
+  // collections の複製は storage binding の外側で包む（主のファイルは storage 層の duplicateStorageValues で写し、
+  // 主の create は storage binding → 集まりの層を通る）
+  const withCollectionDuplicate: typeof withStorage = serviceOptions.collections?.length
+    ? applyCollectionDuplicate(withStorage, serviceOptions.collections)
+    : withStorage;
+  return applyHiddenColumns(applyRequestMemo(withCollectionDuplicate, serviceOptions.requestMemo === true), table);
 }

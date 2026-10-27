@@ -24,6 +24,11 @@ export type CrudStorageField = {
  */
 export type StorageFieldsAugmented = {
   readonly storageFields?: readonly CrudStorageField[];
+  /**
+   * 複製元の行のメディア列を新しい ref に写した値（binding.duplicateValues。TX の外で呼ぶ）。
+   * 集まりの複製（duplicateWithCollections）が主と従属のファイルを写すのに使う。storage を指定しないサービスでは undefined
+   */
+  readonly duplicateStorageValues?: (source: Record<string, unknown>) => Promise<Record<string, unknown>>;
 };
 
 /**

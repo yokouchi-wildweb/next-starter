@@ -7,7 +7,8 @@
 // - soft delete・restore: 何もしない（restore で戻せるように紐付けを残す）
 // - replaceByQuery: 対象の旧行を FOR UPDATE で読み、置き換えた直後に afterReplace（旧行全体と新しい行全体の差分）。
 //   afterReplace の無い binding では DomainError（台帳を通らない置き換えをさせない）
-// - duplicate: TX の外で先に duplicateValues（複製）→ 新しい行の create（そこで紐付け）
+// - duplicate / duplicateWithIdMap: TX の外で先に duplicateValues（複製）→ 新しい行の create（そこで紐付け）
+// - duplicateStorageValues: binding.duplicateValues をそのまま読み取り専用で出す（集まりの複製が使う）
 // - bulkUpdate* / bulkUpsert: メディア列を変える呼び出しは DomainError（行ごとの差分計算は初版の範囲外）
 // - storageFields: binding の列の宣言をそのまま読み取り専用で出す（dataMigration がメディア列を知る正本）
 // - 呼び出し元が tx を渡さなければ内部で TX を張り、commit 後に afterCommit で実物を片付ける。
@@ -29,6 +30,7 @@ type Row = Record<string, unknown>;
 
 type StorageBindingAugmented = {
   readonly storageFields: readonly CrudStorageField[];
+  readonly duplicateStorageValues: (source: Row) => Promise<Row>;
 };
 
 type ApplyStorageBindingContext = {
@@ -54,6 +56,7 @@ type StorageAwareService = {
   bulkUpsert(records: any[], options?: any, tx?: DbTransaction): Promise<any>;
   replaceByQuery(where: WhereExpr, records: any[], replaceOptions?: ReplaceByQueryOptions, tx?: DbTransaction): Promise<any[]>;
   duplicate(id: string, options?: DuplicateOptions, tx?: DbTransaction): Promise<any>;
+  duplicateWithIdMap(id: string, options?: DuplicateOptions, tx?: DbTransaction): Promise<{ record: any; idMaps: any }>;
   get(id: string): Promise<any>;
 };
 
@@ -132,6 +135,8 @@ export function applyStorageBinding<TService extends StorageAwareService>(
     ...service,
 
     storageFields: binding.fields,
+
+    duplicateStorageValues: (source) => binding.duplicateValues(source),
 
     async create(data, tx) {
       return runInTx(tx, async (executor) => {
@@ -231,6 +236,10 @@ export function applyStorageBinding<TService extends StorageAwareService>(
       const copiedValues = await binding.duplicateValues(record as Row);
       const newData = { ...buildDuplicateData(record as Row, options), ...copiedValues };
       return wrapped.create(newData, tx);
+    },
+
+    async duplicateWithIdMap(id, options, tx) {
+      return { record: await wrapped.duplicate(id, options, tx), idMaps: {} };
     },
   };
 

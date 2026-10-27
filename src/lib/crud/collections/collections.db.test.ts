@@ -1,6 +1,7 @@
 // src/lib/crud/collections/collections.db.test.ts
 // createCrudService の collections オプション（ドメイン集約の差分同期）の実 DB テスト。
 // 開発 DB に専用の表 test_crud_coll_*（主・従属・読み出し用・照合順序用）を作り、終了時に DROP する（それ以外には書かない）。
+// 複製のケースは fake のストレージポートとテスト用の binding を使う（features には依存しない）。
 // C 以外の照合順序のケースは、DB にその照合順序（ICU / glibc の en_US）が無ければ明示して飛ばす。
 // DATABASE_URL が無ければ全件 skip。
 // 実行: pnpm test:crud-collections-db
@@ -15,6 +16,7 @@ import { randomUUID } from "node:crypto";
 import { asc, eq, isNull, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { generateInitialSortKeys } from "@/lib/crud/drizzle/fractionalSort";
+import type { CrudStorageBinding } from "@/lib/crud/storageIntegration/types";
 
 const envFile = resolve(process.cwd(), process.env.APP_ENV ?? ".env.development");
 if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
@@ -82,6 +84,28 @@ const CollItemTable = pgTable("test_crud_coll_collate_items", {
   sort: text("sort"),
 });
 
+// 複製用: 主（ファイルの列あり）・ファイルの集まり（ref がファイル）・ファイルでない集まり（integer の並び）
+const DupParentTable = pgTable("test_crud_coll_dup_parents", {
+  id: uuid("id").primaryKey(),
+  name: text("name").notNull(),
+  photo: text("photo"),
+});
+
+const DupMediaTable = pgTable("test_crud_coll_dup_media", {
+  id: uuid("id").primaryKey(),
+  parentId: uuid("parent_id").notNull(),
+  ref: text("ref").notNull(),
+  caption: text("caption"),
+  sort: text("sort"),
+});
+
+const DupTagTable = pgTable("test_crud_coll_dup_tags", {
+  id: uuid("id").primaryKey(),
+  parentId: uuid("parent_id").notNull(),
+  ref: text("ref").notNull(),
+  sort: integer("sort"),
+});
+
 // C と順序が変わる照合順序の候補（大文字小文字を一次で区別しない）
 const NON_C_COLLATIONS = ["en-US-x-icu", "und-x-icu", "en_US.utf8", "en_US.UTF-8"];
 
@@ -97,6 +121,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   let syncCollection: typeof import("@/lib/crud/drizzle").syncCollection;
   let firstInCollection: typeof import("@/lib/crud/drizzle").firstInCollection;
   let firstInCollectionSql: typeof import("@/lib/crud/drizzle").firstInCollectionSql;
+  let duplicateWithCollections: typeof import("@/lib/crud/drizzle").duplicateWithCollections;
   let child: any;
   let parent: any;
   let plain: any;
@@ -111,6 +136,9 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
       "test_crud_coll_collate_items",
       "test_crud_coll_read_items",
       "test_crud_coll_read_parents",
+      "test_crud_coll_dup_media",
+      "test_crud_coll_dup_tags",
+      "test_crud_coll_dup_parents",
     ]) {
       await db.execute(sql`drop table if exists ${sql.identifier(name)}`);
     }
@@ -118,7 +146,9 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
 
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
-    ({ createCrudService, syncCollection, firstInCollection, firstInCollectionSql } = await import("@/lib/crud/drizzle"));
+    ({ createCrudService, syncCollection, firstInCollection, firstInCollectionSql, duplicateWithCollections } = await import(
+      "@/lib/crud/drizzle"
+    ));
 
     child = createCrudService(ItemTable as never, { idType: "uuid", systemColumns: ["sort"] });
     itemsCollection = {
@@ -161,6 +191,24 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
         ref text not null,
         caption text,
         sort text
+      )
+    `);
+    await db.execute(sql`create table test_crud_coll_dup_parents (id uuid primary key, name text not null, photo text)`);
+    await db.execute(sql`
+      create table test_crud_coll_dup_media (
+        id uuid primary key,
+        parent_id uuid not null references test_crud_coll_dup_parents(id) on delete cascade,
+        ref text not null,
+        caption text,
+        sort text
+      )
+    `);
+    await db.execute(sql`
+      create table test_crud_coll_dup_tags (
+        id uuid primary key,
+        parent_id uuid not null references test_crud_coll_dup_parents(id) on delete cascade,
+        ref text not null,
+        sort integer
       )
     `);
     const found = (await db.execute(sql`
@@ -710,5 +758,291 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     assert.deepEqual(remaining.map((row) => row.id), [original.id]);
     assert.deepEqual(result.rows.map((row) => row.ref), refs);
     assert.deepEqual((await collParent.get(target.id)).items, refs);
+  });
+
+  // ---- 複製（2 段: 従属のファイルを TX の外で写す → 主と従属を 1 TX で作る） ----
+  // ストレージは fake ポート、binding はテスト用（複製は fake の copy、紐付けは Map に記録）
+
+  type TestBinding = CrudStorageBinding & { bound: Map<string, unknown> };
+  let fake: import("@/lib/storage/server/fake").FakeStoragePort;
+  let copyCalls = 0;
+  let failCopyAt = 0; // n 回目の copy を失敗させる（0 = 失敗させない）
+
+  const locationOf = (ref: string) => ({ bucket: "test-bucket", path: ref });
+  const uploadRef = async (label: string): Promise<string> => {
+    const ref = `fake://${label}/${randomUUID()}`;
+    await fake.put(locationOf(ref), new Uint8Array(1), { contentType: "image/png", cacheControl: "test" } as never);
+    return ref;
+  };
+  const testBinding = (field: string, label: string): TestBinding => {
+    const bound = new Map<string, unknown>();
+    return {
+      bound,
+      fields: [{ name: field, purpose: `testColl.${label}` }],
+      async afterWrite(_tx, before, after) {
+        const value = after[field];
+        if (typeof value === "string" && value !== before?.[field]) bound.set(value, after.id);
+        return null;
+      },
+      async afterHardDelete() {
+        return null;
+      },
+      async duplicateValues(source) {
+        const value = source[field];
+        if (typeof value !== "string") return {};
+        copyCalls += 1;
+        if (copyCalls === failCopyAt) throw new Error("copy failed");
+        const copied = `fake://${label}/${randomUUID()}`;
+        await fake.copy(locationOf(value), locationOf(copied), { cacheControl: "test" } as never);
+        return { [field]: copied };
+      },
+      async afterCommit() {},
+    };
+  };
+
+  type DupFixture = {
+    parentBinding: TestBinding;
+    mediaBinding: TestBinding;
+    mediaChild: any;
+    tagChild: any;
+    gallery: any;
+    tags: any;
+    dupParent: any;
+  };
+  let dupFixture: DupFixture | undefined;
+
+  const setupDup = async (): Promise<DupFixture> => {
+    if (dupFixture) return dupFixture;
+    const { createFakeStoragePort } = await import("@/lib/storage/server/fake");
+    fake = createFakeStoragePort();
+    const parentBinding = testBinding("photo", "parent");
+    const mediaBinding = testBinding("ref", "media");
+    const mediaChild = createCrudService(DupMediaTable as never, {
+      idType: "uuid",
+      systemColumns: ["sort"],
+      storage: mediaBinding,
+    });
+    const tagChild = createCrudService(DupTagTable as never, { idType: "uuid", systemColumns: ["sort"] });
+    const gallery = {
+      fieldName: "gallery",
+      service: () => mediaChild,
+      parentColumn: DupMediaTable.parentId,
+      refColumn: DupMediaTable.ref,
+      sortColumn: DupMediaTable.sort,
+    };
+    const tags = {
+      fieldName: "tags",
+      service: () => tagChild,
+      parentColumn: DupTagTable.parentId,
+      refColumn: DupTagTable.ref,
+      sortColumn: DupTagTable.sort,
+    };
+    const dupParent = createCrudService(DupParentTable as never, {
+      idType: "uuid",
+      storage: parentBinding,
+      collections: [gallery, tags],
+    });
+    dupFixture = { parentBinding, mediaBinding, mediaChild, tagChild, gallery, tags, dupParent };
+    return dupFixture;
+  };
+
+  const mediaRows = async (parentId: string) =>
+    (await db
+      .select()
+      .from(DupMediaTable)
+      .where(eq(DupMediaTable.parentId, parentId))
+      .orderBy(asc(DupMediaTable.sort), asc(DupMediaTable.id))) as Row[];
+  const tagRows = async (parentId: string) =>
+    (await db
+      .select()
+      .from(DupTagTable)
+      .where(eq(DupTagTable.parentId, parentId))
+      .orderBy(asc(DupTagTable.sort), asc(DupTagTable.id))) as Row[];
+  const countOf = async (name: string) =>
+    Number(((await db.execute(sql`select count(*)::int as n from ${sql.identifier(name)}`)) as unknown as Row[])[0].n);
+  const dupCounts = async () => ({
+    parents: await countOf("test_crud_coll_dup_parents"),
+    media: await countOf("test_crud_coll_dup_media"),
+    tags: await countOf("test_crud_coll_dup_tags"),
+  });
+
+  /** 主のファイル・ファイルの集まり 3 件（2 件目に caption）・ファイルでない集まり 2 件を持つ複製元 */
+  const createDupSource = async (f: DupFixture) => {
+    const photo = await uploadRef("parent");
+    const refs = [await uploadRef("media"), await uploadRef("media"), await uploadRef("media")];
+    const source = await f.dupParent.create({ name: "src", photo, gallery: refs, tags: ["t1", "t2"] });
+    await db.update(DupMediaTable).set({ caption: "second" }).where(eq(DupMediaTable.ref, refs[1]));
+    return { source, photo, refs };
+  };
+
+  test("複製: 従属のファイルを新しい ref に写し、主と従属を作る（主のファイルは主の binding、並びは振り直し）", async () => {
+    const f = await setupDup();
+    const { source, photo, refs } = await createDupSource(f);
+    const sourceMedia = await mediaRows(source.id);
+
+    const copy = await f.dupParent.duplicate(source.id);
+    assert.equal(copy.name, "src_コピー");
+    // 主のファイルは主の binding で写して紐付く
+    assert.notEqual(copy.photo, photo);
+    assert.equal(f.parentBinding.bound.get(copy.photo), copy.id);
+    assert.equal(fake.objects.has(`test-bucket/${copy.photo}`), true);
+
+    // ファイルの集まり: 新しい ref（元の ref を使わない）・複製元の並び順・新しい従属に紐付く
+    const copiedMedia = await mediaRows(copy.id);
+    assert.equal(copiedMedia.length, 3);
+    assert.deepEqual(copy.gallery, copiedMedia.map((row) => row.ref));
+    for (const row of copiedMedia) {
+      assert.equal(refs.includes(row.ref), false);
+      assert.equal(f.mediaBinding.bound.get(row.ref), row.id);
+      assert.equal(fake.objects.has(`test-bucket/${row.ref}`), true);
+    }
+    assert.deepEqual(copiedMedia.map((row) => row.caption), [null, "second", null]);
+    assert.deepEqual(copiedMedia.map((row) => row.sort), keys(3));
+
+    // ファイルでない集まり（binding なし）は値をそのまま、integer の並びは添字
+    assert.deepEqual(copy.tags, ["t1", "t2"]);
+    assert.deepEqual((await tagRows(copy.id)).map((row) => [row.ref, row.sort]), [["t1", 0], ["t2", 1]]);
+
+    // 複製元はそのまま
+    assert.deepEqual(await mediaRows(source.id), sourceMedia);
+    assert.equal(f.mediaBinding.bound.get(refs[0]), sourceMedia[0].id);
+    assert.deepEqual((await tagRows(source.id)).map((row) => row.ref), ["t1", "t2"]);
+  });
+
+  test("複製: 従属が 0 件なら集まりは空、対応表も空", async () => {
+    const f = await setupDup();
+    const source = await f.dupParent.create({ name: "none" });
+    const { record, idMaps } = await f.dupParent.duplicateWithIdMap(source.id);
+    assert.deepEqual(record.gallery, []);
+    assert.deepEqual(record.tags, []);
+    assert.equal(idMaps.gallery.size, 0);
+    assert.equal(idMaps.tags.size, 0);
+    assert.deepEqual(await mediaRows(record.id), []);
+  });
+
+  test("複製: 宣言の duplicate: false の集まりは写さない（複製元の従属はそのまま）", async () => {
+    const f = await setupDup();
+    const { source } = await createDupSource(f);
+    const off = createCrudService(DupParentTable as never, {
+      idType: "uuid",
+      storage: f.parentBinding,
+      collections: [{ ...f.gallery, duplicate: false }, f.tags],
+    }) as any;
+    const before = await mediaRows(source.id);
+    const copy = await off.duplicate(source.id);
+    assert.deepEqual(copy.gallery, []);
+    assert.deepEqual(await mediaRows(copy.id), []);
+    assert.deepEqual(copy.tags, ["t1", "t2"]);
+    assert.deepEqual(await mediaRows(source.id), before);
+  });
+
+  test("duplicateWithIdMap: 集まりごとに複製元の従属の id → 複製した従属の id を返す。duplicate は主の行だけ", async () => {
+    const f = await setupDup();
+    const { source } = await createDupSource(f);
+    const { record, idMaps } = await f.dupParent.duplicateWithIdMap(source.id);
+    const sourceMedia = await mediaRows(source.id);
+    const copiedMedia = await mediaRows(record.id);
+    assert.deepEqual(
+      [...idMaps.gallery.entries()],
+      sourceMedia.map((row, index) => [row.id, copiedMedia[index].id]),
+    );
+    const sourceTags = await tagRows(source.id);
+    const copiedTags = await tagRows(record.id);
+    assert.deepEqual([...idMaps.tags.entries()], sourceTags.map((row, index) => [row.id, copiedTags[index].id]));
+
+    const plainCopy = await f.dupParent.duplicate(source.id);
+    assert.equal("idMaps" in plainCopy, false);
+    assert.equal(plainCopy.gallery.length, 3);
+  });
+
+  test("複製: 1 段目（ファイルの複製）が失敗すれば throw し、主も従属も書かない", async () => {
+    const f = await setupDup();
+    const { source } = await createDupSource(f);
+    const before = await dupCounts();
+    copyCalls = 0;
+    failCopyAt = 3; // 主 → 従属 1 件目 → 従属 2 件目で失敗
+    try {
+      await assert.rejects(f.dupParent.duplicate(source.id), /copy failed/);
+    } finally {
+      failCopyAt = 0;
+    }
+    assert.deepEqual(await dupCounts(), before);
+  });
+
+  test("複製: 2 段目（行の作成）が失敗すれば TX ごと巻き戻り、主も従属も残らない", async () => {
+    const f = await setupDup();
+    const { source } = await createDupSource(f);
+    let creates = 0;
+    const failing = createCrudService(DupParentTable as never, {
+      idType: "uuid",
+      storage: f.parentBinding,
+      collections: [
+        f.gallery,
+        {
+          ...f.tags,
+          service: () => ({
+            ...f.tagChild,
+            create: async (data: unknown, tx: unknown) => {
+              creates += 1;
+              if (creates === 2) throw new Error("child down");
+              return f.tagChild.create(data, tx);
+            },
+          }),
+        },
+      ],
+    }) as any;
+    const before = await dupCounts();
+    await assert.rejects(failing.duplicate(source.id), /child down/);
+    assert.deepEqual(await dupCounts(), before);
+  });
+
+  test("単独の duplicateWithCollections は base の duplicate なしで同じ結果になり、主の create に集まりの配列を渡さない", async () => {
+    const f = await setupDup();
+    const { source } = await createDupSource(f);
+    const inputs: Row[] = [];
+    const handWritten = {
+      get: (id: string) => f.dupParent.get(id),
+      create: async (data: Row, tx?: unknown) => {
+        inputs.push(data);
+        return f.dupParent.create(data, tx);
+      },
+      duplicateStorageValues: f.dupParent.duplicateStorageValues,
+    };
+    const direct = await duplicateWithCollections({ service: handWritten, collections: [f.gallery, f.tags], id: source.id });
+    assert.equal(inputs.length, 1);
+    assert.equal("gallery" in inputs[0], false);
+    assert.equal("tags" in inputs[0], false);
+
+    const viaService = await f.dupParent.duplicateWithIdMap(source.id);
+    const shape = async (result: { record: Row; idMaps: Record<string, Map<unknown, unknown>> }) => ({
+      name: result.record.name,
+      tags: result.record.tags,
+      galleryCount: result.record.gallery.length,
+      captions: (await mediaRows(result.record.id as string)).map((row) => row.caption),
+      mapSizes: Object.fromEntries(Object.entries(result.idMaps).map(([key, map]) => [key, map.size])),
+    });
+    assert.deepEqual(await shape(direct as never), await shape(viaService));
+  });
+
+  test("集まりの無いサービスの複製は今のまま（storage だけ・オプションなし）、duplicateWithIdMap の対応表は空", async () => {
+    const f = await setupDup();
+    const photo = await uploadRef("parent");
+    const storageOnly = createCrudService(DupParentTable as never, { idType: "uuid", storage: f.parentBinding }) as any;
+    const source = await storageOnly.create({ name: "storage-only", photo });
+    const copy = await storageOnly.duplicate(source.id);
+    assert.notEqual(copy.photo, photo);
+    assert.equal(f.parentBinding.bound.get(copy.photo), copy.id);
+    assert.equal("gallery" in copy, false);
+    const mapped = await storageOnly.duplicateWithIdMap(source.id);
+    assert.deepEqual(mapped.idMaps, {});
+    assert.notEqual(mapped.record.photo, photo);
+
+    const none = createCrudService(DupParentTable as never, { idType: "uuid" }) as any;
+    const plainSource = await none.create({ name: "plain", photo: "as-is" });
+    const plainCopy = await none.duplicate(plainSource.id, { name: "renamed" });
+    assert.equal(plainCopy.name, "renamed");
+    assert.equal(plainCopy.photo, "as-is");
+    assert.equal("gallery" in plainCopy, false);
+    assert.deepEqual((await none.duplicateWithIdMap(plainSource.id)).idMaps, {});
   });
 });

@@ -18,7 +18,12 @@ import { DomainError } from "@/lib/errors";
 
 import type { DbTransaction } from "../drizzle/types";
 import { collectionOrderBy, resolveCollectionOrder, type ResolvedCollectionOrder } from "./collectionOrder";
-import type { CollectionRef, CollectionSyncResult, CrudCollectionConfig } from "./types";
+import type {
+  CollectionRef,
+  CollectionSyncResult,
+  CrudCollectionChildService,
+  CrudCollectionConfig,
+} from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -108,6 +113,31 @@ export function validateCollectionValues(collection: CrudCollectionConfig, value
   return value as CollectionRef[];
 }
 
+/**
+ * 従属の 1 行の並びの値を systemUpdate で書く（同期と複製の共通部）。
+ * 従属の systemColumns に並びの列が無ければ、分かるエラー（500）にする
+ */
+export async function writeCollectionSort(
+  executor: DbTransaction,
+  child: CrudCollectionChildService,
+  collection: CrudCollectionConfig,
+  resolved: ResolvedCollectionColumns,
+  row: Row,
+  sort: string | number,
+): Promise<Row> {
+  try {
+    return (await child.systemUpdate(String(row.id), { [resolved.sortProp]: sort }, executor)) as Row;
+  } catch (error) {
+    if (error instanceof DomainError && error.message.includes("systemColumns")) {
+      throw new DomainError(
+        `collections "${collection.fieldName}": 従属のサービス（${getTableName(resolved.childTable)}）の systemColumns に並びの列 "${resolved.sortProp}" を宣言してください`,
+        { status: 500 },
+      );
+    }
+    throw error;
+  }
+}
+
 /** 検査済みの値で、渡された TX の中で同期する（applyCollections と syncCollection の共通部） */
 export async function syncCollectionInTx(
   executor: DbTransaction,
@@ -148,19 +178,8 @@ export async function syncCollectionInTx(
     await child.hardDelete(String(row.id), executor);
   }
 
-  const writeSort = async (row: Row, sort: string | number): Promise<Row> => {
-    try {
-      return (await child.systemUpdate(String(row.id), { [sortProp]: sort }, executor)) as Row;
-    } catch (error) {
-      if (error instanceof DomainError && error.message.includes("systemColumns")) {
-        throw new DomainError(
-          `collections "${collection.fieldName}": 従属のサービス（${getTableName(childTable)}）の systemColumns に並びの列 "${sortProp}" を宣言してください`,
-          { status: 500 },
-        );
-      }
-      throw error;
-    }
-  };
+  const writeSort = (row: Row, sort: string | number) =>
+    writeCollectionSort(executor, child, collection, resolved, row, sort);
 
   // 親の中の並びを配列順に振り直す（値が同じ行は書かない）
   const sorts = sortValues(values.length);

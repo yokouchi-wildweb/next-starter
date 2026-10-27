@@ -10,6 +10,8 @@
 //   searchForSorting）: 返した主の行に、集まりごとに ref の配列を全件（件数の上限なし）並び順で載せる。
 //   集まり 1 つにつき呼び出し 1 回で 1 クエリ（主の id の IN）。従属が無ければ []。restore / reorder /
 //   systemUpdate / bulk 系の戻り値には載せない（省略 = 維持なので保存しても失わない）
+// - duplicate / duplicateWithIdMap: applyCollectionDuplicate が storage binding の外側で包み、
+//   duplicateWithCollections（2 段の複製）を呼ぶ
 // - 呼び出し元が tx を渡さなければ内部で TX を張る（従属の hardDelete のファイルの片付けは従属の
 //   storage binding の動きのまま: 外から tx を渡すので掃除 cron が片付ける）
 
@@ -21,9 +23,12 @@ import { DomainError } from "@/lib/errors";
 import type { ReplaceByQueryOptions, WhereExpr } from "@/lib/crud/types";
 
 import type { DbTransaction } from "../drizzle/types";
+import type { DuplicateOptions } from "@/lib/crud/types";
+
 import { collectionOrderBy } from "./collectionOrder";
+import { duplicateWithCollections } from "./duplicateWithCollections";
 import { resolveCollectionColumns, syncCollectionInTx, validateCollectionValues } from "./syncCollection";
-import type { CollectionRef, CrudCollectionConfig } from "./types";
+import type { CollectionDuplicateParentService, CollectionRef, CrudCollectionConfig } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -242,5 +247,33 @@ export function applyCollections<TService extends CollectionAwareService>(
     },
   };
 
+  return wrapped;
+}
+
+type DuplicateAwareService = CollectionDuplicateParentService & {
+  duplicate(id: string, options?: DuplicateOptions, tx?: DbTransaction): Promise<any>;
+  duplicateWithIdMap(id: string, options?: DuplicateOptions, tx?: DbTransaction): Promise<any>;
+};
+
+/**
+ * duplicate / duplicateWithIdMap を 2 段の複製（duplicateWithCollections）に差し替える。
+ * storage binding の外側で包む: 主の get・create・duplicateStorageValues はこの包んだサービス自身を通るので、
+ * 主のファイルは主の binding で写して紐付き、主の create は集まりの層（項目なし = そのまま）を通る
+ */
+export function applyCollectionDuplicate<TService extends DuplicateAwareService>(
+  service: TService,
+  collections: readonly CrudCollectionConfig[],
+): TService {
+  const wrapped: TService = {
+    ...service,
+
+    async duplicate(id, options, tx) {
+      return (await duplicateWithCollections({ service: wrapped, collections, id, options }, tx)).record;
+    },
+
+    async duplicateWithIdMap(id, options, tx) {
+      return duplicateWithCollections({ service: wrapped, collections, id, options }, tx);
+    },
+  };
   return wrapped;
 }
