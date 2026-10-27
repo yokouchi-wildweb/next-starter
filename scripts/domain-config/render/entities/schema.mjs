@@ -1,83 +1,52 @@
-// entities/schema.ts（Zod スキーマ: Base / Create / Update）。formInput: "none" の項目は含めない（"custom" は含める）
+// entities/schema.ts（Zod スキーマ: Base / Create / Update）。formInput: "none" の項目は含めない（"custom" は含める）。
+// 型 → Zod の対応は spec/fieldTypes.mjs の表。メディア列・配列・enum だけここで形を変える
 
 import { resolveFieldName } from "../../domain/fieldName.mjs";
+import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
+import { isArrayFieldType, isTextFieldType, isTimestampFieldType, zodType } from "../../spec/fieldTypes.mjs";
 
-const DATETIME_TYPE = "nullableDatetime";
-const REQUIRED_DATETIME_TYPE = "requiredDatetime";
-const STRING_FIELD_TYPES = ["string", "email", "password", "mediaUploader", "date", "time", "uuid"];
-const TRIM_FIELD_TYPES = ["string", "email", "password", "uuid", "date", "time", "mediaUploader"];
-
-function mapZodType(type, required = false) {
-  switch (type) {
-    case "string":
-    case "email":
-    case "password":
-    case "uuid":
-    case "mediaUploader":
-      return "z.string()";
-    case "integer":
-    case "number":
-      return "z.coerce.number().int()";
-    case "float":
-      return "z.coerce.number()";
-    case "boolean":
-      return "z.coerce.boolean()";
-    case "array":
-    case "stringArray":
-      return "z.array(z.string())";
-    case "date":
-    case "time":
-      return "z.string()";
-    case "timestamp":
-    case "timestamp With Time Zone":
-      return required ? REQUIRED_DATETIME_TYPE : DATETIME_TYPE;
-    case "jsonb":
-      return "z.unknown()";
-    default:
-      return "z.any()";
-  }
-}
-
-const isTimestampField = (fieldType) => fieldType === "timestamp" || fieldType === "timestamp With Time Zone";
 const formatSchemaDefault = (value) => (typeof value === "string" ? `"${value}"` : value);
 
-/** 使った補助関数を記録しながら 1 項目の行を作る */
-function fieldLine(uses, { name, label, type, required, fieldType, defaultValue, validationRule }) {
-  const resolvedLabel = label || name;
-  // メディア列: 値は storage ref または http(s)（凍結した旧 URL）。新しい行に旧 URL を書けるかは CRUD 連動（storage binding）が判定する
+/** メディア列: 値は storage ref または http(s)（凍結した旧 URL）。新しい行に旧 URL を書けるかは CRUD 連動（storage binding）が判定する */
+function mediaLine(uses, { name, label, required, fieldType, validationRule }) {
+  uses.storageMediaValue = true;
   if (fieldType === "mediaUploader") {
-    uses.storageMediaValue = true;
     if (required) {
-      return `  ${name}: z.string().trim().min(1, { message: "${resolvedLabel}は必須です。" }).pipe(storageMediaValueSchema),`;
+      return `  ${name}: z.string().trim().min(1, { message: "${label}は必須です。" }).pipe(storageMediaValueSchema),`;
     }
     uses.emptyToNull = true;
     return `  ${name}: z.string().trim().nullish()\n    .transform((value) => emptyToNull(value))\n    .pipe(storageMediaValueSchema.nullish()),`;
   }
-  if (fieldType === "mediaUploaderMulti") {
-    uses.storageMediaValue = true;
-    // 複数枚アップローダ: 常に default([])。required は min(1) として表現
-    const minItems = typeof validationRule?.minItems === "number" ? validationRule.minItems : required ? 1 : 0;
-    const maxItems = typeof validationRule?.maxItems === "number" ? validationRule.maxItems : 10;
-    const segments = [`  ${name}: z.array(storageMediaValueSchema)`];
-    if (minItems > 0) {
-      segments.push(`.min(${minItems}, { message: "${resolvedLabel}は${minItems}件以上必要です。" })`);
-    }
-    segments.push(`.max(${maxItems}, { message: "${resolvedLabel}は${maxItems}件以下にしてください。" })`, ".default([])", ",");
-    return segments.join("");
+  // 複数枚アップローダ: 常に default([])。required は min(1) として表現
+  const minItems = typeof validationRule?.minItems === "number" ? validationRule.minItems : required ? 1 : 0;
+  const maxItems = typeof validationRule?.maxItems === "number" ? validationRule.maxItems : 10;
+  const segments = [`  ${name}: z.array(storageMediaValueSchema)`];
+  if (minItems > 0) {
+    segments.push(`.min(${minItems}, { message: "${label}は${minItems}件以上必要です。" })`);
   }
-  if (fieldType === "array" || fieldType === "stringArray") {
+  segments.push(`.max(${maxItems}, { message: "${label}は${maxItems}件以下にしてください。" })`, ".default([])", ",");
+  return segments.join("");
+}
+
+/** 使った補助関数を記録しながら 1 項目の行を作る */
+function fieldLine(uses, { name, label, type, required, fieldType, defaultValue, validationRule }) {
+  const resolvedLabel = label || name;
+  if (fieldType === "mediaUploader" || fieldType === "mediaUploaderMulti") {
+    return mediaLine(uses, { name, label: resolvedLabel, required, fieldType, validationRule });
+  }
+  if (isArrayFieldType(fieldType)) {
     return required ? `  ${name}: ${type}.default([]),` : `  ${name}: ${type}.nullish(),`;
   }
-  if (isTimestampField(fieldType)) {
+  if (isTimestampFieldType(fieldType)) {
     if (required) uses.requiredDatetime = true;
     else uses.nullableDatetime = true;
   }
 
   const msgLabel = name.endsWith("Id") ? `${resolvedLabel}ID` : resolvedLabel;
-  const isString = STRING_FIELD_TYPES.includes(fieldType);
+  const isText = isTextFieldType(fieldType);
   const segments = [`  ${name}: ${type}`];
-  if (TRIM_FIELD_TYPES.includes(fieldType)) segments.push(".trim()");
-  if (required && type.startsWith("z.string()") && isString) {
+  if (isText) segments.push(".trim()");
+  if (required && type.startsWith("z.string()") && isText) {
     segments.push(`.min(1, { message: "${msgLabel}は必須です。" })`);
   }
   // jsonb の required チェック（z.unknown() は undefined を許容するため refine で制御）
@@ -88,7 +57,7 @@ function fieldLine(uses, { name, label, type, required, fieldType, defaultValue,
   if (!required && fieldType === "email") segments.push(`.or(z.literal(''))`);
   if (!required) {
     segments.push(".nullish()");
-    if (isString) {
+    if (isText) {
       uses.emptyToNull = true;
       segments.push(`\n    .transform((value) => emptyToNull(value))`);
     }
@@ -123,23 +92,21 @@ export function renderSchema(ctx) {
   const uses = {};
   const lines = [];
 
-  (config.relations || []).forEach((rel) => {
-    if (rel.relationType !== "belongsTo") return;
+  belongsToRelations(config).forEach((rel) => {
     const fieldType = rel.fieldType || config.idType;
     lines.push(
       fieldLine(uses, {
         name: resolveFieldName(rel.fieldName, dbEngine),
         label: rel.label || rel.fieldName,
-        type: mapZodType(fieldType),
+        type: zodType(fieldType),
         required: rel.required,
         fieldType,
       }),
     );
   });
   // belongsToMany は id の配列
-  (config.relations || []).forEach((rel) => {
-    if (rel.relationType !== "belongsToMany" || rel.includeRelationTable === false) return;
-    lines.push(`  ${resolveFieldName(rel.fieldName, dbEngine)}: z.array(${mapZodType(rel.fieldType || config.idType)}).default([]),`);
+  belongsToManyRelations(config).forEach((rel) => {
+    lines.push(`  ${resolveFieldName(rel.fieldName, dbEngine)}: z.array(${zodType(rel.fieldType || config.idType)}).default([]),`);
   });
   (config.fields || []).forEach((f) => {
     if (f.formInput === "none") return;
@@ -153,7 +120,7 @@ export function renderSchema(ctx) {
         fieldLine(uses, {
           name: fieldName,
           label: f.label || f.name,
-          type: mapZodType(f.fieldType, f.required),
+          type: zodType(f.fieldType, f.required),
           required: f.required,
           fieldType: f.fieldType,
           defaultValue: f.defaultValue,

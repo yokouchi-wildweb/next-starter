@@ -1,41 +1,9 @@
-// entities/drizzle.ts の列定義（id と fields）。belongsTo の外部キー列は foreignKeys.mjs、中間テーブルは junction.mjs
+// entities/drizzle.ts の列定義（id と fields）。belongsTo の外部キー列は foreignKeys.mjs、中間テーブルは junction.mjs。
+// 型 → 列関数の対応は spec/fieldTypes.mjs の表（配列・enum・タイムゾーン付きだけここで形を変える）
 
 import { toSnakeCase } from "../../../../../src/utils/stringCase.mjs";
 import { enumNames } from "../../../domain/names.mjs";
-
-/** domain.json の fieldType → drizzle-orm/pg-core の列関数名 */
-export function mapType(t) {
-  switch (t) {
-    case "string":
-    case "email":
-    case "password":
-    case "mediaUploader":
-    case "mediaUploaderMulti":
-      return "text";
-    case "integer":
-      return "integer";
-    case "float":
-      return "doublePrecision";
-    case "bigint":
-      return "bigint";
-    case "numeric(10,2)":
-      return "numeric";
-    case "boolean":
-      return "boolean";
-    case "date":
-      return "date";
-    case "time":
-      return "time";
-    case "uuid":
-      return "uuid";
-    case "timestamp With Time Zone":
-      return "timestamp";
-    case "jsonb":
-      return "jsonb";
-    default:
-      return t;
-  }
-}
+import { columnFunction, isArrayFieldType } from "../../../spec/fieldTypes.mjs";
 
 export function buildColumn(typeFn, columnName) {
   if (typeFn === "bigint") {
@@ -66,6 +34,11 @@ export function idColumn(config, imports) {
   }
 }
 
+/** text[] の列（必須は NOT NULL + 空配列既定、任意は nullable = 既存データの NULL を許容） */
+function arrayColumn(name, required) {
+  return required ? `  ${name}: text("${toSnakeCase(name)}").array().default([]).notNull(),` : `  ${name}: text("${toSnakeCase(name)}").array(),`;
+}
+
 /**
  * fields の列定義。
  * @returns {{ lines: string[], enumDefs: string[], uniqueFields: { name: string, columnName: string }[] }}
@@ -80,8 +53,7 @@ export function fieldColumns(ctx, imports) {
   const uniqueFields = [];
 
   (config.fields || []).forEach((f) => {
-    const hasDefaultValue = f.defaultValue !== undefined;
-    const defaultSuffix = hasDefaultValue ? `.default(${formatValue(f.defaultValue)})` : "";
+    const defaultSuffix = f.defaultValue !== undefined ? `.default(${formatValue(f.defaultValue)})` : "";
 
     if (f.fieldType === "enum") {
       imports.add("pgEnum");
@@ -90,26 +62,20 @@ export function fieldColumns(ctx, imports) {
       enumDefs.push(`export const ${names.constName} = pgEnum("${names.enumName}", [${values}]);`);
       const notNull = f.required ? ".notNull()" : "";
       lines.push(`  ${f.name}: ${names.constName}("${toSnakeCase(f.name)}")${notNull}${defaultSuffix},`);
-    } else if (f.fieldType === "array" || f.fieldType === "stringArray") {
+    } else if (isArrayFieldType(f.fieldType)) {
       imports.add("text");
-      if (f.required) {
-        // required: true → NOT NULL + デフォルト空配列
-        lines.push(`  ${f.name}: text("${toSnakeCase(f.name)}").array().default([]).notNull(),`);
-      } else {
-        // required: false → nullable（既存データの NULL を許容）
-        lines.push(`  ${f.name}: text("${toSnakeCase(f.name)}").array(),`);
-      }
+      lines.push(arrayColumn(f.name, f.required));
     } else if (f.fieldType === "mediaUploaderMulti") {
       // mediaUploaderMulti は常に NOT NULL + 空配列既定（null/[] の混在を避ける）
       imports.add("text");
-      lines.push(`  ${f.name}: text("${toSnakeCase(f.name)}").array().default([]).notNull(),`);
+      lines.push(arrayColumn(f.name, true));
     } else if (f.fieldType === "timestamp With Time Zone") {
       imports.add("timestamp");
       let column = `timestamp("${toSnakeCase(f.name)}", { withTimezone: true })`;
       if (f.required) column += ".notNull()";
       lines.push(`  ${f.name}: ${column},`);
     } else {
-      const typeFn = mapType(f.fieldType);
+      const typeFn = columnFunction(f.fieldType);
       imports.add(typeFn);
       const columnName = toSnakeCase(f.name);
       const column = buildColumn(typeFn, columnName);

@@ -1,15 +1,13 @@
 // フィールドの質問のうち「デフォルト値」の部分。型に応じて選択式・真偽・数値・文字列で聞く
 
 import inquirer from "inquirer";
-import { isNumericFieldType } from "./options.mjs";
+import { allowsDefaultValue, isNumericFieldType } from "../../spec/fieldTypes.mjs";
 
 const prompt = inquirer.createPromptModule();
 
-const DEFAULT_VALUE_EXCLUDED_TYPES = new Set(["timestamp", "timestamp With Time Zone", "array", "stringArray", "jsonb"]);
-
 export async function askDefaultValue(fieldType, options) {
   // 対象外のフィールドタイプはスキップ
-  if (DEFAULT_VALUE_EXCLUDED_TYPES.has(fieldType)) {
+  if (!allowsDefaultValue(fieldType)) {
     return undefined;
   }
 

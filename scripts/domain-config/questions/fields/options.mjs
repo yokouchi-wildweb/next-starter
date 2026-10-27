@@ -1,14 +1,9 @@
 // フィールドの質問のうち「選択肢（options）」の部分。select / radio / checkbox / enum / array の値とラベルを聞く
 
 import inquirer from "inquirer";
+import { isArrayFieldType, isNumericFieldType } from "../../spec/fieldTypes.mjs";
 
 const prompt = inquirer.createPromptModule();
-
-const NUMERIC_FIELD_TYPES = new Set(["number", "integer", "float", "bigint", "numeric(10,2)"]);
-
-export function isNumericFieldType(fieldType) {
-  return NUMERIC_FIELD_TYPES.has(fieldType);
-}
 
 function parseOptionValue(input, parseValue) {
   const trimmed = input.trim();
@@ -68,7 +63,7 @@ async function askOptions(parseValue) {
  */
 export async function askFieldOptions({ fieldType, normalizedInput }) {
   const isBooleanField = fieldType === "boolean";
-  const isArrayField = fieldType === "array" || fieldType === "stringArray";
+  const isArrayField = isArrayFieldType(fieldType);
   const isEnumField = fieldType === "enum";
   const isNumericField = isNumericFieldType(fieldType);
 

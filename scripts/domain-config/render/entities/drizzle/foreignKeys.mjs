@@ -3,7 +3,8 @@
 import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../../src/utils/stringCase.mjs";
 import { buildShortFkName, isFkNameTooLong } from "../../../domain/names.mjs";
 import { buildOnDeleteOption, foreignTableName, getOnDeleteBehavior } from "../../../domain/relations.mjs";
-import { buildColumn, mapType } from "./columns.mjs";
+import { columnFunction } from "../../../spec/fieldTypes.mjs";
+import { buildColumn } from "./columns.mjs";
 
 const ON_DELETE_LITERAL = { CASCADE: '"cascade"', SET_NULL: '"set null"', RESTRICT: '"restrict"' };
 
@@ -36,7 +37,7 @@ export function belongsToColumns(ctx, workspace, tableName, imports, relationImp
     const relationDomainCamel = toCamelCase(rel.domain);
     const relationDomainPascal = toPascalCase(rel.domain);
     relationImports.set(relationDomainCamel, relationDomainPascal);
-    const colType = mapType(rel.fieldType || config.idType);
+    const colType = columnFunction(rel.fieldType || config.idType);
     imports.add(colType);
     const columnName = toSnakeCase(rel.fieldName);
     let column;

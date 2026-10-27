@@ -1,6 +1,7 @@
 // dc:init / dc:add のフィールド定義の質問。1 項目 = 名前 → 表示名 → 型 → 入力種別 → （メディアの追加質問）→ 必須 → 選択肢 → デフォルト値
 
 import inquirer from "inquirer";
+import { isArrayFieldType } from "../../spec/fieldTypes.mjs";
 import { FORM_INPUTS } from "../../spec/formInputs.mjs";
 import { toCamelCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
 import { askMediaDetails } from "./media.mjs";
@@ -39,7 +40,7 @@ function buildField({ trimmedName, trimmedLabel, fieldType, normalizedInput, req
     ...(options && options.length ? { options } : {}),
     ...(defaultValue !== undefined ? { defaultValue } : {}),
   };
-  const isArrayField = fieldType === "array" || fieldType === "stringArray";
+  const isArrayField = isArrayFieldType(fieldType);
   if (normalizedInput === "radio" || (normalizedInput === "checkbox" && isArrayField)) {
     field.displayType = "standard";
   }
@@ -74,7 +75,7 @@ async function askSingleField(config) {
   });
   const normalizedInput = toCamelCase(formInput);
 
-  const isArrayField = fieldType === "array" || fieldType === "stringArray";
+  const isArrayField = isArrayFieldType(fieldType);
   const isMediaField = normalizedInput === "mediaUploader" || normalizedInput === "mediaUploaderMulti";
   const media = isMediaField ? await askMediaDetails(trimmedName, normalizedInput) : {};
 

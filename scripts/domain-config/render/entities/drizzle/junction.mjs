@@ -3,7 +3,8 @@
 import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../../src/utils/stringCase.mjs";
 import { buildShortFkName, isFkNameTooLong } from "../../../domain/names.mjs";
 import { foreignTableName } from "../../../domain/relations.mjs";
-import { buildColumn, mapType } from "./columns.mjs";
+import { columnFunction } from "../../../spec/fieldTypes.mjs";
+import { buildColumn } from "./columns.mjs";
 
 /**
  * 中間テーブルの情報を集める。FK 名の 63 字超過はここ（import 行の確定前）で判定し、必要なら imports に foreignKey を足す
@@ -15,7 +16,7 @@ export function collectJunctionTables(ctx, workspace, tableName, imports, relati
 
   (config.relations || []).forEach((rel) => {
     if (rel.relationType !== "belongsToMany" || rel.includeRelationTable === false) return;
-    const typeFn = mapType(rel.fieldType || config.idType);
+    const typeFn = columnFunction(rel.fieldType || config.idType);
     imports.add(typeFn);
     const relationDomainCamel = toCamelCase(rel.domain);
     const relationDomainPascal = toPascalCase(rel.domain);

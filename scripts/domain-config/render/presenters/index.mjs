@@ -1,9 +1,11 @@
-// generateFiles.presenters: presenters.ts（一覧・詳細表示のフォーマッタ。メディア列は formatMediaThumbnail(s) で表示用 URL に解決）
+// generateFiles.presenters: presenters.ts（一覧・詳細表示のフォーマッタ。メディア列は formatMediaThumbnail(s) で表示用 URL に解決）。
+// 型 → フォーマッタの種類は spec/fieldTypes.mjs の表、無ければ formInput で決める
 
 import path from "node:path";
 import { toCamelCase, toPascalCase } from "../../../../src/utils/stringCase.mjs";
 import { requireConfig } from "../../domain/context.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
+import { presenterKind } from "../../spec/fieldTypes.mjs";
 import { file } from "../output.mjs";
 
 const DATETIME_FORMATTER = `formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
@@ -12,14 +14,11 @@ const buildOptionsMap = (options = []) => options.map((opt) => `"${String(opt.va
 
 function buildFormatter(field) {
   const { fieldType, formInput, options } = field;
-  switch (fieldType) {
+  switch (presenterKind(fieldType)) {
     case "boolean":
       return `formatBoolean(value, "はい", "いいえ")`;
-    case "integer":
     case "number":
-    case "float":
       return `formatNumber(value)`;
-    case "array":
     case "stringArray":
       return `formatStringArray(value)`;
     case "enum":

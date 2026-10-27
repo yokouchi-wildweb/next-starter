@@ -1,50 +1,19 @@
-// entities/model.ts（TS 型: 本体・WithRelations・WithCount・WithRelationsAndCount）
+// entities/model.ts（TS 型: 本体・WithRelations・WithCount・WithRelationsAndCount）。型 → TS の対応は spec/fieldTypes.mjs の表
 
 import { toCamelCase, toPascalCase, toPlural } from "../../../../src/utils/stringCase.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
-
-function mapTsType(t) {
-  switch (t) {
-    case "string":
-    case "email":
-    case "password":
-    case "uuid":
-    case "date":
-    case "time":
-    case "mediaUploader":
-      return "string";
-    case "integer":
-    case "number":
-    case "bigint":
-    case "float":
-    case "numeric(10,2)":
-      return "number";
-    case "boolean":
-      return "boolean";
-    case "array":
-    case "stringArray":
-    case "mediaUploaderMulti":
-      return "string[]";
-    case "timestamp":
-    case "timestamp With Time Zone":
-      return "Date";
-    case "jsonb":
-      return "any";
-    default:
-      return "any";
-  }
-}
+import { tsType } from "../../spec/fieldTypes.mjs";
 
 const typeLine = (name, type, required) => `  ${name}: ${required ? type : `${type} | null`};`;
 
 function bodyLines(config, dbEngine) {
-  const lines = [`  id: ${mapTsType(config.idType)};`];
+  const lines = [`  id: ${tsType(config.idType)};`];
   belongsToRelations(config).forEach((rel) => {
-    lines.push(typeLine(resolveFieldName(rel.fieldName, dbEngine), mapTsType(rel.fieldType || config.idType), rel.required));
+    lines.push(typeLine(resolveFieldName(rel.fieldName, dbEngine), tsType(rel.fieldType || config.idType), rel.required));
   });
   belongsToManyRelations(config).forEach((rel) => {
-    lines.push(`  ${resolveFieldName(rel.fieldName, dbEngine)}?: ${mapTsType(rel.fieldType || config.idType)}[];`);
+    lines.push(`  ${resolveFieldName(rel.fieldName, dbEngine)}?: ${tsType(rel.fieldType || config.idType)}[];`);
   });
   (config.fields || []).forEach((f) => {
     const fieldName = resolveFieldName(f.name, dbEngine);
@@ -53,7 +22,7 @@ function bodyLines(config, dbEngine) {
       lines.push(typeLine(fieldName, values, f.required));
     } else {
       // mediaUploaderMulti は常に NOT NULL なので required 扱い（null を返さない）
-      lines.push(typeLine(fieldName, mapTsType(f.fieldType), f.fieldType === "mediaUploaderMulti" ? true : f.required));
+      lines.push(typeLine(fieldName, tsType(f.fieldType), f.fieldType === "mediaUploaderMulti" ? true : f.required));
     }
   });
   if (config.useCreatedAt) lines.push("  createdAt: Date | null;");
