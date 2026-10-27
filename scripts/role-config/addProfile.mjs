@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import askProfileFields, { askTagMappings } from "./questions/profile-fields.mjs";
 import askProfileRelations from "./questions/profile-relations.mjs";
-import formatDomainConfig from "../domain-config/utils/formatConfig.mjs";
+import formatDomainConfig from "../domain-config/spec/format.mjs";
 import generate from "./generate.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

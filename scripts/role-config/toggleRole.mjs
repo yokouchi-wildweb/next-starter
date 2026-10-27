@@ -6,7 +6,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
-import formatDomainConfig from "../domain-config/utils/formatConfig.mjs";
+import formatDomainConfig from "../domain-config/spec/format.mjs";
 
 const prompt = inquirer.createPromptModule();
 

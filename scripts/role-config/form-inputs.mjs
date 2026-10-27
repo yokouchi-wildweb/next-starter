@@ -6,7 +6,7 @@
  * プロフィールフィールドで利用可能な fieldType と formInput の組み合わせ
  * ドメインJSON の FORM_INPUTS.Neon と同期。ただし mediaUploader は除く
  * （プロフィールのテーブルはファイル台帳への紐付け(storage binding)に未対応。src/features/core/userProfile/README.md）
- * @see scripts/domain-config/form-inputs.mjs
+ * @see scripts/domain-config/spec/formInputs.mjs
  */
 export const PROFILE_FORM_INPUTS = {
   string: ["text input", "textarea", "date input", "number input", "select", "hidden", "none"],

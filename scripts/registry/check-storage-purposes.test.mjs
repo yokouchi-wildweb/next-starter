@@ -16,7 +16,7 @@ import {
   buildStoragePurposeEntries,
   removeStoragePurposeEntries,
   syncStorageConfigImport,
-} from "../domain-config/generator/registry/updateStoragePurposeRegistry.mjs";
+} from "../domain-config/render/registry/storagePurpose/index.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MEDIA_FIELD_TYPES = new Set(["mediaUploader", "mediaUploaderMulti"]);

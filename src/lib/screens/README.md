@@ -349,7 +349,7 @@ export const FORK_LEGACY_ROUTES: LegacyRouteEntry[] = [
 ## 12. 生成される管理画面ルート（dc:generate）
 
 `dc:generate` が出す管理画面ルート（`src/app/admin/(protected)/<domains>/`、`new/`、`[id]/edit/`、`sort/`）も同じ構造で生成される。
-テンプレートは `src/app/admin/_template/__domains__/`、生成器は `scripts/domain-config/generator/admin-routes/`。
+テンプレートは `src/app/admin/_template/__domains__/`、生成器は `scripts/domain-config/render/adminRoutes/`。
 
 ```
 src/app/admin/(protected)/samples/

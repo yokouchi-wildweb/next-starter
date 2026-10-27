@@ -20,10 +20,10 @@
 | `pnpm dc:delete <Domain>` | `index.mjs --delete` | 生成物とレジストリ登録を削除する |
 | `pnpm dc:generate:hook` / `:component` / `:service` | `generate-*.mjs` | カテゴリ内のファイルを個別に選んで生成する（複数ドメイン可） |
 
-> **`--` は任意**: pnpm は `pnpm dc:generate -- Sample` の `--` をそのままスクリプトへ渡すが、スクリプト側（`utils/cliArgs.mjs`）が単独の `--` を捨てるので `pnpm dc:generate Sample` と同じ動きになる（`dc:add` / `dc:delete` も同じ）。
+> **`--` は任意**: pnpm は `pnpm dc:generate -- Sample` の `--` をそのままスクリプトへ渡すが、スクリプト側（`cli/args.mjs`）が単独の `--` を捨てるので `pnpm dc:generate Sample` と同じ動きになる（`dc:add` / `dc:delete` も同じ）。
 > `<Domain>` は snake_case / camelCase / PascalCase のどれでもよい（内部で正規化し、`src/features/<camelCase>/` を見る）。
-> 失敗（`domain.json` が無い、個別ジェネレーターの異常終了など）は終了コード 1 になる。
-> **フォルダ名 = `singular` の camelCase**（例: `name_pool_entry` → `src/features/namePoolEntry/`）が全ジェネレーターの前提。生成先・import・レジストリ登録・他ドメインからのリレーション import をすべてこの規則で組み立てるため、ずれているドメインがあると `dc:generate` / `dc:generate:all` は何も書かずに終了コード 1 で止まる（`utils/domainFolder.mjs`、`:all` は全件を事前検査）。直すときはフォルダを改名する（`singular` を変えるとテーブル名・FK 名が変わる）。
+> 失敗（`domain.json` が無い、検査で止まる、テンプレートが無いなど）は終了コード 1 になり、**何も書かない**（生成物は全部組み立ててから書くので、書きかけのファイルは残らない。例外は最後の `serviceRegistry.ts` の作り直しで、失敗してもそのドメインのファイルは書き終わっている）。
+> **フォルダ名 = `singular` の camelCase**（例: `name_pool_entry` → `src/features/namePoolEntry/`）が全ジェネレーターの前提。生成先・import・レジストリ登録・他ドメインからのリレーション import をすべてこの規則で組み立てるため、ずれているドメインがあると `dc:generate` / `dc:generate:all` は何も書かずに終了コード 1 で止まる（`checks/domainFolder.mjs`、`:all` は全件を事前検査）。直すときはフォルダを改名する（`singular` を変えるとテーブル名・FK 名が変わる）。
 
 ## 対話なし実行（`--yes`）
 
@@ -44,20 +44,20 @@
 - `--only registry` が書くのは `services/server/domainEntry.ts`（ドメイン内）と `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）。最後に `pnpm registry:generate` が serviceRegistry.ts を丸ごと作り直す（`dc:generate:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ。ドメインごとに作り直すと、まだ domainEntry.ts の無い他のドメインで検査が止まるため）
   - storagePurposeRegistry には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../src/features/README.md)「ファイルの保存（storage）」）
 - domainEntry.ts は毎回 domain.json から書き直す（domain.json の `apiAccess` / `useImportExport` が正。手で変えた access は消える。手で持ちたいなら `generateFiles.registry` を false）。`table` / `idColumn` も書く（表名は表の定義と同じ `domainTableName`、Firestore は `null`）
-- `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --yes --only registry`）。全カテゴリの再生成が避けられないときは、一時的な git worktree で実行して必要な差分だけを取り込むよう案内する
+- `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --yes --only registry`、フックだけ → `--only hooks`）。全カテゴリの再生成が避けられないときは、一時的な git worktree で実行して必要な差分だけを取り込むよう案内する
 
 ---
 
 ## `dc:init`
 
-質問の順（`init.mjs`、各質問は `questions/`）:
+質問の順（`cli/init.mjs`、各質問は `questions/`）:
 
 1. ドメイン名（snake_case）・複数形・表示名（`name.mjs`）
 2. DB（Neon / Firestore）と ID の種類（`basics.mjs`）
 3. リレーション（`relations.mjs`）
 4. `createdAt` / `updatedAt` / ソフトデリートの有無（`base-fields.mjs`）
 5. name フィールドの有無・必須（`name-field.mjs`）
-6. フィールド定義（`fields.mjs`。mediaUploader 系はファイル種別・最大サイズも聞き、`storage.visibility` と `storage.metadata`（画像は既定で位置情報などを消す。原本を残すなら `"keep"`）の書き方を案内する）
+6. フィールド定義（`fields/`。型ごとの入力種別は `spec/formInputs.mjs`。mediaUploader 系は `fields/media.mjs` がファイル種別・最大サイズも聞き、`storage.visibility` と `storage.metadata`（画像は既定で位置情報などを消す。原本を残すなら `"keep"`）の書き方を案内する）
 7. 複合ユニーク（`composite-uniques.mjs`）
 8. 一覧・管理画面の設定: 検索対象、並び順、表示列、詳細モーダル、複製ボタン、インポート/エクスポート、データ管理メニュー追加、オートセーブ（`view-config.mjs`）
 9. 汎用 API の読み取り / 書き込みの公開範囲（`api-access.mjs` → `apiAccess`）
@@ -67,12 +67,12 @@
 
 ## `dc:generate <Domain>`
 
-1. 生成方法を選ぶ（`generate.mjs`）
+1. 生成方法を選ぶ（`cli/generate.mjs`）
    - `domain.json の設定に基づいて生成`（既定）… `generateFiles` で true のカテゴリだけ
    - `生成カテゴリを手動で選択` … 今回だけカテゴリを選ぶ。選択を `domain.json` に保存するかも聞かれる
    - `すべてのファイルを生成` … 全カテゴリ
 2. 「既存の関係ファイルはすべて上書きされます。生成を実行しますか？」で Yes
-3. カテゴリごとのジェネレーター（`generator/`）が順に走る
+3. 生成（`pipeline/generate.mjs`）: 読む → 検査 → 全カテゴリの生成物を組み立てる → 書く → `serviceRegistry.ts` を作り直す
 
 ## `dc:generate:all`
 
@@ -91,25 +91,25 @@
 
 削除するもの: `src/features/<domain>/`（`domainEntry.ts` ごと）、`src/app/admin/(protected)/<domains>/`（`_components/` 含むルートごと）、選んだ追加ディレクトリ。レジストリからは `adminDataMenu.ts` / `schemaRegistry.ts` / `domainConfigRegistry.ts` の該当行を消し、`serviceRegistry.ts` は残った domainEntry.ts から `pnpm registry:generate` で作り直す。DB のテーブルは消さない。
 
-- `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`removeObjectEntry`。`tag` を消しても core の `user_tag` は残る）。キーは実在したドメインディレクトリ名から決める
+- `domainConfigMap` のエントリは、オブジェクト直下のキーが完全一致するものだけを複数行ごと消す（`text/objectEntry.mjs` の `removeObjectEntry`。`tag` を消しても core の `user_tag` は残る）。キーは実在したドメインディレクトリ名から決める
 - レジストリの更新に失敗してもディレクトリ削除は済んでいるため止めず、最後に手で直すファイルを表示して終了コード 1 で終わる
 
 ---
 
 ## 生成されるもの
 
-`generateFiles` のカテゴリと出力先（`<domain>` = camelCase 単数、`<domains>` = kebab-case 複数）。
+`generateFiles` のカテゴリと出力先（`<domain>` = camelCase 単数、`<domains>` = kebab-case 複数）。生成器は `render/<カテゴリ>/`。
 
 | カテゴリ | 出力 |
 |---|---|
 | `entities` | `entities/{model,form,schema,index}.ts` + `drizzle.ts`（Firestore なら `firestore.ts`） |
-| `components` | `components/Admin<Domain>{Create,Edit,List}/`、`components/common/{Create<Domain>Form,Edit<Domain>Form,<Domain>Form,<Domain>Fields}.tsx`。`useDetailModal` で `<Domain>DetailModal.tsx`、`sortOrderField` で `Admin<Domain>Sort/` |
-| `hooks` | `hooks/use*<Domain>.ts`（どれが生成されるかは [`src/lib/crud/hooks/README.md`](../../src/lib/crud/hooks/README.md)） |
+| `components` | `components/Admin<Domain>{Create,Edit,List}/`、`components/common/{Create<Domain>Form,Edit<Domain>Form,<Domain>Form,<Domain>Fields}.tsx`。`useDetailModal` で `<Domain>DetailModal.tsx`、`sortOrderField` で `Admin<Domain>Sort/`（一覧は `render/components/catalog.mjs`） |
+| `hooks` | `hooks/use*<Domain>.ts`（どれが生成されるかは `render/hooks/catalog.mjs`、使い方は [`src/lib/crud/hooks/README.md`](../../src/lib/crud/hooks/README.md)） |
 | `clientServices` | `services/client/<domain>Client.ts` |
 | `serverServices` | `services/server/drizzleBase.ts`（Firestore なら `firestoreBase.ts`）、`services/server/<domain>Service.ts`（無いときだけ）、`wrappers/`（無ければ作成）。メディア列（mediaUploader / mediaUploaderMulti）があれば drizzleBase に `storage: storageBindingFor("<domain>", [{ name, purpose: "<domain>.<field>", multi }])`（ファイル台帳との連動。複製・物理削除のファイル処理もここ。[src/lib/crud/README.md](../../src/lib/crud/README.md)「storage オプション」）。Firestore ドメインのメディア列は生成エラー |
 | `fieldConstants` | `constants/field.ts` と `types/field.ts`（`options` を持つフィールドがあるときだけ） |
 | `adminRoutes` | `src/app/admin/(protected)/<domains>/` の一覧・`new/`・`[id]/edit/`（`sortOrderField` で `sort/`） |
-| `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開し、`table` / `idColumn` を書く。`src/registry/serviceRegistry.ts` はここから `registry:generate` が生成）、`src/registry/` の `domainConfigRegistry.ts` / `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts` |
+| `registry` | `services/server/domainEntry.ts`（`apiAccess` / `useImportExport` を `access` に展開し、`table` / `idColumn` を書く。`src/registry/serviceRegistry.ts` はここから `registry:generate` が生成）、`src/registry/` の `domainConfigRegistry.ts` / `schemaRegistry.ts`（Firestore は登録しない）。`addToAdminDataMenu` なら `adminDataMenu.ts`。メディア列があれば `storagePurposeRegistry.ts` の AUTO ブロック |
 | `presenters` | `presenters.ts`（ドメイン直下。一覧・詳細表示のフォーマッタ。メディア列は `formatMediaThumbnail(s)` で ref を表示用 URL に解決） |
 
 ### 上書きの扱い
@@ -122,9 +122,7 @@
 | 毎回再生成 | 管理画面ルートの `_screen/Admin<Domain>{List,Create,Edit,Sort}Screen.tsx` |
 | 触らない（fork 所有） | 管理画面ルートの `_components/`、`wrappers/` に自分で置いたファイル、`hooks/` に自分で置いた生成名と異なるファイル |
 | 未登録なら追記 | `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（引用符・空白違いの既存行も登録済みとみなす） |
-| 毎回上書き（生成物） | `services/server/domainEntry.ts`（domain.json の `apiAccess`（無ければ fail-closed = `...ADMIN_ONLY`、初回は警告）と `useImportExport`（偽なら `export` / `import` を `"none"`）から書く。read / write がプリセットと一致すれば `...PUBLIC_READ` のように spread で、一致しなければリテラルで書く。`table` = `scripts/domain-config/utils/tableName.mjs` の `domainTableName`（表の定義の生成器 `generate-drizzle-entity.mjs` と共有。`plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`）。`src/registry/serviceRegistry.ts`（全 domainEntry.ts から `pnpm registry:generate` が丸ごと生成。dc:generate の最後に自動で走り、手書き行が残っていれば失敗して移し先を出す。`scripts/registry/serviceRegistry/`、仕組みは `src/lib/domain/README.md`） |
-
-テスト: `pnpm test:dc-registry`（domainEntry.ts の生成）、`pnpm test:service-registry`（serviceRegistry.ts の生成と検査）。
+| 毎回上書き（生成物） | `services/server/domainEntry.ts`（domain.json の `apiAccess`（無ければ fail-closed = `...ADMIN_ONLY`、初回は警告）と `useImportExport`（偽なら `export` / `import` を `"none"`）から書く。read / write がプリセットと一致すれば `...PUBLIC_READ` のように spread で、一致しなければリテラルで書く。`table` = `domain/names.mjs` の `domainTableName`（表の定義の生成器 `render/entities/drizzle/` と共有。`plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`）。`src/registry/serviceRegistry.ts`（全 domainEntry.ts から `pnpm registry:generate` が丸ごと生成。dc:generate の最後に自動で走り、手書き行が残っていれば失敗して移し先を出す。`scripts/registry/serviceRegistry/`、仕組みは `src/lib/domain/README.md`） |
 
 管理画面ルートの構造（`page.tsx` / `_screen/` / 共有 loader）は [`src/lib/screens/README.md`](../../src/lib/screens/README.md) §12。
 
@@ -133,7 +131,7 @@
 - **項目・選択肢・表示列など** → `domain.json` を直して再生成する（`fieldGroups` などもここ）
 - **フォームに独自項目・差し込み UI** → 生成された `<Domain>Form` / `<Domain>Fields` は FieldRenderer の props（`fieldPatches` / `insertBefore` / `insertAfter` / `fieldGroups` / `beforeField` 等）を受け取る。fork 所有の `_components/` に置いたフォーム・画面から渡す（[`src/components/Form/FieldRenderer/README.md`](../../src/components/Form/FieldRenderer/README.md)）。MediaUploader の commit/reset は `<Domain>Form` の `onMediaStateChange` で受ける
 - **管理画面のレイアウト** → `_screen/` を同じルートの `_components/` にコピーして `page.tsx` を向ける（以後の再生成は `_screen/` だけを更新する）
-- **CRUD の振る舞い** → `services/server/wrappers/` に置く。ただし `<domain>Service.ts` は `serverServices` 再生成で上書きされるので、そこに足した import / 上書きは再生成後に `git diff` で確認して戻す
+- **CRUD の振る舞い** → `services/server/wrappers/` に置き、write-once の `<domain>Service.ts` で組み込む
 - 手を入れたカテゴリを再生成から外したいときは `domain.json` の `generateFiles` でそのカテゴリを false にする
 
 ---
@@ -154,10 +152,45 @@
 
 テンプレート（`_template/`）や生成器を変えたとき: `pnpm dc:generate:all --yes` で全ドメインへ反映し、差分を確認してサンプルの再生成結果も一緒にコミットする。
 
-サンプルの陳腐化検査: `pnpm test:dc-sample-drift` は `sample` / `sampleCategory` / `sampleTag` を一時ディレクトリへ複製したうえで再生成し、コミット済みの生成物と 1 バイトでも違えば落ちる（作業ツリーは書き換えない）。fork が手本にするサンプルを、テンプレートの変更に追従させるための検査。生成物（`serviceRegistry.ts` の `AUTO-GENERATED` ブロックを含む）を手で整形すると落ちる。存在しないサンプルドメインは対象から外し、全部無ければスキップする（サンプルを消した fork では何もしない）。
-
 ## よくある失敗
 
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - MediaUploader の追加質問が出ない → フォーム入力の種類を `mediaUploader` / `mediaUploaderMulti` にしたフィールドでだけ出る
+
+---
+
+## 生成器の構造（直す人向け）
+
+生成は 1 本の流れで、層ごとに責務が分かれている。**render/ はファイルに触らず、書き込む内容（Output）を返す**。pipeline が全カテゴリの Output を集めてから書くので、途中の検査で止まっても書きかけが残らない。
+
+```
+cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左から右への一方向）
+```
+
+| 層 | 役目 | 置いてよいもの |
+|---|---|---|
+| `index.mjs` `add-field.mjs` `generate-*.mjs` | `pnpm dc:*` の入口（package.json が指す。中身は 1 行） | |
+| `cli/` | 引数の解釈（`args.mjs`）、対話（`prompts.mjs`、`init` / `generate` / `generateAll` / `delete` / `addField`、`pick/` = 個別選択）、`process.exit` | inquirer、process.exit、domain.json の書き出し |
+| `questions/` | `dc:init` / `dc:add` の質問。`fields/` は 1 項目の質問（`media.mjs` / `options.mjs` / `defaultValue.mjs`） | inquirer |
+| `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → apply → serviceRegistry）、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**。write-once / 旧形式の移行 / 変更なし / レジストリの部分書き換え）、`remove/`（dc:delete の本体） | fs（apply / remove のみ） |
+| `render/<カテゴリ>/` | 生成物の文字列を組む純関数。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
+| `checks/` | 生成前の検査（フォルダ名、Firestore のメディア列）。エラー文か null を返す | |
+| `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（DomainContext = 名前の全形 + domain.json。名前の導出はここだけ）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
+| `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
+| `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/registry も使う） | |
+| `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
+
+規則（`pnpm test:dc-structure`）: 1 ファイル 200 行以内（テスト 320）| `spec/` `domain/`（workspace 以外）`checks/` `render/` `text/` は fs・child_process・inquirer・process.exit を使わない | inquirer は `cli/` と `questions/` だけ、process.exit は `cli/` だけ | `render/` は `pipeline/` `cli/` を import しない。
+
+よくある変更の置き場:
+
+- **項目の種類を足す**（例: 新しい fieldType） → `spec/fieldTypes.mjs` に述語、`spec/formInputs.mjs` に入力種別、`questions/fields/` に質問（メディア系なら `media.mjs` の隣に）、各 `render/` は述語で分岐
+- **生成ファイルを足す** → そのカテゴリの `render/<カテゴリ>/` に `(ctx, workspace) → Output` を足し、カテゴリの `index.mjs` の配列に並べる（hooks / components は `catalog.mjs` に 1 行）。別のドメインの `domain.json` を書く場合も `writeOnce` の Output にする
+- **生成前の検査を足す** → `checks/` に「エラー文か null」を返す関数を足し、`checks/index.mjs` に並べる。生成の途中でしか分からない検査は render 内で例外を投げる（書く前なので書きかけは残らない）
+- **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す。どちらも `index.mjs` の `outputs` に並べるだけ
+- **複数ドメインの生成順** → `pipeline/generateAll.mjs`（対象の並び）と `domain/`（全 domain.json を読む関数は `workspace.listDomains` + `readConfig`）
+
+テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
+
+サンプルの陳腐化検査: `pnpm test:dc-sample-drift` は `sample` / `sampleCategory` / `sampleTag` を一時ディレクトリへ複製したうえで再生成し、コミット済みの生成物と 1 バイトでも違えば落ちる（作業ツリーは書き換えない）。fork が手本にするサンプルを、テンプレートの変更に追従させるための検査。生成物（`serviceRegistry.ts` の `AUTO-GENERATED` ブロックを含む）を手で整形すると落ちる。存在しないサンプルドメインは対象から外し、全部無ければスキップする（サンプルを消した fork では何もしない）。

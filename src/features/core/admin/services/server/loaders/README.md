@@ -37,7 +37,7 @@ JSON にできるものだけを受けるのは、`cache()` のキーに `JSON.s
 - **どのキーで渡すか** = 同じ helper の `relationOptionsKey`（`relationOptions:<domain,…>`）。`useRelationOptions` が同じキーで `useSWR` するので、SSR の結果が初回描画の選択肢になる（スケルトンを出さない）。クライアントはマウント時に 1 回再検証する（鮮度のため。別タブで足した選択肢が出ないままにならない）
 - **service の解決** = `await serviceRegistry[toCamelCase(domain)].service()` の `list()`（登録表のサービスは遅延読み込み）。クライアントが叩く `GET /api/<domain>` と同じ解決経路。registry に無いドメインや `list()` を持たない service は例外（設定ミスを黙って通さない）。wiring（`src/wiring/domains.ts`）への配線替えは別作業
 - `cache()` のキーは SWR キー文字列。同一リクエスト内で同じ関連集合なら 1 回だけ読む
-- 生成器（`scripts/domain-config/generator/admin-routes/helpers.mjs`）も同じ helper で「先読みする関連があるか」を判定し、無ければ `SWRConfig` も loader 呼び出しも出さない
+- 生成器（`scripts/domain-config/render/adminRoutes/relationTokens.mjs`）も同じ helper で「先読みする関連があるか」を判定し、無ければ `SWRConfig` も loader 呼び出しも出さない
 
 ## ユーザー向けページの loader（`_screen/loader.ts`）との違い
 

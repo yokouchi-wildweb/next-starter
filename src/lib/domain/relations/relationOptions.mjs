@@ -5,7 +5,7 @@
 // 使う側(3 者が同じ判定を共有する。ここ以外に同じ判定を書かない):
 //   - クライアント: src/lib/domain/hooks/useRelationOptions.ts(選択肢の取得と FieldConfig 生成)
 //   - サーバー:     src/features/core/admin/services/server/loaders/adminRelationOptions.ts(SSR 先読み → SWR fallback)
-//   - 生成器:       scripts/domain-config/generator/{admin-routes/helpers.mjs, components/utils/fields.mjs}
+//   - 生成器:       scripts/domain-config/render/{adminRoutes/relationTokens.mjs, components/fields.mjs}
 // .mjs なのは、tsx を通さない生成器(node)からも TypeScript からも import できるようにするため(src/utils/stringCase.mjs と同じ)。
 
 /** ユーザー入力時に非同期検索する formInput(選択肢を全件取得しない) */

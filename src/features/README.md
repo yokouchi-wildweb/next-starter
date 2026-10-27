@@ -78,7 +78,7 @@
 
 #### onDelete（削除時の挙動）
 
-belongsTo の外部キーに付く参照先削除時の挙動。`dc:generate` が `entities/drizzle.ts` の `.references()` 第2引数（FK 名が 63 文字を超える場合は短縮名の `foreignKey(...).onDelete()`）に出力する（`scripts/domain-config/generator/entities/generate-drizzle-entity.mjs` の `getOnDeleteBehavior` / `buildOnDeleteOption`）。
+belongsTo の外部キーに付く参照先削除時の挙動。`dc:generate` が `entities/drizzle.ts` の `.references()` 第2引数（FK 名が 63 文字を超える場合は短縮名の `foreignKey(...).onDelete()`）に出力する（`scripts/domain-config/domain/relations.mjs` の `getOnDeleteBehavior` / `buildOnDeleteOption`、出力は `render/entities/drizzle/foreignKeys.mjs`）。
 
 | 値 | 参照先が削除されたとき | 生成される Drizzle 設定 |
 |---|---|---|

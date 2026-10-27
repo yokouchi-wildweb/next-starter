@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { scanObjectEntries } from "../../domain-config/generator/registry/utils/objectEntry.mjs";
+import { scanObjectEntries } from "../../domain-config/text/objectEntry.mjs";
 import { toCamelCase } from "../../../src/utils/stringCase.mjs";
 
 export const ENTRY_FILE = "domainEntry.ts";

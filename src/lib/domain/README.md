@@ -44,7 +44,7 @@ export const domainEntries = {
 - `service` は**遅延読み込み**（`() => import(...)`）。登録表を import しても各ドメインのサービス・DB 接続は読み込まれない
 - `table` / `idColumn` は型で必須（`string | null`）。service の直後に、**文字列リテラルか `null` で**書く（生成器はファイルを文字として読むので、定数・式は `registry:check` が失敗にする）。表を持たない Firestore 版は両方 `null`
 - 静的 import してよいのは `@/lib/domain/types` と `@/config/app/domain-api-access.config`（プリセット）だけ。`pnpm registry:check` が縛る
-- 業務ドメイン: `dc:generate` が domain.json から生成する（`generateFiles.registry`。手で直すなら registry を false）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport` が偽なら `"none"`、それ以外は管理者。`table` = 表の定義の生成器と同じ決め方（`scripts/domain-config/utils/tableName.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
+- 業務ドメイン: `dc:generate` が domain.json から生成する（`generateFiles.registry`。手で直すなら registry を false）。access = `apiAccess`（無ければ ADMIN_ONLY）+ `truncateAll` は管理者 + `export` / `import` は `useImportExport` が偽なら `"none"`、それ以外は管理者。`table` = 表の定義の生成器と同じ決め方（`scripts/domain-config/domain/names.mjs` の `domainTableName` = domain.json の `plural`、無ければドメイン名の snake_case）、`idColumn` = `"id"`、dbEngine が Firestore なら両方 `null`
 - core ドメイン・fork が手書きする domainEntry.ts（core パスのドメイン、`generateFiles.registry: false`）: `table` / `idColumn` も自分で書く。値の正しさは `pnpm test:service-registry` が実物と比べる。core のファイルは fork が編集しない
 - fork が core の access を変える: 隣に `domainEntry.override.ts`（fork 所有）。`export const domainEntryOverrides = { <key>: <access> } satisfies DomainEntryOverrides` で access を丸ごと置き換える。生成器が読む
 
