@@ -2,7 +2,7 @@
 //
 // 集まりの差分同期の単独関数。createCrudService の collections オプションはこれを呼ぶ。
 // base を通らない書き込み（手書きのドメイン・fork の独自の保存）からも同じ規則で同期できる。
-// - 主の行を FOR UPDATE でロック → 従属の行を件数の上限なしで全部読む → ref の値で差分
+// - 主の行を FOR UPDATE でロック → 従属の行を件数の上限なしで全部読む →値の列の値で差分
 // - 変わらない値の行は残す（子の id を保つ）/ 消えた値の行は従属の hardDelete / 新しい値は従属の create
 // - 並びは同期のたびに配列順に振り直し、従属の systemUpdate で書く（作った行と、並びの値が変わった行）。
 //   text の列は lib の fractional の鍵（replaceByQuery の sortOrderFromIndex と同じ generateInitialSortKeys）、
@@ -19,7 +19,7 @@ import { DomainError } from "@/lib/errors";
 import type { DbTransaction } from "../drizzle/types";
 import { collectionOrderBy, resolveCollectionOrder, type ResolvedCollectionOrder } from "./collectionOrder";
 import type {
-  CollectionRef,
+  CollectionValue,
   CollectionSyncResult,
   CrudCollectionChildService,
   CrudCollectionConfig,
@@ -34,13 +34,13 @@ export type SyncCollectionParams = {
   parentId: string | number;
   /** 集まりの宣言 */
   collection: CrudCollectionConfig;
-  /** 同期後の ref の並び（重複・最大件数の超過は 400） */
+  /** 同期後の値の並び（重複・最大件数の超過は 400） */
   values: readonly unknown[];
 };
 
 export type ResolvedCollectionColumns = ResolvedCollectionOrder & {
   parentProp: string;
-  refProp: string;
+  valueProp: string;
   sortProp: string;
   /** 配列の長さから並びの値の列を作る（text = fractional の鍵、integer = 添字） */
   sortValues: (count: number) => Array<string | number>;
@@ -48,7 +48,7 @@ export type ResolvedCollectionColumns = ResolvedCollectionOrder & {
 
 /**
  * 集まりの宣言の列を解決し、宣言の誤りを throw する（サービス生成時に呼ぶ）。
- * - 主への参照列・ref 列・並びの列は同じ従属の表のもの、従属の表は id 列を持つ
+ * - 主への参照列・値の列・並びの列は同じ従属の表のもの、従属の表は id 列を持つ
  * - 論理削除の従属は扱わない（deletedAt / deleted_at 列を持つ表は拒否）
  */
 export function resolveCollectionColumns(collection: CrudCollectionConfig): ResolvedCollectionColumns {
@@ -76,26 +76,26 @@ export function resolveCollectionColumns(collection: CrudCollectionConfig): Reso
   const resolved = {
     ...order,
     parentProp: propOf(collection.parentColumn, "parentColumn"),
-    refProp: propOf(collection.refColumn, "refColumn"),
+    valueProp: propOf(collection.valueColumn, "valueColumn"),
     sortProp: propOf(collection.sortColumn, "sortColumn"),
     sortValues,
   };
-  if (new Set([resolved.parentProp, resolved.refProp, resolved.sortProp, "id"]).size !== 4) {
-    throw new Error(`${label}: parentColumn, refColumn, sortColumn and id must be different columns.`);
+  if (new Set([resolved.parentProp, resolved.valueProp, resolved.sortProp, "id"]).size !== 4) {
+    throw new Error(`${label}: parentColumn, valueColumn, sortColumn and id must be different columns.`);
   }
   return resolved;
 }
 
 /**
- * 集まりの入力値を検査して ref の配列にする（DB に触れる前に呼ぶ）。
+ * 集まりの入力値を検査して値の配列にする（DB に触れる前に呼ぶ）。
  * 配列でない・要素が空・重複・最大件数の超過は DomainError 400。
  */
-export function validateCollectionValues(collection: CrudCollectionConfig, value: unknown): CollectionRef[] {
+export function validateCollectionValues(collection: CrudCollectionConfig, value: unknown): CollectionValue[] {
   const field = collection.fieldName;
   if (!Array.isArray(value)) {
     throw new DomainError(`${field} は配列で指定してください`, { status: 400 });
   }
-  const seen = new Set<CollectionRef>();
+  const seen = new Set<CollectionValue>();
   for (const item of value) {
     const valid =
       (typeof item === "string" && item.length > 0) || (typeof item === "number" && Number.isFinite(item));
@@ -110,7 +110,7 @@ export function validateCollectionValues(collection: CrudCollectionConfig, value
   if (collection.maxItems !== undefined && value.length > collection.maxItems) {
     throw new DomainError(`${field} は ${collection.maxItems} 件までです`, { status: 400 });
   }
-  return value as CollectionRef[];
+  return value as CollectionValue[];
 }
 
 /**
@@ -141,11 +141,11 @@ export async function writeCollectionSort(
 /** 検査済みの値で、渡された TX の中で同期する（applyCollections と syncCollection の共通部） */
 export async function syncCollectionInTx(
   executor: DbTransaction,
-  params: Omit<SyncCollectionParams, "values"> & { values: readonly CollectionRef[] },
+  params: Omit<SyncCollectionParams, "values"> & { values: readonly CollectionValue[] },
   resolved: ResolvedCollectionColumns = resolveCollectionColumns(params.collection),
 ): Promise<CollectionSyncResult> {
   const { parentTable, parentId, collection, values } = params;
-  const { childTable, parentProp, refProp, sortProp, sortValues } = resolved;
+  const { childTable, parentProp, valueProp, sortProp, sortValues } = resolved;
 
   const locked = await executor
     .select({ id: parentTable.id })
@@ -164,13 +164,13 @@ export async function syncCollectionInTx(
     .where(eq(collection.parentColumn, parentId))
     .orderBy(...collectionOrderBy(collection, resolved))) as Row[];
 
-  const wanted = new Set<CollectionRef>(values);
-  const kept = new Map<CollectionRef, Row>();
+  const wanted = new Set<CollectionValue>(values);
+  const kept = new Map<CollectionValue, Row>();
   const toDelete: Row[] = [];
   for (const row of existing) {
-    const ref = row[refProp] as CollectionRef;
+    const value = row[valueProp] as CollectionValue;
     // 直接の書き込みで同じ値の行が複数あれば、並びの先の 1 行だけを残す
-    if (wanted.has(ref) && !kept.has(ref)) kept.set(ref, row);
+    if (wanted.has(value) && !kept.has(value)) kept.set(value, row);
     else toDelete.push(row);
   }
 
@@ -185,9 +185,9 @@ export async function syncCollectionInTx(
   const sorts = sortValues(values.length);
   const rows: Row[] = [];
   let created = 0;
-  for (const [index, ref] of values.entries()) {
+  for (const [index, value] of values.entries()) {
     const sort = sorts[index];
-    const current = kept.get(ref);
+    const current = kept.get(value);
     if (current) {
       rows.push(current[sortProp] === sort ? current : await writeSort(current, sort));
       continue;
@@ -195,7 +195,7 @@ export async function syncCollectionInTx(
     // 並びは create の入力にも入れる（NOT NULL の列のため）が、従属の parseCreate が落とすことがあるので
     // 作った行は必ず systemUpdate で書く（systemColumns の宣言漏れを最初の追加で分かるようにする）
     const inserted = (await child.create(
-      { [parentProp]: parentId, [refProp]: ref, [sortProp]: sort },
+      { [parentProp]: parentId, [valueProp]: value, [sortProp]: sort },
       executor,
     )) as Row;
     created += 1;

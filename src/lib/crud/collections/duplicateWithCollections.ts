@@ -21,7 +21,7 @@ import { collectionOrderBy } from "./collectionOrder";
 import { resolveCollectionColumns, writeCollectionSort } from "./syncCollection";
 import type {
   CollectionDuplicateResult,
-  CollectionRef,
+  CollectionValue,
   CrudCollectionChildService,
   CrudCollectionConfig,
   DuplicateWithCollectionsParams,
@@ -72,7 +72,7 @@ export async function duplicateWithCollections<T = Row>(
     const sources = (await db
       .select()
       .from(resolved.childTable as any)
-      .where(eq(collection.parentColumn, record.id as CollectionRef))
+      .where(eq(collection.parentColumn, record.id as CollectionValue))
       .orderBy(...collectionOrderBy(collection, resolved))) as Row[];
     const child = await collection.service();
     const rows: ChildPlan["rows"] = [];
@@ -92,7 +92,7 @@ export async function duplicateWithCollections<T = Row>(
     for (const plan of plans) {
       const { collection, resolved, child, rows } = plan;
       const idMap = new Map<string | number, string | number>();
-      const refs: CollectionRef[] = [];
+      const newValues: CollectionValue[] = [];
       if (child) {
         const sorts = resolved.sortValues(rows.length);
         for (const [index, { source, copied }] of rows.entries()) {
@@ -104,11 +104,11 @@ export async function duplicateWithCollections<T = Row>(
           // 並びは create の入力にも入れるが、従属の parseCreate が落とすことがあるので同期と同じく必ず書く
           const written = await writeCollectionSort(executor, child, collection, resolved, inserted, sort);
           idMap.set(source.id as string | number, written.id as string | number);
-          refs.push(written[resolved.refProp] as CollectionRef);
+          newValues.push(written[resolved.valueProp] as CollectionValue);
         }
       }
       idMaps[collection.fieldName] = idMap;
-      created[collection.fieldName] = refs;
+      created[collection.fieldName] = newValues;
     }
     return { record: created as T, idMaps };
   };

@@ -12,7 +12,7 @@ import { isTextSortKey, sortKeyExpr } from "../drizzle/fractionalSort/sortKeyOrd
 import type { CrudCollectionConfig } from "./types";
 
 /** 並び順を作るのに要る集まりの列（collections の宣言をそのまま渡せる） */
-export type CollectionColumns = Pick<CrudCollectionConfig, "parentColumn" | "refColumn" | "sortColumn">;
+export type CollectionColumns = Pick<CrudCollectionConfig, "parentColumn" | "valueColumn" | "sortColumn">;
 
 export type ResolvedCollectionOrder = {
   childTable: PgTable;

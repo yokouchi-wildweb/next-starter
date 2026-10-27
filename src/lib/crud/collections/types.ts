@@ -1,7 +1,7 @@
 // src/lib/crud/collections/types.ts
 //
 // createCrudService の `collections` オプション（ドメイン集約: 主の 1 行に属する従属ドメインの行の集まり）の型。
-// 主のレコード上では列でない配列（ref の値の並び）として扱い、create / update / upsert で
+// 主のレコード上では列でない配列（値の並び）として扱い、create / update / upsert で
 // 同じ TX の中で従属ドメインのサービスを通して差分同期する。
 
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
@@ -17,8 +17,8 @@ export type CollectionFieldsAugmented = {
   readonly collectionFields?: readonly string[];
 };
 
-/** 集まりの 1 要素（従属の行を見分ける ref 列の値） */
-export type CollectionRef = string | number;
+/** 集まりの 1 要素（従属の行を見分ける値の列の値） */
+export type CollectionValue = string | number;
 
 /**
  * 同期が使う従属ドメインのサービスの口（createCrudService の戻り値がそのまま満たす）。
@@ -43,8 +43,8 @@ export type CrudCollectionConfig = {
   service: () => CrudCollectionChildService | Promise<CrudCollectionChildService>;
   /** 従属の表の主への参照列（主の物理削除で cascade する外部キー） */
   parentColumn: AnyPgColumn;
-  /** 従属の表の ref 列（集まりの要素の値。差分はこの値で取る） */
-  refColumn: AnyPgColumn;
+  /** 従属の表の値の列（集まりの要素の値。差分はこの値で取る） */
+  valueColumn: AnyPgColumn;
   /**
    * 従属の表の並びの列（主の中だけで配列順に振り、同期のたびに振り直す）。従属の systemColumns に宣言する。
    * text の列（テンプレートの既定）= lib の fractional の鍵、integer の列 = 0 始まりの添字
@@ -86,7 +86,7 @@ export type DuplicateWithCollectionsParams = {
 
 /** 複製の結果 */
 export type CollectionDuplicateResult<T = Record<string, unknown>> = {
-  /** 複製した主の行（集まりの項目に新しい ref の配列を載せる） */
+  /** 複製した主の行（集まりの項目に新しい値の配列を載せる） */
   record: T;
   /** 集まりの項目ごとの、複製元の従属の id → 複製した従属の id */
   idMaps: Record<string, Map<string | number, string | number>>;

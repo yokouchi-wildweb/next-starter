@@ -3,11 +3,11 @@
 // createCrudService の `collections` オプションの実装。書き込み系メソッドを包み、主の行の書き込みと
 // 同じ TX の中で syncCollection の同期を呼ぶ。collections を指定しないサービスには適用しない。
 // - create / update / upsert: 集まりの項目を parse の前に入力から外して検査（DB に触れる前に 400）→
-//   主の行を書く → 項目ごとに差分同期。項目の省略 = 維持、[] = 全部消す。戻り値に書いた ref の配列を載せる
+//   主の行を書く → 項目ごとに差分同期。項目の省略 = 維持、[] = 全部消す。戻り値に書いた値の配列を載せる
 // - bulkUpsert / bulkUpdate / bulkUpdateByIds / bulkUpdateByQuery / replaceByQuery: 集まりの値
 //   （[] を含む）が入っていれば DB を変える前に 400。値が無ければ今のまま
 // - 読み出しの 7 口（get / getWithDeleted / list / listWithDeleted / search / searchWithDeleted /
-//   searchForSorting）: 返した主の行に、集まりごとに ref の配列を全件（件数の上限なし）並び順で載せる。
+//   searchForSorting）: 返した主の行に、集まりごとに値の配列を全件（件数の上限なし）並び順で載せる。
 //   集まり 1 つにつき呼び出し 1 回で 1 クエリ（主の id の IN）。従属が無ければ []。restore / reorder /
 //   systemUpdate / bulk 系の戻り値には載せない（省略 = 維持なので保存しても失わない）
 // - collectionFields: 集まりの項目名を読み取り専用で出す（dataMigration の拒否・書き出しの除外が使う）
@@ -29,7 +29,7 @@ import type { DuplicateOptions } from "@/lib/crud/types";
 import { collectionOrderBy } from "./collectionOrder";
 import { duplicateWithCollections } from "./duplicateWithCollections";
 import { resolveCollectionColumns, syncCollectionInTx, validateCollectionValues } from "./syncCollection";
-import type { CollectionDuplicateParentService, CollectionRef, CrudCollectionConfig } from "./types";
+import type { CollectionDuplicateParentService, CollectionValue, CrudCollectionConfig } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -93,8 +93,8 @@ export function applyCollections<TService extends CollectionAwareService>(
   };
 
   /** 入力から集まりの項目を外して検査する（DB に触れる前）。undefined の項目は省略 = 維持 */
-  const separate = (data: unknown): { rest: any; values: Map<number, CollectionRef[]> } => {
-    const values = new Map<number, CollectionRef[]>();
+  const separate = (data: unknown): { rest: any; values: Map<number, CollectionValue[]> } => {
+    const values = new Map<number, CollectionValue[]>();
     if (!data || typeof data !== "object") return { rest: data, values };
     const rest: Row = { ...(data as Row) };
     collections.forEach((collection, index) => {
@@ -109,38 +109,38 @@ export function applyCollections<TService extends CollectionAwareService>(
   const runInTx = <T>(tx: DbTransaction | undefined, work: (executor: DbTransaction) => Promise<T>): Promise<T> =>
     tx ? work(tx) : db.transaction((innerTx) => work(innerTx));
 
-  /** 書いた主の行の集まりを同期し、戻り値に ref の配列を載せる */
-  const syncAll = async (executor: DbTransaction, record: Row, values: Map<number, CollectionRef[]>) => {
-    for (const [index, refs] of values) {
+  /** 書いた主の行の集まりを同期し、戻り値に値の配列を載せる */
+  const syncAll = async (executor: DbTransaction, record: Row, values: Map<number, CollectionValue[]>) => {
+    for (const [index, collectionValues] of values) {
       const collection = collections[index];
       await syncCollectionInTx(
         executor,
-        { parentTable: table, parentId: record.id as string | number, collection, values: refs },
+        { parentTable: table, parentId: record.id as string | number, collection, values: collectionValues },
         resolved[index],
       );
-      record[collection.fieldName] = refs;
+      record[collection.fieldName] = collectionValues;
     }
   };
 
-  /** 主の行に集まりの ref の配列を載せる（集まりごとに 1 クエリ、件数の上限なし） */
+  /** 主の行に集まりの値の配列を載せる（集まりごとに 1 クエリ、件数の上限なし） */
   const project = async (records: readonly Row[]): Promise<void> => {
     const rows = records.filter((record): record is Row => Boolean(record));
     if (!rows.length) return;
-    const parentIds = [...new Set(rows.map((record) => record.id as CollectionRef))];
+    const parentIds = [...new Set(rows.map((record) => record.id as CollectionValue))];
     for (const [index, collection] of collections.entries()) {
       const children = (await db
-        .select({ parentId: collection.parentColumn, ref: collection.refColumn })
+        .select({ parentId: collection.parentColumn, value: collection.valueColumn })
         .from(resolved[index].childTable as any)
         .where(inArray(collection.parentColumn, parentIds))
         .orderBy(collection.parentColumn, ...collectionOrderBy(collection, resolved[index]))) as Row[];
-      const refsByParent = new Map<unknown, CollectionRef[]>();
+      const valuesByParent = new Map<unknown, CollectionValue[]>();
       for (const child of children) {
-        const refs = refsByParent.get(child.parentId);
-        if (refs) refs.push(child.ref as CollectionRef);
-        else refsByParent.set(child.parentId, [child.ref as CollectionRef]);
+        const values = valuesByParent.get(child.parentId);
+        if (values) values.push(child.value as CollectionValue);
+        else valuesByParent.set(child.parentId, [child.value as CollectionValue]);
       }
       for (const record of rows) {
-        record[collection.fieldName] = refsByParent.get(record.id) ?? [];
+        record[collection.fieldName] = valuesByParent.get(record.id) ?? [];
       }
     }
   };

@@ -120,7 +120,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   let createCrudService: typeof import("@/lib/crud/drizzle").createCrudService;
   let syncCollection: typeof import("@/lib/crud/drizzle").syncCollection;
   let firstInCollection: typeof import("@/lib/crud/drizzle").firstInCollection;
-  let firstInCollectionSql: typeof import("@/lib/crud/drizzle").firstInCollectionSql;
+  let firstInCollectionForAlias: typeof import("@/lib/crud/drizzle").firstInCollectionForAlias;
   let duplicateWithCollections: typeof import("@/lib/crud/drizzle").duplicateWithCollections;
   let child: any;
   let parent: any;
@@ -146,7 +146,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
 
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
-    ({ createCrudService, syncCollection, firstInCollection, firstInCollectionSql, duplicateWithCollections } = await import(
+    ({ createCrudService, syncCollection, firstInCollection, firstInCollectionForAlias, duplicateWithCollections } = await import(
       "@/lib/crud/drizzle"
     ));
 
@@ -155,7 +155,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
       fieldName: "items",
       service: () => child,
       parentColumn: ItemTable.parentId,
-      refColumn: ItemTable.ref,
+      valueColumn: ItemTable.ref,
       sortColumn: ItemTable.sort,
       maxItems: 3,
     };
@@ -246,7 +246,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   const rejects400 = (promise: Promise<unknown>) =>
     assert.rejects(promise, (error: any) => error?.name === "DomainError" && error.status === 400);
 
-  test("create: 配列順に従属を作り、並びは fractional の鍵で振る。戻り値に ref の配列を載せる", async () => {
+  test("create: 配列順に従属を作り、並びは fractional の鍵で振る。戻り値に値の配列を載せる", async () => {
     const created = await parent.create({ name: "p1", items: ["a", "b", "c"] });
     assert.deepEqual(created.items, ["a", "b", "c"]);
     const rows = await childrenOf(created.id);
@@ -448,7 +448,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
           fieldName: "items",
           service: () => intChild,
           parentColumn: IntItemTable.parentId,
-          refColumn: IntItemTable.ref,
+          valueColumn: IntItemTable.ref,
           sortColumn: IntItemTable.sort,
         },
       ],
@@ -473,7 +473,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
       () =>
         createCrudService(ParentTable as never, {
           collections: [
-            { ...itemsCollection, parentColumn: BadSortItemTable.parentId, refColumn: BadSortItemTable.ref, sortColumn: BadSortItemTable.sort },
+            { ...itemsCollection, parentColumn: BadSortItemTable.parentId, valueColumn: BadSortItemTable.ref, sortColumn: BadSortItemTable.sort },
           ],
         }),
       /text \(fractional key\) or integer/,
@@ -481,12 +481,12 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     assert.throws(
       () =>
         createCrudService(ParentTable as never, {
-          collections: [{ ...itemsCollection, parentColumn: SoftItemTable.parentId, refColumn: SoftItemTable.ref, sortColumn: SoftItemTable.sort }],
+          collections: [{ ...itemsCollection, parentColumn: SoftItemTable.parentId, valueColumn: SoftItemTable.ref, sortColumn: SoftItemTable.sort }],
         }),
       /soft-delete/,
     );
     assert.throws(
-      () => createCrudService(ParentTable as never, { collections: [{ ...itemsCollection, refColumn: SoftItemTable.ref }] }),
+      () => createCrudService(ParentTable as never, { collections: [{ ...itemsCollection, valueColumn: SoftItemTable.ref }] }),
       /same child table/,
     );
     assert.throws(
@@ -521,7 +521,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
       fieldName: "items",
       service: () => readChild,
       parentColumn: ReadItemTable.parentId,
-      refColumn: ReadItemTable.ref,
+      valueColumn: ReadItemTable.ref,
       sortColumn: ReadItemTable.sort,
     };
     const options = {
@@ -571,7 +571,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
 
   const itemsById = (rows: Row[]) => new Map(rows.map((row) => [row.id, row.items]));
 
-  test("読み出しの 7 口は集まりを全件・並び順（NULL は最後、同値は id 順）の ref の配列で載せ、従属が無ければ []", async () => {
+  test("読み出しの 7 口は集まりを全件・並び順（NULL は最後、同値は id 順）の値の配列で載せ、従属が無ければ []", async () => {
     const f = await setupRead();
     assert.ok(f.bigRefs.length > 100, "DEFAULT_HAS_MANY_LIMIT（100）を超える件数");
 
@@ -657,11 +657,11 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
 
   test("先頭 1 件の SQL（別名の文字列の形）: 手書きの sql`` の select / where / orderBy / COALESCE で使える", async () => {
     const f = await setupRead();
-    const first = () => firstInCollectionSql(f.readItems, "p");
+    const first = () => firstInCollectionForAlias(f.readItems, "p");
     const ids = [f.order.id, f.big.id, f.empty.id, f.deleted.id].map((id) => sql`${id}::uuid`);
     const rows = (await db.execute(sql`
       select p.id, ${first()} as first,
-        coalesce(${firstInCollectionSql(f.readItems, "p", { select: ReadItemTable.caption })}, 'none') as caption
+        coalesce(${firstInCollectionForAlias(f.readItems, "p", { select: ReadItemTable.caption })}, 'none') as caption
       from test_crud_coll_read_parents p
       where p.id in (${sql.join(ids, sql`, `)}) and ${first()} is not null
       order by ${first()} desc, p.id
@@ -696,7 +696,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
       fieldName: "items",
       service: () => collChild,
       parentColumn: CollItemTable.parentId,
-      refColumn: CollItemTable.ref,
+      valueColumn: CollItemTable.ref,
       sortColumn: CollItemTable.sort,
     };
     const collParent = createCrudService(ReadParentTable as never, {
@@ -744,7 +744,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
       .orderBy(P.name)) as Row[];
     assert.deepEqual(columnForm.map((row) => row.first), ["c0", "upper"]);
     const aliasForm = (await db.execute(sql`
-      select p.id, ${firstInCollectionSql(collItems, "p")} as first from test_crud_coll_read_parents p
+      select p.id, ${firstInCollectionForAlias(collItems, "p")} as first from test_crud_coll_read_parents p
       where p.id in (${pair.id}::uuid, ${target.id}::uuid) order by p.name
     `)) as unknown as Row[];
     assert.deepEqual(aliasForm.map((row) => row.first), ["c0", "upper"]);
@@ -830,14 +830,14 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
       fieldName: "gallery",
       service: () => mediaChild,
       parentColumn: DupMediaTable.parentId,
-      refColumn: DupMediaTable.ref,
+      valueColumn: DupMediaTable.ref,
       sortColumn: DupMediaTable.sort,
     };
     const tags = {
       fieldName: "tags",
       service: () => tagChild,
       parentColumn: DupTagTable.parentId,
-      refColumn: DupTagTable.ref,
+      valueColumn: DupTagTable.ref,
       sortColumn: DupTagTable.sort,
     };
     const dupParent = createCrudService(DupParentTable as never, {
