@@ -9,7 +9,7 @@
 //   integer の列は 0 始まりの添字
 // - 読んでいない行は消さない（ロックしてから読み直すので、直接の書き込みとは主の保存が後勝ち）
 
-import { asc, eq, getTableColumns, getTableName } from "drizzle-orm";
+import { eq, getTableColumns, getTableName } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/drizzle";
@@ -17,6 +17,7 @@ import { generateInitialSortKeys } from "../drizzle/fractionalSort";
 import { DomainError } from "@/lib/errors";
 
 import type { DbTransaction } from "../drizzle/types";
+import { collectionOrderBy, resolveCollectionOrder, type ResolvedCollectionOrder } from "./collectionOrder";
 import type { CollectionRef, CollectionSyncResult, CrudCollectionConfig } from "./types";
 
 type Row = Record<string, unknown>;
@@ -32,9 +33,7 @@ export type SyncCollectionParams = {
   values: readonly unknown[];
 };
 
-type ResolvedCollectionColumns = {
-  childTable: PgTable;
-  childId: AnyPgColumn;
+export type ResolvedCollectionColumns = ResolvedCollectionOrder & {
   parentProp: string;
   refProp: string;
   sortProp: string;
@@ -42,17 +41,17 @@ type ResolvedCollectionColumns = {
   sortValues: (count: number) => Array<string | number>;
 };
 
-const tableOf = (column: AnyPgColumn): PgTable => (column as unknown as { table: PgTable }).table;
-
 /**
  * 集まりの宣言の列を解決し、宣言の誤りを throw する（サービス生成時に呼ぶ）。
  * - 主への参照列・ref 列・並びの列は同じ従属の表のもの、従属の表は id 列を持つ
  * - 論理削除の従属は扱わない（deletedAt / deleted_at 列を持つ表は拒否）
  */
 export function resolveCollectionColumns(collection: CrudCollectionConfig): ResolvedCollectionColumns {
-  const childTable = tableOf(collection.parentColumn);
-  const columns = getTableColumns(childTable) as Record<string, AnyPgColumn>;
-  const label = `collections "${collection.fieldName}" (${getTableName(childTable)})`;
+  const label = `collections "${collection.fieldName}" (${getTableName(
+    (collection.parentColumn as unknown as { table: PgTable }).table,
+  )})`;
+  const order = resolveCollectionOrder(collection, label);
+  const columns = getTableColumns(order.childTable) as Record<string, AnyPgColumn>;
   const propOf = (column: AnyPgColumn, role: string): string => {
     const entry = Object.entries(columns).find(([, value]) => value === column);
     if (!entry) {
@@ -60,27 +59,17 @@ export function resolveCollectionColumns(collection: CrudCollectionConfig): Reso
     }
     return entry[0];
   };
-  const childId = columns.id;
-  if (!childId) {
-    throw new Error(`${label}: the child table must have an id column.`);
-  }
   if (Object.entries(columns).some(([key, value]) => key === "deletedAt" || value.name === "deleted_at")) {
     throw new Error(`${label}: a soft-delete child table (deletedAt) is not supported.`);
   }
   if (collection.maxItems !== undefined && (!Number.isInteger(collection.maxItems) || collection.maxItems < 1)) {
     throw new Error(`${label}: maxItems must be a positive integer.`);
   }
-  const sortType = (collection.sortColumn as unknown as { dataType: string }).dataType;
-  if (sortType !== "string" && sortType !== "number") {
-    throw new Error(`${label}: sortColumn must be a text (fractional key) or integer column.`);
-  }
-  const sortValues =
-    sortType === "string"
-      ? (count: number) => generateInitialSortKeys(count)
-      : (count: number) => Array.from({ length: count }, (_, index) => index);
+  const sortValues = order.textSort
+    ? (count: number) => generateInitialSortKeys(count)
+    : (count: number) => Array.from({ length: count }, (_, index) => index);
   const resolved = {
-    childTable,
-    childId,
+    ...order,
     parentProp: propOf(collection.parentColumn, "parentColumn"),
     refProp: propOf(collection.refColumn, "refColumn"),
     sortProp: propOf(collection.sortColumn, "sortColumn"),
@@ -126,7 +115,7 @@ export async function syncCollectionInTx(
   resolved: ResolvedCollectionColumns = resolveCollectionColumns(params.collection),
 ): Promise<CollectionSyncResult> {
   const { parentTable, parentId, collection, values } = params;
-  const { childTable, childId, parentProp, refProp, sortProp, sortValues } = resolved;
+  const { childTable, parentProp, refProp, sortProp, sortValues } = resolved;
 
   const locked = await executor
     .select({ id: parentTable.id })
@@ -138,12 +127,12 @@ export async function syncCollectionInTx(
   }
 
   const child = await collection.service();
-  // 件数の上限なしで全部読む（読んでいない行を消さないため）。PostgreSQL の ASC は NULLS LAST
+  // 件数の上限なしで全部読む（読んでいない行を消さないため）。並びは読み出しの射影と同じ式（text は COLLATE "C"）
   const existing = (await executor
     .select()
     .from(childTable as any)
     .where(eq(collection.parentColumn, parentId))
-    .orderBy(asc(collection.sortColumn), asc(childId))) as Row[];
+    .orderBy(...collectionOrderBy(collection, resolved))) as Row[];
 
   const wanted = new Set<CollectionRef>(values);
   const kept = new Map<CollectionRef, Row>();

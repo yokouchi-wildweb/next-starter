@@ -1,6 +1,7 @@
 // src/lib/crud/collections/collections.db.test.ts
 // createCrudService の collections オプション（ドメイン集約の差分同期）の実 DB テスト。
-// 開発 DB に専用の表 test_crud_coll_parents / test_crud_coll_items を作り、終了時に DROP する（それ以外には書かない）。
+// 開発 DB に専用の表 test_crud_coll_*（主・従属・読み出し用・照合順序用）を作り、終了時に DROP する（それ以外には書かない）。
+// C 以外の照合順序のケースは、DB にその照合順序（ICU / glibc の en_US）が無ければ明示して飛ばす。
 // DATABASE_URL が無ければ全件 skip。
 // 実行: pnpm test:crud-collections-db
 
@@ -10,7 +11,8 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { config as loadEnv } from "dotenv";
-import { asc, eq, sql } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+import { asc, eq, isNull, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { generateInitialSortKeys } from "@/lib/crud/drizzle/fractionalSort";
 
@@ -55,6 +57,34 @@ const SoftItemTable = pgTable("test_crud_coll_soft_items", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
+// 読み出しの射影・先頭 1 件の SQL 用（論理削除と並べ替えの列を持つ主）
+const ReadParentTable = pgTable("test_crud_coll_read_parents", {
+  id: uuid("id").primaryKey(),
+  name: text("name").notNull(),
+  // searchForSorting は列の DB 名をフィールド名に使うので、キーを DB 名と揃える
+  sort_order: text("sort_order"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+const ReadItemTable = pgTable("test_crud_coll_read_items", {
+  id: uuid("id").primaryKey(),
+  parentId: uuid("parent_id").notNull(),
+  ref: text("ref").notNull(),
+  caption: text("caption"),
+  sort: text("sort"),
+});
+
+// 並びの列を C 以外の照合順序で宣言する従属（create table で collate を付ける）
+const CollItemTable = pgTable("test_crud_coll_collate_items", {
+  id: uuid("id").primaryKey(),
+  parentId: uuid("parent_id").notNull(),
+  ref: text("ref").notNull(),
+  sort: text("sort"),
+});
+
+// C と順序が変わる照合順序の候補（大文字小文字を一次で区別しない）
+const NON_C_COLLATIONS = ["en-US-x-icu", "und-x-icu", "en_US.utf8", "en_US.UTF-8"];
+
 type Row = Record<string, any>;
 
 // lib の fractional の鍵（replaceByQuery の sortOrderFromIndex と同じ生成）
@@ -65,14 +95,30 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   let db: typeof import("@/lib/drizzle").db;
   let createCrudService: typeof import("@/lib/crud/drizzle").createCrudService;
   let syncCollection: typeof import("@/lib/crud/drizzle").syncCollection;
+  let firstInCollection: typeof import("@/lib/crud/drizzle").firstInCollection;
+  let firstInCollectionSql: typeof import("@/lib/crud/drizzle").firstInCollectionSql;
   let child: any;
   let parent: any;
   let plain: any;
   let itemsCollection: any;
+  let nonCCollation: string | undefined;
+
+  const dropTables = async () => {
+    for (const name of [
+      "test_crud_coll_items",
+      "test_crud_coll_int_items",
+      "test_crud_coll_parents",
+      "test_crud_coll_collate_items",
+      "test_crud_coll_read_items",
+      "test_crud_coll_read_parents",
+    ]) {
+      await db.execute(sql`drop table if exists ${sql.identifier(name)}`);
+    }
+  };
 
   before(async () => {
     ({ db } = await import("@/lib/drizzle"));
-    ({ createCrudService, syncCollection } = await import("@/lib/crud/drizzle"));
+    ({ createCrudService, syncCollection, firstInCollection, firstInCollectionSql } = await import("@/lib/crud/drizzle"));
 
     child = createCrudService(ItemTable as never, { idType: "uuid", systemColumns: ["sort"] });
     itemsCollection = {
@@ -86,9 +132,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     parent = createCrudService(ParentTable as never, { idType: "uuid", collections: [itemsCollection] });
     plain = createCrudService(ParentTable as never, { idType: "uuid" });
 
-    await db.execute(sql`drop table if exists test_crud_coll_items`);
-    await db.execute(sql`drop table if exists test_crud_coll_int_items`);
-    await db.execute(sql`drop table if exists test_crud_coll_parents`);
+    await dropTables();
     await db.execute(sql`create table test_crud_coll_parents (id uuid primary key, name text not null)`);
     await db.execute(sql`
       create table test_crud_coll_items (
@@ -107,13 +151,37 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
         sort integer
       )
     `);
+    await db.execute(sql`
+      create table test_crud_coll_read_parents (id uuid primary key, name text not null, sort_order text, deleted_at timestamptz)
+    `);
+    await db.execute(sql`
+      create table test_crud_coll_read_items (
+        id uuid primary key,
+        parent_id uuid not null references test_crud_coll_read_parents(id) on delete cascade,
+        ref text not null,
+        caption text,
+        sort text
+      )
+    `);
+    const found = (await db.execute(sql`
+      select collname from pg_collation where collname in (${sql.join(NON_C_COLLATIONS.map((name) => sql`${name}`), sql`, `)})
+    `)) as unknown as Row[];
+    nonCCollation = NON_C_COLLATIONS.find((name) => found.some((row) => row.collname === name));
+    if (nonCCollation) {
+      await db.execute(sql`
+        create table test_crud_coll_collate_items (
+          id uuid primary key,
+          parent_id uuid not null references test_crud_coll_read_parents(id) on delete cascade,
+          ref text not null,
+          sort text collate ${sql.identifier(nonCCollation)}
+        )
+      `);
+    }
   });
 
   after(async () => {
     if (!db) return;
-    await db.execute(sql`drop table if exists test_crud_coll_items`);
-    await db.execute(sql`drop table if exists test_crud_coll_int_items`);
-    await db.execute(sql`drop table if exists test_crud_coll_parents`);
+    await dropTables();
     await (db as unknown as { $client?: { end: () => Promise<void> } }).$client?.end();
   });
 
@@ -378,5 +446,269 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
       () => createCrudService(ParentTable as never, { collections: [{ ...itemsCollection, maxItems: 0 }] }),
       /maxItems/,
     );
+  });
+
+  // ---- 読み出しの射影・先頭 1 件の SQL ----
+
+  type ReadFixture = {
+    readParent: any;
+    readPlain: any;
+    readItems: any;
+    order: Row; // 並びの NULL・同値を含む主
+    big: Row; // 従属が DEFAULT_HAS_MANY_LIMIT（100）を超える主
+    empty: Row; // 従属の無い主
+    deleted: Row; // 論理削除した主
+    orderRefs: string[];
+    bigRefs: string[];
+  };
+  let readFixture: ReadFixture | undefined;
+
+  const setupRead = async (): Promise<ReadFixture> => {
+    if (readFixture) return readFixture;
+    const readChild = createCrudService(ReadItemTable as never, { idType: "uuid", systemColumns: ["sort"] });
+    const readItems = {
+      fieldName: "items",
+      service: () => readChild,
+      parentColumn: ReadItemTable.parentId,
+      refColumn: ReadItemTable.ref,
+      sortColumn: ReadItemTable.sort,
+    };
+    const options = {
+      idType: "uuid",
+      useSoftDelete: true,
+      sortOrderColumn: ReadParentTable.sort_order,
+      defaultOrderBy: [["name", "ASC"]],
+    } as const;
+    const readParent = createCrudService(ReadParentTable as never, { ...options, collections: [readItems] } as never) as any;
+    const readPlain = createCrudService(ReadParentTable as never, options as never) as any;
+
+    const big = await readPlain.create({ name: "a-big" });
+    const order = await readPlain.create({ name: "b-order" });
+    const empty = await readPlain.create({ name: "c-empty" });
+
+    // 並び: NULL は最後、同じ値は id の昇順（id は昇順に並べた uuid を割り当てる）
+    const ids = Array.from({ length: 5 }, () => randomUUID()).sort();
+    await db.insert(ReadItemTable).values([
+      { id: ids[0], parentId: order.id, ref: "n1", caption: "cap-n1", sort: null },
+      { id: ids[4], parentId: order.id, ref: "n0", caption: "cap-n0", sort: null },
+      { id: ids[1], parentId: order.id, ref: "t2", caption: "cap-t2", sort: "a1" },
+      { id: ids[2], parentId: order.id, ref: "t1", caption: "cap-t1", sort: "a1" },
+      { id: ids[3], parentId: order.id, ref: "f", caption: "cap-f", sort: "a0" },
+    ]);
+    const bigRefs = Array.from({ length: 105 }, (_, index) => `b${index}`);
+    const bigKeys = keys(bigRefs.length);
+    await db.insert(ReadItemTable).values(
+      bigRefs.map((ref, index) => ({ id: randomUUID(), parentId: big.id, ref, sort: bigKeys[index] })).reverse(),
+    );
+
+    const deleted = await readParent.create({ name: "d-deleted", items: ["x", "y"] });
+    await readParent.remove(deleted.id);
+
+    readFixture = {
+      readParent,
+      readPlain,
+      readItems,
+      order,
+      big,
+      empty,
+      deleted,
+      orderRefs: ["f", "t2", "t1", "n1", "n0"],
+      bigRefs,
+    };
+    return readFixture;
+  };
+
+  const itemsById = (rows: Row[]) => new Map(rows.map((row) => [row.id, row.items]));
+
+  test("読み出しの 7 口は集まりを全件・並び順（NULL は最後、同値は id 順）の ref の配列で載せ、従属が無ければ []", async () => {
+    const f = await setupRead();
+    assert.ok(f.bigRefs.length > 100, "DEFAULT_HAS_MANY_LIMIT（100）を超える件数");
+
+    assert.deepEqual((await f.readParent.get(f.order.id)).items, f.orderRefs);
+    assert.deepEqual((await f.readParent.get(f.big.id)).items, f.bigRefs);
+    assert.deepEqual((await f.readParent.get(f.empty.id)).items, []);
+    assert.equal(await f.readParent.get(f.deleted.id), undefined);
+
+    assert.deepEqual((await f.readParent.getWithDeleted(f.deleted.id)).items, ["x", "y"]);
+    assert.deepEqual((await f.readParent.getWithDeleted(f.big.id)).items, f.bigRefs);
+
+    const listed = itemsById(await f.readParent.list());
+    assert.deepEqual(listed.get(f.order.id), f.orderRefs);
+    assert.deepEqual(listed.get(f.big.id), f.bigRefs);
+    assert.deepEqual(listed.get(f.empty.id), []);
+    assert.equal(listed.has(f.deleted.id), false);
+
+    const listedAll = itemsById(await f.readParent.listWithDeleted());
+    assert.deepEqual(listedAll.get(f.deleted.id), ["x", "y"]);
+    assert.deepEqual(listedAll.get(f.big.id), f.bigRefs);
+
+    // 主のページが小さくても、載せる従属は全件
+    const page1 = await f.readParent.search({ limit: 2 });
+    assert.deepEqual(page1.results.map((row: Row) => row.name), ["a-big", "b-order"]);
+    assert.deepEqual(page1.results[0].items, f.bigRefs);
+    assert.deepEqual(page1.results[1].items, f.orderRefs);
+    const page2 = await f.readParent.search({ limit: 2, page: 2 });
+    assert.deepEqual(page2.results.map((row: Row) => [row.name, row.items]), [["c-empty", []]]);
+
+    const withDeleted = itemsById((await f.readParent.searchWithDeleted({ limit: 10 })).results);
+    assert.deepEqual(withDeleted.get(f.deleted.id), ["x", "y"]);
+    assert.deepEqual(withDeleted.get(f.order.id), f.orderRefs);
+
+    const forSorting = itemsById((await f.readParent.searchForSorting({ limit: 10 })).results);
+    assert.deepEqual(forSorting.get(f.big.id), f.bigRefs);
+    assert.deepEqual(forSorting.get(f.empty.id), []);
+    assert.equal(forSorting.has(f.deleted.id), false);
+  });
+
+  test("オプションの無いサービスの読み出しは今のまま（集まりの項目を載せない）", async () => {
+    const f = await setupRead();
+    const plainRow = await f.readPlain.get(f.order.id);
+    const projected = await f.readParent.get(f.order.id);
+    assert.equal("items" in plainRow, false);
+    assert.deepEqual(Object.keys(plainRow).sort(), Object.keys(projected).filter((key) => key !== "items").sort());
+    for (const row of await f.readPlain.list()) assert.equal("items" in row, false);
+    for (const row of (await f.readPlain.search({ limit: 10 })).results) assert.equal("items" in row, false);
+    assert.equal("items" in (await f.readPlain.getWithDeleted(f.deleted.id)), false);
+  });
+
+  test("先頭 1 件の SQL（列オブジェクトの形）: select / where / orderBy / COALESCE で使え、空なら NULL", async () => {
+    const f = await setupRead();
+    const P = ReadParentTable;
+    const first = () => firstInCollection(f.readItems, P.id);
+
+    const rows = (await db
+      .select({
+        id: P.id,
+        first: first(),
+        caption: firstInCollection(f.readItems, P.id, { select: ReadItemTable.caption }),
+        label: sql`coalesce(${first()}, 'none')`,
+      })
+      .from(P)
+      .where(sql`${P.id} in (${sql.join([f.order.id, f.big.id, f.empty.id, f.deleted.id].map((id) => sql`${id}::uuid`), sql`, `)})`)
+      .orderBy(sql`${first()} asc nulls last`, P.id)) as Row[];
+    assert.deepEqual(
+      rows.map((row) => [row.id, row.first, row.caption, row.label]),
+      [
+        [f.big.id, "b0", null, "b0"],
+        [f.order.id, "f", "cap-f", "f"],
+        [f.deleted.id, "x", null, "x"],
+        [f.empty.id, null, null, "none"],
+      ],
+    );
+
+    const none = (await db.select({ id: P.id }).from(P).where(isNull(first()))) as Row[];
+    assert.deepEqual(none.map((row) => row.id), [f.empty.id]);
+    const matched = (await db.select({ id: P.id }).from(P).where(eq(first(), "f"))) as Row[];
+    assert.deepEqual(matched.map((row) => row.id), [f.order.id]);
+
+    assert.throws(() => firstInCollection(f.readItems, P.id, { select: ItemTable.ref }), /select must be a column of the child table/);
+  });
+
+  test("先頭 1 件の SQL（別名の文字列の形）: 手書きの sql`` の select / where / orderBy / COALESCE で使える", async () => {
+    const f = await setupRead();
+    const first = () => firstInCollectionSql(f.readItems, "p");
+    const ids = [f.order.id, f.big.id, f.empty.id, f.deleted.id].map((id) => sql`${id}::uuid`);
+    const rows = (await db.execute(sql`
+      select p.id, ${first()} as first,
+        coalesce(${firstInCollectionSql(f.readItems, "p", { select: ReadItemTable.caption })}, 'none') as caption
+      from test_crud_coll_read_parents p
+      where p.id in (${sql.join(ids, sql`, `)}) and ${first()} is not null
+      order by ${first()} desc, p.id
+    `)) as unknown as Row[];
+    assert.deepEqual(
+      rows.map((row) => [row.id, row.first, row.caption]),
+      [
+        [f.deleted.id, "x", "none"],
+        [f.order.id, "f", "cap-f"],
+        [f.big.id, "b0", "none"],
+      ],
+    );
+    const none = (await db.execute(sql`
+      select p.id from test_crud_coll_read_parents p
+      where p.id in (${sql.join(ids, sql`, `)}) and coalesce(${first()}, '') = ''
+    `)) as unknown as Row[];
+    assert.deepEqual(none.map((row) => row.id), [f.empty.id]);
+  });
+
+  test("並びの列が C 以外の照合順序でも、射影・先頭 1 件の SQL（2 形）・同期の全件読みは鍵の順（COLLATE \"C\"）", async (t) => {
+    if (!nonCCollation) {
+      const message = `skipped: no non-C collation (${NON_C_COLLATIONS.join(", ")}) in this DB`;
+      console.log(message);
+      t.skip(message);
+      return;
+    }
+    console.log(`non-C collation case RAN with collation "${nonCCollation}"`);
+    t.diagnostic(`collation: ${nonCCollation}`);
+    const f = await setupRead();
+    const collChild = createCrudService(CollItemTable as never, { idType: "uuid", systemColumns: ["sort"] });
+    const collItems = {
+      fieldName: "items",
+      service: () => collChild,
+      parentColumn: CollItemTable.parentId,
+      refColumn: CollItemTable.ref,
+      sortColumn: CollItemTable.sort,
+    };
+    const collParent = createCrudService(ReadParentTable as never, {
+      idType: "uuid",
+      useSoftDelete: true,
+      collections: [collItems],
+    } as never) as any;
+    const collRows = async (parentId: string) =>
+      (await db.select().from(CollItemTable).where(eq(CollItemTable.parentId, parentId))) as Row[];
+
+    // 40 件（a0..a9 aA..aZ aa..ad: 大文字と小文字が混ざる）を逆順に入れる
+    const refs = Array.from({ length: 40 }, (_, index) => `c${index}`);
+    const sortKeys = keys(refs.length);
+    assert.equal(sortKeys[35], "aZ");
+    assert.equal(sortKeys[36], "aa");
+    const target = await f.readPlain.create({ name: "e-collate" });
+    await db.insert(CollItemTable).values(
+      refs.map((ref, index) => ({ id: randomUUID(), parentId: target.id, ref, sort: sortKeys[index] })).reverse(),
+    );
+
+    // 前提: 列の照合順序のままの ORDER BY は鍵の順にならない（このケースに意味がある）
+    const collated = (await db
+      .select({ ref: CollItemTable.ref })
+      .from(CollItemTable)
+      .where(eq(CollItemTable.parentId, target.id))
+      .orderBy(asc(CollItemTable.sort), asc(CollItemTable.id))) as Row[];
+    assert.notDeepEqual(collated.map((row) => row.ref), refs);
+
+    // 射影
+    assert.deepEqual((await collParent.get(target.id)).items, refs);
+    const searched = await collParent.search({ where: { field: "id", op: "eq", value: target.id } });
+    assert.deepEqual(searched.results[0].items, refs);
+
+    // 先頭 1 件の SQL: "aZ" と "aa" だけの主 → C の順では "aZ" が先
+    const pair = await f.readPlain.create({ name: "f-collate-first" });
+    await db.insert(CollItemTable).values([
+      { id: randomUUID(), parentId: pair.id, ref: "lower", sort: "aa" },
+      { id: randomUUID(), parentId: pair.id, ref: "upper", sort: "aZ" },
+    ]);
+    const P = ReadParentTable;
+    const columnForm = (await db
+      .select({ id: P.id, first: firstInCollection(collItems, P.id) })
+      .from(P)
+      .where(sql`${P.id} in (${sql`${pair.id}::uuid`}, ${sql`${target.id}::uuid`})`)
+      .orderBy(P.name)) as Row[];
+    assert.deepEqual(columnForm.map((row) => row.first), ["c0", "upper"]);
+    const aliasForm = (await db.execute(sql`
+      select p.id, ${firstInCollectionSql(collItems, "p")} as first from test_crud_coll_read_parents p
+      where p.id in (${pair.id}::uuid, ${target.id}::uuid) order by p.name
+    `)) as unknown as Row[];
+    assert.deepEqual(aliasForm.map((row) => row.first), ["c0", "upper"]);
+    assert.deepEqual((await collParent.get(pair.id)).items, ["upper", "lower"]);
+
+    // 同期の全件読み: 同じ ref の行が 2 つあれば「並びの先」の 1 行を残す。
+    // c35（"aZ"）の複製を "aa" で入れる → C の順では元の行が先なので、元の行が残る
+    const original = (await collRows(target.id)).find((row) => row.ref === "c35")!;
+    const duplicateId = randomUUID();
+    await db.insert(CollItemTable).values({ id: duplicateId, parentId: target.id, ref: "c35", sort: "aa" });
+    const result = await syncCollection({ parentTable: ReadParentTable as never, parentId: target.id, collection: collItems, values: refs });
+    assert.equal(result.deleted, 1);
+    const remaining = (await collRows(target.id)).filter((row) => row.ref === "c35");
+    assert.deepEqual(remaining.map((row) => row.id), [original.id]);
+    assert.deepEqual(result.rows.map((row) => row.ref), refs);
+    assert.deepEqual((await collParent.get(target.id)).items, refs);
   });
 });

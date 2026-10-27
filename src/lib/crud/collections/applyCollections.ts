@@ -6,10 +6,14 @@
 //   主の行を書く → 項目ごとに差分同期。項目の省略 = 維持、[] = 全部消す。戻り値に書いた ref の配列を載せる
 // - bulkUpsert / bulkUpdate / bulkUpdateByIds / bulkUpdateByQuery / replaceByQuery: 集まりの値
 //   （[] を含む）が入っていれば DB を変える前に 400。値が無ければ今のまま
+// - 読み出しの 7 口（get / getWithDeleted / list / listWithDeleted / search / searchWithDeleted /
+//   searchForSorting）: 返した主の行に、集まりごとに ref の配列を全件（件数の上限なし）並び順で載せる。
+//   集まり 1 つにつき呼び出し 1 回で 1 クエリ（主の id の IN）。従属が無ければ []。restore / reorder /
+//   systemUpdate / bulk 系の戻り値には載せない（省略 = 維持なので保存しても失わない）
 // - 呼び出し元が tx を渡さなければ内部で TX を張る（従属の hardDelete のファイルの片付けは従属の
 //   storage binding の動きのまま: 外から tx を渡すので掃除 cron が片付ける）
 
-import { getTableColumns } from "drizzle-orm";
+import { getTableColumns, inArray } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/drizzle";
@@ -17,6 +21,7 @@ import { DomainError } from "@/lib/errors";
 import type { ReplaceByQueryOptions, WhereExpr } from "@/lib/crud/types";
 
 import type { DbTransaction } from "../drizzle/types";
+import { collectionOrderBy } from "./collectionOrder";
 import { resolveCollectionColumns, syncCollectionInTx, validateCollectionValues } from "./syncCollection";
 import type { CollectionRef, CrudCollectionConfig } from "./types";
 
@@ -29,7 +34,16 @@ type ApplyCollectionsContext = {
   reservedFieldNames: readonly string[];
 };
 
+type PaginatedRows = { results: any[] };
+
 type CollectionAwareService = {
+  get(id: string, options?: any): Promise<any>;
+  getWithDeleted(id: string, options?: any): Promise<any>;
+  list(options?: any): Promise<any[]>;
+  listWithDeleted(options?: any): Promise<any[]>;
+  search(params?: any): Promise<PaginatedRows>;
+  searchWithDeleted(params?: any): Promise<PaginatedRows>;
+  searchForSorting(params: any): Promise<PaginatedRows>;
   create(data: any, tx?: DbTransaction): Promise<any>;
   update(id: string, data: any, tx?: DbTransaction): Promise<any>;
   upsert(data: any, upsertOptions?: any, tx?: DbTransaction): Promise<any>;
@@ -102,8 +116,75 @@ export function applyCollections<TService extends CollectionAwareService>(
     }
   };
 
+  /** 主の行に集まりの ref の配列を載せる（集まりごとに 1 クエリ、件数の上限なし） */
+  const project = async (records: readonly Row[]): Promise<void> => {
+    const rows = records.filter((record): record is Row => Boolean(record));
+    if (!rows.length) return;
+    const parentIds = [...new Set(rows.map((record) => record.id as CollectionRef))];
+    for (const [index, collection] of collections.entries()) {
+      const children = (await db
+        .select({ parentId: collection.parentColumn, ref: collection.refColumn })
+        .from(resolved[index].childTable as any)
+        .where(inArray(collection.parentColumn, parentIds))
+        .orderBy(collection.parentColumn, ...collectionOrderBy(collection, resolved[index]))) as Row[];
+      const refsByParent = new Map<unknown, CollectionRef[]>();
+      for (const child of children) {
+        const refs = refsByParent.get(child.parentId);
+        if (refs) refs.push(child.ref as CollectionRef);
+        else refsByParent.set(child.parentId, [child.ref as CollectionRef]);
+      }
+      for (const record of rows) {
+        record[collection.fieldName] = refsByParent.get(record.id) ?? [];
+      }
+    }
+  };
+
+  const projectOne = async <T>(record: T): Promise<T> => {
+    if (record) await project([record as Row]);
+    return record;
+  };
+
+  const projectMany = async <T extends Row[]>(records: T): Promise<T> => {
+    await project(records);
+    return records;
+  };
+
+  const projectPage = async <T extends PaginatedRows>(page: T): Promise<T> => {
+    await project(page.results);
+    return page;
+  };
+
   const wrapped: TService = {
     ...service,
+
+    async get(id, options) {
+      return projectOne(await service.get(id, options));
+    },
+
+    async getWithDeleted(id, options) {
+      return projectOne(await service.getWithDeleted(id, options));
+    },
+
+    async list(options) {
+      return projectMany(await service.list(options));
+    },
+
+    async listWithDeleted(options) {
+      return projectMany(await service.listWithDeleted(options));
+    },
+
+    async search(params) {
+      return projectPage(await service.search(params));
+    },
+
+    async searchWithDeleted(params) {
+      return projectPage(await service.searchWithDeleted(params));
+    },
+
+    // base の searchForSorting は this.search を呼ぶ。service から呼ぶので射影は包んだここの 1 回だけ
+    async searchForSorting(params) {
+      return projectPage(await service.searchForSorting(params));
+    },
 
     async create(data, tx) {
       const { rest, values } = separate(data);
