@@ -164,16 +164,38 @@ export function readEntryTables(text, entryPath) {
  * }} DomainEntryInfo
  */
 
-/** domainEntry.ts / override / drizzleBase / firestoreBase の有無とキーを集める */
-export function discoverDomainEntries(repoRoot) {
+/**
+ * ファイルの見え方。既定はディスクそのまま。dc:generate は「これから書くファイル」を重ねた見え方で、
+ * 書く前に登録表の検査を通す（createOverlayView）
+ * @typedef {{ exists: (file: string) => boolean, read: (file: string) => string }} FileView
+ */
+export const diskView = { exists: (file) => fs.existsSync(file), read: (file) => fs.readFileSync(file, "utf8") };
+
+/**
+ * @param {Map<string, string | null>} overlay 絶対パス → これから書く内容（null = 消える）。無いパスはディスクを見る
+ * @returns {FileView}
+ */
+export function createOverlayView(overlay) {
+  return {
+    exists: (file) => (overlay.has(file) ? overlay.get(file) !== null : fs.existsSync(file)),
+    read: (file) => (overlay.has(file) ? overlay.get(file) : fs.readFileSync(file, "utf8")),
+  };
+}
+
+/**
+ * domainEntry.ts / override / drizzleBase / firestoreBase の有無とキーを集める
+ * @param {string} repoRoot
+ * @param {FileView} [view] ファイルの見え方（既定 = ディスク）
+ */
+export function discoverDomainEntries(repoRoot, view = diskView) {
   /** @type {DomainEntryInfo[]} */
   const domains = [];
   for (const dir of listDomainDirs(repoRoot)) {
     const serverDir = path.join(repoRoot, "src", "features", dir, "services", "server");
     const entryFile = path.join(serverDir, ENTRY_FILE);
     const overrideFile = path.join(serverDir, OVERRIDE_FILE);
-    const hasBase = fs.existsSync(path.join(serverDir, "drizzleBase.ts")) || fs.existsSync(path.join(serverDir, "firestoreBase.ts"));
-    const hasDomainJson = fs.existsSync(path.join(repoRoot, "src", "features", dir, "domain.json"));
+    const hasBase = view.exists(path.join(serverDir, "drizzleBase.ts")) || view.exists(path.join(serverDir, "firestoreBase.ts"));
+    const hasDomainJson = view.exists(path.join(repoRoot, "src", "features", dir, "domain.json"));
     const camel = toCamelCase(path.basename(dir)) || path.basename(dir);
     const info = {
       dir,
@@ -192,10 +214,10 @@ export function discoverDomainEntries(repoRoot) {
       hasDomainJson,
     };
     const rel = `src/features/${dir}/services/server`;
-    if (fs.existsSync(entryFile)) {
+    if (view.exists(entryFile)) {
       info.entryPath = `${rel}/${ENTRY_FILE}`;
       info.importPath = `@/features/${dir}/services/server/domainEntry`;
-      const text = fs.readFileSync(entryFile, "utf8");
+      const text = view.read(entryFile);
       const { keys, error } = readObjectKeys(text, ENTRIES_EXPORT);
       if (error) info.entryErrors.push(`${info.entryPath}: ${error}`);
       else {
@@ -212,10 +234,10 @@ export function discoverDomainEntries(repoRoot) {
         }
       }
     }
-    if (fs.existsSync(overrideFile)) {
+    if (view.exists(overrideFile)) {
       info.overridePath = `${rel}/${OVERRIDE_FILE}`;
       info.overrideImportPath = `@/features/${dir}/services/server/domainEntry.override`;
-      const text = fs.readFileSync(overrideFile, "utf8");
+      const text = view.read(overrideFile);
       const { keys, error } = readObjectKeys(text, OVERRIDES_EXPORT);
       if (error) info.overrideErrors.push(`${info.overridePath}: ${error}`);
       else info.overrideKeys = keys;

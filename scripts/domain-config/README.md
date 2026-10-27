@@ -22,7 +22,7 @@
 
 > **`--` は任意**: pnpm は `pnpm dc:generate -- Sample` の `--` をそのままスクリプトへ渡すが、スクリプト側（`cli/args.mjs`）が単独の `--` を捨てるので `pnpm dc:generate Sample` と同じ動きになる（`dc:add` / `dc:delete` も同じ）。
 > `<Domain>` は snake_case / camelCase / PascalCase のどれでもよい（内部で正規化し、`src/features/<camelCase>/` を見る）。
-> 失敗（`domain.json` が無い、検査で止まる、テンプレートが無いなど）は終了コード 1 になり、**何も書かない**（生成物は全部組み立ててから書くので、書きかけのファイルは残らない。例外は最後の `serviceRegistry.ts` の作り直しで、失敗してもそのドメインのファイルは書き終わっている）。
+> 失敗（`domain.json` が無い、検査で止まる、テンプレートが無い、登録表が作れないなど）は終了コード 1 になり、**何も書かない**（生成物は全部組み立て、書いた後の状態で `serviceRegistry.ts` が作れることまで確かめてから書く）。
 > **フォルダ名 = `singular` の camelCase**（例: `name_pool_entry` → `src/features/namePoolEntry/`）が全ジェネレーターの前提。生成先・import・レジストリ登録・他ドメインからのリレーション import をすべてこの規則で組み立てるため、ずれているドメインがあると `dc:generate` / `dc:generate:all` は何も書かずに終了コード 1 で止まる（`checks/domainFolder.mjs`、`:all` は全件を事前検査）。直すときはフォルダを改名する（`singular` を変えるとテーブル名・FK 名が変わる）。
 
 ## 対話なし実行（`--yes`）
@@ -80,11 +80,11 @@
    - `生成カテゴリを手動で選択` … 今回だけカテゴリを選ぶ。選択を `domain.json` に保存するかも聞かれる
    - `すべてのファイルを生成` … 全カテゴリ
 2. 「既存の関係ファイルはすべて上書きされます。生成を実行しますか？」で Yes
-3. 生成（`pipeline/generate.mjs`）: 読む → 検査 → 全カテゴリの生成物を組み立てる → 書く → `serviceRegistry.ts` を作り直す
+3. 生成（`pipeline/generate.mjs`）: 読む → 検査 → 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す。登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる
 
 ## `dc:generate:all`
 
-ドメインを複数選び（既定は全件）、各 `domain.json` の `generateFiles` で生成する。途中で「ファイル種別を手動で選択しますか？」に Yes と答えると、選んだカテゴリを全ドメインに適用する（`domain.json` には保存しない）。テンプレートを変えたあとの一括反映に使う。
+ドメインを複数選び（既定は全件）、各 `domain.json` の `generateFiles` で生成する。途中で「ファイル種別を手動で選択しますか？」に Yes と答えると、選んだカテゴリを全ドメインに適用する（`domain.json` には保存しない）。テンプレートを変えたあとの一括反映に使う。全ドメインの生成物を先に組み立て、登録表が作れることを確かめてから書き始めるので、途中のドメインで止まって半端に残ることはない。
 
 ## `dc:add <Domain>`
 
@@ -182,7 +182,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `index.mjs` `add-field.mjs` `generate-*.mjs` | `pnpm dc:*` の入口（package.json が指す。中身は 1 行） | |
 | `cli/` | 引数の解釈（`args.mjs`）、対話（`prompts.mjs`、`init` / `generate` / `generateAll` / `delete` / `addField`、`pick/` = 個別選択）、`process.exit` | inquirer、process.exit、domain.json の書き出し |
 | `questions/` | `dc:init` / `dc:add` の質問。`fields/` は 1 項目の質問（`media.mjs` / `options.mjs` / `defaultValue.mjs`） | inquirer |
-| `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → apply → serviceRegistry）、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**。write-once / 旧形式の移行 / 変更なし / レジストリの部分書き換え）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（dc:delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
+| `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry）、`serviceRegistry.mjs`（書く前の検査 = これから書くファイルを重ねた見え方で scripts/registry の検査を呼ぶ）、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**。write-once / 旧形式の移行 / 変更なし / レジストリの部分書き換え）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（dc:delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
 | `checks/` | 生成前の検査（フォルダ名、Firestore のメディア列）。エラー文か null を返す | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（DomainContext = 名前の全形 + domain.json。名前の導出はここだけ）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |

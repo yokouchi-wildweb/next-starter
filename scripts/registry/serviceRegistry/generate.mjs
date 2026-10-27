@@ -47,10 +47,13 @@ function legacyKeyHint(repoRoot, key, serviceImports) {
 
 /**
  * 生成物のテキストと検査結果を作る（ファイルは書かない）
+ * @param {string} repoRoot
+ * @param {{ view?: import("./discover.mjs").FileView }} [options] view = ファイルの見え方。dc:generate が「これから書く
+ *   domainEntry.ts / drizzleBase.ts」を重ねて渡し、書く前に検査する（createOverlayView）
  * @returns {{ text: string, errors: string[], keys: string[], domains: import("./discover.mjs").DomainEntryInfo[] }}
  */
-export function buildServiceRegistry(repoRoot) {
-  const domains = discoverDomainEntries(repoRoot);
+export function buildServiceRegistry(repoRoot, { view } = {}) {
+  const domains = discoverDomainEntries(repoRoot, view);
   const errors = [];
   const keyOwners = new Map();
 
@@ -167,6 +170,11 @@ export function buildServiceRegistry(repoRoot) {
   return { text: lines.join("\n"), errors, keys: [...keyOwners.keys()], domains };
 }
 
+/** 検査エラーの文面（dc:generate の書く前の検査も同じ文面を出す） */
+export function formatRegistryErrors(errors) {
+  return `${REGISTRY_FILE} を生成できません:\n${errors.map((error) => `  - ${error}`).join("\n")}`;
+}
+
 /**
  * serviceRegistry.ts を生成して書き出す。検査に失敗したら書かずに throw
  * @returns {{ written: boolean, added: string[], removed: string[] }}
@@ -174,7 +182,7 @@ export function buildServiceRegistry(repoRoot) {
 export function generateServiceRegistry(repoRoot, { log = console.log } = {}) {
   const { text, errors, keys } = buildServiceRegistry(repoRoot);
   if (errors.length > 0) {
-    throw new Error(`${REGISTRY_FILE} を生成できません:\n${errors.map((error) => `  - ${error}`).join("\n")}`);
+    throw new Error(formatRegistryErrors(errors));
   }
   const existing = readExistingRegistry(repoRoot);
   const before = new Set(existing?.generated ? existing.keys : []);

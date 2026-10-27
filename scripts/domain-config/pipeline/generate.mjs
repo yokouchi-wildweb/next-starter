@@ -1,4 +1,4 @@
-// 1 ドメインの生成: 読む（context）→ 検査（checks）→ 作る（plan）→ 書く（apply）→ serviceRegistry を作り直す。
+// 1 ドメインの生成: 読む（context）→ 検査（checks）→ 作る（plan）→ 登録表の事前検査 → 書く（apply）→ serviceRegistry を作り直す。
 // 対話（生成方法の選択・上書き確認）は cli/generate.mjs。ここは --yes でも対話でも同じ
 
 import { assertPreflight, preflightWarnings } from "../checks/index.mjs";
@@ -7,7 +7,7 @@ import { narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
 import { planDomain } from "./plan.mjs";
-import { regenerateServiceRegistry } from "./serviceRegistry.mjs";
+import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
 /**
  * domain.json を読み、生成前の検査を通す。フォルダ名のずれ・Firestore のメディア列は何も書く前に止める。
@@ -57,6 +57,10 @@ export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = fal
     const counts = reportDryRun(outputs, workspace, io);
     io.log(`[dry-run] ${ctx.camel}: ${summarizeDryRun(counts) || "書くものなし"}${gen.registry ? "（serviceRegistry.ts は実行時に作り直す）" : ""}`);
     return { registry: Boolean(gen.registry) };
+  }
+  // 登録表が作れない状態（手書き行・他ドメインの domainEntry.ts 欠け）なら、何も書かずに止める
+  if (gen.registry && !deferServiceRegistry) {
+    precheckServiceRegistry(workspace, outputs, { errorPrefix: "✗ " });
   }
   applyOutputs(outputs, io);
   if (gen.registry && !deferServiceRegistry) {
