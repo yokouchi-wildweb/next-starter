@@ -3,6 +3,7 @@
 // メディア列（サービスの storageFields）は bulkUpsert で書かない。値は TX の外で先に解決し（mediaValues.ts）、
 // チャンクごとの 1 つの TX の中で bulkUpsert（メディア列を外す）→ 行ごとの update（binding が attach / detach）の順に書く。
 // 1 行でも失敗すればチャンク全体を巻き戻す。
+// 集まりの項目（サービスの collectionFields）を含むチャンクは、メディアの解決・書き込みより前に DomainError 400 で拒否する。
 
 import "server-only";
 import { getJunctionTable } from "@/lib/domain/server";
@@ -13,6 +14,7 @@ import { db } from "@/lib/drizzle";
 import type { DataMigrationMediaResolver } from "../media";
 import type { DataMigrationServiceResolver } from "../serviceResolver";
 import { MediaValueError, resolveMediaRow } from "./mediaValues";
+import { assertNoCollectionFields } from "../collectionFields";
 
 export type FieldTypeInfo = {
   name: string;
@@ -330,9 +332,15 @@ export async function importServiceChunk(
     };
   }
 
+  // CSV パース
+  const csvResult = parseCsv(csvContent);
+
+  // 集まりの項目は取り込まない: DB を変える前（メディアの写し・アップロードより前）に 400 で投げる
+  if (csvResult.success) {
+    assertNoCollectionFields(service, domain, { headers: csvResult.headers, records: csvResult.records, fields });
+  }
+
   try {
-    // CSV パース
-    const csvResult = parseCsv(csvContent);
     if (!csvResult.success) {
       return {
         success: false,

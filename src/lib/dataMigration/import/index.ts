@@ -1,12 +1,15 @@
 // src/lib/dataMigration/import/index.ts
 // サーバーで ZIP を丸ごと受け取る import（POST /api/data-migration/import。UI は使っていない）。
 // チャンクごとの処理は importChunk（UI のチャンク import と同じ中核）に任せる。
+// 集まりの項目は、どのチャンクにあってもチャンクを 1 つも書く前に DomainError 400 で拒否する（先に全チャンクを調べる）。
 
 import "server-only";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import { getDataMigrationConfig } from "../config";
 import type { DataMigrationMediaResolver } from "../media";
 import type { DataMigrationServiceResolver } from "../serviceResolver";
+import { assertNoCollectionFields } from "../collectionFields";
+import { parseCsv } from "./parseCsv";
 import { parseZip } from "./parseZip";
 import { importChunk, type FieldTypeInfo } from "./importChunk";
 
@@ -116,6 +119,14 @@ export async function importData(
         limit: config.maxRecordLimit,
       },
     };
+  }
+
+  // 集まりの項目を含むチャンクがあれば、どのチャンクも書く前に拒否する
+  // （importChunk の先頭でも調べるが、後ろのチャンクだけにあると前のチャンクが先に書かれてしまうため）
+  assertNoCollectionFields(service, domain, { fields });
+  for (const chunk of chunks) {
+    const parsed = parseCsv(chunk.csvContent);
+    if (parsed.success) assertNoCollectionFields(service, domain, { headers: parsed.headers, records: parsed.records });
   }
 
   // 各チャンクを処理

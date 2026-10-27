@@ -9,6 +9,14 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { DuplicateOptions } from "../types";
 import type { DbTransaction } from "../drizzle/types";
 
+/**
+ * collections オプション付きのサービスが出す読み取り専用の宣言（集まりの項目名）。
+ * dataMigration などが「列でない配列の項目」を知る正本。collections を指定しないサービスでは undefined
+ */
+export type CollectionFieldsAugmented = {
+  readonly collectionFields?: readonly string[];
+};
+
 /** 集まりの 1 要素（従属の行を見分ける ref 列の値） */
 export type CollectionRef = string | number;
 

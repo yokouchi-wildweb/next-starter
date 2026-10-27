@@ -48,7 +48,7 @@ import { applyRequestMemo } from "./requestMemo";
 import { applyHiddenColumns } from "./hiddenColumns";
 import { applyStorageBinding } from "../storageIntegration/applyStorageBinding";
 import { applyCollectionDuplicate, applyCollections } from "../collections/applyCollections";
-import type { CollectionDuplicateResult } from "../collections/types";
+import type { CollectionDuplicateResult, CollectionFieldsAugmented } from "../collections/types";
 import type { StorageFieldsAugmented } from "../storageIntegration/types";
 
 const resolveRecordId = (value: unknown): string | number | undefined => {
@@ -2425,7 +2425,7 @@ export function createCrudService<
   // 全メソッドの戻り値から秘匿カラムを null 化する（audit / memo は生値で動作済み）。
   // collections: ドメイン集約の差分同期。指定したサービスだけ書き込み系メソッドを包む（未指定なら service そのまま）。
   // storage: ファイル台帳との連動。指定したサービスだけ書き込み系メソッドを包み、storageFields を出す（未指定なら service そのまま）。
-  const withCollections: typeof service = serviceOptions.collections?.length
+  const withCollections: typeof service & CollectionFieldsAugmented = serviceOptions.collections?.length
     ? applyCollections(service, {
         table,
         collections: serviceOptions.collections,

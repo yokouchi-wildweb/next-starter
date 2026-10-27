@@ -1,12 +1,18 @@
 // src/lib/dataMigration/dataMigrationMedia.test.ts
 // dataMigration のメディア列の単体テスト（DB なし）。import の値の分類・解決と、export のメディア取得（ref の解決・skipped）。
+// 集まりの項目（collections オプション）の取り込みの拒否・書き出しの除外も、偽のサービスで確かめる。
 // ファイル台帳の操作は偽の resolver。実 DB の往復は test:data-migration-db、resolver の実装は storageObject 側のテスト。
 // 実行: pnpm test:data-migration
 
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import { downloadChunkMedia } from "./export/createZip";
+import { assertNoCollectionFields } from "./collectionFields";
+import { createZip, downloadChunkMedia } from "./export/createZip";
+import { exportData } from "./export";
+import { importData } from "./import";
+import { importChunk, importServiceChunk } from "./import/importChunk";
+import { parseZip } from "./import/parseZip";
 import { classifyMediaValue, MediaValueError, resolveMediaRow, splitMediaCell } from "./import/mediaValues";
 import { contentTypeFromFilename, type DataMigrationMediaResolver } from "./media";
 
@@ -245,5 +251,160 @@ describe("export: メディアの取得", () => {
     assert.equal(result.zipEntries.length, 0);
     assert.equal(result.skipped.count, 1);
     assert.equal(result.modifiedRecords[0].main_image, "https://gone.example/a.png");
+  });
+});
+
+describe("集まりの項目（collections）: 取り込みは DB を変える前に 400、書き出しは出さない", () => {
+  type FakeService = Record<string, unknown> & { calls: string[] };
+
+  /** 書き込み・既存行の読み出しを記録する偽のサービス（呼ばれたら calls に残る） */
+  function fakeService(options: { collectionFields?: string[]; rows?: Record<string, unknown>[] } = {}): FakeService {
+    const calls: string[] = [];
+    const rows = options.rows ?? [];
+    return {
+      calls,
+      ...(options.collectionFields ? { collectionFields: options.collectionFields } : {}),
+      storageFields: [{ name: "main_image", purpose: "sample.main_image" }],
+      async bulkUpsert() {
+        calls.push("bulkUpsert");
+        throw new Error("bulkUpsert は呼ばれない");
+      },
+      async update() {
+        calls.push("update");
+        throw new Error("update は呼ばれない");
+      },
+      async getWithDeleted() {
+        calls.push("getWithDeleted");
+        return undefined;
+      },
+      async searchWithDeleted({ page }: { page: number }) {
+        return { results: page === 1 ? rows.map((row) => ({ ...row })) : [] };
+      },
+    };
+  }
+
+  const rejects400 = (promise: Promise<unknown>, field: string, domain = "sample") =>
+    assert.rejects(promise, (error: any) => {
+      assert.equal(error?.name, "DomainError");
+      assert.equal(error.status, 400);
+      assert.match(error.message, new RegExp(`${domain} の集まりの項目（.*${field}.*）`));
+      return true;
+    });
+
+  test("importChunk: CSV の見出しに集まりの項目があれば、メディアの解決・書き込みの前に 400", async () => {
+    const service = fakeService({ collectionFields: ["gallery"] });
+    const { media, calls } = fakeResolver();
+    await rejects400(
+      importChunk({
+        domain: "sample",
+        chunkName: "chunk_001",
+        csvContent: "id,name,main_image,gallery\nr1,a,https://example.com/a.png,x\n",
+        media,
+        services: async () => service as never,
+      }),
+      "gallery",
+    );
+    assert.deepEqual(service.calls, []);
+    assert.deepEqual(calls, []);
+  });
+
+  test("importServiceChunk: 見出しだけの CSV・申告された項目でも 400", async () => {
+    const service = fakeService({ collectionFields: ["gallery", "tags"] });
+    const { media, calls } = fakeResolver();
+    await rejects400(importServiceChunk(service, { domain: "sample", chunkName: "c", csvContent: "id,tags\n", media }), "tags");
+    await rejects400(
+      importServiceChunk(service, {
+        domain: "sample",
+        chunkName: "c",
+        csvContent: "id,name\n",
+        fields: [{ name: "gallery", fieldType: "array" }],
+        media,
+      }),
+      "gallery",
+    );
+    assert.deepEqual(service.calls, []);
+    assert.deepEqual(calls, []);
+  });
+
+  test("行のキーに集まりの項目があっても 400（見出しに無くても）", () => {
+    const service = fakeService({ collectionFields: ["gallery"] });
+    assert.throws(
+      () => assertNoCollectionFields(service, "sample", { headers: ["id"], records: [{ id: "1" }, { id: "2", gallery: "x" }] }),
+      (error: any) => error?.status === 400 && /gallery/.test(error.message),
+    );
+    assert.doesNotThrow(() => assertNoCollectionFields(service, "sample", { headers: ["id", "name"], records: [{ id: "1" }] }));
+  });
+
+  test("集まりの項目が無い取り込み・オプションの無いサービスは今のまま", async () => {
+    const { media } = fakeResolver();
+    const withCollections = fakeService({ collectionFields: ["gallery"] });
+    assert.deepEqual(
+      await importServiceChunk(withCollections, { domain: "sample", chunkName: "c", csvContent: "id,name\n", media }),
+      { success: true, chunkName: "c", recordCount: 0 },
+    );
+    // オプションの無いサービスでは gallery はただの列でない項目（今までどおり拒否しない）
+    const plain = fakeService();
+    assert.deepEqual(
+      await importServiceChunk(plain, { domain: "sample", chunkName: "c", csvContent: "id,gallery\n", media }),
+      { success: true, chunkName: "c", recordCount: 0 },
+    );
+  });
+
+  test("importData: 後ろのチャンクだけに集まりの項目があっても、どのチャンクも書く前に 400", async () => {
+    const service = fakeService({ collectionFields: ["gallery"] });
+    const { media, calls } = fakeResolver();
+    const manifest = { version: "1.0", domain: "sample", exportedAt: new Date().toISOString(), totalRecords: 2, chunkCount: 2, fields: ["id", "name"] };
+    const zipBuffer = await createZip([
+      { path: "manifest.json", content: Buffer.from(JSON.stringify(manifest)) },
+      { path: "chunk_001/data.csv", content: Buffer.from("id,name\nr1,a\n") },
+      { path: "chunk_002/data.csv", content: Buffer.from("id,name,gallery\nr2,b,x\n") },
+    ]);
+    await rejects400(importData({ domain: "sample", zipBuffer, media, services: async () => service as never }), "gallery");
+    assert.deepEqual(service.calls, []);
+    assert.deepEqual(calls, []);
+
+    // 申告された項目に集まりの項目があっても同じ
+    const clean = await createZip([
+      { path: "manifest.json", content: Buffer.from(JSON.stringify({ ...manifest, chunkCount: 1, totalRecords: 1 })) },
+      { path: "chunk_001/data.csv", content: Buffer.from("id,name\nr1,a\n") },
+    ]);
+    await rejects400(
+      importData({ domain: "sample", zipBuffer: clean, fields: [{ name: "gallery" }], media, services: async () => service as never }),
+      "gallery",
+    );
+    assert.deepEqual(service.calls, []);
+  });
+
+  test("exportData: 集まりの項目は選ばれても CSV と manifest に出さない。ほかの列はそのまま", async () => {
+    const rows = [
+      { id: "r1", name: "a", gallery: ["g1", "g2"], createdAt: "2026-01-01T00:00:00.000Z" },
+      { id: "r2", name: "b", gallery: [], createdAt: "2026-01-02T00:00:00.000Z" },
+    ];
+    const { media } = fakeResolver();
+    const exportOf = async (service: FakeService) => {
+      const result = await exportData({
+        domain: "sample",
+        selectedFields: ["id", "name", "gallery", "createdAt"],
+        includeImages: false,
+        media,
+        services: async () => service as never,
+      });
+      assert.equal(result.success, true);
+      const parsed = parseZip((result as { zipBuffer: Buffer }).zipBuffer, "sample");
+      assert.equal(parsed.success, true);
+      const { manifest, chunks } = parsed as Extract<typeof parsed, { success: true }>;
+      return { fields: manifest.fields, csv: chunks[0].csvContent.replace(/^\uFEFF/, "").trim().split(/\r?\n/) };
+    };
+
+    const withCollections = await exportOf(fakeService({ collectionFields: ["gallery"], rows }));
+    assert.deepEqual(withCollections.fields, ["id", "name", "createdAt"]);
+    assert.equal(withCollections.csv[0], "id,name,createdAt");
+    assert.equal(withCollections.csv.length, 3);
+    assert.match(withCollections.csv[1], /^r1,a,/);
+
+    // オプションの無いサービスは今のまま（選ばれた項目はそのまま出す）
+    const plain = await exportOf(fakeService({ rows }));
+    assert.deepEqual(plain.fields, ["id", "name", "gallery", "createdAt"]);
+    assert.equal(plain.csv[0], "id,name,gallery,createdAt");
   });
 });

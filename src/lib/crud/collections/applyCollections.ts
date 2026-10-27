@@ -10,6 +10,7 @@
 //   searchForSorting）: 返した主の行に、集まりごとに ref の配列を全件（件数の上限なし）並び順で載せる。
 //   集まり 1 つにつき呼び出し 1 回で 1 クエリ（主の id の IN）。従属が無ければ []。restore / reorder /
 //   systemUpdate / bulk 系の戻り値には載せない（省略 = 維持なので保存しても失わない）
+// - collectionFields: 集まりの項目名を読み取り専用で出す（dataMigration の拒否・書き出しの除外が使う）
 // - duplicate / duplicateWithIdMap: applyCollectionDuplicate が storage binding の外側で包み、
 //   duplicateWithCollections（2 段の複製）を呼ぶ
 // - 呼び出し元が tx を渡さなければ内部で TX を張る（従属の hardDelete のファイルの片付けは従属の
@@ -64,7 +65,7 @@ const hasOwn = Object.prototype.hasOwnProperty;
 export function applyCollections<TService extends CollectionAwareService>(
   service: TService,
   context: ApplyCollectionsContext,
-): TService {
+): TService & { readonly collectionFields: readonly string[] } {
   const { table, collections } = context;
 
   // 宣言の誤りはサービス生成時に throw する
@@ -159,8 +160,10 @@ export function applyCollections<TService extends CollectionAwareService>(
     return page;
   };
 
-  const wrapped: TService = {
+  const wrapped: TService & { readonly collectionFields: readonly string[] } = {
     ...service,
+
+    collectionFields: Object.freeze([...fieldNames]),
 
     async get(id, options) {
       return projectOne(await service.get(id, options));

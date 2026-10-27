@@ -18,6 +18,7 @@ import {
 import { db } from "@/lib/drizzle";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
+import { withoutCollectionFields } from "../collectionFields";
 import type { DataMigrationMediaResolver, MediaSkipped } from "../media";
 import type { DataMigrationServiceResolver } from "../serviceResolver";
 
@@ -203,8 +204,8 @@ export async function exportData(
     const parsedParams = parseSearchParams(searchParams);
     const searchQuery = parsedParams.searchQuery;
 
-    // フィールドを順序通りに並べる
-    const orderedFields = orderFields(selectedFields);
+    // フィールドを順序通りに並べる（集まりの項目は選ばれていても出さない）
+    const orderedFields = withoutCollectionFields(service, orderFields(selectedFields));
 
     // ZIP エントリを作成
     const zipEntries: ZipEntry[] = [];
@@ -369,6 +370,8 @@ async function exportDomainRecords(
   success: true;
   records: Record<string, unknown>[];
   chunkCount: number;
+  /** 書き出した列（順序どおり。集まりの項目は外す） */
+  fields: string[];
   zipEntries: ZipEntry[];
   mediaSkipped: MediaSkipped;
 } | {
@@ -379,7 +382,7 @@ async function exportDomainRecords(
 }> {
   const { domain, type, fields, imageFields } = domainInfo;
   const fieldNames = fields.map((f) => f.name);
-  const orderedFields = orderFields(fieldNames);
+  let orderedFields = orderFields(fieldNames);
 
   const zipEntries: ZipEntry[] = [];
   const allRecords: Record<string, unknown>[] = [];
@@ -439,7 +442,7 @@ async function exportDomainRecords(
     }
 
     const chunkCount = allRecords.length === 0 ? 1 : Math.ceil(allRecords.length / CHUNK_SIZE);
-    return { success: true, records: allRecords, chunkCount, zipEntries, mediaSkipped };
+    return { success: true, records: allRecords, chunkCount, fields: orderedFields, zipEntries, mediaSkipped };
   }
 
   // 通常ドメインの場合（登録表のキーは camelCase）
@@ -462,6 +465,9 @@ async function exportDomainRecords(
       code: "INVALID_DOMAIN",
     };
   }
+
+  // 集まりの項目は出さない（関連・hasMany のドメインも）
+  orderedFields = withoutCollectionFields(service, orderedFields);
 
   const parsedParams = parseSearchParams(searchParams);
   const searchQuery = parsedParams.searchQuery;
@@ -547,7 +553,7 @@ async function exportDomainRecords(
   }
 
   const chunkCount = allRecords.length === 0 ? 1 : chunkIndex - 1;
-  return { success: true, records: allRecords, chunkCount, zipEntries, mediaSkipped };
+  return { success: true, records: allRecords, chunkCount, fields: orderedFields, zipEntries, mediaSkipped };
 }
 
 /**
@@ -595,14 +601,13 @@ export async function exportDataWithRelations(
       totalRecordCount += result.records.length;
       mergeMediaSkipped(mediaSkipped, result.mediaSkipped);
 
-      // マニフェスト用ドメイン情報
-      const fieldNames = domainInfo.fields.map((f) => f.name);
+      // マニフェスト用ドメイン情報（列は書き出した列）
       const manifestDomain: ManifestDomainInfo = {
         name: domainInfo.domain,
         type: domainInfo.type,
         totalRecords: result.records.length,
         chunkCount: result.chunkCount,
-        fields: orderFields(fieldNames),
+        fields: result.fields,
       };
 
       // リレーション情報を追加

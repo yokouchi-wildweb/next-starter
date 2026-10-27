@@ -31,6 +31,7 @@ export type {
   FirstInCollectionOptions,
   FirstInCollectionSqlOptions,
   CollectionDuplicateParentService,
+  CollectionFieldsAugmented,
   CollectionDuplicateResult,
   DuplicateWithCollectionsParams,
 } from "../collections";
