@@ -16,7 +16,7 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
   let registryGenerated = false;
   for (const domain of selectedDomains) {
     io.log(`\n[${domain}] の生成を開始します。`);
-    const ctx = loadDomainForGenerate(workspace, domain);
+    const ctx = loadDomainForGenerate(workspace, domain, io);
     const gen = narrowTargets(ctx, manualGenerate ?? ctx.config.generateFiles ?? {}, only, io);
     const result = generateDomain(ctx, workspace, gen, { deferServiceRegistry: true, io });
     if (result.registry) registryGenerated = true;

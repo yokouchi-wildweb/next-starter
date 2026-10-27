@@ -1,7 +1,7 @@
 // 1 ドメインの生成: 読む（context）→ 検査（checks）→ 作る（plan）→ 書く（apply）→ serviceRegistry を作り直す。
 // 対話（生成方法の選択・上書き確認）は cli/generate.mjs。ここは --yes でも対話でも同じ
 
-import { assertPreflight } from "../checks/index.mjs";
+import { assertPreflight, preflightWarnings } from "../checks/index.mjs";
 import { createDomainContext } from "../domain/context.mjs";
 import { narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
@@ -9,10 +9,11 @@ import { planDomain } from "./plan.mjs";
 import { regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
 /**
- * domain.json を読み、生成前の検査を通す。フォルダ名のずれ・Firestore のメディア列は何も書く前に止める
+ * domain.json を読み、生成前の検査を通す。フォルダ名のずれ・Firestore のメディア列は何も書く前に止める。
+ * 語彙のずれ（綴り違い・古いキー・その DB に無い型）は警告して続ける
  * @returns {import("../domain/context.mjs").DomainContext}
  */
-export function loadDomainForGenerate(workspace, domainInput) {
+export function loadDomainForGenerate(workspace, domainInput, io = console) {
   const input = (domainInput || "").trim();
   if (!input) {
     throw new Error("ドメイン名を指定してください。");
@@ -22,6 +23,7 @@ export function loadDomainForGenerate(workspace, domainInput) {
     throw new Error(`設定ファイルが見つかりません: ${ctx.configPath}`);
   }
   assertPreflight(ctx);
+  for (const warning of preflightWarnings(ctx)) io.warn(warning);
   return ctx;
 }
 
