@@ -163,8 +163,16 @@ export const domainConfigRegistry = {
 } as const;
 `;
   const root = makeRoot({ "src/registry/domainConfigRegistry.ts": original });
-  applyOutputs([renderDomainConfigRegistryPatch(createWorkspace(root), { camel: "sampleCategory" })], silent);
+  const logs = [];
+  applyOutputs([renderDomainConfigRegistryPatch(createWorkspace(root), { camel: "sampleCategory" })], { log: (m) => logs.push(m), warn: () => {} });
   assert.equal(read(root, "src/registry/domainConfigRegistry.ts"), original);
+  assert.match(logs.join("\n"), /^スキップしました（既に存在）: /);
+  // 片方だけ無ければ足して「更新しました」
+  const root2 = makeRoot({ "src/registry/domainConfigRegistry.ts": original.replace("import sampleCategoryConfig from '@/features/sampleCategory/domain.json';\n", "") });
+  const logs2 = [];
+  applyOutputs([renderDomainConfigRegistryPatch(createWorkspace(root2), { camel: "sampleCategory" })], { log: (m) => logs2.push(m), warn: () => {} });
+  assert.match(read(root2, "src/registry/domainConfigRegistry.ts"), /^import sampleCategoryConfig from "@\/features\/sampleCategory\/domain\.json";/m);
+  assert.match(logs2.join("\n"), /^更新しました: /);
 });
 
 test("serializeRule / serializeAccess: 単一ルールは名前、read/write がプリセットなら spread、operations は 1 行ずつ", () => {

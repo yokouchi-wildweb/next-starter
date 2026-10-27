@@ -46,7 +46,7 @@ export function renderSchemaRegistryPatch(workspace, { camel, dbEngine }) {
   });
 }
 
-/** domainConfigRegistry.ts に domain.json の import と map のエントリを足す（毎回書き戻す） */
+/** domainConfigRegistry.ts に domain.json の import と map のエントリを足す。両方あれば書かない */
 export function renderDomainConfigRegistryPatch(workspace, { camel }) {
   const registryPath = workspace.registryPath("domainConfigRegistry.ts");
   const snake = toSnakeCase(camel);
@@ -54,19 +54,24 @@ export function renderDomainConfigRegistryPatch(workspace, { camel }) {
   const mapPattern = new RegExp(`^\\s*["']?${snake}["']?\\s*:\\s*${camel}Config\\b`);
   return patch(registryPath, (text) => {
     const content = text.split(/\r?\n/);
-    let lastImport = -1;
-    for (let i = 0; i < content.length; i++) {
-      if (content[i].startsWith("import")) lastImport = i;
+    const hasImport = content.some((l) => importPattern.test(l));
+    const hasEntry = content.some((l) => mapPattern.test(l));
+    if (hasImport && hasEntry) {
+      return { logs: [`スキップしました（既に存在）: ${registryPath}`] };
     }
-    if (!content.some((l) => importPattern.test(l))) {
+    if (!hasImport) {
+      let lastImport = -1;
+      for (let i = 0; i < content.length; i++) {
+        if (content[i].startsWith("import")) lastImport = i;
+      }
       content.splice(lastImport + 1, 0, `import ${camel}Config from "@/features/${camel}/domain.json";`);
     }
-    // マーカーが無ければ `} as const;` の手前
-    let insertIndex = content.findIndex((l) => l.includes(END_MARKER));
-    if (insertIndex === -1) {
-      insertIndex = content.findIndex((l) => l.trim().startsWith("} as const"));
-    }
-    if (!content.some((l) => mapPattern.test(l))) {
+    if (!hasEntry) {
+      // マーカーが無ければ `} as const;` の手前
+      let insertIndex = content.findIndex((l) => l.includes(END_MARKER));
+      if (insertIndex === -1) {
+        insertIndex = content.findIndex((l) => l.trim().startsWith("} as const"));
+      }
       content.splice(insertIndex, 0, `  ${snake}: ${camel}Config,`);
     }
     return { text: content.join("\n"), logs: [`更新しました: ${registryPath}`] };
