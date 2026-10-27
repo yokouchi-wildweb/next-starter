@@ -12,6 +12,7 @@ import { resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
 import { asc, eq, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { generateInitialSortKeys } from "@/lib/crud/drizzle/fractionalSort";
 
 const envFile = resolve(process.cwd(), process.env.APP_ENV ?? ".env.development");
 if (existsSync(envFile)) loadEnv({ path: envFile, quiet: true });
@@ -23,12 +24,27 @@ const ParentTable = pgTable("test_crud_coll_parents", {
   name: text("name").notNull(),
 });
 
+// 並びの列はテンプレート（sample の sort_order）と同じ text
 const ItemTable = pgTable("test_crud_coll_items", {
   id: uuid("id").primaryKey(),
   parentId: uuid("parent_id").notNull(),
   ref: text("ref").notNull(),
   caption: text("caption"),
+  sort: text("sort"),
+});
+
+const IntItemTable = pgTable("test_crud_coll_int_items", {
+  id: uuid("id").primaryKey(),
+  parentId: uuid("parent_id").notNull(),
+  ref: text("ref").notNull(),
   sort: integer("sort"),
+});
+
+const BadSortItemTable = pgTable("test_crud_coll_bad_items", {
+  id: uuid("id").primaryKey(),
+  parentId: uuid("parent_id").notNull(),
+  ref: text("ref").notNull(),
+  sort: timestamp("sort", { withTimezone: true }),
 });
 
 const SoftItemTable = pgTable("test_crud_coll_soft_items", {
@@ -40,6 +56,9 @@ const SoftItemTable = pgTable("test_crud_coll_soft_items", {
 });
 
 type Row = Record<string, any>;
+
+// lib の fractional の鍵（replaceByQuery の sortOrderFromIndex と同じ生成）
+const keys = (count: number): string[] => generateInitialSortKeys(count);
 
 describe("collections オプション（実 DB の TX）", { skip }, () => {
   // 遅延 import（DATABASE_URL を読んでから @/lib/drizzle を初期化する）
@@ -68,6 +87,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     plain = createCrudService(ParentTable as never, { idType: "uuid" });
 
     await db.execute(sql`drop table if exists test_crud_coll_items`);
+    await db.execute(sql`drop table if exists test_crud_coll_int_items`);
     await db.execute(sql`drop table if exists test_crud_coll_parents`);
     await db.execute(sql`create table test_crud_coll_parents (id uuid primary key, name text not null)`);
     await db.execute(sql`
@@ -76,6 +96,14 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
         parent_id uuid not null references test_crud_coll_parents(id) on delete cascade,
         ref text not null,
         caption text,
+        sort text
+      )
+    `);
+    await db.execute(sql`
+      create table test_crud_coll_int_items (
+        id uuid primary key,
+        parent_id uuid not null references test_crud_coll_parents(id) on delete cascade,
+        ref text not null,
         sort integer
       )
     `);
@@ -84,6 +112,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   after(async () => {
     if (!db) return;
     await db.execute(sql`drop table if exists test_crud_coll_items`);
+    await db.execute(sql`drop table if exists test_crud_coll_int_items`);
     await db.execute(sql`drop table if exists test_crud_coll_parents`);
     await (db as unknown as { $client?: { end: () => Promise<void> } }).$client?.end();
   });
@@ -101,11 +130,11 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   const rejects400 = (promise: Promise<unknown>) =>
     assert.rejects(promise, (error: any) => error?.name === "DomainError" && error.status === 400);
 
-  test("create: 配列順に従属を作り、並びは 0 から振る。戻り値に ref の配列を載せる", async () => {
+  test("create: 配列順に従属を作り、並びは fractional の鍵で振る。戻り値に ref の配列を載せる", async () => {
     const created = await parent.create({ name: "p1", items: ["a", "b", "c"] });
     assert.deepEqual(created.items, ["a", "b", "c"]);
     const rows = await childrenOf(created.id);
-    assert.deepEqual(rows.map((row) => [row.ref, row.sort]), [["a", 0], ["b", 1], ["c", 2]]);
+    assert.deepEqual(rows.map((row) => [row.ref, row.sort]), [["a", keys(3)[0]], ["b", keys(3)[1]], ["c", keys(3)[2]]]);
   });
 
   test("create: 従属の作成が失敗すれば主の行も残らない（同じ TX）", async () => {
@@ -127,7 +156,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     assert.equal(updated.name, "p2x");
     assert.deepEqual(updated.items, ["c", "d", "a"]);
     const rows = await childrenOf(created.id);
-    assert.deepEqual(rows.map((row) => [row.ref, row.sort]), [["c", 0], ["d", 1], ["a", 2]]);
+    assert.deepEqual(rows.map((row) => [row.ref, row.sort]), [["c", keys(3)[0]], ["d", keys(3)[1]], ["a", keys(3)[2]]]);
     assert.equal(rows[0].id, idOf("c"));
     assert.equal(rows[2].id, idOf("a"));
     assert.ok(!rows.some((row) => row.id === idOf("b")));
@@ -178,7 +207,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
   test("最大件数を超えた既存の行は黙って消さない: そのまま保存すると 400、省略なら残る", async () => {
     const created = await parent.create({ name: "p6", items: ["a", "b", "c"] });
     // 従属の API からの直接の書き込みで上限を超える
-    await child.create({ parentId: created.id, ref: "d", sort: 3 });
+    await child.create({ parentId: created.id, ref: "d", sort: "z0" });
     await rejects400(parent.update(created.id, { items: ["a", "b", "c", "d"] }));
     await parent.update(created.id, { name: "p6x" });
     assert.deepEqual(await refsOf(created.id), ["a", "b", "c", "d"]);
@@ -227,7 +256,7 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     });
     assert.equal(result.created, 1);
     assert.equal(result.deleted, 0);
-    assert.deepEqual(result.rows.map((row) => [row.ref, row.sort]), [["b", 0], ["c", 1], ["a", 2]]);
+    assert.deepEqual(result.rows.map((row) => [row.ref, row.sort]), [["b", keys(3)[0]], ["c", keys(3)[1]], ["a", keys(3)[2]]]);
 
     const shape = async (id: string) => (await childrenOf(id)).map((row) => [row.ref, row.sort]);
     assert.deepEqual(await shape(direct.id), await shape(viaService.id));
@@ -270,7 +299,66 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     assert.deepEqual(await refsOf(created.id), []);
   });
 
+  test("text の並びの列で 12 件の作成・並べ替え・一部削除の後も、並びの列の昇順が配列順になる", async () => {
+    const big = createCrudService(ParentTable as never, {
+      idType: "uuid",
+      collections: [{ ...itemsCollection, maxItems: undefined }],
+    });
+    const refs = Array.from({ length: 12 }, (_, index) => `r${index}`);
+    const created = await big.create({ name: "big", items: refs } as never);
+    assert.deepEqual(await refsOf(created.id), refs);
+
+    const reordered = [...refs].reverse();
+    reordered.splice(3, 0, reordered.splice(10, 1)[0]);
+    await big.update(created.id, { items: reordered } as never);
+    assert.deepEqual(await refsOf(created.id), reordered);
+
+    const trimmed = reordered.filter((_, index) => index % 3 !== 1).concat(["n0", "n1"]);
+    await big.update(created.id, { items: trimmed } as never);
+    assert.deepEqual(await refsOf(created.id), trimmed);
+    // 文字列の昇順で読んだ並びの値は、振り直した鍵そのもの
+    assert.deepEqual((await childrenOf(created.id)).map((row) => row.sort), keys(trimmed.length));
+  });
+
+  test("integer の並びの列は 0 始まりの添字で振る", async () => {
+    const intChild = createCrudService(IntItemTable as never, { idType: "uuid", systemColumns: ["sort"] });
+    const intParent = createCrudService(ParentTable as never, {
+      idType: "uuid",
+      collections: [
+        {
+          fieldName: "items",
+          service: () => intChild,
+          parentColumn: IntItemTable.parentId,
+          refColumn: IntItemTable.ref,
+          sortColumn: IntItemTable.sort,
+        },
+      ],
+    });
+    const intRows = async (id: string) =>
+      (await db
+        .select()
+        .from(IntItemTable)
+        .where(eq(IntItemTable.parentId, id))
+        .orderBy(asc(IntItemTable.sort), asc(IntItemTable.id))) as Row[];
+    const refs = Array.from({ length: 12 }, (_, index) => `i${index}`);
+    const created = await intParent.create({ name: "int", items: refs } as never);
+    const reordered = [...refs].reverse().slice(1);
+    await intParent.update(created.id, { items: reordered } as never);
+    const rows = await intRows(created.id);
+    assert.deepEqual(rows.map((row) => row.ref), reordered);
+    assert.deepEqual(rows.map((row) => row.sort), reordered.map((_, index) => index));
+  });
+
   test("宣言の誤りはサービス生成時に throw する", () => {
+    assert.throws(
+      () =>
+        createCrudService(ParentTable as never, {
+          collections: [
+            { ...itemsCollection, parentColumn: BadSortItemTable.parentId, refColumn: BadSortItemTable.ref, sortColumn: BadSortItemTable.sort },
+          ],
+        }),
+      /text \(fractional key\) or integer/,
+    );
     assert.throws(
       () =>
         createCrudService(ParentTable as never, {

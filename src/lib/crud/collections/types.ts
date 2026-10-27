@@ -31,7 +31,10 @@ export type CrudCollectionConfig = {
   parentColumn: AnyPgColumn;
   /** 従属の表の ref 列（集まりの要素の値。差分はこの値で取る） */
   refColumn: AnyPgColumn;
-  /** 従属の表の並びの列（主の中だけで配列順に 0 から振る）。従属の systemColumns に宣言する */
+  /**
+   * 従属の表の並びの列（主の中だけで配列順に振り、同期のたびに振り直す）。従属の systemColumns に宣言する。
+   * text の列（テンプレートの既定）= lib の fractional の鍵、integer の列 = 0 始まりの添字
+   */
   sortColumn: AnyPgColumn;
   /** 最大件数。超える配列の保存は 400（切り詰めない）。省略時は上限なし */
   maxItems?: number;

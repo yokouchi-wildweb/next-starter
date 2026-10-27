@@ -4,13 +4,16 @@
 // base を通らない書き込み（手書きのドメイン・fork の独自の保存）からも同じ規則で同期できる。
 // - 主の行を FOR UPDATE でロック → 従属の行を件数の上限なしで全部読む → ref の値で差分
 // - 変わらない値の行は残す（子の id を保つ）/ 消えた値の行は従属の hardDelete / 新しい値は従属の create
-// - 並びは配列順に 0 から振り、従属の systemUpdate で書く（作った行と、並びが変わった行）
+// - 並びは同期のたびに配列順に振り直し、従属の systemUpdate で書く（作った行と、並びの値が変わった行）。
+//   text の列は lib の fractional の鍵（replaceByQuery の sortOrderFromIndex と同じ generateInitialSortKeys）、
+//   integer の列は 0 始まりの添字
 // - 読んでいない行は消さない（ロックしてから読み直すので、直接の書き込みとは主の保存が後勝ち）
 
 import { asc, eq, getTableColumns, getTableName } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/drizzle";
+import { generateInitialSortKeys } from "../drizzle/fractionalSort";
 import { DomainError } from "@/lib/errors";
 
 import type { DbTransaction } from "../drizzle/types";
@@ -35,6 +38,8 @@ type ResolvedCollectionColumns = {
   parentProp: string;
   refProp: string;
   sortProp: string;
+  /** 配列の長さから並びの値の列を作る（text = fractional の鍵、integer = 添字） */
+  sortValues: (count: number) => Array<string | number>;
 };
 
 const tableOf = (column: AnyPgColumn): PgTable => (column as unknown as { table: PgTable }).table;
@@ -65,12 +70,21 @@ export function resolveCollectionColumns(collection: CrudCollectionConfig): Reso
   if (collection.maxItems !== undefined && (!Number.isInteger(collection.maxItems) || collection.maxItems < 1)) {
     throw new Error(`${label}: maxItems must be a positive integer.`);
   }
+  const sortType = (collection.sortColumn as unknown as { dataType: string }).dataType;
+  if (sortType !== "string" && sortType !== "number") {
+    throw new Error(`${label}: sortColumn must be a text (fractional key) or integer column.`);
+  }
+  const sortValues =
+    sortType === "string"
+      ? (count: number) => generateInitialSortKeys(count)
+      : (count: number) => Array.from({ length: count }, (_, index) => index);
   const resolved = {
     childTable,
     childId,
     parentProp: propOf(collection.parentColumn, "parentColumn"),
     refProp: propOf(collection.refColumn, "refColumn"),
     sortProp: propOf(collection.sortColumn, "sortColumn"),
+    sortValues,
   };
   if (new Set([resolved.parentProp, resolved.refProp, resolved.sortProp, "id"]).size !== 4) {
     throw new Error(`${label}: parentColumn, refColumn, sortColumn and id must be different columns.`);
@@ -112,7 +126,7 @@ export async function syncCollectionInTx(
   resolved: ResolvedCollectionColumns = resolveCollectionColumns(params.collection),
 ): Promise<CollectionSyncResult> {
   const { parentTable, parentId, collection, values } = params;
-  const { childTable, childId, parentProp, refProp, sortProp } = resolved;
+  const { childTable, childId, parentProp, refProp, sortProp, sortValues } = resolved;
 
   const locked = await executor
     .select({ id: parentTable.id })
@@ -145,7 +159,7 @@ export async function syncCollectionInTx(
     await child.hardDelete(String(row.id), executor);
   }
 
-  const writeSort = async (row: Row, sort: number): Promise<Row> => {
+  const writeSort = async (row: Row, sort: string | number): Promise<Row> => {
     try {
       return (await child.systemUpdate(String(row.id), { [sortProp]: sort }, executor)) as Row;
     } catch (error) {
@@ -159,22 +173,25 @@ export async function syncCollectionInTx(
     }
   };
 
+  // 親の中の並びを配列順に振り直す（値が同じ行は書かない）
+  const sorts = sortValues(values.length);
   const rows: Row[] = [];
   let created = 0;
   for (const [index, ref] of values.entries()) {
+    const sort = sorts[index];
     const current = kept.get(ref);
     if (current) {
-      rows.push(current[sortProp] === index ? current : await writeSort(current, index));
+      rows.push(current[sortProp] === sort ? current : await writeSort(current, sort));
       continue;
     }
     // 並びは create の入力にも入れる（NOT NULL の列のため）が、従属の parseCreate が落とすことがあるので
     // 作った行は必ず systemUpdate で書く（systemColumns の宣言漏れを最初の追加で分かるようにする）
     const inserted = (await child.create(
-      { [parentProp]: parentId, [refProp]: ref, [sortProp]: index },
+      { [parentProp]: parentId, [refProp]: ref, [sortProp]: sort },
       executor,
     )) as Row;
     created += 1;
-    rows.push(await writeSort(inserted, index));
+    rows.push(await writeSort(inserted, sort));
   }
 
   return { rows, created, deleted: toDelete.length };
