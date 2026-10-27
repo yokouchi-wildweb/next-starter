@@ -1,0 +1,4 @@
+{"domainConfigVersion":"1.3","singular":"wrong_dir","plural":"wrong_dirs","label":"ずれ","dbEngine":"Neon","idType":"uuid","relations":[],"useCreatedAt":true,"useUpdatedAt":true,
+ "fields":[{"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true}],"searchFields":[],"defaultOrderBy":[],"tableFields":[],
+ "apiAccess":{"read":"public","write":{"roleCategories":["admin"]}},
+ "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}

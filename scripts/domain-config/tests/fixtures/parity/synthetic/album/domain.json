@@ -1,0 +1,19 @@
+{"domainConfigVersion":"1.3","singular":"album","plural":"albums","label":"アルバム","dbEngine":"Neon","idType":"uuid",
+ "relations":[
+  {"domain":"photo","label":"写真","fieldName":"photo_ids","fieldType":"uuid","relationType":"hasMany","required":false},
+  {"domain":"vault","label":"保管庫","fieldName":"vault_id","fieldType":"uuid","relationType":"belongsTo","required":false,"onDelete":"SET_NULL","labelField":"code"},
+  {"domain":"memo","label":"メモ","fieldName":"memo_id","fieldType":"string","relationType":"hasOne","required":false}
+ ],
+ "useCreatedAt":true,"useUpdatedAt":true,"useSoftDelete":false,"sortOrderField":"sort_order",
+ "fields":[
+  {"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":false},
+  {"name":"cover","label":"表紙","fieldType":"mediaUploader","formInput":"mediaUploader","required":true,"slug":"cover","mediaTypePreset":"images","accept":"image/*","validationRule":{"maxSizeBytes":5242880},"storage":{"visibility":"public"}},
+  {"name":"document","label":"書類","fieldType":"mediaUploader","formInput":"mediaUploader","required":false,"slug":"document","mediaTypePreset":"all","accept":"application/pdf,image/png","storage":{"visibility":"private","metadata":"keep","upload":{"roles":["editor"]}},"metadataBinding":{"sizeBytes":"doc_size"}},
+  {"name":"doc_size","label":"書類サイズ","fieldType":"integer","formInput":"hidden","required":false},
+  {"name":"photos","label":"写真群","fieldType":"mediaUploaderMulti","formInput":"mediaUploaderMulti","required":true,"slug":"photos","mediaTypePreset":"imagesAndVideos","accept":"image/*,video/*","validationRule":{"maxItems":5,"minItems":2},"reorderable":true,"storage":{"visibility":"public"}},
+  {"name":"sort_order","label":"並び","fieldType":"integer","formInput":"hidden","required":false}
+ ],
+ "searchFields":["name","cover"],"defaultOrderBy":[["sort_order","ASC"]],"tableFields":["name","cover","createdAt"],
+ "useDetailModal":true,"useDuplicateButton":true,"useImportExport":true,"addToAdminDataMenu":true,"useAutoSave":true,
+ "apiAccess":{"read":"public","write":"authenticated"},
+ "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}

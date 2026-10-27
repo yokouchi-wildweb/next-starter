@@ -91,6 +91,7 @@
     "dc:generate:hook": "node scripts/domain-config/generate-hook.mjs",
     "dc:delete": "node scripts/domain-config/index.mjs --delete",
     "dc:add": "node scripts/domain-config/add-field.mjs",
+    "dc:parity": "node scripts/domain-config/tests/parity.mjs",
     "role:add": "node scripts/role-config/index.mjs init",
     "role:generate": "node scripts/role-config/generate.mjs",
     "role:delete": "node scripts/role-config/deleteRole.mjs",

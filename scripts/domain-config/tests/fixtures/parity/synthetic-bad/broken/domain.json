@@ -1,0 +1,5 @@
+{"domainConfigVersion":"1.3","singular":"broken","plural":"brokens","label":"壊","dbEngine":"Neon","idType":"uuid",
+ "relations":[{"domain":"vault","label":"保管庫","fieldName":"vault_id","fieldType":"uuid","relationType":"belongsTo","required":true,"onDelete":"SET_NULL"}],
+ "useCreatedAt":true,"useUpdatedAt":true,"fields":[{"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true}],
+ "searchFields":[],"defaultOrderBy":[],"tableFields":["name"],"apiAccess":{"read":"public","write":{"roleCategories":["admin"]}},
+ "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}

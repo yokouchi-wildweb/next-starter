@@ -1,0 +1,14 @@
+{"domainConfigVersion":"1.3","singular":"photo","plural":"photos","label":"写真","dbEngine":"Neon","idType":"uuid",
+ "relations":[
+  {"domain":"album","label":"アルバム","fieldName":"album_id","fieldType":"uuid","relationType":"belongsTo","required":true,"onDelete":"CASCADE","formInput":"asyncCombobox"},
+  {"domain":"vault","label":"保管庫","fieldName":"vault_id","fieldType":"uuid","relationType":"belongsTo","required":false,"onDelete":"RESTRICT"}
+ ],
+ "useCreatedAt":true,"useUpdatedAt":true,"useSoftDelete":false,
+ "fields":[
+  {"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true},
+  {"name":"image","label":"画像","fieldType":"mediaUploader","formInput":"mediaUploader","required":false,"slug":"image","mediaTypePreset":"images","accept":"image/*"}
+ ],
+ "searchFields":["name"],"defaultOrderBy":[["createdAt","DESC"]],"tableFields":["name","image"],
+ "useDetailModal":false,"useDuplicateButton":true,"useImportExport":false,"addToAdminDataMenu":false,"useAutoSave":false,
+ "apiAccess":{"read":"public","write":{"roleCategories":["admin"]}},
+ "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}

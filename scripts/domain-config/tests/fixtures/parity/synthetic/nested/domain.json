@@ -1,0 +1,11 @@
+{"domainConfigVersion":"1.3","singular":"nested","plural":"nesteds","label":"入れ子","dbEngine":"Neon","idType":"uuid",
+ "relations":[
+  {"domain":"photo","label":"写真","fieldName":"photo_id","fieldType":"uuid","relationType":"belongsTo","required":true,"onDelete":"RESTRICT"},
+  {"domain":"anotherQuiteLongDomainNameForTruncation","label":"相手","fieldName":"another_quite_long_domain_name_for_truncation_ids","fieldType":"uuid","relationType":"belongsToMany","required":false,"includeRelationTable":true,"formInput":"asyncMultiSelect"},
+  {"domain":"very_long_domain_name_for_foreign_key_truncation","label":"長い","fieldName":"very_long_domain_name_for_foreign_key_truncation_ids","fieldType":"uuid","relationType":"belongsToMany","required":false,"includeRelationTable":false}
+ ],
+ "useCreatedAt":true,"useUpdatedAt":true,"useSoftDelete":true,
+ "fields":[{"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true}],
+ "searchFields":["name"],"defaultOrderBy":[["name","DESC"]],"tableFields":["name"],"useDetailModal":true,"useDuplicateButton":true,"useImportExport":false,"addToAdminDataMenu":true,"useAutoSave":false,
+ "apiAccess":{"read":"public","write":{"roleCategories":["admin"]}},
+ "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}

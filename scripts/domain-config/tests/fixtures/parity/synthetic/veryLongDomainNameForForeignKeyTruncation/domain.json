@@ -1,0 +1,10 @@
+{"domainConfigVersion":"1.3","singular":"very_long_domain_name_for_foreign_key_truncation","plural":"very_long_domain_names_for_foreign_key_truncation","label":"長い","dbEngine":"Neon","idType":"uuid",
+ "relations":[
+  {"domain":"another_quite_long_domain_name_for_truncation","label":"相手","fieldName":"another_quite_long_domain_name_for_truncation_id","fieldType":"uuid","relationType":"belongsTo","required":true,"onDelete":"CASCADE"},
+  {"domain":"vault","label":"保管庫","fieldName":"vault_ids","fieldType":"uuid","relationType":"belongsToMany","required":false,"includeRelationTable":true}
+ ],
+ "useCreatedAt":true,"useUpdatedAt":false,
+ "fields":[{"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true}],
+ "searchFields":["name"],"defaultOrderBy":[["name","ASC"]],"tableFields":["name"],"useDetailModal":true,"useDuplicateButton":false,"useImportExport":false,"addToAdminDataMenu":true,
+ "apiAccess":{"read":"public","write":{"roleCategories":["admin"]}},
+ "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}

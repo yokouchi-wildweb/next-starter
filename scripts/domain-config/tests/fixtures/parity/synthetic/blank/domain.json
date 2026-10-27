@@ -1,0 +1,6 @@
+{"domainConfigVersion":"1.3","singular":"blank","plural":"blanks","label":"空","dbEngine":"Neon","idType":"db","relations":[],
+ "useCreatedAt":false,"useUpdatedAt":false,"useSoftDelete":false,
+ "fields":[{"name":"note","label":"覚書","fieldType":"string","formInput":"none","required":false}],
+ "searchFields":[],"defaultOrderBy":[],"tableFields":["id"],"useDetailModal":false,"useDuplicateButton":false,"useImportExport":false,"addToAdminDataMenu":false,
+ "apiAccess":{"read":"none","write":"none"},
+ "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}
