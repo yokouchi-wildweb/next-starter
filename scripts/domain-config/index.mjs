@@ -9,6 +9,7 @@
  *   --delete <Domain>   指定したドメインに関連する生成物を削除します。
  *   --yes               --generate と併用。プロンプトを出さず domain.json の generateFiles どおりに生成します。
  *   --only <categories> --generate と併用。generateFiles で true のカテゴリをさらに絞り込みます（例: --only registry）。
+ *   --dry-run           --generate と併用。何も書かず、書くはずのファイルと動作（作成 / 上書き / 変更なし / 保持）を一覧します。
  *
  * 単独の `--` は無視します（`pnpm dc:generate -- User` を許容するため）。
  * 失敗時は終了コード 1 で終了します。何も書く前に検査で止まり、書きかけのファイルは残しません。
@@ -18,6 +19,7 @@
  *   node scripts/domain-config/index.mjs --generate User
  *   node scripts/domain-config/index.mjs --generate User --yes
  *   node scripts/domain-config/index.mjs --generate --all --yes --only registry
+ *   node scripts/domain-config/index.mjs --generate --all --yes --dry-run
  *   node scripts/domain-config/index.mjs --delete User
  */
 import { main } from "./cli/main.mjs";

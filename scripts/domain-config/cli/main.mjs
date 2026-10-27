@@ -9,7 +9,7 @@ import { runInit } from "./init.mjs";
 import { confirm, selectDomain } from "./prompts.mjs";
 
 const USAGE =
-  "使い方: node scripts/domain-config/index.mjs --init | --generate <Domain> [--yes] [--only <categories>] | --generate --all [--yes] [--only <categories>] | --delete <Domain>";
+  "使い方: node scripts/domain-config/index.mjs --init | --generate <Domain> [--yes] [--only <categories>] [--dry-run] | --generate --all [--yes] [--only <categories>] [--dry-run] | --delete <Domain>";
 
 export async function main() {
   let args;
@@ -26,6 +26,7 @@ export async function main() {
   const hasAll = args.includes("--all");
   const hasDelete = args.includes("--delete");
   const hasYes = args.includes("--yes");
+  const dryRun = args.includes("--dry-run");
   // フラグ以外の最初の引数をドメイン名とする（`--generate --yes User` の順でも受け付ける）
   const positionalDomain = args.find((arg) => !arg.startsWith("--"));
 
@@ -33,8 +34,8 @@ export async function main() {
     console.error(USAGE);
     process.exit(1);
   }
-  if (only && !hasGenerate) {
-    console.error("--only は --generate と併用してください");
+  if ((only || dryRun) && !hasGenerate) {
+    console.error(`${only ? "--only" : "--dry-run"} は --generate と併用してください`);
     process.exit(1);
   }
 
@@ -52,7 +53,7 @@ export async function main() {
 
     if (hasGenerate) {
       if (hasAll) {
-        await runGenerateAllInteractive(workspace, { yes: hasYes, only });
+        await runGenerateAllInteractive(workspace, { yes: hasYes, only, dryRun });
         return;
       }
       let domain = positionalDomain;
@@ -67,7 +68,7 @@ export async function main() {
         }
         domain = await selectDomain(domains);
       }
-      await runGenerate(workspace, domain, hasYes ? { mode: "config", interactive: false, shouldGenerate: true, only } : { only });
+      await runGenerate(workspace, domain, hasYes ? { mode: "config", interactive: false, shouldGenerate: true, only, dryRun } : { only, dryRun });
       return;
     }
 

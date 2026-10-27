@@ -1,7 +1,8 @@
 // 生成器の構造の検査: 1 ファイルの行数の上限と、層ごとに許す import。
 // 生成器は細部にバグが生まれやすいので、ファイルを肥大化させず、副作用（fs・プロンプト・process.exit）の置き場を固定する。
 //   spec/ domain/（workspace 以外） checks/ render/ text/ → fs / child_process / inquirer / process.exit を使わない（純粋に文字列を作る）
-//   fs を触る = domain/workspace.mjs（読む）、pipeline/apply.mjs・pipeline/remove/（書く）、cli/（domain.json の書き出し・削除の対話）
+//   fs を触る = domain/workspace.mjs（読む）、pipeline/apply.mjs・pipeline/remove/（書く）、pipeline/dryRun.mjs（読んで比べるだけ）、
+//            cli/（domain.json の書き出し・削除の対話）
 //   inquirer = cli/ と questions/ だけ | process.exit = cli/ だけ | render/ は pipeline/ と cli/ を import しない
 // 実行: pnpm test:dc-structure
 import { test } from "node:test";
@@ -48,8 +49,9 @@ test("純粋な層（spec / domain / checks / render / text）は fs・child_pro
   assert.deepEqual(violations, []);
 });
 
-test("fs を触るのは workspace・apply・remove・cli だけ", () => {
-  const allowed = (rel) => rel === "domain/workspace.mjs" || rel === "pipeline/apply.mjs" || inLayer(rel, "pipeline/remove", "cli") || isTest(rel);
+test("fs を触るのは workspace・apply・dryRun・remove・cli だけ", () => {
+  const FS_ALLOWED = new Set(["domain/workspace.mjs", "pipeline/apply.mjs", "pipeline/dryRun.mjs"]);
+  const allowed = (rel) => FS_ALLOWED.has(rel) || inLayer(rel, "pipeline/remove", "cli") || isTest(rel);
   const violations = files.filter(({ rel, text }) => !allowed(rel) && usesModule(text, "fs")).map(({ rel }) => rel);
   assert.deepEqual(violations, []);
 });

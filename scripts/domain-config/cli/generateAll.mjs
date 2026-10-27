@@ -6,7 +6,8 @@ import { confirm, selectDomains } from "./prompts.mjs";
 
 /**
  * @param {import("../domain/workspace.mjs").Workspace} workspace
- * @param {{ yes?: boolean, only?: string[] | null }} [options] yes = プロンプトを出さず、全ドメインを各 domain.json の generateFiles どおりに生成する
+ * @param {{ yes?: boolean, only?: string[] | null, dryRun?: boolean }} [options] yes = プロンプトを出さず、全ドメインを各 domain.json の generateFiles どおりに生成する
+ *   dryRun = 書かずに一覧（実行の確認も出さない）
  */
 export async function runGenerateAllInteractive(workspace, options = {}) {
   const domains = workspace.listDomains();
@@ -15,8 +16,9 @@ export async function runGenerateAllInteractive(workspace, options = {}) {
     return;
   }
 
+  const runOptions = { dryRun: Boolean(options.dryRun) };
   if (options.yes) {
-    runGenerateAll(workspace, domains, null, options.only ?? null);
+    runGenerateAll(workspace, domains, null, options.only ?? null, runOptions);
     return;
   }
 
@@ -36,10 +38,10 @@ export async function runGenerateAllInteractive(workspace, options = {}) {
     ({ generateFiles: manualGenerate } = await askGenerateFiles());
   }
 
-  if (!(await confirm("選択したドメインの生成を実行しますか？既存ファイルは上書きされます。", false))) {
+  if (!runOptions.dryRun && !(await confirm("選択したドメインの生成を実行しますか？既存ファイルは上書きされます。", false))) {
     console.log("一括生成をキャンセルしました。");
     return;
   }
 
-  runGenerateAll(workspace, selectedDomains, manualGenerate, options.only ?? null);
+  runGenerateAll(workspace, selectedDomains, manualGenerate, options.only ?? null, runOptions);
 }

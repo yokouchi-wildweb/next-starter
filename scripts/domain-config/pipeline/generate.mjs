@@ -5,6 +5,7 @@ import { assertPreflight, preflightWarnings } from "../checks/index.mjs";
 import { createDomainContext } from "../domain/context.mjs";
 import { narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
+import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
 import { planDomain } from "./plan.mjs";
 import { regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
@@ -44,13 +45,19 @@ export function narrowTargets(ctx, gen, only, io = console) {
  * @param {import("../domain/context.mjs").DomainContext} ctx
  * @param {import("../domain/workspace.mjs").Workspace} workspace
  * @param {Record<string, boolean>} gen 生成するカテゴリ
- * @param {{ deferServiceRegistry?: boolean, io?: { log: Function, warn: Function } }} [options]
+ * @param {{ deferServiceRegistry?: boolean, dryRun?: boolean, io?: { log: Function, warn: Function } }} [options]
  *   deferServiceRegistry = 一括生成が全ドメインの domainEntry.ts を書いた後に serviceRegistry.ts を 1 回だけ作り直す
  *   （ドメインごとに作り直すと、まだ domainEntry.ts の無い他のドメインで検査が止まるため）
+ *   dryRun = 書かずに、書くはずのファイルと動作（作成 / 上書き / 変更なし / 保持 / 移行）を一覧する
  * @returns {{ registry: boolean }} registry カテゴリを生成したか
  */
-export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = false, io = console } = {}) {
+export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = false, dryRun = false, io = console } = {}) {
   const outputs = planDomain(ctx, workspace, gen);
+  if (dryRun) {
+    const counts = reportDryRun(outputs, workspace, io);
+    io.log(`[dry-run] ${ctx.camel}: ${summarizeDryRun(counts) || "書くものなし"}${gen.registry ? "（serviceRegistry.ts は実行時に作り直す）" : ""}`);
+    return { registry: Boolean(gen.registry) };
+  }
   applyOutputs(outputs, io);
   if (gen.registry && !deferServiceRegistry) {
     regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });

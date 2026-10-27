@@ -57,13 +57,16 @@ async function resolveGenerateTargets(ctx, options) {
 /**
  * @param {import("../domain/workspace.mjs").Workspace} workspace
  * @param {string} domain
- * @param {{ mode?: string, interactive?: boolean, shouldGenerate?: boolean, only?: string[] | null, manualGenerate?: object, saveManualSelection?: boolean }} [options]
- *   --yes = { mode: "config", interactive: false, shouldGenerate: true }
+ * @param {{ mode?: string, interactive?: boolean, shouldGenerate?: boolean, only?: string[] | null, dryRun?: boolean, manualGenerate?: object, saveManualSelection?: boolean }} [options]
+ *   --yes = { mode: "config", interactive: false, shouldGenerate: true } | --dry-run = 書かずに一覧（上書き確認も出さない）
  */
 export async function runGenerate(workspace, domain, options = {}) {
   const ctx = loadDomainForGenerate(workspace, domain);
   const gen = narrowTargets(ctx, await resolveGenerateTargets(ctx, options), options.only ?? null);
 
+  if (options.dryRun) {
+    return generateDomain(ctx, workspace, gen, { dryRun: true });
+  }
   let { shouldGenerate } = options;
   if (typeof shouldGenerate !== "boolean") {
     shouldGenerate = await confirm("既存の関係ファイルはすべて上書きされます。生成を実行しますか？", false);

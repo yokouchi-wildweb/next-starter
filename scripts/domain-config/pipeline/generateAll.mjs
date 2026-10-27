@@ -9,8 +9,9 @@ import { regenerateServiceRegistry } from "./serviceRegistry.mjs";
  * @param {string[]} selectedDomains フォルダ名
  * @param {Record<string, boolean> | null} manualGenerate 手動選択（null = 各 domain.json の generateFiles）
  * @param {string[] | null} only --only
+ * @param {{ dryRun?: boolean, io?: { log: Function, warn: Function } }} [options]
  */
-export function runGenerateAll(workspace, selectedDomains, manualGenerate, only, io = console) {
+export function runGenerateAll(workspace, selectedDomains, manualGenerate, only, { dryRun = false, io = console } = {}) {
   // 途中のドメインで止まって生成が半端に残らないよう、ループの前に全件を検査する
   assertDomainFolderNames(workspace, selectedDomains);
   let registryGenerated = false;
@@ -18,8 +19,13 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
     io.log(`\n[${domain}] の生成を開始します。`);
     const ctx = loadDomainForGenerate(workspace, domain, io);
     const gen = narrowTargets(ctx, manualGenerate ?? ctx.config.generateFiles ?? {}, only, io);
-    const result = generateDomain(ctx, workspace, gen, { deferServiceRegistry: true, io });
+    const result = generateDomain(ctx, workspace, gen, { deferServiceRegistry: true, dryRun, io });
     if (result.registry) registryGenerated = true;
+  }
+
+  if (dryRun) {
+    io.log(`\n[dry-run] 何も書いていません。${registryGenerated ? "実行時は最後に serviceRegistry.ts を 1 回作り直します。" : ""}`);
+    return;
   }
 
   if (registryGenerated) {
