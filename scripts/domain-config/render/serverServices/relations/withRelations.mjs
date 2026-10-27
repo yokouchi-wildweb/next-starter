@@ -1,5 +1,6 @@
 // drizzleBase.ts の withRelations 用の設定: belongsToRelations / belongsToManyObjectRelations / hasManyRelations。
-// リレーション先のリレーションを 1 段だけ nested に展開する（belongsTo と belongsToMany は互いに再帰する）
+// 3 種は「先頭の数行」だけが違い、リレーション先のソフトデリート・1 段の nested 展開・import 情報は共通（relationEntry）。
+// belongsTo と belongsToMany は互いに再帰する（リレーション先のリレーションを 1 段だけ nested に展開）
 
 import { toCamelCase, toPascalCase, toPlural } from "../../../../../src/utils/stringCase.mjs";
 import { belongsToManyRelations, belongsToRelations, hasManyRelations } from "../../../domain/relations.mjs";
@@ -50,91 +51,72 @@ function nestedFor(workspace, relation, targetConfig, visitedDomains, depth) {
   };
 }
 
-function softDeleteLines(targetConfig, tableImport) {
-  if (!(targetConfig && targetConfig.useSoftDelete)) return [];
-  return [`      useSoftDelete: true,`, `      deletedAtColumn: ${tableImport}.deletedAt,`];
+/**
+ * 1 リレーション分の設定オブジェクト。head（種別ごとの先頭行）の後に、リレーション先のソフトデリートと nested を続ける
+ * @param {string[]} head  種別ごとの行（`      field: ...,` など）
+ * @param {string} tableImport リレーション先の表（deletedAtColumn に使う）
+ * @param {object} extra  import の収集（relations/imports.mjs）が読む追加情報
+ */
+function relationEntry(workspace, relation, visitedDomains, depth, { head, tableImport, extra }) {
+  const targetConfig = workspace.readConfig(toCamelCase(relation.domain));
+  const nested = nestedFor(workspace, relation, targetConfig, visitedDomains, depth);
+  const softDelete = targetConfig?.useSoftDelete ? [`      useSoftDelete: true,`, `      deletedAtColumn: ${tableImport}.deletedAt,`] : [];
+  const lines = ["    {", ...head, ...softDelete, ...nested.lines, "    }"];
+  return { relationDomain: relation.domain, nestedImports: nested.imports, literal: lines.join("\n"), ...extra };
+}
+
+/** 共通の前提: relations があり Neon。visited に自分を足す */
+function prepare(config, visitedDomains) {
+  if (!Array.isArray(config.relations) || config.dbEngine !== "Neon") return false;
+  visitedDomains.add(config.singular);
+  return true;
 }
 
 /** belongsTo リレーション設定（2 階層 nested 対応） */
 export function buildBelongsToRelationsSnippets(workspace, config, pascal, camel, visitedDomains = new Set(), depth = 1) {
-  if (!Array.isArray(config.relations)) return [];
-  if (config.dbEngine !== "Neon") return [];
-  visitedDomains.add(config.singular);
-
+  if (!prepare(config, visitedDomains)) return [];
   return belongsToRelations(config).map((relation) => {
-    const relationPascal = toPascalCase(relation.domain);
-    const tableImport = `${relationPascal}Table`;
-    const targetConfig = workspace.readConfig(toCamelCase(relation.domain));
-    const nested = nestedFor(workspace, relation, targetConfig, visitedDomains, depth);
-    const lines = [
-      "    {",
-      `      field: "${relation.fieldName.replace(/_id$/, "")}",`,
-      `      foreignKey: "${relation.fieldName}",`,
-      `      table: ${tableImport},`,
-      ...softDeleteLines(targetConfig, tableImport),
-      ...nested.lines,
-      "    }",
-    ];
-    return { tableImport, relationDomain: relation.domain, nestedImports: nested.imports, literal: lines.join("\n") };
+    const tableImport = `${toPascalCase(relation.domain)}Table`;
+    return relationEntry(workspace, relation, visitedDomains, depth, {
+      head: [`      field: "${relation.fieldName.replace(/_id$/, "")}",`, `      foreignKey: "${relation.fieldName}",`, `      table: ${tableImport},`],
+      tableImport,
+      extra: { tableImport },
+    });
   });
 }
 
 /** belongsToMany のオブジェクト展開設定（2 階層 nested 対応） */
 export function buildBelongsToManyObjectRelationsSnippets(workspace, config, ownerPascal, ownerCamel, visitedDomains = new Set(), depth = 1) {
-  if (!Array.isArray(config.relations)) return [];
-  if (config.dbEngine !== "Neon") return [];
-  const currentDomain = config.singular;
-  visitedDomains.add(currentDomain);
-
+  if (!prepare(config, visitedDomains)) return [];
   return belongsToManyRelations(config).map((relation) => {
     const relationPascal = toPascalCase(relation.domain);
     const relationCamel = toCamelCase(relation.domain);
     const targetTableImport = `${relationPascal}Table`;
     const throughTableVar = `${ownerPascal}To${relationPascal}Table`;
-    const targetConfig = workspace.readConfig(relationCamel);
-    const nested = nestedFor(workspace, relation, targetConfig, visitedDomains, depth);
-    const lines = [
-      "    {",
-      `      field: "${toPlural(relation.domain)}",`,
-      `      idField: "${relation.fieldName}",`,
-      `      targetTable: ${targetTableImport},`,
-      `      throughTable: ${throughTableVar},`,
-      `      sourceColumn: ${throughTableVar}.${ownerCamel}Id,`,
-      `      targetColumn: ${throughTableVar}.${relationCamel}Id,`,
-      ...softDeleteLines(targetConfig, targetTableImport),
-      ...nested.lines,
-      "    }",
-    ];
-    return {
-      targetTableImport,
-      throughTableVar,
-      ownerDomain: toCamelCase(currentDomain),
-      relationDomain: relation.domain,
-      nestedImports: nested.imports,
-      literal: lines.join("\n"),
-    };
+    return relationEntry(workspace, relation, visitedDomains, depth, {
+      head: [
+        `      field: "${toPlural(relation.domain)}",`,
+        `      idField: "${relation.fieldName}",`,
+        `      targetTable: ${targetTableImport},`,
+        `      throughTable: ${throughTableVar},`,
+        `      sourceColumn: ${throughTableVar}.${ownerCamel}Id,`,
+        `      targetColumn: ${throughTableVar}.${relationCamel}Id,`,
+      ],
+      tableImport: targetTableImport,
+      extra: { targetTableImport, throughTableVar, ownerDomain: toCamelCase(config.singular) },
+    });
   });
 }
 
 /** hasMany リレーション設定（2 階層 nested 対応）。foreignKey は「親ドメインの singular + _id」= 子テーブルが親を参照する FK */
 export function buildHasManyRelationsSnippets(workspace, config, pascal, camel, visitedDomains = new Set(), depth = 1) {
-  if (!Array.isArray(config.relations)) return [];
-  if (config.dbEngine !== "Neon") return [];
-  visitedDomains.add(config.singular);
-
+  if (!prepare(config, visitedDomains)) return [];
   return hasManyRelations(config).map((relation) => {
     const tableImport = `${toPascalCase(relation.domain)}Table`;
-    const targetConfig = workspace.readConfig(toCamelCase(relation.domain));
-    const nested = nestedFor(workspace, relation, targetConfig, visitedDomains, depth);
-    const lines = [
-      "    {",
-      `      field: "${toPlural(relation.domain)}",`,
-      `      table: ${tableImport},`,
-      `      foreignKey: "${config.singular}_id",`,
-      ...softDeleteLines(targetConfig, tableImport),
-      ...nested.lines,
-      "    }",
-    ];
-    return { tableImport, relationDomain: relation.domain, nestedImports: nested.imports, literal: lines.join("\n") };
+    return relationEntry(workspace, relation, visitedDomains, depth, {
+      head: [`      field: "${toPlural(relation.domain)}",`, `      table: ${tableImport},`, `      foreignKey: "${config.singular}_id",`],
+      tableImport,
+      extra: { tableImport },
+    });
   });
 }

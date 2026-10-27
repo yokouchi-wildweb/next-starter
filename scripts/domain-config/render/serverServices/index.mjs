@@ -6,6 +6,7 @@
 import path from "node:path";
 import { collectMediaFields } from "../../spec/fieldTypes.mjs";
 import { dir, file, writeOnce } from "../output.mjs";
+import { replaceDomainTokens } from "../tokens.mjs";
 import { checkMediaFieldsEngine } from "../../checks/mediaEngine.mjs";
 import { composeServiceOptions } from "./options.mjs";
 import { buildEntityImports, buildRelationTableImports } from "./relations/imports.mjs";
@@ -55,12 +56,9 @@ export function renderServerServices(ctx, workspace, options = {}) {
   const baseFile = dbEngine === "Firestore" ? "firestoreBase.ts" : "drizzleBase.ts";
   const outputDir = path.join(ctx.dir, "services", "server");
 
+  // ドメイン名のトークンは共通の置換（render/tokens.mjs）、サービス固有のトークンはここで
   const replaceTokens = (content) =>
-    content
-      .replace(/__domain__/g, camel)
-      .replace(/__Domain__/g, pascal)
-      .replace(/__domains__/g, tokenCtx.camelPlural)
-      .replace(/__Domains__/g, ctx.pascalPlural)
+    replaceDomainTokens(content, tokenCtx)
       .replace(/__serviceBase__/g, baseFile.replace(/\.ts$/, ""))
       .replace(/__serviceOptions__/g, composed?.optionsLiteral ?? "{}")
       .replace(/__DrizzleEntityImports__/g, buildEntityImports(pascal, composed?.relationTableImports ?? []))
