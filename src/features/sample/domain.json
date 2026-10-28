@@ -271,6 +271,7 @@
     "radio",
     "select",
     "main_image",
+    "images",
     "description",
     "updatedAt"
   ],
