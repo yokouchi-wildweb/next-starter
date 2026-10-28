@@ -91,14 +91,17 @@ function getCopyrightText(): string {
   }
 }
 
-/** FOOTER_VISIBILITY から作る表示クラス(config の値なので固定) */
-const FOOTER_VISIBILITY_CLASS = (() => {
-  const { sp, pc } = FOOTER_VISIBILITY as DeviceVisibility;
+/**
+ * FOOTER_VISIBILITY から作る表示クラス。
+ * 描画時に呼ぶこと: config(user-footer.config)が UserFooter を re-export しており、config → Footer → この hook → config の
+ * 循環 import になるため、モジュールの読み込み時に FOOTER_VISIBILITY を読むと初期化前(TDZ)で落ちる
+ */
+const getFooterVisibilityClass = ({ sp, pc }: DeviceVisibility): string => {
   if (!sp && !pc) return "hidden";
   if (!sp && pc) return "hidden sm:flex";
   if (sp && !pc) return "flex sm:hidden";
   return "flex";
-})();
+};
 
 // ============================================
 // フック実装
@@ -107,7 +110,7 @@ const FOOTER_VISIBILITY_CLASS = (() => {
 export const useFooterData = (): UseFooterDataReturn => {
   // 基本の表示は config の値(固定の class)。ページ単位で隠すのは Hide* の印の CSS
   const visibility: DeviceVisibility = FOOTER_VISIBILITY;
-  const visibilityClass = FOOTER_VISIBILITY_CLASS;
+  const visibilityClass = getFooterVisibilityClass(visibility);
 
   // コピーライトテキスト（メモ化）
   const copyrightText = useMemo(() => getCopyrightText(), []);
