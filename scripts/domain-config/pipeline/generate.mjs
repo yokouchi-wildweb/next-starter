@@ -7,7 +7,7 @@ import { createDomainContext } from "../domain/context.mjs";
 import { narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
-import { assertPairs, groupOf, pairSummary, resolvePairs } from "./pairs.mjs";
+import { assertPairs, groupOf, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
@@ -83,6 +83,7 @@ export function generateWithPairs(ctx, workspace, gen, { only = null, dryRun = f
   const group = groupOf(pairs, ctx.camel);
   assertPairs(pairs, group);
   if (group.length === 1) return generateDomain(ctx, workspace, gen, { dryRun, io });
+  printPairNotices(pairs, group, io);
 
   const members = group.map((domain) => {
     if (domain === ctx.camel) return { ctx, gen };

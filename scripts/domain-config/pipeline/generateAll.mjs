@@ -6,7 +6,7 @@ import { assertDomainFolderNames } from "../checks/domainFolder.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
 import { loadDomainForGenerate, narrowTargets } from "./generate.mjs";
-import { assertPairs, groupOf, involvesPairs, orderWithPairs, pairSummary, resolvePairs } from "./pairs.mjs";
+import { assertPairs, groupOf, involvesPairs, orderWithPairs, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
@@ -30,6 +30,7 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
   assertPairs(pairs);
   // 選んだドメインの組の全員（この実行で書き出す従属・選んだ従属の主）を加え、従属 → 主の順に並べる
   const domains = orderWithPairs(pairs, [...new Set(selectedDomains.flatMap((domain) => groupOf(pairs, domain)))]);
+  printPairNotices(pairs, domains, io);
 
   // 1. 全ドメインの生成物を組み立てる（ここで検査に落ちれば何も書かない）
   const plans = domains.map((domain) => {

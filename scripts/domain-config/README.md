@@ -86,7 +86,16 @@
 2. 「既存の関係ファイルはすべて上書きされます。生成を実行しますか？」で Yes
 3. 生成（`pipeline/generate.mjs`）: 読む → 検査 → 全カテゴリの生成物を組み立てる（主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す。`render/collections/`。雛形の形と権限の写し: [src/features/README.md](../../src/features/README.md)「主の集まりの項目（mediaCollection）」）
    - 主と従属の組（`pipeline/pairs.mjs`）: 生成の前に全 domain.json から「集まりの項目 → 従属、従属 → 所有する主」を一度だけ解く。主・従属のどちらを指定しても組の全員を「従属 → 主」の順に生成する（この実行で書き出す従属は、書き出す中身でそのまま生成する）。指定したドメインの生成方法の選択はそのドメインだけに効き、組の他の員は自分の `generateFiles`（`--only` で絞る）
-   - 組の前提の誤り（集まりの項目に `collection.domain` が無い・1 つの従属を 2 つ以上の主が宣言）は、生成方法の選択より前・何も書く前に止まる（`--yes` でも同じ）。1 ドメインの生成では、指定したドメインの組に関わる誤りだけを見る
+   - 組の誤りは、生成方法の選択より前・何も書く前に全件を並べて止まる（`--yes` でも同じ）。1 ドメインの生成では、指定したドメインの組に関わる誤りだけを見る。道具は domain.json を書き換えず、直す場所を出す。組を解く段（`pipeline/pairs.mjs`）が見るもの: 集まりの項目に `collection.domain` が無い・1 つの従属を 2 つ以上の主が宣言。組ごとの検査（`checks/pairs.mjs`。従属はこの実行で書き出すなら書き出す中身で見る）:
+     - 主の集まりの項目にファイルの条件（slug・accept・mediaTypePreset・validationRule・storage）がある（従属の `file` に書く）
+     - 従属の主への belongsTo が 1 本でない・required でない・onDelete が CASCADE でない / 従属が `useSoftDelete: true`
+     - 従属のメディア項目（mediaUploader）がちょうど 1 つでない・mediaUploaderMulti / mediaCollection を持つ
+     - 並び列（主の項目が reorderable のとき）: `sortOrderField` が無い・その項目が無い・`systemColumns` に無い
+     - 主から埋められない必須の項目（主への参照・メディア・並び以外で required かつ defaultValue なし）
+     - 権限: 従属の `file` の upload が主の create・update の和より狭い / read が主の get より狭い（従属が public なら見ない）。主の規則が写せない形（none・知らない値・`generateFiles.registry: false`）なら見ない。広さは public ⊇ authenticated ⊇ ロールの規則 ⊇ none、ロールは role.json のカテゴリに解いて比べる（`checks/accessRules.mjs`）
+     - 63 字: 従属の表名、主への FK の短い名前も超えるとき / 名前の衝突: 従属の singular・表名が他のドメインと重なる、主の集まりの項目名が主の他の項目・関係の fieldName と重なる
+     - required の集まりに `collection.duplicate: false`
+     - 知らせるだけ（止めない）: 従属の upload が主より広い、従属の汎用 API（apiAccess）が開いている
    - 組では全員の生成物を組み立ててから登録表の事前検査をまとめて行い、`serviceRegistry.ts` の作り直しは最後に 1 回。最後に 3 行の一覧を出す: 書き出した domain.json / `db:push` が要る表（この実行で新しく書き出した従属の表だけ）/ コミットに含めるもの（書き出した従属のフォルダと、登録表を生成したなら `src/registry/`）。`--dry-run` では「書き出す予定」として同じ一覧。組に関わらない生成では出さない → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す。登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる
 
 ## `dc:generate:all`
@@ -191,7 +200,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `questions/` | `dc:init` / `dc:add` の質問。`fields/` は 1 項目の質問（`media.mjs` / `options.mjs` / `defaultValue.mjs`） | inquirer |
 | `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry。組なら `generateWithPairs` が組の全員を従属 → 主で）、`pairs.mjs`（主と従属の組の解決・誤りの検査・並び・最後の一覧）、`serviceRegistry.mjs`（書く前の検査 = これから書くファイルを重ねた見え方で scripts/registry の検査を呼ぶ）、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**。write-once / 旧形式の移行 / 変更なし / レジストリの部分書き換え）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（dc:delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` だけはカテゴリではなく、主の集まりの項目から従属の domain.json を組む。`--only` に関わらず plan の先頭に入る）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
-| `checks/` | 生成前の検査（フォルダ名、Firestore のメディア列）。エラー文か null を返す | |
+| `checks/` | 生成前の検査（フォルダ名、Firestore のメディア列）。エラー文か null を返す。`pairs.mjs` = 主と従属の組の書く前の検査（誤りを全件返す）、`accessRules.mjs` = アクセスルールの広さの比べ方 | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（DomainContext = 名前の全形 + domain.json。名前の導出はここだけ）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
 | `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語。列を持たない主の集まりの型 `mediaCollection` = `isCollectionFieldType`）、`domainJson.mjs`（キーの集合。`collection` の下位キー = `COLLECTION_KEYS`）、`collectionField.mjs`（主の集まりの項目の純関数: 従属の既定の名前・項目の組み立て・型の選択肢の並び）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
 | `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/registry も使う） | |
@@ -207,7 +216,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す。どちらも `index.mjs` の `outputs` に並べるだけ
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs`（対象の並び）と `domain/`（全 domain.json を読む関数は `workspace.listDomains` + `readConfig`）
 
-テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift` `test:dc-collection-field` `test:dc-child-domain` `test:dc-pair-generate`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
+テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift` `test:dc-collection-field` `test:dc-child-domain` `test:dc-pair-generate` `test:dc-pair-checks`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
 
 ### 前後比較（`pnpm dc:parity <git-ref>`）
 

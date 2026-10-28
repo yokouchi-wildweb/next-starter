@@ -26,9 +26,9 @@ const isCopyableRule = (rule) => rule !== "none" && isValidRule(rule);
 
 /**
  * 主の操作の規則を写す。宣言が無ければ fail-closed の既定（管理者のみ）がそのまま本当の規則なので写す。
- * 写せなければ null（呼び出し側が管理者のみ + 案内にする）
+ * 写せなければ null（雛形は管理者のみ + 案内にし、組の権限の検査は飛ばす）
  */
-function copyRule(parentConfig, operation) {
+export function parentRule(parentConfig, operation) {
   if (parentConfig.generateFiles?.registry === false) return null; // domainEntry.ts が手書き = apiAccess は正でない
   const rule = rawRule(parentConfig.apiAccess, operation);
   if (rule === undefined) return ADMIN_RULE;
@@ -41,8 +41,8 @@ function copyRule(parentConfig, operation) {
  */
 export function childStorageRules(parentConfig) {
   const uncopied = [];
-  const create = copyRule(parentConfig, "create");
-  const update = copyRule(parentConfig, "update");
+  const create = parentRule(parentConfig, "create");
+  const update = parentRule(parentConfig, "update");
   let upload;
   if (create === null || update === null) {
     upload = ADMIN_RULE;
@@ -50,7 +50,7 @@ export function childStorageRules(parentConfig) {
   } else {
     upload = unionUploadRules([create, update]);
   }
-  let read = copyRule(parentConfig, "get");
+  let read = parentRule(parentConfig, "get");
   if (read === null) {
     read = ADMIN_RULE;
     uncopied.push("read");

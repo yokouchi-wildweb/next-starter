@@ -1,9 +1,12 @@
 // 主と従属の組（主の集まりの項目 mediaCollection → 従属ドメイン）を、1 回の生成につき一度だけ解く。
 // 全 domain.json と、この実行で書き出す従属の中身（ディスクにまだ無い）から、従属 → 主・主 → 従属の対応を作る。
-// 組の前提の誤り（従属の名前が無い・従属を所有する主が 2 つ以上）は全件集め、何も書く前に止める。
+// 組の前提の誤り（従属の名前が無い・従属を所有する主が 2 つ以上）と、組ごとの書く前の検査（checks/pairs.mjs）の誤りを
+// 全件集め、何も書く前に止める（assertPairs）。知らせるだけのものは notices（printPairNotices）。
 // 組を解いた後の生成順は「従属 → 主」。集まりの無いドメインの順と出力は変えない
 
+import { pairIssues } from "../checks/pairs.mjs";
 import { domainTableName } from "../domain/names.mjs";
+import { loadRoleCategories } from "../domain/roles.mjs";
 import { buildChildDomainConfig } from "../render/collections/childDomainConfig.mjs";
 import { isCollectionFieldType } from "../spec/fieldTypes.mjs";
 import { toCamelCase } from "../../../src/utils/stringCase.mjs";
@@ -13,7 +16,8 @@ import { toCamelCase } from "../../../src/utils/stringCase.mjs";
  * @property {Map<string, string>} ownerOf 従属のフォルダ名 → 主のフォルダ名
  * @property {Map<string, string[]>} childrenOf 主のフォルダ名 → 従属のフォルダ名（項目の順）
  * @property {Map<string, object>} pending この実行で書き出す従属（domain.json がまだ無い）→ その中身
- * @property {{ domains: string[], message: string }[]} errors 組の前提の誤り（関わるドメインと文）
+ * @property {{ domains: string[], message: string }[]} errors 組の誤り（関わるドメインと文）
+ * @property {{ domains: string[], message: string }[]} notices 知らせるだけ（止めない）
  */
 
 /**
@@ -25,10 +29,12 @@ export function resolvePairs(workspace) {
   const childrenOf = new Map();
   const pending = new Map();
   const errors = [];
+  const notices = [];
   const claims = new Map(); // 従属 → それを宣言した主の一覧
+  const checks = []; // 書く前の検査をする組（主・項目・従属）
+  const domains = new Map(workspace.listDomains().map((domain) => [domain, workspace.readConfigLenient(workspace.configPath(domain))]));
 
-  for (const owner of workspace.listDomains()) {
-    const config = workspace.readConfigLenient(workspace.configPath(owner));
+  for (const [owner, config] of domains) {
     for (const field of config?.fields ?? []) {
       if (!isCollectionFieldType(field?.fieldType)) continue;
       const childSingular = field.collection?.domain;
@@ -41,6 +47,7 @@ export function resolvePairs(workspace) {
       }
       const child = toCamelCase(childSingular);
       claims.set(child, [...(claims.get(child) ?? []), owner]);
+      checks.push({ owner, ownerConfig: config, field, child });
       if (!ownerOf.has(child)) {
         ownerOf.set(child, owner);
         childrenOf.set(owner, [...(childrenOf.get(owner) ?? []), child]);
@@ -53,7 +60,25 @@ export function resolvePairs(workspace) {
       errors.push({ domains: [child, ...owners], message: `${child}: 従属を所有する主が 2 つ以上あります（${owners.join(", ")}）。1 つの従属は 1 つの主にだけ属します` });
     }
   }
-  return { ownerOf, childrenOf, pending, errors };
+  // 組ごとの書く前の検査（従属はこの実行で書き出すなら書き出す中身で見る。読めない従属は組の誤りにしない）
+  const roleCategories = checks.length ? loadRoleCategories(workspace) : new Map();
+  for (const check of checks) {
+    const childConfig = pending.get(check.child) ?? domains.get(check.child);
+    if (!childConfig) continue;
+    const found = pairIssues({ ...check, childConfig, domains, roleCategories });
+    const involved = [check.child, check.owner];
+    errors.push(...found.errors.map((message) => ({ domains: involved, message })));
+    notices.push(...found.notices.map((message) => ({ domains: involved, message })));
+  }
+  return { ownerOf, childrenOf, pending, errors, notices };
+}
+
+/** 知らせるだけのもの（止めない）を出す。domains を渡すと、そのどれかに関わるものだけ */
+export function printPairNotices(pairs, domains, io) {
+  const scope = new Set(domains);
+  for (const notice of pairs.notices) {
+    if (notice.domains.some((domain) => scope.has(domain))) io.warn(`[組] ${notice.message}`);
+  }
 }
 
 /** 組（主の従属 → 主）。組に属さないドメインは自分だけ */

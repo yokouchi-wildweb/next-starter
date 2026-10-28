@@ -348,6 +348,13 @@ import { ControlledField } from "@/components/Form/Field";
   - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false、generateFiles は entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う）
   - `file` の storage は主の汎用 API の規則から写す: upload = 主の create と update の和、read = 主の get、visibility = read が `"public"` なら public、それ以外は private。写せるのは `"public"` / `"authenticated"` / ロールの規則だけで、主が閉じている（`"none"`）・知らない値・`generateFiles.registry: false`（domainEntry.ts が手書き）なら管理者のみを書き、直す場所を出力する
   - ファイルの条件（preset・accept・上限）は雛形の既定なので、従属の domain.json で直す
+- 従属が守ること（dc:generate が書く前に検査し、1 つでも外れれば全件を並べて何も書かずに止まる。一覧と判定: [scripts/domain-config/README.md](../../scripts/domain-config/README.md)「dc:generate」）
+  - 主への belongsTo はちょうど 1 本・required・onDelete CASCADE、`useSoftDelete` は false
+  - メディア項目（mediaUploader）はちょうど 1 つ。mediaUploaderMulti / mediaCollection は持たない。ファイルの条件はここに書く（主の項目には書かない）
+  - 主の項目が reorderable なら、`sortOrderField` とその項目を持ち、`systemColumns` に入れる
+  - 主の画面から埋められない必須の項目（主への参照・メディア・並び以外で required かつ defaultValue なし）を持たない
+  - `file` の upload は主の create・update の和より狭くしない、read は主の get より狭くしない（public の従属は見ない）。広い upload と、開いた汎用 API は知らせるだけ
+  - 表名・主への FK 名は 63 字以内、singular・表名は他のドメインと重ねない。required の集まりは `collection.duplicate: false` にしない
 
 ### MediaUploader フィールド追加プロパティ
 
