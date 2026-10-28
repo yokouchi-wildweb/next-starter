@@ -3,7 +3,7 @@
 
 import { toSnakeCase } from "../../../../../src/utils/stringCase.mjs";
 import { enumNames } from "../../../domain/names.mjs";
-import { columnFunction, isArrayFieldType } from "../../../spec/fieldTypes.mjs";
+import { columnFunction, isArrayFieldType, isCollectionFieldType } from "../../../spec/fieldTypes.mjs";
 
 export function buildColumn(typeFn, columnName) {
   if (typeFn === "bigint") {
@@ -53,6 +53,8 @@ export function fieldColumns(ctx, imports) {
   const uniqueFields = [];
 
   (config.fields || []).forEach((f) => {
+    // 主の集まりの項目は列を持たない（従属の行。collections オプションで読み書きする）
+    if (isCollectionFieldType(f.fieldType)) return;
     const defaultSuffix = f.defaultValue !== undefined ? `.default(${formatValue(f.defaultValue)})` : "";
 
     if (f.fieldType === "enum") {

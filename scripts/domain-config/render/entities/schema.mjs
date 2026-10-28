@@ -3,7 +3,7 @@
 
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
-import { isArrayFieldType, isTextFieldType, isTimestampFieldType, zodType } from "../../spec/fieldTypes.mjs";
+import { isArrayFieldType, isCollectionFieldType, isTextFieldType, isTimestampFieldType, zodType } from "../../spec/fieldTypes.mjs";
 
 const formatSchemaDefault = (value) => (typeof value === "string" ? `"${value}"` : value);
 
@@ -25,6 +25,21 @@ function mediaLine(uses, { name, label, required, fieldType, validationRule }) {
     segments.push(`.min(${minItems}, { message: "${label}は${minItems}件以上必要です。" })`);
   }
   segments.push(`.max(${maxItems}, { message: "${label}は${maxItems}件以下にしてください。" })`, ".default([])", ",");
+  return segments.join("");
+}
+
+/**
+ * 主の集まりの項目: 値は従属の file の値（storage ref）の並び。複数枚の行と同じ値のスキーマで、
+ * required → 1 件以上（lib の minItems と同じ）、collection.maxItems → 上限（省略 = 上限なし）。default([]) も複数枚の行と同じ
+ */
+function collectionLine(uses, { name, label, required, collection }) {
+  uses.storageMediaValue = true;
+  const segments = [`  ${name}: z.array(storageMediaValueSchema)`];
+  if (required) segments.push(`.min(1, { message: "${label}は1件以上必要です。" })`);
+  if (typeof collection?.maxItems === "number") {
+    segments.push(`.max(${collection.maxItems}, { message: "${label}は${collection.maxItems}件以下にしてください。" })`);
+  }
+  segments.push(".default([])", ",");
   return segments.join("");
 }
 
@@ -111,7 +126,9 @@ export function renderSchema(ctx) {
   (config.fields || []).forEach((f) => {
     if (f.formInput === "none") return;
     const fieldName = resolveFieldName(f.name, dbEngine);
-    if (f.fieldType === "enum") {
+    if (isCollectionFieldType(f.fieldType)) {
+      lines.push(collectionLine(uses, { name: fieldName, label: f.label || f.name, required: f.required, collection: f.collection }));
+    } else if (f.fieldType === "enum") {
       const values = (f.options || []).map((o) => `"${o.value}"`).join(", ");
       const defaultSuffix = f.defaultValue !== undefined ? `.default(${formatSchemaDefault(f.defaultValue)})` : "";
       lines.push(`  ${fieldName}: z.enum([${values}])${f.required ? "" : ".nullish()"}${defaultSuffix},`);

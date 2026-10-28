@@ -130,8 +130,8 @@
 
 | カテゴリ | 出力 |
 |---|---|
-| `entities` | `entities/{model,form,schema,index}.ts` + `drizzle.ts`（Firestore なら `firestore.ts`） |
-| `components` | `components/Admin<Domain>{Create,Edit,List}/`、`components/common/{Create<Domain>Form,Edit<Domain>Form,<Domain>Form,<Domain>Fields}.tsx`。`useDetailModal` で `<Domain>DetailModal.tsx`、`sortOrderField` で `Admin<Domain>Sort/`（一覧は `render/components/catalog.mjs`） |
+| `entities` | `entities/{model,form,schema,index}.ts` + `drizzle.ts`（Firestore なら `firestore.ts`）。主の集まりの項目（mediaCollection）は列を出さず、スキーマ = `z.array(storageMediaValueSchema)`（required → `.min(1)`、`collection.maxItems` → `.max`）、モデル = `string[]` |
+| `components` | `components/Admin<Domain>{Create,Edit,List}/`、`components/common/{Create<Domain>Form,Edit<Domain>Form,<Domain>Form,<Domain>Fields}.tsx`。`useDetailModal` で `<Domain>DetailModal.tsx`、`sortOrderField` で `Admin<Domain>Sort/`（一覧は `render/components/catalog.mjs`）。`<Domain>Fields` は主の集まりの項目に、従属の `file` の用途（`<従属>.file`）・accept・上限サイズと集まりの件数（maxItems / required → minItems 1）を載せる（従属の domain.json から。この実行で書き出す従属は書き出す中身） |
 | `hooks` | `hooks/use*<Domain>.ts`（どれが生成されるかは `render/hooks/catalog.mjs`、使い方は [`src/lib/crud/hooks/README.md`](../../src/lib/crud/hooks/README.md)） |
 | `clientServices` | `services/client/<domain>Client.ts` |
 | `serverServices` | `services/server/drizzleBase.ts`（Firestore なら `firestoreBase.ts`）、`services/server/<domain>Service.ts`（無いときだけ）、`wrappers/`（無ければ作成）。メディア列（mediaUploader / mediaUploaderMulti）があれば drizzleBase に `storage: storageBindingFor("<domain>", [{ name, purpose: "<domain>.<field>", multi }])`（ファイル台帳との連動。複製・物理削除のファイル処理もここ。[src/lib/crud/README.md](../../src/lib/crud/README.md)「storage オプション」）。Firestore ドメインのメディア列は生成エラー |
@@ -220,7 +220,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す。どちらも `index.mjs` の `outputs` に並べるだけ
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs`（対象の並び）と `domain/`（全 domain.json を読む関数は `workspace.listDomains` + `readConfig`）
 
-テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift` `test:dc-collection-field` `test:dc-child-domain` `test:dc-pair-generate` `test:dc-pair-checks` `test:dc-delete-stop`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
+テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift` `test:dc-collection-field` `test:dc-child-domain` `test:dc-pair-generate` `test:dc-pair-checks` `test:dc-delete-stop` `test:dc-parent-outputs`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
 
 ### 前後比較（`pnpm dc:parity <git-ref>`）
 

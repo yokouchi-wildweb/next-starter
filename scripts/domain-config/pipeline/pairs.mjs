@@ -84,6 +84,19 @@ export function printPairNotices(pairs, domains, io) {
   }
 }
 
+/**
+ * 主の集まりの項目名 → 従属（フォルダ名と domain.json。この実行で書き出す従属は書き出す中身）。主の生成物が従属の file を読む（一方向）
+ * @returns {Map<string, { camel: string, config: object | null }>}
+ */
+export function collectionChildrenOf(workspace, pairs, owner) {
+  const children = new Map();
+  for (const child of pairs.childrenOf.get(owner) ?? []) {
+    const config = pairs.pending.get(child) ?? workspace.readConfigLenient(workspace.configPath(child));
+    children.set(pairs.fieldOf.get(child), { camel: child, config });
+  }
+  return children;
+}
+
 /** 組（主の従属 → 主）。組に属さないドメインは自分だけ */
 export function groupOf(pairs, domain) {
   const owner = pairs.ownerOf.get(domain) ?? domain;

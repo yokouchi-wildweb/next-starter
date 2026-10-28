@@ -7,7 +7,7 @@ import { createDomainContext } from "../domain/context.mjs";
 import { narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
-import { assertPairs, groupOf, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
+import { assertPairs, collectionChildrenOf, groupOf, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
@@ -90,6 +90,8 @@ export function generateWithPairs(ctx, workspace, gen, { only = null, dryRun = f
     const memberCtx = loadDomainForGenerate(workspace, domain, io, pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {});
     return { ctx: memberCtx, gen: narrowTargets(memberCtx, memberCtx.config.generateFiles ?? {}, only, io) };
   });
+  // 主の生成物（Fields）が従属の file を読む
+  for (const member of members) member.ctx.collectionChildren = collectionChildrenOf(workspace, pairs, member.ctx.camel);
   const plans = members.map((member) => ({ ...member, outputs: planDomain(member.ctx, workspace, member.gen) }));
   const registry = plans.some((plan) => plan.gen.registry);
   if (registry && !dryRun) {

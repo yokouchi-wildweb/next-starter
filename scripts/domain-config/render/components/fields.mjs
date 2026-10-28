@@ -1,8 +1,10 @@
 // components/common/__Domain__Fields.tsx（フォームの項目描画）。テンプレートではなく domain.json から組み立てる。
-// リレーションがあれば useRelationOptions で選択肢を取得し、メディア列には用途 ID（`<domain>.<field>`）を付ける
+// リレーションがあれば useRelationOptions で選択肢を取得し、メディア列には用途 ID（`<domain>.<field>`）を付ける。
+// 主の集まりの項目（mediaCollection）には、従属の file の用途・ファイルの条件と集まりの件数を付ける（従属の domain.json から。一方向）
 
 import { getFormRelations } from "../../../../src/lib/domain/relations/relationOptions.mjs";
-import { collectMediaFields } from "../../spec/fieldTypes.mjs";
+import { collectMediaFields, isCollectionFieldType } from "../../spec/fieldTypes.mjs";
+import { toCamelCase } from "../../../../src/utils/stringCase.mjs";
 
 const RELATION_IMPORTS = `import { useRelationOptions } from "@/lib/domain/hooks";
 import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
@@ -23,21 +25,72 @@ const RELATION_BLOCK = `
   };
 `;
 
-function baseFieldsBlock(mediaFields) {
-  if (!mediaFields.length) {
+/**
+ * 主の集まりの項目の FieldConfig への上書き（従属の file の用途・accept・上限サイズと、集まりの件数）
+ * @param {object} config 主の domain.json
+ * @param {Map<string, { camel: string, config: object | null }>} collectionChildren 項目名 → 従属
+ * @returns {{ name: string, patch: object }[]}
+ */
+export function collectionFieldPatches(config, collectionChildren = new Map()) {
+  return (config?.fields ?? [])
+    .filter((f) => isCollectionFieldType(f.fieldType) && typeof f.collection?.domain === "string")
+    .map((f) => {
+      const child = collectionChildren.get(f.name);
+      const childCamel = child?.camel ?? toCamelCase(f.collection.domain);
+      const file = (child?.config?.fields ?? []).find((field) => field.fieldType === "mediaUploader");
+      const validationRule = {
+        ...(typeof file?.validationRule?.maxSizeBytes === "number" ? { maxSizeBytes: file.validationRule.maxSizeBytes } : {}),
+        ...(typeof f.collection.maxItems === "number" ? { maxItems: f.collection.maxItems } : {}),
+        ...(f.required ? { minItems: 1 } : {}),
+      };
+      return {
+        name: f.name,
+        patch: {
+          purpose: `${childCamel}.${file?.name ?? "file"}`,
+          ...(file?.accept ? { accept: file.accept } : {}),
+          ...(Object.keys(validationRule).length ? { validationRule } : {}),
+        },
+      };
+    });
+}
+
+function baseFieldsBlock(mediaFields, collectionPatches) {
+  if (!mediaFields.length && !collectionPatches.length) {
     return `
 const baseFields = (domainConfig.fields ?? []) as FieldConfig[];
 `;
   }
-  return `
+  const blocks = [];
+  if (mediaFields.length) {
+    blocks.push(`
 // メディア列の用途 ID（src/registry/storagePurposeRegistry.ts の登録名）
 const STORAGE_PURPOSES: Record<string, string> = {
 ${mediaFields.map((f) => `  ${f.name}: "__domain__.${f.name}",`).join("\n")}
 };
-
-const baseFields = (domainConfig.fields ?? []).map((field) =>
-  field.name in STORAGE_PURPOSES ? { ...field, purpose: STORAGE_PURPOSES[field.name] } : field,
-) as FieldConfig[];
+`);
+  }
+  if (collectionPatches.length) {
+    blocks.push(`
+// 主の集まりの項目: 従属の file の用途・ファイルの条件と集まりの件数（従属の domain.json から生成）
+const COLLECTION_FIELD_PATCHES: Record<string, Partial<FieldConfig>> = {
+${collectionPatches.map(({ name, patch }) => `  ${name}: ${JSON.stringify(patch)},`).join("\n")}
+};
+`);
+  }
+  // map のコールバック（メディア列だけの形は今までどおり 1 行の式）
+  let callback;
+  if (!collectionPatches.length) {
+    callback = `\n  field.name in STORAGE_PURPOSES ? { ...field, purpose: STORAGE_PURPOSES[field.name] } : field,\n`;
+  } else if (!mediaFields.length) {
+    callback = `\n  field.name in COLLECTION_FIELD_PATCHES ? { ...field, ...COLLECTION_FIELD_PATCHES[field.name] } : field,\n`;
+  } else {
+    callback = ` {
+  const withPurpose = field.name in STORAGE_PURPOSES ? { ...field, purpose: STORAGE_PURPOSES[field.name] } : field;
+  return field.name in COLLECTION_FIELD_PATCHES ? { ...withPurpose, ...COLLECTION_FIELD_PATCHES[field.name] } : withPurpose;
+}`;
+  }
+  return `${blocks.join("")}
+const baseFields = (domainConfig.fields ?? []).map((field) =>${callback}) as FieldConfig[];
 `;
 }
 
@@ -46,7 +99,7 @@ const baseFields = (domainConfig.fields ?? []).map((field) =>
  * @param {object | null} config
  * @returns {string | null} config が無ければ null
  */
-export function generateFieldsFromConfig(config) {
+export function generateFieldsFromConfig(config, collectionChildren = new Map()) {
   if (!config) return null;
 
   // フォームに出るリレーションの有無（判定は useRelationOptions と同じ helper）
@@ -71,7 +124,7 @@ ${hasRelations ? RELATION_IMPORTS : ""}import { normalizeDomainJsonConfig } from
 import rawDomainConfig from "@/features/__domain__/domain.json";
 
 const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
-${baseFieldsBlock(collectMediaFields(config))}
+${baseFieldsBlock(collectMediaFields(config), collectionFieldPatches(config, collectionChildren))}
 export type __Domain__FieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;
   onMediaStateChange?: (state: MediaState | null) => void;

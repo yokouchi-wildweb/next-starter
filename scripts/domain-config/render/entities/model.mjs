@@ -3,7 +3,7 @@
 import { toCamelCase, toPascalCase, toPlural } from "../../../../src/utils/stringCase.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToManyRelations, belongsToRelations } from "../../domain/relations.mjs";
-import { tsType } from "../../spec/fieldTypes.mjs";
+import { isCollectionFieldType, tsType } from "../../spec/fieldTypes.mjs";
 
 const typeLine = (name, type, required) => `  ${name}: ${required ? type : `${type} | null`};`;
 
@@ -21,8 +21,9 @@ function bodyLines(config, dbEngine) {
       const values = (f.options || []).map((o) => `'${o.value}'`).join(" | ");
       lines.push(typeLine(fieldName, values, f.required));
     } else {
-      // mediaUploaderMulti は常に NOT NULL なので required 扱い（null を返さない）
-      lines.push(typeLine(fieldName, tsType(f.fieldType), f.fieldType === "mediaUploaderMulti" ? true : f.required));
+      // mediaUploaderMulti は常に NOT NULL、集まりは従属が無ければ []（どちらも null を返さない）
+      const alwaysPresent = f.fieldType === "mediaUploaderMulti" || isCollectionFieldType(f.fieldType);
+      lines.push(typeLine(fieldName, tsType(f.fieldType), alwaysPresent ? true : f.required));
     }
   });
   if (config.useCreatedAt) lines.push("  createdAt: Date | null;");

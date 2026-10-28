@@ -10,7 +10,8 @@ import { applyAutoSave, applyDuplicateButton } from "./tweaks.mjs";
 function renderBody(ctx, workspace, spec) {
   const { config, camel, pascal } = ctx;
   if (spec.tweak === "fields" && config) {
-    return generateFieldsFromConfig(config).replace(/__domain__/g, camel).replace(/__Domain__/g, pascal);
+    // ctx.collectionChildren = 主の集まりの項目名 → 従属（pipeline が組の解決から載せる。無ければ用途名だけ collection.domain から）
+    return generateFieldsFromConfig(config, ctx.collectionChildren).replace(/__domain__/g, camel).replace(/__Domain__/g, pascal);
   }
   const templateRel = spec.templateFor ? spec.templateFor(config) : spec.template;
   const template = workspace.readTemplate("components", ...templateRel.split("/"));

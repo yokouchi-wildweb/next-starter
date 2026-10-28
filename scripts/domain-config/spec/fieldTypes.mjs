@@ -33,7 +33,7 @@ export const FIELD_TYPES = {
   array: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true },
   stringArray: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true },
   enum: { presenter: "enum" },
-  mediaCollection: { collection: true },
+  mediaCollection: { ts: "string[]", collection: true },
 };
 
 const spec = (fieldType) => FIELD_TYPES[fieldType] ?? {};
