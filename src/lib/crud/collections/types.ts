@@ -8,6 +8,7 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 import type { DuplicateOptions } from "../types";
 import type { DbTransaction } from "../drizzle/types";
+import type { CollectionEntry } from "./collectionEntries";
 
 /**
  * collections オプション付きのサービスが出す読み取り専用の宣言（集まりの項目名）。
@@ -15,6 +16,10 @@ import type { DbTransaction } from "../drizzle/types";
  */
 export type CollectionFieldsAugmented = {
   readonly collectionFields?: readonly string[];
+  /** 集まりをエントリ（従属の行 id 付き）で読む（1 つの主）。collections を指定したサービスだけが持つ */
+  collectionEntries?(fieldName: string, parentId: string | number): Promise<CollectionEntry[]>;
+  /** 集まりをエントリで読む（複数の主、1 クエリ）。主の id → エントリの並び */
+  collectionEntriesForParents?(fieldName: string, parentIds: readonly (string | number)[]): Promise<Record<string, CollectionEntry[]>>;
 };
 
 /** 集まりの 1 要素（従属の行を見分ける値の列の値） */

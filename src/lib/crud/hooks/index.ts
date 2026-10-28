@@ -17,5 +17,6 @@ export * from "./useHardDeleteDomain";
 export * from "./useReorderDomain";
 export * from "./useSearchForSortingDomain";
 export * from "./useCountDomain";
+export * from "./useCollectionEntries";
 // mutation 系フックの共通実装（独自 mutation フックはこれを土台にする。useSWRMutation 直接利用は禁止）
 export { useDomainMutation } from "./internal/useDomainMutation";

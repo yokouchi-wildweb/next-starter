@@ -516,6 +516,31 @@ export const productService = createCrudService(ProductTable, {
   - 直接の drizzle の select（`db.select()...`）は対象外。先頭 1 件を SQL で使うなら下の「先頭 1 件の SQL」
 - 一覧の表示: `formatCollectionThumbnails(value)`（`@/lib/crud`。先頭 1 件のサムネイルと、残りがあれば `+N`。解決できない値は数えず、0 件は null）。生成の presenters は主の集まりの項目（`mediaCollection`）にこれを使う。旧来の複数メディア列（mediaUploaderMulti）は `formatMediaThumbnails`（先頭 3 件を重ねて `+N`）のまま
 
+### エントリ（従属の行 id 付き）と、集まりの 1 件を FK で参照する
+
+主の get / search と埋め込みが載せるのは値の配列のまま（フォームはこの形で送る）。集まりの 1 件を選んで他の表から参照するときだけ、id 付きのエントリを読む。
+
+| 口 | 形 |
+|---|---|
+| `collectionEntries({ collection, parentId, parentTable? }, tx?)` | 1 つの主のエントリ `{ id, value, sort }[]` |
+| `collectionEntriesForParents({ collection, parentIds, parentTable? }, tx?)` | 複数の主（1 クエリ、IN）。`Map<主の id, エントリ[]>`、従属の無い主は `[]` |
+| `resolveCollectionEntryId({ collection, parentId, value }, tx?)` | その主の集まりの値 → 従属の行 id。無い値・他の主の値は `null` |
+| `resolveCollectionEntryIds({ collection, parentId, values }, tx?)` | 複数の値（1 クエリ）。`Map<値, 従属の行 id>`（無い値は入らない） |
+| 主のサービスの `collectionEntries(fieldName, parentId)` / `collectionEntriesForParents(fieldName, parentIds)` | collections を指定したサービスだけが持つ。主の表で論理削除された主を除く。知らない項目は 404 |
+| `GET /api/<domain>/collection-entries?field=<項目名>&parentIds=<id,id>` | client からの読み出し（汎用ルート、主の id 100 件まで）。認可は主の **get** の規則（従属の汎用 API は閉じたまま）。応答 `{ [主の id]: エントリ[] }` |
+| `fetchCollectionEntries(domain, field, parentIds)`（`@/lib/crud/client`）/ `useCollectionEntries(domain, field, parentId または parentIds)`（`@/lib/crud/hooks`） | client service と SWR のフック。`entriesOf(parentId)` で 1 つの主の並び |
+
+- 並びは読み出しと同じ（並びの列 ASC NULLS LAST → id ASC、text は `COLLATE "C"`）。1 回の呼び出しで 1 クエリ
+- 従属が値・並びの列を秘匿列（`defineHiddenColumns`）にしていれば、その値は `null`。ファイルの読み取りの規則（storage）は変わらない
+- `parentTable` を渡すと、論理削除された主のエントリを返さない（主の表と結合する。クエリは 1 本のまま）
+
+集まりの 1 件を FK で参照するレシピ（例: 主の画像の中から 1 枚を「上書き画像」として他の表に持つ）:
+
+1. 参照する表に従属の行 id の列を持つ（`<child>_id`、FK、`onDelete: "SET NULL"`）。値（ref）をコピーして持たない（ファイルの 1 行は 1 つの業務行だけを指す）
+2. 選ぶ画面は `useCollectionEntries(<主>, <項目名>, <主の id>)` でエントリを出し、選んだエントリの `id` を送る
+3. 書き込みで、その id がその主の集まりの要素かを確かめる（他の主の画像を指させない）。値で受けるなら `resolveCollectionEntryId(…, tx)` で id に引き、id で受けるなら `collectionEntries` の id に含まれるかを見る。どちらも呼び出し元の tx の中で使える
+4. 表示は従属の行を結合して値を引く（参照する側のサービスの withRelations の belongsTo に従属の表を足す等）。主の集まりから外されると従属の行が消え、FK は NULL になる（既定の表示に戻す）
+
 ### 先頭 1 件の SQL
 
 SQL の中で集まりの先頭 1 件（並び順の最初の従属の行）の値を使う。主の行ごとに 1 値のスカラー副問い合わせで、集まりが空なら NULL。select / where / orderBy にそのまま置け、`COALESCE` / `CASE` で包める。

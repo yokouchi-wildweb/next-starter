@@ -20,6 +20,10 @@ export {
   firstInCollection,
   firstInCollectionForAlias,
   duplicateWithCollections,
+  collectionEntries,
+  collectionEntriesForParents,
+  resolveCollectionEntryId,
+  resolveCollectionEntryIds,
 } from "../collections";
 export type {
   SyncCollectionParams,
@@ -34,4 +38,6 @@ export type {
   CollectionFieldsAugmented,
   CollectionDuplicateResult,
   DuplicateWithCollectionsParams,
+  CollectionEntry,
+  CollectionEntriesParams,
 } from "../collections";

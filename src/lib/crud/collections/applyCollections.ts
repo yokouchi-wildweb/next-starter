@@ -30,12 +30,13 @@ import type { ReplaceByQueryOptions, WhereExpr } from "@/lib/crud/types";
 import type { DbTransaction } from "../drizzle/types";
 import type { DuplicateOptions } from "@/lib/crud/types";
 
+import { collectionEntriesForParents } from "./collectionEntries";
 import { duplicateWithCollections } from "./duplicateWithCollections";
 import { projectCollections } from "./projectCollections";
 import { SKIP_OMITTED_MIN_ITEMS } from "./internalMarkers";
 import { minItemsError, resolveCollectionColumns, syncCollectionInTx, validateCollectionValues } from "./syncCollection";
 import { registerTableCollections } from "./tableCollections";
-import type { CollectionDuplicateParentService, CollectionValue, CrudCollectionConfig } from "./types";
+import type { CollectionDuplicateParentService, CollectionFieldsAugmented, CollectionValue, CrudCollectionConfig } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -71,7 +72,7 @@ const hasOwn = Object.prototype.hasOwnProperty;
 export function applyCollections<TService extends CollectionAwareService>(
   service: TService,
   context: ApplyCollectionsContext,
-): TService & { readonly collectionFields: readonly string[] } {
+): TService & Required<CollectionFieldsAugmented> {
   const { table, collections } = context;
 
   // 宣言の誤りはサービス生成時に throw する
@@ -153,10 +154,29 @@ export function applyCollections<TService extends CollectionAwareService>(
     return page;
   };
 
-  const wrapped: TService & { readonly collectionFields: readonly string[] } = {
+  /** 集まりの宣言を項目名で引く（無ければ 404） */
+  const collectionOf = (fieldName: string): CrudCollectionConfig => {
+    const collection = collections.find((item) => item.fieldName === fieldName);
+    if (!collection) throw new DomainError(`集まりの項目 ${fieldName} はありません`, { status: 404 });
+    return collection;
+  };
+
+  /** エントリ（従属の行 id 付き）で読む。論理削除された主のエントリは返さない */
+  const entriesForParents = async (fieldName: string, parentIds: readonly (string | number)[]) => {
+    const entries = await collectionEntriesForParents({ collection: collectionOf(fieldName), parentTable: table, parentIds });
+    return Object.fromEntries([...entries].map(([id, list]) => [String(id), list]));
+  };
+
+  const wrapped: TService & Required<CollectionFieldsAugmented> = {
     ...service,
 
     collectionFields: Object.freeze([...fieldNames]),
+
+    async collectionEntries(fieldName, parentId) {
+      return (await entriesForParents(fieldName, [parentId]))[String(parentId)] ?? [];
+    },
+
+    collectionEntriesForParents: entriesForParents,
 
     async get(id, options) {
       return projectOne(await service.get(id, options));
