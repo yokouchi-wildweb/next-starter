@@ -508,6 +508,7 @@ export const productService = createCrudService(ProductTable, {
 - 並びは 並びの列 ASC NULLS LAST → id ASC。text の並びの列は `COLLATE "C"`（下の「並びの鍵の照合順序」）
 - 集まりごとに呼び出し 1 回で 1 クエリ（主の id の IN）。呼び出し元の tx の外（`db`）で読む。複製の 1 段目の読み出しも同じ
 - TS 側の先頭 1 件は配列の `[0]`
+- 一覧の表示: `formatCollectionThumbnails(value)`（`@/lib/crud`。先頭 1 件のサムネイルと、残りがあれば `+N`。解決できない値は数えず、0 件は null）。生成の presenters は主の集まりの項目（`mediaCollection`）にこれを使う。旧来の複数メディア列（mediaUploaderMulti）は `formatMediaThumbnails`（先頭 3 件を重ねて `+N`）のまま
 
 ### 先頭 1 件の SQL
 

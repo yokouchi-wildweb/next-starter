@@ -5,7 +5,7 @@ import path from "node:path";
 import { toCamelCase, toPascalCase } from "../../../../src/utils/stringCase.mjs";
 import { requireConfig } from "../../domain/context.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
-import { presenterKind } from "../../spec/fieldTypes.mjs";
+import { isCollectionFieldType, presenterKind } from "../../spec/fieldTypes.mjs";
 import { file } from "../output.mjs";
 
 const DATETIME_FORMATTER = `formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
@@ -35,7 +35,8 @@ function buildFormatter(field) {
   if (formInput === "dateInput") {
     return `formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
   }
-  // メディア列: 値（storage ref・旧 URL）を resolveStorageSrc で解決してサムネイル表示する
+  // メディア列: 値（storage ref・旧 URL）を resolveStorageSrc で解決してサムネイル表示する。主の集まりは先頭 1 件と +N
+  if (isCollectionFieldType(fieldType)) return `formatCollectionThumbnails(value)`;
   if (fieldType === "mediaUploaderMulti" || formInput === "mediaUploaderMulti") return `formatMediaThumbnails(value)`;
   if (fieldType === "mediaUploader" || formInput === "mediaUploader" || formInput === "fileUploader") return `formatMediaThumbnail(value)`;
   return `formatString(value)`;
@@ -55,10 +56,14 @@ export function renderPresentersContent(ctx, workspace) {
   if (config.useUpdatedAt) entries.push(`  updatedAt: ({ value }) => ${DATETIME_FORMATTER},`);
   const body = entries.length ? entries.join("\n") : "  // TODO: add presenters";
 
-  const content = template
+  let content = template
     .replace(/__domain__/g, toCamelCase(config.singular) || camel)
     .replace(/__Domain__/g, toPascalCase(config.singular) || pascal)
     .replace(/__PRESENTERS_BODY__/g, body);
+  // 主の集まりの項目があるときだけ import を足す（テンプレートは変えず、集まりの無いドメインの出力は同じ）
+  if ((config.fields ?? []).some((field) => isCollectionFieldType(field.fieldType))) {
+    content = content.replace("  formatMediaThumbnails,\n", "  formatMediaThumbnails,\n  formatCollectionThumbnails,\n");
+  }
   return `${content}\n`;
 }
 

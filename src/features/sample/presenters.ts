@@ -11,6 +11,7 @@ import {
   formatDateValue,
   formatMediaThumbnail,
   formatMediaThumbnails,
+  formatCollectionThumbnails,
 } from "@/lib/crud";
 import { formatDateJa } from "@/utils/date";
 
@@ -30,7 +31,7 @@ export const presenters: Record<string, SampleFieldPresenter> = {
   main_image: ({ value, field, record }) => formatMediaThumbnail(value),
   sub_image: ({ value, field, record }) => formatMediaThumbnail(value),
   gallery_images: ({ value, field, record }) => formatMediaThumbnails(value),
-  images: ({ value, field, record }) => formatMediaThumbnails(value),
+  images: ({ value, field, record }) => formatCollectionThumbnails(value),
   description: ({ value, field, record }) => formatString(value),
   sort_order: ({ value, field, record }) => formatString(value),
   createdAt: ({ value }) => formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null })),

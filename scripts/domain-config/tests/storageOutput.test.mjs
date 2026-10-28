@@ -54,6 +54,17 @@ test("presenters: メディア列を resolveStorageSrc で解決するサムネ�
   assert.match(presenters, /formatMediaThumbnail,\n\s+formatMediaThumbnails,\n\} from "@\/lib\/crud";/);
 });
 
+test("presenters: 主の集まりの項目は formatCollectionThumbnails（import も足す）、旧来の複数メディア列は formatMediaThumbnails のまま", () => {
+  const gallery = { name: "gallery", label: "ギャラリー", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "album_gallery" } };
+  const { ctx, workspace } = albumContext({ ...FIXTURE, fields: [...FIXTURE.fields, gallery] });
+  const presenters = renderPresentersContent(ctx, workspace);
+  assert.match(presenters, /gallery: \(\{ value, field, record \}\) => formatCollectionThumbnails\(value\),/);
+  assert.match(presenters, /photos: \(\{ value, field, record \}\) => formatMediaThumbnails\(value\),/);
+  assert.match(presenters, /formatMediaThumbnails,\n\s+formatCollectionThumbnails,\n\} from "@\/lib\/crud";/);
+  const { ctx: legacyCtx, workspace: legacyWorkspace } = albumContext(FIXTURE);
+  assert.doesNotMatch(renderPresentersContent(legacyCtx, legacyWorkspace), /formatCollectionThumbnails/);
+});
+
 test("Fields: メディア列に purpose `<domain>.<field>` を付けて FieldRenderer に渡す", () => {
   const fields = generateFieldsFromConfig(FIXTURE).replace(/__domain__/g, "album").replace(/__Domain__/g, "Album");
   assert.match(fields, /cover: "album\.cover",\n\s+thumbnail: "album\.thumbnail",\n\s+photos: "album\.photos",/);
