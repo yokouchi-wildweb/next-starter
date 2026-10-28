@@ -5,7 +5,8 @@
  * 再生成: pnpm frame:generate(一致の検査: pnpm frame:generate --check)
  *
  * Hide*(HideHeader 等)が描く印 <span hidden data-frame-hide="<部位>-<デバイス>"> が
- * 外枠 [data-frame-root] の中にある間だけ、その部位を display: none にする(client JS なし、隠す方向のみ)。
+ * 外枠 [data-frame-root] の中にある間だけ、その部位を display: none にし、部位の寸法変数を 0 にする
+ * (client JS なし、隠す方向のみ。変数は外枠の inline に勝つため !important)。
  * layer に入れない = 部品の Tailwind ユーティリティ(sm:flex 等)より優先する。
  */
 
@@ -24,8 +25,11 @@
   [data-frame-root]:has([data-frame-hide~="footer-sp"]) :is(#footer, [data-frame-part~="footer"]) {
     display: none;
   }
-  [data-frame-root]:has([data-frame-hide~="bottom-nav-sp"]) :is(#bottom-nav, #bottom-nav-spacer-sp, #bottom-nav-spacer-pc, [data-frame-part~="bottom-nav"]) {
+  [data-frame-root]:has([data-frame-hide~="bottom-nav-sp"]) :is(#bottom-nav, #bottom-nav-spacer, [data-frame-part~="bottom-nav"]) {
     display: none;
+  }
+  [data-frame-root]:has([data-frame-hide~="bottom-nav-sp"]) {
+    --app-bottom-nav-height: 0px !important;
   }
 }
 
@@ -39,7 +43,10 @@
   [data-frame-root]:has([data-frame-hide~="footer-pc"]) :is(#footer, [data-frame-part~="footer"]) {
     display: none;
   }
-  [data-frame-root]:has([data-frame-hide~="bottom-nav-pc"]) :is(#bottom-nav, #bottom-nav-spacer-sp, #bottom-nav-spacer-pc, [data-frame-part~="bottom-nav"]) {
+  [data-frame-root]:has([data-frame-hide~="bottom-nav-pc"]) :is(#bottom-nav, #bottom-nav-spacer, [data-frame-part~="bottom-nav"]) {
     display: none;
+  }
+  [data-frame-root]:has([data-frame-hide~="bottom-nav-pc"]) {
+    --app-bottom-nav-height: 0px !important;
   }
 }

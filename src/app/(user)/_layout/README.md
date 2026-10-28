@@ -26,7 +26,7 @@ src/app/(user)/_layout/
 まだ `src/components/AppFrames/User/` に残っている物(後の区切りで扱う):
 
 - `controls/`(HideHeader 等と部位一覧 frameParts.ts): 中身は印に入れ替え済み(下の「枠の部位を隠す(Hide* と印)」)。最終の棚は後の議題で決める(今はパスを変えない = fork の import の書き換えなし)
-- `contexts/`(表示制御の context): Hide* はもう書かない。部品・hook が読むのをやめた後、旧入口撤去の区切りで削除する。ここの部品は絶対パス `@/components/AppFrames/User/{contexts,controls}` で参照している
+- `contexts/`(表示制御の context): `@deprecated`。Hide* は書かず、枠の部品・hook も読まない(UserLayout が互換の Provider を置くだけ)。旧入口撤去の区切りで削除する。ここの部品は絶対パス `@/components/AppFrames/User/{contexts,controls}` で参照している
 - `Sections/HeaderCustom/`・`Sections/FooterCustom/`: config の切り替えで使う旧来のカスタム雛形(廃止予定)。差し替えは UserLayout の header / footer slot へ(下の「layout.tsx と slot」)。旧入口撤去の区切りで削除する
 - `src/components/AppFrames/constants.ts`(ヘッダー・フッターの要素 ID): useHeaderHeight の汎用化と一緒に後で動かす
 
@@ -65,12 +65,13 @@ src/app/(user)/_layout/
 |------|----|--------|
 | `--app-header-height` | ヘッダー(`#header`)の実測の高さ | UserLayout・AdminLayout の外枠の inline |
 | `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
-| `--app-bottom-nav-height` | `BOTTOM_NAV_HEIGHT`(`src/config/ui/user-bottom-menu.config.ts`)。既定のボトムナビを描き `BOTTOM_NAV_ENABLED` の時と、bottomNav に要素を渡した時。`bottomNav={null}` と無効の時は書かない(0px) | UserLayout の外枠の inline |
+| `--app-bottom-nav-height` | `BOTTOM_NAV_HEIGHT`(`src/config/ui/user-bottom-menu.config.ts`)。既定のボトムナビを描き `BOTTOM_NAV_ENABLED` の時と、bottomNav に要素を渡した時。`bottomNav={null}` と無効の時は書かない(0px)。出さないデバイス(`BOTTOM_NAV_VISIBILITY`、既定 PC)と `HideBottomNav` で隠している間は 0px(印の CSS が `!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/frame-controls.generated.css` |
 | `--app-safe-area-top/right/bottom/left` | `env(safe-area-inset-*, 0px)` | `src/styles/config.css` の `:root` |
 
 - 既定値(0px と safe-area)は `src/styles/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ
-- 外枠の配下(ページ・その中の fixed 要素)は px を直書きせずこれらを使う(例 `bottom-[calc(var(--app-bottom-nav-height)+8px)]`)。`--app-*-height` は inline が勝つので `src/styles/custom/` からは上書きできない
-- 部品を Hide* で隠した時に 0 にする扱いはまだ無い(後の区切り)。BottomNav・BottomNavSpacer・UserPage の safe-area はまだ自分の値(`style` の height・`env()` の直書き)を使っている
+- 外枠の配下(ページ・その中の fixed 要素)は px を直書きせずこれらを使う(例 `bottom-[calc(var(--app-bottom-nav-height)+8px)]`。規則: .claude/rules/core/style.md frame_dims)。ボトムナビを隠したページや PC では自動で 0 になる。`--app-*-height` は inline が勝つので `src/styles/custom/` からは上書きできない
+- `--app-header-height` は実測なので、HideHeader で隠すと(display: none で高さ 0)自動で 0 に追随する。`--app-banner-height` は印の対象外
+- BottomNavSpacer は `--app-bottom-nav-height` を読む 1 要素。BottomNav の高さ(`style` の height)と BottomNav・UserPage の safe-area(`env()` の直書き)は今の値のまま(値は同じ)
 - 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:64px`。どちらも banner が無い時の計算値・見た目は同じ
 - header / footer の決め方は「slot → config の旧切替の経路 → 既定」の順。config が既定部品を re-export しているので、HeaderCustom / FooterCustom に切り替えた fork もそのまま動く。config の部品 re-export は廃止予定(@deprecated のコメント)で、旧入口撤去の区切りで UserLayout は既定部品を直接 import する
 - `UserAppLayout`(旧 export 名・旧 props backgroundImageUrl / overlayColor / overlayOpacity)は互換部品。旧 props を background slot に写して UserLayout を描く。旧入口撤去の区切りで削除する
@@ -116,8 +117,9 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.acme";
 - 隠す方向だけ・足し算: 印が 1 つでもあれば隠す。`sp={false}` / `pc={false}` は「そのデバイスでは隠さない」= 何もしない(PC に出す指定ではない)
 - 効かない置き方: 外枠の外(portal で body 直下へ出す等)。Suspense の内側(`(user)/loading.tsx` の下は全部)の印は本文が届くまで効かない = loading の間は枠が出て、本文と同時に隠れる
 - 遷移の退出アニメ中(PageTransition、最大 0.3 秒)は旧・新ページの印が両方効く(和)
-- 狙う先: 既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer-sp/pc`)と `[data-frame-part~="<部位>"]`(部位 = `header` / `header-nav` / `footer` / `bottom-nav`)。差し替えた部品は id を残すか、外側の要素に `data-frame-part="<部位>"` を付ければ従う
-- 寸法変数(`--app-bottom-nav-height` 等)はまだ印に連動しない(次の区切り)
+- 狙う先: 既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer`)と `[data-frame-part~="<部位>"]`(部位 = `header` / `header-nav` / `footer` / `bottom-nav`)。差し替えた部品は id を残すか、外側の要素に `data-frame-part="<部位>"` を付ければ従う
+- 寸法変数: ボトムナビを隠す印がある間、外枠の `--app-bottom-nav-height` は 0px(部位一覧の zeroVars)
+- 基本の表示との関係: フッター・ヘッダーのナビは config の値(`FOOTER_VISIBILITY`・`HEADER_NAV_ENABLED`)の固定の class、ボトムナビは UserLayout が `BOTTOM_NAV_VISIBILITY` で出さないデバイスの印を自分で描く(高さ変数も同じ印で 0 になるため。差し替えたボトムナビも従う)
 
 ---
 
@@ -130,7 +132,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.acme";
 | `user-layout.config.ts` | 枠全体の値(背景画像・オーバーレイの色と透明度) |
 | `user-header.config.ts` | ヘッダーの設定(コンポーネント切り替えは廃止予定 → header slot) |
 | `user-footer.config.ts` | フッターの設定(コンポーネント切り替えは廃止予定 → footer slot) |
-| `user-bottom-menu.config.ts` | ボトムナビの設定 |
+| `user-bottom-menu.config.ts` | ボトムナビの設定(表示するデバイス `BOTTOM_NAV_VISIBILITY` を含む) |
 
 ---
 
@@ -149,8 +151,8 @@ const {
   enabled,          // ヘッダー機能が有効か
   navItems,         // メニュー項目（認証状態反映済み）
   navEnabled,       // ナビメニューの有効設定（SP/PC）
-  visibility,       // ヘッダーの表示状態（SP/PC）
-  navVisibility,    // ナビメニューの表示状態（SP/PC）
+  visibility,       // @deprecated 常に SP/PC とも true(隠すのは Hide* の印の CSS)
+  navVisibility,    // @deprecated 常に SP/PC とも true(ナビの可否は navEnabled)
   logoLink,         // ロゴのリンク先
   isMenuOpen,       // メニューの開閉状態
   openMenu,         // メニューを開く
@@ -158,7 +160,7 @@ const {
   toggleMenu,       // メニューの開閉をトグル
   headerRef,        // ヘッダー要素のref（高さ計算用）
   headerOffset,     // ヘッダーの高さ（px）
-  visibilityClass,  // SP/PC両方の表示クラス
+  visibilityClass,  // @deprecated 常に ""(隠すのは Hide* の印の CSS)
 } = useHeaderData();
 ```
 
@@ -171,7 +173,7 @@ import { useFooterData } from "@/app/(user)/_layout/hooks";
 
 const {
   enabled,          // フッター機能が有効か
-  visibility,       // フッターの表示状態（SP/PC）
+  visibility,       // フッターの表示設定（SP/PC、config の FOOTER_VISIBILITY）
   snsEnabled,       // SNSリンクが有効か
   socialLinks,      // SNSリンク一覧
   linksEnabled,     // フッターリンクが有効か
@@ -179,7 +181,7 @@ const {
   linkSeparator,    // フッターリンクのセパレーター
   copyrightEnabled, // コピーライトが有効か
   copyrightText,    // 生成済みコピーライトテキスト
-  visibilityClass,  // SP/PC両方の表示クラス
+  visibilityClass,  // FOOTER_VISIBILITY から作る表示クラス(ページ単位で隠すのは Hide* の印の CSS)
 } = useFooterData();
 ```
 
@@ -322,6 +324,7 @@ export const GUEST_MENU_ITEMS: BottomNavItem[] = [
 |------|------|
 | `BOTTOM_NAV_ENABLED` | `false`でボトムナビ全体を無効化 |
 | `BOTTOM_NAV_HEIGHT` | ナビの高さ（px） |
+| `BOTTOM_NAV_VISIBILITY` | 表示するデバイス(既定 `{ sp: true, pc: false }`)。PC にも出すなら `pc: true`。差し替えたボトムナビにも効く |
 | `AUTHENTICATED_MENU_ITEMS` | ログイン中ユーザー用メニュー |
 | `GUEST_MENU_ITEMS` | 未ログインユーザー用メニュー |
 
@@ -355,9 +358,7 @@ menu 型の項目を独自の型・判別で実装していた場合は、`type:
 
 BottomNavは固定表示のため、フッターなど下部コンテンツが隠れないよう`BottomNavSpacer`が自動でスペースを確保します。
 
-- BottomNavが**表示されている時だけ**高さを持つ
-- `HideBottomNav`で隠した場合、スペーサーも印の CSS で一緒に隠れる(部位 `bottom-nav` に含まれる)
-- SP/PCそれぞれの表示状態に連動
+- 高さは `var(--app-bottom-nav-height)`(1 要素 `#bottom-nav-spacer`)。出さないデバイスと `HideBottomNav` で隠している間は変数が 0 になり、要素も印の CSS で隠れる
 
 ---
 
@@ -469,6 +470,22 @@ export default function PlayerPage() {
 - Hide* の名前・props・export・パスは変えていない(fork の呼び出しの書き換えなし)。表示方向(`pc={false}` = 表示)は使用例が無く捨てた
 - 生成 CSS は global.css が config.css の後に読む。layer に入れない(部品の `sm:flex` 等のユーティリティより優先)。目印の変数 `--frame-controls-generated` を持つので、ビルド出力からこのファイルが抜けると `pnpm build` の styles:check-build が落ちる
 - 既定の DOM の差分(test で固定): 外枠に `data-frame-root`、Header・Footer・BottomNav・スペーサー・ナビの部品に `data-frame-part`
+
+## 寸法の 0 と context 離れの経緯(notice frame-marks-dims)
+
+- 印の区切りの 2 手目。隠す印があるデバイスで `--app-bottom-nav-height` を 0 にする(生成 CSS、外枠の inline に勝つため `!important`)。BottomNavSpacer は sp/pc の px 2 本をやめ、変数を読む 1 要素にした
+- PC の既定(ボトムナビを出さない)は、表示制御の context の既定値 `{ sp: true, pc: false }` にあった。context をやめたので config の `BOTTOM_NAV_VISIBILITY`(FOOTER_VISIBILITY と同じ形)へ移し、UserLayout がその値から「隠す印」を描く。表示も高さ変数も同じ規則に乗り、差し替えたボトムナビも従う。描く条件は高さ変数を書く条件(既定のボトムナビ有効、または bottomNav の差し替えあり)と同じ
+- 表示方向(`HideBottomNav pc={false}` = PC にも出す)は印で表せないので捨て、PC にも出す受け皿をこの config の値にした
+- 枠の部品と hook(BottomNav・BottomNavSpacer・Header・useHeaderData・useFooterData)は context を読まない。useHeaderData の `visibility` / `navVisibility` / `visibilityClass` は差し替え部品が読むので型を残し、固定値の `@deprecated` にした。useFooterData の `visibility` / `visibilityClass` は config の値だけから作る
+- contexts と Provider は `@deprecated` の互換で残す(fork の部品が直接呼んでも落ちない)。削除は旧入口撤去の区切り
+- 既定の DOM の差分(test で固定): 外枠の先頭に基本の印 `bottom-nav-pc`、スペーサーが 1 要素、Header の class 末尾の空白が無くなった
+
+## 採らなかった案(寸法の 0)
+
+- 生成 CSS が config の BOTTOM_NAV_VISIBILITY を読んで PC の 0 を書く: 生成 CSS は upstream のコミット物なので、fork が値を変えると生成物が upstream と食い違い、merge のたびに衝突する
+- UserLayout が inline にデバイス別の変数を書く: inline ではメディアクエリが書けず、変数が 2 本に増える
+- 変数を `--app-bottom-nav-height-base` に分けて CSS で合成する: 変数名が増える。`!important` は生成規則の変数だけに限る
+- フッター・ヘッダーのナビの基本の表示も印に揃える: 寸法変数に関わらず、既定 DOM が変わるだけ(config の固定の class のまま)
 
 ## 採らなかった案(印)
 

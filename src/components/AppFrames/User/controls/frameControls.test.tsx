@@ -7,10 +7,12 @@
 // 3. 部位一覧の狙う先(id と data-frame-part)が既定の枠部品に実在し、外枠に data-frame-root がある
 // 4. 生成 CSS は global.css から読まれ、目印の変数を持つ(styles:check-build がビルド出力の欠落を検出できる)
 // 5. upstream で Hide* を使う画面・layout の SSR HTML に印が出る
+// 6. 隠している間は部位の寸法変数が 0 になり、表示制御の context を読む upstream の部品は無い(context は deprecated の互換だけ)
 // :has() の評価とメディアクエリはブラウザでしか確かめられないので見ない(生成 CSS の文字列と SSR の印だけ)。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -59,8 +61,22 @@ test("生成 CSS は global.css から config.css の後・custom/ の前に読�
   assert.ok(at < imports.indexOf("./custom/index.css"), "custom/ より前に無い");
 });
 
-test("生成 CSS は目印の変数を宣言する(styles:check-build の検査対象になる)", () => {
-  assert.deepEqual(collectDefinedNames(buildFrameControlsCss()), [FRAME_CONTROLS_MARKER_VAR]);
+test("生成 CSS は目印の変数を宣言する(styles:check-build の検査対象になる)。ほかに宣言するのは部位の寸法変数だけ", () => {
+  const names = collectDefinedNames(buildFrameControlsCss());
+  assert.ok(names.includes(FRAME_CONTROLS_MARKER_VAR));
+  const zeroVars = Object.values(FRAME_PARTS).flatMap((part): readonly string[] => part.zeroVars);
+  assert.deepEqual([...new Set(names)].sort(), [FRAME_CONTROLS_MARKER_VAR, ...zeroVars].sort());
+});
+
+test("隠す印があるデバイスでは部位の寸法変数を 0 にする(外枠の inline に勝つ !important)", () => {
+  const css = buildFrameControlsCss();
+  for (const device of ["sp", "pc"]) {
+    assert.ok(
+      css.includes(`[data-frame-root]:has([data-frame-hide~="bottom-nav-${device}"]) {\n    --app-bottom-nav-height: 0px !important;\n  }`),
+      `bottom-nav-${device} で --app-bottom-nav-height が 0 にならない`,
+    );
+  }
+  assert.equal(css.includes("--app-header-height"), false, "ヘッダーの高さは実測なので CSS で 0 にしない");
 });
 
 test("生成 CSS は全部位 × 両デバイスの規則を持ち、狙う先は id と data-frame-part の両方", () => {
@@ -101,6 +117,16 @@ test("Hide* は client 部品ではなく、context も読まない(server か�
     const imports = src.split("\n").filter((line) => /^import\b/.test(line)).join("\n");
     assert.equal(/server-only|\/contexts\/|from "react"/.test(imports), false, `${file} が server-only・context・react の hook を import する`);
   }
+});
+
+test("upstream で表示制御の context を読むのは contexts/ 自身と UserLayout の deprecated の Provider だけ", () => {
+  const out = execFileSync("git", ["grep", "-l", "-E", "AppFrames/User/contexts|use(Header|HeaderNav|Footer|BottomNav)Visibility", "--", "src"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+  const readers = out.split("\n").filter((file) => file && !file.includes("/AppFrames/User/contexts/") && file !== "src/components/AppFrames/User/controls/frameControls.test.tsx");
+  assert.deepEqual(readers, ["src/app/(user)/_layout/UserLayout.tsx"]);
+  assert.equal(/use(Header|HeaderNav|Footer|BottomNav)Visibility\(/.test(read("src/app/(user)/_layout/UserLayout.tsx")), false, "UserLayout は Provider を置くだけ");
 });
 
 test("部位一覧の狙う先が既定の枠部品に実在し、外枠に data-frame-root がある", () => {

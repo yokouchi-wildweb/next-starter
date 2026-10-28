@@ -10,4 +10,5 @@ paths:
 
 ownership: see CORE_FILES (src/styles/custom/**, src/config/ui/*.config.ts = downstream) | color source of truth = CSS
 config: variants / fonts / site theme are set through src/config/ui/*.config.ts define*Config({partial}) | variant and size names are public contract (rename → .notices) | before changing tokens, variants, fonts or theme → read src/styles/README.md
+frame_dims: user / admin frame sizes (header, banner, bottom nav, safe area) → var(--app-*-height) / var(--app-safe-area-*), never hard-coded px (vars go 0 while a part is hidden) | ref: src/app/(user)/_layout/README.md
 cn_class_groups (MANDATORY): a new `--text-*` token in theme.css → register it in src/lib/cn FLUID_TEXT_SIZES (test: pnpm test:cn)

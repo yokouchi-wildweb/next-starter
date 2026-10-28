@@ -6,6 +6,7 @@ import { Flex } from "@/components/Layout/Flex";
 import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import UnreadNotificationModal from "@/features/notification/components/common/UnreadNotificationModal";
 
+import { HideBottomNav } from "@/components/AppFrames/User/controls";
 import { BottomNavVisibilityProvider } from "@/components/AppFrames/User/contexts/BottomNavVisibilityContext";
 import { BackgroundLayer } from "./BackgroundLayer";
 import { Banner } from "./Banner";
@@ -17,7 +18,7 @@ import { BottomNavSpacer } from "./BottomNav/BottomNavSpacer";
 // header / footer の既定は config の旧切替の経路を通す(upstream では既定部品の re-export。旧入口撤去の区切りで直接 import へ)
 import { UserFooter } from "@/config/ui/user-footer.config";
 import { UserNavigation } from "@/config/ui/user-header.config";
-import { BOTTOM_NAV_ENABLED, BOTTOM_NAV_HEIGHT } from "@/config/ui/user-bottom-menu.config";
+import { BOTTOM_NAV_ENABLED, BOTTOM_NAV_HEIGHT, BOTTOM_NAV_VISIBILITY } from "@/config/ui/user-bottom-menu.config";
 import {
   BACKGROUND_IMAGE_URL,
   BACKGROUND_OVERLAY_COLOR,
@@ -68,7 +69,7 @@ export function UserLayout({
   const [bannerHeight, setBannerHeight] = useState(0);
   const hasBanner = banner !== undefined && banner !== null;
   // ボトムナビの高さは config の値。既定のボトムナビが無効な時と bottomNav={null} の時は書かない(:root の 0px)。
-  // Hide* で隠した時の 0 はまだ扱わない(styles/config.css のコメント参照)
+  // 隠している間の 0 は印の CSS(styles/frame-controls.generated.css)が作る
   const hasBottomNav = bottomNav === undefined ? BOTTOM_NAV_ENABLED : bottomNav !== null;
 
   const layoutStyle: LayoutStyle = {
@@ -77,6 +78,8 @@ export function UserLayout({
     ...(hasBanner ? { "--app-banner-height": `${bannerHeight}px` } : {}),
   };
 
+  // 表示制御の Provider 4 つは deprecated の互換(upstream の部品はもう読まない。fork の部品が context を直接呼んでも落ちないよう、
+  // 旧入口撤去の区切りまで残す)
   return (
     <HeaderVisibilityProvider>
       <HeaderNavVisibilityProvider>
@@ -104,6 +107,8 @@ export function UserLayout({
               className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
               style={layoutStyle}
             >
+              {/* ボトムナビの基本の表示: config で出さないデバイスは「隠す印」で隠す(差し替えたボトムナビも同じ。高さ変数もこの印で 0) */}
+              {hasBottomNav && <HideBottomNav sp={!BOTTOM_NAV_VISIBILITY.sp} pc={!BOTTOM_NAV_VISIBILITY.pc} />}
               {hasBanner && <Banner onHeightChange={setBannerHeight}>{banner}</Banner>}
               {header === undefined ? <UserNavigation /> : header}
               {/* banner の高さ分だけ本文を押し下げる(ヘッダーの分は #stretch-wrapper の padding-top) */}

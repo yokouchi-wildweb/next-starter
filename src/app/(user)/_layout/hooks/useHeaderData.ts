@@ -25,8 +25,6 @@ import {
 import { useAuthSession } from "@/features/core/auth/hooks/useAuthSession";
 import { useLogout } from "@/features/core/auth/hooks/useLogout";
 
-import { useHeaderVisibility } from "@/components/AppFrames/User/contexts/HeaderVisibilityContext";
-import { useHeaderNavVisibility } from "@/components/AppFrames/User/contexts/HeaderNavVisibilityContext";
 import type { NavigationMenuItem } from "../Header/types";
 
 // ============================================
@@ -50,9 +48,15 @@ export type UseHeaderDataReturn = {
   navItems: HeaderNavItem[];
   /** ナビメニューの有効設定（SP/PC） */
   navEnabled: DeviceVisibility;
-  /** ヘッダーの表示状態（SP/PC） */
+  /**
+   * @deprecated 常に SP/PC とも true。ページ単位で隠すのは Hide* の印(CSS)で、部品は読まなくてよい。
+   * 表示制御の context と一緒に旧入口撤去の区切りで削除する
+   */
   visibility: DeviceVisibility;
-  /** ナビメニューの表示状態（SP/PC） */
+  /**
+   * @deprecated 常に SP/PC とも true(ナビの可否は navEnabled)。ページ単位で隠すのは Hide* の印(CSS)。
+   * 表示制御の context と一緒に旧入口撤去の区切りで削除する
+   */
   navVisibility: DeviceVisibility;
   /** ロゴのリンク先 */
   logoLink: string;
@@ -70,9 +74,14 @@ export type UseHeaderDataReturn = {
   headerRef: React.RefObject<HTMLElement | null>;
   /** ヘッダーの高さ（px） */
   headerOffset: number;
-  /** SP/PC両方の表示クラス */
+  /**
+   * @deprecated 常に ""(ページ単位で隠すのは Hide* の印の CSS)。表示制御の context と一緒に旧入口撤去の区切りで削除する
+   */
   visibilityClass: string;
 };
+
+/** deprecated の戻り値(visibility / navVisibility)の固定値 */
+const ALWAYS_VISIBLE: DeviceVisibility = { sp: true, pc: true };
 
 // ============================================
 // フック実装
@@ -89,10 +98,6 @@ export const useHeaderData = (): UseHeaderDataReturn => {
   const { logout, isLoading: isLogoutLoading } = useLogout({
     redirectTo: LOGOUT_REDIRECT_TO,
   });
-
-  // Context からの表示状態
-  const { visibility } = useHeaderVisibility();
-  const { visibility: navVisibility } = useHeaderNavVisibility();
 
   // メニュー開閉
   const closeMenu = useCallback(() => {
@@ -201,20 +206,12 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     }));
   }, [isAuthenticated, isLogoutLoading, logout, badgeMap]);
 
-  // 表示/非表示のクラスを決定
-  const visibilityClass = useMemo(() => {
-    if (!visibility.sp && !visibility.pc) return "hidden";
-    if (!visibility.sp && visibility.pc) return "hidden sm:block";
-    if (visibility.sp && !visibility.pc) return "block sm:hidden";
-    return "";
-  }, [visibility.sp, visibility.pc]);
-
   return {
     enabled: HEADER_ENABLED,
     navItems,
     navEnabled: HEADER_NAV_ENABLED,
-    visibility,
-    navVisibility,
+    visibility: ALWAYS_VISIBLE,
+    navVisibility: ALWAYS_VISIBLE,
     logoLink: HEADER_LOGO_LINK,
     showIcons: HEADER_MENU_ICONS_ENABLED,
     isMenuOpen,
@@ -223,6 +220,6 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     toggleMenu,
     headerRef,
     headerOffset,
-    visibilityClass,
+    visibilityClass: "",
   };
 };

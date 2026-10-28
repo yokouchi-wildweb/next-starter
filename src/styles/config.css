@@ -41,9 +41,11 @@
    * UserLayout・AdminLayout が外枠の inline style で実値（実測値または config の値）を書き、
    * ここは「書かれない時の 0」だけを持つ。inline が勝つので custom/ から上書きしても効かない。
    *   --app-banner-height    : UserLayout の banner slot の実測の高さ（banner がない時は 0）
-   *   --app-bottom-nav-height: 既定のボトムナビが有効な時の BOTTOM_NAV_HEIGHT（config/ui/user-bottom-menu.config.ts）
+   *   --app-bottom-nav-height: 既定のボトムナビが有効な時の BOTTOM_NAV_HEIGHT（config/ui/user-bottom-menu.config.ts）。
+   *                            出さないデバイス（BOTTOM_NAV_VISIBILITY）と HideBottomNav で隠している間は
+   *                            frame-controls.generated.css が 0px にする（inline に勝つため !important）
    * --app-safe-area-* は env(safe-area-inset-*) の別名（custom/ から上書き可）。
-   * 部品の非表示（Hide*）で 0 にする扱いはまだ入れていない。
+   * 枠の配下の部品・ページは枠の寸法を px で直書きせず、これらの変数を使う。
    */
   --app-header-height: 0px;
   --app-banner-height: 0px;

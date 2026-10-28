@@ -3,7 +3,7 @@
 //
 // Header は useHeaderData・Brand・Pc / Sp のナビ部品を目印にモックし、HeaderShell と CTA の Button は本物を描く
 // (SpNavigation の目印は footer prop を子として描く = SP メニュー下部に何が渡ったかを見る)。
-// BottomNav は useBottomNavItems・表示制御の context・next/navigation をモックし、項目の部品は本物を描く。
+// BottomNav は useBottomNavItems・next/navigation をモックし、項目の部品は本物を描く(表示制御の context はもう読まない)。
 // UserPage の幅の既定が config に従うことは UserPageDefault.test.tsx(config をモックするため別ファイル)。
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
@@ -45,9 +45,6 @@ mock.module(here("./Header/Pc/PcNavigation.tsx"), { namedExports: { PcNavigation
 mock.module(here("./Header/Sp/SpNavigation.tsx"), { namedExports: { SpNavigation: marker("spnav") } });
 mock.module(here("./Header/Sp/SpNavSwitch.tsx"), { namedExports: { SpNavSwitch: marker("spswitch") } });
 mock.module("next/navigation", { namedExports: { usePathname: () => "/items", useRouter: () => ({ push: () => {} }) } });
-mock.module("@/components/AppFrames/User/contexts/BottomNavVisibilityContext", {
-  namedExports: { useBottomNavVisibility: () => ({ visibility: { sp: true, pc: true } }) },
-});
 
 const Icon = ({ className }: { className?: string }) => createElement("x-icon", { class: className });
 const LINK_ITEMS: BottomNavLinkItem[] = [
@@ -63,6 +60,7 @@ let render: (node: ReactNode) => string;
 let UserNavigation: typeof import("./Header").UserNavigation;
 let UserBottomNav: typeof import("./BottomNav").UserBottomNav;
 let isBottomNavMenuItem: typeof import("./BottomNav/types").isBottomNavMenuItem;
+let BottomNavSpacer: typeof import("./BottomNav/BottomNavSpacer").BottomNavSpacer;
 let UserPage: typeof import("./UserPage").UserPage;
 let Main: typeof import("@/components/Layout/Main").Main;
 before(async () => {
@@ -70,6 +68,7 @@ before(async () => {
   ({ UserNavigation } = await import("./Header"));
   ({ UserBottomNav } = await import("./BottomNav"));
   ({ isBottomNavMenuItem } = await import("./BottomNav/types"));
+  ({ BottomNavSpacer } = await import("./BottomNav/BottomNavSpacer"));
   ({ UserPage } = await import("./UserPage"));
   ({ Main } = await import("@/components/Layout/Main"));
 });
@@ -100,7 +99,9 @@ const BEFORE_HEADER_DIMS = BEFORE.header.replace(" top-0 ", " top-[var(--app-ban
  * 枠の印の区切り(notice frame-marks)で既定の部品に入った差分は、外側の要素の data-frame-part だけ
  * (Hide* の印で隠す CSS の狙う先。styles/frame-controls.generated.css)。ナビの部品(Pc / Sp)はここではモック
  */
-const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '<header id="header" data-frame-part="header" ');
+const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '<header id="header" data-frame-part="header" ')
+  // 寸法変数の 0 と context 離れの区切り(notice frame-marks-dims): context の表示クラス(既定 "")を外したので class の末尾の空白が無くなった
+  .replace(' text-header-foreground ">', ' text-header-foreground">');
 const BEFORE_BOTTOM_NAV_MARKS = BEFORE.bottomNav.replace('<nav id="bottom-nav" ', '<nav id="bottom-nav" data-frame-part="bottom-nav" ');
 
 test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(差分は banner 分の top と data-frame-part だけ)", () => {
@@ -188,4 +189,11 @@ test("Main の verticalAlign=\"start\" は中央寄せ(my-auto)をやめて上�
 test("UserPage は containerType の明示が既定より勝つ(fill の時も)", () => {
   assert.equal(render(<UserPage containerType="narrowStack">CHILD</UserPage>), render(<Main containerType="narrowStack">CHILD</Main>));
   assert.match(render(<UserPage fill containerType="narrowStack">CHILD</UserPage>), /max-width:var\(--layout-width-narrow-stack\)/);
+});
+
+test("BottomNavSpacer は高さ変数を読む 1 要素(sp/pc の px 2 本をやめた。隠す間は印の CSS が変数を 0 にする)", () => {
+  assert.equal(
+    render(<BottomNavSpacer />),
+    '<div id="bottom-nav-spacer" data-frame-part="bottom-nav" class="shrink-0 h-[var(--app-bottom-nav-height,0px)]" aria-hidden="true"></div>',
+  );
 });

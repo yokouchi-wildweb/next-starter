@@ -80,6 +80,17 @@ export const BOTTOM_NAV_ENABLED = true;
 /** ボトムナビの高さ（px） */
 export const BOTTOM_NAV_HEIGHT = 64;
 
+/**
+ * ボトムナビの表示設定(既定 = スマホだけ)。false のデバイスでは UserLayout が「隠す印」を描くので、
+ * ボトムナビ(差し替えた物を含む)とスペーサーが隠れ、--app-bottom-nav-height も 0 になる
+ */
+export const BOTTOM_NAV_VISIBILITY = {
+  /** スマホ版（640px未満）で表示するか */
+  sp: true,
+  /** PC版（640px以上）で表示するか */
+  pc: false,
+} as const;
+
 /** カレントアイテムの色（primary / secondary / accent） */
 export const ACTIVE_COLOR_TYPE: "primary" | "secondary" | "accent" = "accent";
 

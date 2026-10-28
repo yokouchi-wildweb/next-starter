@@ -11,7 +11,7 @@ User/
 ├── Sections/
 │   ├── HeaderCustom/    # カスタムヘッダー(プロジェクト固有。config の切り替えで使う旧来の雛形)
 │   └── FooterCustom/    # カスタムフッター(同上)
-├── contexts/        # 表示制御の Context(UserLayout の Provider と枠の部品が読む。Hide* はもう書かない。旧入口撤去の区切りで削除)
+├── contexts/        # @deprecated 表示制御の Context(Hide* も枠の部品も使わない。UserLayout が互換の Provider を置くだけ。旧入口撤去の区切りで削除)
 │   ├── HeaderVisibilityContext.tsx
 │   ├── HeaderNavVisibilityContext.tsx
 │   ├── FooterVisibilityContext.tsx
@@ -79,7 +79,7 @@ import { HideHeader, HideHeaderNav, HideFooter, HideBottomNav } from "@/componen
 ### HideBottomNav
 
 ボトムナビゲーション(高さ分のスペーサーを含む)を隠す。
-**デフォルト**: スマホのみ表示（PCは非表示）。`pc={false}` は PC に出す指定ではない(何もしない)
+**デフォルト**: スマホのみ表示（PCは非表示。`src/config/ui/user-bottom-menu.config.ts` の `BOTTOM_NAV_VISIBILITY`）。`pc={false}` は PC に出す指定ではない(何もしない)。PC にも出すなら config の `pc: true`
 
 ```tsx
 // 両方非表示（props未指定で両方非表示）

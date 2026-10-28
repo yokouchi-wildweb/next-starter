@@ -34,6 +34,8 @@ export type VisibilityContextValue<T extends DeviceVisibility = DeviceVisibility
 type OverrideEntry<T> = { id: string; visibility: Partial<T> };
 
 /**
+ * @deprecated 枠の部品も Hide* も読まない・書かない(ページ単位で隠すのは Hide* の印の CSS、基本の表示は config/ui の値)。旧入口撤去の区切りで削除する
+ *
  * ヘッダー / フッター等の表示制御 Context を作る。
  *
  * Hide* コンポーネントはアンマウント時に「自分の上書きだけ」を外すため、

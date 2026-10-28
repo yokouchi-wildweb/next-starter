@@ -25,8 +25,6 @@ import {
   type SocialLinkItem,
 } from "@/config/ui/user-footer.config";
 
-import { useFooterVisibility } from "@/components/AppFrames/User/contexts/FooterVisibilityContext";
-
 // ============================================
 // 型定義
 // ============================================
@@ -41,7 +39,7 @@ export type DeviceVisibility = {
 export type UseFooterDataReturn = {
   /** フッター機能が有効か */
   enabled: boolean;
-  /** フッターの表示状態（SP/PC、設定とContextの両方を考慮） */
+  /** フッターの表示設定（SP/PC、config の FOOTER_VISIBILITY。ページ単位で隠すのは Hide* の印の CSS） */
   visibility: DeviceVisibility;
   /** SNSリンクが有効か */
   snsEnabled: boolean;
@@ -57,7 +55,7 @@ export type UseFooterDataReturn = {
   copyrightEnabled: boolean;
   /** 生成済みコピーライトテキスト */
   copyrightText: string;
-  /** SP/PC両方の表示クラス */
+  /** FOOTER_VISIBILITY から作る SP/PC の表示クラス */
   visibilityClass: string;
 };
 
@@ -93,30 +91,23 @@ function getCopyrightText(): string {
   }
 }
 
+/** FOOTER_VISIBILITY から作る表示クラス(config の値なので固定) */
+const FOOTER_VISIBILITY_CLASS = (() => {
+  const { sp, pc } = FOOTER_VISIBILITY as DeviceVisibility;
+  if (!sp && !pc) return "hidden";
+  if (!sp && pc) return "hidden sm:flex";
+  if (sp && !pc) return "flex sm:hidden";
+  return "flex";
+})();
+
 // ============================================
 // フック実装
 // ============================================
 
 export const useFooterData = (): UseFooterDataReturn => {
-  // Context からの表示状態
-  const { visibility: contextVisibility } = useFooterVisibility();
-
-  // 設定とコンテキストの両方を考慮した表示判定
-  const visibility = useMemo<DeviceVisibility>(
-    () => ({
-      sp: FOOTER_VISIBILITY.sp && contextVisibility.sp,
-      pc: FOOTER_VISIBILITY.pc && contextVisibility.pc,
-    }),
-    [contextVisibility.sp, contextVisibility.pc]
-  );
-
-  // 表示/非表示のクラスを決定
-  const visibilityClass = useMemo(() => {
-    if (!visibility.sp && !visibility.pc) return "hidden";
-    if (!visibility.sp && visibility.pc) return "hidden sm:flex";
-    if (visibility.sp && !visibility.pc) return "flex sm:hidden";
-    return "flex";
-  }, [visibility.sp, visibility.pc]);
+  // 基本の表示は config の値(固定の class)。ページ単位で隠すのは Hide* の印の CSS
+  const visibility: DeviceVisibility = FOOTER_VISIBILITY;
+  const visibilityClass = FOOTER_VISIBILITY_CLASS;
 
   // コピーライトテキスト（メモ化）
   const copyrightText = useMemo(() => getCopyrightText(), []);

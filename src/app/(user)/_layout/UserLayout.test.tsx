@@ -58,7 +58,13 @@ const withBottomNavVar = (html: string) =>
  */
 const withFrameRoot = (html: string) =>
   html.replace('data-user-app-container=""', 'data-user-app-container="" data-frame-root=""');
-const BEFORE_DIMS = withFrameRoot(withBottomNavVar(BEFORE_SWITCH));
+/**
+ * 寸法変数の 0 と context 離れの区切り(notice frame-marks-dims)で既定の DOM に入った差分はこの 1 か所だけ:
+ * 外枠の先頭にボトムナビの基本の印(config の BOTTOM_NAV_VISIBILITY で出さない PC を隠す。高さ変数もこの印で 0)
+ */
+const BASE_MARK = '<span hidden="" data-frame-hide="bottom-nav-pc"></span>';
+const withBaseMark = (html: string) => html.replace('style="--app-header-height:0px;--app-bottom-nav-height:64px">', `style="--app-header-height:0px;--app-bottom-nav-height:64px">${BASE_MARK}`);
+const BEFORE_DIMS = withBaseMark(withFrameRoot(withBottomNavVar(BEFORE_SWITCH)));
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
@@ -120,9 +126,13 @@ test("slot に null を渡すとその部品を描かない(bottomNav はスペ�
   );
 });
 
-test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT", () => {
+test("bottomNav に要素を渡しても --app-bottom-nav-height は config の BOTTOM_NAV_HEIGHT で、基本の印も描く(差し替えも BOTTOM_NAV_VISIBILITY に従う)", () => {
   const html = render(<UserLayout bottomNav={<nav id="b" />}>CHILD</UserLayout>);
-  assert.ok(html.includes('style="--app-header-height:0px;--app-bottom-nav-height:64px"'));
+  assert.ok(html.includes(`style="--app-header-height:0px;--app-bottom-nav-height:64px">${BASE_MARK}`));
+});
+
+test("bottomNav={null} では基本の印を描かない(高さ変数も書かないので隠す物が無い)", () => {
+  assert.equal(render(<UserLayout bottomNav={null}>CHILD</UserLayout>).includes("data-frame-hide"), false);
 });
 
 test("banner の省略と null は同じ(既定なし): 帯・スペーサー・--app-banner-height を描かない", () => {

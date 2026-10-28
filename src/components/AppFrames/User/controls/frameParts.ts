@@ -5,7 +5,8 @@
 // 仕組みと経緯: src/app/(user)/_layout/README.md「枠の部位を隠す(Hide* と印)」
 //
 // 仕組み: Hide* は空の <span hidden data-frame-hide="<部位>-<デバイス>"> を描くだけ(状態・副作用なし)。
-// 生成 CSS が「外枠 [data-frame-root] が印を含む間、その部位を display: none」にする。
+// 生成 CSS が「外枠 [data-frame-root] が印を含む間、その部位を display: none、部位の寸法変数(zeroVars)を 0」にする。
+// ボトムナビの基本の表示(config の BOTTOM_NAV_VISIBILITY)も、UserLayout が同じ印を描いて作る。
 // - server / client どちらの部品から描いても同じ。SSR の HTML だけで効く(hydration 前のちらつきなし)
 // - 印は外枠の中に描く(portal で body 直下へ出すと効かない)。Suspense の内側の印は本文が届くまで効かない
 // - 隠す方向だけ・足し算: 印が 1 つでもあれば隠す。={false} は何もしない
@@ -24,14 +25,15 @@ export type FrameDevice = keyof typeof FRAME_DEVICES;
 
 /**
  * 隠せる部位。key = 印のトークンと data-frame-part の値(`<key>-<デバイス>` が印のトークン)。
- * ids = 既定部品の id(fork が差し替えた部品も id を残せば従う)。id を変えた部品は外側の要素に `data-frame-part="<key>"` を付ける
+ * ids = 既定部品の id(fork が差し替えた部品も id を残せば従う)。id を変えた部品は外側の要素に `data-frame-part="<key>"` を付ける。
+ * zeroVars = 隠している間 0 にする寸法変数(外枠の inline の値に勝つため !important)
  */
 export const FRAME_PARTS = {
-  header: { ids: [APP_HEADER_ELEMENT_ID] },
-  "header-nav": { ids: ["header-pc-nav", "header-sp-menu-toggle", "header-sp-nav"] },
-  footer: { ids: [APP_FOOTER_ELEMENT_ID] },
-  "bottom-nav": { ids: ["bottom-nav", "bottom-nav-spacer-sp", "bottom-nav-spacer-pc"] },
-} as const satisfies Record<string, { readonly ids: readonly string[] }>;
+  header: { ids: [APP_HEADER_ELEMENT_ID], zeroVars: [] },
+  "header-nav": { ids: ["header-pc-nav", "header-sp-menu-toggle", "header-sp-nav"], zeroVars: [] },
+  footer: { ids: [APP_FOOTER_ELEMENT_ID], zeroVars: [] },
+  "bottom-nav": { ids: ["bottom-nav", "bottom-nav-spacer"], zeroVars: ["--app-bottom-nav-height"] },
+} as const satisfies Record<string, { readonly ids: readonly string[]; readonly zeroVars: readonly string[] }>;
 
 export type FramePart = keyof typeof FRAME_PARTS;
 
@@ -71,7 +73,8 @@ const GENERATED_HEADER = `/*
  * 再生成: pnpm frame:generate(一致の検査: pnpm frame:generate --check)
  *
  * Hide*(HideHeader 等)が描く印 <span hidden ${FRAME_HIDE_ATTR}="<部位>-<デバイス>"> が
- * 外枠 [${FRAME_ROOT_ATTR}] の中にある間だけ、その部位を display: none にする(client JS なし、隠す方向のみ)。
+ * 外枠 [${FRAME_ROOT_ATTR}] の中にある間だけ、その部位を display: none にし、部位の寸法変数を 0 にする
+ * (client JS なし、隠す方向のみ。変数は外枠の inline に勝つため !important)。
  * layer に入れない = 部品の Tailwind ユーティリティ(sm:flex 等)より優先する。
  */
 `;
@@ -80,8 +83,12 @@ const GENERATED_HEADER = `/*
 export const buildFrameControlsCss = (): string => {
   const blocks = (Object.keys(FRAME_DEVICES) as FrameDevice[]).map((device) => {
     const rules = (Object.keys(FRAME_PARTS) as FramePart[]).map((part) => {
+      const root = `[${FRAME_ROOT_ATTR}]:has([${FRAME_HIDE_ATTR}~="${part}-${device}"])`;
       const targets = [...FRAME_PARTS[part].ids.map((id) => `#${id}`), `[${FRAME_PART_ATTR}~="${part}"]`];
-      return `  [${FRAME_ROOT_ATTR}]:has([${FRAME_HIDE_ATTR}~="${part}-${device}"]) :is(${targets.join(", ")}) {\n    display: none;\n  }`;
+      const hide = `  ${root} :is(${targets.join(", ")}) {\n    display: none;\n  }`;
+      const zeroVars: readonly string[] = FRAME_PARTS[part].zeroVars;
+      const zero = zeroVars.map((name) => `${name}: 0px !important;`).join("\n    ");
+      return zero ? `${hide}\n  ${root} {\n    ${zero}\n  }` : hide;
     });
     return `@media ${FRAME_DEVICES[device]} {\n${rules.join("\n")}\n}`;
   });

@@ -1,53 +1,25 @@
 "use client";
 
-import { useBottomNavVisibility } from "@/components/AppFrames/User/contexts/BottomNavVisibilityContext";
-
 import { useBottomNavItems } from "./useBottomNavItems";
 
 /**
  * BottomNavの高さ分のスペースを確保するスペーサーコンポーネント
- * BottomNavが表示されている時だけ高さを持つ
+ * 高さは外枠の --app-bottom-nav-height(UserLayout が config の値を書き、出さないデバイスと Hide* で隠す間は印の CSS が 0 にする)
  */
 export const BottomNavSpacer = () => {
-  const { visibility } = useBottomNavVisibility();
-  const { height, enabled } = useBottomNavItems();
+  const { enabled } = useBottomNavItems();
 
   // 機能が無効の場合は何も表示しない
   if (!enabled) {
     return null;
   }
 
-  // SP/PCそれぞれの表示状態に応じたスタイルを決定
-  const spHeight = visibility.sp ? height : 0;
-  const pcHeight = visibility.pc ? height : 0;
-
-  // 両方0なら何も表示しない
-  if (spHeight === 0 && pcHeight === 0) {
-    return null;
-  }
-
   return (
-    <>
-      {/* スマホ用スペーサー */}
-      {spHeight > 0 && (
-        <div
-          id="bottom-nav-spacer-sp"
-          data-frame-part="bottom-nav"
-          className="block sm:hidden"
-          style={{ height: spHeight }}
-          aria-hidden="true"
-        />
-      )}
-      {/* PC用スペーサー */}
-      {pcHeight > 0 && (
-        <div
-          id="bottom-nav-spacer-pc"
-          data-frame-part="bottom-nav"
-          className="hidden sm:block"
-          style={{ height: pcHeight }}
-          aria-hidden="true"
-        />
-      )}
-    </>
+    <div
+      id="bottom-nav-spacer"
+      data-frame-part="bottom-nav"
+      className="shrink-0 h-[var(--app-bottom-nav-height,0px)]"
+      aria-hidden="true"
+    />
   );
 };

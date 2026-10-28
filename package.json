@@ -35,7 +35,7 @@
     "test:route-map": "node --test src/lib/screens/routeMap.test.mjs",
     "test:admin-layout": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/app/admin/_layout/AdminLayout.test.tsx",
     "test:frame-controls": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/components/AppFrames/User/controls/frameControls.test.tsx",
-    "test:user-layout": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test \"src/app/(user)/_layout/UserLayout.test.tsx\" \"src/app/(user)/_layout/UserParts.test.tsx\" \"src/app/(user)/_layout/UserPageDefault.test.tsx\"",
+    "test:user-layout": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test \"src/app/(user)/_layout/UserLayout.test.tsx\" \"src/app/(user)/_layout/UserParts.test.tsx\" \"src/app/(user)/_layout/UserPageDefault.test.tsx\" \"src/app/(user)/_layout/UserLayoutBottomNavVisibility.test.tsx\"",
     "test:lib-catalog": "node --test src/lib/folderCatalog/catalog.test.mjs",
     "test:core-rules": "node --test scripts/claude-rules/coreRules.test.mjs",
     "test:storage-setup": "npx tsx --test scripts/storage/iamGrant.test.ts",

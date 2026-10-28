@@ -2,13 +2,10 @@
 
 import { cn } from "@/lib/cn";
 
-import { useBottomNavVisibility } from "@/components/AppFrames/User/contexts/BottomNavVisibilityContext";
-
 import { BottomNavItem } from "./BottomNavItem";
 import { useBottomNavItems } from "./useBottomNavItems";
 
 export const UserBottomNav = () => {
-  const { visibility } = useBottomNavVisibility();
   const { items, height, enabled } = useBottomNavItems();
 
   // 機能が無効の場合は何も表示しない
@@ -16,14 +13,7 @@ export const UserBottomNav = () => {
     return null;
   }
 
-  // 表示/非表示のクラスを決定
-  const visibilityClass = (() => {
-    if (!visibility.sp && !visibility.pc) return "hidden";
-    if (!visibility.sp && visibility.pc) return "hidden sm:flex";
-    if (visibility.sp && !visibility.pc) return "flex sm:hidden";
-    return "flex";
-  })();
-
+  // 出さないデバイス(config の BOTTOM_NAV_VISIBILITY)と Hide* で隠す時は、印の CSS が display: none にする
   return (
     <nav
       id="bottom-nav"
@@ -31,7 +21,7 @@ export const UserBottomNav = () => {
       className={cn(
         "fixed inset-x-0 bottom-0 z-50 items-center justify-around border-t border-border bg-background shadow-[0_-2px_10px_rgba(0,0,0,0.05)]",
         "[&>*:not(:last-child)]:border-r-2 [&>*:not(:last-child)]:border-border/30",
-        visibilityClass,
+        "flex",
       )}
       style={{ height, paddingBottom: "env(safe-area-inset-bottom)" }}
     >
