@@ -7,8 +7,10 @@
 // 仕組み: Hide* は空の <span hidden data-frame-hide="<部位>-<デバイス>"> を描くだけ(状態・副作用なし)。
 // 生成 CSS が「外枠 [data-frame-root] が印を含む間、その部位を display: none、部位の寸法変数(zeroVars)を 0」にする。
 // ボトムナビの基本の表示(config の BOTTOM_NAV_VISIBILITY)も、UserLayout が同じ印を描いて作る。
-// - server / client どちらの部品から描いても同じ。SSR の HTML だけで効く(hydration 前のちらつきなし)
-// - 印は外枠の中に描く(portal で body 直下へ出すと効かない)。Suspense の内側の印は本文が届くまで効かない
+// - server / client どちらの部品から描いても同じ。効くのは印が外枠に入った瞬間(hydration は待たない)
+// - 外枠に直接描く印(UserLayout の基本の印)は初回の HTML に入っているので JavaScript なしでも効く。ページ側の印は (user)/loading.tsx(Suspense)の下では
+//   本文と一緒に届いた瞬間に効く(loading の間は枠が出る。JavaScript 無効ではストリーミングの本文が外枠に入らず効かない)
+// - 印は外枠の中に描く(portal で body 直下へ出すと効かない)
 // - 隠す方向だけ・足し算: 印が 1 つでもあれば隠す。={false} は何もしない
 //
 // "use client" も server-only も付けない(server の Screen からも client 部品からも、生成スクリプトからも読む)。

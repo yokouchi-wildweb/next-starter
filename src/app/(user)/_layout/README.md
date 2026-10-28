@@ -113,9 +113,10 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.acme";
 
 - 仕組み: Hide* は空の印 `<span hidden data-frame-hide="<部位>-<デバイス>">` を描くだけ。`src/styles/frame-controls.generated.css` の規則が「外枠 `[data-frame-root]`(UserLayout の `#user-app-container`)が印を含む間、その部位を `display: none`」にする(`:has()`)。部品はアンマウントしない
 - 元は 1 つ: 部位・狙う先・デバイスの境界は `controls/frameParts.ts`。CSS はそこから `pnpm frame:generate` で作ってコミットする(`--check` と `pnpm test:frame-controls` が一致を確かめる)
-- client JS なし: SSR の HTML だけで効く(hydration 前に枠が一瞬見えることは無い)。server の Screen・layout からも、client 部品の中からも同じに描ける
+- client JS なし: 隠すのは CSS の規則だけ(hook・effect なし)。server の Screen・layout からも、client 部品の中からも同じに描ける
+- 効く時点 = 印が外枠に入った瞬間(hydration は待たない)。外枠に直接描く印(UserLayout の基本の印)は初回の HTML に入っているので JavaScript なしでも効く。ページ側の印は、`(user)/loading.tsx`(Suspense)の下では本文と一緒にストリーミングで届いた瞬間に効く = loading の間は枠が出て、本文が出るのと同じフレームで隠れる(JS 有効ならちらつきなし)。JavaScript 無効ではストリーミングの本文が外枠に入らないので、ページ側の印は効かない(本文も出ない)
 - 隠す方向だけ・足し算: 印が 1 つでもあれば隠す。`sp={false}` / `pc={false}` は「そのデバイスでは隠さない」= 何もしない(PC に出す指定ではない)
-- 効かない置き方: 外枠の外(portal で body 直下へ出す等)。Suspense の内側(`(user)/loading.tsx` の下は全部)の印は本文が届くまで効かない = loading の間は枠が出て、本文と同時に隠れる
+- 効かない置き方: 外枠の外(portal で body 直下へ出す等)
 - 遷移の退出アニメ中(PageTransition、最大 0.3 秒)は旧・新ページの印が両方効く(和)
 - 狙う先: 既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer`)と `[data-frame-part~="<部位>"]`(部位 = `header` / `header-nav` / `footer` / `bottom-nav`)。差し替えた部品は id を残すか、外側の要素に `data-frame-part="<部位>"` を付ければ従う
 - 寸法変数: ボトムナビを隠す印がある間、外枠の `--app-bottom-nav-height` は 0px(部位一覧の zeroVars)
@@ -415,7 +416,7 @@ export default function PlayerPage() {
 ```
 
 - `safeArea` を付けると `env(safe-area-inset-*)` ぶんのパディングを付与（横向きスマホのノッチ対策）
-- Hide* は印なので SSR の HTML だけで隠れる(初回描画でヘッダー等が見えることは無い)
+- Hide* は印なので、本文が出るのと同じフレームで隠れる(hydration を待たない。loading の間は枠が出る。上の「枠の部位を隠す」)
 
 ### fullscreen との使い分け
 
@@ -470,6 +471,7 @@ export default function PlayerPage() {
 - Hide* の名前・props・export・パスは変えていない(fork の呼び出しの書き換えなし)。表示方向(`pc={false}` = 表示)は使用例が無く捨てた
 - 生成 CSS は global.css が config.css の後に読む。layer に入れない(部品の `sm:flex` 等のユーティリティより優先)。目印の変数 `--frame-controls-generated` を持つので、ビルド出力からこのファイルが抜けると `pnpm build` の styles:check-build が落ちる
 - 既定の DOM の差分(test で固定): 外枠に `data-frame-root`、Header・Footer・BottomNav・スペーサー・ナビの部品に `data-frame-part`
+- ブラウザでの確かめ(区切り 3 の確認): JS 有効では印の到着と本文の到着が同じフレームで、その後に枠が見えたフレームは 0。通信を遅くした client 遷移でも、loading の間は枠が出て本文と同時に隠れる。JS 無効では本文が Suspense の隠し領域(外枠の外)に残り、ページ側の印は効かない(外枠の基本の印は効く)
 
 ## 寸法の 0 と context 離れの経緯(notice frame-marks-dims)
 

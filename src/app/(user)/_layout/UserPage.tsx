@@ -38,8 +38,8 @@ export type UserPageProps = MainProps & {
    * （FullScreen による fixed オーバーレイ）を使う。immersive はフロー内に留まる
    * ページ土台であり、z 層や body スクロールロックを伴わない。
    *
-   * Hide* は印（controls/frameParts.ts）なので SSR の HTML だけで隠れる
-   * （初回描画でヘッダー等が見えることは無い）。
+   * Hide* は印（controls/frameParts.ts）なので、本文が出るのと同じフレームで隠れる
+   * （hydration を待たない。loading の間は枠が出る）。
    */
   immersive?: boolean;
   /**
