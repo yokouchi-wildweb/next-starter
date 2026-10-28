@@ -555,11 +555,19 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
   - チャンクの取り込み（画面）は各チャンクの先頭で調べる（チャンクは同じ見出しを持つので最初のチャンクで止まる）。ZIP 一括の取り込み（`importData`）は全チャンクを先に調べてから書く
 - 書き出し: 選ばれていても集まりの項目は出さない（CSV の列・manifest の fields から外す。関連・hasMany のドメインも）
 
+### 生成器からの配線
+
+- domain.json の主の集まりの項目（`fieldType: "mediaCollection"`、[src/features/README.md](../../features/README.md)「主の集まりの項目（mediaCollection）」）から、`dc:generate` が従属の domain.json（無いときだけ）・主の `services/server/collections.ts`（`collections: CrudCollectionConfig[]`、毎回上書き）・主のスキーマ / モデル / フォームを生成する
+  - `fieldName` = 項目名（domain.json に書いたまま）、`service` = 従属の `<child>Service` の遅延 import、`parentColumn` / `valueColumn` / `sortColumn` = 従属の主への参照列 / `file` 列 / `sortOrderField`、`maxItems` = `collection.maxItems`、`minItems` = required なら 1、`duplicate` = `collection.duplicate`
+- 生成の drizzleBase.ts は `import { collections } from "./collections"` して `createCrudService` の options に `collections` を渡す
+- drizzleBase.ts を手書きする主（`generateFiles.serverServices: false`）は、この 2 行を自分で足す（`dc:generate` が毎回案内する）
+- 突き合わせ: `pnpm test:collection-wiring` が、全 domain.json の集まりの項目と、serviceRegistry から読み込んだ主のサービスの `collectionFields` を比べる（渡し忘れ・余分を主と項目で出す。DB 未設定でも走る）
+- 生成器を使わないドメインは、手書きのサービスで `createCrudService` に `collections` を渡す（宣言の形は同じ `CrudCollectionConfig`）
+
 ### 基盤に無いもの
 
 - データ移行の補助・書き込みの経路（既存の行を集まりへ移す等）は持たない。一度きりの移行は DB を直接操作する
 - 論理削除の従属
-- 生成器: `dc:generate` はまだ集まりの項目を出さない（生成器の対応は評議会で審議中）。今使うなら、手書きのサービスで `createCrudService` に `collections` を渡すか、生成ドメインでは domain.json の `generateFiles` で drizzleBase を外してから手で書く（CLAUDE.md の code_generation の規則）。宣言の形（`CrudCollectionConfig`）は生成器の対応の後もそのまま使う
 
 ### 後からの変更の規則
 

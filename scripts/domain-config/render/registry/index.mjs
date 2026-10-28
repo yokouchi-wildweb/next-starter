@@ -1,6 +1,7 @@
-// generateFiles.registry: services/server/domainEntry.ts と src/registry/ の各レジストリ（AUTO ブロックへの追記）。
+// generateFiles.registry: services/server/domainEntry.ts・collections.ts（集まりを持つ主だけ）と src/registry/ の各レジストリ（AUTO ブロックへの追記）。
 // src/registry/serviceRegistry.ts は Output ではなく、書き込みの後に pipeline が registry:generate で丸ごと作り直す
 
+import { renderCollectionsOutput } from "./collections.mjs";
 import { renderDomainEntryOutput } from "./domainEntry.mjs";
 import { renderAdminDataMenuPatch, renderDomainConfigRegistryPatch, renderSchemaRegistryPatch } from "./lineRegistries.mjs";
 import { renderStoragePurposePatch } from "./storagePurpose/index.mjs";
@@ -18,6 +19,7 @@ export function renderRegistry(ctx, workspace) {
   outputs.push(renderDomainConfigRegistryPatch(workspace, ctx));
   outputs.push(renderSchemaRegistryPatch(workspace, ctx));
   outputs.push(renderDomainEntryOutput(ctx));
+  outputs.push(...renderCollectionsOutput(ctx));
   outputs.push(...renderStoragePurposePatch(ctx, workspace));
   return outputs;
 }

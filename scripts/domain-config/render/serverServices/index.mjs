@@ -4,13 +4,15 @@
 // dc:generate:service で明示的に選んだとき（overwriteService）だけ上書きする
 
 import path from "node:path";
-import { collectMediaFields } from "../../spec/fieldTypes.mjs";
+import { collectMediaFields, isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 import { dir, file, writeOnce } from "../output.mjs";
 import { replaceDomainTokens } from "../tokens.mjs";
 import { checkMediaFieldsEngine } from "../../checks/mediaEngine.mjs";
 import { composeServiceOptions } from "./options.mjs";
 import { buildEntityImports, buildRelationTableImports } from "./relations/imports.mjs";
 import {
+  buildCollectionsImport,
+  buildCollectionsOption,
   buildStorageBindingImport,
   buildStorageBindingOption,
   hasEmptyCreateSchema,
@@ -44,6 +46,7 @@ export function renderServerServices(ctx, workspace, options = {}) {
 
   const composed = config ? composeServiceOptions(workspace, config, pascal, camel) : null;
   const mediaFields = collectMediaFields(config);
+  const hasCollections = (config?.fields ?? []).some((f) => isCollectionFieldType(f.fieldType));
   const isEmptyCreateSchema = hasEmptyCreateSchema(config);
 
   // Firestore: コレクションパスを firestore.ts の collectionPath と一致させる（__domains__ も同じ値にする）
@@ -64,8 +67,8 @@ export function renderServerServices(ctx, workspace, options = {}) {
       .replace(/__DrizzleEntityImports__/g, buildEntityImports(pascal, composed?.relationTableImports ?? []))
       .replace(/__belongsToManyRelations__/g, composed?.belongsToManyLiteral ?? "")
       .replace(/__RelationTableImports__/g, buildRelationTableImports(composed?.relationDomainImports ?? [], camel))
-      .replace(/__StorageBindingImport__/g, buildStorageBindingImport(mediaFields))
-      .replace(/__storageBinding__/g, buildStorageBindingOption(camel, mediaFields));
+      .replace(/__StorageBindingImport__/g, buildStorageBindingImport(mediaFields) + buildCollectionsImport(hasCollections))
+      .replace(/__storageBinding__/g, buildStorageBindingOption(camel, mediaFields) + buildCollectionsOption(hasCollections));
 
   // wrappers/ が無ければ作って .gitkeep を置く（あれば中身に触らない）
   const outputs = [dir(path.join(outputDir, "wrappers"), { keepFile: ".gitkeep" })];

@@ -23,6 +23,16 @@ export function buildStorageBindingOption(camel, mediaFields) {
   ].join("\n");
 }
 
+/** 主の集まりの項目（collections.ts、generateFiles.registry が書く）の import。集まりの無いドメインは空 */
+export function buildCollectionsImport(hasCollections) {
+  return hasCollections ? 'import { collections } from "./collections";\n' : "";
+}
+
+/** createCrudService に渡す collections（ドメイン集約）。集まりの無いドメインは空 */
+export function buildCollectionsOption(hasCollections) {
+  return hasCollections ? "  // 主の集まりの項目（従属ドメインの行の並び）を同じ TX で差分同期する。宣言は collections.ts\n  collections,\n" : "";
+}
+
 /** CreateSchema が空になるか（全フィールドが formInput: "none" かつ belongsTo / belongsToMany が無い） */
 export function hasEmptyCreateSchema(config) {
   if (!config) return false;

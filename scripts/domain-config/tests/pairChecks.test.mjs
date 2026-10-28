@@ -104,12 +104,13 @@ test("e. メディア項目はちょうど 1 つ、複数・集まりは持た�
   expectError({ child: { ...child, fields: [...child.fields, { name: "more", label: "x", fieldType: "mediaUploaderMulti", formInput: "mediaUploaderMulti" }] } }, /複数・集まり 1/);
 });
 
-test("f. 並び列: sortOrderField・その項目・systemColumns（並べ替えない集まりは要らない）", () => {
+test("f. 並び列: sortOrderField・その項目・systemColumns（reorderable: false でも要る）", () => {
   const child = childOf(owner());
   expectError({ child: { ...child, sortOrderField: undefined } }, /sortOrderField を宣言してください/);
   expectError({ child: { ...child, fields: [child.fields[0]] } }, /sortOrderField "sort_order" の項目が fields にありません/);
   expectError({ child: { ...child, systemColumns: [] } }, /systemColumns に入れてください/);
-  assert.deepEqual(errorsOf({ ownerConfig: owner({ reorderable: false }), child: { ...child, sortOrderField: undefined, systemColumns: [], fields: [child.fields[0]] } }), []);
+  expectError({ ownerConfig: owner({ reorderable: false }), child: { ...child, sortOrderField: undefined } }, /主の項目が reorderable: false でも要ります/);
+  assert.deepEqual(errorsOf({ ownerConfig: owner({ reorderable: false }), child }), []);
 });
 
 test("g. 主から埋められない必須の項目は誤り、既定値があれば通る", () => {

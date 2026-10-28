@@ -69,15 +69,13 @@ export function pairIssues({ owner, ownerConfig, field, child, childConfig, doma
     errors.push(`${childAt}: メディア項目（mediaUploader）はちょうど 1 つで、mediaUploaderMulti / mediaCollection は持てません（今 mediaUploader ${media.length} / 複数・集まり ${multi.length}）`);
   }
 
-  // f. 並び列（並べ替えない集まりでは要らない）
+  // f. 並び列（集まりの並びを持つ列。lib の sortColumn は必須なので reorderable に関わらず要る。reorderable は画面のドラッグだけ）
   const sortField = childConfig.sortOrderField;
-  if (field.reorderable !== false) {
-    if (!sortField) errors.push(`${childAt}: 並び列 sortOrderField を宣言してください（主の項目 "${field.name}" は reorderable）`);
-    else {
-      if (!fields.some((f) => sameColumn(f.name, sortField))) errors.push(`${childAt}: sortOrderField "${sortField}" の項目が fields にありません`);
-      if (!(childConfig.systemColumns ?? []).some((column) => sameColumn(column, sortField))) {
-        errors.push(`${childAt}: sortOrderField "${sortField}" を systemColumns に入れてください（並びは systemUpdate で書きます）`);
-      }
+  if (!sortField) errors.push(`${childAt}: 並び列 sortOrderField を宣言してください（集まりの並びを持つ列。主の項目が reorderable: false でも要ります）`);
+  else {
+    if (!fields.some((f) => sameColumn(f.name, sortField))) errors.push(`${childAt}: sortOrderField "${sortField}" の項目が fields にありません`);
+    if (!(childConfig.systemColumns ?? []).some((column) => sameColumn(column, sortField))) {
+      errors.push(`${childAt}: sortOrderField "${sortField}" を systemColumns に入れてください（並びは systemUpdate で書きます）`);
     }
   }
 

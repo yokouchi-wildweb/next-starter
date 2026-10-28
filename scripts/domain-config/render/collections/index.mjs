@@ -1,5 +1,6 @@
 // 主の集まりの項目（mediaCollection）ごとに、従属ドメインの domain.json を無いときだけ書き出す（write-once。既にあれば触らない）。
-// 生成カテゴリではなく主の宣言なので、generateFiles・--only に関わらず出す
+// 生成カテゴリではなく主の宣言なので、generateFiles・--only に関わらず出す。
+// drizzleBase.ts を手書きする主（generateFiles.serverServices: false）には、collections.ts を渡す 1 行を毎回案内する
 
 import { isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 import formatDomainConfig from "../../spec/format.mjs";
@@ -14,6 +15,16 @@ import { buildChildDomainConfig } from "./childDomainConfig.mjs";
  */
 export function renderChildDomainConfigs(ctx, workspace) {
   const outputs = [];
+  // drizzleBase.ts を手書きする主は、生成の collections.ts を自分で渡す（ファイルは読まず毎回案内する）
+  const owns = (ctx.config?.fields ?? []).some((field) => isCollectionFieldType(field.fieldType));
+  if (owns && ctx.config?.generateFiles?.serverServices === false) {
+    outputs.push(
+      log(
+        `  ※ [${ctx.camel}] drizzleBase.ts は手書き（generateFiles.serverServices: false）です。` +
+          `${ctx.camel}/services/server/drizzleBase.ts に import { collections } from "./collections" を足し、createCrudService の options に collections を渡してください`,
+      ),
+    );
+  }
   for (const field of ctx.config?.fields ?? []) {
     if (!isCollectionFieldType(field.fieldType) || typeof field.collection?.domain !== "string") continue;
     const { config, uncopied } = buildChildDomainConfig(ctx.config, field);
