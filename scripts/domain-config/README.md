@@ -108,6 +108,10 @@
 
 ## `dc:delete <Domain>`
 
+0. 主と従属の組（主の集まりの項目 `mediaCollection` → 従属）を壊す削除は、何も聞かずにエラーで止まり、何も消さない（`pipeline/remove/pairStop.mjs`。`--force` は無い）
+   - 主: domain.json が残っている従属があれば止まる。消す順 = 主の集まりの項目を外す → 従属を `dc:delete` → 主を `dc:delete`
+   - 従属: 主が集まりの項目を宣言している間は止まる（残すと次の `dc:generate` で雛形がまた書き出される）。先に主の項目を外す
+   - 集まりでない belongsTo で指されているだけなら止めない
 1. 確認のためドメイン名（snake_case）を入力する。一致しなければ中止
 2. `src/app/` 配下で名前が一致する追加ディレクトリがあれば、削除するものを選ぶ
 3. `domain.json` も消すか選ぶ（既定 No = `domain.json` だけ残してドメインディレクトリの中身を消す）
@@ -216,7 +220,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す。どちらも `index.mjs` の `outputs` に並べるだけ
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs`（対象の並び）と `domain/`（全 domain.json を読む関数は `workspace.listDomains` + `readConfig`）
 
-テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift` `test:dc-collection-field` `test:dc-child-domain` `test:dc-pair-generate` `test:dc-pair-checks`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
+テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift` `test:dc-collection-field` `test:dc-child-domain` `test:dc-pair-generate` `test:dc-pair-checks` `test:dc-delete-stop`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
 
 ### 前後比較（`pnpm dc:parity <git-ref>`）
 

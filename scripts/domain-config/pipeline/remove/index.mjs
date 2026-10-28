@@ -7,6 +7,7 @@ import { cleanupRegistries } from "./registries.mjs";
 import { findDomainDirs, resolveDeleteTarget, resolveDir } from "./names.mjs";
 
 export { resolveDeleteTarget };
+export { deleteStopMessage } from "./pairStop.mjs";
 
 /**
  * 管理画面ルート（src/app/admin/(protected)/<domains> か src/app/admin/<domains>）を探し、見つかれば候補名に足す

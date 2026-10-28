@@ -1,8 +1,8 @@
-// dc:delete <Domain>: 名前の再入力で確認 → 追加で消すディレクトリ → domain.json を残すか → 一覧確認 → 削除とレジストリの掃除
+// dc:delete <Domain>: 主と従属の組を壊す削除なら止める → 名前の再入力で確認 → 追加で消すディレクトリ → domain.json を残すか → 一覧確認 → 削除とレジストリの掃除
 
 import fs from "node:fs";
 import path from "node:path";
-import { findExtraDirs, listDeletePaths, removeDomainFiles, resolveAdminDir, resolveDeleteTarget } from "../pipeline/remove/index.mjs";
+import { deleteStopMessage, findExtraDirs, listDeletePaths, removeDomainFiles, resolveAdminDir, resolveDeleteTarget } from "../pipeline/remove/index.mjs";
 import { confirm, prompt } from "./prompts.mjs";
 
 /**
@@ -11,6 +11,13 @@ import { confirm, prompt } from "./prompts.mjs";
  */
 export async function runDelete(workspace, domain) {
   const target = resolveDeleteTarget(workspace, domain);
+  // 主と従属の組を壊す削除は、何も聞かずに止める（何も消さない）
+  const stop = deleteStopMessage(workspace, path.basename(target.featureDir));
+  if (stop) {
+    console.error(stop);
+    process.exitCode = 1;
+    return;
+  }
 
   const { confirm: typed } = await prompt({
     type: "input",

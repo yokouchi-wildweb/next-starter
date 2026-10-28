@@ -64,6 +64,7 @@
     "test:dc-child-domain": "node --test scripts/domain-config/tests/childDomain.test.mjs",
     "test:dc-pair-generate": "node --test scripts/domain-config/tests/pairGenerate.test.mjs",
     "test:dc-pair-checks": "node --test scripts/domain-config/tests/pairChecks.test.mjs",
+    "test:dc-delete-stop": "node --test scripts/domain-config/tests/deleteStop.test.mjs",
     "test:flux-relay": "node --test .claude/skills/flux/relay-check.test.mjs",
     "test:order-mailbox": "node --test .claude/skills/order/mailbox.test.mjs",
     "test:wallet-lot-planning": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/lotPlanning.test.ts",

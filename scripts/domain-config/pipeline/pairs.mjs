@@ -15,6 +15,7 @@ import { toCamelCase } from "../../../src/utils/stringCase.mjs";
  * @typedef {object} PairIndex
  * @property {Map<string, string>} ownerOf 従属のフォルダ名 → 主のフォルダ名
  * @property {Map<string, string[]>} childrenOf 主のフォルダ名 → 従属のフォルダ名（項目の順）
+ * @property {Map<string, string>} fieldOf 従属のフォルダ名 → それを宣言した主の集まりの項目名
  * @property {Map<string, object>} pending この実行で書き出す従属（domain.json がまだ無い）→ その中身
  * @property {{ domains: string[], message: string }[]} errors 組の誤り（関わるドメインと文）
  * @property {{ domains: string[], message: string }[]} notices 知らせるだけ（止めない）
@@ -26,6 +27,7 @@ import { toCamelCase } from "../../../src/utils/stringCase.mjs";
  */
 export function resolvePairs(workspace) {
   const ownerOf = new Map();
+  const fieldOf = new Map();
   const childrenOf = new Map();
   const pending = new Map();
   const errors = [];
@@ -50,6 +52,7 @@ export function resolvePairs(workspace) {
       checks.push({ owner, ownerConfig: config, field, child });
       if (!ownerOf.has(child)) {
         ownerOf.set(child, owner);
+        fieldOf.set(child, field.name);
         childrenOf.set(owner, [...(childrenOf.get(owner) ?? []), child]);
         if (!workspace.exists(workspace.configPath(child))) pending.set(child, buildChildDomainConfig(config, field).config);
       }
@@ -70,7 +73,7 @@ export function resolvePairs(workspace) {
     errors.push(...found.errors.map((message) => ({ domains: involved, message })));
     notices.push(...found.notices.map((message) => ({ domains: involved, message })));
   }
-  return { ownerOf, childrenOf, pending, errors, notices };
+  return { ownerOf, childrenOf, fieldOf, pending, errors, notices };
 }
 
 /** 知らせるだけのもの（止めない）を出す。domains を渡すと、そのどれかに関わるものだけ */
