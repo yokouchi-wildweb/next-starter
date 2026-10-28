@@ -4,6 +4,7 @@
 import { hasOptionFields } from "../spec/fieldTypes.mjs";
 import { renderAdminRoutes } from "../render/adminRoutes/index.mjs";
 import { renderClientServices } from "../render/clientServices/index.mjs";
+import { renderChildDomainConfigs } from "../render/collections/index.mjs";
 import { renderComponents } from "../render/components/index.mjs";
 import { renderEntities } from "../render/entities/index.mjs";
 import { renderFieldConstants } from "../render/fieldConstants/index.mjs";
@@ -19,7 +20,8 @@ import { renderServerServices } from "../render/serverServices/index.mjs";
  * @returns {import("../render/output.mjs").Output[]} 書き込み順
  */
 export function planDomain(ctx, workspace, gen) {
-  const outputs = [];
+  // 主の集まりの項目の従属の domain.json（無いときだけ書く）。生成カテゴリではないので gen に関わらず出す
+  const outputs = [...renderChildDomainConfigs(ctx, workspace)];
   if (gen.components) outputs.push(...renderComponents(ctx, workspace));
   if (gen.hooks) outputs.push(...renderHooks(ctx, workspace));
   if (gen.clientServices) outputs.push(...renderClientServices(ctx, workspace));

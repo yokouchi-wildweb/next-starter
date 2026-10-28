@@ -20,6 +20,7 @@
 | useCreatedAt | boolean | 🟢 Yes | createdAt カラムの有無 |
 | useUpdatedAt | boolean | 🟢 Yes | updatedAt カラムの有無 |
 | useSoftDelete | boolean | ⚪ No | 論理削除の有無（deletedAt カラム） |
+| sortOrderField | string | ⚪ No | 並び順の列（fractional の鍵を入れる text の列）のフィールド名。fields に同名の項目（`fieldType: "string"`、`formInput: "hidden"`）を置く。管理画面の並べ替え（sort/）と reorder / searchForSorting のフックを生成する |
 | fields | Field[] | 🟢 Yes | フィールド定義 |
 | fieldGroups | FieldGroup[] | ⚪ No | 管理画面フォームのセクション分け（後述） |
 | searchFields | string[] | ⚪ No | 検索対象フィールド名の配列 |
@@ -340,6 +341,13 @@ import { ControlledField } from "@/components/Form/Field";
 - 必須 = `required`、並べ替え = `reorderable`（既存のキー）
 - ファイルの条件（slug・mediaTypePreset・accept・validationRule・storage）は主に書かず、従属ドメインのメディア項目に書く
 - 語彙の検査（`[domain.json]` の警告）は collection の下位キーの型を見る
+- dc:generate は、従属ドメインの domain.json（`src/features/<collection.domain の camelCase>/domain.json`）が**無いときだけ**書き出す（既にあれば触らない。`--only` でも、dry-run では「作成 / 保持」と出すだけ）。書き出す雛形:
+  - singular = `collection.domain`、plural = 既定の名前のままなら `<主>_<項目名>`（項目名が s で終わるとき）、変えていれば書かない（推定）、label = 主の項目の label、Neon、idType = 主と同じ
+  - relations = 主への belongsTo（`<主>_id`、必須、onDelete CASCADE）。主の relations には足さない
+  - fields = メディア項目 `file`（mediaUploader、images / `image/*`、10MB、slug = 主の項目名の camelCase）と並び列 `sort_order`（hidden、`sortOrderField` と `systemColumns` に宣言）。useSoftDelete false
+  - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false、generateFiles は entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う）
+  - `file` の storage は主の汎用 API の規則から写す: upload = 主の create と update の和、read = 主の get、visibility = read が `"public"` なら public、それ以外は private。写せるのは `"public"` / `"authenticated"` / ロールの規則だけで、主が閉じている（`"none"`）・知らない値・`generateFiles.registry: false`（domainEntry.ts が手書き）なら管理者のみを書き、直す場所を出力する
+  - ファイルの条件（preset・accept・上限）は雛形の既定なので、従属の domain.json で直す
 
 ### MediaUploader フィールド追加プロパティ
 

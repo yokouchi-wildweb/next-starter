@@ -84,7 +84,7 @@
    - `生成カテゴリを手動で選択` … 今回だけカテゴリを選ぶ。選択を `domain.json` に保存するかも聞かれる
    - `すべてのファイルを生成` … 全カテゴリ
 2. 「既存の関係ファイルはすべて上書きされます。生成を実行しますか？」で Yes
-3. 生成（`pipeline/generate.mjs`）: 読む → 検査 → 全カテゴリの生成物を組み立てる → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す。登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる
+3. 生成（`pipeline/generate.mjs`）: 読む → 検査 → 全カテゴリの生成物を組み立てる（主の集まりの項目 `mediaCollection` があれば、従属の domain.json を無いときだけ書き出す Output も足す。`render/collections/`。雛形の形と権限の写し: [src/features/README.md](../../src/features/README.md)「主の集まりの項目（mediaCollection）」） → 書いた後の状態で `serviceRegistry.ts` が作れるか確かめる → 書く → `serviceRegistry.ts` を作り直す。登録表が作れない状態（手書きの行が残っている、他のドメインに `domainEntry.ts` が無い）なら何も書かずに止まる
 
 ## `dc:generate:all`
 
@@ -187,7 +187,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `cli/` | 引数の解釈（`args.mjs`）、対話（`prompts.mjs`、`init` / `generate` / `generateAll` / `delete` / `addField`、`pick/` = 個別選択）、`process.exit` | inquirer、process.exit、domain.json の書き出し |
 | `questions/` | `dc:init` / `dc:add` の質問。`fields/` は 1 項目の質問（`media.mjs` / `options.mjs` / `defaultValue.mjs`） | inquirer |
 | `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry）、`serviceRegistry.mjs`（書く前の検査 = これから書くファイルを重ねた見え方で scripts/registry の検査を呼ぶ）、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**。write-once / 旧形式の移行 / 変更なし / レジストリの部分書き換え）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（dc:delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
-| `render/<カテゴリ>/` | 生成物の文字列を組む純関数。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
+| `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` だけはカテゴリではなく、主の集まりの項目から従属の domain.json を組む。`--only` に関わらず plan の先頭に入る）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
 | `checks/` | 生成前の検査（フォルダ名、Firestore のメディア列）。エラー文か null を返す | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（DomainContext = 名前の全形 + domain.json。名前の導出はここだけ）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
 | `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語。列を持たない主の集まりの型 `mediaCollection` = `isCollectionFieldType`）、`domainJson.mjs`（キーの集合。`collection` の下位キー = `COLLECTION_KEYS`）、`collectionField.mjs`（主の集まりの項目の純関数: 従属の既定の名前・項目の組み立て・型の選択肢の並び）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
@@ -204,7 +204,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す。どちらも `index.mjs` の `outputs` に並べるだけ
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs`（対象の並び）と `domain/`（全 domain.json を読む関数は `workspace.listDomains` + `readConfig`）
 
-テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift` `test:dc-collection-field`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
+テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift` `test:dc-collection-field` `test:dc-child-domain`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
 
 ### 前後比較（`pnpm dc:parity <git-ref>`）
 

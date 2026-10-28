@@ -3,7 +3,7 @@
  "useCreatedAt":true,"useUpdatedAt":true,"useSoftDelete":false,
  "fields":[
   {"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true},
-  {"name":"photos","label":"写真","fieldType":"mediaCollection","formInput":"mediaUploaderMulti","required":true,"reorderable":true,"collection":{"domain":"photo","maxItems":8,"duplicate":true}},
+  {"name":"photos","label":"写真","fieldType":"mediaCollection","formInput":"mediaUploaderMulti","required":true,"reorderable":true,"collection":{"domain":"showcase_photo","maxItems":8,"duplicate":true}},
   {"name":"brochure","label":"資料","fieldType":"mediaUploader","formInput":"mediaUploader","required":false,"slug":"brochure","mediaTypePreset":"all","accept":"application/pdf","validationRule":{"maxSizeBytes":10485760},"storage":{"visibility":"private","read":{"roleCategories":["admin","user"]}}}
  ],
  "searchFields":["name"],"defaultOrderBy":[["createdAt","DESC"]],"tableFields":["name"],
