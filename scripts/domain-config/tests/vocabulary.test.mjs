@@ -79,3 +79,33 @@ test("リレーションのキー・種別・onDelete・formInput を見る（�
 test("generateFiles の知らないキーを警告する", () => {
   assert.match(vocabularyWarnings({ ...BASE, generateFiles: { entities: true, service: true } }).join("\n"), /generateFiles: 知らないキー "service"/);
 });
+
+test("主の集まりの項目（mediaCollection + collection）は警告なく通り、collection の下位キーの誤りは警告する", () => {
+  const gallery = { name: "gallery", label: "ギャラリー", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required: true, reorderable: true };
+  const ok = { ...BASE, fields: [...BASE.fields, { ...gallery, collection: { domain: "memoImage", maxItems: 10, duplicate: false } }] };
+  assert.deepEqual(vocabularyWarnings(ok), []);
+  assert.deepEqual(vocabularyWarnings({ ...BASE, fields: [...BASE.fields, { ...gallery, collection: { domain: "memoImage" } }] }), []);
+
+  const text = vocabularyWarnings({
+    ...BASE,
+    fields: [
+      { ...gallery, collection: { domain: "", maxItems: 0, duplicate: "no", minItems: 1 } },
+      { ...gallery, name: "other", collection: ["memoImage"] },
+    ],
+  }).join("\n");
+  assert.match(text, /fields\[0\] "gallery": collection: 知らないキー "minItems"/);
+  assert.match(text, /fields\[0\] "gallery": collection\.domain は従属ドメインの singular/);
+  assert.match(text, /fields\[0\] "gallery": collection\.maxItems は 1 以上の整数/);
+  assert.match(text, /fields\[0\] "gallery": collection\.duplicate は true か false/);
+  assert.match(text, /fields\[1\] "other": collection はオブジェクトで書いてください/);
+});
+
+test("mediaCollection は Firestore に無い型", () => {
+  const warnings = vocabularyWarnings({
+    ...BASE,
+    dbEngine: "Firestore",
+    fields: [{ name: "gallery", label: "g", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "x" } }],
+  });
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /"mediaCollection" は Firestore に無い型/);
+});

@@ -10,6 +10,7 @@
 //   array     配列列（text[]、必須は空配列既定）
 //   presenter 表示フォーマッタの種類（無ければ formInput で決める）
 //   noDefault dc:init でデフォルト値を聞かない
+//   collection 主の集まり（列を持たない。従属ドメインの行の並びを lib の collections で読み書きする。項目の collection キーで宣言）
 
 export const FIELD_TYPES = {
   string: { column: "text", zod: "z.string()", ts: "string", text: true },
@@ -32,6 +33,7 @@ export const FIELD_TYPES = {
   array: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true },
   stringArray: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true },
   enum: { presenter: "enum" },
+  mediaCollection: { collection: true },
 };
 
 const spec = (fieldType) => FIELD_TYPES[fieldType] ?? {};
@@ -58,6 +60,7 @@ export const isNumericFieldType = (fieldType) => Boolean(spec(fieldType).numeric
 export const isArrayFieldType = (fieldType) => Boolean(spec(fieldType).array);
 export const isTimestampFieldType = (fieldType) => spec(fieldType).zod === "datetime";
 export const isMediaFieldType = (fieldType) => Boolean(spec(fieldType).media);
+export const isCollectionFieldType = (fieldType) => Boolean(spec(fieldType).collection);
 export const allowsDefaultValue = (fieldType) => !spec(fieldType).noDefault;
 export const presenterKind = (fieldType) => spec(fieldType).presenter;
 

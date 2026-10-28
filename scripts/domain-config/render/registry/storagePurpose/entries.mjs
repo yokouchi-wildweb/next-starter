@@ -29,13 +29,16 @@ function resolveMaxBytes(id, field, warnings) {
   return maxBytes;
 }
 
-/** storage.{visibility,upload,metadata} の規則。問題があればエラー文、無ければ null */
+/** storage.{visibility,upload,read,metadata} の規則。問題があればエラー文、無ければ null */
 function validateStorageRules(id, storage, contentTypes) {
   if (storage.visibility !== undefined && !VISIBILITIES.has(storage.visibility)) {
     return `${id}: storage.visibility は "public" か "private" にしてください`;
   }
   if (storage.upload !== undefined && (!isValidRule(storage.upload) || storage.upload === "public")) {
     return `${id}: storage.upload は "authenticated" / "none" / { roles, roleCategories } のいずれかにしてください`;
+  }
+  if (storage.read !== undefined && !isValidRule(storage.read)) {
+    return `${id}: storage.read は "public" / "authenticated" / "none" / { roles, roleCategories } のいずれかにしてください`;
   }
   if (storage.metadata !== undefined && !METADATA_VALUES.has(storage.metadata)) {
     return `${id}: storage.metadata は "strip" か "keep" にしてください`;
@@ -90,7 +93,8 @@ export function buildStoragePurposeEntries({ camel, config, roleCategories = new
     const metadata = contentTypes.some(isImagePattern) ? (storage.metadata ?? "strip") : undefined;
     const uploadAllow =
       storage.upload ?? unionUploadRules([resolveOperationRule(apiAccess, "create"), resolveOperationRule(apiAccess, "update")]);
-    const getRule = resolveOperationRule(apiAccess, "get");
+    // 読める人 = storage.read。無ければ apiAccess の get の規則（visibility の導出と private の read.allow の両方に使う）
+    const readRule = storage.read ?? resolveOperationRule(apiAccess, "get");
 
     let visibility = storage.visibility;
     if (!visibility) {
@@ -98,7 +102,7 @@ export function buildStoragePurposeEntries({ camel, config, roleCategories = new
         errors.push(`${id}: 一般利用者がアップロードできる項目です。domain.json の storage.visibility（"public" / "private"）を明示してください`);
         continue;
       }
-      visibility = getRule === "public" ? "public" : "private";
+      visibility = readRule === "public" ? "public" : "private";
     }
 
     const parts = [
@@ -108,7 +112,7 @@ export function buildStoragePurposeEntries({ camel, config, roleCategories = new
       ...(metadata ? [`metadata: ${JSON.stringify(metadata)}`] : []),
       `upload: { allow: ${serializeRule(uploadAllow)} }`,
     ];
-    if (visibility === "private") parts.push(`read: { allow: ${serializeRule(getRule)} }`);
+    if (visibility === "private") parts.push(`read: { allow: ${serializeRule(readRule)} }`);
     entries.push({ id, value: `{ ${parts.join(", ")} }` });
   }
 

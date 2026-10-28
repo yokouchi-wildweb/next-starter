@@ -3,6 +3,7 @@
 // ここで警告する。生成は止めない（警告だけ）。
 
 import {
+  COLLECTION_KEYS,
   DB_ENGINES,
   FIELD_KEYS,
   FORM_INPUT_VALUES,
@@ -40,6 +41,23 @@ function topLevelWarnings(config) {
   return warnings;
 }
 
+/** 主の集まりの項目の collection（下位キーの型だけ。従属ドメインの存在など組をまたぐ検査は生成時） */
+function collectionWarnings(collection) {
+  if (collection === undefined) return [];
+  if (!collection || typeof collection !== "object" || Array.isArray(collection)) return ["collection はオブジェクトで書いてください"];
+  const warnings = unknownKeys(collection, COLLECTION_KEYS).map((w) => `collection: ${w}`);
+  if (collection.domain !== undefined && (typeof collection.domain !== "string" || collection.domain.length === 0)) {
+    warnings.push("collection.domain は従属ドメインの singular（空でない文字列）にしてください");
+  }
+  if (collection.maxItems !== undefined && (!Number.isInteger(collection.maxItems) || collection.maxItems < 1)) {
+    warnings.push("collection.maxItems は 1 以上の整数にしてください");
+  }
+  if (collection.duplicate !== undefined && typeof collection.duplicate !== "boolean") {
+    warnings.push("collection.duplicate は true か false にしてください");
+  }
+  return warnings;
+}
+
 function fieldWarnings(config) {
   const warnings = [];
   const knownTypes = fieldTypesFor(config.dbEngine);
@@ -52,6 +70,7 @@ function fieldWarnings(config) {
     if (field?.formInput !== undefined && !FORM_INPUT_VALUES.has(field.formInput)) {
       warnings.push(`${where}: formInput "${field.formInput}" は知らない入力種別です（フォームに出ません）`);
     }
+    warnings.push(...collectionWarnings(field?.collection).map((w) => `${where}: ${w}`));
   });
   return warnings;
 }

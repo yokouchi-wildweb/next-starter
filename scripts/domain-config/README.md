@@ -51,6 +51,7 @@
 - 対話モード・`--yes`・`:all` のどれとも併用できる。不明なカテゴリ名は終了コード 1
 - `--only registry` が書くのは `services/server/domainEntry.ts`（ドメイン内）と `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）。最後に `pnpm registry:generate` が serviceRegistry.ts を丸ごと作り直す（`dc:generate:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ。ドメインごとに作り直すと、まだ domainEntry.ts の無い他のドメインで検査が止まるため）
   - storagePurposeRegistry には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../src/features/README.md)「ファイルの保存（storage）」）
+  - private の用途の `read.allow` は `storage.read`（`"public"` も可）、無ければ apiAccess の get の規則。visibility を省いた項目の公開・非公開の導出も同じ規則を使う
 - domainEntry.ts は毎回 domain.json から書き直す（domain.json の `apiAccess` / `useImportExport` が正。手で変えた access は消える。手で持ちたいなら `generateFiles.registry` を false）。`table` / `idColumn` も書く（表名は表の定義と同じ `domainTableName`、Firestore は `null`）
 - `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --yes --only registry`、フックだけ → `--only hooks`）。全カテゴリの再生成が避けられないときは、一時的な git worktree で実行して必要な差分だけを取り込むよう案内する
 
@@ -162,7 +163,7 @@
 
 ## よくある失敗
 
-- `[domain.json] <domain>: ...` の警告が出る → 綴り違いのキー、古いキー（`version` → `domainConfigVersion`、`onDeleteCascade` → `onDelete`）、その DB に無い `fieldType`、知らない `formInput` を `checks/vocabulary.mjs` が [src/features/README.md](../../src/features/README.md) の語彙（`spec/domainJson.mjs`）と照らして出す。生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
+- `[domain.json] <domain>: ...` の警告が出る → 綴り違いのキー、古いキー（`version` → `domainConfigVersion`、`onDeleteCascade` → `onDelete`）、その DB に無い `fieldType`、知らない `formInput`、主の集まりの項目の `collection` の下位キー（`domain` / `maxItems` / `duplicate`）の型を `checks/vocabulary.mjs` が [src/features/README.md](../../src/features/README.md) の語彙（`spec/domainJson.mjs`）と照らして出す。生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
 - MediaUploader の追加質問が出ない → フォーム入力の種類を `mediaUploader` / `mediaUploaderMulti` にしたフィールドでだけ出る
@@ -186,7 +187,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
 | `checks/` | 生成前の検査（フォルダ名、Firestore のメディア列）。エラー文か null を返す | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（DomainContext = 名前の全形 + domain.json。名前の導出はここだけ）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
-| `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
+| `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語。列を持たない主の集まりの型 `mediaCollection` = `isCollectionFieldType`）、`domainJson.mjs`（キーの集合。`collection` の下位キー = `COLLECTION_KEYS`）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
 | `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/registry も使う） | |
 | `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
 

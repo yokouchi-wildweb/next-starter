@@ -38,5 +38,6 @@ export const FORM_INPUTS = {
     jsonb: ["hidden", "none", "custom"],
     array: ["checkbox", "multi select", "hidden", "none", "custom"],
     stringArray: ["checkbox", "multi select", "hidden", "none", "custom"],
+    mediaCollection: ["media uploader multi"],
   },
 };

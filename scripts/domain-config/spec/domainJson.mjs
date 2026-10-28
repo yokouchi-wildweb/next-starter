@@ -27,11 +27,14 @@ export const RELATION_FORM_INPUTS = {
   belongsToMany: new Set(["checkbox", "multiSelect", "asyncMultiSelect", "custom"]),
 };
 
-/** Field のキー（FieldConfig と、生成器だけが読む unique / storage） */
+/** Field のキー（FieldConfig と、生成器だけが読む unique / storage / collection） */
 export const FIELD_KEYS = new Set([
   "name", "label", "fieldType", "formInput", "required", "readonly", "disabled", "defaultValue", "options", "displayType", "placeholder",
-  "slug", "mediaTypePreset", "accept", "validationRule", "helperText", "metadataBinding", "reorderable", "unique", "storage",
+  "slug", "mediaTypePreset", "accept", "validationRule", "helperText", "metadataBinding", "reorderable", "unique", "storage", "collection",
 ]);
+
+/** 主の集まりの項目（fieldType mediaCollection）の collection のキー: 従属ドメインの singular・最大件数・複製で写すか */
+export const COLLECTION_KEYS = new Set(["domain", "maxItems", "duplicate"]);
 
 /** フォーム入力種別（README の FormInput 一覧 + 各 DB の表に出る種別の camelCase） */
 export const FORM_INPUT_VALUES = new Set([

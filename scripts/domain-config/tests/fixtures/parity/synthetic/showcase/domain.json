@@ -1,0 +1,12 @@
+{"domainConfigVersion":"1.3","singular":"showcase","plural":"showcases","label":"展示","dbEngine":"Neon","idType":"uuid",
+ "relations":[],
+ "useCreatedAt":true,"useUpdatedAt":true,"useSoftDelete":false,
+ "fields":[
+  {"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true},
+  {"name":"photos","label":"写真","fieldType":"mediaCollection","formInput":"mediaUploaderMulti","required":true,"reorderable":true,"collection":{"domain":"photo","maxItems":8,"duplicate":true}},
+  {"name":"brochure","label":"資料","fieldType":"mediaUploader","formInput":"mediaUploader","required":false,"slug":"brochure","mediaTypePreset":"all","accept":"application/pdf","validationRule":{"maxSizeBytes":10485760},"storage":{"visibility":"private","read":{"roleCategories":["admin","user"]}}}
+ ],
+ "searchFields":["name"],"defaultOrderBy":[["createdAt","DESC"]],"tableFields":["name"],
+ "useDetailModal":false,"useDuplicateButton":true,"useImportExport":false,"addToAdminDataMenu":false,"useAutoSave":false,
+ "apiAccess":{"read":"public","write":{"roleCategories":["admin"]}},
+ "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}

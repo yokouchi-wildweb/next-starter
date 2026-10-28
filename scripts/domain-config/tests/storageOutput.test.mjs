@@ -1,4 +1,5 @@
 // dc:generate のメディア列の生成出力（スキーマ・presenters・Fields コンポーネント）の回帰テスト。
+// ファイル用途の登録表のエントリ（storage.read → read.allow）もここで見る。
 // drizzleBase の storage binding と Firestore の生成エラーは serverServiceWriteOnce.test.mjs で見る。
 // 実行: pnpm test:dc-storage-output
 import { after, test } from "node:test";
@@ -6,6 +7,7 @@ import assert from "node:assert/strict";
 import { generateFieldsFromConfig } from "../render/components/fields.mjs";
 import { renderSchema } from "../render/entities/schema.mjs";
 import { renderPresentersContent } from "../render/presenters/index.mjs";
+import { buildStoragePurposeEntries } from "../render/registry/storagePurpose/entries.mjs";
 import { contextFor, makeProject, removeAll } from "./helpers.mjs";
 
 const cleanup = [];
@@ -61,4 +63,42 @@ test("Fields: メディア列に purpose `<domain>.<field>` を付けて FieldRe
   const plain = generateFieldsFromConfig({ ...FIXTURE, fields: [FIXTURE.fields[0]] });
   assert.doesNotMatch(plain, /STORAGE_PURPOSES/);
   assert.match(plain, /const baseFields = \(domainConfig\.fields \?\? \[\]\) as FieldConfig\[\];/);
+});
+
+// ---- ファイル用途のエントリ（storagePurposeRegistry の AUTO ブロックの値） ----
+
+const purposeOf = (storage, apiAccess = { read: "authenticated", write: { roleCategories: ["admin"] } }) => {
+  const field = { name: "doc", label: "書類", fieldType: "mediaUploader", formInput: "mediaUploader", accept: "application/pdf", validationRule: { maxSizeBytes: 1000 } };
+  return buildStoragePurposeEntries({ camel: "album", config: { apiAccess, fields: [{ ...field, ...(storage ? { storage } : {}) }] } });
+};
+
+test("用途: storage.read が無ければ apiAccess の get の規則（今のまま）", () => {
+  const { entries, errors } = purposeOf(undefined);
+  assert.deepEqual(errors, []);
+  assert.match(entries[0].value, /visibility: "private"/);
+  assert.match(entries[0].value, /read: \{ allow: "authenticated" \}/);
+  assert.match(purposeOf(undefined, { read: "public", write: { roleCategories: ["admin"] } }).entries[0].value, /visibility: "public"/);
+});
+
+test("用途: storage.read があれば read.allow に優先して出す（private に public も書ける）", () => {
+  const roles = purposeOf({ visibility: "private", read: { roles: ["editor"] } });
+  assert.match(roles.entries[0].value, /read: \{ allow: \{ roles: \["editor"\] \} \}/);
+  const open = purposeOf({ visibility: "private", read: "public" });
+  assert.deepEqual(open.errors, []);
+  assert.match(open.entries[0].value, /visibility: "private"/);
+  assert.match(open.entries[0].value, /read: \{ allow: "public" \}/);
+});
+
+test("用途: visibility を省けば storage.read から導く（public → public、それ以外 → private）", () => {
+  assert.match(purposeOf({ read: "public" }).entries[0].value, /visibility: "public"/);
+  assert.doesNotMatch(purposeOf({ read: "public" }).entries[0].value, /read:/);
+  const closed = purposeOf({ read: "none" }, { read: "public", write: { roleCategories: ["admin"] } });
+  assert.match(closed.entries[0].value, /visibility: "private"/);
+  assert.match(closed.entries[0].value, /read: \{ allow: "none" \}/);
+});
+
+test("用途: storage.read が規則でなければ生成エラー", () => {
+  const { entries, errors } = purposeOf({ visibility: "private", read: "everyone" });
+  assert.equal(entries.length, 0);
+  assert.match(errors.join("\n"), /storage\.read は "public" \/ "authenticated" \/ "none"/);
 });
