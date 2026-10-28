@@ -25,6 +25,7 @@ export const FORM_INPUTS = {
     boolean: ["checkbox", "radio", "switch input", "hidden", "none", "custom"],
     enum: ["select", "radio", "hidden", "none", "custom"],
     mediaUploader: ["media uploader", "hidden", "none", "custom"],
+    mediaCollection: ["media uploader multi"],
     mediaUploaderMulti: ["media uploader multi", "hidden", "none", "custom"],
     date: ["date input", "text input", "hidden", "none", "custom"],
     time: ["time input", "text input", "hidden", "none", "custom"],
@@ -38,6 +39,5 @@ export const FORM_INPUTS = {
     jsonb: ["hidden", "none", "custom"],
     array: ["checkbox", "multi select", "hidden", "none", "custom"],
     stringArray: ["checkbox", "multi select", "hidden", "none", "custom"],
-    mediaCollection: ["media uploader multi"],
   },
 };

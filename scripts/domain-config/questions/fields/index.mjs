@@ -1,9 +1,12 @@
 // dc:init / dc:add のフィールド定義の質問。1 項目 = 名前 → 表示名 → 型 → 入力種別 → （メディアの追加質問）→ 必須 → 選択肢 → デフォルト値
+// 型が主の集まり（mediaCollection）なら collection.mjs の問いに切り替える
 
 import inquirer from "inquirer";
-import { isArrayFieldType } from "../../spec/fieldTypes.mjs";
+import { fieldTypeChoices } from "../../spec/collectionField.mjs";
+import { isArrayFieldType, isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 import { FORM_INPUTS } from "../../spec/formInputs.mjs";
 import { toCamelCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { MULTI_GUIDANCE, askCollectionField } from "./collection.mjs";
 import { askMediaDetails } from "./media.mjs";
 import { askFieldOptions } from "./options.mjs";
 import { askDefaultValue } from "./defaultValue.mjs";
@@ -64,8 +67,10 @@ async function askSingleField(config) {
     type: "list",
     name: "fieldType",
     message: "フィールドの型を選択:",
-    choices: Object.keys(FORM_INPUTS[config.dbEngine]),
+    choices: fieldTypeChoices(config.dbEngine),
   });
+  if (isCollectionFieldType(fieldType)) return askCollectionField(config, trimmedName, trimmedLabel);
+  if (fieldType === "mediaUploaderMulti") console.log(`  ※ ${MULTI_GUIDANCE}`);
 
   const { formInput } = await prompt({
     type: "list",

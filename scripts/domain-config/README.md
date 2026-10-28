@@ -67,6 +67,9 @@
 4. `createdAt` / `updatedAt` / ソフトデリートの有無（`base-fields.mjs`）
 5. name フィールドの有無・必須（`name-field.mjs`）
 6. フィールド定義（`fields/`。型ごとの入力種別は `spec/formInputs.mjs`。mediaUploader 系は `fields/media.mjs` がファイル種別・最大サイズも聞き、`storage.visibility` と `storage.metadata`（画像は既定で位置情報などを消す。原本を残すなら `"keep"`）の書き方を案内する）
+   - 型の選択肢は `spec/formInputs.mjs` のキー順。Neon では主の集まり `mediaCollection` が `mediaUploaderMulti` の直前に並ぶ。`mediaUploaderMulti` を選ぶと、新しく複数のメディアを持たせるなら `mediaCollection` を選ぶよう 1 行案内する（選択は止めない）
+   - `mediaCollection` を選ぶと `fields/collection.mjs` の問いに切り替わり、入力種別・ファイルの条件・選択肢・デフォルト値は聞かない（ファイルの条件は従属ドメインのメディア項目に書く）。従属のドメイン名（既定を提案、snake_case、空なら既定）→ 必須 → 最大件数（既定 10）→ 並べ替え（既定 true）→ 複製で写すか（必須なら聞かずに true）の順で、`{ name, label, fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required, reorderable, collection: { domain, maxItems, duplicate } }` を書く。従属の domain.json は `dc:generate` が書き出す
+   - 従属のドメイン名の既定（`spec/collectionField.mjs` の `defaultChildName`）: 項目名が s で終われば `<主の singular>_<項目名から末尾の s を 1 つ外したもの>`（plural = `<主の singular>_<項目名>`）、それ以外は `<主の singular>_<項目名>`（plural は推定）。例: sample + images → sample_image / sample_images、sample + gallery → sample_gallery
 7. 複合ユニーク（`composite-uniques.mjs`）
 8. 一覧・管理画面の設定: 検索対象、並び順、表示列、詳細モーダル、複製ボタン、インポート/エクスポート、データ管理メニュー追加、オートセーブ（`view-config.mjs`）
 9. 汎用 API の読み取り / 書き込みの公開範囲（`api-access.mjs` → `apiAccess`）
@@ -89,7 +92,7 @@
 
 ## `dc:add <Domain>`
 
-`dc:init` のフィールド質問だけを走らせ、既存の `fields` の末尾に追記する。ファイルは生成しないので、続けて `dc:generate` を実行する。
+`dc:init` のフィールド質問（主の集まり `mediaCollection` の問い・`mediaUploaderMulti` の案内を含む）だけを走らせ、既存の `fields` の末尾に追記する。ファイルは生成しないので、続けて `dc:generate` を実行する。
 
 ## `dc:delete <Domain>`
 
@@ -187,7 +190,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
 | `checks/` | 生成前の検査（フォルダ名、Firestore のメディア列）。エラー文か null を返す | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（DomainContext = 名前の全形 + domain.json。名前の導出はここだけ）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
-| `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語。列を持たない主の集まりの型 `mediaCollection` = `isCollectionFieldType`）、`domainJson.mjs`（キーの集合。`collection` の下位キー = `COLLECTION_KEYS`）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
+| `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語。列を持たない主の集まりの型 `mediaCollection` = `isCollectionFieldType`）、`domainJson.mjs`（キーの集合。`collection` の下位キー = `COLLECTION_KEYS`）、`collectionField.mjs`（主の集まりの項目の純関数: 従属の既定の名前・項目の組み立て・型の選択肢の並び）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
 | `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/registry も使う） | |
 | `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
 
@@ -201,7 +204,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す。どちらも `index.mjs` の `outputs` に並べるだけ
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs`（対象の並び）と `domain/`（全 domain.json を読む関数は `workspace.listDomains` + `readConfig`）
 
-テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
+テスト: `pnpm test:dc-structure` `test:dc-registry` `test:dc-domain-folder` `test:dc-only` `test:dc-server-service` `test:dc-drizzle-indexes` `test:dc-storage-output` `test:dc-sample-drift` `test:dc-collection-field`（`tests/`。生成器は関数なので一時ディレクトリに domain.json を置いて直接呼ぶ）。
 
 ### 前後比較（`pnpm dc:parity <git-ref>`）
 
