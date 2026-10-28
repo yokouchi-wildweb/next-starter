@@ -73,11 +73,13 @@ export type ListSweepTargetsInput = {
   limit: number;
 };
 
-/** 照合（紐付け先の行がまだあるか）の対象: 業務行に紐付いた ready の行 */
+/** 照合（紐付け先の行がまだあり、その列の値に入っているか）の対象: 業務行に紐付いた ready の行 */
 export type AttachedObjectRef = {
   id: string;
   recordType: string;
   recordId: string;
+  /** 紐付け先の列（行のプロパティ名）。古い行で null なら値の照合はしない */
+  recordField: string | null;
 };
 
 export type ListAttachedInput = {
@@ -105,7 +107,9 @@ export type DetachInput = {
   ids: readonly string[];
   recordType: string;
   recordId: string;
-  reason: Extract<StorageObjectDeleteReason, "replaced" | "record_removed">;
+  reason: Extract<StorageObjectDeleteReason, "replaced" | "record_removed" | "unreferenced">;
+  /** 指定すれば、紐付け先の列も一致する行だけを外す（照合の値の検査。並行して別の列へ付け替えた行は外さない） */
+  recordField?: string;
   at: Date;
 };
 

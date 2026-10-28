@@ -133,7 +133,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 | expiredPending | 期限切れの pending（受け取り中の strip の行を含む） | deleted（reason `expired`）にしてから実物を片付ける。session は URI を中止してから削除、put は期限後なのでそのまま完了。受け取り中の行は本来の位置も消す |
 | unattachedReady | 業務行に紐付かないまま `unattachedGraceSec`（既定 24h）を過ぎた ready | deleted（reason `expired`）にして削除。`attach: false` の用途（チャット添付）は対象外。duplicate の失敗で残った複製もここで回収される |
 | pendingRemoval | deleted で `object_removed_at` が null の行 | 実物の削除を再試行する。put は期限後だけ（期限内の署名 URL で再送されうるため）、session はいつでも |
-| orphanedAttached（照合） | 紐付いた ready のうち、紐付け先の業務行が無くなったもの（DB の cascade・手作業の DELETE などアプリを通らない削除） | record_type ごとに `lookupService(recordType, { require: ["searchWithDeleted"] })` → `searchWithDeleted({ where: { field: CRUD_ID_FIELD, op: "in", value }, limit: 束の ID 数 })` で行の有無を調べ、無い行の紐付けを detach（`record_removed`）して実物を消す。論理削除済みの行は「ある」と数える（restore できるように残す） |
+| orphanedAttached（照合） | 紐付いた ready のうち、紐付け先の業務行が無くなったもの（DB の cascade・手作業の DELETE などアプリを通らない削除） | record_type ごとに `lookupService(recordType, { require: ["searchWithDeleted"] })` → `searchWithDeleted({ where: { field: CRUD_ID_FIELD, op: "in", value }, limit: 束の ID 数 })` で行の有無を調べ、無い行の紐付けを detach（`record_removed`）して実物を消す。論理削除済みの行は「ある」と数える（restore できるように残す）。行がある紐付けは、続けて値を照合する（下の「値の照合」） |
 
 照合（orphanedAttached）の決まり:
 
@@ -141,7 +141,25 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - 進み具合は台帳に列を持たず、`cron_checkpoints` の行 `storage-sweep.reconcile` に持つ（台帳 id = uuidv7 の時刻部分。同じミリ秒の行は次回もう一度見るが、照合は何度見ても安全）。最後まで行ったら行を消して先頭に戻る（一巡）。上限で止まった束では進めない
 - 上限は `STORAGE_CONFIG.sweep.reconcile`: `maxDetachPerRun`（既定 1000。1 回で片付ける行数）、`massMissingMin`（既定 50。大量一致の閾値）
 - detach は ready・紐付け一致の条件付き更新なので、並行する置換・付け替えが先なら外れない
-- cron の戻り値: `orphanedAttached { processed, exhausted }` と `reconcile { detached, skipped: [{ recordType, reason, detail? }] }`。skipped は `console.warn` にも出る
+- cron の戻り値: `orphanedAttached { processed, exhausted }` と `reconcile { detached, skipped: [{ recordType, reason, detail? }], unreferenced: [...] }`。skipped と、報告だけの unreferenced は `console.warn` にも出る
+
+### 値の照合（`STORAGE_CONFIG.sweep.reconcile.valueCheck`）
+
+行がある紐付けは、その列（`record_field`）の値にまだ ref が入っているかも見る（照合で読んだ行の値を、ref の中の台帳 ID で比べる。クエリは増えない）。列の削除（domain.json からメディア項目を消して db:push）・生 SQL や一度きりの移行での書き換えなど、アプリを通らずに値から外れた ref を拾う。
+
+| 行の状態 | unreferenced の reason |
+|---|---|
+| 行にその列のキーが無い（列が消えた） | `column_missing` |
+| 列はあるが、値（ref 1 つか ref の配列）にその ref が無い | `value_missing` |
+
+- `valueCheck`: `"off"` = 見ない | `"report"`（既定）= `unreferenced` に表・列・reason ごとの件数を出すだけで消さない（action `reported`）| `"detach"` = 外して（台帳の reason `unreferenced`）実物を消す（action `detached`）
+- **報告を確かめてから `"detach"` にする**: コードを先にデプロイして db:push が後の間は、DB に残る列も「無い」と見える（その間に detach すると、DB にはまだある値のファイルを消す）。移行の途中（台帳の付け替えが済んでいない）も同じ
+- 大量一致: 列はあるのに、1 つの束でその列の値が `massMissingMin` 以上 1 件も入っていなければ、読み出しの取り違えを疑って消さない（action `held`）。列そのものが無い `column_missing` には使わない（列を消したときは全件が外れるのが正しい形なので、報告で確かめてから detach する）
+- 1 回の上限 `maxDetachPerRun` は、行が消えた紐付けと合わせて数える
+- detach は ready・紐付け（行と列）一致の条件付き更新。並行して置換・別の行や列へ付け替えた紐付けは外れない
+- `record_field` が null の古い紐付けは値を見ない
+- メディア列は hiddenColumns にできない（サービスの戻り値で null になり、値の照合が誤るため。createCrudService が組み立て時に throw する）
+- 確かめ方: `pnpm task storage-sweep` の戻り値の `reconcile.unreferenced`（本実行なので、`"detach"` のときは消える）。台帳側は `pnpm db:query "select record_type, record_field, count(*) from storage_objects where status = 'ready' group by 1, 2"`
 
 ### 照合が止まったとき（skipped）
 
@@ -173,7 +191,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
   - アップロード権: transfer_kind（put | session）/ session_uri
   - 紐付け: record_type / record_id / record_field
   - 時刻: expires_at / created_at / ready_at / deleted_at / object_removed_at
-  - reason（expired / size_mismatch / type_mismatch / process_failed / discarded / replaced / record_removed / http_deleted。text 列）
+  - reason（expired / size_mismatch / type_mismatch / process_failed / discarded / replaced / record_removed / unreferenced / http_deleted。text 列）
 - **受け取り中の行**: strip の画像は pending の間 store = priv・key = `incoming/…`。ready になるときに `markReady` が store / key を本来の位置へ書き換える（以後は ref と一致する）
 - **session_uri は hiddenColumns**: 生の select では取り出さず、`services/server/finders/findStorageObjectById.ts` だけが読む
 - **index はすべて素の列**（push の往復を守る）: unique(store, key) / (status, expires_at) / (owner_user_id, status) / (record_type, record_id) / (status, ready_at)
@@ -199,7 +217,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
   - strip の受け入れ（実 sharp）: 受け取り領域への発行・最終 ref、commit 後に本来の位置だけに処理済み、原本の削除、途中で止まった commit の再 commit、取り消し・期限切れで両方削除、`type_mismatch` / `process_failed`、HEIC / SVG / TIFF の拒否と keep での受け付け、動画は直送、putFromServer・copy の描き直し、`user.avatar` の固定、`describePurpose`
   - 描き直しを伴わないテストは `stripImage: passThroughImageStrip`（`@/lib/storage/server/fake`）を渡す
   - 発行・commit・取り消し・読み取りの受入項目
-  - storage オプションの規則（`crudBinding.test.ts`）、掃除・照合（行が消えた紐付けの detach、引けない record_type、大量一致、上限、予算切れからの続き、一巡）・ユーザーの物理削除の `discardAllOwnedBy`・期限切れ put pending の枠返却（`sweep.test.ts`）
+  - storage オプションの規則（`crudBinding.test.ts`）、掃除・照合（行が消えた紐付けの detach、引けない record_type、大量一致、上限、予算切れからの続き、一巡、値の照合の off / report / detach・held・列も条件にした detach）・ユーザーの物理削除の `discardAllOwnedBy`・期限切れ put pending の枠返却（`sweep.test.ts`）
 - `pnpm test:storage-object-db`: 実 DB で、条件付き INSERT / UPDATE が並行実行でも一方だけ成功することを確かめる
   - 開発 DB に `test.*` の行を作り、終了時に消す
   - DATABASE_URL が無ければ skip する

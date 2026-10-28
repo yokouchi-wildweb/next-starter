@@ -128,7 +128,7 @@ export function createMemoryLedger(): MemoryLedger {
         )
         .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
         .slice(0, input.limit)
-        .map((r) => ({ id: r.id, recordType: r.recordType!, recordId: r.recordId! }));
+        .map((r) => ({ id: r.id, recordType: r.recordType!, recordId: r.recordId!, recordField: r.recordField }));
     },
 
     async findById(id) {
@@ -203,7 +203,8 @@ export function createMemoryLedger(): MemoryLedger {
           !row ||
           row.status !== "ready" ||
           row.recordType !== input.recordType ||
-          row.recordId !== input.recordId
+          row.recordId !== input.recordId ||
+          (input.recordField !== undefined && row.recordField !== input.recordField)
         ) {
           continue;
         }

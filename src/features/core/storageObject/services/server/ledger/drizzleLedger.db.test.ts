@@ -173,10 +173,16 @@ describe("drizzleLedger（実 DB）", { skip }, () => {
     assert.equal(await ledger.rebind(rebindInput), false, "付け替えた後は元の行からは動かせない");
     await ledger.rebind({ ...rebindInput, fromRecordId: "r-2", toRecordId: "r-1" });
 
+    assert.deepEqual(
+      await ledger.detach({ ids: [row.id], recordType: "test_record", recordId: "r-1", recordField: "other", reason: "unreferenced", at: new Date() }),
+      [],
+      "列を指定すれば、列が違う紐付けは外さない",
+    );
     const detached = await ledger.detach({
       ids: [row.id],
       recordType: "test_record",
       recordId: "r-1",
+      recordField: "file",
       reason: "replaced",
       at: new Date(),
     });
@@ -270,7 +276,7 @@ describe("drizzleLedger（実 DB）", { skip }, () => {
     const expected = [a, b].sort((x, y) => (x.id < y.id ? -1 : 1));
     assert.deepEqual(
       all,
-      expected.map((row) => ({ id: row.id, recordType: "t", recordId: row.id === a.id ? "r-a" : "r-b" })),
+      expected.map((row) => ({ id: row.id, recordType: "t", recordId: row.id === a.id ? "r-a" : "r-b", recordField: "f" })),
     );
     const rest = mine(await ledger.listAttached({ afterId: expected[0].id, limit: 100_000 }));
     assert.deepEqual(rest.map((r) => r.id), [expected[1].id]);

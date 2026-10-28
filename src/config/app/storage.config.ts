@@ -66,6 +66,11 @@ export const STORAGE_CONFIG = {
    *   - maxDetachPerRun: 1 回の実行で片付けてよい行数の上限。達したら照合を止めて警告する
    *   - massMissingMin: 1 つの束で同じ record_type の ID がこの数以上あって 1 件も見つからなければ、
    *     表の取り違え・誤った全消去を疑い、その record_type は消さずに警告する
+   *   - valueCheck: 行はあるが、紐付け先の列の値にもう入っていない台帳行（列の削除・生 SQL や移行での書き換え）の扱い
+   *     - "off" = 見ない | "report" = 件数と表・列を結果と警告に出すだけで消さない | "detach" = 外して実物を消す（reason unreferenced）
+   *     - 報告を確かめてから "detach" にする（コードを先にデプロイして db:push が後の間は、DB に残る列も「無い」と見える）
+   *     - 値の検査にも massMissingMin を使う: 列はあるのに 1 つの束でこの数以上の値が 1 件も入っていなければ、
+   *       読み出しの取り違えを疑い、その列は消さずに警告する（列そのものが無い場合は使わない）
    */
   sweep: {
     budgetMs: 45_000,
@@ -73,6 +78,7 @@ export const STORAGE_CONFIG = {
     reconcile: {
       maxDetachPerRun: 1000,
       massMissingMin: 50,
+      valueCheck: "report" as "off" | "report" | "detach",
     },
   },
 

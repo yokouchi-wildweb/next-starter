@@ -12,6 +12,10 @@
 //    無い行の紐付けを detach（reason record_removed）して実物を消す。論理削除済みの行は「ある」と数える。
 //    引けない record_type（未登録・読み込み失敗・searchWithDeleted が無い）は消さずに警告する。
 //    大量一致（STORAGE_CONFIG.sweep.reconcile.massMissingMin）と 1 回の上限（maxDetachPerRun）で止まる。
+//    行がある紐付けは、その列（record_field）の値にまだ ref が入っているかも見る（valueCheck）。
+//    列の削除・生 SQL や移行での書き換えなど、アプリを通らずに値から外れた ref を拾う。
+//    "report" は件数を結果と警告に出すだけ、"detach" は外して（reason unreferenced）実物を消す。
+//    列はあるのに 1 つの束で massMissingMin 以上の値が 1 件も入っていなければ、読み出しの取り違えを疑って消さない。
 //    進み具合は cron_checkpoints に持ち（reconcileCursor.ts）、毎回続きから台帳を一巡する。
 // 旧 URL（台帳に無い）は対象にならない。
 // 物理削除の前に、条件付き UPDATE で採用できない状態にする（並行する attach・置換と競合しても、
@@ -23,7 +27,7 @@ import { STORAGE_CONFIG } from "@/config/app/storage.config";
 import { createDeadline, runBudgetedBatches } from "@/lib/cron";
 import { CRUD_ID_FIELD } from "@/lib/crud/types";
 import type { DomainService, DomainServiceLookup } from "@/lib/domain/types";
-import type { StoragePurposeMap } from "@/lib/storage";
+import { parseStorageRef, type StoragePurposeMap } from "@/lib/storage";
 
 import { drizzleLedger } from "./ledger/drizzleLedger";
 import type { AttachedObjectRef, StorageLedger, SweepTarget } from "./ledger/types";
@@ -62,6 +66,8 @@ export type StorageSweepOptions = {
   maxDetachPerRun?: number;
   /** 大量一致とみなす ID 数。既定 STORAGE_CONFIG.sweep.reconcile.massMissingMin */
   massMissingMin?: number;
+  /** 行はあるが値に ref が無い台帳行の扱い。既定 STORAGE_CONFIG.sweep.reconcile.valueCheck */
+  valueCheck?: ReconcileValueCheck;
 };
 
 /** 照合で消さずに飛ばした理由（record_type ごと。detach_limit は照合全体を止めた） */
@@ -69,14 +75,37 @@ export type ReconcileSkipReason = "unregistered" | "load_failed" | "unsupported"
 
 export type ReconcileSkip = { recordType: string; reason: ReconcileSkipReason; detail?: string };
 
+/** 照合の値の検査（valueCheck）の扱い。STORAGE_CONFIG.sweep.reconcile.valueCheck */
+export type ReconcileValueCheck = "off" | "report" | "detach";
+
+/**
+ * 行はあるが、紐付け先の列の値に ref が無い台帳行（表・列・理由ごとの件数）。
+ * column_missing = 行にその列のキーが無い（列の削除）| value_missing = 列はあるが値に入っていない
+ * action: reported = 報告だけ（report）| detached = 外して実物を消した（detach）| held = 大量一致で消さなかった
+ */
+export type ReconcileUnreferenced = {
+  recordType: string;
+  recordField: string;
+  reason: "column_missing" | "value_missing";
+  action: "reported" | "detached" | "held";
+  count: number;
+};
+
 export type StorageSweepResult = Record<SweepTarget, { processed: number; exhausted: boolean }> & {
   /** 照合（紐付け先の行が消えた ready）。processed = 調べた台帳行の数 */
   orphanedAttached: { processed: number; exhausted: boolean };
-  reconcile: { detached: number; skipped: ReconcileSkip[] };
+  /** detached = 外した台帳行の合計（行が消えた + 値に無い）| unreferenced = 値の検査の内訳 */
+  reconcile: { detached: number; skipped: ReconcileSkip[]; unreferenced: ReconcileUnreferenced[] };
   budgetExhausted: boolean;
 };
 
 const TARGETS: readonly SweepTarget[] = ["expiredPending", "unattachedReady", "pendingRemoval"];
+
+/** 列の値（ref 1 つか ref の配列）に、その台帳行の ref が入っているか（ref の中の台帳 ID で比べる） */
+function holdsLedgerRef(value: unknown, ledgerId: string): boolean {
+  const values = Array.isArray(value) ? value : [value];
+  return values.some((item) => typeof item === "string" && parseStorageRef(item)?.ledgerId === ledgerId);
+}
 
 export function createStorageSweep(deps: StorageSweepDeps) {
   const { ledger, service, purposes, now, lookupService, reconcileCursor } = deps;
@@ -96,11 +125,31 @@ export function createStorageSweep(deps: StorageSweepDeps) {
   }
 
   /** 照合（4）。時間予算は既存 3 種と共有し、その後に回す（既存の片付けを飢えさせない） */
-  async function reconcile(deadline: Date, chunkSize: number, limits: { maxDetachPerRun: number; massMissingMin: number }) {
+  async function reconcile(
+    deadline: Date,
+    chunkSize: number,
+    limits: { maxDetachPerRun: number; massMissingMin: number; valueCheck: ReconcileValueCheck },
+  ) {
     const skipped = new Map<string, ReconcileSkip>();
     const services = new Map<string, DomainService>();
+    const unreferenced = new Map<string, ReconcileUnreferenced>();
     let detached = 0;
     let stopped = false;
+
+    const countUnreferenced = (entry: Omit<ReconcileUnreferenced, "count">, count: number) => {
+      const key = [entry.recordType, entry.recordField, entry.reason, entry.action].join("\u0000");
+      const current = unreferenced.get(key);
+      if (current) current.count += count;
+      else unreferenced.set(key, { ...entry, count });
+    };
+
+    /** 上限に達していれば照合を止めて true */
+    const reachedLimit = (recordType: string) => {
+      if (detached < limits.maxDetachPerRun) return false;
+      stopped = true;
+      skip(recordType, "detach_limit", `1 回の上限 ${limits.maxDetachPerRun} 件に達しました`);
+      return true;
+    };
 
     const skip = (recordType: string, reason: ReconcileSkipReason, detail?: string) => {
       if (skipped.has(recordType)) return;
@@ -141,25 +190,72 @@ export function createStorageSweep(deps: StorageSweepDeps) {
         where: { field: CRUD_ID_FIELD, op: "in", value: recordIds },
         limit: recordIds.length,
       })) as { results: Array<Record<string, unknown>> };
-      const existing = new Set(found.results.map((row) => String(row[CRUD_ID_FIELD])));
+      const existing = new Map(found.results.map((row) => [String(row[CRUD_ID_FIELD]), row]));
       const missing = recordIds.filter((id) => !existing.has(id));
-      if (missing.length === 0) return true;
-      if (existing.size === 0 && recordIds.length >= limits.massMissingMin) {
+      if (missing.length > 0 && existing.size === 0 && recordIds.length >= limits.massMissingMin) {
         skip(recordType, "mass_missing", `${recordIds.length} 件の ID が 1 件も見つかりません`);
         return true;
       }
       for (const recordId of missing) {
-        if (detached >= limits.maxDetachPerRun) {
-          stopped = true;
-          skip(recordType, "detach_limit", `1 回の上限 ${limits.maxDetachPerRun} 件に達しました`);
-          return false;
-        }
+        if (reachedLimit(recordType)) return false;
         const ids = refs.filter((r) => r.recordId === recordId).map((r) => r.id);
         // ready・紐付け一致の条件付き更新。並行する置換・付け替えが先に進めていれば外れる
         const rows = await ledger.detach({ ids, recordType, recordId, reason: "record_removed", at: now() });
         for (const row of rows) {
           await service.cleanupDeletedObject(row.id);
           detached += 1;
+        }
+      }
+      if (limits.valueCheck === "off") return true;
+      return checkValues(recordType, refs, existing);
+    }
+
+    /** 行がある紐付けの値の検査。列ごとに、値に ref が無いものを報告するか外す。全部を処理できたら true */
+    async function checkValues(
+      recordType: string,
+      refs: AttachedObjectRef[],
+      existing: Map<string, Record<string, unknown>>,
+    ): Promise<boolean> {
+      const byField = new Map<string, { checked: number; columnMissing: AttachedObjectRef[]; valueMissing: AttachedObjectRef[] }>();
+      for (const ref of refs) {
+        const row = existing.get(ref.recordId);
+        if (!row || ref.recordField === null) continue;
+        const group = byField.get(ref.recordField) ?? { checked: 0, columnMissing: [], valueMissing: [] };
+        group.checked += 1;
+        if (!Object.hasOwn(row, ref.recordField)) group.columnMissing.push(ref);
+        else if (!holdsLedgerRef(row[ref.recordField], ref.id)) group.valueMissing.push(ref);
+        byField.set(ref.recordField, group);
+      }
+      for (const [recordField, group] of byField) {
+        // 列はあるのに束の値が 1 件も入っていない = 読み出しの取り違えを疑う（列そのものが無い場合は使わない）
+        const held = group.valueMissing.length === group.checked && group.checked >= limits.massMissingMin;
+        const plans: Array<["column_missing" | "value_missing", AttachedObjectRef[], boolean]> = [
+          ["column_missing", group.columnMissing, false],
+          ["value_missing", group.valueMissing, held],
+        ];
+        for (const [reason, targets, isHeld] of plans) {
+          if (targets.length === 0) continue;
+          if (limits.valueCheck === "report" || isHeld) {
+            countUnreferenced({ recordType, recordField, reason, action: isHeld ? "held" : "reported" }, targets.length);
+            continue;
+          }
+          for (const ref of targets) {
+            if (reachedLimit(recordType)) return false;
+            // ready・紐付け（行と列）一致の条件付き更新。並行して置換・別の行や列へ付け替えた行は外れない
+            const rows = await ledger.detach({
+              ids: [ref.id],
+              recordType,
+              recordId: ref.recordId,
+              recordField,
+              reason: "unreferenced",
+              at: now(),
+            });
+            for (const row of rows) {
+              await service.cleanupDeletedObject(row.id);
+              detached += 1;
+              countUnreferenced({ recordType, recordField, reason, action: "detached" }, 1);
+            }
+          }
         }
       }
       return true;
@@ -191,11 +287,18 @@ export function createStorageSweep(deps: StorageSweepDeps) {
     });
     // 最後まで行ったら先頭に戻す（次回から新しい一巡）
     if (run.exhausted && !stopped) await reconcileCursor.reset();
+    for (const entry of unreferenced.values()) {
+      if (entry.action === "detached") continue;
+      console.warn(
+        `[storage-sweep] 照合: ${entry.recordType}.${entry.recordField} の値に入っていない紐付けが ${entry.count} 件あります` +
+          `（${entry.reason}、${entry.action === "held" ? "大量一致のため消していません" : "報告だけ。消すには valueCheck を \"detach\" に"}）`,
+      );
+    }
     return {
       processed: run.processed,
       exhausted: run.exhausted && !stopped,
       budgetExhausted: run.budgetExhausted,
-      reconcile: { detached, skipped: [...skipped.values()] },
+      reconcile: { detached, skipped: [...skipped.values()], unreferenced: [...unreferenced.values()] },
     };
   }
 
@@ -243,11 +346,12 @@ export function createStorageSweep(deps: StorageSweepDeps) {
       for (const target of TARGETS) result[target] ??= { processed: 0, exhausted: false };
 
       result.orphanedAttached = { processed: 0, exhausted: false };
-      result.reconcile = { detached: 0, skipped: [] };
+      result.reconcile = { detached: 0, skipped: [], unreferenced: [] };
       if (!result.budgetExhausted) {
         const reconciled = await reconcile(deadline, chunkSize, {
           maxDetachPerRun: options.maxDetachPerRun ?? STORAGE_CONFIG.sweep.reconcile.maxDetachPerRun,
           massMissingMin: options.massMissingMin ?? STORAGE_CONFIG.sweep.reconcile.massMissingMin,
+          valueCheck: options.valueCheck ?? STORAGE_CONFIG.sweep.reconcile.valueCheck,
         });
         result.orphanedAttached = { processed: reconciled.processed, exhausted: reconciled.exhausted };
         result.reconcile = reconciled.reconcile;

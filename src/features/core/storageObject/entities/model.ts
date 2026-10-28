@@ -19,6 +19,8 @@ export const STORAGE_OBJECT_DELETE_REASONS = [
   "discarded",
   "replaced",
   "record_removed",
+  /** 紐付け先の行はあるが、その列の値にもう入っていない（列の削除・アプリを通らない書き換え。掃除の照合） */
+  "unreferenced",
   "http_deleted",
 ] as const;
 export type StorageObjectDeleteReason = (typeof STORAGE_OBJECT_DELETE_REASONS)[number];

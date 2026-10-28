@@ -47,6 +47,11 @@ type Harness = {
   records: Map<string, Set<string>>;
   /** record_type → 引けない理由（指定が無く records にあれば found） */
   lookupFailures: Map<string, Exclude<DomainServiceLookup, { status: "found" }>>;
+  /**
+   * 偽の業務行の値の書き換え: record_type → (行 → 返す行)。
+   * 既定の行は台帳の紐付けどおりに値を持つ（列 = record_field、ref 1 つなら文字列・複数なら配列）
+   */
+  rowEdits: Map<string, (row: Record<string, unknown>) => Record<string, unknown>>;
   /** searchWithDeleted に渡った limit */
   searchLimits: Array<number | undefined>;
   cursor: { afterId: string | null; resets: number };
@@ -81,6 +86,18 @@ function setup(): Harness {
   const records = new Map<string, Set<string>>();
   const lookupFailures = new Map<string, Exclude<DomainServiceLookup, { status: "found" }>>();
   const searchLimits: Array<number | undefined> = [];
+  const rowEdits: Harness["rowEdits"] = new Map();
+  /** 台帳の紐付けどおりの値を持つ行（ready の紐付けだけ） */
+  const rowFromLedger = (recordType: string, id: string) => {
+    const row: Record<string, unknown> = { id };
+    for (const object of ledger.rows.values()) {
+      if (object.status !== "ready" || object.recordType !== recordType || object.recordId !== id || !object.recordField) continue;
+      const ref = `storage://${object.store}/${object.purpose}/${object.id}.png`;
+      const current = row[object.recordField];
+      row[object.recordField] = current === undefined ? ref : [...(Array.isArray(current) ? current : [current]), ref];
+    }
+    return rowEdits.get(recordType)?.(row) ?? row;
+  };
   const lookupService: StorageSweepServiceLookup = async (key) => {
     const failure = lookupFailures.get(key);
     if (failure) return failure;
@@ -94,7 +111,7 @@ function setup(): Harness {
           searchLimits.push(params.limit);
           assert.equal(params.where.field, "id");
           assert.equal(params.where.op, "in");
-          const hits = params.where.value.filter((id) => existing.has(id)).map((id) => ({ id }));
+          const hits = params.where.value.filter((id) => existing.has(id)).map((id) => rowFromLedger(key, id));
           return { results: hits.slice(0, params.limit ?? 100), total: hits.length };
         },
       },
@@ -125,7 +142,7 @@ function setup(): Harness {
       budgetMs: 60_000,
       ...options,
     });
-  return { service, ledger, fake, clock, calls, records, lookupFailures, searchLimits, cursor, sweep };
+  return { service, ledger, fake, clock, calls, records, lookupFailures, rowEdits, searchLimits, cursor, sweep };
 }
 
 const later = (h: Harness, ms: number) => {
@@ -465,6 +482,136 @@ describe("照合（紐付け先の行が消えた ready）", () => {
     assert.equal(h.ledger.rows.get(replaced)?.reason, "replaced");
     assert.equal(h.ledger.rows.get(rebound)?.status, "ready");
     assert.equal(h.ledger.rows.get(rebound)?.recordId, "kept");
+  });
+});
+
+describe("照合の値の検査（行はあるが、列の値に ref が無い紐付け）", () => {
+  test("report（既定）: 列が無い・値に無いを表・列・理由ごとに数えるだけで、何も消さない", async () => {
+    const h = setup();
+    const dropped = await boundRow(h, "item", "r-1");
+    const overwritten = await boundRow(h, "other", "r-1");
+    const kept = await boundRow(h, "kept", "r-1");
+    h.records.set("item", new Set(["r-1"]));
+    h.records.set("other", new Set(["r-1"]));
+    h.records.set("kept", new Set(["r-1"]));
+    // item: 列ごと消えた | other: 列はあるが別の値に書き換わった | kept: 値どおり
+    h.rowEdits.set("item", ({ photo: _photo, ...rest }) => rest);
+    h.rowEdits.set("other", (row) => ({ ...row, photo: "https://example.com/x.png" }));
+
+    const result = await h.sweep({ valueCheck: "report" });
+    for (const id of [dropped, overwritten, kept]) assert.equal(h.ledger.rows.get(id)?.status, "ready");
+    assert.equal(result.reconcile.detached, 0);
+    assert.deepEqual(
+      result.reconcile.unreferenced.map((e) => [e.recordType, e.recordField, e.reason, e.action, e.count]).sort(),
+      [["item", "photo", "column_missing", "reported", 1], ["other", "photo", "value_missing", "reported", 1]],
+    );
+    assert.deepEqual(result.reconcile.skipped, []);
+  });
+
+  test("detach: 値に無い紐付けを外して（unreferenced）実物を消す。配列の値・まだ入っている ref は残す", async () => {
+    const h = setup();
+    const a = await boundRow(h, "item", "r-1");
+    const b = await boundRow(h, "item", "r-1");
+    const c = await boundRow(h, "item", "r-1");
+    const dropped = await boundRow(h, "dropped", "r-1");
+    h.records.set("item", new Set(["r-1"]));
+    h.records.set("dropped", new Set(["r-1"]));
+    // item.photo は配列で a・c だけが残る（b は値から外れた）| dropped は列ごと消えた
+    h.rowEdits.set("item", (row) => ({ ...row, photo: (row.photo as string[]).filter((ref) => !ref.includes(b)) }));
+    h.rowEdits.set("dropped", ({ photo: _photo, ...rest }) => rest);
+    later(h, 16 * 60 * 1000);
+
+    const result = await h.sweep({ valueCheck: "detach" });
+    assert.equal(h.ledger.rows.get(a)?.status, "ready");
+    assert.equal(h.ledger.rows.get(c)?.status, "ready");
+    for (const id of [b, dropped]) {
+      const row = h.ledger.rows.get(id);
+      assert.equal(row?.status, "deleted");
+      assert.equal(row?.reason, "unreferenced");
+      assert.equal(h.fake.objects.has(objectKey(h, id)), false);
+    }
+    assert.equal(result.reconcile.detached, 2);
+    assert.deepEqual(
+      result.reconcile.unreferenced.map((e) => [e.recordType, e.reason, e.action, e.count]).sort(),
+      [["dropped", "column_missing", "detached", 1], ["item", "value_missing", "detached", 1]],
+    );
+  });
+
+  test("off: 値を見ない（行が消えた紐付けだけを片付ける）", async () => {
+    const h = setup();
+    const id = await boundRow(h, "item", "r-1");
+    h.records.set("item", new Set(["r-1"]));
+    h.rowEdits.set("item", ({ photo: _photo, ...rest }) => rest);
+    const result = await h.sweep({ valueCheck: "off" });
+    assert.equal(h.ledger.rows.get(id)?.status, "ready");
+    assert.deepEqual(result.reconcile.unreferenced, []);
+  });
+
+  test("大量一致: 列はあるのに束の値が massMissingMin 以上 1 件も入っていなければ消さない（held）。列が無い場合は消す", async () => {
+    const h = setup();
+    const valueIds: string[] = [];
+    const columnIds: string[] = [];
+    for (let i = 0; i < 3; i++) valueIds.push(await boundRow(h, "item", `v-${i}`));
+    for (let i = 0; i < 3; i++) columnIds.push(await boundRow(h, "gone", `c-${i}`));
+    h.records.set("item", new Set(["v-0", "v-1", "v-2"]));
+    h.records.set("gone", new Set(["c-0", "c-1", "c-2"]));
+    h.rowEdits.set("item", (row) => ({ ...row, photo: null }));
+    h.rowEdits.set("gone", ({ photo: _photo, ...rest }) => rest);
+    later(h, 16 * 60 * 1000);
+
+    const result = await h.sweep({ valueCheck: "detach", massMissingMin: 3 });
+    for (const id of valueIds) assert.equal(h.ledger.rows.get(id)?.status, "ready");
+    for (const id of columnIds) assert.equal(h.ledger.rows.get(id)?.status, "deleted");
+    assert.deepEqual(
+      result.reconcile.unreferenced.map((e) => [e.recordType, e.reason, e.action, e.count]).sort(),
+      [["gone", "column_missing", "detached", 3], ["item", "value_missing", "held", 3]],
+    );
+  });
+
+  test("値の検査の detach も 1 回の上限（maxDetachPerRun）に数え、次の実行で続きを片付ける", async () => {
+    const h = setup();
+    const ids: string[] = [];
+    for (let i = 0; i < 3; i++) ids.push(await boundRow(h, "item", `r-${i}`));
+    h.records.set("item", new Set(["r-0", "r-1", "r-2"]));
+    h.rowEdits.set("item", ({ photo: _photo, ...rest }) => rest);
+    later(h, 16 * 60 * 1000);
+
+    const first = await h.sweep({ valueCheck: "detach", maxDetachPerRun: 2 });
+    assert.equal(first.reconcile.detached, 2);
+    assert.deepEqual(first.reconcile.skipped.map((s) => s.reason), ["detach_limit"]);
+    const second = await h.sweep({ valueCheck: "detach", maxDetachPerRun: 2 });
+    assert.equal(second.reconcile.detached, 1);
+    for (const id of ids) assert.equal(h.ledger.rows.get(id)?.status, "deleted");
+  });
+
+  test("取り出しと detach の間に別の列へ付け替えた紐付けは外さない（列も条件に入れる）", async () => {
+    const h = setup();
+    const id = await boundRow(h, "item", "r-1");
+    h.records.set("item", new Set(["r-1"]));
+    h.rowEdits.set("item", (row) => ({ ...row, photo: null }));
+    const racing: StorageLedger = {
+      ...h.ledger,
+      async listAttached(input) {
+        const rows = await h.ledger.listAttached(input);
+        // 取り出した後に、同じ行の別の列へ付け替えられた
+        await h.ledger.rebind({ id, purpose: "item.photo", recordType: "item", fromRecordId: "r-1", toRecordId: "r-1", recordField: "cover" });
+        return rows;
+      },
+    };
+    const result = await h.sweep({ valueCheck: "detach" }, racing);
+    assert.equal(h.ledger.rows.get(id)?.status, "ready");
+    assert.equal(h.ledger.rows.get(id)?.recordField, "cover");
+    assert.equal(result.reconcile.detached, 0);
+  });
+
+  test("record_field が無い古い紐付けは値を見ない", async () => {
+    const h = setup();
+    const id = await boundRow(h, "item", "r-1");
+    h.ledger.rows.get(id)!.recordField = null;
+    h.records.set("item", new Set(["r-1"]));
+    const result = await h.sweep({ valueCheck: "detach" });
+    assert.equal(h.ledger.rows.get(id)?.status, "ready");
+    assert.deepEqual(result.reconcile.unreferenced, []);
   });
 });
 

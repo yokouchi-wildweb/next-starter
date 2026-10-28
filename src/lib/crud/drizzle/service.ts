@@ -45,7 +45,7 @@ import {
 } from "./belongsToMany";
 import { hydrateBelongsTo, hydrateBelongsToManyObjects, hydrateHasMany, DEFAULT_HAS_MANY_LIMIT, hydrateCount } from "./relations";
 import { applyRequestMemo } from "./requestMemo";
-import { applyHiddenColumns } from "./hiddenColumns";
+import { applyHiddenColumns, getHiddenColumnProps } from "./hiddenColumns";
 import { applyStorageBinding } from "../storageIntegration/applyStorageBinding";
 import { applyCollectionDuplicate, applyCollections } from "../collections/applyCollections";
 import { sortKeyAsc, sortKeyDesc, sortKeyGt } from "./fractionalSort/sortKeyOrder";
@@ -396,6 +396,18 @@ export function createCrudService<
     }
     return props;
   })();
+
+  // メディア列（storage オプションの列）は秘匿カラムにできない。サービスの戻り値で null になり、
+  // 掃除（storage-sweep）の照合が「値に ref が無い」と誤って判定してファイルを消すため
+  {
+    const hidden = getHiddenColumnProps(table);
+    const hiddenMedia = (serviceOptions.storage?.fields ?? []).map((field) => field.name).filter((name) => hidden?.has(name));
+    if (hiddenMedia.length > 0) {
+      throw new Error(
+        `hiddenColumns: media column(s) "${hiddenMedia.join(", ")}" on table "${getTableName(table)}" are bound by the storage option and cannot be hidden.`,
+      );
+    }
+  }
 
   /**
    * system 系メソッドの入力データを検証・整形する。

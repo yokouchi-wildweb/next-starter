@@ -130,7 +130,7 @@ export const drizzleLedger: StorageLedger = {
   async listAttached(input) {
     // 主キーの順に走査する（照合は一巡に時間がかかってよいので、専用の index は足さない）
     const rows = await db
-      .select({ id: T.id, recordType: T.recordType, recordId: T.recordId })
+      .select({ id: T.id, recordType: T.recordType, recordId: T.recordId, recordField: T.recordField })
       .from(T)
       .where(
         and(
@@ -142,7 +142,7 @@ export const drizzleLedger: StorageLedger = {
       )
       .orderBy(asc(T.id))
       .limit(input.limit);
-    return rows.map((r) => ({ id: r.id, recordType: r.recordType!, recordId: r.recordId! }));
+    return rows.map((r) => ({ id: r.id, recordType: r.recordType!, recordId: r.recordId!, recordField: r.recordField }));
   },
 
   findById: findStorageObjectById,
@@ -227,6 +227,7 @@ export const drizzleLedger: StorageLedger = {
           eq(T.status, "ready"),
           eq(T.recordType, input.recordType),
           eq(T.recordId, input.recordId),
+          input.recordField !== undefined ? eq(T.recordField, input.recordField) : undefined,
         ),
       )
       .returning(getPublicColumns(T));
