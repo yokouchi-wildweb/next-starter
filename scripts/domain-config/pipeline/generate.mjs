@@ -1,4 +1,5 @@
 // 1 ドメインの生成: 読む（context）→ 検査（checks）→ 作る（plan）→ 登録表の事前検査 → 書く（apply）→ serviceRegistry を作り直す。
+// 主と従属の組（pairs.mjs）に属するドメインは組の全員を「従属 → 主」の順に生成する（generateWithPairs）。
 // 対話（生成方法の選択・上書き確認）は cli/generate.mjs。ここは --yes でも対話でも同じ
 
 import { assertPreflight, preflightWarnings } from "../checks/index.mjs";
@@ -6,6 +7,7 @@ import { createDomainContext } from "../domain/context.mjs";
 import { narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
+import { assertPairs, groupOf, pairSummary, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
@@ -14,12 +16,13 @@ import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceReg
  * 語彙のずれ（綴り違い・古いキー・その DB に無い型）は警告して続ける
  * @returns {import("../domain/context.mjs").DomainContext}
  */
-export function loadDomainForGenerate(workspace, domainInput, io = console) {
+export function loadDomainForGenerate(workspace, domainInput, io = console, overrides = {}) {
   const input = (domainInput || "").trim();
   if (!input) {
     throw new Error("ドメイン名を指定してください。");
   }
-  const ctx = createDomainContext(workspace, input);
+  // overrides.config = この実行で書き出す従属の domain.json の中身（まだディスクに無い）
+  const ctx = createDomainContext(workspace, input, overrides);
   if (!ctx.config) {
     throw new Error(`設定ファイルが見つかりません: ${ctx.configPath}`);
   }
@@ -67,4 +70,41 @@ export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = fal
     regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
   }
   return { registry: Boolean(gen.registry) };
+}
+
+/**
+ * 1 ドメインの dc:generate。組に属さなければ generateDomain と同じ。組なら全員を plan してから登録表の事前検査をまとめて行い、
+ * 従属 → 主の順に書き、serviceRegistry.ts を最後に 1 回作り直して一覧を出す。
+ * 対象の生成カテゴリ（gen）は対象だけに使い、組の他の員は自分の generateFiles を --only で絞ったもの
+ * @param {{ only?: string[] | null, dryRun?: boolean, io?: { log: Function, warn: Function }, pairs?: import("./pairs.mjs").PairIndex }} [options]
+ *   pairs = 解いた組（対話の確認の前に組の誤りを出すため、呼び出し側が先に解いて渡してよい）
+ */
+export function generateWithPairs(ctx, workspace, gen, { only = null, dryRun = false, io = console, pairs = resolvePairs(workspace) } = {}) {
+  const group = groupOf(pairs, ctx.camel);
+  assertPairs(pairs, group);
+  if (group.length === 1) return generateDomain(ctx, workspace, gen, { dryRun, io });
+
+  const members = group.map((domain) => {
+    if (domain === ctx.camel) return { ctx, gen };
+    const memberCtx = loadDomainForGenerate(workspace, domain, io, pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {});
+    return { ctx: memberCtx, gen: narrowTargets(memberCtx, memberCtx.config.generateFiles ?? {}, only, io) };
+  });
+  const plans = members.map((member) => ({ ...member, outputs: planDomain(member.ctx, workspace, member.gen) }));
+  const registry = plans.some((plan) => plan.gen.registry);
+  if (registry && !dryRun) {
+    precheckServiceRegistry(workspace, plans.flatMap((plan) => plan.outputs), { errorPrefix: "✗ " });
+  }
+  for (const plan of plans) {
+    io.log(`\n[${plan.ctx.camel}] の生成を開始します。`);
+    if (dryRun) {
+      const counts = reportDryRun(plan.outputs, workspace, io);
+      io.log(`[dry-run] ${plan.ctx.camel}: ${summarizeDryRun(counts) || "書くものなし"}`);
+    } else {
+      applyOutputs(plan.outputs, io);
+    }
+  }
+  if (registry && !dryRun) regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
+  io.log("");
+  for (const line of pairSummary(workspace, pairs, group, { registry, dryRun })) io.log(line);
+  return { registry };
 }

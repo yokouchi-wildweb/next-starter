@@ -5,7 +5,8 @@ import askGenerateFiles from "../questions/generate-files.mjs";
 import formatDomainConfig from "../spec/format.mjs";
 import { ALL_GENERATE_OPTIONS } from "../spec/categories.mjs";
 import { DOMAIN_CONFIG_VERSION } from "../spec/version.mjs";
-import { generateDomain, loadDomainForGenerate, narrowTargets } from "../pipeline/generate.mjs";
+import { generateWithPairs, loadDomainForGenerate, narrowTargets } from "../pipeline/generate.mjs";
+import { assertPairs, groupOf, resolvePairs } from "../pipeline/pairs.mjs";
 import { confirm, prompt } from "./prompts.mjs";
 
 /** 手動選択を domain.json に保存する（形式のバージョンも最新に揃える） */
@@ -62,10 +63,14 @@ async function resolveGenerateTargets(ctx, options) {
  */
 export async function runGenerate(workspace, domain, options = {}) {
   const ctx = loadDomainForGenerate(workspace, domain);
+  // 組の誤り（従属の名前が無い・主が 2 つ）は生成方法の選択・上書き確認より前に出す
+  const pairs = resolvePairs(workspace);
+  assertPairs(pairs, groupOf(pairs, ctx.camel));
   const gen = narrowTargets(ctx, await resolveGenerateTargets(ctx, options), options.only ?? null);
 
+  const only = options.only ?? null;
   if (options.dryRun) {
-    return generateDomain(ctx, workspace, gen, { dryRun: true });
+    return generateWithPairs(ctx, workspace, gen, { only, dryRun: true, pairs });
   }
   let { shouldGenerate } = options;
   if (typeof shouldGenerate !== "boolean") {
@@ -75,5 +80,5 @@ export async function runGenerate(workspace, domain, options = {}) {
     console.log("ファイル生成をスキップしました。");
     return { registry: false };
   }
-  return generateDomain(ctx, workspace, gen);
+  return generateWithPairs(ctx, workspace, gen, { only, pairs });
 }

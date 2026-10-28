@@ -1,10 +1,12 @@
 // 複数ドメインの一括生成。全ドメインの生成物を先に組み立て、登録表（serviceRegistry.ts）が作れることを確かめてから書く。
-// serviceRegistry.ts は最後に 1 回だけ作り直す
+// serviceRegistry.ts は最後に 1 回だけ作り直す。
+// 主と従属の組（pairs.mjs）を一度解き、この実行で書き出す従属も加えて、従属を所有する主の直前に並べる（それ以外の順は変えない）
 
 import { assertDomainFolderNames } from "../checks/domainFolder.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
 import { loadDomainForGenerate, narrowTargets } from "./generate.mjs";
+import { assertPairs, groupOf, involvesPairs, orderWithPairs, pairSummary, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
@@ -24,11 +26,15 @@ function bufferedIo(io) {
 export function runGenerateAll(workspace, selectedDomains, manualGenerate, only, { dryRun = false, io = console } = {}) {
   // 途中のドメインで止まって生成が半端に残らないよう、ループの前に全件を検査する
   assertDomainFolderNames(workspace, selectedDomains);
+  const pairs = resolvePairs(workspace);
+  assertPairs(pairs);
+  // 選んだドメインの組の全員（この実行で書き出す従属・選んだ従属の主）を加え、従属 → 主の順に並べる
+  const domains = orderWithPairs(pairs, [...new Set(selectedDomains.flatMap((domain) => groupOf(pairs, domain)))]);
 
   // 1. 全ドメインの生成物を組み立てる（ここで検査に落ちれば何も書かない）
-  const plans = selectedDomains.map((domain) => {
+  const plans = domains.map((domain) => {
     const { buffer, flush } = bufferedIo(io);
-    const ctx = loadDomainForGenerate(workspace, domain, buffer);
+    const ctx = loadDomainForGenerate(workspace, domain, buffer, pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {});
     const gen = narrowTargets(ctx, manualGenerate ?? ctx.config.generateFiles ?? {}, only, buffer);
     return { domain, ctx, gen, outputs: planDomain(ctx, workspace, gen), flush };
   });
@@ -51,7 +57,10 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
     }
   }
 
+  const summary = involvesPairs(pairs, domains) ? pairSummary(workspace, pairs, domains, { registry: registryGenerated, dryRun }) : [];
   if (dryRun) {
+    if (summary.length) io.log("");
+    summary.forEach((line) => io.log(line));
     io.log(`\n[dry-run] 何も書いていません。${registryGenerated ? "実行時は最後に serviceRegistry.ts を 1 回作り直します。" : ""}`);
     return;
   }
@@ -61,5 +70,7 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
     regenerateServiceRegistry(workspace);
   }
 
+  if (summary.length) io.log("");
+  summary.forEach((line) => io.log(line));
   io.log("\nすべてのドメインのファイル生成が完了しました。");
 }

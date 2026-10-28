@@ -62,6 +62,7 @@
     "test:dc-storage-output": "node --test scripts/domain-config/tests/storageOutput.test.mjs",
     "test:dc-collection-field": "node --test scripts/domain-config/tests/collectionField.test.mjs",
     "test:dc-child-domain": "node --test scripts/domain-config/tests/childDomain.test.mjs",
+    "test:dc-pair-generate": "node --test scripts/domain-config/tests/pairGenerate.test.mjs",
     "test:flux-relay": "node --test .claude/skills/flux/relay-check.test.mjs",
     "test:order-mailbox": "node --test .claude/skills/order/mailbox.test.mjs",
     "test:wallet-lot-planning": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/features/core/wallet/utils/lotPlanning.test.ts",
