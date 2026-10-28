@@ -11,15 +11,18 @@ User/
 ├── Sections/
 │   ├── HeaderCustom/    # カスタムヘッダー(プロジェクト固有。config の切り替えで使う旧来の雛形)
 │   └── FooterCustom/    # カスタムフッター(同上)
-├── contexts/        # 表示制御の Context(UserLayout の Provider と controls が使う)
+├── contexts/        # 表示制御の Context(UserLayout の Provider と枠の部品が読む。Hide* はもう書かない。旧入口撤去の区切りで削除)
 │   ├── HeaderVisibilityContext.tsx
 │   ├── HeaderNavVisibilityContext.tsx
 │   ├── FooterVisibilityContext.tsx
 │   └── BottomNavVisibilityContext.tsx
-└── controls/        # ページ単位のレイアウト制御コンポーネント
+└── controls/        # ページ単位で枠の部位を隠す印(Hide*)
+    ├── frameParts.ts    # 部位一覧(唯一の元。印の属性と styles/frame-controls.generated.css の規則を作る)
     ├── HeaderControl.tsx
+    ├── HeaderNavControl.tsx
     ├── FooterControl.tsx
     ├── BottomNavControl.tsx
+    ├── frameControls.test.tsx
     └── index.ts
 ```
 
@@ -51,16 +54,16 @@ export { UserNavigation } from "@/components/AppFrames/User/Sections/HeaderCusto
 ---
 ## controls - レイアウト制御コンポーネント
 
-ページ単位でヘッダー・フッターの表示/非表示を制御できる。
-スマホ（sp）とPC（pc）で個別に指定可能。
+ページ単位でヘッダー・ヘッダーのナビ・フッター・ボトムナビを隠す。スマホ（sp）とPC（pc）で個別に指定可能。
+Hide* は印 `<span hidden data-frame-hide>` を描くだけで、隠すのは生成 CSS(`:has()`)。仕組み・効かない置き方・経緯: [src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md)「枠の部位を隠す(Hide* と印)」
 
 ### インポート
 
 ```tsx
-import { HideHeader, HideFooter, HideBottomNav } from "@/components/AppFrames/User/controls";
+import { HideHeader, HideHeaderNav, HideFooter, HideBottomNav } from "@/components/AppFrames/User/controls";
 ```
 
-### HideHeader / HideFooter
+### HideHeader / HideHeaderNav / HideFooter
 
 ```tsx
 // 両方非表示
@@ -75,8 +78,8 @@ import { HideHeader, HideFooter, HideBottomNav } from "@/components/AppFrames/Us
 
 ### HideBottomNav
 
-ボトムナビゲーションを非表示にする。
-**デフォルト**: スマホのみ表示（PCは非表示）
+ボトムナビゲーション(高さ分のスペーサーを含む)を隠す。
+**デフォルト**: スマホのみ表示（PCは非表示）。`pc={false}` は PC に出す指定ではない(何もしない)
 
 ```tsx
 // 両方非表示（props未指定で両方非表示）
@@ -113,7 +116,8 @@ export default function OnboardingPage() {
 | `<HideHeader sp pc />` | 非表示 | 非表示 |
 
 - **props未指定で両方非表示**（`<HideHeader />`で両方非表示）
-- アンマウント時は**そのコンポーネントの指定だけ**を外す（他の Hide* の指定は残る）。退出アニメーション中の旧ページの Hide* が新ページの Hide* より後に外れても、新ページの指定が効いたまま
-- 複数の Hide* が同時にあるときは、後からマウントした方の指定が優先
-- 自作の表示制御は `useHeaderVisibility()` 等の `setOverride(id, partial)` / `clearOverride(id)`（id は `useId()`）を使う。`setVisibility` / `reset` は基本の値を操作するもので、`reset` は Hide* の指定を消さない（実装: `contexts/createVisibilityContext.tsx`）
+- `sp={false}` / `pc={false}` は「そのデバイスでは隠さない」= 何もしない(隠す方向だけ)
+- 描いている部品が画面にある間だけ効く。複数あれば足し算(どれか 1 つが隠せば隠す)
+- server / client どちらの部品からも描ける。UserLayout の外枠の中に描く(portal の中では効かない)
+- 自作の表示制御(context の `setOverride` / `setVisibility` を直接呼ぶ物)は Hide* に置き換える。context は Hide* から切り離され、旧入口撤去の区切りで削除する
 - ブレークポイント: `sm`（640px）を境界としてSP/PCを判定

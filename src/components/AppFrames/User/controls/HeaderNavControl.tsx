@@ -1,51 +1,24 @@
-"use client";
+import { frameHideTokens, type FrameHideProps } from "./frameParts";
 
-import { useEffect, useId } from "react";
-import { useHeaderNavVisibility } from "../contexts/HeaderNavVisibilityContext";
-
-export type HideHeaderNavProps = {
-  /** スマホでヘッダーナビを非表示にする */
-  sp?: boolean;
-  /** PCでヘッダーナビを非表示にする */
-  pc?: boolean;
-};
+export type HideHeaderNavProps = FrameHideProps;
 
 /**
- * ページ単位でヘッダーナビゲーションの表示/非表示を制御するコンポーネント
- * ヘッダー自体は表示したまま、メニュー部分のみ非表示にできる
+ * ページ単位でヘッダーのナビ(PC のメニュー、SP のメニュー開閉ボタンとメニュー)を隠す印。
+ * ヘッダー自体は残る。描いた部品が画面にある間だけ効く(仕組みは ./frameParts.ts)
  *
  * @example
- * // 両方非表示（props未指定で両方非表示）
+ * // 両方隠す（props 無し）
  * <HideHeaderNav />
  *
  * @example
- * // スマホのみ非表示
+ * // スマホだけ隠す
  * <HideHeaderNav sp />
  *
  * @example
- * // PCのみ非表示
+ * // PC だけ隠す
  * <HideHeaderNav pc />
  */
-export const HideHeaderNav = ({ sp, pc }: HideHeaderNavProps) => {
-  // 自分の上書きとして登録し、アンマウント時は自分の分だけ外す(他ページの Hide* を巻き込まない)
-  const id = useId();
-  const { setOverride, clearOverride } = useHeaderNavVisibility();
-
-  useEffect(() => {
-    // 両方未指定の場合は両方非表示
-    const hideAll = sp === undefined && pc === undefined;
-    const hideSp = hideAll || sp === true;
-    const hidePc = hideAll || pc === true;
-
-    setOverride(id, {
-      sp: !hideSp,
-      pc: !hidePc,
-    });
-
-    return () => {
-      clearOverride(id);
-    };
-  }, [id, sp, pc, setOverride, clearOverride]);
-
-  return null;
+export const HideHeaderNav = (props: HideHeaderNavProps) => {
+  const tokens = frameHideTokens("header-nav", props);
+  return tokens ? <span hidden data-frame-hide={tokens} /> : null;
 };

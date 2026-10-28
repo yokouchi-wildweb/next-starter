@@ -1,61 +1,20 @@
-"use client";
+import { frameHideTokens, type FrameHideProps } from "./frameParts";
 
-import { useEffect, useId } from "react";
-
-import {
-  useBottomNavVisibility,
-  type BottomNavVisibility,
-} from "../contexts/BottomNavVisibilityContext";
-
-export type HideBottomNavProps = {
-  /** スマホでボトムナビを非表示にする */
-  sp?: boolean;
-  /** PCでボトムナビを非表示にする */
-  pc?: boolean;
-};
+export type HideBottomNavProps = FrameHideProps;
 
 /**
- * ページ単位でボトムナビゲーションの表示/非表示を制御するコンポーネント
+ * ページ単位でボトムナビ(高さ分のスペーサーを含む)を隠す印。描いた部品が画面にある間だけ効く(仕組みは ./frameParts.ts)。
+ * 隠す方向だけ: `pc={false}` は「PC では隠さない」= 何もしない(PC に出す指定ではない)
  *
  * @example
- * // 両方非表示（props未指定で両方非表示）
+ * // 両方隠す（props 無し）
  * <HideBottomNav />
  *
  * @example
- * // スマホのみ非表示（デフォルトはスマホのみ表示なので、これで完全非表示になる）
+ * // スマホだけ隠す（既定はスマホだけ表示なので、これで完全に隠れる）
  * <HideBottomNav sp />
- *
- * @example
- * // PCでも表示したい場合（ShowBottomNav的な使い方）
- * // → useBottomNavVisibilityを直接使用してください
  */
-export const HideBottomNav = ({ sp, pc }: HideBottomNavProps) => {
-  // 自分の上書きとして登録し、アンマウント時は自分の分だけ外す(他ページの Hide* を巻き込まない)
-  const id = useId();
-  const { setOverride, clearOverride } = useBottomNavVisibility();
-
-  useEffect(() => {
-    // 両方未指定の場合は両方非表示
-    const hideAll = sp === undefined && pc === undefined;
-
-    if (hideAll) {
-      setOverride(id, { sp: false, pc: false });
-    } else {
-      // 指定されたものだけを変更（未指定のものはデフォルトを維持）
-      const updates: Partial<BottomNavVisibility> = {};
-      if (sp !== undefined) {
-        updates.sp = !sp;
-      }
-      if (pc !== undefined) {
-        updates.pc = !pc;
-      }
-      setOverride(id, updates);
-    }
-
-    return () => {
-      clearOverride(id);
-    };
-  }, [id, sp, pc, setOverride, clearOverride]);
-
-  return null;
+export const HideBottomNav = (props: HideBottomNavProps) => {
+  const tokens = frameHideTokens("bottom-nav", props);
+  return tokens ? <span hidden data-frame-hide={tokens} /> : null;
 };

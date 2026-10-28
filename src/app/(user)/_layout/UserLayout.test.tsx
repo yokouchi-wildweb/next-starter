@@ -52,11 +52,18 @@ const BEFORE_SWITCH =
  */
 const withBottomNavVar = (html: string) =>
   html.replace('style="--app-header-height:0px"', 'style="--app-header-height:0px;--app-bottom-nav-height:64px"');
-const BEFORE_DIMS = withBottomNavVar(BEFORE_SWITCH);
+/**
+ * 枠の印の区切り(notice frame-marks)で既定の DOM に入った差分はこの 1 か所だけ:
+ * 外枠に data-frame-root(配下の Hide* の印で部位を隠す CSS の起点。styles/frame-controls.generated.css)
+ */
+const withFrameRoot = (html: string) =>
+  html.replace('data-user-app-container=""', 'data-user-app-container="" data-frame-root=""');
+const BEFORE_DIMS = withFrameRoot(withBottomNavVar(BEFORE_SWITCH));
 
 const render = (node: ReactNode) => renderToStaticMarkup(node);
 
-test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は config/ui/user-layout.config の既定値。差分は外枠の --app-bottom-nav-height だけ)", () => {
+test("props なしの UserLayout は 1 行スイッチ化の前と同じ DOM を描く(背景は config/ui/user-layout.config の既定値。差分は外枠の --app-bottom-nav-height と data-frame-root だけ)", () => {
+  assert.notEqual(withFrameRoot(BEFORE_SWITCH), BEFORE_SWITCH);
   assert.equal(render(<UserLayout>CHILD</UserLayout>), BEFORE_DIMS);
 });
 
@@ -108,7 +115,7 @@ test("slot に null を渡すとその部品を描かない(bottomNav はスペ�
   assert.equal(
     html,
     '<div data-component="Flex" class="flex gap-0 flex-col items-stretch justify-start flex-nowrap my-0 min-h-[var(--viewport-height,100dvh)] text-foreground" ' +
-      'id="user-app-container" data-user-app-container="" style="--app-header-height:0px">' +
+      'id="user-app-container" data-user-app-container="" data-frame-root="" style="--app-header-height:0px">' +
       '<div id="stretch-wrapper" class="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">CHILD</div></div>',
   );
 });

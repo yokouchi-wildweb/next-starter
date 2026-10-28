@@ -1,50 +1,23 @@
-"use client";
+import { frameHideTokens, type FrameHideProps } from "./frameParts";
 
-import { useEffect, useId } from "react";
-import { useFooterVisibility } from "../contexts/FooterVisibilityContext";
-
-export type HideFooterProps = {
-  /** スマホでフッターを非表示にする */
-  sp?: boolean;
-  /** PCでフッターを非表示にする */
-  pc?: boolean;
-};
+export type HideFooterProps = FrameHideProps;
 
 /**
- * ページ単位でフッターの表示/非表示を制御するコンポーネント
+ * ページ単位でフッターを隠す印。描いた部品が画面にある間だけ効く(仕組みは ./frameParts.ts)
  *
  * @example
- * // 両方非表示（props未指定で両方非表示）
+ * // 両方隠す（props 無し）
  * <HideFooter />
  *
  * @example
- * // スマホのみ非表示
+ * // スマホだけ隠す
  * <HideFooter sp />
  *
  * @example
- * // PCのみ非表示
+ * // PC だけ隠す
  * <HideFooter pc />
  */
-export const HideFooter = ({ sp, pc }: HideFooterProps) => {
-  // 自分の上書きとして登録し、アンマウント時は自分の分だけ外す(他ページの Hide* を巻き込まない)
-  const id = useId();
-  const { setOverride, clearOverride } = useFooterVisibility();
-
-  useEffect(() => {
-    // 両方未指定の場合は両方非表示
-    const hideAll = sp === undefined && pc === undefined;
-    const hideSp = hideAll || sp === true;
-    const hidePc = hideAll || pc === true;
-
-    setOverride(id, {
-      sp: !hideSp,
-      pc: !hidePc,
-    });
-
-    return () => {
-      clearOverride(id);
-    };
-  }, [id, sp, pc, setOverride, clearOverride]);
-
-  return null;
+export const HideFooter = (props: HideFooterProps) => {
+  const tokens = frameHideTokens("footer", props);
+  return tokens ? <span hidden data-frame-hide={tokens} /> : null;
 };

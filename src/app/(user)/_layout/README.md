@@ -25,7 +25,8 @@ src/app/(user)/_layout/
 
 まだ `src/components/AppFrames/User/` に残っている物(後の区切りで扱う):
 
-- `contexts/`(表示制御の context)・`controls/`(HideHeader 等): 枠の制御の区切りで中身を入れ替え、context は不要になった後に削除する。ここの部品は絶対パス `@/components/AppFrames/User/{contexts,controls}` で参照している
+- `controls/`(HideHeader 等と部位一覧 frameParts.ts): 中身は印に入れ替え済み(下の「枠の部位を隠す(Hide* と印)」)。最終の棚は後の議題で決める(今はパスを変えない = fork の import の書き換えなし)
+- `contexts/`(表示制御の context): Hide* はもう書かない。部品・hook が読むのをやめた後、旧入口撤去の区切りで削除する。ここの部品は絶対パス `@/components/AppFrames/User/{contexts,controls}` で参照している
 - `Sections/HeaderCustom/`・`Sections/FooterCustom/`: config の切り替えで使う旧来のカスタム雛形(廃止予定)。差し替えは UserLayout の header / footer slot へ(下の「layout.tsx と slot」)。旧入口撤去の区切りで削除する
 - `src/components/AppFrames/constants.ts`(ヘッダー・フッターの要素 ID): useHeaderHeight の汎用化と一緒に後で動かす
 
@@ -96,8 +97,27 @@ export function AcmeUserLayout({ children }: { children: ReactNode }) {
 export { AcmeUserLayout as default } from "./_layout/UserLayout.acme";
 ```
 
-3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx をドット区切り名のファイルへコピーして編集する
+3. 枠の構造そのもの(部品の並びや外枠)を変えるときだけ、UserLayout.tsx をドット区切り名のファイルへコピーして編集する(外枠の `data-frame-root` は残す。無いと Hide* が効かない)
 - カスタムの組み立てでガード関数(authGuard 等)を呼ぶと、ルート地図はスイッチ先を 1 段辿って拾う(`pnpm routes:map`、src/lib/screens/README.md §13)。組み立てがさらに import する先は読まない
+
+## 枠の部位を隠す(Hide* と印)
+
+ページ(または部品)が `HideHeader` / `HideHeaderNav` / `HideFooter` / `HideBottomNav`(`@/components/AppFrames/User/controls`)を描いている間だけ、その部位を隠す。
+
+```tsx
+<HideBottomNav />        {/* SP・PC とも隠す */}
+<HideFooter sp />        {/* スマホだけ隠す */}
+<HideHeaderNav pc />     {/* PC だけヘッダーのナビを隠す(ヘッダーは残る) */}
+```
+
+- 仕組み: Hide* は空の印 `<span hidden data-frame-hide="<部位>-<デバイス>">` を描くだけ。`src/styles/frame-controls.generated.css` の規則が「外枠 `[data-frame-root]`(UserLayout の `#user-app-container`)が印を含む間、その部位を `display: none`」にする(`:has()`)。部品はアンマウントしない
+- 元は 1 つ: 部位・狙う先・デバイスの境界は `controls/frameParts.ts`。CSS はそこから `pnpm frame:generate` で作ってコミットする(`--check` と `pnpm test:frame-controls` が一致を確かめる)
+- client JS なし: SSR の HTML だけで効く(hydration 前に枠が一瞬見えることは無い)。server の Screen・layout からも、client 部品の中からも同じに描ける
+- 隠す方向だけ・足し算: 印が 1 つでもあれば隠す。`sp={false}` / `pc={false}` は「そのデバイスでは隠さない」= 何もしない(PC に出す指定ではない)
+- 効かない置き方: 外枠の外(portal で body 直下へ出す等)。Suspense の内側(`(user)/loading.tsx` の下は全部)の印は本文が届くまで効かない = loading の間は枠が出て、本文と同時に隠れる
+- 遷移の退出アニメ中(PageTransition、最大 0.3 秒)は旧・新ページの印が両方効く(和)
+- 狙う先: 既定部品の id(`header`・`header-pc-nav`・`header-sp-menu-toggle`・`header-sp-nav`・`footer`・`bottom-nav`・`bottom-nav-spacer-sp/pc`)と `[data-frame-part~="<部位>"]`(部位 = `header` / `header-nav` / `footer` / `bottom-nav`)。差し替えた部品は id を残すか、外側の要素に `data-frame-part="<部位>"` を付ければ従う
+- 寸法変数(`--app-bottom-nav-height` 等)はまだ印に連動しない(次の区切り)
 
 ---
 
@@ -336,7 +356,7 @@ menu 型の項目を独自の型・判別で実装していた場合は、`type:
 BottomNavは固定表示のため、フッターなど下部コンテンツが隠れないよう`BottomNavSpacer`が自動でスペースを確保します。
 
 - BottomNavが**表示されている時だけ**高さを持つ
-- `HideBottomNav`で非表示にした場合、スペーサーも自動で0になる
+- `HideBottomNav`で隠した場合、スペーサーも印の CSS で一緒に隠れる(部位 `bottom-nav` に含まれる)
 - SP/PCそれぞれの表示状態に連動
 
 ---
@@ -394,7 +414,7 @@ export default function PlayerPage() {
 ```
 
 - `safeArea` を付けると `env(safe-area-inset-*)` ぶんのパディングを付与（横向きスマホのノッチ対策）
-- Hide* は useEffect 駆動のため、初回描画の一瞬だけヘッダー等が見える（既存コントロールと同じ）
+- Hide* は印なので SSR の HTML だけで隠れる(初回描画でヘッダー等が見えることは無い)
 
 ### fullscreen との使い分け
 
@@ -440,6 +460,24 @@ export default function PlayerPage() {
 - 帯は fixed で出して自分の高さを測る(Banner.tsx)。測り方は useElementSize(ResizeObserver)。useHeaderHeight は要素が見つかるまで requestAnimationFrame を回し続けるので、banner の無い画面で回りっぱなしになるため使わない。Banner は banner がある時だけ描くので、測定もその時だけ
 - 本文はスペーサー(`h-[var(--app-banner-height,0px)]`)で押し下げる。`#stretch-wrapper` の padding-top(ヘッダー分)の class を変えずに済み、fill の高さの連鎖にもそのまま乗る(BottomNavSpacer と同じ考え方)
 - bottomNav の高さは TS の config の値なので、CSS の :root では持てない(写すと二重になり、fork が config を変えても追随しない)。外枠の inline に書く
+
+## 印の経緯(notice frame-marks)
+
+- 報告書 §2 の枠の制御 =「細部だけ違う → 1 行の印」(server で描く data-frame-* の空要素 + 外枠 1 か所の CSS `:has()`、client JS なし、どこからでも書ける、隠す方向のみ、足し算。CSS 規則と印の属性は 1 つの部位一覧から生成)
+- 以前の Hide* は "use client" の部品で、useEffect で表示制御の context に書き、枠の部品が context を読んで class を付けていた。そのため hydration まで枠が一瞬見え、Hide* のあるページ同士の遷移では旧ページの後始末が新ページの指定を消す競合が起きた(呼び出し元ごとの上書き setOverride で直した。その notice の「setVisibility + reset を setOverride へ」は印で置き換わる)
+- 印は DOM にある間だけ効き、旧ページの印は旧ページと一緒に消える = 後始末の処理そのものが無いので競合が起きない
+- Hide* の名前・props・export・パスは変えていない(fork の呼び出しの書き換えなし)。表示方向(`pc={false}` = 表示)は使用例が無く捨てた
+- 生成 CSS は global.css が config.css の後に読む。layer に入れない(部品の `sm:flex` 等のユーティリティより優先)。目印の変数 `--frame-controls-generated` を持つので、ビルド出力からこのファイルが抜けると `pnpm build` の styles:check-build が落ちる
+- 既定の DOM の差分(test で固定): 外枠に `data-frame-root`、Header・Footer・BottomNav・スペーサー・ナビの部品に `data-frame-part`
+
+## 採らなかった案(印)
+
+- 表示制御の context に呼び出し元ごとの上書きを積む(今までの形): client JS が要り、hydration まで枠が見える。Hide* を client 部品の中にしか置けない
+- config に「ルート → 隠す部位」の表を持つ: ページの事情がページから離れ、ルートを足すたびに config を編集する(fork の衝突点になる)
+- proxy の `x-pathname` / `usePathname` で layout が判断する: layout が全ページの事情を知る形になり、client 遷移での追随も要る
+- parallel routes(`@header` 等)で枠をページごとに差し替える: 隠すだけの用途には重く、ルートの構造が変わる
+- UserLayout が `<style>` を描く(生成物なし): styles の README から見えず、別の枠に使い回せない
+- 狙う先を `data-frame-part` だけにする: 差し替えた Header・Footer に属性を足す書き換えが要る(id を残していれば今のまま従う)
 
 ## 採らなかった案(banner と寸法変数)
 

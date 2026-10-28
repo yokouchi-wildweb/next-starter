@@ -56,6 +56,7 @@ export const UserNavigation = ({ leading, actions, menuActions }: UserNavigation
   return (
     <header
       id={APP_HEADER_ELEMENT_ID}
+      data-frame-part="header"
       ref={headerRef}
       className={`fixed shadow inset-x-0 top-[var(--app-banner-height,0px)] header-layer border-b border-border bg-header text-header-foreground ${visibilityClass}`}
     >

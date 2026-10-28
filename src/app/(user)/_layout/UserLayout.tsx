@@ -93,10 +93,13 @@ export function UserLayout({
             )}
             {/* data-user-app-container: <UserPage fill> が配下にある時だけ
                 styles/config.css の :has() ルールで確定高さ + overflow-clip に
-                切り替わる（既定は min-h で伸びる通常ページ）。 */}
+                切り替わる（既定は min-h で伸びる通常ページ）。
+                data-frame-root: 配下に Hide* の印がある間、styles/frame-controls.generated.css が
+                その部位を隠す（controls/frameParts.ts）。 */}
             <Flex
               id="user-app-container"
               data-user-app-container=""
+              data-frame-root=""
               direction="column"
               className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
               style={layoutStyle}

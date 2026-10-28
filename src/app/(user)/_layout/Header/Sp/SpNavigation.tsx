@@ -35,7 +35,7 @@ export const SpNavigation = ({
   return (
     <AnimatePresence>
       {isOpen ? (
-        <motion.div id="header-sp-nav" key="mobile-navigation" className="sm:hidden">
+        <motion.div id="header-sp-nav" data-frame-part="header-nav" key="mobile-navigation" className="sm:hidden">
           <div id="header-sp-nav-container" className="fixed inset-x-0 bottom-0" style={{ top: `calc(var(--app-banner-height, 0px) + ${headerOffset}px)` }}>
             <SpNavOverlay onClose={onClose} />
             <SpNavPanel items={items} showIcons={showIcons} onNavigate={onClose} footer={footer} />

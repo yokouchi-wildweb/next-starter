@@ -96,9 +96,17 @@ const count = (html: string, part: string) => html.split(part).length - 1;
  */
 const BEFORE_HEADER_DIMS = BEFORE.header.replace(" top-0 ", " top-[var(--app-banner-height,0px)] ");
 
-test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(差分は banner 分の top だけ)", () => {
+/**
+ * 枠の印の区切り(notice frame-marks)で既定の部品に入った差分は、外側の要素の data-frame-part だけ
+ * (Hide* の印で隠す CSS の狙う先。styles/frame-controls.generated.css)。ナビの部品(Pc / Sp)はここではモック
+ */
+const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '<header id="header" data-frame-part="header" ');
+const BEFORE_BOTTOM_NAV_MARKS = BEFORE.bottomNav.replace('<nav id="bottom-nav" ', '<nav id="bottom-nav" data-frame-part="bottom-nav" ');
+
+test("props なしの UserNavigation は slot 化の前と同じ DOM を描く(差分は banner 分の top と data-frame-part だけ)", () => {
   assert.notEqual(BEFORE_HEADER_DIMS, BEFORE.header);
-  assert.equal(render(<UserNavigation />), BEFORE_HEADER_DIMS);
+  assert.notEqual(BEFORE_HEADER_MARKS, BEFORE_HEADER_DIMS);
+  assert.equal(render(<UserNavigation />), BEFORE_HEADER_MARKS);
 });
 
 test("leading はブランドの前(#header-left の先頭)に描く", () => {
@@ -127,11 +135,12 @@ test("actions / menuActions に null を渡すとその CTA を描かない", ()
   assert.equal(count(render(<UserNavigation actions={null} menuActions={null} />), CTA), 0);
 });
 
-test("type 省略のリンク項目だけの BottomNav は slot 化の前と同じ DOM を描く", () => {
+test("type 省略のリンク項目だけの BottomNav は slot 化の前と同じ DOM を描く(差分は data-frame-part だけ)", () => {
   navItems.current = LINK_ITEMS;
-  assert.equal(render(<UserBottomNav />), BEFORE.bottomNav);
+  assert.notEqual(BEFORE_BOTTOM_NAV_MARKS, BEFORE.bottomNav);
+  assert.equal(render(<UserBottomNav />), BEFORE_BOTTOM_NAV_MARKS);
   navItems.current = LINK_ITEMS.map((item) => ({ ...item, type: "link" as const }));
-  assert.equal(render(<UserBottomNav />), BEFORE.bottomNav, "type: \"link\" の明示も同じ");
+  assert.equal(render(<UserBottomNav />), BEFORE_BOTTOM_NAV_MARKS, "type: \"link\" の明示も同じ");
   navItems.current = LINK_ITEMS;
 });
 
@@ -142,7 +151,7 @@ test("type: \"menu\" の項目はボタン(メニューを開くトリガー)で
   ];
   const html = render(<UserBottomNav />);
   navItems.current = LINK_ITEMS;
-  assert.ok(html.startsWith(BEFORE.bottomNav.slice(0, -"</nav>".length)), "リンク項目は今のまま並ぶ");
+  assert.ok(html.startsWith(BEFORE_BOTTOM_NAV_MARKS.slice(0, -"</nav>".length)), "リンク項目は今のまま並ぶ");
   assert.match(html, /<button[^>]*id="bottom-nav-item-create" type="button" aria-label="作成する"[^>]*>/);
   assert.ok(html.includes('<span id="bottom-nav-label-create" class="text-[10px] font-medium leading-tight">作成</span>'));
   assert.equal(/id="bottom-nav-item-create"[^>]*text-accent/.test(html), false, "メニュー項目はカレント色にならない");

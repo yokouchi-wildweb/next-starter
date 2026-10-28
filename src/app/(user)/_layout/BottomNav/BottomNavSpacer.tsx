@@ -32,6 +32,7 @@ export const BottomNavSpacer = () => {
       {spHeight > 0 && (
         <div
           id="bottom-nav-spacer-sp"
+          data-frame-part="bottom-nav"
           className="block sm:hidden"
           style={{ height: spHeight }}
           aria-hidden="true"
@@ -41,6 +42,7 @@ export const BottomNavSpacer = () => {
       {pcHeight > 0 && (
         <div
           id="bottom-nav-spacer-pc"
+          data-frame-part="bottom-nav"
           className="hidden sm:block"
           style={{ height: pcHeight }}
           aria-hidden="true"

@@ -24,6 +24,7 @@ src/styles/
 ├── config.css              upstream  レイアウト系トークン(幅・管理画面余白・枠の寸法)
 ├── z-layer.css             upstream  z-index トークン
 ├── gradient.css            upstream  gradient:gen で生成(src/lib/gradient)
+├── frame-controls.generated.css  upstream  frame:generate で生成(枠の部位を隠す Hide* の規則。src/components/AppFrames/User/controls/frameParts.ts)
 ├── animations.css / base.css / components.css / utilities.css / admin.css   upstream
 └── custom/                 下流      ★ upstream は初回作成後に一切編集しない
     ├── index.css           下流      入口。出荷時は下の 3 ファイルを import するだけ
@@ -48,6 +49,8 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
 
 - メール用 hex 定数: `pnpm mail:generate-colors`(両ファイルの `:root` を合成して `src/features/core/mail/constants/colors.ts` を生成。欠落があれば失敗する)。色を変えたら必ず実行してコミットする。メールはダークモードもエリアも持たないので `.dark` と `[data-area]` は読まない。ブランド色を `[data-area="user"]` にだけ書くとメールは汎用色のままになる。メールにも反映したい色は `:root` にも書くこと
 - gradient トークン: `pnpm gradient:gen`(`src/config/app/gradients.config.ts` → `gradient.css`。palette には依存しない)
+
+枠の部位を隠す規則: `pnpm frame:generate`(`src/components/AppFrames/User/controls/frameParts.ts` → `frame-controls.generated.css`、`--check` で一致検査)。色・値は持たない(規則だけ)ので custom/ からの上書きは想定しない。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す(Hide* と印)」
 
 shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { ... }` は、そのまま `custom/palette.css` に貼れば効く。
 
