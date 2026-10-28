@@ -9,6 +9,7 @@
 //   主の create に流さない）、従属を複製元の並び順に従属のサービスの create で作る（id・主への参照・並び
 //   以外の列と、写したファイルの値）。並びは同期と同じく列の型で振り直し、systemUpdate で書く
 // - 集まりの宣言の duplicate: false の項目は写さない（複製した主の集まりは空）
+// - minItems は検査しない（従属は複製元の件数のまま写す。主の create には内部の印を付けて省略の検査を飛ばす）
 // - 2 段目が巻き戻ると、1 段目で写したファイルは未紐付けのまま残り、掃除 cron が回収する
 
 import { eq } from "drizzle-orm";
@@ -18,6 +19,7 @@ import { db } from "@/lib/drizzle";
 import { buildDuplicateData } from "../drizzle/utils";
 import type { DbTransaction } from "../drizzle/types";
 import { collectionOrderBy } from "./collectionOrder";
+import { SKIP_OMITTED_MIN_ITEMS } from "./internalMarkers";
 import { resolveCollectionColumns, writeCollectionSort } from "./syncCollection";
 import type {
   CollectionDuplicateResult,
@@ -85,6 +87,8 @@ export async function duplicateWithCollections<T = Row>(
   // ---- 2 段目（1 つの TX）: 主と従属を作る ----
   const newData: Row = { ...buildDuplicateData(record, options), ...parentCopied };
   for (const collection of collections) delete newData[collection.fieldName];
+  // 主の create は集まりの項目なしで通る。minItems の「省略 = []」の検査は飛ばす（従属はこの後に作る）
+  (newData as Record<PropertyKey, unknown>)[SKIP_OMITTED_MIN_ITEMS] = true;
 
   const write = async (executor: DbTransaction): Promise<CollectionDuplicateResult<T>> => {
     const created = (await service.create(newData, executor)) as Row;

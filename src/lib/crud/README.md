@@ -458,6 +458,7 @@ export const productService = createCrudService(ProductTable, {
       valueColumn: GalleryImageTable.image,       // 集まりの値の列（差分はこの値で取る）
       sortColumn: GalleryImageTable.sort_order,   // text（fractional の鍵。既定）か integer（0 始まりの添字）
       maxItems: 10,                               // 省略 = 上限なし。超える配列の保存は 400（切り詰めない）
+      minItems: 1,                                // 省略 = 下限なし。下回る保存は 400（下の「最小件数」）
       duplicate: true,                            // 主の複製で従属も写すか（既定 true）
     },
   ],
@@ -467,13 +468,13 @@ export const productService = createCrudService(ProductTable, {
 - 集まりは 1 行 1 値: 従属の 1 行が集まりの 1 要素で、`valueColumn` の値で見分ける（同じ値の重複は持たない）
 - `parentColumn` / `valueColumn` / `sortColumn` は同じ従属の表の列で、互いに別の列。従属の表は `id` 列を持つ
 - 論理削除の従属（`deletedAt` 列を持つ表）は扱わない（宣言時に throw）
-- 宣言の誤り（列の取り違え・`fieldName` が主の列や belongsToMany の項目と重なる・並びの列が text / integer でない）はサービス生成時に throw する
+- 宣言の誤り（列の取り違え・`fieldName` が主の列や belongsToMany の項目と重なる・並びの列が text / integer でない・`maxItems` / `minItems` の値の誤り）はサービス生成時に throw する
 
 ### 書き込み
 
 - create / update / upsert の入力の集まりの項目は、parse の前に外して検査する（DB に触れる前に 400）
   - 省略（または undefined）= 維持、`[]` = 全部消す
-  - 配列でない・空の要素・重複・`maxItems` 超過は 400。切り詰めない（`maxItems` を超えた既存の行も黙って消さない）
+  - 配列でない・空の要素・重複・`maxItems` 超過・`minItems` 不足は 400。切り詰めない（`maxItems` を超えた既存の行も黙って消さない）
 - 同期は主の行を `FOR UPDATE` でロックしてから従属を全件読み直し、値で差分を取る
   - 変わらない値の行は残す（従属の id を保つ）/ 消えた値の行は従属の `hardDelete` / 新しい値は従属の `create`
   - 並びは同期のたびに配列順に振り直す（text = fractional の鍵、integer = 添字）。値の変わった行だけ従属の `systemUpdate` で書く
@@ -482,6 +483,22 @@ export const productService = createCrudService(ProductTable, {
 - `bulkUpsert` / `bulkUpdate` / `bulkUpdateByIds` / `bulkUpdateByQuery` / `replaceByQuery` は、集まりの値（`[]` を含む）が入っていれば DB を変える前に 400。無ければ今のまま
 - 呼び出し元が tx を渡さなければ内部で TX を張る。従属の `hardDelete` が外したファイルは、従属の storage binding の動きのまま（外から tx を渡すので掃除 cron が片付ける）
 - base を通らない書き込み（手書きのドメイン・fork の独自の保存）は単独関数 `syncCollection({ parentTable, parentId, collection, values }, tx?)` で同じ規則の同期ができる（主の行が無ければ 404）
+
+### 最小件数（minItems）
+
+`minItems`（非負の整数、省略 = 下限なし）を宣言した集まりは、下回る保存を 400（`<fieldName> は <minItems> 件以上必要です`）で断る。
+
+- create: 項目の省略（または undefined）は `[]` とみなして検査する。`minItems` が 1 以上なら DB に触れる前に 400
+- update: `[]` / 下限未満の配列は 400（DB に触れる前）。項目の省略は今までどおり触らない（維持）
+- upsert: 渡した配列は同じく DB に触れる前に検査する。項目を省くと、新規か更新かは書くまで分からないので、主の書き込みの後に同じ TX で従属の件数を数え、下限未満なら 400 で巻き戻す（新規の行は残らない。下限を満たす既存の行への upsert は通る）
+  - 呼び出し元が tx を渡したときは、その TX の中で throw する（巻き戻しは呼び出し元の TX）
+- 単独関数 `syncCollection` も渡した値を同じく検査する
+- 検査しないもの
+  - 複製の内側の主の create（従属は 2 段目で複製元の件数のまま写す。複製元が下回っていても断らない）
+  - `bulkUpsert` / `bulkUpdate*` / `replaceByQuery`（集まりの値を受け付けない。`bulkUpsert` / `replaceByQuery` は集まりなしで主の新規行を作れるので、必須の集まりがあるドメインでは使い方に注意）
+  - 従属の API からの直接の書き込み・主の削除（従属の件数は lib が見張らない。次の主の保存で検査する）
+- 宣言の検査（サービス生成時に throw）: 非負の整数・`maxItems` 以下・1 以上と `duplicate: false` の併用は不可（複製すると必ず下回るため）
+- `minItems` を宣言しない（または 0 の）サービスは今のまま（TX もクエリも増えない）
 
 ### 読み出し
 
@@ -547,7 +564,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 ### 後からの変更の規則
 
 - 名前を変えるときは新しい名前を足し、古い名前を残す（消さない）
-- 宣言の形（`CrudCollectionConfig`）は足すだけで広げる（新しい項目は省略できる形にする）
+- 宣言の形（`CrudCollectionConfig`）は足すだけで広げる（新しい項目は省略できる形にする。`minItems` もこの規則で足した項目）
 
 ---
 

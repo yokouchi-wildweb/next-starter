@@ -4,6 +4,9 @@
 // 同じ TX の中で syncCollection の同期を呼ぶ。collections を指定しないサービスには適用しない。
 // - create / update / upsert: 集まりの項目を parse の前に入力から外して検査（DB に触れる前に 400）→
 //   主の行を書く → 項目ごとに差分同期。項目の省略 = 維持、[] = 全部消す。戻り値に書いた値の配列を載せる
+// - minItems: create の項目の省略は [] とみなして検査（DB に触れる前に 400。複製の内側の主の create は印で飛ばす）。
+//   upsert で項目を省けば、主の書き込みの後に同じ TX で従属の件数を数え、下限未満なら 400（巻き戻る）。
+//   minItems を宣言しない（または 0 の）項目だけのサービスは今の経路のまま（TX もクエリも増えない）
 // - bulkUpsert / bulkUpdate / bulkUpdateByIds / bulkUpdateByQuery / replaceByQuery: 集まりの値
 //   （[] を含む）が入っていれば DB を変える前に 400。値が無ければ今のまま
 // - 読み出しの 7 口（get / getWithDeleted / list / listWithDeleted / search / searchWithDeleted /
@@ -16,7 +19,7 @@
 // - 呼び出し元が tx を渡さなければ内部で TX を張る（従属の hardDelete のファイルの片付けは従属の
 //   storage binding の動きのまま: 外から tx を渡すので掃除 cron が片付ける）
 
-import { getTableColumns, inArray } from "drizzle-orm";
+import { count, eq, getTableColumns, inArray } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/drizzle";
@@ -28,7 +31,8 @@ import type { DuplicateOptions } from "@/lib/crud/types";
 
 import { collectionOrderBy } from "./collectionOrder";
 import { duplicateWithCollections } from "./duplicateWithCollections";
-import { resolveCollectionColumns, syncCollectionInTx, validateCollectionValues } from "./syncCollection";
+import { SKIP_OMITTED_MIN_ITEMS } from "./internalMarkers";
+import { minItemsError, resolveCollectionColumns, syncCollectionInTx, validateCollectionValues } from "./syncCollection";
 import type { CollectionDuplicateParentService, CollectionValue, CrudCollectionConfig } from "./types";
 
 type Row = Record<string, unknown>;
@@ -97,6 +101,7 @@ export function applyCollections<TService extends CollectionAwareService>(
     const values = new Map<number, CollectionValue[]>();
     if (!data || typeof data !== "object") return { rest: data, values };
     const rest: Row = { ...(data as Row) };
+    delete (rest as Record<PropertyKey, unknown>)[SKIP_OMITTED_MIN_ITEMS];
     collections.forEach((collection, index) => {
       if (!hasOwn.call(rest, collection.fieldName)) return;
       const value = rest[collection.fieldName];
@@ -105,6 +110,10 @@ export function applyCollections<TService extends CollectionAwareService>(
     });
     return { rest, values };
   };
+
+  /** minItems が 1 以上で、入力に値の無い（省略した）項目の添字 */
+  const omittedRequired = (values: Map<number, CollectionValue[]>): number[] =>
+    collections.flatMap((collection, index) => ((collection.minItems ?? 0) >= 1 && !values.has(index) ? [index] : []));
 
   const runInTx = <T>(tx: DbTransaction | undefined, work: (executor: DbTransaction) => Promise<T>): Promise<T> =>
     tx ? work(tx) : db.transaction((innerTx) => work(innerTx));
@@ -195,7 +204,12 @@ export function applyCollections<TService extends CollectionAwareService>(
     },
 
     async create(data, tx) {
+      const skipOmitted = Boolean(data && typeof data === "object" && (data as Record<PropertyKey, unknown>)[SKIP_OMITTED_MIN_ITEMS]);
       const { rest, values } = separate(data);
+      // 項目の省略は [] とみなす（minItems が 1 以上なら必ず 400。DB に触れる前）
+      if (!skipOmitted) {
+        for (const index of omittedRequired(values)) validateCollectionValues(collections[index], []);
+      }
       if (!values.size) return service.create(rest, tx);
       return runInTx(tx, async (executor) => {
         const created = await service.create(rest, executor);
@@ -216,10 +230,21 @@ export function applyCollections<TService extends CollectionAwareService>(
 
     async upsert(data, upsertOptions, tx) {
       const { rest, values } = separate(data);
-      if (!values.size) return service.upsert(rest, upsertOptions, tx);
+      // 新規か更新かは書くまで分からないので、省いた必須の項目は書いた後に従属の件数で検査する
+      const omitted = omittedRequired(values);
+      if (!values.size && !omitted.length) return service.upsert(rest, upsertOptions, tx);
       return runInTx(tx, async (executor) => {
         const upserted = await service.upsert(rest, upsertOptions, executor);
-        if (upserted) await syncAll(executor, upserted as Row, values);
+        if (!upserted) return upserted;
+        await syncAll(executor, upserted as Row, values);
+        for (const index of omitted) {
+          const collection = collections[index];
+          const [{ total }] = await executor
+            .select({ total: count() })
+            .from(resolved[index].childTable as any)
+            .where(eq(collection.parentColumn, (upserted as Row).id as CollectionValue));
+          if (total < (collection.minItems ?? 0)) throw minItemsError(collection);
+        }
         return upserted;
       });
     },

@@ -34,7 +34,7 @@ export type SyncCollectionParams = {
   parentId: string | number;
   /** 集まりの宣言 */
   collection: CrudCollectionConfig;
-  /** 同期後の値の並び（重複・最大件数の超過は 400） */
+  /** 同期後の値の並び（重複・最大件数の超過・最小件数の不足は 400） */
   values: readonly unknown[];
 };
 
@@ -70,6 +70,18 @@ export function resolveCollectionColumns(collection: CrudCollectionConfig): Reso
   if (collection.maxItems !== undefined && (!Number.isInteger(collection.maxItems) || collection.maxItems < 1)) {
     throw new Error(`${label}: maxItems must be a positive integer.`);
   }
+  const { minItems } = collection;
+  if (minItems !== undefined) {
+    if (!Number.isInteger(minItems) || minItems < 0) {
+      throw new Error(`${label}: minItems must be a non-negative integer.`);
+    }
+    if (collection.maxItems !== undefined && minItems > collection.maxItems) {
+      throw new Error(`${label}: minItems must not exceed maxItems.`);
+    }
+    if (minItems >= 1 && collection.duplicate === false) {
+      throw new Error(`${label}: minItems >= 1 cannot be combined with duplicate: false (a duplicate would have no items).`);
+    }
+  }
   const sortValues = order.textSort
     ? (count: number) => generateInitialSortKeys(count)
     : (count: number) => Array.from({ length: count }, (_, index) => index);
@@ -86,9 +98,14 @@ export function resolveCollectionColumns(collection: CrudCollectionConfig): Reso
   return resolved;
 }
 
+/** 最小件数を下回る保存の 400（値の検査と、upsert で項目を省いたときの件数の検査の共通） */
+export function minItemsError(collection: CrudCollectionConfig): DomainError {
+  return new DomainError(`${collection.fieldName} は ${collection.minItems} 件以上必要です`, { status: 400 });
+}
+
 /**
  * 集まりの入力値を検査して値の配列にする（DB に触れる前に呼ぶ）。
- * 配列でない・要素が空・重複・最大件数の超過は DomainError 400。
+ * 配列でない・要素が空・重複・最大件数の超過・最小件数の不足は DomainError 400。
  */
 export function validateCollectionValues(collection: CrudCollectionConfig, value: unknown): CollectionValue[] {
   const field = collection.fieldName;
@@ -109,6 +126,9 @@ export function validateCollectionValues(collection: CrudCollectionConfig, value
   }
   if (collection.maxItems !== undefined && value.length > collection.maxItems) {
     throw new DomainError(`${field} は ${collection.maxItems} 件までです`, { status: 400 });
+  }
+  if (collection.minItems !== undefined && value.length < collection.minItems) {
+    throw minItemsError(collection);
   }
   return value as CollectionValue[];
 }

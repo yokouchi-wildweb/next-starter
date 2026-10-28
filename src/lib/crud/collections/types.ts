@@ -52,6 +52,16 @@ export type CrudCollectionConfig = {
   sortColumn: AnyPgColumn;
   /** 最大件数。超える配列の保存は 400（切り詰めない）。省略時は上限なし */
   maxItems?: number;
+  /**
+   * 最小件数（非負の整数・maxItems 以下）。省略時は下限なし。下回る保存は 400（DB に触れる前）。
+   * - create: 項目の省略は [] とみなして検査する
+   * - update: [] / 下限未満の配列は 400、項目の省略は従来どおり触らない
+   * - upsert: 渡した配列は同じく検査。項目を省けば主の書き込みの後に同じ TX で従属の件数を数え、下限未満なら 400（巻き戻る）
+   * - 単独の syncCollection も渡した配列を検査する
+   * - 検査しない: 複製の内側の主の作成（従属は複製元の件数のまま写す）・bulk 系
+   * - 1 以上と duplicate: false の併用はサービス生成時のエラー（複製すると必ず下回るため）
+   */
+  minItems?: number;
   /** 主の複製で従属も写すか（既定 true）。false なら複製した主の集まりは空 */
   duplicate?: boolean;
 };

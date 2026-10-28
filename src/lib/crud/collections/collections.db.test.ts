@@ -1048,4 +1048,110 @@ describe("collections オプション（実 DB の TX）", { skip }, () => {
     assert.equal("gallery" in plainCopy, false);
     assert.deepEqual((await none.duplicateWithIdMap(plainSource.id)).idMaps, {});
   });
+
+  // ---- 最小件数（minItems） ----
+
+  const requiredService = (minItems: number) => {
+    const collection = { ...itemsCollection, minItems };
+    return { collection, service: createCrudService(ParentTable as never, { idType: "uuid", collections: [collection] }) as any };
+  };
+
+  test("minItems: create で項目を省く・[]・下限未満は DB に触れる前に 400、主の行も残らない", async () => {
+    const { service } = requiredService(1);
+    const count = await parentCount();
+    await rejects400(service.create({ name: "m-omit" }));
+    await rejects400(service.create({ name: "m-undefined", items: undefined }));
+    await rejects400(service.create({ name: "m-empty", items: [] }));
+    await assert.rejects(service.create({ name: "m-omit" }), /items は 1 件以上必要です/);
+    await rejects400(requiredService(2).service.create({ name: "m-below", items: ["a"] }));
+    assert.equal(await parentCount(), count);
+
+    const created = await service.create({ name: "m-ok", items: ["a"] });
+    assert.deepEqual(await refsOf(created.id), ["a"]);
+  });
+
+  test("minItems: 0 の宣言は今のまま（create で省けば従属なしで作る）", async () => {
+    const created = await requiredService(0).service.create({ name: "m-zero" });
+    assert.deepEqual(await refsOf(created.id), []);
+  });
+
+  test("minItems: update で [] / 下限未満は 400 で従属は変わらない、項目の省略は触らない", async () => {
+    const { service } = requiredService(2);
+    const created = await service.create({ name: "m-up", items: ["a", "b"] });
+    await rejects400(service.update(created.id, { name: "changed", items: [] }));
+    await rejects400(service.update(created.id, { name: "changed", items: ["a"] }));
+    assert.equal((await parentRow(created.id)).name, "m-up");
+    assert.deepEqual(await refsOf(created.id), ["a", "b"]);
+
+    await service.update(created.id, { name: "m-up-x" });
+    assert.equal((await parentRow(created.id)).name, "m-up-x");
+    assert.deepEqual(await refsOf(created.id), ["a", "b"]);
+  });
+
+  test("minItems: 新規になる upsert で項目を省けば 400 で行は残らない、下限を満たす既存の行への upsert は通る", async () => {
+    const { service } = requiredService(1);
+    const newId = randomUUID();
+    await rejects400(service.upsert({ id: newId, name: "m-ups-new" }));
+    assert.equal(await parentRow(newId), undefined);
+    await rejects400(service.upsert({ id: randomUUID(), name: "m-ups-empty", items: [] }));
+
+    const created = await service.create({ name: "m-ups", items: ["a", "b"] });
+    const upserted = await service.upsert({ id: created.id, name: "m-ups-x" });
+    assert.equal(upserted.id, created.id);
+    assert.equal((await parentRow(created.id)).name, "m-ups-x");
+    assert.deepEqual(await refsOf(created.id), ["a", "b"]);
+
+    // 従属を直接消して下限を割った既存の行は、項目を省いた upsert も 400 で巻き戻る
+    await db.delete(ItemTable).where(eq(ItemTable.parentId, created.id));
+    await rejects400(service.upsert({ id: created.id, name: "m-ups-y" }));
+    assert.equal((await parentRow(created.id)).name, "m-ups-x");
+  });
+
+  test("minItems: 単独の syncCollection も渡した値の下限未満は 400", async () => {
+    const { collection } = requiredService(2);
+    const target = await plain.create({ name: "m-sync" });
+    await rejects400(syncCollection({ parentTable: ParentTable as never, parentId: target.id, collection, values: ["a"] }));
+    await rejects400(syncCollection({ parentTable: ParentTable as never, parentId: target.id, collection, values: [] }));
+    assert.deepEqual(await refsOf(target.id), []);
+    const result = await syncCollection({ parentTable: ParentTable as never, parentId: target.id, collection, values: ["a", "b"] });
+    assert.deepEqual(result.rows.map((row) => row.ref), ["a", "b"]);
+  });
+
+  test("minItems: 複製の内側の主の create は検査しない（従属は複製元の件数のまま、storage binding を通しても）", async () => {
+    const { service } = requiredService(1);
+    const source = await service.create({ name: "m-dup", items: ["a", "b"] });
+    const copy = await service.duplicate(source.id);
+    assert.notEqual(copy.id, source.id);
+    assert.deepEqual(copy.items, ["a", "b"]);
+    assert.deepEqual(await refsOf(copy.id), ["a", "b"]);
+    // 印は主の行の入力から外れて base に渡らない
+    assert.equal(Object.getOwnPropertySymbols(copy).length, 0);
+
+    // 複製元が下限を割っていても複製の内側では断らない
+    const empty = await plain.create({ name: "m-dup-empty" });
+    const emptyCopy = await service.duplicate(empty.id);
+    assert.deepEqual(await refsOf(emptyCopy.id), []);
+
+    const f = await setupDup();
+    const requiredDup = createCrudService(DupParentTable as never, {
+      idType: "uuid",
+      storage: f.parentBinding,
+      collections: [{ ...f.gallery, minItems: 1 }, f.tags],
+    }) as any;
+    const { source: dupSource } = await createDupSource(f);
+    const dupCopy = await requiredDup.duplicate(dupSource.id);
+    assert.equal(dupCopy.gallery.length, 3);
+    assert.equal((await mediaRows(dupCopy.id)).length, 3);
+  });
+
+  test("minItems: 宣言の誤り（負・整数でない・maxItems 超え・1 以上 × duplicate: false）はサービス生成時に throw する", () => {
+    const build = (extra: Record<string, unknown>) => () =>
+      createCrudService(ParentTable as never, { collections: [{ ...itemsCollection, ...extra }] });
+    assert.throws(build({ minItems: -1 }), /minItems must be a non-negative integer/);
+    assert.throws(build({ minItems: 1.5 }), /minItems must be a non-negative integer/);
+    assert.throws(build({ minItems: 4 }), /minItems must not exceed maxItems/);
+    assert.throws(build({ minItems: 1, duplicate: false }), /duplicate: false/);
+    assert.doesNotThrow(build({ minItems: 0, duplicate: false }));
+    assert.doesNotThrow(build({ minItems: 3 }));
+  });
 });
