@@ -152,24 +152,6 @@
       }
     },
     {
-      "name": "gallery_images",
-      "label": "ギャラリー画像",
-      "fieldType": "mediaUploaderMulti",
-      "formInput": "mediaUploaderMulti",
-      "required": false,
-      "slug": "gallery",
-      "mediaTypePreset": "imagesAndVideos",
-      "accept": "image/*,video/*",
-      "storage": {
-        "visibility": "public"
-      },
-      "reorderable": true,
-      "validationRule": {
-        "maxSizeBytes": 10485760,
-        "maxItems": 8
-      }
-    },
-    {
       "name": "images",
       "label": "画像",
       "fieldType": "mediaCollection",
@@ -247,7 +229,6 @@
       "fields": [
         "main_image",
         "sub_image",
-        "gallery_images",
         "images"
       ],
       "bgColor": "#f5f5f5"

@@ -1,10 +1,11 @@
 // dc:generate の serverServices: <domain>Service.ts は書き捨て（無いときだけ生成）、drizzleBase.ts は毎回生成する回帰テスト。
-// メディア列の storage binding 出力（Firestore は生成エラー）もここで見る。
+// メディア列の storage binding 出力（Firestore・廃止した型は生成エラー）もここで見る。
 // 実行: pnpm test:dc-server-service
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { loadDomainForGenerate } from "../pipeline/generate.mjs";
 import { renderServerServices } from "../render/serverServices/index.mjs";
 import { applyAndCapture, contextFor, makeProject, removeAll } from "./helpers.mjs";
 
@@ -69,7 +70,7 @@ test("メディア列があれば drizzleBase に storage binding を出し、st
   assert.match(base, /import \{ storageBindingFor \} from "@\/features\/core\/storageObject\/services\/server\/crudBinding";/);
   assert.match(base, /storage: storageBindingFor\("sample", \[/);
   assert.match(base, /\{ name: "main_image", purpose: "sample\.main_image", multi: false \}/);
-  assert.match(base, /\{ name: "gallery_images", purpose: "sample\.gallery_images", multi: true \}/);
+  assert.match(base, /\{ name: "sub_image", purpose: "sample\.sub_image", multi: false \}/);
   assert.doesNotMatch(base, /storageCleanupFields|extractStorageFields/);
   // Service は binding が複製を担うので duplicate ラッパーを組み込まない
   assert.doesNotMatch(fs.readFileSync(path.join(serverDir(root, "sample"), "sampleService.ts"), "utf8"), /duplicate/);
@@ -79,13 +80,16 @@ test("メディア列があれば drizzleBase に storage binding を出し、st
   assert.doesNotMatch(tagBase, /storageBindingFor|storageCleanupFields|__storageBinding__|__StorageBindingImport__/);
 });
 
-test("mediaUploaderMulti だけのドメインにも binding を出す", () => {
+test("廃止した mediaUploaderMulti の項目があれば、集まりへの移行を案内する生成エラーで止め、何も書かない", () => {
   const root = project([], {
     album: { singular: "album", plural: "albums", dbEngine: "Neon", idType: "uuid", fields: [{ name: "photos", fieldType: "mediaUploaderMulti", formInput: "mediaUploaderMulti" }] },
   });
-  run(root, "album");
-  const base = fs.readFileSync(path.join(serverDir(root, "album"), "drizzleBase.ts"), "utf8");
-  assert.match(base, /\{ name: "photos", purpose: "album\.photos", multi: true \}/);
+  const { workspace } = contextFor(root, "album");
+  assert.throws(
+    () => loadDomainForGenerate(workspace, "album", { log() {}, warn() {} }),
+    /\[album\] fields "photos": fieldType "mediaUploaderMulti" は廃止しました。.*mediaCollection/,
+  );
+  assert.ok(!fs.existsSync(path.join(serverDir(root, "album"), "drizzleBase.ts")));
 });
 
 test("Firestore ドメインにメディア列があれば生成エラーで止め、何も書かない", () => {

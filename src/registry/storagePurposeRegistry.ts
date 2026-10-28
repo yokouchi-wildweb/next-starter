@@ -17,7 +17,6 @@ export const storagePurposeRegistry = {
   // --- AUTO-GENERATED-START ---
   "sample.main_image": { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], metadata: "strip", upload: { allow: "authenticated" } },
   "sample.sub_image": { visibility: "public", maxBytes: 104857600, contentTypes: ["image/*", "video/*"], metadata: "strip", upload: { allow: "authenticated" } },
-  "sample.gallery_images": { visibility: "public", maxBytes: 10485760, contentTypes: ["image/*", "video/*"], metadata: "strip", upload: { allow: "authenticated" } },
   "sampleImage.file": { visibility: "public", maxBytes: 10485760, contentTypes: ["image/*"], metadata: "strip", upload: { allow: "authenticated" } },
   // --- AUTO-GENERATED-END ---
   // --- FORK (手書き) ---

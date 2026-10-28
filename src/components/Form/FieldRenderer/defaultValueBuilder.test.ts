@@ -78,11 +78,11 @@ describe("buildFormDefaultValues: fieldType ごとの既定値", () => {
 });
 
 describe("作成フォームの既定値が schema を通る", () => {
-  test("sample: ギャラリー（mediaUploaderMulti）が空でも通る", () => {
+  test("sample: 画像の集まり（mediaCollection）が空でも通る", () => {
     const values = buildFormDefaultValues(normalizeDomainJsonConfig(sampleDomainConfig));
     const result = SampleCreateSchema.safeParse({ ...values, name: "テスト" });
     assert.equal(result.success, true, JSON.stringify(result.error?.issues));
-    assert.deepEqual(result.data?.gallery_images, []);
+    assert.deepEqual(result.data?.images, []);
   });
 
   test("coupon: カテゴリ未選択でも settings（jsonb）が {} として通る", () => {

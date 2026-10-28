@@ -6,7 +6,7 @@ import { fieldTypeChoices } from "../../spec/collectionField.mjs";
 import { isArrayFieldType, isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 import { FORM_INPUTS } from "../../spec/formInputs.mjs";
 import { toCamelCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
-import { MULTI_GUIDANCE, askCollectionField } from "./collection.mjs";
+import { askCollectionField } from "./collection.mjs";
 import { askMediaDetails } from "./media.mjs";
 import { askFieldOptions } from "./options.mjs";
 import { askDefaultValue } from "./defaultValue.mjs";
@@ -17,8 +17,7 @@ const READONLY_SUPPORTED_FORM_INPUTS = new Set(["textInput", "numberInput", "tex
 
 /** 質問の答えから domain.json の 1 項目を組む（値が無いキーは書かない） */
 function buildField({ trimmedName, trimmedLabel, fieldType, normalizedInput, required, media, options, defaultValue }) {
-  const { slug, mediaTypePreset, acceptValue, maxSizeBytes, maxItems, minItems, reorderable, metadataBinding } = media;
-  const hasValidationRule = typeof maxSizeBytes === "number" || typeof maxItems === "number" || typeof minItems === "number";
+  const { slug, mediaTypePreset, acceptValue, maxSizeBytes, metadataBinding } = media;
   const field = {
     name: trimmedName,
     label: trimmedLabel,
@@ -29,16 +28,7 @@ function buildField({ trimmedName, trimmedLabel, fieldType, normalizedInput, req
     ...(slug ? { slug } : {}),
     ...(mediaTypePreset ? { mediaTypePreset } : {}),
     ...(acceptValue ? { accept: acceptValue } : {}),
-    ...(hasValidationRule
-      ? {
-          validationRule: {
-            ...(typeof maxSizeBytes === "number" ? { maxSizeBytes } : {}),
-            ...(typeof maxItems === "number" ? { maxItems } : {}),
-            ...(typeof minItems === "number" ? { minItems } : {}),
-          },
-        }
-      : {}),
-    ...(typeof reorderable === "boolean" ? { reorderable } : {}),
+    ...(typeof maxSizeBytes === "number" ? { validationRule: { maxSizeBytes } } : {}),
     ...(metadataBinding ? { metadataBinding } : {}),
     ...(options && options.length ? { options } : {}),
     ...(defaultValue !== undefined ? { defaultValue } : {}),
@@ -70,7 +60,6 @@ async function askSingleField(config) {
     choices: fieldTypeChoices(config.dbEngine),
   });
   if (isCollectionFieldType(fieldType)) return askCollectionField(config, trimmedName, trimmedLabel);
-  if (fieldType === "mediaUploaderMulti") console.log(`  ※ ${MULTI_GUIDANCE}`);
 
   const { formInput } = await prompt({
     type: "list",
@@ -81,8 +70,8 @@ async function askSingleField(config) {
   const normalizedInput = toCamelCase(formInput);
 
   const isArrayField = isArrayFieldType(fieldType);
-  const isMediaField = normalizedInput === "mediaUploader" || normalizedInput === "mediaUploaderMulti";
-  const media = isMediaField ? await askMediaDetails(trimmedName, normalizedInput) : {};
+  const isMediaField = normalizedInput === "mediaUploader";
+  const media = isMediaField ? await askMediaDetails(trimmedName) : {};
 
   let required = false;
   if (isArrayField) {
@@ -98,7 +87,7 @@ async function askSingleField(config) {
 
   const options = await askFieldOptions({ fieldType, normalizedInput });
 
-  // デフォルト値の質問（mediaUploader / mediaUploaderMulti は対象外）
+  // デフォルト値の質問（mediaUploader は対象外）
   const defaultValue = isMediaField ? undefined : await askDefaultValue(fieldType, options);
 
   const field = buildField({ trimmedName, trimmedLabel, fieldType, normalizedInput, required, media, options, defaultValue });

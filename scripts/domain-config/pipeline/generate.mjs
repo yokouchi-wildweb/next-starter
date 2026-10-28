@@ -12,7 +12,7 @@ import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
 
 /**
- * domain.json を読み、生成前の検査を通す。フォルダ名のずれ・Firestore のメディア列は何も書く前に止める。
+ * domain.json を読み、生成前の検査を通す。フォルダ名のずれ・廃止した型・Firestore のメディア列は何も書く前に止める。
  * 語彙のずれ（綴り違い・古いキー・その DB に無い型）は警告して続ける
  * @returns {import("../domain/context.mjs").DomainContext}
  */

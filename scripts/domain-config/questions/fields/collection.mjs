@@ -11,10 +11,6 @@ import {
 
 const prompt = inquirer.createPromptModule();
 
-/** 型で mediaUploaderMulti を選んだときの案内（選択は止めない） */
-export const MULTI_GUIDANCE =
-  "新しく複数のメディアを持たせるなら mediaCollection（集まり: 1 枚ずつ従属のドメインの行に保存）を選んでください。mediaUploaderMulti（1 列の配列）は既存の項目のために残しています。";
-
 function validatePositiveInteger(input) {
   const value = Number(String(input ?? "").trim());
   return Number.isInteger(value) && value >= 1 ? true : "1以上の整数で入力してください。";

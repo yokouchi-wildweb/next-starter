@@ -35,18 +35,16 @@ const image = { visibility: "public", maxBytes: 10, contentTypes: ["image/*"], u
 const PURPOSES: StoragePurposeMap = {
   "sample.main_image": image,
   "sample.sub_image": image,
-  "sample.gallery_images": image,
 };
 
 // 生成される drizzleBase（src/features/sample/services/server/drizzleBase.ts）と同じ宣言
 const SAMPLE_FIELDS = [
   { name: "main_image", purpose: "sample.main_image", multi: false },
   { name: "sub_image", purpose: "sample.sub_image", multi: false },
-  { name: "gallery_images", purpose: "sample.gallery_images", multi: true },
 ];
 
 const LEGACY_MAIN = "https://firebasestorage.googleapis.com/v0/b/demo.appspot.com/o/sample%2Fmain%2Fa.png?alt=media&token=t";
-const LEGACY_GALLERY = "https://storage.googleapis.com/demo.appspot.com/sample/gallery/b.png";
+const LEGACY_SUB = "https://storage.googleapis.com/demo.appspot.com/sample/sub/b.png";
 
 type Harness = {
   service: StorageObjectService;
@@ -88,7 +86,7 @@ async function readyRef(h: Harness, purpose: string): Promise<string> {
 const rejects400 = (error: unknown) => error instanceof DomainError && error.status === 400;
 
 /** 既存行（旧 URL を持つ、凍結した既存メディア） */
-const legacyRow = () => ({ id: "s-1", name: "既存", main_image: LEGACY_MAIN, sub_image: null, gallery_images: [LEGACY_GALLERY] });
+const legacyRow = () => ({ id: "s-1", name: "既存", main_image: LEGACY_MAIN, sub_image: LEGACY_SUB });
 
 /** 編集フォームの送信値（全項目）→ 生成 UpdateSchema → 保存後の行 */
 function savedRow(before: Record<string, unknown>, form: Record<string, unknown>) {
@@ -98,14 +96,13 @@ function savedRow(before: Record<string, unknown>, form: Record<string, unknown>
 describe("生成スキーマ（storageMediaValueSchema）", () => {
   test("ref・http(s) を通し、空の単一列は null、それ以外の値は拒否する", () => {
     const ref = "storage://pub/sample.main_image/01920000-0000-7000-8000-000000000001.png";
-    const parsed = SampleUpdateSchema.parse({ main_image: ref, sub_image: "", gallery_images: [ref, LEGACY_GALLERY] });
+    const parsed = SampleUpdateSchema.parse({ main_image: ref, sub_image: "" });
     assert.equal(parsed.main_image, ref);
     assert.equal(parsed.sub_image, null);
-    assert.deepEqual(parsed.gallery_images, [ref, LEGACY_GALLERY]);
+    assert.equal(SampleUpdateSchema.parse({ sub_image: LEGACY_SUB }).sub_image, LEGACY_SUB);
 
     for (const bad of ["/images/a.png", "storage://", "ftp://example.com/a.png", "a.png"]) {
       assert.equal(SampleUpdateSchema.safeParse({ main_image: bad }).success, false, bad);
-      assert.equal(SampleUpdateSchema.safeParse({ gallery_images: [bad] }).success, false, bad);
     }
   });
 });
@@ -114,9 +111,10 @@ describe("生成スキーマ + binding（旧 URL の保持）", () => {
   test("旧 URL のまま他の項目だけ編集した保存は通り、何も紐付けない", async () => {
     const h = setup();
     const before = legacyRow();
-    const after = savedRow(before, { name: "編集後", main_image: LEGACY_MAIN, sub_image: "", gallery_images: [LEGACY_GALLERY] });
+    const after = savedRow(before, { name: "編集後", main_image: LEGACY_MAIN, sub_image: LEGACY_SUB });
     await as(alice, () => h.binding.afterWrite(TX, before, after));
     assert.equal(after.main_image, LEGACY_MAIN);
+    assert.equal(after.sub_image, LEGACY_SUB);
     assert.equal(h.ledger.rows.size, 0);
   });
 
@@ -134,16 +132,15 @@ describe("生成スキーマ + binding（旧 URL の保持）", () => {
     await assert.rejects(as(alice, () => h.binding.afterWrite(TX, null, created)), rejects400);
   });
 
-  test("旧 URL をアップロード済みの ref に差し替えると ref だけ紐付き、旧 URL は前と同値の複数列でも保持される", async () => {
+  test("旧 URL をアップロード済みの ref に差し替えると ref だけ紐付き、前と同値の旧 URL は別の列で保持される", async () => {
     const h = setup();
     const mainRef = await readyRef(h, "sample.main_image");
-    const galleryRef = await readyRef(h, "sample.gallery_images");
     const before = legacyRow();
-    const after = savedRow(before, { main_image: mainRef, gallery_images: [LEGACY_GALLERY, galleryRef] });
+    const after = savedRow(before, { main_image: mainRef, sub_image: LEGACY_SUB });
     await as(alice, () => h.binding.afterWrite(TX, before, after));
 
     const attached = [...h.ledger.rows.values()].filter((row) => row.recordId === "s-1");
-    assert.deepEqual(attached.map((row) => row.recordField).sort(), ["gallery_images", "main_image"]);
-    assert.deepEqual(after.gallery_images, [LEGACY_GALLERY, galleryRef]);
+    assert.deepEqual(attached.map((row) => row.recordField), ["main_image"]);
+    assert.equal(after.sub_image, LEGACY_SUB);
   });
 });

@@ -67,10 +67,6 @@ export function fieldColumns(ctx, imports) {
     } else if (isArrayFieldType(f.fieldType)) {
       imports.add("text");
       lines.push(arrayColumn(f.name, f.required));
-    } else if (f.fieldType === "mediaUploaderMulti") {
-      // mediaUploaderMulti は常に NOT NULL + 空配列既定（null/[] の混在を避ける）
-      imports.add("text");
-      lines.push(arrayColumn(f.name, true));
     } else if (f.fieldType === "timestamp With Time Zone") {
       imports.add("timestamp");
       let column = `timestamp("${toSnakeCase(f.name)}", { withTimezone: true })`;

@@ -39,7 +39,7 @@ export function buildCollectionField({ name, label, childSingular, required, max
   };
 }
 
-/** dc:init / dc:add の「フィールドの型」の選択肢（spec/formInputs.mjs の表のキー順。Neon は集まりが mediaUploaderMulti より先） */
+/** dc:init / dc:add の「フィールドの型」の選択肢（spec/formInputs.mjs の表のキー順） */
 export function fieldTypeChoices(dbEngine) {
   return Object.keys(FORM_INPUTS[dbEngine] ?? {});
 }

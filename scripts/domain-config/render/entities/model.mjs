@@ -24,8 +24,7 @@ function bodyLines(config, dbEngine) {
       // 主の集まりは表の列ではない（サービスの読み出しが載せる）。belongsToMany と同じく省略可（表の行の型からも代入できる）
       lines.push(`  ${fieldName}?: ${tsType(f.fieldType)};`);
     } else {
-      // mediaUploaderMulti は常に NOT NULL なので required 扱い（null を返さない）
-      lines.push(typeLine(fieldName, tsType(f.fieldType), f.fieldType === "mediaUploaderMulti" ? true : f.required));
+      lines.push(typeLine(fieldName, tsType(f.fieldType), f.required));
     }
   });
   if (config.useCreatedAt) lines.push("  createdAt: Date | null;");

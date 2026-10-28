@@ -1,5 +1,5 @@
-// フィールドの質問のうち「メディア列（mediaUploader / mediaUploaderMulti）」の追加質問。
-// スラッグ・受け付ける型・上限サイズ・（複数なら）件数と並び替え・メタデータの保存先を聞き、storage の書き方を案内する
+// フィールドの質問のうち「メディア列（mediaUploader）」の追加質問。
+// スラッグ・受け付ける型・上限サイズ・メタデータの保存先を聞き、storage の書き方を案内する
 
 import inquirer from "inquirer";
 import { toCamelCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
@@ -40,48 +40,6 @@ function validatePositiveNumber(input) {
   return true;
 }
 
-function validateOptionalInteger(min, message) {
-  return (input) => {
-    const trimmed = String(input ?? "").trim();
-    if (!trimmed) return true;
-    const num = Number(trimmed);
-    if (!Number.isInteger(num) || num < min) {
-      return message;
-    }
-    return true;
-  };
-}
-
-async function askMultiItemRules() {
-  const maxItemsAnswer = await prompt({
-    type: "input",
-    name: "maxItems",
-    message: "最大アップロード件数（既定: 10）:",
-    default: "10",
-    validate: validateOptionalInteger(1, "1以上の整数で入力してください。"),
-  });
-  const parsedMax = Number(String(maxItemsAnswer.maxItems ?? "").trim());
-  const maxItems = Number.isInteger(parsedMax) && parsedMax > 0 ? parsedMax : undefined;
-
-  const minItemsAnswer = await prompt({
-    type: "input",
-    name: "minItems",
-    message: "最小アップロード件数（任意、空欄で省略）:",
-    default: "",
-    validate: validateOptionalInteger(0, "0以上の整数で入力してください。"),
-  });
-  const parsedMin = Number(String(minItemsAnswer.minItems ?? "").trim());
-  const minItems = Number.isInteger(parsedMin) && parsedMin >= 0 ? parsedMin : undefined;
-
-  const reorderAnswer = await prompt({
-    type: "confirm",
-    name: "reorderable",
-    message: "ドラッグで並び替えできるようにしますか？",
-    default: true,
-  });
-  return { maxItems, minItems, reorderable: Boolean(reorderAnswer.reorderable) };
-}
-
 async function askMetadataBinding() {
   const { enableMetadataBinding } = await prompt({
     type: "confirm",
@@ -119,9 +77,8 @@ async function askMetadataBinding() {
 
 /**
  * @param {string} trimmedName フィールド名（snake_case）
- * @param {"mediaUploader" | "mediaUploaderMulti"} normalizedInput
  */
-export async function askMediaDetails(trimmedName, normalizedInput) {
+export async function askMediaDetails(trimmedName) {
   const camelName = toCamelCase(trimmedName);
   const baseSlug = camelName.replace(/ImageUrl$/, "").replace(/Url$/, "").replace(/Image$/, "");
   const sl = await prompt({
@@ -160,7 +117,6 @@ export async function askMediaDetails(trimmedName, normalizedInput) {
       '原本のまま残す項目（書類・明細など）は "storage": { "metadata": "keep" } を書いてください',
   );
 
-  const multi = normalizedInput === "mediaUploaderMulti" ? await askMultiItemRules() : {};
   const metadataBinding = await askMetadataBinding();
-  return { slug, mediaTypePreset, acceptValue, maxSizeBytes, ...multi, metadataBinding };
+  return { slug, mediaTypePreset, acceptValue, maxSizeBytes, metadataBinding };
 }

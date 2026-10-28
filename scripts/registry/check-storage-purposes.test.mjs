@@ -17,9 +17,9 @@ import {
   removeStoragePurposeEntries,
   syncStorageConfigImport,
 } from "../domain-config/render/registry/storagePurpose/index.mjs";
+import { MEDIA_FIELD_TYPES } from "../domain-config/spec/fieldTypes.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const MEDIA_FIELD_TYPES = new Set(["mediaUploader", "mediaUploaderMulti"]);
 
 const { storagePurposeRegistry } = await import("../../src/registry/storagePurposeRegistry.ts");
 const { listStoragePurposeProblems } = await import("../../src/lib/storage/server/purposes.ts");

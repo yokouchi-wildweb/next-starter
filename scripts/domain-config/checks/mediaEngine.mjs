@@ -9,7 +9,7 @@ export function checkMediaFieldsEngine(camel, config, dbEngine = config?.dbEngin
   const mediaFields = collectMediaFields(config);
   if (dbEngine !== "Firestore" || mediaFields.length === 0) return null;
   return (
-    `[${camel}] Firestore ドメインにはメディア列（mediaUploader / mediaUploaderMulti）を置けません: ` +
+    `[${camel}] Firestore ドメインにはメディア列（mediaUploader）を置けません: ` +
     `${mediaFields.map((f) => f.name).join(", ")}。ファイルを持つドメインは dbEngine "Neon" にしてください。`
   );
 }

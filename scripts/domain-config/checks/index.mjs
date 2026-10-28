@@ -6,6 +6,7 @@
 
 import { checkDomainFolderName } from "./domainFolder.mjs";
 import { checkMediaFieldsEngine } from "./mediaEngine.mjs";
+import { checkRetiredFieldTypes } from "./retiredFieldTypes.mjs";
 import { vocabularyWarnings } from "./vocabulary.mjs";
 
 /**
@@ -13,7 +14,11 @@ import { vocabularyWarnings } from "./vocabulary.mjs";
  * @returns {string[]} エラー文（空なら問題なし）
  */
 export function preflightIssues(ctx) {
-  return [checkDomainFolderName(ctx.camel, ctx.config), checkMediaFieldsEngine(ctx.camel, ctx.config)].filter(Boolean);
+  return [
+    checkDomainFolderName(ctx.camel, ctx.config),
+    checkRetiredFieldTypes(ctx.camel, ctx.config),
+    checkMediaFieldsEngine(ctx.camel, ctx.config),
+  ].filter(Boolean);
 }
 
 /** 最初の問題で例外を投げる（dc:generate の入口） */

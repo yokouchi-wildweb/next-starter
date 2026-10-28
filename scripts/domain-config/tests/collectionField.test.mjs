@@ -39,10 +39,12 @@ test("項目の組み立て: 必須なら複製は常に true", () => {
   assert.deepEqual(field.collection, { domain: "sample_image", maxItems: 3, duplicate: true });
 });
 
-test("型の選択肢: Neon は mediaCollection が mediaUploaderMulti の直前、Firestore には無い", () => {
+test("型の選択肢: Neon は mediaUploader の次が mediaCollection、Firestore には無い。廃止した mediaUploaderMulti はどちらにも無い", () => {
   const neon = fieldTypeChoices("Neon");
-  assert.equal(neon.indexOf("mediaCollection") + 1, neon.indexOf("mediaUploaderMulti"));
+  assert.equal(neon.indexOf("mediaUploader") + 1, neon.indexOf("mediaCollection"));
   assert.equal(fieldTypeChoices("Firestore").includes("mediaCollection"), false);
+  assert.equal(neon.includes("mediaUploaderMulti"), false);
+  assert.equal(fieldTypeChoices("Firestore").includes("mediaUploaderMulti"), false);
   assert.deepEqual(fieldTypeChoices("Unknown"), []);
 });
 

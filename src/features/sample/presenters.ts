@@ -30,7 +30,6 @@ export const presenters: Record<string, SampleFieldPresenter> = {
   time: ({ value, field, record }) => formatString(value),
   main_image: ({ value, field, record }) => formatMediaThumbnail(value),
   sub_image: ({ value, field, record }) => formatMediaThumbnail(value),
-  gallery_images: ({ value, field, record }) => formatMediaThumbnails(value),
   images: ({ value, field, record }) => formatCollectionThumbnails(value),
   description: ({ value, field, record }) => formatString(value),
   sort_order: ({ value, field, record }) => formatString(value),

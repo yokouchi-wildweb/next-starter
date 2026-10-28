@@ -13,7 +13,8 @@ export function buildStorageBindingImport(mediaFields) {
  */
 export function buildStorageBindingOption(camel, mediaFields) {
   if (mediaFields.length === 0) return "";
-  const entries = mediaFields.map((f) => `    { name: "${f.name}", purpose: "${camel}.${f.name}", multi: ${f.multi} },`).join("\n");
+  // 生成するメディア列は 1 列 = 1 ファイル（multi: false）。lib の multi: true は手書きの text[] 列のために残っている
+  const entries = mediaFields.map((f) => `    { name: "${f.name}", purpose: "${camel}.${f.name}", multi: false },`).join("\n");
   return [
     "  // メディア列の値（storage ref）をファイル台帳に紐付ける。複製・物理削除時のファイル処理もここで行う",
     `  storage: storageBindingFor("${camel}", [`,

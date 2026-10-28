@@ -64,9 +64,9 @@ export function pairIssues({ owner, ownerConfig, field, child, childConfig, doma
 
   // e. メディア項目はちょうど 1 つ（複数・集まりは持たない）
   const media = fields.filter((f) => f.fieldType === "mediaUploader");
-  const multi = fields.filter((f) => f.fieldType === "mediaUploaderMulti" || f.fieldType === "mediaCollection");
-  if (media.length !== 1 || multi.length) {
-    errors.push(`${childAt}: メディア項目（mediaUploader）はちょうど 1 つで、mediaUploaderMulti / mediaCollection は持てません（今 mediaUploader ${media.length} / 複数・集まり ${multi.length}）`);
+  const nested = fields.filter((f) => f.fieldType === "mediaCollection");
+  if (media.length !== 1 || nested.length) {
+    errors.push(`${childAt}: メディア項目（mediaUploader）はちょうど 1 つで、mediaCollection は持てません（今 mediaUploader ${media.length} / 集まり ${nested.length}）`);
   }
 
   // f. 並び列（集まりの並びを持つ列。lib の sortColumn は必須なので reorderable に関わらず要る。reorderable は画面のドラッグだけ）

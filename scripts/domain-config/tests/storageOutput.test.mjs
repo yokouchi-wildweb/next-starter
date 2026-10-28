@@ -22,7 +22,6 @@ const FIXTURE = {
     { name: "title", label: "タイトル", fieldType: "string", formInput: "textInput", required: true },
     { name: "cover", label: "表紙", fieldType: "mediaUploader", formInput: "mediaUploader", required: true },
     { name: "thumbnail", label: "サムネイル", fieldType: "mediaUploader", formInput: "mediaUploader" },
-    { name: "photos", label: "写真", fieldType: "mediaUploaderMulti", formInput: "mediaUploaderMulti", validationRule: { maxItems: 5 } },
   ],
 };
 
@@ -31,13 +30,12 @@ function albumContext(config) {
   return contextFor(root, "album");
 }
 
-test("スキーマ: メディア列は storageMediaValueSchema、複数列は z.array(storageMediaValueSchema)", () => {
+test("スキーマ: メディア列は storageMediaValueSchema", () => {
   const { ctx } = albumContext(FIXTURE);
   const schema = renderSchema(ctx);
   assert.match(schema, /import \{ storageMediaValueSchema \} from "@\/lib\/storage\/schema";/);
   assert.match(schema, /cover: z\.string\(\)\.trim\(\)\.min\(1, \{ message: "表紙は必須です。" \}\)\.pipe\(storageMediaValueSchema\),/);
   assert.match(schema, /thumbnail: z\.string\(\)\.trim\(\)\.nullish\(\)\n\s+\.transform\(\(value\) => emptyToNull\(value\)\)\n\s+\.pipe\(storageMediaValueSchema\.nullish\(\)\),/);
-  assert.match(schema, /photos: z\.array\(storageMediaValueSchema\)\.max\(5, /);
 });
 
 test("スキーマ: メディア列が無ければ storageMediaValueSchema を import しない", () => {
@@ -50,16 +48,14 @@ test("presenters: メディア列を resolveStorageSrc で解決するサムネ�
   const presenters = renderPresentersContent(ctx, workspace);
   assert.match(presenters, /cover: \(\{ value, field, record \}\) => formatMediaThumbnail\(value\),/);
   assert.match(presenters, /thumbnail: \(\{ value, field, record \}\) => formatMediaThumbnail\(value\),/);
-  assert.match(presenters, /photos: \(\{ value, field, record \}\) => formatMediaThumbnails\(value\),/);
   assert.match(presenters, /formatMediaThumbnail,\n\s+formatMediaThumbnails,\n\} from "@\/lib\/crud";/);
 });
 
-test("presenters: 主の集まりの項目は formatCollectionThumbnails（import も足す）、旧来の複数メディア列は formatMediaThumbnails のまま", () => {
+test("presenters: 主の集まりの項目は formatCollectionThumbnails（import も足す）", () => {
   const gallery = { name: "gallery", label: "ギャラリー", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "album_gallery" } };
   const { ctx, workspace } = albumContext({ ...FIXTURE, fields: [...FIXTURE.fields, gallery] });
   const presenters = renderPresentersContent(ctx, workspace);
   assert.match(presenters, /gallery: \(\{ value, field, record \}\) => formatCollectionThumbnails\(value\),/);
-  assert.match(presenters, /photos: \(\{ value, field, record \}\) => formatMediaThumbnails\(value\),/);
   assert.match(presenters, /formatMediaThumbnails,\n\s+formatCollectionThumbnails,\n\} from "@\/lib\/crud";/);
   const { ctx: legacyCtx, workspace: legacyWorkspace } = albumContext(FIXTURE);
   assert.doesNotMatch(renderPresentersContent(legacyCtx, legacyWorkspace), /formatCollectionThumbnails/);
@@ -67,7 +63,7 @@ test("presenters: 主の集まりの項目は formatCollectionThumbnails（impor
 
 test("Fields: メディア列に purpose `<domain>.<field>` を付けて FieldRenderer に渡す", () => {
   const fields = generateFieldsFromConfig(FIXTURE).replace(/__domain__/g, "album").replace(/__Domain__/g, "Album");
-  assert.match(fields, /cover: "album\.cover",\n\s+thumbnail: "album\.thumbnail",\n\s+photos: "album\.photos",/);
+  assert.match(fields, /cover: "album\.cover",\n\s+thumbnail: "album\.thumbnail",\n/);
   assert.match(fields, /baseFields=\{baseFields\}/);
   assert.doesNotMatch(fields, /title: "album\.title"/);
 

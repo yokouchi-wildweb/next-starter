@@ -8,29 +8,18 @@ import { isArrayFieldType, isCollectionFieldType, isTextFieldType, isTimestampFi
 const formatSchemaDefault = (value) => (typeof value === "string" ? `"${value}"` : value);
 
 /** メディア列: 値は storage ref または http(s)（凍結した旧 URL）。新しい行に旧 URL を書けるかは CRUD 連動（storage binding）が判定する */
-function mediaLine(uses, { name, label, required, fieldType, validationRule }) {
+function mediaLine(uses, { name, label, required }) {
   uses.storageMediaValue = true;
-  if (fieldType === "mediaUploader") {
-    if (required) {
-      return `  ${name}: z.string().trim().min(1, { message: "${label}は必須です。" }).pipe(storageMediaValueSchema),`;
-    }
-    uses.emptyToNull = true;
-    return `  ${name}: z.string().trim().nullish()\n    .transform((value) => emptyToNull(value))\n    .pipe(storageMediaValueSchema.nullish()),`;
+  if (required) {
+    return `  ${name}: z.string().trim().min(1, { message: "${label}は必須です。" }).pipe(storageMediaValueSchema),`;
   }
-  // 複数枚アップローダ: 常に default([])。required は min(1) として表現
-  const minItems = typeof validationRule?.minItems === "number" ? validationRule.minItems : required ? 1 : 0;
-  const maxItems = typeof validationRule?.maxItems === "number" ? validationRule.maxItems : 10;
-  const segments = [`  ${name}: z.array(storageMediaValueSchema)`];
-  if (minItems > 0) {
-    segments.push(`.min(${minItems}, { message: "${label}は${minItems}件以上必要です。" })`);
-  }
-  segments.push(`.max(${maxItems}, { message: "${label}は${maxItems}件以下にしてください。" })`, ".default([])", ",");
-  return segments.join("");
+  uses.emptyToNull = true;
+  return `  ${name}: z.string().trim().nullish()\n    .transform((value) => emptyToNull(value))\n    .pipe(storageMediaValueSchema.nullish()),`;
 }
 
 /**
- * 主の集まりの項目: 値は従属の file の値（storage ref）の並び。複数枚の行と同じ値のスキーマで、
- * required → 1 件以上（lib の minItems と同じ）、collection.maxItems → 上限（省略 = 上限なし）。default([]) も複数枚の行と同じ
+ * 主の集まりの項目: 値は従属の file の値（storage ref）の並び。
+ * required → 1 件以上（lib の minItems と同じ）、collection.maxItems → 上限（省略 = 上限なし）。未入力は default([])
  */
 function collectionLine(uses, { name, label, required, collection }) {
   uses.storageMediaValue = true;
@@ -44,11 +33,9 @@ function collectionLine(uses, { name, label, required, collection }) {
 }
 
 /** 使った補助関数を記録しながら 1 項目の行を作る */
-function fieldLine(uses, { name, label, type, required, fieldType, defaultValue, validationRule }) {
+function fieldLine(uses, { name, label, type, required, fieldType, defaultValue }) {
   const resolvedLabel = label || name;
-  if (fieldType === "mediaUploader" || fieldType === "mediaUploaderMulti") {
-    return mediaLine(uses, { name, label: resolvedLabel, required, fieldType, validationRule });
-  }
+  if (fieldType === "mediaUploader") return mediaLine(uses, { name, label: resolvedLabel, required });
   if (isArrayFieldType(fieldType)) {
     return required ? `  ${name}: ${type}.default([]),` : `  ${name}: ${type}.nullish(),`;
   }
@@ -141,7 +128,6 @@ export function renderSchema(ctx) {
           required: f.required,
           fieldType: f.fieldType,
           defaultValue: f.defaultValue,
-          validationRule: f.validationRule,
         }),
       );
     }

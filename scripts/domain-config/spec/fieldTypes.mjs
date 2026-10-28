@@ -7,7 +7,7 @@
 //   ts        TS の型（無ければ any）
 //   text      文字列系: Zod で .trim()、必須なら .min(1)、任意なら emptyToNull を通す
 //   numeric   数値系: 選択肢の値を数値で読む、デフォルト値を数値で読む
-//   media     メディア列（storage binding の対象。multi = 複数）
+//   media     メディア列（storage binding の対象。1 列 = 1 ファイル。複数は mediaCollection）
 //   array     配列列（text[]、必須は空配列既定）
 //   presenter 表示フォーマッタの種類（無ければ formInput で決める）
 //   noDefault dc:init でデフォルト値を聞かない
@@ -19,7 +19,6 @@ export const FIELD_TYPES = {
   password: { column: "text", zod: "z.string()", ts: "string", text: true },
   uuid: { column: "uuid", zod: "z.string()", ts: "string", text: true },
   mediaUploader: { column: "text", zod: "z.string()", ts: "string", text: true, media: true },
-  mediaUploaderMulti: { column: "text", ts: "string[]", media: true, multi: true },
   integer: { column: "integer", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number" },
   number: { zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number" },
   float: { column: "doublePrecision", zod: "z.coerce.number()", ts: "number", numeric: true, presenter: "number" },
@@ -69,12 +68,12 @@ export const presenterKind = (fieldType) => spec(fieldType).presenter;
 export const MEDIA_FIELD_TYPES = new Set(Object.keys(FIELD_TYPES).filter((t) => FIELD_TYPES[t].media));
 
 /**
- * メディア列を { name, multi } で返す
+ * メディア列を { name } で返す
  * @param {{ fields?: Array<{ name: string, fieldType: string }> } | null | undefined} config
  */
 export function collectMediaFields(config) {
   if (!Array.isArray(config?.fields)) return [];
-  return config.fields.filter((f) => MEDIA_FIELD_TYPES.has(f.fieldType)).map((f) => ({ name: f.name, multi: Boolean(spec(f.fieldType).multi) }));
+  return config.fields.filter((f) => MEDIA_FIELD_TYPES.has(f.fieldType)).map((f) => ({ name: f.name }));
 }
 
 /** 選択肢（options）を持つ項目。constants/field.ts と types/field.ts の生成対象 */

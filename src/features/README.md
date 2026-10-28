@@ -210,6 +210,8 @@ custom リレーションの UI 実装例:
 | mediaUploader | メディアアップロード用 |
 | mediaCollection | 主の集まり（従属ドメインのメディアの行の並び。列を持たない。formInput は `mediaUploaderMulti`） |
 
+`mediaUploaderMulti`（1 列の text[] に複数のメディアを持つ型）は廃止した。domain.json に残っていると dc:generate が集まりへの移行を案内するエラーで止まる。複数のメディアは mediaCollection で持つ（formInput の `mediaUploaderMulti` は集まりの入力欄の名前として残る）
+
 #### FieldType（Firestore）
 
 | 値 | 説明 |
@@ -327,9 +329,9 @@ import { ControlledField } from "@/components/Form/Field";
 
 主の 1 行に属する従属ドメインの行の並び（例: 商品のギャラリー画像）。主の表に列は持たず、lib の collections オプション（[src/lib/crud/README.md](../lib/crud/README.md)「ドメイン集約」）で読み書きする。Neon のみ。
 
-- 新しく 1 つのレコードに複数のメディアを持たせるなら mediaCollection を選ぶ（1 枚ずつ従属のドメインの行に保存）。`mediaUploaderMulti`（1 列の text[]）は既存の項目のために残っており、そのまま動く。dc:init / dc:add も型の選択で集まりを multi より先に並べ、multi を選ぶと 1 行案内する
-- 例: `src/features/sample/domain.json` の `images`（従属 `sampleImage`）。`gallery_images` は既存の multi の例
-- 既存の mediaUploaderMulti 列を集まりへ移す: [src/lib/crud/README.md](../lib/crud/README.md)「既存の mediaUploaderMulti 列からの移行」（手順・やってはいけないこと・確かめ方・戻し方）
+- 1 つのレコードに複数のメディアを持たせる方法はこれだけ（1 枚ずつ従属のドメインの行に保存）。旧来の fieldType `mediaUploaderMulti`（1 列の text[]）は廃止した
+- 例: `src/features/sample/domain.json` の `images`（従属 `sampleImage`）
+- 廃止前の mediaUploaderMulti 列を集まりへ移す: [src/lib/crud/README.md](../lib/crud/README.md)「既存の mediaUploaderMulti 列からの移行」（手順・やってはいけないこと・確かめ方・戻し方）
 
 ```json
 { "name": "galleryImages", "label": "ギャラリー", "fieldType": "mediaCollection", "formInput": "mediaUploaderMulti",
@@ -354,7 +356,7 @@ import { ControlledField } from "@/components/Form/Field";
   - ファイルの条件（preset・accept・上限）は雛形の既定なので、従属の domain.json で直す
 - 従属が守ること（dc:generate が書く前に検査し、1 つでも外れれば全件を並べて何も書かずに止まる。一覧と判定: [scripts/domain-config/README.md](../../scripts/domain-config/README.md)「dc:generate」）
   - 主への belongsTo はちょうど 1 本・required・onDelete CASCADE、`useSoftDelete` は false
-  - メディア項目（mediaUploader）はちょうど 1 つ。mediaUploaderMulti / mediaCollection は持たない。ファイルの条件はここに書く（主の項目には書かない）
+  - メディア項目（mediaUploader）はちょうど 1 つ。mediaCollection は持たない。ファイルの条件はここに書く（主の項目には書かない）
   - `sortOrderField` とその項目を持ち、`systemColumns` に入れる（集まりの並びを持つ列。主の項目が reorderable: false でも要る）
   - 主の画面から埋められない必須の項目（主への参照・メディア・並び以外で required かつ defaultValue なし）を持たない
   - `file` の upload は主の create・update の和より狭くしない、read は主の get より狭くしない（public の従属は見ない）。広い upload と、開いた汎用 API は知らせるだけ

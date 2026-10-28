@@ -369,10 +369,12 @@ import { storageBindingFor } from "@/features/core/storageObject/services/server
 createCrudService(SampleTable, {
   storage: storageBindingFor("sample", [
     { name: "main_image", purpose: "sample.main_image" },
-    { name: "gallery_images", purpose: "sample.gallery_images", multi: true },
+    { name: "sub_image", purpose: "sample.sub_image" },
   ]),
 });
 ```
+
+`multi: true` は 1 列の `text[]` に複数の ref を持つ列のための宣言（生成器の mediaUploaderMulti は廃止したので、手書きの列か移行前の列だけが使う）。新しく複数のメディアを持たせるなら下の「ドメイン集約」にする。
 
 - メディア列は systemColumns にも hiddenColumns にもできない（どちらも createCrudService が組み立て時に throw する。hiddenColumns は戻り値で null になり、掃除の値の照合が誤るため）
 - lib/crud が持つのは型（`storageIntegration/types.ts` の `CrudStorageBinding`）と呼び出し口（`applyStorageBinding.ts`）だけ。台帳の操作は features 側の `storageBindingFor` が差し込む（lib → features の依存を作らない）
@@ -605,11 +607,11 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 
 - 基盤に移行の仕組み（移行ヘルパー・移行専用の書き込み口・台帳の付け替え関数）は無い。移行はそのドメインを持つリポが行う
 - 一度きりのデータ移行では DB を直接クエリで操作してよい（領域ごとの規則より上位の原則）。サービスを通すと binding がファイルを消す経路に当たるので、値の移し替えは直接 SQL で行う（下の「やってはいけないこと」）
-- 既存の multi 列は移行するまで今のまま動く。新しく足す項目は集まりにする（[src/features/README.md](../../features/README.md)「主の集まりの項目（mediaCollection）」）
+- 生成器の fieldType `mediaUploaderMulti` は廃止した。domain.json に残っていると dc:generate が止まるので、生成し直す前にこの手順で集まりへ移す（lib の `multi: true` の binding は残っているので、生成済みのサービスと列は移行するまで動く）。新しく足す項目は集まりにする（[src/features/README.md](../../features/README.md)「主の集まりの項目（mediaCollection）」）
 
 使う名前（プレースホルダ）:
 
-| 名前 | 意味 | 例（sample） |
+| 名前 | 意味 | 例（廃止前の sample） |
 |---|---|---|
 | `<parent_table>` / `<ParentKey>` | 主の表 / 主の登録表キー（camelCase。台帳の record_type） | `samples` / `sample` |
 | `<field>` | 元の multi 列（domain.json の項目名 = 列名） | `gallery_images` |

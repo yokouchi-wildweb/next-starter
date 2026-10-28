@@ -37,7 +37,6 @@ function buildFormatter(field) {
   }
   // メディア列: 値（storage ref・旧 URL）を resolveStorageSrc で解決してサムネイル表示する。主の集まりは先頭 1 件と +N
   if (isCollectionFieldType(fieldType)) return `formatCollectionThumbnails(value)`;
-  if (fieldType === "mediaUploaderMulti" || formInput === "mediaUploaderMulti") return `formatMediaThumbnails(value)`;
   if (fieldType === "mediaUploader" || formInput === "mediaUploader" || formInput === "fileUploader") return `formatMediaThumbnail(value)`;
   return `formatString(value)`;
 }

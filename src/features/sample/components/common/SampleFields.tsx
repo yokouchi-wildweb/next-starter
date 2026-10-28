@@ -23,7 +23,6 @@ const domainConfig = normalizeDomainJsonConfig(rawDomainConfig);
 const STORAGE_PURPOSES: Record<string, string> = {
   main_image: "sample.main_image",
   sub_image: "sample.sub_image",
-  gallery_images: "sample.gallery_images",
 };
 
 // 主の集まりの項目: 従属の file の用途・ファイルの条件と集まりの件数（従属の domain.json から生成）

@@ -98,10 +98,13 @@ test("d. 論理削除の従属は誤り", () => {
   expectError({ child: { ...childOf(owner()), useSoftDelete: true } }, /useSoftDelete は false/);
 });
 
-test("e. メディア項目はちょうど 1 つ、複数・集まりは持たない", () => {
+test("e. メディア項目はちょうど 1 つ、集まりは持たない", () => {
   const child = childOf(owner());
-  expectError({ child: { ...child, fields: child.fields.slice(1) } }, /今 mediaUploader 0 \/ 複数・集まり 0/);
-  expectError({ child: { ...child, fields: [...child.fields, { name: "more", label: "x", fieldType: "mediaUploaderMulti", formInput: "mediaUploaderMulti" }] } }, /複数・集まり 1/);
+  expectError({ child: { ...child, fields: child.fields.slice(1) } }, /今 mediaUploader 0 \/ 集まり 0/);
+  expectError(
+    { child: { ...child, fields: [...child.fields, { name: "more", label: "x", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", collection: { domain: "x" } }] } },
+    /集まり 1/,
+  );
 });
 
 test("f. 並び列: sortOrderField・その項目・systemColumns（reorderable: false でも要る）", () => {
