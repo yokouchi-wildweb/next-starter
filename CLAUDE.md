@@ -108,6 +108,7 @@ NOT_for: game telemetry, scroll / mousemove streams, tens of millions of events 
 
 ## FEATURES
 scope: each line = a rule that applies even when you are not editing that feature | read its README before working in it
+- media_collection: several media per record → a mediaCollection field (dc:generate writes the owned child domain and wires it), never a new mediaUploaderMulti text[] column (existing multi columns keep working) | ref: src/features/README.md, src/lib/crud/README.md
 - users_table: no analytics columns on users → per-concern satellite tables (aggregation axes = typed columns, long tail = jsonb extras)
 - user_acquisition: signup attribution, opt-in default disabled | invite links run on their own pending_invite cookie gated by the referral flag, independent of acquisition | ref: src/features/core/userAcquisition/README.md, src/features/core/referral/README.md
 - user_name: every write path to users.name MUST use the shared schemas (user/entities/userName.ts) and withUserNameGuard, never redefine name rules inline | uniqueness = app-layer check, not a DB constraint | ref: src/features/core/user/README.md
