@@ -584,6 +584,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 | `<child_table>` / `<ChildKey>` | 従属の表 / 従属の登録表キー | `sample_images` / `sampleImage` |
 | `<parent>_id` | 従属の主への参照列（生成の雛形の名前） | `sample_id` |
 | `<old_purpose>` | 元の列の用途 ID（`<ParentKey>.<field>`、ref の中に入っている） | `sample.gallery_images` |
+| `<migration_log>` | 移行で作った従属の行の記録の表（手順 3 で作り、手順 5 の前に消す。戻し方はこの行だけに絞る） | `sample_images_migration_log` |
 
 #### 中間の形（元の列を残して並べる）
 
@@ -612,8 +613,16 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
    - `src/registry/storagePurposeRegistry.ts` の AUTO ブロックにある `"<old_purpose>": { … }` を、`// --- FORK (手書き) ---` の下へそのまま写し、`upload: { allow: "none" }` にする（private なら `read: { allow: … }` も写す）
    - 理由: 移した後も従属の行の ref は `<old_purpose>` のまま（ref の purposeId は改名できない）。ファイルの読み取り・削除は台帳の行の purpose で登録表を引くので、元の項目を domain.json から外して AUTO から消えても FORK の登録が要る。新しいアップロードは従属の用途（`<ChildKey>.file`）で受けるので、旧用途は閉じる
 2. 従属を作る（上の「中間の形」）。元の列は残す
-3. 書き込みを止め、主 1 行ずつ同じ TX で従属の行を作り、台帳を付け替える
+3. 書き込みを止め、主 1 行ずつ同じ TX で従属の行を作り、台帳を付け替え、作った行を記録する
    - 止め方は運用で決める（メンテナンス表示など）。主と従属への保存・削除・replaceByQuery が走らない状態にする
+   - 先に記録の表を作る。中間の形では画面が集まりを先に出すことがあり、移行の外で作られた従属の行（新しいアップロード）が在りうるので、戻すときに「移行で作った行」だけを選べるようにする
+
+   ```sql
+   -- parent_id の型は主の id の型に合わせる。登録表（schemaRegistry）に無い表なので、在る間に pnpm db:push を流すと
+   -- この表の DROP を提案される（y/N で N にする。移行を終えて手順 5 の前に自分で消す）
+   CREATE TABLE <migration_log> (child_id uuid PRIMARY KEY, parent_id uuid NOT NULL);
+   ```
+
    - 主 1 行（`<parent_id>`）の例（62 件まで。並びの鍵は下の「並びの鍵」）:
 
    ```sql
@@ -628,6 +637,10 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
             'a' || substr('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', ord::int, 1)
      FROM src
      RETURNING id, file
+   ), logged AS (
+     -- 作った行を記録する（WITH の中の INSERT は本体が読まなくても必ず実行される）
+     INSERT INTO <migration_log> (child_id, parent_id)
+     SELECT id, '<parent_id>' FROM ins
    )
    -- 台帳を付け替える（台帳にある ref だけ。旧 URL は当たらない）。条件に元の主・元の列を入れ、別の行を指す台帳には触れない
    UPDATE storage_objects AS so
@@ -647,15 +660,15 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
    - UPDATE の件数が INSERT のうち台帳にある値（`storage://` の要素）の件数と合わなければ、その TX を巻き戻し（`ROLLBACK`）、その主の行の台帳（status・record_type・record_id・record_field）を調べてから流し直す。合わないまま進めない
 4. 他の表が同じ値をコピーで持っていれば、従属の行への参照（FK、`ON DELETE SET NULL`）に張り替える
    - ref を別の表へコピーして持つことは禁止の形（台帳の 1 行は 1 つの業務行を指す）。移行のついでに、コピーの列を従属の行 id を指す FK に置き換える。どの表がコピーを持つかはドメインごとに調べる
-5. 元の列を直接 SQL で空にするか、列ごと落とす
+5. 元の列を直接 SQL で空にするか、列ごと落とす（その前に記録の表を消す: `DROP TABLE <migration_log>;`。ここで戻せなくなるので、手順 6 を確かめてから）
    - 空にする: `UPDATE <parent_table> SET <field> = '{}';`（サービスの保存では空にしない）
    - 落とす: 主の domain.json から元の項目を外して `pnpm dc:generate <Parent> --yes`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の FORK の登録が残る）
    - ここから先は戻せない。手順 6 の数え上げを、空にする・落とす前にも一度流す
 6. 確かめる（読み取りの SQL の数え上げ）
 
    ```sql
-   -- 従属の行数 = 元の列の要素数の合計（空にする前に比べる）
-   SELECT (SELECT count(*) FROM <child_table>) AS child_rows,
+   -- 移行で作った従属の行数 = 元の列の要素数の合計（空にする前に比べる。移行の外で作られた従属の行は数えない）
+   SELECT (SELECT count(*) FROM <migration_log>) AS migrated_rows,
           (SELECT coalesce(sum(cardinality(<field>)), 0) FROM <parent_table>) AS source_items;
    -- 付け替えた台帳の件数（= 元の列の storage:// の要素数）
    SELECT count(*) FROM storage_objects
@@ -697,18 +710,21 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 
 #### 戻し方
 
-- 手順 5（元の列を空にする・落とす）の前なら戻せる。台帳を先に元へ戻し、その後に従属の行を直接 SQL で消す（逆の順だと、掃除が「業務行の無い台帳」として外して実物を消す）
+- 手順 5（元の列を空にする・落とす）の前なら戻せる。戻すのは記録の表にある「移行で作った行」だけ（移行の外で作られた従属の行と、その台帳には触れない）。台帳を先に元へ戻し、その後に従属の行を直接 SQL で消す（逆の順だと、掃除が「業務行の無い台帳」として外して実物を消す）
 
   ```sql
   BEGIN;
   UPDATE storage_objects AS so
-  SET record_type = '<ParentKey>', record_id = c.<parent>_id::text, record_field = '<field>'
-  FROM <child_table> AS c
+  SET record_type = '<ParentKey>', record_id = m.parent_id::text, record_field = '<field>'
+  FROM <migration_log> AS m
   WHERE so.status = 'ready' AND so.record_type = '<ChildKey>' AND so.record_field = 'file'
-    AND so.record_id = c.id::text;
-  DELETE FROM <child_table>;
+    AND so.record_id = m.child_id::text;
+  DELETE FROM <child_table> WHERE id IN (SELECT child_id FROM <migration_log>);
+  DELETE FROM <migration_log>;
   COMMIT;
   ```
+
+- 一部の主だけ戻すときは、記録の表を `parent_id` で絞って同じ形で流す
 
 - 従属の行はサービスで消さない（binding が台帳を外して実物を消す）
 - 手順 5 の後は戻せない。空にする・落とす前に手順 6 を確かめる
