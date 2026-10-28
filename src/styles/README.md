@@ -247,10 +247,23 @@ defineSiteThemeConfig({ areas: [{ key: "kiosk", match: ["/kiosk"], mode: "dark" 
 
 `useSiteThemeStore()`(`@/stores/siteTheme`)の `isDark` / `switchable` / `toggle` / `setDark` を使う。表示可否は `resolveSiteThemeArea(SITE_THEME_CONFIG, usePathname()).switchable` で判定する(`DarkModeSwitch` の実装がそのまま手本。SSR とクライアントで一致させるため usePathname ベース)。ロックされたエリアでは `setDark` / `toggle` は何もしない(開発時は console.warn)。`<html>` を直接触らない。
 
+## デプロイ後の確認(Vercel ビルドキャッシュ)
+
+Vercel が前回デプロイのビルドキャッシュを復元すると、キャッシュ作成後に `global.css`(または `custom/index.css`)へ足された `@import` 先が、出力 CSS から黙って抜けることがある。ローカル dev とローカル `next build` は正常で、本番だけ崩れる。
+
+- **症状**: パレット・角丸・書体が一斉に失われる(`--primary` / `--radius` / `--font-geist-sans` が未定義)。崩れた本番の CSS チャンク(`/_next/static/**/*.css`)を取得して `--primary:` を grep すると無い。ビルドログに `Restored build cache from previous deployment` がある
+- **起きやすい状況**: デプロイ頻度の低い fork が、CSS ファイルを足す上流 notice(palette.defaults.css / typography.defaults.css / custom/ の導入など)を何件もまとめて取り込んだ直後の初回デプロイ
+- **ガード**: `pnpm build` の末尾で `pnpm styles:check-build` が走り、`global.css` から辿れる全ファイルの CSS 変数が `.next/static/**/*.css` に揃っていなければビルドを落とす(本番に出る前に止まる)。Vercel の Build Command が `pnpm build` 以外だと走らない
+- **直し方**: キャッシュを使わずに再デプロイする。`pnpm deploy:all -- --prod --force`、またはダッシュボードの Redeploy で「Use existing Build Cache」を外す、または環境変数 `VERCEL_FORCE_NO_BUILD_CACHE=1` を一時的に置いて再デプロイし成功後に外す。キャッシュを常時無効にはしない(Hobby プランはビルド CPU が逼迫する)
+- **運用ルール**: CSS ファイルを足す・構成を変える notice を取り込んだ後の初回本番デプロイは、ガードの有無にかかわらずキャッシュ無しで行う
+- **ガードの限界**: 他のファイルが宣言している名前だけを上書きするファイル(`custom/palette.css` で `--primary` だけ変える等)は、抜けても名前が残るので検出できない(警告のみ)。fork 独自の変数(例 `--brand-accent`)を 1 つ宣言すれば検査対象になる。`@theme` 内の変数と `@utility` の中身は出力に残る保証が無いため検査しない
+
 ## テスト
 
 | コマンド | 内容 |
 |---|---|
+| `pnpm styles:check-build` | ビルド済み CSS に global.css から辿れる全ファイルの変数が揃っているか(`pnpm build` が自動で実行) |
+| `pnpm test:built-css` | 上記の判定ロジック(@theme / @utility の除外、相対 import の走査、missing / unverifiable の判定) |
 | `pnpm test:site-theme` | 既定値の互換、エリア一致、ロック、bootstrap script と resolver の一致 |
 | `pnpm test:style-tokens` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 意味色の 3 変数が揃っている / 書体変数が typography.defaults.css にある / global.css の import 順 |
 | `pnpm test:fonts` | defineFontsConfig の既定(読み込み無し)と variable クラス連結、typography.defaults.css の loaded 変数参照 |
