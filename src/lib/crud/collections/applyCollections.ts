@@ -13,13 +13,14 @@
 //   searchForSorting）: 返した主の行に、集まりごとに値の配列を全件（件数の上限なし）並び順で載せる。
 //   集まり 1 つにつき呼び出し 1 回で 1 クエリ（主の id の IN）。従属が無ければ []。restore / reorder /
 //   systemUpdate / bulk 系の戻り値には載せない（省略 = 維持なので保存しても失わない）
+// - 他ドメインの withRelations で埋め込まれた主の行: 表の登録（tableCollections.ts）からリレーション展開が同じ射影で載せる
 // - collectionFields: 集まりの項目名を読み取り専用で出す（dataMigration の拒否・書き出しの除外が使う）
 // - duplicate / duplicateWithIdMap: applyCollectionDuplicate が storage binding の外側で包み、
 //   duplicateWithCollections（2 段の複製）を呼ぶ
 // - 呼び出し元が tx を渡さなければ内部で TX を張る（従属の hardDelete のファイルの片付けは従属の
 //   storage binding の動きのまま: 外から tx を渡すので掃除 cron が片付ける）
 
-import { count, eq, getTableColumns, inArray } from "drizzle-orm";
+import { count, eq, getTableColumns } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 
 import { db } from "@/lib/drizzle";
@@ -29,10 +30,11 @@ import type { ReplaceByQueryOptions, WhereExpr } from "@/lib/crud/types";
 import type { DbTransaction } from "../drizzle/types";
 import type { DuplicateOptions } from "@/lib/crud/types";
 
-import { collectionOrderBy } from "./collectionOrder";
 import { duplicateWithCollections } from "./duplicateWithCollections";
+import { projectCollections } from "./projectCollections";
 import { SKIP_OMITTED_MIN_ITEMS } from "./internalMarkers";
 import { minItemsError, resolveCollectionColumns, syncCollectionInTx, validateCollectionValues } from "./syncCollection";
+import { registerTableCollections } from "./tableCollections";
 import type { CollectionDuplicateParentService, CollectionValue, CrudCollectionConfig } from "./types";
 
 type Row = Record<string, unknown>;
@@ -83,6 +85,8 @@ export function applyCollections<TService extends CollectionAwareService>(
     fieldNames.add(name);
     return resolveCollectionColumns(collection);
   });
+  // 他ドメインの withRelations で埋め込まれたこの表の行にも集まりを載せる（tableCollections.ts）
+  registerTableCollections(table, collections);
 
   const touchesCollections = (data: unknown): boolean =>
     Boolean(data) &&
@@ -131,28 +135,8 @@ export function applyCollections<TService extends CollectionAwareService>(
     }
   };
 
-  /** 主の行に集まりの値の配列を載せる（集まりごとに 1 クエリ、件数の上限なし） */
-  const project = async (records: readonly Row[]): Promise<void> => {
-    const rows = records.filter((record): record is Row => Boolean(record));
-    if (!rows.length) return;
-    const parentIds = [...new Set(rows.map((record) => record.id as CollectionValue))];
-    for (const [index, collection] of collections.entries()) {
-      const children = (await db
-        .select({ parentId: collection.parentColumn, value: collection.valueColumn })
-        .from(resolved[index].childTable as any)
-        .where(inArray(collection.parentColumn, parentIds))
-        .orderBy(collection.parentColumn, ...collectionOrderBy(collection, resolved[index]))) as Row[];
-      const valuesByParent = new Map<unknown, CollectionValue[]>();
-      for (const child of children) {
-        const values = valuesByParent.get(child.parentId);
-        if (values) values.push(child.value as CollectionValue);
-        else valuesByParent.set(child.parentId, [child.value as CollectionValue]);
-      }
-      for (const record of rows) {
-        record[collection.fieldName] = valuesByParent.get(record.id) ?? [];
-      }
-    }
-  };
+  /** 主の行に集まりの値の配列を載せる（集まりごとに 1 クエリ、件数の上限なし。埋め込みの射影と共通） */
+  const project = (records: readonly Row[]): Promise<void> => projectCollections(records, collections, resolved);
 
   const projectOne = async <T>(record: T): Promise<T> => {
     if (record) await project([record as Row]);

@@ -130,7 +130,7 @@
 
 | カテゴリ | 出力 |
 |---|---|
-| `entities` | `entities/{model,form,schema,index}.ts` + `drizzle.ts`（Firestore なら `firestore.ts`）。主の集まりの項目（mediaCollection）は列を出さず、スキーマ = `z.array(storageMediaValueSchema)`（required → `.min(1)`、`collection.maxItems` → `.max`）、モデル = `string[]` |
+| `entities` | `entities/{model,form,schema,index}.ts` + `drizzle.ts`（Firestore なら `firestore.ts`）。主の集まりの項目（mediaCollection）は列を出さず、スキーマ = `z.array(storageMediaValueSchema)`（required → `.min(1)`、`collection.maxItems` → `.max`）、モデル = `string[]`（省略可）。主は表の定義の後に `defineTableCollections(<Domain>Table, () => import(…/collections))` を出す（他ドメインの withRelations の埋め込みにも集まりを載せるための表の登録） |
 | `components` | `components/Admin<Domain>{Create,Edit,List}/`、`components/common/{Create<Domain>Form,Edit<Domain>Form,<Domain>Form,<Domain>Fields}.tsx`。`useDetailModal` で `<Domain>DetailModal.tsx`、`sortOrderField` で `Admin<Domain>Sort/`（一覧は `render/components/catalog.mjs`）。`<Domain>Fields` は主の集まりの項目に、従属の `file` の用途（`<従属>.file`）・accept・上限サイズと集まりの件数（maxItems / required → minItems 1）を載せる（従属の domain.json から。この実行で書き出す従属は書き出す中身） |
 | `hooks` | `hooks/use*<Domain>.ts`（どれが生成されるかは `render/hooks/catalog.mjs`、使い方は [`src/lib/crud/hooks/README.md`](../../src/lib/crud/hooks/README.md)） |
 | `clientServices` | `services/client/<domain>Client.ts` |

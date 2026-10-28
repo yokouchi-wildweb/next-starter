@@ -30,11 +30,20 @@ function generateShowcase(config = showcase) {
   return { root, workspace, read };
 }
 
-test("drizzle: 集まりの項目は列を出さない（型名の列関数も import しない）", () => {
-  const drizzle = generateShowcase().read("entities/drizzle.ts");
+test("drizzle: 集まりの項目は列を出さない（型名の列関数も import しない）。表に集まりを遅延で登録する", () => {
+  const { root, read } = generateShowcase();
+  const drizzle = read("entities/drizzle.ts");
   assert.doesNotMatch(drizzle, /photos/);
   assert.doesNotMatch(drizzle, /mediaCollection/);
   assert.match(drizzle, /brochure: text\("brochure"\)/);
+  assert.match(drizzle, /^import \{ defineTableCollections \} from "@\/lib\/crud\/collections\/tableCollections";$/m);
+  assert.match(
+    drizzle,
+    /^defineTableCollections\(ShowcaseTable, \(\) => import\("@\/features\/showcase\/services\/server\/collections"\)\.then\(\(m\) => m\.collections\)\);$/m,
+  );
+  // 従属（集まりを持たない）には出さない
+  const child = fs.readFileSync(path.join(root, "src", "features", "showcasePhoto", "entities", "drizzle.ts"), "utf8");
+  assert.doesNotMatch(child, /defineTableCollections/);
 });
 
 test("スキーマ: 値は複数枚の行と同じ z.array(storageMediaValueSchema)、required → min(1)、collection.maxItems → max", () => {

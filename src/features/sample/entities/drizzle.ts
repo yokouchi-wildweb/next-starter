@@ -1,6 +1,7 @@
 // src/features/sample/entities/drizzle.ts
 
 import { boolean, date, integer, pgEnum, pgTable, primaryKey, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
+import { defineTableCollections } from "@/lib/crud/collections/tableCollections";
 import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle";
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 
@@ -29,6 +30,9 @@ export const SampleTable = pgTable("samples", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
+
+// 主の集まりの項目（従属ドメインの行の並び）。他ドメインの withRelations で埋め込まれた行にも載せるため表に登録する
+defineTableCollections(SampleTable, () => import("@/features/sample/services/server/collections").then((m) => m.collections));
 
 export const SampleToSampleTagTable = pgTable(
   "sample_to_sample_tag",

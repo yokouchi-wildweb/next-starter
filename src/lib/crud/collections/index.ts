@@ -4,6 +4,7 @@ export { applyCollections } from "./applyCollections";
 export { syncCollection, validateCollectionValues } from "./syncCollection";
 export type { SyncCollectionParams } from "./syncCollection";
 export { duplicateWithCollections } from "./duplicateWithCollections";
+export { defineTableCollections } from "./tableCollections";
 export { firstInCollection, firstInCollectionForAlias } from "./firstInCollection";
 export type { FirstInCollectionOptions, FirstInCollectionForAliasOptions } from "./firstInCollection";
 export type { CollectionColumns } from "./collectionOrder";

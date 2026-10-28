@@ -4,6 +4,7 @@ import { db } from "@/lib/drizzle";
 import { and, inArray, isNull } from "drizzle-orm";
 import type { BelongsToRelation, BelongsToManyObjectRelation, HasManyRelation } from "@/lib/crud/types";
 import { stripHiddenColumnsForTable } from "../hiddenColumns";
+import { projectTableCollections } from "../../collections/projectCollections";
 
 /**
  * belongsTo リレーションを展開する。
@@ -69,6 +70,8 @@ export async function hydrateBelongsTo<T extends Record<string, any>>(
 
       // リレーション先テーブルの秘匿カラムを埋め込み前に除去
       stripHiddenColumnsForTable(rel.table, relatedRecords as Record<string, unknown>[]);
+      // リレーション先が集まりを持つ主なら、主の読み出しと同じ規則で集まりの配列を載せる（登録が無ければクエリなし）
+      await projectTableCollections(rel.table, relatedRecords as Record<string, unknown>[]);
 
       const relatedMap = new Map(
         relatedRecords.map((r: any) => [r.id, r])

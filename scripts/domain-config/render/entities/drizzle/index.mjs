@@ -1,6 +1,7 @@
-// entities/drizzle.ts（表の定義）を組み立てる。列 → 外部キー → 中間テーブル → インデックス → 秘匿カラム の順に部品を集め、最後に文字列にする
+// entities/drizzle.ts（表の定義）を組み立てる。列 → 外部キー → 中間テーブル → インデックス → 秘匿カラム → 集まりの登録 の順に部品を集め、最後に文字列にする
 
 import { domainTableName } from "../../../domain/names.mjs";
+import { isCollectionFieldType } from "../../../spec/fieldTypes.mjs";
 import { fieldColumns, idColumn, systemColumns } from "./columns.mjs";
 import { belongsToColumns, renderDeferredForeignKeys } from "./foreignKeys.mjs";
 import { collectJunctionTables, renderJunctionTables } from "./junction.mjs";
@@ -50,6 +51,10 @@ export function renderDrizzleEntity(ctx, workspace) {
   if (hiddenColumns.length > 0) {
     content += `import { defineHiddenColumns } from "@/lib/crud/drizzle/hiddenColumns";\n`;
   }
+  const ownsCollections = (config.fields ?? []).some((field) => isCollectionFieldType(field.fieldType));
+  if (ownsCollections) {
+    content += `import { defineTableCollections } from "@/lib/crud/collections/tableCollections";\n`;
+  }
   relationImports.forEach((domainPascal, domainCamel) => {
     content += `import { ${domainPascal}Table } from "@/features/${domainCamel}/entities/drizzle";\n`;
   });
@@ -75,6 +80,12 @@ export function renderDrizzleEntity(ctx, workspace) {
   }
 
   content += renderHiddenColumnsDeclaration(pascal, hiddenColumns);
+  if (ownsCollections) {
+    // 他ドメインの withRelations で埋め込まれた行にも集まりを載せるため、表に宣言を登録する（collections.ts は遅延 import = 循環を避ける）
+    content +=
+      `\n// 主の集まりの項目（従属ドメインの行の並び）。他ドメインの withRelations で埋め込まれた行にも載せるため表に登録する\n` +
+      `defineTableCollections(${pascal}Table, () => import("@/features/${camel}/services/server/collections").then((m) => m.collections));\n`;
+  }
   content += renderJunctionTables(ctx, junctionTables);
   return content;
 }
