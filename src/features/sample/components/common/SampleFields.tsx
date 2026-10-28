@@ -26,9 +26,15 @@ const STORAGE_PURPOSES: Record<string, string> = {
   gallery_images: "sample.gallery_images",
 };
 
-const baseFields = (domainConfig.fields ?? []).map((field) =>
-  field.name in STORAGE_PURPOSES ? { ...field, purpose: STORAGE_PURPOSES[field.name] } : field,
-) as FieldConfig[];
+// 主の集まりの項目: 従属の file の用途・ファイルの条件と集まりの件数（従属の domain.json から生成）
+const COLLECTION_FIELD_PATCHES: Record<string, Partial<FieldConfig>> = {
+  images: {"purpose":"sampleImage.file","accept":"image/*","validationRule":{"maxSizeBytes":10485760,"maxItems":8}},
+};
+
+const baseFields = (domainConfig.fields ?? []).map((field) => {
+  const withPurpose = field.name in STORAGE_PURPOSES ? { ...field, purpose: STORAGE_PURPOSES[field.name] } : field;
+  return field.name in COLLECTION_FIELD_PATCHES ? { ...withPurpose, ...COLLECTION_FIELD_PATCHES[field.name] } : withPurpose;
+}) as FieldConfig[];
 
 export type SampleFieldsProps<TFieldValues extends FieldValues> = {
   methods: UseFormReturn<TFieldValues>;

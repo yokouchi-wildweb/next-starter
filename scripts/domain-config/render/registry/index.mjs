@@ -19,7 +19,7 @@ export function renderRegistry(ctx, workspace) {
   outputs.push(renderDomainConfigRegistryPatch(workspace, ctx));
   outputs.push(renderSchemaRegistryPatch(workspace, ctx));
   outputs.push(renderDomainEntryOutput(ctx));
-  outputs.push(...renderCollectionsOutput(ctx));
+  outputs.push(...renderCollectionsOutput(ctx, workspace));
   outputs.push(...renderStoragePurposePatch(ctx, workspace));
   return outputs;
 }

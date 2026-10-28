@@ -20,6 +20,7 @@ export type Sample = {
   main_image: string | null;
   sub_image: string | null;
   gallery_images: string[];
+  images?: string[];
   description: string | null;
   sort_order: string | null;
   createdAt: Date | null;

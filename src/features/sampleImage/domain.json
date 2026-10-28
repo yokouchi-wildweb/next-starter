@@ -1,0 +1,69 @@
+{
+  "domainConfigVersion": "1.3",
+  "singular": "sample_image",
+  "plural": "sample_images",
+  "label": "画像",
+  "dbEngine": "Neon",
+  "idType": "uuid",
+  "relations": [
+    {
+      "domain": "sample",
+      "label": "サンプル",
+      "fieldName": "sample_id",
+      "fieldType": "uuid",
+      "relationType": "belongsTo",
+      "required": true,
+      "onDelete": "CASCADE"
+    }
+  ],
+  "useCreatedAt": true,
+  "useUpdatedAt": true,
+  "useSoftDelete": false,
+  "sortOrderField": "sort_order",
+  "fields": [
+    {
+      "name": "file",
+      "label": "画像",
+      "fieldType": "mediaUploader",
+      "formInput": "mediaUploader",
+      "required": true,
+      "slug": "images",
+      "mediaTypePreset": "images",
+      "accept": "image/*",
+      "validationRule": {
+        "maxSizeBytes": 10485760
+      },
+      "storage": {
+        "visibility": "public",
+        "upload": "authenticated",
+        "read": "public"
+      }
+    },
+    {
+      "name": "sort_order",
+      "label": "並び順",
+      "fieldType": "string",
+      "formInput": "hidden",
+      "required": false
+    }
+  ],
+  "systemColumns": [
+    "sort_order"
+  ],
+  "addToAdminDataMenu": false,
+  "apiAccess": {
+    "read": "none",
+    "write": "none"
+  },
+  "generateFiles": {
+    "entities": true,
+    "components": false,
+    "hooks": false,
+    "clientServices": false,
+    "serverServices": true,
+    "fieldConstants": true,
+    "adminRoutes": false,
+    "registry": true,
+    "presenters": true
+  }
+}

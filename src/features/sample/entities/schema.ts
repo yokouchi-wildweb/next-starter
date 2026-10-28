@@ -28,6 +28,7 @@ export const SampleBaseSchema = z.object({
     .transform((value) => emptyToNull(value))
     .pipe(storageMediaValueSchema.nullish()),
   gallery_images: z.array(storageMediaValueSchema).max(8, { message: "ギャラリー画像は8件以下にしてください。" }).default([]),
+  images: z.array(storageMediaValueSchema).max(8, { message: "画像は8件以下にしてください。" }).default([]),
   description: z.string().trim().nullish()
     .transform((value) => emptyToNull(value)),
   sort_order: z.string().trim().nullish()

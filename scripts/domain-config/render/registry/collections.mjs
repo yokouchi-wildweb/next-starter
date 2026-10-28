@@ -7,6 +7,7 @@ import { toCamelCase, toPascalCase, toSnakeCase } from "../../../../src/utils/st
 import { resolveFieldName } from "../../domain/fieldName.mjs";
 import { belongsToRelations } from "../../domain/relations.mjs";
 import { isCollectionFieldType } from "../../spec/fieldTypes.mjs";
+import { resolveCollectionChildren } from "../collections/children.mjs";
 import { file } from "../output.mjs";
 
 /** 従属の列（主への参照・値・並び）のプロパティ名。従属の domain.json が無ければ雛形の名前 */
@@ -45,13 +46,14 @@ function entryLines(ownerConfig, field, child) {
 /**
  * @param {import("../../domain/context.mjs").DomainContext & { collectionChildren?: Map<string, { camel: string, config: object | null }> }} ctx
  *   collectionChildren = 主の集まりの項目名 → 従属（pipeline が組の解決から載せる）
+ * @param {import("../../domain/workspace.mjs").Workspace} [workspace] collectionChildren が無いとき従属の domain.json を読む
  * @returns {import("../output.mjs").Output[]}
  */
-export function renderCollectionsOutput(ctx) {
+export function renderCollectionsOutput(ctx, workspace) {
   const { config, camel } = ctx;
   const fields = (config?.fields ?? []).filter((f) => isCollectionFieldType(f.fieldType) && typeof f.collection?.domain === "string");
   if (!fields.length) return [];
-  const children = ctx.collectionChildren ?? new Map();
+  const children = resolveCollectionChildren(ctx, workspace);
   const tables = [...new Set(fields.map((f) => children.get(f.name)?.camel ?? toCamelCase(f.collection.domain)))];
   const content = [
     `// src/features/${camel}/services/server/collections.ts`,

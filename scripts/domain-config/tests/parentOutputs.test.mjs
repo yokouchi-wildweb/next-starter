@@ -52,8 +52,8 @@ test("スキーマ: 必須でなく最大件数も無い集まりは min / max �
   assert.match(schema, /photos: z\.array\(storageMediaValueSchema\)\.default\(\[\]\),/);
 });
 
-test("モデル: string[]（null にならない）", () => {
-  assert.match(generateShowcase().read("entities/model.ts"), /^ {2}photos: string\[\];$/m);
+test("モデル: 省略可の string[]（表の列ではないので belongsToMany と同じく省略可）", () => {
+  assert.match(generateShowcase().read("entities/model.ts"), /^ {2}photos\?: string\[\];$/m);
 });
 
 test("Fields: 従属の file の用途・accept・上限サイズと、集まりの件数を載せる（この実行で書き出す従属の中身から）", () => {

@@ -1,4 +1,4 @@
-// サンプルドメイン（sample / sampleCategory / sampleTag）の生成物が現在のテンプレート・生成器と一致するかを検査する。
+// サンプルドメイン（sample / sampleCategory / sampleTag / sampleImage）の生成物が現在のテンプレート・生成器と一致するかを検査する。
 // テンプレートや生成器を変えたのにサンプルを再生成し忘れると落ちる（fork が手本にするサンプルの陳腐化防止）。
 // 作業ツリーを上書きしないよう、src/ と scripts/domain-config/・scripts/registry/ を一時ディレクトリへ複製して生成・比較する。
 // 対象ドメインが存在しなければスキップする（サンプルを削除した fork では何もしない）。
@@ -11,7 +11,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const SAMPLE_DOMAINS = ["sample", "sampleCategory", "sampleTag"];
+const SAMPLE_DOMAINS = ["sample", "sampleCategory", "sampleTag", "sampleImage"];
 
 const generatorDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const rootDir = path.resolve(generatorDir, "..", "..");

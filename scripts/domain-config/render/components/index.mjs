@@ -4,14 +4,15 @@ import path from "node:path";
 import { file } from "../output.mjs";
 import { replaceDomainTokens } from "../tokens.mjs";
 import { COMPONENT_SPECS, componentSpecsFor } from "./catalog.mjs";
+import { resolveCollectionChildren } from "../collections/children.mjs";
 import { generateFieldsFromConfig } from "./fields.mjs";
 import { applyAutoSave, applyDuplicateButton } from "./tweaks.mjs";
 
 function renderBody(ctx, workspace, spec) {
   const { config, camel, pascal } = ctx;
   if (spec.tweak === "fields" && config) {
-    // ctx.collectionChildren = 主の集まりの項目名 → 従属（pipeline が組の解決から載せる。無ければ用途名だけ collection.domain から）
-    return generateFieldsFromConfig(config, ctx.collectionChildren).replace(/__domain__/g, camel).replace(/__Domain__/g, pascal);
+    // 主の集まりの項目名 → 従属（pipeline が載せた組の解決、無ければ workspace の従属の domain.json）
+    return generateFieldsFromConfig(config, resolveCollectionChildren(ctx, workspace)).replace(/__domain__/g, camel).replace(/__Domain__/g, pascal);
   }
   const templateRel = spec.templateFor ? spec.templateFor(config) : spec.template;
   const template = workspace.readTemplate("components", ...templateRel.split("/"));

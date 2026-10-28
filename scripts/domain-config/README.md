@@ -226,10 +226,10 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 
 生成器を変えたら、変える前のコミットの生成器と作業ツリーの生成器を**同じ fixture に流して**、生成物・終了コード・出力行が同じかを見る（`tests/parity.mjs`）。「生成物を変えないつもりの変更」はこれが空になるまで直す。生成物を変える変更では、差分が意図したものだけかを目で確かめる。
 
-- fixture: `samples`（このリポの src/ そのまま）、`synthetic` / `synthetic-bad`（`tests/fixtures/parity/<name>/<domain>/domain.json`。Firestore・hiddenColumns・63 字超の FK・空スキーマ・入れ子リレーション・メディア列・旧形式のキーと、検査で止まる失敗系）。`--repo <path>` で fork のリポを足せる（`src/features/*/domain.json` を重ねる。`existing` は domain フォルダ・管理画面ルート・registry も写して write-once の経路を通す）
+- fixture: `samples`（このリポの src/ そのまま）、`synthetic` / `synthetic-bad`（`tests/fixtures/parity/<name>/<domain>/domain.json`。Firestore・hiddenColumns・63 字超の FK・空スキーマ・入れ子リレーション・メディア列・旧形式のキーと、検査で止まる失敗系。主の集まりの項目の組 = `showcase`（生成の drizzleBase）と `atelier`（`serverServices: false` の主 = 手書きの drizzleBase への案内））。`--repo <path>` で fork のリポを足せる（`src/features/*/domain.json` を重ねる。`existing` は domain フォルダ・管理画面ルート・registry も写して write-once の経路を通す）
 - mode: `each`（1 ドメインずつ `--yes`）、`all`、`all2`（2 回 = 冪等性）、`only-registry`、`only-entities-hooks`。`--modes` / `--variants` / `--fixtures` で絞る、`--keep` で作業ディレクトリを残す
 - 失敗系は両版が同じ exit code・同じエラー文で止まることを見る。差分の詳細は FAIL 行の report（JSON）に出る
 - 対話の経路（`dc:init` / `dc:add` / `dc:delete` / 生成方法の選択）は対象外。質問の順や文言を変えたときは手で確かめる
 - 新しい形の domain.json（新しい fieldType、リレーションの組み合わせ）を生成器が受けるようになったら、`tests/fixtures/parity/synthetic/` にその例を 1 つ足す
 
-サンプルの陳腐化検査: `pnpm test:dc-sample-drift` は `sample` / `sampleCategory` / `sampleTag` を一時ディレクトリへ複製したうえで再生成し、コミット済みの生成物と 1 バイトでも違えば落ちる（作業ツリーは書き換えない）。fork が手本にするサンプルを、テンプレートの変更に追従させるための検査。生成物（`serviceRegistry.ts` の `AUTO-GENERATED` ブロックを含む）を手で整形すると落ちる。存在しないサンプルドメインは対象から外し、全部無ければスキップする（サンプルを消した fork では何もしない）。
+サンプルの陳腐化検査: `pnpm test:dc-sample-drift` は `sample` / `sampleCategory` / `sampleTag` / `sampleImage` を一時ディレクトリへ複製したうえで再生成し、コミット済みの生成物と 1 バイトでも違えば落ちる（作業ツリーは書き換えない）。fork が手本にするサンプルを、テンプレートの変更に追従させるための検査。サンプルの複数メディア: `sample.images` = 主の集まりの項目（mediaCollection）の例で、従属 `sampleImage`（`dc:generate` が書き出した domain.json と生成物、`sample/services/server/collections.ts`）を持つ。`sample.gallery_images` = 既存の mediaUploaderMulti（1 列の配列）の例として残す。生成物（`serviceRegistry.ts` の `AUTO-GENERATED` ブロックを含む）を手で整形すると落ちる。存在しないサンプルドメインは対象から外し、全部無ければスキップする（サンプルを消した fork では何もしない）。

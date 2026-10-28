@@ -20,10 +20,12 @@ function bodyLines(config, dbEngine) {
     if (f.fieldType === "enum") {
       const values = (f.options || []).map((o) => `'${o.value}'`).join(" | ");
       lines.push(typeLine(fieldName, values, f.required));
+    } else if (isCollectionFieldType(f.fieldType)) {
+      // 主の集まりは表の列ではない（サービスの読み出しが載せる）。belongsToMany と同じく省略可（表の行の型からも代入できる）
+      lines.push(`  ${fieldName}?: ${tsType(f.fieldType)};`);
     } else {
-      // mediaUploaderMulti は常に NOT NULL、集まりは従属が無ければ []（どちらも null を返さない）
-      const alwaysPresent = f.fieldType === "mediaUploaderMulti" || isCollectionFieldType(f.fieldType);
-      lines.push(typeLine(fieldName, tsType(f.fieldType), alwaysPresent ? true : f.required));
+      // mediaUploaderMulti は常に NOT NULL なので required 扱い（null を返さない）
+      lines.push(typeLine(fieldName, tsType(f.fieldType), f.fieldType === "mediaUploaderMulti" ? true : f.required));
     }
   });
   if (config.useCreatedAt) lines.push("  createdAt: Date | null;");

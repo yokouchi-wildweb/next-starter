@@ -6,6 +6,7 @@ import { SampleCategoryTable } from "@/features/sampleCategory/entities/drizzle"
 import { SampleTagTable } from "@/features/sampleTag/entities/drizzle";
 import { SampleCreateSchema, SampleUpdateSchema } from "@/features/sample/entities/schema";
 import { storageBindingFor } from "@/features/core/storageObject/services/server/crudBinding";
+import { collections } from "./collections";
 import { createCrudService } from "@/lib/crud/drizzle";
 import type { DrizzleCrudServiceOptions } from "@/lib/crud/drizzle/types";
 import type { IdType, OrderBySpec, SearchRankSpec } from "@/lib/crud/types";
@@ -85,6 +86,8 @@ export const base = createCrudService(SampleTable, {
     { name: "sub_image", purpose: "sample.sub_image", multi: false },
     { name: "gallery_images", purpose: "sample.gallery_images", multi: true },
   ]),
+  // 主の集まりの項目（従属ドメインの行の並び）を同じ TX で差分同期する。宣言は collections.ts
+  collections,
   parseCreate: (data) => SampleCreateSchema.parse(data),
   parseUpdate: (data) => SampleUpdateSchema.parse(data),
   parseUpsert: (data) => SampleCreateSchema.parse(data),

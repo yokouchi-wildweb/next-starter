@@ -1,0 +1,11 @@
+{"domainConfigVersion":"1.3","singular":"atelier","plural":"ateliers","label":"工房","dbEngine":"Neon","idType":"uuid",
+ "relations":[],
+ "useCreatedAt":true,"useUpdatedAt":true,"useSoftDelete":false,
+ "fields":[
+  {"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true},
+  {"name":"pieces","label":"作品","fieldType":"mediaCollection","formInput":"mediaUploaderMulti","required":false,"reorderable":false,"collection":{"domain":"atelier_piece","duplicate":false}}
+ ],
+ "searchFields":["name"],"defaultOrderBy":[["createdAt","DESC"]],"tableFields":["name"],
+ "useDetailModal":false,"useDuplicateButton":false,"useImportExport":false,"addToAdminDataMenu":false,"useAutoSave":false,
+ "apiAccess":{"read":"authenticated","write":{"roleCategories":["admin"]}},
+ "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":false,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}

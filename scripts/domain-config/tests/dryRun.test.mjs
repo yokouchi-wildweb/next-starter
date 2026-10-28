@@ -23,10 +23,10 @@ test("コミット済みのサンプルは「変更なし」と「保持」だ�
   const lines = [];
   const counts = reportDryRun(planDomain(ctx, workspace, ALL_GENERATE_OPTIONS), workspace, { log: (m) => lines.push(m) });
   assert.deepEqual(Object.keys(counts).sort(), ["保持", "変更なし"]);
-  assert.equal(counts["保持"], 5, "page.tsx ×4 と sampleService.ts");
+  assert.equal(counts["保持"], 6, "page.tsx ×4 と sampleService.ts と従属 sampleImage の domain.json（集まり images）");
   assert.ok(lines.every((l) => l.startsWith("  [dry-run] ")));
   assert.equal(fs.statSync(path.join(ctx.dir, "entities", "drizzle.ts")).mtimeMs, before);
-  assert.match(summarizeDryRun(counts), /^保持 5 \/ 変更なし \d+$/);
+  assert.match(summarizeDryRun(counts), /^保持 6 \/ 変更なし \d+$/);
 });
 
 test("describeOutput: 作成 / 上書き / 変更なし / 移行 / スキップ を apply と同じ判定で言う", () => {

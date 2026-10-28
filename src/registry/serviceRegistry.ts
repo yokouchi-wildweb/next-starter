@@ -39,6 +39,7 @@ import { domainEntries as walletEntries } from "@/features/core/wallet/services/
 import { domainEntries as walletHistoryEntries } from "@/features/core/walletHistory/services/server/domainEntry";
 import { domainEntries as sampleEntries } from "@/features/sample/services/server/domainEntry";
 import { domainEntries as sampleCategoryEntries } from "@/features/sampleCategory/services/server/domainEntry";
+import { domainEntries as sampleImageEntries } from "@/features/sampleImage/services/server/domainEntry";
 import { domainEntries as sampleTagEntries } from "@/features/sampleTag/services/server/domainEntry";
 
 export const serviceRegistry: DomainRegistry = {
@@ -71,5 +72,6 @@ export const serviceRegistry: DomainRegistry = {
   walletHistory: walletHistoryEntries.walletHistory,
   sample: sampleEntries.sample,
   sampleCategory: sampleCategoryEntries.sampleCategory,
+  sampleImage: sampleImageEntries.sampleImage,
   sampleTag: sampleTagEntries.sampleTag,
 };

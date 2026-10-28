@@ -327,6 +327,9 @@ import { ControlledField } from "@/components/Form/Field";
 
 主の 1 行に属する従属ドメインの行の並び（例: 商品のギャラリー画像）。主の表に列は持たず、lib の collections オプション（[src/lib/crud/README.md](../lib/crud/README.md)「ドメイン集約」）で読み書きする。Neon のみ。
 
+- 新しく 1 つのレコードに複数のメディアを持たせるなら mediaCollection を選ぶ（1 枚ずつ従属のドメインの行に保存）。`mediaUploaderMulti`（1 列の text[]）は既存の項目のために残っており、そのまま動く。dc:init / dc:add も型の選択で集まりを multi より先に並べ、multi を選ぶと 1 行案内する
+- 例: `src/features/sample/domain.json` の `images`（従属 `sampleImage`）。`gallery_images` は既存の multi の例
+
 ```json
 { "name": "galleryImages", "label": "ギャラリー", "fieldType": "mediaCollection", "formInput": "mediaUploaderMulti",
   "required": true, "reorderable": true, "collection": { "domain": "productImage", "maxItems": 10, "duplicate": true } }

@@ -170,6 +170,19 @@
       }
     },
     {
+      "name": "images",
+      "label": "画像",
+      "fieldType": "mediaCollection",
+      "formInput": "mediaUploaderMulti",
+      "required": false,
+      "reorderable": true,
+      "collection": {
+        "domain": "sample_image",
+        "maxItems": 8,
+        "duplicate": true
+      }
+    },
+    {
       "name": "description",
       "label": "説明文",
       "fieldType": "string",
@@ -234,7 +247,8 @@
       "fields": [
         "main_image",
         "sub_image",
-        "gallery_images"
+        "gallery_images",
+        "images"
       ],
       "bgColor": "#f5f5f5"
     }
