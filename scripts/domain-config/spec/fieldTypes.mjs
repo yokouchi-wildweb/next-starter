@@ -1,5 +1,6 @@
 // domain.json の項目の型（fieldType）の語彙と、型ごとの出力の対応表。生成器・質問・検査はここだけを見る。
 // 新しい型を足すときは FIELD_TYPES に 1 行足し、spec/formInputs.mjs に入力種別を足す。生成器側の switch は無い。
+// フォーム側（src/components/Form）の既定値・checkbox・型の名前は手書きなので、そちらも足す（ずれは pnpm test:form-defaults と typecheck が検知する）。
 //
 //   column    drizzle-orm/pg-core の列関数（無ければ型名そのまま。配列・enum・タイムゾーン付きは生成器が別扱い）
 //   zod       Zod の式（無ければ z.any()）。datetime は required で nullableDatetime / requiredDatetime に分かれる

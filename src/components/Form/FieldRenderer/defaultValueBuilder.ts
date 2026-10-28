@@ -47,8 +47,12 @@ function getDefaultValueForType(field: DomainField): unknown {
       return false;
     case "enum":
       return undefined;
+    // 値が配列の型（生成器の型の表 scripts/domain-config/spec/fieldTypes.mjs で ts が string[] のもの。
+    // 抜けは defaultValueBuilder.test.ts が表と突き合わせて検知する）
     case "array":
+    case "stringArray":
     case "mediaUploaderMulti":
+    case "mediaCollection":
       return [];
     // jsonb / map は値なし。schema の .default() や DB の既定値に任せる（"" だと record / object の schema で落ちる）
     case "jsonb":

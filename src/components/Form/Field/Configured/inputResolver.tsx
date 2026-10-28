@@ -26,6 +26,7 @@ import {
 import type { FieldConfig, FieldOption, FormInputType } from "../types";
 import type { RadioGroupDisplayType } from "@/components/Form/Input/Manual/RadioGroupInput";
 import type { CheckGroupDisplayType } from "@/components/Form/Input/Manual/CheckGroupInput";
+import { isCheckGroupFieldType } from "./checkGroupFieldTypes";
 
 /**
  * formInput タイプに応じた入力コンポーネントをレンダリングする
@@ -122,8 +123,8 @@ export function renderInputByFormType<
     }
 
     case "checkbox": {
-      // fieldType が array の場合は CheckGroupInput、それ以外は BooleanCheckboxInput
-      if (fieldConfig.fieldType === "array") {
+      // 値が配列の型（array / stringArray）は CheckGroupInput、それ以外は BooleanCheckboxInput
+      if (isCheckGroupFieldType(fieldConfig.fieldType)) {
         return (
           <CheckGroupInput
             field={field as ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>}

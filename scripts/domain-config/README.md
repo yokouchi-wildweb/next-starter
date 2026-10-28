@@ -214,7 +214,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 
 よくある変更の置き場:
 
-- **項目の種類を足す**（例: 新しい fieldType） → `spec/fieldTypes.mjs` に述語、`spec/formInputs.mjs` に入力種別、`questions/fields/` に質問（メディア系なら `media.mjs` の隣に）、各 `render/` は述語で分岐
+- **項目の種類を足す**（例: 新しい fieldType） → `spec/fieldTypes.mjs` に述語、`spec/formInputs.mjs` に入力種別、`questions/fields/` に質問（メディア系なら `media.mjs` の隣に）、各 `render/` は述語で分岐。フォーム側の手書き（`src/components/Form/FieldRenderer/defaultValueBuilder.ts` の既定値、`Field/Configured/checkGroupFieldTypes.ts`、`Field/types.ts` の型の名前）も足す（ずれは `pnpm test:form-defaults` と typecheck が検知する）
 - **生成ファイルを足す** → そのカテゴリの `render/<カテゴリ>/` に `(ctx, workspace) → Output` を足し、カテゴリの `index.mjs` の配列に並べる（hooks / components は `catalog.mjs` に 1 行）。別のドメインの `domain.json` を書く場合も `writeOnce` の Output にする
 - **生成前の検査を足す** → `checks/` に「エラー文か null」を返す関数を足し、`checks/index.mjs` に並べる。生成の途中でしか分からない検査は render 内で例外を投げる（書く前なので書きかけは残らない）
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す。どちらも `index.mjs` の `outputs` に並べるだけ

@@ -56,7 +56,9 @@ export type FieldDataType =
   | "Point"
   | "jsonb"
   | "array"
+  | "stringArray"
   | "mediaUploader"
+  | "mediaCollection"
   | "mediaUploaderMulti";
 
 /**
@@ -71,6 +73,7 @@ export type FieldDataTypeFirestore =
   | "email"
   | "password"
   | "array"
+  | "stringArray"
   | "geopoint"
   | "reference"
   | "map"

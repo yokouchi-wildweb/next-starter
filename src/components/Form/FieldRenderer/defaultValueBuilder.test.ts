@@ -1,5 +1,7 @@
 // src/components/Form/FieldRenderer/defaultValueBuilder.test.ts
-// buildFormDefaultValues の単体テスト（fieldType ごとの既定値 / 作成フォームの既定値が schema を通るか）
+// buildFormDefaultValues の単体テスト（fieldType ごとの既定値 / 作成フォームの既定値が schema を通るか）。
+// フォーム側の型の手書き（既定値の switch・checkbox の複数選択・型の名前の union）が、生成器の型の表と
+// ずれていないかも突き合わせる（型の解釈の一本化は評議会 20261028-234023-field-type-single-interpretation で検討中）
 // 実行: pnpm test:form-defaults
 
 import { describe, test } from "node:test";
@@ -10,6 +12,11 @@ import sampleDomainConfig from "@/features/sample/domain.json";
 import couponDomainConfig from "@/features/core/coupon/domain.json";
 import { SampleCreateSchema } from "@/features/sample/entities/schema";
 import { CouponCreateSchema } from "@/features/core/coupon/entities/schema";
+
+import type { FieldDataType, FieldDataTypeFirestore } from "@/components/Form/Field/types";
+import { isCheckGroupFieldType } from "@/components/Form/Field/Configured/checkGroupFieldTypes";
+import { FIELD_TYPES } from "../../../../scripts/domain-config/spec/fieldTypes.mjs";
+import { FORM_INPUTS } from "../../../../scripts/domain-config/spec/formInputs.mjs";
 
 import { buildFormDefaultValues } from "./defaultValueBuilder";
 
@@ -92,4 +99,42 @@ describe("作成フォームの既定値が schema を通る", () => {
     assert.deepEqual(settingsIssues, []);
     if (result.success) assert.deepEqual(result.data.settings, {});
   });
+});
+
+// ---- 生成器の型の表（scripts/domain-config/spec）との突き合わせ ----
+
+type FieldTypeSpec = { ts?: string; array?: boolean };
+const FIELD_TYPE_SPECS = FIELD_TYPES as Record<string, FieldTypeSpec>;
+const ENGINES = Object.keys(FORM_INPUTS) as Array<keyof typeof FORM_INPUTS>;
+
+// 型の名前: dc:init / dc:add の選択肢に出る型が、フォーム側の union にすべてある（無ければ typecheck が落ちる）
+type MissingNeon = Exclude<keyof (typeof FORM_INPUTS)["Neon"], FieldDataType>;
+type MissingFirestore = Exclude<keyof (typeof FORM_INPUTS)["Firestore"], FieldDataTypeFirestore>;
+const neonCovered: [MissingNeon] extends [never] ? true : MissingNeon = true;
+const firestoreCovered: [MissingFirestore] extends [never] ? true : MissingFirestore = true;
+
+describe("フォーム側の型の手書きが生成器の型の表とずれていない", () => {
+  test("型の名前の union が dc の選択肢の型をすべて含む（typecheck で検査）", () => {
+    assert.equal(neonCovered, true);
+    assert.equal(firestoreCovered, true);
+  });
+
+  for (const engine of ENGINES) {
+    for (const fieldType of Object.keys(FORM_INPUTS[engine])) {
+      const arrayValued = FIELD_TYPE_SPECS[fieldType]?.ts === "string[]";
+
+      test(`${engine} / ${fieldType}: 作成フォームの既定値は、値が配列の型なら []、それ以外は配列でない`, () => {
+        const value = buildFormDefaultValues({ fields: [{ name: "x", fieldType }] }).x;
+        if (arrayValued) assert.deepEqual(value, []);
+        else assert.equal(Array.isArray(value), false);
+      });
+
+      const inputs: readonly string[] = (FORM_INPUTS[engine] as Record<string, readonly string[]>)[fieldType];
+      if (inputs.includes("checkbox")) {
+        test(`${engine} / ${fieldType}: checkbox は表の array の型だけ複数選択にする`, () => {
+          assert.equal(isCheckGroupFieldType(fieldType), Boolean(FIELD_TYPE_SPECS[fieldType]?.array));
+        });
+      }
+    }
+  }
 });
