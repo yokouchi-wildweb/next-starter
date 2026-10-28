@@ -224,7 +224,8 @@ describe("drizzleLedger（実 DB）", { skip }, () => {
     await ledger.insertPendingWithinLimit(chat, 10, now);
     await ledger.markReady(chat.id, { size: 3, contentType: "image/png", generation: "1", readyAt: past });
 
-    const input = { now, readyBefore: now, excludePurposes: ["test.chatFile"], afterId: null, limit: 10 };
+    // 開発 DB の他の行（掃除が走らず残った片付け待ちなど）が混ざっても取りこぼさないよう、上限は大きく取る
+    const input = { now, readyBefore: now, excludePurposes: ["test.chatFile"], afterId: null, limit: 100_000 };
     const mine = (ids: string[]) => ids.filter((id) => [expired.id, ready.id, chat.id].includes(id));
     assert.deepEqual(mine(await ledger.listSweepTargets("expiredPending", input)), [expired.id]);
     assert.deepEqual(mine(await ledger.listSweepTargets("unattachedReady", input)), [ready.id]);
