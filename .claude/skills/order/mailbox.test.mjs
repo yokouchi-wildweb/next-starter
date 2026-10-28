@@ -31,6 +31,26 @@ test("done: RESOLUTION を追記して done/ へ移す（/wen・council collect 
   assert.match(text, /\nneed: do x\n\n## RESOLUTION\nresolved: 2026-01-01T00:00:00\+09:00   status: done\n/);
   assert.match(text, /\nby: acme--app \| git@x:Acme\/App\.git \| branch:main \| commit:abc1234 \| pushed:yes\nimplemented: did x\n/);
   assert.match(text, /\nnotes: -\n$/);
+  assert.match(text, /^# ORDER id:20260101-000000-x\nfrom: .*\nstatus: done\nneed: do x\n/);
+});
+
+test("先頭の status: は RESOLUTION の status に揃う（partial / relayed / rejected / withdrawn も）", () => {
+  const head = (p) => readFileSync(p, "utf8").match(/^status: (\S+)$/m)[1];
+  const p = box("council q1 | legate:l1 order:01");
+  assert.equal(head(resolveOrder(p.file, { status: "partial", body: `${BODY}findings: x\nverify: y\n`, by: BY })), "partial");
+  const r = box();
+  assert.equal(head(resolveOrder(r.file, { status: "relayed", body: "relayed_to: o/1.md\nnotes: n\n", by: BY })), "relayed");
+  const j = box();
+  assert.equal(head(resolveOrder(j.file, { status: "rejected", body: "notes: n\n", by: BY })), "rejected");
+  const w = box();
+  assert.equal(head(resolveOrder(w.file, { status: "withdrawn", body: "notes: n\n", by: BY })), "withdrawn");
+});
+
+test("先頭に status: が無い古い指令は date: の次に足す。本文中の status: には触らない", () => {
+  const { file } = box();
+  writeFileSync(file, "# ORDER id:20260101-000000-x\nfrom: git@x:Acme/App.git\ndate: 2026-01-01T00:00:00Z\nneed: do x\n## BODY\nstatus: keep\n");
+  const text = readFileSync(resolveOrder(file, { status: "done", body: BODY, by: BY }), "utf8");
+  assert.match(text, /\ndate: 2026-01-01T00:00:00Z\nstatus: done\nneed: do x\n## BODY\nstatus: keep\n/);
 });
 
 test("done: 要る行が無ければ何も書かずに止める", () => {

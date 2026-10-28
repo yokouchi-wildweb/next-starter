@@ -11,9 +11,10 @@
 //   node mailbox.mjs inbox   自リポ宛ての未対応の指令（waiting_on: の待ち状態つき）
 //   node mailbox.mjs resolve <指令ファイル> --status=<done|partial|relayed|rejected|withdrawn> --body=<ファイル>
 //                            [--commit=<sha|->] [--pushed=<yes|no|...>] [--branch=<名前>]
-//                            指令に答える: RESOLUTION を末尾に追記して done/ へ移す（/inbox 手順 4 と guild close の共通の書き手）
+//                            指令に答える: RESOLUTION を末尾に追記し、先頭の status: をその status に書き換えて done/ へ移す
+//                            （/inbox 手順 4 と guild close の共通の書き手）
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -162,7 +163,19 @@ function isoNow(d = new Date()) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`;
 }
 
-// 指令に答える: 確かめてから RESOLUTION を追記し、done/ へ移す。足りないものがあれば何も書かずに throw する。
+// 先頭の `status:`（最初の `## ` より前の最初の行）を書き換える。無ければ `date:` の次に足す（古い形の指令）
+function withHeaderStatus(text, status) {
+  const head = text.search(/^## /m);
+  const end = head < 0 ? text.length : head;
+  const top = text.slice(0, end);
+  const next = /^status:.*$/m.test(top)
+    ? top.replace(/^status:.*$/m, `status: ${status}`)
+    : top.replace(/^date:.*$/m, (l) => `${l}\nstatus: ${status}`);
+  return next + text.slice(end);
+}
+
+// 指令に答える: 確かめてから RESOLUTION を追記し、先頭の status: を RESOLUTION の status に書き換えて done/ へ移す
+// （ファイルだけを読んでも状態が分かるように）。足りないものがあれば何も書かずに throw する。
 // by = { repoId, origin, branch, commit, pushed }。戻り値 = 移した先のパス
 export function resolveOrder(orderPath, { status, body, by, now = isoNow() }) {
   if (!REQUIRED[status]) throw new Error(`--status は ${Object.keys(REQUIRED).join(" | ")} のどれか（${status || "なし"}）`);
@@ -181,7 +194,9 @@ export function resolveOrder(orderPath, { status, body, by, now = isoNow() }) {
     ? `by: ${by.repoId} | ${by.origin || "-"} | branch:${by.branch || "-"} | commit:${by.commit || "-"} | pushed:${by.pushed}`
     : `by: ${by.repoId} | commit:- | pushed:-`;
   const block = ["", "## RESOLUTION", `resolved: ${now}   status: ${status}`, byLine, ...lines, ""].join("\n");
-  appendFileSync(orderPath, (text.endsWith("\n") ? "" : "\n") + block);
+  const tmp = `${orderPath}.tmp.${process.pid}`;
+  writeFileSync(tmp, withHeaderStatus(text, status) + (text.endsWith("\n") ? "" : "\n") + block);
+  renameSync(tmp, orderPath);
   const doneDir = join(dirname(orderPath), "done");
   mkdirSync(doneDir, { recursive: true });
   const dest = join(doneDir, basename(orderPath));
