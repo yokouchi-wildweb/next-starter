@@ -83,7 +83,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 ## 導入の段階
 
 1. registry の下流の印を 1 種類(開始と終了の対)に統一する(済み。下の「registry の fork の区画」)
-2. 受け口の一覧・判定器・検査を入れる。検査は最初から失敗にする(報告だけの段階は置かない)。fork が消したくなり得るルートを feature-gate で止められるように棚卸しする
+2. 受け口の一覧・判定器・検査を入れる。検査は最初から失敗にする(報告だけの段階は置かない)。fork が消したくなり得るルートを feature-gate で止められるように棚卸しする(済み。`/flux` の各区間に組み込み、片付けの notice `20261029-223134-fork-ownership-cleanup` と同じ出荷)
 
 検査を入れた時点で fork に既にある書き換え・削除・rename・祖先 lib へのファイルの追加は、導入と同時に片付ける。猶予の区画は作らない。
 
@@ -120,6 +120,7 @@ pnpm ownership:check --parent=upstream --branch=main
 ```
 
 - 終了コード: 0 = 合格(Tier1 は「親なし: 対象外」)/ 1 = 違反あり / 2 = 未検証・設定の不足(合格にしない)
+- `/flux`: 基準に `intake.txt` がある区間は、区間を commit した後・push の前に走らせ、1 と 2 は停止条件(片付けを追加の commit で積み、0 になってから push する。`.claude/skills/flux/SKILL.md` 手順 7c)。検査は commit 済みの HEAD だけを見るので、commit の前には置けない
 - 出力: 先頭に結論と基準(remote・branch・base)、reason ごとの件数、違反と一時許可の残骸・書式の誤りの一覧
 - 一時許可の依頼の出し方は `/order`「一時許可の依頼」、依頼の状況は `/wen permits`、放置と project.md の食い違いは `/flux` の最終報告(上流への所見 (e)(f))に出る
 - 違反には、今の指紋で書いた**一時許可の行の下書き**が付く(指紋は区画の中身を除いた blob なので、素の `git hash-object` では出せない)。一時許可で片付けるときは、`<依頼の番号>` と `<理由>` を埋めて `.fork-ownership/<fork-id>.permits.txt` に貼り、commit してから検査し直す
