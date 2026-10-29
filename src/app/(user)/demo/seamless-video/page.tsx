@@ -4,7 +4,7 @@ import { Main, PageTitle, Para } from "@/components/TextBlocks";
 import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 
-import { SeamlessVideoDemo } from "./_components/SeamlessVideoDemo";
+import { SeamlessVideoDemo } from "./_screen/SeamlessVideoDemo";
 
 export const metadata = {
   title: "Seamless Video デモ",

@@ -40,6 +40,7 @@ import {
   checkLayoutTarget,
   checkSwitchPage,
   findDotNamedFiles,
+  findForkOwnedDirFiles,
   isReexportOnlyFile,
   parseSwitchLayout,
   parseSwitchPage,
@@ -612,6 +613,33 @@ test(
     assert.deepEqual(findDotNamedFiles(listAppFiles(repoRoot)), []);
   },
 );
+
+// upstream は src/app に _components/ を持たない(`_components/` = fork 所有。upstream の既定は _screen/・_layout/)。
+// fork はそこへ自分の画面・部品を置く側なので、上と同じく Tier1 でだけ検査する。
+test(
+  "upstream は src/app に _components/ のファイルを持たない(Tier1 のみ)",
+  { skip: isUpstreamRoot ? false : "fork(Tier1 以外)では _components/ に自分の画面・部品を置くので検査しない" },
+  () => {
+    assert.deepEqual(findForkOwnedDirFiles(listAppFiles(repoRoot)), []);
+  },
+);
+
+test("findForkOwnedDirFiles: src/app 配下の _components/ のファイルだけを拾う", () => {
+  const files = [
+    "src/app/(user)/wallet/_components/WalletScreen.tsx",
+    "src/app/(user)/wallet/_components/parts/Row.tsx",
+    "src/app/(user)/wallet/_screen/WalletScreen.tsx",
+    "src/app/(user)/wallet/page.tsx",
+    "src/app/admin/(protected)/users/_components/loader.ts",
+    "src/features/foo/_components/Bar.tsx",
+    "src/app/(user)/my_components/X.tsx",
+  ];
+  assert.deepEqual(findForkOwnedDirFiles(files), [
+    "src/app/(user)/wallet/_components/WalletScreen.tsx",
+    "src/app/(user)/wallet/_components/parts/Row.tsx",
+    "src/app/admin/(protected)/users/_components/loader.ts",
+  ]);
+});
 
 test("findDotNamedFiles: _screen/・_layout/ 配下のドット区切り名だけを拾う(*.test.* は除く)", () => {
   const files = [

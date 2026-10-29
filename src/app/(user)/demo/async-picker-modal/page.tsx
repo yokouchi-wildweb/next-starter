@@ -4,7 +4,7 @@ import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
 import { Para } from "@/components/TextBlocks";
 
-import { SamplePickerDemo } from "./_components/SamplePickerDemo";
+import { SamplePickerDemo } from "./_screen/SamplePickerDemo";
 
 export const metadata = {
   title: "AsyncPickerModal デモ",

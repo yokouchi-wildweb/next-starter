@@ -1,4 +1,4 @@
-// src/app/(user)/demo/sortable-list/_components/SampleSortableList.tsx
+// src/app/(user)/demo/sortable-list/_screen/SampleSortableList.tsx
 
 "use client";
 

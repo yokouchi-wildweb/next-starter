@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { sampleService } from "@/features/sample/services/server/sampleService";
 import { UserPage } from "@/app/(user)/_layout/UserPage";
 import { UserPageTitle } from "@/app/(user)/_layout/PageTitle";
-import { SampleSortableList } from "./_components/SampleSortableList";
+import { SampleSortableList } from "./_screen/SampleSortableList";
 
 export const metadata = {
   title: "SortableList デモ",

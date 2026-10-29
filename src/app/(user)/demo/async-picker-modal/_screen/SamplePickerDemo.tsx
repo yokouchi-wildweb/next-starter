@@ -1,6 +1,6 @@
 "use client";
 
-// src/app/(user)/demo/async-picker-modal/_components/SamplePickerDemo.tsx
+// src/app/(user)/demo/async-picker-modal/_screen/SamplePickerDemo.tsx
 //
 // AsyncPickerModal の動作確認。複数選択（追加済みは選択不可）と単一選択（行クリックで即確定）。
 

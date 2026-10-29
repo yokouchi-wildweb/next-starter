@@ -30,7 +30,7 @@ src/app/(user)/(protected)/wallet/[slug]/
 │   ├── WalletBalanceScreen.tsx
 │   ├── loader.ts     サーバー側ロジック(あるときだけ)。既定 Screen も差し替え Screen もこれを呼ぶ
 │   └── <部品>        既定 Screen 専用の部品(あるときだけ。直下でもサブディレクトリでも可。契約外)
-└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、下流の page 専用の部品。上流のルートでは上流は何も置かない
+└── _components/      任意。下流の差し替え画面(<Name>Screen.tsx)、下流の page 専用の部品。上流は src/app のどこにも置かない(test:screens、Tier1)
 ```
 
 | 対象 | 置き場 | 所有 | 規則 |
@@ -302,6 +302,7 @@ import { BalanceCard } from "./BalanceCard";
 | 例外リストの鮮度 | 載っているルートがまだ `./_screen/` へのスイッチになっていないこと（§10） | 失敗 |
 | 除外の鮮度 | `FORK_SCAN_ROOTS` に行が残っていない（全体走査で不要になった。export は互換のため残す）。`FORK_SCAN_EXCLUDES` の登録が `src/app/...` の形で、ディレクトリとして存在し、重複せず、他の除外の中にないこと | 失敗 |
 | URL の重複 | 別の group に同じ URL のページが 2 つない（Next もビルドで失敗する構成） | 失敗 |
+| upstream の置き場の印 | Tier1（`src/lib/CATALOG.md` の先頭節の持ち主 = 自分）でだけ: `findForkOwnedDirFiles` = `src/app` に `_components/` のファイルが無い、`findDotNamedFiles` = `_screen/`・`_layout/` にドット区切り名（fork のカスタムの印）が無い。`_` の意味は場所で違う（`_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有）ので、upstream が fork の置き場や印を使うと fork の物と衝突する。demo の部品も `_screen/` に置く | 失敗（fork では skip） |
 
 fork が作った区域（`src/app/store/**` 等）も、upstream の区域の中に足したページ（`src/app/debug/<x>`・`admin/(protected)/<x>`）も、登録なしで検査される。検査したくないディレクトリ（実験場・デモ）は `FORK_SCAN_EXCLUDES` に、未移行のページは `FORK_LEGACY_ROUTES` に書く。fork がローカルに screens テストの写しを持つ必要はない。
 

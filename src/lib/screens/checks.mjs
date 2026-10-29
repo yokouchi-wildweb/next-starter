@@ -84,6 +84,19 @@ export function findDotNamedFiles(files) {
   });
 }
 
+/** fork 所有のディレクトリ(下流の差し替え画面と page 専用部品)。upstream はここにファイルを置かない */
+export const FORK_OWNED_DIR = "_components";
+
+/**
+ * src/app 配下で FORK_OWNED_DIR のセグメントを持つファイルを返す。
+ * `_` の意味は場所で違う: `_screen/`・`_layout/` = 提供者の既定、`_components/` = fork 所有。
+ * upstream が `_components/` に置くと fork の置き場と衝突するので、test:screens が Tier1 でだけ検査する
+ * @param {string[]} files repo 相対パス
+ */
+export function findForkOwnedDirFiles(files) {
+  return files.filter((file) => file.startsWith("src/app/") && file.split("/").slice(0, -1).includes(FORK_OWNED_DIR));
+}
+
 /** Next.js が page.tsx で認める設定 export の名前(値は page.tsx 自体に書く。Next が静的解析するため re-export 不可) */
 const PAGE_CONFIG_EXPORTS = [
   "metadata",

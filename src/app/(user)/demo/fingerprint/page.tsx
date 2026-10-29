@@ -2,7 +2,7 @@ import { Section } from "@/components/Layout/Section";
 import { Stack } from "@/components/Layout/Stack";
 import { Main, PageTitle, Para } from "@/components/TextBlocks";
 
-import { FingerprintDemo } from "./_components/FingerprintDemo";
+import { FingerprintDemo } from "./_screen/FingerprintDemo";
 
 export default function FingerprintDemoPage() {
   return (

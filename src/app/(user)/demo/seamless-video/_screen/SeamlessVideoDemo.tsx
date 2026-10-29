@@ -1,4 +1,4 @@
-// src/app/(user)/demo/seamless-video/_components/SeamlessVideoDemo.tsx
+// src/app/(user)/demo/seamless-video/_screen/SeamlessVideoDemo.tsx
 
 "use client";
 

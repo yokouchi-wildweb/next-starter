@@ -4,7 +4,7 @@
 
 import { getLatestManifest } from "@/lib/seamlessVideo/server/reelManifestStore";
 
-import { SeamlessAvPlayer } from "./_components/SeamlessAvPlayer";
+import { SeamlessAvPlayer } from "./_screen/SeamlessAvPlayer";
 
 // 常に最新の保存内容を読むためキャッシュしない
 export const dynamic = "force-dynamic";
