@@ -75,3 +75,31 @@ export function planLotsFromHistory(params: {
 
   return { lots, overdueAmount: rest };
 }
+
+/**
+ * expirationBasis: "lastActivity" の通貨のロットを復元する。
+ *
+ * 残高全額を1本のロットにし、失効日は「最後の残高変更 + expirationDays」にする。
+ * - lastActivityAt は失効スイープの没収を除いた最後の残高変更時刻（直近 expirationDays の範囲で探す）
+ * - lastActivityAt が無い（範囲内に残高変更が無い）、または既に期限を過ぎている場合は全額が期限を過ぎた分になる
+ * - 不変条件: 返すロットの remaining 合計 = balance
+ */
+export function planLastActivityLot(params: {
+  balance: number;
+  lastActivityAt: Date | null;
+  expirationDays: number;
+  /** 期限を過ぎた分のロットに付ける失効日時（実行開始時刻を渡す） */
+  overdueExpiresAt: Date;
+}): LotPlan {
+  const { balance, lastActivityAt, expirationDays, overdueExpiresAt } = params;
+  if (balance <= 0) return { lots: [], overdueAmount: 0 };
+
+  const expiresAt = lastActivityAt ? calcExpiresAt(lastActivityAt, expirationDays) : null;
+  if (expiresAt === null || expiresAt <= overdueExpiresAt) {
+    return {
+      lots: [{ grantedAmount: balance, remaining: balance, expiresAt: overdueExpiresAt }],
+      overdueAmount: balance,
+    };
+  }
+  return { lots: [{ grantedAmount: balance, remaining: balance, expiresAt }], overdueAmount: 0 };
+}

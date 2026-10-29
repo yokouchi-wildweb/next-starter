@@ -9,26 +9,33 @@
 // - 既存ロットは全破棄してから作り直す（re-baseline）ため、再実行も安全
 // - 没収そのものは行わない（履歴・audit・通知は通常のスイープ経路に任せる）
 // - dryRun: true は書き込みなしで件数と金額だけを返す
+// - expirationBasis: "lastActivity" の通貨は、残高全額を「最後の残高変更 + expirationDays」に失効する
+//   1本にする（失効スイープの没収は残高変更に数えない）
 //
 // [!!] initWalletLots とどちらか一方だけを、導入時に1回実行すること。
 //     前提: 直近 expirationDays ぶんの wallet_histories が欠けていないこと。
 //
 // 実行方法: pnpm task wallet-lots-init-from-history -- --dry-run で確認 → dry-run なしで実行
 
-import { and, desc, eq, gt, gte, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, max, ne } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import { WalletTable, WalletLotTable } from "@/features/core/wallet/entities/drizzle";
 import { WalletHistoryTable } from "@/features/core/walletHistory/entities/drizzle";
 import { auditLogger } from "@/features/core/auditLog/services/server";
 import { runAsSystem } from "@/lib/audit";
 import {
+  getExpirationBasis,
   getExpirationDays,
   getExpirationEnabledWalletTypes,
 } from "@/features/core/wallet/utils/expiration";
 import {
+  planLastActivityLot,
   planLotsFromHistory,
   type LotHistoryEntry,
+  type LotPlan,
 } from "@/features/core/wallet/utils/lotPlanning";
+import type { TransactionClient } from "@/lib/drizzle/transaction";
+import type { WalletType } from "@/config/app/currency.config";
 import { resolveRequestBatchId } from "../wrappers/utils";
 import type { Wallet } from "@/features/core/wallet/entities";
 
@@ -60,6 +67,110 @@ export type InitWalletLotsFromHistoryResult = {
   /** 既に期限を過ぎた分の合計額（locked_balance 保護により実際の没収額はこれ以下） */
   overdueAmount: number;
 };
+
+/** 1バッチ分のロット計画の入力。結果は wallet.id ごとの LotPlan */
+type PlanBatchParams = {
+  trx: TransactionClient;
+  walletType: WalletType;
+  targets: Wallet[];
+  expirationDays: number;
+  windowStart: Date;
+  startedAt: Date;
+};
+
+/** grant: 付与履歴（INCREMENT / SET）からロットを復元する */
+async function planGrantLots(params: PlanBatchParams): Promise<Map<string, LotPlan>> {
+  const { trx, walletType, targets, expirationDays, windowStart, startedAt } = params;
+
+  // 対象ウォレットの付与履歴（新しい順）
+  const histories = await trx
+    .select({
+      user_id: WalletHistoryTable.user_id,
+      change_method: WalletHistoryTable.change_method,
+      points_delta: WalletHistoryTable.points_delta,
+      balance_after: WalletHistoryTable.balance_after,
+      createdAt: WalletHistoryTable.createdAt,
+    })
+    .from(WalletHistoryTable)
+    .where(
+      and(
+        eq(WalletHistoryTable.type, walletType),
+        inArray(
+          WalletHistoryTable.user_id,
+          targets.map((w) => w.user_id),
+        ),
+        inArray(WalletHistoryTable.change_method, ["INCREMENT", "SET"]),
+        gte(WalletHistoryTable.createdAt, windowStart),
+      ),
+    )
+    .orderBy(
+      WalletHistoryTable.user_id,
+      desc(WalletHistoryTable.createdAt),
+      desc(WalletHistoryTable.id),
+    );
+
+  const entriesByUser = new Map<string, LotHistoryEntry[]>();
+  for (const row of histories) {
+    if (row.createdAt === null || row.change_method === "DECREMENT") continue;
+    const list = entriesByUser.get(row.user_id) ?? [];
+    list.push({
+      changeMethod: row.change_method,
+      amount: row.change_method === "SET" ? row.balance_after : row.points_delta,
+      createdAt: row.createdAt,
+    });
+    entriesByUser.set(row.user_id, list);
+  }
+
+  return new Map(
+    targets.map((wallet) => [
+      wallet.id,
+      planLotsFromHistory({
+        balance: wallet.balance,
+        entries: entriesByUser.get(wallet.user_id) ?? [],
+        expirationDays,
+        overdueExpiresAt: startedAt,
+      }),
+    ]),
+  );
+}
+
+/** lastActivity: 最後の残高変更（失効スイープの没収を除く）から1本のロットにする */
+async function planLastActivityLots(params: PlanBatchParams): Promise<Map<string, LotPlan>> {
+  const { trx, walletType, targets, expirationDays, windowStart, startedAt } = params;
+
+  const rows = await trx
+    .select({
+      user_id: WalletHistoryTable.user_id,
+      lastActivityAt: max(WalletHistoryTable.createdAt),
+    })
+    .from(WalletHistoryTable)
+    .where(
+      and(
+        eq(WalletHistoryTable.type, walletType),
+        inArray(
+          WalletHistoryTable.user_id,
+          targets.map((w) => w.user_id),
+        ),
+        ne(WalletHistoryTable.reason_category, "expiration"),
+        gte(WalletHistoryTable.createdAt, windowStart),
+      ),
+    )
+    .groupBy(WalletHistoryTable.user_id);
+
+  const lastActivityByUser = new Map(rows.map((row) => [row.user_id, row.lastActivityAt]));
+
+  return new Map(
+    targets.map((wallet) => [
+      wallet.id,
+      planLastActivityLot({
+        balance: wallet.balance,
+        lastActivityAt: lastActivityByUser.get(wallet.user_id) ?? null,
+        expirationDays,
+        overdueExpiresAt: startedAt,
+      }),
+    ]),
+  );
+}
 
 /**
  * 有効期限が有効な全通貨の既存残高を、付与履歴に基づくロットに変換する。
@@ -143,56 +254,24 @@ export async function initWalletLotsFromHistory(
             return { ...empty, lastId, hasMore };
           }
 
-          // 対象ウォレットの付与履歴（新しい順）
-          const histories = await trx
-            .select({
-              user_id: WalletHistoryTable.user_id,
-              change_method: WalletHistoryTable.change_method,
-              points_delta: WalletHistoryTable.points_delta,
-              balance_after: WalletHistoryTable.balance_after,
-              createdAt: WalletHistoryTable.createdAt,
-            })
-            .from(WalletHistoryTable)
-            .where(
-              and(
-                eq(WalletHistoryTable.type, walletType),
-                inArray(
-                  WalletHistoryTable.user_id,
-                  targets.map((w) => w.user_id),
-                ),
-                inArray(WalletHistoryTable.change_method, ["INCREMENT", "SET"]),
-                gte(WalletHistoryTable.createdAt, windowStart),
-              ),
-            )
-            .orderBy(
-              WalletHistoryTable.user_id,
-              desc(WalletHistoryTable.createdAt),
-              desc(WalletHistoryTable.id),
-            );
-
-          const entriesByUser = new Map<string, LotHistoryEntry[]>();
-          for (const row of histories) {
-            if (row.createdAt === null || row.change_method === "DECREMENT") continue;
-            const list = entriesByUser.get(row.user_id) ?? [];
-            list.push({
-              changeMethod: row.change_method,
-              amount: row.change_method === "SET" ? row.balance_after : row.points_delta,
-              createdAt: row.createdAt,
-            });
-            entriesByUser.set(row.user_id, list);
-          }
+          const planBatch =
+            getExpirationBasis(walletType) === "lastActivity" ? planLastActivityLots : planGrantLots;
+          const plans = await planBatch({
+            trx,
+            walletType,
+            targets,
+            expirationDays,
+            windowStart,
+            startedAt,
+          });
 
           const lotRows: (typeof WalletLotTable.$inferInsert)[] = [];
           let overdueCount = 0;
           let overdue = 0;
 
           for (const wallet of targets) {
-            const plan = planLotsFromHistory({
-              balance: wallet.balance,
-              entries: entriesByUser.get(wallet.user_id) ?? [],
-              expirationDays,
-              overdueExpiresAt: startedAt,
-            });
+            const plan = plans.get(wallet.id);
+            if (!plan) continue;
 
             for (const lot of plan.lots) {
               lotRows.push({

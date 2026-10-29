@@ -10,13 +10,18 @@
 //   同一トランザクション内で呼ぶこと。ロット行は wallets 行ロックにより直列化される
 // - 消費は expires_at が近い順（FIFO）。window 関数の累積和による set-based SQL で
 //   1文実行し、ホットパスでの追加ラウンドトリップを最小化する
+// - expirationBasis: "lastActivity" の通貨では、付与・消費のたびに残っている全ロットの
+//   expires_at を「現在 + expirationDays」に揃える。付与は新しいロットを作らず残っているロットに
+//   足し込むため、残っているロットはウォレットあたり1本以下に保たれる（延長の UPDATE が1行で済む）。
+//   "grant" から切り替えた直後は複数本残り得るが、本数は増えず、消費で 0 になったものから減っていく
 
-import { sql, inArray, eq } from "drizzle-orm";
+import { and, sql, gt, inArray, eq } from "drizzle-orm";
 import { WalletLotTable } from "@/features/core/wallet/entities/drizzle";
 import type { WalletTypeValue } from "@/features/core/wallet/types/field";
 import { DomainError } from "@/lib/errors/domainError";
 import {
   calcExpiresAt,
+  getExpirationBasis,
   getExpirationDays,
   isExpirationEnabled,
 } from "@/features/core/wallet/utils/expiration";
@@ -31,7 +36,67 @@ function lotMismatchError(walletIds: string[]): DomainError {
 }
 
 /**
+ * lastActivity の付与: 残っているロットの失効日を揃えて延ばし、うち最新の1本に付与額を足し込む。
+ * 残っているロットが無いウォレットにだけ新しいロットを作る。UPDATE と INSERT を1文で行う。
+ * 足し込んだロットの granted_amount は付与額の累計になる（付与ごとの額は wallet_histories が持つ）。
+ */
+async function grantLotsLastActivity(
+  trx: TransactionClient,
+  params: { walletIds: string[]; amount: number; expiresAt: Date },
+): Promise<void> {
+  const idList = sql.join(
+    params.walletIds.map((id) => sql`${id}::uuid`),
+    sql`, `,
+  );
+  const targetRows = sql.join(
+    params.walletIds.map((id) => sql`(${id}::uuid)`),
+    sql`, `,
+  );
+  const expiresAt = sql`${params.expiresAt.toISOString()}::timestamptz`;
+
+  await trx.execute(sql`
+    WITH live AS (
+      SELECT id,
+             ROW_NUMBER() OVER (PARTITION BY wallet_id ORDER BY created_at DESC, id DESC) AS rn
+      FROM ${WalletLotTable}
+      WHERE ${WalletLotTable.wallet_id} IN (${idList}) AND ${WalletLotTable.remaining} > 0
+    ),
+    touched AS (
+      UPDATE ${WalletLotTable} AS l
+      SET expires_at = ${expiresAt},
+          remaining = l.remaining + CASE WHEN live.rn = 1 THEN ${params.amount}::int ELSE 0 END,
+          granted_amount = l.granted_amount + CASE WHEN live.rn = 1 THEN ${params.amount}::int ELSE 0 END
+      FROM live
+      WHERE l.id = live.id
+      RETURNING l.wallet_id
+    )
+    INSERT INTO ${WalletLotTable} (wallet_id, granted_amount, remaining, expires_at)
+    SELECT t.wallet_id, ${params.amount}::int, ${params.amount}::int, ${expiresAt}
+    FROM (VALUES ${targetRows}) AS t(wallet_id)
+    WHERE NOT EXISTS (SELECT 1 FROM touched WHERE touched.wallet_id = t.wallet_id)
+  `);
+}
+
+/**
+ * lastActivity の消費後: 残っている全ロットの失効日を「現在 + expirationDays」に揃える。
+ * "grant" の通貨では no-op。
+ */
+async function extendLotsOnActivity(
+  trx: TransactionClient,
+  params: { walletIds: string[]; walletType: WalletTypeValue },
+): Promise<void> {
+  const days = getExpirationDays(params.walletType);
+  if (days === null || getExpirationBasis(params.walletType) !== "lastActivity") return;
+
+  await trx
+    .update(WalletLotTable)
+    .set({ expires_at: calcExpiresAt(new Date(), days) })
+    .where(and(inArray(WalletLotTable.wallet_id, params.walletIds), gt(WalletLotTable.remaining, 0)));
+}
+
+/**
  * 付与: 新しいロットを1本作成する（expires_at = 付与時刻 + expirationDays）。
+ * lastActivity の通貨では残っているロットに足し込み、全額の失効日を延ばす。
  * 無効な walletType では no-op。
  */
 export async function grantLot(
@@ -42,6 +107,15 @@ export async function grantLot(
   if (days === null || params.amount <= 0) return;
 
   const grantedAt = params.grantedAt ?? new Date();
+  if (getExpirationBasis(params.walletType) === "lastActivity") {
+    await grantLotsLastActivity(trx, {
+      walletIds: [params.walletId],
+      amount: params.amount,
+      expiresAt: calcExpiresAt(grantedAt, days),
+    });
+    return;
+  }
+
   await trx.insert(WalletLotTable).values({
     wallet_id: params.walletId,
     granted_amount: params.amount,
@@ -61,6 +135,11 @@ export async function grantLotsBulk(
   if (days === null || params.amount <= 0 || params.walletIds.length === 0) return;
 
   const expiresAt = calcExpiresAt(params.grantedAt ?? new Date(), days);
+  if (getExpirationBasis(params.walletType) === "lastActivity") {
+    await grantLotsLastActivity(trx, { walletIds: params.walletIds, amount: params.amount, expiresAt });
+    return;
+  }
+
   await trx.insert(WalletLotTable).values(
     params.walletIds.map((walletId) => ({
       wallet_id: walletId,
@@ -102,6 +181,8 @@ export async function consumeLotsFifo(
   if (consumed !== params.amount) {
     throw lotMismatchError([params.walletId]);
   }
+
+  await extendLotsOnActivity(trx, { walletIds: [params.walletId], walletType: params.walletType });
 }
 
 /**
@@ -150,11 +231,14 @@ export async function consumeLotsFifoBulk(
   if (mismatched.length > 0) {
     throw lotMismatchError(mismatched);
   }
+
+  await extendLotsOnActivity(trx, { walletIds: params.walletIds, walletType: params.walletType });
 }
 
 /**
  * 再ベースライン（SET用）: 既存ロットを全破棄し、新残高を「現在取得扱い」の1本に置き直す。
  * SET は取得時期の情報を破壊する操作のため、決定的にこの解釈で統一する。
+ * lastActivity の通貨でも「SET 時刻 + expirationDays」の1本になるので、そのまま正しい。
  * 無効な walletType では no-op。
  */
 export async function rebaselineLots(

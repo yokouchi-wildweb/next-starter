@@ -91,14 +91,28 @@ export const WALLET_EXPIRED_NOTICE_COPY: WalletExpirationNoticeCopy = {
 };
 
 /**
+ * 失効日の数え方。
+ * - "grant": 付与ごとに「付与時刻 + expirationDays」で失効する（古い付与から順に失効）
+ * - "lastActivity": 最後の残高変更から expirationDays の間、残高の変更が無ければ残高全額が失効する
+ *   （付与・消費・SET のたびに残っている全額の失効日が「その時刻 + expirationDays」に延びる。
+ *   予約・予約解除と失効スイープ自身の没収は残高変更に数えない）
+ */
+export type WalletExpirationBasis = "grant" | "lastActivity";
+
+/**
  * 通貨種別ごとの有効期限設定
  */
 export type WalletExpirationConfig = {
   /**
-   * 取得（付与）から失効までの日数。
+   * 失効までの日数（数え始めは expirationBasis による）。
    * null = この通貨は有効期限なし（ロット管理そのものが無効）
    */
   expirationDays: number | null;
+  /**
+   * 失効日の数え方。省略 = "grant"（付与ごと）。
+   * 運用中の通貨で切り替える場合は README「有効期限（ロット管理）」の「数え方」を参照。
+   */
+  expirationBasis?: WalletExpirationBasis;
   /**
    * 失効スイープ（実際の残高没収）を実行するか。
    * false にすると、ロット記録と失効間近照会は動くが没収は行われない
@@ -119,6 +133,9 @@ export type WalletExpirationConfig = {
  *
  * ダウンストリームでの有効化例:
  *   regular_coin: { expirationDays: 180, sweepEnabled: true },
+ *
+ * 「最後の残高変更から180日」で数える例:
+ *   regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnabled: true },
  *
  * 通知も送る例（30日前はメールのみ、7日前と失効時は両方）:
  *   regular_coin: {

@@ -598,6 +598,43 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
 
 残高が頻繁に増減しても、消費は常に最古ロットから引かれるため、失効するのは「本当に expirationDays の間使われずに残った分」だけ。
 
+### 数え方（expirationBasis）
+
+通貨ごとに失効日の数え方を選べる。省略時は `"grant"`。
+
+```typescript
+// 付与ごと（既定）: 付与ごとに「付与時刻 + 180日」で失効する
+regular_coin: { expirationDays: 180, sweepEnabled: true },
+
+// 最後の残高変更から: 180日の間、残高が変わらなければ残高全額が失効する
+regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnabled: true },
+```
+
+| | `"grant"`（既定） | `"lastActivity"` |
+|---|---|---|
+| 失効する単位 | 付与ごと（古い付与から順に） | 残高全額 |
+| 失効日 | 付与時刻 + expirationDays | 最後の残高変更 + expirationDays |
+| 入金を続けて使わないユーザー | 古い付与から失効する | 入金のたびに全額の失効日が延びる |
+
+`"lastActivity"` の決めごと:
+- **残高変更に数えるもの**: 付与（INCREMENT）・消費（DECREMENT / debit / 予約分の消費）・SET。一括操作（bulkAdjust*）も同じ。
+  これらはロット会計と同じ TX で、残っている全ロットの `expires_at` を「その時刻 + expirationDays」に揃える
+- **数えないもの**: 予約（reserve）と予約解除（release）は残高を変えないので数えない。**失効スイープ自身の没収も数えない**
+  （スイープはロット会計を通らないので、没収で失効日が延びることは無い）。`skipHistory` の有無は関係ない
+- **ロットの形**: 付与は新しいロットを作らず、残っているロットに足し込む。残っているロットはウォレットあたり1本以下になり、
+  延長の UPDATE は1行で済む。足し込んだロットの `granted_amount` は付与額の累計（付与ごとの額は `wallet_histories` にある）
+- **失効間近の照会・失効通知・スイープ**は数え方によらず同じに動く。失効日が延びた場合、予告は新しい失効日に対して改めて届く
+  （予告の冪等性は失効日ごとのため）
+- **locked_balance 保護との関係**: 予約中で失効しきれなかった分は期限切れロットに残り、次の残高変更（予約分の消費を含む）で失効日が延びる
+- **初期化**: `wallet-lots-init` は数え方によらず「実行日 + expirationDays」の1本を作る。
+  `wallet-lots-init-from-history` は残高全額を「最後の残高変更 + expirationDays」の1本にする
+  （直近 expirationDays の `wallet_histories` から、失効の没収（reason_category: `expiration`）を除いた最新の行を使う。
+  範囲内に行が無ければ全額が期限を過ぎた分になる）
+- **運用中の通貨で数え方を切り替える**: ロットの作り直しは要らない。`"grant"` → `"lastActivity"` では、
+  切り替え後の最初の残高変更で残っている全ロットの失効日が揃う（それまでは元の失効日のまま）。
+  切り替え時点から揃えたい場合は初期化をやり直す（運用ルールの「再実行」の注意を参照）。
+  `"lastActivity"` → `"grant"` は、残っているロットが次の付与から付与ごとの扱いに戻る
+
 ### 導入手順（ダウンストリーム）
 
 1. `src/config/app/wallet-expiration.config.ts` で対象通貨を有効化:
@@ -657,7 +694,7 @@ audit_logs に載せるのは **「介入」操作のみ**。「業務」操作�
   （`wallet-lots-init` / `wallet-lots-init-from-history` のどちらか）を再実行して re-baseline すること
 - **sweepEnabled: false**: ロット記録と失効間近照会だけ先行させ、没収は行わない（規約告知期間などに使用）
 - **locked_balance 保護**: 失効額は利用可能残高（`balance - locked_balance`）が上限。予約中の分は失効せず次回スイープに持ち越し
-- 規約側の文言は「失効は取得が古い順に充当（FIFO）」前提になっているか確認すること
+- 規約側の文言は数え方に合わせる: `"grant"` = 「失効は取得が古い順に充当（FIFO）」、`"lastActivity"` = 「最後の残高変更から○日で全額失効」
 
 ### 失効間近の照会（失効予告 UI・通知のデータソース）
 

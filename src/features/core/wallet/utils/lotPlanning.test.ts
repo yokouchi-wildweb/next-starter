@@ -1,11 +1,11 @@
 // src/features/core/wallet/utils/lotPlanning.test.ts
-// planLotsFromHistory の単体テスト
+// planLotsFromHistory / planLastActivityLot の単体テスト
 // 実行: pnpm test:wallet-lot-planning
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { calcExpiresAt } from "./expiration";
-import { planLotsFromHistory, type LotHistoryEntry } from "./lotPlanning";
+import { planLastActivityLot, planLotsFromHistory, type LotHistoryEntry } from "./lotPlanning";
 
 const EXPIRATION_DAYS = 180;
 const RUN_START = new Date("2026-09-29T00:00:00.000Z");
@@ -120,4 +120,43 @@ test("不変条件: ロットの remaining 合計は常に残高と一致する"
     const result = plan(balance, entries);
     assert.equal(sumRemaining(result.lots), balance, `balance=${balance}`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// planLastActivityLot（expirationBasis: "lastActivity"）
+// ---------------------------------------------------------------------------
+
+function planLastActivity(balance: number, lastActivityAt: Date | null) {
+  return planLastActivityLot({
+    balance,
+    lastActivityAt,
+    expirationDays: EXPIRATION_DAYS,
+    overdueExpiresAt: RUN_START,
+  });
+}
+
+test("lastActivity: 残高全額を最後の残高変更 + expirationDays に失効する1本にする", () => {
+  assert.deepEqual(planLastActivity(500, daysAgo(30)), {
+    lots: [{ grantedAmount: 500, remaining: 500, expiresAt: calcExpiresAt(daysAgo(30), EXPIRATION_DAYS) }],
+    overdueAmount: 0,
+  });
+});
+
+test("lastActivity: 残高変更が範囲内に無ければ全額が期限を過ぎた分になる", () => {
+  assert.deepEqual(planLastActivity(500, null), {
+    lots: [{ grantedAmount: 500, remaining: 500, expiresAt: RUN_START }],
+    overdueAmount: 500,
+  });
+});
+
+test("lastActivity: 最後の残高変更からちょうど expirationDays の場合は期限を過ぎた分になる", () => {
+  const result = planLastActivity(500, daysAgo(EXPIRATION_DAYS));
+
+  assert.equal(result.overdueAmount, 500);
+  assert.deepEqual(result.lots.map((lot) => lot.expiresAt), [RUN_START]);
+});
+
+test("lastActivity: 残高が 0 以下の場合はロットを作らない", () => {
+  assert.deepEqual(planLastActivity(0, daysAgo(1)), { lots: [], overdueAmount: 0 });
+  assert.deepEqual(planLastActivity(-10, daysAgo(1)), { lots: [], overdueAmount: 0 });
 });

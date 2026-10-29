@@ -3,6 +3,7 @@
 
 import {
   WALLET_EXPIRATION_CONFIG,
+  type WalletExpirationBasis,
   type WalletExpiredNotice,
   type WalletPreExpiryNoticeStage,
 } from "@/config/app/wallet-expiration.config";
@@ -14,6 +15,13 @@ import type { WalletTypeValue } from "@/features/core/wallet/types/field";
  */
 export function getExpirationDays(walletType: WalletTypeValue): number | null {
   return WALLET_EXPIRATION_CONFIG[walletType as WalletType]?.expirationDays ?? null;
+}
+
+/**
+ * 指定通貨の失効日の数え方。省略時は "grant"（付与ごと）。
+ */
+export function getExpirationBasis(walletType: WalletTypeValue): WalletExpirationBasis {
+  return WALLET_EXPIRATION_CONFIG[walletType as WalletType]?.expirationBasis ?? "grant";
 }
 
 /**
