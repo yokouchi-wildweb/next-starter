@@ -6,7 +6,6 @@ import { createApiRoute } from "@/wiring/apiRoute";
 import { sanitizeRedirectPath } from "@/lib/url";
 import { processCallback } from "@/lib/line/oauth";
 import { LINE_OAUTH_NONCE_COOKIE } from "@/lib/line/constants";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { userLineProfileService } from "@/features/core/userLineProfile/services/server/userLineProfileService";
 
 /**
@@ -36,10 +35,10 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/auth/line/callback",
     operationType: "write",
-    access: "custom",
+    access: "public",
     skipForDemo: true,
   },
-  async (req) => {
+  async (req, { user: sessionUser }) => {
     const code = req.nextUrl.searchParams.get("code");
     const stateParam = req.nextUrl.searchParams.get("state");
     const friendshipStatusChanged =
@@ -79,8 +78,7 @@ export const GET = createApiRoute(
       return errorRedirect(redirectAfter, req.nextUrl.origin, "missing_code");
     }
 
-    // 現在のログインユーザーを取得
-    const sessionUser = await getSessionUser();
+    // 連携先は Factory が解いたログイン中の利用者（利用可能な status のときだけ。他は未ログインと同じ扱い）
     if (!sessionUser) {
       return errorRedirect(redirectAfter, req.nextUrl.origin, "not_authenticated");
     }

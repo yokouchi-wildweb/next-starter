@@ -3,7 +3,6 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { userXProfileService } from "@/features/core/userXProfile/services/server/userXProfileService";
 
 /**
@@ -14,18 +13,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/x/unlink",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
     skipForDemo: true,
   },
-  async () => {
-    const sessionUser = await getSessionUser();
-    if (!sessionUser) {
-      return NextResponse.json(
-        { message: "認証されていません" },
-        { status: 401 },
-      );
-    }
-
+  async (_req, { user: sessionUser }) => {
     await userXProfileService.unlinkXAccount(sessionUser.userId);
 
     return NextResponse.json({ message: "X 連携を解除しました" });

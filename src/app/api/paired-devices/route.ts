@@ -14,7 +14,6 @@ import {
   toPairedDeviceForAdmin,
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
-import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 
@@ -31,11 +30,10 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/paired-devices",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (req) =>
+  async (req, { user }) =>
     withPairedDeviceErrors(async () => {
-      const user = await requireAuthenticated();
       const search = req.nextUrl.searchParams;
       const parsed = ListPairedDevicesSchema.safeParse({
         kind: search.get("kind") ?? undefined,
@@ -55,11 +53,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/paired-devices",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
   },
-  async (req) =>
+  async (req, { user }) =>
     withPairedDeviceErrors(async () => {
-      const user = await requireAuthenticated();
       const parsed = CreatePairedDeviceSchema.safeParse(await req.json().catch(() => null));
       if (!parsed.success) {
         throw new DomainError("入力が不正です", { status: 400 });

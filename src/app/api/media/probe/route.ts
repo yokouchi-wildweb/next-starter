@@ -2,7 +2,7 @@
 //
 // サーバーサイド メディア解析（probe）の内部 API アダプタ。
 // 共有ライブラリ関数 probeMedia() の薄いラッパ。別ランタイム/クライアントからの事前検証用。
-// 管理ツール用途のため admin 限定（access: "custom" + requireAdmin の自前ガード）。
+// 管理ツール用途のため admin 限定（access { roleCategories: ["admin"] }。主体は Factory が解いた ctx.user）。
 //
 // 入力（どれか 1 つ）:
 // - ref: storage:// の ref（downloadUrl に ref を入れても同じ扱い）
@@ -15,7 +15,6 @@
 
 import { NextResponse } from "next/server";
 
-import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { storageObjectService } from "@/features/core/storageObject/services/server/storageObjectService";
 import { probeMedia } from "@/lib/mediaProbe";
 import type { MediaRef, ProbeErrorCode } from "@/lib/mediaProbe";
@@ -56,11 +55,9 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/media/probe",
     operationType: "read",
-    access: "custom", // ハンドラ内で requireAdmin により認可
+    access: { roleCategories: ["admin"] },
   },
-  async (req) => {
-    const admin = await requireAdmin();
-
+  async (req, { user: admin }) => {
     const body = await req.json().catch(() => null);
     const input = parseInput(body);
     if (!input) {

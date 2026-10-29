@@ -51,6 +51,11 @@ async function verifySignature(
   return { valid: isValid, signature: isValid ? signature : undefined };
 }
 
+/**
+ * 決済プロバイダからの Webhook。
+ * 認可: 呼び手は利用者でなくプロバイダなので access "public"。真正性はハンドラで provider の署名を検証して確かめる
+ * （署名が無効なら何もしない）。利用者の決済の確定はここと status route（本人照合 + provider 照会）が守る。
+ */
 export const POST = createApiRoute(
   {
     operation: "POST /api/webhook/payment",

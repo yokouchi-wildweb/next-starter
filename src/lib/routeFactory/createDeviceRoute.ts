@@ -68,7 +68,7 @@ export type DeviceRouteConfig<K extends string> = BaseDeviceRouteConfig<K> & {
 
 export type DeviceOrUserRouteConfig<K extends string> = BaseDeviceRouteConfig<K> & {
   /** 端末でない場合に、このルールに合うログインユーザーを通す（"authenticated" またはロール指定） */
-  orUser: Exclude<RouteAccess, "public" | "custom">;
+  orUser: Exclude<RouteAccess, "public">;
   /**
    * orUser の user 枝で通過を許可するユーザーステータス（省略時は利用可能な status だけ）。
    * createApiRoute と同じ語彙・fail-closed

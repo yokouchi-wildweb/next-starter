@@ -1,16 +1,9 @@
 // src/features/core/auth/services/server/requireRole.ts
 //
-// カスタム API ルート（createApiRoute 直接利用）でハンドラ先頭に置く認可ガード。
-//
-// createApiRoute の access は型必須で（宣言し忘れはコンパイルエラー）、"public" /
-// "authenticated" / { roles, roleCategories } なら factory が認可を強制する。
-// access: "custom" を選んだルートは認可をハンドラに委ねるので、ハンドラ先頭でこれらを
-// 明示的に呼ぶ（呼ばないと lint route-authz/require-authz が警告する）。失敗時は DomainError を throw すると、
-// createApiRoute のエラーハンドラが status / message を持つ JSON レスポンスに変換する。
-//
-// ロール判定は DB 同期される getSessionUser を使う（ctx.session は token-only 由来で
-// ロール剥奪・利用停止が即時反映されないため、認可には使わない）。
-// 汎用ルート側の評価ロジック（evaluateApiAccessRule）と判定基準を揃えている。
+// @deprecated API ルートでは使わない。主体は API の Factory（@/wiring/apiRoute）が 1 回だけ DB 同期で解き、
+// access の宣言（"authenticated" / { roles, roleCategories }、必要なら allowStatuses）で認可して ctx.user で渡す。
+// upstream の route からの呼び出しは 0。fork の route が Factory の宣言へ移るまでの互換のため残している
+// （判定基準は evaluateApiAccessRule と同じ。失敗時は DomainError を throw）。fork の移行が済んだら削除する。
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { USER_AVAILABLE_STATUSES, getRoleCategory } from "@/features/core/user/constants";

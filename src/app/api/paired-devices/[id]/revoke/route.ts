@@ -9,7 +9,6 @@ import {
   toPairedDeviceForAdmin,
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
-import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 
@@ -17,15 +16,14 @@ type Params = { id: string };
 
 const RevokeSchema = z.object({ reason: z.string().max(1000).nullable().optional() });
 
-export const POST = createApiRoute<Params>(
+export const POST = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "POST /api/paired-devices/[id]/revoke",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
   },
-  async (req, { params }) =>
+  async (req, { params, user }) =>
     withPairedDeviceErrors(async () => {
-      const user = await requireAuthenticated();
       const parsed = RevokeSchema.safeParse((await req.json().catch(() => null)) ?? {});
       if (!parsed.success) {
         throw new DomainError("入力が不正です", { status: 400 });

@@ -3,25 +3,19 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { refreshSessionCookie } from "@/features/core/auth/services/server/session/token";
 import { reactivate } from "@/features/core/user/services/server/reactivate";
-import { DomainError } from "@/lib/errors";
 
 export const POST = createApiRoute(
   {
     operation: "POST /api/auth/reactivate",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
+    // 再有効化は休会中の本人の手続き。休会中だけを通す（他の status は 403）
+    allowStatuses: ["inactive"],
     skipForDemo: false,
   },
-  async () => {
-    const sessionUser = await getSessionUser();
-
-    if (!sessionUser) {
-      throw new DomainError("認証情報が無効です", { status: 401 });
-    }
-
+  async (_req, { user: sessionUser }) => {
     const { user } = await reactivate(sessionUser.userId);
 
     // 更新後のユーザー情報でセッションCookieを再発行

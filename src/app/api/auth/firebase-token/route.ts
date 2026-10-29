@@ -3,9 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { createFirebaseToken } from "@/features/core/auth/services/server/createFirebaseToken";
-import { DomainError } from "@/lib/errors";
 
 /**
  * セッションがある場合に Firebase カスタムトークンを発行する。
@@ -15,16 +13,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/firebase-token",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
     skipForDemo: false,
   },
-  async () => {
-    const user = await getSessionUser();
-
-    if (!user) {
-      throw new DomainError("セッションが無効です", { status: 401 });
-    }
-
+  async (_req, { user }) => {
     const firebaseCustomToken = await createFirebaseToken(user);
 
     return NextResponse.json({ firebaseCustomToken });

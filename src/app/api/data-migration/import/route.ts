@@ -1,7 +1,6 @@
 // src/app/api/data-migration/import/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { importData } from "@/lib/dataMigration/import";
 import { getService } from "@/wiring/domains";
@@ -14,9 +13,8 @@ export const POST = createApiRoute(
     operationType: "write",
     access: { roleCategories: ["admin"] },
   },
-  async (req: NextRequest) => {
-    // ファイル台帳の操作の実行者（DB と同期した管理者）
-    const admin = await requireAdmin();
+  async (req: NextRequest, { user: admin }) => {
+    // ファイル台帳の操作の実行者 = Factory が解いた管理者（DB 同期）
 
     // FormData から ZIP ファイルを取得
     const formData = await req.formData();
@@ -43,7 +41,7 @@ export const POST = createApiRoute(
     }
 
     // domainEntry.ts の access（import）を評価する（ルートの admin 門に加えて AND）
-    const denied = await denyUnlessDomainDataOperationAllowed([domain], "import");
+    const denied = await denyUnlessDomainDataOperationAllowed([domain], "import", admin);
     if (denied) return denied;
 
     // ZIP ファイルを Buffer に変換

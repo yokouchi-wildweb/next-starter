@@ -9,7 +9,6 @@ import {
   X_OAUTH_STATE_COOKIE,
   X_OAUTH_CODE_VERIFIER_COOKIE,
 } from "@/lib/x/constants";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { userXProfileService } from "@/features/core/userXProfile/services/server/userXProfileService";
 
 /**
@@ -37,10 +36,10 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/auth/x/callback",
     operationType: "write",
-    access: "custom",
+    access: "public",
     skipForDemo: true,
   },
-  async (req) => {
+  async (req, { user: sessionUser }) => {
     const code = req.nextUrl.searchParams.get("code");
     const stateParam = req.nextUrl.searchParams.get("state");
 
@@ -90,8 +89,7 @@ export const GET = createApiRoute(
       return errorRedirect(redirectAfter, req.nextUrl.origin, "missing_code");
     }
 
-    // 現在のログインユーザーを取得
-    const sessionUser = await getSessionUser();
+    // 連携先は Factory が解いたログイン中の利用者（利用可能な status のときだけ。他は未ログインと同じ扱い）
     if (!sessionUser) {
       return errorRedirect(redirectAfter, req.nextUrl.origin, "not_authenticated");
     }

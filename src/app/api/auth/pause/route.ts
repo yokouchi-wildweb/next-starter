@@ -3,26 +3,18 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { clearSessionCookie } from "@/features/core/auth/services/server/session/clearSessionCookie";
 import { pause } from "@/features/core/user/services/server/pause";
 import { recordLogoutEvent } from "@/features/core/userLoginEvent/services/server";
-import { DomainError } from "@/lib/errors";
 
 export const POST = createApiRoute(
   {
     operation: "POST /api/auth/pause",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
     skipForDemo: true,
   },
-  async () => {
-    const sessionUser = await getSessionUser();
-
-    if (!sessionUser) {
-      throw new DomainError("認証情報が無効です", { status: 401 });
-    }
-
+  async (_req, { user: sessionUser }) => {
     await pause(sessionUser.userId);
 
     // 休止はユーザー操作によるセッション終了でもあるため logout 行を記録する

@@ -7,7 +7,6 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { DomainError } from "@/lib/errors";
 import { ROOM_PROTOCOL_VERSION } from "@/lib/realtimeRoom/protocol";
 import { getRealtimeRoomEnv, signRoomClientToken, toWebSocketUrl } from "@/lib/realtimeRoom/server";
@@ -19,12 +18,8 @@ export const GET = createApiRoute(
     operationType: "read",
     access: "authenticated",
   },
-  async (request: NextRequest) => {
-    // 認可 (ログイン必須) は factory で強制済み。userId をトークン subject に載せるために取得する
-    const user = await getSessionUser();
-    if (!user) {
-      throw new DomainError("ログインが必要です", { status: 401 });
-    }
+  async (request: NextRequest, { user }) => {
+    // 認可 (ログイン必須) は factory で強制済み。ctx.user の userId をトークン subject に載せる
 
     const url = new URL(request.url);
     const namespace = url.searchParams.get("namespace")?.trim();

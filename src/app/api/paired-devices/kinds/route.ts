@@ -6,18 +6,16 @@ import {
   listManageablePairedDeviceKinds,
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
-import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(
   {
     operation: "GET /api/paired-devices/kinds",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async () =>
+  async (_req, { user }) =>
     withPairedDeviceErrors(async () => {
-      const user = await requireAuthenticated();
       return { kinds: await listManageablePairedDeviceKinds(user) };
     }),
 );

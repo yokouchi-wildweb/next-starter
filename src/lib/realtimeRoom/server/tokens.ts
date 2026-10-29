@@ -48,11 +48,12 @@ export type RoomCallbackContext = {
 
 /**
  * ルームサーバー → アプリ API へのコールバック (永続化エスケープハッチ) を検証する。
- * downstream がコールバック受け口の API ルート (access: "custom") を作る際に必ず使うこと。
+ * downstream がコールバック受け口の API ルートを作る際に必ず使うこと。呼び手は利用者でなくルームサーバーなので
+ * access は "public" とし、真正性はハンドラでこの関数が確かめる（webhook の署名検証と同じ形）。
  *
  * @example
  * export const POST = createApiRoute(
- *   { operation: "POST /api/raid/snapshot", operationType: "write", access: "custom" },
+ *   { operation: "POST /api/raid/snapshot", operationType: "write", access: "public", skipForDemo: false },
  *   async (req) => {
  *     const ctx = await verifyRoomCallback(req); // 401 fail-closed
  *     ...

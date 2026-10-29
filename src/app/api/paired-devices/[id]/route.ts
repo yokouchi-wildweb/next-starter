@@ -10,36 +10,33 @@ import {
   updatePairedDevice,
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
-import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { DomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 type Params = { id: string };
 
-export const GET = createApiRoute<Params>(
+export const GET = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "GET /api/paired-devices/[id]",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (_req, { params }) =>
+  async (_req, { params, user }) =>
     withPairedDeviceErrors(async () => {
-      const user = await requireAuthenticated();
       const device = await getManagedPairedDevice(params.id, user);
       const activePairings = await listActivePairingsForDevice(params.id, user);
       return { device: toPairedDeviceForAdmin(device), activePairings };
     }),
 );
 
-export const PATCH = createApiRoute<Params>(
+export const PATCH = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "PATCH /api/paired-devices/[id]",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
   },
-  async (req, { params }) =>
+  async (req, { params, user }) =>
     withPairedDeviceErrors(async () => {
-      const user = await requireAuthenticated();
       const parsed = UpdatePairedDeviceSchema.safeParse(await req.json().catch(() => null));
       if (!parsed.success) {
         throw new DomainError("入力が不正です", { status: 400 });

@@ -1,6 +1,6 @@
 // src/app/api/auth/session/route.test.mts
 // GET /api/auth/session の再発行が DB 照合 (強制失効・現在の role/status) を通ることの回帰テスト
-// （DB のユーザー取得だけをモックし、実際の JWT 署名・検証とルートファクトリーを動かす）
+// （DB のユーザー取得と next/headers の Cookie だけをモックし、実際の JWT 署名・検証とルートファクトリーを動かす）
 // 実行: pnpm test:auth-session-refresh
 
 import assert from "node:assert/strict";
@@ -22,12 +22,25 @@ type FakeDbUser = {
 };
 
 let dbUser: FakeDbUser | null = null;
+// Factory は next/headers の cookies() から利用者を解く。テストではリクエストの Cookie をここに置いて渡す
+let requestCookie: string | null = null;
 
 mock.module("@/features/core/user/services/server/finders/findUserById", {
   namedExports: { findUserById: async (id: string) => (dbUser && dbUser.id === id ? dbUser : null) },
 });
 mock.module("@/features/core/auth/services/server/session/getTokenOnlySession", {
   namedExports: { getTokenOnlySession: async () => null },
+});
+mock.module("next/headers", {
+  namedExports: {
+    cookies: async () => ({
+      get: (name: string) => {
+        if (!requestCookie) return undefined;
+        const [key, ...rest] = requestCookie.split("=");
+        return key === name ? { name, value: rest.join("=") } : undefined;
+      },
+    }),
+  },
 });
 mock.module("@/features/core/rateLimit/services/server/wrappers/rateLimitHelper", {
   namedExports: { checkRateLimit: async () => ({ allowed: true }) },
@@ -66,13 +79,15 @@ async function tokenFor(claims: Partial<FakeDbUser>, issuedAt?: Date): Promise<s
   return token;
 }
 
-const call = (token: string) =>
-  GET(
+const call = (token: string) => {
+  requestCookie = `${AUTH_SESSION_COOKIE_NAME}=${token}`;
+  return GET(
     new NextRequest("http://localhost/api/auth/session", {
       headers: { cookie: `${AUTH_SESSION_COOKIE_NAME}=${token}` },
     }),
     { params: Promise.resolve({}) },
   );
+};
 
 const sessionCookieOf = (res: Response) => {
   const header = res.headers.getSetCookie().find((c) => c.startsWith(`${AUTH_SESSION_COOKIE_NAME}=`));
@@ -90,6 +105,20 @@ test("強制失効より前に発行されたトークンは 401 になり、Coo
   const cookie = sessionCookieOf(res);
   assert.equal(cookie.value, "");
   assert.equal(cookie.maxAge, 0);
+});
+
+test("Cookie が無ければ 401「セッションが見つかりません」", async () => {
+  requestCookie = null;
+  const res = await GET(new NextRequest("http://localhost/api/auth/session"), { params: Promise.resolve({}) });
+  assert.equal(res.status, 401);
+  assert.equal((await res.json()).message, "セッションが見つかりません");
+});
+
+test("休会中の利用者のセッションも status を問わず再発行される（全 status を通す宣言）", async () => {
+  dbUser = { ...baseUser(), status: "inactive" };
+  const res = await call(await tokenFor({ status: "inactive" }));
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).user.status, "inactive");
 });
 
 test("DB にユーザーが存在しないトークンは 401 になる", async () => {

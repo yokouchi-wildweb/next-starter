@@ -7,8 +7,6 @@
 //      判定中の例外（DB・判定先の障害）でも署名 URL は返さない。
 // DELETE: 用途の delete 規則で、業務行に紐付いていないファイルを削除する（規則が無い用途は削除不可）。
 
-import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import {
   parseObjectId,
   readFailureResponse,
@@ -18,16 +16,17 @@ import {
 import { isDomainError } from "@/lib/errors";
 import { createApiRoute } from "@/wiring/apiRoute";
 
-export const GET = createApiRoute<{ id: string }>(
+export const GET = createApiRoute<{ id: string }, unknown, "public">(
   {
     operation: "GET /api/storage/objects/[id]",
     operationType: "read",
     access: "public",
   },
-  async (_req, { params }) => {
+  async (_req, { params, user }) => {
     try {
+      // 利用者は Factory が解いた ctx.user（利用可能な status のときだけ。利用停止の本人に所有者の見え方を残さない）
       const resolution = await storageObjectService.resolveRead(parseObjectId(params.id), {
-        loadUser: getSessionUser,
+        loadUser: async () => user,
       });
       return readResolutionResponse(resolution);
     } catch (error) {
@@ -40,15 +39,14 @@ export const GET = createApiRoute<{ id: string }>(
   },
 );
 
-export const DELETE = createApiRoute<{ id: string }>(
+export const DELETE = createApiRoute<{ id: string }, unknown, "authenticated">(
   {
     operation: "DELETE /api/storage/objects/[id]",
     operationType: "write",
     access: "authenticated",
   },
-  async (_req, { params }) => {
-    // ロールの判定は DB と同期したセッションで行う（ctx.session は token のみ）
-    const user = await requireAuthenticated();
+  async (_req, { params, user }) => {
+    // ロールの判定は Factory が DB 同期で解いた ctx.user で行う
     return storageObjectService.remove(user, parseObjectId(params.id));
   },
 );

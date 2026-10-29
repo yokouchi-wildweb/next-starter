@@ -2,9 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/wiring/apiRoute";
-import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
-import { evaluateApiAccessRule } from "@/features/core/auth/services/server/apiAccess";
+import { createApiRoute, enforceAccessRule } from "@/wiring/apiRoute";
 import { resolveAccessRule } from "@/lib/domain";
 import { getDomainAccess, getDomainList, withRecordCounts } from "@/wiring/domains";
 
@@ -19,18 +17,19 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/domains",
     operationType: "read",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
   },
-  async () => {
-    // admin権限チェック（DB と同期した値で判定）
-    const admin = await requireAdmin();
-
+  async (_req, { user: admin }) => {
     const candidates = await getDomainList();
-    const allowed = candidates.filter((domain) => {
-      const access = getDomainAccess(domain.key);
-      if (!access) return false;
-      return evaluateApiAccessRule(resolveAccessRule(access, "truncateAll", "write"), admin) === "granted";
-    });
+    // Factory が解いた管理者（DB 同期）で、ドメインごとの access（truncateAll）を評価する
+    const granted = await Promise.all(
+      candidates.map(async (domain) => {
+        const access = getDomainAccess(domain.key);
+        if (!access) return false;
+        return (await enforceAccessRule(resolveAccessRule(access, "truncateAll", "write"), admin)) === null;
+      }),
+    );
+    const allowed = candidates.filter((_, index) => granted[index]);
 
     const domains = await withRecordCounts(allowed);
     return NextResponse.json({ domains });

@@ -12,7 +12,7 @@ import { NextRequest } from "next/server";
 
 type Resolution = { kind: "redirect"; url: string } | { kind: "unauthenticated" } | { kind: "not_found" };
 
-const ADMIN = { userId: "33333333-3333-4333-8333-333333333333", role: "admin" };
+const ADMIN = { userId: "33333333-3333-4333-8333-333333333333", role: "admin", status: "active", isDemo: false };
 
 let resolution: Resolution = { kind: "not_found" };
 let resolveCalls: { id: string; use?: string; user: unknown }[] = [];
@@ -28,8 +28,9 @@ mock.module("@/features/core/storageObject/services/server/storageObjectService"
     },
   },
 });
-mock.module("@/features/core/auth/services/server/requireRole", {
-  namedExports: { requireAdmin: async () => ADMIN },
+// ルートの門（admin）は Factory が DB 同期の利用者で評価し、その利用者を ctx.user で渡す
+mock.module("@/features/core/auth/services/server/session/getSessionUser", {
+  namedExports: { getSessionUser: async () => ADMIN },
 });
 mock.module("@/lib/mediaProbe", {
   namedExports: {

@@ -68,29 +68,22 @@ function buildAuditContext(req: NextRequest, session: SessionUser | null): Audit
 export type OperationType = "read" | "write";
 
 /**
- * カスタムルート（createApiRoute）のアクセスポリシー。
- * - "public": 未認証でもアクセス可
+ * カスタムルート（createApiRoute）のアクセスポリシー（3 語。ページの guard と同じ）。
+ * - "public": 未認証でもアクセス可（ctx.user は利用可能なログイン中の利用者か null）
  * - "authenticated": ログイン必須（未認証→401 / 利用停止→403）
  * - { roles?, roleCategories? }: 指定ロール / ロールカテゴリのみ（未認証→401 / 権限不足→403）
- * - "custom": @deprecated 移行中の一時措置（legate 20261026-152333 order 02 で削除）。
- *   ハンドラ内で自前認可する。ファクトリーは認可しない。
+ * 「ハンドラで自前に認可する」口は無い。主体はいつも Factory が解き、ハンドラは ctx.user を使う
+ * （署名検証の webhook も "public" + ハンドラで署名を確かめる）。
  */
-export type RouteAccess =
-  | "public"
-  | "authenticated"
-  | "custom"
-  | { roles?: string[]; roleCategories?: string[] };
+export type RouteAccess = "public" | "authenticated" | { roles?: string[]; roleCategories?: string[] };
 
 /**
  * access ごとの ctx.user の型。
  * "public" は未ログイン・利用できない status なら null、それ以外は必ずいる。
- * 移行中の "custom" は Factory が主体を解かないので常に null（ハンドラが自前で解く今の動きのまま）。
  */
-export type ApiRouteUser<A extends RouteAccess = RouteAccess> = A extends "custom"
-  ? null
-  : A extends "public"
-    ? SessionUser | null
-    : SessionUser;
+export type ApiRouteUser<A extends RouteAccess = RouteAccess> = A extends "public"
+  ? SessionUser | null
+  : SessionUser;
 
 /**
  * reCAPTCHA検証設定
@@ -166,11 +159,6 @@ export type ApiRouteContext<TParams = Record<string, string>, TUser = SessionUse
    * "authenticated" / { roles, roleCategories } では必ずいる。
    */
   user: TUser;
-  /**
-   * @deprecated token だけのセッション（DB 同期なし）。移行中の一時措置で、
-   * legate 20261026-152333 order 02 でハンドラの ctx から外す。認可・役割の分岐に使わず ctx.user を使う。
-   */
-  session: SessionUser | null;
 };
 
 /**
@@ -216,12 +204,13 @@ export function makeRouteCore(deps: RouteUserDeps) {
   return function runRoute<TParams, TGrant>(
     config: ApiRouteBaseConfig,
     authorize: RouteAuthorizer<TParams, TGrant>,
-    handler: (req: NextRequest, base: { params: TParams; session: SessionUser | null }, grant: TGrant) => Promise<unknown>,
+    handler: (req: NextRequest, base: { params: TParams }, grant: TGrant) => Promise<unknown>,
   ): NextRouteHandler<TParams> {
     return async (req: NextRequest, context: { params: Promise<TParams> }) => {
       const params = await context.params;
       // 監査ログの actor_id / actorType とデモユーザー判定にしか使わないため、
       // DB 同期が不要な JWT-only 取得を選択する（認可は authorize が DB 同期の利用者で行う）。
+      // ハンドラには渡さない（ハンドラは ctx.user を使う）
       const session = await deps.resolveTokenSession();
       const auditContext = buildAuditContext(req, session);
 
@@ -374,7 +363,7 @@ export function makeRouteCore(deps: RouteUserDeps) {
         // flush する。flush の中身（再計算等）は下流が registerUserDirtyFlushHandler で差し込む。
 
         const result = await runWithAuditContext(auditContext, () =>
-          runWithUserDirtyTracking(() => handler(req, { params, session }, grant)),
+          runWithUserDirtyTracking(() => handler(req, { params }, grant)),
         );
 
         // 将来の拡張ポイント:
@@ -403,7 +392,6 @@ export type RouteCore = ReturnType<typeof makeRouteCore>;
 /**
  * Factory が 1 回だけ利用者を解き、access で認可する。許可なら ctx.user に渡す利用者を返す。
  * - "public": 認可しない。利用可能な status（または allowStatuses）のときだけ利用者、他は null
- * - "custom"（移行中）: 主体を解かない（ctx.user は null。ハンドラが自前で解く今の動きのまま）
  * - それ以外: 評価して拒否なら 401 / 403（code 付き）
  */
 export function authorizeRouteUser(
@@ -412,7 +400,6 @@ export function authorizeRouteUser(
   allowStatuses: readonly UserStatus[] | undefined,
 ): () => Promise<Response | { user: SessionUser | null }> {
   return async () => {
-    if (access === "custom") return { user: null };
     const resolved = await deps.resolveUser();
     if (access === "public") {
       const allowed = allowStatuses ?? deps.availableStatuses;

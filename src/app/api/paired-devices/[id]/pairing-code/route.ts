@@ -4,20 +4,18 @@
 // その端末の未使用コードは取り消される。失効済みの端末に発行すると再ペアリングになる。
 
 import { issuePairingCode, withPairedDeviceErrors } from "@/features/core/pairedDevice/services/server";
-import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { createApiRoute } from "@/wiring/apiRoute";
 
 type Params = { id: string };
 
-export const POST = createApiRoute<Params>(
+export const POST = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "POST /api/paired-devices/[id]/pairing-code",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
   },
-  async (_req, { params }) =>
+  async (_req, { params, user }) =>
     withPairedDeviceErrors(async () => {
-      const user = await requireAuthenticated();
       const issued = await issuePairingCode(params.id, user);
       return { pairingId: issued.pairing.id, code: issued.code, expiresAt: issued.expiresAt };
     }),
