@@ -28,7 +28,7 @@
 - src/lib/firebase — Firebase SDK のクライアント / サーバー初期化とユーティリティ、未設定判定
 - src/lib/firestore — Firestore のクライアント操作レイヤー
 - src/lib/folderCatalog — フォルダ目録(CATALOG.md)の読み込み・検査・所有判定
-- src/lib/forkOwnership — fork の所有の検査(直接の親との merge-base 比較・受け口の一覧・一時許可)の仕様と、registry の fork の区画(fork entries の印の対)の読み取り
+- src/lib/forkOwnership — fork の所有の検査(直接の親との merge-base 比較・受け口の一覧・一時許可)。受け口の一覧 intake.txt・判定の核・registry の fork の区画と生成器の区画の読み取り
 - src/lib/fonts — Web フォントの設定(defineFontsConfig、既定はシステムフォント)
 - src/lib/googleTag — Google tag(gtag.js)と Google Ads コンバージョン計測(env 駆動、未設定なら no-op)
 - src/lib/gradient — グラデーションのデザイントークン(TS と CSS の単一ソース)とカラー値モデル

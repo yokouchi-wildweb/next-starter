@@ -71,8 +71,66 @@ export function parseForkRegions(text) {
   return { regions, errors };
 }
 
+// 生成器の区画(所有の検査の対象外、D22)。印の統一は後継の論点なので今の書き方をそのまま読む
+const GENERATOR_PAIRS = [
+  { start: /^\s*\/\/ --- AUTO-GENERATED-START ---\s*$/, end: /^\s*\/\/ --- AUTO-GENERATED-END ---\s*$/ },
+  { start: /^\s*\/\/ === AUTO-GENERATED (\S+) START ===\s*$/, end: /^\s*\/\/ === AUTO-GENERATED (\S+) END ===\s*$/ },
+];
+// 終わりの印の無い生成器の区画: 次の import 以外の行(空行を除く)の直前まで
+const GENERATOR_OPEN_IMPORTS = /^\s*\/\/ --- Auto-generated imports ---\s*$/;
+
 /**
- * 行番号(1 始まり)が fork の区画の中(印の行を除く)にあるか。
+ * テキストから生成器の区画を読む。行番号は 1 始まり、start / end は印の行。中身 = start と end の間の行。
+ * 終わりの印の無い区画の end は、最後の import 行の次の行(その行は区画の外)。
+ * 閉じていない対は区画にしない(生成器自身が印の欠けを検出する)。
+ * @returns {{ start: number, end: number }[]}
+ */
+export function parseGeneratorRegions(text) {
+  const lines = text.split("\n");
+  const regions = [];
+  let open = null;
+
+  lines.forEach((raw, index) => {
+    const line = index + 1;
+    if (open === null) {
+      const pair = GENERATOR_PAIRS.find((candidate) => candidate.start.test(raw));
+      if (pair) {
+        open = { start: line, pair };
+        return;
+      }
+      if (GENERATOR_OPEN_IMPORTS.test(raw)) {
+        let last = index;
+        for (let next = index + 1; next < lines.length; next += 1) {
+          const trimmed = lines[next].trim();
+          if (trimmed === "") continue;
+          if (!trimmed.startsWith("import ")) break;
+          last = next;
+        }
+        regions.push({ start: line, end: last + 2 });
+      }
+      return;
+    }
+    if (open.pair.end.test(raw)) {
+      regions.push({ start: open.start, end: line });
+      open = null;
+    }
+  });
+  return regions;
+}
+
+/**
+ * 区画の中身(印の行は残す)を除いたテキスト。基準側と fork 側でこれが同じなら、書き換えは区画の中だけ。
+ * 一時許可の指紋の元にもなる(D22: fork の区画と生成器の区画を除いて取る)。
+ * @param {{ fork?: boolean }} [options] fork: false = 生成器の区画だけを除く(fork の区画を受け口にしないファイル用)
+ */
+export function stripOwnedRegions(text, { fork = true } = {}) {
+  const all = [...(fork ? parseForkRegions(text).regions : []), ...parseGeneratorRegions(text)];
+  const lines = text.split("\n");
+  return lines.filter((_, index) => !isInForkRegion(all, index + 1)).join("\n");
+}
+
+/**
+ * 行番号(1 始まり)が区画の中(印の行を除く)にあるか。fork の区画にも生成器の区画にも使える。
  */
 export function isInForkRegion(regions, line) {
   return regions.some((region) => line > region.start && line < region.end);

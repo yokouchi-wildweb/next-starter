@@ -1,0 +1,58 @@
+# 受け口の一覧(fork が書き換えてよい場所)。upstream が持ち、検査は取り込み済みの upstream 側の版を読む
+# 書式: <kind> <glob>  # 理由 | `!<glob>` = その前までに当たった規則を外す | 最後に当たった規則が効く
+# kind: edit(書き換え可)/ region(fork entries の対の中だけ)/ marker(`fork entries below` の行より下だけ)
+#       append(基準の中身を先頭に残したままの追記だけ)/ generated(生成物、書き換えを問わない)/ debt(upstream の負債)
+# どの kind でも、基準にあるファイルの削除・rename は違反。仕様: README.md「受け口の一覧」
+
+# リポジトリ直下(依存・ビルド・接続の設定は fork が足すのを避けられない)
+edit package.json  # 依存・スクリプトの追加
+edit pnpm-lock.yaml  # package.json に従う
+edit .gitignore  # fork の除外の追加
+edit .env.example  # fork の環境変数の見本
+edit next.config.ts  # fork のビルド設定
+edit .mcp.json  # エージェントの接続設定
+
+# 値(config の再設計までは全体。値とキーを区別しない)
+edit src/config/**  # CLAUDE.md CORE_FILES config
+
+# スタイル(直下の CSS = fork の入口。_base/ は upstream)
+edit src/styles/*.css  # CLAUDE.md CORE_FILES downstream_owned
+
+# 画面(1 行スイッチと fork の部品)
+edit src/app/**/page.tsx  # 1 行スイッチ
+edit src/app/(user)/layout.tsx  # 枠の 1 行スイッチ
+edit src/app/admin/layout.tsx  # 枠の 1 行スイッチ
+edit src/app/(user)/(protected)/mypage/layout.tsx  # 枠の 1 行スイッチ
+edit src/app/**/_components/**  # upstream のルートの fork の部品
+edit src/app/**/_layout/**/*.*.tsx  # 枠のドット区切り名のカスタム(D41)
+edit src/app/**/_screen/**/*.*.tsx  # Screen の隣のドット区切り名
+!src/app/**/*.test.tsx  # テストはドット区切り名のカスタムではない
+
+# ドメインと定期タスクの上書き
+edit src/app/api/cron/*/override.ts  # cron の時刻変更・停止
+edit src/features/**/services/server/domainEntry.override.ts  # core の access の上書き
+
+# 登録(fork entries の対の中だけ)
+region src/registry/**/*.ts  # .claude/rules/core/code-generation.md fork_region
+
+# 規則(PER_PROJECT)
+edit .claude/rules/project.md  # CLAUDE.md PER_PROJECT
+edit .claude/rules/behavior.md  # CLAUDE.md PER_PROJECT
+marker .claude/rules/shortcuts.md  # 印より下が fork
+marker .claude/rules/term-aliases.md  # 印より下が fork
+
+# 目録(自分の節の追記)
+append src/lib/CATALOG.md  # src/lib/README.md「ライブラリを足すとき」
+
+# 生成物(fork の設定・ドメインから生成し直される)
+generated src/registry/serviceRegistry.ts  # pnpm registry:generate
+generated src/registry/profileBaseRegistry.ts  # pnpm role:generate
+generated src/registry/profileSchemaRegistry.ts  # pnpm role:generate
+generated src/registry/profileTableRegistry.ts  # pnpm role:generate
+generated src/app/route-map.txt  # pnpm routes:map
+generated vercel.json  # pnpm cron:generate(upstream には無い)
+generated src/styles/_base/gradient.css  # scripts/styles/generate-gradient-css.ts
+generated src/features/core/mail/constants/colors.ts  # scripts/mail/generate-colors.ts
+generated src/features/core/userProfile/generated/**  # pnpm role:generate
+
+# 負債(upstream が core の中の編集を案内している箇所。中身は後の段階で載せる)

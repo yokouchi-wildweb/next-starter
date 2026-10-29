@@ -2,7 +2,7 @@
 
 fork が upstream(直接の親 Tier)のファイルを、決められた場所の外で書き換えていないかを調べる検査の仕様。
 
-**判定器・受け口の一覧・検査コマンドはまだ無い(段階②で入る。下の「導入の段階」)。** いまあるのは、この仕様と registry の fork の区画の読み取り(`regions.mjs`、下の「registry の fork の区画」)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
+**検査コマンド・一時許可はまだ無い(段階②で順に入る)。** いまあるのは、受け口の一覧(`intake.txt`)、判定の核(`judge.mjs`、git に触れない純粋関数)、区画の読み取り(`regions.mjs`)。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
 
 ## 目的
 
@@ -12,24 +12,35 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 ## 判定
 
 - 基準 = 直接の親 Tier から最後に取り込んだ版(`/flux` の base と同じ merge-base)。多段の Tier でも直接の親だけを見る
-- 所有台帳は作らない。基準との git の比較だけで決める
-- 比較の結果の扱い
-  - fork が足したファイル(A)= fork の物
-  - 基準にあるファイル = 提供者(親)の物。削除(D)・移動・rename は違反。書き換え(M)は受け口の中なら可、外なら原則として失敗
-  - fork が先に作り、後で親が同じパスに足したファイルは、取り込んだ時点で親の物
-  - 祖先 Tier の lib の中に fork がファイルを足す(A)のは失敗。自分の lib に置いて re-export する
-- 生成器の区画(`AUTO-GENERATED` 系の印の中)は検査の対象外。一時許可の指紋(blob)も、fork の区画と生成器の区画を除いて取る
+- 所有台帳は作らない。基準との git の比較(`git diff --name-status -M <基準> HEAD`)だけで決める
+- fork が先に作り、後で親が同じパスに足したファイルは、取り込んだ時点で親の物(基準に入るので自然にそうなる)
+- 判定の順(`judge.mjs`。reason ごとの合否は `REASONS`)
+  1. A(fork が足した)→ `added`。ただし基準の `src/lib/<name>/` が実在する `<name>` の中なら `ancestor-lib-add`(違反。自分の lib に置いて re-export する)。祖先の lib かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
+  2. D → `deleted`、R(元が基準にある)→ `renamed`。受け口の中でも違反(config の削除、`_` 付きへの rename も)
+  3. M → 受け口の一覧で当たった kind ごと(下の表)。どれにも当たらなければ、生成器の区画の中だけの差なら `generator-region`(合格)、それ以外は `outside-intake`(違反)
+- 生成器の区画(`AUTO-GENERATED-START/END`・`=== AUTO-GENERATED … START/END ===`・終わりの印の無い `// --- Auto-generated imports ---` = 続く import の行まで)は検査の対象外。生成器の印の統一は別の論点
+- 区画の中身を除いたテキスト(`stripOwnedRegions`)が基準側と fork 側で同じ = 区画の中だけの書き換え。一時許可の指紋もこのテキストから取る
 
 ## 受け口の一覧
 
-- fork が書き換えてよい場所の一覧。upstream が持ち、検査は**取り込み済みの upstream 側の版**から読む(fork が一覧を広げて自分を許すことはできない)
-- 載せるもの(段階②で一覧にする)
-  - registry: ファイルの中の fork の区画(印の対)の中だけ。印の外は upstream の物(下の「registry の fork の区画」)
-  - config: config の再設計までは暫定で `src/config/**` 全体(値とキーを区別しない)。削除は違反。Tier1 の config の規則(値だけ・構造の変更は承認)はそのまま
-  - 各フレームの `_layout/` の中の、fork が書き換える部分(W のカスタム)
-  - CLAUDE.md の CORE_FILES `downstream_owned` に挙がっている物
-- 負債の行: upstream 自身が core の中のファイルを下流の編集点として案内している箇所。fork 側には何も書かせず、upstream が負債として一覧に載せ、core の外に受け口を用意した notice で外す。件数は Tier1 のテストのコマンドと `/inbox` に出す
+- `intake.txt` = fork が書き換えてよい場所の一覧。upstream が持ち、検査は**取り込み済みの upstream 側の版**から読む(fork が一覧を広げて自分を許すことはできない)
+- 書式: 1 行 1 規則 `<kind> <glob>  # 理由`(理由は必須)。`!<glob>` はそれまでに当たった規則を外す。最後に当たった規則が効く。glob は `node:path` の `matchesGlob`
+- kind と、M(書き換え)の合否
+
+  | kind | 合格 | 違反 |
+  | --- | --- | --- |
+  | edit | 何を書き換えても `intake` | — |
+  | region | fork の区画(印の対)と生成器の区画の外が基準と同じ → `region` | 外も変えた `outside-region` / 印の対が壊れている `region-markers` |
+  | marker | `fork entries below` の行までが基準と同じ → `marker` | `above-marker`(印が無い場合も) |
+  | append | 基準の中身が先頭にそのまま残る → `append` | `not-append` |
+  | generated | 生成物 → `generated` | — |
+  | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
+
+- 載せている物: リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)/ `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチ(page.tsx・枠の layout.tsx)/ `_components/**` / `_layout/`・`_screen/` のドット区切り名のカスタム / cron の `override.ts` / `domainEntry.override.ts` / registry(region)/ `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
+- 一覧の鮮度: `pnpm test:fork-ownership` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)
+- 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。fork 側には何も書かせず、upstream が負債として一覧に載せ、core の外に受け口を用意した notice で外す。件数は Tier1 のテストのコマンドと `/inbox` に出す(中身は段階②の後半で載せる)
 - 中間 Tier の一覧にも「下流が消してよい」行は作らない。要らない物は持ち主が自分で消し、merge で流す
+- API: `parseIntake(text)` → `{ rules, errors }` / `matchIntake(rules, path)` → 効く規則か `null` / `judge({ changes, baseText, headText, baseLibs, intake })` → `{ entries: [{ status, path, from, kind, reason, verdict }], counts }`
 
 ## 一時許可
 
@@ -66,6 +77,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   - `parseForkRegions(text)` → `{ regions: [{ start, end, legacy }], errors: [{ line, message }] }`(行は 1 始まり、start / end は印の行)
   - `isInForkRegion(regions, line)`: その行が区画の中(印の行を除く)か
   - `FORK_REGION_START` / `FORK_REGION_END` / `LEGACY_FORK_MARKERS`
+- 生成器の区画の読み取りも同じファイル: `parseGeneratorRegions(text)` / `stripOwnedRegions(text, { fork })`
 - 検査: `pnpm test:fork-regions`(`regions.test.mjs`)= `src/registry/**/*.ts` の対が閉じている・入れ子が無い・文言が正しい・古い印が無い + 部品の単体テスト
 
 ## CI
