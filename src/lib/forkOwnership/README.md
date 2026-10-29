@@ -2,7 +2,7 @@
 
 fork が upstream(直接の親 Tier)のファイルを、決められた場所の外で書き換えていないかを調べる検査の仕様。
 
-**検査コマンドはまだ無い(段階②で入る)。** いまあるのは、受け口の一覧(`intake.txt`)、判定の核(`judge.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)。どれも git に触れない純粋関数で、fork はまだ呼ばない。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
+**fork にはまだ組み込んでいない(`/flux` の verify 等への配線は段階②の後半)。** 部品: 受け口の一覧(`intake.txt`)、判定の核(`judge.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)は git に触れない純粋関数。git を扱うのは検査の本体(`check.mjs`)とコマンド(`cli.mjs`)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
 
 ## 目的
 
@@ -105,16 +105,38 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 - 生成器の区画の読み取りも同じファイル: `parseGeneratorRegions(text)` / `stripOwnedRegions(text, { fork })`
 - 検査: `pnpm test:fork-regions`(`regions.test.mjs`)= `src/registry/**/*.ts` の対が閉じている・入れ子が無い・文言が正しい・古い印が無い + 部品の単体テスト
 
+## 使い方
+
+```sh
+pnpm ownership:check            # fork の中で。commit 済みの HEAD を見る(作業ツリーの未 commit は見ない)
+pnpm ownership:check --json     # 機械向け(CI・集計)
+pnpm ownership:check --verbose  # 合格したパスも並べる
+pnpm ownership:check --parent=upstream --branch=main
+```
+
+- 終了コード: 0 = 合格(Tier1 は「親なし: 対象外」)/ 1 = 違反あり / 2 = 未検証・設定の不足(合格にしない)
+- 出力: 先頭に結論と基準(remote・branch・base)、reason ごとの件数、違反と一時許可の残骸・書式の誤りの一覧
+- 違反には、今の指紋で書いた**一時許可の行の下書き**が付く(指紋は区画の中身を除いた blob なので、素の `git hash-object` では出せない)。一時許可で片付けるときは、`<依頼の番号>` と `<理由>` を埋めて `.fork-ownership/<fork-id>.permits.txt` に貼り、commit してから検査し直す
+- 手順(`check.mjs` の `runCheck`)
+  1. Tier1 の判定: 自分の所有者 ID(`folderCatalog` の `resolveOwnerId`)が `src/lib/CATALOG.md` の先頭の節の持ち主なら対象外。remote の有無では決めない(親の remote を設定し忘れた fork が黙って合格にならないように)
+  2. 親の remote: `--parent` > 環境変数 `FORK_OWNERSHIP_PARENT` > origin 以外の remote が 1 つならそれ(`/flux` の「upstream の特定」と同じ)。ブランチ = `git ls-remote --symref <remote> HEAD`(`--branch` で上書き)
+  3. 鮮度(下の節)
+  4. 判定: `git diff --name-status -M <base> HEAD` を judge に、自分の一時許可を checkPermits に当てる。受け口の一覧は基準側の版を、一時許可は HEAD の版を読む
+
 ## CI
 
 - CI は任意。必ず走るのは `/flux` の各区間の verify と手元のコマンド
-- 検査のコマンドは CI でも動く作りにする: git の情報だけで判定する・親の場所を remote か環境変数で受け取る・対話しない・終了コードで結果を返す。CI で使いたい fork は自分で設定する
+- コマンドは CI でも動く: git の情報だけで判定する・親の場所を remote か環境変数で受け取る・対話しない・終了コードで結果を返す。CI で使いたい fork は自分で設定する(親を取得できる checkout にし、shallow にしない)
 
 ## 鮮度
 
-- 検査のたびに直接の親を取得して基準を求め、notice の台帳と照合する
-- 取得できない・古いと分かったときは安全側に倒す(緩めない、「未検証」と表示して合格にしない)
-- lint の厳しさは手元の情報だけで決める(確かめられなければ今のパスでの判定)
+検査のたびに直接の親を取得して基準を求める。次のときは「未検証」(終了コード 2)で、合格にしない。
+
+- 親の remote が無い・決まらない、既定のブランチが分からない、取得(`git fetch`)できない
+- shallow clone(基準を求められない)、merge-base が無い
+- 基準に `intake.txt` が無い(この検査を含む版をまだ取り込んでいない)、書式の誤りがある
+- 取り込み済み(基準にある)なのに自分の台帳(`.notices/applied/<fork-id>.md`)に記録の無い notice がある。fork を作った時点のツリーにあった notice は継承済みとして除く(`/flux` と同じ求め方)。`/flux` で記録してから検査し直す
+- lint の厳しさは手元の情報だけで決める(確かめられなければ今のパスでの判定)。この検査とは別
 
 ## folderCatalog との分担
 
