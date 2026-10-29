@@ -510,6 +510,11 @@ getProfileBase(role: string): ProfileBase | null
 | ユーザー単位の操作 | `userProfileService` | userId を指定した CRUD |
 | テーブル全体の操作 | `getProfileBase(role)` | 検索・一覧・自由クエリ |
 
+### URL の項目(名前の決まり)
+
+- URL を持つ項目は `<name>Url`(キー名の末尾を `Url`)と名付ける。`upsertProfile`(作成・更新の共通の通り道。`/api/me/profile`・管理画面・デモユーザーの作成のどれもここを通る)が、その値が空でなければ `http://` / `https://` だけを通し、ほかのスキーム(`javascript:` 等)と URL として読めない値を 400 にする(`isSafeHttpUrl`、`@/utils/url`)
+- 理由: 画面で href に渡るため、クライアントの検証を迂回した stored XSS をサーバーで止める。プロフィールの定義(profile.json)に URL の入力の種類はまだ無い(足すのは後の作業)
+
 ### userProfileService — userId 単位の操作
 
 ユーザー作成/更新/削除と連動する文脈で使用する。

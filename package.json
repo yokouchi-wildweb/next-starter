@@ -20,6 +20,7 @@
     "test:storage-purposes": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/registry/check-storage-purposes.test.mjs",
     "test:popover-dismiss": "node --test src/components/Overlays/Popover/isDialogFocusRestoration.test.mjs",
     "test:cn": "node --test src/lib/cn/cn.test.mjs",
+    "test:utils-url": "npx tsx --test src/utils/url.test.ts",
     "test:site-theme": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/siteTheme/siteTheme.test.mjs",
     "test:transition-guard": "npx tsx --test src/lib/transitionGuard/matchTargetPath.test.mjs",
     "test:fonts": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/fonts/fonts.test.mjs",

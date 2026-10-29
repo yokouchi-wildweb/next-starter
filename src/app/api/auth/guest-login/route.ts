@@ -18,6 +18,7 @@ export const POST = createApiRoute(
     operationType: "write",
     access: "custom",
     skipForDemo: false,
+    rateLimit: "guestLogin",
   },
   async (req) => {
     const body = await req.json().catch(() => ({}));

@@ -66,6 +66,16 @@ export const RATE_LIMIT_CONFIG = {
   },
 
   /**
+   * ゲスト(デモ)ログイン（POST /api/auth/guest-login）
+   * 同一IPから1時間に5回まで
+   * 認証不要・確認手段なしでデモユーザーを量産できてしまうため制限する
+   */
+  guestLogin: {
+    windowSeconds: 3600,
+    maxRequests: 5,
+  },
+
+  /**
    * 汎用API（一覧取得など）
    * 同一IPから1分に60回まで
    */
