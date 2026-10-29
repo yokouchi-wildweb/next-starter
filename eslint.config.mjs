@@ -24,7 +24,6 @@ const forkOwnedLibFiles = libOwnership.isRoot ? [] : libOwnership.ownPaths.map((
 // 番人（field-type-guard）の許可リスト: 型の表に寄せる前の決め打ちが残るフォルダ。各行の段で表に寄せたら外す。空 = 番人の完了。
 // 閉じる段の名前は評議会 20261028-234023-field-type-single-interpretation の段階（src/lib/domain/README.md「番人」）
 const FIELD_TYPE_GUARD_ALLOWLIST = [
-  "scripts/domain-config/render/presenters/**", // S4: presenterFor を src/lib に置き、生成器は答えを写す
   "src/lib/crud/presenters/**", // S5: 一覧の presenters の無い列を presenterFor で描く（enum の比較）
   "scripts/domain-config/render/entities/**", // S6 ほか: Zod・列の決め打ち（jsonb・email・password・enum・timestamp With Time Zone・mediaUploader）を表の属性へ
   "scripts/role-config/**", // S7: role-config を型の表へ

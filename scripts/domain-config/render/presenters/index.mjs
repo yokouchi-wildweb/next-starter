@@ -1,44 +1,34 @@
 // generateFiles.presenters: presenters.ts（一覧・詳細表示のフォーマッタ。メディア列は formatMediaThumbnail(s) で表示用 URL に解決）。
-// 型 → フォーマッタの種類は spec/fieldTypes.mjs の表、無ければ formInput で決める
+// 項目を何で表示するかは src/lib/domain/fields/presenterFor.mjs が決める。ここはその答えを式に写すだけ
 
 import path from "node:path";
 import { toCamelCase, toPascalCase } from "../../../../src/utils/stringCase.mjs";
 import { requireConfig } from "../../domain/context.mjs";
 import { resolveFieldName } from "../../domain/fieldName.mjs";
-import { isCollectionFieldType, presenterKind } from "../../spec/fieldTypes.mjs";
+import { presenterFor } from "../../../../src/lib/domain/fields/presenterFor.mjs";
+import { isCollectionFieldType } from "../../spec/fieldTypes.mjs";
 import { file } from "../output.mjs";
 
 const DATETIME_FORMATTER = `formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
 
 const buildOptionsMap = (options = []) => options.map((opt) => `"${String(opt.value)}": "${opt.label ?? opt.value}"`).join(", ");
 
+/** presenterFor の答えの種類 → presenters.ts の式 */
+const FORMATTERS = {
+  boolean: () => `formatBoolean(value, "はい", "いいえ")`,
+  number: () => `formatNumber(value)`,
+  stringArray: () => `formatStringArray(value)`,
+  enum: (spec) => `formatEnumLabel(value, { ${buildOptionsMap(spec.options)} })`,
+  string: () => `formatString(value)`,
+  datetime: () => DATETIME_FORMATTER,
+  date: () => `formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`,
+  collectionThumbnails: () => `formatCollectionThumbnails(value)`,
+  mediaThumbnail: () => `formatMediaThumbnail(value)`,
+};
+
 function buildFormatter(field) {
-  const { fieldType, formInput, options } = field;
-  switch (presenterKind(fieldType)) {
-    case "boolean":
-      return `formatBoolean(value, "はい", "いいえ")`;
-    case "number":
-      return `formatNumber(value)`;
-    case "stringArray":
-      return `formatStringArray(value)`;
-    case "enum":
-      if (Array.isArray(options) && options.length) {
-        return `formatEnumLabel(value, { ${buildOptionsMap(options)} })`;
-      }
-      return `formatString(value)`;
-    default:
-      break;
-  }
-  if (formInput === "numberInput" || formInput === "stepperInput") return `formatNumber(value)`;
-  if (formInput === "textarea" || formInput === "textInput") return `formatString(value)`;
-  if (formInput === "datetimeInput") return DATETIME_FORMATTER;
-  if (formInput === "dateInput") {
-    return `formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
-  }
-  // メディア列: 値（storage ref・旧 URL）を resolveStorageSrc で解決してサムネイル表示する。主の集まりは先頭 1 件と +N
-  if (isCollectionFieldType(fieldType)) return `formatCollectionThumbnails(value)`;
-  if (fieldType === "mediaUploader" || formInput === "mediaUploader" || formInput === "fileUploader") return `formatMediaThumbnail(value)`;
-  return `formatString(value)`;
+  const spec = presenterFor(field);
+  return FORMATTERS[spec.kind](spec);
 }
 
 /** presenters.ts の内容 */

@@ -136,6 +136,14 @@ domain.json の項目の型の意味（列関数・Zod・TS 型・フォーム�
 - `.mjs` なのは node の生成器と TypeScript の両方から import するため（`relationOptions.mjs` と同じ）
 - テスト: `pnpm test:form-defaults`（行ごとの答えを literal で固定、union と表のキーの突き合わせ）
 
+#### 何で表示するか: `fields/presenterFor.mjs`
+
+`presenterFor(field)` が項目の表示の種類 `{ kind, options? }` を返す（kind = `boolean`・`number`・`stringArray`・`enum`（選択肢つき）・`string`・`datetime`・`date`・`collectionThumbnails`・`mediaThumbnail`）。生成器（`scripts/domain-config/render/presenters`）はこの答えを presenters.ts の式に写すだけ。
+
+- 順: 表の `presenter`（`enum` は選択肢が無ければ `string` で確定）→ formInput（数値・文字列・日時・日付）→ 主の集まり → メディア → `string`
+- 手書きの presenters.ts の項目は、この答えより優先される（生成後に手で書き換えた項目はそのまま）
+- テスト: `pnpm test:presenter-for`
+
 #### 番人（lint `field-type-guard/no-literal-field-type`）
 
 表の外で型名を決め打ちするコードを止める。ずれのバグ（型を足したときの抜け）は表の外の型名の比較・集合からしか生まれないので、構造で止める。

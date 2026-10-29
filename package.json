@@ -65,6 +65,7 @@
     "test:extension-items": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/extensions/upstreamItems.test.mts",
     "test:proxy": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/proxies/proxy.test.mts",
     "test:relation-options": "node --test src/lib/domain/relations/relationOptions.test.mjs",
+    "test:presenter-for": "node --test src/lib/domain/fields/presenterFor.test.mjs",
     "test:dc-registry": "node --test scripts/domain-config/tests/registry.test.mjs",
     "test:dc-structure": "node --test scripts/domain-config/tests/structure.test.mjs",
     "test:dc-vocabulary": "node --test scripts/domain-config/tests/vocabulary.test.mjs",
