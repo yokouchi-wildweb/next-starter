@@ -17,8 +17,8 @@
 
 ## 使い方
 
-- **起票(上流側)**: `/downreq` スキル。会話文脈から notice を合成して `.notices/<id>.md` に書き出す。変更本体と同じコミット/PR に含めて出荷する。
-- **中継(中間 Tier)**: 下流を持つ fork の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。`/downreq relay` はこの判定の導入前に適用した未判定の旧 notice の後始末用。
+- **出荷(上流側)**: `/ship` スキル。コミット・push のたびに、検査 → 下流への影響の判定 → 要るなら notice を合成して `.notices/<id>.md` に書き出す(前に出荷したものの修正なら `fixes:` を付ける)→ `pnpm test:notices` → 変更本体と同じコミットで push、までを行う。`/flux` と対になる(`/ship` が書く欄と `/flux` が読む欄はこの文書のスキーマで揃える。欄を足すときは両方のスキルと `scripts/notices/notices.test.mjs` を同じコミットで直す)。
+- **中継(中間 Tier)**: 下流を持つ fork の `/flux` が、適用した上流 notice ごとに中継の要否を git の差分で判定し、必要な区間だけ `covers:` 付きの中継 notice を下書きする(下記「中継(relay)」)。`/flux relay` はこの判定の導入前に適用した未判定の旧 notice の後始末用。
 - **受領・適用(下流側)**: `/flux` スキル。upstream の fetch → 未適用 notice を checkpoint ごとの区間に分割 → 全区間の概観(1 行ずつ)と**次の区間だけ**の詳細な適用計画を提示 → 承認 → その区間の merge・コード修正・DB 操作・検証・台帳記録・コミット・push → 次の区間の計画を出して止まる。承認は区間ごと(区間の終わりの `go` = 次の区間の計画の承認)で、`/flux all` は最初の区間の承認の後、区間ごとに計画と実行を繰り返して最後まで進める(`/flux next` は既定の別名)。fork が移動元を編集した大きな `moved:` の移植を含む区間は、`all` の途中でも手前で止まる。`/flux status` で状態確認のみ。notice の有無にかかわらず区間の上流差分から使い方の変わった部品・lib・core を洗い出し、fork 側の使用箇所を同じ区間で揃え、区間ごとに typecheck / lint を通してから commit する(古い使い方を残すのはユーザーが判断したときだけ)。notice が無いのに追従が要った変更は「上流への所見」で notice 漏れとして返る。承認後でも、取り込む変更がその fork を壊す・db 差分が破壊的・notice と実態が食い違う等の**停止条件**に当たれば区間を commit せずに止まって選択肢を示す(押し切らない)。最終報告には「上流への所見」(上流のバグ・notice のズレ・/order <上流リポ> 候補)を常設。
 - 対応が不要な通常の変更には notice を作らない。ただコミットされて merge で流れていくだけでよい。
 
@@ -32,6 +32,7 @@ severity: breaking | action-required | info
 checkpoint: <label | ->
 moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit otherwise)
 covers: <upstream notice id>, ...   (relay notices only: upstream notice ids this notice subsumes; omit otherwise)
+fixes: <notice id | commit:<sha>>, ...   (only when this change fixes something shipped earlier; omit otherwise)
 change: <what changed upstream, one line>
 why: <why downstream must follow up>
 required_actions:
@@ -48,7 +49,9 @@ notes: <anything else>
 - `verify` の型チェックは `pnpm typecheck` と書く(`tsc --noEmit` は使わない)。`tsc --noEmit` は `tsconfig.json` の include にある `.next/dev/types` / `.next/types` まで読み、dev サーバーや過去の build が生成した古い `validator.ts`(移動・削除したページを import している)で TS2307 を出す。`pnpm typecheck`(`tsconfig.typecheck.json`)はこれらを外して型チェックし、ルート全体の型の検証は `next build` に任せる。
 - `moved` はファイル・ディレクトリを移動・改名する notice では**必須**(それ以外は欄ごと省略)。下記「移動・改名(moved)」参照。
 - `covers` は中間 Tier が上流の notice を下流へ中継する notice(relay notice)でだけ書く(それ以外は欄ごと省略)。下記「中継(relay)」参照。
+- `fixes` は前に出荷した変更の不具合を直す notice でだけ書く(それ以外は欄ごと省略)。下記「修正(fixes)」参照。
 - `notes` で特定の fork に触れるときは、その fork で実際に差分を取った結果だけを書く(推測で書かない。調べていない fork は `not checked`)。
+- 書式は `pnpm test:notices` で検査する(見出しの id とファイル名、必須の欄、checkpoint ラベルの重複、`fixes:` / `covers:` の参照先、出荷前の `moved:`)。`checkpoint:` と `manual_steps:` の必須は検査の導入以降の notice だけ(それより前は欄の無い旧 schema が残る)。
 - `checkpoint` は**原則ラベル必須**(既定 = 区切り)。「この notice まで適用すれば fork は整合した休憩点にある」の宣言で、`-` は「後続 notice なしでは半端」という例外宣言(理由を `notes:` に)。欄が無い旧 schema の notice は区切り扱い。下記「区切り(checkpoint)」参照。
 
 ## 区切り(checkpoint)と区間適用
@@ -60,7 +63,7 @@ notes: <anything else>
 - 区間 = 履歴順に並べた未適用 notice を、区切り notice(`checkpoint` が `-` 以外、または欄なし)の直後で切ったもの。`-` の notice は次の区切りまで同じ区間に入る。最後の区切り以降〜上流 HEAD が末尾区間(空のこともある)。同じ commit で出荷された複数 notice は merge 先が同じ区間が連続するだけで問題ない。
 - /flux は区間ごとに「その区間の merge 先(区切り notice の追加 commit、末尾区間は上流 HEAD)まで merge → 区間内 notice を適用 → verify → 台帳 → commit → push」を繰り返す。途中で止まっても fork は直前の区切りに居るので、再実行すれば続きから進む(状態は下記の集合演算で毎回導出されるため、追加の記録は不要)。詳しく計画するのは次の区間だけで、区間の終わりごとに次の区間の計画を出して止まる(`all` で止まらずに進む)。区間の終わりの報告は次の区間に必要なこと(ここまでの sha・人間の判断・次の merge 先・残作業)だけを持つので、セッションを閉じても `/flux` で続きから計画し直せる。
 - merge commit は区間数ぶん増える。これは意図した代償(区切りごとに fork が整合する)。追随を小刻みに続けている fork は今までと同じ。
-- 上流側の責務: notice は、その区切りに含めたい変更本体と同じ commit かそれより後の commit に含める(notice を先に出すと、merge 先に変更本体が含まれない)。区切りの commit は動く状態であること: その commit で `pnpm typecheck` と `pnpm test:config-module-load` が通る(通らない区切りを出してしまったら、その notice を `checkpoint: -` にして理由を notes に書く。/flux は `checkpoint:` を上流の先端の版で読むので、未取り込みの fork は次の区切りまで進む)。追随作業が無い区切りは `severity: info` + `required_actions: none` + `checkpoint:` の notice で宣言する。
+- 上流側の責務: notice は、その区切りに含めたい変更本体と同じ commit かそれより後の commit に含める(notice を先に出すと、merge 先に変更本体が含まれない)。区切りの commit は動く状態であること: その commit で `pnpm typecheck` と `pnpm test:config-module-load` が通る(通らない区切りを出してしまったら、その notice を `checkpoint: -` にして理由を notes に書く。/flux は `checkpoint:` を上流の先端の版で読むので、未取り込みの fork は次の区切りまで進む。区切りは動くが後から不具合が見つかった場合はこれではなく、修正側の notice の `fixes:` で示す: 下記「修正(fixes)」)。追随作業が無い区切りは `severity: info` + `required_actions: none` + `checkpoint:` の notice で宣言する。
 
 ## 移動・改名(moved)
 
@@ -76,8 +79,23 @@ notes: <anything else>
 
 fork が手を入れうるファイル(docs・README・registry・config 等)を削除・移動する commit には、その notice(移動なら `moved:`、移動先の無い削除なら `notes:` に削除したパスと「fork 独自の内容の移し先」)を**同じ commit に含める**。後の commit で notice を出すと、/flux はその notice の追加 commit で区間を切るため、削除だけが先の区間で fork に届き、fork は案内の無い modify/delete コンフリクトを自力で解くことになる。
 
-- 起票前に `git diff --name-status --diff-filter=DR <変更前> <変更後>` で削除・改名を全て洗い出し、notice に漏れなく載せる(/downreq が行う)
+- 起票前に `git diff --name-status --diff-filter=DR <変更前> <変更後>` で削除・改名を全て洗い出し、notice に漏れなく載せる(/ship が行う)
 - fork が編集していないと分かっているファイル(upstream 専用の内部実装等)だけの削除なら notice は不要
+
+## 修正(fixes)— 前に出荷したものの不具合を直す
+
+出荷した変更に後から不具合が見つかり修正を出すと、まだ修正元の区間を通っていない fork は、修正が先に控えていることを知らないまま修正元の区切りで止まり、検査の失敗を自前で直したり、同じ不具合を上流へ依頼し直したりする。そこで修正側の notice が「何を直したか」を宣言し、/flux がそれを先読みする。
+
+- 形式: `fixes: <notice id>, commit:<sha>`。修正元に notice があればその id、notice の無い変更なら commit(短 sha 可)。複数可。
+- 書くのは修正側だけ。修正元の notice は編集しない(出荷済みの notice を書き換えず、判断の根拠を 1 か所に保つ)。
+- 修正に fork 側の追随作業が無くても、`fixes:` を伝えるために `severity: info` + `required_actions: none` の notice を出す。
+- 修正かどうかは出荷する側(/ship)が決める。/flux は宣言を信じ、自分では判定しない。
+- /flux の扱い:
+  - 区間の組み立てで全 notice の見出し行と一緒に `fixes:` を読み、修正元(id ならその notice の区間、commit ならその commit を merge 先の範囲に含む区間)と修正の区間を対応づけて、概観に出す。全文は読まない。
+  - 修正元を含む区間の計画では、先頭に「この区間の <修正元> は区間 K の <修正 notice> で修正される」と出して止まり、1 区間ずつ進めるか、ここで止めるかをユーザーに聞く(`all` / `light` の途中でも止まる)。区間は自動でまとめない: 本番へのデプロイ方法(push で出るか、コマンドで出すか)は fork ごとに違い、ユーザーが知っているため。
+  - 修正元の区間で検査が落ち、修正 notice のコミットが触るファイルに当たるものは「既知(修正は区間 K)」として台帳 `notes:` に書き、自前では直さない。修正を先回りして同じ実装をしない(後の merge で衝突し、fork 独自版が残る)。
+  - 修正元が適用済みなら止まらず、概観で修正の区間に「適用済み <修正元> の修正」と印を付ける。その区間では台帳の修正元の行の `notes:` から当時の回避策を探して外す。
+  - 「上流への所見」で依頼の文案を出す前に、流入予定の `fixes:` と上流の履歴で修正済みかを確かめる(修正済みなら文案を出さず「上流で修正済み(区間 K)」と書く)。
 
 ## 中継(relay)— 3 段以上の Tier
 
@@ -98,7 +116,7 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
   - covered された notice の追加 commit・台帳記録 commit は区切りにしない。区間は covers 側 notice の追加 commit まで伸び、covered notice が履歴上先に届いていても単独の区間を作らない。
   - 区間内の covers 側・covered 側の `moved:` はすべて合わせて移植に使う(中継 notice 側にも合わせたものを書くのが原則だが、書き漏れの保険)。
   - `covers:` に書かれた id が merge 後のツリー(現役・`done/`)のどこにも無ければ報告する(黙って飛ばさない)。
-- 後方互換: `covers:` を知らない旧 /flux でも中継 notice が安全に動くよう、`/downreq relay` は中継 notice の required_actions に「この notice の commit まで 1 区間で merge し、covered notice の commit で止まらない」「covered id を台帳に記録する」の 2 行を必ず入れる(新 /flux では no-op)。
+- 後方互換: `covers:` を知らない旧 /flux でも中継 notice が安全に動くよう、中継 notice の合成(`.claude/skills/flux/relay.md`「中継 notice の合成」)は required_actions に「この notice の commit まで 1 区間で merge し、covered notice の commit で止まらない」「covered id を台帳に記録する」の 2 行を必ず入れる(新 /flux では no-op)。
 - 状態の見える化: `/flux status --chain` が祖父 notice ごとに「中間 Tier が適用済みか → 中継 notice に covered されているか(または `relay:none`)→ 自分が適用済みか」を 1 行ずつ出す。
 
 ### 3. 中継判定(中間 Tier の /flux が区間ごとに行う)
@@ -111,9 +129,9 @@ T1→T2→T3 の構成では、T1 の notice は T2 が merge した時点で T2
   - ③ required_actions からの逸脱: 手順を実行しなかった・変えて実行した(台帳 `notes:` に書く逸脱)。差分の有無を問わない。
   - `.notices/` と lock ファイルは ①② の対象外。
 - 結果は台帳の各行の `relay:` 欄に明示する: `relay:none`(中継不要)/ `relay:<中継 notice id>`(中継した)。欄が無い = 判定導入前の未判定。
-- 中継が必要な notice が区間に 1 件以上あれば、/flux がその区間で中継 notice を 1 件下書きし(合成規則は `/downreq relay` と共通、判定の根拠 = ①② の該当ファイル・行範囲と ③ の逸脱を `notes:` に載せる)、区間の適用コミットに含める。中継 notice の追加 commit と台帳記録 commit が同じになるので、下流の区切り点がぶれない。
+- 中継が必要な notice が区間に 1 件以上あれば、/flux がその区間で中継 notice を 1 件下書きし(合成規則は `.claude/skills/flux/relay.md`「中継 notice の合成」、判定の根拠 = ①② の該当ファイル・行範囲と ③ の逸脱を `notes:` に載せる)、区間の適用コミットに含める。中継 notice の追加 commit と台帳記録 commit が同じになるので、下流の区切り点がぶれない。
 - 中身の無い中継 notice は作らない。中継不要の notice は `relay:none` だけで閉じる。
-- 未判定の旧台帳行(`relay:` 欄が無く、どの `covers:` にも無い)は /flux が件数を報告し、`/downreq relay` でまとめて中継 notice に covers して閉じる(基準点が古く差分判定できないため)。
+- 未判定の旧台帳行(`relay:` 欄が無く、どの `covers:` にも無い)は /flux が件数を報告し、`/flux relay` でまとめて中継 notice に covers して閉じる(基準点が古く差分判定できないため)。
 
 ## 適用状態の考え方
 

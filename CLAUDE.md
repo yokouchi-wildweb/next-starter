@@ -149,9 +149,10 @@ components: PascalCase or dir/index.tsx | hooks: useCamelCase.ts | services: cam
 db_identifiers: PostgreSQL names ≤ 63 chars | drizzle auto FK name `{table}_{column}_{reftable}_{refcolumn}_fk` gets truncated and can collide → keep table/column names short, or name the FK: `foreignKey({ name: "shortname_fk", columns: [...], foreignColumns: [...] })`
 
 ## DOWNSTREAM_NOTICES
-notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | file with /downreq, apply with /flux | ledger: .notices/applied/\<fork-id\>.md | ref: .notices/README.md
+notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | ledger: .notices/applied/\<fork-id\>.md | ref: .notices/README.md
+ship (MANDATORY): every commit + push of this repo goes through /ship (checks, judges whether a notice is needed, writes it, pnpm test:notices, commits, pushes) | /flux = its receiving pair | a fix to something shipped earlier → `fixes: <notice id | commit:sha>` in the fix's notice, never edit the earlier notice (/flux warns forks before the broken point)
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = default (one notice = one point where the fork is consistent) | `checkpoint: -` only when the fork cannot work without the next notice (reason in notes:)
-relay: a mid tier's /flux judges per segment by git diff whether each applied upstream notice needs relaying (ledger `relay:none` or a drafted relay notice with covers: ids) | `/downreq relay` = only for legacy unjudged ids | ref: .notices/README.md
+relay: a mid tier's /flux judges per segment by git diff whether each applied upstream notice needs relaying (ledger `relay:none` or a drafted relay notice with covers: ids) | `/flux relay` = only for legacy unjudged ids | ref: .notices/README.md
 fork_bootstrap: /fork-init right after clone | spec: docs/setup/新規プロジェクトの立ち上げ_フォークからデプロイまで.md
 
 ## DOCS

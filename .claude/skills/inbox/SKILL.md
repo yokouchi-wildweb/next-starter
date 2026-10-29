@@ -39,17 +39,12 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
    - **まだ実装しない**。ユーザーの承認を待つ。
    - チームセッション内（あなたが orchestrator）なら、この依頼を plan.md / handoff に落として通常のチーム手順に乗せる。
 4. ユーザーが「対応完了」と言ったら（**完了報告とコミット&プッシュは必ずセットで実行する**。「対応完了」がコミット/プッシュへの明示的な指示を兼ねる。**以下 a〜d は途中でユーザーへの確認・質問・AskUserQuestion を一切挟まず連続実行する** — 「対応完了」が唯一かつ十分な承認であり、追加の承認待ちは禁止）:
-   a. **実装差分を自リポにコミット & プッシュ**する（RESOLUTION を出す前に実体を確定させ、commit sha を正確にするため）:
-      - `git status --short` で実装差分を確認する。
-      - 未コミットの実装差分があればステージしてコミットする。メールボックスは git 管理外なので対象外。コミット対象は自リポ本体の実装のみ。確認・調査だけで差分の無い指令は commit を作らず、RESOLUTION を `commit:- | pushed:-` にする。
-        - コミットメッセージ: 1行サマリ（実装内容を反映） + 空行 + `order: <id>`（指令の id を必ず含める）。
-        - 末尾に環境指定の Co-Authored-By トレーラーを付ける。
-        - ブランチ運用はチーム/通常フローに従う（既にフィーチャーブランチ上ならそのまま。チームセッションなら orchestrator のブランチ方針に従う）。
-      - 方針で notice を出すと決めた対応では、`.notices/<id>.md` が同じコミットに入っていることを確かめる（無ければ書いてから含める）。
+   a. **`/ship` で出荷する**（RESOLUTION を出す前に実体を確定させ、commit sha を正確にするため）: `.claude/skills/ship/SKILL.md` の手順を引数 `order:<指令の id>` で行う（範囲の確定・検査・notice の判定と合成・コミット・push。止まるのは /ship の「止まるとき」に当たったときだけ）。方針で notice を出すと決めた対応では、/ship の判定もそれに合わせる。
+      - 確認・調査だけで差分の無い指令は /ship を使わず commit を作らない（RESOLUTION は `commit:- | pushed:-`）。
       - 既にチーム手順内でコミット済みなら新規コミットは作らず、現在の HEAD をそのまま使う。
-      - `git push`（現在のブランチを origin へ）。remote 無し等で push できない場合は、その事実を日本語でユーザーに報告し、RESOLUTION の `pushed:` に正直に反映する（取り繕わない）。
-      - コミット/プッシュ後の short sha を取得: `git rev-parse --short HEAD`、branch は `git rev-parse --abbrev-ref HEAD`。
-      - **評議会からの指令に `output:` があるときは、それに従う**（指令の宣言が push についての明示的な指示になる）: `push` = 上のとおり | `commit` = **push しない**。指令の `held:` が名指すブランチに積み、作業の前に `git switch <branch>`（無ければ `git switch -c <branch> <指令の base:>`）、commit してから `git switch <main>` で main に戻る（`pushed: no (held)`）| `none` = commit しない（観測・計測の結果を RESOLUTION に書くだけ。`commit:-`）。
+      - ブランチはチーム/通常フローに従う（既にフィーチャーブランチ上ならそのまま。チームセッションなら orchestrator のブランチ方針に従う）。
+      - **評議会からの指令に `output:` があるときは、それに従う**（指令の宣言が push についての明示的な指示になる）: `push` = 上のとおり | `commit` = **push しない**（/ship を `no-push` で）。指令の `held:` が名指すブランチに積み、作業の前に `git switch <branch>`（無ければ `git switch -c <branch> <指令の base:>`）、commit してから `git switch <main>` で main に戻る（`pushed: no (held)`）| `none` = commit しない（観測・計測の結果を RESOLUTION に書くだけ。`commit:-`）。
+      - /ship の後、short sha を `git rev-parse --short HEAD`、branch を `git rev-parse --abbrev-ref HEAD` で取る。push できなかったら RESOLUTION の `pushed:` に正直に反映する（取り繕わない）。
    b. **RESOLUTION の本文**を一時ファイルに書く（リポの中には置かない。例: `mktemp`）。依頼元が `/wen` で消費する。英語・構造化。`resolved:` と `by:` の行は c のコマンドが書くので、本文には入れない:
       ```
       implemented: <what was actually done>

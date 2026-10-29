@@ -39,11 +39,40 @@ SKILL.md「付属ファイル」の条件に当たったときに読む。ここ
   - **② 適用作業での上流変更ファイル外の変更**: `A` から作業ツリー(未追跡を含む)までに変わったファイルのうち、上流が P→Q で変えていないもの(この区間の掃討・改名など)。区間の notice すべてを該当にする(区間は通常 notice 1 件)。
   - **③ required_actions からの逸脱**: この区間で、その notice の required_actions のどれかを実行しなかった、または変えて実行した(手順 7a で台帳 `notes:` に書く逸脱そのもの)。差分の有無を問わない。逸脱が無ければ下流は上流 notice どおりの作業で済むが、逸脱があると下流は上流の手順をそのまま実行してしまうため。`covered by` や push 失敗の記録は逸脱に数えない。
   - 対象外: `.notices/`、lock ファイル(`pnpm-lock.yaml` 等。package.json から生成される派生物)、fork ごとの規約ファイル(`.claude/rules/project.md`・`behavior.md`。各 fork が自分の版を持ち、下流へは届かない)は ①② で数えない。印付きファイル(`shortcuts.md`・`term-aliases.md`)は印より上を上流と共有するので数える。
-- **中継 notice の下書き**(区間内に中継が必要な notice が 1 件以上): 区間につき 1 件、`.notices/<ts>-relay-<slug>.md` に書き出す。合成規則は `.claude/skills/downreq/SKILL.md`「relay モード」の手順 3〜4(`covers:` = この区間で中継が必要な id と、その covered id)。加えて `notes:` に判定の根拠をそのまま載せる: ① はスクリプトの `overlap:` 行(ファイルと行範囲)、② は `outside:` 行、③ は台帳 `notes:` に書く逸脱。下書きはこの区間の適用コミットに含める(中継 notice の追加 commit = 台帳記録 commit になり、下流の区切り点が一致する)。
+- **中継 notice の下書き**(区間内に中継が必要な notice が 1 件以上): 区間につき 1 件、`.notices/<ts>-relay-<slug>.md` に書き出す。合成規則は下記「中継 notice の合成」(`covers:` = この区間で中継が必要な id と、その covered id)。加えて `notes:` に判定の根拠をそのまま載せる: ① はスクリプトの `overlap:` 行(ファイルと行範囲)、② は `outside:` 行、③ は台帳 `notes:` に書く逸脱。下書きはこの区間の適用コミットに含める(中継 notice の追加 commit = 台帳記録 commit になり、下流の区切り点が一致する)。
 - **台帳**: 手順 7a で各 id の行に `relay:none` か `relay:<中継 notice id>` を書く。
 - **報告**: 判定した notice ごとに 1 行「<id>: 中継不要」/「<id>: 中継 notice <中継 id> を作成(根拠: ①<files> / ②<files> / ③逸脱)」。作成した中継 notice は「中身は判定根拠・台帳 notes から組み立てた下書き。下流へ出す前に確認・編集してよい」と添える。
 - **判定の限界**(機械判定のため): ② は notice の手順自体が生む fork 側の変更(dc:generate による fork ドメインの再生成等)も拾う(見逃しより安全側の誤検知)。マーカーファイルのように fork の行が上流の変更のすぐ隣に来る形は ① の接触で拾う。行範囲が離れていても意味の上で依存し合う変更は拾えない。
-- **未判定**(この仕組み導入前の旧台帳行): 自台帳の id のうち、`relay:` 欄が無く、`from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも含まれないもの(継承済み・notice ファイルが無い id は除く)。1 件以上あれば報告に 1 行: 「中継未判定の旧 notice が N 件あります: <id>, ...。`/downreq relay` で中継 notice を下書きできます」。0 件なら何も出さない。
+- **未判定**(この仕組み導入前の旧台帳行): 自台帳の id のうち、`relay:` 欄が無く、`from:` が自分の origin でなく、自分の origin の notice のどの `covers:` にも含まれないもの(継承済み・notice ファイルが無い id は除く)。1 件以上あれば報告に 1 行: 「中継未判定の旧 notice が N 件あります: <id>, ...。`/flux relay` で中継 notice を下書きできます」。0 件なら何も出さない。
+
+## 中継 notice の合成
+中継判定で下書きするときと、下記「relay モード」で共通の規則。スキーマと書き方の一般則は `.claude/skills/ship/SKILL.md`「notice の合成」(英語・機械間ファイル、事前確認なしで書き出す)。材料は推測せず、次から集める:
+- 上流 notice 本文(change / required_actions / moved / verify)
+- 自台帳のその id の行の `notes:`(逸脱・移植した移動・解消した衝突・足した hook 等)
+- 台帳に記録した commit: `git log -S"id:<id>" --reverse --format=%h HEAD -- .notices/applied/<fork-id>.md` の先頭。その commit とその直前の merge commit が、下流が受け取る「解消済みの点」
+- 自分が上流ファイルに加えている編集のうち、その notice が触ったファイルに当たるもの: `git diff --stat <upstream>/<branch> HEAD -- <notice が触ったファイル>`(下流がこの fork の版を受け取る箇所)
+
+合成:
+- `covers:` = 中継判定から渡された id(relay モードでは未判定 id 全件、履歴順)。
+- `moved:` = covered 全件の `moved:` + 自分が中継対象の作業で行った移動(台帳 notes と `git diff -M --name-status` で確認)を合わせたもの。
+- `fixes:` = covered 側に `fixes:` があれば合わせて載せる(下流の /flux が修正の関係を先読みできるように)。
+- `change:` = 「<自分> applied N <上流> notices: <id> in <sha>, ...」+ 下流に影響する自分側の差分(移植先・自分固有の移動・新しい拡張点)。
+- `why:` = 下流から見て何が残っているか(上流のコード作業はこの fork で済んでいる。残りは下流自身のカスタマイズと旧パス参照等)。
+- `required_actions:` の先頭 2 行は**必ず**次を入れる(`covers:` を知らない旧 /flux 向けの互換。新 /flux では no-op):
+  `1. Merge <自分の repo> up to THIS notice's commit in ONE segment; do NOT stop at the covered notices' commits (<covered 側の上流 commit 短 sha 列>) — they are raw <上流> commits without <自分>'s conflict resolutions.`
+  `2. Record THIS notice and the covered ids (<id>, ...) in your own ledger .notices/applied/<your-fork-id>.md (notes for covered ids: "covered by <this id>"); do not edit .notices/applied/<fork-id>.md.`
+  以降に、上流 notice の required_actions のうち下流にも残る作業を、この fork の状態(移植先・自分固有のパス)に合わせて書き直したもの。
+- `verify:` = covered 側の verify のうち下流で意味があるもの + この fork の検証結果(実際に取った数値のみ)。
+- `checkpoint:` = ラベル必須(中継 notice は下流にとって 1 つの休憩点)。
+- `refs:` = covered の上流 notice パス、台帳記録 commit、自台帳パス。
+- 書き出したら `pnpm test:notices` を通す。
+
+## relay モード(`/flux relay`)
+中継判定の導入前に適用した**未判定**の旧 notice を、中継 notice にまとめて閉じる(基準点が古く差分判定できないため)。merge も適用もしない。
+1. 自 fork 台帳(SKILL.md「自 fork の識別と台帳」)が無ければ「中継対象なし」と報告して終える。
+2. 未判定 id(上記「中継判定」の未判定)を求める。0 件なら「未判定の notice はありません」と報告して終える(書き出さない)。
+3. 上記「中継 notice の合成」で 1 件の中継 notice に書き出す。旧 notice は機械判定できないので、追随作業の無いものも含めて covers する。
+4. 報告: 書き出したパスと covers した id。「中身は台帳 notes と commit から組み立てた下書きなので、確認・編集してからコミットしてください(コミットは /ship)」と添える。covers に入った id は未判定から外れる(台帳は書き換えない)。
 
 ## エッジケース
 - `covers:` の id が merge 後のツリー(現役・`done/`)のどこにも無い: その id を報告に含める(黙って飛ばさない)。covers 側 notice の適用自体は続け、その id は台帳に記録しない。

@@ -93,7 +93,7 @@ Supabase への一本化を検討したうえで採らなかった理由と、�
 
 core ドメイン（`src/features/core/`）は画面部品を持たず、データレイヤーまでにとどめる（理由は [設計思想とアーキテクチャ](設計思想とアーキテクチャ.md) §3.1）。
 
-上流の変更で fork 側に作業が必要になるときは、変更と同じコミットで `.notices/` に通知を出す。fork は `/flux` で未適用の通知を順に取り込む（`.notices/README.md`）。
+上流の変更で fork 側に作業が必要になるときは、変更と同じコミットで `.notices/` に通知を出す(出荷は `/ship`。要否の判定と通知の起票まで行う)。fork は `/flux` で未適用の通知を順に取り込む（`.notices/README.md`）。
 
 詳細: スタイルは `src/styles/README.md`、画面の差し替えは `src/lib/screens/README.md`、上流ファイルの編集可否は `CLAUDE.md` CORE_FILES。
 

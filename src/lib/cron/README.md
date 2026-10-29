@@ -112,7 +112,7 @@ pnpm cron:generate --plan <hobby|pro>
 ```
 
 `pnpm task my-task` はフォルダを置いた時点で使える。タスクを消すときもフォルダを消して再生成する。
-upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:generate` を `required_actions` に書いた notice を同じ commit で出す
+upstream でタスクを足す・消すときは、fork 向けに `pnpm cron:generate` を `required_actions` に書いた notice を同じ commit で出す(`/ship` で出荷すると判定と起票まで行う)
 （CLAUDE.md `cron_wiring`）。
 
 ### `pnpm test:cron-wiring` が検査すること

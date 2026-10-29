@@ -39,6 +39,7 @@
     "test:user-layout": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test \"src/app/(user)/_layout/UserLayout.test.tsx\" \"src/app/(user)/_layout/UserParts.test.tsx\" \"src/app/(user)/_layout/UserPageDefault.test.tsx\" \"src/app/(user)/_layout/UserLayoutBottomNavVisibility.test.tsx\"",
     "test:lib-catalog": "node --test src/lib/folderCatalog/catalog.test.mjs",
     "test:core-rules": "node --test scripts/claude-rules/coreRules.test.mjs",
+    "test:notices": "node --test scripts/notices/notices.test.mjs",
     "test:storage-setup": "npx tsx --test scripts/storage/iamGrant.test.ts",
     "test:storage-ref": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/storage/storageRef.test.ts",
     "test:storage-strip": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/storage/server/imageStrip.test.ts",
