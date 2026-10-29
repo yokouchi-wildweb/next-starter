@@ -5,6 +5,7 @@ import clientServiceBoundaryPlugin from "./eslint-rules/client-service-boundary.
 import coreUiEntryPlugin from "./eslint-rules/core-ui-entry.mjs";
 import noServerActionPlugin from "./eslint-rules/no-server-action.mjs";
 import deprecatedImportsPlugin from "./eslint-rules/deprecated-imports.mjs";
+import fieldTypeGuardPlugin from "./eslint-rules/field-type-guard.mjs";
 import hiddenColumnsPlugin, { collectHiddenColumns } from "./eslint-rules/hidden-columns.mjs";
 import pageAuthzPlugin from "./eslint-rules/page-authz.mjs";
 import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
@@ -19,6 +20,20 @@ import forkConfig from "./eslint.config.fork.mjs";
 // origin が無い・目録が読めないときは自分の所有なし = 全部 error(安全側)。
 const libOwnership = loadCatalogOwnership({ repoRoot: import.meta.dirname, folder: "src/lib" });
 const forkOwnedLibFiles = libOwnership.isRoot ? [] : libOwnership.ownPaths.map((path) => `${path}/**/*.{ts,tsx}`);
+
+// 番人（field-type-guard）の許可リスト: 型の表に寄せる前の決め打ちが残るフォルダ。各行の段で表に寄せたら外す。空 = 番人の完了。
+// 閉じる段の名前は評議会 20261028-234023-field-type-single-interpretation の段階（src/lib/domain/README.md「番人」）
+const FIELD_TYPE_GUARD_ALLOWLIST = [
+  "scripts/domain-config/render/presenters/**", // S4: presenterFor を src/lib に置き、生成器は答えを写す
+  "src/lib/crud/presenters/**", // S5: 一覧の presenters の無い列を presenterFor で描く（enum の比較）
+  "scripts/domain-config/render/entities/**", // S6 ほか: Zod・列の決め打ち（jsonb・email・password・enum・timestamp With Time Zone・mediaUploader）を表の属性へ
+  "scripts/role-config/**", // S7: role-config を型の表へ
+  "src/lib/dataMigration/import/**", // S8: import の日時・数値の判定を表へ
+  "scripts/domain-config/render/components/**", // 未割り当て: mediaUploader / string の比較を表の media 属性などへ（計画書 03 で段を決める）
+  "scripts/domain-config/render/registry/**", // 未割り当て: mediaUploader の比較を isMediaFieldType へ（同上）
+  "scripts/domain-config/questions/**", // 未割り当て: dc:init の boolean / enum の分岐を表の属性へ（同上）
+  "scripts/domain-config/checks/**", // 未割り当て: 集まりの従属の検査（mediaUploader / mediaCollection）を isMediaFieldType / isCollectionFieldType へ（同上）
+];
 
 const config = [
   ...nextConfig,
@@ -227,6 +242,24 @@ const config = [
     plugins: { "client-service-boundary": clientServiceBoundaryPlugin },
     rules: {
       "client-service-boundary/no-direct-import": "error",
+    },
+  },
+  // 型の表の外で fieldType の名前を比べない（番人。詳細: eslint-rules/field-type-guard.mjs・src/lib/domain/README.md「番人」）。
+  // 強さはリポジトリ単位: 上流リポ（目録の先頭の節）= error、fork = warn（fork に残る上流の旧版の写しで fork の lint を止めない）。
+  // 対象外: 表そのもの（src/lib/domain/fields/）・型名の union（Field/types.ts。表との突き合わせは test:form-defaults）・テスト・
+  // 許可リスト（FIELD_TYPE_GUARD_ALLOWLIST: 今ある決め打ち。表に寄せた段で外す）
+  {
+    files: ["src/**/*.{ts,tsx}", "scripts/domain-config/**/*.mjs", "scripts/role-config/**/*.mjs"],
+    ignores: [
+      "src/lib/domain/fields/**",
+      "src/components/Form/Field/types.ts",
+      "**/*.test.{ts,tsx,mjs,mts}",
+      "scripts/domain-config/tests/**",
+      ...FIELD_TYPE_GUARD_ALLOWLIST,
+    ],
+    plugins: { "field-type-guard": fieldTypeGuardPlugin },
+    rules: {
+      "field-type-guard/no-literal-field-type": libOwnership.isRoot ? "error" : "warn",
     },
   },
   // 秘匿カラム (defineHiddenColumns) を生 drizzle の select / returning で取り出さない。
