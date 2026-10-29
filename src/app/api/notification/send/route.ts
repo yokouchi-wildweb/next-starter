@@ -4,7 +4,6 @@
 import { z } from "zod";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 
 const SendSchema = z.object({
@@ -21,13 +20,9 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/notification/send",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
   },
-  async (req, { session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      throw new DomainError("この操作を行う権限がありません。", { status: 403 });
-    }
-
+  async (req, { user }) => {
     const json = await req.json();
     const parsed = SendSchema.safeParse(json);
     if (!parsed.success) {
@@ -47,7 +42,7 @@ export const POST = createApiRoute(
       targetUserIds: data.targetUserIds ?? null,
       targetRoles: data.targetRoles ?? null,
       senderType: "admin",
-      createdById: session.userId,
+      createdById: user.userId,
       publishedAt: data.publishedAt ? new Date(data.publishedAt) : null,
     });
   }

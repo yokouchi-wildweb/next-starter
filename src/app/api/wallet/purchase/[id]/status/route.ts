@@ -7,26 +7,22 @@ import { purchaseRequestService } from "@/features/core/purchaseRequest/services
 
 type Params = { id: string };
 
-export const GET = createApiRoute<Params>(
+export const GET = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "GET /api/wallet/purchase/[id]/status",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (_req, { params, session }) => {
+  async (_req, { params, user }) => {
     const { id } = params;
 
     if (!id) {
       return NextResponse.json({ message: "リクエストIDが指定されていません。" }, { status: 400 });
     }
 
-    if (!session) {
-      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-    }
-
     const purchaseRequest = await purchaseRequestService.getPurchaseStatusForUser(
       id,
-      session.userId,
+      user.userId,
     );
 
     if (!purchaseRequest) {

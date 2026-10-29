@@ -87,18 +87,11 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/wallet/purchase/bank-transfer/active",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (_req, { session }): Promise<ActiveBankTransferResponse | NextResponse> => {
-    if (!session) {
-      return NextResponse.json(
-        { message: "ログインが必要です。" },
-        { status: 401 },
-      );
-    }
-
+  async (_req, { user }): Promise<ActiveBankTransferResponse | NextResponse> => {
     // 1. pending_review / needs_check レビューを優先して検出
-    const review = await bankTransferReviewService.findActiveByUser(session.userId);
+    const review = await bankTransferReviewService.findActiveByUser(user.userId);
     if (review) {
       const purchaseRequest = await db
         .select({
@@ -138,7 +131,7 @@ export const GET = createApiRoute(
       .from(PurchaseRequestTable)
       .where(
         and(
-          eq(PurchaseRequestTable.user_id, session.userId),
+          eq(PurchaseRequestTable.user_id, user.userId),
           eq(PurchaseRequestTable.payment_provider, INHOUSE_PROVIDER_NAME),
           eq(PurchaseRequestTable.payment_method, INHOUSE_BANK_TRANSFER_METHOD_ID),
           eq(PurchaseRequestTable.status, "processing"),

@@ -1,8 +1,6 @@
 // 管理者用: 指定ユーザーの紹介一覧を取得
 
-import { NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { referralService } from "@/features/core/referral/services/server/referralService";
 import { referralRewardService } from "@/features/core/referralReward/services/server/referralRewardService";
 import { REFERRAL_REWARD_DEFINITIONS } from "@/features/core/referralReward/config";
@@ -17,13 +15,9 @@ export const GET = createApiRoute<RouteParams>(
   {
     operation: "GET /api/admin/referral/by-inviter/[userId]",
     operationType: "read",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
   },
-  async (_req, { session, params }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
-    }
-
+  async (_req, { params }) => {
     const { userId } = await params;
 
     const referrals = await referralService.getByInviter(userId, { activeOnly: false });

@@ -11,21 +11,17 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/wallet/history/batches",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (req, { session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "認証情報が無効です。" }, { status: 401 });
-    }
-
+  async (req, { user }) => {
     const { searchParams } = new URL(req.url);
     const paramUserId = searchParams.get("userId");
     const limit = Number(searchParams.get("limit") ?? "20");
     const page = Number(searchParams.get("page") ?? "1");
     const paramType = searchParams.get("type");
 
-    const targetUserId = paramUserId ?? session.userId;
-    if (paramUserId && paramUserId !== session.userId && getRoleCategory(session.role) !== "admin") {
+    const targetUserId = paramUserId ?? user.userId;
+    if (paramUserId && paramUserId !== user.userId && getRoleCategory(user.role) !== "admin") {
       return NextResponse.json({ message: "この履歴を参照する権限がありません。" }, { status: 403 });
     }
 

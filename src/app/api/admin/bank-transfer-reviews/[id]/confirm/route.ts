@@ -6,26 +6,18 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
 
 type Params = { id: string };
 
-export const POST = createApiRoute<Params>(
+export const POST = createApiRoute<Params, unknown, { roleCategories: string[] }>(
   {
     operation: "POST /api/admin/bank-transfer-reviews/[id]/confirm",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (_req, { params, session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 },
-      );
-    }
-
+  async (_req, { params, user }) => {
     const { id } = params;
     if (!id) {
       return NextResponse.json(
@@ -36,7 +28,7 @@ export const POST = createApiRoute<Params>(
 
     const result = await bankTransferReviewService.confirmReview({
       reviewId: id,
-      reviewedBy: session.userId,
+      reviewedBy: user.userId,
       // この API は管理画面の承認ボタンからのみ叩かれる前提なので "manual" 固定。
       // CSV 取込からの自動承認は bulkImportFromCsv が直接 confirmReview を
       // 呼ぶ経路 (source: "csv_auto") を通り、この HTTP API は経由しない。

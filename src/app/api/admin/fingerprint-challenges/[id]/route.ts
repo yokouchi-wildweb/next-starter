@@ -31,18 +31,18 @@ const PatchSchema = z.discriminatedUnion("action", [
   MarkChallengeNotifiedSchema.extend({ action: z.literal("mark_notified") }),
 ]);
 
-export const PATCH = createApiRoute<Params>(
+export const PATCH = createApiRoute<Params, unknown, { roleCategories: string[] }>(
   {
     operation: "PATCH /api/admin/fingerprint-challenges/[id]",
     operationType: "write",
     access: { roleCategories: ["admin"] },
   },
-  async (req, { params, session }) => {
+  async (req, { params, user }) => {
     const parsed = PatchSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
       throw new DomainError("リクエストの形式が不正です", { status: 400 });
     }
-    const actorId = session?.userId;
+    const actorId = user.userId;
     if (!actorId) {
       throw new DomainError("セッションが不正です", { status: 401 });
     }

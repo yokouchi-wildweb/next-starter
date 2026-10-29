@@ -16,17 +16,14 @@ import { getSlugByWalletType, type WalletType } from "@/features/core/wallet";
 
 type Params = { id: string };
 
-export const POST = createApiRoute<Params>(
+export const POST = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "POST /api/wallet/purchase/[id]/cancel",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
     skipForDemo: false,
   },
-  async (_req, { params, session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-    }
+  async (_req, { params, user }) => {
     const { id } = params;
     if (!id) {
       return NextResponse.json(
@@ -39,7 +36,7 @@ export const POST = createApiRoute<Params>(
     // DomainError は createApiRoute の共通ハンドラが status 付きで返す。
     const result = await purchaseRequestService.cancelPurchase({
       purchaseRequestId: id,
-      userId: session.userId,
+      userId: user.userId,
     });
 
     // 決済方法選択画面へ戻す URL を組み立てる。

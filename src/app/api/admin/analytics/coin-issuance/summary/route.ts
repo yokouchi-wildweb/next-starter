@@ -5,10 +5,7 @@
 // 個別ソースの集計ロジックは src/registry/coinIssuanceRegistry.ts に登録された
 // CoinIssuanceSource に委譲する。
 
-import { NextResponse } from "next/server";
-
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { parseDateRangeParams } from "@/features/core/analytics/services/server/utils/dateRange";
 import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
 import { getCoinIssuanceSummary } from "@/features/core/analytics/services/server/coinIssuance";
@@ -17,16 +14,9 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/analytics/coin-issuance/summary",
     operationType: "read",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
   },
-  async (req, { session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 },
-      );
-    }
-
+  async (req) => {
     const { searchParams } = new URL(req.url);
 
     return getCoinIssuanceSummary({

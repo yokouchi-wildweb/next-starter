@@ -17,7 +17,6 @@ import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { db } from "@/lib/drizzle";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { BankTransferReviewTable } from "@/features/bankTransferReview/entities/drizzle";
 import {
   BANK_TRANSFER_REVIEW_MODES,
@@ -53,16 +52,9 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/bank-transfer-reviews",
     operationType: "read",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
   },
-  async (req, { session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 },
-      );
-    }
-
+  async (req) => {
     const url = new URL(req.url);
     const parsed = QuerySchema.safeParse(Object.fromEntries(url.searchParams));
     if (!parsed.success) {

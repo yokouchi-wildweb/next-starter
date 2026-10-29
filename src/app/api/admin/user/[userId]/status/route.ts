@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { userService } from "@/features/core/user/services/server/userService";
 import { USER_STATUSES } from "@/features/core/user/constants/status";
 
@@ -19,14 +18,10 @@ export const PATCH = createApiRoute<RouteParams>(
   {
     operation: "PATCH /api/admin/user/[userId]/status",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (req, { session, params }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
-    }
-
+  async (req, { params }) => {
     const { userId } = await params;
 
     const json = await req.json();

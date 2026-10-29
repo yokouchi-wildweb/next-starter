@@ -23,11 +23,11 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/health",
     operationType: "read",
-    access: "custom",
+    access: "public",
   },
-  async (_req, { session }) => {
+  async (_req, { user }) => {
     const active = await settingService.isMaintenanceActive();
-    const bypassed = canBypassMaintenance(session);
+    const bypassed = canBypassMaintenance(user);
 
     // デプロイ検知のためキャッシュを無効化
     return NextResponse.json(

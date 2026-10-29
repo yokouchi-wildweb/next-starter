@@ -7,7 +7,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
 
 type Params = { id: string };
@@ -19,21 +18,14 @@ const BodySchema = z.object({
     .transform((v) => (v === undefined ? null : v)),
 });
 
-export const PATCH = createApiRoute<Params>(
+export const PATCH = createApiRoute<Params, unknown, { roleCategories: string[] }>(
   {
     operation: "PATCH /api/admin/bank-transfer-reviews/[id]/admin-memo",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (req, { params, session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 },
-      );
-    }
-
+  async (req, { params, user }) => {
     const { id } = params;
     if (!id) {
       return NextResponse.json(
@@ -61,7 +53,7 @@ export const PATCH = createApiRoute<Params>(
     const result = await bankTransferReviewService.updateAdminMemo({
       reviewId: id,
       adminMemo: body.adminMemo,
-      updatedBy: session.userId,
+      updatedBy: user.userId,
     });
 
     return {

@@ -17,18 +17,18 @@ import { CouponIssuerGrantAdminActionSchema } from "@/features/core/couponIssuer
 
 type Params = { id: string };
 
-export const PATCH = createApiRoute<Params>(
+export const PATCH = createApiRoute<Params, unknown, { roleCategories: string[] }>(
   {
     operation: "PATCH /api/admin/coupon-issuer-grants/[id]",
     operationType: "write",
     access: { roleCategories: ["admin"] },
   },
-  async (req, { params, session }) => {
+  async (req, { params, user }) => {
     const parsed = CouponIssuerGrantAdminActionSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
       throw new DomainError("リクエストの形式が不正です", { status: 400 });
     }
-    const actorId = session?.userId;
+    const actorId = user.userId;
     if (!actorId) {
       throw new DomainError("セッションが不正です", { status: 401 });
     }

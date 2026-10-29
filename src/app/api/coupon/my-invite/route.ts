@@ -1,6 +1,5 @@
 // src/app/api/coupon/my-invite/route.ts
 
-import { NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 
@@ -12,14 +11,10 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/coupon/my-invite",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (_req, { session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-    }
-
-    const userId = session.userId;
+  async (_req, { user }) => {
+    const userId = user.userId;
 
     const inviteCode = await couponService.getInviteCode(userId);
 
@@ -49,14 +44,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/coupon/my-invite",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
   },
-  async (_req, { session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-    }
-
-    const userId = session.userId;
+  async (_req, { user }) => {
+    const userId = user.userId;
 
     const inviteCode = await couponService.getOrCreateInviteCode(userId);
 

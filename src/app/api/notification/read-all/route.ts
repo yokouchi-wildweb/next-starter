@@ -2,7 +2,6 @@
 // 全既読マーク（user）
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
 
@@ -10,14 +9,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/notification/read-all",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
   },
-  async (_req, { session }) => {
-    if (!session) {
-      throw new DomainError("認証が必要です。", { status: 401 });
-    }
-
-    const viewer = notificationViewerFromSession(session);
+  async (_req, { user }) => {
+    const viewer = notificationViewerFromSession(user);
     await notificationService.markAllAsRead(viewer);
     return { success: true };
   }

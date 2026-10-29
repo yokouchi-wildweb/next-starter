@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 import type { WalletHistoryMetaInput } from "@/features/core/walletHistory/types/meta";
@@ -42,14 +41,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/admin/wallet/bulk/adjust-by-type",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (req, { session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
-    }
-
+  async (req, { user }) => {
     let payload: z.infer<typeof BulkAdjustByTypePayloadSchema>;
     try {
       const json = await req.json();
@@ -66,7 +61,7 @@ export const POST = createApiRoute(
     // Zodスキーマの nullish transform で null が混入するが、サービス層の sanitizeMeta でクリーンアップされる
     const mergedMeta = {
       ...(payload.meta ?? {}),
-      adminId: session.userId,
+      adminId: user.userId,
     } as WalletHistoryMetaInput;
 
     const result = await walletService.bulkAdjustByType({

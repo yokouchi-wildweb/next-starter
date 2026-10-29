@@ -6,7 +6,6 @@
 import { NextResponse } from "next/server";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { auditLogBase } from "@/features/core/auditLog/services/server";
 import type { SearchParams } from "@/lib/crud";
 
@@ -22,16 +21,9 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/admin/audit-logs/search",
     operationType: "read",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
   },
-  async (req, { session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 },
-      );
-    }
-
+  async (req) => {
     try {
       const query = req.nextUrl.searchParams;
 

@@ -18,17 +18,9 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/verify-password",
     operationType: "read", // パスワード検証は読み取り操作
-    access: "custom",
+    access: "authenticated",
   },
-  async (req, { session }) => {
-    // ログインチェック
-    if (!session) {
-      return NextResponse.json(
-        { message: "ログインが必要です。" },
-        { status: 401 }
-      );
-    }
-
+  async (req, { user }) => {
     // リクエストボディをパース
     const json = await req.json();
     const parsed = VerifyPasswordPayloadSchema.safeParse(json);
@@ -40,7 +32,7 @@ export const POST = createApiRoute(
 
     // パスワードを検証
     const isValid = await verifyCurrentUserPassword(
-      session.userId,
+      user.userId,
       parsed.data.password
     );
 

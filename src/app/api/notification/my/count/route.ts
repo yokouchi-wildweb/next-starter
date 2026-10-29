@@ -3,7 +3,6 @@
 // クエリ: unreadOnly=true|false（省略時は false）
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
 
@@ -11,17 +10,13 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/notification/my/count",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (req, { session }) => {
-    if (!session) {
-      throw new DomainError("認証が必要です。", { status: 401 });
-    }
-
+  async (req, { user }) => {
     const { searchParams } = new URL(req.url);
     const unreadOnly = searchParams.get("unreadOnly") === "true";
 
-    const viewer = notificationViewerFromSession(session);
+    const viewer = notificationViewerFromSession(user);
     const count = await notificationService.getMyNotificationsCount(viewer, {
       unreadOnly,
     });

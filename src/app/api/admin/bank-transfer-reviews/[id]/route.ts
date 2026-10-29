@@ -10,7 +10,6 @@ import { alias } from "drizzle-orm/pg-core";
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { db } from "@/lib/drizzle";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { BankTransferReviewTable } from "@/features/bankTransferReview/entities/drizzle";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";
 import { UserTable } from "@/features/core/user/entities/drizzle";
@@ -21,16 +20,9 @@ export const GET = createApiRoute<Params>(
   {
     operation: "GET /api/admin/bank-transfer-reviews/[id]",
     operationType: "read",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
   },
-  async (_req, { params, session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 },
-      );
-    }
-
+  async (_req, { params }) => {
     const { id } = params;
     if (!id) {
       return NextResponse.json(

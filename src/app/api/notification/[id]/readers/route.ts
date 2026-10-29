@@ -3,7 +3,6 @@
 
 import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 
 type Params = { id: string };
@@ -12,13 +11,9 @@ export const GET = createApiRoute<Params>(
   {
     operation: "GET /api/notification/[id]/readers",
     operationType: "read",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
   },
-  async (req, { session, params }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      throw new DomainError("この操作を行う権限がありません。", { status: 403 });
-    }
-
+  async (req, { params }) => {
     const { id } = params;
     if (!id) {
       throw new DomainError("通知IDが指定されていません。", { status: 400 });

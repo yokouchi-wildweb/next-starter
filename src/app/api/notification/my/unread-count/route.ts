@@ -2,7 +2,6 @@
 // 未読数取得（user）
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";
 
@@ -10,14 +9,10 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/notification/my/unread-count",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (_req, { session }) => {
-    if (!session) {
-      throw new DomainError("認証が必要です。", { status: 401 });
-    }
-
-    const viewer = notificationViewerFromSession(session);
+  async (_req, { user }) => {
+    const viewer = notificationViewerFromSession(user);
     const count = await notificationService.getUnreadCount(viewer);
     return { count };
   }

@@ -66,18 +66,15 @@ function buildRedirectUrl(
   return `/wallet/${slug}/purchase/${path}`;
 }
 
-export const POST = createApiRoute<Params>(
+export const POST = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "POST /api/wallet/purchase/[id]/bank-transfer/confirm",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
   },
-  async (req, { params, session }) => {
+  async (req, { params, user }) => {
     const { id } = params;
 
-    if (!session) {
-      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-    }
     if (!id) {
       return NextResponse.json(
         { message: "リクエスト ID が指定されていません。" },
@@ -106,7 +103,7 @@ export const POST = createApiRoute<Params>(
     // DomainError はそのまま createApiRoute の共通ハンドラが status 付きで返す。
     const result = await bankTransferReviewService.submitReview({
       purchaseRequestId: id,
-      userId: session.userId,
+      userId: user.userId,
       proofImageUrl: body.proofImageUrl,
       unverifiedNote: body.unverifiedNote ?? null,
     });

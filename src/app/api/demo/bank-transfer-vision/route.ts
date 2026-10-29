@@ -29,15 +29,11 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/demo/bank-transfer-vision",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
     // サンドボックスで動作検証するため demo ユーザーでも実行を許可
     skipForDemo: false,
   },
-  async (req, { session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "認証が必要です" }, { status: 401 });
-    }
-
+  async (req) => {
     const formData = await req.formData();
     const file = formData.get("file");
 

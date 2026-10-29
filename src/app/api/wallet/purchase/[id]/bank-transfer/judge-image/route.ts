@@ -57,14 +57,14 @@ function serializeRateLimit(status: JudgmentRateLimitStatus) {
   };
 }
 
-export const POST = createApiRoute<Params>(
+export const POST = createApiRoute<Params, unknown, "authenticated">(
   {
     operation: "POST /api/wallet/purchase/[id]/bank-transfer/judge-image",
     // 外部 AI API を消費するため write 扱い（デモユーザーはスキップ → サンドボックスで確認可能）
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
   },
-  async (req, { params, session }) => {
+  async (req, { params, user }) => {
     const { id } = params;
 
     const bankTransferConfig = getBankTransferConfig();
@@ -78,9 +78,6 @@ export const POST = createApiRoute<Params>(
       );
     }
 
-    if (!session) {
-      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-    }
     if (!id) {
       return NextResponse.json(
         { message: "リクエスト ID が指定されていません。" },
@@ -90,7 +87,7 @@ export const POST = createApiRoute<Params>(
 
     // 所有権検証: 存在 + 自分の購入リクエストか。404 で同一視して秘匿
     const purchaseRequest = await purchaseRequestService.get(id);
-    if (!purchaseRequest || purchaseRequest.user_id !== session.userId) {
+    if (!purchaseRequest || purchaseRequest.user_id !== user.userId) {
       return NextResponse.json(
         { message: "対象の購入リクエストが見つかりません。" },
         { status: 404 },
@@ -124,7 +121,7 @@ export const POST = createApiRoute<Params>(
     }
 
     // レート制限事前チェック（カウントは増やさない）
-    const limitCheck = await checkJudgmentRateLimit(session.userId);
+    const limitCheck = await checkJudgmentRateLimit(user.userId);
     if (!limitCheck.ok) {
       const message =
         limitCheck.blockedBy === "daily"
@@ -172,7 +169,7 @@ export const POST = createApiRoute<Params>(
       // Anthropic API エラー（タイムアウト・5xx 等）はインフラ起因なのでカウントしない。
       // ユーザーには「判定不能」を伝えて再試行を促す。
       console.error("[judge-image] Anthropic API error:", e);
-      const currentStatus = await getJudgmentRateLimitStatus(session.userId);
+      const currentStatus = await getJudgmentRateLimitStatus(user.userId);
       return NextResponse.json(
         {
           message:
@@ -189,7 +186,7 @@ export const POST = createApiRoute<Params>(
     const passed = isBankTransferJudgmentPassed(judgment);
     await purchaseRequestService.recordBankTransferJudgment({
       purchaseRequestId: purchaseRequest.id,
-      userId: session.userId,
+      userId: user.userId,
       judgment: {
         passed,
         isLikelyBankTransfer: judgment.isLikelyBankTransfer,
@@ -204,11 +201,11 @@ export const POST = createApiRoute<Params>(
 
     // 24時間カウンタは成功・失敗いずれもインクリメント。
     // 15分カウンタは失敗時のみ。
-    await recordAttempt(session.userId);
+    await recordAttempt(user.userId);
     if (!judgment.isLikelyBankTransfer) {
-      await recordFailure(session.userId);
+      await recordFailure(user.userId);
     }
-    const finalStatus = await getJudgmentRateLimitStatus(session.userId);
+    const finalStatus = await getJudgmentRateLimitStatus(user.userId);
 
     return NextResponse.json({
       ...judgment,

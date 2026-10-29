@@ -19,7 +19,7 @@ export const POST = createApiRoute(
     operationType: "write",
     access: { roleCategories: ["admin"] },
   },
-  async (req, { session }) => {
+  async (req, { user }) => {
     if (!FINGERPRINT_CONFIG.challenge.enabled) {
       throw new DomainError(
         "チャレンジ機能が無効です (FINGERPRINT_CONFIG.challenge.enabled)",
@@ -39,7 +39,7 @@ export const POST = createApiRoute(
 
     const { challenge, token } = await issueChallenge({
       ...parsed.data,
-      issuedBy: session?.userId ?? null,
+      issuedBy: user.userId ?? null,
     });
 
     return { challenge, token };

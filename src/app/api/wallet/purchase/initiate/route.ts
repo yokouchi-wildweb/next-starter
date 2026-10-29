@@ -46,14 +46,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/wallet/purchase/initiate",
     operationType: "write",
-    access: "custom",
+    access: "authenticated",
     skipForDemo: false,
   },
-  async (req, { session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-    }
-
+  async (req, { user }) => {
     // 購入一時停止チェック
     if (isPurchaseSuspended()) {
       return NextResponse.json(
@@ -78,7 +74,7 @@ export const POST = createApiRoute(
     const baseUrl = getAppBaseUrl();
 
     const result = await purchaseRequestService.initiatePurchase({
-      userId: session.userId,
+      userId: user.userId,
       idempotencyKey: payload.idempotencyKey,
       walletType: payload.walletType,
       amount: payload.amount,

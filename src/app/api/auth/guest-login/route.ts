@@ -16,7 +16,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/guest-login",
     operationType: "write",
-    access: "custom",
+    access: "public",
     skipForDemo: false,
     rateLimit: "guestLogin",
   },

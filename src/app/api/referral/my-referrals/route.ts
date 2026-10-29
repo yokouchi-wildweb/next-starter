@@ -1,6 +1,5 @@
 // src/app/api/referral/my-referrals/route.ts
 
-import { NextResponse } from "next/server";
 import { createApiRoute } from "@/wiring/apiRoute";
 import { referralService } from "@/features/core/referral/services/server/referralService";
 
@@ -12,14 +11,10 @@ export const GET = createApiRoute(
   {
     operation: "GET /api/referral/my-referrals",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
   },
-  async (_req, { session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-    }
-
-    const referrals = await referralService.getByInviter(session.userId);
+  async (_req, { user }) => {
+    const referrals = await referralService.getByInviter(user.userId);
 
     return {
       referrals: referrals.map((r) => ({

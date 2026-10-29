@@ -21,7 +21,7 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/auth/register",
     operationType: "write",
-    access: "custom",
+    access: "public",
     skipForDemo: true,
     rateLimit: "signupRegister",
     rateLimitSubnet: "signupSubnet",

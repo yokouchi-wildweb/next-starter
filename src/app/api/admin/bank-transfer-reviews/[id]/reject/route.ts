@@ -8,7 +8,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
 
 type Params = { id: string };
@@ -21,21 +20,14 @@ const RejectBodySchema = z.object({
     .max(500, { message: "拒否理由は 500 文字以内で入力してください。" }),
 });
 
-export const POST = createApiRoute<Params>(
+export const POST = createApiRoute<Params, unknown, { roleCategories: string[] }>(
   {
     operation: "POST /api/admin/bank-transfer-reviews/[id]/reject",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (req, { params, session }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json(
-        { message: "この操作を行う権限がありません。" },
-        { status: 403 },
-      );
-    }
-
+  async (req, { params, user }) => {
     const { id } = params;
     if (!id) {
       return NextResponse.json(
@@ -62,7 +54,7 @@ export const POST = createApiRoute<Params>(
 
     const result = await bankTransferReviewService.rejectReview({
       reviewId: id,
-      reviewedBy: session.userId,
+      reviewedBy: user.userId,
       rejectReason: body.rejectReason,
     });
 

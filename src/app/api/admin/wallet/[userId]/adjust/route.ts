@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
@@ -41,22 +40,18 @@ const WalletAdjustPayloadSchema = z
     }
   });
 
-export const POST = createApiRoute<Params>(
+export const POST = createApiRoute<Params, unknown, { roleCategories: string[] }>(
   {
     operation: "POST /api/admin/wallet/[userId]/adjust",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (req, { params, session }) => {
+  async (req, { params, user }) => {
     const { userId } = params;
 
     if (!userId) {
       return NextResponse.json({ message: "ユーザーIDが指定されていません。" }, { status: 400 });
-    }
-
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
     }
 
     let payload: WalletAdjustRequestPayload;
@@ -74,7 +69,7 @@ export const POST = createApiRoute<Params>(
 
     const mergedMeta = {
       ...(payload.meta ?? {}),
-      adminId: session.userId,
+      adminId: user.userId,
     };
 
     const result = await walletService.adjustBalance({

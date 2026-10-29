@@ -24,10 +24,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/coupon/redeem",
     operationType: "write",
-    access: "custom",
+    access: "public",
     skipForDemo: false,
   },
-  async (req, { session }) => {
+  async (req, { user }) => {
     let payload: z.infer<typeof RedeemCouponSchema>;
     try {
       const json = await req.json();
@@ -41,8 +41,8 @@ export const POST = createApiRoute(
       return NextResponse.json({ message: "リクエストボディの解析に失敗しました。" }, { status: 400 });
     }
 
-    // セッションがあればユーザーID、なければ null（ゲスト使用）
-    const redeemerUserId = session?.userId ?? null;
+    // 利用可能なログイン中の利用者ならそのユーザーID、なければ null（ゲスト使用）
+    const redeemerUserId = user?.userId ?? null;
 
     const result = await couponService.redeem(
       payload.code,

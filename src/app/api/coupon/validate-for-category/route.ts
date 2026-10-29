@@ -20,14 +20,10 @@ export const POST = createApiRoute(
   {
     operation: "POST /api/coupon/validate-for-category",
     operationType: "read",
-    access: "custom",
+    access: "authenticated",
     skipForDemo: false,
   },
-  async (req, { session }) => {
-    if (!session) {
-      return NextResponse.json({ message: "ログインが必要です。" }, { status: 401 });
-    }
-
+  async (req, { user }) => {
     let payload: z.infer<typeof ValidateForCategorySchema>;
     try {
       const json = await req.json();
@@ -44,7 +40,7 @@ export const POST = createApiRoute(
     const result = await couponService.validateForCategory(
       payload.code,
       payload.category,
-      session.userId,
+      user.userId,
       payload.metadata,
     );
 

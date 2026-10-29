@@ -1,10 +1,8 @@
 // src/app/api/admin/batch-jobs/[jobId]/execute/route.ts
 
-import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createApiRoute } from "@/wiring/apiRoute";
-import { getRoleCategory } from "@/features/core/user/constants";
 import { batchJobService } from "@/features/batchJob/services/server";
 
 type RouteParams = { jobId: string };
@@ -17,14 +15,10 @@ export const POST = createApiRoute<RouteParams>(
   {
     operation: "POST /api/admin/batch-jobs/[jobId]/execute",
     operationType: "write",
-    access: "custom",
+    access: { roleCategories: ["admin"] },
     skipForDemo: false,
   },
-  async (req, { session, params }) => {
-    if (!session || getRoleCategory(session.role) !== "admin") {
-      return NextResponse.json({ message: "この操作を行う権限がありません。" }, { status: 403 });
-    }
-
+  async (req, { params }) => {
     const { jobId } = params;
 
     let maxDurationMs: number | undefined;
