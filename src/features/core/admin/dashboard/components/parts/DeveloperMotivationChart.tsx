@@ -1,6 +1,4 @@
-// src/components/Admin/Elements/DeveloperMotivationChart.tsx
-
-// src/components/Admin/DeveloperMotivationChart.tsx
+// src/features/core/admin/dashboard/components/parts/DeveloperMotivationChart.tsx
 
 interface DeveloperMotivationChartProps {
   percentage: number;

@@ -1,6 +1,5 @@
 // src/features/core/admin/dashboard/components/sections/AdditionalMetricsSection.tsx
 
-import { DeveloperMotivationChart } from "@/components/AppFrames/Admin/Elements/DeveloperMotivationChart";
 import { Block } from "@/components/Layout/Block";
 import { Flex } from "@/components/Layout/Flex";
 import { Section } from "@/components/Layout/Section";
@@ -8,6 +7,8 @@ import { Stack } from "@/components/Layout/Stack";
 import SecTitle from "@/components/AppFrames/Admin/Elements/SecTitle";
 import { Span } from "@/components/TextBlocks";
 import { APP_FEATURES } from "@/config/app/app-features.config";
+
+import { DeveloperMotivationChart } from "../parts/DeveloperMotivationChart";
 
 /**
  * 追加の指標セクション。

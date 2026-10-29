@@ -33,7 +33,7 @@ src/app/admin/insane/_layout/           # admin/insane/layout.tsx の枠(index.t
 
 まだ `src/components/AppFrames/` に残っている物(後の区切りで扱う):
 
-- `Admin/Elements/` の PageTitle 以外(AdminHeaderPortal・ListTop・SearchBox・SortSelect・SecTitle・SelectFilter・ItemNavigator・DeveloperMotivationChart): features の画面部品から使われるので、共有部品の棚を決める区切りで一緒に動かす。PageTitle.tsx は AdminHeaderPortal を絶対パス `@/components/AppFrames/Admin/Elements/AdminHeaderPortal` で参照している
+- `Admin/Elements/` の PageTitle 以外(AdminHeaderPortal・ListTop・SearchBox・SortSelect・SecTitle・SelectFilter・ItemNavigator): features の画面部品から使われるので、共有部品の棚を決める区切りで一緒に動かす(ダッシュボードだけが使う DeveloperMotivationChart は `src/features/core/admin/dashboard/components/parts/` へ移動済み)。PageTitle.tsx は AdminHeaderPortal を絶対パス `@/components/AppFrames/Admin/Elements/AdminHeaderPortal` で参照している
 - `AppFrames/constants.ts`(ヘッダー・フッターの要素 ID と受け口の ID): useHeaderHeight の汎用化と一緒に後で動かす
 
 ## 所有
