@@ -3,6 +3,7 @@ from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:-
 date: 2026-10-25T16:42:20+09:00
 severity: action-required
 checkpoint: storage-cascade-check-warn
+fixes: 20261024-160000-storage-replace-by-query-cascade
 change: pnpm test:storage-purposes の FK cascade 検査を失敗から警告に下げた（メディア列を持つ表の cascade を console.warn で並べるだけ）。テスト内の STORAGE_CASCADE_EXCEPTIONS と「除外リストに古い項目が残っていない」テストは削除。README / core ルールの「FK cascade (MANDATORY)」は推奨に変わった
 why: 20261024-160000-storage-replace-by-query-cascade はメディア列を持つ表の cascade をテストで落とし、FK を restrict に変えて親の削除 wrapper を手書きさせていたが、fork の土台として重すぎた。メディア列を持つ表でも DB の onDelete cascade を許す決定になった。cascade で消えた行の紐付けは、後の notice で入る台帳の照合（storage-sweep）で片付ける。それまでは紐付けと実物が残るだけで、壊れはしない
 required_actions:

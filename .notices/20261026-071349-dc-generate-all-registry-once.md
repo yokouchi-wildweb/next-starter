@@ -3,6 +3,7 @@ from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:-
 date: 2026-10-26T07:13:49+09:00
 severity: action-required
 checkpoint: dc-generate-all-registry-once
+fixes: 20261025-213009-domain-entry-registry
 change: (a) `pnpm dc:generate:all` は全ドメインの domainEntry.ts を書いた後に serviceRegistry.ts を 1 回だけ作り直すようになった（今まではドメインごとに作り直し、まだ domainEntry.ts の無い他のドメインの検査で最初のドメインから止まった）。1 ドメインの `pnpm dc:generate <Domain>` は今までどおり最後に作り直す (b) `pnpm test:wiring` は domainEntry.override.ts を domainEntry.ts と同じ「登録の宣言」として扱う (c) `pnpm test:service-registry` は core の既定の access を上書き前の domainEntry.ts で確かめる（fork の domainEntry.override.ts があっても通る）。上書きの無いキーは登録表の access が domainEntry.ts と同じかを確かめる検査が増えた
 why: notice 20261025-213009-domain-entry-registry の手順 2 が、業務ドメインを複数持つ fork で最初のドメインで止まっていた（fork 側の不備ではない）。また、その notice が案内した domainEntry.override.ts を置くと、上流の test:wiring と test:service-registry が落ちていた
 required_actions:

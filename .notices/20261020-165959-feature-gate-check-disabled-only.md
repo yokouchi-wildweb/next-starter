@@ -3,6 +3,7 @@ from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- 
 date: 2026-10-20T16:59:59+09:00
 severity: info
 checkpoint: feature-gate-check-disabled-only
+fixes: 20261020-170000-feature-gate-schema-gate
 change: `pnpm test:feature-gate` now checks route coverage (routes / _screen / _components and generic /api/<domain> that import a gated domain) only for rules whose `enabled` is false, and runs the "all features disabled" schema-gate tests only with `FEATURE_GATE_CHECK=all` (upstream's mode). The previous notice 20261020-170000-feature-gate-schema-gate step 5 is rewritten accordingly. No config shape or runtime change.
 why: a fork whose product is built on a gated feature (coin economy: wallet / payment / coupon always on) had dozens of legitimate routes reported as "not closed", and fork tables referencing gated tables (e.g. direct_sale_orders → purchase_requests) failed the all-disabled test, although nothing breaks while the feature is on. The hazard (route open while its tables are absent) only exists when the flag is false, so that is now the only case checked.
 required_actions:

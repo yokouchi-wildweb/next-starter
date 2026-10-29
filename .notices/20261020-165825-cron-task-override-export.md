@@ -3,6 +3,7 @@ from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- 
 date: 2026-10-20T16:58:25+09:00
 severity: info
 checkpoint: cron-task-override-export
+fixes: 20261020-160342-cron-task-override
 change: `CronTaskOverride` is now exported from "@/lib/cron" (src/lib/cron/index.ts), so override.ts written as in src/lib/cron/README.md and notice 20261020-160342-cron-task-override (`import type { CronTaskOverride } from "@/lib/cron"`) compiles. Before this, that import failed tsc with TS2305 (test:cron-wiring and cron:check did not catch it; the Vercel build did). test:cron-wiring now also fails when README or a cron task.ts / override.ts / route.ts imports a name from "@/lib/cron" that index.ts does not export.
 why: the documented import path of the override mechanism did not compile.
 required_actions: none. Optional: override.ts files that work around the bug with `import type { CronTaskOverride } from "@/lib/cron/types"` may switch to "@/lib/cron" (both keep compiling).

@@ -66,6 +66,21 @@ function git(args) {
   return execFileSync("git", args, { cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
 }
 
+/** notice を追加した commit(done/ へ移したものは元のパスで追加した commit)。未コミットなら null */
+function addCommit(id) {
+  const out = git(["log", "--diff-filter=A", "--format=%H", "--", `${NOTICES}/${id}.md`, `${DONE}/${id}.md`]).trim();
+  return out ? out.split("\n").at(-1) : null;
+}
+
+function isAncestor(a, b) {
+  try {
+    git(["merge-base", "--is-ancestor", a, b]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function commitExists(sha) {
   try {
     git(["cat-file", "-e", `${sha}^{commit}`]);
@@ -119,15 +134,24 @@ test("checkpoint はラベル(英語ケバブ)か `-` で、ラベルは重な�
   assert.deepEqual(problems, [], problems.join("\n"));
 });
 
-test("fixes: の参照先が実在し、自分より前のもの", () => {
+// 前後は id の文字列ではなく履歴で決める(手で付けた id は追加した順と食い違うことがある)
+test("fixes: の参照先が実在し、履歴上で自分より前のもの", () => {
   const problems = [];
   for (const n of active) {
     if (n.fields.fixes === undefined) continue;
     const { ids, commits } = parseFixes(n.fields.fixes);
     if (!ids.length && !commits.length) problems.push(`${n.path}: fixes: が空です`);
+    // 未コミットの新しい notice は追加 commit が無い(参照先がコミット済みであることだけを見る)
+    const own = addCommit(n.id);
     for (const id of ids) {
-      if (!allIds.has(id)) problems.push(`${n.path}: fixes: ${id} が .notices/ にも done/ にもありません`);
-      else if (id >= n.id) problems.push(`${n.path}: fixes: ${id} は自分より後(または自分自身)の notice です`);
+      if (!allIds.has(id)) {
+        problems.push(`${n.path}: fixes: ${id} が .notices/ にも done/ にもありません`);
+        continue;
+      }
+      const ref = addCommit(id);
+      if (id === n.id || !ref || (own && (ref === own || !isAncestor(ref, own)))) {
+        problems.push(`${n.path}: fixes: ${id} は履歴上で自分より前に出荷された notice ではありません`);
+      }
     }
     for (const sha of commits) {
       if (!commitExists(sha)) problems.push(`${n.path}: fixes: commit:${sha} が履歴にありません`);

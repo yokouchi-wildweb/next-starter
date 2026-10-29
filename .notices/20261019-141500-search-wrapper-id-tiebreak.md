@@ -3,6 +3,7 @@ from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:(c
 date: 2026-10-19T05:30:24Z
 severity: action-required
 checkpoint: search-wrapper-id-tiebreak
+fixes: 20261019-080000-deprecated-aliases-removal
 change: (1) New helper `withIdTiebreak(table, orderBy, clauses)` exported from `@/lib/crud/drizzle` (src/lib/crud/drizzle/query/withIdTiebreak.ts): returns `clauses` + `asc(table.id)` unless `orderBy` already contains `id` or the table has no `id` column. Base `search()` / `searchWithDeleted()` now use it internally (same ORDER BY as before: rank, orderBy, id). Tests in `pnpm test:crud-search-rank`. (2) Correction of 20261019-080000-deprecated-aliases-removal: its claim "the legacy priority ordering had no effect" is true for base `search()` only. Fork wrappers that copied the ordering from `buildOrderBy` alone (no id tiebreak) used the priority CASE clauses to order rows tied on `orderBy` when a keyword was given; after 080000 step 3b those ties have no defined order. 080000's text (change 8, step 3b, notes) is amended for forks that have not applied it yet. (3) crud README wrapper recipe + CLAUDE.md searchRank line: close wrapper ORDER BY with `withIdTiebreak`.
 why: Without a unique last sort key, Postgres may return rows tied on `orderBy` in any order, so paginated lists can repeat or skip rows between pages. oripa-do applied 080000 step 3b as written in its movieClip / prizeItem `wrappers/search.ts`, which build ORDER BY from `buildOrderBy` without id (this gap existed before 080000 for non-keyword lists too).
 required_actions:

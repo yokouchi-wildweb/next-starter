@@ -3,6 +3,7 @@ from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- 
 date: 2026-10-29T11:50:57+09:00
 severity: info
 checkpoint: custom-template-marks
+fixes: 20261028-151649-frame-marks, 20261028-152652-frame-marks-dims
 change: The old switch templates HeaderCustom / FooterCustom (src/components/AppFrames/User/Sections/, used when config/ui/user-header.config or user-footer.config is switched to them) now follow the frame marks like the default parts. (1) HeaderCustom's nav parts carry `data-frame-part="header-nav"` (Pc/PcNavigation.tsx nav, Sp/SpNavSwitch.tsx button, Sp/SpNavigation.tsx motion.div); their ids are `header-custom-*`, which the part list does not target, so before this HideHeaderNav did not hide them. (2) HeaderCustom/index.tsx `<header>` gets `data-frame-part="header"`, FooterCustom/index.tsx `<footer>` gets `data-frame-part="footer"` (they already kept the ids header / footer, so HideHeader / HideFooter worked). (3) HeaderCustom/index.tsx uses `navEnabled` only and no longer reads the deprecated `navVisibility` / `visibilityClass` (its header class lost the trailing space). (4) Both import the hooks from `@/app/(user)/_layout/hooks` instead of the deprecated shim `../../hooks`. No visual change. (5) `pnpm test:frame-controls` fails if a template part loses its data-frame-part.
 why: Notices 20261028-151649-frame-marks and 20261028-152652-frame-marks-dims updated only the default parts; a fork switched to HeaderCustom silently lost HideHeaderNav.
 required_actions:
