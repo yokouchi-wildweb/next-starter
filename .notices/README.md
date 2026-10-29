@@ -33,6 +33,7 @@ checkpoint: <label | ->
 moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit otherwise)
 covers: <upstream notice id>, ...   (relay notices only: upstream notice ids this notice subsumes; omit otherwise)
 fixes: <notice id | commit:<sha>>, ...   (only when this change fixes something shipped earlier; omit otherwise)
+resolves: <order id>, ...   (only when this change resolves orders a downstream repo filed in this repo's inbox; omit otherwise)
 change: <what changed upstream, one line>
 why: <why downstream must follow up>
 required_actions:
@@ -96,6 +97,16 @@ fork が手を入れうるファイル(docs・README・registry・config 等)を
   - 修正元の区間で検査が落ち、修正 notice のコミットが触るファイルに当たるものは「既知(修正は区間 K)」として台帳 `notes:` に書き、自前では直さない。修正を先回りして同じ実装をしない(後の merge で衝突し、fork 独自版が残る)。
   - 修正元が適用済みなら止まらず、概観で修正の区間に「適用済み <修正元> の修正」と印を付ける。その区間では台帳の修正元の行の `notes:` から当時の回避策を探して外す。
   - 「上流への所見」で依頼の文案を出す前に、流入予定の `fixes:` と上流の履歴で修正済みかを確かめる(修正済みなら文案を出さず「上流で修正済み(区間 K)」と書く)。
+
+## 解決(resolves)— 下流から届いた依頼を片付けた
+
+下流の fork は、受け口の外の書き換えを「直接の親への依頼が片付くまで」の一時許可で通す(`src/lib/forkOwnership/README.md`「一時許可」)。許可は依頼の番号を持ち、その番号が解決したら失効する。解決を下流へ伝えるのがこの欄。
+
+- 形式: `resolves: <指令 id>, ...`。指令 id = 受信箱のファイル名(`<YYYYMMDD-HHMMSS>-<slug>`)。複数可
+- 書く条件: `/ship` が `/inbox` から来た指令(`order:<id>`)を出荷し、その指令の依頼元(requester)が自リポ以外のリポ(下流の fork)のとき。上流からは、下流がその依頼に一時許可を書いているかが見えないので、**他に notice が要らなくても** `severity: info` + `required_actions: none` + `checkpoint:` の notice を出して `resolves:` を伝える
+- 却下(rejected)は解決ではないので書かない。下流は `/wen` で却下を知り、元に戻す・受け口へ移す・別の方針で許可し直す
+- 下流の使い方: `pnpm ownership:check` が基準(取り込み済み)の `.notices/` と `done/` の `resolves:` を集め、すべての番号が解決した一時許可を失効(expired-resolved)にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の一時許可に当たる行を示す
+- 書式は `pnpm test:notices` が検査する(id の形・重複)。参照先の実在は見ない(受信箱は git の外)
 
 ## 中継(relay)— 3 段以上の Tier
 

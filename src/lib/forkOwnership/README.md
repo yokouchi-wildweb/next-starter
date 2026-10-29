@@ -75,7 +75,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | same-as-base(残骸) | 基準と同じに戻った | 失敗(行を消す) |
   | unused(残骸) | 違反の無いファイルの行 | 失敗(行を消す) |
 
-- 依頼の解決: notice の `resolves:` 欄(依頼の番号)で知る。欄は fork への配線(/ship・/flux)と同時に足す。それまで `checkPermits` に渡す解決済みの集合は空で、失効は基準側の指紋の変化だけ
+- 依頼の解決: 親が依頼を片付けて出荷するとき、notice の `resolves:` 欄に依頼の番号を書く(下流から来た依頼なら必ず。`.notices/README.md`「解決(resolves)」)。`pnpm ownership:check` は基準(取り込み済み)の `.notices/` と `done/` の `resolves:` を集め、すべての番号が解決した許可を expired-resolved にする。`/flux` は区間の計画で、流入する `resolves:` のうち自分の許可に当たる行を示す
 - 却下: 元に戻す・受け口へ移す・別の方針で許可し直す、のどれかを必須にする。明示の期限は持たない(放置は `/flux`・`/wen` が毎回一覧に出す)
 - 「修正だけ先に取り込む」手段は作らない
 - API: `parsePermits(text)` → `{ permits, errors }` / `blobId(text)` / `fingerprint(text, kind)` / `checkPermits({ entries, permits, baseText, headText, intake, resolvedUpreqs })` → `{ entries(permit・verdict 付き), leftovers }` / `permitsPath(forkId)`

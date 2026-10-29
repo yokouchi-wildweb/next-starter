@@ -1,6 +1,6 @@
 // scripts/notices/notices.test.mjs
 // DOWNSTREAM NOTICE(.notices/*.md)の契約テスト。実行: pnpm test:notices (node:test)
-// /ship が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・covers・moved)と食い違わないことを確かめる。
+// /ship が notice を出荷する前に通し、/flux が読む書式(見出し行・checkpoint・fixes・covers・moved・resolves)と食い違わないことを確かめる。
 // 仕様: .notices/README.md
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -156,6 +156,19 @@ test("fixes: の参照先が実在し、履歴上で自分より前のもの", (
     for (const sha of commits) {
       if (!commitExists(sha)) problems.push(`${n.path}: fixes: commit:${sha} が履歴にありません`);
     }
+  }
+  assert.deepEqual(problems, [], problems.join("\n"));
+});
+
+test("resolves: は受信箱の指令 id の並び(形・重複)", () => {
+  const ORDER_ID = /^\d{8}-\d{6}-[a-z0-9][a-z0-9-]*$/;
+  const problems = [];
+  for (const n of active) {
+    if (n.fields.resolves === undefined) continue;
+    const ids = n.fields.resolves.split(",").map((s) => s.trim()).filter(Boolean);
+    if (ids.length === 0) problems.push(`${n.path}: resolves: が空です`);
+    for (const id of ids) if (!ORDER_ID.test(id)) problems.push(`${n.path}: resolves: ${id} は <YYYYMMDD-HHMMSS>-<slug> の形ではありません`);
+    if (new Set(ids).size !== ids.length) problems.push(`${n.path}: resolves: に同じ id が 2 回あります`);
   }
   assert.deepEqual(problems, [], problems.join("\n"));
 });

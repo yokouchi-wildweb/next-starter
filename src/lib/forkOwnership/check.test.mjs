@@ -143,6 +143,27 @@ describe("ownership:check", () => {
     assert.equal(refreshed.entries.find((entry) => entry.path === "src/features/core/user/user.ts").permit, "refresh");
   });
 
+  test("親が resolves: でその依頼を解決した notice を出すと、取り込んだ fork の一時許可が失効する", () => {
+    const parent = makeParent();
+    const fork = makeFork(parent);
+    write(fork, "src/features/core/user/user.ts", "export const user = 2;\n");
+    commitAll(fork, "outside");
+    const draft = runCheck(fork).entries.find((entry) => entry.reason === "outside-intake").permitDraft;
+    write(fork, `.fork-ownership/${FORK_ID}.permits.txt`, `${draft.replace("<依頼の番号>", "20261029-120000-user-hook").replace("<理由>", "待ち")}\n`);
+    commitAll(fork, "permit");
+    assert.equal(runCheck(fork).status, "pass");
+
+    write(parent, ".notices/20261029-130000-user-hook-intake.md", "# DOWNSTREAM NOTICE id:20261029-130000-user-hook-intake\nresolves: 20261029-120000-user-hook\n");
+    commitAll(parent, "resolve");
+    git(fork, "fetch", "-q", "upstream");
+    git(fork, "merge", "-q", "--no-edit", "upstream/main");
+    write(fork, `.notices/applied/${FORK_ID}.md`, `# APPLIED LEDGER\n- id:20261029-130000-user-hook-intake | date:x | commit:- | notes:-\n`);
+    commitAll(fork, "ledger");
+    const result = runCheck(fork);
+    assert.equal(result.status, "fail");
+    assert.equal(result.entries.find((entry) => entry.path === "src/features/core/user/user.ts").permit, "expired-resolved");
+  });
+
   test("Tier1 でないのに親の remote が無い → 未検証(2)", () => {
     const fork = makeFork(makeParent());
     git(fork, "remote", "remove", "upstream");

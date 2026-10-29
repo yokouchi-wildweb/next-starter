@@ -45,6 +45,7 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
    - 挙動・権限が黙って変わる
    - 変えた分野のルール・README が notice を求めている(CLAUDE.md や `.claude/rules/core/`、colocated README で「→ notice」「ship .notices」と書かれた条件。変えた分野のものを読んで確かめる)
    - 前に出荷したものの修正(手順 4)
+   - 下流の fork から来た指令の解決: 引数 `order:<id>` があり、その指令の依頼元が自リポ以外のリポ(`node .claude/skills/order/mailbox.mjs` の requester で判定。指令の `from:` の先頭がリポの origin URL で自リポと違う)。notice に `resolves: <id>` を書く。他に notice が要らなくても `severity: info` + `required_actions: none` + `checkpoint:` の notice を出す(下流の一時許可の失効に使う。`.notices/README.md`「解決(resolves)」)。却下は書かない
 4. **修正かどうかを確かめる**: まず会話の文脈(不具合の報告・指令の need・「直して」)で判断する。
    - 文脈で修正と分かる、またはコードの既存の行を変えた・消した → 下の blame で修正元を特定する
    - 文書・スキル・設定の追記だけで、文脈にも不具合が無い → 確認を省き、報告に「修正ではない」と書く
@@ -63,7 +64,7 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
 7. **push する**(`no-push` のときはしない): `git push`。できなかったら取り繕わず理由を報告する。
 8. **報告**(日本語):
    - 先頭に下流の取り込み判定(実測)を 1 行: `取り込み判定: 安全 | 要注意(理由)| 危険(理由)`。危険 = そのまま merge すると fork のビルド・起動・既存動作が壊れる / fork 側の手作業が要る / 挙動・権限が黙って変わる。要注意 = merge の衝突が起きうる程度。下流が無ければ省く。
-   - コミットの短 sha・push 先(またはしなかった理由)・検査の結果・notice の id と change の要約(書かなかったなら「notice 不要: <理由>」)・`fixes:` を付けたならその参照先。
+   - コミットの短 sha・push 先(またはしなかった理由)・検査の結果・notice の id と change の要約(書かなかったなら「notice 不要: <理由>」)・`fixes:` を付けたならその参照先・`resolves:` を付けたならその指令 id。
    - `/inbox` から来たときは、ここで止まらず `/inbox` の手順 4 の続き(RESOLUTION)に戻る。commit sha と push の結果をそこで使う。
 
 ## 止まるとき
@@ -83,6 +84,7 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
    checkpoint: <label | ->
    moved: <old path> -> <new path>; ...   (only when the change moves/renames files or dirs; omit the line otherwise)
    fixes: <notice id | commit:<sha>>, ...   (only when this change fixes something shipped earlier; omit the line otherwise)
+   resolves: <order id>, ...   (only when this change resolves orders a downstream repo filed in this repo's inbox; omit the line otherwise)
    change: <what changed upstream, one line>
    why: <why downstream must follow up>
    required_actions:

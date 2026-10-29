@@ -75,6 +75,23 @@ function unrecordedNotices(repoRoot, base, parentRef, ownerId) {
   return baseIds.filter((id) => !inherited.has(id) && !recorded.has(id));
 }
 
+/**
+ * 基準(取り込み済み)の notice の resolves: に書かれた指令 id(上流が解決した下流の依頼)。
+ * .notices/ 直下と done/ の両方を読む(アーカイブされても解決は解決)。
+ */
+function resolvedOrders(repoRoot, base) {
+  const files = (tryGit(repoRoot, ["ls-tree", "-r", "--name-only", base, ".notices/"]) ?? "")
+    .split("\n")
+    .filter((path) => /^\.notices\/(done\/)?[^/]+\.md$/.test(path) && !path.endsWith("/README.md"));
+  const ids = new Set();
+  for (const path of files) {
+    const match = /^resolves:\s*(.+)$/m.exec(show(repoRoot, base, path) ?? "");
+    if (!match) continue;
+    for (const id of match[1].split(",").map((s) => s.trim()).filter(Boolean)) ids.add(id);
+  }
+  return ids;
+}
+
 /** `git diff --name-status -M -z` → [{ status, path, from? }] */
 function parseNameStatus(out) {
   const parts = out.split("\0").filter((part) => part !== "");
@@ -156,7 +173,7 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
     baseText,
     headText,
     intake: intake.rules,
-    resolvedUpreqs: [], // notice の resolves: 欄ができるまで空(L1.6)
+    resolvedUpreqs: resolvedOrders(repoRoot, base),
   });
 
   // 許可の行の下書き(違反だけ。今の指紋で書く)
