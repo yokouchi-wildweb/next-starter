@@ -219,6 +219,18 @@ const idsIn = (dir, suffix) =>
     : [];
 
 /**
+ * 全 *.role.json とプロフィール設定を検査する（何も書かない。forge の事前検査も使う）
+ * @param {string[]} [roleIds] 検査するロール（既定 = 全 *.role.json）
+ * @returns {string[]} 問題（空なら無し）
+ */
+export function checkAllRoles(roleIds = idsIn(ROLES_DIR, ".role.json")) {
+  return [
+    ...roleIds.flatMap((roleId) => roleConfigIssues(loadCheckInput(roleId))),
+    ...orphanProfileIssues(roleIds, idsIn(PROFILES_DIR, ".profile.json")),
+  ];
+}
+
+/**
  * roleRegistry.ts の ALL_ROLES に今ある順の ID（生成は 1 ロールずつ消して末尾に足すので、この順に回すと並びが変わらない）
  */
 function registeredRoleOrder() {
@@ -243,11 +255,7 @@ export async function generateAll() {
     return index === -1 ? order.length : index;
   };
   const roleIds = [...fileIds].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
-  const inputs = roleIds.map((roleId) => loadCheckInput(roleId));
-  const issues = [
-    ...inputs.flatMap((input) => roleConfigIssues(input)),
-    ...orphanProfileIssues(roleIds, idsIn(PROFILES_DIR, ".profile.json")),
-  ];
+  const issues = checkAllRoles(roleIds);
   if (issues.length > 0) throw new Error(issues.join("\n"));
   for (const roleId of roleIds) await generate(roleId);
   console.log(`=== 全 ${roleIds.length} ロールの生成完了 ===`);
