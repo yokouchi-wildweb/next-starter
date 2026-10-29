@@ -49,6 +49,7 @@ disable-model-invocation: true
    - **上流が core のコンポーネント・hook・service の呼び出し側(`_screen/*` の Screen など)を足す/切り替える変更では、verify に次の標準行を入れる**: `pnpm typecheck passes including upstream _screen/* default screens even where your page.tsx points to _components/; a failure there = your fork's core edit is not backward compatible (CLAUDE.md CORE_FILES fork_core_edit_compat) — fix the core side, do not edit the upstream Screen`
    - **`checkpoint`(区切り) = 原則必ずラベルを入れる**(英語ケバブ。迷ったら `<slug>` をそのまま使う)。意味は「この notice まで適用すれば fork は整合した休憩点にある」。notice は追随作業の単位で出荷されるので、適用し終えた時点で fork が整合しているのが普通 = 1 notice が 1 休憩点。/flux はこの区切りごとに merge→適用→verify→commit→push を閉じるので、DB 規模が大きい fork や独自要素の多い fork でも 1 変更ずつ安全に進められる。
      - **`-` は例外宣言**: 「後続の notice を適用しないと fork が動かない中間点」と断言できるときだけ。理由を `notes:` に書く(例: `notes: checkpoint:- because 20261020-... (step 2) is required for the build to pass`)。迷ったら `-` にしない。
+     - **区切りの commit は動く状態であること**: checkpoint にラベルを付ける前に、その notice を含める commit で `pnpm typecheck` と `pnpm test:config-module-load`(部品を re-export する config を最初に読んだときの循環 import の検査)を通す。通らなければ修正を同じ commit に入れる(後の commit に回すなら `checkpoint: -` + notes)。区切りで画面が落ちると、全 fork の /flux がそこで止まって commit・push する
      - 追随作業は無いが区切りだけ置きたい commit には、`severity: info` + `required_actions: none` + `checkpoint: <label>` の notice を起票する。
      - 下流は notice ファイルを追加した commit を git 履歴から導出して merge 先にする。よって **notice は、その区切りに含めたい変更本体と同じ commit か、それより後の commit** に含めること(先に出してはいけない)。
 3. **事前確認は取らず、そのままファイルを書き出す**。「この内容で起票していいですか?」等の承認待ち・AskUserQuestion は**禁止**(ただの md で、後から編集・削除で修正可能なため):
