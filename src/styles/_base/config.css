@@ -104,7 +104,7 @@
  * → UserPage（flex-1 min-h-0）の高さチェーンが成立し、ページは「ヘッダー下から
  * フッター/ボトムナビスペーサー上まで」ちょうどに収まってスクロールしなくなる。
  * Admin 側（[data-admin-main-wrapper]:has([data-admin-fill])）と同じ手法。
- * overflow-hidden ではなく overflow-clip を使う理由は AdminOuterLayout のコメント参照
+ * overflow-hidden ではなく overflow-clip を使う理由は AdminLayout(src/app/admin/_layout)のコメント参照
  * （scroll container 化による focus 駆動スクロールの抑止）。
  */
 [data-user-app-container]:has([data-user-fill]) {

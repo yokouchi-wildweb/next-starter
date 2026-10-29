@@ -35,8 +35,10 @@ test("reexportsComponent: コメント内と export type は数えない", () =>
   assert.equal(reexportsComponent(`export type { A } from "./a";`), false);
 });
 
-test("部品を re-export する config が見つかる(0 件なら検出が壊れている)", () => {
-  assert.ok(targets.length > 0, `${CONFIG_DIR} に re-export を持つ config が見つからない`);
+// upstream の config/ui は値だけ(部品の re-export は notice old-entry-removal で撤去)なので、upstream では 0 件が正しい。
+// fork が config から部品を export しているときだけ、下の検査がそのファイルごとに走る(検出そのものは上の test が見る)。
+test("部品を re-export する config の一覧(0 件 = 値だけの config、検査の対象なし)", () => {
+  assert.ok(Array.isArray(targets));
 });
 
 for (const file of targets) {

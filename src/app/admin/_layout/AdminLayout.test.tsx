@@ -44,7 +44,6 @@ mock.module(here("../insane/_layout/InsaneSidebar.tsx"), { namedExports: { Insan
 
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 let AdminLayout: typeof import("./AdminLayout").AdminLayout;
-let AdminOuterLayout: typeof import("./AdminOuterLayout").AdminOuterLayout;
 let AdminHeaderSlots: typeof import("./HeaderSlots").AdminHeaderSlots;
 let useAdminSidebarFrame: typeof import("./Sidebar/AdminSidebarFrame").useAdminSidebarFrame;
 let AdminProtectedLayout: typeof import("../(protected)/_layout/AdminProtectedLayout").AdminProtectedLayout;
@@ -54,7 +53,6 @@ let PageTitle: typeof import("./PageTitle").default;
 before(async () => {
   ({ renderToStaticMarkup } = await import("react-dom/server"));
   ({ AdminLayout } = await import("./AdminLayout"));
-  ({ AdminOuterLayout } = await import("./AdminOuterLayout"));
   ({ AdminHeaderSlots } = await import("./HeaderSlots"));
   ({ useAdminSidebarFrame } = await import("./Sidebar/AdminSidebarFrame"));
   ({ AdminProtectedLayout } = await import("../(protected)/_layout/AdminProtectedLayout"));
@@ -68,7 +66,7 @@ const FOOTER_TEXT = `© ${new Date().getFullYear()} ${businessConfig.serviceName
 
 // ---- slot 化の前(a77da63d)の部品を同じモックで描いた HTML。既定の DOM・id・順序の基準 ----
 
-/** `<AdminOuterLayout>CHILD</AdminOuterLayout>`(旧 admin/layout.tsx が描いていた物)のヘッダー */
+/** slot 化の前の旧 admin/layout.tsx が描いていた物のヘッダー */
 const BEFORE_HEADER = `<header id="header" class="flex items-center justify-between gap-3 px-4 py-[var(--admin-header-padding-y)] text-base bg-muted text-muted-foreground shadow-sm font-bold sm:px-6 sm:text-lg"><a class="block shrink-0 p-1 sm:p-2" href="/admin"><img src="${logoPath("dark")}" alt="管理画面ロゴ（ライトモード）" class="block h-auto max-h-6 max-w-[120px] dark:hidden sm:max-h-12 sm:max-w-[300px]"/><img src="${logoPath("light")}" alt="管理画面ロゴ（ダークモード）" class="hidden h-auto max-h-6 max-w-[120px] dark:block sm:max-h-12 sm:max-w-[300px]"/></a><div id="admin-header-title-slot" class="hidden min-w-0 shrink items-center border-l border-border/40 pl-4 sm:flex"></div><div id="admin-header-center-slot" class="flex min-w-0 flex-1 items-center justify-center"></div><div class="flex shrink-0 items-center gap-3"><div id="admin-header-right-slot" class="flex items-center gap-3"></div><x-darkmode></x-darkmode></div></header>`;
 /** 既定の Header のロゴ画像が文書の先頭に出す preload(Header を描かないときは出ない) */
 const BEFORE_LOGO_PRELOAD = `<link rel="preload" as="image" href="${logoPath("dark")}"/><link rel="preload" as="image" href="${logoPath("light")}"/>`;
@@ -87,9 +85,8 @@ const BEFORE_TITLE_HEADER = `<h1 class="tracking-tight text-2xl font-normal text
 
 // ---- AdminLayout(外枠)と header slot ----
 
-test("props なしの AdminLayout は slot 化の前と同じ DOM を描く。互換の AdminOuterLayout も同じ", () => {
+test("props なしの AdminLayout は slot 化の前と同じ DOM を描く", () => {
   assert.equal(render(<AdminLayout>CHILD</AdminLayout>), BEFORE_OUTER);
-  assert.equal(render(<AdminOuterLayout>CHILD</AdminOuterLayout>), BEFORE_OUTER);
 });
 
 test("header slot: 要素 = 既定の Header の代わりに同じ位置に描く / null = 描かない", () => {
@@ -99,7 +96,7 @@ test("header slot: 要素 = 既定の Header の代わりに同じ位置に描�
   assert.equal(none, BEFORE_OUTER.replace(BEFORE_LOGO_PRELOAD, "").replace(BEFORE_HEADER, ""));
 });
 
-test("className は外枠に足される(旧 AdminOuterLayout と同じ)", () => {
+test("className は外枠に足される(slot 化の前と同じ)", () => {
   assert.match(render(<AdminLayout className="invert">CHILD</AdminLayout>), /text-foreground invert"/);
 });
 

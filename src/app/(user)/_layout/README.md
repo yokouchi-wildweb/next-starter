@@ -6,7 +6,7 @@
 
 ```
 src/app/(user)/_layout/
-├── UserLayout.tsx       # 枠全体の既定の組み立て(export UserLayout = slot 付き、互換の UserAppLayout)。(user)/layout.tsx の 1 行スイッチ先
+├── UserLayout.tsx       # 枠全体の既定の組み立て(export UserLayout = slot 付き)。(user)/layout.tsx の 1 行スイッチ先
 ├── UserLayout.test.tsx  # slot と「props なしの描画が 1 行スイッチ化の前と同じ」の検査(pnpm test:user-layout)
 ├── UserParts.test.tsx   # 部品の slot / props と「props なしの描画が部品 slot 化の前と同じ」の検査(同上)
 ├── UserPageDefault.test.tsx # UserPage の幅の既定が config に従うことの検査(同上)
@@ -26,8 +26,7 @@ src/app/(user)/_layout/
 まだ `src/components/AppFrames/User/` に残っている物(後の区切りで扱う):
 
 - `controls/`(HideHeader 等と部位一覧 frameParts.ts): 中身は印に入れ替え済み(下の「枠の部位を隠す(Hide* と印)」)。最終の棚は後の議題で決める(今はパスを変えない = fork の import の書き換えなし)
-- `contexts/`(表示制御の context): `@deprecated`。Hide* は書かず、枠の部品・hook も読まない(UserLayout が互換の Provider を置くだけ)。旧入口撤去の区切りで削除する。ここの部品は絶対パス `@/components/AppFrames/User/{contexts,controls}` で参照している
-- `Sections/HeaderCustom/`・`Sections/FooterCustom/`: config の切り替えで使う旧来のカスタム雛形(廃止予定)。差し替えは UserLayout の header / footer slot へ(下の「layout.tsx と slot」)。旧入口撤去の区切りで削除する
+- `contexts/`(表示制御の context): `@deprecated`。Hide* は書かず、枠の部品・hook も読まない(UserLayout が互換の Provider を置くだけ)。旧入口撤去の次の区切り(contexts の撤去)で削除する。ここの部品は絶対パス `@/components/AppFrames/User/{contexts,controls}` で参照している
 - `src/components/AppFrames/constants.ts`(ヘッダー・フッターの要素 ID): useHeaderHeight の汎用化と一緒に後で動かす
 
 説明は [src/components/AppFrames/User/README.md](../../../components/AppFrames/User/README.md)。
@@ -73,8 +72,7 @@ src/app/(user)/_layout/
 - `--app-header-height` は実測なので、HideHeader で隠すと(display: none で高さ 0)自動で 0 に追随する。`--app-banner-height` は印の対象外
 - BottomNavSpacer は `--app-bottom-nav-height` を読む 1 要素。BottomNav の高さ(`style` の height)と BottomNav・UserPage の safe-area(`env()` の直書き)は今の値のまま(値は同じ)
 - 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:64px`。どちらも banner が無い時の計算値・見た目は同じ
-- header / footer の決め方は「slot → config の旧切替の経路 → 既定」の順。config が既定部品を re-export しているので、HeaderCustom / FooterCustom に切り替えた fork もそのまま動く。config の部品 re-export は廃止予定(@deprecated のコメント)で、旧入口撤去の区切りで UserLayout は既定部品を直接 import する
-- `UserAppLayout`(旧 export 名・旧 props backgroundImageUrl / overlayColor / overlayOpacity)は互換部品。旧 props を background slot に写して UserLayout を描く。旧入口撤去の区切りで削除する
+- header / footer の決め方は「slot → 既定(`./Header` の UserNavigation・`./Footer` の UserFooter)」。config は値だけを持ち、部品を export しない
 
 ### fork の差し替え手順
 
@@ -194,12 +192,9 @@ const {
 
 **`src/config/ui/user-header.config.ts`**
 
-```tsx
-// コンポーネント切り替え(廃止予定。差し替えは UserLayout の header slot へ)
-export { UserNavigation } from "@/components/AppFrames/User/Sections/Header";
-// カスタム版を使う場合(旧来。旧入口撤去の区切りで削除)：
-// export { UserNavigation } from "@/components/AppFrames/User/Sections/HeaderCustom";
+値だけを持つ(部品の差し替えは UserLayout の header slot)。
 
+```tsx
 // 表示設定
 export const HEADER_ENABLED = true;
 export const HEADER_NAV_ENABLED = { sp: true, pc: true };
@@ -239,7 +234,7 @@ fork はドット区切り名のカスタムで header slot に渡す(戻るボ�
 </UserLayout>
 ```
 
-slot を持つのは既定の UserNavigation だけ(廃止予定の HeaderCustom には無い)。slot で足りない構造の違いはドット区切り名のコピーで持つ。
+slot で足りない構造の違いはドット区切り名のコピーで持つ。
 
 ---
 
@@ -249,12 +244,9 @@ slot を持つのは既定の UserNavigation だけ(廃止予定の HeaderCustom
 
 **`src/config/ui/user-footer.config.ts`**
 
-```tsx
-// コンポーネント切り替え(廃止予定。差し替えは UserLayout の footer slot へ)
-export { UserFooter } from "@/components/AppFrames/User/Sections/Footer";
-// カスタム版を使う場合(旧来。旧入口撤去の区切りで削除)：
-// export { UserFooter } from "@/components/AppFrames/User/Sections/FooterCustom";
+値だけを持つ(部品の差し替えは UserLayout の footer slot)。
 
+```tsx
 // 表示設定
 export const FOOTER_ENABLED = true;
 export const FOOTER_VISIBILITY = { sp: true, pc: true };
@@ -442,7 +434,7 @@ export default function PlayerPage() {
 - 報告書 §2 の差し替え方式 =「1 行スイッチ + 部品 props」。枠を描く layout.tsx は採用者所有・write-once の 1 行スイッチになり、提供者の既定の組み立て(`_layout/UserLayout.tsx`)が部品を省略可能な props(slot)で受ける。fork はふつう既定を包む数行のカスタムを書き、構造ごと変えるときだけコピーする。受け口の優先順は 値(config)→ slot / props → コピー
 - 以前は (user)/layout.tsx に背景の 3 値と UserAppLayout の呼び出しが直書きされ、fork はこの layout.tsx か config の部品切替(HeaderCustom / FooterCustom)を編集していた。upstream が枠を変えるたびにそれらが衝突した
 - 背景の 3 値は layout.tsx が 1 行になるので `src/config/ui/user-layout.config.ts`(枠全体の値の受け皿として新設)へ移した
-- 移行の間の形: header / footer は config の経路を通して描くので、config を HeaderCustom に切り替えている fork も見た目が変わらない。UserAppLayout も旧 props のまま動く。どちらも旧入口撤去の区切りで削除する
+- 移行の間の形: header / footer は config の経路を通して描くので、config を HeaderCustom に切り替えている fork も見た目が変わらない。UserAppLayout も旧 props のまま動く。どちらも旧入口撤去の区切り(notice old-entry-removal)で削除した
 - ルート地図(src/lib/screens/routeMap.mjs)は layout.tsx の本文しか読んでいなかったので、スイッチ先の `_layout/` を 1 段辿るようにした(fork がカスタムの組み立てに書いたガードを地図から落とさないため)
 - 部品そのものの slot は次の区切り(notice frame-parts-user)、banner・寸法の CSS 変数はその後の区切り(notice frame-dims)で入った
 
@@ -534,3 +526,10 @@ export default function PlayerPage() {
 - AppFrames のまま残す: AppFrames を使う側で仕分けると「layout だけが使う物・グループ配下のページだけが使う物・features が使う物」に分かれ、一つの棚にまとめる理由が無かった。fork はヘッダー右の CTA を内部ファイルの直接編集で変え(3 fork)、通知ベルを別々に自作していた(2 fork)= 持ち主と差し替え口が見えない
 - src/components の中に枠用の別の棚を作る: 置き場の名前が変わるだけで、使う layout から離れたままになる。部品を使う layout の隣に置けば、page.tsx ↔ `_screen/` と同じ対(layout.tsx ↔ `_layout/`)で持ち主と差し替え口がパスで分かる
 - 組み立て物を 1 フォルダに集める: 報告書で不採用(比較は評議会の記録)
+
+## 旧入口撤去の経緯(notice old-entry-removal)
+
+- 区切り 1・2 で枠の部品を `src/components/AppFrames/` から `_layout/` へ移したとき、旧パスの shim・config の部品 re-export と旧経路・旧名の互換(UserAppLayout・AdminOuterLayout)・旧来の雛形(HeaderCustom / FooterCustom)を 1 checkpoint 残した。全 fork が区切り 2 を取り込んだのを確かめて、それらを削除した(撤去は tsc で止まる)
+- UserLayout の header / footer の既定は config の re-export を通さず `./Header`・`./Footer` を直接描く。全 fork の config が既定部品を re-export していたので、見た目は変わらない
+- 雛形を自分の版にしていた fork は、それを fork の場所(`src/app/(user)/_components/<Name>/`)へ移し、header / footer slot から渡す(notice の required_actions)
+- 表示制御の context・Provider・hook の @deprecated の戻り値は、区切り 3 の取り込みが揃うのを待って次の区切りで削除する

@@ -11,20 +11,6 @@ import { FileIcon } from "@/components/Icons";
 import type { IconComponent } from "@/components/Icons";
 
 // ============================================
-// コンポーネント設定
-// ============================================
-
-/**
- * ヘッダーコンポーネント
- * @deprecated ヘッダーの差し替えは UserLayout の header slot で行う(手順: src/app/(user)/_layout/README.md)。
- * この re-export と HeaderCustom への切り替えは旧入口撤去の区切りで削除する。
- * それまでは旧来の切り替え(UserLayout が header slot 省略時にここの UserNavigation を描く)も動く：
- *
- * export { UserNavigation } from "@/components/AppFrames/User/Sections/HeaderCustom";
- */
-export { UserNavigation } from "@/components/AppFrames/User/Sections/Header";
-
-// ============================================
 // ヘッダー表示設定
 // ============================================
 

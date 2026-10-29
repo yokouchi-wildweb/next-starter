@@ -153,28 +153,6 @@ test("部位一覧の狙う先が既定の枠部品に実在し、外枠に data
   assert.ok(read(`${layout}/UserLayout.tsx`).includes('data-frame-root=""'));
 });
 
-// 旧入口の雛形(HeaderCustom / FooterCustom、config の切り替えで使う)も印に従うこと。雛形の id は header-custom-* で
-// 部位一覧の id と違うので data-frame-part で狙わせる。旧入口撤去の区切りで雛形と一緒にこの test も消す
-test("旧入口の雛形(HeaderCustom / FooterCustom)の部位も data-frame-part で印の対象になっている", () => {
-  const sections = "src/components/AppFrames/User/Sections";
-  const sources: Record<FramePart, string[]> = {
-    header: ["HeaderCustom/index.tsx"],
-    "header-nav": ["HeaderCustom/Pc/PcNavigation.tsx", "HeaderCustom/Sp/SpNavSwitch.tsx", "HeaderCustom/Sp/SpNavigation.tsx"],
-    footer: ["FooterCustom/index.tsx"],
-    "bottom-nav": [],
-  };
-  for (const part of Object.keys(sources) as FramePart[]) {
-    for (const file of sources[part]) {
-      assert.ok(read(`${sections}/${file}`).includes(`data-frame-part="${part}"`), `${file} に data-frame-part="${part}" が無い`);
-    }
-  }
-  for (const file of ["HeaderCustom/index.tsx", "FooterCustom/index.tsx"]) {
-    const src = read(`${sections}/${file}`);
-    assert.equal(/from "\.\.\/\.\.\/hooks"/.test(src), false, `${file} が旧パス(../../hooks)から import している`);
-  }
-  assert.equal(/navVisibility|visibilityClass/.test(read(`${sections}/HeaderCustom/index.tsx`)), false, "HeaderCustom が deprecated の値を読む");
-});
-
 test("upstream で Hide* を使う画面・layout の SSR HTML に印が出る", async () => {
   const { MaintenanceScreen } = await import(appUrl("(user)/maintenance/_screen/MaintenanceScreen.tsx"));
   const maintenance = render(await MaintenanceScreen());

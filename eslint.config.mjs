@@ -144,9 +144,7 @@ const config = [
   // 改名・移動済み module の旧パス import を警告する(詳細: eslint-rules/deprecated-imports.mjs)。
   // upstream が改名したとき、旧パスには再 export の shim が 1 checkpoint だけ残る。warn の間に新パスへ直す
   // (次の checkpoint で shim が消えると tsc が止める)。下流が自分の改名で使ってもよい(paths に足す)。
-  // 現在の一覧 = User 枠の移動(checkpoint frame-move-user。AppFrames/User → src/app/(user)/_layout)と
-  // Admin 枠の移動(checkpoint frame-move-admin。AppFrames/Admin・stores/adminLayout → src/app/admin/**/_layout)。
-  // shim と一覧は旧入口撤去の区切りで削除する。
+  // 現在の一覧 = なし(枠の移動の shim と一覧は checkpoint old-entry-removal で削除した)。
   // 書式: { from: "@/features/...", to: "@/features/...", until: "checkpoint <label> の次" }
   {
     files: ["src/**/*.{ts,tsx}"],
@@ -155,113 +153,7 @@ const config = [
       "deprecated-imports/no-deprecated-path": [
         "warn",
         {
-          paths: [
-            {
-              from: "@/components/AppFrames/User/Layout/UserLayout",
-              to: "@/app/(user)/_layout/UserLayout",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/User/Layout/BackgroundLayer",
-              to: "@/app/(user)/_layout/BackgroundLayer",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/User/Layout/UserPage",
-              to: "@/app/(user)/_layout/UserPage",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/User/Elements/PageTitle",
-              to: "@/app/(user)/_layout/PageTitle",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/User/Sections/Header",
-              to: "@/app/(user)/_layout/Header",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/User/Sections/Footer",
-              to: "@/app/(user)/_layout/Footer",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/User/Sections/BottomNav",
-              to: "@/app/(user)/_layout/BottomNav",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/User/hooks",
-              to: "@/app/(user)/_layout/hooks",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Layout/AdminOuterLayout",
-              to: "@/app/admin/_layout/AdminOuterLayout",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Layout/AdminPage",
-              to: "@/app/admin/_layout/AdminPage",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Elements/PageTitle",
-              to: "@/app/admin/_layout/PageTitle",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Sections/Header",
-              to: "@/app/admin/_layout/Header",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Sections/SIdebar/MenuButton",
-              to: "@/app/admin/_layout/Sidebar/MenuButton",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/stores/adminLayout",
-              to: "@/app/admin/_layout/stores/adminLayout",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Layout/AdminProtectedLayout",
-              to: "@/app/admin/(protected)/_layout/AdminProtectedLayout",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Layout/ResizableArea",
-              to: "@/app/admin/(protected)/_layout/ResizableArea",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Sections/Footer",
-              to: "@/app/admin/(protected)/_layout/Footer",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Sections/SIdebar/BaseSidebar",
-              to: "@/app/admin/(protected)/_layout/Sidebar/BaseSidebar",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Sections/SIdebar/PcSidebar",
-              to: "@/app/admin/(protected)/_layout/Sidebar/PcSidebar",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Sections/SIdebar/SpSidebar",
-              to: "@/app/admin/(protected)/_layout/Sidebar/SpSidebar",
-              until: "旧入口撤去の区切り",
-            },
-            {
-              from: "@/components/AppFrames/Admin/Insane",
-              to: "@/app/admin/insane/_layout",
-              until: "旧入口撤去の区切り",
-            },
-          ],
+          paths: [],
         },
       ],
     },

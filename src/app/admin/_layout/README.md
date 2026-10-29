@@ -9,7 +9,6 @@
 ```
 src/app/admin/_layout/                  # admin/layout.tsx の枠 + admin 全体で共有する物
 ├── AdminLayout.tsx         # 外枠の既定の組み立て(固定ヘッダー + 子領域、header slot)。admin/layout.tsx が 1 行スイッチで描く
-├── AdminOuterLayout.tsx    # 旧 export 名の互換(@deprecated、AdminLayout へ委譲。旧入口撤去の区切りで削除)
 ├── Header.tsx              # 管理画面ヘッダー(ロゴ + AdminHeaderSlots + ダークモード切替)
 ├── HeaderSlots.tsx         # AdminHeaderSlots: ヘッダーの受け口 3 つ(タイトル / 中央 / 右)をまとめて描く
 ├── AdminPage.tsx           # ページコンテナ(default export。fill モード・tabs)。Screen が使う
@@ -48,7 +47,7 @@ src/app/admin/insane/_layout/           # admin/insane/layout.tsx の枠(index.t
 ## AdminLayout と slot
 
 - slot の約束(User の UserLayout と同じ): 省略(undefined) = 既定の部品 / null = 描かない / 要素 = それを描く
-- `header`: 既定 = `./Header`。`className`: 外枠に足すクラス名(旧 AdminOuterLayout と同じ)
+- `header`: 既定 = `./Header`。`className`: 外枠に足すクラス名
 - fork のカスタム: `admin/layout.tsx` を `_layout/AdminLayout.<project>.tsx` へ向け、そこで既定の AdminLayout に slot を渡す
 
 ```tsx
@@ -93,7 +92,7 @@ export function ProjectAdminLayout({ children }: { children: ReactNode }) {
 - 移し方: 移動だけの区切り。中身は移動で壊れる相対 import の行だけを書き換え、旧パス 18 か所に `@deprecated 旧パス互換` の re-export shim を残した(default export の AdminPage・PageTitle は `export { default }` も)。`src/stores/adminLayout` は index.ts だけ shim。fork の差分は /flux が notice の `moved:` で新パスへ当て直す
 - 移動の区切りで旧パスのまま残した物(3 つの admin の layout.tsx の import、AdminOuterLayout.tsx・InsaneProtectedLayout.tsx の `@/stores/adminLayout` import、各ファイル先頭の旧パスのコメント)は、slot 化の区切り(notice frame-slots-admin)で新パスに直した
 - slot 化: User の枠(notice frame-slots-user・frame-parts-user)と同じ形に揃えた。admin/layout.tsx を 1 行スイッチにし、外枠を AdminLayout(header slot)に、(protected)・insane の枠に sidebar / footer、AdminPage に tabs、PageTitle の既定を header に(報告書 D1: header 指定が upstream で 45 か所、指定なしは repo あたり 1〜2 件)。props なしの DOM は前と同じ(test:admin-layout が slot 化の前の HTML で固定)
-- shim と eslint `deprecated-imports/no-deprecated-path` の旧パス一覧は、区切り 2 を全 fork が取り込んだことを確かめた後の「旧入口撤去」の区切りで削除する
+- shim と eslint `deprecated-imports/no-deprecated-path` の旧パス一覧、旧名の互換 AdminOuterLayout / AdminLayoutClientProps は、区切り 2 を全 fork が取り込んだことを確かめた後の「旧入口撤去」の区切り(notice old-entry-removal)で削除した
 
 ## 採らなかった案
 

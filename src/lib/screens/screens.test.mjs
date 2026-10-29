@@ -670,7 +670,7 @@ test("parseSwitchLayout: ./_layout/ への 1 行スイッチだけを許し、JS
   assert.deepEqual(parseSwitchLayout(custom).target, { screenDir: "_layout", file: "UserLayout.acme", name: "AcmeUserLayout" });
   const withMetadata = `import type { Metadata } from "next";\nexport const metadata: Metadata = { title: "x" };\nexport { XLayout as default } from "./_layout/XLayout";`;
   assert.deepEqual(parseSwitchLayout(withMetadata).problems, []);
-  const jsx = `import type { ReactNode } from "react";\nimport { UserAppLayout } from "@/app/(user)/_layout/UserLayout";\nexport default function L({ children }: { children: ReactNode }) {\n  return <UserAppLayout>{children}</UserAppLayout>;\n}`;
+  const jsx = `import type { ReactNode } from "react";\nimport { UserLayout } from "@/app/(user)/_layout/UserLayout";\nexport default function L({ children }: { children: ReactNode }) {\n  return <UserLayout>{children}</UserLayout>;\n}`;
   assert.ok(parseSwitchLayout(jsx).problems.length > 0);
   assert.ok(parseSwitchLayout(`export { XScreen as default } from "./_screen/XScreen";`).problems.length > 0, "layout は _screen を指さない");
   assert.ok(parseSwitchLayout(`${ok}export { YLayout } from "./_layout/YLayout";`).problems.length > 0);

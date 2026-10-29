@@ -1,9 +1,8 @@
 // UserLayout(ユーザー側の枠の既定の組み立て)の slot と、props なしの描画が 1 行スイッチ化の前と同じことの検査。
 // 実行: pnpm test:user-layout(tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
-// 重い部品(config の UserNavigation / UserFooter、BottomNav、未読モーダル)と useHeaderHeight は目印の要素にモックし、
+// 重い部品(既定の Header / Footer、BottomNav、未読モーダル)と useHeaderHeight は目印の要素にモックし、
 // 枠そのもの(BackgroundLayer・#user-app-container・#stretch-wrapper・並び順・表示制御の Provider)は本物を描く。
-// config の UserNavigation / UserFooter のモック = 「config を HeaderCustom / FooterCustom に切り替えた fork」の状態でもある。
 // 期待値のうち config の値に依る部分(背景の 3 値・ボトムナビの高さと表示するデバイス)はその場の config から組み立てるので、
 // config の値を変えた fork でも通る。upstream の部品そのものの固定の HTML(既定の背景)は Tier1 でだけ見る。
 // (package.json に type: module が無いので tsx は CJS として読む = top-level await・import.meta 不可 → before() で import、__dirname で解決)
@@ -24,19 +23,18 @@ mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => 
 mock.module("@/features/notification/components/common/UnreadNotificationModal", { defaultExport: marker("modal") });
 mock.module(here("./BottomNav/index.tsx"), { namedExports: { UserBottomNav: marker("bottomnav") } });
 mock.module(here("./BottomNav/BottomNavSpacer.tsx"), { namedExports: { BottomNavSpacer: marker("spacer") } });
-mock.module("@/config/ui/user-header.config", { namedExports: { UserNavigation: marker("header") } });
-mock.module("@/config/ui/user-footer.config", { namedExports: { UserFooter: marker("footer") } });
+mock.module(here("./Header/index.tsx"), { namedExports: { UserNavigation: marker("header") } });
+mock.module(here("./Footer/index.tsx"), { namedExports: { UserFooter: marker("footer") } });
 
 let renderToStaticMarkup: typeof import("react-dom/server").renderToStaticMarkup;
 let UserLayout: typeof import("./UserLayout").UserLayout;
-let UserAppLayout: typeof import("./UserLayout").UserAppLayout;
 let BackgroundLayer: typeof import("./BackgroundLayer").BackgroundLayer;
 let layoutConfig: typeof import("@/config/ui/user-layout.config");
 let bottomNavConfig: typeof import("@/config/ui/user-bottom-menu.config");
 let frameHideTokens: typeof import("@/components/AppFrames/User/controls/frameParts").frameHideTokens;
 before(async () => {
   ({ renderToStaticMarkup } = await import("react-dom/server"));
-  ({ UserLayout, UserAppLayout } = await import("./UserLayout"));
+  ({ UserLayout } = await import("./UserLayout"));
   ({ BackgroundLayer } = await import("./BackgroundLayer"));
   layoutConfig = await import("@/config/ui/user-layout.config");
   bottomNavConfig = await import("@/config/ui/user-bottom-menu.config");
@@ -49,8 +47,8 @@ const isUpstreamRoot = loadCatalogOwnership({ repoRoot: join(__dirname, "../../.
 const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は upstream の部品を自分の物に変えうるので、固定の HTML は見ない" };
 
 /**
- * 1 行スイッチ化の前(990ffb86)の `<UserAppLayout overlayColor="#000" overlayOpacity={0}>CHILD</UserAppLayout>`
- * (= 旧 src/app/(user)/layout.tsx が描いていた物)を同じモックで描いた HTML。既定の DOM・id・順序の基準。
+ * 1 行スイッチ化の前(990ffb86)の旧 src/app/(user)/layout.tsx が描いていた物(背景 overlayColor="#000"・overlayOpacity=0、子 = CHILD)
+ * を同じモックで描いた HTML。既定の DOM・id・順序の基準。
  * 背景(BEFORE_BACKGROUND)と枠(BEFORE_SWITCH)に分ける: 背景の中身は config の値と BackgroundLayer の実装で決まるので、
  * 期待値ではその場で描いた背景に差し替える(固定の背景は Tier1 の test だけが見る)
  */
@@ -121,20 +119,7 @@ test("既定の BackgroundLayer は 1 行スイッチ化の前と同じ HTML を
   assert.equal(render(<BackgroundLayer overlayColor="#000" overlayOpacity={0} />), BEFORE_BACKGROUND);
 });
 
-test("互換の UserAppLayout は旧 props のまま同じ DOM を描き、backgroundImageUrl を背景に写す", () => {
-  assert.equal(
-    render(<UserAppLayout overlayColor="#000" overlayOpacity={0}>CHILD</UserAppLayout>),
-    render(<BackgroundLayer overlayColor="#000" overlayOpacity={0} />) + frameDims(),
-  );
-  const withImage = render(
-    <UserAppLayout backgroundImageUrl="/bg.jpg" overlayColor="red" overlayOpacity={0.5}>
-      CHILD
-    </UserAppLayout>,
-  );
-  assert.equal(withImage, render(<BackgroundLayer imageUrl="/bg.jpg" overlayColor="red" overlayOpacity={0.5} />) + frameDims());
-});
-
-test("header / footer の slot 省略時は config の UserNavigation / UserFooter(旧切替の経路)を描く", () => {
+test("header / footer の slot 省略時は既定の Header(UserNavigation)/ Footer(UserFooter)を描く", () => {
   const html = render(<UserLayout>CHILD</UserLayout>);
   assert.ok(html.includes("<x-header></x-header>"));
   assert.ok(html.includes("<x-footer></x-footer>"));

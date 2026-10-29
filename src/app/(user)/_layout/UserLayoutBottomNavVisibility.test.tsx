@@ -23,8 +23,8 @@ mock.module("@/hooks/useHeaderHeight", { namedExports: { useHeaderHeight: () => 
 mock.module("@/features/notification/components/common/UnreadNotificationModal", { defaultExport: marker("modal") });
 mock.module(here("./BottomNav/index.tsx"), { namedExports: { UserBottomNav: marker("bottomnav") } });
 mock.module(here("./BottomNav/BottomNavSpacer.tsx"), { namedExports: { BottomNavSpacer: marker("spacer") } });
-mock.module("@/config/ui/user-header.config", { namedExports: { UserNavigation: marker("header") } });
-mock.module("@/config/ui/user-footer.config", { namedExports: { UserFooter: marker("footer") } });
+mock.module(here("./Header/index.tsx"), { namedExports: { UserNavigation: marker("header") } });
+mock.module(here("./Footer/index.tsx"), { namedExports: { UserFooter: marker("footer") } });
 
 let render: (node: ReactNode) => string;
 let UserLayout: typeof import("./UserLayout").UserLayout;

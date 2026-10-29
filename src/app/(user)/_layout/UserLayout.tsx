@@ -15,9 +15,8 @@ import { HeaderVisibilityProvider } from "@/components/AppFrames/User/contexts/H
 import { HeaderNavVisibilityProvider } from "@/components/AppFrames/User/contexts/HeaderNavVisibilityContext";
 import { UserBottomNav } from "./BottomNav";
 import { BottomNavSpacer } from "./BottomNav/BottomNavSpacer";
-// header / footer の既定は config の旧切替の経路を通す(upstream では既定部品の re-export。旧入口撤去の区切りで直接 import へ)
-import { UserFooter } from "@/config/ui/user-footer.config";
-import { UserNavigation } from "@/config/ui/user-header.config";
+import { UserFooter } from "./Footer";
+import { UserNavigation } from "./Header";
 import { BOTTOM_NAV_ENABLED, BOTTOM_NAV_HEIGHT, BOTTOM_NAV_VISIBILITY } from "@/config/ui/user-bottom-menu.config";
 import {
   BACKGROUND_IMAGE_URL,
@@ -43,9 +42,9 @@ export type UserLayoutProps = {
    * 実測の高さを --app-banner-height に書き、ヘッダーの top と本文(#stretch-wrapper の前のスペーサー)をその分押し下げる
    */
   readonly banner?: ReactNode;
-  /** ヘッダー。既定 = config/ui/user-header.config の UserNavigation(旧切替の経路。upstream では既定 Header) */
+  /** ヘッダー。既定 = ./Header の UserNavigation */
   readonly header?: ReactNode;
-  /** フッター。既定 = config/ui/user-footer.config の UserFooter(旧切替の経路。upstream では既定 Footer) */
+  /** フッター。既定 = ./Footer の UserFooter */
   readonly footer?: ReactNode;
   /** ボトムナビ(高さ分のスペーサーを含む)。既定 = BottomNavSpacer + UserBottomNav */
   readonly bottomNav?: ReactNode;
@@ -133,36 +132,3 @@ export function UserLayout({
     </HeaderVisibilityProvider>
   );
 }
-
-/** @deprecated 旧 props の互換。背景は config/ui/user-layout.config か background slot へ(旧入口撤去の区切りで削除) */
-export type UserAppLayoutProps = {
-  readonly children: ReactNode;
-  /** 背景画像のURL */
-  readonly backgroundImageUrl?: string;
-  /** オーバーレイの色（任意のCSS色形式: "#000", "black", "rgb(0,0,0)"など） */
-  readonly overlayColor?: string;
-  /** オーバーレイの透明度（0-1） */
-  readonly overlayOpacity?: number;
-};
-
-/**
- * @deprecated 旧 export 名の互換。UserLayout を使う(旧 props は background slot に写す)。旧入口撤去の区切りで削除
- */
-export const UserAppLayout = ({
-  children,
-  backgroundImageUrl,
-  overlayColor,
-  overlayOpacity,
-}: UserAppLayoutProps) => (
-  <UserLayout
-    background={
-      <BackgroundLayer
-        imageUrl={backgroundImageUrl}
-        overlayColor={overlayColor}
-        overlayOpacity={overlayOpacity}
-      />
-    }
-  >
-    {children}
-  </UserLayout>
-);
