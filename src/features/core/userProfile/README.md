@@ -554,11 +554,11 @@ const all = await base.list();
 // 自由クエリ（JOIN 等）
 const joined = await base.query(baseQuery, { page: 1, limit: 20 });
 
-// extraWhere: JSONB 検索や複雑な SQL 条件を追加（SSR 専用）
-import { sql } from "drizzle-orm";
+// extraWhere: 配列の列（text[]）の検索や複雑な SQL 条件を追加（SSR 専用）
+import { arrayContains } from "drizzle-orm";
 const result = await base.search({
   searchQuery: "田中",
-  extraWhere: sql`${table.qualifications} @> '["TOEIC"]'::jsonb`,
+  extraWhere: arrayContains(table.qualifications, ["TOEIC"]),
 });
 ```
 

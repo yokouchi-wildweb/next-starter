@@ -5,6 +5,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
+import { isEnumFieldType, tsType } from "../../../src/lib/domain/fields/fieldTypes.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
@@ -13,33 +14,8 @@ const GENERATED_DIR = path.join(
   "src/features/core/userProfile/generated"
 );
 
-function mapTsType(t) {
-  switch (t) {
-    case "string":
-    case "email":
-    case "password":
-    case "uuid":
-    case "date":
-    case "time":
-    case "mediaUploader":
-      return "string";
-    case "integer":
-    case "number":
-    case "bigint":
-    case "float":
-    case "numeric(10,2)":
-      return "number";
-    case "boolean":
-      return "boolean";
-    case "array":
-      return "string[]";
-    case "timestamp":
-    case "timestamp With Time Zone":
-      return "Date";
-    default:
-      return "any";
-  }
-}
+// 型 → TS の型は型の表（src/lib/domain/fields/fieldTypes.mjs）
+const mapTsType = (fieldType) => tsType(fieldType);
 
 function addField(lines, name, type, required) {
   if (type.endsWith("[]")) {
@@ -76,7 +52,7 @@ export function generateProfileModel(roleConfig, profileConfig) {
   // プロフィールフィールド
   (profileConfig.fields || []).forEach((f) => {
     const camelName = toCamelCase(f.name);
-    if (f.fieldType === "enum") {
+    if (isEnumFieldType(f.fieldType)) {
       const values = (f.options || []).map((o) => `"${o.value}"`).join(" | ");
       addField(lines, camelName, values, f.required);
     } else {

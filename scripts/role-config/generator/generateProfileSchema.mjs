@@ -5,6 +5,14 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
+import {
+  isArrayFieldType,
+  isEmailFieldType,
+  isEnumFieldType,
+  isTextFieldType,
+  isTimestampFieldType,
+  zodType,
+} from "../../../src/lib/domain/fields/fieldTypes.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
@@ -13,89 +21,43 @@ const GENERATED_DIR = path.join(
   "src/features/core/userProfile/generated"
 );
 
-const DATETIME_TYPE = "nullableDatetime";
-
-function mapZodType(type) {
-  switch (type) {
-    case "string":
-    case "email":
-    case "password":
-    case "uuid":
-    case "mediaUploader":
-      return "z.string()";
-    case "integer":
-    case "number":
-      return "z.coerce.number().int()";
-    case "float":
-    case "numeric(10,2)":
-      return "z.coerce.number()";
-    case "bigint":
-      return "z.coerce.number().int()";
-    case "boolean":
-      return "z.coerce.boolean()";
-    case "array":
-      return "z.array(z.string())";
-    case "date":
-    case "time":
-      return "z.string()";
-    case "timestamp":
-    case "timestamp With Time Zone":
-      return DATETIME_TYPE;
-    default:
-      return "z.any()";
-  }
-}
-
-function isTimestampField(fieldType) {
-  return fieldType === "timestamp" || fieldType === "timestamp With Time Zone";
-}
-
-function isStringField(fieldType) {
-  return ["string", "email", "password", "mediaUploader", "date", "time", "uuid"].includes(fieldType);
-}
-
-function shouldTrimField(fieldType) {
-  return ["string", "email", "password", "uuid", "date", "time", "mediaUploader"].includes(fieldType);
-}
-
-function isEmailField(fieldType) {
-  return fieldType === "email";
-}
+// 型 → Zod は型の表（src/lib/domain/fields/fieldTypes.mjs）。プロフィールの日時は必須でも nullableDatetime（ドメインとの違い。今の生成物どおり）
+const mapZodType = (fieldType) => zodType(fieldType, false);
 
 let usesEmptyToNull = false;
 let usesNullableDatetime = false;
 
 function fieldLine({ name, label, type, required, fieldType }) {
-  if (fieldType === "array") {
+  if (isArrayFieldType(fieldType)) {
     return `  ${name}: ${type}.default([]),`;
   }
 
-  if (isTimestampField(fieldType)) {
+  if (isTimestampFieldType(fieldType)) {
     usesNullableDatetime = true;
   }
 
   const resolvedLabel = label || name;
   const segments = [`  ${name}: ${type}`];
 
-  if (shouldTrimField(fieldType)) {
+  if (isTextFieldType(fieldType)) {
     segments.push(".trim()");
   }
 
-  if (required && type.startsWith("z.string()") && isStringField(fieldType)) {
+  if (required && type.startsWith("z.string()") && isTextFieldType(fieldType)) {
     segments.push(`.min(1, { message: "${resolvedLabel}は必須です。" })`);
   }
 
-  if (isEmailField(fieldType)) {
+  if (isEmailFieldType(fieldType)) {
     segments.push(".email()");
   }
 
-  if (!required && isEmailField(fieldType)) {
+  if (!required && isEmailFieldType(fieldType)) {
     segments.push(`.or(z.literal(""))`);
   }
 
   if (!required) {
     segments.push(".nullish()");
-    if (isStringField(fieldType)) {
+    if (isTextFieldType(fieldType)) {
       usesEmptyToNull = true;
       segments.push(`\n    .transform((value) => emptyToNull(value))`);
     }
@@ -120,12 +82,11 @@ export function generateProfileSchema(roleConfig, profileConfig) {
   (profileConfig.relations || []).forEach((rel) => {
     if (rel.relationType !== "belongsTo") return;
     const camelName = toCamelCase(rel.fieldName);
-    const zodType = "z.string()";
     lines.push(
       fieldLine({
         name: camelName,
         label: rel.label,
-        type: zodType,
+        type: "z.string()",
         required: rel.required,
         fieldType: "uuid",
       })
@@ -136,7 +97,7 @@ export function generateProfileSchema(roleConfig, profileConfig) {
   (profileConfig.fields || []).forEach((f) => {
     if (f.formInput === "none" || f.formInput === "hidden") return;
 
-    if (f.fieldType === "enum") {
+    if (isEnumFieldType(f.fieldType)) {
       const values = (f.options || []).map((o) => `"${o.value}"`).join(", ");
       lines.push(`  ${toCamelCase(f.name)}: z.enum([${values}])${f.required ? "" : ".nullish()"},`);
     } else {

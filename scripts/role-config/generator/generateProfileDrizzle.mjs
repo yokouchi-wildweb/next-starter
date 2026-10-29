@@ -5,6 +5,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { columnFunction, columnMode, fieldTypeSpec, isArrayFieldType } from "../../../src/lib/domain/fields/fieldTypes.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
@@ -75,59 +76,32 @@ function getDrizzleColumnType(field) {
   const hasDefaultValue = defaultValue !== undefined;
   const defaultSuffix = hasDefaultValue ? `.default(${formatValue(defaultValue)})` : "";
 
-  switch (fieldType) {
-    case "string":
-    case "email":
-    case "password":
-    case "mediaUploader":
-      columnDef = `text("${columnName}")${defaultSuffix}`;
-      break;
-    case "integer":
-      columnDef = `integer("${columnName}")${defaultSuffix}`;
-      break;
-    case "float":
-      columnDef = `doublePrecision("${columnName}")${defaultSuffix}`;
-      break;
-    case "bigint":
-      columnDef = `bigint("${columnName}", { mode: "number" })${defaultSuffix}`;
-      break;
-    case "numeric(10,2)":
-      columnDef = `numeric("${columnName}")${defaultSuffix}`;
-      break;
-    case "boolean":
-      // Boolean型はデフォルトで notNull + default(false)
-      // NULLを許容したい場合のみ nullable: true を明示的に指定
-      columnDef = `boolean("${columnName}")`;
-      if (nullable) {
-        // 明示的にNULLを許容する場合
-        if (hasDefaultValue) {
-          columnDef += `.default(${defaultValue})`;
-        }
-      } else {
-        // デフォルト: notNull + default(指定値 or false)
-        columnDef += `.default(${hasDefaultValue ? defaultValue : false}).notNull()`;
+  // 列関数と mode は型の表（src/lib/domain/fields/fieldTypes.mjs）。プロフィール固有の規則: boolean の列は既定で notNull + default(false)、
+  // タイムゾーン付き日時は既定値を付けない、配列はドメインと同じ text[]（空配列既定）、列関数の無い型（enum・表に無い型など）は text 列
+  const typeFn = fieldTypeSpec(fieldType).column; // 表の行に列関数が無ければ undefined（型名を列関数にしない）
+  const mode = columnMode(fieldType);
+  if (typeFn === "boolean") {
+    // Boolean型はデフォルトで notNull + default(false)
+    // NULLを許容したい場合のみ nullable: true を明示的に指定
+    columnDef = `boolean("${columnName}")`;
+    if (nullable) {
+      // 明示的にNULLを許容する場合
+      if (hasDefaultValue) {
+        columnDef += `.default(${defaultValue})`;
       }
-      break;
-    case "enum":
-      columnDef = `text("${columnName}")${defaultSuffix}`;
-      break;
-    case "date":
-      columnDef = `date("${columnName}")${defaultSuffix}`;
-      break;
-    case "time":
-      columnDef = `time("${columnName}")${defaultSuffix}`;
-      break;
-    case "timestamp With Time Zone":
-      columnDef = `timestamp("${columnName}", { withTimezone: true })`;
-      break;
-    case "uuid":
-      columnDef = `uuid("${columnName}")${defaultSuffix}`;
-      break;
-    case "array":
-      columnDef = `jsonb("${columnName}").$type<string[]>().default([])`;
-      break;
-    default:
-      columnDef = `text("${columnName}")${defaultSuffix}`;
+    } else {
+      // デフォルト: notNull + default(指定値 or false)
+      columnDef += `.default(${hasDefaultValue ? defaultValue : false}).notNull()`;
+    }
+  } else if (typeFn === "timestamp") {
+    columnDef = `timestamp("${columnName}", { withTimezone: true })`;
+  } else if (isArrayFieldType(fieldType)) {
+    columnDef = `text("${columnName}").array().default([])`;
+  } else if (typeFn) {
+    // import は generateFieldDefinitions が列定義の文字列から拾う（表に新しい列関数を足したらそちらにも足す）
+    columnDef = `${typeFn}("${columnName}"${mode ? `, { mode: "${mode}" }` : ""})${defaultSuffix}`;
+  } else {
+    columnDef = `text("${columnName}")${defaultSuffix}`;
   }
 
   return { camelName, columnDef };
@@ -181,9 +155,8 @@ function generateBelongsToColumns(relations, profileTableName) {
     const opt = buildOnDeleteOption(onDelete);
 
     // FK カラムの型（デフォルトは uuid）
-    const colType = rel.fieldType || "uuid";
-    imports.add(colType === "uuid" ? "uuid" : "text");
-    const colFn = colType === "uuid" ? "uuid" : "text";
+    const colFn = columnFunction(rel.fieldType || "uuid") === "uuid" ? "uuid" : "text";
+    imports.add(colFn);
 
     let line = `  /** ${rel.label} */\n`;
     line += `  ${camelName}: ${colFn}("${columnName}")`;

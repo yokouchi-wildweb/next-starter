@@ -15,6 +15,8 @@
 //   zod       Zod の式（無ければ z.any()。datetime の型は datetime 属性で決まる）
 //   ts        TS の型（無ければ any）
 //   text      文字列系: Zod で .trim()、必須なら .min(1)、任意なら emptyToNull を通す
+//   emailFormat メールアドレスの形: Zod で .email()、任意なら "" も通す
+//   enumValues 値は項目の options のどれか（Zod は z.enum、TS は値の union、列は生成器が別扱い）
 //   numeric   数値系: 選択肢の値を数値で読む、デフォルト値を数値で読む
 //   media     メディア列（storage binding の対象。1 列 = 1 ファイル。複数は mediaCollection）
 //   array     配列列（text[]、必須は空配列既定）。フォームの checkbox はこの型だけ複数選択にする
@@ -29,7 +31,7 @@
 
 export const FIELD_TYPES = {
   string: { column: "text", zod: "z.string()", ts: "string", text: true, formDefault: "" },
-  email: { column: "text", zod: "z.string()", ts: "string", text: true, formDefault: "" },
+  email: { column: "text", zod: "z.string()", ts: "string", text: true, emailFormat: true, formDefault: "" },
   password: { column: "text", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   uuid: { column: "uuid", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   mediaUploader: { column: "text", zod: "z.string()", ts: "string", text: true, media: true, formDefault: "" },
@@ -47,7 +49,7 @@ export const FIELD_TYPES = {
   jsonb: { column: "jsonb", zod: "z.unknown()", ts: "any", noDefault: true, formDefault: undefined },
   array: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true, formDefault: [] },
   stringArray: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true, formDefault: [] },
-  enum: { presenter: "enum", formDefault: undefined },
+  enum: { presenter: "enum", enumValues: true, formDefault: undefined },
   mediaCollection: { ts: "string[]", collection: true, formDefault: [] },
   // 入力欄の候補（formInputs.mjs）にあり、生成器の属性を持たない型。生成器の答えは未知型と同じ（型名そのままの列関数・z.any()・any）
   Point: { formDefault: "" },
@@ -100,6 +102,10 @@ export function tsType(fieldType) {
 
 /** @param {string | undefined} fieldType */
 export const isTextFieldType = (fieldType) => Boolean(spec(fieldType).text);
+/** @param {string | undefined} fieldType */
+export const isEnumFieldType = (fieldType) => Boolean(spec(fieldType).enumValues);
+/** @param {string | undefined} fieldType */
+export const isEmailFieldType = (fieldType) => Boolean(spec(fieldType).emailFormat);
 /** @param {string | undefined} fieldType */
 export const isNumericFieldType = (fieldType) => Boolean(spec(fieldType).numeric);
 /** @param {string | undefined} fieldType */

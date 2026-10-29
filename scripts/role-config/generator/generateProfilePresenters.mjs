@@ -5,6 +5,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
+import { presenterFor } from "../../../src/lib/domain/fields/presenterFor.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
@@ -19,48 +20,29 @@ const buildOptionsMap = (options = []) => {
     .join(", ");
 };
 
+const DATE_FORMATTER = (format) => `formatDateValue(value, "${format}", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
+
+/**
+ * presenterFor の答えの種類 → プロフィールの presenters.ts の式（null = 項目を出さない）。
+ * プロフィールはメディアの表示部品を読まないので、メディア・集まりの項目は出さない（今の生成物どおり）
+ */
+const FORMATTERS = {
+  boolean: () => `formatBoolean(value, "はい", "いいえ")`,
+  number: () => `formatNumber(value)`,
+  stringArray: () => `formatStringArray(value)`,
+  enum: (spec) => `formatEnumLabel(value, { ${buildOptionsMap(spec.options)} })`,
+  string: () => `formatString(value)`,
+  datetime: () => DATE_FORMATTER("YYYY/MM/DD HH:mm"),
+  date: () => DATE_FORMATTER("YYYY/MM/DD"),
+  collectionThumbnails: () => null,
+  mediaThumbnail: () => null,
+  mediaThumbnails: () => null,
+};
+
+// 何で表示するかは src/lib/domain/fields/presenterFor.mjs（ドメインの presenters 生成と同じ答え）
 const buildFormatter = (field) => {
-  const { fieldType, formInput, options } = field;
-  switch (fieldType) {
-    case "boolean":
-      return `formatBoolean(value, "はい", "いいえ")`;
-    case "integer":
-    case "number":
-    case "float":
-    case "bigint":
-    case "numeric(10,2)":
-      return `formatNumber(value)`;
-    case "array":
-      return `formatStringArray(value)`;
-    case "enum":
-      if (Array.isArray(options) && options.length) {
-        return `formatEnumLabel(value, { ${buildOptionsMap(options)} })`;
-      }
-      return `formatString(value)`;
-    default:
-      break;
-  }
-
-  if (formInput === "numberInput" || formInput === "stepperInput") {
-    return `formatNumber(value)`;
-  }
-  if (formInput === "textarea" || formInput === "textInput") {
-    return `formatString(value)`;
-  }
-  if (formInput === "datetimeInput") {
-    return `formatDateValue(value, "YYYY/MM/DD HH:mm", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
-  }
-  if (formInput === "dateInput") {
-    return `formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`;
-  }
-  if (formInput === "timeInput") {
-    return `formatString(value)`;
-  }
-  if (formInput === "mediaUploader" || formInput === "fileUploader") {
-    return null;
-  }
-
-  return `formatString(value)`;
+  const spec = presenterFor(field);
+  return FORMATTERS[spec.kind](spec);
 };
 
 /**
