@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 指令メールボックスの補助スクリプト（/order・/upreq・/inbox 共通）
+// 指令メールボックスの補助スクリプト（/order・/inbox 共通）
 // 置き場: $TEAM_ORDERS（既定 ~/.team/orders）
 //   <root>/<repo-id>/*.md      = そのリポ宛ての未対応の指令
 //   <root>/<repo-id>/done/*.md = 対応済み

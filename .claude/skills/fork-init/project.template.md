@@ -16,9 +16,9 @@
 
 ## TIER (multi-tier hierarchy)
 this_repo: Tier<N> (direct fork of <upstream name> = Tier<N-1>). <no Tier<N+1> downstream planned for now | downstream forks: ...>
-rule: generic/foundational capabilities (domain-independent infra, UI primitives, CRUD base, auth) live in Tier1. do NOT hardcode them here — file /upreq instead. <domain> code lives HERE
+rule: generic/foundational capabilities (domain-independent infra, UI primitives, CRUD base, auth) live in Tier1. do NOT hardcode them here — file /order <Tier1 repo> instead. <domain> code lives HERE
 request_protocol (shared mailbox: ~/.team/orders/, one inbox per receiving repo):
-- file a one-off order into any repo's inbox, or into this repo as a next task, with /order <self|repo> (/upreq = alias). generic → Tier1, <domain>-specific → the tier that owns it
+- file a one-off order into any repo's inbox, or into this repo as a next task, with /order <self|repo>. generic → Tier1, <domain>-specific → the tier that owns it
 - check the orders filed in the current session with /wen
 - handle orders addressed to this repo with /inbox (judge against this repo's role; relay what another repo owns)
 - receive upstream notices with /flux (ledger: .notices/applied/<fork-id>.md)

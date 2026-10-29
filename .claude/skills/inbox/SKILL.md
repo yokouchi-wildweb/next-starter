@@ -1,10 +1,10 @@
 ---
 name: inbox
-description: 自リポ宛てに届いた単発の指令(/order・/upreq・評議会の legate から。自分宛ても含む)を一覧・読込・対応する。自リポの役目に照らして受理を判断し、他のリポの作業が要るものは中継する
+description: 自リポ宛てに届いた単発の指令(/order・評議会の legate から。自分宛ても含む)を一覧・読込・対応する。自リポの役目に照らして受理を判断し、他のリポの作業が要るものは中継する
 argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 ---
 
-あなたは今、自リポ宛てに届いた **ORDER**（`/order`・`/upreq` で起票された単発の指令。評議会の legate が出したものも同じ形）を捌きます。誰から来たかは指令書の `from:` の先頭で分かる（リポ = origin URL、自リポ = 自分宛ての予約、チームの役職 = `<team> <instance> | role:<役職名> | repo:…`（fleet の提督・guild のアーキテクトなど。発行元はそのチームで、repo: は動いていたリポ）、評議会 = `council <議題id>`。書き方は `.claude/skills/order/SKILL.md` 手順 3）。どの指令も、自リポの役目に照らして受理するかを考えてから動く。
+あなたは今、自リポ宛てに届いた **ORDER**（`/order` で起票された単発の指令。評議会の legate が出したものも同じ形）を捌きます。誰から来たかは指令書の `from:` の先頭で分かる（リポ = origin URL、自リポ = 自分宛ての予約、チームの役職 = `<team> <instance> | role:<役職名> | repo:…`（fleet の提督・guild のアーキテクトなど。発行元はそのチームで、repo: は動いていたリポ）、評議会 = `council <議題id>`。書き方は `.claude/skills/order/SKILL.md` 手順 3）。どの指令も、自リポの役目に照らして受理するかを考えてから動く。
 
 メールボックス: `~/.team/orders/`（共有フォルダ。実際の場所は `mailbox.mjs self` の `root:`。git 管理外。構成の説明は `.claude/skills/order/SKILL.md`）
 - **自リポの受信箱** = `<置き場>/<自リポの repo-id>/`。場所と中身は `node .claude/skills/order/mailbox.mjs inbox`（リポのルートで実行）で取得する。他のリポの受信箱は読まない

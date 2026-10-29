@@ -4,7 +4,7 @@ paths:
   - "src/hooks/**"
 ---
 # COMPONENTS
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /upreq) | FORMAT_RULE applies
+> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 wrappers (raw HTML NG): div → Layout/{Block,Flex,Grid,Stack} | main → Layout/Main or UserPage | section → Layout/Section | button → Form/Button | input → Form/Input | p → TextBlocks/Para | h2 → TextBlocks/SecTitle | skeleton → Skeleton/BaseSkeleton | img → Media/AppImage (never next/image directly)
 - never import _shadcn directly (wrapper table: src/components/_shadcn/README.md; no wrapper → propose one)

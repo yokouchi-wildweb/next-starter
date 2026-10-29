@@ -26,4 +26,4 @@
 
 - 恒常ルール・判断基準 → `.claude/rules/project.md`（1 行に蒸留する。経緯の本文はここに残し、`ref: docs/journal/<file>` で参照する）
 - 機能の仕様・使い方 → コード隣の README.md
-- upstream の core 部品に関する教訓 → `/upreq` で上流へ
+- upstream の core 部品に関する教訓 → `/order <上流リポ>` で上流へ

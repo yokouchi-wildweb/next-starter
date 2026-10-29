@@ -9,7 +9,7 @@ paths:
   - "src/features/**/domain.json"
 ---
 # API_ROUTES
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /upreq) | FORMAT_RULE applies
+> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 generic: /api/[domain]/** exposes the CRUD operations (list: src/app/api/[domain]/) | access = the domain's services/server/domainEntry.ts entry { service: () => import(...), access } (TYPE-REQUIRED; business: domain.json apiAccess → dc:generate; core: hand-written; fork override = domainEntry.override.ts) | serviceRegistry.ts = generated from them (registry:generate), the runtime source
 - data_operations: truncateAll / export / import open only when access.operations names them (unset = none, never falls back to read/write/admin) | admin routes (domains list / truncate / data-migration) gate on their own guard AND this rule, any denied domain → whole request denied | INTERNAL_ONLY = registered for getService, closed everywhere

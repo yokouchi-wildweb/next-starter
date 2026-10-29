@@ -7,7 +7,7 @@ paths:
   - "scripts/**"
 ---
 # AUDIT
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /upreq) | FORMAT_RULE applies
+> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 action_naming: \<domain\>.\<entity\>.\<verb_past\> (e.g. user.email.changed, ESLint-enforced)
 usage: auto = createCrudService audit option | manual = auditLogger.record({..., tx}) from @/features/core/auditLog/services/server (server-only) | pass tx for rollback consistency

@@ -6,7 +6,7 @@ paths:
   - "src/app/admin/**"
 ---
 # DIRECTORY_STRUCTURE / code_generation
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /upreq) | FORMAT_RULE applies
+> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 code_generation:
 - generated (no edit; overwritten on every dc:generate while its generateFiles category is on): entities/, components/Admin*/, components/common/ generated forms/fields/detail modal, hooks/use*\<Domain\>.ts, services/client/\<domain\>Client.ts, services/server/drizzleBase.ts, constants/field.ts, types/field.ts, presenters.ts, app/admin/(protected)/\<domains\>/**/_screen/

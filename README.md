@@ -40,6 +40,6 @@
 
 - `/flux` : upstream を fetch / merge し、追随作業が必要な変更(DOWNSTREAM NOTICE)を検出して適用・記録まで行う
 - `/flux status` : 状態確認のみ
-- 汎用機能が必要になったら自前実装せず `/upreq` で上流に依頼し、`/wen` で状況を追う
+- 汎用機能が必要になったら自前実装せず `/order <上流リポ>` で上流に依頼し、`/wen` で状況を追う
 
 仕組み: [`.notices/README.md`](.notices/README.md)

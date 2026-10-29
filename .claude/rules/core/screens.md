@@ -6,7 +6,7 @@ paths:
   - "src/features/core/admin/services/server/loaders/**"
 ---
 # SCREENS + page guard flow
-> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /upreq) | FORMAT_RULE applies
+> part of the CLAUDE.md contract (see CORE_RULES): upstream-owned, never edit downstream (gap → /order <upstream>) | FORMAT_RULE applies
 
 route: page.tsx = downstream-owned 1-line switch `export { XScreen as default } from "./_screen/XScreen"` (metadata / dynamic OK) | _screen/\<Name\>Screen.tsx = default Screen, owned by the route creator (downstream never edits/deletes upstream ones) | _screen/ may hold the default Screen's private parts | _components/ = downstream Screens and parts only, never upstream | 1 route = 1 Screen
 screen: server component, named export, no default export, NO "use client", never try/catch | hook-bound bits → a "use client" part in _screen/ or a section container
