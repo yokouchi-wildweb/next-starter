@@ -38,7 +38,7 @@ const owner = (fieldOverrides = {}, extra = {}) => ({
   useUpdatedAt: true,
   fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput", required: true }, field(fieldOverrides)],
   apiAccess: { read: "public", write: ADMIN },
-  generateFiles: { entities: true },
+  generateFiles: { entities: true, components: false, hooks: false, clientServices: false, serverServices: false, fieldConstants: false, adminRoutes: false, registry: true, presenters: false },
   ...extra,
 });
 const childOf = (ownerConfig) => buildChildDomainConfig(ownerConfig, ownerConfig.fields[1]).config;

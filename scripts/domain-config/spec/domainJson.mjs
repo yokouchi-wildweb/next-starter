@@ -6,7 +6,7 @@ import { GENERATE_CATEGORIES } from "./categories.mjs";
 import { FORM_INPUTS } from "./formInputs.mjs";
 
 export const DB_ENGINES = new Set(["Neon", "Firestore"]);
-export const ID_TYPES = new Set(["uuid", "string", "number", "db"]);
+export const ID_TYPES = new Set(["uuid", "string", "number"]);
 
 export const TOP_LEVEL_KEYS = new Set([
   "domainConfigVersion", "singular", "plural", "label", "dbEngine", "idType", "relations", "useCreatedAt", "useUpdatedAt",

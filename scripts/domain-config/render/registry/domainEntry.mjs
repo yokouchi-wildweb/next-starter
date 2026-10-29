@@ -12,13 +12,13 @@ const FAIL_CLOSED_ACCESS = ACCESS_PRESETS.ADMIN_ONLY;
 /**
  * domain.json から domainEntry.ts の access を組む。
  * - read / write = apiAccess（無ければ ADMIN_ONLY）
- * - operations = apiAccess.operations + 管理データ操作: truncateAll は管理者、export / import は useImportExport が偽なら "none"、それ以外は管理者
+ * - operations = apiAccess.operations + 管理データ操作: truncateAll は管理者、export / import は useImportExport が true のときだけ管理者（書かなければ "none" = 閉じる）
  */
 export function buildDomainEntryAccess(config) {
   const apiAccess = config?.apiAccess ?? null;
   const base = apiAccess ? { read: apiAccess.read, write: apiAccess.write } : FAIL_CLOSED_ACCESS;
   const adminRule = { roleCategories: ["admin"] };
-  const dataRule = config?.useImportExport === false ? "none" : adminRule;
+  const dataRule = config?.useImportExport === true ? adminRule : "none";
   return {
     ...base,
     operations: {

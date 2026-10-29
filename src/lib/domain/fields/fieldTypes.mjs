@@ -21,7 +21,7 @@
 //   media     メディア列（storage binding の対象。1 列 = 1 ファイル。複数は mediaCollection）
 //   array     配列列（text[]、必須は空配列既定）。フォームの checkbox はこの型だけ複数選択にする
 //   presenter 表示フォーマッタの種類（無ければ formInput で決める）
-//   noDefault dc:init でデフォルト値を聞かない
+//   noDefault domain.json の defaultValue を持てない（生成前の検査 checks/fields.mjs が止める）
 //   collection 主の集まり（列を持たない。従属ドメインの行の並びを lib の collections で読み書きする。項目の collection キーで宣言）
 //   retired   廃止した型: 生成前の検査（checks/retiredFieldTypes.mjs）が移り先の案内文で止める。実行時は見ない
 // 意味の属性（生成器と実行時の両方が読む）:
@@ -34,7 +34,7 @@ export const FIELD_TYPES = {
   email: { column: "text", zod: "z.string()", ts: "string", text: true, emailFormat: true, formDefault: "" },
   password: { column: "text", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   uuid: { column: "uuid", zod: "z.string()", ts: "string", text: true, formDefault: "" },
-  mediaUploader: { column: "text", zod: "z.string()", ts: "string", text: true, media: true, formDefault: "" },
+  mediaUploader: { column: "text", zod: "z.string()", ts: "string", text: true, media: true, noDefault: true, formDefault: "" },
   integer: { column: "integer", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
   number: { zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
   float: { column: "doublePrecision", zod: "z.coerce.number()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
@@ -50,7 +50,7 @@ export const FIELD_TYPES = {
   array: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true, formDefault: [] },
   stringArray: { zod: "z.array(z.string())", ts: "string[]", array: true, presenter: "stringArray", noDefault: true, formDefault: [] },
   enum: { presenter: "enum", enumValues: true, formDefault: undefined },
-  mediaCollection: { ts: "string[]", collection: true, formDefault: [] },
+  mediaCollection: { ts: "string[]", collection: true, noDefault: true, formDefault: [] },
   // 入力欄の候補（formInputs.mjs）にあり、生成器の属性を持たない型。生成器の答えは未知型と同じ（型名そのままの列関数・z.any()・any）
   Point: { formDefault: "" },
   map: { formDefault: undefined },

@@ -6,13 +6,15 @@
 
 ## domain.json スキーマ定義
 
+この決まりは `pnpm dc:generate` の生成前の検査（`scripts/domain-config/checks/`）が確かめる。反すると全件を並べて何も書かずに止まり、止めない食い違い（名前の形・表に無い型と入力欄の組・文字列でない列の検索など）は `[domain.json]` の警告として出る。
+
 ### トップレベルプロパティ
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
 | domainConfigVersion | string | 🟢 Yes | 設定バージョン（現在 `"1.3"`） |
 | singular | string | 🟢 Yes | ドメイン名単数形（snake_case、例: `sample_category`）。ドメインフォルダ名はこの camelCase（例: `sampleCategory/`）でなければならず、ずれていると dc:generate が止まる |
-| plural | string | 🟢 Yes | ドメイン名複数形（snake_case、例: `sample_categories`） |
+| plural | string | 🟢 Yes | ドメイン名複数形（snake_case、例: `sample_categories`）。テーブル名とルートになる。無いと dc:generate が止まる |
 | label | string | 🟢 Yes | 管理画面での表示名（日本語可） |
 | dbEngine | `"Neon"` \| `"Firestore"` | 🟢 Yes | 使用するDB。原則 `"Neon"`。`"Firestore"` はリアルタイム配信が本質要件のドメインのみ（`docs/!must-read/バックエンド構成ドクトリン.md`） |
 | idType | `"uuid"` \| `"string"` \| `"number"` | 🟢 Yes | 主キーの型 |
@@ -30,7 +32,7 @@
 | useDetailModal | boolean | ⚪ No | 詳細モーダルの有無 |
 | addToAdminDataMenu | boolean | ⚪ No | adminDataMenu への自動追加 |
 | useDuplicateButton | boolean | ⚪ No | 複製ボタンの有無 |
-| useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式）。`false` はサーバー側のインポート処理も拒否する |
+| useImportExport | boolean | ⚪ No | データ入出力機能の有無（CSV/ZIP形式）。`true` のときだけ管理者に export / import を開く。省略・`false` = 閉じる（サーバー側のインポート処理も拒否する） |
 | useAutoSave | boolean | ⚪ No | 編集フォームでオートセーブを使用するか |
 | compositeUniques | string[][] | ⚪ No | 複合ユニーク制約（Neon のみ） |
 | indexes | Index[] | ⚪ No | 非ユニーク検索/集計用インデックス（Neon のみ） |
@@ -50,11 +52,11 @@
 | domain | string | 🟢 Yes | 関連先ドメイン名（snake_case） |
 | label | string | 🟢 Yes | 表示名 |
 | fieldName | string | 条件付き | フィールド名。relationType により意味が異なる（後述） |
-| fieldType | `"uuid"` \| `"string"` \| `"number"` | 条件付き | 外部キーの型（belongsTo / belongsToMany で必須、hasMany では不要） |
+| fieldType | `"uuid"` \| `"string"` \| `"integer"`（Firestore は `"string"` \| `"number"` \| `"reference"`） | 条件付き | 外部キーの型（belongsTo / belongsToMany で必須、hasMany では不要。省略 = 主の idType。数値の ID は `integer`、`number` は Neon では使えない） |
 | relationType | RelationType | 🟢 Yes | リレーション種別 |
 | required | boolean | ⚪ No | 必須かどうか（belongsTo のみ有効） |
 | onDelete | `"RESTRICT"` \| `"CASCADE"` \| `"SET_NULL"` | ⚪ No | 削除時の挙動（belongsTo のみ） |
-| includeRelationTable | boolean | ⚪ No | 中間テーブル定義を含めるか（belongsToMany のみ） |
+| includeRelationTable | boolean | ⚪ No | 中間テーブル定義を含めるか（belongsToMany のみ。省略 = true） |
 | labelField | string | ⚪ No | セレクトボックスのラベルに使うフィールド（デフォルト: `name`） |
 | formInput | RelationFormInput | ⚪ No | フォーム入力種別（省略時はデフォルト値） |
 
@@ -179,13 +181,16 @@ custom リレーションの UI 実装例:
 | label | string | 🟢 Yes | 表示名 |
 | fieldType | FieldType | 🟢 Yes | データ型 |
 | formInput | FormInput | 🟢 Yes | フォーム入力種別 |
-| required | boolean | ⚪ No | 必須かどうか |
+| required | boolean | ⚪ No | 必須かどうか（配列の型では「空配列を既定にする」の意味で、1 件以上の意味ではない） |
 | readonly | boolean | ⚪ No | 読み取り専用（テキスト系は readOnly、選択系は disabled として適用） |
-| defaultValue | any | ⚪ No | デフォルト値 |
-| options | Option[] | ⚪ No | 選択肢（select, radio, checkbox, multiSelect で使用） |
+| defaultValue | any | ⚪ No | デフォルト値（型に合う値。enum は options の value のどれか。timestamp・jsonb・配列・メディア・集まりの型は持てない） |
+| options | Option[] | ⚪ No | 選択肢（enum では必須。select, radio, 配列の checkbox, multiSelect で使用し、無いと警告）。boolean に書くと初期値が未選択になる（radio のときは書く） |
 | displayType | `"standard"` \| `"bookmark"` | ⚪ No | radio/checkbox の表示スタイル |
 | placeholder | string | ⚪ No | プレースホルダー（textInput, numberInput, textarea, select, multiSelect, emailInput, passwordInput で使用） |
 | collection | Collection | ⚪ No | 主の集まりの宣言（fieldType `mediaCollection` の項目。下の「主の集まりの項目（mediaCollection）」） |
+
+- リレーションのラベルの既定は関連先の `name` 項目（labelField の既定）なので、選ばれる側のドメインには `{ "name": "name", "fieldType": "string", "formInput": "textInput" }` の項目を置くとよい
+- 型と入力欄の組は `scripts/domain-config/spec/formInputs.mjs` の表（表に無い組は警告）
 
 #### FieldType（Neon）
 
@@ -227,7 +232,6 @@ custom リレーションの UI 実装例:
 | reference | ドキュメント参照 |
 | map | オブジェクト |
 | null | null値 |
-| mediaUploader | メディアアップロード用 |
 
 #### FormInput
 
@@ -334,21 +338,21 @@ import { ControlledField } from "@/components/Form/Field";
 - 廃止前の mediaUploaderMulti 列を集まりへ移す: [src/lib/crud/README.md](../lib/crud/README.md)「既存の mediaUploaderMulti 列からの移行」（手順・やってはいけないこと・確かめ方・戻し方）
 
 ```json
-{ "name": "galleryImages", "label": "ギャラリー", "fieldType": "mediaCollection", "formInput": "mediaUploaderMulti",
-  "required": true, "reorderable": true, "collection": { "domain": "productImage", "maxItems": 10, "duplicate": true } }
+{ "name": "gallery_images", "label": "ギャラリー", "fieldType": "mediaCollection", "formInput": "mediaUploaderMulti",
+  "required": true, "reorderable": true, "collection": { "domain": "product_image", "maxItems": 10, "duplicate": true } }
 ```
 
 | プロパティ | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| collection.domain | string | 🟢 Yes | 従属ドメインの singular |
+| collection.domain | string | 🟢 Yes | 従属ドメインの singular（snake_case） |
 | collection.maxItems | number（1 以上の整数） | ⚪ No | 最大件数。省略 = 上限なし |
 | collection.duplicate | boolean | ⚪ No | 主の複製で従属も写すか。省略 = true |
 
-- 必須 = `required`、並べ替え = `reorderable`（既存のキー）
+- 必須 = `required`、並べ替え = `reorderable`（既存のキー。省略 = true）
 - ファイルの条件（slug・mediaTypePreset・accept・validationRule・storage）は主に書かず、従属ドメインのメディア項目に書く
 - 語彙の検査（`[domain.json]` の警告）は collection の下位キーの型を見る
 - dc:generate は、従属ドメインの domain.json（`src/features/<collection.domain の camelCase>/domain.json`）が**無いときだけ**書き出す（既にあれば触らない。`--only` でも、dry-run では「作成 / 保持」と出すだけ）。書き出す雛形:
-  - singular = `collection.domain`、plural = 既定の名前のままなら `<主>_<項目名>`（項目名が s で終わるとき）、変えていれば書かない（推定）、label = 主の項目の label、Neon、idType = 主と同じ
+  - singular = `collection.domain`、plural = 既定の名前のままなら `<主>_<項目名>`（項目名が s で終わるとき）、それ以外は singular の複数形、label = 主の項目の label、Neon、idType = 主と同じ（外部キーの型は idType number なら integer）
   - relations = 主への belongsTo（`<主>_id`、必須、onDelete CASCADE）。主の relations には足さない
   - fields = メディア項目 `file`（mediaUploader、images / `image/*`、10MB、slug = 主の項目名の camelCase）と並び列 `sort_order`（hidden、`sortOrderField` と `systemColumns` に宣言）。useSoftDelete false
   - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false、generateFiles は entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う）
@@ -370,7 +374,7 @@ import { ControlledField } from "@/components/Form/Field";
 |-----------|-----|------|------|
 | slug | string | 🟢 Yes | ハンドラ識別子（camelCase） |
 | mediaTypePreset | `"images"` \| `"videos"` \| `"imagesAndVideos"` \| `"all"` | 🟢 Yes | 許可ファイル種別 |
-| accept | string | 🟢 Yes | accept 属性値（例: `image/*,video/*`） |
+| accept | string | 🟢 Yes | accept 属性値（例: `image/*,video/*`）。受け付ける型を必ず列挙する（`"all"` の preset でも空にしない。空だと dc:generate が止まる。lib は `*/*` を受けない）。preset の目安: images = `image/*`、videos = `video/*`、imagesAndVideos = `image/*,video/*` |
 | validationRule | object | ⚪ No | バリデーション設定 |
 | validationRule.maxSizeBytes | number | ⚪ No | 最大ファイルサイズ（バイト） |
 | helperText | string | ⚪ No | ヘルパーテキスト（アップロード欄に表示される説明文） |

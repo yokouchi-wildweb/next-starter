@@ -69,6 +69,7 @@
     "test:dc-registry": "node --test scripts/domain-config/tests/registry.test.mjs",
     "test:dc-structure": "node --test scripts/domain-config/tests/structure.test.mjs",
     "test:dc-vocabulary": "node --test scripts/domain-config/tests/vocabulary.test.mjs",
+    "test:dc-checks": "node --test scripts/domain-config/tests/checks.test.mjs",
     "test:dc-dry-run": "node --test scripts/domain-config/tests/dryRun.test.mjs",
     "test:dc-registry-precheck": "node --test scripts/domain-config/tests/registryPrecheck.test.mjs",
     "test:dc-domain-folder": "node --test scripts/domain-config/tests/domainFolder.test.mjs",

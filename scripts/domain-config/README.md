@@ -184,6 +184,7 @@
 
 ## よくある失敗
 
+- 生成が `[<domain>] ...` の文を並べて止まる → domain.json の決まり（必須キー・項目名と従属名の snake_case・外部キーの型・enum の選択肢・既定値・メディアの accept・一覧の設定の名前）に反している。文のとおりに直す（規則の一覧: [src/features/README.md](../../src/features/README.md)「domain.json スキーマ定義」）
 - `[domain.json] <domain>: ...` の警告が出る → 綴り違いのキー、古いキー（`version` → `domainConfigVersion`、`onDeleteCascade` → `onDelete`）、その DB に無い `fieldType`、知らない `formInput`、主の集まりの項目の `collection` の下位キー（`domain` / `maxItems` / `duplicate`）の型を `checks/vocabulary.mjs` が [src/features/README.md](../../src/features/README.md) の語彙（`spec/domainJson.mjs`）と照らして出す。生成は止まらないが、未知の `fieldType` は列名としてそのまま出力され、未知の `formInput` はフォームに出ないので直す
 - `domain.json` が壊れている（JSON として読めない） → 直してから再実行
 - `テンプレートのトークンが置換されていません` → 管理画面テンプレートに未対応のトークンが残っている。テンプレートを直す
@@ -206,7 +207,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `questions/` | `dc:init` / `dc:add` の質問。`fields/` は 1 項目の質問（`media.mjs` / `options.mjs` / `defaultValue.mjs`） | inquirer |
 | `pipeline/` | `generate.mjs`（1 ドメイン: 読む → 検査 → plan → 登録表の事前検査 → apply → serviceRegistry。組なら `generateWithPairs` が組の全員を従属 → 主で）、`pairs.mjs`（主と従属の組の解決・誤りの検査・並び・最後の一覧）、`serviceRegistry.mjs`（書く前の検査 = これから書くファイルを重ねた見え方で scripts/registry の検査を呼ぶ）、`generateAll.mjs`、`plan.mjs`（カテゴリ順に render を呼ぶ）、`apply.mjs`（**唯一の書き込み点**。write-once / 旧形式の移行 / 変更なし / レジストリの部分書き換え）、`dryRun.mjs`（apply と同じ判定を読むだけで行い一覧する）、`remove/`（dc:delete の本体） | fs（apply / remove が書く、dryRun は読むだけ） |
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` だけはカテゴリではなく、主の集まりの項目から従属の domain.json を組む。`--only` に関わらず plan の先頭に入る）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
-| `checks/` | 生成前の検査（フォルダ名、廃止した型、Firestore のメディア列）。エラー文か null を返す。`pairs.mjs` = 主と従属の組の書く前の検査（誤りを全件返す）、`accessRules.mjs` = アクセスルールの広さの比べ方 | |
+| `checks/` | 生成前の検査（フォルダ名、廃止した型、Firestore のメディア列・集まり、domain.json の決まり = `required`・`names`・`relations`・`fields`・`media`・`viewConfig`）。エラー文（配列）か null を返し、`index.mjs` が全件を並べて止める。止めない食い違いは各検査の `*Warnings` と `vocabulary.mjs` が警告にする。`pairs.mjs` = 主と従属の組の書く前の検査（誤りを全件返す）、`accessRules.mjs` = アクセスルールの広さの比べ方 | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（DomainContext = 名前の全形 + domain.json。名前の導出はここだけ）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
 | `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語。表の本体は `src/lib/domain/fields/fieldTypes.mjs` で、ここは再 export。列を持たない主の集まりの型 `mediaCollection` = `isCollectionFieldType`）、`domainJson.mjs`（キーの集合。`collection` の下位キー = `COLLECTION_KEYS`）、`collectionField.mjs`（主の集まりの項目の純関数: 従属の既定の名前・項目の組み立て・型の選択肢の並び）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
 | `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/registry も使う） | |
@@ -218,7 +219,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 
 - **項目の種類を足す**（例: 新しい fieldType） → 型の表 `src/lib/domain/fields/fieldTypes.mjs` に行（属性と `formDefault`。フォームの初期値・checkbox の単複・日時変換も表から決まる）、`spec/formInputs.mjs` に入力種別、`questions/fields/` に質問（メディア系なら `media.mjs` の隣に）、各 `render/` は述語で分岐。フォーム側の手書きは `src/components/Form/Field/types.ts` の型の名前だけ（ずれは `pnpm test:form-defaults` と typecheck が検知する）
 - **生成ファイルを足す** → そのカテゴリの `render/<カテゴリ>/` に `(ctx, workspace) → Output` を足し、カテゴリの `index.mjs` の配列に並べる（hooks / components は `catalog.mjs` に 1 行）。別のドメインの `domain.json` を書く場合も `writeOnce` の Output にする
-- **生成前の検査を足す** → `checks/` に「エラー文か null」を返す関数を足し、`checks/index.mjs` に並べる。生成の途中でしか分からない検査は render 内で例外を投げる（書く前なので書きかけは残らない）
+- **生成前の検査を足す** → `checks/` に「エラー文の配列（または null）」を返す関数を足し、`checks/index.mjs` に並べる（止めないものは警告の関数に）。テストは `tests/checks.test.mjs`（`pnpm test:dc-checks`）。生成の途中でしか分からない検査は render 内で例外を投げる（書く前なので書きかけは残らない）
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す。どちらも `index.mjs` の `outputs` に並べるだけ
 - **複数ドメインの生成順** → `pipeline/generateAll.mjs`（対象の並び）と `domain/`（全 domain.json を読む関数は `workspace.listDomains` + `readConfig`）
 

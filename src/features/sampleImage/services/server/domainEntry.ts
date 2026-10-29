@@ -15,8 +15,8 @@ export const domainEntries = {
       ...INTERNAL_ONLY,
       operations: {
         truncateAll: ADMIN_RULE,
-        export: ADMIN_RULE,
-        import: ADMIN_RULE,
+        export: "none",
+        import: "none",
       },
     },
   },

@@ -191,10 +191,10 @@ test("serializeRule / serializeAccess: 単一ルールは名前、read/write が
   assert.deepEqual(custom.names, []);
 });
 
-test("buildDomainEntryAccess: apiAccess 未宣言は ADMIN_ONLY、truncateAll は管理者、export/import は useImportExport が偽なら none", () => {
+test("buildDomainEntryAccess: apiAccess 未宣言は ADMIN_ONLY、truncateAll は管理者、export/import は useImportExport が true のときだけ管理者（書かなければ none）", () => {
   assert.deepEqual(buildDomainEntryAccess(null), {
     ...ACCESS_PRESETS.ADMIN_ONLY,
-    operations: { truncateAll: PRESET_RULES.ADMIN_RULE, export: PRESET_RULES.ADMIN_RULE, import: PRESET_RULES.ADMIN_RULE },
+    operations: { truncateAll: PRESET_RULES.ADMIN_RULE, export: "none", import: "none" },
   });
   const closed = buildDomainEntryAccess({ apiAccess: API_ACCESS, useImportExport: false });
   assert.deepEqual(closed.operations, { truncateAll: PRESET_RULES.ADMIN_RULE, export: "none", import: "none" });

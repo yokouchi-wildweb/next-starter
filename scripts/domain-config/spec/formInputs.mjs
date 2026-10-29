@@ -3,10 +3,9 @@
 
 export const FORM_INPUTS = {
   Firestore: {
-    string: ["text input", "textarea", "date input", "number input", "select", "hidden", "none", "custom"],
+    string: ["text input", "textarea", "date input", "number input", "color input", "select", "hidden", "none", "custom"],
     number: ["number input", "stepper input", "select", "radio", "hidden", "none", "custom"],
     boolean: ["checkbox", "radio", "switch input", "hidden", "none", "custom"],
-    mediaUploader: ["media uploader", "hidden", "none", "custom"],
     timestamp: ["datetime input", "hidden", "none", "custom"],
     email: ["email input", "text input", "hidden", "none", "custom"],
     password: ["password input", "hidden", "none", "custom"],
@@ -18,7 +17,7 @@ export const FORM_INPUTS = {
     null: ["hidden", "none", "custom"],
   },
   Neon: {
-    string: ["text input", "textarea", "date input", "number input", "select", "hidden", "none", "custom"],
+    string: ["text input", "textarea", "date input", "number input", "color input", "select", "hidden", "none", "custom"],
     integer: ["number input", "stepper input", "select", "radio", "hidden", "none", "custom"],
     float: ["number input", "stepper input", "select", "radio", "hidden", "none", "custom"],
     boolean: ["checkbox", "radio", "switch input", "hidden", "none", "custom"],

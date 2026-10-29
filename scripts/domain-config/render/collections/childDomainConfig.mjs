@@ -4,15 +4,15 @@
 
 import { defaultChildName } from "../../spec/collectionField.mjs";
 import { DOMAIN_CONFIG_VERSION } from "../../spec/version.mjs";
-import { toCamelCase, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
+import { toCamelCase, toPlural, toSnakeCase } from "../../../../src/utils/stringCase.mjs";
 import { ADMIN_RULE, isValidRule, unionUploadRules } from "../registry/storagePurpose/rules.mjs";
 
 const READ_OPERATIONS = new Set(["get"]);
 const SORT_FIELD = "sort_order";
 const DEFAULT_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
-/** 主の idType → belongsTo の外部キーの型（DB 採番は数値） */
-const FOREIGN_KEY_TYPES = { uuid: "uuid", string: "string", number: "number", db: "number" };
+/** 主の idType → belongsTo の外部キーの型（数値の ID は integer 列） */
+const FOREIGN_KEY_TYPES = { uuid: "uuid", string: "string", number: "integer" };
 
 /** 主の 1 操作の規則を、汎用 API と同じ順（operations → read / write）で生のまま取る。どこにも無ければ undefined */
 function rawRule(apiAccess, operation) {
@@ -67,13 +67,13 @@ export function buildChildDomainConfig(parentConfig, field) {
   const parentSnake = toSnakeCase(parentConfig.singular);
   const singular = field.collection.domain;
   const suggested = defaultChildName(parentConfig.singular, field.name);
-  // 既定の名前のままなら plural も既定（項目名）。名前を変えていれば推定に任せる
-  const plural = singular === suggested.singular ? suggested.plural : undefined;
+  // 既定の名前のままなら plural も既定（項目名）。名前を変えていれば singular から作る（plural は必須: checks/required.mjs）
+  const plural = singular === suggested.singular && suggested.plural ? suggested.plural : toSnakeCase(toPlural(singular));
   const { storage, uncopied } = childStorageRules(parentConfig);
   const config = {
     domainConfigVersion: DOMAIN_CONFIG_VERSION,
     singular,
-    ...(plural ? { plural } : {}),
+    plural,
     label: field.label,
     dbEngine: "Neon",
     idType: parentConfig.idType,

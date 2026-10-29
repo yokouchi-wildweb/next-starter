@@ -69,16 +69,16 @@ test("従属の形: belongsTo 主（必須・CASCADE）、メディア 1 項目 
   assert.deepEqual(vocabularyWarnings(config), []);
 });
 
-test("名前と plural: 既定の名前なら plural を書き、変えていれば書かない。s で終わらない項目は plural なし", () => {
-  assert.equal(buildChildDomainConfig(parent(), field({ collection: { domain: "photo_item" } })).config.plural, undefined);
+test("名前と plural: 既定の名前なら既定の plural（項目名）、変えていれば・s で終わらない項目なら singular から作る（plural は必須）", () => {
+  assert.equal(buildChildDomainConfig(parent(), field({ collection: { domain: "photo_item" } })).config.plural, "photo_items");
   const gallery = buildChildDomainConfig(parent(), field({ name: "gallery", collection: { domain: "sample_gallery" } })).config;
   assert.equal(gallery.singular, "sample_gallery");
-  assert.equal("plural" in gallery, false);
+  assert.equal(gallery.plural, "sample_galleries");
   assert.equal(buildChildDomainConfig(parent(), field({ name: "gallery", collection: { domain: "sample_gallery" } })).config.fields[0].slug, "gallery");
 });
 
-test("idType と外部キーの型は主に従う（DB 採番は number）", () => {
-  for (const [idType, fieldType] of [["uuid", "uuid"], ["string", "string"], ["number", "number"], ["db", "number"]]) {
+test("idType と外部キーの型は主に従う（数値の ID は integer 列）", () => {
+  for (const [idType, fieldType] of [["uuid", "uuid"], ["string", "string"], ["number", "integer"]]) {
     const { config } = buildChildDomainConfig(parent({ idType }), field());
     assert.equal(config.idType, idType);
     assert.equal(config.relations[0].fieldType, fieldType);
