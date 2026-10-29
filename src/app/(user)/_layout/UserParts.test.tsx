@@ -63,7 +63,9 @@ let isBottomNavMenuItem: typeof import("./BottomNav/types").isBottomNavMenuItem;
 let BottomNavSpacer: typeof import("./BottomNav/BottomNavSpacer").BottomNavSpacer;
 let UserPage: typeof import("./UserPage").UserPage;
 let Main: typeof import("@/components/Layout/Main").Main;
+let USER_PAGE_CONTAINER_TYPE: typeof import("@/config/ui/user-layout.config").USER_PAGE_CONTAINER_TYPE;
 before(async () => {
+  ({ USER_PAGE_CONTAINER_TYPE } = await import("@/config/ui/user-layout.config"));
   ({ renderToStaticMarkup: render } = await import("react-dom/server"));
   ({ UserNavigation } = await import("./Header"));
   ({ UserBottomNav } = await import("./BottomNav"));
@@ -165,7 +167,22 @@ test("isBottomNavMenuItem は type で判別する(省略 = リンク)", () => {
   assert.equal(isBottomNavMenuItem({ type: "menu", key: "a", label: "A", icon: Icon, menu: [] }), true);
 });
 
-test("props なしの UserPage・Main は slot 化の前と同じ DOM を描く(幅の既定 = config の contentShell)", () => {
+// upstream(Tier1)だけで見る検査の判定(screens.test と同じ)。core の Main の固定の class は upstream の「DOM を変えない」保証で、
+// fork が Main を自分で変えていても fork の test は落とさない(UserPage が Main に正しく渡すことは全 Tier で見る)
+const { loadCatalogOwnership } = require("../../../lib/folderCatalog/catalog.mjs") as typeof import("../../../lib/folderCatalog/catalog.mjs");
+const isUpstreamRoot = loadCatalogOwnership({ repoRoot: join(__dirname, "../../../.."), folder: "src/lib" }).isRoot;
+const tier1Only = { skip: isUpstreamRoot ? false : "fork(Tier1 以外)は core の Main を自分で変えうるので、固定の class は見ない" };
+
+test("props なしの UserPage は config の USER_PAGE_CONTAINER_TYPE の幅の Main を描き、fill は Main の上に充填の class と印を足す", () => {
+  assert.equal(render(<UserPage>CHILD</UserPage>), render(<Main containerType={USER_PAGE_CONTAINER_TYPE}>CHILD</Main>));
+  assert.equal(render(<UserPage verticalAlign="center">CHILD</UserPage>), render(<Main containerType={USER_PAGE_CONTAINER_TYPE}>CHILD</Main>));
+  const fill = render(<UserPage fill>CHILD</UserPage>);
+  assert.match(fill, /<main [^>]*data-user-fill=""/);
+  assert.match(fill, /class="[^"]*flex min-h-0 flex-1 flex-col overflow-clip overscroll-none[^"]*"/);
+});
+
+test("props なしの UserPage・Main は slot 化の前と同じ DOM を描く(core の Main の固定の class、Tier1 のみ)", tier1Only, () => {
+  assert.equal(USER_PAGE_CONTAINER_TYPE, "contentShell", "upstream の config の既定は contentShell");
   assert.equal(render(<UserPage>CHILD</UserPage>), BEFORE.userPage);
   assert.equal(render(<UserPage fill>CHILD</UserPage>), BEFORE.userPageFill);
   assert.equal(render(<Main>CHILD</Main>), BEFORE.userPage);
@@ -183,7 +200,7 @@ test("Main の verticalAlign=\"start\" は中央寄せ(my-auto)をやめて上�
     assert.equal(html.includes("my-auto"), false);
     assert.match(html, /id="main-layout" class="mt-0 mb-auto /);
   }
-  assert.equal(render(<Main containerType="plain" verticalAlign="start">CHILD</Main>), BEFORE.mainPlain, "plain には効かない");
+  assert.equal(render(<Main containerType="plain" verticalAlign="start">CHILD</Main>), render(<Main containerType="plain">CHILD</Main>), "plain には効かない");
 });
 
 test("UserPage は containerType の明示が既定より勝つ(fill の時も)", () => {
