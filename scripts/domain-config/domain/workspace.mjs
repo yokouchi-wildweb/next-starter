@@ -42,6 +42,31 @@ export function createWorkspace(rootDir = process.cwd()) {
       .sort();
   }
 
+  /** フォルダ名（_ で始まるもの・ファイルは除く。ソート済み） */
+  const foldersIn = (dir, exclude = new Set()) =>
+    fs.existsSync(dir)
+      ? fs
+          .readdirSync(dir, { withFileTypes: true })
+          .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith("_") && !exclude.has(dirent.name))
+          .map((dirent) => dirent.name)
+          .sort()
+      : [];
+
+  /** ドメインの一覧（domain/featureMap.mjs）の材料: business のフォルダと generate（domain.json なし = null、壊れた JSON = "?"）、core のフォルダ */
+  function featureListing() {
+    const business = foldersIn(featuresDir, new Set(["core"])).map((name) => {
+      if (!fs.existsSync(configPath(name))) return { name, generate: null };
+      const config = readConfigLenient(configPath(name));
+      return { name, generate: config === null ? "?" : config.generate !== false };
+    });
+    return { business, core: foldersIn(path.join(featuresDir, "core")) };
+  }
+
+  const featureMapPath = path.join(rootDir, "src", "features", "feature-map.txt");
+
+  /** 今の feature-map.txt（無ければ null） */
+  const readFeatureMap = () => (fs.existsSync(featureMapPath) ? fs.readFileSync(featureMapPath, "utf8") : null);
+
   /** テンプレート（src/features/_template/...）を読む。無ければ例外 */
   function readTemplate(...segments) {
     const file = path.join(templateDir, ...segments);
@@ -53,6 +78,9 @@ export function createWorkspace(rootDir = process.cwd()) {
 
   return {
     rootDir,
+    featureMapPath,
+    featureListing,
+    readFeatureMap,
     featuresDir,
     templateDir,
     adminTemplateDir: path.join(rootDir, "src", "app", "admin", "_template"),

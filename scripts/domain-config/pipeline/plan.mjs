@@ -20,10 +20,9 @@ import { renderServerServices } from "../render/serverServices/index.mjs";
  * @returns {import("../render/output.mjs").Output[]} 書き込み順
  */
 export function planDomain(ctx, workspace, gen) {
-  // generate: false = 手で管理。従属の domain.json も含めて何も書かない
-  if (ctx.config?.generate === false) return [];
-  // 主の集まりの項目の従属の domain.json（無いときだけ書く）。生成カテゴリではないので gen に関わらず出す
-  const outputs = [...renderChildDomainConfigs(ctx, workspace)];
+  // 主の集まりの項目の従属の domain.json（無いときだけ書く）。生成カテゴリではないので gen に関わらず出す。
+  // generate: false = 手で管理なので出さない（gen はカテゴリの名指し --only のときだけ立つ）
+  const outputs = ctx.config?.generate === false ? [] : [...renderChildDomainConfigs(ctx, workspace)];
   if (gen.components) outputs.push(...renderComponents(ctx, workspace));
   if (gen.hooks) outputs.push(...renderHooks(ctx, workspace));
   if (gen.clientServices) outputs.push(...renderClientServices(ctx, workspace));

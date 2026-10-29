@@ -4,6 +4,8 @@
 
 import { assertPreflight, preflightWarnings } from "../checks/index.mjs";
 import { createDomainContext } from "../domain/context.mjs";
+import { FEATURE_MAP_FILE, buildFeatureMap } from "../domain/featureMap.mjs";
+import { file } from "../render/output.mjs";
 import { generateTargets, narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
@@ -49,10 +51,25 @@ export function narrowTargets(ctx, gen, only, io = console) {
  * @param {import("./pairs.mjs").PairIndex} pairs
  */
 export function configTargets(ctx, pairs, only, io = console) {
+  const child = pairs.ownerOf.has(ctx.camel);
   if (ctx.config?.generate === false) {
-    io.log(`[${ctx.camel}] generate: false（手で管理）のため何も書きません`);
+    if (!only) {
+      io.log(`[${ctx.camel}] generate: false（手で管理）のため何も書きません`);
+      return generateTargets(ctx.config, { child });
+    }
+    // --only の名指しは generate: false でも今回だけ書く（保存しない）
+    io.log(`[${ctx.camel}] generate: false（手で管理）ですが、--only で名指しのカテゴリだけ書きます: ${only.join(", ")}`);
+    return narrowTargets(ctx, generateTargets({}, { child }), only, io);
   }
-  return narrowTargets(ctx, generateTargets(ctx.config, { child: pairs.ownerOf.has(ctx.camel) }), only, io);
+  return narrowTargets(ctx, generateTargets(ctx.config, { child }), only, io);
+}
+
+/** ドメインの一覧（src/features/feature-map.txt）を書き直し、変わったら知らせる（dc:generate の書き込みの最後） */
+export function refreshFeatureMap(workspace, io = console) {
+  const content = buildFeatureMap(workspace.featureListing());
+  if (workspace.readFeatureMap() === content) return false;
+  applyOutputs([file(workspace.featureMapPath, content, { label: `✓ ${FEATURE_MAP_FILE} を書き直しました` })], io);
+  return true;
 }
 
 /**
@@ -80,6 +97,7 @@ export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = fal
   if (gen.registry && !deferServiceRegistry) {
     regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
   }
+  if (!deferServiceRegistry) refreshFeatureMap(workspace, io);
   return { registry: Boolean(gen.registry) };
 }
 
@@ -118,6 +136,7 @@ export function generateWithPairs(ctx, workspace, gen, { only = null, dryRun = f
     }
   }
   if (registry && !dryRun) regenerateServiceRegistry(workspace, { errorPrefix: "✗ " });
+  if (!dryRun) refreshFeatureMap(workspace, io);
   io.log("");
   for (const line of pairSummary(workspace, pairs, group, { registry, dryRun })) io.log(line);
   return { registry };

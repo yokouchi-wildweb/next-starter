@@ -9,7 +9,7 @@ import { runInit } from "./init.mjs";
 import { confirm, selectDomain } from "./prompts.mjs";
 
 const USAGE =
-  "使い方: node scripts/domain-config/index.mjs --init | --generate <Domain> [--yes] [--only <categories>] [--dry-run] | --generate --all [--yes] [--only <categories>] [--dry-run] | --delete <Domain>";
+  "使い方: node scripts/domain-config/index.mjs --init | --generate <Domain> [--only <categories>] [--dry-run] [-i] | --generate --all [--only <categories>] [--dry-run] [-i] | --delete <Domain>";
 
 export async function main() {
   let args;
@@ -25,10 +25,11 @@ export async function main() {
   const hasGenerate = args.includes("--generate");
   const hasAll = args.includes("--all");
   const hasDelete = args.includes("--delete");
-  const hasYes = args.includes("--yes");
+  // --generate の既定は対話なし（domain.json の generate どおり）。-i / --interactive のときだけ対話。--yes は受け付けて無視（以前の既定を変える旗）
+  const interactive = args.includes("-i") || args.includes("--interactive");
   const dryRun = args.includes("--dry-run");
   // フラグ以外の最初の引数をドメイン名とする（`--generate --yes User` の順でも受け付ける）
-  const positionalDomain = args.find((arg) => !arg.startsWith("--"));
+  const positionalDomain = args.find((arg) => !arg.startsWith("-"));
 
   if (!hasInit && !hasGenerate && !hasDelete) {
     console.error(USAGE);
@@ -53,12 +54,12 @@ export async function main() {
 
     if (hasGenerate) {
       if (hasAll) {
-        await runGenerateAllInteractive(workspace, { yes: hasYes, only, dryRun });
+        await runGenerateAllInteractive(workspace, { yes: !interactive, only, dryRun });
         return;
       }
       let domain = positionalDomain;
-      if (!domain && hasYes) {
-        throw new Error("--yes にはドメイン名が必要です（全ドメインは --all --yes）");
+      if (!domain && !interactive) {
+        throw new Error("ドメイン名を指定してください（全ドメインは --all、選んで生成するなら -i）");
       }
       if (!domain) {
         const domains = workspace.listDomains();
@@ -68,7 +69,7 @@ export async function main() {
         }
         domain = await selectDomain(domains);
       }
-      await runGenerate(workspace, domain, hasYes ? { mode: "config", interactive: false, shouldGenerate: true, only, dryRun } : { only, dryRun });
+      await runGenerate(workspace, domain, interactive ? { only, dryRun } : { mode: "config", interactive: false, shouldGenerate: true, only, dryRun });
       return;
     }
 

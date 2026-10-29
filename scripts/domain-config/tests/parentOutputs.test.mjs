@@ -15,7 +15,7 @@ import { renderCollectionsOutput } from "../render/registry/collections.mjs";
 import { renderServerServices } from "../render/serverServices/index.mjs";
 import { makeProject, removeAll, repoRoot } from "./helpers.mjs";
 import { planDomain } from "../pipeline/plan.mjs";
-import { ALL_GENERATE_OPTIONS } from "../spec/categories.mjs";
+import { generateTargets } from "../spec/categories.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
@@ -148,7 +148,10 @@ test("drizzleBase: 集まりを持つ主だけ collections を import して opt
   assert.equal(ownerWithoutCollections.replace(/showcase/g, "x").replace(/Showcase/g, "X"), plain.replace(/plain_things|plainThing/g, "x").replace(/PlainThing/g, "X"));
 });
 
-test("主が generate: false（手で管理）なら、従属の domain.json も含めて何も書かない", () => {
+test("主が generate: false（手で管理）なら何も書かない。カテゴリを名指ししても従属の domain.json は書かない", () => {
   const { workspace, ctx } = ownerContext({ ...showcase, generate: false });
-  assert.deepEqual(planDomain(ctx, workspace, ALL_GENERATE_OPTIONS), []);
+  assert.deepEqual(planDomain(ctx, workspace, generateTargets(ctx.config)), []);
+  const named = planDomain(ctx, workspace, { ...generateTargets(ctx.config), serverServices: true });
+  assert.ok(named.length > 0);
+  assert.ok(named.every((out) => !String(out.path ?? "").endsWith("domain.json")));
 });

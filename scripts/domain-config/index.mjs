@@ -4,12 +4,14 @@
  *
  * 使用方法:
  *   --init              対話形式で設定ファイルを生成し、続けて生成を行うか確認します。
- *   --generate <Domain> 既に作成した設定ファイルを基にファイル生成のみを行います。
- *   --generate --all    domain.json を持つ複数ドメインを一括で生成します。
+ *   --generate <Domain> 設定ファイルを基にファイルを生成します（既定は対話なし。domain.json の generate どおり、false は何も書かない）。
+ *   --generate --all    domain.json を持つ全ドメインを一括で生成します（既定は対話なし）。
  *   --delete <Domain>   指定したドメインに関連する生成物を削除します。
- *   --yes               --generate と併用。プロンプトを出さず domain.json の generate どおりに生成します（false は何も書かない）。
- *   --only <categories> --generate と併用。generate で決まるカテゴリをさらに絞り込みます（例: --only registry）。
+ *   -i, --interactive   --generate と併用。生成方法・カテゴリ・ドメインを対話で選び、上書きを確認します（選択は保存しない）。
+ *   --only <categories> --generate と併用。今回はこのカテゴリだけ生成します（generate: false のドメインでも書く。例: --only registry）。
  *   --dry-run           --generate と併用。何も書かず、書くはずのファイルと動作（作成 / 上書き / 変更なし / 保持）を一覧します。
+ *   --yes               受け付けて無視します（以前は対話なしにする旗。今は既定が対話なし）。
+ *   書き込みの最後に src/features/feature-map.txt（ドメインの一覧）を書き直します。
  *
  * 単独の `--` は無視します（`pnpm dc:generate -- User` を許容するため）。
  * 失敗時は終了コード 1 で終了します。何も書く前に検査で止まり、書きかけのファイルは残しません。
@@ -17,9 +19,9 @@
  * 例:
  *   node scripts/domain-config/index.mjs --init
  *   node scripts/domain-config/index.mjs --generate User
- *   node scripts/domain-config/index.mjs --generate User --yes
- *   node scripts/domain-config/index.mjs --generate --all --yes --only registry
- *   node scripts/domain-config/index.mjs --generate --all --yes --dry-run
+ *   node scripts/domain-config/index.mjs --generate User -i
+ *   node scripts/domain-config/index.mjs --generate --all --only registry
+ *   node scripts/domain-config/index.mjs --generate --all --dry-run
  *   node scripts/domain-config/index.mjs --delete User
  */
 import { main } from "./cli/main.mjs";

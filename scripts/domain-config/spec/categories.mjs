@@ -2,7 +2,8 @@
 //
 // generate（省略 = true）: true = 全カテゴリ（集まりの従属は従属のカテゴリだけ）、false = 何も生成しない（手で管理）。
 // 区分ごとの generateFiles は廃止（checks/required.mjs が止める）。
-// `--only` は決まったカテゴリをさらに絞り込むだけ（どの組み合わせで実行しても、指定なしより多くのファイルが書き換わることはない）。
+// `--only` = 今回はこのカテゴリだけ（保存しない）。generate: true は全カテゴリから絞る、generate: false でも名指しのカテゴリは書く、
+// 集まりの従属は従属のカテゴリの内だけ（従属に無いカテゴリは名指ししても書かない）。
 
 export const GENERATE_CATEGORIES = [
   "entities",

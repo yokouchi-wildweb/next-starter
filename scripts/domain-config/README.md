@@ -14,8 +14,8 @@
 | コマンド | 実体 | 用途 |
 |---|---|---|
 | `pnpm dc:init` | `index.mjs --init` | 対話で `domain.json` を新規作成し、続けて生成するか確認する |
-| `pnpm dc:generate <Domain>` | `index.mjs --generate` | 1 ドメインを生成・再生成する。`<Domain>` 省略時は一覧から選ぶ。`--yes` でプロンプトなし |
-| `pnpm dc:generate:all` | `index.mjs --generate --all` | 選んだ複数ドメインを一括で再生成する。`--yes` でプロンプトなし（全ドメイン） |
+| `pnpm dc:generate <Domain>` | `index.mjs --generate` | 1 ドメインを生成・再生成する。既定は対話なし（`<Domain>` 必須）。`-i` で対話（ドメインの選択・生成方法・上書き確認） |
+| `pnpm dc:generate:all` | `index.mjs --generate --all` | 全ドメインを一括で再生成する（既定は対話なし）。`-i` で選んで生成 |
 | `pnpm dc:add <Domain>` | `add-field.mjs` | 既存 `domain.json` の `fields` 末尾に対話でフィールドを足す（生成はしない） |
 | `pnpm dc:delete <Domain>` | `index.mjs --delete` | 生成物とレジストリ登録を削除する |
 | `pnpm dc:generate:hook` / `:component` / `:service` | `generate-*.mjs` | カテゴリ内のファイルを個別に選んで生成する（複数ドメイン可） |
@@ -25,35 +25,35 @@
 > 失敗（`domain.json` が無い、検査で止まる、テンプレートが無い、登録表が作れないなど）は終了コード 1 になり、**何も書かない**（生成物は全部組み立て、書いた後の状態で `serviceRegistry.ts` が作れることまで確かめてから書く）。
 > **フォルダ名 = `singular` の camelCase**（例: `name_pool_entry` → `src/features/namePoolEntry/`）が全ジェネレーターの前提。生成先・import・レジストリ登録・他ドメインからのリレーション import をすべてこの規則で組み立てるため、ずれているドメインがあると `dc:generate` / `dc:generate:all` は何も書かずに終了コード 1 で止まる（`checks/domainFolder.mjs`、`:all` は全件を事前検査）。直すときはフォルダを改名する（`singular` を変えるとテーブル名・FK 名が変わる）。
 
-## 対話なし実行（`--yes`）
+## 既定は対話なし（対話は `-i`）
 
-エージェント（/flux）や CI から生成するときに使う。
+`pnpm dc:generate <Domain>` / `pnpm dc:generate:all` は既定で質問を出さず、`domain.json` の `generate` どおりに生成する（`generate: false` のドメインは何も書かない）。`<Domain>` を省くとエラー終了する。
 
-- `pnpm dc:generate <Domain> --yes` … 対話で「domain.json の設定に基づいて生成」を選び、上書き確認に Yes と答えたのと同じ結果になる（同じ分岐を通る）。`<Domain>` が必要で、省略するとエラー終了する
-- `pnpm dc:generate:all --yes` … `domain.json` を持つ全ドメインを、それぞれの `generateFiles` で生成する
-- 「すべてのファイルを生成」「手動選択」には対応しない。`generateFiles` を false にして手で編集しているファイルを、確認なしで上書きさせないため（必要なら対話で実行する）
-- `dc:delete` / `dc:add` には `--yes` は無い（削除の名前入力は安全装置、フィールド追加は入力そのものが目的）
-- `.notices` の再生成手順は `pnpm dc:generate <Domain> --yes` と書き、`[user-run]` を付けない。`--dry-run` を足せば書かずに対象だけ確かめられる
+- `-i`（`--interactive`）のときだけ、生成方法（generate どおり / カテゴリを手動で選ぶ / 全部）・ドメインの選択・上書き確認を対話で聞く。選んだカテゴリは保存しない
+- `--yes` は受け付けて無視する（以前の「対話なし」の旗。古い手順・notice がそのまま動く）
+- 書き込みの最後に `src/features/feature-map.txt`（ドメインの一覧: business / core、domain.json の有無、generate）を書き直す。`pnpm dc:feature-map --check` がフォルダの増減・generate の切り替えのずれを見つける。merge で衝突したら `pnpm dc:feature-map` で作り直す
+- `dc:delete` / `dc:add` は対話のまま（削除の名前入力は安全装置、フィールド追加は入力そのものが目的）
+- `.notices` の再生成手順は `pnpm dc:generate <Domain>` と書き、`[user-run]` を付けない。`--dry-run` を足せば書かずに対象だけ確かめられる
 
 ## 書かずに確かめる（`--dry-run`）
 
-`pnpm dc:generate <Domain> --yes --dry-run` / `pnpm dc:generate:all --yes --dry-run --only registry` のように付けると、何も書かずに、書くはずのファイルごとの動作を一覧する（上書き確認も出ない）。
+`pnpm dc:generate <Domain> --dry-run` / `pnpm dc:generate:all --dry-run --only registry` のように付けると、何も書かずに、書くはずのファイルごとの動作を一覧する（上書き確認も出ない）。
 
 - 動作: `作成`（無いファイル）/ `上書き`（内容が変わる）/ `変更なし` / `保持`（write-once で既存を残す）/ `移行`（旧形式の page.tsx を 1 行スイッチへ）/ `スキップ`（レジストリのファイルが無い）。最後に `[dry-run] <domain>: 作成 N / 上書き N / ...` のまとめ
 - `serviceRegistry.ts` の作り直しは実行時に行うので一覧には出ない（まとめに注記が付く）
 - 使いどころ: `.notices` の再生成手順を実行する前に「この `--only` は何を触るか」を見る、テンプレートを変えた後に影響するドメインを数える
 
-## カテゴリの絞り込み（`--only`）
+## カテゴリの名指し（`--only`）
 
-`pnpm dc:generate <Domain> --only registry` / `pnpm dc:generate:all --yes --only registry,hooks` のように、今回生成するカテゴリ（`generateFiles` のキー）を絞る。
+`pnpm dc:generate <Domain> --only registry` / `pnpm dc:generate:all --only registry,hooks` のように、今回はこのカテゴリだけ生成する（保存しない）。
 
-- `generateFiles` を**上書きしない**。true のカテゴリのうち `--only` に含まれるものだけを生成する（false のカテゴリは指定しても生成せず「スキップ」と表示）。どの組み合わせでも、指定なしより多くのファイルは書き換わらない
-- 対話モード・`--yes`・`:all` のどれとも併用できる。不明なカテゴリ名は終了コード 1
+- `generate: true` のドメインは全カテゴリのうち名指しのものだけ。`generate: false`（手で管理）のドメインでも、名指しのカテゴリは今回だけ書く（手で直しているファイルのカテゴリを名指ししないこと）。集まりの従属は従属のカテゴリ（entities / serverServices / registry / fieldConstants / presenters）の内だけ
+- 対話（`-i`）・`:all` のどちらとも併用できる。不明なカテゴリ名は終了コード 1
 - `--only registry` が書くのは `services/server/domainEntry.ts`（ドメイン内）と `src/registry/` の schemaRegistry / domainConfigRegistry / adminDataMenu / storagePurposeRegistry（AUTO ブロックだけ）。追記された adminDataMenu は domain.json の `addToAdminDataMenu` と違えば `registry:check` が止める(`pnpm registry:generate` で domain.json の通りになる。fork が外すのは domain.json 側)。最後に `pnpm registry:generate` が serviceRegistry.ts を丸ごと作り直す（`dc:generate:all` は全ドメインの domainEntry.ts を書いた後に 1 回だけ。ドメインごとに作り直すと、まだ domainEntry.ts の無い他のドメインで検査が止まるため）
   - storagePurposeRegistry には、画像を含むメディア項目の `metadata`（`storage.metadata`、省略 = `"strip"`）が明示値で入る。strip の項目の accept にサーバーで描き直せない画像の型（`image/heic` など）があると生成エラー（直し方: [src/features/README.md](../../src/features/README.md)「ファイルの保存（storage）」）
   - private の用途の `read.allow` は `storage.read`（`"public"` も可）、無ければ apiAccess の get の規則。visibility を省いた項目の公開・非公開の導出も同じ規則を使う
-- domainEntry.ts は毎回 domain.json から書き直す（domain.json の `apiAccess` / `useImportExport` が正。手で変えた access は消える。手で持ちたいなら `generateFiles.registry` を false）。`table` / `idColumn` も書く（表名は表の定義と同じ `domainTableName`、Firestore は `null`）
-- `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --yes --only registry`、フックだけ → `--only hooks`）。全カテゴリの再生成が避けられないときは、一時的な git worktree で実行して必要な差分だけを取り込むよう案内する
+- domainEntry.ts は毎回 domain.json から書き直す（domain.json の `apiAccess` / `useImportExport` が正。手で変えた access は消える。手で持ちたいなら domain.json の `generate` を false）。`table` / `idColumn` も書く（表名は表の定義と同じ `domainTableName`、Firestore は `null`）
+- `.notices` で再生成が要るときは、必要なカテゴリだけを `--only` で指定する（例: レジストリの書き換え → `pnpm dc:generate:all --only registry`、フックだけ → `--only hooks`）。全カテゴリの再生成が避けられないときは、一時的な git worktree で実行して必要な差分だけを取り込むよう案内する
 
 ---
 
