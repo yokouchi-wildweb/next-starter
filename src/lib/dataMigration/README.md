@@ -76,6 +76,7 @@
 - `null` と `""` は import 時に区別されず、空文字は `null` 扱い
 - 型変換は **メインドメインのみ** `fieldType` を参考に実施
   - 関連ドメイン/中間テーブルは文字列のまま
+  - 配列（型の表の array 属性 = `array`・`stringArray`）はカンマ区切りのセルを配列にする。主の集まり（`mediaCollection`）は取り込まない
 - `maxRecordLimit` は export のみで制限
   - チャンク import では総件数の制限を行わない
 - システムフィールド（`createdAt` など）はそのまま渡すだけで、永続化はスキーマ次第

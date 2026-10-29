@@ -1,3 +1,4 @@
+import { isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
 import type { DataTableColumn } from "@/lib/tableSuite";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";
@@ -38,6 +39,7 @@ type BuildDomainColumnsParams<T> = {
    * ソート可能にするフィールド名の配列。
    * 指定されたフィールドの DataTableColumn に sortKey が自動設定される。
    * true を渡すと tableFields の全フィールドをソート可能にする（画像・配列フィールドは自動除外）。
+   * 値が配列の型（array・stringArray）の列は、名前で指定してもソートしない。
    */
   sortableFields?: string[] | true;
 };
@@ -125,7 +127,6 @@ function renderValue({
 }
 
 const UNSORTABLE_INPUT_TYPES = new Set(["mediaUploader", "mediaUploaderMulti", "fileUploader"]);
-const UNSORTABLE_FIELD_TYPES = new Set(["array"]);
 
 function resolveSortKey(
   field: string,
@@ -134,10 +135,11 @@ function resolveSortKey(
   fieldType: string | undefined,
 ): string | undefined {
   if (!sortableFields) return undefined;
+  // 値が配列の型（型の表の array 属性）は並べ替えない。辞書順の比較は先頭要素で並ぶだけで意味が無い。列名で指定しても同じ
+  if (isArrayFieldType(fieldType)) return undefined;
 
   if (sortableFields === true) {
     if (inputType && UNSORTABLE_INPUT_TYPES.has(inputType)) return undefined;
-    if (fieldType && UNSORTABLE_FIELD_TYPES.has(fieldType)) return undefined;
     return field;
   }
 

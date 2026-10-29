@@ -15,6 +15,7 @@ import { CouponCreateSchema } from "@/features/core/coupon/entities/schema";
 
 import type { FieldDataType, FieldDataTypeFirestore } from "@/components/Form/Field/types";
 import { isCheckGroupFieldType } from "@/components/Form/Field/Configured/checkGroupFieldTypes";
+import { isCheckboxArray } from "@/components/Form/Field/Configured/inputResolver";
 import { FIELD_TYPES } from "@/lib/domain/fields/fieldTypes.mjs";
 import { FORM_INPUTS } from "../../../../scripts/domain-config/spec/formInputs.mjs";
 
@@ -251,6 +252,26 @@ describe("手書きの型の名前が型の表とずれていない", () => {
       for (const fieldType of Object.keys(FORM_INPUTS[engine])) {
         assert.ok(Object.hasOwn(FIELD_TYPES, fieldType), `${engine} / ${fieldType} が型の表に無い`);
       }
+    }
+  });
+});
+
+describe("isCheckboxArray: checkbox かつ値が配列の型（型の表の array 属性）", () => {
+  test("array・stringArray の checkbox だけ true", () => {
+    assert.equal(isCheckboxArray({ name: "x", label: "x", formInput: "checkbox", fieldType: "array" }), true);
+    assert.equal(isCheckboxArray({ name: "x", label: "x", formInput: "checkbox", fieldType: "stringArray" }), true);
+    assert.equal(isCheckboxArray({ name: "x", label: "x", formInput: "checkbox", fieldType: "boolean" }), false);
+    assert.equal(isCheckboxArray({ name: "x", label: "x", formInput: "checkbox", fieldType: "mediaUploaderMulti" }), false);
+    assert.equal(isCheckboxArray({ name: "x", label: "x", formInput: "multiSelect", fieldType: "array" }), false);
+  });
+
+  test("答えは isCheckGroupFieldType と同じ（表の全行）", () => {
+    for (const fieldType of Object.keys(FIELD_TYPES)) {
+      assert.equal(
+        isCheckboxArray({ name: "x", label: "x", formInput: "checkbox", fieldType: fieldType as FieldDataType }),
+        isCheckGroupFieldType(fieldType),
+        fieldType,
+      );
     }
   });
 });

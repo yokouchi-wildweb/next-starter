@@ -159,13 +159,13 @@ const handleSortChange = (nextSort: SortState) => {
 ```tsx
 import { buildDomainColumns } from "@/lib/crud";
 
-// 特定フィールドのみソート可能
+// 特定フィールドのみソート可能（値が配列の型 array・stringArray の列は指定してもソートしない）
 const columns = buildDomainColumns<Sample>({
   config,
   sortableFields: ["name", "number", "updatedAt"],
 });
 
-// 全 tableFields をソート可能にする（画像・配列フィールドは自動除外）
+// 全 tableFields をソート可能にする（画像・配列の型 array・stringArray は自動除外）
 const columns = buildDomainColumns<Sample>({
   config,
   sortableFields: true,

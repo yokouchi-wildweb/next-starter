@@ -301,10 +301,10 @@ export function shouldUseFieldItem(formInput: FormInputType): boolean {
 }
 
 /**
- * checkbox の formInput が配列型かどうかを判定
+ * checkbox の formInput が配列型（複数選択）かどうかを判定。答えは型の表（isCheckGroupFieldType）と同じ
  */
 export function isCheckboxArray(fieldConfig: FieldConfig): boolean {
-  return fieldConfig.formInput === "checkbox" && fieldConfig.fieldType === "array";
+  return fieldConfig.formInput === "checkbox" && isCheckGroupFieldType(fieldConfig.fieldType);
 }
 
 /**

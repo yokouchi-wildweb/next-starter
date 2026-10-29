@@ -8,6 +8,7 @@
 import "server-only";
 import type { CrudStorageField } from "@/lib/crud/storageIntegration/types";
 import { toCamelCase } from "@/utils/stringCase.mjs";
+import { isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
 import { parseCsv } from "./parseCsv";
 import { db } from "@/lib/drizzle";
 import type { DataMigrationMediaResolver } from "../media";
@@ -100,9 +101,9 @@ function extractErrorInfo(error: unknown): Record<string, unknown> {
 }
 
 /**
- * fieldType に基づいてフィールドタイプを判定
+ * fieldType に基づいてフィールドタイプを判定（export は単体テスト用）
  */
-function getFieldTypes(fields: FieldTypeInfo[]): {
+export function getFieldTypes(fields: FieldTypeInfo[]): {
   arrayFields: Set<string>;
   dateFields: Set<string>;
   numberFields: Set<string>;
@@ -115,8 +116,8 @@ function getFieldTypes(fields: FieldTypeInfo[]): {
     const { name, fieldType } = field;
     const normalizedType = fieldType?.toLowerCase() || "";
 
-    // 配列型
-    if (normalizedType === "array") {
+    // 配列型（型の表の array 属性 = array・stringArray。型名は小文字化せずに引く）
+    if (normalizedType === "array" || isArrayFieldType(fieldType)) {
       arrayFields.add(name);
       continue;
     }
@@ -148,9 +149,9 @@ function getFieldTypes(fields: FieldTypeInfo[]): {
 }
 
 /**
- * レコードのフィールド値を適切な型に変換
+ * レコードのフィールド値を適切な型に変換（export は単体テスト用）
  */
-function convertRecordTypes(
+export function convertRecordTypes(
   record: Record<string, unknown>,
   arrayFields: Set<string>,
   dateFields: Set<string>,
