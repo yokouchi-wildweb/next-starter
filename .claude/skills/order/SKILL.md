@@ -54,6 +54,15 @@ argument-hint: "<宛先: self | リポ名 | 省略で会話から判断> [補足
    - need / done_when の要約(1〜3 行)+ **保存パス(フルパス。/wen はこのパスで状況を確かめる)**
    - 「宛先リポで `/inbox` を実行すると受け取れます。このセッションで `/wen` を打つと状況を確かめられます。宛先や内容を直すときはこのファイルを編集・移動します(言ってください)」
 
+## 一時許可の依頼(fork が所有の検査の違反を通すとき)
+`pnpm ownership:check` の違反のうち、受け口へ移せない・元に戻せない物(upstream に無い機能、upstream のバグ・性能・セキュリティの修正)は、直接の親への依頼 + 一時許可で通す(`src/lib/forkOwnership/README.md`「一時許可」)。
+1. 宛先 = 直接の親(`.claude/rules/project.md` の TIER、無ければ origin 以外の remote の repo)。上の手順で起票する。need に違反のパスと upstream に要る物(受け口・修正)、refs に検査の違反の行と許可の下書きの行(`<path> upreq:<依頼の番号> base:… head:…`)、why に fork が今その書き換えを要る理由
+   - 削除・rename の許可の依頼は「止める受け口(feature-gate 等)を用意してほしい」、祖先 lib への追加は「その lib に入れてほしい / 受け口がほしい」に限る
+   - upstream の負債の箇所(intake.txt の debt)と、upstream が既に受けた依頼(受信箱の修正の依頼)は起票しない。intake.txt の debt の理由欄・依頼の id をそのまま使う
+2. 起票した id で下書きの `<依頼の番号>` と `<理由>` を埋め、`.fork-ownership/<fork-id>.permits.txt` に 1 ファイル 1 行で貼る(同じファイルに複数の依頼なら `upreq:<id>,<id>`)
+3. 許可ファイルを commit してから `pnpm ownership:check` を走らせ直し、その行が permitted になることを確かめる
+4. 依頼の状況は `/wen permits` で確かめる。解決(親の notice の `resolves:`)・却下を見たら、その行を外して受け口へ移すか元に戻す
+
 ## self 宛ての使いどころ
 - 今は着手しない次の作業を、このリポの作業待ちとして残す(会話を閉じても消えない。`/inbox` に一覧で出る)
 - 進行中の作業の引き継ぎ(状態・次の一手)は auto-memory の役目で、self 宛ての指令は「着手前の作業の予約」に使う

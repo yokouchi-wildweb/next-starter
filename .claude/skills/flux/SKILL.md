@@ -59,11 +59,13 @@ disable-model-invocation: true
 - 計画に「この区間は軽い(根拠: 上の各項目がなし)」と 1 行書き、PLAN FILE の SEGMENTS の行に `light` を付ける(fleet の見直しが「この先 N 区間は軽い」と数える)。
 
 ## 上流への所見(findings)— 最終報告の常設項目
-適用中に気づいたことを集め、最終報告の末尾に「**上流への所見**」として必ず出す(無ければ「なし」):
+適用中に気づいたことを集め、最終報告の末尾に「**上流への所見**」として必ず出す(無ければ「なし」。(e)(f) は fork 自身への指摘で、上流への起票文案は付けない):
 - (a) 上流のバグ・不備(取り込んだコードの問題、テスト漏れ)
 - (b) notice と実態のズレ(手順が合わない、verify が通らない、書かれていない影響があった)。**notice が無いのに fork 側の追従が要った上流の変更**(下記「上流の変更点の洗い出し」で見つかったもの)は notice 漏れとして必ずここに出す(上流は「追従が要る変更には notice を出す」が必須)
 - (c) この fork で必要になった修正のうち、他 fork でも同じ修正が要りそうな汎用性のあるもの(= /order <上流リポ> 候補)
 - (d) 設計上の懸念
+- (e) 一時許可の放置: `pnpm ownership:check --json` の entries のうち permit が refresh / expired-resolved / expired-base の行と leftovers(残骸)、許可の依頼の状況(`/wen permits` と同じ確かめ方)。却下された依頼の行は「戻す・受け口へ移す・別の方針で許可し直す」を必須として出す。検査が使えない(基準に src/lib/forkOwnership が無い)なら省く
+- (f) project.md の所有の規則との矛盾: fork の `.claude/rules/project.md` の行のうち、upstream の所有の規則(`src/lib/forkOwnership/README.md`・CLAUDE.md CORE_FILES)と食い違う物(例: upstream のファイル・ルートを削除 / rename してよい、core の中を直接編集してよい、受け口の外を変えてよい と読める行)を引用して指摘する。**失敗にしない・直さない**(project.md は fork の持ち物、D34)。食い違いが無ければ「なし」
 
 (a)(c) の文案を出す前に、上流で既に直っていないかを確かめる: 流入予定の notice の `fixes:`、その箇所のファイルに対する上流の未取り込みの commit(`git log HEAD..<upstream>/<branch> -- <file>`)。直っていれば文案は出さず「上流で修正済み(区間 K / commit <sha>)」と書く。
 

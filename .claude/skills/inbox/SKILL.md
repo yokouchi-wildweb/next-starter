@@ -18,7 +18,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 ## $ARGUMENTS が空のとき（一覧モード）
 0. 自リポが Tier1(`src/lib/CATALOG.md` の先頭の節の持ち主)なら、`pnpm -s ownership:check` の 1 行目(upstream の負債の行の数)を一覧の先頭に 1 行で添える(負債 = upstream が core の中の編集を下流に案内している箇所。受け口づくりの指令が受信箱にある。src/lib/forkOwnership/README.md「受け口の一覧」)。Tier1 でなければ何もしない
 1. `node .claude/skills/order/mailbox.mjs inbox` で、自リポ宛ての未対応（`open` / `waiting` / `resumable`）を取得する。
-2. 指令は出力の `need:`・`from:` を使い、**1行サマリ（id / need / from）**を日本語で一覧表示（from がリポで自リポなら「自分宛て」、チームの役職なら「fleet の提督から」のようにチームと役職名を書く。mailbox.mjs の一覧はチームの指令を `from: <team> <instance> <役職名>` と出す。リポで動いていても自分宛てとは書かない）。`waiting` は「待ち（<待っている先>）」、`resumable` は「再開可」と添える。
+2. 指令は出力の `need:`・`from:` を使い、**1行サマリ（id / need / from）**を日本語で一覧表示（from がリポで自リポなら「自分宛て」、チームの役職なら「fleet の提督から」のようにチームと役職名を書く。mailbox.mjs の一覧はチームの指令を `from: <team> <instance> <役職名>` と出す。リポで動いていても自分宛てとは書かない）。`waiting` は「待ち（<待っている先>）」、`resumable` は「再開可」と添える。依頼元が自リポ以外のリポ（下流の fork）なら「下流の一時許可の元かもしれない → 出荷は resolves: 付き」と添える（`.notices/README.md`「解決(resolves)」。対応完了の /ship に `order:<id>` を必ず渡す）。
 3. 件数で分岐（`waiting` は数えない）:
    - 0件: 「未対応の依頼はありません」と伝える。
    - **1件: 「どれに着手しますか？」とは聞かず、そのままその指令の対応モード（下記 1〜3）に進む**（全文読込 → 要約 → 実装方針提案まで。実装はしない）。
@@ -42,6 +42,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 4. ユーザーが「対応完了」と言ったら（**完了報告とコミット&プッシュは必ずセットで実行する**。「対応完了」がコミット/プッシュへの明示的な指示を兼ねる。**以下 a〜d は途中でユーザーへの確認・質問・AskUserQuestion を一切挟まず連続実行する** — 「対応完了」が唯一かつ十分な承認であり、追加の承認待ちは禁止）:
    a. **`/ship` で出荷する**（RESOLUTION を出す前に実体を確定させ、commit sha を正確にするため）: `.claude/skills/ship/SKILL.md` の手順を引数 `order:<指令の id>` で行う（範囲の確定・検査・notice の判定と合成・コミット・push。止まるのは /ship の「止まるとき」に当たったときだけ）。方針で notice を出すと決めた対応では、/ship の判定もそれに合わせる。
       - 確認・調査だけで差分の無い指令は /ship を使わず commit を作らない（RESOLUTION は `commit:- | pushed:-`）。
+      - 下流の fork から来た依頼を却下（rejected）するときは、RESOLUTION の notes に依頼元が一時許可をどうするか（元に戻す・受け口へ移す・別の方針で許可し直す）を書く（依頼元の /wen permits がそれを示す）。差分の無い解決でも、依頼元が下流の fork なら /ship の判定に従い resolves: の notice を出す
       - 既にチーム手順内でコミット済みなら新規コミットは作らず、現在の HEAD をそのまま使う。
       - ブランチはチーム/通常フローに従う（既にフィーチャーブランチ上ならそのまま。チームセッションなら orchestrator のブランチ方針に従う）。
       - **評議会からの指令に `output:` があるときは、それに従う**（指令の宣言が push についての明示的な指示になる）: `push` = 上のとおり | `commit` = **push しない**（/ship を `no-push` で）。指令の `held:` が名指すブランチに積み、作業の前に `git switch <branch>`（無ければ `git switch -c <branch> <指令の base:>`）、commit してから `git switch <main>` で main に戻る（`pushed: no (held)`）| `none` = commit しない（観測・計測の結果を RESOLUTION に書くだけ。`commit:-`）。

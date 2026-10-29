@@ -121,6 +121,7 @@ pnpm ownership:check --parent=upstream --branch=main
 
 - 終了コード: 0 = 合格(Tier1 は「親なし: 対象外」)/ 1 = 違反あり / 2 = 未検証・設定の不足(合格にしない)
 - 出力: 先頭に結論と基準(remote・branch・base)、reason ごとの件数、違反と一時許可の残骸・書式の誤りの一覧
+- 一時許可の依頼の出し方は `/order`「一時許可の依頼」、依頼の状況は `/wen permits`、放置と project.md の食い違いは `/flux` の最終報告(上流への所見 (e)(f))に出る
 - 違反には、今の指紋で書いた**一時許可の行の下書き**が付く(指紋は区画の中身を除いた blob なので、素の `git hash-object` では出せない)。一時許可で片付けるときは、`<依頼の番号>` と `<理由>` を埋めて `.fork-ownership/<fork-id>.permits.txt` に貼り、commit してから検査し直す
 - 手順(`check.mjs` の `runCheck`)
   1. Tier1 の判定: 自分の所有者 ID(`folderCatalog` の `resolveOwnerId`)が `src/lib/CATALOG.md` の先頭の節の持ち主なら対象外。remote の有無では決めない(親の remote を設定し忘れた fork が黙って合格にならないように)
