@@ -1,26 +1,37 @@
 // fork の区画の印の形を固定する検査(pnpm test:fork-regions)
-// - src/registry の全ファイルで、印の対が閉じている・入れ子が無い・文言が正しい
+// - 受け口の一覧(intake.txt)で region に当たる全ファイル(src/registry・room と seed の登録点)で、
+//   印の対が閉じている・入れ子が無い・文言が正しい
 // - 古い下流の印(DOWNSTREAM / 上流は空。下流が追記 / FORK (手書き))が残っていない
 //   fork でも失敗する: 古い印の下の行は新しい印の対の中へ移す(.notices の registry-fork-markers)
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
+import { matchIntake, parseIntake } from "./intake.mjs";
 import { FORK_REGION_END, FORK_REGION_START, isInForkRegion, parseForkRegions } from "./regions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
-const REGISTRY_DIR = join(ROOT, "src/registry");
 
-const listTsFiles = (dir) =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) return listTsFiles(path);
-    return entry.name.endsWith(".ts") ? [path] : [];
+/** intake.txt で kind が region のファイル(git の管理下にある物) */
+const listRegionFiles = () => {
+  const { rules } = parseIntake(readFileSync(join(ROOT, "src/lib/forkOwnership/intake.txt"), "utf8"));
+  return execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" })
+    .split("\n")
+    .filter((path) => path !== "" && matchIntake(rules, path)?.kind === "region")
+    .map((path) => join(ROOT, path));
+};
+
+describe("受け口の一覧で region のファイル", () => {
+  const files = listRegionFiles();
+
+  test("src/registry と room・seed の登録点が対象に入っている", () => {
+    const paths = files.map((file) => relative(ROOT, file));
+    for (const expected of ["src/registry/coinIssuanceRegistry.ts", "servers/room/src/registry.ts", "scripts/db/seed/data/registry.ts"]) {
+      assert.ok(paths.includes(expected), expected);
+    }
   });
-
-describe("src/registry の実ファイル", () => {
-  const files = listTsFiles(REGISTRY_DIR);
 
   test("印の対が閉じていて、入れ子・文言の違いが無い", () => {
     const problems = files.flatMap((file) =>

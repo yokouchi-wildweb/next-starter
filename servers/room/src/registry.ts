@@ -6,13 +6,16 @@
 // 登録手順:
 //   1. ルームロジック (reducer) を src/features/<domain>/room/ に純粋関数として実装する
 //      (純度制約は ESLint realtime-room/purity で強制される。Node/Next/DB import 禁止)
-//   2. ここで import して namespace 名をキーに登録する
+//   2. ここで import して namespace 名をキーに登録する(import も登録も fork entries の印の対の中に書く)
 //
 // 例:
 //   import { raidRoomDefinition } from "@/features/gachaRaid/room/definition";
 //   export const roomRegistry = { raid: raidRoomDefinition, ... };
 
 import type { AnyRoomDefinition, RoomDefinition } from "@/lib/realtimeRoom/protocol";
+
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
 
 // ---------------------------------------------------------------------------
 // sample-counter: 疎通確認用のサンプルルーム (実装パターンの参照元)
@@ -81,4 +84,6 @@ const sampleCounterDefinition: RoomDefinition<SampleCounterState, SampleCounterA
 
 export const roomRegistry: Record<string, AnyRoomDefinition> = {
   "sample-counter": sampleCounterDefinition,
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 };

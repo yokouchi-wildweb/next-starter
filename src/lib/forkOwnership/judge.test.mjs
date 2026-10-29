@@ -26,7 +26,8 @@ describe("実リポジトリの intake.txt", () => {
   });
 
   // fork だけが作るファイル(_components/・override.ts 等)は upstream に無いので、glob そのものではなく
-  // 最初の `*` より前の固定の部分(ディレクトリまたはファイル)が実在することを見る(パスの書き違い・移動の検出)
+  // 最初の `*` より前の固定の部分(ディレクトリまたはファイル)が実在することを見る(パスの書き違い・移動の検出)。
+  // fork が作るファイルを名指しする行(upstream には .example だけ等)は、理由に「upstream には無い」と書いて外す
   test("glob の固定の部分が実在する(一覧の鮮度)", () => {
     const files = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
     const literalPrefix = (glob) => {
@@ -34,7 +35,7 @@ describe("実リポジトリの intake.txt", () => {
       return wildcard === -1 ? glob : glob.slice(0, glob.lastIndexOf("/", wildcard) + 1);
     };
     const stale = rules
-      .filter((rule) => rule.kind !== "generated" && rule.kind !== "debt")
+      .filter((rule) => rule.kind !== "generated" && rule.kind !== "debt" && !rule.note.includes("upstream には無い"))
       .filter((rule) => {
         const prefix = literalPrefix(rule.glob);
         return !files.some((file) => (prefix.endsWith("/") ? file.startsWith(prefix) : file === prefix));
@@ -59,6 +60,12 @@ describe("実リポジトリの intake.txt", () => {
       ["src/lib/CATALOG.md", "append"],
       ["src/features/core/user/services/server/userService.ts", null],
       ["eslint.config.mjs", null],
+      ["eslint.config.fork.mjs", "edit"],
+      ["tsconfig.json", null],
+      ["AGENTS.md", null],
+      ["public/assets/imgs/logos/default.png", "edit"],
+      ["servers/room/src/registry.ts", "region"],
+      ["scripts/db/seed/data/registry.ts", "region"],
     ];
     for (const [path, kind] of cases) {
       assert.equal(matchIntake(rules, path)?.kind ?? null, kind, path);
@@ -147,6 +154,13 @@ describe("judge", () => {
     const base = ["export const m = [", "  // --- AUTO-GENERATED-START ---", "  // --- AUTO-GENERATED-END ---", "];"].join("\n");
     const head = ["export const m = [", "  // --- AUTO-GENERATED-START ---", "  { a: 1 },", "  // --- AUTO-GENERATED-END ---", "];"].join("\n");
     assert.equal(run({ status: "M", path: "src/other/menu.ts" }, base, head).reason, "generator-region");
+  });
+
+  test("M: Next が AGENTS.md に書き足す区画は印の行ごと除く", () => {
+    const base = "# AGENTS.md\n- rule\n";
+    const head = `${base}\n<!-- BEGIN:nextjs-agent-rules -->\n\n# Next\ntext\n<!-- END:nextjs-agent-rules -->\n`;
+    assert.equal(run({ status: "M", path: "AGENTS.md" }, base, head).reason, "generator-region");
+    assert.equal(run({ status: "M", path: "AGENTS.md" }, base, head.replace("- rule", "- mine")).reason, "outside-intake");
   });
 
   test("M: 受け口の外のファイルに fork の区画の印を足しても合格にならない", () => {

@@ -4,7 +4,7 @@
 // test:screens は src/app 全体のページ(_ で始まるディレクトリと src/app/api を除く。fork の独自エリアも含む)を
 // 自動検出し、全てが「1 行スイッチ(+ _screen/ または _components/ の Screen)」であることを検査する。
 // 新しいページを作るときも、新しいエリアを作るときも登録は不要。
-// upstream は全て空で出荷し、以後このファイルの中身を編集しない(src/styles/custom/** と同じ扱い。export の追加だけは
+// upstream は全て空で出荷し、以後このファイルの中身を編集しない(src/styles 直下の fork の CSS と同じ扱い。export の追加だけは
 // .notices で告知して行う。fork は merge 時に自分の値を残しつつ新しい export を取り込む)。
 //
 // FORK_SCAN_ROOTS: 廃止(src/app 全体を走査するようになった)。export は互換のため残す。行が残っているとテストが

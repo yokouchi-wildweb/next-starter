@@ -3,6 +3,9 @@
 import type { SeedSampleCategories } from "./sampleCategories";
 import type { SeedSampleTags } from "./sampleTags";
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 /**
  * 各シードが返すデータの型マップ
  * 新しいシードを追加する際はここに型を追加する
@@ -12,6 +15,8 @@ export type SeedResultMap = {
   sampleTags: SeedSampleTags;
   sampleCategories: SeedSampleCategories;
   samples: void;
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 };
 
 export type SeedKey = keyof SeedResultMap;
@@ -82,6 +87,8 @@ export const seedRegistry: SeedConfig[] = [
       });
     },
   },
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 ];
 
 /**

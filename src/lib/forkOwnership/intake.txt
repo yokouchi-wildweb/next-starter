@@ -11,12 +11,17 @@ edit .gitignore  # fork の除外の追加
 edit .env.example  # fork の環境変数の見本
 edit next.config.ts  # fork のビルド設定
 edit .mcp.json  # エージェントの接続設定
+edit README.md  # fork のプロジェクトの説明
+edit eslint.config.fork.mjs  # fork の ESLint の設定(eslint.config.mjs が読み足す。eslint.config.mjs 自体は upstream)
+# tsconfig.json は受け口の外(paths の不足は upstream で直す、L1.8)。AGENTS.md も外(Next が書き足す区画は生成器の区画として除く)
 
 # 値(config の再設計までは全体。値とキーを区別しない)
 edit src/config/**  # CLAUDE.md CORE_FILES config
 
-# スタイル(直下の CSS = fork の入口。_base/ は upstream)
+# スタイルと素材(直下の CSS = fork の入口。_base/ は upstream)
 edit src/styles/*.css  # CLAUDE.md CORE_FILES downstream_owned
+edit public/assets/imgs/logos/**  # ブランドのロゴ(logoPath で差し替える前提の素材)
+edit src/app/favicon.ico  # ブランドの favicon
 
 # 画面(1 行スイッチと fork の部品)
 edit src/app/**/page.tsx  # 1 行スイッチ
@@ -34,6 +39,11 @@ edit src/features/**/services/server/domainEntry.override.ts  # core の access 
 
 # 登録(fork entries の対の中だけ)
 region src/registry/**/*.ts  # .claude/rules/core/code-generation.md fork_region
+region servers/room/src/registry.ts  # ルーム定義の登録点(【下流編集点】)
+region scripts/db/seed/data/registry.ts  # seed の登録点
+region scripts/db/seed/data/index.ts  # seed の export
+edit scripts/db/seed/data/demoUser.ts  # デモの利用者の値
+edit servers/room/wrangler.toml  # room:init が作る fork の Worker の設定(upstream には無い。.example だけ)
 
 # 規則(PER_PROJECT)
 edit .claude/rules/project.md  # CLAUDE.md PER_PROJECT

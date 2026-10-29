@@ -9,6 +9,7 @@ import realtimeRoomPlugin from "./eslint-rules/realtime-room-purity.mjs";
 import routeAuthzPlugin from "./eslint-rules/route-authz.mjs";
 import styleTokensPlugin from "./eslint-rules/style-tokens.mjs";
 import { loadCatalogOwnership } from "./src/lib/folderCatalog/catalog.mjs";
+import forkConfig from "./eslint.config.fork.mjs";
 
 // src/lib のライブラリの所有(src/lib/CATALOG.md の節)。自分の origin の節 = 自分のライブラリ。
 // 自分が先頭の節(Tier1)でなければ、自分のライブラリは「下流の UI」と同じく warn に落とす(上流のライブラリは error のまま)。
@@ -243,6 +244,8 @@ const config = [
       "realtime-room/purity": "error",
     },
   },
+  // fork が足す設定(業務の規則・追加の plugin)。eslint.config.fork.mjs は fork の物(upstream は空で出荷)
+  ...forkConfig,
 ];
 
 export default config;

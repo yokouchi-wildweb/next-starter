@@ -18,7 +18,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   1. A(fork が足した)→ `added`。ただし基準の `src/lib/<name>/` が実在する `<name>` の中なら `ancestor-lib-add`(違反。自分の lib に置いて re-export する)。祖先の lib かどうかは基準の git だけで決まるので、`folderCatalog` の目録は使わない
   2. D → `deleted`、R(元が基準にある)→ `renamed`。受け口の中でも違反(config の削除、`_` 付きへの rename も)
   3. M → 受け口の一覧で当たった kind ごと(下の表)。どれにも当たらなければ、生成器の区画の中だけの差なら `generator-region`(合格)、それ以外は `outside-intake`(違反)
-- 生成器の区画(`AUTO-GENERATED-START/END`・`=== AUTO-GENERATED … START/END ===`・終わりの印の無い `// --- Auto-generated imports ---` = 続く import の行まで)は検査の対象外。生成器の印の統一は別の論点
+- 生成器の区画(`AUTO-GENERATED-START/END`・`=== AUTO-GENERATED … START/END ===`・終わりの印の無い `// --- Auto-generated imports ---` = 続く import の行まで・道具が丸ごと書き足す `<!-- BEGIN:nextjs-agent-rules -->` 〜 END = 印の行と直前の空行ごと)は検査の対象外。生成器の印の統一は別の論点
 - 区画の中身を除いたテキスト(`stripOwnedRegions`)が基準側と fork 側で同じ = 区画の中だけの書き換え。一時許可の指紋もこのテキストから取る
 
 ## 受け口の一覧
@@ -36,8 +36,9 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   | generated | 生成物 → `generated` | — |
   | debt | — | `debt`(upstream の負債の箇所。一時許可で通す) |
 
-- 載せている物: リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)/ `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチ(page.tsx・枠の layout.tsx)/ `_components/**` / `_layout/`・`_screen/` のドット区切り名のカスタム / cron の `override.ts` / `domainEntry.override.ts` / registry(region)/ `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
-- 一覧の鮮度: `pnpm test:fork-ownership` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)
+- 載せている物: リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)/ ロゴ・favicon / `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチ(page.tsx・枠の layout.tsx)/ `_components/**` / `_layout/`・`_screen/` のドット区切り名のカスタム / cron の `override.ts` / `domainEntry.override.ts` / registry と room・seed の登録点(region)・デモの利用者の値・room の wrangler.toml / `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
+- 一覧の鮮度: `pnpm test:fork-ownership` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)。fork が作るファイルを名指しする行は、理由に「upstream には無い」と書いて外す
+- 外のままにした物と理由: `eslint.config.mjs`(fork の設定は `eslint.config.fork.mjs` に書く。upstream は空の配列で出荷し、`eslint.config.mjs` が最後に読み足す)/ `tsconfig.json`(paths の不足は upstream で直す。要るなら一時許可 + 依頼)/ `AGENTS.md`(ただし `next dev` が書き足す `<!-- BEGIN:nextjs-agent-rules -->` の区画は、印の行ごと生成器の区画として除く。Next の版で中身が変わるので upstream に固定で置けない)/ 既存の `eslint-rules/*.mjs` の書き換え(新しい規則のファイルは追加なので合格)
 - 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。fork 側には何も書かせず、upstream が負債として一覧に載せ、core の外に受け口を用意した notice で外す。件数は Tier1 のテストのコマンドと `/inbox` に出す(中身は段階②の後半で載せる)
 - 中間 Tier の一覧にも「下流が消してよい」行は作らない。要らない物は持ち主が自分で消し、merge で流す
 - API: `parseIntake(text)` → `{ rules, errors }` / `matchIntake(rules, path)` → 効く規則か `null` / `judge({ changes, baseText, headText, baseLibs, intake })` → `{ entries: [{ status, path, from, kind, reason, verdict }], counts }`
@@ -88,7 +89,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 
 ## registry の fork の区画
 
-- `src/registry/` の中で fork が書いてよいのは、次の印の対の間だけ。印の外は upstream の物
+- `src/registry/` と、受け口の一覧で region にしたファイル(`servers/room/src/registry.ts`・`scripts/db/seed/data/registry.ts`・`index.ts`)の中で fork が書いてよいのは、次の印の対の間だけ。印の外は upstream の物
   ```ts
   // --- fork entries start (upstream never edits inside) ---
   // --- fork entries end ---
@@ -103,7 +104,7 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   - `isInForkRegion(regions, line)`: その行が区画の中(印の行を除く)か
   - `FORK_REGION_START` / `FORK_REGION_END` / `LEGACY_FORK_MARKERS`
 - 生成器の区画の読み取りも同じファイル: `parseGeneratorRegions(text)` / `stripOwnedRegions(text, { fork })`
-- 検査: `pnpm test:fork-regions`(`regions.test.mjs`)= `src/registry/**/*.ts` の対が閉じている・入れ子が無い・文言が正しい・古い印が無い + 部品の単体テスト
+- 検査: `pnpm test:fork-regions`(`regions.test.mjs`)= 受け口の一覧で region の全ファイルの対が閉じている・入れ子が無い・文言が正しい・古い印が無い + 部品の単体テスト
 
 ## 使い方
 

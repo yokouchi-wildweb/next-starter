@@ -75,6 +75,9 @@ export function parseForkRegions(text) {
 const GENERATOR_PAIRS = [
   { start: /^\s*\/\/ --- AUTO-GENERATED-START ---\s*$/, end: /^\s*\/\/ --- AUTO-GENERATED-END ---\s*$/ },
   { start: /^\s*\/\/ === AUTO-GENERATED (\S+) START ===\s*$/, end: /^\s*\/\/ === AUTO-GENERATED (\S+) END ===\s*$/ },
+  // 道具が丸ごと書き足す区画(upstream に無いことがある)。印の行と直前の空行も区画に含める
+  // - next dev が AGENTS.md に書く Next の注意書き(Next の版で中身が変わるので upstream に固定で置けない)
+  { start: /^<!-- BEGIN:nextjs-agent-rules -->\s*$/, end: /^<!-- END:nextjs-agent-rules -->\s*$/, whole: true },
 ];
 // 終わりの印の無い生成器の区画: 次の import 以外の行(空行を除く)の直前まで
 const GENERATOR_OPEN_IMPORTS = /^\s*\/\/ --- Auto-generated imports ---\s*$/;
@@ -82,6 +85,7 @@ const GENERATOR_OPEN_IMPORTS = /^\s*\/\/ --- Auto-generated imports ---\s*$/;
 /**
  * テキストから生成器の区画を読む。行番号は 1 始まり、start / end は印の行。中身 = start と end の間の行。
  * 終わりの印の無い区画の end は、最後の import 行の次の行(その行は区画の外)。
+ * whole の対は印の行と直前の空行も中身に含める(start / end をその外側の行にする。start は 0 になり得る)。
  * 閉じていない対は区画にしない(生成器自身が印の欠けを検出する)。
  * @returns {{ start: number, end: number }[]}
  */
@@ -111,7 +115,13 @@ export function parseGeneratorRegions(text) {
       return;
     }
     if (open.pair.end.test(raw)) {
-      regions.push({ start: open.start, end: line });
+      if (open.pair.whole) {
+        let start = open.start - 1;
+        while (start >= 1 && lines[start - 1].trim() === "") start -= 1;
+        regions.push({ start, end: line + 1 });
+      } else {
+        regions.push({ start: open.start, end: line });
+      }
       open = null;
     }
   });
