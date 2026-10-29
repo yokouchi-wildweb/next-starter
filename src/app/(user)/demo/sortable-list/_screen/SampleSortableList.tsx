@@ -11,6 +11,7 @@ import {
 import type { Sample } from "@/features/sample/entities/model";
 import { Stack } from "@/components/Layout/Stack";
 import { Flex } from "@/components/Layout/Flex";
+import { AppImage } from "@/components/Media/AppImage";
 import { Block } from "@/components/Layout/Block";
 import { SecTitle } from "@/components/TextBlocks/SecTitle";
 import { Para } from "@/components/TextBlocks/Para";
@@ -60,12 +61,11 @@ export function SampleSortableList({ initialSamples }: Props) {
       render: (item) => (
         <Flex gap="sm" align="center" className="min-w-0 flex-1">
           {item.main_image ? (
-            // デモ用の簡易サムネイル
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <AppImage
               src={item.main_image}
               alt=""
-              className="h-10 w-10 shrink-0 rounded object-cover"
+              sizes="40px"
+              className="h-10 w-10 shrink-0 rounded"
             />
           ) : (
             <div className="h-10 w-10 shrink-0 rounded bg-muted" />
