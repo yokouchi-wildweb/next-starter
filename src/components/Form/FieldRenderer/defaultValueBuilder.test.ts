@@ -1,7 +1,7 @@
 // src/components/Form/FieldRenderer/defaultValueBuilder.test.ts
 // buildFormDefaultValues の単体テスト（fieldType ごとの既定値 / 作成フォームの既定値が schema を通るか）。
-// フォーム側の型の手書き（既定値の switch・checkbox の複数選択・型の名前の union）が、生成器の型の表と
-// ずれていないかも突き合わせる（型の解釈の一本化は評議会 20261028-234023-field-type-single-interpretation で検討中）
+// 初期値・checkbox の複数選択・編集時の日時変換は型の表（src/lib/domain/fields/fieldTypes.mjs）から引くので、
+// 表の行ごとの答えを期待値の literal で固定する。手書きで残る型の名前の union は表のキーと突き合わせる
 // 実行: pnpm test:form-defaults
 
 import { describe, test } from "node:test";
@@ -15,7 +15,7 @@ import { CouponCreateSchema } from "@/features/core/coupon/entities/schema";
 
 import type { FieldDataType, FieldDataTypeFirestore } from "@/components/Form/Field/types";
 import { isCheckGroupFieldType } from "@/components/Form/Field/Configured/checkGroupFieldTypes";
-import { FIELD_TYPES } from "../../../../scripts/domain-config/spec/fieldTypes.mjs";
+import { FIELD_TYPES } from "@/lib/domain/fields/fieldTypes.mjs";
 import { FORM_INPUTS } from "../../../../scripts/domain-config/spec/formInputs.mjs";
 
 import { buildFormDefaultValues } from "./defaultValueBuilder";
@@ -132,40 +132,125 @@ describe("作成フォームの既定値が schema を通る", () => {
   });
 });
 
-// ---- 生成器の型の表（scripts/domain-config/spec）との突き合わせ ----
+// ---- 型の表（src/lib/domain/fields/fieldTypes.mjs）の行ごとの答え ----
 
-type FieldTypeSpec = { ts?: string; array?: boolean };
-const FIELD_TYPE_SPECS = FIELD_TYPES as Record<string, FieldTypeSpec>;
-const ENGINES = Object.keys(FORM_INPUTS) as Array<keyof typeof FORM_INPUTS>;
+// 表の全行: [作成時の初期値, checkbox を複数選択にするか, 編集時に Date にするか]。行を足したらここにも足す（下のテストが漏れを落とす）
+const EXPECTED_BY_FIELD_TYPE: Record<string, [unknown, boolean, boolean]> = {
+  string: ["", false, false],
+  email: ["", false, false],
+  password: ["", false, false],
+  uuid: ["", false, false],
+  mediaUploader: ["", false, false],
+  integer: [undefined, false, false],
+  number: [undefined, false, false],
+  float: [undefined, false, false],
+  bigint: [undefined, false, false],
+  "numeric(10,2)": [undefined, false, false],
+  boolean: [false, false, false],
+  date: ["", false, false],
+  time: ["", false, false],
+  timestamp: [undefined, false, true],
+  "timestamp With Time Zone": [undefined, false, true],
+  jsonb: [undefined, false, false],
+  array: [[], true, false],
+  stringArray: [[], true, false],
+  enum: [undefined, false, false],
+  mediaCollection: [[], false, false],
+  Point: ["", false, false],
+  map: [undefined, false, false],
+  geopoint: ["", false, false],
+  reference: ["", false, false],
+  null: ["", false, false],
+  mediaUploaderMulti: [[], false, false],
+};
 
-// 型の名前: dc:init / dc:add の選択肢に出る型が、フォーム側の union にすべてある（無ければ typecheck が落ちる）
+// 表に無い型（未知型）: 初期値 ""・複数選択なし・Date にしない。型名は小文字化しないので小文字の timestamp with time zone も未知型
+const UNKNOWN_FIELD_TYPES = ["timestamp with time zone", "uuid[]", "text", "decimal"];
+
+const ISO = "2026-01-01T00:00:00.000Z";
+
+describe("型の表の行ごとの答え", () => {
+  test("期待値の一覧が表の全行と一致する（行を足したら期待値も足す）", () => {
+    assert.deepEqual(Object.keys(EXPECTED_BY_FIELD_TYPE).sort(), Object.keys(FIELD_TYPES).sort());
+  });
+
+  test("全行が formDefault を明示している", () => {
+    for (const [fieldType, row] of Object.entries(FIELD_TYPES)) {
+      assert.ok(Object.hasOwn(row, "formDefault"), `${fieldType} に formDefault が無い`);
+    }
+  });
+
+  for (const [fieldType, [createValue, checkGroup, toDate]] of Object.entries(EXPECTED_BY_FIELD_TYPE)) {
+    test(`${fieldType}: 作成時 ${JSON.stringify(createValue) ?? "undefined"} / 複数選択 ${checkGroup} / 編集時 Date ${toDate}`, () => {
+      assert.deepEqual(buildFormDefaultValues({ fields: [{ name: "x", fieldType }] }).x, createValue);
+      assert.equal(isCheckGroupFieldType(fieldType), checkGroup);
+      const edited = buildFormDefaultValues({ fields: [{ name: "x", fieldType }] }, { x: ISO }).x;
+      if (toDate) assert.ok(edited instanceof Date && edited.toISOString() === ISO);
+      else assert.equal(edited, ISO);
+    });
+  }
+
+  for (const fieldType of UNKNOWN_FIELD_TYPES) {
+    test(`未知型 "${fieldType}": 初期値 ""・複数選択なし・編集時も Date にしない`, () => {
+      assert.equal(buildFormDefaultValues({ fields: [{ name: "x", fieldType }] }).x, "");
+      assert.equal(isCheckGroupFieldType(fieldType), false);
+      assert.equal(buildFormDefaultValues({ fields: [{ name: "x", fieldType }] }, { x: ISO }).x, ISO);
+    });
+  }
+
+  test("boolean は選択肢のある項目（radio か options あり）だけ undefined", () => {
+    const values = buildFormDefaultValues({
+      fields: [
+        { name: "plain", fieldType: "boolean", formInput: "checkbox" },
+        { name: "radio", fieldType: "boolean", formInput: "radio" },
+        { name: "opts", fieldType: "boolean", options: [{ value: true, label: "はい" }] },
+        { name: "emptyOpts", fieldType: "boolean", options: [] },
+        { name: "strOpts", fieldType: "string", options: [{ value: "a", label: "A" }] },
+      ],
+    });
+    assert.deepEqual(values, { plain: false, radio: undefined, opts: undefined, emptyOpts: false, strOpts: "" });
+  });
+
+  test("配列の初期値は呼ぶたびに新しい配列（フォーム同士で共有しない）", () => {
+    const config = { fields: [{ name: "x", fieldType: "array" }] };
+    const a = buildFormDefaultValues(config).x as string[];
+    const b = buildFormDefaultValues(config).x as string[];
+    assert.notEqual(a, b);
+    a.push("mutated");
+    assert.deepEqual(buildFormDefaultValues(config).x, []);
+    assert.deepEqual(FIELD_TYPES.array.formDefault, []);
+  });
+});
+
+// ---- 手書きで残る型の名前の union と表のキーの突き合わせ ----
+
+type TableFieldType = keyof typeof FIELD_TYPES;
+// union の型はすべて表にある（numeric(${number},${number}) は表の "numeric(10,2)" で代表させる）
+type UnionNotInTable = Exclude<FieldDataType | FieldDataTypeFirestore, TableFieldType | `numeric(${number},${number})`>;
+// 表の型はすべて union にある
+type TableNotInUnion = Exclude<TableFieldType, FieldDataType | FieldDataTypeFirestore>;
+const unionCovered: [UnionNotInTable] extends [never] ? true : UnionNotInTable = true;
+const tableCovered: [TableNotInUnion] extends [never] ? true : TableNotInUnion = true;
+
+// dc:init / dc:add の選択肢に出る型が、フォーム側の union にすべてある（無ければ typecheck が落ちる）
 type MissingNeon = Exclude<keyof (typeof FORM_INPUTS)["Neon"], FieldDataType>;
 type MissingFirestore = Exclude<keyof (typeof FORM_INPUTS)["Firestore"], FieldDataTypeFirestore>;
 const neonCovered: [MissingNeon] extends [never] ? true : MissingNeon = true;
 const firestoreCovered: [MissingFirestore] extends [never] ? true : MissingFirestore = true;
 
-describe("フォーム側の型の手書きが生成器の型の表とずれていない", () => {
-  test("型の名前の union が dc の選択肢の型をすべて含む（typecheck で検査）", () => {
+describe("手書きの型の名前が型の表とずれていない", () => {
+  test("union と表のキー、dc の選択肢の型が揃っている（typecheck で検査）", () => {
+    assert.equal(unionCovered, true);
+    assert.equal(tableCovered, true);
     assert.equal(neonCovered, true);
     assert.equal(firestoreCovered, true);
   });
 
-  for (const engine of ENGINES) {
-    for (const fieldType of Object.keys(FORM_INPUTS[engine])) {
-      const arrayValued = FIELD_TYPE_SPECS[fieldType]?.ts === "string[]";
-
-      test(`${engine} / ${fieldType}: 作成フォームの既定値は、値が配列の型なら []、それ以外は配列でない`, () => {
-        const value = buildFormDefaultValues({ fields: [{ name: "x", fieldType }] }).x;
-        if (arrayValued) assert.deepEqual(value, []);
-        else assert.equal(Array.isArray(value), false);
-      });
-
-      const inputs: readonly string[] = (FORM_INPUTS[engine] as Record<string, readonly string[]>)[fieldType];
-      if (inputs.includes("checkbox")) {
-        test(`${engine} / ${fieldType}: checkbox は表の array の型だけ複数選択にする`, () => {
-          assert.equal(isCheckGroupFieldType(fieldType), Boolean(FIELD_TYPE_SPECS[fieldType]?.array));
-        });
+  test("dc の選択肢に出る型はすべて表にある", () => {
+    for (const engine of Object.keys(FORM_INPUTS) as Array<keyof typeof FORM_INPUTS>) {
+      for (const fieldType of Object.keys(FORM_INPUTS[engine])) {
+        assert.ok(Object.hasOwn(FIELD_TYPES, fieldType), `${engine} / ${fieldType} が型の表に無い`);
       }
     }
-  }
+  });
 });

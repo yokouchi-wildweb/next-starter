@@ -208,7 +208,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 | `render/<カテゴリ>/` | 生成物の文字列を組む純関数（`render/collections/` だけはカテゴリではなく、主の集まりの項目から従属の domain.json を組む。`--only` に関わらず plan の先頭に入る）。`(ctx, workspace) → Output[]`（`output.mjs`: `file` / `writeOnce` / `dir` / `patch` / `log`）。`tokens.mjs` = `__domain__` 系の置換 | 読み取りは workspace 経由のみ |
 | `checks/` | 生成前の検査（フォルダ名、廃止した型、Firestore のメディア列）。エラー文か null を返す。`pairs.mjs` = 主と従属の組の書く前の検査（誤りを全件返す）、`accessRules.mjs` = アクセスルールの広さの比べ方 | |
 | `domain/` | `workspace.mjs`（rootDir からのパスと読み取り。**fs を読むのはここだけ**）、`context.mjs`（DomainContext = 名前の全形 + domain.json。名前の導出はここだけ）、`names.mjs`（表名・FK 名・63 字）、`relations.mjs`、`fieldName.mjs`、`roles.mjs` | |
-| `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語。列を持たない主の集まりの型 `mediaCollection` = `isCollectionFieldType`）、`domainJson.mjs`（キーの集合。`collection` の下位キー = `COLLECTION_KEYS`）、`collectionField.mjs`（主の集まりの項目の純関数: 従属の既定の名前・項目の組み立て・型の選択肢の並び）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
+| `spec/` | domain.json の語彙: `categories.mjs`（generateFiles のキー）、`fieldTypes.mjs`（項目種別の述語。表の本体は `src/lib/domain/fields/fieldTypes.mjs` で、ここは再 export。列を持たない主の集まりの型 `mediaCollection` = `isCollectionFieldType`）、`domainJson.mjs`（キーの集合。`collection` の下位キー = `COLLECTION_KEYS`）、`collectionField.mjs`（主の集まりの項目の純関数: 従属の既定の名前・項目の組み立て・型の選択肢の並び）、`formInputs.mjs`、`format.mjs`（整形）、`version.mjs` | 定数と純関数のみ |
 | `text/` | TS ソースの部分編集（`objectEntry.mjs`。scripts/registry も使う） | |
 | `tests/` | 全テスト（`structure.test.mjs` が下の規則を機械で検査する） | |
 
@@ -216,7 +216,7 @@ cli/ → pipeline/ → render/ → domain/ → spec/          （依存は左か
 
 よくある変更の置き場:
 
-- **項目の種類を足す**（例: 新しい fieldType） → `spec/fieldTypes.mjs` に述語、`spec/formInputs.mjs` に入力種別、`questions/fields/` に質問（メディア系なら `media.mjs` の隣に）、各 `render/` は述語で分岐。フォーム側の手書き（`src/components/Form/FieldRenderer/defaultValueBuilder.ts` の既定値、`Field/Configured/checkGroupFieldTypes.ts`、`Field/types.ts` の型の名前）も足す（ずれは `pnpm test:form-defaults` と typecheck が検知する）
+- **項目の種類を足す**（例: 新しい fieldType） → 型の表 `src/lib/domain/fields/fieldTypes.mjs` に行（属性と `formDefault`。フォームの初期値・checkbox の単複・日時変換も表から決まる）、`spec/formInputs.mjs` に入力種別、`questions/fields/` に質問（メディア系なら `media.mjs` の隣に）、各 `render/` は述語で分岐。フォーム側の手書きは `src/components/Form/Field/types.ts` の型の名前だけ（ずれは `pnpm test:form-defaults` と typecheck が検知する）
 - **生成ファイルを足す** → そのカテゴリの `render/<カテゴリ>/` に `(ctx, workspace) → Output` を足し、カテゴリの `index.mjs` の配列に並べる（hooks / components は `catalog.mjs` に 1 行）。別のドメインの `domain.json` を書く場合も `writeOnce` の Output にする
 - **生成前の検査を足す** → `checks/` に「エラー文か null」を返す関数を足し、`checks/index.mjs` に並べる。生成の途中でしか分からない検査は render 内で例外を投げる（書く前なので書きかけは残らない）
 - **drizzleBase に配線を足す** → `render/serverServices/`（テンプレートのトークンに差し込む）か、別ファイルとして `Output` を 1 つ足す。どちらも `index.mjs` の `outputs` に並べるだけ

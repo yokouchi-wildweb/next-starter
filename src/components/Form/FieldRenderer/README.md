@@ -105,9 +105,9 @@
 `buildFormDefaultValues(domainConfig, entity?)` が domain.json から `useForm` の `defaultValues` を作る。生成の Create / Edit フォームが使う（実行時に domain.json を読むので、既定値の変更に再生成は要らない）。
 
 - 優先順: 編集時は `entity` の値（null / undefined なら下の既定値）→ フィールドの `defaultValue`（object / array も可）→ fieldType ごとの既定値
-- fieldType ごとの既定値: `array` / `stringArray` / `mediaUploaderMulti` / `mediaCollection` = `[]` | `jsonb` / `map` = `undefined`（値なし。schema の `.default()` や DB の既定値に任せる）| `boolean` = `false`（radio または options ありは `undefined`）| 数値・`enum`・timestamp = `undefined` | それ以外（文字列系・`mediaUploader`）= `""`
-- `formInput: "checkbox"` は、値が文字列の配列の型（`array` / `stringArray`）なら複数選択（CheckGroupInput）、それ以外は 1 つのチェックボックス（`Field/Configured/checkGroupFieldTypes.ts`）
-- 型ごとの既定値・checkbox の判定・型の名前の union（`Field/types.ts`）は手書き。生成器の型の表（`scripts/domain-config/spec/fieldTypes.mjs` / `formInputs.mjs`）とずれていないかを `pnpm test:form-defaults`（と typecheck）が突き合わせる。生成器に型を足したら、ここも足す
+- fieldType ごとの既定値（型の表 `src/lib/domain/fields/fieldTypes.mjs` の `formDefault`、表に無い型は `""`）: `array` / `stringArray` / `mediaUploaderMulti` / `mediaCollection` = `[]` | `jsonb` / `map` = `undefined`（値なし。schema の `.default()` や DB の既定値に任せる）| `boolean` = `false`（radio または options ありは `undefined`）| 数値・`enum`・timestamp = `undefined` | それ以外（文字列系・`mediaUploader`）= `""`
+- `formInput: "checkbox"` は、値が文字列の配列の型（`array` / `stringArray`）なら複数選択（CheckGroupInput）、それ以外は 1 つのチェックボックス（型の表の `array` 属性。`Field/Configured/checkGroupFieldTypes.ts` は再 export）。編集時に値を `Date` にするのは表の `datetime` の型
+- 型ごとの答えは型の表から引き、ここに型名を書かない。手書きで残るのは型の名前の union（`Field/types.ts`）だけで、表のキー・`formInputs.mjs` と揃っているかを `pnpm test:form-defaults`（と typecheck）が突き合わせる。表に型を足したら union にも足す
 - 既定値は schema の型に合わせる。zod の `.default()` は `undefined` のときだけ効くので、配列や object の schema に `""` を渡すと送信が落ちる
 - 必須の jsonb を画面に出さない（formInput `none`）作成フォームでは、既定値が `undefined` なので必須チェックで落ちる → domain.json の `defaultValue` か、フォーム側で値を入れる
 - テスト: `pnpm test:form-defaults`

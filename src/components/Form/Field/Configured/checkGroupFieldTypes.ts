@@ -1,10 +1,5 @@
 // src/components/Form/Field/Configured/checkGroupFieldTypes.ts
-// formInput "checkbox" を複数選択（CheckGroupInput）にする fieldType。値が文字列の配列の型
-// （生成器の型の表 scripts/domain-config/spec/fieldTypes.mjs で array: true のもの）。
-// 抜けは src/components/Form/FieldRenderer/defaultValueBuilder.test.ts が表と突き合わせて検知する
+// formInput "checkbox" を複数選択（CheckGroupInput）にする fieldType の判定。答えは型の表
+// （src/lib/domain/fields/fieldTypes.mjs の array 属性）が持ち、ここは import 先を保つための再 export
 
-const CHECK_GROUP_FIELD_TYPES: ReadonlySet<string> = new Set(["array", "stringArray"]);
-
-export function isCheckGroupFieldType(fieldType: string | undefined): boolean {
-  return fieldType !== undefined && CHECK_GROUP_FIELD_TYPES.has(fieldType);
-}
+export { isCheckGroupFieldType } from "@/lib/domain/fields/fieldTypes.mjs";

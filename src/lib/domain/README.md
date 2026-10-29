@@ -122,8 +122,18 @@ domain.json の無い手書きの domain は、同じ置き場に同じ形を手
 
 - `config/`: `createDomainConfigLookup`、`normalizeDomainJsonConfig`、`resolveAccessRule`
 - `relations/`: 写しを受ける関数、関連選択肢（`relationOptions.mjs`）
-- `fields/`: `extractFields` / `extractImageFields`
+- `fields/`: `extractFields` / `extractImageFields`、型（fieldType）の表 `fieldTypes.mjs`
 - `junction/`: 中間表の名前解決（utils は client 可、`getJunctionTable(tables, name)` は server-only で表の一覧を引数で受ける。結んだ版は `src/wiring/domainRegistry.ts` の `getJunctionTable(name)`）
 - `hooks/` `service/client/`: 管理画面の全件削除一覧（`useFetchDomains`）
+
+### 型（fieldType）の表: `fields/fieldTypes.mjs`
+
+domain.json の項目の型の意味（列関数・Zod・TS 型・フォームの初期値・checkbox の単複・日時か・廃止か）を決める表 1 つ。生成器（`scripts/domain-config/spec/fieldTypes.mjs` は再 export）も実行時（`buildFormDefaultValues`・`isCheckGroupFieldType`）も `fieldTypeSpec(type)` と導出関数でここを引く。
+
+- 型名は小文字化せずに引く。表に無い型は未知型（生成器は型名をそのまま列関数に出して警告、フォームの初期値は `""`、日時変換も複数選択もしない）。別名は作らない
+- 型を足す: 表に 1 行（`formDefault` は必ず書く）+ `scripts/domain-config/spec/formInputs.mjs` に入力種別 + `src/components/Form/Field/types.ts` の union に型名。属性の意味は表の頭のコメント
+- 廃止: 行に `retired`（移り先の案内文）。生成前の検査が止める。実行時は見ない（まだ列を持つ fork の初期値は残す）
+- `.mjs` なのは node の生成器と TypeScript の両方から import するため（`relationOptions.mjs` と同じ）
+- テスト: `pnpm test:form-defaults`（行ごとの答えを literal で固定、union と表のキーの突き合わせ）
 
 テスト: `pnpm test:service-registry`（登録表）、`pnpm test:wiring`（wiring の目録と向き）、`pnpm test:relation-options`、`pnpm test:dc-registry`（domainEntry.ts の生成）。
