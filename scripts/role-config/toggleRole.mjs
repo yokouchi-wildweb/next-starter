@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 // scripts/role-config/toggleRole.mjs
 // ロールのenable状態を切り替えるスクリプト
+// 使い方: pnpm role:toggle <roleId> --on|--off [-i]（既定は対話なし。--on / --off のどちらか 1 つが必須 = 何度回しても同じ結果。
+// -i のときだけ今までの対話（ロールの選択・反転の確認））
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import formatDomainConfig from "../domain-config/spec/format.mjs";
+import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
+
+const USAGE = "pnpm role:toggle <roleId> --on|--off [-i]";
 
 const prompt = inquirer.createPromptModule();
 
@@ -137,23 +142,33 @@ async function interactiveToggle() {
 
 /**
  * メイン処理
- * @param {string|undefined} roleId - ロールID（undefined の場合は対話形式）
+ * @param {string|undefined} roleId - ロールID
  * @param {Object} options - オプション
  * @param {boolean} options.on - 有効にする
  * @param {boolean} options.off - 無効にする
+ * @param {boolean} options.interactive - 対話（ロールの選択・反転）。無ければ roleId と --on|--off が必須
  */
 export default async function toggle(roleId, options = {}) {
   console.log("\n=== ロールの有効/無効切り替え ===\n");
 
-  if (!roleId) {
+  if (options.interactive && !roleId) {
     await interactiveToggle();
     return;
   }
 
   // on/off オプションが両方指定されている場合はエラー
   if (options.on && options.off) {
-    console.error("エラー: --on と --off を同時に指定できません。");
-    process.exit(1);
+    failUsage("--on と --off を同時に指定できません", USAGE);
+    return;
+  }
+  if (!roleId) {
+    failUsage("ロール ID を指定してください（選んで切り替えるなら -i）", USAGE);
+    return;
+  }
+  // 反転（--on / --off なし）は -i のときだけ（何度回しても同じ結果にするため）
+  if (!options.on && !options.off && !options.interactive) {
+    failUsage("--on か --off を指定してください（反転するなら -i）", USAGE);
+    return;
   }
 
   const newState = options.on ? true : options.off ? false : undefined;
@@ -162,15 +177,13 @@ export default async function toggle(roleId, options = {}) {
 
 // 直接実行された場合
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const args = process.argv.slice(2);
-  const roleId = args.find((arg) => !arg.startsWith("--"));
-  const options = {
-    on: args.includes("--on"),
-    off: args.includes("--off"),
-  };
-
-  toggle(roleId, options).catch((err) => {
-    console.error(err.message);
-    process.exit(1);
-  });
+  try {
+    const { positional, interactive, flags } = parseRoleOpsArgs(process.argv.slice(2), { flags: ["on", "off"] });
+    toggle(positional, { on: flags.has("on"), off: flags.has("off"), interactive }).catch((err) => {
+      console.error(err.message);
+      process.exit(1);
+    });
+  } catch (err) {
+    failUsage(err.message, USAGE);
+  }
 }

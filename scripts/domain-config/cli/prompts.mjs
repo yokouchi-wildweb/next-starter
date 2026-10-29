@@ -36,12 +36,3 @@ export async function confirm(message, defaultValue = false) {
   const { answer } = await prompt({ type: "confirm", name: "answer", message, default: defaultValue });
   return answer;
 }
-
-/** 選択内容の確認表示 + 実行の確認（dc:generate:hook / component / service） */
-export async function confirmSelection(selectedDomains, kindLabel, items) {
-  console.log(`\n対象ドメイン（${selectedDomains.length}件）:`);
-  selectedDomains.forEach((domain) => console.log(`  - ${domain}`));
-  console.log(`\n生成する${kindLabel}（${items.length}件）:`);
-  items.forEach((item) => console.log(`  - ${item}`));
-  return confirm("\n選択した内容で生成を実行しますか？既存ファイルは上書きされます。", false);
-}

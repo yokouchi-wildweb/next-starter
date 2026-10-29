@@ -46,3 +46,28 @@ export function parseOnlyOption(args) {
   }
   return { only, rest };
 }
+
+/**
+ * 引数列から値を取るオプション `--<name> <value>`（または `--<name>=<value>`）を全部取り出す（何度でも指定できる）
+ * @param {string[]} args
+ * @param {string} name 例: "confirm"
+ * @returns {{ values: string[], rest: string[] }} rest = そのオプションと値を除いた引数
+ */
+export function takeValueOption(args, name) {
+  const values = [];
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === `--${name}`) {
+      const value = args[i + 1];
+      if (value === undefined || value.startsWith("--")) throw new Error(`--${name} に値を指定してください`);
+      values.push(value);
+      i++;
+    } else if (arg.startsWith(`--${name}=`)) {
+      values.push(arg.slice(name.length + 3));
+    } else {
+      rest.push(arg);
+    }
+  }
+  return { values, rest };
+}

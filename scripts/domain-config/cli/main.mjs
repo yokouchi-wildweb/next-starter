@@ -1,21 +1,25 @@
 // dc:generate / dc:generate:all / dc:delete の振り分け（index.mjs の本体）。domain.json は手で書く（対話で組み立てる入口は無い）
 
 import { createWorkspace } from "../domain/workspace.mjs";
-import { getCliArgs, parseOnlyOption } from "./args.mjs";
+import { getCliArgs, parseOnlyOption, takeValueOption } from "./args.mjs";
 import { runDelete } from "./delete.mjs";
 import { runGenerate } from "./generate.mjs";
 import { runGenerateAllInteractive } from "./generateAll.mjs";
 import { selectDomain } from "./prompts.mjs";
 
 const USAGE =
-  "使い方: node scripts/domain-config/index.mjs --generate <Domain> [--only <categories>] [--dry-run] [-i] | --generate --all [--only <categories>] [--dry-run] [-i] | --delete <Domain>";
+  "使い方: node scripts/domain-config/index.mjs --generate <Domain> [--only <categories>] [--dry-run] [-i] | --generate --all [--only <categories>] [--dry-run] [-i] | --delete <Domain> --confirm <snake_name> [--extra <path>]... [--remove-config] [-i]";
 
 export async function main() {
   let args;
   let only;
+  let confirmValues;
+  let extraValues;
   try {
-    // `--only` の値（例: registry）をドメイン名と取り違えないよう、先に取り除く
+    // 値を取るオプション（--only・--confirm・--extra）の値をドメイン名と取り違えないよう、先に取り除く
     ({ only, rest: args } = parseOnlyOption(getCliArgs()));
+    ({ values: confirmValues, rest: args } = takeValueOption(args, "confirm"));
+    ({ values: extraValues, rest: args } = takeValueOption(args, "extra"));
   } catch (err) {
     console.error(err.message);
     process.exit(1);
@@ -66,7 +70,12 @@ export async function main() {
         console.error("--delete にはドメイン名が必要です");
         process.exit(1);
       }
-      await runDelete(workspace, positionalDomain);
+      await runDelete(workspace, positionalDomain, {
+        interactive,
+        confirm: confirmValues.at(-1),
+        extras: extraValues,
+        removeConfig: args.includes("--remove-config"),
+      });
     }
   } catch (err) {
     console.error(err.message);

@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 // scripts/role-config/deleteRole.mjs
+// 使い方: pnpm role:delete <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]
+// 既定は対話なし: --confirm に同じ ID を渡したときだけ消す。generated/<roleId>/ は既定で消す（--keep-generated で残す）、
+// 設定の JSON は既定で残す（--remove-json で消す）。-i のときだけ今までの対話（選択・確認）
 // ロール関連のレジストリエントリを削除するスクリプト
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
+import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
 import { cleanupRole } from "./generator/cleanupRole.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -14,6 +18,7 @@ const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
 const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
 
 const prompt = inquirer.createPromptModule();
+const USAGE = "pnpm role:delete <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]";
 
 /**
  * 既存のロール設定を取得
@@ -49,7 +54,8 @@ function getExistingRoles() {
 /**
  * メイン処理
  */
-export default async function deleteRole(roleIdArg) {
+export default async function deleteRole(roleIdArg, options = {}) {
+  const { interactive = false } = options;
   console.log("\n=== ロール削除 ===\n");
 
   // 既存ロールを取得
@@ -57,13 +63,18 @@ export default async function deleteRole(roleIdArg) {
 
   if (roles.length === 0) {
     console.log("ロール設定が見つかりません。");
+    process.exitCode = 1;
     return;
   }
 
   let selectedRoleId = roleIdArg;
   let selectedRole;
 
-  // 引数がない場合は選択
+  // 引数がない場合は選択（-i のときだけ）
+  if (!selectedRoleId && !interactive) {
+    failUsage("ロール ID を指定してください（選んで消すなら -i）", USAGE);
+    return;
+  }
   if (!selectedRoleId) {
     const { selected } = await prompt({
       type: "list",
@@ -80,6 +91,7 @@ export default async function deleteRole(roleIdArg) {
     selectedRole = roles.find((r) => r.id === selectedRoleId);
     if (!selectedRole) {
       console.log(`エラー: ロール "${selectedRoleId}" が見つかりません。`);
+      process.exitCode = 1;
       return;
     }
   }
@@ -89,31 +101,39 @@ export default async function deleteRole(roleIdArg) {
     console.log("\n⚠ 警告: これはコアロールです。削除すると重大な問題が発生する可能性があります。\n");
   }
 
-  // 削除オプションの確認
-  const { deleteEntity } = await prompt({
-    type: "confirm",
-    name: "deleteEntity",
-    message: "生成フォルダ（generated/{roleId}/）も削除しますか？",
-    default: true,
-  });
-
-  const { deleteJsonFiles } = await prompt({
-    type: "confirm",
-    name: "deleteJsonFiles",
-    message: "設定ファイル（*.role.json, *.profile.json）も削除しますか？",
-    default: false,
-  });
-
-  // 最終確認
-  const { confirm } = await prompt({
-    type: "confirm",
-    name: "confirm",
-    message: `ロール "${selectedRoleId}" を削除します。よろしいですか？`,
-    default: false,
-  });
-
-  if (!confirm) {
-    console.log("\nキャンセルしました。");
+  let deleteEntity = !options.keepGenerated;
+  let deleteJsonFiles = Boolean(options.removeJson);
+  if (interactive) {
+    // 削除オプションの確認
+    ({ deleteEntity } = await prompt({
+      type: "confirm",
+      name: "deleteEntity",
+      message: "生成フォルダ（generated/{roleId}/）も削除しますか？",
+      default: true,
+    }));
+    ({ deleteJsonFiles } = await prompt({
+      type: "confirm",
+      name: "deleteJsonFiles",
+      message: "設定ファイル（*.role.json, *.profile.json）も削除しますか？",
+      default: false,
+    }));
+    // 最終確認
+    const { confirm } = await prompt({
+      type: "confirm",
+      name: "confirm",
+      message: `ロール "${selectedRoleId}" を削除します。よろしいですか？`,
+      default: false,
+    });
+    if (!confirm) {
+      console.log("\nキャンセルしました。");
+      return;
+    }
+  } else if (options.confirm !== selectedRoleId) {
+    failUsage(
+      `${options.confirm === undefined ? "削除するには --confirm でロール ID を渡してください" : `--confirm "${options.confirm}" がロール ID と一致しません`}` +
+        `（消すもの: roleRegistry の登録${deleteEntity ? "・generated/" + selectedRoleId + "/" : ""}${deleteJsonFiles ? "・設定の JSON" : ""}）。実行: pnpm role:delete ${selectedRoleId} --confirm ${selectedRoleId}`,
+      USAGE,
+    );
     return;
   }
 
@@ -144,10 +164,13 @@ export default async function deleteRole(roleIdArg) {
 
 // 直接実行された場合
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const roleId = process.argv[2];
-
-  deleteRole(roleId).catch((err) => {
-    console.error("エラー:", err.message);
-    process.exit(1);
-  });
+  try {
+    const { positional, interactive, values, flags } = parseRoleOpsArgs(process.argv.slice(2), { values: ["confirm"], flags: ["keep-generated", "remove-json"] });
+    deleteRole(positional, { interactive, confirm: values.confirm, keepGenerated: flags.has("keep-generated"), removeJson: flags.has("remove-json") }).catch((err) => {
+      console.error("エラー:", err.message);
+      process.exit(1);
+    });
+  } catch (err) {
+    failUsage(err.message, USAGE);
+  }
 }

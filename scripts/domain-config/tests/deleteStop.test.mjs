@@ -1,5 +1,5 @@
-// dc:delete を止める判定（主と従属の組を壊す削除だけを止める）の回帰テスト。
-// 止まる経路は runDelete を直接呼ぶ（名前の再入力より前に戻るので対話は出ない）。止まらない経路は判定が null であることを見る。
+// dc:delete を止める判定（主と従属の組を壊す削除だけを止める）と、既定の対話なしの確認（--confirm）の回帰テスト。
+// 止まる経路は runDelete を直接呼ぶ（-i でなければ対話は出ない）。止まらない経路は判定が null であることを見る。
 // 実行: pnpm test:dc-delete-stop
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -32,16 +32,19 @@ const album = base("album", [photos]);
 const albumPhoto = buildChildDomainConfig(album, photos).config;
 
 /** runDelete を呼び、標準エラーと exitCode を返す（exitCode は元に戻す） */
-async function deleteCapturing(workspace, domain) {
+async function deleteCapturing(workspace, domain, options = {}) {
   const errors = [];
   const originalError = console.error;
+  const originalLog = console.log;
+  console.log = () => {};
   const originalExit = process.exitCode;
   console.error = (message) => errors.push(String(message));
   try {
-    await runDelete(workspace, domain);
+    await runDelete(workspace, domain, options);
     return { stderr: errors.join("\n"), exitCode: process.exitCode };
   } finally {
     console.error = originalError;
+    console.log = originalLog;
     process.exitCode = originalExit;
   }
 }
@@ -82,4 +85,29 @@ test("止まらない: 従属がまだ書き出されていない主・項目を
   const plain = createWorkspace(makeProject({ configs: { album: base("album"), comment: referrer }, cleanup }));
   assert.equal(deleteStopMessage(plain, "album"), null);
   assert.equal(deleteStopMessage(plain, "comment"), null);
+});
+
+test("--confirm: 無い・違うなら消すものの一覧と打てるコマンドを出して止まり、何も消さない。一致なら消し、domain.json は --remove-config のときだけ消す", async () => {
+  const note = base("note");
+  const root = makeProject({ configs: { note }, cleanup });
+  const workspace = createWorkspace(root);
+  const before = snapshot(root);
+  const missing = await deleteCapturing(workspace, "note");
+  assert.equal(missing.exitCode, 1);
+  assert.match(missing.stderr, /--confirm でドメイン名/);
+  assert.match(missing.stderr, /実行: pnpm dc:delete note --confirm note/);
+  const wrong = await deleteCapturing(workspace, "note", { confirm: "notes" });
+  assert.equal(wrong.exitCode, 1);
+  assert.match(wrong.stderr, /--confirm "notes" がドメイン名 "note" と一致しません/);
+  const badExtra = await deleteCapturing(workspace, "note", { confirm: "note", extras: ["src/elsewhere"] });
+  assert.equal(badExtra.exitCode, 1);
+  assert.match(badExtra.stderr, /--extra に候補に無いディレクトリ/);
+  assert.deepEqual(snapshot(root), before);
+
+  fs.mkdirSync(path.join(root, "src/features/note/entities"), { recursive: true });
+  await deleteCapturing(workspace, "note", { confirm: "note" });
+  assert.equal(fs.existsSync(path.join(root, "src/features/note/entities")), false);
+  assert.equal(fs.existsSync(path.join(root, "src/features/note/domain.json")), true);
+  await deleteCapturing(workspace, "note", { confirm: "note", removeConfig: true });
+  assert.equal(fs.existsSync(path.join(root, "src/features/note/domain.json")), false);
 });

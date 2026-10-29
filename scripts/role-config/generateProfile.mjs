@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 // scripts/role-config/generateProfile.mjs
 // 既存のプロフィール設定に対して生成処理のみを実行するスクリプト
+// 使い方: pnpm prof:generate <roleId> | --all（プロフィールのある全ロール）。既定は対話なし、-i のときだけロールを選ぶ。
+// プロフィール設定が見つからなければ終了コード 1
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import inquirer from "inquirer";
 import generate from "./generate.mjs";
+import { failUsage, parseRoleOpsArgs } from "./cliArgs.mjs";
+
+const USAGE = "pnpm prof:generate <roleId> | --all [-i]";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
@@ -63,7 +68,8 @@ function getRolesWithProfile() {
 /**
  * メイン処理
  */
-export default async function generateProfile(roleIdArg) {
+export default async function generateProfile(roleIdArg, options = {}) {
+  const { interactive = false, all = false } = options;
   console.log("\n=== プロフィール生成 ===\n");
 
   // プロフィール設定があるロールを取得
@@ -71,12 +77,23 @@ export default async function generateProfile(roleIdArg) {
 
   if (roles.length === 0) {
     console.log("プロフィール設定が見つかりません。先に src/features/core/userProfile/profiles/<roleId>.profile.json を書き、role.json の hasProfile を true にしてください。");
+    process.exitCode = 1;
     return;
+  }
+
+  if (all) {
+    for (const role of roles) await generate(role.id, { profileOnly: true });
+    console.log(`\n=== プロフィールのある全 ${roles.length} ロールを生成しました ===\n次: pnpm db:push（表が変わったとき）\n`);
+    return roles.map((role) => role.id);
   }
 
   let selectedRoleId = roleIdArg;
 
-  // 引数がない場合は選択
+  // 引数がない場合は選択（-i のときだけ）
+  if (!selectedRoleId && !interactive) {
+    failUsage("ロール ID か --all を指定してください（選んで生成するなら -i）", USAGE);
+    return;
+  }
   if (!selectedRoleId) {
     const { selected } = await prompt({
       type: "list",
@@ -93,6 +110,7 @@ export default async function generateProfile(roleIdArg) {
     const exists = roles.find((r) => r.id === selectedRoleId);
     if (!exists) {
       console.log(`エラー: プロフィール設定 "${selectedRoleId}.profile.json" が見つかりません。`);
+      process.exitCode = 1;
       return;
     }
   }
@@ -109,10 +127,14 @@ export default async function generateProfile(roleIdArg) {
 
 // 直接実行された場合
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const roleId = process.argv[2];
-
-  generateProfile(roleId).catch((err) => {
-    console.error("エラー:", err.message);
-    process.exit(1);
-  });
+  try {
+    const { positional, interactive, flags } = parseRoleOpsArgs(process.argv.slice(2), { flags: ["all"] });
+    if (positional && flags.has("all")) throw new Error("<roleId> と --all は同時に指定できません");
+    generateProfile(positional, { interactive, all: flags.has("all") }).catch((err) => {
+      console.error("エラー:", err.message);
+      process.exit(1);
+    });
+  } catch (err) {
+    failUsage(err.message, USAGE);
+  }
 }
