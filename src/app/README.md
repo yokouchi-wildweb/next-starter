@@ -9,6 +9,7 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | ディレクトリ | 説明 |
 |-------------|------|
 | `(user)/` | ユーザー向けフロントエンド |
+| `(marketing)/` | ランディングページ等。`(user)/` の枠(ヘッダー・フッター)の外の兄弟の枝 |
 | `admin/` | 管理者向け画面 |
 | `debug/` | デバッグ用画面（管理者カテゴリ + デバッガーロール限定、layout が一括ガード） |
 | `api/` | API ルート |
@@ -18,7 +19,8 @@ Next.js App Router のルートディレクトリ。Route Group を活用して�
 | グループ | 用途 | 例 |
 |----------|------|-----|
 | `(protected)/` | 認証必須ページ | mypage, profile, wallet |
-| `(public)/` | 公開ページ | login, signup, services |
+| `(public)/` | 公開ページ | services |
+| `(auth)/` | ログイン・登録の流れ | login, signup, logout, forgot-password |
 | `(legal)/` | 法的ページ | terms, privacy-policy |
 | `demo/` | 開発用デモ機能 | form-components, dummy-payment |
 | `maintenance/` | メンテナンス画面 | - |
@@ -73,26 +75,33 @@ src/app/(user)/(protected)/wallet/[slug]/
 
 ## ルート追加ガイドライン
 
-### 配置ルール
+### 配置の規則(形は自由、守りは検査)
 
-```
-新規ページを追加する際の判断フロー：
+ルートの形(どの group・フォルダの下に置くか)は決め打ちにしない。守るべきことは検査が落とし、それ以外は推奨と自由に分ける。
 
-1. ユーザー向け or 管理者向け?
-   - ユーザー向け → (user)/
-   - 管理者向け → admin/
+必須(検査で落ちる):
 
-2. 認証が必要?
-   - 必要 → (protected)/
-   - 不要 → (public)/
-   - 法的ページ → (legal)/
+- ページは `src/app` 全体から自動で見つかる(`_` で始まるディレクトリと `api/` を除く)。登録は要らない。ページを足す・消す、layout / loader のガードを変えたら `pnpm routes:map` でルート地図 `route-map.txt` を作り直してコミットする(ずれは `pnpm test:route-map` が失敗にする)
+- layout のガードとセッション・ガード API を呼べる場所、layout がサーバー側でデータを取らないこと(services/server・DB・loader を import しない)は lint `page-authz` が全 Tier で error にする(下の「レイアウト継承」)
+- 画面の構造(page.tsx スイッチ + `_screen/` + loader)は `pnpm test:screens` が検査する(上の「画面の構造」)
+- (後で入る)すべての Screen の loader がアクセス方針を宣言し、公開ページも public と書く
 
-3. 開発/デモ用?
-   - はい → (user)/demo/
+推奨(守らなくても動く):
 
-4. デバッグ用（管理者 + デバッガーのみに見せたい）?
-   - はい → debug/（layout が admin カテゴリ + debugger ロールで一括ガード）
-```
+- layout を置く範囲が URL フォルダの配下と一致するなら URL フォルダの layout、ずれるときだけ group にする(例: `(user)` は共通の URL の先頭が無いので group、`admin` は全ページが `/admin` なので URL フォルダ)
+- 方針(ログイン要否など)の違うページで枠を共有するなら、枠をガードの外に置く。その方針専用の枠ならガードと同居してよい
+- 枠を出したくないページは、枠の外の兄弟の枝に置く(例: `(marketing)/` は `(user)/` の枠の外)。元の group の `loading` / `error` / `not-found` も外れるので、要るなら兄弟側に置く。枠の一部を隠すだけなら印(Hide*、`src/app/(user)/_layout/README.md`「枠の部位を隠す」)
+- group の名前は今の語彙を使う: `(protected)` ログインが要る / `(public)` 公開 / `(auth)` ログイン・登録の流れ / `(legal)` 法的ページ / `(marketing)` 枠の外のランディング
+- root layout は 1 つ(`src/app/layout.tsx`)。複数にすると root layout をまたぐ遷移が full reload になる
+
+自由: 段の数、名前、group か URL フォルダか、入れ子の順序、枠と認証の混在、ラベルだけの group(どれも禁止しない)。
+
+暫定(loader の方針宣言が入るまで): `(protected)` だけは名前に意味がある。パスに `(protected)` を含む loader は `requireCurrentUser` を使う検査(`pnpm test:screens`)がこの名前で判定しているため、ログインが要るページは今は `(protected)` の下に置き、`(protected)` の改名・移動もしない。方針宣言の検査に置き換わった後は、名前は検査にも認可にも意味を持たない。
+
+決まった置き場:
+
+- 開発・デモ用ページ → `(user)/demo/`
+- デバッグ用(管理者カテゴリ + デバッガーロールだけに見せる)→ `debug/`(layout が一括でガード)
 
 ### 推奨する構造（ユーザー向けページ）
 
@@ -123,12 +132,19 @@ loader はドメインの features ではなくルートの中に置く（複数
 ### レイアウト継承
 
 ```
-(user)/
-├── layout.tsx          ← 全ユーザーページ共通
-├── (protected)/
-│   └── layout.tsx      ← 認証チェック付きレイアウト
-└── (public)/
-    └── layout.tsx      ← 公開ページ用レイアウト
+src/app/
+├── layout.tsx              ← root layout(1 つだけ)
+├── (user)/
+│   ├── layout.tsx          ← ユーザー側の枠(1 行スイッチ → _layout/)
+│   ├── (protected)/
+│   │   └── layout.tsx      ← ログインのガード(authGuard)。枠はガードの外 = (user)/layout.tsx
+│   ├── (public)/ (auth)/ (legal)/   ← layout なし。(user) の枠をそのまま継ぐ
+│   └── demo/ maintenance/
+├── (marketing)/
+│   └── layout.tsx          ← (user) の枠の外の兄弟の枝
+├── admin/                  ← URL フォルダの layout(枠 = 1 行スイッチ → _layout/。ガードは (protected)/・insane/ の layout)
+└── debug/
+    └── layout.tsx          ← 管理者カテゴリ + デバッガーのガード
 ```
 
 - layout はサーバー側でデータを取らない（services/server・DB・loader を import しない。認可は authorization の関数だけ）。取得は loader で行う。lint `page-authz`、詳細: [auth README「置き場所の検査」](../features/core/auth/README.md)
