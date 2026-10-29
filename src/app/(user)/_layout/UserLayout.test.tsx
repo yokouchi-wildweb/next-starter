@@ -78,7 +78,7 @@ const withBottomNavVar = (html: string) =>
   html.replace('style="--app-header-height:0px"', `style="--app-header-height:0px${bottomNavVar()}"`);
 /**
  * 枠の印の区切り(notice frame-marks)で既定の DOM に入った差分はこの 1 か所だけ:
- * 外枠に data-frame-root(配下の Hide* の印で部位を隠す CSS の起点。styles/frame-controls.generated.css)
+ * 外枠に data-frame-root(配下の Hide* の印で部位を隠す CSS の起点。styles/_base/frame-controls.generated.css)
  */
 const withFrameRoot = (html: string) =>
   html.replace('data-user-app-container=""', 'data-user-app-container="" data-frame-root=""');

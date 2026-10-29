@@ -1,6 +1,6 @@
 // src/components/AppFrames/User/controls/frameParts.ts
 //
-// 枠の部位一覧(唯一の元)。Hide* が描く印の属性と、src/styles/frame-controls.generated.css の規則をここから作る。
+// 枠の部位一覧(唯一の元)。Hide* が描く印の属性と、src/styles/_base/frame-controls.generated.css の規則をここから作る。
 // 部位や狙う先を変えたら `pnpm frame:generate` で CSS を作り直してコミットする(`--check` と pnpm test:frame-controls が一致を確かめる)。
 // 仕組みと経緯: src/app/(user)/_layout/README.md「枠の部位を隠す(Hide* と印)」
 //
@@ -69,7 +69,7 @@ export const frameHideTokens = (part: FramePart, { sp, pc }: FrameHideProps): st
 };
 
 const GENERATED_HEADER = `/*
- * src/styles/frame-controls.generated.css
+ * src/styles/_base/frame-controls.generated.css
  * 【自動生成ファイル】直接編集しないでください。
  * 生成元: src/components/AppFrames/User/controls/frameParts.ts
  * 再生成: pnpm frame:generate(一致の検査: pnpm frame:generate --check)

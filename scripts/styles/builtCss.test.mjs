@@ -90,8 +90,9 @@ test("resolveImportGraph: 実リポの global.css から上流の既定値ファ
   const sources = resolveImportGraph(resolve(repoRoot, "src/styles/global.css"), repoRoot);
   const byFile = new Map(sources.map((s) => [s.file, s.names]));
   assert.ok(byFile.has("src/styles/global.css"));
-  assert.ok(byFile.get("src/styles/palette.defaults.css").includes("--primary"));
-  assert.ok(byFile.get("src/styles/typography.defaults.css").includes("--font-geist-sans"));
-  assert.ok(byFile.has("src/styles/custom/palette.css"), "custom/ 配下も index.css 経由で辿る");
-  assert.ok(!byFile.get("src/styles/animations.css").some((n) => n.startsWith("--animate-")), "@theme 内は対象外");
+  assert.ok(byFile.get("src/styles/_base/palette.defaults.css").includes("--primary"));
+  assert.ok(byFile.get("src/styles/_base/typography.defaults.css").includes("--font-geist-sans"));
+  assert.ok(byFile.has("src/styles/_base/index.css"), "_base/index.css を入れ子で辿る");
+  assert.ok(byFile.has("src/styles/palette.css"), "fork の palette.css も global.css から辿る");
+  assert.ok(!byFile.get("src/styles/_base/animations.css").some((n) => n.startsWith("--animate-")), "@theme 内は対象外");
 });

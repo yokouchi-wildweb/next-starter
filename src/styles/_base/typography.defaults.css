@@ -1,8 +1,8 @@
 /*
- * src/styles/typography.defaults.css — 書体スタックの上流既定値(upstream 所有)
+ * src/styles/_base/typography.defaults.css — 書体スタックの上流既定値(upstream 所有)
  *
  * ⚠️ 下流(fork)はこのファイルを編集しないでください。
- *    - system フォントの並びを変えたい → src/styles/custom/typography.css に同名変数を書く(後勝ち)
+ *    - system フォントの並びを変えたい → src/styles/typography.css に同名変数を書く(後勝ち)
  *    - Web フォントを読み込みたい → src/config/ui/fonts.config.ts(next/font)。読み込まれると
  *      --font-sans-loaded / --font-mono-loaded が <html> に定義され、下のフォールバックより優先される
  *

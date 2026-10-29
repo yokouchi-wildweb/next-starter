@@ -17,7 +17,7 @@ User/
 │   ├── FooterVisibilityContext.tsx
 │   └── BottomNavVisibilityContext.tsx
 └── controls/        # ページ単位で枠の部位を隠す印(Hide*)
-    ├── frameParts.ts    # 部位一覧(唯一の元。印の属性と styles/frame-controls.generated.css の規則を作る)
+    ├── frameParts.ts    # 部位一覧(唯一の元。印の属性と styles/_base/frame-controls.generated.css の規則を作る)
     ├── HeaderControl.tsx
     ├── HeaderNavControl.tsx
     ├── FooterControl.tsx

@@ -4,7 +4,7 @@ import { clsx, type ClassValue } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
 
 /**
- * src/styles/theme.css の `--text-fluid-*` トークンから生成される流体フォントサイズ。
+ * src/styles/_base/theme.css の `--text-fluid-*` トークンから生成される流体フォントサイズ。
  *
  * tailwind-merge は Tailwind 標準のクラスしか知らないため、未知の `text-*` を
  * 文字色と分類する。登録しないと `text-primary-foreground text-fluid-base` が

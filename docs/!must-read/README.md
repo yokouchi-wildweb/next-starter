@@ -86,7 +86,7 @@ Supabase への一本化を検討したうえで採らなかった理由と、�
 | 対象 | 上流が持つもの | 下流が持つもの |
 |---|---|---|
 | 画面 | 既定の画面（`_screen/`）、loader | `page.tsx` の向き先、差し替えた画面と専用部品（`_components/`） |
-| スタイル | トークンの構造（`theme.css`）と既定値（`*.defaults.css`） | 変えたい値だけ（`src/styles/custom/**`） |
+| スタイル | トークンの構造（`theme.css`）と既定値（`*.defaults.css`） | 変えたい値だけ（`src/styles/` 直下の `palette.css` / `typography.css` / `overrides.css`。upstream の CSS は `src/styles/_base/`） |
 | UI の設定 | 部品の既定値とその型 | 上書きする値（`src/config/ui/*.config.ts`） |
 | 拡張 | 登録表の構造と生成器（`src/registry/*`）、core の `domainEntry.ts` | 業務ドメインの `domain.json`（→ 生成）、core の access を変える `domainEntry.override.ts`、特定ドメインの拡張口に登録する中身 |
 | ルール | `CLAUDE.md`（全 fork 共通） | `.claude/rules/project.md`（fork ごとの差分） |

@@ -9,7 +9,7 @@ import { useViewportSizeStore } from "@/stores/viewportSize";
  * 「高さが足りない」と判定する max-height 閾値 (px)。
  * 横向きスマホ (幅は十分だが高さ 350〜430px 程度) を拾うための既定値。
  *
- * ⚠️ CSS 側の `short:` バリアント (src/styles/theme.css の @custom-variant) と
+ * ⚠️ CSS 側の `short:` バリアント (src/styles/_base/theme.css の @custom-variant) と
  * 手動で同期すること。Tailwind のメディアクエリは CSS 変数を参照できないため
  * 片側だけ変えると JS と CSS の判定がずれる。
  */

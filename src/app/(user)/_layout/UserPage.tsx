@@ -16,7 +16,7 @@ export type UserPageProps = MainProps & {
    * 「アプリ的」な非スクロールページ向け）。
    *
    * 仕組み: UserLayout の外枠（[data-user-app-container]）は既定 min-h で伸びるが、
-   * 配下に data-user-fill があると styles/config.css の :has() ルールで確定高さ +
+   * 配下に data-user-fill があると styles/_base/config.css の :has() ルールで確定高さ +
    * overflow-clip に切り替わる。#stretch-wrapper は既に flex-1 min-h-0 flex-col
    * なので、ここに flex-1 min-h-0 を付けるだけで残り高さを占有する。
    * ResizeObserver も calc(100dvh - Nrem) のマジックナンバーも不要で、ヘッダー高さ・

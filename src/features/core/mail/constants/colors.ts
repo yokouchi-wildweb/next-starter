@@ -1,6 +1,6 @@
 // src/features/core/mail/constants/colors.ts
 // このファイルは自動生成されます。直接編集しないでください。
-// 生成元: src/styles/palette.defaults.css + src/styles/custom/palette.css (後者が前者を上書き)
+// 生成元: src/styles/_base/palette.defaults.css + src/styles/palette.css (後者が前者を上書き)
 // 生成コマンド: pnpm mail:generate-colors
 
 export const MAIL_THEME_COLORS = {

@@ -1,10 +1,10 @@
 /*
- * src/styles/palette.defaults.css — 色トークンの上流既定値(upstream 所有)
+ * src/styles/_base/palette.defaults.css — 色トークンの上流既定値(upstream 所有)
  *
  * ここには「値」だけを置きます。トークンの構造(@theme inline の対応表)は theme.css にあります。
  *
  * ⚠️ 下流(fork)はこのファイルを編集しないでください。
- *    変えたい値だけを src/styles/custom/palette.css に書くと、後勝ちで上書きされます。
+ *    変えたい値だけを src/styles/palette.css に書くと、後勝ちで上書きされます。
  *    (例) :root { --primary: oklch(0.6 0.2 255); }
  *         .dark { --primary: oklch(0.7 0.18 255); }
  *         [data-area="user"] { --primary: ...; }   ← ユーザー側だけブランド色にする
@@ -12,7 +12,7 @@
  *
  * ⚠️ 色を変えたら(upstream / custom どちらでも)メール用カラー定数を再生成してコミットしてください:
  *    pnpm mail:generate-colors
- *    (palette.defaults.css + custom/palette.css の :root を合成して hex に変換します)
+ *    (palette.defaults.css + src/styles/palette.css の :root を合成して hex に変換します)
  *
  * 詳細: src/styles/README.md
  */

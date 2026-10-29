@@ -1,15 +1,20 @@
 /*
- * src/styles/theme.css — デザイントークンの「構造」(upstream 所有)
+ * src/styles/_base/theme.css — デザイントークンの「構造」(upstream 所有)
  *
  * `@theme inline` で CSS 変数を Tailwind のユーティリティ(bg-primary 等)に対応付けます。
  * 色トークンの「値」はここには書きません(下の color-scheme は「どのクラスがダークか」という構造の一部):
- *   - 上流既定値: src/styles/palette.defaults.css(色) ※ upstream 所有、下流は編集しない
- *   - 下流の上書き: src/styles/custom/*.css ※ 下流所有、変えたい値だけ書く
+ *   - 上流既定値: src/styles/_base/palette.defaults.css(色) ※ upstream 所有、下流は編集しない
+ *   - 下流の上書き: src/styles/ 直下の palette / typography / overrides.css ※ 下流所有、変えたい値だけ書く
  *
  * ダークモードは <html class="dark">(root layout が SSR で付与、bootstrap script と
  * SiteThemeSync が補正)で切り替わります。エリアは <html data-area="...">。
  * 設定: src/config/ui/site-theme.config.ts / 詳細: src/styles/README.md
  */
+
+/* 目印(styles:check-build がビルド出力にこのファイルがあるかをこの名前で確かめる) */
+:root {
+  --styles-marker-theme: 1;
+}
 
 @custom-variant dark (&:is(.dark *));
 

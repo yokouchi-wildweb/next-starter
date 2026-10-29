@@ -4,7 +4,7 @@ import { cva } from "class-variance-authority";
 
 /**
  * 文字色。意味色は本文用トークン(text-{x}-text)を使う(塗り用トークンを文字色にしない)。
- * 色の値は src/styles/palette.defaults.css(既定)/ custom/palette.css(下流)で決まる。
+ * 色の値は src/styles/_base/palette.defaults.css(既定)/ src/styles/palette.css(下流)で決まる。
  */
 export const tone = {
   inherit: "text-inherit",

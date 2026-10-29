@@ -1,9 +1,14 @@
 /*
- * src/styles/components.css
+ * src/styles/_base/components.css
  * 複数ページで使い回す UI コンポーネント向けのスタイルを管理します。
  * `.badge` などの共通クラスをここで定義し、
  * 追加時は Tailwind の components レイヤーの責務を意識してください。
  */
+
+/* 目印(styles:check-build がビルド出力にこのファイルがあるかをこの名前で確かめる) */
+:root {
+  --styles-marker-components: 1;
+}
 
 @layer components {
   /* ここにコンポーネント用のスタイルを追加 */

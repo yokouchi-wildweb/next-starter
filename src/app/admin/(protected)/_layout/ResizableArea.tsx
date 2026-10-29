@@ -79,7 +79,7 @@ export function ResizableArea({
           潰れてクリップされる（＝スクロール不能になる）ため、ここは必ずブロック。
 
           <AdminPage fill> の時だけ、配下の data-admin-fill を :has() で検知して
-          このラッパーを flex-col + min-h-0 の束縛モードに切り替える（styles/config.css）。
+          このラッパーを flex-col + min-h-0 の束縛モードに切り替える（styles/_base/config.css）。
           これにより fill の flex-1 min-h-0 高さチェーンがページへ伝播し、内部ペインが
           独自スクロール、外側は非スクロールになる。 */}
       <div className="flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden">

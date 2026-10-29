@@ -1,5 +1,5 @@
 // scripts/styles/generate-gradient-css.ts
-// グラデーショントークン（src/lib/gradient）から src/styles/gradient.css を生成する。
+// グラデーショントークン（src/lib/gradient）から src/styles/_base/gradient.css を生成する。
 //
 // 使い方:
 //   pnpm gradient:gen
@@ -17,7 +17,7 @@ import { DEFAULT_GRADIENT_ANGLE } from "@/lib/gradient/build";
 import { listGradientInputs } from "@/lib/gradient/registry";
 import type { GradientTokenInput } from "@/lib/gradient/types";
 
-const OUTPUT_PATH = "src/styles/gradient.css";
+const OUTPUT_PATH = "src/styles/_base/gradient.css";
 
 /** 角度ユーティリティ（静的）。0=上 / 90=右 / 135=右下(既定) / 180=下 … */
 const DIRECTION_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
@@ -58,7 +58,7 @@ function buildCss(tokens: GradientTokenInput[]): string {
   out.push(
     [
       "/*",
-      " * src/styles/gradient.css",
+      " * src/styles/_base/gradient.css",
       " * 【自動生成ファイル】直接編集しないでください。",
       " * 生成元: src/lib/gradient/tokens.base.ts ＋ src/config/app/gradients.config.ts",
       " * 再生成: pnpm gradient:gen",

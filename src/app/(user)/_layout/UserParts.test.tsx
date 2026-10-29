@@ -99,7 +99,7 @@ const BEFORE_HEADER_DIMS = BEFORE.header.replace(" top-0 ", " top-[var(--app-ban
 
 /**
  * 枠の印の区切り(notice frame-marks)で既定の部品に入った差分は、外側の要素の data-frame-part だけ
- * (Hide* の印で隠す CSS の狙う先。styles/frame-controls.generated.css)。ナビの部品(Pc / Sp)はここではモック
+ * (Hide* の印で隠す CSS の狙う先。styles/_base/frame-controls.generated.css)。ナビの部品(Pc / Sp)はここではモック
  */
 const BEFORE_HEADER_MARKS = BEFORE_HEADER_DIMS.replace('<header id="header" ', '<header id="header" data-frame-part="header" ')
   // 寸法変数の 0 と context 離れの区切り(notice frame-marks-dims): context の表示クラス(既定 "")を外したので class の末尾の空白が無くなった

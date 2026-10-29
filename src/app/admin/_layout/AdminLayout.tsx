@@ -34,7 +34,7 @@ export function AdminLayout({ children, header, className }: AdminLayoutProps) {
   const { extraClassName } = useAdminLayoutStore();
 
   // 寸法変数のうち書くのは --app-header-height だけ。Admin には banner も bottomNav も無いので
-  // --app-banner-height / --app-bottom-nav-height は styles/config.css の :root の 0px を継ぐ(safe-area も :root)
+  // --app-banner-height / --app-bottom-nav-height は styles/_base/config.css の :root の 0px を継ぐ(safe-area も :root)
   const layoutStyle: AdminLayoutCSSVariables = useMemo(
     () => ({
       "--app-header-height": `${headerHeight}px`,

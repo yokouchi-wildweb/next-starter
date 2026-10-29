@@ -1,9 +1,14 @@
 /*
- * src/styles/base.css
+ * src/styles/_base/base.css
  * Tailwind の base レイヤーを拡張して、全体に適用する初期化スタイルを管理します。
  * フォーム要素のリセットや body のデフォルトカラーなど、
  * アプリケーション全体で共有したい最低限のスタイルをここに記述してください。
  */
+
+/* 目印(styles:check-build がビルド出力にこのファイルがあるかをこの名前で確かめる) */
+:root {
+  --styles-marker-base: 1;
+}
 
 @layer base {
   input[type="date"],

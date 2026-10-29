@@ -1,41 +1,24 @@
 /*
- * src/styles/global.css
- * Tailwind を読み込むための入口となるファイルです。
- * 他のスタイルシートをここで import するだけにして、
- * このファイルには追加の CSS を書かないでください。
- */
-
-/*
- * レイヤー順序を明示的に宣言
- * Next.js の CSS 読み込み順序の不定性（Issue #64921）に対応するため、
- * ファイルの読み込み順序に関係なく、常にこの優先順位が維持される
- * 後に宣言されたレイヤーほど優先度が高い（utilities が最優先）
+ * src/styles/global.css — スタイルの入口(fork 所有)
  *
- * properties: Tailwind v4 内部レイヤー（--tw-* 変数の初期化）
- * theme: @theme / @theme inline で定義されたデザイントークン
- * base: グローバルリセット、HTML要素のデフォルトスタイル
- * components: 再利用可能なコンポーネントスタイル
- * utilities: ユーティリティクラス（最優先）
+ * 最初に upstream の既定(_base/index.css: Tailwind・プラグイン・upstream の CSS)を読み込み、
+ * その後に fork の上書きを読む。後勝ちなので、書いた値だけが upstream の既定を上書きする。
+ * upstream はこのファイルと直下の palette.css / typography.css / overrides.css を初回作成後に編集しない。
+ *
+ *   palette.css     色(--primary 等)。エリア別は [data-area="user"] { ... }
+ *   typography.css  書体・文字サイズ系
+ *   overrides.css   ユーティリティが触らない領域(要素既定・scrollbar・selection・keyframes 等)
+ *
+ * fork のファイルを足すときは、この直下(または好きな所)に置き、下に @import を足す(例: brand.css)。
+ * Tier2 → Tier3 のように fork が多段のときは、@import の順序がそのまま優先順位。
+ * _base/index.css の @import は必ず最初に置く(upstream の既定より先に fork の値を読むと上書きにならない)。
+ * このファイルには @import 以外の CSS を書かない。
+ *
+ * 詳細と注意点(cva 基底クラスを CSS で上書きしない等): src/styles/README.md
  */
-@layer properties, theme, base, components, utilities;
 
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "./animations.css";
-@import "./theme.css";
-@import "./palette.defaults.css";
-@import "./typography.defaults.css";
-@import "./gradient.css";
-@import "./config.css";
-@import "./frame-controls.generated.css";
-@import "./z-layer.css";
-@import "./base.css";
-@import "./components.css";
-@import "./utilities.css";
-@import "./admin.css";
+@import "./_base/index.css";
 
-/*
- * 下流(fork)所有の上書き。必ず最後に読み込む(後勝ちで上流既定値を上書きするため)。
- * upstream はこの行より上を編集し、custom/ の中身は編集しない。
- */
-@import "./custom/index.css";
+@import "./palette.css";
+@import "./typography.css";
+@import "./overrides.css";

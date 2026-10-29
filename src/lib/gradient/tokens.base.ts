@@ -5,7 +5,7 @@
 // 同時に TS から listGradients() 等で列挙可能なデータ源でもある。
 //
 // 重要:
-//   - 値を変更したら `pnpm gradient:gen` で src/styles/gradient.css を再生成し、
+//   - 値を変更したら `pnpm gradient:gen` で src/styles/_base/gradient.css を再生成し、
 //     生成物をコミットすること（生成物コミット方式）。
 //   - downstream 固有のグラデーションはこのファイルではなく
 //     src/config/app/gradients.config.ts に追加すること（マージ衝突回避のため）。

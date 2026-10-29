@@ -65,11 +65,11 @@ src/app/(user)/_layout/
 |------|----|--------|
 | `--app-header-height` | ヘッダー(`#header`)の実測の高さ | UserLayout・AdminLayout の外枠の inline |
 | `--app-banner-height` | banner の実測の高さ。banner が無い時は書かない(0px) | UserLayout の外枠の inline(banner がある時だけ) |
-| `--app-bottom-nav-height` | `BOTTOM_NAV_HEIGHT`(`src/config/ui/user-bottom-menu.config.ts`)。既定のボトムナビを描き `BOTTOM_NAV_ENABLED` の時と、bottomNav に要素を渡した時。`bottomNav={null}` と無効の時は書かない(0px)。出さないデバイス(`BOTTOM_NAV_VISIBILITY`、既定 PC)と `HideBottomNav` で隠している間は 0px(印の CSS が `!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/frame-controls.generated.css` |
-| `--app-safe-area-top/right/bottom/left` | `env(safe-area-inset-*, 0px)` | `src/styles/config.css` の `:root` |
+| `--app-bottom-nav-height` | `BOTTOM_NAV_HEIGHT`(`src/config/ui/user-bottom-menu.config.ts`)。既定のボトムナビを描き `BOTTOM_NAV_ENABLED` の時と、bottomNav に要素を渡した時。`bottomNav={null}` と無効の時は書かない(0px)。出さないデバイス(`BOTTOM_NAV_VISIBILITY`、既定 PC)と `HideBottomNav` で隠している間は 0px(印の CSS が `!important` で上書き) | UserLayout の外枠の inline / 0 は `src/styles/_base/frame-controls.generated.css` |
+| `--app-safe-area-top/right/bottom/left` | `env(safe-area-inset-*, 0px)` | `src/styles/_base/config.css` の `:root` |
 
-- 既定値(0px と safe-area)は `src/styles/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ
-- 外枠の配下(ページ・その中の fixed 要素)は px を直書きせずこれらを使う(例 `bottom-[calc(var(--app-bottom-nav-height)+8px)]`。規則: .claude/rules/core/style.md frame_dims)。ボトムナビを隠したページや PC では自動で 0 になる。`--app-*-height` は inline が勝つので `src/styles/custom/` からは上書きできない
+- 既定値(0px と safe-area)は `src/styles/_base/config.css` の `:root`。Admin は header だけを書き、ほかは :root の既定を継ぐ
+- 外枠の配下(ページ・その中の fixed 要素)は px を直書きせずこれらを使う(例 `bottom-[calc(var(--app-bottom-nav-height)+8px)]`。規則: .claude/rules/core/style.md frame_dims)。ボトムナビを隠したページや PC では自動で 0 になる。`--app-*-height` は inline が勝つので fork の CSS(`src/styles/` 直下)からは上書きできない
 - `--app-header-height` は実測なので、HideHeader で隠すと(display: none で高さ 0)自動で 0 に追随する。`--app-banner-height` は印の対象外
 - BottomNavSpacer は `--app-bottom-nav-height` を読む 1 要素。BottomNav の高さ(`style` の height)と BottomNav・UserPage の safe-area(`env()` の直書き)は今の値のまま(値は同じ)
 - 既定の DOM の差分(test で固定): Header の class `top-0` → `top-[var(--app-banner-height,0px)]`、外枠の style に `--app-bottom-nav-height:64px`。どちらも banner が無い時の計算値・見た目は同じ
@@ -111,7 +111,7 @@ export { AcmeUserLayout as default } from "./_layout/UserLayout.acme";
 <HideHeaderNav pc />     {/* PC だけヘッダーのナビを隠す(ヘッダーは残る) */}
 ```
 
-- 仕組み: Hide* は空の印 `<span hidden data-frame-hide="<部位>-<デバイス>">` を描くだけ。`src/styles/frame-controls.generated.css` の規則が「外枠 `[data-frame-root]`(UserLayout の `#user-app-container`)が印を含む間、その部位を `display: none`」にする(`:has()`)。部品はアンマウントしない
+- 仕組み: Hide* は空の印 `<span hidden data-frame-hide="<部位>-<デバイス>">` を描くだけ。`src/styles/_base/frame-controls.generated.css` の規則が「外枠 `[data-frame-root]`(UserLayout の `#user-app-container`)が印を含む間、その部位を `display: none`」にする(`:has()`)。部品はアンマウントしない
 - 元は 1 つ: 部位・狙う先・デバイスの境界は `controls/frameParts.ts`。CSS はそこから `pnpm frame:generate` で作ってコミットする(`--check` と `pnpm test:frame-controls` が一致を確かめる)
 - client JS なし: 隠すのは CSS の規則だけ(hook・effect なし)。server の Screen・layout からも、client 部品の中からも同じに描ける
 - 効く時点 = 印が外枠に入った瞬間(hydration は待たない)。外枠に直接描く印(UserLayout の基本の印)は初回の HTML に入っているので JavaScript なしでも効く。ページ側の印は、`(user)/loading.tsx`(Suspense)の下では本文と一緒にストリーミングで届いた瞬間に効く = loading の間は枠が出て、本文が出るのと同じフレームで隠れる(JS 有効ならちらつきなし)。JavaScript 無効ではストリーミングの本文が外枠に入らないので、ページ側の印は効かない(本文も出ない)
@@ -402,7 +402,7 @@ export default function PlayerPage() {
 | SSR | `--viewport-height` 設定前は `100dvh` にフォールバック |
 | `fill` 未指定 | 従来と完全に同一の出力 |
 
-仕組み: UserLayout の外枠 `[data-user-app-container]` は既定 `min-h` で中身ぶん伸びるが、配下に `data-user-fill` があると `src/styles/config.css` の `:has()` ルールで確定高さ + `overflow-clip` に切り替わる（AdminPage の fill と同じ手法）。
+仕組み: UserLayout の外枠 `[data-user-app-container]` は既定 `min-h` で中身ぶん伸びるが、配下に `data-user-fill` があると `src/styles/_base/config.css` の `:has()` ルールで確定高さ + `overflow-clip` に切り替わる（AdminPage の fill と同じ手法）。
 
 ### immersive - 没入モード
 

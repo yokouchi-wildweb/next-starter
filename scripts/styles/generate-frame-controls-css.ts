@@ -1,5 +1,5 @@
 // scripts/styles/generate-frame-controls-css.ts
-// 枠の部位一覧(src/components/AppFrames/User/controls/frameParts.ts)から src/styles/frame-controls.generated.css を生成する。
+// 枠の部位一覧(src/components/AppFrames/User/controls/frameParts.ts)から src/styles/_base/frame-controls.generated.css を生成する。
 //
 // 使い方:
 //   pnpm frame:generate            # CSS を書き出す(部位一覧を変えたら実行してコミットする)
@@ -12,7 +12,7 @@ import path from "node:path";
 
 import { buildFrameControlsCss } from "@/components/AppFrames/User/controls/frameParts";
 
-const OUTPUT_PATH = "src/styles/frame-controls.generated.css";
+const OUTPUT_PATH = "src/styles/_base/frame-controls.generated.css";
 
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const file = path.resolve(process.cwd(), OUTPUT_PATH);

@@ -4,7 +4,7 @@
 
 ## 背景・設計方針
 
-- 従来トークンは `src/styles/gradient.css` の CSS 変数 / `@utility` のみで、**JS/TS から列挙・inline適用・プリセット選択ができなかった**。
+- 従来トークンは `src/styles/_base/gradient.css` の CSS 変数 / `@utility` のみで、**JS/TS から列挙・inline適用・プリセット選択ができなかった**。
 - 解決: **TS（`tokens.base.ts`＋`config/app/gradients.config.ts`）を単一ソース**にし、そこから `gradient.css` を **codegen で生成**する（生成物コミット方式）。
 - 用途の二段構成:
   - **実行時**（ピッカー / inline style / canvas）→ `listGradients()` の `cssValue` を直接使う（CSSクラス不要・SSR安全、`getComputedStyle` 非依存）。
@@ -15,7 +15,7 @@
 
 - upstream 標準: `src/lib/gradient/tokens.base.ts`（`BASE_GRADIENTS`）
 - downstream 固有: `src/config/app/gradients.config.ts`（`customGradients`、既定 空）
-- 値を変えたら **`pnpm gradient:gen`** で `src/styles/gradient.css` を再生成し、生成物をコミットする。
+- 値を変えたら **`pnpm gradient:gen`** で `src/styles/_base/gradient.css` を再生成し、生成物をコミットする。
 - 同一キーは後勝ち（custom が base を上書き可能）。
 
 ```ts

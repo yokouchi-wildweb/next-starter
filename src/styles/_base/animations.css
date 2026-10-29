@@ -1,12 +1,17 @@
-/* src/styles/animations.css */
+/* src/styles/_base/animations.css */
 
 
 /*
- * src/styles/animations.css
+ * src/styles/_base/animations.css
  * 共通のアニメーションや関連ユーティリティを定義します。
  * `--animate-*` の変数は `@theme` ブロックで登録し、
  * 追加のアニメーション用クラスは `@layer utilities` に配置します。
  */
+
+/* 目印(styles:check-build がビルド出力にこのファイルがあるかをこの名前で確かめる) */
+:root {
+  --styles-marker-animations: 1;
+}
 
 @theme {
 

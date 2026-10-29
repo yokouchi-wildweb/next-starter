@@ -2,7 +2,7 @@
 // 実行: pnpm test:frame-controls(tsx + node:test のモジュールモック + react-dom/server の静的描画)
 //
 // 守りたい契約:
-// 1. コミットされた src/styles/frame-controls.generated.css は部位一覧からの生成結果と一致する(pnpm frame:generate --check と同じ関数)
+// 1. コミットされた src/styles/_base/frame-controls.generated.css は部位一覧からの生成結果と一致する(pnpm frame:generate --check と同じ関数)
 // 2. Hide* は印 <span hidden data-frame-hide> を描くだけ(props 無し = 両方 / sp・pc = そちら / false = 何もしない)
 // 3. 部位一覧の狙う先(id と data-frame-part)が既定の枠部品に実在し、外枠に data-frame-root がある
 // 4. 生成 CSS は global.css から読まれ、目印の変数を持つ(styles:check-build がビルド出力の欠落を検出できる)
@@ -51,14 +51,15 @@ before(async () => {
 const mark = (tokens: string) => `<span hidden="" data-frame-hide="${tokens}"></span>`;
 
 test("コミットされた生成 CSS は部位一覧からの生成結果と一致する(ずれたら pnpm frame:generate)", () => {
-  assert.equal(read("src/styles/frame-controls.generated.css"), buildFrameControlsCss());
+  assert.equal(read("src/styles/_base/frame-controls.generated.css"), buildFrameControlsCss());
 });
 
-test("生成 CSS は global.css から config.css の後・custom/ の前に読まれる", () => {
-  const imports = [...read("src/styles/global.css").matchAll(/^@import "([^"]+)";/gm)].map((m) => m[1]);
+test("生成 CSS は _base/index.css から config.css の後に読まれ、global.css は _base/index.css を fork のファイルより前に読む", () => {
+  const imports = [...read("src/styles/_base/index.css").matchAll(/^@import "([^"]+)";/gm)].map((m) => m[1]);
   const at = imports.indexOf("./frame-controls.generated.css");
   assert.ok(at > imports.indexOf("./config.css"), "config.css の後に無い");
-  assert.ok(at < imports.indexOf("./custom/index.css"), "custom/ より前に無い");
+  const entry = [...read("src/styles/global.css").matchAll(/^@import "([^"]+)";/gm)].map((m) => m[1]);
+  assert.equal(entry[0], "./_base/index.css", "global.css の最初の @import が _base/index.css でない");
 });
 
 test("生成 CSS は目印の変数を宣言する(styles:check-build の検査対象になる)。ほかに宣言するのは部位の寸法変数だけ", () => {

@@ -3,12 +3,13 @@
 //
 // 守りたい契約:
 // 1. theme.css の @theme inline が参照する var(--x) は、上流のどこかの CSS で必ず定義されている
-//    (下流の custom/ に頼らない = 下流が何も書かなくても動く)
+//    (下流の直下のファイルに頼らない = 下流が何も書かなくても動く)
 // 2. palette.defaults.css の .dark は :root に無い変数を持ち込まない(ライトで未定義の変数を作らない)
 // 3. palette.defaults.css は値だけを持つ(@theme や @custom-variant などの構造を含まない)
-// 4. global.css は custom/index.css を最後に読み込む(後勝ちの上書き契約)
+// 4. _base/index.css が upstream の CSS を読み、global.css はそれを最初に、fork の 3 ファイルを後に読む(後勝ちの上書き契約)
 //
-// 検証対象から src/styles/custom/ は除外する(下流所有。中身は fork ごとに自由)。
+// 検証対象は src/styles/_base/(upstream 所有)。src/styles/ 直下の CSS は下流所有(中身は fork ごとに自由)なので、
+// 入口の形と upstream が出荷する中身(コメントだけ)以外は見ない。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -17,7 +18,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const stylesDir = dirname(fileURLToPath(import.meta.url));
+const entryDir = resolve(stylesDir, "..");
 const read = (name) => readFileSync(resolve(stylesDir, name), "utf8");
+const readEntry = (name) => readFileSync(resolve(entryDir, name), "utf8");
+const importsOf = (css) => [...stripComments(css).matchAll(/@import\s+"([^"]+)"/g)].map((m) => m[1]);
 const stripComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 /** origin の URL(取得できなければ空文字)。upstream 限定の検査の判定に使う */
@@ -33,7 +37,7 @@ function originUrl() {
   }
 }
 
-/** 上流所有 CSS(custom/ 以外)の一覧 */
+/** 上流所有 CSS(_base/ の CSS)の一覧 */
 const upstreamCssFiles = readdirSync(stylesDir)
   .filter((f) => f.endsWith(".css"))
   .map((f) => join(stylesDir, f));
@@ -74,7 +78,7 @@ test("theme.css の @theme inline が参照する変数は上流 CSS で全て�
   assert.deepEqual(
     missing,
     [],
-    `theme.css が参照しているが上流 CSS(custom/ 以外)に定義が無い変数: ${missing.join(", ")}。palette.defaults.css に既定値を追加すること`,
+    `theme.css が参照しているが上流 CSS(_base/)に定義が無い変数: ${missing.join(", ")}。palette.defaults.css に既定値を追加すること`,
   );
 });
 
@@ -121,9 +125,17 @@ test("書体スタックは typography.defaults.css が持ち、palette.defaults
   assert.deepEqual(fontsInPalette, [], `palette.defaults.css に書体変数がある: ${fontsInPalette.join(", ")}`);
 });
 
-test("global.css は custom/index.css を最後に読み込む", () => {
-  const imports = [...stripComments(read("global.css")).matchAll(/@import\s+"([^"]+)"/g)].map((m) => m[1]);
-  assert.equal(imports.at(-1), "./custom/index.css");
+test("global.css は _base/index.css を最初に、fork の 3 ファイルをその後に読み込む", () => {
+  const entry = importsOf(readEntry("global.css"));
+  assert.equal(entry[0], "./_base/index.css");
+  for (const name of ["./palette.css", "./typography.css", "./overrides.css"]) {
+    assert.ok(entry.indexOf(name) > 0, `global.css が ${name} を _base/index.css の後に import していない`);
+  }
+});
+
+test("_base/index.css は tailwindcss を読み、既定値の順序を保つ", () => {
+  const imports = importsOf(read("index.css"));
+  assert.equal(imports[0], "tailwindcss");
   assert.ok(imports.includes("./palette.defaults.css"));
   assert.ok(imports.indexOf("./theme.css") < imports.indexOf("./palette.defaults.css"));
   assert.ok(imports.indexOf("./palette.defaults.css") < imports.indexOf("./typography.defaults.css"));
@@ -135,21 +147,15 @@ test("theme.css に色の値が残っていない(値は palette.defaults.css �
   assert.deepEqual(colorValues, [], `theme.css に色の値が残っている: ${colorValues.join(", ")}`);
 });
 
-test("upstream が出荷する custom/*.css はコメントだけ(下流所有ファイルを upstream が埋めない)", () => {
-  // 下流 fork では custom/ に値が入るのが正しいので、このテストは upstream リポでのみ意味を持つ。
+test("upstream が出荷する直下の palette / typography / overrides.css はコメントだけ(下流所有ファイルを upstream が埋めない)", () => {
+  // 下流 fork ではこの 3 ファイルに値が入るのが正しいので、このテストは upstream リポでのみ意味を持つ。
   // fork 側で失敗させないよう、git remote が upstream 本体のときだけ検査する。
   const isUpstreamRepo = /yokouchi-wildweb\/next-starter(\.git)?$/.test(originUrl());
   if (!isUpstreamRepo) return;
-  for (const name of ["index.css", "palette.css", "typography.css", "overrides.css"]) {
-    const body = stripComments(readFileSync(resolve(stylesDir, "custom", name), "utf8")).trim();
-    const expected = name === "index.css" ? /^(@import\s+"\.\/[a-z]+\.css";\s*)+$/ : /^$/;
-    assert.match(body, expected, `custom/${name} に upstream がコメント以外を書いている`);
+  for (const name of ["palette.css", "typography.css", "overrides.css"]) {
+    const body = stripComments(readEntry(name)).trim();
+    assert.match(body, /^$/, `${name} に upstream がコメント以外を書いている`);
   }
-});
-
-test("custom/ の出荷ファイルが揃っている(index.css が 3 ファイルを読み込む)", () => {
-  const index = stripComments(readFileSync(resolve(stylesDir, "custom/index.css"), "utf8"));
-  for (const name of ["./palette.css", "./typography.css", "./overrides.css"]) {
-    assert.ok(index.includes(`@import "${name}"`), `custom/index.css が ${name} を import していない`);
-  }
+  const entry = stripComments(readEntry("global.css")).trim();
+  assert.match(entry, /^(@import\s+"\.\/[a-z_/]+\.css";\s*)+$/, "global.css に upstream が @import 以外を書いている");
 });

@@ -4,7 +4,7 @@
 // (bg-slate-900 / text-red-600 / bg-white / text-[#fff] など)の使用を検出するローカル ESLint プラグイン。
 //
 // 背景:
-//   色の正は src/styles/palette.defaults.css(上流既定)+ custom/palette.css(下流上書き)のトークン。
+//   色の正は src/styles/_base/palette.defaults.css(上流既定)+ src/styles/palette.css(下流上書き)のトークン。
 //   生パレット色はブランド色に追従せず、ダークモードでは dark: 併記が必要になり、下流が core を
 //   編集する動機(= merge 衝突)になる。意味色は 塗り(bg-success)/ 塗りの上の文字(text-success-foreground)/
 //   素の背景の文字(text-success-text)の 3 トークンで書く。画面を覆う幕は bg-overlay/NN。

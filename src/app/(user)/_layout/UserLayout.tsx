@@ -69,7 +69,7 @@ export function UserLayout({
   const [bannerHeight, setBannerHeight] = useState(0);
   const hasBanner = banner !== undefined && banner !== null;
   // ボトムナビの高さは config の値。既定のボトムナビが無効な時と bottomNav={null} の時は書かない(:root の 0px)。
-  // 隠している間の 0 は印の CSS(styles/frame-controls.generated.css)が作る
+  // 隠している間の 0 は印の CSS(styles/_base/frame-controls.generated.css)が作る
   const hasBottomNav = bottomNav === undefined ? BOTTOM_NAV_ENABLED : bottomNav !== null;
 
   const layoutStyle: LayoutStyle = {
@@ -95,9 +95,9 @@ export function UserLayout({
               background
             )}
             {/* data-user-app-container: <UserPage fill> が配下にある時だけ
-                styles/config.css の :has() ルールで確定高さ + overflow-clip に
+                styles/_base/config.css の :has() ルールで確定高さ + overflow-clip に
                 切り替わる（既定は min-h で伸びる通常ページ）。
-                data-frame-root: 配下に Hide* の印がある間、styles/frame-controls.generated.css が
+                data-frame-root: 配下に Hide* の印がある間、styles/_base/frame-controls.generated.css が
                 その部位を隠す（controls/frameParts.ts）。 */}
             <Flex
               id="user-app-container"

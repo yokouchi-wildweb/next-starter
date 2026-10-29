@@ -1,6 +1,6 @@
 // ボトムナビの基本の表示(config/ui/user-bottom-menu.config の BOTTOM_NAV_VISIBILITY)を UserLayout が「隠す印」で描くことの検査
 // (config をモックするため UserLayout.test.tsx と別ファイル。実行: pnpm test:user-layout)
-// 印の規則(display: none と --app-bottom-nav-height の 0)は styles/frame-controls.generated.css。ここは描く印だけを見る。
+// 印の規則(display: none と --app-bottom-nav-height の 0)は styles/_base/frame-controls.generated.css。ここは描く印だけを見る。
 import { before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";

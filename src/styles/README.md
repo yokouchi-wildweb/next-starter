@@ -1,13 +1,14 @@
 # src/styles — スタイル基盤と所有権
 
 このディレクトリは「upstream が構造を持ち、下流(fork)が値を持つ」構成になっている。
-下流がデザインを変えるために upstream 所有のファイルを編集する必要はなく、編集しなければ merge 衝突も起きない。
+upstream の CSS は `_base/` に閉じ、fork が書くファイル(入口 `global.css` と `palette.css` / `typography.css` / `overrides.css`)は直下に置く。
+下流がデザインを変えるために `_base/` を編集する必要はなく、編集しなければ merge 衝突も起きない。
 
 ## 下流が覚えることは 3 つ
 
 | 変えたいもの | 書く場所 | それ以外 |
 |---|---|---|
-| 見た目の値(色・書体・影・余白) | `src/styles/custom/` | 触らない |
+| 見た目の値(色・書体・影・余白) | `src/styles/` 直下の `palette.css` / `typography.css` / `overrides.css`(または fork が足したファイル) | `_base/` は触らない |
 | 振る舞いと形の設定(テーマ既定・エリアロック・Web フォント読み込み・ボタン/バッジの形) | `src/config/ui/site-theme.config.ts` / `fonts.config.ts` / `variants.config.ts` | 触らない |
 | 画面そのもの | `src/app/**/page.tsx` の 1 行スイッチ | core の画面部品は触らない |
 
@@ -17,27 +18,37 @@
 
 ```
 src/styles/
-├── global.css              upstream  import の順序だけ。最後に ./custom/index.css
-├── theme.css               upstream  @theme inline のトークン構造、@custom-variant、color-scheme。値は書かない
-├── palette.defaults.css    upstream  :root / .dark の色の既定値(値だけ)
-├── typography.defaults.css upstream  書体スタックの既定値(--font-geist-sans/mono、loaded 変数へフォールバック参照)
-├── config.css              upstream  レイアウト系トークン(幅・管理画面余白・枠の寸法)
-├── z-layer.css             upstream  z-index トークン
-├── gradient.css            upstream  gradient:gen で生成(src/lib/gradient)
-├── frame-controls.generated.css  upstream  frame:generate で生成(枠の部位を隠す Hide* の規則。src/components/AppFrames/User/controls/frameParts.ts)
-├── animations.css / base.css / components.css / utilities.css / admin.css   upstream
-└── custom/                 下流      ★ upstream は初回作成後に一切編集しない
-    ├── index.css           下流      入口。出荷時は下の 3 ファイルを import するだけ
-    ├── palette.css         下流      変えたい色だけ書く(出荷時は空)
-    ├── typography.css      下流      変えたい書体・サイズだけ書く(出荷時は空)
-    └── overrides.css       下流      ユーティリティが触らない領域だけ(出荷時は空)
+├── global.css              下流      入口。最初に ./_base/index.css、その後に下の 3 ファイル(fork のファイルはこの後に足す)
+├── palette.css             下流      変えたい色だけ書く(出荷時は空)
+├── typography.css          下流      変えたい書体・サイズだけ書く(出荷時は空)
+├── overrides.css           下流      ユーティリティが触らない領域だけ(出荷時は空)
+├── README.md               upstream  このファイル(所有はファイル単位)
+└── _base/                  upstream  ★ fork は編集しない(値の変更は直下のファイルで上書き)
+    ├── index.css           upstream  @layer の順序・tailwindcss・tw-animate-css と upstream の CSS の import だけ
+    ├── theme.css           upstream  @theme inline のトークン構造、@custom-variant、color-scheme。値は書かない
+    ├── palette.defaults.css      upstream  :root / .dark の色の既定値(値だけ)
+    ├── typography.defaults.css   upstream  書体スタックの既定値(--font-geist-sans/mono、loaded 変数へフォールバック参照)
+    ├── config.css          upstream  レイアウト系トークン(幅・管理画面余白・枠の寸法)
+    ├── z-layer.css         upstream  z-index トークン
+    ├── gradient.css        upstream  gradient:gen で生成(src/lib/gradient ＋ fork の src/config/app/gradients.config.ts)
+    ├── frame-controls.generated.css  upstream  frame:generate で生成(枠の部位を隠す Hide* の規則。src/components/AppFrames/User/controls/frameParts.ts)
+    ├── animations.css / base.css / components.css / utilities.css / admin.css   upstream
+    └── styleTokens.test.mjs      upstream  pnpm test:style-tokens
 ```
+
+- upstream は直下の `global.css` / `palette.css` / `typography.css` / `overrides.css` を初回作成後に編集しない。fork が直下に足した CSS も fork の物
+- 生成物 2 つ(`gradient.css` / `frame-controls.generated.css`)は upstream の仕組みが書くので `_base/` に置く。fork が自分の `gradients.config.ts` から `pnpm gradient:gen` で再生成するのは今までどおり正しい使い方(手で編集しない)
+- `_` の意味は場所で違う(`src/app` の `_screen/` `_layout/` = 提供者の既定、`_components/` = fork の物)。`_base/` = upstream の物で、所有の印として一般化しない
+
+### この形になった経緯
+
+以前は upstream の CSS が直下に並び、fork の値は `custom/`(`custom/index.css` が 3 ファイルを読む)に置いていた。入口の `global.css` は upstream 所有で、fork が自分の CSS を足すには `custom/index.css` を編集する形だった。fork が書く場所が深く、upstream の CSS と同じ階層に並ぶため、fork が upstream の CSS を直接編集してしまう例が出た。共有フォルダの置き場と所有を決めた評議会の結論(fork の物を表に、upstream の物を `_base/` に閉じる)に合わせて入れ替えた。読み込みの順は変えていない(`_base/index.css` の中 = 以前の `global.css` の upstream 部分、その後に以前の `custom/index.css` と同じ 3 ファイル)ので、ビルド済み CSS は入れ替えの前後で同一。`custom/` を残して置き場を 2 つにする案は採らなかった。
 
 同じ考え方の前例: `src/features/core/setting/entities/*.extended.ts`(upstream の基底に下流が拡張を足し、upstream は extended 側を触らない)。
 
 upstream 側のファイルの役割(upstream でスタイルを足すときの置き場所):
 
-- `@import "tailwindcss"` は `global.css` の 1 か所だけ。他の CSS は `global.css` 経由で読まれるので個別に import しない(プラグインも `global.css` にまとめる)
+- `@import "tailwindcss"` は `_base/index.css` の 1 か所だけ。upstream の CSS は `_base/index.css` 経由で読まれるので個別に import しない(プラグインも `_base/index.css` にまとめる)。upstream が CSS を足すときも `_base/index.css` に import を足す(fork 所有の `global.css` は触らない)
 - `animations.css`: `--animate-*` の宣言と、対応する `@keyframes` を同じファイルに書く
 - `base.css`: リセットと HTML 要素の基本スタイルだけ。ページ固有のスタイルは書かない
 - `components.css` / `admin.css`: 再利用する UI パターンを `@layer components` に(`admin.css` は管理画面専用)。先にコンポーネントの variant で表現できないかを検討する
@@ -45,16 +56,16 @@ upstream 側のファイルの役割(upstream でスタイルを足すときの�
 
 ### 色の正は CSS
 
-色の唯一の正は `palette.defaults.css`(既定)と `custom/palette.css`(上書き)。派生物はそこから生成する:
+色の唯一の正は `_base/palette.defaults.css`(既定)と直下の `palette.css`(上書き)。派生物はそこから生成する:
 
 - メール用 hex 定数: `pnpm mail:generate-colors`(両ファイルの `:root` を合成して `src/features/core/mail/constants/colors.ts` を生成。欠落があれば失敗する)。色を変えたら必ず実行してコミットする。メールはダークモードもエリアも持たないので `.dark` と `[data-area]` は読まない。ブランド色を `[data-area="user"]` にだけ書くとメールは汎用色のままになる。メールにも反映したい色は `:root` にも書くこと
-- gradient トークン: `pnpm gradient:gen`(`src/config/app/gradients.config.ts` → `gradient.css`。palette には依存しない)
+- gradient トークン: `pnpm gradient:gen`(`src/config/app/gradients.config.ts` → `_base/gradient.css`。palette には依存しない)
 
-枠の部位を隠す規則: `pnpm frame:generate`(`src/components/AppFrames/User/controls/frameParts.ts` → `frame-controls.generated.css`、`--check` で一致検査)。色・値は持たない(規則だけ)ので custom/ からの上書きは想定しない。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す(Hide* と印)」
+枠の部位を隠す規則: `pnpm frame:generate`(`src/components/AppFrames/User/controls/frameParts.ts` → `_base/frame-controls.generated.css`、`--check` で一致検査)。色・値は持たない(規則だけ)ので fork のファイルからの上書きは想定しない。仕組みは src/app/(user)/_layout/README.md「枠の部位を隠す(Hide* と印)」
 
-shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { ... }` は、そのまま `custom/palette.css` に貼れば効く。
+shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { ... }` は、そのまま直下の `palette.css` に貼れば効く。
 
-## custom/ の書き方
+## fork のファイルの書き方
 
 ### 色(palette.css)
 
@@ -104,8 +115,8 @@ shadcn / tweakcn 等のジェネレータが出力する `:root { ... } .dark { 
 | やりたいこと | 書く場所 |
 |---|---|
 | Web フォントを読み込む(Google Fonts / ローカルファイル) | `src/config/ui/fonts.config.ts`(next/font) |
-| Web フォントは使わず system フォントの並びを変える | `custom/typography.css` の `--font-geist-sans` |
-| 文字サイズ(流体サイズ等)を変える | `custom/typography.css` の `@theme` |
+| Web フォントは使わず system フォントの並びを変える | `typography.css` の `--font-geist-sans` |
+| 文字サイズ(流体サイズ等)を変える | `typography.css` の `@theme` |
 
 仕組み: next/font のローダーを `variable: "--font-sans-loaded"`(mono は `"--font-mono-loaded"`)で呼び `defineFontsConfig({ sans })` に渡すと、root layout が `<html>` にクラスを当ててその変数を定義する。`typography.defaults.css` のスタックは `--font-geist-sans: var(--font-sans-loaded, "Inter", system-ui, ...)` と書かれているので、読み込まれていればそれを、無ければ system スタックを使う。theme.css と Tailwind の `font-sans` / `font-mono` は一切変えない。
 
@@ -120,7 +131,7 @@ export const FONTS_CONFIG = defineFontsConfig({ sans });
 next/font の制約: ローダーはモジュールのトップレベルで、引数はリテラル(変数や import 定数は不可)。`variable` 名は上の固定文字列をそのまま書く。別名を書いても型や実行時では検知できず黙って効かなくなるため、`pnpm test:fonts` が `fonts.config.ts` のソースを静的に検査する。Google Fonts はビルド時に取得されセルフホスト化される(実行時に Google への通信は発生しない)。next/font は Next のコンパイラ外(scripts/ や node --test)では動かないので、ローダーを追加した後は `fonts.config.ts` を Next 外から import しない。
 
 ```css
-/* custom/typography.css */
+/* src/styles/typography.css */
 :root {
   --font-geist-sans: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;  /* system フォントの並びだけ変える */
 }
@@ -129,7 +140,7 @@ next/font の制約: ローダーはモジュールのトップレベルで、�
 }
 ```
 
-注意: `custom/typography.css` で `--font-geist-sans` を上書きすると、その値が `fonts.config.ts` で読み込んだ Web フォントより優先される(loaded 変数への参照を自分で消すことになる)。両方使う場合は `var(--font-sans-loaded, ...)` を含めて書く。
+注意: `typography.css` で `--font-geist-sans` を上書きすると、その値が `fonts.config.ts` で読み込んだ Web フォントより優先される(loaded 変数への参照を自分で消すことになる)。両方使う場合は `var(--font-sans-loaded, ...)` を含めて書く。
 
 メールテンプレートの書体は別系統(各テンプレートの inline `fontFamily`、メールクライアント向けの system スタック)で、この設定の影響を受けない。
 
@@ -155,7 +166,7 @@ Tailwind v4 の名前空間をそのまま上書きする。独自トークン�
 
 ### overrides.css の限界(重要)
 
-`custom/` は Tailwind の `@layer` の外(無レイヤー)で読み込まれる。無レイヤー CSS は utilities 層より常に強いので、同じプロパティを書くとコンポーネントの個別 `className` が効かなくなる。
+直下の fork のファイル(`palette.css` / `typography.css` / `overrides.css` と fork が足したもの)は Tailwind の `@layer` の外(無レイヤー)で読み込まれる。無レイヤー CSS は utilities 層より常に強いので、同じプロパティを書くとコンポーネントの個別 `className` が効かなくなる。
 
 - 書いてよいもの: 要素の既定(`body`、`a`、`::selection`、scrollbar)、`@keyframes`、`[data-area="admin"] body { ... }` のようなエリア単位の全体調整
 - 書いてはいけないもの: `[data-slot="button"] { border-radius: ... }` のような cva 基底クラスの上書き。ボタンの角丸や影などの variant は `src/config/ui/variants.config.ts`(次節)で TS 側の文字列を差し替える
@@ -186,7 +197,7 @@ export const VARIANT_OVERRIDES = defineVariantOverrides({
 
 - 結合順: cva 出力 → `base` → `variant[v]` → `size[s]` → 要素の `className`
 - 置き換えたいクラスと同じ修飾子を付ける(`hover:bg-primary/90` を変えるなら `hover:bg-primary/80`。`dark:` / `focus-visible:` も同様)
-- 色はここではなく `custom/palette.css` のトークンで変える(トークンなら全部品に効く)。ここは形の差し替え用
+- 色はここではなく `palette.css` のトークンで変える(トークンなら全部品に効く)。ここは形の差し替え用
 - キーと variant / size 名は upstream が維持する契約。削除・改名時は `.notices` で通知する。upstream がキーを増やしても下流の設定は追記不要
 - 仕組み: `@/lib/variantOverrides` の `createOverridableVariants(base, cvaConfig, override)`(cva と同じ引数・同じ返り値型)。新しい primitive にも同じ 1 関数で配線する
 
@@ -196,13 +207,13 @@ upstream 所有の UI(`src/components` / `src/lib` / `src/features/core` / `src/
 
 ### config.css の値を変えたいとき
 
-`config.css` の管理画面余白トークン等は `custom/` のどのファイルからでも `:root { --admin-page-padding-inline: 2rem; }` で上書きできる。`config.css` 側が `@media (min-width: 40rem)` で値を切り替えているトークンは、同じメディアクエリも書くこと(無レイヤーの `:root` は全幅で勝つため)。
+`_base/config.css` の管理画面余白トークン等は直下の fork のどのファイルからでも `:root { --admin-page-padding-inline: 2rem; }` で上書きできる。`config.css` 側が `@media (min-width: 40rem)` で値を切り替えているトークンは、同じメディアクエリも書くこと(無レイヤーの `:root` は全幅で勝つため)。
 
-枠の寸法変数(`--app-header-height` / `--app-banner-height` / `--app-bottom-nav-height` / `--app-safe-area-*`)の既定値も `config.css` の `:root` にある。`--app-*-height` は UserLayout・AdminLayout が外枠の inline style で実値(実測か config の値)を書くので、`custom/` から上書きしても効かない(値を変えるのは config の TS か部品の高さそのもの)。`--app-safe-area-*`(= `env(safe-area-inset-*, 0px)`)は `custom/` から上書きできる。`config.css` に置いたのは、枠の外(Admin など)でも 0 の既定で参照できるようにするため。layout ごとに書くと枠の外では未定義になる。一覧: `src/app/(user)/_layout/README.md` の「寸法の CSS 変数」
+枠の寸法変数(`--app-header-height` / `--app-banner-height` / `--app-bottom-nav-height` / `--app-safe-area-*`)の既定値も `config.css` の `:root` にある。`--app-*-height` は UserLayout・AdminLayout が外枠の inline style で実値(実測か config の値)を書くので、fork のファイルから上書きしても効かない(値を変えるのは config の TS か部品の高さそのもの)。`--app-safe-area-*`(= `env(safe-area-inset-*, 0px)`)は fork のファイルから上書きできる。`config.css` に置いたのは、枠の外(Admin など)でも 0 の既定で参照できるようにするため。layout ごとに書くと枠の外では未定義になる。一覧: `src/app/(user)/_layout/README.md` の「寸法の CSS 変数」
 
 ### Tier2 → Tier3 の重ね合わせ
 
-`custom/index.css` の `@import` 順がそのまま優先順位。Tier2 が `brand.css` を足して import し、Tier3 がさらに自分のファイルを後ろに足せば、Tier3 が勝つ。
+`global.css` の `@import` 順がそのまま優先順位(`./_base/index.css` は必ず最初)。Tier2 が `brand.css` を足して import し、Tier3 がさらに自分のファイルを後ろに足せば、Tier3 が勝つ。
 
 ## サイトテーマ(ライト / ダーク)
 
@@ -252,14 +263,15 @@ defineSiteThemeConfig({ areas: [{ key: "kiosk", match: ["/kiosk"], mode: "dark" 
 
 ## デプロイ後の確認(Vercel ビルドキャッシュ)
 
-Vercel が前回デプロイのビルドキャッシュを復元すると、キャッシュ作成後に `global.css`(または `custom/index.css`)へ足された `@import` 先が、出力 CSS から黙って抜けることがある。ローカル dev とローカル `next build` は正常で、本番だけ崩れる。
+Vercel が前回デプロイのビルドキャッシュを復元すると、キャッシュ作成後に `global.css` / `_base/index.css` へ足された `@import` 先が、出力 CSS から黙って抜けることがある。ローカル dev とローカル `next build` は正常で、本番だけ崩れる。
 
 - **症状**: パレット・角丸・書体が一斉に失われる(`--primary` / `--radius` / `--font-geist-sans` が未定義)。崩れた本番の CSS チャンク(`/_next/static/**/*.css`)を取得して `--primary:` を grep すると無い。ビルドログに `Restored build cache from previous deployment` がある
-- **起きやすい状況**: デプロイ頻度の低い fork が、CSS ファイルを足す上流 notice(palette.defaults.css / typography.defaults.css / custom/ の導入など)を何件もまとめて取り込んだ直後の初回デプロイ
+- **起きやすい状況**: デプロイ頻度の低い fork が、CSS ファイルを足す上流 notice(palette.defaults.css / typography.defaults.css の導入、`_base/` への入れ替えなど)を何件もまとめて取り込んだ直後の初回デプロイ
 - **ガード**: `pnpm build` の末尾で `pnpm styles:check-build` が走り、`global.css` から辿れる全ファイルの CSS 変数が `.next/static/**/*.css` に揃っていなければビルドを落とす(本番に出る前に止まる)。Vercel の Build Command が `pnpm build` 以外だと走らない
 - **直し方**: キャッシュを使わずに再デプロイする。`pnpm deploy:all -- --prod --force`、またはダッシュボードの Redeploy で「Use existing Build Cache」を外す、または環境変数 `VERCEL_FORCE_NO_BUILD_CACHE=1` を一時的に置いて再デプロイし成功後に外す。キャッシュを常時無効にはしない(Hobby プランはビルド CPU が逼迫する)
 - **運用ルール**: CSS ファイルを足す・構成を変える notice を取り込んだ後の初回本番デプロイは、ガードの有無にかかわらずキャッシュ無しで行う
-- **ガードの限界**: 他のファイルが宣言している名前だけを上書きするファイル(`custom/palette.css` で `--primary` だけ変える等)は、抜けても名前が残るので検出できない(警告のみ)。fork 独自の変数(例 `--brand-accent`)を 1 つ宣言すれば検査対象になる。`@theme` 内の変数と `@utility` の中身は出力に残る保証が無いため検査しない
+- **目印の変数**: `@theme` の外に変数を持たない upstream のファイル(`_base/` の theme / animations / base / components / admin)は、固有の目印 `--styles-marker-<名前>: 1`(生成物は `--frame-controls-generated`)を宣言して検査対象にしている。`_base/` に CSS を足すときも、固有の変数が無ければ目印を 1 つ置く
+- **ガードの限界**: 他のファイルが宣言している名前だけを上書きするファイル(`palette.css` で `--primary` だけ変える等)は、抜けても名前が残るので検出できない(警告のみ)。fork 独自の変数(例 `--brand-accent`)を 1 つ宣言すれば検査対象になる。`@theme` 内の変数と `@utility` の中身は出力に残る保証が無いため検査しない
 
 ## テスト
 
@@ -268,10 +280,10 @@ Vercel が前回デプロイのビルドキャッシュを復元すると、キ�
 | `pnpm styles:check-build` | ビルド済み CSS に global.css から辿れる全ファイルの変数が揃っているか(`pnpm build` が自動で実行) |
 | `pnpm test:built-css` | 上記の判定ロジック(@theme / @utility の除外、相対 import の走査、missing / unverifiable の判定) |
 | `pnpm test:site-theme` | 既定値の互換、エリア一致、ロック、bootstrap script と resolver の一致 |
-| `pnpm test:style-tokens` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 意味色の 3 変数が揃っている / 書体変数が typography.defaults.css にある / global.css の import 順 |
+| `pnpm test:style-tokens` | theme.css の参照変数が上流 CSS で全て定義されている / `.dark` が `:root` に無い変数を持ち込まない / 意味色の 3 変数が揃っている / 書体変数が typography.defaults.css にある / `_base/index.css` と `global.css` の import 順 / upstream が出荷する直下の 3 ファイルはコメントだけ(upstream のみ) |
 | `pnpm test:fonts` | defineFontsConfig の既定(読み込み無し)と variable クラス連結、typography.defaults.css の loaded 変数参照 |
 | `pnpm test:cn` | theme.css の `--text-*` と tailwind-merge 登録のドリフト |
 | `pnpm test:variant-overrides` | オーバーライド無しで cva と同一出力 / 結合順(cva → オーバーライド → className)/ 既定 variant の解決 / 出荷時の variants.config.ts が空 |
 | `pnpm test:style-lint` | 生パレット色検出規則の検出・非検出ケース |
 
-`custom/` は検証対象外(下流が自由に書く場所)。
+直下の fork のファイルは中身を検証しない(下流が自由に書く場所。入口の形と出荷時の中身だけを upstream で見る)。
