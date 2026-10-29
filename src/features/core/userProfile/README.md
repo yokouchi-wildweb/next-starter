@@ -19,7 +19,8 @@ src/features/core/userProfile/
 │   ├── RoleProfileFields.tsx   # プロフィールフィールド（汎用）
 │   └── index.ts
 ├── constants/                  # 定数
-│   └── fieldTag.ts             # フィールドタグ定義
+│   ├── fieldTags.mjs           # フィールドタグの値（正。role:generate の検査も読む）
+│   └── fieldTag.ts             # fieldTags.mjs を型付きで再 export
 ├── generated/                  # 自動生成ファイル [DO NOT EDIT]
 │   ├── {role}/
 │   │   ├── drizzle.ts          # Drizzle テーブル定義
@@ -140,8 +141,8 @@ roles/
 
 **tags の構造:**
 - トップレベルにオブジェクトとして定義
-- キー: タグ名（`registration`, `selfEdit`, `adminEdit`, `notification`）
-- 値: そのタグに属するフィールド名の配列
+- キー: タグ名（`registration`, `selfEdit`, `adminEdit`, `notification`）。タグを足す・消すときは `constants/fieldTags.mjs` を編集する（知らないタグは role:generate が止める）
+- 値: そのタグに属するフィールド名の配列（fields の name か relations の fieldName。無い名前は role:generate が止める）
 
 **searchFields（オプション）:**
 - keyword 検索対象のカラム名を配列で指定（camelCase）
@@ -706,7 +707,12 @@ export const FormSchema = z
 
 ```bash
 pnpm role:generate -- <roleId>
+pnpm role:generate -- --all      # 全 *.role.json（roleRegistry.ts の今の並び順で回す）
 ```
+
+書く前に検査する（`scripts/role-config/checks/`、テスト `pnpm test:role-config-checks`）。問題は全件並べて何も書かずに終了コード 1、`--all` は全ロールを先に検査する:
+- 止める: ロール ID の形（英小文字で始まる英小文字・数字・_）、ファイル名（`<id>.role.json`、isCore: true だけ `_<id>.role.json`）、category（user / admin）、hasProfile（boolean、true ならプロフィール設定が要る）、ロール設定の無いプロフィール設定（`--all` のとき）、項目 0 件、メディア型（mediaUploader / mediaCollection）、enum の選択肢・既定値の型（ドメインの検査と同じ）、知らないタグ・tags の無い名前、リレーションの relationType（belongsTo / belongsToMany）・fieldName・fieldType（省略か uuid）・onDelete の値・SET_NULL × required・formInput
+- 警告だけ: hasProfile: false なのにプロフィール設定がある（プロフィールの生成物は消さずに残す。消すのは `prof:delete`）、型と入力欄の組が表（`scripts/domain-config/spec/formInputs.mjs` の Neon）に無い、選択肢の要る入力欄に options が無い
 
 実行内容:
 1. roleRegistry.ts 更新

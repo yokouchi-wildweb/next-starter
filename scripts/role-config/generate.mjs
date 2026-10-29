@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // scripts/role-config/generate.mjs
 // ロール設定からファイルを生成するスクリプト
+// 使い方: node generate.mjs <roleId> | node generate.mjs --all（全 *.role.json）
+// 書く前に checks/ の検査を通す（問題は全件並べて止める。警告は表示して進む）
 
 import fs from "fs";
 import path, { dirname } from "path";
@@ -21,48 +23,49 @@ import { generateProfilePresenters } from "./generator/generateProfilePresenters
 import { generateProfileIndex } from "./generator/generateProfileIndex.mjs";
 import { updateGeneratedIndex } from "./generator/updateGeneratedIndex.mjs";
 import { generateSchemaRegistry } from "./generator/generateSchemaRegistry.mjs";
+import { toCamelCase } from "../../src/utils/stringCase.mjs";
+import { assertRoleConfig, orphanProfileIssues, roleConfigIssues, roleConfigWarnings } from "./checks/index.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
+const ROLES_DIR = path.join(ROOT_DIR, "src/features/core/user/roles");
+const PROFILES_DIR = path.join(ROOT_DIR, "src/features/core/userProfile/profiles");
 
 /**
  * ロール設定JSONを読み込む
  * コアロールは _admin.role.json, _user.role.json のように _ プレフィックスがつく
+ * @returns {{ fileName: string, role: object }}
  */
 function loadRoleConfig(roleId) {
-  const rolesDir = path.join(ROOT_DIR, "src/features/core/user/roles");
-
-  // 通常のパスを試す
-  let rolePath = path.join(rolesDir, `${roleId}.role.json`);
-
-  // 存在しなければ _ プレフィックス付きを試す（コアロール）
-  if (!fs.existsSync(rolePath)) {
-    const coreRolePath = path.join(rolesDir, `_${roleId}.role.json`);
-    if (fs.existsSync(coreRolePath)) {
-      rolePath = coreRolePath;
-    } else {
-      throw new Error(`ロール設定が見つかりません: ${rolePath}`);
-    }
+  // 通常のパスを試し、無ければ _ プレフィックス付き（コアロール）
+  const fileName = [`${roleId}.role.json`, `_${roleId}.role.json`].find((name) => fs.existsSync(path.join(ROLES_DIR, name)));
+  if (!fileName) {
+    throw new Error(`ロール設定が見つかりません: ${path.join(ROLES_DIR, `${roleId}.role.json`)}`);
   }
-
-  return JSON.parse(fs.readFileSync(rolePath, "utf-8"));
+  return { fileName, role: JSON.parse(fs.readFileSync(path.join(ROLES_DIR, fileName), "utf-8")) };
 }
 
 /**
  * プロフィール設定JSONを読み込む
  */
 function loadProfileConfig(roleId) {
-  const profilePath = path.join(
-    ROOT_DIR,
-    "src/features/core/userProfile/profiles",
-    `${roleId}.profile.json`
-  );
+  const profilePath = path.join(PROFILES_DIR, `${roleId}.profile.json`);
 
   if (!fs.existsSync(profilePath)) {
     return null;
   }
 
   return JSON.parse(fs.readFileSync(profilePath, "utf-8"));
+}
+
+/** 検査の入力（ロール設定のファイル名・中身とプロフィール設定） */
+function loadCheckInput(roleId) {
+  const { fileName, role } = loadRoleConfig(roleId);
+  return { fileName, role, profile: loadProfileConfig(role.id ?? roleId) };
+}
+
+function printWarnings(warnings) {
+  for (const warning of warnings) console.warn(`⚠ ${warning}`);
 }
 
 /**
@@ -116,15 +119,21 @@ export default async function generate(roleId, options = {}) {
 
   console.log(`\n=== ロール "${roleId}" の生成を開始 ===\n`);
 
-  // ロール設定を読み込み
-  const roleConfig = loadRoleConfig(roleId);
+  // ロール設定を読み込み、書く前に検査する（問題があれば全件を並べて止める）
+  const checkInput = loadCheckInput(roleId);
+  assertRoleConfig(checkInput);
+  printWarnings(roleConfigWarnings(checkInput));
+  const roleConfig = checkInput.role;
   console.log(`ロール設定を読み込みました: ${roleConfig.label} (${roleConfig.id})`);
 
   // ロール登録（profileOnly でない場合のみ）
   if (!profileOnly) {
     // クリーンアップ（冪等性のため、既存エントリを削除してから追加）
     console.log("\n[1/8] 既存エントリをクリーンアップ中...");
-    cleanupRole(roleId, { includeProfile: true, deleteEntity: true, updateHasProfile: false, silent: true });
+    // hasProfile: false でもプロフィール設定が残っているロールは、プロフィールの生成物を消さない（警告だけ）。
+    // 消すと profileTableRegistry.ts が消えたファイルを読み続けて型検査が壊れる。プロフィールを消すのは role:delete / prof:delete
+    const keepProfile = !roleConfig.hasProfile && checkInput.profile !== null;
+    cleanupRole(roleId, { includeProfile: !keepProfile, deleteEntity: true, updateHasProfile: false, silent: true });
     console.log("✓ クリーンアップ完了");
 
     // 2. roleRegistry.ts を更新
@@ -137,16 +146,8 @@ export default async function generate(roleId, options = {}) {
 
   // hasProfile: true の場合のみプロフィール関連を生成
   if (roleConfig.hasProfile) {
-    // プロフィール設定を読み込み
-    const rawProfileConfig = loadProfileConfig(roleId);
-    if (!rawProfileConfig) {
-      console.log(`\n⚠ プロフィール設定が見つかりません: ${roleId}.profile.json`);
-      console.log("hasProfile: true ですが、プロフィール設定がないためスキップします。\n");
-      return;
-    }
-
-    // tagsマッピングを解決（新形式 -> 旧形式互換）
-    const profileConfig = resolveTagsMapping(rawProfileConfig);
+    // tagsマッピングを解決（新形式 -> 旧形式互換）。プロフィール設定があることは検査で確かめた
+    const profileConfig = resolveTagsMapping(checkInput.profile);
 
     // profileOnly モードの場合のみクリーンアップ（フルモードは cleanupRole で実行済み）
     if (profileOnly) {
@@ -211,17 +212,58 @@ export default async function generate(roleId, options = {}) {
   console.log("  pnpm db:push  # データベースに反映\n");
 }
 
+/** 一覧のファイル名から ID を取る（_admin.role.json → admin） */
+const idsIn = (dir, suffix) =>
+  fs.existsSync(dir)
+    ? fs.readdirSync(dir).filter((name) => name.endsWith(suffix)).map((name) => name.slice(0, -suffix.length).replace(/^_/, "")).sort()
+    : [];
+
+/**
+ * roleRegistry.ts の ALL_ROLES に今ある順の ID（生成は 1 ロールずつ消して末尾に足すので、この順に回すと並びが変わらない）
+ */
+function registeredRoleOrder() {
+  const registryPath = path.join(ROOT_DIR, "src/registry/roleRegistry.ts");
+  if (!fs.existsSync(registryPath)) return [];
+  const content = fs.readFileSync(registryPath, "utf-8");
+  const start = content.indexOf("// === AUTO-GENERATED ENTRIES START ===");
+  const end = content.indexOf("// === AUTO-GENERATED ENTRIES END ===");
+  if (start === -1 || end === -1) return [];
+  return [...content.slice(start, end).matchAll(/^\s*(\w+)Role as RoleConfig/gm)].map((match) => match[1]);
+}
+
+/**
+ * 全 *.role.json を生成する。先に全ロールを検査し、どれか 1 つでも問題があれば何も書かずに止める。
+ * 順は roleRegistry.ts の今の並び → 未登録のロール（ID 順）
+ */
+export async function generateAll() {
+  const fileIds = idsIn(ROLES_DIR, ".role.json");
+  const order = registeredRoleOrder();
+  const rank = (id) => {
+    const index = order.indexOf(toCamelCase(id));
+    return index === -1 ? order.length : index;
+  };
+  const roleIds = [...fileIds].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  const inputs = roleIds.map((roleId) => loadCheckInput(roleId));
+  const issues = [
+    ...inputs.flatMap((input) => roleConfigIssues(input)),
+    ...orphanProfileIssues(roleIds, idsIn(PROFILES_DIR, ".profile.json")),
+  ];
+  if (issues.length > 0) throw new Error(issues.join("\n"));
+  for (const roleId of roleIds) await generate(roleId);
+  console.log(`=== 全 ${roleIds.length} ロールの生成完了 ===`);
+}
+
 // 直接実行された場合
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const roleId = process.argv[2];
+  const arg = process.argv[2];
 
-  if (!roleId) {
-    console.error("使用方法: node generate.mjs <roleId>");
+  if (!arg) {
+    console.error("使用方法: node generate.mjs <roleId> | node generate.mjs --all");
     console.error("例: node generate.mjs reviewer");
     process.exit(1);
   }
 
-  generate(roleId).catch((err) => {
+  (arg === "--all" ? generateAll() : generate(arg)).catch((err) => {
     console.error("エラー:", err.message);
     process.exit(1);
   });
