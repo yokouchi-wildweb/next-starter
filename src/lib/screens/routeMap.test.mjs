@@ -20,6 +20,7 @@ import {
   normalizeArgs,
 } from "./routeMap.mjs";
 import { discoverRoutes, listAppFiles } from "./routeTree.mjs";
+import { featureGateRules } from "../../config/app/feature-gate.config.ts";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -240,13 +241,33 @@ test("formatRouteMap: ヘッダー + key 順の 1 ページ 1 行で、入力の
   assert.ok(forward.endsWith("\n"));
 });
 
+test("buildRouteMap: 無効な feature-gate の規則に当たるルートは gated-off。完全一致はその下の fork のページを含まない", () => {
+  const entries = {
+    "src/app/mypage/page.tsx": PAGE,
+    "src/app/mypage/mine/page.tsx": PAGE,
+    "src/app/demo/x/page.tsx": PAGE,
+    "src/app/wallet/[slug]/page.tsx": PAGE,
+  };
+  const gateRules = [
+    { pathPatterns: ["=/mypage"], enabled: false },
+    { pathPatterns: ["/demo"], enabled: false },
+    { pathPatterns: ["/wallet"], enabled: true },
+  ];
+  const { rows } = buildRouteMap({ ...tree(entries), gateRules });
+  const state = Object.fromEntries(rows.map((r) => [r.key, r.state]));
+  assert.equal(state["/mypage"], "gated-off(=/mypage)");
+  assert.equal(state["/mypage/mine"], ROUTE_STATE_LEGACY);
+  assert.equal(state["/demo/x"], "gated-off(/demo)");
+  assert.equal(state["/wallet/[slug]"], ROUTE_STATE_LEGACY);
+});
+
 // ---------------------------------------------------------------------------
 // ずれ検査(コミットされた地図 = src/app からの生成結果)
 // ---------------------------------------------------------------------------
 
 test(`${ROUTE_MAP_FILE} が src/app からの生成結果と一致する(ずれたら pnpm routes:map で作り直してコミットする)`, () => {
   const read = (rel) => readFileSync(join(repoRoot, rel), "utf8");
-  const { rows, problems } = buildRouteMap({ files: listAppFiles(repoRoot), read });
+  const { rows, problems } = buildRouteMap({ files: listAppFiles(repoRoot), read, gateRules: featureGateRules });
   assert.deepEqual(problems, []);
   const file = join(repoRoot, ROUTE_MAP_FILE);
   assert.ok(existsSync(file), `${ROUTE_MAP_FILE} が無い。pnpm routes:map で生成してコミットする`);

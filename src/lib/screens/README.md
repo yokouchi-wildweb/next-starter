@@ -378,7 +378,7 @@ src/app/admin/(protected)/samples/
 
 | コマンド | 用途 |
 |---|---|
-| `pnpm routes:map` | 地図を書き出す。ページの追加・削除、layout / loader のガードを変えたら実行してコミットする |
+| `pnpm routes:map` | 地図を書き出す。ページの追加・削除、layout / loader のガードを変えたら実行してコミットする。feature-gate の config（.ts）を読むので tsx で動く |
 | `pnpm routes:map --check` | 地図が生成結果と一致するか検査する（ずれていれば exit 1） |
 | `pnpm test:route-map` | 生成器の fixture テスト + 同じずれ検査 |
 | `pnpm routes:show [<URL 接頭辞>]` | コミットしない詳細を表示する: 祖先の layout の列、ガード呼び出しの引数の全文、ルート内 loader、ガード以外の redirect / notFound / `*Service.xxx` 呼び出し（管理者数 0 → `/admin/setup` 等） |
@@ -393,6 +393,7 @@ src/app/admin/(protected)/samples/
 /	legacy-unverified	none
 ```
 
+- 状態: `legacy-unverified`（下の方式で守っている、機械では未確認）/ `gated-off(<pattern>)` = feature-gate の無効な規則で止めている（proxy で 404。`<pattern>` は当たった規則の最初のパターン）。フラグを変えたら `pnpm routes:map` で作り直す
 - URL: route group `(x)` と `@slot` を落とす。動的セグメント（`[slug]`）と intercepting の印（`(.)x`）はそのまま残す。`@slot` の中のページは `<URL> @slot` の別の行になり、方針は親ページと同じ祖先の layout（+ slot 内の layout）から作る
 - 方針の出どころ（loader Factory の前の方式）: 祖先の `layout.*`（`./_layout/<X>` への 1 行スイッチなら、スイッチ先の組み立ての中の呼び出しも同じ `layout:<dir>` の出どころとして拾う。辿るのは 1 段だけ）と、ルート内 loader（`_screen/loader.ts` = `loader:_screen`、`_components/loader.ts` = `loader:_components`）の中のガード関数の呼び出しを拾う。対象は `authGuard`・`principalGuard`・`deviceGuard`・`requireCurrentUser`・`getSessionUser`・`requireAdmin`・`requireAuthenticated`
   - 1 つの呼び出しは `関数名#hash` で表す。hash は引数の全文（文字列の外の空白・末尾カンマ・コメントを除いて正規化）の sha256 の先頭 8 桁で、引数なしなら `00000000`

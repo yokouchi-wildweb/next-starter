@@ -2,21 +2,15 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { featureGateRules } from "@/config/app/feature-gate.config";
+import { matchesPath } from "./pathPattern.mjs";
 import type { ProxyHandler } from "./types";
+
+export { matchesPath };
 
 // ゲートの定義（どの機能がどのパスを持つか）は src/config/app/feature-gate.config.ts。
 // ここは判定とレスポンス生成だけを持つ。
 
-/**
- * パスがパターンに一致するか判定する（セグメント境界マッチ）
- * pattern と完全一致、または pattern 直下（"/" 区切り）のパスのみ一致する。
- * 単純な前方一致と異なり、`/demo` が `/demo-login` を巻き込まない。
- * 末尾スラッシュ付きパターン（"/demo/"）も "/demo" と同義として扱う。
- */
-export function matchesPath(pathname: string, pattern: string): boolean {
-  const normalized = pattern.endsWith("/") ? pattern.slice(0, -1) : pattern;
-  return pathname === normalized || pathname.startsWith(normalized + "/");
-}
+// パターンの照合(セグメント境界の前方一致 / `=` 付きの完全一致)は ./pathPattern.mjs(ルート地図と検査も同じ物を使う)
 
 /**
  * ブロック時のレスポンスを生成する。

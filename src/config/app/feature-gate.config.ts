@@ -13,7 +13,10 @@ import { PAIRED_DEVICE_CONFIG } from "./paired-device.config";
 import { isPaymentMethodSelectable } from "./payment.config";
 
 export type FeatureGateRule = {
-  /** ブロック対象のパス（セグメント境界の前方一致。"/demo" は "/demo-login" を含まない） */
+  /**
+   * ブロック対象のパス。"/demo" = セグメント境界の前方一致("/demo-login" は含まない)、
+   * "=/mypage" = そのパスちょうど(fork が同じ URL の下に足したページを巻き込まない)。照合: src/proxies/pathPattern.mjs
+   */
   pathPatterns: string[];
   /** false の間 push 対象から外すテーブル名（pgTable の第 1 引数）。enum は外さない */
   tables?: string[];
@@ -136,6 +139,51 @@ export const featureGateRules: FeatureGateRule[] = [
   {
     pathPatterns: ["/admin/notifications", "/api/notification/send"],
     enabled: APP_FEATURES.marketing.notification.enableAdminBroadcast,
+  },
+  // ---- upstream の画面を止めるスイッチ(APP_FEATURES.pages ほか。fork は画面を消さずにここで止める) ----
+  // マイページ全体(upstream の画面だけを完全一致で。fork が /mypage の下に足したページは止めない)
+  {
+    pathPatterns: [
+      "=/mypage",
+      "=/mypage/account",
+      "=/mypage/account/email",
+      "=/mypage/account/password",
+      "=/mypage/account/phone",
+      "=/mypage/account/profile",
+      "=/mypage/invite",
+      "=/mypage/other",
+      "=/mypage/pause",
+      "=/mypage/withdraw",
+    ],
+    enabled: APP_FEATURES.pages.mypage,
+  },
+  // マイページ > アカウントの各画面
+  { pathPatterns: ["=/mypage/account"], enabled: APP_FEATURES.pages.mypageAccount.top },
+  { pathPatterns: ["=/mypage/account/email"], enabled: APP_FEATURES.pages.mypageAccount.email },
+  { pathPatterns: ["=/mypage/account/password"], enabled: APP_FEATURES.pages.mypageAccount.password },
+  { pathPatterns: ["=/mypage/account/phone"], enabled: APP_FEATURES.pages.mypageAccount.phone },
+  { pathPatterns: ["=/mypage/account/profile"], enabled: APP_FEATURES.pages.mypageAccount.profile },
+  // 特設ページ・サービス紹介・規約
+  { pathPatterns: ["=/entry"], enabled: APP_FEATURES.pages.entry },
+  { pathPatterns: ["=/services"], enabled: APP_FEATURES.pages.services },
+  { pathPatterns: ["=/privacy-policy"], enabled: APP_FEATURES.pages.legal.privacyPolicy },
+  { pathPatterns: ["=/terms"], enabled: APP_FEATURES.pages.legal.terms },
+  { pathPatterns: ["=/tradelaw"], enabled: APP_FEATURES.pages.legal.tradelaw },
+  // 管理画面のタブのデモ(デモページのフラグに相乗り)
+  { pathPatterns: ["/admin/tabs-demo"], enabled: APP_FEATURES.demo.samplePages },
+  // デモユーザーの管理(layout の判定と同じフラグ。画面に来る前に proxy で止める)
+  { pathPatterns: ["/admin/users/demo"], enabled: APP_FEATURES.adminConsole.enableDemoUser },
+  // サンプルのドメイン(管理画面と汎用 CRUD)
+  {
+    pathPatterns: ["/admin/samples", "/admin/sample-categories", "/admin/sample-tags", "/api/sample", "/api/sampleCategory", "/api/sampleTag", "/api/sampleImage"],
+    enabled: APP_FEATURES.adminConsole.enableSampleDomain,
+  },
+  // チャットルームの管理画面(汎用 CRUD /api/chatRoom は利用者側も使うので止めない)
+  { pathPatterns: ["/admin/chat-rooms"], enabled: APP_FEATURES.adminConsole.enableChatRoomAdmin },
+  // 通知テンプレートの管理(画面と汎用 CRUD)
+  {
+    pathPatterns: ["/admin/notification-templates", "/api/notificationTemplate"],
+    enabled: APP_FEATURES.adminConsole.enableNotificationTemplates,
   },
   // 登録端末（共有端末のペアリングと端末トークン認証）
   {

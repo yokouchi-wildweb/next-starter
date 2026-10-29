@@ -91,6 +91,12 @@ export const APP_FEATURES = {
     enableUserManagement: true,
     /** デモユーザー機能を有効にする（false の場合はメニュー非表示・ページ 404） */
     enableDemoUser: true,
+    /** サンプルのドメイン(sample・sampleCategory・sampleTag)の管理画面と API を有効にする */
+    enableSampleDomain: true,
+    /** チャットルームの管理画面(/admin/chat-rooms)を有効にする(利用者側のチャットは止めない) */
+    enableChatRoomAdmin: true,
+    /** 通知テンプレートの管理画面と API を有効にする */
+    enableNotificationTemplates: true,
     /**
      * 管理者メモ機能を有効にする
      * - true: 管理画面のユーザー一覧（General/Managerial/Demo）にメモ列が表示され、
@@ -187,8 +193,33 @@ export const APP_FEATURES = {
       unreadModalPaths: ["/"] as readonly string[],
     },
   },
+  pages: {
+    // upstream の画面を止めるスイッチ(false = その画面と対応する API を 404。src/config/app/feature-gate.config.ts)。
+    // fork は画面を消したり rename したりせず、ここで止める。fork が同じ URL の下に足したページは止まらない
+    /** マイページ(/mypage 以下の upstream の画面すべて。invite・pause・withdraw・other は各機能のフラグでも止まる) */
+    mypage: true,
+    /** マイページ > アカウントの各画面 */
+    mypageAccount: {
+      /** アカウントのトップ(/mypage/account) */
+      top: true,
+      email: true,
+      password: true,
+      phone: true,
+      profile: true,
+    },
+    /** 特設ページ(/entry) */
+    entry: true,
+    /** サービス紹介(/services) */
+    services: true,
+    /** 規約のページ */
+    legal: {
+      privacyPolicy: true,
+      terms: true,
+      tradelaw: true,
+    },
+  },
   demo: {
-    /** デモページ（/demo配下）を有効にする */
+    /** デモページ（/demo配下と管理画面のタブのデモ /admin/tabs-demo）を有効にする */
     samplePages: true,
     /** デモログイン機能を有効にする */
     login: true,

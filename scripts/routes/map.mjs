@@ -15,12 +15,14 @@ import path from "node:path";
 
 import { ROUTE_MAP_FILE, buildRouteMap, formatRouteDetails, formatRouteMap } from "../../src/lib/screens/routeMap.mjs";
 import { listAppFiles } from "../../src/lib/screens/routeTree.mjs";
+import { featureGateRules } from "../../src/config/app/feature-gate.config.ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const read = (rel) => readFileSync(path.join(repoRoot, rel), "utf8");
 
-const { rows, problems } = buildRouteMap({ files: listAppFiles(repoRoot), read });
+// 止めているルート(feature-gate の無効な規則)は state を gated-off にする。config の .ts を読むので tsx で動かす
+const { rows, problems } = buildRouteMap({ files: listAppFiles(repoRoot), read, gateRules: featureGateRules });
 if (problems.length > 0) {
   for (const problem of problems) console.error(`✗ ${problem}`);
   process.exit(1);

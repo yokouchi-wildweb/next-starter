@@ -31,6 +31,7 @@ import { isGenericApiClosed } from "../lib/domain/config/apiAccess.ts";
 import { APP_FEATURES } from "../config/app/app-features.config.ts";
 import { featureGateRules } from "../config/app/feature-gate.config.ts";
 import { applySchemaGate } from "../../scripts/registry/schemaGate.ts";
+import { matchesPath, patternCoversRoute } from "./pathPattern.mjs";
 
 // schemaRegistry は `export *` の再 export だけで構成されるため、ESM の namespace import では
 // 名前を拾えない（CJS として読まれ default しか見えない）。db:push と同じく require で全 export を得る
@@ -80,12 +81,7 @@ const toUrlSegments = (file) => {
   );
 };
 
-// パターン（固定セグメント）がルート（動的セグメントを含みうる）を覆うか。動的セグメントはどの値にも一致しうる
-const patternCoversRoute = (pattern, routeSegments) => {
-  const patternSegments = pattern.split("/").filter(Boolean);
-  if (routeSegments.length < patternSegments.length) return false;
-  return patternSegments.every((seg, i) => routeSegments[i] === seg || /^\[.+\]$/.test(routeSegments[i]));
-};
+// パターンがルートを覆うか(完全一致の `=` も含む)は proxy と同じ ./pathPattern.mjs
 
 const rulesWithTables = featureGateRules.filter((rule) => (rule.tables ?? []).length > 0);
 // ルートの被覆を検査するルール（無効なもの。CHECK_ALL なら全部）
@@ -95,6 +91,28 @@ const schemaTableNames = new Set(
     .filter((value) => is(value, PgTable))
     .map((table) => getTableName(table)),
 );
+
+test("パターン: 前方一致はセグメント境界、= は完全一致(fork が下に足したページを巻き込まない)", () => {
+  assert.equal(matchesPath("/demo/x", "/demo"), true);
+  assert.equal(matchesPath("/demo-login", "/demo"), false);
+  assert.equal(matchesPath("/demo", "/demo/"), true);
+  assert.equal(matchesPath("/mypage", "=/mypage"), true);
+  assert.equal(matchesPath("/mypage/mine", "=/mypage"), false);
+  assert.equal(patternCoversRoute("=/mypage/account", ["mypage", "account"]), true);
+  assert.equal(patternCoversRoute("=/mypage/account", ["mypage", "account", "mine"]), false);
+  assert.equal(patternCoversRoute("/wallet", ["wallet", "[slug]"]), true);
+});
+
+test("upstream の画面を止めるスイッチ: 各規則のパターンが実在のページに当たる(書き違い・ページの移動の検出)", () => {
+  const pages = walk(APP_DIR)
+    .filter((f) => /[\\/]page\.tsx$/.test(f))
+    .map((f) => toUrlSegments(f));
+  const switchRules = featureGateRules.filter((rule) => rule.pathPatterns.some((pattern) => pattern.startsWith("=")));
+  const stale = switchRules
+    .flatMap((rule) => rule.pathPatterns)
+    .filter((pattern) => !pattern.startsWith("/api/") && !pages.some((segments) => patternCoversRoute(pattern, segments)));
+  assert.deepEqual(stale, [], `ページの無いパターン: ${stale.join(", ")}`);
+});
 
 test("tables に書いたテーブル名は schemaRegistry に実在する", () => {
   const unknown = rulesWithTables.flatMap((rule) => rule.tables.filter((name) => !schemaTableNames.has(name)));

@@ -39,7 +39,7 @@
 },
 ```
 
-- `pathPatterns` はセグメント境界の前方一致（`/demo` は `/demo-login` を含まない）。動的セグメントは書けないので、値が config で決まるなら展開して書く（例: 通貨 slug ごとの `/wallet/<slug>/purchase`）。
+- `pathPatterns` はセグメント境界の前方一致（`/demo` は `/demo-login` を含まない）。`=` を付けると完全一致（`=/mypage` は `/mypage` だけで、fork が `/mypage/<自分のページ>` を足しても巻き込まない）。照合は `src/proxies/pathPattern.mjs`（proxy・ルート地図・test:feature-gate が共有）。動的セグメントは書けないので、値が config で決まるなら展開して書く（例: 通貨 slug ごとの `/wallet/<slug>/purchase`）。
 - `tables` は pgTable の第 1 引数（DB のテーブル名）。
 - `enabled` は値（boolean）。`src/config/` は値だけを置く層なので関数にしない。
 - `redirectTo` を指定すると 404 の代わりにそこへ rewrite する（例: サインアップ停止中の `/signup-closed`）。
@@ -61,8 +61,14 @@
   - cron タスクの `enabled`（`src/app/api/cron/<name>/task.ts`。CLI の `pnpm task` は proxy を通らないため）
 - **機能どうしの前提**: payment は wallet を前提にする（`purchase_requests` → `wallet_histories` の外部キー。push 時に例外になる）。referral は coupon を前提にする（招待コードの実体はクーポン。テストで検査）。
 
+### 形の扱い
+
+- `=` の完全一致と `APP_FEATURES.pages` は、fork が upstream の画面を消さずに止めるための受け口として足した（評議会 20261022-165923 D21）。feature-gate の config の形（規則の書き方・フラグの置き場）は config 再設計の論点として持ち越している（D12）
+
 ### fork での使い方
 
 - upstream の機能を使わない: その機能のフラグを false にする。ルートは 404、テーブルは作られない。コードは削除しない。
+- upstream の画面を使わない: 画面を消したり `_` 付きに rename したりせず（所有の検査で違反、src/lib/forkOwnership/README.md）、`APP_FEATURES.pages`（マイページ全体と account の各画面・/entry・/services・規約 3 種）か `adminConsole` のスイッチ（サンプルのドメイン・チャットルームの管理・通知テンプレート・デモユーザー）を false にする。止めたページはルート地図に `gated-off(<pattern>)` と載る。置き換えたいときは止めずに 1 行スイッチで `_components/` の Screen へ向ける
+- スイッチの無い upstream の画面を止めたい: upstream に依頼する（`/order <親>`）。fork のルールで upstream の画面を止めない（upstream のルールと重なり、merge のたびに見直しになる）
 - fork 自身の機能を閉じたい: `featureGateRules` に 1 ルール足す（`src/config/` の値の変更なので core 編集ではない）。upstream の機能と一緒に開閉させるなら同じフラグを `enabled` に書く（例: payment に依存する fork 機能 = `enabled: APP_FEATURES.payment.enabled`）。upstream のルールの `pathPatterns` / `tables` に fork のものを書き足さない（merge で衝突する）。
 - 機能を切ったら `pnpm test:feature-gate` が列挙するルート・テーブルを、上の fork ルールに入れるか、呼び出し側でフラグを見る。
