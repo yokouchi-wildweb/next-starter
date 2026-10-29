@@ -28,6 +28,8 @@ import type { LegacyRouteEntry } from "@/lib/screens/types";
 
 export const FORK_SCAN_ROOTS: string[] = [];
 
+// --- fork entries start (upstream never edits inside) ---
 export const FORK_SCAN_EXCLUDES: string[] = [];
 
 export const FORK_LEGACY_ROUTES: LegacyRouteEntry[] = [];
+// --- fork entries end ---

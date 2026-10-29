@@ -16,13 +16,17 @@
 
 import type { AgentToolDefinition } from "@/lib/ai";
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 /**
  * 登録済みの追加ツール一覧。
  * name は組み込みツール・レジストリ内で一意であること。
  */
 export const dbAgentExtraTools: AgentToolDefinition[] = [
-  // --- CORE (upstream-provided): なし (組み込みは @/lib/dbAgent 側) ---
+  // upstream の登録: なし(組み込みは @/lib/dbAgent 側)
 
-  // --- DOWNSTREAM (downstream で追加) ---
+  // --- fork entries start (upstream never edits inside) ---
   // 例: lookupPaymentStatusTool, ...
+  // --- fork entries end ---
 ];

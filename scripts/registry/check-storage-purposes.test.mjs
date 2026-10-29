@@ -1,5 +1,5 @@
 // ファイル用途の登録表（src/registry/storagePurposeRegistry.ts）と生成器の検査。
-// - 登録表の全用途（手書きの CORE / FORK を含む）が ID の形式・型・規則に合う
+// - 登録表の全用途（手書きの CORE / fork の区画を含む）が ID の形式・型・規則に合う
 // - 全 domain.json（business と core の設定源）のメディア項目に、対応する用途が登録されている
 // - 生成器の導出（visibility の必須化・上限の既定値・metadata の検査と書き出し・AUTO ブロックだけの upsert）
 // - 用途の metadata（strip / keep）の規則と、user.avatar が keep でないこと（D29）
@@ -262,8 +262,9 @@ export const storagePurposeRegistry = {
   "item.old_field": { visibility: "public", maxBytes: 1, contentTypes: ["image/*"], upload: { allow: "authenticated" } },
   "other.photo": { visibility: "public", maxBytes: 1, contentTypes: ["image/*"], upload: { allow: "authenticated" } },
   // --- AUTO-GENERATED-END ---
-  // --- FORK (手書き) ---
+  // --- fork entries start (upstream never edits inside) ---
   "item.cover": { visibility: "private", maxBytes: 5, contentTypes: ["image/png"], upload: { allow: "authenticated" }, read: { allow: "authenticated" } },
+  // --- fork entries end ---
 } satisfies StoragePurposeMap;
 `;
 
@@ -273,7 +274,7 @@ const ENTRIES = [
 ];
 
 describe("登録表の書き換え（AUTO ブロックだけ）", () => {
-  test("AUTO に追加し、消えた項目を削除し、FORK と他ドメインと CORE は触らない", () => {
+  test("AUTO に追加し、消えた項目を削除し、fork の区画と他ドメインと CORE は触らない", () => {
     const { text, skipped } = applyStoragePurposeEntries(REGISTRY_FIXTURE, { camel: "item", entries: ENTRIES });
     assert.deepEqual(skipped, ["item.cover"]);
     assert.match(text, /\.\.\.CORE_STORAGE_PURPOSES,/);

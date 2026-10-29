@@ -2,7 +2,7 @@
 
 fork が upstream(直接の親 Tier)のファイルを、決められた場所の外で書き換えていないかを調べる検査の仕様。
 
-**実装はまだ無い。** いまあるのはこの README(仕様の骨組み)だけ。判定器・受け口の一覧・検査コマンドは段階②で入る(下の「導入の段階」)。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
+**判定器・受け口の一覧・検査コマンドはまだ無い(段階②で入る。下の「導入の段階」)。** いまあるのは、この仕様と registry の fork の区画の読み取り(`regions.mjs`、下の「registry の fork の区画」)だけ。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
 
 ## 目的
 
@@ -18,13 +18,13 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
   - 基準にあるファイル = 提供者(親)の物。削除(D)・移動・rename は違反。書き換え(M)は受け口の中なら可、外なら原則として失敗
   - fork が先に作り、後で親が同じパスに足したファイルは、取り込んだ時点で親の物
   - 祖先 Tier の lib の中に fork がファイルを足す(A)のは失敗。自分の lib に置いて re-export する
-- 生成器の区画(`AUTO-GENERATED` 系の印の中)は検査の対象外。指紋(一時許可・縮む区画の blob)も、下流の区画と生成器の区画を除いて取る
+- 生成器の区画(`AUTO-GENERATED` 系の印の中)は検査の対象外。一時許可の指紋(blob)も、fork の区画と生成器の区画を除いて取る
 
 ## 受け口の一覧
 
 - fork が書き換えてよい場所の一覧。upstream が持ち、検査は**取り込み済みの upstream 側の版**から読む(fork が一覧を広げて自分を許すことはできない)
 - 載せるもの(段階②で一覧にする)
-  - registry: ファイルの中の下流の印(開始と終了の対)の中だけ。印の外は upstream の物
+  - registry: ファイルの中の fork の区画(印の対)の中だけ。印の外は upstream の物(下の「registry の fork の区画」)
   - config: config の再設計までは暫定で `src/config/**` 全体(値とキーを区別しない)。削除は違反。Tier1 の config の規則(値だけ・構造の変更は承認)はそのまま
   - 各フレームの `_layout/` の中の、fork が書き換える部分(W のカスタム)
   - CLAUDE.md の CORE_FILES `downstream_owned` に挙がっている物
@@ -39,20 +39,34 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 - 却下: 元に戻す・受け口へ移す・別の方針で許可し直す、のどれかを必須にする。明示の期限は持たない(放置は `/flux`・`/wen` が毎回一覧に出す)
 - 「修正だけ先に取り込む」手段は作らない
 
-## 縮む区画
-
-- 検査を入れた時点で既にある書き換え・削除・rename・祖先 lib への追加を受ける区画
-- 範囲 = 導入の notice を fork が台帳に記録した commit での集合(git で特定)。各ファイルを導入時の blob に固定し、以後書き換えたら一時許可へ格上げするか元に戻す
-- 削除・rename は、feature-gate で止める受け口ができてから「止める → 復元」の順で戻させる(すぐ戻すとビルドが壊れたり、復元したページが公開されたりする)
-- 導入の notice には、自分の fork の対象を数えるコマンドと、種類ごとの直し方を入れる
-
 ## 導入の段階
 
-1. registry の下流の印を 1 種類(開始と終了の対)に統一する
-2. 受け口の一覧・判定器・検査を入れる(報告だけで失敗にしない)。fork が消したくなり得るルートを feature-gate で止められるように棚卸しする
-3. 縮む区画を固定し、失敗にする(この notice が「導入の notice」)
+1. registry の下流の印を 1 種類(開始と終了の対)に統一する(済み。下の「registry の fork の区画」)
+2. 受け口の一覧・判定器・検査を入れる。検査は最初から失敗にする(報告だけの段階は置かない)。fork が消したくなり得るルートを feature-gate で止められるように棚卸しする
 
-fork 側の追随が大きい段階は、作業手順・件数の目安・検査を notice に入れて段階的に出す。
+検査を入れた時点で fork に既にある書き換え・削除・rename・祖先 lib へのファイルの追加は、導入と同時に片付ける。猶予の区画は作らない。
+
+- 片付け方は 3 つのどれか: 受け口へ移す / 元に戻す / 一時許可(直接の親への依頼の番号付き)
+- upstream の負債の行(受け口が無い物)に当たる分は、一時許可でいったん通し、受け口ができた notice で外す
+- 削除・rename は、feature-gate で止める受け口を用意したうえで「止める → 復元」の順で戻す(すぐ戻すとビルドが壊れたり、復元したページが公開されたりする)
+
+## registry の fork の区画
+
+- `src/registry/` の中で fork が書いてよいのは、次の印の対の間だけ。印の外は upstream の物
+  ```ts
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
+  ```
+- 1 ファイルに複数の対を置ける。fork の登録は import を伴うので、import 文の後にも対を置く
+- 文言は `.claude/rules/` の marker(`fork entries below (upstream never edits below this line)`)と語を揃えている
+- upstream は対の中を編集しない。区画を足す・動かすときは notice で知らせる
+- 生成器の区画(`AUTO-GENERATED` 系)は fork の区画ではない(生成器の印の統一は別の論点)
+- 古い下流の印 3 通り(`// --- DOWNSTREAM (downstream で追加) ---` / `// --- ここに…（上流は空。下流が追記） ---` / `// --- FORK (手書き) ---`)は、`regions.mjs` が移行のために読める(終わりは字下げの浅い閉じ括弧)。ただし `pnpm test:fork-regions` は残っていれば失敗にする
+- API(`regions.mjs`、Node 組み込みだけの `.mjs`)
+  - `parseForkRegions(text)` → `{ regions: [{ start, end, legacy }], errors: [{ line, message }] }`(行は 1 始まり、start / end は印の行)
+  - `isInForkRegion(regions, line)`: その行が区画の中(印の行を除く)か
+  - `FORK_REGION_START` / `FORK_REGION_END` / `LEGACY_FORK_MARKERS`
+- 検査: `pnpm test:fork-regions`(`regions.test.mjs`)= `src/registry/**/*.ts` の対が閉じている・入れ子が無い・文言が正しい・古い印が無い + 部品の単体テスト
 
 ## CI
 

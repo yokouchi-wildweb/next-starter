@@ -26,5 +26,7 @@
 // 影響を受けない（全 action 閲覧可のまま）。
 
 export const USER_VISIBLE_AUDIT_ACTIONS: readonly string[] = [
-  // --- ここにユーザー本人へ開示してよい action を登録する（上流は空。下流が追記） ---
+  // ここにユーザー本人へ開示してよい action を登録する
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 ];

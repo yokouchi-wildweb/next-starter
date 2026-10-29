@@ -17,6 +17,9 @@
 //     },
 //   },
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 /** 計測対象 1 種別ぶんの受け入れルール */
 export type InteractionTargetRule = {
   /**
@@ -47,5 +50,7 @@ export type InteractionTargetRule = {
 };
 
 export const interactionTargetRegistry: Record<string, InteractionTargetRule> = {
-  // --- ここに計測対象を登録する（上流は空。下流が追記） ---
+  // ここに計測対象を登録する
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 };

@@ -448,17 +448,20 @@ export const gachaProfitSource: CoinIssuanceSource = {
 ```
 
 ```typescript
-// src/registry/coinIssuanceRegistry.ts に追加
+// src/registry/coinIssuanceRegistry.ts に追加（import も配列も fork entries の印の対の中に書く）
+// --- fork entries start (upstream never edits inside) ---
 import { gachaProfitSource } from "@/features/gacha/analytics/coinIssuance/gachaProfitSource";
+// --- fork entries end ---
 
 export const coinIssuanceSources: CoinIssuanceSource[] = [
-  // --- CORE (upstream-provided) ---
+  // upstream の登録
   purchaseBonusGapSource,
   referralRewardSource,
 
-  // --- DOWNSTREAM ---
+  // --- fork entries start (upstream never edits inside) ---
   gachaProfitSource,
   // winningReportRewardSource, winningCommentRewardSource, ...
+  // --- fork entries end ---
 ];
 ```
 

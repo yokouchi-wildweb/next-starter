@@ -29,6 +29,9 @@ import { couponAttributionRewardSource } from "@/features/core/analytics/service
 
 import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance/types";
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 /**
  * 登録済みのコイン創出ソース一覧。
  *
@@ -40,12 +43,13 @@ import type { CoinIssuanceSource } from "@/features/core/analytics/services/serv
  *    (upstream のキーと衝突しない命名: 例 "gacha_profit", "winning_report_reward")
  */
 export const coinIssuanceSources: CoinIssuanceSource[] = [
-  // --- CORE (upstream-provided) ---
+  // upstream の登録
   // 機能が無効ならテーブルが無い場合があるため、ソースごと外す（src/config/app/feature-gate.config.ts）
   ...(APP_FEATURES.payment.enabled ? [purchaseBonusGapSource] : []),
   referralRewardSource,
   ...(APP_FEATURES.marketing.coupon.enabled ? [couponAttributionRewardSource] : []),
 
-  // --- DOWNSTREAM (downstream で追加) ---
+  // --- fork entries start (upstream never edits inside) ---
   // 例: gachaProfitSource, winningReportRewardSource, winningCommentRewardSource, ...
+  // --- fork entries end ---
 ];

@@ -25,8 +25,13 @@ import type { z } from "zod";
 
 import type { PairedDeviceKindDefinition } from "@/features/core/pairedDevice/types/kind";
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 export const pairedDeviceKindRegistry = {
-  // --- ここに端末の種類を登録する（上流は空。下流が追記） ---
+  // ここに端末の種類を登録する
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 } satisfies Record<string, PairedDeviceKindDefinition<any>>; // scope の型は kind ごとに異なる
 
 /** 登録済みの kind 名 */

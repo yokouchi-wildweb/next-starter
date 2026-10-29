@@ -5,6 +5,9 @@ import type { DbTransaction } from "@/lib/crud/drizzle/types";
 import { clearBalance as clearWalletBalance } from "@/features/core/wallet/services/server/clearBalance";
 import { cancelPending as cancelPendingPurchaseRequests } from "@/features/core/purchaseRequest/services/server/cancelPending";
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 // 機能が無効ならテーブルが無い場合があるため、そのハンドラは登録しない（src/config/app/feature-gate.config.ts）
 
 /**
@@ -20,6 +23,8 @@ export type UserCleanupHandler = (userId: string, tx: DbTransaction) => Promise<
 export const requiredHandlers: UserCleanupHandler[] = [
   // 全ウォレットの残高（balance / locked_balance）を0にクリア + 履歴記録
   ...(APP_FEATURES.wallet.enabled ? [clearWalletBalance] : []),
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 ];
 
 /**
@@ -29,4 +34,6 @@ export const requiredHandlers: UserCleanupHandler[] = [
 export const optionalHandlers: UserCleanupHandler[] = [
   // 未処理の購入リクエスト（pending / processing）を expired にキャンセル
   ...(APP_FEATURES.payment.enabled ? [cancelPendingPurchaseRequests] : []),
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 ];

@@ -48,4 +48,8 @@ export * from "@/features/sampleTag/entities/drizzle";
 export * from "@/features/sampleImage/entities/drizzle";
 // --- AUTO-GENERATED-END ---
 
+// fork が dc:generate を使わずに足すドメインの export
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 export {};

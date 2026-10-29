@@ -23,5 +23,7 @@
 // このレジストリの影響を受けない（metadata 全体を閲覧可のまま）。
 
 export const RECIPIENT_VISIBLE_ATTRIBUTION_REWARD_METADATA_KEYS: readonly string[] = [
-  // --- ここに受取人本人へ開示してよい metadata キーを登録する（上流は空。下流が追記） ---
+  // ここに受取人本人へ開示してよい metadata キーを登録する
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 ];

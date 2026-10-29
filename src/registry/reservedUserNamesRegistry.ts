@@ -28,6 +28,11 @@
 
 import type { ReservedUserNameProvider } from "@/features/core/user/types";
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 export const RESERVED_USER_NAME_PROVIDERS: readonly ReservedUserNameProvider[] = [
-  // --- ここに予約名プロバイダを登録する（上流は空。下流が追記） ---
+  // ここに予約名プロバイダを登録する
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 ];

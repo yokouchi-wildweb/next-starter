@@ -19,14 +19,18 @@
 
 import type { DbAgentSystemSuffixProvider } from "@/lib/dbAgent/prompt";
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 /**
  * 登録済みのプロンプト断片一覧 (登録順に結合される)。
  */
 export const dbAgentPromptFragments: string[] = [
-  // --- CORE (upstream-provided): なし ---
+  // upstream の登録: なし
 
-  // --- DOWNSTREAM (downstream で追加) ---
+  // --- fork entries start (upstream never edits inside) ---
   // 例: GACHA_DOMAIN_KNOWLEDGE, WALLET_DOMAIN_KNOWLEDGE, ...
+  // --- fork entries end ---
 ];
 
 /**
@@ -54,7 +58,8 @@ export const dbAgentPromptFragments: string[] = [
  *     (追加指示の欠落は機能停止より軽微とみなす。最終防衛線は read-only ツール境界)
  */
 export const dbAgentSystemSuffixProviders: DbAgentSystemSuffixProvider[] = [
-  // --- CORE (upstream-provided): なし ---
+  // upstream の登録: なし
 
-  // --- DOWNSTREAM (downstream で追加) ---
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 ];

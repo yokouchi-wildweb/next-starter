@@ -643,9 +643,9 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
    SELECT count(*) FROM storage_objects WHERE status = 'ready' AND record_id IS NULL;
    ```
 
-1. 旧用途を登録表の FORK ブロックへ写し、アップロードを閉じる
-   - `src/registry/storagePurposeRegistry.ts` の AUTO ブロックにある `"<old_purpose>": { … }` を、`// --- FORK (手書き) ---` の下へそのまま写し、`upload: { allow: "none" }` にする（private なら `read: { allow: … }` も写す）
-   - 理由: 移した後も従属の行の ref は `<old_purpose>` のまま（ref の purposeId は改名できない）。ファイルの読み取り・削除は台帳の行の purpose で登録表を引くので、元の項目を domain.json から外して AUTO から消えても FORK の登録が要る。新しいアップロードは従属の用途（`<ChildKey>.file`）で受けるので、旧用途は閉じる
+1. 旧用途を登録表の fork の区画へ写し、アップロードを閉じる
+   - `src/registry/storagePurposeRegistry.ts` の AUTO ブロックにある `"<old_purpose>": { … }` を、AUTO ブロックの後の `// --- fork entries start (upstream never edits inside) ---` と `// --- fork entries end ---` の間へそのまま写し、`upload: { allow: "none" }` にする（private なら `read: { allow: … }` も写す）
+   - 理由: 移した後も従属の行の ref は `<old_purpose>` のまま（ref の purposeId は改名できない）。ファイルの読み取り・削除は台帳の行の purpose で登録表を引くので、元の項目を domain.json から外して AUTO から消えても fork の区画の登録が要る。新しいアップロードは従属の用途（`<ChildKey>.file`）で受けるので、旧用途は閉じる
 2. 従属を作る（上の「中間の形」）。元の列は残す
 3. 書き込みを止め、主 1 行ずつ同じ TX で従属の行を作り、台帳を付け替え、作った行を記録する
    - 止め方は運用で決める（メンテナンス表示など）。主と従属への保存・削除・replaceByQuery が走らない状態にする
@@ -696,7 +696,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
    - ref を別の表へコピーして持つことは禁止の形（台帳の 1 行は 1 つの業務行を指す）。移行のついでに、コピーの列を従属の行 id を指す FK に置き換える。どの表がコピーを持つかはドメインごとに調べる
 5. 元の列を直接 SQL で空にするか、列ごと落とす（その前に記録の表を消す: `DROP TABLE <migration_log>;`。ここで戻せなくなるので、手順 6 を確かめてから）
    - 空にする: `UPDATE <parent_table> SET <field> = '{}';`（サービスの保存では空にしない）
-   - 落とす: 主の domain.json から元の項目を外して `pnpm dc:generate <Parent> --yes`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の FORK の登録が残る）
+   - 落とす: 主の domain.json から元の項目を外して `pnpm dc:generate <Parent> --yes`、`[user-run] pnpm db:push`（AUTO から旧用途の行が消えるが、手順 1 の fork の区画の登録が残る）
    - ここから先は戻せない。手順 6 の数え上げを、空にする・落とす前にも一度流す
 6. 確かめる（読み取りの SQL の数え上げ）
 
@@ -728,7 +728,7 @@ sql`select p.id, coalesce(${firstInCollectionForAlias(galleryCollection, "p")}, 
 2. 移行の間に主の replaceByQuery・物理削除をする → 新しい行に残らない ref の台帳を外し、旧 URL（自分の旧バケットのもの）は実物ごと消す
 3. 従属のサービスの create で元の ref を書く → ref の purposeId（`<old_purpose>`）が従属の用途と違うので 400（旧 URL も 400）。従属の行は直接 INSERT で作る
 4. 台帳の purpose を書き換える → ref の中の purposeId は改名できず、ファイルの読み取り・削除は台帳の purpose で登録表を引く。purpose は変えず、record_type / record_id / record_field だけを付け替える
-5. 旧用途の登録を消す（FORK に写さずに元の項目を外す）→ 移した行のファイルが読めず、消せなくなる
+5. 旧用途の登録を消す（fork の区画に写さずに元の項目を外す）→ 移した行のファイルが読めず、消せなくなる
 6. 書き込みを止めずに流す → 移行の途中の保存が元の列や台帳を変え、件数が合わなくなる・台帳が外れる
 7. 1 つのファイルを 2 行に入れる（同じ値を 2 回 INSERT する）→ 台帳の 1 行は 1 つの業務行だけを指す。先に手順 0 で重複を数えて解消する
 

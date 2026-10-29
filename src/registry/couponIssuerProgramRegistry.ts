@@ -36,4 +36,10 @@
 
 import type { CouponIssuerProgramConfig } from "@/features/core/couponIssuerGrant/types/program";
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
+// fork は右辺を自分の設定に置き換える
+// --- fork entries start (upstream never edits inside) ---
 export const couponIssuerProgram: CouponIssuerProgramConfig | null = null;
+// --- fork entries end ---

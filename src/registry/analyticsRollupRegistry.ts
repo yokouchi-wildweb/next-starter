@@ -23,14 +23,18 @@
 
 import type { RollupMetricConfig } from "@/features/core/analytics/services/server/rollup/types";
 
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
 /**
  * 登録済みのロールアップメトリクス一覧。
  *
  * key はレジストリ内で一意であること（重複は実行時に DomainError）。
  */
 export const analyticsRollupMetrics: RollupMetricConfig[] = [
-  // --- CORE (upstream-provided): なし ---
+  // upstream の登録: なし
 
-  // --- DOWNSTREAM (downstream で追加) ---
+  // --- fork entries start (upstream never edits inside) ---
   // 例: walletClosingBalanceMetric, gachaDailyProfitMetric, ...
+  // --- fork entries end ---
 ];

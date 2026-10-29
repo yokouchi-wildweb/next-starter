@@ -26,4 +26,10 @@
 
 import type { PageTabItem } from "@/components/Navigation";
 
-export const extraCouponAdminSectionTabs: PageTabItem[] = [];
+// --- fork entries start (upstream never edits inside) ---
+// --- fork entries end ---
+
+export const extraCouponAdminSectionTabs: PageTabItem[] = [
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
+];

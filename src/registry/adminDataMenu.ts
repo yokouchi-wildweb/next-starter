@@ -8,5 +8,8 @@ export const adminDataMenu = [
   { title: "サンプルタグ", href: "/admin/sample-tags" },
   { title: "ユーザータグ", href: "/admin/user-tags" },
   // --- AUTO-GENERATED-END ---
+  // fork が手書きで足すメニュー（adminRoutes:false のドメイン等）
+  // --- fork entries start (upstream never edits inside) ---
+  // --- fork entries end ---
 
 ]

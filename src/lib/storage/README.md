@@ -163,7 +163,7 @@ storage://<pub|priv>/<purposeId>/<ledgerId>.<ext>
   - **省略 = strip**（`resolvePurposeMetadata`）。画像を含む用途は既定で strip になる
 - 画像以外の型（動画・音声・一般ファイル）には効かない。strip の用途でも受け取ったまま保存する
   - 画像と動画が混ざった用途（`image/*,video/*` など）は、宣言なし（strip）のまま同じ欄で、画像だけを描き直す
-- **`user.avatar` は常に strip**。登録表・FORK ブロックで keep にしても、実行時に strip へ固定される（`storageObject` の `purposeSource.ts` の `FIXED_STRIP_PURPOSES`）。`pnpm test:storage-purposes` も keep を問題にする
+- **`user.avatar` は常に strip**。登録表の fork の区画で keep にしても、実行時に strip へ固定される（`storageObject` の `purposeSource.ts` の `FIXED_STRIP_PURPOSES`）。`pnpm test:storage-purposes` も keep を問題にする
 - domain.json のメディア項目では `"storage": { "metadata": "strip" | "keep" }`（[src/features/README.md](../../features/README.md)「ファイルの保存（storage）」）。dc:generate が登録表の AUTO に明示値で書き出す
 - core 用途の値（`src/registry/storagePurposes/core.ts`）
 
