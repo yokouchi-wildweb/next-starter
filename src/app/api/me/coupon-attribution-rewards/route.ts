@@ -7,7 +7,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createMeRoute, ownerWhere } from "@/lib/routeFactory";
+import { createMeRoute, ownerWhere } from "@/wiring/apiRoute";
 import { couponAttributionRewardBase } from "@/features/core/couponAttributionReward/services/server";
 import {
   toCouponAttributionRewardForRecipient,

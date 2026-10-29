@@ -4,7 +4,7 @@
 // （ファイルの中身は検査しない）。再送・並行実行には同じ ref を返す。
 
 import { parseObjectId, storageObjectService } from "@/features/core/storageObject/services/server";
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 
 export const POST = createMeRoute<{ id: string }>(
   {

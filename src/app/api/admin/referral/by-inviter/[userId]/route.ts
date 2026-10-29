@@ -1,7 +1,7 @@
 // 管理者用: 指定ユーザーの紹介一覧を取得
 
 import { NextResponse } from "next/server";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { referralService } from "@/features/core/referral/services/server/referralService";
 import { referralRewardService } from "@/features/core/referralReward/services/server/referralRewardService";

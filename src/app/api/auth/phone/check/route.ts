@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { checkPhoneAvailability } from "@/features/core/auth/services/server/phoneVerification";
 
 /**

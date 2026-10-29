@@ -12,7 +12,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { confirmPayPalPayment } from "@/features/core/purchaseRequest/services/server/payment/paypal/confirmPayPalPayment";
 
 type Params = { id: string };

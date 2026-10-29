@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { exportData } from "@/lib/dataMigration/export";
 import { MEDIA_SKIPPED_EXAMPLES_HEADER, MEDIA_SKIPPED_HEADER } from "@/lib/dataMigration/media";
 import { getService } from "@/wiring/domains";

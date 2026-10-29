@@ -1,6 +1,6 @@
 // src/app/api/[domain]/count/route.ts
 
-import { createDomainRoute } from "src/lib/routeFactory";
+import { createDomainRoute } from "@/wiring/apiRoute";
 import type { CountParams } from "@/lib/crud/types";
 
 type DomainParams = { domain: string };

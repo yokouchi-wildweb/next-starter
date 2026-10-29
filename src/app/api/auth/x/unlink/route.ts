@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { userXProfileService } from "@/features/core/userXProfile/services/server/userXProfileService";
 

@@ -6,7 +6,7 @@
 // (レシピ: src/features/core/fingerprintChallenge/README.md)。
 // 一覧・検索は serviceRegistry (fingerprintChallenge, ADMIN_ONLY) の汎用 API を使う。
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
 import { IssueChallengeSchema } from "@/features/core/fingerprintChallenge/entities/schema";

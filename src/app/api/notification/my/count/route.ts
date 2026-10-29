@@ -2,7 +2,7 @@
 // 自分宛通知の総件数取得（user）
 // クエリ: unreadOnly=true|false（省略時は false）
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";

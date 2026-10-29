@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 import { isDomainError } from "@/lib/errors";
 import {

@@ -1,6 +1,6 @@
 // src/app/api/me/email/confirm/route.ts
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { userService } from "@/features/core/user/services/server/userService";
 import { getServerAuth } from "@/lib/firebase/server/app";
 import { DomainError } from "@/lib/errors";

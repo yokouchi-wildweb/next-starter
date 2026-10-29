@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { createDemoUser } from "@/features/core/user/services/server/creation/console";
 import { getRoleCategory, USER_ROLES } from "@/features/core/user/constants";
 

@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { BadRequestError, parsePositiveInteger } from "@/app/api/[domain]/search/utils";
 

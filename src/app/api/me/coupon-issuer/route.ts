@@ -3,7 +3,7 @@
 // 本人の発行権と当期クーポンの状態をまとめて返す（マイページの初期表示用）。
 // programEnabled=false の環境でも grant（申請状況）は返す。
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import {
   getCurrentPeriodCoupon,
   getGrantByUser,

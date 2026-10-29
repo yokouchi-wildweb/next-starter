@@ -11,7 +11,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import {
   auditLogBase,
   buildUserVisibleActionsWhere,

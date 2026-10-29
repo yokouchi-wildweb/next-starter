@@ -2,7 +2,7 @@
 //
 // 認証ユーザー本人の帰属報酬集計（fulfilled 合計/件数、pending 合計）。
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { getRecipientRewardSummary } from "@/features/core/couponAttributionReward/services/server";
 
 export const GET = createMeRoute(

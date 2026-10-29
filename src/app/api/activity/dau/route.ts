@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { recordDailyActivity } from "@/features/core/analytics/services/server/dauService";
 
 export const POST = createApiRoute(

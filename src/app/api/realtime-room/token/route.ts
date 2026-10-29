@@ -11,7 +11,7 @@ import { getSessionUser } from "@/features/core/auth/services/server/session/get
 import { DomainError } from "@/lib/errors";
 import { ROOM_PROTOCOL_VERSION } from "@/lib/realtimeRoom/protocol";
 import { getRealtimeRoomEnv, signRoomClientToken, toWebSocketUrl } from "@/lib/realtimeRoom/server";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(
   {

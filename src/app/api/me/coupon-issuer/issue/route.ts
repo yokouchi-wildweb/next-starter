@@ -3,7 +3,7 @@
 // 承認済み発行権に基づくクーポン発行（本人）。当期に発行済みならそれを返す（冪等）。
 // program 未設定の環境では 503（fail-closed）。
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { issueForGrant } from "@/features/core/couponIssuerGrant/services/server";
 
 export const POST = createMeRoute(

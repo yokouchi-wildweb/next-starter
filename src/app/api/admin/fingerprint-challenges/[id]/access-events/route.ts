@@ -7,7 +7,7 @@
 //
 // GET /api/admin/fingerprint-challenges/[id]/access-events?page=1&limit=50
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import {
   fingerprintChallengeBase,

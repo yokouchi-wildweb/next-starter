@@ -23,7 +23,7 @@ import {
   checkBankTransferReceipt,
   type SupportedImageMediaType,
 } from "@/lib/aiVision";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { isBankTransferJudgmentPassed } from "@/features/core/purchaseRequest/constants/bankTransferJudgment";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 import {

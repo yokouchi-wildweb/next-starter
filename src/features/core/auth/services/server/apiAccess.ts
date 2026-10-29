@@ -3,6 +3,7 @@
 
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { USER_AVAILABLE_STATUSES, getRoleCategory } from "@/features/core/user/constants";
+import type { UserStatus } from "@/features/core/user/types";
 import type { DomainApiAccessRule } from "@/lib/domain";
 
 /**
@@ -20,9 +21,18 @@ export type ApiAccessDecision = "granted" | "not_found" | "unauthenticated" | "f
  * ロール判定は DB 同期済みのセッション（getSessionUser 由来）を渡すこと。
  * token-only セッションではロール剥奪・利用停止が即時反映されない。
  */
+export type ApiAccessEvaluationOptions = {
+  /**
+   * 通過を許可するユーザーステータス。省略時は USER_AVAILABLE_STATUSES（active のみ）。
+   * fail-closed: 列挙していないステータスは常に forbidden。requireAuthenticated・authGuard と同じ語彙
+   */
+  allowStatuses?: readonly UserStatus[];
+};
+
 export function evaluateApiAccessRule(
   rule: DomainApiAccessRule,
   sessionUser: SessionUser | null,
+  options: ApiAccessEvaluationOptions = {},
 ): ApiAccessDecision {
   if (rule === "none") return "not_found";
   if (rule === "public") return "granted";
@@ -30,7 +40,7 @@ export function evaluateApiAccessRule(
   if (!sessionUser) return "unauthenticated";
 
   // 利用停止中（banned 等）のユーザーは認証済みでも拒否する
-  if (!USER_AVAILABLE_STATUSES.includes(sessionUser.status)) {
+  if (!(options.allowStatuses ?? USER_AVAILABLE_STATUSES).includes(sessionUser.status)) {
     return "forbidden";
   }
 

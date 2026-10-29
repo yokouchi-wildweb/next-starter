@@ -11,7 +11,7 @@
 // FINGERPRINT_CONFIG.challenge.enabled が false の環境では 404 (fail-closed)。
 // skipForDemo / allowStatuses はトークン経路と同じ。
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
 import { submitChallenge } from "@/features/core/fingerprintChallenge/services/server";

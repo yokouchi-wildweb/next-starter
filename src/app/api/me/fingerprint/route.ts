@@ -4,7 +4,7 @@
 // クライアントは useFingerprintReport (fire-and-forget) から 1 日 1 回送信する。
 // FINGERPRINT_CONFIG.collection.enabled が false の環境では 404 (fail-closed)。
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
 import { recordDeviceFingerprint } from "@/features/core/deviceFingerprint/services/server";

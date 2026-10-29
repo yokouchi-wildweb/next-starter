@@ -1,7 +1,7 @@
 // src/app/api/referral/my-referrer/route.ts
 
 import { NextResponse } from "next/server";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { referralService } from "@/features/core/referral/services/server/referralService";
 
 /**

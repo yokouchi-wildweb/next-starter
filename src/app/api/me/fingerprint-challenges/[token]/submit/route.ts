@@ -9,7 +9,7 @@
 // デモスキップに乗せず実処理に到達させる (所有者検証で 404 になる)。
 // allowStatuses: FINGERPRINT_CONFIG.challenge.answerableStatuses (既定 active + suspended)。
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
 import { submitChallenge } from "@/features/core/fingerprintChallenge/services/server";

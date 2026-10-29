@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { userService } from "@/features/core/user/services/server/userService";
 import { isUserStatusRegistered } from "@/features/core/user/utils/status";
 

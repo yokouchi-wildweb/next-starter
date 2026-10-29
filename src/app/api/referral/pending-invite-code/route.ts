@@ -10,7 +10,7 @@
 // ゲートは referral 機能フラグのみ。流入経路解析（ACQUISITION_CONFIG.enabled）とは独立。
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";
 
 export const GET = createApiRoute(

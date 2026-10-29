@@ -1,6 +1,6 @@
 // src/app/api/me/profile/route.ts
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { userService } from "@/features/core/user/services/server/userService";
 
 export const PATCH = createMeRoute(

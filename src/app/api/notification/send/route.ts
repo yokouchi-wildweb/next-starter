@@ -2,7 +2,7 @@
 // お知らせ送信（admin専用、唯一の作成経路）
 
 import { z } from "zod";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";

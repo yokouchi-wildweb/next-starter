@@ -1,6 +1,6 @@
 // src/app/api/[domain]/[id]/route.ts
 
-import { createDomainIdRoute } from "src/lib/routeFactory";
+import { createDomainIdRoute } from "@/wiring/apiRoute";
 import type { WithOptions } from "@/lib/crud";
 import { parseBooleanFlag, parsePositiveInteger, parseWithRelations } from "../search/utils";
 

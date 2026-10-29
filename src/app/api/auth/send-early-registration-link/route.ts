@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail } from "@/lib/spamGuard";
 import { sendEarlyRegistrationLink } from "@/features/core/auth/services/server/sendEarlyRegistrationLink";
 import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";

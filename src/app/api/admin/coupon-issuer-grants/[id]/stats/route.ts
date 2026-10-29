@@ -2,7 +2,7 @@
 //
 // 管理者向け: 発行権 1 件の統計（一覧 1 行と同じ形。詳細画面ヘッダ用）。
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors/domainError";
 import { getIssuerStatsByGrantId } from "@/features/core/couponIssuerGrant/services/server";
 

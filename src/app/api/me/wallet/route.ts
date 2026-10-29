@@ -4,7 +4,7 @@
 // オーナーシップはサーバー側で user.userId に固定して強制する
 // （クライアント指定の user_id は受け取らない）。
 
-import { createMeRoute, ownerWhere } from "@/lib/routeFactory";
+import { createMeRoute, ownerWhere } from "@/wiring/apiRoute";
 import { walletService } from "@/features/core/wallet/services/server/walletService";
 
 // GET /api/me/wallet : 本人の全ウォレット（通貨種別ごと）を取得

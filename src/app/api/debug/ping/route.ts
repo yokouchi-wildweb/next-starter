@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 
 import { ADMIN_OR_DEBUGGER_RULE } from "@/config/app/domain-api-access.config";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(
   {

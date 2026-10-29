@@ -1,7 +1,7 @@
 // src/app/api/notification/my/unread-count/route.ts
 // 未読数取得（user）
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";

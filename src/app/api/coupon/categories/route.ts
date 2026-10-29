@@ -3,7 +3,7 @@
 // 登録済みクーポンカテゴリの一覧を返す
 // 管理画面のカテゴリ選択フォームで使用
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 // 全ハンドラーの登録を保証
 import "@/features/core/coupon/handlers/init";

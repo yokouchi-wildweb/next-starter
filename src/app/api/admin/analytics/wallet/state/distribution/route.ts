@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { parseUserFilterParams } from "@/features/core/analytics/services/server/utils/userFilter";
 import { getWalletStateDistribution } from "@/features/core/analytics/services/server/walletStateAnalytics";

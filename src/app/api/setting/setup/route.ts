@@ -1,6 +1,6 @@
 // src/app/api/setting/setup/route.ts
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { initializeAdminSetup } from "@/features/core/setting/services/server/settingService";
 
 export const POST = createApiRoute(

@@ -1,12 +1,12 @@
-// src/lib/apiRoute/createApiRoute.ts
+// src/lib/routeFactory/createApiRoute.ts
 
 import { NextRequest, NextResponse } from "next/server";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import type { RateLimitCategory } from "@/config/app/rate-limit.config";
-import { getTokenOnlySession } from "@/features/core/auth/services/server/session/getTokenOnlySession";
 import type { SessionUser } from "@/features/core/auth/entities/session";
 import { checkRateLimit } from "@/features/core/rateLimit/services/server/wrappers/rateLimitHelper";
+import type { UserStatus } from "@/features/core/user/types";
 import {
   runWithAuditContext,
   type AuditActorType,
@@ -15,9 +15,11 @@ import {
 import type { RecaptchaAction } from "@/lib/recaptcha/constants";
 import { RECAPTCHA_V2_INTERNALS, RECAPTCHA_V3_INTERNALS, RECAPTCHA_DEBUG } from "@/lib/recaptcha/constants";
 import { verifyRecaptcha, verifyRecaptchaV2 } from "@/lib/recaptcha/server";
-import { isDomainError } from "@/lib/errors";
+import { isDomainError, toDomainErrorBody } from "@/lib/errors";
 import { runWithUserDirtyTracking } from "@/lib/userDirty";
-import { enforceAccessRule } from "./enforceAccess";
+
+import type { RouteUserDeps } from "./deps";
+import { accessDenialResponse } from "./enforceAccess";
 
 /** DomainError 以外の例外で返す汎用メッセージ（内部情報をクライアントへ出さない） */
 const INTERNAL_ERROR_MESSAGE = "サーバーでエラーが発生しました";
@@ -70,17 +72,25 @@ export type OperationType = "read" | "write";
  * - "public": 未認証でもアクセス可
  * - "authenticated": ログイン必須（未認証→401 / 利用停止→403）
  * - { roles?, roleCategories? }: 指定ロール / ロールカテゴリのみ（未認証→401 / 権限不足→403）
- * - "custom": ハンドラ内で自前認可する（requireAdmin / requireAuthenticated 等）。
- *   ファクトリーは認可しない。webhook の署名検証など独自ガードを持つルート向け。
- *
- * 指定すると createApiRoute が認可を強制する。"custom" は明示的な「自前で守る」宣言で、
- * route-authz lint の対象（宣言漏れ検出）と整合する。
+ * - "custom": @deprecated 移行中の一時措置（legate 20261026-152333 order 02 で削除）。
+ *   ハンドラ内で自前認可する。ファクトリーは認可しない。
  */
 export type RouteAccess =
   | "public"
   | "authenticated"
   | "custom"
   | { roles?: string[]; roleCategories?: string[] };
+
+/**
+ * access ごとの ctx.user の型。
+ * "public" は未ログイン・利用できない status なら null、それ以外は必ずいる。
+ * 移行中の "custom" は Factory が主体を解かないので常に null（ハンドラが自前で解く今の動きのまま）。
+ */
+export type ApiRouteUser<A extends RouteAccess = RouteAccess> = A extends "custom"
+  ? null
+  : A extends "public"
+    ? SessionUser | null
+    : SessionUser;
 
 /**
  * reCAPTCHA検証設定
@@ -94,22 +104,12 @@ export type RecaptchaConfig = {
   v2Threshold?: number;
 };
 
-/**
- * APIルートの設定
- */
-export type ApiRouteConfig = {
+/** 認可を除いた共通の設定（Factory どうしで共有する） */
+export type ApiRouteBaseConfig = {
   /** 操作名（ログ・デバッグ用） */
   operation: string;
   /** 操作の種類 */
   operationType: OperationType;
-  /**
-   * アクセスポリシー（必須）。createApiRoute が認可を強制する。
-   * - "public" / "authenticated" / { roles?, roleCategories? }: factory が認可
-   * - "custom": ハンドラ内で自前認可する明示宣言（webhook 署名検証・オーナーシップ等）
-   * 型必須のため、宣言し忘れるとコンパイルが通らない（fail-closed by construction）。
-   * 詳細: src/lib/routeFactory/README.md
-   */
-  access: RouteAccess;
   /**
    * デモユーザーの場合にDB操作をスキップするか
    * - undefined: operationType === "write" の場合に自動スキップ
@@ -137,228 +137,317 @@ export type ApiRouteConfig = {
 };
 
 /**
+ * APIルートの設定
+ */
+export type ApiRouteConfig<A extends RouteAccess = RouteAccess> = ApiRouteBaseConfig & {
+  /**
+   * アクセスポリシー（必須）。createApiRoute が認可を強制する。
+   * 型必須のため、宣言し忘れるとコンパイルが通らない（fail-closed by construction）。
+   * 詳細: src/lib/routeFactory/README.md
+   */
+  access: A;
+  /**
+   * 通過を許可するユーザーステータス。省略時は利用可能な status（USER_AVAILABLE_STATUSES = active のみ）。
+   * 「利用制限中でも本人が完了すべき手続き」のルートでのみ明示列挙する。
+   * fail-closed: 列挙していないステータスは常に 403（"public" では ctx.user が null）。
+   * createMeRoute・authGuard の allowStatuses と同じ語彙。
+   */
+  allowStatuses?: readonly UserStatus[];
+};
+
+/**
  * APIルートハンドラーのコンテキスト
  */
-export type ApiRouteContext<TParams = Record<string, string>> = {
+export type ApiRouteContext<TParams = Record<string, string>, TUser = SessionUser | null> = {
   params: TParams;
+  /**
+   * Factory が 1 回だけ DB 同期で解いた利用者。
+   * access "public" では Cookie があり利用可能な status（または allowStatuses）のときだけ非 null。
+   * "authenticated" / { roles, roleCategories } では必ずいる。
+   */
+  user: TUser;
+  /**
+   * @deprecated token だけのセッション（DB 同期なし）。移行中の一時措置で、
+   * legate 20261026-152333 order 02 でハンドラの ctx から外す。認可・役割の分岐に使わず ctx.user を使う。
+   */
   session: SessionUser | null;
 };
 
 /**
  * APIルートハンドラーの型
  */
-export type ApiRouteHandler<TParams = Record<string, string>, TResult = unknown> = (
-  req: NextRequest,
-  ctx: ApiRouteContext<TParams>,
-) => Promise<TResult>;
+export type ApiRouteHandler<
+  TParams = Record<string, string>,
+  TResult = unknown,
+  TUser = SessionUser | null,
+> = (req: NextRequest, ctx: ApiRouteContext<TParams, TUser>) => Promise<TResult>;
 
 /**
  * Next.js App Routerのルートハンドラー型
  */
-type NextRouteHandler<TParams = Record<string, string>> = (
+export type NextRouteHandler<TParams = Record<string, string>> = (
   req: NextRequest,
   context: { params: Promise<TParams> },
-) => Promise<NextResponse>;
+) => Promise<Response>;
 
 /**
- * 全APIルート共通の基盤ファクトリー
- *
- * 共通処理を一元管理し、将来の拡張に対応する。
- * - デモユーザーの書き込みスキップ
- * - エラーハンドリング
- * - 将来: 監査ログ、レート制限、メンテナンスモード等
+ * 共通処理の前段で行う認可。拒否なら応答を、許可ならハンドラに渡す値を返す。
+ * デモスキップより前に評価し、権限の無いユーザーにデモ成功を返さないようにする。
  */
-export function createApiRoute<TParams = Record<string, string>, TResult = unknown>(
-  config: ApiRouteConfig,
-  handler: ApiRouteHandler<TParams, TResult>,
-): NextRouteHandler<TParams> {
-  return async (req: NextRequest, context: { params: Promise<TParams> }) => {
-    const params = await context.params;
-    // 監査ログの actor_id / actorType とデモユーザー判定にしか使わないため、
-    // DB 同期が不要な JWT-only 取得を選択する。
-    // 認可判定 (status / role による拒否) が必要な API ルートでは、ハンドラ内で
-    // authGuard() / getSessionUser() (= DB と同期される) を別途呼ぶこと。
-    const session = await getTokenOnlySession();
-    const auditContext = buildAuditContext(req, session);
+export type RouteAuthorizer<TParams, TGrant> = (req: NextRequest, params: TParams) => Promise<Response | TGrant>;
 
-    try {
-      // ===== 共通処理（前処理） =====
+/** 前段で返った値が拒否の応答か */
+function isDenial(value: unknown): value is Response {
+  return value instanceof Response;
+}
 
-      // アクセス制御: access が指定され "custom" 以外なら、ファクトリーが認可を強制する。
-      // "custom" / 未指定はハンドラ側で認可する（route-authz lint が漏れを検出）。
-      // デモスキップより前に評価し、権限の無いユーザーにデモ成功を返さないようにする。
-      if (config.access && config.access !== "custom") {
-        const denied = await enforceAccessRule(config.access);
-        if (denied) return denied;
-      }
+/** ハンドラの戻り値を応答にする（Response は NextResponse 以外もそのまま返す。他は JSON） */
+export function toRouteResponse(result: unknown): Response {
+  if (result instanceof Response) return result;
+  return NextResponse.json(result ?? null);
+}
 
-      // デモユーザーの書き込み操作をスキップ
-      // skipForDemo が明示的に指定されていればその値を使用
-      // 未指定の場合は operationType === "write" で自動スキップ
-      const shouldSkipForDemo =
-        config.skipForDemo ?? (config.operationType === "write");
+/**
+ * 全 Factory 共通の土台を作る（利用者の束を結ぶ）。
+ * 認可（authorize）は各 Factory が渡す。土台が持つのは監査文脈・デモスキップ・レート制限・reCAPTCHA・
+ * ハンドラ実行（監査文脈と userDirty の中）・応答の生成・エラー整形。
+ */
+export function makeRouteCore(deps: RouteUserDeps) {
+  return function runRoute<TParams, TGrant>(
+    config: ApiRouteBaseConfig,
+    authorize: RouteAuthorizer<TParams, TGrant>,
+    handler: (req: NextRequest, base: { params: TParams; session: SessionUser | null }, grant: TGrant) => Promise<unknown>,
+  ): NextRouteHandler<TParams> {
+    return async (req: NextRequest, context: { params: Promise<TParams> }) => {
+      const params = await context.params;
+      // 監査ログの actor_id / actorType とデモユーザー判定にしか使わないため、
+      // DB 同期が不要な JWT-only 取得を選択する（認可は authorize が DB 同期の利用者で行う）。
+      const session = await deps.resolveTokenSession();
+      const auditContext = buildAuditContext(req, session);
 
-      if (shouldSkipForDemo && session?.isDemo) {
-        return NextResponse.json({ success: true, demo: true });
-      }
+      try {
+        // ===== 共通処理（前処理） =====
 
-      // レート制限チェック
-      if (config.rateLimit) {
-        const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-        const limit = await checkRateLimit(config.rateLimit, ip);
-        if (!limit.allowed) {
-          const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
-          return NextResponse.json(
-            {
-              message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
-              resetAt: limit.resetAt,
-            },
-            {
-              status: 429,
-              headers: { "Retry-After": String(retryAfterSeconds) },
-            }
-          );
-        }
-      }
+        // アクセス制御: デモスキップより前に評価し、権限の無いユーザーにデモ成功を返さないようにする。
+        const grant = await authorize(req, params);
+        if (isDenial(grant)) return grant;
 
-      // サブネット単位（/24）レート制限チェック
-      if (config.rateLimitSubnet) {
-        const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-        const subnet = ip.split(".").slice(0, 3).join(".");
-        const limit = await checkRateLimit(config.rateLimitSubnet, subnet);
-        if (!limit.allowed) {
-          const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
-          return NextResponse.json(
-            {
-              message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
-              resetAt: limit.resetAt,
-              silent: true,
-            },
-            {
-              status: 429,
-              headers: { "Retry-After": String(retryAfterSeconds) },
-            }
-          );
-        }
-      }
+        // デモユーザーの書き込み操作をスキップ
+        // skipForDemo が明示的に指定されていればその値を使用
+        // 未指定の場合は operationType === "write" で自動スキップ
+        const shouldSkipForDemo =
+          config.skipForDemo ?? (config.operationType === "write");
 
-      // reCAPTCHA 検証
-      // v3トークン: X-Recaptcha-Token ヘッダー
-      // v2トークン: X-Recaptcha-V2-Token ヘッダー
-      if (config.recaptcha) {
-        const threshold = config.recaptcha.threshold ?? APP_FEATURES.auth.signup.recaptchaThreshold;
-        const v2ThresholdConfig = config.recaptcha.v2Threshold ?? APP_FEATURES.auth.signup.recaptchaV2Threshold;
-
-        if (RECAPTCHA_DEBUG.enabled) {
-          console.log("[reCAPTCHA] Config:", {
-            v3Enabled: RECAPTCHA_V3_INTERNALS.enabled,
-            v2Enabled: RECAPTCHA_V2_INTERNALS.enabled,
-            threshold,
-            v2Threshold: v2ThresholdConfig,
-            forceScore: RECAPTCHA_DEBUG.forceScore,
-          });
+        if (shouldSkipForDemo && session?.isDemo) {
+          return NextResponse.json({ success: true, demo: true });
         }
 
-        const v2Token = req.headers.get("X-Recaptcha-V2-Token");
-
-        // v2トークンがある場合はv2検証を実行（v2チャレンジ完了後のリトライ）
-        if (v2Token) {
-          const v2Result = await verifyRecaptchaV2(v2Token);
-          if (RECAPTCHA_DEBUG.enabled) {
-            console.log("[reCAPTCHA] v2 Result:", { valid: v2Result.valid, error: v2Result.error });
-          }
-          if (!v2Result.valid) {
-            console.warn(`[reCAPTCHA] v2 verification failed: ${v2Result.error}`);
+        // レート制限チェック
+        if (config.rateLimit) {
+          const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+          const limit = await checkRateLimit(config.rateLimit, ip);
+          if (!limit.allowed) {
+            const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
             return NextResponse.json(
-              { message: "現在は登録ができません。" },
-              { status: 403 }
+              {
+                message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
+                resetAt: limit.resetAt,
+              },
+              {
+                status: 429,
+                headers: { "Retry-After": String(retryAfterSeconds) },
+              }
             );
           }
-          // v2検証成功 → 続行
-        } else {
-          // v3検証を実行
-          const token = req.headers.get("X-Recaptcha-Token") ?? "";
-          // v2が有効な場合のみv2Thresholdを渡す
-          const v2Threshold = RECAPTCHA_V2_INTERNALS.enabled ? v2ThresholdConfig : undefined;
+        }
 
-          const result = await verifyRecaptcha(
-            token,
-            config.recaptcha.action,
-            threshold,
-            v2Threshold,
-          );
+        // サブネット単位（/24）レート制限チェック
+        if (config.rateLimitSubnet) {
+          const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+          const subnet = ip.split(".").slice(0, 3).join(".");
+          const limit = await checkRateLimit(config.rateLimitSubnet, subnet);
+          if (!limit.allowed) {
+            const retryAfterSeconds = Math.max(1, Math.ceil((limit.resetAt.getTime() - Date.now()) / 1000));
+            return NextResponse.json(
+              {
+                message: "リクエスト回数の上限に達しました。しばらく経ってから再度お試しください。",
+                resetAt: limit.resetAt,
+                silent: true,
+              },
+              {
+                status: 429,
+                headers: { "Retry-After": String(retryAfterSeconds) },
+              }
+            );
+          }
+        }
+
+        // reCAPTCHA 検証
+        // v3トークン: X-Recaptcha-Token ヘッダー
+        // v2トークン: X-Recaptcha-V2-Token ヘッダー
+        if (config.recaptcha) {
+          const threshold = config.recaptcha.threshold ?? APP_FEATURES.auth.signup.recaptchaThreshold;
+          const v2ThresholdConfig = config.recaptcha.v2Threshold ?? APP_FEATURES.auth.signup.recaptchaV2Threshold;
 
           if (RECAPTCHA_DEBUG.enabled) {
-            console.log("[reCAPTCHA] v3 Result:", {
-              valid: result.valid,
-              score: result.score,
-              requireV2Challenge: result.requireV2Challenge,
-              error: result.error,
+            console.log("[reCAPTCHA] Config:", {
+              v3Enabled: RECAPTCHA_V3_INTERNALS.enabled,
+              v2Enabled: RECAPTCHA_V2_INTERNALS.enabled,
+              threshold,
+              v2Threshold: v2ThresholdConfig,
+              forceScore: RECAPTCHA_DEBUG.forceScore,
             });
           }
 
-          if (!result.valid) {
-            console.warn(`[reCAPTCHA] v3 verification failed: ${result.error}, score: ${result.score}`);
+          const v2Token = req.headers.get("X-Recaptcha-V2-Token");
 
-            // v2チャレンジが必要な場合（中間スコア）
-            if (result.requireV2Challenge && RECAPTCHA_V2_INTERNALS.enabled) {
+          // v2トークンがある場合はv2検証を実行（v2チャレンジ完了後のリトライ）
+          if (v2Token) {
+            const v2Result = await verifyRecaptchaV2(v2Token);
+            if (RECAPTCHA_DEBUG.enabled) {
+              console.log("[reCAPTCHA] v2 Result:", { valid: v2Result.valid, error: v2Result.error });
+            }
+            if (!v2Result.valid) {
+              console.warn(`[reCAPTCHA] v2 verification failed: ${v2Result.error}`);
               return NextResponse.json(
-                {
-                  message: "追加の認証が必要です",
-                  requireV2Challenge: true,
-                  recaptchaV2SiteKey: RECAPTCHA_V2_INTERNALS.siteKey,
-                },
-                { status: 428 } // Precondition Required
+                { message: "現在は登録ができません。" },
+                { status: 403 }
               );
             }
+            // v2検証成功 → 続行
+          } else {
+            // v3検証を実行
+            const token = req.headers.get("X-Recaptcha-Token") ?? "";
+            // v2が有効な場合のみv2Thresholdを渡す
+            const v2Threshold = RECAPTCHA_V2_INTERNALS.enabled ? v2ThresholdConfig : undefined;
 
-            // 完全なブロック
-            return NextResponse.json(
-              { message: "現在は登録ができません。" },
-              { status: 403 }
+            const result = await verifyRecaptcha(
+              token,
+              config.recaptcha.action,
+              threshold,
+              v2Threshold,
             );
+
+            if (RECAPTCHA_DEBUG.enabled) {
+              console.log("[reCAPTCHA] v3 Result:", {
+                valid: result.valid,
+                score: result.score,
+                requireV2Challenge: result.requireV2Challenge,
+                error: result.error,
+              });
+            }
+
+            if (!result.valid) {
+              console.warn(`[reCAPTCHA] v3 verification failed: ${result.error}, score: ${result.score}`);
+
+              // v2チャレンジが必要な場合（中間スコア）
+              if (result.requireV2Challenge && RECAPTCHA_V2_INTERNALS.enabled) {
+                return NextResponse.json(
+                  {
+                    message: "追加の認証が必要です",
+                    requireV2Challenge: true,
+                    recaptchaV2SiteKey: RECAPTCHA_V2_INTERNALS.siteKey,
+                  },
+                  { status: 428 } // Precondition Required
+                );
+              }
+
+              // 完全なブロック
+              return NextResponse.json(
+                { message: "現在は登録ができません。" },
+                { status: 403 }
+              );
+            }
           }
         }
+
+        // 将来の拡張ポイント:
+        // - メンテナンスモードチェック
+        // - 監査ログ（前処理）
+
+        // ===== ハンドラー実行 =====
+        // ALS で AuditContext をスコープに敷き、handler 内部の任意の深さから
+        // getAuditContext() で actor / IP / UA / requestId を取得できるようにする。
+        //
+        // さらに userDirty トラッキングスコープを内側に敷く。handler 内の任意の深さで
+        // markUserDirty(userId) された対象を、業務TXのコミット後（handler 完了後）に
+        // flush する。flush の中身（再計算等）は下流が registerUserDirtyFlushHandler で差し込む。
+
+        const result = await runWithAuditContext(auditContext, () =>
+          runWithUserDirtyTracking(() => handler(req, { params, session }, grant)),
+        );
+
+        // 将来の拡張ポイント:
+        // - 監査ログ（後処理）
+
+        // ===== レスポンス生成 =====
+        return toRouteResponse(result);
+      } catch (error) {
+        console.error(`${config.operation} failed:`, error);
+
+        if (isDomainError(error)) {
+          return NextResponse.json(toDomainErrorBody(error), { status: error.status });
+        }
+
+        // 想定外の例外（ライブラリ・DB・コードの不具合）の message は SQL やライブラリの内部情報を
+        // 含み得るため、クライアントには汎用文言だけを返す（詳細は上の console.error でサーバーログへ）。
+        // 方針: docs/!must-read/エラーハンドリング方針.md §3
+        return NextResponse.json({ message: INTERNAL_ERROR_MESSAGE }, { status: 500 });
       }
-
-      // 将来の拡張ポイント:
-      // - メンテナンスモードチェック
-      // - 監査ログ（前処理）
-
-      // ===== ハンドラー実行 =====
-      // ALS で AuditContext をスコープに敷き、handler 内部の任意の深さから
-      // getAuditContext() で actor / IP / UA / requestId を取得できるようにする。
-      //
-      // さらに userDirty トラッキングスコープを内側に敷く。handler 内の任意の深さで
-      // markUserDirty(userId) された対象を、業務TXのコミット後（handler 完了後）に
-      // flush する。flush の中身（再計算等）は下流が registerUserDirtyFlushHandler で差し込む。
-
-      const ctx: ApiRouteContext<TParams> = { params, session };
-      const result = await runWithAuditContext(auditContext, () =>
-        runWithUserDirtyTracking(() => handler(req, ctx)),
-      );
-
-      // 将来の拡張ポイント:
-      // - 監査ログ（後処理）
-
-      // ===== レスポンス生成 =====
-
-      if (result instanceof NextResponse) {
-        return result;
-      }
-
-      return NextResponse.json(result ?? null);
-    } catch (error) {
-      console.error(`${config.operation} failed:`, error);
-
-      if (isDomainError(error)) {
-        return NextResponse.json({ message: error.message }, { status: error.status });
-      }
-
-      // 想定外の例外（ライブラリ・DB・コードの不具合）の message は SQL やライブラリの内部情報を
-      // 含み得るため、クライアントには汎用文言だけを返す（詳細は上の console.error でサーバーログへ）。
-      // 方針: docs/!must-read/エラーハンドリング方針.md §3
-      return NextResponse.json({ message: INTERNAL_ERROR_MESSAGE }, { status: 500 });
-    }
+    };
   };
 }
+
+export type RouteCore = ReturnType<typeof makeRouteCore>;
+
+/**
+ * Factory が 1 回だけ利用者を解き、access で認可する。許可なら ctx.user に渡す利用者を返す。
+ * - "public": 認可しない。利用可能な status（または allowStatuses）のときだけ利用者、他は null
+ * - "custom"（移行中）: 主体を解かない（ctx.user は null。ハンドラが自前で解く今の動きのまま）
+ * - それ以外: 評価して拒否なら 401 / 403（code 付き）
+ */
+export function authorizeRouteUser(
+  deps: RouteUserDeps,
+  access: RouteAccess,
+  allowStatuses: readonly UserStatus[] | undefined,
+): () => Promise<Response | { user: SessionUser | null }> {
+  return async () => {
+    if (access === "custom") return { user: null };
+    const resolved = await deps.resolveUser();
+    if (access === "public") {
+      const allowed = allowStatuses ?? deps.availableStatuses;
+      return { user: resolved && allowed.includes(resolved.status) ? resolved : null };
+    }
+    const denied = accessDenialResponse(deps.evaluateAccess(access, resolved, { allowStatuses }));
+    if (denied) return denied;
+    return { user: resolved };
+  };
+}
+
+/**
+ * 全APIルート共通の基盤ファクトリーを作る（利用者の束と土台を結ぶ）。
+ *
+ * 共通処理を一元管理する。
+ * - access の認可（主体はリクエストごとに 1 回だけ DB 同期で解き ctx.user で渡す）
+ * - デモユーザーの書き込みスキップ・レート制限・reCAPTCHA
+ * - エラーハンドリング（DomainError → { message, code?, details? } + status）
+ * - ハンドラが返した Response はそのまま返す（NextResponse 以外も）
+ */
+export function makeCreateApiRoute(deps: RouteUserDeps, runRoute: RouteCore) {
+  return function createApiRoute<
+    TParams = Record<string, string>,
+    TResult = unknown,
+    A extends RouteAccess = RouteAccess,
+  >(
+    config: ApiRouteConfig<A>,
+    handler: ApiRouteHandler<TParams, TResult, ApiRouteUser<A>>,
+  ): NextRouteHandler<TParams> {
+    const { access, allowStatuses, ...baseConfig } = config;
+    const authorize = authorizeRouteUser(deps, access, allowStatuses);
+    return runRoute<TParams, { user: SessionUser | null }>(baseConfig, () => authorize(), (req, base, grant) =>
+      handler(req, { ...base, user: grant.user as ApiRouteUser<A> }),
+    );
+  };
+}
+
+export type CreateApiRoute = ReturnType<typeof makeCreateApiRoute>;

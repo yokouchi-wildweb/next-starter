@@ -1,12 +1,15 @@
-// src/lib/apiRoute/createDomainRoute.ts
+// src/lib/routeFactory/createDomainRoute.ts
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { createApiRoute, type OperationType, type ApiRouteContext } from "./createApiRoute";
-import { enforceAccessRule } from "./enforceAccess";
-import { resolveAccessRule, type DomainCrudOperation } from "@/lib/domain";
-import { serviceRegistry } from "@/registry/serviceRegistry";
+import type { SessionUser } from "@/features/core/auth/entities/session";
+import type { UserStatus } from "@/features/core/user/types";
+import { resolveAccessRule, type DomainCrudOperation, type DomainRegistry } from "@/lib/domain";
 import { toCamelCase } from "@/utils/stringCase.mjs";
+
+import type { OperationType, ApiRouteContext, RouteCore } from "./createApiRoute";
+import type { RouteUserDeps } from "./deps";
+import { accessDenialResponse } from "./enforceAccess";
 
 /**
  * ドメインルートの設定
@@ -30,12 +33,16 @@ export type DomainRouteConfig<TService> = {
    * - false: スキップしない（デモでも実行を許可）
    */
   skipForDemo?: boolean;
+  /**
+   * 通過を許可するユーザーステータス（省略時は利用可能な status だけ）。createApiRoute と同じ語彙・fail-closed
+   */
+  allowStatuses?: readonly UserStatus[];
 };
 
 /**
  * ドメインルートハンドラーのコンテキスト
  */
-export type DomainRouteContext<TService, TParams> = ApiRouteContext<TParams> & {
+export type DomainRouteContext<TService, TParams> = ApiRouteContext<TParams, SessionUser | null> & {
   service: TService;
   domain: string;
 };
@@ -69,69 +76,77 @@ function ensureSupports<TService>(
 }
 
 /**
- * ドメインCRUD用のファクトリー
+ * ドメインCRUD用のファクトリーを作る（利用者の束・登録表・土台を結ぶ）。
  *
- * createApiRouteを内部で使用し、ドメインサービスとの連携を追加する。
+ * 認可は URL のドメイン名から登録表の行を引き、domainEntry.ts の access でドメインごとに強制する。
+ * ctx.user は Factory が解いた利用者（access が "public" の操作では null 可）。
  */
-export function createDomainRoute<
-  TService = any,
-  TParams extends DomainParams = DomainParams,
-  TResult = unknown,
->(
-  config: DomainRouteConfig<TService>,
-  handler: DomainRouteHandler<TService, TParams, TResult>,
-) {
-  return createApiRoute<TParams, TResult | NextResponse>(
-    {
-      operation: config.operation,
-      operationType: config.operationType,
-      skipForDemo: config.skipForDemo,
-      // 認可は createDomainRoute がドメインごとに registry の access から動的に強制する。
-      // createApiRoute 側の認可はスキップさせる。
-      access: "custom",
-    },
-    async (req, ctx) => {
-      const { domain } = ctx.params;
-      // ドメイン名を正規化（snake_case → camelCase）
-      const normalizedDomain = toCamelCase(domain);
-      const entry = Object.prototype.hasOwnProperty.call(serviceRegistry, normalizedDomain)
-        ? serviceRegistry[normalizedDomain]
-        : undefined;
+export function makeDomainRoutes(deps: RouteUserDeps, registry: DomainRegistry, runRoute: RouteCore) {
+  function createDomainRoute<
+    TService = any,
+    TParams extends DomainParams = DomainParams,
+    TResult = unknown,
+  >(
+    config: DomainRouteConfig<TService>,
+    handler: DomainRouteHandler<TService, TParams, TResult>,
+  ) {
+    const { crudOp, supports, allowStatuses, ...baseConfig } = config;
+    return runRoute<TParams, { service: TService; user: SessionUser | null }>(
+      baseConfig,
+      async (_req, params) => {
+        const { domain } = params;
+        // ドメイン名を正規化（snake_case → camelCase）
+        const normalizedDomain = toCamelCase(domain);
+        const entry = Object.prototype.hasOwnProperty.call(registry, normalizedDomain)
+          ? registry[normalizedDomain]
+          : undefined;
 
-      if (!entry) {
-        return new NextResponse("Not Found", { status: 404 });
-      }
+        if (!entry) {
+          return new NextResponse("Not Found", { status: 404 });
+        }
 
-      // ===== アクセス制御（domainEntry.ts の access 宣言に基づく。登録表 serviceRegistry が実行時ソース） =====
-      // access が当該操作をカバーしない場合は fail-closed（admin カテゴリのみ）に倒れる。
-      // サービスの読み込み（遅延 import）より先に判定し、拒否される要求でサービスを読み込まない。
-      const rule = resolveAccessRule(entry.access, config.crudOp, config.operationType);
-      const denied = await enforceAccessRule(rule);
-      if (denied) return denied;
+        // ===== アクセス制御（domainEntry.ts の access 宣言に基づく。登録表 serviceRegistry が実行時ソース） =====
+        // access が当該操作をカバーしない場合は fail-closed（admin カテゴリのみ）に倒れる。
+        // サービスの読み込み（遅延 import）より先に判定し、拒否される要求でサービスを読み込まない。
+        const rule = resolveAccessRule(entry.access, crudOp, config.operationType);
+        const resolved = await deps.resolveUser();
+        const denied = accessDenialResponse(deps.evaluateAccess(rule, resolved, { allowStatuses }), {
+          domain: normalizedDomain,
+          operation: crudOp,
+        });
+        if (denied) return denied;
+        // "public" の操作では利用できない status の利用者を渡さない（createApiRoute の "public" と同じ）
+        const allowed = allowStatuses ?? deps.availableStatuses;
+        const user = resolved && allowed.includes(resolved.status) ? resolved : null;
 
-      const service = (await entry.service()) as TService;
+        const service = (await entry.service()) as TService;
 
-      if (!ensureSupports(service, config.supports)) {
-        return new NextResponse("Not Found", { status: 404 });
-      }
+        if (!ensureSupports(service, supports)) {
+          return new NextResponse("Not Found", { status: 404 });
+        }
+        return { service, user };
+      },
+      async (req, base, { service, user }) => {
+        const domainCtx: DomainRouteContext<TService, TParams> = {
+          ...base,
+          user,
+          service,
+          domain: base.params.domain,
+        };
+        return handler(req, domainCtx);
+      },
+    );
+  }
 
-      const domainCtx: DomainRouteContext<TService, TParams> = {
-        ...ctx,
-        service,
-        domain,
-      };
+  /**
+   * IDパラメータ付きドメインルート用のファクトリー
+   */
+  function createDomainIdRoute<TService = any, TResult = unknown>(
+    config: DomainRouteConfig<TService>,
+    handler: DomainRouteHandler<TService, DomainIdParams, TResult>,
+  ) {
+    return createDomainRoute<TService, DomainIdParams, TResult>(config, handler);
+  }
 
-      return handler(req, domainCtx);
-    },
-  );
-}
-
-/**
- * IDパラメータ付きドメインルート用のファクトリー
- */
-export function createDomainIdRoute<TService = any, TResult = unknown>(
-  config: DomainRouteConfig<TService>,
-  handler: DomainRouteHandler<TService, DomainIdParams, TResult>,
-) {
-  return createDomainRoute<TService, DomainIdParams, TResult>(config, handler);
+  return { createDomainRoute, createDomainIdRoute };
 }

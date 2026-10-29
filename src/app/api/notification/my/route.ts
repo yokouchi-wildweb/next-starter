@@ -1,7 +1,7 @@
 // src/app/api/notification/my/route.ts
 // 自分のお知らせ一覧（user）
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";

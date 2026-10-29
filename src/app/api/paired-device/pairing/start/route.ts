@@ -15,7 +15,7 @@ import {
   readDeviceRequestInfo,
   setPendingPairingCookie,
 } from "@/features/core/pairedDevice/services/server/session";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const POST = createApiRoute(
   {

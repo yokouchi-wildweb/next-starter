@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "src/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { getProfileBase } from "@/features/core/userProfile/utils/profileBaseHelpers";
 import type { WithOptions } from "@/lib/crud";
 import {

@@ -13,7 +13,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { INVITE_CODE_INVALID_MESSAGE } from "@/features/core/referral/constants/inviteCodeValidation";
 import { referralService } from "@/features/core/referral/services/server/referralService";
 

@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 
 import { storageObjectService } from "@/features/core/storageObject/services/server";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute<{ purpose: string }>(
   {

@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { parseWebhookRequest } from "@/lib/line/webhook";
 import type { LineWebhookEvent } from "@/lib/line/types";
 

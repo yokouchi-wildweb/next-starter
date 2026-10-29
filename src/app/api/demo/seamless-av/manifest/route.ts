@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { parseReelManifest } from "@/lib/seamlessVideo/manifest";
 import { normalizeManifestKey, saveManifest } from "@/lib/seamlessVideo/server/reelManifestStore";
 

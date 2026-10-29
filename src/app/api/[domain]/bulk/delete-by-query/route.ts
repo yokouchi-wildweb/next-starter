@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createDomainRoute } from "src/lib/routeFactory";
+import { createDomainRoute } from "@/wiring/apiRoute";
 import type { WhereExpr } from "@/lib/crud";
 
 type DomainParams = { domain: string };

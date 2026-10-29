@@ -3,7 +3,7 @@
 // ファイルのアップロード権を発行する（本人の操作）。用途の upload 規則で判定し、台帳に pending の行を作る。
 
 import { parseIssueUploadInput, storageObjectService } from "@/features/core/storageObject/services/server";
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 
 export const POST = createMeRoute(
   {

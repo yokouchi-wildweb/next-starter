@@ -10,7 +10,7 @@
 // - 送信は impressionTracker（services/client）経由を想定。pagehide 時は
 //   sendBeacon で届くため、Content-Type は application/json 前提で req.json() で読む
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors/domainError";
 import { InteractionBatchIngestSchema } from "@/features/core/interactionTracking/entities/schema";
 import { recordBatch, type RecordBatchEntry } from "@/features/core/interactionTracking/services/server";

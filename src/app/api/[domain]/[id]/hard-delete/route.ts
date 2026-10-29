@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createDomainIdRoute } from "src/lib/routeFactory";
+import { createDomainIdRoute } from "@/wiring/apiRoute";
 
 // DELETE /api/[domain]/[id]/hard-delete : 完全削除（物理削除）
 export const DELETE = createDomainIdRoute(

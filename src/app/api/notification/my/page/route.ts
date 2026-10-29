@@ -3,7 +3,7 @@
 // 無限スクロール推奨パス
 // クエリ: limit, cursor, unreadOnly
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";
 import { notificationViewerFromSession } from "@/features/core/notification/services/server/notification/viewer";

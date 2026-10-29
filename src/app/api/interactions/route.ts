@@ -7,7 +7,7 @@
 // - ログイン中はセッションから userId を自動付与（クライアント申告は受け付けない）
 // - IP / サブネットのハイブリッドレート制限でボットによる水増しを緩和
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors/domainError";
 import { InteractionIngestSchema } from "@/features/core/interactionTracking/entities/schema";
 import { record } from "@/features/core/interactionTracking/services/server";

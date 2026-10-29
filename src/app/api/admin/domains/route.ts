@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { evaluateApiAccessRule } from "@/features/core/auth/services/server/apiAccess";
 import { resolveAccessRule } from "@/lib/domain";

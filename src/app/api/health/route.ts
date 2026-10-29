@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { canBypassMaintenance } from "@/features/core/setting/utils/maintenanceBypass";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 // ビルド時に確定するID（next.config.ts の env で注入）
 const BUILD_ID = process.env.NEXT_BUILD_ID ?? "unknown";

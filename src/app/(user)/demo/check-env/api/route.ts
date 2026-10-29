@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { buildEnvSummary, createEmptySummary } from "./envSummary";
 
 export const GET = createApiRoute(

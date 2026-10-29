@@ -14,7 +14,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auditLogger } from "@/features/core/auditLog/services/server";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { createAgentSSEResponse } from "@/lib/ai/agent/sse";
 import { isDbAgentEnabled, runDbAgent } from "@/lib/dbAgent/service";
 

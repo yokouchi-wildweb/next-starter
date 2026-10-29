@@ -6,7 +6,7 @@
 // allowStatuses: チャレンジの主対象は suspended ユーザーのため
 // FINGERPRINT_CONFIG.challenge.answerableStatuses (既定 active + suspended) を通す。
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { FINGERPRINT_CONFIG } from "@/config/app/fingerprint.config";
 import { getChallengeForUser } from "@/features/core/fingerprintChallenge/services/server";

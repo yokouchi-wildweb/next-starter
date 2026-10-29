@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { getGrantListWithStats } from "@/features/core/couponIssuerGrant/services/server";
 import {
   COUPON_ISSUER_GRANT_STATUSES,

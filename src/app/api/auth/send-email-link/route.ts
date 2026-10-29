@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RECAPTCHA_ACTIONS, RECAPTCHA_V2_INTERNALS } from "@/lib/recaptcha/constants";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { isDisposableEmail, isHideMyEmail } from "@/lib/spamGuard";
 import { sendSignInLink } from "@/features/core/auth/services/server/sendSignInLink";
 import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";

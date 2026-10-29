@@ -1,6 +1,6 @@
 // src/app/api/[domain]/collection-entries/route.ts
 
-import { createDomainRoute } from "src/lib/routeFactory";
+import { createDomainRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 
 type DomainParams = { domain: string };

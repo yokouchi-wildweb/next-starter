@@ -11,7 +11,7 @@ import {
 import { readDeviceRequestInfo } from "@/features/core/pairedDevice/services/server/session";
 import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { DomainError } from "@/lib/errors";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(
   {

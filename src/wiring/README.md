@@ -7,14 +7,13 @@
 - `src/lib/drizzle/index.ts` → `schemaRegistry`（DB クライアントに全表を渡す）
 - `src/lib/domain/junction/getTable.ts` → `schemaRegistry`（中間表の名前 → 表）
 - `src/lib/domain/config/getDomainConfig.ts` → `domainConfigRegistry`
-- `src/lib/routeFactory/createDomainRoute.ts` → `serviceRegistry`（URL のドメイン名 → 行）
-- `src/lib/routeFactory/createDeviceRoute.ts` → `pairedDeviceKindRegistry`（型だけ）
 - `src/lib/dbAgent/{prompt.ts,service.ts,tools/index.ts}` → `dbAgentPromptRegistry` / `dbAgentToolRegistry`
 
 ## 目録（置いてよいファイル）
 
 | ファイル | 結ぶもの | データに届くか |
 |---|---|---|
+| `apiRoute.ts` | `lib/routeFactory` の汎用版 + 利用者の束（`features/core/auth` の `apiRouteUserDeps`）+ 端末の束（`features/core/pairedDevice` の `apiRouteDeviceDeps`）+ `serviceRegistry` → `createApiRoute` / `createDomainRoute` / `createDomainIdRoute` / `createMeRoute` / `createDeviceRoute` / `enforceAccessRule` / `ownerWhere`（API ルートとその補助ファイルはここから import する） | 届く（serviceRegistry → domainEntry.ts → 遅延 import でサービスに届く） |
 | `domains.ts` | `serviceRegistry` + `domainConfigMap` → `getService` / `getServiceOrThrow` / `hasService` / `lookupDomainService` / `findDomainByTable` / `getDomainTable` / `getDomainAccess` / `getDomainList` / `getDomainListWithCount` / `withRecordCounts` / `isValidDomainKey` / `getInvalidDomainKeys` | 届く（registry → domainEntry.ts → 遅延 import でサービスに届く） |
 
 増やすときは、このテーブルと `wiring.test.mjs` の `WIRING_FILES` に足す。将来の API 用・管理画面用の wiring は自分で登録表を結ぶ（wiring どうしは import しない。共有するのは lib の汎用版と登録表だけ）。

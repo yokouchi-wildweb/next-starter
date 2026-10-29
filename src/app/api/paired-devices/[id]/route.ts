@@ -12,7 +12,7 @@ import {
 } from "@/features/core/pairedDevice/services/server";
 import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
 import { DomainError } from "@/lib/errors";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 type Params = { id: string };
 

@@ -1,6 +1,6 @@
 // src/app/api/[domain]/[id]/reorder/route.ts
 
-import { createDomainIdRoute } from "src/lib/routeFactory";
+import { createDomainIdRoute } from "@/wiring/apiRoute";
 
 // POST /api/[domain]/[id]/reorder : 指定IDのレコードの並び順を変更
 export const POST = createDomainIdRoute(

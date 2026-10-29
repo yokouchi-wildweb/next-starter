@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { createDomainIdRoute } from "src/lib/routeFactory";
+import { createDomainIdRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 
 // duplicate は取得済みレコードを create に渡す経路で、ドメインの create スキーマ検証を

@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 
 import type { DomainDataOperation } from "@/lib/domain/types";
 import { resolveAccessRule } from "@/lib/domain";
-import { enforceAccessRule } from "@/lib/routeFactory/enforceAccess";
+import { enforceAccessRule } from "@/wiring/apiRoute";
 import { getDomainAccess } from "@/wiring/domains";
 import { toCamelCase } from "@/utils/stringCase.mjs";
 

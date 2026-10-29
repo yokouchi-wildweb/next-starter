@@ -7,7 +7,7 @@ import {
   withPairedDeviceErrors,
 } from "@/features/core/pairedDevice/services/server";
 import { requireAuthenticated } from "@/features/core/auth/services/server/requireRole";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(
   {

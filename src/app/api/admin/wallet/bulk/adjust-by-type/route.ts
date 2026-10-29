@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { walletService } from "@/features/core/wallet/services/server/walletService";

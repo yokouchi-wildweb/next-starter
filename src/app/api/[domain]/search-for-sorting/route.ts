@@ -1,6 +1,6 @@
 // src/app/api/[domain]/search-for-sorting/route.ts
 
-import { createDomainRoute } from "src/lib/routeFactory";
+import { createDomainRoute } from "@/wiring/apiRoute";
 import type { SearchParams } from "@/lib/crud";
 
 type DomainParams = { domain: string };

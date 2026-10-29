@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { db } from "@/lib/drizzle";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { BankTransferReviewTable } from "@/features/bankTransferReview/entities/drizzle";

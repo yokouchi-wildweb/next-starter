@@ -8,7 +8,7 @@
 // - walletType: 必須（currency.config.ts のキー）
 // - withinDays: 任意（デフォルト 30、1〜365 にクランプ）
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { getExpiringLots } from "@/features/core/wallet/services/server/lots";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { DomainError } from "@/lib/errors/domainError";

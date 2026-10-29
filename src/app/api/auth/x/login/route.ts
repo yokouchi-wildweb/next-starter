@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { sanitizeRedirectPath } from "@/lib/url";
 import { buildXAuthorizationUrl, X_SCOPES } from "@/lib/x";
 import {

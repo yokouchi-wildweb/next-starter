@@ -2,7 +2,7 @@
 //
 // 発行権の申請（本人）。pending なら冪等、rejected なら再申請、approved/suspended は 409。
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors/domainError";
 import { applyGrant } from "@/features/core/couponIssuerGrant/services/server";
 import { ApplyCouponIssuerGrantSchema } from "@/features/core/couponIssuerGrant/entities/schema";

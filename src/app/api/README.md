@@ -10,7 +10,7 @@
 
 ```ts
 // ✅ 正しい例
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute(
   { operation: "GET /api/example", operationType: "read" },

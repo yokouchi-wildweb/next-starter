@@ -16,9 +16,10 @@ throw new DomainError("この操作は管理者のみ実行できます", { stat
 ```
 
 - `status` を省略すると `400`
+- `code`（機械可読な分類）・`details`（補足の値）は省略可。指定するとルートの応答 body に `code` / `details` として載る（クライアントは文言でなく `code` で分岐する）。body の組み立ては `toDomainErrorBody(error)`
 - `message` はそのままユーザーに表示される前提で書く（日本語・次の行動が分かる文言）
 - 判定は `isDomainError(error)`
-- routeFactory の 3 ファクトリーが catch して `{ message }` + `status` の JSON に変換する（`src/lib/routeFactory/createApiRoute.ts`）。サーバーサービス以外（API ルートのハンドラ内など）で新たに throw しない
+- routeFactory のファクトリーが catch して `{ message, code?, details? }` + `status` の JSON に変換する（`src/lib/routeFactory/createApiRoute.ts`）。サーバーサービス以外（API ルートのハンドラ内など）で新たに throw しない
 - `DomainError` 以外の例外は `{ message: "サーバーでエラーが発生しました" }` + 500 に置き換わり、元の `message` はサーバーログ（`console.error`）にだけ残る。ユーザーに見せたい文言は必ず `DomainError` で投げる
 
 ## クライアント側: `HttpError`（`httpError.ts`）

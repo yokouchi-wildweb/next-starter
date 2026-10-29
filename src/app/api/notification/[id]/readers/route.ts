@@ -1,7 +1,7 @@
 // src/app/api/notification/[id]/readers/route.ts
 // 通知ごとの既読ユーザー一覧（管理者のみ、ページング対応）
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { notificationService } from "@/features/core/notification/services/server/notificationService";

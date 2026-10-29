@@ -1,6 +1,6 @@
 // src/app/api/[domain]/bulk/replace-by-query/route.ts
 
-import { createDomainRoute } from "src/lib/routeFactory";
+import { createDomainRoute } from "@/wiring/apiRoute";
 
 type DomainParams = { domain: string };
 

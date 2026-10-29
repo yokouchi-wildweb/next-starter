@@ -16,7 +16,7 @@ import {
   storageObjectService,
 } from "@/features/core/storageObject/services/server";
 import { isDomainError } from "@/lib/errors";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 export const GET = createApiRoute<{ id: string }>(
   {

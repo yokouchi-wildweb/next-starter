@@ -5,7 +5,7 @@
 // 遷移制約、停止時の当期クーポン無効化、設定変更時の当期クーポン同期を保証するため）。
 // 一覧・検索は汎用 /api/coupon-issuer-grant（serviceRegistry, admin）を使う。
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { DomainError } from "@/lib/errors/domainError";
 import {
   reinstateGrant,

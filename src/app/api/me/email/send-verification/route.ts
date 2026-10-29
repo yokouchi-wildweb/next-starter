@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createMeRoute } from "@/lib/routeFactory";
+import { createMeRoute } from "@/wiring/apiRoute";
 import { sendEmailChangeLink } from "@/features/core/auth/services/server/sendEmailChangeLink";
 import { userService } from "@/features/core/user/services/server/userService";
 import { DomainError } from "@/lib/errors";

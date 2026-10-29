@@ -15,7 +15,7 @@ import { and, count, desc, eq, gte, inArray, lte, sql, type SQL } from "drizzle-
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { db } from "@/lib/drizzle";
 import { getRoleCategory } from "@/features/core/user/constants";
 import { BankTransferReviewTable } from "@/features/bankTransferReview/entities/drizzle";

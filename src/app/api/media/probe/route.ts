@@ -19,7 +19,7 @@ import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { storageObjectService } from "@/features/core/storageObject/services/server/storageObjectService";
 import { probeMedia } from "@/lib/mediaProbe";
 import type { MediaRef, ProbeErrorCode } from "@/lib/mediaProbe";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { isStorageRef, parseStorageRef, resolveStorageSrc } from "@/lib/storage";
 import { legacyLocationOfPath } from "@/lib/storage/server";
 

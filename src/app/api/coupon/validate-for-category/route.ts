@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { getCouponRedeemReasonMessage } from "@/features/core/coupon/constants/redeemReasonMessages";
 

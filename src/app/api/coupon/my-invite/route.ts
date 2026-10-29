@@ -1,7 +1,7 @@
 // src/app/api/coupon/my-invite/route.ts
 
 import { NextResponse } from "next/server";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 
 /**

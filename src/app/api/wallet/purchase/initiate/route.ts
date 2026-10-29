@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { purchaseRequestService } from "@/features/core/purchaseRequest/services/server/purchaseRequestService";
 import { CURRENCY_CONFIG, type WalletType } from "@/config/app/currency.config";
 import { getAppBaseUrl } from "@/lib/url";

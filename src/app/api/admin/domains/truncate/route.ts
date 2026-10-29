@@ -3,8 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
-import { enforceAccessRule } from "@/lib/routeFactory/enforceAccess";
+import { createApiRoute, enforceAccessRule } from "@/wiring/apiRoute";
 import { requireAdmin } from "@/features/core/auth/services/server/requireRole";
 import { verifyCurrentUserPassword } from "@/features/core/auth/services/server/verifyCurrentUserPassword";
 import { resolveAccessRule } from "@/lib/domain";

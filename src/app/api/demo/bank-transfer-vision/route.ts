@@ -12,7 +12,7 @@ import {
   type BankTransferStrictExpectation,
   type SupportedImageMediaType,
 } from "@/lib/aiVision";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 
 /** Anthropic Vision が受け付ける MIME タイプ */
 const SUPPORTED_MEDIA_TYPES: readonly SupportedImageMediaType[] = [

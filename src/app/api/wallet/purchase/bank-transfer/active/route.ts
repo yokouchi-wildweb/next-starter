@@ -13,7 +13,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { db } from "@/lib/drizzle";
 import { bankTransferReviewService } from "@/features/bankTransferReview/services/server/bankTransferReviewService";
 import { PurchaseRequestTable } from "@/features/core/purchaseRequest/entities/drizzle";

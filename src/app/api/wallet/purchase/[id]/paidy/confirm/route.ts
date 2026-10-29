@@ -13,7 +13,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { confirmPaidyPayment } from "@/features/core/purchaseRequest/services/server/payment/paidy/confirmPaidyPayment";
 
 type Params = { id: string };

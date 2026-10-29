@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { ACQUISITION_CONFIG } from "@/config/app/acquisition.config";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha/constants";
-import { createApiRoute } from "@/lib/routeFactory";
+import { createApiRoute } from "@/wiring/apiRoute";
 import { register } from "@/features/core/auth/services/server/registration";
 import { issueSessionCookie } from "@/features/core/auth/services/server/session/issueSessionCookie";
 import { INVITE_LINK_COOKIE_NAME } from "@/features/core/referral/lib/inviteLinkCookie";

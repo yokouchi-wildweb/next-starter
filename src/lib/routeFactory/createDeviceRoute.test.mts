@@ -1,9 +1,9 @@
 // src/lib/routeFactory/createDeviceRoute.test.mts
-// createDeviceRoute の主体判定の回帰テスト（端末認証・ユーザーセッションをモックして実際のファクトリーを動かす）
+// createDeviceRoute の主体判定の回帰テスト（端末認証・ユーザーの束を差し込んで実際のファクトリーを動かす）
 // 実行: pnpm test:device-route
 
 import assert from "node:assert/strict";
-import { mock, test } from "node:test";
+import { test } from "node:test";
 
 import { NextRequest } from "next/server";
 
@@ -13,30 +13,28 @@ let currentDevice: FakeDevice | null = null;
 let currentUser: { userId: string; role: string; status: string; isDemo: boolean } | null = null;
 let tokenOnlyIsDemo = false;
 
-mock.module("@/features/core/pairedDevice/services/server/session", {
-  namedExports: {
+// 主体の解き方は束で差し込む（lib/routeFactory は auth・pairedDevice を import しない）
+const { createRouteFactories } = await import("./createRouteFactories.ts");
+const { createDeviceRoute } = createRouteFactories<string>({
+  user: {
+    resolveUser: async () => currentUser as never,
+    resolveTokenSession: async () =>
+      (tokenOnlyIsDemo ? { userId: "demo", role: "user", status: "active", isDemo: true } : null) as never,
+    evaluateAccess: (_rule, user) => (user ? "granted" : "unauthenticated"),
+    availableStatuses: ["active"],
+  },
+  device: {
     authenticateRequestDevice: async () =>
-      currentDevice ? { device: currentDevice, tokenExpiresAt: new Date(Date.now() + 86_400_000) } : null,
-    syncPairedDeviceCookie: (response: Response) => {
+      (currentDevice ? { device: currentDevice, tokenExpiresAt: new Date(Date.now() + 86_400_000) } : null) as never,
+    syncPairedDeviceCookie: (response) => {
       response.headers.set("x-test-cookie-synced", "1");
       return response;
     },
+    checkPairedDeviceRateLimit: async () => null,
+    pairedDeviceErrorResponse: () => null,
   },
+  domains: {},
 });
-mock.module("@/features/core/auth/services/server/session/getTokenOnlySession", {
-  namedExports: {
-    getTokenOnlySession: async () =>
-      tokenOnlyIsDemo ? { userId: "demo", role: "user", status: "active", isDemo: true } : null,
-  },
-});
-mock.module("@/features/core/auth/services/server/session/getSessionUser", {
-  namedExports: { getSessionUser: async () => currentUser },
-});
-mock.module("./enforceAccess.ts", {
-  namedExports: { enforceAccessRule: async () => (currentUser ? null : Response.json({}, { status: 401 })) },
-});
-
-const { createDeviceRoute } = await import("./createDeviceRoute.ts");
 
 const call = (route: (req: NextRequest, ctx: { params: Promise<object> }) => Promise<Response>) =>
   route(new NextRequest("http://localhost/api/test", { method: "POST" }), { params: Promise.resolve({}) });

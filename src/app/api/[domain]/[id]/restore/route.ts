@@ -1,6 +1,6 @@
 // src/app/api/[domain]/[id]/restore/route.ts
 
-import { createDomainIdRoute } from "src/lib/routeFactory";
+import { createDomainIdRoute } from "@/wiring/apiRoute";
 
 // POST /api/[domain]/[id]/restore : ソフトデリートしたデータを復旧
 export const POST = createDomainIdRoute(
