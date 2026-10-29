@@ -1,6 +1,7 @@
 // 受け口の一覧・判定の核・生成器の区画の検査(pnpm test:fork-ownership)
 // - 実リポジトリの intake.txt の書式と、書かれた glob が実在のパスに当たること
 // - judge の各判定(fixture は文字列)
+// - 一時許可の書式・指紋・照合
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -9,6 +10,7 @@ import { join, resolve } from "node:path";
 
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge, REASONS } from "./judge.mjs";
+import { blobId, checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
 import { FORK_REGION_END, FORK_REGION_START, parseGeneratorRegions, stripOwnedRegions } from "./regions.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../../..");
@@ -192,5 +194,126 @@ describe("judge", () => {
     });
     assert.deepEqual(result.counts, { added: 2, deleted: 1 });
     for (const verdict of Object.values(REASONS)) assert.ok(verdict === "ok" || verdict === "violation");
+  });
+});
+
+describe("一時許可", () => {
+  const { rules: intake } = parseIntake(["region src/registry/**/*.ts  # r", "edit src/config/**  # r"].join("\n"));
+  const ID = "20261029-120000-core-hook";
+  const ID2 = "20261029-130000-another";
+
+  test("置き場は fork-id ごと", () => {
+    assert.equal(permitsPath("acme--shop"), ".fork-ownership/acme--shop.permits.txt");
+  });
+
+  test("blobId は git hash-object --stdin と同じ", () => {
+    for (const text of ["", "a\n", "日本語\nline 2"]) {
+      const expected = execFileSync("git", ["hash-object", "--stdin"], { input: text, encoding: "utf8" }).trim();
+      assert.equal(blobId(text), expected);
+    }
+    assert.equal(blobId(null), "-");
+  });
+
+  test("指紋は区画の中身を除いて取る(region は fork の区画も、他は生成器の区画だけ)", () => {
+    const a = ["x", S, "one", E].join("\n");
+    const b = ["x", S, "two", E].join("\n");
+    assert.equal(fingerprint(a, "region"), fingerprint(b, "region"));
+    assert.notEqual(fingerprint(a, null), fingerprint(b, null));
+  });
+
+  test("書式の誤り: 依頼番号なし・番号の形・指紋の形・両方 -・理由なし・重複", () => {
+    const fp = "a".repeat(40);
+    const text = [
+      `src/a.ts upreq: base:${fp} head:${fp}  # r`,
+      `src/b.ts upreq:123 base:${fp} head:${fp}  # r`,
+      `src/c.ts upreq:${ID} base:xyz head:${fp}  # r`,
+      `src/d.ts upreq:${ID} base:- head:-  # r`,
+      `src/e.ts upreq:${ID} base:${fp} head:${fp}`,
+      `src/f.ts upreq:${ID} base:${fp} head:${fp}  # r`,
+      `src/f.ts upreq:${ID} base:${fp} head:${fp}  # r`,
+    ].join("\n");
+    const { permits, errors } = parsePermits(text);
+    assert.deepEqual([...new Set(errors.map((error) => error.line))], [1, 2, 3, 4, 5, 7]);
+    assert.deepEqual(permits.map((permit) => permit.path), ["src/f.ts"]);
+  });
+
+  const BASE = "export const a = 1;\n";
+  const HEAD = "export const a = 2;\n";
+  const PATH = "src/features/core/user/x.ts";
+  const texts = { base: { [PATH]: BASE }, head: { [PATH]: HEAD } };
+
+  const run = ({ permitText, entries, resolved = [], base = texts.base, head = texts.head }) => {
+    const { permits, errors } = parsePermits(permitText);
+    assert.deepEqual(errors, []);
+    return checkPermits({
+      entries,
+      permits,
+      baseText: (path) => base[path] ?? null,
+      headText: (path) => head[path] ?? null,
+      intake,
+      resolvedUpreqs: resolved,
+    });
+  };
+  const violation = { status: "M", path: PATH, kind: null, reason: "outside-intake", verdict: "violation" };
+  const line = (path, upreqs, baseFp, headFp) => `${path} upreq:${upreqs} base:${baseFp} head:${headFp}  # r`;
+
+  test("有効な許可は違反を合格(permitted)にする / 許可の無い違反はそのまま", () => {
+    const valid = run({ permitText: line(PATH, ID, blobId(BASE), blobId(HEAD)), entries: [violation] });
+    assert.equal(valid.entries[0].permit, "valid");
+    assert.equal(valid.entries[0].verdict, "permitted");
+    const none = run({ permitText: "", entries: [violation] });
+    assert.equal(none.entries[0].permit, "none");
+    assert.equal(none.entries[0].verdict, "violation");
+  });
+
+  test("fork 側が変わった = 許可し直し / 基準側が変わった = 失効 / 全番号の解決 = 失効(一部だけなら有効)", () => {
+    const refresh = run({ permitText: line(PATH, ID, blobId(BASE), blobId("old")), entries: [violation] });
+    assert.equal(refresh.entries[0].permit, "refresh");
+    const expiredBase = run({ permitText: line(PATH, ID, blobId("older base"), blobId(HEAD)), entries: [violation] });
+    assert.equal(expiredBase.entries[0].permit, "expired-base");
+    const resolved = run({ permitText: line(PATH, `${ID},${ID2}`, blobId(BASE), blobId(HEAD)), entries: [violation], resolved: [ID, ID2] });
+    assert.equal(resolved.entries[0].permit, "expired-resolved");
+    const partly = run({ permitText: line(PATH, `${ID},${ID2}`, blobId(BASE), blobId(HEAD)), entries: [violation], resolved: [ID] });
+    assert.equal(partly.entries[0].permit, "valid");
+    for (const result of [refresh, expiredBase, resolved]) assert.equal(result.entries[0].verdict, "violation");
+  });
+
+  test("D と R の許可は head:-、R は移動元のパスに書く。祖先 lib への追加は base:-", () => {
+    const deleted = { status: "D", path: PATH, kind: null, reason: "deleted", verdict: "violation" };
+    assert.equal(run({ permitText: line(PATH, ID, blobId(BASE), "-"), entries: [deleted] }).entries[0].permit, "valid");
+    const renamed = { status: "R", from: PATH, path: "src/features/core/user/_x.ts", kind: null, reason: "renamed", verdict: "violation" };
+    assert.equal(run({ permitText: line(PATH, ID, blobId(BASE), "-"), entries: [renamed] }).entries[0].permit, "valid");
+    const libPath = "src/lib/crud/extra.ts";
+    const added = { status: "A", path: libPath, kind: null, reason: "ancestor-lib-add", verdict: "violation" };
+    const result = run({ permitText: line(libPath, ID, "-", blobId("x")), entries: [added], head: { [libPath]: "x" } });
+    assert.equal(result.entries[0].permit, "valid");
+  });
+
+  test("残骸: 基準と同じに戻った行 / 違反の無いファイルの行", () => {
+    const cfg = "src/config/app/x.config.ts";
+    const result = run({
+      permitText: [line(PATH, ID, blobId(BASE), blobId(HEAD)), line(cfg, ID, blobId("a"), blobId("b"))].join("\n"),
+      entries: [{ status: "M", path: cfg, kind: "edit", reason: "intake", verdict: "ok" }],
+      head: { [PATH]: BASE, [cfg]: "b" },
+      base: { [PATH]: BASE, [cfg]: "a" },
+    });
+    assert.deepEqual(
+      result.leftovers.map(({ path, reason }) => [path, reason]),
+      [
+        [PATH, "same-as-base"],
+        [cfg, "unused"],
+      ],
+    );
+  });
+
+  test("region の許可は fork の区画を除いた指紋で照合する(区画の中の追記で許可し直しにならない)", () => {
+    const path = "src/registry/x.ts";
+    const base = ["export const r = [", "  a,", `  ${S}`, `  ${E}`, "];"].join("\n");
+    const head = ["export const r = [", "  a2,", `  ${S}`, "  f,", `  ${E}`, "];"].join("\n");
+    const moreForkEntries = head.replace("  f,", "  f,\n  g,");
+    const entry = { status: "M", path, kind: "region", reason: "outside-region", verdict: "violation" };
+    const permitText = line(path, ID, fingerprint(base, "region"), fingerprint(head, "region"));
+    const result = run({ permitText, entries: [entry], base: { [path]: base }, head: { [path]: moreForkEntries } });
+    assert.equal(result.entries[0].permit, "valid");
   });
 });

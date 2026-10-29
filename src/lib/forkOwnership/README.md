@@ -2,7 +2,7 @@
 
 fork が upstream(直接の親 Tier)のファイルを、決められた場所の外で書き換えていないかを調べる検査の仕様。
 
-**検査コマンド・一時許可はまだ無い(段階②で順に入る)。** いまあるのは、受け口の一覧(`intake.txt`)、判定の核(`judge.mjs`、git に触れない純粋関数)、区画の読み取り(`regions.mjs`)。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
+**検査コマンドはまだ無い(段階②で入る)。** いまあるのは、受け口の一覧(`intake.txt`)、判定の核(`judge.mjs`)、一時許可の照合(`permits.mjs`)、区画の読み取り(`regions.mjs`)。どれも git に触れない純粋関数で、fork はまだ呼ばない。決定の経緯と見送った案は [docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md](../../../docs/journal/2026-10-29--next-starter--fork-ownership-decisions.md)。
 
 ## 目的
 
@@ -44,11 +44,36 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 
 ## 一時許可
 
-- 対象: 受け口が無い固有の機能、upstream のバグ・性能・セキュリティの修正。既存の受け口で済む物には出さない(受け口へ移す)
-- 形: 1 ファイル 1 行。直接の親への依頼の番号を 1 つ以上と、書き換えた中身(fork 側と基準側の git blob id)を書く。どちらかの blob が変われば許可し直す
-- 失効: すべての依頼の解決(`resolves:` 付きの notice の取り込み)か、基準側の blob の変化(upstream がそのファイルに触った)の早い方。失効した行・基準と同じに戻った行が残っていれば検査は失敗
+受け口の外の書き換えを、直接の親への依頼が片付くまでの間だけ通す行。例外の置き場はこれ 1 つ(猶予の区画は作らない)。
+
+- 対象
+  - 受け口が無い固有の機能、upstream のバグ・性能・セキュリティの修正。既存の受け口で済む物には出さない(受け口へ移す)
+  - upstream の負債の箇所(debt)。受け口ができた notice で外す
+  - 削除・rename(D/R): 付ける依頼は「止める受け口(feature-gate 等)を用意してほしい」に限る。受け口ができたら、止めてから復元する
+  - 祖先 lib への追加: 付ける依頼は「その lib に入れてほしい / 受け口がほしい」に限る(ふつうは自分の lib に置いて re-export する)
+- 置き場: `.fork-ownership/<fork-id>.permits.txt`(fork-id = `.notices/applied/` と同じ所有者 ID)。fork が足すファイルなので fork の物。多段の Tier では親の許可ファイルも基準に入るが、読むのは自分の fork-id のファイルだけ(親の許可を子が借りない)
+- 書式: 1 ファイル 1 行
+  ```
+  <path> upreq:<id>[,<id>…] base:<指紋|-> head:<指紋|->  # 理由
+  ```
+  - upreq = 直接の親の受信箱の指令 id(`<YYYYMMDD-HHMMSS>-<slug>`)を 1 つ以上
+  - 指紋 = 区画の中身を除いたテキストの git blob id(`git hash-object --stdin` と同じ値)。kind が region のファイルは fork の区画と生成器の区画を、他は生成器の区画だけを除く。区画の中の書き換えでは許可し直しにならない
+  - `-` = そのファイルが無い: D/R の head、祖先 lib への追加の base。R は移動元のパスに書く
+- 判定(`checkPermits`)
+
+  | 状態 | 条件 | 合否 |
+  | --- | --- | --- |
+  | valid | 両方の指紋が今と同じ、解決していない依頼が残る | 合格(`permitted`) |
+  | refresh | fork 側の指紋が違う(許可の後に書き換えた) | 失敗(中身を見て許可し直す) |
+  | expired-base | 基準側の指紋が違う(親がそのファイルに触った) | 失敗(取り込んだ親の版で見直す) |
+  | expired-resolved | すべての依頼が解決済み | 失敗(親の受け口へ移す・元に戻す) |
+  | same-as-base(残骸) | 基準と同じに戻った | 失敗(行を消す) |
+  | unused(残骸) | 違反の無いファイルの行 | 失敗(行を消す) |
+
+- 依頼の解決: notice の `resolves:` 欄(依頼の番号)で知る。欄は fork への配線(/ship・/flux)と同時に足す。それまで `checkPermits` に渡す解決済みの集合は空で、失効は基準側の指紋の変化だけ
 - 却下: 元に戻す・受け口へ移す・別の方針で許可し直す、のどれかを必須にする。明示の期限は持たない(放置は `/flux`・`/wen` が毎回一覧に出す)
 - 「修正だけ先に取り込む」手段は作らない
+- API: `parsePermits(text)` → `{ permits, errors }` / `blobId(text)` / `fingerprint(text, kind)` / `checkPermits({ entries, permits, baseText, headText, intake, resolvedUpreqs })` → `{ entries(permit・verdict 付き), leftovers }` / `permitsPath(forkId)`
 
 ## 導入の段階
 
