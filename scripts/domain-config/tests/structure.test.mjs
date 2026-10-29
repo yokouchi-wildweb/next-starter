@@ -2,8 +2,8 @@
 // 生成器は細部にバグが生まれやすいので、ファイルを肥大化させず、副作用（fs・プロンプト・process.exit）の置き場を固定する。
 //   spec/ domain/（workspace 以外） checks/ render/ text/ → fs / child_process / inquirer / process.exit を使わない（純粋に文字列を作る）
 //   fs を触る = domain/workspace.mjs（読む）、pipeline/apply.mjs・pipeline/remove/（書く）、pipeline/dryRun.mjs（読んで比べるだけ）、
-//            cli/（domain.json の書き出し・削除の対話）
-//   inquirer = cli/ と questions/ だけ | process.exit = cli/ だけ | render/ は pipeline/ と cli/ を import しない
+//            cli/（feature-map の書き出し・削除の対話）
+//   inquirer = cli/ だけ | process.exit = cli/ だけ | render/ は pipeline/ と cli/ を import しない
 // 実行: pnpm test:dc-structure
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -56,9 +56,9 @@ test("fs を触るのは workspace・apply・dryRun・remove・cli だけ", () =
   assert.deepEqual(violations, []);
 });
 
-test("inquirer は cli と questions だけ、process.exit は cli だけ", () => {
+test("inquirer は cli だけ、process.exit は cli だけ", () => {
   const inquirerViolations = files
-    .filter(({ rel, text }) => !inLayer(rel, "cli", "questions") && !isTest(rel) && usesModule(text, "inquirer"))
+    .filter(({ rel, text }) => !inLayer(rel, "cli") && !isTest(rel) && usesModule(text, "inquirer"))
     .map(({ rel }) => rel);
   const exitViolations = files.filter(({ rel, text }) => !inLayer(rel, "cli") && !isTest(rel) && /process\.exit\(/.test(text)).map(({ rel }) => rel);
   assert.deepEqual(inquirerViolations, []);

@@ -1,6 +1,6 @@
 // dc:generate:all: ドメインを選び（既定は全件）、各 domain.json の generate か手動選択（保存しない）で一括生成する
 
-import askGenerateFiles from "../questions/generate-files.mjs";
+import { pickCategories } from "./pickCategories.mjs";
 import { runGenerateAll } from "../pipeline/generateAll.mjs";
 import { confirm, selectDomains } from "./prompts.mjs";
 
@@ -35,7 +35,7 @@ export async function runGenerateAllInteractive(workspace, options = {}) {
   const manualSelection = await confirm("生成するファイル種別を手動で選択しますか？（いいえの場合は各 domain.json の設定を使用）", false);
   let manualGenerate = null;
   if (manualSelection) {
-    ({ generateFiles: manualGenerate } = await askGenerateFiles());
+    manualGenerate = await pickCategories();
   }
 
   if (!runOptions.dryRun && !(await confirm("選択したドメインの生成を実行しますか？既存ファイルは上書きされます。", false))) {

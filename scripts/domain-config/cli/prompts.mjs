@@ -1,4 +1,4 @@
-// 複数の CLI で共通の対話（ドメインの選択・確認）。inquirer を使うのは cli/ と questions/ だけ
+// 複数の CLI で共通の対話（ドメインの選択・確認）。inquirer を使うのは cli/ だけ
 
 import inquirer from "inquirer";
 

@@ -44,9 +44,9 @@ test("describeOutput: 作成 / 上書き / 変更なし / 移行 / スキップ 
   assert.equal(fs.readFileSync(existing, "utf8"), "old", "dry-run は書かない");
 });
 
-test("CLI: --dry-run は --generate と併用、--yes と組み合わせて対話なしで一覧を出す", () => {
+test("CLI: --dry-run は --generate と併用、対話なしで一覧を出す（--yes は受けて無視）", () => {
   const index = path.join(repoRoot, "scripts", "domain-config", "index.mjs");
-  const bad = spawnSync("node", [index, "--init", "--dry-run"], { cwd: repoRoot, encoding: "utf8" });
+  const bad = spawnSync("node", [index, "--delete", "sampleTag", "--dry-run"], { cwd: repoRoot, encoding: "utf8" });
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /--dry-run は --generate と併用/);
   const ok = spawnSync("node", [index, "--generate", "sampleTag", "--yes", "--dry-run", "--only", "registry"], { cwd: repoRoot, encoding: "utf8" });

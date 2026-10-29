@@ -233,7 +233,7 @@ type TableNotInUnion = Exclude<TableFieldType, FieldDataType | FieldDataTypeFire
 const unionCovered: [UnionNotInTable] extends [never] ? true : UnionNotInTable = true;
 const tableCovered: [TableNotInUnion] extends [never] ? true : TableNotInUnion = true;
 
-// dc:init / dc:add の選択肢に出る型が、フォーム側の union にすべてある（無ければ typecheck が落ちる）
+// spec/formInputs.mjs の表（domain.json の検査が照らす型）が、フォーム側の union にすべてある（無ければ typecheck が落ちる）
 type MissingNeon = Exclude<keyof (typeof FORM_INPUTS)["Neon"], FieldDataType>;
 type MissingFirestore = Exclude<keyof (typeof FORM_INPUTS)["Firestore"], FieldDataTypeFirestore>;
 const neonCovered: [MissingNeon] extends [never] ? true : MissingNeon = true;

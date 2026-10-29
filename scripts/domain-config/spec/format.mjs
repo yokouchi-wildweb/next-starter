@@ -1,5 +1,5 @@
 // domain.json の整形。JSON.stringify ではなく、読みやすい固定の形（options は 1 行 1 要素、tags は配列を 1 行）で書く。
-// dc:init / dc:add / dc:generate の手動保存 / role-config が同じ整形を使う。
+// 従属の domain.json の書き出し（render/collections）と role:toggle（role.json の書き戻し）が使う。
 
 const INDENT_SIZE = 2;
 

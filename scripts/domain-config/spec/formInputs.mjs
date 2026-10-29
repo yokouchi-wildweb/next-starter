@@ -1,4 +1,4 @@
-// dc:init / dc:add の「フィールドの型」と、型ごとに選べる「フォーム入力種別」（DB ごと）。
+// 「フィールドの型」と、型ごとに選べる「フォーム入力種別」（DB ごと）。domain.json の検査（checks/fields.mjs・vocabulary）とロールの検査が使う。
 // 値は表示名で、domain.json には camelCase（toCamelCase）で書く。
 
 export const FORM_INPUTS = {

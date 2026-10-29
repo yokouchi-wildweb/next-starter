@@ -1,15 +1,14 @@
-// dc:init / dc:generate / dc:generate:all / dc:delete の振り分け（index.mjs の本体）
+// dc:generate / dc:generate:all / dc:delete の振り分け（index.mjs の本体）。domain.json は手で書く（対話で組み立てる入口は無い）
 
 import { createWorkspace } from "../domain/workspace.mjs";
 import { getCliArgs, parseOnlyOption } from "./args.mjs";
 import { runDelete } from "./delete.mjs";
 import { runGenerate } from "./generate.mjs";
 import { runGenerateAllInteractive } from "./generateAll.mjs";
-import { runInit } from "./init.mjs";
-import { confirm, selectDomain } from "./prompts.mjs";
+import { selectDomain } from "./prompts.mjs";
 
 const USAGE =
-  "使い方: node scripts/domain-config/index.mjs --init | --generate <Domain> [--only <categories>] [--dry-run] [-i] | --generate --all [--only <categories>] [--dry-run] [-i] | --delete <Domain>";
+  "使い方: node scripts/domain-config/index.mjs --generate <Domain> [--only <categories>] [--dry-run] [-i] | --generate --all [--only <categories>] [--dry-run] [-i] | --delete <Domain>";
 
 export async function main() {
   let args;
@@ -21,7 +20,6 @@ export async function main() {
     console.error(err.message);
     process.exit(1);
   }
-  const hasInit = args.includes("--init");
   const hasGenerate = args.includes("--generate");
   const hasAll = args.includes("--all");
   const hasDelete = args.includes("--delete");
@@ -31,7 +29,7 @@ export async function main() {
   // フラグ以外の最初の引数をドメイン名とする（`--generate --yes User` の順でも受け付ける）
   const positionalDomain = args.find((arg) => !arg.startsWith("-"));
 
-  if (!hasInit && !hasGenerate && !hasDelete) {
+  if (!hasGenerate && !hasDelete) {
     console.error(USAGE);
     process.exit(1);
   }
@@ -42,16 +40,6 @@ export async function main() {
 
   const workspace = createWorkspace();
   try {
-    if (hasInit) {
-      const domain = await runInit(workspace);
-      if (await confirm("今すぐファイルを生成しますか?", true)) {
-        await runGenerate(workspace, domain);
-      } else {
-        console.log("ファイル生成をスキップしました。");
-      }
-      return;
-    }
-
     if (hasGenerate) {
       if (hasAll) {
         await runGenerateAllInteractive(workspace, { yes: !interactive, only, dryRun });

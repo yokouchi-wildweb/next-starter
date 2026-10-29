@@ -70,7 +70,7 @@ export default async function generateProfile(roleIdArg) {
   const roles = getRolesWithProfile();
 
   if (roles.length === 0) {
-    console.log("プロフィール設定が見つかりません。先に prof:add でプロフィールを作成してください。");
+    console.log("プロフィール設定が見つかりません。先に src/features/core/userProfile/profiles/<roleId>.profile.json を書き、role.json の hasProfile を true にしてください。");
     return;
   }
 

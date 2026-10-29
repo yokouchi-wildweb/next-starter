@@ -1,6 +1,6 @@
 // dc:generate <Domain>: 生成方法の選択（domain.json どおり / 手動選択 / 全部）と上書き確認をしてから pipeline に渡す
 
-import askGenerateFiles from "../questions/generate-files.mjs";
+import { pickCategories } from "./pickCategories.mjs";
 import { ALL_GENERATE_OPTIONS } from "../spec/categories.mjs";
 import { configTargets, generateWithPairs, loadDomainForGenerate, narrowTargets } from "../pipeline/generate.mjs";
 import { assertPairs, groupOf, resolvePairs } from "../pipeline/pairs.mjs";
@@ -35,8 +35,7 @@ async function resolveGenerateTargets(ctx, pairs, options) {
   if (resolvedMode === "config") return fromConfig();
   if (resolvedMode === "all") return narrowTargets(ctx, ALL_GENERATE_OPTIONS, only);
 
-  const { generateFiles: manualResult } = await askGenerateFiles();
-  return narrowTargets(ctx, manualResult, only);
+  return narrowTargets(ctx, await pickCategories(), only);
 }
 
 /**

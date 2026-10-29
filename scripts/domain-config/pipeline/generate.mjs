@@ -1,6 +1,6 @@
 // 1 ドメインの生成: 読む（context）→ 検査（checks）→ 作る（plan）→ 登録表の事前検査 → 書く（apply）→ serviceRegistry を作り直す。
 // 主と従属の組（pairs.mjs）に属するドメインは組の全員を「従属 → 主」の順に生成する（generateWithPairs）。
-// 対話（生成方法の選択・上書き確認）は cli/generate.mjs。ここは --yes でも対話でも同じ
+// 対話（-i の生成方法の選択・上書き確認）は cli/generate.mjs。ここは対話の有無によらず同じ
 
 import { assertPreflight, preflightWarnings } from "../checks/index.mjs";
 import { createDomainContext } from "../domain/context.mjs";

@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 /**
- * ドメイン設定の初期化とファイル生成を行う CLI の入口（本体は cli/main.mjs）。
+ * ドメイン設定（手で書いた domain.json）からファイルを生成・削除する CLI の入口（本体は cli/main.mjs）。
  *
  * 使用方法:
- *   --init              対話形式で設定ファイルを生成し、続けて生成を行うか確認します。
  *   --generate <Domain> 設定ファイルを基にファイルを生成します（既定は対話なし。domain.json の generate どおり、false は何も書かない）。
  *   --generate --all    domain.json を持つ全ドメインを一括で生成します（既定は対話なし）。
  *   --delete <Domain>   指定したドメインに関連する生成物を削除します。
@@ -17,7 +16,6 @@
  * 失敗時は終了コード 1 で終了します。何も書く前に検査で止まり、書きかけのファイルは残しません。
  *
  * 例:
- *   node scripts/domain-config/index.mjs --init
  *   node scripts/domain-config/index.mjs --generate User
  *   node scripts/domain-config/index.mjs --generate User -i
  *   node scripts/domain-config/index.mjs --generate --all --only registry
