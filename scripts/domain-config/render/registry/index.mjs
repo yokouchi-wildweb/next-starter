@@ -1,4 +1,4 @@
-// generateFiles.registry: services/server/domainEntry.ts・collections.ts（集まりを持つ主だけ）と src/registry/ の各レジストリ（AUTO ブロックへの追記）。
+// 生成カテゴリ registry: services/server/domainEntry.ts・collections.ts（集まりを持つ主だけ）と src/registry/ の各レジストリ（AUTO ブロックへの追記）。
 // src/registry/serviceRegistry.ts は Output ではなく、書き込みの後に pipeline が registry:generate で丸ごと作り直す
 
 import { renderCollectionsOutput } from "./collections.mjs";

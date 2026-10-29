@@ -5,7 +5,7 @@
 import { assertDomainFolderNames } from "../checks/domainFolder.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
-import { loadDomainForGenerate, narrowTargets } from "./generate.mjs";
+import { configTargets, loadDomainForGenerate, narrowTargets } from "./generate.mjs";
 import { assertPairs, collectionChildrenOf, groupOf, involvesPairs, orderWithPairs, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
 import { planDomain } from "./plan.mjs";
 import { precheckServiceRegistry, regenerateServiceRegistry } from "./serviceRegistry.mjs";
@@ -19,7 +19,7 @@ function bufferedIo(io) {
 /**
  * @param {import("../domain/workspace.mjs").Workspace} workspace
  * @param {string[]} selectedDomains フォルダ名
- * @param {Record<string, boolean> | null} manualGenerate 手動選択（null = 各 domain.json の generateFiles）
+ * @param {Record<string, boolean> | null} manualGenerate 手動選択（null = 各 domain.json の generate で決まるカテゴリ）
  * @param {string[] | null} only --only
  * @param {{ dryRun?: boolean, io?: { log: Function, warn: Function } }} [options]
  */
@@ -36,7 +36,7 @@ export function runGenerateAll(workspace, selectedDomains, manualGenerate, only,
   const plans = domains.map((domain) => {
     const { buffer, flush } = bufferedIo(io);
     const ctx = loadDomainForGenerate(workspace, domain, buffer, pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {});
-    const gen = narrowTargets(ctx, manualGenerate ?? ctx.config.generateFiles ?? {}, only, buffer);
+    const gen = manualGenerate ? narrowTargets(ctx, manualGenerate, only, buffer) : configTargets(ctx, pairs, only, buffer);
     ctx.collectionChildren = collectionChildrenOf(workspace, pairs, domain);
     return { domain, ctx, gen, outputs: planDomain(ctx, workspace, gen), flush };
   });

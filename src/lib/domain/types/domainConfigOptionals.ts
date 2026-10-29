@@ -58,4 +58,6 @@ export type DomainConfigOptionals = {
     write?: string | { roles?: string[]; roleCategories?: string[] };
     operations?: Record<string, string | { roles?: string[]; roleCategories?: string[] }>;
   };
+  // false = 手で管理し dc:generate は何も書かない（省略 = true）。生成器だけが読む
+  generate?: boolean;
 };

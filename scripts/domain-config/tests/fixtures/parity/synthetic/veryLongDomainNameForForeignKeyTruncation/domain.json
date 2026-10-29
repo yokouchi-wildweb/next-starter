@@ -6,5 +6,4 @@
  "useCreatedAt":true,"useUpdatedAt":false,
  "fields":[{"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true}],
  "searchFields":["name"],"defaultOrderBy":[["name","ASC"]],"tableFields":["name"],"useDetailModal":true,"useDuplicateButton":false,"useImportExport":false,"addToAdminDataMenu":true,
- "apiAccess":{"read":"public","write":{"roleCategories":["admin"]}},
- "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}
+ "apiAccess":{"read":"public","write":{"roleCategories":["admin"]}}}

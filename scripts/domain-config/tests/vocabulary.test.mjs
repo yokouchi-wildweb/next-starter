@@ -18,7 +18,6 @@ const BASE = {
   useCreatedAt: true,
   useUpdatedAt: true,
   fields: [{ name: "title", label: "題名", fieldType: "string", formInput: "textInput", required: true }],
-  generateFiles: { entities: true },
 };
 
 test("正しい domain.json には警告が無い（このリポのサンプル 3 件を含む）", () => {
@@ -76,8 +75,8 @@ test("リレーションのキー・種別・onDelete・formInput を見る（�
   assert.match(text, /relations\[2\] "x": onDelete "NULLIFY"/);
 });
 
-test("generateFiles の知らないキーを警告する", () => {
-  assert.match(vocabularyWarnings({ ...BASE, generateFiles: { entities: true, service: true } }).join("\n"), /generateFiles: 知らないキー "service"/);
+test("generate は知っているキー（generateFiles は廃止キー = checks/required.mjs が止める）", () => {
+  assert.deepEqual(vocabularyWarnings({ ...BASE, generate: false }), []);
 });
 
 test("主の集まりの項目（mediaCollection + collection）は警告なく通り、collection の下位キーの誤りは警告する", () => {

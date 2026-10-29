@@ -1,9 +1,9 @@
-// dc:generate の `--only <category>` の回帰テスト。
+// dc:generate の生成カテゴリ（domain.json の generate で決まるもの）と `--only <category>` の回帰テスト。
 // 実行: pnpm test:dc-only
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseOnlyOption } from "../cli/args.mjs";
-import { GENERATE_CATEGORIES, narrowGenerateTargets } from "../spec/categories.mjs";
+import { COLLECTION_CHILD_CATEGORIES, GENERATE_CATEGORIES, generateTargets, narrowGenerateTargets } from "../spec/categories.mjs";
 
 test("parseOnlyOption: --only の値をドメイン名と取り違えないよう取り除く", () => {
   assert.deepEqual(parseOnlyOption(["--generate", "--only", "registry", "Sample", "--yes"]), {
@@ -23,7 +23,17 @@ test("parseOnlyOption: 値なし・不明なカテゴリはエラー", () => {
   assert.throws(() => parseOnlyOption(["--only", "registry,services"]), /不明なカテゴリ.*services/);
 });
 
-test("narrowGenerateTargets: generateFiles を広げず、true のカテゴリを絞り込むだけ", () => {
+const onOf = (gen) => GENERATE_CATEGORIES.filter((c) => gen[c]);
+
+test("generateTargets: generate 省略・true = 全カテゴリ、false = 何も無し、集まりの従属 = 従属のカテゴリだけ（false なら従属でも無し）", () => {
+  assert.deepEqual(onOf(generateTargets({})), GENERATE_CATEGORIES);
+  assert.deepEqual(onOf(generateTargets({ generate: true })), GENERATE_CATEGORIES);
+  assert.deepEqual(onOf(generateTargets({ generate: false })), []);
+  assert.deepEqual(onOf(generateTargets({}, { child: true })), GENERATE_CATEGORIES.filter((c) => COLLECTION_CHILD_CATEGORIES.includes(c)));
+  assert.deepEqual(onOf(generateTargets({ generate: false }, { child: true })), []);
+});
+
+test("narrowGenerateTargets: 決まったカテゴリを広げず、true のカテゴリを絞り込むだけ", () => {
   const gen = Object.fromEntries(GENERATE_CATEGORIES.map((c) => [c, c !== "entities"]));
   const { gen: narrowed, skipped } = narrowGenerateTargets(gen, ["registry", "entities"]);
   assert.deepEqual(

@@ -25,7 +25,6 @@ const base = (singular, fields = [], extra = {}) => ({
   useCreatedAt: true,
   useUpdatedAt: true,
   fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput", required: true }, ...fields],
-  generateFiles: { entities: true },
   ...extra,
 });
 const photos = { name: "photos", label: "写真", fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required: true, reorderable: true, collection: { domain: "album_photo" } };

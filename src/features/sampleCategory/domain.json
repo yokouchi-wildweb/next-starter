@@ -58,16 +58,5 @@
         "admin"
       ]
     }
-  },
-  "generateFiles": {
-    "entities": true,
-    "components": true,
-    "hooks": true,
-    "clientServices": true,
-    "serverServices": true,
-    "adminRoutes": true,
-    "registry": true,
-    "fieldConstants": true,
-    "presenters": true
   }
 }

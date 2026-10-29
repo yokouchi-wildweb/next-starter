@@ -25,5 +25,4 @@
  "indexes":[{"fields":["name"],"using":"gin","opclass":{"name":"gin_trgm_ops"}},{"fields":["code","createdAt"],"where":"deleted_at IS NULL","name":"vault_code_live_idx"},{"fields":["kind"]}],
  "searchFields":["name","code"],"defaultOrderBy":[["name","ASC"],["createdAt","DESC"]],"tableFields":["name","kind","createdAt"],
  "useDetailModal":false,"useDuplicateButton":true,"useImportExport":true,"addToAdminDataMenu":true,"useAutoSave":true,
- "apiAccess":{"read":{"roleCategories":["admin"]},"write":{"roleCategories":["admin"]},"operations":{"count":"public"}},
- "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}
+ "apiAccess":{"read":{"roleCategories":["admin"]},"write":{"roleCategories":["admin"]},"operations":{"count":"public"}}}

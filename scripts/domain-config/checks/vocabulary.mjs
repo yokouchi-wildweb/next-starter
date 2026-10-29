@@ -7,7 +7,6 @@ import {
   DB_ENGINES,
   FIELD_KEYS,
   FORM_INPUT_VALUES,
-  GENERATE_FILE_KEYS,
   ID_TYPES,
   LEGACY_RELATION_KEYS,
   LEGACY_TOP_LEVEL_KEYS,
@@ -37,7 +36,6 @@ function topLevelWarnings(config) {
   if (config.idType !== undefined && !ID_TYPES.has(config.idType)) {
     warnings.push(`idType "${config.idType}" は ${[...ID_TYPES].join(" / ")} のどれでもありません`);
   }
-  warnings.push(...unknownKeys(config.generateFiles, GENERATE_FILE_KEYS).map((w) => `generateFiles: ${w}`));
   return warnings;
 }
 

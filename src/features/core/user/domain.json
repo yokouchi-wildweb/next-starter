@@ -173,16 +173,5 @@
       ]
     }
   },
-  "generateFiles": {
-    "entities": false,
-    "components": false,
-    "hooks": false,
-    "clientServices": false,
-    "serverServices": false,
-    "adminRoutes": false,
-    "registry": true,
-    "fieldConstants": false,
-    "presenters": false
-  },
   "hiddenColumns": ["localPassword"]
 }

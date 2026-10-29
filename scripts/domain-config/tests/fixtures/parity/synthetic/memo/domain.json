@@ -10,5 +10,4 @@
  ],
  "searchFields":["title"],"defaultOrderBy":[["createdAt","DESC"]],"tableFields":["title","done"],
  "useDetailModal":true,"useDuplicateButton":true,"useImportExport":false,"addToAdminDataMenu":true,"useAutoSave":false,
- "apiAccess":{"read":"authenticated","write":{"roleCategories":["admin"]}},
- "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}
+ "apiAccess":{"read":"authenticated","write":{"roleCategories":["admin"]}}}

@@ -10,7 +10,6 @@ import askFields from "../questions/fields/index.mjs";
 import askCompositeUniques from "../questions/composite-uniques.mjs";
 import askViewConfig from "../questions/view-config.mjs";
 import askApiAccess from "../questions/api-access.mjs";
-import askGenerateFiles from "../questions/generate-files.mjs";
 import { toCamelCase } from "../../../src/utils/stringCase.mjs";
 import formatDomainConfig from "../spec/format.mjs";
 import { DOMAIN_CONFIG_VERSION } from "../spec/version.mjs";
@@ -32,7 +31,7 @@ export async function runInit(workspace) {
   Object.assign(config, await askCompositeUniques(config));
   Object.assign(config, await askViewConfig(config));
   Object.assign(config, await askApiAccess());
-  Object.assign(config, await askGenerateFiles());
+  // 生成するカテゴリは domain.json に持たない（generate 省略 = true。手で管理するなら "generate": false を書く）
 
   const featureDir = toCamelCase(config.singular) || config.singular;
   const dir = workspace.featurePath(featureDir);

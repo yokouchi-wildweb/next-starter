@@ -14,5 +14,4 @@
  ],
  "searchFields":["name","cover"],"defaultOrderBy":[["sort_order","ASC"]],"tableFields":["name","cover","createdAt"],
  "useDetailModal":true,"useDuplicateButton":true,"useImportExport":true,"addToAdminDataMenu":true,"useAutoSave":true,
- "apiAccess":{"read":"public","write":"authenticated"},
- "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}
+ "apiAccess":{"read":"public","write":"authenticated"}}

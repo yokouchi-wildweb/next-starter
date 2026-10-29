@@ -14,6 +14,8 @@ import { renderChildDomainConfigs } from "../render/collections/index.mjs";
 import { renderCollectionsOutput } from "../render/registry/collections.mjs";
 import { renderServerServices } from "../render/serverServices/index.mjs";
 import { makeProject, removeAll, repoRoot } from "./helpers.mjs";
+import { planDomain } from "../pipeline/plan.mjs";
+import { ALL_GENERATE_OPTIONS } from "../spec/categories.mjs";
 
 const cleanup = [];
 after(() => removeAll(cleanup));
@@ -146,11 +148,7 @@ test("drizzleBase: 集まりを持つ主だけ collections を import して opt
   assert.equal(ownerWithoutCollections.replace(/showcase/g, "x").replace(/Showcase/g, "X"), plain.replace(/plain_things|plainThing/g, "x").replace(/PlainThing/g, "X"));
 });
 
-test("drizzleBase を手書きする主（serverServices: false）には、collections を渡す 1 行を毎回案内する", () => {
-  const config = { ...showcase, generateFiles: { ...showcase.generateFiles, serverServices: false } };
-  const { workspace, ctx } = ownerContext(config);
-  const logs = renderChildDomainConfigs(ctx, workspace).filter((out) => out.kind === "log").map((out) => out.message);
-  assert.match(logs.join("\n"), /\[showcase\] drizzleBase\.ts は手書き.*showcase\/services\/server\/drizzleBase\.ts に import \{ collections \} from "\.\/collections" を足し、createCrudService の options に collections を渡してください/);
-  const generated = loadDomainForGenerate(workspace, "showcase", SILENT);
-  assert.deepEqual(renderChildDomainConfigs({ ...generated, config: showcase }, workspace).filter((out) => out.kind === "log"), []);
+test("主が generate: false（手で管理）なら、従属の domain.json も含めて何も書かない", () => {
+  const { workspace, ctx } = ownerContext({ ...showcase, generate: false });
+  assert.deepEqual(planDomain(ctx, workspace, ALL_GENERATE_OPTIONS), []);
 });

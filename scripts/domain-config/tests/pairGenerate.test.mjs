@@ -27,7 +27,6 @@ const base = (singular, fields = [], extra = {}) => ({
   useCreatedAt: true,
   useUpdatedAt: true,
   fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput", required: true }, ...fields],
-  generateFiles: { entities: true, components: false, hooks: false, clientServices: false, serverServices: false, fieldConstants: false, adminRoutes: false, registry: false, presenters: false },
   ...extra,
 });
 const collectionField = (name, domain) => ({ name, label: name, fieldType: "mediaCollection", formInput: "mediaUploaderMulti", required: true, reorderable: true, collection: { domain, maxItems: 5 } });

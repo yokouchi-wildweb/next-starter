@@ -39,7 +39,7 @@
 | systemColumns | string[] | ⚪ No | `systemUpdate` / `systemBulkUpdateByQuery`（特権書き込み）で書き込みを許可するカラムの allowlist（Neon のみ）。Zod スキーマ外のシステム管理カラム（`ended_at` 等）をサービス層から正規経路で書き込むための宣言。**未宣言時は system 系メソッドは常に throw（fail-closed）**。詳細: `src/lib/crud/README.md` |
 | hiddenColumns | string[] | ⚪ No | 秘匿カラム（APIキー・トークン等「DB には保持するがレスポンスに決して含めない」カラム、Neon のみ）。プロパティ名（camelCase）で指定すると `dc:generate` が `entities/drizzle.ts` に `defineHiddenColumns()` を出力し、サービスの**全戻り値**・他ドメインの **withRelations 展開**から該当カラムが null 置換される。秘匿値をサーバー内部で読む場合は `services/server/` に直接 drizzle の専用ファインダーを作ること（例: user の `findByIdWithSecrets`）。詳細: `src/lib/crud/README.md` の hiddenColumns 節 |
 | apiAccess | ApiAccess | ⚪ No | 汎用 API（`/api/[domain]/**`）のアクセス制御（後述）。**未宣言時は admin カテゴリのみ許可（fail-closed）** |
-| generateFiles | GenerateFiles | 🟢 Yes | 生成対象ファイルの設定 |
+| generate | boolean | ⚪ No | 生成するか（既定 true）。true = `dc:generate` がそのドメインの生成物を全部作り直す（手の実装は wrappers/ 等に置いて載せ替える）、false = 手で管理し、生成器は何も書かない（後述「生成カテゴリ」）。区分ごとの `generateFiles` は廃止（書いてあると生成が止まる） |
 
 > ⚠️ **オプショナルフィールドを追加する場合**: `src/lib/domain/types/domainConfigOptionals.ts` の `DomainConfigOptionals` にも同じフィールドを追加すること。省略すると、そのフィールドを持たないドメインが存在するだけで DomainConfig の union 型が壊れてビルドエラーになる。
 
@@ -355,8 +355,8 @@ import { ControlledField } from "@/components/Form/Field";
   - singular = `collection.domain`、plural = 既定の名前のままなら `<主>_<項目名>`（項目名が s で終わるとき）、それ以外は singular の複数形、label = 主の項目の label、Neon、idType = 主と同じ（外部キーの型は idType number なら integer）
   - relations = 主への belongsTo（`<主>_id`、必須、onDelete CASCADE）。主の relations には足さない
   - fields = メディア項目 `file`（mediaUploader、images / `image/*`、10MB、slug = 主の項目名の camelCase）と並び列 `sort_order`（hidden、`sortOrderField` と `systemColumns` に宣言）。useSoftDelete false
-  - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false、generateFiles は entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う）
-  - `file` の storage は主の汎用 API の規則から写す: upload = 主の create と update の和、read = 主の get、visibility = read が `"public"` なら public、それ以外は private。写せるのは `"public"` / `"authenticated"` / ロールの規則だけで、主が閉じている（`"none"`）・知らない値・`generateFiles.registry: false`（domainEntry.ts が手書き）なら管理者のみを書き、直す場所を出力する
+  - 汎用 API は閉じる（`apiAccess: { read: "none", write: "none" }` = INTERNAL_ONLY）、addToAdminDataMenu false。従属の生成カテゴリは生成器が決める: entities / serverServices / registry / fieldConstants / presenters だけ（管理画面・フック・クライアントは主の画面から使う。domain.json には書かない）
+  - `file` の storage は主の汎用 API の規則から写す: upload = 主の create と update の和、read = 主の get、visibility = read が `"public"` なら public、それ以外は private。写せるのは `"public"` / `"authenticated"` / ロールの規則だけで、主が閉じている（`"none"`）・知らない値・主が `generate: false`（domainEntry.ts が手書き）なら管理者のみを書き、直す場所を出力する
   - ファイルの条件（preset・accept・上限）は雛形の既定なので、従属の domain.json で直す
 - 従属が守ること（dc:generate が書く前に検査し、1 つでも外れれば全件を並べて何も書かずに止まる。一覧と判定: [scripts/domain-config/README.md](../../scripts/domain-config/README.md)「dc:generate」）
   - 主への belongsTo はちょうど 1 本・required・onDelete CASCADE、`useSoftDelete` は false
@@ -562,19 +562,21 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 
 ---
 
-### GenerateFiles
+### 生成カテゴリ（generate: true のとき作るもの）
 
-| プロパティ | 型 | 説明 |
+`generate`（既定 true）のドメインは、下の全カテゴリを毎回作り直す（集まりの従属は entities / serverServices / registry / fieldConstants / presenters だけ）。`generate: false` は何も書かない（registry の追記・domainEntry.ts の書き直しも無い。serviceRegistry.ts は domainEntry.ts から作るので載り続ける）。今回だけ一部のカテゴリに絞るときは `--only`（`scripts/domain-config/README.md`）。
+
+| カテゴリ | - | 説明 |
 |-----------|-----|------|
-| entities | boolean | エンティティ（schema, form, model, drizzle/firestore） |
-| components | boolean | 管理画面コンポーネント |
-| hooks | boolean | CRUD フック |
-| clientServices | boolean | axios クライアント |
-| serverServices | boolean | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` は無いときだけ生成） |
-| adminRoutes | boolean | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/`（Screen と loader.ts）の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` §12） |
-| registry | boolean | レジストリへの登録（`services/server/domainEntry.ts` の生成を含む。`apiAccess` / `useImportExport` を access に展開し、最後に `pnpm registry:generate` が serviceRegistry.ts を作り直す） |
-| fieldConstants | boolean | options を持つフィールドの定数/型 |
-| presenters | boolean | テーブル表示用フォーマッタ |
+| entities | - | エンティティ（schema, form, model, drizzle/firestore） |
+| components | - | 管理画面コンポーネント |
+| hooks | - | CRUD フック |
+| clientServices | - | axios クライアント |
+| serverServices | - | サーバーサービス（`drizzleBase.ts` / `firestoreBase.ts` は毎回生成、`<domain>Service.ts` は無いときだけ生成） |
+| adminRoutes | - | 管理画面ルート（page.tsx 1 行スイッチ + `_screen/`（Screen と loader.ts）の構造で生成。page.tsx は初回のみ生成、`_screen/` は毎回再生成。詳細: `src/lib/screens/README.md` §12） |
+| registry | - | レジストリへの登録（`services/server/domainEntry.ts` の生成を含む。`apiAccess` / `useImportExport` を access に展開し、最後に `pnpm registry:generate` が serviceRegistry.ts を作り直す） |
+| fieldConstants | - | options を持つフィールドの定数/型 |
+| presenters | - | テーブル表示用フォーマッタ |
 
 ---
 
@@ -588,7 +590,7 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
 > `src/registry/serviceRegistry.ts` はそこから生成される。実行時の認可は registry の access を参照する。
 > コアドメインは domainEntry.ts に直接 access を書く。管理データ操作（`truncateAll` / `export` / `import`）は
 > `operations` に明示したときだけ開く（dc:generate が truncateAll = 管理者、export / import = `useImportExport` から書く）。
-> エントリは表の物理名と主キー列名（`table` / `idColumn`、型必須）も持ち、dc:generate が書く（`generateFiles.registry: false` で
+> エントリは表の物理名と主キー列名（`table` / `idColumn`、型必須）も持ち、dc:generate が書く（`generate: false` で
 > 手書きしている domainEntry.ts は自分で書く。Firestore は `null`）。
 > 詳細: `src/lib/routeFactory/README.md`「アクセスポリシー（domainEntry.ts の `access`）」、`src/lib/domain/README.md`
 
@@ -665,17 +667,6 @@ core ドメイン (`src/features/core/<domain>/`) は **dc:generate コマンド
   "apiAccess": {
     "read": { "roleCategories": ["admin"] },
     "write": { "roleCategories": ["admin"] }
-  },
-  "generateFiles": {
-    "entities": true,
-    "components": true,
-    "hooks": true,
-    "clientServices": true,
-    "serverServices": true,
-    "adminRoutes": true,
-    "registry": true,
-    "fieldConstants": true,
-    "presenters": true
   }
 }
 ```

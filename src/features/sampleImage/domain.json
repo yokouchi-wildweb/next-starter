@@ -54,16 +54,5 @@
   "apiAccess": {
     "read": "none",
     "write": "none"
-  },
-  "generateFiles": {
-    "entities": true,
-    "components": false,
-    "hooks": false,
-    "clientServices": false,
-    "serverServices": true,
-    "fieldConstants": true,
-    "adminRoutes": false,
-    "registry": true,
-    "presenters": true
   }
 }

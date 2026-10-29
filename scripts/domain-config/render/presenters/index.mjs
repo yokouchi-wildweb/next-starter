@@ -1,4 +1,4 @@
-// generateFiles.presenters: presenters.ts（一覧・詳細表示のフォーマッタ。メディア列は formatMediaThumbnail(s) で表示用 URL に解決）。
+// 生成カテゴリ presenters: presenters.ts（一覧・詳細表示のフォーマッタ。メディア列は formatMediaThumbnail(s) で表示用 URL に解決）。
 // 項目を何で表示するかは src/lib/domain/fields/presenterFor.mjs が決める。ここはその答えを式に写すだけ
 
 import path from "node:path";

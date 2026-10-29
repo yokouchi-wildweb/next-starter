@@ -1,8 +1,8 @@
-// 検査: 必須のキーと、決まった値の集合を持つキー（singular・plural・dbEngine・idType・useCreatedAt / useUpdatedAt・generateFiles）。
-// どれも書き忘れると生成器が黙って別の既定（plural の推定・dbEngine ""・作成日時なし・何も生成しない）で進むので、生成前に止める。
+// 検査: 必須のキーと、決まった値の集合を持つキー（singular・plural・dbEngine・idType・useCreatedAt / useUpdatedAt・generate）。
+// どれも書き忘れると生成器が黙って別の既定（plural の推定・dbEngine ""・作成日時なし）で進むので、生成前に止める。
+// 区分ごとの generateFiles は廃止（generate の旗 1 つ）。残っていれば止める（読み替えると手で直したファイルを上書きしかねない）
 // 規則の正: src/features/README.md「domain.json スキーマ定義」（🟢 = 必須）
 
-import { GENERATE_CATEGORIES } from "../spec/categories.mjs";
 import { DB_ENGINES, ID_TYPES } from "../spec/domainJson.mjs";
 
 const isNonEmptyString = (value) => typeof value === "string" && value.length > 0;
@@ -22,12 +22,13 @@ export function requiredIssues(config) {
   for (const key of ["useCreatedAt", "useUpdatedAt"]) {
     if (typeof config[key] !== "boolean") issues.push(`${key} を true か false で書いてください（書かないと列が作られません）`);
   }
-  const generateFiles = config.generateFiles;
-  if (!generateFiles || typeof generateFiles !== "object" || Array.isArray(generateFiles)) {
-    issues.push(`generateFiles を書いてください（${GENERATE_CATEGORIES.join(" / ")} を true / false で）`);
-  } else {
-    const missing = GENERATE_CATEGORIES.filter((key) => typeof generateFiles[key] !== "boolean");
-    if (missing.length > 0) issues.push(`generateFiles の ${missing.join(" / ")} を true か false で書いてください`);
+  if (config.generate !== undefined && typeof config.generate !== "boolean") {
+    issues.push(`generate は true か false で書いてください（省略 = true。今: ${JSON.stringify(config.generate)}）`);
+  }
+  if (config.generateFiles !== undefined) {
+    issues.push(
+      "generateFiles は廃止しました。消してください（全部 true だったなら消すだけ。手で直しているファイルがあるなら \"generate\": false = このドメインは生成しない）",
+    );
   }
   return issues;
 }

@@ -1,4 +1,4 @@
-// generateFiles.entities: entities/{model,form,drizzle|firestore,schema,index}.ts
+// 生成カテゴリ entities: entities/{model,form,drizzle|firestore,schema,index}.ts
 
 import path from "node:path";
 import { requireConfig } from "../../domain/context.mjs";

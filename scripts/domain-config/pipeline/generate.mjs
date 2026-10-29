@@ -4,7 +4,7 @@
 
 import { assertPreflight, preflightWarnings } from "../checks/index.mjs";
 import { createDomainContext } from "../domain/context.mjs";
-import { narrowGenerateTargets } from "../spec/categories.mjs";
+import { generateTargets, narrowGenerateTargets } from "../spec/categories.mjs";
 import { applyOutputs } from "./apply.mjs";
 import { reportDryRun, summarizeDryRun } from "./dryRun.mjs";
 import { assertPairs, collectionChildrenOf, groupOf, pairSummary, printPairNotices, resolvePairs } from "./pairs.mjs";
@@ -33,15 +33,26 @@ export function loadDomainForGenerate(workspace, domainInput, io = console, over
 
 /**
  * 生成カテゴリを `--only` で絞り、絞られて生成しないカテゴリを知らせる
- * @param {Record<string, boolean>} gen generateFiles または手動選択
+ * @param {Record<string, boolean>} gen generateTargets または手動選択
  * @param {string[] | null} only
  */
 export function narrowTargets(ctx, gen, only, io = console) {
   const { gen: narrowed, skipped } = narrowGenerateTargets(gen, only ?? null);
   if (skipped.length > 0) {
-    io.log(`[${ctx.camel}] generateFiles で無効のためスキップ: ${skipped.join(", ")}`);
+    io.log(`[${ctx.camel}] このドメインでは生成しないカテゴリのためスキップ: ${skipped.join(", ")}`);
   }
   return narrowed;
+}
+
+/**
+ * domain.json の generate（と集まりの従属か）で決まるカテゴリを `--only` で絞る。generate: false は何も生成しない
+ * @param {import("./pairs.mjs").PairIndex} pairs
+ */
+export function configTargets(ctx, pairs, only, io = console) {
+  if (ctx.config?.generate === false) {
+    io.log(`[${ctx.camel}] generate: false（手で管理）のため何も書きません`);
+  }
+  return narrowTargets(ctx, generateTargets(ctx.config, { child: pairs.ownerOf.has(ctx.camel) }), only, io);
 }
 
 /**
@@ -75,7 +86,7 @@ export function generateDomain(ctx, workspace, gen, { deferServiceRegistry = fal
 /**
  * 1 ドメインの dc:generate。組に属さなければ generateDomain と同じ。組なら全員を plan してから登録表の事前検査をまとめて行い、
  * 従属 → 主の順に書き、serviceRegistry.ts を最後に 1 回作り直して一覧を出す。
- * 対象の生成カテゴリ（gen）は対象だけに使い、組の他の員は自分の generateFiles を --only で絞ったもの
+ * 対象の生成カテゴリ（gen）は対象だけに使い、組の他の員は自分の generate で決まるカテゴリを --only で絞ったもの
  * @param {{ only?: string[] | null, dryRun?: boolean, io?: { log: Function, warn: Function }, pairs?: import("./pairs.mjs").PairIndex }} [options]
  *   pairs = 解いた組（対話の確認の前に組の誤りを出すため、呼び出し側が先に解いて渡してよい）
  */
@@ -88,7 +99,7 @@ export function generateWithPairs(ctx, workspace, gen, { only = null, dryRun = f
   const members = group.map((domain) => {
     if (domain === ctx.camel) return { ctx, gen };
     const memberCtx = loadDomainForGenerate(workspace, domain, io, pairs.pending.has(domain) ? { config: pairs.pending.get(domain) } : {});
-    return { ctx: memberCtx, gen: narrowTargets(memberCtx, memberCtx.config.generateFiles ?? {}, only, io) };
+    return { ctx: memberCtx, gen: configTargets(memberCtx, pairs, only, io) };
   });
   // 主の生成物（Fields）が従属の file を読む
   for (const member of members) member.ctx.collectionChildren = collectionChildrenOf(workspace, pairs, member.ctx.camel);

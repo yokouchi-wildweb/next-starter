@@ -1,4 +1,4 @@
-// generateFiles.components: components/Admin<Domain>{Create,Edit,List,Sort}/ と components/common/*
+// 生成カテゴリ components: components/Admin<Domain>{Create,Edit,List,Sort}/ と components/common/*
 
 import path from "node:path";
 import { file } from "../output.mjs";

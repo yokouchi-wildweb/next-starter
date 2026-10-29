@@ -1,4 +1,4 @@
-// 1 ドメインの生成計画: 生成カテゴリ（generateFiles）に応じて render/ を呼び、書き込む前の Output を全部集める。
+// 1 ドメインの生成計画: 生成カテゴリ（spec/categories.mjs の generateTargets か手動選択）に応じて render/ を呼び、書き込む前の Output を全部集める。
 // ここで例外が出れば何も書かれない（検査はすべて Output を作る時点で済む）
 
 import { hasOptionFields } from "../spec/fieldTypes.mjs";
@@ -16,10 +16,12 @@ import { renderServerServices } from "../render/serverServices/index.mjs";
 /**
  * @param {import("../domain/context.mjs").DomainContext} ctx
  * @param {import("../domain/workspace.mjs").Workspace} workspace
- * @param {Record<string, boolean>} gen 生成するカテゴリ（generateFiles を --only で絞ったもの）
+ * @param {Record<string, boolean>} gen 生成するカテゴリ（generate で決まるカテゴリを --only で絞ったもの）
  * @returns {import("../render/output.mjs").Output[]} 書き込み順
  */
 export function planDomain(ctx, workspace, gen) {
+  // generate: false = 手で管理。従属の domain.json も含めて何も書かない
+  if (ctx.config?.generate === false) return [];
   // 主の集まりの項目の従属の domain.json（無いときだけ書く）。生成カテゴリではないので gen に関わらず出す
   const outputs = [...renderChildDomainConfigs(ctx, workspace)];
   if (gen.components) outputs.push(...renderComponents(ctx, workspace));

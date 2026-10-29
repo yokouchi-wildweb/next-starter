@@ -29,7 +29,7 @@ const isCopyableRule = (rule) => rule !== "none" && isValidRule(rule);
  * 写せなければ null（雛形は管理者のみ + 案内にし、組の権限の検査は飛ばす）
  */
 export function parentRule(parentConfig, operation) {
-  if (parentConfig.generateFiles?.registry === false) return null; // domainEntry.ts が手書き = apiAccess は正でない
+  if (parentConfig.generate === false) return null; // domainEntry.ts が手書き = apiAccess は正でない
   const rule = rawRule(parentConfig.apiAccess, operation);
   if (rule === undefined) return ADMIN_RULE;
   return isCopyableRule(rule) ? rule : null;
@@ -59,7 +59,7 @@ export function childStorageRules(parentConfig) {
 }
 
 /**
- * @param {{ singular: string, label?: string, idType?: string, apiAccess?: object, generateFiles?: object }} parentConfig 主の domain.json
+ * @param {{ singular: string, label?: string, idType?: string, apiAccess?: object, generate?: boolean }} parentConfig 主の domain.json
  * @param {{ name: string, label: string, collection: { domain: string } }} field 主の集まりの項目
  * @returns {{ config: object, uncopied: string[] }} 従属の domain.json と、写せず管理者のみにした storage のキー（upload / read）
  */
@@ -110,17 +110,6 @@ export function buildChildDomainConfig(parentConfig, field) {
     systemColumns: [SORT_FIELD],
     addToAdminDataMenu: false,
     apiAccess: { read: "none", write: "none" },
-    generateFiles: {
-      entities: true,
-      components: false,
-      hooks: false,
-      clientServices: false,
-      serverServices: true,
-      fieldConstants: true,
-      adminRoutes: false,
-      registry: true,
-      presenters: true,
-    },
   };
   return { config, uncopied };
 }

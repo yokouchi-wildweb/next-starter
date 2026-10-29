@@ -1,4 +1,4 @@
-// generateFiles.hooks: hooks/use*<Domain>.ts（どれが生成されるかは catalog.mjs。詳細: src/lib/crud/hooks/README.md）
+// 生成カテゴリ hooks: hooks/use*<Domain>.ts（どれが生成されるかは catalog.mjs。詳細: src/lib/crud/hooks/README.md）
 
 import path from "node:path";
 import { file } from "../output.mjs";

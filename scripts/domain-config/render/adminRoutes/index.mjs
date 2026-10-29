@@ -1,4 +1,4 @@
-// generateFiles.adminRoutes: src/app/admin/(protected)/<domains>/ の一覧・new/・[id]/edit/（sortOrderField で sort/）
+// 生成カテゴリ adminRoutes: src/app/admin/(protected)/<domains>/ の一覧・new/・[id]/edit/（sortOrderField で sort/）
 //
 // 出力の構造（SCREENS: src/lib/screens/README.md §12）:
 //   <domains>/page.tsx            1 行スイッチ。初回のみ生成（write-once）、以後上書きしない

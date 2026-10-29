@@ -7,8 +7,8 @@
  *   --generate <Domain> 既に作成した設定ファイルを基にファイル生成のみを行います。
  *   --generate --all    domain.json を持つ複数ドメインを一括で生成します。
  *   --delete <Domain>   指定したドメインに関連する生成物を削除します。
- *   --yes               --generate と併用。プロンプトを出さず domain.json の generateFiles どおりに生成します。
- *   --only <categories> --generate と併用。generateFiles で true のカテゴリをさらに絞り込みます（例: --only registry）。
+ *   --yes               --generate と併用。プロンプトを出さず domain.json の generate どおりに生成します（false は何も書かない）。
+ *   --only <categories> --generate と併用。generate で決まるカテゴリをさらに絞り込みます（例: --only registry）。
  *   --dry-run           --generate と併用。何も書かず、書くはずのファイルと動作（作成 / 上書き / 変更なし / 保持）を一覧します。
  *
  * 単独の `--` は無視します（`pnpm dc:generate -- User` を許容するため）。

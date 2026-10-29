@@ -3,5 +3,4 @@
  "fields":[{"name":"an_extremely_long_column_name_that_keeps_going_and_going_forever","label":"長","fieldType":"string","formInput":"textInput","required":false},{"name":"secret_thing","label":"秘","fieldType":"string","formInput":"textInput","required":false}],
  "hiddenColumns":["nope"],
  "indexes":[{"fields":["an_extremely_long_column_name_that_keeps_going_and_going_forever","createdAt"]}],
- "searchFields":[],"defaultOrderBy":[],"tableFields":[],"apiAccess":{"read":"public","write":{"roleCategories":["admin"]}},
- "generateFiles":{"entities":true,"components":false,"hooks":false,"clientServices":false,"serverServices":false,"fieldConstants":false,"adminRoutes":false,"registry":false,"presenters":false}}
+ "searchFields":[],"defaultOrderBy":[],"tableFields":[],"apiAccess":{"read":"public","write":{"roleCategories":["admin"]}}}

@@ -37,7 +37,6 @@ const parent = (overrides = {}) => ({
   useUpdatedAt: true,
   fields: [{ name: "name", label: "名前", fieldType: "string", formInput: "textInput", required: true }, field()],
   apiAccess: { read: "public", write: ADMIN },
-  generateFiles: { entities: true, registry: true },
   ...overrides,
 });
 const storageOf = (parentConfig) => buildChildDomainConfig(parentConfig, field()).config.fields[0].storage;
@@ -62,10 +61,9 @@ test("従属の形: belongsTo 主（必須・CASCADE）、メディア 1 項目 
   );
   assert.equal(config.addToAdminDataMenu, false);
   assert.deepEqual(config.apiAccess, { read: "none", write: "none" });
-  assert.deepEqual(
-    Object.entries(config.generateFiles).filter(([, on]) => on).map(([key]) => key).sort(),
-    ["entities", "fieldConstants", "presenters", "registry", "serverServices"],
-  );
+  // 生成するカテゴリは domain.json に書かない（従属のカテゴリは spec/categories.mjs の COLLECTION_CHILD_CATEGORIES）
+  assert.equal(config.generateFiles, undefined);
+  assert.equal(config.generate, undefined);
   assert.deepEqual(vocabularyWarnings(config), []);
 });
 
@@ -113,7 +111,7 @@ test("権限の写し: 閉じた主（none / INTERNAL_ONLY）・custom などの
   assert.deepEqual(closedCreate.uncopied, ["upload"]);
   assert.equal(closedCreate.config.fields[0].storage.read, "public");
 
-  const handWritten = buildChildDomainConfig(parent({ generateFiles: { entities: true, registry: false } }), field());
+  const handWritten = buildChildDomainConfig(parent({ generate: false }), field());
   assert.deepEqual(handWritten.uncopied, ["upload", "read"]);
 });
 
@@ -125,7 +123,7 @@ const outputsFor = (root, gen = { entities: false }) => {
   return { workspace, outputs: planDomain(ctx, workspace, gen) };
 };
 
-test("書き出し: 従属の domain.json が無ければ formatDomainConfig の形で書き、パスを出す（generateFiles に関わらず）", () => {
+test("書き出し: 従属の domain.json が無ければ formatDomainConfig の形で書き、パスを出す（生成カテゴリに関わらず）", () => {
   const root = makeProject({ configs: { sample: parent() }, cleanup });
   const { stdout } = applyAndCapture(outputsFor(root).outputs);
   assert.equal(fs.readFileSync(childPath(root), "utf8"), formatDomainConfig(buildChildDomainConfig(parent(), field()).config));

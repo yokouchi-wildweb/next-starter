@@ -1,4 +1,4 @@
-// dc:generate:all: ドメインを選び（既定は全件）、各 domain.json の generateFiles か手動選択で一括生成する
+// dc:generate:all: ドメインを選び（既定は全件）、各 domain.json の generate か手動選択（保存しない）で一括生成する
 
 import askGenerateFiles from "../questions/generate-files.mjs";
 import { runGenerateAll } from "../pipeline/generateAll.mjs";
@@ -6,7 +6,7 @@ import { confirm, selectDomains } from "./prompts.mjs";
 
 /**
  * @param {import("../domain/workspace.mjs").Workspace} workspace
- * @param {{ yes?: boolean, only?: string[] | null, dryRun?: boolean }} [options] yes = プロンプトを出さず、全ドメインを各 domain.json の generateFiles どおりに生成する
+ * @param {{ yes?: boolean, only?: string[] | null, dryRun?: boolean }} [options] yes = プロンプトを出さず、全ドメインを各 domain.json の generate どおりに生成する（false のドメインは何も書かない）
  *   dryRun = 書かずに一覧（実行の確認も出さない）
  */
 export async function runGenerateAllInteractive(workspace, options = {}) {

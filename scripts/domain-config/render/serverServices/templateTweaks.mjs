@@ -24,7 +24,7 @@ export function buildStorageBindingOption(camel, mediaFields) {
   ].join("\n");
 }
 
-/** 主の集まりの項目（collections.ts、generateFiles.registry が書く）の import。集まりの無いドメインは空 */
+/** 主の集まりの項目（collections.ts、registry カテゴリが書く）の import。集まりの無いドメインは空 */
 export function buildCollectionsImport(hasCollections) {
   return hasCollections ? 'import { collections } from "./collections";\n' : "";
 }

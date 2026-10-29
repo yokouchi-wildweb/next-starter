@@ -47,7 +47,7 @@ export function renderDomainEntry({ camel, config, isCore = false }) {
   const dir = `src/features/${isCore ? "core/" : ""}${camel}`;
   const out = [
     `// ${dir}/services/server/domainEntry.ts`,
-    "// dc:generate が domain.json から生成する（generateFiles.registry）。手で直すときは generateFiles.registry を false にする。",
+    "// dc:generate が domain.json から生成する。手で直すときは domain.json の generate を false にする（そのドメインは生成しなくなる）。",
     "// 登録表 src/registry/serviceRegistry.ts はこのファイルから pnpm registry:generate が作る（dc:generate の最後に自動で走る）。",
     "// access = 汎用 API（/api/<domain>/**）と管理データ操作（truncateAll / export / import）の認可。詳細: src/lib/domain/README.md",
     "",

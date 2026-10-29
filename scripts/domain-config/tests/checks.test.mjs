@@ -12,10 +12,6 @@ import { relationIssues } from "../checks/relations.mjs";
 import { requiredIssues } from "../checks/required.mjs";
 import { viewConfigIssues, viewConfigWarnings } from "../checks/viewConfig.mjs";
 
-const GENERATE_FILES = {
-  entities: true, components: true, hooks: true, clientServices: true, serverServices: true,
-  fieldConstants: true, adminRoutes: true, registry: true, presenters: true,
-};
 
 /** 全部の検査を通る domain.json */
 const good = (extra = {}) => ({
@@ -38,7 +34,6 @@ const good = (extra = {}) => ({
   defaultOrderBy: [["name", "ASC", "LAST"], ["createdAt", "DESC"]],
   tableFields: ["name", "kind", "sample_category_id", "createdAt"],
   compositeUniques: [["name"], ["name", "sample_category_id"]],
-  generateFiles: GENERATE_FILES,
   ...extra,
 });
 
@@ -50,11 +45,14 @@ test("良い例: どの検査も止めず、警告も出さない", () => {
   assert.deepEqual(preflightWarnings({ camel: "sampleTag", config: good() }), []);
 });
 
-test("必須: singular・plural・dbEngine・useCreatedAt / useUpdatedAt・generateFiles の 9 キー、idType の値（db は廃止）", () => {
+test("必須: singular・plural・dbEngine・useCreatedAt / useUpdatedAt、idType の値（db は廃止）、generate は boolean、generateFiles は廃止で止める", () => {
   const issues = joined(requiredIssues({}));
-  for (const word of ["singular", "plural", "dbEngine", "useCreatedAt", "useUpdatedAt", "generateFiles"]) assert.match(issues, new RegExp(word));
+  for (const word of ["singular", "plural", "dbEngine", "useCreatedAt", "useUpdatedAt"]) assert.match(issues, new RegExp(word));
+  assert.doesNotMatch(issues, /generate/);
   assert.match(joined(requiredIssues(good({ idType: "db" }))), /idType "db" は使えません/);
-  assert.match(joined(requiredIssues(good({ generateFiles: { entities: true } }))), /generateFiles の components .* presenters/);
+  assert.match(joined(requiredIssues(good({ generate: "no" }))), /generate は true か false/);
+  assert.deepEqual(requiredIssues(good({ generate: false })), []);
+  assert.match(joined(requiredIssues(good({ generateFiles: { entities: true } }))), /generateFiles は廃止しました/);
 });
 
 test("名前: 項目名・従属名は snake_case で止め、singular・plural・リレーション先は警告だけ", () => {

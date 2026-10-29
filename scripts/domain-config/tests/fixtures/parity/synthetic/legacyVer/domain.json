@@ -2,5 +2,4 @@
  "relations":[{"domain":"vault","label":"保管庫","fieldName":"vault_id","fieldType":"uuid","relationType":"belongsTo","required":true,"onDeleteCascade":true}],
  "useCreatedAt":true,"useUpdatedAt":true,
  "fields":[{"name":"name","label":"名前","fieldType":"string","formInput":"textInput","required":true,"placeholder":"x","helperText":"h","description":"d"}],
- "searchFields":["name"],"defaultOrderBy":[["id","ASC"]],"tableFields":["name"],"useDetailModal":true,"useDuplicateButton":false,"addToAdminDataMenu":true,
- "generateFiles":{"entities":true,"components":true,"hooks":true,"clientServices":true,"serverServices":true,"fieldConstants":true,"adminRoutes":true,"registry":true,"presenters":true}}
+ "searchFields":["name"],"defaultOrderBy":[["id","ASC"]],"tableFields":["name"],"useDetailModal":true,"useDuplicateButton":false,"addToAdminDataMenu":true}

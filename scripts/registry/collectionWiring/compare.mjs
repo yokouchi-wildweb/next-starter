@@ -1,6 +1,6 @@
 // 集まりの配線の突き合わせ: domain.json の集まりの項目（mediaCollection）と、登録表から読み込んだ主のサービスの
 // collectionFields（createCrudService の collections オプション）が一致するかを比べる。
-// 手書きの drizzleBase.ts（generateFiles.serverServices: false）に collections を渡し忘れた主を、生成の後で見つける
+// 手書きの drizzleBase.ts（generate: false のドメイン）に collections を渡し忘れた主を、生成の後で見つける
 
 import fs from "node:fs";
 import path from "node:path";

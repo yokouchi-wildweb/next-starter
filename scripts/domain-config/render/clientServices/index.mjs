@@ -1,4 +1,4 @@
-// generateFiles.clientServices: services/client/<domain>Client.ts
+// 生成カテゴリ clientServices: services/client/<domain>Client.ts
 
 import path from "node:path";
 import { file } from "../output.mjs";
