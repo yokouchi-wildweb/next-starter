@@ -39,7 +39,11 @@ fork が upstream(直接の親 Tier)のファイルを、決められた場所�
 - 載せている物: リポジトリ直下の 6 種(package.json・pnpm-lock.yaml・.gitignore・.env.example・next.config.ts・.mcp.json)と README.md・`eslint.config.fork.mjs`(下)/ ロゴ・favicon / `src/config/**`(config の再設計までは全体、値とキーを区別しない。Tier1 の config の規則はそのまま)/ `src/styles/*.css` / 1 行スイッチ(page.tsx・枠の layout.tsx)/ `_components/**` / `_layout/`・`_screen/` のドット区切り名のカスタム / cron の `override.ts` / `domainEntry.override.ts` / registry と room・seed の登録点(region)・デモの利用者の値・room の wrangler.toml / `.claude/rules` の PER_PROJECT と marker のファイル / `src/lib/CATALOG.md`(append)/ 生成物
 - 一覧の鮮度: `pnpm test:fork-ownership` が書式と、各 glob の固定の部分(最初の `*` より前)が実在することを見る(fork だけが作るファイルは upstream に無いので、glob そのものの当たりは見ない)。fork が作るファイルを名指しする行は、理由に「upstream には無い」と書いて外す
 - 外のままにした物と理由: `eslint.config.mjs`(fork の設定は `eslint.config.fork.mjs` に書く。upstream は空の配列で出荷し、`eslint.config.mjs` が最後に読み足す)/ `tsconfig.json`(paths の不足は upstream で直す。要るなら一時許可 + 依頼)/ `AGENTS.md`(ただし `next dev` が書き足す `<!-- BEGIN:nextjs-agent-rules -->` の区画は、印の行ごと生成器の区画として除く。Next の版で中身が変わるので upstream に固定で置けない)/ 既存の `eslint-rules/*.mjs` の書き換え(新しい規則のファイルは追加なので合格)
-- 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。fork 側には何も書かせず、upstream が負債として一覧に載せ、core の外に受け口を用意した notice で外す。件数は Tier1 のテストのコマンドと `/inbox` に出す(中身は段階②の後半で載せる)
+- 負債の行(debt): upstream 自身が core の中のファイルを下流の編集点として案内している箇所。fork 側には何も書かせず、upstream が負債として一覧に載せ、core の外に受け口を用意した notice で外す
+  - 載せる基準: 案内が「core の中のこのファイルを fork が編集・差し替える」で、受け口(edit / region・fork が足すファイル・`src/config/**`)で済まない物。登録の API(`register*()`)を fork のファイルから呼べる物、fork が新しいファイルを足すだけの置き場は載せない
+  - 理由の欄 = 案内の所在 → 受け口づくりの依頼の番号(`upreq:<id>`)。fork がその箇所を書き換えるときは、この番号を書いた一時許可で通す
+  - 件数: Tier1 で `pnpm ownership:check` が「対象外 — upstream の負債の行 n」(`--verbose` でパスも)、`pnpm test:fork-ownership` が diagnostic で出す。`/inbox` の一覧の先頭にも出る
+  - 負債の行が実在しないファイルを指す・依頼の番号が無いと `pnpm test:fork-ownership` が失敗する
 - 中間 Tier の一覧にも「下流が消してよい」行は作らない。要らない物は持ち主が自分で消し、merge で流す
 - API: `parseIntake(text)` → `{ rules, errors }` / `matchIntake(rules, path)` → 効く規則か `null` / `judge({ changes, baseText, headText, baseLibs, intake })` → `{ entries: [{ status, path, from, kind, reason, verdict }], counts }`
 

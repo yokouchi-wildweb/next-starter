@@ -44,6 +44,16 @@ describe("実リポジトリの intake.txt", () => {
     assert.deepEqual(stale, [], `実在しない場所を指す規則:\n${stale.join("\n")}`);
   });
 
+  test("負債の行は実在のファイルを指し、理由に受け口づくりの依頼の番号がある(件数を出す)", (t) => {
+    const files = new Set(execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean));
+    const debt = rules.filter((rule) => rule.kind === "debt");
+    t.diagnostic(`upstream の負債の行: ${debt.length}`);
+    const bad = debt
+      .filter((rule) => !files.has(rule.glob) || !/upreq:\d{8}-\d{6}-[a-z0-9-]+/.test(rule.note))
+      .map((rule) => `intake.txt:${rule.line} ${rule.glob}`);
+    assert.deepEqual(bad, [], `実在しないか依頼の番号の無い負債の行:\n${bad.join("\n")}`);
+  });
+
   test("代表のパスが期待の kind になる", () => {
     const cases = [
       ["package.json", "edit"],
@@ -59,6 +69,7 @@ describe("実リポジトリの intake.txt", () => {
       [".claude/rules/shortcuts.md", "marker"],
       ["src/lib/CATALOG.md", "append"],
       ["src/features/core/user/services/server/userService.ts", null],
+      ["src/features/core/setting/setting.extended.ts", "debt"],
       ["eslint.config.mjs", null],
       ["eslint.config.fork.mjs", "edit"],
       ["tsconfig.json", null],

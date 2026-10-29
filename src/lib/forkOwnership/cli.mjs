@@ -49,7 +49,8 @@ function parseArgs(argv) {
 function print(result, { verbose }) {
   const lines = [];
   if (result.status === "tier1") {
-    lines.push(`親なし(Tier1: ${result.ownerId}): 対象外`);
+    lines.push(`親なし(Tier1: ${result.ownerId}): 対象外 — upstream の負債の行 ${result.debt.length}(src/lib/forkOwnership/intake.txt の debt)`);
+    if (verbose) for (const path of result.debt) lines.push(`  debt ${path}`);
     return lines;
   }
   if (result.status === "unverified") {

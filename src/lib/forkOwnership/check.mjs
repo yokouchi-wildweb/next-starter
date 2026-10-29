@@ -101,7 +101,11 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
   const ownerId = resolveOwnerId(repoRoot);
   const tier1 = isTier1(repoRoot, ownerId);
   if (tier1 === null) return unverified("自分の所有者 ID か src/lib/CATALOG.md が読めない(origin を確かめる)", { ownerId });
-  if (tier1) return { status: "tier1", ownerId };
+  if (tier1) {
+    // Tier1 は検査の対象外。upstream の負債の行の数だけ返す(D29: 件数を Tier1 のコマンドと /inbox に出す)
+    const own = parseIntake(show(repoRoot, "HEAD", INTAKE_PATH) ?? "");
+    return { status: "tier1", ownerId, debt: own.rules.filter((rule) => rule.kind === "debt").map((rule) => rule.glob) };
+  }
 
   if (tryGit(repoRoot, ["rev-parse", "--is-shallow-repository"])?.trim() === "true") {
     return unverified("shallow clone では基準を求められない(git fetch --unshallow)", { ownerId });

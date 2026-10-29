@@ -65,4 +65,23 @@ generated src/styles/_base/gradient.css  # scripts/styles/generate-gradient-css.
 generated src/features/core/mail/constants/colors.ts  # scripts/mail/generate-colors.ts
 generated src/features/core/userProfile/generated/**  # pnpm role:generate
 
-# 負債(upstream が core の中の編集を案内している箇所。中身は後の段階で載せる)
+# 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。
+# 理由 = 案内の所在 → 受け口づくりの依頼(一時許可の upreq に書く番号)。受け口ができた notice で行を外す)
+debt src/features/core/purchaseRequest/services/server/completion/index.ts  # completion/index.ts:7 独自戦略の import を足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/purchaseRequest/services/server/payment/enrichers/index.ts  # enrichers/index.ts:3 エンリッチャーを足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/purchaseRequest/services/server/hooks/definitions/index.ts  # hooks/definitions/index.ts:3 フックを足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/milestone/services/server/definitions/index.ts  # definitions/index.ts:3 マイルストーンを足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/milestone/components/renderers/index.ts  # renderers/index.ts:3 レンダラーを足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/referralReward/config.ts  # config.ts:3 報酬の定義を足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/referralReward/services/server/handlers/index.ts  # handlers/index.ts:3 ハンドラーを足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/batchJob/services/server/registerHandlers.ts  # batchJob/README.md:114 import を足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/adminCommand/config/categories.ts  # categories.ts「編集可能」カテゴリを登録 → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/adminCommand/config/plugins.ts  # plugins.ts「編集可能」プラグインを登録 → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/wallet/components/common/currencyIcons.tsx  # currencyIcons.tsx 通貨のアイコンを足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/chatRoom/utils/validation.ts  # validation.ts:5 ファイル種別の制限を足す → upreq:20261029-200108-debt-intake-registries
+debt src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # RateLimitWarningContent.tsx:2 文言を編集 → upreq:20261029-200108-debt-intake-texts
+debt src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts  # adjustmentNotificationTemplate.ts:3・wallet/README.md:192 文言を編集 → upreq:20261029-200108-debt-intake-texts
+debt src/features/core/referral/components/InviteCode/InviteBenefitsSection.tsx  # InviteBenefitsSection.tsx:4 部品を差し替え → upreq:20261029-200108-debt-intake-texts
+debt src/app/api/webhook/line/route.ts  # route.ts:17 ファイルを差し替え → upreq:20261029-200108-debt-intake-texts
+debt src/features/core/setting/setting.extended.ts  # setting.extended.ts:4・CLAUDE.md DOMAINS setting フィールドを足す → upreq:20261029-200108-debt-intake-setting
+debt src/features/core/setting/setting.sections.tsx  # setting.sections.tsx:5 設定カテゴリを足す → upreq:20261029-200108-debt-intake-setting

@@ -16,6 +16,7 @@ argument-hint: "[指令の id / ファイル名 (省略で一覧)]"
 対象指定: $ARGUMENTS
 
 ## $ARGUMENTS が空のとき（一覧モード）
+0. 自リポが Tier1(`src/lib/CATALOG.md` の先頭の節の持ち主)なら、`pnpm -s ownership:check` の 1 行目(upstream の負債の行の数)を一覧の先頭に 1 行で添える(負債 = upstream が core の中の編集を下流に案内している箇所。受け口づくりの指令が受信箱にある。src/lib/forkOwnership/README.md「受け口の一覧」)。Tier1 でなければ何もしない
 1. `node .claude/skills/order/mailbox.mjs inbox` で、自リポ宛ての未対応（`open` / `waiting` / `resumable`）を取得する。
 2. 指令は出力の `need:`・`from:` を使い、**1行サマリ（id / need / from）**を日本語で一覧表示（from がリポで自リポなら「自分宛て」、チームの役職なら「fleet の提督から」のようにチームと役職名を書く。mailbox.mjs の一覧はチームの指令を `from: <team> <instance> <役職名>` と出す。リポで動いていても自分宛てとは書かない）。`waiting` は「待ち（<待っている先>）」、`resumable` は「再開可」と添える。
 3. 件数で分岐（`waiting` は数えない）:

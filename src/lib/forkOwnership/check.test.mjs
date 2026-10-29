@@ -80,7 +80,9 @@ describe("ownership:check", () => {
 
   test("Tier1(CATALOG.md の先頭の節の持ち主)は対象外で 0", () => {
     const parent = makeParent();
-    assert.equal(runCheck(parent).status, "tier1");
+    const result = runCheck(parent);
+    assert.equal(result.status, "tier1");
+    assert.deepEqual(result.debt, []);
     assert.equal(cli(parent).status, 0);
   });
 
