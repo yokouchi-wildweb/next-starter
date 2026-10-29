@@ -4,6 +4,7 @@
 import {
   WALLET_EXPIRATION_CONFIG,
   type WalletExpirationBasis,
+  type WalletExpirationConfig,
   type WalletExpiredNotice,
   type WalletPreExpiryNoticeStage,
 } from "@/config/app/wallet-expiration.config";
@@ -48,6 +49,48 @@ export function getExpirationEnabledWalletTypes(): WalletType[] {
   return (Object.keys(WALLET_EXPIRATION_CONFIG) as WalletType[]).filter((type) =>
     isExpirationEnabled(type),
   );
+}
+
+/**
+ * ロット初期化（wallet-lots-init / wallet-lots-init-from-history）の対象通貨の指定。
+ * "all" = ロット管理が有効な全通貨。通貨名の配列 = その通貨だけ（他の通貨のロットには触れない）。
+ * 初期化は失効カウントを作り直す取り消せない操作のため、全通貨か特定の通貨かを必ず明示させる。
+ */
+export type WalletLotsInitSelection = readonly string[] | "all";
+
+/**
+ * ロット初期化の対象通貨を決める。書き込みの前に呼ぶこと。
+ *
+ * - 存在しない通貨・ロット管理が無効（expirationDays: null）の通貨が含まれていれば throw する（fail-closed）
+ * - 通貨名の重複は1つにまとめる。空の配列は throw する
+ * - "all" で有効な通貨が無い場合は空配列（何もしない）
+ */
+export function resolveWalletLotsInitTypes(
+  selection: WalletLotsInitSelection,
+  config: Record<string, WalletExpirationConfig> = WALLET_EXPIRATION_CONFIG,
+): WalletType[] {
+  const knownTypes = Object.keys(config) as WalletType[];
+  const enabledTypes = knownTypes.filter((type) => config[type]?.expirationDays != null);
+  if (selection === "all") return enabledTypes;
+
+  const requested = [...new Set(selection)];
+  if (requested.length === 0) {
+    throw new Error("ロット初期化の対象通貨が指定されていません（全通貨なら \"all\" を指定）");
+  }
+
+  const unknown = requested.filter((type) => !knownTypes.includes(type as WalletType));
+  if (unknown.length > 0) {
+    throw new Error(
+      `存在しない通貨です: ${unknown.join(", ")}（通貨: ${knownTypes.join(", ")}）`,
+    );
+  }
+  const disabled = requested.filter((type) => !enabledTypes.includes(type as WalletType));
+  if (disabled.length > 0) {
+    throw new Error(
+      `有効期限が無効（expirationDays: null）の通貨です: ${disabled.join(", ")}（wallet-expiration.config.ts で有効化してから実行する）`,
+    );
+  }
+  return requested as WalletType[];
 }
 
 /**

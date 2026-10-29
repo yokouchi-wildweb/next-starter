@@ -1,0 +1,15 @@
+# DOWNSTREAM NOTICE id:20261029-114238-wallet-lots-init-wallet-type-required
+from: git@github.com:yokouchi-wildweb/next-starter.git | branch:main | commit:- (this commit)
+date: 2026-10-29T11:42:38+09:00
+severity: action-required
+checkpoint: wallet-lots-init-wallet-type-required
+change: The wallet lot init tasks now require an explicit target: `pnpm task wallet-lots-init -- --wallet-type <type>[,<type>...]` (repeatable) or `-- --all` (all expiration-enabled types); the same for `wallet-lots-init-from-history` (`--dry-run` respects it). Only the listed types are rebuilt, other types' lots are untouched. Running with neither flag (the old invocation) prints usage and writes nothing; an unknown type or a type with `expirationDays: null` fails before any write. Service API: `initWalletLots({ walletTypes })` / `initWalletLotsFromHistory({ walletTypes, dryRun? })` — `walletTypes: string[] | "all"` is required (resolver: `resolveWalletLotsInitTypes` in src/features/core/wallet/utils/expiration.ts).
+why: Init discards and rebuilds lots, restarting every user's expiry clock for the targeted currencies. The old no-argument form rebuilt ALL enabled currencies, so a fork adding a second currency to an already-live expiry setup also reset the live one. Requiring the target makes that mistake impossible.
+required_actions:
+1. Search the fork for old invocations outside upstream-owned files: `grep -rn "wallet-lots-init" --include=*.md --include=*.ts --include=*.mjs --include=*.json --include=*.sh . --exclude-dir=node_modules --exclude-dir=.next` (ignore src/features/core/wallet/, src/lib/cron/README.md, scripts/tasks/run.ts and src/config/app/wallet-expiration.config.ts lines that came from upstream). In fork-owned runbooks / docs / scripts, rewrite `pnpm task wallet-lots-init` and `pnpm task wallet-lots-init-from-history` to name the currency explicitly (`-- --wallet-type <type>`), or `-- --all` only where every enabled currency is meant to be rebuilt.
+2. Search for direct calls: `grep -rn "initWalletLots\|initWalletLotsFromHistory" src scripts`. Outside src/features/core/wallet/ and scripts/tasks/run.ts, add the required `walletTypes` option (`["<type>"]` or `"all"`).
+3. If src/config/app/wallet-expiration.config.ts in the fork already enables a currency and its header comment was edited by the fork, keep the fork's values; only the comment wording changed upstream (step 2 of the enable procedure).
+verify: `pnpm typecheck` passes; `pnpm test:wallet-expiration` passes; `pnpm task wallet-lots-init` (no flags) prints the usage error and exits without writing.
+manual_steps: -
+refs: scripts/tasks/run.ts (readWalletLotsInitSelection), src/features/core/wallet/utils/expiration.ts (resolveWalletLotsInitTypes), src/features/core/wallet/README.md 「導入手順（ダウンストリーム）」「運用ルール」, src/lib/cron/README.md
+notes: No schema change, no db:push. Adding a currency to a live setup: enable it in config → deploy → `pnpm task wallet-lots-init -- --wallet-type <new type>` (or the from-history variant); only that currency's consumption fails with lot mismatch until init finishes.

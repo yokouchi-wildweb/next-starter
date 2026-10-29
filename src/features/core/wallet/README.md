@@ -632,7 +632,7 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
   範囲内に行が無ければ全額が期限を過ぎた分になる）
 - **運用中の通貨で数え方を切り替える**: ロットの作り直しは要らない。`"grant"` → `"lastActivity"` では、
   切り替え後の最初の残高変更で残っている全ロットの失効日が揃う（それまでは元の失効日のまま）。
-  切り替え時点から揃えたい場合は初期化をやり直す（運用ルールの「再実行」の注意を参照）。
+  切り替え時点から揃えたい場合はその通貨を `--wallet-type` で指定して初期化をやり直す（運用ルールの「再実行」の注意を参照）。
   `"lastActivity"` → `"grant"` は、残っているロットが次の付与から付与ごとの扱いに戻る
 
 ### 導入手順（ダウンストリーム）
@@ -641,7 +641,9 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
    ```typescript
    regular_coin: { expirationDays: 180, sweepEnabled: true },
    ```
-2. デプロイ後**すぐに**初期化を1回実行する。方式は2つあり、**どちらか一方だけ**を実行する:
+2. デプロイ後**すぐに**初期化を1回実行する。方式は2つあり、**どちらか一方だけ**を実行する。
+   対象通貨の指定は**必須**: `--wallet-type <通貨>`（繰り返し・カンマ区切り可）で指定した通貨だけ、`--all` でロット管理が有効な全通貨
+   （どちらも無いと使い方を出して止まる。存在しない通貨・`expirationDays: null` の通貨を含む指定は何も書き込まずに止まる）:
 
    | 方式 | タスク | 既存残高の扱い | 導入直後の失効 |
    |---|---|---|---|
@@ -650,13 +652,19 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
 
    ```bash
    # 導入日から数える
-   pnpm task wallet-lots-init
+   pnpm task wallet-lots-init -- --wallet-type regular_coin
 
    # 実際の付与日から数える（先に dry-run で対象件数と没収見込み額を確認する）
-   pnpm task wallet-lots-init-from-history -- --dry-run
-   pnpm task wallet-lots-init-from-history
+   pnpm task wallet-lots-init-from-history -- --wallet-type regular_coin --dry-run
+   pnpm task wallet-lots-init-from-history -- --wallet-type regular_coin
    ```
-   **注意**: config 有効化から初期化完了までの間、対象通貨の消費はロット不整合エラー（500）になる（どちらの方式でも同じ）。低トラフィック帯に実施するか、メンテナンスモードを併用すること。
+   **注意**: config 有効化から初期化完了までの間、その通貨の消費はロット不整合エラー（500）になる（どちらの方式でも同じ。
+   影響は初期化を待っている通貨だけ）。低トラフィック帯に実施するか、メンテナンスモードを併用すること。
+
+   **運用中の構成に通貨を足す**（すでに別の通貨で失効を運用している）場合は、**足した通貨だけを `--wallet-type` で指定する**。
+   `--all` は運用中の通貨のロットも作り直し、その通貨の全ユーザーの失効カウントが実行日から数え直しになる
+   （失効間近だった残高も expirationDays 延びる）。手順は 1 → デプロイ → 足した通貨だけを初期化、で導入時と同じ。
+   通貨ごとに違う方式（`wallet-lots-init` / `wallet-lots-init-from-history`）を選んでもよい
 
    `wallet-lots-init-from-history` を選ぶ場合の前提と注意:
    - **直近 expirationDays ぶんの `wallet_histories` が欠けていないこと**。履歴を残さない残高変更
@@ -687,10 +695,12 @@ regular_point: { expirationDays: 180, expirationBasis: "lastActivity", sweepEnab
 
 ### 運用ルール
 
-- **wallet-lots-init の再実行は失効カウントをリセットする**。導入時の1回だけ実行し、再実行は障害復旧時に限る
+- **初期化は指定した通貨のロットだけを作り直す**。他の通貨のロットには触れない。`--all` は有効な全通貨が対象になるため、
+  運用中の通貨がある構成では使わず、作り直す通貨を `--wallet-type` で指定する
+- **wallet-lots-init の再実行は対象通貨の失効カウントをリセットする**。導入時の1回だけ実行し、再実行は障害復旧時に限る
 - **wallet-lots-init-from-history の再実行は、その時点の残高と履歴からロットを作り直す**。既に没収された分は
   残高から引かれているので二重に没収されることはない。導入時と違う方式で再実行すると失効日が変わる点に注意
-- **無効化→再有効化**: 無効化中は消費がロットに反映されないため、再有効化時は必ず初期化
+- **無効化→再有効化**: 無効化中は消費がロットに反映されないため、再有効化時は必ずその通貨を指定して初期化
   （`wallet-lots-init` / `wallet-lots-init-from-history` のどちらか）を再実行して re-baseline すること
 - **sweepEnabled: false**: ロット記録と失効間近照会だけ先行させ、没収は行わない（規約告知期間などに使用）
 - **locked_balance 保護**: 失効額は利用可能残高（`balance - locked_balance`）が上限。予約中の分は失効せず次回スイープに持ち越し
@@ -857,6 +867,7 @@ const { items, nextCursor } = await walletService.listExpirationResults({
 - 初期化（導入日から数える）: `services/server/lots/initWalletLots.ts`
 - 初期化（実際の付与日から数える）: `services/server/lots/initWalletLotsFromHistory.ts`
   （復元ロジックの純粋関数: `utils/lotPlanning.ts` / テスト: `pnpm test:wallet-lot-planning`）
+- 初期化の対象通貨の決定: `utils/expiration.ts` の `resolveWalletLotsInitTypes`（テスト: `pnpm test:wallet-expiration`）
 - 照会: `services/server/lots/getExpiringLots.ts`
 - 失効通知の cron 本体: `services/server/notification/sendWalletExpirationNotices.ts`
   （予告: `sendPreExpiryNotices.ts` / 本通知: `sendExpiredNotices.ts` / 共通の送信処理: `expirationNoticeSender.ts`）

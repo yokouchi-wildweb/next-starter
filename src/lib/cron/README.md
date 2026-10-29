@@ -157,8 +157,8 @@ export const cronOverride: CronTaskOverride = {
 
 - `purchase-quota-cleanup` — 90 日より古い購入クォータ台帳を物理削除する定期メンテナンス（任意）。定期実行したい fork は `src/app/api/cron/<別名>/` に task.ts と route.ts を足す（`ONE_SHOT_TASKS` と同名は不可）。詳細: `src/features/core/purchaseQuota/README.md` の「cron」
 - ワンショット（**定期実行してはいけない**。導入時などに手動で 1 回だけ実行する）:
-  - `wallet-lots-init` — ウォレット有効期限の導入時のデータ移行。再実行は全ユーザーの失効カウントをリセットする
-  - `wallet-lots-init-from-history` — `wallet-lots-init` の代替（導入時に**どちらか一方だけ**実行）。付与履歴から実際の付与日でロットを復元し、既に期限を過ぎた分は次回の `wallet-expire-lots` で没収される。`-- --dry-run` で対象件数と没収見込み額を事前確認できる。詳細: `src/features/core/wallet/README.md` の「導入手順（ダウンストリーム）」
+  - `wallet-lots-init` — ウォレット有効期限の導入時のデータ移行。対象通貨の指定が必須（`-- --wallet-type <通貨>` か `-- --all`）。再実行は対象通貨の全ユーザーの失効カウントをリセットする
+  - `wallet-lots-init-from-history` — `wallet-lots-init` の代替（導入時に**どちらか一方だけ**実行）。付与履歴から実際の付与日でロットを復元し、既に期限を過ぎた分は次回の `wallet-expire-lots` で没収される。対象通貨の指定は `wallet-lots-init` と同じく必須。`--dry-run` で対象件数と没収見込み額を事前確認できる。詳細: `src/features/core/wallet/README.md` の「導入手順（ダウンストリーム）」
   - `user-name-dedup` — 表示名の一意性（`USER_NAME_CONFIG.unique`）有効化時に既存の重複表示名へサフィックスを付けて解消する。冪等。`-- --dry-run` で事前確認。詳細: `src/features/core/user/README.md` の「表示名 = ユーザー名（バリデーションと一意性）」
   - `user-status-history-backfill` — `user_status_histories` の過去分を retention 内の `audit_logs` から復元する。冪等。詳細: `src/features/core/user/README.md` の「ステータス遷移履歴」
   - `analytics-rollup-backfill -- <metricKey> [--from YYYY-MM-DD] [--to YYYY-MM-DD]` — 日次ロールアップの過去分を再計算する（遡及修正の再計算経路を兼ねる）。詳細: `src/features/core/analytics/README.md`

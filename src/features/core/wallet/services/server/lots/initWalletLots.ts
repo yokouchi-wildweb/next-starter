@@ -1,14 +1,16 @@
 // src/features/core/wallet/services/server/lots/initWalletLots.ts
 // ロット初期化（導入時に1回実行する必須手順）
 //
-// 有効期限が有効な全 walletType について、既存残高を
+// 指定した walletType（または有効な全通貨）について、既存残高を
 // 「実行日に取得した扱い」の初期ロット1本（expires_at = 実行時刻 + expirationDays）に変換する。
 // 既存ロットは全破棄してから作り直す（re-baseline）ため、再実行も安全。
+// expirationBasis によらず同じ（lastActivity でも「実行日が最後の残高変更」の扱いになる）。
 //
-// [!!] 再実行すると全ユーザーの失効カウントが実行日からリセットされる。
+// [!!] 再実行すると対象通貨の全ユーザーの失効カウントが実行日からリセットされる。
 //     通常は導入時の1回だけ実行し、再実行は障害復旧（無効化→再有効化）の場合に限ること。
+//     運用中の構成に通貨を足すときは、足した通貨だけを指定する（"all" だと運用中の通貨も作り直される）。
 //
-// 実行方法: pnpm task wallet-lots-init
+// 実行方法: pnpm task wallet-lots-init -- --wallet-type <通貨>[,<通貨>...] | --all
 // 詳細な導入手順: src/features/core/wallet/README.md
 
 import { and, eq, gt, inArray } from "drizzle-orm";
@@ -19,7 +21,8 @@ import { runAsSystem } from "@/lib/audit";
 import {
   calcExpiresAt,
   getExpirationDays,
-  getExpirationEnabledWalletTypes,
+  resolveWalletLotsInitTypes,
+  type WalletLotsInitSelection,
 } from "@/features/core/wallet/utils/expiration";
 import { resolveRequestBatchId } from "../wrappers/utils";
 
@@ -38,11 +41,17 @@ export type InitWalletLotsResult = {
   totalAmount: number;
 };
 
+export type InitWalletLotsOptions = {
+  /** 対象通貨（必須）。"all" = ロット管理が有効な全通貨 */
+  walletTypes: WalletLotsInitSelection;
+};
+
 /**
- * 有効期限が有効な全通貨の既存残高を初期ロットに変換する。
+ * 指定した通貨の既存残高を初期ロットに変換する。
+ * 存在しない通貨・無効な通貨の指定は、書き込みの前に throw する。
  */
-export async function initWalletLots(): Promise<InitWalletLotsResult> {
-  const walletTypes = getExpirationEnabledWalletTypes();
+export async function initWalletLots(options: InitWalletLotsOptions): Promise<InitWalletLotsResult> {
+  const walletTypes = resolveWalletLotsInitTypes(options.walletTypes);
 
   if (walletTypes.length === 0) {
     return { walletTypes: "", initializedWallets: 0, totalAmount: 0 };

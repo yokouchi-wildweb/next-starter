@@ -14,8 +14,10 @@
 //
 // [!!] initWalletLots とどちらか一方だけを、導入時に1回実行すること。
 //     前提: 直近 expirationDays ぶんの wallet_histories が欠けていないこと。
+//     運用中の構成に通貨を足すときは、足した通貨だけを指定する（"all" だと運用中の通貨も作り直される）。
 //
-// 実行方法: pnpm task wallet-lots-init-from-history -- --dry-run で確認 → dry-run なしで実行
+// 実行方法: pnpm task wallet-lots-init-from-history -- --wallet-type <通貨>[,<通貨>...] | --all
+//          （先に --dry-run で確認 → dry-run なしで実行）
 
 import { and, desc, eq, gt, gte, inArray, max, ne } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
@@ -26,7 +28,8 @@ import { runAsSystem } from "@/lib/audit";
 import {
   getExpirationBasis,
   getExpirationDays,
-  getExpirationEnabledWalletTypes,
+  resolveWalletLotsInitTypes,
+  type WalletLotsInitSelection,
 } from "@/features/core/wallet/utils/expiration";
 import {
   planLastActivityLot,
@@ -49,6 +52,8 @@ const LOT_INSERT_CHUNK_SIZE = 1000;
 const WALLET_AUDIT_RETENTION_DAYS = 730;
 
 export type InitWalletLotsFromHistoryOptions = {
+  /** 対象通貨（必須）。"all" = ロット管理が有効な全通貨 */
+  walletTypes: WalletLotsInitSelection;
   dryRun?: boolean;
 };
 
@@ -173,13 +178,14 @@ async function planLastActivityLots(params: PlanBatchParams): Promise<Map<string
 }
 
 /**
- * 有効期限が有効な全通貨の既存残高を、付与履歴に基づくロットに変換する。
+ * 指定した通貨の既存残高を、付与履歴に基づくロットに変換する。
+ * 存在しない通貨・無効な通貨の指定は、書き込みの前に（dryRun でも）throw する。
  */
 export async function initWalletLotsFromHistory(
-  options: InitWalletLotsFromHistoryOptions = {},
+  options: InitWalletLotsFromHistoryOptions,
 ): Promise<InitWalletLotsFromHistoryResult> {
   const dryRun = options.dryRun ?? false;
-  const walletTypes = getExpirationEnabledWalletTypes();
+  const walletTypes = resolveWalletLotsInitTypes(options.walletTypes);
 
   if (walletTypes.length === 0) {
     return {

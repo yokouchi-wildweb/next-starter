@@ -33,6 +33,29 @@ import { type LoadedCronTask, loadCronTasks } from "../cron/discover";
 type TaskFn = () => Promise<Record<string, unknown>>;
 
 /**
+ * ウォレットロット初期化の対象通貨を CLI 引数から読む。
+ * --wallet-type <通貨>（繰り返し・カンマ区切り可）か --all のどちらか一方を必須にする
+ * （初期化は失効カウントを作り直す取り消せない操作のため、指定の忘れで全通貨を作り直させない）。
+ * 通貨名の検証（存在しない・無効な通貨）はサービス側が書き込みの前に行う。
+ */
+function readWalletLotsInitSelection(taskName: string, args: string[]): string[] | "all" {
+  const usage = `使い方: pnpm task ${taskName} -- --wallet-type <通貨>[,<通貨>...] | --all（どちらか一方が必須）`;
+  const walletTypes: string[] = [];
+  args.forEach((arg, index) => {
+    if (arg !== "--wallet-type") return;
+    const value = args[index + 1];
+    if (!value || value.startsWith("--")) throw new Error(`--wallet-type の値がありません。${usage}`);
+    walletTypes.push(...value.split(",").map((type) => type.trim()).filter((type) => type !== ""));
+  });
+  const all = args.includes("--all");
+
+  if (all && walletTypes.length > 0) throw new Error(`--wallet-type と --all は同時に指定できません。${usage}`);
+  if (all) return "all";
+  if (walletTypes.length === 0) throw new Error(usage);
+  return walletTypes;
+}
+
+/**
  * ワンショット・任意タスク
  * ここに追加 = pnpm task <name> で実行可能になる（定期実行はされない）
  */
@@ -67,22 +90,28 @@ const ONE_SHOT_TASKS: Record<string, TaskFn> = {
       to: readFlag("to"),
     });
   },
-  // 導入時1回だけの初期化（定期実行しない。再実行は全ユーザーの失効カウントをリセットするので注意）
+  // 導入時1回だけの初期化（定期実行しない。再実行は対象通貨の全ユーザーの失効カウントをリセットするので注意）
+  // 使い方: pnpm task wallet-lots-init -- --wallet-type <通貨>[,<通貨>...] | --all
   "wallet-lots-init": async () => {
     const { initWalletLots } = await import(
       "@/features/core/wallet/services/server/lots/initWalletLots"
     );
-    return await initWalletLots();
+    const args = process.argv.slice(3).filter((arg) => arg !== "--");
+    return await initWalletLots({ walletTypes: readWalletLotsInitSelection("wallet-lots-init", args) });
   },
   // 導入時1回だけの初期化（定期実行しない。wallet-lots-init の代替でどちらか一方だけ実行する）:
   // 付与履歴からロットを復元し、既に期限を過ぎた分を次回スイープの没収対象にする
-  // 使い方: pnpm task wallet-lots-init-from-history -- --dry-run で対象確認 → dry-run なしで実行
+  // 使い方: pnpm task wallet-lots-init-from-history -- (--wallet-type <通貨>[,<通貨>...] | --all) [--dry-run]
+  //        --dry-run で対象確認 → dry-run なしで実行
   "wallet-lots-init-from-history": async () => {
     const { initWalletLotsFromHistory } = await import(
       "@/features/core/wallet/services/server/lots/initWalletLotsFromHistory"
     );
-    const args = process.argv.slice(3);
-    return await initWalletLotsFromHistory({ dryRun: args.includes("--dry-run") });
+    const args = process.argv.slice(3).filter((arg) => arg !== "--");
+    return await initWalletLotsFromHistory({
+      walletTypes: readWalletLotsInitSelection("wallet-lots-init-from-history", args),
+      dryRun: args.includes("--dry-run"),
+    });
   },
   // 導入時1回だけの過去分復元（定期実行しない。冪等なので再実行は安全）
   "user-status-history-backfill": async () => {

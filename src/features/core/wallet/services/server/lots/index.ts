@@ -12,7 +12,7 @@ export {
 export { sweepExpiredWalletLots } from "./sweepExpiredLots";
 export type { SweepExpiredLotsOptions, SweepExpiredLotsResult } from "./sweepExpiredLots";
 export { initWalletLots } from "./initWalletLots";
-export type { InitWalletLotsResult } from "./initWalletLots";
+export type { InitWalletLotsOptions, InitWalletLotsResult } from "./initWalletLots";
 export { initWalletLotsFromHistory } from "./initWalletLotsFromHistory";
 export type {
   InitWalletLotsFromHistoryOptions,
