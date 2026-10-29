@@ -3,7 +3,7 @@
 import { APP_HEADER_ELEMENT_ID } from "@/components/AppFrames/constants";
 import { Button } from "@/components/Form/Button/Button";
 
-import { useHeaderData } from "../../hooks";
+import { useHeaderData } from "@/app/(user)/_layout/hooks";
 import { Brand } from "./Brand";
 import { HeaderShell } from "./HeaderShell";
 import { PcNavigation } from "./Pc/PcNavigation";
@@ -15,14 +15,12 @@ export const UserNavigation = () => {
     enabled,
     navItems,
     navEnabled,
-    navVisibility,
     showIcons,
     isMenuOpen,
     closeMenu,
     toggleMenu,
     headerRef,
     headerOffset,
-    visibilityClass,
   } = useHeaderData();
 
   // ヘッダー自体が無効の場合は何も表示しない
@@ -30,16 +28,16 @@ export const UserNavigation = () => {
     return null;
   }
 
-  // SP表示可否
-  const showSpNav = navEnabled.sp && navVisibility.sp;
-  // PC表示可否
-  const showPcNav = navEnabled.pc && navVisibility.pc;
+  // ナビの可否は config(HEADER_NAV_ENABLED)。ページ単位で隠すのは Hide* の印の CSS(ナビの部品の data-frame-part="header-nav")
+  const showSpNav = navEnabled.sp;
+  const showPcNav = navEnabled.pc;
 
   return (
     <header
       id={APP_HEADER_ELEMENT_ID}
+      data-frame-part="header"
       ref={headerRef}
-      className={`fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-header text-header-foreground ${visibilityClass}`}
+      className="fixed shadow inset-x-0 top-0 header-layer border-b border-border bg-header text-header-foreground"
     >
       <HeaderShell
         left={<Brand />}

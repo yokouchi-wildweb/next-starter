@@ -36,7 +36,7 @@ User/
 
 ### スケルトンテンプレート
 
-`HeaderCustom/index.tsx` と `FooterCustom/index.tsx` には、共通フック(`@/app/(user)/_layout/hooks`)を使用したスケルトンテンプレートが用意されています。デザインのみをカスタマイズすれば、設定ファイルとの連携やロジックは自動的に機能します。
+`HeaderCustom/index.tsx` と `FooterCustom/index.tsx` には、共通フック(`@/app/(user)/_layout/hooks`)を使用したスケルトンテンプレートが用意されています。デザインのみをカスタマイズすれば、設定ファイルとの連携やロジックは自動的に機能します。雛形の部品は `data-frame-part`(`header` / `header-nav` / `footer`)を持つので Hide* の印で隠れる。編集・コピーしてもこの属性は残す。
 
 ### 手順
 
