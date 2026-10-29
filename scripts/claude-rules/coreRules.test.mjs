@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const coreDir = ".claude/rules/core";
 const MAX_CLAUDE_MD_LINES = 200;
+const MAX_CLAUDE_MD_LINE_CHARS = 400;
 
 const claudeMd = readFileSync(join(repoRoot, "CLAUDE.md"), "utf8");
 const ruleFiles = readdirSync(join(repoRoot, coreDir)).filter((f) => f.endsWith(".md")).sort();
@@ -42,6 +43,15 @@ export function staticPrefix(pattern) {
 test(`CLAUDE.md は ${MAX_CLAUDE_MD_LINES} 行未満`, () => {
   const lines = claudeMd.split("\n").length - (claudeMd.endsWith("\n") ? 1 : 0);
   assert.ok(lines < MAX_CLAUDE_MD_LINES, `CLAUDE.md が ${lines} 行です。細部は README か ${coreDir}/ へ移してください`);
+});
+
+test(`CLAUDE.md の各行は ${MAX_CLAUDE_MD_LINE_CHARS} 字以内`, () => {
+  // FORMAT_RULE: 長い行は sub-bullet に割る(字数は JS の文字列長 = UTF-16 単位で数える)
+  const long = claudeMd
+    .split("\n")
+    .map((text, index) => ({ line: index + 1, length: text.length }))
+    .filter((item) => item.length > MAX_CLAUDE_MD_LINE_CHARS);
+  assert.deepEqual(long, [], `${MAX_CLAUDE_MD_LINE_CHARS} 字を超える行: ${long.map((item) => `${item.line} 行目(${item.length} 字)`).join(", ")}。sub-bullet に割ってください`);
 });
 
 test(`${coreDir}/ のファイルが 1 つ以上ある`, () => {

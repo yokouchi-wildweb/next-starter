@@ -212,7 +212,12 @@ src/app/(user)/(protected)/points/
 
 ### 上流の画面を使わない
 
-ルートごと削除してよい。以後 merge で `_screen/` の modify/delete 衝突が出たら再度削除する（/flux が扱う）。
+ルートは削除・移動・rename しない（`_` 付きへの rename による無効化も同じ）。止めるときはスイッチを使う。
+
+- 止める: `src/config/app/app-features.config.ts` のページのスイッチ（`pages.*`・`adminConsole.enable*` 等）を `false` にする。スイッチの無いページは feature-gate のルール（`src/config/app/feature-gate.config.ts`、`=<path>` で完全一致）で止める。止めたページは 404 になり、ルート地図（`pnpm routes:map`）に `gated-off(<pattern>)` と載る
+- 置き換える: 自分の画面は `_components/` に別名で作り、page.tsx の 1 行スイッチをそこへ向ける（上の「上流の画面を変えたい」）。別の URL に作るなら自分のルートとして足す
+- スイッチも feature-gate のルールも当たらないページ: 削除せず、直接の親に `/order` で止める口を頼み、それまでは一時許可で通す（`src/lib/forkOwnership/README.md`「一時許可」）
+- 削除・rename は `pnpm ownership:check` が違反にする（`/flux` の区間が閉じない）。以前に消したルートは、止めてから `git checkout upstream/main -- <path>` で戻す
 
 ### やってはいけないこと
 
@@ -222,6 +227,8 @@ src/app/(user)/(protected)/points/
 - loader を `features/<domain>/` に置かない（ルートの `_screen/loader.ts` へ。エンティティの無い「loader 置き場ドメイン」を作らない）
 
 ### それでも core を編集したとき（上流の呼び出し側と互換を保つ）
+
+core の編集は受け口の外なので、直接の親への依頼と一時許可が要る（`src/lib/forkOwnership/README.md`「一時許可」。許可が無いと `pnpm ownership:check` が違反にする）。許可のある間も次の互換を守る。
 
 page.tsx を `_components/` に向けて上流の既定 Screen を使っていなくても、`_screen/*` のファイルは残るので **fork の `tsc` の検査対象のまま**になる。core のコンポーネント・hook・service を非互換に変えると、上流がそれを呼ぶ Screen を足したり切り替えたりした merge で `tsc` が落ちる。
 

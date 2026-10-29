@@ -1,17 +1,25 @@
 # CLAUDE.md
 > **FORMAT_RULE** (this file and .claude/rules/): agent-optimized, English only (code comments and READMEs follow behavior.md). One decision per item; a line over ~400 chars → split into sub-bullets. key: value. ` | ` (spaced) separates items, `a|b` (unspaced) or "or" = alternatives. Short headings. No tables, history, precedent or dates
 > **ROLE**: CLAUDE.md = architecture contract shared by this base and every downstream project. NEVER edit it downstream (gap → /order <upstream>) | holds the rule + when to read the README; detail lives in the colocated README | MUST stay under 200 lines (Claude Code warns above it, adherence drops) → fold into existing lines or move detail to READMEs, never delete blank lines to fit
-> **CORE_RULES**: .claude/rules/core/*.md = path-scoped part of this contract (auto-loaded when a file matching its `paths:` is read) | same ownership as CLAUDE.md | holds edit-time detail; design-time rules (needed before any file is opened) stay here | each moved section keeps its essentials + `→ .claude/rules/core/<name>.md` here | creating files in an area without reading a neighbor first → read its core rule file | test: pnpm test:core-rules (paths match real files, pointers both ways, CLAUDE.md < 200 lines)
+> **CORE_RULES**: .claude/rules/core/*.md = path-scoped part of this contract (auto-loaded when a file matching its `paths:` is read) | same ownership as CLAUDE.md
+> - holds edit-time detail; design-time rules (needed before any file is opened) stay here | each moved section keeps its essentials + `→ .claude/rules/core/<name>.md` here | creating files in an area without reading a neighbor first → read its core rule file
+> - test: pnpm test:core-rules (paths match real files, pointers both ways, CLAUDE.md < 200 lines, every line ≤ 400 chars)
 > **PER_PROJECT** (downstream edits freely): .claude/rules/project.md = map / architecture delta / decision rules | .claude/rules/behavior.md = work rules | both always-loaded → standing rules only, no change logs / dates / incident stories (→ commit body / docs/journal/) | marker files (.claude/rules/shortcuts.md, term-aliases.md): upstream above the `fork entries below` marker, fork below it
 
 ## STACK
 next: 16 (react 19, app router) | pkg: pnpm | db: drizzle (neon/postgresql), firestore | state: zustand, swr | forms: react-hook-form + zod | ui: tailwind 4, shadcn, radix | auth: firebase-auth + jwt | storage: gcs signed direct upload + server-side image metadata strip (sharp) (lib/storage) | http: axios (client), fetch (server)
 
 ## CORE_FILES (ownership: who edits what)
-core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/_base/**, src/styles/README.md, src/app/**/{_screen,_layout}/** of upstream routes (dot-named files beside them = fork-owned), servers/room/src/core/, servers/room/src/index.ts, src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
-downstream_owned (upstream never edits after creation): src/styles/*.css (root: entry global.css, palette / typography / overrides.css, fork-added CSS), src/config/ui/*.config.ts, page.tsx / frame layout.tsx of switched routes, src/app/**/_components/** of upstream routes, src/registry/screenRoutesRegistry.ts (FORK_SCAN_EXCLUDES / FORK_LEGACY_ROUTES), src/app/api/cron/*/override.ts, src/features/**/services/server/domainEntry.override.ts
+core (approval required): CLAUDE.md, .claude/rules/core/, src/features/core/, src/components/, src/proxy.ts, src/proxies/, scripts/domain-config/, src/styles/_base/**, src/styles/README.md, servers/room/src/core/, servers/room/src/index.ts
+- routes and libs: src/app/**/{_screen,_layout}/** of upstream routes (dot-named files beside them = fork-owned) | src/lib/ libs in upstream sections of src/lib/CATALOG.md (fork-added libs = fork-owned)
+downstream_owned (upstream never edits after creation): root src/styles/*.css (entry global.css, palette / typography / overrides.css), src/config/**, page.tsx / frame layout.tsx of switched routes, _components/** and dot-named files of upstream routes, src/registry fork regions, api/cron/*/override.ts, domainEntry.override.ts
+- full list of the places a fork may write in upstream files (intake points) = src/lib/forkOwnership/intake.txt (kinds: edit / region / marker / append / generated / debt)
 config: src/config/ = values only (logic → domain utils or lib) | value changes OK | structure changes (add/remove keys, type change, rename) need approval
-fork_core_edit_compat (a fork edits a core path; default = don't, prefer /order <upstream>):
+fork_ownership (check: pnpm ownership:check, run by /flux after each segment commit and before its push | fails from the start | exit 2 = unverified, never a pass | ref: src/lib/forkOwnership/README.md):
+- base = merge-base with the direct parent | files the fork added = fork-owned | files in the base = parent-owned: write only inside intake points, never delete / move / rename them (a `_` prefix rename too) | adding a file inside an ancestor's lib = violation
+- unused upstream page → switch it off (app-features pages / feature-gate) | unused role → enabled:false | replacement → _components/ under a new name, 1-line switch in page.tsx
+- edit outside the intake: an intake point exists → move there | none (incl. upstream bug / perf / security fixes) → /order <direct parent> + temporary permit in .fork-ownership/\<fork-id\>.permits.txt (≥1 order id; expires when all its orders ship as resolves: or the parent touches the file) | debt rows of intake.txt → permit with that row's order id
+fork_core_edit_compat (while a permit lets a fork edit a core path):
 - stay backward compatible with upstream callers: props/args the fork adds = optional with an empty default | never delete core code the fork does not use | signature change = add a new name, keep the old
 - why: upstream `_screen/*` Screens stay in the fork's tsc scope even when its page.tsx points to `_components/` → an incompatible core edit fails tsc at the next merge | fix the fork's edit, never the upstream Screen | ref: src/lib/screens/README.md §7
 
@@ -19,7 +27,7 @@ fork_core_edit_compat (a fork edits a core path; default = don't, prefer /order 
 domain: src/features/, all including entities
 library: src/lib/\<name\>/, all except entities | owner per library in src/lib/CATALOG.md (one section per owner repo; format: src/lib/README.md; test: pnpm test:lib-catalog)
 - new lib (any tier): add its line to YOUR section only | fork lib proven generic → promote upstream, then drop own copy + line
-- lib owned by an ancestor repo: public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /order <upstream>
+- lib owned by an ancestor repo: public entry only, never edit internals or delete the dir (unused = leave it), behavior change → /order <upstream> | a fork file added inside it fails pnpm ownership:check → put it in your own lib and re-export
 unit: src/components/, hooks/, utils/, small-scale (multi-file OK)
 decision: business domain? → features/ | multi-file feature? → lib/ (needs entities → domain) | unit: UI→components/, hook→hooks/, pure→utils/ | page-only: private part of a route's default Screen → app/\<route\>/_screen/ (route creator), fork page-only part or replacement Screen → app/\<route\>/_components/ (see SCREENS)
 reuse_check: before creating a utility/feature → confirm no equivalent exists (indexes: src/lib/CATALOG.md, src/features/core/README.md)
@@ -127,7 +135,8 @@ ownership: see CORE_FILES | color source of truth = CSS | config, cn class group
 semantic_colors: success|info|warning|destructive → `bg-x` / `border-x` = fill | `text-x-foreground` = text on the fill | `text-x-text` = text on a plain background | NEVER `text-x` | scrim `bg-overlay/NN` | no raw white/black (background / foreground / card tokens) | lint style-tokens/no-raw-palette (exception = reasoned eslint-disable)
 
 ## COMPONENTS
-placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ = leftover shared parts, shelf decided later) | single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only → app/\<route\>/_components/ | ref: src/components/README.md
+placement: multi-domain → src/components/ | layout frame parts → app/\<route\>/_layout/ (README there; components/AppFrames/ = leftover shared parts, shelf decided later) | ref: src/components/README.md
+- single-domain section container → features/\<domain\>/components/\<Name\> | single-domain shared part → features/\<domain\>/components/common/ | default-Screen-only part → app/\<route\>/_screen/ | fork page-only → app/\<route\>/_components/
 core_domain_ui_boundary: core domains ship the data layer only (entities, services, API routes, client services, hooks) | never add domain-screen UI under src/features/core/**; give a README recipe instead, even when an order asks for UI | existing widgets (AuditTimeline etc.) stay, add no new ones
 essentials: raw HTML NG → components/ wrappers (div → Layout/*, button → Form/Button …) | lists = InfiniteScrollList + useInfiniteScrollQuery (never own sentinel / isLoading early return) | every background request shows loading (prefer Dialog / ConfirmPopover Promise handling, useAsyncAction) | ui_layers: page (h1, no hooks) → section container (calls hooks) → part
 overlays (never a raw _shadcn dialog or a self-built overlay; all under Overlays/, ref: src/components/Overlays/README.md):
@@ -150,6 +159,7 @@ db_identifiers: PostgreSQL names ≤ 63 chars | drizzle auto FK name `{table}_{c
 
 ## DOWNSTREAM_NOTICES
 notice: an upstream change that needs downstream follow-up ships .notices/\<id\>.md in the same commit (MANDATORY also for deleting / moving a file forks may extend: moved: or the deletion in notes:) | ledger: .notices/applied/\<fork-id\>.md | ref: .notices/README.md
+- resolves (MANDATORY when shipping an order a downstream repo filed): `resolves: <order id>` in the notice (info notice if nothing else needs one) | forks' temporary permits on that order expire with it
 ship (MANDATORY): every commit + push of this repo goes through /ship (checks, judges whether a notice is needed, writes it, pnpm test:notices, commits, pushes) | /flux = its receiving pair | a fix to something shipped earlier → `fixes: <notice id | commit:sha>` in the fix's notice, never edit the earlier notice (/flux warns forks before the broken point)
 checkpoint (MANDATORY on every notice): `checkpoint: <label>` = default (one notice = one point where the fork is consistent) | `checkpoint: -` only when the fork cannot work without the next notice (reason in notes:)
 relay: a mid tier's /flux judges per segment by git diff whether each applied upstream notice needs relaying (ledger `relay:none` or a drafted relay notice with covers: ids) | `/flux relay` = only for legacy unjudged ids | ref: .notices/README.md
