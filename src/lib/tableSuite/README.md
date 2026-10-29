@@ -154,6 +154,8 @@ const handleSortChange = (nextSort: SortState) => {
 
 ### buildDomainColumns との連携
 
+`presenters` を渡していない列は、生成の presenters.ts と同じ答え（`presenterFor`、src/lib/domain/README.md「何で表示するか」）で描く（boolean は「はい / いいえ」、数値の型は桁区切り、配列は「, 」区切り、enum は選択肢のラベル、画像はサムネイル、主の集まりは先頭 1 件と +N）。一覧特有の扱いは 2 つ: 空・null は空欄（presenters の「―」ではない）、textarea の文字列は `truncateLength` で切り詰める。リレーション・id・createdAt / updatedAt の列は今までどおり。
+
 `buildDomainColumns` の `sortableFields` オプションで sortKey を自動設定できる。
 
 ```tsx

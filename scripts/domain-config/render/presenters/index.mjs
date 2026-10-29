@@ -24,6 +24,7 @@ const FORMATTERS = {
   date: () => `formatDateValue(value, "YYYY/MM/DD", (val, fmt) => formatDateJa(val, { format: fmt, fallback: null }))`,
   collectionThumbnails: () => `formatCollectionThumbnails(value)`,
   mediaThumbnail: () => `formatMediaThumbnail(value)`,
+  mediaThumbnails: () => `formatMediaThumbnails(value)`,
 };
 
 function buildFormatter(field) {

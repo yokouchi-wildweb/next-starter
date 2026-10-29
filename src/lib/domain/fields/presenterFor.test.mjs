@@ -74,10 +74,12 @@ describe("presenterFor: 順の境目", () => {
     assert.deepEqual(presenterFor({ fieldType: "mediaUploader", formInput: "textInput" }), { kind: "string" });
   });
 
-  test("メディア: 主の集まり → 先頭と +N、メディアの型か入力種別 → サムネイル", () => {
+  test("メディア: 主の集まり → 先頭と +N、旧来の複数メディア列 → 重ねたサムネイル、メディアの型か入力種別 → サムネイル", () => {
     assert.deepEqual(presenterFor({ fieldType: "mediaCollection", formInput: "mediaUploaderMulti" }), { kind: "collectionThumbnails" });
     assert.deepEqual(presenterFor({ fieldType: "mediaUploader", formInput: "mediaUploader" }), { kind: "mediaThumbnail" });
     assert.deepEqual(presenterFor({ fieldType: "string", formInput: "fileUploader" }), { kind: "mediaThumbnail" });
+    // 旧来の複数メディア列（廃止型）。集まりは先に集まりで決まる
+    assert.deepEqual(presenterFor({ fieldType: "mediaUploaderMulti", formInput: "mediaUploaderMulti" }), { kind: "mediaThumbnails" });
   });
 
   test("未知の型は string（入力種別がメディアならサムネイル）", () => {

@@ -1,9 +1,10 @@
 import { isArrayFieldType } from "@/lib/domain/fields/fieldTypes.mjs";
+import { presenterFor } from "@/lib/domain/fields/presenterFor.mjs";
 import type { DataTableColumn } from "@/lib/tableSuite";
 import { formatDateJa } from "@/utils/date";
 import { truncateJapanese } from "@/utils/string";
 import type { FieldPresenter } from "./formatters";
-import { formatMediaThumbnail, formatMediaThumbnails } from "./media";
+import { formatCollectionThumbnails, formatMediaThumbnail, formatMediaThumbnails } from "./media";
 
 type FieldOption = {
   readonly value: unknown;
@@ -47,23 +48,14 @@ type BuildDomainColumnsParams<T> = {
 function buildLabelMap(config: DomainJsonConfig): {
   labelMap: Record<string, string>;
   inputMap: Record<string, string>;
-  optionLabelMap: Record<string, Record<string, string>>;
 } {
   const labelMap: Record<string, string> = {};
   const inputMap: Record<string, string> = {};
-  const optionLabelMap: Record<string, Record<string, string>> = {};
 
-  (config.fields ?? []).forEach(({ name, label, formInput, fieldType, options }) => {
+  (config.fields ?? []).forEach(({ name, label, formInput }) => {
     labelMap[name] = label ?? name;
     if (formInput) {
       inputMap[name] = formInput;
-    }
-
-    if (fieldType === "enum" && Array.isArray(options) && options.length > 0) {
-      optionLabelMap[name] = options.reduce<Record<string, string>>((acc, option) => {
-        acc[String(option.value)] = option.label ?? String(option.value);
-        return acc;
-      }, {});
     }
   });
 
@@ -75,55 +67,59 @@ function buildLabelMap(config: DomainJsonConfig): {
   labelMap.createdAt = labelMap.createdAt ?? "作成日時";
   labelMap.updatedAt = labelMap.updatedAt ?? "更新日時";
 
-  return { labelMap, inputMap, optionLabelMap };
+  return { labelMap, inputMap };
 }
 
+const formatDate = (value: unknown, format: string) => formatDateJa(value, { format, fallback: null });
+
+/**
+ * presenters を渡していない列の表示。domain.json の項目は生成の presenters.ts と同じ答え（presenterFor）で描く。
+ * 一覧特有の扱い: 空・null は空欄（presenters の "―" ではなく ""）、textarea の文字列は切り詰める、値が Date なら日付。
+ * 項目でない列（リレーション・id）と createdAt / updatedAt は presenterFor の外
+ */
 function renderValue({
   value,
   field,
-  inputType,
+  fieldConfig,
   truncateLength,
-  options,
 }: {
   value: unknown;
   field: string;
-  inputType?: string;
+  fieldConfig?: DomainFieldConfig;
   truncateLength: number;
-  options?: Record<string, string>;
 }) {
-  if (options) {
+  if (field === "createdAt" || field === "updatedAt") return formatDate(value, "YYYY/MM/DD HH:mm");
+  if (!fieldConfig) {
+    if (value instanceof Date) return formatDate(value, "YYYY/MM/DD");
+    return String(value ?? "");
+  }
+
+  const spec = presenterFor(fieldConfig);
+  if (spec.kind === "enum") {
     if (value == null) return "";
-    return options[String(value)] ?? String(value);
+    const option = spec.options?.find((o) => String(o.value) === String(value));
+    return option ? (option.label ?? String(option.value)) : String(value);
   }
+  if (spec.kind === "datetime") return formatDate(value, "YYYY/MM/DD HH:mm");
+  if (spec.kind === "date" || value instanceof Date) return formatDate(value, "YYYY/MM/DD");
 
-  const isDatetimeField =
-    field === "createdAt" ||
-    field === "updatedAt" ||
-    inputType === "datetimeInput";
-  const isDateField = inputType === "dateInput";
-
-  if (value instanceof Date || isDatetimeField || isDateField) {
-    const format = isDatetimeField ? "YYYY/MM/DD HH:mm" : "YYYY/MM/DD";
-    return formatDateJa(value, { format, fallback: null });
+  switch (spec.kind) {
+    case "boolean":
+      return value == null ? "" : value ? "はい" : "いいえ";
+    case "number":
+      return value != null ? Number(value).toLocaleString() : "";
+    case "stringArray":
+      return Array.isArray(value) ? value.map((item) => String(item)).join(", ") : String(value ?? "");
+    case "collectionThumbnails":
+      return formatCollectionThumbnails(value);
+    case "mediaThumbnails":
+      return formatMediaThumbnails(value);
+    case "mediaThumbnail":
+      return formatMediaThumbnail(value);
+    default:
+      if (fieldConfig.formInput === "textarea") return truncateJapanese(String(value ?? ""), truncateLength);
+      return String(value ?? "");
   }
-
-  if (inputType === "numberInput" || inputType === "stepperInput") {
-    return value != null ? Number(value).toLocaleString() : "";
-  }
-
-  if (inputType === "textarea") {
-    return truncateJapanese(String(value ?? ""), truncateLength);
-  }
-
-  if (inputType === "mediaUploader" || inputType === "fileUploader") {
-    return formatMediaThumbnail(value);
-  }
-
-  if (inputType === "mediaUploaderMulti") {
-    return formatMediaThumbnails(value);
-  }
-
-  return String(value ?? "");
 }
 
 const UNSORTABLE_INPUT_TYPES = new Set(["mediaUploader", "mediaUploaderMulti", "fileUploader"]);
@@ -154,7 +150,8 @@ export function buildDomainColumns<T>({
   sortableFields,
 }: BuildDomainColumnsParams<T>): DataTableColumn<T>[] {
   const tableFields = Array.isArray(config.tableFields) ? (config.tableFields as string[]) : [];
-  const { labelMap, inputMap, optionLabelMap } = buildLabelMap(config);
+  const { labelMap, inputMap } = buildLabelMap(config);
+  const fieldConfigMap = new Map((config.fields ?? []).map((f) => [f.name, f]));
 
   const fieldTypeMap: Record<string, string> = {};
   (config.fields ?? []).forEach(({ name, fieldType }) => {
@@ -167,18 +164,11 @@ export function buildDomainColumns<T>({
     render: (item: T) => {
       const record = item as Record<string, unknown>;
       const value = record[field];
-      const inputType = inputMap[field];
       const presenter = presenters?.[field];
       if (presenter) {
         return presenter({ value, field, record: item });
       }
-      return renderValue({
-        value,
-        field,
-        inputType,
-        truncateLength,
-        options: optionLabelMap[field],
-      });
+      return renderValue({ value, field, fieldConfig: fieldConfigMap.get(field), truncateLength });
     },
   }));
 
