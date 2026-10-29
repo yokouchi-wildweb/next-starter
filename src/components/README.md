@@ -15,7 +15,7 @@
 | ディレクトリ | 役割 | 詳細ドキュメント |
 |---|---|---|
 | `Animation/` | アニメーション演出（`CountUp`、`PageTransition` など） | - |
-| `AppFrames/` | 解体中の旧フォルダ。残りは管理画面の共有部品（`Admin/Elements`: ListTop・SearchBox・ItemNavigator・AdminHeaderPortal 等）、ページ単位で枠の部位を隠す `User/controls`（Hide*）と @deprecated の `User/contexts`、キオスク用のビューポート固定枠、要素 ID の `constants.ts`（行き先の棚は後の議題で決める）。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md) |
+| `AppFrames/` | 解体中の旧フォルダ。残りは管理画面の共有部品（`Admin/Elements`: ListTop・SearchBox・ItemNavigator・AdminHeaderPortal 等）、ページ単位で枠の部位を隠す `User/controls`（Hide*）、キオスク用のビューポート固定枠、要素 ID の `constants.ts`（行き先の棚は後の議題で決める）。枠の部品は `src/app/(user)/_layout/`・`src/app/admin/**/_layout/` へ移動済み | [AppFrames/User/README.md](./AppFrames/User/README.md)・[src/app/(user)/_layout/README.md](../app/(user)/_layout/README.md)・[AppFrames/Kiosk/README.md](./AppFrames/Kiosk/README.md) |
 | `AppStatusGuard/` | メンテナンス・デプロイを検知してリダイレクト / リロードするガード。長時間滞在する画面に配置 | - |
 | `Badge/` | バッジ（`SolidBadge`、`SoftBadge` など） | - |
 | `BulkSendEmail/` | 選択ユーザーへの一括メール送信モーダル | - |

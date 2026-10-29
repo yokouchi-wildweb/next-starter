@@ -48,16 +48,6 @@ export type UseHeaderDataReturn = {
   navItems: HeaderNavItem[];
   /** ナビメニューの有効設定（SP/PC） */
   navEnabled: DeviceVisibility;
-  /**
-   * @deprecated 常に SP/PC とも true。ページ単位で隠すのは Hide* の印(CSS)で、部品は読まなくてよい。
-   * 表示制御の context と一緒に旧入口撤去の区切りで削除する
-   */
-  visibility: DeviceVisibility;
-  /**
-   * @deprecated 常に SP/PC とも true(ナビの可否は navEnabled)。ページ単位で隠すのは Hide* の印(CSS)。
-   * 表示制御の context と一緒に旧入口撤去の区切りで削除する
-   */
-  navVisibility: DeviceVisibility;
   /** ロゴのリンク先 */
   logoLink: string;
   /** メニューにアイコンを表示するか */
@@ -74,14 +64,7 @@ export type UseHeaderDataReturn = {
   headerRef: React.RefObject<HTMLElement | null>;
   /** ヘッダーの高さ（px） */
   headerOffset: number;
-  /**
-   * @deprecated 常に ""(ページ単位で隠すのは Hide* の印の CSS)。表示制御の context と一緒に旧入口撤去の区切りで削除する
-   */
-  visibilityClass: string;
 };
-
-/** deprecated の戻り値(visibility / navVisibility)の固定値 */
-const ALWAYS_VISIBLE: DeviceVisibility = { sp: true, pc: true };
 
 // ============================================
 // フック実装
@@ -210,8 +193,6 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     enabled: HEADER_ENABLED,
     navItems,
     navEnabled: HEADER_NAV_ENABLED,
-    visibility: ALWAYS_VISIBLE,
-    navVisibility: ALWAYS_VISIBLE,
     logoLink: HEADER_LOGO_LINK,
     showIcons: HEADER_MENU_ICONS_ENABLED,
     isMenuOpen,
@@ -220,6 +201,5 @@ export const useHeaderData = (): UseHeaderDataReturn => {
     toggleMenu,
     headerRef,
     headerOffset,
-    visibilityClass: "",
   };
 };

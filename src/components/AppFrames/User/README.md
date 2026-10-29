@@ -2,17 +2,12 @@
 
 ユーザーアプリ側の枠のうち、まだ `src/app/(user)/_layout/` へ移していない物。
 
-枠の部品(UserLayout・BackgroundLayer・UserPage・PageTitle・Header・Footer・BottomNav・hooks)は **`src/app/(user)/_layout/` へ移動した**(説明・設定ファイル・UserPage の fill / immersive もそちら: [src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md))。旧パスの shim と旧来の雛形(HeaderCustom / FooterCustom)は旧入口撤去の区切り(notice old-entry-removal)で削除した。
+枠の部品(UserLayout・BackgroundLayer・UserPage・PageTitle・Header・Footer・BottomNav・hooks)は **`src/app/(user)/_layout/` へ移動した**(説明・設定ファイル・UserPage の fill / immersive もそちら: [src/app/(user)/_layout/README.md](../../../app/(user)/_layout/README.md))。旧パスの shim と旧来の雛形(HeaderCustom / FooterCustom)は旧入口撤去の区切り(notice old-entry-removal)、表示制御の context は次の区切り(notice old-entry-removal-contexts)で削除した。
 
 ## ディレクトリ構成
 
 ```
 User/
-├── contexts/        # @deprecated 表示制御の Context(Hide* も枠の部品も使わない。UserLayout が互換の Provider を置くだけ。旧入口撤去の次の区切りで削除)
-│   ├── HeaderVisibilityContext.tsx
-│   ├── HeaderNavVisibilityContext.tsx
-│   ├── FooterVisibilityContext.tsx
-│   └── BottomNavVisibilityContext.tsx
 └── controls/        # ページ単位で枠の部位を隠す印(Hide*)
     ├── frameParts.ts    # 部位一覧(唯一の元。印の属性と styles/_base/frame-controls.generated.css の規則を作る)
     ├── HeaderControl.tsx
@@ -92,5 +87,5 @@ export default function OnboardingPage() {
 - `sp={false}` / `pc={false}` は「そのデバイスでは隠さない」= 何もしない(隠す方向だけ)
 - 描いている部品が画面にある間だけ効く。複数あれば足し算(どれか 1 つが隠せば隠す)
 - server / client どちらの部品からも描ける。UserLayout の外枠の中に描く(portal の中では効かない)
-- 自作の表示制御(context の `setOverride` / `setVisibility` を直接呼ぶ物)は Hide* に置き換える。context は Hide* から切り離され、旧入口撤去の次の区切りで削除する
+- ページ単位で隠すのは Hide* だけ(表示制御の context は削除済み)。表示の既定は config の値(`HEADER_NAV_ENABLED`・`FOOTER_VISIBILITY`・`BOTTOM_NAV_VISIBILITY`)
 - ブレークポイント: `sm`（640px）を境界としてSP/PCを判定

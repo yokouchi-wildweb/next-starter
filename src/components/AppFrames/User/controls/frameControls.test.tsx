@@ -120,14 +120,18 @@ test("Hide* は client 部品ではなく、context も読まない(server か�
   }
 });
 
-test("upstream で表示制御の context を読むのは contexts/ 自身と UserLayout の deprecated の Provider だけ", () => {
-  const out = execFileSync("git", ["grep", "-l", "-E", "AppFrames/User/contexts|use(Header|HeaderNav|Footer|BottomNav)Visibility", "--", "src"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  });
-  const readers = out.split("\n").filter((file) => file && !file.includes("/AppFrames/User/contexts/") && file !== "src/components/AppFrames/User/controls/frameControls.test.tsx");
-  assert.deepEqual(readers, ["src/app/(user)/_layout/UserLayout.tsx"]);
-  assert.equal(/use(Header|HeaderNav|Footer|BottomNav)Visibility\(/.test(read("src/app/(user)/_layout/UserLayout.tsx")), false, "UserLayout は Provider を置くだけ");
+test("src に表示制御の context(撤去済み)を読む物が無い", () => {
+  let out = "";
+  try {
+    out = execFileSync("git", ["grep", "-l", "-E", "AppFrames/User/contexts|use(Header|HeaderNav|Footer|BottomNav)Visibility", "--", "src"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
+  } catch {
+    // git grep は当たりが 0 件だと exit 1
+  }
+  const readers = out.split("\n").filter((file) => /\.(ts|tsx|mjs)$/.test(file) && file !== "src/components/AppFrames/User/controls/frameControls.test.tsx");
+  assert.deepEqual(readers, []);
 });
 
 test("部位一覧の狙う先が既定の枠部品に実在し、外枠に data-frame-root がある", () => {

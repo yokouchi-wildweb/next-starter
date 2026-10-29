@@ -25,8 +25,7 @@ src/app/(user)/_layout/
 
 まだ `src/components/AppFrames/User/` に残っている物(後の区切りで扱う):
 
-- `controls/`(HideHeader 等と部位一覧 frameParts.ts): 中身は印に入れ替え済み(下の「枠の部位を隠す(Hide* と印)」)。最終の棚は後の議題で決める(今はパスを変えない = fork の import の書き換えなし)
-- `contexts/`(表示制御の context): `@deprecated`。Hide* は書かず、枠の部品・hook も読まない(UserLayout が互換の Provider を置くだけ)。旧入口撤去の次の区切り(contexts の撤去)で削除する。ここの部品は絶対パス `@/components/AppFrames/User/{contexts,controls}` で参照している
+- `controls/`(HideHeader 等と部位一覧 frameParts.ts): 中身は印に入れ替え済み(下の「枠の部位を隠す(Hide* と印)」)。最終の棚は後の議題で決める(今はパスを変えない = fork の import の書き換えなし)。ここの部品は絶対パス `@/components/AppFrames/User/controls` で参照している
 - `src/components/AppFrames/constants.ts`(ヘッダー・フッターの要素 ID): useHeaderHeight の汎用化と一緒に後で動かす
 
 説明は [src/components/AppFrames/User/README.md](../../../components/AppFrames/User/README.md)。
@@ -150,8 +149,6 @@ const {
   enabled,          // ヘッダー機能が有効か
   navItems,         // メニュー項目（認証状態反映済み）
   navEnabled,       // ナビメニューの有効設定（SP/PC）
-  visibility,       // @deprecated 常に SP/PC とも true(隠すのは Hide* の印の CSS)
-  navVisibility,    // @deprecated 常に SP/PC とも true(ナビの可否は navEnabled)
   logoLink,         // ロゴのリンク先
   isMenuOpen,       // メニューの開閉状態
   openMenu,         // メニューを開く
@@ -159,7 +156,6 @@ const {
   toggleMenu,       // メニューの開閉をトグル
   headerRef,        // ヘッダー要素のref（高さ計算用）
   headerOffset,     // ヘッダーの高さ（px）
-  visibilityClass,  // @deprecated 常に ""(隠すのは Hide* の印の CSS)
 } = useHeaderData();
 ```
 
@@ -471,7 +467,7 @@ export default function PlayerPage() {
 - PC の既定(ボトムナビを出さない)は、表示制御の context の既定値 `{ sp: true, pc: false }` にあった。context をやめたので config の `BOTTOM_NAV_VISIBILITY`(FOOTER_VISIBILITY と同じ形)へ移し、UserLayout がその値から「隠す印」を描く。表示も高さ変数も同じ規則に乗り、差し替えたボトムナビも従う。描く条件は高さ変数を書く条件(既定のボトムナビ有効、または bottomNav の差し替えあり)と同じ
 - 表示方向(`HideBottomNav pc={false}` = PC にも出す)は印で表せないので捨て、PC にも出す受け皿をこの config の値にした
 - 枠の部品と hook(BottomNav・BottomNavSpacer・Header・useHeaderData・useFooterData)は context を読まない。useHeaderData の `visibility` / `navVisibility` / `visibilityClass` は差し替え部品が読むので型を残し、固定値の `@deprecated` にした。useFooterData の `visibility` / `visibilityClass` は config の値だけから作る
-- contexts と Provider は `@deprecated` の互換で残す(fork の部品が直接呼んでも落ちない)。削除は旧入口撤去の区切り
+- contexts と Provider は `@deprecated` の互換で残した(fork の部品が直接呼んでも落ちない)。旧入口撤去の区切り(notice old-entry-removal-contexts)で削除した
 - 既定の DOM の差分(test で固定): 外枠の先頭に基本の印 `bottom-nav-pc`、スペーサーが 1 要素、Header の class 末尾の空白が無くなった
 
 ## 採らなかった案(寸法の 0)
@@ -532,4 +528,5 @@ export default function PlayerPage() {
 - 区切り 1・2 で枠の部品を `src/components/AppFrames/` から `_layout/` へ移したとき、旧パスの shim・config の部品 re-export と旧経路・旧名の互換(UserAppLayout・AdminOuterLayout)・旧来の雛形(HeaderCustom / FooterCustom)を 1 checkpoint 残した。全 fork が区切り 2 を取り込んだのを確かめて、それらを削除した(撤去は tsc で止まる)
 - UserLayout の header / footer の既定は config の re-export を通さず `./Header`・`./Footer` を直接描く。全 fork の config が既定部品を re-export していたので、見た目は変わらない
 - 雛形を自分の版にしていた fork は、それを fork の場所(`src/app/(user)/_components/<Name>/`)へ移し、header / footer slot から渡す(notice の required_actions)
-- 表示制御の context・Provider・hook の @deprecated の戻り値は、区切り 3 の取り込みが揃うのを待って次の区切りで削除する
+- 表示制御の context(contexts 5 ファイル、setOverride / clearOverride を含む)・UserLayout の Provider 4 段・useHeaderData の `visibility` / `navVisibility` / `visibilityClass`(固定値の @deprecated)は、次の区切り(notice old-entry-removal-contexts)で削除した。区切り 3 の取り込みを全 fork で待たなかったのは、/flux が区切りごとに止まり、未取り込みの fork も区切り 3(context を読まない形)を先に通るため。数え直した直接使用は 0 件で、残る 1 件(fork の版のヘッダーの雛形が古い戻り値を読む)は tsc が止め、notice の手順で直す
+- useFooterData の `visibility` / `visibilityClass` は残る(FOOTER_VISIBILITY から作る現役の値で、既定の Footer が読む)

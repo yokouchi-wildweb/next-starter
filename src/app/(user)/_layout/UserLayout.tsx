@@ -7,12 +7,8 @@ import { useHeaderHeight } from "@/hooks/useHeaderHeight";
 import UnreadNotificationModal from "@/features/notification/components/common/UnreadNotificationModal";
 
 import { HideBottomNav } from "@/components/AppFrames/User/controls";
-import { BottomNavVisibilityProvider } from "@/components/AppFrames/User/contexts/BottomNavVisibilityContext";
 import { BackgroundLayer } from "./BackgroundLayer";
 import { Banner } from "./Banner";
-import { FooterVisibilityProvider } from "@/components/AppFrames/User/contexts/FooterVisibilityContext";
-import { HeaderVisibilityProvider } from "@/components/AppFrames/User/contexts/HeaderVisibilityContext";
-import { HeaderNavVisibilityProvider } from "@/components/AppFrames/User/contexts/HeaderNavVisibilityContext";
 import { UserBottomNav } from "./BottomNav";
 import { BottomNavSpacer } from "./BottomNav/BottomNavSpacer";
 import { UserFooter } from "./Footer";
@@ -77,58 +73,50 @@ export function UserLayout({
     ...(hasBanner ? { "--app-banner-height": `${bannerHeight}px` } : {}),
   };
 
-  // 表示制御の Provider 4 つは deprecated の互換(upstream の部品はもう読まない。fork の部品が context を直接呼んでも落ちないよう、
-  // 旧入口撤去の区切りまで残す)
   return (
-    <HeaderVisibilityProvider>
-      <HeaderNavVisibilityProvider>
-        <FooterVisibilityProvider>
-          <BottomNavVisibilityProvider>
-            {background === undefined ? (
-              <BackgroundLayer
-                imageUrl={BACKGROUND_IMAGE_URL || undefined}
-                overlayColor={BACKGROUND_OVERLAY_COLOR}
-                overlayOpacity={BACKGROUND_OVERLAY_OPACITY}
-              />
-            ) : (
-              background
-            )}
-            {/* data-user-app-container: <UserPage fill> が配下にある時だけ
-                styles/_base/config.css の :has() ルールで確定高さ + overflow-clip に
-                切り替わる（既定は min-h で伸びる通常ページ）。
-                data-frame-root: 配下に Hide* の印がある間、styles/_base/frame-controls.generated.css が
-                その部位を隠す（controls/frameParts.ts）。 */}
-            <Flex
-              id="user-app-container"
-              data-user-app-container=""
-              data-frame-root=""
-              direction="column"
-              className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
-              style={layoutStyle}
-            >
-              {/* ボトムナビの基本の表示: config で出さないデバイスは「隠す印」で隠す(差し替えたボトムナビも同じ。高さ変数もこの印で 0) */}
-              {hasBottomNav && <HideBottomNav sp={!BOTTOM_NAV_VISIBILITY.sp} pc={!BOTTOM_NAV_VISIBILITY.pc} />}
-              {hasBanner && <Banner onHeightChange={setBannerHeight}>{banner}</Banner>}
-              {header === undefined ? <UserNavigation /> : header}
-              {/* banner の高さ分だけ本文を押し下げる(ヘッダーの分は #stretch-wrapper の padding-top) */}
-              {hasBanner && <div aria-hidden="true" className="shrink-0 h-[var(--app-banner-height,0px)]" />}
-              <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
-                {children}
-              </div>
-              {footer === undefined ? <UserFooter /> : footer}
-              {bottomNav === undefined ? (
-                <>
-                  <BottomNavSpacer />
-                  <UserBottomNav />
-                </>
-              ) : (
-                bottomNav
-              )}
-              {notificationModal === undefined ? <UnreadNotificationModal /> : notificationModal}
-            </Flex>
-          </BottomNavVisibilityProvider>
-        </FooterVisibilityProvider>
-      </HeaderNavVisibilityProvider>
-    </HeaderVisibilityProvider>
+    <>
+      {background === undefined ? (
+        <BackgroundLayer
+          imageUrl={BACKGROUND_IMAGE_URL || undefined}
+          overlayColor={BACKGROUND_OVERLAY_COLOR}
+          overlayOpacity={BACKGROUND_OVERLAY_OPACITY}
+        />
+      ) : (
+        background
+      )}
+      {/* data-user-app-container: <UserPage fill> が配下にある時だけ
+          styles/_base/config.css の :has() ルールで確定高さ + overflow-clip に
+          切り替わる（既定は min-h で伸びる通常ページ）。
+          data-frame-root: 配下に Hide* の印がある間、styles/_base/frame-controls.generated.css が
+          その部位を隠す（controls/frameParts.ts）。 */}
+      <Flex
+        id="user-app-container"
+        data-user-app-container=""
+        data-frame-root=""
+        direction="column"
+        className="my-0 min-h-[var(--viewport-height,100dvh)] text-foreground"
+        style={layoutStyle}
+      >
+        {/* ボトムナビの基本の表示: config で出さないデバイスは「隠す印」で隠す(差し替えたボトムナビも同じ。高さ変数もこの印で 0) */}
+        {hasBottomNav && <HideBottomNav sp={!BOTTOM_NAV_VISIBILITY.sp} pc={!BOTTOM_NAV_VISIBILITY.pc} />}
+        {hasBanner && <Banner onHeightChange={setBannerHeight}>{banner}</Banner>}
+        {header === undefined ? <UserNavigation /> : header}
+        {/* banner の高さ分だけ本文を押し下げる(ヘッダーの分は #stretch-wrapper の padding-top) */}
+        {hasBanner && <div aria-hidden="true" className="shrink-0 h-[var(--app-banner-height,0px)]" />}
+        <div id="stretch-wrapper" className="flex flex-1 min-h-0 flex-col pt-[var(--app-header-height,0px)]">
+          {children}
+        </div>
+        {footer === undefined ? <UserFooter /> : footer}
+        {bottomNav === undefined ? (
+          <>
+            <BottomNavSpacer />
+            <UserBottomNav />
+          </>
+        ) : (
+          bottomNav
+        )}
+        {notificationModal === undefined ? <UnreadNotificationModal /> : notificationModal}
+      </Flex>
+    </>
   );
 }

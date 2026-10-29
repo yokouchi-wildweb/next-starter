@@ -26,8 +26,6 @@ mock.module(here("./hooks/index.ts"), {
       enabled: true,
       navItems: [],
       navEnabled: { sp: true, pc: true },
-      visibility: { sp: true, pc: true },
-      navVisibility: { sp: true, pc: true },
       logoLink: "/",
       showIcons: false,
       isMenuOpen: true,
@@ -36,7 +34,6 @@ mock.module(here("./hooks/index.ts"), {
       toggleMenu: () => {},
       headerRef: { current: null },
       headerOffset: 0,
-      visibilityClass: "",
     }),
   },
 });
