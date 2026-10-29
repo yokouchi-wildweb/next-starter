@@ -11,6 +11,7 @@
 //
 // 生成器が読む属性:
 //   column    drizzle-orm/pg-core の列関数（無ければ型名そのまま。配列・enum・タイムゾーン付きは生成器が別扱い）
+//   columnMode 列関数の mode（"number" = 読み出しを number にする。DB の列型は変わらない）
 //   zod       Zod の式（無ければ z.any()。datetime の型は datetime 属性で決まる）
 //   ts        TS の型（無ければ any）
 //   text      文字列系: Zod で .trim()、必須なら .min(1)、任意なら emptyToNull を通す
@@ -35,8 +36,8 @@ export const FIELD_TYPES = {
   integer: { column: "integer", zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
   number: { zod: "z.coerce.number().int()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
   float: { column: "doublePrecision", zod: "z.coerce.number()", ts: "number", numeric: true, presenter: "number", formDefault: undefined },
-  bigint: { column: "bigint", ts: "number", numeric: true, formDefault: undefined },
-  "numeric(10,2)": { column: "numeric", ts: "number", numeric: true, formDefault: undefined },
+  bigint: { column: "bigint", columnMode: "number", zod: "z.coerce.number().int()", ts: "number", numeric: true, formDefault: undefined },
+  "numeric(10,2)": { column: "numeric", columnMode: "number", zod: "z.coerce.number()", ts: "number", numeric: true, formDefault: undefined },
   boolean: { column: "boolean", zod: "z.coerce.boolean()", ts: "boolean", presenter: "boolean", formDefault: false, formDefaultWithChoices: undefined },
   date: { column: "date", zod: "z.string()", ts: "string", text: true, formDefault: "" },
   time: { column: "time", zod: "z.string()", ts: "string", text: true, formDefault: "" },
@@ -79,6 +80,11 @@ const spec = fieldTypeSpec;
 /** drizzle-orm/pg-core の列関数名（未知の型は型名そのまま） */
 export function columnFunction(fieldType) {
   return spec(fieldType).column ?? fieldType;
+}
+
+/** 列関数の mode（無ければ undefined） */
+export function columnMode(fieldType) {
+  return spec(fieldType).columnMode;
 }
 
 /** Zod の式。datetime は required で分ける（未知の型は z.any()） */

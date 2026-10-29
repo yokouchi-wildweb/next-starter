@@ -3,12 +3,12 @@
 
 import { toSnakeCase } from "../../../../../src/utils/stringCase.mjs";
 import { enumNames } from "../../../domain/names.mjs";
-import { columnFunction, isArrayFieldType, isCollectionFieldType } from "../../../spec/fieldTypes.mjs";
+import { columnFunction, columnMode, isArrayFieldType, isCollectionFieldType } from "../../../spec/fieldTypes.mjs";
 
-export function buildColumn(typeFn, columnName) {
-  if (typeFn === "bigint") {
-    return `bigint("${columnName}", { mode: "number" })`;
-  }
+/** 列関数の呼び出し。mode は型の表の columnMode（bigint・numeric(10,2) = number） */
+export function buildColumn(typeFn, columnName, fieldType) {
+  const mode = columnMode(fieldType);
+  if (mode) return `${typeFn}("${columnName}", { mode: "${mode}" })`;
   return `${typeFn}("${columnName}")`;
 }
 
@@ -76,7 +76,7 @@ export function fieldColumns(ctx, imports) {
       const typeFn = columnFunction(f.fieldType);
       imports.add(typeFn);
       const columnName = toSnakeCase(f.name);
-      const column = buildColumn(typeFn, columnName);
+      const column = buildColumn(typeFn, columnName, f.fieldType);
       const notNull = f.required ? ".notNull()" : "";
       let uniqueSuffix = "";
       if (f.unique) {

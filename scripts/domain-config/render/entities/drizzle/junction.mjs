@@ -36,6 +36,7 @@ export function collectJunctionTables(ctx, workspace, tableName, imports, relati
       tableVar: `${relationRoot}Table`,
       tableName: junctionTableName,
       typeFn,
+      keyFieldType: rel.fieldType || config.idType,
       domainCamel: relationDomainCamel,
       domainPascal: relationDomainPascal,
       baseColumnName,
@@ -55,8 +56,8 @@ export function renderJunctionTables(ctx, tables) {
   let content = "";
   tables.forEach((t) => {
     const { baseColumnName, relationColumnName, baseFkTooLong, relationFkTooLong } = t;
-    const baseColumn = buildColumn(t.typeFn, baseColumnName);
-    const relationColumn = buildColumn(t.typeFn, relationColumnName);
+    const baseColumn = buildColumn(t.typeFn, baseColumnName, t.keyFieldType);
+    const relationColumn = buildColumn(t.typeFn, relationColumnName, t.keyFieldType);
 
     let baseColDef = `    ${camel}Id: ${baseColumn}\n      .notNull()`;
     let relationColDef = `    ${t.domainCamel}Id: ${relationColumn}\n      .notNull()`;

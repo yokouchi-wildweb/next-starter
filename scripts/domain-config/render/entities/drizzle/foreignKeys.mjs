@@ -44,7 +44,7 @@ export function belongsToColumns(ctx, workspace, tableName, imports, relationImp
     if (rel.fieldType === "timestamp With Time Zone") {
       column = `timestamp("${columnName}", { withTimezone: true })`;
     } else {
-      column = buildColumn(colType, columnName);
+      column = buildColumn(colType, columnName, rel.fieldType || config.idType);
     }
     let line = `  ${rel.fieldName}: ${column}`;
     if (rel.required) line += ".notNull()";
