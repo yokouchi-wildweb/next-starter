@@ -16,7 +16,12 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
 ## 手順(確認を挟まず続けて行う。止まるのは下の「止まるとき」だけ)
 1. **範囲を確定する**:
    - `git status --short` と `git diff --cached --name-only`。同じ作業ツリーで他のセッションがステージしていることがある。出荷するのはこの会話で自分が変えたファイルだけ(会話で触ったファイルと照合する)。どちらか分からないファイルがあれば止まる。
+   - 範囲が空なら「出荷するものなし」とだけ報告して終える(コミットも push もしない)。
    - 削除・改名を洗い出す: `git status --short` の `D` / `R` 行と、作業ツリーで消したファイル。手順 3 の判定と `moved:` に使う。
+   - **他のセッションのコミットと重ならないか確かめる**: 基準 = 会話の冒頭の HEAD(環境の gitStatus の最新コミット。無ければ作業を始めたときに自分が見た HEAD)。`git log --format='%h %(trailers:key=Claude-Session,valueonly) %s' <基準>..HEAD -- <範囲のファイル(削除したものを含む)>` から、この会話のコミット(`Claude-Session:` がこの会話の session URL のもの)を除く。残りが空なら次へ。残ったコミットごとに `git show <sha> -- <file>` を読み、
+     - 自分が削除・移動したファイル、または丸ごと書き直したファイルなら、その変更を移し先に移す(移せないなら止まる)
+     - 部分的に編集しただけのファイルなら、`git diff HEAD -- <file>` でその変更を戻していないことを確かめる
+     移したものは報告とコミット本文に書く。部分的な編集は作業ツリーが HEAD の上にあるので他の変更が自然に残り、消えるのは削除・移動・丸ごとの書き直しのときだけ。
 2. **検査**(落ちたら直して再実行。直し方が自明でなければ止まる):
    - コード(`.ts` / `.tsx` / `.js` / `.mjs`)を変えた: `pnpm typecheck` と `pnpm exec eslint <変えたコードのファイル>`。
    - 変えた場所に応じたもの(当たるものは全部):
@@ -29,6 +34,8 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
      - `src/config/ui/` → `pnpm test:config-module-load`
      - ページ・ルートの追加・削除・移動 → `pnpm routes:map` で地図を作り直して範囲に含め、`pnpm test:route-map`
      - ロール定義(`*.role.json`)→ `pnpm role:generate` の出力を範囲に含める
+     - `.claude/skills/` → 変えたスキルの隣の `*.test.mjs`(`node --test <file>`)。スキルを消した・改名したら `git grep -n "/<旧名>"` で参照が残っていないこと(`.notices/` と `docs/journal/` は記録なので除く)
+     - `package.json` の scripts → 足した・変えたスクリプトを 1 回実行して通ること(実行に DB・外部サービス・dev サーバーが要るものは実行せず、報告に「未実行: 理由」)
      - 上のどれでもない: 変えたファイルの隣にある `*.test.*` と、package.json の `test:*` のうち変えた領域の名前のもの
    - notice を含めるとき(手順 5 の後)は `pnpm test:notices`。
 3. **下流への影響を判定する**(下流を持つリポだけ): 次のどれかに当たれば notice が要る。当たらなければ「notice 不要: <理由>」を報告に 1 行書いて手順 6 へ。
@@ -38,10 +45,18 @@ argument-hint: "[order:<指令 id>] [no-push] [補足メモ(任意)]"
    - 挙動・権限が黙って変わる
    - 変えた分野のルール・README が notice を求めている(CLAUDE.md や `.claude/rules/core/`、colocated README で「→ notice」「ship .notices」と書かれた条件。変えた分野のものを読んで確かめる)
    - 前に出荷したものの修正(手順 4)
-4. **修正かどうかを確かめる**: 変えた行の元を辿る。変更前の行に `git blame -L <範囲> HEAD -- <file>` をかけ(または `git log -L`)、出てきた commit が最近の notice の区間に入っているか(`git log --diff-filter=A --format=%H -- .notices/` の各 notice の追加 commit との前後)を見る。会話の文脈(不具合の報告・指令の need)と合わせて、前の出荷の不具合を直すものなら `fixes:` の候補にする。修正元に notice があればその id、無ければ `commit:<短 sha>`。この修正に fork の追随作業が無くても、`fixes:` を伝えるために notice を出す(`severity: info`、`required_actions: none`)。
+4. **修正かどうかを確かめる**: まず会話の文脈(不具合の報告・指令の need・「直して」)で判断する。
+   - 文脈で修正と分かる、またはコードの既存の行を変えた・消した → 下の blame で修正元を特定する
+   - 文書・スキル・設定の追記だけで、文脈にも不具合が無い → 確認を省き、報告に「修正ではない」と書く
+   - `fixes:` を付けるのは、修正元の区切りに留まった fork で、ビルド・起動・挙動・データのどれかに害がある(検査が落ちる・自前で直す・同じ不具合を再オーダーする原因になる)ときだけ。/flux はその区切りの手前で全 fork を止めて聞くので、害の無いもの(上流側の道具・スキル・文書の書き方の改善)は修正として扱わない(notice の要否は手順 3 の他の項目で判断する)
+
+   修正元の特定: 変えた行の元を辿る。変更前の行に `git blame -L <範囲> HEAD -- <file>` をかけ(または `git log -L`)、出てきた commit が最近の notice の区間に入っているか(`git log --diff-filter=A --format=%H -- .notices/` の各 notice の追加 commit との前後)を見る。会話の文脈(不具合の報告・指令の need)と合わせて、前の出荷の不具合を直すものなら `fixes:` の候補にする。修正元に notice があればその id、無ければ `commit:<短 sha>`。この修正に fork の追随作業が無くても、`fixes:` を伝えるために notice を出す(`severity: info`、`required_actions: none`)。
 5. **notice を書く**(要るときだけ。事前確認は取らずに書き出す。下記「notice の合成」)。書いたら手順 2 の `pnpm test:notices` を通す。
 6. **コミットする**:
-   - 自分のファイルだけを `git add <paths>` し、`git commit -- <paths>` で入れる(他のセッションのステージを巻き込まない)。notice は変更本体と同じコミットに入れる。
+   - 自分のファイルだけを入れる(他のセッションのステージを巻き込まない)。notice は変更本体と同じコミットに入れる:
+     - `git add` には作業ツリーにあるパスだけを渡す(削除・移動元は渡すと pathspec エラーで止まる。削除は `git rm` でステージするか、次の commit の pathspec に含める)。
+     - `git commit -- <paths>` には削除したパス・ディレクトリも含める(commit の pathspec は削除も拾う)。
+     - コミットの前に `git diff --cached --name-only` で、範囲のファイルだけが入っていることを確かめる。
    - メッセージは behavior.md の書式(件名 `<area>: <summary>`、空行、本文 = 判断の記録)。`order:<id>` があれば本文の後に `order: <id>` の行。末尾に環境指定のトレーラー。
    - ブランチは behavior.md とチームの方針に従う(既にフィーチャーブランチ上ならそのまま)。
    - 変更本体が既にコミット済みで notice だけ後から書いたときは、本体の直後のコミットにする(間に他の notice のコミットを挟まない)。
