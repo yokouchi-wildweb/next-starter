@@ -1,5 +1,5 @@
 // scripts/role-config/generator/generateProfileSchema.mjs
-// generated/{roleId}/schema.ts の生成（Zodスキーマ）
+// entities/profiles/{roleId}/schema.ts の生成（Zodスキーマ）
 
 import fs from "fs";
 import path, { dirname } from "path";
@@ -13,12 +13,13 @@ import {
   isTimestampFieldType,
   zodType,
 } from "../../../src/lib/domain/fields/fieldTypes.mjs";
+import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/generated"
+  "src/features/core/userProfile/entities/profiles"
 );
 
 // 型 → Zod は型の表（src/lib/domain/fields/fieldTypes.mjs）。プロフィールの日時は必須でも nullableDatetime（ドメインとの違い。今の生成物どおり）
@@ -68,7 +69,7 @@ function fieldLine({ name, label, type, required, fieldType }) {
 }
 
 /**
- * generated/{roleId}/schema.ts を生成
+ * entities/profiles/{roleId}/schema.ts を生成
  */
 export function generateProfileSchema(roleConfig, profileConfig) {
   const roleId = roleConfig.id;
@@ -123,7 +124,8 @@ export function generateProfileSchema(roleConfig, profileConfig) {
   }
   importStatements.push(`import { z } from "zod";`);
 
-  const content = `// src/features/core/userProfile/generated/${roleId}/schema.ts
+  const content = `${profileFileHeader(roleId)}
+// src/features/core/userProfile/entities/profiles/${roleId}/schema.ts
 // ${roleConfig.label}プロフィールのZodスキーマ
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json

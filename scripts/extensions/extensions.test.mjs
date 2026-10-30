@@ -377,3 +377,10 @@ test("setting の点: override は許す属性だけ、上流の項目だけ、�
   assert.deepEqual(sec.problems, []);
   assert.match(sec.outputs["src/features/core/setting/extensions/sections.ts"], /\{ \.\.\.general, \.\.\.general_override \},/);
 });
+
+test("writer の点: 別の生成器が書く一覧。持てるのは side だけ、ほかのキー・未知の writer は失敗", () => {
+  const read = (body) => readDeclaration("x/extensionPoints.ts", `export const extensionPoints = { roles: ${body} };`);
+  assert.deepEqual(read('{ writer: "role:generate", side: "shared" }').problems, []);
+  assert.equal(read('{ writer: "other", side: "shared" }').problems.length, 1);
+  assert.equal(read('{ writer: "role:generate", side: "shared", dir: "roles" }').problems.length, 1);
+});

@@ -1,7 +1,7 @@
 // src/features/core/userProfile/utils/configHelpers.ts
 // プロフィール設定の取得ヘルパー
 
-import { PROFILE_CONFIG_REGISTRY } from "@/registry/profileConfigRegistry";
+import { profileConfigs } from "@/features/core/userProfile/extensions/profileConfigs";
 import { getRolesByCategory, isRoleEnabled, type RoleCategory } from "@/features/core/user/constants";
 import type { ProfileConfig } from "../profiles";
 
@@ -21,8 +21,8 @@ export function getProfilesByCategory(
   const roles = getRolesByCategory(category);
   return Object.fromEntries(
     roles
-      .filter((roleId) => PROFILE_CONFIG_REGISTRY[roleId] && isRoleEnabled(roleId))
-      .map((roleId) => [roleId, PROFILE_CONFIG_REGISTRY[roleId]])
+      .filter((roleId) => profileConfigs[roleId] && isRoleEnabled(roleId))
+      .map((roleId) => [roleId, profileConfigs[roleId]])
   );
 }
 
@@ -33,5 +33,5 @@ export function getProfilesByCategory(
  * @returns ProfileConfig または undefined
  */
 export function getProfileConfig(role: string): ProfileConfig | undefined {
-  return PROFILE_CONFIG_REGISTRY[role];
+  return profileConfigs[role];
 }

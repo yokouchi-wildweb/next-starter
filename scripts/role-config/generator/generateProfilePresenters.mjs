@@ -1,17 +1,18 @@
 // scripts/role-config/generator/generateProfilePresenters.mjs
-// generated/{roleId}/presenters.ts の生成
+// entities/profiles/{roleId}/presenters.ts の生成
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
 import { presenterFor } from "../../../src/lib/domain/fields/presenterFor.mjs";
+import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/generated"
+  "src/features/core/userProfile/entities/profiles"
 );
 
 const buildOptionsMap = (options = []) => {
@@ -46,7 +47,7 @@ const buildFormatter = (field) => {
 };
 
 /**
- * generated/{roleId}/presenters.ts を生成
+ * entities/profiles/{roleId}/presenters.ts を生成
  */
 export function generateProfilePresenters(roleConfig, profileConfig) {
   const roleId = roleConfig.id;
@@ -67,7 +68,8 @@ export function generateProfilePresenters(roleConfig, profileConfig) {
     ? presenterEntries.join("\n")
     : "  // フィールドなし";
 
-  const content = `// src/features/core/userProfile/generated/${roleId}/presenters.ts
+  const content = `${profileFileHeader(roleId)}
+// src/features/core/userProfile/entities/profiles/${roleId}/presenters.ts
 // ${roleConfig.label}プロフィールのプレゼンター
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json

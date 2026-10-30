@@ -130,14 +130,11 @@ generated src/registry/schemaRegistry.ts  # pnpm registry:generate(走査で丸�
 generated src/registry/domainConfigRegistry.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/registry/adminDataMenu.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/features/core/*/entities/display.ts  # pnpm registry:generate(表示用の写し)
-generated src/registry/profileBaseRegistry.ts  # pnpm role:generate
-generated src/registry/profileSchemaRegistry.ts  # pnpm role:generate
-generated src/registry/profileTableRegistry.ts  # pnpm role:generate
 generated src/app/route-map.jsonl  # pnpm routes:map
 generated vercel.json  # pnpm cron:generate(upstream には無い)
 generated src/styles/_base/gradient.css  # scripts/styles/generate-gradient-css.ts
 generated src/features/core/mail/constants/colors.ts  # scripts/mail/generate-colors.ts
-generated src/features/core/userProfile/generated/**  # pnpm role:generate
+generated src/features/core/userProfile/entities/profiles/**  # pnpm role:generate
 generated src/**/extensions/**  # pnpm extensions:generate(拡張点の一覧。proxy の枠の項目と機能を閉じる規則も)
 
 # 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。

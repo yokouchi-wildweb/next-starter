@@ -1,14 +1,20 @@
-// scripts/role-config/generator/updateProfileRegistry.mjs
-// src/registry/profileTableRegistry.ts と profileBaseRegistry.ts の全件再生成
+// scripts/role-config/generator/writeLists.mjs
+// ロール・プロフィールの一覧（user/extensions/roles.ts・userProfile/extensions/profile*.ts）を丸ごと書く。
+// 宣言: user・userProfile の extensionPoints.ts（writer: "role:generate"。extensions:generate は書かない）
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase, toPlural, toSnakeCase } from "../../../src/utils/stringCase.mjs";
+import { generatedHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
-const REGISTRY_DIR = path.join(ROOT_DIR, "src/registry");
+const EXTENSIONS_REL = "src/features/core/userProfile/extensions";
+const EXTENSIONS_DIR = path.join(ROOT_DIR, EXTENSIONS_REL);
+const ROLES_LIST_PATH = path.join(ROOT_DIR, "src/features/core/user/extensions/roles.ts");
+const PROFILE_ENTITIES = "@/features/core/userProfile/entities/profiles";
+const PROFILE_HEADER = generatedHeader("src/features/core/userProfile/extensionPoints.ts");
 const PROFILES_DIR = path.join(
   ROOT_DIR,
   "src/features/core/userProfile/profiles"
@@ -25,6 +31,7 @@ function getAllProfiles() {
   const files = fs.readdirSync(PROFILES_DIR);
   return files
     .filter((file) => file.endsWith(".profile.json"))
+    .filter((file) => fs.existsSync(path.join(ROOT_DIR, "src/features/core/userProfile/entities/profiles", file.replace(".profile.json", ""))))
     .map((file) => {
       const roleId = file.replace(".profile.json", "");
       const configPath = path.join(PROFILES_DIR, file);
@@ -40,69 +47,66 @@ function hasRelations(config) {
   return Array.isArray(config.relations) && config.relations.length > 0;
 }
 
-/**
- * profileTableRegistry.ts を全件再生成
- */
-function generateProfileTableRegistry(profiles) {
-  const header = `// src/registry/profileTableRegistry.ts
-// プロフィールテーブル定義の re-export + テーブルマップ（自動生成）
-//
-// このファイルは role:generate スクリプトによって自動生成されました`;
+/** userProfile/extensions/profileTables.ts: ロール → プロフィールテーブル（searchWithProfile 等が動的に参照する） */
+function renderProfileTables(profiles) {
+  const tableImports = profiles.map(({ roleId }) => {
+    const tableVar = `${toPascalCase(roleId)}ProfileTable`;
+    return `import { ${tableVar} } from "${PROFILE_ENTITIES}/${roleId}/drizzle";`;
+  });
+  const entries = profiles.map(({ roleId }) => `  ${roleId}: ${toPascalCase(roleId)}ProfileTable,`);
+  return [
+    PROFILE_HEADER,
+    `// ${EXTENSIONS_REL}/profileTables.ts`,
+    "",
+    'import type { PgTable } from "drizzle-orm/pg-core";',
+    "",
+    ...tableImports,
+    ...(tableImports.length ? [""] : []),
+    "export const profileTables: Record<string, PgTable & Record<string, any>> = {",
+    ...entries,
+    "};",
+    "",
+  ].join("\n");
+}
 
-  if (profiles.length === 0) {
-    const content = `${header}
-`;
-    fs.writeFileSync(path.join(REGISTRY_DIR, "profileTableRegistry.ts"), content);
-    return;
-  }
+/** userProfile/extensions/profileSchemas.ts: ロール → プロフィールの Zod スキーマ */
+function renderProfileSchemas(profiles) {
+  const imports = profiles.map(({ roleId }) => `import { ${toPascalCase(roleId)}ProfileSchema } from "${PROFILE_ENTITIES}/${roleId}";`);
+  const entries = profiles.map(({ roleId }) => `  ${roleId}: ${toPascalCase(roleId)}ProfileSchema,`);
+  return [
+    PROFILE_HEADER,
+    `// ${EXTENSIONS_REL}/profileSchemas.ts`,
+    "",
+    'import type { z } from "zod";',
+    ...imports,
+    "",
+    "export const profileSchemas: Record<string, z.ZodType> = {",
+    ...entries,
+    "};",
+    "",
+  ].join("\n");
+}
 
-  // re-export
-  const exports = profiles
-    .map(({ roleId }) => [
-      `export * from "@/features/core/userProfile/generated/${roleId}/drizzle";`,
-      `export * from "@/features/core/userProfile/generated/${roleId}";`,
-    ])
-    .flat()
-    .join("\n");
-
-  // PROFILE_TABLE_MAP 用の import
-  const tableImports = profiles
-    .map(({ roleId }) => {
-      const tableVar = `${toPascalCase(roleId)}ProfileTable`;
-      return `import { ${tableVar} } from "@/features/core/userProfile/generated/${roleId}/drizzle";`;
-    })
-    .join("\n");
-
-  // PROFILE_TABLE_MAP のエントリ
-  const tableEntries = profiles
-    .map(({ roleId }) => {
-      const tableVar = `${toPascalCase(roleId)}ProfileTable`;
-      return `  ${roleId}: ${tableVar},`;
-    })
-    .join("\n");
-
-  const content = `${header}
-
-import type { PgTable } from "drizzle-orm/pg-core";
-
-${exports}
-
-${tableImports}
-
-/**
- * ロール → プロフィールテーブルのマッピング
- * searchWithProfile 等でプロフィールテーブルを動的に参照するために使用
- */
-export const PROFILE_TABLE_MAP: Record<string, PgTable & Record<string, any>> = {
-${tableEntries}
-};
-`;
-
-  fs.writeFileSync(path.join(REGISTRY_DIR, "profileTableRegistry.ts"), content);
+/** userProfile/extensions/profileConfigs.ts: ロール → プロフィール設定 */
+function renderProfileConfigs(profiles) {
+  const imports = profiles.map(({ roleId }) => `import ${roleId}Profile from "@/features/core/userProfile/profiles/${roleId}.profile.json";`);
+  const entries = profiles.map(({ roleId }) => `  ${roleId}: ${roleId}Profile as ProfileConfig,`);
+  return [
+    PROFILE_HEADER,
+    `// ${EXTENSIONS_REL}/profileConfigs.ts`,
+    "",
+    'import type { ProfileConfig } from "@/features/core/userProfile/profiles";',
+    ...imports,
+    "",
+    "export const profileConfigs: Record<string, ProfileConfig> = {",
+    ...entries,
+    "};",
+    "",
+  ].join("\n");
 }
 
 // ============================================================
-// profileBaseRegistry.ts 生成 — リレーション対応
+// profileBases.ts 生成 — リレーション対応
 // ============================================================
 
 /**
@@ -276,30 +280,8 @@ function buildRelationOptions(roleId, config) {
   return { optionParts, tableImports, junctionTableVars };
 }
 
-/**
- * profileBaseRegistry.ts を全件再生成
- */
-function generateProfileBaseRegistry(profiles) {
-  if (profiles.length === 0) {
-    const content = `// src/registry/profileBaseRegistry.ts
-// ロール → プロフィールベースのマッピング（自動生成）
-//
-// このファイルは role:generate スクリプトによって自動生成されました
-//
-// ヘルパー関数は @/features/core/userProfile/utils/profileBaseHelpers を使用してください
-
-import { createProfileBase } from "@/features/core/userProfile/utils/createProfileBase";
-import type { ProfileBase } from "@/features/core/userProfile/types";
-
-/**
- * ロール → プロフィールベースのマッピング
- */
-export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {};
-`;
-    fs.writeFileSync(path.join(REGISTRY_DIR, "profileBaseRegistry.ts"), content);
-    return;
-  }
-
+/** userProfile/extensions/profileBases.ts: ロール → プロフィールベース（ヘルパーは userProfile/utils/profileBaseHelpers） */
+function renderProfileBases(profiles) {
   // プロフィールごとの import 文とエントリを生成
   const importLines = [];
   const entryLines = [];
@@ -315,7 +297,7 @@ export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {};
 
     // プロフィールテーブル + JSON の import
     importLines.push(
-      `import { ${tableVar} } from "@/features/core/userProfile/generated/${roleId}";`
+      `import { ${tableVar} } from "${PROFILE_ENTITIES}/${roleId}";`
     );
     importLines.push(
       `import ${profileVar} from "@/features/core/userProfile/profiles/${roleId}.profile.json";`
@@ -363,42 +345,80 @@ export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {};
   const junctionImportLines = [];
   for (const [roleId, tableVars] of allJunctionImports) {
     junctionImportLines.push(
-      `import { ${tableVars.join(", ")} } from "@/features/core/userProfile/generated/${roleId}/drizzle";`
+      `import { ${tableVars.join(", ")} } from "${PROFILE_ENTITIES}/${roleId}/drizzle";`
     );
   }
 
   const extraImports = [...relationImportLines, ...junctionImportLines];
   const extraImportBlock = extraImports.length > 0 ? `\n${extraImports.join("\n")}` : "";
 
-  const content = `// src/registry/profileBaseRegistry.ts
-// ロール → プロフィールベースのマッピング（自動生成）
-//
-// このファイルは role:generate スクリプトによって自動生成されました
-//
-// ヘルパー関数は @/features/core/userProfile/utils/profileBaseHelpers を使用してください
-
-import { createProfileBase } from "@/features/core/userProfile/utils/createProfileBase";
-import type { ProfileBase } from "@/features/core/userProfile/types";
-import type { ProfileConfig } from "@/features/core/userProfile/profiles";
-
-${importLines.join("\n")}${extraImportBlock}
-
-/**
- * ロール → プロフィールベースのマッピング
- */
-export const PROFILE_BASE_REGISTRY: Record<string, ProfileBase> = {
-${entryLines.join("\n")}
-};
-`;
-
-  fs.writeFileSync(path.join(REGISTRY_DIR, "profileBaseRegistry.ts"), content);
+  return [
+    PROFILE_HEADER,
+    `// ${EXTENSIONS_REL}/profileBases.ts`,
+    "",
+    'import { createProfileBase } from "@/features/core/userProfile/utils/createProfileBase";',
+    'import type { ProfileBase } from "@/features/core/userProfile/types";',
+    ...(profiles.length ? ['import type { ProfileConfig } from "@/features/core/userProfile/profiles";', ""] : []),
+    ...importLines,
+    ...extraImports,
+    "",
+    "export const profileBases: Record<string, ProfileBase> = {",
+    ...entryLines,
+    "};",
+    "",
+  ].join("\n");
 }
 
-/**
- * プロフィールレジストリを全件再生成
- */
-export function updateProfileRegistry() {
+/** ロールの一覧のファイルにある並び（生成は 1 ロールずつ消して末尾に足す） */
+function readRoleEntries() {
+  if (!fs.existsSync(ROLES_LIST_PATH)) return [];
+  const content = fs.readFileSync(ROLES_LIST_PATH, "utf8");
+  return [...content.matchAll(/^import (\w+)Role from "@\/features\/core\/user\/roles\/(_?)([\w-]+)\.role\.json";$/gm)].map(([, , core, id]) => ({ id, isCore: core === "_" }));
+}
+
+/** 一覧のファイルの ID の並び（generate --all が使う） */
+export const registeredRoleIds = () => readRoleEntries().map((entry) => entry.id);
+
+function writeRoles(entries) {
+  const varOf = ({ id }) => `${toCamelCase(id)}Role`;
+  const content = [
+    generatedHeader("src/features/core/user/extensionPoints.ts"),
+    "// src/features/core/user/extensions/roles.ts",
+    "",
+    'import type { RoleConfig } from "@/features/core/user/types";',
+    "",
+    ...entries.map((e) => `import ${varOf(e)} from "@/features/core/user/roles/${e.isCore ? "_" : ""}${e.id}.role.json";`),
+    "",
+    "export const roles: readonly RoleConfig[] = [",
+    ...entries.map((e) => `  ${varOf(e)} as RoleConfig,`),
+    "];",
+    "",
+  ].join("\n");
+  fs.mkdirSync(path.dirname(ROLES_LIST_PATH), { recursive: true });
+  fs.writeFileSync(ROLES_LIST_PATH, content);
+}
+
+/** ロールの一覧の末尾に足す（同じ ID があれば先に外す） */
+export function addRoleToList(roleConfig) {
+  writeRoles([...readRoleEntries().filter((e) => e.id !== roleConfig.id), { id: roleConfig.id, isCore: Boolean(roleConfig.isCore) }]);
+}
+
+/** ロールの一覧から外す。外したら true */
+export function removeRoleFromList(roleId) {
+  const entries = readRoleEntries();
+  const kept = entries.filter((e) => e.id !== roleId);
+  if (kept.length === entries.length) return false;
+  writeRoles(kept);
+  return true;
+}
+
+/** プロフィールの一覧 4 本を丸ごと書く（プロフィール設定と生成フォルダの両方があるものだけ） */
+export function writeProfileLists() {
   const profiles = getAllProfiles();
-  generateProfileTableRegistry(profiles);
-  generateProfileBaseRegistry(profiles);
+  fs.mkdirSync(EXTENSIONS_DIR, { recursive: true });
+  const write = (name, content) => fs.writeFileSync(path.join(EXTENSIONS_DIR, `${name}.ts`), content);
+  write("profileTables", renderProfileTables(profiles));
+  write("profileSchemas", renderProfileSchemas(profiles));
+  write("profileConfigs", renderProfileConfigs(profiles));
+  write("profileBases", renderProfileBases(profiles));
 }

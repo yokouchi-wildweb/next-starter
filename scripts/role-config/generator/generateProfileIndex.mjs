@@ -1,20 +1,21 @@
 // scripts/role-config/generator/generateProfileIndex.mjs
-// generated/{roleId}/index.ts の生成
+// entities/profiles/{roleId}/index.ts の生成
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
+import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/generated"
+  "src/features/core/userProfile/entities/profiles"
 );
 
 /**
- * generated/{roleId}/index.ts を生成
+ * entities/profiles/{roleId}/index.ts を生成
  */
 export function generateProfileIndex(roleConfig, profileConfig, hasFieldConstants = false, hasFieldTypes = false) {
   const roleId = roleConfig.id;
@@ -36,7 +37,8 @@ export function generateProfileIndex(roleConfig, profileConfig, hasFieldConstant
     exports.push(`export * from "./fieldTypes";`);
   }
 
-  const content = `// src/features/core/userProfile/generated/${roleId}/index.ts
+  const content = `${profileFileHeader(roleId)}
+// src/features/core/userProfile/entities/profiles/${roleId}/index.ts
 // ${roleConfig.label}プロフィールのエクスポート
 //
 // このファイルは role:generate スクリプトによって自動生成されました

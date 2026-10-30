@@ -36,7 +36,7 @@ test("生成: 表の入口・ドメイン設定・メニュー", () => {
     "src/features/core/wallet/entities/drizzle.ts": 'export const A = pgTable("wallets", {});\n',
     "src/features/core/wallet/entities/lots.ts": 'export const B = pgTable("wallet_lots", {});\n',
     "src/features/core/wallet/types.ts": "export type X = 1;\n",
-    "src/features/core/userProfile/generated/user/drizzle.ts": 'export const C = pgTable("user_profiles", {});\n',
+    "src/features/core/userProfile/entities/profiles/user/drizzle.ts": 'export const C = pgTable("user_profiles", {});\n',
     "src/features/sample/entities/drizzle.ts": 'export const D = pgTable("samples", {});\n',
     "src/features/core/chatRoom/domain.json": '{ "label": "チャット", "plural": "chat_rooms", "addToAdminDataMenu": false }',
     "src/features/sample/domain.json": '{ "label": "サンプル", "plural": "samples", "addToAdminDataMenu": true }',
@@ -50,13 +50,13 @@ test("生成: 表の入口・ドメイン設定・メニュー", () => {
   assert.deepEqual(
     schema.split("\n").filter((l) => l.startsWith("export *")),
     [
-      'export * from "@/registry/profileTableRegistry";',
+      'export * from "@/features/core/userProfile/entities/profiles/user/drizzle";',
       'export * from "@/features/core/wallet/entities/drizzle";',
       'export * from "@/features/core/wallet/entities/lots";',
       'export * from "@/features/sample/entities/drizzle";',
     ],
   );
-  assert.match(schema, /\nexport \{\};\n$/, "dc:generate の行の置き先");
+  assert.match(schema, /\nexport \{\};\n$/);
   const config = outputs[DOMAIN_CONFIG_REGISTRY_FILE];
   assert.match(config, /import chatRoomConfig from "@\/features\/core\/chatRoom\/domain\.json";/);
   assert.match(config, /import sampleConfig from "@\/features\/sample\/domain\.json";/);

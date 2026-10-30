@@ -15,10 +15,6 @@ export const DOMAIN_CONFIG_REGISTRY_FILE = "src/registry/domainConfigRegistry.ts
 export const ADMIN_DATA_MENU_FILE = "src/registry/adminDataMenu.ts";
 export const STORAGE_PURPOSE_REGISTRY_FILE = "src/registry/storagePurposeRegistry.ts";
 
-/** ロール・プロフィールの生成物は今の場所の一覧を通す(L1.10)。一覧の移設は field-type の legate */
-const PROFILE_GENERATED_PREFIX = `${FEATURES_DIR}/core/userProfile/generated/`;
-const PROFILE_TABLE_REGISTRY = "@/registry/profileTableRegistry";
-
 const headerOf = (source) => `// 生成物・編集不可: pnpm registry:generate が ${source} から生成する`;
 const byString = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -54,7 +50,7 @@ function readDomains(repoRoot) {
 
 function renderSchemaRegistry(repoRoot) {
   const { tables, problems } = scanFeatureTables(repoRoot);
-  const files = [...new Set(tables.map((t) => t.file))].filter((f) => !f.startsWith(PROFILE_GENERATED_PREFIX)).sort(byString);
+  const files = [...new Set(tables.map((t) => t.file))].sort(byString);
   const lines = [
     headerOf(`${FEATURES_DIR}/** の pgTable`),
     `// ${SCHEMA_REGISTRY_FILE}`,
@@ -62,7 +58,6 @@ function renderSchemaRegistry(repoRoot) {
     "// db:push の唯一のスキーマ入口。pgTable を持つファイルを走査して全部並べる(足し忘れが起きない)。",
     "// 機能を閉じたときに外す表は scripts/registry/schemaGate.ts が別に見る。検査: pnpm registry:check / pnpm test:schema-registry",
     "",
-    `export * from "${PROFILE_TABLE_REGISTRY}";`,
     ...files.map((f) => `export * from "@/${f.slice("src/".length).replace(/\.tsx?$/, "")}";`),
     "",
     "export {};",

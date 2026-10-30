@@ -2,6 +2,8 @@
 // user の拡張点の宣言(リテラルだけ。pnpm extensions:generate が読み ./extensions/<点>.ts を生成する)。書式: scripts/extensions/README.md
 
 export const extensionPoints = {
+  // ロールの一覧: roles/*.role.json から pnpm role:generate が ./extensions/roles.ts を書く
+  roles: { writer: "role:generate", side: "shared" },
   // 表示名の予約名プロバイダ: reservedNames/<名前>[.<fork の名前>].ts の export const provider(上流の項目は 0)
   reservedNames: {
     dir: "reservedNames",

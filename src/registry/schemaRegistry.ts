@@ -4,7 +4,6 @@
 // db:push の唯一のスキーマ入口。pgTable を持つファイルを走査して全部並べる(足し忘れが起きない)。
 // 機能を閉じたときに外す表は scripts/registry/schemaGate.ts が別に見る。検査: pnpm registry:check / pnpm test:schema-registry
 
-export * from "@/registry/profileTableRegistry";
 export * from "@/features/core/analytics/entities/drizzle";
 export * from "@/features/core/auditLog/entities/drizzle";
 export * from "@/features/core/bankTransferReview/entities/drizzle";
@@ -36,6 +35,7 @@ export * from "@/features/core/userAcquisition/entities/drizzle";
 export * from "@/features/core/userCounter/entities/drizzle";
 export * from "@/features/core/userLineProfile/entities/drizzle";
 export * from "@/features/core/userLoginEvent/entities/drizzle";
+export * from "@/features/core/userProfile/entities/profiles/contributor/drizzle";
 export * from "@/features/core/userTag/entities/drizzle";
 export * from "@/features/core/userXProfile/entities/drizzle";
 export * from "@/features/core/wallet/entities/drizzle";

@@ -1,20 +1,21 @@
 // scripts/role-config/generator/generateProfileFieldTypes.mjs
-// generated/{roleId}/fieldTypes.ts の生成
+// entities/profiles/{roleId}/fieldTypes.ts の生成
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
+import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/generated"
+  "src/features/core/userProfile/entities/profiles"
 );
 
 /**
- * generated/{roleId}/fieldTypes.ts を生成
+ * entities/profiles/{roleId}/fieldTypes.ts を生成
  */
 export function generateProfileFieldTypes(roleConfig, profileConfig) {
   const roleId = roleConfig.id;
@@ -48,7 +49,8 @@ export function generateProfileFieldTypes(roleConfig, profileConfig) {
     return [optionType, valueType, labelType].join("\n");
   });
 
-  const content = `// src/features/core/userProfile/generated/${roleId}/fieldTypes.ts
+  const content = `${profileFileHeader(roleId)}
+// src/features/core/userProfile/entities/profiles/${roleId}/fieldTypes.ts
 // ${roleConfig.label}プロフィールのフィールド型定義
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json

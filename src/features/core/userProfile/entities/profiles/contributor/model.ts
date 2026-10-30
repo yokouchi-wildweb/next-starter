@@ -1,4 +1,5 @@
-// src/features/core/userProfile/generated/contributor/model.ts
+// 生成物・編集不可: pnpm role:generate が src/features/core/userProfile/profiles/contributor.profile.json から生成する
+// src/features/core/userProfile/entities/profiles/contributor/model.ts
 // 投稿者プロフィールのモデル型定義
 //
 // 元情報: src/features/core/userProfile/profiles/contributor.profile.json

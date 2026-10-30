@@ -15,7 +15,7 @@ import type { SearchParams, PaginatedResult, WithOptions, WhereExpr } from "@/li
 import type { ExtraWhereOption } from "@/lib/crud/drizzle/types";
 import type { User } from "@/features/core/user/entities";
 import { getProfileConfig } from "@/features/core/userProfile/utils/configHelpers";
-import { PROFILE_TABLE_MAP } from "@/registry/profileTableRegistry";
+import { profileTables } from "@/features/core/userProfile/extensions/profileTables";
 import { buildWhere } from "@/lib/crud/drizzle/query/buildWhere";
 import { base } from "../drizzleBase";
 
@@ -75,7 +75,7 @@ export async function searchWithProfile(
     return base.search(params) as Promise<PaginatedResult<User>>;
   }
 
-  const profileTable = PROFILE_TABLE_MAP[role];
+  const profileTable = profileTables[role];
 
   // プロフィールテーブルが存在しない場合は通常検索にフォールバック
   if (!profileTable) {

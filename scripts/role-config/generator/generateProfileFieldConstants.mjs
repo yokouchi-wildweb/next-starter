@@ -1,16 +1,17 @@
 // scripts/role-config/generator/generateProfileFieldConstants.mjs
-// generated/{roleId}/fieldConstants.ts の生成
+// entities/profiles/{roleId}/fieldConstants.ts の生成
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
+import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/generated"
+  "src/features/core/userProfile/entities/profiles"
 );
 
 function formatOption(option, indent = 2) {
@@ -26,7 +27,7 @@ function formatOptions(options) {
 }
 
 /**
- * generated/{roleId}/fieldConstants.ts を生成
+ * entities/profiles/{roleId}/fieldConstants.ts を生成
  */
 export function generateProfileFieldConstants(roleConfig, profileConfig) {
   const roleId = roleConfig.id;
@@ -59,7 +60,8 @@ export function generateProfileFieldConstants(roleConfig, profileConfig) {
     return `export const ${field.constantName} = ${optionsLiteral};`;
   });
 
-  const content = `// src/features/core/userProfile/generated/${roleId}/fieldConstants.ts
+  const content = `${profileFileHeader(roleId)}
+// src/features/core/userProfile/entities/profiles/${roleId}/fieldConstants.ts
 // ${roleConfig.label}プロフィールのフィールド定数
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json

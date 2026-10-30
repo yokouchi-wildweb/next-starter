@@ -1,13 +1,13 @@
 // 検査: ロール設定（<id>.role.json）の形と、プロフィール設定（<id>.profile.json）との対応。
 // 生成器は JSON を読むだけで、ID の形・ファイル名・category・hasProfile を誰も確かめていなかった（対話の質問の中にだけあった）。
-// isCore とファイル名の _ がずれると roleRegistry.ts の import が壊れ、hasProfile とプロフィール設定がずれると黙って生成を飛ばすので止める。
+// isCore とファイル名の _ がずれると user/extensions/roles.ts の import が壊れ、hasProfile とプロフィール設定がずれると黙って生成を飛ばすので止める。
 // 規則の正: src/features/core/user/README.md（ロール設定）、src/features/core/userProfile/README.md（プロフィール設定）
 
 /** ロール ID の形（列名・変数名・パスに使う） */
 const ROLE_ID = /^[a-z][a-z0-9_]*$/;
 const CATEGORIES = new Set(["user", "admin"]);
 
-/** ロール設定のファイル名（コアロールは _ を付ける。updateRoleRegistry.mjs と同じ） */
+/** ロール設定のファイル名（コアロールは _ を付ける。generator/writeLists.mjs と同じ） */
 export const roleFileName = (id, isCore) => `${isCore ? "_" : ""}${id}.role.json`;
 
 /**
@@ -28,7 +28,7 @@ export function roleIssues({ fileName, role, profileExists }) {
       issues.push(
         `ファイル名 ${fileName} は ${expected} にしてください（` +
           (role.isCore === true ? "isCore: true のロールは _ を付ける" : "_ を付けるのは isCore: true のロールだけ") +
-          "。roleRegistry.ts の import がこの名前を使います）",
+          "。user/extensions/roles.ts の import がこの名前を使います）",
       );
     }
   }

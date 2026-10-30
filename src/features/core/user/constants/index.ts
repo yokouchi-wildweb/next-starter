@@ -6,7 +6,7 @@ export {
 } from "./provider";
 
 // ロール設定
-export { ALL_ROLES } from "@/registry/roleRegistry";
+export { roles as ALL_ROLES } from "@/features/core/user/extensions/roles";
 
 // ロール派生定数
 export {

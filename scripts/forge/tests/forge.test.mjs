@@ -67,7 +67,7 @@ test("表の定義の hash: 増えた・消えた・変わったファイルを�
   tmpDirs.push(root);
   const table = (name) => `export const T = pgTable("${name}", {});\n`;
   const drizzle = (dir) => path.join(root, "src/features", dir, "drizzle.ts");
-  for (const dir of ["a/entities", "b/entities", "core/userProfile/generated/x", "core/c/entities"]) {
+  for (const dir of ["a/entities", "b/entities", "core/userProfile/entities/profiles/x", "core/c/entities"]) {
     fs.mkdirSync(path.dirname(drizzle(dir)), { recursive: true });
     fs.writeFileSync(drizzle(dir), table(dir.replace(/\W/g, "_")));
   }

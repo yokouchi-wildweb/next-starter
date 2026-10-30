@@ -17,6 +17,7 @@ const COPY = [
   "src/utils",
   "src/features/core/user/roles",
   "src/features/core/userProfile",
+  "src/features/core/user/extensions",
   "src/registry",
 ];
 let root;
@@ -63,7 +64,7 @@ test("role:delete / prof:delete: ID 必須、--confirm が無い・違うなら�
     assert.equal(run(script, "contributor", "--confirm", "editor").status, 1, script);
   }
   assert.ok(fs.existsSync(rolePath("contributor.role.json")));
-  const registry = path.join(root, "src/registry/roleRegistry.ts");
+  const registry = path.join(root, "src/features/core/user/extensions/roles.ts");
   assert.match(fs.readFileSync(registry, "utf8"), /contributorRole/);
   assert.equal(run("deleteRole.mjs", "contributor", "--confirm", "contributor").status, 0);
   assert.doesNotMatch(fs.readFileSync(registry, "utf8"), /contributorRole/);

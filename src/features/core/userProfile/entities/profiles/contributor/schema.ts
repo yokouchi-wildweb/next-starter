@@ -1,4 +1,5 @@
-// src/features/core/userProfile/generated/contributor/schema.ts
+// 生成物・編集不可: pnpm role:generate が src/features/core/userProfile/profiles/contributor.profile.json から生成する
+// src/features/core/userProfile/entities/profiles/contributor/schema.ts
 // 投稿者プロフィールのZodスキーマ
 //
 // 元情報: src/features/core/userProfile/profiles/contributor.profile.json

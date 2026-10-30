@@ -2,14 +2,14 @@
 // Zodスキーマ操作 + バリデーション関連
 
 import { z } from "zod";
-import { PROFILE_SCHEMA_REGISTRY } from "@/registry/profileSchemaRegistry";
+import { profileSchemas } from "@/features/core/userProfile/extensions/profileSchemas";
 import type { ProfileConfig } from "../profiles";
 
 /**
  * ロールに対応するプロフィールスキーマを取得
  */
 export function getProfileSchema(role: string): z.ZodType | null {
-  return PROFILE_SCHEMA_REGISTRY[role] ?? null;
+  return profileSchemas[role] ?? null;
 }
 
 /**

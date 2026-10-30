@@ -7,9 +7,7 @@
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { updateRoleRegistry } from "./generator/updateRoleRegistry.mjs";
-import { updateProfilesIndex } from "./generator/updateProfilesIndex.mjs";
-import { updateProfileRegistry } from "./generator/updateProfileRegistry.mjs";
+import { addRoleToList, registeredRoleIds, writeProfileLists } from "./generator/writeLists.mjs";
 import { cleanupProfile } from "./generator/cleanupProfile.mjs";
 import { cleanupRole } from "./generator/cleanupRole.mjs";
 // 新しいジェネレーター
@@ -21,9 +19,6 @@ import { generateProfileFieldConstants } from "./generator/generateProfileFieldC
 import { generateProfileFieldTypes } from "./generator/generateProfileFieldTypes.mjs";
 import { generateProfilePresenters } from "./generator/generateProfilePresenters.mjs";
 import { generateProfileIndex } from "./generator/generateProfileIndex.mjs";
-import { updateGeneratedIndex } from "./generator/updateGeneratedIndex.mjs";
-import { generateSchemaRegistry } from "./generator/generateSchemaRegistry.mjs";
-import { toCamelCase } from "../../src/utils/stringCase.mjs";
 import { assertRoleConfig, orphanProfileIssues, roleConfigIssues, roleConfigWarnings } from "./checks/index.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -129,19 +124,19 @@ export default async function generate(roleId, options = {}) {
   // ロール登録（profileOnly でない場合のみ）
   if (!profileOnly) {
     // クリーンアップ（冪等性のため、既存エントリを削除してから追加）
-    console.log("\n[1/8] 既存エントリをクリーンアップ中...");
+    console.log("\n[1/4] 既存エントリをクリーンアップ中...");
     // hasProfile: false でもプロフィール設定が残っているロールは、プロフィールの生成物を消さない（警告だけ）。
-    // 消すと profileTableRegistry.ts が消えたファイルを読み続けて型検査が壊れる。プロフィールを消すのは role:delete / prof:delete
+    // 消すと一覧が消えたファイルを読み続けて型検査が壊れる。プロフィールを消すのは role:delete / prof:delete
     const keepProfile = !roleConfig.hasProfile && checkInput.profile !== null;
     cleanupRole(roleId, { includeProfile: !keepProfile, deleteEntity: true, updateHasProfile: false, silent: true });
     console.log("✓ クリーンアップ完了");
 
-    // 2. roleRegistry.ts を更新
-    console.log("\n[2/8] roleRegistry.ts を更新中...");
-    updateRoleRegistry(roleConfig);
-    console.log("✓ roleRegistry.ts を更新しました");
+    // 2. ロールの一覧を更新
+    console.log("\n[2/4] user/extensions/roles.ts を更新中...");
+    addRoleToList(roleConfig);
+    console.log("✓ user/extensions/roles.ts を更新しました");
   } else {
-    console.log("\n[1/8] roleRegistry.ts の更新をスキップ（プロフィールのみモード）");
+    console.log("\n[1/4] user/extensions/roles.ts の更新をスキップ（プロフィールのみモード）");
   }
 
   // hasProfile: true の場合のみプロフィール関連を生成
@@ -151,18 +146,13 @@ export default async function generate(roleId, options = {}) {
 
     // profileOnly モードの場合のみクリーンアップ（フルモードは cleanupRole で実行済み）
     if (profileOnly) {
-      console.log("\n[2/8] 既存エントリをクリーンアップ中...");
+      console.log("\n[2/4] 既存エントリをクリーンアップ中...");
       cleanupProfile(roleId, { deleteEntity: true, updateHasProfile: false, silent: true });
       console.log("✓ クリーンアップ完了");
     }
 
-    // profiles/index.ts を更新
-    console.log("\n[3/8] profiles/index.ts を更新中...");
-    updateProfilesIndex(roleConfig);
-    console.log("✓ profiles/index.ts を更新しました");
-
-    // generated/{roleId}/ 配下のファイルを生成
-    console.log("\n[4/8] generated/{roleId}/ を生成中...");
+    // entities/profiles/{roleId}/ 配下のファイルを生成
+    console.log("\n[3/4] entities/profiles/{roleId}/ を生成中...");
     generateProfileDrizzle(roleConfig, profileConfig);
     console.log("  ✓ drizzle.ts");
     generateProfileSchema(roleConfig, profileConfig);
@@ -187,25 +177,16 @@ export default async function generate(roleId, options = {}) {
     generateProfileIndex(roleConfig, profileConfig, hasFieldConstants, hasFieldTypes);
     console.log("  ✓ index.ts");
 
-    // generated/index.ts を更新
-    console.log("\n[5/8] generated/index.ts を更新中...");
-    updateGeneratedIndex();
-    console.log("✓ generated/index.ts を更新しました");
-
-    // schemaRegistry.ts を更新
-    console.log("\n[6/8] schemaRegistry.ts を更新中...");
-    generateSchemaRegistry();
-    console.log("✓ schemaRegistry.ts を更新しました");
-
-    // registry を更新
-    console.log("\n[7/8] registry を更新中...");
-    updateProfileRegistry();
-    console.log("✓ registry を更新しました");
-
-    console.log("\n[8/8] 完了");
+    // プロフィールの一覧を丸ごと書く
+    console.log("\n[4/4] userProfile/extensions/ を更新中...");
+    writeProfileLists();
+    console.log("✓ userProfile/extensions/ を更新しました");
   } else {
-    console.log("\n[3-7] hasProfile: false のためプロフィール関連はスキップ");
+    console.log("\n[3-4] hasProfile: false のためプロフィール関連はスキップ");
   }
+
+  // hasProfile: false でプロフィールを残したロールがあるので、毎回一覧を合わせる
+  writeProfileLists();
 
   console.log(`\n=== 生成完了 ===\n`);
   console.log("次のステップ:");
@@ -231,30 +212,19 @@ export function checkAllRoles(roleIds = idsIn(ROLES_DIR, ".role.json")) {
 }
 
 /**
- * roleRegistry.ts の ALL_ROLES に今ある順の ID（生成は 1 ロールずつ消して末尾に足すので、この順に回すと並びが変わらない）
- */
-function registeredRoleOrder() {
-  const registryPath = path.join(ROOT_DIR, "src/registry/roleRegistry.ts");
-  if (!fs.existsSync(registryPath)) return [];
-  const content = fs.readFileSync(registryPath, "utf-8");
-  const start = content.indexOf("// === AUTO-GENERATED ENTRIES START ===");
-  const end = content.indexOf("// === AUTO-GENERATED ENTRIES END ===");
-  if (start === -1 || end === -1) return [];
-  return [...content.slice(start, end).matchAll(/^\s*(\w+)Role as RoleConfig/gm)].map((match) => match[1]);
-}
-
-/**
  * 全 *.role.json を生成する。先に全ロールを検査し、どれか 1 つでも問題があれば何も書かずに止める。
- * 順は roleRegistry.ts の今の並び → 未登録のロール（ID 順）
+ * 順は user/extensions/roles.ts の今の並び → 未登録のロール（ID 順）
  */
 export async function generateAll() {
   const fileIds = idsIn(ROLES_DIR, ".role.json");
-  const order = registeredRoleOrder();
+  const order = registeredRoleIds();
   const rank = (id) => {
-    const index = order.indexOf(toCamelCase(id));
+    const index = order.indexOf(id);
     return index === -1 ? order.length : index;
   };
-  const roleIds = [...fileIds].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  // 一覧に無いロールはコアロールを先に（一覧が無い初回でも _admin・_user が先頭）
+  const coreFirst = (id) => (loadRoleConfig(id).role.isCore ? 0 : 1);
+  const roleIds = [...fileIds].sort((a, b) => rank(a) - rank(b) || coreFirst(a) - coreFirst(b) || a.localeCompare(b));
   const issues = checkAllRoles(roleIds);
   if (issues.length > 0) throw new Error(issues.join("\n"));
   for (const roleId of roleIds) await generate(roleId);

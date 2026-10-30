@@ -1,7 +1,7 @@
 // src/features/core/user/constants/role.ts
 // ロール派生定数
 
-import { ALL_ROLES } from "@/registry/roleRegistry";
+import { roles as ALL_ROLES } from "@/features/core/user/extensions/roles";
 
 /**
  * ロールID配列（DBスキーマ、バリデーション用）

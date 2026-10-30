@@ -1,7 +1,7 @@
 // src/features/core/user/utils/roleHelpers.ts
 // ロール関連ヘルパー関数
 
-import { ALL_ROLES } from "@/registry/roleRegistry";
+import { roles as ALL_ROLES } from "@/features/core/user/extensions/roles";
 import type { RoleConfig } from "@/features/core/user/types";
 import type { UserRoleType } from "../constants/role";
 import type { RoleCategory } from "../types";

@@ -1,17 +1,18 @@
 // scripts/role-config/generator/generateProfileModel.mjs
-// generated/{roleId}/model.ts の生成
+// entities/profiles/{roleId}/model.ts の生成
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase } from "../../../src/utils/stringCase.mjs";
 import { isEnumFieldType, tsType } from "../../../src/lib/domain/fields/fieldTypes.mjs";
+import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/generated"
+  "src/features/core/userProfile/entities/profiles"
 );
 
 // 型 → TS の型は型の表（src/lib/domain/fields/fieldTypes.mjs）
@@ -28,7 +29,7 @@ function addField(lines, name, type, required) {
 }
 
 /**
- * generated/{roleId}/model.ts を生成
+ * entities/profiles/{roleId}/model.ts を生成
  */
 export function generateProfileModel(roleConfig, profileConfig) {
   const roleId = roleConfig.id;
@@ -67,7 +68,8 @@ export function generateProfileModel(roleConfig, profileConfig) {
   lines.push("  /** 更新日時 */");
   lines.push("  updatedAt: Date | null;");
 
-  const content = `// src/features/core/userProfile/generated/${roleId}/model.ts
+  const content = `${profileFileHeader(roleId)}
+// src/features/core/userProfile/entities/profiles/${roleId}/model.ts
 // ${roleConfig.label}プロフィールのモデル型定義
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json

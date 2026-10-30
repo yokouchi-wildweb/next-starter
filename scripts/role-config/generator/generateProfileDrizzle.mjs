@@ -1,17 +1,18 @@
 // scripts/role-config/generator/generateProfileDrizzle.mjs
-// generated/{roleId}/drizzle.ts の生成
+// entities/profiles/{roleId}/drizzle.ts の生成
 
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { toCamelCase, toPascalCase, toSnakeCase } from "../../../src/utils/stringCase.mjs";
 import { columnFunction, columnOptionsLiteral, fieldTypeSpec, isArrayFieldType } from "../../../src/lib/domain/fields/fieldTypes.mjs";
+import { profileFileHeader } from "./header.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 const GENERATED_DIR = path.join(
   ROOT_DIR,
-  "src/features/core/userProfile/generated"
+  "src/features/core/userProfile/entities/profiles"
 );
 
 /**
@@ -225,7 +226,7 @@ export const ${junctionTableVar} = pgTable(
 }
 
 /**
- * generated/{roleId}/drizzle.ts を生成
+ * entities/profiles/{roleId}/drizzle.ts を生成
  */
 export function generateProfileDrizzle(roleConfig, profileConfig) {
   const roleId = roleConfig.id;
@@ -281,7 +282,8 @@ ${belongsTo.lines.join("\n")}\n`
   // 中間テーブルブロック
   const m2mBlock = m2m.blocks.join("\n");
 
-  const content = `// src/features/core/userProfile/generated/${roleId}/drizzle.ts
+  const content = `${profileFileHeader(roleId)}
+// src/features/core/userProfile/entities/profiles/${roleId}/drizzle.ts
 // ${roleConfig.label}（${roleId}）ロール用のプロフィールテーブル
 //
 // 元情報: src/features/core/userProfile/profiles/${roleId}.profile.json
@@ -328,7 +330,7 @@ export type ${rolePascal}ProfileInsert = typeof ${tableVar}.$inferInsert;
 ${m2mBlock}
 `;
 
-  // generated/{roleId}/ フォルダを作成
+  // entities/profiles/{roleId}/ フォルダを作成
   const roleDir = path.join(GENERATED_DIR, roleId);
   if (!fs.existsSync(roleDir)) {
     fs.mkdirSync(roleDir, { recursive: true });

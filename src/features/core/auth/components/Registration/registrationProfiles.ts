@@ -6,13 +6,13 @@
  */
 
 import { APP_FEATURES } from "@/config/app/app-features.config";
-import { PROFILE_CONFIG_REGISTRY } from "@/registry/profileConfigRegistry";
+import { profileConfigs } from "@/features/core/userProfile/extensions/profileConfigs";
 import type { ProfileConfig } from "@/features/core/userProfile/profiles";
 
 const allowedRoles = APP_FEATURES.auth.signup.allowedRoles;
 
 export const REGISTRATION_PROFILES: Record<string, ProfileConfig> = Object.fromEntries(
   allowedRoles
-    .filter((roleId) => PROFILE_CONFIG_REGISTRY[roleId])
-    .map((roleId) => [roleId, PROFILE_CONFIG_REGISTRY[roleId]])
+    .filter((roleId) => profileConfigs[roleId])
+    .map((roleId) => [roleId, profileConfigs[roleId]])
 );

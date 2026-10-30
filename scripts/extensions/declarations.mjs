@@ -18,10 +18,11 @@ export const EXTENSIONS_DIR_NAME = "extensions";
 
 const SIDES = ["server", "client", "shared"];
 const LOADS = ["eager", "lazy"];
+const WRITERS = ["role:generate"];
 const TARGETS = ["wiring"];
 /** 組み込みの変換(一覧の項目に付け足す値)。fork が足す口は無い */
 export const DERIVES = ["featureTables", "settingSections"];
-const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf"];
+const KEYS = ["dir", "export", "type", "side", "key", "load", "target", "ignore", "derive", "alwaysOn", "literalKeys", "files", "shape", "pureImports", "requireText", "overrideOf", "writer"];
 const POINT_NAME = /^[a-z][A-Za-z0-9]*$/;
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
@@ -85,6 +86,13 @@ function checkPoint(name, point) {
   if (typeof point !== "object" || point === null || Array.isArray(point)) return [...problems, `${name}: 点は object で書く`];
   for (const key of Object.keys(point)) if (!KEYS.includes(key)) problems.push(`${name}: 未知のキー ${key}(使えるのは ${KEYS.join(" / ")})`);
   const isString = (v) => typeof v === "string" && v.length > 0;
+  // writer: 一覧を別の生成器が書く点。受け口・印・型は無く、持てるのは side だけ
+  if (point.writer !== undefined) {
+    if (!WRITERS.includes(point.writer)) problems.push(`${name}: writer は ${WRITERS.join(" | ")}`);
+    if (!SIDES.includes(point.side)) problems.push(`${name}: side は ${SIDES.join(" | ")}`);
+    for (const key of Object.keys(point)) if (key !== "writer" && key !== "side") problems.push(`${name}: writer の点に ${key} は書けない`);
+    return problems;
+  }
   if (!isString(point.dir) || point.dir.startsWith("/") || point.dir.split("/").includes("..")) problems.push(`${name}: dir は持ち主のフォルダからの相対パス("." = 持ち主の直下)`);
   if (!isString(point.export) || !IDENTIFIER.test(point.export)) problems.push(`${name}: export は項目が export する名前`);
   if (typeof point.type !== "object" || point.type === null || !isString(point.type.from) || !isString(point.type.name) || !IDENTIFIER.test(point.type.name)) {

@@ -249,8 +249,10 @@ function renderFile(points, itemsByPoint) {
  */
 export function planExtensions(repoRoot) {
   const { all: forkIds, errors } = readDeclaredForkIds(repoRoot);
-  const { points, problems } = collectPoints(repoRoot, forkIds);
+  const { points: declared, problems } = collectPoints(repoRoot, forkIds);
   problems.unshift(...errors);
+  // writer の点の一覧は別の生成器が書く: ここでは探さず書かない(宣言の数にだけ入る)
+  const points = declared.filter((p) => !p.spec.writer);
   const dirOf = (p) => posix.normalize(posix.join(p.owner, p.spec.dir));
   const allDirs = new Set(points.map(dirOf));
   const groups = new Map();
@@ -293,7 +295,7 @@ export function planExtensions(repoRoot) {
   const switchCheck = checkSwitches(repoRoot, { forkIds, isTier1 });
   const overrideCheck = checkOverrides(repoRoot, { isTier1 });
   problems.push(...switchCheck.problems, ...overrideCheck.problems);
-  return { points, itemsByPoint, outputs, switches: switchCheck.switches, overrides: overrideCheck.overrides, problems };
+  return { points: declared, itemsByPoint, outputs, switches: switchCheck.switches, overrides: overrideCheck.overrides, problems };
 }
 
 /** 点の項目(テスト・検査用): 持ち主のフォルダと点の名前で引く */
@@ -318,6 +320,8 @@ export function staleOutputs(repoRoot, outputs) {
  */
 export function strayExtensionFiles(repoRoot, outputs, points) {
   const strays = [];
+  const writerOutputs = new Set(points.filter((p) => p.spec.writer).map(outputOf));
+  const listPoints = points.filter((p) => !p.spec.writer);
   const walk = (dir, inside) => {
     if (!existsSync(join(repoRoot, dir))) return;
     for (const entry of readdirSync(join(repoRoot, dir), { withFileTypes: true })) {
@@ -325,9 +329,9 @@ export function strayExtensionFiles(repoRoot, outputs, points) {
       if (entry.isDirectory()) {
         if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
         walk(path, inside || entry.name === EXTENSIONS_DIR_NAME);
-      } else if (inside && !(path in outputs)) {
+      } else if (inside && !(path in outputs) && !writerOutputs.has(path)) {
         const owner = path.slice(0, path.lastIndexOf(`/${EXTENSIONS_DIR_NAME}/`));
-        const dirs = [...new Set(points.filter((p) => p.owner === owner).map((p) => posix.normalize(posix.join(p.owner, p.spec.dir))))];
+        const dirs = [...new Set(listPoints.filter((p) => p.owner === owner).map((p) => posix.normalize(posix.join(p.owner, p.spec.dir))))];
         const text = readFileSync(join(repoRoot, path), "utf8");
         strays.push({
           path,

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/role-config/deleteRole.mjs
 // 使い方: pnpm role:delete <roleId> --confirm <roleId> [--keep-generated] [--remove-json] [-i]
-// 既定は対話なし: --confirm に同じ ID を渡したときだけ消す。generated/<roleId>/ は既定で消す（--keep-generated で残す）、
+// 既定は対話なし: --confirm に同じ ID を渡したときだけ消す。entities/profiles/<roleId>/ は既定で消す（--keep-generated で残す）、
 // 設定の JSON は既定で残す（--remove-json で消す）。-i のときだけ今までの対話（選択・確認）
 // ロール関連のレジストリエントリを削除するスクリプト
 
@@ -108,7 +108,7 @@ export default async function deleteRole(roleIdArg, options = {}) {
     ({ deleteEntity } = await prompt({
       type: "confirm",
       name: "deleteEntity",
-      message: "生成フォルダ（generated/{roleId}/）も削除しますか？",
+      message: "生成フォルダ（entities/profiles/{roleId}/）も削除しますか？",
       default: true,
     }));
     ({ deleteJsonFiles } = await prompt({
@@ -131,7 +131,7 @@ export default async function deleteRole(roleIdArg, options = {}) {
   } else if (options.confirm !== selectedRoleId) {
     failUsage(
       `${options.confirm === undefined ? "削除するには --confirm でロール ID を渡してください" : `--confirm "${options.confirm}" がロール ID と一致しません`}` +
-        `（消すもの: roleRegistry の登録${deleteEntity ? "・generated/" + selectedRoleId + "/" : ""}${deleteJsonFiles ? "・設定の JSON" : ""}）。実行: pnpm role:delete ${selectedRoleId} --confirm ${selectedRoleId}`,
+        `（消すもの: ロールの一覧の登録${deleteEntity ? "・entities/profiles/" + selectedRoleId + "/" : ""}${deleteJsonFiles ? "・設定の JSON" : ""}）。実行: pnpm role:delete ${selectedRoleId} --confirm ${selectedRoleId}`,
       USAGE,
     );
     return;

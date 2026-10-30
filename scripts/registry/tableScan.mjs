@@ -7,7 +7,7 @@
 //         ./alpha/index.mjs(pnpm registry:generate の schemaRegistry、親 D67)。
 //
 // 走査の範囲: src/features/** の .ts(*.test.* を除く)。entities/drizzle.ts の外(entities/notificationRead.ts、
-// userProfile/generated/<role>/drizzle.ts などの生成物)も拾う。
+// userProfile/entities/profiles/<role>/drizzle.ts などの生成物)も拾う。
 // 字面で読めない pgTable(名前を変数・定数で渡す)は problems に場所を出す(走査の漏れを黙って通さない)。
 // コメントの中(JSDoc の使用例など)は見ない。
 
