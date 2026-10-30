@@ -108,6 +108,27 @@ async function withCronFixture(files, fn) {
 const taskSource = (name, schedule) =>
   `export const cronTask = { name: "${name}", description: "d", schedule: "${schedule}", run: async () => ({}) };\n`;
 
+test("override.ts: 空(空白とコメントだけ)は不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)", async () => {
+  await withCronFixture(
+    {
+      "a-task/task.ts": taskSource("a-task", "0 18 * * *"),
+      "a-task/override.ts": "",
+      "b-task/task.ts": taskSource("b-task", "5 18 * * *"),
+      "b-task/override.ts": "// 親の上書きを外した(下の Tier)\n/* 空 */\n",
+    },
+    async (root) => {
+      const tasks = await loadCronTasks(root);
+      assert.deepEqual(
+        tasks.map(({ name, schedule, overridden }) => ({ name, schedule, overridden })),
+        [
+          { name: "a-task", schedule: "0 18 * * *", overridden: false },
+          { name: "b-task", schedule: "5 18 * * *", overridden: false },
+        ],
+      );
+    },
+  );
+});
+
 test("override.ts: schedule を差し替え、disabled のタスクは定期実行から外す", async () => {
   await withCronFixture(
     {

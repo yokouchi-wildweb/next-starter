@@ -66,7 +66,10 @@ function print(result, { verbose }) {
   const problems = violations.length + result.leftovers.length + result.permitErrors.length;
   lines.push(result.status === "pass" ? "合格" : `違反 ${problems} 件`);
   lines.push(`基準: ${result.remote}/${result.branch} ${result.base.slice(0, 10)}(fork: ${result.ownerId})`);
-  if (result.tier1) lines.push(`Tier1 の版: ${result.tier1.sha.slice(0, 10)}(台帳 ${result.tier1.ledger} の upstream:、親 ${result.tier1.parent})`);
+  if (result.tier1) {
+    const via = result.tier1.chain.map((step) => `${step.name}@${step.sha.slice(0, 10)}`).join(" → ");
+    lines.push(`Tier1 の版: ${result.tier1.sha.slice(0, 10)}(自分の台帳の upstream:${via ? ` → ${via}` : ""} からたどった .notices/applied/ の無い版)`);
+  }
   lines.push("");
   lines.push("件数:");
   for (const [key, count] of Object.entries(result.counts).sort(([a], [b]) => a.localeCompare(b))) {

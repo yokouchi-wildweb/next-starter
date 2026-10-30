@@ -237,26 +237,33 @@ describe("ownership:check", () => {
     assert.equal(runCheck(fork).status, "pass");
   });
 
-  test("多段(D29): Tier3 は親(中間 Tier)の台帳の upstream: で Tier1 の版を決め、中間 Tier の物の書き換え・削除・rename は合格(参考)", () => {
+  /** 下の Tier を作る: 親を clone、名前の宣言と、取り込んだ親の版を upstream: に書いた台帳 */
+  const makeTier = (upper, name) => {
+    const root = join(tmp, `${name}-${(counter += 1)}`);
+    git(tmp, "clone", "-q", upper, root);
+    git(root, "remote", "rename", "origin", "upstream");
+    git(root, "remote", "add", "origin", `git@github.com:acme/${name}.git`);
+    write(root, ".claude/rules/project.md", `## TIER\nfork_id: ${name}\n`);
+    write(root, `.notices/applied/${name}.md`, `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(root, "rev-parse", "upstream/main").trim()} | notes:-\n`);
+    commitAll(root, `${name} start`);
+    return root;
+  };
+
+  test("多段(D29/D34): 台帳の upstream: を .notices/applied/ の無い版までたどり、中間 Tier の物の書き換え・削除は合格(参考)", () => {
     const tier1 = makeParent();
     const tier2 = makeFork(tier1); // game.ts を足した中間 Tier(名前 child)
     write(tier2, "src/features/game/rules.ts", "export const rules = 1;\n");
     commitAll(tier2, "tier2 more");
     const tier1Sha = git(tier2, "rev-parse", "upstream/main").trim();
 
-    const tier3 = join(tmp, `tier3-${(counter += 1)}`);
-    git(tmp, "clone", "-q", tier2, tier3);
-    git(tier3, "remote", "rename", "origin", "upstream");
-    git(tier3, "remote", "add", "origin", "git@github.com:acme/grandchild.git");
-    write(tier3, ".claude/rules/project.md", "## TIER\nfork_id: grandchild\n");
-    write(tier3, ".notices/applied/grandchild.md", `# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | upstream:${git(tier3, "rev-parse", "upstream/main").trim()} | notes:-\n`);
+    const tier3 = makeTier(tier2, "grandchild");
     write(tier3, "src/features/game/game.ts", "export const game = 3;\n"); // 中間 Tier の物の書き換え
     git(tier3, "rm", "-q", "src/features/game/rules.ts"); // 中間 Tier の物の削除
     commitAll(tier3, "tier3");
     const ok = runCheck(tier3);
     assert.equal(ok.status, "pass", JSON.stringify(ok.entries?.filter((e) => e.verdict === "violation")));
     assert.equal(ok.tier1.sha, tier1Sha);
-    assert.equal(ok.tier1.ledger, FORK_ID);
+    assert.deepEqual(ok.tier1.chain.map((step) => step.name), [FORK_ID]);
     assert.deepEqual(ok.middleTier.map((m) => `${m.was}:${m.path}`).sort(), ["deleted:src/features/game/rules.ts", "outside-intake:src/features/game/game.ts"]);
 
     // Tier1 の物は今どおり厳密
@@ -267,7 +274,43 @@ describe("ownership:check", () => {
     assert.equal(ng.entries.find((e) => e.path === "src/features/core/user/user.ts").reason, "outside-intake");
   });
 
-  test("多段: 台帳に upstream: が無い・その sha が辿れない・親の版に fork_id: が無い → 未検証(2)", () => {
+  test("多段: 4 段目も Tier1 の版を取り違えない(Tier2・Tier3 の物は合格、Tier1 の物は違反)", () => {
+    const tier1 = makeParent();
+    const tier1Sha = git(tier1, "rev-parse", "HEAD").trim();
+    const tier2 = makeFork(tier1);
+    const tier3 = makeTier(tier2, "third");
+    write(tier3, "src/features/shop/shop.ts", "export const shop = 1;\n");
+    commitAll(tier3, "tier3 adds");
+    const tier4 = makeTier(tier3, "fourth");
+    write(tier4, "src/features/game/game.ts", "export const game = 4;\n"); // Tier2 の物
+    git(tier4, "rm", "-q", "src/features/shop/shop.ts"); // Tier3 の物
+    commitAll(tier4, "tier4");
+    const ok = runCheck(tier4);
+    assert.equal(ok.status, "pass", JSON.stringify(ok.entries?.filter((e) => e.verdict === "violation")));
+    assert.equal(ok.tier1.sha, tier1Sha);
+    assert.deepEqual(ok.tier1.chain.map((step) => step.name), ["third", FORK_ID]);
+    assert.deepEqual(ok.middleTier.map((m) => m.path).sort(), ["src/features/game/game.ts", "src/features/shop/shop.ts"]);
+
+    write(tier4, "src/features/core/user/user.ts", "export const user = 4;\n");
+    commitAll(tier4, "tier1 file");
+    assert.equal(runCheck(tier4).status, "fail");
+  });
+
+  test("多段: 親の上書き(override)を下の Tier が消す・空にするのは合格(Tier1 は override を出荷しない = 中間 Tier の物、D34 K1)", () => {
+    const tier2 = makeFork(makeParent());
+    write(tier2, "src/app/api/cron/a/override.ts", "export const cronOverride = { disabled: true };\n");
+    write(tier2, "src/features/core/user/services/server/domainEntry.override.ts", "export const domainEntryOverrides = {};\n");
+    commitAll(tier2, "tier2 overrides");
+    const tier3 = makeTier(tier2, "grandchild");
+    write(tier3, "src/app/api/cron/a/override.ts", "");
+    git(tier3, "rm", "-q", "src/features/core/user/services/server/domainEntry.override.ts");
+    commitAll(tier3, "tier3 drops overrides");
+    const result = runCheck(tier3);
+    assert.equal(result.status, "pass", JSON.stringify(result.entries?.filter((e) => e.verdict === "violation")));
+    assert.equal(result.middleTier.length, 2);
+  });
+
+  test("多段: upstream: が無い・その sha が辿れない・途中の版に fork_id: / 台帳が無い → 未検証(2)", () => {
     const parent = makeParent();
     const fork = makeFork(parent);
     write(fork, `.notices/applied/${FORK_ID}.md`, "# APPLIED LEDGER\n- id:fork-init | date:x | commit:- | notes:-\n");
@@ -279,11 +322,19 @@ describe("ownership:check", () => {
     commitAll(fork, "bad sha");
     assert.match(runCheck(fork).reason, /履歴に無い/);
 
-    const noName = makeParent();
-    const fork2 = makeFork(noName);
-    write(noName, ".claude/rules/project.md", "## TIER\n");
-    commitAll(noName, "drop name");
-    assert.match(runCheck(fork2).reason, /fork_id: が無い/);
+    // 中間 Tier の版に fork_id: が無い
+    const tier2 = makeFork(makeParent());
+    write(tier2, ".claude/rules/project.md", "## TIER\n");
+    commitAll(tier2, "drop name");
+    const tier3 = makeTier(tier2, "grandchild");
+    assert.match(runCheck(tier3).reason, /fork_id: が無い/);
+
+    // 中間 Tier の版の台帳が fork_id: の名前でない(改名前の名前のまま)
+    const tier2b = makeFork(makeParent());
+    git(tier2b, "mv", `.notices/applied/${FORK_ID}.md`, ".notices/applied/old-child.md");
+    commitAll(tier2b, "old ledger name");
+    const tier3b = makeTier(tier2b, "grandchild");
+    assert.match(runCheck(tier3b).reason, /が無い\(台帳の名前を fork_id: にそろえる\)/);
   });
 
   test("--json は結果のオブジェクトをそのまま出す", () => {

@@ -273,6 +273,18 @@ export const serviceRegistry = {
   assert.deepEqual(checkServiceRegistry(root).errors, []);
 });
 
+test("override: 空(空白とコメントだけ)の domainEntry.override.ts は不在と同じ(D34 K1)", (t) => {
+  t.mock.method(console, "log", () => {});
+  const root = makeRoot({
+    "src/features/core/userTag/services/server/domainEntry.ts": ENTRY("userTag"),
+    "src/features/core/userTag/services/server/domainEntry.override.ts": "// 親の上書きを外した(下の Tier)\n",
+  });
+  generateServiceRegistry(root);
+  const text = fs.readFileSync(path.join(root, REGISTRY_FILE), "utf8");
+  assert.doesNotMatch(text, /from "@\/features\/core\/userTag\/services\/server\/domainEntry\.override"/);
+  assert.deepEqual(checkServiceRegistry(root).errors, []);
+});
+
 test("検査: 重複キー・base があるのに domainEntry.ts が無い・record_type・許可外 import・override の不整合・読めない行", () => {
   const root = makeRoot({
     "src/features/core/user/services/server/domainEntry.ts": ENTRY("user"),

@@ -33,6 +33,13 @@ test("parseCatalog: 見出しは fork の名前の形(小文字・数字・ハ�
   assert.equal(parseCatalog("## TriQ\n").errors.length, 1);
 });
 
+test("空の節(中間 Tier が lib を足していない・名前の節だけ置いた)は書式エラーにも不一致にもしない", () => {
+  const { sections, errors } = parseCatalog("## next-starter\n- src/lib/a — a\n\n## oripa-do\n\n## pandora\n- src/lib/b — b\n");
+  assert.deepEqual(errors, []);
+  assert.deepEqual(sections.map((s) => [s.owner, s.entries.length]), [["next-starter", 1], ["oripa-do", 0], ["pandora", 1]]);
+  assert.deepEqual(checkCatalog({ sections, folder: "src/lib", dirs: ["a", "b"] }), []);
+});
+
 const SAMPLE = `# 目録
 説明文の箇条書きは無視される:
 - 自分の節に 1 行足す

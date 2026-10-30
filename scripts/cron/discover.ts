@@ -3,9 +3,9 @@
 //
 // 利用者: scripts/cron/generate.ts, scripts/cron/check.ts, scripts/tasks/run.ts（pnpm task）, scripts/cron/cronWiring.test.mjs
 // task.ts の run は動的 import なので、ここで読み込んでも DB などの依存は読み込まれない。
-// fork が置いた override.ts（任意）があれば、schedule の差し替えと disabled をここで反映する。
+// fork が置いた override.ts（任意）があれば、schedule の差し替えと disabled をここで反映する。空(空白とコメントだけ)は不在と同じ。
 
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -34,8 +34,11 @@ export function listCronTaskDirs(repoRoot: string): string[] {
     .sort();
 }
 
+/** 空(空白とコメントだけ)の override.ts は不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1) */
+const isBlankSource = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "").trim() === "";
+
 async function loadOverride(dir: string, file: string): Promise<CronTaskOverride | null> {
-  if (!existsSync(file)) return null;
+  if (!existsSync(file) || isBlankSource(readFileSync(file, "utf8"))) return null;
   const label = `${CRON_ROUTE_DIR}/${dir}/override.ts`;
   const mod = (await import(pathToFileURL(file).href)) as { cronOverride?: CronTaskOverride };
   const override = mod.cronOverride;

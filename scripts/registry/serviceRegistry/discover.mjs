@@ -169,6 +169,9 @@ export function readEntryTables(text, entryPath) {
  * 書く前に登録表の検査を通す（createOverlayView）
  * @typedef {{ exists: (file: string) => boolean, read: (file: string) => string }} FileView
  */
+/** 空白とコメントだけのソースか */
+export const isBlankSource = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "").trim() === "";
+
 export const diskView = { exists: (file) => fs.existsSync(file), read: (file) => fs.readFileSync(file, "utf8") };
 
 /**
@@ -234,7 +237,8 @@ export function discoverDomainEntries(repoRoot, view = diskView) {
         }
       }
     }
-    if (view.exists(overrideFile)) {
+    // 空(空白とコメントだけ)の上書きは不在と同じ(多段で下の Tier が親の上書きを空にしてよい、D34 K1)
+    if (view.exists(overrideFile) && !isBlankSource(view.read(overrideFile))) {
       info.overridePath = `${rel}/${OVERRIDE_FILE}`;
       info.overrideImportPath = `@/features/${dir}/services/server/domainEntry.override`;
       const text = view.read(overrideFile);

@@ -3,7 +3,7 @@
 
 import { execFileSync } from "node:child_process";
 
-import { catalogSectionNames, parseForkIdDeclaration, PROJECT_RULES_FILE, readForkIdentity } from "./forkIds.mjs";
+import { parseForkIdDeclaration, PROJECT_RULES_FILE, readForkIdentity } from "./forkIds.mjs";
 import { matchIntake, parseIntake } from "./intake.mjs";
 import { judge } from "./judge.mjs";
 import { checkPermits, fingerprint, parsePermits, permitsPath } from "./permits.mjs";
@@ -107,27 +107,45 @@ export function lastUpstreamSha(ledgerText) {
   return shas.at(-1) ?? null;
 }
 
+/** 台帳をたどる深さの上限(循環・壊れた台帳で止まらないように) */
+export const TIER1_WALK_LIMIT = 10;
+
 /**
- * Tier1 の版を決める(D29): 直接の親が Tier1 = 自分の台帳の最後の upstream:、親が中間 Tier = 親の台帳の最後の upstream:。
- * 親の名前は直接の親の版の project.md の fork_id:、Tier1 の名前は HEAD の CATALOG.md の先頭の節。
- * @returns {{ sha: string, ledger: string, parentName: string } | { error: string }}
+ * Tier1 の版を決める(D29 の読み方 = 多段ティア D34): 自分の台帳の最後の upstream: の版から始め、
+ * その版に .notices/applied/ があれば、その版のリポの名前(その版の project.md の fork_id:)の台帳の最後の upstream: へ …
+ * と .notices/applied/ を持たない版(= Tier1)に着くまでたどる。段数に依らない。
+ * 途中で欠ける(upstream: が無い・sha が無い・その版に fork_id: / 台帳が無い)・循環・深さの上限 → error(exit 2)
+ * @returns {{ sha: string, chain: { sha: string, name: string }[] } | { error: string }}
  */
-function resolveTier1Version(repoRoot, ownerId, parentRef) {
-  const parentName = parseForkIdDeclaration(show(repoRoot, parentRef, PROJECT_RULES_FILE) ?? "").forkId;
-  if (!parentName) return { error: `親の版(${parentRef})の ${PROJECT_RULES_FILE} に fork_id: が無い(親が名前の宣言を含む版を出していない)` };
-  const tier1Name = catalogSectionNames(show(repoRoot, "HEAD", "src/lib/CATALOG.md") ?? "")[0];
-  const ledger = parentName === tier1Name ? ownerId : parentName;
-  const ledgerPath = `.notices/applied/${ledger}.md`;
-  const sha = lastUpstreamSha(show(repoRoot, "HEAD", ledgerPath));
-  if (!sha) {
-    return {
-      error: `${ledgerPath} に upstream:<sha> の行が無い(Tier1 の版が決まらない。/flux が区間の台帳の行に取り込んだ上流の版を書く)`,
-    };
+function resolveTier1Version(repoRoot, ownerId) {
+  const chain = [];
+  const seen = new Set();
+  let ledgerPath = `.notices/applied/${ownerId}.md`;
+  let ledgerText = show(repoRoot, "HEAD", ledgerPath);
+  let from = "HEAD";
+  for (let depth = 0; depth < TIER1_WALK_LIMIT; depth += 1) {
+    const sha = lastUpstreamSha(ledgerText);
+    if (!sha) {
+      return {
+        error: `${from} の ${ledgerPath} に upstream:<sha> の行が無い(Tier1 の版が決まらない。/flux が区間の台帳の行に取り込んだ上流の版を書く)`,
+      };
+    }
+    if (tryGit(repoRoot, ["cat-file", "-e", `${sha}^{commit}`]) === null) {
+      return { error: `${from} の ${ledgerPath} の upstream:${sha} が履歴に無い(squash・rebase で辿れない。取得し直すか /flux で記録し直す)` };
+    }
+    if (seen.has(sha)) return { error: `台帳の upstream: が循環している(${sha.slice(0, 10)})` };
+    seen.add(sha);
+    const applied = tryGit(repoRoot, ["ls-tree", "--name-only", sha, ".notices/applied/"]) ?? "";
+    if (applied.trim() === "") return { sha, chain };
+    const name = parseForkIdDeclaration(show(repoRoot, sha, PROJECT_RULES_FILE) ?? "").forkId;
+    if (!name) return { error: `${sha.slice(0, 10)} の版(中間 Tier)に ${PROJECT_RULES_FILE} の fork_id: が無い(その Tier が名前の宣言を含む版を出していない)` };
+    chain.push({ sha, name });
+    from = sha.slice(0, 10);
+    ledgerPath = `.notices/applied/${name}.md`;
+    ledgerText = show(repoRoot, sha, ledgerPath);
+    if (ledgerText === null) return { error: `${from} の版(${name})に ${ledgerPath} が無い(台帳の名前を fork_id: にそろえる)` };
   }
-  if (tryGit(repoRoot, ["cat-file", "-e", `${sha}^{commit}`]) === null) {
-    return { error: `${ledgerPath} の upstream:${sha} が履歴に無い(squash・rebase で辿れない。取得し直すか /flux で記録し直す)` };
-  }
-  return { sha, ledger, parentName };
+  return { error: `台帳を ${TIER1_WALK_LIMIT} 段たどっても Tier1 の版(.notices/applied/ の無い版)に着かない` };
 }
 
 /**
@@ -175,7 +193,7 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
   }
 
   // 多段(D29): Tier1 の版にあるファイルだけ厳密、無いファイル(中間 Tier 以下の物)は合格にして参考の一覧へ
-  const tier1 = resolveTier1Version(repoRoot, ownerId, parentRef);
+  const tier1 = resolveTier1Version(repoRoot, ownerId);
   if (tier1.error) return unverified(tier1.error, where);
   const tier1Files = new Set((tryGit(repoRoot, ["ls-tree", "-r", "--name-only", tier1.sha]) ?? "").split("\n").filter(Boolean));
 
@@ -239,7 +257,7 @@ export function runCheck(repoRoot, { parent, branch, fetch = true } = {}) {
   return {
     status: failed ? "fail" : "pass",
     ...where,
-    tier1: { sha: tier1.sha, ledger: tier1.ledger, parent: tier1.parentName },
+    tier1: { sha: tier1.sha, chain: tier1.chain },
     middleTier,
     permitFile,
     permitErrors: permitParse.errors,

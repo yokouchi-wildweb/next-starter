@@ -205,7 +205,7 @@ merge と移植は fork の編集をそのまま運ぶ。運ぶ先が上流の�
       # APPLIED LEDGER fork:<own origin url>
       - id:<notice id> | date:<ISO8601> | commit:<short sha or -> | upstream:<区間の merge 先の完全な sha> | relay:<none | relay notice id> | notes:<deviations from required_actions, or ->
       ```
-      `upstream:` 欄は全 fork が毎行書く(その区間で取り込んだ上流の版。過去の行は書き換えない)。`pnpm ownership:check` がこの欄で Tier1 の版を決める: 直接の親が Tier1 なら自分の台帳の最後の `upstream:`、親が中間 Tier なら親の台帳の最後の `upstream:`(多段の所有の判定、`src/lib/forkOwnership/README.md`)。`relay:` 欄は下流を持つ fork だけが書き、末端 fork は欄ごと省く。covers 側 notice を記録したときの covered id の行・`relay:` の値 → relay.md「台帳への追加」。
+      `upstream:` 欄は全 fork が毎行書く(その区間で取り込んだ上流の版。過去の行は書き換えない)。`pnpm ownership:check` がこの欄で Tier1 の版を決める: 自分の台帳の最後の `upstream:` の版から、その版の(その版のリポの `fork_id:` の名前の)台帳の最後の `upstream:` へ … と `.notices/applied/` の無い版(Tier1)までたどる(段数に依らない。多段の所有の判定、`src/lib/forkOwnership/README.md`)。台帳の名前は `fork_id:` にそろえる(途中の版で名前の違う台帳は辿れず exit 2)。`relay:` 欄は下流を持つ fork だけが書き、末端 fork は欄ごと省く。covers 側 notice を記録したときの covered id の行・`relay:` の値 → relay.md「台帳への追加」。
    b. 差分(適用実装+台帳+この区間で下書きした中継 notice)をコミットする(push はまだしない)。メッセージ: 1行サマリ + 空行 + `downstream-notice: <id>`(区間内の全 id、1 行ずつ)+ 環境指定の Co-Authored-By トレーラー。ブランチ運用は自リポの方針に従う。
    c. **所有の検査**(その区間の merge 先に `src/lib/forkOwnership/intake.txt` があるときだけ。無ければ飛ばす): `pnpm ownership:check`。検査は commit 済みの HEAD だけを見る(台帳・一時許可・片付けも HEAD から読む)ので、b の commit の後・push の前に走らせる。下流を持つ中間 Tier も同じ
       - 0 → d へ
