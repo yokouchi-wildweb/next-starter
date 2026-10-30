@@ -17,6 +17,8 @@
 // 4. 現在のフラグの組み合わせでスキーマゲートが成立する（外すテーブルを残すテーブルが外部キーで参照しない）
 //    外部キーに現れない機能間の前提（紹介 → クーポン）も満たす
 // 5. スキーマゲートは enum を外さず、無効なテーブルだけを両側（imports / tablesFilter）から外す
+// 7. 常時実行の入口(cron の task.ts・後片付けと照合の登録表・常に読み込まれる結線)が表を持つ規則の機能のフォルダを
+//    import するなら閉じられる(D17・D30・D20 K4。判定は scripts/proxies/alwaysOnEntries.mjs)。全規則を無効とみなして見る
 // 6. 行き先(redirectTo)の違う規則の住所の重なり(L1.22): 上流の規則どうしは失敗、fork の規則と上流の重なりは表示だけ
 //    (判定はファイル名の順で最初の無効な規則の行き先)。一覧は規則ファイルと同じ並び
 import { test } from "node:test";
@@ -34,6 +36,7 @@ import { APP_FEATURES } from "../config/app/app-features.config.ts";
 import { featureGateRules } from "./extensions/featureGateRules.ts";
 import { readDeclaredForkIds } from "../lib/forkOwnership/forkIds.mjs";
 import { discoverGateRules } from "../../scripts/proxies/extensions.mjs";
+import { judgeAlwaysOnEntries } from "../../scripts/proxies/alwaysOnEntries.mjs";
 import { applySchemaGate } from "../../scripts/registry/schemaGate.ts";
 import { matchesPath, patternCoversRoute } from "./pathPattern.mjs";
 
@@ -253,4 +256,33 @@ test("行き先の違う規則の住所の重なり(L1.22): 上流どうしは�
     }
   }
   assert.deepEqual(upstreamConflicts, [], `上流の規則どうしで行き先の違う重なり:\n${upstreamConflicts.join("\n")}`);
+});
+
+// 常時実行の入口の閉じ漏れ(D17・D30・D20 K4)
+// 後片付け・照合の登録表(定期実行・退会処理から常に読まれる)。それ以外の src/registry は画面・サービスから読まれるか表を読まない
+const ALWAYS_ON_REGISTRIES = [
+  "src/registry/userCleanupRegistry.ts", // 退会・ソフトデリートの後片付け(executeCleanup)
+  "src/registry/coinIssuanceRegistry.ts", // コイン創出の照合(管理の集計 API)
+  "src/registry/analyticsRollupRegistry.ts", // 日次の集計(cron analytics-rollup-daily)
+];
+// 常に読み込まれる結線のうち、表を持つ機能のフォルダを import してよいもの(path → 理由)。縮む表
+const ALWAYS_ON_EXCEPTIONS = {
+  "src/wiring/apiRoute.ts":
+    "pairedDevice の apiRouteDeviceDeps を Factory に結ぶだけ。端末の解決(表の読み取り)は createDeviceRoute の route が呼ばれたときだけ走り、その route は pairedDevice の規則で閉じる",
+};
+
+test("常時実行の入口: 表を持つ規則の機能を import するなら閉じられる(cron は enabled、登録表は条件つき spread、結線は例外表)", () => {
+  const rel = (abs) => relative(ROOT, abs).split(sep).join("/");
+  const code = (f) => /\.(ts|tsx|mts|mjs)$/.test(f) && !/\.test\./.test(f);
+  const entries = [
+    ...walk(join(APP_DIR, "api/cron")).filter((f) => /[\\/]task\.ts$/.test(f)).map((f) => ({ path: rel(f), kind: "cron" })),
+    ...ALWAYS_ON_REGISTRIES.map((path) => ({ path, kind: "registry" })),
+    ...[join(APP_DIR, "layout.tsx"), ...walk(join(ROOT, "src/wiring")), ...walk(join(ROOT, "src/proxies"))]
+      .filter(code)
+      .map((f) => ({ path: rel(f), kind: "wiring" })),
+  ].map((entry) => ({ ...entry, text: readFileSync(join(ROOT, entry.path), "utf8") }));
+  const folders = [...new Set(featureGateRules.flatMap((rule) => rule.features ?? []))];
+  assert.ok(folders.length > 0, "表を持つ規則が無い(features の読み取りを確認)");
+  const { problems, hits } = judgeAlwaysOnEntries(entries, folders, ALWAYS_ON_EXCEPTIONS);
+  assert.deepEqual(problems, [], `常時実行の入口の閉じ漏れ:\n${problems.join("\n")}\n該当: ${hits.join(" / ")}`);
 });

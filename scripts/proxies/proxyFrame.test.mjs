@@ -155,3 +155,35 @@ test("実リポ: 走査の問題が無く、生成一覧が項目と一致する
   assert.deepEqual([...problems, ...ruleProblems], [], [...problems, ...ruleProblems].join("\n"));
   assert.deepEqual(staleProxyLists(repoRoot, renderProxyLists(items, rules)), []);
 });
+
+test("常時実行の入口の判定: cron は enabled、登録表は条件つき spread、結線は例外表(縮む表)", async () => {
+  const { judgeAlwaysOnEntries, folderSourcePattern } = await import("./alwaysOnEntries.mjs");
+  const folders = ["core/wallet", "sample"];
+  assert.ok(folderSourcePattern("core/wallet").test("@/features/wallet/x"));
+  assert.ok(folderSourcePattern("core/wallet").test("@/features/core/wallet/x"));
+  assert.ok(!folderSourcePattern("core/wallet").test("@/features/core/walletHistory/x"));
+
+  const cronOk = `export const cronTask = { enabled: () => FLAG, run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
+  const cronNg = `export const cronTask = { run: async () => (await import("@/features/core/wallet/services/server/x")).run() };`;
+  const cronUnrelated = `export const cronTask = { run: async () => (await import("@/features/core/auditLog/x")).run() };`;
+  const regOk = `import { clear } from "@/features/core/wallet/services/server/clear";\nimport type { T } from "@/features/sample/types";\nexport const h = [\n  ...(FLAG.enabled ? [clear] : []),\n];`;
+  const regNg = `import { clear } from "@/features/core/wallet/services/server/clear";\nexport const h = [clear];`;
+  const regNamespace = `import * as w from "@/features/core/wallet";\nexport const h = [...(F ? [w.x] : [])];`;
+  const wire = `import { deps } from "@/features/sample/services/server/deps";\nexport const x = deps;`;
+  const entries = [
+    { path: "c/ok/task.ts", kind: "cron", text: cronOk },
+    { path: "c/ng/task.ts", kind: "cron", text: cronNg },
+    { path: "c/other/task.ts", kind: "cron", text: cronUnrelated },
+    { path: "r/ok.ts", kind: "registry", text: regOk },
+    { path: "r/ng.ts", kind: "registry", text: regNg },
+    { path: "r/ns.ts", kind: "registry", text: regNamespace },
+    { path: "w/listed.ts", kind: "wiring", text: wire },
+    { path: "w/unlisted.ts", kind: "wiring", text: wire },
+  ];
+  const { problems, hits } = judgeAlwaysOnEntries(entries, folders, { "w/listed.ts": "理由", "w/gone.ts": "もう無い" });
+  assert.deepEqual(hits.map((h) => h.split(":")[0]), ["c/ok/task.ts", "c/ng/task.ts", "r/ok.ts", "r/ng.ts", "r/ns.ts", "w/listed.ts", "w/unlisted.ts"]);
+  assert.deepEqual(
+    problems.map((p) => p.split(":")[0]).sort(),
+    ["c/ng/task.ts", "r/ng.ts", "r/ns.ts", "w/gone.ts", "w/unlisted.ts"],
+  );
+});
