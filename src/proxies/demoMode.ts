@@ -3,8 +3,6 @@
 import { NextResponse } from "next/server";
 
 import { demoModeConfig } from "@/config/app/demo-mode.config";
-import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
-import { parseSessionCookie } from "@/lib/jwt";
 
 import type { ProxyHandler } from "./types";
 
@@ -28,7 +26,7 @@ const isAllowedPath = (pathname: string): boolean => {
  * - 有効時: デモユーザー以外のアクセスをデモページにリダイレクト
  * - 無効時: デモページへのアクセスを404にする
  */
-export const demoModeProxy: ProxyHandler = async (request) => {
+export const demoModeProxy: ProxyHandler = async (request, ctx) => {
   const pathname = request.nextUrl.pathname;
 
   // デモモードが無効の場合、/demo-login へのアクセスは404
@@ -44,12 +42,8 @@ export const demoModeProxy: ProxyHandler = async (request) => {
     return;
   }
 
-  // セッションを取得してデモユーザーかチェック
-  const token = parseSessionCookie(request.cookies);
-  const sessionUser = token ? await resolveSessionUser(token) : null;
-
-  // デモユーザーならスキップ
-  if (sessionUser?.isDemo) {
+  // デモユーザー(ctx.user: DB 同期、利用可能な status だけ)ならスキップ
+  if ((await ctx.user())?.isDemo) {
     return;
   }
 

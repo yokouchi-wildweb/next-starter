@@ -57,6 +57,7 @@
     "test:worktree": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/worktree/worktree.test.ts",
     "test:cron-wiring": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test scripts/cron/cronWiring.test.mjs",
     "test:feature-gate": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/proxies/featureGate.test.mjs",
+    "test:proxy": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/proxies/proxy.test.mts",
     "test:relation-options": "node --test src/lib/domain/relations/relationOptions.test.mjs",
     "test:dc-registry": "node --test scripts/domain-config/tests/registry.test.mjs",
     "test:dc-structure": "node --test scripts/domain-config/tests/structure.test.mjs",

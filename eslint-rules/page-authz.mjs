@@ -21,7 +21,8 @@
 //   (src/components・src/features/**/components・src/features/**/hooks・src/hooks)。layout・_layout・loader.ts の許可は撤去した(D73 K4・K5)。
 //   ページの主体は guard.ts の createLoader が解いて loader の ctx.user で渡し、範囲の守りは guard()。API の主体は Factory の ctx.user(D8 K4)。
 //   token だけのセッション・lib/jwt の Cookie の解析もここで止まる。
-//   services/server・lib(pageGuard・routeFactory)・proxy は対象範囲の外(それぞれの契約で扱う)。AuthSessionProvider は名前付き例外。
+//   proxy の項目(src/proxies/**、上流・fork)も対象: 主体は proxy.ts が渡す ctx.user()(D10)。解決器を作る src/proxy.ts は対象外。
+//   services/server・lib(pageGuard・routeFactory)は対象範囲の外(それぞれの契約で扱う)。AuthSessionProvider は名前付き例外。
 // 禁止する import:
 //   - SESSION_API_NAMES の名前の値 import(どのパスからでも。barrel・re-export 経由も名前で捕まえる)。削除済みの名前
 //     (authGuard・requireCurrentUser 等)も残す(fork に残った呼び出しを見つけるため)
@@ -47,6 +48,7 @@ export const SESSION_API_NAMES = new Set([
   "requireAuthenticated",
   "requireAdmin",
   "parseSessionCookie",
+  "createProxyUser",
   // user: 自分の DB レコード
   "requireCurrentUser",
   // pairedDevice: 端末・端末の利用者
@@ -166,7 +168,7 @@ const layoutNoServerData = {
 const sessionApiCallsite = {
   meta: {
     type: "problem",
-    docs: { description: "ページ層・UI・API はセッション・ガード API を import しない(主体は guard.ts の createLoader / API の Factory が渡す)" },
+    docs: { description: "ページ層・UI・API・proxy の項目はセッション・ガード API を import しない(主体は guard.ts の createLoader / API の Factory / proxy.ts の ctx が渡す)" },
     messages: {
       named:
         "{{names}} はセッション・ガード API です。ページ層(page・Screen・layout・loader・guard.ts)と部品・hooks では import しない。範囲の守りは隣の guard.ts の guard()、主体は loader の ctx.user(createLoader)。詳細: src/lib/pageGuard/README.md",
@@ -176,18 +178,24 @@ const sessionApiCallsite = {
         "{{names}} はセッション・ガード API です。API(src/app/api/**)では呼ばない。主体は Factory が解いた ctx.user を使い、門は access の宣言で書く(詳細: src/lib/routeFactory/README.md)",
       moduleApi:
         '"{{source}}" はセッション API のモジュールです。API(src/app/api/**)では import しない。主体は ctx.user(詳細: src/lib/routeFactory/README.md)',
+      namedProxy:
+        "{{names}} はセッション・ガード API です。proxy の項目(src/proxies/**)では呼ばない。利用者は proxy.ts が渡す ctx.user() を使う(詳細: src/proxies/README.md)",
+      moduleProxy:
+        '"{{source}}" はセッション API のモジュールです。proxy の項目(src/proxies/**)では import しない。利用者は ctx.user()(詳細: src/proxies/README.md)',
     },
     schema: [],
   },
   create(context) {
     const inApi = /(^|[\\/])src[\\/]app[\\/]api[\\/]/.test(context.filename);
+    const inProxy = /(^|[\\/])src[\\/]proxies[\\/]/.test(context.filename);
+    const place = inProxy ? "Proxy" : inApi ? "Api" : "";
     return moduleVisitors((sourceNode, specifiers, typeOnly) => {
       const names = classifySessionImport(sourceNode.value, specifiers, typeOnly);
       if (names.length === 0) return;
       if (names[0] === "*") {
-        context.report({ node: sourceNode, messageId: inApi ? "moduleApi" : "module", data: { source: sourceNode.value } });
+        context.report({ node: sourceNode, messageId: `module${place}`, data: { source: sourceNode.value } });
       } else {
-        context.report({ node: sourceNode, messageId: inApi ? "namedApi" : "named", data: { names: names.join(", ") } });
+        context.report({ node: sourceNode, messageId: `named${place}`, data: { names: names.join(", ") } });
       }
     });
   },

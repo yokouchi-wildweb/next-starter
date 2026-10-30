@@ -138,6 +138,27 @@ test("rule session-api-callsite: セッション API の名前・モジュール
         filename: "src/app/api/foo/_shared/helper.ts",
         errors: [{ messageId: "moduleApi" }],
       },
+      // proxy の項目(D10): 主体は ctx.user()。セッション解決・Cookie の解析・解決器の直呼びを止める
+      {
+        code: `import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";`,
+        filename: "src/proxies/foo.myfork.ts",
+        errors: [{ messageId: "namedProxy" }],
+      },
+      {
+        code: `import { parseSessionCookie } from "@/lib/jwt";`,
+        filename: "src/proxies/maintenance.ts",
+        errors: [{ messageId: "namedProxy" }],
+      },
+      {
+        code: `import { createProxyUser } from "@/features/core/auth/services/server/proxyUserDeps";`,
+        filename: "src/proxies/foo.ts",
+        errors: [{ messageId: "namedProxy" }],
+      },
+      {
+        code: `const m = await import("@/features/core/auth/services/server/session/token");`,
+        filename: "src/proxies/foo.ts",
+        errors: [{ messageId: "moduleProxy" }],
+      },
     ],
   });
 });
@@ -215,4 +236,21 @@ test("config: M3 は src/app 全体(layout・_layout・loader・guard.ts・API �
   );
   assert.deepEqual(await lintAt("src/features/core/auth/components/AuthSessionProvider.tsx", SESSION), []);
   assert.deepEqual(await lintAt("src/features/sample/services/server/fooService.ts", SESSION), []);
+});
+
+test("config: M3 は proxy の項目(src/proxies/**、上流・fork のドット名)で error、解決器を作る src/proxy.ts は対象外", async () => {
+  const err = ["page-authz/session-api-callsite:2"];
+  for (const file of ["src/proxies/maintenance.ts", "src/proxies/playThrottle.myfork.ts", "src/proxies/featureGateRules/foo.ts"]) {
+    assert.deepEqual(await lintAt(file, SESSION), err, file);
+    assert.deepEqual(await lintAt(file, `import { parseSessionCookie } from "@/lib/jwt";\nexport const x = parseSessionCookie;\n`), err, file);
+  }
+  // 型だけ・ctx を受けるだけの項目は通す
+  assert.deepEqual(
+    await lintAt("src/proxies/foo.myfork.ts", `import type { SessionUser } from "@/features/core/auth/entities/session";\nexport type X = SessionUser;\n`),
+    [],
+  );
+  assert.deepEqual(
+    await lintAt("src/proxy.ts", `import { createProxyUser } from "@/features/core/auth/services/server/proxyUserDeps";\nexport const x = createProxyUser;\n`),
+    [],
+  );
 });

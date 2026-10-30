@@ -3,10 +3,8 @@
 import { NextResponse } from "next/server";
 
 import { maintenanceConfig } from "@/config/app/maintenance.config";
-import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
 import { settingService } from "@/features/core/setting/services/server/settingService";
 import { canBypassMaintenance } from "@/features/core/setting/utils/maintenanceBypass";
-import { parseSessionCookie } from "@/lib/jwt";
 
 import type { ProxyHandler } from "./types";
 
@@ -30,7 +28,7 @@ const isAllowedPath = (pathname: string): boolean => {
  * - メンテナンス中: 許可されたパスと管理者以外のアクセスをメンテナンスページにリダイレクト
  * - メンテナンス時間外: /maintenance へのアクセスを redirectAfterEnd にリダイレクト
  */
-export const maintenanceProxy: ProxyHandler = async (request) => {
+export const maintenanceProxy: ProxyHandler = async (request, ctx) => {
   const pathname = request.nextUrl.pathname;
   const inMaintenance = await settingService.isMaintenanceActive();
 
@@ -47,11 +45,9 @@ export const maintenanceProxy: ProxyHandler = async (request) => {
     return;
   }
 
-  // セッションを取得してバイパス判定（判定ロジックは canBypassMaintenance に集約）
-  const token = parseSessionCookie(request.cookies);
-  const sessionUser = token ? await resolveSessionUser(token) : null;
-
-  if (canBypassMaintenance(sessionUser)) {
+  // 利用者(ctx.user: DB 同期、利用可能な status だけ)でバイパス判定（判定ロジックは canBypassMaintenance に集約）。
+  // 停止中・休会中の管理者・debugger は null になり、メンテナンス中は入れない
+  if (canBypassMaintenance(await ctx.user())) {
     return;
   }
 

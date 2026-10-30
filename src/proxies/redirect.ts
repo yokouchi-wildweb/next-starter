@@ -3,9 +3,7 @@ import { NextResponse } from "next/server";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { redirectRules, type RedirectRule } from "@/config/app/redirect.config";
 import type { SessionUser } from "@/features/core/auth/entities/session";
-import { resolveSessionUser } from "@/features/core/auth/services/server/session/token";
 import { setRedirectToastCookie } from "@/lib/toast";
-import { parseSessionCookie } from "@/lib/jwt";
 
 import type { ProxyHandler } from "./types";
 
@@ -76,7 +74,7 @@ const shouldRedirectForRule = (
   return true;
 };
 
-export const redirectProxy: ProxyHandler = async (request) => {
+export const redirectProxy: ProxyHandler = async (request, ctx) => {
   const pathname = request.nextUrl.pathname;
   const rule = findRedirectRule(pathname);
 
@@ -84,11 +82,8 @@ export const redirectProxy: ProxyHandler = async (request) => {
     return;
   }
 
-  const token = parseSessionCookie(request.cookies);
-
-  const sessionUser = token ? await resolveSessionUser(token) : null;
-
-  if (!shouldRedirectForRule(rule, sessionUser)) {
+  // 利用者は規則に当たったときだけ解決する(ctx.user: DB 同期、利用可能な status だけ)
+  if (!shouldRedirectForRule(rule, await ctx.user())) {
     return;
   }
 

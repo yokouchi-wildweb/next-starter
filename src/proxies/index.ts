@@ -22,4 +22,4 @@ export const proxyResponseDecorators: ProxyResponseDecorator[] = [
   inviteLinkDecorator,  // 招待コードの cookie 保存（機能: referral フラグでゲート、解析とは独立）
 ];
 
-export type { ProxyHandler, ProxyResponseDecorator } from './types';
+export type { ProxyContext, ProxyHandler, ProxyResponseDecorator } from './types';

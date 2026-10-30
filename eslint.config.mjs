@@ -259,6 +259,7 @@ const config = [
   // セッション・ガード API(authGuard・getSessionUser・requireCurrentUser 等)をページ層・UI・API で import しない(M3、D73 K4・K5)。
   // 対象 = src/app 全体(page・Screen・layout・_layout・loader.ts・guard.ts・_components・API)と UI 側。許可の場所は無い:
   // ページの主体は guard.ts の createLoader が loader の ctx.user で渡し、範囲の守りは guard()。API の主体は Factory の ctx.user(D8 K4)。
+  // proxy の項目(src/proxies/**、上流・fork)の主体は proxy.ts が渡す ctx.user()(D10)。解決器を作る src/proxy.ts は対象外。
   // AuthSessionProvider は認証基盤の名前付き例外(root layout の Provider)。
   // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。詳細: eslint-rules/page-authz.mjs
   {
@@ -268,6 +269,7 @@ const config = [
       "src/features/**/components/**/*.{ts,tsx}",
       "src/features/**/hooks/**/*.{ts,tsx}",
       "src/hooks/**/*.{ts,tsx}",
+      "src/proxies/**/*.{ts,tsx,mts,mjs}",
     ],
     ignores: ["src/features/core/auth/components/AuthSessionProvider.tsx"],
     plugins: { "page-authz": pageAuthzPlugin },
