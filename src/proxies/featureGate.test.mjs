@@ -9,7 +9,7 @@
 //   FEATURE_GATE_CHECK=all pnpm test:feature-gate
 //
 // 守りたい契約:
-// 1. tables に書いたテーブル名は schemaRegistry に実在する
+// 1. features のフォルダから導いた表名(生成一覧の tables)は schemaRegistry に実在する
 // 2. 無効なルールのドメイン（そのテーブルを entities/drizzle.ts で定義するドメイン）を
 //    import するルート（route.ts / page.tsx と、その _screen/ _components/ 配下）は、そのルールの pathPatterns で閉じている
 //    （新しいルートを足して定義に書き忘れると失敗する）。意図的に閉じないルートは ROUTE_EXCEPTIONS に理由付きで書く（upstream 用）
@@ -118,7 +118,7 @@ test("upstream の画面を止めるスイッチ: 各規則のパターンが実
   assert.deepEqual(stale, [], `ページの無いパターン: ${stale.join(", ")}`);
 });
 
-test("tables に書いたテーブル名は schemaRegistry に実在する", () => {
+test("features から導いた表名は schemaRegistry に実在する(導出は proxy:generate、走査の一致は test:schema-registry)", () => {
   const unknown = rulesWithTables.flatMap((rule) => rule.tables.filter((name) => !schemaTableNames.has(name)));
   assert.deepEqual(unknown, [], `schemaRegistry に無いテーブル名: ${unknown.join(", ")}`);
 });

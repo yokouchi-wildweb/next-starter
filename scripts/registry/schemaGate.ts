@@ -14,7 +14,7 @@
 import { getTableName, is } from "drizzle-orm";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 
-import type { FeatureGateRule } from "@/proxies/types";
+import type { GatedFeatureRule } from "@/proxies/types";
 
 export type SchemaGateResult = {
   /** pushSchema の第 1 引数（ゲート対象テーブルを除いた schemaRegistry の export） */
@@ -29,15 +29,15 @@ export type SchemaGateResult = {
  * schemaRegistry の export とゲート定義から、push に渡す入力を組み立てる。
  * 定義の誤り（存在しないテーブル名 / 外すテーブルを残すテーブルが外部キーで参照）は例外にする。
  */
-export function applySchemaGate(schema: Record<string, unknown>, rules: FeatureGateRule[]): SchemaGateResult {
+export function applySchemaGate(schema: Record<string, unknown>, rules: GatedFeatureRule[]): SchemaGateResult {
   const tables = Object.values(schema).filter((value): value is PgTable => is(value, PgTable));
   const tableNames = new Set(tables.map((table) => getTableName(table)));
 
-  const gated = new Set(rules.filter((rule) => !rule.enabled()).flatMap((rule) => rule.tables ?? []));
+  const gated = new Set(rules.filter((rule) => !rule.enabled()).flatMap((rule) => rule.tables));
   const unknown = [...gated].filter((name) => !tableNames.has(name));
   if (unknown.length > 0) {
     throw new Error(
-      `機能を閉じる規則(src/proxies/featureGateRules/)の tables に schemaRegistry に無いテーブル名があります: ${unknown.join(", ")}`,
+      `機能を閉じる規則(src/proxies/featureGateRules/)の features から導いた表に schemaRegistry に無いテーブル名があります: ${unknown.join(", ")}`,
     );
   }
 

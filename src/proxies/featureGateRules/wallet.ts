@@ -19,10 +19,9 @@ export const rule: FeatureGateRule = {
     "/api/cron/wallet-expire-lots",
     "/api/cron/wallet-lots-prune",
   ],
-  tables: [
-    "wallets",
-    "wallet_lots",
-    "wallet_histories",
+  features: [
+    "core/wallet",
+    "core/walletHistory",
   ],
   enabled: () => APP_FEATURES.wallet.enabled,
 };

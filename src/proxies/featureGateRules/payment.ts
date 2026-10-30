@@ -21,10 +21,10 @@ export const rule: FeatureGateRule = {
     "/api/admin/bank-transfer-reviews",
     "/demo/dummy-payment",
   ],
-  tables: [
-    "purchase_requests",
-    "bank_transfer_reviews",
-    "purchase_quota_ledger",
+  features: [
+    "core/purchaseRequest",
+    "core/bankTransferReview",
+    "core/purchaseQuota",
   ],
   enabled: () => APP_FEATURES.payment.enabled,
 };

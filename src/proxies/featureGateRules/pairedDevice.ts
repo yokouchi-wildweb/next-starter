@@ -11,9 +11,8 @@ export const rule: FeatureGateRule = {
     "/api/paired-devices",
     "/api/cron/paired-device-pairings-prune",
   ],
-  tables: [
-    "paired_devices",
-    "device_pairings",
+  features: [
+    "core/pairedDevice",
   ],
   enabled: () => PAIRED_DEVICE_CONFIG.enabled,
 };

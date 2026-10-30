@@ -93,7 +93,47 @@ test("規則: featureGateRules/ の export const rule をファイル名順に�
   assert.ok(problems.some((p) => p.includes("beta.other.ts") && p.includes("宣言されていない")));
   const list = renderProxyLists([], rules)[GATE_RULES_FILE];
   assert.match(list, /import \{ rule as alpha \} from "\.\.\/featureGateRules\/alpha";/);
-  assert.match(list, /export const featureGateRules: FeatureGateRule\[\] = \[\n  alpha,\n  wallet_acme,\n  wallet,\n\];/);
+  assert.match(list, /export const featureGateRules: GatedFeatureRule\[\] = \[\n  \{ \.\.\.alpha, tables: \[\] \},\n  \{ \.\.\.wallet_acme, tables: \[\] \},\n  \{ \.\.\.wallet, tables: \[\] \},\n\];/);
+});
+
+test("規則の features: フォルダの pgTable から表を導き(fork が上流のフォルダに足した表も)、失敗の各条件で止まる", () => {
+  const root = fixture({});
+  const dir = join(root, "src/proxies/featureGateRules");
+  mkdirSync(dir, { recursive: true });
+  const feat = (name, tables) => {
+    const d = join(root, "src/features", name, "entities");
+    mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, "drizzle.ts"), tables.map((t, i) => `export const T${i} = pgTable("${t}", {});\n`).join(""));
+  };
+  feat("core/wallet", ["wallets", "wallet_lots"]);
+  feat("core/walletHistory", ["wallet_histories"]);
+  feat("core/empty", []);
+  // fork が上流のフォルダに足した表
+  writeFileSync(join(root, "src/features/core/wallet/entities/forkExtra.acme.ts"), 'export const X = pgTable("wallet_fork_extras", {});\n');
+  const rule = (body) => `export const rule: FeatureGateRule = { pathPatterns: ["/x"], ${body} enabled: () => true };\n`;
+  writeFileSync(join(dir, "wallet.ts"), rule('features: [\n    "core/wallet",\n    "core/walletHistory",\n  ],'));
+  writeFileSync(join(dir, "plain.ts"), rule(""));
+  writeFileSync(join(dir, "handWritten.ts"), rule('tables: ["wallets"],'));
+  writeFileSync(join(dir, "variable.ts"), rule("features: FOLDERS,"));
+  writeFileSync(join(dir, "notLiteral.ts"), rule("features: [FOLDER],"));
+  writeFileSync(join(dir, "missing.ts"), rule('features: ["core/nowhere"],'));
+  writeFileSync(join(dir, "noTables.ts"), rule('features: ["core/empty"],'));
+
+  const { rules, problems } = discoverGateRules(root, []);
+  assert.deepEqual(
+    rules.map((r) => `${r.file}:${r.tables.join("|")}`),
+    ["plain.ts:", "wallet.ts:wallets|wallet_lots|wallet_fork_extras|wallet_histories"],
+  );
+  const reasons = Object.fromEntries(["handWritten", "variable", "notLiteral", "missing", "noTables"].map((n) => [n, problems.find((p) => p.includes(`/${n}.ts`)) ?? ""]));
+  assert.match(reasons.handWritten, /tables を手書き/);
+  assert.match(reasons.variable, /文字列リテラルの配列でない/);
+  assert.match(reasons.notLiteral, /文字列リテラルでない/);
+  assert.match(reasons.missing, /無いフォルダ/);
+  assert.match(reasons.noTables, /pgTable が無い/);
+  assert.equal(problems.length, 5, problems.join("\n"));
+
+  const list = renderProxyLists([], rules)[GATE_RULES_FILE];
+  assert.match(list, /\{ \.\.\.wallet, tables: \["wallets", "wallet_lots", "wallet_fork_extras", "wallet_histories"\] \},/);
 });
 
 test("check: 一覧が無い・古いとずれ、作り直すと一致", () => {

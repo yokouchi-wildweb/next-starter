@@ -16,11 +16,11 @@ export const rule: FeatureGateRule = {
     "/api/me/coupon-attribution-rewards",
     "/api/admin/coupon-issuer-grants",
   ],
-  tables: [
-    "coupons",
-    "coupon_histories",
-    "coupon_attribution_rewards",
-    "coupon_issuer_grants",
+  features: [
+    "core/coupon",
+    "core/couponHistory",
+    "core/couponAttributionReward",
+    "core/couponIssuerGrant",
   ],
   enabled: () => APP_FEATURES.marketing.coupon.enabled,
 };

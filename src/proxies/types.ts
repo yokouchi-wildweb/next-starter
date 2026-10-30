@@ -34,8 +34,9 @@ export type ProxyResponseDecorator = (
  * 機能を閉じる規則(1 機能 1 ファイル: src/proxies/featureGateRules/<名前>[.<fork ID>].ts の `export const rule`)。
  * enabled() が false の規則は次の 2 か所で効く:
  * - ルートゲート(src/proxies/featureGate.ts): pathPatterns に一致するページ / API を 404(redirectTo があればそこへ rewrite)
- * - スキーマゲート(pnpm db:push / db:push:check、scripts/registry/schemaGate.ts): tables を push 対象から外す
+ * - スキーマゲート(pnpm db:push / db:push:check、scripts/registry/schemaGate.ts): features のフォルダの表を push 対象から外す
  *   作る方向にしか働かない。false の間は作らず、既にあるテーブルも消さない(true にした次の push で作られる)
+ *   表名は書かない: 生成器がフォルダの pgTable から導き(scripts/registry/tableScan.mjs)、生成一覧に文字列で書く(D16・D20)
  * 一覧は生成物 src/proxies/extensions/featureGateRules.ts(pnpm proxy:generate、ファイル名の順)。読み手はこの一覧だけを読む。
  * 住所の重なりは許す(OR)。行き先の違う重なりは、ファイル名の順で最初の無効な規則の redirectTo(L1.22)。詳細: src/proxies/README.md
  */
@@ -45,10 +46,17 @@ export type FeatureGateRule = {
    * "=/mypage" = そのパスちょうど(fork が同じ URL の下に足したページを巻き込まない)。照合: src/proxies/pathPattern.mjs
    */
   pathPatterns: string[];
-  /** false の間 push 対象から外すテーブル名(pgTable の第 1 引数)。enum は外さない */
-  tables?: string[];
+  /**
+   * false の間 push 対象から外す表を持つ機能のフォルダ(src/features からの相対、例 "core/wallet"・"sample")。
+   * 文字列リテラルの配列で書く(生成器が字面で読む)。フォルダの下の全 pgTable が対象(fork が上流のフォルダに足した表も入る)。
+   * 書かない規則は表を外さない。enum は外さない
+   */
+  features?: string[];
   /** この機能が有効か(config の値を読む同期関数。入切の値の置き場は config) */
   enabled: () => boolean;
   /** ブロック時の rewrite 先(省略時: API は 404、ページは /404) */
   redirectTo?: string;
 };
+
+/** 生成一覧の要素: 規則 + 生成器が features から導いた表名(features を書かない規則は空) */
+export type GatedFeatureRule = FeatureGateRule & { tables: string[] };

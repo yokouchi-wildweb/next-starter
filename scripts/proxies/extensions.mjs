@@ -21,6 +21,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { parseForkDotName } from "../../src/lib/forkOwnership/forkIds.mjs";
+import { FEATURES_DIR, scanFeatureTables, tablesOfFolder } from "../registry/tableScan.mjs";
 
 export const PROXY_DIR = "src/proxies";
 export const EXTENSIONS_DIR = "src/proxies/extensions";
@@ -42,6 +43,27 @@ export const GENERATED_HEADER =
 const HANDLER_MARK = /^export\s+const\s+handler\b/m;
 const DECORATOR_MARK = /^export\s+const\s+decorator\b/m;
 const RULE_MARK = /^export\s+const\s+rule\b/m;
+const FEATURES_FIELD = /(?:^|[{,\s])features\s*:\s*\[([\s\S]*?)\]/;
+const TABLES_FIELD = /(?:^|[{,\s])tables\s*:/;
+const STRING_LITERAL = /^["']([A-Za-z0-9_/-]+)["']$/;
+
+/**
+ * 規則ファイルの features: [...] を字面で読む(文字列リテラルの配列だけ)
+ * @returns {{ features: string[] } | { problem: string }}
+ */
+function readFeatures(text) {
+  if (TABLES_FIELD.test(text)) return { problem: "tables を手書きしている(features: [機能のフォルダ] で書く。表名は生成器が導く)" };
+  const match = FEATURES_FIELD.exec(text);
+  if (!match) return /\bfeatures\s*:/.test(text) ? { problem: "features が文字列リテラルの配列でない" } : { features: [] };
+  const parts = match[1].split(",").map((part) => part.trim()).filter(Boolean);
+  const features = [];
+  for (const part of parts) {
+    const literal = STRING_LITERAL.exec(part);
+    if (!literal) return { problem: `features の要素 ${part} が文字列リテラルでない(フォルダ名を "core/wallet" の形で直接書く)` };
+    features.push(literal[1]);
+  }
+  return { features };
+}
 const UPSTREAM_NAME = /^([A-Za-z][A-Za-z0-9]*)\.ts$/;
 
 /** 直下の .ts(テスト・型定義を除く)をファイル名の順に */
@@ -105,14 +127,17 @@ export function discoverProxyItems(repoRoot, forkIds) {
 /**
  * src/proxies/featureGateRules 直下の規則を集める(1 ファイル 1 つの export const rule、ファイル名の順)
  * 上流の x.ts と fork の x.<fork ID>.ts は別の規則(上流の規則を fork が上書きする口は無い。fork は閉じる規則を足すだけ)
+ * features: [機能のフォルダ] からそのフォルダの全 pgTable を導く(scripts/registry/tableScan.mjs。表定義は import しない)
  * @param {string} repoRoot
  * @param {string[]} forkIds 宣言済みの fork ID
- * @returns {{ rules: { file: string, forkId: string | null }[], problems: string[] }}
+ * @returns {{ rules: { file: string, forkId: string | null, features: string[], tables: string[] }[], problems: string[] }}
  */
 export function discoverGateRules(repoRoot, forkIds) {
   const dir = join(repoRoot, GATE_RULES_DIR);
   const rules = [];
   const problems = [];
+  const scan = scanFeatureTables(repoRoot);
+  problems.push(...scan.problems);
   for (const file of listTsFiles(dir)) {
     const label = `${GATE_RULES_DIR}/${file}`;
     const placement = checkPlacement(label, file, forkIds);
@@ -120,11 +145,34 @@ export function discoverGateRules(repoRoot, forkIds) {
       problems.push(placement.problem);
       continue;
     }
-    if (!RULE_MARK.test(readFileSync(join(dir, file), "utf8"))) {
+    const text = readFileSync(join(dir, file), "utf8");
+    if (!RULE_MARK.test(text)) {
       problems.push(`${label}: export const rule が無い(featureGateRules/ の .ts は規則だけ)`);
       continue;
     }
-    rules.push({ file, forkId: placement.forkId });
+    const read = readFeatures(text);
+    if (read.problem) {
+      problems.push(`${label}: ${read.problem}`);
+      continue;
+    }
+    const tables = [];
+    let broken = false;
+    for (const folder of read.features) {
+      if (!existsSync(join(repoRoot, FEATURES_DIR, folder))) {
+        problems.push(`${label}: features の "${folder}" は ${FEATURES_DIR}/ に無いフォルダ`);
+        broken = true;
+        continue;
+      }
+      const own = tablesOfFolder(scan.tables, folder);
+      if (own.length === 0) {
+        problems.push(`${label}: features の "${folder}" に pgTable が無い(表を持たない機能は features に書かない)`);
+        broken = true;
+        continue;
+      }
+      tables.push(...own);
+    }
+    if (broken) continue;
+    rules.push({ file, forkId: placement.forkId, features: read.features, tables });
   }
   return { rules, problems };
 }
@@ -162,13 +210,18 @@ export function renderProxyLists(items, rules = []) {
         "規則は src/proxies/featureGateRules/<名前>[.<fork ID>].ts に export const rule を置くと入る",
       ),
       "",
-      'import type { FeatureGateRule } from "../types";',
+      'import type { GatedFeatureRule } from "../types";',
       ...(rules.length > 0
         ? ["", ...rules.map((rule) => `import { rule as ${aliasOf(rule.file)} } from "../featureGateRules/${rule.file.replace(/\.ts$/, "")}";`)]
         : []),
       "",
-      `export const featureGateRules: FeatureGateRule[] = ${
-        rules.length === 0 ? "[]" : `[\n${rules.map((rule) => `  ${aliasOf(rule.file)},`).join("\n")}\n]`
+      "// tables = 規則の features のフォルダから導いた表名(表定義は import しない。proxy が読むのは規則と config だけ)",
+      `export const featureGateRules: GatedFeatureRule[] = ${
+        rules.length === 0
+          ? "[]"
+          : `[\n${rules
+              .map((rule) => `  { ...${aliasOf(rule.file)}, tables: [${(rule.tables ?? []).map((name) => JSON.stringify(name)).join(", ")}] },`)
+              .join("\n")}\n]`
       };`,
       "",
     ].join("\n"),
