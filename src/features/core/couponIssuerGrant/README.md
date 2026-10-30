@@ -2,7 +2,7 @@
 
 ユーザーが **クーポン発行権を申請** し、管理者が **per-user パラメータ付きで承認** し、承認されたユーザーが **周期ポリシーの下で自分の帰属クーポン（type=affiliate）を発行** するための汎用基盤。アフィリエイト / アンバサダー / フレンドクーポンの「申請 → 承認 → 月 1 枚発行」を支える。
 
-- Tier1 が持つのは **権利の台帳と状態遷移・周期発行の骨組み** のみ。「何を発行するか」（カテゴリ・周期・settings の意味）は下流が `src/registry/couponIssuerProgramRegistry.ts` に 1 つ登録する
+- Tier1 が持つのは **権利の台帳と状態遷移・周期発行の骨組み** のみ。「何を発行するか」（カテゴリ・周期・settings の意味）は下流が 1 行スイッチ `services/server/programConfig.ts` に 1 つ登録する
 - 上流は registry を `null` で出荷 = 発行 API は 503（fail-closed）。申請・審査は registry 未設定でも動く
 - UI は出荷しない（データレイヤのみ）。画面は下流が本 README のレシピで組む
 
@@ -36,7 +36,7 @@
 ## プログラム設定（下流が登録）
 
 ```typescript
-// src/registry/couponIssuerProgramRegistry.ts
+// services/server/programConfig.<fork の名前>.ts(スイッチ programConfig.ts をここへ向ける)
 import type { CouponIssuerProgramConfig } from "@/features/core/couponIssuerGrant/types/program";
 
 export const couponIssuerProgram: CouponIssuerProgramConfig | null = {

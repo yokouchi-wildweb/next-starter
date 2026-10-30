@@ -10,6 +10,9 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { test } from "node:test";
 
+import { onDemoUserCreated } from "@/features/core/auth/services/server/onDemoUserCreated";
+import { getCouponIssuerProgram, isCouponIssuerProgramEnabled } from "@/features/core/couponIssuerGrant/services/server/program";
+import { getPaymentSessionEnricher } from "@/features/core/purchaseRequest/services/server/payment/getSessionEnricher";
 import { activeCoinIssuanceSources } from "@/features/core/analytics/services/server/coinIssuance/activeSources";
 import type { CoinIssuanceSource } from "@/features/core/analytics/services/server/coinIssuance/types";
 import { runCleanupItems } from "@/features/core/user/services/server/cleanup";
@@ -74,6 +77,15 @@ test("上流の項目の組: 宣言と受け口がそろい、機能に閉じる
   assert.deepEqual(names("src/features/core/user", "reservedNames"), []);
   assert.deepEqual(names("src/features/core/purchaseRequest", "completionStrategies"), ["walletTopup"]);
   assert.deepEqual(names("src/features/core/batchJob", "jobHandlers"), ["walletBulkAdjust"]);
+});
+
+test("1 行スイッチの既定: 何も足さない状態で今までと同じ(エンリッチャーなし・プログラムなし・フックは何もしない)", async () => {
+  assert.equal(getPaymentSessionEnricher(), null);
+  assert.equal(getCouponIssuerProgram(), null);
+  assert.equal(isCouponIssuerProgramEnabled(), false);
+  assert.equal(await onDemoUserCreated("u1"), undefined);
+  const plan = planExtensions(ROOT);
+  assert.deepEqual(plan.switches.map((s: { target: string }) => s.target).sort(), ["onDemoUserCreated.default", "programConfig.default", "sessionEnricher.default"]);
 });
 
 const ENTRIES = [

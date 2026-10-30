@@ -64,7 +64,7 @@ LaunchInstruction `{ type: "client_sdk", sdkName: "paidy", config: { ... } }` �
 
 #### 購入者住所の事前入力（buyerAddress）
 
-与信精度向上のため、`params.buyerAddress`（`setPaymentSessionEnricher` でダウンストリームが供給）を
+与信精度向上のため、`params.buyerAddress`（エンリッチャー（1 行スイッチ `sessionEnricher.ts`） でダウンストリームが供給）を
 Paidy の `shipping_address` に渡す。このテンプレート自体は住所を保持しないため既定では未供給。
 
 - マッピング（**line1/line2 は Square 等と逆**。Paidy は line1=建物名・部屋番号 / line2=番地）:

@@ -1,5 +1,5 @@
-// src/registry/couponIssuerProgramRegistry.ts
-// クーポン発行者プログラム（申請 → 承認 → 周期発行）の設定レジストリ。
+// src/features/core/couponIssuerGrant/services/server/programConfig.default.ts
+// クーポン発行者プログラム（申請 → 承認 → 周期発行）の既定の設定: 無し。スイッチ: ./programConfig.ts
 //
 // 設計思想:
 //  - 申請 / 審査 / 発行権の管理（couponIssuerGrant ドメイン）は upstream の汎用基盤
@@ -8,8 +8,8 @@
 //    申請・審査は program 未設定でも動く（先に権利だけ集めておける）
 //
 // downstream で有効化する手順:
-//   1. src/features/<domain>/coupon/issuerProgram.ts に CouponIssuerProgramConfig を定義する
-//   2. このファイルの couponIssuerProgram にそれを代入する
+//   1. 隣に programConfig.<fork の名前>.ts を作り export const couponIssuerProgram: CouponIssuerProgramConfig を定義する
+//   2. スイッチ programConfig.ts をそこへ向ける
 //   3. 発行されるカテゴリのハンドラーが coupon/handlers/init.ts に登録済みであることを確認する
 //
 // 例（フレンドクーポン: 月 1 枚、月末まで有効、grant.settings で上限・率を個別設定）:
@@ -36,10 +36,4 @@
 
 import type { CouponIssuerProgramConfig } from "@/features/core/couponIssuerGrant/types/program";
 
-// --- fork entries start (upstream never edits inside) ---
-// --- fork entries end ---
-
-// fork は右辺を自分の設定に置き換える
-// --- fork entries start (upstream never edits inside) ---
 export const couponIssuerProgram: CouponIssuerProgramConfig | null = null;
-// --- fork entries end ---

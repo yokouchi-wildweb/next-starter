@@ -37,7 +37,7 @@
 - `getPaymentStatus?(id, paymentMethod?)`: ポーリング用照会。`id` は `correlationKey` で選ばれた値。未実装ならポーリングでは確定しない（Webhook 待ち）
 - `validateInitiation?(ctx)`: 新規作成直前のプロバイダ固有チェック。`{ kind: "redirect", existing }` を返すと新規作成せず既存へ誘導（inhouse の「未完了振込があれば案内ページへ戻す」）。外部プロバイダは通常不要
 
-`CreatePaymentSessionParams` の主な値: `purchaseRequestId`, `amount`（割引後）, `paymentMethod`（`paymentMethods[i].id`）, `successUrl` / `cancelUrl`, `buyerEmail` / `buyerPhoneNumber`（E.164）, `providerOptions`, `purchaseType`, `walletType`, `baseUrl`。下流は `setPaymentSessionEnricher()`（`sessionEnricher.ts`、`enrichers/` に副作用 import で登録、1 つだけ）で `buyerAddress` 等を足せる。
+`CreatePaymentSessionParams` の主な値: `purchaseRequestId`, `amount`（割引後）, `paymentMethod`（`paymentMethods[i].id`）, `successUrl` / `cancelUrl`, `buyerEmail` / `buyerPhoneNumber`（E.164）, `providerOptions`, `purchaseType`, `walletType`, `baseUrl`。下流は `エンリッチャー（1 行スイッチ sessionEnricher.ts）()`（`sessionEnricher.ts`、`enrichers/` に副作用 import で登録、1 つだけ）で `buyerAddress` 等を足せる。
 
 ---
 

@@ -1,6 +1,6 @@
 // src/features/core/couponIssuerGrant/types/program.ts
 //
-// 発行者プログラムの設定型。下流が src/registry/couponIssuerProgramRegistry.ts で
+// 発行者プログラムの設定型。下流が services/server/programConfig.<fork の名前>.ts で
 // 1 つ登録する（上流は null = 発行不可 fail-closed）。
 //
 // Tier1 が解釈するのは「どのカテゴリを」「どの周期で」「どんなパラメータで」発行するかの

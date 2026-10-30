@@ -94,15 +94,15 @@ src/app/api/webhook/payment/route.ts                       # 共通 Webhook 受�
   ユーザーレコード（`user.email` / `user.phoneNumber`）から設定する。電話は E.164 から
   PayPal の `national_number`（先頭 `+` を除いた数字・最大 14 桁）へ変換し、範囲外なら電話のみ省く。
 - `buyerAddress` — **休眠中の拡張ポイント**。アプリ（ダウンストリーム）が住所を保持している場合、
-  `setPaymentSessionEnricher` で `params.buyerAddress` を供給すると自動的に PayPal へ渡る
+  エンリッチャー（1 行スイッチ `sessionEnricher.ts`） で `params.buyerAddress` を供給すると自動的に PayPal へ渡る
   （Square と同じ拡張ポイント）。このテンプレート自体は住所を保持しないため、既定では未供給。
 
 ```ts
 // ダウンストリーム側の登録例
-setPaymentSessionEnricher(async ({ userId, baseParams }) => {
+export const paymentSessionEnricher: PaymentSessionEnricher = async ({ userId, baseParams }) => {
   const address = await addressService.getByUserId(userId); // ダウンストリームの住所取得
   return { ...baseParams, buyerAddress: address };
-});
+};
 ```
 
 ### 配送先住所セクションの非表示

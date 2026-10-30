@@ -69,6 +69,9 @@ edit src/features/core/referralReward/services/server/handlers/*.*.ts  # 報酬�
 edit src/features/core/referralReward/services/server/handlers/*.*/**  # フォルダ形
 edit src/features/core/batchJob/jobHandlers/*.*.ts  # バッチジョブハンドラ
 edit src/features/core/batchJob/jobHandlers/*.*/**  # フォルダ形
+edit src/features/core/purchaseRequest/services/server/payment/sessionEnricher.ts  # 1 行スイッチ(決済セッションのエンリッチャー)
+edit src/features/core/couponIssuerGrant/services/server/programConfig.ts  # 1 行スイッチ(クーポン発行者プログラム)
+edit src/features/core/auth/services/server/onDemoUserCreated.ts  # 1 行スイッチ(デモユーザー作成後のフック)
 edit src/**/extensionPoints.*.ts  # fork の拡張点の宣言(上流の持ち主のフォルダに足す点、scripts/extensions/README.md)
 !src/proxies/**/*.test.*  # テストはドット区切り名のカスタムではない
 
@@ -110,7 +113,6 @@ generated src/**/extensions/**  # pnpm extensions:generate(拡張点の一覧。
 
 # 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。
 # 理由 = 案内の所在 → 受け口づくりの依頼(一時許可の upreq に書く番号)。受け口ができた notice で行を外す)
-debt src/features/core/purchaseRequest/services/server/payment/enrichers/index.ts  # enrichers/index.ts:3 エンリッチャーを足す → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/milestone/components/renderers/index.ts  # renderers/index.ts:3 レンダラーを足す → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/adminCommand/config/categories.ts  # categories.ts「編集可能」カテゴリを登録 → upreq:20261029-200108-debt-intake-registries
 debt src/features/core/adminCommand/config/plugins.ts  # plugins.ts「編集可能」プラグインを登録 → upreq:20261029-200108-debt-intake-registries

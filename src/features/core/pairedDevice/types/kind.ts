@@ -83,7 +83,6 @@ export function definePairedDeviceKind<const TKind extends string, TSchema exten
 }
 
 /** 一覧の要素の型（scope の型は kind ごとに異なる） */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- scope は kind ごとの型で、一覧ではそろわない
 export type AnyPairedDeviceKindDefinition = PairedDeviceKindDefinition<any>;
 
 /** 種類の一覧の型から、kind 名の union を導く */

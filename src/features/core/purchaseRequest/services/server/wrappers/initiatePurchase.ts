@@ -21,7 +21,7 @@ import { DomainError } from "@/lib/errors/domainError";
 import { formatToE164 } from "@/features/core/user/utils/phoneNumber";
 import { couponService } from "@/features/core/coupon/services/server/couponService";
 import { PURCHASE_DISCOUNT_CATEGORY, type PurchaseDiscountEffect } from "../../../types/couponEffect";
-import { getPaymentSessionEnricher } from "../payment/sessionEnricher";
+import { getPaymentSessionEnricher } from "../payment/getSessionEnricher";
 import { PURCHASE_TYPE_CONFIG, type PurchaseTypeKey } from "@/config/app/purchaseType.config";
 import { getPurchaseCompletionStrategy } from "../completion";
 import {

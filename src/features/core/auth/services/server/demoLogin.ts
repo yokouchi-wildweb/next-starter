@@ -7,6 +7,7 @@ import { createGuestDemoUser } from "@/features/core/user/services/server/creati
 import { demoModeConfig } from "@/config/app/demo-mode.config";
 import { APP_FEATURES } from "@/config/app/app-features.config";
 import { signUserToken } from "@/lib/jwt";
+import { onDemoUserCreated } from "./onDemoUserCreated";
 
 export type DemoLoginInput = {
   demoUserId?: string | null;
@@ -50,7 +51,7 @@ export async function demoLogin(input: DemoLoginInput = {}): Promise<DemoLoginRe
     isNewUser = true;
 
     // 拡張ポイント：関連レコードの挿入
-    await demoModeConfig.onUserCreated(user.id);
+    await onDemoUserCreated(user.id);
   }
 
   // 最終認証日時を更新

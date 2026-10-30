@@ -9,8 +9,6 @@ import type { PurchaseRequest } from "@/features/core/purchaseRequest/entities/m
 import type { PurchaseTypeKey } from "@/config/app/purchaseType.config";
 import type { LaunchInstruction } from "@/features/core/purchaseRequest/types/payment";
 
-// エンリッチャー定義の副作用インポート（登録を実行）
-import "../payment/enrichers";
 
 // ============================================================================
 // 型定義
