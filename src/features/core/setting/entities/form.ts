@@ -1,9 +1,6 @@
 // src/features/setting/entities/form.ts
 
-import { z } from "zod";
-import { SettingUpdateSchema } from "./schema";
+import type { SettingValues } from "./model";
 
-export type SettingUpdateAdditional = {
-  // foo: string; フォームに追加する項目
-};
-export type SettingUpdateFields = z.infer<typeof SettingUpdateSchema> & SettingUpdateAdditional;
+/** 設定の更新で送る値(送ったキーだけ保存される) */
+export type SettingUpdateFields = Partial<SettingValues>;

@@ -86,6 +86,8 @@ edit src/app/_layout/adminCommand/plugins/*.*.tsx  # 管理者コマンドのプ
 edit src/app/_layout/adminCommand/plugins/*.*/**  # フォルダ形
 edit src/features/core/wallet/services/server/notification/adjustmentNotificationTemplate.ts  # 1 行スイッチ(残高調整の通知の組み立て)
 edit src/features/core/auth/components/Registration/RateLimitWarningContent.tsx  # 1 行スイッチ(重複登録の警告の本文)
+edit src/features/core/setting/fields/*.*.ts  # 設定のキー(fork のキー・上流のキーの *.override.ts)
+edit src/features/core/setting/sections/*.*.ts  # 設定のセクション(fork のセクション・上流のセクションの *.override.ts)
 edit src/features/core/coupon/adminSectionTabs/*.*.ts  # クーポン管理画面のセクションタブ
 edit src/features/core/coupon/adminSectionTabs/*.*/**  # フォルダ形
 edit src/features/core/storageObject/purposes/*.*.ts  # ファイル用途
@@ -139,5 +141,3 @@ generated src/**/extensions/**  # pnpm extensions:generate(拡張点の一覧。
 
 # 負債(upstream が core の中のファイルの編集を下流に案内している箇所。fork の書き換えは一時許可で通す。
 # 理由 = 案内の所在 → 受け口づくりの依頼(一時許可の upreq に書く番号)。受け口ができた notice で行を外す)
-debt src/features/core/setting/setting.extended.ts  # setting.extended.ts:4・CLAUDE.md DOMAINS setting フィールドを足す → upreq:20261029-200108-debt-intake-setting
-debt src/features/core/setting/setting.sections.tsx  # setting.sections.tsx:5 設定カテゴリを足す → upreq:20261029-200108-debt-intake-setting

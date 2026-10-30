@@ -4,28 +4,35 @@
 // 手順: src/lib/screens/README.md
 
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import AdminPage from "@/app/admin/_layout/AdminPage";
 import PageTitle from "@/app/admin/_layout/PageTitle";
 import type { ScreenProps } from "@/lib/screens/types";
-import AdminSettingSectionEdit from "@/features/core/setting/components/AdminSettingSectionEdit";
-import { settingSections } from "@/features/core/setting/setting.sections";
+import { Section } from "@/components/Layout/Section";
+import { FormSkeleton } from "@/components/Skeleton/FormSkeleton";
+import { sections } from "@/features/core/setting/extensions/sections";
 
+import EditSettingSectionForm from "./EditSettingSectionForm";
 import { loadAdminSettingSectionScreen, type AdminSettingSectionScreenParams } from "./loader";
 
 /** タイトル = セクション名(未知のキーは既定の「システム設定」。404 にするのは loader) */
 export async function generateMetadata({ params }: { params: Promise<AdminSettingSectionScreenParams> }): Promise<Metadata> {
   const { section } = await params;
-  return { title: settingSections[section]?.label ?? "システム設定" };
+  return { title: sections[section]?.label ?? "システム設定" };
 }
 
 export async function AdminSettingSectionScreen(props: ScreenProps<AdminSettingSectionScreenParams>) {
-  const { section, setting, redirectPath } = await loadAdminSettingSectionScreen(props);
+  const { sectionKey, section, setting, redirectPath } = await loadAdminSettingSectionScreen(props);
 
   return (
     <AdminPage>
       <PageTitle placement="header">{section.label}</PageTitle>
-      <AdminSettingSectionEdit section={section} setting={setting} redirectPath={redirectPath} />
+      <Section>
+        <Suspense fallback={<FormSkeleton />}>
+          <EditSettingSectionForm sectionKey={sectionKey} setting={setting} redirectPath={redirectPath} />
+        </Suspense>
+      </Section>
     </AdminPage>
   );
 }

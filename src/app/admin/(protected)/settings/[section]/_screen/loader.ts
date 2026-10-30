@@ -11,14 +11,15 @@ import { notFound, redirect } from "next/navigation";
 import type { ScreenProps } from "@/lib/screens/types";
 import type { Setting } from "@/features/core/setting/entities";
 import { getSettingForActor } from "@/features/core/setting/services/server/settingActor";
-import { settingSections, type SettingSection } from "@/features/core/setting/setting.sections";
+import { sections } from "@/features/core/setting/extensions/sections";
+import type { SettingSectionDefinition } from "@/features/core/setting/types/definition";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
 export type AdminSettingSectionScreenParams = { section: string };
 
 export type AdminSettingSectionScreenData = {
   sectionKey: string;
-  section: SettingSection;
+  section: SettingSectionDefinition;
   setting: Setting;
   /** 保存後の戻り先(このセクション自身) */
   redirectPath: string;
@@ -31,7 +32,7 @@ export const loadAdminSettingSectionScreen = createLoader({
     return [section];
   },
   load: async ({ allows, user }, sectionKey): Promise<AdminSettingSectionScreenData> => {
-    const section = settingSections[sectionKey];
+    const section = sections[sectionKey];
     if (!section) notFound();
 
     if (section.allowRoles && section.allowRoles.length > 0) {

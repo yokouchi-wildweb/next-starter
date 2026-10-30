@@ -1,4 +1,4 @@
-// src/features/setting/components/AdminSetup/index.tsx
+// src/app/admin/setup/_screen/AdminSetupForm.tsx
 
 "use client";
 

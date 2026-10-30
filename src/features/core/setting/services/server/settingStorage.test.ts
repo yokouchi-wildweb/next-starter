@@ -11,6 +11,7 @@ import { COLUMN_EXISTS_SQL, COPY_SQL, VERIFY_SQL, task } from "../../../../../..
 import { fields } from "../../extensions/fields";
 import { sections } from "../../extensions/sections";
 import { publicSettingKeys, settingKeysFor } from "./access";
+import { buildSectionForm, listSections } from "../../utils/sectionForm";
 import { readSettingValues, settingDefaultOf } from "./read";
 import { mergedExtendedSql, validateSettingInput } from "./save";
 
@@ -98,4 +99,21 @@ test("公開: public true のキーだけ。上流のキーは全部非公開", 
   assert.deepEqual(publicSettingKeys({ a: { schema: z.number().default(1), public: true }, b: { schema: z.number().default(1) } }), ["a"]);
   assert.deepEqual(publicSettingKeys(fields), []);
   assert.deepEqual(settingKeysFor("admin", fields, sections).sort(), Object.keys(fields).sort());
+});
+
+test("フォーム: セクションの欄を ui.order で並べ、許されていないキーは欄も送信も無い", () => {
+  const current = { adminListPerPage: 5, maintenanceEnabled: true, maintenanceEndAt: null };
+  const m = buildSectionForm("maintenance", fields, current);
+  assert.deepEqual(m.keys, ["maintenanceEnabled", "maintenanceEndAt"]);
+  assert.deepEqual(m.fieldConfigs.map((f) => f.name), ["maintenanceEnabled", "maintenanceEndAt"]);
+  assert.deepEqual(m.defaultValues, { maintenanceEnabled: true, maintenanceEndAt: null });
+  assert.deepEqual(Object.keys(m.schema.shape), ["maintenanceEnabled", "maintenanceEndAt"]);
+  assert.equal(m.fieldConfigs[0].label, "メンテナンスモード");
+  const g = buildSectionForm("general", fields, current);
+  assert.deepEqual(g.keys, ["adminListPerPage"]);
+  assert.equal(m.schema.safeParse({ maintenanceEnabled: true, maintenanceEndAt: null }).success, true);
+});
+
+test("セクション: order 昇順", () => {
+  assert.deepEqual(listSections(sections).map((s) => s.key), ["general", "maintenance"]);
 });

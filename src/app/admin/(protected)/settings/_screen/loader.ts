@@ -7,12 +7,15 @@
 import "server-only";
 import { redirect } from "next/navigation";
 
-import { getDefaultSettingSectionKey } from "@/features/core/setting/setting.sections";
+import { sections } from "@/features/core/setting/extensions/sections";
+import { listSections } from "@/features/core/setting/utils/sectionForm";
 import { createLoader } from "@/app/admin/(protected)/guard";
 
 export const loadAdminSettingIndexScreen = createLoader({
   access: { roleCategories: ["admin"] },
   load: async (): Promise<void> => {
-    redirect(`/admin/settings/${getDefaultSettingSectionKey()}`);
+    const [first] = listSections(sections);
+    if (!first) throw new Error("[setting] セクションがありません");
+    redirect(`/admin/settings/${first.key}`);
   },
 });
