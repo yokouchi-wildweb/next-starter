@@ -71,7 +71,7 @@
     "updated_at"
   ],
   "useDetailModal": true,
-  "addToAdminDataMenu": true,
+  "addToAdminDataMenu": false,
   "apiAccess": {
     "read": {
       "roleCategories": [

@@ -4,7 +4,7 @@
 //
 // 使い手: scripts/extensions/derive/featureTables.mjs(機能を閉じる規則の features → tables の導出、D16・D20 K1)、
 //         scripts/registry/tableScan.test.mjs(走査の集合 = schemaRegistry の全表、pnpm test:schema-registry)。
-//         計画書 04 の registry:generate(schemaRegistry を走査で丸ごと生成、親 D67)も同じ関数を使う前提の形。
+//         ./alpha/index.mjs(pnpm registry:generate の schemaRegistry、親 D67)。
 //
 // 走査の範囲: src/features/** の .ts(*.test.* を除く)。entities/drizzle.ts の外(entities/notificationRead.ts、
 // userProfile/generated/<role>/drizzle.ts などの生成物)も拾う。

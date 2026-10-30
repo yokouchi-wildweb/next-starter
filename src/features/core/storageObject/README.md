@@ -195,7 +195,7 @@ keep の用途と画像以外の型では、commit は**ファイルの中身を
 - **受け取り中の行**: strip の画像は pending の間 store = priv・key = `incoming/…`。ready になるときに `markReady` が store / key を本来の位置へ書き換える（以後は ref と一致する）
 - **session_uri は hiddenColumns**: 生の select では取り出さず、`services/server/finders/findStorageObjectById.ts` だけが読む
 - **index はすべて素の列**（push の往復を守る）: unique(store, key) / (status, expires_at) / (owner_user_id, status) / (record_type, record_id) / (status, ready_at)
-- **schemaRegistry**: CORE DOMAINS ブロックに登録済み。feature-gate の対象外
+- **schemaRegistry**: 走査で登録される。feature-gate の対象外
 - **監査**: 初版は記録しない
 
 ## 構成

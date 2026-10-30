@@ -1,0 +1,61 @@
+// src/lib/domain/types/domainConfigOptionals.ts
+// 生成物 src/registry/domainConfigRegistry.ts の DomainConfig に重ねる、domain.json の省略できるフィールドの型(手書き)
+
+/**
+ * domain.json でオプショナル（⚪ No）なフィールド。
+ * union 型では省略されたメンバーのプロパティにアクセスできないため、
+ * intersection で付与して型安全にアクセス可能にする。
+ *
+ * ⚠️ domain.json スキーマにオプショナルフィールドを追加した場合、ここにも追加すること。
+ *    追加漏れ → searchFields がないドメインが存在するだけでビルドエラーになる。
+ *    スキーマ定義: src/features/README.md「トップレベルプロパティ」
+ */
+export type DomainConfigOptionals = {
+  useSoftDelete?: boolean;
+  searchFields?: string[];
+  // 関連度ランキング（searchRank: true 時のフィールド重み、Neon のみ）。
+  // 未宣言なら searchFields 等重み。詳細は src/lib/crud/README.md の searchRank 節を参照。
+  searchRank?: { fields?: Array<string | { field: string; weight?: number }> };
+  defaultOrderBy?: string[][];
+  tableFields?: string[];
+  useDetailModal?: boolean;
+  addToAdminDataMenu?: boolean;
+  useDuplicateButton?: boolean;
+  useImportExport?: boolean;
+  useAutoSave?: boolean;
+  compositeUniques?: string[][];
+  // 正規の型は src/components/Form/FieldRenderer/types.ts の FieldGroup を参照。
+  // JSON インポートの型推論と相性を保つためインラインで再宣言している。
+  fieldGroups?: Array<{
+    key: string;
+    label: string;
+    fields: string[];
+    collapsible?: boolean;
+    defaultCollapsed?: boolean;
+    bgColor?: string;
+  }>;
+  indexes?: Array<{
+    fields: string[];
+    where?: string;
+    name?: string;
+    // インデックス方式（gin / gist など）。省略 = btree
+    using?: string;
+    // 列ごとの演算子クラス（例: { title: "gin_trgm_ops" }）
+    opclass?: Record<string, string>;
+  }>;
+  sortOrderField?: string | null;
+  // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（Neon のみ）。
+  // 詳細は src/lib/crud/README.md を参照。
+  systemColumns?: string[];
+  // 秘匿カラム（サービスの全戻り値・withRelations 展開から null 置換、Neon のみ）。
+  // dc:generate が entities/drizzle.ts に defineHiddenColumns() を出力する。
+  // 詳細は src/lib/crud/README.md の hiddenColumns 節を参照。
+  hiddenColumns?: string[];
+  // JSON インポートの型推論（string）と相性を保つため、リテラル union ではなく緩い型で宣言する。
+  // 厳密な型は src/lib/domain/types/apiAccess.ts の DomainApiAccessConfig を参照。
+  apiAccess?: {
+    read?: string | { roles?: string[]; roleCategories?: string[] };
+    write?: string | { roles?: string[]; roleCategories?: string[] };
+    operations?: Record<string, string | { roles?: string[]; roleCategories?: string[] }>;
+  };
+};

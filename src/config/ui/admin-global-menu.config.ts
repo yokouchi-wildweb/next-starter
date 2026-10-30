@@ -87,7 +87,7 @@ export const adminMenu: AdminMenuSection[] = [
     title: "データ管理",
     href: null,
     icon: Database,
-    items: adminDataMenu.filter((item) => item.href !== "/admin/user-tags"),
+    items: adminDataMenu,
   },
   // 銀行振込レビューは決済方法 bank_transfer_inhouse が選択可能なときだけ露出する。
   // 現状このセクションは単一項目のため、無効時はセクションごと非表示にする。

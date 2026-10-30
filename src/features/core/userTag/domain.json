@@ -76,7 +76,7 @@
   "useDetailModal": false,
   "useDuplicateButton": false,
   "useImportExport": false,
-  "addToAdminDataMenu": true,
+  "addToAdminDataMenu": false,
   "useAutoSave": false,
   "apiAccess": {
     "read": {

@@ -71,6 +71,9 @@ append src/lib/CATALOG.md  # src/lib/README.md「ライブラリを足すとき�
 
 # 生成物(fork の設定・ドメインから生成し直される)
 generated src/registry/serviceRegistry.ts  # pnpm registry:generate
+generated src/registry/schemaRegistry.ts  # pnpm registry:generate(走査で丸ごと)
+generated src/registry/domainConfigRegistry.ts  # pnpm registry:generate(走査で丸ごと)
+generated src/registry/adminDataMenu.ts  # pnpm registry:generate(走査で丸ごと)
 generated src/registry/profileBaseRegistry.ts  # pnpm role:generate
 generated src/registry/profileSchemaRegistry.ts  # pnpm role:generate
 generated src/registry/profileTableRegistry.ts  # pnpm role:generate

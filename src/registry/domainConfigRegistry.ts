@@ -1,109 +1,48 @@
+// 生成物・編集不可: pnpm registry:generate が src/features/**/domain.json から生成する
 // src/registry/domainConfigRegistry.ts
+//
+// 全ドメインの domain.json の一覧(キー = フォルダ名の snake_case)。読み手: src/lib/domain/config/getDomainConfig.ts
 
-// --- Core imports ---
-import userConfig from "@/features/user/domain.json";
-import couponConfig from "@/features/coupon/domain.json";
-import couponHistoryConfig from "@/features/couponHistory/domain.json";
-import rateLimitConfig from "@/features/rateLimit/domain.json";
-import userLineProfileConfig from "@/features/userLineProfile/domain.json";
-import userTagConfig from "@/features/userTag/domain.json";
-import referralConfig from "@/features/referral/domain.json";
-import referralRewardConfig from "@/features/referralReward/domain.json";
-import milestoneConfig from "@/features/milestone/domain.json";
-import notificationConfig from "@/features/notification/domain.json";
-import notificationTemplateConfig from "@/features/notificationTemplate/domain.json";
+import type { DomainConfigOptionals } from "@/lib/domain/types/domainConfigOptionals";
 
-// --- Auto-generated imports ---
+import chatRoomConfig from "@/features/core/chatRoom/domain.json";
+import couponConfig from "@/features/core/coupon/domain.json";
+import couponHistoryConfig from "@/features/core/couponHistory/domain.json";
+import milestoneConfig from "@/features/core/milestone/domain.json";
+import notificationConfig from "@/features/core/notification/domain.json";
+import notificationTemplateConfig from "@/features/core/notificationTemplate/domain.json";
+import purchaseQuotaConfig from "@/features/core/purchaseQuota/domain.json";
+import rateLimitConfig from "@/features/core/rateLimit/domain.json";
+import referralConfig from "@/features/core/referral/domain.json";
+import referralRewardConfig from "@/features/core/referralReward/domain.json";
+import userConfig from "@/features/core/user/domain.json";
+import userLineProfileConfig from "@/features/core/userLineProfile/domain.json";
+import userTagConfig from "@/features/core/userTag/domain.json";
 import sampleConfig from "@/features/sample/domain.json";
 import sampleCategoryConfig from "@/features/sampleCategory/domain.json";
-import sampleTagConfig from "@/features/sampleTag/domain.json";
-import chatRoomConfig from "@/features/core/chatRoom/domain.json";
 import sampleImageConfig from "@/features/sampleImage/domain.json";
+import sampleTagConfig from "@/features/sampleTag/domain.json";
 
 export const domainConfigMap = {
-
-  // --- CORE DOMAINS (手動管理) ---
-  user: userConfig,
+  chat_room: chatRoomConfig,
   coupon: couponConfig,
   coupon_history: couponHistoryConfig,
-  rate_limit: rateLimitConfig,
-  user_line_profile: userLineProfileConfig,
-  user_tag: userTagConfig,
-  referral: referralConfig,
-  referral_reward: referralRewardConfig,
   milestone: milestoneConfig,
   notification: notificationConfig,
   notification_template: notificationTemplateConfig,
-  chat_room: chatRoomConfig,
-
-  // --- AUTO-GENERATED-START ---
+  purchase_quota: purchaseQuotaConfig,
+  rate_limit: rateLimitConfig,
+  referral: referralConfig,
+  referral_reward: referralRewardConfig,
+  user: userConfig,
+  user_line_profile: userLineProfileConfig,
+  user_tag: userTagConfig,
   sample: sampleConfig,
   sample_category: sampleCategoryConfig,
-  sample_tag: sampleTagConfig,
   sample_image: sampleImageConfig,
-  // --- AUTO-GENERATED-END ---
-
+  sample_tag: sampleTagConfig,
 } as const;
 
 export type DomainKey = keyof typeof domainConfigMap;
-
-/**
- * domain.json でオプショナル（⚪ No）なフィールド。
- * union 型では省略されたメンバーのプロパティにアクセスできないため、
- * intersection で付与して型安全にアクセス可能にする。
- *
- * ⚠️ domain.json スキーマにオプショナルフィールドを追加した場合、ここにも追加すること。
- *    追加漏れ → searchFields がないドメインが存在するだけでビルドエラーになる。
- *    スキーマ定義: src/features/README.md「トップレベルプロパティ」
- */
-type DomainConfigOptionals = {
-  useSoftDelete?: boolean;
-  searchFields?: string[];
-  // 関連度ランキング（searchRank: true 時のフィールド重み、Neon のみ）。
-  // 未宣言なら searchFields 等重み。詳細は src/lib/crud/README.md の searchRank 節を参照。
-  searchRank?: { fields?: Array<string | { field: string; weight?: number }> };
-  defaultOrderBy?: string[][];
-  tableFields?: string[];
-  useDetailModal?: boolean;
-  addToAdminDataMenu?: boolean;
-  useDuplicateButton?: boolean;
-  useImportExport?: boolean;
-  useAutoSave?: boolean;
-  compositeUniques?: string[][];
-  // 正規の型は src/components/Form/FieldRenderer/types.ts の FieldGroup を参照。
-  // JSON インポートの型推論と相性を保つためインラインで再宣言している。
-  fieldGroups?: Array<{
-    key: string;
-    label: string;
-    fields: string[];
-    collapsible?: boolean;
-    defaultCollapsed?: boolean;
-    bgColor?: string;
-  }>;
-  indexes?: Array<{
-    fields: string[];
-    where?: string;
-    name?: string;
-    // インデックス方式（gin / gist など）。省略 = btree
-    using?: string;
-    // 列ごとの演算子クラス（例: { title: "gin_trgm_ops" }）
-    opclass?: Record<string, string>;
-  }>;
-  sortOrderField?: string | null;
-  // systemUpdate / systemBulkUpdateByQuery（特権書き込み）の allowlist（Neon のみ）。
-  // 詳細は src/lib/crud/README.md を参照。
-  systemColumns?: string[];
-  // 秘匿カラム（サービスの全戻り値・withRelations 展開から null 置換、Neon のみ）。
-  // dc:generate が entities/drizzle.ts に defineHiddenColumns() を出力する。
-  // 詳細は src/lib/crud/README.md の hiddenColumns 節を参照。
-  hiddenColumns?: string[];
-  // JSON インポートの型推論（string）と相性を保つため、リテラル union ではなく緩い型で宣言する。
-  // 厳密な型は src/lib/domain/types/apiAccess.ts の DomainApiAccessConfig を参照。
-  apiAccess?: {
-    read?: string | { roles?: string[]; roleCategories?: string[] };
-    write?: string | { roles?: string[]; roleCategories?: string[] };
-    operations?: Record<string, string | { roles?: string[]; roleCategories?: string[] }>;
-  };
-};
 
 export type DomainConfig = (typeof domainConfigMap)[DomainKey] & DomainConfigOptionals;

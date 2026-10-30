@@ -211,7 +211,7 @@
     "updatedAt"
   ],
   "useDetailModal": true,
-  "addToAdminDataMenu": true,
+  "addToAdminDataMenu": false,
   "useDuplicateButton": true,
   "useImportExport": false,
   "apiAccess": {
