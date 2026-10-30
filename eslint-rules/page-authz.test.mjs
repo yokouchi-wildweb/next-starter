@@ -145,10 +145,12 @@ const USER_SERVICE = `import { userService } from "@/features/core/user/services
 const AUTH_GUARD = `import { authGuard } from "@/features/core/auth/services/server/authorization";\nexport const x = authGuard;\n`;
 const SESSION = `import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";\nexport const x = getSessionUser;\n`;
 
-test("config: M4 は layout と _layout/ の組み立てで error、guard.ts は対象外", async () => {
+test("config: M4 は layout と _layout/ の組み立てで error、layout の隣の guard.ts は対象外", async () => {
   assert.deepEqual(await lintAt("src/app/admin/(protected)/layout.tsx", USER_SERVICE), ["page-authz/layout-no-server-data:2"]);
   assert.deepEqual(await lintAt("src/app/(user)/_layout/UserFrame.tsx", USER_SERVICE), ["page-authz/layout-no-server-data:2"]);
-  assert.deepEqual(await lintAt("src/app/(user)/_layout/guard.ts", USER_SERVICE), []);
+  assert.deepEqual(await lintAt("src/app/(user)/guard.ts", USER_SERVICE), []);
+  // layout は隣の guard.ts の guard() を 1 行で呼ぶ
+  assert.deepEqual(await lintAt("src/app/admin/(protected)/layout.tsx", `import { guard } from "./guard";\nexport const x = guard;\n`), []);
   assert.deepEqual(await lintAt("src/app/foo/_screen/loader.ts", USER_SERVICE), []);
 });
 
@@ -165,7 +167,8 @@ test("config: M3 は page・Screen・部品・hooks・API(route と補助ファ�
   // layout は authorization の関数(authGuard)だけ。session/getSessionUser の直読みは M4 が止める(任意のセッション読み取りの範囲は loader Factory と一緒に決める)
   assert.deepEqual(await lintAt("src/app/foo/layout.tsx", AUTH_GUARD), []);
   assert.deepEqual(await lintAt("src/app/foo/layout.tsx", SESSION), ["page-authz/layout-no-server-data:2"]);
-  assert.deepEqual(await lintAt("src/app/foo/_layout/guard.ts", SESSION), []);
+  // guard.ts はセッション API を import しない(root は @/wiring/pageGuard、子は親の extend で作る)
+  assert.deepEqual(await lintAt("src/app/foo/guard.ts", SESSION), err);
   assert.deepEqual(await lintAt("src/app/foo/_screen/loader.ts", SESSION), []);
   assert.deepEqual(await lintAt("src/app/foo/_components/loader.ts", SESSION), []);
   // API: 主体は Factory の ctx.user。token だけのセッション・Cookie の解析も止める(D8 K4)

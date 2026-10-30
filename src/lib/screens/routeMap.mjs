@@ -22,6 +22,8 @@ export const routeStateGatedOff = (pattern) => `gated-off(${pattern})`;
 
 /** 方針の出どころとして拾うガード関数(layout・ルート内 loader の中の呼び出し) */
 export const GUARD_FUNCTIONS = [
+  // 範囲の guard.ts の guard()(layout が 1 行で呼ぶ。印の verified 化は検査の指令で鎖を辿る形に作り直す)
+  "guard",
   "authGuard",
   "principalGuard",
   "deviceGuard",

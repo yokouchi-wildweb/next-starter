@@ -7,10 +7,11 @@ import type { SessionUser } from "@/features/core/auth/entities/session";
 import { getSessionUser } from "@/features/core/auth/services/server/session/getSessionUser";
 import { USER_AVAILABLE_STATUSES, getRolesByCategory } from "@/features/core/user/constants";
 import { hasActiveUserWithRoles } from "@/features/core/user/services/server/finders/hasActiveUserWithRoles";
-import type { UserRoleType, UserStatus } from "@/features/core/user/types";
+import type { RoleCategory, UserRoleType, UserStatus } from "@/features/core/user/types";
+import type { DomainApiAccessRule } from "@/lib/domain";
 
-/** proxy.ts で付与された x-pathname ヘッダーから現在のパスを取得する */
-async function getRequestPathname(): Promise<string | null> {
+/** proxy.ts で付与された x-pathname ヘッダーから現在のパスを取得する(ページの守りの束も使う) */
+export async function getRequestPathname(): Promise<string | null> {
   const headersList = await headers();
   return headersList.get("x-pathname");
 }
@@ -90,4 +91,18 @@ export async function hasAdminUser(
   roles: readonly UserRoleType[] = getRolesByCategory("admin"),
 ): Promise<boolean> {
   return hasActiveUserWithRoles(roles);
+}
+
+/**
+ * access(authenticated / {roles, roleCategories})を満たしうる利用者が 1 人以上いるかを返す
+ * (ページの守りの setup 誘導の判定。src/wiring/pageGuard.ts が guard の作り手へ渡す。真偽値だけ)。
+ * ロールの指定は roles と roleCategories のロールの和。authenticated は全ロール。public / none は常に true。
+ */
+export async function hasUserForAccess(rule: DomainApiAccessRule): Promise<boolean> {
+  if (rule === "public" || rule === "none") return true;
+  const roles =
+    rule === "authenticated"
+      ? [...getRolesByCategory("admin"), ...getRolesByCategory("user")]
+      : [...(rule.roles ?? []), ...(rule.roleCategories ?? []).flatMap((category) => getRolesByCategory(category as RoleCategory))];
+  return hasActiveUserWithRoles(roles as UserRoleType[]);
 }

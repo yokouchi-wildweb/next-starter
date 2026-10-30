@@ -5,13 +5,13 @@
 // 強さ: 両規則とも upstream・下流の全 Tier で error。セキュリティの検査は所有で強さを変えない(前例 hidden-columns)。
 //
 // ── layout-no-server-data(M4: layout はサーバー側でデータを取らない) ──
-// 対象: src/app/**/layout.tsx と src/app/**/_layout/**(layout の組み立て)。_layout/guard.ts は対象外(方針の定義場所)。
+// 対象: src/app/**/layout.tsx と src/app/**/_layout/**(layout の組み立て)。範囲の方針 guard.ts は layout の隣にあり対象外。
 // 禁止する import:
 //   - `services/server` を含むパス(絶対・相対。共有 admin loader の features/core/admin/services/server/loaders も含む)
 //     例外: @/features/core/auth/services/server/authorization(authGuard・hasAdminUser 等の認可の関数)だけは許可
 //   - DB: @/lib/drizzle・drizzle-orm・@/lib/firebase/server・firebase-admin(それぞれ配下も)
 //   - loader: 末尾が /loader のパス(./_screen/loader 等)
-//   (session/getSessionUser 等の直読みも services/server なので止まる。layout のセッション参照は authGuard 経由だけ)
+//   (session/getSessionUser 等の直読みも services/server なので止まる。layout のセッション参照は隣の guard.ts の guard() だけ)
 // 通すもの: 型だけの import / client 部品(hooks → API で取るのは対象外)
 // 理由: layout はページ・loader と並列に描かれ、ガードを置いた layout の内側の layout もそのガードで守られない。
 //   layout で取ったデータは「ガードを通った後のデータ」にならないので、取得は loader(と将来の guard.ts)に寄せる。
@@ -21,7 +21,8 @@
 // ── session-api-callsite(M3: セッション・ガード API を呼べる場所を役割で限る) ──
 // 対象: src/app(src/app/api/** の route と補助ファイルを含む)と UI 側(src/components・src/features/**/components・
 //   src/features/**/hooks・src/hooks)。
-// 許可(eslint.config.mjs の ignores): layout・_layout/(組み立てと guard.ts)・loader.ts(_screen/・_components/ とも)。
+// 許可(eslint.config.mjs の ignores): layout・_layout/(組み立て)・loader.ts(_screen/・_components/ とも)。guard.ts は対象だが
+//   セッション API を import しない(root は @/wiring/pageGuard、子は親の extend で作る)。
 //   API には許可の場所が無い: 主体は API の Factory(@/wiring/apiRoute)が 1 回だけ DB 同期で解いて ctx.user で渡す(D8 K4)。
 //   token だけのセッション・lib/jwt の Cookie の解析もここで止まる。
 //   共有 admin loader(features/core/admin/services/server/loaders)・proxy・services/server・lib/routeFactory は

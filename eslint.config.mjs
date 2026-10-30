@@ -223,17 +223,17 @@ const config = [
   },
   // layout はサーバー側でデータを取らない(M4。詳細: eslint-rules/page-authz.mjs, src/features/core/auth/README.md)。
   // layout は並列に描かれ、ガードの内側の layout も守られないため、取得は loader へ。許すのは authorization の関数だけ。
-  // _layout/guard.ts は方針の定義場所なので対象外。セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。
+  // 範囲の方針(guard.ts)は layout の隣に置き、layout は guard() の 1 行で呼ぶ(この規則の対象外)。
+  // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。
   {
     files: ["src/app/**/layout.{ts,tsx}", "src/app/**/_layout/**/*.{ts,tsx}"],
-    ignores: ["src/app/**/_layout/guard.ts"],
     plugins: { "page-authz": pageAuthzPlugin },
     rules: {
       "page-authz/layout-no-server-data": "error",
     },
   },
   // セッション・ガード API(authGuard・getSessionUser・requireCurrentUser 等)を呼べる場所を役割で限る(M3)。
-  // 対象 = src/app(src/app/api/** を含む)と UI 側。許可 = layout・_layout/(組み立てと guard.ts)・loader.ts(下の ignores)。
+  // 対象 = src/app(src/app/api/** を含む)と UI 側。許可 = layout・_layout/(組み立て)・loader.ts(下の ignores)。guard.ts はセッション API を import しない(@/wiring/pageGuard で作る)。
   // API には許可の場所が無い(主体は Factory の ctx.user。token だけのセッション・Cookie の解析も不可。D8 K4)。
   // AuthSessionProvider は認証基盤の名前付き例外(Cookie からセッションを解決して client に渡す root layout の Provider)。
   // セキュリティの検査なので upstream・下流とも error(fork 分岐なし)。詳細: eslint-rules/page-authz.mjs

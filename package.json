@@ -84,6 +84,7 @@
     "test:fork-ids": "node --test src/lib/forkOwnership/forkIds.test.mjs",
     "test:import-boundaries": "node --test eslint-rules/import-boundaries.test.mjs",
     "test:route-http-export": "node --test eslint-rules/route-http-export.test.mjs",
+    "test:page-guard": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/pageGuard/createPageGuard.test.mts",
     "test:route-factory": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/lib/routeFactory/createApiRoute.test.mts",
     "test:device-route": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --experimental-test-module-mocks --test src/lib/routeFactory/createDeviceRoute.test.mts src/features/core/pairedDevice/services/server/session/principalGuard.test.mts",
     "test:form-defaults": "npx tsx --import ./scripts/test/serverOnlyStub.mjs --test src/components/Form/FieldRenderer/defaultValueBuilder.test.ts",
